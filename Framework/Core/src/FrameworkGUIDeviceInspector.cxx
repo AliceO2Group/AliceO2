@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "FrameworkGUIDeviceInspector.h"
+#include "DataProcessorInfo.h"
 
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceSpec.h"
@@ -18,6 +19,7 @@
 
 #include "DebugGUI/imgui.h"
 #include <csignal>
+#include <cstdlib>
 
 namespace o2
 {
@@ -56,19 +58,19 @@ void deviceInfoTable(DeviceInfo const& info, DeviceMetricsInfo const& metrics)
   }
 }
 
-void optionsTable(const DeviceSpec& spec, const DeviceControl& control)
+void optionsTable(const char* label, std::vector<ConfigParamSpec> const& options, const DeviceControl& control)
 {
-  if (spec.options.empty()) {
+  if (options.empty()) {
     return;
   }
-  if (ImGui::CollapsingHeader("Options:", ImGuiTreeNodeFlags_DefaultOpen)) {
+  if (ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen)) {
     ImGui::Columns(2);
-    auto labels = { "Name", "Value" };
+    auto labels = {"Name", "Value"};
     for (auto& label : labels) {
       ImGui::TextUnformatted(label);
       ImGui::NextColumn();
     }
-    for (auto& option : spec.options) {
+    for (auto& option : options) {
       ImGui::TextUnformatted(option.name.c_str());
       ImGui::NextColumn();
       auto currentValueIt = control.options.find(option.name);
@@ -99,16 +101,46 @@ void optionsTable(const DeviceSpec& spec, const DeviceControl& control)
       ImGui::NextColumn();
     }
   }
+
   ImGui::Columns(1);
 }
 
-void displayDeviceInspector(DeviceSpec const& spec, DeviceInfo const& info, DeviceMetricsInfo const& metrics, DeviceControl& control)
+void displayDeviceInspector(DeviceSpec const& spec,
+                            DeviceInfo const& info,
+                            DeviceMetricsInfo const& metrics,
+                            DataProcessorInfo const& metadata,
+                            DeviceControl& control)
 {
   ImGui::Text("Name: %s", spec.name.c_str());
+  ImGui::Text("Executable: %s", metadata.executable.c_str());
   ImGui::Text("Pid: %d", info.pid);
+  ImGui::Text("Rank: %zu/%zu%%%zu", spec.rank, spec.nSlots, spec.inputTimesliceId);
+
+  if (ImGui::Button("Attach debugger")) {
+    std::string pid = std::to_string(info.pid);
+    setenv("O2DEBUGGEDPID", pid.c_str(), 1);
+#ifdef __APPLE__
+    std::string defaultAppleDebugCommand =
+      "osascript -e 'tell application \"Terminal\" to activate'"
+      " -e 'tell application \"Terminal\" to do script \"lldb -p " +
+      pid + "\"'";
+    setenv("O2DPLDEBUG", defaultAppleDebugCommand.c_str(), 0);
+#else
+    setenv("O2DPLDEBUG", "xterm -hold -e gdb attach $O2DEBUGGEDPID &", 0);
+#endif
+    int retVal = system(getenv("O2DPLDEBUG"));
+    (void)retVal;
+  }
 
   deviceInfoTable(info, metrics);
-  optionsTable(spec, control);
+  optionsTable("Options", spec.options, control);
+  optionsTable("Workflow Options", metadata.workflowOptions, control);
+  if (ImGui::CollapsingHeader("Command line arguments", ImGuiTreeNodeFlags_DefaultOpen)) {
+    for (auto& arg : metadata.cmdLineArgs) {
+      ImGui::Text("%s", arg.c_str());
+    }
+  }
+
   if (ImGui::CollapsingHeader("Channels", ImGuiTreeNodeFlags_DefaultOpen)) {
     ImGui::Text("# channels: %lu", spec.inputChannels.size() + spec.outputChannels.size());
     ChannelsTableHelper::channelsTable("Inputs:", spec.inputChannels);

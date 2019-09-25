@@ -69,8 +69,7 @@ BOOST_AUTO_TEST_CASE(HeatmapTest)
     "data_relayer",
     1,
     1,
-    { 0 }
-  };
+    {0}};
 
   ImVec2 size(100, 100);
 
@@ -87,8 +86,7 @@ BOOST_AUTO_TEST_CASE(HeatmapTest)
       "[METRIC] data_relayer/0,0 1 1789372894 hostname=test.cern.ch"
       "[METRIC] data_relayer/0,1 1 1789372894 hostname=test.cern.ch"
       "[METRIC] data_relayer/0,2 1 1789372894 hostname=test.cern.ch"
-      "[METRIC] data_relayer/0,3 1 1789372894 hostname=test.cern.ch"
-    };
+      "[METRIC] data_relayer/0,3 1 1789372894 hostname=test.cern.ch"};
     for (auto& metric : dummyHeatmapMetrics) {
       auto result = DeviceMetricsHelper::parseMetric(metric, match);
       // Add the first metric to the store
@@ -118,12 +116,17 @@ BOOST_AUTO_TEST_CASE(DeviceInspector)
   DeviceInfo info;
   DeviceControl control;
   DeviceMetricsInfo metrics;
+  DataProcessorInfo metadata = DataProcessorInfo{
+    "foo",
+    "bar",
+    {},
+    {}};
 
   for (int n = 0; n < 50; n++) {
     io.DisplaySize = ImVec2(1920, 1080);
     io.DeltaTime = 1.0f / 60.0f;
     ImGui::NewFrame();
-    gui::displayDeviceInspector(spec, info, metrics, control);
+    gui::displayDeviceInspector(spec, info, metrics, metadata, control);
     ImGui::Render();
   }
   ImGui::DestroyContext();
@@ -150,10 +153,10 @@ BOOST_AUTO_TEST_CASE(DevicesGraph)
       {},
       {},
       {},
-      { ConfigParamSpec{ "global-config", VariantType::String, { "A global config option for all processor specs" } },
-        ConfigParamSpec{ "a-boolean", VariantType::Bool, true, { "A boolean which we pick by default" } },
-        ConfigParamSpec{ "an-int", VariantType::Int, 10, { "An int for which we pick up the default" } },
-        ConfigParamSpec{ "a-double", VariantType::Double, 11., { "A double for which we pick up the override" } } },
+      {ConfigParamSpec{"global-config", VariantType::String, {"A global config option for all processor specs"}},
+       ConfigParamSpec{"a-boolean", VariantType::Bool, true, {"A boolean which we pick by default"}},
+       ConfigParamSpec{"an-int", VariantType::Int, 10, {"An int for which we pick up the default"}},
+       ConfigParamSpec{"a-double", VariantType::Double, 11., {"A double for which we pick up the override"}}},
       AlgorithmSpec{},
       {},
       {},
@@ -161,7 +164,7 @@ BOOST_AUTO_TEST_CASE(DevicesGraph)
       0,
       1,
       0,
-      CompletionPolicy{} });
+      CompletionPolicy{}});
 
   std::vector<DeviceInfo> infos;
   infos.push_back(
@@ -178,6 +181,14 @@ BOOST_AUTO_TEST_CASE(DevicesGraph)
       false,
       Metric2DViewIndex{}});
 
+  std::vector<DataProcessorInfo> metadata;
+  metadata.emplace_back(
+    DataProcessorInfo{
+      "foo",
+      "bar",
+      {},
+      {}});
+
   std::vector<DeviceControl> controls;
   controls.push_back(
     DeviceControl{});
@@ -187,7 +198,7 @@ BOOST_AUTO_TEST_CASE(DevicesGraph)
     io.DisplaySize = ImVec2(1920, 1080);
     io.DeltaTime = 1.0f / 60.0f;
     ImGui::NewFrame();
-    gui::showTopologyNodeGraph(state, infos, specs, controls, metrics);
+    gui::showTopologyNodeGraph(state, infos, specs, metadata, controls, metrics);
     ImGui::Render();
   }
   ImGui::DestroyContext();

@@ -34,34 +34,35 @@ class TString;
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 class Hit;
 }
-}
+} // namespace o2
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 class GeometryTGeo;
 }
-}
+} // namespace o2
 namespace o2
 {
-namespace ITS
+namespace its
 {
 class V3Layer;
 }
-}
+} // namespace o2
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 class V3Layer;
+class V3Services;
 
-class Detector : public o2::Base::DetImpl<Detector>
+class Detector : public o2::base::DetImpl<Detector>
 {
  public:
   enum Model {
@@ -103,7 +104,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   void Register() override;
 
   /// Gets the produced collections
-  std::vector<o2::ITSMFT::Hit>* getHits(Int_t iColl) const
+  std::vector<o2::itsmft::Hit>* getHits(Int_t iColl) const
   {
     if (iColl == 0) {
       return mHits;
@@ -171,7 +172,7 @@ class Detector : public o2::Base::DetImpl<Detector>
                                   Double_t& tilt, Double_t& lthick, Double_t& mthick, UInt_t& dettype) const;
 
   /// This method is an example of how to add your own point of type Hit to the clones array
-  o2::ITSMFT::Hit* addHit(int trackID, int detID, const TVector3& startPos, const TVector3& endPos,
+  o2::itsmft::Hit* addHit(int trackID, int detID, const TVector3& startPos, const TVector3& endPos,
                           const TVector3& startMom, double startE, double endTime, double eLoss,
                           unsigned char startStatus, unsigned char endStatus);
 
@@ -224,9 +225,8 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   /// Return Chip Volume UID
   /// \param id volume id
-  Int_t chipVolUID(Int_t id) const { return o2::Base::GeometryManager::getSensID(o2::detectors::DetID::ITS, id); }
+  Int_t chipVolUID(Int_t id) const { return o2::base::GeometryManager::getSensID(o2::detectors::DetID::ITS, id); }
 
-  void SetSpecialPhysicsCuts() override { ; }
   void EndOfEvent() override;
 
   void FinishPrimary() override { ; }
@@ -272,7 +272,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   Double_t mWrapperMinRadius[sNumberOfWrapperVolumes]; //! Min radius of wrapper volume
   Double_t mWrapperMaxRadius[sNumberOfWrapperVolumes]; //! Max radius of wrapper volume
   Double_t mWrapperZSpan[sNumberOfWrapperVolumes];     //! Z span of wrapper volume
-  Int_t mWrapperLayerId[sNumberLayers]; //! Id of wrapper layer to which layer belongs (-1 if not wrapped)
+  Int_t mWrapperLayerId[sNumberLayers];                //! Id of wrapper layer to which layer belongs (-1 if not wrapped)
 
   Bool_t mTurboLayer[sNumberLayers];          //! True for "turbo" layers
   Double_t mLayerPhi0[sNumberLayers];         //! Vector of layer's 1st stave phi in lab
@@ -287,7 +287,7 @@ class Detector : public o2::Base::DetImpl<Detector>
   Int_t mBuildLevel[sNumberLayers];           //! Vector of Material Budget Studies
 
   /// Container for hit data
-  std::vector<o2::ITSMFT::Hit>* mHits;
+  std::vector<o2::itsmft::Hit>* mHits;
 
   /// Creates an air-filled wrapper cylindrical volume
   TGeoVolume* createWrapperVolume(const Int_t nLay);
@@ -301,6 +301,10 @@ class Detector : public o2::Base::DetImpl<Detector>
   /// Define the sensitive volumes of the geometry
   void defineSensitiveVolumes();
 
+  /// Creates the Inner Barrel Services
+  /// \param motherVolume the TGeoVolume owing the volume structure
+  void createInnerBarrelServices(TGeoVolume* motherVolume);
+
   Detector(const Detector&);
 
   Detector& operator=(const Detector&);
@@ -308,29 +312,30 @@ class Detector : public o2::Base::DetImpl<Detector>
   Model mStaveModelInnerBarrel;      //! The stave model for the Inner Barrel
   Model mStaveModelOuterBarrel;      //! The stave model for the Outer Barrel
   V3Layer* mGeometry[sNumberLayers]; //! Geometry
+  V3Services* mServicesGeometry;     //! Services Geometry
 
   template <typename Det>
-  friend class o2::Base::DetImpl;
-  ClassDefOverride(Detector, 1)
+  friend class o2::base::DetImpl;
+  ClassDefOverride(Detector, 1);
 };
 
 // Input and output function for standard C++ input/output.
 std::ostream& operator<<(std::ostream& os, Detector& source);
 
 std::istream& operator>>(std::istream& os, Detector& source);
-}
-}
+} // namespace its
+} // namespace o2
 
 #ifdef USESHM
 namespace o2
 {
-namespace Base
+namespace base
 {
 template <>
-struct UseShm<o2::ITS::Detector> {
+struct UseShm<o2::its::Detector> {
   static constexpr bool value = true;
 };
-} // namespace Base
+} // namespace base
 } // namespace o2
 #endif
 

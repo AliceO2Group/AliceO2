@@ -30,15 +30,15 @@ class TGeoPNEntry;
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
-class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
+class GeometryTGeo : public o2::itsmft::GeometryTGeo
 {
  public:
   typedef o2::Transform3D Mat3D;
-  using DetMatrixCache::getMatrixT2L;
   using DetMatrixCache::getMatrixL2G;
   using DetMatrixCache::getMatrixT2G;
+  using DetMatrixCache::getMatrixT2L;
 
   static GeometryTGeo* Instance()
   {
@@ -57,19 +57,19 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   // NEVER use it, it will throw exception if the class instance was already
   // created. Use GeometryTGeo::Instance() instead
   GeometryTGeo(Bool_t build = kFALSE, Int_t loadTrans = 0
-               /*o2::Base::utils::bit2Mask(o2::TransformType::T2L, // default transformations to load
+               /*o2::base::utils::bit2Mask(o2::TransformType::T2L, // default transformations to load
                                            o2::TransformType::T2G,
                                            o2::TransformType::L2G)*/
-               );
+  );
 
   /// Default destructor
-  ~GeometryTGeo() override = default;
+  ~GeometryTGeo() override;
 
   GeometryTGeo(const GeometryTGeo& src) = delete;
   GeometryTGeo& operator=(const GeometryTGeo& geom) = delete;
 
   // implement filling of the matrix cache
-  using o2::ITSMFT::GeometryTGeo::fillMatrixCache;
+  using o2::itsmft::GeometryTGeo::fillMatrixCache;
   void fillMatrixCache(Int_t mask) override;
 
   /// Exract MFT parameters from TGeo
@@ -104,6 +104,12 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   {
     Int_t ladderID = mLadderIndex2Id[disk][ladder];
     return extractNumberOfSensorsPerLadder(half, disk, ladderID);
+  }
+
+  /// Returns the ladder geometry ID from the matrix ID
+  Int_t getLadderID(Int_t disk, Int_t ladder) const
+  {
+    return mLadderIndex2Id[disk][ladder];
   }
 
  protected:
@@ -147,6 +153,7 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
 
   /// In a disk start numbering the sensors from zero
   Int_t getFirstSensorIndex(Int_t disk) const { return (disk == 0) ? 0 : mLastSensorIndex[disk - 1] + 1; }
+
  protected:
   static constexpr Int_t MinSensorsPerLadder = 2;
   static constexpr Int_t MaxSensorsPerLadder = 5;
@@ -173,11 +180,11 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   static std::string sSensorName; ///<
 
  private:
-  static std::unique_ptr<o2::MFT::GeometryTGeo> sInstance; ///< singleton instance
+  static std::unique_ptr<o2::mft::GeometryTGeo> sInstance; ///< singleton instance
 
   ClassDefOverride(GeometryTGeo, 1); // MFT geometry based on TGeo
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

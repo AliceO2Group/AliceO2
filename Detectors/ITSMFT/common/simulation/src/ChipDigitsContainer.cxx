@@ -18,13 +18,13 @@
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include <TRandom.h>
 
-using namespace o2::ITSMFT;
-using Segmentation = o2::ITSMFT::SegmentationAlpide;
+using namespace o2::itsmft;
+using Segmentation = o2::itsmft::SegmentationAlpide;
 
-ClassImp(o2::ITSMFT::ChipDigitsContainer);
+ClassImp(o2::itsmft::ChipDigitsContainer);
 
 //______________________________________________________________________
-void ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, const o2::ITSMFT::DigiParams* params)
+void ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, const o2::itsmft::DigiParams* params)
 {
   UInt_t row = 0;
   UInt_t col = 0;
@@ -42,7 +42,7 @@ void ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, const o2::ITSMF
       // RS TODO: why the noise was added with 0 charge? It should be above the threshold!
       auto key = getOrderingKey(rof, row, col);
       if (!findDigit(key)) {
-        addDigit(key, rof, row, col, nel, o2::MCCompLabel(-1, 0, 0));
+        addDigit(key, rof, row, col, nel, o2::MCCompLabel(true));
       }
     }
   }

@@ -26,7 +26,7 @@ BOOST_AUTO_TEST_CASE(DetID_test)
     BOOST_CHECK(id == det);
 
     // test that all names are initialized
-    BOOST_CHECK(std::strlen(det.getName()) == 3);
+    BOOST_CHECK(std::strlen(det.getName()) <= 3 && std::strlen(det.getName()) > 0);
   }
 
   {

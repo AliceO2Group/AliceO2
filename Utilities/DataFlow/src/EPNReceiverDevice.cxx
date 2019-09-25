@@ -19,17 +19,18 @@
 #include "DataFlow/EPNReceiverDevice.h"
 #include "Headers/DataHeader.h"
 #include "Headers/SubframeMetadata.h"
+#include "O2Device/Compatibility.h"
 #include "TimeFrame/TimeFrame.h"
 
 #include <iomanip>
 
 using namespace std;
 using namespace std::chrono;
-using namespace o2::Devices;
-using SubframeMetadata = o2::DataFlow::SubframeMetadata;
-using TPCTestPayload = o2::DataFlow::TPCTestPayload;
-using TPCTestCluster = o2::DataFlow::TPCTestCluster;
-using IndexElement = o2::DataFormat::IndexElement;
+using namespace o2::devices;
+using SubframeMetadata = o2::data_flow::SubframeMetadata;
+using TPCTestPayload = o2::data_flow::TPCTestPayload;
+using TPCTestCluster = o2::data_flow::TPCTestCluster;
+using IndexElement = o2::dataformats::IndexElement;
 
 void EPNReceiverDevice::InitTask()
 {
@@ -91,7 +92,7 @@ void EPNReceiverDevice::Run()
   std::multimap<TimeframeId, IndexElement> index;
   std::multimap<TimeframeId, FlpId> flpIds;
 
-  while (CheckCurrentState(RUNNING)) {
+  while (compatibility::FairMQ13<FairMQDevice>::IsRunning(this)) {
     FairMQParts subtimeframeParts;
     if (Receive(subtimeframeParts, mInChannelName, 0, 100) <= 0)
       continue;
@@ -101,18 +102,16 @@ void EPNReceiverDevice::Run()
     const auto* dh = o2::header::get<header::DataHeader*>(subtimeframeParts.At(0)->GetData());
     assert(strncmp(dh->dataDescription.str, "SUBTIMEFRAMEMD", 16) == 0);
     SubframeMetadata* sfm = reinterpret_cast<SubframeMetadata*>(subtimeframeParts.At(1)->GetData());
-    id = o2::DataFlow::timeframeIdFromTimestamp(sfm->startTime, sfm->duration);
+    id = o2::data_flow::timeframeIdFromTimestamp(sfm->startTime, sfm->duration);
     auto flpId = sfm->flpIndex;
 
-    if (mDiscardedSet.find(id) == mDiscardedSet.end())
-    {
-      if (mTimeframeBuffer.find(id) == mTimeframeBuffer.end())
-      {
+    if (mDiscardedSet.find(id) == mDiscardedSet.end()) {
+      if (mTimeframeBuffer.find(id) == mTimeframeBuffer.end()) {
         // if this is the first part with this ID, save the receive time.
         mTimeframeBuffer[id].start = steady_clock::now();
       }
       flpIds.insert(std::make_pair(id, flpId));
-      LOG(INFO) << "Timeframe ID " << id << " for startTime " << sfm->startTime  << "\n";
+      LOG(INFO) << "Timeframe ID " << id << " for startTime " << sfm->startTime << "\n";
       // If the received ID has not previously been discarded, store
       // the data part in the buffer For the moment we just concatenate
       // the subtimeframes and add an index for their description at
@@ -120,19 +119,15 @@ void EPNReceiverDevice::Run()
       // every two parts to populate the index. Moreover we know that
       // the SubframeMetadata is always in the second part, so we can
       // extract the flpId from there.
-      for (size_t i = 0; i < subtimeframeParts.Size(); ++i)
-      {
-        if (i % 2 == 0)
-        {
+      for (size_t i = 0; i < subtimeframeParts.Size(); ++i) {
+        if (i % 2 == 0) {
           const auto* adh = o2::header::get<header::DataHeader*>(subtimeframeParts.At(i)->GetData());
-          auto ie = std::make_pair(*adh, index.count(id)*2);
+          auto ie = std::make_pair(*adh, index.count(id) * 2);
           index.insert(std::make_pair(id, ie));
         }
         mTimeframeBuffer[id].parts.AddPart(move(subtimeframeParts.At(i)));
       }
-    }
-    else
-    {
+    } else {
       // if received ID has been previously discarded.
       LOG(WARN) << "Received part from an already discarded timeframe with id " << id;
     }
@@ -146,17 +141,17 @@ void EPNReceiverDevice::Run()
       tih.dataOrigin = o2::header::DataOrigin("EPN");
       tih.subSpecification = 0;
       tih.payloadSize = index.count(id) * sizeof(flattenedIndex.front());
-      void *indexData = malloc(tih.payloadSize);
+      void* indexData = malloc(tih.payloadSize);
       auto indexRange = index.equal_range(id);
-      for (auto ie = indexRange.first; ie != indexRange.second; ++ie)
-      {
+      for (auto ie = indexRange.first; ie != indexRange.second; ++ie) {
         flattenedIndex.push_back(ie->second);
       }
       memcpy(indexData, flattenedIndex.data(), tih.payloadSize);
 
       mTimeframeBuffer[id].parts.AddPart(NewSimpleMessage(tih));
-      mTimeframeBuffer[id].parts.AddPart(NewMessage(indexData, tih.payloadSize,
-                         [](void* data, void* hint){ free(data); }, nullptr));
+      mTimeframeBuffer[id].parts.AddPart(NewMessage(
+        indexData, tih.payloadSize,
+        [](void* data, void* hint) { free(data); }, nullptr));
       // LOG(INFO) << "Collected all parts for timeframe #" << id;
       // when all parts are collected send then to the output channel
       Send(mTimeframeBuffer[id].parts, mOutChannelName);

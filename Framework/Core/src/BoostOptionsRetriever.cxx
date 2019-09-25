@@ -10,7 +10,11 @@
 
 #include "Framework/BoostOptionsRetriever.h"
 #include "Framework/ConfigParamSpec.h"
+
+#include "PropertyTreeHelpers.h"
+
 #include <boost/program_options.hpp>
+
 #include <string>
 #include <vector>
 #include <cstdlib>
@@ -24,19 +28,19 @@ namespace o2
 namespace framework
 {
 
-BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> const&specs,
+BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> const& specs,
                                              bool ignoreUnknown,
-                                             int &argc, char **&argv)
-: mVariables{},
-  mDescription{"ALICE O2 Framework - Available options"},
-  mIgnoreUnknown{ignoreUnknown}
+                                             int& argc, char**& argv)
+  : mStore{},
+    mDescription{"ALICE O2 Framework - Available options"},
+    mIgnoreUnknown{ignoreUnknown}
 {
   auto options = mDescription.add_options();
-  for (auto & spec : specs) {
-    const char *name = spec.name.c_str();
-    const char *help = spec.help.c_str();
+  for (auto& spec : specs) {
+    const char* name = spec.name.c_str();
+    const char* help = spec.help.c_str();
     // FIXME: propagate default value?
-    switch(spec.type) {
+    switch (spec.type) {
       case VariantType::Int:
       case VariantType::Int64:
         options = options(name, bpo::value<int>()->default_value(spec.defaultValue.get<int>()), help);
@@ -48,7 +52,7 @@ BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> const&
         options = options(name, bpo::value<double>()->default_value(spec.defaultValue.get<double>()), help);
         break;
       case VariantType::String:
-        options = options(name, bpo::value<std::string>()->default_value(spec.defaultValue.get<const char *>()), help);
+        options = options(name, bpo::value<std::string>()->default_value(spec.defaultValue.get<const char*>()), help);
         break;
       case VariantType::Bool:
         options = options(name, bpo::value<bool>()->zero_tokens()->default_value(spec.defaultValue.get<bool>()), help);
@@ -58,44 +62,42 @@ BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> const&
         break;
     };
   }
-  parseArgs(argc, argv);
+
+  auto parsed = mIgnoreUnknown ? bpo::command_line_parser(argc, argv).options(mDescription).allow_unregistered().run()
+                               : bpo::parse_command_line(argc, argv, mDescription);
+  bpo::variables_map vmap;
+  bpo::store(parsed, vmap);
+  PropertyTreeHelpers::populate(specs, mStore, vmap);
 }
 
-void BoostOptionsRetriever::parseArgs(int &argc, char **&argv) {
-  if (mIgnoreUnknown == false) {
-    auto parsed = bpo::parse_command_line(argc, argv, mDescription);
-    bpo::store(parsed, mVariables);
-    bpo::notify(mVariables);
-    return;
-  }
-  auto parsed = bpo::command_line_parser(argc, argv).options(mDescription).allow_unregistered().run();
-  bpo::store(parsed, mVariables);
-
-  bpo::notify(mVariables);
+int BoostOptionsRetriever::getInt(const char* key) const
+{
+  return mStore.get<int>(key);
 }
 
-int BoostOptionsRetriever::getInt(const char *key) const {
-  return mVariables[key].as<int>();
+float BoostOptionsRetriever::getFloat(const char* key) const
+{
+  return mStore.get<float>(key);
 }
 
-float BoostOptionsRetriever::getFloat(const char *key) const {
-  return mVariables[key].as<float>();
+double BoostOptionsRetriever::getDouble(const char* key) const
+{
+  return mStore.get<double>(key);
 }
 
-double BoostOptionsRetriever::getDouble(const char *key) const {
-  return mVariables[key].as<double>();
+bool BoostOptionsRetriever::getBool(const char* key) const
+{
+  return mStore.get<bool>(key);
 }
 
-bool BoostOptionsRetriever::getBool(const char *key) const {
-  return mVariables[key].as<bool>();
+std::string BoostOptionsRetriever::getString(const char* key) const
+{
+  return mStore.get<std::string>(key);
 }
 
-std::string BoostOptionsRetriever::getString(const char *key) const {
-  return mVariables[key].as<std::string>();
-}
-
-std::vector<std::string> BoostOptionsRetriever::getVString(const char *key) const {
-  return mVariables[key].as<std::vector<std::string>>();
+boost::property_tree::ptree BoostOptionsRetriever::getPTree(const char* key) const
+{
+  return mStore.get_child(key);
 }
 
 } // namespace framework

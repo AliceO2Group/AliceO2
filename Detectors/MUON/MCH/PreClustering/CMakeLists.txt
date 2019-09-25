@@ -1,44 +1,20 @@
-set(MODULE_NAME "MCHPreClustering")
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-O2_SETUP(NAME ${MODULE_NAME})
+o2_add_library(MCHPreClustering
+               SOURCES src/PreClusterFinder.cxx
+               PUBLIC_LINK_LIBRARIES O2::MCHBase O2::Framework)
 
-set(SRCS
-   src/DumpDigits.cxx
-   src/PreClusterFinder.cxx
-   src/PreClusterFinderDevice.cxx
-)
-
-Set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME mch_preclustering_bucket)
-
-O2_GENERATE_LIBRARY()
-
-# todo we repeat ourselves because the above macro dares deleting the variables we pass to it.
-set(LIBRARY_NAME ${MODULE_NAME})
-set(BUCKET_NAME mch_preclustering_bucket)
-
-# Define application
-Set(Exe_Names
-digit-dumper
-preclusterizer
-)
-
-set(Exe_Source
-src/runDumpDigits.cxx
-src/runPreClusterFinder.cxx
-)
-
-list(LENGTH Exe_Names _length)
-math(EXPR _length ${_length}-1)
-
-ForEach (_file RANGE 0 ${_length})
-list(GET Exe_Names ${_file} _name)
-list(GET Exe_Source ${_file} _src)
-O2_GENERATE_EXECUTABLE(
-EXE_NAME ${_name}
-SOURCES ${_src}
-MODULE_LIBRARY_NAME ${LIBRARY_NAME}
-BUCKET_NAME ${BUCKET_NAME}
-)
-EndForEach (_file RANGE 0 ${_length})
-
+o2_add_executable(preclusterizer-workflow
+                  COMPONENT_NAME mch
+                  SOURCES src/PreClusterizerWorkflow.cxx
+                          src/DigitSamplerSpec.cxx src/PreClusterFinderSpec.cxx
+                          src/PreClusterSinkSpec.cxx
+                  PUBLIC_LINK_LIBRARIES O2::MCHPreClustering)

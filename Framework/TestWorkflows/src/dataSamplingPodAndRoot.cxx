@@ -20,17 +20,20 @@ void customize(std::vector<ChannelConfigurationPolicy>& policies)
   DataSampling::CustomizeInfrastructure(policies);
 }
 
-#include <iostream>
-
-#include <boost/algorithm/string.hpp>
 #include "Framework/InputSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/runDataProcessing.h"
 #include "Framework/TMessageSerializer.h"
-#include "FairMQLogger.h"
+#include "Framework/DataSamplingHeader.h"
+#include "Framework/Logger.h"
 #include <TClonesArray.h>
 #include <TH1F.h>
 #include <TString.h>
+
+#include <boost/algorithm/string.hpp>
+
+#include <chrono>
+#include <iostream>
 
 struct FakeCluster {
   float x;
@@ -50,40 +53,37 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   DataProcessorSpec podDataProducer{
     "podDataProducer",
     Inputs{},
-    { OutputSpec{ "TPC", "CLUSTERS", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "CLUSTERS", 0, Lifetime::Timeframe } },
+    {OutputSpec{{"TPC", "CLUSTERS"}},
+     OutputSpec{{"ITS", "CLUSTERS"}}},
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm }
-  };
+      (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm}};
 
   DataProcessorSpec processingStage{
     "processingStage",
     Inputs{
-      { "dataTPC", "TPC", "CLUSTERS", 0, Lifetime::Timeframe },
-      { "dataITS", "ITS", "CLUSTERS", 0, Lifetime::Timeframe } },
+      {"dataTPC", {"TPC", "CLUSTERS"}},
+      {"dataITS", {"ITS", "CLUSTERS"}}},
     Outputs{
-      { "TPC", "CLUSTERS_P", 0, Lifetime::Timeframe },
-      { "ITS", "CLUSTERS_P", 0, Lifetime::Timeframe } },
+      {{"TPC", "CLUSTERS_P"}},
+      {{"ITS", "CLUSTERS_P"}}},
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback)someProcessingStageAlgorithm }
-  };
+      (AlgorithmSpec::ProcessCallback)someProcessingStageAlgorithm}};
 
   DataProcessorSpec podSink{
     "podSink",
     Inputs{
-      { "dataTPC-proc", "TPC", "CLUSTERS_P", 0, Lifetime::Timeframe },
-      { "dataITS-proc", "ITS", "CLUSTERS_P", 0, Lifetime::Timeframe } },
+      {"dataTPC-proc", {"TPC", "CLUSTERS_P"}},
+      {"dataITS-proc", {"ITS", "CLUSTERS_P"}}},
     Outputs{},
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback)someSinkAlgorithm }
-  };
+      (AlgorithmSpec::ProcessCallback)someSinkAlgorithm}};
 
   // clang-format off
   DataProcessorSpec qcTaskTpc{
     "qcTaskTpc",
     Inputs{
-      { "TPC_CLUSTERS_S",   "DS", "simpleQcTask-0",   0, Lifetime::Timeframe },
-      { "TPC_CLUSTERS_P_S", "DS", "simpleQcTask-1", 0, Lifetime::Timeframe }
+      { "TPC_CLUSTERS_S",   {"DS", "simpleQcTask-0"}},
+      { "TPC_CLUSTERS_P_S", {"DS", "simpleQcTask-1"}}
     },
     Outputs{},
     AlgorithmSpec{
@@ -92,10 +92,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         auto inputDataTpcProcessed = reinterpret_cast<const FakeCluster*>(ctx.inputs().get(
           "TPC_CLUSTERS_P_S").payload);
 
-        const auto* header = o2::header::get<DataHeader*>(ctx.inputs().get("TPC_CLUSTERS_S").header);
+        const auto* header = ctx.inputs().get("TPC_CLUSTERS_S").header;
+        const auto* dataHeader = o2::header::get<DataHeader*>(header);
 
         bool dataGood = true;
-        for (int j = 0; j < header->payloadSize / sizeof(FakeCluster); ++j) {
+        for (int j = 0; j < dataHeader->payloadSize / sizeof(FakeCluster); ++j) {
           float diff = std::abs(-inputDataTpc[j].x - inputDataTpcProcessed[j].x) +
                        std::abs(2 * inputDataTpc[j].y - inputDataTpcProcessed[j].y) +
                        std::abs(inputDataTpc[j].z * inputDataTpc[j].q - inputDataTpcProcessed[j].z) +
@@ -107,6 +108,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         }
 
         LOG(INFO) << "qcTaskTPC - received data is " << (dataGood ? "correct" : "wrong");
+
+        const auto* dsHeader = o2::header::get<DataSamplingHeader*>(header);
+        if (dsHeader) {
+          LOG(INFO) << "Matching messages seen by Dispatcher: " << dsHeader->totalEvaluatedMessages
+                    << ", accepted: " << dsHeader->totalAcceptedMessages
+                    << ", sample time: " << dsHeader->sampleTimeUs
+                    << ", device ID: " << dsHeader->deviceID.str;
+        } else {
+          LOG(ERROR) << "DataSamplingHeader missing!";
+        }
+
       }
     }
   };
@@ -120,7 +132,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     },
     AlgorithmSpec{
       [](ProcessingContext& ctx) {
-        sleep(1);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
         // Create an histogram
         auto& singleHisto = ctx.outputs().make<TH1F>(Output{ "TST", "HISTOS", 0 }, "h1", "test", 100, -10., 10.);
         auto& aString = ctx.outputs().make<TObjString>(Output{ "TST", "STRING", 0 }, "foo");
@@ -163,8 +175,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   DataProcessorSpec rootQcTask{
     "rootQcTask",
     {
-      InputSpec{ "TST_HISTOS_S", "DS", "rootQcTask-0", 0, Lifetime::Timeframe },
-      InputSpec{ "TST_STRING_S", "DS", "rootQcTask-1", 0, Lifetime::Timeframe },
+      InputSpec{ "TST_HISTOS_S", {"DS", "rootQcTask-0"}},
+      InputSpec{ "TST_STRING_S", {"DS", "rootQcTask-1"}},
     },
     Outputs{},
     AlgorithmSpec{
@@ -202,17 +214,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   // a non overwriting setenv.
   setenv("BASEDIR", ".", 0);
   std::string configurationSource = std::string("json://") + getenv("BASEDIR") + "/../../O2/Framework/TestWorkflows/exampleDataSamplingConfig.json";
-  DataSampling::GenerateInfrastructure(specs, configurationSource, 2);
+  LOG(INFO) << "Using config source: " << configurationSource;
+  DataSampling::GenerateInfrastructure(specs, configurationSource, 1);
   return specs;
 }
 // clang-format on
 
 void someDataProducerAlgorithm(ProcessingContext& ctx)
 {
-  sleep(1);
+  std::this_thread::sleep_for(std::chrono::seconds(1));
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
-  auto tpcClusters = ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS", 0 }, collectionChunkSize);
+  auto tpcClusters = ctx.outputs().make<FakeCluster>(Output{"TPC", "CLUSTERS", 0}, collectionChunkSize);
   int i = 0;
 
   for (auto& cluster : tpcClusters) {
@@ -224,7 +237,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
     i++;
   }
 
-  auto itsClusters = ctx.outputs().make<FakeCluster>(Output{ "ITS", "CLUSTERS", 0 }, collectionChunkSize);
+  auto itsClusters = ctx.outputs().make<FakeCluster>(Output{"ITS", "CLUSTERS", 0}, collectionChunkSize);
   i = 0;
   for (auto& cluster : itsClusters) {
     assert(i < collectionChunkSize);
@@ -242,9 +255,9 @@ void someProcessingStageAlgorithm(ProcessingContext& ctx)
   const FakeCluster* inputDataIts = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataITS").payload);
 
   auto processedTpcClusters =
-    ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS_P", 0 }, collectionChunkSize);
+    ctx.outputs().make<FakeCluster>(Output{"TPC", "CLUSTERS_P", 0}, collectionChunkSize);
   auto processedItsClusters =
-    ctx.outputs().make<FakeCluster>(Output{ "ITS", "CLUSTERS_P", 0 }, collectionChunkSize);
+    ctx.outputs().make<FakeCluster>(Output{"ITS", "CLUSTERS_P", 0}, collectionChunkSize);
 
   int i = 0;
   for (auto& cluster : processedTpcClusters) {

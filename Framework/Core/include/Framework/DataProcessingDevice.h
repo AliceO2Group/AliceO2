@@ -16,6 +16,7 @@
 #include "Framework/DataAllocator.h"
 #include "Framework/DataRelayer.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/DataProcessingStats.h"
 #include "Framework/ExpirationHandler.h"
 #include "Framework/MessageContext.h"
 #include "Framework/RootObjectContext.h"
@@ -73,8 +74,10 @@ class DataProcessingDevice : public FairMQDevice
 
   int mErrorCount;
   int mProcessingCount;
-  uint64_t mLastMetricSentTimestamp = 0; /// The timestamp of the last time we sent non-realtime metrics
-  uint64_t mBeginIterationTimestamp = 0; /// The timestamp of when the current ConditionalRun was started
+  uint64_t mLastSlowMetricSentTimestamp = 0; /// The timestamp of the last time we sent slow metrics
+  uint64_t mLastMetricFlushedTimestamp = 0;  /// The timestamp of the last time we actually flushed metrics
+  uint64_t mBeginIterationTimestamp = 0;     /// The timestamp of when the current ConditionalRun was started
+  DataProcessingStats mStats;                /// Stats about the actual data processing.
 };
 
 } // namespace framework

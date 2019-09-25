@@ -17,6 +17,7 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Field/MagneticField.h"
 #include "TString.h" // for TString
+#include "TGeoManager.h"
 
 using std::cout;
 using std::endl;
@@ -24,7 +25,7 @@ using std::fstream;
 using std::ios;
 using std::ostream;
 
-using namespace o2::Base;
+using namespace o2::base;
 using namespace o2::detectors;
 
 Float_t Detector::mDensityFactor = 1.0;
@@ -35,9 +36,7 @@ Detector::Detector(const char* name, Bool_t Active)
 {
 }
 
-Detector::Detector(const Detector& rhs) : FairDetector(rhs), mMapMaterial(rhs.mMapMaterial), mMapMedium(rhs.mMapMedium)
-{
-}
+Detector::Detector(const Detector& rhs) = default;
 
 Detector::~Detector() = default;
 
@@ -57,13 +56,13 @@ Detector& Detector::operator=(const Detector& rhs)
 void Detector::Material(Int_t imat, const char* name, Float_t a, Float_t z, Float_t dens, Float_t radl, Float_t absl,
                         Float_t* buf, Int_t nwbuf)
 {
-  auto& mgr = o2::Base::MaterialManager::Instance();
+  auto& mgr = o2::base::MaterialManager::Instance();
   mgr.Material(GetName(), imat, name, a, z, dens, radl, absl, buf, nwbuf);
 }
 
 void Detector::Mixture(Int_t imat, const char* name, Float_t* a, Float_t* z, Float_t dens, Int_t nlmat, Float_t* wmat)
 {
-  auto& mgr = o2::Base::MaterialManager::Instance();
+  auto& mgr = o2::base::MaterialManager::Instance();
   mgr.Mixture(GetName(), imat, name, a, z, dens, nlmat, wmat);
 }
 
@@ -71,7 +70,7 @@ void Detector::Medium(Int_t numed, const char* name, Int_t nmat, Int_t isvol, In
                       Float_t tmaxfd, Float_t stemax, Float_t deemax, Float_t epsil, Float_t stmin, Float_t* ubuf,
                       Int_t nbuf)
 {
-  auto& mgr = o2::Base::MaterialManager::Instance();
+  auto& mgr = o2::base::MaterialManager::Instance();
   mgr.Medium(GetName(), numed, name, nmat, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin, ubuf, nbuf);
 }
 
@@ -117,6 +116,27 @@ void Detector::defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Int_t nla
 {
 }
 
+void Detector::SetSpecialPhysicsCuts()
+{
+  // default implementation for physics cuts setting (might still be overriden by detectors)
+  // we try to read an external text file supposed to be installed
+  // in a standard directory
+  // ${O2_ROOT}/share/Detectors/DETECTORNAME/simulation/data/simcuts.dat
+  LOG(INFO) << "Setting special cuts for " << GetName();
+  const char* aliceO2env = std::getenv("O2_ROOT");
+  std::string inputFile;
+  if (aliceO2env) {
+    inputFile = std::string(aliceO2env);
+  }
+  inputFile += "/share/Detectors/" + std::string(GetName()) + "/simulation/data/simcuts.dat";
+  auto& matmgr = o2::base::MaterialManager::Instance();
+  matmgr.loadCutsAndProcessesFromFile(GetName(), inputFile.c_str());
+
+  // TODO:
+  // foresee possibility to read from local (non-installed) file or
+  // via command line
+}
+
 void Detector::initFieldTrackingParams(int& integration, float& maxfield)
 {
   // set reasonable default values
@@ -138,14 +158,37 @@ void Detector::initFieldTrackingParams(int& integration, float& maxfield)
 
 TClonesArray* Detector::GetCollection(int) const
 {
-  LOG(WARNING) << "GetCollection interface no longer supported" << FairLogger::endl;
-  LOG(WARNING) << "Use the GetHits function on invidiual detectors" << FairLogger::endl;
+  LOG(WARNING) << "GetCollection interface no longer supported";
+  LOG(WARNING) << "Use the GetHits function on invidiual detectors";
   return nullptr;
 }
 
 void Detector::addAlignableVolumes() const
 {
-  LOG(WARNING) << "Alignable volumes are not yet defined for " << GetName() << FairLogger::endl;
+  LOG(WARNING) << "Alignable volumes are not yet defined for " << GetName();
+}
+
+int Detector::registerSensitiveVolumeAndGetVolID(TGeoVolume const* vol)
+{
+  // register this volume with FairRoot
+  this->FairModule::AddSensitiveVolume(const_cast<TGeoVolume*>(vol));
+  // retrieve the VMC Monte Carlo ID for this volume
+  const int volid = TVirtualMC::GetMC()->VolId(vol->GetName());
+  if (volid <= 0) {
+    LOG(ERROR) << "Could not retrieve VMC volume ID for " << vol->GetName();
+  }
+  return volid;
+}
+
+int Detector::registerSensitiveVolumeAndGetVolID(std::string const& name)
+{
+  // we need to fetch the TGeoVolume which is needed for FairRoot
+  auto vol = gGeoManager->GetVolume(name.c_str());
+  if (!vol) {
+    LOG(ERROR) << "Volume " << name << " not found in geometry; Cannot register sensitive volume";
+    return -1;
+  }
+  return registerSensitiveVolumeAndGetVolID(vol);
 }
 
 #include <FairMQMessage.h>
@@ -153,7 +196,7 @@ void Detector::addAlignableVolumes() const
 #include <FairMQChannel.h>
 namespace o2
 {
-namespace Base
+namespace base
 {
 // this goes into the source
 void attachMessageBufferToParts(FairMQParts& parts, FairMQChannel& channel, void* data, size_t size,
@@ -176,7 +219,7 @@ void attachShmMessage(void* hits_ptr, FairMQChannel& channel, FairMQParts& parts
   };
 
   auto& instance = o2::utils::ShmManager::Instance();
-  shmcontext info{ instance.getShmID(), hits_ptr, busy_ptr };
+  shmcontext info{instance.getShmID(), hits_ptr, busy_ptr};
   LOG(DEBUG) << "-- SHM SEND --";
   LOG(INFO) << "-- OBJ PTR -- " << info.object_ptr << " ";
   assert(instance.isPointerOk(info.object_ptr));
@@ -194,7 +237,6 @@ void* decodeShmCore(FairMQParts& dataparts, int index, bool*& busy)
   };
 
   shmcontext* info = (shmcontext*)rawmessage->GetData();
-  LOG(DEBUG) << " GOT SHMID " << info->id;
 
   busy = info->busy_ptr;
   return info->object_ptr;
@@ -213,6 +255,6 @@ void* decodeTMessageCore(FairMQParts& dataparts, int index)
   return message.get()->ReadObjectAny(message.get()->GetClass());
 }
 
-} // namespace Base
+} // namespace base
 } // namespace o2
-ClassImp(o2::Base::Detector)
+ClassImp(o2::base::Detector);

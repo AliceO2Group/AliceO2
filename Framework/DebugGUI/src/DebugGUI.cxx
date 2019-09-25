@@ -2,7 +2,7 @@
 #include "imgui_impl_glfw_gl3.h"
 #include "GL/gl3w.h" // This example is using gl3w to access OpenGL functions (because it is small). You may use glew/glad/glLoadGen/etc. whatever already works for you.
 #include <GLFW/glfw3.h>
-#include <stdio.h>
+#include <cstdio>
 #include <functional>
 
 static void error_callback(int error, const char* description)
@@ -28,7 +28,7 @@ void* initGUI(const char* name)
 #if __APPLE__
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
-  GLFWwindow* window = glfwCreateWindow(1280, 720, name, NULL, NULL);
+  GLFWwindow* window = glfwCreateWindow(1280, 720, name, nullptr, nullptr);
   glfwMakeContextCurrent(window);
   gl3wInit();
 
@@ -43,7 +43,7 @@ void* initGUI(const char* name)
   // io.Fonts->AddFontFromFileTTF("../../extra_fonts/DroidSans.ttf", 16.0f);
   // io.Fonts->AddFontFromFileTTF("../../extra_fonts/ProggyClean.ttf", 13.0f);
   // io.Fonts->AddFontFromFileTTF("../../extra_fonts/ProggyTiny.ttf", 10.0f);
-  // io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
+  // io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
 
   return window;
 }
@@ -57,7 +57,6 @@ bool pollGUI(void* context, std::function<void(void)> guiCallback)
   }
   glfwPollEvents();
   ImGui_ImplGlfwGL3_NewFrame();
-
 
   // Rendering
   int display_w, display_h;

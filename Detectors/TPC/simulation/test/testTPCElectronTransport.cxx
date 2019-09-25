@@ -26,7 +26,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// \brief Test 1 of the getElectronDrift function
@@ -37,10 +37,8 @@ namespace TPC
 /// Precision: 0.5 %.
 BOOST_AUTO_TEST_CASE(ElectronDiffusion_test1)
 {
-  auto& cdb = CDBInterface::instance();
-  cdb.setUseDefaults();
-  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
-  const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
+  auto& gasParam = ParameterGas::Instance();
+  auto& detParam = ParameterDetector::Instance();
   const GlobalPosition3D posEle(10.f, 10.f, 10.f);
   TH1D hTestDiffX("hTestDiffX", "", 500, posEle.X() - 10., posEle.X() + 10.);
   TH1D hTestDiffY("hTestDiffY", "", 500, posEle.Y() - 10., posEle.Y() + 10.);
@@ -70,8 +68,8 @@ BOOST_AUTO_TEST_CASE(ElectronDiffusion_test1)
   BOOST_CHECK_CLOSE(gausZ.GetParameter(1), posEle.Z(), 0.5);
 
   // check whether the width of the distribution matches the expected one
-  const float sigT = std::sqrt(detParam.getTPClength() - posEle.Z()) * gasParam.getDiffT();
-  const float sigL = std::sqrt(detParam.getTPClength() - posEle.Z()) * gasParam.getDiffL();
+  const float sigT = std::sqrt(detParam.TPClength - posEle.Z()) * gasParam.DiffT;
+  const float sigL = std::sqrt(detParam.TPClength - posEle.Z()) * gasParam.DiffL;
 
   BOOST_CHECK_CLOSE(gausX.GetParameter(2), sigT, 0.5);
   BOOST_CHECK_CLOSE(gausY.GetParameter(2), sigT, 0.5);
@@ -86,11 +84,9 @@ BOOST_AUTO_TEST_CASE(ElectronDiffusion_test1)
 /// Precision: 0.5 %.
 BOOST_AUTO_TEST_CASE(ElectronDiffusion_test2)
 {
-  auto& cdb = CDBInterface::instance();
-  cdb.setUseDefaults();
-  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
-  const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
-  const GlobalPosition3D posEle(1.f, 1.f, detParam.getTPClength() - 1.f);
+  auto& gasParam = ParameterGas::Instance();
+  auto& detParam = ParameterDetector::Instance();
+  const GlobalPosition3D posEle(1.f, 1.f, detParam.TPClength - 1.f);
   TH1D hTestDiffX("hTestDiffX", "", 500, posEle.X() - 1., posEle.X() + 1.);
   TH1D hTestDiffY("hTestDiffY", "", 500, posEle.Y() - 1., posEle.Y() + 1.);
   TH1D hTestDiffZ("hTestDiffZ", "", 500, posEle.Z() - 1., posEle.Z() + 1.);
@@ -119,9 +115,9 @@ BOOST_AUTO_TEST_CASE(ElectronDiffusion_test2)
   BOOST_CHECK_CLOSE(gausZ.GetParameter(1), posEle.Z(), 0.5);
 
   // check whether the width of the distribution matches the expected one
-  BOOST_CHECK_CLOSE(gausX.GetParameter(2), gasParam.getDiffT(), 0.5);
-  BOOST_CHECK_CLOSE(gausY.GetParameter(2), gasParam.getDiffT(), 0.5);
-  BOOST_CHECK_CLOSE(gausZ.GetParameter(2), gasParam.getDiffL(), 0.5);
+  BOOST_CHECK_CLOSE(gausX.GetParameter(2), gasParam.DiffT, 0.5);
+  BOOST_CHECK_CLOSE(gausY.GetParameter(2), gasParam.DiffT, 0.5);
+  BOOST_CHECK_CLOSE(gausZ.GetParameter(2), gasParam.DiffL, 0.5);
 }
 
 /// \brief Test of the isElectronAttachment function
@@ -131,9 +127,7 @@ BOOST_AUTO_TEST_CASE(ElectronDiffusion_test2)
 /// Precision: 0.1 %.
 BOOST_AUTO_TEST_CASE(ElectronAttatchment_test_1)
 {
-  auto& cdb = CDBInterface::instance();
-  cdb.setUseDefaults();
-  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
+  auto& gasParam = ParameterGas::Instance();
   static ElectronTransport& electronTransport = ElectronTransport::instance();
 
   const float driftTime = 100.f;
@@ -146,7 +140,7 @@ BOOST_AUTO_TEST_CASE(ElectronAttatchment_test_1)
   }
 
   BOOST_CHECK_CLOSE(lostElectrons / nEvents,
-                    gasParam.getAttachmentCoefficient() * gasParam.getOxygenContent() * driftTime, 0.5);
+                    gasParam.AttCoeff * gasParam.OxygenCont * driftTime, 0.5);
 }
-}
-}
+} // namespace tpc
+} // namespace o2

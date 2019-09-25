@@ -21,17 +21,16 @@
 // -----                Created 26/03/14  by M. Al-Turany              -----
 // -------------------------------------------------------------------------
 
-
 #ifndef ALICEO2_PASSIVE_Cave_H
 #define ALICEO2_PASSIVE_Cave_H
 
-#include "FairDetector.h"               // for FairModule
-#include "Rtypes.h"                     // for ClassDef, etc
-#include <functional>                   // for std::function
+#include "FairDetector.h" // for FairModule
+#include "Rtypes.h"       // for ClassDef, etc
+#include <functional>     // for std::function
 #include <vector>
 namespace o2
 {
-namespace Passive
+namespace passive
 {
 
 // This class represents the mother container
@@ -76,8 +75,8 @@ class Cave : public FairDetector
 
   bool mHasZDC = true; //! flag indicating if ZDC will be included
 
-  ClassDefOverride(o2::Passive::Cave, 1) //
+  ClassDefOverride(o2::passive::Cave, 1);
 };
-} // namespace Passive
+} // namespace passive
 } // namespace o2
 #endif //Cave_H

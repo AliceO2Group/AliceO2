@@ -29,7 +29,7 @@ template <typename T>
 class BBox
 {
  public:
-  BBox(T xmin, T ymin, T xmax, T ymax) : mXmin{ xmin }, mXmax{ xmax }, mYmin{ ymin }, mYmax{ ymax }
+  BBox(T xmin, T ymin, T xmax, T ymax) : mXmin{xmin}, mXmax{xmax}, mYmin{ymin}, mYmax{ymax}
   {
     if (xmin >= xmax || ymin >= ymax) {
       throw std::invalid_argument("BBox should be created valid (xmin<xmax and ymin<ymax)");
@@ -44,9 +44,9 @@ class BBox
 
   T ymax() const { return mYmax; }
 
-  T xcenter() const { return (xmin() + xmax()) / T{ 2 }; }
+  T xcenter() const { return (xmin() + xmax()) / T{2}; }
 
-  T ycenter() const { return (ymin() + ymax()) / T{ 2 }; }
+  T ycenter() const { return (ymin() + ymax()) / T{2}; }
 
   T width() const { return xmax() - xmin(); }
 
@@ -88,8 +88,8 @@ BBox<T> enlarge(const BBox<T>& box, T extraWidth, T extraHeight)
 template <typename T>
 BBox<T> intersect(const BBox<T>& a, const BBox<T>& b)
 {
-  return BBox<T>{ std::max(a.xmin(), b.xmin()), std::max(a.ymin(), b.ymin()), std::min(a.xmax(), b.xmax()),
-                  std::min(a.ymax(), b.ymax()) };
+  return BBox<T>{std::max(a.xmin(), b.xmin()), std::max(a.ymin(), b.ymin()), std::min(a.xmax(), b.xmax()),
+                 std::min(a.ymax(), b.ymax())};
 }
 
 } // namespace contour

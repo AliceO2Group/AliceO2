@@ -21,6 +21,7 @@
 
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ConfigParamSpec.h"
+#include "DataProcessorInfo.h"
 
 namespace o2
 {
@@ -67,6 +68,7 @@ enum struct DriverState {
   UNKNOWN,
   PERFORM_CALLBACKS,
   MATERIALISE_WORKFLOW,
+  IMPORT_CURRENT_WORKFLOW,
   DO_CHILD,
   LAST
 };
@@ -74,7 +76,9 @@ enum struct DriverState {
 /// These are the possible actions we can do
 /// when a workflow is deemed complete (e.g. when we are done
 /// reading from file).
-enum struct TerminationPolicy { QUIT, WAIT, RESTART };
+enum struct TerminationPolicy { QUIT,
+                                WAIT,
+                                RESTART };
 
 /// Information about the driver process (i.e.  / the one which calculates the
 /// topology and actually spawns the devices )
@@ -96,9 +100,12 @@ struct DriverInfo {
   /// Since they are decided by the toplevel configuration, they belong
   /// to the driver process.
   std::vector<ChannelConfigurationPolicy> channelPolicies;
-  /// These are the policies which can be applied to decide wether or not
+  /// These are the policies which can be applied to decide whether or not
   /// a given record is complete.
   std::vector<CompletionPolicy> completionPolicies;
+  /// These are the policies which can be applied to decide when complete
+  /// objects/messages are sent out
+  std::vector<DispatchPolicy> dispatchPolicies;
   /// The argc with which the driver was started.
   int argc;
   /// The argv with which the driver was started.
@@ -116,8 +123,9 @@ struct DriverInfo {
   unsigned short startPort;
   /// The size of the port range to consider allocated
   unsigned short portRange;
-  /// The current set of workflow options 
-  std::vector<ConfigParamSpec> workflowOptions;
+  /// The current set of metadata associated to each DataProcessor being
+  /// executed.
+  std::vector<DataProcessorInfo> processorInfo;
   /// The config context. We use a bare pointer because std::observer_ptr is not a thing, yet.
   ConfigContext const* configContext;
   /// The names for all the metrics which have been collected by this driver.

@@ -16,11 +16,11 @@
 #include "Framework/InputSpec.h"
 #include "Framework/OutputSpec.h"
 #include "Framework/ControlService.h"
-#include "Utils/RootTreeReader.h"
+#include "DPLUtils/RootTreeReader.h"
 #include "Headers/DataHeader.h"
 #include "Headers/NameHeader.h"
 #include "../../Core/test/TestClasses.h"
-#include "FairMQLogger.h"
+#include "Framework/Logger.h"
 #include <TSystem.h>
 #include <TTree.h>
 #include <TFile.h>
@@ -63,9 +63,9 @@ DataProcessorSpec getSourceSpec()
     constexpr auto persistency = Lifetime::Transient;
     auto reader = std::make_shared<RootTreeReader>("testtree",       // tree name
                                                    fileName.c_str(), // input file name
-                                                   Output{ "TST", "ARRAYOFDATA", 0, persistency },
-                                                   "dataarray" // name of cluster branch
-                                                   );
+                                                   Output{"TST", "ARRAYOFDATA", 0, persistency},
+                                                   "dataarray", // name of cluster branch
+                                                   RootTreeReader::PublishingMode::Single);
 
     auto processingFct = [reader](ProcessingContext& pc) {
       if (reader->getCount() == 0) {
@@ -82,10 +82,10 @@ DataProcessorSpec getSourceSpec()
     return processingFct;
   };
 
-  return DataProcessorSpec{ "source", // name of the processor
-                            {},
-                            { OutputSpec{ "TST", "ARRAYOFDATA" } },
-                            AlgorithmSpec(initFct) };
+  return DataProcessorSpec{"source", // name of the processor
+                           {},
+                           {OutputSpec{"TST", "ARRAYOFDATA"}},
+                           AlgorithmSpec(initFct)};
 }
 
 DataProcessorSpec getSinkSpec()
@@ -121,16 +121,15 @@ DataProcessorSpec getSinkSpec()
     }
   };
 
-  return DataProcessorSpec{ "sink", // name of the processor
-                            { InputSpec{ "input", "TST", "ARRAYOFDATA" } },
-                            Outputs{},
-                            AlgorithmSpec(processingFct) };
+  return DataProcessorSpec{"sink", // name of the processor
+                           {InputSpec{"input", "TST", "ARRAYOFDATA"}},
+                           Outputs{},
+                           AlgorithmSpec(processingFct)};
 }
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
     getSourceSpec(),
-    getSinkSpec()
-  };
+    getSinkSpec()};
 }

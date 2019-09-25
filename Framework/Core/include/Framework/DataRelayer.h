@@ -39,8 +39,9 @@ struct DataRelayerStats {
   uint64_t relayedMessages = 0;         /// How many messages have been successfully relayed
 };
 
-class DataRelayer {
-public:
+class DataRelayer
+{
+ public:
   enum RelayChoice {
     WillRelay,
     WillNotRelay
@@ -66,8 +67,8 @@ public:
   /// This is used to ask for relaying a given (header,payload) pair.
   /// Notice that we expect that the header is an O2 Header Stack
   /// with a DataProcessingHeader inside so that we can assess time.
-  RelayChoice relay(std::unique_ptr<FairMQMessage> &&header,
-                    std::unique_ptr<FairMQMessage> &&payload);
+  RelayChoice relay(std::unique_ptr<FairMQMessage>&& header,
+                    std::unique_ptr<FairMQMessage>&& payload);
 
   /// @returns the actions ready to be performed.
   std::vector<RecordAction> getReadyToProcess();
@@ -80,7 +81,7 @@ public:
 
   /// Returns the index of the arguments which have to be forwarded to
   /// the next processor
-  const std::vector<int> &forwardingMask();
+  const std::vector<int>& forwardingMask();
 
   /// Returns how many timeslices we can handle in parallel
   size_t getParallelTimeslices() const;
@@ -89,7 +90,10 @@ public:
   void setPipelineLength(size_t s);
 
   /// @return the current stats about the data relaying process
-  DataRelayerStats const& getStats();
+  DataRelayerStats const& getStats() const;
+
+  /// Send metrics with the VariableContext information
+  void sendContextState();
 
  private:
   std::vector<InputRoute> const& mInputRoutes;
@@ -111,6 +115,7 @@ public:
   std::vector<size_t> mDistinctRoutesIndex;
   std::vector<data_matcher::DataDescriptorMatcher> mInputMatchers;
   std::vector<data_matcher::VariableContext> mVariableContextes;
+  std::vector<int> mCachedStateMetrics;
 
   static std::vector<std::string> sMetricsNames;
   static std::vector<std::string> sVariablesMetricsNames;

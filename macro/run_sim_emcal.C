@@ -1,21 +1,22 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-  #include <TSystem.h>
-  #include <TMath.h>
-  #include <TString.h>
-  #include <TStopwatch.h>
+#include <TSystem.h>
+#include <TMath.h>
+#include <TString.h>
+#include <TStopwatch.h>
 
-  #include "FairRunSim.h"
-  #include "FairRuntimeDb.h"
-  #include "FairPrimaryGenerator.h"
-  #include "FairBoxGenerator.h"
-  #include "FairParRootFileIo.h"
+#include "FairRunSim.h"
+#include "FairRuntimeDb.h"
+#include "FairPrimaryGenerator.h"
+#include "FairBoxGenerator.h"
+#include "FairParRootFileIo.h"
+#include "TGeoManager.h"
 
-  #include "DetectorsPassive/Cave.h"
-  #include "Field/MagneticField.h"
-  #include "EMCALSimulation/Detector.h"
+#include "DetectorsPassive/Cave.h"
+#include "Field/MagneticField.h"
+#include "EMCALSimulation/Detector.h"
 #endif
 
-extern TSystem *gSystem;
+extern TSystem* gSystem;
 
 double radii2Turbo(double rMin, double rMid, double rMax, double sensW)
 {
@@ -28,11 +29,10 @@ void run_sim_emcal(Int_t nEvents = 1, TString mcEngine = "TGeant3")
   FairLogger::GetLogger()->SetLogScreenLevel("DEBUG2");
   TString dir = getenv("VMCWORKDIR");
   TString geom_dir = dir + "/Detectors/Geometry/";
-  gSystem->Setenv("GEOMPATH",geom_dir.Data());
-
+  gSystem->Setenv("GEOMPATH", geom_dir.Data());
 
   TString tut_configdir = dir + "/Detectors/gconfig";
-  gSystem->Setenv("CONFIG_DIR",tut_configdir.Data());
+  gSystem->Setenv("CONFIG_DIR", tut_configdir.Data());
 
   // Output file name
   char fileout[100];
@@ -65,10 +65,10 @@ void run_sim_emcal(Int_t nEvents = 1, TString mcEngine = "TGeant3")
   FairRuntimeDb* rtdb = run->GetRuntimeDb();
 
   // Create media
-   run->SetMaterials("media.geo"); // Materials
+  run->SetMaterials("media.geo"); // Materials
 
   // Create geometry
-  o2::Passive::Cave* cave = new o2::Passive::Cave("CAVE");
+  o2::passive::Cave* cave = new o2::passive::Cave("CAVE");
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
 
@@ -76,10 +76,10 @@ void run_sim_emcal(Int_t nEvents = 1, TString mcEngine = "TGeant3")
    field.SetField(0., 0., 5.); //in kG
    field.SetFieldRegion(-5000.,5000.,-5000.,5000.,-5000.,5000.); //in c
   */
-  o2::field::MagneticField field("field","field +5kG");
+  o2::field::MagneticField field("field", "field +5kG");
   run->SetField(&field);
 
-  o2::EMCAL::Detector* emcal = new o2::EMCAL::Detector(kTRUE);
+  o2::emcal::Detector* emcal = new o2::emcal::Detector(kTRUE);
   run->AddModule(emcal);
 
   // Create PrimaryGenerator
@@ -87,7 +87,7 @@ void run_sim_emcal(Int_t nEvents = 1, TString mcEngine = "TGeant3")
   FairBoxGenerator* boxGen = new FairBoxGenerator(11, 100); // electrons
 
   //boxGen->SetThetaRange(0.0, 90.0);
-  boxGen->SetEtaRange(-0.9,0.9);
+  boxGen->SetEtaRange(-0.9, 0.9);
   boxGen->SetPtRange(5, 5.01);
   boxGen->SetPhiRange(0., 360.);
   boxGen->SetDebug(kFALSE);
@@ -126,8 +126,11 @@ void run_sim_emcal(Int_t nEvents = 1, TString mcEngine = "TGeant3")
 
   cout << "Output file is " << outFile << endl;
   cout << "Parameter file is " << parFile << endl;
-  cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << endl << endl;
-  cout << endl << endl;
+  cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << endl
+       << endl;
+  cout << endl
+       << endl;
   cout << "Macro finished succesfully." << endl;
-  cout << endl << endl;
+  cout << endl
+       << endl;
 }

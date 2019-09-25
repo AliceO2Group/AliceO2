@@ -20,7 +20,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 /// \class Digit
 /// This is the definition of the common Digit object, which is the final entity after Digitization
@@ -31,7 +31,7 @@ class Digit : public DigitBase
 {
  public:
   /// Default constructor
-  Digit();
+  Digit() = default;
 
   /// Constructor, initializing values for position, charge, time and common mode
   /// \param cru CRU of the Digit
@@ -65,22 +65,13 @@ class Digit : public DigitBase
   int getPad() const { return mPad; }
 
  protected:
-  float mCharge;       ///< ADC value of the Digit
-  unsigned short mCRU; ///< CRU of the Digit
-  unsigned char mRow;  ///< Global pad row of the Digit
-  unsigned char mPad;  ///< Pad of the Digit
+  float mCharge = 0.f;      ///< ADC value of the Digit
+  unsigned short mCRU = -1; ///< CRU of the Digit
+  unsigned char mRow = -1;  ///< Global pad row of the Digit
+  unsigned char mPad = -1;  ///< Pad of the Digit
 
   ClassDefNV(Digit, 1);
 };
-
-inline Digit::Digit()
-  : DigitBase(),
-    mCharge(0.f),
-    mCRU(-1),
-    mRow(-1),
-    mPad(-1)
-{
-}
 
 inline Digit::Digit(int cru, float charge, int row, int pad, int time)
   : DigitBase(time),
@@ -91,7 +82,7 @@ inline Digit::Digit(int cru, float charge, int row, int pad, int time)
 {
 }
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif // ALICEO2_TPC_DIGIT_H_

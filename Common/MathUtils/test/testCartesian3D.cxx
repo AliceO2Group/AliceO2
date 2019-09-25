@@ -35,7 +35,9 @@ BOOST_AUTO_TEST_CASE(Cartesian3D_test)
   Point3D<float> pft;
   tr.LocalToMaster(pf, pft); // TGeoHMatrix form
 
-  std::cout << "Create Transform3D " << std::endl << tr << std::endl << "from" << std::endl;
+  std::cout << "Create Transform3D " << std::endl
+            << tr << std::endl
+            << "from" << std::endl;
   hmat.Print();
 
   std::cout << " Transforming " << pd << " to master" << std::endl;

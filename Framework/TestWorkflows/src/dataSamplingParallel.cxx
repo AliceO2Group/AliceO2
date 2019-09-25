@@ -27,7 +27,9 @@ void customize(std::vector<ChannelConfigurationPolicy>& policies)
 #include "Framework/ParallelContext.h"
 #include "Framework/runDataProcessing.h"
 
+#include <chrono>
 #include <iostream>
+
 #include <boost/algorithm/string.hpp>
 
 using namespace o2::framework;
@@ -52,31 +54,31 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     DataProcessorSpec{
       "dataProducer",
       Inputs{},
-      { OutputSpec{ "TPC", "CLUSTERS" } },
+      {OutputSpec{"TPC", "CLUSTERS"}},
       AlgorithmSpec{
-        (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm } },
+        (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm}},
     parallelSize,
     [](DataProcessorSpec& spec, size_t index) {
-      spec.outputs[0].subSpec = index;
+      DataSpecUtils::updateMatchingSubspec(spec.outputs[0], index);
     });
 
   auto processingStages = parallel(
     DataProcessorSpec{
       "processingStage",
       Inputs{
-        { "dataTPC", "TPC", "CLUSTERS" } },
+        {"dataTPC", "TPC", "CLUSTERS"}},
       Outputs{
-        { "TPC", "CLUSTERS_P" } },
+        {"TPC", "CLUSTERS_P"}},
       AlgorithmSpec{
-        (AlgorithmSpec::ProcessCallback)someProcessingStageAlgorithm } },
+        (AlgorithmSpec::ProcessCallback)someProcessingStageAlgorithm}},
     parallelSize,
     [](DataProcessorSpec& spec, size_t index) {
       DataSpecUtils::updateMatchingSubspec(spec.inputs[0], index);
-      spec.outputs[0].subSpec = index;
+      DataSpecUtils::updateMatchingSubspec(spec.outputs[0], index);
     });
 
   auto inputsSink = mergeInputs(
-    { "dataTPC-proc", "TPC", "CLUSTERS_P" },
+    {"dataTPC-proc", "TPC", "CLUSTERS_P"},
     parallelSize,
     [](InputSpec& input, size_t index) {
       DataSpecUtils::updateMatchingSubspec(input, index);
@@ -87,8 +89,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     inputsSink,
     Outputs{},
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback)someSinkAlgorithm }
-  };
+      (AlgorithmSpec::ProcessCallback)someSinkAlgorithm}};
 
   // clang-format off
   DataProcessorSpec simpleQcTask{
@@ -138,10 +139,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
 void someDataProducerAlgorithm(ProcessingContext& ctx)
 {
   size_t index = ctx.services().get<ParallelContext>().index1D();
-  sleep(1);
+  std::this_thread::sleep_for(std::chrono::seconds(1));
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
-  auto tpcClusters = ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS", index }, collectionChunkSize);
+  auto tpcClusters = ctx.outputs().make<FakeCluster>(
+    Output{"TPC", "CLUSTERS", static_cast<o2::header::DataHeader::SubSpecificationType>(index)}, collectionChunkSize);
   int i = 0;
 
   for (auto& cluster : tpcClusters) {
@@ -159,8 +161,9 @@ void someProcessingStageAlgorithm(ProcessingContext& ctx)
   size_t index = ctx.services().get<ParallelContext>().index1D();
 
   const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
-  auto processedTpcClusters =
-    ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS_P", index }, collectionChunkSize);
+  auto processedTpcClusters = ctx.outputs().make<FakeCluster>(
+    Output{"TPC", "CLUSTERS_P", static_cast<o2::header::DataHeader::SubSpecificationType>(index)},
+    collectionChunkSize);
 
   int i = 0;
   for (auto& cluster : processedTpcClusters) {

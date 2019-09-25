@@ -18,15 +18,13 @@ namespace o2
 namespace framework
 {
 
-FairMQResizableBuffer::~FairMQResizableBuffer()
-{
-}
+FairMQResizableBuffer::~FairMQResizableBuffer() = default;
 
 // Creates an empty message
 FairMQResizableBuffer::FairMQResizableBuffer(Creator creator)
   : ResizableBuffer(nullptr, 0),
-    mMessage{ std::move(creator(4096)) },
-    mCreator{ creator }
+    mMessage{std::move(creator(4096))},
+    mCreator{creator}
 {
   this->mutable_data_ = reinterpret_cast<uint8_t*>(mMessage->GetData());
   this->data_ = this->mutable_data_;

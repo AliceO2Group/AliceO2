@@ -16,13 +16,14 @@
 //        decode TClonesArray by itself.
 #include "Framework/TMessageSerializer.h"
 #include "o2_sim_tpc.h"
-#include "FairMQLogger.h"
+#include "Framework/Logger.h"
 
 using namespace o2::framework;
 using namespace o2::workflows;
 
 // This is how you can define your processing in a declarative way
-WorkflowSpec defineDataProcessing(ConfigContext const&specs) {
+WorkflowSpec defineDataProcessing(ConfigContext const& specs)
+{
   return WorkflowSpec{
     sim_tpc(),
   };

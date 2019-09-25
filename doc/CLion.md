@@ -1,3 +1,5 @@
+\page refdocCLion CLion
+
 Here are a number of instructions and tips on how to use at best the IDE called [CLion from Jetbrains](https://www.jetbrains.com/clion/).
 
 ## Installation

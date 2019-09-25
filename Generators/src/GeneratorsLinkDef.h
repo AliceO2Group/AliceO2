@@ -19,7 +19,6 @@
 // -----                  M. Al-Turany   June 2014                     -----
 // -------------------------------------------------------------------------
 
-
 #ifdef __CLING__
 
 #pragma link off all globals;
@@ -28,13 +27,20 @@
 
 #pragma link C++ class o2::eventgen::Generator + ;
 #pragma link C++ class o2::eventgen::GeneratorTGenerator + ;
-#pragma link C++ class  o2::eventgen::Pythia6Generator+;
-#pragma link C++ class  o2::eventgen::Pythia8Generator+;
-#pragma link C++ class  o2::eventgen::GeneratorFromFile+;
-#pragma link C++ class  o2::eventgen::GeneratorFactory+;
+#ifdef GENERATORS_WITH_HEPMC3
+#pragma link C++ class o2::eventgen::GeneratorHepMC + ;
+#endif
+#pragma link C++ class o2::eventgen::Pythia6Generator + ;
+#ifdef GENERATORS_WITH_PYTHIA8
+#pragma link C++ class o2::eventgen::Pythia8Generator + ;
+#pragma link C++ class o2::eventgen::GeneratorFactory + ;
+#endif
+#pragma link C++ class o2::eventgen::GeneratorFromFile + ;
 #pragma link C++ class o2::PDG + ;
 #pragma link C++ class o2::eventgen::PrimaryGenerator + ;
 #pragma link C++ class o2::eventgen::InteractionDiamondParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::InteractionDiamondParam> + ;
+#pragma link C++ class o2::eventgen::BoxGunParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::BoxGunParam> + ;
 
 #endif

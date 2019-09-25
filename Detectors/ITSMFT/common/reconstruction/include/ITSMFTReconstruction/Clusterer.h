@@ -22,10 +22,14 @@
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/PixelReader.h"
 #include "ITSMFTReconstruction/PixelData.h"
 #include "ITSMFTReconstruction/LookUp.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "CommonDataFormat/EvIndex.h"
+#include "CommonDataFormat/InteractionRecord.h"
+#include "CommonConstants/LHCConstants.h"
 #include "Rtypes.h"
 #include "TTree.h"
 
@@ -42,18 +46,21 @@ template <typename T>
 class MCTruthContainer;
 }
 
-namespace ITSMFT
+namespace itsmft
 {
 class Clusterer
 {
-  using PixelReader = o2::ITSMFT::PixelReader;
-  using PixelData = o2::ITSMFT::PixelData;
-  using ChipPixelData = o2::ITSMFT::ChipPixelData;
-  using Cluster = o2::ITSMFT::Cluster;
-  using CompCluster = o2::ITSMFT::CompCluster;
-  using CompClusterExt = o2::ITSMFT::CompClusterExt;
+  using PixelReader = o2::itsmft::PixelReader;
+  using PixelData = o2::itsmft::PixelData;
+  using ChipPixelData = o2::itsmft::ChipPixelData;
+  using Cluster = o2::itsmft::Cluster;
+  using CompCluster = o2::itsmft::CompCluster;
+  using CompClusterExt = o2::itsmft::CompClusterExt;
   using Label = o2::MCCompLabel;
   using MCTruth = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+
+  using EvIdx = o2::dataformats::EvIndex<int, int>;
+  using BCData = o2::InteractionRecord;
 
  public:
   Clusterer();
@@ -63,13 +70,18 @@ class Clusterer
   Clusterer& operator=(const Clusterer&) = delete;
 
   void process(PixelReader& r, std::vector<Cluster>* fullClus,
-               std::vector<CompClusterExt>* compClus, MCTruth* labelsCl = nullptr);
+               std::vector<CompClusterExt>* compClus,
+               MCTruth* labelsCl = nullptr,
+               std::vector<o2::itsmft::ROFRecord>* vecROFRec = nullptr);
 
-  // provide the common ITSMFT::GeometryTGeo to access matrices
-  void setGeometry(const o2::ITSMFT::GeometryTGeo* gm) { mGeometry = gm; }
+  // provide the common itsmft::GeometryTGeo to access matrices
+  void setGeometry(const o2::itsmft::GeometryTGeo* gm) { mGeometry = gm; }
 
-  void setMaskOverflowPixels(bool v) { mMaskOverflowPixels = v; }
-  bool isMaskOverflowPixels() const { return mMaskOverflowPixels; }
+  bool isContinuousReadOut() const { return mContinuousReadout; }
+  void setContinuousReadOut(bool v) { mContinuousReadout = v; }
+
+  int getMaxBCSeparationToMask() const { return mMaxBCSeparationToMask; }
+  void setMaxBCSeparationToMask(int n) { mMaxBCSeparationToMask = n; }
 
   void setWantFullClusters(bool v) { mWantFullClusters = v; }
   void setWantCompactClusters(bool v) { mWantCompactClusters = v; }
@@ -77,8 +89,7 @@ class Clusterer
   bool getWantFullClusters() const { return mWantFullClusters; }
   bool getWantCompactClusters() const { return mWantCompactClusters; }
 
-  UInt_t getCurrROF() const { return mCurrROF; }
-  UShort_t getCurrChipID() const { return mCurrChipID; }
+  UInt_t getCurrROF() const { return mROFRef.getROFrame(); }
 
   void print() const;
   void clear();
@@ -121,7 +132,7 @@ class Clusterer
   }
 
   ///< recalculate min max row and column of the cluster accounting for the position of pix
-  void adjustBoundingBox(const o2::ITSMFT::PixelData pix, UShort_t& rMin, UShort_t& rMax,
+  void adjustBoundingBox(const o2::itsmft::PixelData pix, UShort_t& rMin, UShort_t& rMax,
                          UShort_t& cMin, UShort_t& cMax) const
   {
     if (pix.getRowDirect() < rMin) {
@@ -164,6 +175,7 @@ class Clusterer
 #ifdef _PERFORM_TIMING_
     mTimer.Stop();
 #endif
+
     mClusTree->Fill();
 #ifdef _PERFORM_TIMING_
     mTimer.Start(kFALSE);
@@ -181,8 +193,12 @@ class Clusterer
   }
 
   // clusterization options
+  bool mContinuousReadout = true;    ///< flag continuous readout
   bool mWantFullClusters = true;     ///< request production of full clusters with pattern and coordinates
   bool mWantCompactClusters = false; ///< request production of compact clusters with patternID and corner address
+
+  ///< mask continuosly fired pixels in frames separated by less than this amount of BCs (fired from hit in prev. ROF)
+  int mMaxBCSeparationToMask = 6000. / o2::constants::lhc::LHCBunchSpacingNS + 10;
 
   // aux data for clusterization
   ChipPixelData* mChipData = nullptr; //! pointer on the current single chip data provided by the reader
@@ -192,7 +208,6 @@ class Clusterer
   std::vector<ChipPixelData> mChips;    // currently processed chips data
   std::vector<ChipPixelData> mChipsOld; // previously processed chips data (for masking)
 
-  bool mMaskOverflowPixels = true; ///< flag to mask oveflow pixels (fired from hit in prev. ROF)
   // buffers for entries in mPreClusterIndices in 2 columns, to avoid boundary checks, we reserve
   // extra elements in the beginning and the end
   int mColumn1[SegmentationAlpide::NRows + 2];
@@ -200,8 +215,7 @@ class Clusterer
   int* mCurr; // pointer on the 1st row of currently processed mColumnsX
   int* mPrev; // pointer on the 1st row of previously processed mColumnsX
 
-  UInt_t mCurrROF = o2::ITSMFT::PixelData::DummyROF;         // current ROF
-  UShort_t mCurrChipID = o2::ITSMFT::PixelData::DummyChipID; // current chipID
+  o2::itsmft::ROFRecord mROFRef; // ROF reference
 
   // mPixels[].first is the index of the next pixel of the same precluster in the mPixels
   // mPixels[].second is the index of the referred pixel in the ChipPixelData (element of mChips)
@@ -212,9 +226,9 @@ class Clusterer
   int mClustersCount = 0; ///< number of clusters in the output container
 
   bool mNoLeftColumn = true;                           ///< flag that there is no column on the left to check
-  const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr; //! ITS OR MFT upgrade geometry
+  const o2::itsmft::GeometryTGeo* mGeometry = nullptr; //! ITS OR MFT upgrade geometry
 
-  TTree* mClusTree = nullptr;                                      //! externally provided tree to write output (if needed)
+  TTree* mClusTree = nullptr;                                      //! externally provided tree to write clusters output (if needed)
   std::array<Label, Cluster::maxLabels> mLabelsBuff;               //! temporary buffer for building cluster labels
   std::array<PixelData, Cluster::kMaxPatternBits * 2> mPixArrBuff; //! temporary buffer for pattern calc.
 
@@ -225,6 +239,6 @@ class Clusterer
 #endif
 };
 
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 #endif /* ALICEO2_ITS_CLUSTERER_H */

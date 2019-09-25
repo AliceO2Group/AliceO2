@@ -19,7 +19,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 /// ROFRecord class encodes the trigger interaction record of given ROF and
@@ -48,6 +48,12 @@ class ROFRecord
   ROFtype getROFrame() const { return mROFrame; }
   int getNROFEntries() const { return mNROFEntries; }
 
+  void clear()
+  {
+    mROFEntry.clear();
+    mNROFEntries = 0;
+    mBCData.clear();
+  }
   void print() const;
 
  private:
@@ -74,7 +80,7 @@ struct MC2ROFRecord {
   void print() const;
   ClassDefNV(MC2ROFRecord, 1);
 };
-}
-}
+} // namespace itsmft
+} // namespace o2
 
 #endif

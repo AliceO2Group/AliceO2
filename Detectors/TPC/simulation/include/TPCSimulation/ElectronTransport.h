@@ -23,7 +23,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// \class ElectronTransport
@@ -85,7 +85,7 @@ class ElectronTransport
 
 inline bool ElectronTransport::isElectronAttachment(float driftTime)
 {
-  if (mRandomFlat.getNextValue() < mGasParam->getAttachmentCoefficient() * mGasParam->getOxygenContent() * driftTime) {
+  if (mRandomFlat.getNextValue() < mGasParam->AttCoeff * mGasParam->OxygenCont * driftTime) {
     return true; /// electron is attached and lost
   } else
     return false; /// not attached
@@ -93,10 +93,10 @@ inline bool ElectronTransport::isElectronAttachment(float driftTime)
 
 inline float ElectronTransport::getDriftTime(float zPos, float signChange) const
 {
-  float time = (mDetParam->getTPClength() - signChange * std::abs(zPos)) / mGasParam->getVdrift();
+  float time = (mDetParam->TPClength - signChange * std::abs(zPos)) / mGasParam->DriftV;
   return time;
 }
-}
-}
+} // namespace tpc
+} // namespace o2
 
 #endif // ALICEO2_TPC_ElectronTransport_H_

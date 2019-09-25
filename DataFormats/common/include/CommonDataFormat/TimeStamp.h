@@ -11,7 +11,7 @@
 #ifndef ALICEO2_COMMON_TIMESTAMP_H
 #define ALICEO2_COMMON_TIMESTAMP_H
 
-#include "Rtypes.h"
+#include "GPUCommonRtypes.h"
 
 namespace o2
 {
@@ -42,11 +42,13 @@ class TimeStampWithError : public TimeStamp<T>
   TimeStampWithError(T t, E te) : TimeStamp<T>(t), mTimeStampError(te) {}
   E getTimeStampError() const { return mTimeStampError; }
   void setTimeStampError(E te) { mTimeStampError = te; }
+
  private:
   E mTimeStampError = 0;
   ClassDefNV(TimeStampWithError, 1);
 };
 
+#ifndef ALIGPU_GPUCODE
 template <typename T>
 std::ostream& operator<<(std::ostream& os, const TimeStamp<T>& t)
 {
@@ -62,7 +64,8 @@ std::ostream& operator<<(std::ostream& os, const TimeStampWithError<T, E>& t)
   os << t.getTimeStamp() << " +/- " << t.getTimeStampError();
   return os;
 }
-}
-}
+#endif
+} // namespace dataformats
+} // namespace o2
 
 #endif /* ALICEO2_COMMON_TIMESTAMP_H */

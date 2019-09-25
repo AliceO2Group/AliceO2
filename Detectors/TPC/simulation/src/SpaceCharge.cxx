@@ -27,9 +27,9 @@
 #include "TPCBase/ParameterGas.h"
 #include "TPCSimulation/SpaceCharge.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
-const float o2::TPC::SpaceCharge::sEzField = (AliTPCPoissonSolver::fgkCathodeV - AliTPCPoissonSolver::fgkGG) / AliTPCPoissonSolver::fgkTPCZ0;
+const float o2::tpc::SpaceCharge::sEzField = (AliTPCPoissonSolver::fgkCathodeV - AliTPCPoissonSolver::fgkGG) / AliTPCPoissonSolver::fgkTPCZ0;
 
 SpaceCharge::SpaceCharge()
   : mNZSlices(MaxZSlices),
@@ -137,8 +137,8 @@ void SpaceCharge::init()
   auto o2field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
   float bzField = o2field->solenoidField(); // magnetic field in kGauss
   /// TODO is there a faster way to get the drift velocity
-  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
-  float vDrift = gasParam.getVdrift(); // drift velocity in cm/us
+  auto& gasParam = ParameterGas::Instance();
+  float vDrift = gasParam.DriftV; // drift velocity in cm/us
   /// TODO fix hard coded values (ezField, t1, t2): export to Constants.h or get from somewhere?
   float t1 = 1.;
   float t2 = 1.;
@@ -171,10 +171,10 @@ void SpaceCharge::calculateLookupTables()
         for (int iz = 0; iz < mNZSlices; ++iz) {
           // A side
           float z = mCoordZ[iz];
-          float x0[3] = { radius, phi, z };
-          float x1[3] = { radius, phi, z - mLengthZSlice };
-          double eVector0[3] = { 0.f, 0.f, 0.f };
-          double eVector1[3] = { 0.f, 0.f, 0.f };
+          float x0[3] = {radius, phi, z};
+          float x1[3] = {radius, phi, z - mLengthZSlice};
+          double eVector0[3] = {0.f, 0.f, 0.f};
+          double eVector1[3] = {0.f, 0.f, 0.f};
           mLookUpTableCalculator.GetElectricFieldCyl(x0, roc, eVector0);
           mLookUpTableCalculator.GetElectricFieldCyl(x1, roc, eVector1);
           matrixDzA(ir, iz) = DvDEoverv0 * (mLengthZSlice / 2.f) * (eVector0[2] + eVector1[2]);
@@ -297,8 +297,8 @@ void SpaceCharge::correctElectron(GlobalPosition3D& point)
   if (!mInitLookUpTables) {
     return;
   }
-  const float x[3] = { point.X(), point.Y(), point.Z() };
-  float dx[3] = { 0.f, 0.f, 0.f };
+  const float x[3] = {point.X(), point.Y(), point.Z()};
+  float dx[3] = {0.f, 0.f, 0.f};
   float phi = TMath::ATan2(x[1], x[0]);
   if (phi < 0) {
     phi += TMath::TwoPi();
@@ -316,8 +316,8 @@ void SpaceCharge::distortElectron(GlobalPosition3D& point)
   if (!mInitLookUpTables) {
     return;
   }
-  const float x[3] = { point.X(), point.Y(), point.Z() };
-  float dx[3] = { 0.f, 0.f, 0.f };
+  const float x[3] = {point.X(), point.Y(), point.Z()};
+  float dx[3] = {0.f, 0.f, 0.f};
   float phi = TMath::ATan2(x[1], x[0]);
   if (phi < 0) {
     phi += TMath::TwoPi();

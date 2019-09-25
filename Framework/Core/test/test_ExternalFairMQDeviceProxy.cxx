@@ -17,13 +17,14 @@
 
 using namespace o2::framework;
 
-BOOST_AUTO_TEST_CASE(ExternalFairMQDeviceProxy) {
+BOOST_AUTO_TEST_CASE(ExternalFairMQDeviceProxy)
+{
   InjectorFunction f;
   DataProcessorSpec spec = specifyExternalFairMQDeviceProxy("testSource",
-                            {}, "type=sub,method=connect,address=tcp://localhost:10000,rateLogging=1", f);
+                                                            {}, "type=sub,method=connect,address=tcp://localhost:10000,rateLogging=1", f);
   BOOST_CHECK_EQUAL(spec.name, "testSource");
   BOOST_CHECK_EQUAL(spec.inputs.size(), 0);
   BOOST_REQUIRE_EQUAL(spec.options.size(), 1);
   BOOST_CHECK_EQUAL(spec.options[0].name, "channel-config");
-  BOOST_CHECK_EQUAL(spec.options[0].defaultValue.get<const char *>(), std::string("name=testSource,type=sub,method=connect,address=tcp://localhost:10000,rateLogging=1"));
+  BOOST_CHECK_EQUAL(spec.options[0].defaultValue.get<const char*>(), std::string("name=testSource,type=sub,method=connect,address=tcp://localhost:10000,rateLogging=1"));
 }

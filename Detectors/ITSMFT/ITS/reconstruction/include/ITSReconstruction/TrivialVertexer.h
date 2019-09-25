@@ -23,7 +23,7 @@ class FairMCEventHeader;
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 class Cluster;
 }
@@ -37,11 +37,11 @@ namespace dataformats
 template <typename T>
 class MCTruthContainer;
 }
-namespace ITS
+namespace its
 {
 class TrivialVertexer
 {
-  using Cluster = o2::ITSMFT::Cluster;
+  using Cluster = o2::itsmft::Cluster;
   using Label = o2::MCCompLabel;
 
  public:
@@ -63,7 +63,7 @@ class TrivialVertexer
   TTree* mTree = nullptr;
   FairMCEventHeader* mHeader = nullptr;
 };
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* ALICEO2_ITS_TRIVIALVERTEXER_H */

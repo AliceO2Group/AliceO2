@@ -33,7 +33,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /// \class DigitGlobalPad
@@ -46,7 +46,7 @@ class DigitGlobalPad
 {
  public:
   /// Constructor
-  DigitGlobalPad();
+  DigitGlobalPad() = default;
 
   /// Destructor
   ~DigitGlobalPad() = default;
@@ -89,11 +89,9 @@ class DigitGlobalPad
   /// \return true, if trackID, eventID and sourceID are the same
   bool compareMClabels(const MCCompLabel& label1, const MCCompLabel& label2) const;
 
-  float mChargePad;                                  ///< Total accumulated charge on that GlobalPad for a given time bin
-  int mID = -1;                                      ///< ID of this digit to refer into labels (-1 means not initialized)
+  float mChargePad = 0.; ///< Total accumulated charge on that GlobalPad for a given time bin
+  int mID = -1;          ///< ID of this digit to refer into labels (-1 means not initialized)
 };
-
-inline DigitGlobalPad::DigitGlobalPad() : mChargePad(0.) {}
 
 inline void DigitGlobalPad::addDigit(const MCCompLabel& label, float signal,
                                      o2::dataformats::LabelContainer<std::pair<MCCompLabel, int>, false>& labels)
@@ -172,7 +170,7 @@ inline void DigitGlobalPad::fillOutputContainer(std::vector<Digit>& output,
     }
   }
 }
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif // ALICEO2_TPC_DigitGlobalPad_H_

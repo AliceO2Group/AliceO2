@@ -1,3 +1,5 @@
+\page refMUONMIDClustering MID Clustering
+
 # Running MID clustering
 
 The MID clustering takes as input the "digits" and returns the resulting clusters.

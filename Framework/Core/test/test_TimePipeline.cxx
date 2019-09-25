@@ -7,15 +7,15 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
-
-#include <iostream>
-#include <boost/algorithm/string.hpp>
-
 #include "Framework/InputSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/runDataProcessing.h"
+
+#include <boost/algorithm/string.hpp>
+
+#include <chrono>
+#include <iostream>
 
 using namespace o2::framework;
 
@@ -34,54 +34,41 @@ void someProcessingStageAlgorithm(ProcessingContext& ctx);
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
-  return WorkflowSpec {
-    {
-      "dataProducer",
-      Inputs{},
-      {
-        OutputSpec{ "TPC", "CLUSTERS" },
-      },
-      AlgorithmSpec{
-        (AlgorithmSpec::ProcessCallback) someDataProducerAlgorithm
-      }
-    },
+  return WorkflowSpec{
+    {"dataProducer",
+     Inputs{},
+     {
+       OutputSpec{"TPC", "CLUSTERS"},
+     },
+     AlgorithmSpec{
+       (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm}},
     timePipeline(
       DataProcessorSpec{
         "processingStage",
         Inputs{
-          { "dataTPC", "TPC", "CLUSTERS" }
-        },
+          {"dataTPC", "TPC", "CLUSTERS"}},
         Outputs{
-          { "TPC", "CLUSTERS_P" }
-        },
+          {"TPC", "CLUSTERS_P"}},
         AlgorithmSpec{
-          (AlgorithmSpec::ProcessCallback) someProcessingStageAlgorithm
-        }
-      },
-      parallelSize
-    ),
+          (AlgorithmSpec::ProcessCallback)someProcessingStageAlgorithm}},
+      parallelSize),
     DataProcessorSpec{
       "dataSampler",
       Inputs{
-        { "dataTPC-sampled", "TPC", "CLUSTERS", 0, Lifetime::Timeframe },
+        {"dataTPC-sampled", "TPC", "CLUSTERS", 0, Lifetime::Timeframe},
       },
       Outputs{},
       AlgorithmSpec{
-        (AlgorithmSpec::ProcessCallback) [](ProcessingContext& ctx) {
-        }
-      }
-    }
-  };
+        (AlgorithmSpec::ProcessCallback)[](ProcessingContext & ctx){}}}};
 }
-
 
 void someDataProducerAlgorithm(ProcessingContext& ctx)
 {
-  size_t index = ctx.services().get<ParallelContext>().index1D();
-  sleep(1);
+  uint32_t index = ctx.services().get<ParallelContext>().index1D();
+  std::this_thread::sleep_for(std::chrono::seconds(1));
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
-  auto tpcClusters = ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS", index }, collectionChunkSize);
+  auto tpcClusters = ctx.outputs().make<FakeCluster>(Output{"TPC", "CLUSTERS", index}, collectionChunkSize);
   int i = 0;
 
   for (auto& cluster : tpcClusters) {
@@ -94,15 +81,14 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
   }
 }
 
-
 void someProcessingStageAlgorithm(ProcessingContext& ctx)
 {
-  size_t index = ctx.services().get<ParallelContext>().index1D();
+  uint32_t index = ctx.services().get<ParallelContext>().index1D();
 
   const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
 
   auto processedTpcClusters =
-    ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS_P", index }, collectionChunkSize);
+    ctx.outputs().make<FakeCluster>(Output{"TPC", "CLUSTERS_P", index}, collectionChunkSize);
 
   int i = 0;
   for (auto& cluster : processedTpcClusters) {

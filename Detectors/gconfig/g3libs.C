@@ -6,23 +6,26 @@
  *                  copied verbatim in the file "LICENSE"                       *
  ********************************************************************************/
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <iostream>
+#include "TSystem.h"
+#endif
 
 Bool_t isLibrary(const char* libName)
 {
   if (TString(gSystem->DynamicPathName(libName, kTRUE)) != TString(""))
     return kTRUE;
-  else  
+  else
     return kFALSE;
-}    
+}
 
 void g3libs()
 {
   cout << "Loading Geant3 libraries ..." << endl;
 
   if (isLibrary("libdummies"))
-     gSystem->Load("libdummies.so");
-                   // libdummies.so needed from geant3_+vmc version 0.5
+    gSystem->Load("libdummies.so");
+  // libdummies.so needed from geant3_+vmc version 0.5
 
   gSystem->Load("libgeant321");
 

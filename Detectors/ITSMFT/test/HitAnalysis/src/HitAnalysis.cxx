@@ -30,11 +30,11 @@
 #include "MathUtils/Cartesian3D.h"
 #include "MathUtils/Utils.h"
 
-using Segmentation = o2::ITSMFT::SegmentationAlpide;
-using o2::ITSMFT::Hit;
+using Segmentation = o2::itsmft::SegmentationAlpide;
+using o2::itsmft::Hit;
 
-using namespace o2::ITS;
-using namespace o2::Base;
+using namespace o2::its;
+using namespace o2::base;
 using namespace o2::utils;
 
 HitAnalysis::HitAnalysis()
@@ -69,13 +69,13 @@ InitStatus HitAnalysis::Init()
   // Get the FairRootManager
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
-    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ...";
     return kERROR;
   }
 
-  mHits = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Hit>*>("ITSHit");
+  mHits = mgr->InitObjectAs<const std::vector<o2::itsmft::Hit>*>("ITSHit");
   if (!mHits) {
-    LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "ITS points not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
 
@@ -89,7 +89,7 @@ InitStatus HitAnalysis::Init()
 
   // Create histograms
   // Ranges to be adjusted
-  Double_t maxLengthX(Segmentation::SensorSizeRows), maxLengthY(Segmentation::SensorThickness),
+  Double_t maxLengthX(Segmentation::SensorSizeRows), maxLengthY(Segmentation::SensorLayerThickness),
     maxLengthZ(Segmentation::SensorSizeCols);
 
   mLineSegment = new TH1D("lineSegment", "Length of the line segment within the chip", 500, 0.0, 0.01);

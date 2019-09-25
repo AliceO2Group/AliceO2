@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/LocalRootFileService.h"
-#include "FairMQLogger.h"
+#include "Framework/Logger.h"
 
 #include <cstdio>
 #include <cstdarg>
@@ -22,7 +22,8 @@ namespace framework
 {
 
 // All we do is to printout
-std::shared_ptr<TFile> LocalRootFileService::open(const char *format, ...) {
+std::shared_ptr<TFile> LocalRootFileService::open(const char* format, ...)
+{
   char buffer[PATH_MAX];
   va_list arglist;
   va_start(arglist, format);
@@ -31,7 +32,8 @@ std::shared_ptr<TFile> LocalRootFileService::open(const char *format, ...) {
   return std::make_shared<TFile>(buffer, "recreate");
 }
 
-std::string LocalRootFileService::format(const char *format, ...) {
+std::string LocalRootFileService::format(const char* format, ...)
+{
   char buffer[PATH_MAX];
   va_list arglist;
   va_start(arglist, format);
@@ -40,5 +42,5 @@ std::string LocalRootFileService::format(const char *format, ...) {
   return std::move(std::string(buffer));
 }
 
-} // framework
-} // o2
+} // namespace framework
+} // namespace o2

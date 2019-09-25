@@ -1,6 +1,8 @@
 #ifndef IMGUI_EXTRAS_H
 #define IMGUI_EXTRAS_H
 
+#include "Framework/CompilerBuiltins.h"
+
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -47,7 +49,7 @@ static float binner(BinFunction binFunction,
                     size_t data_idx,
                     size_t values_count,
                     float binStart, float binEnd,
-                    size_t domain_min, size_t domain_max,
+                    size_t domain_min, size_t domain_max, float scale,
                     float (*getterY)(const void* data, int idx),
                     size_t (*getterX)(const void* data, int idx),
                     size_t& cacheXIdx,
@@ -66,7 +68,6 @@ static float binner(BinFunction binFunction,
     default:
       value = 0;
   }
-  float scale = 1.f / (domain_max - domain_min);
   // Accumulate the matching datapoints.
   while (cacheXIdx < values_count) {
     size_t bin = getterX(datas[data_idx], cacheXIdx);
@@ -162,7 +163,7 @@ void addPlotWidget(ImGuiWindow* window, const char* label, FrameLayout& result, 
   ImGuiContext& g = *GImGui;
   const ImGuiStyle& style = g.Style;
 
-  const ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
+  const ImVec2 label_size = ImGui::CalcTextSize(label, nullptr, true);
   if (graph_size.x == 0.0f)
     graph_size.x = CalcItemWidth();
   if (graph_size.y == 0.0f)
@@ -176,7 +177,7 @@ void addPlotWidget(ImGuiWindow* window, const char* label, FrameLayout& result, 
   if (!ItemAdd(result.total_bb, 0))
     return;
   auto bg_color = GetColorU32(ImGuiCol_FrameBg);
-  bg_color = ImColor{ 20, 20, 20, 255 };
+  bg_color = ImColor{20, 20, 20, 255};
   RenderFrame(result.frame_bb.Min, result.frame_bb.Max, bg_color, true, style.FrameRounding);
 };
 
@@ -209,6 +210,7 @@ static void PlotMultiEx(
   std::vector<float> hoveredData(num_datas, 0);
 
   int domain_delta = domain_max - domain_min;
+  float domain_scale = 1.f / (domain_max - domain_min);
   int res_w = ImMin((int)graph_size.x, domain_delta) + ((plot_type == ImGuiPlotType_Lines) ? -1 : 0);
   int item_count = values_count + ((plot_type == ImGuiPlotType_Lines) ? -1 : 0);
 
@@ -253,7 +255,7 @@ static void PlotMultiEx(
     auto [first_valid_index, vx0] = findFirstValidIndexAndValue(datas[data_idx]);
     size_t cacheXIdx = first_valid_index;
     float v0 = getterY(datas[data_idx], (first_valid_index + values_offset) % values_count);
-    float t0 = ImSaturate((vx0 - domain_min) / (domain_max - domain_min));
+    float t0 = ImSaturate((vx0 - domain_min) * domain_scale);
     ImVec2 tp0 = ImVec2(t0, 1.0f - ImSaturate((v0 - scale_min) / (scale_max - scale_min))); // Point in the normalized space of our target rectangle
 
     const ImU32 col_base = colors[data_idx];
@@ -267,9 +269,9 @@ static void PlotMultiEx(
           return v;
           break;
         case ValueScale::LOG:
-          return log(v);
+          return logf(v);
       }
-      assert(false);
+      O2_BUILTIN_UNREACHABLE();
     };
 
     float hoveredBinPos = (float)(v_hovered) / (float)(item_count);
@@ -288,7 +290,7 @@ static void PlotMultiEx(
                            data_idx,
                            values_count,
                            binStart, binEnd,
-                           domain_min, domain_max,
+                           domain_min, domain_max, domain_scale,
                            getterY,
                            getterX,
                            cacheXIdx,

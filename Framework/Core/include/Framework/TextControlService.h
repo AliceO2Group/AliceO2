@@ -12,6 +12,7 @@
 
 #include "Framework/ControlService.h"
 #include <string>
+#include <string_view>
 #include <regex>
 
 namespace o2
@@ -21,8 +22,9 @@ namespace framework
 
 /// A service that data processors can use to talk to control and ask for
 /// their own state change or others.
-class TextControlService : public ControlService {
-public:
+class TextControlService : public ControlService
+{
+ public:
   /// Tell the control that I am ready to quit. This will be
   /// done by printing (only once)
   ///
@@ -37,11 +39,12 @@ public:
   /// It's up to the driver to actually react on that and terminate the
   /// child.
   void readyToQuit(bool all = false) final;
-private:
+
+ private:
   bool mOnce = false;
 };
 
-bool parseControl(const std::string &s, std::smatch &match);
+bool parseControl(std::string_view s, std::smatch& match);
 
 } // namespace framework
 } // namespace o2

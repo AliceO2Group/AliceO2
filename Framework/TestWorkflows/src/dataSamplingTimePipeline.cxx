@@ -20,14 +20,16 @@ void customize(std::vector<ChannelConfigurationPolicy>& policies)
   DataSampling::CustomizeInfrastructure(policies);
 }
 
-#include <iostream>
-#include <boost/algorithm/string.hpp>
-
 #include "Framework/InputSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSampling.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/runDataProcessing.h"
+
+#include <boost/algorithm/string.hpp>
+
+#include <chrono>
+#include <iostream>
 
 using namespace o2::framework;
 
@@ -51,31 +53,29 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     "dataProducer",
     Inputs{},
     {
-      OutputSpec{ "TPC", "CLUSTERS" },
+      OutputSpec{"TPC", "CLUSTERS"},
     },
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm }
-  };
+      (AlgorithmSpec::ProcessCallback)someDataProducerAlgorithm}};
 
   auto processingStage = timePipeline(
     DataProcessorSpec{
       "processingStage",
       Inputs{
-        { "dataTPC", "TPC", "CLUSTERS" } },
+        {"dataTPC", "TPC", "CLUSTERS"}},
       Outputs{
-        { "TPC", "CLUSTERS_P" } },
+        {"TPC", "CLUSTERS_P"}},
       AlgorithmSpec{
-        (AlgorithmSpec::ProcessCallback)someProcessingStageAlgorithm } },
+        (AlgorithmSpec::ProcessCallback)someProcessingStageAlgorithm}},
     parallelSize);
 
   DataProcessorSpec sink{
     "sink",
     Inputs{
-      { "dataTPC-proc", "TPC", "CLUSTERS_P", 0 } },
+      {"dataTPC-proc", "TPC", "CLUSTERS_P", 0}},
     Outputs{},
     AlgorithmSpec{
-      (AlgorithmSpec::ProcessCallback)someSinkAlgorithm }
-  };
+      (AlgorithmSpec::ProcessCallback)someSinkAlgorithm}};
 
   // clang-format off
   DataProcessorSpec simpleQcTask{
@@ -126,10 +126,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
 void someDataProducerAlgorithm(ProcessingContext& ctx)
 {
   size_t index = ctx.services().get<ParallelContext>().index1D();
-  sleep(1);
+  std::this_thread::sleep_for(std::chrono::seconds(1));
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
-  auto tpcClusters = ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS", index }, collectionChunkSize);
+  auto tpcClusters = ctx.outputs().make<FakeCluster>(
+    Output{"TPC", "CLUSTERS", static_cast<o2::header::DataHeader::SubSpecificationType>(index)}, collectionChunkSize);
   int i = 0;
 
   for (auto& cluster : tpcClusters) {
@@ -148,8 +149,9 @@ void someProcessingStageAlgorithm(ProcessingContext& ctx)
 
   const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
 
-  auto processedTpcClusters =
-    ctx.outputs().make<FakeCluster>(Output{ "TPC", "CLUSTERS_P", index }, collectionChunkSize);
+  auto processedTpcClusters = ctx.outputs().make<FakeCluster>(
+    Output{"TPC", "CLUSTERS_P", static_cast<o2::header::DataHeader::SubSpecificationType>(index)},
+    collectionChunkSize);
 
   int i = 0;
   for (auto& cluster : processedTpcClusters) {

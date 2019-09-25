@@ -19,7 +19,7 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 /**
@@ -53,7 +53,7 @@ struct ClusterGroupHeader : public ClusterGroupAttribute {
 static_assert(sizeof(ClusterGroupAttribute) == 2, "inconsistent padding detected");
 static_assert(sizeof(ClusterGroupHeader) == 4, "inconsistent padding detected");
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif // CLUSTERGROUPATTRIBUTE_H

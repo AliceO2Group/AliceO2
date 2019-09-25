@@ -19,9 +19,10 @@ namespace framework
 
 /// This  represent one  single  execution of  a Device.  It's  meant to  hold
 /// information which  can change between  one execution  of a Device  and the
-/// other, e.g. its pid or the arguments it is started with.
+/// other, e.g. the executable name or the arguments it is started with.
 struct DeviceExecution {
-  std::vector<char *> args;
+  /// The options passed to a given device
+  std::vector<char*> args;
 };
 
 } // namespace framework

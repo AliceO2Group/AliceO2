@@ -17,6 +17,7 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSSimulation/Detector.h"
 #include "ITSMFTSimulation/AlpideChip.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
 
 #include "FairLogger.h" // for LOG
 
@@ -39,15 +40,12 @@
 class TGeoMedium;
 
 using namespace TMath;
-using namespace o2::ITS;
-using AlpideChip = o2::ITSMFT::AlpideChip;
+using namespace o2::its;
+using namespace o2::itsmft;
+using AlpideChip = o2::itsmft::AlpideChip;
 
 // General Parameters
 const Int_t V3Layer::sNumberOfInnerLayers = 3;
-
-const Double_t V3Layer::sDefaultSensorThick = 18 * sMicron;
-const Double_t V3Layer::sDefaultChipThick = 50 * sMicron;
-const Double_t V3Layer::sMetalLayerThick = 15 * sMicron;
 
 // Inner Barrel Parameters
 const Int_t V3Layer::sIBChipsPerRow = 9;
@@ -61,7 +59,7 @@ const Double_t V3Layer::sIBFlexCableAlThick = 25.0 * sMicron;
 const Double_t V3Layer::sIBFPCAlGNDWidth = (4.1 + 11.15) * sMm;
 const Double_t V3Layer::sIBFPCAlAnodeWidth1 = 13.0 * sMm;
 const Double_t V3Layer::sIBFPCAlAnodeWidth2 = 14.7 * sMm;
-const Double_t V3Layer::sIBFlexCableKapThick = 125.0 * sMicron;
+const Double_t V3Layer::sIBFlexCableKapThick = 75.0 * sMicron;
 const Double_t V3Layer::sIBFlexCablePolyThick = 20.0 * sMicron;
 const Double_t V3Layer::sIBFlexCapacitorXWid = 0.2 * sMm;
 const Double_t V3Layer::sIBFlexCapacitorYHi = 0.2 * sMm;
@@ -207,8 +205,8 @@ const Double_t V3Layer::sOBCPConnPlugInnerD = 0.8 * sMm;
 const Double_t V3Layer::sOBCPConnPlugTotLen = 1.7 * sMm;
 const Double_t V3Layer::sOBCPConnPlugThick = 0.5 * sMm;
 
-const Double_t V3Layer::sOBSpaceFrameZLen[2] = { 900.0 * sMm, 1526.0 * sMm };
-const Int_t V3Layer::sOBSpaceFrameNUnits[2] = { 23, 39 };
+const Double_t V3Layer::sOBSpaceFrameZLen[2] = {900.0 * sMm, 1526.0 * sMm};
+const Int_t V3Layer::sOBSpaceFrameNUnits[2] = {23, 39};
 const Double_t V3Layer::sOBSpaceFrameUnitLen = 39.1 * sMm;
 const Double_t V3Layer::sOBSpaceFrameWidth = 42.44 * sMm;
 const Double_t V3Layer::sOBSpaceFrameHeight = 36.45 * sMm;
@@ -228,12 +226,33 @@ const Double_t V3Layer::sOBSFrameULegHeight1 = 2.7 * sMm;
 const Double_t V3Layer::sOBSFrameULegHeight2 = 5.0 * sMm;
 const Double_t V3Layer::sOBSFrameULegThick = 0.3 * sMm;
 const Double_t V3Layer::sOBSFrameULegXPos = 12.9 * sMm;
+const Double_t V3Layer::sOBSFrameConnWidth = 42.0 * sMm;
+const Double_t V3Layer::sOBSFrameConnTotLen = 29.0 * sMm;
+const Double_t V3Layer::sOBSFrameConnTotHei = 4.8 * sMm;
+const Double_t V3Layer::sOBSFrameConnTopLen = 14.0 * sMm;
+const Double_t V3Layer::sOBSFrameConnInsWide = 36.869 * sMm;
+const Double_t V3Layer::sOBSFrameConnInsBase = 39.6 * sMm;
+const Double_t V3Layer::sOBSFrameConnInsHei = 2.8 * sMm;
+const Double_t V3Layer::sOBSFrameConnHoleZPos = 7.0 * sMm;
+const Double_t V3Layer::sOBSFrameConnHoleZDist = 15.0 * sMm;
+const Double_t V3Layer::sOBSFrameConnTopHoleD = 3.0 * sMm;
+const Double_t V3Layer::sOBSFrConnTopHoleXDist = 24.0 * sMm;
+const Double_t V3Layer::sOBSFrameConnAHoleWid = 4.0 * sMm;
+const Double_t V3Layer::sOBSFrameConnAHoleLen = 5.0 * sMm;
+const Double_t V3Layer::sOBSFrConnASideHoleD = 3.0 * sMm;
+const Double_t V3Layer::sOBSFrConnASideHoleL = 2.5 * sMm;
+const Double_t V3Layer::sOBSFrConnASideHoleY = 2.3 * sMm;
+const Double_t V3Layer::sOBSFrameConnCHoleZPos = 3.0 * sMm;
+const Double_t V3Layer::sOBSFrConnCHoleXDist = 32.0 * sMm;
+const Double_t V3Layer::sOBSFrConnCTopHoleD = 4.0 * sMm;
+const Double_t V3Layer::sOBSFrameConnInsHoleD = 5.0 * sMm;
+const Double_t V3Layer::sOBSFrameConnInsHoleX = 25.8 * sMm;
 
-ClassImp(V3Layer)
+ClassImp(V3Layer);
 
 #define SQ(A) (A) * (A)
 
-  V3Layer::V3Layer()
+V3Layer::V3Layer()
   : V11Geometry(),
     mLayerNumber(0),
     mPhi0(0),
@@ -287,7 +306,7 @@ V3Layer::V3Layer(Int_t lay, Bool_t turbo, Int_t debug)
   }
 }
 
-V3Layer::~V3Layer() {}
+V3Layer::~V3Layer() = default;
 
 void V3Layer::createLayer(TGeoVolume* motherVolume)
 {
@@ -298,37 +317,31 @@ void V3Layer::createLayer(TGeoVolume* motherVolume)
 
   // Check if the user set the proper parameters
   if (mLayerRadius <= 0) {
-    LOG(FATAL) << "Wrong layer radius " << mLayerRadius << FairLogger::endl;
+    LOG(FATAL) << "Wrong layer radius " << mLayerRadius;
   }
 
   if (mNumberOfStaves <= 0) {
-    LOG(FATAL) << "Wrong number of staves " << mNumberOfStaves << FairLogger::endl;
+    LOG(FATAL) << "Wrong number of staves " << mNumberOfStaves;
   }
 
   if (mNumberOfChips <= 0) {
-    LOG(FATAL) << "Wrong number of chips " << mNumberOfChips << FairLogger::endl;
+    LOG(FATAL) << "Wrong number of chips " << mNumberOfChips;
   }
 
   if (mLayerNumber >= sNumberOfInnerLayers && mNumberOfModules <= 0) {
-    LOG(FATAL) << "Wrong number of modules " << mNumberOfModules << FairLogger::endl;
+    LOG(FATAL) << "Wrong number of modules " << mNumberOfModules;
   }
 
   if (mChipThickness <= 0) {
-    LOG(INFO) << "Chip thickness wrong or not set " << mChipThickness << " using default " << sDefaultChipThick
-              << FairLogger::endl;
-    mChipThickness = sDefaultChipThick;
+    LOG(FATAL) << "Chip thickness wrong or not set " << mChipThickness;
   }
 
   if (mSensorThickness <= 0) {
-    LOG(INFO) << "Sensor thickness wrong or not set " << mSensorThickness << " using default " << sDefaultSensorThick
-              << FairLogger::endl;
-    mSensorThickness = sDefaultSensorThick;
+    LOG(FATAL) << "Sensor thickness wrong or not set " << mSensorThickness;
   }
 
   if (mSensorThickness > mChipThickness) {
-    LOG(WARNING) << "Sensor thickness " << mSensorThickness << " is greater than chip thickness " << mChipThickness
-                 << " fixing" << FairLogger::endl;
-    mSensorThickness = mChipThickness;
+    LOG(FATAL) << "Sensor thickness " << mSensorThickness << " is greater than chip thickness " << mChipThickness;
   }
 
   // If a Turbo layer is requested, do it and exit
@@ -380,11 +393,11 @@ void V3Layer::createLayerTurbo(TGeoVolume* motherVolume)
 
   // Check if the user set the proper (remaining) parameters
   if (mStaveWidth <= 0) {
-    LOG(FATAL) << "Wrong stave width " << mStaveWidth << FairLogger::endl;
+    LOG(FATAL) << "Wrong stave width " << mStaveWidth;
   }
 
   if (Abs(mStaveTilt) > 45) {
-    LOG(WARNING) << "Stave tilt angle (" << mStaveTilt << ") greater than 45deg" << FairLogger::endl;
+    LOG(WARNING) << "Stave tilt angle (" << mStaveTilt << ") greater than 45deg";
   }
 
   snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSLayerPattern(), mLayerNumber);
@@ -633,33 +646,34 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
   // Adds the capacitors to the IB FPC
   //
   // Created:      13 Feb 2018  Mario Sitta
+  // Updated:      03 Apr 2019  Mario Sitta  Fix positions (180' rotation)
   //
 
   // Position of the various capacitors (A.Junique private communication
   // where: X_capacitor = Z_module , Y_capacitor = X_module)
   // Capacitors (different groups)
   const Double_t xGroup1A = 4265.9 * sMicron;
-  const Double_t zGroup1A[2] = { -7142.9 * sMicron, 7594.1 * sMicron };
+  const Double_t zGroup1A[2] = {-7142.9 * sMicron, 7594.1 * sMicron};
   const Double_t xGroup1B = 690.9 * sMicron;
   const Double_t zGroup1B = -7142.9 * sMicron;
   const Double_t xGroup2 = 6300.0 * sMicron;
   const Double_t zGroup2 = 15075.0 * sMicron;
   const Double_t xGroup3 = 5575.0 * sMicron;
   const Double_t zGroup3 = 131900.0 * sMicron;
-  const Double_t xGroup4[2] = { 5600.0 * sMicron, 5575.0 * sMicron };
-  const Double_t zGroup4[sIBChipsPerRow] = { 275.0 * sMicron, 250.0 * sMicron, 275.0 * sMicron,
-                                             250.0 * sMicron, 250.0 * sMicron, 300.0 * sMicron,
-                                             250.0 * sMicron, 300.0 * sMicron, 250.0 * sMicron };
+  const Double_t xGroup4[2] = {5600.0 * sMicron, 5575.0 * sMicron};
+  const Double_t zGroup4[sIBChipsPerRow] = {275.0 * sMicron, 250.0 * sMicron, 275.0 * sMicron,
+                                            250.0 * sMicron, 250.0 * sMicron, 300.0 * sMicron,
+                                            250.0 * sMicron, 300.0 * sMicron, 250.0 * sMicron};
   const Int_t nGroup5A = 5, nGroup5B = 4;
-  const Double_t xGroup5A[2] = { 1400.0 * sMicron, 1350.0 * sMicron };
-  const Double_t zGroup5A[nGroup5A] = { -112957.5 * sMicron, -82854.5 * sMicron, 7595.5 * sMicron, 37745.5 * sMicron,
-                                        128194.1 * sMicron };
+  const Double_t xGroup5A[2] = {1400.0 * sMicron, 1350.0 * sMicron};
+  const Double_t zGroup5A[nGroup5A] = {-112957.5 * sMicron, -82854.5 * sMicron, 7595.5 * sMicron, 37745.5 * sMicron,
+                                       128194.1 * sMicron};
   const Double_t xGroup5B = 1100.0 * sMicron;
-  const Double_t zGroup5B[nGroup5B] = { -51525.0 * sMicron, -21375.0 * sMicron, 69075.0 * sMicron, 99225.0 * sMicron };
+  const Double_t zGroup5B[nGroup5B] = {-51525.0 * sMicron, -21375.0 * sMicron, 69075.0 * sMicron, 99225.0 * sMicron};
   // Resistors
   const Int_t nResist = 2;
   const Double_t xResist = -7975.0 * sMicron;
-  const Double_t zResist[nResist] = { 114403.0 * sMicron, 119222.0 * sMicron };
+  const Double_t zResist[nResist] = {114403.0 * sMicron, 119222.0 * sMicron};
 
   Double_t xpos, ypos, zpos;
   Int_t nCapacitors;
@@ -697,16 +711,16 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
   xpos = xGroup1A;
   for (Int_t j = 0; j < sIBChipsPerRow; j++) {
     zpos = -mIBModuleZLength / 2 + j * (2 * zchip + sIBChipZGap) + zchip + zGroup1A[0];
-    modvol->AddNode(capacitor, 2 * j + 1, new TGeoTranslation(xpos, ypos, zpos));
+    modvol->AddNode(capacitor, 2 * j + 1, new TGeoTranslation(-xpos, ypos, -zpos));
     zpos = -mIBModuleZLength / 2 + j * (2 * zchip + sIBChipZGap) + zchip + zGroup1A[1];
-    modvol->AddNode(capacitor, 2 * j + 2, new TGeoTranslation(xpos, ypos, zpos));
+    modvol->AddNode(capacitor, 2 * j + 2, new TGeoTranslation(-xpos, ypos, -zpos));
   }
 
   nCapacitors = 2 * sIBChipsPerRow;
   xpos = xGroup1B;
   for (Int_t j = 0; j < sIBChipsPerRow; j++) {
     zpos = -mIBModuleZLength / 2 + j * (2 * zchip + sIBChipZGap) + zchip + zGroup1B;
-    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(xpos, ypos, zpos));
+    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
   }
 
   nCapacitors += sIBChipsPerRow;
@@ -714,13 +728,13 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
   // We have only 8 in these group, missing the central one
   for (Int_t j = 0; j < sIBChipsPerRow - 1; j++) {
     zpos = -mIBModuleZLength / 2 + j * (2 * zchip + sIBChipZGap) + zchip + zGroup2;
-    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(xpos, ypos, zpos));
+    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
   }
 
   nCapacitors += (sIBChipsPerRow - 1);
   xpos = xGroup3;
   zpos = zGroup3;
-  modvol->AddNode(capacitor, 1 + nCapacitors, new TGeoTranslation(xpos, ypos, zpos));
+  modvol->AddNode(capacitor, 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
 
   nCapacitors++;
   for (Int_t j = 0; j < sIBChipsPerRow; j++) {
@@ -729,7 +743,7 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
     else
       xpos = xGroup4[0];
     zpos = -mIBModuleZLength / 2 + j * (2 * zchip + sIBChipZGap) + zchip + zGroup4[j];
-    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(xpos, ypos, zpos));
+    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
   }
 
   nCapacitors += sIBChipsPerRow;
@@ -739,21 +753,21 @@ void V3Layer::createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yz
     else
       xpos = xGroup5A[1];
     zpos = zGroup5A[j];
-    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(xpos, ypos, zpos));
+    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
   }
 
   nCapacitors += nGroup5A;
   xpos = xGroup5B;
   for (Int_t j = 0; j < nGroup5B; j++) {
     zpos = zGroup5B[j];
-    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(xpos, ypos, zpos));
+    modvol->AddNode(capacitor, j + 1 + nCapacitors, new TGeoTranslation(-xpos, ypos, -zpos));
   }
 
   // Place the resistors
   xpos = xResist;
   for (Int_t j = 0; j < nResist; j++) {
     zpos = zResist[j];
-    modvol->AddNode(resistor, j + 1, new TGeoTranslation(xpos, ypos, zpos));
+    modvol->AddNode(resistor, j + 1, new TGeoTranslation(-xpos, ypos, -zpos));
   }
 }
 
@@ -798,6 +812,7 @@ TGeoVolume* V3Layer::createIBFPCAlAnode(const Double_t xcable, const Double_t zc
   //
   //
   // Created:      20 Oct 2017  Mario Sitta
+  // Updated:      03 Apr 2019  Mario Sitta  Fix Al position (180' rotation)
   //
 
   Double_t ytot, ypos;
@@ -812,9 +827,9 @@ TGeoVolume* V3Layer::createIBFPCAlAnode(const Double_t xcable, const Double_t zc
   ytru[0] = -zcable;
   xtru[1] = sIBFPCAlAnodeWidth2 / 2;
   ytru[1] = ytru[0];
-  xtru[2] = xtru[1];
+  xtru[2] = xtru[0] + sIBFPCAlAnodeWidth1;
   ytru[2] = zcable;
-  xtru[3] = xtru[2] - sIBFPCAlAnodeWidth1;
+  xtru[3] = xtru[0];
   ytru[3] = ytru[2];
 
   TGeoXtru* aluminum = new TGeoXtru(2);
@@ -836,7 +851,7 @@ TGeoVolume* V3Layer::createIBFPCAlAnode(const Double_t xcable, const Double_t zc
 
   ypos = -coverlay->GetDY() + aluminum->GetZ(1);
   if (mBuildLevel < 1) // Aluminum
-    coverlayVol->AddNode(aluminumVol, 1, new TGeoCombiTrans(0, ypos, 0, new TGeoRotation("", 0, 90, 0)));
+    coverlayVol->AddNode(aluminumVol, 1, new TGeoCombiTrans(0, ypos, 0, new TGeoRotation("", 0, -90, 0)));
 
   return coverlayVol;
 }
@@ -863,13 +878,13 @@ TGeoVolume* V3Layer::createStaveStructInnerB(const TGeoManager* mgr)
     case Detector::kIBModel21:
     case Detector::kIBModel22:
     case Detector::kIBModel3:
-      LOG(FATAL) << "Stave model " << mStaveModel << " obsolete and no longer supported" << FairLogger::endl;
+      LOG(FATAL) << "Stave model " << mStaveModel << " obsolete and no longer supported";
       break;
     case Detector::kIBModel4:
       mechStavVol = createStaveModelInnerB4(mgr);
       break;
     default:
-      LOG(FATAL) << "Unknown stave model " << mStaveModel << FairLogger::endl;
+      LOG(FATAL) << "Unknown stave model " << mStaveModel;
       break;
   }
   return mechStavVol;
@@ -1029,10 +1044,10 @@ TGeoVolume* V3Layer::createStaveModelInnerB4(const TGeoManager* mgr)
 
   // The connectors' containers
   zlen = sIBConnectBlockZLen - sIBConnTailZLen + sIBConnectAFitZOut;
-  TGeoBBox* connAside = new TGeoBBox("connAsideIB", sIBConnectorXWidth / 2, sIBConnectorYTot / 2, zlen / 2);
+  TGeoBBox* connAside = new TGeoBBox("connAsideIB", sIBConnectorXWidth / 2, sIBConnBodyYHeight / 2, zlen / 2);
 
   zlen = sIBConnectBlockZLen - sIBConnTailZLen;
-  TGeoBBox* connCside = new TGeoBBox("connCsideIB", sIBConnectorXWidth / 2, sIBConnectorYTot / 2, zlen / 2);
+  TGeoBBox* connCside = new TGeoBBox("connCsideIB", sIBConnectorXWidth / 2, sIBConnBodyYHeight / 2, zlen / 2);
 
   // The StaveStruct container, a Composite Shape
   yposPipe = 2 * glue->GetDY() + 2 * fleecbot->GetDY() + 2 * cfplate->GetDY() + pipe->GetRmax();
@@ -1289,6 +1304,7 @@ void V3Layer::createIBConnectorsASide(const TGeoManager* mgr)
   // Created:      22 Apr 2015  Mario Sitta
   // Updated:      04 Apr 2017  Mario Sitta  O2 version
   // Updated:      28 Jan 2018  Mario Sitta  To last drawings (ALIITSUP0051)
+  // Updated:      19 Jun 2019  Mario Sitta  Avoid fake overlaps with EndWheels
   //
 
   // Local variables
@@ -1444,12 +1460,16 @@ void V3Layer::createIBConnectorsASide(const TGeoManager* mgr)
   // Now create the container: cannot be a simple box
   // to avoid fake overlaps with stave elements
   xlen = sIBConnectorXWidth;
-  ylen = sIBConnectorYTot;
+  ylen = sIBConnBodyYHeight;
   zlen = sIBConnectBlockZLen - sIBConnTailZLen + sIBConnectAFitZOut;
 
   TGeoBBox* connBox = new TGeoBBox("connBoxA", xlen / 2, ylen / 2, zlen / 2);
 
-  ypos = -connBox->GetDY();
+  ypos = -sIBConnectorYTot / 2 + connBox->GetDY();
+  TGeoTranslation* transBodyA = new TGeoTranslation("transBodyA", 0, ypos, 0);
+  transBodyA->RegisterYourself();
+
+  ypos = -sIBConnectorYTot / 2;
   zpos = -connBox->GetDZ() - connTail->GetZ(1);
   TGeoTranslation* transTailA = new TGeoTranslation("transTailA", 0, ypos, zpos);
   transTailA->RegisterYourself();
@@ -1457,7 +1477,7 @@ void V3Layer::createIBConnectorsASide(const TGeoManager* mgr)
   TGeoTube* connTubeHollow = new TGeoTube("tubeHollowA", 0, sIBConnTubeHole1D / 2, sIBConnTubeHole1ZLen / 2);
 
   xpos = sIBConnTubesXDist / 2;
-  ypos = -connBox->GetDY() + sIBConnTubesYPos;
+  ypos = -sIBConnectorYTot / 2 + sIBConnTubesYPos;
   zpos = -connBox->GetDZ() - connTail->GetZ(1) + sIBConnTubeHole1ZLen / 2;
   TGeoTranslation* connTubeHollTrans1 = new TGeoTranslation("tubeHollTrans1A", -xpos, ypos, zpos);
   connTubeHollTrans1->RegisterYourself();
@@ -1471,23 +1491,23 @@ void V3Layer::createIBConnectorsASide(const TGeoManager* mgr)
   connTubes2Trans2Body->RegisterYourself();
 
   TGeoCompositeShape* connBoxSh = new TGeoCompositeShape(
-    "connBoxA-tube2HoleA:tubes2Trans1BA-tube2HoleA:tubes2Trans2BA+connTailA:transTailA-tubeHollowA:tubeHollTrans1A-"
+    "connBoxA:transBodyA-tube2HoleA:tubes2Trans1BA-tube2HoleA:tubes2Trans2BA+connTailA:transTailA-tubeHollowA:tubeHollTrans1A-"
     "tubeHollowA:tubeHollTrans2A");
 
   TGeoVolume* connBoxASide = new TGeoVolume("IBConnectorASide", connBoxSh, medAir);
 
   // Finally build up the connector
   // (NB: the origin is in the connBox, i.e. w/o the tail in Z)
-  ypos = -connBox->GetDY();
+  ypos = -sIBConnectorYTot / 2;
   zpos = -connBox->GetDZ() - connTail->GetZ(1);
   connBoxASide->AddNode(connBlockTail, 1, new TGeoTranslation(0, ypos, zpos));
 
-  ypos = -connBox->GetDY() + connBody->GetDY();
+  ypos = -sIBConnectorYTot / 2 + connBody->GetDY();
   zpos = -connBox->GetDZ() + connBody->GetDZ();
   connBoxASide->AddNode(connBlockBody, 1, new TGeoTranslation(0, ypos, zpos));
 
   xpos = sIBConnTubesXDist / 2;
-  ypos = -connBox->GetDY() + sIBConnTubesYPos;
+  ypos = -sIBConnectorYTot / 2 + sIBConnTubesYPos;
   zpos = connBox->GetDZ() - connFitSh->GetDz();
   connBoxASide->AddNode(connFit, 1, new TGeoTranslation(xpos, ypos, zpos));
   connBoxASide->AddNode(connFit, 2, new TGeoTranslation(-xpos, ypos, zpos));
@@ -1501,6 +1521,7 @@ void V3Layer::createIBConnectorsCSide(const TGeoManager* mgr)
   // Created:      05 May 2015  Mario Sitta
   // Updated:      04 Apr 2017  Mario Sitta  O2 version
   // Updated:      28 Jan 2018  Mario Sitta  To last drawings (ALIITSUP0051)
+  // Updated:      15 May 2019  Mario Sitta  Avoid fake overlaps with EndWheels
   //
 
   // Local variables
@@ -1658,12 +1679,16 @@ void V3Layer::createIBConnectorsCSide(const TGeoManager* mgr)
   // Now create the container: cannot be a simple box
   // to avoid fake overlaps with stave elements
   xlen = sIBConnectorXWidth;
-  ylen = sIBConnectorYTot;
+  ylen = sIBConnBodyYHeight;
   zlen = sIBConnectBlockZLen - sIBConnTailZLen;
 
   TGeoBBox* connBox = new TGeoBBox("connBoxC", xlen / 2, ylen / 2, zlen / 2);
 
-  ypos = -connBox->GetDY();
+  ypos = -sIBConnectorYTot / 2 + connBox->GetDY();
+  TGeoTranslation* transBodyC = new TGeoTranslation("transBodyC", 0, ypos, 0);
+  transBodyC->RegisterYourself();
+
+  ypos = -sIBConnectorYTot / 2;
   zpos = -connBox->GetDZ() - connTail->GetZ(1);
   TGeoTranslation* transTailC = new TGeoTranslation("transTailC", 0, ypos, zpos);
   transTailC->RegisterYourself();
@@ -1671,7 +1696,7 @@ void V3Layer::createIBConnectorsCSide(const TGeoManager* mgr)
   TGeoTube* connTubeHollow = new TGeoTube("tubeHollowC", 0, sIBConnTubeHole1D / 2, sIBConnTubeHole1ZLen / 2);
 
   xpos = sIBConnTubesXDist / 2;
-  ypos = -connBox->GetDY() + sIBConnTubesYPos;
+  ypos = -sIBConnectorYTot / 2 + sIBConnTubesYPos;
   zpos = -connBox->GetDZ() - connTail->GetZ(1) + sIBConnTubeHole1ZLen / 2;
   TGeoTranslation* connTubeHollTrans1 = new TGeoTranslation("tubeHollTrans1C", -xpos, ypos, zpos);
   connTubeHollTrans1->RegisterYourself();
@@ -1685,7 +1710,7 @@ void V3Layer::createIBConnectorsCSide(const TGeoManager* mgr)
   connTubes2Trans2Body->RegisterYourself();
 
   TGeoCompositeShape* connBoxSh = new TGeoCompositeShape(
-    "connBoxC-tube2HoleC:tubes2Trans1BC-tube2HoleC:tubes2Trans2BC+connTailC:transTailC-tubeHollowC:tubeHollTrans1C-"
+    "connBoxC:transBodyC-tube2HoleC:tubes2Trans1BC-tube2HoleC:tubes2Trans2BC+connTailC:transTailC-tubeHollowC:tubeHollTrans1C-"
     "tubeHollowC:tubeHollTrans2C");
 
   TGeoVolume* connBoxCSide = new TGeoVolume("IBConnectorCSide", connBoxSh, medAir);
@@ -1696,11 +1721,11 @@ void V3Layer::createIBConnectorsCSide(const TGeoManager* mgr)
   zpos = -connBodySh->GetDZ() - connTail->GetZ(1);
   connBoxCSide->AddNode(connBlockTail, 1, new TGeoTranslation(0, ypos, zpos));
 
-  ypos = -connBoxSh->GetDY() + connBodySh->GetDY();
+  ypos = -connBoxSh->GetDY() + connBody->GetDY();
   connBoxCSide->AddNode(connBlockBody, 1, new TGeoTranslation(0, ypos, 0));
 
   xpos = connBox->GetDX();
-  ypos = -connBox->GetDY() + sIBConnTubesYPos;
+  ypos = -sIBConnectorYTot / 2 + sIBConnTubesYPos;
   zpos = connBody->GetDZ() - (sIBConnectBlockZLen - sIBConnTubeHole3ZPos);
   connBoxCSide->AddNode(connPlug, 1, new TGeoCombiTrans(xpos, ypos, zpos, new TGeoRotation("", 90, -90, 90)));
 }
@@ -1728,13 +1753,13 @@ TGeoVolume* V3Layer::createStaveOuterB(const TGeoManager* mgr)
       break;
     case Detector::kOBModel0:
     case Detector::kOBModel1:
-      LOG(FATAL) << "Stave model " << mStaveModel << " obsolete and no longer supported" << FairLogger::endl;
+      LOG(FATAL) << "Stave model " << mStaveModel << " obsolete and no longer supported";
       break;
     case Detector::kOBModel2:
       mechStavVol = createStaveModelOuterB2(mgr);
       break;
     default:
-      LOG(FATAL) << "Unknown stave model " << mStaveModel << FairLogger::endl;
+      LOG(FATAL) << "Unknown stave model " << mStaveModel;
       break;
   }
   return mechStavVol;
@@ -2597,7 +2622,7 @@ TGeoVolume* V3Layer::createSpaceFrameOuterB(const TGeoManager* mgr)
       mechStavVol = createSpaceFrameOuterB2(mgr);
       break;
     default:
-      LOG(FATAL) << "Unknown stave model " << mStaveModel << FairLogger::endl;
+      LOG(FATAL) << "Unknown stave model " << mStaveModel;
       break;
   }
 
@@ -2692,7 +2717,7 @@ TGeoVolume* V3Layer::createSpaceFrameOuterB2(const TGeoManager* mgr)
 
   zpos = zlen / 2 + sOBSpaceFrameUnitLen / 2;
   snprintf(volname, nameLen, "endUnit0Trans%d", mLayerNumber);
-  TGeoTranslation* endUnit0Trans = new TGeoTranslation(volname, 0, 0, -zpos);
+  TGeoCombiTrans* endUnit0Trans = new TGeoCombiTrans(volname, 0, 0, -zpos, new TGeoRotation("", 90, 180, -90));
   endUnit0Trans->RegisterYourself();
   snprintf(volname, nameLen, "endUnit1Trans%d", mLayerNumber);
   TGeoTranslation* endUnit1Trans = new TGeoTranslation(volname, 0, 0, zpos);
@@ -2700,7 +2725,7 @@ TGeoVolume* V3Layer::createSpaceFrameOuterB2(const TGeoManager* mgr)
 
   // The Space Frame container: a Composite Shape to avoid overlaps
   // between the U-legs space and the end-stave connectors
-  // "endunitcontainer" is defined in CreateOBSpaceFrameObjects)
+  // ("endunitcontainer" is defined in CreateOBSpaceFrameObjects)
   char componame[100];
   snprintf(componame, 100, "sframecentral%d+endunitcontainer:endUnit0Trans%d+endunitcontainer:endUnit1Trans%d",
            mLayerNumber, mLayerNumber, mLayerNumber);
@@ -2713,29 +2738,24 @@ TGeoVolume* V3Layer::createSpaceFrameOuterB2(const TGeoManager* mgr)
 
   // Finally build up the space frame
   TGeoXtru* frameUnit = static_cast<TGeoXtru*>(unitVol[0]->GetShape());
-  TGeoXtru* endUnit = static_cast<TGeoXtru*>(endVol[0]->GetShape());
 
-  zpos = -spaceFrame->GetDZ() + endUnit->GetDZ();
-  //  zpos = -sOBSpaceFrameZLen[fLayerNumber/5]/2 + endUnit->GetDZ();
-  spaceFrameVol->AddNode(endVol[0], 1, new TGeoTranslation(0, 0, zpos));
+  zpos = -spaceFrame->GetDZ() + frameUnit->GetDZ() + sOBSFrameConnTopLen;
+  spaceFrameVol->AddNode(endVol[0], 1, new TGeoCombiTrans(0, 0, zpos, new TGeoRotation("", 90, 180, -90)));
 
-  zpos += (endUnit->GetDZ() + frameUnit->GetDZ());
+  zpos += (2 * frameUnit->GetDZ());
   spaceFrameVol->AddNode(next2EndVol[0], 1, new TGeoTranslation(0, 0, zpos));
 
   for (Int_t i = 2; i < nUnits - 2; i++) {
-    zpos = -spaceFrame->GetDZ() + (1 + 2 * i) * frameUnit->GetDZ();
-    //    zpos = -spaceFrame->GetDZ() + 2*i*frameUnit->GetDZ();
+    zpos += (2 * frameUnit->GetDZ());
     Int_t j = i / 2;
     Int_t k = i - j * 2; // alternatively 0 or 1
     spaceFrameVol->AddNode(unitVol[k], j, new TGeoTranslation(0, 0, zpos));
   }
 
-  zpos = -spaceFrame->GetDZ() + (2 * nUnits - 3) * frameUnit->GetDZ();
+  zpos += (2 * frameUnit->GetDZ());
   spaceFrameVol->AddNode(next2EndVol[1], 1, new TGeoTranslation(0, 0, zpos));
 
-  zpos = -spaceFrame->GetDZ() + (2 * nUnits - 1) * endUnit->GetDZ();
-  //  zpos = -sOBSpaceFrameZLen[fLayerNumber/5]/2 +
-  //         (2*nUnits - 1)*endUnit->GetDZ();
+  zpos += (2 * frameUnit->GetDZ());
   spaceFrameVol->AddNode(endVol[1], 1, new TGeoTranslation(0, 0, zpos));
 
   // Done, clean up and return the space frame structure
@@ -2751,6 +2771,8 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
   // Create the space frame building blocks for the Outer Barrel
   // This method is practically identical to previous versions of
   // CreateSpaceFrameOuterB1
+  // NB: it is pretty cumbersome, because we don't want to use assemblies
+  // so we are forced to have well-crafted containers to avoid fake overlaps
   //
   // Input:
   //         mgr  : the GeoManager (used only to get the proper material)
@@ -2763,6 +2785,7 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
   // Created:      03 Feb 2015  Mario Sitta
   // Updated:      03 Jun 2015  Mario Sitta  End units w/o U-legs
   // Updated:      20 Jul 2017  Mario Sitta  O2 version
+  // Updated:      09 Sep 2019  Mario Sitta  Connectors added
   //
 
   // Materials defined in AliITSUv2
@@ -2848,8 +2871,8 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
   next2EndUnit->DefineSection(0, -unitlen / 2);
   next2EndUnit->DefineSection(1, unitlen / 2);
 
-  // The end units have no U-legs, so a simpler Xtru
-  // to avoid overlaps with the end-stave connectors
+  // The end units have no U-legs, but they contain the end-stave connectors
+  // so we build a CompositeShape using two Xtru's
   xtru[0] = xlen;
   ytru[0] = -(triangleHeight / 2 + baseRibRadius);
   xtru[1] = xtru[0];
@@ -2861,11 +2884,41 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
     ytru[i + 3] = ytru[2 - i];
   }
 
-  TGeoXtru* endUnit = new TGeoXtru(2);
+  TGeoXtru* endUnitBody = new TGeoXtru(2);
+  endUnitBody->SetName("endunitbody");
+  endUnitBody->DefinePolygon(6, xtru, ytru);
+  endUnitBody->DefineSection(0, -unitlen / 2);
+  endUnitBody->DefineSection(1, unitlen / 2);
+
+  // (See createOBSpaceFrameConnector lower down for details)
+  xtru[0] = sOBSFrameConnWidth / 2.;
+  ytru[0] = 0.;
+  xtru[1] = xtru[0];
+  ytru[1] = sOBSFrameConnInsHei;
+  xtru[2] = xtru[1] - sOBSFrameConnTotHei + sOBSFrameConnInsHei;
+  ytru[2] = sOBSFrameConnTotHei;
+  for (Int_t i = 0; i < 3; i++) { // Reflect on the X negative side
+    xtru[i + 3] = -xtru[2 - i];
+    ytru[i + 3] = ytru[2 - i];
+  }
+
+  TGeoXtru* endUnitConn = new TGeoXtru(2);
+  endUnitConn->SetName("endunitconn");
+  endUnitConn->DefinePolygon(6, xtru, ytru);
+  endUnitConn->DefineSection(0, 0.);
+  endUnitConn->DefineSection(1, sOBSFrameConnTopLen);
+
+  // We create a fake side V to have its dimensions, needed for
+  // the creation of the end unit container
+  TGeoXtru* vside =
+    createStaveSide("fakeCornerSide", unitlen / 2., alphaRad, beta, staveLb, staveHb, kFALSE);
+
+  ypos = -triangleHeight / 2 + vside->GetY(3);
+  TGeoTranslation* endUnitConnTrans = new TGeoTranslation("endunitconntrans", 0, ypos, endUnitBody->GetDZ());
+  endUnitConnTrans->RegisterYourself();
+
+  TGeoCompositeShape* endUnit = new TGeoCompositeShape("endunitbody+endunitconn:endunitconntrans");
   endUnit->SetName("endunitcontainer"); // Will be used when create spaceframe
-  endUnit->DefinePolygon(6, xtru, ytru);
-  endUnit->DefineSection(0, -unitlen / 2);
-  endUnit->DefineSection(1, unitlen / 2);
 
   // The air containers
   TGeoVolume* unitVol[2];
@@ -3034,6 +3087,12 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
   endVol[1]->AddNode(baseRib2Vol, 1, baseTransf[0]);
   endVol[1]->AddNode(baseRib1Vol, 1, baseTransf[2]);
 
+  // The Space Frame connectors
+  ypos = -triangleHeight / 2 + cfStavSide->GetY(3);
+  zpos = endUnitBody->GetDZ();
+  createOBSpaceFrameConnector(endVol[0], ypos, zpos, kFALSE); // Side C
+  createOBSpaceFrameConnector(endVol[1], ypos, zpos, kTRUE);  // Side A
+
   // U-Legs
   // The shorter
   xtru[0] = ulegHalfLen;
@@ -3120,6 +3179,139 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
 
   // Done
   return;
+}
+
+void V3Layer::createOBSpaceFrameConnector(TGeoVolume* mother, const Double_t ymot, const Double_t zmot, const Bool_t sideA, const TGeoManager* mgr)
+{
+  //
+  // Creates the OB Space Frame Connectors
+  // (ALIITSUP0070+ALIITSUP0069)
+  //
+  // Input:
+  //         mother : the SF unit volume to contain the connector
+  //         ymot   : the Y position of the connector in the mother volume
+  //         zmot   : the Z position of the connector in the mother volume
+  //         sideA  : true for Side A, false for Side C
+  //         mgr    : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      09 Sep 2019  M. Sitta
+
+  // Materials defined in AliITSUv2
+  TGeoMedium* medPEEK = mgr->GetMedium("ITS_PEEKCF30$");
+
+  // Local parameters
+  TString connName, compoShape;
+
+  Double_t xlen, ylen, zlen;
+  Double_t xpos, ypos, zpos;
+  Double_t xtru[6], ytru[6];
+
+  // The external (higher) part: a Xtru
+  ylen = sOBSFrameConnTotHei - sOBSFrameConnInsHei;
+
+  xtru[0] = sOBSFrameConnWidth / 2.;
+  ytru[0] = 0.;
+  xtru[1] = xtru[0];
+  ytru[1] = sOBSFrameConnInsHei;
+  xtru[2] = xtru[1] - ylen; // Because side is at 45' so dx = dy
+  ytru[2] = sOBSFrameConnTotHei;
+  for (Int_t i = 0; i < 3; i++) { // Reflect on the X negative side
+    xtru[i + 3] = -xtru[2 - i];
+    ytru[i + 3] = ytru[2 - i];
+  }
+
+  TGeoXtru* topConn = new TGeoXtru(2);
+  topConn->SetName("connectorTop");
+  topConn->DefinePolygon(6, xtru, ytru);
+  topConn->DefineSection(0, 0.);
+  topConn->DefineSection(1, sOBSFrameConnTopLen);
+
+  // The insert: a Xtru
+  zlen = sOBSFrameConnTotLen - sOBSFrameConnTopLen;
+
+  xtru[0] = sOBSFrameConnInsBase / 2.;
+  ytru[0] = 0.;
+  xtru[1] = sOBSFrameConnInsWide / 2.;
+  ytru[1] = sOBSFrameConnInsHei;
+  xtru[2] = -xtru[1];
+  ytru[2] = ytru[1];
+  xtru[3] = -xtru[0];
+  ytru[3] = ytru[0];
+
+  TGeoXtru* insConn = new TGeoXtru(2);
+  insConn->SetName("connectorIns");
+  insConn->DefinePolygon(4, xtru, ytru);
+  insConn->DefineSection(0, -zlen);
+  insConn->DefineSection(1, 0.);
+
+  // The holes in the external (higher) part: Tube's and a BBox
+  TGeoTube* topHoleR = new TGeoTube("topholer", 0., sOBSFrameConnTopHoleD / 2., 1.1 * sOBSFrameConnTotHei);
+
+  xpos = sOBSFrConnTopHoleXDist / 2.;
+  ypos = sOBSFrameConnTotHei / 2.;
+  zpos = sOBSFrameConnTopLen - sOBSFrameConnHoleZPos;
+  TGeoCombiTrans* topHoleR1Trans = new TGeoCombiTrans("topholer1tr", xpos, ypos, zpos, new TGeoRotation("", 0, 90, 0));
+  topHoleR1Trans->RegisterYourself();
+
+  TGeoCombiTrans* topHoleR2Trans = new TGeoCombiTrans("topholer2tr", -xpos, ypos, zpos, new TGeoRotation("", 0, 90, 0));
+  topHoleR2Trans->RegisterYourself();
+
+  xpos = sOBSFrConnCHoleXDist / 2.;
+  zpos = sOBSFrameConnTopLen - sOBSFrameConnCHoleZPos;
+  TGeoCombiTrans* topCHoleR1Trans = new TGeoCombiTrans("topcholer1tr", xpos, ypos, zpos, new TGeoRotation("", 0, 90, 0));
+  topCHoleR1Trans->RegisterYourself();
+
+  TGeoCombiTrans* topCHoleR2Trans = new TGeoCombiTrans("topcholer2tr", -xpos, ypos, zpos, new TGeoRotation("", 0, 90, 0));
+  topCHoleR2Trans->RegisterYourself();
+
+  TGeoBBox* topAHole = new TGeoBBox("topahole", sOBSFrameConnAHoleWid / 2., sOBSFrameConnTotHei, sOBSFrameConnAHoleLen / 2.);
+
+  zpos = sOBSFrameConnTopLen - sOBSFrameConnHoleZPos;
+  TGeoTranslation* topAHoleTrans = new TGeoTranslation("topaholetr", 0, ypos, zpos);
+  topAHoleTrans->RegisterYourself();
+
+  TGeoTube* topCHole = new TGeoTube("topchole", 0., sOBSFrConnCTopHoleD / 2., sOBSFrameConnTotHei);
+
+  TGeoCombiTrans* topCHoleTrans = new TGeoCombiTrans("topcholetr", 0, ypos, zpos, new TGeoRotation("", 0, 90, 0));
+  topCHoleTrans->RegisterYourself();
+
+  TGeoTube* topASide = new TGeoTube("topaside", 0., sOBSFrConnASideHoleD / 2., 1.1 * sOBSFrConnASideHoleL);
+
+  zpos = sOBSFrameConnTopLen + topASide->GetDz() - sOBSFrConnASideHoleL;
+  TGeoTranslation* topASideTrans = new TGeoTranslation("topasidetr", 0, sOBSFrConnASideHoleY, zpos);
+  topASideTrans->RegisterYourself();
+
+  // The holes in the insert: a Tube
+  TGeoTube* insHole = new TGeoTube("inshole", 0., sOBSFrameConnInsHoleD / 2., sOBSFrameConnInsHei);
+
+  xpos = sOBSFrameConnInsHoleX / 2.;
+  ypos = sOBSFrameConnInsHei / 2.;
+  zpos = sOBSFrameConnTopLen - sOBSFrameConnHoleZPos - sOBSFrameConnHoleZDist;
+  TGeoCombiTrans* insHole1Trans = new TGeoCombiTrans("inshole1tr", xpos, ypos, zpos, new TGeoRotation("", 0, 90, 0));
+  insHole1Trans->RegisterYourself();
+
+  TGeoCombiTrans* insHole2Trans = new TGeoCombiTrans("inshole2tr", -xpos, ypos, zpos, new TGeoRotation("", 0, 90, 0));
+  insHole2Trans->RegisterYourself();
+
+  // The connector: a CompositeShape
+  if (sideA) {
+    connName = "OBSFConnectorA";
+    compoShape = "(connectorTop-topholer:topholer2tr-topholer:topholer1tr-topahole:topaholetr-topaside:topasidetr)+(connectorIns-inshole:inshole1tr-inshole:inshole2tr)";
+  } else {
+    connName = "OBSFConnectorC";
+    compoShape = "(connectorTop-topholer:topholer2tr-topholer:topholer1tr-topholer:topcholer1tr-topholer:topcholer2tr-topchole:topcholetr)+(connectorIns-inshole:inshole1tr-inshole:inshole2tr)";
+  }
+
+  TGeoCompositeShape* obsfConnSh = new TGeoCompositeShape(compoShape.Data());
+
+  TGeoVolume* obsfConnVol = new TGeoVolume(connName, obsfConnSh, medPEEK);
+
+  // Finally put the connector into its mother volume
+  mother->AddNode(obsfConnVol, 1, new TGeoTranslation(0, ymot, zmot));
 }
 
 TGeoVolume* V3Layer::createModuleOuterB(const TGeoManager* mgr)
@@ -3382,7 +3574,7 @@ Double_t V3Layer::getGammaConversionRodDiam()
   //
 
   if (!mAddGammaConv) {
-    LOG(WARNING) << "Gamma Conversion rods not defined for this layer" << FairLogger::endl;
+    LOG(WARNING) << "Gamma Conversion rods not defined for this layer";
   }
   return mGammaConvDiam;
 }
@@ -3405,7 +3597,7 @@ Double_t V3Layer::getGammaConversionRodXPos()
   //
 
   if (!mAddGammaConv) {
-    LOG(WARNING) << "Gamma Conversion rods not defined for this layer" << FairLogger::endl;
+    LOG(WARNING) << "Gamma Conversion rods not defined for this layer";
   }
   return mGammaConvXPos;
 }
@@ -3447,7 +3639,7 @@ void V3Layer::setStaveTilt(const Double_t t)
   if (mIsTurbo) {
     mStaveTilt = t;
   } else {
-    LOG(ERROR) << "Not a Turbo layer" << FairLogger::endl;
+    LOG(ERROR) << "Not a Turbo layer";
   }
 }
 
@@ -3456,7 +3648,7 @@ void V3Layer::setStaveWidth(const Double_t w)
   if (mIsTurbo) {
     mStaveWidth = w;
   } else {
-    LOG(ERROR) << "Not a Turbo layer" << FairLogger::endl;
+    LOG(ERROR) << "Not a Turbo layer";
   }
 }
 
@@ -3541,6 +3733,6 @@ void V3Layer::addTranslationToCombiTrans(TGeoCombiTrans* ct, Double_t dx, Double
 {
   // Add a dx,dy,dz translation to the initial TGeoCombiTrans
   const Double_t* vect = ct->GetTranslation();
-  Double_t newVect[3] = { vect[0] + dx, vect[1] + dy, vect[2] + dz };
+  Double_t newVect[3] = {vect[0] + dx, vect[1] + dy, vect[2] + dz};
   ct->SetTranslation(newVect);
 }

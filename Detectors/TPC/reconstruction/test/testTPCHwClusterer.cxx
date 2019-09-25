@@ -30,11 +30,11 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 // some helper functions / struct
 struct sortTime {
-  inline bool operator()(const o2::TPC::Digit& d1, const o2::TPC::Digit& d2)
+  inline bool operator()(const o2::tpc::Digit& d1, const o2::tpc::Digit& d2)
   {
     return (d1.getTimeStamp() < d2.getTimeStamp());
   }
@@ -150,9 +150,9 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test1)
   digitVec.emplace_back(0, 12, 13, 5, 2);
   digitVec.emplace_back(0, 321, 7, 10, 10);
 
-  labelContainer.addElement(0, 1);
-  labelContainer.addElement(1, 2);
-  labelContainer.addElement(2, 3);
+  labelContainer.addElement(0, {1, 0, 0, false});
+  labelContainer.addElement(1, {2, 0, 0, false});
+  labelContainer.addElement(2, {3, 0, 0, false});
 
   auto digits = std::make_unique<const std::vector<Digit>>(digitVec);
   auto mcDigitTruth = std::make_unique<const MCLabelContainer>(labelContainer);
@@ -187,19 +187,19 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test2)
   std::cout << "##" << std::endl;
   std::cout << "## Starting test 2, finding single pad clusters." << std::endl;
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  auto clusterArray = std::make_unique<std::vector<o2::TPC::ClusterHardwareContainer8kb>>();
+  auto clusterArray = std::make_unique<std::vector<o2::tpc::ClusterHardwareContainer8kb>>();
   auto labelArray = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
-  o2::TPC::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
+  o2::tpc::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
   // If continuous readout is false, all clusters are written directly to the output
   clusterer.setContinuousReadout(false);
 
-  auto digits = std::make_unique<std::vector<o2::TPC::Digit>>();
+  auto digits = std::make_unique<std::vector<o2::tpc::Digit>>();
 
   // create a lot of single pad clusters, one in every pad, well separated in time
   // which should result in one cluster
   // Digit(int cru, float charge, int row, int pad, int time)
-  o2::TPC::Mapper& mapper = o2::TPC::Mapper::instance();
+  o2::tpc::Mapper& mapper = o2::tpc::Mapper::instance();
   std::vector<unsigned> clusterPerRegionGenerated(10, 0);
   int globalRow = 0;
   for (int region = 0; region < 10; ++region) {
@@ -261,47 +261,47 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test3)
   std::cout << "##" << std::endl;
   std::cout << "## Starting test 3, computing cluster properties." << std::endl;
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  auto clusterArray = std::make_unique<std::vector<o2::TPC::ClusterHardwareContainer8kb>>();
+  auto clusterArray = std::make_unique<std::vector<o2::tpc::ClusterHardwareContainer8kb>>();
   auto labelArray = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
-  o2::TPC::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
+  o2::tpc::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
   // If continuous readout is false, all clusters are written directly to the output
   clusterer.setContinuousReadout(false);
 
-  auto digits = std::make_unique<std::vector<o2::TPC::Digit>>();
+  auto digits = std::make_unique<std::vector<o2::tpc::Digit>>();
 
   // Digit(int cru, float charge, int row, int pad, int time)
   // Create digits for different clusters
-  std::array<std::array<int, 25>, 6> clusters = { { { 7, 10, 11, 8, 5,
-                                                      10, 18, 21, 15, 8,
-                                                      12, 22, 50, 20, 10,
-                                                      9, 16, 20, 15, 8,
-                                                      6, 9, 10, 8, 5 },
-                                                    { 7, 10, 11, 8, 5,
-                                                      11, 19, 22, 16, 9,
-                                                      14, 24, 52, 22, 12,
-                                                      12, 19, 23, 18, 11,
-                                                      10, 13, 14, 12, 9 },
-                                                    { 12, 15, 16, 13, 10,
-                                                      16, 24, 27, 21, 14,
-                                                      19, 29, 57, 27, 17,
-                                                      17, 24, 28, 23, 16,
-                                                      15, 18, 19, 17, 14 },
-                                                    { 17, 20, 21, 18, 15,
-                                                      21, 29, 32, 26, 19,
-                                                      24, 34, 62, 32, 22,
-                                                      22, 29, 33, 28, 21,
-                                                      20, 23, 24, 22, 19 },
-                                                    { 22, 25, 26, 23, 20,
-                                                      26, 34, 37, 31, 24,
-                                                      29, 39, 67, 37, 27,
-                                                      27, 34, 38, 33, 26,
-                                                      25, 28, 29, 27, 24 },
-                                                    { 27, 30, 31, 28, 25,
-                                                      31, 39, 42, 36, 29,
-                                                      34, 44, 72, 42, 32,
-                                                      32, 39, 43, 38, 31,
-                                                      30, 33, 34, 32, 29 } } };
+  std::array<std::array<int, 25>, 6> clusters = {{{7, 10, 11, 8, 5,
+                                                   10, 18, 21, 15, 8,
+                                                   12, 22, 50, 20, 10,
+                                                   9, 16, 20, 15, 8,
+                                                   6, 9, 10, 8, 5},
+                                                  {7, 10, 11, 8, 5,
+                                                   11, 19, 22, 16, 9,
+                                                   14, 24, 52, 22, 12,
+                                                   12, 19, 23, 18, 11,
+                                                   10, 13, 14, 12, 9},
+                                                  {12, 15, 16, 13, 10,
+                                                   16, 24, 27, 21, 14,
+                                                   19, 29, 57, 27, 17,
+                                                   17, 24, 28, 23, 16,
+                                                   15, 18, 19, 17, 14},
+                                                  {17, 20, 21, 18, 15,
+                                                   21, 29, 32, 26, 19,
+                                                   24, 34, 62, 32, 22,
+                                                   22, 29, 33, 28, 21,
+                                                   20, 23, 24, 22, 19},
+                                                  {22, 25, 26, 23, 20,
+                                                   26, 34, 37, 31, 24,
+                                                   29, 39, 67, 37, 27,
+                                                   27, 34, 38, 33, 26,
+                                                   25, 28, 29, 27, 24},
+                                                  {27, 30, 31, 28, 25,
+                                                   31, 39, 42, 36, 29,
+                                                   34, 44, 72, 42, 32,
+                                                   32, 39, 43, 38, 31,
+                                                   30, 33, 34, 32, 29}}};
 
   for (int dp = 0; dp < 5; ++dp) {
     for (int dt = 0; dt < 5; ++dt) {
@@ -364,43 +364,43 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test4)
   std::cout << "##" << std::endl;
   std::cout << "## Starting test 4, rejecting single pad clusters." << std::endl;
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  auto clusterArray = std::make_unique<std::vector<o2::TPC::ClusterHardwareContainer8kb>>();
+  auto clusterArray = std::make_unique<std::vector<o2::tpc::ClusterHardwareContainer8kb>>();
   auto labelArray = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
-  o2::TPC::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
+  o2::tpc::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
   // If continuous readout is false, all clusters are written directly to the output
   clusterer.setContinuousReadout(false);
 
-  auto digits = std::make_unique<std::vector<o2::TPC::Digit>>();
+  auto digits = std::make_unique<std::vector<o2::tpc::Digit>>();
   // Digit(int cru, float charge, int row, int pad, int time)
   // single pad and time cluster
   std::array<std::array<int, 25>, 4> clusters;
-  clusters[0] = { { 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0,
-                    0, 0, 67, 0, 0,
-                    0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0 } };
+  clusters[0] = {{0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0,
+                  0, 0, 67, 0, 0,
+                  0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0}};
 
   // single time cluster, but enlarged in pad direction
-  clusters[1] = { { 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0,
-                    0, 12, 72, 24, 0,
-                    0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0 } };
+  clusters[1] = {{0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0,
+                  0, 12, 72, 24, 0,
+                  0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0}};
 
   // single pad cluster, but enlarged in tim direction
-  clusters[2] = { { 0, 0, 0, 0, 0,
-                    0, 0, 33, 0, 0,
-                    0, 0, 57, 0, 0,
-                    0, 0, 12, 0, 0,
-                    0, 0, 0, 0, 0 } };
+  clusters[2] = {{0, 0, 0, 0, 0,
+                  0, 0, 33, 0, 0,
+                  0, 0, 57, 0, 0,
+                  0, 0, 12, 0, 0,
+                  0, 0, 0, 0, 0}};
 
   // wide cluster in both direction
-  clusters[3] = { { 0, 0, 0, 0, 0,
-                    0, 46, 71, 32, 0,
-                    0, 32, 129, 16, 0,
-                    0, 19, 53, 23, 0,
-                    0, 0, 0, 0, 0 } };
+  clusters[3] = {{0, 0, 0, 0, 0,
+                  0, 46, 71, 32, 0,
+                  0, 32, 129, 16, 0,
+                  0, 19, 53, 23, 0,
+                  0, 0, 0, 0, 0}};
 
   for (int dp = 0; dp < 5; ++dp) {
     for (int dt = 0; dt < 5; ++dt) {
@@ -583,29 +583,29 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test5)
   std::cout << "##" << std::endl;
   std::cout << "## Starting test 5, rejecting peaks in subsequent." << std::endl;
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  auto clusterArray = std::make_unique<std::vector<o2::TPC::ClusterHardwareContainer8kb>>();
+  auto clusterArray = std::make_unique<std::vector<o2::tpc::ClusterHardwareContainer8kb>>();
   auto labelArray = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
-  o2::TPC::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
+  o2::tpc::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
   // If continuous readout is false, all clusters are written directly to the output
   clusterer.setContinuousReadout(false);
 
-  auto digits = std::make_unique<std::vector<o2::TPC::Digit>>();
+  auto digits = std::make_unique<std::vector<o2::tpc::Digit>>();
   // Digit(int cru, float charge, int row, int pad, int time)
   // two peaks, with the greater one afterwards
   std::array<std::array<int, 25>, 2> clusters;
-  clusters[0] = { { 0, 0, 6, 0, 0,
-                    0, 0, 23, 0, 0,
-                    0, 0, 7, 0, 0,
-                    0, 0, 77, 0, 0,
-                    0, 0, 5, 0, 0 } };
+  clusters[0] = {{0, 0, 6, 0, 0,
+                  0, 0, 23, 0, 0,
+                  0, 0, 7, 0, 0,
+                  0, 0, 77, 0, 0,
+                  0, 0, 5, 0, 0}};
 
   // two peaks, with the greater one first
-  clusters[1] = { { 0, 0, 6, 0, 0,
-                    0, 0, 67, 0, 0,
-                    0, 0, 7, 0, 0,
-                    0, 0, 13, 0, 0,
-                    0, 0, 5, 0, 0 } };
+  clusters[1] = {{0, 0, 6, 0, 0,
+                  0, 0, 67, 0, 0,
+                  0, 0, 7, 0, 0,
+                  0, 0, 13, 0, 0,
+                  0, 0, 5, 0, 0}};
 
   for (int dp = 0; dp < 5; ++dp) {
     for (int dt = 0; dt < 5; ++dt) {
@@ -651,221 +651,221 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test6)
   std::cout << "##" << std::endl;
   std::cout << "## Starting test 6, split charge among nearby clusters." << std::endl;
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  auto clusterArray = std::make_unique<std::vector<o2::TPC::ClusterHardwareContainer8kb>>();
+  auto clusterArray = std::make_unique<std::vector<o2::tpc::ClusterHardwareContainer8kb>>();
   auto labelArray = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
-  o2::TPC::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
+  o2::tpc::HwClusterer clusterer(clusterArray.get(), 0, labelArray.get());
   // If continuous readout is false, all clusters are written directly to the output
   clusterer.setContinuousReadout(false);
 
-  auto digits = std::make_unique<std::vector<o2::TPC::Digit>>();
+  auto digits = std::make_unique<std::vector<o2::tpc::Digit>>();
   // Digit(int cru, float charge, int row, int pad, int time)
   std::array<std::array<int, 100>, 6> clusters;
   // Just a single cluster
-  clusters[0] = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    4, 9, 12, 6, 1, 0, 0, 0, 0, 0,
-                    8, 17, 25, 18, 5, 0, 0, 0, 0, 0,
-                    13, 22, 50, 28, 14, 0, 0, 0, 0, 0,
-                    9, 16, 27, 19, 7, 0, 0, 0, 0, 0,
-                    2, 7, 11, 6, 3, 0, 0, 0, 0, 0 } };
+  clusters[0] = {{0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  4, 9, 12, 6, 1, 0, 0, 0, 0, 0,
+                  8, 17, 25, 18, 5, 0, 0, 0, 0, 0,
+                  13, 22, 50, 28, 14, 0, 0, 0, 0, 0,
+                  9, 16, 27, 19, 7, 0, 0, 0, 0, 0,
+                  2, 7, 11, 6, 3, 0, 0, 0, 0, 0}};
 
   // Two clusters next to each other in pad direction, peaks well separated
-  clusters[1] = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    4, 9, 12, 6, 1, 4, 9, 12, 6, 1,
-                    8, 17, 25, 18, 5, 8, 17, 25, 18, 5,
-                    13, 22, 51, 28, 14, 13, 22, 52, 28, 15,
-                    9, 16, 27, 19, 7, 9, 16, 27, 19, 7,
-                    2, 7, 11, 6, 3, 2, 7, 11, 6, 3 } };
+  clusters[1] = {{0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  4, 9, 12, 6, 1, 4, 9, 12, 6, 1,
+                  8, 17, 25, 18, 5, 8, 17, 25, 18, 5,
+                  13, 22, 51, 28, 14, 13, 22, 52, 28, 15,
+                  9, 16, 27, 19, 7, 9, 16, 27, 19, 7,
+                  2, 7, 11, 6, 3, 2, 7, 11, 6, 3}};
 
   // Two clusters next to each other in pad direction, peaks 4 pads appart
-  clusters[2] = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    4, 9, 12, 6, 1, 9, 12, 6, 1, 0,
-                    8, 17, 25, 18, 5, 17, 25, 18, 5, 0,
-                    13, 22, 53, 28, 14, 22, 54, 28, 15, 0,
-                    9, 16, 27, 19, 7, 16, 27, 19, 7, 0,
-                    2, 7, 11, 6, 3, 7, 11, 6, 3, 0 } };
+  clusters[2] = {{0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  4, 9, 12, 6, 1, 9, 12, 6, 1, 0,
+                  8, 17, 25, 18, 5, 17, 25, 18, 5, 0,
+                  13, 22, 53, 28, 14, 22, 54, 28, 15, 0,
+                  9, 16, 27, 19, 7, 16, 27, 19, 7, 0,
+                  2, 7, 11, 6, 3, 7, 11, 6, 3, 0}};
 
   // Two clusters next to each other in pad direction, peaks 3 pads appartd
-  clusters[3] = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 4, 9, 12, 6, 9, 12, 6, 1, 0,
-                    0, 8, 17, 25, 18, 17, 25, 18, 5, 0,
-                    0, 13, 22, 55, 28, 22, 56, 28, 15, 0,
-                    0, 9, 16, 27, 19, 16, 27, 19, 7, 0,
-                    0, 2, 7, 11, 6, 7, 11, 6, 3, 0 } };
+  clusters[3] = {{0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 4, 9, 12, 6, 9, 12, 6, 1, 0,
+                  0, 8, 17, 25, 18, 17, 25, 18, 5, 0,
+                  0, 13, 22, 55, 28, 22, 56, 28, 15, 0,
+                  0, 9, 16, 27, 19, 16, 27, 19, 7, 0,
+                  0, 2, 7, 11, 6, 7, 11, 6, 3, 0}};
 
   // Two clusters next to each other in pad direction, peaks 2 pads appartd
-  clusters[4] = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 4, 9, 12, 6, 12, 6, 1, 0, 0,
-                    0, 8, 17, 25, 18, 25, 18, 5, 0, 0,
-                    0, 13, 22, 57, 28, 58, 28, 15, 0, 0,
-                    0, 9, 16, 27, 19, 27, 19, 7, 0, 0,
-                    0, 2, 7, 11, 6, 11, 6, 3, 0, 0 } };
+  clusters[4] = {{0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 4, 9, 12, 6, 12, 6, 1, 0, 0,
+                  0, 8, 17, 25, 18, 25, 18, 5, 0, 0,
+                  0, 13, 22, 57, 28, 58, 28, 15, 0, 0,
+                  0, 9, 16, 27, 19, 27, 19, 7, 0, 0,
+                  0, 2, 7, 11, 6, 11, 6, 3, 0, 0}};
 
   // Two clusters next to each other in diagonal direction
-  clusters[5] = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 4, 9, 12, 6, 1, 0,
-                    0, 0, 0, 0, 8, 17, 25, 18, 5, 0,
-                    0, 0, 0, 0, 13, 22, 59, 28, 15, 0,
-                    4, 9, 12, 6, 9, 16, 27, 19, 7, 0,
-                    8, 17, 25, 18, 2, 7, 11, 6, 3, 0,
-                    13, 22, 60, 28, 14, 0, 0, 0, 0, 0,
-                    9, 16, 27, 19, 7, 0, 0, 0, 0, 0,
-                    2, 7, 11, 6, 3, 0, 0, 0, 0, 0 } };
+  clusters[5] = {{0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 4, 9, 12, 6, 1, 0,
+                  0, 0, 0, 0, 8, 17, 25, 18, 5, 0,
+                  0, 0, 0, 0, 13, 22, 59, 28, 15, 0,
+                  4, 9, 12, 6, 9, 16, 27, 19, 7, 0,
+                  8, 17, 25, 18, 2, 7, 11, 6, 3, 0,
+                  13, 22, 60, 28, 14, 0, 0, 0, 0, 0,
+                  9, 16, 27, 19, 7, 0, 0, 0, 0, 0,
+                  2, 7, 11, 6, 3, 0, 0, 0, 0, 0}};
 
   std::array<std::array<float, 25>, 11> clustersMode0;
-  clustersMode0[0] = { { 4, 9, 12, 6, 1,
-                         8, 17, 25, 18, 5,
-                         13, 22, 50, 28, 14,
-                         9, 16, 27, 19, 7,
-                         2, 7, 11, 6, 3 } };
+  clustersMode0[0] = {{4, 9, 12, 6, 1,
+                       8, 17, 25, 18, 5,
+                       13, 22, 50, 28, 14,
+                       9, 16, 27, 19, 7,
+                       2, 7, 11, 6, 3}};
 
-  clustersMode0[1] = { { 4, 9, 12, 6, 1,
-                         8, 17, 25, 18, 5,
-                         13, 22, 51, 28, 14,
-                         9, 16, 27, 19, 7,
-                         2, 7, 11, 6, 3 } };
+  clustersMode0[1] = {{4, 9, 12, 6, 1,
+                       8, 17, 25, 18, 5,
+                       13, 22, 51, 28, 14,
+                       9, 16, 27, 19, 7,
+                       2, 7, 11, 6, 3}};
 
-  clustersMode0[2] = { { 4, 9, 12, 6, 1,
-                         8, 17, 25, 18, 5,
-                         13, 22, 52, 28, 15,
-                         9, 16, 27, 19, 7,
-                         2, 7, 11, 6, 3 } };
+  clustersMode0[2] = {{4, 9, 12, 6, 1,
+                       8, 17, 25, 18, 5,
+                       13, 22, 52, 28, 15,
+                       9, 16, 27, 19, 7,
+                       2, 7, 11, 6, 3}};
 
-  clustersMode0[3] = { { 4, 9, 12, 6, 1,
-                         8, 17, 25, 18, 5,
-                         13, 22, 53, 28, 14,
-                         9, 16, 27, 19, 7,
-                         2, 7, 11, 6, 3 } };
+  clustersMode0[3] = {{4, 9, 12, 6, 1,
+                       8, 17, 25, 18, 5,
+                       13, 22, 53, 28, 14,
+                       9, 16, 27, 19, 7,
+                       2, 7, 11, 6, 3}};
 
-  clustersMode0[4] = { { 1, 9, 12, 6, 1,
-                         5, 17, 25, 18, 5,
-                         14, 22, 54, 28, 15,
-                         7, 16, 27, 19, 7,
-                         3, 7, 11, 6, 3 } };
+  clustersMode0[4] = {{1, 9, 12, 6, 1,
+                       5, 17, 25, 18, 5,
+                       14, 22, 54, 28, 15,
+                       7, 16, 27, 19, 7,
+                       3, 7, 11, 6, 3}};
 
-  clustersMode0[5] = { { 4, 9, 12, 6, 9,
-                         8, 17, 25, 18, 17,
-                         13, 22, 55, 28, 22,
-                         9, 16, 27, 19, 16,
-                         2, 7, 11, 6, 7 } };
+  clustersMode0[5] = {{4, 9, 12, 6, 9,
+                       8, 17, 25, 18, 17,
+                       13, 22, 55, 28, 22,
+                       9, 16, 27, 19, 16,
+                       2, 7, 11, 6, 7}};
 
-  clustersMode0[6] = { { 6, 9, 12, 6, 1,
-                         18, 17, 25, 18, 5,
-                         28, 22, 56, 28, 15,
-                         19, 16, 27, 19, 7,
-                         6, 7, 11, 6, 3 } };
+  clustersMode0[6] = {{6, 9, 12, 6, 1,
+                       18, 17, 25, 18, 5,
+                       28, 22, 56, 28, 15,
+                       19, 16, 27, 19, 7,
+                       6, 7, 11, 6, 3}};
 
-  clustersMode0[7] = { { 4, 9, 12, 6, 12,
-                         8, 17, 25, 18, 25,
-                         13, 22, 57, 28, 58,
-                         9, 16, 27, 19, 27,
-                         2, 7, 11, 6, 11 } };
+  clustersMode0[7] = {{4, 9, 12, 6, 12,
+                       8, 17, 25, 18, 25,
+                       13, 22, 57, 28, 58,
+                       9, 16, 27, 19, 27,
+                       2, 7, 11, 6, 11}};
 
-  clustersMode0[8] = { { 12, 6, 12, 6, 1,
-                         25, 18, 25, 18, 5,
-                         57, 28, 58, 28, 15,
-                         27, 19, 27, 19, 7,
-                         11, 6, 11, 6, 3 } };
+  clustersMode0[8] = {{12, 6, 12, 6, 1,
+                       25, 18, 25, 18, 5,
+                       57, 28, 58, 28, 15,
+                       27, 19, 27, 19, 7,
+                       11, 6, 11, 6, 3}};
 
-  clustersMode0[9] = { { 4, 9, 12, 6, 1,
-                         8, 17, 25, 18, 5,
-                         13, 22, 59, 28, 15,
-                         9, 16, 27, 19, 7,
-                         2, 7, 11, 6, 3 } };
+  clustersMode0[9] = {{4, 9, 12, 6, 1,
+                       8, 17, 25, 18, 5,
+                       13, 22, 59, 28, 15,
+                       9, 16, 27, 19, 7,
+                       2, 7, 11, 6, 3}};
 
-  clustersMode0[10] = { { 4, 9, 12, 6, 9,
-                          8, 17, 25, 18, 2,
-                          13, 22, 60, 28, 14,
-                          9, 16, 27, 19, 7,
-                          2, 7, 11, 6, 3 } };
+  clustersMode0[10] = {{4, 9, 12, 6, 9,
+                        8, 17, 25, 18, 2,
+                        13, 22, 60, 28, 14,
+                        9, 16, 27, 19, 7,
+                        2, 7, 11, 6, 3}};
 
   std::array<std::array<float, 25>, 11> clustersMode1;
-  clustersMode1[0] = { { 4, 9, 12, 6, 1,
-                         8, 17, 25, 18, 5,
-                         13, 22, 50, 28, 14,
-                         9, 16, 27, 19, 7,
-                         2, 7, 11, 6, 3 } };
+  clustersMode1[0] = {{4, 9, 12, 6, 1,
+                       8, 17, 25, 18, 5,
+                       13, 22, 50, 28, 14,
+                       9, 16, 27, 19, 7,
+                       2, 7, 11, 6, 3}};
 
-  clustersMode1[1] = { { 4, 9, 12, 6, 0.5,
-                         8, 17, 25, 18, 2.5,
-                         13, 22, 51, 28, 14,
-                         9, 16, 27, 19, 3.5,
-                         2, 7, 11, 6, 3 } };
+  clustersMode1[1] = {{4, 9, 12, 6, 0.5,
+                       8, 17, 25, 18, 2.5,
+                       13, 22, 51, 28, 14,
+                       9, 16, 27, 19, 3.5,
+                       2, 7, 11, 6, 3}};
 
-  clustersMode1[2] = { { 4, 9, 12, 6, 1,
-                         8, 17, 25, 18, 5,
-                         6.5, 22, 52, 28, 15,
-                         9, 16, 27, 19, 7,
-                         1, 7, 11, 6, 3 } };
+  clustersMode1[2] = {{4, 9, 12, 6, 1,
+                       8, 17, 25, 18, 5,
+                       6.5, 22, 52, 28, 15,
+                       9, 16, 27, 19, 7,
+                       1, 7, 11, 6, 3}};
 
-  clustersMode1[3] = { { 4, 9, 12, 6, 0.5,
-                         8, 17, 25, 18, 2.5,
-                         13, 22, 53, 28, 7,
-                         9, 16, 27, 19, 3.5,
-                         2, 7, 11, 6, 1.5 } };
+  clustersMode1[3] = {{4, 9, 12, 6, 0.5,
+                       8, 17, 25, 18, 2.5,
+                       13, 22, 53, 28, 7,
+                       9, 16, 27, 19, 3.5,
+                       2, 7, 11, 6, 1.5}};
 
-  clustersMode1[4] = { { 0.5, 9, 12, 6, 1,
-                         2.5, 17, 25, 18, 5,
-                         7, 22, 54, 28, 15,
-                         3.5, 16, 27, 19, 7,
-                         1.5, 7, 11, 6, 3 } };
+  clustersMode1[4] = {{0.5, 9, 12, 6, 1,
+                       2.5, 17, 25, 18, 5,
+                       7, 22, 54, 28, 15,
+                       3.5, 16, 27, 19, 7,
+                       1.5, 7, 11, 6, 3}};
 
-  clustersMode1[5] = { { 4, 9, 12, 6, 0,
-                         8, 17, 25, 18, 8.5,
-                         13, 22, 55, 28, 11,
-                         9, 16, 27, 19, 8,
-                         2, 7, 11, 6, 0 } };
+  clustersMode1[5] = {{4, 9, 12, 6, 0,
+                       8, 17, 25, 18, 8.5,
+                       13, 22, 55, 28, 11,
+                       9, 16, 27, 19, 8,
+                       2, 7, 11, 6, 0}};
 
-  clustersMode1[6] = { { 0, 9, 12, 6, 1,
-                         0, 8.5, 25, 18, 5,
-                         0, 11, 56, 28, 15,
-                         0, 8, 27, 19, 7,
-                         0, 7, 11, 6, 3 } };
+  clustersMode1[6] = {{0, 9, 12, 6, 1,
+                       0, 8.5, 25, 18, 5,
+                       0, 11, 56, 28, 15,
+                       0, 8, 27, 19, 7,
+                       0, 7, 11, 6, 3}};
 
-  clustersMode1[7] = { { 4, 9, 12, 6, 0,
-                         8, 17, 25, 9, 0,
-                         13, 22, 57, 14, 0,
-                         9, 16, 27, 9.5, 0,
-                         2, 7, 11, 6, 0 } };
+  clustersMode1[7] = {{4, 9, 12, 6, 0,
+                       8, 17, 25, 9, 0,
+                       13, 22, 57, 14, 0,
+                       9, 16, 27, 9.5, 0,
+                       2, 7, 11, 6, 0}};
 
-  clustersMode1[8] = { { 0, 6, 12, 6, 1,
-                         0, 9, 25, 18, 5,
-                         0, 14, 58, 28, 15,
-                         0, 9.5, 27, 19, 7,
-                         0, 6, 11, 6, 3 } };
+  clustersMode1[8] = {{0, 6, 12, 6, 1,
+                       0, 9, 25, 18, 5,
+                       0, 14, 58, 28, 15,
+                       0, 9.5, 27, 19, 7,
+                       0, 6, 11, 6, 3}};
 
-  clustersMode1[9] = { { 4, 9, 12, 6, 1,
-                         8, 17, 25, 18, 5,
-                         13, 22, 59, 28, 15,
-                         4.5, 16, 27, 19, 7,
-                         1, 3.5, 11, 6, 3 } };
+  clustersMode1[9] = {{4, 9, 12, 6, 1,
+                       8, 17, 25, 18, 5,
+                       13, 22, 59, 28, 15,
+                       4.5, 16, 27, 19, 7,
+                       1, 3.5, 11, 6, 3}};
 
-  clustersMode1[10] = { { 4, 9, 12, 3, 0,
-                          8, 17, 25, 18, 1,
-                          13, 22, 60, 28, 14,
-                          9, 16, 27, 19, 7,
-                          2, 7, 11, 6, 3 } };
+  clustersMode1[10] = {{4, 9, 12, 3, 0,
+                        8, 17, 25, 18, 1,
+                        13, 22, 60, 28, 14,
+                        9, 16, 27, 19, 7,
+                        2, 7, 11, 6, 3}};
 
   for (int cl = 0; cl < clusters.size(); ++cl) {
     for (int dt = 0; dt < 10; ++dt) {
@@ -999,5 +999,5 @@ BOOST_AUTO_TEST_CASE(HwClusterer_test6)
   std::cout << "##" << std::endl
             << std::endl;
 }
-}
-}
+} // namespace tpc
+} // namespace o2

@@ -16,6 +16,7 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSSimulation/Detector.h"
 #include "ITSSimulation/V3Layer.h"
+#include "ITSSimulation/V3Services.h"
 
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
@@ -47,12 +48,12 @@ class TParticle;
 using std::cout;
 using std::endl;
 
-using o2::ITSMFT::Hit;
-using Segmentation = o2::ITSMFT::SegmentationAlpide;
-using namespace o2::ITS;
+using o2::itsmft::Hit;
+using Segmentation = o2::itsmft::SegmentationAlpide;
+using namespace o2::its;
 
 Detector::Detector()
-  : o2::Base::DetImpl<Detector>("ITS", kTRUE),
+  : o2::base::DetImpl<Detector>("ITS", kTRUE),
     mTrackData(),
     /*
     mHitStarted(false),
@@ -63,7 +64,7 @@ Detector::Detector()
     */
     mNumberOfDetectors(-1),
     mModifyGeometry(kFALSE),
-    mHits(o2::utils::createSimVector<o2::ITSMFT::Hit>()),
+    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
 {
@@ -78,23 +79,30 @@ static double radii2Turbo(double rMin, double rMid, double rMax, double sensW)
 static void configITS(Detector* its)
 {
   // build ITS upgrade detector
-  const double kSiThickIB = 50e-4;
-  const double kSiThickOB = 50e-4;
-  //
   const int kNLr = 7;
   const int kNLrInner = 3;
   const int kBuildLevel = 0;
   const int kSensTypeID = 0; // dummy id for Alpide sensor
 
-  enum { kRmn, kRmd, kRmx, kNModPerStave, kPhi0, kNStave, kNPar };
+  const float ChipThicknessIB = 50.e-4;
+  const float ChipThicknessOB = 100.e-4;
+
+  enum { kRmn,
+         kRmd,
+         kRmx,
+         kNModPerStave,
+         kPhi0,
+         kNStave,
+         kNPar };
   // Radii are from last TDR (ALICE-TDR-017.pdf Tab. 1.1, rMid is mean value)
   const double tdr5dat[kNLr][kNPar] = {
-    { 2.24, 2.34, 2.67, 9., 16.42, 12 }, // for each inner layer: rMin,rMid,rMax,NChip/Stave, phi0, nStaves
-    { 3.01, 3.15, 3.46, 9., 12.18, 16 }, { 3.78, 3.93, 4.21, 9., 9.55, 20 },
-    { -1, 19.6, -1, 4., 0., 24 },  // for others: -, rMid, -, NMod/HStave, phi0, nStaves // 24 was 49
-    { -1, 24.55, -1, 4., 0., 30 }, // 30 was 61
-    { -1, 34.39, -1, 7., 0., 42 }, // 42 was 88
-    { -1, 39.34, -1, 7., 0., 48 }  // 48 was 100
+    {2.24, 2.34, 2.67, 9., 16.42, 12}, // for each inner layer: rMin,rMid,rMax,NChip/Stave, phi0, nStaves
+    {3.01, 3.15, 3.46, 9., 12.18, 16},
+    {3.78, 3.93, 4.21, 9., 9.55, 20},
+    {-1, 19.6, -1, 4., 0., 24},  // for others: -, rMid, -, NMod/HStave, phi0, nStaves // 24 was 49
+    {-1, 24.55, -1, 4., 0., 30}, // 30 was 61
+    {-1, 34.39, -1, 7., 0., 42}, // 42 was 88
+    {-1, 39.34, -1, 7., 0., 48}  // 48 was 100
   };
   const int nChipsPerModule = 7;  // For OB: how many chips in a row
   const double zChipGap = 0.01;   // For OB: gap in Z between chips
@@ -103,13 +111,13 @@ static void configITS(Detector* its)
   double dzLr, rLr, phi0, turbo;
   int nStaveLr, nModPerStaveLr;
 
-  its->setStaveModelIB(o2::ITS::Detector::kIBModel4);
-  its->setStaveModelOB(o2::ITS::Detector::kOBModel2);
+  its->setStaveModelIB(o2::its::Detector::kIBModel4);
+  its->setStaveModelOB(o2::its::Detector::kOBModel2);
 
   const int kNWrapVol = 3;
-  const double wrpRMin[kNWrapVol] = { 2.1, 15.0, 32.0 };
-  const double wrpRMax[kNWrapVol] = { 14.0, 30.0, 46.0 };
-  const double wrpZSpan[kNWrapVol] = { 70., 95., 200. };
+  const double wrpRMin[kNWrapVol] = {2.1, 19.3, 32.0};
+  const double wrpRMax[kNWrapVol] = {14.0, 30.0, 46.0};
+  const double wrpZSpan[kNWrapVol] = {70., 93., 160.};
 
   for (int iw = 0; iw < kNWrapVol; iw++) {
     its->defineWrapperVolume(iw, wrpRMin[iw], wrpRMax[iw], wrpZSpan[iw]);
@@ -123,18 +131,18 @@ static void configITS(Detector* its)
     nModPerStaveLr = TMath::Nint(tdr5dat[idLr][kNModPerStave]);
     int nChipsPerStaveLr = nModPerStaveLr;
     if (idLr >= kNLrInner) {
-      its->defineLayer(idLr, phi0, rLr, nStaveLr, nModPerStaveLr, kSiThickOB, Segmentation::SensorThickness,
+      its->defineLayer(idLr, phi0, rLr, nStaveLr, nModPerStaveLr, ChipThicknessOB, Segmentation::SensorLayerThickness,
                        kSensTypeID, kBuildLevel);
     } else {
-      turbo = -radii2Turbo(tdr5dat[idLr][kRmn], rLr, tdr5dat[idLr][kRmx], Segmentation::SensorSizeRows);
+      turbo = radii2Turbo(tdr5dat[idLr][kRmn], rLr, tdr5dat[idLr][kRmx], Segmentation::SensorSizeRows);
       its->defineLayerTurbo(idLr, phi0, rLr, nStaveLr, nChipsPerStaveLr, Segmentation::SensorSizeRows, turbo,
-                            kSiThickIB, Segmentation::SensorThickness, kSensTypeID, kBuildLevel);
+                            ChipThicknessIB, Segmentation::SensorLayerThickness, kSensTypeID, kBuildLevel);
     }
   }
 }
 
 Detector::Detector(Bool_t active)
-  : o2::Base::DetImpl<Detector>("ITS", active),
+  : o2::base::DetImpl<Detector>("ITS", active),
     mTrackData(),
     /*
     mHitStarted(false),
@@ -145,7 +153,7 @@ Detector::Detector(Bool_t active)
     */
     mNumberOfDetectors(-1),
     mModifyGeometry(kFALSE),
-    mHits(o2::utils::createSimVector<o2::ITSMFT::Hit>()),
+    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
 {
@@ -169,6 +177,7 @@ Detector::Detector(Bool_t active)
       mGeometry[j] = nullptr;
     }
   }
+  mServicesGeometry = nullptr;
 
   for (int i = sNumberOfWrapperVolumes; i--;) {
     mWrapperMinRadius[i] = mWrapperMaxRadius[i] = mWrapperZSpan[i] = -1;
@@ -178,7 +187,7 @@ Detector::Detector(Bool_t active)
 }
 
 Detector::Detector(const Detector& rhs)
-  : o2::Base::DetImpl<Detector>(rhs),
+  : o2::base::DetImpl<Detector>(rhs),
     mTrackData(),
     /*
     mHitStarted(false),
@@ -191,7 +200,7 @@ Detector::Detector(const Detector& rhs)
     mModifyGeometry(rhs.mModifyGeometry),
 
     /// Container for data points
-    mHits(o2::utils::createSimVector<o2::ITSMFT::Hit>()),
+    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
     mStaveModelInnerBarrel(rhs.mStaveModelInnerBarrel),
     mStaveModelOuterBarrel(rhs.mStaveModelOuterBarrel)
 {
@@ -225,7 +234,7 @@ Detector& Detector::operator=(const Detector& rhs)
   }
 
   // base class assignment
-  Base::Detector::operator=(rhs);
+  base::Detector::operator=(rhs);
 
   mNumberOfDetectors = rhs.mNumberOfDetectors;
 
@@ -276,7 +285,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     return kFALSE; // RS: can this happen? This method must be called for sensors only?
 
   // Is it needed to keep a track reference when the outer ITS volume is encountered?
-  auto stack = (o2::Data::Stack*)fMC->GetStack();
+  auto stack = (o2::data::Stack*)fMC->GetStack();
   if (fMC->IsTrackExiting() && (lay == 0 || lay == 6)) {
     // Keep the track refs for the innermost and outermost layers only
     o2::TrackReference tr(*fMC, GetDetId());
@@ -353,7 +362,7 @@ void Detector::createMaterials()
 {
   Int_t ifield = 2;
   Float_t fieldm = 10.0;
-  o2::Base::Detector::initFieldTrackingParams(ifield, fieldm);
+  o2::base::Detector::initFieldTrackingParams(ifield, fieldm);
   ////////////
 
   Float_t tmaxfd = 0.1;   // 1.0; // Degree
@@ -375,151 +384,151 @@ void Detector::createMaterials()
   Float_t stminAir = 0.0;         // cm "Default value used"
 
   // AIR
-  Float_t aAir[4] = { 12.0107, 14.0067, 15.9994, 39.948 };
-  Float_t zAir[4] = { 6., 7., 8., 18. };
-  Float_t wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
+  Float_t zAir[4] = {6., 7., 8., 18.};
+  Float_t wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   Float_t dAir = 1.20479E-3;
 
   // Water
-  Float_t aWater[2] = { 1.00794, 15.9994 };
-  Float_t zWater[2] = { 1., 8. };
-  Float_t wWater[2] = { 0.111894, 0.888106 };
+  Float_t aWater[2] = {1.00794, 15.9994};
+  Float_t zWater[2] = {1., 8.};
+  Float_t wWater[2] = {0.111894, 0.888106};
   Float_t dWater = 1.0;
 
   // PEEK CF30
-  Float_t aPEEK[3] = { 12.0107, 1.00794, 15.9994 };
-  Float_t zPEEK[3] = { 6., 1., 8. };
-  Float_t wPEEK[3] = { 19., 12., 3 };
+  Float_t aPEEK[3] = {12.0107, 1.00794, 15.9994};
+  Float_t zPEEK[3] = {6., 1., 8.};
+  Float_t wPEEK[3] = {19., 12., 3};
   Float_t dPEEK = 1.32;
 
   // Kapton
-  Float_t aKapton[4] = { 1.00794, 12.0107, 14.010, 15.9994 };
-  Float_t zKapton[4] = { 1., 6., 7., 8. };
-  Float_t wKapton[4] = { 0.026362, 0.69113, 0.07327, 0.209235 };
+  Float_t aKapton[4] = {1.00794, 12.0107, 14.010, 15.9994};
+  Float_t zKapton[4] = {1., 6., 7., 8.};
+  Float_t wKapton[4] = {0.026362, 0.69113, 0.07327, 0.209235};
   Float_t dKapton = 1.42;
 
   // Tungsten Carbide
-  Float_t aWC[2] = { 183.84, 12.0107 };
-  Float_t zWC[2] = { 74, 6 };
-  Float_t wWC[2] = { 0.5, 0.5 };
+  Float_t aWC[2] = {183.84, 12.0107};
+  Float_t zWC[2] = {74, 6};
+  Float_t wWC[2] = {0.5, 0.5};
   Float_t dWC = 15.63;
 
   // BEOL (Metal interconnection stack in Si sensors)
-  Float_t aBEOL[3] = { 26.982, 28.086, 15.999 };
-  Float_t zBEOL[3] = { 13, 14, 8 }; // Al, Si, O
-  Float_t wBEOL[3] = { 0.170, 0.388, 0.442 };
+  Float_t aBEOL[3] = {26.982, 28.086, 15.999};
+  Float_t zBEOL[3] = {13, 14, 8}; // Al, Si, O
+  Float_t wBEOL[3] = {0.170, 0.388, 0.442};
   Float_t dBEOL = 2.28;
 
   // Inox 304
-  Float_t aInox304[4] = { 12.0107, 51.9961, 58.6928, 55.845 };
-  Float_t zInox304[4] = { 6., 24., 28, 26 };       // C, Cr, Ni, Fe
-  Float_t wInox304[4] = { 0.0003, 0.18, 0.10, 0 }; // [3] will be computed
+  Float_t aInox304[4] = {12.0107, 51.9961, 58.6928, 55.845};
+  Float_t zInox304[4] = {6., 24., 28, 26};       // C, Cr, Ni, Fe
+  Float_t wInox304[4] = {0.0003, 0.18, 0.10, 0}; // [3] will be computed
   Float_t dInox304 = 7.85;
 
   // Ceramic (for IB capacitors) (BaTiO3)
-  Float_t aCeramic[3] = { 137.327, 47.867, 15.999 };
-  Float_t zCeramic[3] = { 56, 22, 8 }; // Ba, Ti, O
-  Float_t wCeramic[3] = { 1, 1, 3 };   // Molecular composition
+  Float_t aCeramic[3] = {137.327, 47.867, 15.999};
+  Float_t zCeramic[3] = {56, 22, 8}; // Ba, Ti, O
+  Float_t wCeramic[3] = {1, 1, 3};   // Molecular composition
   Float_t dCeramic = 6.02;
 
-  o2::Base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
-  o2::Base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir, epsilAir, stminAir);
+  o2::base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
+  o2::base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir, epsilAir, stminAir);
 
-  o2::Base::Detector::Mixture(2, "WATER$", aWater, zWater, dWater, 2, wWater);
-  o2::Base::Detector::Medium(2, "WATER$", 2, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Mixture(2, "WATER$", aWater, zWater, dWater, 2, wWater);
+  o2::base::Detector::Medium(2, "WATER$", 2, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
-  o2::Base::Detector::Material(3, "SI$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01, 0.99900E+03);
-  o2::Base::Detector::Medium(3, "SI$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(3, "SI$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01, 0.99900E+03);
+  o2::base::Detector::Medium(3, "SI$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
-  o2::Base::Detector::Material(4, "BERILLIUM$", 9.01, 4., 1.848, 35.3, 36.7); // From AliPIPEv3
-  o2::Base::Detector::Medium(4, "BERILLIUM$", 4, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Material(4, "BERILLIUM$", 9.01, 4., 1.848, 35.3, 36.7); // From AliPIPEv3
+  o2::base::Detector::Medium(4, "BERILLIUM$", 4, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
-  o2::Base::Detector::Material(5, "COPPER$", 0.63546E+02, 0.29000E+02, 0.89600E+01, 0.14300E+01, 0.99900E+03);
-  o2::Base::Detector::Medium(5, "COPPER$", 5, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Material(5, "COPPER$", 0.63546E+02, 0.29000E+02, 0.89600E+01, 0.14300E+01, 0.99900E+03);
+  o2::base::Detector::Medium(5, "COPPER$", 5, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
   // needed for STAVE , Carbon, kapton, Epoxy, flexcable
 
   // AliceO2::Base::Detector::Material(6,"CARBON$",12.0107,6,2.210,999,999);
-  o2::Base::Detector::Material(6, "CARBON$", 12.0107, 6, 2.210 / 1.3, 999, 999);
-  o2::Base::Detector::Medium(6, "CARBON$", 6, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(6, "CARBON$", 12.0107, 6, 2.210 / 1.3, 999, 999);
+  o2::base::Detector::Medium(6, "CARBON$", 6, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
-  o2::Base::Detector::Mixture(7, "KAPTON(POLYCH2)$", aKapton, zKapton, dKapton, 4, wKapton);
-  o2::Base::Detector::Medium(7, "KAPTON(POLYCH2)$", 7, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Mixture(7, "KAPTON(POLYCH2)$", aKapton, zKapton, dKapton, 4, wKapton);
+  o2::base::Detector::Medium(7, "KAPTON(POLYCH2)$", 7, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
   // values below modified as compared to source AliITSv11 !
 
   // BEOL (Metal interconnection stack in Si sensors)
-  o2::Base::Detector::Mixture(29, "METALSTACK$", aBEOL, zBEOL, dBEOL, 3, wBEOL);
-  o2::Base::Detector::Medium(29, "METALSTACK$", 29, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Mixture(29, "METALSTACK$", aBEOL, zBEOL, dBEOL, 3, wBEOL);
+  o2::base::Detector::Medium(29, "METALSTACK$", 29, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
   // Glue between IB chip and FPC: density reduced to take into account
   // empty spaces (160 glue spots/chip , diam. 1 spot = 1 mm)
-  o2::Base::Detector::Material(30, "GLUE_IBFPC$", 12.011, 6, 1.05 * 0.3, 999, 999);
-  o2::Base::Detector::Medium(30, "GLUE_IBFPC$", 30, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Material(30, "GLUE_IBFPC$", 12.011, 6, 1.05 * 0.3, 999, 999);
+  o2::base::Detector::Medium(30, "GLUE_IBFPC$", 30, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
   // Ceramic for IB capacitors (nmat < 0 => wmat contains number of atoms)
-  o2::Base::Detector::Mixture(31, "CERAMIC$", aCeramic, zCeramic, dCeramic, -3, wCeramic);
-  o2::Base::Detector::Medium(31, "CERAMIC$", 31, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Mixture(31, "CERAMIC$", aCeramic, zCeramic, dCeramic, -3, wCeramic);
+  o2::base::Detector::Medium(31, "CERAMIC$", 31, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
   // All types of carbon
   // Unidirectional prepreg
-  o2::Base::Detector::Material(8, "K13D2U2k$", 12.0107, 6, 1.643, 999, 999);
-  o2::Base::Detector::Medium(8, "K13D2U2k$", 8, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
-  o2::Base::Detector::Material(17, "K13D2U120$", 12.0107, 6, 1.583, 999, 999);
-  o2::Base::Detector::Medium(17, "K13D2U120$", 17, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(8, "K13D2U2k$", 12.0107, 6, 1.643, 999, 999);
+  o2::base::Detector::Medium(8, "K13D2U2k$", 8, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(17, "K13D2U120$", 12.0107, 6, 1.583, 999, 999);
+  o2::base::Detector::Medium(17, "K13D2U120$", 17, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   // Carbon prepreg woven
-  o2::Base::Detector::Material(18, "F6151B05M$", 12.0107, 6, 2.133, 999, 999);
-  o2::Base::Detector::Medium(18, "F6151B05M$", 18, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(18, "F6151B05M$", 12.0107, 6, 2.133, 999, 999);
+  o2::base::Detector::Medium(18, "F6151B05M$", 18, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   // Impregnated thread
-  o2::Base::Detector::Material(9, "M60J3K$", 12.0107, 6, 2.21, 999, 999);
-  o2::Base::Detector::Medium(9, "M60J3K$", 9, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(9, "M60J3K$", 12.0107, 6, 2.21, 999, 999);
+  o2::base::Detector::Medium(9, "M60J3K$", 9, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   // Impregnated thread
-  o2::Base::Detector::Material(10, "M55J6K$", 12.0107, 6, 1.63, 999, 999);
-  o2::Base::Detector::Medium(10, "M55J6K$", 10, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(10, "M55J6K$", 12.0107, 6, 1.63, 999, 999);
+  o2::base::Detector::Medium(10, "M55J6K$", 10, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   // Fabric(0/90)
-  o2::Base::Detector::Material(11, "T300$", 12.0107, 6, 1.725, 999, 999);
-  o2::Base::Detector::Medium(11, "T300$", 11, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(11, "T300$", 12.0107, 6, 1.725, 999, 999);
+  o2::base::Detector::Medium(11, "T300$", 11, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   // AMEC Thermasol
-  o2::Base::Detector::Material(12, "FGS003$", 12.0107, 6, 1.6, 999, 999);
-  o2::Base::Detector::Medium(12, "FGS003$", 12, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(12, "FGS003$", 12.0107, 6, 1.6, 999, 999);
+  o2::base::Detector::Medium(12, "FGS003$", 12, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   // Carbon fleece
-  o2::Base::Detector::Material(13, "CarbonFleece$", 12.0107, 6, 0.4, 999, 999);
-  o2::Base::Detector::Medium(13, "CarbonFleece$", 13, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi,
+  o2::base::Detector::Material(13, "CarbonFleece$", 12.0107, 6, 0.4, 999, 999);
+  o2::base::Detector::Medium(13, "CarbonFleece$", 13, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi,
                              stminSi);
 
   // PEEK CF30
-  o2::Base::Detector::Mixture(19, "PEEKCF30$", aPEEK, zPEEK, dPEEK, -3, wPEEK);
-  o2::Base::Detector::Medium(19, "PEEKCF30$", 19, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Mixture(19, "PEEKCF30$", aPEEK, zPEEK, dPEEK, -3, wPEEK);
+  o2::base::Detector::Medium(19, "PEEKCF30$", 19, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
   // Flex cable
-  Float_t aFCm[5] = { 12.0107, 1.00794, 14.0067, 15.9994, 26.981538 };
-  Float_t zFCm[5] = { 6., 1., 7., 8., 13. };
-  Float_t wFCm[5] = { 0.520088819984, 0.01983871336, 0.0551367996, 0.157399667056, 0.247536 };
+  Float_t aFCm[5] = {12.0107, 1.00794, 14.0067, 15.9994, 26.981538};
+  Float_t zFCm[5] = {6., 1., 7., 8., 13.};
+  Float_t wFCm[5] = {0.520088819984, 0.01983871336, 0.0551367996, 0.157399667056, 0.247536};
   // Float_t dFCm = 1.6087;  // original
   // Float_t dFCm = 2.55;   // conform with STAR
   Float_t dFCm = 2.595; // conform with Corrado
 
-  o2::Base::Detector::Mixture(14, "FLEXCABLE$", aFCm, zFCm, dFCm, 5, wFCm);
-  o2::Base::Detector::Medium(14, "FLEXCABLE$", 14, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Mixture(14, "FLEXCABLE$", aFCm, zFCm, dFCm, 5, wFCm);
+  o2::base::Detector::Medium(14, "FLEXCABLE$", 14, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
   // AliceO2::Base::Detector::Material(7,"GLUE$",0.12011E+02,0.60000E+01,0.1930E+01/2.015,999,999);
   // // original
-  o2::Base::Detector::Material(15, "GLUE$", 12.011, 6, 1.93 / 2.015, 999, 999); // conform with ATLAS, Corrado, Stefan
-  o2::Base::Detector::Medium(15, "GLUE$", 15, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Material(15, "GLUE$", 12.011, 6, 1.93 / 2.015, 999, 999); // conform with ATLAS, Corrado, Stefan
+  o2::base::Detector::Medium(15, "GLUE$", 15, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
-  o2::Base::Detector::Material(16, "ALUMINUM$", 0.26982E+02, 0.13000E+02, 0.26989E+01, 0.89000E+01, 0.99900E+03);
-  o2::Base::Detector::Medium(16, "ALUMINUM$", 16, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::base::Detector::Material(16, "ALUMINUM$", 0.26982E+02, 0.13000E+02, 0.26989E+01, 0.89000E+01, 0.99900E+03);
+  o2::base::Detector::Medium(16, "ALUMINUM$", 16, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
-  o2::Base::Detector::Mixture(20, "TUNGCARB$", aWC, zWC, dWC, 2, wWC);
-  o2::Base::Detector::Medium(20, "TUNGCARB$", 20, 0, ifield, fieldm, tmaxfd, stemax, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Mixture(20, "TUNGCARB$", aWC, zWC, dWC, 2, wWC);
+  o2::base::Detector::Medium(20, "TUNGCARB$", 20, 0, ifield, fieldm, tmaxfd, stemax, deemaxSi, epsilSi, stminSi);
 
   wInox304[3] = 1. - wInox304[0] - wInox304[1] - wInox304[2];
-  o2::Base::Detector::Mixture(21, "INOX304$", aInox304, zInox304, dInox304, 4, wInox304);
-  o2::Base::Detector::Medium(21, "INOX304$", 21, 0, ifield, fieldm, tmaxfd, stemax, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Mixture(21, "INOX304$", aInox304, zInox304, dInox304, 4, wInox304);
+  o2::base::Detector::Medium(21, "INOX304$", 21, 0, ifield, fieldm, tmaxfd, stemax, deemaxSi, epsilSi, stminSi);
 
   // Tungsten (for gamma converter rods)
-  o2::Base::Detector::Material(28, "TUNGSTEN$", 183.84, 74, 19.25, 999, 999);
-  o2::Base::Detector::Medium(28, "TUNGSTEN$", 28, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(28, "TUNGSTEN$", 183.84, 74, 19.25, 999, 999);
+  o2::base::Detector::Medium(28, "TUNGSTEN$", 28, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 }
 
 void Detector::EndOfEvent() { Reset(); }
@@ -679,7 +688,7 @@ TGeoVolume* Detector::createWrapperVolume(Int_t id)
   // Creates an air-filled wrapper cylindrical volume
 
   if (mWrapperMinRadius[id] < 0 || mWrapperMaxRadius[id] < 0 || mWrapperZSpan[id] < 0) {
-    LOG(FATAL) << "Wrapper volume " << id << " was requested but not defined" << FairLogger::endl;
+    LOG(FATAL) << "Wrapper volume " << id << " was requested but not defined";
   }
 
   // Now create the actual shape and volume
@@ -754,9 +763,6 @@ void Detector::constructDetectorGeometry()
     if (mChipThickness[j] == 0) {
       LOG(INFO) << "Chip thickness for layer " << j << " not set, using default";
     }
-    if (mDetectorThickness[j] == 0) {
-      LOG(INFO) << "Sensor thickness for layer " << j << " not set, using default";
-    }
   }
 
   // Create the wrapper volumes
@@ -816,10 +822,45 @@ void Detector::constructDetectorGeometry()
     }
     mGeometry[j]->createLayer(dest);
   }
-  createServiceBarrel(kTRUE, wrapVols[0]);
+
+  // Finally create the services
+  mServicesGeometry = new V3Services();
+
+  createInnerBarrelServices(wrapVols[0]);
+
+  // TEMPORARY - These routines will be obsoleted once the new services are completed - TEMPORARY
+  //  createServiceBarrel(kTRUE, wrapVols[0]);
   createServiceBarrel(kFALSE, wrapVols[2]);
 
   delete[] wrapVols; // delete pointer only, not the volumes
+}
+
+void Detector::createInnerBarrelServices(TGeoVolume* motherVolume)
+{
+  //
+  // Creates the Inner Barrel Service structures
+  //
+  // Input:
+  //         motherVolume : the volume hosting the services
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      15 May 2019  Mario Sitta
+  //               (partially based on P.Namwongsa implementation in AliRoot)
+  // Updated:      19 Jun 2019  Mario Sitta  IB Side A added
+  //
+
+  // Create the End Wheels on Side A
+  TGeoVolume* endWheelsA = mServicesGeometry->createIBEndWheelsSideA();
+
+  motherVolume->AddNode(endWheelsA, 1, nullptr);
+
+  // Create the End Wheels on Side C
+  TGeoVolume* endWheelsC = mServicesGeometry->createIBEndWheelsSideC();
+
+  motherVolume->AddNode(endWheelsC, 1, nullptr);
 }
 
 // Service Barrel
@@ -1041,13 +1082,13 @@ Hit* Detector::addHit(int trackID, int detID, const TVector3& startPos, const TV
 
 void Detector::Print(std::ostream* os) const
 {
-// Standard output format for this class.
-// Inputs:
-//   ostream *os   The output stream
-// Outputs:
-//   none.
-// Return:
-//   none.
+  // Standard output format for this class.
+  // Inputs:
+  //   ostream *os   The output stream
+  // Outputs:
+  //   none.
+  // Return:
+  //   none.
 
 #if defined __GNUC__
 #if __GNUC__ > 2
@@ -1118,4 +1159,4 @@ std::istream& operator>>(std::istream& is, Detector& r)
   return is;
 }
 
-ClassImp(o2::ITS::Detector)
+ClassImp(o2::its::Detector);

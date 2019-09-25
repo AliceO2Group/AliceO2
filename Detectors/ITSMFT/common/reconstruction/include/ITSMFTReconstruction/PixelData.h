@@ -14,12 +14,14 @@
 #define ALICEO2_ITSMFT_PIXELDATA_H
 
 #include "ITSMFTBase/Digit.h"
+#include "CommonDataFormat/InteractionRecord.h"
 #include <vector>
 #include <utility>
+#include <cstdint>
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 ///< single pixel datum, with possibility to set a flag of pixel being masked out
@@ -28,15 +30,15 @@ class PixelData
 
  public:
   PixelData(const Digit* dig) : mRow(dig->getRow()), mCol(dig->getColumn()) {}
-  PixelData(UShort_t r = 0, UShort_t c = 0) : mRow(r), mCol(c) {}
-  UShort_t getRow() const { return mRow & RowMask; }
-  UShort_t getCol() const { return mCol; }
+  PixelData(uint16_t r = 0, uint16_t c = 0) : mRow(r), mCol(c) {}
+  uint16_t getRow() const { return mRow & RowMask; }
+  uint16_t getCol() const { return mCol; }
   bool isMasked() const { return mRow & MaskBit; }
   void setMask() { mRow |= MaskBit; }
   void unsetMask() { mRow &= RowMask; }
 
   /// for faster access when the pixel is guaranteed to not be masked
-  UShort_t getRowDirect() const { return mRow; }
+  uint16_t getRowDirect() const { return mRow; }
 
   bool operator==(const PixelData& dt) const
   {
@@ -68,15 +70,15 @@ class PixelData
     return operator==(dt) ? 0 : (operator>(dt) ? 1 : -1);
   }
 
-  static constexpr UInt_t DummyROF = 0xffffffff;
-  static constexpr UInt_t DummyChipID = 0xffff;
+  static constexpr uint32_t DummyROF = 0xffffffff;
+  static constexpr uint32_t DummyChipID = 0xffff;
 
  private:
   void sanityCheck() const;
   static constexpr int RowMask = 0x1ff; ///< 512 rows are supported
   static constexpr int MaskBit = 0x200; ///< 10-th bit is used to flag masked pixel
-  UShort_t mRow = 0;                    ///< pixel row
-  UShort_t mCol = 0;                    ///< pixel column
+  uint16_t mRow = 0;                    ///< pixel row
+  uint16_t mCol = 0;                    ///< pixel column
 
   ClassDefNV(PixelData, 1);
 };
@@ -89,21 +91,28 @@ class ChipPixelData
  public:
   ChipPixelData() = default;
   ~ChipPixelData() = default;
-  UShort_t getChipID() const { return mChipID; }
-  UInt_t getROFrame() const { return mROFrame; }
-  UInt_t getStartID() const { return mStartID; }
-  UInt_t getFirstUnmasked() const { return mFirstUnmasked; }
+  uint8_t getROFlags() const { return mROFlags; }
+  uint16_t getChipID() const { return mChipID; }
+  uint32_t getROFrame() const { return mROFrame; }
+  uint32_t getStartID() const { return mStartID; }
+  uint32_t getFirstUnmasked() const { return mFirstUnmasked; }
+  uint32_t getTrigger() const { return mTrigger; }
+  const o2::InteractionRecord& getInteractionRecord() const { return mInteractionRecord; }
+  void setInteractionRecord(const o2::InteractionRecord& r) { mInteractionRecord = r; }
   const std::vector<PixelData>& getData() const { return mPixels; }
   std::vector<PixelData>& getData() { return (std::vector<PixelData>&)mPixels; }
 
-  void setChipID(UShort_t id) { mChipID = id; }
-  void setROFrame(UInt_t r) { mROFrame = r; }
-  void setStartID(UInt_t id) { mStartID = id; }
-  void setFirstUnmasked(UInt_t n) { mFirstUnmasked = n; }
+  void setROFlags(uint8_t f = 0) { mROFlags = f; }
+  void setChipID(uint16_t id) { mChipID = id; }
+  void setROFrame(uint32_t r) { mROFrame = r; }
+  void setStartID(uint32_t id) { mStartID = id; }
+  void setFirstUnmasked(uint32_t n) { mFirstUnmasked = n; }
+  void setTrigger(uint32_t t) { mTrigger = t; }
 
   void clear()
   {
     mPixels.clear();
+    mROFlags = 0;
     mFirstUnmasked = 0;
   }
 
@@ -112,6 +121,9 @@ class ChipPixelData
     // swap content of two objects
     mPixels.swap(other.mPixels);
     std::swap(mROFrame, other.mROFrame);
+    std::swap(mROFlags, other.mROFlags);
+    std::swap(mTrigger, other.mTrigger);
+    std::swap(mInteractionRecord, other.mInteractionRecord);
     std::swap(mChipID, other.mChipID);
     // strictly speaking, swapping the data below is not needed
     std::swap(mStartID, other.mStartID);
@@ -122,15 +134,15 @@ class ChipPixelData
   {
     ///< mask in the current data pixels fired in provided sample
     const auto& pixelsS = sample.getData();
-    UInt_t nC = mPixels.size();
+    uint32_t nC = mPixels.size();
     if (!nC) {
       return;
     }
-    UInt_t nS = pixelsS.size();
+    uint32_t nS = pixelsS.size();
     if (!nS) {
       return;
     }
-    UInt_t itC = 0, itS = 0;
+    uint32_t itC = 0, itS = 0;
     while (itC < nC && itS < nS) {
       auto& pix0 = mPixels[itC];
       const auto& pixC = pixelsS[itS];
@@ -151,15 +163,18 @@ class ChipPixelData
   void print() const;
 
  private:
-  UShort_t mChipID = 0;           // chip id within the detector
-  UInt_t mROFrame = 0;            // readout frame ID
-  UInt_t mFirstUnmasked = 0;      // first unmasked entry in the mPixels
-  UInt_t mStartID = 0;            // entry of the 1st pixel data in the whole detector data, for MCtruth access
-  std::vector<PixelData> mPixels; // vector of pixeld
+  uint8_t mROFlags = 0;                          // readout flags from the chip trailer
+  uint16_t mChipID = 0;                          // chip id within the detector
+  uint32_t mROFrame = 0;                         // readout frame ID
+  uint32_t mFirstUnmasked = 0;                   // first unmasked entry in the mPixels
+  uint32_t mStartID = 0;                         // entry of the 1st pixel data in the whole detector data, for MCtruth access
+  uint32_t mTrigger = 0;                         // trigger pattern
+  o2::InteractionRecord mInteractionRecord = {}; // interaction record
+  std::vector<PixelData> mPixels;                // vector of pixeld
 
   ClassDefNV(ChipPixelData, 1);
 };
-}
-}
+} // namespace itsmft
+} // namespace o2
 
 #endif //ALICEO2_ITSMFT_PIXELDATA_H

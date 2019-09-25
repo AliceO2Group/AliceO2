@@ -22,28 +22,29 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 class CookedTrackerDPL : public Task
 {
  public:
-  CookedTrackerDPL() = default;
+  CookedTrackerDPL(bool useMC) : mUseMC(useMC) {}
   ~CookedTrackerDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
  private:
   int mState = 0;
+  bool mUseMC = true;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
-  o2::ITS::CookedTracker mTracker;
+  o2::its::CookedTracker mTracker;
 };
 
 /// create a processor spec
 /// run ITS CookedMatrix tracker
-framework::DataProcessorSpec getCookedTrackerSpec();
+framework::DataProcessorSpec getCookedTrackerSpec(bool useMC);
 
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* O2_ITS_COOKEDTRACKERDPL */

@@ -12,9 +12,11 @@
 #define STEER_DIGITIZERWORKFLOW_SRC_TRDDIGITWRITERSPEC_H_
 
 #include "Framework/DataProcessorSpec.h"
-#include "Utils/MakeRootTreeWriterSpec.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
 #include "TRDBase/Digit.h"
+#include <SimulationDataFormat/MCTruthContainer.h>
+#include "TRDBase/MCLabel.h"
 
 namespace o2
 {
@@ -32,9 +34,8 @@ o2::framework::DataProcessorSpec getTRDDigitWriterSpec()
                                 "trddigits.root",
                                 "o2sim",
                                 1,
-                                BranchDefinition<o2::trd::Digit>{ InputSpec{ "input", "TRD", "DIGITS" }, "TRDDigit" }
-                                // add more branch definitions (for example Monte Carlo labels here)
-                                )();
+                                BranchDefinition<std::vector<o2::trd::Digit>>{InputSpec{"input", "TRD", "DIGITS"}, "TRDDigit"},
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::trd::MCLabel>>{InputSpec{"labelinput", "TRD", "LABELS"}, "TRDMCLabels"})();
 }
 
 } // end namespace trd

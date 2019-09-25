@@ -55,29 +55,29 @@
 
 using std::cout;
 using std::endl;
-using std::ios_base;
 using std::ifstream;
-using namespace o2::TPC;
+using std::ios_base;
+using namespace o2::tpc;
 
-Detector::Detector(Bool_t active) : o2::Base::DetImpl<Detector>("TPC", active), mGeoFileName()
+Detector::Detector(Bool_t active) : o2::base::DetImpl<Detector>("TPC", active), mGeoFileName()
 {
   for (int i = 0; i < Sector::MAXSECTOR; ++i) {
-    mHitsPerSectorCollection[i] = o2::utils::createSimVector<o2::TPC::HitGroup>(); //new std::vector<o2::TPC::HitGroup>;
+    mHitsPerSectorCollection[i] = o2::utils::createSimVector<o2::tpc::HitGroup>(); //new std::vector<o2::tpc::HitGroup>;
   }
 }
 
 // forward default constructor
-Detector::Detector() : o2::TPC::Detector(kTRUE) {}
+Detector::Detector() : o2::tpc::Detector(kTRUE) {}
 
 Detector::Detector(const Detector& rhs)
-  : o2::Base::DetImpl<Detector>(rhs),
+  : o2::base::DetImpl<Detector>(rhs),
     mHitCounter(0),
     mElectronCounter(0),
     mStepCounter(0),
     mGeoFileName(rhs.mGeoFileName)
 {
   for (int i = 0; i < Sector::MAXSECTOR; ++i) {
-    mHitsPerSectorCollection[i] = o2::utils::createSimVector<o2::TPC::HitGroup>(); //new std::vector<o2::TPC::HitGroup>;new std::vector<o2::TPC::HitGroup>;
+    mHitsPerSectorCollection[i] = o2::utils::createSimVector<o2::tpc::HitGroup>(); //new std::vector<o2::tpc::HitGroup>;new std::vector<o2::tpc::HitGroup>;
   }
 }
 
@@ -100,7 +100,7 @@ void Detector::InitializeO2Detector()
 
 void Detector::SetSpecialPhysicsCuts()
 {
-  using namespace o2::Base; // to have enum values of EProc and ECut available
+  using namespace o2::base; // to have enum values of EProc and ECut available
 
   FairRun* fRun = FairRun::Instance();
   if (strcmp(fRun->GetName(), "TGeant3") == 0) {
@@ -114,40 +114,40 @@ void Detector::SetSpecialPhysicsCuts()
     //    Now cuts are set in both cases, for G3 and G4; Further cuts are only set for TPC medium DriftGas2.
     // \todo discussion needed!!
     // cut settings for DriftGas2
-    SpecialCuts(kDriftGas2, { { ECut::kCUTGAM, cut1 },
-                              { ECut::kCUTELE, cut1 },
-                              { ECut::kCUTNEU, cut1 },
-                              { ECut::kCUTHAD, cut1 },
-                              { ECut::kCUTMUO, cut1 },
-                              { ECut::kBCUTE, cut1 },
-                              { ECut::kBCUTM, cut1 },
-                              { ECut::kDCUTE, cut1 },
-                              { ECut::kDCUTM, cut1 },
-                              { ECut::kPPCUTM, cut1 },
-                              { ECut::kTOFMAX, cutTofmax } });
+    SpecialCuts(kDriftGas2, {{ECut::kCUTGAM, cut1},
+                             {ECut::kCUTELE, cut1},
+                             {ECut::kCUTNEU, cut1},
+                             {ECut::kCUTHAD, cut1},
+                             {ECut::kCUTMUO, cut1},
+                             {ECut::kBCUTE, cut1},
+                             {ECut::kBCUTM, cut1},
+                             {ECut::kDCUTE, cut1},
+                             {ECut::kDCUTM, cut1},
+                             {ECut::kPPCUTM, cut1},
+                             {ECut::kTOFMAX, cutTofmax}});
     // process settings for DriftGas2
-    SpecialProcesses(kDriftGas2, { { EProc::kPAIR, 1 },
-                                   { EProc::kCOMP, 1 },
-                                   { EProc::kPHOT, 1 },
-                                   { EProc::kPFIS, 0 },
-                                   { EProc::kDRAY, 1 },
-                                   { EProc::kANNI, 1 },
-                                   { EProc::kBREM, 1 },
-                                   { EProc::kHADR, 1 },
-                                   { EProc::kMUNU, 1 },
-                                   { EProc::kDCAY, 1 },
-                                   { EProc::kLOSS, 1 },
-                                   { EProc::kMULS, 1 } });
+    SpecialProcesses(kDriftGas2, {{EProc::kPAIR, 1},
+                                  {EProc::kCOMP, 1},
+                                  {EProc::kPHOT, 1},
+                                  {EProc::kPFIS, 0},
+                                  {EProc::kDRAY, 1},
+                                  {EProc::kANNI, 1},
+                                  {EProc::kBREM, 1},
+                                  {EProc::kHADR, 1},
+                                  {EProc::kMUNU, 1},
+                                  {EProc::kDCAY, 1},
+                                  {EProc::kLOSS, 1},
+                                  {EProc::kMULS, 1}});
   }
 }
 
 Bool_t Detector::ProcessHits(FairVolume* vol)
 {
   mStepCounter++;
-  const static ParameterGas& gasParam = ParameterGas::defaultInstance();
+  auto& gasParam = ParameterGas::Instance();
 
   /* This method is called from the MC stepping for the sensitive volume only */
-  //   LOG(INFO) << "TPC::ProcessHits" << FairLogger::endl;
+  //   LOG(INFO) << "tpc::ProcessHits";
   const double trackCharge = fMC->TrackCharge();
   if (static_cast<int>(trackCharge) == 0) {
 
@@ -186,7 +186,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   const float time = fMC->TrackTime() * 1.0e9;
   const int trackID = fMC->GetStack()->GetCurrentTrackNumber();
   const int detID = vol->getMCid();
-  o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
+  o2::data::Stack* stack = (o2::data::Stack*)fMC->GetStack();
   if (fMC->IsTrackEntering() || fMC->IsTrackExiting()) {
     stack->addTrackReference(o2::TrackReference(position.X(), position.Y(), position.Z(), momentum.X(), momentum.Y(),
                                                 momentum.Z(), fMC->TrackLength(), time, trackID, GetDetId()));
@@ -210,22 +210,22 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   // ---| number of primary ionisations per cm |---
   const double primaryElectronsPerCM =
-    gasParam.getNprim() * BetheBlochAleph(static_cast<float>(betaGamma), gasParam.getBetheBlochParam(0),
-                                          gasParam.getBetheBlochParam(1), gasParam.getBetheBlochParam(2),
-                                          gasParam.getBetheBlochParam(3), gasParam.getBetheBlochParam(4));
+    gasParam.Nprim * BetheBlochAleph(static_cast<float>(betaGamma), gasParam.BetheBlochParam[0],
+                                     gasParam.BetheBlochParam[1], gasParam.BetheBlochParam[2],
+                                     gasParam.BetheBlochParam[3], gasParam.BetheBlochParam[4]);
 
   // ---| mean number of collisions and random for this event |---
   const double meanNcoll = stepSize * trackCharge * trackCharge * primaryElectronsPerCM;
   const int nColl = static_cast<int>(fMC->GetRandom()->Poisson(meanNcoll));
 
   // Variables needed to generate random powerlaw distributed energy loss
-  const double alpha_p1 = 1. - gasParam.getExp(); // NA49/G3 value
+  const double alpha_p1 = 1. - gasParam.Exp; // NA49/G3 value
   const double oneOverAlpha_p1 = 1. / alpha_p1;
-  const double eMin = gasParam.getIpot();
-  const double eMax = gasParam.getEend();
+  const double eMin = gasParam.Ipot;
+  const double eMax = gasParam.Eend;
   const double kMin = TMath::Power(eMin, alpha_p1);
   const double kMax = TMath::Power(eMax, alpha_p1);
-  const double wIon = gasParam.getWion();
+  const double wIon = gasParam.Wion;
 
   for (Int_t n = 0; n < nColl; n++) {
     // Use GEANT3 / NA49 expression:
@@ -239,9 +239,9 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     numberOfElectrons += nel_step;
   }
 
-  // LOG(INFO) << "TPC::AddHit" << FairLogger::endl << "Eloss: "
+  // LOG(INFO) << "tpc::AddHit" << FairLogger::endl << "Eloss: "
   //<< fMC->Edep() << ", Nelectrons: "
-  //<< numberOfElectrons << FairLogger::endl;
+  //<< numberOfElectrons;
 
   if (numberOfElectrons <= 0) // Could maybe be smaller than 0 due to the Gamma function
     return kFALSE;
@@ -271,12 +271,12 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     groupCounter = 0;
   }
 
-  // LOG(INFO) << "TPC::AddHit" << FairLogger::endl
+  // LOG(INFO) << "tpc::AddHit" << FairLogger::endl
   //<< "   -- " << trackNumberID <<","  << volumeID << " " << vol->GetName()
   //<< ", Pos: (" << position.X() << ", "  << position.Y() <<", "<<  position.Z()<< ", " << r << ") "
   //<< ", Mom: (" << momentum.Px() << ", " << momentum.Py() << ", "  <<  momentum.Pz() << ") "
   //<< " Time: "<<  time <<", Len: " << length << ", Nelectrons: " <<
-  // numberOfElectrons << FairLogger::endl;
+  // numberOfElectrons;
   // I.H. - the code above does not compile if uncommented
 
   // Increment number of Detector det points in TParticle
@@ -339,7 +339,7 @@ void Detector::CreateMaterials()
   Int_t iSXFLD = 2;
   Float_t sXMGMX = 10.0;
   // init the field tracking params
-  o2::Base::Detector::initFieldTrackingParams(iSXFLD, sXMGMX);
+  o2::base::Detector::initFieldTrackingParams(iSXFLD, sXMGMX);
 
   Float_t amat[7]; // atomic numbers
   Float_t zmat[7]; // z
@@ -366,7 +366,7 @@ void Detector::CreateMaterials()
 
   density = 1.842e-3;
 
-  o2::Base::Detector::Mixture(10, "CO2", amat, zmat, density, 2, wmat);
+  o2::base::Detector::Mixture(10, "CO2", amat, zmat, density, 2, wmat);
   //
   // Air
   //
@@ -381,7 +381,7 @@ void Detector::CreateMaterials()
   //
   density = 0.001205;
 
-  o2::Base::Detector::Mixture(11, "Air", amat, zmat, density, 2, wmat);
+  o2::base::Detector::Mixture(11, "Air", amat, zmat, density, 2, wmat);
 
   //----------------------------------------------------------------
   // drift gases 5 mixtures, 5 materials
@@ -395,12 +395,12 @@ void Detector::CreateMaterials()
   //--------------------------------------------------------------
   //  predefined gases, composition taken from param file
   //--------------------------------------------------------------
-  TString names[6] = { "Ne", "Ar", "CO2", "N", "CF4", "CH4" };
+  TString names[6] = {"Ne", "Ar", "CO2", "N", "CF4", "CH4"};
   TString gname;
 
   /// @todo: Gas mixture is hard coded here, this should be moved to some kind of parameter
   //       container in the future
-  Float_t comp[6] = { 90. / 105., 0., 10. / 105., 5. / 105., 0., 0. };
+  Float_t comp[6] = {90. / 105., 0., 10. / 105., 5. / 105., 0., 0.};
   // indices:
   // 0-Ne, 1-Ar, 2-CO2, 3-N, 4-CF4, 5-CH4
   //
@@ -449,7 +449,7 @@ void Detector::CreateMaterials()
   //
   // densities (NTP)
   //
-  Float_t dens[6] = { 0.839e-3, 1.661e-3, 1.842e-3, 1.251e-3, 3.466e-3, 0.668e-3 };
+  Float_t dens[6] = {0.839e-3, 1.661e-3, 1.842e-3, 1.251e-3, 3.466e-3, 0.668e-3};
   //
   density = 0.;
   for (Int_t i = 0; i < 6; i++) {
@@ -486,9 +486,9 @@ void Detector::CreateMaterials()
   }
 
   //
-  o2::Base::Detector::Mixture(12, gname1.Data(), amat1, zmat1, density, cnt, wmat1); // nonsensitive
-  o2::Base::Detector::Mixture(13, gname2.Data(), amat1, zmat1, density, cnt, wmat1); // sensitive
-  o2::Base::Detector::Mixture(40, gname3.Data(), amat1, zmat1, density, cnt, wmat1); // sensitive Kr
+  o2::base::Detector::Mixture(12, gname1.Data(), amat1, zmat1, density, cnt, wmat1); // nonsensitive
+  o2::base::Detector::Mixture(13, gname2.Data(), amat1, zmat1, density, cnt, wmat1); // sensitive
+  o2::base::Detector::Mixture(40, gname3.Data(), amat1, zmat1, density, cnt, wmat1); // sensitive Kr
 
   //----------------------------------------------------------------------
   //               solid materials
@@ -513,7 +513,7 @@ void Detector::CreateMaterials()
 
   density = 1.45;
 
-  o2::Base::Detector::Mixture(14, "Kevlar", amat, zmat, density, -4, wmat);
+  o2::base::Detector::Mixture(14, "Kevlar", amat, zmat, density, -4, wmat);
 
   // NOMEX
 
@@ -534,7 +534,7 @@ void Detector::CreateMaterials()
 
   density = 0.029;
 
-  o2::Base::Detector::Mixture(15, "NOMEX", amat, zmat, density, -4, wmat);
+  o2::base::Detector::Mixture(15, "NOMEX", amat, zmat, density, -4, wmat);
 
   // Makrolon C16H18O3
 
@@ -552,7 +552,7 @@ void Detector::CreateMaterials()
 
   density = 1.2;
 
-  o2::Base::Detector::Mixture(16, "Makrolon", amat, zmat, density, -3, wmat);
+  o2::base::Detector::Mixture(16, "Makrolon", amat, zmat, density, -3, wmat);
 
   // Tedlar C2H3F
 
@@ -570,7 +570,7 @@ void Detector::CreateMaterials()
 
   density = 1.71;
 
-  o2::Base::Detector::Mixture(17, "Tedlar", amat, zmat, density, -3, wmat);
+  o2::base::Detector::Mixture(17, "Tedlar", amat, zmat, density, -3, wmat);
 
   // Mylar C5H4O2
 
@@ -588,7 +588,7 @@ void Detector::CreateMaterials()
 
   density = 1.39;
 
-  o2::Base::Detector::Mixture(18, "Mylar", amat, zmat, density, -3, wmat);
+  o2::base::Detector::Mixture(18, "Mylar", amat, zmat, density, -3, wmat);
   // material for "prepregs"
   // Epoxy - C14 H20 O3
   // Quartz SiO2
@@ -608,7 +608,7 @@ void Detector::CreateMaterials()
 
   density = 1.859;
 
-  o2::Base::Detector::Mixture(19, "Prepreg1", amat, zmat, density, 3, wmat);
+  o2::base::Detector::Mixture(19, "Prepreg1", amat, zmat, density, 3, wmat);
 
   // prepreg2 60% glass-fiber, 40% epoxy
 
@@ -629,7 +629,7 @@ void Detector::CreateMaterials()
 
   density = 1.82;
 
-  o2::Base::Detector::Mixture(20, "Prepreg2", amat, zmat, density, 4, wmat);
+  o2::base::Detector::Mixture(20, "Prepreg2", amat, zmat, density, 4, wmat);
 
   // prepreg3 50% glass-fiber, 50% epoxy
 
@@ -650,7 +650,7 @@ void Detector::CreateMaterials()
 
   density = 1.725;
 
-  o2::Base::Detector::Mixture(21, "Prepreg3", amat, zmat, density, 4, wmat);
+  o2::base::Detector::Mixture(21, "Prepreg3", amat, zmat, density, 4, wmat);
 
   // G10 60% SiO2 40% epoxy
 
@@ -671,7 +671,7 @@ void Detector::CreateMaterials()
 
   density = 1.7;
 
-  o2::Base::Detector::Mixture(22, "G10", amat, zmat, density, 4, wmat);
+  o2::base::Detector::Mixture(22, "G10", amat, zmat, density, 4, wmat);
 
   // Al
 
@@ -680,7 +680,7 @@ void Detector::CreateMaterials()
 
   density = 2.7;
 
-  o2::Base::Detector::Material(23, "Al", amat[0], zmat[0], density, 999., 999.);
+  o2::base::Detector::Material(23, "Al", amat[0], zmat[0], density, 999., 999.);
 
   // Si (for electronics
 
@@ -689,7 +689,7 @@ void Detector::CreateMaterials()
 
   density = 2.33;
 
-  o2::Base::Detector::Material(24, "Si", amat[0], zmat[0], density, 999., 999.);
+  o2::base::Detector::Material(24, "Si", amat[0], zmat[0], density, 999., 999.);
 
   // Cu
 
@@ -698,7 +698,7 @@ void Detector::CreateMaterials()
 
   density = 8.96;
 
-  o2::Base::Detector::Material(25, "Cu", amat[0], zmat[0], density, 999., 999.);
+  o2::base::Detector::Material(25, "Cu", amat[0], zmat[0], density, 999., 999.);
 
   // brass
 
@@ -715,7 +715,7 @@ void Detector::CreateMaterials()
   density = 8.23;
 
   //
-  o2::Base::Detector::Mixture(33, "Brass", amat, zmat, density, 2, wmat);
+  o2::base::Detector::Mixture(33, "Brass", amat, zmat, density, 2, wmat);
 
   // Epoxy - C14 H20 O3
 
@@ -733,7 +733,7 @@ void Detector::CreateMaterials()
 
   density = 1.25;
 
-  o2::Base::Detector::Mixture(26, "Epoxy", amat, zmat, density, -3, wmat);
+  o2::base::Detector::Mixture(26, "Epoxy", amat, zmat, density, -3, wmat);
 
   // Epoxy - C14 H20 O3 for glue
 
@@ -753,7 +753,7 @@ void Detector::CreateMaterials()
 
   density *= 1.25;
 
-  o2::Base::Detector::Mixture(35, "Epoxy1", amat, zmat, density, -3, wmat);
+  o2::base::Detector::Mixture(35, "Epoxy1", amat, zmat, density, -3, wmat);
   //
   // epoxy film - 90% epoxy, 10% glass fiber
   //
@@ -774,7 +774,7 @@ void Detector::CreateMaterials()
 
   density = 1.345;
 
-  o2::Base::Detector::Mixture(34, "Epoxy-film", amat, zmat, density, 4, wmat);
+  o2::base::Detector::Mixture(34, "Epoxy-film", amat, zmat, density, 4, wmat);
 
   // Plexiglas  C5H8O2
 
@@ -792,7 +792,7 @@ void Detector::CreateMaterials()
 
   density = 1.18;
 
-  o2::Base::Detector::Mixture(27, "Plexiglas", amat, zmat, density, -3, wmat);
+  o2::base::Detector::Mixture(27, "Plexiglas", amat, zmat, density, -3, wmat);
 
   // Carbon
 
@@ -800,7 +800,7 @@ void Detector::CreateMaterials()
   zmat[0] = 6.;
   density = 2.265;
 
-  o2::Base::Detector::Material(28, "C", amat[0], zmat[0], density, 999., 999.);
+  o2::base::Detector::Material(28, "C", amat[0], zmat[0], density, 999., 999.);
 
   // Fe (steel for the inner heat screen)
 
@@ -810,7 +810,7 @@ void Detector::CreateMaterials()
 
   density = 7.87;
 
-  o2::Base::Detector::Material(29, "Fe", amat[0], zmat[0], density, 999., 999.);
+  o2::base::Detector::Material(29, "Fe", amat[0], zmat[0], density, 999., 999.);
   //
   // Peek - (C6H4-O-OC6H4-O-C6H4-CO)n
   amat[0] = 12.011;
@@ -827,7 +827,7 @@ void Detector::CreateMaterials()
   //
   density = 1.3;
   //
-  o2::Base::Detector::Mixture(30, "Peek", amat, zmat, density, -3, wmat);
+  o2::base::Detector::Mixture(30, "Peek", amat, zmat, density, -3, wmat);
   //
   //  Ceramics - Al2O3
   //
@@ -842,7 +842,7 @@ void Detector::CreateMaterials()
 
   density = 3.97;
 
-  o2::Base::Detector::Mixture(31, "Alumina", amat, zmat, density, -2, wmat);
+  o2::base::Detector::Mixture(31, "Alumina", amat, zmat, density, -2, wmat);
   //
   // Ceramics for resistors
   //
@@ -859,7 +859,7 @@ void Detector::CreateMaterials()
   //
   density *= 1.25;
 
-  o2::Base::Detector::Mixture(36, "Alumina1", amat, zmat, density, -2, wmat);
+  o2::base::Detector::Mixture(36, "Alumina1", amat, zmat, density, -2, wmat);
   //
   // liquids
   //
@@ -877,45 +877,45 @@ void Detector::CreateMaterials()
 
   density = 1.;
 
-  o2::Base::Detector::Mixture(32, "Water", amat, zmat, density, -2, wmat);
+  o2::base::Detector::Mixture(32, "Water", amat, zmat, density, -2, wmat);
 
   //----------------------------------------------------------
   // tracking media for gases
   //----------------------------------------------------------
 
-  o2::Base::Detector::Medium(kAir, "Air", 11, 0, iSXFLD, sXMGMX, 10., 999., .1, .01, .1);
-  o2::Base::Detector::Medium(kDriftGas1, "DriftGas1", 12, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kDriftGas2, "DriftGas2", 13, 1, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kCO2, "CO2", 10, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kDriftGas3, "DriftGas3", 40, 1, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kAir, "Air", 11, 0, iSXFLD, sXMGMX, 10., 999., .1, .01, .1);
+  o2::base::Detector::Medium(kDriftGas1, "DriftGas1", 12, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kDriftGas2, "DriftGas2", 13, 1, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kCO2, "CO2", 10, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kDriftGas3, "DriftGas3", 40, 1, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
   //-----------------------------------------------------------
   // tracking media for solids
   //-----------------------------------------------------------
 
-  o2::Base::Detector::Medium(kAl, "Al", 23, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(kKevlar, "Kevlar", 14, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(kNomex, "Nomex", 15, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kMakrolon, "Makrolon", 16, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kMylar, "Mylar", 18, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(kTedlar, "Tedlar", 17, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::base::Detector::Medium(kAl, "Al", 23, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::base::Detector::Medium(kKevlar, "Kevlar", 14, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::base::Detector::Medium(kNomex, "Nomex", 15, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kMakrolon, "Makrolon", 16, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kMylar, "Mylar", 18, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::base::Detector::Medium(kTedlar, "Tedlar", 17, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
   //
-  o2::Base::Detector::Medium(kPrepreg1, "Prepreg1", 19, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(kPrepreg2, "Prepreg2", 20, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(kPrepreg3, "Prepreg3", 21, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(kEpoxy, "Epoxy", 26, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::base::Detector::Medium(kPrepreg1, "Prepreg1", 19, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::base::Detector::Medium(kPrepreg2, "Prepreg2", 20, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::base::Detector::Medium(kPrepreg3, "Prepreg3", 21, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::base::Detector::Medium(kEpoxy, "Epoxy", 26, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
 
-  o2::Base::Detector::Medium(kCu, "Cu", 25, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kSi, "Si", 24, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kG10, "G10", 22, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kPlexiglas, "Plexiglas", 27, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kSteel, "Steel", 29, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kPeek, "Peek", 30, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kAlumina, "Alumina", 31, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kWater, "Water", 32, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kBrass, "Brass", 33, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
-  o2::Base::Detector::Medium(kEpoxyfm, "Epoxyfm", 34, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(kEpoxy1, "Epoxy1", 35, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
-  o2::Base::Detector::Medium(kAlumina1, "Alumina1", 36, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kCu, "Cu", 25, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kSi, "Si", 24, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kG10, "G10", 22, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kPlexiglas, "Plexiglas", 27, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kSteel, "Steel", 29, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kPeek, "Peek", 30, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kAlumina, "Alumina", 31, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kWater, "Water", 32, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kBrass, "Brass", 33, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  o2::base::Detector::Medium(kEpoxyfm, "Epoxyfm", 34, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::base::Detector::Medium(kEpoxy1, "Epoxy1", 35, 0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);
+  o2::base::Detector::Medium(kAlumina1, "Alumina1", 36, 0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
 }
 
 void Detector::ConstructTPCGeometry()
@@ -944,7 +944,7 @@ void Detector::ConstructTPCGeometry()
   //
 
   //   if (!mParam) {
-  //     LOG(ERROR) << "TPC Parameters not available, cannot create Geometry" << FairLogger::endl;
+  //     LOG(ERROR) << "TPC Parameters not available, cannot create Geometry";
   //     return;
   //   }
 
@@ -1551,53 +1551,78 @@ void Detector::ConstructTPCGeometry()
   //
   // IROC first
   //
+  TGeoMedium* m6 = gGeoManager->GetMedium("TPC_Makrolon");
+  //
   auto* ibody = new TGeoTrd1(13.8742, 21.3328, 4.29, 21.15);
   auto* ibdv = new TGeoVolume("TPC_IROCB", ibody, m3);
   // empty space
-  auto* emp = new TGeoTrd1(12.3742, 19.8328, 3.99, 19.65);
+  auto* emp = new TGeoTrd1(12.3742, 19.8328, 4.05, 19.65);
   auto* empv = new TGeoVolume("TPC_IROCE", emp, m1);
-  ibdv->AddNode(empv, 1, new TGeoTranslation(0., -0.3, 0.));
+  ibdv->AddNode(empv, 1, new TGeoTranslation(0., -0.24, 0.));
   // bars
   Double_t tga = (19.8328 - 12.3742) / 39.3;
   Double_t xmin, xmax;
-  xmin = 9.55 * tga + 12.3742;
-  xmax = 9.95 * tga + 12.3742;
-  auto* ib1 = new TGeoTrd1(xmin, xmax, 3.29, 0.2);
+  // 1
+  xmin = 9.65 * tga + 12.3742;
+  xmax = 10.05 * tga + 12.3742;
+  //
+  auto* ib1 = new TGeoTrd1(xmin, xmax, 2.06, 0.2);
   auto* ib1v = new TGeoVolume("TPC_IRB1", ib1, m3);
-  empv->AddNode(ib1v, 1, new TGeoTranslation("tt1", 0., 0.7, -9.9));
-  xmin = 19.4 * tga + 12.3742;
+  empv->AddNode(ib1v, 1, new TGeoTranslation("tt1", 0., 1.99, -9.8));
+  // 2
+  xmin = 19.5 * tga + 12.3742;
   xmax = 19.9 * tga + 12.3742;
-  auto* ib2 = new TGeoTrd1(xmin, xmax, 3.29, 0.25);
+  //
+  auto* ib2 = new TGeoTrd1(xmin, xmax, 2.06, 0.2);
   auto* ib2v = new TGeoVolume("TPC_TRB2", ib2, m3);
-  empv->AddNode(ib2v, 1, new TGeoTranslation(0., 0.7, 0.));
+  empv->AddNode(ib2v, 1, new TGeoTranslation(0., 1.99, 0.05));
+  // 3
   xmin = 29.35 * tga + 12.3742;
   xmax = 29.75 * tga + 12.3742;
-  auto* ib3 = new TGeoTrd1(xmin, xmax, 3.29, 0.2);
+  //
+  auto* ib3 = new TGeoTrd1(xmin, xmax, 2.06, 0.2);
   auto* ib3v = new TGeoVolume("TPC_IRB3", ib3, m3);
-  empv->AddNode(ib3v, 1, new TGeoTranslation(0., 0.7, 9.9));
+  empv->AddNode(ib3v, 1, new TGeoTranslation(0., 1.99, 9.9));
   //
-  // holes for connectors
+  // connectors alu body & strong back
   //
-  auto* conn = new TGeoBBox(0.4, 0.3, 4.675); // identical for iroc and oroc
-  auto* connv = new TGeoVolume("TPC_RCCON", conn, m1);
+  auto* conn = new TGeoBBox(0.4, 0.24, 1.937);         //connectors alu body
+  auto* connv = new TGeoVolume("TPC_RCCON", conn, m6); //makrolon
+  //
+  auto* connb = new TGeoBBox(0.5, 0.25, 2.375); //connectors strong back
+  auto* connbv = new TGeoVolume("TPC_RCCONB", connb, m6);
+  //
+  // strong back
+  //
+  auto* icsb = new TGeoTrd1(14.5974, 23.3521, 0.25, 24.825);
+  auto* icsbv = new TGeoVolume("TPC_ISB", icsb, m4);
+  //
+  // file with positions of connectors
+  //
   TString fileName(gSystem->Getenv("VMCWORKDIR"));
   fileName += "/Detectors/Geometry/TPC/conn_iroc.dat";
   ifstream in;
   in.open(fileName.Data(), ios_base::in); // asci file
   if (!in.is_open()) {
-    LOG(FATAL) << "Cannot open input file : " << fileName.Data() << FairLogger::endl;
+    LOG(FATAL) << "Cannot open input file : " << fileName.Data();
   }
-  TGeoRotation* rrr[86];
-  for (Int_t i = 0; i < 86; i++) {
-    Double_t y = 3.99;
+  for (Int_t i = 0; i < 132; i++) {
     Double_t x, z, ang;
-    in >> x >> z >> ang;
-    z -= 26.5;
-    rrr[i] = new TGeoRotation();
-    rrr[i]->RotateY(ang);
-    ibdv->AddNode(connv, i + 1, new TGeoCombiTrans(x, y, z, rrr[i]));
+    in >> ang >> x >> z;
+    //
+    ang = -ang;
+    z -= 1102.; // changing the reference frame from the beam to the volume
+    z *= 0.1;
+    x *= 0.1;
+    //
+    auto* rrr = new TGeoRotation();
+    rrr->RotateY(ang);
+    //
+    ibdv->AddNode(connv, i + 1, new TGeoCombiTrans(x, 4.05, z, rrr));         //connectors alu body
+    icsbv->AddNode(connbv, i + 1, new TGeoCombiTrans(x, 0., z + 1.725, rrr)); //connectors strong back
   }
   in.close();
+  //
   // "cap"
   new TGeoTrd1("icap", 14.5974, 23.3521, 1.19, 24.825);
   // "hole"
@@ -1607,97 +1632,115 @@ void Detector::ConstructTPCGeometry()
   auto* ic = new TGeoCompositeShape("icap-ihole:tr1");
   auto* icv = new TGeoVolume("TPC_IRCAP", ic, m3);
   //
-  // pad plane and wire fixations
+  // pad plane G10 3.2 mm thick
   //
-  auto* pp = new TGeoTrd1(14.5974, 23.3521, 0.3, 24.825); // pad+iso
-  auto* ppv = new TGeoVolume("TPC_IRPP", pp, m4);
-  auto* f1 = new TGeoPara(.6, .5, 24.825, 0., -10., 0.);
-  auto* f1v = new TGeoVolume("TPC_IRF1", f1, m4);
-  auto* f2 = new TGeoPara(.6, .5, 24.825, 0., 10., 0.);
-  auto* f2v = new TGeoVolume("TPC_IRF2", f2, m4);
+  auto* icpp = new TGeoTrd1(14.5974, 23.3521, 0.16, 24.825);
+  auto* icppv = new TGeoVolume("TPC_IPP", icpp, m4); //pad plane
+  //
+  // gem
+  //
+  new TGeoTrd1("igem", 14.5974, 23.3521, 0.1, 24.825);
+  new TGeoTrd1("igemh", 14.5974 - .5, 23.3521 - .5, 0.11, 24.825 - .5);
+  auto* icgem = new TGeoCompositeShape("igem-igemh");
+  auto* icgemv = new TGeoVolume("TPC_ICGEM", icgem, m4);
+  //
+  // assembly of the iroc
   //
   auto* iroc = new TGeoVolumeAssembly("TPC_IROC");
   //
-  iroc->AddNode(ibdv, 1);
-  iroc->AddNode(icv, 1, new TGeoTranslation(0., 3.1, -1.725));
-  iroc->AddNode(ppv, 1, new TGeoTranslation(0., 4.59, -1.725));
-  tga = (23.3521 - 14.5974) / 49.65;
-  Double_t xx = 24.825 * tga + 14.5974 - 0.6;
-  iroc->AddNode(f1v, 1, new TGeoTranslation(-xx, 5.39, -1.725));
-  iroc->AddNode(f2v, 1, new TGeoTranslation(xx, 5.39, -1.725));
+  iroc->AddNode(ibdv, 1);                                          //main body
+  iroc->AddNode(icv, 1, new TGeoTranslation(0., 3.1, -1.725));     //cap
+  iroc->AddNode(icsbv, 1, new TGeoTranslation(0., 4.54, -1.725));  //strong back
+  iroc->AddNode(icppv, 1, new TGeoTranslation(0., 4.95, -1.725));  //pad plane
+  iroc->AddNode(icgemv, 1, new TGeoTranslation(0., 5.21, -1.725)); //gem
   //
   // OROC
   //
-  auto* obody = new TGeoTrd1(22.2938, 40.5084, 4.19, 51.65);
+  auto* obody = new TGeoTrd1(22.2938, 40.5084, 4.29, 51.65);
   auto* obdv = new TGeoVolume("TPC_OROCB", obody, m3);
-  auto* oemp = new TGeoTrd1(20.2938, 38.5084, 3.89, 49.65);
+  auto* oemp = new TGeoTrd1(20.7938, 39.0084, 3.89, 50.15);
   auto* oempv = new TGeoVolume("TPC_OROCE", oemp, m1);
-  obdv->AddNode(oempv, 1, new TGeoTranslation(0., -0.3, 0.));
+  obdv->AddNode(oempv, 1, new TGeoTranslation(0., -0.4, 0.));
+  //
   // horizontal bars
-  tga = (38.5084 - 20.2938) / 99.3;
-  xmin = tga * 10.2 + 20.2938;
-  xmax = tga * 10.6 + 20.2938;
-  auto* ob1 = new TGeoTrd1(xmin, xmax, 2.915, 0.2);
+  //
+  tga = (39.0084 - 20.7938) / 100.3;
+  xmin = tga * 14.2 + 20.7938;
+  xmax = tga * 14.6 + 20.7938;
+  auto* ob1 = new TGeoTrd1(xmin, xmax, 2.94, 0.2);
   auto* ob1v = new TGeoVolume("TPC_ORB1", ob1, m3);
   //
-  xmin = 22.55 * tga + 20.2938;
-  xmax = 24.15 * tga + 20.2938;
-  auto* ob2 = new TGeoTrd1(xmin, xmax, 2.915, 0.8);
+  xmin = 30.4 * tga + 20.7938;
+  xmax = 32.1 * tga + 20.7938;
+  auto* ob2 = new TGeoTrd1(xmin, xmax, 2.94, 1.05);
   auto* ob2v = new TGeoVolume("TPC_ORB2", ob2, m3);
   //
-  xmin = 36.1 * tga + 20.2938;
-  xmax = 36.5 * tga + 20.2938;
-  auto* ob3 = new TGeoTrd1(xmin, xmax, 2.915, 0.2);
+  xmin = 51.5 * tga + 20.7938;
+  xmax = 51.9 * tga + 20.7938;
+  auto* ob3 = new TGeoTrd1(xmin, xmax, 2.94, 0.2);
   auto* ob3v = new TGeoVolume("TPC_ORB3", ob3, m3);
   //
-  xmin = 49.0 * tga + 20.2938;
-  xmax = 50.6 * tga + 20.2938;
-  auto* ob4 = new TGeoTrd1(xmin, xmax, 2.915, 0.8);
+  xmin = 68.5 * tga + 20.7938;
+  xmax = 70.6 * tga + 20.7938;
+  auto* ob4 = new TGeoTrd1(xmin, xmax, 2.94, 1.05);
   auto* ob4v = new TGeoVolume("TPC_ORB4", ob4, m3);
   //
-  xmin = 63.6 * tga + 20.2938;
-  xmax = 64.0 * tga + 20.2938;
-  auto* ob5 = new TGeoTrd1(xmin, xmax, 2.915, 0.2);
+  xmin = 89.9 * tga + 20.7938;
+  xmax = 90.3 * tga + 20.7938;
+  auto* ob5 = new TGeoTrd1(xmin, xmax, 2.94, 0.2);
   auto* ob5v = new TGeoVolume("TPC_ORB5", ob5, m3);
   //
-  xmin = 75.5 * tga + 20.2938;
-  xmax = 77.15 * tga + 20.2938;
-  auto* ob6 = new TGeoTrd1(xmin, xmax, 2.915, 0.8);
-  auto* ob6v = new TGeoVolume("TPC_ORB6", ob6, m3);
+  oempv->AddNode(ob1v, 1, new TGeoTranslation(0., 0.59, -35.75));
+  oempv->AddNode(ob2v, 1, new TGeoTranslation(0., 0.59, -18.7));
+  oempv->AddNode(ob3v, 1, new TGeoTranslation(0., 0.59, 1.55));
+  oempv->AddNode(ob4v, 1, new TGeoTranslation(0., 0.59, 19.4));
+  oempv->AddNode(ob5v, 1, new TGeoTranslation(0., 0.59, 39.95));
   //
-  xmin = 88.7 * tga + 20.2938;
-  xmax = 89.1 * tga + 20.2938;
-  auto* ob7 = new TGeoTrd1(xmin, xmax, 2.915, 0.2);
-  auto* ob7v = new TGeoVolume("TPC_ORB7", ob7, m3);
+  // connectors, identical as for iroc, but I prefer to have separate volumes for better control
   //
-  oempv->AddNode(ob1v, 1, new TGeoTranslation(0., 0.975, -39.25));
-  oempv->AddNode(ob2v, 1, new TGeoTranslation(0., 0.975, -26.3));
-  oempv->AddNode(ob3v, 1, new TGeoTranslation(0., 0.975, -13.35));
-  oempv->AddNode(ob4v, 1, new TGeoTranslation(0., 0.975, 0.15));
-  oempv->AddNode(ob5v, 1, new TGeoTranslation(0., 0.975, 14.15));
-  oempv->AddNode(ob6v, 1, new TGeoTranslation(0., 0.975, 26.7));
-  oempv->AddNode(ob7v, 1, new TGeoTranslation(0., 0.975, 39.25));
-  // vertical bars
-  auto* ob8 = new TGeoBBox(0.8, 2.915, 5.1);
-  auto* ob9 = new TGeoBBox(0.8, 2.915, 5.975);
-  auto* ob10 = new TGeoBBox(0.8, 2.915, 5.775);
-  auto* ob11 = new TGeoBBox(0.8, 2.915, 6.25);
-  auto* ob12 = new TGeoBBox(0.8, 2.915, 6.5);
+  auto* conno = new TGeoBBox(0.4, 0.4, 1.937);            //alu body
+  auto* connov = new TGeoVolume("TPC_RCCONO", conno, m6); //makrolon
   //
-  auto* ob8v = new TGeoVolume("TPC_ORB8", ob8, m3);
-  auto* ob9v = new TGeoVolume("TPC_ORB9", ob9, m3);
-  auto* ob10v = new TGeoVolume("TPC_ORB10", ob10, m3);
-  auto* ob11v = new TGeoVolume("TPC_ORB11", ob11, m3);
-  auto* ob12v = new TGeoVolume("TPC_ORB12", ob12, m3);
+  auto* connob = new TGeoBBox(0.5, 0.25, 2.375);
+  auto* connobv = new TGeoVolume("TPC_RCCONOB", connob, m6); //strong back
   //
-  oempv->AddNode(ob8v, 1, new TGeoTranslation(0., 0.975, -44.55));
-  oempv->AddNode(ob8v, 2, new TGeoTranslation(0., 0.975, 44.55));
-  oempv->AddNode(ob9v, 1, new TGeoTranslation(0., 0.975, -33.075));
-  oempv->AddNode(ob9v, 2, new TGeoTranslation(0., 0.975, -19.525));
-  oempv->AddNode(ob10v, 1, new TGeoTranslation(0., 0.975, 20.125));
-  oempv->AddNode(ob10v, 2, new TGeoTranslation(0., 0.975, 33.275));
-  oempv->AddNode(ob11v, 1, new TGeoTranslation(0., 0.975, -6.9));
-  oempv->AddNode(ob12v, 1, new TGeoTranslation(0., 0.975, 7.45));
+  // cap
+  //
+  new TGeoTrd1("ocap", 23.3875, 43.524, 1.19, 57.1);
+  new TGeoTrd1("ohole", 22.2938, 40.5084, 1.19, 51.65);
+  auto* tr5 = new TGeoTranslation("tr5", 0., 0., -2.15);
+  tr5->RegisterYourself();
+  auto* oc = new TGeoCompositeShape("ocap-ohole:tr5");
+  auto* ocv = new TGeoVolume("TPC_ORCAP", oc, m3);
+  //
+  // stron back 5 mm
+  //
+  auto* osb = new TGeoTrd1(23.3874, 43.524, 0.25, 57.1);
+  auto* osbv = new TGeoVolume("TPC_OSB", osb, m4);
+  //
+  // pad plane 3.2 mm
+  //
+  auto* opp = new TGeoTrd1(23.3874, 43.524, 0.16, 57.1);
+  auto* oppv = new TGeoVolume("TPC_OPP", opp, m4);
+  //
+  // gem
+  //
+  new TGeoTrd1("ogem", 23.3874, 43.524, 0.1, 57.1);
+  //
+  // ogemh1 - first "hole" ends at z = 36.25, ogemh2 - second "hole" starts at z = 74.15
+  //
+  new TGeoTrd1("ogemh1", 22.548, 28.579, 0.1, 17.625); //ogemh1 - lower hole
+  new TGeoTrd1("ogemh2", 28.949, 35.297, 0.1, 18.45);  //ogemh2 - middle hole
+  new TGeoTrd1("ogemh3", 35.667, 42.332, 0.1, 19.425); //ogemh3 - upper hole
+  //
+  auto* tr2 = new TGeoTranslation("tr2", 0., 0., 18.125 - 57.1);
+  auto* tr3 = new TGeoTranslation("tr3", 0., 0., 55.2 - 57.1);
+  auto* tr4 = new TGeoTranslation("tr4", 0., 0., 94.175 - 57.1);
+  tr2->RegisterYourself();
+  tr3->RegisterYourself();
+  tr4->RegisterYourself();
+  auto* ocgem = new TGeoCompositeShape("ogem-ogemh1:tr2-ogemh2:tr3-ogemh3:tr4");
+  auto* ocgemv = new TGeoVolume("TPC_OCGEM", ocgem, m4);
   //
   // holes for connectors
   //
@@ -1705,58 +1748,30 @@ void Detector::ConstructTPCGeometry()
   fileName += "/Detectors/Geometry/TPC/conn_oroc.dat";
   in.open(fileName.Data(), ios_base::in); // asci file
   if (!in.is_open()) {
-    LOG(FATAL) << "Cannot open input file : " << fileName.Data() << FairLogger::endl;
+    LOG(FATAL) << "Cannot open input file : " << fileName.Data();
   }
-  TGeoRotation* rr[78];
-  for (Int_t i = 0; i < 78; i++) {
-    Double_t y = 3.89;
+  for (Int_t i = 0; i < 232; i++) {
     Double_t x, z, ang;
-    Double_t x1, z1, x2, z2;
-    in >> x >> z >> ang;
-    Double_t xr = 4.7 * TMath::Sin(ang * TMath::DegToRad());
-    Double_t zr = 4.7 * TMath::Cos(ang * TMath::DegToRad());
+    in >> ang >> x >> z;
+    ang = -ang;
+    z -= 1884.5;
+    z *= 0.1;
+    x *= 0.1;
     //
-    x1 = xr + x;
-    x2 = -xr + x;
-    z1 = zr + z;
-    z2 = -zr + z;
-    //
-    rr[i] = new TGeoRotation();
-    rr[i]->RotateY(ang);
-    z1 -= 54.95;
-    z2 -= 54.95;
-    //
-    obdv->AddNode(connv, i + 1, new TGeoCombiTrans(x1, y, z1, rr[i]));
-    obdv->AddNode(connv, i + 79, new TGeoCombiTrans(x2, y, z2, rr[i]));
+    auto* rrr = new TGeoRotation();
+    rrr->RotateY(ang);
+    obdv->AddNode(connov, i + 1, new TGeoCombiTrans(x, 3.89, z, rrr));
+    osbv->AddNode(connobv, i + 1, new TGeoCombiTrans(x, 0., z - 2.15, rrr));
   }
   in.close();
-  // cap
-  new TGeoTrd1("ocap", 23.3874, 43.5239, 1.09, 57.1);
-  new TGeoTrd1("ohole", 22.2938, 40.5084, 1.09, 51.65);
-  auto* tr5 = new TGeoTranslation("tr5", 0., 0., -2.15);
-  tr5->RegisterYourself();
-  auto* oc = new TGeoCompositeShape("ocap-ohole:tr5");
-  auto* ocv = new TGeoVolume("TPC_ORCAP", oc, m3);
-  //
-  // pad plane and wire fixations
-  //
-  auto* opp = new TGeoTrd1(23.3874, 43.5239, 0.3, 57.1);
-  auto* oppv = new TGeoVolume("TPC_ORPP", opp, m4);
-  //
-  tga = (43.5239 - 23.3874) / 114.2;
-  auto* f3 = new TGeoPara(.7, .6, 57.1, 0., -10., 0.);
-  auto* f4 = new TGeoPara(.7, .6, 57.1, 0., 10., 0.);
-  xx = 57.1 * tga + 23.3874 - 0.7;
-  auto* f3v = new TGeoVolume("TPC_ORF1", f3, m4);
-  auto* f4v = new TGeoVolume("TPC_ORF2", f4, m4);
   //
   auto* oroc = new TGeoVolumeAssembly("TPC_OROC");
   //
   oroc->AddNode(obdv, 1);
   oroc->AddNode(ocv, 1, new TGeoTranslation(0., 3.1, 2.15));
-  oroc->AddNode(oppv, 1, new TGeoTranslation(0., 4.49, 2.15));
-  oroc->AddNode(f3v, 1, new TGeoTranslation(-xx, 5.39, 2.15));
-  oroc->AddNode(f4v, 1, new TGeoTranslation(xx, 5.39, 2.15));
+  oroc->AddNode(osbv, 1, new TGeoTranslation(0., 4.54, 2.15));
+  oroc->AddNode(oppv, 1, new TGeoTranslation(0., 4.95, 2.15));
+  oroc->AddNode(ocgemv, 1, new TGeoTranslation(0., 5.21, 2.15));
   //
   // now iroc and oroc are placed into a sector...
   //
@@ -1769,14 +1784,17 @@ void Detector::ConstructTPCGeometry()
   *rot = rot1 * rot2;
   //
   Double_t x0, y0;
+  //
+  // a and c sides separately because of possible different z-coordinate of first gem
+  //
   x0 = 110.2 * TMath::Cos(openingAngle);
   y0 = 110.2 * TMath::Sin(openingAngle);
-  auto* combi1a = new TGeoCombiTrans("combi1", x0, y0, 1.09 + 0.195, rot); // a-side
-  auto* combi1c = new TGeoCombiTrans("combi1", x0, y0, 1.09 + 0.222, rot); // c-side
+  auto* combi1a = new TGeoCombiTrans("combi1", x0, y0, 1.09, rot); // a-side
+  auto* combi1c = new TGeoCombiTrans("combi1", x0, y0, 1.09, rot); // c-side
   x0 = 188.45 * TMath::Cos(openingAngle);
   y0 = 188.45 * TMath::Sin(openingAngle);
-  auto* combi2a = new TGeoCombiTrans("combi2", x0, y0, 0.99 + 0.195, rot); // a-side
-  auto* combi2c = new TGeoCombiTrans("combi2", x0, y0, 0.99 + 0.222, rot); // c-side
+  auto* combi2a = new TGeoCombiTrans("combi2", x0, y0, 1.09, rot); // a-side
+  auto* combi2c = new TGeoCombiTrans("combi2", x0, y0, 1.09, rot); // c-side
   //
   //
   // A-side
@@ -1796,13 +1814,12 @@ void Detector::ConstructTPCGeometry()
   auto* wheela = new TGeoVolumeAssembly("TPC_ENDCAP");
   auto* wheelc = new TGeoVolumeAssembly("TPC_ENDCAP");
   //
-  TGeoRotation* rwh[18];
   for (Int_t i = 0; i < 18; i++) {
     Double_t phi = (20. * i);
-    rwh[i] = new TGeoRotation();
-    rwh[i]->RotateZ(phi);
-    wheela->AddNode(secta, i + 1, rwh[i]);
-    wheelc->AddNode(sectc, i + 1, rwh[i]);
+    auto* rwh = new TGeoRotation();
+    rwh->RotateZ(phi);
+    wheela->AddNode(secta, i + 1, rwh);
+    wheelc->AddNode(sectc, i + 1, rwh);
   }
   // wheels in the drift volume!
 
@@ -1933,7 +1950,7 @@ void Detector::ConstructTPCGeometry()
   //----------------------------------------------------------
   // TPC Support Rods - MAKROLON
   //----------------------------------------------------------
-  TGeoMedium* m6 = gGeoManager->GetMedium("TPC_Makrolon");
+  //
   TGeoMedium* m7 = gGeoManager->GetMedium("TPC_Cu");
   TGeoMedium* m10 = gGeoManager->GetMedium("TPC_Alumina");
   TGeoMedium* m11 = gGeoManager->GetMedium("TPC_Peek");
@@ -2225,7 +2242,7 @@ void Detector::ConstructTPCGeometry()
   // rod left head with holders - inner
   //
   // first element - support for inner holder  TPC_IHS
-  Double_t shift1[3] = { 0.0, -0.175, 0.0 };
+  Double_t shift1[3] = {0.0, -0.175, 0.0};
 
   new TGeoBBox("tpcihs1", 4.7, 0.66, 2.35);
   new TGeoBBox("tpcihs2", 4.7, 0.485, 1.0, shift1);
@@ -3008,23 +3025,23 @@ void Detector::LoadGeometryFromFile()
 {
   // ===| Read the TPC geometry from file |=====================================
   if (mGeoFileName.IsNull()) {
-    LOG(FATAL) << "TPC geometry file name not set" << FairLogger::endl;
+    LOG(FATAL) << "TPC geometry file name not set";
     return;
   }
 
   TFile* fGeoFile = TFile::Open(mGeoFileName);
   if (!fGeoFile || !fGeoFile->IsOpen() || fGeoFile->IsZombie()) {
-    LOG(FATAL) << "Could not open TPC geometry file '" << mGeoFileName << "'" << FairLogger::endl;
+    LOG(FATAL) << "Could not open TPC geometry file '" << mGeoFileName << "'";
     return;
   }
 
   TGeoVolume* tpcVolume = dynamic_cast<TGeoVolume*>(fGeoFile->Get("TPC_M"));
   if (!tpcVolume) {
-    LOG(FATAL) << "Could not retrieve TPC geometry from file '" << mGeoFileName << "'" << FairLogger::endl;
+    LOG(FATAL) << "Could not retrieve TPC geometry from file '" << mGeoFileName << "'";
     return;
   }
 
-  LOG(INFO) << "Loaded TPC geometry from file '" << mGeoFileName << "'" << FairLogger::endl;
+  LOG(INFO) << "Loaded TPC geometry from file '" << mGeoFileName << "'";
   TGeoVolume* alice = gGeoManager->GetVolume("cave");
   alice->AddNode(tpcVolume, 1);
 }
@@ -3037,14 +3054,14 @@ void Detector::defineSensitiveVolumes()
   // const Int_t nSensitive=2;
   // const char* volumeNames[nSensitive]={"TPC_Drift","TPC_Strip"};
   const Int_t nSensitive = 1;
-  const char* volumeNames[nSensitive] = { "TPC_Drift" };
+  const char* volumeNames[nSensitive] = {"TPC_Drift"};
 
   // The names of the ITS sensitive volumes have the format: ITSUSensor(0...mNumberLayers-1)
   for (Int_t ivol = 0; ivol < nSensitive; ++ivol) {
     TString volumeName = volumeNames[ivol];
     v = geoManager->GetVolume(volumeName.Data());
     if (!v) {
-      LOG(ERROR) << "Could not find volume '" << volumeName << "'" << FairLogger::endl;
+      LOG(ERROR) << "Could not find volume '" << volumeName << "'";
       continue;
     }
 
@@ -3089,7 +3106,6 @@ Double_t Detector::Gamma(Double_t k)
   return TMath::Exp(x);
 }
 
-
 std::string Detector::getHitBranchNames(int probe) const
 {
   if (probe >= 0 && probe < Sector::MAXSECTOR) {
@@ -3100,4 +3116,4 @@ std::string Detector::getHitBranchNames(int probe) const
   return std::string();
 }
 
-ClassImp(o2::TPC::Detector)
+ClassImp(o2::tpc::Detector);

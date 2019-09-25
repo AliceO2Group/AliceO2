@@ -13,10 +13,14 @@
 
 #include "MathUtils/Cartesian3D.h"
 #include "CommonDataFormat/TimeStamp.h"
+#ifndef __OPENCL__
 #include <array>
+#endif
+#ifndef ALIGPU_GPUCODE
 #include <iomanip>
 #include <ios>
 #include <iosfwd>
+#endif
 
 namespace o2
 {
@@ -33,7 +37,13 @@ class Vertex
   using ushort = unsigned short;
 
  public:
-  enum CovElems : int { kCovXX, kCovXY, kCovYY, kCovXZ, kCovYZ, kCovZZ, kNCov };
+  enum CovElems : int { kCovXX,
+                        kCovXY,
+                        kCovYY,
+                        kCovXZ,
+                        kCovYZ,
+                        kCovZZ,
+                        kNCov };
   static ushort constexpr FlagsMask = 0xffff;
 
   Vertex() = default;
@@ -116,6 +126,7 @@ class Vertex
   ClassDefNV(Vertex, 1);
 };
 
+#ifndef ALIGPU_GPUCODE
 template <typename Stamp>
 std::ostream& operator<<(std::ostream& os, const Vertex<Stamp>& v)
 {
@@ -134,6 +145,7 @@ void Vertex<Stamp>::print() const
 {
   std::cout << *this << std::endl;
 }
-}
-} // end namespace AliceO2
+#endif
+} // namespace dataformats
+} // namespace o2
 #endif

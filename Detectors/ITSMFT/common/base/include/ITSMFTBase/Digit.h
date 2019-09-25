@@ -19,7 +19,7 @@
 namespace o2
 {
 
-namespace ITSMFT
+namespace itsmft
 {
 /// \class Digit
 /// \brief Digit class for the ITS
@@ -89,7 +89,7 @@ class Digit
 
   ClassDefNV(Digit, 1);
 };
-}
-}
+} // namespace itsmft
+} // namespace o2
 
 #endif /* ALICEO2_ITSMFT_DIGIT_H */

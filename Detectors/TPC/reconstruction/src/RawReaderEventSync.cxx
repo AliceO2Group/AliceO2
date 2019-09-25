@@ -10,6 +10,4 @@
 
 #include "TPCReconstruction/RawReaderEventSync.h"
 
-using namespace o2::TPC;
-
-
+using namespace o2::tpc;

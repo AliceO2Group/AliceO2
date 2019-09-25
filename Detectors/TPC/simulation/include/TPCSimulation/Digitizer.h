@@ -21,7 +21,6 @@
 #include "TPCSimulation/SpaceCharge.h"
 
 #include "TPCBase/Mapper.h"
-#include "Steer/HitProcessingManager.h"
 
 #include <cmath>
 
@@ -32,7 +31,7 @@ class TH3;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 class DigitContainer;
@@ -54,10 +53,13 @@ class Digitizer
 {
  public:
   /// Default constructor
-  Digitizer();
+  Digitizer() = default;
 
   /// Destructor
   ~Digitizer() = default;
+
+  Digitizer(const Digitizer&) = delete;
+  Digitizer& operator=(const Digitizer&) = delete;
 
   /// Initializer
   void init();
@@ -66,14 +68,14 @@ class Digitizer
   /// \param hits Container with TPC hit groups
   /// \param eventID ID of the event to be processed
   /// \param sourceID ID of the source to be processed
-  void process(const std::vector<o2::TPC::HitGroup>& hits, const int eventID,
+  void process(const std::vector<o2::tpc::HitGroup>& hits, const int eventID,
                const int sourceID = 0);
 
   /// Flush the data
   /// \param digits Container for the digits
   /// \param labels Container for the MC labels
   /// \param finalFlush Flag whether the whole container is dumped
-  void flush(std::vector<o2::TPC::Digit>& digits,
+  void flush(std::vector<o2::tpc::Digit>& digits,
              o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels, bool finalFlush = false);
 
   /// Set the sector to be processed
@@ -108,19 +110,17 @@ class Digitizer
   void enableSCDistortions(SpaceCharge::SCDistortionType distortionType, TH3* hisInitialSCDensity, int nZSlices, int nPhiBins, int nRBins);
 
  private:
-  Digitizer(const Digitizer&);
-  Digitizer& operator=(const Digitizer&);
-
   DigitContainer mDigitContainer;                   ///< Container for the Digits
   std::unique_ptr<SpaceCharge> mSpaceChargeHandler; ///< Handler of space-charge distortions
-  Sector mSector;                                   ///< ID of the currently processed sector
-  float mEventTime;                                 ///< Time of the currently processed event
-  static bool mIsContinuous;                        ///< Switch for continuous readout
-  bool mUseSCDistortions;                           ///< Flag to switch on the use of space-charge distortions
+  Sector mSector = -1;                              ///< ID of the currently processed sector
+  float mEventTime = 0.f;                           ///< Time of the currently processed event
+  // FIXME: whats the reason for hving this static?
+  static bool mIsContinuous;      ///< Switch for continuous readout
+  bool mUseSCDistortions = false; ///< Flag to switch on the use of space-charge distortions
 
   ClassDefNV(Digitizer, 1);
 };
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif // ALICEO2_TPC_Digitizer_H_

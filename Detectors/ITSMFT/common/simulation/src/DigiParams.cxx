@@ -15,9 +15,9 @@
 #include "ITSMFTSimulation/DigiParams.h"
 #include <cassert>
 
-ClassImp(o2::ITSMFT::DigiParams);
+ClassImp(o2::itsmft::DigiParams);
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
 DigiParams::DigiParams()
 {
@@ -52,7 +52,7 @@ void DigiParams::setChargeThreshold(int v, float frac2Account)
   }
   LOG(INFO) << "Set Alpide charge threshold to " << mChargeThreshold
             << ", single hit will be accounted from " << mMinChargeToAccount
-            << " electrons" << FairLogger::endl;
+            << " electrons";
 }
 
 //______________________________________________

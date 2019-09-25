@@ -24,6 +24,7 @@
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <TRandom.h>
 #include <SimConfig/SimConfig.h>
+#include <cstring>
 
 namespace o2
 {
@@ -42,7 +43,7 @@ class O2SimDevice : public FairMQDevice
 {
  public:
   O2SimDevice() = default;
-  O2SimDevice(o2::steer::O2MCApplication* vmcapp, TVirtualMC* vmc) : mVMCApp{ vmcapp }, mVMC{ vmc } {}
+  O2SimDevice(o2::steer::O2MCApplication* vmcapp, TVirtualMC* vmc) : mVMCApp{vmcapp}, mVMC{vmc} {}
 
   /// Default destructor
   ~O2SimDevice() final
@@ -90,7 +91,7 @@ class O2SimDevice : public FairMQDevice
     std::unique_ptr<FairMQMessage> reply(channel.NewMessage());
 
     int timeoutinMS = 100000; // wait for 100s max
-    if (channel.Send(request, timeoutinMS) >= 0) {
+    if (channel.Send(request, timeoutinMS) > 0) {
       LOG(INFO) << "Waiting for configuration answer ";
       if (channel.Receive(reply, timeoutinMS) > 0) {
         LOG(INFO) << "Configuration answer received, containing " << reply->GetSize() << " bytes ";
@@ -103,6 +104,7 @@ class O2SimDevice : public FairMQDevice
         }
 
         LOG(INFO) << "COMMUNICATED ENGINE " << config->mMCEngine;
+
         auto& conf = o2::conf::SimConfig::Instance();
         conf.resetFromConfigData(*config);
         delete config;
@@ -156,27 +158,37 @@ class O2SimDevice : public FairMQDevice
     mVMCApp->setSimDataChannel(&dataoutchannel);
 
     LOG(INFO) << "Requesting work ";
-    int timeoutinMS = 10000; // wait for 10s max -- we should have a more robust solution
-    if (requestchannel.Send(request, timeoutinMS) >= 0) {
+    int timeoutinMS = 100000; // wait for 100s max -- we should have a more robust solution
+    if (requestchannel.Send(request, timeoutinMS) > 0) {
       LOG(INFO) << "Waiting for answer ";
       // asking for primary generation
 
       if (requestchannel.Receive(reply, timeoutinMS) > 0) {
-        LOG(INFO) << "Answer received, containing " << reply->GetSize() << " bytes " << FairLogger::endl;
+        LOG(INFO) << "Answer received, containing " << reply->GetSize() << " bytes ";
 
         // wrap incoming bytes as a TMessageWrapper which offers "adoption" of a buffer
         auto message = new TMessageWrapper(reply->GetData(), reply->GetSize());
-        auto chunk = static_cast<o2::Data::PrimaryChunk*>(message->ReadObjectAny(message->GetClass()));
+        auto chunk = static_cast<o2::data::PrimaryChunk*>(message->ReadObjectAny(message->GetClass()));
 
         mVMCApp->setPrimaries(chunk->mParticles);
 
         auto info = chunk->mSubEventInfo;
-        mVMCApp->setSubEventInfo(info);
+        mVMCApp->setSubEventInfo(&info);
 
-        LOG(INFO) << "Processing " << chunk->mParticles.size() << FairLogger::endl;
+        LOG(INFO) << "Processing " << chunk->mParticles.size() << " primary particles "
+                  << "for event " << info.eventID << "/" << info.maxEvents << " "
+                  << "part " << info.part << "/" << info.nparts;
         gRandom->SetSeed(chunk->mSubEventInfo.seed);
 
-        mVMC->ProcessRun(1);
+        auto& conf = o2::conf::SimConfig::Instance();
+        if (strcmp(conf.getMCEngine().c_str(), "TGeant4") == 0) {
+          mVMC->ProcessEvent();
+        } else {
+          // for Geant3 at least calling ProcessEvent is not enough
+          // as some hooks are not called
+          mVMC->ProcessRun(1);
+        }
+
         FairSystemInfo sysinfo;
         LOG(INFO) << "TIME-STAMP " << mTimer.RealTime() << "\t";
         mTimer.Continue();
@@ -200,12 +212,13 @@ class O2SimDevice : public FairMQDevice
     return Kernel(fChannels.at("primary-get").at(0), fChannels.at("simdata").at(0));
   }
 
-  void PostRun() final { LOG(INFO) << "Shutting down " << FairLogger::endl; }
+  void PostRun() final { LOG(INFO) << "Shutting down "; }
+
  private:
   TStopwatch mTimer;                             //!
   o2::steer::O2MCApplication* mVMCApp = nullptr; //!
   TVirtualMC* mVMC = nullptr;                    //!
-  std::unique_ptr<FairRunSim> mSimRun;
+  std::unique_ptr<FairRunSim> mSimRun;           //!
 };
 
 } // namespace devices

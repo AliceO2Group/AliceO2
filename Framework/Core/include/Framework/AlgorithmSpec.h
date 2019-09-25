@@ -14,6 +14,8 @@
 #include "Framework/ErrorContext.h"
 #include "Framework/InitContext.h"
 
+#include "Framework/FunctionalHelpers.h"
+
 #include <functional>
 
 namespace o2
@@ -40,37 +42,38 @@ namespace framework
 /// FIXME:  we  should  probably  return   also  a  function  to  handle  EXIT
 /// transition...
 struct AlgorithmSpec {
-  using ProcessCallback = std::function<void(ProcessingContext &)>;
+  using ProcessCallback = std::function<void(ProcessingContext&)>;
   using InitCallback = std::function<ProcessCallback(InitContext&)>;
-  using ErrorCallback = std::function<void(ErrorContext &)>;
-  static ErrorCallback &emptyErrorCallback() {
+  using ErrorCallback = std::function<void(ErrorContext&)>;
+  static ErrorCallback& emptyErrorCallback()
+  {
     static ErrorCallback callback = nullptr;
     return callback;
   }
 
   AlgorithmSpec()
-  : onInit{nullptr},
-    onProcess{nullptr},
-    onError{nullptr}
+    : onInit{nullptr},
+      onProcess{nullptr},
+      onError{nullptr}
   {
   }
 
-  AlgorithmSpec(AlgorithmSpec &&) = default;
-  AlgorithmSpec(const AlgorithmSpec &) = default;
-  AlgorithmSpec(AlgorithmSpec &) = default;
-  AlgorithmSpec &operator=(const AlgorithmSpec &) = default;
+  AlgorithmSpec(AlgorithmSpec&&) = default;
+  AlgorithmSpec(const AlgorithmSpec&) = default;
+  AlgorithmSpec(AlgorithmSpec&) = default;
+  AlgorithmSpec& operator=(const AlgorithmSpec&) = default;
 
-  AlgorithmSpec(ProcessCallback process, ErrorCallback &error = emptyErrorCallback())
-  : onInit{nullptr},
-    onProcess{process},
-    onError{error}
+  AlgorithmSpec(ProcessCallback process, ErrorCallback& error = emptyErrorCallback())
+    : onInit{nullptr},
+      onProcess{process},
+      onError{error}
   {
   }
 
-  AlgorithmSpec(InitCallback init, ErrorCallback &error = emptyErrorCallback())
-  : onInit{init},
-    onProcess{nullptr},
-    onError{error}
+  AlgorithmSpec(InitCallback init, ErrorCallback& error = emptyErrorCallback())
+    : onInit{init},
+      onProcess{nullptr},
+      onError{error}
   {
   }
 
@@ -136,23 +139,6 @@ AlgorithmSpec::ProcessCallback adaptStatelessP(R (*callback)(ARGS...))
 {
   std::function<R(ARGS...)> f = callback;
   return adaptStatelessF(f);
-}
-
-template <typename T>
-struct memfun_type {
-  using type = void;
-};
-
-template <typename Ret, typename Class, typename... Args>
-struct memfun_type<Ret (Class::*)(Args...) const> {
-  using type = std::function<Ret(Args...)>;
-};
-
-template <typename F>
-typename memfun_type<decltype(&F::operator())>::type
-  FFL(F const& func)
-{ // Function from lambda !
-  return func;
 }
 
 /// This helper allows us to create a process callback without

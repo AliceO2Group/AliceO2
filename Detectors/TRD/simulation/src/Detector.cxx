@@ -8,22 +8,23 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TRDSimulation/Detector.h"
 #include <TGeoManager.h>
 #include <TVirtualMC.h>
 #include <vector>
+#include <stdexcept>
 #include "FairVolume.h"
 #include "FairRootManager.h"
-#include "TRDBase/TRDCommonParam.h"
-#include "TRDBase/TRDGeometry.h"
 #include "SimulationDataFormat/Stack.h"
 #include "CommonUtils/ShmAllocator.h"
-#include <stdexcept>
+#include "TRDBase/TRDCommonParam.h"
+#include "TRDBase/TRDGeometry.h"
+#include "TRDSimulation/Detector.h"
+#include "TRDSimulation/TRsim.h"
 
 using namespace o2::trd;
 
 Detector::Detector(Bool_t active)
-  : o2::Base::DetImpl<Detector>("TRD", active)
+  : o2::base::DetImpl<Detector>("TRD", active)
 {
   mHits = o2::utils::createSimVector<HitType>();
   if (TRDCommonParam::Instance()->IsXenon()) {
@@ -43,7 +44,7 @@ Detector::Detector(Bool_t active)
 }
 
 Detector::Detector(const Detector& rhs)
-  : o2::Base::DetImpl<Detector>(rhs),
+  : o2::base::DetImpl<Detector>(rhs),
     mHits(o2::utils::createSimVector<HitType>()),
     mFoilDensity(rhs.mFoilDensity),
     mGasNobleFraction(rhs.mGasNobleFraction),
@@ -80,14 +81,6 @@ void Detector::InitializeO2Detector()
 
 bool Detector::ProcessHits(FairVolume* v)
 {
-  // very rudimentatary hit creation
-  /* TODO: needs upgrade to the level of AliROOT
-
-    - Add primary ionization (fluka, geant?) see AliRoot
-    - Add TR
-
-  */
-
   // If not charged track or already stopped or disappeared, just return.
   if ((!fMC->TrackCharge()) || fMC->IsTrackDisappeared()) {
     return false;
@@ -126,35 +119,65 @@ bool Detector::ProcessHits(FairVolume* v)
   cIdSector[2] = 0;
   sector = atoi(cIdSector);
   // The detector number (0 – 539)
-  det = mGeom->getDetector(mGeom->getLayer(idChamber),
-                           mGeom->getStack(idChamber), sector);
+  det = mGeom->getDetector(mGeom->getLayer(idChamber), mGeom->getStack(idChamber), sector);
 
   // 0: InFlight 1: Entering 2: Exiting
   int trkStat = 0;
+
+  o2::data::Stack* stack = (o2::data::Stack*)fMC->GetStack();
+  float xp, yp, zp;
+  float px, py, pz, etot;
+  float trackLength = fMC->TrackLength(); // Return the length of the current track from its origin (in cm)
+  float tof = fMC->TrackTime();           // Return the current time of flight of the track being transported (in s).
+
   // Special hits if track is entering
   if (drRegion && fMC->IsTrackEntering()) {
+    // Create a track reference at the entrance of each
+    // chamber that contains the momentum components of the particle
+    fMC->TrackMomentum(px, py, pz, etot);
+    fMC->TrackPosition(xp, yp, zp);
+    stack->addTrackReference(o2::TrackReference(xp, yp, zp, px, py, pz,
+                                                trackLength,
+                                                tof,
+                                                stack->GetCurrentTrackNumber(),
+                                                GetDetId()));
+    // Update track status
+    trkStat = 1;
     // Create the hits from TR photons if electron/positron is entering the drift volume
     const bool ele = (TMath::Abs(fMC->TrackPid()) == 11); // electron PDG code.
     if (mTRon && ele) {
       createTRhit(det);
     }
-    trkStat = 1;
   } else if (amRegion && fMC->IsTrackExiting()) {
+    // Create a track reference at the exit of each
+    // chamber that contains the momentum components of the particle
+    fMC->TrackMomentum(px, py, pz, etot);
+    fMC->TrackPosition(xp, yp, zp);
+    stack->addTrackReference(o2::TrackReference(xp, yp, zp, px, py, pz,
+                                                trackLength,
+                                                tof,
+                                                stack->GetCurrentTrackNumber(),
+                                                GetDetId()));
+    // Update track status
     trkStat = 2;
   }
 
   // Calculate the charge according to GEANT Edep
   // Create a new dEdx hit
-  const double enDep = TMath::Max(fMC->Edep(), 0.0) * 1.0e+9; // Energy in eV
+  const float enDep = TMath::Max(fMC->Edep(), 0.0) * 1e9; // Energy in eV
+  const int totalChargeDep = (int)(enDep / mWion);        // Total charge
+
   // Store those hits with enDep bigger than the ionization potential of the gas mixture for in-flight tracks
   // or store hits of tracks that are entering or exiting
-  if ((enDep > mWion) || trkStat) {
-    double x, y, z;
-    fMC->TrackPosition(x, y, z);
-    double tof = fMC->TrackTime() * 1e6; // The time of flight in micro-seconds
-    o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
+  if (totalChargeDep || trkStat) {
+    fMC->TrackPosition(xp, yp, zp);
+    tof = tof * 1e6; // The time of flight in micro-seconds
     const int trackID = stack->GetCurrentTrackNumber();
-    addHit(x, y, z, tof, enDep, trackID, det);
+    double pos[3] = {xp, yp, zp};
+    double loc[3] = {-99, -99, -99};
+    gGeoManager->MasterToLocal(pos, loc); // Go to the local coordinate system (locR, locC, locT)
+    const float locC = loc[0], locR = loc[1], locT = loc[2];
+    addHit(xp, yp, zp, locC, locR, locT, tof, totalChargeDep, trackID, det, drRegion);
     stack->addHit(GetDetId());
     return true;
   }
@@ -174,7 +197,7 @@ void Detector::createTRhit(int det)
   // Maximum number of TR photons per track
   constexpr int mMaxNumberOfTRPhotons = 50; // Make this a class member?
 
-  double px, py, pz, etot;
+  float px, py, pz, etot;
   fMC->TrackMomentum(px, py, pz, etot);
   float pTot = TMath::Sqrt(px * px + py * py + pz * pz);
   std::vector<float> photonEnergyContainer;            // energy in keV
@@ -228,15 +251,21 @@ void Detector::createTRhit(int det)
     float xp, yp, zp;
     fMC->TrackPosition(xp, yp, zp);
     float invpTot = 1. / pTot;
-    double x = xp + px * invpTot * absLength;
-    double y = yp + py * invpTot * absLength;
-    double z = zp + pz * invpTot * absLength;
+    float x = xp + px * invpTot * absLength;
+    float y = yp + py * invpTot * absLength;
+    float z = zp + pz * invpTot * absLength;
 
     // Add the hit to the array. TR photon hits are marked by negative energy (and not by charge)
-    double tof = fMC->TrackTime() * 1e6;
-    o2::Data::Stack* stack = (o2::Data::Stack*)fMC->GetStack();
+    float tof = fMC->TrackTime() * 1e6; // The time of flight in micro-seconds
+    o2::data::Stack* stack = (o2::data::Stack*)fMC->GetStack();
     const int trackID = stack->GetCurrentTrackNumber();
-    addHit(x, y, z, tof, -energyeV, trackID, det);
+    const int totalChargeDep = -1 * (int)(energyeV / mWion); // Negative charge for tagging TR photon hits
+    // prepare local coordinates
+    double pos[3] = {x, y, z};
+    double loc[3] = {-99, -99, -99};
+    gGeoManager->MasterToLocal(pos, loc); // Go to the local coordinate system (locR, locC, locT)
+    const float locC = loc[0], locR = loc[1], locT = loc[2];
+    addHit(x, y, z, locC, locR, locT, tof, totalChargeDep, trackID, det, true); // All TR hits are in drift region
     stack->addHit(GetDetId());
   }
 }
@@ -244,6 +273,15 @@ void Detector::createTRhit(int det)
 void Detector::Register()
 {
   FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, true);
+}
+
+void Detector::FinishEvent()
+{
+  // Sort hit vector by detector number before the End of the Event
+  std::sort(mHits->begin(), mHits->end(),
+            [](const HitType& a, const HitType& b) {
+              return a.GetDetectorID() < b.GetDetectorID();
+            });
 }
 
 // this is very problematic; we should do round robin or the clear needs
@@ -265,7 +303,7 @@ void Detector::createMaterials()
   //
   int isxfld = 2;
   float sxmgmx = 10.;
-  o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
+  o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
   //////////////////////////////////////////////////////////////////////////
   //     Define Materials
@@ -287,30 +325,30 @@ void Detector::createMaterials()
   Material(7, "Fe", 55.85, 26.0, 7.87, 1.76, 14.8);
 
   // Air
-  float aAir[4] = { 12.011, 14.0, 15.9994, 36.0 };
-  float zAir[4] = { 6.0, 7.0, 8.0, 18.0 };
-  float wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  float aAir[4] = {12.011, 14.0, 15.9994, 36.0};
+  float zAir[4] = {6.0, 7.0, 8.0, 18.0};
+  float wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   float dAir = 1.20479e-03;
   Mixture(51, "Air", aAir, zAir, dAir, 4, wAir);
   // Polyethilene (CH2)
-  float ape[2] = { 12.011, 1.0079 };
-  float zpe[2] = { 6.0, 1.0 };
-  float wpe[2] = { 1.0, 2.0 };
+  float ape[2] = {12.011, 1.0079};
+  float zpe[2] = {6.0, 1.0};
+  float wpe[2] = {1.0, 2.0};
   float dpe = 0.95;
   Mixture(52, "Polyethilene", ape, zpe, dpe, -2, wpe);
   // Gas mixtures
   // Xe/CO2-gas-mixture (85% / 15%)
-  float aXeCO2[3] = { 131.29, 12.0107, 15.9994 };
-  float zXeCO2[3] = { 54.0, 6.0, 8.0 };
-  float wXeCO2[3] = { 8.5, 1.5, 3.0 };
+  float aXeCO2[3] = {131.29, 12.0107, 15.9994};
+  float zXeCO2[3] = {54.0, 6.0, 8.0};
+  float wXeCO2[3] = {8.5, 1.5, 3.0};
   float fxc = 0.85;
   float dxe = 0.00549; // at 20C
   float dco = 0.00186; // at 20C
   float dgmXe = fxc * dxe + (1.0 - fxc) * dco;
   // Ar/CO2-gas-mixture
-  float aArCO2[3] = { 39.948, 12.0107, 15.9994 };
-  float zArCO2[3] = { 18.0, 6.0, 8.0 };
-  float wArCO2[3] = { 8.2, 1.8, 3.6 };
+  float aArCO2[3] = {39.948, 12.0107, 15.9994};
+  float zArCO2[3] = {18.0, 6.0, 8.0};
+  float wArCO2[3] = {8.2, 1.8, 3.6};
   float fac = 0.82;
   float dar = 0.00166; // at 20C
   float dgmAr = fac * dar + (1.0 - fac) * dco;
@@ -324,57 +362,57 @@ void Detector::createMaterials()
     exit(1);
   }
   // G10
-  float aG10[4] = { 1.0079, 12.011, 15.9994, 28.086 };
-  float zG10[4] = { 1.0, 6.0, 8.0, 14.0 };
-  float wG10[4] = { 0.023, 0.194, 0.443, 0.340 };
+  float aG10[4] = {1.0079, 12.011, 15.9994, 28.086};
+  float zG10[4] = {1.0, 6.0, 8.0, 14.0};
+  float wG10[4] = {0.023, 0.194, 0.443, 0.340};
   float dG10 = 2.0;
   Mixture(54, "G10", aG10, zG10, dG10, 4, wG10);
   // Water
-  float awa[2] = { 1.0079, 15.9994 };
-  float zwa[2] = { 1.0, 8.0 };
-  float wwa[2] = { 2.0, 1.0 };
+  float awa[2] = {1.0079, 15.9994};
+  float zwa[2] = {1.0, 8.0};
+  float wwa[2] = {2.0, 1.0};
   float dwa = 1.0;
   Mixture(55, "Water", awa, zwa, dwa, -2, wwa);
   // Rohacell (C5H8O2), X0 = 535.005cm
-  float arh[3] = { 12.011, 1.0079, 15.9994 };
-  float zrh[3] = { 6.0, 1.0, 8.0 };
-  float wrh[3] = { 5.0, 8.0, 2.0 };
+  float arh[3] = {12.011, 1.0079, 15.9994};
+  float zrh[3] = {6.0, 1.0, 8.0};
+  float wrh[3] = {5.0, 8.0, 2.0};
   float drh = 0.075;
   Mixture(56, "Rohacell", arh, zrh, drh, -3, wrh);
   // Epoxy (C18H19O3)
-  float aEpoxy[3] = { 15.9994, 1.0079, 12.011 };
-  float zEpoxy[3] = { 8.0, 1.0, 6.0 };
-  float wEpoxy[3] = { 3.0, 19.0, 18.0 };
+  float aEpoxy[3] = {15.9994, 1.0079, 12.011};
+  float zEpoxy[3] = {8.0, 1.0, 6.0};
+  float wEpoxy[3] = {3.0, 19.0, 18.0};
   float dEpoxy = 1.8;
   Mixture(57, "Epoxy", aEpoxy, zEpoxy, dEpoxy, -3, wEpoxy);
   // Araldite, low density epoxy (C18H19O3)
-  float aAral[3] = { 15.9994, 1.0079, 12.011 };
-  float zAral[3] = { 8.0, 1.0, 6.0 };
-  float wAral[3] = { 3.0, 19.0, 18.0 };
+  float aAral[3] = {15.9994, 1.0079, 12.011};
+  float zAral[3] = {8.0, 1.0, 6.0};
+  float wAral[3] = {3.0, 19.0, 18.0};
   float dAral = 1.12; // Hardener: 1.15, epoxy: 1.1, mixture: 1/2
   Mixture(58, "Araldite", aAral, zAral, dAral, -3, wAral);
   // Mylar
-  float aMy[3] = { 12.011, 1.0, 15.9994 };
-  float zMy[3] = { 6.0, 1.0, 8.0 };
-  float wMy[3] = { 5.0, 4.0, 2.0 };
+  float aMy[3] = {12.011, 1.0, 15.9994};
+  float zMy[3] = {6.0, 1.0, 8.0};
+  float wMy[3] = {5.0, 4.0, 2.0};
   float dMy = 1.39;
   Mixture(59, "Mylar", aMy, zMy, dMy, -3, wMy);
   // Polypropylene (C3H6) for radiator fibers
-  float app[2] = { 12.011, 1.0079 };
-  float zpp[2] = { 6.0, 1.0 };
-  float wpp[2] = { 3.0, 6.0 };
+  float app[2] = {12.011, 1.0079};
+  float zpp[2] = {6.0, 1.0};
+  float wpp[2] = {3.0, 6.0};
   float dpp = 0.068;
   Mixture(60, "Polypropylene", app, zpp, dpp, -2, wpp);
   // Aramide for honeycomb
-  float aAra[4] = { 1.0079, 12.011, 15.9994, 14.0067 };
-  float zAra[4] = { 1.0, 6.0, 8.0, 7.0 };
-  float wAra[4] = { 3.0, 1.0, 1.0, 1.0 };
+  float aAra[4] = {1.0079, 12.011, 15.9994, 14.0067};
+  float zAra[4] = {1.0, 6.0, 8.0, 7.0};
+  float wAra[4] = {3.0, 1.0, 1.0, 1.0};
   float dAra = 0.032;
   Mixture(61, "Aramide", aAra, zAra, dAra, -4, wAra);
   // GFK for Wacosit (Epoxy + Si)
-  float aGFK[4] = { 1.0079, 12.011, 15.9994, 28.086 };
-  float zGFK[4] = { 1.0, 6.0, 8.0, 14.0 };
-  float wGFK[4] = { 0.0445, 0.5031, 0.1118, 0.340 };
+  float aGFK[4] = {1.0079, 12.011, 15.9994, 28.086};
+  float zGFK[4] = {1.0, 6.0, 8.0, 14.0};
+  float wGFK[4] = {0.0445, 0.5031, 0.1118, 0.340};
   float dGFK = 2.0;
   Mixture(62, "GFK", aGFK, zGFK, dGFK, 4, wGFK);
 

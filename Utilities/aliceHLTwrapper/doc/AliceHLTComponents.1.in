@@ -3,7 +3,7 @@
 
 .SH DESCRIPTION
 ALICE HLT components are part of AliRoot and can be plugged into the
-O2 system via the AliceHLTWrapperDevice. The wrapper device takes the
+O2 system via the o2-alicehlt-wrapper-device. The wrapper device takes the
 shared library name and component id as parameters to instantiate the
 component instance.
 
@@ -132,7 +132,7 @@ Matthias.Richter@scieq.net
 All questions and suggestions welcome
 
 .SH "SEE ALSO"
-AliceHLTWrapperDevice(1)
+o2-alicehlt-wrapper-device(1)
 
 .SH BUGS
 

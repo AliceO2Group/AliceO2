@@ -1,252 +1,99 @@
-# The name of our project is "ALICEO2".  CMakeLists files in this project can
-# refer to the root source directory of the project as ${ALICEO2_SOURCE_DIR}
-# or as ${CMAKE_SOURCE_DIR} and to the root binary directory of the project as
-# ${ALICEO2_BINARY_DIR} or ${CMAKE_BINARY_DIR}.
-# This difference is important for the base classes which are in FAIRROOT
-# and the experiment part.
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
 
-# Check IF cmake has the required version
-CMAKE_MINIMUM_REQUIRED(VERSION 3.11.0 FATAL_ERROR)
+# Preamble
 
-### CMP0025   Compiler id for Apple Clang is now AppleClang.
-### CMP0042   MACOSX_RPATH is enabled by default.
+cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 
-FOREACH (p
-    CMP0025 # CMake 3.0
-    CMP0042 # CMake 3.0
-    CMP0028
-    CMP0068
-    CMP0057
-    )
-  IF (POLICY ${p})
-    cmake_policy(SET ${p} NEW)
-  ENDIF ()
-endforeach ()
+# it's important to specify accurately the list of languages. for instance C and
+# C++ as we _do_ have some C files to compile explicitely as C (e.g. gl3w.c)
+project(O2 LANGUAGES C CXX VERSION 1.2.0)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake) # project specific cmake dir
-
-# Set name of our project to "ALICEO2". Has to be done
-# after check of cmake version since this is a new feature
-project(ALICEO2)
-
-# Toplevel targets
-ADD_CUSTOM_TARGET(man ALL)
-#In case you need Fortran
-#ENABLE_LANGUAGE(Fortran)
-
-find_package(Boost REQUIRED)
-
-# Load some basic macros which are needed later on
-include(O2Utils)
-include(O2Dependencies)
-include(FairMacros)
-include(WriteConfigFile)
 include(CTest)
-include(CheckCompiler)
-#include(CheckFortran)
 
-# check if we have a simulation environment
-if (Geant3_FOUND AND Geant4_FOUND AND Geant4VMC_FOUND AND Pythia6_FOUND AND PYTHIA8_FOUND)
-  SET (HAVESIMULATION 1)
-  message(STATUS "Simulation environment found")
-else()
-  message(STATUS "Simulation environment not found : at least one of the variables Geant3_FOUND , Geant4_FOUND , Geant4VMC_FOUND , Pythia6_FOUND or PYTHIA8_FOUND is not set")
-  message(STATUS "All of them are needed for a simulation environment.")
-  message(STATUS "That might not be a problem if you don't care about simulation though.")
-  message(STATUS "Geant3_FOUND    = ${Geant3_FOUND}")
-  message(STATUS "Geant4_FOUND    = ${Geant4_FOUND}")
-  message(STATUS "Geant4VMC_FOUND = ${Geant4VMC_FOUND}")
-  message(STATUS "Pythia6_FOUND=${Pythia6_FOUND}")
-  message(STATUS "PYTHIA8_FOUND=${PYTHIA8_FOUND}")
-  message(FATAL "stop")
-endif()
+# Project wide setup
 
+# Would better fit inside GPU/CMakeLists.txt, but include GPU/Common directly
+set(ALIGPU_BUILD_TYPE "O2")
 
-# Build type for coverage builds
-set(CMAKE_CXX_FLAGS_COVERAGE "-g -O2 -fprofile-arcs -ftest-coverage")
-set(CMAKE_C_FLAGS_COVERAGE "${CMAKE_CXX_FLAGS_COVERAGE}")
-set(CMAKE_Fortran_FLAGS_COVERAGE "-g -O2 -fprofile-arcs -ftest-coverage")
-set(CMAKE_LINK_FLAGS_COVERAGE "--coverage -fprofile-arcs  -fPIC")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+set_property(GLOBAL PROPERTY REPORT_UNDEFINED_PROPERTIES)
+include(O2BuildSanityChecks)
+o2_build_sanity_checks()
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+include(O2CheckCXXFeatures)
+o2_check_cxx_features()
 
-MARK_AS_ADVANCED(
-    CMAKE_CXX_FLAGS_COVERAGE
-    CMAKE_C_FLAGS_COVERAGE
-    CMAKE_Fortran_FLAGS_COVERAGE
-    CMAKE_LINK_FLAGS_COVERAGE)
+include(O2DefineOptions)
+o2_define_options()
 
+include(O2DefineOutputPaths)
+o2_define_output_paths()
 
-#Check the compiler and set the compile and link flags
-IF (NOT CMAKE_BUILD_TYPE)
-  Message(STATUS "Set BuildType DEBUG")
-  set(CMAKE_BUILD_TYPE Debug)
-ENDIF (NOT CMAKE_BUILD_TYPE)
-Check_Compiler()
+include(O2DefineRPATH)
+o2_define_rpath()
 
-set(LIBRARY_OUTPUT_PATH "${CMAKE_BINARY_DIR}/lib")
-set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/bin")
-set(INCLUDE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/include")
-Set(VMCWORKDIR ${CMAKE_SOURCE_DIR})
-Option(USE_PATH_INFO "Information from PATH and LD_LIBRARY_PATH are used." OFF)
-IF (USE_PATH_INFO)
-  Set(PATH "$PATH")
-  IF (APPLE)
-    Set(LD_LIBRARY_PATH $ENV{DYLD_LIBRARY_PATH})
-  ELSE (APPLE)
-    Set(LD_LIBRARY_PATH $ENV{LD_LIBRARY_PATH})
-  ENDIF (APPLE)
-ELSE (USE_PATH_INFO)
-  STRING(REGEX MATCHALL "[^:]+" PATH "$ENV{PATH}")
-ENDIF (USE_PATH_INFO)
+# External dependencies
+include(dependencies/CMakeLists.txt)
 
-# Check IF the user wants to build the project in the source
-# directory
-CHECK_OUT_OF_SOURCE_BUILD()
+# include macros and functions that are used in the following subdirectories'
+# CMakeLists.txt
+include(O2AddExecutable)
+include(O2AddHeaderOnlyLibrary)
+include(O2AddLibrary)
+include(O2AddTest)
+include(O2AddTestRootMacro)
+include(O2TargetRootDictionary)
+include(O2DataFile)
+include(O2TargetManPage)
 
-# Check IF we are on an UNIX system. IF not stop with an error
-# message
-IF (NOT UNIX)
-  MESSAGE(FATAL_ERROR "You're not on an UNIX system. The project was up to now only tested on UNIX systems, so we break here. IF you want to go on please edit the CMakeLists.txt in the source directory.")
-ENDIF (NOT UNIX)
-
-# Check IF the external packages are installed into a separate install
-# directory
-CHECK_EXTERNAL_PACKAGE_INSTALL_DIR()
-
-# Set the library version in the main CMakeLists.txt
-SET(ALICEO2_MAJOR_VERSION 0)
-SET(ALICEO2_MINOR_VERSION 0)
-SET(ALICEO2_PATCH_VERSION 0)
-SET(ALICEO2_VERSION "${ALICEO2_MAJOR_VERSION}.${ALICEO2_MINOR_VERSION}.${ALICEO2_PATCH_VERSION}")
-IF (NOT ROOT_FOUND_VERSION OR ROOT_FOUND_VERSION LESS 59999)
-  SET(FAIRROOT_LIBRARY_PROPERTIES ${FAIRROOT_LIBRARY_PROPERTIES}
-      VERSION "${ALICEO2_VERSION}"
-      SOVERSION "${ALICEO2_MAJOR_VERSION}"
-      SUFFIX ".so"
-      )
-ELSE ()
-  SET(FAIRROOT_LIBRARY_PROPERTIES ${FAIRROOT_LIBRARY_PROPERTIES}
-      VERSION "${ALICEO2_VERSION}"
-      SOVERSION "${ALICEO2_MAJOR_VERSION}"
-      )
-ENDIF ()
-
-Generate_Version_Info()
-
-# Our libraries will be under "lib"
-SET(_LIBDIR ${CMAKE_BINARY_DIR}/lib)
-SET(LD_LIBRARY_PATH ${_LIBDIR} ${LD_LIBRARY_PATH})
-
-# Build targets with install rpath on Mac to dramatically speed up installation
-set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
-if("${isSystemDir}" STREQUAL "-1")
-  if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    set(CMAKE_INSTALL_RPATH "@loader_path/../lib")
-  endif()
-endif()
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-endif()
-unset(isSystemDir)
-
-# Check for the required C++ standard features (break if not available)
-set(CheckCXX14SrcDir "${CMAKE_SOURCE_DIR}/cmake/checks")
-include(CheckCXX14Features)
-
-# Recurse into the given subdirectories.  This does not actually
-# cause another cmake executable to run.  The same process will walk through
-# the project's entire directory structure.
-
-add_subdirectory(Generators)
-set(GENERATORS_LIBRARY Generators)
-
-add_subdirectory(CCDB)
+# Main targets of the project in various subdirectories. Order matters.
 add_subdirectory(Common)
+add_subdirectory(Framework)
+add_subdirectory(GPU)
 add_subdirectory(DataFormats)
+add_subdirectory(Utilities)
+add_subdirectory(CCDB)
+add_subdirectory(Algorithm)
 add_subdirectory(Detectors)
 add_subdirectory(EventVisualisation)
-SET(BUILD_EXAMPLES FALSE CACHE BOOL "Build examples")
-if (BUILD_EXAMPLES)
+add_subdirectory(Generators)
+add_subdirectory(Steer) # consider building this only for simulation ?
+
+if(BUILD_EXAMPLES)
   add_subdirectory(Examples)
 endif()
-add_subdirectory(Framework)
-add_subdirectory(Algorithm)
-add_subdirectory(macro)
-add_subdirectory(Utilities)
-add_subdirectory(Steer)
-add_subdirectory(doc)
-if (HAVESIMULATION)
-   add_subdirectory(run)
+
+if(BUILD_SIMULATION)
+  add_subdirectory(run)
 endif()
+
 add_subdirectory(config)
 
-IF (IWYU_FOUND)
-  ADD_CUSTOM_TARGET(checkHEADERS
-      DEPENDS $ENV{ALL_HEADER_RULES}
-      )
-ENDIF ()
+add_custom_target(man ALL)
+o2_target_man_page(man NAME o2)
+o2_target_man_page(man NAME FairMQDevice)
 
-SET(VMCWORKDIR ${CMAKE_SOURCE_DIR})
+# Testing and packaging only needed if we are the top level directory
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  # Documentation
+  add_subdirectory(doc)
+  if(BUILD_TESTING)
+    add_subdirectory(tests)
+  endif()
+  if(BUILD_TEST_ROOT_MACROS)
+    add_subdirectory(macro)
+    include(O2ReportNonTestedMacros)
+    o2_report_non_tested_macros()
+  endif()
+  add_subdirectory(packaging)
 
-SET(VMCWORKDIR ${CMAKE_INSTALL_PREFIX}/share)
-SET(ROOT_INCLUDE_PATH ${CMAKE_INSTALL_PREFIX}/include)
-
-# Place the CTestCustom.cmake in the build dir
-configure_file(${CMAKE_SOURCE_DIR}/CTestCustom.cmake
-    ${CMAKE_BINARY_DIR}/CTestCustom.cmake
-    )
-
-O2_GENERATE_MAN(NAME o2)
-O2_GENERATE_MAN(NAME FairMQDevice)
-
-# Run macros unit tests automatically if ALIBUILD_O2_TESTS is defined
-IF($ENV{ALIBUILD_O2_TESTS})
-  SET(CHECK_ROOTMACRO_COMPILE 1)
-ENDIF()
-
-# A LIST OF MACROS TO EXCLUDE FROM THE TEST
-#  To be used only in exceptional cases, such as when the macro
-#  uses symbols from outside the standard O2 build/runtime
-#  environment.
-SET(IGNORE_MACROS
-    ${CMAKE_SOURCE_DIR}/Generators/share/external/hijing.C
-    ${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/macros/EVE/rootlogon.C
-    # Temporarily disable the following macros: ROOT v6-14-04 fails to parse
-    # correctly some Boost headers
-    ${CMAKE_SOURCE_DIR}/CCDB/example/fill_local_ocdb.C
-    ${CMAKE_SOURCE_DIR}/macro/loadExtDepLib.C
-    ${CMAKE_SOURCE_DIR}/macro/putCondition.C
-    # End of temporarily disabled macros
-)
-
-# UNIT TESTS VERIFYING CONSISTENT STATE OF OUR ROOT MACROS AND THE EXECUTION ENVIRONMENT
-if(CHECK_ROOTMACRO_COMPILE AND HAVESIMULATION)
-  # On Mac OS GLOB_RECURSE returns both .C and .c files, i.e. case insensitive
-  FILE(GLOB_RECURSE MACRO_FILES "*.C")
-  # Case sensitive filtering of .C files
-  LIST(FILTER MACRO_FILES INCLUDE REGEX "^.*\\.C$")
-  SET(TEST_NO 0)
-  FOREACH(MACRO_FILE ${MACRO_FILES})
-    IF(NOT ${MACRO_FILE} IN_LIST IGNORE_MACROS)
-      string(REPLACE ${CMAKE_SOURCE_DIR} "" MACRO_FILE_LABEL ${MACRO_FILE})
-      MATH(EXPR TEST_NO "${TEST_NO} + 1")
-      add_test_wrap(NAME ${MACRO_FILE_LABEL}
-                    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-                    COMMAND root -n -b -l -q -e ".L ${MACRO_FILE}")
-      SET_PROPERTY(TEST ${MACRO_FILE_LABEL} PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
-      SET_PROPERTY(TEST ${MACRO_FILE_LABEL} APPEND PROPERTY ENVIRONMENT "DYLD_LIBRARY_PATH=$ENV{DYLD_LIBRARY_PATH}:${CMAKE_BINARY_DIR}/lib")
-      SET_PROPERTY(TEST ${MACRO_FILE_LABEL} APPEND PROPERTY ENVIRONMENT "ROOT_HIST=0")
-    ELSE()
-      MESSAGE(WARNING "ROOT macro ${MACRO_FILE} excluded from tests")
-    ENDIF()
-  ENDFOREACH()
 endif()
-
-# Create tests wrapper (and make it executable)
-configure_file("${CMAKE_SOURCE_DIR}/cmake/tests-wrapper.sh.in"
-               "${CMAKE_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/tests-wrapper.sh"
-               @ONLY
-               NEWLINE_STYLE UNIX)
-file(COPY "${CMAKE_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/tests-wrapper.sh"
-    DESTINATION "${CMAKE_BINARY_DIR}"
-    FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)

@@ -27,9 +27,7 @@ const o2::detectors::DetID TRDGeometry::sDetID(o2::detectors::DetID::TRD);
 //_____________________________________________________________________________
 TRDGeometry::TRDGeometry() : TRDGeometryBase(), o2::detectors::DetMatrixCacheIndirect(sDetID)
 {
-  //
-  // TRDGeometry default constructor
-  //
+  createPadPlaneArray();
 }
 
 //_____________________________________________________________________________
@@ -264,7 +262,6 @@ void TRDGeometry::createGeometry(std::vector<int> const& idtmed)
     LOG(FATAL) << "Geometry is not loaded";
   }
 
-  createPadPlaneArray();
   createVolumes(idtmed);
 }
 
@@ -2050,8 +2047,8 @@ void TRDGeometry::createServices(std::vector<int> const& idtmed)
       int nMCMrow = getRowMax(ilayer, istack, 0);
       float ySize = (getChamberLength(ilayer, istack) - 2.0 * RPADW) / ((float)nMCMrow);
       int nMCMcol = 8;
-      float xSize = (getChamberWidth(ilayer) - 2.0 * CPADW) / ((float)nMCMcol + 6);    // Introduce 6 gaps
-      int iMCM[8] = { 1, 2, 3, 5, 8, 9, 10, 12 };                                      // 0..7 MCM + 6 gap structure
+      float xSize = (getChamberWidth(ilayer) - 2.0 * CPADW) / ((float)nMCMcol + 6); // Introduce 6 gaps
+      int iMCM[8] = {1, 2, 3, 5, 8, 9, 10, 12};                                     // 0..7 MCM + 6 gap structure
       snprintf(cTagV, kTag, "UU%02d", iDet);
       for (int iMCMrow = 0; iMCMrow < nMCMrow; iMCMrow++) {
         for (int iMCMcol = 0; iMCMcol < nMCMcol; iMCMcol++) {
@@ -2563,13 +2560,13 @@ void TRDGeometry::fillMatrixCache(int mask)
   }
 
   std::string volPath;
-  const std::string vpStr{ "ALIC_1/B077_1/BSEGMO" };
-  const std::string vpApp1{ "_1/BTRD" };
-  const std::string vpApp2{ "_1" };
-  const std::string vpApp3a{ "/UTR1_1/UTS1_1/UTI1_1" };
-  const std::string vpApp3b{ "/UTR2_1/UTS2_1/UTI2_1" };
-  const std::string vpApp3c{ "/UTR3_1/UTS3_1/UTI3_1" };
-  const std::string vpApp3d{ "/UTR4_1/UTS4_1/UTI4_1" };
+  const std::string vpStr{"ALIC_1/B077_1/BSEGMO"};
+  const std::string vpApp1{"_1/BTRD"};
+  const std::string vpApp2{"_1"};
+  const std::string vpApp3a{"/UTR1_1/UTS1_1/UTI1_1"};
+  const std::string vpApp3b{"/UTR2_1/UTS2_1/UTI2_1"};
+  const std::string vpApp3c{"/UTR3_1/UTS3_1/UTI3_1"};
+  const std::string vpApp3d{"/UTR4_1/UTS4_1/UTI4_1"};
 
   for (int ilayer = 0; ilayer < kNlayer; ilayer++) {
     for (int isector = 0; isector < kNsector; isector++) {
@@ -2607,7 +2604,7 @@ void TRDGeometry::fillMatrixCache(int mask)
         if (!gGeoManager->CheckPath(volPath.c_str())) {
           continue;
         }
-        const auto m = o2::Base::GeometryManager::getMatrix(o2::detectors::DetID::TRD, lid);
+        const auto m = o2::base::GeometryManager::getMatrix(o2::detectors::DetID::TRD, lid);
         TGeoHMatrix rotMatrix;
         rotMatrix.RotateX(-90);
         rotMatrix.RotateY(-90);
@@ -2647,13 +2644,13 @@ void TRDGeometry::addAlignableVolumes() const
   }
 
   std::string volPath;
-  std::string vpStr{ "ALIC_1/B077_1/BSEGMO" };
-  const std::string vpApp1{ "_1/BTRD" };
-  const std::string vpApp2{ "_1" };
-  const std::string vpApp3a{ "/UTR1_1/UTS1_1/UTI1_1" };
-  const std::string vpApp3b{ "/UTR2_1/UTS2_1/UTI2_1" };
-  const std::string vpApp3c{ "/UTR3_1/UTS3_1/UTI3_1" };
-  const std::string vpApp3d{ "/UTR4_1/UTS4_1/UTI4_1" };
+  std::string vpStr{"ALIC_1/B077_1/BSEGMO"};
+  const std::string vpApp1{"_1/BTRD"};
+  const std::string vpApp2{"_1"};
+  const std::string vpApp3a{"/UTR1_1/UTS1_1/UTI1_1"};
+  const std::string vpApp3b{"/UTR2_1/UTS2_1/UTI2_1"};
+  const std::string vpApp3c{"/UTR3_1/UTS3_1/UTI3_1"};
+  const std::string vpApp3d{"/UTR4_1/UTS4_1/UTI4_1"};
   std::string symName;
 
   // in opposite to AliGeomManager, we use consecutive numbering of modules through whole TRD
@@ -2714,7 +2711,7 @@ void TRDGeometry::addAlignableVolumes() const
         volPath += Form("/UT%02d_1", idet);
 
         symName = Form("TRD/sm%02d/st%d/pl%d", isector, istack, ilayer);
-        int modID = o2::Base::GeometryManager::getSensID(o2::detectors::DetID::TRD, lid);
+        int modID = o2::base::GeometryManager::getSensID(o2::detectors::DetID::TRD, lid);
 
         TGeoPNEntry* alignableEntry = gGeoManager->SetAlignableEntry(symName.c_str(), volPath.c_str(), modID);
 

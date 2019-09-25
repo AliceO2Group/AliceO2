@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <TFile.h>
 #include <TChain.h>
@@ -17,6 +27,7 @@
 #define _ALLOW_DEBUG_TREES_ // to allow debug and control tree output
 
 void run_match_tof(std::string path = "./", std::string outputfile = "o2match_tof.root",
+                   std::string outputfileCalib = "o2calib_tof.root",
                    std::string inputTracksTPCITS = "o2match_itstpc.root",
                    std::string inputTracksTPC = "tpctracks.root",
                    std::string inputClustersTOF = "tofclusters.root", std::string inputGeom = "O2geometry.root",
@@ -49,6 +60,9 @@ void run_match_tof(std::string path = "./", std::string outputfile = "o2match_to
   TFile outFile((path + outputfile).data(), "recreate");
   TTree outTree("matchTOF", "Matched TOF-tracks");
   matching.setOutputTree(&outTree);
+  TFile outFileCalib((path + outputfileCalib).data(), "recreate");
+  TTree outTreeCalib("calibTOF", "Calib TOF infos");
+  matching.setOutputTreeCalib(&outTreeCalib);
 
 #ifdef _ALLOW_DEBUG_TREES_
   matching.setDebugTreeFileName(path + matching.getDebugTreeFileName());
@@ -56,14 +70,19 @@ void run_match_tof(std::string path = "./", std::string outputfile = "o2match_to
 #endif
 
   //-------- init geometry and field --------//
-  o2::Base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
-  o2::Base::Propagator::initFieldFromGRP(path + inputGRP);
+  o2::base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
+  o2::base::Propagator::initFieldFromGRP(path + inputGRP);
 
   matching.init();
 
   matching.run();
 
+  matching.fill();
+
   outFile.cd();
   outTree.Write();
   outFile.Close();
+  outFileCalib.cd();
+  outTreeCalib.Write();
+  outFileCalib.Close();
 }

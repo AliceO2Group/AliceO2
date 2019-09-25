@@ -9,43 +9,43 @@
 // or submit itself to any jurisdiction.
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/DeviceSpec.h"
-#include <InfoLogger/InfoLogger.hxx>
-#include <vector>
 #include "Framework/runDataProcessing.h"
 #include "Framework/ControlService.h"
+
+#include <chrono>
+#include <vector>
 
 using namespace o2::framework;
 
 AlgorithmSpec simplePipe(std::string const& what, int minDelay)
 {
-  return AlgorithmSpec{ [what, minDelay](InitContext& ic) {
+  return AlgorithmSpec{[what, minDelay](InitContext& ic) {
     srand(getpid());
     return [what, minDelay](ProcessingContext& ctx) {
-      auto bData = ctx.outputs().make<int>(OutputRef{ what }, 1);
+      auto bData = ctx.outputs().make<int>(OutputRef{what}, 1);
     };
-  } };
+  }};
 }
 
 // a1 is not actually used by anything, however it might.
 WorkflowSpec defineDataProcessing(ConfigContext const& specs)
 {
   return WorkflowSpec{
-    { "A",
-      Inputs{},
-      { OutputSpec{ { "a1" }, "TST", "A1" },
-        OutputSpec{ { "a2" }, "TST", "A2" } },
-      AlgorithmSpec{
-        [](ProcessingContext& ctx) {
-          sleep(rand() % 2 + 1);
-          auto aData1 = ctx.outputs().make<int>(OutputRef{ "a1" }, 1);
-          auto aData2 = ctx.outputs().make<int>(Output{ "TST", "A2" }, 1);
-        } } },
-    { "B",
-      { InputSpec{ { "a1" }, "TST", "A1" } },
-      {},
-      AlgorithmSpec{
-        [](ProcessingContext& ctx) {
-          ctx.services().get<ControlService>().readyToQuit(true);
-        } } }
-  };
+    {"A",
+     Inputs{},
+     {OutputSpec{{"a1"}, "TST", "A1"},
+      OutputSpec{{"a2"}, "TST", "A2"}},
+     AlgorithmSpec{
+       [](ProcessingContext& ctx) {
+         std::this_thread::sleep_for(std::chrono::milliseconds((rand() % 2 + 1) * 1000));
+         auto aData1 = ctx.outputs().make<int>(OutputRef{"a1"}, 1);
+         auto aData2 = ctx.outputs().make<int>(Output{"TST", "A2"}, 1);
+       }}},
+    {"B",
+     {InputSpec{{"a1"}, "TST", "A1"}},
+     {},
+     AlgorithmSpec{
+       [](ProcessingContext& ctx) {
+         ctx.services().get<ControlService>().readyToQuit(true);
+       }}}};
 }

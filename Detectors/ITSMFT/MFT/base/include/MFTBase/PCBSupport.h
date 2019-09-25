@@ -15,7 +15,6 @@
 #ifndef ALICEO2_MFT_PCBSUPPORT_H_
 #define ALICEO2_MFT_PCBSUPPORT_H_
 
-#include "TNamed.h"
 #include "TGeoVolume.h"
 #include "TGeoMatrix.h"
 #include "TGeoBBox.h"
@@ -34,15 +33,15 @@ class TGeoCompositeShape;
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
-class PCBSupport : public TNamed
+class PCBSupport
 {
 
  public:
   PCBSupport();
-  ~PCBSupport() override = default;
+  ~PCBSupport() = default;
   TGeoVolumeAssembly* create(Int_t kHalf, Int_t disk);
 
  private:
@@ -74,9 +73,9 @@ class PCBSupport : public TNamed
   Int_t mNumberOfHoles[5];    // Number of Holes in each PCB
   Double_t (*mHoles[5])[3];   // Holes on each PCB
 
-  ClassDefOverride(PCBSupport, 2);
+  ClassDef(PCBSupport, 1);
 };
-} // namespace MFT
+} // namespace mft
 } // namespace o2
 
 #endif

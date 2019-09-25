@@ -28,8 +28,8 @@ BOOST_AUTO_TEST_CASE(MCTruth)
   container.addElement(1, TruthElement(1));
   container.addElement(2, TruthElement(10));
 
-  // this is not possible: (how to test for it)
-  // container.addElement(0,TruthElement(0));
+  // not supported, must throw
+  BOOST_CHECK_THROW(container.addElement(0, TruthElement(0)), std::runtime_error);
 
   // check header/index information
   BOOST_CHECK(container.getMCTruthHeader(0).index == 0);
@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(MCTruth)
   BOOST_CHECK(view[0] == 1);
   BOOST_CHECK(view[1] == 2);
   // try to sort the view
-  std::sort(view.begin(), view.end(), [](TruthElement a, TruthElement b){return a>b;});
+  std::sort(view.begin(), view.end(), [](TruthElement a, TruthElement b) { return a > b; });
   BOOST_CHECK(view[0] == 2);
   BOOST_CHECK(view[1] == 1);
   // verify sorting took effect inside container
@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(MCTruth)
   BOOST_CHECK(view[0] == 10);
 
   // add multiple labels
-  std::vector<TruthElement> newlabels = { 101, 102, 103 };
+  std::vector<TruthElement> newlabels = {101, 102, 103};
   container.addElements(2, newlabels);
   view = container.getLabels(2);
   BOOST_CHECK(view.size() == 4);
@@ -139,6 +139,38 @@ BOOST_AUTO_TEST_CASE(MCTruth_RandomAccess)
     BOOST_CHECK(view[0] == 20);
     BOOST_CHECK(view[1] == 21);
   }
+}
+
+BOOST_AUTO_TEST_CASE(MCTruthContainer_flatten)
+{
+  using TruthElement = long;
+  using TruthContainer = dataformats::MCTruthContainer<TruthElement>;
+  TruthContainer container;
+  container.addElement(0, TruthElement(1));
+  container.addElement(0, TruthElement(2));
+  container.addElement(1, TruthElement(1));
+  container.addElement(2, TruthElement(10));
+
+  std::vector<char> buffer;
+  container.flatten_to(buffer);
+  BOOST_REQUIRE(buffer.size() > sizeof(TruthContainer::FlatHeader));
+  auto& header = *reinterpret_cast<TruthContainer::FlatHeader*>(buffer.data());
+  BOOST_CHECK(header.nofHeaderElements == container.getIndexedSize());
+  BOOST_CHECK(header.nofTruthElements == container.getNElements());
+
+  TruthContainer restoredContainer;
+  restoredContainer.restore_from(buffer.data(), buffer.size());
+
+  // check header/index information
+  BOOST_CHECK(restoredContainer.getMCTruthHeader(0).index == 0);
+  BOOST_CHECK(restoredContainer.getMCTruthHeader(1).index == 2);
+  BOOST_CHECK(restoredContainer.getMCTruthHeader(2).index == 3);
+
+  // check MC truth information
+  BOOST_CHECK(restoredContainer.getElement(0) == 1);
+  BOOST_CHECK(restoredContainer.getElement(1) == 2);
+  BOOST_CHECK(restoredContainer.getElement(2) == 1);
+  BOOST_CHECK(restoredContainer.getElement(3) == 10);
 }
 
 BOOST_AUTO_TEST_CASE(LabelContainer_noncont)
@@ -243,4 +275,25 @@ BOOST_AUTO_TEST_CASE(LabelContainer_noncont)
   BOOST_CHECK(cont2.getLabels(100).size() == 0);
 }
 
-} // end namespace
+BOOST_AUTO_TEST_CASE(MCTruthContainer_move)
+{
+  using TruthElement = long;
+  using Container = dataformats::MCTruthContainer<TruthElement>;
+  Container container;
+  container.addElement(0, TruthElement(1));
+  container.addElement(0, TruthElement(2));
+  container.addElement(1, TruthElement(1));
+  container.addElement(2, TruthElement(10));
+
+  Container container2 = std::move(container);
+  BOOST_CHECK(container.getIndexedSize() == 0);
+  BOOST_CHECK(container.getNElements() == 0);
+
+  std::swap(container, container2);
+  BOOST_CHECK(container2.getIndexedSize() == 0);
+  BOOST_CHECK(container2.getNElements() == 0);
+  BOOST_CHECK(container.getIndexedSize() == 3);
+  BOOST_CHECK(container.getNElements() == 4);
+}
+
+} // namespace o2

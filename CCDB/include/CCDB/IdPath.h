@@ -14,9 +14,9 @@
 //  Path string identifying the object:  			   //
 //  "level0/level1/level2" 					   //
 //  (example: "ZDC/Calib/Pedestals") 		         	   //
-#include <TObject.h>  // for TObject
-#include <TString.h>  // for TString
-#include "Rtypes.h"   // for Bool_t, IdPath::Class, ClassDef, etc
+#include <TObject.h> // for TObject
+#include <TString.h> // for TString
+#include "Rtypes.h"  // for Bool_t, IdPath::Class, ClassDef, etc
 
 namespace o2
 {
@@ -85,8 +85,8 @@ class IdPath : public TObject
   Bool_t mValid;    // validity flag
   Bool_t mWildcard; // wildcard flag
 
-  ClassDefOverride(IdPath, 1)
+  ClassDefOverride(IdPath, 1);
 };
-}
-}
+} // namespace ccdb
+} // namespace o2
 #endif

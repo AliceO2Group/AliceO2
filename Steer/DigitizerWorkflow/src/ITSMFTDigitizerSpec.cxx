@@ -22,6 +22,8 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTSimulation/Digitizer.h"
+#include "ITSMFTSimulation/DPLDigitizerParam.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "MFTBase/GeometryTGeo.h"
 #include <TGeoManager.h>
@@ -34,7 +36,7 @@ using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 class ITSMFTDPLDigitizerTask
@@ -57,47 +59,37 @@ class ITSMFTDPLDigitizerTask
     auto qedfilename = ic.options().get<std::string>("simFileQED");
     if (qedfilename.size() > 0) {
       mQEDChain.AddFile(qedfilename.c_str());
-      LOG(INFO) << "Attach QED Tree: " << mQEDChain.GetEntries() << FairLogger::endl;
+      LOG(INFO) << "Attach QED Tree: " << mQEDChain.GetEntries();
     }
-    std::string roString = mID.getName();
-    auto triggeredMode = (ic.options().get<bool>((roString + "triggered").c_str()));
-    if (!triggeredMode) {
-      mROMode = o2::parameters::GRPObject::CONTINUOUS;
-    }
+
+    setDigitizationOptions(); // set options provided via configKeyValues mechanism
+    auto& digipar = mDigitizer.getParams();
+
+    mROMode = digipar.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
     LOG(INFO) << mID.getName() << " simulated in "
               << ((mROMode == o2::parameters::GRPObject::CONTINUOUS) ? "CONTINUOUS" : "TRIGGERED")
               << " RO mode";
 
-    auto noise = ic.options().get<float>("noise");
-    LOG(INFO) << "Noise generation (per pixel) " << noise;
-
     // make sure that the geometry is loaded (TODO will this be done centrally?)
     if (!gGeoManager) {
-      o2::Base::GeometryManager::loadGeometry();
+      o2::base::GeometryManager::loadGeometry();
     }
 
     // configure digitizer
-    o2::ITSMFT::GeometryTGeo* geom = nullptr;
+    o2::itsmft::GeometryTGeo* geom = nullptr;
     if (mID == o2::detectors::DetID::ITS) {
-      geom = o2::ITS::GeometryTGeo::Instance();
+      geom = o2::its::GeometryTGeo::Instance();
     } else {
-      geom = o2::MFT::GeometryTGeo::Instance();
+      geom = o2::mft::GeometryTGeo::Instance();
     }
     geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::L2G)); // make sure L2G matrices are loaded
     mDigitizer.setGeometry(geom);
 
-    // defaults (TODO we need a way to pass particular configuration parameters)
-    mDigitizer.getParams().setContinuous(!triggeredMode);
-    mDigitizer.getParams().setROFrameLength(6000); // RO frame in ns
-    mDigitizer.getParams().setStrobeDelay(6000);   // Strobe delay wrt beginning of the RO frame, in ns
-    mDigitizer.getParams().setStrobeLength(100);   // Strobe length in ns
-    // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
-    mDigitizer.getParams().getSignalShape().setParameters(7500., 1100., 450.);
-    mDigitizer.getParams().setChargeThreshold(150); // charge threshold in electrons
-    mDigitizer.getParams().setNoisePerPixel(noise); // noise level
     // init digitizer
     mDigitizer.init();
   }
+
+  virtual void setDigitizationOptions() = 0;
 
   void run(framework::ProcessingContext& pc)
   {
@@ -108,14 +100,14 @@ class ITSMFTDPLDigitizerTask
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
     auto& timesview = context->getEventRecords();
-    LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES" << FairLogger::endl;
+    LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
     // if there is nothing to do ... return
     if (timesview.size() == 0) {
       return;
     }
     TStopwatch timer;
     timer.Start();
-    LOG(INFO) << " CALLING ITS DIGITIZATION " << FairLogger::endl;
+    LOG(INFO) << " CALLING ITS DIGITIZATION ";
 
     mDigitizer.setDigits(&mDigits);
     mDigitizer.setROFRecords(&mROFRecords);
@@ -144,7 +136,7 @@ class ITSMFTDPLDigitizerTask
         retrieveHits(part.sourceID, part.entryID);
 
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID
-                  << " found " << mHits.size() << " hits " << FairLogger::endl;
+                  << " found " << mHits.size() << " hits ";
 
         mDigitizer.process(&mHits, part.entryID, part.sourceID); // call actual digitization procedure
       }
@@ -160,15 +152,15 @@ class ITSMFTDPLDigitizerTask
     accumulate();
 
     // here we have all digits and labels and we can send them to consumer (aka snapshot it onto output)
-    pc.outputs().snapshot(Output{ mOrigin, "DIGITS", 0, Lifetime::Timeframe }, mDigitsAccum);
-    pc.outputs().snapshot(Output{ mOrigin, "DIGITSROF", 0, Lifetime::Timeframe }, mROFRecordsAccum);
-    pc.outputs().snapshot(Output{ mOrigin, "DIGITSMC2ROF", 0, Lifetime::Timeframe }, mMC2ROFRecordsAccum);
-    pc.outputs().snapshot(Output{ mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe }, mLabelsAccum);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITS", 0, Lifetime::Timeframe}, mDigitsAccum);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", 0, Lifetime::Timeframe}, mROFRecordsAccum);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITSMC2ROF", 0, Lifetime::Timeframe}, mMC2ROFRecordsAccum);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe}, mLabelsAccum);
     LOG(INFO) << mID.getName() << ": Sending ROMode= " << mROMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{ mOrigin, "ROMode", 0, Lifetime::Timeframe }, mROMode);
+    pc.outputs().snapshot(Output{mOrigin, "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
     timer.Stop();
-    LOG(INFO) << "Digitization took " << timer.CpuTime() << "s" << FairLogger::endl;
+    LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(false);
@@ -177,7 +169,7 @@ class ITSMFTDPLDigitizerTask
   }
 
  protected:
-  ITSMFTDPLDigitizerTask() {}
+  ITSMFTDPLDigitizerTask() = default;
 
   void processQED(double tMax)
   {
@@ -210,7 +202,7 @@ class ITSMFTDPLDigitizerTask
     mLastQEDTimeNS = -mQEDEntryTimeBinNS / 2; // time will be assigned to the middle of the bin
     qedBranch->SetAddress(&mHitsP);
     LOG(INFO) << "Attaching QED ITS hits as sourceID=" << int(QEDSourceID) << ", entry integrates "
-              << mQEDEntryTimeBinNS << " ns" << FairLogger::endl;
+              << mQEDEntryTimeBinNS << " ns";
   }
 
   // helper function which will be offered as a service
@@ -219,7 +211,7 @@ class ITSMFTDPLDigitizerTask
     std::string detStr = mID.getName();
     auto br = mSimChains[sourceID]->GetBranch((detStr + "Hit").c_str());
     if (!br) {
-      LOG(ERROR) << "No branch " << (detStr + "Hit").c_str() << " found for sourceID=" << sourceID << FairLogger::endl;
+      LOG(ERROR) << "No branch " << (detStr + "Hit").c_str() << " found for sourceID=" << sourceID;
       return;
     }
     br->SetAddress(&mHitsP);
@@ -259,7 +251,7 @@ class ITSMFTDPLDigitizerTask
     }
     std::copy(mROFRecords.begin(), mROFRecords.end(), std::back_inserter(mROFRecordsAccum));
     mLabelsAccum.mergeAtBack(mLabels);
-    LOG(INFO) << "Added " << mDigits.size() << " digits " << FairLogger::endl;
+    LOG(INFO) << "Added " << mDigits.size() << " digits ";
     // clean containers from already accumulated stuff
     mLabels.clear();
     mDigits.clear();
@@ -269,18 +261,18 @@ class ITSMFTDPLDigitizerTask
   bool mFinished = false;
   o2::detectors::DetID mID;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
-  o2::ITSMFT::Digitizer mDigitizer;
-  std::vector<o2::ITSMFT::Digit> mDigits;
-  std::vector<o2::ITSMFT::Digit> mDigitsAccum;
-  std::vector<o2::ITSMFT::ROFRecord> mROFRecords;
-  std::vector<o2::ITSMFT::ROFRecord> mROFRecordsAccum;
-  std::vector<o2::ITSMFT::Hit> mHits;
-  std::vector<o2::ITSMFT::Hit>* mHitsP = &mHits;
+  o2::itsmft::Digitizer mDigitizer;
+  std::vector<o2::itsmft::Digit> mDigits;
+  std::vector<o2::itsmft::Digit> mDigitsAccum;
+  std::vector<o2::itsmft::ROFRecord> mROFRecords;
+  std::vector<o2::itsmft::ROFRecord> mROFRecordsAccum;
+  std::vector<o2::itsmft::Hit> mHits;
+  std::vector<o2::itsmft::Hit>* mHitsP = &mHits;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabelsAccum;
-  std::vector<o2::ITSMFT::MC2ROFRecord> mMC2ROFRecordsAccum;
+  std::vector<o2::itsmft::MC2ROFRecord> mMC2ROFRecordsAccum;
   std::vector<TChain*> mSimChains;
-  TChain mQEDChain = { "o2sim" };
+  TChain mQEDChain = {"o2sim"};
 
   double mQEDEntryTimeBinNS = 1000;                                               // time-coverage of single QED tree entry in ns (TODO: make it settable)
   double mLastQEDTimeNS = 0;                                                      // time assingned to last QED entry
@@ -303,6 +295,22 @@ class ITSDPLDigitizerTask : public ITSMFTDPLDigitizerTask
     mID = DETID;
     mOrigin = DETOR;
   }
+  void setDigitizationOptions() override
+  {
+    auto& dopt = o2::itsmft::DPLDigitizerParam<DETID>::Instance();
+    auto& aopt = o2::itsmft::DPLAlpideParam<DETID>::Instance();
+    auto& digipar = mDigitizer.getParams();
+    digipar.setContinuous(dopt.continuous);
+    digipar.setROFrameLength(aopt.roFrameLength); // RO frame in ns
+    digipar.setStrobeDelay(aopt.strobeDelay);     // Strobe delay wrt beginning of the RO frame, in ns
+    digipar.setStrobeLength(aopt.strobeLength);   // Strobe length in ns
+    // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
+    digipar.getSignalShape().setParameters(dopt.strobeFlatTop, dopt.strobeMaxRiseTime, dopt.strobeQRiseTime0);
+    digipar.setChargeThreshold(dopt.chargeThreshold); // charge threshold in electrons
+    digipar.setNoisePerPixel(dopt.noisePerPixel);     // noise level
+    digipar.setTimeOffset(dopt.timeOffset);
+    digipar.setNSimSteps(dopt.nSimSteps);
+  }
 };
 
 constexpr o2::detectors::DetID::ID ITSDPLDigitizerTask::DETID;
@@ -320,6 +328,23 @@ class MFTDPLDigitizerTask : public ITSMFTDPLDigitizerTask
     mID = DETID;
     mOrigin = DETOR;
   }
+
+  void setDigitizationOptions() override
+  {
+    auto& dopt = o2::itsmft::DPLDigitizerParam<DETID>::Instance();
+    auto& aopt = o2::itsmft::DPLAlpideParam<DETID>::Instance();
+    auto& digipar = mDigitizer.getParams();
+    digipar.setContinuous(dopt.continuous);
+    digipar.setROFrameLength(aopt.roFrameLength); // RO frame in ns
+    digipar.setStrobeDelay(aopt.strobeDelay);     // Strobe delay wrt beginning of the RO frame, in ns
+    digipar.setStrobeLength(aopt.strobeLength);   // Strobe length in ns
+    // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
+    digipar.getSignalShape().setParameters(dopt.strobeFlatTop, dopt.strobeMaxRiseTime, dopt.strobeQRiseTime0);
+    digipar.setChargeThreshold(dopt.chargeThreshold); // charge threshold in electrons
+    digipar.setNoisePerPixel(dopt.noisePerPixel);     // noise level
+    digipar.setTimeOffset(dopt.timeOffset);
+    digipar.setNSimSteps(dopt.nSimSteps);
+  }
 };
 
 constexpr o2::detectors::DetID::ID MFTDPLDigitizerTask::DETID;
@@ -329,45 +354,54 @@ DataProcessorSpec getITSDigitizerSpec(int channel)
 {
   std::string detStr = o2::detectors::DetID::getName(ITSDPLDigitizerTask::DETID);
   auto detOrig = ITSDPLDigitizerTask::DETOR;
-  return DataProcessorSpec{ (detStr + "Digitizer").c_str(),
-                            Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT",
-                                               static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
-                            Outputs{
-                              OutputSpec{ detOrig, "DIGITS", 0, Lifetime::Timeframe },
-                              OutputSpec{ detOrig, "DIGITSROF", 0, Lifetime::Timeframe },
-                              OutputSpec{ detOrig, "DIGITSMC2ROF", 0, Lifetime::Timeframe },
-                              OutputSpec{ detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe },
-                              OutputSpec{ detOrig, "ROMode", 0, Lifetime::Timeframe } },
-                            AlgorithmSpec{ adaptFromTask<ITSDPLDigitizerTask>() },
-                            Options{
-                              { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
-                              { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
-                              { "simFileQED", VariantType::String, "", { "Sim (QED) input filename" } },
-                              { "noise", VariantType::Float, 1.e-7f, { "Noise per pixel" } },
-                              { (detStr + "triggered").c_str(), VariantType::Bool, false, { "Impose triggered RO mode (default: continuous)" } } } };
+  std::stringstream parHelper;
+  parHelper << "Params as " << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
+            << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::Instance()
+            << "\n or " << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
+            << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::Instance();
+  return DataProcessorSpec{(detStr + "Digitizer").c_str(),
+                           Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT",
+                                            static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
+                           Outputs{
+                             OutputSpec{detOrig, "DIGITS", 0, Lifetime::Timeframe},
+                             OutputSpec{detOrig, "DIGITSROF", 0, Lifetime::Timeframe},
+                             OutputSpec{detOrig, "DIGITSMC2ROF", 0, Lifetime::Timeframe},
+                             OutputSpec{detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe},
+                             OutputSpec{detOrig, "ROMode", 0, Lifetime::Timeframe}},
+                           AlgorithmSpec{adaptFromTask<ITSDPLDigitizerTask>()},
+                           Options{
+                             {"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
+                             {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
+                             {"simFileQED", VariantType::String, "", {"Sim (QED) input filename"}},
+                             //  { "configKeyValues", VariantType::String, "", { parHelper.str().c_str() } }
+                           }};
 }
 
 DataProcessorSpec getMFTDigitizerSpec(int channel)
 {
   std::string detStr = o2::detectors::DetID::getName(MFTDPLDigitizerTask::DETID);
   auto detOrig = MFTDPLDigitizerTask::DETOR;
-  return DataProcessorSpec{ (detStr + "Digitizer").c_str(),
-                            Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT",
-                                               static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
-                            Outputs{
-                              OutputSpec{ detOrig, "DIGITS", 0, Lifetime::Timeframe },
-                              OutputSpec{ detOrig, "DIGITSROF", 0, Lifetime::Timeframe },
-                              OutputSpec{ detOrig, "DIGITSMC2ROF", 0, Lifetime::Timeframe },
-                              OutputSpec{ detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe },
-                              OutputSpec{ detOrig, "ROMode", 0, Lifetime::Timeframe } },
-                            AlgorithmSpec{ adaptFromTask<MFTDPLDigitizerTask>() },
-                            Options{
-                              { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
-                              { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
-                              { "simFileQED", VariantType::String, "", { "Sim (QED) input filename" } },
-                              { "noise", VariantType::Float, 1.e-7f, { "Noise per pixel" } },
-                              { (detStr + "triggered").c_str(), VariantType::Bool, false, { "Impose triggered RO mode (default: continuous)" } } } };
+  std::stringstream parHelper;
+
+  parHelper << "Params as " << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
+            << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::Instance()
+            << " or " << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
+            << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::Instance();
+  return DataProcessorSpec{(detStr + "Digitizer").c_str(),
+                           Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT",
+                                            static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
+                           Outputs{
+                             OutputSpec{detOrig, "DIGITS", 0, Lifetime::Timeframe},
+                             OutputSpec{detOrig, "DIGITSROF", 0, Lifetime::Timeframe},
+                             OutputSpec{detOrig, "DIGITSMC2ROF", 0, Lifetime::Timeframe},
+                             OutputSpec{detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe},
+                             OutputSpec{detOrig, "ROMode", 0, Lifetime::Timeframe}},
+                           AlgorithmSpec{adaptFromTask<MFTDPLDigitizerTask>()},
+                           Options{
+                             {"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
+                             {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
+                             {"simFileQED", VariantType::String, "", {"Sim (QED) input filename"}}}};
 }
 
-} // end namespace ITSMFT
+} // end namespace itsmft
 } // end namespace o2

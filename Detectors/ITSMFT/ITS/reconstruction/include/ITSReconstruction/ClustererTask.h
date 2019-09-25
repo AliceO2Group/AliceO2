@@ -14,8 +14,6 @@
 #ifndef ALICEO2_ITS_CLUSTERERTASK
 #define ALICEO2_ITS_CLUSTERERTASK
 
-#include "FairTask.h"
-
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/PixelReader.h"
@@ -24,6 +22,7 @@
 #include "ITSMFTReconstruction/Clusterer.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <memory>
@@ -33,46 +32,44 @@ namespace o2
 class MCCompLabel;
 namespace dataformats
 {
-  template<typename T>
-  class MCTruthContainer;
+template <typename T>
+class MCTruthContainer;
 }
 
-namespace ITS
+namespace its
 {
 
-class ClustererTask : public FairTask
+class ClustererTask
 {
-  using Clusterer = o2::ITSMFT::Clusterer;
-  using Cluster = o2::ITSMFT::Cluster;
-  using CompCluster = o2::ITSMFT::CompCluster;
-  using CompClusterExt = o2::ITSMFT::CompClusterExt;
+  using Clusterer = o2::itsmft::Clusterer;
+  using Cluster = o2::itsmft::Cluster;
+  using CompCluster = o2::itsmft::CompCluster;
+  using CompClusterExt = o2::itsmft::CompClusterExt;
   using MCTruth = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
  public:
   ClustererTask(bool useMC = true, bool raw = false);
-  ~ClustererTask() override;
+  ~ClustererTask();
 
-  InitStatus Init() override;
-  void Exec(Option_t* option) override;
+  void Init();
   Clusterer& getClusterer() { return mClusterer; }
   void run(const std::string inpName, const std::string outName, bool entryPerROF = true);
   void setSelfManagedMode(bool v) { mSelfManagedMode = v; }
   bool isSelfManagedMode() const { return mSelfManagedMode; }
-  void attachFairManagerIO();
-  o2::ITSMFT::PixelReader* getReader() const { return (o2::ITSMFT::PixelReader*)mReader; }
+  o2::itsmft::PixelReader* getReader() const { return (o2::itsmft::PixelReader*)mReader; }
 
   void loadDictionary(std::string fileName) { mClusterer.loadDictionary(fileName); }
 
  private:
-  bool mSelfManagedMode = false;                          ///< manages itself input output
-  bool mRawDataMode = false;                              ///< input from raw data or MC digits
-  bool mUseMCTruth = true;                                ///< flag to use MCtruth if available
-  o2::ITSMFT::PixelReader* mReader = nullptr;             ///< Pointer on the relevant Pixel reader
-  std::unique_ptr<o2::ITSMFT::DigitPixelReader> mReaderMC;                            ///< reader for MC data
-  std::unique_ptr<o2::ITSMFT::RawPixelReader<o2::ITSMFT::ChipMappingITS>> mReaderRaw; ///< reader for raw data
+  bool mSelfManagedMode = false;                                                      ///< manages itself input output
+  bool mRawDataMode = false;                                                          ///< input from raw data or MC digits
+  bool mUseMCTruth = true;                                                            ///< flag to use MCtruth if available
+  o2::itsmft::PixelReader* mReader = nullptr;                                         ///< Pointer on the relevant Pixel reader
+  std::unique_ptr<o2::itsmft::DigitPixelReader> mReaderMC;                            ///< reader for MC data
+  std::unique_ptr<o2::itsmft::RawPixelReader<o2::itsmft::ChipMappingITS>> mReaderRaw; ///< reader for raw data
 
-  const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr;    ///< ITS OR MFT upgrade geometry
-  Clusterer mClusterer;                                   ///< Cluster finder
+  const o2::itsmft::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
+  Clusterer mClusterer;                                ///< Cluster finder
 
   std::vector<Cluster> mFullClus;               //!< vector of full clusters
   std::vector<Cluster>* mFullClusPtr = nullptr; //!< vector of full clusters pointer
@@ -80,12 +77,15 @@ class ClustererTask : public FairTask
   std::vector<CompClusterExt> mCompClus;               //!< vector of compact clusters
   std::vector<CompClusterExt>* mCompClusPtr = nullptr; //!< vector of compact clusters pointer
 
-  MCTruth mClsLabels;                                        //! MC labels
-  MCTruth* mClsLabelsPtr = nullptr;                          //! MC labels pointer (optional)
+  std::vector<o2::itsmft::ROFRecord> mROFRecVec;               //!< vector of ROFRecord references
+  std::vector<o2::itsmft::ROFRecord>* mROFRecVecPtr = nullptr; //!< vector of ROFRecord references pointer
 
-  ClassDefOverride(ClustererTask, 1)
+  MCTruth mClsLabels;               //! MC labels
+  MCTruth* mClsLabelsPtr = nullptr; //! MC labels pointer (optional)
+
+  ClassDefNV(ClustererTask, 1);
 };
-}
-}
+} // namespace its
+} // namespace o2
 
 #endif /* ALICEO2_ITS_CLUSTERERTASK */

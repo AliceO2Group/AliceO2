@@ -13,6 +13,7 @@
 
 #include <string>
 #include <vector>
+#include <iostream>
 
 namespace bpo = boost::program_options;
 
@@ -24,18 +25,19 @@ namespace framework
 /// this creates the boost program options description from the ConfigParamSpec
 /// taking the VariantType into account
 void ConfigParamsHelper::populateBoostProgramOptions(
-    bpo::options_description &options,
-    const std::vector<ConfigParamSpec> &specs,
-    bpo::options_description vetos
-  ) {
+  bpo::options_description& options,
+  const std::vector<ConfigParamSpec>& specs,
+  bpo::options_description vetos)
+{
   auto proxy = options.add_options();
-  for (auto & spec : specs) {
+  for (auto& spec : specs) {
     // skip everything found in the veto definition
-    if (vetos.find_nothrow(spec.name, false)) continue;
-    const char *name = spec.name.c_str();
-    const char *help = spec.help.c_str();
+    if (vetos.find_nothrow(spec.name, false))
+      continue;
+    const char* name = spec.name.c_str();
+    const char* help = spec.help.c_str();
 
-    switch(spec.type) {
+    switch (spec.type) {
       // FIXME: Should we handle int and size_t diffently?
       // FIXME: We should probably raise an error if the type is unknown
       case VariantType::Int:
@@ -63,15 +65,23 @@ void ConfigParamsHelper::populateBoostProgramOptions(
 
 /// populate boost program options making all options of type string
 /// this is used for filtering the command line argument
-bool ConfigParamsHelper::prepareOptionsDescription(const std::vector<ConfigParamSpec>& spec,
-                                                   boost::program_options::options_description& options,
-                                                   boost::program_options::options_description vetos)
+bool ConfigParamsHelper::dpl2BoostOptions(const std::vector<ConfigParamSpec>& spec,
+                                          boost::program_options::options_description& options,
+                                          boost::program_options::options_description vetos)
 {
   bool haveOption = false;
   for (const auto& configSpec : spec) {
     // skip everything found in the veto definition
-    if (vetos.find_nothrow(configSpec.name, false))
-      continue;
+    try {
+      if (vetos.find_nothrow(configSpec.name, false))
+        continue;
+    } catch (boost::program_options::ambiguous_option& e) {
+      for (auto& alternative : e.alternatives()) {
+        std::cerr << alternative << std::endl;
+      }
+      throw;
+    }
+
     haveOption = true;
     std::stringstream defaultValue;
     defaultValue << configSpec.defaultValue;
@@ -89,5 +99,5 @@ bool ConfigParamsHelper::prepareOptionsDescription(const std::vector<ConfigParam
   return haveOption;
 }
 
-}
-}
+} // namespace framework
+} // namespace o2

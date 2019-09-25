@@ -21,23 +21,21 @@
 #include "TimeFrame/TimeFrame.h"
 #include "Headers/SubframeMetadata.h"
 #include "Headers/DataHeader.h"
+#include "O2Device/Compatibility.h"
+
 #include <options/FairMQProgOptions.h>
 #include <boost/filesystem.hpp>
 
-
 using DataHeader = o2::header::DataHeader;
-using IndexElement = o2::DataFormat::IndexElement;
+using IndexElement = o2::dataformats::IndexElement;
 
-namespace o2 { namespace DataFlow {
+namespace o2
+{
+namespace data_flow
+{
 
 TimeframeWriterDevice::TimeframeWriterDevice()
-  : O2Device{}
-  , mInChannelName{}
-  , mFile{}
-  , mMaxTimeframes{}
-  , mMaxFileSize{}
-  , mMaxFiles{}
-  , mFileCount{0}
+  : O2Device{}, mInChannelName{}, mFile{}, mMaxTimeframes{}, mMaxFileSize{}, mMaxFiles{}, mFileCount{0}
 {
 }
 
@@ -55,15 +53,15 @@ void TimeframeWriterDevice::Run()
   boost::filesystem::path p(mOutFileName);
   size_t streamedTimeframes = 0;
   bool needsNewFile = true;
-  while (CheckCurrentState(RUNNING) && mFileCount < mMaxFiles) {
+  while (compatibility::FairMQ13<FairMQDevice>::IsRunning(this) && mFileCount < mMaxFiles) {
     // In case we need to process more than one file,
     // the filename is split in basename and extension
     // and we call the files `<basename><count>.<extension>`.
     if (needsNewFile) {
       std::string filename = mOutFileName;
       if (mMaxFiles > 1) {
-        std::string base_path(mOutFileName,  0, mOutFileName.find_last_of("."));
-        std::string extension(mOutFileName,  mOutFileName.find_last_of("."));
+        std::string base_path(mOutFileName, 0, mOutFileName.find_last_of("."));
+        std::string extension(mOutFileName, mOutFileName.find_last_of("."));
         filename = base_path + std::to_string(mFileCount) + extension;
       }
       LOG(INFO) << "Opening " << filename << " for output\n";
@@ -76,8 +74,7 @@ void TimeframeWriterDevice::Run()
       continue;
 
     streamTimeframe(mFile, timeframeParts);
-    if ((mFile.tellp() > mMaxFileSize) || (streamedTimeframes++ > mMaxTimeframes))
-    {
+    if ((mFile.tellp() > mMaxFileSize) || (streamedTimeframes++ > mMaxTimeframes)) {
       mFile.flush();
       mFile.close();
       mFileCount++;
@@ -94,4 +91,5 @@ void TimeframeWriterDevice::PostRun()
   }
 }
 
-}} // namespace o2::DataFlow
+} // namespace data_flow
+} // namespace o2

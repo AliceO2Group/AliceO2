@@ -22,7 +22,9 @@ namespace constants
 namespace lhc
 {
 // LHC Beam1 and Beam2 definitions
-enum BeamDirection : int { BeamClockWise, BeamAntiClockWise, NBeamDirections };
+enum BeamDirection : int { BeamClockWise,
+                           BeamAntiClockWise,
+                           NBeamDirections };
 static constexpr int LHCMaxBunches = 3564;                              // max N bunches
 static constexpr double LHCRFFreq = 400.789e6;                          // LHC RF frequency in Hz
 static constexpr double LHCBunchSpacingNS = 10 * 1.e9 / LHCRFFreq;      // bunch spacing in ns (10 RFbuckets)
@@ -30,8 +32,8 @@ static constexpr double LHCOrbitNS = LHCMaxBunches * LHCBunchSpacingNS; // orbit
 static constexpr double LHCRevFreq = 1.e9 / LHCOrbitNS;                 // revolution frequency
 
 static constexpr unsigned int MaxNOrbits = 0xffffffff;
-}
-}
-}
+} // namespace lhc
+} // namespace constants
+} // namespace o2
 
 #endif

@@ -1,4 +1,4 @@
-
+// Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
 //
@@ -10,7 +10,6 @@
 #ifndef FRAMEWORK_STRINGCONTEXT_H
 #define FRAMEWORK_STRINGCONTEXT_H
 
-#include "Framework/ContextRegistry.h"
 #include "Framework/FairMQDeviceProxy.h"
 #include <vector>
 #include <cassert>
@@ -31,7 +30,7 @@ class StringContext
 {
  public:
   StringContext(FairMQDeviceProxy proxy)
-    : mProxy{ proxy }
+    : mProxy{proxy}
   {
   }
 
@@ -47,9 +46,9 @@ class StringContext
                  std::unique_ptr<std::string> s,
                  const std::string& channel)
   {
-    mMessages.push_back(std::move(MessageRef{ std::move(header),
-                                              std::move(s),
-                                              channel }));
+    mMessages.push_back(std::move(MessageRef{std::move(header),
+                                             std::move(s),
+                                             channel}));
   }
 
   Messages::iterator begin()
@@ -88,22 +87,6 @@ class StringContext
   FairMQDeviceProxy mProxy;
   Messages mMessages;
 };
-
-/// Helper to get the context from the registry.
-template <>
-inline StringContext*
-  ContextRegistry::get<StringContext>()
-{
-  return reinterpret_cast<StringContext*>(mContextes[2]);
-}
-
-/// Helper to set the context from the registry.
-template <>
-inline void
-  ContextRegistry::set<StringContext>(StringContext* context)
-{
-  mContextes[2] = context;
-}
 
 } // namespace framework
 } // namespace o2

@@ -14,20 +14,20 @@
 #pragma link off all functions;
 #pragma link C++ enum o2::TransformType;
 
-#pragma link C++ class o2::mathUtils::Chebyshev3D + ;
-#pragma link C++ class o2::mathUtils::Chebyshev3DCalc + ;
+#pragma link C++ class o2::math_utils::Chebyshev3D + ;
+#pragma link C++ class o2::math_utils::Chebyshev3DCalc + ;
 
-#pragma link C++ namespace o2::mathUtils::mathBase;
+#pragma link C++ namespace o2::math_utils::math_base;
 
-#pragma link C++ function o2::mathUtils::mathBase::fitGaus < float > ;
-#pragma link C++ function o2::mathUtils::mathBase::fitGaus < double > ;
+#pragma link C++ function o2::math_utils::math_base::fitGaus < float>;
+#pragma link C++ function o2::math_utils::math_base::fitGaus < double>;
 
-#pragma link C++ function o2::mathUtils::mathBase::getStatisticsData < float > ;
-#pragma link C++ function o2::mathUtils::mathBase::getStatisticsData < double > ;
-#pragma link C++ function o2::mathUtils::mathBase::getStatisticsData < short > ;
+#pragma link C++ function o2::math_utils::math_base::getStatisticsData < float>;
+#pragma link C++ function o2::math_utils::math_base::getStatisticsData < double>;
+#pragma link C++ function o2::math_utils::math_base::getStatisticsData < short>;
 
 #pragma link C++ class o2::Transform3D + ;
 #pragma link C++ class o2::Rotation2D + ;
-#pragma link C++ class o2::Base::CachingTF1 + ;
+#pragma link C++ class o2::base::CachingTF1 + ;
 
 #endif

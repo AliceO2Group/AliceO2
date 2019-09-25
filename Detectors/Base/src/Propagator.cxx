@@ -13,12 +13,15 @@
 #include <FairRunAna.h> // eventually will get rid of it
 #include <TGeoGlobalMagField.h>
 #include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsBase/GeometryManager.h"
 #include "Field/MagFieldFast.h"
 #include "Field/MagneticField.h"
 #include "MathUtils/Utils.h"
 
-using namespace o2::Base;
+using namespace o2::base;
+
+constexpr int Propagator::USEMatCorrNONE;
+constexpr int Propagator::USEMatCorrTGeo;
+constexpr int Propagator::USEMatCorrLUT;
 
 Propagator::Propagator()
 {
@@ -26,29 +29,29 @@ Propagator::Propagator()
 
   // we need the geoemtry loaded
   if (!gGeoManager) {
-    LOG(FATAL) << "No active geometry!" << FairLogger::endl;
+    LOG(FATAL) << "No active geometry!";
   }
 
   o2::field::MagneticField* slowField = nullptr;
   slowField = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
   if (!slowField) {
-    LOG(WARNING) << "No Magnetic Field in TGeoGlobalMagField, checking legacy FairRunAna" << FairLogger::endl;
+    LOG(WARNING) << "No Magnetic Field in TGeoGlobalMagField, checking legacy FairRunAna";
     slowField = dynamic_cast<o2::field::MagneticField*>(FairRunAna::Instance()->GetField());
   }
   if (!slowField) {
-    LOG(FATAL) << "Magnetic field is not initialized!" << FairLogger::endl;
+    LOG(FATAL) << "Magnetic field is not initialized!";
   }
   if (!slowField->getFastField()) {
     slowField->AllowFastField(true);
   }
   mField = slowField->getFastField();
-  const float xyz[3] = { 0. };
+  const float xyz[3] = {0.};
   mField->GetBz(xyz, mBz);
 }
 
 //_______________________________________________________________________
 bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, float mass, float maxSnp, float maxStep,
-                                    int matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr)
+                                    int matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
 {
   //----------------------------------------------------------------
   //
@@ -59,6 +62,8 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
   // mass     - mass used in propagation - used for energy loss correction (if <0 then q=2)
   // maxStep  - maximal step for propagation
   // tofInfo  - optional container for track length and PID-dependent TOF integration
+  //
+  // matCorr  - material correction type, it is up to the user to make sure the pointer is attached (if LUT is requested)
   //----------------------------------------------------------------
   const float Epsilon = 0.00001;
   auto dx = xToGo - track.getX();
@@ -83,9 +88,9 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
     if (maxSnp > 0 && std::abs(track.getSnp()) >= maxSnp) {
       return false;
     }
-    if (matCorr) {
+    if (matCorr != USEMatCorrNONE) {
       auto xyz1 = track.getXYZGlo();
-      auto mb = GeometryManager::MeanMaterialBudget(xyz0, xyz1);
+      auto mb = getMatBudget(matCorr, xyz0, xyz1);
       if (!track.correctForMaterial(mb.meanX2X0, ((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho, mass)) {
         return false;
       }
@@ -106,7 +111,7 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
 
 //_______________________________________________________________________
 bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float bZ, float mass, float maxSnp, float maxStep,
-                              int matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr)
+                              int matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
 {
   //----------------------------------------------------------------
   //
@@ -117,6 +122,8 @@ bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float 
   // mass     - mass used in propagation - used for energy loss correction (if <0 then q=2)
   // maxStep  - maximal step for propagation
   // tofInfo  - optional container for track length and PID-dependent TOF integration
+  //
+  // matCorr  - material correction type, it is up to the user to make sure the pointer is attached (if LUT is requested)
   //----------------------------------------------------------------
   const float Epsilon = 0.00001;
   auto dx = xToGo - track.getX();
@@ -139,9 +146,9 @@ bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float 
     if (maxSnp > 0 && std::abs(track.getSnp()) >= maxSnp) {
       return false;
     }
-    if (matCorr) {
+    if (matCorr != USEMatCorrNONE) {
       auto xyz1 = track.getXYZGlo();
-      auto mb = GeometryManager::MeanMaterialBudget(xyz0, xyz1);
+      auto mb = getMatBudget(matCorr, xyz0, xyz1);
       //
       if (!track.correctForMaterial(mb.meanX2X0, ((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho, mass)) {
         return false;
@@ -164,7 +171,7 @@ bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float 
 //_______________________________________________________________________
 bool Propagator::propagateToDCA(const Point3D<float>& vtx, o2::track::TrackParCov& track, float bZ,
                                 float mass, float maxStep, int matCorr,
-                                o2::track::TrackLTIntegral* tofInfo, int signCorr, float maxD)
+                                o2::track::TrackLTIntegral* tofInfo, int signCorr, float maxD) const
 {
   // propagate track to DCA to the vertex
   float sn, cs, alp = track.getAlpha();
@@ -204,7 +211,7 @@ bool Propagator::propagateToDCA(const Point3D<float>& vtx, o2::track::TrackParCo
 int Propagator::initFieldFromGRP(const std::string grpFileName, std::string grpName)
 {
   /// load grp and init magnetic field
-  LOG(INFO) << "Loading field from GRP of " << grpFileName << FairLogger::endl;
+  LOG(INFO) << "Loading field from GRP of " << grpFileName;
   const auto grp = o2::parameters::GRPObject::loadFrom(grpFileName, grpName);
   if (!grp) {
     return -1;
@@ -221,21 +228,20 @@ int Propagator::initFieldFromGRP(const o2::parameters::GRPObject* grp)
 
   if (TGeoGlobalMagField::Instance()->IsLocked()) {
     if (TGeoGlobalMagField::Instance()->GetField()->TestBit(o2::field::MagneticField::kOverrideGRP)) {
-      LOG(WARNING) << "ExpertMode!!! GRP information will be ignored" << FairLogger::endl;
-      LOG(WARNING) << "ExpertMode!!! Running with the externally locked B field" << FairLogger::endl;
+      LOG(WARNING) << "ExpertMode!!! GRP information will be ignored";
+      LOG(WARNING) << "ExpertMode!!! Running with the externally locked B field";
       return 0;
     } else {
-      LOG(INFO) << "Destroying existing B field instance" << FairLogger::endl;
+      LOG(INFO) << "Destroying existing B field instance";
       delete TGeoGlobalMagField::Instance();
     }
   }
   auto fld = o2::field::MagneticField::createFieldMap(grp->getL3Current(), grp->getDipoleCurrent());
   TGeoGlobalMagField::Instance()->SetField(fld);
   TGeoGlobalMagField::Instance()->Lock();
-  LOG(INFO) << "Running with the B field constructed out of GRP" << FairLogger::endl;
-  LOG(INFO) << "Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via" << FairLogger::endl;
-  LOG(INFO) << "auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() )"
-            << FairLogger::endl;
+  LOG(INFO) << "Running with the B field constructed out of GRP";
+  LOG(INFO) << "Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via";
+  LOG(INFO) << "auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() )";
 
   return 0;
 }

@@ -128,16 +128,16 @@ class GRPObject
   timePoint mTimeStart = 0; ///< DAQ_time_start entry from DAQ logbook
   timePoint mTimeEnd = 0;   ///< DAQ_time_end entry from DAQ logbook
 
-  o2::detectors::DetID::mask_t mDetsReadout; ///< mask of detectors which are read out
+  o2::detectors::DetID::mask_t mDetsReadout;      ///< mask of detectors which are read out
   o2::detectors::DetID::mask_t mDetsContinuousRO; ///< mask of detectors read out in continuos mode
-  o2::detectors::DetID::mask_t mDetsTrigger; ///< mask of detectors which provide trigger
+  o2::detectors::DetID::mask_t mDetsTrigger;      ///< mask of detectors which provide trigger
 
   o2::units::AngleRad_t mCrossingAngle = 0.f; ///< crossing angle in radians (as deviation from pi)
   o2::units::Current_t mL3Current = 0.f;      ///< signed current in L3
   o2::units::Current_t mDipoleCurrent = 0.f;  ///< signed current in Dipole
   float mBeamEnergyPerZ = 0.f;                ///< beam energy per charge (i.e. sqrt(s)/2 for pp)
 
-  int mBeamAZ[beamDirection::NBeamDirections] = { 0, 0 }; ///< A<<16+Z for each beam
+  int mBeamAZ[beamDirection::NBeamDirections] = {0, 0}; ///< A<<16+Z for each beam
 
   int mRun = 0;                 ///< run identifier
   int mFill = 0;                ///< fill identifier

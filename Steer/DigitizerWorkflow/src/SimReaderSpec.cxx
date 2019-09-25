@@ -33,7 +33,7 @@ namespace o2
 {
 namespace steer
 {
-DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<int>> tpcsectors,
+DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<int>& tpcsectors,
                                    std::shared_ptr<std::vector<int>> tpcsubchannels)
 {
   // this container will contain the TPC sector assignment per subchannel per invocation
@@ -43,7 +43,7 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
   tpcsectormessages->resize(tpcsubchannels->size());
   int tpcchannelcounter = 0;
   uint64_t activeSectors = 0;
-  for (const auto& tpcsector : *tpcsectors.get()) {
+  for (const auto& tpcsector : tpcsectors) {
     activeSectors |= (uint64_t)0x1 << tpcsector;
     auto actualchannel = (*tpcsubchannels.get())[tpcchannelcounter % tpcsubchannels->size()];
     LOG(DEBUG) << " WILL ASSIGN SECTOR " << tpcsector << " to subchannel " << actualchannel;
@@ -87,10 +87,10 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
         // do this only one
         for (const auto& channel : *tpcsubchannels.get()) {
           // -1 is marker for end of work
-          o2::TPC::TPCSectorHeader header{ -1 };
+          o2::tpc::TPCSectorHeader header{-1};
           header.activeSectors = activeSectors;
           pc.outputs().snapshot(
-            OutputRef{ "collisioncontext", static_cast<SubSpecificationType>(channel), { header } },
+            OutputRef{"collisioncontext", static_cast<SubSpecificationType>(channel), {header}},
             context);
         }
         tpc_end_messagesent = true;
@@ -105,10 +105,10 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
       if (counter < sectors.size()) {
         auto sector = sectors[counter];
         // send the sectorassign as header with the collision context data
-        o2::TPC::TPCSectorHeader header{ sector };
+        o2::tpc::TPCSectorHeader header{sector};
         header.activeSectors = activeSectors;
         pc.outputs().snapshot(
-          OutputRef{ "collisioncontext", static_cast<SubSpecificationType>(tpcchannel), { header } },
+          OutputRef{"collisioncontext", static_cast<SubSpecificationType>(tpcchannel), {header}},
           context);
       }
     }
@@ -122,7 +122,7 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
       }
       LOG(INFO) << "SENDING SOMETHING TO OTHERS";
       pc.outputs().snapshot(
-        OutputRef{ "collisioncontext", static_cast<SubSpecificationType>(subchannel) },
+        OutputRef{"collisioncontext", static_cast<SubSpecificationType>(subchannel)},
         context);
     }
     counter++;
@@ -135,6 +135,7 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
   auto initIt = [doit](InitContext& ctx) {
     // initialize fundamental objects
     auto& mgr = steer::HitProcessingManager::instance();
+
     mgr.addInputFile(ctx.options().get<std::string>("simFile").c_str());
     if (ctx.options().get<std::string>("simFileS").size() > 0) {
       mgr.addInputSignalFile(ctx.options().get<std::string>("simFileS").c_str());
@@ -149,6 +150,15 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
         LOG(FATAL) << "Could not read collision context from " << incontextstring;
       }
     } else {
+
+      auto intRate = ctx.options().get<float>("interactionRate"); // is interaction rate requested?
+      if (intRate < 1.f) {
+        intRate = 1.f;
+      }
+      LOG(INFO) << "Imposing hadronic interaction rate " << intRate << "Hz";
+      mgr.getInteractionSampler().setInteractionRate(intRate);
+      mgr.getInteractionSampler().init();
+
       // number of collisions asked?
       auto col = ctx.options().get<int>("ncollisions");
       if (col != 0) {
@@ -167,26 +177,26 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, std::shared_ptr<std::vector<i
   std::vector<OutputSpec> outputs;
   for (int subchannel = 0; subchannel < fanoutsize; ++subchannel) {
     outputs.emplace_back(
-      OutputSpec{ { "collisioncontext" }, "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(subchannel), Lifetime::Timeframe });
+      OutputSpec{{"collisioncontext"}, "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(subchannel), Lifetime::Timeframe});
   }
 
   return DataProcessorSpec{
     /*ID*/ "SimReader",
     /*INPUT CHANNELS*/ Inputs{}, outputs,
     /* ALGORITHM */
-    AlgorithmSpec{ initIt },
+    AlgorithmSpec{initIt},
     /* OPTIONS */
     Options{
-      { "simFile", VariantType::String, "o2sim.root", { "Sim input filename" } },
-      { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
-      { "simFileQED", VariantType::String, "", { "Sim (QED) input filename" } },
-      { "outcontext", VariantType::String, "collisioncontext.root", { "Output file for collision context" } },
-      { "incontext", VariantType::String, "", { "Take collision context from this file" } },
-      { "ncollisions,n",
-        VariantType::Int,
-        0,
-        { "number of collisions to sample (default is given by number of entries in chain" } } }
-  };
+      {"interactionRate", VariantType::Float, 50000.0f, {"Total hadronic interaction rate (Hz)"}},
+      {"simFile", VariantType::String, "o2sim.root", {"Sim input filename"}},
+      {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
+      {"simFileQED", VariantType::String, "", {"Sim (QED) input filename"}},
+      {"outcontext", VariantType::String, "collisioncontext.root", {"Output file for collision context"}},
+      {"incontext", VariantType::String, "", {"Take collision context from this file"}},
+      {"ncollisions,n",
+       VariantType::Int,
+       0,
+       {"number of collisions to sample (default is given by number of entries in chain"}}}};
 }
-}
-}
+} // namespace steer
+} // namespace o2

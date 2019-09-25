@@ -24,7 +24,7 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 class VSegmentation : public TNamed
@@ -66,7 +66,7 @@ class VSegmentation : public TNamed
 
   ClassDefOverride(VSegmentation, 1);
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

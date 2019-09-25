@@ -45,33 +45,33 @@ namespace
 {
 constexpr double kDegrad = TMath::DegToRad();
 constexpr double kRaddeg = TMath::RadToDeg();
-}
+} // namespace
 
 void Hall::createMaterials()
 {
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
 
   //
   // Create materials for the experimental hall
   //
   Int_t isxfld = 2.;
   Float_t sxmgmx = 10.;
-  o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
+  o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
   isxfld = 0;
 
-  Float_t aconc[10] = { 1., 12.01, 15.994, 22.99, 24.305, 26.98, 28.086, 39.1, 40.08, 55.85 };
-  Float_t zconc[10] = { 1., 6., 8., 11., 12., 13., 14., 19., 20., 26. };
-  Float_t wconc[10] = { .01, .001, .529107, .016, .002, .033872, .337021, .013, .044, .014 };
+  Float_t aconc[10] = {1., 12.01, 15.994, 22.99, 24.305, 26.98, 28.086, 39.1, 40.08, 55.85};
+  Float_t zconc[10] = {1., 6., 8., 11., 12., 13., 14., 19., 20., 26.};
+  Float_t wconc[10] = {.01, .001, .529107, .016, .002, .033872, .337021, .013, .044, .014};
 
-  Float_t aAir[4] = { 12.0107, 14.0067, 15.9994, 39.948 };
-  Float_t zAir[4] = { 6., 7., 8., 18. };
-  Float_t wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
+  Float_t zAir[4] = {6., 7., 8., 18.};
+  Float_t wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   Float_t dAir = 1.20479E-3;
 
   // Steel
-  Float_t asteel[4] = { 55.847, 51.9961, 58.6934, 28.0855 };
-  Float_t zsteel[4] = { 26., 24., 28., 14. };
-  Float_t wsteel[4] = { .715, .18, .1, .005 };
+  Float_t asteel[4] = {55.847, 51.9961, 58.6934, 28.0855};
+  Float_t zsteel[4] = {26., 24., 28., 14.};
+  Float_t wsteel[4] = {.715, .18, .1, .005};
 
   // ****************
   //     Defines tracking media parameters.
@@ -107,7 +107,7 @@ void Hall::createMaterials()
 void Hall::SetSpecialPhysicsCuts()
 {
 
-  using namespace o2::Base;
+  using namespace o2::base;
   // MaterialManager used to set physics cuts
   auto& matmgr = MaterialManager::Instance();
 
@@ -120,13 +120,13 @@ void Hall::SetSpecialPhysicsCuts()
 
   matmgr.SpecialCuts(
     "HALL", kSTST_C2,
-    { { ECut::kCUTGAM, cutgam }, { ECut::kCUTELE, cutele }, { ECut::kCUTNEU, cutneu }, { ECut::kCUTHAD, cuthad } });
+    {{ECut::kCUTGAM, cutgam}, {ECut::kCUTELE, cutele}, {ECut::kCUTNEU, cutneu}, {ECut::kCUTHAD, cuthad}});
   matmgr.SpecialCuts(
     "HALL", kAIR_C2,
-    { { ECut::kCUTGAM, cutgam }, { ECut::kCUTELE, cutele }, { ECut::kCUTNEU, cutneu }, { ECut::kCUTHAD, cuthad } });
+    {{ECut::kCUTGAM, cutgam}, {ECut::kCUTELE, cutele}, {ECut::kCUTNEU, cutneu}, {ECut::kCUTHAD, cuthad}});
   matmgr.SpecialCuts(
     "HALL", kCC_C2,
-    { { ECut::kCUTGAM, cutgam }, { ECut::kCUTELE, cutele }, { ECut::kCUTNEU, cutneu }, { ECut::kCUTHAD, cuthad } });
+    {{ECut::kCUTGAM, cutgam}, {ECut::kCUTELE, cutele}, {ECut::kCUTNEU, cutneu}, {ECut::kCUTHAD, cuthad}});
 }
 
 void Hall::ConstructGeometry()
@@ -153,7 +153,7 @@ void Hall::ConstructGeometry()
   TGeoRotation* rot001 = new TGeoRotation("rot001", 270., 0., 90., 90., 180., 0.);
 
   // Media
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
   TGeoMedium* kMedCC = matmgr.getTGeoMedium("HALL_CC_C2");
   TGeoMedium* kMedST = matmgr.getTGeoMedium("HALL_STST_C2");
   TGeoMedium* kMedAir = matmgr.getTGeoMedium("HALL_AIR_C2");

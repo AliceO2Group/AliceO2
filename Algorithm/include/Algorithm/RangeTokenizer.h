@@ -60,13 +60,13 @@ namespace o2
 ///                                                             } );
 struct RangeTokenizer {
   template <typename T>
-  static std::vector<T> tokenize(std::string input, std::function<T(std::string const&)> convert = [](std::string const& token) {T value; std::istringstream(token) >> value; return value; })
+  static std::vector<T> tokenize(
+    std::string input, std::function<T(std::string const&)> convert = [](std::string const& token) {T value; std::istringstream(token) >> value; return value; })
   {
     std::istringstream stream(input);
     std::string token;
     std::vector<T> res;
     while (std::getline(stream, token, ',')) {
-      T value;
       if (std::is_integral<T>::value && token.find('-') != token.npos) {
         // extract range
         if constexpr (std::is_integral<T>::value) { // c++17 compile time

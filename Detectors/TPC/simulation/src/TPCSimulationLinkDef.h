@@ -14,24 +14,24 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::TPC::Detector + ;
-#pragma link C++ class o2::Base::DetImpl < o2::TPC::Detector > +;
-#pragma link C++ class o2::TPC::DigitMCMetaData + ;
-#pragma link C++ class std::vector < o2::TPC::DigitMCMetaData > +;
-#pragma link C++ class o2::TPC::DigitContainer + ;
-#pragma link C++ class o2::TPC::DigitGlobalPad + ;
-#pragma link C++ class o2::TPC::Digitizer + ;
-#pragma link C++ class o2::TPC::DigitTime + ;
-#pragma link C++ class o2::TPC::ElectronTransport + ;
-#pragma link C++ class o2::TPC::GEMAmplification + ;
-#pragma link C++ class o2::TPC::PadResponse + ;
-#pragma link C++ class o2::TPC::Point + ;
-#pragma link C++ class o2::TPC::ElementalHit + ;
-#pragma link C++ class std::vector < o2::TPC::ElementalHit > +;
-#pragma link C++ class o2::TPC::HitGroup + ;
-#pragma link C++ class o2::TPC::SAMPAProcessing + ;
-#pragma link C++ class o2::TPC::SpaceCharge+;
+#pragma link C++ class o2::tpc::Detector + ;
+#pragma link C++ class o2::base::DetImpl < o2::tpc::Detector> + ;
+#pragma link C++ class o2::tpc::DigitMCMetaData + ;
+#pragma link C++ class std::vector < o2::tpc::DigitMCMetaData> + ;
+#pragma link C++ class o2::tpc::DigitContainer + ;
+#pragma link C++ class o2::tpc::DigitGlobalPad + ;
+#pragma link C++ class o2::tpc::Digitizer + ;
+#pragma link C++ class o2::tpc::DigitTime + ;
+#pragma link C++ class o2::tpc::ElectronTransport + ;
+#pragma link C++ class o2::tpc::GEMAmplification + ;
+#pragma link C++ class o2::tpc::PadResponse + ;
+#pragma link C++ class o2::tpc::Point + ;
+#pragma link C++ class o2::tpc::ElementalHit + ;
+#pragma link C++ class std::vector < o2::tpc::ElementalHit> + ;
+#pragma link C++ class o2::tpc::HitGroup + ;
+#pragma link C++ class o2::tpc::SAMPAProcessing + ;
+#pragma link C++ class o2::tpc::SpaceCharge + ;
 
-#pragma link C++ class std::vector < o2::TPC::HitGroup > +;
+#pragma link C++ class std::vector < o2::tpc::HitGroup> + ;
 
 #endif

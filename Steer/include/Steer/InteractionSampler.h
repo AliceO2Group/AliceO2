@@ -30,8 +30,8 @@ class InteractionSampler
  public:
   static constexpr float Sec2NanoSec = 1.e9; // s->ns conversion
 
-  o2::InteractionRecord generateCollisionTime();
-  void generateCollisionTimes(std::vector<o2::InteractionRecord>& dest);
+  o2::InteractionTimeRecord generateCollisionTime();
+  void generateCollisionTimes(std::vector<o2::InteractionTimeRecord>& dest);
 
   void init();
 
@@ -54,16 +54,16 @@ class InteractionSampler
   void nextCollidingBC();
   void warnOrbitWrapped() const;
 
-  int mIntBCCache = 0;            ///< N interactions left for current BC
-  int mBCCurrent = 0;             ///< current BC
-  unsigned int mOrbit = 0;        ///< current orbit
-  int mBCMin = 0;                 ///< 1st filled BCID
-  int mBCMax = -1;                ///< last filled BCID
-  float mIntRate = -1.;           ///< total interaction rate in Hz
-  float mBCTimeRMS = 0.2;         ///< BC time spread in NANOSECONDS
-  float mMuBC = -1.;              ///< interaction probability per BC
-  float mProbNoInteraction = 1.;  ///< probability of BC w/o interaction
-  float mMuBCZTRed = 0;           ///< reduced mu for fast zero-truncated Poisson derivation
+  int mIntBCCache = 0;         ///< N interactions left for current BC
+  int mBCCurrent = 0;          ///< current BC
+  unsigned int mOrbit = 0;     ///< current orbit
+  int mBCMin = 0;              ///< 1st filled BCID
+  int mBCMax = -1;             ///< last filled BCID
+  float mIntRate = -1.;        ///< total interaction rate in Hz
+  float mBCTimeRMS = 0.2;      ///< BC time spread in NANOSECONDS
+  float mMuBC = -1.;           ///< interaction probability per BC
+  float mProbInteraction = 1.; ///< probability of non-0 interactions at per BC
+  float mMuBCZTRed = 0;        ///< reduced mu for fast zero-truncated Poisson derivation
 
   o2::BunchFilling mBCFilling;  ///< patter of active BCs
   std::vector<float> mTimeInBC; ///< interaction times within single BC
@@ -74,7 +74,7 @@ class InteractionSampler
 };
 
 //_________________________________________________
-inline void InteractionSampler::generateCollisionTimes(std::vector<o2::InteractionRecord>& dest)
+inline void InteractionSampler::generateCollisionTimes(std::vector<o2::InteractionTimeRecord>& dest)
 {
   // fill vector with interaction records
   dest.clear();
@@ -110,7 +110,7 @@ inline int InteractionSampler::genPoissonZT()
   }
   return k;
 }
-}
-}
+} // namespace steer
+} // namespace o2
 
 #endif

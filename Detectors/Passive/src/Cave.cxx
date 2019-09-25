@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 /********************************************************************************
  *    Copyright (C) 2014 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH    *
  *                                                                              *
@@ -25,25 +24,26 @@
 #include "DetectorsBase/Detector.h"
 #include "DetectorsPassive/Cave.h"
 #include "SimConfig/SimConfig.h"
+#include "SimConfig/SimCutParams.h"
 #include <TRandom.h>
 #include "FairLogger.h"
 #include "TGeoManager.h"
 #include "TGeoVolume.h"
 
-using namespace o2::Passive;
+using namespace o2::passive;
 
 void Cave::createMaterials()
 {
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
   // Create materials and media
   Int_t isxfld;
   Float_t sxmgmx;
-  o2::Base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
+  o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
   // AIR
-  Float_t aAir[4] = { 12.0107, 14.0067, 15.9994, 39.948 };
-  Float_t zAir[4] = { 6., 7., 8., 18. };
-  Float_t wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
+  Float_t zAir[4] = {6., 7., 8., 18.};
+  Float_t wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   Float_t dAir = 1.20479E-3 * 960. / 1014.;
 
   //
@@ -55,7 +55,7 @@ void Cave::createMaterials()
 void Cave::ConstructGeometry()
 {
   createMaterials();
-  auto& matmgr = o2::Base::MaterialManager::Instance();
+  auto& matmgr = o2::base::MaterialManager::Instance();
   Float_t dALIC[3];
 
   if (mHasZDC) {
@@ -92,7 +92,7 @@ Cave& Cave::operator=(const Cave& rhs)
 FairModule* Cave::CloneModule() const { return new Cave(*this); }
 void Cave::FinishPrimary()
 {
-  LOG(DEBUG) << "CAVE: Primary finished" << FairLogger::endl;
+  LOG(DEBUG) << "CAVE: Primary finished";
   for (auto& f : mFinishPrimaryHooks) {
     f();
   }
@@ -105,14 +105,17 @@ void Cave::BeginPrimary()
 {
   static int primcounter = 0;
 
-  auto& conf = o2::conf::SimConfig::Instance();
-  auto chunks = conf.getInternalChunkSize();
-  if (chunks != -1) {
-    if (primcounter % chunks == 0) {
-      static int counter = 1;
-      auto seed = counter + 10;
-      gRandom->SetSeed(seed);
-      counter++;
+  // only do it, if not in pure trackSeeding mode
+  if (!o2::conf::SimCutParams::Instance().trackSeed) {
+    auto& conf = o2::conf::SimConfig::Instance();
+    auto chunks = conf.getInternalChunkSize();
+    if (chunks != -1) {
+      if (primcounter % chunks == 0) {
+        static int counter = 1;
+        auto seed = counter + 10;
+        gRandom->SetSeed(seed);
+        counter++;
+      }
     }
   }
   primcounter++;
@@ -124,4 +127,4 @@ bool Cave::ProcessHits(FairVolume*)
   return false;
 }
 
-ClassImp(o2::Passive::Cave)
+ClassImp(o2::passive::Cave);

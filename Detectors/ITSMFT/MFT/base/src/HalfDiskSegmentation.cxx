@@ -21,8 +21,8 @@
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
 
-using namespace o2::MFT;
-using namespace o2::ITSMFT;
+using namespace o2::mft;
+using namespace o2::itsmft;
 
 ClassImp(HalfDiskSegmentation);
 
@@ -41,14 +41,14 @@ HalfDiskSegmentation::HalfDiskSegmentation(UInt_t uniqueID) : VSegmentation(), m
   // constructor
   SetUniqueID(uniqueID);
 
-  LOG(DEBUG1) << "Start creating half-disk UniqueID = " << GetUniqueID() << FairLogger::endl;
+  LOG(DEBUG1) << "Start creating half-disk UniqueID = " << GetUniqueID();
 
   Geometry* mftGeom = Geometry::instance();
 
   SetName(Form("%s_%d_%d", GeometryTGeo::getMFTDiskPattern(), mftGeom->getHalfID(GetUniqueID()),
                mftGeom->getDiskID(GetUniqueID())));
 
-  mLadders = new TClonesArray("o2::MFT::LadderSegmentation");
+  mLadders = new TClonesArray("o2::mft::LadderSegmentation");
   mLadders->SetOwner(kTRUE);
 }
 
@@ -63,7 +63,7 @@ HalfDiskSegmentation::HalfDiskSegmentation(const HalfDiskSegmentation& input)
   if (input.mLadders)
     mLadders = new TClonesArray(*(input.mLadders));
   else
-    mLadders = new TClonesArray("o2::MFT::LadderSegmentation");
+    mLadders = new TClonesArray("o2::mft::LadderSegmentation");
   mLadders->SetOwner(kTRUE);
 }
 
@@ -90,7 +90,7 @@ void HalfDiskSegmentation::createLadders(TXMLEngine* xml, XMLNodePointer_t node)
   Int_t iladder;
   Int_t nsensor;
   Double_t pos[3];
-  Double_t ang[3] = { 0., 0., 0. };
+  Double_t ang[3] = {0., 0., 0.};
 
   Geometry* mftGeom = Geometry::instance();
 
@@ -103,7 +103,7 @@ void HalfDiskSegmentation::createLadders(TXMLEngine* xml, XMLNodePointer_t node)
       if (!attrName.CompareTo("iladder")) {
         iladder = attrVal.Atoi();
         if (iladder >= getNLadders() || iladder < 0) {
-          LOG(FATAL) << "Wrong ladder number : " << iladder << FairLogger::endl;
+          LOG(FATAL) << "Wrong ladder number : " << iladder;
         }
       } else if (!attrName.CompareTo("nsensor")) {
         nsensor = attrVal.Atoi();
@@ -120,7 +120,7 @@ void HalfDiskSegmentation::createLadders(TXMLEngine* xml, XMLNodePointer_t node)
       } else if (!attrName.CompareTo("psi")) {
         ang[2] = attrVal.Atof();
       } else {
-        LOG(ERROR) << "Unknwon Attribute name " << xml->GetAttrName(attr) << FairLogger::endl;
+        LOG(ERROR) << "Unknwon Attribute name " << xml->GetAttrName(attr);
       }
       attr = xml->GetNextAttr(attr);
     }

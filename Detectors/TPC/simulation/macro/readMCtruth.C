@@ -12,14 +12,23 @@
 /// \brief This macro demonstrates how to extract the MC truth information from
 /// the digits
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
+
+#if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <vector>
+#include "TFile.h"
+#include "TTree.h"
+#include "TPCBase/Digit.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include <iostream>
+#endif
 
 void readMCtruth(std::string filename)
 {
   TFile* digitFile = TFile::Open(filename.data());
   TTree* digitTree = (TTree*)digitFile->Get("o2sim");
 
-  std::vector<o2::TPC::Digit>* digits = nullptr;
+  std::vector<o2::tpc::Digit>* digits = nullptr;
   digitTree->SetBranchAddress("TPCDigit", &digits);
 
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthArray;

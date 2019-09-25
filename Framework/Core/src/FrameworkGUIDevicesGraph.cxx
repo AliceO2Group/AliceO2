@@ -96,20 +96,38 @@ void displayGrid(bool show_grid, ImVec2 offset, ImDrawList* draw_list)
   }
 }
 
+#define MAX_GROUP_NAME_SIZE 128
+
+// Private helper struct to keep track of node groups
+struct Group {
+  int ID;
+  char name[MAX_GROUP_NAME_SIZE];
+  size_t metadataId;
+  Group(int id, char const* n, size_t mid)
+  {
+    ID = id;
+    strncpy(name, n, MAX_GROUP_NAME_SIZE);
+    name[MAX_GROUP_NAME_SIZE - 1] = 0;
+    metadataId = mid;
+  }
+};
+
 // Private helper struct for the graph model
 struct Node {
   int ID;
-  char Name[32];
+  int GroupID;
+  char Name[64];
   ImVec2 Size;
   float Value;
   ImVec4 Color;
   int InputsCount, OutputsCount;
 
-  Node(int id, const char* name, float value, const ImVec4& color, int inputs_count, int outputs_count)
+  Node(int id, int groupID, char const* name, float value, const ImVec4& color, int inputs_count, int outputs_count)
   {
     ID = id;
-    strncpy(Name, name, 31);
-    Name[31] = 0;
+    GroupID = groupID;
+    strncpy(Name, name, 63);
+    Name[63] = 0;
     Value = value;
     Color = color;
     InputsCount = inputs_count;
@@ -150,10 +168,11 @@ struct NodeLink {
 };
 
 void showTopologyNodeGraph(WorkspaceGUIState& state,
-                           const std::vector<DeviceInfo>& infos,
-                           const std::vector<DeviceSpec>& specs,
+                           std::vector<DeviceInfo> const& infos,
+                           std::vector<DeviceSpec> const& specs,
+                           std::vector<DataProcessorInfo> const& metadata,
                            std::vector<DeviceControl>& controls,
-                           const std::vector<DeviceMetricsInfo>& metricsInfos)
+                           std::vector<DeviceMetricsInfo> const& metricsInfos)
 {
   ImGui::SetNextWindowPos(ImVec2(0, 0), 0);
   if (state.bottomPaneVisible) {
@@ -165,6 +184,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
   ImGui::Begin("Physical topology view", nullptr, ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
 
   static ImVector<Node> nodes;
+  static ImVector<Group> groups;
   static ImVector<NodeLink> links;
   static ImVector<NodePos> positions;
 
@@ -173,7 +193,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
   static bool show_grid = true;
   static int node_selected = -1;
 
-  auto prepareChannelView = [&specs](ImVector<Node>& nodeList) {
+  auto prepareChannelView = [&specs, &metadata](ImVector<Node>& nodeList, ImVector<Group>& groupList) {
     struct LinkInfo {
       int specId;
       int outputId;
@@ -182,14 +202,51 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     for (int si = 0; si < specs.size(); ++si) {
       int oi = 0;
       for (auto&& output : specs[si].outputChannels) {
-        linkToIndex.insert(std::make_pair(output.name, LinkInfo{ si, oi }));
+        linkToIndex.insert(std::make_pair(output.name, LinkInfo{si, oi}));
         oi += 1;
+      }
+    }
+    // Prepare the list of groups.
+    std::string workflow = "Ungrouped";
+    int groupId = 0;
+    for (size_t mi = 0; mi < metadata.size(); ++mi) {
+      auto const& metadatum = metadata[mi];
+      if (metadatum.executable == workflow) {
+        continue;
+      }
+      workflow = metadatum.executable;
+      char* groupBasename = strrchr(workflow.data(), '/');
+      char const* groupName = groupBasename ? groupBasename + 1 : workflow.data();
+      bool hasDuplicate = false;
+      for (size_t gi = 0; gi < groupList.Size; ++gi) {
+        if (strncmp(groupName, groupList[gi].name, MAX_GROUP_NAME_SIZE - 1) == 0) {
+          hasDuplicate = true;
+          break;
+        }
+      }
+      if (hasDuplicate == false) {
+        groupList.push_back(Group(groupId++, groupName, mi));
       }
     }
     // Do matching between inputs and outputs
     for (int si = 0; si < specs.size(); ++si) {
       auto& spec = specs[si];
-      nodeList.push_back(Node(si, spec.id.c_str(), 0.5f,
+      int groupId = 0;
+
+      auto metadatum = std::find_if(metadata.begin(), metadata.end(),
+                                    [& name = spec.name](DataProcessorInfo const& info) { return info.name == name; });
+
+      for (size_t gi = 0; gi < groupList.Size; ++gi) {
+        if (metadatum == metadata.end()) {
+          break;
+        }
+        const char* groupName = strrchr(metadatum->executable.data(), '/');
+        if (strncmp(groupList[gi].name, groupName ? groupName + 1 : metadatum->executable.data(), 127) == 0) {
+          groupId = gi;
+          break;
+        }
+      }
+      nodeList.push_back(Node(si, groupId, spec.id.c_str(), 0.5f,
                               ImColor(255, 100, 100),
                               spec.inputChannels.size(),
                               spec.outputChannels.size()));
@@ -201,17 +258,30 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
           LOG(ERROR) << "Could not find suitable node for " << outName;
           continue;
         }
-        links.push_back(NodeLink{ out->second.specId, out->second.outputId, si, ii });
+        links.push_back(NodeLink{out->second.specId, out->second.outputId, si, ii});
         ii += 1;
       }
     }
 
     // ImVector does boudary checks, so I bypass the case there is no
     // edges.
-    std::vector<TopoIndexInfo> sortedNodes = { { 0, 0 } };
+    std::vector<TopoIndexInfo> sortedNodes = {{0, 0}};
     if (links.size()) {
       sortedNodes = WorkflowHelpers::topologicalSort(specs.size(), &(links[0].InputIdx), &(links[0].OutputIdx), sizeof(links[0]), links.size());
     }
+    // This is to protect for the cases in which there is a loop in the
+    // definition of the inputs and of the outputs due to the
+    // way the forwarding creates hidden dependencies between processes.
+    // This should not happen, but apparently it does.
+    for (auto di = 0; di < specs.size(); ++di) {
+      auto fn = std::find_if(sortedNodes.begin(), sortedNodes.end(), [di](TopoIndexInfo const& info) {
+        return di == info.index;
+      });
+      if (fn == sortedNodes.end()) {
+        sortedNodes.push_back({(int)di, 0});
+      }
+    }
+    assert(specs.size() == sortedNodes.size());
     /// We resort them again, this time with the added layer information
     std::sort(sortedNodes.begin(), sortedNodes.end());
 
@@ -221,7 +291,6 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       layerMax[node.layer < 1023 ? node.layer : 1023] += 1;
     }
 
-    assert(specs.size() == sortedNodes.size());
     // FIXME: display nodes using topological sort
     // Update positions
     for (int si = 0; si < specs.size(); ++si) {
@@ -229,14 +298,13 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       assert(node.index == si);
       int xpos = 40 + 240 * node.layer;
       int ypos = 300 + (600 / (layerMax[node.layer] + 1)) * (layerEntries[node.layer] - layerMax[node.layer] / 2);
-      positions.push_back(NodePos{ ImVec2(xpos, ypos) });
+      positions.push_back(NodePos{ImVec2(xpos, ypos)});
       layerEntries[node.layer] += 1;
     }
-
   };
 
   if (!inited) {
-    prepareChannelView(nodes);
+    prepareChannelView(nodes, groups);
     inited = true;
   }
 
@@ -277,22 +345,33 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
   int node_hovered_in_scene = -1;
   if (state.leftPaneVisible) {
     ImGui::BeginChild("node_list", ImVec2(state.leftPaneSize, 0));
-    ImGui::Text("Devices");
+    ImGui::Text("Workflows %d", groups.Size);
     ImGui::Separator();
-    for (int node_idx = 0; node_idx < nodes.Size; node_idx++) {
-      Node* node = &nodes[node_idx];
-      ImGui::PushID(node->ID);
-      if (ImGui::Selectable(node->Name, node->ID == node_selected)) {
-        if (ImGui::IsMouseDoubleClicked(0)) {
-          controls[node_selected].logVisible = true;
+    for (int groupId = 0; groupId < groups.Size; groupId++) {
+      Group* group = &groups[groupId];
+      if (ImGui::TreeNodeEx(group->name, ImGuiTreeNodeFlags_DefaultOpen)) {
+        for (int node_idx = 0; node_idx < nodes.Size; node_idx++) {
+          Node* node = &nodes[node_idx];
+          if (node->GroupID != groupId) {
+            continue;
+          }
+          ImGui::Indent(15);
+          ImGui::PushID(node->ID);
+          if (ImGui::Selectable(node->Name, node->ID == node_selected)) {
+            if (ImGui::IsMouseDoubleClicked(0)) {
+              controls[node_selected].logVisible = true;
+            }
+            node_selected = node->ID;
+          }
+          if (ImGui::IsItemHovered()) {
+            node_hovered_in_list = node->ID;
+            open_context_menu |= ImGui::IsMouseClicked(1);
+          }
+          ImGui::PopID();
+          ImGui::Unindent(15);
         }
-        node_selected = node->ID;
+        ImGui::TreePop();
       }
-      if (ImGui::IsItemHovered()) {
-        node_hovered_in_list = node->ID;
-        open_context_menu |= ImGui::IsMouseClicked(1);
-      }
-      ImGui::PopID();
     }
     ImGui::EndChild();
     ImGui::SameLine();
@@ -445,12 +524,16 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     ImGui::TextUnformatted("Device Inspector");
     ImGui::Separator();
     if (node_selected != -1) {
+      auto& node = nodes[node_selected];
       auto& spec = specs[node_selected];
       auto& control = controls[node_selected];
       auto& info = infos[node_selected];
       auto& metrics = metricsInfos[node_selected];
+      auto& group = groups[node.GroupID];
+      auto& metadatum = metadata[group.metadataId];
+
       if (state.rightPaneVisible) {
-        gui::displayDeviceInspector(spec, info, metrics, control);
+        gui::displayDeviceInspector(spec, info, metrics, metadatum, control);
       }
     } else {
       ImGui::TextWrapped("Select a node in the topology to display information about it");

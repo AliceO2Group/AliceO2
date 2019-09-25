@@ -15,10 +15,10 @@ xterm -geometry 80x25+500+0 -hold -e flpSender --id flpSenderTPC --mq-config con
 xterm -geometry 80x25+800+0 -hold -e flpSender --id flpSenderITS --mq-config confComplexSetup.json --in-chan-name input --out-chan-name output --num-epns 1 --flp-index 1 &
 
 # this is the subtimeframe publisher for TPC
-xterm -geometry 80x25+0+500 -hold -e SubframeBuilderDevice --id subframeBuilderTPC --mq-config confComplexSetup.json --self-triggered --detector TPC &
+xterm -geometry 80x25+0+500 -hold -e o2-subframebuilder-device --id subframeBuilderTPC --mq-config confComplexSetup.json --self-triggered --detector TPC &
 
 # this is the subtimeframe publisher for ITS
-xterm -geometry 80x25+500+500 -hold -e SubframeBuilderDevice --id subframeBuilderITS --mq-config confComplexSetup.json --self-triggered --detector ITS &
+xterm -geometry 80x25+500+500 -hold -e o2-subframebuilder-device --id subframeBuilderITS --mq-config confComplexSetup.json --self-triggered --detector ITS &
 
 # consumer and validator of the full EPN time frame
-xterm -geometry 80x25+800+500 -hold -e TimeframeValidatorDevice --id timeframeValidator --mq-config confComplexSetup.json --input-channel-name input &
+xterm -geometry 80x25+800+500 -hold -e o2-timeframe-validator-device --id timeframeValidator --mq-config confComplexSetup.json --input-channel-name input &

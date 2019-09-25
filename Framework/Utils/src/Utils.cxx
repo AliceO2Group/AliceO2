@@ -13,9 +13,10 @@
 ///
 /// \author Gabriele Gaetano Fronzé, gfronze@cern.ch
 
-#include "../include/Utils/Utils.h"
+#include "DPLUtils/Utils.h"
+#include "Framework/DataSpecUtils.h"
 
-namespace o2f = o2::framework;
+using namespace o2::framework;
 
 namespace o2
 {
@@ -23,16 +24,17 @@ namespace workflows
 {
 
 // Method to convert an OutputSpec in a Output.
-o2f::Output getOutput(const o2f::OutputSpec outputSpec)
+Output getOutput(const o2f::OutputSpec outputSpec)
 {
-  return o2f::Output{ outputSpec.origin, outputSpec.description, outputSpec.subSpec, outputSpec.lifetime };
+  auto concrete = DataSpecUtils::asConcreteDataMatcher(outputSpec);
+  return Output{concrete.origin, concrete.description, concrete.subSpec, outputSpec.lifetime};
 }
 
 // This method can convert a vector of OutputSpec into a vector of Output.
 // This is useful for DPL devices, to avoid specifying both OutputSpec and Output in define
-std::shared_ptr<std::vector<o2f::Output>> getOutputList(const o2f::Outputs outputSpecs)
+std::shared_ptr<std::vector<Output>> getOutputList(const Outputs outputSpecs)
 {
-  std::shared_ptr<std::vector<o2f::Output>> outputList;
+  std::shared_ptr<std::vector<o2f::Output>> outputList = std::make_shared<std::vector<o2f::Output>>();
 
   for (const auto& itOutputSpec : outputSpecs) {
     (*outputList).emplace_back(getOutput(itOutputSpec));

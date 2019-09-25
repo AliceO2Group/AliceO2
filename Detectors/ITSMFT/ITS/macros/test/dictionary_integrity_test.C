@@ -11,10 +11,10 @@
 #include "ITSMFTReconstruction/LookUp.h"
 #endif
 
-using o2::ITSMFT::Cluster;
-using o2::ITSMFT::ClusterPattern;
-using o2::ITSMFT::LookUp;
-using o2::ITSMFT::TopologyDictionary;
+using o2::itsmft::Cluster;
+using o2::itsmft::ClusterPattern;
+using o2::itsmft::LookUp;
+using o2::itsmft::TopologyDictionary;
 
 void dictionary_integrity_test(string intput_name = "complete_dictionary.bin", string output_name = "dictionary_test.txt")
 {

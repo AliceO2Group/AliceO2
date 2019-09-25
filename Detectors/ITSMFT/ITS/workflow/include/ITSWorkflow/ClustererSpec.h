@@ -24,28 +24,31 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 class ClustererDPL : public Task
 {
  public:
-  ClustererDPL() = default;
+  ClustererDPL(bool useMC) : mUseMC(useMC) {}
   ~ClustererDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
  private:
   int mState = 0;
+  bool mUseMC = true;
+  bool mFullClusters = true;
+  bool mCompactClusters = true;
   std::unique_ptr<std::ifstream> mFile = nullptr;
-  std::unique_ptr<o2::ITSMFT::Clusterer> mClusterer = nullptr;
+  std::unique_ptr<o2::itsmft::Clusterer> mClusterer = nullptr;
 };
 
 /// create a processor spec
 /// run ITS cluster finder
-framework::DataProcessorSpec getClustererSpec();
+framework::DataProcessorSpec getClustererSpec(bool useMC);
 
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* O2_ITS_CLUSTERERDPL */

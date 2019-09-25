@@ -22,7 +22,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 class GeometryTGeo : public o2::detectors::DetMatrixCache
 {
@@ -42,6 +42,6 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
  protected:
   ClassDefOverride(GeometryTGeo, 1); // ITSMFR geometry based on TGeo
 };
-}
-}
+} // namespace itsmft
+} // namespace o2
 #endif

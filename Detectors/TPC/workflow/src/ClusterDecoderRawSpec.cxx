@@ -13,7 +13,7 @@
 /// @since  2018-03-26
 /// @brief  Processor spec for decoder of TPC raw cluster data
 
-#include "ClusterDecoderRawSpec.h"
+#include "TPCWorkflow/ClusterDecoderRawSpec.h"
 #include "Headers/DataHeader.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/ControlService.h"
@@ -36,7 +36,7 @@ using namespace o2::header;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
@@ -49,15 +49,27 @@ using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 /// MC labels are received as MCLabelContainers
 DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
 {
+  constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
   using DataDescription = o2::header::DataDescription;
   std::string processorName = "tpc-cluster-decoder";
+  struct ProcessAttributes {
+    std::unique_ptr<HardwareClusterDecoder> decoder;
+    std::set<o2::header::DataHeader::SubSpecificationType> activeInputs;
+    bool readyToQuit = false;
+    int verbosity = 0;
+    bool sendMC = false;
+  };
 
-  auto initFunction = [](InitContext& ic) {
+  auto initFunction = [sendMC](InitContext& ic) {
     // there is nothing to init at the moment
-    auto verbosity = 0;
-    auto decoder = std::make_shared<HardwareClusterDecoder>();
+    auto processAttributes = std::make_shared<ProcessAttributes>();
+    processAttributes->decoder = std::make_unique<HardwareClusterDecoder>();
+    processAttributes->sendMC = sendMC;
 
-    auto processSectorFunction = [verbosity, decoder](ProcessingContext& pc, std::string inputKey, std::string labelKey) -> bool {
+    auto processSectorFunction = [processAttributes](ProcessingContext& pc, std::string inputKey, std::string labelKey) -> bool {
+      auto& decoder = processAttributes->decoder;
+      auto& verbosity = processAttributes->verbosity;
+      auto& activeInputs = processAttributes->activeInputs;
       // this will return a span of TPC clusters
       const auto& ref = pc.inputs().get(inputKey.c_str());
       auto size = o2::framework::DataRefUtils::getPayloadSize(ref);
@@ -69,23 +81,23 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       // FIXME make one function
       o2::header::Stack rawHeaderStack;
       o2::header::Stack mcHeaderStack;
-      o2::TPC::TPCSectorHeader const* sectorHeaderMC = nullptr;
+      o2::tpc::TPCSectorHeader const* sectorHeaderMC = nullptr;
       if (!labelKey.empty()) {
-        sectorHeaderMC = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get(labelKey.c_str()));
+        sectorHeaderMC = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(pc.inputs().get(labelKey.c_str()));
         if (sectorHeaderMC) {
-          o2::header::Stack actual{ *sectorHeaderMC };
+          o2::header::Stack actual{*sectorHeaderMC};
           std::swap(mcHeaderStack, actual);
           if (sectorHeaderMC->sector < 0) {
-            pc.outputs().snapshot(Output{ gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, Lifetime::Timeframe, std::move(mcHeaderStack) }, fanSpec);
+            pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, Lifetime::Timeframe, std::move(mcHeaderStack)}, fanSpec);
           }
         }
       }
-      auto const* sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get(inputKey.c_str()));
+      auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(pc.inputs().get(inputKey.c_str()));
       if (sectorHeader) {
-        o2::header::Stack actual{ *sectorHeader };
+        o2::header::Stack actual{*sectorHeader};
         std::swap(rawHeaderStack, actual);
         if (sectorHeader->sector < 0) {
-          pc.outputs().snapshot(Output{ gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, Lifetime::Timeframe, std::move(rawHeaderStack) }, fanSpec);
+          pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, Lifetime::Timeframe, std::move(rawHeaderStack)}, fanSpec);
           return (sectorHeader->sector == -1);
         }
       }
@@ -97,6 +109,9 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       // FIXME: better description of the raw page
       size_t nPages = size / 8192;
       std::vector<std::pair<const ClusterHardwareContainer*, std::size_t>> inputList;
+      if (verbosity > 0 && labelKey.empty()) {
+        LOG(INFO) << "Decoder input: " << size << ", " << nPages << " pages for sector " << sectorHeader->sector;
+      }
 
       // MC labels are received as one container of labels in the sequence matching clusters
       // in the raw pages
@@ -106,7 +121,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
         mcin = std::move(pc.inputs().get<MCLabelContainer*>(labelKey.c_str()));
         mcinCopies.resize(nPages);
         if (verbosity > 0) {
-          LOG(INFO) << "Decoder input: " << size << ", " << nPages << " pages, " << mcin->getIndexedSize() << " MC label sets";
+          LOG(INFO) << "Decoder input: " << size << ", " << nPages << " pages, " << mcin->getIndexedSize() << " MC label sets for sector " << sectorHeader->sector;
         }
       }
 
@@ -120,7 +135,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       for (size_t page = 0; page < nPages; page++) {
         inputList.emplace_back(reinterpret_cast<const ClusterHardwareContainer*>(ref.payload + page * 8192), 1);
         const ClusterHardwareContainer& container = *(inputList.back().first);
-        if (verbosity > 0) {
+        if (verbosity > 1) {
           LOG(INFO) << "Decoder input in page " << std::setw(2) << page << ": "     //
                     << "CRU " << std::setw(3) << container.CRU << " "               //
                     << std::setw(3) << container.numberOfClusters << " cluster(s)"; //
@@ -145,35 +160,21 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       }
       // output of the decoder is sorted in (sector,globalPadRow) coordinates, individual
       // containers are created for clusters and MC labels per (sector,globalPadRow) address
-      std::vector<ClusterNativeContainer> cont;
+      char* outputBuffer = nullptr;
+      auto outputAllocator = [&pc, &fanSpec, &outputBuffer, &rawHeaderStack](size_t size) -> char* {
+        outputBuffer = pc.outputs().newChunk(Output{gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, Lifetime::Timeframe, std::move(rawHeaderStack)}, size).data();
+        return outputBuffer;
+      };
       std::vector<MCLabelContainer> mcoutList;
-      decoder->decodeClusters(inputList, cont, (mcin ? &mcinCopies : nullptr), &mcoutList);
+      decoder->decodeClusters(inputList, outputAllocator, (mcin ? &mcinCopies : nullptr), &mcoutList);
 
-      // The output of clusters involves a copy to flatten the list of buffers and extend the
-      // ClusterGroupAttribute struct containing sector and globalPadRow by the size of the collection.
-      // FIXME: provide allocator to decoder to do the allocation in place, create ClusterGroupHeader
-      //        directly
-      // The vector of MC label containers is simply serialized
-      size_t totalSize = 0;
-      for (const auto& coll : cont) {
-        const auto& groupAttribute = static_cast<const ClusterGroupAttribute>(coll);
-        totalSize += coll.getFlatSize() + sizeof(ClusterGroupHeader) - sizeof(ClusterGroupAttribute);
-      }
+      // TODO: reestablish the logging messages on the raw buffer
+      // if (verbosity > 1) {
+      //   LOG(INFO) << "decoder " << std::setw(2) << sectorHeader->sector                             //
+      //             << ": decoded " << std::setw(4) << coll.clusters.size() << " clusters on sector " //
+      //             << std::setw(2) << (int)coll.sector << "[" << (int)coll.globalPadRow << "]";      //
+      // }
 
-      auto* target = pc.outputs().newChunk(Output{ gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, Lifetime::Timeframe, std::move(rawHeaderStack) }, totalSize).data;
-
-      for (const auto& coll : cont) {
-        if (verbosity > 1) {
-          LOG(INFO) << "decoder " << std::setw(2) << sectorHeader->sector                             //
-                    << ": decoded " << std::setw(4) << coll.clusters.size() << " clusters on sector " //
-                    << std::setw(2) << (int)coll.sector << "[" << (int)coll.globalPadRow << "]";      //
-        }
-        ClusterGroupHeader groupHeader(coll, coll.clusters.size());
-        memcpy(target, &groupHeader, sizeof(groupHeader));
-        target += sizeof(groupHeader);
-        memcpy(target, coll.data(), coll.getFlatSize() - sizeof(ClusterGroupAttribute));
-        target += coll.getFlatSize() - sizeof(ClusterGroupAttribute);
-      }
       if (!labelKey.empty()) {
         if (verbosity > 0) {
           LOG(INFO) << "sending " << mcoutList.size() << " MC label container(s) with in total "
@@ -181,14 +182,13 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
                     << " label object(s)" << std::endl;
         }
         // serialize the complete list of MC label containers
-        pc.outputs().snapshot(Output{ gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, Lifetime::Timeframe, std::move(mcHeaderStack) }, mcoutList);
+        pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, Lifetime::Timeframe, std::move(mcHeaderStack)}, mcoutList);
       }
       return false;
     };
 
-    auto processingFct = [verbosity, decoder, processSectorFunction](ProcessingContext& pc) {
-      static bool finished = false;
-      if (finished) {
+    auto processingFct = [processAttributes, processSectorFunction](ProcessingContext& pc) {
+      if (processAttributes->readyToQuit) {
         return;
       }
 
@@ -198,6 +198,13 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       };
       std::map<o2::header::DataHeader::SubSpecificationType, SectorInputDesc> inputs;
       for (auto const& inputRef : pc.inputs()) {
+        if (pc.inputs().isValid(inputRef.spec->binding) == false) {
+          // this input slot is empty
+          continue;
+        }
+        // loop over all inputs and associate data and mc channels by the subspecification. DPL makes sure that
+        // each origin/description/subspecification identifier is only once in the inputs, no other overwrite
+        // protection in the list of keys.
         auto const* dataHeader = DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
         assert(dataHeader);
         if (dataHeader->dataOrigin == gDataOriginTPC && dataHeader->dataDescription == DataDescription("CLUSTERHW")) {
@@ -206,16 +213,26 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
           inputs[dataHeader->subSpecification].labelKey = inputRef.spec->binding;
         }
       }
+      if (processAttributes->sendMC) {
+        // need to check whether data-MC pairs are complete
+        for (auto const& input : inputs) {
+          if (input.second.inputKey.empty() || input.second.labelKey.empty()) {
+            // we wait for the data set to be complete next time
+            return;
+          }
+        }
+      }
       // will stay true if all inputs signal finished
       // this implies that all inputs are always processed together, when changing this policy the
       // status of each input needs to be kept individually
-      finished = true;
+      bool finished = true;
       for (auto const& input : inputs) {
         finished = finished & processSectorFunction(pc, input.second.inputKey, input.second.labelKey);
       }
       if (finished) {
         // got EOD on all inputs
         pc.services().get<ControlService>().readyToQuit(false);
+        processAttributes->readyToQuit = true;
       }
     };
 
@@ -226,22 +243,22 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
 
   auto createInputSpecs = [](bool makeMcInput) {
     std::vector<InputSpec> inputSpecs{
-      InputSpec{ { "rawin" }, gDataOriginTPC, "CLUSTERHW", 0, Lifetime::Timeframe },
+      InputSpec{{"rawin"}, gDataOriginTPC, "CLUSTERHW", 0, Lifetime::Timeframe},
     };
     if (makeMcInput) {
       // FIXME: define common data type specifiers
       constexpr o2::header::DataDescription datadesc("CLUSTERHWMCLBL");
-      inputSpecs.emplace_back(InputSpec{ "mclblin", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe });
+      inputSpecs.emplace_back(InputSpec{"mclblin", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe});
     }
     return std::move(inputSpecs);
   };
 
   auto createOutputSpecs = [](bool makeMcOutput) {
     std::vector<OutputSpec> outputSpecs{
-      OutputSpec{ { "clusterout" }, gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe },
+      OutputSpec{{"clusterout"}, gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe},
     };
     if (makeMcOutput) {
-      OutputLabel label{ "mclblout" };
+      OutputLabel label{"mclblout"};
       // have to use a new data description, routing is only based on origin and decsription
       constexpr o2::header::DataDescription datadesc("CLNATIVEMCLBL");
       outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
@@ -249,11 +266,11 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
     return std::move(outputSpecs);
   };
 
-  return DataProcessorSpec{ processorName,
-                            { createInputSpecs(sendMC) },
-                            { createOutputSpecs(sendMC) },
-                            AlgorithmSpec(initFunction) };
+  return DataProcessorSpec{processorName,
+                           {createInputSpecs(sendMC)},
+                           {createOutputSpecs(sendMC)},
+                           AlgorithmSpec(initFunction)};
 }
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2

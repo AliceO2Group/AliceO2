@@ -68,7 +68,7 @@ struct SimTrackStatus {
 
  private:
   unsigned char mStatus = 0;
-  ClassDefNV(SimTrackStatus, 1)
+  ClassDefNV(SimTrackStatus, 1);
 };
 
 /// Track Reference object is created every time particle is
@@ -112,9 +112,9 @@ class TrackReference
   float X() const { return mX; }
   float Y() const { return mY; }
   float Z() const { return mZ; }
-  float Px() const { return mX; }
-  float Py() const { return mY; }
-  float Pz() const { return mZ; }
+  float Px() const { return mPX; }
+  float Py() const { return mPY; }
+  float Pz() const { return mPZ; }
   float P() const { return TMath::Sqrt(mPX * mPX + mPY * mPY + mPZ * mPZ); }
   Int_t getUserId() const { return mUserId; }
   Int_t getDetectorId() const { return mDetectorId; }
@@ -172,7 +172,7 @@ class TrackReference
 
   friend std::ostream& operator<<(std::ostream&, const TrackReference&);
 
-  ClassDefNV(TrackReference, 1) // Base class for all Alice track references
+  ClassDefNV(TrackReference, 1); // Base class for all Alice track references
 };
 
 // this is the preferred constructor as it might reuse variables
@@ -227,6 +227,6 @@ inline std::ostream& operator<<(std::ostream& os, const SimTrackStatus& status)
   os << status.mStatus;
   return os;
 }
-}
+} // namespace o2
 
 #endif

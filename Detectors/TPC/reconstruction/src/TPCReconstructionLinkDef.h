@@ -14,22 +14,21 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::TPC::AdcClockMonitor;
-#pragma link C++ class o2::TPC::GBTFrame;
-#pragma link C++ class o2::TPC::GBTFrameContainer;
-#pragma link C++ class o2::TPC::HalfSAMPAData;
-#pragma link C++ class o2::TPC::RawReader;
-#pragma link C++ class o2::TPC::RawReaderEventSync;
-#pragma link C++ class o2::TPC::SyncPatternMonitor;
-#pragma link C++ class o2::TPC::TPCCATracking;
-#pragma link C++ class o2::TPC::HardwareClusterDecoder;
+#pragma link C++ class o2::tpc::AdcClockMonitor;
+#pragma link C++ class o2::tpc::GBTFrame;
+#pragma link C++ class o2::tpc::GBTFrameContainer;
+#pragma link C++ class o2::tpc::HalfSAMPAData;
+#pragma link C++ class o2::tpc::RawReader;
+#pragma link C++ class o2::tpc::RawReaderCRU;
+#pragma link C++ class o2::tpc::RawReaderEventSync;
+#pragma link C++ class o2::tpc::SyncPatternMonitor;
+#pragma link C++ class o2::tpc::GPUCATracking;
+#pragma link C++ class o2::tpc::HardwareClusterDecoder;
 
-#pragma link C++ class o2::TPC::BoxClusterer+;
-#pragma link C++ class o2::TPC::Clusterer+;
-#pragma link C++ class o2::TPC::ClusterContainer+;
-#pragma link C++ class o2::TPC::ClustererTask+;
-#pragma link C++ class o2::TPC::HwClusterer+;
+#pragma link C++ class o2::tpc::Clusterer + ;
+#pragma link C++ class o2::tpc::ClustererTask + ;
+#pragma link C++ class o2::tpc::HwClusterer + ;
 
-#pragma link C++ class o2::TPC::TPCFastTransformHelperO2 + ;
+#pragma link C++ class o2::tpc::TPCFastTransformHelperO2 + ;
 
 #endif

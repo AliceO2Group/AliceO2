@@ -9,7 +9,8 @@
 // or submit itself to any jurisdiction.
 
 #include "MIDSimulation/Detector.h"
-#include "Geometry.h"
+#include "MIDSimulation/Geometry.h"
+#include "SimulationDataFormat/Stack.h"
 #include <TGeoManager.h>
 #include <TGeoVolume.h>
 #include "FairVolume.h"
@@ -21,7 +22,7 @@ namespace o2
 namespace mid
 {
 
-Detector::Detector(bool active) : o2::Base::DetImpl<Detector>("MID", active),
+Detector::Detector(bool active) : o2::base::DetImpl<Detector>("MID", active),
                                   mStepper()
 {
 }
@@ -40,7 +41,11 @@ void Detector::InitializeO2Detector()
 
 bool Detector::ProcessHits(FairVolume* vol)
 {
-  return mStepper.process(*fMC);
+  auto hit = mStepper.process(*fMC);
+  if (hit) {
+    (static_cast<o2::data::Stack*>(fMC->GetStack()))->addHit(GetDetId());
+  }
+  return hit;
 }
 
 std::vector<Hit>* Detector::getHits(int iColl)

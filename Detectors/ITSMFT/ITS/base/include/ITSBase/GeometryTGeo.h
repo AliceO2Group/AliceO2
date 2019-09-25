@@ -31,7 +31,7 @@ class TGeoPNEntry;
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 /// GeometryTGeo is a simple interface class to TGeoManager. It is used in the simulation
 /// and reconstruction in order to query the TGeo ITS geometry.
@@ -39,13 +39,13 @@ namespace ITS
 /// geometry, we need to check in every method if the structures are initialized. To be converted
 /// to singleton at later stage.
 
-class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
+class GeometryTGeo : public o2::itsmft::GeometryTGeo
 {
  public:
   typedef o2::Transform3D Mat3D;
-  using DetMatrixCache::getMatrixT2L;
   using DetMatrixCache::getMatrixL2G;
   using DetMatrixCache::getMatrixT2GRot;
+  using DetMatrixCache::getMatrixT2L;
   // this method is not advised for ITS: for barrel detectors whose tracking frame is just a rotation
   // it is cheaper to use T2GRot
   using DetMatrixCache::getMatrixT2G;
@@ -67,10 +67,10 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   // NEVER use it, it will throw exception if the class instance was already created
   // Use GeometryTGeo::Instance() instead
   GeometryTGeo(bool build = kFALSE, int loadTrans = 0
-               /*o2::Base::utils::bit2Mask(o2::TransformType::T2L, // default transformations to load
+               /*o2::base::utils::bit2Mask(o2::TransformType::T2L, // default transformations to load
            o2::TransformType::T2G,
            o2::TransformType::L2G)*/
-               );
+  );
 
   /// Default destructor
   ~GeometryTGeo() override = default;
@@ -79,7 +79,7 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   GeometryTGeo& operator=(const GeometryTGeo& geom) = delete;
 
   // implement filling of the matrix cache
-  using o2::ITSMFT::GeometryTGeo::fillMatrixCache;
+  using o2::itsmft::GeometryTGeo::fillMatrixCache;
   void fillMatrixCache(int mask) override;
 
   // cache parameters of sensors tracking frames
@@ -165,7 +165,7 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   const char* getSymbolicName(int index) const
   {
     /// return symbolic name of sensor
-    return o2::Base::GeometryManager::getSymbolicName(getDetID(), index);
+    return o2::base::GeometryManager::getSymbolicName(getDetID(), index);
   }
 
   const char* getSymbolicName(int lay, int sta, int det) const
@@ -175,13 +175,13 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   }
 
   /// Get the transformation matrix for a given chip (NOT A SENSOR!!!) 'index' by quering the TGeoManager
-  TGeoHMatrix* getMatrix(int index) const { return o2::Base::GeometryManager::getMatrix(getDetID(), index); }
+  TGeoHMatrix* getMatrix(int index) const { return o2::base::GeometryManager::getMatrix(getDetID(), index); }
   TGeoHMatrix* getMatrix(int lay, int sta, int sens) const { return getMatrix(getChipIndex(lay, sta, sens)); }
   bool getOriginalMatrix(int index, TGeoHMatrix& m) const
   {
     /// Get the original (ideal geometry) TGeo matrix for a given chip identified by 'index'
     /// The method is slow, so it should be used with great care (for caching only)
-    return o2::Base::GeometryManager::getOriginalMatrix(getDetID(), index, m);
+    return o2::base::GeometryManager::getOriginalMatrix(getDetID(), index, m);
   }
 
   bool getOriginalMatrix(int lay, int sta, int det, TGeoHMatrix& m) const
@@ -313,7 +313,7 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   {
     /// Get a pointer to the TGeoPNEntry of a chip identified by 'index'
     /// Returns NULL in case of invalid index, missing TGeoManager or invalid symbolic name
-    return o2::Base::GeometryManager::getPNEntry(getDetID(), index);
+    return o2::base::GeometryManager::getPNEntry(getDetID(), index);
   }
 
  protected:
@@ -344,11 +344,11 @@ class GeometryTGeo : public o2::ITSMFT::GeometryTGeo
   static std::string sWrapperVolumeName; ///< Wrapper volume name
 
  private:
-  static std::unique_ptr<o2::ITS::GeometryTGeo> sInstance; ///< singletone instance
+  static std::unique_ptr<o2::its::GeometryTGeo> sInstance; ///< singletone instance
 
   ClassDefOverride(GeometryTGeo, 1); // ITS geometry based on TGeo
 };
-}
-}
+} // namespace its
+} // namespace o2
 
 #endif

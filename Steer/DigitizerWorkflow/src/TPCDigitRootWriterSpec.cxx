@@ -38,7 +38,7 @@ using DigiGroupRef = o2::dataformats::RangeReference<int, int>;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 template <typename T>
@@ -156,7 +156,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
 
       // extracts the sector from header of an input
       auto extractSector = [&pc](const char* inputname) {
-        auto sectorHeader = DataRefUtils::getHeader<o2::TPC::TPCSectorHeader*>(pc.inputs().get(inputname));
+        auto sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(pc.inputs().get(inputname));
         if (!sectorHeader) {
           LOG(FATAL) << "Missing sector header in TPC data";
         }
@@ -171,8 +171,10 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
         if (pc.inputs().isValid(tname.c_str())) {
           sector = extractSector(tname.c_str());
           LOG(INFO) << "HAVE TRIGGER DATA FOR SECTOR " << sector << " ON CHANNEL " << d;
-          if (sector == -1) {
-            triggersdone[d] = true;
+          if (sector <= -1) {
+            if (sector != -2) {
+              triggersdone[d] = true;
+            }
           } else {
             auto triggers = pc.inputs().get<std::vector<DigiGroupRef>>(tname.c_str());
             (*trigP2Sect.get())[sector] = std::move(triggers);
@@ -186,12 +188,14 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
         if (pc.inputs().isValid(dname.c_str())) {
           sector = extractSector(dname.c_str());
           LOG(INFO) << "HAVE DIGIT DATA FOR SECTOR " << sector << " ON CHANNEL " << d;
-          if (sector == -1) {
-            digitsdone[d] = true;
+          if (sector <= -1) {
+            if (sector != -2) {
+              digitsdone[d] = true;
+            }
           } else {
             // have to do work ...
             // the digits
-            auto digiData = pc.inputs().get<std::vector<o2::TPC::Digit>>(dname.c_str());
+            auto digiData = pc.inputs().get<std::vector<o2::tpc::Digit>>(dname.c_str());
             LOG(INFO) << "DIGIT SIZE " << digiData.size();
             const auto& trigS = (*trigP2Sect.get())[sector];
             if (!trigS.size()) {
@@ -212,7 +216,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
                 br->Fill();
                 br->ResetAddress();
               } else {                                // triggered mode (>1 entrie will be written)
-                std::vector<o2::TPC::Digit> digGroup; // group of digits related to single trigger
+                std::vector<o2::tpc::Digit> digGroup; // group of digits related to single trigger
                 auto digGroupPtr = &digGroup;
                 auto br = getOrMakeBranch(*outputtree.get(), "TPCDigit", sector, digGroupPtr);
                 for (auto grp : trigS) {
@@ -232,8 +236,10 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
         if (pc.inputs().isValid(lname.c_str())) {
           sector = extractSector(lname.c_str());
           LOG(INFO) << "HAVE LABEL DATA FOR SECTOR " << sector << " ON CHANNEL " << d;
-          if (sector == -1) {
-            labelsdone[d] = true;
+          if (sector <= -1) {
+            if (sector != -2) {
+              labelsdone[d] = true;
+            }
           } else {
             // the labels
             auto labeldata = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>(lname.c_str());
@@ -298,12 +304,12 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
 
   std::vector<InputSpec> inputs;
   for (int d = 0; d < numberofsourcedevices; ++d) {
-    inputs.emplace_back(InputSpec{ (*digitchannelname.get())[d].c_str(), "TPC", "DIGITS",
-                                   static_cast<SubSpecificationType>(d), Lifetime::Timeframe }); // digit input
-    inputs.emplace_back(InputSpec{ (*triggerchannelname.get())[d].c_str(), "TPC", "DIGTRIGGERS",
-                                   static_cast<SubSpecificationType>(d), Lifetime::Timeframe }); // groupping in triggers
-    inputs.emplace_back(InputSpec{ (*labelchannelname.get())[d].c_str(), "TPC", "DIGITSMCTR",
-                                   static_cast<SubSpecificationType>(d), Lifetime::Timeframe });
+    inputs.emplace_back(InputSpec{(*digitchannelname.get())[d].c_str(), "TPC", "DIGITS",
+                                  static_cast<SubSpecificationType>(d), Lifetime::Timeframe}); // digit input
+    inputs.emplace_back(InputSpec{(*triggerchannelname.get())[d].c_str(), "TPC", "DIGTRIGGERS",
+                                  static_cast<SubSpecificationType>(d), Lifetime::Timeframe}); // groupping in triggers
+    inputs.emplace_back(InputSpec{(*labelchannelname.get())[d].c_str(), "TPC", "DIGITSMCTR",
+                                  static_cast<SubSpecificationType>(d), Lifetime::Timeframe});
   }
 
   return DataProcessorSpec{
@@ -312,10 +318,9 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
     {}, // no output
     AlgorithmSpec(initFunction),
     Options{
-      { "tpc-digit-outfile", VariantType::String, "tpcdigits.root", { "Name of the input file" } },
-      { "treename", VariantType::String, "o2sim", { "Name of tree for tracks" } },
-    }
-  };
+      {"tpc-digit-outfile", VariantType::String, "tpcdigits.root", {"Name of the input file"}},
+      {"treename", VariantType::String, "o2sim", {"Name of tree for tracks"}},
+    }};
 }
-} // end namespace TPC
+} // end namespace tpc
 } // end namespace o2

@@ -19,7 +19,7 @@
 #include <ostream>
 #include <vector>
 
-#include "DigitBlock.h"
+#include "MCHBase/DigitBlock.h"
 
 namespace o2
 {
@@ -112,7 +112,7 @@ class PreClusterBlock
    * @param nPreClusters  Total number of preclusters.
    * @param nDigits       Total number of digits.
    */
-  static const uint32_t sizeOfPreClusterBlocks(int nBlocks, int nPreClusters, int nDigits)
+  static uint32_t sizeOfPreClusterBlocks(int nBlocks, int nPreClusters, int nDigits)
   {
     return (nBlocks > 0 && nPreClusters > 0 && nDigits > 0)
              ? (nBlocks + nPreClusters) * SSizeOfUShort + nDigits * SSizeOfDigit

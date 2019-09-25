@@ -7,76 +7,60 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_OUTPUTSPEC_H
-#define FRAMEWORK_OUTPUTSPEC_H
+#ifndef O2_FRAMEWORK_OUTPUTSPEC_H_
+#define O2_FRAMEWORK_OUTPUTSPEC_H_
 
 #include "Headers/DataHeader.h"
 #include "Framework/Lifetime.h"
+#include "Framework/ConcreteDataMatcher.h"
 
-namespace o2
-{
-namespace framework
+#include <variant>
+
+namespace o2::framework
 {
 
 struct OutputLabel {
   std::string value;
 };
 
-/// A selector for some kind of data being processed, either in
-/// input or in output. This can be used, for example to match
-/// specific payloads in a timeframe.
+/// A criteria which matches data being produced by a given DataProcessorSpec.
+/// This needs to be declared upfront so that we can automatically build the
+/// topology.
 struct OutputSpec {
   OutputLabel binding;
-  header::DataOrigin origin;
-  header::DataDescription description;
-  header::DataHeader::SubSpecificationType subSpec = 0;
+  std::variant<ConcreteDataMatcher, ConcreteDataTypeMatcher> matcher;
   enum Lifetime lifetime = Lifetime::Timeframe;
 
+  /// Build a fully qualified tuple for the OutputSpec
   OutputSpec(OutputLabel const& inBinding, header::DataOrigin inOrigin, header::DataDescription inDescription,
-             header::DataHeader::SubSpecificationType inSubSpec, enum Lifetime inLifetime = Lifetime::Timeframe)
-    : binding{ inBinding },
-      origin{ inOrigin },
-      description{ inDescription },
-      subSpec{ inSubSpec },
-      lifetime{ inLifetime }
-  {
-  }
+             header::DataHeader::SubSpecificationType inSubSpec, enum Lifetime inLifetime = Lifetime::Timeframe);
 
+  /// Build a fully qualified tuple for the OutputSpec
   OutputSpec(header::DataOrigin inOrigin, header::DataDescription inDescription,
-             header::DataHeader::SubSpecificationType inSubSpec, enum Lifetime inLifetime = Lifetime::Timeframe)
-    : binding{ OutputLabel{ "" } },
-      origin{ inOrigin },
-      description{ inDescription },
-      subSpec{ inSubSpec },
-      lifetime{ inLifetime }
-  {
-  }
+             header::DataHeader::SubSpecificationType inSubSpec, enum Lifetime inLifetime = Lifetime::Timeframe);
 
+  /// Build an OutputSpec which has 0 as subSpec.
   OutputSpec(OutputLabel const& inBinding, header::DataOrigin inOrigin, header::DataDescription inDescription,
-             enum Lifetime inLifetime = Lifetime::Timeframe)
-    : binding{ inBinding }, origin{ inOrigin }, description{ inDescription }, subSpec{ 0 }, lifetime{ inLifetime }
-  {
-  }
+             enum Lifetime inLifetime = Lifetime::Timeframe);
 
+  /// Build an OutputSpec which has 0 as subSpec.
   OutputSpec(header::DataOrigin inOrigin, header::DataDescription inDescription,
-             enum Lifetime inLifetime = Lifetime::Timeframe)
-    : binding{ OutputLabel{ "" } },
-      origin{ inOrigin },
-      description{ inDescription },
-      subSpec{ 0 },
-      lifetime{ inLifetime }
-  {
-  }
+             enum Lifetime inLifetime = Lifetime::Timeframe);
 
-  bool operator==(OutputSpec const& that) const
-  {
-    return origin == that.origin && description == that.description && subSpec == that.subSpec &&
-           lifetime == that.lifetime;
-  };
+  /// Build an OutputSpec which does not specify which subSpec the output will
+  /// have.
+  OutputSpec(OutputLabel const& inBinding, ConcreteDataTypeMatcher const& dataType,
+             enum Lifetime inLifetime = Lifetime::Timeframe);
+
+  /// Build an OutputSpec which does not specify which subSpec the output will
+  /// have.
+  OutputSpec(ConcreteDataTypeMatcher const& dataType,
+             enum Lifetime inLifetime = Lifetime::Timeframe);
+
+  bool operator==(OutputSpec const& that) const;
 
   friend std::ostream& operator<<(std::ostream& stream, OutputSpec const& arg);
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 #endif

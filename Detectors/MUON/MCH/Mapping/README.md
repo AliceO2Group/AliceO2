@@ -1,3 +1,5 @@
+\page refMUONMCHMapping MCH Mapping
+
 # MCH Mapping
 
 # API
@@ -52,5 +54,5 @@ the same results as AliRoot (see the `vsaliroot` directory in the [alo repositor
 Besides to core API (finding pads by position and by electronic ids), we offer
 [convenience functions](SegContour/README.md) to compute the bounding box and [envelop of the segmentations](SegContour/include/MCHMappingSegContour/SegmentationContours.h).
 
-A simple executable, `mch-mapping-svg-segmentation3` can be used to produce [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) plots
+A simple executable, `o2-mch-mapping-svg-segmentation3` can be used to produce [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) plots
 of the segmentations.

@@ -14,27 +14,43 @@
 #ifndef ALICEO2_MATCHINFOTOF_H
 #define ALICEO2_MATCHINFOTOF_H
 
+#include "ReconstructionDataFormats/TrackLTIntegral.h"
+#include "CommonDataFormat/EvIndex.h"
+
 namespace o2
 {
 namespace dataformats
 {
 class MatchInfoTOF
 {
+  using evIdx = o2::dataformats::EvIndex<int, int>;
+
  public:
-  MatchInfoTOF(int indexTOFCl, float chi2) : mTOFClIndex(indexTOFCl), mChi2(chi2){};
+  MatchInfoTOF(evIdx evIdxTOFCl, float chi2, o2::track::TrackLTIntegral trkIntLT, evIdx evIdxTrack = evIdx(0, 0)) : mEvIdxTOFCl(evIdxTOFCl), mChi2(chi2), mIntLT(trkIntLT), mEvIdxTrack(evIdxTrack){};
   MatchInfoTOF() = default;
-  void setTOFClIndex(int index) { mTOFClIndex = index; }
-  int getTOFClIndex() const { return mTOFClIndex; }
+  void setEvIdxTOFCl(evIdx index) { mEvIdxTOFCl = index; }
+  void setEvIdxTrack(evIdx index) { mEvIdxTrack = index; }
+  evIdx getEvIdxTOFCl() const { return mEvIdxTOFCl; }
+  evIdx getEvIdxTrack() const { return mEvIdxTrack; }
+  int getEventTOFClIndex() const { return mEvIdxTOFCl.getEvent(); }
+  int getTOFClIndex() const { return mEvIdxTOFCl.getIndex(); }
+  int getEventTrackIndex() const { return mEvIdxTrack.getEvent(); }
+  int getTrackIndex() const { return mEvIdxTrack.getIndex(); }
 
   void setChi2(int chi2) { mChi2 = chi2; }
   float getChi2() const { return mChi2; }
 
- private:
-  int mTOFClIndex; // index of the TOF cluster used for the matching
-  float mChi2;     // chi2 of the pair track-TOFcluster
+  o2::track::TrackLTIntegral& getLTIntegralOut() { return mIntLT; }
+  const o2::track::TrackLTIntegral& getLTIntegralOut() const { return mIntLT; }
 
-  //  ClassDefNV(MatchInfoTOF, 1);
+ private:
+  float mChi2;                       // chi2 of the pair track-TOFcluster
+  o2::track::TrackLTIntegral mIntLT; ///< L,TOF integral calculated during the propagation
+  evIdx mEvIdxTOFCl;                 ///< EvIdx for TOF cluster (first: ev index; second: cluster index)
+  evIdx mEvIdxTrack;                 ///< EvIdx for track (first: ev index; second: cluster index)
+
+  ClassDefNV(MatchInfoTOF, 1);
 };
-}
-}
+} // namespace dataformats
+} // namespace o2
 #endif

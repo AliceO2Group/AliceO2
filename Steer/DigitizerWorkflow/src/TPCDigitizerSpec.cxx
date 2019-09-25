@@ -17,6 +17,7 @@
 #include "TStopwatch.h"
 #include "Steer/HitProcessingManager.h" // for RunContext
 #include "TChain.h"
+#include "TSystem.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "Framework/Task.h"
@@ -53,13 +54,13 @@ void retrieveHits(std::vector<TChain*> const& chains,
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 std::string getBranchNameLeft(int sector)
 {
   std::stringstream branchnamestreamleft;
-  branchnamestreamleft << "TPCHitsShiftedSector" << int(o2::TPC::Sector::getLeft(o2::TPC::Sector(sector)));
+  branchnamestreamleft << "TPCHitsShiftedSector" << int(o2::tpc::Sector::getLeft(o2::tpc::Sector(sector)));
   return branchnamestreamleft.str();
 }
 
@@ -83,10 +84,6 @@ class TPCDPLDigitizerTask
   {
     LOG(INFO) << "Initializing TPC digitization";
 
-    /// For the time being use the defaults for the CDB
-    auto& cdb = o2::TPC::CDBInterface::instance();
-    cdb.setUseDefaults();
-
     auto useDistortions = ic.options().get<int>("distortionType");
     auto gridSizeString = ic.options().get<std::string>("gridSize");
     auto triggeredMode = ic.options().get<bool>("TPCtriggered");
@@ -107,7 +104,7 @@ class TPCDPLDigitizerTask
       inputHisto.push_back(substr);
     }
     if (useDistortions > 0) {
-      o2::TPC::SpaceCharge::SCDistortionType distortionType = useDistortions == 1 ? o2::TPC::SpaceCharge::SCDistortionType::SCDistortionsRealistic : o2::TPC::SpaceCharge::SCDistortionType::SCDistortionsConstant;
+      o2::tpc::SpaceCharge::SCDistortionType distortionType = useDistortions == 1 ? o2::tpc::SpaceCharge::SCDistortionType::SCDistortionsRealistic : o2::tpc::SpaceCharge::SCDistortionType::SCDistortionsConstant;
       std::unique_ptr<TH3> hisSCDensity;
       if (TString(inputHisto[0].data()).EndsWith(".root") && inputHisto[1].size() != 0) {
         auto fileSCInput = std::unique_ptr<TFile>(TFile::Open(inputHisto[0].data()));
@@ -115,16 +112,16 @@ class TPCDPLDigitizerTask
         hisSCDensity->SetDirectory(nullptr);
       }
       if (distortionType == SpaceCharge::SCDistortionType::SCDistortionsConstant) {
-        LOG(INFO) << "TPC: Using constant space-charge distortions." << FairLogger::endl;
+        LOG(INFO) << "TPC: Using constant space-charge distortions.";
         if (hisSCDensity == nullptr) {
-          LOG(FATAL) << "Constant space-charge distortions require an initial space-charge density histogram. Please provide the path to the root file (O2TPCSCDensityHisFilePath) and the histogram name (O2TPCSCDensityHisName) in your environment variables." << FairLogger::endl;
+          LOG(FATAL) << "Constant space-charge distortions require an initial space-charge density histogram. Please provide the path to the root file (O2TPCSCDensityHisFilePath) and the histogram name (O2TPCSCDensityHisName) in your environment variables.";
         }
       }
       if (distortionType == SpaceCharge::SCDistortionType::SCDistortionsRealistic) {
-        LOG(INFO) << "TPC: Using realistic space-charge distortions." << FairLogger::endl;
+        LOG(INFO) << "TPC: Using realistic space-charge distortions.";
       }
       if (hisSCDensity) {
-        LOG(INFO) << "TPC: Providing initial space-charge density histogram: " << hisSCDensity->GetName() << FairLogger::endl;
+        LOG(INFO) << "TPC: Providing initial space-charge density histogram: " << hisSCDensity->GetName();
       }
 
       mDigitizer.enableSCDistortions(distortionType, hisSCDensity.get(), gridSize[0], gridSize[1], gridSize[2]);
@@ -145,7 +142,7 @@ class TPCDPLDigitizerTask
     }
 
     if (!gGeoManager) {
-      o2::Base::GeometryManager::loadGeometry();
+      o2::base::GeometryManager::loadGeometry();
     }
   }
 
@@ -160,6 +157,14 @@ class TPCDPLDigitizerTask
     }
     LOG(INFO) << "Processing TPC digitization";
 
+    /// For the time being use the defaults for the CDB
+    auto& cdb = o2::tpc::CDBInterface::instance();
+    cdb.setUseDefaults();
+    if (!gSystem->AccessPathName("GainMap.root")) {
+      LOG(INFO) << "TPC: Using gain map from 'GainMap.root'";
+      cdb.setGainMapFromFile("GainMap.root");
+    }
+
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
     auto& irecords = context->getEventRecords();
@@ -173,7 +178,8 @@ class TPCDPLDigitizerTask
       auto roMode = isContinuous ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
       LOG(INFO) << "TPC: Sending ROMode= " << (mDigitizer.isContinuousReadout() ? "Continuous" : "Triggered")
                 << " to GRPUpdater from channel " << mChannel;
-      pc.outputs().snapshot(Output{ "TPC", "ROMode", 0, Lifetime::Timeframe }, roMode);
+      pc.outputs().snapshot(Output{"TPC", "ROMode", 0, Lifetime::Timeframe}, roMode);
+      mWriteGRP = false;
     }
 
     // extract which sector to treat
@@ -189,33 +195,33 @@ class TPCDPLDigitizerTask
     activeSectors = sectorHeader->activeSectors;
 
     // lambda that snapshots digits to be sent out; prepares and attaches header with sector information
-    auto snapshotDigits = [this, sector, &pc, activeSectors](std::vector<o2::TPC::Digit> const& digits) {
-      o2::TPC::TPCSectorHeader header{ sector };
+    auto snapshotDigits = [this, sector, &pc, activeSectors](std::vector<o2::tpc::Digit> const& digits) {
+      o2::tpc::TPCSectorHeader header{sector};
       header.activeSectors = activeSectors;
       // note that snapshoting only works with non-const references (to be fixed?)
-      pc.outputs().snapshot(Output{ "TPC", "DIGITS", static_cast<SubSpecificationType>(mChannel), Lifetime::Timeframe,
-                                    header },
-                            const_cast<std::vector<o2::TPC::Digit>&>(digits));
+      pc.outputs().snapshot(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(mChannel), Lifetime::Timeframe,
+                                   header},
+                            const_cast<std::vector<o2::tpc::Digit>&>(digits));
     };
     // lambda that snapshots labels to be sent out; prepares and attaches header with sector information
     auto snapshotLabels = [this, &sector, &pc, activeSectors](o2::dataformats::MCTruthContainer<o2::MCCompLabel> const& labels) {
-      o2::TPC::TPCSectorHeader header{ sector };
+      o2::tpc::TPCSectorHeader header{sector};
       header.activeSectors = activeSectors;
-      pc.outputs().snapshot(Output{ "TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(mChannel),
-                                    Lifetime::Timeframe, header },
+      pc.outputs().snapshot(Output{"TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(mChannel),
+                                   Lifetime::Timeframe, header},
                             const_cast<o2::dataformats::MCTruthContainer<o2::MCCompLabel>&>(labels));
     };
     // lambda that snapshots digits grouping (triggers) to be sent out; prepares and attaches header with sector information
     auto snapshotEvents = [this, sector, &pc, activeSectors](const std::vector<DigiGroupRef>& events) {
-      o2::TPC::TPCSectorHeader header{ sector };
+      o2::tpc::TPCSectorHeader header{sector};
       header.activeSectors = activeSectors;
       LOG(INFO) << "TPC: Send TRIGGERS for sector " << sector << " channel " << mChannel << " | size " << events.size();
-      pc.outputs().snapshot(Output{ "TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(mChannel), Lifetime::Timeframe,
-                                    header },
+      pc.outputs().snapshot(Output{"TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(mChannel), Lifetime::Timeframe,
+                                   header},
                             const_cast<std::vector<DigiGroupRef>&>(events));
     };
 
-    std::vector<o2::TPC::Digit> digitsAccum;                       // accumulator for digits
+    std::vector<o2::tpc::Digit> digitsAccum;                       // accumulator for digits
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum; // timeframe accumulator for labels
     std::vector<DigiGroupRef> eventAccum;
 
@@ -276,8 +282,8 @@ class TPCDPLDigitizerTask
         const int sourceID = part.sourceID;
 
         // get the hits for this event and this source
-        std::vector<o2::TPC::HitGroup> hitsLeft;
-        std::vector<o2::TPC::HitGroup> hitsRight;
+        std::vector<o2::tpc::HitGroup> hitsLeft;
+        std::vector<o2::tpc::HitGroup> hitsRight;
         retrieveHits(mSimChains, getBranchNameLeft(sector).c_str(), part.sourceID, part.entryID, &hitsLeft);
         retrieveHits(mSimChains, getBranchNameRight(sector).c_str(), part.sourceID, part.entryID, &hitsRight);
         LOG(DEBUG) << "TPC: Found " << hitsLeft.size() << " hit groups left and " << hitsRight.size() << " hit groups right in collision " << collID << " eventID " << part.entryID;
@@ -310,9 +316,9 @@ class TPCDPLDigitizerTask
   }
 
  private:
-  o2::TPC::Digitizer mDigitizer;
+  o2::tpc::Digitizer mDigitizer;
   std::vector<TChain*> mSimChains;
-  std::vector<o2::TPC::Digit> mDigits;
+  std::vector<o2::tpc::Digit> mDigits;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels;
   bool mWriteGRP;
   int mChannel;
@@ -339,17 +345,16 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP)
 
   return DataProcessorSpec{
     id.str().c_str(),
-    Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
+    Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{ adaptFromTask<TPCDPLDigitizerTask>(channel, writeGRP) },
-    Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
-             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
-             { "distortionType", VariantType::Int, 0, { "Distortion type to be used. 0 = no distortions (default), 1 = realistic distortions (not implemented yet), 2 = constant distortions" } },
-             { "gridSize", VariantType::String, "33,180,33", { "Comma separated list of number of bins in z, phi and r for distortion lookup tables (z and r can only be 2**N + 1, N=1,2,3,...)" } },
-             { "initialSpaceChargeDensity", VariantType::String, "", { "Path to root file containing TH3 with initial space-charge density and name of the TH3 (comma separated)" } },
-             { "TPCtriggered", VariantType::Bool, false, { "Impose triggered RO mode (default: continuous)" } } }
-  };
+    AlgorithmSpec{adaptFromTask<TPCDPLDigitizerTask>(channel, writeGRP)},
+    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
+            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
+            {"distortionType", VariantType::Int, 0, {"Distortion type to be used. 0 = no distortions (default), 1 = realistic distortions (not implemented yet), 2 = constant distortions"}},
+            {"gridSize", VariantType::String, "33,180,33", {"Comma separated list of number of bins in z, phi and r for distortion lookup tables (z and r can only be 2**N + 1, N=1,2,3,...)"}},
+            {"initialSpaceChargeDensity", VariantType::String, "", {"Path to root file containing TH3 with initial space-charge density and name of the TH3 (comma separated)"}},
+            {"TPCtriggered", VariantType::Bool, false, {"Impose triggered RO mode (default: continuous)"}}}};
 }
 
-} // end namespace TPC
+} // end namespace tpc
 } // end namespace o2

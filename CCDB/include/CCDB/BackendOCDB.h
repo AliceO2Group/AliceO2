@@ -37,8 +37,10 @@ class BackendOCDB : public Backend
   void Pack(const std::string& path, const std::string& key, std::string*& messageString) override;
 
   /// Parses an incoming message from the CCDB server and prints the metadata of the included object
+#if !(defined(__CLING__) || defined(__ROOTCLING__))
   Condition* UnPack(std::unique_ptr<FairMQMessage> msg) override;
+#endif
 };
-}
-}
+} // namespace ccdb
+} // namespace o2
 #endif

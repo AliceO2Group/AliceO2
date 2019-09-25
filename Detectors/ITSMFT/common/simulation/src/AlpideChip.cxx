@@ -18,15 +18,15 @@
 #include "DetectorsBase/MaterialManager.h"
 #include "DetectorsBase/Detector.h"
 
-#include <TGeoBBox.h>         // for TGeoBBox
-#include <TGeoManager.h>      // for gGeoManager, TGeoManager
-#include "TGeoVolume.h"       // for TGeoVolume
-#include "TGeoMatrix.h"       // for TGeoMatrix
-#include "FairLogger.h" // for LOG
+#include <TGeoBBox.h>    // for TGeoBBox
+#include <TGeoManager.h> // for gGeoManager, TGeoManager
+#include "TGeoVolume.h"  // for TGeoVolume
+#include "TGeoMatrix.h"  // for TGeoMatrix
+#include "FairLogger.h"  // for LOG
 
-using namespace o2::ITSMFT;
+using namespace o2::itsmft;
 
-ClassImp(AlpideChip)
+ClassImp(AlpideChip);
 
 //________________________________________________________________________
 TGeoVolume* AlpideChip::createChip(const Double_t ychip,
@@ -34,91 +34,90 @@ TGeoVolume* AlpideChip::createChip(const Double_t ychip,
                                    const char* chipName,
                                    const char* sensName,
                                    const Bool_t dummy,
-                                   const TGeoManager *mgr){
-//
-// Creates the Alpide Chip
-// Caller should then use TGeoVolume::SetName to proper set the volume name
-//
-// Input:
-//         ychip : the chip Y half dimensions
-//         ysens : the sensor half thickness
-//         chipName,sensName : default volume names (if not passed by caller)
-//         dummy : if true, creates a dummy air volume
-//                 (for material budget studies)
-//         mgr  : the GeoManager (used only to get the proper material)
-//
-// Output:
-//
-// Return:
-//
-// Created:      20 Oct 2017  Mario Sitta  Ported from V3layer
-//
+                                   const TGeoManager* mgr)
+{
+  //
+  // Creates the Alpide Chip
+  // Caller should then use TGeoVolume::SetName to proper set the volume name
+  //
+  // Input:
+  //         ychip : the chip Y half dimensions
+  //         ysens : the sensor half thickness
+  //         chipName,sensName : default volume names (if not passed by caller)
+  //         dummy : if true, creates a dummy air volume
+  //                 (for material budget studies)
+  //         mgr  : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      20 Oct 2017  Mario Sitta  Ported from V3layer
+  //
 
   Double_t xchip, zchip;
   Double_t ylen, ypos;
 
-  xchip = 0.5*SegmentationAlpide::SensorSizeRows;
-  zchip = 0.5*SegmentationAlpide::SensorSizeCols;
+  xchip = 0.5 * SegmentationAlpide::SensorSizeRows;
+  zchip = 0.5 * SegmentationAlpide::SensorSizeCols;
 
   // First create all needed shapes
   ylen = ysens;
   if (ysens > ychip) {
     LOG(WARNING) << "Sensor half thickness (" << ysens
                  << ") greater than chip half thickness (" << ychip
-                 << "), setting equal" << FairLogger::endl;
+                 << "), setting equal";
     ylen = ychip;
   }
 
   // The chip
-  TGeoBBox *chip = new TGeoBBox(xchip,  ychip, zchip);
+  TGeoBBox* chip = new TGeoBBox(xchip, ychip, zchip);
 
   // The sensor
-  TGeoBBox *sensor = new TGeoBBox(xchip, ylen, zchip);
+  TGeoBBox* sensor = new TGeoBBox(xchip, ylen, zchip);
 
   // The metal layer
-  ylen = 0.5*sMetalLayerThick;
-  TGeoBBox *metallay = new TGeoBBox(xchip, ylen, zchip);
-
+  ylen = 0.5 * sMetalLayerThick;
+  TGeoBBox* metallay = new TGeoBBox(xchip, ylen, zchip);
 
   // We have all shapes: now create the real volumes
   TGeoMedium* medSi = mgr->GetMedium("ALPIDE_SI$");
   if (!medSi) {
     Int_t fieldType;
     Float_t maxField;
-    o2::Base::Detector::initFieldTrackingParams(fieldType, maxField);
+    o2::base::Detector::initFieldTrackingParams(fieldType, maxField);
     createMaterials(0, fieldType, maxField);
     medSi = mgr->GetMedium("ALPIDE_SI$");
   }
   TGeoMedium* medAir = mgr->GetMedium("ALPIDE_AIR$");
   TGeoMedium* medMetal = mgr->GetMedium("ALPIDE_METALSTACK$");
 
-  TGeoMedium *medChip;
+  TGeoMedium* medChip;
 
   if (dummy)
     medChip = medAir;
   else
     medChip = medSi;
 
-  TGeoVolume *chipVol = new TGeoVolume(chipName, chip, medChip);
+  TGeoVolume* chipVol = new TGeoVolume(chipName, chip, medChip);
   chipVol->SetVisibility(kTRUE);
   chipVol->SetLineColor(1);
   chipVol->SetFillColor(chipVol->GetLineColor());
   chipVol->SetFillStyle(4000); // 0% transparent
 
-  TGeoVolume *sensVol = new TGeoVolume(sensName, sensor, medChip);
+  TGeoVolume* sensVol = new TGeoVolume(sensName, sensor, medChip);
   sensVol->SetVisibility(kTRUE);
   sensVol->SetLineColor(8);
   sensVol->SetLineWidth(1);
   sensVol->SetFillColor(sensVol->GetLineColor());
   sensVol->SetFillStyle(4000); // 0% transparent
 
-  TGeoVolume *metalVol = new TGeoVolume("MetalStack", metallay, medMetal);
+  TGeoVolume* metalVol = new TGeoVolume("MetalStack", metallay, medMetal);
   metalVol->SetVisibility(kTRUE);
   metalVol->SetLineColor(1);
   metalVol->SetLineWidth(1);
   metalVol->SetFillColor(metalVol->GetLineColor());
   metalVol->SetFillStyle(4000); // 0% transparent
-
 
   // Now build up the chip
   ypos = chip->GetDY() - metallay->GetDY();
@@ -136,7 +135,7 @@ void AlpideChip::createMaterials(Int_t id, Int_t ifield, Float_t fieldm)
 {
   // create common materials with the MFT
 
-  auto& mgr = o2::Base::MaterialManager::Instance();
+  auto& mgr = o2::base::MaterialManager::Instance();
 
   Float_t tmaxfd = 0.1;   // Degree
   Float_t stemax = 1.0;   // cm
@@ -157,15 +156,15 @@ void AlpideChip::createMaterials(Int_t id, Int_t ifield, Float_t fieldm)
   Float_t stminAir = 0.0;    // cm "Default value used"
 
   // BEOL (Metal interconnection stack in Si sensors)
-  Float_t aBEOL[3] = { 26.982, 28.086, 15.999 };
-  Float_t zBEOL[3] = { 13, 14, 8 }; // Al, Si, O
-  Float_t wBEOL[3] = { 0.170, 0.388, 0.442 };
+  Float_t aBEOL[3] = {26.982, 28.086, 15.999};
+  Float_t zBEOL[3] = {13, 14, 8}; // Al, Si, O
+  Float_t wBEOL[3] = {0.170, 0.388, 0.442};
   Float_t dBEOL = 2.28;
 
   // AIR
-  Float_t aAir[4] = { 12.0107, 14.0067, 15.9994, 39.948 };
-  Float_t zAir[4] = { 6., 7., 8., 18. };
-  Float_t wAir[4] = { 0.000124, 0.755267, 0.231781, 0.012827 };
+  Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
+  Float_t zAir[4] = {6., 7., 8., 18.};
+  Float_t wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   Float_t dAir = 1.20479E-3;
 
   if (mgr.getMediumID("ALPIDE", id) < 0) {

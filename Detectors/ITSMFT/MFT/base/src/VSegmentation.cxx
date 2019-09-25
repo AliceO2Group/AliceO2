@@ -14,9 +14,9 @@
 
 #include "MFTBase/VSegmentation.h"
 
-using namespace o2::MFT;
+using namespace o2::mft;
 
-ClassImp(o2::MFT::VSegmentation);
+ClassImp(o2::mft::VSegmentation);
 
 //_____________________________________________________________________________
 VSegmentation::VSegmentation() : TNamed(), mTransformation(new TGeoCombiTrans())

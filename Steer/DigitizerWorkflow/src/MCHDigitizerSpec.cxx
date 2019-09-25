@@ -56,7 +56,7 @@ class MCHDPLDigitizerTask
  public:
   void init(framework::InitContext& ic)
   {
-    LOG(INFO) << "initializing MCH digitization";
+    LOG(DEBUG) << "initializing MCH digitization";
     // setup the input chain for the hits
     mSimChains.emplace_back(new TChain("o2sim"));
 
@@ -71,7 +71,7 @@ class MCHDPLDigitizerTask
     }
 
     if (!gGeoManager) {
-      o2::Base::GeometryManager::loadGeometry();
+      o2::base::GeometryManager::loadGeometry();
     }
   }
 
@@ -81,14 +81,14 @@ class MCHDPLDigitizerTask
     if (finished) {
       return;
     }
-    LOG(INFO) << "Doing MCH digitization";
+    LOG(DEBUG) << "Doing MCH digitization";
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
     auto& irecords = context->getEventRecords();
 
     for (auto& record : irecords) {
-      LOG(INFO) << "MCH TIME RECEIVED " << record.timeNS;
+      LOG(DEBUG) << "MCH TIME RECEIVED " << record.timeNS;
     }
 
     auto& eventParts = context->getEventParts();
@@ -99,7 +99,6 @@ class MCHDPLDigitizerTask
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
       mDigitizer.setEventTime(irecords[collID].timeNS);
-
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
@@ -109,33 +108,35 @@ class MCHDPLDigitizerTask
         // get the hits for this event and this source
         std::vector<o2::mch::Hit> hits;
         retrieveHits(mSimChains, "MCHHit", part.sourceID, part.entryID, &hits);
-        LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found MCH " << hits.size() << " hits ";
+        LOG(DEBUG) << "For collision " << collID << " eventID " << part.entryID << " found MCH " << hits.size() << " hits ";
 
-        std::vector<o2::mch::Digit> digits;                        // digits which get filled
-        o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels; //TODO: not clear where and how this is filled!
+        std::vector<o2::mch::Digit> digits; // digits which get filled
+        o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;
 
         mDigitizer.process(hits, digits);
         mDigitizer.provideMC(labels);
-        LOG(INFO) << "MCH obtained " << digits.size() << " digits ";
+        LOG(DEBUG) << "MCH obtained " << digits.size() << " digits ";
         for (auto& d : digits) {
-          LOG(INFO) << "ADC " << d.getADC();
-          LOG(INFO) << "PAD " << d.getPadID();
-          LOG(INFO) << " MCLabel " << d.getLabelIndex();
+          LOG(DEBUG) << "ADC " << d.getADC();
+          LOG(DEBUG) << "PAD " << d.getPadID();
+          LOG(DEBUG) << "TIME " << d.getTimeStamp();
+          LOG(DEBUG) << "DetID " << d.getDetID();
         }
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
         labelAccum.mergeAtBack(labels);
-        std::cout << "labelAccum.getIndexedSize()  " << labelAccum.getIndexedSize() << std::endl;
-        std::cout << "labelAccum.getNElements() " << labelAccum.getNElements() << std::endl;
-        LOG(INFO) << "Have " << digits.size() << " digits ";
+        LOG(DEBUG) << "labelAccum.getIndexedSize()  " << labelAccum.getIndexedSize();
+        LOG(DEBUG) << "labelAccum.getNElements() " << labelAccum.getNElements();
+        LOG(DEBUG) << "Have " << digits.size() << " digits ";
       }
     }
+    mDigitizer.mergeDigits(digitsAccum, labelAccum);
 
-    LOG(INFO) << "Have " << labelAccum.getNElements() << " MCH labels "; //does not work out!
-    pc.outputs().snapshot(Output{ "MCH", "DIGITS", 0, Lifetime::Timeframe }, digitsAccum);
-    pc.outputs().snapshot(Output{ "MCH", "DIGITSMCTR", 0, Lifetime::Timeframe }, labelAccum);
-    LOG(INFO) << "MCH: Sending ROMode= " << mROMode << " to GRPUpdater";
+    LOG(DEBUG) << "Have " << labelAccum.getNElements() << " MCH labels "; //does not work out!
+    pc.outputs().snapshot(Output{"MCH", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
+    pc.outputs().snapshot(Output{"MCH", "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
+    LOG(DEBUG) << "MCH: Sending ROMode= " << mROMode << " to GRPUpdater";
     //ROMode: to be understood, check EMCal etc.
-    pc.outputs().snapshot(Output{ "MCH", "ROMode", 0, Lifetime::Timeframe }, mROMode);
+    pc.outputs().snapshot(Output{"MCH", "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(false);
@@ -158,15 +159,14 @@ o2::framework::DataProcessorSpec getMCHDigitizerSpec(int channel)
   //  options that can be used for this processor (here: input file names where to take the hits)
   return DataProcessorSpec{
     "MCHDigitizer",
-    Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
+    Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
 
-    Outputs{ OutputSpec{ "MCH", "DIGITS", 0, Lifetime::Timeframe },
-             OutputSpec{ "MCH", "DIGITSMCTR", 0, Lifetime::Timeframe },
-             OutputSpec{ "MCH", "ROMode", 0, Lifetime::Timeframe } },
-    AlgorithmSpec{ adaptFromTask<MCHDPLDigitizerTask>() },
-    Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
-             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } } }
-  };
+    Outputs{OutputSpec{"MCH", "DIGITS", 0, Lifetime::Timeframe},
+            OutputSpec{"MCH", "DIGITSMCTR", 0, Lifetime::Timeframe},
+            OutputSpec{"MCH", "ROMode", 0, Lifetime::Timeframe}},
+    AlgorithmSpec{adaptFromTask<MCHDPLDigitizerTask>()},
+    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
+            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}}}};
 }
 
 } // end namespace mch

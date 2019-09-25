@@ -51,6 +51,8 @@ class O2MCApplication : public O2MCApplicationBase
     fStack->FillTrackArray();
     fStack->UpdateTrackIndex(fActiveDetectors);
 
+    finishEventCommon();
+
     // This special finish event version does not fill the output tree of FairRootManager
     // but forwards the data to the HitMerger
     SendData();
@@ -61,12 +63,13 @@ class O2MCApplication : public O2MCApplicationBase
       det->EndOfEvent();
     }
     fStack->Reset();
+    LOG(INFO) << "This event/chunk did " << mStepCounter << " steps";
   }
 
   /** Define actions at the end of run */
   void FinishRun();
 
-  void attachSubEventInfo(FairMQParts&, o2::Data::SubEventInfo const& info) const;
+  void attachSubEventInfo(FairMQParts&, o2::data::SubEventInfo const& info) const;
 
   /** Generate primary particles */
   void GeneratePrimaries() override
@@ -85,7 +88,7 @@ class O2MCApplication : public O2MCApplicationBase
 
     // but here we init the stack from
     // a vector of particles that someone sets externally
-    static_cast<o2::Data::Stack*>(GetStack())->initFromPrimaries(mPrimaries);
+    static_cast<o2::data::Stack*>(GetStack())->initFromPrimaries(mPrimaries);
   }
 
   void setPrimaries(std::vector<TParticle> const& p)
@@ -94,15 +97,15 @@ class O2MCApplication : public O2MCApplicationBase
   }
 
   void setSimDataChannel(FairMQChannel* channel) { mSimDataChannel = channel; }
-  void setSubEventInfo(o2::Data::SubEventInfo& i) { mSubEventInfo = i; }
+  void setSubEventInfo(o2::data::SubEventInfo* i);
 
   std::vector<TParticle> mPrimaries; //!
 
   FairMQChannel* mSimDataChannel;                      //! generic channel on which to send sim data
-  o2::Data::SubEventInfo mSubEventInfo;                //! what are we currently processing?
-  std::vector<o2::Base::Detector*> mActiveO2Detectors; //! active (data taking) o2 detectors
+  o2::data::SubEventInfo* mSubEventInfo = nullptr;     //! what are we currently processing?
+  std::vector<o2::base::Detector*> mActiveO2Detectors; //! active (data taking) o2 detectors
 
-  ClassDefOverride(O2MCApplication, 1) //Interface to MonteCarlo application
+  ClassDefOverride(O2MCApplication, 1); //Interface to MonteCarlo application
 };
 
 } // end namespace steer

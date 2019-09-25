@@ -18,6 +18,7 @@ inline bool TimesliceSlot::isValid(TimesliceSlot const& slot) { return slot.inde
 inline void TimesliceIndex::resize(size_t s)
 {
   mVariables.resize(s);
+  mPublishedVariables.resize(s);
   mDirty.resize(s, false);
 }
 
@@ -56,10 +57,16 @@ inline void TimesliceIndex::markAsInvalid(TimesliceSlot slot)
   mVariables[slot.index].reset();
 }
 
+inline void TimesliceIndex::publishSlot(TimesliceSlot slot)
+{
+  assert(mVariables.size() > slot.index);
+  mPublishedVariables[slot.index] = mVariables[slot.index];
+}
+
 inline void TimesliceIndex::associate(TimesliceId timestamp, TimesliceSlot slot)
 {
   assert(mVariables.size() > slot.index);
-  mVariables[slot.index].put({0, timestamp.value});
+  mVariables[slot.index].put({0, static_cast<uint64_t>(timestamp.value)});
   mVariables[slot.index].commit();
   mDirty[slot.index] = true;
 }
@@ -102,6 +109,12 @@ inline data_matcher::VariableContext &TimesliceIndex::getVariablesForSlot(Timesl
 {
   assert(mVariables.size() > slot.index);
   return mVariables[slot.index];
+}
+
+inline data_matcher::VariableContext &TimesliceIndex::getPublishedVariablesForSlot(TimesliceSlot slot)
+{
+  assert(mPublishedVariables.size() > slot.index);
+  return mPublishedVariables[slot.index];
 }
 
 inline std::tuple<TimesliceIndex::ActionTaken, TimesliceSlot> TimesliceIndex::replaceLRUWith(data_matcher::VariableContext& newContext)

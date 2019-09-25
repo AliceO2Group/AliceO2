@@ -23,16 +23,16 @@
 namespace o2
 {
 
-namespace ITSMFT
+namespace itsmft
 {
 class Cluster;
 }
 
-namespace MFT
+namespace mft
 {
 class TrackMFT : public o2::track::TrackParCov
 {
-  using Cluster = o2::ITSMFT::Cluster;
+  using Cluster = o2::itsmft::Cluster;
 
  public:
   using o2::track::TrackParCov::TrackParCov;
@@ -43,9 +43,9 @@ class TrackMFT : public o2::track::TrackParCov
   ~TrackMFT() = default;
 
  private:
-  ClassDefNV(TrackMFT, 1)
+  ClassDefNV(TrackMFT, 1);
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

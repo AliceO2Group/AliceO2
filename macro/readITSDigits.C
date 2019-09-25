@@ -4,6 +4,7 @@
 #include <TTree.h>
 #include <TStopwatch.h>
 #include <memory>
+#include <iostream>
 #include "FairLogger.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTBase/Digit.h"
@@ -24,44 +25,50 @@ void readITSDigits(std::string path = "./",
 
   std::unique_ptr<TFile> digiFile(TFile::Open((path + digiFName).c_str()));
   if (!digiFile || digiFile->IsZombie()) {
-    LOG(ERROR) << "Failed to open input digits file " << (path + digiFName) << FairLogger::endl;
+    LOG(ERROR) << "Failed to open input digits file " << (path + digiFName);
     return;
   }
   std::unique_ptr<TFile> rcFile(TFile::Open((path + runContextFName).c_str()));
   if (!rcFile || rcFile->IsZombie()) {
-    LOG(ERROR) << "Failed to open runContext file " << (path + runContextFName) << FairLogger::endl;
+    LOG(ERROR) << "Failed to open runContext file " << (path + runContextFName);
     return;
   }
 
   TTree* digiTree = (TTree*)digiFile->Get("o2sim");
   if (!digiTree) {
-    LOG(ERROR) << "Failed to get digits tree" << FairLogger::endl;
+    LOG(ERROR) << "Failed to get digits tree";
+    return;
+  }
+  TTree* rofTree = (TTree*)digiFile->Get("ROF");
+  if (!rofTree) {
+    LOG(ERROR) << "Failed to get ROF tree";
+    return;
+  }
+  TTree* mc2rofTree = (TTree*)digiFile->Get("MC2ROF");
+  if (!mc2rofTree) {
+    LOG(ERROR) << "Failed to get MC->ROF tree";
     return;
   }
 
-  std::vector<o2::ITSMFT::Digit>* dv = nullptr;
+  std::vector<o2::itsmft::Digit>* dv = nullptr;
   digiTree->SetBranchAddress("ITSDigit", &dv);
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels = nullptr;
   digiTree->SetBranchAddress("ITSDigitMCTruth", &labels);
 
   // ROF record entries in the digit tree
-  auto rofRecVec = reinterpret_cast<vector<o2::ITSMFT::ROFRecord>*>(digiFile->GetObjectChecked("ITSDigitROF", "vector<o2::ITSMFT::ROFRecord>"));
-  if (!rofRecVec) {
-    LOG(ERROR) << "Failed to get ITS digits ROF Records" << FairLogger::endl;
-    return;
-  }
+  std::vector<o2::itsmft::ROFRecord>* rofRecVec = nullptr;
+  rofTree->SetBranchAddress("ITSDigitROF", &rofRecVec);
+  rofTree->GetEntry(0);
 
   // MCEvID -> ROFrecord references
-  auto mc2rofVec = reinterpret_cast<vector<o2::ITSMFT::MC2ROFRecord>*>(digiFile->GetObjectChecked("ITSDigitMC2ROF", "vector<o2::ITSMFT::MC2ROFRecord>"));
-  if (!rofRecVec) {
-    LOG(WARNING) << "Did not find MCEvent to ROF records references" << FairLogger::endl;
-    return;
-  }
+  std::vector<o2::itsmft::MC2ROFRecord>* mc2rofVec = nullptr;
+  mc2rofTree->SetBranchAddress("ITSDigitMC2ROF", &mc2rofVec);
+  mc2rofTree->GetEntry(0);
 
   // MC collisions record
   auto runContext = reinterpret_cast<o2::steer::RunContext*>(rcFile->GetObjectChecked("RunContext", "o2::steer::RunContext"));
   if (!runContext) {
-    LOG(WARNING) << "Did not find RunContext" << FairLogger::endl;
+    LOG(WARNING) << "Did not find RunContext";
     return;
   }
 
@@ -81,7 +88,7 @@ void readITSDigits(std::string path = "./",
     printf("\n");
 
     if (int(mc2rofVec->size()) <= iev || (*mc2rofVec)[iev].eventRecordID < 0) {
-      LOG(WARNING) << "Event was not digitized" << FairLogger::endl;
+      LOG(WARNING) << "Event was not digitized";
       continue;
     }
     const auto& m2r = (*mc2rofVec)[iev];

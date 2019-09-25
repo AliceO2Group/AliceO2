@@ -15,8 +15,12 @@
 #include <functional>
 #include "MemoryResources/observer_ptr.h"
 
+/// exclude from doxygen, TODO: we might want to do this on a higher level
+/// because of doxygen's autolinking of references, all 'A' are displayed as
+/// reference to this struct.
+/// @cond
 struct A {
-  int i{ 2 };
+  int i{2};
   int get() const { return i; }
 };
 
@@ -24,10 +28,10 @@ BOOST_AUTO_TEST_CASE(observer_ptr_A)
 {
   using namespace o2;
   A t;
-  int i{ 1 };
+  int i{1};
 
   {
-    observer_ptr<int> p{ nullptr };
+    observer_ptr<int> p{nullptr};
     BOOST_CHECK(p == nullptr);
   }
 
@@ -37,32 +41,32 @@ BOOST_AUTO_TEST_CASE(observer_ptr_A)
   }
 
   {
-    observer_ptr<int> b{ &i };
+    observer_ptr<int> b{&i};
     observer_ptr<void> a(b);
     BOOST_CHECK(a == b);
   }
 
   {
-    observer_ptr<int> b{ &i };
+    observer_ptr<int> b{&i};
     observer_ptr<int> a(b);
     BOOST_CHECK(a == b);
   }
 
   {
-    const observer_ptr<int> b{ &i };
+    const observer_ptr<int> b{&i};
     observer_ptr<int> a(b);
     BOOST_CHECK(a == b);
   }
 
   {
-    observer_ptr<A> pt{ &t };
+    observer_ptr<A> pt{&t};
     A* ptt = pt.release();
     BOOST_CHECK(ptt == &t);
     BOOST_CHECK(pt == nullptr);
   }
 
   {
-    observer_ptr<A> p{ &t };
+    observer_ptr<A> p{&t};
     p.reset();
     BOOST_CHECK(p == nullptr);
     p.reset(&t);
@@ -70,9 +74,9 @@ BOOST_AUTO_TEST_CASE(observer_ptr_A)
   }
 
   {
-    A tt{ 4 };
-    observer_ptr<A> pp{ &tt };
-    observer_ptr<A> p{ &t };
+    A tt{4};
+    observer_ptr<A> pp{&tt};
+    observer_ptr<A> p{&t};
     p.swap(pp);
     BOOST_CHECK(p->get() == 4 && pp->get() == 2);
     p.swap(nullptr);
@@ -83,12 +87,12 @@ BOOST_AUTO_TEST_CASE(observer_ptr_A)
   }
 
   {
-    observer_ptr<A> p{ &t };
+    observer_ptr<A> p{&t};
     BOOST_CHECK(p.get() == &t);
   }
 
   {
-    observer_ptr<A> p{ &t };
+    observer_ptr<A> p{&t};
     BOOST_CHECK((*p).i == 2);
   }
 
@@ -103,11 +107,11 @@ BOOST_AUTO_TEST_CASE(observer_ptr_A)
 
   //comparisons
   {
-    A tt{ 4 };
-    observer_ptr<A> pp{ &tt };
-    observer_ptr<A> p{ &t };
-    observer_ptr<A> p_{ &t };
-    observer_ptr<A> n{ nullptr };
+    A tt{4};
+    observer_ptr<A> pp{&tt};
+    observer_ptr<A> p{&t};
+    observer_ptr<A> p_{&t};
+    observer_ptr<A> n{nullptr};
     BOOST_CHECK(p != pp);
     BOOST_CHECK(p == p_);
     BOOST_CHECK(p != nullptr);
@@ -122,7 +126,8 @@ BOOST_AUTO_TEST_CASE(observer_ptr_A)
 
   //hash
   {
-    observer_ptr<int> p{ &i };
+    observer_ptr<int> p{&i};
     BOOST_CHECK(std::hash<o2::observer_ptr<int>>()(p) == std::hash<int*>()(p.get()));
   }
 }
+// @endcond

@@ -24,25 +24,45 @@ namespace o2
 namespace conf
 {
 
+// ----------------------------------------------------------------
+
+// Utility structure for passing around ConfigurableParam data member info
+// (where value is the string representation)
+struct ParamDataMember {
+  std::string name;
+  std::string value;
+  std::string provenance;
+
+  std::string toString(bool showProv) const;
+};
+
+// ----------------------------------------------------------------
+
 // just a (non-templated) helper with exclusively private functions
 // used by ConfigurableParamHelper
 class _ParamHelper
 {
  private:
-  static void printParametersImpl(std::string mainkey, TClass* cl, void*,
-                                  std::map<std::string, ConfigurableParam::EParamProvenance> const* provmap);
+  static std::vector<ParamDataMember>* getDataMembersImpl(std::string mainkey, TClass* cl, void*,
+                                                          std::map<std::string, ConfigurableParam::EParamProvenance> const* provmap);
 
   static void fillKeyValuesImpl(std::string mainkey, TClass* cl, void*, boost::property_tree::ptree*,
-                                std::map<std::string, std::pair<std::type_info const&, void*>>*);
+                                std::map<std::string, std::pair<std::type_info const&, void*>>*,
+                                EnumRegistry*);
 
   static void printWarning(std::type_info const&);
 
   static void assignmentImpl(std::string mainkey, TClass* cl, void* to, void* from,
                              std::map<std::string, ConfigurableParam::EParamProvenance>* provmap);
 
+  static void outputMembersImpl(std::ostream& out, std::vector<ParamDataMember> const* members, bool showProv);
+  static void printMembersImpl(std::vector<ParamDataMember> const* members, bool showProv);
+
   template <typename P>
   friend class ConfigurableParamHelper;
 };
+
+// ----------------------------------------------------------------
 
 // implementer (and checker) for concrete ConfigurableParam classes P
 template <typename P>
@@ -55,28 +75,54 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
     return P::sInstance;
   }
 
+  // ----------------------------------------------------------------
+
   std::string getName() const final
   {
     return P::sKey;
   }
 
+  // ----------------------------------------------------------------
+
   // one of the key methods, using introspection to print itself
-  void printKeyValues(bool showprov) const final
+  void printKeyValues(bool showProv) const final
+  {
+    auto members = getDataMembers();
+    _ParamHelper::printMembersImpl(members, showProv);
+  }
+
+  // ----------------------------------------------------------------
+
+  void output(std::ostream& out) const final
+  {
+    auto members = getDataMembers();
+    _ParamHelper::outputMembersImpl(out, members, true);
+  }
+
+  // ----------------------------------------------------------------
+
+  // Grab the list of ConfigurableParam data members
+  // Returns a nullptr if the TClass of the P template class cannot be created.
+  std::vector<ParamDataMember>* getDataMembers() const
   {
     // just a helper line to make sure P::sInstance is looked-up
     // and that compiler complains about missing static sInstance of type P
     // volatile void* ptr = (void*)&P::sInstance;
     // static assert on type of sInstance:
-    static_assert(std::is_same<decltype(P::sInstance), P>::value, "static instance must of same type as class");
+    static_assert(std::is_same<decltype(P::sInstance), P>::value,
+                  "static instance must of same type as class");
 
     // obtain the TClass for P and delegate further
     auto cl = TClass::GetClass(typeid(P));
     if (!cl) {
       _ParamHelper::printWarning(typeid(P));
-      return;
+      return nullptr;
     }
-    _ParamHelper::printParametersImpl(getName(), cl, (void*)this, showprov ? sValueProvenanceMap : nullptr);
+
+    return _ParamHelper::getDataMembersImpl(getName(), cl, (void*)this, sValueProvenanceMap);
   }
+
+  // ----------------------------------------------------------------
 
   // fills the data structures with the initial default values
   void putKeyValues(boost::property_tree::ptree* tree) final
@@ -86,8 +132,10 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
       _ParamHelper::printWarning(typeid(P));
       return;
     }
-    _ParamHelper::fillKeyValuesImpl(getName(), cl, (void*)this, tree, sKeyToStorageMap);
+    _ParamHelper::fillKeyValuesImpl(getName(), cl, (void*)this, tree, sKeyToStorageMap, sEnumRegistry);
   }
+
+  // ----------------------------------------------------------------
 
   void initFrom(TFile* file) final
   {
@@ -104,11 +152,14 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
     setRegisterMode(true);
   }
 
+  // ----------------------------------------------------------------
+
   void serializeTo(TFile* file) const final
   {
     file->WriteObjectAny((void*)this, TClass::GetClass(typeid(P)), getName().c_str());
   }
 };
+
 } // namespace conf
 } // namespace o2
 

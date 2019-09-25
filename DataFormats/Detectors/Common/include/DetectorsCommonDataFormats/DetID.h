@@ -14,7 +14,7 @@
 
 /*!
   Example of class usage:
-  using namespace o2::Base;
+  using namespace o2::base;
   DetID det[3] = {DetID(DetID::ITS), DetID(DetID::TPC), DetID(DetID::TRD)};
   DetID::mask_t mskTot;
   for (int i=0;i<3;i++) {
@@ -58,8 +58,10 @@ class DetID
   static constexpr ID MCH = 9;
   static constexpr ID MID = 10;
   static constexpr ID ZDC = 11;
-  static constexpr ID FIT = 12;
-  static constexpr ID ACO = 13;
+  static constexpr ID FT0 = 12;
+  static constexpr ID FV0 = 13;
+  static constexpr ID FDD = 14;
+  static constexpr ID ACO = 15;
   static constexpr ID First = ITS;
   static constexpr ID Last = ACO; ///< if extra detectors added, update this !!!
 
@@ -90,6 +92,7 @@ class DetID
   static constexpr mask_t getMask(ID id) { return sMasks[id]; }
   // we need default c-tor only for root persistency, code must use c-tor with argument
   DetID() : mID(First) {}
+
  private:
   // are 2 strings equal ? (trick from Giulio)
   inline static constexpr bool sameStr(char const* x, char const* y)
@@ -105,16 +108,17 @@ class DetID
   ID mID = First; ///< detector ID
 
   static constexpr const char* sDetNames[nDetectors + 1] = ///< defined detector names
-    { "ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FIT", "ACO", nullptr };
+
+    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", nullptr};
 
   // detector names, will be defined in DataSources
   static constexpr std::array<mask_t, nDetectors> sMasks = ///< detectot masks
-    { utils::bit2Mask(ITS), utils::bit2Mask(TPC), utils::bit2Mask(TRD), utils::bit2Mask(TOF), utils::bit2Mask(PHS),
-      utils::bit2Mask(CPV), utils::bit2Mask(EMC), utils::bit2Mask(HMP), utils::bit2Mask(MFT), utils::bit2Mask(MCH),
-      utils::bit2Mask(MID), utils::bit2Mask(ZDC), utils::bit2Mask(FIT), utils::bit2Mask(ACO) };
+    {utils::bit2Mask(ITS), utils::bit2Mask(TPC), utils::bit2Mask(TRD), utils::bit2Mask(TOF), utils::bit2Mask(PHS),
+     utils::bit2Mask(CPV), utils::bit2Mask(EMC), utils::bit2Mask(HMP), utils::bit2Mask(MFT), utils::bit2Mask(MCH),
+     utils::bit2Mask(MID), utils::bit2Mask(ZDC), utils::bit2Mask(FT0), utils::bit2Mask(FV0), utils::bit2Mask(FDD), utils::bit2Mask(ACO)};
 
   ClassDefNV(DetID, 1);
 };
-}
-}
+} // namespace detectors
+} // namespace o2
 #endif

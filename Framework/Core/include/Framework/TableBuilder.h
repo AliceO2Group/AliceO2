@@ -8,8 +8,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef FRAMEWORK_TABLEBUILDER_H
-#define FRAMEWORK_TABLEBUILDER_H
+#ifndef O2_FRAMEWORK_TABLEBUILDER_H_
+#define O2_FRAMEWORK_TABLEBUILDER_H_
+
+#include "Framework/ASoA.h"
+#include "Framework/FunctionalHelpers.h"
+
+// Apparently needs to be on top of the arrow includes.
+#include <sstream>
 
 #include <arrow/stl.h>
 #include <arrow/type_traits.h>
@@ -62,7 +68,7 @@ O2_ARROW_STL_CONVERSION(uint64_t, UInt64Type)
 O2_ARROW_STL_CONVERSION(float, FloatType)
 O2_ARROW_STL_CONVERSION(double, DoubleType)
 O2_ARROW_STL_CONVERSION(std::string, StringType)
-}
+} // namespace detail
 
 struct BuilderUtils {
   template <typename BuilderType, typename T>
@@ -75,6 +81,12 @@ struct BuilderUtils {
   static void unsafeAppend(BuilderType& builder, T value)
   {
     return builder->UnsafeAppend(value);
+  }
+
+  template <typename BuilderType, typename PTR>
+  static arrow::Status bulkAppend(BuilderType& builder, size_t bulkSize, const PTR ptr)
+  {
+    return builder->AppendValues(ptr, bulkSize, nullptr);
   }
 
   template <typename BuilderType, typename ITERATOR>
@@ -171,7 +183,7 @@ struct TableBuilderHelpers {
   template <typename... ARGS>
   static auto makeFields(std::vector<std::string> const& names)
   {
-    std::vector<std::shared_ptr<arrow::DataType>> types{ BuilderMaker<ARGS>::make_datatype()... };
+    std::vector<std::shared_ptr<arrow::DataType>> types{BuilderMaker<ARGS>::make_datatype()...};
     std::vector<std::shared_ptr<arrow::Field>> result;
     for (size_t i = 0; i < names.size(); ++i) {
       result.emplace_back(std::make_shared<arrow::Field>(names[i], types[i], true, nullptr));
@@ -193,6 +205,12 @@ struct TableBuilderHelpers {
   static void unsafeAppend(BUILDERS& builders, std::index_sequence<Is...>, VALUES&& values)
   {
     (BuilderUtils::unsafeAppend(std::get<Is>(builders), std::get<Is>(values)), ...);
+  }
+
+  template <std::size_t... Is, typename BUILDERS, typename PTRS>
+  static bool bulkAppend(BUILDERS& builders, size_t bulkSize, std::index_sequence<Is...>, PTRS ptrs)
+  {
+    return (BuilderUtils::bulkAppend(std::get<Is>(builders), bulkSize, std::get<Is>(ptrs)).ok() && ...);
   }
 
   /// Invokes the append method for each entry in the tuple
@@ -244,8 +262,7 @@ class TableBuilder
   auto makeFinalizer()
   {
     using BuildersTuple = typename std::tuple<std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>...>;
-    mFinalizer = [ schema = mSchema, &arrays = mArrays, builders = (BuildersTuple*)mBuilders ]()->std::shared_ptr<arrow::Table>
-    {
+    mFinalizer = [schema = mSchema, &arrays = mArrays, builders = (BuildersTuple*)mBuilders]() -> std::shared_ptr<arrow::Table> {
       auto status = TableBuilderHelpers::finalize(arrays, *builders, std::make_index_sequence<sizeof...(ARGS)>{});
       if (status == false) {
         throw std::runtime_error("Unable to finalize");
@@ -256,8 +273,8 @@ class TableBuilder
 
  public:
   TableBuilder(arrow::MemoryPool* pool = arrow::default_memory_pool())
-    : mBuilders{ nullptr },
-      mMemoryPool{ pool }
+    : mBuilders{nullptr},
+      mMemoryPool{pool}
   {
   }
 
@@ -274,13 +291,23 @@ class TableBuilder
     makeFinalizer<ARGS...>();
 
     // Callback used to fill the builders
-    return [builders = (BuildersTuple*)mBuilders](unsigned int slot, typename BuilderMaker<ARGS>::FillType... args)->void
-    {
+    return [builders = (BuildersTuple*)mBuilders](unsigned int slot, typename BuilderMaker<ARGS>::FillType... args) -> void {
       auto status = TableBuilderHelpers::append(*builders, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
       if (status == false) {
         throw std::runtime_error("Unable to append");
       }
     };
+  }
+
+  // Same as above, but starting from a o2::soa::Table, which has all the
+  // information already available.
+  template <typename T>
+  auto cursor()
+  {
+    using persistent_filter = soa::FilterPersistentColumns<T>;
+    using persistent_columns_pack = typename persistent_filter::persistent_columns_pack;
+    constexpr auto persistent_size = pack_size(persistent_columns_pack{});
+    return cursorHelper<typename persistent_filter::persistent_table_t>(std::make_index_sequence<persistent_size>());
   }
 
   template <typename... ARGS>
@@ -294,9 +321,23 @@ class TableBuilder
     makeFinalizer<ARGS...>();
 
     // Callback used to fill the builders
-    return [builders = (BuildersTuple*)mBuilders](unsigned int slot, typename BuilderMaker<ARGS>::FillType... args)->void
-    {
+    return [builders = (BuildersTuple*)mBuilders](unsigned int slot, typename BuilderMaker<ARGS>::FillType... args) -> void {
       TableBuilderHelpers::unsafeAppend(*builders, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
+    };
+  }
+
+  template <typename... ARGS>
+  auto bulkPersist(std::vector<std::string> const& columnNames, size_t nRows)
+  {
+    using BuildersTuple = typename std::tuple<std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>...>;
+    constexpr int nColumns = sizeof...(ARGS);
+    validate<ARGS...>(columnNames);
+    mArrays.resize(nColumns);
+    makeBuilders<ARGS...>(columnNames, nRows);
+    makeFinalizer<ARGS...>();
+
+    return [builders = (BuildersTuple*)mBuilders](unsigned int slot, size_t batchSize, typename BuilderMaker<ARGS>::FillType const*... args) -> void {
+      TableBuilderHelpers::bulkAppend(*builders, batchSize, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
     };
   }
 
@@ -304,6 +345,16 @@ class TableBuilder
   std::shared_ptr<arrow::Table> finalize();
 
  private:
+  /// Helper which actually creates the insertion cursor. Notice that the
+  /// template argument T is a o2::soa::Table which contains only the
+  /// persistent columns.
+  template <typename T, size_t... Is>
+  auto cursorHelper(std::index_sequence<Is...> s)
+  {
+    std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::label()...};
+    return this->template persist<typename pack_element_t<Is, typename T::columns>::type...>(columnNames);
+  }
+
   std::function<void(void)> mFinalizer;
   void* mBuilders;
   arrow::MemoryPool* mMemoryPool;

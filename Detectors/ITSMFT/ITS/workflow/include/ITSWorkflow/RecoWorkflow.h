@@ -17,14 +17,14 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
-namespace RecoWorkflow
+namespace reco_workflow
 {
-framework::WorkflowSpec getWorkflow();
+framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker);
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2
 #endif

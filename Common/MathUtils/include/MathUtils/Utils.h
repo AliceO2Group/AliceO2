@@ -15,8 +15,12 @@
 #ifndef ALICEO2_COMMON_MATH_UTILS_
 #define ALICEO2_COMMON_MATH_UTILS_
 
+#ifndef __OPENCL__
 #include <array>
 #include <cmath>
+#endif
+#include "GPUCommonDef.h"
+#include "GPUCommonMath.h"
 #include "CommonConstants/MathConstants.h"
 
 namespace o2
@@ -25,7 +29,7 @@ namespace o2
 //{
 namespace utils
 {
-inline void BringTo02Pi(float& phi)
+GPUdi() void BringTo02Pi(float& phi)
 {
   // ensure angle in [0:2pi] for the input in [-pi:pi] or [0:pi]
   if (phi < 0.f) {
@@ -66,10 +70,11 @@ inline void BringToPMPiGen(float& phi)
 inline void sincosf(float ang, float& s, float& c)
 {
   // consider speedup for simultaneus calculation
-  s = sinf(ang);
-  c = cosf(ang);
+  s = o2::gpu::CAMath::Sin(ang);
+  c = o2::gpu::CAMath::Cos(ang);
 }
 
+#ifndef __OPENCL__
 inline void RotateZ(std::array<float, 3>& xy, float alpha)
 {
   // transforms vector in tracking frame alpha to global frame
@@ -78,6 +83,7 @@ inline void RotateZ(std::array<float, 3>& xy, float alpha)
   xy[0] = x * cs - xy[1] * sn;
   xy[1] = x * sn + xy[1] * cs;
 }
+#endif
 
 inline int Angle2Sector(float phi)
 {
@@ -117,8 +123,50 @@ constexpr int bit2Mask(T first, Args... args)
   return (0x1 << first) | bit2Mask(args...);
 }
 //--------------------------------------<<<
+
+GPUhdi() float FastATan2(float y, float x)
+{
+  // Fast atan2(y,x) for any angle [-Pi,Pi]
+  // Average inaccuracy: 0.00048
+  // Max inaccuracy: 0.00084
+  // Speed: 6.2 times faster than atan2f()
+
+  constexpr float kPi = 3.1415926535897f;
+
+  auto atan = [](float a) -> float {
+    // returns the arctan for the angular range [-Pi/4, Pi/4]
+    // the polynomial coefficients are taken from:
+    // https://stackoverflow.com/questions/42537957/fast-accurate-atan-arctan-approximation-algorithm
+    constexpr float kA = 0.0776509570923569f;
+    constexpr float kB = -0.287434475393028f;
+    constexpr float kC = (kPi / 4 - kA - kB);
+    float a2 = a * a;
+    return ((kA * a2 + kB) * a2 + kC) * a;
+  };
+
+  auto atan2P = [atan](float yy, float xx) -> float {
+    // fast atan2(yy,xx) for the angular range [0,+Pi]
+    constexpr float kPi025 = 1 * kPi / 4;
+    constexpr float kPi075 = 3 * kPi / 4;
+    float x1 = xx + yy; //  point p1 (x1,y1) = (xx,yy) - Pi/4
+    float y1 = yy - xx;
+    float phi0, tan;
+    if (xx < 0) { // p1 is in the range [Pi/4, 3*Pi/4]
+      phi0 = kPi075;
+      tan = -x1 / y1;
+    } else { // p1 is in the range [-Pi/4, Pi/4]
+      phi0 = kPi025;
+      tan = y1 / x1;
+    }
+    return phi0 + atan(tan);
+  };
+
+  // fast atan2(y,x) for any angle [-Pi,Pi]
+  return copysignf(atan2P(o2::gpu::CAMath::Abs(y), x), y);
 }
+
+} // namespace utils
 //}
-}
+} // namespace o2
 
 #endif

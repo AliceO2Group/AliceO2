@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <functional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace o2
@@ -34,7 +35,7 @@ std::ostream& operator<<(std::ostream& oss, MetricType const& val);
 struct MetricInfo {
   enum MetricType type;
   size_t storeIdx; // Index in the actual store
-  size_t pos; // Last position in the circular buffer
+  size_t pos;      // Last position in the circular buffer
 };
 
 // We keep only fixed lenght strings for metrics, as in the end this is not
@@ -87,7 +88,7 @@ struct DeviceMetricsHelper {
   using NewMetricCallback = std::function<void(std::string const&, MetricInfo const&, int value, size_t metricIndex)>;
 
   /// Helper function to parse a metric string.
-  static bool parseMetric(const std::string& s, ParsedMetricMatch& results);
+  static bool parseMetric(std::string_view const s, ParsedMetricMatch& results);
 
   /// Processes a parsed metric and stores in the backend store.
   ///

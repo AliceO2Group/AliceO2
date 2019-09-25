@@ -96,7 +96,7 @@ bool isHorizontal(const Vertex<T>& a, const Vertex<T>& b)
 template <typename T>
 Vertex<T> operator-(const Vertex<T>& a, const Vertex<T>& b)
 {
-  return { a.x - b.x, a.y - b.y };
+  return {a.x - b.x, a.y - b.y};
 }
 
 template <typename T>
@@ -132,7 +132,7 @@ auto squaredDistanceOfPointToSegment(const Vertex<T>& p, const Vertex<T>& p0, co
   }
 
   auto b = c1 / c2;
-  Vertex<T> pbase{ p0.x + b * v.x, p0.y + b * v.y };
+  Vertex<T> pbase{p0.x + b * v.x, p0.y + b * v.y};
   return squaredDistance(p, pbase);
 }
 

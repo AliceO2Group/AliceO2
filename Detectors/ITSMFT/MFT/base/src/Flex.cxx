@@ -31,13 +31,13 @@
 #include "MFTBase/Geometry.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 
-using namespace o2::MFT;
-using namespace o2::ITSMFT;
+using namespace o2::mft;
+using namespace o2::itsmft;
 
-ClassImp(o2::MFT::Flex);
+ClassImp(o2::mft::Flex);
 
 //_____________________________________________________________________________
-Flex::Flex() : TNamed(), mFlexOrigin(), mLadderSeg(nullptr)
+Flex::Flex() : mFlexOrigin(), mLadderSeg(nullptr)
 {
   // Constructor
 }
@@ -46,7 +46,7 @@ Flex::Flex() : TNamed(), mFlexOrigin(), mLadderSeg(nullptr)
 Flex::~Flex() = default;
 
 //_____________________________________________________________________________
-Flex::Flex(LadderSegmentation* ladder) : TNamed(), mFlexOrigin(), mLadderSeg(ladder)
+Flex::Flex(LadderSegmentation* ladder) : mFlexOrigin(), mLadderSeg(ladder)
 {
   // Constructor
 }

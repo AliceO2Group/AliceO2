@@ -24,25 +24,17 @@
 #include "TPCSimulation/PadResponse.h"
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/SAMPAProcessing.h"
+#include "TPCBase/CDBInterface.h"
 
 #include "TPCBase/Mapper.h"
 
 #include "FairLogger.h"
 
-ClassImp(o2::TPC::Digitizer)
+ClassImp(o2::tpc::Digitizer);
 
-  using namespace o2::TPC;
+using namespace o2::tpc;
 
-bool o2::TPC::Digitizer::mIsContinuous = true;
-
-Digitizer::Digitizer()
-  : mDigitContainer(),
-    mSpaceChargeHandler(nullptr),
-    mSector(-1),
-    mEventTime(0.f),
-    mUseSCDistortions(false)
-{
-}
+bool o2::tpc::Digitizer::mIsContinuous = true;
 
 void Digitizer::init()
 {
@@ -52,13 +44,13 @@ void Digitizer::init()
   }
 }
 
-void Digitizer::process(const std::vector<o2::TPC::HitGroup>& hits,
+void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
                         const int eventID, const int sourceID)
 {
   const static Mapper& mapper = Mapper::instance();
-  const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
-  const static ParameterElectronics& eleParam = ParameterElectronics::defaultInstance();
-  const static ParameterGEM& gemParam = ParameterGEM::defaultInstance();
+  auto& detParam = ParameterDetector::Instance();
+  auto& eleParam = ParameterElectronics::Instance();
+  auto& gemParam = ParameterGEM::Instance();
 
   static GEMAmplification& gemAmplification = GEMAmplification::instance();
   gemAmplification.updateParameters();
@@ -67,13 +59,16 @@ void Digitizer::process(const std::vector<o2::TPC::HitGroup>& hits,
   static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
   sampaProcessing.updateParameters();
 
-  const int nShapedPoints = eleParam.getNShapedPoints();
-  const auto amplificationMode = gemParam.getAmplificationMode();
+  const int nShapedPoints = eleParam.NShapedPoints;
+  const auto amplificationMode = gemParam.AmplMode;
   static std::vector<float> signalArray;
   signalArray.resize(nShapedPoints);
 
   /// Reserve space in the digit container for the current event
   mDigitContainer.reserve(sampaProcessing.getTimeBinFromTime(mEventTime));
+
+  /// obtain max drift_time + hitTime which can be processed
+  float maxEleTime = (int(mDigitContainer.size()) - nShapedPoints) * eleParam.ZbinWidth;
 
   for (auto& hitGroup : hits) {
     const int MCTrackID = hitGroup.GetTrackID();
@@ -105,7 +100,12 @@ void Digitizer::process(const std::vector<o2::TPC::HitGroup>& hits,
 
         /// Drift and Diffusion
         const GlobalPosition3D posEleDiff = electronTransport.getElectronDrift(posEle, driftTime);
-        const float absoluteTime = driftTime + mEventTime + hitTime; /// in us
+        const float eleTime = driftTime + hitTime; /// in us
+        if (eleTime > maxEleTime) {
+          LOG(WARNING) << "Skipping electron with driftTime " << driftTime << " from hit at time " << hitTime;
+          continue;
+        }
+        const float absoluteTime = eleTime + mEventTime; /// in us
 
         /// Attachment
         if (electronTransport.isElectronAttachment(driftTime)) {
@@ -113,7 +113,7 @@ void Digitizer::process(const std::vector<o2::TPC::HitGroup>& hits,
         }
 
         /// Remove electrons that end up outside the active volume
-        if (std::abs(posEleDiff.Z()) > detParam.getTPClength()) {
+        if (std::abs(posEleDiff.Z()) > detParam.TPClength) {
           continue;
         }
 
@@ -141,10 +141,10 @@ void Digitizer::process(const std::vector<o2::TPC::HitGroup>& hits,
 
         const GlobalPadNumber globalPad = mapper.globalPadNumber(digiPadPos.getGlobalPadPos());
         const float ADCsignal = sampaProcessing.getADCvalue(static_cast<float>(nElectronsGEM));
-        const MCCompLabel label(MCTrackID, eventID, sourceID);
+        const MCCompLabel label(MCTrackID, eventID, sourceID, false);
         sampaProcessing.getShapedSignal(ADCsignal, absoluteTime, signalArray);
         for (float i = 0; i < nShapedPoints; ++i) {
-          const float time = absoluteTime + i * eleParam.getZBinWidth();
+          const float time = absoluteTime + i * eleParam.ZbinWidth;
           mDigitContainer.addDigit(label, digiPadPos.getCRU(), sampaProcessing.getTimeBinFromTime(time), globalPad,
                                    signalArray[i]);
         }
@@ -155,7 +155,7 @@ void Digitizer::process(const std::vector<o2::TPC::HitGroup>& hits,
   }
 }
 
-void Digitizer::flush(std::vector<o2::TPC::Digit>& digits,
+void Digitizer::flush(std::vector<o2::tpc::Digit>& digits,
                       o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels, bool finalFlush)
 {
   static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();

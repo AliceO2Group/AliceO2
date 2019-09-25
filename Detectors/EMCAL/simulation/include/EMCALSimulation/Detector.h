@@ -23,7 +23,7 @@ class TClonesArray;
 
 namespace o2
 {
-namespace EMCAL
+namespace emcal
 {
 class Hit;
 class Geometry;
@@ -35,10 +35,15 @@ class Geometry;
 /// The detector class handles the implementation of the EMCAL detector
 /// within the virtual Monte-Carlo framework and the simulation of the
 /// EMCAL detector up to hit generation
-class Detector : public o2::Base::DetImpl<Detector>
+class Detector : public o2::base::DetImpl<Detector>
 {
  public:
-  enum { ID_AIR = 0, ID_PB = 1, ID_SC = 2, ID_AL = 3, ID_STEEL = 4, ID_PAPER = 5 };
+  enum { ID_AIR = 0,
+         ID_PB = 1,
+         ID_SC = 2,
+         ID_AL = 3,
+         ID_STEEL = 4,
+         ID_PAPER = 5 };
 
   ///
   /// Default constructor
@@ -173,13 +178,13 @@ class Detector : public o2::Base::DetImpl<Detector>
   Double_t mBirkC1;
   Double_t mBirkC2;
 
-  std::vector<Hit>* mHits;        //!<! Collection of EMCAL hits
-  Geometry* mGeometry;            //!<! Geometry pointer
+  std::vector<Hit>* mHits; //!<! Collection of EMCAL hits
+  Geometry* mGeometry;     //!<! Geometry pointer
 
   // Worker variables during hit creation
-  Int_t mCurrentTrackID;      //!<! ID of the current track
-  Int_t mCurrentCellID;       //!<! ID of the current cell
-  Hit* mCurrentHit;           //!<! current summed energy
+  Int_t mCurrentTrackID; //!<! ID of the current track
+  Int_t mCurrentCellID;  //!<! ID of the current cell
+  Hit* mCurrentHit;      //!<! current summed energy
 
   Double_t mSampleWidth; //!<! sample width = double(g->GetECPbRadThick()+g->GetECScintThick());
   Double_t mSmodPar0;    //!<! x size of super module
@@ -189,22 +194,22 @@ class Detector : public o2::Base::DetImpl<Detector>
   Double_t mParEMOD[5];  //!<! parameters of EMCAL module (TRD1,2)
 
   template <typename Det>
-  friend class o2::Base::DetImpl;
+  friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1);
 };
-}
-}
+} // namespace emcal
+} // namespace o2
 
 #ifdef USESHM
 namespace o2
 {
-namespace Base
+namespace base
 {
 template <>
-struct UseShm<o2::EMCAL::Detector> {
+struct UseShm<o2::emcal::Detector> {
   static constexpr bool value = true;
 };
-} // namespace Base
+} // namespace base
 } // namespace o2
 #endif
 

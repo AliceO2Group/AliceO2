@@ -21,7 +21,7 @@
 #include <string>
 #include "FairLogger.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 SAMPAProcessing::SAMPAProcessing() : mRandomNoiseRing()
 {
@@ -32,10 +32,10 @@ SAMPAProcessing::~SAMPAProcessing() = default;
 
 void SAMPAProcessing::updateParameters()
 {
+  mGasParam = &(ParameterGas::Instance());
+  mDetParam = &(ParameterDetector::Instance());
+  mEleParam = &(ParameterElectronics::Instance());
   auto& cdb = CDBInterface::instance();
-  mGasParam = &(cdb.getParameterGas());
-  mDetParam = &(cdb.getParameterDetector());
-  mEleParam = &(cdb.getParameterElectronics());
   mPedestalMap = &(cdb.getPedestals());
   mNoiseMap = &(cdb.getNoise());
 }
@@ -44,12 +44,12 @@ void SAMPAProcessing::getShapedSignal(float ADCsignal, float driftTime, std::vec
 {
   const float timeBinTime = getTimeBinTime(driftTime);
   const float offset = driftTime - timeBinTime;
-  for (float bin = 0; bin < mEleParam->getNShapedPoints(); bin += Vc::float_v::Size) {
+  for (float bin = 0; bin < mEleParam->NShapedPoints; bin += Vc::float_v::Size) {
     Vc::float_v binvector;
     for (int i = 0; i < Vc::float_v::Size; ++i) {
       binvector[i] = bin + i;
     }
-    Vc::float_v time = timeBinTime + binvector * mEleParam->getZBinWidth();
+    Vc::float_v time = timeBinTime + binvector * mEleParam->ZbinWidth;
     Vc::float_v signal = getGamma4(time, Vc::float_v(timeBinTime + offset), Vc::float_v(ADCsignal));
     for (int i = 0; i < Vc::float_v::Size; ++i) {
       signalArray[bin + i] = signal[i];

@@ -29,7 +29,7 @@ class TGeoVolume; // lines 15-15
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 /// This class defines the Geometry for the ITS  using TGeo. This is a work class used
@@ -38,7 +38,11 @@ class V3Layer : public V11Geometry
 {
 
  public:
-  enum { kStave, kHalfStave, kModule, kChip, kNHLevels };
+  enum { kStave,
+         kHalfStave,
+         kModule,
+         kChip,
+         kNHLevels };
 
   // Default constructor
   V3Layer();
@@ -128,7 +132,7 @@ class V3Layer : public V11Geometry
 
   void setBuildLevel(Int_t buildLevel) { mBuildLevel = buildLevel; }
 
-  void setStaveModel(o2::ITS::Detector::Model model) { mStaveModel = model; }
+  void setStaveModel(o2::its::Detector::Model model) { mStaveModel = model; }
 
   /// Adds the Gamma Conversion Rods to the geometry
   /// \param diam the diameter of each rod
@@ -271,6 +275,13 @@ class V3Layer : public V11Geometry
   /// \param mgr The GeoManager (used only to get the proper material)
   void createOBSpaceFrameObjects(const TGeoManager* mgr = gGeoManager);
 
+  /// Create the space frame connectors for the Outer Barrel
+  /// \param mother the mother volume where to put the connector
+  /// \param ymot,zmot the Y and Z position in the mother volume
+  /// \param sideA true for side A, false for side C
+  /// \param mgr The GeoManager (used only to get the proper material)
+  void createOBSpaceFrameConnector(TGeoVolume* mother, const Double_t ymot, const Double_t zmot, const Bool_t sideA, const TGeoManager* mgr = gGeoManager);
+
   /// Creates the V-shaped sides of the OB space frame (from a similar method with same
   /// name and function in V11GeometrySDD class by L.Gaudichet)
   /// \param name The volume name
@@ -329,7 +340,6 @@ class V3Layer : public V11Geometry
   static const Int_t sNumberOfInnerLayers; ///< Number of IB Layers
 
   static const Double_t sDefaultSensorThick; ///< Default sensor thickness
-  static const Double_t sDefaultChipThick;   ///< Default chip thickness
   static const Double_t sMetalLayerThick;    ///< Metal layer thickness
 
   // Inner Barrel Parameters
@@ -490,31 +500,52 @@ class V3Layer : public V11Geometry
   static const Double_t sOBCPConnPlugTotLen;  ///< OB Connector Plug tot le
   static const Double_t sOBCPConnPlugThick;   ///< OB Connector Plug thickness
 
-  static const Double_t sOBSpaceFrameZLen[2]; ///< OB Space Frame Length
-  static const Int_t sOBSpaceFrameNUnits[2];  ///< OB Number of SF Units
-  static const Double_t sOBSpaceFrameUnitLen; ///< OB Space Frame Unit length
-  static const Double_t sOBSpaceFrameWidth;   ///< OB Space Frame Width
-  static const Double_t sOBSpaceFrameHeight;  ///< OB Space Frame Height
-  static const Double_t sOBSpaceFrameTopVL;   ///< Parameters defining...
-  static const Double_t sOBSpaceFrameTopVH;   ///< ...the Top V shape
-  static const Double_t sOBSpaceFrameSideVL;  ///< Parameters defining...
-  static const Double_t sOBSpaceFrameSideVH;  ///< ...the Side V shape
-  static const Double_t sOBSpaceFrameVAlpha;  ///< Angles of aperture...
-  static const Double_t sOBSpaceFrameVBeta;   ///< ...of the V shapes
-  static const Double_t sOBSFrameBaseRibDiam; ///< OB SFrame Base Rib Diam
-  static const Double_t sOBSFrameBaseRibPhi;  ///< OB SF base beam angle
-  static const Double_t sOBSFrameSideRibDiam; ///< OB SFrame Side Rib Diam
-  static const Double_t sOBSFrameSideRibPhi;  ///< OB SF side beam angle
-  static const Double_t sOBSFrameULegLen;     ///< OB SF U-Leg length
-  static const Double_t sOBSFrameULegWidth;   ///< OB SF U-Leg width
-  static const Double_t sOBSFrameULegHeight1; ///< OB SF U-Leg height
-  static const Double_t sOBSFrameULegHeight2; ///< OB SF U-Leg height
-  static const Double_t sOBSFrameULegThick;   ///< OB SF U-Leg thickness
-  static const Double_t sOBSFrameULegXPos;    ///< OB SF U-Leg X position
+  static const Double_t sOBSpaceFrameZLen[2];   ///< OB Space Frame Length
+  static const Int_t sOBSpaceFrameNUnits[2];    ///< OB Number of SF Units
+  static const Double_t sOBSpaceFrameUnitLen;   ///< OB Space Frame Unit length
+  static const Double_t sOBSpaceFrameWidth;     ///< OB Space Frame Width
+  static const Double_t sOBSpaceFrameHeight;    ///< OB Space Frame Height
+  static const Double_t sOBSpaceFrameTopVL;     ///< Parameters defining...
+  static const Double_t sOBSpaceFrameTopVH;     ///< ...the Top V shape
+  static const Double_t sOBSpaceFrameSideVL;    ///< Parameters defining...
+  static const Double_t sOBSpaceFrameSideVH;    ///< ...the Side V shape
+  static const Double_t sOBSpaceFrameVAlpha;    ///< Angles of aperture...
+  static const Double_t sOBSpaceFrameVBeta;     ///< ...of the V shapes
+  static const Double_t sOBSFrameBaseRibDiam;   ///< OB SFrame Base Rib Diam
+  static const Double_t sOBSFrameBaseRibPhi;    ///< OB SF base beam angle
+  static const Double_t sOBSFrameSideRibDiam;   ///< OB SFrame Side Rib Diam
+  static const Double_t sOBSFrameSideRibPhi;    ///< OB SF side beam angle
+  static const Double_t sOBSFrameULegLen;       ///< OB SF U-Leg length
+  static const Double_t sOBSFrameULegWidth;     ///< OB SF U-Leg width
+  static const Double_t sOBSFrameULegHeight1;   ///< OB SF U-Leg height
+  static const Double_t sOBSFrameULegHeight2;   ///< OB SF U-Leg height
+  static const Double_t sOBSFrameULegThick;     ///< OB SF U-Leg thickness
+  static const Double_t sOBSFrameULegXPos;      ///< OB SF U-Leg X position
+  static const Double_t sOBSFrameConnWidth;     ///< OB SF Connector width
+  static const Double_t sOBSFrameConnTotLen;    ///< OB SF Connector total length
+  static const Double_t sOBSFrameConnTotHei;    ///< OB SF Connector total height
+  static const Double_t sOBSFrameConnTopLen;    ///< OB SF Connector top length
+  static const Double_t sOBSFrameConnInsWide;   ///< OB SF Connector insert width
+  static const Double_t sOBSFrameConnInsBase;   ///< OB SF Connector insert base
+  static const Double_t sOBSFrameConnInsHei;    ///< OB SF Connector insert height
+  static const Double_t sOBSFrameConnHoleZPos;  ///< OB SF Connector holes Z pos
+  static const Double_t sOBSFrameConnHoleZDist; ///< OB SF Connector holes Zdist
+  static const Double_t sOBSFrameConnTopHoleD;  ///< OB SF Connec top hole diam
+  static const Double_t sOBSFrConnTopHoleXDist; ///< OB SF Connec top hole Xdist
+  static const Double_t sOBSFrameConnAHoleWid;  ///< OB SF Connect A hole width
+  static const Double_t sOBSFrameConnAHoleLen;  ///< OB SF Connect A hole length
+  static const Double_t sOBSFrConnASideHoleD;   ///< OB SF Conn A side hole dia
+  static const Double_t sOBSFrConnASideHoleL;   ///< OB SF Conn A side hole len
+  static const Double_t sOBSFrConnASideHoleY;   ///< OB SF Conn A side hole Y pos
+  static const Double_t sOBSFrameConnCHoleZPos; ///< OB SF Connect C hole Z pos
+  static const Double_t sOBSFrConnCHoleXDist;   ///< OB SF Conn C top hole Xdist
+  static const Double_t sOBSFrConnCTopHoleD;    ///< OB SF Conn C top hole dia
+  static const Double_t sOBSFrameConnInsHoleD;  ///< OB SF Connec insert hole dia
+  static const Double_t sOBSFrameConnInsHoleX;  ///< OB SF Connec insert hole X
 
-  ClassDefOverride(V3Layer, 0) // ITS v3 geometry
+  ClassDefOverride(V3Layer, 0); // ITS v3 geometry
 };
-}
-}
+} // namespace its
+} // namespace o2
 
 #endif

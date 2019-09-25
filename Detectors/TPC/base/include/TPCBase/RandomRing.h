@@ -39,7 +39,7 @@ using float_v = Vc::float_v;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 template <size_t N = float_v::size() * 100000>
@@ -114,7 +114,7 @@ class RandomRing
 
   RandomType mRandomType;              ///< Type of random numbers used
   std::array<float, N> mRandomNumbers; ///< Ring with random gaus numbers
-  size_t mRingPosition;                ///< presently accessed position in the ring
+  size_t mRingPosition = 0;            ///< presently accessed position in the ring
 
 }; // end class RandomRing
 
@@ -122,8 +122,7 @@ class RandomRing
 template <size_t N>
 inline RandomRing<N>::RandomRing(const RandomType randomType)
   : mRandomType(randomType),
-    mRandomNumbers(),
-    mRingPosition(0)
+    mRandomNumbers()
 
 {
   initialize(randomType);
@@ -133,8 +132,7 @@ inline RandomRing<N>::RandomRing(const RandomType randomType)
 template <size_t N>
 inline RandomRing<N>::RandomRing(TF1& function)
   : mRandomType(RandomType::CustomTF1),
-    mRandomNumbers(),
-    mRingPosition(0)
+    mRandomNumbers()
 {
   initialize(function);
 }
@@ -172,6 +170,6 @@ inline void RandomRing<N>::initialize(TF1& function)
   }
 }
 
-} // namespace TPC
-} // namespace AliceO2
+} // namespace tpc
+} // namespace o2
 #endif

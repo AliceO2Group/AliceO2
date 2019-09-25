@@ -21,13 +21,13 @@
 #include "FairLogger.h"      // for LOG
 #include "FairRootManager.h" // for FairRootManager
 
-ClassImp(o2::MFT::DigitizerTask);
+ClassImp(o2::mft::DigitizerTask);
 
-using namespace o2::MFT;
+using namespace o2::mft;
 using namespace o2::detectors;
 using namespace o2::utils;
 
-using o2::ITSMFT::DigiParams;
+using o2::itsmft::DigiParams;
 
 //_____________________________________________________________________________
 DigitizerTask::DigitizerTask() : FairTask("MFTDigitizerTask"), mDigitizer() {}
@@ -46,13 +46,13 @@ InitStatus DigitizerTask::Init()
 {
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
-    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ...";
     return kERROR;
   }
 
-  mHitsArray = mgr->InitObjectAs<const std::vector<o2::ITSMFT::Hit>*>("MFTHit");
+  mHitsArray = mgr->InitObjectAs<const std::vector<o2::itsmft::Hit>*>("MFTHit");
   if (!mHitsArray) {
-    LOG(ERROR) << "MFT hits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "MFT hits not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
 
@@ -89,7 +89,7 @@ void DigitizerTask::Exec(Option_t* option)
   //
   mDigitizer.setEventTime(tEvent);
   // the type of digitization is steered by the DigiParams object of the Digitizer
-  LOG(DEBUG) << "Running digitization on new event " << mEventID << " from source " << mSourceID << FairLogger::endl;
+  LOG(DEBUG) << "Running digitization on new event " << mEventID << " from source " << mSourceID;
 
   mDigitizer.process(mHitsArray, mEventID, mSourceID);
 
@@ -144,7 +144,7 @@ void DigitizerTask::setQEDInput(TBranch* qed, float timebin, UChar_t srcID)
   // timebin ns of collisions
 
   LOG(INFO) << "Attaching QED ITS hits as sourceID=" << int(srcID) << ", entry integrates "
-            << timebin << " ns" << FairLogger::endl;
+            << timebin << " ns";
 
   mQEDBranch = qed;
   mQEDEntryTimeBinNS = timebin;

@@ -15,26 +15,27 @@
 #ifndef __ALICEO2__ClustererTask__
 #define __ALICEO2__ClustererTask__
 
-#include "FairTask.h"  // for FairTask, InitStatus
-#include "Rtypes.h"    // for ClustererTask::Class, ClassDef, etc
+#include "FairTask.h" // for FairTask, InitStatus
+#include "Rtypes.h"   // for ClustererTask::Class, ClassDef, etc
 
 #include "TPCBase/Digit.h"
 #include "TPCReconstruction/HwClusterer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsTPC/Helpers.h"
-#include "DataFormatsTPC/Cluster.h"
 #include "DataFormatsTPC/ClusterHardware.h"
 #include <vector>
 #include <memory>
 
-namespace o2 {
-namespace TPC{
+namespace o2
+{
+namespace tpc
+{
 
-class ClustererTask : public FairTask{
+class ClustererTask : public FairTask
+{
 
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  //  using OutputType          = Cluster;
   using OutputType = ClusterHardwareContainer8kb;
 
  public:
@@ -59,9 +60,9 @@ class ClustererTask : public FairTask{
   void setContinuousReadout(bool isContinuous);
 
  private:
-  bool mIsContinuousReadout; ///< Switch for continuous readout
-  int mEventCount;           ///< Event counter
-  int mClusterSector;        ///< Sector to be processed
+  bool mIsContinuousReadout = true; ///< Switch for continuous readout
+  int mEventCount = 0;              ///< Event counter
+  int mClusterSector = -1;          ///< Sector to be processed
 
   std::unique_ptr<HwClusterer> mHwClusterer; ///< Hw Clusterfinder instance
 
@@ -73,16 +74,15 @@ class ClustererTask : public FairTask{
   std::unique_ptr<std::vector<OutputType>> mHwClustersArray; ///< Array of clusters found by Hw Clusterfinder
   std::unique_ptr<MCLabelContainer> mHwClustersMCTruthArray; ///< Array for MCTruth information associated to cluster in mHwClustersArrays
 
-  ClassDefOverride(ClustererTask, 1)
+  ClassDefOverride(ClustererTask, 1);
 };
 
-inline
-void ClustererTask::setContinuousReadout(bool isContinuous)
+inline void ClustererTask::setContinuousReadout(bool isContinuous)
 {
   mIsContinuousReadout = isContinuous;
 }
 
-}
-}
+} // namespace tpc
+} // namespace o2
 
 #endif

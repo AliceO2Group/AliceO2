@@ -30,7 +30,7 @@ using boost::format;
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 /// Class to hold calibration data on a pad level
 ///
@@ -43,10 +43,9 @@ class CalDet
   CalDet() = default;
   ~CalDet() = default;
 
-  CalDet(PadSubset padSusbset) : mName{ "PadCalibrationObject" }, mData{}, mPadSubset{ padSusbset } { initData(); }
-  //______________________________________________________________________________
+  CalDet(PadSubset padSusbset) : mName{"PadCalibrationObject"}, mData{}, mPadSubset{padSusbset} { initData(); }
 
-  CalDet(const std::string_view name) : mName(name), mData(), mPadSubset(PadSubset::ROC) { initData(); }
+  CalDet(const std::string_view name, const PadSubset padSusbset = PadSubset::ROC) : mName(name), mData(), mPadSubset(padSusbset) { initData(); }
 
   /// Return the pad subset type
   /// \return pad subset type
@@ -182,7 +181,7 @@ inline const CalDet<T>& CalDet<T>::operator+=(const CalDet& other)
   // make sure the calibration objects have the same substructure
   // TODO: perhaps make it independed of this
   if (mPadSubset != other.mPadSubset) {
-    LOG(ERROR) << "Pad subste type of the objects it not compatible" << FairLogger::endl;
+    LOG(ERROR) << "Pad subste type of the objects it not compatible";
     return *this;
   }
 
@@ -199,7 +198,7 @@ inline const CalDet<T>& CalDet<T>::operator-=(const CalDet& other)
   // make sure the calibration objects have the same substructure
   // TODO: perhaps make it independed of this
   if (mPadSubset != other.mPadSubset) {
-    LOG(ERROR) << "Pad subste type of the objects it not compatible" << FairLogger::endl;
+    LOG(ERROR) << "Pad subste type of the objects it not compatible";
     return *this;
   }
 
@@ -216,7 +215,7 @@ inline const CalDet<T>& CalDet<T>::operator*=(const CalDet& other)
   // make sure the calibration objects have the same substructure
   // TODO: perhaps make it independed of this
   if (mPadSubset != other.mPadSubset) {
-    LOG(ERROR) << "Pad subste type of the objects it not compatible" << FairLogger::endl;
+    LOG(ERROR) << "Pad subste type of the objects it not compatible";
     return *this;
   }
 
@@ -233,7 +232,7 @@ inline const CalDet<T>& CalDet<T>::operator/=(const CalDet& other)
   // make sure the calibration objects have the same substructure
   // TODO: perhaps make it independed of this
   if (mPadSubset != other.mPadSubset) {
-    LOG(ERROR) << "Pad subste type of the objects it not compatible" << FairLogger::endl;
+    LOG(ERROR) << "Pad subste type of the objects it not compatible";
     return *this;
   }
 
@@ -291,29 +290,33 @@ void CalDet<T>::initData()
 
   // ---| Define number of sub pad regions |------------------------------------
   size_t size = 0;
-
+  std::string frmt;
   switch (mPadSubset) {
     case PadSubset::ROC: {
       size = ROC::MaxROC;
+      frmt = "%1%_ROC_%2$02d";
       break;
     }
     case PadSubset::Partition: {
       size = Sector::MAXSECTOR * mapper.getNumberOfPartitions();
+      frmt = "%1%_Partition_%2$02d";
       break;
     }
     case PadSubset::Region: {
       size = Sector::MAXSECTOR * mapper.getNumberOfPadRegions();
+      frmt = "%1%_Region_%2$02d";
       break;
     }
   }
 
   for (size_t i = 0; i < size; ++i) {
     mData.push_back(CalType(mPadSubset, i));
+    mData.back().setName(boost::str(format(frmt) % mName % i));
   }
 }
 
 using CalPad = CalDet<float>;
-}
-}
+} // namespace tpc
+} // namespace o2
 
 #endif

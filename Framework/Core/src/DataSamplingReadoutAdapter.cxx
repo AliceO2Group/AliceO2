@@ -7,16 +7,14 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
 #include "Framework/DataSamplingReadoutAdapter.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Headers/DataHeader.h"
+#include "Framework/DataSpecUtils.h"
 
 #include <Common/DataBlock.h>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 using DataHeader = o2::header::DataHeader;
@@ -30,18 +28,18 @@ InjectorFunction dataSamplingReadoutAdapter(OutputSpec const& spec)
       assert(dbh->dataSize == parts.At(2 * i + 1)->GetSize());
 
       DataHeader dh;
-      dh.dataOrigin = spec.origin;
-      dh.dataDescription = spec.description;
-      dh.subSpecification = dbh->linkId;
+      ConcreteDataTypeMatcher dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
+      dh.dataOrigin = dataType.origin;
+      dh.dataDescription = dataType.description;
+      dh.subSpecification = DataSpecUtils::getOptionalSubSpec(spec).value_or(dbh->linkId);
       dh.payloadSize = dbh->dataSize;
       dh.payloadSerializationMethod = o2::header::gSerializationMethodNone;
 
-      DataProcessingHeader dph{ dbh->id, 0 };
-      o2::header::Stack headerStack{ dh, dph };
+      DataProcessingHeader dph{dbh->blockId, 0};
+      o2::header::Stack headerStack{dh, dph};
       broadcastMessage(device, std::move(headerStack), std::move(parts.At(2 * i + 1)), index);
     }
   };
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

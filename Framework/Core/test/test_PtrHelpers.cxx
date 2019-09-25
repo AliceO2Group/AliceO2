@@ -16,15 +16,19 @@
 #include "Framework/TypeTraits.h"
 #include <memory>
 
+/// exclude from doxygen, TODO: we might want to do this on a higher level
+/// because of doxygen's autolinking of references, all 'A' are displayed as
+/// reference to this struct.
+/// @cond
 struct Base {
   int v;
 };
 struct A : public Base {
-  A(int v_, int va_) : Base{ v_ }, va{ va_ } {}
+  A(int v_, int va_) : Base{v_}, va{va_} {}
   int va;
 };
 struct B : public Base {
-  B(int v_, int vb_) : Base{ v_ }, vb{ vb_ } {}
+  B(int v_, int vb_) : Base{v_}, vb{vb_} {}
   int vb;
 };
 
@@ -41,3 +45,4 @@ BOOST_AUTO_TEST_CASE(MatchingPtrMaker)
   BOOST_CHECK_EQUAL(static_cast<A*>(s.get())->va, 3);
   BOOST_CHECK_EQUAL(static_cast<B*>(u.get())->vb, 4);
 }
+// @endcond

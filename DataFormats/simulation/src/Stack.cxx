@@ -16,6 +16,7 @@
 #include "DetectorsBase/Detector.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "SimulationDataFormat/MCTrack.h"
+#include "SimConfig/SimCutParams.h"
 
 #include "FairDetector.h" // for FairDetector
 #include "FairLogger.h"   // for FairLogger
@@ -35,7 +36,7 @@
 using std::cout;
 using std::endl;
 using std::pair;
-using namespace o2::Data;
+using namespace o2::data;
 
 // small helper function to append to vector at arbitrary position
 template <typename T, typename I>
@@ -94,7 +95,7 @@ Stack::Stack(const Stack& rhs)
     mTrackRefs(new std::vector<o2::TrackReference>),
     mIsG4Like(rhs.mIsG4Like)
 {
-  LOG(DEBUG) << "copy constructor called" << FairLogger::endl;
+  LOG(DEBUG) << "copy constructor called";
   mTracks = new std::vector<MCTrack>();
   // LOG(INFO) << "Stack::Stack(rhs) " << this << " mTracks " << mTracks << std::endl;
 }
@@ -108,7 +109,7 @@ Stack::~Stack()
 
 Stack& Stack::operator=(const Stack& rhs)
 {
-  LOG(FATAL) << "operator= called" << FairLogger::endl;
+  LOG(FATAL) << "operator= called";
   // check assignment to self
   if (this == &rhs) {
     return *this;
@@ -153,7 +154,7 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
   Int_t daughter1Id = -1;
   Int_t daughter2Id = -1;
 
-  // LOG(INFO) << "Pushing " << trackId << " with parent " << parentId << FairLogger::endl;
+  // LOG(INFO) << "Pushing " << trackId << " with parent " << parentId;
 
   TParticle p(pdgCode, trackId, parentId, nPoints, daughter1Id, daughter2Id, px, py, pz, e, vx, vy, vz, time);
   p.SetPolarisation(polx, poly, polz);
@@ -236,13 +237,35 @@ void Stack::notifyFinishPrimary()
   // this means we can do some filtering and cleanup
 
   mPrimariesDone++;
-  LOG(DEBUG) << "Finish primary hook " << mPrimariesDone << FairLogger::endl;
+  LOG(DEBUG) << "Finish primary hook " << mPrimariesDone;
   mCleanupCounter++;
   if (mCleanupCounter == mCleanupThreshold || mCleanupCounter == mPrimaryParticles.size() ||
       mPrimariesDone == mPrimaryParticles.size()) {
     finishCurrentPrimary();
     mCleanupCounter = 0;
   }
+}
+
+// calculates a hash based on particle properties
+// hash may serve as seed for this track
+ULong_t getHash(TParticle const& p)
+{
+  auto asLong = [](double x) {
+    return (ULong_t) * (reinterpret_cast<ULong_t*>(&x));
+  };
+
+  ULong_t hash;
+  o2::MCTrackT<double> track(p);
+
+  hash = asLong(track.GetStartVertexCoordinatesX());
+  hash ^= asLong(track.GetStartVertexCoordinatesY());
+  hash ^= asLong(track.GetStartVertexCoordinatesZ());
+  hash ^= asLong(track.GetStartVertexCoordinatesT());
+  hash ^= asLong(track.GetStartVertexMomentumX());
+  hash ^= asLong(track.GetStartVertexMomentumY());
+  hash ^= asLong(track.GetStartVertexMomentumZ());
+  hash += (ULong_t)track.GetPdgCode();
+  return hash;
 }
 
 TParticle* Stack::PopNextTrack(Int_t& iTrack)
@@ -276,6 +299,16 @@ TParticle* Stack::PopNextTrack(Int_t& iTrack)
   mIndexOfCurrentTrack = mCurrentParticle.GetStatusCode();
   iTrack = mIndexOfCurrentTrack;
 
+  if (o2::conf::SimCutParams::Instance().trackSeed) {
+    auto hash = getHash(mCurrentParticle);
+    // LOG(INFO) << "SEEDING NEW TRACK USING HASH" << hash;
+    // init seed per track
+    gRandom->SetSeed(hash);
+
+    // NOTE: THE BETTER PLACE WOULD BE IN PRETRACK HOOK BUT THIS DOES NOT SEEM TO WORK
+    // WORKS ONLY WITH G3 SINCE G4 DOES NOT CALL THIS FUNCTION
+  }
+
   // LOG(INFO) << "transporting ID " << mIndexOfCurrentTrack << "\n";
   return &mCurrentParticle;
 }
@@ -297,6 +330,15 @@ TParticle* Stack::PopPrimaryForTracking(Int_t iPrim)
   return &mPrimaryParticles[iPrim];
 }
 
+void Stack::updateEventStats()
+{
+  if (mMCEventStats) {
+    mMCEventStats->setNHits(mHitCounter);
+    mMCEventStats->setNTransportedTracks(mNumberOfEntriesInParticles);
+    mMCEventStats->setNKeptTracks(mTracks->size());
+  }
+}
+
 void Stack::FillTrackArray()
 {
   /// This interface is not implemented since we are filtering/filling the output array
@@ -308,7 +350,7 @@ void Stack::finishCurrentPrimary()
 {
   // Here transport of a primary and all its secondaries is finished
   // we can do some cleanup of the memory structures
-  LOG(DEBUG) << "STACK: Cleaning up" << FairLogger::endl;
+  LOG(DEBUG) << "STACK: Cleaning up";
   auto selected = selectTracks();
   // loop over current particle buffer
   int index = 0;
@@ -360,15 +402,15 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
   // as the right type to avoid repeated dynamic casts
   if (mActiveDetectors.size() == 0) {
     if (detList == nullptr) {
-      LOG(FATAL) << "No detList passed to Stack" << FairLogger::endl;
+      LOG(FATAL) << "No detList passed to Stack";
     }
     auto iter = detList->MakeIterator();
     while (auto det = iter->Next()) {
-      auto o2det = dynamic_cast<o2::Base::Detector*>(det);
+      auto o2det = dynamic_cast<o2::base::Detector*>(det);
       if (o2det) {
         mActiveDetectors.emplace_back(o2det);
       } else {
-        LOG(INFO) << "Found nonconforming detector " << det->GetName() << FairLogger::endl;
+        LOG(INFO) << "Found nonconforming detector " << det->GetName();
       }
     }
   }
@@ -434,7 +476,7 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
 
 void Stack::FinishPrimary()
 {
-  if ( mIsG4Like ) {
+  if (mIsG4Like) {
     notifyFinishPrimary();
   }
 }
@@ -450,13 +492,14 @@ void Stack::Reset()
   mTracks->clear();
   if (!mIsExternalMode && (mPrimariesDone != mPrimaryParticles.size())) {
     LOG(FATAL) << "Inconsistency in primary particles treated " << mPrimariesDone << " vs expected "
-               << mPrimaryParticles.size() << "\n(This points to a flaw in the stack logic)" << FairLogger::endl;
+               << mPrimaryParticles.size() << "\n(This points to a flaw in the stack logic)";
   }
   mPrimariesDone = 0;
   mPrimaryParticles.clear();
   mTrackRefs->clear();
   mIndexedTrackRefs->clear();
   mTrackIDtoParticlesEntry.clear();
+  mHitCounter = 0;
 }
 
 void Stack::Register()
@@ -489,6 +532,7 @@ void Stack::Print(Option_t* option) const
 void Stack::addHit(int iDet) { addHit(iDet, mParticles.size() - 1); }
 void Stack::addHit(int iDet, Int_t iTrack)
 {
+  mHitCounter++;
   auto& part = mParticles[iTrack];
   part.setHit(iDet);
 }
@@ -549,7 +593,7 @@ bool Stack::selectTracks()
         }
       }
     }
-    // LOG(INFO) << "storing " << store << FairLogger::endl;
+    // LOG(INFO) << "storing " << store;
     thisPart.setStore(store);
   }
 
@@ -572,7 +616,7 @@ bool Stack::selectTracks()
 
 TClonesArray* Stack::GetListOfParticles()
 {
-  LOG(FATAL) << "Stack::GetListOfParticles interface not implemented\n" << FairLogger::endl;
+  LOG(FATAL) << "Stack::GetListOfParticles interface not implemented\n";
   return nullptr;
 }
 
@@ -609,5 +653,5 @@ void Stack::fillParentIDs(std::vector<int>& parentids) const
   } while (mother != -1);
 }
 
-FairGenericStack* Stack::CloneStack() const { return new o2::Data::Stack(*this); }
-ClassImp(o2::Data::Stack)
+FairGenericStack* Stack::CloneStack() const { return new o2::data::Stack(*this); }
+ClassImp(o2::data::Stack);

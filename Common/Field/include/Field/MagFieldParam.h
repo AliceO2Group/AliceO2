@@ -20,53 +20,59 @@
 
 class FairParamList;
 
-
-namespace o2 {
-  namespace field {
+namespace o2
+{
+namespace field
+{
 
 class MagneticField;
-    
+
 class MagFieldParam : public FairParGenericSet
 {
-  public:
-    enum BMap_t
-    {
-      k2kG, k5kG, k5kGUniform, kNFieldTypes
-    };
-    enum BeamType_t
-    {
-        kNoBeamField, kBeamTypepp, kBeamTypeAA, kBeamTypepA, kBeamTypeAp
-    };
+ public:
+  enum BMap_t {
+    k2kG,
+    k5kG,
+    k5kGUniform,
+    kNFieldTypes
+  };
+  enum BeamType_t {
+    kNoBeamField,
+    kBeamTypepp,
+    kBeamTypeAA,
+    kBeamTypepA,
+    kBeamTypeAp
+  };
 
-    MagFieldParam(const char* name="", const char* title="", const char* context="");
+  MagFieldParam(const char* name = "", const char* title = "", const char* context = "");
 
-    void SetParam(const MagneticField* field);
-    
-    BMap_t     GetMapType()                   const {return mMapType;}
-    BeamType_t GetBeamType()                  const {return mBeamType;}
-    Int_t                     GetDefInt()     const {return mDefaultIntegration;}
-    Double_t                  GetFactorSol()  const {return mFactorSol;}
-    Double_t                  GetFactorDip()  const {return mFactorDip;}
-    Double_t                  GetBeamEnergy() const {return mBeamEnergy;}
-    Double_t                  GetMaxField()   const {return mMaxField;}
-    const char*               GetMapPath()    const {return mMapPath.Data();}
+  void SetParam(const MagneticField* field);
 
-    void   putParams(FairParamList* list) override;
-    Bool_t getParams(FairParamList* list) override;
-    
-  private:
-    BMap_t     mMapType;  ///< map type ID
-    BeamType_t mBeamType; ///< beam type ID
-    Int_t    mDefaultIntegration;        ///< field integration type for MC
-    Double_t mFactorSol;                 ///< solenoid current factor
-    Double_t mFactorDip;                 ///< dipole current factor
-    Double_t mBeamEnergy;                ///< beam energy
-    Double_t mMaxField;                  ///< max field for geant
-    TString  mMapPath;                   ///< path to map file
-    
-    ClassDefOverride(MagFieldParam,1)
+  BMap_t GetMapType() const { return mMapType; }
+  BeamType_t GetBeamType() const { return mBeamType; }
+  Int_t GetDefInt() const { return mDefaultIntegration; }
+  Double_t GetFactorSol() const { return mFactorSol; }
+  Double_t GetFactorDip() const { return mFactorDip; }
+  Double_t GetBeamEnergy() const { return mBeamEnergy; }
+  Double_t GetMaxField() const { return mMaxField; }
+  const char* GetMapPath() const { return mMapPath.Data(); }
+
+  void putParams(FairParamList* list) override;
+  Bool_t getParams(FairParamList* list) override;
+
+ private:
+  BMap_t mMapType;           ///< map type ID
+  BeamType_t mBeamType;      ///< beam type ID
+  Int_t mDefaultIntegration; ///< field integration type for MC
+  Double_t mFactorSol;       ///< solenoid current factor
+  Double_t mFactorDip;       ///< dipole current factor
+  Double_t mBeamEnergy;      ///< beam energy
+  Double_t mMaxField;        ///< max field for geant
+  TString mMapPath;          ///< path to map file
+
+  ClassDefOverride(MagFieldParam, 1);
 };
-}
-}
+} // namespace field
+} // namespace o2
 
 #endif

@@ -11,6 +11,8 @@
 #define FRAMEWORK_CONFIGPARAMREGISTRY_H
 
 #include "Framework/ParamRetriever.h"
+
+#include <boost/property_tree/ptree.hpp>
 #include <memory>
 #include <string>
 #include <cassert>
@@ -30,45 +32,47 @@ namespace framework
 ///        Use options? YES! OptionsRegistry...
 class ConfigParamRegistry
 {
-public:
+ public:
   ConfigParamRegistry(std::unique_ptr<ParamRetriever> retriever)
-  : mRetriever{std::move(retriever)} {
+    : mRetriever{std::move(retriever)}
+  {
   }
 
-  template <class T>
-  T get(const char *key) const {
-    throw std::runtime_error("parameter type not implemented");
-  };
-private:
+  template <typename T>
+  T get(const char* key) const
+  {
+    assert(mRetriever);
+    try {
+      if constexpr (std::is_same_v<T, int>) {
+        return mRetriever->getInt(key);
+      } else if constexpr (std::is_same_v<T, float>) {
+        return mRetriever->getFloat(key);
+      } else if constexpr (std::is_same_v<T, double>) {
+        return mRetriever->getDouble(key);
+      } else if constexpr (std::is_same_v<T, std::string>) {
+        return mRetriever->getString(key);
+      } else if constexpr (std::is_same_v<T, bool>) {
+        return mRetriever->getBool(key);
+      } else if constexpr (std::is_same_v<T, boost::property_tree::ptree>) {
+        return mRetriever->getPTree(key);
+      } else if constexpr (std::is_constructible_v<T, boost::property_tree::ptree>) {
+        return T{mRetriever->getPTree(key)};
+      } else if constexpr (std::is_constructible_v<T, boost::property_tree::ptree> == false) {
+        static_assert(std::is_constructible_v<T, boost::property_tree::ptree> == false,
+                      "Not a basic type and no constructor from ptree provided");
+      }
+    } catch (std::exception& e) {
+      throw std::invalid_argument(std::string("missing option: ") + key + " (" + e.what() + ")");
+    } catch (...) {
+      throw std::invalid_argument(std::string("error parsing option: ") + key);
+    }
+  }
+
+ private:
   std::unique_ptr<ParamRetriever> mRetriever;
 };
-
-template <> inline int ConfigParamRegistry::get<int>(const char *key) const {
-  assert(mRetriever.get());
-  return mRetriever->getInt(key);
-}
-
-template <> inline float ConfigParamRegistry::get<float>(const char *key) const {
-  assert(mRetriever.get());
-  return mRetriever->getFloat(key);
-}
-
-template <> inline double ConfigParamRegistry::get<double>(const char *key) const {
-  assert(mRetriever.get());
-  return mRetriever->getDouble(key);
-}
-
-template <> inline std::string ConfigParamRegistry::get<std::string>(const char *key) const {
-  assert(mRetriever.get());
-  return mRetriever->getString(key);
-}
-
-template <> inline bool ConfigParamRegistry::get<bool>(const char *key) const {
-  assert(mRetriever.get());
-  return mRetriever->getBool(key);
-}
 
 } // namespace framework
 } // namespace o2
 
-#endif //FRAMEWORK_CONFIGPARAMREGISTRY_H
+#endif // FRAMEWORK_CONFIGPARAMREGISTRY_H

@@ -25,33 +25,30 @@ namespace framework
 
 using options_description = boost::program_options::options_description;
 
-struct ConfigParamsHelper
-{
+struct ConfigParamsHelper {
   static void populateBoostProgramOptions(
-      options_description &options,
-      const std::vector<ConfigParamSpec> &specs,
-      options_description vetos = options_description()
-    );
+    options_description& options,
+    const std::vector<ConfigParamSpec>& specs,
+    options_description vetos = options_description());
 
   /// populate boost program options making all options of type string
   /// this is used for filtering the command line argument
   /// all options which are found in the vetos are skipped
-  static bool prepareOptionsDescription(const std::vector<ConfigParamSpec> &spec,
-                                        options_description& options,
-                                        options_description vetos = options_description()
-                                       );
+  static bool dpl2BoostOptions(const std::vector<ConfigParamSpec>& spec,
+                               options_description& options,
+                               options_description vetos = options_description());
 
   /// populate boost program options for a complete workflow
   template <typename ContainerType>
   static boost::program_options::options_description
-    prepareOptionDescriptions(const ContainerType& workflow,
-                              const std::vector<ConfigParamSpec>& workflowOptions,
+    prepareOptionDescriptions(ContainerType const& workflow,
+                              std::vector<ConfigParamSpec> const& currentWorkflowOptions,
                               options_description vetos = options_description(),
                               std::string mode = "full")
   {
     boost::program_options::options_description toplevel;
     boost::program_options::options_description wo("Global workflow options");
-    if (prepareOptionsDescription(workflowOptions, wo, vetos)) {
+    if (dpl2BoostOptions(currentWorkflowOptions, wo, vetos)) {
       toplevel.add(wo);
     }
     std::string specOptionsDescription = "Available data processors";
@@ -59,10 +56,10 @@ struct ConfigParamsHelper
       specOptionsDescription += " (full info with '--help full')";
     }
     options_description specOptions(specOptionsDescription);
-    for (const auto & spec : workflow) {
+    for (const auto& spec : workflow) {
       std::string name = "Data processor options: " + spec.name;
       boost::program_options::options_description processorOptions(name);
-      if (prepareOptionsDescription(spec.options, processorOptions, vetos)) {
+      if (dpl2BoostOptions(spec.options, processorOptions, vetos)) {
         // if vetos have been provided to the function we also need to make
         // sure that there are no duplicate option definitions for the individual
         // processor specs, so we add in order to be vetos for all subsequent specs.
@@ -98,12 +95,12 @@ struct ConfigParamsHelper
     return toplevel;
   }
 
-  template<VariantType V>
-  static void addConfigSpecOption(const ConfigParamSpec & spec,
+  template <VariantType V>
+  static void addConfigSpecOption(const ConfigParamSpec& spec,
                                   boost::program_options::options_description& options)
   {
-    const char *name = spec.name.c_str();
-    const char *help = spec.help.c_str();
+    const char* name = spec.name.c_str();
+    const char* help = spec.help.c_str();
     using Type = typename variant_type<V>::type;
     using BoostType = typename std::conditional<V == VariantType::String, std::string, Type>::type;
     auto value = boost::program_options::value<BoostType>();

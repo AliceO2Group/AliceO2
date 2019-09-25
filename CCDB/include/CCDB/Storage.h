@@ -13,12 +13,12 @@
 
 //  interface to specific storage classes                          //
 //  ( GridStorage,  LocalStorage, FileStorage)			   //
-#include <TList.h>      // for TList
-#include <TObjArray.h>  // for TObjArray
-#include "CCDB/IdPath.h"     // for IdPath
-#include "Rtypes.h"     // for Int_t, Bool_t, Short_t, Storage::Class, etc
-#include "TObject.h"    // for TObject
-#include "TString.h"    // for TString
+#include <TList.h>       // for TList
+#include <TObjArray.h>   // for TObjArray
+#include "CCDB/IdPath.h" // for IdPath
+#include "Rtypes.h"      // for Int_t, Bool_t, Short_t, Storage::Class, etc
+#include "TObject.h"     // for TObject
+#include "TString.h"     // for TString
 
 class TFile;
 
@@ -169,8 +169,8 @@ class Storage : public TObject
 
   Storage& operator=(const Storage& source);
 
-  ClassDefOverride(Storage, 0)
+  ClassDefOverride(Storage, 0);
 };
-}
-}
+} // namespace ccdb
+} // namespace o2
 #endif

@@ -11,24 +11,26 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DeviceSpec.h"
-#include <vector>
+
 #include <cassert>
+#include <chrono>
+#include <vector>
 
 using namespace o2::framework;
 
-void customize(std::vector<CompletionPolicy> &policies) {
-  std::vector<CompletionPolicy> result {
+void customize(std::vector<CompletionPolicy>& policies)
+{
+  std::vector<CompletionPolicy> result{
     CompletionPolicyHelpers::defineByName("discard", CompletionPolicy::CompletionOp::Discard),
     CompletionPolicyHelpers::defineByName("process", CompletionPolicy::CompletionOp::Process),
     CompletionPolicyHelpers::defineByName("wait", CompletionPolicy::CompletionOp::Wait),
-    CompletionPolicyHelpers::defineByName("consume", CompletionPolicy::CompletionOp::Consume)
-  };
+    CompletionPolicyHelpers::defineByName("consume", CompletionPolicy::CompletionOp::Consume)};
   policies.swap(result);
 }
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/DataProcessorSpec.h"
-#include "FairMQLogger.h"
+#include "Framework/Logger.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/ControlService.h"
 #include <vector>
@@ -41,45 +43,39 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     DataProcessorSpec{
       "hearthbeat",
       {},
-      {
-        OutputSpec{ {"out1"}, "TST", "TST", 0},
-        OutputSpec{ {"out2"}, "TST", "TST", 1}
-      },
+      {OutputSpec{{"out1"}, "TST", "TST", 0},
+       OutputSpec{{"out2"}, "TST", "TST", 1}},
       AlgorithmSpec{
         [](ProcessingContext& ctx) {
           // We deliberately make only out1 to test that
           // the policies for the following dataprocessors are
           // actually respected.
-          ctx.outputs().make<int>(OutputRef{ "out1" }, 1);
-          sleep(1);
-        } } },
+          ctx.outputs().make<int>(OutputRef{"out1"}, 1);
+          std::this_thread::sleep_for(std::chrono::seconds(1));
+        }}},
     DataProcessorSpec{
       "discard",
       {
-        InputSpec{ "in1", "TST", "TST", 0 },
-        InputSpec{ "in2", "TST", "TST", 1 },
+        InputSpec{"in1", "TST", "TST", 0},
+        InputSpec{"in2", "TST", "TST", 1},
       },
-      {
-      },
+      {},
       AlgorithmSpec{
         [](ProcessingContext& ctx) {
           LOG(ERROR) << "Should have not been invoked";
           // We deliberately make only out1 to test that
           // the policies for the following dataprocessors are
           // actually respected.
-        } } },
+        }}},
     DataProcessorSpec{
       "does-use",
-      {
-        InputSpec{ "in1", "TST", "TST", 0 }
-      },
-      {
-      },
+      {InputSpec{"in1", "TST", "TST", 0}},
+      {},
       AlgorithmSpec{
         [](ProcessingContext& ctx) {
           // Since this shares a dependency with "discard",
           // it should be forwarded the messages as soon as the former
           // discards them.
-        } } },
+        }}},
   };
 }

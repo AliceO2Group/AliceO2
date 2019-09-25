@@ -16,7 +16,7 @@
 
 namespace o2
 {
-namespace EMCAL
+namespace emcal
 {
 /// \class Hit
 /// \brief EMCAL simulation hit information
@@ -109,14 +109,14 @@ class Hit : public o2::BasicXYZEHit<float>
 };
 
 std::ostream& operator<<(std::ostream& stream, const Hit& point);
-}
-}
+} // namespace emcal
+} // namespace o2
 
 #ifdef USESHM
 namespace std
 {
 template <>
-class allocator<o2::EMCAL::Hit> : public o2::utils::ShmAllocator<o2::EMCAL::Hit>
+class allocator<o2::emcal::Hit> : public o2::utils::ShmAllocator<o2::emcal::Hit>
 {
 };
 } // namespace std

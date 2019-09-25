@@ -17,7 +17,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 
 /// This is a version of the ALPIDE cluster represented by the pattern ID and the address of the
@@ -80,7 +80,7 @@ class CompCluster
 
   void print() const;
 
-  ClassDefNV(CompCluster, 1)
+  ClassDefNV(CompCluster, 1);
 };
 
 /// Extension of the compact cluster, augmented by the chipID and ROFrame
@@ -111,13 +111,13 @@ class CompClusterExt : public CompCluster
 
   void print() const;
 
-  ClassDefNV(CompClusterExt, 1)
+  ClassDefNV(CompClusterExt, 1);
 };
 
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 
-std::ostream& operator<<(std::ostream& stream, const o2::ITSMFT::CompCluster& cl);
-std::ostream& operator<<(std::ostream& stream, const o2::ITSMFT::CompClusterExt& cl);
+std::ostream& operator<<(std::ostream& stream, const o2::itsmft::CompCluster& cl);
+std::ostream& operator<<(std::ostream& stream, const o2::itsmft::CompClusterExt& cl);
 
 #endif /* ALICEO2_ITSMFT_COMPACTCLUSTER_H */

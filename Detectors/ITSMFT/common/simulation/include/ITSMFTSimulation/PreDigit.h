@@ -21,7 +21,7 @@
 namespace o2
 {
 
-namespace ITSMFT
+namespace itsmft
 {
 
 // PreDigit is a contribution to the digit from a single hit which happen
@@ -50,6 +50,6 @@ struct PreDigit {
 
   ClassDefNV(PreDigit, 1);
 };
-}
-}
+} // namespace itsmft
+} // namespace o2
 #endif /* ALICEO2_ITSMFT_PREDIGIT_H */

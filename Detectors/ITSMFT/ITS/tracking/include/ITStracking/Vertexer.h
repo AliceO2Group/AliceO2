@@ -10,7 +10,7 @@
 ///
 /// \file Vertexer.h
 /// \brief
-///
+/// \author matteo.concas@cern.ch
 
 #ifndef O2_ITS_TRACKING_VERTEXER_H_
 #define O2_ITS_TRACKING_VERTEXER_H_
@@ -18,7 +18,6 @@
 #include <chrono>
 #include <fstream>
 #include <iomanip>
-#include <iosfwd>
 #include <array>
 #include <iosfwd>
 
@@ -28,9 +27,15 @@
 #include "ITStracking/VertexerTraits.h"
 #include "ReconstructionDataFormats/Vertex.h"
 
+#include "ITStracking/ClusterLines.h"
+#include "ITStracking/Tracklet.h"
+#include "ITStracking/Cluster.h"
+
+class TTree;
+
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
@@ -39,36 +44,52 @@ class Vertexer
 {
  public:
   Vertexer(VertexerTraits* traits);
-
+  virtual ~Vertexer() = default;
   Vertexer(const Vertexer&) = delete;
   Vertexer& operator=(const Vertexer&) = delete;
 
   void setROframe(const uint32_t ROframe) { mROframe = ROframe; }
-  void setParameters(const VertexingParameters& verPar) { mVertParams = verPar; }
+  void setParameters(const VertexingParameters& verPar);
+  VertexingParameters getVertParameters() const;
 
   uint32_t getROFrame() const { return mROframe; }
   std::vector<Vertex> exportVertices();
-  VertexingParameters getVertParameters() const { return mVertParams; }
   VertexerTraits* getTraits() const { return mTraits; };
 
-  void clustersToVertices(ROframe&, std::ostream& = std::cout);
+  float clustersToVertices(ROframe&, const bool useMc = false, std::ostream& = std::cout);
+  void filterMCTracklets();
+  void validateTracklets();
+
+  template <typename... T>
+  void findTracklets(T&&... args);
+
+  void findTrivialMCTracklets();
+  void findVertices();
+
   template <typename... T>
   void initialiseVertexer(T&&... args);
-  void findTracklets(const bool useMCLabel = false);
-  void findVertices();
-  // void writeEvent(ROframe*);
 
   // Utils
   void dumpTraits();
   template <typename... T>
   float evaluateTask(void (Vertexer::*)(T...), const char*, std::ostream& ostream, T&&... args);
 
+  // debug
+  void setDebugCombinatorics();
+  void setDebugTrackletSelection();
+  void setDebugLines();
+  void setDebugSummaryLines();
+  // \debug
+
  private:
-  // ROframe* mFrame;
   std::uint32_t mROframe = 0;
   VertexerTraits* mTraits = nullptr;
-  VertexingParameters mVertParams;
 };
+
+inline void Vertexer::filterMCTracklets()
+{
+  mTraits->computeMCFiltering();
+}
 
 template <typename... T>
 void Vertexer::initialiseVertexer(T&&... args)
@@ -76,15 +97,42 @@ void Vertexer::initialiseVertexer(T&&... args)
   mTraits->initialise(std::forward<T>(args)...);
 }
 
-void Vertexer::dumpTraits()
+template <typename... T>
+void Vertexer::findTracklets(T&&... args)
+{
+  mTraits->computeTracklets(std::forward<T>(args)...);
+}
+
+inline void Vertexer::findTrivialMCTracklets()
+{
+  mTraits->computeTrackletsPureMontecarlo();
+}
+
+inline VertexingParameters Vertexer::getVertParameters() const
+{
+  return mTraits->getVertexingParameters();
+}
+
+inline void Vertexer::setParameters(const VertexingParameters& verPar)
+{
+  mTraits->updateVertexingParameters(verPar);
+}
+
+inline void Vertexer::dumpTraits()
 {
   mTraits->dumpVertexerTraits();
 }
 
-std::vector<Vertex> Vertexer::exportVertices()
+inline void Vertexer::validateTracklets()
+{
+  mTraits->computeTrackletMatching();
+}
+
+inline std::vector<Vertex> Vertexer::exportVertices()
 {
   std::vector<Vertex> vertices;
   for (auto& vertex : mTraits->getVertices()) {
+    std::cout << "\t\tFound vertex with: " << std::setw(6) << vertex.mContributors << " contributors" << std::endl;
     vertices.emplace_back(Point3D<float>(vertex.mX, vertex.mY, vertex.mZ), vertex.mRMS2, vertex.mContributors, vertex.mAvgDistance2);
     vertices.back().setTimeStamp(vertex.mTimeStamp);
   }
@@ -95,14 +143,14 @@ template <typename... T>
 float Vertexer::evaluateTask(void (Vertexer::*task)(T...), const char* taskName, std::ostream& ostream,
                              T&&... args)
 {
-  float diff{ 0.f };
+  float diff{0.f};
 
-  if (Constants::DoTimeBenchmarks) {
+  if (constants::DoTimeBenchmarks) {
     auto start = std::chrono::high_resolution_clock::now();
     (this->*task)(std::forward<T>(args)...);
     auto end = std::chrono::high_resolution_clock::now();
 
-    std::chrono::duration<double, std::milli> diff_t{ end - start };
+    std::chrono::duration<double, std::milli> diff_t{end - start};
     diff = diff_t.count();
 
     if (taskName == nullptr) {
@@ -117,6 +165,26 @@ float Vertexer::evaluateTask(void (Vertexer::*task)(T...), const char* taskName,
   return diff;
 }
 
-} // namespace ITS
+inline void Vertexer::setDebugCombinatorics()
+{
+  mTraits->setDebugFlag(VertexerDebug::CombinatoricsTreeAll);
+}
+
+inline void Vertexer::setDebugTrackletSelection()
+{
+  mTraits->setDebugFlag(VertexerDebug::TrackletTreeAll);
+}
+
+inline void Vertexer::setDebugLines()
+{
+  mTraits->setDebugFlag(VertexerDebug::LineTreeAll);
+}
+
+inline void Vertexer::setDebugSummaryLines()
+{
+  mTraits->setDebugFlag(VertexerDebug::LineSummaryAll);
+}
+
+} // namespace its
 } // namespace o2
 #endif

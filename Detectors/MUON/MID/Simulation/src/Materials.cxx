@@ -56,10 +56,6 @@ const float kDensAluminium = 2.699;
 const float kZSulfur = 16.;
 const float kASulfur = 32.06;
 
-// Argon
-const float kZArgon = 18.;
-const float kAArgon = 39.948;
-
 // Chromium
 const float kZChromium = 24.;
 const float kAChromium = 51.9961;
@@ -98,26 +94,26 @@ void createMaterials()
   float maxField; // maximum magnetic field value
 
   // get the magnetic field parameters
-  Base::Detector::initFieldTrackingParams(fieldType, maxField);
+  base::Detector::initFieldTrackingParams(fieldType, maxField);
 
-  auto& mgr = o2::Base::MaterialManager::Instance();
+  auto& mgr = o2::base::MaterialManager::Instance();
 
-  /// Trigger gas : Ar - Isobutane(C4 H10) - C2 H2 F4 - SF6 (49%+7%+40%+4%)
-  const int nGas = 5;
-  float aGas[nGas] = { kAArgon, kACarbon, kAHydrogen, kAFluorine, kASulfur };
-  float zGas[nGas] = { kZArgon, kZCarbon, kZHydrogen, kZFluorine, kZSulfur };
-  float wGas[nGas] = { 49, 7 * 4 + 40 * 2, 7 * 10 + 40 * 2, 4 * 40 + 6 * 4, 4 };
+  /// Trigger gas : C2 H2 F4 - Isobutane(C4 H10) - SF6 (89.7%+10%+0.3%)
+  const int nGas = 4;
+  float aGas[nGas] = {kACarbon, kAHydrogen, kAFluorine, kASulfur};
+  float zGas[nGas] = {kZCarbon, kZHydrogen, kZFluorine, kZSulfur};
+  float wGas[nGas] = {89.7 * 2 + 10 * 4, 89.7 * 2 + 10 * 4, 89.7 * 4 + 0.3 * 6, 0.3};
   float dGas = 0.0031463;
 
-  mgr.Mixture(kModuleName, ++imat, "Ar(49%)-Isobutane(7%)-C2H2F4(40%)-SF6(4%)", aGas, zGas, dGas, -nGas, wGas);
+  mgr.Mixture(kModuleName, ++imat, "Gas", aGas, zGas, dGas, -nGas, wGas);
   mgr.Medium(kModuleName, Medium::Gas, "Gas", imat, 1, fieldType, maxField, kMaxfd, kStemax, kDeemax,
              kEpsil, kStmin);
 
   /// Bakelite : C6 H6-O.C H2 O
   const int nBake = 3;
-  float aBake[nBake] = { kACarbon, kAHydrogen, kAOxygen };
-  float zBake[nBake] = { kZCarbon, kZHydrogen, kZOxygen };
-  float wBake[nBake] = { 7., 8., 2. };
+  float aBake[nBake] = {kACarbon, kAHydrogen, kAOxygen};
+  float zBake[nBake] = {kZCarbon, kZHydrogen, kZOxygen};
+  float wBake[nBake] = {7., 8., 2.};
   float dBake = 1.4;
 
   mgr.Mixture(kModuleName, ++imat, "Bakelite", aBake, zBake, dBake, -nBake, wBake);
@@ -125,9 +121,9 @@ void createMaterials()
 
   /// Stainless steel : Fe(73%) Cr(18%) Ni(9%)
   const int nInox = 3;
-  float aInox[nInox] = { kAIron, kAChromium, kANickel };
-  float zInox[nInox] = { kZIron, kZChromium, kZNickel };
-  float wInox[nInox] = { 73., 18., 9. };
+  float aInox[nInox] = {kAIron, kAChromium, kANickel};
+  float zInox[nInox] = {kZIron, kZChromium, kZNickel};
+  float wInox[nInox] = {73., 18., 9.};
   float dInox = 7.93;
 
   mgr.Mixture(kModuleName, ++imat, "Stainless steel", aInox, zInox, dInox, -nInox, wInox);
@@ -145,9 +141,9 @@ void createMaterials()
 
   /// Mylar PET (C8 H10 O4)
   const int nMylar = 3;
-  float aMylar[nMylar] = { kACarbon, kAHydrogen, kAOxygen };
-  float zMylar[nMylar] = { kZCarbon, kZHydrogen, kZOxygen };
-  float wMylar[nMylar] = { 8., 10., 4. };
+  float aMylar[nMylar] = {kACarbon, kAHydrogen, kAOxygen};
+  float zMylar[nMylar] = {kZCarbon, kZHydrogen, kZOxygen};
+  float wMylar[nMylar] = {8., 10., 4.};
   float dMylar = 1.38;
 
   mgr.Mixture(kModuleName, ++imat, "Mylar", aMylar, zMylar, dMylar, -nMylar, wMylar);
@@ -155,9 +151,9 @@ void createMaterials()
 
   /// Styrofoam (C8 H8)
   const int nStyro = 2;
-  float aStyro[nStyro] = { kACarbon, kAHydrogen };
-  float zStyro[nStyro] = { kZCarbon, kZHydrogen };
-  float wStyro[nStyro] = { 8., 8. };
+  float aStyro[nStyro] = {kACarbon, kAHydrogen};
+  float zStyro[nStyro] = {kZCarbon, kZHydrogen};
+  float wStyro[nStyro] = {8., 8.};
   float dStyro = 0.028;
 
   mgr.Mixture(kModuleName, ++imat, "Styrofoam", aStyro, zStyro, dStyro, -nStyro, wStyro);
@@ -165,9 +161,9 @@ void createMaterials()
 
   /// Nomex : C14 H10 N2 O2
   const int nNomex = 4;
-  float aNomex[nNomex] = { kACarbon, kAHydrogen, kANitrogen, kAOxygen };
-  float zNomex[nNomex] = { kZCarbon, kZHydrogen, kZNitrogen, kZOxygen };
-  float wNomex[nNomex] = { 14., 10., 2., 2. };
+  float aNomex[nNomex] = {kACarbon, kAHydrogen, kANitrogen, kAOxygen};
+  float zNomex[nNomex] = {kZCarbon, kZHydrogen, kZNitrogen, kZOxygen};
+  float wNomex[nNomex] = {14., 10., 2., 2.};
   float dNomex = 1.38;
   mgr.Mixture(kModuleName, ++imat, "Nomex", aNomex, zNomex, dNomex, -nNomex, wNomex);
   mgr.Medium(kModuleName, Medium::Nomex, "Nomex", imat, 0, fieldType, maxField, kMaxfd, kStemax,
@@ -176,7 +172,7 @@ void createMaterials()
 
 TGeoMedium* assertMedium(int imed)
 {
-  auto& mgr = o2::Base::MaterialManager::Instance();
+  auto& mgr = o2::base::MaterialManager::Instance();
   auto med = mgr.getTGeoMedium(kModuleName, imed);
   if (med == nullptr) {
     throw std::runtime_error("Could not retrieve medium " + std::to_string(imed) + " for " + kModuleName);

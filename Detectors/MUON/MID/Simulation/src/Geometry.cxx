@@ -8,16 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   Geometry.cxx
+/// \file   MID/Simulation/src/Geometry.cxx
 /// \brief  Implementation of the trigger-stations geometry
 /// \author Florian Damas <florian.damas@cern.ch>
 /// \date   19 june 2018
 
-#include "Geometry.h"
+#include "MIDSimulation/Geometry.h"
+
+#include <sstream>
 
 #include "Materials.h"
 #include "MIDBase/Constants.h"
-#include "MIDBase/GeometryTransformer.h"
 
 #include <TGeoVolume.h>
 #include <TGeoManager.h>
@@ -50,14 +51,14 @@ const float kAluminiumHalfThickness = 0.06 / 2.;
 
 /// Service parameters
 // vertical support
-const float kVerticalSupportHalfExtDim[] = { 1.5, 311., 1.5 };
-const float kVerticalSupportHalfIntDim[] = { 1.2, 311., 1.2 };
-const float kVerticalSupportXPos[] = { 61.45, 122.45, 192.95, 236.95 };
+const float kVerticalSupportHalfExtDim[] = {1.5, 311., 1.5};
+const float kVerticalSupportHalfIntDim[] = {1.2, 311., 1.2};
+const float kVerticalSupportXPos[] = {61.45, 122.45, 192.95, 236.95};
 
 // horizontal support
-const float kHorizontalSupportHalfExtDim[] = { 96.775, 2., 3. };
-const float kHorizontalSupportHalfIntDim[] = { 96.775, 1.9, 2.8 };
-const double kHorizontalSupportPos[] = { Constants::sRPCCenterPos + Constants::sRPCHalfLength - kHorizontalSupportHalfExtDim[0], 17., kVerticalSupportHalfExtDim[2] + kHorizontalSupportHalfExtDim[2] };
+const float kHorizontalSupportHalfExtDim[] = {96.775, 2., 3.};
+const float kHorizontalSupportHalfIntDim[] = {96.775, 1.9, 2.8};
+const double kHorizontalSupportPos[] = {Constants::sRPCCenterPos + Constants::sRPCHalfLength - kHorizontalSupportHalfExtDim[0], 17., kVerticalSupportHalfExtDim[2] + kHorizontalSupportHalfExtDim[2]};
 
 enum class RPCtype { Long,
                      BottomCut,
@@ -116,7 +117,8 @@ TGeoVolume* createRPC(RPCtype type, int iChamber)
 {
   /// Function building a resisitive plate chamber (RPC), the detection element of the MID, of a given type and for the given chamber number.
 
-  auto name = getRPCVolumeName(type, iChamber).c_str();
+  auto sname = getRPCVolumeName(type, iChamber);
+  auto name = sname.c_str();
 
   auto rpc = new TGeoVolumeAssembly(name);
 
@@ -281,8 +283,8 @@ TGeoMatrix* getTransformation(const ROOT::Math::Transform3D& matrix)
   /// Converts Transform3D into TGeoMatrix
   double xx, xy, xz, dx, yx, yy, yz, dy, zx, zy, zz, dz;
   matrix.GetComponents(xx, xy, xz, dx, yx, yy, yz, dy, zx, zy, zz, dz);
-  double vect[3] = { dx, dy, dz };
-  double rotMatrix[9] = { xx, xy, xz, yx, yy, yz, zx, zy, zz };
+  double vect[3] = {dx, dy, dz};
+  double rotMatrix[9] = {xx, xy, xz, yx, yy, yz, zx, zy, zz};
   TGeoHMatrix* geoMatrix = new TGeoHMatrix("Transformation");
   geoMatrix->SetTranslation(vect);
   geoMatrix->SetRotation(rotMatrix);
@@ -406,7 +408,7 @@ std::vector<TGeoVolume*> getSensitiveVolumes()
   /// Create a vector containing the sensitive volume's name of the RPCs for the Detector class
 
   std::vector<TGeoVolume*> sensitiveVolumeNames;
-  std::vector<RPCtype> types = { RPCtype::Long, RPCtype::BottomCut, RPCtype::TopCut, RPCtype::Short };
+  std::vector<RPCtype> types = {RPCtype::Long, RPCtype::BottomCut, RPCtype::TopCut, RPCtype::Short};
   for (int ich = 0; ich < Constants::sNChambers; ++ich) {
     for (auto& type : types) {
 
@@ -424,10 +426,21 @@ std::vector<TGeoVolume*> getSensitiveVolumes()
 }
 
 //______________________________________________________________________________
-std::string getRPCVolumePath(int deId)
+GeometryTransformer createTransformationFromManager(const TGeoManager* geoManager)
 {
-  int ichamber = Constants::getChamber(deId);
-  return "/" + getChamberVolumeName(ichamber) + "_1/" + getRPCVolumeName(getRPCType(deId), ichamber) + "_" + std::to_string(deId);
+  /// Creates the transformations from the manager
+  GeometryTransformer geoTrans;
+  TGeoNavigator* navig = geoManager->GetCurrentNavigator();
+  for (int ide = 0; ide < Constants::sNDetectionElements; ++ide) {
+    int ichamber = Constants::getChamber(ide);
+    std::stringstream volPath;
+    volPath << geoManager->GetTopVolume()->GetName() << "/" << getChamberVolumeName(ichamber) << "_1/" << getRPCVolumeName(getRPCType(ide), ichamber) << "_" << std::to_string(ide);
+    if (!navig->cd(volPath.str().c_str())) {
+      throw std::runtime_error("Could not get to volPathName=" + volPath.str());
+    }
+    geoTrans.setMatrix(ide, o2::Transform3D{*(navig->GetCurrentMatrix())});
+  }
+  return std::move(geoTrans);
 }
 
 } // namespace mid

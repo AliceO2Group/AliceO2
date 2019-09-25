@@ -70,3 +70,9 @@ gphysi.dat
 
 # macOS
 .DS_Store
+
+# bazel
+bazel-*
+
+# direnv
+.envrc

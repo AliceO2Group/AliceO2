@@ -8,28 +8,35 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_ITSMFT_RECONSTRUCTION_CA_LINE_H_
-#define O2_ITSMFT_RECONSTRUCTION_CA_LINE_H_
+#ifndef O2_ITSMFT_TRACKING_LINE_H_
+#define O2_ITSMFT_TRACKING_LINE_H_
 
 #include <array>
 #include <vector>
+#include "ITStracking/Cluster.h"
+#include "ITStracking/Definitions.h"
+#include "ITStracking/Tracklet.h"
+#include "GPUCommonMath.h"
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 struct Line final {
-  Line();
+  GPU_HOST_DEVICE Line();
   Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint);
+  GPU_HOST_DEVICE Line(const float firstPoint[3], const float secondPoint[3]);
+  GPU_HOST_DEVICE Line(const Tracklet&, const Cluster*, const Cluster*);
 
   static float getDistanceFromPoint(const Line& line, const std::array<float, 3> point);
   static std::array<float, 6> getDCAComponents(const Line& line, const std::array<float, 3> point);
   static float getDCA(const Line&, const Line&, const float precision = 1e-14);
   static bool areParallel(const Line&, const Line&, const float precision = 1e-14);
 
-  std::array<float, 3> originPoint, cosinesDirector;
-  std::array<float, 6> weightMatrix;
+  float originPoint[3], cosinesDirector[3];         // std::array<float, 3> originPoint, cosinesDirector;
+  float weightMatrix[6] = {1., 0., 0., 1., 0., 1.}; // std::array<float, 6> weightMatrix;
+  char isEmpty = false;
   // weightMatrix is a symmetric matrix internally stored as
   //    0 --> row = 0, col = 0
   //    1 --> 0,1
@@ -38,6 +45,42 @@ struct Line final {
   //    4 --> 1,2
   //    5 --> 2,2
 };
+
+inline GPU_HOST_DEVICE Line::Line() : weightMatrix{1., 0., 0., 1., 0., 1.}
+{
+  isEmpty = true;
+}
+
+inline GPU_HOST_DEVICE Line::Line(const float firstPoint[3], const float secondPoint[3])
+{
+  for (int i{0}; i < 3; ++i) {
+    originPoint[i] = firstPoint[i];
+    cosinesDirector[i] = secondPoint[i] - firstPoint[i];
+  }
+
+  float inverseNorm{1.f / gpu::GPUCommonMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
+                                                   cosinesDirector[2] * cosinesDirector[2])};
+
+  for (int index{0}; index < 3; ++index)
+    cosinesDirector[index] *= inverseNorm;
+}
+
+inline GPU_HOST_DEVICE Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters)
+{
+  originPoint[0] = innerClusters[tracklet.firstClusterIndex].xCoordinate;
+  originPoint[1] = innerClusters[tracklet.firstClusterIndex].yCoordinate;
+  originPoint[2] = innerClusters[tracklet.firstClusterIndex].zCoordinate;
+
+  cosinesDirector[0] = outerClusters[tracklet.secondClusterIndex].xCoordinate - innerClusters[tracklet.firstClusterIndex].xCoordinate;
+  cosinesDirector[1] = outerClusters[tracklet.secondClusterIndex].yCoordinate - innerClusters[tracklet.firstClusterIndex].yCoordinate;
+  cosinesDirector[2] = outerClusters[tracklet.secondClusterIndex].zCoordinate - innerClusters[tracklet.firstClusterIndex].zCoordinate;
+
+  float inverseNorm{1.f / gpu::GPUCommonMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
+                                                   cosinesDirector[2] * cosinesDirector[2])};
+
+  for (int index{0}; index < 3; ++index)
+    cosinesDirector[index] *= inverseNorm;
+}
 
 class ClusterLines final
 {
@@ -62,6 +105,6 @@ class ClusterLines final
   std::array<float, 3> mVertex;          // cluster centroid position
 };
 
-} // namespace ITS
+} // namespace its
 } // namespace o2
-#endif /* O2_ITSMFT_RECONSTRUCTION_CA_LINE_H_ */
+#endif /* O2_ITSMFT_TRACKING_LINE_H_ */

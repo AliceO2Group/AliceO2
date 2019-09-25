@@ -32,7 +32,7 @@ namespace utils
 {
 
 // the size dedicated to each attached worker/process
-constexpr size_t SHMPOOLSIZE = 1024 * 1024 * 200; // 200MB
+constexpr size_t SHMPOOLSIZE = 1024 * 1024 * 1024; // 1 GB
 
 // some meta info stored at the beginning of the global shared mem segment
 struct ShmMetaInfo {

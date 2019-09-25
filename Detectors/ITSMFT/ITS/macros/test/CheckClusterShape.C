@@ -13,15 +13,14 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSMFTBase/Digit.h"
-#include "TPCSimulation/Point.h"
 #include "ITSMFTSimulation/ClusterShape.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #endif
 
-using o2::ITSMFT::Digit;
-using o2::ITSMFT::SegmentationAlpide;
-using namespace o2::ITS;
+using o2::itsmft::Digit;
+using o2::itsmft::SegmentationAlpide;
+using namespace o2::its;
 
 //////////////////////////////////////////
 //////////////////////////////////////////
@@ -116,10 +115,10 @@ class Cluster
     return m_pixels[l];
   }
 
-  static o2::ITSMFT::ClusterShape* PixelsToClusterShape(std::vector<Pixel> v)
+  static o2::itsmft::ClusterShape* PixelsToClusterShape(std::vector<Pixel> v)
   {
     if (v.size() == 0)
-      return new o2::ITSMFT::ClusterShape();
+      return new o2::itsmft::ClusterShape();
 
     // To remove the multiple hits problem
     Pixel p0 = v[0];
@@ -154,7 +153,7 @@ class Cluster
       pindex.push_back(index);
     }
 
-    return new o2::ITSMFT::ClusterShape(rows, cols, pindex);
+    return new o2::itsmft::ClusterShape(rows, cols, pindex);
   }
 
  private:
@@ -179,7 +178,7 @@ void AnalyzeClusters(Int_t nev, const map<UInt_t, Cluster>& clusters, TH1F* freq
       vector<Pixel> pv = cls.GetPixels(i);
       if (pv.size() == 0)
         continue;
-      o2::ITSMFT::ClusterShape* cs = Cluster::PixelsToClusterShape(pv);
+      o2::itsmft::ClusterShape* cs = Cluster::PixelsToClusterShape(pv);
       shapeId = cs->GetShapeID();
       cSizeDist->Fill(cs->GetNFiredPixels());
       cout << endl
@@ -226,13 +225,13 @@ void AnalyzeClusters(Int_t nev, const map<UInt_t, Cluster>& clusters, TH1F* freq
 void CheckClusterShape(std::string digifile = "o2digi_its.root", std::string inputGeom = "O2geometry.root")
 {
   // Geometry
-  o2::Base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
-  auto* gman = o2::ITS::GeometryTGeo::Instance();
+  o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
+  auto* gman = o2::its::GeometryTGeo::Instance();
 
   // Digits
   TFile* file1 = TFile::Open(digifile.data());
   TTree* digTree = (TTree*)gFile->Get("o2sim");
-  std::vector<o2::ITSMFT::Digit>* digArr = nullptr;
+  std::vector<o2::itsmft::Digit>* digArr = nullptr;
   digTree->SetBranchAddress("ITSDigit", &digArr);
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels = nullptr;
   digTree->SetBranchAddress("ITSDigitMCTruth", &labels);

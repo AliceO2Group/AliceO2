@@ -15,7 +15,9 @@
 #ifndef TRACKINGITSU_INCLUDE_CACLUSTER_H_
 #define TRACKINGITSU_INCLUDE_CACLUSTER_H_
 
+#ifndef __OPENCL__
 #include <array>
+#endif
 
 #include "ITStracking/Definitions.h"
 #include "ITStracking/MathUtils.h"
@@ -23,32 +25,38 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 struct Cluster final {
+  Cluster() = default;
   Cluster(const float x, const float y, const float z, const int idx);
   Cluster(const int, const Cluster&);
   Cluster(const int, const float3&, const Cluster&);
+  void Init(const int, const float3&, const Cluster&);
+
+  float xCoordinate;      // = -999.f;
+  float yCoordinate;      // = -999.f;
+  float zCoordinate;      // = -999.f;
+  float phiCoordinate;    // = -999.f;
+  float rCoordinate;      // = -999.f;
+  int clusterId;          // = -1;
+  int indexTableBinIndex; // = -1;
+};
+
+struct TrackingFrameInfo {
+  TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, GPUArray<float, 2>&& posTF, GPUArray<float, 3>&& covTF);
+  TrackingFrameInfo() = default;
 
   float xCoordinate;
   float yCoordinate;
   float zCoordinate;
-  float phiCoordinate;
-  float rCoordinate;
-  int clusterId;
-  int indexTableBinIndex;
-};
-
-struct TrackingFrameInfo {
-  TrackingFrameInfo(float xTF, float alpha, std::array<float, 2>&& posTF, std::array<float, 3>&& covTF);
-
   float xTrackingFrame;
   float alphaTrackingFrame;
-  std::array<float, 2> positionTrackingFrame;
-  std::array<float, 3> covarianceTrackingFrame;
+  GPUArray<float, 2> positionTrackingFrame = {-1., -1.};
+  GPUArray<float, 3> covarianceTrackingFrame = {999., 999., 999.};
 };
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_CACLUSTER_H_ */

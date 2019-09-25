@@ -21,22 +21,22 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 class LadderSegmentation;
 }
-}
+} // namespace o2
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 class Flex;
 }
-}
+} // namespace o2
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 class Ladder : public TNamed
@@ -60,7 +60,7 @@ class Ladder : public TNamed
 
   ClassDefOverride(Ladder, 1);
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

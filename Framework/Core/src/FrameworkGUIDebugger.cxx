@@ -172,14 +172,13 @@ void displayDeviceMetrics(const char* label, ImVec2 canvasSize, std::string cons
                           std::vector<DeviceSpec> const& specs, std::vector<DeviceMetricsInfo> const& metricsInfos)
 {
   static std::vector<ImColor> palette = {
-    ImColor{ 218, 124, 48 },
-    ImColor{ 62, 150, 81 },
-    ImColor{ 204, 37, 41 },
-    ImColor{ 83, 81, 84 },
-    ImColor{ 107, 76, 154 },
-    ImColor{ 146, 36, 40 },
-    ImColor{ 148, 139, 61 }
-  };
+    ImColor{218, 124, 48},
+    ImColor{62, 150, 81},
+    ImColor{204, 37, 41},
+    ImColor{83, 81, 84},
+    ImColor{107, 76, 154},
+    ImColor{146, 36, 40},
+    ImColor{148, 139, 61}};
   std::vector<void const*> metricsToDisplay;
   std::vector<const char*> deviceNames;
   std::vector<MultiplotData> userData;
@@ -420,7 +419,7 @@ std::vector<ColumnInfo> calculateTableIndex(gui::WorkspaceGUIState& globalGUISta
     const DeviceMetricsInfo& metricsInfo = metricsInfos[j];
     /// Nothing to draw, if no metric selected.
     if (selectedMetric == -1) {
-      columns.push_back({ MetricType::Int, -1 });
+      columns.push_back({MetricType::Int, -1});
       continue;
     }
     auto currentMetricName = driverInfo.availableMetrics[selectedMetric];
@@ -428,21 +427,24 @@ std::vector<ColumnInfo> calculateTableIndex(gui::WorkspaceGUIState& globalGUISta
 
     // We did not find any plot, skipping this.
     if (idx == metricsInfo.metricLabelsIdx.size()) {
-      columns.push_back({ MetricType::Int, -1 });
+      columns.push_back({MetricType::Int, -1});
       continue;
     }
     auto metric = metricsInfos[j].metrics[idx];
-    columns.push_back({ metric.type, static_cast<int>(metric.storeIdx) });
+    columns.push_back({metric.type, static_cast<int>(metric.storeIdx)});
   }
   return columns;
 };
 
 void displayDeviceHistograms(gui::WorkspaceGUIState& state,
                              DriverInfo const& driverInfo,
-                             const std::vector<DeviceInfo>& infos, const std::vector<DeviceSpec>& devices,
-                             std::vector<DeviceControl>& controls, const std::vector<DeviceMetricsInfo>& metricsInfos)
+                             std::vector<DeviceInfo> const& infos,
+                             std::vector<DeviceSpec> const& devices,
+                             std::vector<DataProcessorInfo> const& metadata,
+                             std::vector<DeviceControl>& controls,
+                             std::vector<DeviceMetricsInfo> const& metricsInfos)
 {
-  showTopologyNodeGraph(state, infos, devices, controls, metricsInfos);
+  showTopologyNodeGraph(state, infos, devices, metadata, controls, metricsInfos);
   if (state.bottomPaneVisible == false) {
     return;
   }
@@ -475,8 +477,7 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
     "lines",
     "histograms",
     "sparks",
-    "table"
-  };
+    "table"};
   ImGui::SameLine();
   static enum MetricsDisplayStyle currentStyle = MetricsDisplayStyle::Lines;
   ImGui::Combo("##Select style", reinterpret_cast<int*>(&currentStyle), plotStyles, IM_ARRAYSIZE(plotStyles));
@@ -546,7 +547,7 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
         ImGui::Columns(state.devices.size() + 1);
         ImGui::TextUnformatted("entry");
         ImGui::NextColumn();
-        ImVec2 textsize = ImGui::CalcTextSize("extry", NULL, true);
+        ImVec2 textsize = ImGui::CalcTextSize("extry", nullptr, true);
         float offset = 0.f;
         offset += std::max(100.f, textsize.x);
         for (size_t j = 0; j < state.devices.size(); ++j) {
@@ -554,7 +555,7 @@ void displayDeviceHistograms(gui::WorkspaceGUIState& state,
           const DeviceSpec& spec = devices[j];
 
           ImGui::SetColumnOffset(-1, offset);
-          textsize = ImGui::CalcTextSize(spec.name.c_str(), NULL, true);
+          textsize = ImGui::CalcTextSize(spec.name.c_str(), nullptr, true);
           offset += std::max(100.f, textsize.x);
           ImGui::TextUnformatted(spec.name.c_str());
           ImGui::NextColumn();
@@ -658,39 +659,14 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
   }
 
   auto& registry = driverInfo.configContext->options();
-  ImGui::TextUnformatted("Workflow options:");
-  ImGui::Columns(2);
-  for (auto& option : driverInfo.workflowOptions) {
-    ImGui::TextUnformatted(option.name.c_str());
-    ImGui::NextColumn();
-    switch (option.type) {
-      case ConfigParamSpec::ParamType::Int64:
-      case ConfigParamSpec::ParamType::Int:
-        ImGui::Text("%d", registry.get<int>(option.name.c_str()));
-        break;
-      case ConfigParamSpec::ParamType::Float:
-        ImGui::Text("%f", registry.get<float>(option.name.c_str()));
-        break;
-      case ConfigParamSpec::ParamType::Double:
-        ImGui::Text("%f", registry.get<double>(option.name.c_str()));
-        break;
-      case ConfigParamSpec::ParamType::String:
-        ImGui::Text("%s", registry.get<std::string>(option.name.c_str()).c_str());
-        break;
-      case ConfigParamSpec::ParamType::Bool:
-        ImGui::TextUnformatted(registry.get<bool>(option.name.c_str()) ? "true" : "false");
-        break;
-      case ConfigParamSpec::ParamType::Empty:
-      case ConfigParamSpec::ParamType::Unknown:
-        break;
-    }
-    ImGui::NextColumn();
-  }
   ImGui::Columns();
 
   ImGui::Text("Frame cost (latency): %.1f(%.1f)ms", driverInfo.frameCost, driverInfo.frameLatency);
   ImGui::Text("Input parsing cost (latency): %.1f(%.1f)ms", driverInfo.inputProcessingCost, driverInfo.inputProcessingLatency);
   ImGui::Text("State stack (depth %lu)", driverInfo.states.size());
+  if (ImGui::Button("SIGCONT all children")) {
+    kill(0, SIGCONT);
+  }
 
   for (size_t i = 0; i < driverInfo.states.size(); ++i) {
     ImGui::Text("#%lu: %s", i, DriverHelper::stateToString(driverInfo.states[i]));
@@ -702,9 +678,12 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
 // FIXME: return empty function in case we were not built
 // with GLFW support.
 ///
-std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, const std::vector<DeviceSpec>& devices,
-                                         const std::vector<DeviceMetricsInfo>& metricsInfos,
-                                         const DriverInfo& driverInfo, std::vector<DeviceControl>& controls,
+std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
+                                         std::vector<DeviceSpec> const& devices,
+                                         std::vector<DataProcessorInfo> const& metadata,
+                                         std::vector<DeviceMetricsInfo> const& metricsInfos,
+                                         DriverInfo const& driverInfo,
+                                         std::vector<DeviceControl>& controls,
                                          DriverControl& driverControl)
 {
   static gui::WorkspaceGUIState globalGUIState;
@@ -719,7 +698,7 @@ std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, c
     state.label = devices[i].id + "(" + std::to_string(infos[i].pid) + ")";
   }
   guiState.bottomPaneSize = 300;
-  guiState.leftPaneSize = 100;
+  guiState.leftPaneSize = 200;
   guiState.rightPaneSize = 300;
 
   // Show all the panes by default.
@@ -727,14 +706,14 @@ std::function<void(void)> getGUIDebugger(const std::vector<DeviceInfo>& infos, c
   guiState.leftPaneVisible = true;
   guiState.rightPaneVisible = true;
 
-  return [&guiState, &infos, &devices, &controls, &metricsInfos, &driverInfo, &driverControl]() {
+  return [&guiState, &infos, &devices, &metadata, &controls, &metricsInfos, &driverInfo, &driverControl]() {
     ImGuiStyle& style = ImGui::GetStyle();
     style.FrameRounding = 0.;
     style.WindowRounding = 0.;
     style.Colors[ImGuiCol_WindowBg] = ImVec4(0x1b / 255.f, 0x1b / 255.f, 0x1b / 255.f, 1.00f);
     style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0x1b / 255.f, 0x1b / 255.f, 0x1b / 255.f, 1.00f);
 
-    displayDeviceHistograms(guiState, driverInfo, infos, devices, controls, metricsInfos);
+    displayDeviceHistograms(guiState, driverInfo, infos, devices, metadata, controls, metricsInfos);
     displayDriverInfo(driverInfo, driverControl);
 
     int windowPosStepping = (ImGui::GetIO().DisplaySize.y - 500) / guiState.devices.size();

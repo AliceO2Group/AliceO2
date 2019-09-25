@@ -18,7 +18,7 @@
 #include "TTree.h"
 #include "TBranch.h"
 #include "TFile.h"
-#include "EMCALBase/Digit.h"
+#include "DataFormatsEMCAL/Digit.h"
 #include <memory> // for make_shared, make_unique, unique_ptr
 #include <vector>
 
@@ -54,7 +54,7 @@ DataProcessorSpec getEMCALDigitWriterSpec()
     auto outputtree = std::make_shared<TTree>(treename.c_str(), treename.c_str());
 
     // container for incoming digits
-    auto digits = std::make_shared<std::vector<o2::EMCAL::Digit>>();
+    auto digits = std::make_shared<std::vector<o2::emcal::Digit>>();
 
     // the callback to be set as hook at stop of processing for the framework
     auto finishWriting = [outputfile, outputtree]() {
@@ -76,7 +76,7 @@ DataProcessorSpec getEMCALDigitWriterSpec()
       }
 
       // retrieve the digits from the input
-      auto indata = pc.inputs().get<std::vector<o2::EMCAL::Digit>>("emcaldigits");
+      auto indata = pc.inputs().get<std::vector<o2::emcal::Digit>>("emcaldigits");
       LOG(INFO) << "RECEIVED DIGITS SIZE " << indata.size();
       *digits.get() = std::move(indata);
 
@@ -103,15 +103,14 @@ DataProcessorSpec getEMCALDigitWriterSpec()
 
   return DataProcessorSpec{
     "EMCALDigitWriter",
-    Inputs{ InputSpec{ "emcaldigits", "EMC", "DIGITS", 0, Lifetime::Timeframe },
-            InputSpec{ "emcaldigitlabels", "EMC", "DIGITSMCTR", 0, Lifetime::Timeframe } },
+    Inputs{InputSpec{"emcaldigits", "EMC", "DIGITS", 0, Lifetime::Timeframe},
+           InputSpec{"emcaldigitlabels", "EMC", "DIGITSMCTR", 0, Lifetime::Timeframe}},
     {}, // no output
     AlgorithmSpec(initFunction),
     Options{
-      { "emcal-digit-outfile", VariantType::String, "emcaldigits.root", { "Name of the input file" } },
-      { "treename", VariantType::String, "o2sim", { "Name of top-level TTree" } },
-    }
-  };
+      {"emcal-digit-outfile", VariantType::String, "emcaldigits.root", {"Name of the input file"}},
+      {"treename", VariantType::String, "o2sim", {"Name of top-level TTree"}},
+    }};
 }
 } // end namespace emcal
 } // end namespace o2

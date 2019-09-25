@@ -19,7 +19,7 @@
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
 
-using namespace o2::MFT;
+using namespace o2::mft;
 
 ClassImp(LadderSegmentation);
 
@@ -56,7 +56,7 @@ LadderSegmentation::LadderSegmentation(const LadderSegmentation& ladder)
   if (ladder.mChips)
     mChips = new TClonesArray(*(ladder.mChips));
   else
-    mChips = new TClonesArray("o2::MFT::ChipSegmentation", mNSensors);
+    mChips = new TClonesArray("o2::mft::ChipSegmentation", mNSensors);
 
   mChips->SetOwner(kTRUE);
 }
@@ -68,13 +68,13 @@ void LadderSegmentation::createSensors(TXMLEngine* xml, XMLNodePointer_t node)
 {
 
   if (!mChips) {
-    mChips = new TClonesArray("o2::MFT::ChipSegmentation", mNSensors);
+    mChips = new TClonesArray("o2::mft::ChipSegmentation", mNSensors);
     mChips->SetOwner(kTRUE);
   }
 
   Int_t ichip;
   Double_t pos[3];
-  Double_t ang[3] = { 0., 0., 0. };
+  Double_t ang[3] = {0., 0., 0.};
 
   Geometry* mftGeom = Geometry::instance();
 
@@ -87,7 +87,7 @@ void LadderSegmentation::createSensors(TXMLEngine* xml, XMLNodePointer_t node)
       if (!attrName.CompareTo("ichip")) {
         ichip = attrVal.Atoi();
         if (ichip >= getNSensors() || ichip < 0) {
-          LOG(FATAL) << "Wrong chip number : " << ichip << FairLogger::endl;
+          LOG(FATAL) << "Wrong chip number : " << ichip;
         }
       } else if (!attrName.CompareTo("xpos")) {
         pos[0] = attrVal.Atof();
@@ -102,7 +102,7 @@ void LadderSegmentation::createSensors(TXMLEngine* xml, XMLNodePointer_t node)
       } else if (!attrName.CompareTo("psi")) {
         ang[2] = attrVal.Atof();
       } else {
-        LOG(ERROR) << "Unknwon Attribute name " << xml->GetAttrName(attr) << FairLogger::endl;
+        LOG(ERROR) << "Unknwon Attribute name " << xml->GetAttrName(attr);
       }
       attr = xml->GetNextAttr(attr);
     }

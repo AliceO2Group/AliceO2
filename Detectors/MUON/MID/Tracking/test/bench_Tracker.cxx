@@ -14,13 +14,12 @@
 /// \date   17 March 2018
 
 #include "benchmark/benchmark.h"
-#include <iostream>
 #include <random>
 #include "DataFormatsMID/Cluster2D.h"
 #include "DataFormatsMID/Track.h"
 #include "MIDBase/Mapping.h"
 #include "MIDBase/MpArea.h"
-#include "MIDBase/HitFinder.h"
+#include "MIDTestingSimTools/HitFinder.h"
 #include "MIDTestingSimTools/TrackGenerator.h"
 #include "MIDTracking/Tracker.h"
 
@@ -34,12 +33,12 @@ std::vector<o2::mid::Cluster2D> generateTestData(int nTracks, o2::mid::TrackGene
   std::vector<o2::mid::Track> tracks = trackGen.generate(nTracks);
   for (auto& track : tracks) {
     for (int ich = 0; ich < 4; ++ich) {
-      std::vector<std::pair<int, Point3D<float>>> pairs = hitFinder.getLocalPositions(track, ich);
+      auto hits = hitFinder.getLocalPositions(track, ich);
       bool isFired = false;
-      for (auto& pair : pairs) {
-        int deId = pair.first;
-        float xPos = pair.second.x();
-        float yPos = pair.second.y();
+      for (auto& hit : hits) {
+        int deId = hit.deId;
+        float xPos = hit.xCoor;
+        float yPos = hit.yCoor;
         stripIndex = mapping.stripByPosition(xPos, yPos, 0, deId, false);
         if (!stripIndex.isValid()) {
           continue;
@@ -70,7 +69,8 @@ static void BM_TRACKER(benchmark::State& state)
   o2::mid::Tracker tracker(geoTrans);
 
   int nTracksPerEvent = state.range(0);
-  double num{ 0 };
+  tracker.init((state.range(1) == 1));
+  double num{0};
 
   std::vector<o2::mid::Cluster2D> inputData;
 
@@ -88,7 +88,9 @@ static void BM_TRACKER(benchmark::State& state)
 static void CustomArguments(benchmark::internal::Benchmark* bench)
 {
   for (int itrack = 1; itrack <= 8; ++itrack) {
-    bench->Arg(itrack);
+    for (int imethod = 0; imethod < 2; ++imethod) {
+      bench->Args({itrack, imethod});
+    }
   }
 }
 

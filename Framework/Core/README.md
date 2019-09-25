@@ -1,3 +1,6 @@
+\page refFrameworkCore Core
+\subpage refFrameworkCoreCOOKBOOK Core COOKBOOK
+
 # Data Processing Layer in O2 Framework
 
 ## Status quo and motivation for an O2 Data Processing Layer
@@ -320,6 +323,21 @@ Some suffix for the metrics are reserved to represent vector and tabular metrics
 * `<some-metric-name>/m` contains the secondary size of a matrix metric at a given moment.
 * `<some-metric-name>/<i>` where `<i>` is an integer contains the values of the i-th element in a vector metric or of the `<i>%n` column, `<i>/m` row of a matrix metric.
 
+#### Generic Logger
+
+Generic logging capabilities of DPL are provided via Framework/Logger which wraps and extents
+FairLogger.
+
+```C++
+#include "Framework/Logger.h"
+...
+
+LOG(INFO) << "some message";      // streamer based API
+LOGF(INFO, "%s", "some message"); // printf based API
+LOGP(INFO, "{}", "some message"); // python / fmt based API
+O2INFO("{}", "some message);      // same but with less typing.
+```
+
 #### InfoLogger service
 
 Integration with the InfoLogger subsystem of O2 happens in two way:
@@ -389,6 +407,25 @@ void customize(...)
 
 free function which takes as argument the group of policies to be applied to customise the behavior.
 
+## Managing multiple workflows.
+
+In general a DPL workflow consists of a C++ executable which defines an
+implicit workflow, as previously discribed. However it is sometimes handy
+to be able to split workflow in parts, e.g. to be able to run two detectors
+independently or to have a basic workflow with is then decorated with extra
+processing like data sampling if / when requested.
+
+DPL allows merging workflows by simply piping one into the other. So if `workflow-a`
+and `workflow-b` are two separate workflows, one can run the union of the two by doing:
+
+```bash
+workflow-a | workflow-b
+```
+
+Because the merging happens at the level of the implicit representation, this
+allows having dangling inputs and outputs which are potentially satisfied only
+when a separate workflow is merged.
+
 # Forward looking statements:
 
 ## Support for analysis
@@ -425,7 +462,6 @@ There is also a few demonstrator available in particular:
 ## Interesting reads
 
 - [MillWheel: Fault-Tolerant Stream Processing at Internet Scale](https://research.google.com/pubs/pub41378.html) : paper about Google previous generation system for stream processing
-- [Concord](http://concord.io) : Similar (to the above) stream processing solution, OpenSource.
 
 ## Data Sampling
 
@@ -437,20 +473,9 @@ Data Sampling provides possibility to sample data in DPL workflows, basing on ce
   "machines": [                         # list of machines where the policy should be run (now ignored)
     "aido2flp1",
     "aido2flp2"
-  ],
-  "dataHeaders": [                      # list of data that should be sampled
-    {
-      "binding": "clusters",            # binding of the data in InputRecord
-      "dataOrigin": "TPC",              # data origin in DataHeader
-      "dataDescription": "CLUSTERS"     # data description in DataHeader
-    },
-    {
-      "binding": "tracks",
-      "dataOrigin": "TPC",
-      "dataDescription": "TRACKS"
-    }
-  ],
-  "subSpec": "0",                       # subspecification in DataHeader, use -1 for all
+  ],                                    # list of data that should be sampled, the format is:
+                                        # binding1:origin1/description1/subSpec1[;binding2:...]
+  "query": "clusters:TPC/CLUSTERS/0;tracks:TPC/TRACKS/0",
   "samplingConditions": [               # list of sampling conditions
     {
       "condition": "random",            # condition type
@@ -492,9 +517,9 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext &ctx)
 }
 ```
 
-Sampled data can be subscribed to by adding `InputSpecs` provided by `std::vector<InputSpec> DataSampling::InputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName)` to a chosen data processor. Then, they can be accessed by the bindings specified in the configuration file.
+Sampled data can be subscribed to by adding `InputSpecs` provided by `std::vector<InputSpec> DataSampling::InputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName)` to a chosen data processor. Then, they can be accessed by the bindings specified in the configuration file. Dispatcher adds a `DataSamplingHeader` to the header stack, which contains statistics like total number of evaluated/accepted messages for a given Policy or the sampling time since epoch.
 
-[dataSamplingPodAndRoot](https://github.com/AliceO2Group/AliceO2/blob/dev/Framework/TestWorkflows/src/dataSamplingPodAndRoot.cxx) workflow can serve as usage example.
+[o2-datasampling-pod-and-root](https://github.com/AliceO2Group/AliceO2/blob/dev/Framework/TestWorkflows/src/dataSamplingPodAndRoot.cxx) workflow can serve as usage example.
 
 ## Data Sampling Conditions
 
@@ -521,6 +546,15 @@ The following sampling conditions are available. When more than one is used, a p
   "condition": "payloadSize",
   "lowerLimit": "300",
   "upperLimit": "500"
+}
+```
+- **DataSamplingConditionCustom** - loads a custom condition, which should inherit from DataSamplingCondition, from a specified library.
+```json
+{
+  "condition": "custom",
+  "moduleName": "QcExample",
+  "className": "o2::quality_control_modules::example::ExampleCondition",
+  "customParam": "value"
 }
 ```
 ## Document history

@@ -22,27 +22,28 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 class ClusterWriter : public Task
 {
  public:
-  ClusterWriter() = default;
+  ClusterWriter(bool useMC) : mUseMC(useMC) {}
   ~ClusterWriter() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
  private:
   int mState = 0;
+  bool mUseMC = true;
   std::unique_ptr<TFile> mFile = nullptr;
 };
 
 /// create a processor spec
 /// write ITS clusters a root file
-framework::DataProcessorSpec getClusterWriterSpec();
+framework::DataProcessorSpec getClusterWriterSpec(bool useMC);
 
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* O2_ITS_CLUSTERWRITER */

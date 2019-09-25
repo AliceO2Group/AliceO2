@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 // Author: Giulio Eulisse CERN  2/2018
 
 /*************************************************************************
@@ -22,8 +32,14 @@ double loop on the entries of the two RDataSources.
 
 #define protected public
 #include "Framework/RCombinedDS.h"
+#include "Framework/CompilerBuiltins.h"
 
+#if __has_include(<ROOT/RDF/Utils.hxx>)
+#include <ROOT/RDF/Utils.hxx>
+#else
 #include <ROOT/RDFUtils.hxx>
+#endif
+
 #include <ROOT/TSeq.hxx>
 #include <ROOT/RMakeUnique.hxx>
 #include <ROOT/RDataFrame.hxx>
@@ -39,9 +55,26 @@ namespace ROOT
 namespace RDF
 {
 
+char const* RCombinedDSIndexHelpers::combinationRuleAsString(BlockCombinationRule type)
+{
+  switch (type) {
+    case BlockCombinationRule::Full:
+      return "full";
+    case BlockCombinationRule::Anti:
+      return "antidiagonal";
+    case BlockCombinationRule::Diagonal:
+      return "diagonal";
+    case BlockCombinationRule::Upper:
+      return "uppertriangular";
+    case BlockCombinationRule::StrictlyUpper:
+      return "stricly-uppertriangular";
+  }
+  throw std::runtime_error("Unknown BlockCombinationRule");
+}
+
 std::vector<std::pair<ULong64_t, ULong64_t>>
-  RCombindedDSCrossJoinIndex::BuildIndex(std::unique_ptr<RDataFrame>& left,
-                                         std::unique_ptr<RDataFrame>& right)
+  RCombinedDSCrossJoinIndex::BuildIndex(std::unique_ptr<RDataFrame>& left,
+                                        std::unique_ptr<RDataFrame>& right)
 {
   std::vector<std::pair<ULong64_t, ULong64_t>> ranges;
   fLeftCount = *left->Count();
@@ -50,6 +83,28 @@ std::vector<std::pair<ULong64_t, ULong64_t>>
   for (ULong64_t i = 0; i < fLeftCount; ++i) {
     ranges.emplace_back(std::make_pair<ULong64_t, ULong64_t>(fRightCount * i, fRightCount * (i + 1)));
   }
+  return ranges;
+}
+
+std::vector<std::pair<ULong64_t, ULong64_t>>
+  RCombinedDSFriendIndex::BuildIndex(std::unique_ptr<RDataFrame>& left,
+                                     std::unique_ptr<RDataFrame>& right)
+{
+  auto leftCount = *left->Count();
+  auto rightCount = *right->Count();
+  if (leftCount != rightCount) {
+    throw std::runtime_error("Union can be performed only with two datasources which have the same amount of entries");
+  }
+  std::vector<std::pair<ULong64_t, ULong64_t>> ranges;
+  // FIXME: should we really use the min between two number of slots?
+  auto nSlots = std::min(left->GetLoopManager()->GetNSlots(), right->GetLoopManager()->GetNSlots());
+  assert(nSlots > 0);
+  auto deltaSize = rightCount / nSlots;
+  ULong64_t i = 0;
+  for (; i < (nSlots - 1); ++i) {
+    ranges.emplace_back(std::pair<ULong64_t, ULong64_t>(deltaSize * i, deltaSize * (i + 1)));
+  }
+  ranges.emplace_back(std::pair<ULong64_t, ULong64_t>(i * deltaSize, rightCount));
   return ranges;
 }
 
@@ -66,13 +121,13 @@ RCombinedDS::RCombinedDS(std::unique_ptr<RDataSource> inLeft, std::unique_ptr<RD
   : // FIXME: we cache the bare pointers, under the assumption that
     // the dataframes fLeftDF, fRightDF have longer lifetime as
     // they actually own them.
-    fLeft{ inLeft.get() },
-    fRight{ inRight.get() },
-    fLeftDF{ std::make_unique<RDataFrame>(std::move(inLeft)) },
-    fRightDF{ std::make_unique<RDataFrame>(std::move(inRight)) },
-    fLeftPrefix{ inLeftPrefix },
-    fRightPrefix{ inRightPrefix },
-    fIndex{ std::move(inIndex) }
+    fLeft{inLeft.get()},
+    fRight{inRight.get()},
+    fLeftDF{std::make_unique<RDataFrame>(std::move(inLeft))},
+    fRightDF{std::make_unique<RDataFrame>(std::move(inRight))},
+    fLeftPrefix{inLeftPrefix},
+    fRightPrefix{inRightPrefix},
+    fIndex{std::move(inIndex)}
 {
   fColumnNames.reserve(fLeft->GetColumnNames().size() + fRight->GetColumnNames().size());
   for (auto& c : fLeft->GetColumnNames()) {
@@ -160,6 +215,7 @@ std::vector<void*> RCombinedDS::GetColumnReadersImpl(std::string_view colName, c
     return fRight->GetColumnReadersImpl(colName, info);
   }
   assert(false);
+  O2_BUILTIN_UNREACHABLE();
 }
 
 void RCombinedDS::Initialise()
@@ -185,7 +241,7 @@ RDataFrame MakeCombinedDataFrame(std::unique_ptr<RDataSource> left, std::unique_
 RDataFrame MakeCrossProductDataFrame(std::unique_ptr<RDataSource> left, std::unique_ptr<RDataSource> right,
                                      std::string leftPrefix, std::string rightPrefix)
 {
-  ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(std::make_unique<RCombindedDSCrossJoinIndex>()), leftPrefix, rightPrefix));
+  ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(std::make_unique<RCombinedDSCrossJoinIndex>()), leftPrefix, rightPrefix));
   return tdf;
 }
 
@@ -193,7 +249,22 @@ RDataFrame MakeColumnIndexedDataFrame(std::unique_ptr<RDataSource> left, std::un
                                       std::string indexColumnName,
                                       std::string leftPrefix, std::string rightPrefix)
 {
-  ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(std::make_unique<RCombindedDSColumnJoinIndex<int>>(indexColumnName)), leftPrefix, rightPrefix));
+  ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(std::make_unique<RCombinedDSColumnJoinIndex<int>>(indexColumnName)), leftPrefix, rightPrefix));
+  return tdf;
+}
+
+RDataFrame MakeBlockAntiDataFrame(std::unique_ptr<RDataSource> left, std::unique_ptr<RDataSource> right,
+                                  std::string indexColumnName,
+                                  std::string leftPrefix, std::string rightPrefix)
+{
+  ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(std::make_unique<RCombinedDSBlockJoinIndex<int>>(indexColumnName)), leftPrefix, rightPrefix));
+  return tdf;
+}
+
+RDataFrame MakeFriendDataFrame(std::unique_ptr<RDataSource> left, std::unique_ptr<RDataSource> right,
+                               std::string leftPrefix, std::string rightPrefix)
+{
+  ROOT::RDataFrame tdf(std::make_unique<RCombinedDS>(std::move(left), std::move(right), std::move(std::make_unique<RCombinedDSFriendIndex>()), leftPrefix, rightPrefix));
   return tdf;
 }
 

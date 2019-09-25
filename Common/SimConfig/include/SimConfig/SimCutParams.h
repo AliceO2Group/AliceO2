@@ -22,9 +22,12 @@ namespace conf
 // (mostly used in O2MCApplication stepping)
 struct SimCutParams : public o2::conf::ConfigurableParamHelper<SimCutParams> {
   bool stepFiltering = true; // if we activate the step filtering in O2BaseMCApplication
+  bool trackSeed = false;    // per track seeding for track-reproducible mode
 
   double maxRTracking = 1E20;    // max R tracking cut in cm (in the VMC sense) -- applied in addition to cutting in the stepping function
   double maxAbsZTracking = 1E20; // max |Z| tracking cut in cm (in the VMC sense) -- applied in addition to cutting in the stepping function
+  double ZmaxA = 1E20;           // max Z tracking cut on A side in cm -- applied in the stepping function
+  double ZmaxC = 1E20;           // max Z tracking cut on C side in cm -- applied in the stepping function
 
   O2ParamDef(SimCutParams, "SimCutParams");
 };

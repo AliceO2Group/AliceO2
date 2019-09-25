@@ -26,7 +26,7 @@
 #include "TPCBase/ParameterGEM.h"
 #include "TPCBase/ParameterGas.h"
 
-using namespace o2::TPC;
+using namespace o2::tpc;
 
 //______________________________________________________________________________
 const CalPad& CDBInterface::getPedestals()
@@ -45,7 +45,7 @@ const CalPad& CDBInterface::getPedestals()
   }
 
   if (!mPedestals) {
-    LOG(FATAL) << "No valid pedestal object was loaded" << FairLogger::endl;
+    LOG(FATAL) << "No valid pedestal object was loaded";
   }
 
   return *mPedestals;
@@ -68,7 +68,7 @@ const CalPad& CDBInterface::getNoise()
   }
 
   if (!mNoise) {
-    LOG(FATAL) << "No valid noise object was loaded" << FairLogger::endl;
+    LOG(FATAL) << "No valid noise object was loaded";
   }
 
   return *mNoise;
@@ -91,7 +91,7 @@ const CalPad& CDBInterface::getGainMap()
   }
 
   if (!mGainMap) {
-    LOG(FATAL) << "No valid gain object was loaded" << FairLogger::endl;
+    LOG(FATAL) << "No valid gain object was loaded";
   }
 
   return *mGainMap;
@@ -101,7 +101,7 @@ const CalPad& CDBInterface::getGainMap()
 const ParameterDetector& CDBInterface::getParameterDetector()
 {
   if (mUseDefaults) {
-    return ParameterDetector::defaultInstance();
+    return ParameterDetector::Instance();
   }
 
   // return from CDB, assume that check for object existence are done there
@@ -112,7 +112,7 @@ const ParameterDetector& CDBInterface::getParameterDetector()
 const ParameterElectronics& CDBInterface::getParameterElectronics()
 {
   if (mUseDefaults) {
-    return ParameterElectronics::defaultInstance();
+    return ParameterElectronics::Instance();
   }
 
   // return from CDB, assume that check for object existence are done there
@@ -123,7 +123,7 @@ const ParameterElectronics& CDBInterface::getParameterElectronics()
 const ParameterGas& CDBInterface::getParameterGas()
 {
   if (mUseDefaults) {
-    return ParameterGas::defaultInstance();
+    return ParameterGas::Instance();
   }
 
   // return from CDB, assume that check for object existence are done there
@@ -134,7 +134,7 @@ const ParameterGas& CDBInterface::getParameterGas()
 const ParameterGEM& CDBInterface::getParameterGEM()
 {
   if (mUseDefaults) {
-    return ParameterGEM::defaultInstance();
+    return ParameterGEM::Instance();
   }
 
   // return from CDB, assume that check for object existence are done there
@@ -145,41 +145,41 @@ const ParameterGEM& CDBInterface::getParameterGEM()
 void CDBInterface::loadNoiseAndPedestalFromFile()
 {
   auto file = TFile::Open(mPedestalNoiseFileName.data());
-  CalPad* pedestals{ nullptr };
-  CalPad* noise{ nullptr };
+  CalPad* pedestals{nullptr};
+  CalPad* noise{nullptr};
   file->GetObject("Pedestals", pedestals);
   file->GetObject("Noise", noise);
   delete file;
 
   if (!pedestals) {
-    LOG(FATAL) << "No valid pedestal object was loaded" << FairLogger::endl;
+    LOG(FATAL) << "No valid pedestal object was loaded";
   }
 
   if (!noise) {
-    LOG(FATAL) << "No valid noise object was loaded" << FairLogger::endl;
+    LOG(FATAL) << "No valid noise object was loaded";
   }
 
   mPedestals.reset(pedestals);
   mNoise.reset(noise);
 
-  LOG(INFO) << "Loaded Noise and pedestal from file '" << mPedestalNoiseFileName << "'" << FairLogger::endl;
+  LOG(INFO) << "Loaded Noise and pedestal from file '" << mPedestalNoiseFileName << "'";
 }
 
 //______________________________________________________________________________
 void CDBInterface::loadGainMapFromFile()
 {
   auto file = TFile::Open(mGainMapFileName.data());
-  CalPad* gain{ nullptr };
+  CalPad* gain{nullptr};
   file->GetObject("Gain", gain);
   delete file;
 
   if (!gain) {
-    LOG(FATAL) << "No valid gain map object was loaded" << FairLogger::endl;
+    LOG(FATAL) << "No valid gain map object was loaded";
   }
 
   mGainMap.reset(gain);
 
-  LOG(INFO) << "Loaded gain map from file '" << mGainMapFileName << "'" << FairLogger::endl;
+  LOG(INFO) << "Loaded gain map from file '" << mGainMapFileName << "'";
 }
 //______________________________________________________________________________
 void CDBInterface::createDefaultPedestals()
@@ -257,8 +257,8 @@ void CDBInterface::createDefaultGainMap()
       if (random < minGain) {
         random = minGain;
       }
-      if (random > minGain) {
-        random = minGain;
+      if (random > maxGain) {
+        random = maxGain;
       }
       val = random;
     }

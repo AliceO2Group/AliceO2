@@ -26,6 +26,7 @@ struct SimConfigData {
   std::string mGenerator;                    // chosen VMC generator
   unsigned int mNEvents;                     // number of events to be simulated
   std::string mExtKinFileName;               // file name of external kinematics file (needed for ext kinematics generator)
+  std::string mHepMCFileName;                // file name of HepMC file
   std::string mExtGenFileName;               // file name containing the external generator configuration
   std::string mExtGenFuncName;               // function call to retrieve the external generator configuration
   std::string mEmbedIntoFileName;            // filename containing the reference events to be used for the embedding
@@ -37,12 +38,17 @@ struct SimConfigData {
   std::string mLogVerbosity;                 // loglevel for FairLogger
   std::string mKeyValueTokens;               // a string holding arbitrary sequence of key-value tokens
                                              // Foo.parameter1=x,Bar.parameter2=y,Baz.paramter3=hello
-                                             // (can be used to **loosly** change any configuration parameter from
-                                             //  command-line)
+                                             // (can be used to **loosely** change any configuration parameter from command-line)
+  std::string mConfigFile;                   // path to a JSON or INI config file (file extension is required to determine type).
+                                             // values within the config file will override values set in code by the param classes
+                                             // but will themselves be overridden by any values given in mKeyValueTokens.
   int mPrimaryChunkSize;                     // defining max granularity for input primaries of a sim job
   int mInternalChunkSize;                    //
   int mStartSeed;                            // base for random number seeds
   int mSimWorkers = 1;                       // number of parallel sim workers (when it applies)
+  bool mFilterNoHitEvents = false;           // whether to filter out events not leaving any response
+  std::string mCCDBUrl;                      // the URL where to find CCDB
+  long mTimestamp;                           // timestamp to anchor transport simulation to
 
   ClassDefNV(SimConfigData, 2);
 };
@@ -90,6 +96,7 @@ class SimConfig
   unsigned int getNEvents() const { return mConfigData.mNEvents; }
 
   std::string getExtKinematicsFileName() const { return mConfigData.mExtKinFileName; }
+  std::string getHepMCFileName() const { return mConfigData.mHepMCFileName; }
   std::string getExtGeneratorFileName() const { return mConfigData.mExtGenFileName; }
   std::string getExtGeneratorFuncName() const { return mConfigData.mExtGenFuncName; }
   std::string getEmbedIntoFileName() const { return mConfigData.mEmbedIntoFileName; }
@@ -100,17 +107,19 @@ class SimConfig
   std::string getLogVerbosity() const { return mConfigData.mLogVerbosity; }
   std::string getLogSeverity() const { return mConfigData.mLogSeverity; }
   std::string getKeyValueString() const { return mConfigData.mKeyValueTokens; }
+  std::string getConfigFile() const { return mConfigData.mConfigFile; }
   int getPrimChunkSize() const { return mConfigData.mPrimaryChunkSize; }
   int getInternalChunkSize() const { return mConfigData.mInternalChunkSize; }
   int getStartSeed() const { return mConfigData.mStartSeed; }
   int getNSimWorkers() const { return mConfigData.mSimWorkers; }
+  bool isFilterOutNoHitEvents() const { return mConfigData.mFilterNoHitEvents; }
 
  private:
   SimConfigData mConfigData; //!
 
   ClassDefNV(SimConfig, 1);
 };
-}
-}
+} // namespace conf
+} // namespace o2
 
 #endif

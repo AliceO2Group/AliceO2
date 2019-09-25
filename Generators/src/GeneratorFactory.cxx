@@ -17,8 +17,14 @@
 #include <FairLogger.h>
 #include <SimConfig/SimConfig.h>
 #include <Generators/GeneratorFromFile.h>
+#ifdef GENERATORS_WITH_PYTHIA8
 #include <Generators/Pythia8Generator.h>
+#endif
 #include <Generators/GeneratorTGenerator.h>
+#ifdef GENERATORS_WITH_HEPMC3
+#include <Generators/GeneratorHepMC.h>
+#endif
+#include <Generators/BoxGunParam.h>
 #include "TROOT.h"
 #include "TSystem.h"
 #include "TGlobal.h"
@@ -39,13 +45,16 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
   }
   auto genconfig = conf.getGenerator();
   if (genconfig.compare("boxgen") == 0) {
-    // a simple "box" generator
-    LOG(INFO) << "Init box generator";
-    auto boxGen = new FairBoxGenerator(211, 10); /*protons*/
-    boxGen->SetEtaRange(-0.9, 0.9);
-    boxGen->SetPRange(0.1, 5);
-    boxGen->SetPhiRange(0., 360.);
-    boxGen->SetDebug(kTRUE);
+    // a simple "box" generator configurable via BoxGunparam
+    auto& boxparam = BoxGunParam::Instance();
+    LOG(INFO) << "Init box generator with following parameters";
+    LOG(INFO) << boxparam;
+    auto boxGen = new FairBoxGenerator(boxparam.pdg, boxparam.number);
+    boxGen->SetEtaRange(boxparam.eta[0], boxparam.eta[1]);
+    boxGen->SetPRange(boxparam.prange[0], boxparam.prange[1]);
+    boxGen->SetPhiRange(boxparam.phirange[0], boxparam.phirange[1]);
+    boxGen->SetDebug(boxparam.debug);
+
     primGen->AddGenerator(boxGen);
   } else if (genconfig.compare("fwmugen") == 0) {
     // a simple "box" generator for forward muons
@@ -82,12 +91,28 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
   } else if (genconfig.compare("zdcgen") == 0) {
     // a simple "box" generator for forward neutrons
     LOG(INFO) << "Init box forward zdc generator";
-    auto boxGen = new FairBoxGenerator(2212, 1000); /* neutrons */
-    boxGen->SetEtaRange(-8.0, -9999);
-    boxGen->SetPRange(10, 500);
-    boxGen->SetPhiRange(0., 360.);
-    boxGen->SetDebug(kTRUE);
-    primGen->AddGenerator(boxGen);
+    auto boxGenC = new FairBoxGenerator(2212, 500); /* neutrons */
+    boxGenC->SetEtaRange(-8.0, -9999);
+    boxGenC->SetPRange(10, 500);
+    boxGenC->SetPhiRange(0., 360.);
+    auto boxGenA = new FairBoxGenerator(2212, 500); /* neutrons */
+    boxGenA->SetEtaRange(8.0, 9999);
+    boxGenA->SetPRange(10, 500);
+    boxGenA->SetPhiRange(0., 360.);
+    primGen->AddGenerator(boxGenC);
+    primGen->AddGenerator(boxGenA);
+  } else if (genconfig.compare("fddgen") == 0) {
+    LOG(INFO) << "Init box FDD generator";
+    auto boxGenFDC = new FairBoxGenerator(13, 1000);
+    boxGenFDC->SetEtaRange(-7.0, -4.8);
+    boxGenFDC->SetPRange(10, 500);
+    boxGenFDC->SetPhiRange(0., 360.);
+    auto boxGenFDA = new FairBoxGenerator(13, 1000);
+    boxGenFDA->SetEtaRange(4.9, 6.3);
+    boxGenFDA->SetPRange(10, 500);
+    boxGenFDA->SetPhiRange(0., 360.);
+    primGen->AddGenerator(boxGenFDA);
+    primGen->AddGenerator(boxGenFDC);
   } else if (genconfig.compare("extkin") == 0) {
     // external kinematics
     // needs precense of a kinematics file "Kinematics.root"
@@ -96,6 +121,15 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     extGen->SetStartEvent(conf.getStartEvent());
     primGen->AddGenerator(extGen);
     LOG(INFO) << "using external kinematics";
+#ifdef GENERATORS_WITH_HEPMC3
+  } else if (genconfig.compare("hepmc") == 0) {
+    // external HepMC file
+    auto hepmcGen = new o2::eventgen::GeneratorHepMC();
+    hepmcGen->setFileName(conf.getHepMCFileName());
+    hepmcGen->setVersion(2);
+    primGen->AddGenerator(hepmcGen);
+#endif
+#ifdef GENERATORS_WITH_PYTHIA8
   } else if (genconfig.compare("pythia8") == 0) {
     // pythia8 pp
     // configures pythia for min.bias pp collisions at 14 TeV
@@ -105,9 +139,21 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     py8Gen->SetParameters("Beams:idB 2212");       // p
     py8Gen->SetParameters("Beams:eCM 14000.");     // [GeV]
     py8Gen->SetParameters("SoftQCD:inelastic on"); // all inelastic processes
-    py8Gen->SetParameters("ParticleDecays:xyMax 0.1");
-    py8Gen->SetParameters("ParticleDecays:zMax 1.");
-    py8Gen->SetParameters("ParticleDecays:limitCylinder on");
+    py8Gen->SetParameters("ParticleDecays:tau0Max 0.001");
+    py8Gen->SetParameters("ParticleDecays:limitTau0 on");
+    primGen->AddGenerator(py8Gen);
+  } else if (genconfig.compare("pythia8hf") == 0) {
+    // pythia8 pp (HF production)
+    // configures pythia for HF production in pp collisions at 14 TeV
+    // TODO: make this configurable
+    auto py8Gen = new o2::eventgen::Pythia8Generator();
+    py8Gen->SetParameters("Beams:idA 2212");   // p
+    py8Gen->SetParameters("Beams:idB 2212");   // p
+    py8Gen->SetParameters("Beams:eCM 14000."); // [GeV]
+    py8Gen->SetParameters("HardQCD:hardccbar on");
+    py8Gen->SetParameters("HardQCD:hardbbbar on");
+    py8Gen->SetParameters("ParticleDecays:tau0Max 0.001");
+    py8Gen->SetParameters("ParticleDecays:limitTau0 on");
     primGen->AddGenerator(py8Gen);
   } else if (genconfig.compare("pythia8hi") == 0) {
     // pythia8 heavy-ion
@@ -122,13 +168,12 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     py8Gen->SetParameters("HeavyIon:SigFitDefPar 14.82,1.82,0.25,0.0,0.0,0.0,0.0,0.0"); // valid for Pb-Pb 5520 only
     py8Gen->SetParameters(
       ("HeavyIon:bWidth " + std::to_string(conf.getBMax())).c_str()); // impact parameter from 0-x [fm]
-    py8Gen->SetParameters("ParticleDecays:xyMax 0.1");
-    py8Gen->SetParameters("ParticleDecays:zMax 1.");
-    py8Gen->SetParameters("ParticleDecays:limitCylinder on");
+    py8Gen->SetParameters("ParticleDecays:tau0Max 0.001");
+    py8Gen->SetParameters("ParticleDecays:limitTau0 on");
     primGen->AddGenerator(py8Gen);
+#endif
   } else if (genconfig.compare("extgen") == 0) {
-    // external generator via TGenerator interface
-    auto tgen = new o2::eventgen::GeneratorTGenerator();
+    // external generator via configuration macro
     auto extgen_filename = conf.getExtGeneratorFileName();
     auto extgen_func = conf.getExtGeneratorFuncName();
     if (extgen_func.empty()) {
@@ -140,50 +185,24 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
                     "()";
     }
     if (gROOT->LoadMacro(extgen_filename.c_str()) != 0) {
-      LOG(FATAL) << "Cannot find " << extgen_filename << FairLogger::endl;
+      LOG(FATAL) << "Cannot find " << extgen_filename;
       return;
     }
-    /** setup convertion units **/
-    if (gROOT->GetGlobal("momentumUnit")) {
-      auto ptr = (double*)gROOT->GetGlobal("momentumUnit")->GetAddress();
-      tgen->setMomentumUnit(*ptr);
-    } else {
-      LOG(FATAL) << "Mandatory global variable \'momentumUnit\' not defined";
-    }
-    if (gROOT->GetGlobal("energyUnit")) {
-      auto ptr = (double*)gROOT->GetGlobal("energyUnit")->GetAddress();
-      tgen->setEnergyUnit(*ptr);
-    } else {
-      LOG(FATAL) << "Mandatory global variable \'energyUnit\' not defined";
-    }
-    if (gROOT->GetGlobal("positionUnit")) {
-      auto ptr = (double*)gROOT->GetGlobal("positionUnit")->GetAddress();
-      tgen->setPositionUnit(*ptr);
-    } else {
-      LOG(FATAL) << "Mandatory global variable \'positionUnit\' not defined";
-    }
-    if (gROOT->GetGlobal("timeUnit")) {
-      auto ptr = (double*)gROOT->GetGlobal("timeUnit")->GetAddress();
-      tgen->setMomentumUnit(*ptr);
-    } else {
-      LOG(FATAL) << "Mandatory global variable \'timeUnit\' not defined";
-    }
-    /** retrieve TGenerator **/
+    /** retrieve FairGenerator **/
     auto extgen_gfunc = extgen_func.substr(0, extgen_func.find_first_of('('));
     if (!gROOT->GetGlobalFunction(extgen_gfunc.c_str())) {
-      LOG(FATAL) << "Global function \'"
+      LOG(FATAL) << "Global function '"
                  << extgen_gfunc
-                 << "\' not defined";
+                 << "' not defined";
     }
-    if (strcmp(gROOT->GetGlobalFunction(extgen_gfunc.c_str())->GetReturnTypeName(), "TGenerator*")) {
-      LOG(FATAL) << "Global function \'"
+    if (strcmp(gROOT->GetGlobalFunction(extgen_gfunc.c_str())->GetReturnTypeName(), "FairGenerator*")) {
+      LOG(FATAL) << "Global function '"
                  << extgen_gfunc
-                 << "\' does not return a \'TGenerator*\' type";
+                 << "' does not return a 'FairGenerator*' type";
     }
-    gROOT->ProcessLine(Form("TGenerator *__extgen = dynamic_cast<TGenerator *>(%s);", extgen_func.c_str()));
-    auto extgen_ptr = (TGenerator**)gROOT->GetGlobal("__extgen")->GetAddress();
-    tgen->setTGenerator(*extgen_ptr);
-    primGen->AddGenerator(tgen);
+    gROOT->ProcessLine(Form("FairGenerator *__extgen = dynamic_cast<FairGenerator *>(%s);", extgen_func.c_str()));
+    auto extgen_ptr = (FairGenerator**)gROOT->GetGlobal("__extgen")->GetAddress();
+    primGen->AddGenerator(*extgen_ptr);
   } else if (genconfig.compare("toftest") == 0) { // 1 muon per sector and per module
     LOG(INFO) << "Init tof test generator -> 1 muon per sector and per module";
     for (int i = 0; i < 18; i++) {

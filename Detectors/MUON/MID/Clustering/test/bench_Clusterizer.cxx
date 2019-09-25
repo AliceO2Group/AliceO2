@@ -14,11 +14,11 @@
 /// \date   08 March 2018
 
 #include "benchmark/benchmark.h"
-#include <iostream>
 #include <random>
+#include <gsl/gsl>
 #include "MIDBase/Mapping.h"
 #include "DataFormatsMID/ColumnData.h"
-#include "MIDClustering/PreClusters.h"
+#include "MIDClustering/PreCluster.h"
 #include "MIDClustering/PreClusterizer.h"
 #include "MIDClustering/Clusterizer.h"
 
@@ -30,7 +30,7 @@ o2::mid::ColumnData& getColumn(std::vector<o2::mid::ColumnData>& patterns, uint8
     }
   }
 
-  patterns.emplace_back(o2::mid::ColumnData{ deId, icolumn });
+  patterns.emplace_back(o2::mid::ColumnData{deId, icolumn});
   return patterns.back();
 }
 
@@ -119,7 +119,7 @@ BENCHMARK_DEFINE_F(BenchClustering, clustering)
   int deId = state.range(0);
   int nClusters = state.range(1);
   int clusterSize = state.range(2);
-  double num{ 0 };
+  double num{0};
 
   std::vector<o2::mid::ColumnData> inputData;
 
@@ -128,7 +128,8 @@ BENCHMARK_DEFINE_F(BenchClustering, clustering)
     inputData = generateTestData(deId, nClusters, clusterSize, midMapping);
     state.ResumeTiming();
     preClusterizer.process(inputData);
-    clusterizer.process(preClusterizer.getPreClusters());
+    gsl::span<const o2::mid::PreCluster> preClusters(preClusterizer.getPreClusters().data(), preClusterizer.getPreClusters().size());
+    clusterizer.process(preClusters);
     ++num;
   }
 
@@ -137,11 +138,11 @@ BENCHMARK_DEFINE_F(BenchClustering, clustering)
 
 static void CustomArguments(benchmark::internal::Benchmark* bench)
 {
-  std::vector<int> deIdList = { 63, 66, 67, 68, 69 };
+  std::vector<int> deIdList = {63, 66, 67, 68, 69};
   for (auto& deId : deIdList) {
     for (int nClusters = 1; nClusters < 4; ++nClusters) {
       for (int clustSize = 1; clustSize < 4; ++clustSize) {
-        bench->Args({ deId, nClusters, clustSize });
+        bench->Args({deId, nClusters, clustSize});
       }
     }
   }

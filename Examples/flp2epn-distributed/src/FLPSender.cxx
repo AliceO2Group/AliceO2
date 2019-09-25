@@ -23,33 +23,23 @@
 #include <options/FairMQProgOptions.h>
 
 #include "FLP2EPNex_distributed/FLPSender.h"
+#include "O2Device/Compatibility.h"
 
 using namespace std;
 using namespace std::chrono;
-using namespace o2::Devices;
+using namespace o2::devices;
 
 struct f2eHeader {
   uint16_t timeFrameId;
-  int      flpIndex;
+  int flpIndex;
 };
 
 FLPSender::FLPSender()
-  : mSTFBuffer()
-  , mArrivalTime()
-  , mNumEPNs(0)
-  , mIndex(0)
-  , mSendOffset(0)
-  , mSendDelay(8)
-  , mEventSize(10000)
-  , mTestMode(0)
-  , mTimeFrameId(0)
-  , mInChannelName()
-  , mOutChannelName()
+  : mSTFBuffer(), mArrivalTime(), mNumEPNs(0), mIndex(0), mSendOffset(0), mSendDelay(8), mEventSize(10000), mTestMode(0), mTimeFrameId(0), mInChannelName(), mOutChannelName()
 {
 }
 
-FLPSender::~FLPSender()
-= default;
+FLPSender::~FLPSender() = default;
 
 void FLPSender::InitTask()
 {
@@ -71,7 +61,7 @@ void FLPSender::Run()
   // store the channel reference to avoid traversing the map on every loop iteration
   FairMQChannel& dataInChannel = fChannels.at(mInChannelName).at(0);
 
-  while (CheckCurrentState(RUNNING)) {
+  while (compatibility::FairMQ13<FairMQDevice>::IsRunning(this)) {
     // initialize f2e header
     auto* header = new f2eHeader;
     if (mTestMode > 0) {
@@ -97,7 +87,8 @@ void FLPSender::Run()
 
     FairMQParts parts;
 
-    parts.AddPart(NewMessage(header, sizeof(f2eHeader), [](void* data, void* hint){ delete static_cast<f2eHeader*>(hint); }, header));
+    parts.AddPart(NewMessage(
+      header, sizeof(f2eHeader), [](void* data, void* hint) { delete static_cast<f2eHeader*>(hint); }, header));
     parts.AddPart(NewMessage());
 
     // save the arrival time of the message.

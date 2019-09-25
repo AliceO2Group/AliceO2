@@ -15,16 +15,18 @@ namespace bpo = boost::program_options;
 
 void addCustomOptions(bpo::options_description& options)
 {
+  // clang-format off
   options.add_options()
-    (o2::DataFlow::HeartbeatSampler::OptionKeyPeriod,
+    (o2::data_flow::HeartbeatSampler::OptionKeyPeriod,
      bpo::value<uint32_t>()->default_value(1000000000),
      "sampling period")
-    (o2::DataFlow::HeartbeatSampler::OptionKeyOutputChannelName,
+    (o2::data_flow::HeartbeatSampler::OptionKeyOutputChannelName,
      bpo::value<std::string>()->default_value("output"),
      "Name of the output channel");
+  // clang-format on
 }
 
 FairMQDevicePtr getDevice(const FairMQProgOptions& /*config*/)
 {
-  return new o2::DataFlow::HeartbeatSampler();
+  return new o2::data_flow::HeartbeatSampler();
 }

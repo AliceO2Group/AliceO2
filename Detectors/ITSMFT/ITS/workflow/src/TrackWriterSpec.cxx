@@ -17,6 +17,7 @@
 #include "Framework/ControlService.h"
 #include "ITSWorkflow/TrackWriterSpec.h"
 #include "DataFormatsITS/TrackITS.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
@@ -24,7 +25,7 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 void TrackWriter::init(InitContext& ic)
@@ -44,37 +45,74 @@ void TrackWriter::run(ProcessingContext& pc)
   if (mState != 1)
     return;
 
-  auto tracks = pc.inputs().get<const std::vector<o2::ITS::TrackITS>>("tracks");
-  auto labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
-  auto plabels = labels.get();
+  auto tracks = pc.inputs().get<const std::vector<o2::its::TrackITS>>("tracks");
+  auto clusIdx = pc.inputs().get<gsl::span<int>>("trackClIdx");
+  auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
 
-  LOG(INFO) << "ITSTrackWriter pulled " << tracks.size() << " tracks, "
-            << labels->getIndexedSize() << " MC label objects";
+  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
+  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* plabels = nullptr;
+  std::vector<int> clusIdxOut, *clusIdxOutPtr = &clusIdxOut;
+  clusIdxOut.reserve(clusIdx.size());
+  for (auto v : clusIdx) {
+    clusIdxOut.push_back(v);
+  }
+
+  LOG(INFO) << "ITSTrackWriter pulled " << tracks.size() << " tracks, in "
+            << rofs.size() << " RO frames";
 
   TTree tree("o2sim", "Tree with ITS tracks");
   tree.Branch("ITSTrack", &tracks);
-  tree.Branch("ITSTrackMCTruth", &plabels);
+  tree.Branch("ITSTrackClusIdx", &clusIdxOutPtr);
+  if (mUseMC) {
+    labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
+    plabels = labels.get();
+    tree.Branch("ITSTrackMCTruth", &plabels);
+  }
   tree.Fill();
   tree.Write();
+
+  // write ROFrecords vector to a tree
+  TTree treeROF("ITSTracksROF", "ROF records tree");
+  auto* rofsPtr = &rofs;
+  treeROF.Branch("ITSTracksROF", &rofsPtr);
+  treeROF.Fill();
+  treeROF.Write();
+
+  if (mUseMC) {
+    // write MC2ROFrecord vector (directly inherited from digits input) to a tree
+    TTree treeMC2ROF("ITSTracksMC2ROF", "MC -> ROF records tree");
+    auto mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
+    auto* mc2rofsPtr = &mc2rofs;
+    treeMC2ROF.Branch("ITSTracksMC2ROF", &mc2rofsPtr);
+    treeMC2ROF.Fill();
+    treeMC2ROF.Write();
+  }
+
   mFile->Close();
 
   mState = 2;
-  pc.services().get<ControlService>().readyToQuit(true);
+  pc.services().get<ControlService>().readyToQuit(false);
 }
 
-DataProcessorSpec getTrackWriterSpec()
+DataProcessorSpec getTrackWriterSpec(bool useMC)
 {
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("tracks", "ITS", "TRACKS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("trackClIdx", "ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", "ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
+  if (useMC) {
+    inputs.emplace_back("labels", "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
+    inputs.emplace_back("MC2ROframes", "ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
+  }
+
   return DataProcessorSpec{
     "its-track-writer",
-    Inputs{
-      InputSpec{ "tracks", "ITS", "TRACKS", 0, Lifetime::Timeframe },
-      InputSpec{ "labels", "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe } },
+    inputs,
     Outputs{},
-    AlgorithmSpec{ adaptFromTask<TrackWriter>() },
+    AlgorithmSpec{adaptFromTask<TrackWriter>(useMC)},
     Options{
-      { "its-track-outfile", VariantType::String, "o2trac_its.root", { "Name of the output file" } } }
-  };
+      {"its-track-outfile", VariantType::String, "o2trac_its.root", {"Name of the output file"}}}};
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2

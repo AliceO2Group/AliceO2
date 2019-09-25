@@ -10,7 +10,6 @@
 #ifndef FRAMEWORK_ROOTOBJETCONTEXT_H
 #define FRAMEWORK_ROOTOBJETCONTEXT_H
 
-#include "Framework/ContextRegistry.h"
 #include "Framework/FairMQDeviceProxy.h"
 #include <vector>
 #include <cassert>
@@ -25,26 +24,27 @@ namespace o2
 namespace framework
 {
 
-/// Holds ROOT objects which are being processed by a given 
+/// Holds ROOT objects which are being processed by a given
 /// computation.
-class RootObjectContext {
-public:
- RootObjectContext(FairMQDeviceProxy proxy)
-   : mProxy{ proxy }
- {
- }
+class RootObjectContext
+{
+ public:
+  RootObjectContext(FairMQDeviceProxy proxy)
+    : mProxy{proxy}
+  {
+  }
 
- struct MessageRef {
-   std::unique_ptr<FairMQMessage> header;
-   std::unique_ptr<TObject> payload;
-   std::string channel;
+  struct MessageRef {
+    std::unique_ptr<FairMQMessage> header;
+    std::unique_ptr<TObject> payload;
+    std::string channel;
   };
 
   using Messages = std::vector<MessageRef>;
 
   void addObject(std::unique_ptr<FairMQMessage> header,
                  std::unique_ptr<TObject> obj,
-                 const std::string &channel)
+                 const std::string& channel)
   {
     mMessages.push_back(std::move(MessageRef{std::move(header),
                                              std::move(obj),
@@ -71,7 +71,7 @@ public:
     // On send we move the header, but the payload remains
     // there because what's really sent is the TMessage
     // payload will be cleared by the mMessages.clear()
-    for (auto &m : mMessages) {
+    for (auto& m : mMessages) {
       assert(m.header.get() == nullptr);
       assert(m.payload.get() != nullptr);
     }
@@ -87,23 +87,6 @@ public:
   FairMQDeviceProxy mProxy;
   Messages mMessages;
 };
-
-/// Helper to get the context from the registry.
-template <>
-inline RootObjectContext*
-  ContextRegistry::get<RootObjectContext>()
-{
-  return reinterpret_cast<RootObjectContext*>(mContextes[1]);
-}
-
-/// Helper to set the context from the registry.
-template <>
-inline void
-  ContextRegistry::set<RootObjectContext>(RootObjectContext* context)
-{
-  mContextes[1] = context;
-}
-
 } // namespace framework
 } // namespace o2
 #endif // FRAMEWORK_ROOTOBJECTCONTEXT_H

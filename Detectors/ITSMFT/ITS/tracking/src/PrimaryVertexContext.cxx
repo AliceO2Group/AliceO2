@@ -18,38 +18,89 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
-void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, Constants::ITS::LayersNumber>& cl,
+void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, constants::its::LayersNumber>& cl,
                                       const std::array<float, 3>& pVtx, const int iteration)
 {
-  mPrimaryVertex = { pVtx[0], pVtx[1], pVtx[2] };
 
-  for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumber; ++iLayer) {
+  struct ClusterHelper {
+    float phi;
+    float r;
+    int bin;
+    int ind;
+  };
 
-    const auto& currentLayer{ cl[iLayer] };
-    const int clustersNum{ static_cast<int>(currentLayer.size()) };
+  mPrimaryVertex = {pVtx[0], pVtx[1], pVtx[2]};
 
-    if (iteration == 0) {
+  if (iteration == 0) {
+
+    std::vector<ClusterHelper> cHelper;
+
+    for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
+
+      const auto& currentLayer{cl[iLayer]};
+      const int clustersNum{static_cast<int>(currentLayer.size())};
+
       mClusters[iLayer].clear();
-      mClusters[iLayer].reserve(clustersNum);
+      mClusters[iLayer].resize(clustersNum);
       mUsedClusters[iLayer].clear();
       mUsedClusters[iLayer].resize(clustersNum, false);
 
-      for (int iCluster{ 0 }; iCluster < clustersNum; ++iCluster) {
-
-        const Cluster& currentCluster{ currentLayer.at(iCluster) };
-        mClusters[iLayer].emplace_back(iLayer, mPrimaryVertex, currentCluster);
+      constexpr int _size = constants::index_table::PhiBins * constants::index_table::ZBins;
+      std::array<int, _size> clsPerBin;
+      for (int iB{0}; iB < _size; ++iB) {
+        clsPerBin[iB] = 0;
       }
 
-      std::sort(mClusters[iLayer].begin(), mClusters[iLayer].end(), [](Cluster& cluster1, Cluster& cluster2) {
-        return cluster1.indexTableBinIndex < cluster2.indexTableBinIndex;
-      });
+      cHelper.clear();
+      cHelper.resize(clustersNum);
+
+      for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
+        const Cluster& c = currentLayer[iCluster];
+        ClusterHelper& h = cHelper[iCluster];
+        float x = c.xCoordinate - mPrimaryVertex.x;
+        float y = c.yCoordinate - mPrimaryVertex.y;
+        float phi = math_utils::calculatePhiCoordinate(x, y);
+        int bin = index_table_utils::getBinIndex(index_table_utils::getZBinIndex(iLayer, c.zCoordinate),
+                                                 index_table_utils::getPhiBinIndex(phi));
+        h.phi = phi;
+        h.r = math_utils::calculateRCoordinate(x, y);
+        h.bin = bin;
+        h.ind = clsPerBin[bin]++;
+      }
+
+      std::array<int, _size> lutPerBin;
+      lutPerBin[0] = 0;
+      for (int iB{1}; iB < _size; ++iB) {
+        lutPerBin[iB] = lutPerBin[iB - 1] + clsPerBin[iB - 1];
+      }
+
+      for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
+        ClusterHelper& h = cHelper[iCluster];
+        Cluster& c = mClusters[iLayer][lutPerBin[h.bin] + h.ind];
+        c = currentLayer[iCluster];
+        c.phiCoordinate = h.phi;
+        c.rCoordinate = h.r;
+        c.indexTableBinIndex = h.bin;
+      }
+
+      if (iLayer > 0) {
+        for (int iB{0}; iB < _size; ++iB) {
+          mIndexTables[iLayer - 1][iB] = lutPerBin[iB];
+        }
+        for (int iB{_size}; iB < (int)mIndexTables[iLayer - 1].size(); iB++) {
+          mIndexTables[iLayer - 1][iB] = clustersNum;
+        }
+      }
     }
+  }
 
-    if (iLayer < Constants::ITS::CellsPerRoad) {
+  mRoads.clear();
 
+  for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
+    if (iLayer < constants::its::CellsPerRoad) {
       mCells[iLayer].clear();
       float cellsMemorySize =
         memParam.MemoryOffset +
@@ -62,55 +113,21 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
       }
     }
 
-    if (iLayer < Constants::ITS::CellsPerRoad - 1) {
-
+    if (iLayer < constants::its::CellsPerRoad - 1) {
       mCellsLookupTable[iLayer].clear();
       mCellsLookupTable[iLayer].resize(
         std::max(cl[iLayer + 1].size(), cl[iLayer + 2].size()) +
           std::ceil((memParam.TrackletsMemoryCoefficients[iLayer + 1] *
                      cl[iLayer + 1].size()) *
                     cl[iLayer + 2].size()),
-        Constants::ITS::UnusedIndex);
-
+        constants::its::UnusedIndex);
       mCellsNeighbours[iLayer].clear();
     }
   }
 
-  mRoads.clear();
-
-  for (int iLayer{ 0 }; iLayer < Constants::ITS::LayersNumber; ++iLayer) {
-
-    const int clustersNum = static_cast<int>(mClusters[iLayer].size());
-
-    if (iLayer > 0 && iteration == 0) {
-
-      int previousBinIndex{ 0 };
-      mIndexTables[iLayer - 1][0] = 0;
-
-      for (int iCluster{ 0 }; iCluster < clustersNum; ++iCluster) {
-
-        const int currentBinIndex{ mClusters[iLayer][iCluster].indexTableBinIndex };
-
-        if (currentBinIndex > previousBinIndex) {
-
-          for (int iBin{ previousBinIndex + 1 }; iBin <= currentBinIndex; ++iBin) {
-
-            mIndexTables[iLayer - 1][iBin] = iCluster;
-          }
-
-          previousBinIndex = currentBinIndex;
-        }
-      }
-
-      for (int iBin{ previousBinIndex + 1 }; iBin < (int)mIndexTables[iLayer - 1].size(); iBin++) {
-        mIndexTables[iLayer - 1][iBin] = clustersNum;
-      }
-    }
-
-    if (iLayer < Constants::ITS::TrackletsPerRoad) {
-
+  for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
+    if (iLayer < constants::its::TrackletsPerRoad) {
       mTracklets[iLayer].clear();
-
       float trackletsMemorySize =
         std::max(cl[iLayer].size(), cl[iLayer + 1].size()) +
         std::ceil((memParam.TrackletsMemoryCoefficients[iLayer] * cl[iLayer].size()) *
@@ -121,13 +138,12 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
       }
     }
 
-    if (iLayer < Constants::ITS::CellsPerRoad) {
-
+    if (iLayer < constants::its::CellsPerRoad) {
       mTrackletsLookupTable[iLayer].clear();
-      mTrackletsLookupTable[iLayer].resize(cl[iLayer + 1].size(), Constants::ITS::UnusedIndex);
+      mTrackletsLookupTable[iLayer].resize(cl[iLayer + 1].size(), constants::its::UnusedIndex);
     }
   }
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2

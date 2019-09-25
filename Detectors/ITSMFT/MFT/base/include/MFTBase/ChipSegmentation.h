@@ -20,7 +20,7 @@
 
 namespace o2
 {
-namespace MFT
+namespace mft
 {
 
 class ChipSegmentation : public VSegmentation
@@ -37,7 +37,7 @@ class ChipSegmentation : public VSegmentation
  private:
   ClassDefOverride(ChipSegmentation, 1);
 };
-}
-}
+} // namespace mft
+} // namespace o2
 
 #endif

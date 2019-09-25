@@ -16,6 +16,7 @@
 #include "DetectorsPassive/Cave.h"
 #include "DetectorsPassive/Magnet.h"
 #include "DetectorsPassive/Dipole.h"
+#include "DetectorsPassive/Compensator.h"
 #include "DetectorsPassive/Absorber.h"
 #include "DetectorsPassive/Shil.h"
 #include "DetectorsPassive/Hall.h"
@@ -29,9 +30,12 @@
 #include <EMCALSimulation/Detector.h>
 #include <TOFSimulation/Detector.h>
 #include <TRDSimulation/Detector.h>
-#include <FITSimulation/Detector.h>
+#include <FT0Simulation/Detector.h>
+#include <FV0Simulation/Detector.h>
+#include <FDDSimulation/Detector.h>
 #include <HMPIDSimulation/Detector.h>
 #include <PHOSSimulation/Detector.h>
+#include <CPVSimulation/Detector.h>
 #include <ZDCSimulation/Detector.h>
 #include <DetectorsPassive/Cave.h>
 #include <DetectorsPassive/FrameStructure.h>
@@ -83,7 +87,7 @@ void build_geometry(FairRunSim* run = nullptr)
 
   // Create geometry
   // we always need the gave
-  o2::Passive::Cave* cave = new o2::Passive::Cave("CAVE");
+  o2::passive::Cave* cave = new o2::passive::Cave("CAVE");
   // adjust size depending on content
   cave->includeZDC(isActivated("ZDC"));
   // the experiment hall (cave)
@@ -107,6 +111,11 @@ void build_geometry(FairRunSim* run = nullptr)
   if (isActivated("DIPO")) {
     auto dipole = new o2::passive::Dipole("Dipole", "Alice Dipole");
     run->AddModule(dipole);
+  }
+
+  // the compensator dipole
+  if (isActivated("COMP")) {
+    run->AddModule(new o2::passive::Compensator("Comp", "Alice Compensator Dipole"));
   }
 
   // beam pipe
@@ -147,19 +156,19 @@ void build_geometry(FairRunSim* run = nullptr)
 
   if (isActivated("TPC")) {
     // tpc
-    auto tpc = new o2::TPC::Detector(true);
+    auto tpc = new o2::tpc::Detector(true);
     run->AddModule(tpc);
   }
 
   if (isActivated("ITS")) {
     // its
-    auto its = new o2::ITS::Detector(true);
+    auto its = new o2::its::Detector(true);
     run->AddModule(its);
   }
 
   if (isActivated("MFT")) {
     // mft
-    auto mft = new o2::MFT::Detector();
+    auto mft = new o2::mft::Detector();
     run->AddModule(mft);
   }
 
@@ -175,7 +184,7 @@ void build_geometry(FairRunSim* run = nullptr)
 
   if (isActivated("EMC")) {
     // emcal
-    run->AddModule(new o2::EMCAL::Detector(true));
+    run->AddModule(new o2::emcal::Detector(true));
   }
 
   if (isActivated("PHS")) {
@@ -183,9 +192,24 @@ void build_geometry(FairRunSim* run = nullptr)
     run->AddModule(new o2::phos::Detector(true));
   }
 
-  if (isActivated("FIT")) {
-    // FIT
-    run->AddModule(new o2::fit::Detector(true));
+  if (isActivated("CPV")) {
+    // cpv
+    run->AddModule(new o2::cpv::Detector(true));
+  }
+
+  if (isActivated("FT0")) {
+    // FIT-T0
+    run->AddModule(new o2::ft0::Detector(true));
+  }
+
+  if (isActivated("FV0")) {
+    // FIT-V0
+    run->AddModule(new o2::fv0::Detector(true));
+  }
+
+  if (isActivated("FDD")) {
+    // FIT-FDD
+    run->AddModule(new o2::fdd::Detector(true));
   }
 
   if (isActivated("HMP")) {
@@ -211,13 +235,13 @@ void finalize_geometry(FairRunSim* run)
   // this should be called geometry is fully built
 
   if (!gGeoManager) {
-    LOG(ERROR) << "gGeomManager is not available" << FairLogger::endl;
+    LOG(ERROR) << "gGeomManager is not available";
     return;
   }
 
   gGeoManager->CloseGeometry();
   if (!run) {
-    LOG(ERROR) << "FairRunSim is not available" << FairLogger::endl;
+    LOG(ERROR) << "FairRunSim is not available";
     return;
   }
 
@@ -225,7 +249,7 @@ void finalize_geometry(FairRunSim* run)
   TIter next(modArr);
   FairModule* module = nullptr;
   while ((module = (FairModule*)next())) {
-    o2::Base::Detector* det = dynamic_cast<o2::Base::Detector*>(module);
+    o2::base::Detector* det = dynamic_cast<o2::base::Detector*>(module);
     if (det)
       det->addAlignableVolumes();
   }

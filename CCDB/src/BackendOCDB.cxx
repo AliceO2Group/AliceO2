@@ -36,9 +36,7 @@ class WrapTMessage : public TMessage
   }
 };
 
-BackendOCDB::BackendOCDB()
-{
-}
+BackendOCDB::BackendOCDB() = default;
 
 void BackendOCDB::Pack(const std::string& path, const std::string& key, std::string*& messageString)
 {

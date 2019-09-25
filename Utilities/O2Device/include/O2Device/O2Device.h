@@ -36,7 +36,7 @@
 
 namespace o2
 {
-namespace Base
+namespace base
 {
 
 /// just a typedef to express the fact that it is not just a FairMQParts vector,
@@ -67,6 +67,6 @@ class O2Device : public FairMQDevice
 
  private:
 };
-}
-}
+} // namespace base
+} // namespace o2
 #endif /* O2DEVICE_H_ */

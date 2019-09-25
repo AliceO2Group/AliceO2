@@ -22,20 +22,22 @@
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
-namespace RecoWorkflow
+namespace reco_workflow
 {
 /// define input and output types of the workflow
-enum struct InputType { Digitizer,       // directly read digits from  {TPC:DIGITS}
-                        Digits,          // read digits from file
-                        DecodedClusters, // read decoded clusters from file
-                        Raw };
+enum struct InputType { Digitizer, // directly read digits from channel {TPC:DIGITS}
+                        Digits,    // read digits from file
+                        Raw,       // read hardware clusters in raw page format from file
+                        Clusters,  // read native clusters from file
+};
 enum struct OutputType { Digits,
                          Raw,
-                         DecodedClusters,
-                         Tracks };
+                         Clusters,
+                         Tracks,
+};
 
 /// create the workflow for TPC reconstruction
 framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,           //
@@ -43,13 +45,13 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,         
                                     bool propagateMC = true, unsigned nLanes = 1, //
                                     std::string const& cfgInput = "digitizer",    //
                                     std::string const& cfgOutput = "tracks"       //
-                                    );
+);
 
 framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,           //
                                     bool propagateMC = true, unsigned nLanes = 1, //
                                     std::string const& cfgInput = "digitizer",    //
                                     std::string const& cfgOutput = "tracks"       //
-                                    )
+)
 {
   // create a default lane configuration with ids [0, nLanes-1]
   std::vector<int> laneConfiguration(nLanes);
@@ -60,7 +62,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,         
 framework::WorkflowSpec getWorkflow(bool propagateMC = true, unsigned nLanes = 1, //
                                     std::string const& cfgInput = "digitizer",    //
                                     std::string const& cfgOutput = "tracks"       //
-                                    )
+)
 {
   // create a default lane configuration with ids [0, nLanes-1]
   std::vector<int> laneConfiguration(nLanes);
@@ -68,7 +70,7 @@ framework::WorkflowSpec getWorkflow(bool propagateMC = true, unsigned nLanes = 1
   return getWorkflow({}, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput);
 }
 
-} // end namespace RecoWorkflow
-} // end namespace TPC
+} // end namespace reco_workflow
+} // end namespace tpc
 } // end namespace o2
 #endif //O2_TPC_RECOWORKFLOW_H

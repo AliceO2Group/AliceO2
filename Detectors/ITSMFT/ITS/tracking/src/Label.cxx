@@ -16,16 +16,16 @@
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 Label::Label(const int mcId, const float pT, const float phi, const float eta, const int pdg, const int ncl)
-  : monteCarloId{ mcId },
-    transverseMomentum{ pT },
-    phiCoordinate{ phi },
-    pseudorapidity{ eta },
-    pdgCode{ pdg },
-    numberOfClusters{ ncl }
+  : monteCarloId{mcId},
+    transverseMomentum{pT},
+    phiCoordinate{phi},
+    pseudorapidity{eta},
+    pdgCode{pdg},
+    numberOfClusters{ncl}
 {
   // Nothing to do
 }
@@ -37,5 +37,5 @@ std::ostream& operator<<(std::ostream& outputStream, const Label& label)
 
   return outputStream;
 }
-} // namespace ITS
+} // namespace its
 } // namespace o2

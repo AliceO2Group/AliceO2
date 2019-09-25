@@ -57,11 +57,11 @@ DataProcessorSpec getEMCALDigitizerSpec(int channel)
   auto simChains = std::make_shared<std::vector<TChain*>>();
 
   // the instance of the actual digitizer
-  auto digitizer = std::make_shared<o2::EMCAL::Digitizer>();
+  auto digitizer = std::make_shared<o2::emcal::Digitizer>();
 
   // containers for digits and labels
-  auto digits = std::make_shared<std::vector<o2::EMCAL::Digit>>();
-  auto digitsAccum = std::make_shared<std::vector<o2::EMCAL::Digit>>(); // accumulator for all digits
+  auto digits = std::make_shared<std::vector<o2::emcal::Digit>>();
+  auto digitsAccum = std::make_shared<std::vector<o2::emcal::Digit>>(); // accumulator for all digits
   auto labels = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
   // the actual processing function which get called whenever new data is incoming
@@ -88,7 +88,7 @@ DataProcessorSpec getEMCALDigitizerSpec(int channel)
 
     LOG(INFO) << " CALLING EMCAL DIGITIZATION ";
 
-    static std::vector<o2::EMCAL::Hit> hits;
+    static std::vector<o2::emcal::Hit> hits;
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum;
 
     auto& eventParts = context->getEventParts();
@@ -122,10 +122,10 @@ DataProcessorSpec getEMCALDigitizerSpec(int channel)
 
     LOG(INFO) << "Have " << labelAccum.getNElements() << " EMCAL labels ";
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-    pc.outputs().snapshot(Output{ "EMC", "DIGITS", 0, Lifetime::Timeframe }, *digitsAccum.get());
-    pc.outputs().snapshot(Output{ "EMC", "DIGITSMCTR", 0, Lifetime::Timeframe }, labelAccum);
+    pc.outputs().snapshot(Output{"EMC", "DIGITS", 0, Lifetime::Timeframe}, *digitsAccum.get());
+    pc.outputs().snapshot(Output{"EMC", "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
     LOG(INFO) << "EMCAL: Sending ROMode= " << roMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{ "EMC", "ROMode", 0, Lifetime::Timeframe }, roMode);
+    pc.outputs().snapshot(Output{"EMC", "ROMode", 0, Lifetime::Timeframe}, roMode);
 
     timer.Stop();
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
@@ -152,11 +152,11 @@ DataProcessorSpec getEMCALDigitizerSpec(int channel)
 
     // make sure that the geometry is loaded (TODO will this be done centrally?)
     if (!gGeoManager) {
-      o2::Base::GeometryManager::loadGeometry();
+      o2::base::GeometryManager::loadGeometry();
     }
     // run 3 geometry == run 2 geometry for EMCAL
     // to be adapted with run numbers at a later stage
-    auto geom = o2::EMCAL::Geometry::GetInstance("EMCAL_COMPLETE12SMV1_DCAL_8SM", "Geant4", "EMV-EMCAL");
+    auto geom = o2::emcal::Geometry::GetInstance("EMCAL_COMPLETE12SMV1_DCAL_8SM", "Geant4", "EMV-EMCAL");
     // init digitizer
     digitizer->setGeometry(geom);
     digitizer->init();
@@ -171,15 +171,14 @@ DataProcessorSpec getEMCALDigitizerSpec(int channel)
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
   return DataProcessorSpec{
-    "EMCALDigitizer", Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT",
-                                         static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
-    Outputs{ OutputSpec{ "EMC", "DIGITS", 0, Lifetime::Timeframe },
-             OutputSpec{ "EMC", "DIGITSMCTR", 0, Lifetime::Timeframe },
-             OutputSpec{ "EMC", "ROMode", 0, Lifetime::Timeframe } },
-    AlgorithmSpec{ initIt },
-    Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
-             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } },
-             { "pileup", VariantType::Int, 1, { "whether to run in continuous time mode" } } }
+    "EMCALDigitizer", Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
+    Outputs{OutputSpec{"EMC", "DIGITS", 0, Lifetime::Timeframe},
+            OutputSpec{"EMC", "DIGITSMCTR", 0, Lifetime::Timeframe},
+            OutputSpec{"EMC", "ROMode", 0, Lifetime::Timeframe}},
+    AlgorithmSpec{initIt},
+    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
+            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
+            {"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}
     // I can't use VariantType::Bool as it seems to have a problem
   };
 }

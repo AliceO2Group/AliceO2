@@ -224,7 +224,7 @@ create_triggergroup() {
     input=
     output="--channel-config name=data-out,type=pub,size=5000,method=bind,address=tcp://*:$((basesocket + socketcount))"
     let socketcount++
-    command="AliceHLTEventSamplerDevice --id=$deviceid $input $output --eventperiod $eventperiod --initialdelay $initialdelay --latency-log /tmp/latency.log"
+    command="o2-alicehlt-eventsampler-device --id=$deviceid $input $output --eventperiod $eventperiod --initialdelay $initialdelay --latency-log /tmp/latency.log"
 
     sessionnode[nsessions]=$node
     sessiontitle[nsessions]="$deviceid"
@@ -279,7 +279,7 @@ create_flpgroup() {
             scp $publisher_conf_file $node:$CFoptLocalConfigFile
             publisher_conf_file=$CFoptLocalConfigFile
         fi
-	command="AliceHLTWrapperDevice --id=$deviceid --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component FilePublisher --run $runno --parameter '-datafilelist $publisher_conf_file $CFoptOpenFilesAtStart'"
+	command="o2-alicehlt-wrapper-device --id=$deviceid --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component FilePublisher --run $runno --parameter '-datafilelist $publisher_conf_file $CFoptOpenFilesAtStart'"
 
 	sessionnode[nsessions]=$node
 	sessiontitle[nsessions]=$deviceid
@@ -304,7 +304,7 @@ create_flpgroup() {
             output="--channel-config name=data-out,type=push,size=5000,method=connect,address=tcp://${node}:${groupoutputsocket}"
         fi
 
-        command="AliceHLTWrapperDevice --id=$deviceid --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component BlockFilter --run $runno --parameter ''"
+        command="o2-alicehlt-wrapper-device --id=$deviceid --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component BlockFilter --run $runno --parameter ''"
 
         sessionnode[nsessions]=$node
         sessiontitle[nsessions]="$deviceid"
@@ -365,7 +365,7 @@ create_epn1group() {
         fi
 
         output="--channel-config name=data-out,type=push,size=1000,method=connect,address=tcp://localhost:$((basesocket + socketcount))"
-        command="AliceHLTWrapperDevice --id=$deviceid ${skiptracking} --poll-period $pollingtimeout $input $output --library libAliHLTTPC.so --component TPCCATracker --run $runno --parameter '-GlobalTracking ${gpuparams} -loglevel=0x7c'"
+        command="o2-alicehlt-wrapper-device --id=$deviceid ${skiptracking} --poll-period $pollingtimeout $input $output --library libAliHLTTPC.so --component TPCCATracker --run $runno --parameter '-GlobalTracking ${gpuparams} -loglevel=0x7c'"
 
         sessionnode[nsessions]=$node
         sessiontitle[nsessions]="$deviceid"
@@ -378,7 +378,7 @@ create_epn1group() {
         input=`translate_io_attributes "$output"`
         output=`translate_io_attributes "$epn2_input"`
         let socketcount++
-        command="AliceHLTWrapperDevice --id=$deviceid ${skiptracking} --poll-period $pollingtimeout $input $output --library libAliHLTTPC.so --component TPCCAGlobalMerger --run $runno --parameter '-loglevel=0x7c'"
+        command="o2-alicehlt-wrapper-device --id=$deviceid ${skiptracking} --poll-period $pollingtimeout $input $output --library libAliHLTTPC.so --component TPCCAGlobalMerger --run $runno --parameter '-loglevel=0x7c'"
 
         sessionnode[nsessions]=$node
         sessiontitle[nsessions]="$deviceid"
@@ -391,7 +391,7 @@ create_epn1group() {
     # input=`translate_io_attributes "$output"`
     # output=
     # let socketcount++
-    # command="AliceHLTWrapperDevice --id=$deviceid ${skiptracking} --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component FileWriter --run $runno --parameter '-directory tracker-output -idfmt=%04d -specfmt=_%08x -blocknofmt= -loglevel=0x7c -write-all-blocks -publisher-conf tracker-output/datablocks.txt'"
+    # command="o2-alicehlt-wrapper-device --id=$deviceid ${skiptracking} --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component FileWriter --run $runno --parameter '-directory tracker-output -idfmt=%04d -specfmt=_%08x -blocknofmt= -loglevel=0x7c -write-all-blocks -publisher-conf tracker-output/datablocks.txt'"
 
     # sessionnode[nsessions]=$node
     # sessiontitle[nsessions]="$deviceid"
@@ -413,7 +413,7 @@ create_epn2group() {
     input=$epn2_input
     output="--channel-config name=data-out,type=pub,size=1000,method=bind,address=tcp://$node:$((basesocket + socketcount))"
     let socketcount++
-    command="AliceHLTWrapperDevice --id=$deviceid --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component BlockFilter --run $runno --parameter ''"
+    command="o2-alicehlt-wrapper-device --id=$deviceid --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component BlockFilter --run $runno --parameter ''"
 
     sessionnode[nsessions]=$node
     sessiontitle[nsessions]="$deviceid"
@@ -424,7 +424,7 @@ create_epn2group() {
     deviceid=FileWriter
     input=`translate_io_attributes "$output"`
     output=
-    command="AliceHLTWrapperDevice --id=$deviceid --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component FileWriter --run $runno --parameter '-directory tracker-output -subdir -idfmt=%04d -specfmt=_%08x -blocknofmt= -loglevel=0x7c -write-all-blocks -publisher-conf tracker-output/datablocks.txt'"
+    command="o2-alicehlt-wrapper-device --id=$deviceid --poll-period $pollingtimeout $input $output --library libAliHLTUtil.so --component FileWriter --run $runno --parameter '-directory tracker-output -subdir -idfmt=%04d -specfmt=_%08x -blocknofmt= -loglevel=0x7c -write-all-blocks -publisher-conf tracker-output/datablocks.txt'"
 
     sessionnode[nsessions]=$node
     sessiontitle[nsessions]="$deviceid"

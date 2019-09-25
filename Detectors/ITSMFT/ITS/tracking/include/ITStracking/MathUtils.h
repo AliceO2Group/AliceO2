@@ -15,54 +15,62 @@
 #ifndef TRACKINGITSU_INCLUDE_CAUTILS_H_
 #define TRACKINGITSU_INCLUDE_CAUTILS_H_
 
+#ifndef __OPENCL__
 #include <array>
 #include <cmath>
+#endif
 
+#include "MathUtils/Utils.h"
 #include "ITStracking/Constants.h"
+#include "GPUCommonMath.h"
+#include "GPUCommonDef.h"
+#include <cassert>
+#include <iostream>
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
-namespace MathUtils
+namespace math_utils
 {
-float calculatePhiCoordinate(const float, const float);
-float calculateRCoordinate(const float, const float);
-GPU_HOST_DEVICE constexpr float getNormalizedPhiCoordinate(const float);
-GPU_HOST_DEVICE constexpr float3 crossProduct(const float3&, const float3&);
-float computeCurvature(float x1, float y1, float x2, float y2, float x3, float y3);
-float computeCurvatureCentreX(float x1, float y1, float x2, float y2, float x3, float y3);
-float computeTanDipAngle(float x1, float y1, float x2, float y2, float z1, float z2);
+GPUhdni() float calculatePhiCoordinate(const float, const float);
+GPUhdni() float calculateRCoordinate(const float, const float);
+GPUhdni() constexpr float getNormalizedPhiCoordinate(const float);
+GPUhdni() constexpr float3 crossProduct(const float3&, const float3&);
+GPUhdni() float computeCurvature(float x1, float y1, float x2, float y2, float x3, float y3);
+GPUhdni() float computeCurvatureCentreX(float x1, float y1, float x2, float y2, float x3, float y3);
+GPUhdni() float computeTanDipAngle(float x1, float y1, float x2, float y2, float z1, float z2);
 
-} // namespace MathUtils
+} // namespace math_utils
 
-inline float MathUtils::calculatePhiCoordinate(const float xCoordinate, const float yCoordinate)
+GPUhdi() float math_utils::calculatePhiCoordinate(const float xCoordinate, const float yCoordinate)
 {
-  return std::atan2(-yCoordinate, -xCoordinate) + Constants::Math::Pi;
+  //return o2::gpu::CAMath::ATan2(-yCoordinate, -xCoordinate) + constants::math::Pi;
+  return utils::FastATan2(-yCoordinate, -xCoordinate) + constants::math::Pi;
 }
 
-inline float MathUtils::calculateRCoordinate(const float xCoordinate, const float yCoordinate)
+GPUhdi() float math_utils::calculateRCoordinate(const float xCoordinate, const float yCoordinate)
 {
-  return std::sqrt(xCoordinate * xCoordinate + yCoordinate * yCoordinate);
+  return o2::gpu::CAMath::Sqrt(xCoordinate * xCoordinate + yCoordinate * yCoordinate);
 }
 
-GPU_HOST_DEVICE constexpr float MathUtils::getNormalizedPhiCoordinate(const float phiCoordinate)
+GPUhdi() constexpr float math_utils::getNormalizedPhiCoordinate(const float phiCoordinate)
 {
   return (phiCoordinate < 0)
-           ? phiCoordinate + Constants::Math::TwoPi
-           : (phiCoordinate > Constants::Math::TwoPi) ? phiCoordinate - Constants::Math::TwoPi : phiCoordinate;
+           ? phiCoordinate + constants::math::TwoPi
+           : (phiCoordinate > constants::math::TwoPi) ? phiCoordinate - constants::math::TwoPi : phiCoordinate;
 }
 
-GPU_HOST_DEVICE constexpr float3 MathUtils::crossProduct(const float3& firstVector, const float3& secondVector)
+GPUhdi() constexpr float3 math_utils::crossProduct(const float3& firstVector, const float3& secondVector)
 {
 
-  return float3{ (firstVector.y * secondVector.z) - (firstVector.z * secondVector.y),
-                 (firstVector.z * secondVector.x) - (firstVector.x * secondVector.z),
-                 (firstVector.x * secondVector.y) - (firstVector.y * secondVector.x) };
+  return float3{(firstVector.y * secondVector.z) - (firstVector.z * secondVector.y),
+                (firstVector.z * secondVector.x) - (firstVector.x * secondVector.z),
+                (firstVector.x * secondVector.y) - (firstVector.y * secondVector.x)};
 }
 
-inline float MathUtils::computeCurvature(float x1, float y1, float x2, float y2, float x3, float y3)
+GPUhdi() float math_utils::computeCurvature(float x1, float y1, float x2, float y2, float x3, float y3)
 {
   const float d = (x2 - x1) * (y3 - y2) - (x3 - x2) * (y2 - y1);
   const float a =
@@ -70,21 +78,21 @@ inline float MathUtils::computeCurvature(float x1, float y1, float x2, float y2,
   const float b =
     0.5f * ((x2 - x1) * (y3 * y3 - y2 * y2 + x3 * x3 - x2 * x2) - (x3 - x2) * (y2 * y2 - y1 * y1 + x2 * x2 - x1 * x1));
 
-  return -1.f * d / std::sqrt((d * x1 - a) * (d * x1 - a) + (d * y1 - b) * (d * y1 - b));
+  return -1.f * d / o2::gpu::CAMath::Sqrt((d * x1 - a) * (d * x1 - a) + (d * y1 - b) * (d * y1 - b));
 }
 
-inline float MathUtils::computeCurvatureCentreX(float x1, float y1, float x2, float y2, float x3, float y3)
+GPUhdi() float math_utils::computeCurvatureCentreX(float x1, float y1, float x2, float y2, float x3, float y3)
 {
   const float k1 = (y2 - y1) / (x2 - x1), k2 = (y3 - y2) / (x3 - x2);
   return 0.5f * (k1 * k2 * (y1 - y3) + k2 * (x1 + x2) - k1 * (x2 + x3)) / (k2 - k1);
 }
 
-inline float MathUtils::computeTanDipAngle(float x1, float y1, float x2, float y2, float z1, float z2)
+GPUhdi() float math_utils::computeTanDipAngle(float x1, float y1, float x2, float y2, float z1, float z2)
 {
-  return (z1 - z2) / std::sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+  return (z1 - z2) / o2::gpu::CAMath::Sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_CAUTILS_H_ */

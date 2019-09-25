@@ -14,6 +14,8 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "TFile.h"
 #include "TTree.h"
+#include "TCanvas.h"
+#include "TH1F.h"
 
 #include "TPCBase/Digit.h"
 #include "TPCBase/Mapper.h"
@@ -38,11 +40,11 @@ void readClusters(std::string clusterFilename, std::string digitFilename, int se
 
   // register branches
   auto clusterBranch = clusterTree->GetBranch(Form("TPCClusterHW%i", sectorid));
-  std::vector<o2::TPC::ClusterHardwareContainer8kb>* clusters = nullptr;
+  std::vector<o2::tpc::ClusterHardwareContainer8kb>* clusters = nullptr;
   clusterBranch->SetAddress(&clusters);
 
   auto digitBranch = digitTree->GetBranch(Form("TPCDigit%i", sectorid));
-  std::vector<o2::TPC::Digit>* digits = nullptr;
+  std::vector<o2::tpc::Digit>* digits = nullptr;
   digitBranch->SetAddress(&digits);
 
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
@@ -52,7 +54,7 @@ void readClusters(std::string clusterFilename, std::string digitFilename, int se
   digitTree->SetBranchAddress(Form("TPCDigitMCTruth%i", sectorid), &mcDigitTruth);
 
   // create row mapping (global -> local)
-  o2::TPC::Mapper& mapper = o2::TPC::Mapper::instance();
+  o2::tpc::Mapper& mapper = o2::tpc::Mapper::instance();
   std::vector<unsigned short> mGlobalRowToRegion;
   std::vector<unsigned short> mGlobalRowToLocalRow;
   mGlobalRowToRegion.resize(mapper.getNumberOfRows());
@@ -72,13 +74,13 @@ void readClusters(std::string clusterFilename, std::string digitFilename, int se
   digitLabels.resize(18 * 10);
   // and all digits
   // event                    digits
-  std::vector<std::unique_ptr<std::vector<o2::TPC::Digit>>> allDigits;
+  std::vector<std::unique_ptr<std::vector<o2::tpc::Digit>>> allDigits;
   allDigits.resize(digitTree->GetEntriesFast());
   for (int i = 0; i < 18 * 10; ++i)
     digitLabels[i] = std::make_unique<std::vector<std::tuple<o2::MCCompLabel, unsigned, unsigned>>>();
   for (int iEvent = 0; iEvent < digitTree->GetEntriesFast(); ++iEvent) {
     digitTree->GetEntry(iEvent);
-    allDigits[iEvent] = std::make_unique<std::vector<o2::TPC::Digit>>();
+    allDigits[iEvent] = std::make_unique<std::vector<o2::tpc::Digit>>();
     std::cout << "Event " << iEvent << " with " << digits->size() << " Digits" << std::endl;
     for (unsigned digitCount = 0; digitCount < digits->size(); ++digitCount) {
       auto& digit = (*digits)[digitCount];

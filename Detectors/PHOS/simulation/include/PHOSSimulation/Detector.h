@@ -37,7 +37,7 @@ class GeometryParams;
 /// The detector class handles the implementation of the PHOS detector
 /// within the virtual Monte-Carlo framework and the simulation of the
 /// PHOS detector up to hit generation
-class Detector : public o2::Base::DetImpl<Detector>
+class Detector : public o2::base::DetImpl<Detector>
 {
  public:
   // PHOS materials/media
@@ -136,6 +136,11 @@ class Detector : public o2::Base::DetImpl<Detector>
   ///
   Geometry* GetGeometry();
 
+  ///
+  /// Specifies PHOS modules as alignable volumes
+  ///
+  void addAlignableVolumes() const override;
+
  protected:
   ///
   /// Creating detector materials for the PHOS detector and space frame
@@ -190,22 +195,22 @@ class Detector : public o2::Base::DetImpl<Detector>
   Hit* mCurrentHit;                 //! current Hit
 
   template <typename Det>
-  friend class o2::Base::DetImpl;
-  ClassDefOverride(Detector, 1)
+  friend class o2::base::DetImpl;
+  ClassDefOverride(Detector, 1);
 };
-}
-}
+} // namespace phos
+} // namespace o2
 
 #ifdef USESHM
 namespace o2
 {
-namespace Base
+namespace base
 {
 template <>
 struct UseShm<o2::phos::Detector> {
   static constexpr bool value = true;
 };
-} // namespace Base
+} // namespace base
 } // namespace o2
 #endif
 

@@ -40,7 +40,7 @@ const char* SHMIDNAME = "ALICEO2_SIMSHM_SHMID";
 // a common virtual address under which this should be mapped
 const char* SHMADDRNAME = "ALICEO2_SIMSHM_COMMONADDR";
 
-ShmManager::ShmManager() {}
+ShmManager::ShmManager() = default;
 
 void* ShmManager::tryAttach(bool& success)
 {

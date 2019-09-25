@@ -21,6 +21,7 @@
 #include "Framework/OutputSpec.h"
 #include "Framework/Variant.h"
 
+#include <chrono>
 #include <exception>
 #include <fstream>
 #include <functional>
@@ -63,11 +64,11 @@ DataProcessorSpec CommonDataProcessors::getGlobalFileSink(std::vector<InputSpec>
           LOG(INFO) << "No dangling output to be dumped.";
           once = true;
         }
-        sleep(1);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       });
     }
     auto output = std::make_shared<std::ofstream>(filename.c_str(), std::ios_base::binary);
-    return std::move([ output, matcher = outputMatcher ](ProcessingContext & pc) mutable->void {
+    return std::move([output, matcher = outputMatcher](ProcessingContext& pc) mutable -> void {
       VariableContext matchingContext;
       LOG(INFO) << "processing data set with " << pc.inputs().size() << " entries";
       for (const auto& entry : pc.inputs()) {
@@ -100,13 +101,12 @@ DataProcessorSpec CommonDataProcessors::getGlobalFileSink(std::vector<InputSpec>
                std::back_inserter(unmatched), noTimeframe);
 
   DataProcessorSpec spec{
-    "dpl-global-binary-file-sink",
+    "internal-dpl-global-binary-file-sink",
     validBinaryInputs,
     Outputs{},
     AlgorithmSpec(writerFunction),
-    { { "outfile", VariantType::String, "dpl-out.bin", { "Name of the output file" } },
-      { "keep", VariantType::String, "", { "Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION to save in outfile" } } }
-  };
+    {{"outfile", VariantType::String, "dpl-out.bin", {"Name of the output file"}},
+     {"keep", VariantType::String, "", {"Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION to save in outfile"}}}};
 
   return spec;
 }
@@ -114,7 +114,7 @@ DataProcessorSpec CommonDataProcessors::getGlobalFileSink(std::vector<InputSpec>
 DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> const& danglingOutputInputs)
 {
   return DataProcessorSpec{
-    "dpl-dummy-sink",
+    "internal-dpl-dummy-sink",
     danglingOutputInputs,
     Outputs{},
   };

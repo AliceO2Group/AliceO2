@@ -1,3 +1,5 @@
+\page refdocDetectorSimulation Detector Simulation
+
 # Detector simulation documentation
 
 The present document collects information about the ALICE detector simulation executable and digitization procedure used in LHC Run3.
@@ -8,17 +10,17 @@ Detector simulation, the simulation of detector response from virtual particle e
   a) the generation of simple (energy deposit) traces in the detector due to the passage of particles and the interaction with the detector material.
   b) the conversion of those traces into (electronic) signals in the detector readout (usually called digitization).
  
-The first part is handled by the `o2sim` executable. The second part is handled in the `digitizer-workflow`.
+The first part is handled by the `o2-sim` executable. The second part is handled in the `o2-sim-digitizer-workflow`.
  
-# Documentation of `o2sim`
+# Documentation of `o2-sim`
 
-The purpose of the `o2sim` executable is to simulate the passage of particles emerging from a collision inside the detector and to obtain their effect in terms of energy deposits (called hits) which could be converted into detectable signals.
+The purpose of the `o2-sim` executable is to simulate the passage of particles emerging from a collision inside the detector and to obtain their effect in terms of energy deposits (called hits) which could be converted into detectable signals.
 
 ## Command overview
-* **Basic help:** Help on command line options can be obtained with `o2sim --help`
+* **Basic help:** Help on command line options can be obtained with `o2-sim --help`
 * **Typical example:** A typical (exemplary) invocation is of the form 
 
-    ```o2sim -n 10 -g pythia8 -e TGeant4 -j 2 --skipModules ZDC,PHS``` 
+    ```o2-sim -n 10 -g pythia8 -e TGeant4 -j 2 --skipModules ZDC,PHS``` 
 
     which would launch a simulation for 10 pythia8 events on the whole ALICE detector but ZDC and PHOS, using Geant4 on 2 worker processes.
 * **Generated output**: The simulation creates at least the following files:
@@ -40,7 +42,7 @@ control of verbosity
 ## Help on available generators
 
 ## Control via environment variables
-`o2sim` is sensitive to the following environment variables:
+`o2-sim` is sensitive to the following environment variables:
 
 **ALICE_O2SIM_DUMPLOG**
 **ALICE_O2SIM_USESHM**
@@ -59,7 +61,7 @@ generator. Examples thereof are available in the installation directory `$O2_ROO
 
 For example, in order to simulate with 10 Hijing events, the following command can be run:
 ```
-o2sim -n 10 -g extgen --extGenFile $O2_ROOT/share/Generators/external/pythia6.C
+o2-sim -n 10 -g extgen --extGenFile $O2_ROOT/share/Generators/external/pythia6.C
 ```
 Macro arguments can be passed via
 `--extGenFunc pythia6(14000., "pythia.settings")`.
@@ -67,7 +69,7 @@ Macro arguments can be passed via
 Users may write there own macros in order to customize to their needs.
 
 #### 2. **How can I run on a subset of geometry modules**?
-Use the `--modules` or `-m` command line option. Example: `o2sim -m PIPE ITS TPC`
+Use the `--modules` or `-m` command line option. Example: `o2-sim -m PIPE ITS TPC`
 will run the simulation on a geometry/material consinsting of PIPE, ITS, TPC.
 
 #### 3. **How can I run with exactly the same events as used in an AliRoot simulation?**
@@ -77,7 +79,7 @@ produced. The file contains primary and possibly secondary particles (added by t
 When the file is passed to `o2sim`, the primary particles my be used as the initial event. 
 Use the **`-g extkin`** command line option:
 ```
-o2sim -g extkin --extKinFile Kinematics.root ...
+o2-sim -g extkin --extKinFile Kinematics.root ...
 ```
 
 #### 4. **How can I generate events (signal) using the vertex position of already-generated (background) events?**
@@ -86,18 +88,18 @@ This process might be called embedding, where one wants to merge two events gene
 Assuming that your already-generated (background) events are stored in the `o2sim.background.root` file, you can force the interaction vertex for the generation of a new set of events to be the same as the one in the background with the following command line option:
 
 ```
-o2sim --embedIntoFile o2sim.background.root
+o2-sim --embedIntoFile o2sim.background.root
 ```
 
 Background events are sampled one-by-one until all events have been used. At that point the events start to be reused.
 
-#### 5. **How can I obtained detailed stepping information?**
-Run the simulation (currently only supported in combination with `o2sim_serial`) with a preloaded library:
+#### 5. **How can I obtain detailed stepping information?**
+Run the simulation (currently only supported in combination with `o2-sim-serial`) with a preloaded library:
 ```
-MCSTEPLOG_TTREE=1 LD_PRELOAD=$O2_ROOT/lib/libMCStepLogger.so o2sim_serial -j 1 -n 10
+MCSTEPLOG_TTREE=1 LD_PRELOAD=$O2_ROOT/lib/libMCStepLogger.so o2-sim-serial -j 1 -n 10
 ```
 This will produce a file `MCStepLoggerOutput.root` containing detailed information about steps and processes (where, what, ...). The file can be analysed using a special analysis framework. See https://github.com/AliceO2Group/AliceO2/blob/dev/Utilities/MCStepLogger/README.md for more documentation.
 
 ## Development
 
-# Documentation of `digitizer-workflow`
+# Documentation of `o2-sim-digitizer-workflow`

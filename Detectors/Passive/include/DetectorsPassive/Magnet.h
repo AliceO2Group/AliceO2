@@ -47,9 +47,9 @@ class Magnet : public FairModule
   Magnet(const Magnet& orig);
   Magnet& operator=(const Magnet&);
 
-  ClassDefOverride(o2::passive::Magnet, 1)
+  ClassDefOverride(o2::passive::Magnet, 1);
 };
-}
-}
+} // namespace passive
+} // namespace o2
 
 #endif // MAGNET_H

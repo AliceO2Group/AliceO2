@@ -18,18 +18,20 @@
 
 #include "Rtypes.h"  // for Digitizer::Class, Double_t, ClassDef, etc
 #include "TObject.h" // for TObject
+#include "TRandom3.h"
 
-#include "EMCALBase/Digit.h"
+#include "DataFormatsEMCAL/Digit.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/GeometryBase.h"
 #include "EMCALBase/Hit.h"
-#include "EMCALSimulation/MCLabel.h"
+#include "EMCALSimulation/SimParam.h"
 
+#include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 namespace o2
 {
-namespace EMCAL
+namespace emcal
 {
 class Digitizer : public TObject
 {
@@ -50,7 +52,15 @@ class Digitizer : public TObject
 
   void setContinuous(bool v) { mContinuous = v; }
   bool isContinuous() const { return mContinuous; }
+
   void fillOutputContainer(std::vector<Digit>& digits);
+
+  void setSmearTimeEnergy(bool v) { mSmearTimeEnergy = v; }
+  bool doSmearTimeEnergy() const { return mSmearTimeEnergy; }
+  void smearTimeEnergy(Digit& digit);
+
+  void setRemoveDigitsBelowThreshold(bool v) { mRemoveDigitsBelowThreshold = v; }
+  bool doRemoveDigitsBelowThreshold() const { return mRemoveDigitsBelowThreshold; }
 
   void setCoeffToNanoSecond(double cf) { mCoeffToNanoSecond = cf; }
   double getCoeffToNanoSecond() const { return mCoeffToNanoSecond; }
@@ -61,27 +71,31 @@ class Digitizer : public TObject
   void setCurrEvID(int v);
   int getCurrEvID() const { return mCurrEvID; }
 
-  void setGeometry(const o2::EMCAL::Geometry* gm) { mGeometry = gm; }
+  void setGeometry(const o2::emcal::Geometry* gm) { mGeometry = gm; }
 
   Digit hitToDigit(const Hit& hit, const Int_t label);
 
  private:
-  const Geometry* mGeometry = nullptr; // EMCAL geometry
-  double mEventTime = 0;               ///< global event time
-  double mCoeffToNanoSecond = 1.0;     ///< coefficient to convert event time (Fair) to ns
-  bool mContinuous = false;            ///< flag for continuous simulation
-  UInt_t mROFrameMin = 0;              ///< lowest RO frame of current digits
-  UInt_t mROFrameMax = 0;              ///< highest RO frame of current digits
-  int mCurrSrcID = 0;                  ///< current MC source from the manager
-  int mCurrEvID = 0;                   ///< current event ID from the manager
+  const Geometry* mGeometry = nullptr;     // EMCAL geometry
+  double mEventTime = 0;                   ///< global event time
+  double mCoeffToNanoSecond = 1.0;         ///< coefficient to convert event time (Fair) to ns
+  bool mContinuous = false;                ///< flag for continuous simulation
+  UInt_t mROFrameMin = 0;                  ///< lowest RO frame of current digits
+  UInt_t mROFrameMax = 0;                  ///< highest RO frame of current digits
+  int mCurrSrcID = 0;                      ///< current MC source from the manager
+  int mCurrEvID = 0;                       ///< current event ID from the manager
+  bool mSmearTimeEnergy = true;            ///< do time and energy smearing
+  bool mRemoveDigitsBelowThreshold = true; // remove digits below threshold
+  const SimParam* mSimParam = nullptr;     ///< SimParam object
 
-  std::unordered_map<Int_t, std::deque<Digit>> mDigits; ///< used to sort digits by tower
-  o2::dataformats::MCTruthContainer<o2::EMCAL::MCLabel> mMCTruthContainer;    ///< temporary storage for MC truth information
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthOutputContainer; ///< contains MC truth information
+  std::unordered_map<Int_t, std::deque<Digit>> mDigits;                 ///< used to sort digits by tower
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthContainer; ///< contains MC truth information
+
+  TRandom3* mRandomGenerator = nullptr; // random number generator
 
   ClassDefOverride(Digitizer, 1);
 };
-} // namespace EMCAL
+} // namespace emcal
 } // namespace o2
 
 #endif /* ALICEO2_EMCAL_DIGITIZER_H */

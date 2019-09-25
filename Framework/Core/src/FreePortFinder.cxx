@@ -8,8 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/FreePortFinder.h"
-
-#include <fairlogger/Logger.h>
+#include "Framework/Logger.h"
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -22,10 +21,10 @@ namespace framework
 {
 
 FreePortFinder::FreePortFinder(unsigned short initialPort, unsigned short finalPort, unsigned short step)
-  : mInitialPort{ initialPort },
-    mFinalPort{ finalPort },
-    mStep{ step },
-    mSocket{ socket(AF_INET, SOCK_STREAM, 0) }
+  : mInitialPort{initialPort},
+    mFinalPort{finalPort},
+    mStep{step},
+    mSocket{socket(AF_INET, SOCK_STREAM, 0)}
 {
 }
 

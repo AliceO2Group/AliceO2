@@ -18,7 +18,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 class SDigit : public TObject
 {
@@ -72,8 +72,8 @@ class SDigit : public TObject
   Float_t mNoise;             ///< Total noise, coupling, ...
   Float_t mSignalAfterElect;  ///< Signal after electronics
   //
-  ClassDefOverride(SDigit, 1) // Item list of signals and track numbers
+  ClassDefOverride(SDigit, 1); // Item list of signals and track numbers
 };
-}
-}
+} // namespace itsmft
+} // namespace o2
 #endif

@@ -21,68 +21,76 @@
 #include "Framework/ProcessingContext.h"
 #include "Framework/WorkflowSpec.h"
 
+#include <chrono>
 #include <sstream>
 
 using namespace o2::framework;
 
 AlgorithmSpec simplePipe(o2::header::DataDescription what)
 {
-  return AlgorithmSpec{ [what](ProcessingContext& ctx) {
-    auto bData = ctx.outputs().make<int>(Output{ "TST", what, 0 }, 1);
-  } };
+  return AlgorithmSpec{[what](ProcessingContext& ctx) {
+    auto bData = ctx.outputs().make<int>(Output{"TST", what, 0}, 1);
+  }};
 }
 
 // This is how you can define your processing in a declarative way
 WorkflowSpec defineDataProcessing()
 {
-  return { { "A", Inputs{},
-             Outputs{ OutputSpec{ "TST", "A1" },
-                      OutputSpec{ "TST", "A2" } },
-             AlgorithmSpec{ [](ProcessingContext& ctx) {
-               sleep(1);
-               auto aData = ctx.outputs().make<int>(Output{ "TST", "A1", 0 }, 1);
-               auto bData = ctx.outputs().make<int>(Output{ "TST", "A2", 0 }, 1);
-             } } },
-           { "B",
-             { InputSpec{ "x", "TST", "A1" } },
-             Outputs{ OutputSpec{ "TST", "B1" } },
-             simplePipe(o2::header::DataDescription{ "B1" }) },
-           { "C",
-             { InputSpec{ "y", "TST", "A2" } },
-             Outputs{ OutputSpec{ "TST", "C1" } },
-             simplePipe(o2::header::DataDescription{ "C1" }) },
-           { "D",
-             {
-               InputSpec{ "x", "TST", "B1" },
-               InputSpec{ "y", "TST", "C1" },
-             },
-             Outputs{},
-             AlgorithmSpec{
-               [](ProcessingContext& context) {},
-             } } };
+  return {{"A", Inputs{},
+           Outputs{OutputSpec{"TST", "A1"},
+                   OutputSpec{"TST", "A2"}},
+           AlgorithmSpec{[](ProcessingContext& ctx) {
+             std::this_thread::sleep_for(std::chrono::seconds(1));
+             auto aData = ctx.outputs().make<int>(Output{"TST", "A1", 0}, 1);
+             auto bData = ctx.outputs().make<int>(Output{"TST", "A2", 0}, 1);
+           }}},
+          {"B",
+           {InputSpec{"x", "TST", "A1"}},
+           Outputs{OutputSpec{"TST", "B1"}},
+           simplePipe(o2::header::DataDescription{"B1"})},
+          {"C",
+           {InputSpec{"y", "TST", "A2"}},
+           Outputs{OutputSpec{"TST", "C1"}},
+           simplePipe(o2::header::DataDescription{"C1"})},
+          {"D",
+           {
+             InputSpec{"x", "TST", "B1"},
+             InputSpec{"y", "TST", "C1"},
+           },
+           Outputs{},
+           AlgorithmSpec{
+             [](ProcessingContext& context) {},
+           }}};
 }
 
 BOOST_AUTO_TEST_CASE(TestGraphviz)
 {
   auto workflow = defineDataProcessing();
-  std::ostringstream ss{ "" };
+  std::ostringstream ss{""};
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
   std::vector<DeviceSpec> devices;
   SimpleResourceManager rm(22000, 1000);
   auto resources = rm.getAvailableResources();
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, resources);
-  char* fakeArgv[] = { strdup("foo"), nullptr };
   std::vector<DeviceControl> controls;
   std::vector<DeviceExecution> executions;
   controls.resize(devices.size());
   executions.resize(devices.size());
 
   std::vector<ConfigParamSpec> workflowOptions = {
-    ConfigParamSpec{"jobs", VariantType::Int, 4, {"number of producer jobs"}}
-  };
+    ConfigParamSpec{"jobs", VariantType::Int, 4, {"number of producer jobs"}}};
 
-  DeviceSpecHelpers::prepareArguments(1, fakeArgv, false, false, devices, workflowOptions, executions, controls);
+  std::vector<DataProcessorInfo> dataProcessorInfos = {
+    {
+      {"A", "foo", {}, workflowOptions},
+      {"B", "foo", {}, workflowOptions},
+      {"C", "foo", {}, workflowOptions},
+      {"D", "foo", {}, workflowOptions},
+    }};
+  DeviceSpecHelpers::prepareArguments(false, false,
+                                      dataProcessorInfos,
+                                      devices, executions, controls);
   dumpDeviceSpec2DDS(ss, devices, executions);
   BOOST_CHECK_EQUAL(ss.str(), R"EXPECTED(<topology id="o2-dataflow">
    <decltask id="A">

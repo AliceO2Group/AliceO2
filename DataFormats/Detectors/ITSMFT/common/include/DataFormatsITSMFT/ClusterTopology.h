@@ -26,7 +26,7 @@
 
 namespace o2
 {
-namespace ITSMFT
+namespace itsmft
 {
 class ClusterTopology
 {
@@ -50,11 +50,15 @@ class ClusterTopology
   unsigned long getHash() const { return mHash; }
   /// Prints the topology
   friend std::ostream& operator<<(std::ostream& os, const ClusterTopology& top);
+  /// Prints to the stdout
+  void print() const { std::cout << (*this) << "\n"; }
   /// MurMur2 hash fucntion
   static unsigned int hashFunction(const void* key, int len);
   /// Compute the complete hash as defined for mHash
   static unsigned long getCompleteHash(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
   static unsigned long getCompleteHash(const ClusterTopology& topology);
+  // compute position of COG pixel wrt top-left corner
+  static void getCOGshift(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes], int& rowShift, int& colShift);
   /// Sets the pattern
   void setPattern(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
 
@@ -69,7 +73,7 @@ class ClusterTopology
 
   ClassDefNV(ClusterTopology, 2);
 };
-} // namespace ITSMFT
+} // namespace itsmft
 } // namespace o2
 
 #endif /* ALICEO2_ITS_CLUSTERTOPOLOGY_H */

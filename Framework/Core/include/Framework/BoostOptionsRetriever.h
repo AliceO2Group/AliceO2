@@ -14,6 +14,7 @@
 #include "Framework/ParamRetriever.h"
 
 #include <boost/program_options.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <string>
 #include <vector>
 
@@ -22,26 +23,24 @@ namespace o2
 namespace framework
 {
 
-// FIXME: For the moment we only support basic types. Should probably support
-//        (nested) vectors and maps as well. If FairMQ plugins can be used
-//        without a device, this should probably be dropped in favor of
-//        using the FairMQ plugin directly
-class BoostOptionsRetriever : public ParamRetriever {
-public:
-  BoostOptionsRetriever(std::vector<ConfigParamSpec> const&specs,
+/// This extracts the specified ConfigParams from (argc, argv) and makes them
+/// available to the ConfigParamRegistry.
+class BoostOptionsRetriever : public ParamRetriever
+{
+ public:
+  BoostOptionsRetriever(std::vector<ConfigParamSpec> const& specs,
                         bool ignoreUnknown,
-                        int &argc, char **&argv);
+                        int& argc, char**& argv);
 
   int getInt(const char* name) const final;
   float getFloat(const char* name) const final;
   double getDouble(const char* name) const final;
   bool getBool(const char* name) const final;
   std::string getString(const char* name) const final;
-  std::vector<std::string> getVString(const char* name) const final;
+  boost::property_tree::ptree getPTree(const char* name) const final;
 
  private:
-  void parseArgs(int &argc, char **&argv);
-  boost::program_options::variables_map mVariables;
+  boost::property_tree::ptree mStore;
   boost::program_options::options_description mDescription;
   bool mIgnoreUnknown;
 };
@@ -49,4 +48,3 @@ public:
 } // namespace framework
 } // namespace o2
 #endif // FRAMEWORK_BOOSTOPTIONSRETRIEVER_H
-

@@ -20,7 +20,7 @@
 
 namespace o2
 {
-namespace EMCAL
+namespace emcal
 {
 class DigitizerTask : public FairTask
 {
@@ -48,7 +48,7 @@ class DigitizerTask : public FairTask
 
   ClassDefOverride(DigitizerTask, 1);
 };
-} // namespace EMCAL
+} // namespace emcal
 } // namespace o2
 
 #endif /* ALICEO2_EMCAL_DIGITIZERTASK_H */

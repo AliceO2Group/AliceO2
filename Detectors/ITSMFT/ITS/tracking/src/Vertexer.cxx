@@ -17,10 +17,11 @@
 #include "ITStracking/ROframe.h"
 #include "ITStracking/ClusterLines.h"
 #include "ITStracking/IndexTableUtils.h"
+#include "ITStracking/VertexerTraits.h"
 
 namespace o2
 {
-namespace ITS
+namespace its
 {
 
 Vertexer::Vertexer(VertexerTraits* traits)
@@ -28,18 +29,19 @@ Vertexer::Vertexer(VertexerTraits* traits)
   mTraits = traits;
 }
 
-void Vertexer::clustersToVertices(ROframe& event, std::ostream& timeBenchmarkOutputStream)
+float Vertexer::clustersToVertices(ROframe& event, const bool useMc, std::ostream& timeBenchmarkOutputStream)
 {
   ROframe* eventptr = &event;
-  float total{ 0.f };
+  float total{0.f};
   total += evaluateTask(&Vertexer::initialiseVertexer, "Vertexer initialisation", timeBenchmarkOutputStream, eventptr);
-  total += evaluateTask(&Vertexer::findTracklets, "Tracklet finding", timeBenchmarkOutputStream, false);
+  total += evaluateTask(&Vertexer::findTracklets, "Tracklet finding", timeBenchmarkOutputStream);
+  if (useMc) {
+    total += evaluateTask(&Vertexer::filterMCTracklets, "MC tracklets filtering", timeBenchmarkOutputStream);
+  }
+  total += evaluateTask(&Vertexer::validateTracklets, "Adjacent tracklets validation", timeBenchmarkOutputStream);
   total += evaluateTask(&Vertexer::findVertices, "Vertex finding", timeBenchmarkOutputStream);
-}
 
-void Vertexer::findTracklets(const bool useMCLabels)
-{
-  mTraits->computeTracklets(useMCLabels);
+  return total;
 }
 
 void Vertexer::findVertices()
@@ -47,5 +49,5 @@ void Vertexer::findVertices()
   mTraits->computeVertices();
 }
 
-} // namespace ITS
+} // namespace its
 } // namespace o2

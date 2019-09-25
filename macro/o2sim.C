@@ -24,6 +24,8 @@
 #include "FairSystemInfo.h"
 #include <SimSetup/SimSetup.h>
 #include <Steer/O2RunSim.h>
+#include <DetectorsBase/MaterialManager.h>
+#include <CCDB/BasicCCDBManager.h>
 #include <unistd.h>
 #include <sstream>
 #endif
@@ -31,11 +33,27 @@
 FairRunSim* o2sim_init(bool asservice)
 {
   auto& confref = o2::conf::SimConfig::Instance();
+  // initialize CCDB service
+  auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
+  ccdbmgr.setURL(confref.getConfigData().mCCDBUrl);
+  ccdbmgr.setTimestamp(confref.getConfigData().mTimestamp);
+  // try to verify connection
+  if (!ccdbmgr.isHostReachable()) {
+    LOG(ERROR) << "Could not setup CCDB connecting";
+  } else {
+    LOG(INFO) << "Initialized CCDB Manager at URL: " << ccdbmgr.getURL();
+    LOG(INFO) << "Initialized CCDB Manager with timestamp : " << ccdbmgr.getTimestamp();
+  }
+
   // we can read from CCDB (for the moment faking with a TFile)
   // o2::conf::ConfigurableParam::fromCCDB("params_ccdb.root", runid);
 
-  // update the parameters from stuff given at command line
+  // update the parameters from an INI/JSON file, if given (overrides code-based version)
+  o2::conf::ConfigurableParam::updateFromFile(confref.getConfigFile());
+
+  // update the parameters from stuff given at command line (overrides file-based version)
   o2::conf::ConfigurableParam::updateFromString(confref.getKeyValueString());
+
   // write the configuration file
   o2::conf::ConfigurableParam::writeINI("o2sim_configuration.ini");
 
@@ -50,6 +68,7 @@ FairRunSim* o2sim_init(bool asservice)
   FairRunSim* run = new o2::steer::O2RunSim(asservice);
   run->SetImportTGeoToVMC(false); // do not import TGeo to VMC since the latter is built together with TGeo
   run->SetSimSetup([confref]() { o2::SimSetup::setup(confref.getMCEngine().c_str()); });
+  run->SetRunId(confref.getConfigData().mTimestamp);
 
   auto pid = getpid();
   std::stringstream s;
@@ -134,7 +153,7 @@ FairRunSim* o2sim_init(bool asservice)
     TIter next(modArr);
     FairModule* module = nullptr;
     while ((module = (FairModule*)next())) {
-      o2::Base::Detector* det = dynamic_cast<o2::Base::Detector*>(module);
+      o2::base::Detector* det = dynamic_cast<o2::base::Detector*>(module);
       if (!det) {
         continue; // not a detector
       }

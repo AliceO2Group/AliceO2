@@ -25,8 +25,8 @@ using namespace std;
 
 ClassImp(o2::field::MagFieldFast);
 
-const float MagFieldFast::kSolR2Max[MagFieldFast::kNSolRRanges] = { 80.f * 80.f, 250.f * 250.f, 400.f * 400.f,
-                                                                    423.f * 423.f, 500.f * 500.f };
+const float MagFieldFast::kSolR2Max[MagFieldFast::kNSolRRanges] = {80.f * 80.f, 250.f * 250.f, 400.f * 400.f,
+                                                                   423.f * 423.f, 500.f * 500.f};
 
 const float MagFieldFast::kSolZMax = 550.0f;
 
@@ -35,7 +35,7 @@ MagFieldFast::MagFieldFast(const string inpFName) : mFactorSol(1.f)
 {
   // c-tor
   if (!inpFName.empty() && !LoadData(inpFName)) {
-    LOG(FATAL) << "Failed to initialize from " << inpFName << FairLogger::endl;
+    LOG(FATAL) << "Failed to initialize from " << inpFName;
   }
 }
 
@@ -44,12 +44,12 @@ MagFieldFast::MagFieldFast(float factor, int nomField, const string inpFmt) : mF
 {
   // c-tor
   if (nomField != 2 && nomField != 5) {
-    LOG(FATAL) << "No parametrization for nominal field of " << nomField << " kG" << FairLogger::endl;
+    LOG(FATAL) << "No parametrization for nominal field of " << nomField << " kG";
   }
   TString pth;
   pth.Form(inpFmt.data(), nomField);
   if (!LoadData(pth.Data())) {
-    LOG(FATAL) << "Failed to initialize from " << pth.Data() << FairLogger::endl;
+    LOG(FATAL) << "Failed to initialize from " << pth.Data();
   }
 }
 
@@ -60,11 +60,11 @@ bool MagFieldFast::LoadData(const string inpFName)
 
   std::ifstream in(gSystem->ExpandPathName(inpFName.data()), std::ifstream::in);
   if (in.fail()) {
-    LOG(FATAL) << "Failed to open file " << inpFName << FairLogger::endl;
+    LOG(FATAL) << "Failed to open file " << inpFName;
     return false;
   }
   std::string line;
-  int valI, component = -1, nParams = 0, header[4] = { -1, -1, -1, -1 }; // iR, iZ, iQuadrant, nVal
+  int valI, component = -1, nParams = 0, header[4] = {-1, -1, -1, -1}; // iR, iZ, iQuadrant, nVal
   SolParam* curParam = nullptr;
 
   while (std::getline(in, line)) {
@@ -77,7 +77,7 @@ bool MagFieldFast::LoadData(const string inpFName)
       while (cnt < 4 && (ss >> header[cnt++]))
         ;
       if (cnt != 4) {
-        LOG(FATAL) << "Wrong header " << line << FairLogger::endl;
+        LOG(FATAL) << "Wrong header " << line;
         return false;
       }
       curParam = &mSolPar[header[0]][header[1]][header[2]];
@@ -86,7 +86,7 @@ bool MagFieldFast::LoadData(const string inpFName)
         ;
       if (cnt != header[3]) {
         LOG(FATAL) << "Wrong data (npar=" << cnt << ") for param " << header[0] << " " << header[1] << " " << header[2]
-                   << " " << header[3] << " " << line << FairLogger::endl;
+                   << " " << header[3] << " " << line;
         return false;
       }
     }
@@ -97,9 +97,9 @@ bool MagFieldFast::LoadData(const string inpFName)
     }
   }
   //
-  LOG(INFO) << "Loaded " << nParams << " params from " << inpFName << FairLogger::endl;
+  LOG(INFO) << "Loaded " << nParams << " params from " << inpFName;
   if (nParams != kNSolRRanges * kNSolZRanges * kNQuadrants) {
-    LOG(FATAL) << "Was expecting " << kNSolRRanges * kNSolZRanges * kNQuadrants << " params" << FairLogger::endl;
+    LOG(FATAL) << "Was expecting " << kNSolRRanges * kNSolZRanges * kNQuadrants << " params";
   }
   return true;
 }
@@ -109,7 +109,7 @@ bool MagFieldFast::Field(const double xyz[3], double bxyz[3]) const
 {
   // get field
   int zSeg, rSeg, quadrant;
-  if (!GetSegment(xyz[kX],xyz[kY],xyz[kZ], zSeg, rSeg, quadrant)) {
+  if (!GetSegment(xyz[kX], xyz[kY], xyz[kZ], zSeg, rSeg, quadrant)) {
     return false;
   }
   const SolParam* par = &mSolPar[rSeg][zSeg][quadrant];
@@ -125,7 +125,7 @@ bool MagFieldFast::GetBcomp(EDim comp, const double xyz[3], double& b) const
 {
   // get field
   int zSeg, rSeg, quadrant;
-  if (!GetSegment(xyz[kX],xyz[kY],xyz[kZ], zSeg, rSeg, quadrant)) {
+  if (!GetSegment(xyz[kX], xyz[kY], xyz[kZ], zSeg, rSeg, quadrant)) {
     return false;
   }
   const SolParam* par = &mSolPar[rSeg][zSeg][quadrant];
@@ -139,11 +139,11 @@ bool MagFieldFast::GetBcomp(EDim comp, const Point3D<float> xyz, double& b) cons
 {
   // get field
   int zSeg, rSeg, quadrant;
-  if (!GetSegment(xyz.X(),xyz.Y(),xyz.Z(), zSeg, rSeg, quadrant)) {
+  if (!GetSegment(xyz.X(), xyz.Y(), xyz.Z(), zSeg, rSeg, quadrant)) {
     return false;
   }
   const SolParam* par = &mSolPar[rSeg][zSeg][quadrant];
-  b = CalcPol(par->parBxyz[comp], xyz.X(),xyz.Y(),xyz.Z()) * mFactorSol;
+  b = CalcPol(par->parBxyz[comp], xyz.X(), xyz.Y(), xyz.Z()) * mFactorSol;
   //
   return true;
 }
@@ -153,11 +153,11 @@ bool MagFieldFast::GetBcomp(EDim comp, const Point3D<float> xyz, float& b) const
 {
   // get field
   int zSeg, rSeg, quadrant;
-  if (!GetSegment(xyz.X(),xyz.Y(),xyz.Z(), zSeg, rSeg, quadrant)) {
+  if (!GetSegment(xyz.X(), xyz.Y(), xyz.Z(), zSeg, rSeg, quadrant)) {
     return false;
   }
   const SolParam* par = &mSolPar[rSeg][zSeg][quadrant];
-  b = CalcPol(par->parBxyz[comp], xyz.X(),xyz.Y(),xyz.Z()) * mFactorSol;
+  b = CalcPol(par->parBxyz[comp], xyz.X(), xyz.Y(), xyz.Z()) * mFactorSol;
   //
   return true;
 }
@@ -167,7 +167,7 @@ bool MagFieldFast::GetBcomp(EDim comp, const float xyz[3], float& b) const
 {
   // get field
   int zSeg, rSeg, quadrant;
-  if (!GetSegment(xyz[kX],xyz[kY],xyz[kZ], zSeg, rSeg, quadrant)) {
+  if (!GetSegment(xyz[kX], xyz[kY], xyz[kZ], zSeg, rSeg, quadrant)) {
     return false;
   }
   const SolParam* par = &mSolPar[rSeg][zSeg][quadrant];
@@ -181,7 +181,7 @@ bool MagFieldFast::Field(const float xyz[3], float bxyz[3]) const
 {
   // get field
   int zSeg, rSeg, quadrant;
-  if (!GetSegment(xyz[kX],xyz[kY],xyz[kZ], zSeg, rSeg, quadrant)) {
+  if (!GetSegment(xyz[kX], xyz[kY], xyz[kZ], zSeg, rSeg, quadrant)) {
     return false;
   }
   const SolParam* par = &mSolPar[rSeg][zSeg][quadrant];
@@ -197,7 +197,7 @@ bool MagFieldFast::Field(const Point3D<float> xyz, float bxyz[3]) const
 {
   // get field
   int zSeg, rSeg, quadrant;
-  if (!GetSegment(xyz.X(),xyz.Y(),xyz.Z(), zSeg, rSeg, quadrant)) {
+  if (!GetSegment(xyz.X(), xyz.Y(), xyz.Z(), zSeg, rSeg, quadrant)) {
     return false;
   }
   const SolParam* par = &mSolPar[rSeg][zSeg][quadrant];

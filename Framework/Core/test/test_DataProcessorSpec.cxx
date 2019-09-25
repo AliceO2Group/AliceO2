@@ -18,17 +18,17 @@
 BOOST_AUTO_TEST_CASE(TestServiceRegistry)
 {
   using namespace o2::framework;
-  DataProcessorSpec spec{ "test",
-                          {},
-                          {},
-                          AlgorithmSpec{ [](ProcessingContext& ctx) {} },
-                          { ConfigParamSpec{
-                            "channel-config",
-                            VariantType::String,
-                            "name=foo,type=sub,method=connect,address=tcp://localhost:5450,rateLogging=1",
-                            { "Out-of-band channel config" } } },
-                          {},
-                          { DataProcessorLabel{ "label" } } };
+  DataProcessorSpec spec{"test",
+                         {},
+                         {},
+                         AlgorithmSpec{[](ProcessingContext& ctx) {}},
+                         {ConfigParamSpec{
+                           "channel-config",
+                           VariantType::String,
+                           "name=foo,type=sub,method=connect,address=tcp://localhost:5450,rateLogging=1",
+                           {"Out-of-band channel config"}}},
+                         {},
+                         {DataProcessorLabel{"label"}}};
 
   BOOST_CHECK_EQUAL(spec.labels.size(), 1);
 }

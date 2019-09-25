@@ -12,9 +12,9 @@
 #define O2_TRDPADPLANE_H
 
 //Forwards to standard header with protection for GPU compilation
-#include "AliTPCCommonRtypes.h" // for ClassDef
+#include "GPUCommonRtypes.h" // for ClassDef
 
-#include "AliTPCCommonDefGPU.h"
+#include "GPUCommonDef.h"
 
 ////////////////////////////////////////////////////////////////////////////
 //                                                                        //
@@ -168,8 +168,8 @@ class TRDPadPlane
   double mAnodeWireOffset; //  Distance of first anode wire from pad edge
 
  private:
-  ClassDefNV(TRDPadPlane, 1) //  TRD ROC pad plane
+  ClassDefNV(TRDPadPlane, 1); //  TRD ROC pad plane
 };
-}
-}
+} // namespace trd
+} // namespace o2
 #endif

@@ -16,17 +16,19 @@ namespace bpo = boost::program_options;
 
 void addCustomOptions(bpo::options_description& options)
 {
+  // clang-format off
   options.add_options()
-    (o2::DataFlow::FakeTimeframeGeneratorDevice::OptionKeyOutputChannelName,
+    (o2::data_flow::FakeTimeframeGeneratorDevice::OptionKeyOutputChannelName,
      bpo::value<std::string>()->default_value("output"),
      "Name of the output channel");
   options.add_options()
-    (o2::DataFlow::FakeTimeframeGeneratorDevice::OptionKeyMaxTimeframes,
+    (o2::data_flow::FakeTimeframeGeneratorDevice::OptionKeyMaxTimeframes,
      bpo::value<std::string>()->default_value("1"),
      "Number of timeframes to generate");
+  // clang-format on
 }
 
 FairMQDevicePtr getDevice(const FairMQProgOptions& /*config*/)
 {
-  return new o2::DataFlow::FakeTimeframeGeneratorDevice();
+  return new o2::data_flow::FakeTimeframeGeneratorDevice();
 }

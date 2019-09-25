@@ -25,11 +25,13 @@ void SimConfig::initOptions(boost::program_options::options_description& options
   options.add_options()(
     "mcEngine,e", bpo::value<std::string>()->default_value("TGeant3"), "VMC backend to be used.")(
     "generator,g", bpo::value<std::string>()->default_value("boxgen"), "Event generator to be used.")(
-    "modules,m", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>({ "all" }), "all modules"), "list of detectors")(
-    "skipModules", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>({ "" }), ""), "list of detectors to skip (precendence over -m")("nEvents,n", bpo::value<unsigned int>()->default_value(1), "number of events")(
+    "modules,m", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>({"all"}), "all modules"), "list of detectors")(
+    "skipModules", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>({""}), ""), "list of detectors to skip (precendence over -m")("nEvents,n", bpo::value<unsigned int>()->default_value(1), "number of events")(
     "startEvent", bpo::value<unsigned int>()->default_value(0), "index of first event to be used (when applicable)")(
     "extKinFile", bpo::value<std::string>()->default_value("Kinematics.root"),
     "name of kinematics file for event generator from file (when applicable)")(
+    "HepMCFile", bpo::value<std::string>()->default_value("kinematics.hepmc"),
+    "name of HepMC file for event generator from file (when applicable)")(
     "extGenFile", bpo::value<std::string>()->default_value("extgen.C"),
     "name of .C file with definition of external event generator")(
     "extGenFunc", bpo::value<std::string>()->default_value(""),
@@ -41,10 +43,15 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "outPrefix,o", bpo::value<std::string>()->default_value("o2sim"), "prefix of output files")(
     "logseverity", bpo::value<std::string>()->default_value("INFO"), "severity level for FairLogger")(
     "logverbosity", bpo::value<std::string>()->default_value("low"), "level of verbosity for FairLogger (low, medium, high, veryhigh)")(
-    "configKeyValues", bpo::value<std::string>()->default_value(""), "comma separated key=value strings (e.g.: 'TPC.gasDensity=1,...")("chunkSize", bpo::value<unsigned int>()->default_value(10000), "max size of primary chunk (subevent) distributed by server")(
+    "configKeyValues", bpo::value<std::string>()->default_value(""), "semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...")(
+    "configFile", bpo::value<std::string>()->default_value(""), "Path to an INI or JSON configuration file")(
+    "chunkSize", bpo::value<unsigned int>()->default_value(5000), "max size of primary chunk (subevent) distributed by server")(
     "chunkSizeI", bpo::value<int>()->default_value(-1), "internalChunkSize")(
     "seed", bpo::value<int>()->default_value(-1), "initial seed (default: -1 random)")(
-    "nworkers,j", bpo::value<int>()->default_value(nsimworkersdefault), "number of parallel simulation workers (only for parallel mode)");
+    "nworkers,j", bpo::value<int>()->default_value(nsimworkersdefault), "number of parallel simulation workers (only for parallel mode)")(
+    "noemptyevents", "only writes events with at least one hit")(
+    "CCDBUrl", bpo::value<std::string>()->default_value("ccdb-test.cern.ch:8080"), "URL for CCDB to be used.")(
+    "timestamp", bpo::value<long>()->default_value(-1), "global timestamp value (for anchoring) - default is now");
 }
 
 bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& vm)
@@ -62,6 +69,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
     active.emplace_back("HALL");
     active.emplace_back("MAG");
     active.emplace_back("DIPO");
+    active.emplace_back("COMP");
     active.emplace_back("PIPE");
     active.emplace_back("ABSO");
     active.emplace_back("SHIL");
@@ -79,6 +87,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mGenerator = vm["generator"].as<std::string>();
   mConfigData.mNEvents = vm["nEvents"].as<unsigned int>();
   mConfigData.mExtKinFileName = vm["extKinFile"].as<std::string>();
+  mConfigData.mHepMCFileName = vm["HepMCFile"].as<std::string>();
   mConfigData.mExtGenFileName = vm["extGenFile"].as<std::string>();
   mConfigData.mExtGenFuncName = vm["extGenFunc"].as<std::string>();
   mConfigData.mEmbedIntoFileName = vm["embedIntoFile"].as<std::string>();
@@ -89,10 +98,16 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mLogSeverity = vm["logseverity"].as<std::string>();
   mConfigData.mLogVerbosity = vm["logverbosity"].as<std::string>();
   mConfigData.mKeyValueTokens = vm["configKeyValues"].as<std::string>();
+  mConfigData.mConfigFile = vm["configFile"].as<std::string>();
   mConfigData.mPrimaryChunkSize = vm["chunkSize"].as<unsigned int>();
   mConfigData.mInternalChunkSize = vm["chunkSizeI"].as<int>();
   mConfigData.mStartSeed = vm["seed"].as<int>();
   mConfigData.mSimWorkers = vm["nworkers"].as<int>();
+  mConfigData.mTimestamp = vm["timestamp"].as<long>();
+  mConfigData.mCCDBUrl = vm["CCDBUrl"].as<std::string>();
+  if (vm.count("noemptyevents")) {
+    mConfigData.mFilterNoHitEvents = true;
+  }
   return true;
 }
 

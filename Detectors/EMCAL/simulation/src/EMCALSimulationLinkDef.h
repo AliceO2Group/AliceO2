@@ -14,10 +14,10 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::EMCAL::Detector+;
-#pragma link C++ class o2::Base::DetImpl<o2::EMCAL::Detector>+;
-#pragma link C++ class o2::EMCAL::Digitizer+;
-#pragma link C++ class o2::EMCAL::DigitizerTask+;
-#pragma link C++ class o2::EMCAL::MCLabel+;
+#pragma link C++ class o2::emcal::Detector + ;
+#pragma link C++ class o2::base::DetImpl < o2::emcal::Detector> + ;
+#pragma link C++ class o2::emcal::Digitizer + ;
+#pragma link C++ class o2::emcal::DigitizerTask + ;
+#pragma link C++ class o2::emcal::SimParam + ;
 
 #endif

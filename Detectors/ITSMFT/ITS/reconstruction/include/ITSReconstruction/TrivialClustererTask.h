@@ -14,7 +14,7 @@
 #ifndef ALICEO2_ITS_TRIVIALCLUSTERERTASK
 #define ALICEO2_ITS_TRIVIALCLUSTERERTASK
 
-#include "FairTask.h" 
+#include "FairTask.h"
 
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSReconstruction/TrivialClusterer.h"
@@ -24,39 +24,40 @@ namespace o2
 class MCCompLabel;
 namespace dataformats
 {
-  template<typename T>
-  class MCTruthContainer;
+template <typename T>
+class MCTruthContainer;
 }
 
-namespace ITSMFT {
-  class Digit;
+namespace itsmft
+{
+class Digit;
 }
- 
-namespace ITS
+
+namespace its
 {
 class TrivialClustererTask : public FairTask
 {
-  using Digit = o2::ITSMFT::Digit;
-  using Cluster = o2::ITSMFT::Cluster;
+  using Digit = o2::itsmft::Digit;
+  using Cluster = o2::itsmft::Cluster;
 
  public:
-  TrivialClustererTask(Bool_t useMCTruth=kTRUE);
+  TrivialClustererTask(Bool_t useMCTruth = kTRUE);
   ~TrivialClustererTask() override;
 
   InitStatus Init() override;
   void Exec(Option_t* option) override;
-  
+
  private:
-  const o2::ITSMFT::GeometryTGeo* mGeometry = nullptr; ///< ITS geometry
-  TrivialClusterer mTrivialClusterer;   ///< Cluster finder
+  const o2::itsmft::GeometryTGeo* mGeometry = nullptr; ///< ITS geometry
+  TrivialClusterer mTrivialClusterer;                  ///< Cluster finder
 
-  const std::vector<Digit>* mDigitsArray = nullptr;   ///< Array of digits
-  std::vector<Cluster>* mClustersArray   = nullptr;   ///< Array of clusters
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *mClsLabels=nullptr; ///< MC labels
+  const std::vector<Digit>* mDigitsArray = nullptr;                         ///< Array of digits
+  std::vector<Cluster>* mClustersArray = nullptr;                           ///< Array of clusters
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mClsLabels = nullptr; ///< MC labels
 
-  ClassDefOverride(TrivialClustererTask, 2)
+  ClassDefOverride(TrivialClustererTask, 2);
 };
-}
-}
+} // namespace its
+} // namespace o2
 
 #endif /* ALICEO2_ITS_TRIVIALCLUSTERERTASK */

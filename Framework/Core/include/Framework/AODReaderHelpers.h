@@ -22,6 +22,7 @@ namespace readers
 
 struct AODReaderHelpers {
   static AlgorithmSpec rootFileReaderCallback();
+  static AlgorithmSpec run2ESDConverterCallback();
 };
 
 } // namespace readers

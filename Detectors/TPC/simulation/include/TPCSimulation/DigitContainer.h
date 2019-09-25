@@ -22,10 +22,11 @@
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGas.h"
+#include "TPCBase/CDBInterface.h"
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 
 class Digit;
@@ -74,18 +75,21 @@ class DigitContainer
   /// \param finalFlush Flag whether the whole container is dumped
   void fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth, const Sector& sector, TimeBin eventTimeBin = 0, bool isContinuous = true, bool finalFlush = false);
 
+  /// Get the size of the container for one event
+  size_t size() const { return mTimeBins.size(); }
+
  private:
-  TimeBin mFirstTimeBin;           ///< First time bin to consider
-  TimeBin mEffectiveTimeBin;       ///< Effective time bin of that digit
-  TimeBin mTmaxTriggered;          ///< Maximum time bin in case of triggered mode (hard cut at average drift speed with additional margin)
-  TimeBin mOffset;                 ///< Size of the container for one event
-  std::deque<DigitTime> mTimeBins; ///< Time bin Container for the ADC value
+  TimeBin mFirstTimeBin = 0;            ///< First time bin to consider
+  TimeBin mEffectiveTimeBin = 0;        ///< Effective time bin of that digit
+  TimeBin mTmaxTriggered = 0;           ///< Maximum time bin in case of triggered mode (hard cut at average drift speed with additional margin)
+  TimeBin mOffset = 700;                ///< Size of the container for one event
+  std::deque<DigitTime> mTimeBins{700}; ///< Time bin Container for the ADC value
 };
 
-inline DigitContainer::DigitContainer() : mFirstTimeBin(0), mEffectiveTimeBin(0), mTmaxTriggered(0), mOffset(600), mTimeBins(600)
+inline DigitContainer::DigitContainer()
 {
-  const static ParameterDetector& detParam = ParameterDetector::defaultInstance();
-  mTmaxTriggered = detParam.getMaxTimeBinTriggered();
+  auto& detParam = ParameterDetector::Instance();
+  mTmaxTriggered = detParam.TmaxTriggered;
 }
 
 inline void DigitContainer::reset()
@@ -111,7 +115,7 @@ inline void DigitContainer::addDigit(const MCCompLabel& label, const CRU& cru, T
   mTimeBins[mEffectiveTimeBin].addDigit(label, cru, globalPad, signal);
 }
 
-} // namespace TPC
+} // namespace tpc
 } // namespace o2
 
 #endif // ALICEO2_TPC_DigitContainer_H_

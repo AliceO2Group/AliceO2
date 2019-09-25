@@ -16,8 +16,8 @@
 #include "FairSystemInfo.h"
 #endif
 
-void getHits(const o2::steer::RunContext& context, std::vector<std::vector<o2::TPC::HitGroup>*>& hitvectors,
-             std::vector<o2::TPC::TPCHitGroupID>& hitids, const char* branchname, float tmin /*NS*/, float tmax /*NS*/,
+void getHits(const o2::steer::RunContext& context, std::vector<std::vector<o2::tpc::HitGroup>*>& hitvectors,
+             std::vector<o2::tpc::TPCHitGroupID>& hitids, const char* branchname, float tmin /*NS*/, float tmax /*NS*/,
              std::function<float(float, float, float)>&& f)
 {
   // f is some function taking event time + z of hit and returns final "digit" time
@@ -71,11 +71,11 @@ void getHits(const o2::steer::RunContext& context, std::vector<std::vector<o2::T
 // TPC hit selection lambda
 auto fTPC = [](float tNS, float tof, float z) {
   // returns time in NS
-  return tNS + o2::TPC::ElectronTransport::getDriftTime(z) * 1000 + tof;
+  return tNS + o2::tpc::ElectronTransport::getDriftTime(z) * 1000 + tof;
 };
 
-void getHits(const o2::steer::RunContext& context, std::vector<std::vector<o2::TPC::HitGroup>*>& hitvectors,
-             std::vector<o2::TPC::TPCHitGroupID>& hitids, const char* branchname, const int iEvent)
+void getHits(const o2::steer::RunContext& context, std::vector<std::vector<o2::tpc::HitGroup>*>& hitvectors,
+             std::vector<o2::tpc::TPCHitGroupID>& hitids, const char* branchname, const int iEvent)
 {
   auto br = context.getBranch(branchname);
   if (!br) {
@@ -102,12 +102,12 @@ void getHits(const o2::steer::RunContext& context, std::vector<std::vector<o2::T
 
 void runTPCDigitizationChunkwise(const o2::steer::RunContext& context)
 {
-  std::vector<std::vector<o2::TPC::HitGroup>*> hitvectorsleft;  // "TPCHitVector"
-  std::vector<std::vector<o2::TPC::HitGroup>*> hitvectorsright; // "TPCHitVector"
-  std::vector<o2::TPC::TPCHitGroupID> hitidsleft;               // "TPCHitIDs"
-  std::vector<o2::TPC::TPCHitGroupID> hitidsright;              // "TPCHitIDs
+  std::vector<std::vector<o2::tpc::HitGroup>*> hitvectorsleft;  // "TPCHitVector"
+  std::vector<std::vector<o2::tpc::HitGroup>*> hitvectorsright; // "TPCHitVector"
+  std::vector<o2::tpc::TPCHitGroupID> hitidsleft;               // "TPCHitIDs"
+  std::vector<o2::tpc::TPCHitGroupID> hitidsright;              // "TPCHitIDs
 
-  o2::TPC::DigitizerTask task;
+  o2::tpc::DigitizerTask task;
   task.Init2();
 
   // ===| open file and register branches |=====================================
@@ -116,14 +116,14 @@ void runTPCDigitizationChunkwise(const o2::steer::RunContext& context)
 
   FairSystemInfo sysinfo;
 
-  using digitType = std::vector<o2::TPC::Digit>;
+  using digitType = std::vector<o2::tpc::Digit>;
   using mcType = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  std::array<digitType*, o2::TPC::Sector::MAXSECTOR> digitArrays;
-  std::array<mcType*, o2::TPC::Sector::MAXSECTOR> mcTruthArrays;
-  std::array<TBranch*, o2::TPC::Sector::MAXSECTOR> digitBranches;
-  std::array<TBranch*, o2::TPC::Sector::MAXSECTOR> mcTruthBranches;
+  std::array<digitType*, o2::tpc::Sector::MAXSECTOR> digitArrays;
+  std::array<mcType*, o2::tpc::Sector::MAXSECTOR> mcTruthArrays;
+  std::array<TBranch*, o2::tpc::Sector::MAXSECTOR> digitBranches;
+  std::array<TBranch*, o2::tpc::Sector::MAXSECTOR> mcTruthBranches;
 
-  for (int sector = 0; sector < o2::TPC::Sector::MAXSECTOR; ++sector) {
+  for (int sector = 0; sector < o2::tpc::Sector::MAXSECTOR; ++sector) {
     digitArrays[sector] = new digitType;
     digitBranches[sector] = outtree.Branch(Form("TPCDigit_%i", sector), &digitArrays[sector]);
 
@@ -147,12 +147,12 @@ void runTPCDigitizationChunkwise(const o2::steer::RunContext& context)
 
     bool hasData = false;
     // loop over sectors
-    for (int s = 0; s < o2::TPC::Sector::MAXSECTOR; ++s) {
+    for (int s = 0; s < o2::tpc::Sector::MAXSECTOR; ++s) {
       task.setupSector(s);
       task.setOutputData(digitArrays[s], mcTruthArrays[s]);
 
       std::stringstream sectornamestreamleft;
-      sectornamestreamleft << "TPCHitsShiftedSector" << int(o2::TPC::Sector::getLeft(o2::TPC::Sector(s)));
+      sectornamestreamleft << "TPCHitsShiftedSector" << int(o2::tpc::Sector::getLeft(o2::tpc::Sector(s)));
       std::stringstream sectornamestreamright;
       sectornamestreamright << "TPCHitsShiftedSector" << s;
 
@@ -188,12 +188,12 @@ void runTPCDigitizationChunkwise(const o2::steer::RunContext& context)
 
 void runTPCDigitizationEventwise(const o2::steer::RunContext& context)
 {
-  std::vector<std::vector<o2::TPC::HitGroup>*> hitvectorsleft;  // "TPCHitVector"
-  std::vector<std::vector<o2::TPC::HitGroup>*> hitvectorsright; // "TPCHitVector"
-  std::vector<o2::TPC::TPCHitGroupID> hitidsleft;               // "TPCHitIDs"
-  std::vector<o2::TPC::TPCHitGroupID> hitidsright;              // "TPCHitIDs
+  std::vector<std::vector<o2::tpc::HitGroup>*> hitvectorsleft;  // "TPCHitVector"
+  std::vector<std::vector<o2::tpc::HitGroup>*> hitvectorsright; // "TPCHitVector"
+  std::vector<o2::tpc::TPCHitGroupID> hitidsleft;               // "TPCHitIDs"
+  std::vector<o2::tpc::TPCHitGroupID> hitidsright;              // "TPCHitIDs
 
-  o2::TPC::DigitizerTask task;
+  o2::tpc::DigitizerTask task;
   task.Init2();
 
   // ===| open file and register branches |=====================================
@@ -202,17 +202,17 @@ void runTPCDigitizationEventwise(const o2::steer::RunContext& context)
 
   FairSystemInfo sysinfo;
 
-  using digitType = std::vector<o2::TPC::Digit>;
+  using digitType = std::vector<o2::tpc::Digit>;
   using mcType = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  std::array<digitType*, o2::TPC::Sector::MAXSECTOR> digitArrays;
-  std::array<mcType*, o2::TPC::Sector::MAXSECTOR> mcTruthArrays;
-  std::array<TBranch*, o2::TPC::Sector::MAXSECTOR> digitBranches;
-  std::array<TBranch*, o2::TPC::Sector::MAXSECTOR> mcTruthBranches;
+  std::array<digitType*, o2::tpc::Sector::MAXSECTOR> digitArrays;
+  std::array<mcType*, o2::tpc::Sector::MAXSECTOR> mcTruthArrays;
+  std::array<TBranch*, o2::tpc::Sector::MAXSECTOR> digitBranches;
+  std::array<TBranch*, o2::tpc::Sector::MAXSECTOR> mcTruthBranches;
 
   auto& eventrecords = context.getEventRecords();
 
   // loop over sectors
-  for (int s = 0; s < o2::TPC::Sector::MAXSECTOR; ++s) {
+  for (int s = 0; s < o2::tpc::Sector::MAXSECTOR; ++s) {
 
     digitArrays[s] = new digitType;
     digitBranches[s] = outtree.Branch(Form("TPCDigit_%i", s), &digitArrays[s]);
@@ -225,7 +225,7 @@ void runTPCDigitizationEventwise(const o2::steer::RunContext& context)
     task.setOutputData(digitArrays[s], mcTruthArrays[s]);
 
     std::stringstream sectornamestreamleft;
-    sectornamestreamleft << "TPCHitsShiftedSector" << int(o2::TPC::Sector::getLeft(o2::TPC::Sector(s)));
+    sectornamestreamleft << "TPCHitsShiftedSector" << int(o2::tpc::Sector::getLeft(o2::tpc::Sector(s)));
     std::stringstream sectornamestreamright;
     sectornamestreamright << "TPCHitsShiftedSector" << s;
 

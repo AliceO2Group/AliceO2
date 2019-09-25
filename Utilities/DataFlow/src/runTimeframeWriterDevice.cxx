@@ -15,29 +15,31 @@ namespace bpo = boost::program_options;
 
 void addCustomOptions(bpo::options_description& options)
 {
+  // clang-format off
   options.add_options()
-    (o2::DataFlow::TimeframeWriterDevice::OptionKeyInputChannelName,
+    (o2::data_flow::TimeframeWriterDevice::OptionKeyInputChannelName,
      bpo::value<std::string>()->default_value("input"),
      "Name of the input channel");
   options.add_options()
-    (o2::DataFlow::TimeframeWriterDevice::OptionKeyOutputFileName,
+    (o2::data_flow::TimeframeWriterDevice::OptionKeyOutputFileName,
      bpo::value<std::string>()->default_value("data.o2tf"),
      "Name of the input channel");
   options.add_options()
-    (o2::DataFlow::TimeframeWriterDevice::OptionKeyMaxFiles,
+    (o2::data_flow::TimeframeWriterDevice::OptionKeyMaxFiles,
      bpo::value<size_t>()->default_value(1),
      "Maximum number of files to write");
   options.add_options()
-    (o2::DataFlow::TimeframeWriterDevice::OptionKeyMaxTimeframesPerFile,
+    (o2::data_flow::TimeframeWriterDevice::OptionKeyMaxTimeframesPerFile,
      bpo::value<size_t>()->default_value(1),
      "Maximum number of timeframes per file");
   options.add_options()
-    (o2::DataFlow::TimeframeWriterDevice::OptionKeyMaxFileSize,
+    (o2::data_flow::TimeframeWriterDevice::OptionKeyMaxFileSize,
      bpo::value<size_t>()->default_value(-1),
      "Maximum size per file");
+  // clang-format on
 }
 
 FairMQDevicePtr getDevice(const FairMQProgOptions& /*config*/)
 {
-  return new o2::DataFlow::TimeframeWriterDevice();
+  return new o2::data_flow::TimeframeWriterDevice();
 }

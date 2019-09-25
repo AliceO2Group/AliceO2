@@ -21,9 +21,9 @@
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "TRDBase/Digit.h"
+#include "TRDBase/Digit.h" // for the Digit type
 #include "TRDSimulation/Digitizer.h"
-#include "TRDSimulation/Detector.h" // for the Hittype
+#include "TRDSimulation/Detector.h" // for the Hit type
 #include "DetectorsBase/GeometryManager.h"
 
 using namespace o2::framework;
@@ -71,7 +71,7 @@ class TRDDPLDigitizerTask
     }
 
     if (!gGeoManager) {
-      o2::Base::GeometryManager::loadGeometry();
+      o2::base::GeometryManager::loadGeometry();
     }
   }
 
@@ -93,6 +93,10 @@ class TRDDPLDigitizerTask
 
     auto& eventParts = context->getEventParts();
     std::vector<o2::trd::Digit> digitsAccum; // accumulator for digits
+    o2::dataformats::MCTruthContainer<o2::trd::MCLabel> labelsAccum;
+
+    TStopwatch timer;
+    timer.Start();
 
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
@@ -110,14 +114,23 @@ class TRDDPLDigitizerTask
         retrieveHits(mSimChains, "TRDHit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found TRD " << hits.size() << " hits ";
 
-        std::vector<o2::trd::Digit> digits; // digits which get filled
-        mDigitizer.process(hits, digits);
+        std::vector<o2::trd::Digit> digits;                         // digits which get filled
+        o2::dataformats::MCTruthContainer<o2::trd::MCLabel> labels; // labels which get filled
+        mDigitizer.process(hits, digits, labels);
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
+        labelsAccum.mergeAtBack(labels);
       }
     }
-    pc.outputs().snapshot(Output{ "TRD", "DIGITS", 0, Lifetime::Timeframe }, digitsAccum);
+
+    timer.Stop();
+    LOG(INFO) << "TRD: Digitization took " << timer.CpuTime() << "s";
+
+    LOG(INFO) << "TRD: Sending " << digitsAccum.size() << " digits";
+    pc.outputs().snapshot(Output{"TRD", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
+    LOG(INFO) << "TRD: Sending " << labelsAccum.getNElements() << " labels";
+    pc.outputs().snapshot(Output{"TRD", "LABELS", 0, Lifetime::Timeframe}, labelsAccum);
     LOG(INFO) << "TRD: Sending ROMode= " << mROMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{ "TRD", "ROMode", 0, Lifetime::Timeframe }, mROMode);
+    pc.outputs().snapshot(Output{"TRD", "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(false);
@@ -140,16 +153,16 @@ o2::framework::DataProcessorSpec getTRDDigitizerSpec(int channel)
   //  options that can be used for this processor (here: input file names where to take the hits)
   return DataProcessorSpec{
     "TRDDigitizer",
-    Inputs{ InputSpec{ "collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe } },
+    Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
 
-    Outputs{ OutputSpec{ "TRD", "DIGITS", 0, Lifetime::Timeframe },
-             OutputSpec{ "TRD", "ROMode", 0, Lifetime::Timeframe } },
+    Outputs{OutputSpec{"TRD", "DIGITS", 0, Lifetime::Timeframe},
+            OutputSpec{"TRD", "LABELS", 0, Lifetime::Timeframe},
+            OutputSpec{"TRD", "ROMode", 0, Lifetime::Timeframe}},
 
-    AlgorithmSpec{ adaptFromTask<TRDDPLDigitizerTask>() },
+    AlgorithmSpec{adaptFromTask<TRDDPLDigitizerTask>()},
 
-    Options{ { "simFile", VariantType::String, "o2sim.root", { "Sim (background) input filename" } },
-             { "simFileS", VariantType::String, "", { "Sim (signal) input filename" } } }
-  };
+    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
+            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}}}};
 }
 
 } // end namespace trd

@@ -20,6 +20,7 @@
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/TrackReference.h"
+#include "SimulationDataFormat/MCEventStats.h"
 
 #include "Rtypes.h"
 #include "TParticle.h"
@@ -34,12 +35,12 @@ class TRefArray;
 
 namespace o2
 {
-namespace Base
+namespace base
 {
 class Detector;
 }
 
-namespace Data
+namespace data
 {
 /// This class handles the particle stack for the transport simulation.
 /// For the stack FILO functunality, it uses the STL stack. To store
@@ -128,6 +129,9 @@ class Stack : public FairGenericStack
   /// Declared in TVirtualMCStack
   Int_t GetCurrentParentTrackNumber() const override;
 
+  /// Returns the production process of the current track
+  TMCProcess GetProdProcessOfCurrentTrack() const;
+
   /// Fill the MCTrack output array, applying filter criteria
   void FillTrackArray() override;
 
@@ -207,6 +211,14 @@ class Stack : public FairGenericStack
   // The resulting ids will be in strictly monotonously decreasing order
   void fillParentIDs(std::vector<int>& ids) const;
 
+  /// set MCEventStats (for current event)
+  /// used by MCApplication to inject here so that
+  /// stack can set some information
+  void setMCEventStats(o2::dataformats::MCEventStats* header);
+
+  /// update values in the current event header
+  void updateEventStats();
+
  private:
   /// STL stack (FILO) used to handle the TParticles for tracking
   /// stack entries refer to
@@ -235,7 +247,7 @@ class Stack : public FairGenericStack
   std::map<Int_t, Int_t> mIndexMap; //!
 
   /// cache active O2 detectors
-  std::vector<o2::Base::Detector*> mActiveDetectors; //!
+  std::vector<o2::base::Detector*> mActiveDetectors; //!
 
   /// Some indices and counters
   Int_t mIndexOfCurrentTrack;        //! Global index of current track
@@ -249,6 +261,7 @@ class Stack : public FairGenericStack
   Bool_t mStoreSecondaries;
   bool mPruneKinematics = false; // whether or not we filter the output kinematics
   Int_t mMinHits;
+  Int_t mHitCounter = 0; //! counts hits communicated via addHit
   Double32_t mEnergyCut;
 
   // variables for the cleanup / filtering procedure
@@ -265,6 +278,9 @@ class Stack : public FairGenericStack
   std::vector<o2::TrackReference>* mTrackRefs = nullptr; //!
 
   o2::dataformats::MCTruthContainer<o2::TrackReference>* mIndexedTrackRefs = nullptr; //!
+
+  /// a pointer to the current MCEventStats object
+  o2::dataformats::MCEventStats* mMCEventStats = nullptr; //!
 
   /// Mark tracks for output using selection criteria
   /// returns true if all available tracks are selected
@@ -286,7 +302,7 @@ class Stack : public FairGenericStack
   /// \param iTrack  Track number
   void addHit(int iDet, Int_t iTrack);
 
-  ClassDefOverride(Stack, 1)
+  ClassDefOverride(Stack, 1);
 };
 
 inline void Stack::addTrackReference(const o2::TrackReference& ref) { mTrackRefs->push_back(ref); }
@@ -309,7 +325,18 @@ inline bool Stack::isCurrentTrackDaughterOf(int parentid) const
   // otherwise ...
   return isTrackDaughterOf(mIndexOfCurrentTrack, parentid);
 }
+
+inline void Stack::setMCEventStats(o2::dataformats::MCEventStats* header)
+{
+  mMCEventStats = header;
 }
+
+inline TMCProcess Stack::GetProdProcessOfCurrentTrack() const
+{
+  return (TMCProcess)o2::data::Stack::GetCurrentTrack()->GetUniqueID();
 }
+
+} // namespace data
+} // namespace o2
 
 #endif

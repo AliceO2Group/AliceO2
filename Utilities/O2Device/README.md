@@ -1,3 +1,5 @@
+\page refUtilitiesO2Device O2Device
+
 # O2Device
 
 The O2Device is meant to build O2 specific behaviours on top of plain FairMQDevices.

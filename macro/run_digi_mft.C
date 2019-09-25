@@ -51,8 +51,8 @@ void run_digi_mft(float rate = 50e3,
   rtdb->setFirstInput(parInput1);
 
   // Setup digitizer
-  // Call o2::MFT::DigitizerTask(kTRUE) to activate the ALPIDE simulation
-  o2::MFT::DigitizerTask* digi = new o2::MFT::DigitizerTask();
+  // Call o2::mft::DigitizerTask(kTRUE) to activate the ALPIDE simulation
+  o2::mft::DigitizerTask* digi = new o2::mft::DigitizerTask();
   //
   // This is an example of setting the digitization parameters manually
   // ====>>
@@ -73,15 +73,15 @@ void run_digi_mft(float rate = 50e3,
   if (!inputfileQED.empty()) {
     qedHitsFile = TFile::Open(inputfileQED.data());
     if (!qedHitsFile || qedHitsFile->IsZombie()) {
-      LOG(FATAL) << "Failed to open QED file " << inputfileQED << FairLogger::endl;
+      LOG(FATAL) << "Failed to open QED file " << inputfileQED;
     }
     TTree* qedTree = (TTree*)qedHitsFile->Get("o2sim");
     if (!qedTree) {
-      LOG(FATAL) << "No o2sim tree in QED file " << inputfileQED << FairLogger::endl;
+      LOG(FATAL) << "No o2sim tree in QED file " << inputfileQED;
     }
     TBranch* qedBranch = qedTree->GetBranch("MFTHit");
     if (!qedBranch) {
-      LOG(FATAL) << "No MFTHit branch in the QED hits tree of file " << inputfileQED << FairLogger::endl;
+      LOG(FATAL) << "No MFTHit branch in the QED hits tree of file " << inputfileQED;
     }
     digi->setQEDInput(qedBranch, timebinQEDns, 99); // the QED is assigned source ID = 99
   }
@@ -134,17 +134,17 @@ int updateMFTinGRP(std::string inputGRP, std::string grpName)
 {
   TFile flGRP(inputGRP.data(), "update");
   if (flGRP.IsZombie()) {
-    LOG(ERROR) << "Failed to open in update mode " << inputGRP << FairLogger::endl;
+    LOG(ERROR) << "Failed to open in update mode " << inputGRP;
     return -10;
   }
   auto grp =
     static_cast<o2::parameters::GRPObject*>(flGRP.GetObjectChecked(grpName.data(), o2::parameters::GRPObject::Class()));
   if (!grp) {
-    LOG(ERROR) << "Did not find GRP object named " << inputGRP << FairLogger::endl;
+    LOG(ERROR) << "Did not find GRP object named " << inputGRP;
     return -12;
   }
 
-  vector<o2::detectors::DetID> contDet = { o2::detectors::DetID::MFT };
+  vector<o2::detectors::DetID> contDet = {o2::detectors::DetID::MFT};
 
   for (auto det : contDet) {
     if (grp->isDetReadOut(det)) {
@@ -152,7 +152,7 @@ int updateMFTinGRP(std::string inputGRP, std::string grpName)
     }
   }
 
-  LOG(INFO) << "Updated GRP in " << inputGRP << " flagging continously read-out detector(s)" << FairLogger::endl;
+  LOG(INFO) << "Updated GRP in " << inputGRP << " flagging continously read-out detector(s)";
   grp->print();
   flGRP.WriteObjectAny(grp, grp->Class(), grpName.data());
   flGRP.Close();

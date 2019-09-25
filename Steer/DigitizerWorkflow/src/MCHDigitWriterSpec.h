@@ -12,7 +12,7 @@
 #define STEER_DIGITIZERWORKFLOW_SRC_MCHDIGITWRITERSPEC_H_
 
 #include "Framework/DataProcessorSpec.h"
-#include "Utils/MakeRootTreeWriterSpec.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
 #include "MCHSimulation/Digit.h"
 #include <SimulationDataFormat/MCCompLabel.h>
@@ -34,8 +34,8 @@ o2::framework::DataProcessorSpec getMCHDigitWriterSpec()
                                 "mchdigits.root",
                                 "o2sim",
                                 1, //default number of events
-                                BranchDefinition<std::vector<o2::mch::Digit>>{ InputSpec{ "mchdigits", "MCH", "DIGITS" }, "MCHDigit" },
-                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{ InputSpec{ "mchdigitlabels", "MCH", "DIGITSMCTR" }, "MCHMCLabels" }
+                                BranchDefinition<std::vector<o2::mch::Digit>>{InputSpec{"mchdigits", "MCH", "DIGITS"}, "MCHDigit"},
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"mchdigitlabels", "MCH", "DIGITSMCTR"}, "MCHMCLabels"}
                                 // add more branch definitions (for example Monte Carlo labels here)
                                 )();
 }

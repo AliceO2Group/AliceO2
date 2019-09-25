@@ -1,3 +1,12 @@
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "TFile.h"
+#include "TTree.h"
+#include "GlobalTracking/MatchTOF.h"
+#include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#endif
+
 void checkTOFMatching()
 {
 
@@ -6,8 +15,8 @@ void checkTOFMatching()
   // getting TOF info
   TFile* fmatchTOF = new TFile("o2match_tof.root");
   TTree* matchTOF = (TTree*)fmatchTOF->Get("matchTOF");
-  std::vector<std::pair<int, o2::dataformats::MatchInfoTOF>>* TOFMatchInfo;
-  TOFMatchInfo = new std::vector<std::pair<int, o2::dataformats::MatchInfoTOF>>;
+  std::vector<o2::dataformats::MatchInfoTOF>* TOFMatchInfo;
+  TOFMatchInfo = new std::vector<o2::dataformats::MatchInfoTOF>;
   matchTOF->SetBranchAddress("TOFMatchInfo", &TOFMatchInfo);
 
   // getting the ITSTPCtracks
@@ -19,15 +28,15 @@ void checkTOFMatching()
   // getting the TPC tracks
   TFile* ftracksTPC = new TFile("tpctracks.root");
   TTree* tpcTree = (TTree*)ftracksTPC->Get("events");
-  std::vector<o2::TPC::TrackTPC>* mTPCTracksArrayInp = new std::vector<o2::TPC::TrackTPC>;
-  tpcTree->SetBranchAddress("TPCTracks", &mTPCTracksArrayInp);
+  std::vector<o2::tpc::TrackTPC>* mTPCTracksArrayInp = new std::vector<o2::tpc::TrackTPC>;
+  tpcTree->SetBranchAddress("Tracks", &mTPCTracksArrayInp);
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mcTPC = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>();
-  tpcTree->SetBranchAddress("TPCTracksMCTruth", &mcTPC);
+  tpcTree->SetBranchAddress("TracksMCTruth", &mcTPC);
 
   // getting the ITS tracks
   TFile* ftracksITS = new TFile("o2trac_its.root");
   TTree* itsTree = (TTree*)ftracksITS->Get("o2sim");
-  std::vector<o2::ITS::TrackITS>* mITSTracksArrayInp = new std::vector<o2::ITS::TrackITS>;
+  std::vector<o2::its::TrackITS>* mITSTracksArrayInp = new std::vector<o2::its::TrackITS>;
   itsTree->SetBranchAddress("ITSTrack", &mITSTracksArrayInp);
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mcITS = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>();
   itsTree->SetBranchAddress("ITSTrackMCTruth", &mcITS);
@@ -54,8 +63,8 @@ void checkTOFMatching()
     // now looping over the matched tracks
     nMatches += TOFMatchInfo->size();
     for (int imatch = 0; imatch < TOFMatchInfo->size(); imatch++) {
-      int indexITSTPCtrack = TOFMatchInfo->at(imatch).first;
-      o2::dataformats::MatchInfoTOF infoTOF = TOFMatchInfo->at(imatch).second;
+      int indexITSTPCtrack = TOFMatchInfo->at(imatch).getTrackIndex();
+      o2::dataformats::MatchInfoTOF infoTOF = TOFMatchInfo->at(imatch);
       int tofClIndex = infoTOF.getTOFClIndex();
       float chi2 = infoTOF.getChi2();
       Printf("\nentry in tree %d, matching %d, indexITSTPCtrack = %d, tofClIndex = %d, chi2 = %f", ientry, imatch, indexITSTPCtrack, tofClIndex, chi2);
@@ -77,41 +86,91 @@ void checkTOFMatching()
       int nContributingChannels = tofCluster.getNumOfContributingChannels();
       int mainContributingChannel = tofCluster.getMainContributingChannel();
       Printf("The TOF cluster has %d contributing channels, and the main one is %d", nContributingChannels, mainContributingChannel);
-      int* indices;
+      int* indices = new int();
       o2::tof::Geo::getVolumeIndices(mainContributingChannel, indices);
       Printf("Indices of main contributing channel are %d, %d, %d, %d, %d", indices[0], indices[1], indices[2], indices[3], indices[4]);
-      int* secondaryContributingChannels = new int[nContributingChannels];
-      for (int ich = 1; ich < nContributingChannels; ich++) {
-        bool isUpLeft = tofCluster.isUpLeftContributing();
-        bool isUp = tofCluster.isUpContributing();
-        bool isUpRight = tofCluster.isUpRightContributing();
-        bool isRight = tofCluster.isRightContributing();
-        bool isDownRight = tofCluster.isDownRightContributing();
-        bool isDown = tofCluster.isDownContributing();
-        bool isDownLeft = tofCluster.isDownLeftContributing();
-        bool isLeft = tofCluster.isLeftContributing();
-        Printf("isUpLeft = %d, isUp = %d, isUpRight = %d, isRight = %d, isDownRight = %d, isDown = %d, isDownLeft = %d, isLeft = %d", isUpLeft, isUp, isUpRight, isRight, isDownRight, isDown, isDownLeft, isLeft);
-        int* indexCont = new int();
-        indexCont[0] = indices[0];
-        indexCont[1] = indices[1];
-        indexCont[2] = indices[2];
+      bool isUpLeft = tofCluster.isAdditionalChannelSet(o2::tof::Cluster::kUpLeft);
+      bool isUp = tofCluster.isAdditionalChannelSet(o2::tof::Cluster::kUp);
+      bool isUpRight = tofCluster.isAdditionalChannelSet(o2::tof::Cluster::kUpRight);
+      bool isRight = tofCluster.isAdditionalChannelSet(o2::tof::Cluster::kRight);
+      bool isDownRight = tofCluster.isAdditionalChannelSet(o2::tof::Cluster::kDownRight);
+      bool isDown = tofCluster.isAdditionalChannelSet(o2::tof::Cluster::kDown);
+      bool isDownLeft = tofCluster.isAdditionalChannelSet(o2::tof::Cluster::kDownLeft);
+      bool isLeft = tofCluster.isAdditionalChannelSet(o2::tof::Cluster::kLeft);
+      Printf("isUpLeft = %d, isUp = %d, isUpRight = %d, isRight = %d, isDownRight = %d, isDown = %d, isDownLeft = %d, isLeft = %d", isUpLeft, isUp, isUpRight, isRight, isDownRight, isDown, isDownLeft, isLeft);
+      int* indexCont = new int();
+      indexCont[0] = indices[0];
+      indexCont[1] = indices[1];
+      indexCont[2] = indices[2];
+      indexCont[3] = indices[3];
+      indexCont[4] = indices[4];
+      int numberOfSecondaryContributingChannels = 0;
+      int secondaryContributingChannel = -1;
+      if (isDown) {
+        indexCont[3]--;
+        numberOfSecondaryContributingChannels++;
+        secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
+        Printf("secondaryContributingChannel[down] = %d", secondaryContributingChannel);
+        indexCont[3] = indices[3];
+      }
+      if (isDownRight) {
+        indexCont[3]--;
+        indexCont[4]++;
+        numberOfSecondaryContributingChannels++;
+        secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
+        Printf("secondaryContributingChannel[downright] = %d", secondaryContributingChannel);
         indexCont[3] = indices[3];
         indexCont[4] = indices[4];
-        if (isDown || isDownRight || isDownLeft) { // decrease padZ
-          indexCont[3]--;
-        }
-        if (isUp || isUpRight || isUpLeft) { // decrease padZ
-          indexCont[3]++;
-        }
-        if (isRight || isDownRight || isUpRight) { // decrease padZ
-          indexCont[4]++;
-        }
-        if (isLeft || isDownLeft || isUpLeft) { // decrease padZ
-          indexCont[4]--;
-        }
-        secondaryContributingChannels[ich - 1] = o2::tof::Geo::getIndex(indexCont);
-        Printf("secondaryContributingChannels[%d] = %d", ich - 1, secondaryContributingChannels[ich - 1]);
       }
+      if (isDownLeft) {
+        indexCont[3]--;
+        indexCont[4]--;
+        numberOfSecondaryContributingChannels++;
+        secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
+        Printf("secondaryContributingChannel[downleft] = %d", secondaryContributingChannel);
+        indexCont[3] = indices[3];
+        indexCont[4] = indices[4];
+      }
+      if (isUp) {
+        indexCont[3]++;
+        numberOfSecondaryContributingChannels++;
+        secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
+        Printf("secondaryContributingChannel[up] = %d", secondaryContributingChannel);
+        indexCont[3] = indices[3];
+      }
+      if (isUpRight) {
+        indexCont[3]++;
+        indexCont[4]++;
+        numberOfSecondaryContributingChannels++;
+        secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
+        Printf("secondaryContributingChannel[upright] = %d", secondaryContributingChannel);
+        indexCont[3] = indices[3];
+        indexCont[4] = indices[4];
+      }
+      if (isUpLeft) { // increase padZ
+        indexCont[3]++;
+        indexCont[4]--;
+        numberOfSecondaryContributingChannels++;
+        secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
+        Printf("secondaryContributingChannel[upleft] = %d", secondaryContributingChannel);
+        indexCont[3] = indices[3];
+        indexCont[4] = indices[4];
+      }
+      if (isRight) { // increase padX
+        indexCont[4]++;
+        numberOfSecondaryContributingChannels++;
+        secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
+        Printf("secondaryContributingChannel[right] = %d", secondaryContributingChannel);
+        indexCont[4] = indices[4];
+      }
+      if (isLeft) { // decrease padX
+        indexCont[4]--;
+        numberOfSecondaryContributingChannels++;
+        secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
+        Printf("secondaryContributingChannel[left] = %d", secondaryContributingChannel);
+        indexCont[4] = indices[4];
+      }
+      Printf("Total number of secondary channels= %d", numberOfSecondaryContributingChannels);
 
       o2::dataformats::TrackTPCITS trackITSTPC = mTracksArrayInp->at(indexITSTPCtrack);
       const o2::dataformats::EvIndex<int, int>& evIdxTPC = trackITSTPC.getRefTPC();
@@ -134,7 +193,7 @@ void checkTOFMatching()
 
       bool bMatched = kFALSE;
       for (int ilabel = 0; ilabel < labelsTOF.size(); ilabel++) {
-        if ((labelsTPC[0].getTrackID() == labelsTOF[ilabel].getTrackID() && labelsTPC[0].getEventID() == labelsTOF[ilabel].getEventID() && labelsTPC[0].getSourceID() == labelsTOF[ilabel].getSourceID()) || (labelsITS[0].getTrackID() == labelsTOF[ilabel].getTrackID() && labelsITS[0].getEventID() == labelsTOF[ilabel].getEventID() && labelsITS[0].getSourceID() == labelsTOF[ilabel].getSourceID())) {
+        if ((abs(labelsTPC[0].getTrackID()) == labelsTOF[ilabel].getTrackID() && labelsTPC[0].getEventID() == labelsTOF[ilabel].getEventID() && labelsTPC[0].getSourceID() == labelsTOF[ilabel].getSourceID()) || (labelsITS[0].getTrackID() == labelsTOF[ilabel].getTrackID() && labelsITS[0].getEventID() == labelsTOF[ilabel].getEventID() && labelsITS[0].getSourceID() == labelsTOF[ilabel].getSourceID())) {
           nGoodMatches++;
           bMatched = kTRUE;
           break;
@@ -152,7 +211,7 @@ void checkTOFMatching()
         itsTree->GetEntry(evIdxITScheck.getEvent());
         const auto& labelsTPCcheck = mcTPC->getLabels(evIdxTPCcheck.getIndex());
         for (int ilabel = 0; ilabel < labelsTPCcheck.size(); ilabel++) {
-          if (labelsTPCcheck[ilabel].getTrackID() == trackIdTOF && labelsTPCcheck[ilabel].getEventID() == eventIdTOF && labelsTPCcheck[ilabel].getSourceID() == sourceIdTOF) {
+          if (abs(labelsTPCcheck[ilabel].getTrackID()) == trackIdTOF && labelsTPCcheck[ilabel].getEventID() == eventIdTOF && labelsTPCcheck[ilabel].getSourceID() == sourceIdTOF) {
             Printf("The TPC track that should have been matched to TOF is number %d", i);
             TPCfound = true;
           }

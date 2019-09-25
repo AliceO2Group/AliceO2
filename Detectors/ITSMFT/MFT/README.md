@@ -1,3 +1,5 @@
+\page refMFT MFT
+
 The Muon Forward Tracker
 ========================
 
@@ -6,5 +8,4 @@ The Muon Forward Tracker
 
 #### What? 
 * A Si-tracking detector designed to add vertexing capabilities to the MUON spectrometer.
-
 

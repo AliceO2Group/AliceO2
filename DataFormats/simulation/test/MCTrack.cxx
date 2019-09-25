@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(MCTrack_test)
 // unit tests on stack
 BOOST_AUTO_TEST_CASE(Stack_test)
 {
-  o2::Data::Stack st;
+  o2::data::Stack st;
   int a;
   TMCProcess proc;
   // add a 2 primary particles
@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(Stack_test)
   }
 
   {
-    o2::Data::Stack* inst = nullptr;
+    o2::data::Stack* inst = nullptr;
     TFile f("StackOut.root", "OPEN");
     f.GetObject("Stack", inst);
     BOOST_CHECK(inst->getPrimaries().size() == 2);

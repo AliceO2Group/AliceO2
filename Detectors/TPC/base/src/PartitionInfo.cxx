@@ -10,22 +10,23 @@
 
 #include "TPCBase/PartitionInfo.h"
 
-namespace o2 {
-namespace TPC {
+namespace o2
+{
+namespace tpc
+{
 
-PartitionInfo::PartitionInfo(const unsigned char  numberOfFECs,
-                             const unsigned char  sectorFECOffset,
-                             const unsigned char  numberOfPadRows,
-                             const unsigned char  sectorPadRowOffset,
-                             const unsigned short numberOfPads
-                            )
-  : mNumberOfFECs   {numberOfFECs      },
-    mSectorFECOffset{sectorFECOffset   },
-    mNumberOfPadRows{numberOfPadRows   },
+PartitionInfo::PartitionInfo(const unsigned char numberOfFECs,
+                             const unsigned char sectorFECOffset,
+                             const unsigned char numberOfPadRows,
+                             const unsigned char sectorPadRowOffset,
+                             const unsigned short numberOfPads)
+  : mNumberOfFECs{numberOfFECs},
+    mSectorFECOffset{sectorFECOffset},
+    mNumberOfPadRows{numberOfPadRows},
     mGlobalRowOffset{sectorPadRowOffset},
-    mNumberOfPads   {numberOfPads      }
+    mNumberOfPads{numberOfPads}
 {
 }
 
-} // namespace TPC
-} // namespace AliceO2
+} // namespace tpc
+} // namespace o2

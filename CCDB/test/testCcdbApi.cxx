@@ -18,7 +18,11 @@
 #define BOOST_TEST_DYN_LINK
 
 #include "CCDB/CcdbApi.h"
+#include "CCDB/IdPath.h"    // just as test object
+#include "CCDB/Condition.h" // just as test object
+#include "CCDB/CCDBTimeStampUtils.h"
 #include <boost/test/unit_test.hpp>
+#include <boost/filesystem.hpp>
 #include <cassert>
 #include <iostream>
 #include <cstdio>
@@ -27,106 +31,248 @@
 #include <fcntl.h>
 #include <TH1F.h>
 #include <chrono>
+#include <CommonUtils/StringUtils.h>
+#include <TMessage.h>
+#include <TStreamerInfo.h>
+#include <TGraph.h>
+#include <TTree.h>
+#include <TString.h>
 
 using namespace std;
 using namespace o2::ccdb;
+namespace utf = boost::unit_test;
+namespace tt = boost::test_tools;
 
+static string ccdbUrl = "http://ccdb-test.cern.ch:8080";
+bool hostReachable = false;
+
+/**
+ * Global fixture, ie general setup and teardown
+ */
+struct Fixture {
+  Fixture()
+  {
+    CcdbApi api;
+    api.init(ccdbUrl);
+    hostReachable = api.isHostReachable();
+    cout << "Is host reachable ? --> " << hostReachable << endl;
+  }
+  ~Fixture() = default;
+};
+BOOST_GLOBAL_FIXTURE(Fixture);
+
+/**
+ * Just an accessor to the hostReachable variable to be used to determine whether tests can be ran or not.
+ */
+struct if_reachable {
+  tt::assertion_result operator()(utf::test_unit_id)
+  {
+    return hostReachable;
+  }
+};
+
+/**
+ * Fixture for the tests, i.e. code is ran in every test that uses it, i.e. it is like a setup and teardown for tests.
+ */
 struct test_fixture {
   test_fixture()
   {
-    api.init("http://ccdb-test.cern.ch:8080");
+    api.init(ccdbUrl);
+    std::cout << "*** " << boost::unit_test::framework::current_test_case().p_name << " ***" << std::endl;
   }
-
-  ~test_fixture()
-  {
-  }
+  ~test_fixture() = default;
 
   CcdbApi api;
   map<string, string> metadata;
 };
 
-long getFutureTimestamp(int secondsInFuture)
-{
-  std::chrono::seconds sec(secondsInFuture);
-  auto future = std::chrono::system_clock::now() + sec;
-  auto future_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(future);
-  auto epoch = future_ms.time_since_epoch();
-  auto value = std::chrono::duration_cast<std::chrono::milliseconds>(epoch);
-  return value.count();
-}
-
-long getCurrentTimestamp()
-{
-  auto now = std::chrono::system_clock::now();
-  auto now_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
-  auto epoch = now_ms.time_since_epoch();
-  auto value = std::chrono::duration_cast<std::chrono::milliseconds>(epoch);
-  return value.count();
-}
-
-BOOST_AUTO_TEST_CASE(store_test)
+BOOST_AUTO_TEST_CASE(storeTMemFile_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 
-  auto h1 = new TH1F("object1", "object1", 100, 0, 99);
-  f.api.store(h1, "Test/Detector", f.metadata);
+  TH1F h1("th1name", "th1name", 100, 0, 99);
+  h1.FillRandom("gaus", 10000);
+  BOOST_CHECK_EQUAL(h1.ClassName(), "TH1F");
+  f.api.storeAsTFile(&h1, "Test/th1", f.metadata);
+
+  TGraph graph(10);
+  graph.SetPoint(0, 2, 3);
+  f.api.storeAsTFile(&graph, "Test/graph", f.metadata);
+
+  TTree tree("mytree", "mytree");
+  int a = 4;
+  tree.Branch("det", &a, "a/I");
+  tree.Fill();
+  f.api.storeAsTFile(&tree, "Test/tree", f.metadata);
 }
 
-BOOST_AUTO_TEST_CASE(retrieve_test)
+BOOST_AUTO_TEST_CASE(store_retrieve_TMemFile_templated_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 
-  auto h1 = f.api.retrieve("Test/Detector", f.metadata);
-  BOOST_CHECK(h1 != nullptr);
-  BOOST_CHECK_EQUAL(h1->GetName(), "object1");
+  // try to store a user defined class
+  // since we don't depend on anything, we are putting an object known to CCDB
+  o2::ccdb::IdPath path;
+  path.setPath("HelloWorld");
 
-  auto h2 = f.api.retrieve("asdf/asdf", f.metadata);
-  BOOST_CHECK(h2 == nullptr);
+  f.api.storeAsTFileAny(&path, "Test/CCDBPath", f.metadata);
+
+  // try to retrieve strongly typed user defined class
+  // since we don't depend on anything, we are using an object known to CCDB
+  o2::ccdb::IdPath* path2 = nullptr;
+
+  path2 = f.api.retrieveFromTFileAny<o2::ccdb::IdPath>("Test/CCDBPath", f.metadata);
+  BOOST_CHECK_NE(path2, nullptr);
+
+  // check some non-trivial data content
+  BOOST_CHECK(path2 && path2->getPathString().CompareTo("HelloWorld") == 0);
+
+  // try to query with different type and verify that we get nullptr
+  BOOST_CHECK(f.api.retrieveFromTFileAny<o2::ccdb::Condition>("Test/CCDBPath", f.metadata) == nullptr);
+
+  //-----------------------------------------------------------------------------------------------
+  // test if writing/reading complicated objects like TTree works (because of particular ownership)
+  // ----------------------------------------------------------------------------------------------
+  auto tree = new TTree("tree123", "tree123");
+  int a = 4;
+  tree->Branch("det", &a, "a/I");
+  tree->Fill();
+  f.api.storeAsTFileAny(tree, "Test/tree2", f.metadata);
+  delete tree;
+
+  // read back
+  tree = f.api.retrieveFromTFileAny<TTree>("/Test/tree2", f.metadata);
+  BOOST_CHECK(tree != nullptr);
+  BOOST_CHECK(tree != nullptr && std::strcmp(tree->GetName(), "tree123") == 0);
+  BOOST_CHECK(tree != nullptr && tree->GetEntries() == 1);
+
+  // ---------------------------
+  // test the snapshot mechanism
+  // ---------------------------
+  // a) create a local snapshot of the Test folder
+  auto ph = boost::filesystem::unique_path();
+  boost::filesystem::create_directories(ph);
+  f.api.snapshot("/Test", ph.string(), o2::ccdb::getCurrentTimestamp());
+  std::cout << "Creating snapshot at " << ph.string() << "\n";
+
+  // b) init a new instance from the snapshot and query something from it
+  o2::ccdb::CcdbApi snapshot;
+  snapshot.init("file://" + ph.string());
+
+  // c) query from the snapshot
+  BOOST_CHECK(snapshot.retrieveFromTFileAny<o2::ccdb::IdPath>("Test/CCDBPath", f.metadata) != nullptr);
+
+  {
+    auto tree = snapshot.retrieveFromTFileAny<TTree>("/Test/tree2", f.metadata);
+    BOOST_CHECK(tree != nullptr);
+    BOOST_CHECK(tree != nullptr && std::strcmp(tree->GetName(), "tree123") == 0);
+    BOOST_CHECK(tree != nullptr && tree->GetEntries() == 1);
+  }
+
+  // d) cleanup local snapshot
+  if (boost::filesystem::exists(ph)) {
+    boost::filesystem::remove_all(ph);
+  }
 }
 
-BOOST_AUTO_TEST_CASE(truncate_test)
+/// A test verifying that the DB responds the correct result for given timestamps
+BOOST_AUTO_TEST_CASE(timestamptest, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 
-  auto h1 = f.api.retrieve("Test/Detector", f.metadata);
+  // try to store a user defined class
+  // since we don't depend on anything, we are putting an object known to CCDB
+  o2::ccdb::IdPath path;
+  path.setPath("HelloWorld");
+
+  const long timestamp = 1000;             // inclusive start of validity
+  const long endvalidity = timestamp + 10; // exclusive end of validitiy
+  f.api.storeAsTFileAny(&path, "Test/CCDBPathUnitTest", f.metadata, timestamp, endvalidity);
+
+  // try to retrieve strongly typed user defined class
+  // since we don't depend on anything, we are using an object known to CCDB
+  o2::ccdb::IdPath* path2 = nullptr;
+
+  path2 = f.api.retrieveFromTFileAny<o2::ccdb::IdPath>("Test/CCDBPathUnitTest", f.metadata, timestamp);
+  BOOST_CHECK_NE(path2, nullptr);
+
+  // check that we get something for the whole time range
+  for (int t = timestamp; t < endvalidity; ++t) {
+    auto p = f.api.retrieveFromTFileAny<o2::ccdb::IdPath>("Test/CCDBPathUnitTest", f.metadata, t);
+    BOOST_CHECK_NE(p, nullptr);
+  }
+
+  // check that answer is null for anything outside
+  auto plower = f.api.retrieveFromTFileAny<o2::ccdb::IdPath>("Test/CCDBPathUnitTest", f.metadata, timestamp - 1);
+  BOOST_CHECK(plower == nullptr);
+
+  auto pupper = f.api.retrieveFromTFileAny<o2::ccdb::IdPath>("Test/CCDBPathUnitTest", f.metadata, endvalidity);
+  BOOST_CHECK(pupper == nullptr);
+}
+
+BOOST_AUTO_TEST_CASE(retrieveTMemFile_test, *utf::precondition(if_reachable()))
+{
+  test_fixture f;
+
+  TObject* obj = f.api.retrieveFromTFile("Test/th1", f.metadata);
+  BOOST_CHECK_NE(obj, nullptr);
+  BOOST_CHECK_EQUAL(obj->ClassName(), "TH1F");
+  auto h1 = dynamic_cast<TH1F*>(obj);
+  BOOST_CHECK_NE(h1, nullptr);
+  BOOST_CHECK_EQUAL(obj->GetName(), "th1name");
+  delete obj;
+
+  obj = f.api.retrieveFromTFile("Test/graph", f.metadata);
+  BOOST_CHECK_NE(obj, nullptr);
+  BOOST_CHECK_EQUAL(obj->ClassName(), "TGraph");
+  auto graph = dynamic_cast<TGraph*>(obj);
+  BOOST_CHECK_NE(graph, nullptr);
+  double x, y;
+  int ret = graph->GetPoint(0, x, y);
+  BOOST_CHECK_EQUAL(ret, 0);
+  BOOST_CHECK_EQUAL(x, 2);
+  BOOST_CHECK_EQUAL(graph->GetN(), 10);
+  delete graph;
+
+  obj = f.api.retrieveFromTFile("Test/tree", f.metadata);
+  BOOST_CHECK_NE(obj, nullptr);
+  BOOST_CHECK_EQUAL(obj->ClassName(), "TTree");
+  auto tree = dynamic_cast<TTree*>(obj);
+  BOOST_CHECK_NE(tree, nullptr);
+  BOOST_CHECK_EQUAL(tree->GetName(), "mytree");
+  delete obj;
+
+  // wrong url
+  obj = f.api.retrieveFromTFile("Wrong/wrong", f.metadata);
+  BOOST_CHECK_EQUAL(obj, nullptr);
+}
+
+BOOST_AUTO_TEST_CASE(truncate_test, *utf::precondition(if_reachable()))
+{
+  test_fixture f;
+
+  TH1F h("object1", "object1", 100, 0, 99);
+  f.api.storeAsTFile(&h, "Test/Detector", f.metadata); // test with explicit dates
+  auto h1 = f.api.retrieveFromTFile("Test/Detector", f.metadata);
   BOOST_CHECK(h1 != nullptr);
   f.api.truncate("Test/Detector");
-  h1 = f.api.retrieve("Test/Detector", f.metadata);
+  h1 = f.api.retrieveFromTFile("Test/Detector", f.metadata);
   BOOST_CHECK(h1 == nullptr);
 }
 
-BOOST_AUTO_TEST_CASE(delete_test)
+BOOST_AUTO_TEST_CASE(delete_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 
-  auto h1 = new TH1F("object1", "object1", 100, 0, 99);
-  long from = getCurrentTimestamp();
-  long to = getFutureTimestamp(60 * 60 * 24 * 365 * 10);
-  f.api.store(h1, "Test/Detector", f.metadata, from, to); // test with explicit dates
-  auto h2 = f.api.retrieve("Test/Detector", f.metadata);
+  TH1F h1("object1", "object1", 100, 0, 99);
+  long from = o2::ccdb::getCurrentTimestamp();
+  long to = o2::ccdb::getFutureTimestamp(60 * 60 * 24 * 365 * 10);
+  f.api.storeAsTFile(&h1, "Test/Detector", f.metadata, from, to); // test with explicit dates
+  auto h2 = f.api.retrieveFromTFile("Test/Detector", f.metadata);
   BOOST_CHECK(h2 != nullptr);
   f.api.deleteObject("Test/Detector");
-  h2 = f.api.retrieve("Test/Detector", f.metadata);
+  h2 = f.api.retrieveFromTFile("Test/Detector", f.metadata);
   BOOST_CHECK(h2 == nullptr);
-}
-
-/// trim from start (in place)
-/// https://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
-static inline void ltrim(std::string& s)
-{
-  s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
-            return !std::isspace(ch);
-          }));
-}
-
-/// trim from end (in place)
-/// https://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
-static inline void rtrim(std::string& s)
-{
-  s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
-            return !std::isspace(ch);
-          }).base(),
-          s.end());
 }
 
 void countItems(const string& s, int& countObjects, int& countSubfolders)
@@ -137,8 +283,8 @@ void countItems(const string& s, int& countObjects, int& countSubfolders)
   std::string line;
   bool subfolderMode = false;
   while (std::getline(ss, line, '\n')) {
-    ltrim(line);
-    rtrim(line);
+    o2::utils::ltrim(line);
+    o2::utils::rtrim(line);
     if (line.length() == 0) {
       continue;
     }
@@ -161,7 +307,7 @@ void countItems(const string& s, int& countObjects, int& countSubfolders)
   }
 }
 
-BOOST_AUTO_TEST_CASE(list_test)
+BOOST_AUTO_TEST_CASE(list_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 
@@ -179,17 +325,17 @@ BOOST_AUTO_TEST_CASE(list_test)
   BOOST_CHECK_EQUAL(countObjects, 0);
 
   // more complex tree
-  auto h1 = new TH1F("object1", "object1", 100, 0, 99);
+  TH1F h1("object1", "object1", 100, 0, 99);
   cout << "storing object 1 in Test" << endl;
-  f.api.store(h1, "Test", f.metadata);
+  f.api.storeAsTFile(&h1, "Test", f.metadata);
   cout << "storing object 2 in Test/Detector" << endl;
-  f.api.store(h1, "Test/Detector", f.metadata);
+  f.api.storeAsTFile(&h1, "Test/Detector", f.metadata);
   cout << "storing object 3 in Test/Detector" << endl;
-  f.api.store(h1, "Test/Detector", f.metadata);
+  f.api.storeAsTFile(&h1, "Test/Detector", f.metadata);
   cout << "storing object 4 in Test/Detector" << endl;
-  f.api.store(h1, "Test/Detector", f.metadata);
+  f.api.storeAsTFile(&h1, "Test/Detector", f.metadata);
   cout << "storing object 5 in Test/Detector/Sub/abc" << endl;
-  f.api.store(h1, "Test/Detector/Sub/abc", f.metadata);
+  f.api.storeAsTFile(&h1, "Test/Detector/Sub/abc", f.metadata);
 
   s = f.api.list("Test/Detector", false, "application/json");
   countItems(s, countObjects, countSubfolders);

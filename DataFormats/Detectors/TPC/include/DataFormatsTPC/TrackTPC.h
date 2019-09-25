@@ -15,11 +15,11 @@
 
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/Defs.h"
-#include "DataFormatsTPC/Cluster.h"
+#include "DataFormatsTPC/dEdxInfo.h"
 
 namespace o2
 {
-namespace TPC
+namespace tpc
 {
 /// \class TrackTPC
 /// This is the definition of the TPC Track Object
@@ -42,38 +42,18 @@ class TrackTPC : public o2::track::TrackParCov
   /// Destructor
   ~TrackTPC() = default;
 
-  /// Add a single cluster to the track
-  void addCluster(const Cluster& c);
-
-  /// Add an array/vector of clusters to the track; ClusterType needs to inherit from o2::TPC::Cluster
-  template <typename ClusterType>
-  void addClusterArray(std::vector<ClusterType>* arr);
-
-  /// Get the clusters which are associated with the track
-  /// \return clusters of the track as a std::vector
-  void getClusterVector(std::vector<Cluster>& clVec) const { clVec = mClusterVector; }
-  /// Get the truncated mean energy loss of the track
-  /// \param low low end of truncation
-  /// \param high high end of truncation
-  /// \param type 0 for Qmax, 1 for Q
-  /// \param removeRows option to remove certain rows from the dEdx calculation
-  /// \param nclPID pass any pointer to have the number of used clusters written to it
-  /// \return mean energy loss
-  float getTruncatedMean(float low = 0.05, float high = 0.7, int type = 1, int removeRows = 0,
-                         int* nclPID = nullptr) const;
-
   unsigned short getFlags() const { return mFlags; }
   unsigned short getClustersSideInfo() const { return mFlags & HasBothSidesClusters; }
   bool hasASideClusters() const { return mFlags & HasASideClusters; }
   bool hasCSideClusters() const { return mFlags & HasCSideClusters; }
-  bool hasBothSidesClusters() const { return mFlags & (HasASideClusters | HasCSideClusters); }
+  bool hasBothSidesClusters() const { return (mFlags & (HasASideClusters | HasCSideClusters)) == (HasASideClusters | HasCSideClusters); }
   bool hasASideClustersOnly() const { return (mFlags & HasBothSidesClusters) == HasASideClusters; }
   bool hasCSideClustersOnly() const { return (mFlags & HasBothSidesClusters) == HasCSideClusters; }
 
   void setHasASideClusters() { mFlags |= HasASideClusters; }
   void setHasCSideClusters() { mFlags |= HasCSideClusters; }
 
-  float getTime0() const { return mTime0; } ///< Reference time of the track, i.e. t-bins of a primary track with eta=0.
+  float getTime0() const { return mTime0; }         ///< Reference time of the track, i.e. t-bins of a primary track with eta=0.
   short getDeltaTBwd() const { return mDeltaTBwd; } ///< max possible decrement to getTimeVertex
   short getDeltaTFwd() const { return mDeltaTFwd; } ///< max possible increment to getTimeVertex
   void setDeltaTBwd(short t) { mDeltaTBwd = t; }    ///< set max possible decrement to getTimeVertex
@@ -98,21 +78,22 @@ class TrackTPC : public o2::track::TrackParCov
     sectorIndex = reinterpret_cast<const uint8_t*>(mClusterReferences.data())[4 * mNClusters + nCluster];
     rowIndex = reinterpret_cast<const uint8_t*>(mClusterReferences.data())[5 * mNClusters + nCluster];
   }
-  const o2::TPC::ClusterNative& getCluster(int nCluster, const o2::TPC::ClusterNativeAccessFullTPC& clusters,
+  const o2::tpc::ClusterNative& getCluster(int nCluster, const o2::tpc::ClusterNativeAccess& clusters,
                                            uint8_t& sectorIndex, uint8_t& rowIndex) const
   {
     uint32_t clusterIndex;
     getClusterReference(nCluster, sectorIndex, rowIndex, clusterIndex);
     return (clusters.clusters[sectorIndex][rowIndex][clusterIndex]);
   }
-  const o2::TPC::ClusterNative& getCluster(int nCluster, const o2::TPC::ClusterNativeAccessFullTPC& clusters) const
+  const o2::tpc::ClusterNative& getCluster(int nCluster, const o2::tpc::ClusterNativeAccess& clusters) const
   {
     uint8_t sectorIndex, rowIndex;
     return (getCluster(nCluster, clusters, sectorIndex, rowIndex));
   }
+  const dEdxInfo& getdEdx() const { return mdEdx; }
+  void setdEdx(const dEdxInfo& v) { mdEdx = v; }
 
  private:
-  std::vector<Cluster> mClusterVector;
   float mTime0 = 0.f;                 ///< Reference Z of the track assumed for the vertex, scaled with pseudo
                                       ///< VDrift and reference timeframe length, unless it was moved to be on the
                                       ///< side of TPC compatible with edge clusters sides.
@@ -122,6 +103,7 @@ class TrackTPC : public o2::track::TrackParCov
   short mFlags = 0;                   ///< various flags, see Flags enum
   float mChi2 = 0.f;                  // Chi2 of the track
   o2::track::TrackParCov mOuterParam; // Track parameters at outer end of TPC.
+  dEdxInfo mdEdx;                     // dEdx Information
 
   // New structure to store cluster references
   std::vector<uint32_t> mClusterReferences;
@@ -129,17 +111,7 @@ class TrackTPC : public o2::track::TrackParCov
   ClassDefNV(TrackTPC, 2); // RS TODO set to 1
 };
 
-inline void TrackTPC::addCluster(const Cluster& c) { mClusterVector.push_back(c); }
-template <typename ClusterType>
-inline void TrackTPC::addClusterArray(std::vector<ClusterType>* arr)
-{
-  static_assert(std::is_base_of<o2::TPC::Cluster, ClusterType>::value,
-                "ClusterType needs to inherit from o2::TPC::Cluster");
-  for (auto clusterObject : *arr) {
-    addCluster(clusterObject);
-  }
-}
-}
-}
+} // namespace tpc
+} // namespace o2
 
 #endif

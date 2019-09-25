@@ -85,7 +85,7 @@ const SerializationMethod NameHeader<N>::sSerializationMethod = gSerializationMe
 
 template <size_t N>
 const uint32_t NameHeader<N>::sVersion = 1;
-}
-}
+} // namespace header
+} // namespace o2
 
 #endif // NAMEHEADER_H

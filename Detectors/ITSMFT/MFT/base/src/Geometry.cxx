@@ -24,9 +24,9 @@
 #include "MFTBase/LadderSegmentation.h"
 #include "MFTBase/ChipSegmentation.h"
 
-using namespace o2::MFT;
+using namespace o2::mft;
 
-ClassImp(o2::MFT::Geometry);
+ClassImp(o2::mft::Geometry);
 
 const Double_t Geometry::sSensorInterspace = 0.01; //[cm]  Offset between two adjacent chip on a ladder
 const Double_t Geometry::sSensorSideOffset = 0.04; // [cm] Side Offset between the ladder edge and the chip edge
@@ -79,7 +79,7 @@ const Double_t Geometry::sKaptonGlueThickness = 0.0027 / 2;         // thickness
 
 TGeoHMatrix Geometry::sTransMFT2ITS = [] {
   TGeoHMatrix tmp;
-  Double_t rot[9] = { 0., 1., 0., 0., 0., 1., 1., 0., 0. };
+  Double_t rot[9] = {0., 1., 0., 0., 0., 1., 1., 0., 0.};
   tmp.SetRotation(rot);
   // equivalent to
   // tmp.RotateY(-90.);

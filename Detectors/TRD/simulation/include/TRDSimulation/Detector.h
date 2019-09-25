@@ -16,18 +16,31 @@
 #include "SimulationDataFormat/BaseHits.h"
 #include "CommonUtils/ShmAllocator.h"
 
-#include "TRDSimulation/TRsim.h"
-
 class FairVolume;
 
 namespace o2
 {
 namespace trd
 {
-class HitType : public o2::BasicXYZEHit<float>
+class HitType : public o2::BasicXYZQHit<float>
 {
  public:
-  using BasicXYZEHit<float>::BasicXYZEHit;
+  using BasicXYZQHit<float>::BasicXYZQHit;
+  HitType(float x, float y, float z, float lCol, float lRow, float lTime, float tof, int charge, int trackId, int detId, bool drift)
+    : mInDrift(drift), locC(lCol), locR(lRow), locT(lTime), BasicXYZQHit(x, y, z, tof, charge, trackId, detId){};
+  bool isFromDriftRegion() const { return mInDrift; }
+  void setLocalC(float lCol) { locC = lCol; }
+  void setLocalR(float lRow) { locR = lRow; }
+  void setLocalT(float lTime) { locT = lTime; }
+  float getLocalC() const { return locC; }
+  float getLocalR() const { return locR; }
+  float getLocalT() const { return locT; }
+
+ private:
+  bool mInDrift{false};
+  float locC{-99}; // col direction in amplification or drift volume
+  float locR{-99}; // row direction in amplification or drift volume
+  float locT{-99}; // time direction in amplification or drift volume
 };
 } // namespace trd
 } // namespace o2
@@ -46,21 +59,18 @@ namespace o2
 {
 namespace trd
 {
-class TRDGeometry;
 
-class Detector : public o2::Base::DetImpl<Detector>
+class TRDGeometry;
+class TRsim;
+
+class Detector : public o2::base::DetImpl<Detector>
 {
  public:
   Detector(Bool_t active = true);
-
   ~Detector() override;
-
   void InitializeO2Detector() override;
-
   bool ProcessHits(FairVolume* v = nullptr) override;
-
   void Register() override;
-
   std::vector<HitType>* getHits(int iColl) const
   {
     if (iColl == 0) {
@@ -68,13 +78,11 @@ class Detector : public o2::Base::DetImpl<Detector>
     }
     return nullptr;
   }
-
+  void FinishEvent() override;
   void Reset() override;
   void EndOfEvent() override;
-
   void createMaterials();
   void ConstructGeometry() override;
-
   /// Add alignable top volumes
   void addAlignableVolumes() const override;
 
@@ -87,7 +95,7 @@ class Detector : public o2::Base::DetImpl<Detector>
 
   // addHit
   template <typename T>
-  void addHit(T x, T y, T z, T time, T energy, int trackId, int detId);
+  void addHit(T x, T y, T z, T locC, T locR, T locT, T tof, int charge, int trackId, int detId, bool drift = false);
 
   // Create TR hits
   void createTRhit(int);
@@ -106,14 +114,14 @@ class Detector : public o2::Base::DetImpl<Detector>
   TRDGeometry* mGeom = nullptr;
 
   template <typename Det>
-  friend class o2::Base::DetImpl;
-  ClassDefOverride(Detector, 1)
+  friend class o2::base::DetImpl;
+  ClassDefOverride(Detector, 1);
 };
 
 template <typename T>
-void Detector::addHit(T x, T y, T z, T time, T energy, int trackId, int detId)
+void Detector::addHit(T x, T y, T z, T locC, T locR, T locT, T tof, int charge, int trackId, int detId, bool drift)
 {
-  mHits->emplace_back(x, y, z, time, energy, trackId, detId);
+  mHits->emplace_back(x, y, z, locC, locR, locT, tof, charge, trackId, detId, drift);
 }
 
 } // namespace trd
@@ -122,13 +130,13 @@ void Detector::addHit(T x, T y, T z, T time, T energy, int trackId, int detId)
 #ifdef USESHM
 namespace o2
 {
-namespace Base
+namespace base
 {
 template <>
 struct UseShm<o2::trd::Detector> {
   static constexpr bool value = true;
 };
-} // namespace Base
+} // namespace base
 } // namespace o2
 #endif
 #endif

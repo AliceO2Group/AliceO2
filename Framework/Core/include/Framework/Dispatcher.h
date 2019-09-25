@@ -17,7 +17,9 @@
 #define ALICEO2_DISPATCHER_H
 
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DeviceSpec.h"
 #include "Framework/DataSamplingPolicy.h"
+#include "Framework/DataSamplingHeader.h"
 #include "Framework/Task.h"
 
 namespace o2
@@ -46,8 +48,11 @@ class Dispatcher : public Task
   Outputs getOutputSpecs();
 
  private:
-  void send(DataAllocator& dataAllocator, const DataRef& inputData, const Output& output) const;
-  void sendFairMQ(FairMQDevice* device, const DataRef& inputData, const std::string& fairMQChannel) const;
+  DataSamplingHeader prepareDataSamplingHeader(const DataSamplingPolicy& policy, const DeviceSpec& spec);
+  header::Stack extractAdditionalHeaders(const char* inputHeaderStack) const;
+  void send(DataAllocator& dataAllocator, const DataRef& inputData, Output&& output) const;
+  void sendFairMQ(FairMQDevice* device, const DataRef& inputData, const std::string& fairMQChannel,
+                  header::Stack&& stack) const;
 
   std::string mName;
   std::string mReconfigurationSource;
