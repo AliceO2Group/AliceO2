@@ -126,8 +126,6 @@ if(ENABLE_OPENCL2)
      OR OPENCL2_ENABLED_AMD
      OR OPENCL2_ENABLED_SPIRV)
     set(OPENCL2_ENABLED ON)
-    add_library(ROCm::rocThrust ALIAS rocthrust)
-
     message(
       STATUS
         "Found OpenCL 2 (${OpenCL_VERSION_STRING} ; AMD ${OPENCL2_ENABLED_AMD} ${CLANG_OCL} ; SPIR-V ${OPENCL2_ENABLED_SPIRV} ${LLVM_SPIRV} with CLANG ${LLVM_PACKAGE_VERSION})"
@@ -182,6 +180,7 @@ if(ENABLE_HIP)
     endif()
     if(hip_FOUND AND hipcub_FOUND AND rocthrust_FOUND AND rocprim_FOUND AND hip_HIPCC_EXECUTABLE)
       set(HIP_ENABLED ON)
+      add_library(ROCm::rocThrust ALIAS rocthrust)
       message(STATUS "HIP Found (${hip_HIPCC_EXECUTABLE})")
     endif()
   endif()
