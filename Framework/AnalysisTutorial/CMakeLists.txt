@@ -39,3 +39,8 @@ o2_add_executable(dynamic-columns
                   SOURCES src/dynamicColumns.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
+
+o2_add_executable(histograms
+                  SOURCES src/histograms.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME AnalysisTutorial)

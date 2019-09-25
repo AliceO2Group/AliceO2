@@ -45,6 +45,13 @@ OutputSpec::OutputSpec(header::DataOrigin inOrigin, header::DataDescription inDe
 {
 }
 
+OutputSpec::OutputSpec(OutputLabel const& inBinding, ConcreteDataMatcher const& concrete, enum Lifetime inLifetime)
+  : binding{inBinding},
+    matcher{concrete},
+    lifetime{inLifetime}
+{
+}
+
 OutputSpec::OutputSpec(ConcreteDataTypeMatcher const& dataType,
                        enum Lifetime inLifetime)
   : binding{OutputLabel{""}},
