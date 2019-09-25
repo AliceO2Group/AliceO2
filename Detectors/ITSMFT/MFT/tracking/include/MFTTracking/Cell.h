@@ -46,8 +46,8 @@ class Cell final
   const Bool_t isUsed() const { return mIsUsed; }
   const Int_t getCellId() const { return mCellId; };
   void setCellId(const Int_t);
-  const std::array<std::pair<Int_t, Int_t>, Constants::mft::MaxCellNeighbours>& getLeftNeighbours() const;
-  const std::array<std::pair<Int_t, Int_t>, Constants::mft::MaxCellNeighbours>& getRightNeighbours() const;
+  const std::array<std::pair<Int_t, Int_t>, constants::mft::MaxCellNeighbours>& getLeftNeighbours() const;
+  const std::array<std::pair<Int_t, Int_t>, constants::mft::MaxCellNeighbours>& getRightNeighbours() const;
   const UChar_t getNLeftNeighbours() const { return mNLeftNeighbours; }
   const UChar_t getNRightNeighbours() const { return mNRightNeighbours; }
 
@@ -62,8 +62,8 @@ class Cell final
   Int_t mCellId;
   UChar_t mNLeftNeighbours;
   UChar_t mNRightNeighbours;
-  std::array<std::pair<Int_t, Int_t>, Constants::mft::MaxCellNeighbours> mLeftNeighbours;
-  std::array<std::pair<Int_t, Int_t>, Constants::mft::MaxCellNeighbours> mRightNeighbours;
+  std::array<std::pair<Int_t, Int_t>, constants::mft::MaxCellNeighbours> mLeftNeighbours;
+  std::array<std::pair<Int_t, Int_t>, constants::mft::MaxCellNeighbours> mRightNeighbours;
 };
 
 inline Cell::Cell()
@@ -133,12 +133,12 @@ inline void Cell::addLeftNeighbour(const Int_t layer, const Int_t clusterId)
   std::cout << "Cell::addLeftNeighbour done..." << std::endl;
 }
 
-inline const std::array<std::pair<Int_t, Int_t>, Constants::mft::MaxCellNeighbours>& Cell::getLeftNeighbours() const
+inline const std::array<std::pair<Int_t, Int_t>, constants::mft::MaxCellNeighbours>& Cell::getLeftNeighbours() const
 {
   return mLeftNeighbours;
 }
 
-inline const std::array<std::pair<Int_t, Int_t>, Constants::mft::MaxCellNeighbours>& Cell::getRightNeighbours() const
+inline const std::array<std::pair<Int_t, Int_t>, constants::mft::MaxCellNeighbours>& Cell::getRightNeighbours() const
 {
   return mRightNeighbours;
 }

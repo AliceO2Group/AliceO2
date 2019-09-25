@@ -58,9 +58,9 @@ Int_t IOUtils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event,
     Float_t rCoord = clsPoint2D.R();
     Float_t phiCoord = clsPoint2D.Phi();
     o2::utils::BringTo02PiGen(phiCoord);
-    Int_t rBinIndex = Constants::IndexTable::getRBinIndex(rCoord);
-    Int_t phiBinIndex = Constants::IndexTable::getPhiBinIndex(phiCoord);
-    Int_t binIndex = Constants::IndexTable::getBinIndex(rBinIndex, phiBinIndex);
+    Int_t rBinIndex = constants::index_table::getRBinIndex(rCoord);
+    Int_t phiBinIndex = constants::index_table::getPhiBinIndex(phiCoord);
+    Int_t binIndex = constants::index_table::getBinIndex(rBinIndex, phiBinIndex);
     event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), phiCoord, rCoord, event.getClustersInLayer(layer).size(), binIndex);
     event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
     event.addClusterExternalIndexToLayer(layer, first + clusterId);
