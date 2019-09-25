@@ -11,7 +11,7 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/HistogramRegistry.h"
-#include <TH1.h>
+#include <TH1F.h>
 
 using namespace o2;
 using namespace o2::framework;
@@ -31,12 +31,13 @@ struct ATask {
      {"Test6", "SomethingElse6", {"TH1F", 100, 0, 2 * M_PI}},
      {"Test7", "SomethingElse7", {"TH1F", 100, 0, 2 * M_PI}}}};
 
+  OutputObj<TH1F> myHisto{TH1F("something", "somethingElse", 100, 0., 1.)};
+
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
       auto phi = asin(track.snp()) + track.alpha() + M_PI;
-
-      registry.get("SomethingElse")->Fill(phi);
+      myHisto->Fill(phi);
     }
   }
 };
