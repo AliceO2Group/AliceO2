@@ -13,7 +13,7 @@ o2_add_test(StressTest
             SOURCES src/CathodeSegmentation.cxx src/CathodeSegmentationLong.cxx
                     src/Segmentation.cxx
             COMPONENT_NAME mchmapping
-            PUBLIC_LINK_LIBRARIES O2::MCHMappingImpl3 O2::MCHMappingSegContour3
+            PUBLIC_LINK_LIBRARIES O2::MCHMappingImpl3 O2::MCHMappingSegContour
                                   RapidJSON::RapidJSON
             LABELS "muon;mch;long" CONFIGURATIONS RelWithDebInfo)
 
@@ -24,7 +24,7 @@ if(benchmark_FOUND)
                     IS_BENCHMARK
                     COMPONENT_NAME mch
                     PUBLIC_LINK_LIBRARIES O2::MCHMappingImpl3
-                                          O2::MCHMappingSegContour3
+                                          O2::MCHMappingSegContour
                                           benchmark::benchmark)
 endif()
 
