@@ -2924,14 +2924,20 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
   TGeoVolume* unitVol[2];
   unitVol[0] = new TGeoVolume("SpaceFrameUnit0", frameUnit, medAir);
   unitVol[1] = new TGeoVolume("SpaceFrameUnit1", frameUnit, medAir);
+  unitVol[0]->SetVisibility(kFALSE);
+  unitVol[1]->SetVisibility(kFALSE);
 
   TGeoVolume* next2EndVol[2];
   next2EndVol[0] = new TGeoVolume("SpaceFrameNext2EndUnit0", next2EndUnit, medAir);
   next2EndVol[1] = new TGeoVolume("SpaceFrameNext2EndUnit1", next2EndUnit, medAir);
+  next2EndVol[0]->SetVisibility(kFALSE);
+  next2EndVol[1]->SetVisibility(kFALSE);
 
   TGeoVolume* endVol[2];
   endVol[0] = new TGeoVolume("SpaceFrameEndUnit0", endUnit, medAir);
   endVol[1] = new TGeoVolume("SpaceFrameEndUnit1", endUnit, medAir);
+  endVol[0]->SetVisibility(kFALSE);
+  endVol[1]->SetVisibility(kFALSE);
 
   // The actual volumes
 
