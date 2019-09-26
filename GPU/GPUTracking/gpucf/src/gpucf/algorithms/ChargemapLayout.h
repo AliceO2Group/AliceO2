@@ -12,10 +12,9 @@
 namespace gpucf
 {
 
-enum class ChargemapLayout
-{
-    #define MEMORY_LAYOUT(name, def, desc) name,
-    #include <gpucf/algorithms/ClusterFinderFlags.def>
+enum class ChargemapLayout {
+#define MEMORY_LAYOUT(name, def, desc) name,
+#include <gpucf/algorithms/ClusterFinderFlags.def>
 };
 
 } // namespace gpucf

@@ -11,24 +11,22 @@
 
 #include <gpucf/executable/Executable.h>
 
-
 namespace gpucf
 {
 
 class CompareClusters : public Executable
 {
 
-public:
-    CompareClusters();
+ public:
+  CompareClusters();
 
-protected:
-    void setupFlags(args::Group &, args::Group &) override;
-    int mainImpl() override;
+ protected:
+  void setupFlags(args::Group&, args::Group&) override;
+  int mainImpl() override;
 
-private:
-    OptStringFlag truthFile;
-    OptStringFlag clusterFile;
-    
+ private:
+  OptStringFlag truthFile;
+  OptStringFlag clusterFile;
 };
 
 } // namespace gpucf

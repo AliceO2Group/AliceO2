@@ -13,13 +13,11 @@
 
 #include <fstream>
 
-
 using namespace gpucf;
 namespace fs = filesystem;
 
-
 Experiment::Experiment(ClusterFinderConfig cfg)
-    : cfg(cfg)
+  : cfg(cfg)
 {
 }
 
@@ -27,12 +25,12 @@ Experiment::~Experiment()
 {
 }
 
-void Experiment::save(fs::path fname, const Measurements &data)
+void Experiment::save(fs::path fname, const Measurements& data)
 {
-    log::Info() << "Writing measurements to " << fname;
+  log::Info() << "Writing measurements to " << fname;
 
-    std::ofstream out(fname.str());
-    out << data;
+  std::ofstream out(fname.str());
+  out << data;
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

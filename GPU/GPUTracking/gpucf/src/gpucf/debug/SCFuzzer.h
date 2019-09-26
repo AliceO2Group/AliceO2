@@ -11,40 +11,38 @@
 
 #include <gpucf/algorithms/StreamCompaction.h>
 
-#include <CL/cl2.hpp>
-
+#include <CL/cl2.h>
 
 namespace gpucf
 {
 
 class ClEnv;
 
-
 class SCFuzzer
 {
-public:
-    SCFuzzer(ClEnv &);
+ public:
+  SCFuzzer(ClEnv&);
 
-    bool run(size_t);
+  bool run(size_t);
 
-private:
-    StreamCompaction streamCompaction;
+ private:
+  StreamCompaction streamCompaction;
 
-    cl::Context context;
-    cl::Device  device;
+  cl::Context context;
+  cl::Device device;
 
-    cl::CommandQueue queue;
+  cl::CommandQueue queue;
 
-    cl::Buffer digitsInBuf;
-    cl::Buffer digitsOutBuf;
-    cl::Buffer predicateBuf;
+  cl::Buffer digitsInBuf;
+  cl::Buffer digitsOutBuf;
+  cl::Buffer predicateBuf;
 
-    void setup(ClEnv &);
+  void setup(ClEnv&);
 
-    void dumpResult(const std::vector<std::vector<int>> &);
+  void dumpResult(const std::vector<std::vector<int>>&);
 
-    bool repeatTest(size_t, size_t);
-    bool runTest(size_t);
+  bool repeatTest(size_t, size_t);
+  bool runTest(size_t);
 };
 
 } // namespace gpucf

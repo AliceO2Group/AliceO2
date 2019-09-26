@@ -19,62 +19,57 @@
 
 #include <vector>
 
-
 namespace gpucf
 {
 
 class ReferenceClusterFinder
 {
 
-public:
-    struct Result
-    {
-        std::vector<Cluster> cluster;
-        std::vector<Digit>   peaks;    
-        std::vector<Digit>   filteredPeaks;    
-        std::vector<unsigned char> isPeak;
-    };
+ public:
+  struct Result {
+    std::vector<Cluster> cluster;
+    std::vector<Digit> peaks;
+    std::vector<Digit> filteredPeaks;
+    std::vector<unsigned char> isPeak;
+  };
 
-    ReferenceClusterFinder(ClusterFinderConfig);
+  ReferenceClusterFinder(ClusterFinderConfig);
 
-    SectorMap<Result> runOnSectors(const SectorMap<std::vector<Digit>> &);
-    Result run(View<Digit>);
+  SectorMap<Result> runOnSectors(const SectorMap<std::vector<Digit>>&);
+  Result run(View<Digit>);
 
-private:
+ private:
+  using PeakCount = unsigned char;
 
-    using PeakCount = unsigned char;
+  enum PCMask : PeakCount {
+    PCMASK_HAS_3X3_PEAKS = 0x80,
+    PCMASK_PEAK_COUNT = 0x7F,
+  };
 
+  static_assert((PCMASK_HAS_3X3_PEAKS ^ PCMASK_PEAK_COUNT) == 0xFF, "");
 
-    enum PCMask : PeakCount
-    {
-        PCMASK_HAS_3X3_PEAKS = 0x80,
-        PCMASK_PEAK_COUNT    = 0x7F,
-    };
+  static const std::unordered_map<Delta, std::vector<Delta>> innerToOuter;
+  static const std::unordered_map<Delta, std::vector<Delta>> innerToOuterInv;
 
-    static_assert((PCMASK_HAS_3X3_PEAKS ^ PCMASK_PEAK_COUNT) == 0xFF, "");
+  Map<PeakCount> makePeakCountMap(
+    nonstd::span<const Digit>,
+    nonstd::span<const Digit>,
+    const Map<float>&,
+    bool);
 
-    static const std::unordered_map<Delta, std::vector<Delta>> innerToOuter;
-    static const std::unordered_map<Delta, std::vector<Delta>> innerToOuterInv;
+  PeakCount countPeaks(const Digit&, const Map<bool>&, const Map<float>&);
 
-    Map<PeakCount> makePeakCountMap(
-            nonstd::span<const Digit>, 
-            nonstd::span<const Digit>, 
-            const Map<float> &,
-            bool);
+  Cluster clusterize(
+    const Digit&,
+    const Map<float>&,
+    const Map<PeakCount>&);
 
-    PeakCount countPeaks(const Digit &, const Map<bool> &, const Map<float> &);
+  void update(Cluster&, float, int, int);
+  void finalize(Cluster&, const Digit&);
 
-    Cluster clusterize(
-            const Digit &, 
-            const Map<float> &, 
-            const Map<PeakCount> &);
+  ClusterFinderConfig config;
 
-    void update(Cluster &, float, int, int);
-    void finalize(Cluster &, const Digit &);
-
-    ClusterFinderConfig config;
-
-    NoiseSuppressionOverArea noiseSuppression;
+  NoiseSuppressionOverArea noiseSuppression;
 };
 
 } // namespace gpucf
