@@ -370,13 +370,19 @@ class DataAllocator
     return adopt(getOutputByBind(std::move(ref)), obj);
   }
 
+  //get the memory resource associated with an output
+  o2::pmr::FairMQMemoryResource* getMemoryResource(const Output& spec)
+  {
+    std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+    auto context = mContextRegistry->get<MessageContext>();
+    return *context->proxy().getTransport(channel);
+  }
+
   //make a stl (pmr) vector
   template <typename T, typename... Args>
   o2::vector<T> makeVector(const Output& spec, Args&&... args)
   {
-    std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
-    auto context = mContextRegistry->get<MessageContext>();
-    o2::pmr::FairMQMemoryResource* targetResource = *context->proxy().getTransport(channel);
+    o2::pmr::FairMQMemoryResource* targetResource = getMemoryResource(spec);
     return o2::vector<T>{targetResource, std::forward<Args>(args)...};
   }
 
