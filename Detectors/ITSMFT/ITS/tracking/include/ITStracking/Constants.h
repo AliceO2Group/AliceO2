@@ -68,9 +68,9 @@ constexpr float InversePhiBinSize{constants::index_table::PhiBins / constants::m
 GPU_HOST_DEVICE constexpr GPUArray<float, its::LayersNumber> InverseZBinSize()
 {
   constexpr auto zSize = its::LayersZCoordinate();
-  return GPUArray<float, its::LayersNumber>{{0.5 * ZBins / (zSize[0]), 0.5 * ZBins / (zSize[1]), 0.5 * ZBins / (zSize[2]),
-                                             0.5 * ZBins / (zSize[3]), 0.5 * ZBins / (zSize[4]), 0.5 * ZBins / (zSize[5]),
-                                             0.5 * ZBins / (zSize[6])}};
+  return GPUArray<float, its::LayersNumber>{{0.5f * ZBins / (zSize[0]), 0.5f * ZBins / (zSize[1]), 0.5f * ZBins / (zSize[2]),
+                                             0.5f * ZBins / (zSize[3]), 0.5f * ZBins / (zSize[4]), 0.5f * ZBins / (zSize[5]),
+                                             0.5f * ZBins / (zSize[6])}};
 }
 } // namespace index_table
 

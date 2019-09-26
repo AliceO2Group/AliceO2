@@ -67,6 +67,10 @@ struct GPUConstantMem {
   GPUTrackingInOutPointers ioPtrs;
   GPUCalibObjectsConst calibObjects;
 };
+
+// Must be placed here, to avoid circular header dependency
+GPUdi() GPUconstantref() const MEM_CONSTANT(GPUParam) & GPUProcessor::Param() const { return mConstantMem->param; }
+
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

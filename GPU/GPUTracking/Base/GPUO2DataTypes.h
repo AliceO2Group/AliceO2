@@ -24,9 +24,9 @@ namespace o2
 namespace tpc
 {
 struct ClusterNative {
-  static float getTime() { return 0.f; }
-  static float getPad() { return 0.f; }
-  static int getFlags() { return 0; }
+  GPUd() static float getTime() { return 0.f; }
+  GPUd() static float getPad() { return 0.f; }
+  GPUd() static int getFlags() { return 0; }
   unsigned char qTot, qMax;
 };
 struct ClusterNativeAccess {

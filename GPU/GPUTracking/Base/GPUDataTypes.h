@@ -18,6 +18,8 @@
 
 #ifdef GPUCA_NOCOMPAT_ALLOPENCL
 #include <type_traits>
+#endif
+#ifdef GPUCA_NOCOMPAT
 #include "GPUTRDDef.h"
 
 class AliHLTTPCClusterMCLabel;
@@ -130,7 +132,9 @@ struct GPURecoStepConfiguration {
   GPUDataTypes::InOutTypeField inputs = 0;
   GPUDataTypes::InOutTypeField outputs = 0;
 };
+#endif
 
+#ifdef GPUCA_NOCOMPAT
 struct GPUCalibObjects {
   TPCFastTransform* fastTransform = nullptr;
   o2::base::MatLayerCylSet* matLUT = nullptr;
