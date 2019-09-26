@@ -36,7 +36,8 @@ TBranch* getOrMakeBranch(TTree& tree, std::string brname, T* ptr)
   return tree.Branch(brname.c_str(), ptr);
 }
 
-void DigitsWriterSpec::init(framework::InitContext &ctx){
+void DigitsWriterSpec::init(framework::InitContext& ctx)
+{
   // get the option from the init context
   auto filename = ctx.options().get<std::string>("emcal-digit-outfile");
   auto treename = ctx.options().get<std::string>("treename");
@@ -56,8 +57,9 @@ void DigitsWriterSpec::init(framework::InitContext &ctx){
   ctx.services().get<CallbackService>().set(CallbackService::Id::Stop, finishWriting);
 }
 
-void DigitsWriterSpec::run(framework::ProcessingContext &ctx) {
-  if (mFinished) 
+void DigitsWriterSpec::run(framework::ProcessingContext& ctx)
+{
+  if (mFinished)
     return;
 
   // retrieve the digits from the input

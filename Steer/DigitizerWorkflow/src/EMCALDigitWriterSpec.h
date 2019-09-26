@@ -32,9 +32,9 @@ namespace emcal
 /// \author Anders Garritt Knospe <anders.knospe@cern.ch>, University of Houston
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 /// \since Nov 12, 2018
-class DigitsWriterSpec : public framework::Task{
-public:
-
+class DigitsWriterSpec : public framework::Task
+{
+ public:
   /// \brief Constructor
   DigitsWriterSpec() = default;
 
@@ -43,16 +43,16 @@ public:
 
   /// \brief Init the digits writer
   /// \param ctx Init context
-  void init(framework::InitContext &ctx) final;
+  void init(framework::InitContext& ctx) final;
 
   /// \brief Write digits and labels to the output file
   /// \param ctx processing context
-  void run(framework::ProcessingContext &ctx) final;  
+  void run(framework::ProcessingContext& ctx) final;
 
-private:
-  bool mFinished = false; ///< flag indicating whether work is completed
-  std::shared_ptr<TFile> mOutputFile;     ///< Common output file
-  std::shared_ptr<TTree> mOutputTree;     ///< Common output tree
+ private:
+  bool mFinished = false;                                 ///< flag indicating whether work is completed
+  std::shared_ptr<TFile> mOutputFile;                     ///< Common output file
+  std::shared_ptr<TTree> mOutputTree;                     ///< Common output tree
   std::shared_ptr<std::vector<o2::emcal::Digit>> mDigits; ///< Container for incoming digits (Sink responsible for deleting the digits)
 };
 

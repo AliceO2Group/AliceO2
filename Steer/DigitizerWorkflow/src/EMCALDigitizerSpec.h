@@ -49,7 +49,7 @@ class DigitizerSpec : public framework::Task
   /// \brief run digitizer
   /// \param ctx Processing context
   ///
-  /// Handling of pileup events: 
+  /// Handling of pileup events:
   /// - Open readout window when the event sets a trigger
   /// - Accumulate digits sampled via the time response from different bunch crossings
   /// - Retrieve digits when the readout window closes
