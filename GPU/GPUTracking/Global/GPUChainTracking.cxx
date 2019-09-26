@@ -1372,7 +1372,7 @@ int GPUChainTracking::RunTRDTracking()
 
 int GPUChainTracking::DoTRDGPUTracking()
 {
-#ifdef GPUCA_BUILD_TRD
+#ifdef HAVE_O2HEADERS
   bool doGPU = GetRecoStepsGPU() & RecoStep::TRDTracking;
   GPUTRDTracker& Tracker = processors()->trdTracker;
   GPUTRDTracker& TrackerShadow = doGPU ? processorsShadow()->trdTracker : Tracker;
@@ -1393,7 +1393,6 @@ int GPUChainTracking::DoTRDGPUTracking()
   if (GetDeviceProcessingSettings().debugLevel >= 2) {
     GPUInfo("GPU TRD tracker Finished");
   }
-
 #endif
   return (0);
 }

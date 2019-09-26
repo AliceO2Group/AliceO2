@@ -23,7 +23,6 @@
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
-#if defined(GPUCA_BUILD_TPCCOMPRESSION) && !defined(GPUCA_ALIROOT_LIB)
 template <>
 GPUd() void GPUTPCCompressionKernels::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& processors)
 {
@@ -261,5 +260,3 @@ GPUd() void GPUTPCCompressionKernels::Thread<1>(int nBlocks, int nThreads, int i
     GPUbarrier();
   }
 }
-
-#endif
