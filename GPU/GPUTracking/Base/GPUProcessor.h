@@ -55,13 +55,7 @@ class GPUProcessor
     return mConstantMem;
   }
 
-  // The template is a trick to forward the member even though it is forward-declared, to avoid cyclic header dependency
-  template <class X = const MEM_CONSTANT(GPUConstantMem)>
-    GPUd() GPUconstantref() const MEM_CONSTANT(GPUParam) & Param() const
-  {
-    GPUconstantref() X* v = mConstantMem;
-    return v->param;
-  }
+  GPUd() GPUconstantref() const MEM_CONSTANT(GPUParam) & Param() const;
 
   const GPUReconstruction& GetRec() const { return *mRec; }
 
