@@ -18,10 +18,7 @@
 #include "Steer/HitProcessingManager.h" // for RunContext
 #include "TChain.h"
 
-#include "EMCALSimulation/Digitizer.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include <SimulationDataFormat/MCCompLabel.h>
-#include <SimulationDataFormat/MCTruthContainer.h>
 #include "DetectorsBase/GeometryManager.h"
 
 using namespace o2::framework;
@@ -32,13 +29,105 @@ namespace o2
 namespace emcal
 {
 
-// helper function which will be offered as a service
-template <typename T>
-void retrieveHits(std::vector<TChain*> const& chains,
-                  const char* brname,
-                  int sourceID,
-                  int entryID,
-                  std::vector<T>* hits)
+void DigitizerSpec::init(framework::InitContext& ctx)
+{
+  // setup the input chain for the hits
+  mSimChains.emplace_back(new TChain("o2sim"));
+
+  // add the main (background) file
+  mSimChains.back()->AddFile(ctx.options().get<std::string>("simFile").c_str());
+
+  // maybe add a particular signal file
+  auto signalfilename = ctx.options().get<std::string>("simFileS");
+  if (signalfilename.size() > 0) {
+    mSimChains.emplace_back(new TChain("o2sim"));
+    mSimChains.back()->AddFile(signalfilename.c_str());
+  }
+
+  // make sure that the geometry is loaded (TODO will this be done centrally?)
+  if (!gGeoManager) {
+    o2::base::GeometryManager::loadGeometry();
+  }
+  // run 3 geometry == run 2 geometry for EMCAL
+  // to be adapted with run numbers at a later stage
+  auto geom = o2::emcal::Geometry::GetInstance("EMCAL_COMPLETE12SMV1_DCAL_8SM", "Geant4", "EMV-EMCAL");
+  // init digitizer
+  mDigitizer.setGeometry(geom);
+  mDigitizer.init();
+
+  mFinished = false;
+}
+
+void DigitizerSpec::run(framework::ProcessingContext& ctx)
+{
+  if (mFinished)
+    return;
+
+  // read collision context from input
+  auto context = ctx.inputs().get<o2::steer::RunContext*>("collisioncontext");
+  auto& timesview = context->getEventRecords();
+  LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
+
+  // if there is nothing to do ... return
+  if (timesview.size() == 0)
+    return;
+
+  TStopwatch timer;
+  timer.Start();
+
+  LOG(INFO) << " CALLING EMCAL DIGITIZATION ";
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum;
+
+  auto& eventParts = context->getEventParts();
+  mAccumulatedDigits.clear();
+  // loop over all composite collisions given from context
+  // (aka loop over all the interaction records)
+  for (int collID = 0; collID < timesview.size(); ++collID) {
+    mDigitizer.setEventTime(timesview[collID].timeNS);
+
+    // for each collision, loop over the constituents event and source IDs
+    // (background signal merging is basically taking place here)
+    for (auto& part : eventParts[collID]) {
+      mDigitizer.setCurrEvID(part.entryID);
+      mDigitizer.setCurrSrcID(part.sourceID);
+
+      // get the hits for this event and this source
+      mHits.clear();
+      retrieveHits(mSimChains, "EMCHit", part.sourceID, part.entryID, &mHits);
+
+      LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
+
+      // call actual digitization procedure
+      mLabels.clear();
+      mDigits.clear();
+      mDigitizer.process(mHits, mDigits);
+      // copy digits into accumulator
+      std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(mAccumulatedDigits));
+      labelAccum.mergeAtBack(mLabels);
+      LOG(INFO) << "Have " << mDigits.size() << " digits ";
+    }
+  }
+  LOG(INFO) << "Have " << labelAccum.getNElements() << " EMCAL labels ";
+  // here we have all digits and we can send them to consumer (aka snapshot it onto output)
+  ctx.outputs().snapshot(Output{"EMC", "DIGITS", 0, Lifetime::Timeframe}, mAccumulatedDigits);
+  ctx.outputs().snapshot(Output{"EMC", "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
+  // EMCAL is always a triggering detector
+  const o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::TRIGGERING;
+  LOG(INFO) << "EMCAL: Sending ROMode= " << roMode << " to GRPUpdater";
+  ctx.outputs().snapshot(Output{"EMC", "ROMode", 0, Lifetime::Timeframe}, roMode);
+
+  timer.Stop();
+  LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
+  // we should be only called once; tell DPL that this process is ready to exit
+  ctx.services().get<ControlService>().readyToQuit(false);
+  mFinished = true;
+}
+
+void DigitizerSpec::retrieveHits(std::vector<TChain*> const& chains,
+                                 const char* brname,
+                                 int sourceID,
+                                 int entryID,
+                                 std::vector<Hit>* hits)
 {
   auto br = chains[sourceID]->GetBranch(brname);
   if (!br) {
@@ -51,120 +140,6 @@ void retrieveHits(std::vector<TChain*> const& chains,
 
 DataProcessorSpec getEMCALDigitizerSpec(int channel)
 {
-  // setup of some data structures shared between init and processing functions
-  // (a shared pointer is used since then automatic cleanup is guaranteed with a lifetime beyond
-  //  one process call)
-  auto simChains = std::make_shared<std::vector<TChain*>>();
-
-  // the instance of the actual digitizer
-  auto digitizer = std::make_shared<o2::emcal::Digitizer>();
-
-  // containers for digits and labels
-  auto digits = std::make_shared<std::vector<o2::emcal::Digit>>();
-  auto digitsAccum = std::make_shared<std::vector<o2::emcal::Digit>>(); // accumulator for all digits
-  auto labels = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
-
-  // the actual processing function which get called whenever new data is incoming
-  auto process = [simChains, digitizer, digits, digitsAccum, labels, channel](ProcessingContext& pc) {
-    static bool finished = false;
-    if (finished) {
-      return;
-    }
-    // RS: at the moment using hardcoded flag for continuos readout
-    static o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::CONTINUOUS;
-
-    // read collision context from input
-    auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
-    auto& timesview = context->getEventRecords();
-    LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
-
-    // if there is nothing to do ... return
-    if (timesview.size() == 0) {
-      return;
-    }
-
-    TStopwatch timer;
-    timer.Start();
-
-    LOG(INFO) << " CALLING EMCAL DIGITIZATION ";
-
-    static std::vector<o2::emcal::Hit> hits;
-    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum;
-
-    auto& eventParts = context->getEventParts();
-    // loop over all composite collisions given from context
-    // (aka loop over all the interaction records)
-    for (int collID = 0; collID < timesview.size(); ++collID) {
-      digitizer->setEventTime(timesview[collID].timeNS);
-
-      // for each collision, loop over the constituents event and source IDs
-      // (background signal merging is basically taking place here)
-      for (auto& part : eventParts[collID]) {
-        digitizer->setCurrEvID(part.entryID);
-        digitizer->setCurrSrcID(part.sourceID);
-
-        // get the hits for this event and this source
-        hits.clear();
-        retrieveHits(*simChains.get(), "EMCHit", part.sourceID, part.entryID, &hits);
-
-        LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
-
-        // call actual digitization procedure
-        labels->clear();
-        digits->clear();
-        digitizer->process(hits, *digits.get());
-        // copy digits into accumulator
-        std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
-        labelAccum.mergeAtBack(*labels);
-        LOG(INFO) << "Have " << digits->size() << " digits ";
-      }
-    }
-
-    LOG(INFO) << "Have " << labelAccum.getNElements() << " EMCAL labels ";
-    // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-    pc.outputs().snapshot(Output{"EMC", "DIGITS", 0, Lifetime::Timeframe}, *digitsAccum.get());
-    pc.outputs().snapshot(Output{"EMC", "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
-    LOG(INFO) << "EMCAL: Sending ROMode= " << roMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{"EMC", "ROMode", 0, Lifetime::Timeframe}, roMode);
-
-    timer.Stop();
-    LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
-
-    // we should be only called once; tell DPL that this process is ready to exit
-    pc.services().get<ControlService>().readyToQuit(false);
-    finished = true;
-  };
-
-  // init function returning the lambda taking a ProcessingContext
-  auto initIt = [simChains, process, digitizer, labels](InitContext& ctx) {
-    // setup the input chain for the hits
-    simChains->emplace_back(new TChain("o2sim"));
-
-    // add the main (background) file
-    simChains->back()->AddFile(ctx.options().get<std::string>("simFile").c_str());
-
-    // maybe add a particular signal file
-    auto signalfilename = ctx.options().get<std::string>("simFileS");
-    if (signalfilename.size() > 0) {
-      simChains->emplace_back(new TChain("o2sim"));
-      simChains->back()->AddFile(signalfilename.c_str());
-    }
-
-    // make sure that the geometry is loaded (TODO will this be done centrally?)
-    if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry();
-    }
-    // run 3 geometry == run 2 geometry for EMCAL
-    // to be adapted with run numbers at a later stage
-    auto geom = o2::emcal::Geometry::GetInstance("EMCAL_COMPLETE12SMV1_DCAL_8SM", "Geant4", "EMV-EMCAL");
-    // init digitizer
-    digitizer->setGeometry(geom);
-    digitizer->init();
-
-    // return the actual processing function which is now setup/configured
-    return process;
-  };
-
   // create the full data processor spec using
   //  a name identifier
   //  input description
@@ -175,7 +150,7 @@ DataProcessorSpec getEMCALDigitizerSpec(int channel)
     Outputs{OutputSpec{"EMC", "DIGITS", 0, Lifetime::Timeframe},
             OutputSpec{"EMC", "DIGITSMCTR", 0, Lifetime::Timeframe},
             OutputSpec{"EMC", "ROMode", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{initIt},
+    AlgorithmSpec{o2::framework::adaptFromTask<DigitizerSpec>()},
     Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
             {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
             {"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}
