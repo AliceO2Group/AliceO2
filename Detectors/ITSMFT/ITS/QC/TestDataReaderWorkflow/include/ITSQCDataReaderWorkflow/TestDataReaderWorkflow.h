@@ -20,7 +20,7 @@ namespace o2
 namespace its
 {
 
-namespace TestDataReaderWorkflow
+namespace test_data_reader_workflow
 {
 framework::WorkflowSpec getWorkflow();
 }
