@@ -19,7 +19,7 @@ namespace o2
 namespace its
 {
 
-namespace TestDataReaderWorkflow
+namespace test_data_reader_workflow
 {
 
 framework::WorkflowSpec getWorkflow()
@@ -32,7 +32,7 @@ framework::WorkflowSpec getWorkflow()
   return specs;
 }
 
-} // namespace TestDataReaderWorkflow
+} // namespace test_data_reader_workflow
 
 } // namespace its
 } // namespace o2
