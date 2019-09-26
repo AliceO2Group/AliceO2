@@ -42,7 +42,7 @@ class Cluster;
 namespace mft
 {
 
-namespace IOUtils
+namespace ioutils
 {
 Int_t loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, const std::vector<itsmft::Cluster>* clusters, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
 void loadEventData(ROframe& event, const std::vector<itsmft::Cluster>* clusters,

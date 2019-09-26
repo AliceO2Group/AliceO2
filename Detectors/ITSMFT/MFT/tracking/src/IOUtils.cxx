@@ -34,7 +34,7 @@ namespace o2
 namespace mft
 {
 
-Int_t IOUtils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, const std::vector<itsmft::Cluster>* clusters,
+Int_t ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, const std::vector<itsmft::Cluster>* clusters,
                                const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   if (!clusters) {
@@ -69,7 +69,7 @@ Int_t IOUtils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event,
   return number;
 }
 
-void IOUtils::loadEventData(ROframe& event, const std::vector<itsmft::Cluster>* clusters,
+void ioutils::loadEventData(ROframe& event, const std::vector<itsmft::Cluster>* clusters,
                             const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   if (!clusters) {

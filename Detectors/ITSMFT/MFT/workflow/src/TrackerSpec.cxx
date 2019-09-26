@@ -113,7 +113,7 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   if (continuous) {
     for (const auto& rof : rofs) {
-      Int_t nclUsed = o2::mft::IOUtils::loadROFrameData(rof, event, &clusters, labels);
+      Int_t nclUsed = o2::mft::ioutils::loadROFrameData(rof, event, &clusters, labels);
       if (nclUsed) {
         event.setROFrameId(roFrame);
         event.initialise();

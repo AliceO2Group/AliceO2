@@ -44,8 +44,8 @@ Cluster::Cluster(const Int_t layerIndex, const Cluster& other)
     phiCoordinate{0.},
     rCoordinate{0.},
     clusterId{other.clusterId},
-    indexTableBin{IndexTableUtils::getBinIndex(IndexTableUtils::getRBinIndex(layerIndex, rCoordinate),
-                                               IndexTableUtils::getPhiBinIndex(phiCoordinate))}
+    indexTableBin{index_table_utils::getBinIndex(index_table_utils::getRBinIndex(layerIndex, rCoordinate),
+                                                 index_table_utils::getPhiBinIndex(phiCoordinate))}
 {
   auto clsPoint2D = Point2D<Float_t>(other.xCoordinate, other.yCoordinate);
   rCoordinate = clsPoint2D.R();
