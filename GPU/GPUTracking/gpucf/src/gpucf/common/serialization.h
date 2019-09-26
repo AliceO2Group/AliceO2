@@ -13,48 +13,46 @@
 
 #include <filesystem/path.h>
 
-#include <nonstd/span.hpp>
+#include <nonstd/span.h>
 
 #include <cstdint>
 #include <fstream>
 #include <vector>
 
-
 namespace gpucf
 {
 
-template<typename T>
+template <typename T>
 SectorMap<std::vector<T>> read(filesystem::path f)
 {
-    std::ifstream in(f.str(), std::ios::binary);
-    
-    SectorMap<uint64_t> header;
-    in.read(reinterpret_cast<char *>(header.data()), 
-            sizeof(uint64_t) * header.size());
+  std::ifstream in(f.str(), std::ios::binary);
 
-    SectorMap<std::vector<T>> sectordata;
-    for (size_t sector = 0; sector < header.size(); sector++)
-    {
-        size_t n = header[sector]; 
-        std::vector<T> &data = sectordata[sector];
+  SectorMap<uint64_t> header;
+  in.read(reinterpret_cast<char*>(header.data()),
+          sizeof(uint64_t) * header.size());
 
-        data.resize(n);
-        in.read(reinterpret_cast<char *>(data.data()), 
-                data.size() * sizeof(T));
-    }
+  SectorMap<std::vector<T>> sectordata;
+  for (size_t sector = 0; sector < header.size(); sector++) {
+    size_t n = header[sector];
+    std::vector<T>& data = sectordata[sector];
 
-    return sectordata;
+    data.resize(n);
+    in.read(reinterpret_cast<char*>(data.data()),
+            data.size() * sizeof(T));
+  }
+
+  return sectordata;
 }
 
-template<typename R>
+template <typename R>
 void write(filesystem::path f, nonstd::span<const R> data)
 {
-    std::ofstream out(f.str(), std::ios::binary);
+  std::ofstream out(f.str(), std::ios::binary);
 
-    uint64_t size = data.size();
-    out.write(reinterpret_cast<const char *>(&size), sizeof(uint64_t));
+  uint64_t size = data.size();
+  out.write(reinterpret_cast<const char*>(&size), sizeof(uint64_t));
 
-    out.write(reinterpret_cast<const char *>(data.data()), size * sizeof(R));
+  out.write(reinterpret_cast<const char*>(data.data()), size * sizeof(R));
 }
 
 } // namespace gpucf

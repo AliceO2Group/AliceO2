@@ -11,16 +11,14 @@
 
 #include <cstdint>
 
-
 namespace gpucf
 {
 
-struct RawDigit
-{
-    int32_t row;
-    int32_t pad;
-    int32_t time;
-    float   charge;
+struct RawDigit {
+  int32_t row;
+  int32_t pad;
+  int32_t time;
+  float charge;
 };
 
 } // namespace gpucf

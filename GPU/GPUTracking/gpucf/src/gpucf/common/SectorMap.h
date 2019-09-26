@@ -13,12 +13,11 @@
 
 #include <array>
 
-
 namespace gpucf
 {
 
-    template<typename T>
-    using SectorMap = std::array<T, TPC_SECTORS>;
+template <typename T>
+using SectorMap = std::array<T, TPC_SECTORS>;
 
 } // namespace gpucf
 

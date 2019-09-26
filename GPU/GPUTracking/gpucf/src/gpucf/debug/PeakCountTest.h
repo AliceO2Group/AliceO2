@@ -12,22 +12,19 @@
 #include <gpucf/algorithms/ClusterFinder.h>
 #include <gpucf/debug/utils.h>
 
-
 namespace gpucf
 {
-    
+
 class PeakCountTest : public ClusterFinder
 {
-    
-public:
 
-   PeakCountTest(ClusterFinderConfig, ClEnv); 
+ public:
+  PeakCountTest(ClusterFinderConfig, ClEnv);
 
-   bool run(
-           const Array2D<float> &, 
-           const Array2D<unsigned char> &, 
-           const Array2D<char> &);
-
+  bool run(
+    const Array2D<float>&,
+    const Array2D<unsigned char>&,
+    const Array2D<char>&);
 };
 
 } // namespace gpucf

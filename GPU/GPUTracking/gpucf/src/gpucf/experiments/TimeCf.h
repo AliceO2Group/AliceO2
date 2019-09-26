@@ -13,29 +13,28 @@
 #include <gpucf/common/Digit.h>
 #include <gpucf/experiments/Experiment.h>
 
-#include <nonstd/span.hpp>
-
+#include <nonstd/span.h>
 
 namespace gpucf
 {
 
 class TimeCf : public Experiment
 {
-public:
-    TimeCf( const std::string &,
-            filesystem::path,
-            ClusterFinderConfig,
-            nonstd::span<const Digit>, 
-            size_t);
+ public:
+  TimeCf(const std::string&,
+         filesystem::path,
+         ClusterFinderConfig,
+         nonstd::span<const Digit>,
+         size_t);
 
-    void run(ClEnv &) override;
+  void run(ClEnv&) override;
 
-private:
-    std::string name;
-    filesystem::path tgtFile;
+ private:
+  std::string name;
+  filesystem::path tgtFile;
 
-    size_t repeats;
-    nonstd::span<const Digit> digits;
+  size_t repeats;
+  nonstd::span<const Digit> digits;
 };
 
 } // namespace gpucf

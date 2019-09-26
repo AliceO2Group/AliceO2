@@ -14,29 +14,27 @@
 
 #include <filesystem/path.h>
 
-
 namespace gpucf
 {
 
 class Experiment
 {
-public:
-    Experiment(ClusterFinderConfig cfg);
+ public:
+  Experiment(ClusterFinderConfig cfg);
 
-    virtual ~Experiment();
+  virtual ~Experiment();
 
-    virtual void run(ClEnv &) = 0;
+  virtual void run(ClEnv&) = 0;
 
-    ClusterFinderConfig getConfig() const 
-    {
-        return cfg;
-    }
+  ClusterFinderConfig getConfig() const
+  {
+    return cfg;
+  }
 
-protected:
-    ClusterFinderConfig cfg;
+ protected:
+  ClusterFinderConfig cfg;
 
-    void save(filesystem::path, const Measurements &);
-
+  void save(filesystem::path, const Measurements&);
 };
 
 } // namespace gpucf

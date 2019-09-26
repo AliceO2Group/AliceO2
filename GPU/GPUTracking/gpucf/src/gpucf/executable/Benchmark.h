@@ -15,39 +15,37 @@
 #include <gpucf/executable/Executable.h>
 #include <gpucf/experiments/Experiment.h>
 
-
 namespace gpucf
 {
 
 class Benchmark : public Executable
 {
-public:
-    Benchmark();
+ public:
+  Benchmark();
 
-protected:
-    void setupFlags(args::Group &, args::Group &) override;
-    int mainImpl() override;
+ protected:
+  void setupFlags(args::Group&, args::Group&) override;
+  int mainImpl() override;
 
-private:
-    std::unique_ptr<ClEnv::Flags> envFlags;
-    std::unique_ptr<CfCLIFlags> cfflags;
-    OptStringFlag digitFile;
-    OptIntFlag iterations;
-    OptStringFlag outFile;
-    OptStringFlag sorting;
+ private:
+  std::unique_ptr<ClEnv::Flags> envFlags;
+  std::unique_ptr<CfCLIFlags> cfflags;
+  OptStringFlag digitFile;
+  OptIntFlag iterations;
+  OptStringFlag outFile;
+  OptStringFlag sorting;
 
+  filesystem::path baseDir;
 
-    filesystem::path baseDir;
+  std::vector<std::shared_ptr<Experiment>> experiments;
 
-    std::vector<std::shared_ptr<Experiment>> experiments;
+  std::vector<Digit> digits;
 
-    std::vector<Digit> digits;
+  void registerExperiments();
 
-    void registerExperiments();
+  void runExperiments();
 
-    void runExperiments();
-
-    void shuffle(nonstd::span<Digit>);
+  void shuffle(nonstd::span<Digit>);
 };
 
 } // namespace gpucf
