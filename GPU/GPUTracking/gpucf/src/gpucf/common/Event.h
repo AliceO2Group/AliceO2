@@ -11,10 +11,9 @@
 
 #include <gpucf/common/Timestamp.h>
 
-#include <nonstd/optional.hpp>
+#include <nonstd/optional.h>
 
-#include <CL/cl2.hpp>
-
+#include <CL/cl2.h>
 
 namespace gpucf
 {
@@ -22,20 +21,20 @@ namespace gpucf
 class Event
 {
 
-public:
-    Event();
+ public:
+  Event();
 
-    cl::Event *get();
+  cl::Event* get();
 
-    Timestamp queued()    const;
-    Timestamp submitted() const;
-    Timestamp start()     const;
-    Timestamp end()       const;
+  Timestamp queued() const;
+  Timestamp submitted() const;
+  Timestamp start() const;
+  Timestamp end() const;
 
-private:
-    cl::Event event;
+ private:
+  cl::Event event;
 
-    Timestamp profilingInfo(cl_profiling_info) const;
+  Timestamp profilingInfo(cl_profiling_info) const;
 };
 
 } // namespace gpucf

@@ -11,11 +11,10 @@
 
 #include <CL/cl_platform.h>
 
-
 namespace gpucf
 {
 
-    using Timestamp = cl_ulong;
+using Timestamp = cl_ulong;
 
 } // namespace gpucf
 

@@ -12,27 +12,24 @@
 #include <gpucf/common/buffer.h>
 #include <gpucf/common/Digit.h>
 
-#include <nonstd/span.hpp>
-
+#include <nonstd/span.h>
 
 namespace gpucf
 {
-    
+
 class DigitsToGPU
 {
 
-public:
+ public:
+  void call(
+    ClusterFinderState& state,
+    nonstd::span<const Digit> digits,
+    cl::CommandQueue queue)
+  {
+    state.digitnum = digits.size();
 
-    void call(
-            ClusterFinderState &state, 
-            nonstd::span<const Digit> digits, 
-            cl::CommandQueue queue)
-    {
-        state.digitnum = digits.size(); 
-
-        gpucpy(digits, state.digits, digits.size(), queue);
-    }
-    
+    gpucpy(digits, state.digits, digits.size(), queue);
+  }
 };
 
 } // namespace gpucf

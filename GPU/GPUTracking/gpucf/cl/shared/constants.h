@@ -8,20 +8,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #if !defined(SHARED_CONSTANTS_H)
-#    define  SHARED_CONSTANTS_H
+#define SHARED_CONSTANTS_H
 
 #include "types.h"
 
 #if IS_CL_DEVICE
-# define CONSTANT constant
+#define CONSTANT constant
 #else
-# define CONSTANT static const
+#define CONSTANT static const
 #endif
 
 CONSTANT SHARED_FLOAT CHARGE_THRESHOLD = 0.f;
 CONSTANT SHARED_FLOAT OUTER_CHARGE_THRESHOLD = 0.f;
 CONSTANT SHARED_FLOAT QTOT_THRESHOLD = 500.f;
-CONSTANT SHARED_INT   MIN_SPLIT_NUM = 1;
+CONSTANT SHARED_INT MIN_SPLIT_NUM = 1;
 
 #endif //!defined(SHARED_CONSTANTS_H)
 

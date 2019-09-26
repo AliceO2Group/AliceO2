@@ -12,11 +12,10 @@
 #include <gpucf/common/Digit.h>
 #include <gpucf/common/Map.h>
 
-#include <nonstd/span.hpp>
+#include <nonstd/span.h>
 
 #include <sstream>
 #include <vector>
-
 
 namespace gpucf
 {
@@ -24,30 +23,27 @@ namespace gpucf
 class DigitDrawer
 {
 
-public:
+ public:
+  DigitDrawer(
+    nonstd::span<const Digit>,
+    nonstd::span<unsigned char>,
+    nonstd::span<unsigned char>);
 
-    DigitDrawer(
-            nonstd::span<const Digit>, 
-            nonstd::span<unsigned char>, 
-            nonstd::span<unsigned char>);
+  DigitDrawer(
+    nonstd::span<const Digit>,
+    nonstd::span<const Digit>,
+    nonstd::span<const Digit>);
 
-    DigitDrawer(
-            nonstd::span<const Digit>, 
-            nonstd::span<const Digit>,
-            nonstd::span<const Digit>);
+  std::string drawArea(const Digit&, int r);
 
-    std::string drawArea(const Digit &, int r);
+ private:
+  Map<float> chargeMap;
+  Map<unsigned char> peakGTMap;
+  Map<unsigned char> peakMap;
 
-private:
+  std::string toFixed(float);
 
-    Map<float> chargeMap;
-    Map<unsigned char>  peakGTMap;
-    Map<unsigned char>  peakMap;
-
-    std::string toFixed(float);
-
-    void printAt(std::stringstream &, const Position &);
-
+  void printAt(std::stringstream&, const Position&);
 };
 
 } // namespace gpucf

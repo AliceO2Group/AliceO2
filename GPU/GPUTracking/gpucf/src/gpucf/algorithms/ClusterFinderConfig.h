@@ -15,24 +15,22 @@
 #include <cstddef>
 #include <iosfwd>
 
-
 namespace gpucf
 {
 
-struct ClusterFinderConfig
-{
-    #define CLUSTER_FINDER_FLAG(name, val, def, desc) bool name = val;
-    #include <gpucf/algorithms/ClusterFinderFlags.def>
-    
-    #define CLUSTER_FINDER_PARAM(name, val, def, desc) int name = val;
-    #include <gpucf/algorithms/ClusterFinderFlags.def>
+struct ClusterFinderConfig {
+#define CLUSTER_FINDER_FLAG(name, val, def, desc) bool name = val;
+#include <gpucf/algorithms/ClusterFinderFlags.def>
 
-    ChargemapLayout layout = ChargemapLayout::TimeMajor;
+#define CLUSTER_FINDER_PARAM(name, val, def, desc) int name = val;
+#include <gpucf/algorithms/ClusterFinderFlags.def>
 
-    ClusterBuilder clusterbuilder = ClusterBuilder::Naive;
+  ChargemapLayout layout = ChargemapLayout::TimeMajor;
+
+  ClusterBuilder clusterbuilder = ClusterBuilder::Naive;
 };
 
-std::ostream &operator<<(std::ostream &, const ClusterFinderConfig &);
+std::ostream& operator<<(std::ostream&, const ClusterFinderConfig&);
 
 } // namespace gpucf
 

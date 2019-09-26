@@ -11,8 +11,7 @@
 
 #include <gpucf/algorithms/ClusterFinderConfig.h>
 
-#include <args/args.hxx>
-
+#include <args/args.h>
 
 namespace gpucf
 {
@@ -20,13 +19,13 @@ namespace gpucf
 class CfCLIFlags
 {
 
-public:
-    CfCLIFlags(args::Group &, args::Group &);
+ public:
+  CfCLIFlags(args::Group&, args::Group&);
 
-    ClusterFinderConfig asConfig();
+  ClusterFinderConfig asConfig();
 
-private:
-    args::Group cfconfig;
+ private:
+  args::Group cfconfig;
 #define CLUSTER_FINDER_FLAG(name, val, def, desc) args::Flag name;
 #include <gpucf/algorithms/ClusterFinderFlags.def>
 
@@ -38,9 +37,8 @@ private:
 
 #define CLUSTER_BUILDER(name, def, desc) args::Flag builder##name;
 #include <gpucf/algorithms/ClusterFinderFlags.def>
-    
 };
-    
+
 } // namespace gpucf
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

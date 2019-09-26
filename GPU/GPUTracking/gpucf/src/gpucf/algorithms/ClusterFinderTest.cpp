@@ -16,275 +16,253 @@
 
 #include <shared/constants.h>
 
-
 using namespace gpucf;
 
-
 ClusterFinderTest::ClusterFinderTest(
-        ClusterFinderConfig cfg, 
-        size_t digitnum, 
-        ClEnv env)
-    : ClusterFinder(cfg, digitnum, env)
-    , gt(cfg)
+  ClusterFinderConfig cfg,
+  size_t digitnum,
+  ClEnv env)
+  : ClusterFinder(cfg, digitnum, env), gt(cfg)
 {
 }
 
 void ClusterFinderTest::run(nonstd::span<const Digit> digits)
 {
-    this->digits = digits;
+  this->digits = digits;
 
-    res = gt.run(digits);
+  res = gt.run(digits);
 
-    log::Debug() << "send Digits to GPU";
-    digitsToGPU.call(state, digits, queue);
+  log::Debug() << "send Digits to GPU";
+  digitsToGPU.call(state, digits, queue);
 
-    ASSERT(state.digitnum == digits.size())
-        << "state.digitnum = " << state.digitnum;
+  ASSERT(state.digitnum == digits.size())
+    << "state.digitnum = " << state.digitnum;
 
-    log::Debug() << "Fill charge map";
-    fillChargeMap.call(state, queue);
+  log::Debug() << "Fill charge map";
+  fillChargeMap.call(state, queue);
 
-    log::Debug() << "Look for peaks";
-    findPeaks.call(state, queue);
-    checkIsPeaks(res.isPeak);
+  log::Debug() << "Look for peaks";
+  findPeaks.call(state, queue);
+  checkIsPeaks(res.isPeak);
 
-    compactPeaks.call(state, queue);
-    ASSERT(state.peaknum <= state.digitnum);
-    checkPeaks(res.peaks);
+  compactPeaks.call(state, queue);
+  ASSERT(state.peaknum <= state.digitnum);
+  checkPeaks(res.peaks);
 
-    noiseSuppression.call(state, queue);
-    compactPeaks.compactFilteredPeaks(state, queue);
-    checkFilteredPeaks(res.filteredPeaks);
+  noiseSuppression.call(state, queue);
+  compactPeaks.compactFilteredPeaks(state, queue);
+  checkFilteredPeaks(res.filteredPeaks);
 
-    countPeaks.call(state, queue);
+  countPeaks.call(state, queue);
 
-    computeCluster.call(state, queue);
-    checkCluster(res.filteredPeaks, res.cluster);
+  computeCluster.call(state, queue);
+  checkCluster(res.filteredPeaks, res.cluster);
 
-    queue.finish();
+  queue.finish();
 }
 
 void ClusterFinderTest::checkIsPeaks(nonstd::span<const unsigned char> isPeakGT)
 {
-    std::vector<unsigned char> isPeak(state.digitnum);
+  std::vector<unsigned char> isPeak(state.digitnum);
 
-    gpucpy<unsigned char>(state.isPeak, isPeak, isPeak.size(), queue, true);
+  gpucpy<unsigned char>(state.isPeak, isPeak, isPeak.size(), queue, true);
 
-    size_t correctPeaks = 0;
-    std::vector<size_t> wrongIds;
-    for (size_t i = 0; i < std::min(isPeak.size(), isPeakGT.size()); i++)
-    {
-        ASSERT(isPeak[i] == 0 || isPeak[i] == 1);
-        bool ok = (isPeak[i] == isPeakGT[i]);
-        correctPeaks += ok;
+  size_t correctPeaks = 0;
+  std::vector<size_t> wrongIds;
+  for (size_t i = 0; i < std::min(isPeak.size(), isPeakGT.size()); i++) {
+    ASSERT(isPeak[i] == 0 || isPeak[i] == 1);
+    bool ok = (isPeak[i] == isPeakGT[i]);
+    correctPeaks += ok;
 
-        if (!ok)
-        {
-            wrongIds.push_back(i);
-        }
+    if (!ok) {
+      wrongIds.push_back(i);
     }
+  }
 
-    float correctFraction = 
-        std::min(correctPeaks, isPeakGT.size())
-            / float(std::max(correctPeaks, isPeakGT.size()));
+  float correctFraction =
+    std::min(correctPeaks, isPeakGT.size()) / float(std::max(correctPeaks, isPeakGT.size()));
 
-    bool isPeaksOk = correctFraction >= 0.99f;
+  bool isPeaksOk = correctFraction >= 0.99f;
 
-    if (!isPeaksOk)
-    {
-        DigitDrawer drawer(digits, res.isPeak, isPeak);
+  if (!isPeaksOk) {
+    DigitDrawer drawer(digits, res.isPeak, isPeak);
 
-        for (size_t i = 0; i < std::min(size_t(10), wrongIds.size()); i++)
-        {
-            log::Info() << wrongIds[i] << "\n" << drawer.drawArea(digits[wrongIds[i]], 3);
-        }
+    for (size_t i = 0; i < std::min(size_t(10), wrongIds.size()); i++) {
+      log::Info() << wrongIds[i] << "\n"
+                  << drawer.drawArea(digits[wrongIds[i]], 3);
     }
+  }
 
-    ASSERT(isPeaksOk) << "\n  correctFraction = " << correctFraction;
+  ASSERT(isPeaksOk) << "\n  correctFraction = " << correctFraction;
 
-    log::Success() << "isPeaks: OK (" << correctFraction << " correct)";
-
+  log::Success() << "isPeaks: OK (" << correctFraction << " correct)";
 }
 
-void ClusterFinderTest::checkPeaks(const std::vector<Digit> &peakGT)
+void ClusterFinderTest::checkPeaks(const std::vector<Digit>& peakGT)
 {
-    std::vector<Digit> peaks(state.peaknum);
+  std::vector<Digit> peaks(state.peaknum);
 
-    gpucpy<Digit>(state.peaks, peaks, peaks.size(), queue, true);
+  gpucpy<Digit>(state.peaks, peaks, peaks.size(), queue, true);
 
-    Map<bool> peakLookup(peakGT, true, false);
-    log::Info() << "GT has   " << peakGT.size() << " peaks.";
-    log::Info() << "Cf found " << peaks.size() << " peaks.";
+  Map<bool> peakLookup(peakGT, true, false);
+  log::Info() << "GT has   " << peakGT.size() << " peaks.";
+  log::Info() << "Cf found " << peaks.size() << " peaks.";
 
-    size_t correctPeaks = 0;
-    std::vector<size_t> wrongIds;
-    for (size_t i = 0; i < peaks.size(); i++)
-    {
-        bool ok = peakLookup[peaks[i]];
-        correctPeaks += ok;
+  size_t correctPeaks = 0;
+  std::vector<size_t> wrongIds;
+  for (size_t i = 0; i < peaks.size(); i++) {
+    bool ok = peakLookup[peaks[i]];
+    correctPeaks += ok;
 
-        if (!ok)
-        {
-            wrongIds.push_back(i);
-        }
+    if (!ok) {
+      wrongIds.push_back(i);
     }
+  }
 
-    float correctFraction = float(correctPeaks) / peaks.size();
+  float correctFraction = float(correctPeaks) / peaks.size();
 
-    const float threshold = (state.cfg.halfs) ? 0.98f : 0.99f;
+  const float threshold = (state.cfg.halfs) ? 0.98f : 0.99f;
 
-    bool peaksOk = correctFraction >= threshold;
+  bool peaksOk = correctFraction >= threshold;
 
-    if (!peaksOk)
-    {
-        DigitDrawer drawer(digits, peakGT, peaks);
+  if (!peaksOk) {
+    DigitDrawer drawer(digits, peakGT, peaks);
 
-        for (size_t i = 0; i < std::min(size_t(10), wrongIds.size()); i++)
-        {
-            log::Info() << wrongIds[i] << "\n" << drawer.drawArea(peaks[wrongIds[i]], 3);
-        }
+    for (size_t i = 0; i < std::min(size_t(10), wrongIds.size()); i++) {
+      log::Info() << wrongIds[i] << "\n"
+                  << drawer.drawArea(peaks[wrongIds[i]], 3);
     }
+  }
 
-    ASSERT(peaksOk) << "\n" << correctFraction;
+  ASSERT(peaksOk) << "\n"
+                  << correctFraction;
 
-    log::Success() << "Peaks: OK (" << correctFraction << " correct)";
+  log::Success() << "Peaks: OK (" << correctFraction << " correct)";
 }
 
-void ClusterFinderTest::checkFilteredPeaks(const std::vector<Digit> &filteredPeakGT)
+void ClusterFinderTest::checkFilteredPeaks(const std::vector<Digit>& filteredPeakGT)
 {
-    std::vector<Digit> peaks(state.filteredPeakNum);
+  std::vector<Digit> peaks(state.filteredPeakNum);
 
-    gpucpy<Digit>(state.filteredPeaks, peaks, peaks.size(), queue, true);
+  gpucpy<Digit>(state.filteredPeaks, peaks, peaks.size(), queue, true);
 
-    Map<bool> peakLookup(filteredPeakGT, true, false);
-    log::Info() << "GT has   " << filteredPeakGT.size() << " filtered peaks.";
-    log::Info() << "Cf found " << peaks.size() << " filtered peaks.";
+  Map<bool> peakLookup(filteredPeakGT, true, false);
+  log::Info() << "GT has   " << filteredPeakGT.size() << " filtered peaks.";
+  log::Info() << "Cf found " << peaks.size() << " filtered peaks.";
 
-    size_t correctPeaks = 0;
-    std::vector<size_t> wrongIds;
-    for (size_t i = 0; i < peaks.size(); i++)
-    {
-        bool ok = peakLookup[peaks[i]];
-        correctPeaks += ok;
+  size_t correctPeaks = 0;
+  std::vector<size_t> wrongIds;
+  for (size_t i = 0; i < peaks.size(); i++) {
+    bool ok = peakLookup[peaks[i]];
+    correctPeaks += ok;
 
-        if (!ok)
-        {
-            wrongIds.push_back(i);
-        }
+    if (!ok) {
+      wrongIds.push_back(i);
     }
+  }
 
-    float correctFraction = float(correctPeaks) / peaks.size();
+  float correctFraction = float(correctPeaks) / peaks.size();
 
-    const float threshold = (state.cfg.halfs) ? 0.98f : 0.99f;
+  const float threshold = (state.cfg.halfs) ? 0.98f : 0.99f;
 
-    bool peaksOk = correctFraction >= threshold;
+  bool peaksOk = correctFraction >= threshold;
 
-    if (!peaksOk)
-    {
-        DigitDrawer drawer(digits, filteredPeakGT, peaks);
+  if (!peaksOk) {
+    DigitDrawer drawer(digits, filteredPeakGT, peaks);
 
-        for (size_t i = 0; i < std::min(size_t(10), wrongIds.size()); i++)
-        {
-            log::Info() << wrongIds[i] << "\n" << drawer.drawArea(peaks[wrongIds[i]], 3);
-        }
+    for (size_t i = 0; i < std::min(size_t(10), wrongIds.size()); i++) {
+      log::Info() << wrongIds[i] << "\n"
+                  << drawer.drawArea(peaks[wrongIds[i]], 3);
     }
+  }
 
-    ASSERT(peaksOk) << "\n" << correctFraction;
+  ASSERT(peaksOk) << "\n"
+                  << correctFraction;
 
-    log::Success() << "Filtered Peaks: OK (" << correctFraction << " correct)";
+  log::Success() << "Filtered Peaks: OK (" << correctFraction << " correct)";
 }
 
 void ClusterFinderTest::checkCluster(
-        const std::vector<Digit> &peaksGT, 
-        const std::vector<Cluster> &clusterGT)
+  const std::vector<Digit>& peaksGT,
+  const std::vector<Cluster>& clusterGT)
 {
-    log::Info() << "Testing cluster...";
+  log::Info() << "Testing cluster...";
 
-    std::vector<Cluster> cluster = clusterToCPU.call(state, queue);
+  std::vector<Cluster> cluster = clusterToCPU.call(state, queue);
 
-    log::Info() << "GT has   " << clusterGT.size() << " cluster.";
-    log::Info() << "Cf found " << cluster.size() << " cluster.";
+  log::Info() << "GT has   " << clusterGT.size() << " cluster.";
+  log::Info() << "Cf found " << cluster.size() << " cluster.";
 
+  ClusterMap clpos;
+  clpos.addAll(clusterGT);
+  clpos.setClusterEqParams(0.f, 0.f,
+                           Cluster::Field_all ^ (Cluster::Field_timeSigma | Cluster::Field_padSigma));
 
-    ClusterMap clpos;
-    clpos.addAll(clusterGT);
-    clpos.setClusterEqParams(0.f, 0.f,
-            Cluster::Field_all
-              ^ (Cluster::Field_timeSigma | Cluster::Field_padSigma));
+  std::vector<Digit> peaks(state.filteredPeakNum);
+  gpucpy<Digit>(state.filteredPeaks, peaks, peaks.size(), queue, true);
 
-    std::vector<Digit> peaks(state.filteredPeakNum);
-    gpucpy<Digit>(state.filteredPeaks, peaks, peaks.size(), queue, true);
+  DigitDrawer drawer(digits, peaksGT, peaks);
 
-    DigitDrawer drawer(digits, peaksGT, peaks);
+  size_t correctCluster = 0;
+  size_t printCluster = 3;
+  for (const Cluster& c : cluster) {
+    bool posOk = clpos.contains(c);
 
-    size_t correctCluster = 0;
-    size_t printCluster = 3;
-    for (const Cluster &c : cluster)
-    {
-        bool posOk = clpos.contains(c);
-
-        if (!posOk && printCluster > 0)
-        {
-            log::Debug() 
-                << c << "\n"
-                << clpos.findClosest(c) << "\n"
-                << "Print around cluster:\n"
-                << drawer.drawArea(
-                    Digit{0, c.globalRow(), int(c.padMean), int(c.timeMean)},
-                    4);
-            printCluster--;
-        }
-
-        correctCluster += posOk;
+    if (!posOk && printCluster > 0) {
+      log::Debug()
+        << c << "\n"
+        << clpos.findClosest(c) << "\n"
+        << "Print around cluster:\n"
+        << drawer.drawArea(
+             Digit{0, c.globalRow(), int(c.padMean), int(c.timeMean)},
+             4);
+      printCluster--;
     }
 
-    float correctFraction = float(correctCluster) / cluster.size();
+    correctCluster += posOk;
+  }
 
-    const float threshold = (state.cfg.halfs) ? 0.98f : 0.99f;
-    ASSERT(correctFraction >= threshold) << "\n correctFraction = " << correctFraction;
+  float correctFraction = float(correctCluster) / cluster.size();
 
-    log::Success() << "Cluster: OK (" << correctFraction << " correct)";
+  const float threshold = (state.cfg.halfs) ? 0.98f : 0.99f;
+  ASSERT(correctFraction >= threshold) << "\n correctFraction = " << correctFraction;
 
-    ClusterMap clall;
-    clall.addAll(clusterGT);
+  log::Success() << "Cluster: OK (" << correctFraction << " correct)";
 
-    size_t correctClusterAll = 0;
-    for (const Cluster &c : cluster)
-    {
-        /* if (!clall.contains(c)) */
-        /* { */
-        /*     log::Debug() << c; */
-        /* } */
-        correctClusterAll += clall.contains(c);
-    }
+  ClusterMap clall;
+  clall.addAll(clusterGT);
 
-    log::Info() << "Correct cluster: " << correctCluster
-                << ", With sigma: " << correctClusterAll;
+  size_t correctClusterAll = 0;
+  for (const Cluster& c : cluster) {
+    /* if (!clall.contains(c)) */
+    /* { */
+    /*     log::Debug() << c; */
+    /* } */
+    correctClusterAll += clall.contains(c);
+  }
+
+  log::Info() << "Correct cluster: " << correctCluster
+              << ", With sigma: " << correctClusterAll;
 }
 
-
 void ClusterFinderTest::printInterimValues(
-        const std::vector<unsigned char> &pred,
-        size_t wgsize)
+  const std::vector<unsigned char>& pred,
+  size_t wgsize)
 {
-    log::Debug() << "Interim values: ";
+  log::Debug() << "Interim values: ";
 
-    size_t i = 0;
-    size_t val = 0;
-    for (unsigned char p : pred)
-    {
-        val += p; 
-        if (i == wgsize-1)
-        {
-            log::Debug() << "  " << val;
-            val = 0;
-            i   = 0;
-        }
-        else
-        {
-            i++;
-        }
+  size_t i = 0;
+  size_t val = 0;
+  for (unsigned char p : pred) {
+    val += p;
+    if (i == wgsize - 1) {
+      log::Debug() << "  " << val;
+      val = 0;
+      i = 0;
+    } else {
+      i++;
     }
+  }
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

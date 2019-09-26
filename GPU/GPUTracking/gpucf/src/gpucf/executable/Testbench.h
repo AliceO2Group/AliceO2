@@ -12,23 +12,21 @@
 #include <gpucf/common/ClEnv.h>
 #include <gpucf/executable/Executable.h>
 
-
 namespace gpucf
 {
 
 class Testbench : public Executable
 {
 
-public:
-    Testbench();
+ public:
+  Testbench();
 
-protected:
-    void setupFlags(args::Group &, args::Group &) override;
-    int mainImpl() override;
+ protected:
+  void setupFlags(args::Group&, args::Group&) override;
+  int mainImpl() override;
 
-private:
-    std::unique_ptr<ClEnv::Flags> envFlags;
-    
+ private:
+  std::unique_ptr<ClEnv::Flags> envFlags;
 };
 
 } // namespace gpucf

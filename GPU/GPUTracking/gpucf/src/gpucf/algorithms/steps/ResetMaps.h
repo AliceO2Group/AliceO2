@@ -11,24 +11,22 @@
 
 #include <gpucf/common/Kernel1D.h>
 
-
 namespace gpucf
 {
 
 class ResetMaps : public Kernel1D
 {
 
-public:
-    DECL_KERNEL(ResetMaps, "resetMaps");
+ public:
+  DECL_KERNEL(ResetMaps, "resetMaps");
 
-    void call(ClusterFinderState &state, cl::CommandQueue queue)
-    {
-        kernel.setArg(0, state.digits);
-        kernel.setArg(1, state.chargeMap);
-        kernel.setArg(2, state.peakMap);
-        Kernel1D::call(0, state.digitnum, state.cfg.wgSize, queue);
-    }
-    
+  void call(ClusterFinderState& state, cl::CommandQueue queue)
+  {
+    kernel.setArg(0, state.digits);
+    kernel.setArg(1, state.chargeMap);
+    kernel.setArg(2, state.peakMap);
+    Kernel1D::call(0, state.digitnum, state.cfg.wgSize, queue);
+  }
 };
 
 } // namespace gpucf

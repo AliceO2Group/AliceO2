@@ -16,49 +16,43 @@
 
 #include <vector>
 
-
 namespace gpucf
 {
-    
+
 class NoiseSuppression
 {
 
-public:
+ public:
+  RowMap<std::vector<Digit>> run(
+    const RowMap<std::vector<Digit>>&,
+    const RowMap<Map<bool>>&,
+    const Map<float>&);
 
-    RowMap<std::vector<Digit>> run(
-            const RowMap<std::vector<Digit>> &,
-            const RowMap<Map<bool>> &,
-            const Map<float> &);
+  std::vector<Digit> runOnAllRows(
+    View<Digit>,
+    const Map<bool>&,
+    const Map<float>&);
 
-    std::vector<Digit> runOnAllRows(
-            View<Digit>,
-            const Map<bool> &,
-            const Map<float> &);
+  std::string getName() const
+  {
+    return name;
+  }
 
-    std::string getName() const
-    {
-        return name;
-    }
+ protected:
+  NoiseSuppression(const std::string& name)
+    : name(name)
+  {
+  }
 
-protected:
-    
-    NoiseSuppression(const std::string &name)
-        : name(name)
-    {
-    }
+  virtual std::vector<Digit> runImpl(
+    View<Digit>,
+    const Map<bool>&,
+    const Map<float>&) = 0;
 
-    virtual std::vector<Digit> runImpl(
-            View<Digit>,
-            const Map<bool> &,
-            const Map<float> &) = 0;
-
-private:
-
-    std::string name;
-
+ private:
+  std::string name;
 };
 
 } // namespace gpucf
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
-

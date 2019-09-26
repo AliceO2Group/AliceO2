@@ -11,60 +11,54 @@
 
 #include <gpucf/common/Kernel1D.h>
 
-
 namespace gpucf
 {
 
 class GPUNoiseSuppression
 {
 
-public:
+ public:
+  GPUNoiseSuppression(cl::Program prg)
+    : noiseSuppression("noiseSuppression", prg), updatePeaks("updatePeaks", prg)
+  {
+  }
 
-    GPUNoiseSuppression(cl::Program prg)
-        : noiseSuppression("noiseSuppression", prg)
-        , updatePeaks("updatePeaks", prg)
-    {
-    }
+  void call(ClusterFinderState& state, cl::CommandQueue queue)
+  {
+    bool scratchpad = (state.cfg.clusterbuilder == ClusterBuilder::ScratchPad);
+    size_t dummyItems =
+      (scratchpad)
+        ? state.cfg.wgSize - (state.peaknum % state.cfg.wgSize)
+        : 0;
 
-    void call(ClusterFinderState &state, cl::CommandQueue queue)
-    {
-        bool scratchpad = (state.cfg.clusterbuilder == ClusterBuilder::ScratchPad);
-        size_t dummyItems = 
-            (scratchpad) 
-                ? state.cfg.wgSize - (state.peaknum % state.cfg.wgSize) 
-                : 0;
+    size_t workitems = state.peaknum + dummyItems;
 
-        size_t workitems = state.peaknum + dummyItems;
+    noiseSuppression.setArg(0, state.chargeMap);
+    noiseSuppression.setArg(1, state.peakMap);
+    noiseSuppression.setArg(2, state.peaks);
+    noiseSuppression.setArg(3, static_cast<cl_uint>(state.peaknum));
+    noiseSuppression.setArg(4, state.isPeak);
 
-        noiseSuppression.setArg(0, state.chargeMap);
-        noiseSuppression.setArg(1, state.peakMap);
-        noiseSuppression.setArg(2, state.peaks);
-        noiseSuppression.setArg(3, static_cast<cl_uint>(state.peaknum));
-        noiseSuppression.setArg(4, state.isPeak);
+    noiseSuppression.call(0, workitems, state.cfg.wgSize, queue);
 
-        noiseSuppression.call(0, workitems, state.cfg.wgSize, queue);
+    updatePeaks.setArg(0, state.peaks);
+    updatePeaks.setArg(1, state.isPeak);
+    updatePeaks.setArg(2, state.peakMap);
 
+    updatePeaks.call(0, state.peaknum, state.cfg.wgSize, queue);
+  }
 
-        updatePeaks.setArg(0, state.peaks);
-        updatePeaks.setArg(1, state.isPeak);
-        updatePeaks.setArg(2, state.peakMap);
+  Step asStep(const std::string& name) const
+  {
+    Timestamp start = noiseSuppression.getEvent().start();
+    Timestamp end = updatePeaks.getEvent().end();
 
-        updatePeaks.call(0, state.peaknum, state.cfg.wgSize, queue);
-    }
+    return {name, start, start, start, end};
+  }
 
-    Step asStep(const std::string &name) const
-    {
-        Timestamp start = noiseSuppression.getEvent().start();
-        Timestamp end   = updatePeaks.getEvent().end();
-
-        return {name, start, start, start, end};
-    }
-
-private:
-
-    Kernel1D noiseSuppression;
-    Kernel1D updatePeaks;
-    
+ private:
+  Kernel1D noiseSuppression;
+  Kernel1D updatePeaks;
 };
 
 } // namespace gpucf

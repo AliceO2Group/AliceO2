@@ -16,10 +16,9 @@
 #include <gpucf/common/serialization.h>
 #include <gpucf/common/View.h>
 
-#include <nonstd/span.hpp>
+#include <nonstd/span.h>
 
 #include <vector>
-
 
 namespace gpucf
 {
@@ -27,37 +26,32 @@ namespace gpucf
 class LabelContainer
 {
 
-public:
+ public:
+  static SectorMap<LabelContainer> bySector(
+    const SectorMap<std::vector<RawLabel>>&,
+    const SectorMap<std::vector<Digit>>&);
 
-    static SectorMap<LabelContainer> bySector(
-            const SectorMap<std::vector<RawLabel>> &,
-            const SectorMap<std::vector<Digit>> &);
+  LabelContainer() = default;
+  LabelContainer(View<RawLabel>, View<Digit>);
 
-    LabelContainer() = default;
-    LabelContainer(View<RawLabel>, View<Digit>);
+  View<MCLabel> operator[](size_t) const;
+  View<MCLabel> operator[](const Position&) const;
 
-    View<MCLabel> operator[](size_t) const;
-    View<MCLabel> operator[](const Position &) const;
+  size_t size() const;
 
-    size_t size() const;
+  View<MCLabel> allLabels() const;
 
-    View<MCLabel> allLabels() const;
+  size_t countTracks() const;
+  size_t countHits() const;
 
-    size_t countTracks() const;
-    size_t countHits() const;
+ private:
+  std::unordered_map<Position, View<MCLabel>> viewByPosition;
+  std::vector<View<MCLabel>> viewById;
+  std::vector<MCLabel> labels;
 
-private:
-
-    std::unordered_map<Position, View<MCLabel>> viewByPosition;
-    std::vector<View<MCLabel>> viewById;
-    std::vector<MCLabel> labels;
-
-    void add(const RawLabel &);
-
+  void add(const RawLabel&);
 };
 
 } // namespace gpucf
-
-
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

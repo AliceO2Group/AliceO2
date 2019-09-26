@@ -9,11 +9,8 @@
 // or submit itself to any jurisdiction.
 #pragma once
 
-
-
 namespace gpucf
 {
-
 
 } // namespace gpucf
 

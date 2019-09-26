@@ -9,45 +9,42 @@
 // or submit itself to any jurisdiction.
 #pragma once
 
-#include <nonstd/optional.hpp>
+#include <nonstd/optional.h>
 
 #include <string>
 #include <unordered_map>
-
 
 namespace gpucf
 {
 
 class Object
 {
-public:
-    static nonstd::optional<Object> tryParse(const std::string &);
+ public:
+  static nonstd::optional<Object> tryParse(const std::string&);
 
-    Object(const std::string &);
+  Object(const std::string&);
 
-    bool hasKey(const std::string &) const;
+  bool hasKey(const std::string&) const;
 
-    int   getInt(const std::string &) const;
-    float getFloat(const std::string &) const;
+  int getInt(const std::string&) const;
+  float getFloat(const std::string&) const;
 
-    void set(const std::string &, int);
-    void set(const std::string &, float);
-    void set(const std::string &, const std::string &);
+  void set(const std::string&, int);
+  void set(const std::string&, float);
+  void set(const std::string&, const std::string&);
 
-    std::string str() const;
+  std::string str() const;
 
-    std::string getType() const;
+  std::string getType() const;
 
-private:
-    std::string type;
-    std::unordered_map<std::string, std::string> fields;
- 
+ private:
+  std::string type;
+  std::unordered_map<std::string, std::string> fields;
 };
 
-std::ostream &operator<<(std::ostream &, const Object &);
-    
-} // namespace gpucf
+std::ostream& operator<<(std::ostream&, const Object&);
 
+} // namespace gpucf
 
 #define GET_IMPL(obj, fieldName, field, getterFunc) field = obj.getterFunc(fieldName)
 #define GET_INT(obj, field) GET_IMPL(obj, #field, field, getInt)

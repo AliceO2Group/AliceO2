@@ -12,10 +12,9 @@
 namespace gpucf
 {
 
-enum class ClusterBuilder
-{
-    #define CLUSTER_BUILDER(name, def, desc) name,    
-    #include <gpucf/algorithms/ClusterFinderFlags.def>
+enum class ClusterBuilder {
+#define CLUSTER_BUILDER(name, def, desc) name,
+#include <gpucf/algorithms/ClusterFinderFlags.def>
 };
 
 } // namespace gpucf

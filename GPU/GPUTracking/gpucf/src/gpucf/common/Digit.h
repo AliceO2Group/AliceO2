@@ -20,37 +20,33 @@
 #include <string>
 #include <vector>
 
-
 namespace gpucf
 {
 
 class Digit : public PackedDigit
 {
 
-public:
+ public:
+  static SectorMap<std::vector<Digit>> bySector(
+    const SectorMap<std::vector<RawDigit>>&);
 
-    static SectorMap<std::vector<Digit>> bySector(
-            const SectorMap<std::vector<RawDigit>> &);
+  Digit();
+  Digit(const RawDigit&);
+  Digit(float, int, int, int);
 
-    Digit();
-    Digit(const RawDigit &);
-    Digit(float, int, int, int);
+  Object serialize() const;
+  void deserialize(const Object&);
 
-    Object serialize() const;
-    void deserialize(const Object &);
+  float getCharge() const;
 
-    float getCharge() const;
+  int localRow() const;
+  int cru() const;
 
-    int localRow() const;
-    int cru() const;
-
-    bool operator==(const Digit &) const;
-
+  bool operator==(const Digit&) const;
 };
 
-std::ostream &operator<<(std::ostream &, const Digit &);
+std::ostream& operator<<(std::ostream&, const Digit&);
 
 } // namespace gpucf
-
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

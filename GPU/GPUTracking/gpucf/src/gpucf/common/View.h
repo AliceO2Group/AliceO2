@@ -9,14 +9,13 @@
 // or submit itself to any jurisdiction.
 #pragma once
 
-#include <nonstd/span.hpp>
-
+#include <nonstd/span.h>
 
 namespace gpucf
 {
-    
-    template<typename T>
-    using View = nonstd::span<const T>;
+
+template <typename T>
+using View = nonstd::span<const T>;
 
 } // namespace gpucf
 
