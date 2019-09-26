@@ -13,101 +13,94 @@
 
 #include <unordered_set>
 
-
 using namespace gpucf;
 
-
 SectorMap<LabelContainer> LabelContainer::bySector(
-        const SectorMap<std::vector<RawLabel>> &labels,
-        const SectorMap<std::vector<Digit>> &digits)
+  const SectorMap<std::vector<RawLabel>>& labels,
+  const SectorMap<std::vector<Digit>>& digits)
 {
-    SectorMap<LabelContainer> containers;
+  SectorMap<LabelContainer> containers;
 
-    for (size_t i = 0; i < TPC_SECTORS; i++)
-    {
-        containers[i] = LabelContainer(labels[i], digits[i]);
-    }
+  for (size_t i = 0; i < TPC_SECTORS; i++) {
+    containers[i] = LabelContainer(labels[i], digits[i]);
+  }
 
-    return containers;
+  return containers;
 }
 
 LabelContainer::LabelContainer(View<RawLabel> rawlabels, View<Digit> digits)
 {
-    ASSERT(!rawlabels.empty());
+  ASSERT(!rawlabels.empty());
 
-    labels.reserve(rawlabels.size());
+  labels.reserve(rawlabels.size());
 
-    ASSERT(rawlabels.front().id == 0);
+  ASSERT(rawlabels.front().id == 0);
 
-    size_t start = 0;
-    size_t elems = 0;
-    int id = 0;
+  size_t start = 0;
+  size_t elems = 0;
+  int id = 0;
 
-    viewById.reserve(digits.size());
+  viewById.reserve(digits.size());
 
-    size_t noise = 0;
+  size_t noise = 0;
 
-    for (const RawLabel &l : rawlabels)
-    {
-        ASSERT(l.id == id || l.id == id+1);
+  for (const RawLabel& l : rawlabels) {
+    ASSERT(l.id == id || l.id == id + 1);
 
-        if (l.id == id+1)
-        {
-            View<MCLabel> view(&labels[start], elems);
-            viewById.push_back(view); 
-            viewByPosition[digits[id]] = view;
+    if (l.id == id + 1) {
+      View<MCLabel> view(&labels[start], elems);
+      viewById.push_back(view);
+      viewByPosition[digits[id]] = view;
 
-            start = labels.size();
-            elems = 0;
-            id++;
-        }
-
-        noise += l.isNoise;
-        
-        if (l.isSet && !l.isNoise)
-        {
-            labels.emplace_back(l);
-            elems++;
-        }
+      start = labels.size();
+      elems = 0;
+      id++;
     }
 
-    View<MCLabel> view(&labels[start], elems);
-    viewById.push_back(view); 
-    viewByPosition[digits[id]] = view;
+    noise += l.isNoise;
 
-    log::Debug() << "Found " << noise << " labels generated from noise";
+    if (l.isSet && !l.isNoise) {
+      labels.emplace_back(l);
+      elems++;
+    }
+  }
+
+  View<MCLabel> view(&labels[start], elems);
+  viewById.push_back(view);
+  viewByPosition[digits[id]] = view;
+
+  log::Debug() << "Found " << noise << " labels generated from noise";
 }
 
-View<MCLabel> LabelContainer::operator[](const Position &p) const
+View<MCLabel> LabelContainer::operator[](const Position& p) const
 {
-    return viewByPosition.at(p);
+  return viewByPosition.at(p);
 }
 
 View<MCLabel> LabelContainer::operator[](size_t id) const
 {
-    return viewById.at(id);
+  return viewById.at(id);
 }
 
 size_t LabelContainer::size() const
 {
-    return viewById.size();
+  return viewById.size();
 }
 
 View<MCLabel> LabelContainer::allLabels() const
 {
-    return labels;
+  return labels;
 }
 
 size_t LabelContainer::countTracks() const
 {
-    std::unordered_set<MCLabel> uniqueTracks;
+  std::unordered_set<MCLabel> uniqueTracks;
 
-    for (const MCLabel &label : labels)
-    {
-        uniqueTracks.insert(label);
-    }
+  for (const MCLabel& label : labels) {
+    uniqueTracks.insert(label);
+  }
 
-    return uniqueTracks.size();
+  return uniqueTracks.size();
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

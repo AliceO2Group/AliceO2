@@ -11,27 +11,23 @@
 
 #include <gpucf/common/Kernel1D.h>
 
-
-
 namespace gpucf
 {
 
 class FillChargeMap : public Kernel1D
 {
 
-public:
-    DECL_KERNEL(FillChargeMap, "fillChargeMap");
+ public:
+  DECL_KERNEL(FillChargeMap, "fillChargeMap");
 
-    void call(ClusterFinderState &state, cl::CommandQueue queue)
-    {
-        kernel.setArg(0, state.digits);    
-        kernel.setArg(1, state.chargeMap);    
-        Kernel1D::call(0, state.digitnum, state.cfg.wgSize, queue);
-    }
-
+  void call(ClusterFinderState& state, cl::CommandQueue queue)
+  {
+    kernel.setArg(0, state.digits);
+    kernel.setArg(1, state.chargeMap);
+    Kernel1D::call(0, state.digitnum, state.cfg.wgSize, queue);
+  }
 };
 
 } // namespace gpucf
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
-

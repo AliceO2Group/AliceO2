@@ -8,21 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #if !defined(SHARED_DIGIT_H)
-#    define  SHARED_DIGIT_H
+#define SHARED_DIGIT_H
 
 #include "tpc.h"
 
-
-typedef struct PackedDigit_s
-{
-    float charge;
-    timestamp time;
-    pad_t pad;
-    row_t row;
+typedef struct PackedDigit_s {
+  float charge;
+  timestamp time;
+  pad_t pad;
+  row_t row;
 } PackedDigit;
 
 #define PACKED_DIGIT_SIZE 8
-
 
 #endif //!defined(SHARED_DIGIT_H)
 

@@ -13,18 +13,16 @@
 
 #include <vector>
 
-
 namespace gpucf
 {
 
 class ClusterFinderProfiler : public ClusterFinder
 {
 
-public:
-    using ClusterFinder::ClusterFinder;
+ public:
+  using ClusterFinder::ClusterFinder;
 
-    std::vector<Step> run(nonstd::span<const Digit>);
-    
+  std::vector<Step> run(nonstd::span<const Digit>);
 };
 
 } // namespace gpucf
