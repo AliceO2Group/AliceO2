@@ -145,6 +145,13 @@ DataProcessorSpec getSourceSpec()
     ASSERT_ERROR(messageablevector.size() == 0);
     messageablevector.push_back(a);
     messageablevector.emplace_back(10, 20, 0xacdc);
+
+    // make a PMR std::vector, make it large to test the auto transport buffer resize funtionality as well
+    Output pmrOutputSpec{"TST", "PMRTESTVECTOR", 0};
+    auto pmrvec = o2::vector<o2::test::TriviallyCopyable>(pc.outputs().getMemoryResource(pmrOutputSpec));
+    pmrvec.reserve(100);
+    pmrvec.emplace_back(o2::test::TriviallyCopyable{1, 2, 3});
+    pc.outputs().adoptContainer(pmrOutputSpec, std::move(pmrvec));
   };
 
   return DataProcessorSpec{"source", // name of the processor
@@ -163,7 +170,8 @@ DataProcessorSpec getSourceSpec()
                             OutputSpec{"TST", "ROOTNONTOBJECT", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "ROOTVECTOR", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "ROOTSERLZDVEC", 0, Lifetime::Timeframe},
-                            OutputSpec{"TST", "ROOTSERLZDVEC2", 0, Lifetime::Timeframe}},
+                            OutputSpec{"TST", "ROOTSERLZDVEC2", 0, Lifetime::Timeframe},
+                            OutputSpec{"TST", "PMRTESTVECTOR", 0, Lifetime::Timeframe}},
                            AlgorithmSpec(processingFct)};
 }
 
@@ -284,6 +292,13 @@ DataProcessorSpec getSinkSpec()
     ASSERT_ERROR(object15[0] == o2::test::Polymorphic{0xacdc});
     ASSERT_ERROR(object15[1] == o2::test::Polymorphic{0xbeef});
 
+    LOG(INFO) << "extracting PMR vector";
+    auto pmrspan = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("inputPMR");
+    ASSERT_ERROR((pmrspan[0] == o2::test::TriviallyCopyable{1, 2, 3}));
+    auto dataref = pc.inputs().get<DataRef>("inputPMR");
+    auto header = o2::header::get<const o2::header::DataHeader*>(dataref.header);
+    ASSERT_ERROR((header->payloadSize == sizeof(o2::test::TriviallyCopyable)));
+
     pc.services().get<ControlService>().readyToQuit(true);
   };
 
@@ -302,7 +317,8 @@ DataProcessorSpec getSinkSpec()
                             InputSpec{"input12", "TST", "MSGABLVECTOR", 0, Lifetime::Timeframe},
                             InputSpec{"input13", "TST", "MAKETOBJECT", 0, Lifetime::Timeframe},
                             InputSpec{"input14", "TST", "ROOTSERLZBLOBJ", 0, Lifetime::Timeframe},
-                            InputSpec{"input15", "TST", "ROOTSERLZBLVECT", 0, Lifetime::Timeframe}},
+                            InputSpec{"input15", "TST", "ROOTSERLZBLVECT", 0, Lifetime::Timeframe},
+                            InputSpec{"inputPMR", "TST", "PMRTESTVECTOR", 0, Lifetime::Timeframe}},
                            Outputs{},
                            AlgorithmSpec(processingFct)};
 }
