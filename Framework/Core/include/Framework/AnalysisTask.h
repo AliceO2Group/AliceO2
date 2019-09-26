@@ -21,6 +21,7 @@
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/Traits.h"
 #include "Framework/VariantHelpers.h"
+#include "Headers/DataHeader.h"
 
 #include <arrow/compute/context.h>
 #include <arrow/compute/kernel.h>
@@ -100,6 +101,47 @@ struct Produces<soa::Table<C...>> : WritingCursor<typename soa::FilterPersistent
   {
     return OutputRef{metadata::label(), 0};
   }
+};
+
+/// This helper class allow you to declare things which will be crated by a
+/// give analysis task. Notice how the actual cursor is implemented by the
+/// means of the WritingCursor helper class, from which produces actually
+/// derives.
+template <typename T>
+struct OutputObj {
+  using obj_t = T;
+
+  OutputObj(T const& t)
+    : object(std::make_shared<T>(t))
+  {
+  }
+
+  // @return the associated OutputSpec
+  OutputSpec const spec()
+  {
+    static_assert(std::is_base_of_v<TNamed, T>, "You need a TNamed derived class to use OutputObj");
+    std::string label{object->GetName()};
+    header::DataDescription desc{};
+    // FIXME: for the moment we use GetTitle(), in the future
+    //        we should probably use a unique hash to allow
+    //        names longer than 16 bytes.
+    strncpy(desc.str, object->GetTitle(), 16);
+
+    return OutputSpec{OutputLabel{label}, "TASK", desc, 0};
+  }
+
+  T* operator->()
+  {
+    return object.get();
+  }
+
+  OutputRef ref()
+  {
+    std::string label{object->GetName()};
+    return OutputRef{label, 0};
+  }
+
+  std::shared_ptr<T> object;
 };
 
 struct AnalysisTask {
@@ -318,6 +360,29 @@ struct OutputManager<HistogramRegistry> {
   }
 
   static bool inspect(HistogramRegistry& what)
+  {
+    return true;
+  }
+};
+
+template <typename T>
+struct OutputManager<OutputObj<T>> {
+  static bool appendOutput(std::vector<OutputSpec>& outputs, OutputObj<T>& what)
+  {
+    outputs.emplace_back(what.spec());
+    return true;
+  }
+  static bool prepare(ProcessingContext& context, OutputObj<T>& what)
+  {
+    return true;
+  }
+
+  static bool finalize(ProcessingContext& context, OutputObj<T>& what)
+  {
+    return true;
+  }
+
+  static bool inspect(OutputObj<T>& what)
   {
     return true;
   }
