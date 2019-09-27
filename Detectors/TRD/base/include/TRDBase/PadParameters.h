@@ -12,16 +12,17 @@
 #define O2_TRD_PADPARAMETERS_H
 
 ///////////////////////////////////////////////////////////////////////////////
-//                                                                           //
-//  TRD calibration class for parameters which are saved frequently(/run)    //
+//  TRD pad calibrations base class                                          //
 //  2019 - Ported from various bits of AliRoot (SHTM)                        //
+//  This is analagous to the old CalROC but templatized so can store unsigned//
+//      int(CalROC) and char SingleChamberStatus amongst others.
 //  Most things were stored in AliTRDcalROC,AliTRDcalPad, AliTRDcalDet       //
 ///////////////////////////////////////////////////////////////////////////////
 
 //
 #include <vector>
 
-class TRDGeometry;
+#include "TRDBase/TRDGeometry.h"
 
 using namespace std;
 namespace o2
@@ -42,9 +43,10 @@ class PadParameters
          kT0 = 2,
          kExB = 3,
          kLocalGainFactor = 4 };
+  PadParameters()=default;
   PadParameters(int p, int c);
   ~PadParameters() = default;
-  int init(int p, int c, std::vector<T>& data);
+  int init(int c, std::vector<T>& data);
   //
 
   int getNrows() const { return mNrows; };
@@ -56,27 +58,6 @@ class PadParameters
   void setValue(int ich, T value) { mData[ich] = value; };
   void setValue(int col, int row, T value) { setValue(getChannel(col, row), value); };
 
-  // statistic
-  // Need to ponder these functions, they may be better in a higher up class, related to their own perculiarities.
-  /*  double getMean(CalROC* const outlierROC = nullptr) const;
-  double getMeanNotNull() const;
-  double getRMS(CalROC* const outlierROC = nullptr) const;
-  double getRMSNotNull() const;
-  double getMedian(CalROC* const outlierROC = nullptr) const;
-  double getLTM(double* sigma = nullptr, double fraction = 0.9, CalROC* const outlierROC = nullptr);
-*/
-  // algebra
-  bool add(float c1);
-  bool multiply(float c1);
-  /* TODO I dont understand the definition of add, multiply which includes
- * a scaling  factor for addition, that makes it not addition but something else.
- * go back into aliroot code and figure out where its called and why.
- * bool add(const PadParam<T>* roc, double c1 = 1);
-  bool multiply(const PadParam<T>* roc);
-  bool divide(const PadParam<T>* roc);
-  // this is used for the noise studies.
-  bool unfold();
-  */
  protected:
   int mPlane{0};        //  Plane number
   int mChamber{0};      //  Chamber number
@@ -85,6 +66,35 @@ class PadParameters
   int mNchannels{0};    //  Number of channels = rows*columns
   std::vector<T> mData; // Size is mNchannels
 };
+
+
+//
+template <class T>
+PadParameters<T>::PadParameters(int p, int c)
+{
+
+  init(c, nullptr);
+}
+
+template <class T>
+int PadParameters<T>::init(int c, std::vector<T>& data)
+{
+  if (c == 2)
+    mNrows = 12;
+  else
+    mNrows = 16;
+  mPlane = p;   //  Plane number
+  mChamber = c; //  Chamber number
+  mNcols = 144; //  Number of columns TODO look this up somewhere else.
+  mNchannels = mNrows * mNcols;
+  mData = data;
+  if (mData.size() != mNchannels)
+    LOG(FATAL) << "PadParamaters initialised with a size of " << mData.size() << " != " << mNchannels;
+
+  return 0;
+}
+
+
 } // namespace trd
 } // namespace o2
 #endif

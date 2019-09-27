@@ -53,6 +53,34 @@ class PadCalibrations
  protected:
   std::array<PadParameters<T>, kNdet> mreadOutChamber;
 };
+
+template <class T>
+PadCalibrations<T>::PadCalibrations()
+{
+  //
+  // TRDCalPadStatus constructor
+  //
+  //TRDGeometry fgeom;
+  for (int isec = 0; isec < kNsect; isec++) {
+    for (int ipla = 0; ipla < kNplan; ipla++) {
+      for (int icha = 0; icha < kNcham; icha++) {
+        int idet = o2::trd::TRDGeometry::getDetector(ipla, icha, isec);
+        mreadOutChamber[idet].init(icha);
+      }
+    }
+  }
+  mName = name;
+  mTitle = title;
+}
+
 } // namespace trd
 } // namespace o2
 #endif
+
+
+
+//_____________________________________________________________________________
+TRDCalPadStatus::TRDCalPadStatus(const Text_t* name, const Text_t* title)
+{
+}
+

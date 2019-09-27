@@ -47,22 +47,3 @@ int PadParameters<T>::init(int p, int c, std::vector<T>& data)
 
   return 0;
 }
-
-//
-// algebra
-template <class T>
-bool PadParameters<T>::add(float c1)
-{
-
-  for (int i : mData) {
-    mData[i] += c1;
-  }
-}
-
-template <class T>
-bool PadParameters<T>::multiply(float c1)
-{
-  for (int i : mData) {
-    mData[i] *= c1;
-  }
-}
