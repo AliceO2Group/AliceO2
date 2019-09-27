@@ -17,6 +17,7 @@
 #include "MFTTracking/TrackCA.h"
 
 #include "ReconstructionDataFormats/Track.h"
+#include "Framework/Logger.h"
 
 namespace o2
 {
