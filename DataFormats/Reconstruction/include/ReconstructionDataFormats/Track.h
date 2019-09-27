@@ -28,6 +28,7 @@
 
 #ifndef GPUCA_ALIGPUCODE //Used only by functions that are hidden on the GPU
 #include "ReconstructionDataFormats/BaseCluster.h"
+#include <string>
 #endif
 
 #include "CommonConstants/MathConstants.h"
@@ -180,7 +181,10 @@ class TrackPar
   bool propagateParamTo(float xk, const std::array<float, 3>& b);
   void invertParam();
 
+#ifndef GPUCA_ALIGPUCODE
   void printParam() const;
+  std::string asString() const;
+#endif
 
  protected:
   void updateParam(float delta, int i) { mP[i] += delta; }
@@ -233,7 +237,11 @@ class TrackParCov : public TrackPar
   float getSigma1Pt2() const { return mC[kSigQ2Pt2]; }
   float getCovarElem(int i, int j) const { return mC[CovarMap[i][j]]; }
   float getDiagError2(int i) const { return mC[DiagMap[i]]; }
+
+#ifndef GPUCA_ALIGPUCODE
   void print() const;
+  std::string asString() const;
+#endif
 
   // parameters + covmat manipulation
   bool rotate(float alpha);
@@ -421,6 +429,7 @@ inline TrackParCov::TrackParCov(float x, float alpha, const std::array<float, kN
   // explicit constructor
   std::copy(cov.begin(), cov.end(), mC);
 }
+
 } // namespace track
 } // namespace o2
 
