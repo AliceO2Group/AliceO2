@@ -29,6 +29,7 @@
 #ifndef ALICEO2_ITSMFT_TOPOLOGYDICTIONARY_H
 #define ALICEO2_ITSMFT_TOPOLOGYDICTIONARY_H
 #include "DataFormatsITSMFT/ClusterPattern.h"
+#include "Framework/Logger.h"
 #include <fstream>
 #include <string>
 #include <unordered_map>
