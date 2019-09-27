@@ -28,10 +28,8 @@
 
 #include "GPUO2Interface.h"
 #include "GPUO2InterfaceConfiguration.h"
-#define GPUCA_O2_LIB // Temporary workaround, must not be set globally, but needed right now for GPUTPCGM*.h
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUTPCGMMergedTrackHit.h"
-#undef GPUCA_O2_LIB
 
 using namespace o2::gpu;
 using namespace o2::tpc;

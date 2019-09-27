@@ -21,6 +21,9 @@
 #ifndef GPUCA_TPC_GEOMETRY_O2
 #define GPUCA_TPC_GEOMETRY_O2
 #endif
+#ifndef GPUCA_O2_INTERFACE
+#define GPUCA_O2_INTERFACE
+#endif
 
 #include <memory>
 #include "GPUCommonDef.h"
