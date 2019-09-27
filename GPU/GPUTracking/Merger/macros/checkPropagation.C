@@ -1,11 +1,15 @@
-/*
- #include "Riostream.h"
- #include "TFile.h"
- #include "TMath.h"
- #include "TCanvas.h"
- #include "TH1F.h"
- #include "AliHLTTPCGeometry.h"
- */
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "Riostream.h"
+#include "TFile.h"
+#include "TMath.h"
+#include "TCanvas.h"
+#include "TH1F.h"
+#include "GPUO2Interface.h"
+#include "GPUTPCGMPhysicalTrackModel.h"
+#endif
+
+using namespace o2::gpu;
+
 const double kTwoPi = TMath::TwoPi(); // 2.*kPi;
 const double kSliceDAngle = kTwoPi / 18.;
 const double kSliceAngleOffset = kSliceDAngle / 2;

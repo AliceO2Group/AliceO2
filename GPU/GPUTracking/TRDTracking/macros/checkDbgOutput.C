@@ -20,6 +20,7 @@
    FitAngularResolution();
  */
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "TROOT.h"
 #include "TStyle.h"
 #include "TFile.h"
@@ -31,7 +32,9 @@
 #include "TString.h"
 #include "TH1.h"
 #include "TH2.h"
+#include "TF1.h"
 #include "TLegend.h"
+#endif
 
 TFile* f = 0x0;    // input file (TRDhlt.root)
 TTree* tree = 0x0; // input tree (tracksFinal)

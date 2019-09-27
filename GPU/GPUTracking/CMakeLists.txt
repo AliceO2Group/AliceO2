@@ -260,6 +260,13 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   install(DIRECTORY Standalone/utils
           DESTINATION include/GPU
           FILES_MATCHING PATTERN *.h)
+
+  o2_add_test_root_macro(Standalone/tools/createGeo.C
+                         PUBLIC_LINK_LIBRARIES O2::GPUTracking
+                         LABELS its COMPILE_ONLY)
+  o2_add_test_root_macro(Standalone/tools/createLUT.C
+                         PUBLIC_LINK_LIBRARIES O2::GPUTracking
+                         LABELS its COMPILE_ONLY)
 endif()
 
 # Main CMake part for AliRoot

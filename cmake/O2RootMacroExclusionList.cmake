@@ -25,20 +25,18 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             Detectors/Passive/macro/PutFrameInTop.C
             Detectors/TPC/reconstruction/macro/addInclude.C
             Detectors/TPC/reconstruction/macro/getTPCTransformationExample.C
-            Detectors/EMCAL/calib/macros/ReadTestBadChannelMap_CCDBApi.C 
-            GPU/GPUTracking/Merger/macros/checkPropagation.C
-            GPU/GPUTracking/Merger/macros/fitPolynomialFieldIts.C
-            GPU/GPUTracking/Merger/macros/fitPolynomialFieldTpc.C
-            GPU/GPUTracking/Merger/macros/fitPolynomialFieldTrd.C
-            GPU/GPUTracking/Standalone/tools/createGeo.C
-            GPU/GPUTracking/Standalone/tools/createLUT.C
-            GPU/GPUTracking/Standalone/tools/dump.C
-            GPU/GPUTracking/TRDTracking/macros/checkDbgOutput.C
-            GPU/TPCFastTransformation/macro/createTPCFastTransform.C
-            GPU/TPCFastTransformation/macro/generateTPCDistortionNTuple.C
-            GPU/TPCFastTransformation/macro/initTPCcalibration.C
-            GPU/TPCFastTransformation/macro/loadlibs.C
-            GPU/TPCFastTransformation/macro/moveTPCFastTransform.C
+            Detectors/EMCAL/calib/macros/ReadTestBadChannelMap_CCDBApi.C
+            GPU/GPUTracking/Merger/macros/checkPropagation.C # Needs AliRoot AliExternalTrackParam
+            GPU/GPUTracking/Merger/macros/fitPolynomialFieldIts.C # Needs AliRoot AliMagF
+            GPU/GPUTracking/Merger/macros/fitPolynomialFieldTpc.C # Needs AliRoot AliMagF
+            GPU/GPUTracking/Merger/macros/fitPolynomialFieldTrd.C # Needs AliRoot AliMagF
+            GPU/GPUTracking/Standalone/tools/dump.C # Needs AliRoot ALiHLTSystem
+            GPU/GPUTracking/TRDTracking/macros/checkDbgOutput.C # Needs AliRoot TStatToolkit
+            GPU/TPCFastTransformation/macro/createTPCFastTransform.C # Needs AliTPCCalibDB
+            GPU/TPCFastTransformation/macro/generateTPCDistortionNTupleAliRoot.C # Needs AliTPCCalibDB
+            GPU/TPCFastTransformation/macro/initTPCcalibration.C # Needs AliTPCCalibDB
+            GPU/TPCFastTransformation/macro/loadlibs.C # Special macro
+            GPU/TPCFastTransformation/macro/moveTPCFastTransform.C # Relies on initTPCcalibration.C
             Generators/share/external/hijing.C
             macro/SetIncludePath.C
             macro/loadExtDepLib.C
@@ -68,4 +66,3 @@ foreach(m ${O2_ROOT_MACRO_EXCLUSION_LIST})
     message(FATAL_ERROR "Exclusion list contains a non-existing macro : ${m}")
   endif()
 endforeach()
-

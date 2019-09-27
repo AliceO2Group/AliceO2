@@ -43,9 +43,12 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
           RegularSpline1DTest.C
           SemiregularSpline2D3DTest.C
           fastTransformQA.C
-          generateTPCDistortionNTupleAliRoot.C)
+          generateTPCDistortionNTuple.C)
     o2_add_test_root_macro(macro/${m}
                            PUBLIC_LINK_LIBRARIES O2::TPCFastTransformation
+                                                 O2::DataFormatsTPC
+                                                 O2::TPCSimulation
+                                                 O2::TPCReconstruction
                                                  PUBLIC_INCLUDE_DIRECTORIES
                                                  ${CMAKE_BINARY_DIR}/stage/include
                            LABELS gpu tpc)

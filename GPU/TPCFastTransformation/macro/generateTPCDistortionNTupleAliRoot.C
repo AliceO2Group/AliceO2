@@ -31,8 +31,6 @@
 
 //#define FASTTRANSFORM_DEVELOPING
 
-#if defined(FASTTRANSFORM_DEVELOPING)
-
 #include "AliTPCcalibDB.h"
 #include "AliTPCRecoParam.h"
 #include "Riostream.h"
@@ -149,5 +147,3 @@ int generateTPCDistortionNTupleAliRoot()
 
   return 0;
 }
-
-#endif //FASTTRANSFORM_DEVELOPING
