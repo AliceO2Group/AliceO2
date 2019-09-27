@@ -37,7 +37,6 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 #include "GPUO2Interface.h"
-#define GPUCA_O2_LIB // Temporary workaround, must not be set globally, but needed right now for GPUReconstruction/GPUChain
 #include "GPUReconstruction.h"
 #include "GPUChainITS.h"
 
