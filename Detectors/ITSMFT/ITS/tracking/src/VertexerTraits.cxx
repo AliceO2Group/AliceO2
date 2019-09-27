@@ -101,7 +101,7 @@ void trackletSelectionKernelSerial(
 #endif
   const float tanLambdaCut = 0.025f,
   const float phiCut = 0.005f,
-  const int maxTracklets = static_cast<int>(2e3))
+  const int maxTracklets = static_cast<int>(1e2))
 {
   int offset01{0};
   int offset12{0};
@@ -325,7 +325,7 @@ void VertexerTraits::computeTracklets()
 
 void VertexerTraits::computeTrackletMatching()
 {
-  trackletSelectionKernelSerial(
+  trackletSelectionKernelSerial(    
     mClusters[0],
     mClusters[1],
     mComb01,
@@ -336,8 +336,8 @@ void VertexerTraits::computeTrackletMatching()
 #ifdef _ALLOW_DEBUG_TREES_ITS_
     mAllowedTrackletPairs,
 #endif
-    mVrtParams.phiCut,
-    mVrtParams.tanLambdaCut);
+    mVrtParams.tanLambdaCut,
+    mVrtParams.phiCut);
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   if (isDebugFlag(VertexerDebug::TrackletTreeAll)) {
     mDebugger->fillTrackletSelectionTree(mClusters, mComb01, mComb12, mAllowedTrackletPairs, mEvent);

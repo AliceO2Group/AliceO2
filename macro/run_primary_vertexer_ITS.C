@@ -17,7 +17,7 @@
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Vertexer.h"
 #include "ITStracking/VertexerTraits.h"
-// #include "ITStrackingCUDA/VertexerTraitsGPU.h"
+#include "ITStrackingCUDA/VertexerTraitsGPU.h"
 #endif
 
 // #include "GPUO2Interface.h"

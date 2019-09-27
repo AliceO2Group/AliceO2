@@ -112,10 +112,10 @@ inline MemoryParameters& MemoryParameters::operator=(const MemoryParameters& t)
 
 struct VertexingParameters {
   float zCut = 0.002f;   //0.002f
-  float phiCut = 0.002f; //0.005f
+  float phiCut = 0.005f; //0.005f
   float pairCut = 0.04f;
   float clusterCut = 0.8f;
-  float tanLambdaCut = 0.025f;
+  float tanLambdaCut = 0.002f; // tanLambda = deltaZ/deltaR
   int clusterContributorsCut = 16;
   int phiSpan = -1;
   int zSpan = -1;
@@ -123,10 +123,10 @@ struct VertexingParameters {
 
 struct VertexerStoreConfigurationGPU {
   // o2::its::GPU::Vector constructor requires signed size for initialisation
-  int dupletsCapacity = 5e6;
-  int processedTrackletsCapacity = 5e6;
+  int maxTrackletsPerCluster = 2e2;
   int clustersPerLayerCapacity = 5e4;
-  int maxTrackletsPerCluster = 1e2;
+  int dupletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
+  int processedTrackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
 };
 
 } // namespace its
