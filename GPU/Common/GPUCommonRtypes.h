@@ -14,7 +14,7 @@
 #ifndef GPUCOMMONRTYPES_H
 #define GPUCOMMONRTYPES_H
 
-#if defined(GPUCA_STANDALONE) || (defined(GPUCA_O2_LIB) && !defined(GPUO2INTERFACE_H)) || defined(GPUCA_GPULIBRARY) // clang-format off
+#if defined(GPUCA_STANDALONE) || (defined(GPUCA_O2_LIB) && !defined(GPUCA_O2_INTERFACE)) || defined(GPUCA_GPULIBRARY) // clang-format off
   #if !defined(ROOT_Rtypes) && !defined(__CLING__)
     #define ClassDef(name,id)
     #define ClassDefNV(name, id)

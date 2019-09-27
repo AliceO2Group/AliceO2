@@ -20,7 +20,7 @@
   #error Please include GPUDef.h
 #endif
 
-#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB) && !defined(GPUCA_O2_LIB)
+#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB) && !defined(GPUCA_O2_LIB) && !defined(GPUCA_O2_INTERFACE)
   #error You are using the CA GPU tracking without defining the build type (O2/AliRoot/Standalone). If you are running a ROOT macro, please include GPUO2Interface.h first!
 #endif
 
