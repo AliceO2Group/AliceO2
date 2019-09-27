@@ -1,7 +1,6 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
 #include <memory>
-
 #include <TChain.h>
 #include <TFile.h>
 #include <TSystem.h>
@@ -17,13 +16,13 @@
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Vertexer.h"
 // #include "ITStrackingCUDA/VertexerTraitsGPU.h"
-#endif
 
 #define GPUCA_O2_LIB // Temporary workaround (Aug 13, 2019)
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
 #include "GPUChainITS.h"
 #undef GPUCA_O2_LIB
+#endif
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 using namespace o2::gpu;

@@ -279,7 +279,7 @@ o2_add_test_root_macro(run_primary_vertexer_ITS.C
                                              O2::GPUTracking
                                              O2::SimulationDataFormat
                                              O2::ITSBase O2::ITStracking
-                       LABELS its)
+                       LABELS its COMPILE_ONLY)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(run_rawdecoding_its.C
