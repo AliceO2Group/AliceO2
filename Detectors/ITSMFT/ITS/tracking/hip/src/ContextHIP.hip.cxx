@@ -100,8 +100,8 @@ Context::Context(bool dumpDevices)
     checkHIPError(hipSetDevice(iDevice), __FILE__, __LINE__);
     checkHIPError(hipGetDeviceProperties(&deviceProperties, iDevice), __FILE__, __LINE__);
 
-    int major = deviceProperties.major;
-    int minor = deviceProperties.minor;
+    // int major = deviceProperties.major; // Codacy warning
+    // int minor = deviceProperties.minor; // Codacy warning
 
     mDeviceProperties[iDevice].name = deviceProperties.name;
     mDeviceProperties[iDevice].gpuProcessors = deviceProperties.multiProcessorCount;

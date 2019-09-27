@@ -276,6 +276,7 @@ o2_add_test_root_macro(run_match_tof.C
 o2_add_test_root_macro(run_primary_vertexer_ITS.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsITSMFT
                                              O2::DataFormatsParameters
+                                             O2::GPUTracking
                                              O2::SimulationDataFormat
                                              O2::ITSBase O2::ITStracking
                        LABELS its)

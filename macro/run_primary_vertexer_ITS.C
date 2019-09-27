@@ -16,15 +16,14 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Vertexer.h"
-#include "ITStracking/VertexerTraits.h"
-#include "ITStrackingCUDA/VertexerTraitsGPU.h"
+// #include "ITStrackingCUDA/VertexerTraitsGPU.h"
 #endif
 
-// #include "GPUO2Interface.h"
-// #define GPUCA_O2_LIB // Temporary Rohr's workaround (Aug 13, 2019)
-// #include "GPUReconstruction.h"
-// #include "GPUChainITS.h"
-// #undef GPUCA_O2_LIB
+#define GPUCA_O2_LIB // Temporary workaround (Aug 13, 2019)
+#include "GPUO2Interface.h"
+#include "GPUReconstruction.h"
+#include "GPUChainITS.h"
+#undef GPUCA_O2_LIB
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 using namespace o2::gpu;
@@ -42,17 +41,18 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   if (useGPU) {
     R__LOAD_LIBRARY(O2ITStrackingCUDA)
   }
-  // It should work, but slow init and workaround present (see includes)
-  // std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance(2, true));
-  // auto* chainITS = rec->AddChain<GPUChainITS>();
-  // rec->Init();
-  // o2::its::Vertexer vertexer(chainITS->GetITSVertexerTraits());
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  std::unique_ptr<o2::its::VertexerTraits> traitsptr{useGPU ? new o2::its::VertexerTraitsGPU{"dbg_ITSVertexerGPU.root"} : new o2::its::VertexerTraits{"dbg_ITSVertexerCPU.root"}};
-#else
-  std::unique_ptr<o2::its::VertexerTraits> traitsptr{useGPU ? new o2::its::VertexerTraitsGPU : new o2::its::VertexerTraits};
-#endif
-  o2::its::Vertexer vertexer(traitsptr.get());
+  // It works, but slow init and workaround present (Sep 27, 2019)
+  std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance(useGPU ? GPUDataTypes::DeviceType::CUDA : GPUDataTypes::DeviceType::CPU, true));
+  auto* chainITS = rec->AddChain<GPUChainITS>();
+  rec->Init();
+  o2::its::Vertexer vertexer(chainITS->GetITSVertexerTraits());
+
+  // #ifdef _ALLOW_DEBUG_TREES_ITS_
+  //   std::unique_ptr<o2::its::VertexerTraits> traitsptr{useGPU ? new o2::its::VertexerTraitsGPU{"dbg_ITSVertexerGPU.root"} : new o2::its::VertexerTraits{"dbg_ITSVertexerCPU.root"}};
+  // #else
+  //   std::unique_ptr<o2::its::VertexerTraits> traitsptr{useGPU ? new o2::its::VertexerTraitsGPU : new o2::its::VertexerTraits};
+  // #endif
+  //   o2::its::Vertexer vertexer(traitsptr.get());
 
   std::string gpuName = useGPU ? "vertexer_gpu" : "vertexer_serial";
   std::string mcCheck = useMCcheck ? "_data_MCCheck" : "_data";
@@ -168,4 +168,3 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   // traitsptr.get()->reset();
   return 0;
 }
-

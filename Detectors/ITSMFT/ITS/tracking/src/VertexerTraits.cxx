@@ -325,7 +325,7 @@ void VertexerTraits::computeTracklets()
 
 void VertexerTraits::computeTrackletMatching()
 {
-  trackletSelectionKernelSerial(    
+  trackletSelectionKernelSerial(
     mClusters[0],
     mClusters[1],
     mComb01,
