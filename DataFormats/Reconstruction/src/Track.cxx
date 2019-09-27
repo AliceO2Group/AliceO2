@@ -12,6 +12,8 @@
 #include <FairLogger.h>
 #include <iostream>
 #include "Math/SMatrix.h"
+#include <fmt/printf.h>
+#include "Framework/Logger.h"
 
 using o2::track::TrackPar;
 using o2::track::TrackParCov;
@@ -130,7 +132,7 @@ bool TrackPar::rotateParam(float alpha)
 {
   // rotate to alpha frame
   if (fabs(getSnp()) > Almost1) {
-    printf("Precondition is not satisfied: |sin(phi)|>1 ! %f\n", getSnp());
+    LOGF(WARNING, "Precondition is not satisfied: |sin(phi)|>1 ! {:f}", getSnp());
     return false;
   }
   //
@@ -142,13 +144,13 @@ bool TrackPar::rotateParam(float alpha)
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
   if ((csp * ca + snp * sa) < 0) {
-    //printf("Rotation failed: local cos(phi) would become %.2f\n", csp * ca + snp * sa);
+    //LOGF(WARNING,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
     return false;
   }
   //
   float tmp = snp * ca - csp * sa;
   if (fabs(tmp) > Almost1) {
-    printf("Rotation failed: new snp %.2f\n", tmp);
+    LOGF(WARNING, "Rotation failed: new snp {:.2f}", tmp);
     return false;
   }
   float xold = getX(), yold = getY();
@@ -175,7 +177,7 @@ bool TrackPar::propagateParamTo(float xk, const array<float, 3>& b)
   }
   // Do not propagate tracks outside the ALICE detector
   if (fabs(dx) > 1e5 || fabs(getY()) > 1e5 || fabs(getZ()) > 1e5) {
-    printf("Anomalous track, target X:%f\n", xk);
+    LOGF(WARNING, "Anomalous track, target X:{:f}", xk);
     //    print();
     return false;
   }
@@ -413,12 +415,21 @@ float TrackPar::getYAt(float xk, float b) const
   return getYZAt(xk, b, y, z) ? y : -9999.;
 }
 
+#ifndef GPUCA_ALIGPUCODE
+//______________________________________________________________
+std::string TrackPar::asString() const
+{
+  // print parameters as string
+  return fmt::format("X:{:+.4e} Alp:{:+.3e} Par: {:+.4e} {:+.4e} {:+.4e} {:+.4e} {:+.4e}", getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt());
+}
+
 //______________________________________________________________
 void TrackPar::printParam() const
 {
   // print parameters
-  printf("X:%+e Alp:%+e Par: %+e %+e %+e %+e %+e\n", getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt());
+  printf("%s\n", asString().c_str());
 }
+#endif
 
 //______________________________________________________________
 bool TrackPar::getXatLabR(float r, float& x, float bz, o2::track::DirType dir) const
@@ -719,7 +730,7 @@ bool TrackParCov::rotate(float alpha)
 {
   // rotate to alpha frame
   if (fabs(getSnp()) > Almost1) {
-    printf("Precondition is not satisfied: |sin(phi)|>1 ! %f\n", getSnp());
+    LOGF(ERROR, "Precondition is not satisfied: |sin(phi)|>1 ! {:f}", getSnp());
     return false;
   }
   //
@@ -731,14 +742,14 @@ bool TrackParCov::rotate(float alpha)
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
   if ((csp * ca + snp * sa) < 0) {
-    //printf("Rotation failed: local cos(phi) would become %.2f\n", csp * ca + snp * sa);
+    //LOGF(WARNING,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
     return false;
   }
   //
 
   float updSnp = snp * ca - csp * sa;
   if (fabs(updSnp) > Almost1) {
-    printf("Rotation failed: new snp %.2f\n", updSnp);
+    LOGF(WARNING, "Rotation failed: new snp {:.2f}", updSnp);
     return false;
   }
   float xold = getX(), yold = getY();
@@ -748,7 +759,7 @@ bool TrackParCov::rotate(float alpha)
   setSnp(updSnp);
 
   if (fabs(csp) < Almost0) {
-    printf("Too small cosine value %f\n", csp);
+    LOGF(WARNING, "Too small cosine value {:f}", csp);
     csp = Almost0;
   }
 
@@ -935,7 +946,7 @@ bool TrackParCov::propagateTo(float xk, const array<float, 3>& b)
   }
   // Do not propagate tracks outside the ALICE detector
   if (fabs(dx) > 1e5 || fabs(getY()) > 1e5 || fabs(getZ()) > 1e5) {
-    printf("Anomalous track, target X:%f\n", xk);
+    LOGF(WARNING, "Anomalous track, target X:{:f}", xk);
     //    print();
     return false;
   }
@@ -1501,21 +1512,29 @@ bool TrackParCov::correctForMaterial(float x2x0, float xrho, float mass, bool an
   return true;
 }
 
+#ifndef GPUCA_ALIGPUCODE
+//______________________________________________________________
+std::string TrackParCov::asString() const
+{
+  return TrackPar::asString() +
+         fmt::format(
+           "\n{:7s} {:+.3e}\n"
+           "{:7s} {:+.3e} {:+.3e}\n"
+           "{:7s} {:+.3e} {:+.3e} {:+.3e}\n"
+           "{:7s} {:+.3e} {:+.3e} {:+.3e} {:+.3e}\n"
+           "{:7s} {:+.3e} {:+.3e} {:+.3e} {:+.3e} {:+.3e}",
+           "CovMat:", mC[kSigY2], "", mC[kSigZY], mC[kSigZ2], "", mC[kSigSnpY], mC[kSigSnpZ], mC[kSigSnp2], "", mC[kSigTglY],
+           mC[kSigTglZ], mC[kSigTglSnp], mC[kSigTgl2], "", mC[kSigQ2PtY], mC[kSigQ2PtZ], mC[kSigQ2PtSnp], mC[kSigQ2PtTgl],
+           mC[kSigQ2Pt2]);
+}
+
 //______________________________________________________________
 void TrackParCov::print() const
 {
   // print parameters
-  printParam();
-  printf(
-    "%7s %+.3e\n"
-    "%7s %+.3e %+.3e\n"
-    "%7s %+.3e %+.3e %+.3e\n"
-    "%7s %+.3e %+.3e %+.3e %+.3e\n"
-    "%7s %+.3e %+.3e %+.3e %+.3e %+.3e\n",
-    "CovMat:", mC[kSigY2], "", mC[kSigZY], mC[kSigZ2], "", mC[kSigSnpY], mC[kSigSnpZ], mC[kSigSnp2], "", mC[kSigTglY],
-    mC[kSigTglZ], mC[kSigTglSnp], mC[kSigTgl2], "", mC[kSigQ2PtY], mC[kSigQ2PtZ], mC[kSigQ2PtSnp], mC[kSigQ2PtTgl],
-    mC[kSigQ2Pt2]);
+  printf("%s\n", asString().c_str());
 }
+#endif
 
 //=================================================
 //
