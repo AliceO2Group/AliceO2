@@ -165,7 +165,6 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
   // Loop over hits
   for (const auto& hit : hits) {
     bool isDigit = false;
-    int nHitsConvertedToDigits = 0; // total number of hits converted to digits
     size_t labelIndex = labels.getIndexedSize();
     const int qTotal = hit.GetCharge();
     /*
@@ -338,7 +337,6 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
         // Get the old signal
         auto& currentSignal = adcMapCont[key];
         isDigit = true;
-        nHitsConvertedToDigits++;
         currentSignal[kTB] = labelIndex; // store the label index in this extra timebin to pass it to the digit structure
         for (int iTimeBin = firstTimeBin; iTimeBin < lastTimeBin; ++iTimeBin) {
           // Apply the time response
@@ -354,7 +352,6 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
           signalOld[0] = 0;
           signalOld[1] = 0;
           signalOld[2] = 0;
-
           signalOld[iPad] = currentSignal[iTimeBin];
           if (colPos != colE) {
             // Cross talk added to non-central pads
@@ -365,11 +362,14 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
           }
           // Update the final signal
           currentSignal[iTimeBin] = signalOld[iPad];
-        }                                                                                                        // Loop: time bins
-      }                                                                                                          // Loop: pads
-    }                                                                                                            // end of loop over electrons
-    labels.addElement(labelIndex, MCLabel(hit.GetTrackID(), mEventID, mSrcID, isDigit, nHitsConvertedToDigits)); // add one mc label per hit
-  }                                                                                                              // end of loop over hits
+        } // Loop: time bins
+      }   // Loop: pads
+    }     // end of loop over electrons
+    if (isDigit) {
+      MCLabel label(hit.GetTrackID(), mEventID, mSrcID); // add one label is the at least one digit is created
+      labels.addElement(labelIndex, label);
+    }
+  } // end of loop over hits
   return true;
 }
 

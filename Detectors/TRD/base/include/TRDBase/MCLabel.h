@@ -22,16 +22,10 @@ namespace trd
 
 class MCLabel : public o2::MCCompLabel
 {
- private:
-  bool mIsDigit{false};
-  int mNumberOfDigits{0};
-
  public:
   MCLabel() = default;
-  MCLabel(int trackID, int eventID, int srcID, bool isDigit, int nDigits)
-    : o2::MCCompLabel(trackID, eventID, srcID, false), mIsDigit(isDigit), mNumberOfDigits(nDigits) {}
-  int isDigit() const { return mIsDigit; }
-  int numberOfDigits() const { return mNumberOfDigits; }
+  MCLabel(int trackID, int eventID, int srcID)
+    : o2::MCCompLabel(trackID, eventID, srcID, false) {}
 
   ClassDefNV(MCLabel, 1);
 };
