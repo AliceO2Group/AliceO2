@@ -24,8 +24,10 @@
 #include <cassert>
 #include <fstream>
 #include <iostream>
+#include <array>
 #include <string>
 #include <bitset>
+#include <vector>
 
 namespace o2
 {
@@ -38,13 +40,16 @@ class Digits2Raw
   static constexpr int NPMs = 18;
   static constexpr float MV_2_NCHANNELS = 2.2857143;     //7 mV ->16channels
   static constexpr float CFD_NS_2_NCHANNELS = 76.804916; //1000.(ps)/13.02(channel);
-  static constexpr int GBTWORDSIZE = 80;
+  //  static constexpr int GBTWORDSIZE = 80;            //real size
+  static constexpr int GBTWORDSIZE = 128;            // with padding
+  static constexpr int MaxGBTpacketBytes = 8 * 1024; // Max size of GBT packet in bytes (8KB)
 
  public:
   Digits2Raw() = default;
-  //Digits2Raw(char * fileRaw, std::string fileDigitsName);
-  void readDigits(const char* fileRaw, const char* fileDigitsName);
+  Digits2Raw(const char* fileRaw, std::string fileDigitsName);
+  void readDigits(const char* fileDigitsName);
   void convertDigits(const o2::ft0::Digit& digit, const o2::ft0::LookUpTable& lut);
+  bool close();
   static o2::ft0::LookUpTable linear()
   {
     std::vector<o2::ft0::Topo> lut_data(NCHANNELS_PM * NPMs);
@@ -54,20 +59,31 @@ class Digits2Raw
 
     return o2::ft0::LookUpTable{lut_data};
   }
-  void printRDH(const o2::header::RAWDataHeader* h);
+  void printRDH(const o2::header::RAWDataHeader* h)
+  {
+    {
+      if (!h) {
+        printf("Provided RDH pointer is null\n");
+        return;
+      }
+      printf("RDH| Ver:%2u Hsz:%2u Blgt:%4u FEEId:0x%04x PBit:%u\n",
+             uint32_t(h->version), uint32_t(h->headerSize), uint32_t(h->blockLength), uint32_t(h->feeId), uint32_t(h->priority));
+      printf("RDH|[CRU: Offs:%5u Msz:%4u LnkId:0x%02x Packet:%3u CRUId:0x%04x]\n",
+             uint32_t(h->offsetToNext), uint32_t(h->memorySize), uint32_t(h->linkID), uint32_t(h->packetCounter), uint32_t(h->cruID));
+      printf("RDH| TrgOrb:%9u HBOrb:%9u TrgBC:%4u HBBC:%4u TrgType:%u\n",
+             uint32_t(h->triggerOrbit), uint32_t(h->heartbeatOrbit), uint32_t(h->triggerBC), uint32_t(h->heartbeatBC),
+             uint32_t(h->triggerType));
+      printf("RDH| DetField:0x%05x Par:0x%04x Stop:0x%04x PageCnt:%5u\n",
+             uint32_t(h->detectorField), uint32_t(h->par), uint32_t(h->stop), uint32_t(h->pageCnt));
+    }
+  }
 
  private:
-  void flushEvent(int link, o2::InteractionRecord const& mIntRecord, uint nGBTWords);
-  void setGBTHeader(int link, o2::InteractionRecord const& mIntRecord, uint nGBTWords);
-  void setRDH(int link, o2::InteractionRecord const& mIntRecord, uint nGBTWords);
-
   std::ofstream mFileDest;
-  //  FILE* mFileDest;
-  o2::ft0::EventHeader mEventHeader;
-  o2::ft0::EventData mEventData[NCHANNELS_FT0];
-  o2::header::RAWDataHeader mRDH;
+  int mNpages = 0; // number of pages written for RDH (set by CRU)
+  std::array<o2::ft0::DataPageWriter, NPMs> mPages;
+
   /////////////////////////////////////////////////
-  int mNpages = 0; // number of pages for RDH (set by CRU)
 
   ClassDefNV(Digits2Raw, 1);
 };
