@@ -22,7 +22,7 @@
 //Define macros for GPU keywords. i-version defines inline functions.
 //All host-functions in GPU code are automatically inlined, to avoid duplicate symbols.
 //For non-inline host only functions, use no keyword at all!
-#if !defined(GPUCA_GPUCODE) //For host / ROOT dictionary
+#if !defined(GPUCA_GPUCODE) // For host / ROOT dictionary
   #define GPUd()
   #define GPUdDefault()
   #define GPUdi() inline
@@ -35,6 +35,7 @@
   #define GPUshared()
   #define GPUglobal()
   #define GPUconstant()
+  #define GPUconstexpr() static constexpr
   #define GPUprivate()
   #define GPUgeneric()
   #define GPUbarrier()
@@ -54,7 +55,7 @@
   struct uint3 { unsigned int x, y, z; };
   struct uint4 { unsigned int x, y, z, w; };
   struct dim3 { unsigned int x, y, z; };
-#elif defined(__OPENCL__) //Defines for OpenCL
+#elif defined(__OPENCL__) // Defines for OpenCL
   #define GPUd()
   #define GPUdDefault()
   #define GPUdi() inline
@@ -66,7 +67,8 @@
   #define GPUg() __kernel
   #define GPUshared() __local
   #define GPUglobal() __global
-  #define GPUconstant() __constant //TODO: possibly add const __restrict where possible later!
+  #define GPUconstant() __constant // TODO: possibly add const __restrict where possible later!
+  #define GPUconstexpr() __constant
   #define GPUprivate() __private
   #define GPUgeneric() __generic
   #if defined(__OPENCLCPP__) && !defined(__clang__)
@@ -107,6 +109,7 @@
   #define GPUshared() __shared__
   #define GPUglobal()
   #define GPUconstant()
+  #define GPUconstexpr() __constant__
   #define GPUprivate()
   #define GPUgeneric()
   #define GPUbarrier() __syncthreads()
@@ -124,6 +127,7 @@
   #define GPUshared() __shared__
   #define GPUglobal()
   #define GPUconstant()
+  #define GPUconstexpr() __constant__
   #define GPUprivate()
   #define GPUgeneric()
 #define GPUbarrier() __syncthreads()
@@ -135,13 +139,21 @@
   #define GPUconstant() GPUglobal()
 #endif
 
-#if defined(__OPENCL__) && !defined(__OPENCLCPP__) //Other special defines for OpenCL
+#if defined(__OPENCL__) && !defined(__OPENCLCPP__) // Other special defines for OpenCL
   #define GPUsharedref() GPUshared()
   #define GPUglobalref() GPUglobal()
-  #define GPUconstantref() GPUconstant()
 #else //Other defines for the rest
   #define GPUsharedref()
   #define GPUglobalref()
+#endif
+#if defined(__OPENCL__) // OpenCL 2 cannot cast __constant to __generic
+  #define GPUconstexprref() GPUconstexpr()
+#else
+  #define GPUconstexprref()
+#endif
+#if defined(__OPENCL__) && (!defined(__OPENCLCPP__) || !defined(GPUCA_OPENCLCPP_NO_CONSTANT_MEMORY))
+  #define GPUconstantref() GPUconstant()
+#else
   #define GPUconstantref()
 #endif
 
