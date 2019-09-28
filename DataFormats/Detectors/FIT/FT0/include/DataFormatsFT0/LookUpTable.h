@@ -60,15 +60,15 @@ class LookUpTable
   explicit LookUpTable(std::vector<Topo> const& topoVector)
     : mTopoVector(topoVector), mInvTopo(topoVector.size())
   {
-    for (int channel = 0; channel < mTopoVector.size(); ++channel)
+    for (size_t channel = 0; channel < mTopoVector.size(); ++channel)
       mInvTopo.at(getIdx(mTopoVector[channel].mPM, mTopoVector[channel].mMCP)) = channel;
   }
   ~LookUpTable() = default;
   void printFullMap() const
   {
-    for (int channel = 0; channel < mTopoVector.size(); ++channel)
+    for (size_t channel = 0; channel < mTopoVector.size(); ++channel)
       std::cout << channel << "\t :  PM \t" << mTopoVector[channel].mPM << " MCP \t" << mTopoVector[channel].mMCP << std::endl;
-    for (int idx = 0; idx < mInvTopo.size(); ++idx)
+    for (size_t idx = 0; idx < mInvTopo.size(); ++idx)
       std::cout << "PM \t" << getLinkFromIdx(mInvTopo[idx]) << " MCP \t" << getMCPFromIdx(mInvTopo[idx]) << std::endl;
   }
 
