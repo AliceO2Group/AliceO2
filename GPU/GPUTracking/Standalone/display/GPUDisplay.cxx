@@ -45,6 +45,8 @@
 #include "GPUTPCClusterData.h"
 #include "GPUTRDTrackletWord.h"
 #include "GPUTRDGeometry.h"
+#include "GPUO2DataTypes.h"
+#include "GPUTPCConvertImpl.h"
 #include "utils/qconfig.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -65,6 +67,8 @@ using namespace GPUCA_NAMESPACE::gpu;
 #define GL_SCALE_FACTOR 100.f
 
 #define SEPERATE_GLOBAL_TRACKS_LIMIT (mSeparateGlobalTracks ? tGLOBALTRACK : TRACK_TYPE_ID_LIMIT)
+
+#define GET_CID(slice, i) (tracker.Param().earlyTpcTransform ? tracker.ClusterData()[i].id : (tracker.GetConstantMem()->ioPtrs.clustersNative->clusterOffset[slice][0] + i))
 
 static const GPUDisplay::configDisplay& GPUDisplay_GetConfig(GPUChainTracking* rec)
 {
@@ -650,7 +654,7 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(const GPUTPCTracker& tracker, int s
   const int firstCluster = (mNCollissions > 1 && iCol > 0) ? mCollisionClusters[iCol - 1][iSlice] : 0;
   const int lastCluster = (mNCollissions > 1 && iCol + 1 < mNCollissions) ? mCollisionClusters[iCol][iSlice] : tracker.Data().NumberOfHits();
   for (int cidInSlice = firstCluster; cidInSlice < lastCluster; cidInSlice++) {
-    const int cid = tracker.ClusterData()[cidInSlice].id;
+    const int cid = GET_CID(iSlice, cidInSlice);
     if (mHideUnmatchedClusters && mQA && mQA->SuppressHit(cid)) {
       continue;
     }
@@ -676,7 +680,12 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(const GPUTPCTracker& tracker, int s
         }
       }
     } else if (mMarkClusters) {
-      const short flags = tracker.ClusterData()[cidInSlice].flags;
+      short flags;
+      if (tracker.Param().earlyTpcTransform) {
+        flags = tracker.ClusterData()[cidInSlice].flags;
+      } else {
+        flags = tracker.GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cid].getFlags();
+      }
       const bool match = flags & mMarkClusters;
       draw = (select == tMARKED) ? (match) : (draw && !match);
     } else if (mMarkFakeClusters) {
@@ -706,8 +715,8 @@ GPUDisplay::vboList GPUDisplay::DrawLinks(const GPUTPCTracker& tracker, int id, 
       const GPUTPCRow& rowUp = tracker.Data().Row(i + 2);
       for (int j = 0; j < row.NHits(); j++) {
         if (tracker.Data().HitLinkUpData(row, j) != CALINK_INVAL) {
-          const int cid1 = tracker.ClusterData()[tracker.Data().ClusterDataIndex(row, j)].id;
-          const int cid2 = tracker.ClusterData()[tracker.Data().ClusterDataIndex(rowUp, tracker.Data().HitLinkUpData(row, j))].id;
+          const int cid1 = GET_CID(iSlice, tracker.Data().ClusterDataIndex(row, j));
+          const int cid2 = GET_CID(iSlice, tracker.Data().ClusterDataIndex(rowUp, tracker.Data().HitLinkUpData(row, j)));
           drawPointLinestrip(iSlice, cid1, id);
           drawPointLinestrip(iSlice, cid2, id);
         }
@@ -718,8 +727,8 @@ GPUDisplay::vboList GPUDisplay::DrawLinks(const GPUTPCTracker& tracker, int id, 
       const GPUTPCRow& rowDown = tracker.Data().Row(i - 2);
       for (int j = 0; j < row.NHits(); j++) {
         if (tracker.Data().HitLinkDownData(row, j) != CALINK_INVAL) {
-          const int cid1 = tracker.ClusterData()[tracker.Data().ClusterDataIndex(row, j)].id;
-          const int cid2 = tracker.ClusterData()[tracker.Data().ClusterDataIndex(rowDown, tracker.Data().HitLinkDownData(row, j))].id;
+          const int cid1 = GET_CID(iSlice, tracker.Data().ClusterDataIndex(row, j));
+          const int cid2 = GET_CID(iSlice, tracker.Data().ClusterDataIndex(rowDown, tracker.Data().HitLinkDownData(row, j)));
           drawPointLinestrip(iSlice, cid1, id);
           drawPointLinestrip(iSlice, cid2, id);
         }
@@ -744,7 +753,7 @@ GPUDisplay::vboList GPUDisplay::DrawSeeds(const GPUTPCTracker& tracker)
     calink ih = hit.HitIndex();
     do {
       const GPUTPCRow& row = tracker.Data().Row(ir);
-      const int cid = tracker.ClusterData()[tracker.Data().ClusterDataIndex(row, ih)].id;
+      const int cid = GET_CID(iSlice, tracker.Data().ClusterDataIndex(row, ih));
       drawPointLinestrip(iSlice, cid, tSEED);
       ir += 2;
       ih = tracker.Data().HitLinkUpData(row, ih);
@@ -776,7 +785,7 @@ GPUDisplay::vboList GPUDisplay::DrawTracklets(const GPUTPCTracker& tracker)
 #endif
       if (rowHit != CALINK_INVAL) {
         const GPUTPCRow& row = tracker.Data().Row(j);
-        const int cid = tracker.ClusterData()[tracker.Data().ClusterDataIndex(row, rowHit)].id;
+        const int cid = GET_CID(iSlice, tracker.Data().ClusterDataIndex(row, rowHit));
         oldpos = mGlobalPos[cid];
         drawPointLinestrip(iSlice, cid, tTRACKLET);
       }
@@ -799,7 +808,7 @@ GPUDisplay::vboList GPUDisplay::DrawTracks(const GPUTPCTracker& tracker, int glo
     for (int j = 0; j < track.NHits(); j++) {
       const GPUTPCHitId& hit = tracker.TrackHits()[track.FirstHitID() + j];
       const GPUTPCRow& row = tracker.Data().Row(hit.RowIndex());
-      const int cid = tracker.ClusterData()[tracker.Data().ClusterDataIndex(row, hit.HitIndex())].id;
+      const int cid = GET_CID(iSlice, tracker.Data().ClusterDataIndex(row, hit.HitIndex()));
       drawPointLinestrip(iSlice, cid, tSLICETRACK + global);
     }
     insertVertexList(iSlice, startCountInner, mVertexBuffer[iSlice].size());
@@ -899,7 +908,13 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
           trkParam.Set(track->GetParam());
           ZOffset = track->GetParam().GetZOffset();
           auto cl = mMerger.Clusters()[track->FirstClusterRef() + lastCluster];
-          x = cl.x;
+          if (mMerger.Param().earlyTpcTransform) {
+            x = cl.x;
+          } else {
+            const auto& cln = mMerger.GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cl.num];
+            float y, z;
+            GPUTPCConvertImpl::convert(*mMerger.GetConstantMem(), cl.slice, cl.row, cln.getPad(), cln.getTime(), x, y, z);
+          }
         } else {
           const GPUTPCMCInfo& mc = ioptrs().mcInfosTPC[i];
           if (mc.charge == 0.f) {
@@ -1389,15 +1404,33 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
 
     mMaxClusterZ = 0;
     for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
+      int row = 0;
       for (unsigned int i = 0; i < ioptrs().nClusterData[iSlice]; i++) {
-        const auto& cl = ioptrs().clusterData[iSlice][i];
-        const int cid = cl.id;
+        int cid;
+        if (mMerger.Param().earlyTpcTransform) {
+          const auto& cl = ioptrs().clusterData[iSlice][i];
+          cid = cl.id;
+        } else {
+          cid = ioptrs().clustersNative->clusterOffset[iSlice][0] + i;
+          while (row < GPUCA_ROW_COUNT && ioptrs().clustersNative->clusterOffset[iSlice][row + 1] <= (unsigned int)cid) {
+            row++;
+          }
+        }
         if (cid >= mNMaxClusters) {
           GPUError("Cluster Buffer Size exceeded (id %d max %d)", cid, mNMaxClusters);
           return (1);
         }
         float4* ptr = &mGlobalPos[cid];
-        mChain->GetParam().Slice2Global(iSlice, cl.x + mXadd, cl.y, cl.z, &ptr->x, &ptr->y, &ptr->z);
+        if (mMerger.Param().earlyTpcTransform) {
+          const auto& cl = ioptrs().clusterData[iSlice][i];
+          mChain->GetParam().Slice2Global(iSlice, cl.x + mXadd, cl.y, cl.z, &ptr->x, &ptr->y, &ptr->z);
+        } else {
+          float x, y, z;
+          const auto& cln = ioptrs().clustersNative->clusters[iSlice][0][i];
+          GPUTPCConvertImpl::convert(*mMerger.GetConstantMem(), iSlice, row, cln.getPad(), cln.getTime(), x, y, z);
+          mChain->GetParam().Slice2Global(iSlice, x + mXadd, y, z, &ptr->x, &ptr->y, &ptr->z);
+        }
+
         if (fabsf(ptr->z) > mMaxClusterZ) {
           mMaxClusterZ = fabsf(ptr->z);
         }
@@ -1484,7 +1517,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
       const float kRadLen = 29.532; // 28.94;
       prop.SetMaxSinPhi(.999);
       prop.SetMaterial(kRadLen, kRho);
-      prop.SetPolynomialField(mMerger.pField());
+      prop.SetPolynomialField(&mMerger.Param().polynomialField);
       prop.SetToyMCEventsFlag(mMerger.Param().ToyMCEventsFlag);
 
 #ifdef GPUCA_HAVE_OPENMP

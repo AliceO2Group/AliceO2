@@ -107,6 +107,13 @@ class ColumnIterator : ChunkingPolicy
     mLast = mCurrent + array->length();
   }
 
+  ColumnIterator() = default;
+  ColumnIterator(ColumnIterator<T, ChunkingPolicy> const&) = default;
+  ColumnIterator<T, ChunkingPolicy>& operator=(ColumnIterator<T, ChunkingPolicy> const&) = default;
+
+  ColumnIterator(ColumnIterator<T, ChunkingPolicy>&&) = default;
+  ColumnIterator<T, ChunkingPolicy>& operator=(ColumnIterator<T, ChunkingPolicy>&&) = default;
+
   /// Move the iterator to the next chunk.
   void nextChunk() const
   {
@@ -203,6 +210,10 @@ struct Column {
   {
   }
 
+  Column() = default;
+  Column(Column const&) = default;
+  Column& operator=(Column const&) = default;
+
   using persistent = std::true_type;
   using type = T;
   static constexpr const char* const& label() { return INHERIT::mLabel; }
@@ -237,12 +248,47 @@ struct RowView : public C... {
   using persistent_columns_t = framework::filtered_pack<is_not_persistent_t, C...>;
   using dynamic_columns_t = framework::filtered_pack<is_persistent_t, C...>;
 
-  RowView(arrow::Table const* table)
-    : C(table)...
+  RowView(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, size_t numRows)
+    : C(std::get<std::pair<C*, arrow::Column*>>(columnIndex).second)...
   {
     bindIterators(persistent_columns_t{});
     bindAllDynamicColumns(dynamic_columns_t{});
-    mMaxRow = table->num_rows();
+    mMaxRow = numRows;
+  }
+
+  RowView(RowView<C...> const& other)
+    : C(static_cast<C const&>(other))...
+  {
+    mRowIndex = other.mRowIndex;
+    mMaxRow = other.mMaxRow;
+    bindIterators(persistent_columns_t{});
+    bindAllDynamicColumns(dynamic_columns_t{});
+  }
+
+  RowView() = default;
+  RowView<C...>& operator=(RowView<C...> const& other)
+  {
+    mRowIndex = other.mRowIndex;
+    mMaxRow = other.mMaxRow;
+    (void(static_cast<C&>(*this) = static_cast<C const&>(other)), ...);
+    bindIterators(persistent_columns_t{});
+    bindAllDynamicColumns(dynamic_columns_t{});
+    return *this;
+  }
+
+  RowView(RowView<C...>&& other)
+  {
+    mRowIndex = other.mRowIndex;
+    mMaxRow = other.mMaxRow;
+    (void(static_cast<C&>(*this) = static_cast<C const&>(other)), ...);
+  }
+
+  RowView& operator=(RowView<C...>&& other)
+  {
+    mRowIndex = other.mRowIndex;
+    mMaxRow = other.mMaxRow;
+    (void(static_cast<C&>(*this) = static_cast<C const&>(other)), ...);
+    return *this;
   }
 
   RowView<C...>& operator++()
@@ -277,7 +323,6 @@ struct RowView : public C... {
 
   void moveToEnd()
   {
-    doMoveToEnd(persistent_columns_t{});
     mRowIndex = mMaxRow;
   }
 
@@ -332,32 +377,34 @@ class Table
   using columns = framework::pack<C...>;
 
   Table(std::shared_ptr<arrow::Table> table)
-    : mTable(table)
+    : mTable(table),
+      mColumnIndex{
+        std::pair<C*, arrow::Column*>{nullptr,
+                                      lookupColumn<C>()}...},
+      mBegin(mColumnIndex, table->num_rows()),
+      mEnd(mColumnIndex, table->num_rows())
   {
+    mEnd.moveToEnd();
   }
 
   iterator begin()
   {
-    return iterator(mTable.get());
+    return iterator(mBegin);
   }
 
   iterator end()
   {
-    iterator end(mTable.get());
-    end.moveToEnd();
-    return end;
+    return iterator{mEnd};
   }
 
   const_iterator begin() const
   {
-    return const_iterator(mTable.get());
+    return const_iterator(mBegin);
   }
 
   const_iterator end() const
   {
-    const_iterator end(mTable.get());
-    end.moveToEnd();
-    return end;
+    return const_iterator{mEnd};
   }
 
   std::shared_ptr<arrow::Table> asArrowTable() const
@@ -371,7 +418,22 @@ class Table
   }
 
  private:
+  template <typename T>
+  arrow::Column* lookupColumn()
+  {
+    if constexpr (T::persistent::value) {
+      return mTable->column(mTable->schema()->GetFieldIndex(T::label())).get();
+    } else {
+      return nullptr;
+    }
+  }
   std::shared_ptr<arrow::Table> mTable;
+  /// This is a cached lookup of the column index in a given
+  std::tuple<std::pair<C*, arrow::Column*>...> mColumnIndex;
+  /// Cached begin iterator for this table.
+  iterator mBegin;
+  /// Cached end iterator for this table.
+  iterator mEnd;
 };
 
 template <typename T>
@@ -416,20 +478,24 @@ class TableMetadata
     using metadata = std::void_t<T>; \
   }
 
-#define DECLARE_SOA_COLUMN(_Name_, _Getter_, _Type_, _Label_)                                                                                  \
-  struct _Name_ : o2::soa::Column<_Type_, _Name_> {                                                                                            \
-    static constexpr const char* mLabel = _Label_;                                                                                             \
-    using type = _Type_;                                                                                                                       \
-    using column_t = _Name_;                                                                                                                   \
-    _Name_(arrow::Table const* table)                                                                                                          \
-      : o2::soa::Column<_Type_, _Name_>(o2::soa::ColumnIterator<type>(table->column(table->schema()->GetFieldIndex(column_t::label())).get())) \
-    {                                                                                                                                          \
-    }                                                                                                                                          \
-                                                                                                                                               \
-    _Type_ const _Getter_() const                                                                                                              \
-    {                                                                                                                                          \
-      return *mColumnIterator;                                                                                                                 \
-    }                                                                                                                                          \
+#define DECLARE_SOA_COLUMN(_Name_, _Getter_, _Type_, _Label_)                  \
+  struct _Name_ : o2::soa::Column<_Type_, _Name_> {                            \
+    static constexpr const char* mLabel = _Label_;                             \
+    using type = _Type_;                                                       \
+    using column_t = _Name_;                                                   \
+    _Name_(arrow::Column const* column)                                        \
+      : o2::soa::Column<_Type_, _Name_>(o2::soa::ColumnIterator<type>(column)) \
+    {                                                                          \
+    }                                                                          \
+                                                                               \
+    _Name_() = default;                                                        \
+    _Name_(_Name_ const& other) = default;                                     \
+    _Name_& operator=(_Name_ const& other) = default;                          \
+                                                                               \
+    _Type_ const _Getter_() const                                              \
+    {                                                                          \
+      return *mColumnIterator;                                                 \
+    }                                                                          \
   }
 
 /// A dynamic column is a column whose values are derived
@@ -477,9 +543,12 @@ class TableMetadata
     using callable_t = helper::callable_t;                                                                                 \
     using callback_t = callable_t::type;                                                                                   \
                                                                                                                            \
-    _Name_(arrow::Table const* table)                                                                                      \
+    _Name_(arrow::Column const*)                                                                                           \
     {                                                                                                                      \
     }                                                                                                                      \
+    _Name_() = default;                                                                                                    \
+    _Name_(_Name_ const& other) = default;                                                                                 \
+    _Name_& operator=(_Name_ const& other) = default;                                                                      \
     static constexpr const char* mLabel = #_Name_;                                                                         \
     using type = typename callable_t::return_type;                                                                         \
                                                                                                                            \

@@ -54,7 +54,7 @@ class GPUTPCConvert : public GPUProcessor
     mTransform = transform;
   }
 #endif
-  GPUd() const o2::tpc::ClusterNativeAccess* getClustersNative()
+  GPUd() const o2::tpc::ClusterNativeAccess* getClustersNative() const
   {
     return mClustersNative;
   }

@@ -60,7 +60,10 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   pos++;
   BOOST_CHECK_EQUAL(*i, 1);
 
-  RowView<test::X, test::Y> tests(table.get());
+  auto rowIndex = std::make_tuple(
+    std::pair<test::X*, arrow::Column*>{nullptr, table->column(0).get()},
+    std::pair<test::Y*, arrow::Column*>{nullptr, table->column(1).get()});
+  RowView<test::X, test::Y> tests(rowIndex, table->num_rows());
   BOOST_CHECK_EQUAL(tests.x(), 0);
   BOOST_CHECK_EQUAL(tests.y(), 0);
   ++tests;
@@ -72,17 +75,17 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   auto b = tests2.begin();
   auto e = tests2.end();
   BOOST_CHECK(b != e);
-  b++;
-  b++;
-  b++;
-  b++;
-  b++;
-  b++;
-  b++;
-  b++;
+  ++b;
+  ++b;
+  ++b;
+  ++b;
+  ++b;
+  ++b;
+  ++b;
+  ++b;
   BOOST_CHECK(b == e);
 
-  for (auto t : tests2) {
+  for (auto& t : tests2) {
     BOOST_CHECK_EQUAL(t.x(), value / 4);
     BOOST_CHECK_EQUAL(t.y(), value);
     BOOST_REQUIRE(value < 8);
@@ -117,4 +120,38 @@ BOOST_AUTO_TEST_CASE(TestDynamicColumns)
   for (auto& test : tests2) {
     BOOST_CHECK_EQUAL(test.sum(), test.y() + test.y());
   }
+}
+
+BOOST_AUTO_TEST_CASE(TestColumnIterators)
+{
+  TableBuilder builder;
+  auto rowWriter = builder.persist<uint64_t, uint64_t>({"x", "y"});
+  rowWriter(0, 0, 0);
+  rowWriter(0, 0, 1);
+  rowWriter(0, 0, 2);
+  rowWriter(0, 0, 3);
+  rowWriter(0, 1, 4);
+  rowWriter(0, 1, 5);
+  rowWriter(0, 1, 6);
+  rowWriter(0, 1, 7);
+  auto table = builder.finalize();
+
+  size_t index1 = 0;
+  size_t index2 = 0;
+  ColumnIterator<uint64_t> foo{table->column(1).get()};
+  foo.mCurrentPos = &index1;
+  auto bar{foo};
+  bar.mCurrentPos = &index2;
+  BOOST_REQUIRE_EQUAL(foo.mCurrent, bar.mCurrent);
+  BOOST_REQUIRE_EQUAL(foo.mLast, bar.mLast);
+  BOOST_REQUIRE_EQUAL(foo.mColumn, bar.mColumn);
+  BOOST_REQUIRE_EQUAL(foo.mFirstIndex, bar.mFirstIndex);
+  BOOST_REQUIRE_EQUAL(foo.mCurrentChunk, bar.mCurrentChunk);
+
+  auto foobar = std::move(foo);
+  BOOST_REQUIRE_EQUAL(foobar.mCurrent, bar.mCurrent);
+  BOOST_REQUIRE_EQUAL(foobar.mLast, bar.mLast);
+  BOOST_REQUIRE_EQUAL(foobar.mColumn, bar.mColumn);
+  BOOST_REQUIRE_EQUAL(foobar.mFirstIndex, bar.mFirstIndex);
+  BOOST_REQUIRE_EQUAL(foobar.mCurrentChunk, bar.mCurrentChunk);
 }

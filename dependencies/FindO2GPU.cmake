@@ -52,7 +52,7 @@ if(ENABLE_CUDA)
     # Forward CXX flags to CUDA C++ Host compiler (for warnings, gdb, etc.)
     STRING(REGEX REPLACE "\-std=[^ ]*" "" CMAKE_CXX_FLAGS_NOSTD ${CMAKE_CXX_FLAGS}) # Need to strip c++17 imposed by alidist defaults
     set(CMAKE_CUDA_FLAGS "-Xcompiler \"${CMAKE_CXX_FLAGS_NOSTD}\" --expt-relaxed-constexpr -Xptxas -v")
-    set(CMAKE_CUDA_FLAGS_DEBUG "-Xcompiler \"${CMAKE_CXX_FLAGS_DEBUG}\" -Xptxas -O0 -Xcompiler -O0")
+    set(CMAKE_CUDA_FLAGS_DEBUG "-lineinfo -Xcompiler \"${CMAKE_CXX_FLAGS_DEBUG}\" -Xptxas -O0 -Xcompiler -O0")
     if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
       set(CMAKE_CUDA_FLAGS_${CMAKE_BUILD_TYPE} "-Xcompiler \"${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}}\" -Xptxas -O4 -Xcompiler -O4 -use_fast_math")
     endif()
@@ -126,7 +126,6 @@ if(ENABLE_OPENCL2)
      OR OPENCL2_ENABLED_AMD
      OR OPENCL2_ENABLED_SPIRV)
     set(OPENCL2_ENABLED ON)
-
     message(
       STATUS
         "Found OpenCL 2 (${OpenCL_VERSION_STRING} ; AMD ${OPENCL2_ENABLED_AMD} ${CLANG_OCL} ; SPIR-V ${OPENCL2_ENABLED_SPIRV} ${LLVM_SPIRV} with CLANG ${LLVM_PACKAGE_VERSION})"
@@ -181,6 +180,8 @@ if(ENABLE_HIP)
     endif()
     if(hip_FOUND AND hipcub_FOUND AND rocthrust_FOUND AND rocprim_FOUND AND hip_HIPCC_EXECUTABLE)
       set(HIP_ENABLED ON)
+      set_target_properties(rocthrust PROPERTIES IMPORTED_GLOBAL TRUE)
+      add_library(ROCm::rocThrust ALIAS rocthrust)
       message(STATUS "HIP Found (${hip_HIPCC_EXECUTABLE})")
     endif()
   endif()

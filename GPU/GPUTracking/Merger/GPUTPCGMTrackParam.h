@@ -149,7 +149,7 @@ class GPUTPCGMTrackParam
 
   GPUd() bool Fit(const GPUTPCGMMerger* merger, int iTrk, GPUTPCGMMergedTrackHit* clusters, int& N, int& NTolerated, float& Alpha, int attempt = 0, float maxSinPhi = GPUCA_MAX_SIN_PHI, GPUTPCOuterParam* outerParam = nullptr, GPUdEdxInfo* dEdxOut = nullptr);
   GPUd() void MirrorTo(GPUTPCGMPropagator& prop, float toY, float toZ, bool inFlyDirection, const GPUParam& param, unsigned char row, unsigned char clusterState, bool mirrorParameters);
-  GPUd() int MergeDoubleRowClusters(int ihit, int wayDirection, GPUTPCGMMergedTrackHit* clusters, const GPUParam& param, GPUTPCGMPropagator& prop, float& xx, float& yy, float& zz, int maxN, float clAlpha, unsigned char& clusterState, bool rejectChi2);
+  GPUd() int MergeDoubleRowClusters(int ihit, int wayDirection, GPUTPCGMMergedTrackHit* clusters, const GPUTPCGMMerger* merger, GPUTPCGMPropagator& prop, float& xx, float& yy, float& zz, int maxN, float clAlpha, unsigned char& clusterState, bool rejectChi2);
 
   GPUd() void AttachClustersMirror(const GPUTPCGMMerger* Merger, int slice, int iRow, int iTrack, float toY, GPUTPCGMPropagator& prop);
   GPUd() void AttachClustersPropagate(const GPUTPCGMMerger* Merger, int slice, int lastRow, int toRow, int iTrack, bool goodLeg, GPUTPCGMPropagator& prop, bool inFlyDirection, float maxSinPhi = GPUCA_MAX_SIN_PHI);
@@ -176,7 +176,7 @@ class GPUTPCGMTrackParam
   }
 
   GPUd() bool Rotate(float alpha);
-  GPUd() void ShiftZ(const GPUTPCGMPolynomialField* field, const GPUTPCGMMergedTrackHit* clusters, const GPUParam& param, int N);
+  GPUd() void ShiftZ(const GPUTPCGMMergedTrackHit* clusters, const GPUTPCGMMerger* merger, int N);
 
   GPUd() static float Reciprocal(float x) { return 1.f / x; }
   GPUd() static void Assign(float& x, bool mask, float v)

@@ -16,7 +16,7 @@ if(GLFW_FOUND)
       src/GL3DUtils.cxx
       src/HandMade3DImpl.cxx
       src/DebugGUI.cxx)
-  set(GUI_TARGET glfw)
+  set(GUI_TARGET glfw::glfw)
 else()
   set(GUI_BACKEND src/Dummy3DUtils.cxx src/DummyDebugGUI.cxx)
   set(GUI_TARGET "")

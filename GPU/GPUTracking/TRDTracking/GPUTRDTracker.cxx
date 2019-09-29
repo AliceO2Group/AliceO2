@@ -29,7 +29,7 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-class GPUTPCGMMerger;
+class GPUTPCGMPolynomialField;
 
 #ifndef GPUCA_GPUCODE
 
@@ -110,7 +110,7 @@ void* GPUTRDTracker::SetPointersTracks(void* base)
 }
 
 GPUTRDTracker::GPUTRDTracker()
-  : mR(nullptr), mIsInitialized(false), mMemoryPermanent(-1), mMemoryTracklets(-1), mMemoryTracks(-1), mNMaxTracks(0), mNMaxSpacePoints(0), mTracks(nullptr), mNCandidates(1), mNTracks(0), mNEvents(0), mTracklets(nullptr), mMaxThreads(100), mNTracklets(0), mNTrackletsInChamber(nullptr), mTrackletIndexArray(nullptr), mHypothesis(nullptr), mCandidates(nullptr), mSpacePoints(nullptr), mTrackletLabels(nullptr), mGeo(nullptr), mDebugOutput(false), mMinPt(0.6f), mMaxEta(0.84f), mMaxChi2(15.0f), mMaxMissingLy(6), mChi2Penalty(12.0f), mZCorrCoefNRC(1.4f), mMCEvent(nullptr), mMerger(nullptr), mDebug(new GPUTRDTrackerDebug()), mChainTracking(nullptr)
+  : mR(nullptr), mIsInitialized(false), mMemoryPermanent(-1), mMemoryTracklets(-1), mMemoryTracks(-1), mNMaxTracks(0), mNMaxSpacePoints(0), mTracks(nullptr), mNCandidates(1), mNTracks(0), mNEvents(0), mTracklets(nullptr), mMaxThreads(100), mNTracklets(0), mNTrackletsInChamber(nullptr), mTrackletIndexArray(nullptr), mHypothesis(nullptr), mCandidates(nullptr), mSpacePoints(nullptr), mTrackletLabels(nullptr), mGeo(nullptr), mDebugOutput(false), mMinPt(0.6f), mMaxEta(0.84f), mMaxChi2(15.0f), mMaxMissingLy(6), mChi2Penalty(12.0f), mZCorrCoefNRC(1.4f), mMCEvent(nullptr), mDebug(new GPUTRDTrackerDebug()), mChainTracking(nullptr)
 {
   //--------------------------------------------------------------------
   // Default constructor
@@ -241,11 +241,11 @@ void GPUTRDTracker::DoTracking()
         iTrk = mNTracks;
         continue;
       }
-      DoTrackingThread(iTrk, &mChainTracking->GetTPCMerger(), omp_get_thread_num());
+      DoTrackingThread(iTrk, omp_get_thread_num());
     }
 #else
     for (int iTrk = 0; iTrk < mNTracks; ++iTrk) {
-      DoTrackingThread(iTrk, &mChainTracking->GetTPCMerger());
+      DoTrackingThread(iTrk);
     }
 #endif
   }
@@ -416,12 +416,12 @@ GPUd() void GPUTRDTracker::DumpTracks()
   }
 }
 
-GPUd() void GPUTRDTracker::DoTrackingThread(int iTrk, const GPUTPCGMMerger* merger, int threadId)
+GPUd() void GPUTRDTracker::DoTrackingThread(int iTrk, int threadId)
 {
   //--------------------------------------------------------------------
   // perform the tracking for one track (must be threadsafe)
   //--------------------------------------------------------------------
-  GPUTRDPropagator prop(merger);
+  GPUTRDPropagator prop(&Param().polynomialField);
   prop.setTrack(&(mTracks[iTrk]));
   FollowProlongation(&prop, &(mTracks[iTrk]), threadId);
 }

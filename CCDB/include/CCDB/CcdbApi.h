@@ -265,7 +265,7 @@ class CcdbApi //: public DatabaseInterface
    * @param cl The TClass object describing the serialized type
    * @return raw pointer to created object
    */
-  void* extractFromTFile(TFile& file, std::string const& objname, TClass const* cl) const;
+  static void* extractFromTFile(TFile& file, std::string const& objname, TClass const* cl);
 
   /**
    * Initialization of CURL

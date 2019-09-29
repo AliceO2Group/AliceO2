@@ -16,6 +16,7 @@
 #include "TPCFastTransform.h"
 #include "GPUTPCClusterData.h"
 #include "GPUO2DataTypes.h"
+#include "GPUTPCConvertImpl.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -28,19 +29,13 @@ GPUd() void GPUTPCConvertKernel::Thread<0>(int nBlocks, int nThreads, int iBlock
   GPUTPCConvert& convert = processors.tpcConverter;
   const o2::tpc::ClusterNativeAccess* native = convert.mClustersNative;
   GPUTPCClusterData* clusters = convert.mMemory->clusters[iSlice];
-  const TPCFastTransform* transform = convert.mTransform;
-  const int continuousMaxTimeBin = processors.param.continuousMaxTimeBin;
   const int idOffset = native->clusterOffset[iSlice][iRow];
   const int indexOffset = native->clusterOffset[iSlice][iRow] - native->clusterOffset[iSlice][0];
 
   for (unsigned int k = get_local_id(0); k < native->nClusters[iSlice][iRow]; k += get_local_size(0)) {
     const auto& cin = native->clusters[iSlice][iRow][k];
-    float x = 0, y = 0, z = 0;
-    if (continuousMaxTimeBin == 0) {
-      transform->Transform(iSlice, iRow, cin.getPad(), cin.getTime(), x, y, z);
-    } else {
-      transform->TransformInTimeFrame(iSlice, iRow, cin.getPad(), cin.getTime(), x, y, z, continuousMaxTimeBin);
-    }
+    float x, y, z;
+    GPUTPCConvertImpl::convert(processors, iSlice, iRow, cin.getPad(), cin.getTime(), x, y, z);
     auto& cout = clusters[indexOffset + k];
     cout.x = x;
     cout.y = y;

@@ -200,6 +200,7 @@ class GPUReconstruction
   template <class T>
   void SetupGPUProcessor(T* proc, bool allocate);
   void RegisterGPUDeviceProcessor(GPUProcessor* proc, GPUProcessor* slaveProcessor);
+  void ConstructGPUProcessor(GPUProcessor* proc);
 
  protected:
   GPUReconstruction(const GPUSettingsProcessing& cfg); // Constructor
@@ -248,6 +249,7 @@ class GPUReconstruction
   const GPUConstantMem* processors() const { return mHostConstantMem.get(); }
   GPUParam& param() { return mHostConstantMem->param; }
   std::unique_ptr<GPUConstantMem> mHostConstantMem;
+  GPUConstantMem* mDeviceConstantMem = nullptr;
 
   // Settings
   GPUSettingsEvent mEventSettings;                       // Event Parameters

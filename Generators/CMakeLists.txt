@@ -9,11 +9,11 @@
 # submit itself to any jurisdiction.
 
 if(pythia_FOUND)
-  set(pythiaTarget pythia)
+  set(pythiaTarget MC::Pythia)
 endif()
 
 if(HepMC_FOUND)
-  set(hepmcTarget HepMC)
+        set(hepmcTarget MC::HepMC)
 endif()
 
 o2_add_library(Generators
@@ -67,7 +67,7 @@ o2_add_test_root_macro(share/external/extgen.C
                        LABELS generators)
 if(pythia6_FOUND)
   o2_add_test_root_macro(share/external/pythia6.C
-                         PUBLIC_LINK_LIBRARIES O2::Generators pythia6
+                         PUBLIC_LINK_LIBRARIES O2::Generators MC::Pythia6
                          LABELS generators)
 endif()
 o2_add_test_root_macro(share/external/tgenerator.C
