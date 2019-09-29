@@ -63,7 +63,7 @@ while true; do
     -l|--lastTimeBin) lastTimeBin=$2; shift 2;;
     -n|--nevents) nevents=$2; shift 2;;
     -m|--adcMin) adcMin=$2; shift 2;;
-    -x|--adcMax) adcMin=$2; shift 2;;
+    -x|--adcMax) adcMax=$2; shift 2;;
     -p|--pedestalFile) pedestalFile=$2; shift 2;;
     -v|--verbosity) verbosity=$2; shift 2;;
     -d|--debugLevel) debugLevel=$2; shift 2;;
