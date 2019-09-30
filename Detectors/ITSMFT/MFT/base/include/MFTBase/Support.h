@@ -38,6 +38,7 @@ namespace mft
 
 class Support
 {
+  using boxCutParam = std::vector<Double_t>;
 
  public:
   Support();
@@ -48,14 +49,6 @@ class Support
   void initParameters();
   TGeoVolumeAssembly* mHalfDisk;
   TGeoMedium* mSupportMedium;
-  TGeoBBox* mSomeBox;
-  TGeoTube* mSomeTube;
-  TGeoArb8* mSomeArb;
-
-  TGeoSubtraction* mSomeSubtraction;
-  TGeoUnion* mSomeUnion;
-  TGeoTranslation* mSomeTranslation;
-  TGeoCompositeShape* mSomeCS;
 
   Double_t mSupThickness; //Support Thickness
   Double_t mSupRad[5];    // Radius of each support disk
@@ -70,6 +63,7 @@ class Support
 
   Int_t mNumberOfBoxCuts[5];  // Number of box cuts in each half disk support
   Double_t (*mBoxCuts[5])[4]; // Box cuts on each disk
+  std::vector<boxCutParam> mDiskBoxCuts[5];
 
   Int_t mNumberOfRaixedBoxes[5]; //Number of Raised boxes in each halfDisk support
   Double_t (*mBRaised[5])[4];    //Raised boxes for each halfDisk
@@ -125,6 +119,22 @@ class Support
 
   ClassDef(Support, 1);
 };
+
+
+template<class L, class R, class T, class Op>
+auto compositeOperation(L left, R right, T translation, Op op) {
+  auto result = new Op(left, right, NULL, translation);
+  return TGeoCompositeShape(NULL,result);
+}
+
+/*
+template<class L, class R>
+auto compositeSubtract(L left, R right) {
+  auto sub = new TGeoSubtraction(left, right, NULL, NULL);
+  return TGeoCompositeShape(NULL,sub);
+}
+*/
+
 } // namespace mft
 } // namespace o2
 
