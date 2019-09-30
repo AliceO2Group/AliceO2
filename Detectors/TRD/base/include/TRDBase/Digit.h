@@ -28,18 +28,19 @@ constexpr int kTB = 30;
 constexpr int KEY_MIN = 0;
 constexpr int KEY_MAX = 2211727;
 
-typedef std::uint16_t ADC_t;                                   // the ADC value type
-typedef std::array<ADC_t, kTB> ArrayADC_t;                     // the array ADC
-typedef std::vector<Digit> DigitContainer_t;                   // the digit container type
-typedef std::unordered_map<int, ArrayADC_t> SignalContainer_t; // a map container type for signal handling during digitization
+typedef std::uint16_t ADC_t;                                      // the ADC value type
+typedef std::array<ADC_t, kTB> ArrayADC_t;                        // the array ADC
+typedef std::array<ADC_t, kTB + 1> ArrayADCext_t;                 // the array ADC + label index
+typedef std::vector<Digit> DigitContainer_t;                      // the digit container type
+typedef std::unordered_map<int, ArrayADCext_t> SignalContainer_t; // a map container type for signal handling during digitization
 
 class Digit
 {
  public:
   Digit() = default;
   ~Digit() = default;
-  Digit(const int det, const int row, const int pad, const ArrayADC_t adc)
-    : mDetector(det), mRow(row), mPad(pad), mADC(adc) {}
+  Digit(const int det, const int row, const int pad, const ArrayADC_t adc, const size_t idx)
+    : mDetector(det), mRow(row), mPad(pad), mADC(adc), mLabelIdx(idx) {}
   // Copy
   Digit(const Digit&) = default;
   // Assignment
@@ -54,6 +55,7 @@ class Digit
   int getRow() const { return mRow; }
   int getPad() const { return mPad; }
   ArrayADC_t getADC() const { return mADC; }
+  size_t getLabelIndex() const { return mLabelIdx; }
 
   // Set of static helper methods
   static int calculateKey(const int det, const int row, const int col) { return ((det << 12) | (row << 8) | col); }
@@ -69,10 +71,15 @@ class Digit
     digitCont.reserve(adcMapCont.size());
     for (const auto& element : adcMapCont) {
       const int key = element.first;
+      ArrayADC_t adcs{};
+      for (int i = 0; i < kTB; ++i) {
+        adcs[i] = element.second[i];
+      }
+      size_t idx = element.second[kTB];
       digitCont.emplace_back(Digit::getDetectorFromKey(key),
                              Digit::getRowFromKey(key),
                              Digit::getColFromKey(key),
-                             element.second);
+                             adcs, idx);
     }
   }
   static void convertVectorsToMap(const DigitContainer_t& digitCont,
@@ -85,7 +92,11 @@ class Digit
       const int key = calculateKey(element.getDetector(),
                                    element.getRow(),
                                    element.getPad());
-      adcMapCont[key] = element.getADC();
+      ArrayADCext_t adcsext{};
+      for (int i = 0; i < kTB; ++i) {
+        adcsext[i] = element.getADC()[i];
+      }
+      adcMapCont[key] = adcsext;
     }
   }
 
@@ -94,6 +105,7 @@ class Digit
   std::uint8_t mRow{0};       // pad row, 0-15
   std::uint8_t mPad{0};       // pad within pad row, 0-143
   ArrayADC_t mADC{};          // ADC vector (30 time-bins)
+  size_t mLabelIdx{0};        // index for mc label
 
   ClassDefNV(Digit, 1);
 };
