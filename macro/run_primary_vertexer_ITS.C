@@ -17,9 +17,11 @@
 #include "ITStracking/Vertexer.h"
 // #include "ITStrackingCUDA/VertexerTraitsGPU.h"
 
+#define GPUCA_O2_LIB
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
 #include "GPUChainITS.h"
+#undef GPUCA_O2_LIB
 #endif
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;

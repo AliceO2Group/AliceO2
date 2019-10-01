@@ -37,6 +37,8 @@ DeviceStoreVertexerGPU::DeviceStoreVertexerGPU()
   mDuplets01 = Vector<Tracklet>{mGPUConf.dupletsCapacity, mGPUConf.dupletsCapacity};
   mDuplets12 = Vector<Tracklet>{mGPUConf.dupletsCapacity, mGPUConf.dupletsCapacity};
   mTracklets = Vector<Line>{mGPUConf.processedTrackletsCapacity, mGPUConf.processedTrackletsCapacity};
+  mSumTmpBuffer = Vector<int>{mGPUConf.tmpSumBufferSize, mGPUConf.tmpSumBufferSize};
+  mReducedSum = Vector<int>{1, 1};
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   for (int iLayersCouple{0}; iLayersCouple < 2; ++iLayersCouple) {
     mDupletIndices[iLayersCouple] = Vector<int>{mGPUConf.processedTrackletsCapacity, mGPUConf.processedTrackletsCapacity};

@@ -123,6 +123,7 @@ struct VertexingParameters {
 
 struct VertexerStoreConfigurationGPU {
   // o2::its::GPU::Vector constructor requires signed size for initialisation
+  int tmpSumBufferSize = 5e3;
   int maxTrackletsPerCluster = 2e2;
   int clustersPerLayerCapacity = 5e4;
   int dupletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;

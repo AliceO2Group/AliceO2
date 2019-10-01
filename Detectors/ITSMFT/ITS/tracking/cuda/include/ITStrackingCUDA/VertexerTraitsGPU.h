@@ -52,6 +52,7 @@ class VertexerTraitsGPU : public VertexerTraits
   void initialise(ROframe*) override;
   void computeTracklets() override;
   void computeTrackletMatching() override;
+  void computeVertices() override;
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   void computeMCFiltering() override;
 #endif
