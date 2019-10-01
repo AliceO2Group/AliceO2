@@ -26,10 +26,10 @@ namespace o2
 namespace trd
 {
 
-class LocalT0 : public PadCalibrations<unsigned int>
+class LocalT0 : public PadCalibrations<unsigned short>
 {
  public:
-  using PadCalibrations<unsigned int>::PadCalibrations;
+  using PadCalibrations<unsigned short>::PadCalibrations;
   ~LocalT0() = default;
 };
 } // namespace trd
