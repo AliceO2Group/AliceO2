@@ -84,7 +84,6 @@ class PadParameters
 template <class T>
 PadParameters<T>::PadParameters(int chamberindex)
 {
-cout << " init from the constructor of PadParameters" << endl;
   init(chamberindex);
 }
 
