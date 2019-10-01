@@ -36,15 +36,6 @@ template <class T>
 class PadParameters
 {
  public:
-  enum { kNplan = 6,
-         kNcham = 5,
-         kNsect = 18,
-         kNdet = 540 };
-  enum { kVdrift = 0,
-         kGainFactor = 1,
-         kT0 = 2,
-         kExB = 3,
-         kLocalGainFactor = 4 };
   PadParameters() = default;
   PadParameters(int chamberindex);
   ~PadParameters() = default;
@@ -75,7 +66,7 @@ class PadParameters
   int mPlane{0};        //  Plane number
   int mChamber{0};      //  Chamber number
   int mNrows{0};        //  Number of rows
-  int mNcols{144};      //  Number of columns
+  int mNcols{FeeParam::mgkNcol};      //  Number of columns
   int mNchannels;       //  Number of channels = rows*columns
   std::vector<T> mData; // Size is mNchannels
 };
@@ -93,10 +84,9 @@ int PadParameters<T>::init(int chamberindex)
   mPlane = TRDGeometry::getLayer(chamberindex);
   mChamber = TRDGeometry::getStack(chamberindex);
   if (mChamber == 2)
-    mNrows = 12; // FeeParam::mgkNrowC0;
+    mNrows = FeeParam::mgkNrowC0;
   else
-    mNrows = 16; //FeeParam::mgkNrowC1;
-  mNcols = 144;  // FeeParam::mgkNcols; //  Number of columns TODO look this up somewhere else.
+    mNrows = FeeParam::mgkNrowC1;
   // the FeeParam variables need to be unprotected, and dont want to change FeeParam in this PR.
   mNchannels = mNrows * mNcols;
   mData.resize(mNchannels);

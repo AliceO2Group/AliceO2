@@ -18,6 +18,8 @@
 //  Most things were stored in AliTRDcalROC,AliTRDcalPad, AliTRDcalDet       //
 ///////////////////////////////////////////////////////////////////////////////
 
+
+#include "TRDBase/TRDSimParam.h"
 //
 class TRDGeometry;
 
@@ -28,10 +30,6 @@ namespace trd
 class ChamberCalibrations
 {
  public:
-  enum { kNplan = 6,
-         kNcham = 5,
-         kNsect = 18,
-         kNdet = 540 };
   ChamberCalibrations() = default;
   ~ChamberCalibrations() = default;
   //
@@ -56,10 +54,10 @@ class ChamberCalibrations
   bool init(int run2run = 0);
 
  protected:
-  std::array<float, kNdet> mVDrift{};
-  std::array<float, kNdet> mGainFactor{};
-  std::array<float, kNdet> mT0{};
-  std::array<float, kNdet> mExB{}; //
+  std::array<float, TRDSimParam::kNdet> mVDrift{};
+  std::array<float, TRDSimParam::kNdet> mGainFactor{};
+  std::array<float, TRDSimParam::kNdet> mT0{};
+  std::array<float, TRDSimParam::kNdet> mExB{}; //
   std::string mName;               // name for spectra, carried over originally from inheritence from TNamed
   std::string mTitle;              // title prepend for spectra, carried over originally from inheritence from TNamed
 };

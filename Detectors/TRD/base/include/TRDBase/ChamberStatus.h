@@ -22,6 +22,7 @@
 
 #include <array>
 #include "TRDBase/TRDGeometry.h"
+#include "TRDBase/TRDSimParam.h"
 class TH2D;
 
 namespace o2
@@ -32,10 +33,6 @@ namespace trd
 class ChamberStatus
 {
  public:
-  enum { kNplan = 6,
-         kNcham = 5,
-         kNsect = 18,
-         kNdet = 540 };
   enum { kGood = 0,
          kNoData = 1,
          kNoDataHalfChamberSideA = 2,
@@ -69,7 +66,7 @@ class ChamberStatus
   TH2D* plotBadCalibrated(int sm, int rphi); // Plot calibration status for sm and halfchamberside
   TH2D* plot(int sm);                        // Plot mStatus for sm
  protected:
-  std::array<char, kNdet> mStatus{};
+  std::array<char, TRDSimParam::kNdet> mStatus{};
 };
 } // namespace trd
 } // namespace o2

@@ -42,13 +42,6 @@
 #include "TRDBase/ChamberStatus.h"
 #include "TRDBase/PadNoise.h"
 #include "TRDBase/PadStatus.h"
-/*class ChamberParameters;
-class LocalVDrift;
-class LocalT0;
-class LocalGainFactor;
-class PadNoise;
-class PadStatus;
-class ChamberStatus;*/
 //class PRFWidth;
 //class TrapConfig;
 class TRDGeometry; //
@@ -61,10 +54,6 @@ namespace trd
 class Calibrations
 {
  public:
-  enum { kNplan = 6,
-         kNcham = 5,
-         kNsect = 18,
-         kNdet = 540 };
   Calibrations() = default;
   ~Calibrations() = default;
   //

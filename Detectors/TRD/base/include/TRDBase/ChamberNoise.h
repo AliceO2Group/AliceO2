@@ -18,6 +18,8 @@
 //  Originally stored in AliTRDCalDet and instantiated at DetNoise in ocdb   //
 ///////////////////////////////////////////////////////////////////////////////
 
+
+#include "TRDBase/TRDSimParam.h"
 //
 class TRDGeometry;
 
@@ -28,7 +30,6 @@ namespace trd
 class ChamberNoise
 {
  public:
-  enum { kNplan = 6, kNcham = 5, kNsect = 18, kNdet = 540 };
   ChamberNoise() = default;
   ~ChamberNoise() = default;
   //
@@ -36,7 +37,7 @@ class ChamberNoise
   void setNoise(int p, int c, int s, float noise) { mNoise[o2::trd::TRDGeometry::getDetector(p,c,s)]=noise;};
  //bulk gets ? 
  protected:
-  std::array<float, kNdet> mNoise{};
+  std::array<float, TRDSimParam::kNdet> mNoise{};
 };
 } // namespace trd
 } // namespace o2

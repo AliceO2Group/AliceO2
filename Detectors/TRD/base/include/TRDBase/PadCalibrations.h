@@ -20,6 +20,7 @@
 #include <array>
 
 #include "TRDBase/PadParameters.h"
+#include "TRDBase/TRDSimParam.h"
 #include "fairlogger/Logger.h"
 
 class TRDGeometry;
@@ -33,15 +34,6 @@ template <class T>
 class PadCalibrations
 {
  public:
-  enum { kNplan = 6,
-         kNcham = 5,
-         kNsect = 18,
-         kNdet = 540 };
-  enum { kVdrift = 0,
-         kGainFactor = 1,
-         kT0 = 2,
-         kExB = 3,
-         kLocalGainFactor = 4 };
   PadCalibrations();
   ~PadCalibrations() = default;
   //
@@ -54,7 +46,7 @@ class PadCalibrations
   void init();
   void dumpAllNonZeroValues(); // helps for debugging.
  protected:
-  std::array<PadParameters<T>, kNdet> mreadOutChamber;
+  std::array<PadParameters<T>, TRDSimParam::kNdet> mreadOutChamber;
 };
 
 template <class T>
