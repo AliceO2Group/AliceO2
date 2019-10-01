@@ -294,8 +294,8 @@ GPUd() float MEM_LG(GPUParam)::GetClusterError2(int yz, int type, float z, float
   MakeType(const float*) c = ParamS0Par[yz][type];
   float v = c[0] + c[1] * z + c[2] * angle2 + c[3] * z * z + c[4] * angle2 * angle2 + c[5] * z * angle2;
   v = CAMath::Abs(v);
-  if (v < 0.01f) {
-    v = 0.01f;
+  if (v < 0.0001f) { // impose at least 100 micron error
+    v = 0.0001f;
   }
   v *= yz ? rec.ClusterError2CorrectionZ : rec.ClusterError2CorrectionY;
   return v;
