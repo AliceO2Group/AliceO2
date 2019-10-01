@@ -159,7 +159,12 @@ class CDBInterface
   T& getObjectFromCDB(const o2::ccdb::IdPath& path);
 };
 
-// TODO consider removing this as it does not bring much
+
+/// Get an object from the CCDB.
+/// @tparam T
+/// @param path
+/// @return The object from the CCDB, ownership is transferred to the caller.
+/// @todo Consider removing in favour of calling directly the manager::get method.
 template <typename T>
 inline T& CDBInterface::getObjectFromCDB(const o2::ccdb::IdPath& path)
 {
