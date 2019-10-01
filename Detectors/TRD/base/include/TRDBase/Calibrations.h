@@ -68,19 +68,19 @@ class Calibrations
   Calibrations() = default;
   ~Calibrations() = default;
   //
-  int const getRunNumber() { return mRunNumber; }
-  void setRunNumber(int run) { mRunNumber = run; }
+  int const getTimeStamp() { return mTimeStamp; }
+  void setTimeStamp(long timestamp) { mTimeStamp = timestamp; }
   void setCCDB(int object) { int donothing = 1; }
   //
   //  float getGainMeanRMS();
   //  float getT0MeanRMS();
-  double getVDrift(int run, int roc, int col, int row) const;
-  double getT0(int run, int roc, int col, int row) const;
-  double getExB(int run, int roc, int col, int row) const;
-  double getGainFactor(int run, int roc, int col, int row) const;
+  double getVDrift(long timestamp, int roc, int col, int row) const;
+  double getT0(long timestamp, int roc, int col, int row) const;
+  double getExB(long timestamp, int roc, int col, int row) const;
+  double getGainFactor(long timestamp, int roc, int col, int row) const;
 
  protected:
-  int mRunNumber; //run number of related to the current calibration.
+  int mTimeStamp; //run number of related to the current calibration.
   // here we have pointers to all the incoming calibrations, not all of them will be valid
   // this will be dictated by the DPL and what it provides. (if I understand things correctly)
   // pointers to relevant incoming classes will sit here and thereby provide the correct api

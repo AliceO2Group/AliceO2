@@ -41,54 +41,8 @@ using namespace o2::trd;
 // TODO will come back to this in a while, more pressing issues for now.
 //      This is here mostly as a stub to remember how to do it.
 //
-/* double Calibrations::getVDriftMean(int run) const
-{
-  //
-  // Calculate the mean
-  //
- // CCDB
 
-    
-  auto ccdb = o2::ccdb::Manager::Instance();
-  ccdb->setDefaultStorage("local://O2CDB");
-
-
-  auto chambercalibrationscond = ccdb->getCondition("TRD/ChamberCalibrations", run);
-  ChamberCalibrations *chambercalibrations=nullptr;
-  chambercalibrationscond->getObjectAs(chambercalibrations);
-  auto localvdriftcond = ccdb->getCondition("TRD/LocalVDrift",run);
-  LocalVDrift *localvdrifts=nullptr;
-  localvdriftcond->getObjectAs(localvdrifts);
-
-      std::vector<double> ddata(540);
-  int nPoints = 0;
-  //loop over localvdrifts and for each chamber apply the chambers vdrift and the take mean.
-  for (int i = 0; i < 540; i++) {
-      ddata[nPoints] = (double)chambercalibrations->getVDrift(i);
-      nPoints++;
-    }
-  double mean = TMath::Mean(nPoints, ddata.data());
-  return mean;
-}*/
-
-/* double Calibrations::getVDrift(int run)
-{
-      //
-       auto ccdb = o2::ccdb::Manager::Instance();
-       ccdb->setDefaultStorage("local://O2CDB");
- 
-
-       auto chambercalibrationscond = ccdb->getCondition("TRD/ChamberCalibrations", run);
-       ChamberCalibrations *chambercalibrations=nullptr;
-       chambercalibrationscond->getObjectAs(chambercalibrations);
-       auto localvdriftcond = ccdb->getCondition("TRD/LocalVDrift",run);
-       LocalVDrift *localvdrifts=nullptr;
-       localvdriftcond->getObjectAs(localvdrifts);
-
-       return (double)chambercalibrations->getVDrift(det)* (double)localvdrifts->getValue(det,col,row);
-}*/
-
-double Calibrations::getVDrift(int run, int det, int col, int row) const
+double Calibrations::getVDrift(long timestamp, int det, int col, int row) const
 {
   if (mChamberCalibrations && mLocalVDrift)
     return (double)mChamberCalibrations->getVDrift(det) * (double)mLocalVDrift->getValue(det, col, row);
@@ -96,21 +50,21 @@ double Calibrations::getVDrift(int run, int det, int col, int row) const
     return -1;
 }
 
-double Calibrations::getT0(int run, int det, int col, int row) const
+double Calibrations::getT0(long timestamp, int det, int col, int row) const
 {
   if (mChamberCalibrations && mLocalT0)
     return (double)mChamberCalibrations->getT0(det) * (double)mLocalT0->getValue(det, col, row);
   else
     return -1;
 }
-double Calibrations::getExB(int run, int det, int col, int row) const
+double Calibrations::getExB(long timestamp, int det, int col, int row) const
 {
   if (mChamberCalibrations)
     return (double)mChamberCalibrations->getExB(det);
   else
     return -1;
 }
-double Calibrations::getGainFactor(int run, int det, int col, int row) const
+double Calibrations::getGainFactor(long timestamp, int det, int col, int row) const
 {
   if (mChamberCalibrations && mLocalGainFactor)
     return (double)mChamberCalibrations->getGainFactor(det) * (double)mLocalGainFactor->getValue(det, col, row);
