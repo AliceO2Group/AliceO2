@@ -159,7 +159,6 @@ class CDBInterface
   T& getObjectFromCDB(const o2::ccdb::IdPath& path);
 };
 
-
 /// Get an object from the CCDB.
 /// @tparam T
 /// @param path
