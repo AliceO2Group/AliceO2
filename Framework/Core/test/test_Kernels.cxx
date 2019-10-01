@@ -71,8 +71,8 @@ BOOST_AUTO_TEST_CASE(TestWithSOATables)
   using namespace o2;
   TableBuilder builder1;
   auto collisionsCursor = builder1.cursor<aod::Collisions>();
-  collisionsCursor(0, 0, 1, 2, 3);
-  collisionsCursor(0, 0, 1, 2, 3);
+  collisionsCursor(0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14);
+  collisionsCursor(0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14);
   auto collisions = builder1.finalize();
   TableBuilder builder2;
   auto tracksCursor = builder2.cursor<aod::Tracks>();
