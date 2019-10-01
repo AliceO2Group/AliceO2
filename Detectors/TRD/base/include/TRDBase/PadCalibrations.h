@@ -1,5 +1,4 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
+
 // Version 3), copied verbatim in the file "COPYING".
 //
 // See http://alice-o2.web.cern.ch/license for full licensing information.
@@ -46,16 +45,16 @@ class PadCalibrations
   PadCalibrations();
   ~PadCalibrations() = default;
   //
-  // various functions that I *think* should be moved to higher classes, I do not understand the getmeanrms etc. as it is used in MakeHisto
   int getNChannels(int roc) { return mreadOutChamber[roc].getNChannels(); }
   PadParameters<T>& getChamberPads(int roc) { return mreadOutChamber[roc]; }
-  T getValue(int roc, int col, int row) { return ((PadParameters<T>)mreadOutChamber[roc]).getValue(col, row); }
-  T getPadValue(int roc, int col, int row) { return ((PadParameters<T>)mreadOutChamber[roc]).getValue(col,row);}
-  void setPadValue(int roc, int col, int row, T value) { cout << "--------------------------- firt pointer is : " << &mreadOutChamber << endl; /* cout << "now in setpad "  << endl; cout << "setting value for roc : " << roc << " col : " << col << " and row : " << row << " with value of :" << value << "with current value of " << getPadValue(roc,col,row) << endl; */ cout << "roc of : " << roc << endl; cout << "col::row : " << col <<"::" << row << endl;((PadParameters<T>)mreadOutChamber[roc]).setValue(col,row, value);}
-  void debug(){int count=0;for (auto & roc: mreadOutChamber) {cout << "roc : " << count++  <<" with base ptr : " << &(roc)<< endl; roc.debug();}} 
+  T getValue(int roc, int col, int row) { return mreadOutChamber[roc].getValue(col, row); }
+  T getPadValue(int roc, int col, int row) { return mreadOutChamber[roc].getValue(col,row);}
+  void setPadValue(int roc, int col, int row, T value) { mreadOutChamber[roc].setValue(col,row, value);}
+  
   void init();
+  void dumpAllNonZeroValues(); // helps for debugging.
  protected:
-  std::array<PadParameters<T>, kNdet> mreadOutChamber{24};
+  std::array<PadParameters<T>, kNdet> mreadOutChamber;
 };
 
 template <class T>
@@ -65,25 +64,12 @@ PadCalibrations<T>::PadCalibrations()
   // TRDCalPadStatus constructor
   //
   //TRDGeometry fgeom;
-  cout << " first pad is as : " << &mreadOutChamber[0];
   int chamberindex=0;  
-  for(chamberindex=0;chamberindex<540;chamberindex++) {   // Range-for!
+ for(auto& roc : mreadOutChamber) {   // Range-for!
       LOG(debug3) << "initialising readout chamber "<< chamberindex;
-      cout << "initialising readout chamber "<< chamberindex;
-      //((PadParameters<T>)roc).init(chamberindex++);
-      mreadOutChamber[chamberindex].init(chamberindex);
-      mreadOutChamber[chamberindex].setValue(1,1,42);
-      mreadOutChamber[chamberindex].getValue(1,1);
-  }
-/*   for(const auto& roc : mreadOutChamber) {   // Range-for!
-      LOG(debug3) << "initialising readout chamber "<< chamberindex;
-      cout << "initialising readout chamber "<< chamberindex;
-      //((PadParameters<T>)roc).init(chamberindex++);
       roc.init(chamberindex++);
-      ((PadParameters<T>)roc).setValue(1,1,42);
-      ((PadParameters<T>)roc).getValue(1,1);
 
-  }*/
+  }
 }
 
 template <class T> 
@@ -92,18 +78,26 @@ void PadCalibrations<T>::init()
   //
   // TRDCalPadStatus constructor
   //
-  //TRDGeometry fgeom;
-  cout << "PADCALIBRATIONS INIT FUNCTION !!!!!!!!!!!!  first pad is as : " << &mreadOutChamber[0] <<  endl;
   int chamberindex=0;  
-  for(const auto& roc : mreadOutChamber) {   // Range-for!
+  for(auto& roc : mreadOutChamber) {   // Range-for!
       LOG(debug3) << "initialising readout chamber "<< chamberindex;
-      cout << "initialising readout chamber "<< chamberindex;
-      ((PadParameters<T>)roc).init(chamberindex++);
-      ((PadParameters<T>)roc).getValue(1,1);
+      roc.init(chamberindex++);
   }
 }
 
 
+template <class T>
+void PadCalibrations<T>::dumpAllNonZeroValues()
+{
+  //
+  // TRDCalPadStatus constructor
+  //
+  int chamberindex=0;  
+  for(auto& roc : mreadOutChamber) {   // Range-for!
+      roc.dumpNonZeroValues(chamberindex);
+      chamberindex++;
+  }
+}
 
 
 } // namespace trd

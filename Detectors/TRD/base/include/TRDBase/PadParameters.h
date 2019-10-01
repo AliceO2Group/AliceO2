@@ -56,10 +56,20 @@ class PadParameters
   int getChannel(int c, int r) const { return r + c * mNrows; };
   int getNchannels() const { return mNchannels; };
   T getValue(int ich) const { return mData[ich]; };
-  T getValue(int col, int row) { cout <<" getting value from col:" << col <<" and row : " << row <<" with mNrows of :" << mNrows << " and mNchannels of : "<< mNchannels << " and channel of : " << row+col*mNrows << " and a vector size of : " << mData.size() << endl; return getValue(getChannel(col, row)); };
-  void setValue(int ich, T value) { if(mData.size()==0) cout << " error setting a value on an empty array !&&$%!$!^#%^&*$*%^!%!@$%@#$%#$%^%" << endl; else mData[ich] = value; };
-  void setValue(int col, int row, T value) { cout << "called ("<< col<<","<< row<<","<< value << ")"<< endl; cout << "size " << mData.size() << "p,c,r" << mPlane<<","<<mChamber<<","<<mNrows<<","<<mNchannels<<endl; cout << " and a base pointer of : " << this << endl; cout << "getChannel returns : " << getChannel(col,row) << endl; if(mData.size()==0) cout <<"error setting a value on an empty array @#$%#&^$&^#&@%^@#$%@#$%@#$%"<< endl; else setValue(getChannel(col, row), value); };
-  void const debug(){ cout <<"in padparameters debug with this:" << this << " with mPlane:mChamber:mNrows:mNchannels::" << mPlane<<":"<<mNrows << ":"<< mNchannels << "   and a vector size of : " << mData.size() << endl; };
+  T getValue(int col, int row) const { return getValue(getChannel(col, row)); };
+  void setValue(int ich, T value) { mData[ich] = value;}
+  void setValue(int col, int row, T value) { setValue(getChannel(col, row), value);}
+  void debug(){ cout <<"in padparameters debug with this:" << this << " with mPlane:mChamber:mNrows:mNchannels::" << mPlane<<":"<<mNrows << ":"<< mNchannels << "   and a vector size of : " << mData.size() << endl; };
+  void dumpNonZeroValues(int roc) {
+      int count=0;
+      for(auto& pad : mData) {   // Range-for!
+         if(pad > 0 ){
+            cout << "roc:pad:value" << roc<<":"<<count<<":"<<pad << endl;
+        }
+      count++;
+      }
+  }
+ 
  protected:
   int mPlane{0};        //  Plane number
   int mChamber{0};      //  Chamber number
@@ -81,8 +91,6 @@ cout << " init from the constructor of PadParameters" << endl;
 template <class T>
 int PadParameters<T>::init(int chamberindex)
 {
-    cout <<" ======================================== " << chamberindex << " =================================" << endl;
-cout <<" mPlane before : " << mPlane <<" mChamber : " << mChamber;
   mPlane = TRDGeometry::getLayer(chamberindex);
   mChamber= TRDGeometry::getStack(chamberindex);
   if (mChamber == 2)
@@ -92,15 +100,9 @@ cout <<" mPlane before : " << mPlane <<" mChamber : " << mChamber;
   mNcols = 144; // FeeParam::mgkNcols; //  Number of columns TODO look this up somewhere else.
   // the FeeParam variables need to be unprotected, and dont want to change FeeParam in this PR.
   mNchannels = mNrows * mNcols;
-  cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ mData size before resize  : " << mData.size() << " and going to reset it to " << mNchannels << endl;
   mData.resize(mNchannels);
-  cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ mData size after resize  : " << mData.size() << " and going to reset it to " << mNchannels << endl;
-  if (mData.size() != mNchannels)
-    LOG(FATAL) << "PadParamaters initialised with a size of " << mData.size() << " != " << mNchannels;
-  if(mNchannels ==0 || mData.size()==0) cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
-  cout << "PadParamaters initialised with a size of " << mData.size() << " with channels of " << mNchannels << " and a chamber index of : " << chamberindex << " plane, chamber rows, cols : " << mPlane << "::"<<mChamber<<"::"<<mNrows<<"::"<<mNcols<<endl;
-  cout <<" mPlane before : " << mPlane <<" mChamber : " << mChamber;
-  cout <<" ======================================== " << chamberindex << " =================================" << endl;
+  if (mData.size() != mNchannels || mData.size()==0)
+    LOG(FATAL) << "PadParamaters initialised with a size of " << mData.size() << " and mNchannels of " << mNchannels;
   return 0;
 }
 
