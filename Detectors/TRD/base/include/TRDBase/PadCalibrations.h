@@ -48,9 +48,9 @@ class PadCalibrations
   int getNChannels(int roc) { return mreadOutChamber[roc].getNChannels(); }
   PadParameters<T>& getChamberPads(int roc) { return mreadOutChamber[roc]; }
   T getValue(int roc, int col, int row) { return mreadOutChamber[roc].getValue(col, row); }
-  T getPadValue(int roc, int col, int row) { return mreadOutChamber[roc].getValue(col,row);}
-  void setPadValue(int roc, int col, int row, T value) { mreadOutChamber[roc].setValue(col,row, value);}
-  
+  T getPadValue(int roc, int col, int row) { return mreadOutChamber[roc].getValue(col, row); }
+  void setPadValue(int roc, int col, int row, T value) { mreadOutChamber[roc].setValue(col, row, value); }
+
   void init();
   void dumpAllNonZeroValues(); // helps for debugging.
  protected:
@@ -64,27 +64,25 @@ PadCalibrations<T>::PadCalibrations()
   // TRDCalPadStatus constructor
   //
   //TRDGeometry fgeom;
-  int chamberindex=0;  
- for(auto& roc : mreadOutChamber) {   // Range-for!
-      LOG(debug3) << "initialising readout chamber "<< chamberindex;
-      roc.init(chamberindex++);
-
+  int chamberindex = 0;
+  for (auto& roc : mreadOutChamber) { // Range-for!
+    LOG(debug3) << "initialising readout chamber " << chamberindex;
+    roc.init(chamberindex++);
   }
 }
 
-template <class T> 
+template <class T>
 void PadCalibrations<T>::init()
 {
   //
   // TRDCalPadStatus constructor
   //
-  int chamberindex=0;  
-  for(auto& roc : mreadOutChamber) {   // Range-for!
-      LOG(debug3) << "initialising readout chamber "<< chamberindex;
-      roc.init(chamberindex++);
+  int chamberindex = 0;
+  for (auto& roc : mreadOutChamber) { // Range-for!
+    LOG(debug3) << "initialising readout chamber " << chamberindex;
+    roc.init(chamberindex++);
   }
 }
-
 
 template <class T>
 void PadCalibrations<T>::dumpAllNonZeroValues()
@@ -92,13 +90,12 @@ void PadCalibrations<T>::dumpAllNonZeroValues()
   //
   // TRDCalPadStatus constructor
   //
-  int chamberindex=0;  
-  for(auto& roc : mreadOutChamber) {   // Range-for!
-      roc.dumpNonZeroValues(chamberindex);
-      chamberindex++;
+  int chamberindex = 0;
+  for (auto& roc : mreadOutChamber) { // Range-for!
+    roc.dumpNonZeroValues(chamberindex);
+    chamberindex++;
   }
 }
-
 
 } // namespace trd
 } // namespace o2

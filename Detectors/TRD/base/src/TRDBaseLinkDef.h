@@ -37,6 +37,7 @@
 #pragma link C++ class o2::trd::LocalGainFactor + ;
 #pragma link C++ class o2::trd::ChamberStatus + ;
 #pragma link C++ class o2::trd::Calibrations + ;
+#pragma link C++ class o2::trd::ChamberNoise + ;
 
 #include "SimulationDataFormat/MCTruthContainer.h"
 

@@ -45,7 +45,7 @@ class PadParameters
          kT0 = 2,
          kExB = 3,
          kLocalGainFactor = 4 };
-  PadParameters()=default;
+  PadParameters() = default;
   PadParameters(int chamberindex);
   ~PadParameters() = default;
   int init(int c);
@@ -57,28 +57,28 @@ class PadParameters
   int getNchannels() const { return mNchannels; };
   T getValue(int ich) const { return mData[ich]; };
   T getValue(int col, int row) const { return getValue(getChannel(col, row)); };
-  void setValue(int ich, T value) { mData[ich] = value;}
-  void setValue(int col, int row, T value) { setValue(getChannel(col, row), value);}
-  void debug(){ cout <<"in padparameters debug with this:" << this << " with mPlane:mChamber:mNrows:mNchannels::" << mPlane<<":"<<mNrows << ":"<< mNchannels << "   and a vector size of : " << mData.size() << endl; };
-  void dumpNonZeroValues(int roc) {
-      int count=0;
-      for(auto& pad : mData) {   // Range-for!
-         if(pad > 0 ){
-            cout << "roc:pad:value" << roc<<":"<<count<<":"<<pad << endl;
-        }
-      count++;
+  void setValue(int ich, T value) { mData[ich] = value; }
+  void setValue(int col, int row, T value) { setValue(getChannel(col, row), value); }
+  void debug() { cout << "in padparameters debug with this:" << this << " with mPlane:mChamber:mNrows:mNchannels::" << mPlane << ":" << mNrows << ":" << mNchannels << "   and a vector size of : " << mData.size() << endl; };
+  void dumpNonZeroValues(int roc)
+  {
+    int count = 0;
+    for (auto& pad : mData) { // Range-for!
+      if (pad > 0) {
+        cout << "roc:pad:value" << roc << ":" << count << ":" << pad << endl;
       }
+      count++;
+    }
   }
- 
+
  protected:
   int mPlane{0};        //  Plane number
   int mChamber{0};      //  Chamber number
   int mNrows{0};        //  Number of rows
-  int mNcols{144};        //  Number of columns
-  int mNchannels;    //  Number of channels = rows*columns
+  int mNcols{144};      //  Number of columns
+  int mNchannels;       //  Number of channels = rows*columns
   std::vector<T> mData; // Size is mNchannels
 };
-
 
 //
 template <class T>
@@ -91,20 +91,19 @@ template <class T>
 int PadParameters<T>::init(int chamberindex)
 {
   mPlane = TRDGeometry::getLayer(chamberindex);
-  mChamber= TRDGeometry::getStack(chamberindex);
+  mChamber = TRDGeometry::getStack(chamberindex);
   if (mChamber == 2)
     mNrows = 12; // FeeParam::mgkNrowC0;
   else
     mNrows = 16; //FeeParam::mgkNrowC1;
-  mNcols = 144; // FeeParam::mgkNcols; //  Number of columns TODO look this up somewhere else.
+  mNcols = 144;  // FeeParam::mgkNcols; //  Number of columns TODO look this up somewhere else.
   // the FeeParam variables need to be unprotected, and dont want to change FeeParam in this PR.
   mNchannels = mNrows * mNcols;
   mData.resize(mNchannels);
-  if (mData.size() != mNchannels || mData.size()==0)
+  if (mData.size() != mNchannels || mData.size() == 0)
     LOG(FATAL) << "PadParamaters initialised with a size of " << mData.size() << " and mNchannels of " << mNchannels;
   return 0;
 }
-
 
 } // namespace trd
 } // namespace o2

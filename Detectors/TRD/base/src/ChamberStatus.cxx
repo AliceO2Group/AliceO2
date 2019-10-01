@@ -117,7 +117,7 @@ TH2D* ChamberStatus::plot(int sm, int rphi)
 
   TH2D* h2 = new TH2D(Form("sm_%d_rphi_%d", sm, rphi), Form("sm_%d_rphi_%d", sm, rphi), 5, 0.0, 5.0, 6, 0.0, 6.0);
 
-  h2->SetDirectory(nullptr); 
+  h2->SetDirectory(nullptr);
   h2->SetXTitle("stack");
   h2->SetYTitle("layer");
 
@@ -150,7 +150,7 @@ TH2D* ChamberStatus::plotNoData(int sm, int rphi)
 
   TH2D* h2 = new TH2D(Form("sm_%d_rphi_%d_data", sm, rphi), Form("sm_%d_rphi_%d_data", sm, rphi), 5, 0.0, 5.0, 6, 0.0, 6.0);
 
-  h2->SetDirectory(nullptr); 
+  h2->SetDirectory(nullptr);
   h2->SetXTitle("stack");
   h2->SetYTitle("layer");
 
@@ -185,7 +185,7 @@ TH2D* ChamberStatus::plotBadCalibrated(int sm, int rphi)
 
   TH2D* h2 = new TH2D(Form("sm_%d_rphi_%d_calib", sm, rphi), Form("sm_%d_rphi_%d_calib", sm, rphi), 5, 0.0, 5.0, 6, 0.0, 6.0);
 
-  h2->SetDirectory(nullptr); 
+  h2->SetDirectory(nullptr);
   h2->SetXTitle("stack");
   h2->SetYTitle("layer");
 
@@ -216,7 +216,7 @@ TH2D* ChamberStatus::plot(int sm)
 
   TH2D* h2 = new TH2D(Form("sm_%d", sm), Form("sm_%d", sm), 5, 0.0, 5.0, 6, 0.0, 6.0);
 
-  h2->SetDirectory(nullptr); 
+  h2->SetDirectory(nullptr);
   h2->SetXTitle("stack");
   h2->SetYTitle("layer");
 
