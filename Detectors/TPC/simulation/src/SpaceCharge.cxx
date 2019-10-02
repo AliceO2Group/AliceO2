@@ -33,24 +33,24 @@ using namespace o2::tpc;
 const float o2::tpc::SpaceCharge::sEzField = (AliTPCPoissonSolver::fgkCathodeV - AliTPCPoissonSolver::fgkGG) / AliTPCPoissonSolver::fgkTPCZ0;
 
 SpaceCharge::SpaceCharge()
-  : mNZSlices(MaxZSlices),
-    mNPhiBins(MaxPhiBins),
-    mNRBins(Constants::MAXGLOBALPADROW),
-    mLengthZSlice(AliTPCPoissonSolver::fgkTPCZ0 / (MaxZSlices - 1)),
-    mDriftTimeZSlice(IonDriftTime / (MaxZSlices - 1)),
-    mWidthPhiBin(TWOPI / MaxPhiBins),
-    mLengthRBin((AliTPCPoissonSolver::fgkOFCRadius - AliTPCPoissonSolver::fgkIFCRadius) / (Constants::MAXGLOBALPADROW - 1)),
-    mCoordZ(MaxZSlices),
-    mCoordPhi(MaxPhiBins),
+  : mNZ(MaxNZ),
+    mNPhi(MaxNPhi),
+    mNR(Constants::MAXGLOBALPADROW),
+    mVoxelSizeZ(AliTPCPoissonSolver::fgkTPCZ0 / (MaxNZ - 1)),
+    mDriftTimeVoxel(IonDriftTime / (MaxNZ - 1)),
+    mVoxelSizePhi(TWOPI / MaxNPhi),
+    mVoxelSizeR((AliTPCPoissonSolver::fgkOFCRadius - AliTPCPoissonSolver::fgkIFCRadius) / (Constants::MAXGLOBALPADROW - 1)),
+    mCoordZ(MaxNZ),
+    mCoordPhi(MaxNPhi),
     mCoordR(Constants::MAXGLOBALPADROW),
     mInterpolationOrder(2),
     mUseInitialSCDensity(false),
     mInitLookUpTables(false),
     mTimeInit(-1),
     mSCDistortionType(SpaceCharge::SCDistortionType::SCDistortionsRealistic),
-    mLookUpTableCalculator(Constants::MAXGLOBALPADROW, MaxZSlices, MaxPhiBins, 2, 3, 0),
-    mSpaceChargeDensityA(MaxPhiBins * Constants::MAXGLOBALPADROW * MaxZSlices),
-    mSpaceChargeDensityC(MaxPhiBins * Constants::MAXGLOBALPADROW * MaxZSlices),
+    mLookUpTableCalculator(Constants::MAXGLOBALPADROW, MaxNZ, MaxNPhi, 2, 3, 0),
+    mSpaceChargeDensityA(MaxNPhi * Constants::MAXGLOBALPADROW * MaxNZ),
+    mSpaceChargeDensityC(MaxNPhi * Constants::MAXGLOBALPADROW * MaxNZ),
     mRandomFlat(RandomRing<>::RandomType::Flat)
 {
   mLookUpTableCalculator.SetCorrectionType(0);
@@ -58,14 +58,14 @@ SpaceCharge::SpaceCharge()
   allocateMemory();
 }
 
-SpaceCharge::SpaceCharge(int nZSlices, int nPhiBins, int nRBins)
-  : mNZSlices(nZSlices),
-    mNPhiBins(nPhiBins),
-    mNRBins(nRBins),
-    mLengthZSlice(AliTPCPoissonSolver::fgkTPCZ0 / (nZSlices - 1)),
-    mDriftTimeZSlice(IonDriftTime / (nZSlices - 1)),
-    mWidthPhiBin(TWOPI / nPhiBins),
-    mLengthRBin((AliTPCPoissonSolver::fgkOFCRadius - AliTPCPoissonSolver::fgkIFCRadius) / (nRBins - 1)),
+SpaceCharge::SpaceCharge(int nRBins, int nPhiBins, int nZSlices)
+  : mNZ(nZSlices),
+    mNPhi(nPhiBins),
+    mNR(nRBins),
+    mVoxelSizeZ(AliTPCPoissonSolver::fgkTPCZ0 / (nZSlices - 1)),
+    mDriftTimeVoxel(IonDriftTime / (nZSlices - 1)),
+    mVoxelSizePhi(TWOPI / nPhiBins),
+    mVoxelSizeR((AliTPCPoissonSolver::fgkOFCRadius - AliTPCPoissonSolver::fgkIFCRadius) / (nRBins - 1)),
     mCoordZ(nZSlices),
     mCoordPhi(nPhiBins),
     mCoordR(nRBins),
@@ -84,14 +84,14 @@ SpaceCharge::SpaceCharge(int nZSlices, int nPhiBins, int nRBins)
   allocateMemory();
 }
 
-SpaceCharge::SpaceCharge(int nZSlices, int nPhiBins, int nRBins, int interpolationOrder)
-  : mNZSlices(nZSlices),
-    mNPhiBins(nPhiBins),
-    mNRBins(nRBins),
-    mLengthZSlice(AliTPCPoissonSolver::fgkTPCZ0 / (nZSlices - 1)),
-    mDriftTimeZSlice(IonDriftTime / (nZSlices - 1)),
-    mWidthPhiBin(TWOPI / nPhiBins),
-    mLengthRBin((AliTPCPoissonSolver::fgkOFCRadius - AliTPCPoissonSolver::fgkIFCRadius) / (nRBins - 1)),
+SpaceCharge::SpaceCharge(int nRBins, int nPhiBins, int nZSlices, int interpolationOrder)
+  : mNZ(nZSlices),
+    mNPhi(nPhiBins),
+    mNR(nRBins),
+    mVoxelSizeZ(AliTPCPoissonSolver::fgkTPCZ0 / (nZSlices - 1)),
+    mDriftTimeVoxel(IonDriftTime / (nZSlices - 1)),
+    mVoxelSizePhi(TWOPI / nPhiBins),
+    mVoxelSizeR((AliTPCPoissonSolver::fgkOFCRadius - AliTPCPoissonSolver::fgkIFCRadius) / (nRBins - 1)),
     mCoordZ(nZSlices),
     mCoordPhi(nPhiBins),
     mCoordR(nRBins),
@@ -112,49 +112,51 @@ SpaceCharge::SpaceCharge(int nZSlices, int nPhiBins, int nRBins, int interpolati
 
 void SpaceCharge::allocateMemory()
 {
-  for (int iz = 0; iz < mNZSlices; ++iz) {
-    mCoordZ[iz] = iz * mLengthZSlice;
+  for (int iz = 0; iz < mNZ; ++iz) {
+    mCoordZ[iz] = iz * mVoxelSizeZ;
   }
-  for (int iphi = 0; iphi < mNPhiBins; ++iphi) {
-    mCoordPhi[iphi] = iphi * mWidthPhiBin;
+  for (int iphi = 0; iphi < mNPhi; ++iphi) {
+    mCoordPhi[iphi] = iphi * mVoxelSizePhi;
   }
-  for (int ir = 0; ir < mNRBins; ++ir) {
-    mCoordR[ir] = AliTPCPoissonSolver::fgkIFCRadius + ir * mLengthRBin;
+  for (int ir = 0; ir < mNR; ++ir) {
+    mCoordR[ir] = AliTPCPoissonSolver::fgkIFCRadius + ir * mVoxelSizeR;
   }
 
-  mMatrixIonDriftZA = new TMatrixD*[mNPhiBins];
-  mMatrixIonDriftRPhiA = new TMatrixD*[mNPhiBins];
-  mMatrixIonDriftRA = new TMatrixD*[mNPhiBins];
-  mMatrixIonDriftZC = new TMatrixD*[mNPhiBins];
-  mMatrixIonDriftRPhiC = new TMatrixD*[mNPhiBins];
-  mMatrixIonDriftRC = new TMatrixD*[mNPhiBins];
-  for (int iphi = 0; iphi < mNPhiBins; ++iphi) {
-    mMatrixIonDriftZA[iphi] = new TMatrixD(mNRBins, mNZSlices);
-    mMatrixIonDriftRPhiA[iphi] = new TMatrixD(mNRBins, mNZSlices);
-    mMatrixIonDriftRA[iphi] = new TMatrixD(mNRBins, mNZSlices);
-    mMatrixIonDriftZC[iphi] = new TMatrixD(mNRBins, mNZSlices);
-    mMatrixIonDriftRPhiC[iphi] = new TMatrixD(mNRBins, mNZSlices);
-    mMatrixIonDriftRC[iphi] = new TMatrixD(mNRBins, mNZSlices);
+  mMatrixIonDriftZA = new TMatrixD*[mNPhi];
+  mMatrixIonDriftRPhiA = new TMatrixD*[mNPhi];
+  mMatrixIonDriftRA = new TMatrixD*[mNPhi];
+  mMatrixIonDriftZC = new TMatrixD*[mNPhi];
+  mMatrixIonDriftRPhiC = new TMatrixD*[mNPhi];
+  mMatrixIonDriftRC = new TMatrixD*[mNPhi];
+  for (int iphi = 0; iphi < mNPhi; ++iphi) {
+    mMatrixIonDriftZA[iphi] = new TMatrixD(mNR, mNZ);
+    mMatrixIonDriftRPhiA[iphi] = new TMatrixD(mNR, mNZ);
+    mMatrixIonDriftRA[iphi] = new TMatrixD(mNR, mNZ);
+    mMatrixIonDriftZC[iphi] = new TMatrixD(mNR, mNZ);
+    mMatrixIonDriftRPhiC[iphi] = new TMatrixD(mNR, mNZ);
+    mMatrixIonDriftRC[iphi] = new TMatrixD(mNR, mNZ);
   }
-  mLookUpIonDriftA = std::make_unique<AliTPCLookUpTable3DInterpolatorD>(mNRBins, mMatrixIonDriftRA, mCoordR.data(), mNPhiBins, mMatrixIonDriftRPhiA, mCoordPhi.data(), mNZSlices, mMatrixIonDriftZA, mCoordZ.data(), mInterpolationOrder);
-  mLookUpIonDriftC = std::make_unique<AliTPCLookUpTable3DInterpolatorD>(mNRBins, mMatrixIonDriftRC, mCoordR.data(), mNPhiBins, mMatrixIonDriftRPhiC, mCoordPhi.data(), mNZSlices, mMatrixIonDriftZC, mCoordZ.data(), mInterpolationOrder);
+  mLookUpIonDriftA = std::make_unique<AliTPCLookUpTable3DInterpolatorD>(mNR, mMatrixIonDriftRA, mCoordR.data(), mNPhi, mMatrixIonDriftRPhiA, mCoordPhi.data(), mNZ, mMatrixIonDriftZA, mCoordZ.data(), mInterpolationOrder);
+  mLookUpIonDriftC = std::make_unique<AliTPCLookUpTable3DInterpolatorD>(mNR, mMatrixIonDriftRC, mCoordR.data(), mNPhi, mMatrixIonDriftRPhiC, mCoordPhi.data(), mNZ, mMatrixIonDriftZC, mCoordZ.data(), mInterpolationOrder);
 }
 
 void SpaceCharge::init()
 {
-  auto o2field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
-  const float bzField = o2field->solenoidField(); // magnetic field in kGauss
-  /// TODO is there a faster way to get the drift velocity
-  auto& gasParam = ParameterGas::Instance();
-  float vDrift = gasParam.DriftV; // drift velocity in cm/us
-  /// TODO fix hard coded values (ezField, t1, t2): export to Constants.h or get from somewhere?
-  const float t1 = 1.;
-  const float t2 = 1.;
-  /// TODO use this parameterization or fixed value(s) from Magboltz calculations?
-  const float omegaTau = -10. * bzField * vDrift / std::abs(sEzField);
-  setOmegaTauT1T2(omegaTau, t1, t2);
-  if (mUseInitialSCDensity) {
-    calculateLookupTables();
+  if (!mInitLookUpTables) {
+    auto o2field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+    const float bzField = o2field->solenoidField(); // magnetic field in kGauss
+    /// TODO is there a faster way to get the drift velocity
+    auto& gasParam = ParameterGas::Instance();
+    float vDrift = gasParam.DriftV; // drift velocity in cm/us
+    /// TODO fix hard coded values (ezField, t1, t2): export to Constants.h or get from somewhere?
+    const float t1 = 1.;
+    const float t2 = 1.;
+    /// TODO use this parameterization or fixed value(s) from Magboltz calculations?
+    const float omegaTau = -10. * bzField * vDrift / std::abs(sEzField);
+    setOmegaTauT1T2(omegaTau, t1, t2);
+    if (mUseInitialSCDensity) {
+      calculateLookupTables();
+    }
   }
 }
 
@@ -162,7 +164,7 @@ float SpaceCharge::calculateLookupTables()
 {
   // Potential, E field and electron distortion and correction lookup tables
   TStopwatch timer;
-  mLookUpTableCalculator.ForceInitSpaceCharge3DPoissonIntegralDz(mNRBins, mNZSlices, mNPhiBins, 300, 1e-8);
+  mLookUpTableCalculator.ForceInitSpaceCharge3DPoissonIntegralDz(mNR, mNZ, mNPhi, 300, 1e-8);
   float tRealCalc = static_cast<float>(timer.RealTime());
 
   // Lookup tables for local ion drift along E field
@@ -172,7 +174,7 @@ float SpaceCharge::calculateLookupTables()
     TMatrixD* matrixDriftR = nullptr;
     for (int iside = 0; iside < 2; ++iside) {
       const int sign = 1 - iside * 2;
-      for (int iphi = 0; iphi < mNPhiBins; ++iphi) {
+      for (int iphi = 0; iphi < mNPhi; ++iphi) {
         const float phi = static_cast<float>(mCoordPhi[iphi]);
         if (iside == 0) {
           matrixDriftZ = mMatrixIonDriftZA[iphi];
@@ -184,13 +186,13 @@ float SpaceCharge::calculateLookupTables()
           matrixDriftR = mMatrixIonDriftRC[iphi];
         }
         int roc = iside == 0 ? o2::utils::Angle2Sector(phi) : o2::utils::Angle2Sector(phi) + 18;
-        for (int ir = 0; ir < mNRBins; ++ir) {
+        for (int ir = 0; ir < mNR; ++ir) {
           const float radius = static_cast<float>(mCoordR[ir]);
           /// TODO: what is the electric field stored in the LUTs at iz=0 and iz=mNZSlices-1
-          for (int iz = 0; iz < mNZSlices; ++iz) {
+          for (int iz = 0; iz < mNZ; ++iz) {
             const float z = static_cast<float>(mCoordZ[iz]);
-            float x0[3] = {radius, phi, sign * (z + static_cast<float>(mLengthZSlice))}; // iphi, ir, iz+1
-            float x1[3] = {radius, phi, sign * z};                                       // iphi, ir, iz
+            float x0[3] = {radius, phi, sign * (z + static_cast<float>(mVoxelSizeZ))}; // iphi, ir, iz+1
+            float x1[3] = {radius, phi, sign * z};                                     // iphi, ir, iz
             if (iside == 1) {
               x0[2] *= -1;
               x1[2] *= -1;
@@ -201,9 +203,9 @@ float SpaceCharge::calculateLookupTables()
             mLookUpTableCalculator.GetElectricFieldCyl(x1, roc, eVector1); // returns correct sign for Ez
 
             // drift of ions along E field
-            (*matrixDriftR)(ir, iz) = -1 * sign * mLengthZSlice * 0.5 * (eVector0[0] + eVector1[0]) / (sign * sEzField + eVector0[2]);
-            (*matrixDriftRPhi)(ir, iz) = -1 * sign * mLengthZSlice * 0.5 * (eVector0[1] + eVector1[1]) / (sign * sEzField + eVector0[2]);
-            (*matrixDriftZ)(ir, iz) = -1 * sign * mLengthZSlice + DvDEoverv0 * mLengthZSlice * 0.5 * (eVector0[2] + eVector1[2]);
+            (*matrixDriftR)(ir, iz) = -1 * sign * mVoxelSizeZ * 0.5 * (eVector0[0] + eVector1[0]) / (sign * sEzField + eVector0[2]);
+            (*matrixDriftRPhi)(ir, iz) = -1 * sign * mVoxelSizeZ * 0.5 * (eVector0[1] + eVector1[1]) / (sign * sEzField + eVector0[2]);
+            (*matrixDriftZ)(ir, iz) = -1 * sign * mVoxelSizeZ + DvDEoverv0 * mVoxelSizeZ * 0.5 * (eVector0[2] + eVector1[2]);
           }
         }
       }
@@ -228,26 +230,26 @@ float SpaceCharge::updateLookupTables(float eventTime)
   // if (mTimeInit < 0.) {
   //   mTimeInit = eventTime; // set the time of first initialization
   // }
-  // if (std::abs(eventTime - mTimeInit) < mDriftTimeZSlice) {
+  // if (std::abs(eventTime - mTimeInit) < mDriftTimeVoxel) {
   //   return 0.f; // update only after one time bin has passed
   // }
   // mTimeInit = eventTime;
 
-  std::unique_ptr<std::unique_ptr<TMatrixD>[]> spaceChargeA = std::make_unique<std::unique_ptr<TMatrixD>[]>(mNPhiBins);
-  std::unique_ptr<std::unique_ptr<TMatrixD>[]> spaceChargeC = std::make_unique<std::unique_ptr<TMatrixD>[]>(mNPhiBins);
-  for (int iphi = 0; iphi < mNPhiBins; ++iphi) {
-    spaceChargeA[iphi] = std::make_unique<TMatrixD>(mNRBins, mNZSlices);
-    spaceChargeC[iphi] = std::make_unique<TMatrixD>(mNRBins, mNZSlices);
+  std::unique_ptr<std::unique_ptr<TMatrixD>[]> spaceChargeA = std::make_unique<std::unique_ptr<TMatrixD>[]>(mNPhi);
+  std::unique_ptr<std::unique_ptr<TMatrixD>[]> spaceChargeC = std::make_unique<std::unique_ptr<TMatrixD>[]>(mNPhi);
+  for (int iphi = 0; iphi < mNPhi; ++iphi) {
+    spaceChargeA[iphi] = std::make_unique<TMatrixD>(mNR, mNZ);
+    spaceChargeC[iphi] = std::make_unique<TMatrixD>(mNR, mNZ);
   }
   for (int iside = 0; iside < 2; ++iside) {
-    for (int iphi = 0; iphi < mNPhiBins; ++iphi) {
+    for (int iphi = 0; iphi < mNPhi; ++iphi) {
       TMatrixD& chargeDensity = iside == 0 ? *spaceChargeA[iphi] : *spaceChargeC[iphi];
-      for (int ir = 0; ir < mNRBins; ++ir) {
-        for (int iz = 0; iz < mNZSlices; ++iz) {
+      for (int ir = 0; ir < mNR; ++ir) {
+        for (int iz = 0; iz < mNZ; ++iz) {
           if (iside == 0) {
-            chargeDensity(ir, iz) = mSpaceChargeDensityA[iphi * mNRBins * mNZSlices + ir * mNZSlices + iz];
+            chargeDensity(ir, iz) = mSpaceChargeDensityA[iphi * mNR * mNZ + ir * mNZ + iz];
           } else {
-            chargeDensity(ir, iz) = mSpaceChargeDensityC[iphi * mNRBins * mNZSlices + ir * mNZSlices + iz];
+            chargeDensity(ir, iz) = mSpaceChargeDensityC[iphi * mNR * mNZ + ir * mNZ + iz];
           }
         }
       }
@@ -266,22 +268,22 @@ void SpaceCharge::setOmegaTauT1T2(float omegaTau, float t1, float t2)
 
 void SpaceCharge::setInitialSpaceChargeDensity(TH3* hisSCDensity)
 {
-  std::unique_ptr<std::unique_ptr<TMatrixD>[]> spaceChargeA = std::make_unique<std::unique_ptr<TMatrixD>[]>(mNPhiBins);
-  std::unique_ptr<std::unique_ptr<TMatrixD>[]> spaceChargeC = std::make_unique<std::unique_ptr<TMatrixD>[]>(mNPhiBins);
-  for (int iphi = 0; iphi < mNPhiBins; ++iphi) {
-    spaceChargeA[iphi] = std::make_unique<TMatrixD>(mNRBins, mNZSlices);
-    spaceChargeC[iphi] = std::make_unique<TMatrixD>(mNRBins, mNZSlices);
+  std::unique_ptr<std::unique_ptr<TMatrixD>[]> spaceChargeA = std::make_unique<std::unique_ptr<TMatrixD>[]>(mNPhi);
+  std::unique_ptr<std::unique_ptr<TMatrixD>[]> spaceChargeC = std::make_unique<std::unique_ptr<TMatrixD>[]>(mNPhi);
+  for (int iphi = 0; iphi < mNPhi; ++iphi) {
+    spaceChargeA[iphi] = std::make_unique<TMatrixD>(mNR, mNZ);
+    spaceChargeC[iphi] = std::make_unique<TMatrixD>(mNR, mNZ);
   }
-  mLookUpTableCalculator.GetChargeDensity((TMatrixD**)spaceChargeA.get(), (TMatrixD**)spaceChargeC.get(), hisSCDensity, mNRBins, mNZSlices, mNPhiBins);
+  mLookUpTableCalculator.GetChargeDensity((TMatrixD**)spaceChargeA.get(), (TMatrixD**)spaceChargeC.get(), hisSCDensity, mNR, mNZ, mNPhi);
   for (int iside = 0; iside < 2; ++iside) {
-    for (int iphi = 0; iphi < mNPhiBins; ++iphi) {
+    for (int iphi = 0; iphi < mNPhi; ++iphi) {
       TMatrixD& chargeDensity = iside == 0 ? *spaceChargeA[iphi] : *spaceChargeC[iphi];
-      for (int ir = 0; ir < mNRBins; ++ir) {
-        for (int iz = 0; iz < mNZSlices; ++iz) {
+      for (int ir = 0; ir < mNR; ++ir) {
+        for (int iz = 0; iz < mNZ; ++iz) {
           if (iside == 0) {
-            mSpaceChargeDensityA[iphi * mNRBins * mNZSlices + ir * mNZSlices + iz] = chargeDensity(ir, iz);
+            mSpaceChargeDensityA[iphi * mNR * mNZ + ir * mNZ + iz] = chargeDensity(ir, iz);
           } else {
-            mSpaceChargeDensityC[iphi * mNRBins * mNZSlices + ir * mNZSlices + iz] = chargeDensity(ir, iz);
+            mSpaceChargeDensityC[iphi * mNR * mNZ + ir * mNZ + iz] = chargeDensity(ir, iz);
           }
         }
       }
@@ -302,14 +304,14 @@ void SpaceCharge::fillPrimaryIons(double r, double phi, double z, int nIons)
   double rdist = r + dr;
   double phidist = phi + drphi / r;
   double zdist = z + dz;
-  const int zBin = TMath::BinarySearch(mNZSlices, mCoordZ.data(), std::abs(zdist));
-  const int phiBin = TMath::BinarySearch(mNPhiBins, mCoordPhi.data(), phidist);
-  const int rBin = TMath::BinarySearch(mNRBins, mCoordR.data(), rdist);
+  const int zBin = TMath::BinarySearch(mNZ, mCoordZ.data(), std::abs(zdist));
+  const int phiBin = TMath::BinarySearch(mNPhi, mCoordPhi.data(), phidist);
+  const int rBin = TMath::BinarySearch(mNR, mCoordR.data(), rdist);
   /// TODO: protection against ions ending up outside the volume
   if (z > 0 && zdist > 0) {
-    mSpaceChargeDensityA[phiBin * mNRBins * mNZSlices + rBin * mNZSlices + zBin] += ions2Charge(rBin, nIons);
+    mSpaceChargeDensityA[phiBin * mNR * mNZ + rBin * mNZ + zBin] += ions2Charge(rBin, nIons);
   } else if (z < 0 && zdist < 0) {
-    mSpaceChargeDensityC[phiBin * mNRBins * mNZSlices + rBin * mNZSlices + zBin] += ions2Charge(rBin, nIons);
+    mSpaceChargeDensityC[phiBin * mNR * mNZ + rBin * mNZ + zBin] += ions2Charge(rBin, nIons);
   }
 }
 
@@ -323,42 +325,42 @@ void SpaceCharge::fillPrimaryCharge(double r, double phi, double z, float charge
   double rdist = r + dr;
   double phidist = phi + drphi / r;
   double zdist = z + dz;
-  const int zBin = TMath::BinarySearch(mNZSlices, mCoordZ.data(), std::abs(zdist));
-  const int phiBin = TMath::BinarySearch(mNPhiBins, mCoordPhi.data(), phidist);
-  const int rBin = TMath::BinarySearch(mNRBins, mCoordR.data(), rdist);
+  const int zBin = TMath::BinarySearch(mNZ, mCoordZ.data(), std::abs(zdist));
+  const int phiBin = TMath::BinarySearch(mNPhi, mCoordPhi.data(), phidist);
+  const int rBin = TMath::BinarySearch(mNR, mCoordR.data(), rdist);
   /// TODO: protection against ions ending up outside the volume
   if (z > 0 && zdist > 0) {
-    mSpaceChargeDensityA[phiBin * mNRBins * mNZSlices + rBin * mNZSlices + zBin] += charge;
+    mSpaceChargeDensityA[phiBin * mNR * mNZ + rBin * mNZ + zBin] += charge;
   } else if (z < 0 && zdist < 0) {
-    mSpaceChargeDensityC[phiBin * mNRBins * mNZSlices + rBin * mNZSlices + zBin] += charge;
+    mSpaceChargeDensityC[phiBin * mNR * mNZ + rBin * mNZ + zBin] += charge;
   }
 }
 
 void SpaceCharge::fillIBFIons(double r, double phi, Side side, int nIons)
 {
-  const int phiBin = TMath::BinarySearch(mNPhiBins, mCoordPhi.data(), phi);
-  const int rBin = TMath::BinarySearch(mNRBins, mCoordR.data(), r);
-  const int zBin = mNZSlices - 1;
+  const int phiBin = TMath::BinarySearch(mNPhi, mCoordPhi.data(), phi);
+  const int rBin = TMath::BinarySearch(mNR, mCoordR.data(), r);
+  const int zBin = mNZ - 1;
   /// TODO: distribution of amplification ions instead of placing all of them in one point
   /// TODO: protection against ions ending up outside the volume
   if (side == Side::A) {
-    mSpaceChargeDensityA[phiBin * mNRBins * mNZSlices + rBin * mNZSlices + zBin] += ions2Charge(rBin, nIons);
+    mSpaceChargeDensityA[phiBin * mNR * mNZ + rBin * mNZ + zBin] += ions2Charge(rBin, nIons);
   } else {
-    mSpaceChargeDensityC[phiBin * mNRBins * mNZSlices + rBin * mNZSlices + zBin] += ions2Charge(rBin, nIons);
+    mSpaceChargeDensityC[phiBin * mNR * mNZ + rBin * mNZ + zBin] += ions2Charge(rBin, nIons);
   }
 }
 
 void SpaceCharge::fillIBFCharge(double r, double phi, Side side, float charge)
 {
-  const int phiBin = TMath::BinarySearch(mNPhiBins, mCoordPhi.data(), phi);
-  const int rBin = TMath::BinarySearch(mNRBins, mCoordR.data(), r);
-  const int zBin = mNZSlices - 1;
+  const int phiBin = TMath::BinarySearch(mNPhi, mCoordPhi.data(), phi);
+  const int rBin = TMath::BinarySearch(mNR, mCoordR.data(), r);
+  const int zBin = mNZ - 1;
   /// TODO: distribution of amplification ions instead of placing all of them in one point
   /// TODO: protection against ions ending up outside the volume
   if (side == Side::A) {
-    mSpaceChargeDensityA[phiBin * mNRBins * mNZSlices + rBin * mNZSlices + zBin] += charge;
+    mSpaceChargeDensityA[phiBin * mNR * mNZ + rBin * mNZ + zBin] += charge;
   } else {
-    mSpaceChargeDensityC[phiBin * mNRBins * mNZSlices + rBin * mNZSlices + zBin] += charge;
+    mSpaceChargeDensityC[phiBin * mNR * mNZ + rBin * mNZ + zBin] += charge;
   }
 }
 
@@ -371,10 +373,10 @@ void SpaceCharge::propagateSpaceCharge()
   //       rho_0: space-charge density at time t0
   //
   //
-  // Calculate the change of the space-charge density rho_0 at time t0 after time delta(t) = mLengthZSlice / v_driftIon:
+  // Calculate the change of the space-charge density rho_0 at time t0 after time delta(t) = mVoxelSizeZ / v_driftIon:
   //   delta(rho_0) = - ( rho_0 * div(u) + u * grad(rho_0) ) * delta(t)
   //                = - ( rho_0 * div(d) + d * grad(rho_0) )
-  //       d: drift vector (dr, dphi, mLengthZSlice + dz)
+  //       d: drift vector (dr, dphi, mVoxelSizeZ + dz)
   //
   //   div(d) = 1/r del(r*d_r)/del(r) + 1/r del(d_phi)/del(phi) + del(d_z)/del(z)
   //          = d_r/r + del(d_r)/del(r) + 1/r del(d_phi)/del(phi) + del(d_z)/del(z)
@@ -414,69 +416,69 @@ void SpaceCharge::propagateSpaceCharge()
       matrixDriftR = mMatrixIonDriftRC;
     }
     /// TODO: is there a better way than to create a copy for the new SC density?
-    std::vector<float> newSCDensity(mNPhiBins * mNRBins * mNZSlices);
-    for (int iphi0 = 0; iphi0 < mNPhiBins; ++iphi0) {
+    std::vector<float> newSCDensity(mNPhi * mNR * mNZ);
+    for (int iphi0 = 0; iphi0 < mNPhi; ++iphi0) {
 
-      for (int ir0 = 0; ir0 < mNRBins; ++ir0) {
+      for (int ir0 = 0; ir0 < mNR; ++ir0) {
         const float r0 = static_cast<float>(mCoordR[ir0]);
 
-        for (int iz0 = 0; iz0 < mNZSlices; ++iz0) {
+        for (int iz0 = 0; iz0 < mNZ; ++iz0) {
 
           // rho_0 * div(d)
           float ddrdr = 0.f;
-          if (ir0 > 1 && ir0 < mNRBins - 2) {
-            ddrdr = (coeffCent40 * (*matrixDriftR[iphi0])(ir0 - 2, iz0) + coeffCent41 * (*matrixDriftR[iphi0])(ir0 - 1, iz0) + coeffCent42 * (*matrixDriftR[iphi0])(ir0 + 1, iz0) + coeffCent43 * (*matrixDriftR[iphi0])(ir0 + 2, iz0)) / static_cast<float>(mLengthRBin);
+          if (ir0 > 1 && ir0 < mNR - 2) {
+            ddrdr = (coeffCent40 * (*matrixDriftR[iphi0])(ir0 - 2, iz0) + coeffCent41 * (*matrixDriftR[iphi0])(ir0 - 1, iz0) + coeffCent42 * (*matrixDriftR[iphi0])(ir0 + 1, iz0) + coeffCent43 * (*matrixDriftR[iphi0])(ir0 + 2, iz0)) / static_cast<float>(mVoxelSizeR);
           } else if (ir0 < 2) {
-            ddrdr = (coeffFwd30 * (*matrixDriftR[iphi0])(ir0, iz0) + coeffFwd31 * (*matrixDriftR[iphi0])(ir0 + 1, iz0) + coeffFwd32 * (*matrixDriftR[iphi0])(ir0 + 2, iz0) + coeffFwd33 * (*matrixDriftR[iphi0])(ir0 + 3, iz0)) / static_cast<float>(mLengthRBin);
-          } else if (ir0 > (mNRBins - 3)) {
-            ddrdr = -1 * (coeffFwd30 * (*matrixDriftR[iphi0])(ir0, iz0) + coeffFwd31 * (*matrixDriftR[iphi0])(ir0 - 1, iz0) + coeffFwd32 * (*matrixDriftR[iphi0])(ir0 - 2, iz0) + coeffFwd33 * (*matrixDriftR[iphi0])(ir0 - 3, iz0)) / static_cast<float>(mLengthRBin);
+            ddrdr = (coeffFwd30 * (*matrixDriftR[iphi0])(ir0, iz0) + coeffFwd31 * (*matrixDriftR[iphi0])(ir0 + 1, iz0) + coeffFwd32 * (*matrixDriftR[iphi0])(ir0 + 2, iz0) + coeffFwd33 * (*matrixDriftR[iphi0])(ir0 + 3, iz0)) / static_cast<float>(mVoxelSizeR);
+          } else if (ir0 > (mNR - 3)) {
+            ddrdr = -1 * (coeffFwd30 * (*matrixDriftR[iphi0])(ir0, iz0) + coeffFwd31 * (*matrixDriftR[iphi0])(ir0 - 1, iz0) + coeffFwd32 * (*matrixDriftR[iphi0])(ir0 - 2, iz0) + coeffFwd33 * (*matrixDriftR[iphi0])(ir0 - 3, iz0)) / static_cast<float>(mVoxelSizeR);
           }
 
-          const int iphiCent0 = iphi0 - 2 + (mNPhiBins) * (iphi0 < 2);
-          const int iphiCent1 = iphi0 - 1 + (mNPhiBins) * (iphi0 < 1);
-          const int iphiCent3 = iphi0 + 1 - (mNPhiBins) * (iphi0 > (mNPhiBins - 2));
-          const int iphiCent4 = iphi0 + 2 - (mNPhiBins) * (iphi0 > (mNPhiBins - 3));
-          const float ddphidphi = (coeffCent40 * (*matrixDriftRPhi[iphiCent0])(ir0, iz0) + coeffCent41 * (*matrixDriftRPhi[iphiCent1])(ir0, iz0) + coeffCent42 * (*matrixDriftRPhi[iphiCent3])(ir0, iz0) + coeffCent43 * (*matrixDriftRPhi[iphiCent4])(ir0, iz0)) / static_cast<float>(mWidthPhiBin);
+          const int iphiCent0 = iphi0 - 2 + (mNPhi) * (iphi0 < 2);
+          const int iphiCent1 = iphi0 - 1 + (mNPhi) * (iphi0 < 1);
+          const int iphiCent3 = iphi0 + 1 - (mNPhi) * (iphi0 > (mNPhi - 2));
+          const int iphiCent4 = iphi0 + 2 - (mNPhi) * (iphi0 > (mNPhi - 3));
+          const float ddphidphi = (coeffCent40 * (*matrixDriftRPhi[iphiCent0])(ir0, iz0) + coeffCent41 * (*matrixDriftRPhi[iphiCent1])(ir0, iz0) + coeffCent42 * (*matrixDriftRPhi[iphiCent3])(ir0, iz0) + coeffCent43 * (*matrixDriftRPhi[iphiCent4])(ir0, iz0)) / static_cast<float>(mVoxelSizePhi);
 
           float ddzdz = 0.f;
-          if (iz0 > 1 && iz0 < mNZSlices - 2) {
-            ddzdz = signZ * (coeffCent40 * (*matrixDriftZ[iphi0])(ir0, iz0 - 2) + coeffCent41 * (*matrixDriftZ[iphi0])(ir0, iz0 - 1) + coeffCent42 * (*matrixDriftZ[iphi0])(ir0, iz0 + 1) + coeffCent43 * (*matrixDriftZ[iphi0])(ir0, iz0 + 2)) / static_cast<float>(mLengthRBin);
-          } else if (iz0 == 1 || iz0 == (mNZSlices - 2)) {
-            ddzdz = signZ * (-0.5 * (*matrixDriftZ[iphi0])(ir0, iz0 - 1) + 0.5 * (*matrixDriftZ[iphi0])(ir0, iz0 + 1)) / static_cast<float>(mLengthRBin);
+          if (iz0 > 1 && iz0 < mNZ - 2) {
+            ddzdz = signZ * (coeffCent40 * (*matrixDriftZ[iphi0])(ir0, iz0 - 2) + coeffCent41 * (*matrixDriftZ[iphi0])(ir0, iz0 - 1) + coeffCent42 * (*matrixDriftZ[iphi0])(ir0, iz0 + 1) + coeffCent43 * (*matrixDriftZ[iphi0])(ir0, iz0 + 2)) / static_cast<float>(mVoxelSizeR);
+          } else if (iz0 == 1 || iz0 == (mNZ - 2)) {
+            ddzdz = signZ * (-0.5 * (*matrixDriftZ[iphi0])(ir0, iz0 - 1) + 0.5 * (*matrixDriftZ[iphi0])(ir0, iz0 + 1)) / static_cast<float>(mVoxelSizeR);
           } else if (iz0 == 0) {
-            ddzdz = signZ * (coeffFwd20 * (*matrixDriftZ[iphi0])(ir0, iz0) + coeffFwd21 * (*matrixDriftZ[iphi0])(ir0, iz0 + 1) + coeffFwd22 * (*matrixDriftZ[iphi0])(ir0, iz0 + 2)) / static_cast<float>(mLengthRBin);
-          } else if (iz0 == (mNZSlices - 1)) {
-            ddzdz = -1 * signZ * (coeffFwd20 * (*matrixDriftZ[iphi0])(ir0, iz0) + coeffFwd21 * (*matrixDriftZ[iphi0])(ir0, iz0 - 1) + coeffFwd22 * (*matrixDriftZ[iphi0])(ir0, iz0 - 2)) / static_cast<float>(mLengthRBin);
+            ddzdz = signZ * (coeffFwd20 * (*matrixDriftZ[iphi0])(ir0, iz0) + coeffFwd21 * (*matrixDriftZ[iphi0])(ir0, iz0 + 1) + coeffFwd22 * (*matrixDriftZ[iphi0])(ir0, iz0 + 2)) / static_cast<float>(mVoxelSizeR);
+          } else if (iz0 == (mNZ - 1)) {
+            ddzdz = -1 * signZ * (coeffFwd20 * (*matrixDriftZ[iphi0])(ir0, iz0) + coeffFwd21 * (*matrixDriftZ[iphi0])(ir0, iz0 - 1) + coeffFwd22 * (*matrixDriftZ[iphi0])(ir0, iz0 - 2)) / static_cast<float>(mVoxelSizeR);
           }
 
-          const float qdivd = (*scDensity)[iphi0 * mNRBins * mNZSlices + ir0 * mNZSlices + iz0] * (((*matrixDriftR[iphi0])(ir0, iz0) + ddphidphi) / r0 + ddrdr + ddzdz);
+          const float qdivd = (*scDensity)[iphi0 * mNR * mNZ + ir0 * mNZ + iz0] * (((*matrixDriftR[iphi0])(ir0, iz0) + ddphidphi) / r0 + ddrdr + ddzdz);
 
           // - d * grad(rho_0) = - d_drift * grad(rho_0(x)) + d_dist * grad(rho_0(x+d_drift)) = (charge0 - charge1) + d_dist * grad(rho_0(x-d_drift))
-          if (iz0 < (mNZSlices - 1)) {
+          if (iz0 < (mNZ - 1)) {
             const float dr = (*matrixDriftR[iphi0])(ir0, iz0);
             const float drphi = (*matrixDriftRPhi[iphi0])(ir0, iz0);
-            const float dz = (*matrixDriftZ[iphi0])(ir0, iz0) + mLengthZSlice * signZ;
+            const float dz = (*matrixDriftZ[iphi0])(ir0, iz0) + mVoxelSizeZ * signZ;
 
-            const int ir1 = dr < 0 ? ir0 - 1 * (ir0 == (mNRBins - 1)) : ir0 - 1 + 1 * (ir0 == 0);
-            const int ir2 = dr < 0 ? ir0 + 1 - 1 * (ir0 == (mNRBins - 1)) : ir0 + 1 * (ir0 == 0);
-            const int iphi1 = drphi < 0 ? iphi0 : iphi0 - 1 + (mNPhiBins) * (iphi0 == 0);
-            const int iphi2 = drphi < 0 ? iphi0 + 1 - (mNPhiBins) * (iphi0 == (mNPhiBins - 1)) : iphi0;
-            const int iz1 = dz < 0 ? iz0 + 1 - 1 * (iside == 0) * (iz0 == (mNZSlices - 2)) : iz0 + 2 * (iside == 1) - 1 * (iside == 1) * (iz0 == (mNZSlices - 2));
-            const int iz2 = dz < 0 ? iz0 + 2 - 2 * (iside == 1) - 1 * (iside == 0) * (iz0 == (mNZSlices - 2)) : iz0 + 1 - 1 * (iside == 1) * (iz0 == (mNZSlices - 2));
+            const int ir1 = dr < 0 ? ir0 - 1 * (ir0 == (mNR - 1)) : ir0 - 1 + 1 * (ir0 == 0);
+            const int ir2 = dr < 0 ? ir0 + 1 - 1 * (ir0 == (mNR - 1)) : ir0 + 1 * (ir0 == 0);
+            const int iphi1 = drphi < 0 ? iphi0 : iphi0 - 1 + (mNPhi) * (iphi0 == 0);
+            const int iphi2 = drphi < 0 ? iphi0 + 1 - (mNPhi) * (iphi0 == (mNPhi - 1)) : iphi0;
+            const int iz1 = dz < 0 ? iz0 + 1 - 1 * (iside == 0) * (iz0 == (mNZ - 2)) : iz0 + 2 * (iside == 1) - 1 * (iside == 1) * (iz0 == (mNZ - 2));
+            const int iz2 = dz < 0 ? iz0 + 2 - 2 * (iside == 1) - 1 * (iside == 0) * (iz0 == (mNZ - 2)) : iz0 + 1 - 1 * (iside == 1) * (iz0 == (mNZ - 2));
 
-            const float dqdr = ((*scDensity)[iphi0 * mNRBins * mNZSlices + ir2 * mNZSlices + (iz0 + 1)] - (*scDensity)[iphi0 * mNRBins * mNZSlices + ir1 * mNZSlices + (iz0 + 1)]) / static_cast<float>(mLengthRBin);
-            const float dqdphi = ((*scDensity)[iphi2 * mNRBins * mNZSlices + ir0 * mNZSlices + (iz0 + 1)] - (*scDensity)[iphi1 * mNRBins * mNZSlices + ir0 * mNZSlices + (iz0 + 1)]) / static_cast<float>(mWidthPhiBin);
-            const float dqdz = ((*scDensity)[iphi0 * mNRBins * mNZSlices + ir0 * mNZSlices + iz2] - (*scDensity)[iphi0 * mNRBins * mNZSlices + ir0 * mNZSlices + iz1]) / static_cast<float>(mLengthZSlice);
+            const float dqdr = ((*scDensity)[iphi0 * mNR * mNZ + ir2 * mNZ + (iz0 + 1)] - (*scDensity)[iphi0 * mNR * mNZ + ir1 * mNZ + (iz0 + 1)]) / static_cast<float>(mVoxelSizeR);
+            const float dqdphi = ((*scDensity)[iphi2 * mNR * mNZ + ir0 * mNZ + (iz0 + 1)] - (*scDensity)[iphi1 * mNR * mNZ + ir0 * mNZ + (iz0 + 1)]) / static_cast<float>(mVoxelSizePhi);
+            const float dqdz = ((*scDensity)[iphi0 * mNR * mNZ + ir0 * mNZ + iz2] - (*scDensity)[iphi0 * mNR * mNZ + ir0 * mNZ + iz1]) / static_cast<float>(mVoxelSizeZ);
 
             const float dgradq = dr * dqdr + drphi / r0 * dqdphi + dz * dqdz;
 
-            newSCDensity[iphi0 * mNRBins * mNZSlices + ir0 * mNZSlices + iz0] = (*scDensity)[iphi0 * mNRBins * mNZSlices + ir0 * mNZSlices + (iz0 + 1)] - (qdivd + dgradq);
+            newSCDensity[iphi0 * mNR * mNZ + ir0 * mNZ + iz0] = (*scDensity)[iphi0 * mNR * mNZ + ir0 * mNZ + (iz0 + 1)] - (qdivd + dgradq);
           } else {
-            newSCDensity[iphi0 * mNRBins * mNZSlices + ir0 * mNZSlices + iz0] = -qdivd;
+            newSCDensity[iphi0 * mNR * mNZ + ir0 * mNZ + iz0] = -qdivd;
           }
 
-          if (newSCDensity[iphi0 * mNRBins * mNZSlices + ir0 * mNZSlices + iz0] < 0.f) {
-            newSCDensity[iphi0 * mNRBins * mNZSlices + ir0 * mNZSlices + iz0] = 0.f;
+          if (newSCDensity[iphi0 * mNR * mNZ + ir0 * mNZ + iz0] < 0.f) {
+            newSCDensity[iphi0 * mNR * mNZ + ir0 * mNZ + iz0] = 0.f;
           }
         }
       }
@@ -502,25 +504,25 @@ void SpaceCharge::propagateIons()
       scDensity = &mSpaceChargeDensityC;
       lookUpIonDrift = mLookUpIonDriftC.get();
     }
-    std::vector<float> newSCDensity(mNPhiBins * mNRBins * mNZSlices);
+    std::vector<float> newSCDensity(mNPhi * mNR * mNZ);
 
-    for (int iphi0 = 0; iphi0 < mNPhiBins; ++iphi0) {
+    for (int iphi0 = 0; iphi0 < mNPhi; ++iphi0) {
       const double phi0 = static_cast<float>(mCoordPhi[iphi0]);
 
-      for (int ir0 = 0; ir0 < mNRBins; ++ir0) {
+      for (int ir0 = 0; ir0 < mNR; ++ir0) {
         const double r0 = static_cast<float>(mCoordR[ir0]);
-        const double r1 = r0 + mLengthRBin;
+        const double r1 = r0 + mVoxelSizeR;
 
-        for (int iz0 = 0; iz0 < mNZSlices; ++iz0) {
+        for (int iz0 = 0; iz0 < mNZ; ++iz0) {
           const double z0 = mCoordZ[iz0] * signZ;
 
-          const float ionDensity = (*scDensity)[iphi0 * mNRBins * mNZSlices + ir0 * mNZSlices + iz0] * AliTPCPoissonSolver::fgke0 / TMath::Qe();  // #ions / cm^3
-          const float nIons = std::round(ionDensity * mLengthZSlice * 0.5 * mWidthPhiBin * (r1 * r1 - r0 * r0));  // absolute #ions in the voxel
+          const float ionDensity = (*scDensity)[iphi0 * mNR * mNZ + ir0 * mNZ + iz0] * AliTPCPoissonSolver::fgke0 / TMath::Qe(); // #ions / cm^3
+          const float nIons = std::round(ionDensity * mVoxelSizeZ * 0.5 * mVoxelSizePhi * (r1 * r1 - r0 * r0));                  // absolute #ions in the voxel
 
-          for (int iion=0; iion<nIons; ++iion){
-            double phiIon = phi0 + mRandomFlat.getNextValue() * mWidthPhiBin;
-            double rIon = r0 + mRandomFlat.getNextValue() * mLengthRBin;
-            double zIon = z0 + mRandomFlat.getNextValue() * mLengthZSlice * signZ;
+          for (int iion = 0; iion < nIons; ++iion) {
+            double phiIon = phi0 + mRandomFlat.getNextValue() * mVoxelSizePhi;
+            double rIon = r0 + mRandomFlat.getNextValue() * mVoxelSizeR;
+            double zIon = z0 + mRandomFlat.getNextValue() * mVoxelSizeZ * signZ;
 
             double drphi = 0.f;
             double dr = 0.f;
@@ -532,19 +534,18 @@ void SpaceCharge::propagateIons()
             zIon += dz;
 
             // continue if ion is outside the TPC boundaries in r or z
-            if (rIon > (mCoordR[mNRBins-1]+mLengthRBin) || rIon < mCoordR[0]){
+            if (rIon > (mCoordR[mNR - 1] + mVoxelSizeR) || rIon < mCoordR[0]) {
               continue;
             }
-            if ((zIon * signZ) > (mCoordZ[mNZSlices-1]+mLengthZSlice) || (zIon * signZ) < mCoordZ[0]){
+            if ((zIon * signZ) > (mCoordZ[mNZ - 1] + mVoxelSizeZ) || (zIon * signZ) < mCoordZ[0]) {
               continue;
             }
 
-            const int iphiDrift = TMath::BinarySearch(mNPhiBins, mCoordPhi.data(), static_cast<double>(phiIonF));
-            const int irDrift = TMath::BinarySearch(mNRBins, mCoordR.data(), rIon);
-            const int izDrift = TMath::BinarySearch(mNZSlices, mCoordZ.data(), std::abs(zIon));
-            newSCDensity[iphiDrift * mNRBins * mNZSlices + irDrift * mNZSlices + izDrift] += ions2Charge(irDrift, 1);
+            const int iphiDrift = TMath::BinarySearch(mNPhi, mCoordPhi.data(), static_cast<double>(phiIonF));
+            const int irDrift = TMath::BinarySearch(mNR, mCoordR.data(), rIon);
+            const int izDrift = TMath::BinarySearch(mNZ, mCoordZ.data(), std::abs(zIon));
+            newSCDensity[iphiDrift * mNR * mNZ + irDrift * mNZ + izDrift] += ions2Charge(irDrift, 1);
           }
-
         }
       }
     }
@@ -612,12 +613,12 @@ double SpaceCharge::getChargeDensity(Side side, GlobalPosition3D& point)
   return mLookUpTableCalculator.GetChargeCylAC(x, roc);
 }
 
-float SpaceCharge::getChargeDensity(Side side, int iphi, int ir, int iz)
+float SpaceCharge::getChargeDensity(Side side, int ir, int iphi, int iz)
 {
   if (side == Side::A) {
-    return mSpaceChargeDensityA[iphi * mNRBins * mNZSlices + ir * mNZSlices + iz];
+    return mSpaceChargeDensityA[iphi * mNR * mNZ + ir * mNZ + iz];
   } else if (side == Side::C) {
-    return mSpaceChargeDensityC[iphi * mNRBins * mNZSlices + ir * mNZSlices + iz];
+    return mSpaceChargeDensityC[iphi * mNR * mNZ + ir * mNZ + iz];
   } else {
     return -1.f;
   }
@@ -636,6 +637,6 @@ void SpaceCharge::setUseFastDistIntegration(int useFastInt)
 float SpaceCharge::ions2Charge(int rBin, int nIons)
 {
   float rInner = mCoordR[rBin];
-  float rOuter = mCoordR[rBin] + mLengthRBin;
-  return nIons * TMath::Qe() / (mLengthZSlice * 0.5 * mWidthPhiBin * (rOuter * rOuter - rInner * rInner)) / AliTPCPoissonSolver::fgke0;
+  float rOuter = mCoordR[rBin] + mVoxelSizeR;
+  return nIons * TMath::Qe() / (mVoxelSizeZ * 0.5 * mVoxelSizePhi * (rOuter * rOuter - rInner * rInner)) / AliTPCPoissonSolver::fgke0;
 }

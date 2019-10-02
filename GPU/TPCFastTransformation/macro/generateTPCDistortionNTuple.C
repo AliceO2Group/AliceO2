@@ -64,7 +64,7 @@ void generateTPCDistortionNTuple()
   int mNPhiSlices = 180;
 
   // create space-charge object
-  sc = new o2::tpc::SpaceCharge(mNZCols, mNPhiSlices, mNRRows);
+  sc = new o2::tpc::SpaceCharge(mNRRows, mNPhiSlices, mNZCols);
   sc->setInitialSpaceChargeDensity((TH3*)mHisSCDensity3D.get());
   // select constant distortions (over time), realistic distortions changing in time not yet pushed to official code
   sc->setSCDistortionType(o2::tpc::SpaceCharge::SCDistortionType::SCDistortionsConstant);
