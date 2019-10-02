@@ -80,6 +80,8 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "Context.cu"
 #include "Stream.cu"
 #include "DeviceStoreNV.cu"
+#include "DeviceStoreVertexerGPU.cu"
+#include "ClusterLinesGPU.cu"
 #include "Utils.cu"
 #endif // !defined(GPUCA_O2_LIB) && defined(__CUDACC__)
 #endif // HAVE_O2HEADERS
