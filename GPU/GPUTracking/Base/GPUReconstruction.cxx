@@ -55,6 +55,10 @@ GPUReconstruction::GPUReconstruction(const GPUSettingsProcessing& cfg) : mHostCo
   mEventSettings.SetDefaults();
   param().SetDefaults(&mEventSettings);
   mMemoryScalers.reset(new GPUMemorySizeScalers);
+  for (unsigned int i = 0; i < NSLICES; i++) {
+    processors()->tpcTrackers[i].SetSlice(i); // TODO: Move to a better place
+    processors()->tpcClusterer[i].mISlice = i;
+  }
 }
 
 GPUReconstruction::~GPUReconstruction()
@@ -435,9 +439,9 @@ void GPUReconstruction::PrepareEvent()
     if (mProcessors[i].proc->mAllocateAndInitializeLate) {
       continue;
     }
-    (mProcessors[i].proc->*(mProcessors[i].SetMaxData))();
+    (mProcessors[i].proc->*(mProcessors[i].SetMaxData))(mHostConstantMem->ioPtrs);
     if (mProcessors[i].proc->mDeviceProcessor) {
-      (mProcessors[i].proc->mDeviceProcessor->*(mProcessors[i].SetMaxData))();
+      (mProcessors[i].proc->mDeviceProcessor->*(mProcessors[i].SetMaxData))(mHostConstantMem->ioPtrs);
     }
   }
   AllocateRegisteredMemory(nullptr);
