@@ -67,7 +67,7 @@ void generateTPCDistortionNTuple()
   sc = new o2::tpc::SpaceCharge(mNZCols, mNPhiSlices, mNRRows);
   sc->setInitialSpaceChargeDensity((TH3*)mHisSCDensity3D.get());
   // select constant distortions (over time), realistic distortions changing in time not yet pushed to official code
-  sc->setSCDistortionType(o2::tpc::SpaceCharge::SCDistortionsConstant);
+  sc->setSCDistortionType(o2::tpc::SpaceCharge::SCDistortionType::SCDistortionsConstant);
   // gas parameters nor Ne-CO2-N2 90-10-5
   sc->setOmegaTauT1T2(0.32, 1, 1);
   // start calculation of lookup tables (takes some time)

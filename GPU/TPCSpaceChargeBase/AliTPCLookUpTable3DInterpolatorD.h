@@ -65,17 +65,17 @@ class AliTPCLookUpTable3DInterpolatorD
   Int_t fNPhi;  ///< number of grid in Phi
   Int_t fNZ;    ///< number of grid in Z
 
-  TMatrixD** fLookUpR = nullptr;   ///< Array to store distortion following the drift
-  TMatrixD** fLookUpPhi = nullptr; ///< Array to store distortion following the drift
-  TMatrixD** fLookUpZ = nullptr;   ///< Array to store distortion following the drift
+  TMatrixD** fLookUpR = nullptr;   //!<! Array to store distortion following the drift
+  TMatrixD** fLookUpPhi = nullptr; //!<! to store distortion following the drift
+  TMatrixD** fLookUpZ = nullptr;   //!<! Array to store distortion following the drift
 
-  AliTPC3DCylindricalInterpolator* fInterpolatorR = nullptr;   ///->Interpolator for R component
-  AliTPC3DCylindricalInterpolator* fInterpolatorPhi = nullptr; ///->Interpolator for Phi component
-  AliTPC3DCylindricalInterpolator* fInterpolatorZ = nullptr;   ///-> Interpolator for Z component
+  AliTPC3DCylindricalInterpolator* fInterpolatorR = nullptr;   //-> Interpolator for R component
+  AliTPC3DCylindricalInterpolator* fInterpolatorPhi = nullptr; //-> Interpolator for Phi component
+  AliTPC3DCylindricalInterpolator* fInterpolatorZ = nullptr;   //-> Interpolator for Z component
 
-  Double_t* fRList = nullptr;   //[fNR] List of R coordinate (regular grid)
-  Double_t* fPhiList = nullptr; //[fNPhi] List of Phi coordinate (regular grid)
-  Double_t* fZList = nullptr;   //[fNZ] List of Z coordinate (regular grid)
+  Double_t* fRList = nullptr;   //!<! List of R coordinate (regular grid)
+  Double_t* fPhiList = nullptr; //!<! List of Phi coordinate (regular grid)
+  Double_t* fZList = nullptr;   //!<! List of Z coordinate (regular grid)
 
   Bool_t fIsAllocatingLookUp; ///< flag for initialization of cubic spline
 

@@ -122,7 +122,7 @@ class AliTPCPoissonSolver : public TNamed
   AliTPCPoissonSolver(const AliTPCPoissonSolver&);            // not implemented
   AliTPCPoissonSolver& operator=(const AliTPCPoissonSolver&); // not implemented
   StrategyType fStrategy = kMultiGrid;                        ///< strategy used default multiGrid
-  TMatrixD** fExactSolution = nullptr;                        ///< Pointer to exact solution
+  TMatrixD** fExactSolution = nullptr;                        //!<! Pointer to exact solution
   /// TODO: remove pointers?
   TVectorD* fErrorConvergenceNorm2;   ///< for storing convergence error  norm2
   TVectorD* fErrorConvergenceNormInf; ///< for storing convergence error normInf
