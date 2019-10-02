@@ -8,10 +8,16 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(Base)
-add_subdirectory(Clustering)
-add_subdirectory(Raw)
-add_subdirectory(Simulation)
-add_subdirectory(TestingSimTools)
-add_subdirectory(Tracking)
-add_subdirectory(Workflow)
+o2_add_test(Raw
+            SOURCES testRaw.cxx
+            PUBLIC_LINK_LIBRARIES O2::DataFormatsMID O2::MIDRaw
+            COMPONENT_NAME mid
+            LABELS mid muon)
+
+if(benchmark_FOUND)
+  o2_add_executable(raw
+                    COMPONENT_NAME mid
+                    SOURCES bench_Raw.cxx
+                    IS_BENCHMARK
+                    PUBLIC_LINK_LIBRARIES O2::MIDRaw benchmark::benchmark)
+endif()
