@@ -67,6 +67,7 @@ class DeviceStoreVertexerGPU final
   GPUd() Vector<Tracklet>& getDuplets12() { return mDuplets12; }
   GPUd() Vector<Line>& getLines() { return mTracklets; }
   GPUhd() Vector<int>& getNFoundLines() { return mNFoundLines; }
+  GPUhd() Vector<int>& getNExclusiveFoundLines() { return mNExclusiveFoundLines; }
   GPUhd() Vector<int>& getReducedSum() { return mReducedSum; }
   GPUhd() Vector<int>& getTmpSumBuffer() { return mSumTmpBuffer; }
 #ifdef _ALLOW_DEBUG_TREES_ITS_
@@ -103,6 +104,7 @@ class DeviceStoreVertexerGPU final
 
   // service buffers
   Vector<int> mNFoundLines;
+  Vector<int> mNExclusiveFoundLines;
   Vector<Tracklet> mDuplets01;
   Vector<Tracklet> mDuplets12;
   Array<Vector<int>, constants::its::LayersNumberVertexer - 1> mNFoundDuplets;

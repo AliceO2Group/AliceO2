@@ -54,6 +54,7 @@ DeviceStoreVertexerGPU::DeviceStoreVertexerGPU()
     mNFoundDuplets[iPair] = Vector<int>{mGPUConf.clustersPerLayerCapacity};
   }
   mNFoundLines = Vector<int>{mGPUConf.clustersPerLayerCapacity};
+  mNExclusiveFoundLines = Vector<int>{mGPUConf.clustersPerLayerCapacity};
   mSizes = Vector<int>{constants::its::LayersNumberVertexer};
 }
 

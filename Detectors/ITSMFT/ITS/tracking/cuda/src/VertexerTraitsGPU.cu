@@ -158,11 +158,20 @@ GPUg() void trackletSelectionKernel(
 
 GPUg() void vertexerKernel(DeviceStoreVertexerGPU& store)
 {
+  // const size_t nClustersMiddleLayer = store.getClusters()[1].size();
+  const size_t nClustersMiddleLayer = 5;
+  const int maxIterations{store.getReducedSum()[0] * (store.getReducedSum()[0] - 1) / 2};
   for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < nClustersMiddleLayer; currentThreadIndex += blockDim.x * gridDim.x) {
-    size_t pcIndex = currentThreadIndex + 1;
-    if (pcIndex <=)
+    // int i = currentThreadIndex / store.getReducedSum()[0];
+    // int j = currentThreadIndex % store.getReducedSum()[0];
+    // if (j <= i) {
+    //   i = N - i - 2;
+    //   j = N - j - 1;
+    // }
+    // printf("{%d, %d}\n", i, j);
   }
 }
+
 } // namespace GPU
 
 void VertexerTraitsGPU::computeTracklets()
@@ -260,12 +269,22 @@ void VertexerTraitsGPU::computeMCFiltering()
 
 void VertexerTraitsGPU::computeVertices()
 {
+  const dim3 threadsPerBlock{GPU::Utils::Host::getBlockSize(mClusters[1].capacity())};
+  const dim3 blocksGrid{GPU::Utils::Host::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
+
   size_t bufferSize = mStoreVertexerGPU.getConfig().tmpSumBufferSize * sizeof(int);
   cub::DeviceReduce::Sum(reinterpret_cast<void*>(mStoreVertexerGPU.getTmpSumBuffer().get()),
                          bufferSize,
                          mStoreVertexerGPU.getNFoundLines().get(),
                          mStoreVertexerGPU.getReducedSum().get(),
                          mClusters[1].size());
+  cub::DeviceScan::ExclusiveSum(reinterpret_cast<void*>(mStoreVertexerGPU.getTmpSumBuffer().get()),
+                                bufferSize,
+                                mStoreVertexerGPU.getNFoundLines().get(),
+                                mStoreVertexerGPU.getNExclusiveFoundLines().get(),
+                                mClusters[1].size());
+
+  GPU::vertexerKernel<<<blocksGrid, threadsPerBlock>>>(getDeviceContext());
 
   cudaError_t error = cudaGetLastError();
 
