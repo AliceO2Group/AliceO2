@@ -70,15 +70,15 @@ class AliTPC3DCylindricalInterpolatorIrregular
     SetValue(TMatrixD** matricesValue, TMatrixD** matricesRPoint, TMatrixD** matricesPhiPoint, TMatrixD** matricesZPoint,
              Int_t jy);
 
- private:
   struct KDTreeNode {
-    Double_t* pR;
-    Double_t* pZ;
-    Double_t* pPhi;
+    Double_t* pR;   //!<! TODO: fix for streamers
+    Double_t* pZ;   //!<!
+    Double_t* pPhi; //!<!
     Int_t index;
     struct KDTreeNode *left, *right;
   };
 
+ private:
   Int_t fOrder;                      ///< Order of interpolation, 1 - linear, 2 - quadratic, 3 - cubic
   Int_t fType;                       ///< 0 INVERSE WEIGHT, 1 RBF FULL, 2 RBF Half
   Int_t fKernelType;                 ///< type kernel RBF 1--5
@@ -86,18 +86,20 @@ class AliTPC3DCylindricalInterpolatorIrregular
   Int_t fNR;                         ///< Grid size in direction of R
   Int_t fNPhi;                       ///< Grid size in direction of Phi
   Int_t fNZ;                         ///< Grid size in direction of Z
+  Int_t fNGridPoints;                ///< Total number of grid points (needed for streamer)
+  Int_t fNRBFpoints;                 ///< Total number of points for RBF weights
   Int_t fMinZIndex;                  ///<index z minimal as lower bound
   Int_t fStepR;                      ///< step in R direction for irregular grid
   Int_t fStepZ;                      ///< step in Z direction for irregular grid
   Int_t fStepPhi;                    ///< step in Phi direction for irregular grid
-  Int_t* fRBFWeightLookUp = nullptr; ///[numofpoints] weighted look up
+  Int_t* fRBFWeightLookUp = nullptr; //[fNGridPoints] weighted look up
 
   Double_t fRadiusRBF0;           ///< Radius RBF0
-  Double_t* fValue = nullptr;     ///< 3D for storing known values interpolation should be in size fNR*fNPhi*fNZ
-  Double_t* fRList = nullptr;     ///< coordinate in R (cm) (should be increasing) in 3D
-  Double_t* fPhiList = nullptr;   ///< coordinate in phiList (rad) (should be increasing) 0 <= < 2 pi (cyclic) in 3D
-  Double_t* fZList = nullptr;     ///< coordinate in z list (cm) (should be increasing) in 3D
-  Double_t* fRBFWeight = nullptr; ///< weight for RBF
+  Double_t* fValue = nullptr;     //[fNGridPoints] 3D for storing known values interpolation should be in size fNR*fNPhi*fNZ
+  Double_t* fRList = nullptr;     //[fNGridPoints] coordinate in R (cm) (should be increasing) in 3D
+  Double_t* fPhiList = nullptr;   //[fNGridPoints] coordinate in phiList (rad) (should be increasing) 0 <= < 2 pi (cyclic) in 3D
+  Double_t* fZList = nullptr;     //[fNGridPoints] coordinate in z list (cm) (should be increasing) in 3D
+  Double_t* fRBFWeight = nullptr; //[fNRBFpoints] weight for RBF
   Bool_t fIsAllocatingLookUp;     ///< is allocating memory?
 
   Double_t Interpolate3DTableCylIDW(Double_t r, Double_t z, Double_t phi, Int_t rIndex, Int_t zIndex, Int_t phiIndex,
@@ -130,8 +132,8 @@ class AliTPC3DCylindricalInterpolatorIrregular
                         Double_t radius0, Int_t kernelType, Double_t* weight);
   Double_t GetRadius0RBF(const Int_t rIndex, const Int_t phiIndex, const Int_t zIndex);
 
-  KDTreeNode* fKDTreeIrregularPoints = nullptr; // to save tree as list
-  KDTreeNode* fKDTreeIrregularRoot = nullptr;   // kdtree root
+  KDTreeNode* fKDTreeIrregularPoints = nullptr; //!<![fNGridPoints] to save tree as list
+  KDTreeNode* fKDTreeIrregularRoot = nullptr;   //!<! kdtree root TODO: make this streamable
 
   void InitKDTree();
   KDTreeNode* MakeKDTree(KDTreeNode* tree, Int_t count, Int_t index, Int_t dimention);
