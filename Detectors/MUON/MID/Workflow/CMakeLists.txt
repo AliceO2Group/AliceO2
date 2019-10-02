@@ -20,6 +20,7 @@ o2_add_executable(reco-workflow-mc
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                         O2::SimConfig
                                         ms_gsl::ms_gsl
+                                        O2::DetectorsBase
                                         O2::SimulationDataFormat
                                         O2::DataFormatsMID
                                         O2::DPLUtils
@@ -29,6 +30,29 @@ o2_add_executable(reco-workflow-mc
 
 target_include_directories(
   ${exenamerecomc}
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
+
+o2_add_executable(reco-workflow
+                  COMPONENT_NAME mid
+                  SOURCES src/mid-reco-workflow.cxx
+                          src/ClusterizerSpec.cxx
+                          src/RecoWorkflow.cxx
+                          src/RawReaderSpec.cxx
+                          src/TrackerSpec.cxx
+                          TARGETVARNAME
+                          exenamereco
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                                        O2::SimConfig
+                                        ms_gsl::ms_gsl
+                                        O2::DetectorsBase
+                                        O2::DataFormatsMID
+                                        O2::DPLUtils
+                                        O2::MIDClustering
+                                        O2::MIDRaw
+                                        O2::MIDTracking)
+
+target_include_directories(
+  ${exenamereco}
   PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
 
 o2_add_executable(digits-to-raw-workflow
