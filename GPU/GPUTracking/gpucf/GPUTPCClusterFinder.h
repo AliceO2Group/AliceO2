@@ -40,7 +40,7 @@ class GPUTPCClusterFinder : public GPUProcessor
 #ifndef GPUCA_GPUCODE
   void InitializeProcessor();
   void RegisterMemoryAllocation();
-  void SetMaxData();
+  void SetMaxData(const GPUTrackingInOutPointers& io);
 
   void* SetPointersInput(void* mem);
   void* SetPointersOutput(void* mem);
@@ -62,13 +62,15 @@ class GPUTPCClusterFinder : public GPUProcessor
   Memory* mPmemory = nullptr;
 
   int mISlice = 0;
-  int mScanWorkGroupSize = 128;
+  constexpr static int mScanWorkGroupSize = GPUCA_THREAD_COUNT_SCAN;
   size_t mNMaxClusterPerRow = 0;
   size_t mNMaxDigits = 0;
   size_t mNMaxPeaks = 0;
   size_t mNMaxClusters = 0;
   size_t mBufSize = 0;
   size_t mNBufs = 0;
+  
+  unsigned short mMemoryId = 0;
 };
 
 } // namespace gpu

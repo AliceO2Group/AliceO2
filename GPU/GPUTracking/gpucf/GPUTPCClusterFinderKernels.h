@@ -15,7 +15,6 @@
 #define O2_GPU_GPUTPCCLUSTERFINDERKERNEL_H
 
 #include "GPUGeneralKernels.h"
-#include "GPUTPCClusterFinder.h"
 #include "GPUConstantMem.h"
 
 #ifdef GPUCA_ALIGPUCODE // TODO: Remove, once Clusterizer is cleaned up
@@ -47,11 +46,28 @@ class GPUTPCClusterFinderKernels : public GPUKernelTemplate
   class GPUTPCSharedMemory;
 #endif
 
+  enum K : int {
+    fillChargeMap = 0,
+    resetMaps = 1,
+    findPeaks = 2,
+    noiseSuppression = 3,
+    updatePeaks = 4,
+    countPeaks = 5,
+    computeClusters = 6,
+    nativeScanUpStart = 7,
+    nativeScanUp = 8,
+    nativeScanTop = 9,
+    nativeScanDown = 10,
+    compactDigit = 11
+  };
+
+#ifdef HAVE_O2HEADERS
   typedef GPUTPCClusterFinder processorType;
   GPUhdi() static processorType* Processor(GPUConstantMem& processors)
   {
     return processors.tpcClusterer;
   }
+#endif
 
   GPUhdi() static GPUDataTypes::RecoStep GetRecoStep()
   {

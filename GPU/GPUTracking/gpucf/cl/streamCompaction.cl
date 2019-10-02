@@ -208,18 +208,6 @@ void compactDigit_kernel(
     GPUCF()compactDigit(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, in, out, predicate, newIdx, incr);
 }
 
-GPUg()
-void compactClusterNative_kernel(
-        GPUglobal() const GPUCF()ClusterNative  *in,
-        GPUglobal()       GPUCF()ClusterNative  *out,
-        GPUglobal() const GPUCF()uchar *predicate,
-        GPUglobal()       int   *newIdx,
-        GPUglobal() const int   *incr)
-{
-    GPUshared() MYSMEM() smem;
-    GPUCF()compactClusterNative(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, in, out, predicate, newIdx, incr);
-}
-
 #endif
 
 #undef GPUCF

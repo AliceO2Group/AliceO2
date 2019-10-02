@@ -21,20 +21,23 @@ namespace GPUCA_NAMESPACE::gpu
 
 struct GPUMemorySizeScalers {
   // Input sizes
+  double nTPCdigits = 0;
   double nTPCHits = 0;
   double nTRDTracklets = 0;
   double nITSTracks = 0;
 
   // Offset
-  double offset = 1000.;
+  static constexpr double offset = 1000.;
 
   // Scaling Factors
-  double tpcTrackletsPerHit = 0.08;
-  double tpcSectorTracksPerHit = 0.02;
-  double tpcSectorTrackHitsPerHit = 0.8f;
-  double tpcTracksPerHit = 0.012;
-  double tpcTrackHitsPerHit = 0.7;
+  static constexpr double tpcClustersPerDigit = 0.5;
+  static constexpr double tpcTrackletsPerHit = 0.08;
+  static constexpr double tpcSectorTracksPerHit = 0.02;
+  static constexpr double tpcSectorTrackHitsPerHit = 0.8f;
+  static constexpr double tpcTracksPerHit = 0.012;
+  static constexpr double tpcTrackHitsPerHit = 0.7;
 
+  double NTPCClusters(double tpcDigits) { return offset + tpcDigits * tpcClustersPerDigit; }
   double NTPCTracklets(double tpcHits) { return offset + tpcHits * tpcTrackletsPerHit; }
   double NTPCSectorTracks(double tpcHits) { return offset + tpcHits * tpcSectorTracksPerHit; }
   double NTPCSectorTrackHits(double tpcHits) { return offset + tpcHits * tpcSectorTrackHitsPerHit; }

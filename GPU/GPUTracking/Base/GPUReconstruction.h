@@ -282,11 +282,11 @@ class GPUReconstruction
 
   // Management for GPUProcessors
   struct ProcessorData {
-    ProcessorData(GPUProcessor* p, void (GPUProcessor::*r)(), void (GPUProcessor::*i)(), void (GPUProcessor::*d)()) : proc(p), RegisterMemoryAllocation(r), InitializeProcessor(i), SetMaxData(d) {}
+    ProcessorData(GPUProcessor* p, void (GPUProcessor::*r)(), void (GPUProcessor::*i)(), void (GPUProcessor::*d)(const GPUTrackingInOutPointers&)) : proc(p), RegisterMemoryAllocation(r), InitializeProcessor(i), SetMaxData(d) {}
     GPUProcessor* proc;
     void (GPUProcessor::*RegisterMemoryAllocation)();
     void (GPUProcessor::*InitializeProcessor)();
-    void (GPUProcessor::*SetMaxData)();
+    void (GPUProcessor::*SetMaxData)(const GPUTrackingInOutPointers&);
   };
   std::vector<ProcessorData> mProcessors;
   std::unordered_map<GPUMemoryReuse::ID, const GPUMemoryResource*> mMemoryReuse1to1;
@@ -367,7 +367,7 @@ inline short GPUReconstruction::RegisterMemoryAllocation(T* proc, void* (T::*set
 template <class T>
 inline void GPUReconstruction::RegisterGPUProcessor(T* proc, bool deviceSlave)
 {
-  mProcessors.emplace_back(proc, static_cast<void (GPUProcessor::*)()>(&T::RegisterMemoryAllocation), static_cast<void (GPUProcessor::*)()>(&T::InitializeProcessor), static_cast<void (GPUProcessor::*)()>(&T::SetMaxData));
+  mProcessors.emplace_back(proc, static_cast<void (GPUProcessor::*)()>(&T::RegisterMemoryAllocation), static_cast<void (GPUProcessor::*)()>(&T::InitializeProcessor), static_cast<void (GPUProcessor::*)(const GPUTrackingInOutPointers& io)>(&T::SetMaxData));
   GPUProcessor::ProcessorType processorType = deviceSlave ? GPUProcessor::PROCESSOR_TYPE_SLAVE : GPUProcessor::PROCESSOR_TYPE_CPU;
   proc->InitGPUProcessor(this, processorType);
 }
@@ -377,7 +377,7 @@ inline void GPUReconstruction::SetupGPUProcessor(T* proc, bool allocate)
 {
   static_assert(sizeof(T) > sizeof(GPUProcessor), "Need to setup derrived class");
   if (allocate) {
-    proc->SetMaxData();
+    proc->SetMaxData(mHostConstantMem->ioPtrs);
   }
   if (proc->mDeviceProcessor) {
     std::memcpy((void*)proc->mDeviceProcessor, (const void*)proc, sizeof(*proc));
