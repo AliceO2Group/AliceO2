@@ -21,6 +21,7 @@
 #include <memory>
 #include <fstream>
 #include <vector>
+#include <unordered_map>
 
 #include "GPUTRDDef.h"
 #include "GPUParam.h"
@@ -154,7 +155,7 @@ class GPUReconstruction
   // Helpers for memory allocation
   GPUMemoryResource& Res(short num) { return mMemoryResources[num]; }
   template <class T>
-  short RegisterMemoryAllocation(T* proc, void* (T::*setPtr)(void*), int type, const char* name = "");
+  short RegisterMemoryAllocation(T* proc, void* (T::*setPtr)(void*), int type, const char* name = "", const GPUMemoryReuse& re = GPUMemoryReuse());
   size_t AllocateMemoryResources();
   size_t AllocateRegisteredMemory(GPUProcessor* proc);
   size_t AllocateRegisteredMemory(short res);
@@ -288,6 +289,7 @@ class GPUReconstruction
     void (GPUProcessor::*SetMaxData)();
   };
   std::vector<ProcessorData> mProcessors;
+  std::unordered_map<GPUMemoryReuse::ID, const GPUMemoryResource*> mMemoryReuse1to1;
 
   // Helpers for loading device library via dlopen
   class LibraryLoader
@@ -334,7 +336,7 @@ inline T* GPUReconstruction::AddChain(Args... args)
 }
 
 template <class T>
-inline short GPUReconstruction::RegisterMemoryAllocation(T* proc, void* (T::*setPtr)(void*), int type, const char* name)
+inline short GPUReconstruction::RegisterMemoryAllocation(T* proc, void* (T::*setPtr)(void*), int type, const char* name, const GPUMemoryReuse& re)
 {
   if (!(type & (GPUMemoryResource::MEMORY_HOST | GPUMemoryResource::MEMORY_GPU))) {
     if ((type & GPUMemoryResource::MEMORY_SCRATCH) && !mDeviceProcessingSettings.keepAllMemory) {
@@ -347,10 +349,19 @@ inline short GPUReconstruction::RegisterMemoryAllocation(T* proc, void* (T::*set
     type &= ~GPUMemoryResource::MEMORY_GPU;
   }
   mMemoryResources.emplace_back(proc, static_cast<void* (GPUProcessor::*)(void*)>(setPtr), (GPUMemoryResource::MemoryType)type, name);
-  if (mMemoryResources.size() == 32768) {
+  if (mMemoryResources.size() >= 32768) {
     throw std::bad_alloc();
   }
-  return mMemoryResources.size() - 1;
+  short retVal = mMemoryResources.size() - 1;
+  if (re.type != GPUMemoryReuse::NONE) {
+    const auto& it = mMemoryReuse1to1.find(re.id);
+    if (it == mMemoryReuse1to1.end()) {
+      mMemoryReuse1to1[re.id] = &mMemoryResources[retVal];
+    } else {
+      mMemoryResources[retVal].mReuse = mMemoryReuse1to1[re.id];
+    }
+  }
+  return retVal;
 }
 
 template <class T>
