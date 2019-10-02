@@ -43,7 +43,7 @@ class Tracker
   void setBz(Float_t bz) { mBz = bz; }
   Float_t getBz() const { return mBz; }
 
-  std::vector<TrackMFT>& getTracks();
+  std::vector<TrackMFTExt>& getTracks();
   std::vector<TrackLTF>& getTracksLTF();
   o2::dataformats::MCTruthContainer<MCCompLabel>& getTrackLabels();
 
@@ -76,14 +76,14 @@ class Tracker
 
   Float_t mBz = 5.f;
   std::uint32_t mROFrame = 0;
-  std::vector<TrackMFT> mTracks;
+  std::vector<TrackMFTExt> mTracks;
   std::vector<TrackLTF> mTracksLTF;
   o2::dataformats::MCTruthContainer<MCCompLabel> mTrackLabels;
 
   Int_t mMaxCellLevel = 0;
 };
 
-inline std::vector<TrackMFT>& Tracker::getTracks()
+inline std::vector<TrackMFTExt>& Tracker::getTracks()
 {
   return mTracks;
 }

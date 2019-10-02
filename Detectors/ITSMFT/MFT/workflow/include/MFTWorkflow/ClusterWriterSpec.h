@@ -26,19 +26,20 @@ namespace mft
 class ClusterWriter : public o2::framework::Task
 {
  public:
-  ClusterWriter() = default;
+  ClusterWriter(bool useMC) : mUseMC(useMC) {}
   ~ClusterWriter() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
 
  private:
   int mState = 0;
+  bool mUseMC = true;
   std::unique_ptr<TFile> mFile = nullptr;
 };
 
 /// create a processor spec
 /// write MFT clusters a root file
-o2::framework::DataProcessorSpec getClusterWriterSpec();
+o2::framework::DataProcessorSpec getClusterWriterSpec(bool useMC);
 
 } // namespace mft
 } // namespace o2
