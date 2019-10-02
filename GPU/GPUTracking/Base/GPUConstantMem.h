@@ -24,6 +24,7 @@
 #include "GPUTPCGMMerger.h"
 #include "GPUITSFitter.h"
 #include "GPUTRDTracker.h"
+#include "GPUTPCClusterFinder.h"
 #else
 namespace GPUCA_NAMESPACE
 {
@@ -45,6 +46,9 @@ class GPUTPCConvert
 class GPUTPCCompression
 {
 };
+class GPUTPCClusterFinder
+{
+};
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 #endif
@@ -63,6 +67,7 @@ struct GPUConstantMem {
   GPUTPCCompression tpcCompressor;
   GPUTPCGMMerger tpcMerger;
   GPUTRDTracker trdTracker;
+  GPUTPCClusterFinder tpcClusterer[GPUCA_NSLICES];
   GPUITSFitter itsFitter;
   GPUTrackingInOutPointers ioPtrs;
   GPUCalibObjectsConst calibObjects;

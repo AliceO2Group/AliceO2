@@ -20,19 +20,19 @@
 #define CN_TIME_MASK 0xFFFFFF
 #define CN_FLAG_MASK 0xFF000000
 
-#if IS_CL_DEVICE
+#if defined(__OPENCL__) && !defined(__OPENCL_CPP__)
 #define CAST(type, val) ((type)(val))
 #else
 #define CAST(type, val) static_cast<type>(val)
 #endif
 
 typedef struct ClusterNative_s {
-  SHARED_UINT timeFlagsPacked;
-  SHARED_USHORT padPacked;
-  SHARED_UCHAR sigmaTimePacked;
-  SHARED_UCHAR sigmaPadPacked;
-  SHARED_USHORT qmax;
-  SHARED_USHORT qtot;
+  uint timeFlagsPacked;
+  ushort padPacked;
+  unsigned char sigmaTimePacked;
+  unsigned char sigmaPadPacked;
+  ushort qmax;
+  ushort qtot;
 } ClusterNative;
 
 enum CnFlagPos {
@@ -47,111 +47,111 @@ enum CnFlag {
   CN_FLAG_SPLIT_IN_PAD = (1 << CN_FLAG_POS_SPLIT_IN_PAD),
 };
 
-inline SHARED_USHORT cnPackPad(SHARED_FLOAT pad)
+GPUdi() ushort cnPackPad(float pad)
 {
-  return CAST(SHARED_USHORT, pad * CN_SCALE_PAD_PACKED + 0.5f);
+  return CAST(ushort, pad * CN_SCALE_PAD_PACKED + 0.5f);
 }
 
-inline SHARED_UINT cnPackTime(SHARED_FLOAT time)
+GPUdi() uint cnPackTime(float time)
 {
-  return CAST(SHARED_UINT, time * CN_SCALE_TIME_PACKED + 0.5f);
+  return CAST(uint, time * CN_SCALE_TIME_PACKED + 0.5f);
 }
 
-inline SHARED_FLOAT cnUnpackPad(SHARED_USHORT pad)
+GPUdi() float cnUnpackPad(ushort pad)
 {
-  return CAST(SHARED_FLOAT, pad) * (1.f / CN_SCALE_PAD_PACKED);
+  return CAST(float, pad) * (1.f / CN_SCALE_PAD_PACKED);
 }
 
-inline SHARED_FLOAT cnUnpackTime(SHARED_UINT time)
+GPUdi() float cnUnpackTime(uint time)
 {
-  return CAST(SHARED_FLOAT, time) * (1.f / CN_SCALE_TIME_PACKED);
+  return CAST(float, time) * (1.f / CN_SCALE_TIME_PACKED);
 }
 
-inline SHARED_UCHAR cnPackSigma(SHARED_FLOAT sigma, SHARED_FLOAT scale)
+GPUdi() unsigned char cnPackSigma(float sigma, float scale)
 {
-  SHARED_UINT tmp = sigma * scale + 0.5f;
+  uint tmp = sigma * scale + 0.5f;
   return (tmp > 0xFF) ? 0xFF : tmp;
 }
 
-inline SHARED_FLOAT cnUnpackSigma(
-  SHARED_UCHAR sigmaPacked,
-  SHARED_FLOAT scale)
+GPUdi() float cnUnpackSigma(
+  unsigned char sigmaPacked,
+  float scale)
 {
-  return CAST(SHARED_FLOAT, sigmaPacked) * (1.f / scale);
+  return CAST(float, sigmaPacked) * (1.f / scale);
 }
 
-inline SHARED_UCHAR cnGetFlags(const ClusterNative* c)
+GPUdi() unsigned char cnGetFlags(const ClusterNative* c)
 {
   return c->timeFlagsPacked >> 24;
 }
 
-inline SHARED_UINT cnGetTimePacked(const ClusterNative* c)
+GPUdi() uint cnGetTimePacked(const ClusterNative* c)
 {
   return c->timeFlagsPacked & CN_TIME_MASK;
 }
 
-inline void cnSetTimePackedFlags(
+GPUdi() void cnSetTimePackedFlags(
   ClusterNative* c,
-  SHARED_UINT timePacked,
-  SHARED_UCHAR flags)
+  uint timePacked,
+  unsigned char flags)
 {
-  c->timeFlagsPacked = (timePacked & CN_TIME_MASK) | CAST(SHARED_UINT, flags) << 24;
+  c->timeFlagsPacked = (timePacked & CN_TIME_MASK) | CAST(uint, flags) << 24;
 }
 
-inline void cnSetTimePacked(ClusterNative* c, SHARED_UINT timePacked)
+GPUdi() void cnSetTimePacked(ClusterNative* c, uint timePacked)
 {
   c->timeFlagsPacked = (timePacked & CN_TIME_MASK) | (c->timeFlagsPacked & CN_FLAG_MASK);
 }
 
-inline void cnSetFlags(ClusterNative* c, SHARED_UCHAR flags)
+GPUdi() void cnSetFlags(ClusterNative* c, unsigned char flags)
 {
-  c->timeFlagsPacked = (c->timeFlagsPacked & CN_TIME_MASK) | (CAST(SHARED_UINT, flags) << 24);
+  c->timeFlagsPacked = (c->timeFlagsPacked & CN_TIME_MASK) | (CAST(uint, flags) << 24);
 }
 
-inline SHARED_FLOAT cnGetTime(const ClusterNative* c)
+GPUdi() float cnGetTime(const ClusterNative* c)
 {
   return cnUnpackTime(c->timeFlagsPacked & CN_TIME_MASK);
 }
 
-inline void cnSetTime(ClusterNative* c, float time)
+GPUdi() void cnSetTime(ClusterNative* c, float time)
 {
   c->timeFlagsPacked = (cnPackTime(time) & CN_TIME_MASK) | (c->timeFlagsPacked & CN_FLAG_MASK);
 }
 
-inline void cnSetTimeFlags(
+GPUdi() void cnSetTimeFlags(
   ClusterNative* c,
-  SHARED_FLOAT time,
-  SHARED_UCHAR flags)
+  float time,
+  unsigned char flags)
 {
-  c->timeFlagsPacked = (cnPackTime(time) & CN_TIME_MASK) | (CAST(SHARED_UINT, flags) << 24);
+  c->timeFlagsPacked = (cnPackTime(time) & CN_TIME_MASK) | (CAST(uint, flags) << 24);
 }
 
-inline SHARED_FLOAT cnGetPad(const ClusterNative* c)
+GPUdi() float cnGetPad(const ClusterNative* c)
 {
   return cnUnpackPad(c->padPacked);
 }
 
-inline void cnSetPad(ClusterNative* c, SHARED_FLOAT pad)
+GPUdi() void cnSetPad(ClusterNative* c, float pad)
 {
   c->padPacked = cnPackPad(pad);
 }
 
-inline SHARED_FLOAT cnGetSigmaTime(const ClusterNative* c)
+GPUdi() float cnGetSigmaTime(const ClusterNative* c)
 {
   return cnUnpackSigma(c->sigmaTimePacked, CN_SCALE_SIGMA_TIME_PACKED);
 }
 
-inline void cnSetSigmaTime(ClusterNative* c, SHARED_FLOAT sigmaTime)
+GPUdi() void cnSetSigmaTime(ClusterNative* c, float sigmaTime)
 {
   c->sigmaTimePacked = cnPackSigma(sigmaTime, CN_SCALE_SIGMA_TIME_PACKED);
 }
 
-inline SHARED_FLOAT cnGetSigmaPad(const ClusterNative* c)
+GPUdi() float cnGetSigmaPad(const ClusterNative* c)
 {
   return cnUnpackSigma(c->sigmaPadPacked, CN_SCALE_SIGMA_PAD_PACKED);
 }
 
-inline void cnSetSigmaPad(ClusterNative* c, SHARED_FLOAT sigmaPad)
+GPUdi() void cnSetSigmaPad(ClusterNative* c, float sigmaPad)
 {
   c->sigmaPadPacked = cnPackSigma(sigmaPad, CN_SCALE_SIGMA_PAD_PACKED);
 }

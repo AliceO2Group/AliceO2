@@ -18,7 +18,7 @@ class FindPeaks : public Kernel1D
 {
 
  public:
-  DECL_KERNEL(FindPeaks, "findPeaks");
+  DECL_KERNEL(FindPeaks, "findPeaks_kernel");
 
   void call(ClusterFinderState& state, cl::CommandQueue queue)
   {

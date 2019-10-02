@@ -17,6 +17,10 @@
 #include "GPUDef.h"
 #include "GPUDataTypes.h"
 
+#ifdef __CUDACC__
+#include <cub/cub.cuh>
+#endif
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -29,6 +33,18 @@ class GPUKernelTemplate
  public:
   class GPUTPCSharedMemory
   {
+  };
+
+  template <class T, int I>
+  struct GPUTPCSharedMemoryScan64 {
+    // Provides the shared memory resources for CUB collectives
+#if defined(__CUDACC__)
+    typedef cub::BlockScan<T, I> BlockScan;
+    union {
+      typename BlockScan::TempStorage cubTmpMem;
+      int tmpBroadcast;
+    };
+#endif
   };
 
   typedef GPUconstantref() MEM_CONSTANT(GPUConstantMem) processorType;

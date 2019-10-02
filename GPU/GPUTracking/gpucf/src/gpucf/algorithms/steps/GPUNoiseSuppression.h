@@ -19,7 +19,7 @@ class GPUNoiseSuppression
 
  public:
   GPUNoiseSuppression(cl::Program prg)
-    : noiseSuppression("noiseSuppression", prg), updatePeaks("updatePeaks", prg)
+    : noiseSuppression("noiseSuppression_kernel", prg), updatePeaks("updatePeaks_kernel", prg)
   {
   }
 

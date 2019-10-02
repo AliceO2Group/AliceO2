@@ -106,6 +106,7 @@ include_directories(${CMAKE_SOURCE_DIR}
                     ${CMAKE_SOURCE_DIR}/TPCConvert
                     ${CMAKE_SOURCE_DIR}/TPCFastTransformation
                     ${CMAKE_SOURCE_DIR}/TRDTracking
+                    ${CMAKE_SOURCE_DIR}/gpucf
                     ${CMAKE_SOURCE_DIR}/../../../Common/Constants/include
                     ${CMAKE_SOURCE_DIR}/../../../Common/MathUtils/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/common/include

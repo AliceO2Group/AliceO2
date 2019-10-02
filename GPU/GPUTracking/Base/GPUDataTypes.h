@@ -107,6 +107,7 @@ class GPUDataTypes
                              TRDTracking = 16,
                              ITSTracking = 32,
                              TPCdEdx = 64,
+                             TPCClusterFinding = 128,
                              AllRecoSteps = 0x7FFFFFFF,
                              NoRecoStep = 0 };
   enum ENUM_CLASS InOutType { TPCClusters = 1,

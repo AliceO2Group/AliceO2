@@ -12,7 +12,7 @@
 using namespace gpucf;
 
 FillChargeMap::FillChargeMap(cl::Program prg)
-  : Kernel1D("fillChargeMap", prg)
+  : Kernel1D("fillChargeMap_kernel", prg)
 {
 }
 

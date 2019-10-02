@@ -7,28 +7,17 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#pragma once
 
-#include <gpucf/common/Kernel1D.h>
+/// \file GPUTPCClusterFinder.cxx
+/// \author David Rohr
+
+#include "GPUTPCClusterFinder.h"
+#include "GPUReconstruction.h"
 
 namespace gpucf
 {
-
-class ResetMaps : public Kernel1D
-{
-
- public:
-  DECL_KERNEL(ResetMaps, "resetMaps_kernel");
-
-  void call(ClusterFinderState& state, cl::CommandQueue queue)
-  {
-    kernel.setArg(0, state.digits);
-    kernel.setArg(1, state.chargeMap);
-    kernel.setArg(2, state.peakMap);
-    Kernel1D::call(0, state.digitnum, state.cfg.wgSize, queue);
-  }
-};
-
+#include "cl/shared/ClusterNative.h"
+#include "cl/shared/Digit.h"
 } // namespace gpucf
 
-// vim: set ts=4 sw=4 sts=4 expandtab:
+using namespace GPUCA_NAMESPACE::gpu;

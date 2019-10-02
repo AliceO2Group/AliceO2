@@ -20,6 +20,8 @@
 #include <algorithm>
 #endif
 
+// ----------------------------- SORTING -----------------------------
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -261,5 +263,59 @@ GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end, const S& comp)
 } // namespace GPUCA_NAMESPACE
 
 #endif // ifdef __CUDACC__
+
+// ----------------------------- WORK GROUP FUNCTIONS -----------------------------
+
+#ifdef __OPENCL__
+// Nothing to do, work_group functions available
+#elif defined(__CUDACC__)
+#include <cub/cub.cuh>
+
+#define work_group_scan_inclusive_add(v) work_group_scan_inclusive_add_FUNC(v, smem)
+template <class T, class S>
+GPUdi() T work_group_scan_inclusive_add_FUNC(T v, S& smem)
+{
+  S::BlockScan(smem.cubTmpMem).InclusiveSum(v, v);
+  __syncthreads();
+  return v;
+}
+
+#define work_group_broadcast(v, i) work_group_broadcast_FUNC(v, i, smem)
+template <class T, class S>
+GPUdi() T work_group_broadcast_FUNC(T v, int i, S& smem)
+{
+  if (threadIdx.x == i) {
+    smem.tmpBroadcast = v;
+  }
+  __syncthreads();
+  T retVal = smem.tmpBroadcast;
+  __syncthreads();
+  return retVal;
+}
+#elif defined(__HIPCC__) // BUG: THESE ARE WRONG, BUT CANNOT USE HIPCUB YET!
+//#include <hipcub/hipcub.hpp> // BUG: Disabled, until hipcub c++17 issue is solved
+
+template <class T>
+GPUdi() T work_group_scan_inclusive_add(T v)
+{
+  return v;
+}
+template <class T>
+GPUdi() T work_group_broadcast(T v, int i)
+{
+  return v;
+}
+#else
+template <class T>
+GPUdi() T work_group_scan_inclusive_add(T v)
+{
+  return v;
+}
+template <class T>
+GPUdi() T work_group_broadcast(T v, int i)
+{
+  return v;
+}
+#endif
 
 #endif
