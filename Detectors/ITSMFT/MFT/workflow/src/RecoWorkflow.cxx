@@ -31,13 +31,13 @@ framework::WorkflowSpec getWorkflow(bool useMC)
 {
   framework::WorkflowSpec specs;
 
-  specs.emplace_back(o2::mft::getDigitReaderSpec());
+  specs.emplace_back(o2::mft::getDigitReaderSpec(useMC));
   specs.emplace_back(o2::mft::getClustererSpec(useMC));
-  specs.emplace_back(o2::mft::getClusterWriterSpec());
+  specs.emplace_back(o2::mft::getClusterWriterSpec(useMC));
 
-  specs.emplace_back(o2::mft::getClusterReaderSpec());
-  specs.emplace_back(o2::mft::getTrackerSpec());
-  specs.emplace_back(o2::mft::getTrackWriterSpec());
+  //specs.emplace_back(o2::mft::getClusterReaderSpec(useMC));
+  specs.emplace_back(o2::mft::getTrackerSpec(useMC));
+  specs.emplace_back(o2::mft::getTrackWriterSpec(useMC));
 
   return specs;
 }
