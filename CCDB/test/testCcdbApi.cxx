@@ -19,7 +19,7 @@
 
 #include "CCDB/CcdbApi.h"
 #include "CCDB/IdPath.h"    // just as test object
-#include "CCDB/Condition.h" // just as test object
+#include "CommonUtils/RootChain.h" // just as test object
 #include "CCDB/CCDBTimeStampUtils.h"
 #include <boost/test/unit_test.hpp>
 #include <boost/filesystem.hpp>
@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE(store_retrieve_TMemFile_templated_test, *utf::precondition(
   BOOST_CHECK(path2 && path2->getPathString().CompareTo("HelloWorld") == 0);
 
   // try to query with different type and verify that we get nullptr
-  BOOST_CHECK(f.api.retrieveFromTFileAny<o2::ccdb::Condition>(basePath + "CCDBPath", f.metadata) == nullptr);
+  BOOST_CHECK(f.api.retrieveFromTFileAny<o2::utils::RootChain>(basePath + "CCDBPath", f.metadata) == nullptr);
 
   //-----------------------------------------------------------------------------------------------
   // test if writing/reading complicated objects like TTree works (because of particular ownership)

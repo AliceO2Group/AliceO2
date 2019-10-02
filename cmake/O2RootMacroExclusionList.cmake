@@ -17,7 +17,6 @@ include(O2GetListOfMacros)
 #
 
 list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
-            CCDB/example/fill_local_ocdb.C
             DataFormats/simulation/test/checkStack.C
             Detectors/ITSMFT/ITS/macros/EVE/rootlogon.C
             Detectors/ITSMFT/ITS/macros/test/rootlogon.C

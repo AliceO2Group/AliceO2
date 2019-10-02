@@ -17,9 +17,8 @@
 
 #include <memory>
 
-#include <CCDB/Condition.h>
 #include <CCDB/IdPath.h>
-#include <CCDB/Manager.h>
+#include <CCDB/BasicCCDBManager.h>
 #include <TPCBase/CalDet.h>
 
 namespace o2
@@ -160,13 +159,16 @@ class CDBInterface
   T& getObjectFromCDB(const o2::ccdb::IdPath& path);
 };
 
+/// Get an object from the CCDB.
+/// @tparam T
+/// @param path
+/// @return The object from the CCDB, ownership is transferred to the caller.
+/// @todo Consider removing in favour of calling directly the manager::get method.
 template <typename T>
 inline T& CDBInterface::getObjectFromCDB(const o2::ccdb::IdPath& path)
 {
-  static auto cdb = o2::ccdb::Manager::Instance();
-  auto condread = cdb->getCondition(path);
-  T* object{nullptr};
-  condread->getObjectAs(object);
+  static auto cdb = o2::ccdb::BasicCCDBManager::instance();
+  auto* object = cdb.get<T>(path.getPathString().Data());
   return *object;
 }
 

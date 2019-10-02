@@ -88,11 +88,11 @@ o2_add_test(Parameters
             SOURCES test/testTPCParameters.cxx
             LABELS tpc)
 
-o2_add_test(CCDBInterface
-            COMPONENT_NAME tpc
-            PUBLIC_LINK_LIBRARIES O2::TPCBase
-            SOURCES test/testTPCCDBInterface.cxx
-            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
-            LABELS tpc)
+#o2_add_test(CCDBInterface
+#            COMPONENT_NAME tpc
+#            PUBLIC_LINK_LIBRARIES O2::TPCBase
+#            SOURCES test/testTPCCDBInterface.cxx
+#            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+#            LABELS tpc)
 
 o2_data_file(COPY files DESTINATION Detectors/TPC)

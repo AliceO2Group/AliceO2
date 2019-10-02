@@ -15,29 +15,6 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::ccdb::IdPath + ;
-#pragma link C++ class o2::ccdb::IdRunRange + ;
-#pragma link C++ class o2::ccdb::ConditionId + ;
-#pragma link C++ class o2::ccdb::ConditionMetaData + ;
-#pragma link C++ class o2::ccdb::Condition + ;
-#pragma link C++ class o2::ccdb::Storage + ;
-#pragma link C++ class o2::ccdb::StorageFactory + ;
-#pragma link C++ class o2::ccdb::Manager + ;
-#pragma link C++ class o2::ccdb::StorageParameters + ;
-#pragma link C++ class o2::ccdb::LocalStorage + ;
-#pragma link C++ class o2::ccdb::LocalStorageFactory + ;
-#pragma link C++ class o2::ccdb::LocalStorageParameters + ;
-#pragma link C++ class o2::ccdb::FileStorage + ;
-#pragma link C++ class o2::ccdb::FileStorageFactory + ;
-#pragma link C++ class o2::ccdb::FileStorageParameters + ;
-#pragma link C++ class o2::ccdb::GridStorage + ;
-#pragma link C++ class o2::ccdb::GridStorageFactory + ;
-#pragma link C++ class o2::ccdb::GridStorageParameters + ;
-#pragma link C++ class o2::ccdb::XmlHandler + ;
 #pragma link C++ class o2::ccdb::CcdbApi + ;
 #pragma link C++ class o2::ccdb::BasicCCDBManager + ;
-
-/// for the unit test
-#pragma link C++ class TestClass + ;
-#pragma link C++ class o2::TObjectWrapper < TestClass> + ;
-
 #endif
