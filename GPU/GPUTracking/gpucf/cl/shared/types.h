@@ -10,6 +10,23 @@
 #if !defined(SHARED_TYPES_H)
 #define SHARED_TYPES_H
 
+#if !defined(GPUCA_ALIGPUCODE)
+#define GPUdi() inline
+#define GPUd()
+#define GPUg() kernel
+#define GPUconstexpr() constant
+#define GPUconstexprref() constant
+#define GPUshared() local
+#define GPUsharedref() local
+#define GPUglobal() global
+#define GPUglobalref() global
+#define GPUbarrier() barrier(CLK_LOCAL_MEM_FENCE)
+#ifndef __OPENCL__
+typedef unsigned char uchar;
+#endif
+#endif
+
+/* NOT NEEDED ANYMORE
 #if defined(__OPENCL_VERSION__)
 #define IS_CL_DEVICE 1
 #else
@@ -31,6 +48,7 @@
 #define SHARED_UCHAR CL_PREFIX(uchar)
 #define SHARED_HALF CL_PREFIX(half)
 #define SHARED_USHORT CL_PREFIX(ushort)
+*/
 
 #endif //!defined(SHARED_TYPES_H)
 
