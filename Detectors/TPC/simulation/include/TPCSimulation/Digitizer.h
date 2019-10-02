@@ -103,19 +103,22 @@ class Digitizer
   /// Option to retrieve triggered / continuous readout
   static bool isContinuousReadout() { return mIsContinuous; }
 
-  /// Enable the use of space-charge distortions
+  /// Enable the use of space-charge distortions and provide space-charge density histogram as input
   /// \param distortionType select the type of space-charge distortions (constant or realistic)
   /// \param hisInitialSCDensity optional space-charge density histogram to use at the beginning of the simulation
   /// \param nZSlices number of grid points in z, must be (2**N)+1
   /// \param nPhiBins number of grid points in phi
   /// \param nRBins number of grid points in r, must be (2**N)+1
-  void enableSCDistortions(SpaceCharge::SCDistortionType distortionType, TH3* hisInitialSCDensity, int nZSlices, int nPhiBins, int nRBins);
+  void setUseSCDistortions(SpaceCharge::SCDistortionType distortionType, TH3* hisInitialSCDensity, int nZSlices, int nPhiBins, int nRBins);
+  /// Enable the use of space-charge distortions and provide SpaceCharge object as input
+  /// \param spaceCharge unique pointer to spaceCharge object
+  void setUseSCDistortions(SpaceCharge* spaceCharge);
 
  private:
-  DigitContainer mDigitContainer;                   ///< Container for the Digits
-  std::unique_ptr<SpaceCharge> mSpaceChargeHandler; ///< Handler of space-charge distortions
-  Sector mSector = -1;                              ///< ID of the currently processed sector
-  float mEventTime = 0.f;                           ///< Time of the currently processed event
+  DigitContainer mDigitContainer;            ///< Container for the Digits
+  std::unique_ptr<SpaceCharge> mSpaceCharge; ///< Handler of space-charge distortions
+  Sector mSector = -1;                       ///< ID of the currently processed sector
+  float mEventTime = 0.f;                    ///< Time of the currently processed event
   // FIXME: whats the reason for hving this static?
   static bool mIsContinuous;      ///< Switch for continuous readout
   bool mUseSCDistortions = false; ///< Flag to switch on the use of space-charge distortions
