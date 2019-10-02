@@ -50,21 +50,16 @@ class Detector : public o2::base::DetImpl<Detector>
   ///
   Detector() = default;
 
-  ///
-  /// Main constructor
+  /// \brief Main constructor
   ///
   /// \param[in] name Name of the detector (EMC)
   /// \param[in] isActive Switch whether detector is active in simulation
   Detector(Bool_t isActive);
 
-  ///
-  /// Destructor
-  ///
+  /// \brief Destructor
   ~Detector() override;
 
-  ///
-  /// Initializing detector
-  ///
+  /// \brief Initializing detector
   void InitializeO2Detector() override;
 
   ///
@@ -73,12 +68,8 @@ class Detector : public o2::base::DetImpl<Detector>
   /// \param[in] v Current sensitive volume
   Bool_t ProcessHits(FairVolume* v = nullptr) final;
 
-  ///
-  /// Add EMCAL hit
-  /// Internally adding hits coming from the same track
-  ///
+  /// \brief Add EMCAL hit
   /// \param[in] trackID Index of the track in the MC stack
-  /// \param[in] parentID Index of the parent particle (entering the EMCAL) in the MC stack
   /// \param[in] primary Index of the primary particle in the MC stack
   /// \param[in] initialEnergy Energy of the particle entering the EMCAL
   /// \param[in] detID Index of the detector (cell) for which the hit is created
@@ -86,18 +77,17 @@ class Detector : public o2::base::DetImpl<Detector>
   /// \param[in] mom Momentum vector of the particle at the hit
   /// \param[in] time Time of the hit
   /// \param[in] energyloss Energy deposit in EMCAL
+  /// \return Pointer to the current hit
   ///
-  Hit* AddHit(Int_t trackID, Int_t parentID, Int_t primary, Double_t initialEnergy, Int_t detID,
+  /// Internally adding hits coming from the same track
+  Hit* AddHit(Int_t trackID, Int_t primary, Double_t initialEnergy, Int_t detID,
               const Point3D<float>& pos, const Vector3D<float>& mom, Double_t time, Double_t energyloss);
 
-  ///
-  /// Register TClonesArray with hits
-  ///
+  /// \brief register container with hits
   void Register() override;
 
-  ///
-  /// Get access to the hits
-  ///
+  /// \brief Get access to the hits
+  /// \return Hit collection
   std::vector<Hit>* getHits(Int_t iColl) const
   {
     if (iColl == 0) {
@@ -106,85 +96,86 @@ class Detector : public o2::base::DetImpl<Detector>
     return nullptr;
   }
 
-  ///
-  /// Reset
-  /// Clean point collection
-  ///
+  /// \brief Clean point collection
   void Reset() final;
 
+  /// \brief Steps to be carried out at the end of the event
   ///
-  /// Steps to be carried out at the end of the event
   /// For EMCAL cleaning the hit collection and the lookup table
-  ///
   void EndOfEvent() final;
 
-  ///
-  /// Get the EMCAL geometry desciption
-  /// Will be created the first time the function is called
+  /// \brief Get the EMCAL geometry desciption
   /// \return Access to the EMCAL Geometry description
   ///
+  /// Will be created the first time the function is called
   Geometry* GetGeometry();
 
+  /// \brief Begin primaray
+  ///
+  /// Caching current primary ID and set current parent ID to the
+  /// current primary ID
+  void BeginPrimary() override;
+
+  /// \brief Start new track
+  ///
+  /// Check whether track is produced outside EMCAL, in this case it
+  /// serves as new parent track. In addition cache current track ID
+  void PreTrack() override;
+
+  /// \brief Finish current primary
+  ///
+  /// Reset caches for current primary, current parent and current cell
+  void FinishPrimary() override;
+
  protected:
-  ///
-  /// Creating detector materials for the EMCAL detector and space frame
-  ///
+  /// \brief Creating detector materials for the EMCAL detector and space frame
   void CreateMaterials();
 
   void ConstructGeometry() override;
 
-  ///
-  /// Generate EMCAL envelop (mother volume of all supermodules)
-  ///
+  /// \brief Generate EMCAL envelop (mother volume of all supermodules)
   void CreateEmcalEnvelope();
 
-  ///
-  /// Generate tower geometry
-  ///
+  /// \brief Generate tower geometry
   void CreateShiskebabGeometry();
 
-  ///
-  /// Generate super module geometry
-  ///
+  /// \brief Generate super module geometry
   void CreateSupermoduleGeometry(const std::string_view mother = "XEN1");
 
-  ///
-  /// Generate module geometry (2x2 towers)
-  ///
+  /// \brief Generate module geometry (2x2 towers)
   void CreateEmcalModuleGeometry(const std::string_view mother = "SMOD", const std::string_view child = "EMOD");
 
-  ///
-  /// Generate aluminium plates geometry
-  ///
+  /// \brief Generate aluminium plates geometry
   void CreateAlFrontPlate(const std::string_view mother = "EMOD", const std::string_view child = "ALFP");
 
-  ///
-  /// Calculate the amount of light seen by the APD for a given track segment (charged particles only)
-  /// Calculation done according to Bricks law
-  ///
+  /// Calculate the amount of light seen by the APD for a given track segment (charged particles only) according to Bricks law
   /// \param[in] energydeposit Energy deposited by a charged particle in the track segment
   /// \param[in] tracklength Length of the track segment
   /// \param[in] charge Track charge (in units of elementary charge)
-  ///
+  /// \return Light yield
   Double_t CalculateLightYield(Double_t energydeposit, Double_t tracklength, Int_t charge) const;
 
+  /// \brief Try to find hit with same cell and parent track ID
+  /// \param cellID ID of the tower
+  /// \param parentID ID of the parent track
+  Hit* FindHit(Int_t cellID, Int_t parentID);
+
  private:
-  ///
-  /// Copy constructor (used in MT)
-  ///
+  /// \brief Copy constructor (used in MT)
   Detector(const Detector& rhs);
 
-  Int_t mBirkC0;
-  Double_t mBirkC1;
-  Double_t mBirkC2;
+  Int_t mBirkC0;    ///< Birk parameter C0
+  Double_t mBirkC1; ///< Birk parameter C1
+  Double_t mBirkC2; ///< Birk parameter C2
 
   std::vector<Hit>* mHits; //!<! Collection of EMCAL hits
   Geometry* mGeometry;     //!<! Geometry pointer
 
   // Worker variables during hit creation
-  Int_t mCurrentTrackID; //!<! ID of the current track
-  Int_t mCurrentCellID;  //!<! ID of the current cell
-  Hit* mCurrentHit;      //!<! current summed energy
+  Int_t mCurrentPrimaryID;   //!<! ID of the current primary
+  Int_t mCurrentParentID;    //!<! ID of the current parent track (must be created outside EMCAL)
+  Float_t mParentEnergy;     //!<! Initial energy of the parent track
+  Bool_t mParentHasTrackRef; //!<! Flag whether parent track has track reference
 
   Double_t mSampleWidth; //!<! sample width = double(g->GetECPbRadThick()+g->GetECScintThick());
   Double_t mSmodPar0;    //!<! x size of super module

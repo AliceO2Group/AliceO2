@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(testTimeL1PhaseCalib)
   std::string inputDir = " ";
   if (aliceO2env)
     inputDir = aliceO2env;
-  inputDir += "/share/Detectors/EMCAL/files/";
+  inputDir += "/share/Detectors/EMC/files/";
 
   std::string file = inputDir + "TimeL1Phase_LHC18q_295585.txt";
   std::ifstream fileL1Phase(file, std::ifstream::in);

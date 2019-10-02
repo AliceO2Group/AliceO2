@@ -31,7 +31,7 @@ o2_add_executable(rawreader-file
                   PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction
                   SOURCES run/rawReaderFile.cxx)
 
-o2_data_file(COPY files DESTINATION Detectors/EMCAL)
+o2_data_file(COPY files DESTINATION Detectors/EMC)
 
 o2_add_test(Mapper
             SOURCES test/testMapper.cxx
