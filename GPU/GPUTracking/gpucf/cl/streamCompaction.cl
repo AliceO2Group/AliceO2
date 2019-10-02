@@ -7,17 +7,34 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
+#ifdef GPUCA_ALIGPUCODE
+namespace gpucf
+{
+#define GPUCF() gpucf::
+#define MYMIN() CAMath::Min
+#define MYATOMICADD() CAMath::AtomicAdd
+#define MYSMEM() GPUsharedref() GPUTPCClusterFinderKernels::GPUTPCSharedMemory
+#define MYSMEMR() MYSMEM()&
+#else
+#define __OPENCL__
+#define GPUCF()
+#define MYMIN() min
+#define MYATOMICADD() atomic_add
+#define MYSMEM() int
+#define MYSMEMR() MYSMEM()
+#endif
+
 #include "config.h"
 
 #include "debug.h"
 
 #include "shared/ClusterNative.h"
 
-
-/* kernel */
+/* GPUg() */
 /* void harrissScan( */
-/*         global const int *input, */
-/*         global       int *output) */
+/*         GPUglobalref() const int *input, */
+/*         GPUglobalref()       int *output) */
 /* { */
 /*     int idx = get_global_id(0); */
 /*     int offset = get_global_offset(0); */
@@ -28,15 +45,14 @@
 /*     output[idx] = input[idx] + input[idx - offset]; */
 /* } */
 
-
-kernel
-void nativeScanUpStart(
-        global const uchar *predicate,
-        global       int   *sums,
-        global       int   *incr)
+GPUd()
+void nativeScanUpStart(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() smem,
+        GPUglobalref() const uchar *predicate,
+        GPUglobalref()       int   *sums,
+        GPUglobalref()       int   *incr)
 {
     int idx = get_global_id(0);
-    int scanRes = work_group_scan_inclusive_add(predicate[idx]);
+    int scanRes = work_group_scan_inclusive_add((int) predicate[idx]);
 
     /* sums[idx] = scanRes; */
 
@@ -52,10 +68,10 @@ void nativeScanUpStart(
     }
 }
 
-kernel 
-void nativeScanUp(
-        global int *sums,
-        global int *incr)
+GPUd()
+void nativeScanUp(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() smem,
+        GPUglobalref() int *sums,
+        GPUglobalref() int *incr)
 {
     int idx = get_global_id(0);
     int scanRes = work_group_scan_inclusive_add(sums[idx]);
@@ -76,8 +92,8 @@ void nativeScanUp(
     }
 }
 
-kernel
-void nativeScanTop(global int *incr)
+GPUd()
+void nativeScanTop(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() smem,GPUglobalref() int *incr)
 {
     int idx = get_global_id(0);
 
@@ -86,10 +102,10 @@ void nativeScanTop(global int *incr)
     incr[idx] = work_group_scan_inclusive_add(incr[idx]);
 }
 
-kernel
-void nativeScanDown(
-        global       int *sums,
-        global const int *incr)
+GPUd()
+void nativeScanDown(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() smem,
+        GPUglobalref()       int *sums,
+        GPUglobalref() const int *incr)
 {
     int gid = get_group_id(0);
     int idx = get_global_id(0);
@@ -101,20 +117,20 @@ void nativeScanDown(
 
 
 #define COMPACT_ARR(type) \
-    kernel \
-    void compact ## type( \
-            global const type  *in, \
-            global       type  *out, \
-            global const uchar *predicate,  \
-            global       int   *newIdx, \
-            global const int   *incr) \
+    GPUd() \
+    void compact ## type(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() smem, \
+            GPUglobalref() const type  *in, \
+            GPUglobalref()       type  *out, \
+            GPUglobalref() const uchar *predicate,  \
+            GPUglobalref()       int   *newIdx, \
+            GPUglobalref() const int   *incr) \
     { \
         int gid = get_group_id(0) - 1; \
         int idx = get_global_id(0); \
         \
         int lastItem = get_global_size(0) - 1; \
         \
-        uchar pred = predicate[idx]; \
+        int pred = predicate[idx]; \
         int scanRes = work_group_scan_inclusive_add(pred); \
         \
         if (pred || idx == lastItem) \
@@ -138,3 +154,76 @@ void nativeScanDown(
 
 COMPACT_ARR(Digit);
 COMPACT_ARR(ClusterNative);
+
+#ifdef GPUCA_ALIGPUCODE
+} // namespace gpucf
+#endif
+
+#if !defined(GPUCA_ALIGPUCODE)
+
+GPUg()
+void nativeScanUpStart_kernel(
+        GPUglobal() const GPUCF()uchar *predicate,
+        GPUglobal()       int   *sums,
+        GPUglobal()       int   *incr)
+{
+    GPUshared() MYSMEM() smem;
+    GPUCF()nativeScanUpStart(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, predicate, sums, incr);
+}
+
+GPUg()
+void nativeScanUp_kernel(
+        GPUglobal() int *sums,
+        GPUglobal() int *incr)
+{
+    GPUshared() MYSMEM() smem;
+    GPUCF()nativeScanUp(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, sums, incr);
+}
+
+GPUg()
+void nativeScanTop_kernel(GPUglobal() int *incr)
+{
+    GPUshared() MYSMEM() smem;
+    GPUCF()nativeScanTop(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, incr);
+}
+
+GPUg()
+void nativeScanDown_kernel(
+        GPUglobal()       int *sums,
+        GPUglobal() const int *incr)
+{
+    GPUshared() MYSMEM() smem;
+    GPUCF()nativeScanDown(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, sums, incr);
+}
+
+GPUg()
+void compactDigit_kernel(
+        GPUglobal() const GPUCF()Digit  *in,
+        GPUglobal()       GPUCF()Digit  *out,
+        GPUglobal() const GPUCF()uchar *predicate,
+        GPUglobal()       int   *newIdx,
+        GPUglobal() const int   *incr)
+{
+    GPUshared() MYSMEM() smem;
+    GPUCF()compactDigit(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, in, out, predicate, newIdx, incr);
+}
+
+GPUg()
+void compactClusterNative_kernel(
+        GPUglobal() const GPUCF()ClusterNative  *in,
+        GPUglobal()       GPUCF()ClusterNative  *out,
+        GPUglobal() const GPUCF()uchar *predicate,
+        GPUglobal()       int   *newIdx,
+        GPUglobal() const int   *incr)
+{
+    GPUshared() MYSMEM() smem;
+    GPUCF()compactClusterNative(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, in, out, predicate, newIdx, incr);
+}
+
+#endif
+
+#undef GPUCF
+#undef MYMIN
+#undef MYATOMICADD
+#undef MYSMEM
+#undef MYSMEMR

@@ -18,7 +18,7 @@ class ComputeCluster : public Kernel1D
 {
 
  public:
-  DECL_KERNEL(ComputeCluster, "computeClusters");
+  DECL_KERNEL(ComputeCluster, "computeClusters_kernel");
 
   void call(ClusterFinderState& state, cl::CommandQueue queue)
   {

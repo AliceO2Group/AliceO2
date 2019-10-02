@@ -33,6 +33,7 @@
 #include "GPUITSFitterKernels.h"
 #include "GPUTPCConvertKernel.h"
 #include "GPUTPCCompressionKernels.h"
+#include "GPUTPCClusterFinderKernels.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -72,7 +73,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   static constexpr krnlRunRange krnlRunRangeNone{0, -1};
   static constexpr krnlEvent krnlEventNone = krnlEvent{nullptr, nullptr, 0};
 
-#ifdef __clang__ // BUG: clang seems broken and does not accept default parameters before parameter pack
+#ifdef __clang__ // BUG: clang does not accept default parameters before parameter pack
   template <class S, int I = 0>
   inline int runKernel(const krnlExec& x, HighResTimer* t = nullptr, const krnlRunRange& y = krnlRunRangeNone)
   {

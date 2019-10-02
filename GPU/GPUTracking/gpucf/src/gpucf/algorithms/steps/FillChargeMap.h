@@ -18,7 +18,7 @@ class FillChargeMap : public Kernel1D
 {
 
  public:
-  DECL_KERNEL(FillChargeMap, "fillChargeMap");
+  DECL_KERNEL(FillChargeMap, "fillChargeMap_kernel");
 
   void call(ClusterFinderState& state, cl::CommandQueue queue)
   {

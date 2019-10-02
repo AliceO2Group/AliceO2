@@ -18,7 +18,7 @@ class CountPeaks : public Kernel1D
 {
 
  public:
-  DECL_KERNEL(CountPeaks, "countPeaks");
+  DECL_KERNEL(CountPeaks, "countPeaks_kernel");
 
   void call(ClusterFinderState& state, cl::CommandQueue queue)
   {
