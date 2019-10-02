@@ -145,6 +145,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_ROOT_AND_O2_EXTENSIONS)
     set(HDRS_INSTALL ${HDRS_INSTALL} Interface/GPUO2InterfaceConfiguration.h
                      ITS/GPUITSTrack.h dEdx/GPUdEdxInfo.h)
 else()
+  # TODO: Get rid of these bogus includes!
   set(HDRS_INSTALL
       ${HDRS_INSTALL}
       ITS/GPUITSFitter.h
@@ -156,7 +157,9 @@ else()
       DataCompression/GPUTPCCompressionTrackModel.h
       DataCompression/GPUTPCCompressionKernels.h
       DataCompression/TPCClusterDecompressor.h
-      DataCompression/GPUTPCClusterStatistics.h)
+      DataCompression/GPUTPCClusterStatistics.h
+      gpucf/GPUTPCClusterFinderKernels.h
+      gpucf/GPUTPCClusterFinder.h)
 endif()
 
 # Sources only for AliRoot
@@ -300,6 +303,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Global
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/dEdx
+                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/gpucf
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/ITS
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TPCConvert
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TRDTracking
