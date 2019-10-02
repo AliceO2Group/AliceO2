@@ -83,6 +83,7 @@ void ClustererDPL::run(ProcessingContext& pc)
 
   auto digits = pc.inputs().get<const std::vector<o2::itsmft::Digit>>("digits");
   auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
+
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
   std::vector<o2::itsmft::MC2ROFRecord> mc2rofs;
   if (mUseMC) {
@@ -90,10 +91,8 @@ void ClustererDPL::run(ProcessingContext& pc)
     mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
   }
 
-  LOG(INFO) << "MFTClusterer pulled " << digits.size() << " digits, "
-            << (labels ? labels->getIndexedSize() : 0) << " MC label objects, in "
-            << rofs.size() << " RO frames and "
-            << mc2rofs.size() << " MC events";
+  LOG(INFO) << "MFTClusterer pulled " << digits.size() << " digits, in "
+            << rofs.size() << " RO frames";
 
   o2::itsmft::DigitPixelReader reader;
   reader.setDigits(&digits);
@@ -106,22 +105,20 @@ void ClustererDPL::run(ProcessingContext& pc)
 
   std::vector<o2::itsmft::CompClusterExt> compClusters;
   std::vector<o2::itsmft::Cluster> clusters;
-  std::vector<o2::itsmft::ROFRecord> clusterROframes;                  // To be filled in future
-  std::vector<o2::itsmft::MC2ROFRecord>& clusterMC2ROframes = mc2rofs; // Simply, replicate it from digits ?
+  std::vector<o2::itsmft::ROFRecord> clusterROframes; // To be filled in future
+
   std::unique_ptr<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> clusterLabels;
   if (mUseMC) {
     clusterLabels = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
   }
 
-  LOG(INFO) << "BV===== mClusterer->process\n";
   mClusterer->process(reader, mFullClusters ? &clusters : nullptr, mCompactClusters ? &compClusters : nullptr,
                       clusterLabels.get(), &clusterROframes);
   // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF
   // -> consider recalculationg maxROF
 
   LOG(INFO) << "MFTClusterer pushed " << clusters.size() << " clusters, in "
-            << clusterROframes.size() << " RO frames and "
-            << clusterMC2ROframes.size() << " MC events";
+            << clusterROframes.size() << " RO frames";
 
   pc.outputs().snapshot(Output{"MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe}, compClusters);
   pc.outputs().snapshot(Output{"MFT", "CLUSTERS", 0, Lifetime::Timeframe}, clusters);
@@ -133,7 +130,7 @@ void ClustererDPL::run(ProcessingContext& pc)
   }
 
   mState = 2;
-  //pc.services().get<ControlService>().readyToQuit(true);
+  pc.services().get<ControlService>().readyToQuit(false);
 }
 
 DataProcessorSpec getClustererSpec(bool useMC)

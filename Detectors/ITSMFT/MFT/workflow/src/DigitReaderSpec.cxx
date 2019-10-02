@@ -48,58 +48,83 @@ void DigitReader::run(ProcessingContext& pc)
 
   std::unique_ptr<TTree> treeDig((TTree*)mFile->Get("o2sim"));
   std::unique_ptr<TTree> treeROF((TTree*)mFile->Get("MFTDigitROF"));
-  std::unique_ptr<TTree> treeMC2ROF((TTree*)mFile->Get("MFTDigitMC2ROF"));
 
-  if (treeDig && treeROF && treeMC2ROF) {
+  if (treeDig && treeROF) {
 
     std::vector<o2::itsmft::Digit> allDigits;
     std::vector<o2::itsmft::Digit> digits, *pdigits = &digits;
     treeDig->SetBranchAddress("MFTDigit", &pdigits);
 
-    o2::dataformats::MCTruthContainer<o2::MCCompLabel> allLabels;
-    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels, *plabels = &labels;
-    treeDig->SetBranchAddress("MFTDigitMCTruth", &plabels);
-
     std::vector<ROFRecord> rofs, *profs = &rofs;
     treeROF->SetBranchAddress("MFTDigitROF", &profs);
     treeROF->GetEntry(0);
 
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> allLabels;
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels, *plabels = &labels;
+    std::unique_ptr<TTree> treeMC2ROF;
     std::vector<MC2ROFRecord> mc2rofs, *pmc2rofs = &mc2rofs;
-    treeMC2ROF->SetBranchAddress("MFTDigitMC2ROF", &pmc2rofs);
-    treeMC2ROF->GetEntry(0);
-
-    Int_t ne = treeDig->GetEntries();
-    for (Int_t e = 0; e < ne; e++) {
-      treeDig->GetEntry(e);
-      std::copy(digits.begin(), digits.end(), std::back_inserter(allDigits));
-      allLabels.mergeAtBack(labels);
+    if (mUseMC) {
+      treeDig->SetBranchAddress("MFTDigitMCTruth", &plabels);
+      treeMC2ROF.reset((TTree*)mFile->Get("MFTDigitMC2ROF"));
+      if (treeMC2ROF) {
+        treeMC2ROF->SetBranchAddress("MFTDigitMC2ROF", &pmc2rofs);
+        treeMC2ROF->GetEntry(0);
+      }
     }
+
+    int prevEntry = -1;
+    int offset = 0;
+    for (auto& rof : rofs) {
+      int entry = rof.getROFEntry().getEvent();
+      if (entry > prevEntry) { // In principal, there should be just one entry...
+        if (treeDig->GetEntry(entry) <= 0) {
+          LOG(ERROR) << "ITSDigitReader: empty digit entry, or read error !";
+          return;
+        }
+        prevEntry = entry;
+        offset = allDigits.size();
+
+        //Accumulate digits and MC labels
+        std::copy(digits.begin(), digits.end(), std::back_inserter(allDigits));
+        allLabels.mergeAtBack(labels);
+      }
+      //Once in memory, the RO frame boundaries should be "straightened"
+      rof.getROFEntry().setEvent(0);
+      int index = rof.getROFEntry().getIndex();
+      rof.getROFEntry().setIndex(index + offset);
+    }
+
     LOG(INFO) << "MFTDigitReader pushed " << allDigits.size() << " digits, in "
-              << profs->size() << " RO frames and "
-              << pmc2rofs->size() << " MC events";
+              << profs->size() << " RO frames";
+
     pc.outputs().snapshot(Output{"MFT", "DIGITS", 0, Lifetime::Timeframe}, allDigits);
-    pc.outputs().snapshot(Output{"MFT", "DIGITSMCTR", 0, Lifetime::Timeframe}, allLabels);
     pc.outputs().snapshot(Output{"MFT", "MFTDigitROF", 0, Lifetime::Timeframe}, *profs);
-    pc.outputs().snapshot(Output{"MFT", "MFTDigitMC2ROF", 0, Lifetime::Timeframe}, *pmc2rofs);
+    if (mUseMC) {
+      pc.outputs().snapshot(Output{"MFT", "DIGITSMCTR", 0, Lifetime::Timeframe}, allLabels);
+      pc.outputs().snapshot(Output{"MFT", "MFTDigitMC2ROF", 0, Lifetime::Timeframe}, *pmc2rofs);
+    }
   } else {
     LOG(ERROR) << "Cannot read the MFT digits !";
     return;
   }
   mState = 2;
-  //pc.services().get<ControlService>().readyToQuit(true);
+  pc.services().get<ControlService>().readyToQuit(false);
 }
 
-DataProcessorSpec getDigitReaderSpec()
+DataProcessorSpec getDigitReaderSpec(bool useMC)
 {
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("MFT", "DIGITS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("MFT", "MFTDigitROF", 0, Lifetime::Timeframe);
+  if (useMC) {
+    outputs.emplace_back("MFT", "DIGITSMCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back("MFT", "MFTDigitMC2ROF", 0, Lifetime::Timeframe);
+  }
   return DataProcessorSpec{
     "mft-digit-reader",
     Inputs{},
-    Outputs{
-      OutputSpec{"MFT", "DIGITS", 0, Lifetime::Timeframe},
-      OutputSpec{"MFT", "DIGITSMCTR", 0, Lifetime::Timeframe},
-      OutputSpec{"MFT", "MFTDigitROF", 0, Lifetime::Timeframe},
-      OutputSpec{"MFT", "MFTDigitMC2ROF", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<DigitReader>()},
+    outputs,
+    AlgorithmSpec{adaptFromTask<DigitReader>(useMC)},
     Options{
       {"mft-digit-infile", VariantType::String, "mftdigits.root", {"Name of the input file"}}}};
 }

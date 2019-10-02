@@ -428,9 +428,11 @@ void Tracker::computeCellsInRoad(Road& road)
       noCell = kTRUE;
       while (noCell && (layer2 <= layer2max)) {
         nPtsInLayer2 = road.getNPointsInLayer(layer2);
+        /*
         if (nPtsInLayer2 > 1) {
           LOG(INFO) << "BV===== more than one point in road " << road.getRoadId() << " in layer " << layer2 << " : " << nPtsInLayer2 << "\n";
         }
+	*/
         for (Int_t point2 = 0; point2 < nPtsInLayer2; ++point2) {
           clsLayer2 = road.getClustersIdInLayer(layer2)[point2];
           noCell = kFALSE;

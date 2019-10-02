@@ -113,24 +113,24 @@ inline void Cell::setLevel(const Int_t level) { mLevel = level; }
 
 inline void Cell::addRightNeighbour(const Int_t layer, const Int_t clusterId)
 {
-  std::cout << "Cell::addRightNeighbour " << layer << " " << clusterId << std::endl;
+  //std::cout << "Cell::addRightNeighbour " << layer << " " << clusterId << std::endl;
   try {
     mRightNeighbours.at(mNRightNeighbours++) = std::pair<Int_t, Int_t>(layer, clusterId);
   } catch (const std::out_of_range& err) {
     std::cout << "Maximum number of right neighbours for this cell!" << std::endl;
   }
-  std::cout << "Cell::addRightNeighbour done..." << std::endl;
+  //std::cout << "Cell::addRightNeighbour done..." << std::endl;
 }
 
 inline void Cell::addLeftNeighbour(const Int_t layer, const Int_t clusterId)
 {
-  std::cout << "Cell::addLeftNeighbour " << layer << " " << clusterId << std::endl;
+  //std::cout << "Cell::addLeftNeighbour " << layer << " " << clusterId << std::endl;
   try {
     mLeftNeighbours.at(mNLeftNeighbours++) = std::pair<Int_t, Int_t>(layer, clusterId);
   } catch (const std::out_of_range& err) {
     std::cout << "Maximum number of left neighbours for this cell!" << std::endl;
   }
-  std::cout << "Cell::addLeftNeighbour done..." << std::endl;
+  //std::cout << "Cell::addLeftNeighbour done..." << std::endl;
 }
 
 inline const std::array<std::pair<Int_t, Int_t>, constants::mft::MaxCellNeighbours>& Cell::getLeftNeighbours() const

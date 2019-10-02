@@ -48,43 +48,64 @@ void ClusterWriter::run(ProcessingContext& pc)
 
   auto compClusters = pc.inputs().get<const std::vector<o2::itsmft::CompClusterExt>>("compClusters");
   auto clusters = pc.inputs().get<const std::vector<o2::itsmft::Cluster>>("clusters");
-  auto labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
-  auto plabels = labels.get();
   auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
-  auto mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
 
-  LOG(INFO) << "MFTClusterWriter pulled " << clusters.size() << " clusters, "
-            << labels->getIndexedSize() << " MC label objects, in "
-            << rofs.size() << " RO frames and "
-            << mc2rofs.size() << " MC events";
+  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
+  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* plabels = nullptr;
 
-  mFile->WriteObjectAny(&rofs, "std::vector<o2::itsmft::ROFRecord>", "MFTClusterROF");
-  mFile->WriteObjectAny(&mc2rofs, "std::vector<o2::itsmft::MC2ROFRecord>", "MFTClusterMC2ROF");
+  LOG(INFO) << "MFTClusterWriter pulled " << clusters.size() << " clusters, in "
+            << rofs.size() << " RO frames";
 
   TTree tree("o2sim", "Tree with MFT clusters");
   tree.Branch("MFTClusterComp", &compClusters);
   tree.Branch("MFTCluster", &clusters);
-  tree.Branch("MFTClusterMCTruth", &plabels);
+  if (mUseMC) {
+    labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
+    plabels = labels.get();
+    tree.Branch("MFTClusterMCTruth", &plabels);
+  }
   tree.Fill();
   tree.Write();
+
+  // write ROFrecords vector to a tree
+  TTree treeROF("MFTClustersROF", "ROF records tree");
+  auto* rofsPtr = &rofs;
+  treeROF.Branch("MFTClustersROF", &rofsPtr);
+  treeROF.Fill();
+  treeROF.Write();
+
+  if (mUseMC) {
+    // write MC2ROFrecord vector (directly inherited from digits input) to a tree
+    TTree treeMC2ROF("MFTClustersMC2ROF", "MC -> ROF records tree");
+    auto mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
+    auto* mc2rofsPtr = &mc2rofs;
+    treeMC2ROF.Branch("MFTClustersMC2ROF", &mc2rofsPtr);
+    treeMC2ROF.Fill();
+    treeMC2ROF.Write();
+  }
+
   mFile->Close();
 
   mState = 2;
-  pc.services().get<ControlService>().readyToQuit(true);
+  pc.services().get<ControlService>().readyToQuit(false);
 }
 
-DataProcessorSpec getClusterWriterSpec()
+DataProcessorSpec getClusterWriterSpec(bool useMC)
 {
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("compClusters", "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("clusters", "MFT", "CLUSTERS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", "MFT", "MFTClusterROF", 0, Lifetime::Timeframe);
+  if (useMC) {
+    inputs.emplace_back("labels", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
+    inputs.emplace_back("MC2ROframes", "MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe);
+  }
+
   return DataProcessorSpec{
     "mft-cluster-writer",
-    Inputs{
-      InputSpec{"compClusters", "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe},
-      InputSpec{"clusters", "MFT", "CLUSTERS", 0, Lifetime::Timeframe},
-      InputSpec{"labels", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe},
-      InputSpec{"ROframes", "MFT", "MFTClusterROF", 0, Lifetime::Timeframe},
-      InputSpec{"MC2ROframes", "MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe}},
+    inputs,
     Outputs{},
-    AlgorithmSpec{adaptFromTask<ClusterWriter>()},
+    AlgorithmSpec{adaptFromTask<ClusterWriter>(useMC)},
     Options{
       {"mft-cluster-outfile", VariantType::String, "mftclusters.root", {"Name of the output file"}}}};
 }
