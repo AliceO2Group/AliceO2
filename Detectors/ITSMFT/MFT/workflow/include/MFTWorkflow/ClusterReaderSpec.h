@@ -26,19 +26,20 @@ namespace mft
 class ClusterReader : public o2::framework::Task
 {
  public:
-  ClusterReader() = default;
+  ClusterReader(bool useMC) : mUseMC(useMC) {}
   ~ClusterReader() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
 
  private:
   int mState = 0;
+  bool mUseMC = true;
   std::unique_ptr<TFile> mFile = nullptr;
 };
 
 /// create a processor spec
 /// read simulated MFT digits from a root file
-o2::framework::DataProcessorSpec getClusterReaderSpec();
+o2::framework::DataProcessorSpec getClusterReaderSpec(bool useMC);
 
 } // namespace mft
 } // namespace o2
