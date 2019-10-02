@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 //                                                                           //
 //  TRD calibration class for parameters which are saved frequently(/run)    //
 //  2019 - Ported from various bits of AliRoot (SHTM)                        //
@@ -22,5 +21,3 @@
 #include "TH2D.h"
 
 using namespace o2::trd;
-
-

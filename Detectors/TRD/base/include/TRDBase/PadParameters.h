@@ -63,12 +63,12 @@ class PadParameters
   }
 
  protected:
-  int mPlane{0};        //  Plane number
-  int mChamber{0};      //  Chamber number
-  int mNrows{0};        //  Number of rows
-  int mNcols{FeeParam::mgkNcol};      //  Number of columns
-  int mNchannels;       //  Number of channels = rows*columns
-  std::vector<T> mData; // Size is mNchannels
+  int mPlane{0};                 //  Plane number
+  int mChamber{0};               //  Chamber number
+  int mNrows{0};                 //  Number of rows
+  int mNcols{FeeParam::mgkNcol}; //  Number of columns
+  int mNchannels;                //  Number of channels = rows*columns
+  std::vector<T> mData;          // Size is mNchannels
 };
 
 //

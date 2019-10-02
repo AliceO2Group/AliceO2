@@ -80,7 +80,6 @@ class FeeParam
   static int getNrowC0() { return mgkNrowC0; }
   static int getNrowC1() { return mgkNrowC1; }
 
-
   // Basic Geometrical numbers these were private but as they are static and const it seems pointless.
   static const int mgkLHCfrequency = 40079000; // [Hz] LHC clock
   static const int mgkNmcmRob = 16;            // Number of MCMs per ROB
@@ -93,9 +92,6 @@ class FeeParam
   static const int mgkNcolMcm = 18;            // Number of pads per MCM
   static const int mgkNrowC0 = 12;             // Number of Rows per C0 chamber
   static const int mgkNrowC1 = 16;             // Number of Rows per C1 chamber
-
-
-
 
   // tracklet simulation
   bool getTracklet() const { return mgTracklet; }
