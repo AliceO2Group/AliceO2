@@ -65,9 +65,10 @@ class SAMPAProcessing
   /// \param ADCcounts ADC value of the signal (common mode already subtracted)
   /// \param sector Sector number
   /// \param globalPadInSector global pad number in the sector
+  /// \param commonMode value of the common mode
   /// \return ADC value after application of noise, pedestal and saturation
   template <DigitzationMode MODE>
-  float makeSignal(float ADCcounts, const int sector, const int globalPadInSector, float& pedestal, float& noise);
+  float makeSignal(float ADCcounts, const int sector, const int globalPadInSector, const float commonMode, float& pedestal, float& noise);
 
   /// A delta signal is shaped by the FECs and thus spread over several time bins
   /// This function returns an array with the signal spread into the following time bins
@@ -142,7 +143,7 @@ inline T SAMPAProcessing::getADCvalue(T nElectrons) const
 }
 
 template <DigitzationMode MODE>
-inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, const int globalPadInSector,
+inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, const int globalPadInSector, const float commonMode,
                                          float& pedestal, float& noise)
 {
   float signal = ADCcounts;
@@ -150,12 +151,14 @@ inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, cons
   noise = getNoise(sector, globalPadInSector);
   switch (MODE) {
     case DigitzationMode::FullMode: {
+      signal -= commonMode;
       signal += noise;
       signal += pedestal;
       return getADCSaturation(signal);
       break;
     }
     case DigitzationMode::SubtractPedestal: {
+      signal -= commonMode;
       signal += noise;
       signal += pedestal;
       float signalSubtractPedestal = getADCSaturation(signal) - pedestal;
@@ -163,6 +166,7 @@ inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, cons
       break;
     }
     case DigitzationMode::NoSaturation: {
+      signal -= commonMode;
       signal += noise;
       signal += pedestal;
       return signal;
