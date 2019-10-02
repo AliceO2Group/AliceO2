@@ -47,6 +47,7 @@ AliTPC3DCylindricalInterpolatorIrregular::AliTPC3DCylindricalInterpolatorIrregul
   fNR = nRRow;
   fNZ = nZColumn;
   fNPhi = nPhiSlice;
+  fNGridPoints = nRRow * nZColumn * nPhiSlice;
 
   fRBFWeightLookUp = new Int_t[nRRow * nZColumn * nPhiSlice];
 
@@ -54,6 +55,7 @@ AliTPC3DCylindricalInterpolatorIrregular::AliTPC3DCylindricalInterpolatorIrregul
   fStepR = rStep;
   fStepZ = zStep;
   fStepPhi = phiStep;
+  fNRBFpoints = nRRow * nZColumn * nPhiSlice * nd;
 
   fType = type;
   fRBFWeight = new Double_t[nRRow * nZColumn * nPhiSlice * nd];

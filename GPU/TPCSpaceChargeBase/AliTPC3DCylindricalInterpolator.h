@@ -31,6 +31,7 @@ class AliTPC3DCylindricalInterpolator
   void SetNR(Int_t nR) { fNR = nR; }
   void SetNPhi(Int_t nPhi) { fNPhi = nPhi; }
   void SetNZ(Int_t nZ) { fNZ = nZ; }
+  void SetNGridPoints();
   void SetRList(Double_t* rList);
   void SetPhiList(Double_t* phiList);
   void SetZList(Double_t* zList);
@@ -46,16 +47,17 @@ class AliTPC3DCylindricalInterpolator
   Double_t* GetSecondDerZ() { return fSecondDerZ; }
 
  private:
-  Int_t fOrder; ///< Order of interpolation, 1 - linear, 2 - quadratic, 3 >= - cubic,
-  Int_t fNR;    ///< Grid size in direction of R
-  Int_t fNPhi;  ///< Grid size in direction of Phi
-  Int_t fNZ;    ///< Grid size in direction of Z
+  Int_t fOrder;       ///< Order of interpolation, 1 - linear, 2 - quadratic, 3 >= - cubic,
+  Int_t fNR;          ///< Grid size in direction of R
+  Int_t fNPhi;        ///< Grid size in direction of Phi
+  Int_t fNZ;          ///< Grid size in direction of Z
+  Int_t fNGridPoints; ///< Total number of grid points (needed for streamer)
 
-  Double_t* fValue = nullptr;      //[fNR*fNPhi*fNZ] Description 3D for storing known values interpolation should be in size fNR*fNPhi*fNZ
+  Double_t* fValue = nullptr;      //[fNGridPoints] Description 3D for storing known values interpolation should be in size fNR*fNPhi*fNZ
   Double_t* fRList = nullptr;      //[fNR] coordinate in R (cm) (should be increasing)
   Double_t* fPhiList = nullptr;    //[fNPhi] coordinate in phiList (rad) (should be increasing) 0 <= < 2 pi (cyclic)
   Double_t* fZList = nullptr;      //[fNZ] coordinate in z list (cm) (should be increasing)
-  Double_t* fSecondDerZ = nullptr; //[fNR*fNPhi*fNZ] store second derivative of cubic interpolation in z direction
+  Double_t* fSecondDerZ = nullptr; //[fNGridPoints] store second derivative of cubic interpolation in z direction
 
   Bool_t fIsAllocatingLookUp; ///< is allocating memory
   Bool_t fIsInitCubic;        ///< is cubic second derivative already been initialized

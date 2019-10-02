@@ -113,6 +113,7 @@ AliTPCLookUpTable3DInterpolatorD::AliTPCLookUpTable3DInterpolatorD(
   fInterpolatorR->SetNR(nRRow);
   fInterpolatorR->SetNZ(nZColumn);
   fInterpolatorR->SetNPhi(nPhiSlice);
+  fInterpolatorR->SetNGridPoints();
   fInterpolatorR->SetRList(rList);
   fInterpolatorR->SetZList(zList);
   fInterpolatorR->SetPhiList(phiList);
@@ -121,6 +122,7 @@ AliTPCLookUpTable3DInterpolatorD::AliTPCLookUpTable3DInterpolatorD(
   fInterpolatorZ->SetNR(nRRow);
   fInterpolatorZ->SetNZ(nZColumn);
   fInterpolatorZ->SetNPhi(nPhiSlice);
+  fInterpolatorZ->SetNGridPoints();
   fInterpolatorZ->SetRList(rList);
   fInterpolatorZ->SetZList(zList);
   fInterpolatorZ->SetPhiList(phiList);
@@ -129,6 +131,7 @@ AliTPCLookUpTable3DInterpolatorD::AliTPCLookUpTable3DInterpolatorD(
   fInterpolatorPhi->SetNR(nRRow);
   fInterpolatorPhi->SetNZ(nZColumn);
   fInterpolatorPhi->SetNPhi(nPhiSlice);
+  fInterpolatorPhi->SetNGridPoints();
   fInterpolatorPhi->SetRList(rList);
   fInterpolatorPhi->SetZList(zList);
   fInterpolatorPhi->SetPhiList(phiList);

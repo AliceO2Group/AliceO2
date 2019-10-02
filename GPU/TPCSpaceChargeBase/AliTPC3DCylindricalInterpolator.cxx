@@ -519,3 +519,12 @@ void AliTPC3DCylindricalInterpolator::SetZList(Double_t* zList)
 ///
 /// \param valueList
 void AliTPC3DCylindricalInterpolator::SetValue(Double_t* valueList) { fValue = valueList; }
+
+/// Set number of total grid points
+void AliTPC3DCylindricalInterpolator::SetNGridPoints()
+{
+  if (fNR == 0 || fNPhi == 0 || fNZ == 0) {
+    Error("AliTPC3DCylindricalInterpolator::SetNGridPoints", "Error in calculating total number of grid points! Either nR, nPhi or nZ are zero!");
+  }
+  fNGridPoints = fNR * fNPhi * fNZ;
+}
