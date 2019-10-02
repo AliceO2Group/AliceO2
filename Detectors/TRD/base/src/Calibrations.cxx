@@ -27,9 +27,6 @@
 //#include "TRDBase/PRFWidth.h"
 #include "fairlogger/Logger.h"
 
-//#include <CCDB/TObjectWrapper.h>
-#include "CCDB/Condition.h"
-#include "CCDB/Manager.h"
 
 using namespace o2::trd;
 
