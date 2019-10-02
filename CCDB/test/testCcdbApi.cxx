@@ -368,3 +368,45 @@ BOOST_AUTO_TEST_CASE(list_test, *utf::precondition(if_reachable()))
   countItems(s, countObjects, countSubfolders);
   BOOST_CHECK_EQUAL(countObjects, 1);
 }
+
+BOOST_AUTO_TEST_CASE(TestHeaderParsing)
+{
+  std::vector<std::string> headers = {
+    "HTTP/1.1 200",
+    "Content-Location: /download/6dcb77c0-ca56-11e9-a807-200114580202",
+    "Date: Thu, 26 Sep 2019 08:09:20 GMT",
+    "Valid-Until: 1567771311999",
+    "Valid-From: 1567080816927",
+    "InitialValidityLimit: 1598616816927",
+    "Created: 1567080816956",
+    "ETag: \"6dcb77c0-ca56-11e9-a807-200114580202\"",
+    "Last-Modified: Thu, 29 Aug 2019 12:13:36 GMT",
+    "UpdatedFrom: 2001:1458:202:28:0:0:100:35",
+    "partName: send",
+    "Content-Disposition: inline;filename=\"o2::dataformats::CalibLHCphaseTOF_1567080816916.root\"",
+    "Accept-Ranges: bytes",
+    "Content-MD5: 9481c9d036660f80e21dae5943c2096f",
+    "Content-Type: application/octet-stream",
+    "Content-Length: 2097152"};
+  std::vector<std::string> results;
+  std::string etag;
+  CcdbApi::parseCCDBHeaders(headers, results, etag);
+  BOOST_CHECK_EQUAL(etag, "\"6dcb77c0-ca56-11e9-a807-200114580202\"");
+  BOOST_REQUIRE_EQUAL(results.size(), 1);
+  BOOST_CHECK_EQUAL(results[0], "/download/6dcb77c0-ca56-11e9-a807-200114580202");
+}
+
+BOOST_AUTO_TEST_CASE(TestFetchingHeaders, *utf::precondition(if_reachable()))
+{
+  std::string etag;
+  std::vector<std::string> headers;
+  std::vector<std::string> pfns;
+  auto updated = CcdbApi::getCCDBEntryHeaders("http://ccdb-test.cern.ch:8080/TOF/LHCphase/1567080816927", etag, headers);
+  BOOST_CHECK_EQUAL(updated, true);
+  BOOST_REQUIRE(headers.size() != 0);
+  CcdbApi::parseCCDBHeaders(headers, pfns, etag);
+  BOOST_REQUIRE(etag != "");
+  BOOST_REQUIRE(pfns.size());
+  updated = CcdbApi::getCCDBEntryHeaders("http://ccdb-test.cern.ch:8080/TOF/LHCphase/1567080816927", etag, headers);
+  BOOST_CHECK_EQUAL(updated, false);
+}
