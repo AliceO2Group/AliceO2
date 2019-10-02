@@ -919,6 +919,9 @@ GPUd() void finalize(
         const Digit              *myDigit)
 {
     pc->Q += myDigit->charge;
+    if (pc->Q == 0) {
+      return; // TODO: Why does this happen?
+    }
 
     pc->padMean   /= pc->Q;
     pc->timeMean  /= pc->Q;
@@ -1025,7 +1028,7 @@ GPUd() void sortIntoBuckets(
 {
     uint posInBucket = MYATOMICADD()(&elemsInBucket[bucket], 1);
 
-    buckets[maxElemsPerBucket * bucket + posInBucket] = *cluster;
+    buckets[maxElemsPerBucket * bucket + posInBucket] = *cluster; // TODO: Must check for overflow over maxElemsPerBucket!
 }
 
 
@@ -1630,16 +1633,13 @@ void computeClusters(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR
     buildClusterNaive(chargeMap, &pc, gpad, myDigit.time);
 #endif
 
+    if (idx >= clusternum) {
+      return;
+    }
     finalize(&pc, &myDigit);
 
     ClusterNative myCluster;
     toNative(&pc, &myDigit, &myCluster);
-
-    bool iamDummy = (idx >= clusternum);
-    if (iamDummy)
-    {
-        return;
-    }
 
 #if defined(CUT_QTOT)
     bool aboveQTotCutoff = (pc.Q > QTOT_CUTOFF);
@@ -1748,3 +1748,4 @@ void computeClusters_kernel(
 #undef MYSMEM
 #undef MYSMEMD
 #undef MYSMEMP
+#undef MYSMEMR

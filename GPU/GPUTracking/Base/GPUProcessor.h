@@ -26,6 +26,7 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
+struct GPUTrackingInOutPointers;
 class GPUReconstruction;
 MEM_CLASS_PRE()
 struct GPUParam;

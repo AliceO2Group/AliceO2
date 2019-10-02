@@ -214,7 +214,7 @@ void GPUTPCGMMerger::RegisterMemoryAllocation()
   mMemoryResRefit = mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersGPURefit, GPUMemoryResource::MEMORY_INOUT, "TPCMergerRefit");
 }
 
-void GPUTPCGMMerger::SetMaxData()
+void GPUTPCGMMerger::SetMaxData(const GPUTrackingInOutPointers& io)
 {
   mNMaxSliceTracks = 0;
   mNClusters = 0;

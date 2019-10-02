@@ -456,4 +456,6 @@ void GPUReconstructionHIPBackend::SetThreadCounts()
   mSelectorThreadCount = GPUCA_THREAD_COUNT_SELECTOR;
   mFinderThreadCount = GPUCA_THREAD_COUNT_FINDER;
   mTRDThreadCount = GPUCA_THREAD_COUNT_TRD;
+  mClustererThreadCount = GPUCA_THREAD_COUNT_CLUSTERER;
+  mScanThreadCount = GPUCA_THREAD_COUNT_SCAN;
 }

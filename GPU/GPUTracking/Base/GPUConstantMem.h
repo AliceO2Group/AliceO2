@@ -38,7 +38,7 @@ class GPUITSFitter
 };
 class GPUTRDTracker
 {
-  void SetMaxData() {}
+  void SetMaxData(const GPUTrackingInOutPointers& io) {}
 };
 class GPUTPCConvert
 {

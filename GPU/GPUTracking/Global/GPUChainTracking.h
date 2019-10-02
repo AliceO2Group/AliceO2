@@ -121,6 +121,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int ForceInitQA();
 
   // Processing functions
+  int RunTPCClusterizer();
   int RunTPCTrackingSlices();
   int RunTPCTrackingMerger();
   int RunTRDTracking();
@@ -167,6 +168,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void WriteOutput(int iSlice, int threadId);
   int GlobalTracking(int iSlice, int threadId);
 
+  void PrepareEventFromNative();
   int PrepareProfile();
   int DoProfile();
   void PrintMemoryRelations();
@@ -214,6 +216,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
  private:
   int RunTPCTrackingSlices_internal();
+  void RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clusterer, int step);
   std::atomic_flag mLockAtomic = ATOMIC_FLAG_INIT;
 
   int HelperReadEvent(int iSlice, int threadId, GPUReconstructionHelpers::helperParam* par);

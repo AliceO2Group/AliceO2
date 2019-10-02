@@ -36,6 +36,7 @@ struct ClusterNativeAccess {
   unsigned int nClustersSector[GPUCA_NSLICES];
   unsigned int clusterOffset[GPUCA_NSLICES][GPUCA_ROW_COUNT];
   unsigned int nClustersTotal;
+  void setOffsetPtrs() {}
 };
 } // namespace tpc
 namespace base

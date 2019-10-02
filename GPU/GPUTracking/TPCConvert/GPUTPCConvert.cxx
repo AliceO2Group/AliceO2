@@ -49,9 +49,11 @@ void GPUTPCConvert::RegisterMemoryAllocation()
   mMemoryResOutput = mRec->RegisterMemoryAllocation(this, &GPUTPCConvert::SetPointersOutput, GPUMemoryResource::MEMORY_OUTPUT, "TPCConvertOutput");
 }
 
-void GPUTPCConvert::SetMaxData()
+void GPUTPCConvert::SetMaxData(const GPUTrackingInOutPointers& io)
 {
-  if (mClustersNative) {
+  if (io.tpcRaw) {
+    // TODO: Don't do anything for now, set from the outside, should be fixed
+  } else if (mClustersNative) {
     mNClustersTotal = mClustersNative->nClustersTotal;
   } else {
     mNClustersTotal = 0;

@@ -16,6 +16,9 @@
 
 #include "GPUCommonDef.h"
 
+#ifndef __OPENCL__
+#include <cstddef>
+#endif
 #ifdef GPUCA_NOCOMPAT_ALLOPENCL
 #include <type_traits>
 #endif
@@ -54,6 +57,11 @@ template <class T>
 class MCTruthContainer;
 } // namespace dataformats
 } // namespace o2
+
+namespace gpucf // TODO: Clean up namespace
+{
+typedef struct PackedDigit_s PackedDigit;
+}
 
 namespace GPUCA_NAMESPACE
 {
@@ -115,7 +123,8 @@ class GPUDataTypes
                               TPCMergedTracks = 4,
                               TPCCompressedClusters = 8,
                               TRDTracklets = 16,
-                              TRDTracks = 32 };
+                              TRDTracks = 32,
+                              TPCRaw = 64 };
 
 #ifdef GPUCA_NOCOMPAT_ALLOPENCL
   static constexpr const char* const RECO_STEP_NAMES[] = {"TPC Transformation", "TPC Sector Tracking", "TPC Track Merging and Fit", "TPC Compression", "TRD Tracking", "ITS Tracking", "TPC dEdx Computation"};
@@ -153,6 +162,9 @@ struct GPUTrackingInOutPointers {
   GPUTrackingInOutPointers(const GPUTrackingInOutPointers&) = default;
   static constexpr unsigned int NSLICES = 36;
 
+  size_t tpcRaw = 0;
+  const gpucf::PackedDigit* tpcDigits[NSLICES] = {nullptr};
+  size_t nTPCDigits[NSLICES] = {0};
   const GPUTPCClusterData* clusterData[NSLICES] = {nullptr};
   unsigned int nClusterData[NSLICES] = {0};
   const AliHLTTPCRawCluster* rawClusters[NSLICES] = {nullptr};

@@ -129,7 +129,7 @@ GPUhd() void* GPUTPCTracker::SetPointersOutput(void* mem)
   return mem;
 }
 
-void GPUTPCTracker::SetMaxData()
+void GPUTPCTracker::SetMaxData(const GPUTrackingInOutPointers& io)
 {
   if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
     mNMaxStartHits = mData.NumberOfHits();

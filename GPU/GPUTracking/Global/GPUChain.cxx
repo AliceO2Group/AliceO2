@@ -16,3 +16,9 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 constexpr GPUChain::krnlRunRange GPUChain::krnlRunRangeNone;
 constexpr GPUChain::krnlEvent GPUChain::krnlEventNone;
+
+GPUChain::krnlExec GPUChain::GetGrid(unsigned int totalItems, unsigned int nThreads, int stream)
+{
+  const unsigned int nBlocks = (totalItems + nThreads - 1) / nThreads;
+  return {nBlocks, nThreads, stream};
+}

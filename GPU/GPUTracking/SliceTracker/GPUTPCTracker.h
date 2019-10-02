@@ -136,7 +136,7 @@ class GPUTPCTracker : public GPUProcessor
   short MemoryResTracklets() { return mMemoryResTracklets; }
   short MemoryResOutput() { return mMemoryResOutput; }
 
-  void SetMaxData();
+  void SetMaxData(const GPUTrackingInOutPointers& io);
   void UpdateMaxData();
 
   GPUhd() int ISlice() const { return mISlice; }

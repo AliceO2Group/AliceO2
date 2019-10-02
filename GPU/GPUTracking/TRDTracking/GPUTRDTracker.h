@@ -56,7 +56,7 @@ class GPUTRDTracker : public GPUProcessor
   GPUTRDTracker& operator=(const GPUTRDTracker& tracker) CON_DELETE;
   ~GPUTRDTracker();
 
-  void SetMaxData();
+  void SetMaxData(const GPUTrackingInOutPointers& io);
   void RegisterMemoryAllocation();
   void InitializeProcessor();
   void* SetPointersBase(void* base);

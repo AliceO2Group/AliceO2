@@ -86,9 +86,12 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   inline int runKernel(const krnlExec& x, HighResTimer* t = nullptr, const krnlRunRange& y = krnlRunRangeNone, const krnlEvent& z = krnlEventNone, const Args&... args)
 #endif
   {
+    if (x.nThreads > GPUCA_MAX_THREADS) {
+      throw std::runtime_error("GPUCA_MAX_THREADS exceeded");
+    }
     int cpuFallback = IsGPU() ? (x.device == krnlDeviceType::CPU ? 2 : (mRecoStepsGPU & S::GetRecoStep()) != S::GetRecoStep()) : 0;
     if (mDeviceProcessingSettings.debugLevel >= 3) {
-      GPUInfo("Running %s (Stream %d, Range %d/%d) on %s", typeid(S).name(), x.stream, y.start, y.num, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
+      GPUInfo("Running %s-%d (Stream %d, Range %d/%d, Grid %d/%d) on %s", typeid(S).name(), I, x.stream, y.start, y.num, x.nBlocks, x.nThreads, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
     }
     if (t && mDeviceProcessingSettings.debugLevel) {
       t->Start();
@@ -177,6 +180,8 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   unsigned int mSelectorThreadCount = 0;
   unsigned int mFinderThreadCount = 0;
   unsigned int mTRDThreadCount = 0;
+  unsigned int mClustererThreadCount = 0;
+  unsigned int mScanThreadCount = 0;
 
   int mThreadId = -1; // Thread ID that is valid for the local CUDA context
   int mGPUStuck = 0;  // Marks that the GPU is stuck, skip future events

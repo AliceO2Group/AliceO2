@@ -53,7 +53,7 @@ class GPUTPCCompression : public GPUProcessor
 #ifndef GPUCA_GPUCODE
   void InitializeProcessor();
   void RegisterMemoryAllocation();
-  void SetMaxData();
+  void SetMaxData(const GPUTrackingInOutPointers& io);
 
   void* SetPointersOutputHost(void* mem);
   void* SetPointersOutput(void* mem);

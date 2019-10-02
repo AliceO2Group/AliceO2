@@ -51,7 +51,7 @@ static const float piMass = 0.139f;
 
 #include "GPUChainTracking.h"
 
-void GPUTRDTracker::SetMaxData()
+void GPUTRDTracker::SetMaxData(const GPUTrackingInOutPointers& io)
 {
   mNMaxTracks = mChainTracking->mIOPtrs.nMergedTracks;
   mNMaxSpacePoints = mChainTracking->mIOPtrs.nTRDTracklets;
