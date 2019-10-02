@@ -8,10 +8,11 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(Base)
-add_subdirectory(Clustering)
-add_subdirectory(Raw)
-add_subdirectory(Simulation)
-add_subdirectory(TestingSimTools)
-add_subdirectory(Tracking)
-add_subdirectory(Workflow)
+o2_add_library(MIDRaw
+               SOURCES src/Decoder.cxx src/Encoder.cxx
+               PUBLIC_LINK_LIBRARIES ms_gsl::ms_gsl O2::DataFormatsMID
+                                     O2::Headers)
+
+if(BUILD_TESTING)
+  add_subdirectory(test)
+endif()
