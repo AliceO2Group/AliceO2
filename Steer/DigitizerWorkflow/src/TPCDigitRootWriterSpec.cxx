@@ -20,6 +20,7 @@
 #include "Framework/ControlService.h"
 #include "TPCBase/Sector.h"
 #include "TPCBase/Digit.h"
+#include "TPCSimulation/CommonMode.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include <TFile.h>
@@ -64,6 +65,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
   auto digitchannelname = std::make_shared<std::vector<std::string>>();
   auto triggerchannelname = std::make_shared<std::vector<std::string>>();
   auto labelchannelname = std::make_shared<std::vector<std::string>>();
+  auto commonModechannelname = std::make_shared<std::vector<std::string>>();
   for (int i = 0; i < numberofsourcedevices; ++i) {
     {
       std::stringstream ss;
@@ -80,9 +82,14 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
       ss << "labelinput" << i;
       labelchannelname->push_back(ss.str());
     }
+    {
+      std::stringstream ss;
+      ss << "commonmodeinput" << i;
+      commonModechannelname->push_back(ss.str());
+    }
   }
 
-  auto initFunction = [numberofsourcedevices, digitchannelname, labelchannelname, triggerchannelname](InitContext& ic) {
+  auto initFunction = [numberofsourcedevices, digitchannelname, labelchannelname, triggerchannelname, commonModechannelname](InitContext& ic) {
     // get the option from the init context
     auto filename = ic.options().get<std::string>("tpc-digit-outfile");
     auto treename = ic.options().get<std::string>("treename");
@@ -125,7 +132,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
     // the shared pointer makes sure to clean up the instance when the processing
     // function gets out of scope
     auto processingFct = [outputfile, outputtree, trigP2Sect, digitchannelname, labelchannelname,
-                          triggerchannelname, numberofsourcedevices](ProcessingContext& pc) {
+                          triggerchannelname, commonModechannelname, numberofsourcedevices](ProcessingContext& pc) {
       static bool finished = false;
       if (finished) {
         // avoid being executed again when marked as finished;
@@ -139,10 +146,12 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
       static std::vector<bool> digitsdone;
       static std::vector<bool> labelsdone;
       static std::vector<bool> triggersdone;
+      static std::vector<bool> commonmodedone;
       if (invocation == 1) {
         digitsdone.resize(numberofsourcedevices, false);
         labelsdone.resize(numberofsourcedevices, false);
         triggersdone.resize(numberofsourcedevices, false);
+        commonmodedone.resize(numberofsourcedevices, false);
       }
 
       // find out if all source devices (channels) are done
@@ -168,6 +177,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
         const auto dname = digitchannelname->operator[](d);
         const auto lname = labelchannelname->operator[](d);
         const auto tname = triggerchannelname->operator[](d);
+        const auto cname = commonModechannelname->operator[](d);
         if (pc.inputs().isValid(tname.c_str())) {
           sector = extractSector(tname.c_str());
           LOG(INFO) << "HAVE TRIGGER DATA FOR SECTOR " << sector << " ON CHANNEL " << d;
@@ -279,13 +289,54 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
           }
         } // end label case
 
-        if (labelsdone[d] && digitsdone[d]) {
+        // c) probe for common mode:
+        if (pc.inputs().isValid(cname.c_str())) {
+          sector = extractSector(cname.c_str());
+          LOG(INFO) << "HAVE COMMON MODE DATA FOR SECTOR " << sector << " ON CHANNEL " << d;
+          const auto& trigS = (*trigP2Sect.get())[sector];
+          if (sector <= -1) {
+            if (sector != -2) {
+              commonmodedone[d] = true;
+            }
+          } else {
+            auto commonModeData = pc.inputs().get<std::vector<o2::tpc::CommonMode>>(cname.c_str());
+            LOG(INFO) << "COMMON MODE SIZE " << commonModeData.size();
+
+            if (!trigS.size()) {
+              LOG(FATAL) << "CommonMode for sector " << sector << " are received w/o info on grouping in triggers";
+            }
+            {
+              if (trigS.size() == 1) { // just 1 entry (continous mode?), use digits directly
+                // connect this to a particular branch
+                auto digC = &commonModeData;
+                auto br = getOrMakeBranch(*outputtree.get(), "TPCCommonMode", sector, digC);
+                br->Fill();
+                br->ResetAddress();
+              } else {                                     // triggered mode (>1 entrie will be written)
+                std::vector<o2::tpc::CommonMode> comGroup; // group of digits related to single trigger
+                auto comGroupPtr = &comGroup;
+                auto br = getOrMakeBranch(*outputtree.get(), "TPCCommonMode", sector, comGroupPtr);
+                for (auto grp : trigS) {
+                  comGroup.clear();
+                  for (int i = 0; i < grp.getEntries(); i++) {
+                    comGroup.emplace_back(commonModeData[grp.getFirstEntry() + i]); // fetch digits of given trigger
+                  }
+                  br->Fill();
+                }
+                br->ResetAddress();
+              }
+            }
+          }
+        } // end common mode case
+
+        if (labelsdone[d] && digitsdone[d] && commonmodedone[d]) {
           LOG(INFO) << "CHANNEL " << d << " DONE ";
 
           // we must increase the checksum only once
           // prevent this by invalidating ...
           labelsdone[d] = false;
           digitsdone[d] = false;
+          commonmodedone[d] = false;
 
           finishchecksum += (d + 1); // + 1 since d starts at 0 ... important for the checksum test
           if (isComplete(finishchecksum)) {
@@ -310,6 +361,8 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
                                   static_cast<SubSpecificationType>(d), Lifetime::Timeframe}); // groupping in triggers
     inputs.emplace_back(InputSpec{(*labelchannelname.get())[d].c_str(), "TPC", "DIGITSMCTR",
                                   static_cast<SubSpecificationType>(d), Lifetime::Timeframe});
+    inputs.emplace_back(InputSpec{(*commonModechannelname.get())[d].c_str(), "TPC", "COMMONMODE",
+                                  static_cast<SubSpecificationType>(d), Lifetime::Timeframe}); // digit input
   }
 
   return DataProcessorSpec{

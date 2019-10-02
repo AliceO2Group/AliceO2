@@ -156,10 +156,12 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
 }
 
 void Digitizer::flush(std::vector<o2::tpc::Digit>& digits,
-                      o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels, bool finalFlush)
+                      o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels,
+                      std::vector<o2::tpc::CommonMode>& commonModeOutput,
+                      bool finalFlush)
 {
   static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
-  mDigitContainer.fillOutputContainer(digits, labels, mSector, sampaProcessing.getTimeBinFromTime(mEventTime), mIsContinuous, finalFlush);
+  mDigitContainer.fillOutputContainer(digits, labels, commonModeOutput, mSector, sampaProcessing.getTimeBinFromTime(mEventTime), mIsContinuous, finalFlush);
 }
 
 void Digitizer::enableSCDistortions(SpaceCharge::SCDistortionType distortionType, TH3* hisInitialSCDensity, int nZSlices, int nPhiBins, int nRBins)
