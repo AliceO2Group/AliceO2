@@ -74,9 +74,11 @@ class Digitizer
   /// Flush the data
   /// \param digits Container for the digits
   /// \param labels Container for the MC labels
+  /// \param commonModeOutput Output container for the common mode
   /// \param finalFlush Flag whether the whole container is dumped
   void flush(std::vector<o2::tpc::Digit>& digits,
-             o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels, bool finalFlush = false);
+             o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels,
+             std::vector<o2::tpc::CommonMode>& commonModeOutput, bool finalFlush = false);
 
   /// Set the sector to be processed
   /// \param sec Sector to be processed

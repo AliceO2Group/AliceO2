@@ -203,6 +203,15 @@ class TPCDPLDigitizerTask
                                    header},
                             const_cast<std::vector<o2::tpc::Digit>&>(digits));
     };
+    // lambda that snapshots the common mode vector to be sent out; prepares and attaches header with sector information
+    auto snapshotCommonMode = [this, sector, &pc, activeSectors](std::vector<o2::tpc::CommonMode> const& commonMode) {
+      o2::tpc::TPCSectorHeader header{sector};
+      header.activeSectors = activeSectors;
+      // note that snapshoting only works with non-const references (to be fixed?)
+      pc.outputs().snapshot(Output{"TPC", "COMMONMODE", static_cast<SubSpecificationType>(mChannel), Lifetime::Timeframe,
+                                   header},
+                            const_cast<std::vector<o2::tpc::CommonMode>&>(commonMode));
+    };
     // lambda that snapshots labels to be sent out; prepares and attaches header with sector information
     auto snapshotLabels = [this, &sector, &pc, activeSectors](o2::dataformats::MCTruthContainer<o2::MCCompLabel> const& labels) {
       o2::tpc::TPCSectorHeader header{sector};
@@ -223,16 +232,19 @@ class TPCDPLDigitizerTask
 
     std::vector<o2::tpc::Digit> digitsAccum;                       // accumulator for digits
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum; // timeframe accumulator for labels
+    std::vector<CommonMode> commonModeAccum;
     std::vector<DigiGroupRef> eventAccum;
 
     // no more tasks can be marked with a negative sector
     if (sector < 0) {
       digitsAccum.clear();
       labelAccum.clear();
+      commonModeAccum.clear();
       std::vector<DigiGroupRef> evAccDummy;
 
       snapshotEvents(evAccDummy);
       snapshotDigits(digitsAccum);
+      snapshotCommonMode(commonModeAccum);
       snapshotLabels(labelAccum);
 
       if (sector == -1) {
@@ -248,14 +260,16 @@ class TPCDPLDigitizerTask
 
     auto& eventParts = context->getEventParts();
 
-    auto flushDigitsAndLabels = [this, &digitsAccum, &labelAccum](bool finalFlush = false) {
+    auto flushDigitsAndLabels = [this, &digitsAccum, &labelAccum, &commonModeAccum](bool finalFlush = false) {
       // flush previous buffer
       mDigits.clear();
       mLabels.clear();
-      mDigitizer.flush(mDigits, mLabels, finalFlush);
-      LOG(INFO) << "TPC: Flushed " << mDigits.size() << " digits and " << mLabels.getNElements() << " labels";
+      mCommonMode.clear();
+      mDigitizer.flush(mDigits, mLabels, mCommonMode, finalFlush);
+      LOG(INFO) << "TPC: Flushed " << mDigits.size() << " digits, " << mLabels.getNElements() << " labels and " << mCommonMode.size() << " common mode entries";
       std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(digitsAccum));
       labelAccum.mergeAtBack(mLabels);
+      std::copy(mCommonMode.begin(), mCommonMode.end(), std::back_inserter(commonModeAccum));
     };
 
     static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
@@ -309,6 +323,7 @@ class TPCDPLDigitizerTask
     // send out to next stage
     snapshotEvents(eventAccum);
     snapshotDigits(digitsAccum);
+    snapshotCommonMode(commonModeAccum);
     snapshotLabels(labelAccum);
 
     timer.Stop();
@@ -320,6 +335,7 @@ class TPCDPLDigitizerTask
   std::vector<TChain*> mSimChains;
   std::vector<o2::tpc::Digit> mDigits;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels;
+  std::vector<o2::tpc::CommonMode> mCommonMode;
   bool mWriteGRP;
   int mChannel;
 };
@@ -338,6 +354,7 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP)
   outputs.emplace_back("TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   outputs.emplace_back("TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   outputs.emplace_back("TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  outputs.emplace_back("TPC", "COMMONMODE", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   if (writeGRP) {
     outputs.emplace_back("TPC", "ROMode", 0, Lifetime::Timeframe);
     LOG(INFO) << "TPC: Channel " << channel << " will supply ROMode";
