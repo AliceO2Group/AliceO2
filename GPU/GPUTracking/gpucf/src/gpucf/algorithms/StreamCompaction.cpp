@@ -21,7 +21,7 @@ StreamCompaction::Worker::Worker(
   cl::Device device,
   DeviceMemory mem,
   CompType type)
-  : nativeScanUpStart(prg, "nativeScanUpStart"), nativeScanUp(prg, "nativeScanUp"), nativeScanTop(prg, "nativeScanTop"), nativeScanDown(prg, "nativeScanDown"), compactDigit(prg, "compactDigit"), compactCluster(prg, "compactClusterNative"), mem(mem), type(type)
+  : nativeScanUpStart(prg, "nativeScanUpStart_kernel"), nativeScanUp(prg, "nativeScanUp_kernel"), nativeScanTop(prg, "nativeScanTop_kernel"), nativeScanDown(prg, "nativeScanDown_kernel"), compactDigit(prg, "compactDigit_kernel"), compactCluster(prg, "compactClusterNative_kernel"), mem(mem), type(type)
 {
   nativeScanUpStart.getWorkGroupInfo(
     device,
@@ -82,14 +82,14 @@ void StreamCompaction::setDigitNum(size_t digitnum, size_t workernum)
 
   mems = std::stack<DeviceMemory>();
 
-  cl::Kernel scanUp(*prg, "nativeScanUp");
+  cl::Kernel scanUp(*prg, "nativeScanUp_kernel");
   size_t scanUpWorkGroupSize;
   scanUp.getWorkGroupInfo(
     device,
     CL_KERNEL_WORK_GROUP_SIZE,
     &scanUpWorkGroupSize);
 
-  cl::Kernel scanTop(*prg, "nativeScanTop");
+  cl::Kernel scanTop(*prg, "nativeScanTop_kernel");
   size_t scanTopWorkGroupSize;
   scanTop.getWorkGroupInfo(
     device,

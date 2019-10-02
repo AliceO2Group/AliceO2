@@ -35,7 +35,7 @@ namespace gpu
 class GPUCommonMath
 {
  public:
-  GPUhdni() static float2 MakeFloat2(float x, float y);
+  GPUhdni() static float2 MakeFloat2(float x, float y); // TODO: Find better appraoch that is constexpr
 
   template <class T>
   GPUhd() static T Min(const T x, const T y);

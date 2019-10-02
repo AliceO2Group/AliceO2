@@ -65,6 +65,9 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCCompressionKernels.cxx"
 #include "GPUTPCCompressionTrackModel.cxx"
 
+// Files for TPC Cluster Finder
+#include "GPUTPCClusterFinderKernels.cxx"
+
 // Files for TRD Tracking
 #include "GPUTRDTrackerGPU.cxx"
 #include "GPUTRDTrack.cxx"
