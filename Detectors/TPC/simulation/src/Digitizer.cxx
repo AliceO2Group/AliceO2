@@ -40,7 +40,7 @@ void Digitizer::init()
 {
   // Calculate distortion lookup tables if initial space-charge density is provided
   if (mUseSCDistortions) {
-    mSpaceChargeHandler->init();
+    mSpaceCharge->init();
   }
 }
 
@@ -79,7 +79,7 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
 
       // Distort the electron position in case space-charge distortions are used
       if (mUseSCDistortions) {
-        mSpaceChargeHandler->distortElectron(posEle);
+        mSpaceCharge->distortElectron(posEle);
       }
 
       /// Remove electrons that end up more than three sigma of the hit's average diffusion away from the current sector
@@ -164,14 +164,20 @@ void Digitizer::flush(std::vector<o2::tpc::Digit>& digits,
   mDigitContainer.fillOutputContainer(digits, labels, commonModeOutput, mSector, sampaProcessing.getTimeBinFromTime(mEventTime), mIsContinuous, finalFlush);
 }
 
-void Digitizer::enableSCDistortions(SpaceCharge::SCDistortionType distortionType, TH3* hisInitialSCDensity, int nZSlices, int nPhiBins, int nRBins)
+void Digitizer::setUseSCDistortions(SpaceCharge::SCDistortionType distortionType, TH3* hisInitialSCDensity, int nZSlices, int nPhiBins, int nRBins)
 {
   mUseSCDistortions = true;
-  if (!mSpaceChargeHandler) {
-    mSpaceChargeHandler = std::make_unique<SpaceCharge>(nZSlices, nPhiBins, nRBins);
+  if (!mSpaceCharge) {
+    mSpaceCharge = std::make_unique<SpaceCharge>(nRBins, nPhiBins, nZSlices);
   }
-  mSpaceChargeHandler->setSCDistortionType(distortionType);
+  mSpaceCharge->setSCDistortionType(distortionType);
   if (hisInitialSCDensity) {
-    mSpaceChargeHandler->setInitialSpaceChargeDensity(hisInitialSCDensity);
+    mSpaceCharge->setInitialSpaceChargeDensity(hisInitialSCDensity);
   }
+}
+
+void Digitizer::setUseSCDistortions(SpaceCharge* spaceCharge)
+{
+  mUseSCDistortions = true;
+  mSpaceCharge.reset(spaceCharge);
 }

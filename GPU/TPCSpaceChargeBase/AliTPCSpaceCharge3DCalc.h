@@ -252,11 +252,11 @@ class AliTPCSpaceCharge3DCalc
   Float_t fCorrectionFactor = 1.f;   ///< Space Charge Correction factor in comparison to initialized
 
   Bool_t fInitLookUp = kFALSE; ///< flag to check if the Look Up table was created
-  Double_t* fListR;                  //[fNRRows] list of r-coordinate of grids
-  Double_t* fListPhi;                //[fNPhiSlices] list of \f$ \phi\f$ -coordinate of grids
-  Double_t* fListZ;                  //[fNZColumns]
-  Double_t* fListZA;                 //[fNZColumns]  list of z-coordinate of grids
-  Double_t* fListZC;                 //[fNZColumns] list of z-coordinate of grids
+  Double_t* fListR;            //[fNRRows] list of r-coordinate of grids
+  Double_t* fListPhi;          //[fNPhiSlices] list of \f$ \phi\f$ -coordinate of grids
+  Double_t* fListZ;            //[fNZColumns]
+  Double_t* fListZA;           //[fNZColumns]  list of z-coordinate of grids
+  Double_t* fListZC;           //[fNZColumns] list of z-coordinate of grids
   // / TODO: fListPotentialBoundary arrays are never used in the code. Remove?
   // Double_t* fListPotentialBoundaryA; //[(fNRRows + fNZColumns) * 2 * fNPhiSlices]
   // Double_t* fListPotentialBoundaryC; //[(fNRRows + fNZColumns) * 2 * fNPhiSlices]

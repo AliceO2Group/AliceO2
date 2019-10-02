@@ -15,7 +15,6 @@
 /*
  * TODO:
  *   - fix constants (more precise values, export into TPCBase/Constants)
- *   - replace TMath functions/constants by std:math functions and o2 constants?
  *   - granularity in r, rphi, z?
  *   - accumulate and add next slice
  *     - event based: propagate charge(ievent-1), add charge(ievent)
@@ -25,7 +24,8 @@
  *                   if (ev.time+dr.time-mTime0 < mLengthTimebin) => add2NextSlice
  *                   if  (mLengthTimebin < ev.time+dr.time-mTime0 < mLengthTimebin+100us) add2NextToNextSlice
  *                     - apply updated distortions to ions in NextToNextSlice when space charge is propagated; need to store exact positions (e.g. std::vector<std::vector<float>>)!
- *   - ion transport along the E field -> Jacobi matrices?
+ *   - ion transport along the E field -> Continuity equation
+ *     - Validate results by comparison to single ion transport
  *   - what about primary ionization?
  *   - irregular bin sizes in r and rphi
  */
@@ -62,16 +62,16 @@ class SpaceCharge
   /// Default constructor using a grid size of (129 z bins, 180 phi bins, 129 r bins)
   SpaceCharge();
   /// Constructor with grid size specified by user
-  /// \param nZSlices number of grid points in z, must be (2**N)+1
-  /// \param nPhiBins number of grid points in phi
   /// \param nRBins number of grid points in r, must be (2**N)+1
-  SpaceCharge(int nZSlices, int nPhiBins, int nRBins);
+  /// \param nPhiBins number of grid points in phi
+  /// \param nZSlices number of grid points in z, must be (2**N)+1
+  SpaceCharge(int nRBins, int nPhiBins, int nZSlices);
   /// Constructor with grid size and interpolation order specified by user
-  /// \param nZSlices number of grid points in z, must be (2**N)+1
-  /// \param nPhiBins number of grid points in phi
   /// \param nRBins number of grid points in r, must be (2**N)+1
+  /// \param nPhiBins number of grid points in phi
+  /// \param nZSlices number of grid points in z, must be (2**N)+1
   /// \param interpolationOrder order used for interpolation of lookup tables
-  SpaceCharge(int nZSlices, int nPhiBins, int nRBins, int interpolationOrder);
+  SpaceCharge(int nRBins, int nPhiBins, int nZSlices, int interpolationOrder);
 
   // Destructor
   virtual ~SpaceCharge() = default;
@@ -148,7 +148,7 @@ class SpaceCharge
   /// \param ir r bin
   /// \param iz z bin
   /// \return space-charge density in given bin in C/cm^3/epsilon0
-  float getChargeDensity(Side side, int iphi, int ir, int iz);
+  float getChargeDensity(Side side, int ir, int iphi, int iz);
 
   /// Set the space-charge distortions model
   /// \param distortionType distortion type (constant or realistic)
@@ -157,10 +157,13 @@ class SpaceCharge
   SCDistortionType getSCDistortionType() const { return mSCDistortionType; }
 
   /// Return the ion drift time for one z bin
-  double getDriftTimeZSlice() const { return mDriftTimeZSlice; }
-  double getVoxelSizePhi() const { return mWidthPhiBin; }
-  double getVoxelSizeR() const { return mLengthRBin; }
-  double getVoxelSizeZ() const { return mLengthZSlice; }
+  double getDriftTimeZSlice() const { return mDriftTimeVoxel; }
+  double getNPhi() const { return mNPhi; }
+  double getNR() const { return mNR; }
+  double getNZ() const { return mNZ; }
+  double getVoxelSizePhi() const { return mVoxelSizePhi; }
+  double getVoxelSizeR() const { return mVoxelSizeR; }
+  double getVoxelSizeZ() const { return mVoxelSizeZ; }
   std::vector<double> getCoordinatesPhi() const { return mCoordPhi; }
   std::vector<double> getCoordinatesR() const { return mCoordR; }
   std::vector<double> getCoordinatesZ() const { return mCoordZ; }
@@ -180,8 +183,8 @@ class SpaceCharge
   static constexpr float DvDEoverv0 = 0.0025; //!<! v'(E) / v0 = K / (K*E0) for ions, used in dz calculation
   static const float sEzField;                //!<! nominal drift field
 
-  static constexpr int MaxZSlices = 200;     //!<! default number of z slices (1 ms slices)
-  static constexpr int MaxPhiBins = 360;     //!<! default number of phi bins
+  static constexpr int MaxNZ = 200;          //!<! default number of z slices (1 ms slices)
+  static constexpr int MaxNPhi = 360;        //!<! default number of phi bins
   static constexpr float DriftLength = 250.; //!<! drift length of the TPC in (cm)
   // ion mobility K = 3.0769231 cm^2/(Vs) in Ne-CO2 90-10 published by A. Deisting
   // v_drift = K * E = 3.0769231 cm^2/(Vs) * 400 V/cm = 1230.7692 cm/s
@@ -190,13 +193,13 @@ class SpaceCharge
 
   const int mInterpolationOrder; ///< order for interpolation of lookup tables: 2==quadratic, >2==cubic spline
 
-  const int mNZSlices;           ///< number of z slices used in lookup tables
-  const int mNPhiBins;           ///< number of phi bins used in lookup tables
-  const int mNRBins;             ///< number of r bins used in lookup tables
-  const double mLengthZSlice;    ///< length of one z bin (cm)
-  const double mDriftTimeZSlice; ///< ion drift time for one z slice (us)
-  const double mWidthPhiBin;     ///< width of one phi bin (radians)
-  const double mLengthRBin;      ///< length of one r bin (cm)
+  const int mNZ;                ///< number of z slices used in lookup tables
+  const int mNPhi;              ///< number of phi bins used in lookup tables
+  const int mNR;                ///< number of r bins used in lookup tables
+  const double mVoxelSizeZ;     ///< length of one z bin (cm)
+  const double mDriftTimeVoxel; ///< ion drift time for one z slice (us)
+  const double mVoxelSizePhi;   ///< width of one phi bin (radians)
+  const double mVoxelSizeR;     ///< length of one r bin (cm)
 
   std::vector<double> mCoordZ;   ///< vector with coodinates of the z bins
   std::vector<double> mCoordPhi; ///< vector with coodinates of the phi bins
@@ -217,12 +220,12 @@ class SpaceCharge
   /// nominal E field only in z direction, distortions in r, phi, z due to space charge
   /// d = (dr, drphi, mLengthZSlice + dz)
   /// TODO: Eliminate the need for these matrices as members, they will be owned by AliTPCLookUpTable3DInterpolatorD. AliTPCLookUpTable3DInterpolatorD needs getters for the matrices and the constructor has to be modified.
-  TMatrixD** mMatrixIonDriftZA;                                       //!<! matrix to store ion drift in z direction along E field on A side in cm
-  TMatrixD** mMatrixIonDriftZC;                                       //!<! matrix to store ion drift in z direction along E field on A side in cm
-  TMatrixD** mMatrixIonDriftRPhiA;                                    //!<! matrix to store ion drift in rphi direction along E field on A side in cm
-  TMatrixD** mMatrixIonDriftRPhiC;                                    //!<! matrix to store ion drift in rphi direction along E field on A side in cm
-  TMatrixD** mMatrixIonDriftRA;                                       //!<! matrix to store ion drift in radial direction along E field on A side in cm
-  TMatrixD** mMatrixIonDriftRC;                                       //!<! matrix to store ion drift in radial direction along E field on C side in cm
+  TMatrixD** mMatrixIonDriftZA;    //!<! matrix to store ion drift in z direction along E field on A side in cm
+  TMatrixD** mMatrixIonDriftZC;    //!<! matrix to store ion drift in z direction along E field on A side in cm
+  TMatrixD** mMatrixIonDriftRPhiA; //!<! matrix to store ion drift in rphi direction along E field on A side in cm
+  TMatrixD** mMatrixIonDriftRPhiC; //!<! matrix to store ion drift in rphi direction along E field on A side in cm
+  TMatrixD** mMatrixIonDriftRA;    //!<! matrix to store ion drift in radial direction along E field on A side in cm
+  TMatrixD** mMatrixIonDriftRC;    //!<! matrix to store ion drift in radial direction along E field on C side in cm
   /// TODO: these lookup tables should be objects?
   std::unique_ptr<AliTPCLookUpTable3DInterpolatorD> mLookUpIonDriftA; ///< lookup table for ion drift along E field on A side in cm
   std::unique_ptr<AliTPCLookUpTable3DInterpolatorD> mLookUpIonDriftC; ///< lookup table for ion drift along E field on C side in cm
