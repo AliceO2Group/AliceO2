@@ -21,6 +21,7 @@
 #include "TF1.h"
 #include "TH3F.h"
 #include "TMatrixD.h"
+
 #include "AliTPCPoissonSolver.h"
 #include "AliTPCLookUpTable3DInterpolatorD.h"
 #include "AliTPC3DCylindricalInterpolator.h"
@@ -241,123 +242,123 @@ class AliTPCSpaceCharge3DCalc
   void SetIntegrationStrategy(Int_t integrationStrategy) { fIntegrationStrategy = integrationStrategy; }
 
  private:
-  static const Int_t kNMaxPhi = 360;
-  Profile myProfile;
-  Int_t fNRRows = 129;             ///< the maximum on row-slices so far ~ 2cm slicing
-  Int_t fNPhiSlices = 180;         ///< the maximum of phi-slices so far = (8 per sector)
-  Int_t fNZColumns = 129;          ///< the maximum on column-slices so  ~ 2cm slicing
-  Float_t fC0 = 0.f;               ///< coefficient C0 (compare Jim Thomas's notes for definitions)
-  Float_t fC1 = 0.f;               ///< coefficient C1 (compare Jim Thomas's notes for definitions)
-  Float_t fCorrectionFactor = 1.f; ///< Space Charge Correction factor in comparison to initialized
+  static const Int_t kNMaxPhi = 360; //!<!
+  Profile myProfile;                 //!<!
+  Int_t fNRRows = 129;               ///< the maximum on row-slices so far ~ 2cm slicing
+  Int_t fNPhiSlices = 180;           ///< the maximum of phi-slices so far = (8 per sector)
+  Int_t fNZColumns = 129;            ///< the maximum on column-slices so  ~ 2cm slicing
+  Float_t fC0 = 0.f;                 ///< coefficient C0 (compare Jim Thomas's notes for definitions)
+  Float_t fC1 = 0.f;                 ///< coefficient C1 (compare Jim Thomas's notes for definitions)
+  Float_t fCorrectionFactor = 1.f;   ///< Space Charge Correction factor in comparison to initialized
 
-  Bool_t fInitLookUp = kFALSE;       ///< flag to check if the Look Up table was created
+  Bool_t fInitLookUp = kFALSE; ///< flag to check if the Look Up table was created
   Double_t* fListR;                  //[fNRRows] list of r-coordinate of grids
   Double_t* fListPhi;                //[fNPhiSlices] list of \f$ \phi\f$ -coordinate of grids
   Double_t* fListZ;                  //[fNZColumns]
   Double_t* fListZA;                 //[fNZColumns]  list of z-coordinate of grids
   Double_t* fListZC;                 //[fNZColumns] list of z-coordinate of grids
-  Double_t* fListPotentialBoundaryA; //[fNRRows + fNNColumns] * 2 * fNPhiSlices
-  Double_t* fListPotentialBoundaryC; //[fNRRows + fNNColumns] * 2 * fNPhiSlices
+  // / TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+  // Double_t* fListPotentialBoundaryA; //[(fNRRows + fNZColumns) * 2 * fNPhiSlices]
+  // Double_t* fListPotentialBoundaryC; //[(fNRRows + fNZColumns) * 2 * fNPhiSlices]
 
-  Int_t fCorrectionType = 1;      ///> use regular or irregular grid method
-  Int_t fInterpolationOrder = 5;  ///>  Order of interpolation (1-> tri linear, 2->Lagrange interpolation order 2, 3> cubic spline)
-  Int_t fIrregularGridSize = 3;   ///>  Size of irregular grid cubes for interpolation (min 3)
-  Int_t fRBFKernelType = 0;       ///>  RBF kernel type
-  Int_t fIntegrationStrategy = 0; ///> Strategy for integration
+  Int_t fCorrectionType = 1;      ///< use regular or irregular grid method
+  Int_t fInterpolationOrder = 5;  ///<  Order of interpolation (1-> tri linear, 2->Lagrange interpolation order 2, 3> cubic spline)
+  Int_t fIrregularGridSize = 3;   ///<  Size of irregular grid cubes for interpolation (min 3)
+  Int_t fRBFKernelType = 0;       ///<  RBF kernel type
+  Int_t fIntegrationStrategy = 0; ///< Strategy for integration
 
-  TMatrixD* fMatrixIntDistDrEzA[kNMaxPhi];    //[kNMaxPhi] Matrices for storing Global distortion  \f$ R \f$ direction for Side A
-  TMatrixD* fMatrixIntDistDPhiREzA[kNMaxPhi]; //[kNMaxPhi] Matrices for storing Global \f$ \phi R \f$ Distortion for Side A
-  TMatrixD* fMatrixIntDistDzA[kNMaxPhi];      //[kNMaxPhi] Matrices for storing Global \f$ z \f$ Distortion for Side A
+  TMatrixD** fMatrixIntDistDrEzA;    //!<! Matrices for storing Global distortion  \f$ R \f$ direction for Side A
+  TMatrixD** fMatrixIntDistDPhiREzA; //!<! Matrices for storing Global \f$ \phi R \f$ Distortion for Side A
+  TMatrixD** fMatrixIntDistDzA;      //!<! Matrices for storing Global \f$ z \f$ Distortion for Side A
 
-  TMatrixD* fMatrixIntDistDrEzC[kNMaxPhi];    //[kNMaxPhi] Matrices for storing Global  \f$ R \f$ direction for Side C
-  TMatrixD* fMatrixIntDistDPhiREzC[kNMaxPhi]; //[kNMaxPhi] Matrices for storing Global \f$ \phi R \f$ Distortion for Side C
-  TMatrixD* fMatrixIntDistDzC[kNMaxPhi];      //[kNMaxPhi] Matrices for storing Global \f$ z \f$ Distortion for Side C
+  TMatrixD** fMatrixIntDistDrEzC;    //!<! Matrices for storing Global  \f$ R \f$ direction for Side C
+  TMatrixD** fMatrixIntDistDPhiREzC; //!<! Matrices for storing Global \f$ \phi R \f$ Distortion for Side C
+  TMatrixD** fMatrixIntDistDzC;      //!<! Matrices for storing Global \f$ z \f$ Distortion for Side C
 
-  TMatrixD* fMatrixErOverEzA[kNMaxPhi];   //[kNMaxPhi] Matrices for storing Er Over Ez for intermediate value for side A
-  TMatrixD* fMatrixEPhiOverEzA[kNMaxPhi]; //[kNMaxPhi] Matrices for storing EPhi Over Ez for intermediate value for side A
-  TMatrixD* fMatrixDeltaEzA[kNMaxPhi];    //[kNMaxPhi] Matrices for storing delta Ez for intermediate value for side A
+  TMatrixD** fMatrixErOverEzA;   //!<! Matrices for storing Er Over Ez for intermediate value for side A
+  TMatrixD** fMatrixEPhiOverEzA; //!<! Matrices for storing EPhi Over Ez for intermediate value for side A
+  TMatrixD** fMatrixDeltaEzA;    //!<! Matrices for storing delta Ez for intermediate value for side A
 
-  TMatrixD* fMatrixErOverEzC[kNMaxPhi];   //[kNMaxPhi] Matrices for storing Er Over Ez for intermediate value for Side C
-  TMatrixD* fMatrixEPhiOverEzC[kNMaxPhi]; //[kNMaxPhi] Matrices for storing EPhi Over Ez for intermediate value for Side C
-  TMatrixD* fMatrixDeltaEzC[kNMaxPhi];    //[kNMaxPhi] Matrices for storing delta Ez for intermediate value for side A
+  TMatrixD** fMatrixErOverEzC;   //!<! Matrices for storing Er Over Ez for intermediate value for Side C
+  TMatrixD** fMatrixEPhiOverEzC; //!<! Matrices for storing EPhi Over Ez for intermediate value for Side C
+  TMatrixD** fMatrixDeltaEzC;    //!<! Matrices for storing delta Ez for intermediate value for side A
 
-  TMatrixD* fMatrixIntCorrDrEzA[kNMaxPhi];    //[kNMaxPhi] Matrices for storing Global  \f$  R \f$ correction for side A
-  TMatrixD* fMatrixIntCorrDPhiREzA[kNMaxPhi]; //[kNMaxPhi] Matrices for storing Global  \f$ \phi R \f$  correction for side A
-  TMatrixD* fMatrixIntCorrDzA[kNMaxPhi];      //[kNMaxPhi] Matrices for storing Global  \f$ X \f$ correction for side A
+  TMatrixD** fMatrixIntCorrDrEzA;    //!<! Matrices for storing Global  \f$  R \f$ correction for side A
+  TMatrixD** fMatrixIntCorrDPhiREzA; //!<! Matrices for storing Global  \f$ \phi R \f$  correction for side A
+  TMatrixD** fMatrixIntCorrDzA;      //!<! Matrices for storing Global  \f$ X \f$ correction for side A
 
-  TMatrixD* fMatrixIntCorrDrEzC[kNMaxPhi];    //[kNMaxPhi]  Matrices for storing Global  \f$  R \f$ correction for side C
-  TMatrixD* fMatrixIntCorrDPhiREzC[kNMaxPhi]; //[kNMaxPhi] Matrices for storing Global  \f$ \phi R \f$  correction for side C
-  TMatrixD* fMatrixIntCorrDzC[kNMaxPhi];      //[kNMaxPhi] Matrices for storing Global  \f$ X \f$ correction for side C
+  TMatrixD** fMatrixIntCorrDrEzC;    //!<!  Matrices for storing Global  \f$  R \f$ correction for side C
+  TMatrixD** fMatrixIntCorrDPhiREzC; //!<! Matrices for storing Global  \f$ \phi R \f$  correction for side C
+  TMatrixD** fMatrixIntCorrDzC;      //!<! Matrices for storing Global  \f$ X \f$ correction for side C
 
-  TMatrixD* fMatrixIntCorrDrEzIrregularA[kNMaxPhi];    //[kNMaxPhi] Matrices for storing global  \f$ R \f$ correction irregular type for side A
-  TMatrixD* fMatrixIntCorrDPhiREzIrregularA[kNMaxPhi]; //[kNMaxPhi] Matrices for storing Global \f$ \phi R \f$ correction irregular type for side A
-  TMatrixD* fMatrixIntCorrDzIrregularA[kNMaxPhi];      //[kNMaxPhi] Matrices for storing Global \f$ z \f$ correction irregular type for side A
+  TMatrixD** fMatrixIntCorrDrEzIrregularA;    //!<! Matrices for storing global  \f$ R \f$ correction irregular type for side A
+  TMatrixD** fMatrixIntCorrDPhiREzIrregularA; //!<! Matrices for storing Global \f$ \phi R \f$ correction irregular type for side A
+  TMatrixD** fMatrixIntCorrDzIrregularA;      //!<! Matrices for storing Global \f$ z \f$ correction irregular type for side A
 
-  TMatrixD* fMatrixRListIrregularA[kNMaxPhi];   //[kNMaxPhi] Matrices for storing distorted \f$ R \f$ side A
-  TMatrixD* fMatrixPhiListIrregularA[kNMaxPhi]; //[kNMaxPhi] Matrices for storing distorted  \f$ \phi  \f$ side A
-  TMatrixD* fMatrixZListIrregularA[kNMaxPhi];   //[kNMaxPhi] Matrices for storing distorted \f$ z \f$ side A
+  TMatrixD** fMatrixRListIrregularA;   //!<! Matrices for storing distorted \f$ R \f$ side A
+  TMatrixD** fMatrixPhiListIrregularA; //!<! Matrices for storing distorted  \f$ \phi  \f$ side A
+  TMatrixD** fMatrixZListIrregularA;   //!<! Matrices for storing distorted \f$ z \f$ side A
 
-  TMatrixD* fMatrixIntCorrDrEzIrregularC[kNMaxPhi];    //[kNMaxPhi] Matrices for storing Global  \f$ R \f$ correction irregular type for side C
-  TMatrixD* fMatrixIntCorrDPhiREzIrregularC[kNMaxPhi]; //[kNMaxPhi] Matrices for storing Global \f$ \phi R \f$  correction irregular type for side C
-  TMatrixD* fMatrixIntCorrDzIrregularC[kNMaxPhi];      //[kNMaxPhi] Matrices for storing Global \f$ z \f$  correction irregular type for side C
+  TMatrixD** fMatrixIntCorrDrEzIrregularC;    //!<! Matrices for storing Global  \f$ R \f$ correction irregular type for side C
+  TMatrixD** fMatrixIntCorrDPhiREzIrregularC; //!<! Matrices for storing Global \f$ \phi R \f$  correction irregular type for side C
+  TMatrixD** fMatrixIntCorrDzIrregularC;      //!<! Matrices for storing Global \f$ z \f$  correction irregular type for side C
 
-  TMatrixD* fMatrixRListIrregularC[kNMaxPhi];   //[kNMaxPhi] Matrices for storing distorted \f$ R \f$ side C
-  TMatrixD* fMatrixPhiListIrregularC[kNMaxPhi]; //[kNMaxPhi] Matrices for storing distorted  \f$ \phi  \f$ side C
-  TMatrixD* fMatrixZListIrregularC[kNMaxPhi];   //[kNMaxPhi] Matrices for storing distorted \f$ z \f$ side C
+  TMatrixD** fMatrixRListIrregularC;   //!<! Matrices for storing distorted \f$ R \f$ side C
+  TMatrixD** fMatrixPhiListIrregularC; //!<! Matrices for storing distorted  \f$ \phi  \f$ side C
+  TMatrixD** fMatrixZListIrregularC;   //!<! Matrices for storing distorted \f$ z \f$ side C
 
   // look up for charge densities
-  TMatrixD* fMatrixChargeA[kNMaxPhi];        //[kNMaxPhi] Matrices for storing input charge densities side A
-  TMatrixD* fMatrixChargeC[kNMaxPhi];        //[kNMaxPhi] Matrices for storing input charge densities side C
-  TMatrixD* fMatrixChargeInverseA[kNMaxPhi]; //[kNMaxPhi] Matrices for storing charge densities from backward algorithm side A
-  TMatrixD* fMatrixChargeInverseC[kNMaxPhi]; //[kNMaxPhi] Matrices for storing charge densities from backward algorithm side C
+  TMatrixD** fMatrixChargeA;        //!<! Matrices for storing input charge densities side A
+  TMatrixD** fMatrixChargeC;        //!<! Matrices for storing input charge densities side C
+  TMatrixD** fMatrixChargeInverseA; //!<! Matrices for storing charge densities from backward algorithm side A
+  TMatrixD** fMatrixChargeInverseC; //!<! Matrices for storing charge densities from backward algorithm side C
 
-  TMatrixD* fMatrixPotentialA[kNMaxPhi]; //[kNMaxPhi] Matrices for storing potential side A
-  TMatrixD* fMatrixPotentialC[kNMaxPhi]; //[kNMaxPhi] Matrices for storing potential side C
+  TMatrixD** fMatrixPotentialA; //!<! Matrices for storing potential side A
+  TMatrixD** fMatrixPotentialC; //!<! Matrices for storing potential side C
 
-  AliTPC3DCylindricalInterpolator* fInterpolatorChargeA;        //-> interpolator for charge densities side A
-  AliTPC3DCylindricalInterpolator* fInterpolatorChargeC;        //-> interpolator for charge densities side C
-  AliTPC3DCylindricalInterpolator* fInterpolatorPotentialA;     //-> interpolator for charge densities side A
-  AliTPC3DCylindricalInterpolator* fInterpolatorPotentialC;     //-> interpolator for charge densities side C
-  AliTPC3DCylindricalInterpolator* fInterpolatorInverseChargeA; //-> interpolator for inverse charge densities side A
-  AliTPC3DCylindricalInterpolator* fInterpolatorInverseChargeC; //-> interpolator for inverse charge densities side C
+  AliTPC3DCylindricalInterpolator* fInterpolatorChargeA = nullptr;        //-> interpolator for charge densities side A
+  AliTPC3DCylindricalInterpolator* fInterpolatorChargeC = nullptr;        //-> interpolator for charge densities side C
+  AliTPC3DCylindricalInterpolator* fInterpolatorPotentialA = nullptr;     //-> interpolator for charge densities side A
+  AliTPC3DCylindricalInterpolator* fInterpolatorPotentialC = nullptr;     //-> interpolator for charge densities side C
+  AliTPC3DCylindricalInterpolator* fInterpolatorInverseChargeA = nullptr; //-> interpolator for inverse charge densities side A
+  AliTPC3DCylindricalInterpolator* fInterpolatorInverseChargeC = nullptr; //-> interpolator for inverse charge densities side C
 
-  AliTPCLookUpTable3DInterpolatorD* fLookupIntDistA;                   //-> look-up table for global distortion side A
-  AliTPCLookUpTable3DInterpolatorD* fLookupIntCorrA;                   //-> look-up table for global correction side A
-  AliTPCLookUpTable3DInterpolatorD* fLookupIntDistC;                   //-> look-up table for global distortion side C
-  AliTPCLookUpTable3DInterpolatorD* fLookupIntCorrC;                   //-> look-up table for global correction side C
-  AliTPCLookUpTable3DInterpolatorIrregularD* fLookupIntCorrIrregularA; //-> look-up table for global correction side A (method irregular)
-  AliTPCLookUpTable3DInterpolatorIrregularD* fLookupIntCorrIrregularC; //-> look-up table for global correction side C (method irregular)
-  AliTPCLookUpTable3DInterpolatorD* fLookupIntENoDriftA;               //-> look-up table for no drift integration side A
-  AliTPCLookUpTable3DInterpolatorD* fLookupIntENoDriftC;               //-> look-up table for no drift integration side C
-  AliTPCLookUpTable3DInterpolatorD* fLookupIntENoDrift;                //-> look-up table for no drift integration
-  AliTPCLookUpTable3DInterpolatorD* fLookupDistA;                      //->look-up table for local distortion side A
-  AliTPCLookUpTable3DInterpolatorD* fLookupDistC;                      //-> look-up table for local distortion side C
-  AliTPCLookUpTable3DInterpolatorD* fLookupInverseDistA;               //-> look-up table for local distortion (from inverse) side A
-  AliTPCLookUpTable3DInterpolatorD* fLookupInverseDistC;               //-> look-up table for local distortion (from inverse) side C
+  AliTPCLookUpTable3DInterpolatorD* fLookupIntDistA = nullptr;                   //-> look-up table for global distortion side A
+  AliTPCLookUpTable3DInterpolatorD* fLookupIntCorrA = nullptr;                   //-> look-up table for global correction side A
+  AliTPCLookUpTable3DInterpolatorD* fLookupIntDistC = nullptr;                   //-> look-up table for global distortion side C
+  AliTPCLookUpTable3DInterpolatorD* fLookupIntCorrC = nullptr;                   //-> look-up table for global correction side C
+  AliTPCLookUpTable3DInterpolatorIrregularD* fLookupIntCorrIrregularA = nullptr; //-> look-up table for global correction side A (method irregular)
+  AliTPCLookUpTable3DInterpolatorIrregularD* fLookupIntCorrIrregularC = nullptr; //-> look-up table for global correction side C (method irregular)
+  AliTPCLookUpTable3DInterpolatorD* fLookupIntENoDriftA = nullptr;               //-> look-up table for no drift integration side A
+  AliTPCLookUpTable3DInterpolatorD* fLookupIntENoDriftC = nullptr;               //-> look-up table for no drift integration side C
+  AliTPCLookUpTable3DInterpolatorD* fLookupDistA = nullptr;                      //-> look-up table for local distortion side A
+  AliTPCLookUpTable3DInterpolatorD* fLookupDistC = nullptr;                      //-> look-up table for local distortion side C
+  AliTPCLookUpTable3DInterpolatorD* fLookupInverseDistA = nullptr;               //-> look-up table for local distortion (from inverse) side A
+  AliTPCLookUpTable3DInterpolatorD* fLookupInverseDistC = nullptr;               //-> look-up table for local distortion (from inverse) side C
 
-  AliTPCLookUpTable3DInterpolatorD* fLookupElectricFieldA; //->look-up table for electric field side A
-  AliTPCLookUpTable3DInterpolatorD* fLookupElectricFieldC; //-> look-up table for electric field side C
+  AliTPCLookUpTable3DInterpolatorD* fLookupElectricFieldA = nullptr; //-> look-up table for electric field side A
+  AliTPCLookUpTable3DInterpolatorD* fLookupElectricFieldC = nullptr; //-> look-up table for electric field side C
 
-  TH3* fHistogram3DSpaceCharge;  //-> Histogram with the input space charge histogram - used as an optional input
-  TH3* fHistogram3DSpaceChargeA; //-> Histogram with the input space charge histogram - used as an optional input side A
-  TH3* fHistogram3DSpaceChargeC; //-> Histogram with the input space charge histogram - used as an optional input side C
-  TF1* fFormulaBoundaryIFCA;     //-> function define boundary values for IFC side A V(z) assuming symmetry in phi and r.
-  TF1* fFormulaBoundaryIFCC;     //-> function define boundary values for IFC side C V(z) assuming symmetry in phi and r.
-  TF1* fFormulaBoundaryOFCA;     //-> function define boundary values for OFC side A V(z) assuming symmetry in phi and r.
-  TF1* fFormulaBoundaryOFCC;     ///<- function define boundary values for IFC side C V(z) assuming symmetry in phi and r.
-  TF1* fFormulaBoundaryROCA;     ///<- function define boundary values for ROC side A V(r) assuming symmetry in phi and z.
-  TF1* fFormulaBoundaryROCC;     ///<- function define boundary values for ROC side V V(t) assuming symmetry in phi and z.
-  TF1* fFormulaBoundaryCE;       ///<- function define boundary values for CE V(z) assuming symmetry in phi and z.
+  TH3* fHistogram3DSpaceCharge = nullptr;  //!<! Histogram with the input space charge histogram - used as an optional input
+  TH3* fHistogram3DSpaceChargeA = nullptr; //!<! Histogram with the input space charge histogram - used as an optional input side A
+  TH3* fHistogram3DSpaceChargeC = nullptr; //!<! Histogram with the input space charge histogram - used as an optional input side C
+  TF1* fFormulaBoundaryIFCA = nullptr;     //!<! function define boundary values for IFC side A V(z) assuming symmetry in phi and r.
+  TF1* fFormulaBoundaryIFCC = nullptr;     //!<! function define boundary values for IFC side C V(z) assuming symmetry in phi and r.
+  TF1* fFormulaBoundaryOFCA = nullptr;     //!<! function define boundary values for OFC side A V(z) assuming symmetry in phi and r.
+  TF1* fFormulaBoundaryOFCC = nullptr;     //!<! function define boundary values for IFC side C V(z) assuming symmetry in phi and r.
+  TF1* fFormulaBoundaryROCA = nullptr;     //!<! function define boundary values for ROC side A V(r) assuming symmetry in phi and z.
+  TF1* fFormulaBoundaryROCC = nullptr;     //!<! function define boundary values for ROC side V V(t) assuming symmetry in phi and z.
+  TF1* fFormulaBoundaryCE = nullptr;       //!<! function define boundary values for CE V(z) assuming symmetry in phi and z.
 
-  TFormula* fFormulaPotentialV; ///<- potential V(r,rho,z) function
-  TFormula* fFormulaChargeRho;  ///<- charge density Rho(r,rho,z) function
+  TFormula* fFormulaPotentialV = nullptr; //!<! potential V(r,rho,z) function
+  TFormula* fFormulaChargeRho = nullptr;  //!<! charge density Rho(r,rho,z) function
 
   // analytic formula for E
-  TFormula* fFormulaEPhi; ///<- ePhi EPhi(r,rho,z) electric field (phi) function
-  TFormula* fFormulaEr;   ///<- er Er(r,rho,z) electric field (r) function
-  TFormula* fFormulaEz;   ///<- ez Ez(r,rho,z) electric field (z) function
+  TFormula* fFormulaEPhi = nullptr; //!<! ePhi EPhi(r,rho,z) electric field (phi) function
+  TFormula* fFormulaEr = nullptr;   //!<! er Er(r,rho,z) electric field (r) function
+  TFormula* fFormulaEz = nullptr;   //!<! ez Ez(r,rho,z) electric field (z) function
 
-  AliTPCPoissonSolver* fPoissonSolver; //-> Pointer to a poisson solver
+  AliTPCPoissonSolver* fPoissonSolver = nullptr; //-> Pointer to a poisson solver
 
   void ElectricField(TMatrixD** matricesV, TMatrixD** matricesEr, TMatrixD** matricesEPhi, TMatrixD** matricesEz,
                      const Int_t nRRow, const Int_t nZColumn, const Int_t phiSlices, const Float_t gridSizeR,
@@ -440,8 +441,7 @@ class AliTPCSpaceCharge3DCalc
   void InitAllocateMemory();
 
   /// \cond CLASSIMP
-  ClassDef(AliTPCSpaceCharge3DCalc,
-           1);
+  ClassDef(AliTPCSpaceCharge3DCalc, 1);
   /// \endcond
 };
 

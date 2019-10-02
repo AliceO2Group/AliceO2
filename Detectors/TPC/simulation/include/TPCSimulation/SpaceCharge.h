@@ -33,7 +33,7 @@
 #ifndef ALICEO2_TPC_SPACECHARGE_H
 #define ALICEO2_TPC_SPACECHARGE_H
 
-#include <TMatrixT.h>
+#include "TMatrixT.h"
 
 #include "AliTPCSpaceCharge3DCalc.h"
 #include "DataFormatsTPC/Defs.h"
@@ -53,7 +53,7 @@ class SpaceCharge
 {
  public:
   /// Enumerator for setting the space-charge distortion mode
-  enum SCDistortionType {
+  enum class SCDistortionType : int {
     SCDistortionsConstant = 0, // space-charge distortions constant over time
     SCDistortionsRealistic = 1 // realistic evolution of space-charge distortions over time
   };
@@ -74,7 +74,7 @@ class SpaceCharge
   SpaceCharge(int nZSlices, int nPhiBins, int nRBins, int interpolationOrder);
 
   // Destructor
-  ~SpaceCharge() = default;
+  virtual ~SpaceCharge() = default;
 
   /// Calculate lookup tables if initial space-charge density is provided
   void init();
@@ -177,16 +177,16 @@ class SpaceCharge
   /// \return space-charge density (C/cm^3/epsilon0)
   float ions2Charge(int rBin, int nIons);
 
-  static constexpr float DvDEoverv0 = 0.0025; //! v'(E) / v0 = K / (K*E0) for ions, used in dz calculation
-  static const float sEzField;                //! nominal drift field
+  static constexpr float DvDEoverv0 = 0.0025; //!<! v'(E) / v0 = K / (K*E0) for ions, used in dz calculation
+  static const float sEzField;                //!<! nominal drift field
 
-  static constexpr int MaxZSlices = 200;     //! default number of z slices (1 ms slices)
-  static constexpr int MaxPhiBins = 360;     //! default number of phi bins
-  static constexpr float DriftLength = 250.; //! drift length of the TPC in (cm)
+  static constexpr int MaxZSlices = 200;     //!<! default number of z slices (1 ms slices)
+  static constexpr int MaxPhiBins = 360;     //!<! default number of phi bins
+  static constexpr float DriftLength = 250.; //!<! drift length of the TPC in (cm)
   // ion mobility K = 3.0769231 cm^2/(Vs) in Ne-CO2 90-10 published by A. Deisting
   // v_drift = K * E = 3.0769231 cm^2/(Vs) * 400 V/cm = 1230.7692 cm/s
   // t_drift = 249.7 cm / v_drift = 203 ms
-  static constexpr float IonDriftTime = 2.02e5; //! drift time of ions for one full drift (us)
+  static constexpr float IonDriftTime = 2.02e5; //!<! drift time of ions for one full drift (us)
 
   const int mInterpolationOrder; ///< order for interpolation of lookup tables: 2==quadratic, >2==cubic spline
 
@@ -217,17 +217,19 @@ class SpaceCharge
   /// nominal E field only in z direction, distortions in r, phi, z due to space charge
   /// d = (dr, drphi, mLengthZSlice + dz)
   /// TODO: Eliminate the need for these matrices as members, they will be owned by AliTPCLookUpTable3DInterpolatorD. AliTPCLookUpTable3DInterpolatorD needs getters for the matrices and the constructor has to be modified.
-  TMatrixD** mMatrixIonDriftZA;                                       ///< matrix to store ion drift in z direction along E field on A side in cm
-  TMatrixD** mMatrixIonDriftZC;                                       ///< matrix to store ion drift in z direction along E field on A side in cm
-  TMatrixD** mMatrixIonDriftRPhiA;                                    ///< matrix to store ion drift in rphi direction along E field on A side in cm
-  TMatrixD** mMatrixIonDriftRPhiC;                                    ///< matrix to store ion drift in rphi direction along E field on A side in cm
-  TMatrixD** mMatrixIonDriftRA;                                       ///< matrix to store ion drift in radial direction along E field on A side in cm
-  TMatrixD** mMatrixIonDriftRC;                                       ///< matrix to store ion drift in radial direction along E field on C side in cm
+  TMatrixD** mMatrixIonDriftZA;                                       //!<! matrix to store ion drift in z direction along E field on A side in cm
+  TMatrixD** mMatrixIonDriftZC;                                       //!<! matrix to store ion drift in z direction along E field on A side in cm
+  TMatrixD** mMatrixIonDriftRPhiA;                                    //!<! matrix to store ion drift in rphi direction along E field on A side in cm
+  TMatrixD** mMatrixIonDriftRPhiC;                                    //!<! matrix to store ion drift in rphi direction along E field on A side in cm
+  TMatrixD** mMatrixIonDriftRA;                                       //!<! matrix to store ion drift in radial direction along E field on A side in cm
+  TMatrixD** mMatrixIonDriftRC;                                       //!<! matrix to store ion drift in radial direction along E field on C side in cm
+  /// TODO: these lookup tables should be objects?
   std::unique_ptr<AliTPCLookUpTable3DInterpolatorD> mLookUpIonDriftA; ///< lookup table for ion drift along E field on A side in cm
   std::unique_ptr<AliTPCLookUpTable3DInterpolatorD> mLookUpIonDriftC; ///< lookup table for ion drift along E field on C side in cm
 
-  /// Circular random buffer containing flat random values to convert the charge density to a flat ion distribution inside the voxel
-  RandomRing<> mRandomFlat;
+  RandomRing<> mRandomFlat; //!<! Circular random buffer containing flat random values to convert the charge density to a flat ion distribution inside the voxel
+
+  ClassDef(SpaceCharge, 1);
 };
 
 } // namespace tpc

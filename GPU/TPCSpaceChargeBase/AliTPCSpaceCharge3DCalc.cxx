@@ -86,9 +86,10 @@ void AliTPCSpaceCharge3DCalc::InitAllocateMemory()
   fListZC = new Double_t[fNZColumns];
 
   // allocate for boundary
-  Int_t len = 2 * fNPhiSlices * (fNZColumns + fNRRows) - (4 * fNPhiSlices);
-  fListPotentialBoundaryA = new Double_t[len];
-  fListPotentialBoundaryC = new Double_t[len];
+  /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+  // Int_t len = 2 * fNPhiSlices * (fNZColumns + fNRRows) - (4 * fNPhiSlices);
+  // fListPotentialBoundaryA = new Double_t[len];
+  // fListPotentialBoundaryC = new Double_t[len];
 
   Int_t phiSlicesPerSector = fNPhiSlices / kNumSector;
   const Float_t gridSizeR = (AliTPCPoissonSolver::fgkOFCRadius - AliTPCPoissonSolver::fgkIFCRadius) / (fNRRows - 1);
@@ -103,15 +104,54 @@ void AliTPCSpaceCharge3DCalc::InitAllocateMemory()
   }
   for (Int_t j = 0; j < fNZColumns; j++) {
     fListZ[j] = (j * gridSizeZ);
-  }
-
-  for (Int_t j = 0; j < fNZColumns; j++) {
     fListZA[j] = (j * gridSizeZ);
-  }
-
-  for (Int_t j = 0; j < fNZColumns; j++) {
     fListZC[j] = (j * gridSizeZ);
   }
+
+  fMatrixIntDistDrEzA = new TMatrixD*[fNPhiSlices];
+  fMatrixIntDistDPhiREzA = new TMatrixD*[fNPhiSlices];
+  fMatrixIntDistDzA = new TMatrixD*[fNPhiSlices];
+
+  fMatrixIntDistDrEzC = new TMatrixD*[fNPhiSlices];
+  fMatrixIntDistDPhiREzC = new TMatrixD*[fNPhiSlices];
+  fMatrixIntDistDzC = new TMatrixD*[fNPhiSlices];
+
+  fMatrixErOverEzA = new TMatrixD*[fNPhiSlices];
+  fMatrixEPhiOverEzA = new TMatrixD*[fNPhiSlices];
+  fMatrixDeltaEzA = new TMatrixD*[fNPhiSlices];
+
+  fMatrixErOverEzC = new TMatrixD*[fNPhiSlices];
+  fMatrixEPhiOverEzC = new TMatrixD*[fNPhiSlices];
+  fMatrixDeltaEzC = new TMatrixD*[fNPhiSlices];
+
+  fMatrixIntCorrDrEzA = new TMatrixD*[fNPhiSlices];
+  fMatrixIntCorrDPhiREzA = new TMatrixD*[fNPhiSlices];
+  fMatrixIntCorrDzA = new TMatrixD*[fNPhiSlices];
+
+  fMatrixIntCorrDrEzC = new TMatrixD*[fNPhiSlices];
+  fMatrixIntCorrDPhiREzC = new TMatrixD*[fNPhiSlices];
+  fMatrixIntCorrDzC = new TMatrixD*[fNPhiSlices];
+
+  fMatrixIntCorrDrEzIrregularA = new TMatrixD*[fNPhiSlices];
+  fMatrixIntCorrDPhiREzIrregularA = new TMatrixD*[fNPhiSlices];
+  fMatrixIntCorrDzIrregularA = new TMatrixD*[fNPhiSlices];
+  fMatrixRListIrregularA = new TMatrixD*[fNPhiSlices];
+  fMatrixPhiListIrregularA = new TMatrixD*[fNPhiSlices];
+  fMatrixZListIrregularA = new TMatrixD*[fNPhiSlices];
+
+  fMatrixIntCorrDrEzIrregularC = new TMatrixD*[fNPhiSlices];
+  fMatrixIntCorrDPhiREzIrregularC = new TMatrixD*[fNPhiSlices];
+  fMatrixIntCorrDzIrregularC = new TMatrixD*[fNPhiSlices];
+  fMatrixRListIrregularC = new TMatrixD*[fNPhiSlices];
+  fMatrixPhiListIrregularC = new TMatrixD*[fNPhiSlices];
+  fMatrixZListIrregularC = new TMatrixD*[fNPhiSlices];
+
+  fMatrixChargeA = new TMatrixD*[fNPhiSlices];
+  fMatrixChargeC = new TMatrixD*[fNPhiSlices];
+  fMatrixChargeInverseA = new TMatrixD*[fNPhiSlices];
+  fMatrixChargeInverseC = new TMatrixD*[fNPhiSlices];
+  fMatrixPotentialA = new TMatrixD*[fNPhiSlices];
+  fMatrixPotentialC = new TMatrixD*[fNPhiSlices];
 
   for (Int_t k = 0; k < fNPhiSlices; k++) {
 
@@ -210,6 +250,7 @@ void AliTPCSpaceCharge3DCalc::InitAllocateMemory()
   fInterpolatorChargeA->SetNR(fNRRows);
   fInterpolatorChargeA->SetNZ(fNZColumns);
   fInterpolatorChargeA->SetNPhi(fNPhiSlices);
+  fInterpolatorChargeA->SetNGridPoints();
   fInterpolatorChargeA->SetRList(fListR);
   fInterpolatorChargeA->SetZList(fListZA);
   fInterpolatorChargeA->SetPhiList(fListPhi);
@@ -218,6 +259,7 @@ void AliTPCSpaceCharge3DCalc::InitAllocateMemory()
   fInterpolatorChargeC->SetNR(fNRRows);
   fInterpolatorChargeC->SetNZ(fNZColumns);
   fInterpolatorChargeC->SetNPhi(fNPhiSlices);
+  fInterpolatorChargeC->SetNGridPoints();
   fInterpolatorChargeC->SetRList(fListR);
   fInterpolatorChargeC->SetZList(fListZC);
   fInterpolatorChargeC->SetPhiList(fListPhi);
@@ -226,6 +268,7 @@ void AliTPCSpaceCharge3DCalc::InitAllocateMemory()
   fInterpolatorPotentialA->SetNR(fNRRows);
   fInterpolatorPotentialA->SetNZ(fNZColumns);
   fInterpolatorPotentialA->SetNPhi(fNPhiSlices);
+  fInterpolatorPotentialA->SetNGridPoints();
   fInterpolatorPotentialA->SetRList(fListR);
   fInterpolatorPotentialA->SetZList(fListZA);
   fInterpolatorPotentialA->SetPhiList(fListPhi);
@@ -234,6 +277,7 @@ void AliTPCSpaceCharge3DCalc::InitAllocateMemory()
   fInterpolatorPotentialC->SetNR(fNRRows);
   fInterpolatorPotentialC->SetNZ(fNZColumns);
   fInterpolatorPotentialC->SetNPhi(fNPhiSlices);
+  fInterpolatorPotentialC->SetNGridPoints();
   fInterpolatorPotentialC->SetRList(fListR);
   fInterpolatorPotentialC->SetZList(fListZA);
   fInterpolatorPotentialC->SetPhiList(fListPhi);
@@ -242,6 +286,7 @@ void AliTPCSpaceCharge3DCalc::InitAllocateMemory()
   fInterpolatorInverseChargeA->SetNR(fNRRows);
   fInterpolatorInverseChargeA->SetNZ(fNZColumns);
   fInterpolatorInverseChargeA->SetNPhi(fNPhiSlices);
+  fInterpolatorInverseChargeA->SetNGridPoints();
   fInterpolatorInverseChargeA->SetRList(fListR);
   fInterpolatorInverseChargeA->SetZList(fListZA);
   fInterpolatorInverseChargeA->SetPhiList(fListPhi);
@@ -250,6 +295,7 @@ void AliTPCSpaceCharge3DCalc::InitAllocateMemory()
   fInterpolatorInverseChargeC->SetNR(fNRRows);
   fInterpolatorInverseChargeC->SetNZ(fNZColumns);
   fInterpolatorInverseChargeC->SetNPhi(fNPhiSlices);
+  fInterpolatorInverseChargeC->SetNGridPoints();
   fInterpolatorInverseChargeC->SetRList(fListR);
   fInterpolatorInverseChargeC->SetZList(fListZC);
   fInterpolatorInverseChargeC->SetPhiList(fListPhi);
@@ -288,21 +334,20 @@ void AliTPCSpaceCharge3DCalc::InitAllocateMemory()
   fLookupIntCorrIrregularA->SetKernelType(fRBFKernelType);
   fLookupIntCorrIrregularC->SetKernelType(fRBFKernelType);
 
-  fFormulaBoundaryIFCA = nullptr; //-> function define boundary values for IFC side A V(z) assuming symmetry in phi and r.
-  fFormulaBoundaryIFCC = nullptr; //-> function define boundary values for IFC side C V(z) assuming symmetry in phi and r.
-  fFormulaBoundaryOFCA = nullptr; //-> function define boundary values for OFC side A V(z) assuming symmetry in phi and r.
-  fFormulaBoundaryOFCC = nullptr; ///<- function define boundary values for IFC side C V(z) assuming symmetry in phi and r.
-  fFormulaBoundaryROCA = nullptr; ///<- function define boundary values for ROC side A V(r) assuming symmetry in phi and z.
-  fFormulaBoundaryROCC = nullptr; ///<- function define boundary values for ROC side V V(t) assuming symmetry in phi and z.
-  fFormulaBoundaryCE = nullptr;   ///<- function define boundary values for CE V(z) assuming symmetry in phi and z.
-
-  fFormulaPotentialV = nullptr; ///<- potential V(r,rho,z) function
-  fFormulaChargeRho = nullptr;  ///<- charge density Rho(r,rho,z) function
+  fFormulaBoundaryIFCA = nullptr;
+  fFormulaBoundaryIFCC = nullptr;
+  fFormulaBoundaryOFCA = nullptr;
+  fFormulaBoundaryOFCC = nullptr;
+  fFormulaBoundaryROCA = nullptr;
+  fFormulaBoundaryROCC = nullptr;
+  fFormulaBoundaryCE = nullptr;
+  fFormulaPotentialV = nullptr;
+  fFormulaChargeRho = nullptr;
 
   // analytic formula for E
-  fFormulaEPhi = nullptr; ///<- ePhi EPhi(r,rho,z) electric field (phi) function
-  fFormulaEr = nullptr;   ///<- er Er(r,rho,z) electric field (r) function
-  fFormulaEz = nullptr;   ///<- ez Ez(r,rho,z) electric field (z) function
+  fFormulaEPhi = nullptr;
+  fFormulaEr = nullptr;
+  fFormulaEz = nullptr;
 }
 /// Destruction for AliTPCSpaceCharge3DCalc
 /// Deallocate memory for lookup table and charge distribution
@@ -380,8 +425,9 @@ AliTPCSpaceCharge3DCalc::~AliTPCSpaceCharge3DCalc()
   delete fInterpolatorInverseChargeA;
   delete fInterpolatorInverseChargeC;
 
-  delete[] fListPotentialBoundaryA;
-  delete[] fListPotentialBoundaryC;
+  /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+  // delete[] fListPotentialBoundaryA;
+  // delete[] fListPotentialBoundaryC;
 }
 
 /// Creating look-up tables of Correction/Distortion by integration following
@@ -532,7 +578,8 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
   TMatrixD** matricesLookUpCharge = nullptr;
   AliTPC3DCylindricalInterpolator* chargeInterpolator = nullptr;
   AliTPC3DCylindricalInterpolator* potentialInterpolator = nullptr;
-  Double_t* potentialBoundary = nullptr;
+  /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+  // Double_t* potentialBoundary = nullptr;
   TMatrixD* matrixV;
   TMatrixD* matrixCharge;
   // for potential
@@ -581,7 +628,8 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
         fLookupElectricFieldA->SetLookUpPhi(matricesEPhi);
         fLookupElectricFieldA->SetLookUpZ(matricesEz);
 
-        potentialBoundary = fListPotentialBoundaryA;
+        /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+        // potentialBoundary = fListPotentialBoundaryA;
         f1BoundaryIFC = fFormulaBoundaryIFCA;
         f1BoundaryOFC = fFormulaBoundaryOFCA;
         f1BoundaryROC = fFormulaBoundaryROCA;
@@ -603,7 +651,8 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
         fLookupElectricFieldC->SetLookUpPhi(matricesEPhi);
         fLookupElectricFieldC->SetLookUpZ(matricesEz);
 
-        potentialBoundary = fListPotentialBoundaryC;
+        /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+        // potentialBoundary = fListPotentialBoundaryC;
         f1BoundaryIFC = fFormulaBoundaryIFCC;
         f1BoundaryOFC = fFormulaBoundaryOFCC;
         f1BoundaryROC = fFormulaBoundaryROCC;
@@ -961,7 +1010,8 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
   TMatrixD** matricesLookUpCharge = nullptr;
   AliTPC3DCylindricalInterpolator* chargeInterpolator = nullptr;
   AliTPC3DCylindricalInterpolator* potentialInterpolator = nullptr;
-  Double_t* potentialBoundary = nullptr;
+  /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+  // Double_t* potentialBoundary = nullptr;
   TMatrixD* matrixV;
   TMatrixD* matrixCharge;
   Int_t pIndex = 0;
@@ -1012,7 +1062,8 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
         fLookupElectricFieldA->SetLookUpPhi(matricesEPhiA);
         fLookupElectricFieldA->SetLookUpZ(matricesEzA);
 
-        potentialBoundary = fListPotentialBoundaryA;
+        /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+        // potentialBoundary = fListPotentialBoundaryA;
         f1BoundaryIFC = fFormulaBoundaryIFCA;
         f1BoundaryOFC = fFormulaBoundaryOFCA;
         f1BoundaryROC = fFormulaBoundaryROCA;
@@ -1041,7 +1092,8 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
         lookupLocalCorr->SetLookUpPhi(matricesCorrDPhiRDzC);
         lookupLocalCorr->SetLookUpZ(matricesCorrDzC);
 
-        potentialBoundary = fListPotentialBoundaryC;
+        /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+        // potentialBoundary = fListPotentialBoundaryC;
         f1BoundaryIFC = fFormulaBoundaryIFCC;
         f1BoundaryOFC = fFormulaBoundaryOFCC;
         f1BoundaryROC = fFormulaBoundaryROCC;
@@ -1338,7 +1390,8 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
   TMatrixD** matricesLookUpCharge = nullptr;
   AliTPC3DCylindricalInterpolator* chargeInterpolator = nullptr;
   AliTPC3DCylindricalInterpolator* potentialInterpolator = nullptr;
-  Double_t* potentialBoundary = nullptr;
+  /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+  // Double_t* potentialBoundary = nullptr;
   TMatrixD* matrixV;
   TMatrixD* matrixCharge;
   Int_t pIndex = 0;
@@ -1389,7 +1442,8 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
         fLookupElectricFieldA->SetLookUpPhi(matricesEPhiA);
         fLookupElectricFieldA->SetLookUpZ(matricesEzA);
 
-        potentialBoundary = fListPotentialBoundaryA;
+        /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+        // potentialBoundary = fListPotentialBoundaryA;
         f1BoundaryIFC = fFormulaBoundaryIFCA;
         f1BoundaryOFC = fFormulaBoundaryOFCA;
         f1BoundaryROC = fFormulaBoundaryROCA;
@@ -1418,7 +1472,8 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
         lookupLocalCorr->SetLookUpPhi(matricesCorrDPhiRDzC);
         lookupLocalCorr->SetLookUpZ(matricesCorrDzC);
 
-        potentialBoundary = fListPotentialBoundaryC;
+        /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+        // potentialBoundary = fListPotentialBoundaryC;
         f1BoundaryIFC = fFormulaBoundaryIFCC;
         f1BoundaryOFC = fFormulaBoundaryOFCC;
         f1BoundaryROC = fFormulaBoundaryROCC;
@@ -2060,8 +2115,10 @@ void AliTPCSpaceCharge3DCalc::LocalDistCorrDz(TMatrixD** matricesEr, TMatrixD** 
 
     for (Int_t j = 0; j < nZColumn - 1; j++) {
       for (Int_t i = 0; i < nRRow; i++) {
-        localIntErOverEz = (gridSizeZ * 0.5) * ((*eR)(i, j) + (*eR)(i, j + 1)) / (ezField + (*eZ)(i, j));
-        localIntEPhiOverEz = (gridSizeZ * 0.5) * ((*ePhi)(i, j) + (*ePhi)(i, j + 1)) / (ezField + (*eZ)(i, j));
+        // localIntErOverEz = (gridSizeZ * 0.5) * ((*eR)(i, j) + (*eR)(i, j + 1)) / (ezField + (*eZ)(i, j));
+        // localIntEPhiOverEz = (gridSizeZ * 0.5) * ((*ePhi)(i, j) + (*ePhi)(i, j + 1)) / (ezField + (*eZ)(i, j));
+        localIntErOverEz = (gridSizeZ * 0.5) * ((*eR)(i, j) + (*eR)(i, j + 1)) / (ezField);
+        localIntEPhiOverEz = (gridSizeZ * 0.5) * ((*ePhi)(i, j) + (*ePhi)(i, j + 1)) / (ezField);
         localIntDeltaEz = (gridSizeZ * 0.5) * ((*eZ)(i, j) + (*eZ)(i, j + 1));
 
         (*distDrDz)(i, j) = fC0 * localIntErOverEz + fC1 * localIntEPhiOverEz;
@@ -5028,11 +5085,12 @@ void AliTPCSpaceCharge3DCalc::SetPotentialBoundaryAndChargeFormula(TFormula* vTe
         (*chargeA)(i, j) = -1.0 * rhoTestFunction->Eval(radius0, phi0, z0);
         (*chargeC)(i, j) = -1.0 * rhoTestFunction->Eval(radius0, phi0, z0neg);
 
-        if ((i == 0) || (i == fNRRows - 1) || (j == 0) || (j == fNZColumns - 1)) {
-          fListPotentialBoundaryA[indexB] = vTestFunction->Eval(radius0, phi0, z0);
-          fListPotentialBoundaryC[indexB] = vTestFunction->Eval(radius0, phi0, z0neg);
-          indexB++;
-        }
+        /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+        // if ((i == 0) || (i == fNRRows - 1) || (j == 0) || (j == fNZColumns - 1)) {
+        //   fListPotentialBoundaryA[indexB] = vTestFunction->Eval(radius0, phi0, z0);
+        //   fListPotentialBoundaryC[indexB] = vTestFunction->Eval(radius0, phi0, z0neg);
+        //   indexB++;
+        // }
 
       } // end j
     }   // end i

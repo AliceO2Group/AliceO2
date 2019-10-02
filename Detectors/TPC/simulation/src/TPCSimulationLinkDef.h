@@ -33,6 +33,7 @@
 #pragma link C++ class o2::tpc::HitGroup + ;
 #pragma link C++ class o2::tpc::SAMPAProcessing + ;
 #pragma link C++ class o2::tpc::SpaceCharge + ;
+#pragma link C++ enum o2::tpc::SpaceCharge::SCDistortionType + ;
 
 #pragma link C++ class std::vector < o2::tpc::HitGroup> + ;
 

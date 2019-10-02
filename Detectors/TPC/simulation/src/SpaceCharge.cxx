@@ -189,14 +189,14 @@ float SpaceCharge::calculateLookupTables()
           /// TODO: what is the electric field stored in the LUTs at iz=0 and iz=mNZSlices-1
           for (int iz = 0; iz < mNZSlices; ++iz) {
             const float z = static_cast<float>(mCoordZ[iz]);
-            float x0[3] = { radius, phi, sign * (z + static_cast<float>(mLengthZSlice)) }; // iphi, ir, iz+1
-            float x1[3] = { radius, phi, sign * z };                                     // iphi, ir, iz
+            float x0[3] = {radius, phi, sign * (z + static_cast<float>(mLengthZSlice))}; // iphi, ir, iz+1
+            float x1[3] = {radius, phi, sign * z};                                       // iphi, ir, iz
             if (iside == 1) {
               x0[2] *= -1;
               x1[2] *= -1;
             }
-            double eVector0[3] = { 0., 0., 0. };
-            double eVector1[3] = { 0., 0., 0. };
+            double eVector0[3] = {0., 0., 0.};
+            double eVector1[3] = {0., 0., 0.};
             mLookUpTableCalculator.GetElectricFieldCyl(x0, roc, eVector0); // returns correct sign for Ez
             mLookUpTableCalculator.GetElectricFieldCyl(x1, roc, eVector1); // returns correct sign for Ez
 
@@ -452,7 +452,7 @@ void SpaceCharge::propagateSpaceCharge()
           const float qdivd = (*scDensity)[iphi0 * mNRBins * mNZSlices + ir0 * mNZSlices + iz0] * (((*matrixDriftR[iphi0])(ir0, iz0) + ddphidphi) / r0 + ddrdr + ddzdz);
 
           // - d * grad(rho_0) = - d_drift * grad(rho_0(x)) + d_dist * grad(rho_0(x+d_drift)) = (charge0 - charge1) + d_dist * grad(rho_0(x-d_drift))
-          if (iz0 < (mNZSlices - 1)){
+          if (iz0 < (mNZSlices - 1)) {
             const float dr = (*matrixDriftR[iphi0])(ir0, iz0);
             const float drphi = (*matrixDriftRPhi[iphi0])(ir0, iz0);
             const float dz = (*matrixDriftZ[iphi0])(ir0, iz0) + mLengthZSlice * signZ;
@@ -475,7 +475,7 @@ void SpaceCharge::propagateSpaceCharge()
             newSCDensity[iphi0 * mNRBins * mNZSlices + ir0 * mNZSlices + iz0] = -qdivd;
           }
 
-          if (newSCDensity[iphi0 * mNRBins * mNZSlices + ir0 * mNZSlices + iz0]<0.f){
+          if (newSCDensity[iphi0 * mNRBins * mNZSlices + ir0 * mNZSlices + iz0] < 0.f) {
             newSCDensity[iphi0 * mNRBins * mNZSlices + ir0 * mNZSlices + iz0] = 0.f;
           }
         }
@@ -566,7 +566,7 @@ void SpaceCharge::getIonDrift(Side side, double r, double phi, double z, double&
   } else if (side == Side::C) {
     mLookUpIonDriftC->GetValue(r, phi, -1 * z, dr, drphi, dz);
   } else {
-    LOG(INFO) << "TPC side undefined! Cannot calculate local ion drift correction..." << FairLogger::endl;
+    LOG(INFO) << "TPC side undefined! Cannot calculate local ion drift correction...";
   }
 }
 
@@ -575,8 +575,8 @@ void SpaceCharge::correctElectron(GlobalPosition3D& point)
   if (!mInitLookUpTables) {
     return;
   }
-  const float x[3] = { point.X(), point.Y(), point.Z() };
-  float dx[3] = { 0.f, 0.f, 0.f };
+  const float x[3] = {point.X(), point.Y(), point.Z()};
+  float dx[3] = {0.f, 0.f, 0.f};
   float phi = point.phi();
   o2::utils::BringTo02PiGen(phi);
   int roc = o2::utils::Angle2Sector(phi);
@@ -592,8 +592,8 @@ void SpaceCharge::distortElectron(GlobalPosition3D& point)
   if (!mInitLookUpTables) {
     return;
   }
-  const float x[3] = { point.X(), point.Y(), point.Z() };
-  float dx[3] = { 0.f, 0.f, 0.f };
+  const float x[3] = {point.X(), point.Y(), point.Z()};
+  float dx[3] = {0.f, 0.f, 0.f};
   float phi = point.phi();
   o2::utils::BringTo02PiGen(phi);
   int roc = o2::utils::Angle2Sector(phi);
@@ -606,7 +606,7 @@ void SpaceCharge::distortElectron(GlobalPosition3D& point)
 
 double SpaceCharge::getChargeDensity(Side side, GlobalPosition3D& point)
 {
-  Float_t x[3] = { point.rho(), point.phi(), point.z() };
+  Float_t x[3] = {point.rho(), point.phi(), point.z()};
   o2::utils::BringTo02PiGen(x[1]);
   const int roc = side == Side::A ? o2::utils::Angle2Sector(x[1]) : o2::utils::Angle2Sector(x[1]) + 18;
   return mLookUpTableCalculator.GetChargeCylAC(x, roc);
