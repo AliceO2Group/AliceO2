@@ -66,6 +66,7 @@ class DeviceStoreVertexerGPU final
   GPUd() Vector<Tracklet>& getDuplets01() { return mDuplets01; }
   GPUd() Vector<Tracklet>& getDuplets12() { return mDuplets12; }
   GPUd() Vector<Line>& getLines() { return mTracklets; }
+  GPUd() Vector<Line>& getLinesDense() { return mTrackletsDense; }
   GPUhd() Vector<int>& getNFoundLines() { return mNFoundLines; }
   GPUhd() Vector<int>& getNExclusiveFoundLines() { return mNExclusiveFoundLines; }
   GPUhd() Vector<int>& getReducedSum() { return mReducedSum; }
@@ -100,6 +101,7 @@ class DeviceStoreVertexerGPU final
   VertexerStoreConfigurationGPU mGPUConf;
   Array<Vector<Cluster>, constants::its::LayersNumberVertexer> mClusters;
   Vector<Line> mTracklets;
+  Vector<Line> mTrackletsDense;
   Array<Vector<int>, 2> mIndexTables;
 
   // service buffers

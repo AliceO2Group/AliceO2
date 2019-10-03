@@ -57,43 +57,6 @@ bool Line::areParallel(const Line& firstLine, const Line& secondLine, const floa
   return true;
 }
 
-float Line::getDCA(const Line& firstLine, const Line& secondLine, const float precision)
-{
-  std::array<float, 3> normalVector;
-  normalVector[0] = firstLine.cosinesDirector[1] * secondLine.cosinesDirector[2] -
-                    firstLine.cosinesDirector[2] * secondLine.cosinesDirector[1];
-  normalVector[1] = -firstLine.cosinesDirector[0] * secondLine.cosinesDirector[2] +
-                    firstLine.cosinesDirector[2] * secondLine.cosinesDirector[0];
-  normalVector[2] = firstLine.cosinesDirector[0] * secondLine.cosinesDirector[1] -
-                    firstLine.cosinesDirector[1] * secondLine.cosinesDirector[0];
-
-  float norm{0.f}, distance{0.f};
-  for (int i{0}; i < 3; ++i) {
-    norm += normalVector[i] * normalVector[i];
-    distance += (secondLine.originPoint[i] - firstLine.originPoint[i]) * normalVector[i];
-  }
-  if (norm > precision) {
-    return std::abs(distance / std::sqrt(norm));
-  } else {
-    std::array<float, 3> stdOriginPoint;
-    std::copy_n(secondLine.originPoint, 3, stdOriginPoint.begin());
-    return getDistanceFromPoint(firstLine, stdOriginPoint);
-  }
-}
-
-float Line::getDistanceFromPoint(const Line& line, const std::array<float, 3> point)
-{
-  float DCASquared{0};
-  float cdelta{0};
-  for (int i{0}; i < 3; ++i)
-    cdelta -= line.cosinesDirector[i] * (line.originPoint[i] - point[i]);
-  for (int i{0}; i < 3; ++i) {
-    DCASquared += (line.originPoint[i] - point[i] + line.cosinesDirector[i] * cdelta) *
-                  (line.originPoint[i] - point[i] + line.cosinesDirector[i] * cdelta);
-  }
-  return std::sqrt(DCASquared);
-}
-
 std::array<float, 6> Line::getDCAComponents(const Line& line, const std::array<float, 3> point)
 {
   std::array<float, 6> components{0., 0., 0., 0., 0., 0.};
