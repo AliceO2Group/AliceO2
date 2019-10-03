@@ -40,6 +40,7 @@
 #include "TRDBase/LocalT0.h"
 #include "TRDBase/LocalGainFactor.h"
 #include "TRDBase/ChamberStatus.h"
+#include "TRDBase/ChamberNoise.h"
 #include "TRDBase/PadNoise.h"
 #include "TRDBase/PadStatus.h"
 //class PRFWidth;
@@ -53,13 +54,22 @@ namespace trd
 
 class Calibrations
 {
+    enum {
+        kSimulation =1,
+        kReconstruction =2,
+        kCalibration =3
+    };
  public:
   Calibrations() = default;
   ~Calibrations() = default;
   //
   int const getTimeStamp() { return mTimeStamp; }
   void setTimeStamp(long timestamp) { mTimeStamp = timestamp; }
-  void setCCDB(int object) { int donothing = 1; }
+  void setCCDB(int calibrationobjecttype);
+  void setCCDBForSimulation(){setCCDB(kSimulation);};
+  void setCCDBForReconstruction(){setCCDB(kReconstruction);};
+  void setCCDBForCalibration(){setCCDB(kCalibration);};
+  //// cant send auto to setCCDB, as a temporary measure, until I can figure something else out. There are 3 formats of getting CCDB parameters defined by the enum at the top.
   //
   //  float getGainMeanRMS();
   //  float getT0MeanRMS();
@@ -82,6 +92,7 @@ class Calibrations
   std::shared_ptr<PadNoise> mPadNoise;
   std::shared_ptr<ChamberStatus> mChamberStatus;
   std::shared_ptr<PadStatus> mPadStatus;
+  std::shared_ptr<ChamberNoise> mChamberNoise;
   //this will probably get extended (26/09/2019), the list of pointers above.
   //std::shared_ptr<TrapConfig> mTrapConfig;
   //std::shared_ptr<PRFWidth> mPRDWidth
