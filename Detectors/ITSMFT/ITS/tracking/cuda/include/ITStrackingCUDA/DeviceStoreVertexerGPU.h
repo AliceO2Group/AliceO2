@@ -66,11 +66,15 @@ class DeviceStoreVertexerGPU final
   GPUd() Vector<Tracklet>& getDuplets01() { return mDuplets01; }
   GPUd() Vector<Tracklet>& getDuplets12() { return mDuplets12; }
   GPUd() Vector<Line>& getLines() { return mTracklets; }
-  GPUd() Vector<Line>& getLinesDense() { return mTrackletsDense; }
   GPUhd() Vector<int>& getNFoundLines() { return mNFoundLines; }
   GPUhd() Vector<int>& getNExclusiveFoundLines() { return mNExclusiveFoundLines; }
-  GPUhd() Vector<int>& getReducedSum() { return mReducedSum; }
   GPUhd() Vector<int>& getTmpSumBuffer() { return mSumTmpBuffer; }
+  GPUhd() Vector<int>& getAdjList() { return mAdjList; }
+  GPUhd() Vector<int>& getAdjExcList() { return mAdjExcList; }
+  GPUhd() Vector<int>& getEdges() { return mEdges; }
+  GPUhd() Vector<int>& getBorders() { return mBorders; }
+  GPUhd() Vector<int>& getVisited() { return mVisited; }
+
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   GPUd() Array<Vector<int>, 2>& getDupletIndices()
   {
@@ -101,7 +105,6 @@ class DeviceStoreVertexerGPU final
   VertexerStoreConfigurationGPU mGPUConf;
   Array<Vector<Cluster>, constants::its::LayersNumberVertexer> mClusters;
   Vector<Line> mTracklets;
-  Vector<Line> mTrackletsDense;
   Array<Vector<int>, 2> mIndexTables;
 
   // service buffers
@@ -111,7 +114,11 @@ class DeviceStoreVertexerGPU final
   Vector<Tracklet> mDuplets12;
   Array<Vector<int>, constants::its::LayersNumberVertexer - 1> mNFoundDuplets;
   Vector<int> mSumTmpBuffer;
-  Vector<int> mReducedSum;
+  Vector<int> mAdjList;
+  Vector<int> mAdjExcList;
+  Vector<int> mEdges;
+  Vector<int> mBorders;
+  Vector<int> mVisited;
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   Array<Vector<int>, 2> mDupletIndices;
@@ -248,21 +255,14 @@ inline std::vector<Line> DeviceStoreVertexerGPU::getLinesFromGPU()
 {
   std::vector<Line> lines;
   std::vector<Line> tmpLines;
-  std::vector<int> nFoundLines;
-  std::vector<int> sizes;
-  sizes.resize(constants::its::LayersNumberVertexer);
   tmpLines.resize(mGPUConf.processedTrackletsCapacity);
-  nFoundLines.resize(mGPUConf.clustersPerLayerCapacity);
-  mSizes.copyIntoSizedVector(sizes);
   mTracklets.copyIntoSizedVector(tmpLines);
-  mNFoundLines.copyIntoSizedVector(nFoundLines);
-  for (int iCluster{0}; iCluster < sizes[1]; ++iCluster) {
-    const int stride{iCluster * mGPUConf.maxTrackletsPerCluster};
-    for (int iLine{0}; iLine < nFoundLines[iCluster]; ++iLine) {
-      lines.push_back(tmpLines[stride + iLine]);
+  for (auto& line : tmpLines) {
+    if (line.isEmpty) {
+      break;
     }
+    lines.push_back(line);
   }
-
   return lines;
 }
 

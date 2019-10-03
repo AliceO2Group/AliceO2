@@ -56,6 +56,8 @@ class VertexerTraitsGPU : public VertexerTraits
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   void computeMCFiltering() override;
 #endif
+  // util
+  void computeCluster(const int);
 
   // GPU-specific getters
   GPUd() static const int2 getBinsPhiRectWindow(const Cluster&, float maxdeltaphi);

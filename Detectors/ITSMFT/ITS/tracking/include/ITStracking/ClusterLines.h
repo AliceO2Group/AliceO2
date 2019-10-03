@@ -33,12 +33,13 @@ struct Line final {
   GPUh() static float getDistanceFromPoint(const Line& line, const std::array<float, 3> point);
   GPUhd() static float getDistanceFromPoint(const Line& line, const float point[3]);
   static std::array<float, 6> getDCAComponents(const Line& line, const std::array<float, 3> point);
+  GPUhd() static void getDCAComponents(const Line& line, const float point[3], float destArray[6]);
   GPUhd() static float getDCA(const Line&, const Line&, const float precision = 1e-14);
   static bool areParallel(const Line&, const Line&, const float precision = 1e-14);
 
   float originPoint[3], cosinesDirector[3];         // std::array<float, 3> originPoint, cosinesDirector;
   float weightMatrix[6] = {1., 0., 0., 1., 0., 1.}; // std::array<float, 6> weightMatrix;
-  char isEmpty = false;
+  unsigned char isEmpty = false;
   // weightMatrix is a symmetric matrix internally stored as
   //    0 --> row = 0, col = 0
   //    1 --> 0,1
@@ -154,28 +155,54 @@ inline float Line::getDCA(const Line& firstLine, const Line& secondLine, const f
   }
 }
 
+inline void Line::getDCAComponents(const Line& line, const float point[3], float destArray[6])
+{
+  float cdelta{0.};
+  for (int i{0}; i < 3; ++i)
+    cdelta -= line.cosinesDirector[i] * (line.originPoint[i] - point[i]);
+ 
+  destArray[0] = line.originPoint[0] - point[0] + line.cosinesDirector[0] * cdelta;
+  destArray[3] = line.originPoint[1] - point[1] + line.cosinesDirector[1] * cdelta;
+  destArray[5] = line.originPoint[2] - point[2] + line.cosinesDirector[2] * cdelta;
+  destArray[1] = std::sqrt(destArray[0] * destArray[0] + destArray[3] * destArray[3]);
+  destArray[2] = std::sqrt(destArray[0] * destArray[0] + destArray[5] * destArray[5]);
+  destArray[4] = std::sqrt(destArray[3] * destArray[3] + destArray[5] * destArray[5]);
+}
+
+///
+
 class ClusterLines final
 {
  public:
   ClusterLines(const int firstLabel, const Line& firstLine, const int secondLabel, const Line& secondLine,
                const bool weight = false);
-  void add(const int lineLabel, const Line& line, const bool weight = false);
+  void add(const int& lineLabel, const Line& line, const bool& weight = false);
   void computeClusterCentroid();
-  float getAvgDistance2() const;
-  std::array<float, 6> getRMS2() const;
-  inline std::vector<int>& getLabels() { return mLabels; };
-  inline std::vector<Line>& getLines() { return mLines; }
-  inline int getSize() const { return mLabels.size(); };
+  inline std::vector<int>& getLabels() { return mLabels; }
+  inline int getSize() const { return mLabels.size(); }
   inline std::array<float, 3> getVertex() const { return mVertex; }
+  inline std::array<float, 6> getRMS2() const { return mRMS2; }
+  inline float getAvgDistance2() const { return mAvgDistance2; }
+
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  inline std::vector<Line> getLines()
+  {
+    return mLines;
+  }
+#endif
 
  protected:
-  std::array<float, 6> mAMatrix; // AX=B
-  std::array<float, 3> mBMatrix; // AX=B
-  std::vector<Line> mLines;
+  std::array<float, 6> mAMatrix;         // AX=B
+  std::array<float, 3> mBMatrix;         // AX=B
   std::vector<int> mLabels;              // labels
   std::array<float, 3> mVertexCandidate; // vertex candidate
   std::array<float, 9> mWeightMatrix;    // weight matrix
-  std::array<float, 3> mVertex;          // cluster centroid position
+  std::array<float, 3> mVertex;          // cluster centroid posdtion
+  std::array<float, 6> mRMS2;            // symmetric matrix: diagonal is RMS2
+  float mAvgDistance2;                   // substitute for chi2
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  std::vector<Line> mLines;
+#endif
 };
 
 } // namespace its

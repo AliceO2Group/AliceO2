@@ -8,80 +8,27 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <cmath>
-#include <algorithm>
-#include "ITStracking/ClusterLines.h"
+#include "ITStrackingCUDA/ClusterLinesGPU.h"
 
 namespace o2
 {
 namespace its
 {
-
-Line::Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint)
-  : weightMatrix{1., 0., 0., 1., 0., 1.} // dummy, ATM
+namespace GPU
 {
-  for (int index{0}; index < 3; ++index) {
-    originPoint[index] = firstPoint.data()[index];
-    cosinesDirector[index] = secondPoint[index] - firstPoint[index];
+GPUd() ClusterLinesGPU::ClusterLinesGPU(const int& firstLabel, const Line& firstLine, const int& secondLabel, const Line& secondLine,
+                                        const unsigned char weight) : mNContributors{2}
+{
+  mLabels[0] = firstLabel;
+  mLabels[1] = secondLabel;
+
+  float covarianceFirst[3];
+  float covarianceSecond[3];
+
+  for (int i{0}; i < 3; ++i) {
+    covarianceFirst[i] = 1.f;
+    covarianceSecond[i] = 1.f;
   }
-
-  float inverseNorm{1.f / std::sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
-                                    cosinesDirector[2] * cosinesDirector[2])};
-  for (int index{0}; index < 3; ++index)
-    cosinesDirector[index] *= inverseNorm;
-}
-
-bool Line::areParallel(const Line& firstLine, const Line& secondLine, const float precision)
-{
-  float crossProdX{firstLine.cosinesDirector[1] * secondLine.cosinesDirector[2] -
-                   firstLine.cosinesDirector[2] * secondLine.cosinesDirector[1]};
-  float module{std::abs(firstLine.cosinesDirector[1] * secondLine.cosinesDirector[2]) +
-               std::abs(firstLine.cosinesDirector[2] * secondLine.cosinesDirector[1])};
-  if (std::abs(crossProdX) > precision * module)
-    return false;
-
-  float crossProdY{-firstLine.cosinesDirector[0] * secondLine.cosinesDirector[2] +
-                   firstLine.cosinesDirector[2] * secondLine.cosinesDirector[0]};
-  module = std::abs(firstLine.cosinesDirector[0] * secondLine.cosinesDirector[2]) +
-           std::abs(firstLine.cosinesDirector[2] * secondLine.cosinesDirector[0]);
-  if (std::abs(crossProdY) > precision * module)
-    return false;
-
-  float crossProdZ = firstLine.cosinesDirector[0] * secondLine.cosinesDirector[1] -
-                     firstLine.cosinesDirector[1] * secondLine.cosinesDirector[0];
-  module = std::abs(firstLine.cosinesDirector[0] * secondLine.cosinesDirector[1]) +
-           std::abs(firstLine.cosinesDirector[1] * secondLine.cosinesDirector[0]);
-  if (std::abs(crossProdZ) > precision * module)
-    return false;
-
-  return true;
-}
-
-std::array<float, 6> Line::getDCAComponents(const Line& line, const std::array<float, 3> point)
-{
-  std::array<float, 6> components{0., 0., 0., 0., 0., 0.};
-  float cdelta{0.};
-  for (int i{0}; i < 3; ++i)
-    cdelta -= line.cosinesDirector[i] * (line.originPoint[i] - point[i]);
-
-  components[0] = line.originPoint[0] - point[0] + line.cosinesDirector[0] * cdelta;
-  components[3] = line.originPoint[1] - point[1] + line.cosinesDirector[1] * cdelta;
-  components[5] = line.originPoint[2] - point[2] + line.cosinesDirector[2] * cdelta;
-  components[1] = std::sqrt(components[0] * components[0] + components[3] * components[3]);
-  components[2] = std::sqrt(components[0] * components[0] + components[5] * components[5]);
-  components[4] = std::sqrt(components[3] * components[3] + components[5] * components[5]);
-
-  return components;
-}
-
-ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const int secondLabel, const Line& secondLine,
-                           const bool weight)
-{
-  mLabels.push_back(firstLabel);
-  mLabels.push_back(secondLabel);
-
-  std::array<float, 3> covarianceFirst{1., 1., 1.};
-  std::array<float, 3> covarianceSecond{1., 1., 1.};
 
   for (int i{0}; i < 6; ++i)
     mWeightMatrix[i] = firstLine.weightMatrix[i] + secondLine.weightMatrix[i];
@@ -163,24 +110,22 @@ ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const in
 
   computeClusterCentroid();
 
-  // RMS2
-  mRMS2 = std::move(Line::getDCAComponents(firstLine, mVertex));
-  const std::array<float, 6> tmpRMS2Line2 = std::move(Line::getDCAComponents(secondLine, mVertex));
-  std::transform(mRMS2.begin(), mRMS2.end(), tmpRMS2Line2.begin(), mRMS2.begin(), [&](const float& a, const float& b) { return a + (b - a) / mLabels.size(); });
+  Line::getDCAComponents(firstLine, mVertex, mRMS2);
+  float tmpRMS2Line2[6];
+  Line::getDCAComponents(secondLine, mVertex, tmpRMS2Line2);
 
-  // AvgDistance2
-  mAvgDistance2 = std::move(Line::getDistanceFromPoint(firstLine, mVertex) * Line::getDistanceFromPoint(firstLine, mVertex));
-  mAvgDistance2 += (Line::getDistanceFromPoint(secondLine, mVertex) * Line::getDistanceFromPoint(secondLine, mVertex) - mAvgDistance2) / mLabels.size();
-  
+  for (int ii{0}; ii < 6; ++ii) {
+    mRMS2[ii] += (tmpRMS2Line2[ii] - mRMS2[ii]) / mNContributors;
+  }
 }
 
-void ClusterLines::add(const int& lineLabel, const Line& line, const bool& weight)
+void ClusterLinesGPU::add(const int& lineLabel, const Line& line, const unsigned char weight)
 {
-  mLabels.push_back(lineLabel);
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-// mLines.push_back(line);
-#endif
-  std::array<float, 3> covariance{1., 1., 1.};
+  mNContributors++;
+  float covariance[3];
+  for (int ii{0}; ii < 3; ++ii) {
+    covariance[ii] = 1.f;
+  }
 
   for (int i{0}; i < 6; ++i)
     mWeightMatrix[i] += line.weightMatrix[i];
@@ -220,10 +165,11 @@ void ClusterLines::add(const int& lineLabel, const Line& line, const bool& weigh
                  determinant;
 
   computeClusterCentroid();
-  mAvgDistance2 += (Line::getDistanceFromPoint(line, mVertex) * Line::getDistanceFromPoint(line, mVertex) - mAvgDistance2) / mLabels.size();
+
+  mAvgDistance2 += (Line::getDistanceFromPoint(line, mVertex) * Line::getDistanceFromPoint(line, mVertex) - mAvgDistance2) / mNContributors;
 }
 
-void ClusterLines::computeClusterCentroid()
+GPUd() void ClusterLinesGPU::computeClusterCentroid()
 {
 
   float determinant{mAMatrix[0] * (mAMatrix[3] * mAMatrix[5] - mAMatrix[4] * mAMatrix[4]) -
@@ -247,28 +193,6 @@ void ClusterLines::computeClusterCentroid()
                  mBMatrix[0] * (mAMatrix[1] * mAMatrix[4] - mAMatrix[2] * mAMatrix[3])) /
                determinant;
 }
-
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-std::array<float, 6> ClusterLines::getRMS2() const
-{
-  std::array<float, 6> deviations{0., 0., 0., 0., 0., 0.}, deviationSingleLine;
-  for (auto line : mLines) {
-    deviationSingleLine = Line::getDCAComponents(line, mVertex);
-    for (int i{0}; i < 6; ++i) {
-      deviations[i] += deviationSingleLine[i] * deviationSingleLine[i] / mLines.size();
-    }
-  }
-  return deviations;
-}
-
-float ClusterLines::getAvgDistance2() const
-{
-  float dist{0.};
-  for (auto line : mLines)
-    dist += Line::getDistanceFromPoint(line, mVertex) * Line::getDistanceFromPoint(line, mVertex);
-  return dist / mLines.size();
-}
-#endif
-
+} // namespace GPU
 } // namespace its
 } // namespace o2

@@ -443,11 +443,6 @@ void VertexerTraits::computeVertices()
       noClusters--;
       continue;
     }
-    float dist{0.};
-    for (auto& line : mTrackletClusters[iCluster].getLines()) {
-      dist += Line::getDistanceFromPoint(line, mTrackletClusters[iCluster].getVertex()) /
-              mTrackletClusters[iCluster].getSize();
-    }
     if (mTrackletClusters[iCluster].getVertex()[0] * mTrackletClusters[iCluster].getVertex()[0] +
           mTrackletClusters[iCluster].getVertex()[1] * mTrackletClusters[iCluster].getVertex()[1] <
         1.98 * 1.98) {
