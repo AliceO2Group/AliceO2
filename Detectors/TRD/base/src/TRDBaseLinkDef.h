@@ -27,8 +27,10 @@
 #pragma link C++ class o2::trd::PadResponse + ;
 #pragma link C++ class o2::trd::MCLabel + ;
 #pragma link C++ class o2::trd::PadParameters < unsigned short > +;
+#pragma link C++ class o2::trd::PadParameters < float > +;
 #pragma link C++ class o2::trd::PadParameters < char > +;
 #pragma link C++ class o2::trd::PadCalibrations < unsigned short > +;
+#pragma link C++ class o2::trd::PadCalibrations < float > +;
 #pragma link C++ class o2::trd::PadCalibrations < char > +;
 #pragma link C++ class o2::trd::ChamberCalibrations + ;
 #pragma link C++ class o2::trd::PadStatus + ;

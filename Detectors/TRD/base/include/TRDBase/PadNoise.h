@@ -26,10 +26,10 @@ namespace o2
 namespace trd
 {
 
-class PadNoise : private PadCalibrations<unsigned short>
+class PadNoise : private PadCalibrations<float>
 {
  public:
-  using PadCalibrations<unsigned short>::PadCalibrations;
+  using PadCalibrations<float>::PadCalibrations;
   ~PadNoise() = default;
 };
 } // namespace trd

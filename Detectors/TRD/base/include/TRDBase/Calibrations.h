@@ -54,11 +54,12 @@ namespace trd
 
 class Calibrations
 {
-    enum {
-        kSimulation =1,
-        kReconstruction =2,
-        kCalibration =3
-    };
+  enum {
+    kSimulation = 1,
+    kReconstruction = 2,
+    kCalibration = 3
+  };
+
  public:
   Calibrations() = default;
   ~Calibrations() = default;
@@ -66,9 +67,9 @@ class Calibrations
   int const getTimeStamp() { return mTimeStamp; }
   void setTimeStamp(long timestamp) { mTimeStamp = timestamp; }
   void setCCDB(int calibrationobjecttype);
-  void setCCDBForSimulation(){setCCDB(kSimulation);};
-  void setCCDBForReconstruction(){setCCDB(kReconstruction);};
-  void setCCDBForCalibration(){setCCDB(kCalibration);};
+  void setCCDBForSimulation() { setCCDB(kSimulation); };
+  void setCCDBForReconstruction() { setCCDB(kReconstruction); };
+  void setCCDBForCalibration() { setCCDB(kCalibration); };
   //// cant send auto to setCCDB, as a temporary measure, until I can figure something else out. There are 3 formats of getting CCDB parameters defined by the enum at the top.
   //
   //  float getGainMeanRMS();

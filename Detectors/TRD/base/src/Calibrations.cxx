@@ -41,36 +41,34 @@ using namespace o2::trd;
 // in some FOO detector code (detector initialization)
 // just give the correct path and you will be served the object
 
-
 void Calibrations::setCCDB(int calibrationobjecttype)
 {
-    int donothingfornow=1;
-    auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
-    switch(calibrationobjecttype){
-    case 1 : //simulation
-        mChamberCalibrations.reset(ccdbmgr.get<o2::trd::ChamberCalibrations>("/TRD_test/ChamberCalibrations"));
-        mLocalVDrift.reset(ccdbmgr.get<o2::trd::LocalVDrift>("/TRD_test/LocalVDrift"));
-        mLocalT0.reset(ccdbmgr.get<o2::trd::LocalT0>("/TRD_test/LocalT0"));
-        mLocalGainFactor.reset(ccdbmgr.get<o2::trd::LocalGainFactor>("/TRD_test/LocalGainFactor"));
-        mPadNoise.reset(ccdbmgr.get<o2::trd::PadNoise>("/TRD_test/PadNoise"));
-        mChamberStatus.reset(ccdbmgr.get<o2::trd::ChamberStatus>("/TRD_test/ChamberStatus"));
-        mPadStatus.reset(ccdbmgr.get<o2::trd::PadStatus>("/TRD_test/PadStatus"));
-        mChamberNoise.reset(ccdbmgr.get<o2::trd::ChamberNoise>("/TRD_test/ChamberNoise"));
-        //std::shared_ptr<TrapConfig> mTrapConfig;
-        //std::shared_ptr<PRFWidth> mPRDWidth
-        //std::shared_ptr<OnlineGainFactors> mOnlineGainFactors;
-        break;
-    case 2 : //reconstruction
-        donothingfornow=1;
-        break;
-    case 3 : // calibration
-        donothingfornow=2;
-        break;
-    default : LOG(fatal) << "unknown calibration type coming into setCCDB for TRD Calibrations";
+  int donothingfornow = 1;
+  auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
+  switch (calibrationobjecttype) {
+    case 1: //simulation
+      mChamberCalibrations.reset(ccdbmgr.get<o2::trd::ChamberCalibrations>("/TRD_test/ChamberCalibrations"));
+      mLocalVDrift.reset(ccdbmgr.get<o2::trd::LocalVDrift>("/TRD_test/LocalVDrift"));
+      mLocalT0.reset(ccdbmgr.get<o2::trd::LocalT0>("/TRD_test/LocalT0"));
+      mLocalGainFactor.reset(ccdbmgr.get<o2::trd::LocalGainFactor>("/TRD_test/LocalGainFactor"));
+      mPadNoise.reset(ccdbmgr.get<o2::trd::PadNoise>("/TRD_test/PadNoise"));
+      mChamberStatus.reset(ccdbmgr.get<o2::trd::ChamberStatus>("/TRD_test/ChamberStatus"));
+      mPadStatus.reset(ccdbmgr.get<o2::trd::PadStatus>("/TRD_test/PadStatus"));
+      mChamberNoise.reset(ccdbmgr.get<o2::trd::ChamberNoise>("/TRD_test/ChamberNoise"));
+      //std::shared_ptr<TrapConfig> mTrapConfig;
+      //std::shared_ptr<PRFWidth> mPRDWidth
+      //std::shared_ptr<OnlineGainFactors> mOnlineGainFactors;
+      break;
+    case 2: //reconstruction
+      donothingfornow = 1;
+      break;
+    case 3: // calibration
+      donothingfornow = 2;
+      break;
+    default:
+      LOG(fatal) << "unknown calibration type coming into setCCDB for TRD Calibrations";
+  }
 }
-}
-
-
 
 double Calibrations::getVDrift(long timestamp, int det, int col, int row) const
 {

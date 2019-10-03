@@ -26,10 +26,10 @@ namespace o2
 namespace trd
 {
 
-class LocalGainFactor : public PadCalibrations<unsigned short>
+class LocalGainFactor : public PadCalibrations<float>
 {
  public:
-  using PadCalibrations<unsigned short>::PadCalibrations;
+  using PadCalibrations<float>::PadCalibrations;
   ~LocalGainFactor() = default;
 };
 } // namespace trd

@@ -26,10 +26,10 @@ namespace o2
 namespace trd
 {
 
-class LocalVDrift : public PadCalibrations<unsigned short>
+class LocalVDrift : public PadCalibrations<float>
 {
  public:
-  using PadCalibrations<unsigned short>::PadCalibrations;
+  using PadCalibrations<float>::PadCalibrations;
   ~LocalVDrift() = default;
 };
 } // namespace trd
