@@ -30,7 +30,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
   auto const* emcheader = o2::framework::DataRefUtils::getHeader<o2::emcal::EMCALBlockHeader*>(dataref);
   if (!emcheader->mHasPayload) {
     LOG(DEBUG) << "[EMCALCellConverter - run] No more digits" << std::endl;
-    ctx.services().get<o2::framework::ControlService>().readyToQuit(false);
+    ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
     return;
   }
 

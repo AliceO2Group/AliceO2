@@ -58,7 +58,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
                     (*count)++; window ? pollGUI(window, guiCallback) : false; });
          return adaptStateless([count](ControlService& control) {
            if (*count > 1000) {
-             control.readyToQuit(true);
+             control.readyToQuit(QuitRequest::All);
            }
          });
        })}}};

@@ -32,7 +32,7 @@ void DigitsPrinterSpec::run(framework::ProcessingContext& pc)
   auto const* emcheader = o2::framework::DataRefUtils::getHeader<o2::emcal::EMCALBlockHeader*>(dataref);
   if (!emcheader->mHasPayload) {
     LOG(DEBUG) << "[EMCALDigitsPrinter - process] No more digits" << std::endl;
-    pc.services().get<o2::framework::ControlService>().readyToQuit(false);
+    pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
     return;
   }
 

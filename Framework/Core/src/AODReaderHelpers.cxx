@@ -135,7 +135,7 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
 
     if (filename.empty()) {
       LOG(error) << "Option --esd-file did not provide a filename";
-      control.readyToQuit(true);
+      control.readyToQuit(QuitRequest::All);
       return adaptStateless([](RawDeviceService& service) {
         service.device()->WaitFor(std::chrono::milliseconds(1000));
       });
@@ -164,7 +164,7 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
                            filenames](DataAllocator& outputs, ControlService& ctrl, RawDeviceService& service) {
       if (*counter >= filenames.size()) {
         LOG(info) << "All input files processed";
-        ctrl.readyToQuit(false);
+        ctrl.readyToQuit(QuitRequest::Me);
         service.device()->WaitFor(std::chrono::seconds(1));
         return;
       }
@@ -174,7 +174,7 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
       FILE* pipe = popen((command + " " + f).c_str(), "r");
       if (pipe == nullptr) {
         LOG(ERROR) << "Unable to run converter: " << (command + " " + f).c_str() << f;
-        ctrl.readyToQuit(true);
+        ctrl.readyToQuit(QuitRequest::All);
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         return;
       }
@@ -270,7 +270,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
                            filenames](DataAllocator& outputs, ControlService& control) {
       if (*counter >= filenames.size()) {
         LOG(info) << "All input files processed";
-        control.readyToQuit(false);
+        control.readyToQuit(QuitRequest::Me);
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         return;
       }

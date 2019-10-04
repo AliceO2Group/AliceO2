@@ -20,16 +20,19 @@ namespace framework
 {
 
 // All we do is to printout
-void TextControlService::readyToQuit(bool all)
+void TextControlService::readyToQuit(QuitRequest what)
 {
   if (mOnce == true) {
     return;
   }
   mOnce = true;
-  if (all) {
-    LOG(INFO) << "CONTROL_ACTION: READY_TO_QUIT_ALL";
-  } else {
-    LOG(INFO) << "CONTROL_ACTION: READY_TO_QUIT_ME";
+  switch (what) {
+    case QuitRequest::All:
+      LOG(INFO) << "CONTROL_ACTION: READY_TO_QUIT_ALL";
+      break;
+    case QuitRequest::Me:
+      LOG(INFO) << "CONTROL_ACTION: READY_TO_QUIT_ME";
+      break;
   }
 }
 
