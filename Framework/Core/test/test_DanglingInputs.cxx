@@ -56,7 +56,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
      Outputs{},
      AlgorithmSpec{
        [](ProcessingContext& ctx) {
-         ctx.services().get<ControlService>().readyToQuit(true);
+         ctx.services().get<ControlService>().readyToQuit(QuitRequest::All);
        },
      }}};
 }
