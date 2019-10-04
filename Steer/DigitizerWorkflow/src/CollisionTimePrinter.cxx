@@ -55,7 +55,7 @@ DataProcessorSpec getCollisionTimePrinter(int channel)
     for (auto& collrecord : view) {
       LOG(INFO) << "TIME " << counter++ << " : " << collrecord.timeNS;
     }
-    pc.services().get<ControlService>().readyToQuit(false);
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   };
 
   return DataProcessorSpec{/*ID*/ "CollTimePrinter",

@@ -49,7 +49,7 @@ void FDDRecPointWriter::run(ProcessingContext& pc)
   tree.Write();
 
   mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(false);
+  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 DataProcessorSpec getFDDRecPointWriterSpec(bool useMC)

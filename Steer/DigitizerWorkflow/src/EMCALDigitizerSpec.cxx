@@ -119,7 +119,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   timer.Stop();
   LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
   // we should be only called once; tell DPL that this process is ready to exit
-  ctx.services().get<ControlService>().readyToQuit(false);
+  ctx.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   mFinished = true;
 }
 

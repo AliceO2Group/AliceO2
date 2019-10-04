@@ -117,7 +117,7 @@ DataProcessorSpec getSinkSpec()
       ASSERT_ERROR(data[idx].get() == 10 * counter + idx);
     }
     if (++counter >= kTreeSize) {
-      pc.services().get<ControlService>().readyToQuit(true);
+      pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
     }
   };
 

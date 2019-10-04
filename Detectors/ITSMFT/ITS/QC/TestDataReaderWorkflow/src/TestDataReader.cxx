@@ -448,7 +448,7 @@ void TestDataReader::run(ProcessingContext& pc)
 			pc.outputs().snapshot(Output{ "ITS", "DIGITS", 0, Lifetime::Timeframe }, mDigits[mIndexPush++]);
 			if(mIndexPush%100000==0) 	LOG(DEBUG) << "mIndexPush = " << mIndexPush << "    Chip ID Pushing " << mDigits[mIndexPush].getChipIndex();
 			}
-			//pc.services().get<ControlService>().readyToQuit(true);
+			//pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
 			LOG(DEBUG) << "After:  " << "mIndexPush = " << mIndexPush << "     mDigits.size() = " <<  mDigits.size(); 
 			*/
 

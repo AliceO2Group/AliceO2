@@ -148,7 +148,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     LOG(INFO) << "This is not a real device, merely a placeholder for external inputs";
     LOG(INFO) << "To be hidden / removed at some point.";
     // mark this dummy process as ready-to-quit
-    ic.services().get<ControlService>().readyToQuit(false);
+    ic.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     return [](ProcessingContext& pc) {
       // this callback is never called since there is no expiring input
       pc.services().get<RawDeviceService>().device()->WaitFor(std::chrono::seconds(2));

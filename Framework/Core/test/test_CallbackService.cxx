@@ -48,7 +48,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
          ic.services().get<CallbackService>().set(CallbackService::Id::ClockTick, callback);
          return [count](ProcessingContext& ctx) {
            if (*count > 1000) {
-             ctx.services().get<ControlService>().readyToQuit(true);
+             ctx.services().get<ControlService>().readyToQuit(QuitRequest::All);
            }
          };
        }}}};

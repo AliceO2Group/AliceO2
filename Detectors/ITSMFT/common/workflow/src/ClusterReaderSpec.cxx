@@ -68,7 +68,7 @@ void ClusterReader::run(ProcessingContext& pc)
   }
 
   mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(false);
+  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 void ClusterReader::accumulate()

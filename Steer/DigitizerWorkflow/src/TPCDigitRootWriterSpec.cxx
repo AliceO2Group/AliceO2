@@ -290,7 +290,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
           finishchecksum += (d + 1); // + 1 since d starts at 0 ... important for the checksum test
           if (isComplete(finishchecksum)) {
             finished = true;
-            pc.services().get<ControlService>().readyToQuit(false);
+            pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
             return;
           }
         }

@@ -28,7 +28,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
         adaptStateless([](ControlService& control) {
           // This is invoked autonomously by the timer.
           std::this_thread::sleep_for(std::chrono::seconds(1));
-          control.readyToQuit(true);
+          control.readyToQuit(QuitRequest::All);
         })}},
     DataProcessorSpec{
       "atimer",
@@ -38,7 +38,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       AlgorithmSpec{
         adaptStateless([](ControlService& control) {
           // This is invoked autonomously by the timer.
-          control.readyToQuit(false);
+          control.readyToQuit(QuitRequest::Me);
         })}},
     DataProcessorSpec{
       "btimer",
@@ -48,7 +48,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       AlgorithmSpec{
         adaptStateless([](ControlService& control) {
           // This is invoked autonomously by the timer.
-          control.readyToQuit(false);
+          control.readyToQuit(QuitRequest::Me);
         })},
       {ConfigParamSpec{"period-btimer", VariantType::Int, 2000, {"period of timer"}}}}};
 }

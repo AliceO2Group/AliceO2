@@ -340,7 +340,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
         if (processMC) {
           pc.outputs().snapshot(OutputRef{"mclblout", 0, {sh}}, -1);
         }
-        pc.services().get<ControlService>().readyToQuit(false);
+        pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
         processAttributes->readyToQuit = true;
         return;
       }

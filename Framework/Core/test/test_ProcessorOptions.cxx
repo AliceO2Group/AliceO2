@@ -81,7 +81,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
 
           return [](ProcessingContext& ctx) {
             // there is nothing to do, simply stop the workflow
-            ctx.services().get<ControlService>().readyToQuit(true);
+            ctx.services().get<ControlService>().readyToQuit(QuitRequest::All);
           };
         },
       },

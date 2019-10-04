@@ -7,22 +7,31 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_CONTROLSERVICE_H
-#define FRAMEWORK_CONTROLSERVICE_H
+#ifndef O2_FRAMEWORK_CONTROLSERVICE_H_
+#define O2_FRAMEWORK_CONTROLSERVICE_H_
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
-// A service that data processors can use to talk to control and ask for
-// their own state change or others.
+/// Kind of request we want to issue to control
+enum struct QuitRequest {
+  /// Only quit this data processor
+  Me = 0,
+  /// Quit all data processor, regardless of their state
+  All = 1,
+};
+
+/// A service that data processors can use to talk to control and ask for their
+/// own state change or others.
 class ControlService
 {
  public:
-  virtual void readyToQuit(bool all = false) = 0; // Tell the control that I am ready to quit
+  /// Compatibility with old API.
+  void readyToQuit(bool all) { this->readyToQuit(all ? QuitRequest::All : QuitRequest::Me); }
+  /// Signal control that we are potentially ready to quit some / all
+  /// dataprocessor.
+  virtual void readyToQuit(QuitRequest kind) = 0;
 };
 
-} // namespace framework
-} // namespace o2
-#endif // FRAMEWORK_ROOTFILESERVICE_H
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_ROOTFILESERVICE_H_

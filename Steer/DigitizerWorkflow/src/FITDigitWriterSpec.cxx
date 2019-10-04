@@ -87,7 +87,7 @@ class FITDPLDigitWriter
     mOutTree.reset(); // delete the tree before closing the file
     mOutFile->Close();
     mFinished = true;
-    pc.services().get<ControlService>().readyToQuit(false);
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
 
  protected:

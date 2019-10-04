@@ -67,7 +67,7 @@ class DigitsReaderDeviceDPL
     }
 
     if (!nextGroup()) {
-      pc.services().get<of::ControlService>().readyToQuit(false);
+      pc.services().get<of::ControlService>().readyToQuit(framework::QuitRequest::Me);
       return;
     }
 

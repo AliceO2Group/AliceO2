@@ -74,7 +74,7 @@ void DigitReader::run(ProcessingContext& pc)
   }
 
   mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(false);
+  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 DataProcessorSpec getFT0DigitReaderSpec(bool useMC)

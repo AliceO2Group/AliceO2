@@ -382,7 +382,7 @@ class MakeRootTreeWriterSpec
 
         if ((nEvents >= 0 && counter == nEvents) || checkReady(pc.inputs())) {
           writer->close();
-          pc.services().get<ControlService>().readyToQuit(terminationPolicy == TerminationPolicy::Workflow);
+          pc.services().get<ControlService>().readyToQuit(terminationPolicy == TerminationPolicy::Workflow ? QuitRequest::All : QuitRequest::Me);
         }
       };
 

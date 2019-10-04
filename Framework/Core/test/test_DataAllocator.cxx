@@ -76,7 +76,7 @@ DataProcessorSpec getTimeoutSpec()
     // terminate if WaitFor was not interrupted
     if (pc.services().get<RawDeviceService>().device()->WaitFor(std::chrono::seconds(1)) && (counter++ > 10)) {
       LOG(ERROR) << "Timeout reached, the workflow seems to be broken";
-      pc.services().get<ControlService>().readyToQuit(true);
+      pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
     }
   };
 
@@ -299,7 +299,7 @@ DataProcessorSpec getSinkSpec()
     auto header = o2::header::get<const o2::header::DataHeader*>(dataref.header);
     ASSERT_ERROR((header->payloadSize == sizeof(o2::test::TriviallyCopyable)));
 
-    pc.services().get<ControlService>().readyToQuit(true);
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
   };
 
   return DataProcessorSpec{"sink", // name of the processor

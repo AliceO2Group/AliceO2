@@ -237,7 +237,7 @@ class TPCDPLDigitizerTask
 
       if (sector == -1) {
         LOG(INFO) << "TPC: Processing done - exit through the gift shop...";
-        pc.services().get<ControlService>().readyToQuit(false);
+        pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
         finished = true;
       }
       return;

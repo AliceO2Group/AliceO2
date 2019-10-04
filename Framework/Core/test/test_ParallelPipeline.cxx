@@ -130,7 +130,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
         (*counter)++;
       }
       if (*counter == nRolls) {
-        ctx.services().get<ControlService>().readyToQuit(false);
+        ctx.services().get<ControlService>().readyToQuit(QuitRequest::Me);
       }
     }}});
 
@@ -152,7 +152,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
           ASSERT_ERROR((*checkMap)[dataheader->subSpecification] == ctx.inputs().get<int>(input.spec->binding.c_str()));
         }
       }
-      ctx.services().get<ControlService>().readyToQuit(true);
+      ctx.services().get<ControlService>().readyToQuit(QuitRequest::All);
     }}});
 
   return workflowSpecs;

@@ -7,16 +7,14 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_TEXTCONTROLSERVICE_H
-#define FRAMEWORK_TEXTCONTROLSERVICE_H
+#ifndef O2_FRAMEWORK_TEXTCONTROLSERVICE_H_
+#define O2_FRAMEWORK_TEXTCONTROLSERVICE_H_
 
 #include "Framework/ControlService.h"
 #include <string>
 #include <regex>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// A service that data processors can use to talk to control and ask for
@@ -37,7 +35,7 @@ class TextControlService : public ControlService
   ///
   /// It's up to the driver to actually react on that and terminate the
   /// child.
-  void readyToQuit(bool all = false) final;
+  void readyToQuit(QuitRequest all = QuitRequest::Me) final;
 
  private:
   bool mOnce = false;
@@ -45,6 +43,5 @@ class TextControlService : public ControlService
 
 bool parseControl(std::string const& s, std::smatch& match);
 
-} // namespace framework
-} // namespace o2
-#endif // FRAMEWORK_TEXTCONTROLSERVICE_H
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_TEXTCONTROLSERVICE_H_
