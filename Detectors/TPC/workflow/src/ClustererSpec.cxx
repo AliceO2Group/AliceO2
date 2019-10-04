@@ -179,7 +179,7 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
       if (finished) {
         // got EOD on all inputs
         processAttributes->finished = true;
-        pc.services().get<ControlService>().readyToQuit(false);
+        pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
       }
     };
     return processingFct;

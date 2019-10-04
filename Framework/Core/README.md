@@ -295,7 +295,7 @@ The control service allow DataProcessors to modify their state or the one of the
 ```cpp
 #include "Framework/ControlService.h"
 //...
-auto ctx.services().get<ControlService>().readyToQuit(true) // In the DataProcessor lambda
+auto ctx.services().get<ControlService>().readyToQuit(QuitRequest::All) // In the DataProcessor lambda
 ```
 
 #### RawDeviceService

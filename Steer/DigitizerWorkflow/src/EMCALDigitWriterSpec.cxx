@@ -80,7 +80,7 @@ void DigitsWriterSpec::run(framework::ProcessingContext& ctx)
   labelbr->Fill();
 
   mFinished = true;
-  ctx.services().get<ControlService>().readyToQuit(false);
+  ctx.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 /// create the processor spec

@@ -65,6 +65,6 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
           cluster.q = i;
           i++;
         }
-        control.readyToQuit(true);
+        control.readyToQuit(QuitRequest::All);
       })}};
 }

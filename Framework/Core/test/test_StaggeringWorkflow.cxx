@@ -76,7 +76,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       sleep(1);
     }
     ready = true;
-    pc.services().get<ControlService>().readyToQuit(false);
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   };
   auto processorFct = [](ProcessingContext& pc) {
     int nActiveInputs = 0;
@@ -103,7 +103,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       std::cout << "received channel " << data << std::endl;
     }
     sleep(2);
-    pc.services().get<ControlService>().readyToQuit(true);
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
   };
 
   std::vector<DataProcessorSpec> workflow = parallelPipeline(
