@@ -2786,6 +2786,7 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
   // Updated:      03 Jun 2015  Mario Sitta  End units w/o U-legs
   // Updated:      20 Jul 2017  Mario Sitta  O2 version
   // Updated:      09 Sep 2019  Mario Sitta  Connectors added
+  // Updated:      27 Sep 2019  Mario Sitta  New TopV for End Units
   //
 
   // Materials defined in AliITSUv2
@@ -2815,6 +2816,7 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
   Double_t ulegHigh1 = sOBSFrameULegHeight1;
   Double_t ulegHigh2 = sOBSFrameULegHeight2;
   Double_t ulegThick = sOBSFrameULegThick;
+  Double_t topVFactorEU = 0.60; // Fraction of TopV total length for End Units
 
   Double_t xlen, zlen;
   Double_t xpos, ypos, zpos;
@@ -2888,7 +2890,20 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
   endUnitBody->SetName("endunitbody");
   endUnitBody->DefinePolygon(6, xtru, ytru);
   endUnitBody->DefineSection(0, -unitlen / 2);
-  endUnitBody->DefineSection(1, unitlen / 2);
+  endUnitBody->DefineSection(1, 0.8 * unitlen / 2);
+
+  xtru[2] = 0.25 * (3 * xtru[1] + xtru[2]);
+  ytru[2] = 0.25 * (3 * ytru[1] + ytru[2]);
+  for (Int_t i = 0; i < 3; i++) { // Reflect on the X negative side
+    xtru[i + 3] = -xtru[2 - i];
+    ytru[i + 3] = ytru[2 - i];
+  }
+
+  TGeoXtru* endUnitBodyLow = new TGeoXtru(2);
+  endUnitBodyLow->SetName("endunitbodylow");
+  endUnitBodyLow->DefinePolygon(6, xtru, ytru);
+  endUnitBodyLow->DefineSection(0, 0.8 * unitlen / 2);
+  endUnitBodyLow->DefineSection(1, unitlen / 2);
 
   // (See createOBSpaceFrameConnector lower down for details)
   xtru[0] = sOBSFrameConnWidth / 2.;
@@ -2914,10 +2929,10 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
     createStaveSide("fakeCornerSide", unitlen / 2., alphaRad, beta, staveLb, staveHb, kFALSE);
 
   ypos = -triangleHeight / 2 + vside->GetY(3);
-  TGeoTranslation* endUnitConnTrans = new TGeoTranslation("endunitconntrans", 0, ypos, endUnitBody->GetDZ());
+  TGeoTranslation* endUnitConnTrans = new TGeoTranslation("endunitconntrans", 0, ypos, unitlen / 2);
   endUnitConnTrans->RegisterYourself();
 
-  TGeoCompositeShape* endUnit = new TGeoCompositeShape("endunitbody+endunitconn:endunitconntrans");
+  TGeoCompositeShape* endUnit = new TGeoCompositeShape("endunitbody+endunitbodylow+endunitconn:endunitconntrans");
   endUnit->SetName("endunitcontainer"); // Will be used when create spaceframe
 
   // The air containers
@@ -2956,9 +2971,18 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
 
   next2EndVol[1]->AddNode(cfStavTopVol, 1, new TGeoTranslation(0, triangleHeight / 2, 0));
 
-  endVol[0]->AddNode(cfStavTopVol, 1, new TGeoTranslation(0, triangleHeight / 2, 0));
+  zlen = topVFactorEU * unitlen;
+  TGeoXtru* cfStavTopEU =
+    createStaveSide("CFstavTopCornerEUVolshape", zlen / 2., alphaRad, beta, staveLa, staveHa, kTRUE);
 
-  endVol[1]->AddNode(cfStavTopVol, 1, new TGeoTranslation(0, triangleHeight / 2, 0));
+  TGeoVolume* cfStavTopVolEU = new TGeoVolume("CFstavTopCornerEUVol", cfStavTopEU, medCarbon);
+  cfStavTopVol->SetLineColor(35);
+
+  zpos = endUnitBody->GetDZ() - zlen / 2.;
+
+  endVol[0]->AddNode(cfStavTopVolEU, 1, new TGeoTranslation(0, triangleHeight / 2, -zpos));
+
+  endVol[1]->AddNode(cfStavTopVolEU, 1, new TGeoTranslation(0, triangleHeight / 2, -zpos));
 
   //--- The two side V's
   TGeoXtru* cfStavSide =
@@ -3095,7 +3119,7 @@ void V3Layer::createOBSpaceFrameObjects(const TGeoManager* mgr)
 
   // The Space Frame connectors
   ypos = -triangleHeight / 2 + cfStavSide->GetY(3);
-  zpos = endUnitBody->GetDZ();
+  zpos = unitlen / 2;
   createOBSpaceFrameConnector(endVol[0], ypos, zpos, kFALSE); // Side C
   createOBSpaceFrameConnector(endVol[1], ypos, zpos, kTRUE);  // Side A
 
