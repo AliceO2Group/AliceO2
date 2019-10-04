@@ -12,7 +12,6 @@
 
 #include "Framework/ControlService.h"
 #include <string>
-#include <string_view>
 #include <regex>
 
 namespace o2
@@ -44,7 +43,7 @@ class TextControlService : public ControlService
   bool mOnce = false;
 };
 
-bool parseControl(std::string_view s, std::smatch& match);
+bool parseControl(std::string const& s, std::smatch& match);
 
 } // namespace framework
 } // namespace o2
