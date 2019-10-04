@@ -33,16 +33,10 @@ void TextControlService::readyToQuit(bool all)
   }
 }
 
-bool parseControl(std::string_view s, std::smatch& match)
+bool parseControl(std::string const& s, std::smatch& match)
 {
-  const static std::regex controlRE("READY_TO_(QUIT)_(ME|ALL)", std::regex::optimize);
-  auto idx = s.find("CONTROL_ACTION: ");
-  if (idx == std::string::npos) {
-    return false;
-  }
-  s.remove_prefix(idx);
-  std::string rs{s};
-  return std::regex_search(rs, match, controlRE);
+  const static std::regex controlRE(".*CONTROL_ACTION: READY_TO_(QUIT)_(ME|ALL)", std::regex::optimize);
+  return std::regex_search(s, match, controlRE);
 }
 
 } // namespace framework
