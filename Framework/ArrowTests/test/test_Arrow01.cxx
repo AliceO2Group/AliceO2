@@ -33,7 +33,7 @@ class ARROW_EXPORT PrintingKernel : public arrow::compute::UnaryKernel
 #ifdef __clang__
 #pragma GCC diagnostic ignored "-Winconsistent-missing-override"
 #endif // __clang__
-  virtual std::shared_ptr<arrow::DataType> out_type() const
+  std::shared_ptr<arrow::DataType> out_type() const override
   {
     return mType;
   }
