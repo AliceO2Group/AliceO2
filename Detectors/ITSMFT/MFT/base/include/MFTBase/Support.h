@@ -120,20 +120,14 @@ class Support
   ClassDef(Support, 1);
 };
 
-
-template<class L, class R, class T, class Op>
-auto compositeOperation(L left, R right, T translation, Op op) {
-  auto result = new Op(left, right, NULL, translation);
-  return TGeoCompositeShape(NULL,result);
+//Template to reduce boilerplate for geometry boolean operations
+template <class L, class R, class T, class Op>
+auto compositeOperation(L&& left, R&& right, T&& translation, Op&& op)
+{
+  auto result = new Op(std::forward<L&&>(left), std::forward<R&&>(right), NULL, std::forward<T&&>(translation));
+  return result;
 }
 
-/*
-template<class L, class R>
-auto compositeSubtract(L left, R right) {
-  auto sub = new TGeoSubtraction(left, right, NULL, NULL);
-  return TGeoCompositeShape(NULL,sub);
-}
-*/
 
 } // namespace mft
 } // namespace o2

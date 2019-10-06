@@ -77,9 +77,9 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     localTranslation = new TGeoTranslation(mBoxCuts[disk][cut][2], mBoxCuts[disk][cut][3], 0.);
     //The first subtraction needs a shape, the base tube
     if (!localCS)
-      localCS = new TGeoCompositeShape(compositeOperation(base, localBox, localTranslation,TGeoSubtraction()));
+      localCS = new TGeoCompositeShape(NULL,compositeOperation(base, localBox, localTranslation,TGeoSubtraction()));
     else
-      localCS = new TGeoCompositeShape(compositeOperation(localCS, localBox, localTranslation,TGeoSubtraction()));
+      localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localBox, localTranslation,TGeoSubtraction()));
   }
   // Adding raisedBoxes
   //Info("Create",Form("Adding raised boxes Support_H%d_D%d", half,disk),0,0);
@@ -88,12 +88,12 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     localTranslation = new TGeoTranslation(mBRaised[disk][box][2],
                                            mBRaised[disk][box][3],
                                            mRaisedBoxHeight / 2. + mSupThickness / 2.);
-    localCS = new TGeoCompositeShape(compositeOperation(localCS, localBox, localTranslation,TGeoUnion()));
+    localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localBox, localTranslation,TGeoUnion()));
     //For the backside
     localTranslation = new TGeoTranslation(-mBRaised[disk][box][2],
                                            mBRaised[disk][box][3],
                                            -(mRaisedBoxHeight / 2. + mSupThickness / 2.));
-    localCS = new TGeoCompositeShape(compositeOperation(localCS, localBox, localTranslation,TGeoUnion()));
+    localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localBox, localTranslation,TGeoUnion()));
   }
 
   // ================= Details ==================
@@ -103,12 +103,12 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     localBox = new TGeoBBox(NULL, mBFix[disk][box][0], mBFix[disk][box][1], mBFix[disk][box][2] / 2.);
     localTranslation = new TGeoTranslation(mBFix[disk][box][3],
                                            mBFix[disk][box][4], 0.);
-    localCS = new TGeoCompositeShape(compositeOperation(localCS, localBox, localTranslation,TGeoUnion()));
+    localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localBox, localTranslation,TGeoUnion()));
 
     //For the backside
     localTranslation = new TGeoTranslation(-mBFix[disk][box][3],
                                            mBFix[disk][box][4], 0.);
-    localCS = new TGeoCompositeShape(compositeOperation(localCS, localBox, localTranslation,TGeoUnion()));
+    localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localBox, localTranslation,TGeoUnion()));
 
   }
 
@@ -126,7 +126,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
         localArb->SetVertex(iVertex, iSide * vertex[0], mOuterCut[disk] - vertex[1]);
         localArb->SetVertex(iVertex + 4, iSide * vertex[0], mOuterCut[disk] - vertex[1]); //Vertexes 4..7 = 0..3
       }
-      localCS = new TGeoCompositeShape(compositeOperation(localCS, localArb, nullptr, TGeoSubtraction()));
+      localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localArb, nullptr, TGeoSubtraction()));
 
     }
   }
@@ -138,14 +138,14 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     localTranslation = new TGeoTranslation(-mM2Holes[disk][iHole][0],
                                            mOuterCut[disk] - mM2Holes[disk][iHole][1],
                                            mRaisedBoxHeight + mSupThickness / 2. - mHeight_M2);
-    localCS = new TGeoCompositeShape(compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
 
 
     //For the backside
     localTranslation = new TGeoTranslation(mM2Holes[disk][iHole][0],
                                            mOuterCut[disk] - mM2Holes[disk][iHole][1],
                                            -(mRaisedBoxHeight + mSupThickness / 2. - mHeight_M2));
-    localCS = new TGeoCompositeShape(compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
 
   }
 
@@ -157,14 +157,14 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     localTranslation = new TGeoTranslation(-mD2_hHoles[disk][iHole][0],
                                            mOuterCut[disk] - mD2_hHoles[disk][iHole][1],
                                            mRaisedBoxHeight + mSupThickness / 2. - mHeight_D2_h);
-    localCS = new TGeoCompositeShape(compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
 
 
     //For the backside
     localTranslation = new TGeoTranslation(mD2_hHoles[disk][iHole][0],
                                            mOuterCut[disk] - mD2_hHoles[disk][iHole][1],
                                            -(mRaisedBoxHeight + mSupThickness / 2. - mHeight_D2_h));
-    localCS = new TGeoCompositeShape(compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
 
   }
 
@@ -175,7 +175,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     localTranslation = new TGeoTranslation(-mD65Holes[disk][iHole][0],
                                            mOuterCut[disk] - mD65Holes[disk][iHole][1],
                                            0.);
-    localCS = new TGeoCompositeShape(compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
 
   }
 
@@ -186,7 +186,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     localTranslation = new TGeoTranslation(-mD6Holes[disk][iHole][0],
                                            mOuterCut[disk] - mD6Holes[disk][iHole][1],
                                            0.);
-    localCS = new TGeoCompositeShape(compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
 
   }
 
@@ -197,7 +197,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     localTranslation = new TGeoTranslation(-mD8Holes[disk][iHole][0],
                                            mOuterCut[disk] - mD8Holes[disk][iHole][1],
                                            0.);
-    localCS = new TGeoCompositeShape(compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
 
   }
 
@@ -208,7 +208,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     localTranslation = new TGeoTranslation(-mD3Holes[disk][iHole][0],
                                            mOuterCut[disk] - mD3Holes[disk][iHole][1],
                                            0.);
-    localCS = new TGeoCompositeShape(compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
 
   }
 
@@ -219,7 +219,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     localTranslation = new TGeoTranslation(-mM3Holes[disk][iHole][0],
                                            mOuterCut[disk] - mM3Holes[disk][iHole][1],
                                            0.);
-    localCS = new TGeoCompositeShape(compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
 
   }
 
@@ -230,7 +230,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     localTranslation = new TGeoTranslation(-mD45Holes[disk][iHole][0],
                                            mOuterCut[disk] - mD45Holes[disk][iHole][1],
                                            0.);
-   localCS = new TGeoCompositeShape(compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
+   localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
 
   }
 
@@ -241,7 +241,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     localTranslation = new TGeoTranslation(-mD2Holes[disk][iHole][0],
                                            mOuterCut[disk] - mD2Holes[disk][iHole][1],
                                            mSupThickness / 2. - .4 / 2);
-    localCS = new TGeoCompositeShape(compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localTube, localTranslation,TGeoSubtraction()));
 
   }
 
