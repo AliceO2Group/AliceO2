@@ -163,9 +163,9 @@ class ConfigurableParam
   static boost::property_tree::ptree readConfigFile(std::string const& filepath);
 
   // writes a human readable JSON file of all parameters
-  static void writeJSON(std::string const& filename);
+  static void writeJSON(std::string const& filename, std::string const& keyOnly = "");
   // writes a human readable INI file of all parameters
-  static void writeINI(std::string const& filename);
+  static void writeINI(std::string const& filename, std::string const& keyOnly = "");
 
   // can be used instead of using API on concrete child classes
   template <typename T>
