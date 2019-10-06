@@ -11,6 +11,7 @@
 /// \file Support.h
 /// \brief Class describing geometry of one MFT half-disk support
 /// \author Raphael Tieulent <raphael.tieulent@cern.ch>
+/// \author Rafael Pezzi <rafael.pezzi@cern.ch>
 
 #ifndef ALICEO2_MFT_SUPPORT_H_
 #define ALICEO2_MFT_SUPPORT_H_
@@ -28,9 +29,6 @@
 #include "TGeoVolume.h"
 #include "FairLogger.h"
 
-class TGeoVolume;
-class TGeoCompositeShape;
-
 namespace o2
 {
 namespace mft
@@ -38,9 +36,8 @@ namespace mft
 
 class Support
 {
-  using boxCutParam = std::vector<Double_t>;
-  using diskBoxCuts = std::vector<boxCutParam>;
-
+  using shapeParam = std::vector<Double_t>;
+  using diskBoxCuts = std::vector<shapeParam>;
 
  public:
   Support();
@@ -63,15 +60,9 @@ class Support
   Double_t mOuterCut[5]; //Distance of external disk cuts (oposite to beam pipe)
                          // this is the y origin on Guillamet's PDF blueprints
 
-  Int_t mNumberOfBoxCuts[5];  // Number of box cuts in each half disk support
-  Double_t (*mBoxCuts[5])[4]; // Box cuts on each disk
-  std::vector<boxCutParam> mDiskBoxCuts[5];
-
-  Int_t mNumberOfRaixedBoxes[5]; //Number of Raised boxes in each halfDisk support
-  Double_t (*mBRaised[5])[4];    //Raised boxes for each halfDisk
-
-  Int_t mNumberOfFixBoxes[5]; //Number of Fixation boxes in each halfDisk support
-  Double_t (*mBFix[5])[5];    //Fixation boxes for each halfDisk
+  std::vector<shapeParam> mDiskBoxCuts[5];     // Box cuts on each disk
+  std::vector<shapeParam> mDiskRaisedBoxes[5]; //Raised boxes for each halfDisk
+  std::vector<shapeParam> mDiskFixBoxes[5];    //Fix boxes for each halfDisk (can be merged with mDiskRaisedBoxes)
 
   Int_t mNumberOfVoids[5];        //Number of Voids (big holes) in each halfDisk support
   Double_t (*mVoidVert[5])[4][2]; //Vertexes of Voids
@@ -122,39 +113,36 @@ class Support
   ClassDef(Support, 1);
 };
 
-//Template to reduce boilerplate for geometry boolean operations
-template <class L, class R, class T, class Op>
-auto compositeOperation(L&& left, R&& right, T&& translation, Op&& op)
+//Template to reduce boilerplate for TGeo boolean operations
+template <class L, class R, class T, class OP>
+auto compositeOperation(L&& left, R&& right, T&& translation, OP&& op)
 {
-  auto result = new Op(std::forward<L&&>(left), std::forward<R&&>(right), NULL, std::forward<T&&>(translation));
+  auto result = new OP(std::forward<L&&>(left), std::forward<R&&>(right), NULL, std::forward<T&&>(translation));
   return result;
 }
 
-//Template function to cut all boxes from a disk
-template<class SH, class CUTS>
-auto boxesRemoval(SH&& base, CUTS&& boxes) {
+//Template function to perform serial TGeo boolean operations
+template <class L, class SHAPE, class EL, class OP>
+auto serialBoolOperation(L&& base, SHAPE&& shape, EL&& elements, OP&& op)
+{
   TGeoCompositeShape* localCS = nullptr;
-  TGeoBBox* localBox;
+  SHAPE* localshape;
   TGeoTranslation* localTranslation;
-  for (auto cuts : boxes)
-  {
-    Info("boxesRemoval",Form("Function boxesRemoval: %f %f %f %f,", cuts[0],cuts[1],cuts[2],cuts[3]),0,0);
-    //        std::cout << cuts[0] << " " << cuts[1] << " " << cuts[2] << " " << cuts[3] << " ";
-    //        std::cout << std::endl;
-    localBox = new TGeoBBox(cuts[0], cuts[1], .8 ,0);  // FIX: mSupThickness from initialization parameter
-    localTranslation = new TGeoTranslation(cuts[2], cuts[3], 0.);
-    //The first subtraction needs a shape, the base tube
+
+  for (auto par : elements) {
+    //Info("SerialBoolOperation", Form("params: %f %f %f %f %f %f,", par[0], par[1], par[2], par[3], par[4], par[5]), 0, 0);
+
+    localshape = new SHAPE(par[0], par[1], par[2], 0);
+    localTranslation = new TGeoTranslation(par[3], par[4], par[5]);
+
+    //The first subtraction needs a shape, the base shape
     if (!localCS)
-      localCS = new TGeoCompositeShape(NULL,compositeOperation(base, localBox, localTranslation,TGeoSubtraction()));
+      localCS = new TGeoCompositeShape(NULL, compositeOperation(base, localshape, localTranslation, std::forward<OP>(op)));
     else
-      localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localBox, localTranslation,TGeoSubtraction()));
+      localCS = new TGeoCompositeShape(NULL, compositeOperation(localCS, localshape, localTranslation, std::forward<OP>(op)));
   }
-  // return TGeoCompositeShape();// Builds, but execution dies here
   return localCS;
-
-
 }
-
 
 } // namespace mft
 } // namespace o2

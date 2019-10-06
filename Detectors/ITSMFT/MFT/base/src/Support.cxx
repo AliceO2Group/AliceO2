@@ -10,7 +10,8 @@
 
 /// \file Support.cxx
 /// \brief Class building the MFT PCB Supports
-/// \author Raphael Tieulent <raphael.tieulent@cern.ch>, Rafael Pezzi <rafael.pezzi@cern.ch>
+/// \author Raphael Tieulent <raphael.tieulent@cern.ch>
+/// \author Rafael Pezzi <rafael.pezzi@cern.ch>
 
 #include "MFTBase/Constants.h"
 #include "MFTBase/Support.h"
@@ -72,60 +73,17 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
 
   // Cutting boxes
   //Info("Create",Form("Cutting Boxes Support_H%d_D%d", half,disk),0,0);
-/*
-  for (auto cut = 0; cut < mNumberOfBoxCuts[disk]; cut++) {
-    localBox = new TGeoBBox(mBoxCuts[disk][cut][0], mBoxCuts[disk][cut][1], mSupThickness / 2. + mT_delta);
-    localTranslation = new TGeoTranslation(mBoxCuts[disk][cut][2], mBoxCuts[disk][cut][3], 0.);
-    //The first subtraction needs a shape, the base tube
-    if (!localCS)
-      localCS = new TGeoCompositeShape(NULL,compositeOperation(base, localBox, localTranslation,TGeoSubtraction()));
-    else
-      localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localBox, localTranslation,TGeoSubtraction()));
-  }
-*/
-  // Experimenting with Template function to remove boxes
-  diskBoxCuts boxes = mDiskBoxCuts[disk];
-  TGeoCompositeShape* localCSsss = nullptr;
-
-  localCS = boxesRemoval(base,boxes);
-  //localCSsss = new TGeoCompositeShape(NULL,boxesRemoval(base,boxes));
-  //localCSsss = new TGeoCompositeShape(boxesRemoval(base,mSupportsBoxCuts[0]));
-
-
+  // Using template function to remove boxes
+  localCS = serialBoolOperation(base,TGeoBBox(),mDiskBoxCuts[disk],TGeoSubtraction());
 
   // Adding raisedBoxes
   //Info("Create",Form("Adding raised boxes Support_H%d_D%d", half,disk),0,0);
-  for (auto box = 0; box < mNumberOfRaixedBoxes[disk]; box++) {
-    localBox = new TGeoBBox(NULL, mBRaised[disk][box][0], mBRaised[disk][box][1], mRaisedBoxHeight / 2.);
-    localTranslation = new TGeoTranslation(mBRaised[disk][box][2],
-                                           mBRaised[disk][box][3],
-                                           mRaisedBoxHeight / 2. + mSupThickness / 2.);
-    localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localBox, localTranslation,TGeoUnion()));
-    //For the backside
-    localTranslation = new TGeoTranslation(-mBRaised[disk][box][2],
-                                           mBRaised[disk][box][3],
-                                           -(mRaisedBoxHeight / 2. + mSupThickness / 2.));
-    localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localBox, localTranslation,TGeoUnion()));
-  }
-
-  // ================= Details ==================
+  localCS = serialBoolOperation(localCS,TGeoBBox(),mDiskRaisedBoxes[disk],TGeoUnion());
 
   // Adding fixationBoxes
-  for (auto box = 0; box < mNumberOfFixBoxes[disk]; box++) {
-    localBox = new TGeoBBox(NULL, mBFix[disk][box][0], mBFix[disk][box][1], mBFix[disk][box][2] / 2.);
-    localTranslation = new TGeoTranslation(mBFix[disk][box][3],
-                                           mBFix[disk][box][4], 0.);
-    localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localBox, localTranslation,TGeoUnion()));
-
-    //For the backside
-    localTranslation = new TGeoTranslation(-mBFix[disk][box][3],
-                                           mBFix[disk][box][4], 0.);
-    localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localBox, localTranslation,TGeoUnion()));
-
-  }
+  localCS = serialBoolOperation(localCS,TGeoBBox(),mDiskFixBoxes[disk],TGeoUnion());
 
   // =================  Holes ==================
-
   //TODO: Holes pointing the y axis
 
   // ======= Creating big holes =========
@@ -271,224 +229,206 @@ void Support::initParameters()
 {
 
   mSupportMedium = gGeoManager->GetMedium("MFT_PEEK$");
-
+  auto th = mSupThickness;
   // # Support parametrization =====
 
   // ================================================
   // ## Cut boxes (squares)
   // ### halfDisks 00
-  mNumberOfBoxCuts[0] = 7;
-  // Cut boxes {Width, Height, x_center, y_center}
-  mBoxCuts[00] = new Double_t[mNumberOfBoxCuts[0]][4]{
-    {mSupRad[0] + mT_delta, mDiskGap, 0., 0.},
-    {sqrt(pow(mSupRad[0], 2.) - pow(mOuterCut[0], 2.)),
-     (mSupRad[0] - mOuterCut[0]) / 2.,
-     0.,
-     (mSupRad[0] + mOuterCut[0]) / 2.}, //External cut width: 2*sqrt(R²-x²)
-    {12.4, 6.91, 0., 0.},
-    {7.95, 9.4, 0., 0.},
-    {2.9, 11.885, 0., 0.},
-    {1.3875, 1.45, 16.1875, 7.9},
-    {1.3875, 1.45, -16.1875, 7.9}};
-
 
     mDiskBoxCuts[0] =
       {
-       {mSupRad[0] + mT_delta, mDiskGap, 0., 0.},
-       {sqrt(pow(mSupRad[0], 2.) - pow(mOuterCut[0], 2.)), (mSupRad[0] - mOuterCut[0]) / 2., 0., (mSupRad[0] + mOuterCut[0]) / 2.}, //External cut width: 2*sqrt(R²-x²)
-       {12.4, 6.91, 0., 0.},
-       {7.95, 9.4, 0., 0.},
-       {2.9, 11.885, 0., 0.},
-       {1.3875, 1.45, 16.1875, 7.9},
-       {1.3875, 1.45, -16.1875, 7.9}
+       {mSupRad[0] + mT_delta, mDiskGap, th, 0., 0., 0},
+       {sqrt(pow(mSupRad[0], 2.) - pow(mOuterCut[0], 2.)), (mSupRad[0] - mOuterCut[0]) / 2., th, 0., (mSupRad[0] + mOuterCut[0]) / 2., 0}, //External cut width: 2*sqrt(R²-x²)
+       {12.4, 6.91, th, 0., 0., 0},
+       {7.95, 9.4, th, 0., 0., 0},
+       {2.9, 11.885, th, 0., 0., 0},
+       {1.3875, 1.45, th, 16.1875, 7.9, 0},
+       {1.3875, 1.45, th, -16.1875, 7.9, 0}
       };
-  /*
-  for (boxCutParam thisBoxCut : {boxCutParam{mSupRad[0] + mT_delta, mDiskGap, 0., 0.},
-                          boxCutParam{sqrt(pow(mSupRad[0], 2.) - pow(mOuterCut[0], 2.)),
-                          (mSupRad[0] - mOuterCut[0]) / 2., 0., (mSupRad[0] + mOuterCut[0]) / 2.}})
-     diskBoxCuts[0].emplace(thisBoxCut);
-*/
 
   // ### halfDisks 01
   mDiskBoxCuts[1]=mDiskBoxCuts[0];
-  mNumberOfBoxCuts[1] = mNumberOfBoxCuts[0];
-  mBoxCuts[01] = mBoxCuts[00];
 
   // ### halfDisk 02
-  mNumberOfBoxCuts[2] = 9;
-  mBoxCuts[02] = new Double_t[mNumberOfBoxCuts[2]][4]{
-    {mSupRad[2] + mT_delta, mDiskGap, 0., 0.},
-    {sqrt(pow(mSupRad[2], 2.) - pow(mOuterCut[2], 2.)),
-     (mSupRad[2] - mOuterCut[2]) / 2.,
-     0.,
-     (mSupRad[2] + mOuterCut[2]) / 2.}, //External cut width: 2*sqrt(R²-x²)
-    {12.8, 6.91, 0., 0.},
-    {9.7, 9.4, 0., 0.},
-    {(6.3 - 2.2) / 2, 12.4, (6.3 + 2.2) / 2, 0},
-    {2.2 + mT_delta, 11.9, 0., 0.},
-    {(6.3 - 2.2) / 2, 12.4, -(6.3 + 2.2) / 2, 0},
-    {(mSupRad[2] - 14.8) / 2, (10.0 - 6.5) / 2, (mSupRad[2] + 14.8) / 2, (10.0 + 6.5) / 2},
-    {(mSupRad[2] - 14.8) / 2, (10.0 - 6.5) / 2, -(mSupRad[2] + 14.8) / 2, (10.0 + 6.5) / 2}};
-
     mDiskBoxCuts[2] =
       {
-        {mSupRad[2] + mT_delta, mDiskGap, 0., 0.},
+        {mSupRad[2] + mT_delta, mDiskGap, th, 0., 0., 0},
         {sqrt(pow(mSupRad[2], 2.) - pow(mOuterCut[2], 2.)),
-         (mSupRad[2] - mOuterCut[2]) / 2.,
+         (mSupRad[2] - mOuterCut[2]) / 2., th,
          0.,
-         (mSupRad[2] + mOuterCut[2]) / 2.}, //External cut width: 2*sqrt(R²-x²)
-        {12.8, 6.91, 0., 0.},
-        {9.7, 9.4, 0., 0.},
-        {(6.3 - 2.2) / 2, 12.4, (6.3 + 2.2) / 2, 0},
-        {2.2 + mT_delta, 11.9, 0., 0.},
-        {(6.3 - 2.2) / 2, 12.4, -(6.3 + 2.2) / 2, 0},
-        {(mSupRad[2] - 14.8) / 2, (10.0 - 6.5) / 2, (mSupRad[2] + 14.8) / 2, (10.0 + 6.5) / 2},
-        {(mSupRad[2] - 14.8) / 2, (10.0 - 6.5) / 2, -(mSupRad[2] + 14.8) / 2, (10.0 + 6.5) / 2}
+         (mSupRad[2] + mOuterCut[2]) / 2., 0}, //External cut width: 2*sqrt(R²-x²)
+        {12.8, 6.91, th, 0., 0., 0},
+        {9.7, 9.4, th, 0., 0., 0},
+        {(6.3 - 2.2) / 2, 12.4, th, (6.3 + 2.2) / 2, 0, 0},
+        {2.2 + mT_delta, 11.9, th, 0., 0., 0},
+        {(6.3 - 2.2) / 2, 12.4, th, -(6.3 + 2.2) / 2, 0, 0},
+        {(mSupRad[2] - 14.8) / 2, (10.0 - 6.5) / 2, th, (mSupRad[2] + 14.8) / 2, (10.0 + 6.5) / 2, 0},
+        {(mSupRad[2] - 14.8) / 2, (10.0 - 6.5) / 2, th, -(mSupRad[2] + 14.8) / 2, (10.0 + 6.5) / 2, 0}
       };
 
   // ### halfDisk 03
-  mNumberOfBoxCuts[3] = 8;
-  mBoxCuts[03] = new Double_t[mNumberOfBoxCuts[3]][4]{
-    {mSupRad[3] + mT_delta, mDiskGap, 0., 0.},
-    {sqrt(pow(mSupRad[3], 2.) - pow(mOuterCut[3], 2.)),
-     (mSupRad[3] - mOuterCut[3]) / 2.,
-     0.,
-     (mSupRad[3] + mOuterCut[3]) / 2.}, //External cut width: 2*sqrt(R²-x²)
-    {15.7, 9.4, 0., 0.},
-    {9.7, 12.4, 0., 0.},
-    {4.6, 14.73, 0., 0.},
-    {2.9, 16.0, 0., 0.},
-    {(mSupRad[3] - 18.3) / 2., 4.2, (mSupRad[3] + 18.3) / 2, 0},
-    {(mSupRad[3] - 18.3) / 2., 4.2, -(mSupRad[3] + 18.3) / 2, 0}};
-
     mDiskBoxCuts[3] =
       {
-        {mSupRad[3] + mT_delta, mDiskGap, 0., 0.},
+        {mSupRad[3] + mT_delta, mDiskGap, th, 0., 0., 0},
         {sqrt(pow(mSupRad[3], 2.) - pow(mOuterCut[3], 2.)),
-         (mSupRad[3] - mOuterCut[3]) / 2.,
+         (mSupRad[3] - mOuterCut[3]) / 2., th,
          0.,
-         (mSupRad[3] + mOuterCut[3]) / 2.}, //External cut width: 2*sqrt(R²-x²)
-        {15.7, 9.4, 0., 0.},
-        {9.7, 12.4, 0., 0.},
-        {4.6, 14.73, 0., 0.},
-        {2.9, 16.0, 0., 0.},
-        {(mSupRad[3] - 18.3) / 2., 4.2, (mSupRad[3] + 18.3) / 2, 0},
-        {(mSupRad[3] - 18.3) / 2., 4.2, -(mSupRad[3] + 18.3) / 2, 0}
+         (mSupRad[3] + mOuterCut[3]) / 2., 0}, //External cut width: 2*sqrt(R²-x²)
+        {15.7, 9.4, th, 0., 0., 0},
+        {9.7, 12.4, th, 0., 0., 0},
+        {4.6, 14.73, th, 0., 0., 0},
+        {2.9, 16.0, th, 0., 0., 0},
+        {(mSupRad[3] - 18.3) / 2., 4.2, th, (mSupRad[3] + 18.3) / 2, 0, 0},
+        {(mSupRad[3] - 18.3) / 2., 4.2, th, -(mSupRad[3] + 18.3) / 2, 0, 0}
       };
-
 
   // ### halfDisk 04
-  mNumberOfBoxCuts[4] = 8;
-  mBoxCuts[04] = new Double_t[mNumberOfBoxCuts[4]][4]{
-    {mSupRad[4] + mT_delta, mDiskGap, 0., 0.},
-    {sqrt(pow(mSupRad[4], 2.) - pow(mOuterCut[4], 2.)),
-     (mSupRad[4] - mOuterCut[4]) / 2.,
-     0.,
-     (mSupRad[4] + mOuterCut[4]) / 2.}, //External cut width: 2*sqrt(R²-x²)
-    {16.2, 9.4, 0., 0.},
-    {11.4, 12.4, 0., 0.},
-    {8.0, 15.35, 0., 0.},
-    {2.9, 16.4, 0., 0.},
-    {2.35, 4.2, -20.65, 0.},
-    {2.35, 4.2, 20.65, 0.}};
-
     mDiskBoxCuts[4] =
       {
-        {mSupRad[4] + mT_delta, mDiskGap, 0., 0.},
+        {mSupRad[4] + mT_delta, mDiskGap, th, 0., 0., 0},
         {sqrt(pow(mSupRad[4], 2.) - pow(mOuterCut[4], 2.)),
-         (mSupRad[4] - mOuterCut[4]) / 2.,
+         (mSupRad[4] - mOuterCut[4]) / 2., th,
          0.,
-         (mSupRad[4] + mOuterCut[4]) / 2.}, //External cut width: 2*sqrt(R²-x²)
-        {16.2, 9.4, 0., 0.},
-        {11.4, 12.4, 0., 0.},
-        {8.0, 15.35, 0., 0.},
-        {2.9, 16.4, 0., 0.},
-        {2.35, 4.2, -20.65, 0.},
-        {2.35, 4.2, 20.65, 0.}
+         (mSupRad[4] + mOuterCut[4]) / 2., 0}, //External cut width: 2*sqrt(R²-x²)
+        {16.2, 9.4, th, 0., 0., 0},
+        {11.4, 12.4, th, 0., 0., 0},
+        {8.0, 15.35, th, 0., 0., 0},
+        {2.9, 16.4, th, 0., 0., 0},
+        {2.35, 4.2, th, -20.65, 0., 0},
+        {2.35, 4.2, th, 20.65, 0., 0}
       };
-
 
   // ================================================
   // ## Raised boxes
   // ### halfDisks 00
-  mNumberOfRaixedBoxes[0] = 5;
-  // Raised Boxes {Width, Height, x_center, y_center}
-  mBRaised[0] = new Double_t[mNumberOfRaixedBoxes[0]][4]{
-    {(9.35 - 7.95) / 2., (8.81 - 6.91) / 2., (9.35 + 7.95) / 2., (8.81 + 6.91) / 2.},
-    {(7.65 - 2.9) / 2., (11.82 - 9.4) / 2., (7.65 + 2.9) / 2., (11.82 + 9.4) / 2.},
-    {(2.55 + 2.05) / 2., (13.92 - 11.885) / 2., (2.55 - 2.05) / 2., (13.92 + 11.885) / 2.},
-    {(7.15 - 2.9) / 2., (11.82 - 9.4) / 2., (-7.152 - 2.92) / 2., (11.82 + 9.4) / 2},
-    {(10.55 - 7.95) / 2., (8.81 - 6.91) / 2., (-10.55 - 7.95) / 2., (8.81 + 6.91) / 2.}};
+
+  auto rBT = mRaisedBoxHeight / 2.; // Raised boxes thickness
+  auto rBS = mRaisedBoxHeight / 2. + mSupThickness / 2.; //Raised boxes z shift
+  // Raised Boxes {Width, Height, Thickness, x_center, y_center, z_center}
+  mDiskRaisedBoxes[0] =
+  {
+    {(9.35 - 7.95) / 2., (8.81 - 6.91) / 2., rBT, (9.35 + 7.95) / 2., (8.81 + 6.91) / 2., rBS},
+    {(7.65 - 2.9) / 2., (11.82 - 9.4) / 2., rBT, (7.65 + 2.9) / 2., (11.82 + 9.4) / 2., rBS},
+    {(2.55 + 2.05) / 2., (13.92 - 11.885) / 2., rBT, (2.55 - 2.05) / 2., (13.92 + 11.885) / 2., rBS},
+    {(7.15 - 2.9) / 2., (11.82 - 9.4) / 2., rBT, (-7.152 - 2.92) / 2., (11.82 + 9.4) / 2, rBS},
+    {(10.55 - 7.95) / 2., (8.81 - 6.91) / 2., rBT, (-10.55 - 7.95) / 2., (8.81 + 6.91) / 2., rBS},
+    //Back side:
+    {(9.35 - 7.95) / 2., (8.81 - 6.91) / 2., rBT, -(9.35 + 7.95) / 2., (8.81 + 6.91) / 2., -rBS},
+    {(7.65 - 2.9) / 2., (11.82 - 9.4) / 2., rBT, -(7.65 + 2.9) / 2., (11.82 + 9.4) / 2., -rBS},
+    {(2.55 + 2.05) / 2., (13.92 - 11.885) / 2., rBT, -(2.55 - 2.05) / 2., (13.92 + 11.885) / 2., -rBS},
+    {(7.15 - 2.9) / 2., (11.82 - 9.4) / 2., rBT, -(-7.152 - 2.92) / 2., (11.82 + 9.4) / 2, -rBS},
+    {(10.55 - 7.95) / 2., (8.81 - 6.91) / 2., rBT, -(-10.55 - 7.95) / 2., (8.81 + 6.91) / 2., -rBS}
+  };
 
   // ### halfDisks 01
-  mNumberOfRaixedBoxes[1] = mNumberOfRaixedBoxes[0];
-  mBRaised[1] = mBRaised[0];
+  mDiskRaisedBoxes[1]=mDiskRaisedBoxes[0];
 
   // ### halfDisk 02
-  mNumberOfRaixedBoxes[2] = 7;
-  mBRaised[02] = new Double_t[mNumberOfRaixedBoxes[2]][4]{
-    {(10.55 - 9.7) / 2., (8.81 - 6.91) / 2., (10.55 + 9.7) / 2., (8.81 + 6.91) / 2.},
-    {(8.85 - 6.3) / 2., (11.82 - 9.4) / 2., (8.85 + 6.3) / 2., (11.82 + 9.4) / 2.},
-    {(5.45 - 2.55) / 2., (14.83 - 12.4) / 2., (5.45 + 2.55) / 2., (14.83 + 12.4) / 2.},
-    {(2.2 + 2.2) / 2., (13.92 - 11.9) / 2., (2.2 - 2.2) / 2., (13.92 + 11.9) / 2},
-    {(5.95 - 3.05) / 2., (14.83 - 12.4) / 2., -(5.95 + 3.05) / 2., (14.83 + 12.4) / 2.},
-    {(9.35 - 6.3) / 2., (11.82 - 9.4) / 2., -(9.35 + 6.3) / 2., (11.82 + 9.4) / 2},
-    {(11.05 - 9.7) / 2., (8.81 - 6.91) / 2., -(11.05 + 9.7) / 2., (8.81 + 6.91) / 2.}};
+  mDiskRaisedBoxes[2] =
+  {
+    {(10.55 - 9.7) / 2., (8.81 - 6.91) / 2., rBT, (10.55 + 9.7) / 2., (8.81 + 6.91) / 2., rBS},
+    {(8.85 - 6.3) / 2., (11.82 - 9.4) / 2., rBT, (8.85 + 6.3) / 2., (11.82 + 9.4) / 2., rBS},
+    {(5.45 - 2.55) / 2., (14.83 - 12.4) / 2., rBT, (5.45 + 2.55) / 2., (14.83 + 12.4) / 2., rBS},
+    {(2.2 + 2.2) / 2., (13.92 - 11.9) / 2., rBT, (2.2 - 2.2) / 2., (13.92 + 11.9) / 2, rBS},
+    {(5.95 - 3.05) / 2., (14.83 - 12.4) / 2., rBT, -(5.95 + 3.05) / 2., (14.83 + 12.4) / 2., rBS},
+    {(9.35 - 6.3) / 2., (11.82 - 9.4) / 2., rBT, -(9.35 + 6.3) / 2., (11.82 + 9.4) / 2, rBS},
+    {(11.05 - 9.7) / 2., (8.81 - 6.91) / 2., rBT, -(11.05 + 9.7) / 2., (8.81 + 6.91) / 2., rBS},
+    //Back side:
+    {(10.55 - 9.7) / 2., (8.81 - 6.91) / 2., rBT, -(10.55 + 9.7) / 2., (8.81 + 6.91) / 2., -rBS},
+    {(8.85 - 6.3) / 2., (11.82 - 9.4) / 2., rBT, -(8.85 + 6.3) / 2., (11.82 + 9.4) / 2., -rBS},
+    {(5.45 - 2.55) / 2., (14.83 - 12.4) / 2., rBT, -(5.45 + 2.55) / 2., (14.83 + 12.4) / 2., -rBS},
+    {(2.2 + 2.2) / 2., (13.92 - 11.9) / 2., rBT, -(2.2 - 2.2) / 2., (13.92 + 11.9) / 2, -rBS},
+    {(5.95 - 3.05) / 2., (14.83 - 12.4) / 2., rBT, (5.95 + 3.05) / 2., (14.83 + 12.4) / 2., -rBS},
+    {(9.35 - 6.3) / 2., (11.82 - 9.4) / 2., rBT, (9.35 + 6.3) / 2., (11.82 + 9.4) / 2, -rBS},
+    {(11.05 - 9.7) / 2., (8.81 - 6.91) / 2., rBT, (11.05 + 9.7) / 2., (8.81 + 6.91) / 2., -rBS}
+  };
 
   // ### halfDisk 03
-  mNumberOfRaixedBoxes[3] = 7;
-  mBRaised[03] = new Double_t[mNumberOfRaixedBoxes[3]][4]{
-    {(12.75 - 9.7) / 2., (11.82 - 9.4) / 2., (12.75 + 9.7) / 2., (11.82 + 9.4) / 2.},
-    {(9.35 - 4.6) / 2., (14.83 - 12.4) / 2., (9.35 + 4.6) / 2., (14.83 + 12.4) / 2.},
-    {(4.25 - 2.9) / 2., (16.63 - 14.73) / 2., (4.25 + 2.9) / 2., (16.63 + 14.73) / 2.},
-    {(2.55 + 2.05) / 2., (18.03 - 16.0) / 2., (2.55 - 2.05) / 2., (18.03 + 16.0) / 2},
-    {(3.75 - 2.9) / 2., (17.09 - 14.73) / 2., -(3.75 + 2.9) / 2., (17.09 + 14.73) / 2.},
-    {(8.85 - 4.6) / 2., (14.83 - 12.4) / 2., -(8.85 + 4.6) / 2., (14.83 + 12.4) / 2.},
-    {(13.95 - 9.7) / 2., (11.82 - 9.4) / 2., -(13.95 + 9.7) / 2., (11.82 + 9.4) / 2.}};
+  mDiskRaisedBoxes[3] =
+  {
+    {(12.75 - 9.7) / 2., (11.82 - 9.4) / 2., rBT, (12.75 + 9.7) / 2., (11.82 + 9.4) / 2., rBS},
+    {(9.35 - 4.6) / 2., (14.83 - 12.4) / 2., rBT, (9.35 + 4.6) / 2., (14.83 + 12.4) / 2., rBS},
+    {(4.25 - 2.9) / 2., (16.63 - 14.73) / 2., rBT, (4.25 + 2.9) / 2., (16.63 + 14.73) / 2., rBS},
+    {(2.55 + 2.05) / 2., (18.03 - 16.0) / 2., rBT, (2.55 - 2.05) / 2., (18.03 + 16.0) / 2, rBS},
+    {(3.75 - 2.9) / 2., (17.09 - 14.73) / 2., rBT, -(3.75 + 2.9) / 2., (17.09 + 14.73) / 2., rBS},
+    {(8.85 - 4.6) / 2., (14.83 - 12.4) / 2., rBT, -(8.85 + 4.6) / 2., (14.83 + 12.4) / 2., rBS},
+    {(13.95 - 9.7) / 2., (11.82 - 9.4) / 2., rBT, -(13.95 + 9.7) / 2., (11.82 + 9.4) / 2., rBS},
+    //for backside:
+    {(12.75 - 9.7) / 2., (11.82 - 9.4) / 2., rBT, -(12.75 + 9.7) / 2., (11.82 + 9.4) / 2., -rBS},
+    {(9.35 - 4.6) / 2., (14.83 - 12.4) / 2., rBT, -(9.35 + 4.6) / 2., (14.83 + 12.4) / 2., -rBS},
+    {(4.25 - 2.9) / 2., (16.63 - 14.73) / 2., rBT, -(4.25 + 2.9) / 2., (16.63 + 14.73) / 2., -rBS},
+    {(2.55 + 2.05) / 2., (18.03 - 16.0) / 2., rBT, -(2.55 - 2.05) / 2., (18.03 + 16.0) / 2, -rBS},
+    {(3.75 - 2.9) / 2., (17.09 - 14.73) / 2., rBT, (3.75 + 2.9) / 2., (17.09 + 14.73) / 2., -rBS},
+    {(8.85 - 4.6) / 2., (14.83 - 12.4) / 2., rBT, (8.85 + 4.6) / 2., (14.83 + 12.4) / 2., -rBS},
+    {(13.95 - 9.7) / 2., (11.82 - 9.4) / 2., rBT, (13.95 + 9.7) / 2., (11.82 + 9.4) / 2., -rBS}
+  };
 
   // ### halfDisk 04
-  mNumberOfRaixedBoxes[4] = 8;
-  mBRaised[04] = new Double_t[mNumberOfRaixedBoxes[4]][4]{
-    {(13.9 - 11.4) / 2., (11.82 - 9.4) / 2., -(13.9 + 11.4) / 2., (11.82 + 9.4) / 2.},        // RB0
-    {(10.55 - 8.0) / 2., (14.83 - 12.4) / 2., -(10.55 + 8.0) / 2., (14.83 + 12.4) / 2.},      // RB1
-    {(7.15 - 2.9) / 2., (17.84 - 15.35) / 2., -(7.15 + 2.9) / 2., (17.84 + 15.35) / 2.},      // RB2
-    {(2.05 + 2.55) / 2., (18.45 - 16.4) / 2., -(2.05 - 2.55) / 2., (18.45 + 16.4) / 2},       // RB3
-    {-(-4.75 + 2.9) / 2., (17.26 - 15.35) / 2., -(-4.75 - 2.9) / 2., (17.26 + 15.35) / 2.},   // RB4
-    {-(-7.65 + 4.75) / 2., (17.85 - 15.35) / 2., -(-7.65 - 4.75) / 2., (17.85 + 15.35) / 2.}, // RB5
-    {-(-11.05 + 8.0) / 2., (14.83 - 12.4) / 2., -(-11.05 - 8.0) / 2., (14.83 + 12.4) / 2.},   // RB6
-    {-(-14.45 + 11.4) / 2., (11.82 - 9.4) / 2., -(-14.45 - 11.4) / 2., (11.82 + 9.4) / 2.}    // RB7
+  mDiskRaisedBoxes[4] =
+  {
+    {(13.9 - 11.4) / 2., (11.82 - 9.4) / 2., rBT, -(13.9 + 11.4) / 2., (11.82 + 9.4) / 2., -rBS},        // RB0
+    {(10.55 - 8.0) / 2., (14.83 - 12.4) / 2., rBT, -(10.55 + 8.0) / 2., (14.83 + 12.4) / 2., -rBS},      // RB1
+    {(7.15 - 2.9) / 2., (17.84 - 15.35) / 2., rBT, -(7.15 + 2.9) / 2., (17.84 + 15.35) / 2., -rBS},      // RB2
+    {(2.05 + 2.55) / 2., (18.45 - 16.4) / 2., rBT, -(2.05 - 2.55) / 2., (18.45 + 16.4) / 2, -rBS},       // RB3
+    {-(-4.75 + 2.9) / 2., (17.26 - 15.35) / 2., rBT, -(-4.75 - 2.9) / 2., (17.26 + 15.35) / 2., -rBS},   // RB4
+    {-(-7.65 + 4.75) / 2., (17.85 - 15.35) / 2., rBT, -(-7.65 - 4.75) / 2., (17.85 + 15.35) / 2., -rBS}, // RB5
+    {-(-11.05 + 8.0) / 2., (14.83 - 12.4) / 2., rBT, -(-11.05 - 8.0) / 2., (14.83 + 12.4) / 2., -rBS},   // RB6
+    {-(-14.45 + 11.4) / 2., (11.82 - 9.4) / 2., rBT, -(-14.45 - 11.4) / 2., (11.82 + 9.4) / 2., -rBS},    // RB7
+    //For backside:
+    {(13.9 - 11.4) / 2., (11.82 - 9.4) / 2., rBT, (13.9 + 11.4) / 2., (11.82 + 9.4) / 2., -rBS},        // RB0
+    {(10.55 - 8.0) / 2., (14.83 - 12.4) / 2., rBT, (10.55 + 8.0) / 2., (14.83 + 12.4) / 2., -rBS},      // RB1
+    {(7.15 - 2.9) / 2., (17.84 - 15.35) / 2., rBT, (7.15 + 2.9) / 2., (17.84 + 15.35) / 2., -rBS},      // RB2
+    {(2.05 + 2.55) / 2., (18.45 - 16.4) / 2., rBT, (2.05 - 2.55) / 2., (18.45 + 16.4) / 2, -rBS},       // RB3
+    {-(-4.75 + 2.9) / 2., (17.26 - 15.35) / 2., rBT, (-4.75 - 2.9) / 2., (17.26 + 15.35) / 2., -rBS},   // RB4
+    {-(-7.65 + 4.75) / 2., (17.85 - 15.35) / 2., rBT, (-7.65 - 4.75) / 2., (17.85 + 15.35) / 2., -rBS}, // RB5
+    {-(-11.05 + 8.0) / 2., (14.83 - 12.4) / 2., rBT, (-11.05 - 8.0) / 2., (14.83 + 12.4) / 2., -rBS},   // RB6
+    {-(-14.45 + 11.4) / 2., (11.82 - 9.4) / 2., rBT, (-14.45 - 11.4) / 2., (11.82 + 9.4) / 2., -rBS}    // RB7
   };
+
 
   // ================================================
   // ## Fixation boxes
   // ### halfDisks 00
-  mNumberOfFixBoxes[0] = 1;
-  // Fixation Boxes {Width, Height, Thichness, x_center, y_center}
-  mBFix[0] = new Double_t[mNumberOfFixBoxes[0]][5]{
-    {(16.8 - 14.8) / 2., (6.5 - 4.6) / 2., mFixBoxHeight, (16.8 + 14.8) / 2., (6.5 + 4.6) / 2.}};
+  // Fixation Boxes {Width, Height, Thickness, x_center, y_center, z_center = 0}
+  mDiskFixBoxes[0]= {
+    {(16.8 - 14.8) / 2., (6.5 - 4.6) / 2., mFixBoxHeight/ 2., (16.8 + 14.8) / 2., (6.5 + 4.6) / 2., 0},
+    //Other side:
+    {(16.8 - 14.8) / 2., (6.5 - 4.6) / 2., mFixBoxHeight/ 2., -(16.8 + 14.8) / 2., (6.5 + 4.6) / 2., 0}
+  };
 
   // ### halfDisks 01
-  mNumberOfFixBoxes[1] = mNumberOfFixBoxes[0];
-  mBFix[1] = mBFix[0];
+  mDiskFixBoxes[1]=mDiskFixBoxes[0];
 
   // ### halfDisk 02
-  mNumberOfFixBoxes[2] = 1;
-  mBFix[02] = new Double_t[mNumberOfFixBoxes[2]][5]{
-    {(16.8 - 14.8) / 2., (6.5 - 4.6) / 2., mFixBoxHeight, (16.8 + 14.8) / 2., (6.5 + 4.6) / 2.}};
+  mDiskFixBoxes[2]= {
+    {(16.8 - 14.8) / 2., (6.5 - 4.6) / 2., mFixBoxHeight/ 2., (16.8 + 14.8) / 2., (6.5 + 4.6) / 2., 0},
+    //Other side:
+    {(16.8 - 14.8) / 2., (6.5 - 4.6) / 2., mFixBoxHeight/ 2., -(16.8 + 14.8) / 2., (6.5 + 4.6) / 2., 0}
+  };
 
   // ### halfDisk 03
-  mNumberOfFixBoxes[3] = 3;
-  mBFix[03] = new Double_t[mNumberOfFixBoxes[3]][5]{
-    {(25.6 - 24.5) / 2., (6.5 - 5.2) / 2., mFixBoxHeight, (25.6 + 24.5) / 2., (6.5 + 5.2) / 2.},
-    {(24.5 - 23.6) / 2., (6.5 - 4.2) / 2., mFixBoxHeight, (24.5 + 23.6) / 2., (6.5 + 4.2) / 2.},
-    {(23.6 - 22.0) / 2., (6.5 - 4.2) / 2., mSupThickness, (23.6 + 22.0) / 2., (6.5 + 4.2) / 2.}};
+  mDiskFixBoxes[3]= {
+    {(25.6 - 24.5) / 2., (6.5 - 5.2) / 2., mFixBoxHeight/ 2., (25.6 + 24.5) / 2., (6.5 + 5.2) / 2., 0},
+    {(24.5 - 23.6) / 2., (6.5 - 4.2) / 2., mFixBoxHeight/ 2., (24.5 + 23.6) / 2., (6.5 + 4.2) / 2., 0},
+    {(23.6 - 22.0) / 2., (6.5 - 4.2) / 2., mSupThickness/ 2., (23.6 + 22.0) / 2., (6.5 + 4.2) / 2., 0},
+    //Other side:
+    {(25.6 - 24.5) / 2., (6.5 - 5.2) / 2., mFixBoxHeight/ 2., -(25.6 + 24.5) / 2., (6.5 + 5.2) / 2., 0},
+    {(24.5 - 23.6) / 2., (6.5 - 4.2) / 2., mFixBoxHeight/ 2., -(24.5 + 23.6) / 2., (6.5 + 4.2) / 2., 0},
+    {(23.6 - 22.0) / 2., (6.5 - 4.2) / 2., mSupThickness/ 2., -(23.6 + 22.0) / 2., (6.5 + 4.2) / 2., 0}
+  };
 
   // ### halfDisk 04
-  mNumberOfFixBoxes[4] = 3;
-  mBFix[04] = new Double_t[mNumberOfFixBoxes[4]][5]{
-    {(25.6 - 24.5) / 2., (6.5 - 5.2) / 2., mFixBoxHeight, (25.6 + 24.5) / 2., (6.5 + 5.2) / 2.},
-    {(24.5 - 23.6) / 2., (6.5 - 4.2) / 2., mFixBoxHeight, (24.5 + 23.6) / 2., (6.5 + 4.2) / 2.},
-    {(23.6 - 22.0) / 2., (6.5 - 4.2) / 2., mSupThickness, (23.6 + 22.0) / 2., (6.5 + 4.2) / 2.}};
+  mDiskFixBoxes[4]= {
+    {(25.6 - 24.5) / 2., (6.5 - 5.2) / 2., mFixBoxHeight/ 2., (25.6 + 24.5) / 2., (6.5 + 5.2) / 2., 0},
+    {(24.5 - 23.6) / 2., (6.5 - 4.2) / 2., mFixBoxHeight/ 2., (24.5 + 23.6) / 2., (6.5 + 4.2) / 2., 0},
+    {(23.6 - 22.0) / 2., (6.5 - 4.2) / 2., mSupThickness/ 2., (23.6 + 22.0) / 2., (6.5 + 4.2) / 2., 0},
+    //Other side:
+    {(25.6 - 24.5) / 2., (6.5 - 5.2) / 2., mFixBoxHeight/ 2., -(25.6 + 24.5) / 2., (6.5 + 5.2) / 2., 0},
+    {(24.5 - 23.6) / 2., (6.5 - 4.2) / 2., mFixBoxHeight/ 2., -(24.5 + 23.6) / 2., (6.5 + 4.2) / 2., 0},
+    {(23.6 - 22.0) / 2., (6.5 - 4.2) / 2., mSupThickness/ 2., -(23.6 + 22.0) / 2., (6.5 + 4.2) / 2., 0}
+  };
+
 
   // ================================================
   // ## Big holes (Voids)
