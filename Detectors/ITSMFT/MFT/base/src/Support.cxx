@@ -72,6 +72,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
 
   // Cutting boxes
   //Info("Create",Form("Cutting Boxes Support_H%d_D%d", half,disk),0,0);
+/*
   for (auto cut = 0; cut < mNumberOfBoxCuts[disk]; cut++) {
     localBox = new TGeoBBox(mBoxCuts[disk][cut][0], mBoxCuts[disk][cut][1], mSupThickness / 2. + mT_delta);
     localTranslation = new TGeoTranslation(mBoxCuts[disk][cut][2], mBoxCuts[disk][cut][3], 0.);
@@ -81,6 +82,17 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     else
       localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localBox, localTranslation,TGeoSubtraction()));
   }
+*/
+  // Experimenting with Template function to remove boxes
+  diskBoxCuts boxes = mDiskBoxCuts[disk];
+  TGeoCompositeShape* localCSsss = nullptr;
+
+  localCS = boxesRemoval(base,boxes);
+  //localCSsss = new TGeoCompositeShape(NULL,boxesRemoval(base,boxes));
+  //localCSsss = new TGeoCompositeShape(boxesRemoval(base,mSupportsBoxCuts[0]));
+
+
+
   // Adding raisedBoxes
   //Info("Create",Form("Adding raised boxes Support_H%d_D%d", half,disk),0,0);
   for (auto box = 0; box < mNumberOfRaixedBoxes[disk]; box++) {
@@ -279,6 +291,7 @@ void Support::initParameters()
     {1.3875, 1.45, 16.1875, 7.9},
     {1.3875, 1.45, -16.1875, 7.9}};
 
+
     mDiskBoxCuts[0] =
       {
        {mSupRad[0] + mT_delta, mDiskGap, 0., 0.},
@@ -289,7 +302,8 @@ void Support::initParameters()
        {1.3875, 1.45, 16.1875, 7.9},
        {1.3875, 1.45, -16.1875, 7.9}
       };
-  /*  for (boxCutParam thisBoxCut : {boxCutParam{mSupRad[0] + mT_delta, mDiskGap, 0., 0.},
+  /*
+  for (boxCutParam thisBoxCut : {boxCutParam{mSupRad[0] + mT_delta, mDiskGap, 0., 0.},
                           boxCutParam{sqrt(pow(mSupRad[0], 2.) - pow(mOuterCut[0], 2.)),
                           (mSupRad[0] - mOuterCut[0]) / 2., 0., (mSupRad[0] + mOuterCut[0]) / 2.}})
      diskBoxCuts[0].emplace(thisBoxCut);

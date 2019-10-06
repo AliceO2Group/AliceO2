@@ -39,6 +39,8 @@ namespace mft
 class Support
 {
   using boxCutParam = std::vector<Double_t>;
+  using diskBoxCuts = std::vector<boxCutParam>;
+
 
  public:
   Support();
@@ -126,6 +128,31 @@ auto compositeOperation(L&& left, R&& right, T&& translation, Op&& op)
 {
   auto result = new Op(std::forward<L&&>(left), std::forward<R&&>(right), NULL, std::forward<T&&>(translation));
   return result;
+}
+
+//Template function to cut all boxes from a disk
+template<class SH, class CUTS>
+auto boxesRemoval(SH&& base, CUTS&& boxes) {
+  TGeoCompositeShape* localCS = nullptr;
+  TGeoBBox* localBox;
+  TGeoTranslation* localTranslation;
+  for (auto cuts : boxes)
+  {
+    Info("boxesRemoval",Form("Function boxesRemoval: %f %f %f %f,", cuts[0],cuts[1],cuts[2],cuts[3]),0,0);
+    //        std::cout << cuts[0] << " " << cuts[1] << " " << cuts[2] << " " << cuts[3] << " ";
+    //        std::cout << std::endl;
+    localBox = new TGeoBBox(cuts[0], cuts[1], .8 ,0);  // FIX: mSupThickness from initialization parameter
+    localTranslation = new TGeoTranslation(cuts[2], cuts[3], 0.);
+    //The first subtraction needs a shape, the base tube
+    if (!localCS)
+      localCS = new TGeoCompositeShape(NULL,compositeOperation(base, localBox, localTranslation,TGeoSubtraction()));
+    else
+      localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localBox, localTranslation,TGeoSubtraction()));
+  }
+  // return TGeoCompositeShape();// Builds, but execution dies here
+  return localCS;
+
+
 }
 
 
