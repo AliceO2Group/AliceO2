@@ -643,7 +643,7 @@ int doChild(int argc, char** argv, const o2::framework::DeviceSpec& spec)
       deviceState = std::make_unique<DeviceState>();
       textControlService = std::make_unique<TextControlService>(serviceRegistry, *deviceState.get());
       parallelContext = std::make_unique<ParallelContext>(spec.rank, spec.nSlots);
-      simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr);
+      simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
       callbackService = std::make_unique<CallbackService>();
       monitoringService = MonitoringFactory::Get(r.fConfig.GetStringValue("monitoring-backend"));
       auto infoLoggerMode = r.fConfig.GetStringValue("infologger-mode");
