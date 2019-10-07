@@ -32,6 +32,7 @@
 
 #include "TGeoManager.h"     // for TGeoManager, gGeoManager
 #include "TGeoTube.h"        // for TGeoTube
+#include "TGeoPcon.h"        // for TGeoPcon
 #include "TGeoVolume.h"      // for TGeoVolume, TGeoVolumeAssembly
 #include "TString.h"         // for TString, operator+
 #include "TVirtualMC.h"      // for gMC, TVirtualMC
@@ -117,7 +118,7 @@ static void configITS(Detector* its)
   const int kNWrapVol = 3;
   const double wrpRMin[kNWrapVol] = {2.1, 19.3, 32.0};
   const double wrpRMax[kNWrapVol] = {14.0, 30.0, 46.0};
-  const double wrpZSpan[kNWrapVol] = {70., 93., 160.};
+  const double wrpZSpan[kNWrapVol] = {70., 93., 165.8};
 
   for (int iw = 0; iw < kNWrapVol; iw++) {
     its->defineWrapperVolume(iw, wrpRMin[iw], wrpRMax[iw], wrpZSpan[iw]);
@@ -686,13 +687,35 @@ void Detector::getLayerParameters(Int_t nlay, Double_t& phi0, Double_t& r, Int_t
 TGeoVolume* Detector::createWrapperVolume(Int_t id)
 {
   // Creates an air-filled wrapper cylindrical volume
+  // For OB a Pcon is needed to host the support rings
+  // while avoiding overlaps with MFT structures
+
+  const Double_t suppRingAZlen = 4.;
+  const Double_t suppRingCZlen[2] = {4.8, 4.0};
+  const Double_t suppRingsRmin[2] = {23.35, 20.05};
 
   if (mWrapperMinRadius[id] < 0 || mWrapperMaxRadius[id] < 0 || mWrapperZSpan[id] < 0) {
     LOG(FATAL) << "Wrapper volume " << id << " was requested but not defined";
   }
 
   // Now create the actual shape and volume
-  auto* tube = new TGeoTube(mWrapperMinRadius[id], mWrapperMaxRadius[id], mWrapperZSpan[id] / 2.);
+  TGeoShape* tube;
+  if (id == 1) {
+    TGeoPcon* wrap = new TGeoPcon(0, 360, 6);
+    Double_t zlen = mWrapperZSpan[id] / 2 + suppRingCZlen[0];
+    wrap->DefineSection(0, -zlen, suppRingsRmin[0], mWrapperMaxRadius[id]);
+    zlen = mWrapperZSpan[id] / 2 + suppRingCZlen[1];
+    wrap->DefineSection(1, -zlen, suppRingsRmin[0], mWrapperMaxRadius[id]);
+    wrap->DefineSection(2, -zlen, suppRingsRmin[1], mWrapperMaxRadius[id]);
+    wrap->DefineSection(3, -mWrapperZSpan[id] / 2., suppRingsRmin[1], mWrapperMaxRadius[id]);
+    wrap->DefineSection(4, -mWrapperZSpan[id] / 2., mWrapperMinRadius[id], mWrapperMaxRadius[id]);
+    zlen = mWrapperZSpan[id] / 2 + suppRingAZlen;
+    wrap->DefineSection(5, zlen, mWrapperMinRadius[id], mWrapperMaxRadius[id]);
+    tube = (TGeoShape*)wrap;
+  } else {
+    TGeoTube* wrap = new TGeoTube(mWrapperMinRadius[id], mWrapperMaxRadius[id], mWrapperZSpan[id] / 2.);
+    tube = (TGeoShape*)wrap;
+  }
 
   TGeoMedium* medAir = gGeoManager->GetMedium("ITS_AIR$");
 
