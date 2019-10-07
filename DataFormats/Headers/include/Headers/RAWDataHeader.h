@@ -11,9 +11,9 @@
 #ifndef ALICEO2_HEADER_RAWDATAHEADER_H
 #define ALICEO2_HEADER_RAWDATAHEADER_H
 
-// @file   RAWDataHeader.h
-// @since  2017-11-22
-// @brief  Definition of the RAW Data Header
+/// @file   RAWDataHeader.h
+/// @since  2017-11-22
+/// @brief  Definition of the RAW Data Header
 
 #include <cstdint>
 
@@ -24,21 +24,115 @@ namespace header
 
 /// The definition of the RAW Data Header is specified in
 /// https://docs.google.com/document/d/1IxCCa1ZRpI3J9j3KCmw2htcOLIRVVdEcO-DDPcLNFM0
-/// preliminary description of the fields can be found here
-/// https://docs.google.com/document/d/1otkSDYasqpVBDnxplBI7dWNxaZohctA-bvhyrzvtLoQ
-/// FIXME: replace citation with correct ALICE note reference when published
+/// Every 8kB readout page starts with the RDH.
 ///
 /// Note: the definition requires little endian architecture, for the moment we
 /// assume that this is the only type the software has to support (based on
 /// experience with previous systems)
 ///
-/// RDH v3 consists of 4 64 bit words, each of the words is extended to 128 bits
+/// RAWDataHeaderV5
+/// In version 5, the RDH stores the information of the heartbeat trigger
+/// which opens the page. Additional detector specific triggers can be in the
+/// payload.
+///
+/// preliminary description of the fields can be found here
+/// https://gitlab.cern.ch/AliceO2Group/wp6-doc/blob/master/rdh/RDHV5.md
+/// accessed on Oct 07 2019
+/// FIXME: replace citation with correct ALICE note reference when published
+///
+///       63     56      48      40      32      24      16       8       0
+///       |---------------|---------------|---------------|---------------|
+///
+///       |                       | priori|               |    header     |
+/// 0     | reserve zero          | ty bit|    FEE id     | size  |version|
+///
+/// 1     |ep | cru id    |pcount|link id |  memory size  |offset nxt pack|
+///
+/// 2     |                orbit          | reserved         |bunch cross |
+///
+/// 3     |                          reserved                             |
+///
+/// 4     |  zero | stop  |   page count  |      trigger type             |
+///
+/// 5     |                          reserved                             |
+///
+/// 6     |      zero     | detector par  |         detector field        |
+///
+/// 5     |                          reserved                             |
+struct RAWDataHeaderV5 {
+  union {
+    // default value
+    uint64_t word0 = 0x00000000ffff4005;
+    //                       | |     | version 5
+    //                       | |   | 8x64 bit words = 64 (0x40) byte
+    //                       | | invalid FEE id
+    //                       | priority bit 0
+    struct {
+      uint64_t version : 8;        /// bit  0 to  7: header version
+      uint64_t headerSize : 8;     /// bit  8 to 15: header size
+      uint64_t feeId : 16;         /// bit 16 to 31: FEE identifier
+      uint64_t priority : 8;       /// bit 32 to 39: priority bit
+      uint64_t zero0 : 24;         /// bit 40 to 63: zeroed
+    };                             ///
+  };                               ///
+  union {                          ///
+    uint64_t word1 = 0x0;          /// data written by the CRU
+    struct {                       ///
+      uint32_t offsetToNext : 16;  /// bit 64 to 79:  offset to next packet in memory
+      uint32_t memorySize : 16;    /// bit 80 to 95:  memory size
+      uint32_t linkID : 8;         /// bit 96 to 103: link id
+      uint32_t packetCounter : 8;  /// bit 104 to 111: packet counter
+      uint16_t cruID : 12;         /// bit 112 to 123: CRU ID
+      uint32_t endPointID : 4;     /// bit 124 to 127: DATAPATH WRAPPER ID: number used to
+    };                             ///                 identify one of the 2 End Points [0/1]
+  };                               ///
+  union {                          ///
+    uint64_t word2 = 0x0;          ///
+    struct {                       ///
+      uint32_t bunchCrossing : 12; /// bit 0 to 11: bunch crossing counter
+      uint32_t reserved2 : 20;     /// bit 12 to 31: reserved
+      uint32_t orbit;              /// bit 32 to 63: orbit
+    };                             ///
+  };                               ///
+  union {                          ///
+    uint64_t word3 = 0x0;          /// bit  0 to 63: zeroed
+  };                               ///
+  union {                          ///
+    uint64_t word4 = 0x0;          ///
+    struct {                       ///
+      uint64_t triggerType : 32;   /// bit  0 to 31: trigger type
+      uint64_t pageCnt : 16;       /// bit 32 to 47: pages counter
+      uint64_t stop : 8;           /// bit 48 to 53: stop code
+      uint64_t zero4 : 8;          /// bit 54 to 63: zeroed
+    };                             ///
+  };                               ///
+  union {                          ///
+    uint64_t word5 = 0x0;          /// bit  0 to 63: zeroed
+  };                               ///
+  union {                          ///
+    uint64_t word6 = 0x0;          ///
+    struct {                       ///
+      uint64_t detectorField : 32; /// bit  0 to 31: detector field
+      uint64_t detectorPAR : 16;   /// bit 32 to 47: detector PAR (Pause and Reset)
+      uint64_t zero6 : 16;         /// bit 48 to 63: zeroed
+    };                             ///
+  };                               ///
+  union {                          ///
+    uint64_t word7 = 0x0;          /// bit  0 to 63: zeroed
+  };
+};
+
+/// RDH v4 consists of 4 64 bit words, each of the words is extended to 128 bits
 /// by the CRU
+/// preliminary description of the fields can be found here
+/// https://gitlab.cern.ch/AliceO2Group/wp6-doc/blob/master/rdh/RDHV4.md
+/// accessed on Oct 07 2019, the old document is under
 /// https://docs.google.com/document/d/1otkSDYasqpVBDnxplBI7dWNxaZohctA-bvhyrzvtLoQ
-/// accessed on Sep 18 2018, a pdf version is available under this link
-/// https://alice-o2-project.web.cern.ch/_webdav/files/pdf/RDH%20V3_2.pdf
-/// Note: there has been a failure in the document regarding the order of the
-/// 32 bit words of Field 4 and 6. Fixed on Sep 17 in the document.
+///
+/// RDH v3 is identical to v4 except that a couple of fields in the CRU filled data
+/// in word 1 are not defined (CRU ID, packet counter)
+///
+/// 32 bit words of Field 4 and 6. Fixed on Sep 17 2018 in the document.
 ///
 ///
 ///       63     56      48      40      32      24      16       8       0
@@ -47,7 +141,7 @@ namespace header
 ///       |reserve| prior |                               |    header     |
 /// 0     | zero  |ity bit|    FEE id     | block length  | size  | vers  |
 ///
-/// 1     |         reserved     |link id |  memory size  |offset nxt pack|
+/// 1     |ep | cru id    |pcount|link id |  memory size  |offset nxt pack|
 ///
 /// 2     |      heartbeat orbit          |       trigger orbit           |
 ///
@@ -75,6 +169,9 @@ namespace header
 /// - 16 next package:   offset to next page
 /// - 16 memory size:    actual data size in bytes, filled by CRU
 /// -  8 Link ID:        set by the CRU
+/// -  8 packet counter  counter increased for every packet received in the link
+/// - 12 CRU ID:         number used to identify the CRU
+/// -  4 DATAPATH ID:    number used to identify one of the 2 End Points [0/1]
 /// - 32 trigger orbit:  trigger timing
 /// - 32 heartbeat orbit: heartbeat timing
 /// - 12 trigger BC:     bunch crossing parameter for trigger
@@ -85,11 +182,11 @@ namespace header
 /// -  8 stop:           bit 0 of the stop field is set if this is the last page
 /// - 16 page count:     incremented if data is bigger than the page size, pages are
 ///                      incremented starting from 0
-struct RAWDataHeaderV3 {
+struct RAWDataHeaderV4 {
   union {
     // default value
-    uint64_t word0 = 0x0000ffff00004003;
-    //                   | | | |     | version 3
+    uint64_t word0 = 0x0000ffff00004004;
+    //                   | | | |     | version 4
     //                   | | | |   | 8x64 bit words
     //                   | | | | block length 0
     //                   | | invalid FEE id
@@ -111,8 +208,8 @@ struct RAWDataHeaderV3 {
       uint8_t linkID : 8;          /// bit 96 to 103: link id
       uint8_t packetCounter : 8;   /// bit 104 to 111: packet counter
       uint16_t cruID : 12;         /// bit 112 to 123: CRU ID
-      uint8_t endPointID : 4;      /// bit 124 to 127: DATAPATH WRAPPER ID: number used to identify one of the 2 End Points [0/1]
-    };                             ///
+      uint8_t endPointID : 4;      /// bit 124 to 127: DATAPATH WRAPPER ID: number used to
+    };                             ///                 identify one of the 2 End Points [0/1]
   };                               ///
   union {                          ///
     uint64_t word2 = 0x0;          ///
@@ -227,7 +324,7 @@ struct RAWDataHeaderV2 {
   };
 };
 
-using RAWDataHeader = RAWDataHeaderV3;
+using RAWDataHeader = RAWDataHeaderV4;
 } // namespace header
 } // namespace o2
 
