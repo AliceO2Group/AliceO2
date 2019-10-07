@@ -15,15 +15,14 @@
 #include <array>
 #include "Headers/RAWDataHeader.h"
 
-using RDH = o2::header::RAWDataHeader;
-
-BOOST_AUTO_TEST_CASE(test_rdh)
+BOOST_AUTO_TEST_CASE(test_rdh_v4)
 {
-  static_assert(sizeof(RDH) == 64, "the RAWDataHeader is supposed to be 512 bit");
+  using RDH = o2::header::RAWDataHeader;
+  static_assert(sizeof(RDH) == 64, "RAWDataHeader v5 is supposed to be 512 bit");
 
   // check the defaults
   RDH defaultRDH;
-  BOOST_CHECK(defaultRDH.version == 3);
+  BOOST_CHECK(defaultRDH.version == 4);
   BOOST_CHECK(defaultRDH.blockLength == 0);
   BOOST_CHECK(defaultRDH.feeId == 0xffff);
   //BOOST_CHECK(defaultRDH.linkId == 0xff);
@@ -94,4 +93,16 @@ BOOST_AUTO_TEST_CASE(test_rdh)
   BOOST_CHECK(rdh->par == 0);
   BOOST_CHECK(rdh->zero6 == 0);
   BOOST_CHECK(rdh->word7 == 0);
+}
+
+BOOST_AUTO_TEST_CASE(test_rdh_v5)
+{
+  using RDH = o2::header::RAWDataHeaderV5;
+  static_assert(sizeof(RDH) == 64, "RAWDataHeader v5 is supposed to be 512 bit");
+
+  // check the defaults
+  RDH defaultRDH;
+  BOOST_CHECK(defaultRDH.version == 5);
+  BOOST_CHECK(defaultRDH.feeId == 0xffff);
+  BOOST_CHECK(defaultRDH.headerSize == 64); // header size in 64 bytes = 8*64 bit words
 }
