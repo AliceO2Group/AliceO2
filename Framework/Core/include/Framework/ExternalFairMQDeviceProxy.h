@@ -21,9 +21,10 @@ namespace o2
 {
 namespace framework
 {
-void broadcastMessage(FairMQDevice& device, o2::header::Stack&& headerStack, FairMQMessagePtr&& payloadMessage, int index);
+using ChannelRetreiver = std::function<std::string(OutputSpec const&)>;
+using InjectorFunction = std::function<void(FairMQDevice& device, FairMQParts& inputs, ChannelRetreiver)>;
 
-using InjectorFunction = std::function<void(FairMQDevice& device, FairMQParts& inputs, int index)>;
+void sendOnChannel(FairMQDevice& device, o2::header::Stack&& headerStack, FairMQMessagePtr&& payloadMessage, OutputSpec const& spec, ChannelRetreiver& channelRetreiver);
 
 /// Helper function which takes a set of inputs coming from a device,
 /// massages them so that they are valid DPL messages using @param spec as header

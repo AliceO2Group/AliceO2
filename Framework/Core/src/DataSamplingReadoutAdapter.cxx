@@ -21,7 +21,7 @@ using DataHeader = o2::header::DataHeader;
 
 InjectorFunction dataSamplingReadoutAdapter(OutputSpec const& spec)
 {
-  return [spec](FairMQDevice& device, FairMQParts& parts, int index) {
+  return [spec](FairMQDevice& device, FairMQParts& parts, ChannelRetreiver channelRetreiver) {
     for (size_t i = 0; i < parts.Size() / 2; ++i) {
 
       auto dbh = reinterpret_cast<DataBlockHeaderBase*>(parts.At(2 * i)->GetData());
@@ -37,7 +37,7 @@ InjectorFunction dataSamplingReadoutAdapter(OutputSpec const& spec)
 
       DataProcessingHeader dph{dbh->blockId, 0};
       o2::header::Stack headerStack{dh, dph};
-      broadcastMessage(device, std::move(headerStack), std::move(parts.At(2 * i + 1)), index);
+      sendOnChannel(device, std::move(headerStack), std::move(parts.At(2 * i + 1)), spec, channelRetreiver);
     }
   };
 }
