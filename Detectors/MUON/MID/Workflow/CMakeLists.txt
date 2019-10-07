@@ -30,3 +30,24 @@ o2_add_executable(reco-workflow-mc
 target_include_directories(
   ${exenamerecomc}
   PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
+
+o2_add_executable(digits-to-raw-workflow
+                  COMPONENT_NAME mid
+                  SOURCES src/mid-digits-to-raw.cxx
+                          src/DigitReaderSpec.cxx
+                          src/DigitsToRawWorkflow.cxx
+                          src/RawWriterSpec.cxx
+                          TARGETVARNAME
+                          exenameraw
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                                        O2::SimConfig
+                                        ms_gsl::ms_gsl
+                                        O2::SimulationDataFormat
+                                        O2::DataFormatsMID
+                                        O2::DPLUtils
+                                        O2::MIDSimulation
+                                        O2::MIDRaw)
+
+target_include_directories(
+  ${exenameraw}
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
