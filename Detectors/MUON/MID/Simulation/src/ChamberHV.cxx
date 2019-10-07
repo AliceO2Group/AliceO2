@@ -23,7 +23,7 @@ ChamberHV createDefaultChamberHV()
 {
   /// Creates the default chamber voltages
   ChamberHV hv;
-  for (int ide = 0; ide < Constants::sNDetectionElements; ++ide) {
+  for (int ide = 0; ide < detparams::sNDetectionElements; ++ide) {
     hv.setHV(ide, 9800.);
   }
 
