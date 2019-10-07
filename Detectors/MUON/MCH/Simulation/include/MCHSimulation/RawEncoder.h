@@ -47,6 +47,8 @@ class RawEncoder
   int printRawData(std::vector<uint16_t>& raw);
   int timeConvert(double time);
 
+  bool getFEEcoordfromDetector(int padid, uint16_t& cruID, uint16_t& linkID, uint16_t& dualsampaIDfee, uint16_t &padDualSampaChannelfee, std::string mapfile );
+
 };
   
 

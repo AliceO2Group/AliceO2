@@ -86,8 +86,11 @@ int RawEncoder::processDigit(const Digit& digit, std::vector<uint16_t>& raw){
   char hammingparitybit = 0;//to be done
   char pkt = 0; //set below
   uint16_t datalength=0;//first part of payload
-  int padDualSampaId =  seg.padDualSampaId(padid);
-  int padDualSampaChannel = seg.padDualSampaChannel(padid);
+  int dualSampaID =  seg.padDualSampaId(padid); //per detector element
+  //
+  
+  
+  int padDualSampaChannel = seg.padDualSampaChannel(padid);//Channel id is still Manu
   char addressChip =padDualSampaId;//tbc, could be wrong
   char addressChannel =padDualSampaChannel;
   uint32_t bx =0; //keep at 0 for the time being
@@ -166,7 +169,31 @@ int RawEncoder::timeConvert(double time){
   return inttime;
 
 }
+°//______________________________________________________________________
+bool RawEncoder::getFEEcoordfromDetector(int padid, uint16_t &cruID, uint16_t& linkID, uint16_t& dualsampaIDfee, uint16_t& padDualSampaChannelfee, std::string mapfile){
 
+  std::ifstream file;
+  file.open(mapfile);
+  if(!file)
+    {
+      std::cerr << "Can't open file " << mapFile <<std::endl;
+      return false;
+    }
+  uint16_t cruid, linkid, duals, channel;
+  int counter = 0;
+  while(!file.eof()){
+    file >> cruid >> linkid >> duals >> channel;
+    ++counter;
+    if(counter != padid) continue;
+    cruID = cruid;
+    linkID = linkid;
+    dualsampaIDfee = duals;
+    padDualSampaChannelfee = channel;
+  }
+
+  return true;
+
+}
 
 
 
