@@ -90,3 +90,31 @@ void Cluster::print() const
   }
 #endif
 }
+
+#ifdef _ClusterTopology_
+//______________________________________________________________________________
+void Cluster::getDiffPattern(std::vector<std::pair<short, short>>& diffv, short colRef, short rowRef) const
+{
+  // fill vector with incremental differences starting from colRed / rowRef
+  int nr = getPatternRowSpan();
+  int nc = getPatternColSpan();
+  diffv.clear();
+  for (short ir = 0; ir < nr; ir++) {
+    for (short ic0 = 0; ic0 < nc; ic0++) {
+      short ic = (ir & 0x1) ? nc - ic0 - 1 : ic0; // left-to-right for even rows, right-to-left for odd columns
+      if (testPixel(ir, ic)) {
+        short row = ir + mPatternRowMin, col = ic + mPatternColMin;
+        short drow = row - rowRef, dcol = col - colRef;
+        if (!dcol && !drow) {
+          continue;
+        }
+        diffv.emplace_back(dcol, drow);
+        colRef = col;
+        rowRef = row;
+      }
+    }
+  }
+  // flag end of the pattern
+  diffv.emplace_back(0, 0);
+}
+#endif
