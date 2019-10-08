@@ -109,7 +109,7 @@ class Digitizer
   /// \param nZSlices number of grid points in z, must be (2**N)+1
   /// \param nPhiBins number of grid points in phi
   /// \param nRBins number of grid points in r, must be (2**N)+1
-  void setUseSCDistortions(SpaceCharge::SCDistortionType distortionType, TH3* hisInitialSCDensity, int nZSlices, int nPhiBins, int nRBins);
+  void setUseSCDistortions(SpaceCharge::SCDistortionType distortionType, const TH3* hisInitialSCDensity, int nRBins, int nPhiBins, int nZSlices);
   /// Enable the use of space-charge distortions and provide SpaceCharge object as input
   /// \param spaceCharge unique pointer to spaceCharge object
   void setUseSCDistortions(SpaceCharge* spaceCharge);

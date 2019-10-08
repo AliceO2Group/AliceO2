@@ -45,7 +45,7 @@ class AliTPCLookUpTable3DInterpolatorIrregularD
                                             TMatrixD** matricesZValue, TMatrixD** matricesZPoint, Int_t order,
                                             Int_t stepR, Int_t stepZ, Int_t stepPhi, Int_t type);
 
-  virtual ~AliTPCLookUpTable3DInterpolatorIrregularD();
+  ~AliTPCLookUpTable3DInterpolatorIrregularD();
 
   void GetValue(Double_t r, Double_t phi, Double_t z, Double_t& rValue, Double_t& phiValue, Double_t& zValue, Int_t rIndex,
                 Int_t phiIndex, Int_t zIndex, Int_t stepR, Int_t stepPhi, Int_t stepZ);
@@ -95,7 +95,7 @@ class AliTPCLookUpTable3DInterpolatorIrregularD
   Bool_t fIsAllocatingLookUp;
 
   /// \cond CLASSIMP
-  ClassDef(AliTPCLookUpTable3DInterpolatorIrregularD, 1);
+  ClassDefNV(AliTPCLookUpTable3DInterpolatorIrregularD, 1);
   /// \endcond
 };
 
