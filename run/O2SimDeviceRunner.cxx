@@ -40,7 +40,7 @@ bool initializeSim(std::string transport, std::string address, std::unique_ptr<F
   auto factory = FairMQTransportFactory::CreateTransportFactory(transport);
   auto channel = FairMQChannel{"primary-get", "req", factory};
   channel.Connect(address);
-  channel.ValidateChannel();
+  channel.Validate();
 
   return o2::devices::O2SimDevice::initSim(channel, simptr);
 }
@@ -96,11 +96,11 @@ int runSim(std::string transport, std::string primaddress, std::string mergeradd
   auto factory = FairMQTransportFactory::CreateTransportFactory(transport);
   auto primchannel = FairMQChannel{"primary-get", "req", factory};
   primchannel.Connect(primaddress);
-  primchannel.ValidateChannel();
+  primchannel.Validate();
 
   auto datachannel = FairMQChannel{"simdata", "push", factory};
   datachannel.Connect(mergeraddress);
-  datachannel.ValidateChannel();
+  datachannel.Validate();
   // the channels are setup
 
   // init the sim object
