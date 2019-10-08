@@ -333,21 +333,6 @@ void AliTPCSpaceCharge3DCalc::InitAllocateMemory()
 
   fLookupIntCorrIrregularA->SetKernelType(fRBFKernelType);
   fLookupIntCorrIrregularC->SetKernelType(fRBFKernelType);
-
-  fFormulaBoundaryIFCA = nullptr;
-  fFormulaBoundaryIFCC = nullptr;
-  fFormulaBoundaryOFCA = nullptr;
-  fFormulaBoundaryOFCC = nullptr;
-  fFormulaBoundaryROCA = nullptr;
-  fFormulaBoundaryROCC = nullptr;
-  fFormulaBoundaryCE = nullptr;
-  fFormulaPotentialV = nullptr;
-  fFormulaChargeRho = nullptr;
-
-  // analytic formula for E
-  fFormulaEPhi = nullptr;
-  fFormulaEr = nullptr;
-  fFormulaEz = nullptr;
 }
 /// Destruction for AliTPCSpaceCharge3DCalc
 /// Deallocate memory for lookup table and charge distribution
@@ -424,6 +409,25 @@ AliTPCSpaceCharge3DCalc::~AliTPCSpaceCharge3DCalc()
   delete fInterpolatorPotentialC;
   delete fInterpolatorInverseChargeA;
   delete fInterpolatorInverseChargeC;
+
+  delete fHistogram3DSpaceCharge;
+  delete fHistogram3DSpaceChargeA;
+  delete fHistogram3DSpaceChargeC;
+
+  delete fFormulaBoundaryIFCA;
+  delete fFormulaBoundaryIFCC;
+  delete fFormulaBoundaryOFCA;
+  delete fFormulaBoundaryOFCC;
+  delete fFormulaBoundaryROCA;
+  delete fFormulaBoundaryROCC;
+  delete fFormulaBoundaryCE;
+
+  delete fFormulaPotentialV;
+  delete fFormulaChargeRho;
+
+  delete fFormulaEPhi;
+  delete fFormulaEr;
+  delete fFormulaEz;
 
   /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
   // delete[] fListPotentialBoundaryA;
@@ -3014,24 +3018,22 @@ void AliTPCSpaceCharge3DCalc::FillLookUpTable(AliTPCLookUpTable3DInterpolatorD* 
 /// \param x
 /// \param roc
 /// \param dx
-void AliTPCSpaceCharge3DCalc::GetDistortionCyl(const Float_t x[], Short_t roc, Float_t dx[])
+void AliTPCSpaceCharge3DCalc::GetDistortionCyl(const Float_t x[], Short_t roc, Float_t dx[]) const
 {
-  if (!fInitLookUp) {
-    Info("AliTPCSpaceCharge3DCalc::GetDistortionCyl", "Lookup table was not initialized! Performing the initialization now ...");
-    InitSpaceCharge3DPoissonIntegralDz(129, 129, 144, 100, 1e-8);
-  }
-
   GetDistortionCylAC(x, roc, dx);
 }
 ///
 /// \param x
 /// \param roc
 /// \param dx
-void AliTPCSpaceCharge3DCalc::GetDistortionCylAC(const Float_t x[], Short_t roc, Float_t dx[])
+void AliTPCSpaceCharge3DCalc::GetDistortionCylAC(const Float_t x[], Short_t roc, Float_t dx[]) const
 {
   if (!fInitLookUp) {
-    Info("AliTPCSpaceCharge3DCalc::GetDistortionCylAC", "Lookup table was not initialized! Performing the initialization now ...");
-    InitSpaceCharge3DPoissonIntegralDz(129, 129, 144, 100, 1e-8);
+    Info("AliTPCSpaceCharge3DCalc::GetDistortionCylAC", "Lookup table was not initialized! Please run AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(nRRows, nZColumns, nPhiSlices) to perform the initialization. Returning distortion vector (0, 0, 0).");
+    for (int i = 0; i < 3; ++i) {
+      dx[i] = 0.;
+    }
+    return;
   }
 
   Float_t dR, dRPhi, dZ;
@@ -3081,11 +3083,14 @@ void AliTPCSpaceCharge3DCalc::GetDistortionCylAC(const Float_t x[], Short_t roc,
 /// \param x
 /// \param roc
 /// \param dx
-void AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular(const Float_t x[], Short_t roc, Float_t dx[])
+void AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular(const Float_t x[], Short_t roc, Float_t dx[]) const
 {
   if (!fInitLookUp) {
-    Info("AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular", "Lookup table was not initialized! Performing the initialization now ...");
-    InitSpaceCharge3DPoissonIntegralDz(129, 129, 144, 100, 1e-8);
+    Info("AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular", "Lookup table was not initialized! Please run AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(nRRows, nZColumns, nPhiSlices) to perform the initialization. Returning correction vector (0, 0, 0).");
+    for (int i = 0; i < 3; ++i) {
+      dx[i] = 0.;
+    }
+    return;
   }
 
   Double_t dR, dRPhi, dZ;
@@ -3135,11 +3140,14 @@ void AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular(const Float_t x[], Sho
 /// \param x
 /// \param roc
 /// \param dx
-void AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular(const Float_t x[], Short_t roc, Float_t dx[], const Int_t side)
+void AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular(const Float_t x[], Short_t roc, Float_t dx[], const Int_t side) const
 {
   if (!fInitLookUp) {
-    Info("AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular", "Lookup table was not initialized! Performing the initialization now ...");
-    InitSpaceCharge3DPoissonIntegralDz(129, 129, 144, 100, 1e-8);
+    Info("AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular", "Lookup table was not initialized! Please run AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(nRRows, nZColumns, nPhiSlices) to perform the initialization. Returning correction vector (0, 0, 0).");
+    for (int i = 0; i < 3; ++i) {
+      dx[i] = 0.;
+    }
+    return;
   }
 
   Double_t dR, dRPhi, dZ;
@@ -3189,11 +3197,14 @@ void AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular(const Float_t x[], Sho
 /// \param x
 /// \param roc
 /// \param dx
-void AliTPCSpaceCharge3DCalc::GetCorrectionCylAC(const Float_t x[], Short_t roc, Float_t dx[])
+void AliTPCSpaceCharge3DCalc::GetCorrectionCylAC(const Float_t x[], Short_t roc, Float_t dx[]) const
 {
   if (!fInitLookUp) {
-    Info("AliTPCSpaceCharge3DCalc::GetDistortionCylAC", "Lookup table was not initialized! Performing the initialization now ...");
-    InitSpaceCharge3DPoissonIntegralDz(129, 129, 144, 100, 1e-8);
+    Info("AliTPCSpaceCharge3DCalc::GetDistortionCylAC", "Lookup table was not initialized! Please run AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(nRRows, nZColumns, nPhiSlices) to perform the initialization. Returning correction vector (0, 0, 0).");
+    for (int i = 0; i < 3; ++i) {
+      dx[i] = 0.;
+    }
+    return;
   }
 
   Float_t dR, dRPhi, dZ;
@@ -3237,13 +3248,8 @@ void AliTPCSpaceCharge3DCalc::GetCorrectionCylAC(const Float_t x[], Short_t roc,
   dx[2] = fCorrectionFactor *
           dZ; // z distortion - (scaled with drift velocity dependency on the Ez field and the overall scaling factor)
 }
-void AliTPCSpaceCharge3DCalc::GetDistortion(const Float_t x[], Short_t roc, Float_t dx[])
+void AliTPCSpaceCharge3DCalc::GetDistortion(const Float_t x[], Short_t roc, Float_t dx[]) const
 {
-  if (!fInitLookUp) {
-    Info("AliTPCSpaceCharge3DCalc::GetDistortion", "Lookup table was not initialized! Performing the initialization now ...");
-    InitSpaceCharge3DPoissonIntegralDz(129, 129, 144, 100, 1e-8);
-  }
-
   Float_t pCyl[3]; // a point in cylindrical coordinate
   Float_t dCyl[3]; // distortion
 
@@ -3280,12 +3286,8 @@ void AliTPCSpaceCharge3DCalc::GetDistortion(const Float_t x[], Short_t roc, Floa
 /// \param x
 /// \param roc
 /// \param dx
-void AliTPCSpaceCharge3DCalc::GetCorrectionCyl(const Float_t x[], Short_t roc, Float_t dx[])
+void AliTPCSpaceCharge3DCalc::GetCorrectionCyl(const Float_t x[], Short_t roc, Float_t dx[]) const
 {
-  if (!fInitLookUp) {
-    Info("AliTPCSpaceCharge3DCalc::GetCorrectionCyl", "Lookup table was not initialized! Performing the initialization now ...");
-    InitSpaceCharge3DPoissonIntegralDz(129, 129, 144, 100, 1e-8);
-  }
   if (fCorrectionType == kRegularInterpolator) {
     GetCorrectionCylAC(x, roc, dx);
   } else {
@@ -3296,13 +3298,8 @@ void AliTPCSpaceCharge3DCalc::GetCorrectionCyl(const Float_t x[], Short_t roc, F
 /// \param x
 /// \param roc
 /// \param dx
-void AliTPCSpaceCharge3DCalc::GetCorrection(const Float_t x[], Short_t roc, Float_t dx[])
+void AliTPCSpaceCharge3DCalc::GetCorrection(const Float_t x[], Short_t roc, Float_t dx[]) const
 {
-  if (!fInitLookUp) {
-    Info("AliTPCSpaceCharge3DCalc::GetCorrection", "Lookup table was not initialized! Performing the initialization now ...");
-    InitSpaceCharge3DPoissonIntegralDz(129, 129, 144, 100, 1e-8);
-  }
-
   Float_t pCyl[3]; // a point in cylindrical coordinate
   Float_t dCyl[3]; // distortion
 
@@ -3342,13 +3339,8 @@ void AliTPCSpaceCharge3DCalc::GetCorrection(const Float_t x[], Short_t roc, Floa
 /// \param x
 /// \param roc
 /// \param dx
-void AliTPCSpaceCharge3DCalc::GetCorrection(const Float_t x[], Short_t roc, Float_t dx[], const Int_t side)
+void AliTPCSpaceCharge3DCalc::GetCorrection(const Float_t x[], Short_t roc, Float_t dx[], const Int_t side) const
 {
-  if (!fInitLookUp) {
-    Info("AliTPCSpaceCharge3DCalc::GetCorrection", "Lookup table was not initialized! Performing the initialization now ...");
-    InitSpaceCharge3DPoissonIntegralDz(129, 129, 144, 100, 1e-8);
-  }
-
   Float_t pCyl[3]; // a point in cylindrical coordinate
   Float_t dCyl[3]; // distortion
 
@@ -3498,7 +3490,7 @@ void AliTPCSpaceCharge3DCalc::SetInputSpaceCharge(TH3* hisSpaceCharge3D, Double_
 /// \param r
 /// \param z
 /// \return
-Double_t AliTPCSpaceCharge3DCalc::InterpolatePhi(TH3* h3, const Double_t phi, const Double_t r, const Double_t z)
+Double_t AliTPCSpaceCharge3DCalc::InterpolatePhi(const TH3* h3, const Double_t phi, const Double_t r, const Double_t z)
 {
 
   Int_t ubx = h3->GetXaxis()->FindBin(phi);
@@ -4725,7 +4717,7 @@ void AliTPCSpaceCharge3DCalc::InverseDistortionMapsNoDrift(
 /// \param nZColumn
 /// \param phiSlice
 void AliTPCSpaceCharge3DCalc::GetChargeDensity(
-  TMatrixD** matricesChargeA, TMatrixD** matricesChargeC, TH3* spaceChargeHistogram3D,
+  TMatrixD** matricesChargeA, TMatrixD** matricesChargeC, const TH3* spaceChargeHistogram3D,
   const Int_t nRRow, const Int_t nZColumn, const Int_t phiSlice)
 {
   Int_t phiSlicesPerSector = phiSlice / kNumSector;
@@ -4777,7 +4769,7 @@ void AliTPCSpaceCharge3DCalc::GetChargeDensity(
 /// \param x
 /// \param roc
 /// \return
-Double_t AliTPCSpaceCharge3DCalc::GetChargeCylAC(const Float_t x[], Short_t roc)
+Double_t AliTPCSpaceCharge3DCalc::GetChargeCylAC(const Float_t x[], Short_t roc) const
 {
   Double_t r, phi, z;
   Int_t sign;
@@ -4818,7 +4810,7 @@ Double_t AliTPCSpaceCharge3DCalc::GetChargeCylAC(const Float_t x[], Short_t roc)
 /// \param x
 /// \param roc
 /// \return
-Double_t AliTPCSpaceCharge3DCalc::GetPotentialCylAC(const Float_t x[], Short_t roc)
+Double_t AliTPCSpaceCharge3DCalc::GetPotentialCylAC(const Float_t x[], Short_t roc) const
 {
   Double_t r, phi, z;
   Int_t sign;
@@ -4860,7 +4852,7 @@ Double_t AliTPCSpaceCharge3DCalc::GetPotentialCylAC(const Float_t x[], Short_t r
 /// \param x
 /// \param roc
 /// \return
-Double_t AliTPCSpaceCharge3DCalc::GetInverseChargeCylAC(const Float_t x[], Short_t roc)
+Double_t AliTPCSpaceCharge3DCalc::GetInverseChargeCylAC(const Float_t x[], Short_t roc) const
 {
   Double_t r, phi, z;
   Int_t sign;

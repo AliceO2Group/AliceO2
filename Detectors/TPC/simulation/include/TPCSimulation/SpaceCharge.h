@@ -14,6 +14,10 @@
 
 /*
  * TODO:
+ *   - modifiy TPCSpaceChargeBase classes
+ *     - create light-weight 2D matrix class as matrix containers
+ *     - std::vector<Matrix> instead of TMatrixD**
+ *     - bring to O2 conventions
  *   - fix constants (more precise values, export into TPCBase/Constants)
  *   - granularity in r, rphi, z?
  *   - accumulate and add next slice
@@ -33,16 +37,11 @@
 #ifndef ALICEO2_TPC_SPACECHARGE_H
 #define ALICEO2_TPC_SPACECHARGE_H
 
-#include "TMatrixT.h"
-
 #include "AliTPCSpaceCharge3DCalc.h"
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/RandomRing.h"
 
 class TH3;
-class TMatrixDfwd;
-
-class AliTPCLookUpTable3DInterpolatorD;
 
 namespace o2
 {
@@ -74,7 +73,7 @@ class SpaceCharge
   SpaceCharge(int nRBins, int nPhiBins, int nZSlices, int interpolationOrder);
 
   // Destructor
-  virtual ~SpaceCharge() = default;
+  ~SpaceCharge() = default;
 
   /// Calculate lookup tables if initial space-charge density is provided
   void init();
@@ -94,7 +93,7 @@ class SpaceCharge
   void setOmegaTauT1T2(float omegaTau, float t1, float t2);
   /// Set an initial space-charge density
   /// \param hisSCDensity 3D space-charge density histogram, expected format (phi,r,z) and units C / cm^3 / epsilon0
-  void setInitialSpaceChargeDensity(TH3* hisSCDensity);
+  void setInitialSpaceChargeDensity(const TH3* hisSCDensity);
   /// Add primary ions to space-charge density
   /// \param r global radius
   /// \param phi global phi position
@@ -126,7 +125,7 @@ class SpaceCharge
   /// \param dr return drift in radial direction
   /// \param drphi return drift in azimuthal (rphi) direction
   /// \param dz return drift in z direction
-  void getIonDrift(Side side, double r, double phi, double z, double& dr, double& drphi, double& dz);
+  void getIonDrift(Side side, double r, double phi, double z, double& dr, double& drphi, double& dz) const;
   /// Propagate space-charge density along electric field by one time slice
   void propagateSpaceCharge();
   /// Convert space-charge density to distribution of ions, propagate them along the electric field and convert back to space-charge density
@@ -137,18 +136,18 @@ class SpaceCharge
   void correctElectron(GlobalPosition3D& point);
   /// Distort electron position using distortion lookup tables
   /// \param point 3D coordinates of the electron
-  void distortElectron(GlobalPosition3D& point);
+  void distortElectron(GlobalPosition3D& point) const;
 
   /// Interpolate the space-charge density from lookup tables in mLookUpTableCalculator
   /// \param point Position at which to calculate the space-charge density
   /// \return space-charge density at given point in C/cm^3/epsilon0
-  double getChargeDensity(Side side, GlobalPosition3D& point);
+  double getChargeDensity(Side side, const GlobalPosition3D& point) const;
   /// Get the space-charge density stored in the
   /// \param iphi phi bin
   /// \param ir r bin
   /// \param iz z bin
   /// \return space-charge density in given bin in C/cm^3/epsilon0
-  float getChargeDensity(Side side, int ir, int iphi, int iz);
+  float getChargeDensity(Side side, int ir, int iphi, int iz) const;
 
   /// Set the space-charge distortions model
   /// \param distortionType distortion type (constant or realistic)
@@ -174,6 +173,7 @@ class SpaceCharge
  private:
   /// Allocate memory for data members
   void allocateMemory();
+  void setVoxelCoordinates();
 
   /// Convert amount of ions into charge density C/cm^3/epsilon0
   /// \param nIons number of ions
@@ -213,26 +213,27 @@ class SpaceCharge
   AliTPCSpaceCharge3DCalc mLookUpTableCalculator; ///< object to calculate and store correction and distortion lookup tables
 
   /// TODO: What are the coordinates of the bins? They are defined in AliTPCSpaceCharge3DCalc::GetChargeDensity and are different from mCoordZ, mCoordPhi, mCoordR used for local ion drift lookup table! Use consistent convention? Lookup table instead of vector?
-  std::vector<float> mSpaceChargeDensityA; ///< space-charge density on the A side, stored in C/cm^3/epsilon0, z ordering: z=[0,250], [iphi*mNRBins*mNZSlices + ir*mNZSlices + iz]
-  std::vector<float> mSpaceChargeDensityC; ///< space-charge density on the C side, stored in C/cm^3/epsilon0, z ordering: z=[0,-250], [iphi*mNRBins*mNZSlices + ir*mNZSlices + iz]
+  std::vector<float> mSpaceChargeDensityA; ///< space-charge density on the A side, stored in C/cm^3/epsilon0, z ordering: z=[0,250], [iphi*mNR*mNZ + ir*mNZ + iz]
+  std::vector<float> mSpaceChargeDensityC; ///< space-charge density on the C side, stored in C/cm^3/epsilon0, z ordering: z=[0,-250], [iphi*mNR*mNZ + ir*mNZ + iz]
 
   /// Ion drift vectors after time deltaT = mLengthZSlice / v_driftIon
   /// nominal E field only in z direction, distortions in r, phi, z due to space charge
-  /// d = (dr, drphi, mLengthZSlice + dz)
-  /// TODO: Eliminate the need for these matrices as members, they will be owned by AliTPCLookUpTable3DInterpolatorD. AliTPCLookUpTable3DInterpolatorD needs getters for the matrices and the constructor has to be modified.
-  TMatrixD** mMatrixIonDriftZA;    //!<! matrix to store ion drift in z direction along E field on A side in cm
-  TMatrixD** mMatrixIonDriftZC;    //!<! matrix to store ion drift in z direction along E field on A side in cm
-  TMatrixD** mMatrixIonDriftRPhiA; //!<! matrix to store ion drift in rphi direction along E field on A side in cm
-  TMatrixD** mMatrixIonDriftRPhiC; //!<! matrix to store ion drift in rphi direction along E field on A side in cm
-  TMatrixD** mMatrixIonDriftRA;    //!<! matrix to store ion drift in radial direction along E field on A side in cm
-  TMatrixD** mMatrixIonDriftRC;    //!<! matrix to store ion drift in radial direction along E field on C side in cm
+  /// d = (dr, drphi, mVoxelSizeZ + dz)
+  /// TODO: Eliminate the need for these matrices as members, they should be owned by AliTPCLookUpTable3DInterpolatorD. AliTPCLookUpTable3DInterpolatorD needs getters for the matrices and the constructor has to be modified.
+  std::unique_ptr<std::unique_ptr<TMatrixD>[]> mMatrixIonDriftZA;    //!<! matrix to store ion drift in z direction along E field on A side in cm
+  std::unique_ptr<std::unique_ptr<TMatrixD>[]> mMatrixIonDriftZC;    //!<! matrix to store ion drift in z direction along E field on A side in cm
+  std::unique_ptr<std::unique_ptr<TMatrixD>[]> mMatrixIonDriftRPhiA; //!<! matrix to store ion drift in rphi direction along E field on A side in cm
+  std::unique_ptr<std::unique_ptr<TMatrixD>[]> mMatrixIonDriftRPhiC; //!<! matrix to store ion drift in rphi direction along E field on A side in cm
+  std::unique_ptr<std::unique_ptr<TMatrixD>[]> mMatrixIonDriftRA;    //!<! matrix to store ion drift in radial direction along E field on A side in cm
+  std::unique_ptr<std::unique_ptr<TMatrixD>[]> mMatrixIonDriftRC;    //!<! matrix to store ion drift in radial direction along E field on C side in cm
   /// TODO: these lookup tables should be objects?
   std::unique_ptr<AliTPCLookUpTable3DInterpolatorD> mLookUpIonDriftA; ///< lookup table for ion drift along E field on A side in cm
   std::unique_ptr<AliTPCLookUpTable3DInterpolatorD> mLookUpIonDriftC; ///< lookup table for ion drift along E field on C side in cm
+  bool mMemoryAllocated;
 
   RandomRing<> mRandomFlat; //!<! Circular random buffer containing flat random values to convert the charge density to a flat ion distribution inside the voxel
 
-  ClassDef(SpaceCharge, 1);
+  ClassDefNV(SpaceCharge, 1);
 };
 
 } // namespace tpc

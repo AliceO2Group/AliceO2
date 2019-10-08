@@ -27,7 +27,7 @@ class AliTPCLookUpTable3DInterpolatorD
   AliTPCLookUpTable3DInterpolatorD();
   //AliTPCLookUpTable3DInterpolatorD(Int_t nRRow, Double_t rMin, Double_t rMax, Int_t nPhiSlice, Double_t phiMin, Double_t phiMax, Int_t nZColumn , Double_t zMin, Double_t zMax );
   AliTPCLookUpTable3DInterpolatorD(Int_t nRRow, TMatrixD** matricesRValue, Double_t* rList, Int_t nPhiSlice, TMatrixD** matricesPhiValue, Double_t* phiList, Int_t nZColumn, TMatrixD** matricesZValue, Double_t* zList, Int_t order);
-  virtual ~AliTPCLookUpTable3DInterpolatorD();
+  ~AliTPCLookUpTable3DInterpolatorD();
 
   void SetNR(Int_t nRRow) { fNR = nRRow; }
   void SetNPhi(Int_t nPhiSlice) { fNPhi = nPhiSlice; }
@@ -43,8 +43,8 @@ class AliTPCLookUpTable3DInterpolatorD
   void SetLookUpPhi(TMatrixD** matricesPhiValue) { fLookUpPhi = matricesPhiValue; }
   void SetLookUpZ(TMatrixD** matricesZValue) { fLookUpZ = matricesZValue; }
   void SetOrder(Int_t order);
-  void GetValue(Double_t r, Double_t phi, Double_t z, Double_t& rValue, Double_t& phiValue, Double_t& zValue);
-  void GetValue(Double_t r, Double_t phi, Double_t z, Float_t& rValue, Float_t& phiValue, Float_t& zValue);
+  void GetValue(Double_t r, Double_t phi, Double_t z, Double_t& rValue, Double_t& phiValue, Double_t& zValue) const;
+  void GetValue(Double_t r, Double_t phi, Double_t z, Float_t& rValue, Float_t& phiValue, Float_t& zValue) const;
   void CopyFromMatricesToInterpolator();
   void CopyFromMatricesToInterpolator(Int_t iZ); // copy only iZ
 
@@ -80,7 +80,7 @@ class AliTPCLookUpTable3DInterpolatorD
   Bool_t fIsAllocatingLookUp; ///< flag for initialization of cubic spline
 
   /// \cond CLASSIMP
-  ClassDef(AliTPCLookUpTable3DInterpolatorD, 1);
+  ClassDefNV(AliTPCLookUpTable3DInterpolatorD, 1);
   /// \endcond
 };
 
