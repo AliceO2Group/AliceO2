@@ -24,8 +24,8 @@ class AliTPC3DCylindricalInterpolator
 {
  public:
   AliTPC3DCylindricalInterpolator();
-  virtual ~AliTPC3DCylindricalInterpolator();
-  Double_t GetValue(Double_t r, Double_t phi, Double_t z);
+  ~AliTPC3DCylindricalInterpolator();
+  Double_t GetValue(Double_t r, Double_t phi, Double_t z) const;
   void InitCubicSpline();
   void SetOrder(Int_t order) { fOrder = order; }
   void SetNR(Int_t nR) { fNR = nR; }
@@ -62,18 +62,18 @@ class AliTPC3DCylindricalInterpolator
   Bool_t fIsAllocatingLookUp; ///< is allocating memory
   Bool_t fIsInitCubic;        ///< is cubic second derivative already been initialized
 
-  Double_t InterpolatePhi(Double_t xArray[], const Int_t iLow, const Int_t lenX, Double_t yArray[], Double_t x);
-  Double_t InterpolateCylindrical(Double_t r, Double_t z, Double_t phi);
-  Double_t Interpolate(Double_t xArray[], Double_t yArray[], Double_t x);
+  Double_t InterpolatePhi(Double_t xArray[], const Int_t iLow, const Int_t lenX, Double_t yArray[], Double_t x) const;
+  Double_t InterpolateCylindrical(Double_t r, Double_t z, Double_t phi) const;
+  Double_t Interpolate(Double_t xArray[], Double_t yArray[], Double_t x) const;
   Double_t InterpolateCubicSpline(Double_t* xArray, Double_t* yArray, Double_t* y2Array, const Int_t nxArray,
-                                  const Int_t nyArray, const Int_t ny2Array, Double_t x, const Int_t skip);
-  void Search(Int_t n, const Double_t xArray[], Double_t x, Int_t& low);
-  void InitCubicSpline(Double_t* xArray, Double_t* yArray, const Int_t n, Double_t* y2Array, const Int_t skip);
+                                  const Int_t nyArray, const Int_t ny2Array, Double_t x, const Int_t skip) const;
+  void Search(Int_t n, const Double_t xArray[], Double_t x, Int_t& low) const;
+  void InitCubicSpline(Double_t* xArray, Double_t* yArray, const Int_t n, Double_t* y2Array, const Int_t skip) const;
   void InitCubicSpline(Double_t* xArray, Double_t* yArray, const Int_t n, Double_t* y2Array, const Int_t skip,
-                       Double_t yp0, Double_t ypn1);
+                       Double_t yp0, Double_t ypn1) const;
 
   /// \cond CLASSIMP
-  ClassDef(AliTPC3DCylindricalInterpolator, 1);
+  ClassDefNV(AliTPC3DCylindricalInterpolator, 1);
   /// \endcond
 };
 

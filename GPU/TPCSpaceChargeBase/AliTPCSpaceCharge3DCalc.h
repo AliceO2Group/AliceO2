@@ -37,7 +37,7 @@ class AliTPCSpaceCharge3DCalc
   AliTPCSpaceCharge3DCalc(Int_t nRRow, Int_t nZColumn, Int_t nPhiSlice);
   AliTPCSpaceCharge3DCalc(Int_t nRRow, Int_t nZColumn, Int_t nPhiSlice,
                           Int_t interpolationOrder, Int_t irregularGridSize, Int_t rbfKernelType);
-  virtual ~AliTPCSpaceCharge3DCalc();
+  ~AliTPCSpaceCharge3DCalc();
   void InitSpaceCharge3DPoissonIntegralDz(Int_t nRRow, Int_t nZColumn, Int_t phiSlice, Int_t maxIteration,
                                           Double_t stopConvergence);
 
@@ -66,21 +66,21 @@ class AliTPCSpaceCharge3DCalc
     InitSpaceCharge3DPoisson(Int_t nRRow, Int_t nZColumn, Int_t phiSlice, Int_t maxIteration, Double_t stopConvergence);
   void ForceInitSpaceCharge3DPoissonIntegralDz(Int_t nRRow, Int_t nZColumn, Int_t phiSlice, Int_t maxIteration,
                                                Double_t stopConvergence);
-  void GetDistortionCyl(const Float_t x[], Short_t roc, Float_t dx[]);
-  void GetDistortionCylAC(const Float_t x[], Short_t roc, Float_t dx[]);
-  void GetCorrectionCyl(const Float_t x[], Short_t roc, Float_t dx[]);
-  void GetCorrectionCylAC(const Float_t x[], Short_t roc, Float_t dx[]);
-  void GetCorrectionCylACIrregular(const Float_t x[], Short_t roc, Float_t dx[]);
-  void GetCorrectionCylACIrregular(const Float_t x[], Short_t roc, Float_t dx[], const Int_t side);
-  void GetDistortion(const Float_t x[], Short_t roc, Float_t dx[]);
+  void GetDistortionCyl(const Float_t x[], Short_t roc, Float_t dx[]) const;
+  void GetDistortionCylAC(const Float_t x[], Short_t roc, Float_t dx[]) const;
+  void GetCorrectionCyl(const Float_t x[], Short_t roc, Float_t dx[]) const;
+  void GetCorrectionCylAC(const Float_t x[], Short_t roc, Float_t dx[]) const;
+  void GetCorrectionCylACIrregular(const Float_t x[], Short_t roc, Float_t dx[]) const;
+  void GetCorrectionCylACIrregular(const Float_t x[], Short_t roc, Float_t dx[], const Int_t side) const;
+  void GetDistortion(const Float_t x[], Short_t roc, Float_t dx[]) const;
 
-  void GetCorrection(const Float_t x[], Short_t roc, Float_t dx[]);
-  void GetCorrection(const Float_t x[], Short_t roc, Float_t dx[], const Int_t side);
+  void GetCorrection(const Float_t x[], Short_t roc, Float_t dx[]) const;
+  void GetCorrection(const Float_t x[], Short_t roc, Float_t dx[], const Int_t side) const;
 
-  Double_t GetChargeCylAC(const Float_t x[], Short_t roc);
-  Double_t GetPotentialCylAC(const Float_t x[], Short_t roc);
+  Double_t GetChargeCylAC(const Float_t x[], Short_t roc) const;
+  Double_t GetPotentialCylAC(const Float_t x[], Short_t roc) const;
 
-  Double_t GetInverseChargeCylAC(const Float_t x[], Short_t roc);
+  Double_t GetInverseChargeCylAC(const Float_t x[], Short_t roc) const;
 
   void SetCorrectionType(Int_t correctionType) { fCorrectionType = correctionType; }
 
@@ -185,7 +185,7 @@ class AliTPCSpaceCharge3DCalc
                                              Double_t* phiList, const Int_t nRRow, const Int_t nZColumn,
                                              const Int_t phiSlice);
 
-  void GetChargeDensity(TMatrixD** matricesChargeA, TMatrixD** matricesChargeC, TH3* spaceChargeHistogram3D,
+  void GetChargeDensity(TMatrixD** matricesChargeA, TMatrixD** matricesChargeC, const TH3* spaceChargeHistogram3D,
                         const Int_t nRRow, const Int_t nZColumn, const Int_t phiSlice);
 
   void GetInverseLocalDistortionCyl(const Float_t x[], Short_t roc, Float_t dx[]);
@@ -411,7 +411,7 @@ class AliTPCSpaceCharge3DCalc
                        TMatrixD** lookupDz, const Int_t nRRow, const Int_t nZColumn, const Int_t phiSlice,
                        const Double_t* rList, const Double_t* phiList, const Double_t* zList);
 
-  Double_t InterpolatePhi(TH3* h3, const Double_t r, const Double_t phi, const Double_t z);
+  Double_t InterpolatePhi(const TH3* h3, const Double_t phi, const Double_t r, const Double_t z);
 
   void InverseGlobalToLocalDistortionGlobalInvTable(TMatrixD** matricesDistDrDz, TMatrixD** matricesDistDPhiRDz,
                                                     TMatrixD** matricesDistDz, Double_t* rList, Double_t* zList,
@@ -441,7 +441,7 @@ class AliTPCSpaceCharge3DCalc
   void InitAllocateMemory();
 
   /// \cond CLASSIMP
-  ClassDef(AliTPCSpaceCharge3DCalc, 1);
+  ClassDefNV(AliTPCSpaceCharge3DCalc, 1);
   /// \endcond
 };
 

@@ -20,7 +20,6 @@
 
 #include "FairLogger.h"
 
-#include "CommonConstants/MathConstants.h"
 #include "DataFormatsTPC/Constants.h"
 #include "DataFormatsTPC/Defs.h"
 #include "Field/MagneticField.h"
@@ -46,6 +45,7 @@ SpaceCharge::SpaceCharge()
     mInterpolationOrder(2),
     mUseInitialSCDensity(false),
     mInitLookUpTables(false),
+    mMemoryAllocated(false),
     mTimeInit(-1),
     mSCDistortionType(SpaceCharge::SCDistortionType::SCDistortionsRealistic),
     mLookUpTableCalculator(Constants::MAXGLOBALPADROW, MaxNZ, MaxNPhi, 2, 3, 0),
@@ -55,7 +55,7 @@ SpaceCharge::SpaceCharge()
 {
   mLookUpTableCalculator.SetCorrectionType(0);
   mLookUpTableCalculator.SetIntegrationStrategy(0);
-  allocateMemory();
+  setVoxelCoordinates();
 }
 
 SpaceCharge::SpaceCharge(int nRBins, int nPhiBins, int nZSlices)
@@ -72,6 +72,7 @@ SpaceCharge::SpaceCharge(int nRBins, int nPhiBins, int nZSlices)
     mInterpolationOrder(2),
     mUseInitialSCDensity(false),
     mInitLookUpTables(false),
+    mMemoryAllocated(false),
     mTimeInit(-1),
     mSCDistortionType(SpaceCharge::SCDistortionType::SCDistortionsRealistic),
     mLookUpTableCalculator(nRBins, nZSlices, nPhiBins, 2, 3, 0),
@@ -81,7 +82,7 @@ SpaceCharge::SpaceCharge(int nRBins, int nPhiBins, int nZSlices)
 {
   mLookUpTableCalculator.SetCorrectionType(0);
   mLookUpTableCalculator.SetIntegrationStrategy(0);
-  allocateMemory();
+  setVoxelCoordinates();
 }
 
 SpaceCharge::SpaceCharge(int nRBins, int nPhiBins, int nZSlices, int interpolationOrder)
@@ -98,6 +99,7 @@ SpaceCharge::SpaceCharge(int nRBins, int nPhiBins, int nZSlices, int interpolati
     mInterpolationOrder(interpolationOrder),
     mUseInitialSCDensity(false),
     mInitLookUpTables(false),
+    mMemoryAllocated(false),
     mTimeInit(-1),
     mSCDistortionType(SpaceCharge::SCDistortionType::SCDistortionsRealistic),
     mLookUpTableCalculator(nRBins, nZSlices, nPhiBins, interpolationOrder, 3, 0),
@@ -107,10 +109,10 @@ SpaceCharge::SpaceCharge(int nRBins, int nPhiBins, int nZSlices, int interpolati
 {
   mLookUpTableCalculator.SetCorrectionType(0);
   mLookUpTableCalculator.SetIntegrationStrategy(0);
-  allocateMemory();
+  setVoxelCoordinates();
 }
 
-void SpaceCharge::allocateMemory()
+void SpaceCharge::setVoxelCoordinates()
 {
   for (int iz = 0; iz < mNZ; ++iz) {
     mCoordZ[iz] = iz * mVoxelSizeZ;
@@ -121,23 +123,27 @@ void SpaceCharge::allocateMemory()
   for (int ir = 0; ir < mNR; ++ir) {
     mCoordR[ir] = AliTPCPoissonSolver::fgkIFCRadius + ir * mVoxelSizeR;
   }
+}
 
-  mMatrixIonDriftZA = new TMatrixD*[mNPhi];
-  mMatrixIonDriftRPhiA = new TMatrixD*[mNPhi];
-  mMatrixIonDriftRA = new TMatrixD*[mNPhi];
-  mMatrixIonDriftZC = new TMatrixD*[mNPhi];
-  mMatrixIonDriftRPhiC = new TMatrixD*[mNPhi];
-  mMatrixIonDriftRC = new TMatrixD*[mNPhi];
+void SpaceCharge::allocateMemory()
+{
+  mMatrixIonDriftZA = std::make_unique<std::unique_ptr<TMatrixD>[]>(mNPhi);
+  mMatrixIonDriftRPhiA = std::make_unique<std::unique_ptr<TMatrixD>[]>(mNPhi);
+  mMatrixIonDriftRA = std::make_unique<std::unique_ptr<TMatrixD>[]>(mNPhi);
+  mMatrixIonDriftZC = std::make_unique<std::unique_ptr<TMatrixD>[]>(mNPhi);
+  mMatrixIonDriftRPhiC = std::make_unique<std::unique_ptr<TMatrixD>[]>(mNPhi);
+  mMatrixIonDriftRC = std::make_unique<std::unique_ptr<TMatrixD>[]>(mNPhi);
   for (int iphi = 0; iphi < mNPhi; ++iphi) {
-    mMatrixIonDriftZA[iphi] = new TMatrixD(mNR, mNZ);
-    mMatrixIonDriftRPhiA[iphi] = new TMatrixD(mNR, mNZ);
-    mMatrixIonDriftRA[iphi] = new TMatrixD(mNR, mNZ);
-    mMatrixIonDriftZC[iphi] = new TMatrixD(mNR, mNZ);
-    mMatrixIonDriftRPhiC[iphi] = new TMatrixD(mNR, mNZ);
-    mMatrixIonDriftRC[iphi] = new TMatrixD(mNR, mNZ);
+    mMatrixIonDriftZA[iphi] = std::make_unique<TMatrixD>(mNR, mNZ);
+    mMatrixIonDriftRPhiA[iphi] = std::make_unique<TMatrixD>(mNR, mNZ);
+    mMatrixIonDriftRA[iphi] = std::make_unique<TMatrixD>(mNR, mNZ);
+    mMatrixIonDriftZC[iphi] = std::make_unique<TMatrixD>(mNR, mNZ);
+    mMatrixIonDriftRPhiC[iphi] = std::make_unique<TMatrixD>(mNR, mNZ);
+    mMatrixIonDriftRC[iphi] = std::make_unique<TMatrixD>(mNR, mNZ);
   }
-  mLookUpIonDriftA = std::make_unique<AliTPCLookUpTable3DInterpolatorD>(mNR, mMatrixIonDriftRA, mCoordR.data(), mNPhi, mMatrixIonDriftRPhiA, mCoordPhi.data(), mNZ, mMatrixIonDriftZA, mCoordZ.data(), mInterpolationOrder);
-  mLookUpIonDriftC = std::make_unique<AliTPCLookUpTable3DInterpolatorD>(mNR, mMatrixIonDriftRC, mCoordR.data(), mNPhi, mMatrixIonDriftRPhiC, mCoordPhi.data(), mNZ, mMatrixIonDriftZC, mCoordZ.data(), mInterpolationOrder);
+  mLookUpIonDriftA = std::make_unique<AliTPCLookUpTable3DInterpolatorD>(mNR, (TMatrixD**)mMatrixIonDriftRA.get(), mCoordR.data(), mNPhi, (TMatrixD**)mMatrixIonDriftRPhiA.get(), mCoordPhi.data(), mNZ, (TMatrixD**)mMatrixIonDriftZA.get(), mCoordZ.data(), mInterpolationOrder);
+  mLookUpIonDriftC = std::make_unique<AliTPCLookUpTable3DInterpolatorD>(mNR, (TMatrixD**)mMatrixIonDriftRC.get(), mCoordR.data(), mNPhi, (TMatrixD**)mMatrixIonDriftRPhiC.get(), mCoordPhi.data(), mNZ, (TMatrixD**)mMatrixIonDriftZC.get(), mCoordZ.data(), mInterpolationOrder);
+  mMemoryAllocated = true;
 }
 
 void SpaceCharge::init()
@@ -169,6 +175,9 @@ float SpaceCharge::calculateLookupTables()
 
   // Lookup tables for local ion drift along E field
   if (mSCDistortionType == SCDistortionType::SCDistortionsRealistic) {
+    if (!mMemoryAllocated) {
+      allocateMemory();
+    }
     TMatrixD* matrixDriftZ = nullptr;
     TMatrixD* matrixDriftRPhi = nullptr;
     TMatrixD* matrixDriftR = nullptr;
@@ -177,13 +186,13 @@ float SpaceCharge::calculateLookupTables()
       for (int iphi = 0; iphi < mNPhi; ++iphi) {
         const float phi = static_cast<float>(mCoordPhi[iphi]);
         if (iside == 0) {
-          matrixDriftZ = mMatrixIonDriftZA[iphi];
-          matrixDriftRPhi = mMatrixIonDriftRPhiA[iphi];
-          matrixDriftR = mMatrixIonDriftRA[iphi];
+          matrixDriftZ = mMatrixIonDriftZA[iphi].get();
+          matrixDriftRPhi = mMatrixIonDriftRPhiA[iphi].get();
+          matrixDriftR = mMatrixIonDriftRA[iphi].get();
         } else {
-          matrixDriftZ = mMatrixIonDriftZC[iphi];
-          matrixDriftRPhi = mMatrixIonDriftRPhiC[iphi];
-          matrixDriftR = mMatrixIonDriftRC[iphi];
+          matrixDriftZ = mMatrixIonDriftZC[iphi].get();
+          matrixDriftRPhi = mMatrixIonDriftRPhiC[iphi].get();
+          matrixDriftR = mMatrixIonDriftRC[iphi].get();
         }
         int roc = iside == 0 ? o2::utils::Angle2Sector(phi) : o2::utils::Angle2Sector(phi) + 18;
         for (int ir = 0; ir < mNR; ++ir) {
@@ -266,7 +275,7 @@ void SpaceCharge::setOmegaTauT1T2(float omegaTau, float t1, float t2)
   mLookUpTableCalculator.SetOmegaTauT1T2(omegaTau, t1, t2);
 }
 
-void SpaceCharge::setInitialSpaceChargeDensity(TH3* hisSCDensity)
+void SpaceCharge::setInitialSpaceChargeDensity(const TH3* hisSCDensity)
 {
   std::unique_ptr<std::unique_ptr<TMatrixD>[]> spaceChargeA = std::make_unique<std::unique_ptr<TMatrixD>[]>(mNPhi);
   std::unique_ptr<std::unique_ptr<TMatrixD>[]> spaceChargeC = std::make_unique<std::unique_ptr<TMatrixD>[]>(mNPhi);
@@ -398,22 +407,22 @@ void SpaceCharge::propagateSpaceCharge()
   const float coeffFwd21 = 2.f;
   const float coeffFwd22 = -0.5;
 
+  std::vector<float>* scDensity = nullptr;
+  TMatrixD** matrixDriftZ = nullptr;
+  TMatrixD** matrixDriftRPhi = nullptr;
+  TMatrixD** matrixDriftR = nullptr;
   for (int iside = 0; iside < 2; ++iside) {
     const int signZ = iside == 0 ? 1 : -1;
-    std::vector<float>* scDensity = nullptr;
-    TMatrixD** matrixDriftZ = nullptr;
-    TMatrixD** matrixDriftRPhi = nullptr;
-    TMatrixD** matrixDriftR = nullptr;
     if (iside == 0) {
       scDensity = &mSpaceChargeDensityA;
-      matrixDriftZ = mMatrixIonDriftZA;
-      matrixDriftRPhi = mMatrixIonDriftRPhiA;
-      matrixDriftR = mMatrixIonDriftRA;
+      matrixDriftZ = (TMatrixD**)mMatrixIonDriftZA.get();
+      matrixDriftRPhi = (TMatrixD**)mMatrixIonDriftRPhiA.get();
+      matrixDriftR = (TMatrixD**)mMatrixIonDriftRA.get();
     } else {
       scDensity = &mSpaceChargeDensityC;
-      matrixDriftZ = mMatrixIonDriftZC;
-      matrixDriftRPhi = mMatrixIonDriftRPhiC;
-      matrixDriftR = mMatrixIonDriftRC;
+      matrixDriftZ = (TMatrixD**)mMatrixIonDriftZC.get();
+      matrixDriftRPhi = (TMatrixD**)mMatrixIonDriftRPhiC.get();
+      matrixDriftR = (TMatrixD**)mMatrixIonDriftRC.get();
     }
     /// TODO: is there a better way than to create a copy for the new SC density?
     std::vector<float> newSCDensity(mNPhi * mNR * mNZ);
@@ -483,20 +492,16 @@ void SpaceCharge::propagateSpaceCharge()
         }
       }
     }
-    if (iside == 0) {
-      mSpaceChargeDensityA = newSCDensity;
-    } else {
-      mSpaceChargeDensityC = newSCDensity;
-    }
+    (*scDensity).swap(newSCDensity);
   }
 }
 
 void SpaceCharge::propagateIons()
 {
+  std::vector<float>* scDensity = nullptr;
+  AliTPCLookUpTable3DInterpolatorD* lookUpIonDrift = nullptr;
   for (int iside = 0; iside < 2; ++iside) {
     const int signZ = iside == 0 ? 1 : -1;
-    std::vector<float>* scDensity = nullptr;
-    AliTPCLookUpTable3DInterpolatorD* lookUpIonDrift = nullptr;
     if (iside == 0) {
       scDensity = &mSpaceChargeDensityA;
       lookUpIonDrift = mLookUpIonDriftA.get();
@@ -549,15 +554,11 @@ void SpaceCharge::propagateIons()
         }
       }
     }
-    if (iside == 0) {
-      mSpaceChargeDensityA = newSCDensity;
-    } else {
-      mSpaceChargeDensityC = newSCDensity;
-    }
+    (*scDensity).swap(newSCDensity);
   }
 }
 
-void SpaceCharge::getIonDrift(Side side, double r, double phi, double z, double& dr, double& drphi, double& dz)
+void SpaceCharge::getIonDrift(Side side, double r, double phi, double z, double& dr, double& drphi, double& dz) const
 {
   if (!mInitLookUpTables) {
     return;
@@ -588,7 +589,7 @@ void SpaceCharge::correctElectron(GlobalPosition3D& point)
   point.SetXYZ(x[0] + dx[0], x[1] + dx[1], x[2] + dx[2]);
 }
 
-void SpaceCharge::distortElectron(GlobalPosition3D& point)
+void SpaceCharge::distortElectron(GlobalPosition3D& point) const
 {
   if (!mInitLookUpTables) {
     return;
@@ -605,7 +606,7 @@ void SpaceCharge::distortElectron(GlobalPosition3D& point)
   point.SetXYZ(x[0] + dx[0], x[1] + dx[1], x[2] + dx[2]);
 }
 
-double SpaceCharge::getChargeDensity(Side side, GlobalPosition3D& point)
+double SpaceCharge::getChargeDensity(Side side, const GlobalPosition3D& point) const
 {
   Float_t x[3] = {point.rho(), point.phi(), point.z()};
   o2::utils::BringTo02PiGen(x[1]);
@@ -613,7 +614,7 @@ double SpaceCharge::getChargeDensity(Side side, GlobalPosition3D& point)
   return mLookUpTableCalculator.GetChargeCylAC(x, roc);
 }
 
-float SpaceCharge::getChargeDensity(Side side, int ir, int iphi, int iz)
+float SpaceCharge::getChargeDensity(Side side, int ir, int iphi, int iz) const
 {
   if (side == Side::A) {
     return mSpaceChargeDensityA[iphi * mNR * mNZ + ir * mNZ + iz];

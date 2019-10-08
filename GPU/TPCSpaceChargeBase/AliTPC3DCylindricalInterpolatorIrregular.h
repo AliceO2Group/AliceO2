@@ -26,7 +26,7 @@ class AliTPC3DCylindricalInterpolatorIrregular
   AliTPC3DCylindricalInterpolatorIrregular(Int_t nRRow, Int_t nZColumn, Int_t nPhiSlice, Int_t rStep, Int_t zStep,
                                            Int_t phiStep, Int_t intType);
   AliTPC3DCylindricalInterpolatorIrregular();
-  virtual ~AliTPC3DCylindricalInterpolatorIrregular();
+  ~AliTPC3DCylindricalInterpolatorIrregular();
 
   Double_t
     GetValue(Double_t r, Double_t phi, Double_t z, Int_t rIndex, Int_t phiIndex, Int_t zIndex, Int_t stepR, Int_t stepPhi,
@@ -144,7 +144,7 @@ class AliTPC3DCylindricalInterpolatorIrregular
   void KDTreeNearest(KDTreeNode* root, KDTreeNode* nd, Int_t index, Int_t dim,
                      KDTreeNode** best, Double_t* best_dist);
   /// \cond CLASSIMP
-  ClassDef(AliTPC3DCylindricalInterpolatorIrregular, 1);
+  ClassDefNV(AliTPC3DCylindricalInterpolatorIrregular, 1);
   /// \endcond
 };
 

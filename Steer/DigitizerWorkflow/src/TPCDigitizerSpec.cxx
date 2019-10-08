@@ -393,7 +393,7 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP)
     Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
             {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
             {"distortionType", VariantType::Int, 0, {"Distortion type to be used. 0 = no distortions (default), 1 = realistic distortions (not implemented yet), 2 = constant distortions"}},
-            {"gridSize", VariantType::String, "33,180,33", {"Comma separated list of number of bins in z, phi and r for distortion lookup tables (z and r can only be 2**N + 1, N=1,2,3,...)"}},
+            {"gridSize", VariantType::String, "129,144,129", {"Comma separated list of number of bins in (r,phi,z) for distortion lookup tables (r and z can only be 2**N + 1, N=1,2,3,...)"}},
             {"initialSpaceChargeDensity", VariantType::String, "", {"Path to root file containing TH3 with initial space-charge density and name of the TH3 (comma separated)"}},
             {"readSpaceCharge", VariantType::String, "", {"Path to root file containing pre-calculated space-charge object and name of the object (comma separated)"}},
             {"TPCtriggered", VariantType::Bool, false, {"Impose triggered RO mode (default: continuous)"}}}};
