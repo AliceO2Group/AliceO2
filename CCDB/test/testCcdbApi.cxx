@@ -20,24 +20,17 @@
 #include "CCDB/CcdbApi.h"
 #include "CCDB/IdPath.h"    // just as test object
 #include "CommonUtils/RootChain.h" // just as test object
-#include "CCDB/CCDBTimeStampUtils.h"
+#include "CCDB/CcdbTimeStampUtils.h"
 #include <boost/test/unit_test.hpp>
 #include <boost/filesystem.hpp>
-#include <cassert>
 #include <iostream>
-#include <cstdio>
-#include <curl/curl.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #include <TH1F.h>
 #include <chrono>
 #include <CommonUtils/StringUtils.h>
-#include <TMessage.h>
 #include <TStreamerInfo.h>
 #include <TGraph.h>
 #include <TTree.h>
 #include <TString.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 using namespace std;

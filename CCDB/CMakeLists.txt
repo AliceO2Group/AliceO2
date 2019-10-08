@@ -10,9 +10,9 @@
 
 o2_add_library(CCDB
                SOURCES  src/CcdbApi.cxx
-                        src/BasicCCDBManager.cxx
-                        src/CCDBTimeStampUtils.cxx
-        src/IdPath.cxx
+                        src/BasicCcdbManager.cxx
+                        src/CcdbTimeStampUtils.cxx
+                        src/IdPath.cxx
         PUBLIC_LINK_LIBRARIES CURL::libcurl
                                     FairRoot::ParMQ
                                     ROOT::Hist
@@ -22,12 +22,11 @@ o2_add_library(CCDB
                TARGETVARNAME targetName)
 
 o2_target_root_dictionary(CCDB
-                          HEADERS
-                                  include/CCDB/CcdbApi.h
-        include/CCDB/TObjectWrapper.h
-        include/CCDB/IdPath.h
-        include/CCDB/BasicCCDBManager.h
-                                  include/CCDB/CCDBTimeStampUtils.h)
+                          HEADERS include/CCDB/CcdbApi.h
+                                    include/CCDB/TObjectWrapper.h
+                                    include/CCDB/IdPath.h
+                                    include/CCDB/BasicCcdbManager.h
+                                    include/CCDB/CcdbTimeStampUtils.h)
 
 o2_add_test(CcdbApi
             SOURCES test/testCcdbApi.cxx

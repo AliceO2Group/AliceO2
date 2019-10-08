@@ -17,7 +17,7 @@
 #ifndef ALICE_O2_EVENTVISUALISATION_BASE_EVENTMANAGER_H
 #define ALICE_O2_EVENTVISUALISATION_BASE_EVENTMANAGER_H
 
-#include "CCDB/BasicCCDBManager.h"
+#include "CCDB/BasicCcdbManager.h"
 #include "CCDB/CcdbApi.h"
 
 #include <TEveElement.h>
