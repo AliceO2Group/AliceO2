@@ -143,6 +143,8 @@ class Cluster : public o2::BaseCluster<float>
     mPattern[nbits >> 3] &= (0xff ^ (0x1 << (nbits % 8)));
   }
 
+  void getDiffPattern(std::vector<std::pair<short, short>>& diffv, short colRef, short rowRef) const;
+
 #endif
   //
  protected:
