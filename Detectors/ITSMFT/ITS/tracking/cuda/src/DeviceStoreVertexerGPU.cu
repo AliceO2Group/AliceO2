@@ -12,9 +12,10 @@
 /// \brief
 /// \author matteo.concas@cern.ch
 
+#include <iostream>
+
 #include "ITStrackingCUDA/DeviceStoreVertexerGPU.h"
 #include "ITStracking/Configuration.h"
-#include <iostream>
 
 namespace o2
 {
@@ -36,11 +37,11 @@ DeviceStoreVertexerGPU::DeviceStoreVertexerGPU()
   mDuplets01 = Vector<Tracklet>{mGPUConf.dupletsCapacity, mGPUConf.dupletsCapacity};                   // 200 * 4e4 * sizeof(Tracklet) = 128MB
   mDuplets12 = Vector<Tracklet>{mGPUConf.dupletsCapacity, mGPUConf.dupletsCapacity};                   // 200 * 4e4 * sizeof(Tracklet) = 128MB
   mTracklets = Vector<Line>{mGPUConf.processedTrackletsCapacity, mGPUConf.processedTrackletsCapacity}; // 200 * 4e4 * sizeof(Line) = 296MB
-  mSumTmpBuffer = Vector<int>{mGPUConf.tmpSumBufferSize, mGPUConf.tmpSumBufferSize};                   // 5e3 * sizeof(int) = 20KB
+  mCUBTmpBuffer = Vector<int>{mGPUConf.tmpCUBBufferSize, mGPUConf.tmpCUBBufferSize};                   // 5e3 * sizeof(int) = 20KB
   mXYCentroids = Vector<float>{2 * mGPUConf.maxCentroidsXYCapacity, 2 * mGPUConf.maxCentroidsXYCapacity};
   mNFoundLines = Vector<int>{mGPUConf.clustersPerLayerCapacity, mGPUConf.clustersPerLayerCapacity};          // 4e4 * sizeof(int) = 160KB
   mNExclusiveFoundLines = Vector<int>{mGPUConf.clustersPerLayerCapacity, mGPUConf.clustersPerLayerCapacity}; // 4e4 * sizeof(int) = 160KB, tot = <10MB
-
+  mBeamPositionBins = Vector<cub::KeyValuePair<int, int>>{2, 2};
   for (int iTable{0}; iTable < 2; ++iTable) {
     mIndexTables[iTable] = Vector<int>{constants::index_table::ZBins * constants::index_table::PhiBins + 1}; // 2*20*20+1 * sizeof(int) = 802B
   }
@@ -58,6 +59,7 @@ DeviceStoreVertexerGPU::DeviceStoreVertexerGPU()
   for (int iLayersCouple{0}; iLayersCouple < 2; ++iLayersCouple) {
     mDupletIndices[iLayersCouple] = Vector<int>{mGPUConf.processedTrackletsCapacity, mGPUConf.processedTrackletsCapacity};
   }
+  mSizes = Vector<int>{constants::its::LayersNumberVertexer};
 #endif
 }
 

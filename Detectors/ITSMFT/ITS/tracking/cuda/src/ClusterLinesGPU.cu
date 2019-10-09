@@ -208,7 +208,7 @@ GPUd() ClusterLinesGPU::ClusterLinesGPU(const int& firstLabel, const Line& first
   }
 }
 
-void ClusterLinesGPU::add(const int& lineLabel, const Line& line, const unsigned char weight)
+GPUd() void ClusterLinesGPU::add(const int& lineLabel, const Line& line, const unsigned char weight)
 {
   mNContributors++;
   float covariance[3];

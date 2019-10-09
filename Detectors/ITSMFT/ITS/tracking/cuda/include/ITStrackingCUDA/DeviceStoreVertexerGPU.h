@@ -16,6 +16,8 @@
 #ifndef O2_ITS_TRACKING_DEVICE_STORE_VERTEXER_GPU_H_
 #define O2_ITS_TRACKING_DEVICE_STORE_VERTEXER_GPU_H_
 
+#include <cub/cub.cuh>
+
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/Configuration.h"
@@ -32,6 +34,7 @@ namespace its
 {
 namespace GPU
 {
+
 enum class TrackletingLayerOrder {
   fromInnermostToMiddleLayer,
   fromMiddleToOuterLayer
@@ -41,11 +44,6 @@ enum class VertexerLayerName {
   innermostLayer,
   middleLayer,
   outerLayer
-};
-
-struct centroidXY {
-  float mX;
-  float mY;
 };
 
 typedef TrackletingLayerOrder Order;
@@ -73,14 +71,10 @@ class DeviceStoreVertexerGPU final
   GPUd() Vector<Line>& getLines() { return mTracklets; }
   GPUhd() Vector<int>& getNFoundLines() { return mNFoundLines; }
   GPUhd() Vector<int>& getNExclusiveFoundLines() { return mNExclusiveFoundLines; }
-  GPUhd() Vector<int>& getTmpSumBuffer() { return mSumTmpBuffer; }
+  GPUhd() Vector<int>& getCUBTmpBuffer() { return mCUBTmpBuffer; }
   GPUhd() Vector<float>& getXYCentroids() { return mXYCentroids; }
   GPUhd() Array<Vector<int>, 2>& getHistogramXY() { return mHistogramXY; }
-  // GPUhd() Vector<int>& getAdjList() { return mAdjList; }
-  // GPUhd() Vector<int>& getAdjExcList() { return mAdjExcList; }
-  // GPUhd() Vector<int>& getEdges() { return mEdges; }
-  // GPUhd() Vector<int>& getBorders() { return mBorders; }
-  // GPUhd() Vector<int>& getVisited() { return mVisited; }
+  GPUhd() Vector<cub::KeyValuePair<int, int>>& getBeamPositionBins() { return mBeamPositionBins; }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   GPUd() Array<Vector<int>, 2>& getDupletIndices()
@@ -108,7 +102,6 @@ class DeviceStoreVertexerGPU final
   GPUh() std::vector<Line> getLinesFromGPU();
 
  private:
-  Vector<int> mSizes;
   VertexerStoreConfigurationGPU mGPUConf;
   Array<Vector<Cluster>, constants::its::LayersNumberVertexer> mClusters;
   Vector<Line> mTracklets;
@@ -120,17 +113,14 @@ class DeviceStoreVertexerGPU final
   Vector<Tracklet> mDuplets01;
   Vector<Tracklet> mDuplets12;
   Array<Vector<int>, constants::its::LayersNumberVertexer - 1> mNFoundDuplets;
-  Vector<int> mSumTmpBuffer;
+  Vector<int> mCUBTmpBuffer;
   Vector<float> mXYCentroids;
   Array<Vector<int>, 2> mHistogramXY;
-  // Vector<int> mAdjList;
-  // Vector<int> mAdjExcList;
-  // Vector<int> mEdges;
-  // Vector<int> mBorders;
-  // Vector<int> mVisited;
+  Vector<cub::KeyValuePair<int, int>> mBeamPositionBins;
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   Array<Vector<int>, 2> mDupletIndices;
+  Vector<int> mSizes;
 #endif
 };
 
@@ -209,10 +199,11 @@ inline std::vector<std::array<int, 2>> DeviceStoreVertexerGPU::getDupletIndicesF
   // Careful: this might lead to large allocations, use debug-purpose only.
   std::array<std::vector<int>, 2> allowedLines;
   std::vector<std::array<int, 2>> allowedPairIndices;
-  allowedPairIndices.reserve(mGPUConf.processedTrackletsCapacity);
+  int nLines = getNExclusiveFoundLines().getElementFromDevice(mClusters[1].getSizeFromDevice() - 1) + getNFoundLines().getElementFromDevice(mClusters[1].getSizeFromDevice() - 1);
+  allowedPairIndices.reserve(nLines);
   for (int iAllowed{0}; iAllowed < 2; ++iAllowed) {
-    allowedLines[iAllowed].resize(mGPUConf.processedTrackletsCapacity);
-    mDupletIndices[iAllowed].resize(mGPUConf.processedTrackletsCapacity);
+    allowedLines[iAllowed].resize(nLines);
+    mDupletIndices[iAllowed].resize(nLines);
     mDupletIndices[iAllowed].copyIntoSizedVector(allowedLines[iAllowed]);
   }
   for (size_t iPair{0}; iPair < allowedLines[0].size(); ++iPair) {

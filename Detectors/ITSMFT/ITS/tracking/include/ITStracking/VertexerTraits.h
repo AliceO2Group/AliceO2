@@ -80,12 +80,11 @@ inline lightVertex::lightVertex(float x, float y, float z, std::array<float, 6> 
 class VertexerTraits
 {
  public:
-  VertexerTraits();
-
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-  VertexerTraits(const std::string);
+  VertexerTraits();
   virtual ~VertexerTraits();
 #else
+  VertexerTraits() = default;
   virtual ~VertexerTraits() = default;
 #endif
 

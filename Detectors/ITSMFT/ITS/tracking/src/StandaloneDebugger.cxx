@@ -82,6 +82,7 @@ void StandaloneDebugger::fillTrackletSelectionTree(std::array<std::vector<Cluste
                                                    const ROframe* event)
 {
   assert(event != nullptr);
+  assert(mTreeStream != nullptr);
   int id = event->getROFrameId();
   for (auto& trackletPair : allowedTracklets) {
     o2::MCCompLabel lblClus0 = event->getClusterLabels(0, clusters[0][comb01[trackletPair[0]].firstClusterIndex].clusterId);

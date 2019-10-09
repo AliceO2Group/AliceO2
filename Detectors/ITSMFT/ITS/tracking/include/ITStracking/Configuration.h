@@ -123,7 +123,7 @@ struct VertexingParameters {
 
 struct VertexerStoreConfigurationGPU {
   // o2::its::GPU::Vector constructor requires signed size for initialisation
-  int tmpSumBufferSize = 5e3;
+  int tmpCUBBufferSize = 5e4;
   int maxTrackletsPerCluster = 2e2;
   int clustersPerLayerCapacity = 4e4;
   int dupletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
@@ -133,7 +133,7 @@ struct VertexerStoreConfigurationGPU {
   float lowHistBoundariesXY[2] = {-1.98f, -1.98f};
   float highHistBoundariesXY[2] = {1.98f, 1.98f};
   // Vertex finding
-  int nBinsXY[2] = {11, 11};
+  int nBinsXY[2] = {101, 101};
   int nBinsZ = 80;
   // float binSizeX = constants::its::VertexerHistogramVolume()[0] / nBinsX;
   // float binSizeY = constants::its::VertexerHistogramVolume()[1] / nBinsY;
