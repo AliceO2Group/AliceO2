@@ -32,7 +32,7 @@ class HitFinder
   HitFinder(const GeometryTransformer& geoTrans);
 
   std::vector<int> getFiredDE(const Track& track, int chamber) const;
-  std::vector<Cluster2D> getLocalPositions(const Track& track, int chamber, bool withUncertainty = false) const;
+  std::vector<Cluster2D> getLocalPositions(const Track& track, int chamber, bool withUncertainties = false) const;
 
  private:
   math_utils::Point3D<double> getIntersectInDefaultPlane(const Track& track, int chamber) const;

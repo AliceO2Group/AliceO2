@@ -127,6 +127,7 @@ std::vector<Cluster2D> HitFinder::getLocalPositions(const Track& track, int cham
   /// Gets the list of fired Points in local coordinates
   /// @param track MID track
   /// @param chamber Chamber ID (0-3)
+  /// @param withUncertainties Add also the extrapolated uncertainties to the local point
   /// @return Vector with the pairs of detection element Ids and intersection point
   std::vector<int> deIdList = getFiredDE(track, chamber);
 
