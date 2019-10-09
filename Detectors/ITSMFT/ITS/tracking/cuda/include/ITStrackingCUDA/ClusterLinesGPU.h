@@ -28,6 +28,7 @@ namespace GPU
 class ClusterLinesGPU final
 {
  public:
+  GPUd() ClusterLinesGPU(const Line& firstLine, const Line& secondLine); // poor man solution to calculate duplets' centroid
   GPUd() ClusterLinesGPU(const int& firstLabel, const Line& firstLine, const int& secondLabel, const Line& secondLine, const unsigned char weight = false);
   GPUd() void add(const int& lineLabel, const Line& line, const unsigned char weight = false);
   GPUd() void computeClusterCentroid();
@@ -44,7 +45,7 @@ class ClusterLinesGPU final
   float mWeightMatrix[9];    // weight matrix
   float mVertex[3];          // cluster centroid position
   int mNContributors;        // number of participants to this cluster
-  float mRMS2[6];              // symmetric matrix: diagonal is RMS2
+  float mRMS2[6];            // symmetric matrix: diagonal is RMS2
   float mAvgDistance2;       // substitute for chi2
 };
 

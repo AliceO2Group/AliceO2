@@ -37,17 +37,10 @@ DeviceStoreVertexerGPU::DeviceStoreVertexerGPU()
   mDuplets12 = Vector<Tracklet>{mGPUConf.dupletsCapacity, mGPUConf.dupletsCapacity};                   // 200 * 4e4 * sizeof(Tracklet) = 128MB
   mTracklets = Vector<Line>{mGPUConf.processedTrackletsCapacity, mGPUConf.processedTrackletsCapacity}; // 200 * 4e4 * sizeof(Line) = 296MB
   mSumTmpBuffer = Vector<int>{mGPUConf.tmpSumBufferSize, mGPUConf.tmpSumBufferSize};                   // 5e3 * sizeof(int) = 20KB
-  mAdjList = Vector<int>{mGPUConf.processedTrackletsCapacity, mGPUConf.processedTrackletsCapacity};    // 200 * 4e4 * sizeof(int) = 32MB
-  mAdjExcList = Vector<int>{mGPUConf.processedTrackletsCapacity, mGPUConf.processedTrackletsCapacity}; // 200 * 4e4 * sizeof(int) = 32MB
-  // mEdges = Vector<int>{mGPUConf.edgesCapacity, mGPUConf.edgesCapacity};                                // 64e6 * 4 * sizeof(int) = 256MB
-  mBorders = Vector<int>{mGPUConf.processedTrackletsCapacity, mGPUConf.processedTrackletsCapacity};    // 200 * 4e4 * sizeof(int) = 32MB
-  mVisited = Vector<int>{mGPUConf.processedTrackletsCapacity, mGPUConf.processedTrackletsCapacity};    // 200 * 4e4 * sizeof(int) = 32MB, tot = 936MB
+  mXYCentroids = Vector<float>{2 * mGPUConf.maxCentroidsXYCapacity, 2 * mGPUConf.maxCentroidsXYCapacity};
+  mNFoundLines = Vector<int>{mGPUConf.clustersPerLayerCapacity, mGPUConf.clustersPerLayerCapacity};          // 4e4 * sizeof(int) = 160KB
+  mNExclusiveFoundLines = Vector<int>{mGPUConf.clustersPerLayerCapacity, mGPUConf.clustersPerLayerCapacity}; // 4e4 * sizeof(int) = 160KB, tot = <10MB
 
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  for (int iLayersCouple{0}; iLayersCouple < 2; ++iLayersCouple) {
-    mDupletIndices[iLayersCouple] = Vector<int>{mGPUConf.processedTrackletsCapacity, mGPUConf.processedTrackletsCapacity};
-  }
-#endif
   for (int iTable{0}; iTable < 2; ++iTable) {
     mIndexTables[iTable] = Vector<int>{constants::index_table::ZBins * constants::index_table::PhiBins + 1}; // 2*20*20+1 * sizeof(int) = 802B
   }
@@ -57,8 +50,15 @@ DeviceStoreVertexerGPU::DeviceStoreVertexerGPU()
   for (int iPair{0}; iPair < constants::its::LayersNumberVertexer - 1; ++iPair) {
     mNFoundDuplets[iPair] = Vector<int>{mGPUConf.clustersPerLayerCapacity, mGPUConf.clustersPerLayerCapacity}; // 4e4 * 2 * sizeof(int) = 320KB
   }
-  mNFoundLines = Vector<int>{mGPUConf.clustersPerLayerCapacity, mGPUConf.clustersPerLayerCapacity}; // 4e4 * sizeof(int) = 160KB
-  mNExclusiveFoundLines = Vector<int>{mGPUConf.clustersPerLayerCapacity, mGPUConf.clustersPerLayerCapacity}; // 4e4 * sizeof(int) = 160KB, tot = <10MB
+  for (int iHisto{0}; iHisto < 2; ++iHisto) {
+    mHistogramXY[iHisto] = Vector<int>{mGPUConf.nBinsXY[0], mGPUConf.nBinsXY[1]};
+  }
+
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  for (int iLayersCouple{0}; iLayersCouple < 2; ++iLayersCouple) {
+    mDupletIndices[iLayersCouple] = Vector<int>{mGPUConf.processedTrackletsCapacity, mGPUConf.processedTrackletsCapacity};
+  }
+#endif
 }
 
 UniquePointer<DeviceStoreVertexerGPU> DeviceStoreVertexerGPU::initialise(const std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>& clusters,

@@ -248,27 +248,5 @@ void ClusterLines::computeClusterCentroid()
                determinant;
 }
 
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-std::array<float, 6> ClusterLines::getRMS2() const
-{
-  std::array<float, 6> deviations{0., 0., 0., 0., 0., 0.}, deviationSingleLine;
-  for (auto line : mLines) {
-    deviationSingleLine = Line::getDCAComponents(line, mVertex);
-    for (int i{0}; i < 6; ++i) {
-      deviations[i] += deviationSingleLine[i] * deviationSingleLine[i] / mLines.size();
-    }
-  }
-  return deviations;
-}
-
-float ClusterLines::getAvgDistance2() const
-{
-  float dist{0.};
-  for (auto line : mLines)
-    dist += Line::getDistanceFromPoint(line, mVertex) * Line::getDistanceFromPoint(line, mVertex);
-  return dist / mLines.size();
-}
-#endif
-
 } // namespace its
 } // namespace o2

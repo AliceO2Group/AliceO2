@@ -20,10 +20,11 @@
 
 #include "ITStracking/MathUtils.h"
 #include "ITStracking/Configuration.h"
-#include "ITStracking/Tracklet.h"
 #include "ITStracking/ClusterLines.h"
+#include "ITStracking/Tracklet.h"
 
 #include "ITStrackingCUDA/Utils.h"
+#include "ITStrackingCUDA/ClusterLinesGPU.h"
 #include "ITStrackingCUDA/Context.h"
 #include "ITStrackingCUDA/Stream.h"
 #include "ITStrackingCUDA/VertexerTraitsGPU.h"
@@ -37,10 +38,22 @@ using constants::index_table::PhiBins;
 using constants::index_table::ZBins;
 using constants::its::LayersRCoordinate;
 using constants::its::LayersZCoordinate;
+using constants::its::VertexerHistogramVolume;
 using constants::math::TwoPi;
 using index_table_utils::getPhiBinIndex;
 using index_table_utils::getZBinIndex;
 using math_utils::getNormalizedPhiCoordinate;
+
+GPUh() void gpuThrowOnError()
+{
+  cudaError_t error = cudaGetLastError();
+
+  if (error != cudaSuccess) {
+    std::ostringstream errorString{};
+    errorString << "CUDA API returned error  [" << cudaGetErrorString(error) << "] (code " << error << ")" << std::endl;
+    throw std::runtime_error{errorString.str()};
+  }
+}
 
 VertexerTraitsGPU::VertexerTraitsGPU()
 {
@@ -84,7 +97,7 @@ GPUd() void printOnThread(const int tId, const char* str, Args... args)
   }
 }
 
-GPUd() void printVectorOnThread(char* name, Vector<int>& vector, size_t size, const int tId = 0)
+GPUd() void printVectorOnThread(const char* name, Vector<int>& vector, size_t size, const int tId = 0)
 {
   if (blockIdx.x * blockDim.x + threadIdx.x == tId) {
     printf("vector %s :", name);
@@ -148,84 +161,54 @@ GPUg() void trackletSelectionKernel(
 {
   const size_t nClustersMiddleLayer = store.getClusters()[1].size();
   for (size_t currentClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; currentClusterIndex < nClustersMiddleLayer; currentClusterIndex += blockDim.x * gridDim.x) {
-    if (currentClusterIndex < store.getClusters()[1].size()) {
-      const int stride{static_cast<int>(currentClusterIndex * store.getConfig().maxTrackletsPerCluster)};
-      int validTracklets{0};
-      for (int iTracklet12{0}; iTracklet12 < store.getNFoundTracklets(TrackletingLayerOrder::fromMiddleToOuterLayer)[currentClusterIndex]; ++iTracklet12) {
-        for (int iTracklet01{0}; iTracklet01 < store.getNFoundTracklets(TrackletingLayerOrder::fromInnermostToMiddleLayer)[currentClusterIndex] && validTracklets < store.getConfig().maxTrackletsPerCluster; ++iTracklet01) {
-          const float deltaTanLambda{gpu::GPUCommonMath::Abs(store.getDuplets01()[stride + iTracklet01].tanLambda - store.getDuplets12()[stride + iTracklet12].tanLambda)};
-          const float deltaPhi{gpu::GPUCommonMath::Abs(store.getDuplets01()[stride + iTracklet01].phiCoordinate - store.getDuplets12()[stride + iTracklet12].phiCoordinate)};
-          if (deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != store.getConfig().maxTrackletsPerCluster) {
-            assert(store.getDuplets01()[stride + iTracklet01].secondClusterIndex == store.getDuplets12()[stride + iTracklet12].firstClusterIndex);
-            if (!isInitRun) {
-              store.getLines().emplace(store.getNExclusiveFoundLines()[currentClusterIndex] + validTracklets, store.getDuplets01()[stride + iTracklet01], store.getClusters()[0].get(), store.getClusters()[1].get());
+    const int stride{static_cast<int>(currentClusterIndex * store.getConfig().maxTrackletsPerCluster)};
+    int validTracklets{0};
+    for (int iTracklet12{0}; iTracklet12 < store.getNFoundTracklets(TrackletingLayerOrder::fromMiddleToOuterLayer)[currentClusterIndex]; ++iTracklet12) {
+      for (int iTracklet01{0}; iTracklet01 < store.getNFoundTracklets(TrackletingLayerOrder::fromInnermostToMiddleLayer)[currentClusterIndex] && validTracklets < store.getConfig().maxTrackletsPerCluster; ++iTracklet01) {
+        const float deltaTanLambda{gpu::GPUCommonMath::Abs(store.getDuplets01()[stride + iTracklet01].tanLambda - store.getDuplets12()[stride + iTracklet12].tanLambda)};
+        const float deltaPhi{gpu::GPUCommonMath::Abs(store.getDuplets01()[stride + iTracklet01].phiCoordinate - store.getDuplets12()[stride + iTracklet12].phiCoordinate)};
+        if (deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != store.getConfig().maxTrackletsPerCluster) {
+          assert(store.getDuplets01()[stride + iTracklet01].secondClusterIndex == store.getDuplets12()[stride + iTracklet12].firstClusterIndex);
+          if (!isInitRun) {
+            store.getLines().emplace(store.getNExclusiveFoundLines()[currentClusterIndex] + validTracklets, store.getDuplets01()[stride + iTracklet01], store.getClusters()[0].get(), store.getClusters()[1].get());
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-              store.getDupletIndices()[0].emplace(stride + validTracklets, stride + iTracklet01);
-              store.getDupletIndices()[1].emplace(stride + validTracklets, stride + iTracklet12);
+            store.getDupletIndices()[0].emplace(stride + validTracklets, stride + iTracklet01);
+            store.getDupletIndices()[1].emplace(stride + validTracklets, stride + iTracklet12);
 #endif
-            }
-            ++validTracklets;
           }
+          ++validTracklets;
         }
       }
-      if (isInitRun) {
-        store.getNFoundLines().emplace(currentClusterIndex, validTracklets);
-        if (validTracklets >= store.getConfig().maxTrackletsPerCluster) {
-          printf("Warning: not enough space for tracklet selection, some lines will be left behind\n");
-        }
+    }
+    if (isInitRun) {
+      store.getNFoundLines().emplace(currentClusterIndex, validTracklets);
+      if (validTracklets >= store.getConfig().maxTrackletsPerCluster) {
+        printf("Warning: not enough space for tracklet selection, some lines will be left behind\n");
       }
     }
   }
   if (blockIdx.x * blockDim.x + threadIdx.x == 0) {
-    // first thread I want towrite an empty line after last found, as adebug flag. Might delete later
+    // first thread I want to write an empty line after last found, as adebug flag. Might delete later
     store.getLines().emplace(store.getNExclusiveFoundLines()[store.getClusters()[1].size() - 1] + store.getNFoundLines()[store.getClusters()[1].size() - 1]);
   }
 }
 
-GPUg() void computeGraphKernel(
-  DeviceStoreVertexerGPU& store,
-  const unsigned char isInitRun = false,
-  const float pairCut = 0.04f)
+GPUg() void computeCentroidsKernel(DeviceStoreVertexerGPU& store)
 {
   const int nLines = store.getNExclusiveFoundLines()[store.getClusters()[1].size() - 1] + store.getNFoundLines()[store.getClusters()[1].size() - 1] - 1;
-  for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < nLines; currentThreadIndex += blockDim.x * gridDim.x) {
-    int foundEdges{0};
-    for (size_t iLine{0}; iLine < nLines; ++iLine) {
-      if (iLine != currentThreadIndex && Line::getDCA(store.getLines()[currentThreadIndex], store.getLines()[iLine]) < pairCut) {
-        if (!isInitRun) {
-          store.getEdges().emplace(store.getAdjExcList()[currentThreadIndex] + foundEdges, iLine);
-        }
-        ++foundEdges;
-      }
+  const int maxIterations{nLines * (nLines - 1) / 2};
+  for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < maxIterations; currentThreadIndex += blockDim.x * gridDim.x) {
+    int iFirstLine = currentThreadIndex / nLines;
+    int iSecondLine = currentThreadIndex % nLines;
+    if (iSecondLine <= iFirstLine) {
+      iFirstLine = nLines - iFirstLine - 2;
+      iSecondLine = nLines - iSecondLine - 1;
     }
-    if (isInitRun) {
-      store.getAdjList().emplace(currentThreadIndex, foundEdges);
-    }
-  }
-  if (!isInitRun)
-    printVectorOnThread("adjacency list exclusive", store.getAdjExcList(), nLines);
-  if (isInitRun)
-    printVectorOnThread("adjacency list", store.getAdjList(), nLines);
-}
-
-GPUg() void breadthFirstSearchKernel(DeviceStoreVertexerGPU& store, const int lineId)
-{
-  const int nLines = store.getNExclusiveFoundLines()[store.getClusters()[1].size() - 1] + store.getNFoundLines()[store.getClusters()[1].size() - 1] - 1;
-  for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < nLines; currentThreadIndex += blockDim.x * gridDim.x) {
-    store.getBorders()[currentThreadIndex] = 0 + int(lineId && currentThreadIndex);
-    store.getVisited()[currentThreadIndex] = 0;
-    printVectorOnThread("BORDERS", store.getBorders(), nLines);
-    __syncthreads();
-    if (store.getBorders()[currentThreadIndex]) {
-      store.getBorders()[currentThreadIndex] = 0;
-      store.getVisited()[currentThreadIndex] = 1;
-    }
-    __syncthreads();
-    for (int iNeighbour{store.getAdjExcList()[currentThreadIndex]}; iNeighbour < store.getAdjExcList()[currentThreadIndex] + store.getEdges()[currentThreadIndex]; ++iNeighbour) {
-      if (!store.getVisited()[iNeighbour]) {
-        store.getBorders()[iNeighbour] = 0;
-      }
-    }
+    GPU::ClusterLinesGPU cluster{store.getLines()[iFirstLine], store.getLines()[iSecondLine]};
+    // const int bin{getBinIndex(cluster.getVertex()[0], cluster.getVertex()[1], cluster.getVertex()[2], store.getConfig().nBinsX, store.getConfig().nBinsY, store.getConfig().binSizeX, store.getConfig().binSizeY, store.getConfig().binSizeZ)};
+    // printf("{%d, %d}: vertex: %f %f %f, bin %d \n", iFirstLine, iSecondLine, cluster.getVertex()[0], cluster.getVertex()[1], cluster.getVertex()[2], bin);
+    store.getXYCentroids().emplace(2 * currentThreadIndex, cluster.getVertex()[0]);
+    store.getXYCentroids().emplace(2 * currentThreadIndex + 1, cluster.getVertex()[1]);
   }
 }
 } // namespace GPU
@@ -245,13 +228,7 @@ void VertexerTraitsGPU::computeTracklets()
     GPU::TrackletingLayerOrder::fromMiddleToOuterLayer,
     mVrtParams.phiCut);
 
-  cudaError_t error = cudaGetLastError();
-
-  if (error != cudaSuccess) {
-    std::ostringstream errorString{};
-    errorString << "CUDA API returned error  [" << cudaGetErrorString(error) << "] (code " << error << ")" << std::endl;
-    throw std::runtime_error{errorString.str()};
-  }
+  gpuThrowOnError();
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   if (isDebugFlag(VertexerDebug::CombinatoricsTreeAll)) {
@@ -285,13 +262,8 @@ void VertexerTraitsGPU::computeTrackletMatching()
     mVrtParams.tanLambdaCut,
     mVrtParams.phiCut);
 
-  cudaError_t error = cudaGetLastError();
+  gpuThrowOnError();
 
-  if (error != cudaSuccess) {
-    std::ostringstream errorString{};
-    errorString << "CUDA API returned error  [" << cudaGetErrorString(error) << "] (code " << error << ")" << std::endl;
-    throw std::runtime_error{errorString.str()};
-  }
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   if (isDebugFlag(VertexerDebug::TrackletTreeAll)) {
     mDebugger->fillStridedTrackletSelectionTree(mClusters,
@@ -314,45 +286,27 @@ void VertexerTraitsGPU::computeTrackletMatching()
 #endif
 }
 
-void VertexerTraitsGPU::computeVertices()
-{
-  const dim3 threadsPerBlock{GPU::Utils::Host::getBlockSize(mClusters[1].capacity())};
-  const dim3 blocksGrid{GPU::Utils::Host::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
-  size_t bufferSize = mStoreVertexerGPU.getConfig().tmpSumBufferSize * sizeof(int);
-  int nLines = mStoreVertexerGPU.getNExclusiveFoundLines().getElementFromDevice(mClusters[1].size() - 1) + mStoreVertexerGPU.getNFoundLines().getElementFromDevice(mClusters[1].size() - 1) - 1;
-  std::cout << "Bhe, ho trovato " << nLines << " linee...\n";
-  //   GPU::computeGraphKernel<<<blocksGrid, threadsPerBlock>>>(
-  //     getDeviceContext(),
-  //     true,
-  //     mVrtParams.pairCut);
-  //
-  //   cub::DeviceScan::ExclusiveSum(reinterpret_cast<void*>(mStoreVertexerGPU.getTmpSumBuffer().get()),
-  //                                 bufferSize,
-  //                                 mStoreVertexerGPU.getAdjList().get(),
-  //                                 mStoreVertexerGPU.getAdjExcList().get(),
-  //                                 nLines);
-  //
-  //   GPU::computeGraphKernel<<<blocksGrid, threadsPerBlock>>>(
-  //     getDeviceContext(),
-  //     false,
-  //     mVrtParams.pairCut);
-  //
-  //   GPU::breadthFirstSearchKernel<<<blocksGrid, threadsPerBlock>>>(
-  //     getDeviceContext(),
-  //     0);
-  //
-  cudaError_t error = cudaGetLastError();
-
-  if (error != cudaSuccess) {
-    std::ostringstream errorString{};
-    errorString << "CUDA API returned error  [" << cudaGetErrorString(error) << "] (code " << error << ")" << std::endl;
-    throw std::runtime_error{errorString.str()};
-  }
-}
-
-void VertexerTraitsGPU::computeCluster(const int lineId)
-{
-}
+// void VertexerTraitsGPU::computeVertices()
+// {
+//   const dim3 threadsPerBlock{GPU::Utils::Host::getBlockSize(mClusters[1].capacity())};
+//   const dim3 blocksGrid{GPU::Utils::Host::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
+//   int nLines = mStoreVertexerGPU.getNExclusiveFoundLines().getElementFromDevice(mClusters[1].size() - 1) + mStoreVertexerGPU.getNFoundLines().getElementFromDevice(mClusters[1].size() - 1) - 1;
+//   int* test[2] = {mStoreVertexerGPU.getHistogramXY()[0].get(), mStoreVertexerGPU.getHistogramXY()[1].get()};
+//   // GPU::computeCentroidsKernel<<<blocksGrid, threadsPerBlock>>>(
+//     // getDeviceContext());
+//   // size_t tmpStorageBytes;
+//   // cub::DeviceHistogram::MultiHistogramEven<2, 2>(nullptr,                                            // d_temp_storage
+//                                                 //  tmpStorageBytes,                                    // temp_storage_bytes
+//                                                 //  mStoreVertexerGPU.getXYCentroids().get(),           // d_samples
+//                                                 //  test,                                               // d_histogram
+//                                                 //  mStoreVertexerGPU.getConfig().nBinsXY,              // num_levels
+//                                                 //  mStoreVertexerGPU.getConfig().lowHistBoundariesXY,  // lower_level
+//                                                 //  mStoreVertexerGPU.getConfig().highHistBoundariesXY, // fupper_level
+//                                                 //  static_cast<int>(nLines * (nLines - 1) / 2));       // num_row_pixels,
+// //
+//   // std::cout << "temporary storage bytes: " << tmpStorageBytes << std::endl;
+//   gpuThrowOnError();
+// }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
 void VertexerTraitsGPU::computeMCFiltering()

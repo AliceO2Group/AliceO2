@@ -43,6 +43,11 @@ enum class VertexerLayerName {
   outerLayer
 };
 
+struct centroidXY {
+  float mX;
+  float mY;
+};
+
 typedef TrackletingLayerOrder Order;
 class DeviceStoreVertexerGPU final
 {
@@ -60,7 +65,7 @@ class DeviceStoreVertexerGPU final
     return mClusters;
   }
   GPUd() const Vector<int>& getIndexTable(const VertexerLayerName);
-  GPUhd() const VertexerStoreConfigurationGPU& getConfig() { return mGPUConf; }
+  GPUhd() VertexerStoreConfigurationGPU& getConfig() { return mGPUConf; }
 
   // Writable APIs
   GPUd() Vector<Tracklet>& getDuplets01() { return mDuplets01; }
@@ -69,11 +74,13 @@ class DeviceStoreVertexerGPU final
   GPUhd() Vector<int>& getNFoundLines() { return mNFoundLines; }
   GPUhd() Vector<int>& getNExclusiveFoundLines() { return mNExclusiveFoundLines; }
   GPUhd() Vector<int>& getTmpSumBuffer() { return mSumTmpBuffer; }
-  GPUhd() Vector<int>& getAdjList() { return mAdjList; }
-  GPUhd() Vector<int>& getAdjExcList() { return mAdjExcList; }
-  GPUhd() Vector<int>& getEdges() { return mEdges; }
-  GPUhd() Vector<int>& getBorders() { return mBorders; }
-  GPUhd() Vector<int>& getVisited() { return mVisited; }
+  GPUhd() Vector<float>& getXYCentroids() { return mXYCentroids; }
+  GPUhd() Array<Vector<int>, 2>& getHistogramXY() { return mHistogramXY; }
+  // GPUhd() Vector<int>& getAdjList() { return mAdjList; }
+  // GPUhd() Vector<int>& getAdjExcList() { return mAdjExcList; }
+  // GPUhd() Vector<int>& getEdges() { return mEdges; }
+  // GPUhd() Vector<int>& getBorders() { return mBorders; }
+  // GPUhd() Vector<int>& getVisited() { return mVisited; }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   GPUd() Array<Vector<int>, 2>& getDupletIndices()
@@ -114,11 +121,13 @@ class DeviceStoreVertexerGPU final
   Vector<Tracklet> mDuplets12;
   Array<Vector<int>, constants::its::LayersNumberVertexer - 1> mNFoundDuplets;
   Vector<int> mSumTmpBuffer;
-  Vector<int> mAdjList;
-  Vector<int> mAdjExcList;
-  Vector<int> mEdges;
-  Vector<int> mBorders;
-  Vector<int> mVisited;
+  Vector<float> mXYCentroids;
+  Array<Vector<int>, 2> mHistogramXY;
+  // Vector<int> mAdjList;
+  // Vector<int> mAdjExcList;
+  // Vector<int> mEdges;
+  // Vector<int> mBorders;
+  // Vector<int> mVisited;
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   Array<Vector<int>, 2> mDupletIndices;
