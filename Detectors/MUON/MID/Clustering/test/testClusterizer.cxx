@@ -27,6 +27,8 @@
 #include <vector>
 #include <random>
 #include <gsl/gsl>
+#include "DataFormatsMID/ColumnData.h"
+#include "DataFormatsMID/Cluster.h"
 #include "MIDClustering/PreClusterizer.h"
 #include "MIDClustering/Clusterizer.h"
 
@@ -86,45 +88,45 @@ std::vector<ColumnData> getColumnsFixed(int event)
   return columns;
 }
 
-std::vector<Cluster2D> getClusters(int event)
+std::vector<Cluster> getClusters(int event)
 {
-  std::vector<Cluster2D> clusters;
-  Cluster2D clus;
+  std::vector<Cluster> clusters;
+  Cluster clus;
   switch (event) {
     case 0:
       clus.deId = 31; // LegacyUtility::convertFromLegacyDeId(1400);
       clus.xCoor = -98.0417;
       clus.yCoor = -18.2403;
-      clus.sigmaX2 = 1.73286;
-      clus.sigmaY2 = 1.73286;
+      clus.xErr = 1.3163814;
+      clus.yErr = 1.3163814;
       clusters.push_back(clus);
       clus.deId = 31; // LegacyUtility::convertFromLegacyDeId(1400);
       clus.xCoor = -91.8856;
       clus.yCoor = -18.1263;
-      clus.sigmaX2 = 1.26499;
-      clus.sigmaY2 = 1.45994;
+      clus.xErr = 1.1247177;
+      clus.yErr = 1.2082798;
       clusters.push_back(clus);
       break;
     case 1:
       clus.deId = 68; // LegacyUtility::convertFromLegacyDeId(1408);
       clus.xCoor = -129.962;
       clus.yCoor = 18.2403;
-      clus.sigmaX2 = 1.73286;
-      clus.sigmaY2 = 1.73286;
+      clus.xErr = 1.3163814;
+      clus.yErr = 1.3163814;
       clusters.push_back(clus);
       clus.deId = 68; // LegacyUtility::convertFromLegacyDeId(1408);
       clus.xCoor = -101.006;
       clus.yCoor = 18.5823;
-      clus.sigmaX2 = 1.26499;
-      clus.sigmaY2 = 1.87579;
+      clus.xErr = 1.1247177;
+      clus.yErr = 1.3695948;
       clusters.push_back(clus);
       break;
     case 2:
       clus.deId = 31; // LegacyUtility::convertFromLegacyDeId(1400);
       clus.xCoor = -91.2016;
       clus.yCoor = -18.2403;
-      clus.sigmaX2 = 1.73286;
-      clus.sigmaY2 = 1.73286;
+      clus.xErr = 1.3163814;
+      clus.yErr = 1.3163814;
       clusters.push_back(clus);
       break;
     default:
@@ -134,12 +136,12 @@ std::vector<Cluster2D> getClusters(int event)
   return clusters;
 }
 
-bool areClustersEqual(const Cluster2D& cl1, const Cluster2D& cl2)
+bool areClustersEqual(const Cluster& cl1, const Cluster& cl2)
 {
   int nBad = 0;
   float precision = 1.e-3;
   if (cl1.deId != cl2.deId) {
-    std::cerr << "Id: " << (int)cl1.deId << " != " << (int)cl2.deId << std::endl;
+    std::cerr << "Id: " << static_cast<int>(cl1.deId) << " != " << static_cast<int>(cl2.deId) << std::endl;
     ++nBad;
   }
 
@@ -153,13 +155,13 @@ bool areClustersEqual(const Cluster2D& cl1, const Cluster2D& cl2)
     ++nBad;
   }
 
-  if (std::abs(cl1.sigmaX2 - cl2.sigmaX2) > precision) {
-    std::cerr << "sigmaX2: " << cl1.sigmaX2 << " != " << cl2.sigmaX2 << std::endl;
+  if (std::abs(cl1.xErr - cl2.xErr) > precision) {
+    std::cerr << "xErr: " << cl1.xErr << " != " << cl2.xErr << std::endl;
     ++nBad;
   }
 
-  if (std::abs(cl1.sigmaY2 - cl2.sigmaY2) > precision) {
-    std::cerr << "sigmaY2: " << cl1.sigmaY2 << " != " << cl2.sigmaY2 << std::endl;
+  if (std::abs(cl1.yErr - cl2.yErr) > precision) {
+    std::cerr << "yErr: " << cl1.yErr << " != " << cl2.yErr << std::endl;
     ++nBad;
   }
 
@@ -185,7 +187,7 @@ BOOST_DATA_TEST_CASE_F(MyFixture, MID_Clustering_Fixed, boost::unit_test::data::
   gsl::span<const PreCluster> preClusters(preClusterizer.getPreClusters().data(), preClusterizer.getPreClusters().size());
 
   clusterizer.process(preClusters);
-  std::vector<Cluster2D> clusters = getClusters(sample);
+  std::vector<Cluster> clusters = getClusters(sample);
   BOOST_TEST(clusters.size() == clusterizer.getClusters().size());
   size_t minNcl = clusters.size();
   if (clusterizer.getClusters().size() < minNcl) {
@@ -196,25 +198,24 @@ BOOST_DATA_TEST_CASE_F(MyFixture, MID_Clustering_Fixed, boost::unit_test::data::
   }
 }
 
-bool isWithinUncertainties(float xPos, float yPos, const Cluster2D& cl)
+bool isWithinUncertainties(float xPos, float yPos, const Cluster& cl)
 {
   std::string str[2] = {"x", "y"};
   float inputPos[2] = {xPos, yPos};
   float recoPos[2] = {cl.xCoor, cl.yCoor};
-  float sigma2[2] = {cl.sigmaX2, cl.sigmaY2};
+  float err[2] = {cl.xErr, cl.yErr};
   bool isOk = true;
   for (int icoor = 0; icoor < 2; ++icoor) {
-    float sigma = std::sqrt(sigma2[icoor]);
-    if (sigma > 5. || std::abs(recoPos[icoor] - inputPos[icoor]) > 5 * sigma) {
+    if (err[icoor] > 5. || std::abs(recoPos[icoor] - inputPos[icoor]) > 5 * err[icoor]) {
       std::cerr << str[icoor] << " position input " << inputPos[icoor] << "  reco " << recoPos[icoor] << "  sigma "
-                << sigma << std::endl;
+                << err[icoor] << std::endl;
       isOk = false;
     }
   }
   return isOk;
 }
 
-std::vector<ColumnData> getFiredStrips(float xPos, float yPos, int deId, Mapping& mapping)
+std::vector<ColumnData> getFiredStrips(float xPos, float yPos, int deId, const Mapping& mapping)
 {
   // This is a quite simple case just for testing purposes.
   // The fired strips are simply the fired strip itself + its neighbours.

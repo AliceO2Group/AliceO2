@@ -17,8 +17,7 @@
 #include <sstream>
 #include "MathUtils/Cartesian.h"
 #include "CommonConstants/LHCConstants.h"
-#include "DataFormatsMID/Cluster2D.h"
-#include "DataFormatsMID/Cluster3D.h"
+#include "DataFormatsMID/Cluster.h"
 #include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/Track.h"
 #include "MIDBase/Mapping.h"

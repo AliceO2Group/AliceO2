@@ -25,26 +25,23 @@ namespace mid
 //______________________________________________________________________________
 bool Clusterizer::loadPreClusters(gsl::span<const PreCluster>& preClusters)
 {
-  /// Fills the structure with pre-clusters
-
   // Loop on pre-clusters in the BP
-  PreClustersDE* de = nullptr;
-  mPreClusters = &preClusters;
+  mActiveDEs.clear();
+  mPreClusters = preClusters;
   for (auto& pc : preClusters) {
-    int deIndex = pc.deId;
-    de = &mPreClustersDE[deIndex];
-    de->setDEId(deIndex);
+    auto& de = mPreClustersDE[pc.deId];
+    de.setDEId(pc.deId);
     size_t idx = &pc - &preClusters[0];
     if (pc.cathode == 0) {
-      de->getPreClustersBP(pc.firstColumn).push_back({idx, 0, mPreClusterHelper.getArea(pc)});
+      de.getPreClustersBP(pc.firstColumn).push_back({idx, 0, mPreClusterHelper.getArea(pc)});
     } else {
-      de->getPreClustersNBP().push_back({idx, 0});
+      de.getPreClustersNBP().push_back({idx, 0});
       for (int icolumn = pc.firstColumn; icolumn <= pc.lastColumn; ++icolumn) {
-        de->getPreClustersNBP().back().area[icolumn] = mPreClusterHelper.getArea(icolumn, pc);
+        de.getPreClustersNBP().back().area[icolumn] = mPreClusterHelper.getArea(icolumn, pc);
       }
     }
 
-    mActiveDEs[deIndex] = true;
+    mActiveDEs.emplace(pc.deId);
   }
 
   return (preClusters.size() > 0);
@@ -53,29 +50,20 @@ bool Clusterizer::loadPreClusters(gsl::span<const PreCluster>& preClusters)
 //______________________________________________________________________________
 void Clusterizer::process(gsl::span<const PreCluster> preClusters, bool accumulate)
 {
-  /// Main function: runs on the preclusters of one event and builds the clusters
-  /// \param preClusters gsl::span of PreClusters objects in the same event
-  /// \param accumulate Flag to decide if one needs to reset the output clusters at each event
-
   // Reset cluster information
-  mActiveDEs.clear();
   if (!accumulate) {
     mClusters.clear();
   }
   if (loadPreClusters(preClusters)) {
     // Loop only on fired detection elements
-    for (auto& deIndex : mActiveDEs) {
-      makeClusters(mPreClustersDE[deIndex.first]);
+    for (auto& deId : mActiveDEs) {
+      makeClusters(mPreClustersDE[deId]);
     }
   }
 }
 
 void Clusterizer::process(gsl::span<const PreCluster> preClusters, gsl::span<const ROFRecord> rofRecords)
 {
-  /// Main function: runs on the preclusters of a timeframe
-  /// and builds the clusters
-  /// \param preClusters gsl::span of PreClusters objects in the timeframe
-  /// \param rofRecords RO frame records
   mClusters.clear();
   mROFRecords.clear();
   for (auto& rofRecord : rofRecords) {
@@ -90,22 +78,20 @@ void Clusterizer::process(gsl::span<const PreCluster> preClusters, gsl::span<con
 //______________________________________________________________________________
 bool Clusterizer::makeClusters(PreClustersDE& pcs)
 {
-  /// Makes the clusters and stores it
-  int deIndex = pcs.getDEId();
+  auto deId = pcs.getDEId();
 
   // loop over pre-clusters in the non-bending plane
   for (int inb = 0; inb < pcs.getNPreClustersNBP(); ++inb) {
     auto& pcNB = pcs.getPreClusterNBP(inb);
     // Try to find matching pre-clusters in the bending plane
-    int icolumn = (*mPreClusters)[pcNB.index].firstColumn;
-    // bool isNBPpaired = false;
-    if (icolumn == (*mPreClusters)[pcNB.index].lastColumn) {
+    int icolumn = mPreClusters[pcNB.index].firstColumn;
+    if (icolumn == mPreClusters[pcNB.index].lastColumn) {
       // This is the most simple and common case: the NBP pre-cluster is on
       // one single column. So it can be easily matched with the BP
       // since the corresponding contours are both rectangles
       for (int ib = 0; ib < pcs.getNPreClustersBP(icolumn); ++ib) {
         auto& pcB = pcs.getPreClusterBP(icolumn, ib);
-        makeCluster(pcB.area, pcNB.area[icolumn], icolumn, deIndex);
+        makeCluster(pcB.area, pcNB.area[icolumn], deId);
         pcB.paired = 1;
         pcNB.paired = 1;
         mFunction(mClusters.size() - 1, pcB.index + mPreClusterOffset);
@@ -127,7 +113,7 @@ bool Clusterizer::makeClusters(PreClustersDE& pcs)
       // This leads to a redundancy. Still, the sigma of the resulting cluster will be so large
       // to have no impact whatsoever in the track reconstruction.
       int pairId = 10 + inb;
-      for (; icolumn <= (*mPreClusters)[pcNB.index].lastColumn; ++icolumn) {
+      for (; icolumn <= mPreClusters[pcNB.index].lastColumn; ++icolumn) {
         int neighColumn = icolumn + 1;
         for (int ib = 0; ib < pcs.getNPreClustersBP(icolumn); ++ib) {
           PreClustersDE::BP& pcB = pcs.getPreClusterBP(icolumn, ib);
@@ -138,17 +124,16 @@ bool Clusterizer::makeClusters(PreClustersDE& pcs)
           // Of course, we need to check that the current pre-cluster was not already paired
           // with the pre-cluster in the previous column.
           if (neighbours.empty() && pcB.paired != pairId) {
-            makeCluster(pcB.area, pcNB.area[icolumn], icolumn, deIndex);
+            makeCluster(pcB.area, pcNB.area[icolumn], deId);
             mFunction(mClusters.size() - 1, pcB.index + mPreClusterOffset);
             mFunction(mClusters.size() - 1, pcNB.index + mPreClusterOffset);
           } else {
             for (auto& jb : neighbours) {
               PreClustersDE::BP& pcBneigh = pcs.getPreClusterBP(neighColumn, jb);
-              makeCluster(pcB, pcBneigh, pcNB, deIndex);
+              makeCluster(pcB, pcBneigh, pcNB, deId);
               // Here we set the paired flag to a custom ID of the pre-cluster in the NBP
               // So that, when we move to the next column, we do not add it twice.
               pcBneigh.paired = pairId;
-              // setPairedFlag(neighColumn, jb, pairId);
               mFunction(mClusters.size() - 1, pcB.index + mPreClusterOffset);
               mFunction(mClusters.size() - 1, pcBneigh.index + mPreClusterOffset);
               mFunction(mClusters.size() - 1, pcNB.index + mPreClusterOffset);
@@ -163,8 +148,8 @@ bool Clusterizer::makeClusters(PreClustersDE& pcs)
     if (pcNB.paired == 0) {
       // If it is not paired, it means that we have
       // a monocathodic cluster in the NBP
-      for (int icolumn = (*mPreClusters)[pcNB.index].firstColumn; icolumn <= (*mPreClusters)[pcNB.index].lastColumn; ++icolumn) {
-        makeCluster(pcNB.area[icolumn], pcNB.area[icolumn], icolumn, deIndex);
+      for (int icolumn = mPreClusters[pcNB.index].firstColumn; icolumn <= mPreClusters[pcNB.index].lastColumn; ++icolumn) {
+        makeCluster(pcNB.area[icolumn], deId, 1);
         mFunction(mClusters.size() - 1, pcNB.index + mPreClusterOffset);
       }
     }
@@ -175,7 +160,7 @@ bool Clusterizer::makeClusters(PreClustersDE& pcs)
     for (int ib = 0; ib < pcs.getNPreClustersBP(icolumn); ++ib) {
       PreClustersDE::BP& pcB = pcs.getPreClusterBP(icolumn, ib);
       if (pcB.paired == 0) {
-        makeCluster(pcB.area, pcB.area, icolumn, deIndex);
+        makeCluster(pcB.area, deId, 0);
         mFunction(mClusters.size() - 1, pcB.index + mPreClusterOffset);
       }
     }
@@ -190,8 +175,6 @@ bool Clusterizer::makeClusters(PreClustersDE& pcs)
 //______________________________________________________________________________
 bool Clusterizer::init(std::function<void(size_t, size_t)> func)
 {
-  /// Initializes the class
-
   // prepare storage of clusters and PreClusters
   mPreClustersDE.reserve(detparams::NDetectionElements);
   mFunction = func;
@@ -200,22 +183,27 @@ bool Clusterizer::init(std::function<void(size_t, size_t)> func)
 }
 
 //______________________________________________________________________________
-void Clusterizer::makeCluster(const MpArea& areaBP, const MpArea& areaNBP, const int& icolumn, const int& deIndex)
+void Clusterizer::makeCluster(const MpArea& areaBP, const MpArea& areaNBP, uint8_t deId)
 {
-  /// Makes the cluster from pre-clusters
-  float xCoor = 0.5 * (areaNBP.getXmax() + areaNBP.getXmin());
-  float yCoor = 0.5 * (areaBP.getYmax() + areaBP.getYmin());
-  double deltaX = areaNBP.getXmax() - areaNBP.getXmin();
-  double deltaY = areaBP.getYmax() - areaBP.getYmin();
-  float sigmaX2 = deltaX * deltaX / 12;
-  float sigmaY2 = deltaY * deltaY / 12;
-  mClusters.push_back({static_cast<uint8_t>(deIndex), xCoor, yCoor, sigmaX2, sigmaY2});
+  double sqrt12 = 3.4641016;
+  double xCoor = 0.5 * (areaNBP.getXmax() + areaNBP.getXmin());
+  double yCoor = 0.5 * (areaBP.getYmax() + areaBP.getYmin());
+  double errX = (areaNBP.getXmax() - areaNBP.getXmin()) / sqrt12;
+  double errY = (areaBP.getYmax() - areaBP.getYmin()) / sqrt12;
+  mClusters.push_back({static_cast<float>(xCoor), static_cast<float>(yCoor), 0., static_cast<float>(errX), static_cast<float>(errY), deId});
+  mClusters.back().setBothFired();
 }
 
 //______________________________________________________________________________
-void Clusterizer::makeCluster(const PreClustersDE::BP& pcBP, const PreClustersDE::BP& pcBPNeigh, const PreClustersDE::NBP& pcNBP, const int& deIndex)
+void Clusterizer::makeCluster(const MpArea& area, uint8_t deId, int cathode)
 {
-  /// Makes the cluster from pre-clusters
+  makeCluster(area, area, deId);
+  mClusters.back().setFired(1 - cathode, false);
+}
+
+//______________________________________________________________________________
+void Clusterizer::makeCluster(const PreClustersDE::BP& pcBP, const PreClustersDE::BP& pcBPNeigh, const PreClustersDE::NBP& pcNBP, uint8_t deId)
+{
   // This is the general case:
   // perform the full calculation assuming a uniform charge distribution
 
@@ -228,7 +216,7 @@ void Clusterizer::makeCluster(const PreClustersDE::BP& pcBP, const PreClustersDE
   std::vector<const PreClustersDE::BP*> pcBlist = {&pcBP, &pcBPNeigh};
 
   for (auto* pc : pcBlist) {
-    int icolumn = (*mPreClusters)[pc->index].firstColumn;
+    int icolumn = mPreClusters[pc->index].firstColumn;
     dim[0][0] = pcNBP.area[icolumn].getXmin();
     dim[0][1] = pcNBP.area[icolumn].getXmax();
     dim[1][0] = pc->area.getYmin();
@@ -249,19 +237,19 @@ void Clusterizer::makeCluster(const PreClustersDE::BP& pcBP, const PreClustersDE
     }
   } // loop on column
 
-  double coor[2], sigma2[2];
+  double coor[2], sigma[2];
   for (int iplane = 0; iplane < 2; ++iplane) {
     coor[iplane] = (x2[iplane][1] - x2[iplane][0]) / sumArea / 2.;
-    sigma2[iplane] = (x3[iplane][1] - x3[iplane][0]) / sumArea / 3. - coor[iplane] * coor[iplane];
+    sigma[iplane] = std::sqrt((x3[iplane][1] - x3[iplane][0]) / sumArea / 3. - coor[iplane] * coor[iplane]);
   }
 
-  mClusters.push_back({static_cast<uint8_t>(deIndex), static_cast<float>(coor[0]), static_cast<float>(coor[1]), static_cast<float>(sigma2[0]), static_cast<float>(sigma2[1])});
+  mClusters.push_back({static_cast<float>(coor[0]), static_cast<float>(coor[1]), 0., static_cast<float>(sigma[0]), static_cast<float>(sigma[1]), deId});
+  mClusters.back().setBothFired();
 }
 
 //______________________________________________________________________________
 void Clusterizer::reset()
 {
-  /// Resets the clusters
   mActiveDEs.clear();
   mClusters.clear();
 }

@@ -62,10 +62,10 @@ class PreClustersDE
   size_t getNPreClustersBP(int icolumn) const { return mPreClustersBP[icolumn].size(); }
 
   /// Sets the detection element ID
-  void setDEId(int deIndex) { mDEId = deIndex; }
+  void setDEId(uint8_t deId) { mDEId = deId; }
 
   /// Gets the detection element ID
-  int getDEId() const { return mDEId; }
+  uint8_t getDEId() const { return mDEId; }
 
   std::vector<int> getNeighbours(int icolumn, int idx) const;
 
@@ -79,7 +79,7 @@ class PreClustersDE
   void reset();
 
  private:
-  int mDEId = 99;                                ///< Detection element ID
+  uint8_t mDEId;                                 ///< Detection element ID
   std::vector<NBP> mPreClustersNBP;              ///< list of PreClusters in the NBP in each DE
   std::array<std::vector<BP>, 7> mPreClustersBP; ///< list of PreClusters in the BP in each DE per column
 };

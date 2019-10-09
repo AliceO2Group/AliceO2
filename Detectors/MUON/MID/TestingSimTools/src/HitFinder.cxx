@@ -48,7 +48,7 @@ math_utils::Point3D<double> HitFinder::getIntersectInDefaultPlane(const Track& t
 }
 
 //______________________________________________________________________________
-Cluster2D HitFinder::getIntersect(const Track& track, int deId) const
+Cluster HitFinder::getIntersect(const Track& track, int deId) const
 {
   /// Get the intersection point in the specified detection elements
   /// The point is expressed in local coordinates
@@ -67,7 +67,7 @@ Cluster2D HitFinder::getIntersect(const Track& track, int deId) const
   localTrack.setDirection(localDirection.x() / localDirection.z(), localDirection.y() / localDirection.z(), 1.);
 
   localTrack.propagateToZ(0);
-  Cluster2D cluster;
+  Cluster cluster;
   cluster.deId = deId;
   cluster.xCoor = localTrack.getPositionX();
   cluster.yCoor = localTrack.getPositionY();
@@ -123,17 +123,18 @@ std::vector<int> HitFinder::getFiredDE(const Track& track, int chamber) const
 }
 
 //______________________________________________________________________________
-std::vector<Cluster2D> HitFinder::getLocalPositions(const Track& track, int chamber, bool withUncertainties) const
+std::vector<Cluster> HitFinder::getLocalPositions(const Track& track, int chamber, bool withUncertainties) const
 {
   /// Gets the list of fired Points in local coordinates
   /// @param track MID track
   /// @param chamber Chamber ID (0-3)
+  /// @param withUncertainties Add also the extrapolated uncertainties to the local point
   /// @return Vector with the pairs of detection element Ids and intersection point
   std::vector<int> deIdList = getFiredDE(track, chamber);
 
-  std::vector<Cluster2D> points;
+  std::vector<Cluster> points;
   for (auto& deId : deIdList) {
-    Cluster2D cl = getIntersect(track, deId);
+    Cluster cl = getIntersect(track, deId);
     int rpc = deId % 9;
     double hl = geoparams::getRPCHalfLength(chamber, rpc);
     double hh = geoparams::getRPCHalfHeight(chamber);
@@ -153,13 +154,13 @@ std::vector<Cluster2D> HitFinder::getLocalPositions(const Track& track, int cham
 }
 
 //______________________________________________________________________________
-void HitFinder::addUncertainty(Cluster2D& cl, Track track) const
+void HitFinder::addUncertainty(Cluster& cl, Track track) const
 {
   /// Add uncertainties to cluster
   auto globalPos = mGeometryTransformer.localToGlobal(cl.deId, cl.xCoor, cl.yCoor);
   track.propagateToZ(globalPos.z());
-  cl.sigmaX2 = track.getCovarianceParameter(Track::CovarianceParamIndex::VarX);
-  cl.sigmaY2 = track.getCovarianceParameter(Track::CovarianceParamIndex::VarY);
+  cl.xErr = std::sqrt(track.getCovarianceParameter(Track::CovarianceParamIndex::VarX));
+  cl.yErr = std::sqrt(track.getCovarianceParameter(Track::CovarianceParamIndex::VarY));
 }
 
 } // namespace mid
