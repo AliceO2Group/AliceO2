@@ -42,11 +42,16 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 using DataHeader = o2::header::DataHeader;
 
-DataProcessorSpec templateProcessor()
+DataProcessorSpec templateProcessor(std::string const& inputType)
 {
-  return DataProcessorSpec{"some-processor", {
-                                               InputSpec{"x", "ITS", "RAWDATA", 0, Lifetime::Timeframe},
-                                             },
+  std::vector<InputSpec> inputs;
+  if (inputType == "readout") {
+    inputs.emplace_back("x", ConcreteDataTypeMatcher{"ITS", "RAWDATA"}, Lifetime::Timeframe);
+  } else {
+    inputs.emplace_back("x", ConcreteDataTypeMatcher{"FLP", "RAWDATA"}, Lifetime::Timeframe);
+  }
+  return DataProcessorSpec{"some-processor",
+                           inputs,
                            {
                              OutputSpec{"TST", "P", 0, Lifetime::Timeframe},
                            },
@@ -54,13 +59,19 @@ DataProcessorSpec templateProcessor()
                            // once, and then return the callback to be invoked for every message.
                            AlgorithmSpec{[](InitContext& setup) {
                              srand(setup.services().get<ParallelContext>().index1D());
-                             return adaptStateless([](ParallelContext& parallelInfo, InputRecord& inputs, DataAllocator& outputs) {
+                             return adaptStateless([counter = std::make_shared<int>(0)](ParallelContext& parallelInfo, InputRecord& inputs, DataAllocator& outputs) {
                                auto values = inputs.get("x");
                                // Create a single output.
                                size_t index = parallelInfo.index1D();
-                               LOG(INFO) << reinterpret_cast<DataHeader const*>(values.header)->payloadSize;
+                               const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(values);
+                               if (dh) {
+                                 LOG(INFO) << "some-processor" << index << ": "
+                                           << dh->dataOrigin.as<std::string>() << "/" << dh->dataDescription.as<std::string>() << "/"
+                                           << dh->subSpecification << " payload size " << dh->payloadSize;
+                               }
                                auto aData =
                                  outputs.make<int>(Output{"TST", "P", static_cast<o2::header::DataHeader::SubSpecificationType>(index)}, 1);
+                               aData[0] = (*counter)++;
                              });
                            }}};
 }
@@ -91,11 +102,30 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   /// the channel configuration on command line via:
   ///
   /// '--channel-config "name=readout-proxy,type=pair,method=connect,address=ipc:///tmp/readout-pipe-0,rateLogging=1"'
+  ///
+  /// Output of the proxy needs to match the data coming from the external devices readout/stfbuilder
+  Outputs readoutProxyOutput;
+  if (inputType == "readout") {
+    // we keep the hardcoded value of ITS RAWDATA as it was before
+    // note that this will translate into ConcreteDataMatcher with subspec 0
+    readoutProxyOutput.emplace_back("ITS", "RAWDATA");
+  } else {
+    // need one output per job in the 2nd level, but use subSpec-agnostic matcher
+    // if there is only one job
+    if (jobs > 1) {
+      for (auto i = 0; i < jobs; i++) {
+        readoutProxyOutput.emplace_back("FLP", "RAWDATA", i);
+      }
+    } else {
+      readoutProxyOutput.emplace_back(ConcreteDataTypeMatcher{"FLP", "RAWDATA"});
+    }
+    readoutProxyOutput.emplace_back("FLP", "DISTSUBTIMEFRAME", 0);
+  }
   DataProcessorSpec readoutProxy = specifyExternalFairMQDeviceProxy(
     "readout-proxy",
-    Outputs{{"ITS", "RAWDATA"}},
+    std::move(readoutProxyOutput),
     "type=pair,method=connect,address=ipc:///tmp/readout-pipe-0,rateLogging=1,transport=shmem",
-    inputType == "readout" ? readoutAdapter({"ITS", "RAWDATA"}) : dplModelAdaptor({{"ITS", "RAWDATA"}}));
+    inputType == "readout" ? readoutAdapter({"ITS", "RAWDATA"}) : dplModelAdaptor({ConcreteDataTypeMatcher{"FLP", "RAWDATA"}, {"FLP", "DISTSUBTIMEFRAME", 0}}));
 
   // This is an example of how we can parallelize by subSpec.
   // templatedProcessor will be instanciated N times and the lambda function
@@ -104,7 +134,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   // the instance is amended from "some-processor" to "some-processor-<index>".
   // This is to simulate processing of different input channels in parallel on
   // the FLP.
-  auto dataParallelLayer = parallel(templateProcessor(), jobs, [](DataProcessorSpec& spec, size_t index) {
+  auto dataParallelLayer = parallel(templateProcessor(inputType), jobs, [](DataProcessorSpec& spec, size_t index) {
     DataSpecUtils::updateMatchingSubspec(spec.inputs[0], index);
     DataSpecUtils::updateMatchingSubspec(spec.outputs[0], index);
   });
@@ -131,9 +161,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   // proxyOut is the component which will forward things to be
   // sent to the EPN to the data distribution device.
   // FIXME: actually connect to DataDistribution to push data somewhere else.
+  Inputs proxyInputs{InputSpec{"x", "TST", "merger_output"}};
+  if (inputType == "stfb") {
+    proxyInputs.emplace_back("y", "FLP", "DISTSUBTIMEFRAME", 0);
+  }
   DataProcessorSpec proxyOut{
     "proxyout",
-    Inputs{InputSpec{"x", "TST", "merger_output"}},
+    std::move(proxyInputs),
     Outputs{},
     AlgorithmSpec{[](InitContext& setup) {
       return [](ProcessingContext& ctx) {
@@ -142,7 +176,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   WorkflowSpec workflow;
   workflow.emplace_back(readoutProxy);
-  workflow.insert(workflow.end(), dataParallelLayer.begin(), dataParallelLayer.end());
+  // The OutputSpec definition of the template processor ignores the subSpec, when creating
+  // parallel instances, the subSpec is set per intance. If we only have one instance, the
+  // unspecified subSpec needs to be kept for the matcher rather than creating one
+  // "parallel" instance with concrete subSpec.
+  if (jobs > 1) {
+    workflow.insert(workflow.end(), dataParallelLayer.begin(), dataParallelLayer.end());
+  } else {
+    workflow.emplace_back(templateProcessor(inputType));
+  }
   workflow.emplace_back(timeParallelProcessor);
   workflow.emplace_back(proxyOut);
 
