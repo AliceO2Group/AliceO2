@@ -33,7 +33,7 @@ DECLARE_SOA_COLUMN(Snp, snp, float, "fSnp");
 DECLARE_SOA_COLUMN(Tgl, tgl, float, "fTgl");
 DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float, "fSigned1Pt");
 DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, [](float snp, float alpha) { return asin(snp) + alpha + M_PI; });
-
+DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, [](float tgl) { return log(tan(0.25 * M_PI - 0.5 * atan(tgl))); });
 // TRACKPARCOV TABLE definition
 DECLARE_SOA_COLUMN(CYY, cZZ, float, "fCYY");
 DECLARE_SOA_COLUMN(CZY, cZY, float, "fCZY");
@@ -71,7 +71,8 @@ DECLARE_SOA_TABLE(Tracks, "RN2", "TRACKPAR",
                   track::CollisionId, track::X, track::Alpha,
                   track::Y, track::Z, track::Snp, track::Tgl,
                   track::Signed1Pt,
-                  track::Phi<track::Snp, track::Alpha>);
+                  track::Phi<track::Snp, track::Alpha>,
+                  track::Eta<track::Tgl>);
 
 DECLARE_SOA_TABLE(TracksCov, "RN2", "TRACKPARCOV",
                   track::CYY, track::CZY, track::CZZ, track::CSnpY,
