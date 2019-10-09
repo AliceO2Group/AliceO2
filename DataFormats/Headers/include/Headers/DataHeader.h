@@ -605,7 +605,7 @@ struct DataHeader : public BaseHeader {
   ///
   /// How many split payloads in total
   ///
-  SplitPayloadPartsType splitPayloadParts;
+  SplitPayloadPartsType splitPayloadParts = 0;
 
   ///
   /// serialization method
@@ -620,7 +620,7 @@ struct DataHeader : public BaseHeader {
   ///
   /// index of the split payload
   ///
-  SplitPayloadIndexType splitPayloadIndex;
+  SplitPayloadIndexType splitPayloadIndex = 0;
 
   ///
   /// size of the associated data buffer
