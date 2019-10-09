@@ -17,9 +17,11 @@
 #include "RStringView.h"
 #include "Rtypes.h"
 #include <vector>
+#include <unordered_map>
 
 class FairVolume;
 class TClonesArray;
+class TH2;
 
 namespace o2
 {
@@ -28,9 +30,16 @@ namespace emcal
 class Hit;
 class Geometry;
 
-///
+/// \struct Parent
+/// \brief Information about superparent (particle entering EMCAL)
+struct Parent {
+  int mPDG;                ///< PDG code
+  double mEnergy;          ///< Total energy
+  bool mHasTrackReference; ///< Flag indicating whether parent has a track reference
+};
+
 /// \class Detector
-/// \bief Detector class for the EMCAL detector
+/// \brief Detector simulation class for the EMCAL detector
 ///
 /// The detector class handles the implementation of the EMCAL detector
 /// within the virtual Monte-Carlo framework and the simulation of the
@@ -38,16 +47,14 @@ class Geometry;
 class Detector : public o2::base::DetImpl<Detector>
 {
  public:
-  enum { ID_AIR = 0,
-         ID_PB = 1,
-         ID_SC = 2,
-         ID_AL = 3,
-         ID_STEEL = 4,
-         ID_PAPER = 5 };
+  enum MediumType_t { ID_AIR = 0,
+                      ID_PB = 1,
+                      ID_SC = 2,
+                      ID_AL = 3,
+                      ID_STEEL = 4,
+                      ID_PAPER = 5 };
 
-  ///
-  /// Default constructor
-  ///
+  /// \brief Default constructor
   Detector() = default;
 
   /// \brief Main constructor
@@ -62,9 +69,7 @@ class Detector : public o2::base::DetImpl<Detector>
   /// \brief Initializing detector
   void InitializeO2Detector() override;
 
-  ///
-  /// Processing hit creation in the EMCAL scintillator volume
-  ///
+  /// \brief Processing hit creation in the EMCAL scintillator volume
   /// \param[in] v Current sensitive volume
   Bool_t ProcessHits(FairVolume* v = nullptr) final;
 
@@ -82,6 +87,8 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Internally adding hits coming from the same track
   Hit* AddHit(Int_t trackID, Int_t primary, Double_t initialEnergy, Int_t detID,
               const Point3D<float>& pos, const Vector3D<float>& mom, Double_t time, Double_t energyloss);
+
+  Parent* AddSuperparent(Int_t trackID, Int_t pdg, Double_t energy);
 
   /// \brief register container with hits
   void Register() override;
@@ -116,12 +123,6 @@ class Detector : public o2::base::DetImpl<Detector>
   /// current primary ID
   void BeginPrimary() override;
 
-  /// \brief Start new track
-  ///
-  /// Check whether track is produced outside EMCAL, in this case it
-  /// serves as new parent track. In addition cache current track ID
-  void PreTrack() override;
-
   /// \brief Finish current primary
   ///
   /// Reset caches for current primary, current parent and current cell
@@ -148,7 +149,21 @@ class Detector : public o2::base::DetImpl<Detector>
   /// \brief Generate aluminium plates geometry
   void CreateAlFrontPlate(const std::string_view mother = "EMOD", const std::string_view child = "ALFP");
 
-  /// Calculate the amount of light seen by the APD for a given track segment (charged particles only) according to Bricks law
+  /// \brief Create new EMCAL volume and add it to the list of sensitive volumes
+  /// \param name Name of the volume
+  /// \param shape Volume shape type
+  /// \param mediumID ID of the medium
+  /// \param shapeParams Shape parameters
+  /// \param nparams Number of shape parameters
+  ///
+  /// Should be called for all EMCAL volumes. Internally calls TVirtualMC::Gsvolu(...). Gsvolu
+  /// should not be used directly as this function adds the volume to the list of sensitive
+  /// volumes. Making all volumes sensitive is essential in order to not have broken decay
+  /// chains in the cache due to missing stepping in volumes. This is relevant for the detector
+  /// itself, not the space frame.
+  void CreateEMCALVolume(const std::string_view name, const std::string_view shape, MediumType_t mediumID, Double_t* shapeParams, Int_t nparams);
+
+  /// \brief Calculate the amount of light seen by the APD for a given track segment (charged particles only) according to Bricks law
   /// \param[in] energydeposit Energy deposited by a charged particle in the track segment
   /// \param[in] tracklength Length of the track segment
   /// \param[in] charge Track charge (in units of elementary charge)
@@ -168,14 +183,17 @@ class Detector : public o2::base::DetImpl<Detector>
   Double_t mBirkC1; ///< Birk parameter C1
   Double_t mBirkC2; ///< Birk parameter C2
 
-  std::vector<Hit>* mHits; //!<! Collection of EMCAL hits
-  Geometry* mGeometry;     //!<! Geometry pointer
+  std::vector<std::string> mSensitive;               //!<! List of sensitive volumes
+  std::vector<Hit>* mHits;                           //!<! Collection of EMCAL hits
+  Geometry* mGeometry;                               //!<! Geometry pointer
+  std::unordered_map<int, int> mSuperParentsIndices; //!<! Super parent indices (track index - superparent index)
+  std::unordered_map<int, Parent> mSuperParents;     //!<! Super parent kine info (superparent index - superparent object)
+  Parent* mCurrentSuperparent;                       //!<! Pointer to the current superparent
 
   // Worker variables during hit creation
-  Int_t mCurrentPrimaryID;   //!<! ID of the current primary
-  Int_t mCurrentParentID;    //!<! ID of the current parent track (must be created outside EMCAL)
-  Float_t mParentEnergy;     //!<! Initial energy of the parent track
-  Bool_t mParentHasTrackRef; //!<! Flag whether parent track has track reference
+  Int_t mCurrentTrack;     //!<! Current track
+  Int_t mCurrentPrimaryID; //!<! ID of the current primary
+  Int_t mCurrentParentID;  //!<! ID of the current parent
 
   Double_t mSampleWidth; //!<! sample width = double(g->GetECPbRadThick()+g->GetECScintThick());
   Double_t mSmodPar0;    //!<! x size of super module

@@ -11,9 +11,13 @@
 #include <algorithm>
 #include <iomanip>
 
+#include "TFile.h"
 #include "TGeoManager.h"
 #include "TGeoVolume.h"
+#include "TH2.h"
 #include "TVirtualMC.h"
+#include "TVector2.h"
+#include "TVector3.h"
 
 #include "FairGeoNode.h"
 #include "FairRootManager.h"
@@ -39,18 +43,20 @@ Detector::Detector(Bool_t active)
     mBirkC0(0),
     mBirkC1(0.),
     mBirkC2(0.),
+    mSensitive(),
     mHits(o2::utils::createSimVector<Hit>()),
     mGeometry(nullptr),
+    mSuperParentsIndices(),
+    mSuperParents(),
+    mCurrentSuperparent(nullptr),
+    mCurrentTrack(-1),
     mCurrentPrimaryID(-1),
     mCurrentParentID(-1),
-    mParentEnergy(0.),
-    mParentHasTrackRef(false),
     mSampleWidth(0.),
     mSmodPar0(0.),
     mSmodPar1(0.),
     mSmodPar2(0.),
     mInnerEdge(0.)
-
 {
   using boost::algorithm::contains;
   memset(mParEMOD, 0, sizeof(Double_t) * 5);
@@ -72,18 +78,20 @@ Detector::Detector(const Detector& rhs)
     mBirkC0(rhs.mBirkC0),
     mBirkC1(rhs.mBirkC1),
     mBirkC2(rhs.mBirkC2),
+    mSensitive(),
     mHits(o2::utils::createSimVector<Hit>()),
     mGeometry(rhs.mGeometry),
+    mSuperParentsIndices(),
+    mSuperParents(),
+    mCurrentSuperparent(nullptr),
+    mCurrentTrack(-1),
     mCurrentPrimaryID(-1),
     mCurrentParentID(-1),
-    mParentEnergy(0.),
-    mParentHasTrackRef(false),
     mSampleWidth(rhs.mSampleWidth),
     mSmodPar0(rhs.mSmodPar0),
     mSmodPar1(rhs.mSmodPar1),
     mSmodPar2(rhs.mSmodPar2),
     mInnerEdge(rhs.mInnerEdge)
-
 {
   for (int i = 0; i < 5; ++i) {
     mParEMOD[i] = rhs.mParEMOD[i];
@@ -97,12 +105,17 @@ Detector::~Detector()
 
 void Detector::InitializeO2Detector()
 {
-  // Define sensitive volume
-  TGeoVolume* vsense = gGeoManager->GetVolume("SCMX");
-  if (vsense)
-    AddSensitiveVolume(vsense);
-  else
-    LOG(ERROR) << "EMCAL Sensitive volume SCMX not found ... No hit creation!";
+  // All EMCAL volumes must be declared as sensitive, otherwise
+  // the decay chains are broken by volumes not processed in ProceeHits
+  for (const auto& child : mSensitive) {
+    auto vsense = gGeoManager->GetVolume(child.data());
+    if (vsense) {
+      LOG(DEBUG1) << "Adding sensitive volume " << child;
+      AddSensitiveVolume(vsense);
+    } else {
+      LOG(ERROR) << "EMCAL sensitive volume " << child << " not found ";
+    }
+  }
 }
 
 void Detector::EndOfEvent() { Reset(); }
@@ -135,101 +148,137 @@ void Detector::ConstructGeometry()
 
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
-  // TODO Implement handling of parents and primary particle
-  Double_t eloss = fMC->Edep();
-  if (eloss < DBL_EPSILON)
-    return false; // only process hits which actually deposit some energy in the EMCAL
-  Geometry* geom = GetGeometry();
-  // Obtain detector ID
-  // This is not equal to the volume ID of the fair volume
-  // EMCAL geometry implementation in VMC works with a copy of the volume and placing it n-times into the mother volume
-  // via translation / rotation, so the copy index is the index of a tower / module / supermodule node within a mother
-  // volume Additional care needs to be taken for the supermodule index: The copy is connected to a certain supermodule
-  // type, which differs for various parts of the detector
-  Int_t copyEta, copyPhi, copyMod, copySmod;
-  fMC->CurrentVolID(copyEta);       // Tower in module - x-direction
-  fMC->CurrentVolOffID(1, copyPhi); // Tower in module - y-direction
-  fMC->CurrentVolOffID(3, copyMod); // Module in supermodule
-  fMC->CurrentVolOffID(
-    4, copySmod); // Supermodule in EMCAL - attention, with respect to a given supermodule type (offsets needed)
-  std::string smtype(fMC->CurrentVolOffName(4));
-  int offset(0);
-  if (smtype == "SM3rd") {
-    offset = 10;
-  } else if (smtype == "DCSM") {
-    offset = 12;
-  } else if (smtype == "DCEXT") {
-    offset = 18;
+  int track = fMC->GetStack()->GetCurrentTrackNumber(),
+      directparent = fMC->GetStack()->GetCurrentParentTrackNumber();
+  if (track != mCurrentTrack) {
+    LOG(DEBUG4) << "Doing new track " << track << " current (" << mCurrentTrack << "), direct parent (" << directparent << ")" << std::endl;
+    // new current track - check parentage
+    auto hasSuperParent = mSuperParentsIndices.find(directparent);
+    if (hasSuperParent != mSuperParentsIndices.end()) {
+      // same superparent as direct parent
+      mCurrentParentID = hasSuperParent->second;
+      mSuperParentsIndices[track] = hasSuperParent->second;
+      auto superparent = mSuperParents.find(mCurrentParentID);
+      if (superparent != mSuperParents.end()) {
+        mCurrentSuperparent = &(superparent->second);
+      } else {
+        LOG(ERROR) << "Attention: No superparent object found (parent " << mCurrentParentID << ")";
+        mCurrentSuperparent = nullptr;
+      }
+      LOG(DEBUG4) << "Found superparent " << mCurrentParentID << std::endl;
+    } else {
+      // start of new chain
+      // for new incoming tracks the super parent index is equal to the track ID (for recursion)
+      mSuperParentsIndices[track] = track;
+      mCurrentSuperparent = AddSuperparent(track, fMC->TrackPid(), fMC->Etot());
+      mCurrentParentID = track;
+    }
+    mCurrentTrack = track;
   }
-  LOG(DEBUG3) << "Supermodule copy " << copySmod << ", module copy " << copyMod << ", y-dir " << copyPhi << ", x-dir "
-              << copyEta << ", supermodule ID " << copySmod + offset - 1;
-  LOG(DEBUG3) << "path " << fMC->CurrentVolPath();
-  LOG(DEBUG3) << "Name of the supermodule type " << fMC->CurrentVolOffName(4) << ", Module name "
-              << fMC->CurrentVolOffName(3);
+  if (std::string_view(v->GetName()) == "SCMX") {
+    LOG(DEBUG4) << "We are in sensitive volume SCMX: " << fMC->CurrentVolPath() << std::endl;
+    // TODO Implement handling of parents and primary particle
+    Double_t eloss = fMC->Edep();
+    if (eloss < DBL_EPSILON)
+      return false; // only process hits which actually deposit some energy in the EMCAL
+    Geometry* geom = GetGeometry();
+    // Obtain detector ID
+    // This is not equal to the volume ID of the fair volume
+    // EMCAL geometry implementation in VMC works with a copy of the volume and placing it n-times into the mother volume
+    // via translation / rotation, so the copy index is the index of a tower / module / supermodule node within a mother
+    // volume Additional care needs to be taken for the supermodule index: The copy is connected to a certain supermodule
+    // type, which differs for various parts of the detector
+    Int_t copyEta, copyPhi, copyMod, copySmod;
+    fMC->CurrentVolID(copyEta);       // Tower in module - x-direction
+    fMC->CurrentVolOffID(1, copyPhi); // Tower in module - y-direction
+    fMC->CurrentVolOffID(3, copyMod); // Module in supermodule
+    fMC->CurrentVolOffID(
+      4, copySmod); // Supermodule in EMCAL - attention, with respect to a given supermodule type (offsets needed)
+    std::string smtypestring(fMC->CurrentVolOffName(4));
+    int offset(0);
+    EMCALSMType supermoduletype(EMCAL_STANDARD);
+    if (smtypestring == "SM3rd") {
+      offset = 10;
+      supermoduletype = EMCAL_THIRD;
+    } else if (smtypestring == "SM10") {
+      supermoduletype = EMCAL_HALF;
+    } else if (smtypestring == "DCSM") {
+      offset = 12;
+      supermoduletype = DCAL_STANDARD;
+    } else if (smtypestring == "DCEXT") {
+      offset = 18;
+      supermoduletype = DCAL_EXT;
+    }
+    LOG(DEBUG3) << "Supermodule copy " << copySmod << ", module copy " << copyMod << ", y-dir " << copyPhi << ", x-dir "
+                << copyEta << ", supermodule ID " << copySmod + offset - 1;
+    LOG(DEBUG3) << "path " << fMC->CurrentVolPath();
+    LOG(DEBUG3) << "Name of the supermodule type " << fMC->CurrentVolOffName(4) << ", Module name "
+                << fMC->CurrentVolOffName(3);
 
-  // porting from aliroot: circumvention of the index problem. GetAbsCellID cannot be used
-  // Int_t detID = geom->GetAbsCellId(offset + copySmod - 1, copyMod - 1, copyPhi - 1, copyEta - 1);
-  //
-  // Swap A side in Phi and C side in Eta due to wrong indexing.
-  //
-  Int_t smNumber = offset + copySmod - 1, smTypeID = 1;
-  auto [iphi, ieta] = geom->GetCellPhiEtaIndexInSModule(smNumber, copyMod - 1, copyPhi - 1, copyEta - 1);
-  //iphi = std::get<0>(posetaphi);
-  //ieta = std::get<1>(posetaphi);
-  if (smNumber % 2 == 0) {
-    if (strcmp(fMC->CurrentVolOffName(4), "DCSM") == 0)
-      smTypeID = 3; //DCal supermodule. previous design/idea
-    else
-      smTypeID = 2;
-    ieta = ((geom->GetCentersOfCellsEtaDir()).size() * 2 / smTypeID - 1) - ieta; // 47/31-ieta, revert the ordering on A side in order to keep convention.
-  } else {
-    if (strcmp(fMC->CurrentVolOffName(4), "SM10") == 0)
-      smTypeID = 2; //half supermodule. previous design/idea
-    if (strcmp(fMC->CurrentVolOffName(4), "SM3rd") == 0)
-      smTypeID = 3; //one third (installed in 2012) supermodule
-    if (strcmp(fMC->CurrentVolOffName(4), "DCEXT") == 0)
-      smTypeID = 3;                                                          //one third (installed in 2012) supermodule
-    iphi = ((geom->GetCentersOfCellsPhiDir()).size() / smTypeID - 1) - iphi; // 23/7-iphi, revert the ordering on C side in order to keep convention.
-  }
+    // porting from aliroot: circumvention of the index problem. GetAbsCellID cannot be used
+    // Int_t detID = geom->GetAbsCellId(offset + copySmod - 1, copyMod - 1, copyPhi - 1, copyEta - 1);
+    //
+    // Swap A side in Phi and C side in Eta due to wrong indexing.
+    //
+    Int_t smNumber = offset + copySmod - 1, smTypeID = 1;
+    auto [iphi, ieta] = geom->GetCellPhiEtaIndexInSModule(smNumber, copyMod - 1, copyPhi - 1, copyEta - 1);
+    //iphi = std::get<0>(posetaphi);
+    //ieta = std::get<1>(posetaphi);
+    if (smNumber % 2 == 0) {
+      if (supermoduletype == DCAL_STANDARD)
+        smTypeID = 3; //DCal supermodule. previous design/idea
+      else
+        smTypeID = 2;
+      ieta = ((geom->GetCentersOfCellsEtaDir()).size() * 2 / smTypeID - 1) - ieta; // 47/31-ieta, revert the ordering on A side in order to keep convention.
+    } else {
+      if (supermoduletype == EMCAL_HALF)
+        smTypeID = 2; //half supermodule. previous design/idea
+      if (supermoduletype == EMCAL_THIRD)
+        smTypeID = 3; //one third (installed in 2012) supermodule
+      if (supermoduletype == DCAL_EXT)
+        smTypeID = 3;                                                          //one third (installed in 2012) supermodule
+      iphi = ((geom->GetCentersOfCellsPhiDir()).size() / smTypeID - 1) - iphi; // 23/7-iphi, revert the ordering on C side in order to keep convention.
+    }
 
-  // Once we know the indexes, calculate the absolute ID
-  Int_t detID = geom->GetAbsCellIdFromCellIndexes(smNumber, iphi, ieta);
+    // Once we know the indexes, calculate the absolute ID
+    Int_t detID = geom->GetAbsCellIdFromCellIndexes(smNumber, iphi, ieta);
 
-  Double_t lightyield(eloss);
-  if (fMC->TrackCharge())
-    lightyield = CalculateLightYield(eloss, fMC->TrackStep(), fMC->TrackCharge());
-  lightyield *= geom->GetSampling();
+    // In case of new parent track create new track reference
+    auto o2stack = static_cast<o2::data::Stack*>(fMC->GetStack());
+    if (!mCurrentSuperparent->mHasTrackReference) {
+      float x, y, z, px, py, pz, e;
+      fMC->TrackPosition(x, y, z);
+      fMC->TrackMomentum(px, py, pz, e);
+      o2::TrackReference trackref(x, y, z, px, py, pz, fMC->TrackLength(), fMC->TrackTime(), mCurrentParentID, GetDetId());
+      o2stack->addTrackReference(trackref);
+      mCurrentSuperparent->mHasTrackReference = true;
+    }
 
-  auto o2stack = static_cast<o2::data::Stack*>(fMC->GetStack());
-  auto currenthit = FindHit(detID, mCurrentParentID);
-  if (!currenthit) {
-    // Condition for new hit:
-    // - Processing different partent track (parent track must be produced outside EMCAL)
-    // - Inside different cell
-    // - First track of the event
-    Float_t posX, posY, posZ, momX, momY, momZ, energy;
-    fMC->TrackPosition(posX, posY, posZ);
-    fMC->TrackMomentum(momX, momY, momZ, energy);
-    Double_t time = fMC->TrackTime() * 1e9; // time in ns
-    LOG(DEBUG4) << "Adding new hit for parent " << mCurrentParentID << " and cell " << detID << std::endl;
+    Double_t lightyield(eloss);
+    if (fMC->TrackCharge())
+      lightyield = CalculateLightYield(eloss, fMC->TrackStep(), fMC->TrackCharge());
+    lightyield *= geom->GetSampling();
 
-    /// check handling of primary particles
-    AddHit(mCurrentParentID, mCurrentPrimaryID, mParentEnergy, detID, Point3D<float>(posX, posY, posZ),
-           Vector3D<float>(momX, momY, momZ), time, lightyield);
-    o2stack->addHit(GetDetId());
-  } else {
-    LOG(DEBUG4) << "Adding energy to the current hit" << std::endl;
-    currenthit->SetEnergyLoss(currenthit->GetEnergyLoss() + lightyield);
-  }
+    auto currenthit = FindHit(detID, mCurrentParentID);
+    if (!currenthit) {
+      // Condition for new hit:
+      // - Processing different partent track (parent track must be produced outside EMCAL)
+      // - Inside different cell
+      // - First track of the event
+      Float_t posX, posY, posZ, momX, momY, momZ, energy;
+      fMC->TrackPosition(posX, posY, posZ);
+      fMC->TrackMomentum(momX, momY, momZ, energy);
+      Double_t time = fMC->TrackTime() * 1e9; // time in ns
+      LOG(DEBUG3) << "Adding new hit for parent " << mCurrentParentID << " and cell " << detID << std::endl;
 
-  // In case of new parent track create new track reference
-  if (!mParentHasTrackRef) {
-    float x, y, z, px, py, pz, e;
-    fMC->TrackPosition(x, y, z);
-    fMC->TrackMomentum(px, py, pz, e);
-    o2::TrackReference trackref(x, y, z, px, py, pz, fMC->TrackLength(), fMC->TrackTime(), mCurrentParentID, GetDetId());
-    o2stack->addTrackReference(trackref);
-    mParentHasTrackRef = true;
+      /// check handling of primary particles
+      AddHit(mCurrentParentID, mCurrentPrimaryID, mCurrentSuperparent->mEnergy, detID, Point3D<float>(posX, posY, posZ),
+             Vector3D<float>(momX, momY, momZ), time, lightyield);
+      o2stack->addHit(GetDetId());
+    } else {
+      LOG(DEBUG3) << "Adding energy to the current hit" << std::endl;
+      currenthit->SetEnergyLoss(currenthit->GetEnergyLoss() + lightyield);
+    }
   }
 
   return true;
@@ -238,11 +287,18 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 Hit* Detector::AddHit(Int_t trackID, Int_t primary, Double_t initialEnergy, Int_t detID,
                       const Point3D<float>& pos, const Vector3D<float>& mom, Double_t time, Double_t eLoss)
 {
-  LOG(DEBUG4) << "Adding hit for track " << trackID << " with position (" << pos.X() << ", "
+  LOG(DEBUG3) << "Adding hit for track " << trackID << " with position (" << pos.X() << ", "
               << pos.Y() << ", " << pos.Z() << ") and momentum (" << mom.X() << ", " << mom.Y() << ", " << mom.Z()
               << ")  with energy " << initialEnergy << " loosing " << eLoss;
   mHits->emplace_back(primary, trackID, detID, initialEnergy, pos, mom, time, eLoss);
   return &(mHits->back());
+}
+
+Parent* Detector::AddSuperparent(Int_t trackID, Int_t pdg, Double_t energy)
+{
+  LOG(DEBUG3) << "Adding superparent for track " << trackID << " with PID " << pdg << " and energy " << energy;
+  auto entry = mSuperParents.insert({trackID, {pdg, energy, false}});
+  return &(entry.first->second);
 }
 
 Double_t Detector::CalculateLightYield(Double_t energydeposit, Double_t tracklength, Int_t charge) const
@@ -287,6 +343,10 @@ void Detector::Reset()
   if (!o2::utils::ShmManager::Instance().isOperational()) {
     mHits->clear();
   }
+  mSuperParentsIndices.clear();
+  mSuperParents.clear();
+  mCurrentTrack = -1;
+  mCurrentParentID = -1;
 }
 
 Geometry* Detector::GetGeometry()
@@ -314,12 +374,12 @@ void Detector::CreateEmcalEnvelope()
   // Create the EMCAL Mother Volume (a polygone) within which to place the Detector and named XEN1
   if (contains(gn, "WSUC")) { // TRD1 for WSUC facility
     // Nov 25,2010
-    Float_t envelopA[3];
+    Double_t envelopA[3];
     envelopA[0] = 30.;
     envelopA[1] = 30;
     envelopA[2] = 20;
 
-    TVirtualMC::GetMC()->Gsvolu(geom->GetNameOfEMCALEnvelope(), "BOX", getMediumID(ID_SC), envelopA, 3);
+    CreateEMCALVolume(geom->GetNameOfEMCALEnvelope(), "BOX", ID_SC, envelopA, 3);
     for (Int_t i = 0; i < 3; i++)
       // Position the EMCAL Mother Volume (XEN1) in WSUC.
       // Look to AliEMCALWsuCosmicRaySetUp.
@@ -338,14 +398,14 @@ void Detector::CreateEmcalEnvelope()
     envelopA[8] = envelopA[5]; // radii are the same.
     envelopA[9] = envelopA[6];
     // radii are the same.
-    TVirtualMC::GetMC()->Gsvolu(geom->GetNameOfEMCALEnvelope(), "PGON", getMediumID(ID_AIR), envelopA,
-                                10); // Polygone filled with air
+    CreateEMCALVolume(geom->GetNameOfEMCALEnvelope(), "PGON", ID_AIR, envelopA,
+                      10); // Polygone filled with air
 
     LOG(DEBUG2) << "ConstructGeometry: " << geom->GetNameOfEMCALEnvelope() << " = " << envelopA[5] << ", "
                 << envelopA[6];
     LOG(DEBUG2) << "ConstructGeometry: XU0 = " << envelopA[5] << ", " << envelopA[6];
 
-    // Position the EMCAL Mother Volume (XEN1) in Alice (ALIC)
+    // Position the EMCAL Mother Volume (XEN1) in ALICE (cave)
     TVirtualMC::GetMC()->Gspos(geom->GetNameOfEMCALEnvelope(), 1, "cave", 0.0, 0.0, 0.0, rotMatrixID, "ONLY");
   }
 }
@@ -408,7 +468,7 @@ void Detector::CreateShiskebabGeometry()
     for (Int_t i = 0; i < 3; i++)
       parSCM0[i] = mParEMOD[i] - wallThickness;
     parSCM0[3] = mParEMOD[3];
-    TVirtualMC::GetMC()->Gsvolu("SCM0", "TRD1", getMediumID(ID_AIR), parSCM0, 4);
+    CreateEMCALVolume("SCM0", "TRD1", ID_AIR, parSCM0, 4);
     TVirtualMC::GetMC()->Gspos("SCM0", 1, "EMOD", 0., 0., 0., 0, "ONLY");
   } else {
     Double_t wTh = g->GetLateralSteelStrip();
@@ -416,7 +476,7 @@ void Detector::CreateShiskebabGeometry()
     parSCM0[1] = mParEMOD[1] - wTh;
     parSCM0[2] = mParEMOD[2] - wTh;
     parSCM0[3] = mParEMOD[3] - g->GetTrd1AlFrontThick() / 2.;
-    TVirtualMC::GetMC()->Gsvolu("SCM0", "TRD1", getMediumID(ID_AIR), parSCM0, 4);
+    CreateEMCALVolume("SCM0", "TRD1", ID_AIR, parSCM0, 4);
     Double_t zshift = g->GetTrd1AlFrontThick() / 2.;
     TVirtualMC::GetMC()->Gspos("SCM0", 1, "EMOD", 0., 0., zshift, 0, "ONLY");
     //
@@ -427,6 +487,7 @@ void Detector::CreateShiskebabGeometry()
     // Division to tile size - 1-oct-04
     LOG(DEBUG2) << " Divide SCM0 on y-axis " << g->GetNETAdiv();
     TVirtualMC::GetMC()->Gsdvn("SCMY", "SCM0", g->GetNETAdiv(), 2); // y-axis
+    mSensitive.emplace_back("SCMY");
 
     // Trapesoid 2x2
     parTRAP[0] = parSCM0[3];                                                                         // dz
@@ -450,7 +511,7 @@ void Detector::CreateShiskebabGeometry()
       LOG(DEBUG3) << " par[" << std::setw(2) << std::setprecision(2) << i << "] " << std::setw(9)
                   << std::setprecision(4) << parTRAP[i];
 
-    TVirtualMC::GetMC()->Gsvolu("SCMX", "TRAP", getMediumID(ID_SC), parTRAP, 11);
+    CreateEMCALVolume("SCMX", "TRAP", ID_SC, parTRAP, 11);
     xpos = +(parSCM0[1] + parSCM0[0]) / 4.;
     TVirtualMC::GetMC()->Gspos("SCMX", 1, "SCMY", xpos, 0.0, 0.0, 0, "ONLY");
 
@@ -470,7 +531,7 @@ void Detector::CreateShiskebabGeometry()
     if (!contains(gn, "V1")) {
       par[1] = parSCM0[2] / 2;            // y
       par[2] = g->GetECPbRadThick() / 2.; // z
-      TVirtualMC::GetMC()->Gsvolu("PBTI", "BOX", getMediumID(ID_PB), dummy, 0);
+      CreateEMCALVolume("PBTI", "BOX", ID_PB, dummy, 0);
 
       zpos = -mSampleWidth * g->GetNECLayers() / 2. + g->GetECPbRadThick() / 2.;
       LOG(DEBUG2) << " Pb tiles ";
@@ -490,7 +551,7 @@ void Detector::CreateShiskebabGeometry()
       par[1] = parSCM0[2] / 2.;                 // y
       par[2] = g->GetTrd1BondPaperThick() / 2.; // z
       par[0] = parSCM0[0] / 2.;                 // x
-      TVirtualMC::GetMC()->Gsvolu("PAP1", "BOX", getMediumID(ID_PAPER), par, 3);
+      CreateEMCALVolume("PAP1", "BOX", ID_PAPER, par, 3);
 
       xpos = par[0] - xCenterSCMX;
       zpos = -parSCM0[3] + g->GetTrd1BondPaperThick() / 2.;
@@ -504,7 +565,7 @@ void Detector::CreateShiskebabGeometry()
         par[2] = g->GetECPbRadThick() / 2. + g->GetTrd1BondPaperThick(); // z
         par[0] = (parSCM0[0] + tanBetta * dz) / 2.;
         std::string pa(Form("PA%2.2i", nr));
-        TVirtualMC::GetMC()->Gsvolu(pa.data(), "BOX", getMediumID(ID_PAPER), par, 3);
+        CreateEMCALVolume(pa, "BOX", ID_PAPER, par, 3);
 
         xpos = par[0] - xCenterSCMX;
         zpos = -parSCM0[3] + dz + par[2];
@@ -513,7 +574,7 @@ void Detector::CreateShiskebabGeometry()
         // Pb
         std::string pb(Form("PB%2.2i", nr));
         par[2] = g->GetECPbRadThick() / 2.; // z
-        TVirtualMC::GetMC()->Gsvolu(pb.data(), "BOX", getMediumID(ID_PB), par, 3);
+        CreateEMCALVolume(pb, "BOX", ID_PB, par, 3);
         TVirtualMC::GetMC()->Gspos(pb.data(), 1, pa.data(), 0.0, 0.0, 0.0, 0, "ONLY");
       }
     }
@@ -640,7 +701,7 @@ void Detector::CreateSupermoduleGeometry(const std::string_view mother)
     par[1] = g->GetShellThickness() / 2.;
     par[2] = g->GetEtaModuleSize() * g->GetNZ() / 2. + 5;
 
-    TVirtualMC::GetMC()->Gsvolu("SMOD", "BOX", getMediumID(ID_AIR), par, 3);
+    CreateEMCALVolume("SMOD", "BOX", ID_AIR, par, 3);
 
     LOG(DEBUG2) << "SMOD in WSUC : tmed " << getMediumID(ID_AIR) << " | dx " << std::setw(7) << std::setprecision(2)
                 << par[0] << " dy " << std::setw(7) << std::setprecision(2) << par[1] << " dz " << std::setw(7)
@@ -724,7 +785,7 @@ void Detector::CreateSupermoduleGeometry(const std::string_view mother)
       };
 
       if (SMOrder == 1) { // first time, create the SM
-        TVirtualMC::GetMC()->Gsvolu(smName.data(), "BOX", getMediumID(ID_AIR), parC, 3);
+        CreateEMCALVolume(smName, "BOX", ID_AIR, parC, 3);
 
         LOG(DEBUG2) << R"( Super module with name \")" << smName << R"(\" was created in \"box\" with: par[0] = )"
                     << parC[0] << ", par[1] = " << parC[1] << ", par[2] = " << parC[2];
@@ -755,7 +816,7 @@ void Detector::CreateSupermoduleGeometry(const std::string_view mother)
   // Steel plate
   if (g->GetSteelFrontThickness() > 0.0) { // 28-mar-05
     par[0] = g->GetSteelFrontThickness() / 2.;
-    TVirtualMC::GetMC()->Gsvolu("STPL", "BOX", getMediumID(ID_STEEL), par, 3);
+    CreateEMCALVolume("STPL", "BOX", ID_STEEL, par, 3);
 
     LOG(DEBUG1) << "tmed " << getMediumID(ID_STEEL) << " | dx " << std::setw(7) << std::setprecision(2) << par[0]
                 << " dy " << std::setw(7) << std::setprecision(2) << par[1] << " dz " << std::setw(7)
@@ -784,7 +845,7 @@ void Detector::CreateEmcalModuleGeometry(const std::string_view mother, const st
     mParEMOD[1] = g->Get2Trd1Dx2() / 2.;       // dx2
     mParEMOD[2] = g->GetPhiModuleSize() / 2.;  // dy
     mParEMOD[3] = g->GetLongModuleSize() / 2.; // dz
-    TVirtualMC::GetMC()->Gsvolu(child.data(), "TRD1", getMediumID(ID_STEEL), mParEMOD, 4);
+    CreateEMCALVolume(child, "TRD1", ID_STEEL, mParEMOD, 4);
   }
 
   Int_t nr = 0;
@@ -871,35 +932,22 @@ void Detector::CreateAlFrontPlate(const std::string_view mother, const std::stri
   parALFP[2] = g->GetPhiModuleSize() / 2. - g->GetLateralSteelStrip(); // dy
   parALFP[3] = g->GetTrd1AlFrontThick() / 2.;                          // dz
 
-  TVirtualMC::GetMC()->Gsvolu(child.data(), "TRD1", getMediumID(ID_AL), parALFP, 4);
+  CreateEMCALVolume(child.data(), "TRD1", ID_AL, parALFP, 4);
 
   zposALFP = -mParEMOD[3] + g->GetTrd1AlFrontThick() / 2.;
   TVirtualMC::GetMC()->Gspos(child.data(), 1, mother.data(), 0.0, 0.0, zposALFP, 0, "ONLY");
 }
 
+void Detector::CreateEMCALVolume(const std::string_view name, const std::string_view shape, MediumType_t mediumID, Double_t* shapeParams, Int_t nparams)
+{
+  TVirtualMC::GetMC()->Gsvolu(name.data(), shape.data(), getMediumID(mediumID), shapeParams, nparams);
+  mSensitive.emplace_back(name.data());
+}
+
 void Detector::BeginPrimary()
 {
   mCurrentPrimaryID = fMC->GetStack()->GetCurrentTrackNumber();
-  mCurrentParentID = mCurrentPrimaryID;
-  mParentEnergy = fMC->GetStack()->GetCurrentTrack()->Energy();
-  mParentHasTrackRef = false;
   LOG(DEBUG) << "Starting primary " << mCurrentPrimaryID << " with energy " << fMC->GetStack()->GetCurrentTrack()->Energy();
-}
-
-void Detector::PreTrack()
-{
-  auto currenttrack = fMC->GetStack()->GetCurrentTrackNumber();
-  LOG(DEBUG) << "Starting new track " << currenttrack << std::endl;
-  auto current = fMC->GetStack()->GetCurrentTrack();
-  // check if produced outside EMCAL - if yes set as current parent
-  Point3D<double> prodvertex{current->Vx(), current->Vy(), current->Vz()};
-  if (mGeometry->IsInEMCALOrDCAL(prodvertex) == AcceptanceType_t::NON_ACCEPTANCE) {
-    LOG(DEBUG) << "Produced outside EMCAL - Setting new parent track " << currenttrack << " of type " << current->GetPdgCode() << " with energy " << current->Energy()
-               << "(R=" << TMath::Sqrt(current->Vx() * current->Vx() + current->Vy() * current->Vy()) << ")" << std::endl;
-    mCurrentParentID = currenttrack;
-    mParentEnergy = current->Energy();
-    mParentHasTrackRef = false;
-  }
 }
 
 void Detector::FinishPrimary()
@@ -907,6 +955,4 @@ void Detector::FinishPrimary()
   LOG(DEBUG) << "Finishing primary " << mCurrentPrimaryID << std::endl;
   // Resetting primary and parent ID
   mCurrentPrimaryID = -1;
-  mCurrentParentID = -1;
-  mParentHasTrackRef = false;
 }
