@@ -414,6 +414,9 @@ void OCDB2CCDB(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data
     } else
       cout << "attempt to get object ChamberNoise from ocdb entry. Will not be writing ChamberNoise" << endl;
   }
+/*
+  PRFWidth is stored in a CalPad for some reason.
+  Its values appear to be the same values as stored in the static class.
 
   AliTRDCalPad* prfwidth = 0;
   auto o2padresponse = new o2::trd::PadResponse();
@@ -437,7 +440,7 @@ void OCDB2CCDB(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data
       cout << "attempt to get object PRFWidth from ocdb entry. Will not be writing PRFWidth" << endl;
   } else
     cout << "failed to retrieve ocdb entry for PRFWidth" << endl;
-
+*/
   auto o2gtbl = new CalOnlineGainTables();
   std::string tablekey = "Krypton_2011-01";
   UnpackGainTable(tablekey, o2gtbl);
