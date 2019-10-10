@@ -36,6 +36,8 @@ namespace framework
 
 namespace
 {
+/// Calculate how many input routes there are, doublecounting different
+/// timeslices.
 std::vector<size_t> createDistinctRouteIndex(std::vector<InputRoute> const& routes)
 {
   std::vector<size_t> result;
