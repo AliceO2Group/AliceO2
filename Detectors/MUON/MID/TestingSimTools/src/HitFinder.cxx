@@ -26,8 +26,8 @@ namespace mid
 //______________________________________________________________________________
 HitFinder::HitFinder(const GeometryTransformer& geoTrans)
   : mGeometryTransformer(geoTrans),
-    mTanTheta(std::tan((90. - geoparams::sBeamAngle) * std::atan(1) / 45.)),
-    mCosTheta(std::cos(geoparams::sBeamAngle * std::atan(1) / 45.))
+    mTanTheta(std::tan((90. - geoparams::BeamAngle) * std::atan(1) / 45.)),
+    mCosTheta(std::cos(geoparams::BeamAngle * std::atan(1) / 45.))
 {
   /// default constructor
 }
@@ -36,7 +36,7 @@ HitFinder::HitFinder(const GeometryTransformer& geoTrans)
 Point3D<double> HitFinder::getIntersectInDefaultPlane(const Track& track, int chamber) const
 {
   /// Get the intersection point in the default chamber plane
-  double defaultZ = geoparams::sDefaultChamberZ[chamber];
+  double defaultZ = geoparams::DefaultChamberZ[chamber];
   double linePar = ((track.getPositionZ() - defaultZ) * mTanTheta - track.getPositionY()) /
                    (track.getDirectionY() - track.getDirectionZ() * mTanTheta);
   Point3D<double> point;

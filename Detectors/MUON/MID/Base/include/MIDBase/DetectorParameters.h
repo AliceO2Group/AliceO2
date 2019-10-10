@@ -25,20 +25,20 @@ namespace mid
 /// MID detector parameters
 namespace detparams
 {
-static constexpr int sNChambers = 4;                  ///< Number of chambers
-static constexpr int sNDetectionElements = 72;        ///< Number of RPCs
-static constexpr int sNDetectionElementsPerSide = 36; ///< Number of detection elements per side
-static constexpr int sNLocalBoards = 234;             ///< Number of local boards per chamber
-static constexpr int sNRPCLines = 9;                  ///< Number of RPC lines
-static constexpr int sNStripsBP = 16;                 ///< Number of strips in the Bending Plane
+constexpr int NChambers = 4;                  ///< Number of chambers
+constexpr int NDetectionElements = 72;        ///< Number of RPCs
+constexpr int NDetectionElementsPerSide = 36; ///< Number of detection elements per side
+constexpr int NLocalBoards = 234;             ///< Number of local boards per chamber
+constexpr int NRPCLines = 9;                  ///< Number of RPC lines
+constexpr int NStripsBP = 16;                 ///< Number of strips in the Bending Plane
 
 /// Gets the chamber index from detection element ID
 /// @param deId The detection element ID
-inline int getChamber(int deId) { return (deId % sNDetectionElementsPerSide) / sNRPCLines; }
+inline int getChamber(int deId) { return (deId % NDetectionElementsPerSide) / NRPCLines; }
 
 /// Gets the chamber index from detection element ID
 /// @param deId The detection element ID
-inline int getRPCLine(int deId) { return deId % sNRPCLines; }
+inline int getRPCLine(int deId) { return deId % NRPCLines; }
 
 void assertDEId(int deId);
 

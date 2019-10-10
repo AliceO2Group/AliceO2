@@ -40,8 +40,8 @@ ROOT::Math::Transform3D getDefaultChamberTransform(int ichamber)
 {
   /// Returns the default chamber transformation
   const double degToRad = TMath::DegToRad();
-  ROOT::Math::Rotation3D planeRot(ROOT::Math::RotationX(geoparams::sBeamAngle * degToRad));
-  ROOT::Math::Translation3D planeTrans(0., 0., geoparams::sDefaultChamberZ[ichamber]);
+  ROOT::Math::Rotation3D planeRot(ROOT::Math::RotationX(geoparams::BeamAngle * degToRad));
+  ROOT::Math::Translation3D planeTrans(0., 0., geoparams::DefaultChamberZ[ichamber]);
   return planeTrans * planeRot;
 }
 
@@ -57,9 +57,9 @@ ROOT::Math::Transform3D getDefaultRPCTransform(bool isRight, int chamber, int rp
   if (!isRight) {
     sign *= -1.;
   }
-  double zPos = sign * geoparams::sRPCZShift;
-  double newZ = geoparams::sDefaultChamberZ[0] + zPos;
-  double oldZ = geoparams::sDefaultChamberZ[0] - zPos;
+  double zPos = sign * geoparams::RPCZShift;
+  double newZ = geoparams::DefaultChamberZ[0] + zPos;
+  double oldZ = geoparams::DefaultChamberZ[0] - zPos;
   double yPos = geoparams::getRPCHalfHeight(chamber) * (rpc - 4) * (1. + newZ / oldZ);
   ROOT::Math::Translation3D trans(xPos, yPos, zPos);
   return trans * rot;
@@ -69,10 +69,10 @@ GeometryTransformer createDefaultTransformer()
 {
   /// Creates the default transformer
   GeometryTransformer geoTrans;
-  for (int ich = 0; ich < detparams::sNChambers; ++ich) {
+  for (int ich = 0; ich < detparams::NChambers; ++ich) {
     for (int iside = 0; iside < 2; ++iside) {
       bool isRight = (iside == 0);
-      for (int irpc = 0; irpc < detparams::sNRPCLines; ++irpc) {
+      for (int irpc = 0; irpc < detparams::NRPCLines; ++irpc) {
         int deId = detparams::getDEId(isRight, ich, irpc);
         ROOT::Math::Transform3D matrix = getDefaultChamberTransform(ich) * getDefaultRPCTransform(isRight, ich, irpc);
         geoTrans.setMatrix(deId, matrix);
@@ -87,7 +87,7 @@ GeometryTransformer createTransformationFromManager(const TGeoManager* geoManage
   /// Creates the transformations from the manager
   GeometryTransformer geoTrans;
   TGeoNavigator* navig = geoManager->GetCurrentNavigator();
-  for (int ide = 0; ide < detparams::sNDetectionElements; ++ide) {
+  for (int ide = 0; ide < detparams::NDetectionElements; ++ide) {
     int ichamber = detparams::getChamber(ide);
     std::stringstream volPath;
     volPath << geoManager->GetTopVolume()->GetName() << "/" << geoparams::getChamberVolumeName(ichamber) << "_1/" << geoparams::getRPCVolumeName(geoparams::getRPCType(ide), ichamber) << "_" << std::to_string(ide);

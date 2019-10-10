@@ -32,7 +32,7 @@ class ChamberHV
   void setHV(int deId, double hv) { mHV[deId] = hv; }
 
  private:
-  std::array<double, detparams::sNDetectionElements> mHV; ///< High voltage values
+  std::array<double, detparams::NDetectionElements> mHV; ///< High voltage values
 };
 
 ChamberHV createDefaultChamberHV();

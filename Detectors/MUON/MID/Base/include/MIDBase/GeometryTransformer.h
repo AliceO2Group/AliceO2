@@ -73,7 +73,7 @@ class GeometryTransformer
   }
 
  private:
-  std::array<o2::Transform3D, detparams::sNDetectionElements> mTransformations; ///< Array of transformation matrices
+  std::array<o2::Transform3D, detparams::NDetectionElements> mTransformations; ///< Array of transformation matrices
 };
 
 ROOT::Math::Transform3D getDefaultChamberTransform(int ichamber);

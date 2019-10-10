@@ -59,15 +59,15 @@ const float kVerticalSupportXPos[] = {61.45, 122.45, 192.95, 236.95};
 // horizontal support
 const float kHorizontalSupportHalfExtDim[] = {96.775, 2., 3.};
 const float kHorizontalSupportHalfIntDim[] = {96.775, 1.9, 2.8};
-const double kHorizontalSupportPos[] = {geoparams::sRPCCenterPos + geoparams::sRPCHalfLength - kHorizontalSupportHalfExtDim[0], 17., kVerticalSupportHalfExtDim[2] + kHorizontalSupportHalfExtDim[2]};
+const double kHorizontalSupportPos[] = {geoparams::RPCCenterPos + geoparams::RPCHalfLength - kHorizontalSupportHalfExtDim[0], 17., kVerticalSupportHalfExtDim[2] + kHorizontalSupportHalfExtDim[2]};
 
 TGeoVolume* createVerticalSupport(int iChamber)
 {
   /// Function creating a vertical support, an aluminium rod
 
-  auto supp = new TGeoVolume(Form("Vertical support chamber %d", iChamber), new TGeoBBox(Form("VertSuppBox%d", iChamber), kVerticalSupportHalfExtDim[0], kVerticalSupportHalfExtDim[1] * geoparams::sScaleFactors[iChamber], kVerticalSupportHalfExtDim[2]), assertMedium(Medium::Aluminium));
+  auto supp = new TGeoVolume(Form("Vertical support chamber %d", iChamber), new TGeoBBox(Form("VertSuppBox%d", iChamber), kVerticalSupportHalfExtDim[0], kVerticalSupportHalfExtDim[1] * geoparams::ChamberScaleFactors[iChamber], kVerticalSupportHalfExtDim[2]), assertMedium(Medium::Aluminium));
 
-  new TGeoBBox(Form("VertSuppCut%d", iChamber), kVerticalSupportHalfIntDim[0], kVerticalSupportHalfIntDim[1] * geoparams::sScaleFactors[iChamber], kVerticalSupportHalfIntDim[2]);
+  new TGeoBBox(Form("VertSuppCut%d", iChamber), kVerticalSupportHalfIntDim[0], kVerticalSupportHalfIntDim[1] * geoparams::ChamberScaleFactors[iChamber], kVerticalSupportHalfIntDim[2]);
 
   supp->SetShape(new TGeoCompositeShape(Form("VertSuppCut%d", iChamber), Form("VertSuppBox%d-VertSuppCut%d", iChamber, iChamber)));
 
@@ -78,9 +78,9 @@ TGeoVolume* createHorizontalSupport(int iChamber)
 {
   /// Function creating a horizontal support, an aluminium rod
 
-  auto supp = new TGeoVolume(Form("Horizontal support chamber %d", iChamber), new TGeoBBox(Form("HoriSuppBox%d", iChamber), kHorizontalSupportHalfExtDim[0] * geoparams::sScaleFactors[iChamber], kHorizontalSupportHalfExtDim[1], kHorizontalSupportHalfExtDim[2]), assertMedium(Medium::Aluminium));
+  auto supp = new TGeoVolume(Form("Horizontal support chamber %d", iChamber), new TGeoBBox(Form("HoriSuppBox%d", iChamber), kHorizontalSupportHalfExtDim[0] * geoparams::ChamberScaleFactors[iChamber], kHorizontalSupportHalfExtDim[1], kHorizontalSupportHalfExtDim[2]), assertMedium(Medium::Aluminium));
 
-  new TGeoBBox(Form("HoriSuppCut%d", iChamber), kHorizontalSupportHalfIntDim[0] * geoparams::sScaleFactors[iChamber], kHorizontalSupportHalfIntDim[1], kHorizontalSupportHalfIntDim[2]);
+  new TGeoBBox(Form("HoriSuppCut%d", iChamber), kHorizontalSupportHalfIntDim[0] * geoparams::ChamberScaleFactors[iChamber], kHorizontalSupportHalfIntDim[1], kHorizontalSupportHalfIntDim[2]);
 
   supp->SetShape(new TGeoCompositeShape(Form("HoriSuppCut%d", iChamber), Form("HoriSuppBox%d-HoriSuppCut%d", iChamber, iChamber)));
 
@@ -97,8 +97,8 @@ TGeoVolume* createRPC(geoparams::RPCtype type, int iChamber)
   auto rpc = new TGeoVolumeAssembly(name);
 
   // get the dimensions from MIDBase/Constants
-  double halfLength = (type == geoparams::RPCtype::Short) ? geoparams::sRPCShortHalfLength : geoparams::sRPCHalfLength;
-  halfLength *= geoparams::sScaleFactors[iChamber];
+  double halfLength = (type == geoparams::RPCtype::Short) ? geoparams::RPCShortHalfLength : geoparams::RPCHalfLength;
+  halfLength *= geoparams::ChamberScaleFactors[iChamber];
   double halfHeight = geoparams::getRPCHalfHeight(iChamber);
 
   /// create the volume of each material (a box by default)
@@ -271,7 +271,7 @@ TGeoVolume* createChamber(int iChamber)
 
   auto chamber = new TGeoVolumeAssembly(geoparams::getChamberVolumeName(iChamber).c_str());
 
-  double scale = geoparams::sScaleFactors[iChamber];
+  double scale = geoparams::ChamberScaleFactors[iChamber];
 
   // create the service volumes
   auto vertSupp = createVerticalSupport(iChamber);
@@ -298,7 +298,7 @@ TGeoVolume* createChamber(int iChamber)
     }
 
     // place the RPCs
-    for (int iRPC = 0; iRPC < detparams::sNRPCLines; iRPC++) {
+    for (int iRPC = 0; iRPC < detparams::NRPCLines; iRPC++) {
 
       double x = xSign * geoparams::getRPCCenterPosX(iChamber, iRPC);
       double zSign = (iRPC % 2 == 0) ? 1. : -1.;
@@ -306,8 +306,8 @@ TGeoVolume* createChamber(int iChamber)
       if (!isRight) {
         zSign *= -1.;
       }
-      double z = zSign * geoparams::sRPCZShift;
-      double y = 2 * geoparams::getRPCHalfHeight(iChamber) * (iRPC - 4) / (1 - (z / geoparams::sDefaultChamberZ[0]));
+      double z = zSign * geoparams::RPCZShift;
+      double y = 2 * geoparams::getRPCHalfHeight(iChamber) * (iRPC - 4) / (1 - (z / geoparams::DefaultChamberZ[0]));
 
       // ID convention (from bottom to top of the chamber) : long, long, long, cut, short, cut, long, long, long
       TGeoVolume* rpc = nullptr;
@@ -348,7 +348,7 @@ void createGeometry(TGeoVolume& topVolume)
   createMaterials();
 
   // create and place the trigger chambers
-  for (int iCh = 0; iCh < detparams::sNChambers; iCh++) {
+  for (int iCh = 0; iCh < detparams::NChambers; iCh++) {
 
     topVolume.AddNode(createChamber(iCh), 1, getTransformation(getDefaultChamberTransform(iCh)));
   }
@@ -361,7 +361,7 @@ std::vector<TGeoVolume*> getSensitiveVolumes()
 
   std::vector<TGeoVolume*> sensitiveVolumeNames;
   std::vector<geoparams::RPCtype> types = {geoparams::RPCtype::Long, geoparams::RPCtype::BottomCut, geoparams::RPCtype::TopCut, geoparams::RPCtype::Short};
-  for (int ich = 0; ich < detparams::sNChambers; ++ich) {
+  for (int ich = 0; ich < detparams::NChambers; ++ich) {
     for (auto& type : types) {
 
       auto name = Form("Gas %s", getRPCVolumeName(type, ich).c_str());

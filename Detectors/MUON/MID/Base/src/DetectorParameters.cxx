@@ -27,7 +27,7 @@ namespace detparams
 void assertDEId(int deId)
 {
   /// Checks if the detection element ID is valid
-  if (deId < 0 || deId > sNDetectionElements) {
+  if (deId < 0 || deId > NDetectionElements) {
     throw std::out_of_range("Detection element ID must be between 0 and 72");
   }
 }
@@ -38,8 +38,8 @@ int getDEId(bool isRight, int chamber, int rpc)
   /// \param isRight RPC is in right side
   /// \param chamber The chamber ID (0-3)
   /// \param rpc RPC ID (0-8)
-  int deOffset = (isRight) ? 0 : sNDetectionElementsPerSide;
-  return deOffset + sNRPCLines * chamber + rpc;
+  int deOffset = (isRight) ? 0 : NDetectionElementsPerSide;
+  return deOffset + NRPCLines * chamber + rpc;
 }
 
 std::string getDEName(int deId)
@@ -50,7 +50,7 @@ std::string getDEName(int deId)
   int stId = 1 + chId / 2;
   int planeId = 1 + chId % 2;
   std::stringstream deName;
-  deName << "MT" << stId << planeId << ((deId / sNDetectionElementsPerSide == 0) ? "In" : "Out") << (deId % sNRPCLines) + 1;
+  deName << "MT" << stId << planeId << ((deId / NDetectionElementsPerSide == 0) ? "In" : "Out") << (deId % NRPCLines) + 1;
   return deName.str();
 }
 
