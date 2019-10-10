@@ -80,6 +80,19 @@ class FeeParam
   static int getNrowC0() { return mgkNrowC0; }
   static int getNrowC1() { return mgkNrowC1; }
 
+  // Basic Geometrical numbers these were private but as they are static and const it seems pointless.
+  static const int mgkLHCfrequency = 40079000; // [Hz] LHC clock
+  static const int mgkNmcmRob = 16;            // Number of MCMs per ROB
+  static const int mgkNmcmRobInRow = 4;        // Number of MCMs per ROB in row dir.
+  static const int mgkNmcmRobInCol = 4;        // Number of MCMs per ROB in col dir.
+  static const int mgkNrobC0 = 6;              // Number of ROBs per C0 chamber
+  static const int mgkNrobC1 = 8;              // Number of ROBs per C1 chamber
+  static const int mgkNadcMcm = 21;            // Number of ADC channels per MCM
+  static const int mgkNcol = 144;              // Number of pads per padplane row
+  static const int mgkNcolMcm = 18;            // Number of pads per MCM
+  static const int mgkNrowC0 = 12;             // Number of Rows per C0 chamber
+  static const int mgkNrowC1 = 16;             // Number of Rows per C1 chamber
+
   // tracklet simulation
   bool getTracklet() const { return mgTracklet; }
   static void setTracklet(bool trackletSim = kTRUE) { mgTracklet = trackletSim; }
@@ -150,19 +163,6 @@ class FeeParam
   static bool mgLUTPadNumberingFilled;         // Lookup table mapping Pad to MCM
 
   void createPad2MCMLookUpTable();
-
-  // Basic Geometrical numbers
-  static const int mgkLHCfrequency = 40079000; // [Hz] LHC clock
-  static const int mgkNmcmRob = 16;            // Number of MCMs per ROB
-  static const int mgkNmcmRobInRow = 4;        // Number of MCMs per ROB in row dir.
-  static const int mgkNmcmRobInCol = 4;        // Number of MCMs per ROB in col dir.
-  static const int mgkNrobC0 = 6;              // Number of ROBs per C0 chamber
-  static const int mgkNrobC1 = 8;              // Number of ROBs per C1 chamber
-  static const int mgkNadcMcm = 21;            // Number of ADC channels per MCM
-  static const int mgkNcol = 144;              // Number of pads per padplane row
-  static const int mgkNcolMcm = 18;            // Number of pads per MCM
-  static const int mgkNrowC0 = 12;             // Number of Rows per C0 chamber
-  static const int mgkNrowC1 = 16;             // Number of Rows per C1 chamber
 
   // Tracklet  processing on/off
   static bool mgTracklet;                // tracklet processing
