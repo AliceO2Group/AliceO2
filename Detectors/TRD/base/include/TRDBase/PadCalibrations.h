@@ -43,7 +43,7 @@ class PadCalibrations
   T getPadValue(int roc, int col, int row) { return mreadOutChamber[roc].getValue(col, row); }
   void setPadValue(int roc, int col, int row, T value) { mreadOutChamber[roc].setValue(col, row, value); }
   void setPadValue(int roc, int channel, T value) { mreadOutChamber[roc].setValue(channel, value); }
-  void reset(int roc, int col, int row, std::vector<T> &data);
+  void reset(int roc, int col, int row, std::vector<T>& data);
   void init();
   void dumpAllNonZeroValues(); // helps for debugging.
  protected:
@@ -78,12 +78,12 @@ void PadCalibrations<T>::init()
 }
 
 template <class T>
-void PadCalibrations<T>::reset(int roc, int col, int row, std::vector<T> &data)
+void PadCalibrations<T>::reset(int roc, int col, int row, std::vector<T>& data)
 {
-//reset the readoutchamber
-//primarily here for setting the values incoming from run2 ocdb, but might find other use cases.
-// you need to send it the roc as it is used to calculate internal parameters.
-    mreadOutChamber[roc].reset(roc,col,row,data); // it *should* not actually matter as this *should* be set correctly via init.
+  //reset the readoutchamber
+  //primarily here for setting the values incoming from run2 ocdb, but might find other use cases.
+  // you need to send it the roc as it is used to calculate internal parameters.
+  mreadOutChamber[roc].reset(roc, col, row, data); // it *should* not actually matter as this *should* be set correctly via init.
 }
 
 template <class T>

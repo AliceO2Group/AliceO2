@@ -53,7 +53,7 @@ class ChamberStatus
   char getStatus(int det) const { return mStatus[det]; }
   //  void setStatus(int p, int c, int s, char status) { int roc=TRDGeometry::getDetector(p,c,s); setStatus(roc,status);}
   void setStatus(int det, char status);
-  void setRawStatus(int det, char status){mStatus[det]=status;};
+  void setRawStatus(int det, char status) { mStatus[det] = status; };
   void unsetStatusBit(int det, char status);
   bool isGood(int det) const { return (mStatus[det] & kGoodpat); }
   bool isNoData(int det) const { return (mStatus[det] & kNoDatapat); }
