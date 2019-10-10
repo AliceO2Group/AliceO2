@@ -29,7 +29,12 @@ struct DataSpecUtils {
   /// @return true if a given InputSpec @a spec matches with a @a target ConcreteDataTypeMatcher
   static bool match(InputSpec const& spec, ConcreteDataTypeMatcher const& target);
 
-  /// @return true if a given InputSpec @a spec matches with a @a target ConcreteDataMatcher
+  /// @return true if matchers of the two specs match on all three levels if both
+  /// matchers are of type ConcreteDataMatcher, on the level of origin and description
+  /// otherwise
+  static bool match(OutputSpec const& left, OutputSpec const& right);
+
+  /// @return true if a given OutputSpec @a spec matches with a @a target ConcreteDataMatcher
   static bool match(OutputSpec const& spec, ConcreteDataMatcher const& target);
 
   /// @return true if a given InputSpec @a input  matches the @a output outputspec
