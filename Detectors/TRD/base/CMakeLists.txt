@@ -19,7 +19,6 @@ o2_add_library(TRDBase
                        src/CalDet.cxx
                        src/CalROC.cxx
                        src/FeeParam.cxx
-                       src/ChamberCalibrations.cxx
                        src/PadStatus.cxx
                        src/LocalVDrift.cxx
                        src/LocalT0.cxx
