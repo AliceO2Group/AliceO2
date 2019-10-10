@@ -27,23 +27,3 @@
 #include "fairlogger/Logger.h"
 using namespace o2::trd;
 
-//___________________________________________________________________________________
-int ChamberCalibrations::loadReferenceCalibrations(int run2number)
-{
-  //dont change any code here without changing the corresponding writing code in
-  //AliRoot!
-  //reference calibrations are pulled in for run 297595
-  //filename is calibrations-run%d  text file, because why complicate my life.
-  //  std::string filename="calibrations-run"+run2runumber;
-  //ifstream inputfile(filename);
-  //now read in the file.
-  /* if(run2run==-1){
-  //load the defaults the simplest way from run 297595.
-  #include "../testdata/ChamberVdrift-run297595";
-  #include "../testdata/ChamberExB-run297595";
-  #include "../testdata/ChamberGainFactor-run297595";
-  #include "../testdata/ChamberT0-run297595";
-
-  }
-*/
-}
