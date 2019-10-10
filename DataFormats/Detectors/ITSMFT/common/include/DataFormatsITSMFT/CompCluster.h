@@ -83,31 +83,27 @@ class CompCluster
   ClassDefNV(CompCluster, 1);
 };
 
-/// Extension of the compact cluster, augmented by the chipID and ROFrame
+/// Extension of the compact cluster, augmented by the chipID
 /// This is a TEMPORARY class, until we converge to more economical container
 class CompClusterExt : public CompCluster
 {
  private:
   UShort_t mChipID;  ///< chip id
-  UShort_t mROFrame; ///< readout frame
 
  public:
-  CompClusterExt(UShort_t row = 0, UShort_t col = 0, UShort_t patt = 0, UShort_t chipID = 0, UShort_t rof = 0) : CompCluster(row, col, patt), mChipID(chipID), mROFrame(rof)
+  CompClusterExt(UShort_t row = 0, UShort_t col = 0, UShort_t patt = 0, UShort_t chipID = 0) : CompCluster(row, col, patt), mChipID(chipID)
   {
   }
 
-  void set(UShort_t row, UShort_t col, UShort_t patt, UShort_t chipID, UShort_t rof)
+  void set(UShort_t row, UShort_t col, UShort_t patt, UShort_t chipID)
   {
     CompCluster::set(row, col, patt);
     mChipID = chipID;
-    mROFrame = rof;
   }
 
   UShort_t getChipID() const { return mChipID; }
-  UShort_t getROFrame() const { return mROFrame; }
 
   void setChipID(UShort_t c) { mChipID = c; }
-  void setROFrame(UShort_t f) { mROFrame = f; }
 
   void print() const;
 
