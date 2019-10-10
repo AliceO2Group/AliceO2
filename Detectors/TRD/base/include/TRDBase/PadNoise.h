@@ -26,7 +26,7 @@ namespace o2
 namespace trd
 {
 
-class PadNoise : private PadCalibrations<float>
+class PadNoise : public PadCalibrations<float>
 {
  public:
   using PadCalibrations<float>::PadCalibrations;

@@ -32,7 +32,7 @@ namespace o2
 namespace trd
 {
 
-class PadStatus : private PadCalibrations<char>
+class PadStatus : public PadCalibrations<char>
 {
  public:
   using PadCalibrations<char>::PadCalibrations;

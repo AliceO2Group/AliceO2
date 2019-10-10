@@ -51,6 +51,7 @@ class PadParameters
   void setValue(int ich, T value) { mData[ich] = value; }
   void setValue(int col, int row, T value) { setValue(getChannel(col, row), value); }
   void debug() { cout << "in padparameters debug with this:" << this << " with mPlane:mChamber:mNrows:mNchannels::" << mPlane << ":" << mNrows << ":" << mNchannels << "   and a vector size of : " << mData.size() << endl; };
+  void reset(int chamberindex, int col, int row, std::vector<T> &data);
   void dumpNonZeroValues(int roc)
   {
     int count = 0;
@@ -94,6 +95,29 @@ int PadParameters<T>::init(int chamberindex)
     LOG(FATAL) << "PadParamaters initialised with a size of " << mData.size() << " and mNchannels of " << mNchannels;
   return 0;
 }
+
+template <class T>
+void PadParameters<T>::reset(int chamberindex, int cols, int rows, std::vector<T> &data)
+{
+  mPlane = TRDGeometry::getLayer(chamberindex);
+  mChamber = TRDGeometry::getStack(chamberindex);
+  mNrows = rows;
+  mNcols=cols;
+  // the FeeParam variables need to be unprotected, and dont want to change FeeParam in this PR.
+  mNchannels = mNrows * mNcols;
+  if(mData.size()!= mNchannels)
+      LOG(info) << "reseting a readoutchamber size which should not be needed given the detectors have not changed in run2 to run3";
+  mData.resize(mNchannels);
+  if (mData.size() != mNchannels || mData.size() == 0)
+    LOG(FATAL) << "PadParamaters initialised with a size of " << mData.size() << " and mNchannels of " << mNchannels;
+
+  // now reset the data of the pads.
+  int counter=0;
+  for( auto pad: mData) {
+      pad = data[counter];
+      counter++;
+  }
+} 
 
 } // namespace trd
 } // namespace o2

@@ -33,7 +33,9 @@ class ChamberNoise
   ~ChamberNoise() = default;
   //
   float getNoise(int p, int c, int s) const { return mNoise[o2::trd::TRDGeometry::getDetector(p, c, s)]; };
+  float getNoise(int det) const { return mNoise[det]; };
   void setNoise(int p, int c, int s, float noise) { mNoise[o2::trd::TRDGeometry::getDetector(p, c, s)] = noise; };
+  void setNoise(int det, float noise) { mNoise[det] = noise; };
   //bulk gets ?
  protected:
   std::array<float, TRDSimParam::kNdet> mNoise{};
