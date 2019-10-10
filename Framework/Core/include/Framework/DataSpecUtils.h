@@ -144,6 +144,12 @@ struct DataSpecUtils {
   /// and we can add corner cases as we go.
   static ConcreteDataTypeMatcher asConcreteDataTypeMatcher(InputSpec const& spec);
 
+  /// If possible extract the DataOrigin from an InputSpec.
+  /// This will not always be possible, depending on how complex of
+  /// a query the InputSpec does, however in most cases it should be ok
+  /// and we can add corner cases as we go.
+  static header::DataOrigin asConcreteOrigin(InputSpec const& spec);
+
   /// Create an InputSpec which is able to match all the outputs of the given
   /// OutputSpec
   static InputSpec matchingInput(OutputSpec const& spec);
@@ -156,6 +162,9 @@ struct DataSpecUtils {
 
   /// Build a DataDescriptMatcher which does not care about the subSpec.
   static data_matcher::DataDescriptorMatcher dataDescriptorMatcherFrom(ConcreteDataTypeMatcher const& dataType);
+
+  /// Build a DataDescriptMatcher which does not care about the subSpec and description.
+  static data_matcher::DataDescriptorMatcher dataDescriptorMatcherFrom(header::DataOrigin const& origin);
 };
 
 } // namespace framework

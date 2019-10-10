@@ -153,10 +153,10 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
   // temporary argument is still in memory
   // FIXME: check why the compiler does not detect this
   std::vector<InputRoute> schema = {
-    {InputSpec{"input1", "TST", "INT"}, "input1", 0},       //
-    {InputSpec{"input2", "TST", "CONTAINER"}, "input2", 0}, //
-    {InputSpec{"input3", "TST", "CONTAINER"}, "input3", 1}, //
-    {InputSpec{"input4", "TST", "BINARY"}, "input4", 0},    //
+    {InputSpec{"input1", "TST", "INT"}, 0, "input1", 0},       //
+    {InputSpec{"input2", "TST", "CONTAINER"}, 1, "input2", 0}, //
+    {InputSpec{"input3", "TST", "CONTAINER"}, 2, "input3", 1}, //
+    {InputSpec{"input4", "TST", "BINARY"}, 3, "input4", 0},    //
   };
 
   auto getter = [&store](size_t i) -> char const* { return static_cast<char const*>(store[i]->GetData()); };

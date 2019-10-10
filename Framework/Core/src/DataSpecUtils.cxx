@@ -261,8 +261,7 @@ bool DataSpecUtils::partialMatch(OutputSpec const& output, header::DataOrigin co
 
 bool DataSpecUtils::partialMatch(InputSpec const& input, header::DataOrigin const& origin)
 {
-  auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(input);
-  return dataType.origin == origin;
+  return DataSpecUtils::asConcreteOrigin(input) == origin;
 }
 
 ConcreteDataMatcher DataSpecUtils::asConcreteDataMatcher(InputSpec const& spec)
@@ -387,6 +386,22 @@ ConcreteDataTypeMatcher DataSpecUtils::asConcreteDataTypeMatcher(InputSpec const
                     spec.matcher);
 }
 
+header::DataOrigin DataSpecUtils::asConcreteOrigin(InputSpec const& spec)
+{
+  return std::visit(overloaded{
+                      [](ConcreteDataMatcher const& concrete) {
+                        return concrete.origin;
+                      },
+                      [](DataDescriptorMatcher const& matcher) {
+                        auto state = extractMatcherInfo(matcher);
+                        if (state.hasUniqueOrigin) {
+                          return state.origin;
+                        }
+                        throw std::runtime_error("Could not extract data type from query");
+                      }},
+                    spec.matcher);
+}
+
 DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(ConcreteDataTypeMatcher const& dataType)
 {
   auto timeDescriptionMatcher = std::make_unique<DataDescriptorMatcher>(
@@ -397,6 +412,24 @@ DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(ConcreteDataTypeM
     DataDescriptorMatcher::Op::And,
     OriginValueMatcher{dataType.origin.as<std::string>()},
     std::move(timeDescriptionMatcher)));
+}
+
+DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(header::DataOrigin const& origin)
+{
+  char buf[5] = {0, 0, 0, 0, 0};
+  strncpy(buf, origin.str, 4);
+  DataDescriptorMatcher matchOnlyOrigin{
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{buf},
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      DescriptionValueMatcher{ContextRef{1}},
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        SubSpecificationTypeValueMatcher{ContextRef{2}},
+        std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
+                                                StartTimeValueMatcher{ContextRef{0}})))};
+  return std::move(matchOnlyOrigin);
 }
 
 InputSpec DataSpecUtils::matchingInput(OutputSpec const& spec)

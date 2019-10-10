@@ -31,7 +31,7 @@ static void BM_RelayMessageCreation(benchmark::State& state)
   InputSpec spec{"clusters", "TPC", "CLUSTERS"};
 
   std::vector<InputRoute> inputs = {
-    InputRoute{spec, "Fake", 0}};
+    InputRoute{spec, 0, "Fake", 0}};
 
   std::vector<ForwardRoute> forwards;
   TimesliceIndex index;
@@ -72,7 +72,7 @@ static void BM_RelaySingleSlot(benchmark::State& state)
   InputSpec spec{"clusters", "TPC", "CLUSTERS"};
 
   std::vector<InputRoute> inputs = {
-    InputRoute{spec, "Fake", 0}};
+    InputRoute{spec, 0, "Fake", 0}};
 
   std::vector<ForwardRoute> forwards;
   TimesliceIndex index;
@@ -120,7 +120,7 @@ static void BM_RelayMultipleSlots(benchmark::State& state)
   InputSpec spec{"clusters", "TPC", "CLUSTERS"};
 
   std::vector<InputRoute> inputs = {
-    InputRoute{spec, "Fake", 0}};
+    InputRoute{spec, 0, "Fake", 0}};
 
   std::vector<ForwardRoute> forwards;
   TimesliceIndex index;
@@ -171,8 +171,8 @@ static void BM_RelayMultipleRoutes(benchmark::State& state)
   InputSpec spec2{"tracks", "TPC", "TRACKS"};
 
   std::vector<InputRoute> inputs = {
-    InputRoute{spec1, "Fake1", 0},
-    InputRoute{spec2, "Fake2", 0}};
+    InputRoute{spec1, 0, "Fake1", 0},
+    InputRoute{spec2, 1, "Fake2", 0}};
 
   std::vector<ForwardRoute> forwards;
   TimesliceIndex index;
