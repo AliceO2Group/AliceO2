@@ -165,8 +165,8 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
       //std::cout << "chip "<< chipID << "  PposLoc " << locH << std::endl;
       dx = locH.X() - locC.X();
       dz = locH.Z() - locC.Z();
-      nt.Fill(gloC.X(), gloC.Y(), gloC.Z(), dx, dz, trID, lab.getEventID(), cluster.getROFrame(),
-              locH.X(), locH.Z(), locC.X(), locC.Z(), npix, chipID);
+      nt.Fill(gloC.X(), gloC.Y(), gloC.Z(), dx, dz, trID, lab.getEventID(),
+              rofRec.getROFrame(), locH.X(), locH.Z(), locC.X(), locC.Z(), npix, chipID);
     }
   }
 
