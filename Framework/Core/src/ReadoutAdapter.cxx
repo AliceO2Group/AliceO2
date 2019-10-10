@@ -26,7 +26,7 @@ InjectorFunction readoutAdapter(OutputSpec const& spec)
 {
   auto counter = std::make_shared<uint64_t>(0);
 
-  return [spec, counter](FairMQDevice& device, FairMQParts& parts, ChannelRetreiver channelRetreiver) {
+  return [spec, counter](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
     for (size_t i = 0; i < parts.Size(); ++i) {
       DataHeader dh;
       // FIXME: this will have to change and extract the actual subspec from
@@ -41,7 +41,7 @@ InjectorFunction readoutAdapter(OutputSpec const& spec)
       DataProcessingHeader dph{*counter, 0};
       (*counter) += 1UL;
       o2::header::Stack headerStack{dh, dph};
-      sendOnChannel(device, std::move(headerStack), std::move(parts.At(i)), spec, channelRetreiver);
+      sendOnChannel(device, std::move(headerStack), std::move(parts.At(i)), spec, channelRetriever);
     }
   };
 }
