@@ -31,7 +31,6 @@
 
 using namespace o2::trd;
 
-
 // first lets port the functions from CalROC :
 // This therefore includes CalPad (Local[VDrift,T0,GainFactor,PRFWidth,PadNoise)
 // TODO will come back to this in a while, more pressing issues for now.
