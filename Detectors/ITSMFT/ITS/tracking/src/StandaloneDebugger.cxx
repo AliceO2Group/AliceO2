@@ -19,6 +19,7 @@
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "ITStracking/ROframe.h"
 #include "ITStracking/StandaloneDebugger.h"
+#include "TH1I.h"
 
 namespace o2
 {
@@ -111,45 +112,6 @@ void StandaloneDebugger::fillTrackletSelectionTree(std::array<std::vector<Cluste
   }
 }
 
-void StandaloneDebugger::fillStridedTrackletSelectionTree(std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>& clusters,
-                                                          std::vector<Tracklet> comb01,
-                                                          std::vector<Tracklet> comb12,
-                                                          std::vector<std::array<int, 2>> allowedTracklets,
-                                                          std::vector<int> nFoundSelections,
-                                                          const int stride,
-                                                          const ROframe* event)
-{
-  assert(event != nullptr);
-  int id = event->getROFrameId();
-  for (int iClusterIndex{0}; iClusterIndex < clusters[1].size(); ++iClusterIndex) {
-    const int stridedIndex{iClusterIndex * stride};
-    for (int iTrackletPair{0}; iTrackletPair < nFoundSelections[iClusterIndex]; ++iTrackletPair) {
-      auto& trackletPair = allowedTracklets[stridedIndex + iTrackletPair];
-      o2::MCCompLabel lblClus0 = event->getClusterLabels(0, clusters[0][comb01[trackletPair[0]].firstClusterIndex].clusterId);
-      o2::MCCompLabel lblClus1 = event->getClusterLabels(1, clusters[1][comb01[trackletPair[0]].secondClusterIndex].clusterId);
-      o2::MCCompLabel lblClus2 = event->getClusterLabels(2, clusters[2][comb12[trackletPair[1]].secondClusterIndex].clusterId);
-      unsigned char isValidated{(lblClus0.compare(lblClus1) == 1 && lblClus0.compare(lblClus2) == 1)};
-      float deltaTanLambda{gpu::GPUCommonMath::Abs(comb01[trackletPair[0]].tanLambda - comb12[trackletPair[1]].tanLambda)};
-      mTreeStream->GetDirectory()->cd(); // in case of existing other open files
-      (*mTreeStream)
-        << "selectedTracklets"
-        << "ROframeId=" << id
-        << "deltaTanlambda=" << deltaTanLambda
-        << "isValidated=" << isValidated
-        << "cluster0z=" << clusters[0][comb01[trackletPair[0]].firstClusterIndex].zCoordinate
-        << "cluster0r=" << clusters[0][comb01[trackletPair[0]].firstClusterIndex].rCoordinate
-        << "cluster1z=" << clusters[1][comb01[trackletPair[0]].secondClusterIndex].zCoordinate
-        << "cluster1r=" << clusters[1][comb01[trackletPair[0]].secondClusterIndex].rCoordinate
-        << "cluster2z=" << clusters[2][comb12[trackletPair[1]].secondClusterIndex].zCoordinate
-        << "cluster2r=" << clusters[2][comb12[trackletPair[1]].secondClusterIndex].rCoordinate
-        << "lblClus0=" << lblClus0
-        << "lblClus1=" << lblClus1
-        << "lblClus2=" << lblClus2
-        << "\n";
-    }
-  }
-}
-
 void StandaloneDebugger::fillLinesSummaryTree(std::vector<Line> lines, const ROframe* event)
 {
   assert(event != nullptr);
@@ -198,6 +160,26 @@ void StandaloneDebugger::fillPairsInfoTree(std::vector<Line> lines, const ROfram
     // TODO: get primary vertex montecarlo position
     // mLinesData.push_back(Line::getDCAComponents(line1, std::array<float, 3>{0., 0., 0.}));
   }
+}
+
+void StandaloneDebugger::fillXYHistogramTree(std::array<std::vector<int>, 2> arrayHistos, const std::array<int, 2>& sizes)
+{
+  // TArrayI arrX = TArrayI{sizes[0], arrayHistos[0].data()};
+  // TArrayI arrY = TArrayI{sizes[1], arrayHistos[1].data()};
+  TH1I histoX{"histoX", "histoX", sizes[0], 0, static_cast<float>(sizes[0])};
+  for (int iBin{1}; iBin < sizes[0] + 1; ++iBin) {
+    histoX.SetBinContent(iBin, arrayHistos[0][iBin - 1]);
+  }
+  TH1I histoY{"histoY", "histoY", sizes[1], 0, static_cast<float>(sizes[1])};
+  for (int iBin{1}; iBin < sizes[1] + 1; ++iBin) {
+    histoY.SetBinContent(iBin, arrayHistos[1][iBin - 1]);
+  }
+
+  (*mTreeStream)
+    << "HistXY"
+    << "histX=" << histoX
+    << "histY=" << histoY
+    << "\n";
 }
 
 } // namespace its

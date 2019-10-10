@@ -133,7 +133,7 @@ struct VertexerStoreConfigurationGPU {
   float lowHistBoundariesXY[2] = {-1.98f, -1.98f};
   float highHistBoundariesXY[2] = {1.98f, 1.98f};
   // Vertex finding
-  int nBinsXY[2] = {101, 101};
+  std::array<int, 2> nBinsXY = {101, 101};
   int nBinsZ = 80;
   // float binSizeX = constants::its::VertexerHistogramVolume()[0] / nBinsX;
   // float binSizeY = constants::its::VertexerHistogramVolume()[1] / nBinsY;

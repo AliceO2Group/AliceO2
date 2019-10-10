@@ -73,7 +73,9 @@ class DeviceStoreVertexerGPU final
   GPUhd() Vector<int>& getNExclusiveFoundLines() { return mNExclusiveFoundLines; }
   GPUhd() Vector<int>& getCUBTmpBuffer() { return mCUBTmpBuffer; }
   GPUhd() Vector<float>& getXYCentroids() { return mXYCentroids; }
+  GPUhd() Vector<float>& getZCentroids() { return mZCentroids; }
   GPUhd() Array<Vector<int>, 2>& getHistogramXY() { return mHistogramXY; }
+  GPUhd() Vector<int>& getHistogramZ() { return mHistogramZ; }
   GPUhd() Vector<cub::KeyValuePair<int, int>>& getBeamPositionBins() { return mBeamPositionBins; }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
@@ -96,6 +98,8 @@ class DeviceStoreVertexerGPU final
   GPUh() std::vector<Line> getRawLinesFromGPU();
   GPUh() std::vector<std::array<int, 2>> getDupletIndicesFromGPU();
   GPUh() std::vector<int> getNFoundLinesFromGPU();
+  GPUh() std::array<std::vector<int>, 2> getHistogramXYFromGPU();
+  GPUh() std::vector<int> getHistogramZFromGPU();
 #endif
   // This is temporary kept outside the debug region, since it is used to bridge data skimmed on GPU to final vertex calculation on CPU.
   // Eventually, all the vertexing will be done on GPU, so this will become a debug API.
@@ -115,6 +119,8 @@ class DeviceStoreVertexerGPU final
   Array<Vector<int>, constants::its::LayersNumberVertexer - 1> mNFoundDuplets;
   Vector<int> mCUBTmpBuffer;
   Vector<float> mXYCentroids;
+  Vector<float> mZCentroids;
+  Vector<int> mHistogramZ;
   Array<Vector<int>, 2> mHistogramXY;
   Vector<cub::KeyValuePair<int, int>> mBeamPositionBins;
 
@@ -210,6 +216,27 @@ inline std::vector<std::array<int, 2>> DeviceStoreVertexerGPU::getDupletIndicesF
     allowedPairIndices.emplace_back(std::array<int, 2>{allowedLines[0][iPair], allowedLines[1][iPair]});
   }
   return allowedPairIndices;
+}
+
+inline std::array<std::vector<int>, 2> DeviceStoreVertexerGPU::getHistogramXYFromGPU()
+{
+  std::array<std::vector<int>, 2> histoXY;
+  for (int iHisto{0}; iHisto < 2; ++iHisto) {
+    histoXY[iHisto].resize(mGPUConf.nBinsXY[iHisto] - 1);
+    mHistogramXY[iHisto].copyIntoSizedVector(histoXY[iHisto]);
+  }
+
+  return histoXY;
+}
+
+inline std::vector<int> DeviceStoreVertexerGPU::getHistogramZFromGPU()
+{
+  std::vector<int> histoZ;
+  histoZ.resize(mGPUConf.processedTrackletsCapacity);
+  std::cout << "Size of dest vector to be refined" << std::endl;
+  mHistogramZ.copyIntoSizedVector(histoZ);
+
+  return histoZ;
 }
 
 inline void DeviceStoreVertexerGPU::updateDuplets(const Order order, std::vector<Tracklet>& duplets)

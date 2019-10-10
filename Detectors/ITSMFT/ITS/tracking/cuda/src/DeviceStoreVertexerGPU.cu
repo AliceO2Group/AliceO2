@@ -34,14 +34,17 @@ GPUg() void defaultInitArrayKernel(int* array, const size_t arraySize, const int
 
 DeviceStoreVertexerGPU::DeviceStoreVertexerGPU()
 {
-  mDuplets01 = Vector<Tracklet>{mGPUConf.dupletsCapacity, mGPUConf.dupletsCapacity};                   // 200 * 4e4 * sizeof(Tracklet) = 128MB
-  mDuplets12 = Vector<Tracklet>{mGPUConf.dupletsCapacity, mGPUConf.dupletsCapacity};                   // 200 * 4e4 * sizeof(Tracklet) = 128MB
-  mTracklets = Vector<Line>{mGPUConf.processedTrackletsCapacity, mGPUConf.processedTrackletsCapacity}; // 200 * 4e4 * sizeof(Line) = 296MB
-  mCUBTmpBuffer = Vector<int>{mGPUConf.tmpCUBBufferSize, mGPUConf.tmpCUBBufferSize};                   // 5e3 * sizeof(int) = 20KB
-  mXYCentroids = Vector<float>{2 * mGPUConf.maxCentroidsXYCapacity, 2 * mGPUConf.maxCentroidsXYCapacity};
+  mDuplets01 = Vector<Tracklet>{mGPUConf.dupletsCapacity, mGPUConf.dupletsCapacity};                         // 200 * 4e4 * sizeof(Tracklet) = 128MB
+  mDuplets12 = Vector<Tracklet>{mGPUConf.dupletsCapacity, mGPUConf.dupletsCapacity};                         // 200 * 4e4 * sizeof(Tracklet) = 128MB
+  mTracklets = Vector<Line>{mGPUConf.processedTrackletsCapacity, mGPUConf.processedTrackletsCapacity};       // 200 * 4e4 * sizeof(Line) = 296MB
+  mCUBTmpBuffer = Vector<int>{mGPUConf.tmpCUBBufferSize, mGPUConf.tmpCUBBufferSize};                         // 5e3 * sizeof(int) = 20KB
+  mXYCentroids = Vector<float>{2 * mGPUConf.maxCentroidsXYCapacity, 2 * mGPUConf.maxCentroidsXYCapacity};    //
+  mZCentroids = Vector<float>{mGPUConf.processedTrackletsCapacity, mGPUConf.processedTrackletsCapacity};     //
   mNFoundLines = Vector<int>{mGPUConf.clustersPerLayerCapacity, mGPUConf.clustersPerLayerCapacity};          // 4e4 * sizeof(int) = 160KB
   mNExclusiveFoundLines = Vector<int>{mGPUConf.clustersPerLayerCapacity, mGPUConf.clustersPerLayerCapacity}; // 4e4 * sizeof(int) = 160KB, tot = <10MB
   mBeamPositionBins = Vector<cub::KeyValuePair<int, int>>{2, 2};
+  mHistogramZ = Vector<int>{mGPUConf.processedTrackletsCapacity, mGPUConf.processedTrackletsCapacity};
+
   for (int iTable{0}; iTable < 2; ++iTable) {
     mIndexTables[iTable] = Vector<int>{constants::index_table::ZBins * constants::index_table::PhiBins + 1}; // 2*20*20+1 * sizeof(int) = 802B
   }
@@ -61,7 +64,7 @@ DeviceStoreVertexerGPU::DeviceStoreVertexerGPU()
   }
   mSizes = Vector<int>{constants::its::LayersNumberVertexer};
 #endif
-}
+} // namespace GPU
 
 UniquePointer<DeviceStoreVertexerGPU> DeviceStoreVertexerGPU::initialise(const std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>& clusters,
                                                                          const std::array<std::array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>,

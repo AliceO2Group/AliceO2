@@ -216,7 +216,8 @@ GPUg() void trackletSelectionKernel(
   }
 }
 
-GPUg() void computeCentroidsKernel(DeviceStoreVertexerGPU& store)
+GPUg() void computeCentroidsKernel(DeviceStoreVertexerGPU& store,
+                                   const float pairCut)
 {
   const int nLines = store.getNExclusiveFoundLines()[store.getClusters()[1].size() - 1] + store.getNFoundLines()[store.getClusters()[1].size() - 1];
   const int maxIterations{nLines * (nLines - 1) / 2};
@@ -227,11 +228,16 @@ GPUg() void computeCentroidsKernel(DeviceStoreVertexerGPU& store)
       iFirstLine = nLines - iFirstLine - 2;
       iSecondLine = nLines - iSecondLine - 1;
     }
-
-    GPU::ClusterLinesGPU cluster{store.getLines()[iFirstLine], store.getLines()[iSecondLine]};
-    store.getXYCentroids().emplace(2 * currentThreadIndex, cluster.getVertex()[0]);
-    store.getXYCentroids().emplace(2 * currentThreadIndex + 1, cluster.getVertex()[1]);
+    if (Line::getDCA(store.getLines()[iFirstLine], store.getLines()[iSecondLine]) < pairCut) {
+      GPU::ClusterLinesGPU cluster{store.getLines()[iFirstLine], store.getLines()[iSecondLine]};
+      store.getXYCentroids().emplace(2 * currentThreadIndex, cluster.getVertex()[0]);
+      store.getXYCentroids().emplace(2 * currentThreadIndex + 1, cluster.getVertex()[1]);
+    }
   }
+}
+
+GPUg() void computeZVerticesKernel(DeviceStoreVertexerGPU& store)
+{
 }
 } // namespace GPU
 
@@ -316,16 +322,25 @@ void VertexerTraitsGPU::computeVertices()
 
   int* histogramXY[2] = {mStoreVertexerGPU.getHistogramXY()[0].get(), mStoreVertexerGPU.getHistogramXY()[1].get()};
   GPU::computeCentroidsKernel<<<blocksGrid, threadsPerBlock>>>(
-    getDeviceContext());
+    getDeviceContext(),
+    mVrtParams.pairCut);
+
   cub::DeviceHistogram::MultiHistogramEven<2, 2>(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()), // d_temp_storage
                                                  bufferSize,                                                         // temp_storage_bytes
                                                  mStoreVertexerGPU.getXYCentroids().get(),                           // d_samples
                                                  histogramXY,                                                        // d_histogram
-                                                 mStoreVertexerGPU.getConfig().nBinsXY,                              // num_levels
+                                                 mStoreVertexerGPU.getConfig().nBinsXY.data(),                       // num_levels
                                                  mStoreVertexerGPU.getConfig().lowHistBoundariesXY,                  // lower_level
                                                  mStoreVertexerGPU.getConfig().highHistBoundariesXY,                 // fupper_level
-                                                 nCentroids);                                                        // num_row_pixels,
-  GPU::printVectorKernel<<<blocksGrid, threadsPerBlock>>>(getDeviceContext(), 0);
+                                                 nCentroids);                                                        // num_row_pixels
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  if (isDebugFlag(VertexerDebug::HistCentroids)) {
+    mDebugger->fillXYHistogramTree(mStoreVertexerGPU.getHistogramXYFromGPU(),
+                                   std::array<int, 2>{mStoreVertexerGPU.getConfig().nBinsXY[0] - 1,
+                                                      mStoreVertexerGPU.getConfig().nBinsXY[1] - 1});
+#endif
+  }
+
   cub::DeviceReduce::ArgMax(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()),
                             bufferSize,
                             histogramXY[0],
@@ -336,9 +351,9 @@ void VertexerTraitsGPU::computeVertices()
                             histogramXY[1],
                             mStoreVertexerGPU.getBeamPositionBins().get() + 1,
                             mStoreVertexerGPU.getConfig().nBinsXY[0]);
-  GPU::dumpMaximaKernel<<<blocksGrid, threadsPerBlock>>>(getDeviceContext(), 0);
+
   gpuThrowOnError();
-}
+} // namespace its
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
 void VertexerTraitsGPU::computeMCFiltering()
