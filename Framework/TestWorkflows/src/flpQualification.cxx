@@ -95,7 +95,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     "readout-proxy",
     Outputs{{"ITS", "RAWDATA"}},
     "type=pair,method=connect,address=ipc:///tmp/readout-pipe-0,rateLogging=1,transport=shmem",
-    inputType == "readout" ? readoutAdapter({"ITS", "RAWDATA"}) : dplModelAdaptor({"ITS", "RAWDATA"}));
+    inputType == "readout" ? readoutAdapter({"ITS", "RAWDATA"}) : dplModelAdaptor({{"ITS", "RAWDATA"}}));
 
   // This is an example of how we can parallelize by subSpec.
   // templatedProcessor will be instanciated N times and the lambda function
