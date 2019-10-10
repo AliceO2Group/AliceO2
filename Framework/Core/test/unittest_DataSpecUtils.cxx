@@ -219,3 +219,25 @@ BOOST_AUTO_TEST_CASE(GetOptionalSubSpecWithMatcher)
   BOOST_CHECK_EQUAL(std::string(dataType2.origin.as<std::string>()), "TSET");
   BOOST_CHECK_EQUAL(std::string(dataType2.description.as<std::string>()), "FOOO");
 }
+
+BOOST_AUTO_TEST_CASE(FindOutputSpec)
+{
+  std::vector<OutputSpec> specs = {
+    {"TST", "DATA1", 0},
+    {"TST", "DATA2", 0}};
+
+  auto spec = DataSpecUtils::find(specs, {"TST"}, {"DATA1"}, 0);
+  BOOST_CHECK(spec == specs[0]);
+  BOOST_CHECK(DataSpecUtils::find(specs, {"TST"}, {"DATA3"}, 0) == std::nullopt);
+}
+
+BOOST_AUTO_TEST_CASE(FindInputSpec)
+{
+  std::vector<InputSpec> specs = {
+    {"x", "TST", "DATA1", 0},
+    {"y", "TST", "DATA2", 0}};
+
+  auto spec = DataSpecUtils::find(specs, {"TST"}, {"DATA1"}, 0);
+  BOOST_CHECK(spec == specs[0]);
+  BOOST_CHECK(DataSpecUtils::find(specs, {"TST"}, {"DATA3"}, 0) == std::nullopt);
+}

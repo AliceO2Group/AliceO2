@@ -45,6 +45,22 @@ struct DataSpecUtils {
                     const o2::header::DataDescription& description,
                     const o2::header::DataHeader::SubSpecificationType& subSpec);
 
+  /// find a matching spec in the container
+  /// @return std::optional with found spec or std::nullopt
+  template <typename ContainerT>
+  static std::optional<typename ContainerT::value_type> find(ContainerT const& container,
+                                                             const o2::header::DataOrigin& origin,
+                                                             const o2::header::DataDescription& description,
+                                                             const o2::header::DataHeader::SubSpecificationType& subSpec)
+  {
+    for (auto const& spec : container) {
+      if (match(spec, origin, description, subSpec)) {
+        return std::make_optional<typename ContainerT::value_type>(spec);
+      }
+    }
+    return std::nullopt;
+  }
+
   /// @return true if the InputSpec will match at least the provided @a origin.
   static bool partialMatch(InputSpec const& spec, o2::header::DataOrigin const& origin);
 
