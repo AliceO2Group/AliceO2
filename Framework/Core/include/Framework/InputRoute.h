@@ -38,7 +38,11 @@ struct InputRoute {
   using DanglingConfigurator = std::function<ExpirationHandler::Checker(ConfigParamRegistry const&)>;
   using ExpirationConfigurator = std::function<ExpirationHandler::Handler(ConfigParamRegistry const&)>;
 
+  // FIXME: This should really go away and we should make sure that
+  //        whenever we pass the input routes we also have the associated
+  //        input specs available.
   InputSpec matcher;
+  size_t inputSpecIndex;
   std::string sourceChannel;
   size_t timeslice;
   CreationConfigurator creatorConfigurator = nullptr;
