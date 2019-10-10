@@ -656,3 +656,90 @@ BOOST_AUTO_TEST_CASE(TestTopologyLayeredTimePipeline)
   BOOST_CHECK_EQUAL(devices[5].inputChannels[2].port, 22008);
   BOOST_REQUIRE_EQUAL(devices[5].outputChannels.size(), 0);
 }
+
+// Test the case in which we have one source with two
+// description and a wildcard for both description and
+// subspec on the receiving side:
+//
+// A/1
+//    \ B
+//    /
+// A/2
+WorkflowSpec defineDataProcessing8()
+{
+  return {
+    {"A", Inputs{InputSpec{"timer", "DPL", "TIMER", 0, Lifetime::Timer}}, {OutputSpec{"A", "1"}, OutputSpec{"A", "2"}}},
+    {"B", {InputSpec{"x", DataSpecUtils::dataDescriptorMatcherFrom(o2::header::DataOrigin{"A"})}}},
+    {"internal-dpl-timer", {}, {OutputSpec{"DPL", "TIMER", 0, Lifetime::Timer}}}};
+}
+BOOST_AUTO_TEST_CASE(TestSimpleWildcard)
+{
+  auto workflow = defineDataProcessing8();
+  SimpleResourceManager rm(22000, 1000);
+  auto resources = rm.getAvailableResources();
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+
+  std::vector<DeviceSpec> devices;
+  std::vector<DeviceId> deviceIndex;
+  std::vector<DeviceConnectionId> connections;
+  std::vector<LogicalForwardInfo> availableForwardsInfo;
+
+  std::vector<OutputSpec> globalOutputs = {OutputSpec{"A", "1"},
+                                           OutputSpec{"A", "2"},
+                                           OutputSpec{"DPL", "TIMER", 0, Lifetime::Timer}};
+
+  // See values in test_WorkflowHelpers.cxx
+  std::vector<size_t> edgeOutIndex{1, 2, 0};
+  std::vector<size_t> edgeInIndex{0, 1, 2};
+  std::vector<DeviceConnectionEdge> logicalEdges = {
+    {2, 0, 0, 0, 2, 0, false, ConnectionKind::Out},
+    {0, 1, 0, 0, 0, 0, false, ConnectionKind::Out},
+    {0, 1, 0, 0, 1, 0, false, ConnectionKind::Out},
+  };
+
+  // See values in test_WorkflowHelpers.cxx
+  std::vector<EdgeAction> outActions{
+    EdgeAction{true, true},
+    EdgeAction{true, true},
+    EdgeAction{false, false},
+  };
+
+  // See values in test_WorkflowHelpers.cxx
+  std::vector<EdgeAction> inActions{
+    EdgeAction{true, true},
+    EdgeAction{true, true},
+    EdgeAction{false, false},
+  };
+
+  DeviceSpecHelpers::processOutEdgeActions(devices, deviceIndex, connections, resources, edgeOutIndex, logicalEdges,
+                                           outActions, workflow, globalOutputs, channelPolicies);
+
+  BOOST_REQUIRE_EQUAL(devices.size(), 2); // Two devices have outputs: A and Timer
+  BOOST_CHECK_EQUAL(devices[0].name, "A");
+  BOOST_CHECK_EQUAL(devices[1].name, "internal-dpl-timer");
+  BOOST_REQUIRE_EQUAL(deviceIndex.size(), 2);
+  BOOST_CHECK_EQUAL(deviceIndex[0].processorIndex, 0); // A is the first processor in the workflow
+  BOOST_CHECK_EQUAL(deviceIndex[0].timeslice, 0);      // There is no time pipelining
+  BOOST_CHECK_EQUAL(deviceIndex[0].deviceIndex, 0);    // It's also the first device created
+  BOOST_CHECK_EQUAL(deviceIndex[1].processorIndex, 2); // TIMER is added only at the end
+  BOOST_CHECK_EQUAL(deviceIndex[1].timeslice, 0);      // There is no time pipelining
+  BOOST_CHECK_EQUAL(deviceIndex[1].deviceIndex, 1);    // It's the second device created
+
+  std::sort(connections.begin(), connections.end());
+
+  DeviceSpecHelpers::processInEdgeActions(devices, deviceIndex, resources, connections, edgeInIndex, logicalEdges,
+                                          inActions, workflow, availableForwardsInfo, channelPolicies);
+
+  BOOST_REQUIRE_EQUAL(devices.size(), 3); // Now we also have B
+  BOOST_CHECK_EQUAL(devices[0].name, "A");
+  BOOST_CHECK_EQUAL(devices[1].name, "internal-dpl-timer");
+  BOOST_CHECK_EQUAL(devices[2].name, "B");
+  BOOST_REQUIRE_EQUAL(deviceIndex.size(), 3);
+  BOOST_CHECK_EQUAL(deviceIndex[1].processorIndex, 1); // B is the second processor in the workflow
+  BOOST_CHECK_EQUAL(deviceIndex[1].timeslice, 0);      // There is no time pipelining
+  BOOST_CHECK_EQUAL(deviceIndex[1].deviceIndex, 2);    // It's the last device created because it's a sink
+
+  // We should have only one input, because the two outputs of A can
+  // be captured by the generic matcher in B
+  BOOST_REQUIRE_EQUAL(devices[2].inputs.size(), 1);
+}

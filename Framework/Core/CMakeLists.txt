@@ -177,6 +177,7 @@ foreach(t
         PtrHelpers
         Root2ArrowTable
         Services
+        SimpleWildcard
         StringHelpers
         SuppressionGenerator
         TMessageSerializer
