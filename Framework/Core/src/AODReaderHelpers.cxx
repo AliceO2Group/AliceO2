@@ -170,11 +170,8 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
                            spec](DataAllocator& outputs, ControlService& ctrl, RawDeviceService& service) {
       if (*counter >= filenames.size()) {
         LOG(info) << "All input files processed";
-        for (auto& channel : spec.outputChannels) {
-          DataProcessingHelpers::sendEndOfStream(*service.device(), channel);
-        }
+        ctrl.endOfStream();
         ctrl.readyToQuit(QuitRequest::Me);
-        service.device()->WaitFor(std::chrono::milliseconds(1000));
         return;
       }
       auto f = filenames[*counter];
@@ -183,8 +180,8 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
       FILE* pipe = popen((command + " " + f).c_str(), "r");
       if (pipe == nullptr) {
         LOG(ERROR) << "Unable to run converter: " << (command + " " + f).c_str() << f;
+        ctrl.endOfStream();
         ctrl.readyToQuit(QuitRequest::All);
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         return;
       }
       *counter += 1;
@@ -200,7 +197,7 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
 
         std::shared_ptr<arrow::RecordBatchReader> reader;
         auto input = std::make_shared<FileStream>(pipe);
-        auto readerStatus = arrow::ipc::RecordBatchStreamReader::Open(input.get(), &reader);
+        auto readerStatus = arrow::ipc::RecordBatchStreamReader::Open(input, &reader);
         if (readerStatus.ok() == false) {
           LOG(ERROR) << "Reader status not ok: " << readerStatus.message();
           break;
