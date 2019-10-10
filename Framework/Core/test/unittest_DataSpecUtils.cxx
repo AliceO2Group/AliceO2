@@ -151,6 +151,7 @@ BOOST_AUTO_TEST_CASE(MatchingOutputs)
   InputSpec input4{
     "binding", {"TST", "A1"}, Lifetime::Timeframe};
 
+  // matching inputs to outputs
   BOOST_CHECK(DataSpecUtils::match(input1, output1) == true);
   BOOST_CHECK(DataSpecUtils::match(input1, output2) == false);
   BOOST_CHECK(DataSpecUtils::match(input1, output3) == false); // Wildcard on output!
@@ -163,6 +164,21 @@ BOOST_AUTO_TEST_CASE(MatchingOutputs)
   BOOST_CHECK(DataSpecUtils::match(input4, output1) == true);  // Wildcard in input!
   BOOST_CHECK(DataSpecUtils::match(input4, output2) == false);
   BOOST_CHECK(DataSpecUtils::match(input4, output3) == true); // Wildcard on both!
+
+  // matching outputs to output definitions
+  // ConcreteDataMatcher on both sides
+  BOOST_CHECK(DataSpecUtils::match(output1, OutputSpec{"TST", "A1", 0}) == true);
+  BOOST_CHECK(DataSpecUtils::match(output1, OutputSpec{"TST", "A1", 1}) == false);
+
+  // ConcreteDataMatcher left, ConcreteDataTypeMatcher right (subspec ignored)
+  BOOST_CHECK(DataSpecUtils::match(output1, OutputSpec{"TST", "A1"}) == true);
+
+  // ConcreteDataTypeMatcher left (subspec ignored), ConcreteDataMatcher right
+  BOOST_CHECK(DataSpecUtils::match(output3, OutputSpec{"TST", "A1", 0}) == true);
+  BOOST_CHECK(DataSpecUtils::match(output3, OutputSpec{"TST", "A1", 1}) == true);
+
+  // ConcreteDataTypeMatcher on both sides
+  BOOST_CHECK(DataSpecUtils::match(output3, OutputSpec{"TST", "A1"}) == true);
 }
 
 BOOST_AUTO_TEST_CASE(PartialMatching)

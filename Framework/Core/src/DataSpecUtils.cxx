@@ -231,6 +231,20 @@ bool DataSpecUtils::match(OutputSpec const& spec, ConcreteDataMatcher const& tar
                     spec.matcher);
 }
 
+bool DataSpecUtils::match(OutputSpec const& left, OutputSpec const& right)
+{
+  if (auto leftConcrete = std::get_if<ConcreteDataMatcher>(&left.matcher)) {
+    return match(right, *leftConcrete);
+  } else if (auto rightConcrete = std::get_if<ConcreteDataMatcher>(&right.matcher)) {
+    return match(left, *rightConcrete);
+  } else {
+    // both sides are ConcreteDataTypeMatcher without subspecification, we simply specify 0
+    // this is ignored in the mathing since also left hand object is ConcreteDataTypeMatcher
+    ConcreteDataTypeMatcher dataType = DataSpecUtils::asConcreteDataTypeMatcher(right);
+    return match(left, dataType.origin, dataType.description, 0);
+  }
+}
+
 bool DataSpecUtils::match(InputSpec const& input, OutputSpec const& output)
 {
   return std::visit([&input](auto const& concrete) -> bool {
