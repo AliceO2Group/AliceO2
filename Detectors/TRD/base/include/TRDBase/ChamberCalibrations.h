@@ -49,7 +49,6 @@ class ChamberCalibrations
   void setExB(int p, int c, int s, float exb) { mExB[TRDGeometry::getDetector(p, c, s)] = exb; };
   void setExB(int roc, float exb) { mExB[roc] = exb; };
   //bulk gets ?
-  int loadReferenceCalibrations(int run2number);
   bool init(int run2run = 0);
 
  protected:
