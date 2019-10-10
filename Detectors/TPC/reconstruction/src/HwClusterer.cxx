@@ -215,24 +215,24 @@ void HwClusterer::process(std::vector<o2::tpc::Digit> const& digits, MCLabelCont
     index = mapTimeInRange(digit.getTimeStamp()) * mPadsPerRowSet[mGlobalRowToRowSet[digit.getRow()]] + (digit.getPad() + 2);
     // offset of digit pad because of 2 empty pads on both sides
 
+    float charge = digit.getChargeFloat();
+
     // TODO: fill noise here as well if necessary
     if (mPedestalObject) {
-      /*
-       * If a pedestal object was registered, check if charge of pad is greater
-       * than pedestal value. If so, assign difference of charge and pedestal
-       * to buffer, if not, set buffer to 0.
-       */
-      if (digit.getChargeFloat() < mPedestalObject->getValue(CRU(digit.getCRU()), digit.getRow(), digit.getPad())) {
-        mDataBuffer[mGlobalRowToRowSet[digit.getRow()]][index][mGlobalRowToVcIndex[digit.getRow()]] = 0;
-      } else {
-        mDataBuffer[mGlobalRowToRowSet[digit.getRow()]][index][mGlobalRowToVcIndex[digit.getRow()]] = static_cast<unsigned>(
-          (digit.getChargeFloat() - mPedestalObject->getValue(CRU(digit.getCRU()), digit.getRow(), digit.getPad())) * (1 << 4));
-      }
-    } else {
-      mDataBuffer[mGlobalRowToRowSet[digit.getRow()]][index][mGlobalRowToVcIndex[digit.getRow()]] = static_cast<unsigned>(digit.getChargeFloat() * (1 << 4));
+      charge -= mPedestalObject->getValue(CRU(digit.getCRU()), digit.getRow(), digit.getPad());
     }
-    if (mDataBuffer[mGlobalRowToRowSet[digit.getRow()]][index][mGlobalRowToVcIndex[digit.getRow()]] > 0x3FFF)
+    /*
+     * charge could be smaller than 0 due to pedestal subtraction, if so set it to zero
+     * noise thresholds for zero suppression could also be done here ...
+     */
+    if (charge < 0) {
+      charge = 0;
+    }
+
+    mDataBuffer[mGlobalRowToRowSet[digit.getRow()]][index][mGlobalRowToVcIndex[digit.getRow()]] = static_cast<unsigned>(charge * (1 << 4));
+    if (mDataBuffer[mGlobalRowToRowSet[digit.getRow()]][index][mGlobalRowToVcIndex[digit.getRow()]] > 0x3FFF) {
       mDataBuffer[mGlobalRowToRowSet[digit.getRow()]][index][mGlobalRowToVcIndex[digit.getRow()]] = 0x3FFF; // set only 14 LSBs
+    }
 
     mIndexBuffer[mGlobalRowToRowSet[digit.getRow()]][index][mGlobalRowToVcIndex[digit.getRow()]] = digitIndex++;
 
