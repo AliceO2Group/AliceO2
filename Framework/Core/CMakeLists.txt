@@ -179,6 +179,7 @@ foreach(t
         Services
         StringHelpers
         SuppressionGenerator
+        Task
         TMessageSerializer
         TableBuilder
         TimeParallelPipelining

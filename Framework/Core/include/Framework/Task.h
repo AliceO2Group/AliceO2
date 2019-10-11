@@ -11,6 +11,8 @@
 #define O2_FRAMEWORK_TASK_H_
 
 #include "Framework/AlgorithmSpec.h"
+#include "Framework/CallbackService.h"
+#include "Framework/EndOfStreamContext.h"
 #include <utility>
 #include <memory>
 
@@ -36,6 +38,9 @@ class Task
   /// This is invoked whenever a new InputRecord is demeed to
   /// be complete.
   virtual void run(ProcessingContext& context) = 0;
+
+  /// This is invoked whenever we have an EndOfStream event
+  virtual void endOfStream(EndOfStreamContext& context) {}
 };
 
 /// Adaptor to make an AlgorithmSpec from a o2::framework::Task
@@ -45,6 +50,10 @@ AlgorithmSpec adaptFromTask(Args&&... args)
 {
   auto task = std::make_shared<T>(std::forward<Args>(args)...);
   return AlgorithmSpec::InitCallback{[task](InitContext& ic) {
+    auto& callbacks = ic.services().get<CallbackService>();
+    callbacks.set(CallbackService::Id::EndOfStream, [task](EndOfStreamContext& eosContext) {
+      task->endOfStream(eosContext);
+    });
     task->init(ic);
     return [task](ProcessingContext& pc) {
       task->run(pc);
