@@ -25,6 +25,27 @@ namespace its
 namespace GPU
 {
 
+struct GPUVertex final {
+  GPUhd() GPUVertex()
+  {
+  }
+  GPUhd() GPUVertex(unsigned char isReal) : realVertex{false}
+  {
+  }
+  GPUhd() GPUVertex(float x, float y, float z, float eX, float eY, float eZ) : realVertex{true},
+                                                                               xCoord{x},
+                                                                               yCoord{y},
+                                                                               zCoord{z},
+                                                                               errorX{eZ},
+                                                                               errorY{eY},
+                                                                               errorZ{eZ}
+  {
+  }
+  unsigned char realVertex;
+  float xCoord, yCoord, zCoord;
+  float errorX, errorY, errorZ;
+};
+
 class ClusterLinesGPU final
 {
  public:

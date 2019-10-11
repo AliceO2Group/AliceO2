@@ -42,8 +42,9 @@ DeviceStoreVertexerGPU::DeviceStoreVertexerGPU()
   mZCentroids = Vector<float>{mGPUConf.processedTrackletsCapacity, mGPUConf.processedTrackletsCapacity};     //
   mNFoundLines = Vector<int>{mGPUConf.clustersPerLayerCapacity, mGPUConf.clustersPerLayerCapacity};          // 4e4 * sizeof(int) = 160KB
   mNExclusiveFoundLines = Vector<int>{mGPUConf.clustersPerLayerCapacity, mGPUConf.clustersPerLayerCapacity}; // 4e4 * sizeof(int) = 160KB, tot = <10MB
-  mBeamPositionBins = Vector<cub::KeyValuePair<int, int>>{2, 2};
+  mTmpVertexPositionBins = Vector<cub::KeyValuePair<int, int>>{3, 3};
   mHistogramZ = Vector<int>{mGPUConf.processedTrackletsCapacity, mGPUConf.processedTrackletsCapacity};
+  mGPUVertices = Vector<GPUVertex>{mGPUConf.nMaxVertices, mGPUConf.nMaxVertices};
 
   for (int iTable{0}; iTable < 2; ++iTable) {
     mIndexTables[iTable] = Vector<int>{constants::index_table::ZBins * constants::index_table::PhiBins + 1}; // 2*20*20+1 * sizeof(int) = 802B
@@ -54,8 +55,8 @@ DeviceStoreVertexerGPU::DeviceStoreVertexerGPU()
   for (int iPair{0}; iPair < constants::its::LayersNumberVertexer - 1; ++iPair) {
     mNFoundDuplets[iPair] = Vector<int>{mGPUConf.clustersPerLayerCapacity, mGPUConf.clustersPerLayerCapacity}; // 4e4 * 2 * sizeof(int) = 320KB
   }
-  for (int iHisto{0}; iHisto < 2; ++iHisto) {
-    mHistogramXY[iHisto] = Vector<int>{mGPUConf.nBinsXY[0], mGPUConf.nBinsXY[1]};
+  for (int iHisto{0}; iHisto < 3; ++iHisto) {
+    mHistogramXYZ[iHisto] = Vector<int>{mGPUConf.nBinsXYZ[iHisto], mGPUConf.nBinsXYZ[iHisto]};
   }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_

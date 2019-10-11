@@ -48,7 +48,7 @@ class StandaloneDebugger
                                  const ROframe*);
   void fillLinesSummaryTree(std::vector<Line>, const ROframe*);
   void fillPairsInfoTree(std::vector<Line>, const ROframe*);
-  void fillXYHistogramTree(std::array<std::vector<int>, 2>, const std::array<int, 2>&);
+  void fillXYZHistogramTree(std::array<std::vector<int>, 3>, const std::array<int, 3>);
 
  private:
   std::string mDebugTreeFileName = "dbg_ITS.root"; // output filename

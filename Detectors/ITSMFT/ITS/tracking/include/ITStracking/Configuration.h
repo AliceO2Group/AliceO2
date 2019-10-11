@@ -130,14 +130,13 @@ struct VertexerStoreConfigurationGPU {
   int processedTrackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
   int maxTrackletCapacity = 2e4;
   int maxCentroidsXYCapacity = std::ceil(maxTrackletCapacity * (maxTrackletCapacity - 1) / 2);
-  float lowHistBoundariesXY[2] = {-1.98f, -1.98f};
-  float highHistBoundariesXY[2] = {1.98f, 1.98f};
-  // Vertex finding
-  std::array<int, 2> nBinsXY = {101, 101};
-  int nBinsZ = 80;
-  // float binSizeX = constants::its::VertexerHistogramVolume()[0] / nBinsX;
-  // float binSizeY = constants::its::VertexerHistogramVolume()[1] / nBinsY;
-  // float binSizeZ = constants::its::VertexerHistogramVolume()[2] / nBinsZ;
+  int nBinsXYZ[3] = {101, 101, 801};
+  int nMaxVertices = 5;
+  float lowHistBoundariesXYZ[3] = {-1.98f, -1.98f, -40.f};
+  float highHistBoundariesXYZ[3] = {1.98f, 1.98f, 40.f};
+  float binSizeHistX = (highHistBoundariesXYZ[0] - lowHistBoundariesXYZ[0]) / (nBinsXYZ[0] - 1);
+  float binSizeHistY = (highHistBoundariesXYZ[1] - lowHistBoundariesXYZ[1]) / (nBinsXYZ[1] - 1);
+  float binSizeHistZ = (highHistBoundariesXYZ[2] - lowHistBoundariesXYZ[2]) / (nBinsXYZ[2] - 1);
 };
 
 } // namespace its

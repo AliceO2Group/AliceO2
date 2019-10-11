@@ -24,6 +24,7 @@
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/ClusterLines.h"
 #include "ITStrackingCUDA/Array.h"
+#include "ITStrackingCUDA/ClusterLinesGPU.h"
 #include "ITStrackingCUDA/UniquePointer.h"
 #include "ITStrackingCUDA/Vector.h"
 #include "GPUCommonDef.h"
@@ -69,14 +70,14 @@ class DeviceStoreVertexerGPU final
   GPUd() Vector<Tracklet>& getDuplets01() { return mDuplets01; }
   GPUd() Vector<Tracklet>& getDuplets12() { return mDuplets12; }
   GPUd() Vector<Line>& getLines() { return mTracklets; }
+  GPUhd() Vector<GPUVertex>& getVertices() { return mGPUVertices; }
   GPUhd() Vector<int>& getNFoundLines() { return mNFoundLines; }
   GPUhd() Vector<int>& getNExclusiveFoundLines() { return mNExclusiveFoundLines; }
   GPUhd() Vector<int>& getCUBTmpBuffer() { return mCUBTmpBuffer; }
   GPUhd() Vector<float>& getXYCentroids() { return mXYCentroids; }
   GPUhd() Vector<float>& getZCentroids() { return mZCentroids; }
-  GPUhd() Array<Vector<int>, 2>& getHistogramXY() { return mHistogramXY; }
-  GPUhd() Vector<int>& getHistogramZ() { return mHistogramZ; }
-  GPUhd() Vector<cub::KeyValuePair<int, int>>& getBeamPositionBins() { return mBeamPositionBins; }
+  GPUhd() Array<Vector<int>, 3>& getHistogramXYZ() { return mHistogramXYZ; }
+  GPUhd() Vector<cub::KeyValuePair<int, int>>& getTmpVertexPositionBins() { return mTmpVertexPositionBins; }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   GPUd() Array<Vector<int>, 2>& getDupletIndices()
@@ -110,6 +111,7 @@ class DeviceStoreVertexerGPU final
   Array<Vector<Cluster>, constants::its::LayersNumberVertexer> mClusters;
   Vector<Line> mTracklets;
   Array<Vector<int>, 2> mIndexTables;
+  Vector<GPUVertex> mGPUVertices;
 
   // service buffers
   Vector<int> mNFoundLines;
@@ -121,8 +123,8 @@ class DeviceStoreVertexerGPU final
   Vector<float> mXYCentroids;
   Vector<float> mZCentroids;
   Vector<int> mHistogramZ;
-  Array<Vector<int>, 2> mHistogramXY;
-  Vector<cub::KeyValuePair<int, int>> mBeamPositionBins;
+  Array<Vector<int>, 3> mHistogramXYZ;
+  Vector<cub::KeyValuePair<int, int>> mTmpVertexPositionBins;
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   Array<Vector<int>, 2> mDupletIndices;

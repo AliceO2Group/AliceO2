@@ -85,7 +85,7 @@ class VertexerTraits
   VertexerTraits();
   virtual ~VertexerTraits();
 #else
-  VertexerTraits() = default;
+  VertexerTraits();
   virtual ~VertexerTraits() = default;
 #endif
 

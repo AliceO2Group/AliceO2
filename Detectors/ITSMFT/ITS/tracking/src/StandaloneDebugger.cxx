@@ -162,7 +162,7 @@ void StandaloneDebugger::fillPairsInfoTree(std::vector<Line> lines, const ROfram
   }
 }
 
-void StandaloneDebugger::fillXYHistogramTree(std::array<std::vector<int>, 2> arrayHistos, const std::array<int, 2>& sizes)
+void StandaloneDebugger::fillXYZHistogramTree(std::array<std::vector<int>, 3> arrayHistos, const std::array<int, 3> sizes)
 {
   // TArrayI arrX = TArrayI{sizes[0], arrayHistos[0].data()};
   // TArrayI arrY = TArrayI{sizes[1], arrayHistos[1].data()};
@@ -174,11 +174,16 @@ void StandaloneDebugger::fillXYHistogramTree(std::array<std::vector<int>, 2> arr
   for (int iBin{1}; iBin < sizes[1] + 1; ++iBin) {
     histoY.SetBinContent(iBin, arrayHistos[1][iBin - 1]);
   }
+  TH1I histoZ{"histoZ", "histoZ", sizes[0], 0, static_cast<float>(sizes[2])};
+  for (int iBin{1}; iBin < sizes[2] + 1; ++iBin) {
+    histoZ.SetBinContent(iBin, arrayHistos[0][iBin - 1]);
+  }
 
   (*mTreeStream)
     << "HistXY"
     << "histX=" << histoX
     << "histY=" << histoY
+    << "histZ=" << histoZ
     << "\n";
 }
 

@@ -171,7 +171,6 @@ ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const in
   // AvgDistance2
   mAvgDistance2 = std::move(Line::getDistanceFromPoint(firstLine, mVertex) * Line::getDistanceFromPoint(firstLine, mVertex));
   mAvgDistance2 += (Line::getDistanceFromPoint(secondLine, mVertex) * Line::getDistanceFromPoint(secondLine, mVertex) - mAvgDistance2) / mLabels.size();
-  
 }
 
 void ClusterLines::add(const int& lineLabel, const Line& line, const bool& weight)

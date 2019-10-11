@@ -160,7 +160,7 @@ inline void Line::getDCAComponents(const Line& line, const float point[3], float
   float cdelta{0.};
   for (int i{0}; i < 3; ++i)
     cdelta -= line.cosinesDirector[i] * (line.originPoint[i] - point[i]);
- 
+
   destArray[0] = line.originPoint[0] - point[0] + line.cosinesDirector[0] * cdelta;
   destArray[3] = line.originPoint[1] - point[1] + line.cosinesDirector[1] * cdelta;
   destArray[5] = line.originPoint[2] - point[2] + line.cosinesDirector[2] * cdelta;
