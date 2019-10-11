@@ -15,6 +15,7 @@ o2_add_library(TPCReconstruction
                        src/GBTFrameContainer.cxx
                        src/HalfSAMPAData.cxx
                        src/HwClusterer.cxx
+                       src/HwClustererParam.cxx
                        src/RawReader.cxx
                        src/RawReaderCRU.cxx
                        src/RawReaderEventSync.cxx
@@ -35,6 +36,7 @@ o2_target_root_dictionary(
           include/TPCReconstruction/GBTFrameContainer.h
           include/TPCReconstruction/HalfSAMPAData.h
           include/TPCReconstruction/HwClusterer.h
+          include/TPCReconstruction/HwClustererParam.h
           include/TPCReconstruction/RawReader.h
           include/TPCReconstruction/RawReaderCRU.h
           include/TPCReconstruction/RawReaderEventSync.h

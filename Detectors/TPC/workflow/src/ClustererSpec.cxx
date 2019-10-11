@@ -52,13 +52,6 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
     int verbosity = 1;
     bool finished = false;
     bool sendMC = false;
-    short peakChargeThreshold = 2;
-    unsigned contributionChargeThreshold = 0;
-    unsigned splittingMode = 0;
-    bool isContinuousReadout = true;
-    bool rejectSinglePadClusters = false;
-    bool rejectSingleTimeClusters = false;
-    bool rejectLaterTimebin = false;
   };
 
   auto initFunction = [sendMC](InitContext& ic) {
@@ -68,13 +61,6 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
     // parameter to the clusterer processing function.
     auto processAttributes = std::make_shared<ProcessAttributes>();
     processAttributes->sendMC = sendMC;
-    processAttributes->peakChargeThreshold = short(ic.options().get<int>("peakChargeThreshold"));
-    processAttributes->contributionChargeThreshold = unsigned(ic.options().get<int>("contributionChargeThreshold"));
-    processAttributes->splittingMode = unsigned(ic.options().get<int>("splittingMode"));
-    processAttributes->isContinuousReadout = ic.options().get<bool>("isContinuousReadout");
-    processAttributes->rejectSinglePadClusters = ic.options().get<bool>("rejectSinglePadClusters");
-    processAttributes->rejectSingleTimeClusters = ic.options().get<bool>("rejectSingleTimeClusters");
-    processAttributes->rejectLaterTimebin = ic.options().get<bool>("rejectLaterTimebin");
 
     auto processSectorFunction = [processAttributes](ProcessingContext& pc, std::string inputKey, std::string labelKey) -> bool {
       auto& clusterArray = processAttributes->clusterArray;
@@ -116,13 +102,7 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
         // as they are not invoked in parallel
         // the cost of creating the clusterer should be small so we do it in the processing
         clusterers[sector] = std::make_shared<o2::tpc::HwClusterer>(&clusterArray, sector, &mctruthArray);
-        clusterers[sector]->setPeakChargeThreshold(processAttributes->peakChargeThreshold);
-        clusterers[sector]->setContributionChargeThreshold(processAttributes->contributionChargeThreshold);
-        clusterers[sector]->setSplittingMode(processAttributes->splittingMode);
-        clusterers[sector]->setContinuousReadout(processAttributes->isContinuousReadout);
-        clusterers[sector]->setRejectSinglePadClusters(processAttributes->rejectSinglePadClusters);
-        clusterers[sector]->setRejectSingleTimeClusters(processAttributes->rejectSingleTimeClusters);
-        clusterers[sector]->setRejectLaterTimebin(processAttributes->rejectLaterTimebin);
+        clusterers[sector]->init();
       }
       auto& clusterer = clusterers[sector];
 
@@ -239,16 +219,7 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
   return DataProcessorSpec{processorName,
                            {createInputSpecs(sendMC, haveDigTriggers)},
                            {createOutputSpecs(sendMC)},
-                           AlgorithmSpec(initFunction),
-                           Options{
-                             {"peakChargeThreshold", VariantType::Int, 2, {"Charge threshold for the central peak in ADC counts"}},
-                             {"contributionChargeThreshold", VariantType::Int, 0, {"Charge threshold for the contributing pads in ADC counts"}},
-                             {"splittingMode", VariantType::Int, 0, {"cluster splitting mode, 0 no splitting, 1 for minimum contributes half to both, 2 for miminum corresponds to left/older cluster"}},
-                             {"isContinuousReadout", VariantType::Bool, true, {"Switch for continuous readout"}},
-                             {"rejectSinglePadClusters", VariantType::Bool, false, {"Switch to reject single pad clusters, sigmaPad2Pre == 0"}},
-                             {"rejectSingleTimeClusters", VariantType::Bool, false, {"Switch to reject single time clusters, sigmaTime2Pre == 0"}},
-                             {"rejectLaterTimebin", VariantType::Bool, false, {"Switch to reject peaks in later timebins of the same pad"}},
-                           }};
+                           AlgorithmSpec(initFunction)};
 }
 
 } // namespace tpc

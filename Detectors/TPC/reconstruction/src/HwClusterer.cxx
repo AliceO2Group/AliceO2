@@ -12,6 +12,7 @@
 /// \brief Hwclusterer for the TPC
 
 #include "TPCReconstruction/HwClusterer.h"
+#include "TPCReconstruction/HwClustererParam.h"
 #include "TPCBase/Digit.h"
 #include "TPCBase/CRU.h"
 #include "TPCBase/Mapper.h"
@@ -107,6 +108,20 @@ HwClusterer::HwClusterer(
     }
   }
   mMCtruth.resize(mTimebinsInBuffer, nullptr);
+}
+
+//______________________________________________________________________________
+void HwClusterer::init()
+{
+  const auto& param = HwClustererParam::Instance();
+
+  mPeakChargeThreshold = param.peakChargeThreshold;
+  mContributionChargeThreshold = param.contributionChargeThreshold;
+  mSplittingMode = param.splittingMode;
+  mIsContinuousReadout = param.isContinuousReadout;
+  mRejectSinglePadClusters = param.rejectSinglePadClusters;
+  mRejectSingleTimeClusters = param.rejectSingleTimeClusters;
+  mRejectLaterTimebin = param.rejectLaterTimebin;
 }
 
 //______________________________________________________________________________
@@ -225,14 +240,8 @@ void HwClusterer::process(std::vector<o2::tpc::Digit> const& digits, MCLabelCont
      * charge could be smaller than 0 due to pedestal subtraction, if so set it to zero
      * noise thresholds for zero suppression could also be done here ...
      */
-    if (charge < 0) {
-      charge = 0;
-    }
-
-    mDataBuffer[mGlobalRowToRowSet[digit.getRow()]][index][mGlobalRowToVcIndex[digit.getRow()]] = static_cast<unsigned>(charge * (1 << 4));
-    if (mDataBuffer[mGlobalRowToRowSet[digit.getRow()]][index][mGlobalRowToVcIndex[digit.getRow()]] > 0x3FFF) {
-      mDataBuffer[mGlobalRowToRowSet[digit.getRow()]][index][mGlobalRowToVcIndex[digit.getRow()]] = 0x3FFF; // set only 14 LSBs
-    }
+    mDataBuffer[mGlobalRowToRowSet[digit.getRow()]][index][mGlobalRowToVcIndex[digit.getRow()]] =
+      charge < 0 ? 0 : ((charge < float(0x3FFF) / (1 << 4)) ? (charge * (1 << 4)) : 0x3FFF);
 
     mIndexBuffer[mGlobalRowToRowSet[digit.getRow()]][index][mGlobalRowToVcIndex[digit.getRow()]] = digitIndex++;
 
