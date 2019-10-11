@@ -7,16 +7,14 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_TASK_H
-#define FRAMEWORK_TASK_H
+#ifndef O2_FRAMEWORK_TASK_H_
+#define O2_FRAMEWORK_TASK_H_
 
 #include "Framework/AlgorithmSpec.h"
 #include <utility>
 #include <memory>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// A more familiar task API for the DPL.
@@ -53,6 +51,5 @@ AlgorithmSpec adaptFromTask(Args&&... args)
     };
   }};
 }
-} // namespace framework
-} // namespace o2
-#endif // FRAMEWORK_TASK_H
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_TASK_H_
