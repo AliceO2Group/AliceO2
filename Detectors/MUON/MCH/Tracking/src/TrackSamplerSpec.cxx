@@ -35,11 +35,11 @@ namespace mch
 using namespace std;
 using namespace o2::framework;
 
-class TrackSamplerTask
+class TrackSamplerTask : public Task
 {
  public:
   //_________________________________________________________________________________________________
-  void init(framework::InitContext& ic)
+  void init(framework::InitContext& ic) final
   {
     /// Get the input file from the context
     LOG(INFO) << "initializing track sampler";
@@ -59,7 +59,7 @@ class TrackSamplerTask
   }
 
   //_________________________________________________________________________________________________
-  void run(framework::ProcessingContext& pc)
+  void run(framework::ProcessingContext& pc) final
   {
     /// send the tracks with attached clusters of the current event
 

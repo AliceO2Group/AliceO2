@@ -39,11 +39,11 @@ namespace mch
 using namespace std;
 using namespace o2::framework;
 
-class TrackFitterTask
+class TrackFitterTask : public Task
 {
  public:
   //_________________________________________________________________________________________________
-  void init(framework::InitContext& ic)
+  void init(framework::InitContext& ic) final
   {
     /// Prepare the track extrapolation tools
     LOG(INFO) << "initializing track fitter";
@@ -54,7 +54,7 @@ class TrackFitterTask
   }
 
   //_________________________________________________________________________________________________
-  void run(framework::ProcessingContext& pc)
+  void run(framework::ProcessingContext& pc) final
   {
     /// read the tracks with attached clusters of the current event,
     /// refit them and send the new version

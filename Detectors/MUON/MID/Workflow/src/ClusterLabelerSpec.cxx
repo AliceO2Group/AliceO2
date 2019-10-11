@@ -35,18 +35,17 @@ namespace o2
 namespace mid
 {
 
-class ClusterLabelerDeviceDPL
+class ClusterLabelerDeviceDPL : public o2::framework::Task
 {
  public:
   ClusterLabelerDeviceDPL(const char* inputPreClustersBinding, const char* inputClustersBinding, const char* inputCorrelationBinding, const char* inputLabelsBinding) : mInputPreClustersBinding(inputPreClustersBinding), mInputClustersBinding(inputClustersBinding), mInputCorrelationBinding(inputCorrelationBinding), mInputLabelsBinding(inputLabelsBinding), mPreClusterLabeler(), mClusterLabeler(){};
-  ~ClusterLabelerDeviceDPL() = default;
+  ~ClusterLabelerDeviceDPL() override = default;
 
-  void init(o2::framework::InitContext& ic)
+  void init(o2::framework::InitContext& ic) final
   {
   }
 
-  void
-    run(o2::framework::ProcessingContext& pc)
+  void run(o2::framework::ProcessingContext& pc) final
   {
     auto msgPreClusters = pc.inputs().get(mInputPreClustersBinding.c_str());
     gsl::span<const PreCluster> preClusters = of::DataRefUtils::as<const PreCluster>(msgPreClusters);

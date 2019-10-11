@@ -36,13 +36,13 @@ namespace o2
 namespace itsmft
 {
 
-class ITSMFTDPLDigitWriter
+class ITSMFTDPLDigitWriter : public Task
 {
 
   using MCCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
  public:
-  void init(framework::InitContext& ic)
+  void init(framework::InitContext& ic) final
   {
     std::string detStr = mID.getName();
     std::string detStrL = mID.getName();
@@ -69,7 +69,7 @@ class ITSMFTDPLDigitWriter
     mOutTreeMC2ROF = std::make_unique<TTree>(mTreeNameMC2ROF.c_str(), "MC Event to ROF references");
   }
 
-  void run(framework::ProcessingContext& pc)
+  void run(framework::ProcessingContext& pc) final
   {
     if (mFinished) {
       return;

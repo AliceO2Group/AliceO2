@@ -36,13 +36,13 @@ namespace o2
 namespace fit
 {
 
-class FITDPLDigitWriter
+class FITDPLDigitWriter : public Task
 {
 
   using MCCont = o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>;
 
  public:
-  void init(framework::InitContext& ic)
+  void init(framework::InitContext& ic) final
   {
     std::string detStrL = mID.getName();
     std::transform(detStrL.begin(), detStrL.end(), detStrL.begin(), ::tolower);
@@ -59,7 +59,7 @@ class FITDPLDigitWriter
     mOutTree = std::make_unique<TTree>(treename.c_str(), treename.c_str());
   }
 
-  void run(framework::ProcessingContext& pc)
+  void run(framework::ProcessingContext& pc) final
   {
     if (mFinished) {
       return;

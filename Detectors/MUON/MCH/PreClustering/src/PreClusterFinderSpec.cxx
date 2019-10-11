@@ -40,11 +40,11 @@ namespace mch
 using namespace std;
 using namespace o2::framework;
 
-class PreClusterFinderTask
+class PreClusterFinderTask : public Task
 {
  public:
   //_________________________________________________________________________________________________
-  void init(framework::InitContext& ic)
+  void init(framework::InitContext& ic) final
   {
     /// Prepare the preclusterizer
     LOG(INFO) << "initializing preclusterizer";
@@ -71,7 +71,7 @@ class PreClusterFinderTask
   }
 
   //_________________________________________________________________________________________________
-  void run(framework::ProcessingContext& pc)
+  void run(framework::ProcessingContext& pc) final
   {
     /// read the digits, preclusterize and send the preclusters
 

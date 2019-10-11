@@ -51,10 +51,10 @@ namespace o2
 namespace trd
 {
 
-class TRDDPLDigitizerTask
+class TRDDPLDigitizerTask : public Task
 {
  public:
-  void init(framework::InitContext& ic)
+  void init(framework::InitContext& ic) final
   {
     LOG(INFO) << "initializing TRD digitization";
     // setup the input chain for the hits
@@ -75,7 +75,7 @@ class TRDDPLDigitizerTask
     }
   }
 
-  void run(framework::ProcessingContext& pc)
+  void run(framework::ProcessingContext& pc) final
   {
     static bool finished = false;
     if (finished) {

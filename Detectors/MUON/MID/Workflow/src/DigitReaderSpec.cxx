@@ -36,10 +36,10 @@ namespace o2
 namespace mid
 {
 
-class DigitsReaderDeviceDPL
+class DigitsReaderDeviceDPL : public of::Task
 {
  public:
-  void init(o2::framework::InitContext& ic)
+  void init(o2::framework::InitContext& ic) final
   {
     auto filename = ic.options().get<std::string>("mid-digit-infile");
     mFile = std::make_unique<TFile>(filename.c_str());
@@ -60,7 +60,7 @@ class DigitsReaderDeviceDPL
     mState = 0;
   }
 
-  void run(o2::framework::ProcessingContext& pc)
+  void run(o2::framework::ProcessingContext& pc) final
   {
     if (mState != 0) {
       return;

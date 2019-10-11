@@ -37,15 +37,15 @@ namespace fit
 // helper function which will be offered as a service
 //template <typename T>
 
-class FITDPLDigitizerTask
+class FITDPLDigitizerTask : public Task
 {
 
  public:
   explicit FITDPLDigitizerTask(o2::fit::DigitizationParameters const& parameters)
     : mDigitizer(parameters) {}
-  ~FITDPLDigitizerTask() = default;
+  ~FITDPLDigitizerTask() override = default;
 
-  void init(framework::InitContext& ic)
+  void init(framework::InitContext& ic) final
   {
     // setup the input chain for the hits
     mSimChains.emplace_back(new TChain("o2sim"));
@@ -65,7 +65,7 @@ class FITDPLDigitizerTask
     const bool isContinuous = ic.options().get<int>("pileup");
   }
 
-  void run(framework::ProcessingContext& pc)
+  void run(framework::ProcessingContext& pc) final
   {
 
     static bool finished = false;

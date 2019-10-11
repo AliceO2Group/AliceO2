@@ -32,19 +32,19 @@ namespace tof
 
 // use the tasking system of DPL
 // just need to implement 2 special methods init + run (there is no need to inherit from anything)
-class TOFDPLClustererTask
+class TOFDPLClustererTask : public Task
 {
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
   bool mUseMC = true;
 
  public:
   explicit TOFDPLClustererTask(bool useMC) : mUseMC(useMC) {}
-  void init(framework::InitContext& ic)
+  void init(framework::InitContext& ic) final
   {
     // nothing special to be set up
   }
 
-  void run(framework::ProcessingContext& pc)
+  void run(framework::ProcessingContext& pc) final
   {
     static bool finished = false;
     if (finished) {

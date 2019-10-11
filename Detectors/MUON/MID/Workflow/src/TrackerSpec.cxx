@@ -30,13 +30,13 @@ namespace o2
 {
 namespace mid
 {
-class TrackerDeviceDPL
+class TrackerDeviceDPL : public of::Task
 {
  public:
   explicit TrackerDeviceDPL(const char* inputBinding) : mInputBinding(inputBinding), mTracker(nullptr){};
-  ~TrackerDeviceDPL() = default;
+  ~TrackerDeviceDPL() override = default;
 
-  void init(o2::framework::InitContext& ic)
+  void init(o2::framework::InitContext& ic) final
   {
 
     if (!gGeoManager) {
@@ -50,7 +50,7 @@ class TrackerDeviceDPL
     }
   }
 
-  void run(o2::framework::ProcessingContext& pc)
+  void run(o2::framework::ProcessingContext& pc) final
   {
     auto msg = pc.inputs().get(mInputBinding.c_str());
     gsl::span<const Cluster2D> clusters = of::DataRefUtils::as<const Cluster2D>(msg);

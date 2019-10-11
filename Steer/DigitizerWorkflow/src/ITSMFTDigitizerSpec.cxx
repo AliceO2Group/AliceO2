@@ -39,11 +39,11 @@ namespace o2
 namespace itsmft
 {
 
-class ITSMFTDPLDigitizerTask
+class ITSMFTDPLDigitizerTask : public Task
 {
 
  public:
-  void init(framework::InitContext& ic)
+  void init(framework::InitContext& ic) final
   {
     // setup the input chain for the hits
     mSimChains.emplace_back(new TChain("o2sim"));
@@ -91,7 +91,7 @@ class ITSMFTDPLDigitizerTask
 
   virtual void setDigitizationOptions() = 0;
 
-  void run(framework::ProcessingContext& pc)
+  void run(framework::ProcessingContext& pc) final
   {
     if (mFinished) {
       return;

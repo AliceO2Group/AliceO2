@@ -33,17 +33,17 @@ using SubSpecificationType = framework::DataAllocator::SubSpecificationType;
 
 static std::vector<o2::detectors::DetID> sDetList;
 
-class GRPDPLUpdatedTask
+class GRPDPLUpdatedTask : public Task
 {
   using GRP = o2::parameters::GRPObject;
 
  public:
-  void init(framework::InitContext& ic)
+  void init(framework::InitContext& ic) final
   {
     // nothing special to be set up
   }
 
-  void run(framework::ProcessingContext& pc)
+  void run(framework::ProcessingContext& pc) final
   {
     const std::string inputGRP = "o2sim_grp.root";
     const std::string grpName = "GRP";

@@ -41,11 +41,11 @@ namespace mch
 using namespace std;
 using namespace o2::framework;
 
-class TrackFinderTask
+class TrackFinderTask : public Task
 {
  public:
   //_________________________________________________________________________________________________
-  void init(framework::InitContext& ic)
+  void init(framework::InitContext& ic) final
   {
     /// Prepare the track extrapolation tools
 
@@ -68,7 +68,7 @@ class TrackFinderTask
   }
 
   //_________________________________________________________________________________________________
-  void run(framework::ProcessingContext& pc)
+  void run(framework::ProcessingContext& pc) final
   {
     /// read the clusters of the current event, find tracks and send them
 

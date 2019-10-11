@@ -30,17 +30,17 @@ namespace o2
 {
 namespace mid
 {
-class TrackLabelerDeviceDPL
+class TrackLabelerDeviceDPL : public of::Task
 {
  public:
   TrackLabelerDeviceDPL(const char* inputClustersBinding, const char* inputTracksBinding, const char* inputLabelsBinding) : mInputClustersBinding(inputClustersBinding), mInputTracksBinding(inputTracksBinding), mInputLabelsBinding(inputLabelsBinding), mTrackLabeler(){};
-  ~TrackLabelerDeviceDPL() = default;
+  ~TrackLabelerDeviceDPL() override = default;
 
-  void init(of::InitContext& ic)
+  void init(of::InitContext& ic) final
   {
   }
 
-  void run(of::ProcessingContext& pc)
+  void run(of::ProcessingContext& pc) final
   {
     auto msgClusters = pc.inputs().get(mInputClustersBinding.c_str());
     gsl::span<const Cluster3D> clusters = of::DataRefUtils::as<const Cluster3D>(msgClusters);

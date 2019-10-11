@@ -52,7 +52,7 @@ namespace o2
 namespace mid
 {
 
-class MIDDPLDigitizerTask
+class MIDDPLDigitizerTask : public Task
 {
  public:
   // MIDDPLDigitizerTask(Digitizer digitizer) : mDigitizer(nullptr)
@@ -60,7 +60,7 @@ class MIDDPLDigitizerTask
   //   /// Ctor
   // }
 
-  void init(framework::InitContext& ic)
+  void init(framework::InitContext& ic) final
   {
     LOG(INFO) << "initializing MID digitization";
     // setup the input chain for the hits
@@ -83,7 +83,7 @@ class MIDDPLDigitizerTask
     mDigitizer = std::make_unique<Digitizer>(createDefaultChamberResponse(), createDefaultChamberEfficiencyResponse(), createTransformationFromManager(gGeoManager));
   }
 
-  void run(framework::ProcessingContext& pc)
+  void run(framework::ProcessingContext& pc) final
   {
     static bool finished = false;
     if (finished) {

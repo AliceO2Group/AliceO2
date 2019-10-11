@@ -37,11 +37,11 @@ namespace mch
 using namespace std;
 using namespace o2::framework;
 
-class ClusterSamplerTask
+class ClusterSamplerTask : public Task
 {
  public:
   //_________________________________________________________________________________________________
-  void init(framework::InitContext& ic)
+  void init(framework::InitContext& ic) final
   {
     /// Get the input file from the context
     LOG(INFO) << "initializing cluster sampler";
@@ -61,7 +61,7 @@ class ClusterSamplerTask
   }
 
   //_________________________________________________________________________________________________
-  void run(framework::ProcessingContext& pc)
+  void run(framework::ProcessingContext& pc) final
   {
     /// send the clusters of the current event
 

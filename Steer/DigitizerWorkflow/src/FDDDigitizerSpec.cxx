@@ -51,7 +51,7 @@ namespace o2
 namespace fdd
 {
 
-class FDDDPLDigitizerTask
+class FDDDPLDigitizerTask : public Task
 {
  public:
   // FDDDPLDigitizerTask(Digitizer digitizer) : mDigitizer(nullptr)
@@ -59,7 +59,7 @@ class FDDDPLDigitizerTask
   //   /// Ctor
   // }
 
-  void init(framework::InitContext& ic)
+  void init(framework::InitContext& ic) final
   {
     LOG(INFO) << "initializing FDD digitization";
     // setup the input chain for the hits
@@ -82,7 +82,7 @@ class FDDDPLDigitizerTask
     mDigitizer = std::make_unique<Digitizer>(parameters, 0);
   }
 
-  void run(framework::ProcessingContext& pc)
+  void run(framework::ProcessingContext& pc) final
   {
     static bool finished = false;
     if (finished) {

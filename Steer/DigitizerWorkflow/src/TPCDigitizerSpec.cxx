@@ -71,7 +71,7 @@ std::string getBranchNameRight(int sector)
   return branchnamestreamright.str();
 }
 
-class TPCDPLDigitizerTask
+class TPCDPLDigitizerTask : public Task
 {
  public:
   TPCDPLDigitizerTask(int channel, bool writeGRP)
@@ -80,7 +80,7 @@ class TPCDPLDigitizerTask
     mWriteGRP = writeGRP;
   };
 
-  void init(framework::InitContext& ic)
+  void init(framework::InitContext& ic) final
   {
     LOG(INFO) << "Initializing TPC digitization";
 
@@ -171,7 +171,7 @@ class TPCDPLDigitizerTask
     }
   }
 
-  void run(framework::ProcessingContext& pc)
+  void run(framework::ProcessingContext& pc) final
   {
     static int callcounter = 0;
     callcounter++;

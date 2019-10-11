@@ -37,13 +37,13 @@ namespace o2
 namespace mid
 {
 
-class ClusterizerDeviceDPL
+class ClusterizerDeviceDPL : public o2::framework::Task
 {
  public:
   ClusterizerDeviceDPL(const char* inputBinding, bool isMC) : mInputBinding(inputBinding), mIsMC(isMC), mPreClusterizer(), mClusterizer(){};
-  ~ClusterizerDeviceDPL() = default;
+  ~ClusterizerDeviceDPL() override = default;
 
-  void init(o2::framework::InitContext& ic)
+  void init(o2::framework::InitContext& ic) final
   {
     if (!mPreClusterizer.init()) {
       LOG(ERROR) << "Initialization of MID pre-clusterizer device failed";
@@ -61,8 +61,7 @@ class ClusterizerDeviceDPL
     }
   }
 
-  void
-    run(o2::framework::ProcessingContext& pc)
+  void run(o2::framework::ProcessingContext& pc) final
   {
     auto msg = pc.inputs().get(mInputBinding.c_str());
     gsl::span<const ColumnData> patterns = of::DataRefUtils::as<const ColumnData>(msg);

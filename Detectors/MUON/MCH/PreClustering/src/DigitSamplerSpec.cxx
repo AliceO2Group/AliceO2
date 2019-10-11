@@ -38,11 +38,11 @@ using namespace std;
 using namespace o2::framework;
 using namespace o2::mch;
 
-class DigitSamplerTask
+class DigitSamplerTask : public Task
 {
  public:
   //_________________________________________________________________________________________________
-  void init(framework::InitContext& ic)
+  void init(framework::InitContext& ic) final
   {
     /// Get the input file and other options from the context
     LOG(INFO) << "initializing digit sampler";
@@ -64,7 +64,7 @@ class DigitSamplerTask
   }
 
   //_________________________________________________________________________________________________
-  void run(framework::ProcessingContext& pc)
+  void run(framework::ProcessingContext& pc) final
   {
     /// send the digits of the current event
 

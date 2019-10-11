@@ -51,10 +51,10 @@ namespace o2
 namespace mch
 {
 
-class MCHDPLDigitizerTask
+class MCHDPLDigitizerTask : public Task
 {
  public:
-  void init(framework::InitContext& ic)
+  void init(framework::InitContext& ic) final
   {
     LOG(DEBUG) << "initializing MCH digitization";
     // setup the input chain for the hits
@@ -75,7 +75,7 @@ class MCHDPLDigitizerTask
     }
   }
 
-  void run(framework::ProcessingContext& pc)
+  void run(framework::ProcessingContext& pc) final
   {
     static bool finished = false;
     if (finished) {

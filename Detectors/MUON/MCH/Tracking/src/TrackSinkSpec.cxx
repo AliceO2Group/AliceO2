@@ -34,11 +34,11 @@ namespace mch
 using namespace std;
 using namespace o2::framework;
 
-class TrackSinkTask
+class TrackSinkTask : public Task
 {
  public:
   //_________________________________________________________________________________________________
-  void init(framework::InitContext& ic)
+  void init(framework::InitContext& ic) final
   {
     /// Get the output file from the context
     LOG(INFO) << "initializing track sink";
@@ -58,7 +58,7 @@ class TrackSinkTask
   }
 
   //_________________________________________________________________________________________________
-  void run(framework::ProcessingContext& pc)
+  void run(framework::ProcessingContext& pc) final
   {
     /// dump the tracks with attached clusters of the current event
     auto msgIn = pc.inputs().get<gsl::span<char>>("tracks");

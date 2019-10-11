@@ -51,10 +51,10 @@ namespace o2
 namespace zdc
 {
 
-class ZDCDPLDigitizerTask
+class ZDCDPLDigitizerTask : public Task
 {
  public:
-  void init(framework::InitContext& ic)
+  void init(framework::InitContext& ic) final
   {
     LOG(INFO) << "Initializing ZDC digitization";
     // setup the input chain for the hits
@@ -71,7 +71,7 @@ class ZDCDPLDigitizerTask
     }
   }
 
-  void run(framework::ProcessingContext& pc)
+  void run(framework::ProcessingContext& pc) final
   {
     if (mFinished) {
       return;
