@@ -12,8 +12,8 @@
 /// \brief converts digits to raw format
 // Alla.Maevskaya@cern.ch
 
-#ifndef ALICEO2_FT0_DIGITS2RAW_H_
-#define ALICEO2_FT0_DIGITS2RAW_H_
+#ifndef ALICEO2_FT0_READRAW_H_
+#define ALICEO2_FT0_READRAW_H_
 
 #include "Headers/RAWDataHeader.h"
 #include "CommonDataFormat/InteractionRecord.h"
@@ -33,7 +33,7 @@ namespace o2
 {
 namespace ft0
 {
-class Digits2Raw
+class ReadRaw
 {
   static constexpr int Nchannels_FT0 = 208;
   static constexpr int Nchannels_PM = 12;
@@ -43,12 +43,14 @@ class Digits2Raw
   //  static constexpr int GBTWORDSIZE = 80;            //real size
   static constexpr int GBTWordSize = 128;            // with padding
   static constexpr int MaxGBTpacketBytes = 8 * 1024; // Max size of GBT packet in bytes (8KB)
+  static constexpr int CRUWordSize = 16;
 
  public:
-  Digits2Raw() = default;
-  Digits2Raw(const std::string fileRaw, std::string fileDigitsName);
-  void readDigits(const std::string fileDigitsName);
-  void convertDigits(const o2::ft0::Digit& digit, const o2::ft0::LookUpTable& lut);
+  ReadRaw() = default;
+  ReadRaw(const std::string fileRaw, std::string fileDecodeData);
+  void readData(const std::string fileRaw, const o2::ft0::LookUpTable& lut);
+  //  void fillDigits(o2::ft0::Digit* digit);
+  //  void decode(const o2::ft0::Digit& digit, const o2::ft0::LookUpTable& lut);
   void close();
   static o2::ft0::LookUpTable linear()
   {
@@ -61,8 +63,8 @@ class Digits2Raw
   }
   void printRDH(const o2::header::RAWDataHeader* h)
   {
-    { 
-      if (!h) {      
+    {
+      if (!h) {
         printf("Provided RDH pointer is null\n");
         return;
       }
@@ -72,6 +74,7 @@ class Digits2Raw
              uint32_t(h->offsetToNext), uint32_t(h->memorySize), uint32_t(h->linkID), uint32_t(h->packetCounter), uint32_t(h->cruID));
       printf("RDH| TrgOrb:%9u HBOrb:%9u TrgBC:%4u HBBC:%4u TrgType:%u\n",
              uint32_t(h->triggerOrbit), uint32_t(h->heartbeatOrbit), uint32_t(h->triggerBC), uint32_t(h->heartbeatBC),
+
              uint32_t(h->triggerType));
       printf("RDH| DetField:0x%05x Par:0x%04x Stop:0x%04x PageCnt:%5u\n",
              uint32_t(h->detectorField), uint32_t(h->par), uint32_t(h->stop), uint32_t(h->pageCnt));
@@ -79,14 +82,19 @@ class Digits2Raw
   }
 
  private:
-  std::ofstream mFileDest;
-  std::array<o2::ft0::DataPageWriter, NPMs> mPages;
+  std::ifstream mFileDest;
   o2::ft0::RawEventData mRawEventData;
-  int mNpackets[NPMs] = {}; 
-
+  EventData mEventData[Nchannels_PM];
+  bool mIsPadded = true;
+  o2::ft0::EventHeader mEventHeader;
+  char* mBuffer = nullptr;
+  std::vector<char> mBufferLocal;
+  long mSize;
+  o2::ft0::Digit mDigits;
+  std::vector<std::vector<double>> mChannelData;
   /////////////////////////////////////////////////
 
-  ClassDefNV(Digits2Raw, 1);
+  ClassDefNV(ReadRaw, 1);
 };
 
 } // namespace ft0
