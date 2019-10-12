@@ -13,6 +13,8 @@
 #include "Framework/HistogramRegistry.h"
 #include <TH1F.h>
 
+#include <cmath>
+
 using namespace o2;
 using namespace o2::framework;
 
@@ -20,8 +22,8 @@ using namespace o2::framework;
 // FIXME: this should really inherit from AnalysisTask but
 //        we need GCC 7.4+ for that
 struct ATask {
-  OutputObj<TH1F> phiH{TH1F("phi", "phi", 100, 0., 7.)};
-  OutputObj<TH1F> etaH{TH1F("eta", "eta", 100, 0., 7.)};
+  OutputObj<TH1F> phiH{TH1F("phi", "phi", 100, 0., 2. * M_PI)};
+  OutputObj<TH1F> etaH{TH1F("eta", "eta", 102, -2.01, 2.01)};
 
   void process(aod::Tracks const& tracks)
   {
