@@ -7,17 +7,35 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_TASK_H
-#define FRAMEWORK_TASK_H
+#ifndef O2_FRAMEWORK_TASK_H_
+#define O2_FRAMEWORK_TASK_H_
 
 #include "Framework/AlgorithmSpec.h"
+#include "Framework/CallbackService.h"
+#include "Framework/EndOfStreamContext.h"
 #include <utility>
 #include <memory>
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
+
+/// Check if the class task has EndOfStream
+template <typename T>
+class has_endOfStream
 {
+  typedef char one;
+  struct two {
+    char x[2];
+  };
+
+  template <typename C>
+  static one test(decltype(&C::endOfStream));
+  template <typename C>
+  static two test(...);
+
+ public:
+  enum { value = sizeof(test<T>(nullptr)) == sizeof(char) };
+};
 
 /// A more familiar task API for the DPL.
 /// This allows you to define your own tasks as subclasses
@@ -38,6 +56,9 @@ class Task
   /// This is invoked whenever a new InputRecord is demeed to
   /// be complete.
   virtual void run(ProcessingContext& context) = 0;
+
+  /// This is invoked whenever we have an EndOfStream event
+  virtual void endOfStream(EndOfStreamContext& context) {}
 };
 
 /// Adaptor to make an AlgorithmSpec from a o2::framework::Task
@@ -47,12 +68,17 @@ AlgorithmSpec adaptFromTask(Args&&... args)
 {
   auto task = std::make_shared<T>(std::forward<Args>(args)...);
   return AlgorithmSpec::InitCallback{[task](InitContext& ic) {
+    if constexpr (has_endOfStream<T>::value) {
+      auto& callbacks = ic.services().get<CallbackService>();
+      callbacks.set(CallbackService::Id::EndOfStream, [task](EndOfStreamContext& eosContext) {
+        task->endOfStream(eosContext);
+      });
+    }
     task->init(ic);
     return [task](ProcessingContext& pc) {
       task->run(pc);
     };
   }};
 }
-} // namespace framework
-} // namespace o2
-#endif // FRAMEWORK_TASK_H
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_TASK_H_
