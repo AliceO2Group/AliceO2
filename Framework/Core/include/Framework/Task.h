@@ -19,6 +19,24 @@
 namespace o2::framework
 {
 
+/// Check if the class task has EndOfStream
+template <typename T>
+class has_endOfStream
+{
+  typedef char one;
+  struct two {
+    char x[2];
+  };
+
+  template <typename C>
+  static one test(decltype(&C::endOfStream));
+  template <typename C>
+  static two test(...);
+
+ public:
+  enum { value = sizeof(test<T>(nullptr)) == sizeof(char) };
+};
+
 /// A more familiar task API for the DPL.
 /// This allows you to define your own tasks as subclasses
 /// of o2::framework::Task and to pass them in the specification
@@ -50,10 +68,12 @@ AlgorithmSpec adaptFromTask(Args&&... args)
 {
   auto task = std::make_shared<T>(std::forward<Args>(args)...);
   return AlgorithmSpec::InitCallback{[task](InitContext& ic) {
-    auto& callbacks = ic.services().get<CallbackService>();
-    callbacks.set(CallbackService::Id::EndOfStream, [task](EndOfStreamContext& eosContext) {
-      task->endOfStream(eosContext);
-    });
+    if constexpr (has_endOfStream<T>::value) {
+      auto& callbacks = ic.services().get<CallbackService>();
+      callbacks.set(CallbackService::Id::EndOfStream, [task](EndOfStreamContext& eosContext) {
+        task->endOfStream(eosContext);
+      });
+    }
     task->init(ic);
     return [task](ProcessingContext& pc) {
       task->run(pc);
