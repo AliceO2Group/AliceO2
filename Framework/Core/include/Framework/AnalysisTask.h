@@ -130,12 +130,17 @@ struct OutputObj {
     //        names longer than 16 bytes.
     strncpy(desc.str, object->GetTitle(), 16);
 
-    return OutputSpec{OutputLabel{label}, "TASK", desc, 0};
+    return OutputSpec{OutputLabel{label}, "ATSK", desc, 0};
   }
 
   T* operator->()
   {
     return object.get();
+  }
+
+  T& operator*()
+  {
+    return *object.get();
   }
 
   OutputRef ref()
@@ -388,6 +393,7 @@ struct OutputManager<OutputObj<T>> {
 
   static bool postRun(EndOfStreamContext& context, OutputObj<T>& what)
   {
+    context.outputs().snapshot(what.ref(), *what);
     return true;
   }
 };

@@ -197,6 +197,10 @@ DECLARE_SOA_TABLE(Point, "MISC", "POINT", X, Y, (R2<X,Y>));
 Notice how the dynamic column is defined as a standalone column and binds to X and Y
 only when you attach it as part of a table.
 
+### Executing a finalisation method, post run
+
+Sometimes it's handy to perform an action when all the data has been processed, for example executing a fit on a histogram we filled during the processing. This can be done by implementing the postRun method.
+
 ### Creating histograms
 
 New tables are not the only kind on objects you want to create, but most likely you would like to fill histograms associated to the objects you have calculated.

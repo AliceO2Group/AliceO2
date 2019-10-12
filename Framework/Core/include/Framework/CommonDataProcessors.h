@@ -22,6 +22,9 @@ namespace framework
 
 /// Helpers to create a few general data processors
 struct CommonDataProcessors {
+  /// Match all inputs of kind ATSK and write them to a ROOT file,
+  /// one root file per originating task.
+  static DataProcessorSpec getOutputObjSink();
   /// Given the list of @a danglingInputs @return a DataProcessor which does
   /// a binary dump for all the dangling inputs matching the Timeframe
   /// lifetime. @a unmatched will be filled with all the InputSpecs which are

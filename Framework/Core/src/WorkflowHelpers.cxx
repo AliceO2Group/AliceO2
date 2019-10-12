@@ -214,6 +214,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
   std::vector<OutputSpec> providedRUN2s;
   std::vector<InputSpec> requestedCCDBs;
   std::vector<OutputSpec> providedCCDBs;
+  std::vector<OutputSpec> providedOutputObj;
 
   for (size_t wi = 0; wi < workflow.size(); ++wi) {
     auto& processor = workflow[wi];
@@ -270,6 +271,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
         providedAODs.emplace_back(output);
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"RN2"})) {
         providedRUN2s.emplace_back(output);
+      } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"ATSK"})) {
+        providedOutputObj.emplace_back(output);
       }
       if (output.lifetime == Lifetime::Condition) {
         providedCCDBs.push_back(output);
@@ -307,7 +310,13 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     extraSpecs.push_back(timer);
   }
 
-  // FIXME: I should insert more things here.
+  // This is to inject a file sink so that any dangling ATSK object is written
+  // to a ROOT file.
+  if (providedOutputObj.size() != 0) {
+    auto rootSink = CommonDataProcessors::getOutputObjSink();
+    extraSpecs.push_back(rootSink);
+  }
+
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
 
   /// This will inject a file sink so that any dangling
