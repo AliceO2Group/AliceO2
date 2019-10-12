@@ -180,6 +180,7 @@ foreach(t
         SimpleWildcard
         StringHelpers
         SuppressionGenerator
+        Task
         TMessageSerializer
         TableBuilder
         TimeParallelPipelining
