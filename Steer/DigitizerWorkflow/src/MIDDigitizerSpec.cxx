@@ -14,12 +14,13 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
+#include "Framework/Task.h"
 #include "Headers/DataHeader.h"
 #include "Steer/HitProcessingManager.h" // for RunContext
 #include "DetectorsBase/GeometryManager.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "DataFormatsMID/ROFRecord.h"
 #include "MIDSimulation/ColumnDataMC.h"
 #include "MIDSimulation/Digitizer.h"
 #include "MIDSimulation/ChamberResponse.h"
@@ -89,25 +90,20 @@ class MIDDPLDigitizerTask
     if (finished) {
       return;
     }
-    LOG(INFO) << "Doing MID digitization";
+    LOG(DEBUG) << "Doing MID digitization";
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
     auto& irecords = context->getEventRecords();
 
-    for (auto& record : irecords) {
-      LOG(INFO) << "MID TIME RECEIVED " << record.timeNS;
-    }
-
     auto& eventParts = context->getEventParts();
-    std::vector<o2::mid::ColumnDataMC> digitsAccum; // accumulator for digits
-    o2::dataformats::MCTruthContainer<o2::mid::MCLabel> labelsAccum;
+    std::vector<o2::mid::ColumnDataMC> digits, digitsAccum;
+    std::vector<o2::mid::ROFRecord> rofRecords;
+    o2::dataformats::MCTruthContainer<o2::mid::MCLabel> labels, labelsAccum;
 
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
-      mDigitizer->setEventTime(irecords[collID].timeNS);
-
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
@@ -117,21 +113,24 @@ class MIDDPLDigitizerTask
         // get the hits for this event and this source
         std::vector<o2::mid::Hit> hits;
         retrieveHits(mSimChains, "MIDHit", part.sourceID, part.entryID, &hits);
-        LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found MID " << hits.size() << " hits ";
+        LOG(DEBUG) << "For collision " << collID << " eventID " << part.entryID << " found MID " << hits.size() << " hits ";
 
-        std::vector<o2::mid::ColumnDataMC> digits; // digits which get filled
-        o2::dataformats::MCTruthContainer<o2::mid::MCLabel> labels;
         mDigitizer->process(hits, digits, labels);
+        if (digits.empty()) {
+          continue;
+        }
+        rofRecords.emplace_back(irecords[collID], EventType::Standard, digitsAccum.size(), digits.size());
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
         labelsAccum.mergeAtBack(labels);
       }
     }
 
-    LOG(INFO) << "MID: Sending " << digitsAccum.size() << " digits";
+    LOG(DEBUG) << "MID: Sending " << digitsAccum.size() << " digits.";
     pc.outputs().snapshot(Output{"MID", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
-    pc.outputs().snapshot(Output{"MID", "DIGITSMC", 0, Lifetime::Timeframe}, labelsAccum);
+    pc.outputs().snapshot(Output{"MID", "DIGITSROF", 0, Lifetime::Timeframe}, rofRecords);
+    pc.outputs().snapshot(Output{"MID", "DIGITLABELS", 0, Lifetime::Timeframe}, labelsAccum);
 
-    LOG(INFO) << "MID: Sending ROMode= " << mROMode << " to GRPUpdater";
+    LOG(DEBUG) << "MID: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"MID", "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
     // we should be only called once; tell DPL that this process is ready to exit
@@ -158,7 +157,8 @@ o2::framework::DataProcessorSpec getMIDDigitizerSpec(int channel)
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
 
     Outputs{OutputSpec{"MID", "DIGITS", 0, Lifetime::Timeframe},
-            OutputSpec{"MID", "DIGITSMC", 0, Lifetime::Timeframe},
+            OutputSpec{"MID", "DIGITLABELS", 0, Lifetime::Timeframe},
+            OutputSpec{"MID", "DIGITSROF", 0, Lifetime::Timeframe},
             OutputSpec{"MID", "ROMode", 0, Lifetime::Timeframe}},
 
     AlgorithmSpec{adaptFromTask<MIDDPLDigitizerTask>()},
