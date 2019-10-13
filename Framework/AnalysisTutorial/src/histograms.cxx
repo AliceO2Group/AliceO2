@@ -34,8 +34,33 @@ struct ATask {
   }
 };
 
+struct BTask {
+  OutputObj<TH2F> etaphiH{TH2F("etaphi", "etaphi", 100, 0., 2. * M_PI, 102, -2.01, 2.01)};
+
+  void process(aod::Tracks const& tracks)
+  {
+    for (auto& track : tracks) {
+      etaphiH->Fill(track.phi(), track.eta());
+    }
+  }
+};
+
+struct CTask {
+  OutputObj<TH1F> ptH{TH1F("pt", "pt", 100, -0.01, 10.01)};
+
+  void process(aod::Tracks const& tracks)
+  {
+    for (auto& track : tracks) {
+      ptH->Fill(abs(track.signed1Pt()));
+    }
+  }
+};
+
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("fill-etaphi-histogram")};
+    adaptAnalysisTask<ATask>("eta-and-phi-histograms"),
+    adaptAnalysisTask<BTask>("etaphi-histogram"),
+    adaptAnalysisTask<CTask>("pt-histogram"),
+  };
 }
