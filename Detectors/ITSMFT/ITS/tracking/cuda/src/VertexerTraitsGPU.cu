@@ -411,6 +411,16 @@ void VertexerTraitsGPU::computeVertices()
                               mStoreVertexerGPU.getHistogramXYZ()[2].get(),
                               mStoreVertexerGPU.getTmpVertexPositionBins().get() + 2,
                               mStoreVertexerGPU.getConfig().nBinsXYZ[2]);
+    GPU::dumpMaximaKernel<<<blocksGrid, threadsPerBlock>>>(getDeviceContext(), 0);
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+    if (isDebugFlag(VertexerDebug::HistCentroids) && !iVertex) {
+      mDebugger->fillXYZHistogramTree(std::array<std::vector<int>, 3>{mStoreVertexerGPU.getHistogramXYFromGPU()[0],
+                                                                      mStoreVertexerGPU.getHistogramXYFromGPU()[1], mStoreVertexerGPU.getHistogramZFromGPU()},
+                                      std::array<int, 3>{mStoreVertexerGPU.getConfig().nBinsXYZ[0] - 1,
+                                                         mStoreVertexerGPU.getConfig().nBinsXYZ[1] - 1,
+                                                         mStoreVertexerGPU.getConfig().nBinsXYZ[2] - 1});
+    }
+#endif
     GPU::computeVertexKernel<<<blocksGrid, 5>>>(getDeviceContext(), iVertex, mVrtParams.clusterContributorsCut, 2);
   }
   std::vector<GPU::GPUVertex> vertices;
@@ -421,16 +431,6 @@ void VertexerTraitsGPU::computeVertices()
       mVertices.emplace_back(vertex.xCoord, vertex.yCoord, vertex.zCoord, std::array<float, 6>{0.f, 0.f, 0.f, 0.f, 0.f, 0.f}, 1, 0.f, -9);
     }
   }
-
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  if (isDebugFlag(VertexerDebug::HistCentroids)) {
-    mDebugger->fillXYZHistogramTree(std::array<std::vector<int>, 3>{mStoreVertexerGPU.getHistogramXYFromGPU()[0],
-                                                                    mStoreVertexerGPU.getHistogramXYFromGPU()[1], mStoreVertexerGPU.getHistogramZFromGPU()},
-                                    std::array<int, 3>{mStoreVertexerGPU.getConfig().nBinsXYZ[0] - 1,
-                                                       mStoreVertexerGPU.getConfig().nBinsXYZ[1] - 1,
-                                                       mStoreVertexerGPU.getConfig().nBinsXYZ[2]});
-  }
-#endif
 
   gpuThrowOnError();
 }

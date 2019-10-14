@@ -164,23 +164,21 @@ void StandaloneDebugger::fillPairsInfoTree(std::vector<Line> lines, const ROfram
 
 void StandaloneDebugger::fillXYZHistogramTree(std::array<std::vector<int>, 3> arrayHistos, const std::array<int, 3> sizes)
 {
-  // TArrayI arrX = TArrayI{sizes[0], arrayHistos[0].data()};
-  // TArrayI arrY = TArrayI{sizes[1], arrayHistos[1].data()};
-  TH1I histoX{"histoX", "histoX", sizes[0], 0, static_cast<float>(sizes[0])};
+  TH1I histoX{"histoX", ";x (cm); Number of centroids", sizes[0], -1.98f, 1.98f};
   for (int iBin{1}; iBin < sizes[0] + 1; ++iBin) {
     histoX.SetBinContent(iBin, arrayHistos[0][iBin - 1]);
   }
-  TH1I histoY{"histoY", "histoY", sizes[1], 0, static_cast<float>(sizes[1])};
+  TH1I histoY{"histoY", ";y (cm); Number of centroids", sizes[1], -1.98f, 1.98f};
   for (int iBin{1}; iBin < sizes[1] + 1; ++iBin) {
     histoY.SetBinContent(iBin, arrayHistos[1][iBin - 1]);
   }
-  TH1I histoZ{"histoZ", "histoZ", sizes[0], 0, static_cast<float>(sizes[2])};
+  TH1I histoZ{"histoZ", ";z (cm); Number of centroids", sizes[2], -40., 40.};
   for (int iBin{1}; iBin < sizes[2] + 1; ++iBin) {
-    histoZ.SetBinContent(iBin, arrayHistos[0][iBin - 1]);
+    histoZ.SetBinContent(iBin, arrayHistos[2][iBin - 1]);
   }
 
   (*mTreeStream)
-    << "HistXY"
+    << "HistXYZ"
     << "histX=" << histoX
     << "histY=" << histoY
     << "histZ=" << histoZ

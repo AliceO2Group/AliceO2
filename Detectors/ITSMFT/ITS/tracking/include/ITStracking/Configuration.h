@@ -131,7 +131,7 @@ struct VertexerStoreConfigurationGPU {
   int maxTrackletCapacity = 2e4;
   int maxCentroidsXYCapacity = std::ceil(maxTrackletCapacity * (maxTrackletCapacity - 1) / 2);
   int nBinsXYZ[3] = {101, 101, 801};
-  int nMaxVertices = 5;
+  int nMaxVertices = 10;
   float lowHistBoundariesXYZ[3] = {-1.98f, -1.98f, -40.f};
   float highHistBoundariesXYZ[3] = {1.98f, 1.98f, 40.f};
   float binSizeHistX = (highHistBoundariesXYZ[0] - lowHistBoundariesXYZ[0]) / (nBinsXYZ[0] - 1);
