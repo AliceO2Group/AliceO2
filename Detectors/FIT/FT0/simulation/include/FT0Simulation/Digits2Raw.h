@@ -61,8 +61,8 @@ class Digits2Raw
   }
   void printRDH(const o2::header::RAWDataHeader* h)
   {
-    { 
-      if (!h) {      
+    {
+      if (!h) {
         printf("Provided RDH pointer is null\n");
         return;
       }
@@ -82,7 +82,6 @@ class Digits2Raw
   std::ofstream mFileDest;
   std::array<o2::ft0::DataPageWriter, NPMs> mPages;
   o2::ft0::RawEventData mRawEventData;
-  int mNpackets[NPMs] = {}; 
 
   /////////////////////////////////////////////////
 

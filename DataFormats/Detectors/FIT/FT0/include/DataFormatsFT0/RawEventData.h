@@ -34,7 +34,7 @@ constexpr int NPMs = 18;
 //static constexpt int PayloadSize = 10; // size in bytes = 1GBT word
 
 struct EventHeader {
-  //  static constexpr int PayloadSize = 10; // size in bytes = 1GBT word
+  // static constexpr int PayloadSize = 10; // size in bytes = 1GBT word
   static constexpr int PayloadSize = 16; // size in bytes = 1GBT word
   union {
     uint32_t w[3] = {0};
@@ -43,7 +43,7 @@ struct EventHeader {
       uint16_t nGBTWords : 4;
       uint32_t reservedField : 28;
       uint32_t orbit : 32;
-      uint32_t bc : 12;
+      uint16_t bc : 12;
     };
   };
 
@@ -57,7 +57,7 @@ struct EventData {
     uint64_t w = 0;
     struct {
       int16_t time : 12;
-      int16_t charge : 12;
+      int16_t charge : 13;
       uint8_t numberADC : 1;
       uint8_t isDoubleEvent : 1;
       uint8_t is1TimeLostEvent : 1;
@@ -67,9 +67,9 @@ struct EventData {
       uint8_t isAmpHigh : 1;
       uint8_t isEventInTVDC : 1;
       uint8_t isTimeInfoLost : 1;
-      uint8_t  channelID : 4;
+      uint8_t channelID : 4;
     };
-    };
+  };
   ClassDefNV(EventData, 1);
 };
 class RawEventData
@@ -124,7 +124,7 @@ class RawEventData
   {
     constexpr int CRUWordSize = 16;
     const char padding[CRUWordSize] = {0};
-  
+
     std::vector<char> result(size() * CRUWordSize);
     char* out = result.data();
     //   str.write(reinterpret_cast<const char*>(&mRDH), sizeof(mRDH));
@@ -133,7 +133,7 @@ class RawEventData
     //str.write(reinterpret_cast<const char*>(&mEventHeader), EventHeader::PayloadSize);
     std::memcpy(out, &mEventHeader, EventHeader::PayloadSize);
     out += EventHeader::PayloadSize;
-    LOG(INFO) << " !!@@@write header for " << (int)mEventHeader.nGBTWords << " orbit "<<int(mEventHeader.orbit)<<" bc "<<int(mEventHeader.bc);
+    LOG(INFO) << " !!@@@write header for " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " bc " << int(mEventHeader.bc);
     if (mIsPadded) {
       out += CRUWordSize - EventHeader::PayloadSize;
       LOG(INFO) << " !!@@@ padding header";
@@ -169,38 +169,54 @@ std::ostream& operator<<(std::ostream& stream, const RawEventData& data);
 class DataPageWriter
 {
   std::vector<char> mBuffer;
+  int mNpacketsInBuffer = 0;
+  std::vector<std::vector<char>> mPages;
+  std::vector<int> mNpackets;
   static constexpr int MAX_PAGE_SIZE = 8192;
 
  public:
   o2::header::RAWDataHeader mRDH;
   void flush(std::ostream& str)
   {
-    size_t pos = 0;
+    writePage();
     mRDH.stop = 0;
-    while (pos < mBuffer.size()) {
-      mRDH.memorySize = std::min(mBuffer.size() + mRDH.headerSize, (size_t)8192);
+    for (int page = 0; page < int(mPages.size()); ++page) {
+      mRDH.memorySize = mPages[page].size() + mRDH.headerSize;
       mRDH.offsetToNext = mRDH.memorySize;
-      //    mRDH.packetCounter = nPackets;
+      mRDH.packetCounter = mNpackets[page];
       RawEventData::printRDH(&mRDH);
       str.write(reinterpret_cast<const char*>(&mRDH), sizeof(mRDH));
-      str.write(mBuffer.data() + pos, mRDH.memorySize - mRDH.headerSize);
-      pos += mRDH.memorySize - mRDH.headerSize;
+      str.write(mPages[page].data(), mPages[page].size());
       mRDH.pageCnt++;
     }
-    if (!mBuffer.empty()) {
+    if (!mPages.empty()) {
       mRDH.memorySize = mRDH.headerSize;
       mRDH.offsetToNext = mRDH.memorySize;
       mRDH.stop = 1;
       RawEventData::printRDH(&mRDH);
       str.write(reinterpret_cast<const char*>(&mRDH), sizeof(mRDH));
       mRDH.pageCnt++;
-      mBuffer.clear();
+      mPages.clear();
+      mNpackets.clear();
     }
+  }
+
+  void writePage()
+  {
+    if (mBuffer.size() == 0)
+      return;
+    mPages.emplace_back(std::move(mBuffer));
+    mNpackets.push_back(mNpacketsInBuffer);
+    mNpacketsInBuffer = 0;
+    mBuffer.clear();
   }
 
   void write(std::vector<char> const& new_data)
   {
+    if (mBuffer.size() + new_data.size() + mRDH.headerSize > MAX_PAGE_SIZE)
+      writePage();
     mBuffer.insert(mBuffer.end(), new_data.begin(), new_data.end());
+    mNpacketsInBuffer++;
   }
 };
 } // namespace ft0

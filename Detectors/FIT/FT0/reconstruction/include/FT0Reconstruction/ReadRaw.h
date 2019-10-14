@@ -20,6 +20,8 @@
 #include "DataFormatsFT0/RawEventData.h"
 #include "DataFormatsFT0/LookUpTable.h"
 #include "DataFormatsFT0/Digit.h"
+#include "TBranch.h"
+#include "TTree.h"
 #include <TStopwatch.h>
 #include <cassert>
 #include <fstream>
@@ -49,6 +51,7 @@ class ReadRaw
   ReadRaw() = default;
   ReadRaw(const std::string fileRaw, std::string fileDecodeData);
   void readData(const std::string fileRaw, const o2::ft0::LookUpTable& lut);
+  void writeDigits(const std::string fileDecodeData);
   //  void fillDigits(o2::ft0::Digit* digit);
   //  void decode(const o2::ft0::Digit& digit, const o2::ft0::LookUpTable& lut);
   void close();
@@ -90,8 +93,17 @@ class ReadRaw
   char* mBuffer = nullptr;
   std::vector<char> mBufferLocal;
   long mSize;
-  o2::ft0::Digit mDigits;
-  std::vector<std::vector<double>> mChannelData;
+  std::vector<o2::ft0::Digit> mDigitAccum; // digit accumulator
+  template <typename T>
+  TBranch* getOrMakeBranch(TTree& tree, std::string brname, T* ptr)
+  {
+    if (auto br = tree.GetBranch(brname.c_str())) {
+      br->SetAddress(static_cast<void*>(ptr));
+      return br;
+    }
+    // otherwise make it
+    return tree.Branch(brname.c_str(), ptr);
+  }
   /////////////////////////////////////////////////
 
   ClassDefNV(ReadRaw, 1);

@@ -121,14 +121,13 @@ void Digits2Raw::convertDigits(const o2::ft0::Digit& digit, const o2::ft0::LookU
             mRawEventData.mEventData[nchannels] = {};
           mRawEventData.mEventHeader.nGBTWords = nGBTWords;
           mPages[oldlink].write(mRawEventData.to_vector());
-          mNpackets[oldlink]++;
-          std::cout << "@@@@ change link " << oldlink << std::endl;
         }
         oldlink = nlink;
         mRawEventData.mEventHeader = makeGBTHeader(nlink, intRecord);
+        LOG(INFO) << " mRawEventData.mEventHeader size " << sizeof(mRawEventData.mEventHeader);
         nchannels = 0;
       }
-      std::cout << " ChID digits " << d.ChId << " link " << nlink << " channel " << lut.getMCP(d.ChId) << std::endl;
+      std::cout << " ChID digits " << d.ChId << " link " << nlink << " channel " << lut.getMCP(d.ChId) << " amp " << d.QTCAmpl << " time " << d.CFDTime << std::endl;
       auto& newData = mRawEventData.mEventData[nchannels];
       newData.charge = MV_2_Nchannels * d.QTCAmpl;   //7 mV ->16channels
       newData.time = CFD_NS_2_Nchannels * d.CFDTime; //1000.(ps)/13.2(channel);
@@ -143,7 +142,7 @@ void Digits2Raw::convertDigits(const o2::ft0::Digit& digit, const o2::ft0::LookU
       int chain = std::rand() % 2;
       newData.numberADC = chain ? 1 : 0;
       newData.channelID = lut.getMCP(d.ChId);
-      std::cout << "@@@@ packed GBT " << nlink << " channelID   " << (int)newData.channelID << " charge " << newData.charge << " time " << newData.time << " chain " << newData.numberADC << " size " << sizeof(newData) << std::endl;
+      std::cout << "@@@@ packed GBT " << nlink << " channelID   " << (int)newData.channelID << " charge " << newData.charge << " time " << newData.time << " chain " << int(newData.numberADC) << " size " << sizeof(newData) << std::endl;
       nchannels++;
     }
     // fill mEventData[nchannels] with 0s to flag that this is a dummy data

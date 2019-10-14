@@ -13,7 +13,7 @@
 Event header - 80bits
   uint startDescriptor : 4;
   uint nGBTWords : 4;
-  uint reservedField : 32;
+  uint reservedField : 28;
   uint orbit : 32;
   uint bc : 12;
 
@@ -41,150 +41,155 @@ Continueous mode  :   for only bunches with data at least in 1 channel.
 #include "Headers/RAWDataHeader.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsFT0/RawEventData.h"
-#include "FT0Simulation/Digits2Raw.h"
+#include "DataFormatsFT0/Digit.h"
+#include "FT0Reconstruction/ReadRaw.h"
 #include "DetectorsBase/Triggers.h"
 #include <Framework/Logger.h>
 #include <TStopwatch.h>
 #include <cassert>
 #include <fstream>
+#include <iostream>
 #include <vector>
 #include <bitset>
 #include <iomanip>
 #include "TFile.h"
 #include "TTree.h"
+#include "TBranch.h"
+#include "CommonConstants/LHCConstants.h"
 
 using namespace o2::ft0;
 
-ClassImp(Digits2Raw);
-void setRDH(o2::header::RAWDataHeader&, int nlink, o2::InteractionRecord const&);
-EventHeader makeGBTHeader(int link, o2::InteractionRecord const& mIntRecord);
+ClassImp(ReadRaw);
 
-Digits2Raw::Digits2Raw(const std::string fileRaw, std::string fileDigitsName)
+ReadRaw::ReadRaw(const std::string fileRaw, std::string fileDataOut)
 {
 
+  LOG(INFO) << " constructor ReadRaw "
+            << "file to read " << fileRaw.data() << " file to write " << fileDataOut.data();
   mFileDest.exceptions(std::ios_base::failbit | std::ios_base::badbit);
-  mFileDest.open(fileRaw, std::fstream::out | std::fstream::binary);
-  Digits2Raw::readDigits(fileDigitsName.c_str());
+  mFileDest.open(fileRaw, std::fstream::in | std::fstream::binary);
+  o2::ft0::LookUpTable lut{o2::ft0::ReadRaw::linear()};
+  ReadRaw::readData(fileRaw.c_str(), lut);
+  ReadRaw::writeDigits(fileDataOut.data());
 }
 
-void Digits2Raw::readDigits(const std::string fileDigitsName)
+void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lut)
 {
-  LOG(INFO) << "**********Digits2Raw::convertDigits" << std::endl;
+  LOG(INFO) << "**********ReadRaw::" << std::endl;
+  o2::header::RAWDataHeader mRDH;
+  const char padding[CRUWordSize] = {0};
+  std::vector<o2::ft0::ChannelData> mChDgDataArr;
+  o2::ft0::ChannelData chData;
+  o2::ft0::Digit mDigits;
+  mFileDest.seekg(0, mFileDest.end);
+  long sizeFile = mFileDest.tellg();
+  mFileDest.seekg(0);
+  LOG(INFO) << "SizeFile " << sizeFile;
 
-  o2::ft0::LookUpTable lut{o2::ft0::Digits2Raw::linear()};
-  LOG(INFO) << " ##### LookUp set ";
-  
-  TFile* fdig = TFile::Open(fileDigitsName.data());
-  assert(fdig != nullptr);
-  LOG(INFO) << " Open digits file ";
-  TTree* digTree = (TTree*)fdig->Get("o2sim");
-  std::vector<o2::ft0::Digit>* digArr = new std::vector<o2::ft0::Digit>;
-  digTree->SetBranchAddress("FT0Digit", &digArr);
-  Int_t nevD = digTree->GetEntries(); // digits in cont. readout may be grouped as few events per entry
-  uint32_t old_orbit = ~0;
+  // read content of infile
+  long posInFile = 0;
 
-  for (Int_t iev = 0; iev < nevD; iev++) {
-    digTree->GetEvent(iev);
-    for (const auto& digit : *digArr) {
-      auto intRecord = digit.getInteractionRecord();
-      uint32_t current_orbit = intRecord.orbit;
-      LOG(INFO) << "!!!@@@@ old orbit " << old_orbit << " new orbit " << current_orbit;
-      if (old_orbit != current_orbit) {
-        for (DataPageWriter& writer : mPages)
-          writer.flush(mFileDest);
-        for (int nlink = 0; nlink < NPMs; ++nlink)
-          setRDH(mPages[nlink].mRDH, nlink, intRecord);
-        old_orbit = current_orbit;
+  while (posInFile < sizeFile) {
+    int pos = 0;
+    mFileDest.read(reinterpret_cast<char*>(&mRDH), sizeof(mRDH));
+    printRDH(&mRDH);
+
+    int nwords = mRDH.memorySize;
+    int npackages = mRDH.packetCounter;
+    int numPage = mRDH.pageCnt;
+    int offset = mRDH.offsetToNext;
+    int link = mRDH.linkID;
+    pos += int(sizeof(mRDH));
+    posInFile += nwords;
+    //  LOG(INFO) << "nwords " << nwords << " npackages " << npackages << " numPage " << numPage << " offset " << offset << " link " << link;
+    // LOG(INFO) << " memory size " << mRDH.memorySize << " size RDH " << sizeof(mRDH) << " pos " << pos << " pos in file " << posInFile;
+
+    while (pos < mRDH.memorySize) {
+      mFileDest.read(reinterpret_cast<char*>(&mEventHeader), sizeof(mEventHeader));
+      mDigits.setInteractionRecord(int(mEventHeader.bc), int(mEventHeader.orbit));
+      pos += sizeof(mEventHeader);
+      LOG(INFO) << " !!@@@read  header for " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos;
+      if (mIsPadded) {
+        //  mFileDest.read(reinterpret_cast<char*>(mBuffer), size_t(CRUWordSize - o2::ft0::EventData::PayloadSize));
+        LOG(INFO) << " !!@@@ padding header";
+        pos += CRUWordSize - o2::ft0::EventData::PayloadSize;
       }
-      convertDigits(digit, lut);
-    }
-  }
-}
 
-/*******************************************************************************************************************/
-void Digits2Raw::convertDigits(const o2::ft0::Digit& digit, const o2::ft0::LookUpTable& lut)
-{
-  auto intRecord = digit.getInteractionRecord();
-  std::vector<o2::ft0::ChannelData> mTimeAmp = digit.getChDgData();
-  // check empty event
-  if (mTimeAmp.size() != 0) {
-    bool is0TVX = digit.getisVrtx();
-    int oldlink = -1;
-    int nchannels = 0;
-    //   o2::ft0::RawEventData rawEventData;
-    for (auto& d : mTimeAmp) {
-      int nlink = lut.getLink(d.ChId); 
-      if (nlink != oldlink) {  
-        if (oldlink >= 0) { 
-          uint nGBTWords = uint((nchannels + 1) / 2);
-          if ((nchannels % 2) == 1)
-            mRawEventData.mEventData[nchannels] = {};
-          mRawEventData.mEventHeader.nGBTWords = nGBTWords;
-          mPages[oldlink].write(mRawEventData.to_vector());
-          mNpackets[oldlink]++;
-          std::cout << "@@@@ change link " << oldlink << std::endl;
+      for (int i = 0; i < mEventHeader.nGBTWords; ++i) {
+        mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i]), EventData::PayloadSize);
+        chData.ChId = lut.getChannel(link, int(mEventData[2 * i].channelID));
+        chData.CFDTime = mEventData[2 * i].time / CFD_NS_2_Nchannels;
+        chData.QTCAmpl = mEventData[2 * i].charge / MV_2_Nchannels;
+        chData.numberOfParticles = mEventData[2 * i].numberADC;
+        mChDgDataArr.emplace_back(chData);
+        pos += o2::ft0::EventData::PayloadSize;
+        LOG(INFO) << " read 1st word channelID " << int(mEventData[2 * i].channelID) << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " pos " << pos << " mcp " << int(mEventData[2 * i].channelID) << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID));
+
+        mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i + 1]), EventData::PayloadSize);
+        if (mEventData[2 * i + 1].charge <= 0)
+          continue;
+        pos += o2::ft0::EventData::PayloadSize;
+        chData.ChId = lut.getChannel(link, int(mEventData[2 * i + 1].channelID));
+        chData.CFDTime = mEventData[2 * i + 1].time / CFD_NS_2_Nchannels;
+        chData.QTCAmpl = mEventData[2 * i + 1].charge / MV_2_Nchannels;
+        chData.numberOfParticles = mEventData[2 * i + 1].numberADC;
+        mChDgDataArr.emplace_back(chData);
+        LOG(INFO) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " pos " << pos;
+        if (mIsPadded) {
+          //        mFileDest.read(reinterpret_cast<char*>(mBuffer), size_t(CRUWordSize - o2::ft0::EventData::PayloadSize));
+          LOG(INFO) << " !!@@@ padding data"
+                    << " pos " << pos;
         }
-        oldlink = nlink;
-        mRawEventData.mEventHeader = makeGBTHeader(nlink, intRecord);
-        nchannels = 0;
+        //    pos += mEventHeader.nGBTWords * EventData::PayloadSize;
       }
-      std::cout << " ChID digits " << d.ChId << " link " << nlink << " channel " << lut.getMCP(d.ChId) << std::endl;
-      auto& newData = mRawEventData.mEventData[nchannels];
-      newData.charge = MV_2_Nchannels * d.QTCAmpl;   //7 mV ->16channels
-      newData.time = CFD_NS_2_Nchannels * d.CFDTime; //1000.(ps)/13.2(channel);
-      newData.is1TimeLostEvent = 0;
-      newData.is2TimeLostEvent = 0;
-      newData.isADCinGate = 1; 
-      newData.isAmpHigh = 0; 
-      newData.isDoubleEvent = 0;
-      newData.isEventInTVDC = is0TVX ? 1 : 0;
-      newData.isTimeInfoLate = 0;
-      newData.isTimeInfoLost = 0;
-      int chain = std::rand() % 2;
-      newData.numberADC = chain ? 1 : 0;
-      newData.channelID = lut.getMCP(d.ChId);
-      std::cout << "@@@@ packed GBT " << nlink << " channelID   " << (int)newData.channelID << " charge " << newData.charge << " time " << newData.time << " chain " << newData.numberADC << " size " << sizeof(newData) << std::endl;
-      nchannels++;
+      mDigits.setChDgData(std::move(mChDgDataArr));
+      mDigits.setTriggers(0, 0, 0, 0, 0);
+      mDigitAccum.emplace_back(mDigits);
+      mDigits.printStream(std::cout);
+      mChDgDataArr.clear();
     }
-    // fill mEventData[nchannels] with 0s to flag that this is a dummy data
-    uint nGBTWords = uint((nchannels + 1) / 2);
-    if ((nchannels % 2) == 1)
-      mRawEventData.mEventData[nchannels] = {};
-    mRawEventData.mEventHeader.nGBTWords = nGBTWords;
-    mPages[oldlink].write(mRawEventData.to_vector());
+    if (posInFile < sizeFile - 4) {
+      mFileDest.read(reinterpret_cast<char*>(&mRDH), sizeof(mRDH));
+      printRDH(&mRDH);
+    }
   }
+  close();
 }
 
-//_____________________________________________________________________________________
-EventHeader makeGBTHeader(int link, o2::InteractionRecord const& mIntRecord)
-{
-  EventHeader mEventHeader{};
-  mEventHeader.startDescriptor = 0xf;
-  mEventHeader.reservedField = 0;
-  mEventHeader.bc = mIntRecord.bc;
-  mEventHeader.orbit = mIntRecord.orbit;
-  return mEventHeader;
-}
-//_____________________________________________________________________________
-void setRDH(o2::header::RAWDataHeader& mRDH, int nlink, o2::InteractionRecord const& mIntRecord)
-{
-  mRDH.triggerOrbit = mRDH.heartbeatOrbit = mIntRecord.orbit;
-  mRDH.triggerBC = mRDH.heartbeatBC = mIntRecord.bc;
-  mRDH.linkID = nlink;
-  mRDH.feeId = nlink;
-
-  mRDH.triggerType = o2::trigger::PhT; // ??
-  mRDH.detectorField = 0xffff;         //empty for FIt yet
-  mRDH.blockLength = 0xffff;           // ITS keeps this dummy
-  mRDH.stop = 0;                       // ??? last package  on page
-
-  //  mRDH.pageCnt = nPages;
-  //  printRDH(&mRDH);
-}
 //_____________________________________________________________________________
 
-void Digits2Raw::close()
+void ReadRaw::close()
 {
+  LOG(INFO) << " CLOSE ";
   if (mFileDest.is_open())
     mFileDest.close();
+}
+//_____________________________________________________________________________
+void ReadRaw::writeDigits(std::string fileDataOut)
+{
+  LOG(INFO) << "writeDigits fileDataOut " << fileDataOut.data();
+  TFile* mOutFile = new TFile(fileDataOut.data(), "RECREATE");
+  LOG(INFO) << " fileDataOut " << fileDataOut.data();
+  if (!mOutFile || mOutFile->IsZombie()) {
+    LOG(ERROR) << "Failed to open " << fileDataOut << " output file";
+  } else {
+    LOG(INFO) << "Opened " << fileDataOut << " output file";
+  }
+  TTree* mOutTree = new TTree("FT0rectee", "FT0rectree");
+  // retrieve the digits from the input
+  auto inDigits = mDigitAccum; //pc.inputs().get<std::vector<o2::ft0::Digit>>((detStr + "digits").c_str());
+  LOG(INFO) << "RECEIVED DIGITS SIZE " << inDigits.size();
+
+  auto digitsP = &inDigits;
+  // connect this to a particular branch
+
+  //  auto brDig = getOrMakeBranch(mOutTree, "FT0digits", &digitsP);
+  mOutTree->Branch("FT0digits", &digitsP);
+  mOutTree->Fill();
+  mOutTree->Print();
+
+  mOutFile->cd();
+  mOutTree->Write();
+  mOutFile->ls();
+  mOutFile->Close();
 }
