@@ -57,7 +57,7 @@ struct InputObject {
 
 std::string outputROOTfilename()
 {
-  return "outputObjects.root";
+  return "AnalysisResults.root";
 }
 
 DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap& outMap)
