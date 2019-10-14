@@ -16,7 +16,6 @@ o2_add_library(CCDB
         PUBLIC_LINK_LIBRARIES CURL::libcurl
                                     FairRoot::ParMQ
                                     ROOT::Hist
-                                    O2::Device
                                     O2::CommonUtils
                                     FairMQ::FairMQ
                TARGETVARNAME targetName)
@@ -34,4 +33,3 @@ o2_add_test(CcdbApi
             COMPONENT_NAME ccdb
             PUBLIC_LINK_LIBRARIES O2::CCDB
             LABELS ccdb)
-
