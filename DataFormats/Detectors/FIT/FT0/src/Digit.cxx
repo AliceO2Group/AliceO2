@@ -20,7 +20,7 @@ void Digit::printStream(std::ostream& stream) const
          << " is SemiCentral " << mIsSemiCentral << " is Vertex " << mIsVertex << std::endl;
 
   for (auto& chdata : mChDgDataArr)
-    stream << "CH " << chdata.ChId << " TIME " << chdata.CFDTime - mTime - 12.5 << " MIP " << chdata.QTCAmpl << std::endl;
+    stream << "CH " << chdata.ChId << " TIME " << chdata.CFDTime << " MIP " << chdata.QTCAmpl << std::endl;
 }
 
 std::ostream& operator<<(std::ostream& stream, const Digit& digi)
