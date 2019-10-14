@@ -42,6 +42,7 @@ namespace framework
 
 struct InputObjectRoute {
   std::string uniqueId;
+  std::string directory;
   bool operator<(InputObjectRoute const& other) const
   {
     return this->uniqueId < other.uniqueId;
@@ -54,33 +55,32 @@ struct InputObject {
   std::string name;
 };
 
-std::string lookupFilename(InputObjectRoute const& route)
+std::string outputROOTfilename()
 {
-  return "results.root";
+  return "AnalysisResults.root";
 }
 
-DataProcessorSpec CommonDataProcessors::getOutputObjSink()
+DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& outMap)
 {
-  auto writerFunction = [](InitContext& ic) -> std::function<void(ProcessingContext&)> {
+  auto writerFunction = [outMap](InitContext& ic) -> std::function<void(ProcessingContext&)> {
     auto& callbacks = ic.services().get<CallbackService>();
     auto outputObjects = std::make_shared<std::map<InputObjectRoute, InputObject>>();
 
     auto endofdatacb = [outputObjects](EndOfStreamContext& context) {
       LOG(INFO) << "Writing merged objects to file";
-      std::string currentFile = "";
-      TFile* f = nullptr;
+      std::string currentDirectory = "";
+      TFile* f = TFile::Open(outputROOTfilename().c_str(), "RECREATE");
       for (auto& [route, entry] : *outputObjects) {
-        std::string nextFile = lookupFilename(route);
-        if (nextFile != currentFile) {
-          LOGP(INFO, "Now writing in {}", nextFile);
-          if (f) {
-            f->Close();
+        std::string nextDirectory = route.directory;
+        if (nextDirectory != currentDirectory) {
+          LOGP(INFO, "Now writing in {}", nextDirectory);
+          if (!f->FindKey(nextDirectory.c_str())) {
+            f->mkdir(nextDirectory.c_str());
           }
-          currentFile = nextFile;
-          f = TFile::Open(currentFile.c_str(), "RECREATE");
+          currentDirectory = nextDirectory;
         }
         LOGP(INFO, "Now writing {}", entry.name);
-        f->WriteObjectAny(entry.obj, entry.kind, entry.name.c_str());
+        (f->GetDirectory(currentDirectory.c_str()))->WriteObjectAny(entry.obj, entry.kind, entry.name.c_str());
       }
       if (f) {
         f->Close();
@@ -90,7 +90,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink()
     };
 
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
-    return [outputObjects](ProcessingContext& pc) mutable -> void {
+    return [outputObjects, outMap](ProcessingContext& pc) mutable -> void {
       auto const& ref = pc.inputs().get("x");
       if (!ref.header) {
         LOG(ERROR) << "Header not found";
@@ -115,9 +115,14 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink()
 
       obj.obj = tm.ReadObjectAny(obj.kind);
       TNamed* named = static_cast<TNamed*>(obj.obj);
-      LOGP(error, "Object name {}", named->GetName());
+      LOGP(info, "Object name {}", named->GetName());
       obj.name = named->GetName();
-      InputObjectRoute key{obj.name};
+      auto lookup = outMap.find(obj.name);
+      std::string directory{"VariousObjects"};
+      if (lookup != outMap.end()) {
+        directory = lookup->second;
+      }
+      InputObjectRoute key{obj.name, directory};
       auto existing = outputObjects->find(key);
       if (existing == outputObjects->end()) {
         outputObjects->insert(std::make_pair(key, obj));
