@@ -70,6 +70,7 @@ class DeviceStoreVertexerGPU final
   GPUd() Vector<Tracklet>& getDuplets01() { return mDuplets01; }
   GPUd() Vector<Tracklet>& getDuplets12() { return mDuplets12; }
   GPUd() Vector<Line>& getLines() { return mTracklets; }
+  GPUd() Vector<float>& getBeamPosition() { return mBeamPosition; }
   GPUhd() Vector<GPUVertex>& getVertices() { return mGPUVertices; }
   GPUhd() Vector<int>& getNFoundLines() { return mNFoundLines; }
   GPUhd() Vector<int>& getNExclusiveFoundLines() { return mNExclusiveFoundLines; }
@@ -122,7 +123,7 @@ class DeviceStoreVertexerGPU final
   Vector<int> mCUBTmpBuffer;
   Vector<float> mXYCentroids;
   Vector<float> mZCentroids;
-  Vector<int> mHistogramZ;
+  Vector<float> mBeamPosition;
   Array<Vector<int>, 3> mHistogramXYZ;
   Vector<cub::KeyValuePair<int, int>> mTmpVertexPositionBins;
 

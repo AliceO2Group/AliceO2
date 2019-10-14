@@ -30,7 +30,7 @@ struct Line final {
   GPUhd() Line(const float firstPoint[3], const float secondPoint[3]);
   GPUhd() Line(const Tracklet&, const Cluster*, const Cluster*);
 
-  inline static float getDistanceFromPoint(const Line& line, const std::array<float, 3> point);
+  inline static float getDistanceFromPoint(const Line& line, const std::array<float, 3>& point);
   GPUhd() static float getDistanceFromPoint(const Line& line, const float point[3]);
   static std::array<float, 6> getDCAComponents(const Line& line, const std::array<float, 3> point);
   GPUhd() static void getDCAComponents(const Line& line, const float point[3], float destArray[6]);
@@ -98,7 +98,7 @@ inline Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const 
 }
 
 // static functions
-inline float Line::getDistanceFromPoint(const Line& line, const float point[3])
+inline float Line::getDistanceFromPoint(const Line& line, const std::array<float, 3>& point)
 {
   float DCASquared{0};
   float cdelta{0};
@@ -111,7 +111,7 @@ inline float Line::getDistanceFromPoint(const Line& line, const float point[3])
   return gpu::CAMath::Sqrt(DCASquared);
 }
 
-inline float Line::getDistanceFromPoint(const Line& line, const std::array<float, 3> point)
+inline float Line::getDistanceFromPoint(const Line& line, const float point[3])
 {
   float DCASquared{0};
   float cdelta{0};

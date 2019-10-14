@@ -29,21 +29,21 @@ struct GPUVertex final {
   GPUhd() GPUVertex()
   {
   }
-  GPUhd() GPUVertex(unsigned char isReal) : realVertex{false}
+  GPUhd() GPUVertex(unsigned char isReal) : realVertex{0}
   {
   }
-  GPUhd() GPUVertex(float x, float y, float z, float eX, float eY, float eZ) : realVertex{true},
-                                                                               xCoord{x},
+  GPUhd() GPUVertex(float x, float y, float z, float eX, float eY, float eZ) : xCoord{x},
                                                                                yCoord{y},
                                                                                zCoord{z},
                                                                                errorX{eZ},
                                                                                errorY{eY},
                                                                                errorZ{eZ}
   {
+    realVertex = 1;
   }
-  unsigned char realVertex;
   float xCoord, yCoord, zCoord;
   float errorX, errorY, errorZ;
+  int realVertex;
 };
 
 class ClusterLinesGPU final

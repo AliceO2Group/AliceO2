@@ -43,8 +43,8 @@ DeviceStoreVertexerGPU::DeviceStoreVertexerGPU()
   mNFoundLines = Vector<int>{mGPUConf.clustersPerLayerCapacity, mGPUConf.clustersPerLayerCapacity};          // 4e4 * sizeof(int) = 160KB
   mNExclusiveFoundLines = Vector<int>{mGPUConf.clustersPerLayerCapacity, mGPUConf.clustersPerLayerCapacity}; // 4e4 * sizeof(int) = 160KB, tot = <10MB
   mTmpVertexPositionBins = Vector<cub::KeyValuePair<int, int>>{3, 3};
-  mHistogramZ = Vector<int>{mGPUConf.processedTrackletsCapacity, mGPUConf.processedTrackletsCapacity};
   mGPUVertices = Vector<GPUVertex>{mGPUConf.nMaxVertices, mGPUConf.nMaxVertices};
+  mBeamPosition = Vector<float>{2, 2};
 
   for (int iTable{0}; iTable < 2; ++iTable) {
     mIndexTables[iTable] = Vector<int>{constants::index_table::ZBins * constants::index_table::PhiBins + 1}; // 2*20*20+1 * sizeof(int) = 802B
