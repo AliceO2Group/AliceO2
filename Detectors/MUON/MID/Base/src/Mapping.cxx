@@ -16,7 +16,8 @@
 
 #include <cassert>
 #include <iostream>
-#include "MIDBase/Constants.h"
+#include "MIDBase/DetectorParameters.h"
+#include "MIDBase/GeometryParameters.h"
 
 namespace o2
 {
@@ -46,11 +47,11 @@ void Mapping::init()
 }
 
 //______________________________________________________________________________
-void Mapping::setupSegmentation(int rpcType, int column, int nStripsNBP, int stripPitchNBP, int nBoardsBP,
+void Mapping::setupSegmentation(int rpcLine, int column, int nStripsNBP, int stripPitchNBP, int nBoardsBP,
                                 int firstBoardId, bool isBelowBeamPipe)
 {
   /// Initializes column segmentation
-  MpColumn& columnStruct{mDetectionElements[rpcType].columns[column]};
+  MpColumn& columnStruct{mDetectionElements[rpcLine].columns[column]};
   columnStruct.nStripsNBP = nStripsNBP;
   columnStruct.stripPitchNBP = stripPitchNBP;
   columnStruct.stripPitchBP = (nBoardsBP > 0) ? 4 / nBoardsBP : 0;
@@ -70,68 +71,68 @@ void Mapping::setupSegmentation(int rpcType, int column, int nStripsNBP, int str
       }
     }
     columnStruct.boardsBP.push_back(boardIdx);
-    mBoardIndexes[boardIdx].deType = (boardIdx < 117) ? rpcType : 0;
+    mBoardIndexes[boardIdx].deType = (boardIdx < 117) ? rpcLine : 0;
     mBoardIndexes[boardIdx].column = (boardIdx < 117) ? column : 0;
     mBoardIndexes[boardIdx].line = (boardIdx < 117) ? iboard : 0;
   }
 }
 
 //______________________________________________________________________________
-void Mapping::setupSegmentationLastColumn(int rpcType, int boardId)
+void Mapping::setupSegmentationLastColumn(int rpcLine, int boardId)
 {
   /// Initializes the segmentation of last column
   /// it is the same in all RPCs
-  setupSegmentation(rpcType, 6, 16, 4, 1, boardId);
+  setupSegmentation(rpcLine, 6, 16, 4, 1, boardId);
 }
 
 //______________________________________________________________________________
-void Mapping::buildDETypeLarge(int rpcType, std::array<int, 7> boards)
+void Mapping::buildDETypeLarge(int rpcLine, std::array<int, 7> boards)
 {
   /// Builds segmentation for RPCs with largest pitch
   for (int icolumn = 0; icolumn < 6; ++icolumn) {
-    setupSegmentation(rpcType, icolumn, 8, 4, 1, boards[icolumn]);
+    setupSegmentation(rpcLine, icolumn, 8, 4, 1, boards[icolumn]);
   }
-  setupSegmentationLastColumn(rpcType, boards[6]);
+  setupSegmentationLastColumn(rpcLine, boards[6]);
 }
 
 //______________________________________________________________________________
-void Mapping::buildDETypeMedium(int rpcType, std::array<int, 7> boards, bool largeNonBend)
+void Mapping::buildDETypeMedium(int rpcLine, std::array<int, 7> boards, bool largeNonBend)
 {
   /// Builds segmentation for RPCs with medium pitch
   int stripPitchNBP = largeNonBend ? 4 : 2;
   int nStripsNBP = 32 / stripPitchNBP;
   for (int icolumn = 0; icolumn < 5; ++icolumn) {
-    setupSegmentation(rpcType, icolumn, nStripsNBP, stripPitchNBP, 2, boards[icolumn]);
+    setupSegmentation(rpcLine, icolumn, nStripsNBP, stripPitchNBP, 2, boards[icolumn]);
   }
-  setupSegmentation(rpcType, 5, 8, 4, 2, boards[5]);
-  setupSegmentationLastColumn(rpcType, boards[6]);
+  setupSegmentation(rpcLine, 5, 8, 4, 2, boards[5]);
+  setupSegmentationLastColumn(rpcLine, boards[6]);
 }
 
 //______________________________________________________________________________
-void Mapping::buildDETypeCut(int rpcType, std::array<int, 7> boards, bool isBelowBeamPipe)
+void Mapping::buildDETypeCut(int rpcLine, std::array<int, 7> boards, bool isBelowBeamPipe)
 {
   /// Builds segmentation for RPCs with cut
-  setupSegmentation(rpcType, 0, 16, 2, 3, boards[0], isBelowBeamPipe);
+  setupSegmentation(rpcLine, 0, 16, 2, 3, boards[0], isBelowBeamPipe);
   for (int icolumn = 1; icolumn < 6; ++icolumn) {
     int nBoardsBP = (icolumn < 3) ? 4 : 2;
     int stripPitchNBP = (icolumn < 5) ? 2 : 4;
-    setupSegmentation(rpcType, icolumn, 32 / stripPitchNBP, stripPitchNBP, nBoardsBP, boards[icolumn]);
+    setupSegmentation(rpcLine, icolumn, 32 / stripPitchNBP, stripPitchNBP, nBoardsBP, boards[icolumn]);
   }
-  setupSegmentationLastColumn(rpcType, boards[6]);
+  setupSegmentationLastColumn(rpcLine, boards[6]);
 }
 
 //______________________________________________________________________________
-void Mapping::buildDETypeShort(int rpcType, std::array<int, 7> boards)
+void Mapping::buildDETypeShort(int rpcLine, std::array<int, 7> boards)
 {
   /// Builds segmentation for RPCs short
-  setupSegmentation(rpcType, 0, 0, 0, 0, boards[0]);
-  setupSegmentation(rpcType, 1, 8, 2, 4, boards[1]);
+  setupSegmentation(rpcLine, 0, 0, 0, 0, boards[0]);
+  setupSegmentation(rpcLine, 1, 8, 2, 4, boards[1]);
   for (int icolumn = 2; icolumn < 6; ++icolumn) {
     int nBoardsBP = (icolumn < 3) ? 4 : 2;
     int stripPitchNBP = (icolumn < 5) ? 2 : 4;
-    setupSegmentation(rpcType, icolumn, 32 / stripPitchNBP, stripPitchNBP, nBoardsBP, boards[icolumn]);
+    setupSegmentation(rpcLine, icolumn, 32 / stripPitchNBP, stripPitchNBP, nBoardsBP, boards[icolumn]);
   }
-  setupSegmentationLastColumn(rpcType, boards[6]);
+  setupSegmentationLastColumn(rpcLine, boards[6]);
 }
 
 //______________________________________________________________________________
@@ -142,10 +143,10 @@ double Mapping::getStripSize(int strip, int cathode, int column, int deId) const
   /// @param cathode Bending plane (0) or Non-Bending plane (1)
   /// @param column The column id in the detection element
   /// @param deId The detection element ID
-  int rpcType = getRPCType(deId);
-  int ichamber = Constants::getChamber(deId);
-  int stripPitch = (cathode == 0) ? mDetectionElements[rpcType].columns[column].stripPitchBP
-                                  : mDetectionElements[rpcType].columns[column].stripPitchNBP;
+  int rpcLine = detparams::getRPCLine(deId);
+  int ichamber = detparams::getChamber(deId);
+  int stripPitch = (cathode == 0) ? mDetectionElements[rpcLine].columns[column].stripPitchBP
+                                  : mDetectionElements[rpcLine].columns[column].stripPitchNBP;
   if (cathode == 0) {
     strip = 0;
   }
@@ -159,8 +160,8 @@ int Mapping::getNStripsNBP(int column, int deId) const
   /// Gets the number of strips in the NBP
   /// @param column The column id in the detection element
   /// @param deId The detection element ID
-  int rpcType = getRPCType(deId);
-  return mDetectionElements[rpcType].columns[column].nStripsNBP;
+  int rpcLine = detparams::getRPCLine(deId);
+  return mDetectionElements[rpcLine].columns[column].nStripsNBP;
 }
 
 //______________________________________________________________________________
@@ -168,8 +169,8 @@ int Mapping::getFirstColumn(int deId) const
 {
   /// Gets the first column in the DE
   /// @param deId The detection element ID
-  int rpcType = getRPCType(deId);
-  return (rpcType == 4) ? 1 : 0;
+  int rpcLine = detparams::getRPCLine(deId);
+  return (rpcLine == 4) ? 1 : 0;
 }
 
 //______________________________________________________________________________
@@ -178,8 +179,8 @@ int Mapping::getFirstBoardBP(int column, int deId) const
   /// Gets the line number of the first board in the column
   /// @param column The column id in the detection element
   /// @param deId The detection element ID
-  int rpcType = getRPCType(deId);
-  return ((mDetectionElements[rpcType].columns[column].boardsBP[0] == 117) ? 1 : 0);
+  int rpcLine = detparams::getRPCLine(deId);
+  return ((mDetectionElements[rpcLine].columns[column].boardsBP[0] == 117) ? 1 : 0);
 }
 
 //______________________________________________________________________________
@@ -188,9 +189,9 @@ int Mapping::getLastBoardBP(int column, int deId) const
   /// Gets the number of boards in the column
   /// @param column The column id in the detection element
   /// @param deId The detection element ID
-  int rpcType = getRPCType(deId);
-  int lastBoard = mDetectionElements[rpcType].columns[column].boardsBP.size() - 1;
-  if (column == 0 && rpcType == 3) {
+  int rpcLine = detparams::getRPCLine(deId);
+  int lastBoard = mDetectionElements[rpcLine].columns[column].boardsBP.size() - 1;
+  if (column == 0 && rpcLine == 3) {
     --lastBoard;
   }
   return lastBoard;
@@ -204,9 +205,9 @@ int Mapping::getBoardId(int line, int column, int deId, bool warn) const
   /// @param column The column id in the detection element
   /// @param deId The detection element ID
   /// @param warn Set to false to avoid printing an error message in case the strip is not found (default: true)
-  int rpcType = getRPCType(deId);
-  if (line < mDetectionElements[rpcType].columns[column].boardsBP.size()) {
-    int boardIdx = mDetectionElements[rpcType].columns[column].boardsBP[line];
+  int rpcLine = detparams::getRPCLine(deId);
+  if (line < mDetectionElements[rpcLine].columns[column].boardsBP.size()) {
+    int boardIdx = mDetectionElements[rpcLine].columns[column].boardsBP[line];
     if (boardIdx < 117) {
       int boardId = boardIdx + 1;
       if (deId >= 36) {
@@ -230,12 +231,12 @@ std::vector<Mapping::MpStripIndex> Mapping::getNeighbours(const Mapping::MpStrip
   /// @param cathode Bending plane (0) or Non-Bending plane (1)
   /// @param deId The detection element ID
 
-  int rpcType = getRPCType(deId);
-  return (cathode == 0) ? getNeighboursBP(stripIndex, rpcType) : getNeighboursNBP(stripIndex, rpcType);
+  int rpcLine = detparams::getRPCLine(deId);
+  return (cathode == 0) ? getNeighboursBP(stripIndex, rpcLine) : getNeighboursNBP(stripIndex, rpcLine);
 }
 
 //______________________________________________________________________________
-std::vector<Mapping::MpStripIndex> Mapping::getNeighboursNBP(const Mapping::MpStripIndex& stripIndex, int rpcType) const
+std::vector<Mapping::MpStripIndex> Mapping::getNeighboursNBP(const Mapping::MpStripIndex& stripIndex, int rpcLine) const
 {
   /// Gets the neighbours in the Non-Bending plane
   std::vector<MpStripIndex> neighbours;
@@ -245,16 +246,16 @@ std::vector<Mapping::MpStripIndex> Mapping::getNeighboursNBP(const Mapping::MpSt
     neigh.line = stripIndex.line;
     neigh.strip = stripIndex.strip + delta;
     if (neigh.strip < 0) {
-      if (stripIndex.column == 0 || (stripIndex.column == 1 && rpcType == 4)) {
+      if (stripIndex.column == 0 || (stripIndex.column == 1 && rpcLine == 4)) {
         continue;
       }
       --neigh.column;
-      if (!isValidLine(neigh.line, neigh.column, rpcType)) {
+      if (!isValidLine(neigh.line, neigh.column, rpcLine)) {
         // This is useful for cut RPCs
         continue;
       }
-      neigh.strip = mDetectionElements[rpcType].columns[neigh.column].nStripsNBP - 1;
-    } else if (neigh.strip >= mDetectionElements[rpcType].columns[stripIndex.column].nStripsNBP) {
+      neigh.strip = mDetectionElements[rpcLine].columns[neigh.column].nStripsNBP - 1;
+    } else if (neigh.strip >= mDetectionElements[rpcLine].columns[stripIndex.column].nStripsNBP) {
       if (stripIndex.column == 6) {
         continue;
       }
@@ -267,7 +268,7 @@ std::vector<Mapping::MpStripIndex> Mapping::getNeighboursNBP(const Mapping::MpSt
 }
 
 //______________________________________________________________________________
-std::vector<Mapping::MpStripIndex> Mapping::getNeighboursBP(const Mapping::MpStripIndex& stripIndex, int rpcType) const
+std::vector<Mapping::MpStripIndex> Mapping::getNeighboursBP(const Mapping::MpStripIndex& stripIndex, int rpcLine) const
 {
   /// Gets the neighbours in the Bending plane
   std::vector<MpStripIndex> neighbours;
@@ -279,13 +280,13 @@ std::vector<Mapping::MpStripIndex> Mapping::getNeighboursBP(const Mapping::MpStr
     neigh.strip = stripIndex.strip + delta;
     if (neigh.strip < 0) {
       --neigh.line;
-      if (!isValidLine(neigh.line, neigh.column, rpcType)) {
+      if (!isValidLine(neigh.line, neigh.column, rpcLine)) {
         continue;
       }
       neigh.strip = 15;
-    } else if (neigh.strip >= 16) {
+    } else if (neigh.strip >= detparams::NStripsBP) {
       ++neigh.line;
-      if (!isValidLine(neigh.line, neigh.column, rpcType)) {
+      if (!isValidLine(neigh.line, neigh.column, rpcLine)) {
         continue;
       }
       neigh.strip = 0;
@@ -294,19 +295,19 @@ std::vector<Mapping::MpStripIndex> Mapping::getNeighboursBP(const Mapping::MpStr
   }
 
   // Then search in the neighbour columns
-  int stripPitch = mDetectionElements[rpcType].columns[stripIndex.column].stripPitchBP;
+  int stripPitch = mDetectionElements[rpcLine].columns[stripIndex.column].stripPitchBP;
   for (int delta = -1; delta <= 1; delta += 2) {
     neigh.column = stripIndex.column + delta;
-    if (!isValidColumn(neigh.column, rpcType)) {
+    if (!isValidColumn(neigh.column, rpcLine)) {
       continue;
     }
-    int stripPitchNeigh = mDetectionElements[rpcType].columns[neigh.column].stripPitchBP;
-    int absStripNeigh = (16 * stripIndex.line + stripIndex.strip) * stripPitch / stripPitchNeigh;
-    neigh.line = absStripNeigh / 16;
-    if (!isValidLine(neigh.line, neigh.column, rpcType)) {
+    int stripPitchNeigh = mDetectionElements[rpcLine].columns[neigh.column].stripPitchBP;
+    int absStripNeigh = (detparams::NStripsBP * stripIndex.line + stripIndex.strip) * stripPitch / stripPitchNeigh;
+    neigh.line = absStripNeigh / detparams::NStripsBP;
+    if (!isValidLine(neigh.line, neigh.column, rpcLine)) {
       continue;
     }
-    neigh.strip = absStripNeigh % 16;
+    neigh.strip = absStripNeigh % detparams::NStripsBP;
     neighbours.push_back(neigh);
     if (stripPitch > stripPitchNeigh) {
       neigh.strip = (neigh.strip % 2 == 0) ? neigh.strip + 1 : neigh.strip - 1;
@@ -326,23 +327,23 @@ Mapping::MpStripIndex Mapping::nextStrip(const MpStripIndex& stripIndex, int cat
   /// @param deId The detection element ID
   /// @param descending Move from inner to outer
   MpStripIndex neigh = stripIndex;
-  int rpcType = getRPCType(deId);
+  int rpcLine = detparams::getRPCLine(deId);
   int step = (descending) ? -1 : 1;
   neigh.strip = stripIndex.strip + step;
-  int nStrips = (cathode == 0) ? 16 : mDetectionElements[rpcType].columns[neigh.column].nStripsNBP;
+  int nStrips = (cathode == 0) ? detparams::NStripsBP : mDetectionElements[rpcLine].columns[neigh.column].nStripsNBP;
   if (neigh.strip < 0 || neigh.strip >= nStrips) {
     bool isOk = false;
     if (cathode == 0) {
       neigh.line += step;
-      isOk = isValidLine(neigh.line, neigh.column, rpcType);
+      isOk = isValidLine(neigh.line, neigh.column, rpcLine);
     } else {
       neigh.column += step;
-      isOk = isValidColumn(neigh.column, rpcType);
+      isOk = isValidColumn(neigh.column, rpcLine);
     }
     if (isOk) {
       if (neigh.strip < 0) {
         if (cathode == 1) {
-          nStrips = mDetectionElements[rpcType].columns[neigh.column].nStripsNBP;
+          nStrips = mDetectionElements[rpcLine].columns[neigh.column].nStripsNBP;
         }
         neigh.strip = nStrips - 1;
       } else {
@@ -367,15 +368,15 @@ bool Mapping::isValid(int deId, int column, int cathode, int line, int strip) co
   if (deId < 0 || deId >= 72) {
     return false;
   }
-  int rpcType = getRPCType(deId);
-  if (!isValidColumn(column, rpcType)) {
+  int rpcLine = detparams::getRPCLine(deId);
+  if (!isValidColumn(column, rpcLine)) {
     return false;
   }
-  if (!isValidLine(line, column, rpcType)) {
+  if (!isValidLine(line, column, rpcLine)) {
     return false;
   }
 
-  int nStrips = (cathode == 0) ? 16 : mDetectionElements[rpcType].columns[column].nStripsNBP;
+  int nStrips = (cathode == 0) ? detparams::NStripsBP : mDetectionElements[rpcLine].columns[column].nStripsNBP;
   if (strip < 0 || strip >= nStrips) {
     return false;
   }
@@ -384,10 +385,10 @@ bool Mapping::isValid(int deId, int column, int cathode, int line, int strip) co
 }
 
 //______________________________________________________________________________
-bool Mapping::isValidColumn(int column, int rpcType) const
+bool Mapping::isValidColumn(int column, int rpcLine) const
 {
   /// Checks if column exists
-  if (column < 0 || column > 6 || (rpcType == 4 && column == 0)) {
+  if (column < 0 || column > 6 || (rpcLine == 4 && column == 0)) {
     return false;
   }
 
@@ -395,10 +396,10 @@ bool Mapping::isValidColumn(int column, int rpcType) const
 }
 
 //______________________________________________________________________________
-bool Mapping::isValidLine(int line, int column, int rpcType) const
+bool Mapping::isValidLine(int line, int column, int rpcLine) const
 {
   /// Checks if board is valid
-  auto& columnStruct{mDetectionElements[rpcType].columns[column]};
+  auto& columnStruct{mDetectionElements[rpcLine].columns[column]};
 
   if (line >= columnStruct.boardsBP.size() || columnStruct.boardsBP[line] == 117) {
     return false;
@@ -414,63 +415,63 @@ double Mapping::getStripSize(int chamber, int stripPitch, int strip) const
   if (strip > 7 && stripPitch == 4) {
     stripPitch = 2;
   }
-  return Constants::getStripUnitPitchSize(chamber) * stripPitch;
+  return geoparams::getStripUnitPitchSize(chamber) * stripPitch;
 }
 
 //______________________________________________________________________________
-double Mapping::getColumnLeftPosition(int column, int chamber, int rpcType) const
+double Mapping::getColumnLeftPosition(int column, int chamber, int rpcLine) const
 {
   /// Returns the left position of the column
-  double xCenter = Constants::getRPCHalfLength(chamber, rpcType);
+  double xCenter = geoparams::getRPCHalfLength(chamber, rpcLine);
   double col = (double)column;
-  if (rpcType == 4) {
+  if (rpcLine == 4) {
     col += (column == 1) ? -1. : -1.5;
   }
-  return Constants::getLocalBoardWidth(chamber) * col - xCenter;
+  return geoparams::getLocalBoardWidth(chamber) * col - xCenter;
 }
 
 //______________________________________________________________________________
-double Mapping::getColumnBottomPosition(int column, int chamber, int rpcType) const
+double Mapping::getColumnBottomPosition(int column, int chamber, int rpcLine) const
 {
   /// Returns the bottom position of the column
-  double nBoardsDown = (rpcType == 5 && column == 0) ? 1. : 2.;
-  return -Constants::getLocalBoardHeight(chamber) * nBoardsDown;
+  double nBoardsDown = (rpcLine == 5 && column == 0) ? 1. : 2.;
+  return -geoparams::getLocalBoardHeight(chamber) * nBoardsDown;
 }
 
 //______________________________________________________________________________
-double Mapping::getColumnHeight(int column, int chamber, int rpcType) const
+double Mapping::getColumnHeight(int column, int chamber, int rpcLine) const
 {
   /// Gets the column height
   double sizeFactor = 1.;
-  if (column == 0 && (rpcType == 3 || rpcType == 5)) {
+  if (column == 0 && (rpcLine == 3 || rpcLine == 5)) {
     sizeFactor = 0.75;
   }
-  return 4 * Constants::getLocalBoardHeight(chamber) * sizeFactor;
+  return 4 * geoparams::getLocalBoardHeight(chamber) * sizeFactor;
 }
 
 //______________________________________________________________________________
-double Mapping::getColumnWidth(int column, int chamber, int rpcType) const
+double Mapping::getColumnWidth(int column, int chamber, int rpcLine) const
 {
   /// Gets the column width
   double sizeFactor = 1.;
   if (column == 6) {
     sizeFactor = 1.5;
-  } else if (column == 1 && rpcType == 4) {
+  } else if (column == 1 && rpcLine == 4) {
     sizeFactor = 0.5;
   }
-  return Constants::getLocalBoardWidth(chamber) * sizeFactor;
+  return geoparams::getLocalBoardWidth(chamber) * sizeFactor;
 }
 
 //______________________________________________________________________________
 double Mapping::getStripLowEdge(int strip, int stripPitch, int line, int chamber) const
 {
   /// Gets position of the low edge of the strip
-  return (Constants::getStripUnitPitchSize(chamber) * stripPitch * (strip + 16 * line) -
-          2. * Constants::getLocalBoardHeight(chamber));
+  return (geoparams::getStripUnitPitchSize(chamber) * stripPitch * (strip + detparams::NStripsBP * line) -
+          2. * geoparams::getLocalBoardHeight(chamber));
 }
 
 //______________________________________________________________________________
-double Mapping::getStripLeftEdge(int strip, int stripPitch, int column, int chamber, int rpcType) const
+double Mapping::getStripLeftEdge(int strip, int stripPitch, int column, int chamber, int rpcLine) const
 {
   /// Gets the position of the left edge of the strip
   if (column == 6 && strip > 7) {
@@ -478,7 +479,7 @@ double Mapping::getStripLeftEdge(int strip, int stripPitch, int column, int cham
     strip = strip - 8;
     stripPitch = 2;
   }
-  return getStripSize(chamber, stripPitch) * strip + getColumnLeftPosition(column, chamber, rpcType);
+  return getStripSize(chamber, stripPitch) * strip + getColumnLeftPosition(column, chamber, rpcLine);
 }
 
 //______________________________________________________________________________
@@ -491,8 +492,8 @@ MpArea Mapping::stripByLocation(int strip, int cathode, int line, int column, in
   /// @param column The column id in the detection element
   /// @param deId The detection element ID
   /// @param warn Set to false to avoid printing an error message in case the strip is not found (default: true)
-  int deType = getRPCType(deId);
-  int chamber = Constants::getChamber(deId);
+  int deType = detparams::getRPCLine(deId);
+  int chamber = detparams::getChamber(deId);
   assert(strip < 16);
   auto& columnStruct{mDetectionElements[deType].columns[column]};
 
@@ -539,16 +540,16 @@ MpArea Mapping::stripByLocationInBoard(int strip, int cathode, int boardId, int 
 }
 
 //______________________________________________________________________________
-int Mapping::getColumn(double xPos, int chamber, int rpcType) const
+int Mapping::getColumn(double xPos, int chamber, int rpcLine) const
 {
   /// Gets the column from x position
-  double xShift = xPos + Constants::getRPCHalfLength(chamber, rpcType);
+  double xShift = xPos + geoparams::getRPCHalfLength(chamber, rpcLine);
   int invalid = 7;
   if (xShift < 0) {
     return invalid;
   }
-  double boardUnitWidth = Constants::getLocalBoardWidth(chamber);
-  if (rpcType == 4) {
+  double boardUnitWidth = geoparams::getLocalBoardWidth(chamber);
+  if (rpcLine == 4) {
     xShift += 1.5 * boardUnitWidth;
   }
   double column = xShift / boardUnitWidth;
@@ -570,7 +571,7 @@ int Mapping::getLine(double yPos, const MpColumn& column, int chamber) const
   if (nBoards == 0) {
     return invalid;
   }
-  double boardUnitHeight = Constants::getLocalBoardHeight(chamber);
+  double boardUnitHeight = geoparams::getLocalBoardHeight(chamber);
   double yShift = yPos + 2. * boardUnitHeight;
   if (yShift < 0) {
     return invalid;
@@ -595,11 +596,11 @@ Mapping::MpStripIndex Mapping::stripByPosition(double xPos, double yPos, int cat
   /// @param cathode Bending plane (0) or Non-Bending plane (1)
   /// @param deId The detection element ID
   /// @param warn Set to false to avoid printing an error message in case the strip is not found (default: true)
-  assert(deId < 72);
-  int rpcType = getRPCType(deId);
-  int chamber = Constants::getChamber(deId);
+  assert(deId < detparams::NDetectionElements);
+  int rpcLine = detparams::getRPCLine(deId);
+  int chamber = detparams::getChamber(deId);
   MpStripIndex stripIndex;
-  stripIndex.column = getColumn(xPos, chamber, rpcType);
+  stripIndex.column = getColumn(xPos, chamber, rpcLine);
   stripIndex.line = 4;
   stripIndex.strip = 16;
 
@@ -610,7 +611,7 @@ Mapping::MpStripIndex Mapping::stripByPosition(double xPos, double yPos, int cat
     return stripIndex;
   }
 
-  const auto& column{mDetectionElements[rpcType].columns[stripIndex.column]};
+  const auto& column{mDetectionElements[rpcLine].columns[stripIndex.column]};
   stripIndex.line = getLine(yPos, column, chamber);
   if (stripIndex.line >= 4) {
     if (warn) {
@@ -620,11 +621,11 @@ Mapping::MpStripIndex Mapping::stripByPosition(double xPos, double yPos, int cat
   }
 
   if (cathode == 0) {
-    double yBoardLow = Constants::getLocalBoardHeight(chamber) * (stripIndex.line * 4 / column.boardsBP.size() - 2.);
+    double yBoardLow = geoparams::getLocalBoardHeight(chamber) * (stripIndex.line * 4 / column.boardsBP.size() - 2.);
     double stripSize = getStripSize(chamber, column.stripPitchBP);
     stripIndex.strip = (int)((yPos - yBoardLow) / stripSize);
   } else {
-    double xBoardLeft = getColumnLeftPosition(stripIndex.column, chamber, rpcType);
+    double xBoardLeft = getColumnLeftPosition(stripIndex.column, chamber, rpcLine);
     double stripSize = getStripSize(chamber, column.stripPitchNBP);
     double diff = xPos - xBoardLeft;
     int stripOffset = 0;

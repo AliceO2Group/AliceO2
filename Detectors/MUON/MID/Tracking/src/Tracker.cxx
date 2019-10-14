@@ -17,7 +17,7 @@
 #include <cmath>
 #include <functional>
 #include "fairlogger/Logger.h"
-#include "MIDBase/Constants.h"
+#include "MIDBase/DetectorParameters.h"
 
 namespace o2
 {
@@ -136,8 +136,8 @@ bool Tracker::processSide(bool isRight, bool isInward)
   /// Make tracks on one side of the detector
   int firstCh = (isInward) ? 3 : 0;
   int secondCh = (isInward) ? 2 : 1;
-  int rpcOffset1 = Constants::getDEId(isRight, firstCh, 0);
-  int rpcOffset2 = Constants::getDEId(isRight, secondCh, 0);
+  int rpcOffset1 = detparams::getDEId(isRight, firstCh, 0);
+  int rpcOffset2 = detparams::getDEId(isRight, secondCh, 0);
 
   // loop on RPCs in first plane
   Track track;
@@ -226,7 +226,7 @@ bool Tracker::followTrackKeepAll(const Track& track, bool isRight, bool isInward
 
   // loop on next two chambers
   for (int ich = 0; ich < 2; ++ich) {
-    int rpcOffset = Constants::getDEId(isRight, chamberOrder[ich], 0);
+    int rpcOffset = detparams::getDEId(isRight, chamberOrder[ich], 0);
     for (int irpc = 0; irpc <= 8; ++irpc) {
       int deId = rpcOffset + irpc;
       for (auto& clIdx : mClusterIndexes[deId]) {
@@ -300,7 +300,7 @@ bool Tracker::findNextCluster(const Track& track, bool isRight, bool isInward, i
 {
   /// Find next best cluster
   int nextChamber = (isInward) ? chamber - 1 : chamber + 1;
-  int rpcOffset = Constants::getDEId(isRight, chamber, 0);
+  int rpcOffset = detparams::getDEId(isRight, chamber, 0);
   Track newTrack;
   for (int irpc = firstRPC; irpc <= lastRPC; ++irpc) {
     int deId = rpcOffset + irpc;
@@ -311,7 +311,7 @@ bool Tracker::findNextCluster(const Track& track, bool isRight, bool isInward, i
       if (newTrack.getChi2() > bestTrack.getChi2()) {
         continue;
       }
-      newTrack.setClusterMatched(Constants::getChamber(cl.deId), mClusterIndexes[deId][icl].first);
+      newTrack.setClusterMatched(detparams::getChamber(cl.deId), mClusterIndexes[deId][icl].first);
       newTrack.setNDF(track.getNDF() + 1);
       LOG(DEBUG) << "Attach cluster number " << newTrack.getNDF() << ": DeId " << deId << "  cluster " << mClusterIndexes[deId][icl].first;
       if (nextChamber >= 0 && nextChamber <= 3) {
@@ -353,7 +353,7 @@ bool Tracker::findAllClusters(Track& track, int clIdx, bool isRight, bool isInwa
     double bestChi2AtCluster = mMaxChi2;
     int bestClusterIdx = -1;
     int bestClusterDE = -1;
-    int rpcOffset = Constants::getDEId(isRight, nextChamber, 0);
+    int rpcOffset = detparams::getDEId(isRight, nextChamber, 0);
     Track bestTrack;
     for (int jrpc = getFirstNeighbourRPC(irpc); jrpc <= getLastNeighbourRPC(irpc); ++jrpc) {
       int deId2 = rpcOffset + jrpc;

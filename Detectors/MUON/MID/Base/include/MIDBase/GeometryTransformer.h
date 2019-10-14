@@ -17,8 +17,10 @@
 #define O2_MID_GEOMETRYTRANSFORMER_H
 
 #include <array>
-#include "MIDBase/Constants.h"
+#include "MIDBase/DetectorParameters.h"
 #include "MathUtils/Cartesian3D.h"
+
+class TGeoManager;
 
 namespace o2
 {
@@ -71,12 +73,13 @@ class GeometryTransformer
   }
 
  private:
-  std::array<o2::Transform3D, Constants::sNDetectionElements> mTransformations; ///< Array of transformation matrices
+  std::array<o2::Transform3D, detparams::NDetectionElements> mTransformations; ///< Array of transformation matrices
 };
 
 ROOT::Math::Transform3D getDefaultChamberTransform(int ichamber);
 ROOT::Math::Transform3D getDefaultRPCTransform(bool isRight, int chamber, int rpc);
 GeometryTransformer createDefaultTransformer();
+GeometryTransformer createTransformationFromManager(const TGeoManager* geoManager);
 } // namespace mid
 } // namespace o2
 

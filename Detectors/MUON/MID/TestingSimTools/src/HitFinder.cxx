@@ -16,7 +16,8 @@
 #include "MIDTestingSimTools/HitFinder.h"
 
 #include <cmath>
-#include "MIDBase/Constants.h"
+#include "MIDBase/DetectorParameters.h"
+#include "MIDBase/GeometryParameters.h"
 
 namespace o2
 {
@@ -25,8 +26,8 @@ namespace mid
 //______________________________________________________________________________
 HitFinder::HitFinder(const GeometryTransformer& geoTrans)
   : mGeometryTransformer(geoTrans),
-    mTanTheta(std::tan((90. - Constants::sBeamAngle) * std::atan(1) / 45.)),
-    mCosTheta(std::cos(Constants::sBeamAngle * std::atan(1) / 45.))
+    mTanTheta(std::tan((90. - geoparams::BeamAngle) * std::atan(1) / 45.)),
+    mCosTheta(std::cos(geoparams::BeamAngle * std::atan(1) / 45.))
 {
   /// default constructor
 }
@@ -35,7 +36,7 @@ HitFinder::HitFinder(const GeometryTransformer& geoTrans)
 Point3D<double> HitFinder::getIntersectInDefaultPlane(const Track& track, int chamber) const
 {
   /// Get the intersection point in the default chamber plane
-  double defaultZ = Constants::sDefaultChamberZ[chamber];
+  double defaultZ = geoparams::DefaultChamberZ[chamber];
   double linePar = ((track.getPositionZ() - defaultZ) * mTanTheta - track.getPositionY()) /
                    (track.getDirectionY() - track.getDirectionZ() * mTanTheta);
   Point3D<double> point;
@@ -76,7 +77,7 @@ Cluster2D HitFinder::getIntersect(const Track& track, int deId) const
 int HitFinder::guessRPC(double yPos, int chamber) const
 {
   /// Guesses the RPC form the y position
-  return (int)(yPos / (2. * Constants::getRPCHalfHeight(chamber)) + 4.5);
+  return (int)(yPos / (2. * geoparams::getRPCHalfHeight(chamber)) + 4.5);
 }
 
 //______________________________________________________________________________
@@ -105,14 +106,14 @@ std::vector<int> HitFinder::getFiredDE(const Track& track, int chamber) const
       continue;
     }
     if (xPos > 0) {
-      deIdList.push_back(Constants::getDEId(true, chamber, rpc));
+      deIdList.push_back(detparams::getDEId(true, chamber, rpc));
       if (xPos - xErr < 0) {
-        deIdList.push_back(Constants::getDEId(false, chamber, rpc));
+        deIdList.push_back(detparams::getDEId(false, chamber, rpc));
       }
     } else {
-      deIdList.push_back(Constants::getDEId(false, chamber, rpc));
+      deIdList.push_back(detparams::getDEId(false, chamber, rpc));
       if (xPos + xErr > 0) {
-        deIdList.push_back(Constants::getDEId(true, chamber, rpc));
+        deIdList.push_back(detparams::getDEId(true, chamber, rpc));
       }
     }
   }
@@ -133,8 +134,8 @@ std::vector<Cluster2D> HitFinder::getLocalPositions(const Track& track, int cham
   for (auto& deId : deIdList) {
     Cluster2D cl = getIntersect(track, deId);
     int rpc = deId % 9;
-    double hl = Constants::getRPCHalfLength(chamber, rpc);
-    double hh = Constants::getRPCHalfHeight(chamber);
+    double hl = geoparams::getRPCHalfLength(chamber, rpc);
+    double hh = geoparams::getRPCHalfHeight(chamber);
     if (cl.xCoor < -hl || cl.xCoor > hl) {
       continue;
     }
