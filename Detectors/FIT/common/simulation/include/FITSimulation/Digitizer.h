@@ -74,8 +74,8 @@ class Digitizer
 
   o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mMCLabels = nullptr;
 
-  static constexpr Float_t C_side_cable_cmps = 2.877; //ns
-  static constexpr Float_t A_side_cable_cmps = 11.08; //ns
+  static constexpr Float_t C_side_cable_cmps = 2.89;  //ns
+  static constexpr Float_t A_side_cable_cmps = 11.04; //ns
 
   TH1F* mHist;      // ("time_histogram", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
   TH1F* mHistsum;   //("time_sum", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
