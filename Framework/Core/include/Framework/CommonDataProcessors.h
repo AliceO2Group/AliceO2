@@ -25,7 +25,7 @@ using outputObjMap = std::unordered_map<std::string, std::string>;
 struct CommonDataProcessors {
   /// Match all inputs of kind ATSK and write them to a ROOT file,
   /// one root file per originating task.
-  static DataProcessorSpec getOutputObjSink(outputObjMap& outMap);
+  static DataProcessorSpec getOutputObjSink(outputObjMap const& outMap);
   /// Given the list of @a danglingInputs @return a DataProcessor which does
   /// a binary dump for all the dangling inputs matching the Timeframe
   /// lifetime. @a unmatched will be filled with all the InputSpecs which are

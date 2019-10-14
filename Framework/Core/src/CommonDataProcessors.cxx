@@ -60,7 +60,7 @@ std::string outputROOTfilename()
   return "AnalysisResults.root";
 }
 
-DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap& outMap)
+DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& outMap)
 {
   auto writerFunction = [outMap](InitContext& ic) -> std::function<void(ProcessingContext&)> {
     auto& callbacks = ic.services().get<CallbackService>();
