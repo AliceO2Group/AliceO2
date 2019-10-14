@@ -473,7 +473,7 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
     auto endofdatacb = [task](EndOfStreamContext& eosContext) {
       auto tupledTask = o2::framework::to_tuple_refs(*task.get());
       std::apply([&eosContext](auto&&... x) { return (OutputManager<std::decay_t<decltype(x)>>::postRun(eosContext, x), ...); }, tupledTask);
-      eosContext.services().get<ControlService>().readyToQuit(QuitRequest::All);
+      eosContext.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     };
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
 
