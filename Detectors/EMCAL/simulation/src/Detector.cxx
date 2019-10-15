@@ -44,6 +44,8 @@ Detector::Detector(Bool_t active)
     mBirkC1(0.),
     mBirkC2(0.),
     mSensitive(),
+    mSMVolumeID(),
+    mVolumeIDScintillator(-1),
     mHits(o2::utils::createSimVector<Hit>()),
     mGeometry(nullptr),
     mSuperParentsIndices(),
@@ -79,6 +81,8 @@ Detector::Detector(const Detector& rhs)
     mBirkC1(rhs.mBirkC1),
     mBirkC2(rhs.mBirkC2),
     mSensitive(),
+    mSMVolumeID(),
+    mVolumeIDScintillator(-1),
     mHits(o2::utils::createSimVector<Hit>()),
     mGeometry(rhs.mGeometry),
     mSuperParentsIndices(),
@@ -115,6 +119,11 @@ void Detector::InitializeO2Detector()
     } else {
       LOG(ERROR) << "EMCAL sensitive volume " << child << " not found ";
     }
+  }
+
+  LOG(DEBUG1) << "Supermodule volume map: ";
+  for (auto [volID, volType] : mSMVolumeID) {
+    LOG(DEBUG1) << "Volume " << volID << ", type " << int(volType);
   }
 }
 
@@ -175,8 +184,8 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     }
     mCurrentTrack = track;
   }
-  if (std::string_view(v->GetName()) == "SCMX") {
-    LOG(DEBUG4) << "We are in sensitive volume SCMX: " << fMC->CurrentVolPath() << std::endl;
+  if (v->getVolumeId() == mVolumeIDScintillator) {
+    LOG(DEBUG4) << "We are in sensitive volume " << v->GetName() << ": " << fMC->CurrentVolPath() << std::endl;
     // TODO Implement handling of parents and primary particle
     Double_t eloss = fMC->Edep();
     if (eloss < DBL_EPSILON)
@@ -192,23 +201,31 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     fMC->CurrentVolID(copyEta);       // Tower in module - x-direction
     fMC->CurrentVolOffID(1, copyPhi); // Tower in module - y-direction
     fMC->CurrentVolOffID(3, copyMod); // Module in supermodule
-    fMC->CurrentVolOffID(
+    auto smvolID = fMC->CurrentVolOffID(
       4, copySmod); // Supermodule in EMCAL - attention, with respect to a given supermodule type (offsets needed)
-    std::string smtypestring(fMC->CurrentVolOffName(4));
     int offset(0);
-    EMCALSMType supermoduletype(EMCAL_STANDARD);
-    if (smtypestring == "SM3rd") {
-      offset = 10;
-      supermoduletype = EMCAL_THIRD;
-    } else if (smtypestring == "SM10") {
-      supermoduletype = EMCAL_HALF;
-    } else if (smtypestring == "DCSM") {
-      offset = 12;
-      supermoduletype = DCAL_STANDARD;
-    } else if (smtypestring == "DCEXT") {
-      offset = 18;
-      supermoduletype = DCAL_EXT;
+    auto typeFromVolID = mSMVolumeID.find(smvolID);
+    if (typeFromVolID == mSMVolumeID.end()) {
+      LOG(ERROR) << "No supermodule with volume ID " << smvolID << " found";
+      return false;
     }
+    auto supermoduletype = typeFromVolID->second;
+    switch (supermoduletype) {
+      case EMCAL_STANDARD:
+        break;
+      case EMCAL_THIRD:
+        offset = 10;
+        break;
+      case DCAL_STANDARD:
+        offset = 12;
+        break;
+      case DCAL_EXT:
+        offset = 18;
+        break;
+      default:
+        break;
+    }
+
     LOG(DEBUG3) << "Supermodule copy " << copySmod << ", module copy " << copyMod << ", y-dir " << copyPhi << ", x-dir "
                 << copyEta << ", supermodule ID " << copySmod + offset - 1;
     LOG(DEBUG3) << "path " << fMC->CurrentVolPath();
@@ -511,7 +528,7 @@ void Detector::CreateShiskebabGeometry()
       LOG(DEBUG3) << " par[" << std::setw(2) << std::setprecision(2) << i << "] " << std::setw(9)
                   << std::setprecision(4) << parTRAP[i];
 
-    CreateEMCALVolume("SCMX", "TRAP", ID_SC, parTRAP, 11);
+    mVolumeIDScintillator = CreateEMCALVolume("SCMX", "TRAP", ID_SC, parTRAP, 11);
     xpos = +(parSCM0[1] + parSCM0[0]) / 4.;
     TVirtualMC::GetMC()->Gspos("SCMX", 1, "SCMY", xpos, 0.0, 0.0, 0, "ONLY");
 
@@ -785,7 +802,8 @@ void Detector::CreateSupermoduleGeometry(const std::string_view mother)
       };
 
       if (SMOrder == 1) { // first time, create the SM
-        CreateEMCALVolume(smName, "BOX", ID_AIR, parC, 3);
+        auto volID = CreateEMCALVolume(smName, "BOX", ID_AIR, parC, 3);
+        mSMVolumeID[volID] = EMCALSMType(tmpType);
 
         LOG(DEBUG2) << R"( Super module with name \")" << smName << R"(\" was created in \"box\" with: par[0] = )"
                     << parC[0] << ", par[1] = " << parC[1] << ", par[2] = " << parC[2];
@@ -938,10 +956,11 @@ void Detector::CreateAlFrontPlate(const std::string_view mother, const std::stri
   TVirtualMC::GetMC()->Gspos(child.data(), 1, mother.data(), 0.0, 0.0, zposALFP, 0, "ONLY");
 }
 
-void Detector::CreateEMCALVolume(const std::string_view name, const std::string_view shape, MediumType_t mediumID, Double_t* shapeParams, Int_t nparams)
+int Detector::CreateEMCALVolume(const std::string_view name, const std::string_view shape, MediumType_t mediumID, Double_t* shapeParams, Int_t nparams)
 {
-  TVirtualMC::GetMC()->Gsvolu(name.data(), shape.data(), getMediumID(mediumID), shapeParams, nparams);
+  int volID = TVirtualMC::GetMC()->Gsvolu(name.data(), shape.data(), getMediumID(mediumID), shapeParams, nparams);
   mSensitive.emplace_back(name.data());
+  return volID;
 }
 
 void Detector::BeginPrimary()
