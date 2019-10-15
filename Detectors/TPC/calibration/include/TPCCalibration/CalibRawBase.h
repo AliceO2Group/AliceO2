@@ -1,5 +1,4 @@
 // Copyright CERN and copyright holders of ALICE O2. This software is
-// setEventInfo = true;
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
 //
