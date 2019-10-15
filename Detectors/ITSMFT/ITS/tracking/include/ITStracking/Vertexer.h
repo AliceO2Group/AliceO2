@@ -79,6 +79,7 @@ class Vertexer
   void setDebugTrackletSelection();
   void setDebugLines();
   void setDebugSummaryLines();
+  void setDebugCentroidsHistograms();
   // \debug
 
  private:
@@ -185,6 +186,11 @@ inline void Vertexer::setDebugLines()
 inline void Vertexer::setDebugSummaryLines()
 {
   mTraits->setDebugFlag(VertexerDebug::LineSummaryAll);
+}
+
+inline void Vertexer::setDebugCentroidsHistograms()
+{
+  mTraits->setDebugFlag(VertexerDebug::HistCentroids);
 }
 
 } // namespace its
