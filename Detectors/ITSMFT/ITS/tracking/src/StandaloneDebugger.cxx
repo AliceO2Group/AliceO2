@@ -162,6 +162,11 @@ void StandaloneDebugger::fillPairsInfoTree(std::vector<Line> lines, const ROfram
   }
 }
 
+// void StandaloneDebugger::fillXYCentroidsTree(std::array<std::vector<float>, 2> centroidsXY, std::array<int, 2> sizes)
+// {
+//   TH1F("cenbtroidsX", ";x (cm); Number of centroids", sizes[0], -1.98f, 1.98f);
+// }
+
 void StandaloneDebugger::fillXYZHistogramTree(std::array<std::vector<int>, 3> arrayHistos, const std::array<int, 3> sizes)
 {
   TH1I histoX{"histoX", ";x (cm); Number of centroids", sizes[0], -1.98f, 1.98f};

@@ -26,36 +26,35 @@ namespace GPU
 {
 
 struct GPUVertex final {
-  GPUhd() GPUVertex()
+  GPUhd() GPUVertex() : realVertex{false}
   {
   }
-  GPUhd() GPUVertex(unsigned char isReal) : realVertex{0}
+
+  GPUhd() GPUVertex(float x, float y, float z, float eX, float eY, float eZ, int contrib) : xCoord{x},
+                                                                                            yCoord{y},
+                                                                                            zCoord{z},
+                                                                                            errorX{eZ},
+                                                                                            errorY{eY},
+                                                                                            errorZ{eZ},
+                                                                                            contributors{contrib},
+                                                                                            realVertex{true}
   {
   }
-  GPUhd() GPUVertex(float x, float y, float z, float eX, float eY, float eZ) : xCoord{x},
-                                                                               yCoord{y},
-                                                                               zCoord{z},
-                                                                               errorX{eZ},
-                                                                               errorY{eY},
-                                                                               errorZ{eZ}
-  {
-    realVertex = 1;
-  }
-  float xCoord, yCoord, zCoord;
-  float errorX, errorY, errorZ;
-  int realVertex;
+  float xCoord;
+  float yCoord;
+  float zCoord;
+  float errorX;
+  float errorY;
+  float errorZ;
+  int contributors;
+  unsigned char realVertex;
 };
 
 class ClusterLinesGPU final
 {
  public:
   GPUd() ClusterLinesGPU(const Line& firstLine, const Line& secondLine); // poor man solution to calculate duplets' centroid
-  GPUd() ClusterLinesGPU(const int& firstLabel, const Line& firstLine, const int& secondLabel, const Line& secondLine, const unsigned char weight = false);
-  GPUd() void add(const int& lineLabel, const Line& line, const unsigned char weight = false);
   GPUd() void computeClusterCentroid();
-  GPUd() float getAvgDistance2() const;
-  GPUd() float* getRMS2() const;
-  GPUd() inline int getNContributors() { return mNContributors; }
   GPUd() inline float* getVertex() { return mVertex; }
 
  private:
@@ -65,9 +64,6 @@ class ClusterLinesGPU final
   float mVertexCandidate[3]; // vertex candidate
   float mWeightMatrix[9];    // weight matrix
   float mVertex[3];          // cluster centroid position
-  int mNContributors;        // number of participants to this cluster
-  float mRMS2[6];            // symmetric matrix: diagonal is RMS2
-  float mAvgDistance2;       // substitute for chi2
 };
 
 } // namespace GPU
