@@ -13,6 +13,7 @@
 
 #include "DetectorsBase/Detector.h"
 #include "EMCALBase/Hit.h"
+#include "EMCALBase/GeometryBase.h"
 #include "MathUtils/Cartesian3D.h"
 #include "RStringView.h"
 #include "Rtypes.h"
@@ -155,13 +156,14 @@ class Detector : public o2::base::DetImpl<Detector>
   /// \param mediumID ID of the medium
   /// \param shapeParams Shape parameters
   /// \param nparams Number of shape parameters
+  /// \return ID of the volume
   ///
   /// Should be called for all EMCAL volumes. Internally calls TVirtualMC::Gsvolu(...). Gsvolu
   /// should not be used directly as this function adds the volume to the list of sensitive
   /// volumes. Making all volumes sensitive is essential in order to not have broken decay
   /// chains in the cache due to missing stepping in volumes. This is relevant for the detector
   /// itself, not the space frame.
-  void CreateEMCALVolume(const std::string_view name, const std::string_view shape, MediumType_t mediumID, Double_t* shapeParams, Int_t nparams);
+  int CreateEMCALVolume(const std::string_view name, const std::string_view shape, MediumType_t mediumID, Double_t* shapeParams, Int_t nparams);
 
   /// \brief Calculate the amount of light seen by the APD for a given track segment (charged particles only) according to Bricks law
   /// \param[in] energydeposit Energy deposited by a charged particle in the track segment
@@ -184,6 +186,8 @@ class Detector : public o2::base::DetImpl<Detector>
   Double_t mBirkC2; ///< Birk parameter C2
 
   std::vector<std::string> mSensitive;               //!<! List of sensitive volumes
+  std::unordered_map<int, EMCALSMType> mSMVolumeID;  //!<! map of EMCAL supermodule volume IDs
+  Int_t mVolumeIDScintillator;                       //!<! Volume ID of the scintillator volume
   std::vector<Hit>* mHits;                           //!<! Collection of EMCAL hits
   Geometry* mGeometry;                               //!<! Geometry pointer
   std::unordered_map<int, int> mSuperParentsIndices; //!<! Super parent indices (track index - superparent index)
