@@ -38,7 +38,6 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   if (useGPU) {
     R__LOAD_LIBRARY(O2ITStrackingCUDA)
   }
-  // It works, but slow init and workaround present (Sep 27, 2019)
   std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance(useGPU ? GPUDataTypes::DeviceType::CUDA : GPUDataTypes::DeviceType::CPU, true));
   auto* chainITS = rec->AddChain<GPUChainITS>();
   rec->Init();
@@ -136,6 +135,7 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
     vertexer.setDebugLines(); // Handle with care, takes very long
     vertexer.setDebugCombinatorics();
     vertexer.setDebugSummaryLines();
+    vertexer.setDebugCentroidsHistograms();
     // \debug
 
     total[0] = vertexer.evaluateTask(&o2::its::Vertexer::initialiseVertexer, "Vertexer initialisation", std::cout, eventptr);

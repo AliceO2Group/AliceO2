@@ -42,16 +42,17 @@ using constants::index_table::InversePhiBinSize;
 class VertexerTraitsGPU : public VertexerTraits
 {
  public:
-  VertexerTraitsGPU();
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-  VertexerTraitsGPU(const std::string);
+  VertexerTraitsGPU();
   virtual ~VertexerTraitsGPU();
 #else
+  VertexerTraitsGPU();
   virtual ~VertexerTraitsGPU() = default;
 #endif
   void initialise(ROframe*) override;
   void computeTracklets() override;
   void computeTrackletMatching() override;
+  void computeVertices() override;
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   void computeMCFiltering() override;
 #endif
@@ -61,9 +62,9 @@ class VertexerTraitsGPU : public VertexerTraits
   GPUhd() GPU::DeviceStoreVertexerGPU& getDeviceContext();
 
  protected:
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  StandaloneDebugger* mDebugger;
-#endif
+  // #ifdef _ALLOW_DEBUG_TREES_ITS_
+  //   StandaloneDebugger* mDebugger;
+  // #endif
   GPU::DeviceStoreVertexerGPU mStoreVertexerGPU;
   GPU::UniquePointer<GPU::DeviceStoreVertexerGPU> mStoreVertexerGPUPtr;
 };

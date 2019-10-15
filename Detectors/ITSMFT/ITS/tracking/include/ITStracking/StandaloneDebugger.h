@@ -46,15 +46,9 @@ class StandaloneDebugger
                                  std::vector<Tracklet> comb12,
                                  std::vector<std::array<int, 2>>,
                                  const ROframe*);
-  void fillStridedTrackletSelectionTree(std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>&,
-                                        std::vector<Tracklet>,
-                                        std::vector<Tracklet>,
-                                        std::vector<std::array<int, 2>>,
-                                        std::vector<int>,
-                                        const int,
-                                        const ROframe*);
   void fillLinesSummaryTree(std::vector<Line>, const ROframe*);
   void fillPairsInfoTree(std::vector<Line>, const ROframe*);
+  void fillXYZHistogramTree(std::array<std::vector<int>, 3>, const std::array<int, 3>);
 
  private:
   std::string mDebugTreeFileName = "dbg_ITS.root"; // output filename

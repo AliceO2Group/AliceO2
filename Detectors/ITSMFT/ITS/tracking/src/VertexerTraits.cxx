@@ -126,19 +126,18 @@ void trackletSelectionKernelSerial(
   }
 }
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-VertexerTraits::VertexerTraits(const std::string dbgFilename) : mAverageClustersRadii{std::array<float, 3>{0.f, 0.f, 0.f}},
-                                                                mMaxDirectorCosine3{0.f}
+VertexerTraits::VertexerTraits() : mAverageClustersRadii{std::array<float, 3>{0.f, 0.f, 0.f}},
+                                   mMaxDirectorCosine3{0.f}
 {
   mVrtParams.phiSpan = static_cast<int>(std::ceil(constants::index_table::PhiBins * mVrtParams.phiCut /
                                                   constants::math::TwoPi));
   mVrtParams.zSpan = static_cast<int>(std::ceil(mVrtParams.zCut * constants::index_table::InverseZBinSize()[0]));
   setIsGPU(false);
 
-  std::cout << "[DEBUG] Creating file: " << dbgFilename.data() << std::endl;
-  mDebugger = new StandaloneDebugger(dbgFilename.data());
+  std::cout << "[DEBUG] Creating file: dbg_ITSVertexerCPU.root" << std::endl;
+  mDebugger = new StandaloneDebugger("dbg_ITSVertexerCPU.root");
 }
-#endif
-
+#else
 VertexerTraits::VertexerTraits() : mAverageClustersRadii{std::array<float, 3>{0.f, 0.f, 0.f}},
                                    mMaxDirectorCosine3{0.f}
 {
@@ -146,6 +145,7 @@ VertexerTraits::VertexerTraits() : mAverageClustersRadii{std::array<float, 3>{0.
                                                   constants::math::TwoPi));
   mVrtParams.zSpan = static_cast<int>(std::ceil(mVrtParams.zCut * constants::index_table::InverseZBinSize()[0]));
 }
+#endif
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
 VertexerTraits::~VertexerTraits()
@@ -442,11 +442,6 @@ void VertexerTraits::computeVertices()
       mTrackletClusters.erase(mTrackletClusters.begin() + iCluster);
       noClusters--;
       continue;
-    }
-    float dist{0.};
-    for (auto& line : mTrackletClusters[iCluster].getLines()) {
-      dist += Line::getDistanceFromPoint(line, mTrackletClusters[iCluster].getVertex()) /
-              mTrackletClusters[iCluster].getSize();
     }
     if (mTrackletClusters[iCluster].getVertex()[0] * mTrackletClusters[iCluster].getVertex()[0] +
           mTrackletClusters[iCluster].getVertex()[1] * mTrackletClusters[iCluster].getVertex()[1] <

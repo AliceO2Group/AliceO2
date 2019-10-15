@@ -70,7 +70,8 @@ enum class VertexerDebug : unsigned int {
   TrackletTreeAll = 0x1 << 1,
   LineTreeAll = 0x1 << 2,
   CombinatoricsTreeAll = 0x1 << 3,
-  LineSummaryAll = 0x1 << 4
+  LineSummaryAll = 0x1 << 4,
+  HistCentroids = 0x1 << 5
 };
 
 inline lightVertex::lightVertex(float x, float y, float z, std::array<float, 6> rms2, int cont, float avgdis2, int stamp) : mX(x), mY(y), mZ(z), mRMS2(rms2), mAvgDistance2(avgdis2), mContributors(cont), mTimeStamp(stamp)
@@ -80,12 +81,11 @@ inline lightVertex::lightVertex(float x, float y, float z, std::array<float, 6> 
 class VertexerTraits
 {
  public:
-  VertexerTraits();
-
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-  VertexerTraits(const std::string);
+  VertexerTraits();
   virtual ~VertexerTraits();
 #else
+  VertexerTraits();
   virtual ~VertexerTraits() = default;
 #endif
 

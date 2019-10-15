@@ -49,6 +49,9 @@ class Vector final
   Vector& operator=(Vector&&);
 
   int getSizeFromDevice() const;
+
+  T getElementFromDevice(const int) const;
+
   void resize(const int);
   void reset(const int, const int = 0);
   void reset(const T* const, const int, const int = 0);
@@ -59,6 +62,7 @@ class Vector final
   GPU_HOST_DEVICE int capacity() const;
   GPU_HOST_DEVICE Vector<T> getWeakCopy() const;
   GPU_DEVICE T& operator[](const int) const;
+
   GPU_DEVICE int size() const;
   GPU_DEVICE int extend(const int) const;
   GPU_HOST_DEVICE void dump();
@@ -280,6 +284,15 @@ template <typename T>
 GPU_DEVICE inline T& Vector<T>::operator[](const int index) const
 {
   return mArrayPointer[index];
+}
+
+template <typename T>
+GPU_HOST inline T Vector<T>::getElementFromDevice(const int index) const
+{
+  T element;
+  Utils::Host::gpuMemcpyDeviceToHost(&element, mArrayPointer + index, sizeof(T));
+
+  return element;
 }
 
 template <typename T>

@@ -115,6 +115,7 @@ struct VertexingParameters {
   float phiCut = 0.005f; //0.005f
   float pairCut = 0.04f;
   float clusterCut = 0.8f;
+  float histPairCut = 0.01f;
   float tanLambdaCut = 0.002f; // tanLambda = deltaZ/deltaR
   int clusterContributorsCut = 16;
   int phiSpan = -1;
@@ -123,10 +124,21 @@ struct VertexingParameters {
 
 struct VertexerStoreConfigurationGPU {
   // o2::its::GPU::Vector constructor requires signed size for initialisation
+  int tmpCUBBufferSize = 25e5;
   int maxTrackletsPerCluster = 2e2;
-  int clustersPerLayerCapacity = 5e4;
+  int clustersPerLayerCapacity = 4e4;
   int dupletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
   int processedTrackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
+  int maxTrackletCapacity = 2e4;
+  int maxCentroidsXYCapacity = std::ceil(maxTrackletCapacity * (maxTrackletCapacity - 1) / 2);
+  int nBinsXYZ[3] = {402, 402, 2002};
+  int binSpanXYZ[3] = {1, 1, 1};
+  int nMaxVertices = 10;
+  float lowHistBoundariesXYZ[3] = {-1.98f, -1.98f, -40.f};
+  float highHistBoundariesXYZ[3] = {1.98f, 1.98f, 40.f};
+  float binSizeHistX = (highHistBoundariesXYZ[0] - lowHistBoundariesXYZ[0]) / (nBinsXYZ[0] - 1);
+  float binSizeHistY = (highHistBoundariesXYZ[1] - lowHistBoundariesXYZ[1]) / (nBinsXYZ[1] - 1);
+  float binSizeHistZ = (highHistBoundariesXYZ[2] - lowHistBoundariesXYZ[2]) / (nBinsXYZ[2] - 1);
 };
 
 } // namespace its

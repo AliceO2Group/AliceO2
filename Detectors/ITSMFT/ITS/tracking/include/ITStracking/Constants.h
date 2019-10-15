@@ -58,6 +58,10 @@ GPU_HOST_DEVICE constexpr GPUArray<float, LayersNumber> LayersRCoordinate()
 {
   return GPUArray<float, LayersNumber>{{2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f}};
 }
+GPU_HOST_DEVICE constexpr GPUArray<float, 3> VertexerHistogramVolume()
+{
+  return GPUArray<float, 3>{{1.98, 1.98, 40.f}};
+}
 } // namespace its
 
 namespace index_table
