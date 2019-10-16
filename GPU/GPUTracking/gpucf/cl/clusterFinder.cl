@@ -8,33 +8,38 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef GPUCA_ALIGPUCODE
 namespace gpucf
 {
-#define GPUCF() gpucf::
-#define MYMIN() CAMath::Min
-#define MYATOMICADD() CAMath::AtomicAdd
-#define MYSMEM() GPUTPCClusterFinderKernels::GPUTPCSharedMemory
-#define MYSMEMR() GPUsharedref() MYSMEM()&
-#define MYSMEMD() smem.
-#define MYSMEMP() smem
-#else
-#define __OPENCL__
-#define GPUCF()
-#define MYMIN() min
-#define MYATOMICADD() atomic_add
-#define MYSMEM() struct TMPSharedStruct
-#define MYSMEMR() GPUsharedref() MYSMEM()*
-#define MYSMEMD() smem->
-#define MYSMEMP() &smem
+#include "clusterFinderDefs.h"
+}
+
+#if !defined(GPUCA_ALIGPUCODE)
+namespace CAMath
+{
+template <class T> T Min(const T a, const T b) { return ::min(a, b); }
+template <class T, class S> T AtomicAdd(__generic T* a, const S b) { return ::atomic_add(a, b); }
+}
+namespace GPUTPCClusterFinderKernels
+{
+struct GPUTPCSharedMemory
+{
+    union {
+        gpucf::search_t search;
+        gpucf::noise_t noise;
+        gpucf::count_t count;
+        gpucf::build_t build;
+    };
+};
+}
 #endif
 
-#include "clusterFinderDefs.h"
+namespace gpucf
+{
 
 GPUd() packed_charge_t packCharge(charge_t q, bool peak3x3, bool wasSplit)
 {
     packed_charge_t p = q * 16.f;
-    p = MYMIN()((packed_charge_t)0x3FFF, p); // ensure only lower 14 bits are set
+    p = CAMath::Min((packed_charge_t)0x3FFF, p); // ensure only lower 14 bits are set
     p |= (wasSplit << 14);
     p |= (peak3x3 << 15);
     return p;
@@ -54,20 +59,6 @@ GPUd() bool wasSplit(packed_charge_t p)
 {
     return p & (1 << 14);
 }
-
-#ifndef GPUCA_ALIGPUCODE
-
-struct TMPSharedStruct
-{
-    union {
-        struct search_t search;
-        struct noise_t noise;
-        struct count_t count;
-        struct build_t build;
-    };
-};
-
-#endif
 
 GPUconstexpr() delta2_t INNER_NEIGHBORS[8] =
 {
@@ -434,7 +425,7 @@ GPUd() void reset(ClusterAccumulator *clus)
     clus->splitInPad  = 0;
 }
 
-GPUd() ushort partition(MYSMEMR() smem, ushort ll, bool pred, ushort partSize, ushort *newPartSize)
+GPUd() ushort partition(GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem, ushort ll, bool pred, ushort partSize, ushort *newPartSize)
 {
     bool participates = ll < partSize;
 
@@ -783,7 +774,7 @@ GPUd() void buildClusterNaive(
 }
 
 GPUd() bool isPeakScratchPad(
-               MYSMEMR() smem,
+               GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
                const Digit           *digit,
                      ushort           N,
         GPUglobalref() const packed_charge_t *chargeMap,
@@ -1026,7 +1017,7 @@ GPUd() void sortIntoBuckets(
         GPUglobalref()       uint          *elemsInBucket,
         GPUglobalref()       ClusterNative *buckets)
 {
-    uint posInBucket = MYATOMICADD()(&elemsInBucket[bucket], 1);
+    uint posInBucket = CAMath::AtomicAdd(&elemsInBucket[bucket], 1);
 
     buckets[maxElemsPerBucket * bucket + posInBucket] = *cluster; // TODO: Must check for overflow over maxElemsPerBucket!
 }
@@ -1340,7 +1331,7 @@ GPUd() void noiseSuppressionFindMinmasAndPeaksScratchpad(
 
 
 GPUd()
-void fillChargeMap(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() smem,
+void fillChargeMap(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref() const Digit           *digits,
         GPUglobalref()       packed_charge_t *chargeMap)
 {
@@ -1354,7 +1345,7 @@ void fillChargeMap(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR()
 
 
 GPUd()
-void resetMaps(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() smem,
+void resetMaps(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref() const Digit           *digits,
         GPUglobalref()       packed_charge_t *chargeMap,
         GPUglobalref()       uchar           *isPeakMap)
@@ -1370,7 +1361,7 @@ void resetMaps(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() sme
 
 
 GPUd()
-void findPeaks(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() smem,
+void findPeaks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref() const packed_charge_t *chargeMap,
         GPUglobalref() const Digit           *digits,
                      uint             digitnum,
@@ -1382,12 +1373,12 @@ void findPeaks(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() sme
     // For certain configurations dummy work items are added, so the total
     // number of work items is dividable by 64.
     // These dummy items also compute the last digit but discard the result.
-    Digit myDigit = digits[MYMIN()(idx, (size_t)(digitnum-1) )];
+    Digit myDigit = digits[CAMath::Min(idx, (size_t)(digitnum-1) )];
 
     uchar peak;
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
     IF_DBG_INST printf("Looking for peaks (using LDS)\n");
-    peak = isPeakScratchPad(smem, &myDigit, SCRATCH_PAD_SEARCH_N, chargeMap, MYSMEMD()search.posBcast, MYSMEMD()search.buf);
+    peak = isPeakScratchPad(smem, &myDigit, SCRATCH_PAD_SEARCH_N, chargeMap, smem.search.posBcast, smem.search.buf);
 #else
     peak = isPeak(&myDigit, chargeMap);
 #endif
@@ -1408,7 +1399,7 @@ void findPeaks(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() sme
 }
 
 GPUd()
-void noiseSuppression(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() smem,
+void noiseSuppression(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref() const packed_charge_t *chargeMap,
         GPUglobalref() const uchar           *peakMap,
         GPUglobalref() const Digit           *peaks,
@@ -1417,7 +1408,7 @@ void noiseSuppression(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEM
 {
     size_t idx = get_global_id(0);
 
-    Digit myDigit = peaks[MYMIN()(idx, (size_t)(peaknum-1) )];
+    Digit myDigit = peaks[CAMath::Min(idx, (size_t)(peaknum-1) )];
 
     global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
@@ -1431,8 +1422,8 @@ void noiseSuppression(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEM
             myDigit.charge,
             gpad,
             myDigit.time,
-            MYSMEMD()noise.posBcast,
-            MYSMEMD()noise.buf,
+            smem.noise.posBcast,
+            smem.noise.buf,
             &minimas,
             &bigger,
             &peaksAround);
@@ -1463,7 +1454,7 @@ void noiseSuppression(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEM
 }
 
 GPUd()
-void updatePeaks(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() smem,
+void updatePeaks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref() const Digit *peaks,
         GPUglobalref() const uchar *isPeak,
         GPUglobalref()       uchar *peakMap)
@@ -1481,7 +1472,7 @@ void updatePeaks(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() s
 
 
 GPUd()
-void countPeaks(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() smem,
+void countPeaks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref() const uchar           *peakMap,
         GPUglobalref()       packed_charge_t *chargeMap,
         GPUglobalref() const Digit           *digits,
@@ -1511,7 +1502,7 @@ void countPeaks(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() sm
 
     if (partId < in3x3)
     {
-        MYSMEMD()count.posBcast1[partId] = (ChargePos){gpad, myDigit.time};
+        smem.count.posBcast1[partId] = (ChargePos){gpad, myDigit.time};
     }
     GPUbarrier();
 
@@ -1523,13 +1514,13 @@ void countPeaks(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() sm
             0,
             8,
             INNER_NEIGHBORS,
-            MYSMEMD()count.posBcast1,
-            MYSMEMD()count.buf);
+            smem.count.posBcast1,
+            smem.count.buf);
 
     uchar aboveThreshold = 0;
     if (partId < in3x3)
     {
-        peakCount = countPeaksScratchpadInner(partId, MYSMEMD()count.buf, &aboveThreshold);
+        peakCount = countPeaksScratchpadInner(partId, smem.count.buf, &aboveThreshold);
     }
 
 
@@ -1540,8 +1531,8 @@ void countPeaks(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() sm
 
     if (partId < in5x5)
     {
-        MYSMEMD()count.posBcast1[partId] = (ChargePos){gpad, myDigit.time};
-        MYSMEMD()count.aboveThresholdBcast[partId] = aboveThreshold;
+        smem.count.posBcast1[partId] = (ChargePos){gpad, myDigit.time};
+        smem.count.aboveThresholdBcast[partId] = aboveThreshold;
     }
     GPUbarrier();
 
@@ -1553,13 +1544,13 @@ void countPeaks(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() sm
             0,
             16,
             OUTER_NEIGHBORS,
-            MYSMEMD()count.posBcast1,
-            MYSMEMD()count.aboveThresholdBcast,
-            MYSMEMD()count.buf);
+            smem.count.posBcast1,
+            smem.count.aboveThresholdBcast,
+            smem.count.buf);
 
     if (partId < in5x5)
     {
-        peakCount = countPeaksScratchpadOuter(partId, 0, aboveThreshold, MYSMEMD()count.buf);
+        peakCount = countPeaksScratchpadOuter(partId, 0, aboveThreshold, smem.count.buf);
         peakCount *= -1;
     }
 
@@ -1571,12 +1562,12 @@ void countPeaks(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() sm
     /*         8, */
     /*         N, */
     /*         OUTER_NEIGHBORS, */
-    /*         MYSMEMD()count.posBcast1, */
-    /*         MYSMEMD()count.aboveThresholdBcast, */
-    /*         MYSMEMD()count.buf); */
+    /*         smem.count.posBcast1, */
+    /*         smem.count.aboveThresholdBcast, */
+    /*         smem.count.buf); */
     /* if (partId < in5x5) */
     /* { */
-    /*     peakCount += countPeaksScratchpadOuter(partId, 8, aboveThreshold, MYSMEMD()count.buf); */
+    /*     peakCount += countPeaksScratchpadOuter(partId, 8, aboveThreshold, smem.count.buf); */
     /*     peakCount *= -1; */
     /* } */
 
@@ -1603,7 +1594,7 @@ void countPeaks(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() sm
 
 
 GPUd()
-void computeClusters(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() smem,
+void computeClusters(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref() const packed_charge_t *chargeMap,
         GPUglobalref() const Digit           *digits,
                      uint             clusternum,
@@ -1616,7 +1607,7 @@ void computeClusters(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR
     // For certain configurations dummy work items are added, so the total
     // number of work items is dividable by 64.
     // These dummy items also compute the last cluster but discard the result.
-    Digit myDigit = digits[MYMIN()(idx, clusternum-1)];
+    Digit myDigit = digits[CAMath::Min(idx, clusternum-1)];
 
     global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
@@ -1625,9 +1616,9 @@ void computeClusters(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR
     buildClusterScratchPad(
             chargeMap,
             (ChargePos){gpad, myDigit.time},
-            MYSMEMD()build.posBcast,
-            MYSMEMD()build.buf,
-            MYSMEMD()build.innerAboveThreshold,
+            smem.build.posBcast,
+            smem.build.buf,
+            smem.build.innerAboveThreshold,
             &pc);
 #else
     buildClusterNaive(chargeMap, &pc, gpad, myDigit.time);
@@ -1658,94 +1649,84 @@ void computeClusters(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR
     }
 }
 
-#ifdef GPUCA_ALIGPUCODE
 } // namespace gpucf
-#endif
 
 #if !defined(GPUCA_ALIGPUCODE)
 
 GPUg()
 void fillChargeMap_kernel(
-        GPUglobal() const GPUCF()Digit           *digits,
-        GPUglobal()       GPUCF()packed_charge_t *chargeMap)
+        GPUglobal() const gpucf::Digit           *digits,
+        GPUglobal()       gpucf::packed_charge_t *chargeMap)
 {
-    GPUshared() MYSMEM() smem;
-    GPUCF()fillChargeMap(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), MYSMEMP(), digits, chargeMap);
+    GPUshared() GPUTPCClusterFinderKernels::GPUTPCSharedMemory smem;
+    gpucf::fillChargeMap(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, digits, chargeMap);
 }
 
 GPUg()
 void resetMaps_kernel(
-        GPUglobal() const GPUCF()Digit           *digits,
-        GPUglobal()       GPUCF()packed_charge_t *chargeMap,
-        GPUglobal()       GPUCF()uchar           *isPeakMap)
+        GPUglobal() const gpucf::Digit           *digits,
+        GPUglobal()       gpucf::packed_charge_t *chargeMap,
+        GPUglobal()       gpucf::uchar           *isPeakMap)
 {
-    GPUshared() MYSMEM() smem;
-    GPUCF()resetMaps(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), MYSMEMP(), digits, chargeMap, isPeakMap);
+    GPUshared() GPUTPCClusterFinderKernels::GPUTPCSharedMemory smem;
+    gpucf::resetMaps(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, digits, chargeMap, isPeakMap);
 }
 
 GPUg()
 void findPeaks_kernel(
-        GPUglobal() const GPUCF()packed_charge_t *chargeMap,
-        GPUglobal() const GPUCF()Digit           *digits,
+        GPUglobal() const gpucf::packed_charge_t *chargeMap,
+        GPUglobal() const gpucf::Digit           *digits,
                      uint             digitnum,
-        GPUglobal()       GPUCF()uchar           *isPeakPredicate,
-        GPUglobal()       GPUCF()uchar           *peakMap)
+        GPUglobal()       gpucf::uchar           *isPeakPredicate,
+        GPUglobal()       gpucf::uchar           *peakMap)
 {
-    GPUshared() MYSMEM() smem;
-    GPUCF()findPeaks(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), MYSMEMP(), chargeMap, digits, digitnum, isPeakPredicate, peakMap);
+    GPUshared() GPUTPCClusterFinderKernels::GPUTPCSharedMemory smem;
+    gpucf::findPeaks(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, digits, digitnum, isPeakPredicate, peakMap);
 }
 
 GPUg()
 void noiseSuppression_kernel(
-        GPUglobal() const GPUCF()packed_charge_t *chargeMap,
-        GPUglobal() const GPUCF()uchar           *peakMap,
-        GPUglobal() const GPUCF()Digit           *peaks,
+        GPUglobal() const gpucf::packed_charge_t *chargeMap,
+        GPUglobal() const gpucf::uchar           *peakMap,
+        GPUglobal() const gpucf::Digit           *peaks,
                const uint             peaknum,
-        GPUglobal()       GPUCF()uchar           *isPeakPredicate)
+        GPUglobal()       gpucf::uchar           *isPeakPredicate)
 {
-    GPUshared() MYSMEM() smem;
-    GPUCF()noiseSuppression(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), MYSMEMP(), chargeMap, peakMap, peaks, peaknum, isPeakPredicate);
+    GPUshared() GPUTPCClusterFinderKernels::GPUTPCSharedMemory smem;
+    gpucf::noiseSuppression(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, peakMap, peaks, peaknum, isPeakPredicate);
 }
 
 GPUg()
 void updatePeaks_kernel(
-        GPUglobal() const GPUCF()Digit *peaks,
-        GPUglobal() const GPUCF()uchar *isPeak,
-        GPUglobal()       GPUCF()uchar *peakMap)
+        GPUglobal() const gpucf::Digit *peaks,
+        GPUglobal() const gpucf::uchar *isPeak,
+        GPUglobal()       gpucf::uchar *peakMap)
 {
-    GPUshared() MYSMEM() smem;
-    GPUCF()updatePeaks(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), MYSMEMP(), peaks, isPeak, peakMap);
+    GPUshared() GPUTPCClusterFinderKernels::GPUTPCSharedMemory smem;
+    gpucf::updatePeaks(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, peaks, isPeak, peakMap);
 }
 
 GPUg()
 void countPeaks_kernel(
-        GPUglobal() const GPUCF()uchar           *peakMap,
-        GPUglobal()       GPUCF()packed_charge_t *chargeMap,
-        GPUglobal() const GPUCF()Digit           *digits,
+        GPUglobal() const gpucf::uchar           *peakMap,
+        GPUglobal()       gpucf::packed_charge_t *chargeMap,
+        GPUglobal() const gpucf::Digit           *digits,
                const uint             digitnum)
 {
-    GPUshared() MYSMEM() smem;
-    GPUCF()countPeaks(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), MYSMEMP(), peakMap, chargeMap, digits, digitnum);
+    GPUshared() GPUTPCClusterFinderKernels::GPUTPCSharedMemory smem;
+    gpucf::countPeaks(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, peakMap, chargeMap, digits, digitnum);
 }
 
 GPUg()
 void computeClusters_kernel(
-        GPUglobal() const GPUCF()packed_charge_t *chargeMap,
-        GPUglobal() const GPUCF()Digit           *digits,
+        GPUglobal() const gpucf::packed_charge_t *chargeMap,
+        GPUglobal() const gpucf::Digit           *digits,
                      uint             clusternum,
                      uint             maxClusterPerRow,
         GPUglobal()       uint            *clusterInRow,
-        GPUglobal()       GPUCF()ClusterNative   *clusterByRow)
+        GPUglobal()       gpucf::ClusterNative   *clusterByRow)
 {
-    GPUshared() MYSMEM() smem;
-    GPUCF()computeClusters(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), MYSMEMP(), chargeMap, digits, clusternum, maxClusterPerRow, clusterInRow, clusterByRow);
+    GPUshared() GPUTPCClusterFinderKernels::GPUTPCSharedMemory smem;
+    gpucf::computeClusters(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, digits, clusternum, maxClusterPerRow, clusterInRow, clusterByRow);
 }
 #endif
-
-#undef GPUCF
-#undef MYMIN
-#undef MYATOMICADD
-#undef MYSMEM
-#undef MYSMEMD
-#undef MYSMEMP
-#undef MYSMEMR
