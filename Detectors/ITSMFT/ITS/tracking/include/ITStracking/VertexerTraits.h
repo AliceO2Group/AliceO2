@@ -111,6 +111,7 @@ class VertexerTraits
 #endif
   virtual void computeTrackletsPureMontecarlo();
   virtual void computeVertices();
+  virtual void computeHistVertices();
 
   void updateVertexingParameters(const VertexingParameters& vrtPar);
   VertexingParameters getVertexingParameters() const { return mVrtParams; }

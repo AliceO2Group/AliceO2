@@ -147,6 +147,8 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
     }
 #endif
     total[2] = vertexer.evaluateTask(&o2::its::Vertexer::validateTracklets, "Adjacent tracklets validation", std::cout);
+    // In case willing to use the histogram-based vertexer
+    // total[3] = vertexer.evaluateTask(&o2::its::Vertexer::findHistVertices, "Vertex finding with histograms", std::cout);
     total[3] = vertexer.evaluateTask(&o2::its::Vertexer::findVertices, "Vertex finding", std::cout);
 
     std::vector<Vertex> vertITS = vertexer.exportVertices();
