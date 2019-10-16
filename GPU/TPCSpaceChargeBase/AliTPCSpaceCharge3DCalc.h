@@ -242,7 +242,6 @@ class AliTPCSpaceCharge3DCalc
   void SetIntegrationStrategy(Int_t integrationStrategy) { fIntegrationStrategy = integrationStrategy; }
 
  private:
-  static const Int_t kNMaxPhi = 360; //!<!
   Profile myProfile;                 //!<!
   Int_t fNRRows = 129;               ///< the maximum on row-slices so far ~ 2cm slicing
   Int_t fNPhiSlices = 180;           ///< the maximum of phi-slices so far = (8 per sector)
@@ -316,28 +315,28 @@ class AliTPCSpaceCharge3DCalc
   TMatrixD** fMatrixPotentialA; //!<! Matrices for storing potential side A
   TMatrixD** fMatrixPotentialC; //!<! Matrices for storing potential side C
 
-  AliTPC3DCylindricalInterpolator* fInterpolatorChargeA = nullptr;        //-> interpolator for charge densities side A
-  AliTPC3DCylindricalInterpolator* fInterpolatorChargeC = nullptr;        //-> interpolator for charge densities side C
-  AliTPC3DCylindricalInterpolator* fInterpolatorPotentialA = nullptr;     //-> interpolator for charge densities side A
-  AliTPC3DCylindricalInterpolator* fInterpolatorPotentialC = nullptr;     //-> interpolator for charge densities side C
-  AliTPC3DCylindricalInterpolator* fInterpolatorInverseChargeA = nullptr; //-> interpolator for inverse charge densities side A
-  AliTPC3DCylindricalInterpolator* fInterpolatorInverseChargeC = nullptr; //-> interpolator for inverse charge densities side C
+  AliTPC3DCylindricalInterpolator* fInterpolatorChargeA = nullptr;        //!<! interpolator for charge densities side A
+  AliTPC3DCylindricalInterpolator* fInterpolatorChargeC = nullptr;        //!<! interpolator for charge densities side C
+  AliTPC3DCylindricalInterpolator* fInterpolatorPotentialA = nullptr;     //!<! interpolator for charge densities side A
+  AliTPC3DCylindricalInterpolator* fInterpolatorPotentialC = nullptr;     //!<! interpolator for charge densities side C
+  AliTPC3DCylindricalInterpolator* fInterpolatorInverseChargeA = nullptr; //!<! interpolator for inverse charge densities side A
+  AliTPC3DCylindricalInterpolator* fInterpolatorInverseChargeC = nullptr; //!<! interpolator for inverse charge densities side C
 
   AliTPCLookUpTable3DInterpolatorD* fLookupIntDistA = nullptr;                   //-> look-up table for global distortion side A
   AliTPCLookUpTable3DInterpolatorD* fLookupIntCorrA = nullptr;                   //-> look-up table for global correction side A
   AliTPCLookUpTable3DInterpolatorD* fLookupIntDistC = nullptr;                   //-> look-up table for global distortion side C
   AliTPCLookUpTable3DInterpolatorD* fLookupIntCorrC = nullptr;                   //-> look-up table for global correction side C
-  AliTPCLookUpTable3DInterpolatorIrregularD* fLookupIntCorrIrregularA = nullptr; //-> look-up table for global correction side A (method irregular)
-  AliTPCLookUpTable3DInterpolatorIrregularD* fLookupIntCorrIrregularC = nullptr; //-> look-up table for global correction side C (method irregular)
-  AliTPCLookUpTable3DInterpolatorD* fLookupIntENoDriftA = nullptr;               //-> look-up table for no drift integration side A
-  AliTPCLookUpTable3DInterpolatorD* fLookupIntENoDriftC = nullptr;               //-> look-up table for no drift integration side C
-  AliTPCLookUpTable3DInterpolatorD* fLookupDistA = nullptr;                      //-> look-up table for local distortion side A
-  AliTPCLookUpTable3DInterpolatorD* fLookupDistC = nullptr;                      //-> look-up table for local distortion side C
-  AliTPCLookUpTable3DInterpolatorD* fLookupInverseDistA = nullptr;               //-> look-up table for local distortion (from inverse) side A
-  AliTPCLookUpTable3DInterpolatorD* fLookupInverseDistC = nullptr;               //-> look-up table for local distortion (from inverse) side C
+  AliTPCLookUpTable3DInterpolatorIrregularD* fLookupIntCorrIrregularA = nullptr; //!<! look-up table for global correction side A (method irregular)
+  AliTPCLookUpTable3DInterpolatorIrregularD* fLookupIntCorrIrregularC = nullptr; //!<! look-up table for global correction side C (method irregular)
+  AliTPCLookUpTable3DInterpolatorD* fLookupIntENoDriftA = nullptr;               //!<! look-up table for no drift integration side A
+  AliTPCLookUpTable3DInterpolatorD* fLookupIntENoDriftC = nullptr;               //!<! look-up table for no drift integration side C
+  AliTPCLookUpTable3DInterpolatorD* fLookupDistA = nullptr;                      //!<! look-up table for local distortion side A
+  AliTPCLookUpTable3DInterpolatorD* fLookupDistC = nullptr;                      //!<! look-up table for local distortion side C
+  AliTPCLookUpTable3DInterpolatorD* fLookupInverseDistA = nullptr;               //!<! look-up table for local distortion (from inverse) side A
+  AliTPCLookUpTable3DInterpolatorD* fLookupInverseDistC = nullptr;               //!<! look-up table for local distortion (from inverse) side C
 
-  AliTPCLookUpTable3DInterpolatorD* fLookupElectricFieldA = nullptr; //-> look-up table for electric field side A
-  AliTPCLookUpTable3DInterpolatorD* fLookupElectricFieldC = nullptr; //-> look-up table for electric field side C
+  AliTPCLookUpTable3DInterpolatorD* fLookupElectricFieldA = nullptr; //!<! look-up table for electric field side A
+  AliTPCLookUpTable3DInterpolatorD* fLookupElectricFieldC = nullptr; //!<! look-up table for electric field side C
 
   TH3* fHistogram3DSpaceCharge = nullptr;  //!<! Histogram with the input space charge histogram - used as an optional input
   TH3* fHistogram3DSpaceChargeA = nullptr; //!<! Histogram with the input space charge histogram - used as an optional input side A
@@ -358,7 +357,7 @@ class AliTPCSpaceCharge3DCalc
   TFormula* fFormulaEr = nullptr;   //!<! er Er(r,rho,z) electric field (r) function
   TFormula* fFormulaEz = nullptr;   //!<! ez Ez(r,rho,z) electric field (z) function
 
-  AliTPCPoissonSolver* fPoissonSolver = nullptr; //-> Pointer to a poisson solver
+  AliTPCPoissonSolver* fPoissonSolver = nullptr; //!<! Pointer to a poisson solver
 
   void ElectricField(TMatrixD** matricesV, TMatrixD** matricesEr, TMatrixD** matricesEPhi, TMatrixD** matricesEz,
                      const Int_t nRRow, const Int_t nZColumn, const Int_t phiSlices, const Float_t gridSizeR,
