@@ -45,11 +45,11 @@ o2_add_test(RootTreeWriterWorkflow
             PUBLIC_LINK_LIBRARIES O2::DPLUtils
             COMPONENT_NAME DPLUtils
             LABELS dplutils
-            COMMAND_LINE_ARGS --run)
+            COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run)
 
 o2_add_test(RootTreeReader
             SOURCES test/test_RootTreeReader.cxx
             PUBLIC_LINK_LIBRARIES O2::DPLUtils
             COMPONENT_NAME DPLUtils
             LABELS dplutils
-            COMMAND_LINE_ARGS --run)
+            COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run)
