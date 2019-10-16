@@ -48,6 +48,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   void* SetPointersMemory(void* mem);
 
   size_t getNSteps(size_t items) const;
+  void SetNMaxDigits(size_t n);
 #endif
 
   gpucf::PackedDigit* mPdigits = nullptr;
@@ -69,7 +70,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   size_t mNMaxClusters = 0;
   size_t mBufSize = 0;
   size_t mNBufs = 0;
-  
+
   unsigned short mMemoryId = 0;
 };
 

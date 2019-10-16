@@ -52,8 +52,8 @@ void nativeScanUpStart(int nBlocks, int nThreads, int iBlock, int iThread, MYSME
         GPUglobalref()       int   *incr)
 {
     int idx = get_global_id(0);
-    int scanRes = work_group_scan_inclusive_add((int) predicate[idx]);
-
+    int scanRes = work_group_scan_inclusive_add((int) predicate[idx]); // TODO: Why don't we store scanRes and read it back in compactDigit?
+    
     /* sums[idx] = scanRes; */
 
     int lid = get_local_id(0);
@@ -99,7 +99,8 @@ void nativeScanTop(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR()
 
     /* DBGPR_1("ScanTop: idx = %d", idx); */
     
-    incr[idx] = work_group_scan_inclusive_add(incr[idx]);
+    int scanRes = work_group_scan_inclusive_add(incr[idx]);
+    incr[idx] = scanRes;
 }
 
 GPUd()
@@ -117,44 +118,37 @@ void nativeScanDown(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR(
 }
 
 
-#define COMPACT_ARR(type) \
-    GPUd() \
-    void compact ## type(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() smem, \
-            GPUglobalref() const type  *in, \
-            GPUglobalref()       type  *out, \
-            GPUglobalref() const uchar *predicate,  \
-            GPUglobalref()       int   *newIdx, \
-            GPUglobalref() const int   *incr) \
-    { \
-        int gid = get_group_id(0) - 1; \
-        int idx = get_global_id(0); \
-        \
-        int lastItem = get_global_size(0) - 1; \
-        \
-        int pred = predicate[idx]; \
-        int scanRes = work_group_scan_inclusive_add(pred); \
-        \
-        if (pred || idx == lastItem) \
-        { \
-            int compIdx = scanRes + incr[gid]; \
-            \
-            if (pred) \
-            { \
-                out[compIdx-1] = in[idx]; \
-            } \
-            \
-            if (idx == lastItem) \
-            { \
-                newIdx[idx] = compIdx; \
-            } \
-            \
-        } \
-        \
-    } \
-    void anonymousFunction()
+GPUd()
+void compactDigit(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() smem,
+        GPUglobalref() const Digit  *in,
+        GPUglobalref()       Digit  *out,
+        GPUglobalref() const uchar *predicate,
+        GPUglobalref()       int   *newIdx,
+        GPUglobalref() const int   *incr)
+{
+    int gid = get_group_id(0);
+    int idx = get_global_id(0);
 
-COMPACT_ARR(Digit);
-COMPACT_ARR(ClusterNative);
+    int lastItem = get_global_size(0) - 1;
+
+    int pred = predicate[idx];
+    int scanRes = work_group_scan_inclusive_add(pred);
+
+    int compIdx = scanRes;
+    if (gid) {
+      compIdx += incr[gid - 1];
+    }
+
+    if (pred)
+    {
+        out[compIdx-1] = in[idx];
+    }
+
+    if (idx == lastItem)
+    {
+        newIdx[idx] = compIdx; // TODO: Eventually, we can just return the last value, no need to store to memory
+    }
+}
 
 #ifdef GPUCA_ALIGPUCODE
 } // namespace gpucf
