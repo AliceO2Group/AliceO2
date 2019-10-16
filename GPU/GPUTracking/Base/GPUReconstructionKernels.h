@@ -52,24 +52,35 @@ class GPUReconstructionKernels : public T
   virtual int runKernelImpl(classArgument<GPUMemClean16>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, void* ptr, unsigned long size) GPUCA_KRNL(({ return T::template runKernelBackend<GPUMemClean16>(x, y, z, ptr, size); })); // NOLINT
   virtual int runKernelImpl(classArgument<GPUTPCGMMergerTrackFit>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCGMMergerTrackFit>(x, y, z); }));                         // NOLINT
 #ifdef HAVE_O2HEADERS
-  virtual int runKernelImpl(classArgument<GPUTRDTrackerGPU>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) GPUCA_KRNL(({ return T::template runKernelBackend<GPUTRDTrackerGPU>(x, y, z); }));                                             // NOLINT
-  virtual int runKernelImpl(classArgument<GPUITSFitterKernel>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) GPUCA_KRNL(({ return T::template runKernelBackend<GPUITSFitterKernel>(x, y, z); }));                                         // NOLINT
-  virtual int runKernelImpl(classArgument<GPUTPCConvertKernel>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCConvertKernel>(x, y, z); }));                                       // NOLINT
-  virtual int runKernelImpl(classArgument<GPUTPCCompressionKernels, 0>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCCompressionKernels, 0>(x, y, z); }));                       // NOLINT
-  virtual int runKernelImpl(classArgument<GPUTPCCompressionKernels, 1>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCCompressionKernels, 1>(x, y, z); }));                       // NOLINT
-  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, 0>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, 0>(x, y, z); }));                   // NOLINT
-  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, 1>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, 1>(x, y, z); }));                   // NOLINT
-  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, 2>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, 2>(x, y, z); }));                   // NOLINT
-  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, 3>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, 3>(x, y, z); }));                   // NOLINT
-  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, 4>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, 4>(x, y, z); }));                   // NOLINT
-  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, 5>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, 5>(x, y, z); }));                   // NOLINT
-  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, 6>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, 6>(x, y, z); }));                   // NOLINT
-  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, 7>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, int iBuf) GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, 7>(x, y, z, iBuf); }));   // NOLINT
-  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, 8>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, int iBuf) GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, 8>(x, y, z, iBuf); }));   // NOLINT
-  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, 9>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, int iBuf) GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, 9>(x, y, z, iBuf); }));   // NOLINT
-  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, 10>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, int iBuf) GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, 10>(x, y, z, iBuf); })); // NOLINT
-  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, 11>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, int iBuf, gpucf::PackedDigit* in, gpucf::PackedDigit* out)
-    GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, 11>(x, y, z, iBuf, in, out); })); // NOLINT
+  virtual int runKernelImpl(classArgument<GPUTRDTrackerGPU>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) GPUCA_KRNL(({ return T::template runKernelBackend<GPUTRDTrackerGPU>(x, y, z); }));                       // NOLINT
+  virtual int runKernelImpl(classArgument<GPUITSFitterKernel>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) GPUCA_KRNL(({ return T::template runKernelBackend<GPUITSFitterKernel>(x, y, z); }));                   // NOLINT
+  virtual int runKernelImpl(classArgument<GPUTPCConvertKernel>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCConvertKernel>(x, y, z); }));                 // NOLINT
+  virtual int runKernelImpl(classArgument<GPUTPCCompressionKernels, 0>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCCompressionKernels, 0>(x, y, z); })); // NOLINT
+  virtual int runKernelImpl(classArgument<GPUTPCCompressionKernels, 1>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z) GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCCompressionKernels, 1>(x, y, z); })); // NOLINT
+  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::fillChargeMap>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z)
+    GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::fillChargeMap>(x, y, z); })); // NOLINT
+  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::resetMaps>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z)
+    GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::resetMaps>(x, y, z); })); // NOLINT
+  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::findPeaks>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z)
+    GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::findPeaks>(x, y, z); })); // NOLINT
+  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::noiseSuppression>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z)
+    GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::noiseSuppression>(x, y, z); })); // NOLINT
+  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::updatePeaks>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z)
+    GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::updatePeaks>(x, y, z); })); // NOLINT
+  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::countPeaks>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z)
+    GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::countPeaks>(x, y, z); })); // NOLINT
+  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::computeClusters>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z)
+    GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::computeClusters>(x, y, z); })); // NOLINT
+  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanUpStart>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, int iBuf)
+    GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanUpStart>(x, y, z, iBuf); })); // NOLINT
+  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanUp>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, int iBuf)
+    GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanUp>(x, y, z, iBuf); })); // NOLINT
+  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanTop>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, int iBuf)
+    GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanTop>(x, y, z, iBuf); })); // NOLINT
+  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanDown>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, int iBuf, unsigned int offset)
+    GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanDown>(x, y, z, iBuf, offset); })); // NOLINT
+  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::compactDigit>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, int iBuf, gpucf::PackedDigit* in, gpucf::PackedDigit* out)
+    GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::compactDigit>(x, y, z, iBuf, in, out); })); // NOLINT
 #endif
 };
 
