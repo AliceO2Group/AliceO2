@@ -8,13 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MIDWorkflow/ClusterLabelerSpec.h
-/// \brief  Data processor specs for MID cluster labeler device
-/// \author Diego Stocco <diego.stocco at cern.ch>
-/// \date   18 June 2019
+/// \file   MIDWorkflow/TrackerSpec.h
+/// \brief  Data processor spec for MID MC tracker device
+/// \author Diego Stocco <Diego.Stocco at cern.ch>
+/// \date   27 September 2019
 
-#ifndef O2_MID_CLUSTERLABELERERSPEC_H
-#define O2_MID_CLUSTERLABELERERSPEC_H
+#ifndef O2_MID_TRACKERMCSPEC_H
+#define O2_MID_TRACKERMCSPEC_H
 
 #include "Framework/DataProcessorSpec.h"
 
@@ -22,8 +22,8 @@ namespace o2
 {
 namespace mid
 {
-framework::DataProcessorSpec getClusterLabelerSpec();
+framework::DataProcessorSpec getTrackerMCSpec();
 }
 } // namespace o2
 
-#endif //O2_MID_CLUSTERLABELERERSPEC_H
+#endif //O2_MID_TRACKERMCSPEC_H

@@ -8,22 +8,22 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MIDWorkflow/TrackLabelerSpec.h
-/// \brief  Data processor spec for MID TrackLabeler device
-/// \author Diego Stocco <diego.stocco at cern.ch>
-/// \date   11 June 2019
+/// \file   MIDWorkflow/RecoWorkflowMC.h
+/// \brief  Definition of the reconstruction workflow for MID MC
+/// \author Diego Stocco <Diego.Stocco at cern.ch>
+/// \date   11 April 2019
 
-#ifndef O2_MID_TRACKLABELERSPEC_H
-#define O2_MID_TRACKLABELERSPEC_H
+#ifndef O2_MID_RECOWORKFLOWMCSPEC_H
+#define O2_MID_RECOWORKFLOWMCSPEC_H
 
-#include "Framework/DataProcessorSpec.h"
+#include "Framework/WorkflowSpec.h"
 
 namespace o2
 {
 namespace mid
 {
-framework::DataProcessorSpec getTrackLabelerSpec();
+framework::WorkflowSpec getRecoWorkflowMC();
 }
 } // namespace o2
 
-#endif //O2_MID_TRACKLABELERSPEC_H
+#endif //O2_MID_RECOWORKFLOWMCSPEC_H

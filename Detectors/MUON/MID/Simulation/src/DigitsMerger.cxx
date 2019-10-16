@@ -18,40 +18,46 @@ namespace o2
 {
 namespace mid
 {
-void DigitsMerger::process(const std::vector<ColumnDataMC>& inDigitStore, const o2::dataformats::MCTruthContainer<MCLabel>& inMCContainer, std::vector<ColumnData>& outDigitStore, o2::dataformats::MCTruthContainer<MCLabel>& outMCContainer)
+void DigitsMerger::mergeDigit(size_t idigit, const std::vector<ColumnDataMC>& inDigitStore)
+{
+  /// Merges the current digit
+  for (auto& pair : mDigitsLabels) {
+    auto& outCol = pair.first;
+    if (outCol.deId == inDigitStore[idigit].deId && outCol.columnId == inDigitStore[idigit].columnId) {
+      outCol |= (inDigitStore[idigit]);
+      pair.second.emplace_back(idigit);
+      return;
+    }
+  }
+  std::vector<size_t> vec = {idigit};
+  mDigitsLabels.emplace_back(std::make_pair(inDigitStore[idigit], vec));
+}
+
+void DigitsMerger::process(const std::vector<ColumnDataMC>& inDigitStore, const o2::dataformats::MCTruthContainer<MCLabel>& inMCContainer, const std::vector<ROFRecord>& inROFRecords)
 {
   /// Merges the MC digits that are provided per hit
   /// into the format that we expect from data
   /// \param inDigitStore Vector of input MC digits
   /// \param inMCContainer Container with MC labels for input MC digits
-  /// \param outDigitStore Vector with merged digits
-  /// \param outMCContainer Container with MC labels for merged digits
-  outDigitStore.clear();
-  outMCContainer.clear();
-  mDigitsLabels.clear();
+  /// \param inROFRecords Vector with RO frame records
+  mDigitStore.clear();
+  mMCContainer.clear();
+  mROFRecords.clear();
 
-  for (auto inIt = inDigitStore.begin(); inIt != inDigitStore.end(); ++inIt) {
-    bool isNew = true;
-    size_t idx = inIt - inDigitStore.begin();
-    for (auto& pair : mDigitsLabels) {
-      auto& outCol = pair.first;
-      if (outCol.deId == inIt->deId && outCol.columnId == inIt->columnId) {
-        outCol |= (*inIt);
-        pair.second.emplace_back(idx);
-        isNew = false;
-        break;
+  for (auto& rofRecord : inROFRecords) {
+    mDigitsLabels.clear();
+    for (size_t idigit = rofRecord.firstEntry; idigit < rofRecord.firstEntry + rofRecord.nEntries; ++idigit) {
+      mergeDigit(idigit, inDigitStore);
+    }
+
+    auto firstEntry = mDigitStore.size();
+    mROFRecords.emplace_back(rofRecord.interactionRecord, rofRecord.eventType, firstEntry, mDigitsLabels.size());
+
+    for (auto pair : mDigitsLabels) {
+      mDigitStore.emplace_back(pair.first);
+      for (auto labelIdx : pair.second) {
+        mMCContainer.addElements(mDigitStore.size() - 1, inMCContainer.getLabels(labelIdx));
       }
-    }
-    if (isNew) {
-      std::vector<size_t> vec = {idx};
-      mDigitsLabels.emplace_back(std::make_pair(*inIt, vec));
-    }
-  }
-
-  for (auto pair : mDigitsLabels) {
-    outDigitStore.emplace_back(pair.first);
-    for (auto labelIdx : pair.second) {
-      outMCContainer.addElements(outDigitStore.size() - 1, inMCContainer.getLabels(labelIdx));
     }
   }
 }
