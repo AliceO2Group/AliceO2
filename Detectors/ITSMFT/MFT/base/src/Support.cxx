@@ -88,18 +88,16 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
 
   // ======= Creating big holes =========
   //Info("Create",Form("Cutting Voids Support_H%d_D%d", half,disk),0,0);
-  for (auto iSide = 1; iSide >= -1; iSide -= 2) { //Mirror x positions for the other side!
     for (auto iVoid = 0; iVoid < mNumberOfVoids[disk]; iVoid++) {
-      localArb = new TGeoArb8(Form("sc_void_%d_%d_H%d_D%d", iVoid, iSide, half, disk), mSupThickness + 20. * mT_delta);
-      for (auto iVertex : {3, 2, 1, 0}) { // for ( auto iVertex : { 0,1,2,3 }) { //
+      localArb = new TGeoArb8(Form("sc_void_%d_H%d_D%d", iVoid, half, disk), mSupThickness + 20. * mT_delta);
+    for(auto iVertex=0 ; iVertex< 4; iVertex++){
         Double_t* vertex = &mVoidVert[disk][iVoid][iVertex][0];
-        localArb->SetVertex(iVertex, iSide * vertex[0], mOuterCut[disk] - vertex[1]);
-        localArb->SetVertex(iVertex + 4, iSide * vertex[0], mOuterCut[disk] - vertex[1]); //Vertexes 4..7 = 0..3
+        localArb->SetVertex(iVertex, vertex[0], mOuterCut[disk] - vertex[1]);
+        localArb->SetVertex(iVertex + 4, vertex[0], mOuterCut[disk] - vertex[1]); //Vertexes 4..7 = 0..3
       }
       localCS = new TGeoCompositeShape(NULL,compositeOperation(localCS, localArb, nullptr, TGeoSubtraction()));
-
     }
-  }
+
 
   // ==== M2 6mm deep holes)
   //Info("Create",Form("Cutting M2 6 mm deep holes Support_H%d_D%d", half,disk),0,0);
@@ -458,20 +456,25 @@ void Support::initParameters()
   };
 
   // ### halfdisk 03
-  mNumberOfVoids[3] = 3; //Number of Voids (big holes) in each halfDisk support
+  mNumberOfVoids[3] = 6; //Number of Voids (big holes) in each halfDisk support
   mVoidVert[3] = new Double_t[mNumberOfVoids[3]][4][2]{
     {{-21.377, 15.3}, {-20.075, 11.5}, {-17.0, 11.5}, {-17.0, 15.3}}, // a,b,c,d
     {{-19.053, 9.5}, {-13.964, 3.5}, {-14.0, 7.5}, {-14.0, 9.5}},     // e,f,i,j
-    {{-13.964, 3.5}, {-10.0, 3.5}, {-10.0, 7.5}, {-14.0, 7.5}}        // f,g,h,i,
+    {{-13.964, 3.5}, {-10.0, 3.5}, {-10.0, 7.5}, {-14.0, 7.5}},        // f,g,h,i,
+    {{21.377, 15.3}, {17.0, 15.3}, {17.0, 11.5}, {20.075, 11.5}}, // s,t,q,r
+    {{19.053, 9.5}, {14.0, 9.5}, {14.0, 7.5}, {13.964, 3.5}},     // m,n,o,l
+    {{13.964, 3.5}, {14.0, 7.5}, {10.0, 7.5}, {10.0, 3.5}}        // l,o,p,k
   };
 
   // ### halfdisk 04
-  mNumberOfVoids[4] = 3; //Number of Voids (big holes) in each halfDisk support
+  mNumberOfVoids[4] = 6; //Number of Voids (big holes) in each halfDisk support
   mVoidVert[4] = new Double_t[mNumberOfVoids[4]][4][2]{
     {{-21.377, 16.7}, {-20.075, 12.9}, {-17.0, 12.9}, {-17.0, 16.7}},                        // a,b,c,d
     {{-19.053, 10.9}, {-13.964, 4.9}, {-15.0, 8.9}, {-15.0, 10.9}},                          // e,f,i,j
-    {{-13.964 - 6 * mT_delta, 4.9}, {-11.5, 4.9}, {-11.5, 8.9}, {-15.0 - 6 * mT_delta, 8.9}} // f,g,h,i,
-    //{{-13.964, 4.9},{-11.5, 4.9} ,{-11.5, 8.9} ,{ -15.0, 8.9}} // f,g,h,i,
+    {{-13.964 - 6 * mT_delta, 4.9}, {-11.5, 4.9}, {-11.5, 8.9}, {-15.0 - 6 * mT_delta, 8.9}}, // f,g,h,i,
+    {{21.377, 16.7}, {17.0, 16.7}, {17.0, 12.9}, {20.075, 12.9}},                        // s,t,q,r
+    {{19.053, 10.9}, {15.0, 10.9}, {15.0, 8.9}, {13.964, 4.9}},                          // m,n,o,l
+    {{13.964 + 6 * mT_delta, 4.9}, {15.0 + 6 * mT_delta, 8.9}, {11.5, 8.9}, {11.5, 4.9}} // l,o,p,k,
   };
 
   // ================================================
