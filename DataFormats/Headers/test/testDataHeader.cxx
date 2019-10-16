@@ -310,13 +310,13 @@ BOOST_AUTO_TEST_CASE(headerStack_test)
   auto* h4 = Stack::lastHeader(s5.data());
   auto* h5 = Stack::firstHeader(s5.data());
   auto* h6 = get<DataHeader*>(s5.data());
-  BOOST_REQUIRE(h5==h6);
-  BOOST_REQUIRE(h5!=nullptr);
-  BOOST_CHECK(h4==h3);
+  BOOST_REQUIRE(h5 == h6);
+  BOOST_REQUIRE(h5 != nullptr);
+  BOOST_CHECK(h4 == h3);
 
   // let's assume we have some stack that is missing the required DataHeader at the beginning:
   Stack s6{new_delete_resource(), DataHeader{}, s1.data()};
-  BOOST_CHECK(s6.size()==sizeof(DataHeader)+s1.size());
+  BOOST_CHECK(s6.size() == sizeof(DataHeader) + s1.size());
 }
 
 BOOST_AUTO_TEST_CASE(Descriptor_benchmark)
