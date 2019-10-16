@@ -21,6 +21,7 @@
 #include <gsl/gsl>
 #include "MIDBase/Mapping.h"
 #include "DataFormatsMID/ColumnData.h"
+#include "DataFormatsMID/ROFRecord.h"
 #include "MIDClustering/PreCluster.h"
 
 namespace o2
@@ -32,10 +33,14 @@ class PreClusterizer
 {
  public:
   bool init();
-  bool process(gsl::span<const ColumnData> stripPatterns);
+  void process(gsl::span<const ColumnData> stripPatterns, bool accumulate = false);
+  void process(gsl::span<const ColumnData> stripPatterns, gsl::span<const ROFRecord> rofRecords);
 
   /// Gets the vector of reconstructed pre-clusters
   const std::vector<PreCluster>& getPreClusters() { return mPreClusters; }
+
+  /// Gets the vector of pre-clusters RO frame records
+  const std::vector<ROFRecord>& getROFRecords() { return mROFRecords; }
 
  private:
   struct PatternStruct {
@@ -45,7 +50,6 @@ class PreClusterizer
   };
 
   bool loadPatterns(gsl::span<const ColumnData>& stripPatterns);
-  void reset();
 
   void preClusterizeBP(PatternStruct& de);
   void preClusterizeNBP(PatternStruct& de);
@@ -54,6 +58,7 @@ class PreClusterizer
   std::unordered_map<int, PatternStruct> mMpDEs; ///< Internal mapping
   std::unordered_map<int, bool> mActiveDEs;      ///< List of active detection elements for event
   std::vector<PreCluster> mPreClusters;          ///< List of pre-clusters
+  std::vector<ROFRecord> mROFRecords;            ///< List of pre-clusters RO frame records
 };
 } // namespace mid
 } // namespace o2

@@ -50,22 +50,40 @@ bool Clusterizer::loadPreClusters(gsl::span<const PreCluster>& preClusters)
 }
 
 //______________________________________________________________________________
-bool Clusterizer::process(gsl::span<const PreCluster> preClusters)
+void Clusterizer::process(gsl::span<const PreCluster> preClusters, bool accumulate)
 {
-  /// Main function: runs on the preclusters and builds the clusters
-  /// \param preClusters gsl::span of PreClusters objects in the
+  /// Main function: runs on the preclusters of one event and builds the clusters
+  /// \param preClusters gsl::span of PreClusters objects in the same event
+  /// \param accumulate Flag to decide if one needs to reset the output clusters at each event
 
   // Reset cluster information
-  reset();
+  mActiveDEs.clear();
+  if (!accumulate) {
+    mClusters.clear();
+  }
   if (loadPreClusters(preClusters)) {
     // Loop only on fired detection elements
     for (auto& deIndex : mActiveDEs) {
       makeClusters(mPreClustersDE[deIndex.first]);
     }
-    return true;
   }
+}
 
-  return false;
+void Clusterizer::process(gsl::span<const PreCluster> preClusters, gsl::span<const ROFRecord> rofRecords)
+{
+  /// Main function: runs on the preclusters of a timeframe
+  /// and builds the clusters
+  /// \param preClusters gsl::span of PreClusters objects in the timeframe
+  /// \param rofRecords RO frame records
+  mClusters.clear();
+  mROFRecords.clear();
+  for (auto& rofRecord : rofRecords) {
+    mPreClusterOffset = rofRecord.firstEntry;
+    auto firstEntry = mClusters.size();
+    process(preClusters.subspan(rofRecord.firstEntry, rofRecord.nEntries), true);
+    auto nEntries = mClusters.size() - firstEntry;
+    mROFRecords.emplace_back(rofRecord, firstEntry, nEntries);
+  }
 }
 
 //______________________________________________________________________________
@@ -91,8 +109,8 @@ bool Clusterizer::makeClusters(PreClustersDE& pcs)
         makeCluster(pcB.area, pcNB.area[icolumn], icolumn, deIndex);
         pcB.paired = 1;
         pcNB.paired = 1;
-        mFunction(mClusters.size() - 1, pcB.index);
-        mFunction(mClusters.size() - 1, pcNB.index);
+        mFunction(mClusters.size() - 1, pcB.index + mPreClusterOffset);
+        mFunction(mClusters.size() - 1, pcNB.index + mPreClusterOffset);
         // isNBPpaired = true;
         // setPairedFlag(icolumn, ib);
       }
@@ -125,8 +143,8 @@ bool Clusterizer::makeClusters(PreClustersDE& pcs)
           // with the pre-cluster in the previous column.
           if (neighbours.empty() && pcB.paired != pairId) {
             makeCluster(pcB.area, pcNB.area[icolumn], icolumn, deIndex);
-            mFunction(mClusters.size() - 1, pcB.index);
-            mFunction(mClusters.size() - 1, pcNB.index);
+            mFunction(mClusters.size() - 1, pcB.index + mPreClusterOffset);
+            mFunction(mClusters.size() - 1, pcNB.index + mPreClusterOffset);
           } else {
             for (auto& jb : neighbours) {
               PreClustersDE::BP& pcBneigh = pcs.getPreClusterBP(neighColumn, jb);
@@ -135,9 +153,9 @@ bool Clusterizer::makeClusters(PreClustersDE& pcs)
               // So that, when we move to the next column, we do not add it twice.
               pcBneigh.paired = pairId;
               // setPairedFlag(neighColumn, jb, pairId);
-              mFunction(mClusters.size() - 1, pcB.index);
-              mFunction(mClusters.size() - 1, pcBneigh.index);
-              mFunction(mClusters.size() - 1, pcNB.index);
+              mFunction(mClusters.size() - 1, pcB.index + mPreClusterOffset);
+              mFunction(mClusters.size() - 1, pcBneigh.index + mPreClusterOffset);
+              mFunction(mClusters.size() - 1, pcNB.index + mPreClusterOffset);
             }
           }
           pcB.paired = 1;
@@ -153,7 +171,7 @@ bool Clusterizer::makeClusters(PreClustersDE& pcs)
       // a monocathodic cluster in the NBP
       for (int icolumn = (*mPreClusters)[pcNB.index].firstColumn; icolumn <= (*mPreClusters)[pcNB.index].lastColumn; ++icolumn) {
         makeCluster(pcNB.area[icolumn], pcNB.area[icolumn], icolumn, deIndex);
-        mFunction(mClusters.size() - 1, pcNB.index);
+        mFunction(mClusters.size() - 1, pcNB.index + mPreClusterOffset);
       }
     }
   } // loop on pre-clusters in the NBP
@@ -164,7 +182,7 @@ bool Clusterizer::makeClusters(PreClustersDE& pcs)
       PreClustersDE::BP& pcB = pcs.getPreClusterBP(icolumn, ib);
       if (pcB.paired == 0) {
         makeCluster(pcB.area, pcB.area, icolumn, deIndex);
-        mFunction(mClusters.size() - 1, pcB.index);
+        mFunction(mClusters.size() - 1, pcB.index + mPreClusterOffset);
       }
       // Reset the value
       // mPairedFlag[icolumn][ib] = 0;
@@ -185,10 +203,8 @@ bool Clusterizer::init(std::function<void(size_t, size_t)> func)
   // prepare storage of clusters and PreClusters
   mClusters.reserve(100);
   mPreClustersDE.reserve(72);
+  mROFRecords.reserve(100);
   mFunction = func;
-  // for (auto& paired : mPairedFlag) {
-  //   paired.reserve(10);
-  // }
 
   return true;
 }
