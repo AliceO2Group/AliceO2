@@ -260,6 +260,7 @@ BOOST_AUTO_TEST_CASE(headerStack_test)
   const DataHeader* h1 = get<DataHeader*>(s1.data());
   BOOST_CHECK(h1 != nullptr);
   BOOST_CHECK(*h1 == dh1);
+  BOOST_CHECK(h1->flagsNextHeader == 1);
   const NameHeader<0>* h2 = get<NameHeader<0>*>(s1.data());
   BOOST_CHECK(h2 != nullptr);
   BOOST_CHECK(0 == std::strcmp(h2->getName(), "somename"));
@@ -297,6 +298,25 @@ BOOST_AUTO_TEST_CASE(headerStack_test)
   h3 = get<test::MetaHeader*>(s4.data());
   BOOST_REQUIRE(h3 != nullptr);
   BOOST_CHECK(h3->secret == 42);
+
+  //test constructing from a buffer and an additional header
+  using namespace boost::container::pmr;
+  Stack s5(new_delete_resource(), s1.data(), Stack{}, meta);
+  BOOST_CHECK(s5.size() == s1.size() + sizeof(meta));
+  // check if we can find the header even though there was an empty stack in the middle
+  h3 = get<test::MetaHeader*>(s5.data());
+  BOOST_REQUIRE(h3 != nullptr);
+  BOOST_CHECK(h3->secret == 42);
+  auto* h4 = Stack::lastHeader(s5.data());
+  auto* h5 = Stack::firstHeader(s5.data());
+  auto* h6 = get<DataHeader*>(s5.data());
+  BOOST_REQUIRE(h5==h6);
+  BOOST_REQUIRE(h5!=nullptr);
+  BOOST_CHECK(h4==h3);
+
+  // let's assume we have some stack that is missing the required DataHeader at the beginning:
+  Stack s6{new_delete_resource(), DataHeader{}, s1.data()};
+  BOOST_CHECK(s6.size()==sizeof(DataHeader)+s1.size());
 }
 
 BOOST_AUTO_TEST_CASE(Descriptor_benchmark)

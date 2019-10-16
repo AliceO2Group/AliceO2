@@ -56,11 +56,13 @@ struct Stack {
   value_type* data() const { return buffer.get(); }
   size_t size() const { return bufferSize; }
   allocator_type get_allocator() const { return allocator; }
+  const BaseHeader* first() const {return reinterpret_cast<const BaseHeader*>(this->data());}
+  static const BaseHeader* firstHeader(o2::byte* buf) {return BaseHeader::get(buf);}
+  static const BaseHeader* lastHeader(o2::byte* buf) {const BaseHeader* last{firstHeader(buf)}; while (last->flagsNextHeader) {last=last->next();} return last;}
 
-  //
-
+  //______________________________________________________________________________________________
   /// The magic constructors: take arbitrary number of headers and serialize them
-  /// into the buffer buffer allocated by the specified polymorphic allocator. By default
+  /// into the buffer allocated by the specified polymorphic allocator. By default
   /// allocation is done using new_delete_resource.
   /// In the final stack the first header must be DataHeader.
   /// all headers must derive from BaseHeader, in addition also other stacks can be passed to ctor.
@@ -73,65 +75,90 @@ struct Stack {
   {
   }
 
+  //______________________________________________________________________________________________
   template <typename... Headers>
   Stack(const allocator_type allocatorArg, Headers&&... headers)
     : allocator{allocatorArg},
       bufferSize{calculateSize(std::forward<Headers>(headers)...)},
-      buffer{static_cast<o2::byte*>(allocator.resource()->allocate(bufferSize, alignof(std::max_align_t))),
-             freeobj(allocator.resource())}
+      buffer{static_cast<o2::byte*>(allocator.resource()->allocate(bufferSize, alignof(std::max_align_t))), freeobj{allocator.resource()}}
   {
     inject(buffer.get(), std::forward<Headers>(headers)...);
   }
 
- private:
-  allocator_type allocator{boost::container::pmr::new_delete_resource()};
-  size_t bufferSize{0};
-  BufferType buffer{nullptr, freeobj{allocator.resource()}};
-
+  //______________________________________________________________________________________________
   template <typename T, typename... Args>
   static size_t calculateSize(T&& h, Args&&... args) noexcept
   {
     return calculateSize(std::forward<T>(h)) + calculateSize(std::forward<Args>(args)...);
   }
 
+  //______________________________________________________________________________________________
   template <typename T>
   static size_t calculateSize(T&& h) noexcept
   {
-    return h.size();
+    if constexpr (std::is_convertible_v<T,o2::byte*>) {
+      const BaseHeader* next= BaseHeader::get(std::forward<T>(h));
+      if (!next) {return 0;}
+      size_t size = next->size();
+      while (next = next->next()) {
+        size+=next->size();
+      }
+      return size;
+    } else {
+      return h.size();
+    }
   }
 
   //recursion terminator
   constexpr static size_t calculateSize() { return 0; }
 
-  template <typename T>
-  static o2::byte* inject(o2::byte* here, T&& h) noexcept
-  {
-    using headerType = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
-    static_assert(
-      std::is_base_of<BaseHeader, headerType>::value == true || std::is_same<Stack, headerType>::value == true,
-      "header stack parameters are restricted to stacks and headers derived from BaseHeader");
-    std::copy(h.data(), h.data() + h.size(), here);
-    return here + h.size();
-    // somehow could not trigger copy elision for placed construction, TODO: check out if this is possible here
-    // headerType* placed = new (here) headerType(std::forward<T>(h));
-    // return here + placed->size();
-  }
+ private:
+  allocator_type allocator{boost::container::pmr::new_delete_resource()};
+  size_t bufferSize{0};
+  BufferType buffer{nullptr, freeobj{allocator.resource()}};
 
+  //______________________________________________________________________________________________
+  template <typename T>
+    static o2::byte* inject(o2::byte* here, T&& h, bool more = false) noexcept
+    {
+      using headerType = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
+      if constexpr (std::is_same_v<headerType,Stack>) {
+        if (h.data()==nullptr) { return  here; }
+        std::copy(h.data(), h.data() + h.size(), here);
+        BaseHeader* last = const_cast<BaseHeader*>(lastHeader(here));
+        if (!last) return here;
+        last->flagsNextHeader = more;
+        return here + h.size();
+      } else if constexpr (std::is_base_of_v<BaseHeader, headerType>) {
+        std::copy(h.data(), h.data() + h.size(), here);
+        reinterpret_cast<BaseHeader*>(here)->flagsNextHeader = more;
+        return here + h.size();
+      } else if constexpr (std::is_same_v<headerType,o2::byte*>) {
+        BaseHeader* from{BaseHeader::get(h)};
+        BaseHeader* last{nullptr};
+        while (from) {
+          last = reinterpret_cast<BaseHeader*>(here);
+          std::copy(from->data(), from->data()+from->size(), here);
+          here += from->size();
+          from = from->next();
+        };
+        last->flagsNextHeader = more;
+        return here;
+      } else {
+        static_assert(true,"Stack can only be constructed from other stacks and BaseHeader derived classes");
+      }
+    }
+
+  //______________________________________________________________________________________________
   template <typename T, typename... Args>
   static o2::byte* inject(o2::byte* here, T&& h, Args&&... args) noexcept
   {
-    auto alsohere = inject(here, h);
-    // the type might be a stack itself, loop through headers and set the flag in the last one
-    if (h.size() > 0) {
-      BaseHeader* next = BaseHeader::get(here);
-      while (next->flagsNextHeader) {
-        next = next->next();
-      }
-      next->flagsNextHeader = hasNonEmptyArg(args...);
-    }
+    bool more = hasNonEmptyArg(args...);
+    auto alsohere = inject(here, h, more);
     return inject(alsohere, args...);
   }
 
+  //______________________________________________________________________________________________
   // helper function to check if there is at least one non-empty header/stack in the argument pack
   template <typename T, typename... Args>
   static bool hasNonEmptyArg(const T& h, const Args&... args) noexcept
@@ -142,13 +169,18 @@ struct Stack {
     return hasNonEmptyArg(args...);
   }
 
+  //______________________________________________________________________________________________
   template <typename T>
   static bool hasNonEmptyArg(const T& h) noexcept
   {
-    if (h.size() > 0) {
-      return true;
-    }
-    return false;
+    if constexpr (std::is_convertible_v<T,o2::byte*>) {
+      return get<BaseHeader*>(h);
+    } else {
+      if (h.size() > 0) {
+        return true;
+      }
+      return false;
+    };
   }
 };
 

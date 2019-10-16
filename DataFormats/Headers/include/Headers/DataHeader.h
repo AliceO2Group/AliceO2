@@ -488,7 +488,7 @@ auto get(const o2::byte* buffer, size_t /*len*/ = 0)
     return HeaderConstPtrType{nullptr};
   if (current->description == HeaderValueType::sHeaderType)
     return reinterpret_cast<HeaderConstPtrType>(current);
-  while ((current = current->next())) {
+  while (current = current->next()) {
     if (current->description == HeaderValueType::sHeaderType)
       return reinterpret_cast<HeaderConstPtrType>(current);
   }
