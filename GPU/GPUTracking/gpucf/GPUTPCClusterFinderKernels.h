@@ -32,7 +32,7 @@ class GPUTPCClusterFinderKernels : public GPUKernelTemplate
 {
  public:
 #ifdef GPUCA_ALIGPUCODE // TODO: Remove, once Clusterizer is cleaned up
-  class GPUTPCSharedMemory : public GPUTPCSharedMemoryScan64<int, 64>
+  class GPUTPCSharedMemory : public GPUTPCSharedMemoryScan64<int, GPUCA_THREAD_COUNT_SCAN>
   {
    public:
     union {
