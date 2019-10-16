@@ -140,18 +140,14 @@ size_t StreamCompaction::Worker::run(
   ASSERT(mem.incrBufs.size() == mem.incrBufSizes.size());
 
   size_t digitnum = items;
-  size_t offset = 0;
 
   /* queue.enqueueCopyBuffer( */
   /*         predicate, */
   /*         mem.incrBufs.front(), */
-  /*         sizeof(cl_int) * offset, */
-  /*         sizeof(cl_int) * offset, */
   /*         sizeof(cl_int) * digitnum, */
   /*         nullptr, */
   /*         addScanEvent()); */
 
-  std::vector<size_t> offsets;
   std::vector<size_t> digitnums;
 
   size_t stepnum = this->stepnum(digitnum);
@@ -159,11 +155,8 @@ size_t StreamCompaction::Worker::run(
   DBG(mem.incrBufs.size());
   ASSERT(stepnum <= mem.incrBufs.size());
 
-  DBG(offset);
-
   for (size_t i = 1; i < stepnum; i++) {
     digitnums.push_back(digitnum);
-    offsets.push_back(offset);
 
     DBG(i);
 
@@ -174,7 +167,7 @@ size_t StreamCompaction::Worker::run(
 
       queue.enqueueNDRangeKernel(
         nativeScanUpStart,
-        cl::NDRange(offset),
+        cl::NDRange(0),
         cl::NDRange(digitnum),
         cl::NDRange(scanUpStartWorkGroupSize),
         nullptr,
@@ -186,7 +179,7 @@ size_t StreamCompaction::Worker::run(
       nativeScanUp.setArg(1, mem.incrBufs[i]);
       queue.enqueueNDRangeKernel(
         nativeScanUp,
-        cl::NDRange(offset),
+        cl::NDRange(0),
         cl::NDRange(digitnum),
         cl::NDRange(scanUpWorkGroupSize),
         nullptr,
@@ -197,7 +190,6 @@ size_t StreamCompaction::Worker::run(
       dumpBuffer(queue, mem.incrBufs[i - 1], mem.incrBufSizes[i - 1]);
     }
 
-    offset = 0;
     digitnum /= scanUpWorkGroupSize;
   }
 
@@ -210,7 +202,7 @@ size_t StreamCompaction::Worker::run(
   nativeScanTop.setArg(0, mem.incrBufs[stepnum - 1]);
   queue.enqueueNDRangeKernel(
     nativeScanTop,
-    cl::NDRange(offset),
+    cl::NDRange(0),
     cl::NDRange(digitnum),
     cl::NDRange(scanTopWorkGroupSize),
     nullptr,
@@ -221,18 +213,17 @@ size_t StreamCompaction::Worker::run(
   }
 
   ASSERT(digitnums.size() == stepnum - 1);
-  ASSERT(offsets.size() == stepnum - 1);
   for (size_t i = stepnum - 1; i > 1; i--) {
-    offset = offsets[i - 1];
     digitnum = digitnums[i - 1];
 
     ASSERT(digitnum > scanUpWorkGroupSize);
 
     nativeScanDown.setArg(0, mem.incrBufs[i - 1]);
     nativeScanDown.setArg(1, mem.incrBufs[i]);
+    nativeScanDown.setArg(1, (unsigned int)scanUpWorkGroupSize);
     queue.enqueueNDRangeKernel(
       nativeScanDown,
-      cl::NDRange(offset + scanUpWorkGroupSize),
+      cl::NDRange(0),
       cl::NDRange(digitnum - scanUpWorkGroupSize),
       cl::NDRange(scanUpWorkGroupSize),
       nullptr,
@@ -243,7 +234,6 @@ size_t StreamCompaction::Worker::run(
     }
   }
 
-  offset = offsets.front();
   digitnum = digitnums.front();
 
   cl::Kernel compact;
@@ -267,7 +257,7 @@ size_t StreamCompaction::Worker::run(
   compact.setArg(4, mem.incrBufs[1]);
   queue.enqueueNDRangeKernel(
     compact,
-    cl::NDRange(offset),
+    cl::NDRange(0),
     cl::NDRange(digitnum),
     cl::NDRange(scanUpWorkGroupSize),
     nullptr,
