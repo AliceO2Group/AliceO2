@@ -109,7 +109,7 @@ struct Stack {
         return 0;
       }
       size_t size = next->size();
-      while (next = next->next()) {
+      while ((next = next->next())) {
         size += next->size();
       }
       return size;
