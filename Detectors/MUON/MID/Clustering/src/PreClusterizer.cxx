@@ -23,14 +23,18 @@ namespace mid
 {
 
 //______________________________________________________________________________
-bool PreClusterizer::process(gsl::span<const ColumnData> stripPatterns)
+void PreClusterizer::process(gsl::span<const ColumnData> stripPatterns, bool accumulate)
 {
-  /// Main function: runs on a data containing the strip patterns
+  /// Main function: runs on a data containing the strip patterns in an event
   /// and builds the clusters
-  /// @param stripPatterns Vector of strip patterns per column
+  /// \param stripPatterns Vector of strip patterns per column
+  /// \param accumulate Flag to decide if one needs to reset the output preclusters at each event
 
   // Reset fired DEs and pre-cluster information
-  reset();
+  mActiveDEs.clear();
+  if (!accumulate) {
+    mPreClusters.clear();
+  }
 
   // Load the stripPatterns to get the fired strips
   if (loadPatterns(stripPatterns)) {
@@ -45,8 +49,22 @@ bool PreClusterizer::process(gsl::span<const ColumnData> stripPatterns)
       de.firedColumns = 0; // Reset fired columns
     }
   }
+}
 
-  return true;
+void PreClusterizer::process(gsl::span<const ColumnData> stripPatterns, gsl::span<const ROFRecord> rofRecords)
+{
+  /// Main function: runs on a data containing the strip patterns of a timeframe
+  /// and builds the clusters
+  /// \param stripPatterns Vector of strip patterns per column
+  /// \param rofRecords RO frame records
+  mPreClusters.clear();
+  mROFRecords.clear();
+  for (auto& rofRecord : rofRecords) {
+    auto firstEntry = mPreClusters.size();
+    process(stripPatterns.subspan(rofRecord.firstEntry, rofRecord.nEntries), true);
+    auto nEntries = mPreClusters.size() - firstEntry;
+    mROFRecords.emplace_back(rofRecord, firstEntry, nEntries);
+  }
 }
 
 //______________________________________________________________________________
@@ -56,6 +74,7 @@ bool PreClusterizer::init()
 
   // Initialize pre-clusters
   mPreClusters.reserve(100);
+  mROFRecords.reserve(100);
   return true;
 }
 
@@ -146,17 +165,6 @@ void PreClusterizer::preClusterizeBP(PatternStruct& de)
 
     } // loop on lines
   }   // loop on columns
-}
-
-//______________________________________________________________________________
-void PreClusterizer::reset()
-{
-  /// Resets fired DEs
-
-  // No need to reset the strip patterns here:
-  // it is done while the patterns are processed to spare a loop
-  mActiveDEs.clear();
-  mPreClusters.clear();
 }
 
 } // namespace mid
