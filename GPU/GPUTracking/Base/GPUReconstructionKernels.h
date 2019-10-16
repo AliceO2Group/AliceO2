@@ -79,8 +79,8 @@ class GPUReconstructionKernels : public T
     GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanTop>(x, y, z, iBuf); })); // NOLINT
   virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanDown>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, int iBuf, unsigned int offset)
     GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanDown>(x, y, z, iBuf, offset); })); // NOLINT
-  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::compactDigit>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, int iBuf, gpucf::PackedDigit* in, gpucf::PackedDigit* out)
-    GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::compactDigit>(x, y, z, iBuf, in, out); })); // NOLINT
+  virtual int runKernelImpl(classArgument<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::compactDigit>, const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, int iBuf, int stage, gpucf::PackedDigit* in, gpucf::PackedDigit* out)
+    GPUCA_KRNL(({ return T::template runKernelBackend<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::compactDigit>(x, y, z, iBuf, stage, in, out); })); // NOLINT
 #endif
 };
 

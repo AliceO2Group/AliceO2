@@ -73,6 +73,11 @@ void GPUTPCClusterFinder::SetMaxData(const GPUTrackingInOutPointers& io)
   mNBufs = getNSteps(mBufSize);
 }
 
+void GPUTPCClusterFinder::SetNMaxDigits(size_t n)
+{
+  mNMaxDigits = nextMultipleOf<std::max<int>(GPUCA_MEMALIGN_SMALL, mScanWorkGroupSize)>(n);
+}
+
 size_t GPUTPCClusterFinder::getNSteps(size_t items) const
 {
   size_t c = 0;
