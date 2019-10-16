@@ -13,6 +13,9 @@
 /// \author matteo.concas@cern.ch
 
 #include <cassert>
+#include <ostream>
+#include <boost/histogram.hpp>
+#include <boost/format.hpp>
 
 #include "ITStracking/VertexerTraits.h"
 #include "ITStracking/ROframe.h"
@@ -32,7 +35,7 @@ namespace o2
 {
 namespace its
 {
-
+using boost::histogram::indexed;
 using constants::index_table::PhiBins;
 using constants::index_table::ZBins;
 using constants::its::LayersRCoordinate;
@@ -455,6 +458,109 @@ void VertexerTraits::computeVertices()
                              mTrackletClusters[iCluster].getAvgDistance2(), // In place of chi2
                              mEvent->getROFrameId());
       mEvent->addPrimaryVertex(mVertices.back().mX, mVertices.back().mY, mVertices.back().mZ);
+    }
+  }
+}
+
+void VertexerTraits::computeHistVertices()
+{
+  o2::its::VertexerHistogramsConfiguration histConf;
+  std::vector<boost::histogram::axis::regular<float>> axes;
+  axes.reserve(3);
+  for (size_t iAxis{0}; iAxis < 3; ++iAxis) {
+    axes.emplace_back(histConf.nBinsXYZ[iAxis] - 1, histConf.lowHistBoundariesXYZ[iAxis], histConf.highHistBoundariesXYZ[iAxis]);
+  }
+
+  auto histX = boost::histogram::make_histogram(axes[0]);
+  auto histY = boost::histogram::make_histogram(axes[1]);
+  auto histZ = boost::histogram::make_histogram(axes[2]);
+
+  for (size_t iTracklet1{0}; iTracklet1 < mTracklets.size(); ++iTracklet1) {
+    for (size_t iTracklet2{iTracklet1 + 1}; iTracklet2 < mTracklets.size(); ++iTracklet2) {
+      if (Line::getDCA(mTracklets[iTracklet1], mTracklets[iTracklet2]) < mVrtParams.histPairCut) {
+        ClusterLines cluster{mTracklets[iTracklet1], mTracklets[iTracklet2]};
+        if (cluster.getVertex()[0] * cluster.getVertex()[0] + cluster.getVertex()[1] * cluster.getVertex()[1] < 1.98f * 1.98f) {
+          histX(cluster.getVertex()[0]);
+          histY(cluster.getVertex()[1]);
+        }
+      }
+    }
+  }
+
+  // Try again to use std::max_element as soon as boost is upgraded to 1.71...
+  // atm you can iterate over histograms, not really poossible to get bin index. Need to use iterate(histogram)
+  int maxXBinContent{0};
+  int maxYBinContent{0};
+  int maxXIndex{0};
+  int maxYIndex{0};
+  for (auto x : indexed(histX)) {
+    if (x.get() > maxXBinContent) {
+      maxXBinContent = x.get();
+      maxXIndex = x.index();
+    }
+  }
+
+  for (auto y : indexed(histY)) {
+    if (y.get() > maxYBinContent) {
+      maxYBinContent = y.get();
+      maxYIndex = y.index();
+    }
+  }
+
+  if (maxXBinContent || maxYBinContent) {
+    float tmpX{histConf.lowHistBoundariesXYZ[0] + histConf.binSizeHistX * maxXIndex + histConf.binSizeHistX / 2};
+    float tmpY{histConf.lowHistBoundariesXYZ[1] + histConf.binSizeHistY * maxYIndex + histConf.binSizeHistY / 2};
+    int sumX{maxXBinContent};
+    int sumY{maxYBinContent};
+    float wX{tmpX * static_cast<float>(maxXBinContent)};
+    float wY{tmpY * static_cast<float>(maxYBinContent)};
+    for (int iBinX{std::max(0, maxXIndex - histConf.binSpanXYZ[0])}; iBinX < std::min(maxXIndex + histConf.binSpanXYZ[0] + 1, histConf.nBinsXYZ[0] - 1); ++iBinX) {
+      if (iBinX != maxXIndex) {
+        wX += (histConf.lowHistBoundariesXYZ[0] + histConf.binSizeHistX * iBinX + histConf.binSizeHistX / 2) * histX.at(iBinX);
+        sumX += histX.at(iBinX);
+      }
+    }
+    for (int iBinY{std::max(0, maxYIndex - histConf.binSpanXYZ[1])}; iBinY < std::min(maxYIndex + histConf.binSpanXYZ[1] + 1, histConf.nBinsXYZ[1] - 1); ++iBinY) {
+      if (iBinY != maxYIndex) {
+        wY += (histConf.lowHistBoundariesXYZ[1] + histConf.binSizeHistY * iBinY + histConf.binSizeHistY / 2) * histY.at(iBinY);
+        sumY += histY.at(iBinY);
+      }
+    }
+
+    const float beamCoordinateX{wX / sumX};
+    const float beamCoordinateY{wY / sumY};
+    Line pseudoBeam{std::array<float, 3>{beamCoordinateX, beamCoordinateY, 1}, std::array<float, 3>{beamCoordinateX, beamCoordinateY, -1}};
+    for (auto& line : mTracklets) {
+      if (Line::getDCA(line, pseudoBeam) < mVrtParams.histPairCut) {
+        ClusterLines cluster{line, pseudoBeam};
+        histZ(cluster.getVertex()[2]);
+      }
+    }
+    for (int iVertex{0};; ++iVertex) {
+      int maxZBinContent{0};
+      int maxZIndex{0};
+      for (auto z : indexed(histZ)) {
+        if (z.get() > maxZBinContent) {
+          maxZBinContent = z.get();
+          maxZIndex = z.index();
+        }
+      }
+      if (maxZBinContent < mVrtParams.clusterContributorsCut && iVertex) {
+        break;
+      }
+      float tmpZ{histConf.lowHistBoundariesXYZ[2] + histConf.binSizeHistZ * maxZIndex + histConf.binSizeHistZ / 2};
+      int sumZ{maxZBinContent};
+      float wZ{tmpZ * static_cast<float>(maxZBinContent)};
+      for (int iBinZ{std::max(0, maxZIndex - histConf.binSpanXYZ[2])}; iBinZ < std::min(maxZIndex + histConf.binSpanXYZ[2] + 1, histConf.nBinsXYZ[2] - 1); ++iBinZ) {
+        if (iBinZ != maxZIndex) {
+          wZ += (histConf.lowHistBoundariesXYZ[2] + histConf.binSizeHistZ * iBinZ + histConf.binSizeHistZ / 2) * histZ.at(iBinZ);
+          sumZ += histZ.at(iBinZ);
+          histZ.at(iBinZ) = 0;
+        }
+      }
+      histZ.at(maxZIndex) = 0;
+      const float vertexZCoordinate{wZ / sumZ};
+      mVertices.emplace_back(beamCoordinateX, beamCoordinateY, vertexZCoordinate, std::array<float, 6>{0., 0., 0., 0., 0., 0.}, sumZ, 0., mEvent->getROFrameId());
     }
   }
 }

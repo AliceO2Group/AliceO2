@@ -176,6 +176,7 @@ class ClusterLines final
  public:
   ClusterLines(const int firstLabel, const Line& firstLine, const int secondLabel, const Line& secondLine,
                const bool weight = false);
+  ClusterLines(const Line& firstLine, const Line& secondLine);
   void add(const int& lineLabel, const Line& line, const bool& weight = false);
   void computeClusterCentroid();
   inline std::vector<int>& getLabels() { return mLabels; }
