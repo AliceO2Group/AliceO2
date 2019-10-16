@@ -83,9 +83,9 @@ GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::nativ
 }
 
 template <>
-GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::nativeScanDown>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& clusterer, int iBuf)
+GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::nativeScanDown>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& clusterer, int iBuf, unsigned int offset)
 {
-  gpucf::nativeScanDown(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, clusterer.mPbuf + iBuf * clusterer.mBufSize);
+  gpucf::nativeScanDown(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, clusterer.mPbuf + iBuf * clusterer.mBufSize, offset);
 }
 
 template <>

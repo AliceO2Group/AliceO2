@@ -105,14 +105,15 @@ void nativeScanTop(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR()
 GPUd()
 void nativeScanDown(int nBlocks, int nThreads, int iBlock, int iThread, MYSMEMR() smem,
         GPUglobalref()       int *sums,
-        GPUglobalref() const int *incr)
+        GPUglobalref() const int *incr,
+        unsigned int offset)
 {
     int gid = get_group_id(0);
-    int idx = get_global_id(0);
+    int idx = get_global_id(0) + offset;
 
-    int offset = incr[gid];
+    int shift = incr[gid];
 
-    sums[idx] += offset;
+    sums[idx] += shift;
 }
 
 
@@ -190,10 +191,11 @@ void nativeScanTop_kernel(GPUglobal() int *incr)
 GPUg()
 void nativeScanDown_kernel(
         GPUglobal()       int *sums,
-        GPUglobal() const int *incr)
+        GPUglobal() const int *incr,
+        unsigned int offset)
 {
     GPUshared() MYSMEM() smem;
-    GPUCF()nativeScanDown(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, sums, incr);
+    GPUCF()nativeScanDown(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, sums, incr, offset);
 }
 
 GPUg()
