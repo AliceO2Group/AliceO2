@@ -107,16 +107,16 @@ GPUd() void printVectorOnThread(const char* name, Vector<int>& vector, size_t si
 GPUg() void printVectorKernel(DeviceStoreVertexerGPU& store, const int threadId)
 {
   if (blockIdx.x * blockDim.x + threadIdx.x == threadId) {
-    for (int i{0}; i < 100; ++i) {
-      printf("%d ", store.getHistogramXYZ()[0].get()[i]);
+    for (int i{0}; i < store.getConfig().nBinsXYZ[0] - 1; ++i) {
+      printf("%d: %d\n", i, store.getHistogramXYZ()[0].get()[i]);
     }
     printf("\n");
-    for (int i{0}; i < 100; ++i) {
-      printf("%d ", store.getHistogramXYZ()[1].get()[i]);
+    for (int i{0}; i < store.getConfig().nBinsXYZ[1] - 1; ++i) {
+      printf("%d: %d\n", i, store.getHistogramXYZ()[1].get()[i]);
     }
     printf("\n");
-    for (int i{0}; i < 800; ++i) {
-      printf("%d ", store.getHistogramXYZ()[2].get()[i]);
+    for (int i{0}; i < store.getConfig().nBinsXYZ[2] - 1; ++i) {
+      printf("%d: %d\n", i, store.getHistogramXYZ()[2].get()[i]);
     }
     printf("\n");
   }
@@ -235,13 +235,16 @@ GPUg() void computeCentroidsKernel(DeviceStoreVertexerGPU& store,
         // printOnThread(0, "xCentr: %f, yCentr: %f \n", cluster.getVertex()[0], cluster.getVertex()[1]);
         store.getXYCentroids().emplace(2 * currentThreadIndex, cluster.getVertex()[0]);
         store.getXYCentroids().emplace(2 * currentThreadIndex + 1, cluster.getVertex()[1]);
-
-        return;
+      } else {
+        // writing some data anyway outside the histogram, they will not be put in the histogram, by construction.
+        store.getXYCentroids().emplace(2 * currentThreadIndex, 2 * store.getConfig().lowHistBoundariesXYZ[0]);
+        store.getXYCentroids().emplace(2 * currentThreadIndex + 1, 2 * store.getConfig().lowHistBoundariesXYZ[1]);
       }
+    } else {
+      // writing some data anyway outside the histogram, they will not be put in the histogram, by construction.
+      store.getXYCentroids().emplace(2 * currentThreadIndex, 2 * store.getConfig().lowHistBoundariesXYZ[0]);
+      store.getXYCentroids().emplace(2 * currentThreadIndex + 1, 2 * store.getConfig().lowHistBoundariesXYZ[1]);
     }
-    // writing some data anyway outside the histogram, they will not be put in the histogram, by construction.
-    store.getXYCentroids().emplace(2 * currentThreadIndex, 2 * store.getConfig().lowHistBoundariesXYZ[0]);
-    store.getXYCentroids().emplace(2 * currentThreadIndex + 1, 2 * store.getConfig().lowHistBoundariesXYZ[1]);
   }
 }
 
@@ -250,6 +253,7 @@ GPUg() void computeZCentroidsKernel(DeviceStoreVertexerGPU& store,
 {
   const int nLines = store.getNExclusiveFoundLines()[store.getClusters()[1].size() - 1] + store.getNFoundLines()[store.getClusters()[1].size() - 1];
   for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < nLines; currentThreadIndex += blockDim.x * gridDim.x) {
+    // printOnThread(0, "Max X: %d Max Y %d \n", store.getTmpVertexPositionBins()[0].value, store.getTmpVertexPositionBins()[1].value);
     if (store.getTmpVertexPositionBins()[0].value || store.getTmpVertexPositionBins()[1].value) {
       float tmpX{store.getConfig().lowHistBoundariesXYZ[0] + store.getTmpVertexPositionBins()[0].key * store.getConfig().binSizeHistX + store.getConfig().binSizeHistX / 2};
       int sumWX{store.getTmpVertexPositionBins()[0].value};
@@ -392,7 +396,8 @@ void VertexerTraitsGPU::computeVertices()
   int nLines = mStoreVertexerGPU.getNExclusiveFoundLines().getElementFromDevice(mClusters[1].size() - 1) + mStoreVertexerGPU.getNFoundLines().getElementFromDevice(mClusters[1].size() - 1);
   int nCentroids{static_cast<int>(nLines * (nLines - 1) / 2)};
   int* histogramXY[2] = {mStoreVertexerGPU.getHistogramXYZ()[0].get(), mStoreVertexerGPU.getHistogramXYZ()[1].get()};
-
+  float tmpArrayLow[2] = {mStoreVertexerGPU.getConfig().lowHistBoundariesXYZ[0], mStoreVertexerGPU.getConfig().lowHistBoundariesXYZ[1]};
+  float tmpArrayHigh[2] = {mStoreVertexerGPU.getConfig().highHistBoundariesXYZ[0], mStoreVertexerGPU.getConfig().highHistBoundariesXYZ[1]};
   GPU::computeCentroidsKernel<<<blocksGrid, threadsPerBlock>>>(getDeviceContext(),
                                                                mVrtParams.histPairCut);
 
@@ -401,10 +406,10 @@ void VertexerTraitsGPU::computeVertices()
                                                  mStoreVertexerGPU.getXYCentroids().get(),                           // d_samples
                                                  histogramXY,                                                        // d_histogram
                                                  mStoreVertexerGPU.getConfig().nBinsXYZ,                             // num_levels
-                                                 mStoreVertexerGPU.getConfig().lowHistBoundariesXYZ,                 // lower_level
-                                                 mStoreVertexerGPU.getConfig().highHistBoundariesXYZ,                // fupper_level
+                                                 tmpArrayLow,                                                        // lower_level
+                                                 tmpArrayHigh,                                                       // fupper_level
                                                  nCentroids);                                                        // num_row_pixels
-
+  GPU::printVectorKernel<<<blocksGrid, threadsPerBlock>>>(getDeviceContext(), 0);
   cub::DeviceReduce::ArgMax(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()),
                             bufferSize,
                             histogramXY[0],
