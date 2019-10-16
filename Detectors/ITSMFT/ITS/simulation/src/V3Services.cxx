@@ -44,6 +44,9 @@ using namespace o2::its;
 // Parameters
 //const Double_t V3Services::sIBWheelACZdist = 308.0 * sMm;
 const Double_t V3Services::sIBWheelACZdist = 306.0 * sMm;
+const Double_t V3Services::sOBWheelThickness = 2.0 * sMm;
+const Double_t V3Services::sMBWheelsZpos = 457.0 * sMm;
+const Double_t V3Services::sOBWheelsZpos = 770.0 * sMm;
 
 ClassImp(V3Services);
 
@@ -108,6 +111,86 @@ TGeoVolume* V3Services::createIBEndWheelsSideC(const TGeoManager* mgr)
 
   // Return the wheels
   return endWheelsVol;
+}
+
+void V3Services::createMBEndWheelsSideA(TGeoVolume* mother, const TGeoManager* mgr)
+{
+  //
+  // Creates the Middle Barrel End Wheels on Side A
+  //
+  // Input:
+  //         mother : the volume hosting the wheels
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      24 Sep 2019  Mario Sitta
+  //
+
+  for (Int_t jLay = 0; jLay < sNumberMiddlLayers; jLay++)
+    obEndWheelSideA(jLay, mother, mgr);
+}
+
+void V3Services::createMBEndWheelsSideC(TGeoVolume* mother, const TGeoManager* mgr)
+{
+  //
+  // Creates the Middle Barrel End Wheels on Side C
+  //
+  // Input:
+  //         mother : the volume hosting the wheels
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      26 Sep 2019  Mario Sitta
+  //
+
+  for (Int_t jLay = 0; jLay < sNumberMiddlLayers; jLay++)
+    mbEndWheelSideC(jLay, mother, mgr);
+}
+
+void V3Services::createOBEndWheelsSideA(TGeoVolume* mother, const TGeoManager* mgr)
+{
+  //
+  // Creates the Outer Barrel End Wheels on Side A
+  //
+  // Input:
+  //         mother : the volume hosting the wheels
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      27 Sep 2019  Mario Sitta
+  //
+
+  for (Int_t jLay = 0; jLay < sNumberOuterLayers; jLay++)
+    obEndWheelSideA(jLay + sNumberMiddlLayers, mother, mgr);
+}
+
+void V3Services::createOBEndWheelsSideC(TGeoVolume* mother, const TGeoManager* mgr)
+{
+  //
+  // Creates the Outer Barrel End Wheels on Side C
+  //
+  // Input:
+  //         mother : the volume hosting the wheels
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      27 Sep 2019  Mario Sitta
+  //
+
+  for (Int_t jLay = 0; jLay < sNumberOuterLayers; jLay++)
+    obEndWheelSideC(jLay, mother, mgr);
 }
 
 void V3Services::ibEndWheelSideA(const Int_t iLay, TGeoVolume* endWheel, const TGeoManager* mgr)
@@ -634,4 +717,419 @@ TGeoXtru* V3Services::ibEndWheelARibShape(const Int_t iLay)
   ribShape->DefineSection(1, sConeARibThick / 2);
 
   return ribShape;
+}
+
+void V3Services::obEndWheelSideA(const Int_t iLay, TGeoVolume* mother, const TGeoManager* mgr)
+{
+  //
+  // Creates the single End Wheel on Side A
+  // for a given layer of the Middle and Outer Barrels
+  // (Layer 3: ALICE-W3-01-Side_A, Layer 4: ALICE-W4-01-Side_A,
+  //  Layer 5: ALICE-W5-01-Side_A  Layer 6: ALICE-W6-01-Side_A)
+  //
+  // Input:
+  //         iLay : the layer number (0,1: Middle, 2,3: Outer)
+  //         endWheel : the volume where to place the current created wheel
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      24 Sep 2019  Mario Sitta
+  // Updated:      27 Sep 2019  Mario Sitta
+  //
+
+  // The support ring
+  static const Double_t sOBWheelTotZlen = 55.0 * sMm;
+  static const Double_t sOBWheelSuppZlen = 35.0 * sMm;
+
+  static const Double_t sOBWheelSuppRmin[4] = {204.0 * sMm, 254.0 * sMm, 352.5 * sMm, 402.0 * sMm};
+  static const Double_t sOBWheelSuppRmax[4] = {241.0 * sMm, 291.0 * sMm, 389.0 * sMm, 448.5 * sMm};
+
+  // The support blocks
+  static const Double_t sOBWheelShelfWide[4] = {56.05 * sMm, 55.15 * sMm, 54.10 * sMm, 53.81 * sMm}; // TO BE CHECKED
+  static const Double_t sOBWheelShelfHoleZpos = 48.0 * sMm;
+
+  static const Double_t sOBWheelShelfRpos[4] = {213.0 * sMm, 262.5 * sMm, 361.0 * sMm, 410.5 * sMm};
+  static const Double_t sOBWheelShelfPhi0[4] = {0.0, 0.0, 0.0, 0.0}; // Deg
+
+  // Local variables
+  Double_t xlen, ylen, zlen;
+  Double_t rmin, rmax, phimin, dphi;
+  Double_t xpos, ypos, zpos;
+
+  // The Support Wheel is physically a single piece, a hollow ring
+  // plus the stave support shelves
+  // For the sake of simplicity we build it up with four TGeoTube's
+  // one per each wall of the ring (inner, outer, lower, upper) plus
+  // as many TGeoBBox's as needed for the shelves
+
+  // The inner ring
+  TGeoTube* innerRingSh = new TGeoTube(sOBWheelSuppRmin[iLay], sOBWheelSuppRmax[iLay], sOBWheelThickness / 2);
+
+  // The outer ring
+  TGeoTube* outerRingSh = new TGeoTube(sOBWheelSuppRmin[iLay], sOBWheelSuppRmax[iLay], sOBWheelThickness / 2);
+
+  // The lower ring
+  rmax = sOBWheelSuppRmin[iLay] + sOBWheelThickness;
+  zlen = sOBWheelSuppZlen - 2 * sOBWheelThickness;
+  TGeoTube* lowerRingSh = new TGeoTube(sOBWheelSuppRmin[iLay], rmax, zlen / 2);
+
+  // The upper ring
+  rmin = sOBWheelSuppRmax[iLay] - sOBWheelThickness;
+  TGeoTube* upperRingSh = new TGeoTube(rmin, sOBWheelSuppRmax[iLay], zlen / 2);
+
+  // The shelf support
+  xlen = sOBWheelShelfWide[iLay];
+  ylen = 2 * sOBWheelThickness;
+  zlen = sOBWheelTotZlen - sOBWheelSuppZlen;
+  TGeoBBox* shelfSh = new TGeoBBox(xlen / 2, ylen / 2, zlen / 2);
+
+  // We have all shapes: now create the real volumes
+  TGeoMedium* medCarbon = mgr->GetMedium("ITS_M55J6K$"); // TO BE CHECKED
+
+  Int_t nLay = iLay + sNumberInnerLayers;
+
+  TGeoVolume* ringInnerVol = new TGeoVolume(Form("OBEndWheelAInnerRing%d", nLay), innerRingSh, medCarbon);
+  ringInnerVol->SetFillColor(kBlue);
+  ringInnerVol->SetLineColor(kBlue);
+
+  TGeoVolume* ringOuterVol = new TGeoVolume(Form("OBEndWheelAOuterRing%d", nLay), outerRingSh, medCarbon);
+  ringOuterVol->SetFillColor(kBlue);
+  ringOuterVol->SetLineColor(kBlue);
+
+  TGeoVolume* ringLowerVol = new TGeoVolume(Form("OBEndWheelALowerRing%d", nLay), lowerRingSh, medCarbon);
+  ringLowerVol->SetFillColor(kBlue);
+  ringLowerVol->SetLineColor(kBlue);
+
+  TGeoVolume* ringUpperVol = new TGeoVolume(Form("OBEndWheelAUpperRing%d", nLay), upperRingSh, medCarbon);
+  ringUpperVol->SetFillColor(kBlue);
+  ringUpperVol->SetLineColor(kBlue);
+
+  TGeoVolume* shelfVol = new TGeoVolume(Form("OBEndWheelAShelf%d", nLay), shelfSh, medCarbon);
+  shelfVol->SetFillColor(kBlue);
+  shelfVol->SetLineColor(kBlue);
+
+  // Finally put everything in the mother volume
+  // In blueprints the Z position is given wrt the shelf holes
+  // First the ring
+  if (iLay < sNumberMiddlLayers)
+    zpos = sMBWheelsZpos + sOBWheelShelfHoleZpos;
+  else
+    zpos = sOBWheelsZpos + sOBWheelShelfHoleZpos;
+
+  zpos -= outerRingSh->GetDz();
+  mother->AddNode(ringOuterVol, 1, new TGeoTranslation(0, 0, zpos));
+
+  zpos -= (outerRingSh->GetDz() + lowerRingSh->GetDz());
+  mother->AddNode(ringLowerVol, 1, new TGeoTranslation(0, 0, zpos));
+  mother->AddNode(ringUpperVol, 1, new TGeoTranslation(0, 0, zpos));
+
+  zpos -= (lowerRingSh->GetDz() + innerRingSh->GetDz());
+  mother->AddNode(ringInnerVol, 1, new TGeoTranslation(0, 0, zpos));
+
+  // Then the support blocks
+  Int_t numberOfStaves = GeometryTGeo::Instance()->getNumberOfStaves(nLay);
+  Double_t alpha = 360. / numberOfStaves;
+
+  rmin = sOBWheelShelfRpos[iLay] + shelfSh->GetDY();
+  zpos -= (innerRingSh->GetDz() + shelfSh->GetDZ());
+
+  for (Int_t j = 0; j < numberOfStaves; j++) { // As in V3Layer::createLayer
+    Double_t phi = j * alpha + sOBWheelShelfPhi0[iLay];
+    xpos = rmin * cosD(phi);
+    ypos = rmin * sinD(phi);
+    phi += 90;
+    mother->AddNode(shelfVol, j, new TGeoCombiTrans(xpos, ypos, zpos, new TGeoRotation("", phi, 0, 0)));
+  }
+}
+
+void V3Services::mbEndWheelSideC(const Int_t iLay, TGeoVolume* mother, const TGeoManager* mgr)
+{
+  //
+  // Creates the single End Wheel on Side C
+  // for a given layer of the Middle Barrel
+  // (wheels on Side C are very different for Middle and Outer Barrels,
+  // so we cannot use a single method for both as for Side A)
+  // (Layer 3: ALICE-W3-04-Side_C, Layer 4: ALICE-W4-05-Side_C)
+  //
+  // Input:
+  //         iLay : the layer number (0,1: Middle, 2,3: Outer)
+  //         endWheel : the volume where to place the current created wheel
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      26 Sep 2019  Mario Sitta
+  //
+
+  // The support ring
+  static const Double_t sOBWheelTotZlen[2] = {63.0 * sMm, 55.0 * sMm};
+  static const Double_t sOBWheelSuppZlen[2] = {43.0 * sMm, 35.0 * sMm};
+
+  static const Double_t sOBWheelSuppRmin[2] = {200.5 * sMm, 254.0 * sMm};
+  static const Double_t sOBWheelSuppRmax[2] = {237.5 * sMm, 291.0 * sMm};
+  static const Double_t sOBWheelFlangeR[2] = {255.0 * sMm, 239.5 * sMm};
+  static const Double_t sOBWheelFlangeZlen = 8.0 * sMm;
+
+  // The support blocks
+  static const Double_t sOBWheelShelfWide[2] = {56.05 * sMm, 55.15 * sMm}; // TO BE CHECKED
+  static const Double_t sOBWheelShelfHoleZpos[2] = {56.0 * sMm, 48.0 * sMm};
+
+  static const Double_t sOBWheelShelfRpos[2] = {213.0 * sMm, 262.5 * sMm};
+  static const Double_t sOBWheelShelfPhi0[2] = {0.0, 0.0}; // Deg
+
+  // Local variables
+  Double_t xlen, ylen, zlen;
+  Double_t rmin, rmax, phimin, dphi;
+  Double_t xpos, ypos, zpos;
+  Int_t nsect;
+
+  // The Support Wheel is physically a single piece, a hollow ring
+  // with a flange plus the stave support shelves
+  // Unfortunately the flange is on opposite sides on the two layers
+  // (externally to the ring for layer 3, internally for layer 4)
+  // For the sake of simplicity we build it up with three TGeoTube's and
+  // one TGeoPcon for each wall of the ring (inner, outer, lower, upper)
+  // plus as many TGeoBBox's as needed for the shelves
+
+  // The inner ring
+  TGeoTube* innerRingSh = new TGeoTube(sOBWheelSuppRmin[iLay], sOBWheelSuppRmax[iLay], sOBWheelThickness / 2);
+
+  // The outer ring with the flange
+  if (iLay == 0)
+    nsect = 6;
+  else
+    nsect = 4;
+
+  TGeoPcon* outerRingSh = new TGeoPcon(0, 360, nsect);
+
+  if (iLay == 0) {
+    rmin = sOBWheelSuppRmax[0] - 2 * sOBWheelThickness;
+    outerRingSh->DefineSection(0, 0., rmin, sOBWheelFlangeR[0]);
+    outerRingSh->DefineSection(1, 2 * sOBWheelThickness, rmin, sOBWheelFlangeR[0]);
+    outerRingSh->DefineSection(2, 2 * sOBWheelThickness, rmin, sOBWheelSuppRmax[0]);
+    outerRingSh->DefineSection(3, sOBWheelFlangeZlen, rmin, sOBWheelSuppRmax[0]);
+    outerRingSh->DefineSection(4, sOBWheelFlangeZlen, sOBWheelSuppRmin[0], sOBWheelSuppRmax[0]);
+    zlen = sOBWheelFlangeZlen + sOBWheelThickness;
+    outerRingSh->DefineSection(5, zlen, sOBWheelSuppRmin[0], sOBWheelSuppRmax[0]);
+  } else {
+    outerRingSh->DefineSection(0, 0., sOBWheelFlangeR[1], sOBWheelSuppRmax[1]);
+    outerRingSh->DefineSection(1, sOBWheelThickness, sOBWheelFlangeR[1], sOBWheelSuppRmax[1]);
+    rmax = sOBWheelSuppRmin[1] + sOBWheelThickness;
+    outerRingSh->DefineSection(2, sOBWheelThickness, sOBWheelFlangeR[1], rmax);
+    outerRingSh->DefineSection(3, 2 * sOBWheelThickness, sOBWheelFlangeR[1], rmax);
+  }
+
+  // The lower ring
+  if (iLay == 0)
+    zlen = sOBWheelSuppZlen[iLay] - sOBWheelFlangeZlen - 2 * sOBWheelThickness;
+  else
+    zlen = sOBWheelSuppZlen[iLay] - sOBWheelThickness - outerRingSh->GetZ(nsect - 1);
+
+  rmax = sOBWheelSuppRmin[iLay] + sOBWheelThickness;
+  TGeoTube* lowerRingSh = new TGeoTube(sOBWheelSuppRmin[iLay], rmax, zlen / 2);
+
+  // The upper ring
+  if (iLay == 1) // For odd layers the upper and lower rings length is the same
+    zlen = sOBWheelSuppZlen[iLay] - 2 * sOBWheelThickness;
+
+  rmin = sOBWheelSuppRmax[iLay] - sOBWheelThickness;
+  TGeoTube* upperRingSh = new TGeoTube(rmin, sOBWheelSuppRmax[iLay], zlen / 2);
+
+  // The shelf support
+  xlen = sOBWheelShelfWide[iLay];
+  ylen = 2 * sOBWheelThickness;
+  zlen = sOBWheelTotZlen[iLay] - sOBWheelSuppZlen[iLay];
+  TGeoBBox* shelfSh = new TGeoBBox(xlen / 2, ylen / 2, zlen / 2);
+
+  // We have all shapes: now create the real volumes
+  TGeoMedium* medCarbon = mgr->GetMedium("ITS_M55J6K$"); // TO BE CHECKED
+
+  Int_t nLay = iLay + sNumberInnerLayers;
+
+  TGeoVolume* ringInnerVol = new TGeoVolume(Form("OBEndWheelCInnerRing%d", nLay), innerRingSh, medCarbon);
+  ringInnerVol->SetFillColor(kBlue);
+  ringInnerVol->SetLineColor(kBlue);
+
+  TGeoVolume* ringOuterVol = new TGeoVolume(Form("OBEndWheelCOuterRing%d", nLay), outerRingSh, medCarbon);
+  ringOuterVol->SetFillColor(kBlue);
+  ringOuterVol->SetLineColor(kBlue);
+
+  TGeoVolume* ringLowerVol = new TGeoVolume(Form("OBEndWheelCLowerRing%d", nLay), lowerRingSh, medCarbon);
+  ringLowerVol->SetFillColor(kBlue);
+  ringLowerVol->SetLineColor(kBlue);
+
+  TGeoVolume* ringUpperVol = new TGeoVolume(Form("OBEndWheelCUpperRing%d", nLay), upperRingSh, medCarbon);
+  ringUpperVol->SetFillColor(kBlue);
+  ringUpperVol->SetLineColor(kBlue);
+
+  TGeoVolume* shelfVol = new TGeoVolume(Form("OBEndWheelAShelf%d", nLay), shelfSh, medCarbon);
+  shelfVol->SetFillColor(kBlue);
+  shelfVol->SetLineColor(kBlue);
+
+  // Finally put everything in the mother volume
+  // In blueprints the Z position is given wrt the shelf holes
+  // First the ring
+  zpos = sMBWheelsZpos + sOBWheelShelfHoleZpos[iLay] - sOBWheelSuppZlen[iLay];
+
+  zpos += innerRingSh->GetDz();
+  mother->AddNode(ringInnerVol, 1, new TGeoTranslation(0, 0, -zpos));
+
+  zpos += (innerRingSh->GetDz() + upperRingSh->GetDz());
+  mother->AddNode(ringUpperVol, 1, new TGeoTranslation(0, 0, -zpos));
+
+  zpos += (-upperRingSh->GetDz() + lowerRingSh->GetDz());
+  mother->AddNode(ringLowerVol, 1, new TGeoTranslation(0, 0, -zpos));
+
+  zpos += (lowerRingSh->GetDz() + outerRingSh->GetZ(nsect - 1));
+  mother->AddNode(ringOuterVol, 1, new TGeoTranslation(0, 0, -zpos));
+
+  // Then the support blocks
+  Int_t numberOfStaves = GeometryTGeo::Instance()->getNumberOfStaves(nLay);
+  Double_t alpha = 360. / numberOfStaves;
+
+  rmin = sOBWheelShelfRpos[iLay] + shelfSh->GetDY();
+  zpos = sMBWheelsZpos + sOBWheelShelfHoleZpos[iLay] - sOBWheelSuppZlen[iLay];
+  zpos -= shelfSh->GetDZ();
+
+  for (Int_t j = 0; j < numberOfStaves; j++) { // As in V3Layer::createLayer
+    Double_t phi = j * alpha + sOBWheelShelfPhi0[iLay];
+    xpos = rmin * cosD(phi);
+    ypos = rmin * sinD(phi);
+    phi += 90;
+    mother->AddNode(shelfVol, j, new TGeoCombiTrans(xpos, ypos, -zpos, new TGeoRotation("", phi, 0, 0)));
+  }
+}
+
+void V3Services::obEndWheelSideC(const Int_t iLay, TGeoVolume* mother, const TGeoManager* mgr)
+{
+  //
+  // Creates the single End Wheel on Side C
+  // for a given layer of the Outer Barrel
+  // (wheels on Side C are very different for Middle and Outer Barrels,
+  // so we cannot use a single method for both as for Side A)
+  // (Layer 5: ALICE-W5-04-Side_C, Layer 6: ALICE-W6-04-Side_C)
+  //
+  // Input:
+  //         iLay : the layer number (0,1: Middle, 2,3: Outer)
+  //         endWheel : the volume where to place the current created wheel
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      07 Oct 2019  Mario Sitta
+  //
+
+  // The support ring
+  static const Double_t sOBWheelTotZlen[2] = {37.0 * sMm, 35.0 * sMm};
+
+  static const Double_t sOBWheelSuppRmin = 354.0 * sMm;
+  static const Double_t sOBWheelSuppRmax[2] = {389.5 * sMm, 448.5 * sMm};
+  static const Double_t sOBWheelIntFlangeR[2] = {335.0 * sMm, 393.0 * sMm};
+  static const Double_t sOBWheelExtFlangeR = 409.0 * sMm;
+  static const Double_t sOBWheelIntFlangeZ = 4.0 * sMm; // TO BE CHECKED!
+
+  static const Double_t sOBWheelShelfRpos[2] = {361.0 * sMm, 410.5 * sMm};
+  static const Double_t sOBWheelShelfHoleZpos[2] = {28.0 * sMm, 26.0 * sMm};
+
+  // Local variables
+  Double_t xlen, ylen, zlen;
+  Double_t rmin, rmax, phimin, dphi;
+  Double_t xpos, ypos, zpos;
+  Int_t nsect;
+
+  // The Support Wheels are physically a single piece, a hollow ring
+  // with one or two flanges
+  // For the sake of simplicity we build it up with a TGeoTube for the
+  // external wall and a TGeoPcon for the remaining of the ring for layer 6
+  // and with two TGeoPcon's for layer 5
+
+  // The upper ring: a Pcon for Layer 5, a Tube for Layer 6
+  TGeoShape* upperRingSh;
+
+  rmin = sOBWheelSuppRmax[iLay] - sOBWheelThickness;
+  if (iLay == 0) {
+    nsect = 4;
+    TGeoPcon* ring = new TGeoPcon(0, 360, nsect);
+    ring->DefineSection(0, sOBWheelThickness, rmin, sOBWheelExtFlangeR);
+    ring->DefineSection(1, 2 * sOBWheelThickness, rmin, sOBWheelExtFlangeR);
+    ring->DefineSection(2, 2 * sOBWheelThickness, rmin, sOBWheelSuppRmax[iLay]);
+    zlen = sOBWheelTotZlen[iLay] - sOBWheelThickness;
+    ring->DefineSection(3, zlen, rmin, sOBWheelSuppRmax[iLay]);
+    upperRingSh = (TGeoShape*)ring;
+  } else {
+    zlen = sOBWheelTotZlen[iLay] - 2 * sOBWheelThickness;
+    TGeoTube* ring = new TGeoTube(rmin, sOBWheelSuppRmax[iLay], zlen / 2);
+    upperRingSh = (TGeoShape*)ring;
+  }
+
+  // The lower ring: a Pcon
+  TGeoPcon* lowerRingSh;
+
+  if (iLay == 0) {
+    nsect = 12;
+    lowerRingSh = new TGeoPcon(0, 360, nsect);
+    lowerRingSh->DefineSection(0, 0., sOBWheelSuppRmin, sOBWheelExtFlangeR);
+    lowerRingSh->DefineSection(1, sOBWheelThickness, sOBWheelSuppRmin, sOBWheelExtFlangeR);
+    rmax = sOBWheelSuppRmin + sOBWheelThickness;
+    lowerRingSh->DefineSection(2, sOBWheelThickness, sOBWheelSuppRmin, rmax);
+    lowerRingSh->DefineSection(3, sOBWheelIntFlangeZ, sOBWheelSuppRmin, rmax);
+    lowerRingSh->DefineSection(4, sOBWheelIntFlangeZ, sOBWheelIntFlangeR[iLay], rmax);
+    zpos = sOBWheelIntFlangeZ + 2 * sOBWheelThickness;
+    lowerRingSh->DefineSection(5, zpos, sOBWheelIntFlangeR[iLay], rmax);
+    lowerRingSh->DefineSection(6, zpos, sOBWheelSuppRmin, rmax);
+    zpos += sOBWheelIntFlangeZ;
+    lowerRingSh->DefineSection(7, zpos, sOBWheelSuppRmin, rmax);
+    rmax = sOBWheelShelfRpos[iLay] + sOBWheelThickness;
+    lowerRingSh->DefineSection(8, zpos, sOBWheelShelfRpos[iLay], rmax);
+    zpos = sOBWheelTotZlen[iLay] - sOBWheelThickness;
+    lowerRingSh->DefineSection(9, zpos, sOBWheelShelfRpos[iLay], rmax);
+    lowerRingSh->DefineSection(10, zpos, sOBWheelShelfRpos[iLay], sOBWheelSuppRmax[iLay]);
+    lowerRingSh->DefineSection(11, sOBWheelTotZlen[iLay], sOBWheelShelfRpos[iLay], sOBWheelSuppRmax[iLay]);
+  } else {
+    nsect = 10;
+    lowerRingSh = new TGeoPcon(0, 360, nsect);
+    lowerRingSh->DefineSection(0, 0., sOBWheelShelfRpos[iLay], sOBWheelSuppRmax[iLay]);
+    lowerRingSh->DefineSection(1, sOBWheelThickness, sOBWheelShelfRpos[iLay], sOBWheelSuppRmax[iLay]);
+    rmax = sOBWheelShelfRpos[iLay] + sOBWheelThickness;
+    lowerRingSh->DefineSection(2, sOBWheelThickness, sOBWheelShelfRpos[iLay], rmax);
+    lowerRingSh->DefineSection(3, sOBWheelIntFlangeZ, sOBWheelShelfRpos[iLay], rmax);
+    lowerRingSh->DefineSection(4, sOBWheelIntFlangeZ, sOBWheelIntFlangeR[iLay], rmax);
+    zpos = sOBWheelIntFlangeZ + 2 * sOBWheelThickness;
+    lowerRingSh->DefineSection(5, zpos, sOBWheelIntFlangeR[iLay], rmax);
+    lowerRingSh->DefineSection(6, zpos, sOBWheelShelfRpos[iLay], rmax);
+    zpos = sOBWheelTotZlen[iLay] - sOBWheelThickness;
+    lowerRingSh->DefineSection(7, zpos, sOBWheelShelfRpos[iLay], rmax);
+    lowerRingSh->DefineSection(8, zpos, sOBWheelShelfRpos[iLay], sOBWheelSuppRmax[iLay]);
+    lowerRingSh->DefineSection(9, sOBWheelTotZlen[iLay], sOBWheelShelfRpos[iLay], sOBWheelSuppRmax[iLay]);
+  }
+
+  // We have all shapes: now create the real volumes
+  TGeoMedium* medCarbon = mgr->GetMedium("ITS_M55J6K$"); // TO BE CHECKED
+
+  Int_t nLay = iLay + sNumberInnerLayers + sNumberMiddlLayers;
+
+  TGeoVolume* ringUpperVol = new TGeoVolume(Form("OBEndWheelCUpperRing%d", nLay), upperRingSh, medCarbon);
+  ringUpperVol->SetFillColor(kBlue);
+  ringUpperVol->SetLineColor(kBlue);
+
+  TGeoVolume* ringLowerVol = new TGeoVolume(Form("OBEndWheelCLowerRing%d", nLay), lowerRingSh, medCarbon);
+  ringLowerVol->SetFillColor(kBlue);
+  ringLowerVol->SetLineColor(kBlue);
+
+  // Finally put everything in the mother volume
+  // In blueprints the Z position is given wrt the shelf holes
+  zpos = sOBWheelsZpos + sOBWheelShelfHoleZpos[iLay];
+
+  mother->AddNode(ringLowerVol, 1, new TGeoTranslation(0, 0, -zpos));
+
+  if (iLay == 1)
+    zpos -= (sOBWheelThickness + (static_cast<TGeoTube*>(upperRingSh))->GetDz());
+  mother->AddNode(ringUpperVol, 1, new TGeoTranslation(0, 0, -zpos));
 }

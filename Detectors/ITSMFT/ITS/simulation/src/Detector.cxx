@@ -850,10 +850,12 @@ void Detector::constructDetectorGeometry()
   mServicesGeometry = new V3Services();
 
   createInnerBarrelServices(wrapVols[0]);
+  createMiddlBarrelServices(wrapVols[1]);
+  createOuterBarrelServices(wrapVols[2]);
 
   // TEMPORARY - These routines will be obsoleted once the new services are completed - TEMPORARY
   //  createServiceBarrel(kTRUE, wrapVols[0]);
-  createServiceBarrel(kFALSE, wrapVols[2]);
+  //  createServiceBarrel(kFALSE, wrapVols[2]);
 
   delete[] wrapVols; // delete pointer only, not the volumes
 }
@@ -884,6 +886,50 @@ void Detector::createInnerBarrelServices(TGeoVolume* motherVolume)
   TGeoVolume* endWheelsC = mServicesGeometry->createIBEndWheelsSideC();
 
   motherVolume->AddNode(endWheelsC, 1, nullptr);
+}
+
+void Detector::createMiddlBarrelServices(TGeoVolume* motherVolume)
+{
+  //
+  // Creates the Middle Barrel Service structures
+  //
+  // Input:
+  //         motherVolume : the volume hosting the services
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      24 Sep 2019  Mario Sitta
+  //
+
+  // Create the End Wheels on Side A
+  mServicesGeometry->createMBEndWheelsSideA(motherVolume);
+
+  // Create the End Wheels on Side C
+  mServicesGeometry->createMBEndWheelsSideC(motherVolume);
+}
+
+void Detector::createOuterBarrelServices(TGeoVolume* motherVolume)
+{
+  //
+  // Creates the Outer Barrel Service structures
+  //
+  // Input:
+  //         motherVolume : the volume hosting the services
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      27 Sep 2019  Mario Sitta
+  //
+
+  // Create the End Wheels on Side A
+  mServicesGeometry->createOBEndWheelsSideA(motherVolume);
+
+  // Create the End Wheels on Side C
+  mServicesGeometry->createOBEndWheelsSideC(motherVolume);
 }
 
 // Service Barrel
