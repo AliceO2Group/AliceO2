@@ -32,6 +32,8 @@ OutputSpec::OutputSpec(header::DataOrigin inOrigin, header::DataDescription inDe
 OutputSpec::OutputSpec(OutputLabel const& inBinding, header::DataOrigin inOrigin, header::DataDescription inDescription,
                        enum Lifetime inLifetime)
   : binding{inBinding},
+    // Note: using 0 as subspec is specifically intended default behavior, a matcher ignoring
+    // the subspec can be passed using the specific constructor with ConcreteDataTypeMatcher
     matcher{ConcreteDataMatcher{inOrigin, inDescription, 0}},
     lifetime{inLifetime}
 {
@@ -40,7 +42,16 @@ OutputSpec::OutputSpec(OutputLabel const& inBinding, header::DataOrigin inOrigin
 OutputSpec::OutputSpec(header::DataOrigin inOrigin, header::DataDescription inDescription,
                        enum Lifetime inLifetime)
   : binding{OutputLabel{""}},
+    // Note: using 0 as subspec is specifically intended default behavior, a matcher ignoring
+    // the subspec can be passed using the specific constructor with ConcreteDataTypeMatcher
     matcher{ConcreteDataMatcher{inOrigin, inDescription, 0}},
+    lifetime{inLifetime}
+{
+}
+
+OutputSpec::OutputSpec(ConcreteDataMatcher const& concrete, enum Lifetime inLifetime)
+  : binding{""},
+    matcher{concrete},
     lifetime{inLifetime}
 {
 }
