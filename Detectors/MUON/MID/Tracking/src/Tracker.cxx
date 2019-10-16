@@ -16,7 +16,7 @@
 
 #include <cmath>
 #include <functional>
-#include "fairlogger/Logger.h"
+#include "Framework/Logger.h"
 #include "MIDBase/DetectorParameters.h"
 
 namespace o2
@@ -46,6 +46,9 @@ bool Tracker::init(bool keepAll)
   // Prepare storage of tracks
   mTracks.reserve(30);
 
+  mTrackROFRecords.reserve(100);
+  mClusterROFRecords.reserve(100);
+
   if (keepAll) {
     mFollowTrack = &Tracker::followTrackKeepAll;
   } else {
@@ -53,19 +56,6 @@ bool Tracker::init(bool keepAll)
   }
 
   return true;
-}
-
-//______________________________________________________________________________
-void Tracker::reset()
-{
-  /// Resets clusters and the number of tracks
-
-  for (auto& clIdx : mClusterIndexes) {
-    clIdx.clear();
-  }
-
-  mClusters.clear();
-  mTracks.clear();
 }
 
 //______________________________________________________________________________
@@ -105,14 +95,41 @@ bool Tracker::loadClusters(gsl::span<const Cluster2D>& clusters)
   return (clusters.size() > 0);
 }
 
-//______________________________________________________________________________
-bool Tracker::process(gsl::span<const Cluster2D> clusters)
+void Tracker::process(gsl::span<const Cluster2D> clusters, gsl::span<const ROFRecord> rofRecords)
 {
-  /// Main function: runs on a data containing the clusters
+  /// Main function: runs on a data containing the clusters in timeframe
+  /// and builds the tracks
+  mClusters.clear();
+  mTracks.clear();
+  mTrackROFRecords.clear();
+  mClusterROFRecords.clear();
+  for (auto& rofRecord : rofRecords) {
+    auto firstTrackEntry = mTracks.size();
+    mTrackOffset = firstTrackEntry;
+    auto firstClusterEntry = mClusters.size();
+    process(clusters.subspan(rofRecord.firstEntry, rofRecord.nEntries), true);
+    auto nTrackEntries = mTracks.size() - firstTrackEntry;
+    mTrackROFRecords.emplace_back(rofRecord, firstTrackEntry, nTrackEntries);
+    auto nClusterEntries = mClusters.size() - firstClusterEntry;
+    mClusterROFRecords.emplace_back(rofRecord, firstClusterEntry, nClusterEntries);
+  }
+}
+
+//______________________________________________________________________________
+void Tracker::process(gsl::span<const Cluster2D> clusters, bool accumulate)
+{
+  /// Main function: runs on a data containing the clusters per event
   /// and builds the tracks
 
   // Reset cluster and tracks information
-  reset();
+  for (auto& clIdx : mClusterIndexes) {
+    clIdx.clear();
+  }
+
+  if (!accumulate) {
+    mClusters.clear();
+    mTracks.clear();
+  }
 
   // Load the digits to get the fired pads
   if (loadClusters(clusters)) {
@@ -126,8 +143,6 @@ bool Tracker::process(gsl::span<const Cluster2D> clusters)
     // left outward
     processSide(false, false);
   }
-
-  return true;
 }
 
 //______________________________________________________________________________
@@ -518,24 +533,24 @@ bool Tracker::tryAddTrack(const Track& track)
   // for the case where one of the two reconstructed tracks has a much better precision
   // of the other
   float chi2Cut = 0.4 * mSigmaCut * mSigmaCut;
-  for (auto& checkTrack : mTracks) {
+  for (auto checkTrack = mTracks.begin() + mTrackOffset; checkTrack != mTracks.end(); ++checkTrack) {
     int nCommonClusters = 0;
     for (int ich = 0; ich < 4; ++ich) {
-      if (track.getClusterMatched(ich) == checkTrack.getClusterMatched(ich)) {
+      if (track.getClusterMatched(ich) == checkTrack->getClusterMatched(ich)) {
         ++nCommonClusters;
       }
     }
     if (nCommonClusters == 4) {
       return false;
     }
-    if (nCommonClusters == 3 && track.isCompatible(checkTrack, chi2Cut)) {
+    if (nCommonClusters == 3 && track.isCompatible(*checkTrack, chi2Cut)) {
       // The new track is compatible with an existing one
-      if (chi2OverNDF < checkTrack.getChi2OverNDF()) {
+      if (chi2OverNDF < checkTrack->getChi2OverNDF()) {
         // The new track is more precise than the old one: replace it!
-        LOG(DEBUG) << "Replacing track " << checkTrack << "    with " << track;
-        checkTrack = track;
+        LOG(DEBUG) << "Replacing track " << *checkTrack << "    with " << track;
+        *checkTrack = track;
       } else {
-        LOG(DEBUG) << "Rejecting track " << track << "     compatible with " << checkTrack;
+        LOG(DEBUG) << "Rejecting track " << track << "     compatible with " << *checkTrack;
         // The new track is less precise than the old one: reject it!
       }
       return false;
