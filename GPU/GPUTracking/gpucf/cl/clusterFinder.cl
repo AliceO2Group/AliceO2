@@ -1333,13 +1333,17 @@ GPUd() void noiseSuppressionFindMinmasAndPeaksScratchpad(
 GPUd()
 void fillChargeMap(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref() const Digit           *digits,
-        GPUglobalref()       packed_charge_t *chargeMap)
+        GPUglobalref()       packed_charge_t *chargeMap,
+        size_t maxDigit)
 {
     size_t idx = get_global_id(0);
+    if (idx >= maxDigit) {
+      return;
+    }
     Digit myDigit = digits[idx];
-
+    
     global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
-
+    
     CHARGE(chargeMap, gpad, myDigit.time) = packCharge(myDigit.charge, false, false);
 }
 
@@ -1659,7 +1663,7 @@ void fillChargeMap_kernel(
         GPUglobal()       gpucf::packed_charge_t *chargeMap)
 {
     GPUshared() GPUTPCClusterFinderKernels::GPUTPCSharedMemory smem;
-    gpucf::fillChargeMap(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, digits, chargeMap);
+    gpucf::fillChargeMap(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, digits, chargeMap, get_global_size(0));
 }
 
 GPUg()
