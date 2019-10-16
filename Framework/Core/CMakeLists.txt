@@ -272,7 +272,7 @@ foreach(w
               PUBLIC_LINK_LIBRARIES O2::Framework
               TIMEOUT 30
               NO_BOOST_TEST
-              COMMAND_LINE_ARGS --run)
+              COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run)
 endforeach()
 
 # TODO: DanglingInput test not working for the moment [ERROR] Unable to relay
@@ -300,7 +300,7 @@ o2_add_test(
   PUBLIC_LINK_LIBRARIES O2::Framework
   NO_BOOST_TEST
   COMMAND_LINE_ARGS
-    --global-config require-me --run
+    --global-config require-me --run ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS}
     # Note: the group switch makes process consumer parse only the group
     arguments --consumer
     "--global-config consumer-config --local-option hello-aliceo2 --a-boolean3 --an-int2 20 --a-double2 22."
