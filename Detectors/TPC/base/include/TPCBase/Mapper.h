@@ -357,6 +357,7 @@ class Mapper
         break;
       }
     }
+    return 0;
   }
 
   unsigned short getNumberOfPads(const ROC roc) const
