@@ -632,8 +632,8 @@ struct DataHeader : public BaseHeader {
 
   //___the functions:
   DataHeader();                                                                                                  ///ctor
-  explicit DataHeader(DataDescription desc, DataOrigin origin, SubSpecificationType subspec, uint64_t size = 0); /// ctor
-
+  explicit DataHeader(DataDescription desc, DataOrigin origin, SubSpecificationType subspec, PayloadSizeType size = 0); /// ctor
+  explicit DataHeader(DataDescription desc, DataOrigin origin, SubSpecificationType subspec, PayloadSizeType size, SplitPayloadIndexType payloadIndex, SplitPayloadPartsType payloadParts);
   DataHeader(const DataHeader&) = default;
   DataHeader& operator=(const DataHeader&) = default; //assignment
 
