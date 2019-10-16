@@ -89,7 +89,15 @@ GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::nativ
 }
 
 template <>
-GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::compactDigit>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& clusterer, int iBuf, GPUglobalref() gpucf::PackedDigit* in, GPUglobalref() gpucf::PackedDigit* out)
+GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::compactDigit>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& clusterer, int iBuf, int stage, GPUglobalref() gpucf::PackedDigit* in, GPUglobalref() gpucf::PackedDigit* out)
 {
   gpucf::compactDigit(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, in, out, clusterer.mPisPeak, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, clusterer.mPbuf + iBuf * clusterer.mBufSize);
+  int lastId = get_global_size(0) - 1;
+  if (get_global_id(0) == lastId) {
+    if (stage) {
+      clusterer.mPmemory->nClusters = clusterer.mPbuf[lastId];
+    } else {
+      clusterer.mPmemory->nPeaks = clusterer.mPbuf[lastId];
+    }
+  }
 }
