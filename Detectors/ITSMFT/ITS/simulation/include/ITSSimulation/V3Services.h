@@ -57,6 +57,26 @@ class V3Services : public V11Geometry
   /// \param mgr  The GeoManager (used only to get the proper material)
   TGeoVolume* createIBEndWheelsSideC(const TGeoManager* mgr = gGeoManager);
 
+  /// Creates the Middle Barrel End Wheels on Side A
+  /// \param mother the TGeoVolume owing the volume structure
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void createMBEndWheelsSideA(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
+  /// Creates the Middle Barrel End Wheels on Side C
+  /// \param mother the TGeoVolume owing the volume structure
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void createMBEndWheelsSideC(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
+  /// Creates the Outer Barrel End Wheels on Side A
+  /// \param mother the TGeoVolume owing the volume structure
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void createOBEndWheelsSideA(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
+  /// Creates the Outer Barrel End Wheels on Side C
+  /// \param mother the TGeoVolume owing the volume structure
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void createOBEndWheelsSideC(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
  private:
   /// Creates a single Inner Barrel End Wheel on Side A
   /// \param iLay  the layer number
@@ -74,10 +94,36 @@ class V3Services : public V11Geometry
   /// \param iLay  the layer number
   TGeoXtru* ibEndWheelARibShape(const Int_t iLay);
 
+  /// Creates a single Middle/Outer Barrel End Wheel on Side A
+  /// \param iLay  the layer number
+  /// \param mother  the volume containing the created wheel
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void obEndWheelSideA(const Int_t iLay, TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
+  /// Creates a single Middle Barrel End Wheel on Side C
+  /// \param iLay  the layer number
+  /// \param mother  the volume containing the created wheel
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void mbEndWheelSideC(const Int_t iLay, TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
+  /// Creates a single Outer Barrel End Wheel on Side C
+  /// \param iLay  the layer number
+  /// \param mother  the volume containing the created wheel
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void obEndWheelSideC(const Int_t iLay, TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
   // Parameters
   static constexpr Int_t sNumberInnerLayers = 3; ///< Number of inner layers in ITSU
+  static constexpr Int_t sNumberMiddlLayers = 2; ///< Number of middle layers in ITSU
+  static constexpr Int_t sNumberOuterLayers = 2; ///< Number of outer layers in ITSU
 
+  // Common parameters for IB services
   static const Double_t sIBWheelACZdist; ///< IB Z distance between wheels
+
+  // Common parameters for OB services
+  static const Double_t sOBWheelThickness; ///< MB/OB Wheels Thickness
+  static const Double_t sMBWheelsZpos;     ///< MB Wheels Z position
+  static const Double_t sOBWheelsZpos;     ///< OB Wheels Z position
 
   ClassDefOverride(V3Services, 0); // ITS v3 support geometry
 };
