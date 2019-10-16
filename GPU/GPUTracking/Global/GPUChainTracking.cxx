@@ -785,7 +785,7 @@ int GPUChainTracking::RunTPCClusterizer()
     runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), 0}, nullptr, krnlRunRangeNone, {}, clustererShadow.mPpeakMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED * sizeof(*clustererShadow.mPpeakMap));
     runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), 0}, nullptr, krnlRunRangeNone, {}, clustererShadow.mPclusterInRow, GPUCA_ROW_COUNT * sizeof(*clustererShadow.mPclusterInRow));
     runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), 0}, nullptr, krnlRunRangeNone, {}, clustererShadow.mPpeaks, clusterer.mNMaxDigits * sizeof(*clustererShadow.mPpeaks));                 // TODO: Do we really need to empty all of them?
-    runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), 0}, nullptr, krnlRunRangeNone, {}, clustererShadow.mPfilteredPeaks, clusterer.mNMaxDigits * sizeof(*clustererShadow.mPfilteredPeaks)); // These 3 were not emptied originally (i think)
+    runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), 0}, nullptr, krnlRunRangeNone, {}, clustererShadow.mPfilteredPeaks, clusterer.mNMaxDigits * sizeof(*clustererShadow.mPfilteredPeaks)); // These 4 were not emptied originally (i think)
     runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), 0}, nullptr, krnlRunRangeNone, {}, clustererShadow.mPisPeak, clusterer.mNMaxDigits * sizeof(*clustererShadow.mPisPeak));               // but that yielded fake peaks after nDigits
 
     runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::fillChargeMap>(GetGrid(clusterer.mPmemory->nDigits, ClustererThreadCount(), 0), nullptr, {iSlice}, {});
