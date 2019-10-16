@@ -112,7 +112,7 @@ class ITSMFTDPLDigitWriter
 
     mOutFile->Close();
     mFinished = true;
-    pc.services().get<ControlService>().readyToQuit(false);
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
 
  protected:

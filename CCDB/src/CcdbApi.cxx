@@ -826,6 +826,60 @@ std::vector<std::string> CcdbApi::parseSubFolders(std::string const& reply) cons
 
 namespace
 {
+size_t header_callback(char* buffer, size_t size, size_t nitems, void* userdata)
+{
+  std::vector<std::string>* headers = static_cast<std::vector<std::string>*>(userdata);
+  auto header = std::string(buffer, size * nitems);
+  headers->emplace_back(std::string(header.data()));
+  return size * nitems;
+}
+} // namespace
+
+bool CcdbApi::getCCDBEntryHeaders(std::string const& url, std::string const& etag, std::vector<std::string>& headers)
+{
+  auto curl = curl_easy_init();
+  headers.clear();
+  if (!curl) {
+    return true;
+  }
+
+  struct curl_slist* list = nullptr;
+  list = curl_slist_append(list, ("If-None-Match: " + etag).c_str());
+
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
+
+  curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+  /* get us the resource without a body! */
+  curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
+  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+  curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback);
+  curl_easy_setopt(curl, CURLOPT_HEADERDATA, &headers);
+
+  /* Perform the request */
+  curl_easy_perform(curl);
+  long http_code = 0;
+  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+  if (http_code == 304) {
+    return false;
+  }
+  return true;
+}
+
+void CcdbApi::parseCCDBHeaders(std::vector<std::string> const& headers, std::vector<std::string>& pfns, std::string& etag)
+{
+  static std::string etagHeader = "ETag: ";
+  static std::string locationHeader = "Content-Location: ";
+  for (auto h : headers) {
+    if (h.find(etagHeader) == 0) {
+      etag = std::string(h.data() + etagHeader.size());
+    } else if (h.find(locationHeader) == 0) {
+      pfns.emplace_back(std::string(h.data() + locationHeader.size(), h.size() - locationHeader.size()));
+    }
+  }
+}
+
+namespace
+{
 void traverseAndFillFolders(CcdbApi const& api, std::string const& top, std::vector<std::string>& folders)
 {
   // LOG(INFO) << "Querying " << top;

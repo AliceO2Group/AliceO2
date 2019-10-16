@@ -517,11 +517,25 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
 
     InputRoute route{
       inputSpec,
+      edge.consumerInputIndex,
       sourceChannel,
       edge.producerTimeIndex,
       creationConfigurator,
       danglingConfigurator,
       expirationConfigurator};
+    // In case we have wildcards, we must make sure that some other edge
+    // produced the same route, i.e. has the same matcher.  Without this,
+    // otherwise, we would end up with as many input routes as the outputs that
+    // can be matched by the wildcard.
+    for (size_t iri = 0; iri < consumerDevice.inputs.size(); ++iri) {
+      auto& existingRoute = consumerDevice.inputs[iri];
+      if (existingRoute.timeslice != edge.producerTimeIndex) {
+        continue;
+      }
+      if (existingRoute.inputSpecIndex == edge.consumerInputIndex) {
+        return;
+      }
+    }
 
     consumerDevice.inputs.push_back(route);
   };

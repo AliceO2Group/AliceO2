@@ -133,6 +133,9 @@ if(ENABLE_OPENCL2)
   elseif(NOT ENABLE_OPENCL2 STREQUAL "AUTO")
     message(FATAL_ERROR "OpenCL 2.x not available")
   endif()
+  if (FORCE_OPENCL2_ALL AND NOT(OPENCL2_ENABLED_AMD AND OPENCL2_ENABLED_SPIRV))
+    message(FATAL_ERROR "Not all OpenCL2 backends available, but requested (AMD ${OPENCL2_ENABLED_AMD} SPIRV ${OPENCL2_ENABLED_SPIRV})")
+  endif()
 endif()
 
 # Detect and enable HIP

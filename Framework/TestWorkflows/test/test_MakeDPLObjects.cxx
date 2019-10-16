@@ -105,7 +105,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           assert(c3[999].x == 2);
           assert(c3[999].y == 3);
           assert(c3[999].z == 4);
-          ctx.services().get<ControlService>().readyToQuit(true);
+          ctx.services().get<ControlService>().readyToQuit(QuitRequest::All);
           auto o = ctx.inputs().get<TNamed*>("object");
           assert(strcmp(o->GetName(), "named") == 0 &&
                  strcmp(o->GetTitle(), "a named test object") == 0);

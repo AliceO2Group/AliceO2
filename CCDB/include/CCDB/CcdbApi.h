@@ -195,6 +195,32 @@ class CcdbApi //: public DatabaseInterface
   */
   void retrieveBlob(std::string const& path, std::string const& targetdir, std::map<std::string, std::string> const& metadata, long timestamp) const;
 
+  /**
+   * A helper function to extract an object from an existing in-memory TFile
+   * @param file a TFile instance
+   * @param objname name of serialized object
+   * @param cl The TClass object describing the serialized type
+   * @return raw pointer to created object
+   */
+  static void* extractFromTFile(TFile& file, std::string const& objname, TClass const* cl);
+
+  /** Get headers associated to a given CCDBEntry on the server. 
+   * @param url the url which refers to the objects
+   * @param etag of the previous reply
+   * @param headers the headers found in the request. Will be emptied when we return false.
+   * @return true if the headers where updated WRT last time, false if the previous results can still be used.
+   */
+  static bool getCCDBEntryHeaders(std::string const& url, std::string const& etag, std::vector<std::string>& headers);
+
+  /**
+   * Extract the possible locations for a file and check whether or not
+   * the current cached object is still valid.
+   * @param headers the headers to be parsed
+   * @param pfns the vector of pfns to be filled.
+   * @param etag the etag to be updated with the new value
+   */
+  static void parseCCDBHeaders(std::vector<std::string> const& headers, std::vector<std::string>& pfns, std::string& etag);
+
  private:
   /**
    * Initialize in local mode; Objects will be retrieved from snapshot
@@ -258,14 +284,6 @@ class CcdbApi //: public DatabaseInterface
    */
   void* extractFromLocalFile(std::string const& filename, std::string const& objname, TClass const* cl) const;
 
-  /**
-   * A helper function to extract an object from an existing in-memory TFile
-   * @param file a TFile instance
-   * @param objname name of serialized object
-   * @param cl The TClass object describing the serialized type
-   * @return raw pointer to created object
-   */
-  static void* extractFromTFile(TFile& file, std::string const& objname, TClass const* cl);
 
   /**
    * Initialization of CURL

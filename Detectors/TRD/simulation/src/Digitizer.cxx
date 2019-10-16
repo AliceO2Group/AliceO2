@@ -60,7 +60,6 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
   // const int nTimeBins = mCalib->GetNumberOfTimeBinsDCS(); PLEASE FIX ME when CCDB is ready
 
   SignalContainer_t adcMapCont;
-  mLabels.clear();
 
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
   std::array<std::vector<HitType>, kNdet> hitsPerDetector;
@@ -83,7 +82,7 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
       continue;
     }
 
-    if (!convertHits(det, hitsPerDetector[det], adcMapCont)) {
+    if (!convertHits(det, hitsPerDetector[det], adcMapCont, labels)) {
       LOG(WARN) << "TRD conversion of hits failed for detector " << det;
       continue; // go to the next chamber
     }
@@ -101,11 +100,6 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
 
   // Finalize
   Digit::convertMapToVectors(adcMapCont, digitCont);
-
-  // MC labels
-  for (int i = 0; i < mLabels.size(); ++i) {
-    labels.addElement(i, mLabels[i]);
-  }
 }
 
 void Digitizer::getHitContainerPerDetector(const std::vector<HitType>& hits, std::array<std::vector<HitType>, kNdet>& hitsPerDetector)
@@ -120,7 +114,7 @@ void Digitizer::getHitContainerPerDetector(const std::vector<HitType>& hits, std
   }
 }
 
-bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, SignalContainer_t& adcMapCont)
+bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, SignalContainer_t& adcMapCont, o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
   //
   // Convert the detector-wise sorted hits to detector signals
@@ -171,6 +165,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
   // Loop over hits
   for (const auto& hit : hits) {
     bool isDigit = false;
+    size_t labelIndex = labels.getIndexedSize();
     const int qTotal = hit.GetCharge();
     /*
       Now the real local coordinate system of the ROC
@@ -341,6 +336,8 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
         // Add the signals
         // Get the old signal
         auto& currentSignal = adcMapCont[key];
+        isDigit = true;
+        currentSignal[kTB] = labelIndex; // store the label index in this extra timebin to pass it to the digit structure
         for (int iTimeBin = firstTimeBin; iTimeBin < lastTimeBin; ++iTimeBin) {
           // Apply the time response
           double timeResponse = 1;
@@ -355,7 +352,6 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
           signalOld[0] = 0;
           signalOld[1] = 0;
           signalOld[2] = 0;
-
           signalOld[iPad] = currentSignal[iTimeBin];
           if (colPos != colE) {
             // Cross talk added to non-central pads
@@ -366,11 +362,13 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
           }
           // Update the final signal
           currentSignal[iTimeBin] = signalOld[iPad];
-          isDigit = true;
         } // Loop: time bins
       }   // Loop: pads
     }     // end of loop over electrons
-    mLabels.emplace_back(hit.GetTrackID(), mEventID, mSrcID, isDigit);
+    if (isDigit) {
+      MCLabel label(hit.GetTrackID(), mEventID, mSrcID); // add one label is the at least one digit is created
+      labels.addElement(labelIndex, label);
+    }
   } // end of loop over hits
   return true;
 }
@@ -461,7 +459,10 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont
     }
     // loop over time bins
     // for (int tb = 0; tb < nTimeTotal; tb++) {
+    int tb = 0;
     for (auto& adcArrayVal : adcMapIter.second) {
+      if (++tb > kTimeBins) // avoid accessing the mc label index
+        break;
       float signalAmp = (float)adcArrayVal; // The signal amplitude
       signalAmp *= coupling;                // Pad and time coupling
       signalAmp *= padgain;                 // Gain factors

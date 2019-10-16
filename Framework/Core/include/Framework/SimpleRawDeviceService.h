@@ -11,19 +11,20 @@
 #define FRAMEWORK_SIMPLERAWDEVICESERVICE_H
 
 #include "Framework/RawDeviceService.h"
+#include "Framework/DeviceSpec.h"
 
 namespace o2
 {
 namespace framework
 {
 
-/// Fairly unsophisticated service which simply stores and return the
-/// requested FairMQDevice
+/// Fairly unsophisticated service which simply stores and returns the
+/// requested FairMQDevice and DeviceSpec
 class SimpleRawDeviceService : public RawDeviceService
 {
  public:
-  SimpleRawDeviceService(FairMQDevice* device)
-    : mDevice(device)
+  SimpleRawDeviceService(FairMQDevice* device, DeviceSpec const& spec)
+    : mDevice(device), mSpec(spec)
   {
   }
 
@@ -37,8 +38,14 @@ class SimpleRawDeviceService : public RawDeviceService
     mDevice = device;
   }
 
+  DeviceSpec const& spec() final
+  {
+    return mSpec;
+  }
+
  private:
   FairMQDevice* mDevice;
+  DeviceSpec const& mSpec;
 };
 
 } // namespace framework

@@ -82,7 +82,7 @@ class TOFDPLClustererTask
 
     // declare done
     finished = true;
-    pc.services().get<ControlService>().readyToQuit(false);
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
 
  private:

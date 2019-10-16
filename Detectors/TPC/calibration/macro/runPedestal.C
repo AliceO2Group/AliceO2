@@ -14,7 +14,7 @@
 #include "TPCCalibration/CalibRawBase.h"
 #endif
 
-void runPedestal(TString fileInfo, TString outputFileName = "", Int_t nevents = 100, Int_t adcMin = 0, Int_t adcMax = 1100, Int_t numberTimeBins = 500, Int_t statisticsType = 0, uint32_t verbosity = 0, uint32_t debugLevel = 0)
+void runPedestal(TString fileInfo, TString outputFileName = "", Int_t nevents = 100, Int_t adcMin = 0, Int_t adcMax = 1100, Int_t numberTimeBins = 500, Int_t statisticsType = 0, uint32_t verbosity = 0, uint32_t debugLevel = 0, Int_t firstEvent = 0)
 {
   using namespace o2::tpc;
   CalibPedestal ped; //(PadSubset::Region);
@@ -28,8 +28,8 @@ void runPedestal(TString fileInfo, TString outputFileName = "", Int_t nevents = 
 
   CalibRawBase::ProcessStatus status = CalibRawBase::ProcessStatus::Ok;
   //while (ped.processEvent());
-  for (Int_t i = 0; i < nevents; ++i) {
-    status = ped.processEvent();
+  for (Int_t i = firstEvent; i < firstEvent + nevents; ++i) {
+    status = ped.processEvent(i);
     cout << "Processing event " << i << " with status " << int(status) << '\n';
     if (status != CalibRawBase::ProcessStatus::Ok) {
       break;

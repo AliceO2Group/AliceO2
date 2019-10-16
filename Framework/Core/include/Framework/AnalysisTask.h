@@ -13,7 +13,10 @@
 #include "Framework/ASoA.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/AnalysisDataModel.h"
+#include "Framework/CallbackService.h"
+#include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/EndOfStreamContext.h"
 #include "Framework/Kernels.h"
 #include "Framework/Logger.h"
 #include "Framework/HistogramRegistry.h"
@@ -127,12 +130,17 @@ struct OutputObj {
     //        names longer than 16 bytes.
     strncpy(desc.str, object->GetTitle(), 16);
 
-    return OutputSpec{OutputLabel{label}, "TASK", desc, 0};
+    return OutputSpec{OutputLabel{label}, "ATSK", desc, 0};
   }
 
   T* operator->()
   {
     return object.get();
+  }
+
+  T& operator*()
+  {
+    return *object.get();
   }
 
   OutputRef ref()
@@ -307,10 +315,11 @@ struct OutputManager {
   {
     return false;
   }
+
   template <typename ANY>
-  static bool inspect(ANY& what)
+  static bool postRun(EndOfStreamContext& context, ANY& what)
   {
-    return false;
+    return true;
   }
 
   template <typename ANY>
@@ -336,7 +345,7 @@ struct OutputManager<Produces<TABLE>> {
   {
     return true;
   }
-  static bool inspect(Produces<TABLE>& what)
+  static bool postRun(EndOfStreamContext& context, Produces<TABLE>& what)
   {
     return true;
   }
@@ -359,7 +368,7 @@ struct OutputManager<HistogramRegistry> {
     return true;
   }
 
-  static bool inspect(HistogramRegistry& what)
+  static bool postRun(EndOfStreamContext& context, HistogramRegistry& what)
   {
     return true;
   }
@@ -382,8 +391,9 @@ struct OutputManager<OutputObj<T>> {
     return true;
   }
 
-  static bool inspect(OutputObj<T>& what)
+  static bool postRun(EndOfStreamContext& context, OutputObj<T>& what)
   {
+    context.outputs().snapshot(what.ref(), *what);
     return true;
   }
 };
@@ -459,13 +469,20 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
   }
 
   auto algo = AlgorithmSpec::InitCallback{[task](InitContext& ic) {
+    auto& callbacks = ic.services().get<CallbackService>();
+    auto endofdatacb = [task](EndOfStreamContext& eosContext) {
+      auto tupledTask = o2::framework::to_tuple_refs(*task.get());
+      std::apply([&eosContext](auto&&... x) { return (OutputManager<std::decay_t<decltype(x)>>::postRun(eosContext, x), ...); }, tupledTask);
+      eosContext.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    };
+    callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
+
     if constexpr (has_init<T>::value) {
       task->init(ic);
     }
     return [task](ProcessingContext& pc) {
       auto tupledTask = o2::framework::to_tuple_refs(*task.get());
       std::apply([&pc](auto&&... x) { return (OutputManager<std::decay_t<decltype(x)>>::prepare(pc, x), ...); }, tupledTask);
-      std::apply([&pc](auto&&... x) { return (OutputManager<std::decay_t<decltype(x)>>::inspect(x), ...); }, tupledTask);
       if constexpr (has_run<T>::value) {
         task->run(pc);
       }

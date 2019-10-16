@@ -148,7 +148,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     LOG(INFO) << "This is not a real device, merely a placeholder for external inputs";
     LOG(INFO) << "To be hidden / removed at some point.";
     // mark this dummy process as ready-to-quit
-    ic.services().get<ControlService>().readyToQuit(false);
+    ic.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     return [](ProcessingContext& pc) {
       // this callback is never called since there is no expiring input
       pc.services().get<RawDeviceService>().device()->WaitFor(std::chrono::seconds(2));
@@ -214,6 +214,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
   std::vector<OutputSpec> providedRUN2s;
   std::vector<InputSpec> requestedCCDBs;
   std::vector<OutputSpec> providedCCDBs;
+  std::vector<OutputSpec> providedOutputObj;
+  using outputObjMap = std::unordered_map<std::string, std::string>;
+  outputObjMap outMap;
 
   for (size_t wi = 0; wi < workflow.size(); ++wi) {
     auto& processor = workflow[wi];
@@ -270,6 +273,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
         providedAODs.emplace_back(output);
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"RN2"})) {
         providedRUN2s.emplace_back(output);
+      } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"ATSK"})) {
+        providedOutputObj.emplace_back(output);
+        outMap.insert({output.binding.value, processor.name});
       }
       if (output.lifetime == Lifetime::Condition) {
         providedCCDBs.push_back(output);
@@ -307,7 +313,13 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     extraSpecs.push_back(timer);
   }
 
-  // FIXME: I should insert more things here.
+  // This is to inject a file sink so that any dangling ATSK object is written
+  // to a ROOT file.
+  if (providedOutputObj.size() != 0) {
+    auto rootSink = CommonDataProcessors::getOutputObjSink(outMap);
+    extraSpecs.push_back(rootSink);
+  }
+
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
 
   /// This will inject a file sink so that any dangling

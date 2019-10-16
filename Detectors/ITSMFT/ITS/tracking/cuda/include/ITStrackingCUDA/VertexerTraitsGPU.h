@@ -19,11 +19,17 @@
 #include <array>
 
 #include "ITStracking/VertexerTraits.h"
+#include "ITStracking/Cluster.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/Tracklet.h"
 
-#include "ITStracking/Cluster.h"
+#include "ITStrackingCUDA/DeviceStoreVertexerGPU.h"
+#include "ITStrackingCUDA/UniquePointer.h"
+
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+#include "ITStracking/StandaloneDebugger.h"
+#endif
 
 namespace o2
 {
@@ -36,39 +42,45 @@ using constants::index_table::InversePhiBinSize;
 class VertexerTraitsGPU : public VertexerTraits
 {
  public:
+#ifdef _ALLOW_DEBUG_TREES_ITS_
   VertexerTraitsGPU();
   virtual ~VertexerTraitsGPU();
+#else
+  VertexerTraitsGPU();
+  virtual ~VertexerTraitsGPU() = default;
+#endif
+  void initialise(ROframe*) override;
   void computeTracklets() override;
-  GPU_DEVICE static const int2 getBinsPhiRectWindow(const Cluster&, float maxdeltaphi);
+  void computeTrackletMatching() override;
+  void computeVertices() override;
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  void computeMCFiltering() override;
+#endif
+
+  // GPU-specific getters
+  GPUd() static const int2 getBinsPhiRectWindow(const Cluster&, float maxdeltaphi);
+  GPUhd() GPU::DeviceStoreVertexerGPU& getDeviceContext();
 
  protected:
-  Cluster* mGPUclusters0;
-  Cluster* mGPUclusters1;
-  Cluster* mGPUclusters2;
-
-  int* mGPUMClabels0;
-  int* mGPUMClabels1;
-  int* mGPUMClabels2;
-
-  Tracklet* mGPURefTracklet01;
-  Tracklet* mGPURefTracklet12;
-
-  Line* mGPUtracklets;
-
-  int* mGPUusedClusterSize0;
-  int* mGPUusedClusterSize2;
-
-  int* mGPUindexTable0;
-  int* mGPUindexTable2;
+  // #ifdef _ALLOW_DEBUG_TREES_ITS_
+  //   StandaloneDebugger* mDebugger;
+  // #endif
+  GPU::DeviceStoreVertexerGPU mStoreVertexerGPU;
+  GPU::UniquePointer<GPU::DeviceStoreVertexerGPU> mStoreVertexerGPUPtr;
 };
 
-inline GPU_DEVICE const int2 VertexerTraitsGPU::getBinsPhiRectWindow(const Cluster& currentCluster, float phiCut)
+inline GPUd() const int2 VertexerTraitsGPU::getBinsPhiRectWindow(const Cluster& currentCluster, float phiCut)
 {
   // This function returns the lowest PhiBin and the number of phi bins to be spanned, In the form int2{phiBinLow, PhiBinSpan}
   const int phiBinMin{index_table_utils::getPhiBinIndex(
     math_utils::getNormalizedPhiCoordinate(currentCluster.phiCoordinate - phiCut))};
   const int phiBinSpan{static_cast<int>(MATH_CEIL(phiCut * InversePhiBinSize))};
   return int2{phiBinMin, phiBinSpan};
+}
+
+inline GPU::DeviceStoreVertexerGPU& VertexerTraitsGPU::getDeviceContext()
+{
+  return *mStoreVertexerGPUPtr;
 }
 
 extern "C" VertexerTraits* createVertexerTraitsGPU();

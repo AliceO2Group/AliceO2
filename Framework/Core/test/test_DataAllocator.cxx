@@ -66,26 +66,6 @@ struct MetaHeader : public o2::header::BaseHeader {
 constexpr o2::header::HeaderType MetaHeader::sHeaderType = "MetaHead";
 } // namespace test
 
-DataProcessorSpec getTimeoutSpec()
-{
-  // a timer process to terminate the workflow after a timeout
-  auto processingFct = [](ProcessingContext& pc) {
-    static int counter = 0;
-    pc.outputs().snapshot(Output{"TEST", "TIMER", 0, Lifetime::Timeframe}, counter);
-
-    // terminate if WaitFor was not interrupted
-    if (pc.services().get<RawDeviceService>().device()->WaitFor(std::chrono::seconds(1)) && (counter++ > 10)) {
-      LOG(ERROR) << "Timeout reached, the workflow seems to be broken";
-      pc.services().get<ControlService>().readyToQuit(true);
-    }
-  };
-
-  return DataProcessorSpec{"timer",  // name of the processor
-                           Inputs{}, // inputs empty
-                           {OutputSpec{"TEST", "TIMER", 0, Lifetime::Timeframe}},
-                           AlgorithmSpec(processingFct)};
-}
-
 DataProcessorSpec getSourceSpec()
 {
   auto processingFct = [](ProcessingContext& pc) {
@@ -152,10 +132,12 @@ DataProcessorSpec getSourceSpec()
     pmrvec.reserve(100);
     pmrvec.emplace_back(o2::test::TriviallyCopyable{1, 2, 3});
     pc.outputs().adoptContainer(pmrOutputSpec, std::move(pmrvec));
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   };
 
   return DataProcessorSpec{"source", // name of the processor
-                           {InputSpec{"timer", "TEST", "TIMER", 0, Lifetime::Timeframe}},
+                           {},
                            {OutputSpec{"TST", "MESSAGEABLE", 0, Lifetime::Timeframe},
                             OutputSpec{{"makesingle"}, "TST", "MAKESINGLE", 0, Lifetime::Timeframe},
                             OutputSpec{{"makespan"}, "TST", "MAKESPAN", 0, Lifetime::Timeframe},
@@ -299,7 +281,7 @@ DataProcessorSpec getSinkSpec()
     auto header = o2::header::get<const o2::header::DataHeader*>(dataref.header);
     ASSERT_ERROR((header->payloadSize == sizeof(o2::test::TriviallyCopyable)));
 
-    pc.services().get<ControlService>().readyToQuit(true);
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
   };
 
   return DataProcessorSpec{"sink", // name of the processor
@@ -326,7 +308,6 @@ DataProcessorSpec getSinkSpec()
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    getTimeoutSpec(),
     getSourceSpec(),
     getSinkSpec()};
 }

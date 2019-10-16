@@ -22,7 +22,7 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-#ifdef GPUCA_O2_LIB
+#if defined(GPUCA_O2_LIB) || defined(GPUCA_O2_INTERFACE)
 typedef unsigned int calink;
 typedef unsigned int cahit;
 #else

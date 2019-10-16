@@ -13,6 +13,8 @@
 #include "Framework/HistogramRegistry.h"
 #include <TH1F.h>
 
+#include <cmath>
+
 using namespace o2;
 using namespace o2::framework;
 
@@ -20,24 +22,36 @@ using namespace o2::framework;
 // FIXME: this should really inherit from AnalysisTask but
 //        we need GCC 7.4+ for that
 struct ATask {
-  HistogramRegistry registry{
-    "MyAnalysisHistos",
-    true,
-    {{"Test1", "SomethingElse1", {"TH1F", 100, 0, 2 * M_PI}},
-     {"Test2", "SomethingElse2", {"TH1F", 100, 0, 2 * M_PI}},
-     {"Test3", "SomethingElse3", {"TH1F", 100, 0, 2 * M_PI}},
-     {"Test4", "SomethingElse4", {"TH1F", 100, 0, 2 * M_PI}},
-     {"Test5", "SomethingElse5", {"TH1F", 100, 0, 2 * M_PI}},
-     {"Test6", "SomethingElse6", {"TH1F", 100, 0, 2 * M_PI}},
-     {"Test7", "SomethingElse7", {"TH1F", 100, 0, 2 * M_PI}}}};
-
-  OutputObj<TH1F> myHisto{TH1F("something", "somethingElse", 100, 0., 1.)};
+  OutputObj<TH1F> phiH{TH1F("phi", "phi", 100, 0., 2. * M_PI)};
+  OutputObj<TH1F> etaH{TH1F("eta", "eta", 102, -2.01, 2.01)};
 
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
-      auto phi = asin(track.snp()) + track.alpha() + M_PI;
-      myHisto->Fill(phi);
+      phiH->Fill(track.phi());
+      etaH->Fill(track.eta());
+    }
+  }
+};
+
+struct BTask {
+  OutputObj<TH2F> etaphiH{TH2F("etaphi", "etaphi", 100, 0., 2. * M_PI, 102, -2.01, 2.01)};
+
+  void process(aod::Tracks const& tracks)
+  {
+    for (auto& track : tracks) {
+      etaphiH->Fill(track.phi(), track.eta());
+    }
+  }
+};
+
+struct CTask {
+  OutputObj<TH1F> ptH{TH1F("pt", "pt", 100, -0.01, 10.01)};
+
+  void process(aod::Tracks const& tracks)
+  {
+    for (auto& track : tracks) {
+      ptH->Fill(abs(track.signed1Pt()));
     }
   }
 };
@@ -45,5 +59,8 @@ struct ATask {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("fill-etaphi-histogram")};
+    adaptAnalysisTask<ATask>("eta-and-phi-histograms"),
+    adaptAnalysisTask<BTask>("etaphi-histogram"),
+    adaptAnalysisTask<CTask>("pt-histogram"),
+  };
 }
