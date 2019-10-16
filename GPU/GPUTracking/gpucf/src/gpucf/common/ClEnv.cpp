@@ -85,13 +85,13 @@ ClEnv::ClEnv(const fs::path& srcDir, ClusterFinderConfig cfg, size_t gid, bool u
 
 cl::Program ClEnv::buildFromSrc(bool cpudebug)
 {
-  cl::Program::Sources src = loadSrc(srcs);
+  /*cl::Program::Sources src = loadSrc(srcs);
 
   cl::Program prg(context, src);
 
   std::string buildOpts = "-Werror";
   buildOpts += " -I" + sourceDir.str();
-  buildOpts += " -cl-std=CL2.0";
+  buildOpts += " -cl-std=clc++";
 
   if (cpudebug) {
     buildOpts += " -g -O0";
@@ -99,7 +99,33 @@ cl::Program ClEnv::buildFromSrc(bool cpudebug)
 
   for (const std::string& def : defines) {
     buildOpts += " -D" + def;
+  }*/
+
+  (void)cpudebug;
+  cl::Program::Binaries bins;
+  std::vector<int> binStatus;
+  cl_int ocl_err;
+  {
+    unsigned int filesize; // TODO: Clean me up!
+    FILE* pFile;
+    //Open file
+    if ((pFile = fopen("test.o", "rb")) == NULL)
+      throw("Error opening OpenCL source code file");
+    //Optain File Size
+    fseek(pFile, 0, SEEK_END);
+    filesize = ftell(pFile);
+    rewind(pFile);
+    //Read file
+    bins.resize(1);
+    bins[0].resize(filesize);
+    if (fread(bins[0].data(), 1, filesize, pFile) != filesize)
+      throw("Error reading source file");
+    fclose(pFile);
   }
+
+  cl::Program prg(context, devices, bins, &binStatus, &ocl_err);
+
+  std::string buildOpts = "";
 
   log::Info() << "Build flags: " << buildOpts;
 
@@ -113,6 +139,8 @@ cl::Program ClEnv::buildFromSrc(bool cpudebug)
     }
     throw BuildFailedError();
   }
+
+  std::cerr << "Build done\n";
 
   return prg;
 }
