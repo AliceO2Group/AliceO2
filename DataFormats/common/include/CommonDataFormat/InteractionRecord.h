@@ -41,6 +41,8 @@ struct InteractionRecord {
   {
   }
 
+  InteractionRecord(const InteractionRecord& src) = default;
+
   void clear()
   {
     bc = 0xffff;
@@ -67,6 +69,11 @@ struct InteractionRecord {
     orb = ns > 0 ? ns / o2::constants::lhc::LHCOrbitNS : 0;
     ns -= orb * o2::constants::lhc::LHCOrbitNS;
     return std::round(ns / o2::constants::lhc::LHCBunchSpacingNS);
+  }
+
+  double bc2ns() const
+  {
+    return bc2ns(bc, orbit);
   }
 
   bool operator==(const InteractionRecord& other) const
@@ -100,9 +107,115 @@ struct InteractionRecord {
     return (orbit == other.orbit) ? (bc > other.bc) : (orbit > other.orbit);
   }
 
+  bool operator>=(const InteractionRecord& other) const
+  {
+    return !((*this) < other);
+  }
+
   bool operator<(const InteractionRecord& other) const
   {
     return (orbit == other.orbit) ? (bc < other.bc) : (orbit < other.orbit);
+  }
+
+  bool operator<=(const InteractionRecord& other) const
+  {
+    return !((*this) > other);
+  }
+
+  InteractionRecord operator--()
+  {
+    // prefix decrement operator, no check for orbit wrap
+    if (!bc--) {
+      orbit--;
+      bc = o2::constants::lhc::LHCMaxBunches - 1;
+    }
+    return InteractionRecord(*this);
+  }
+
+  InteractionRecord operator--(int)
+  {
+    // postfix decrement operator, no check for orbit wrap
+    InteractionRecord tmp(*this);
+    if (!bc--) {
+      orbit--;
+      bc = o2::constants::lhc::LHCMaxBunches - 1;
+    }
+    return tmp;
+  }
+
+  InteractionRecord operator++()
+  {
+    // prefix increment operator,no check for orbit wrap
+    if ((++bc) == o2::constants::lhc::LHCMaxBunches) {
+      orbit++;
+      bc = 0;
+    }
+    return InteractionRecord(*this);
+  }
+
+  InteractionRecord operator++(int)
+  {
+    // postfix increment operator, no check for orbit wrap
+    InteractionRecord tmp(*this);
+    if ((++bc) == o2::constants::lhc::LHCMaxBunches) {
+      orbit++;
+      bc = 0;
+    }
+    return tmp;
+  }
+
+  InteractionRecord& operator+=(int dbc)
+  {
+    // bc self-addition operator, no check for orbit wrap
+    auto l = toLong() + dbc;
+    bc = l % o2::constants::lhc::LHCMaxBunches;
+    orbit = l / o2::constants::lhc::LHCMaxBunches;
+    return *this;
+  }
+
+  InteractionRecord& operator-=(int dbc)
+  {
+    // bc self-subtraction operator, no check for orbit wrap
+    return operator+=(-dbc);
+  }
+
+  InteractionRecord& operator+=(const InteractionRecord& add)
+  {
+    // InteractionRecord self-addition operator, no check for orbit wrap
+    auto l = this->toLong() + add.toLong();
+    bc = l % o2::constants::lhc::LHCMaxBunches;
+    orbit = l / o2::constants::lhc::LHCMaxBunches;
+    return *this;
+  }
+
+  InteractionRecord& operator-=(const InteractionRecord& add)
+  {
+    // InteractionRecord self-subtraction operator, no check for orbit wrap
+    auto l = this->toLong() - add.toLong();
+    bc = l % o2::constants::lhc::LHCMaxBunches;
+    orbit = l / o2::constants::lhc::LHCMaxBunches;
+    return *this;
+  }
+
+  InteractionRecord operator+(int dbc)
+  {
+    // bc addition operator, no check for orbit wrap
+    auto l = toLong() + dbc;
+    return InteractionRecord(l % o2::constants::lhc::LHCMaxBunches, l / o2::constants::lhc::LHCMaxBunches);
+  }
+
+  InteractionRecord operator+(const InteractionRecord& add)
+  {
+    // InteractionRecord addition operator, no check for orbit wrap
+    auto l = this->toLong() + add.toLong();
+    return InteractionRecord(l % o2::constants::lhc::LHCMaxBunches, l / o2::constants::lhc::LHCMaxBunches);
+  }
+
+  InteractionRecord operator-(const InteractionRecord& add)
+  {
+    // InteractionRecord subtraction operator, no check for orbit wrap
+    auto l = this->toLong() - add.toLong();
+    return InteractionRecord(l % o2::constants::lhc::LHCMaxBunches, l / o2::constants::lhc::LHCMaxBunches);
   }
 
   void print() const;
