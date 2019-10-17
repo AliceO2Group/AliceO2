@@ -150,6 +150,14 @@ struct DataSpecUtils {
   /// and we can add corner cases as we go.
   static header::DataOrigin asConcreteOrigin(InputSpec const& spec);
 
+  /// If possible extract either ConcreteTypeDataMatcher or ConcreteDataMatcher
+  /// from an InputSpec and assign it to the matcher of the OutputSpec together
+  /// with binding and lifetime
+  /// If InputSpec holds a ConcreteDataMatcher, this will be used directly, if it
+  /// is a DataDescriptorMatcher, depending on its complexity the ConcreteDataMatcher
+  /// or ConcreteTypeDataMatcher will be created
+  static OutputSpec asOutputSpec(InputSpec const& spec);
+
   /// Create an InputSpec which is able to match all the outputs of the given
   /// OutputSpec
   static InputSpec matchingInput(OutputSpec const& spec);
