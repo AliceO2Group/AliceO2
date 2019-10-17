@@ -402,6 +402,25 @@ header::DataOrigin DataSpecUtils::asConcreteOrigin(InputSpec const& spec)
                     spec.matcher);
 }
 
+OutputSpec DataSpecUtils::asOutputSpec(InputSpec const& spec)
+{
+  return std::visit(overloaded{
+                      [&spec](ConcreteDataMatcher const& concrete) {
+                        return OutputSpec{{spec.binding}, concrete, spec.lifetime};
+                      },
+                      [&spec](DataDescriptorMatcher const& matcher) {
+                        auto state = extractMatcherInfo(matcher);
+                        if (state.hasUniqueOrigin && state.hasUniqueDescription && state.hasUniqueSubSpec) {
+                          return OutputSpec{{spec.binding}, ConcreteDataMatcher{state.origin, state.description, state.subSpec}, spec.lifetime};
+                        } else if (state.hasUniqueOrigin && state.hasUniqueDescription) {
+                          return OutputSpec{{spec.binding}, ConcreteDataTypeMatcher{state.origin, state.description}, spec.lifetime};
+                        }
+
+                        throw std::runtime_error("Could not extract neither ConcreteDataMatcher nor ConcreteDataTypeMatcher from query" + describe(spec));
+                      }},
+                    spec.matcher);
+}
+
 DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(ConcreteDataTypeMatcher const& dataType)
 {
   auto timeDescriptionMatcher = std::make_unique<DataDescriptorMatcher>(
