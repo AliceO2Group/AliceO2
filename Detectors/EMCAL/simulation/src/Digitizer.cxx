@@ -170,13 +170,16 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
       LabeledDigit ld1 = tower.front();
       tower.pop_front();
 
-      for (auto ld2 : tower) {
-        if (ld1.canAdd(ld2)) {
-          ld1 += ld2;
-          tower.pop_front();
-        } else {
-          break;
+      // loop over all other entries in the container, check if we can add the digits
+      std::vector<decltype(tower.begin())> toDelete;
+      for (auto ld2 = tower.begin(); ld2 != tower.end(); ++ld2) { // must be iterator in order to know the position in the container for erasing
+        if (ld1.canAdd(*ld2)) {
+          ld1 += *ld2;
+          toDelete.push_back(ld2);
         }
+      }
+      for (auto del : toDelete) {
+        tower.erase(del);
       }
 
       if (mSmearEnergy) {
