@@ -43,6 +43,8 @@ class TextControlService : public ControlService
 
   void endOfStream() final;
 
+  void notifyStreamingState(StreamingState state) final;
+
  private:
   bool mOnce = false;
   ServiceRegistry& mRegistry;

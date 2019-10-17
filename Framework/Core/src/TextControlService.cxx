@@ -31,7 +31,7 @@ TextControlService::TextControlService(ServiceRegistry& registry, DeviceState& d
 // This will send an end of stream to all the devices downstream.
 void TextControlService::endOfStream()
 {
-  mDeviceState.streaming = DeviceState::StreamingState::EndOfStreaming;
+  mDeviceState.streaming = StreamingState::EndOfStreaming;
 }
 
 // All we do is to printout
@@ -53,10 +53,28 @@ void TextControlService::readyToQuit(QuitRequest what)
   }
 }
 
+void TextControlService::notifyStreamingState(StreamingState state)
+{
+  switch (state) {
+    case StreamingState::Idle:
+      LOG(INFO) << "CONTROL_ACTION: NOTIFY_STREAMING_STATE IDLE";
+      break;
+    case StreamingState::Streaming:
+      LOG(INFO) << "CONTROL_ACTION: NOTIFY_STREAMING_STATE STREAMING";
+      break;
+    case StreamingState::EndOfStreaming:
+      LOG(INFO) << "CONTROL_ACTION: NOTIFY_STREAMING_STATE EOS";
+      break;
+    default:
+      throw std::runtime_error("Unknown streaming state");
+  }
+}
+
 bool parseControl(std::string const& s, std::smatch& match)
 {
-  const static std::regex controlRE(".*CONTROL_ACTION: READY_TO_(QUIT)_(ME|ALL)", std::regex::optimize);
-  return std::regex_search(s, match, controlRE);
+  const static std::regex controlRE1(".*CONTROL_ACTION: READY_TO_(QUIT)_(ME|ALL)", std::regex::optimize);
+  const static std::regex controlRE2(".*CONTROL_ACTION: (NOTIFY_STREAMING_STATE) (IDLE|STREAMING|EOS)", std::regex::optimize);
+  return std::regex_search(s, match, controlRE1) || std::regex_search(s, match, controlRE2);
 }
 
 } // namespace o2::framework

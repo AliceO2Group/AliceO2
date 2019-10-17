@@ -19,16 +19,19 @@
 namespace o2::framework
 {
 
+/// enumeration representing the current state of a given
+/// device.
+enum struct StreamingState {
+  /// Data is being processed
+  Streaming,
+  /// End of streaming requested, but not notified
+  EndOfStreaming,
+  /// End of streaming notified
+  Idle,
+};
+
 /// Running state information of a given device
 struct DeviceState {
-  enum struct StreamingState {
-    /// Data is being processed
-    Streaming,
-    /// End of streaming requested, but not notified
-    EndOfStreaming,
-    /// End of streaming notified
-    Idle,
-  };
   std::vector<InputChannelInfo> inputChannelInfos;
   StreamingState streaming = StreamingState::Streaming;
   bool quitRequested = false;

@@ -13,6 +13,7 @@
 #include "Framework/LogParsingHelpers.h"
 #include "Framework/Metric2DViewIndex.h"
 #include "Framework/Variant.h"
+#include "Framework/DeviceState.h"
 
 #include <cstddef>
 #include <string>
@@ -47,7 +48,9 @@ struct DeviceInfo {
   /// Whether the device is active (running) or not.
   bool active;
   /// Whether the device is ready to quit.
-  bool readyToQuit;
+  bool readyToQuit = false;
+  /// The current state of the device, as reported by it
+  StreamingState streamingState = StreamingState::Streaming;
   /// Index for a particular relayer.
   Metric2DViewIndex dataRelayerViewIndex;
   /// Index for the variables of a given relayer.

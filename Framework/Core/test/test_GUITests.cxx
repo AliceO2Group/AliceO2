@@ -179,6 +179,7 @@ BOOST_AUTO_TEST_CASE(DevicesGraph)
       {},
       true,
       false,
+      StreamingState::Streaming,
       Metric2DViewIndex{}});
 
   std::vector<DataProcessorInfo> metadata;

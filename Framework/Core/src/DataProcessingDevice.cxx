@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/DataProcessingDevice.h"
 #include "Framework/ChannelMatching.h"
+#include "Framework/ControlService.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/DataProcessor.h"
 #include "Framework/DataSpecUtils.h"
@@ -211,6 +212,12 @@ bool DataProcessingDevice::ConditionalRun()
     O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
   };
 
+  auto switchState = [& control = mServiceRegistry.get<ControlService>(),
+                      &state = mState.streaming](StreamingState newState) {
+    state = newState;
+    control.notifyStreamingState(state);
+  };
+
   auto now = std::chrono::high_resolution_clock::now();
   mBeginIterationTimestamp = (uint64_t)std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
 
@@ -252,11 +259,11 @@ bool DataProcessingDevice::ConditionalRun()
   // callback and return false. Notice that what happens next is actually
   // dependent on the callback, not something which is controlled by the
   // framework itself.
-  if (allDone == true && mState.streaming == DeviceState::StreamingState::Streaming) {
-    mState.streaming = DeviceState::StreamingState::EndOfStreaming;
+  if (allDone == true && mState.streaming == StreamingState::Streaming) {
+    switchState(StreamingState::EndOfStreaming);
   }
 
-  if (mState.streaming == DeviceState::StreamingState::EndOfStreaming) {
+  if (mState.streaming == StreamingState::EndOfStreaming) {
     // We keep processing data until we are Idle.
     // FIXME: not sure this is the correct way to drain the queues, but
     // I guess we will see.
@@ -280,7 +287,7 @@ bool DataProcessingDevice::ConditionalRun()
     for (auto& channel : mSpec.outputChannels) {
       DataProcessingHelpers::sendEndOfStream(*this, channel);
     }
-    mState.streaming = DeviceState::StreamingState::Idle;
+    switchState(StreamingState::Idle);
     return true;
   }
   return true;
@@ -641,6 +648,12 @@ bool DataProcessingDevice::tryDispatchComputation()
     return totalInputSize;
   };
 
+  auto switchState = [& control = mServiceRegistry.get<ControlService>(),
+                      &state = mState.streaming](StreamingState newState) {
+    state = newState;
+    control.notifyStreamingState(state);
+  };
+
   if (canDispatchSomeComputation() == false) {
     return false;
   }
@@ -693,11 +706,11 @@ bool DataProcessingDevice::tryDispatchComputation()
     }
   }
   // We now broadcast the end of stream if it was requested
-  if (mState.streaming == DeviceState::StreamingState::EndOfStreaming) {
+  if (mState.streaming == StreamingState::EndOfStreaming) {
     for (auto& channel : mSpec.outputChannels) {
       DataProcessingHelpers::sendEndOfStream(*this, channel);
     }
-    mState.streaming = DeviceState::StreamingState::Idle;
+    switchState(StreamingState::Idle);
   }
 
   return true;
