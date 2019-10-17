@@ -191,12 +191,19 @@ inline float SAMPAProcessing::getADCSaturation(const float signal) const
 template <typename T>
 inline T SAMPAProcessing::getGamma4(T time, T startTime, T ADC) const
 {
-  Vc::float_v tmp0 = (time - startTime) / mEleParam->PeakingTime;
-  Vc::float_m cond = (tmp0 > 0);
-  Vc::float_v tmp;
-  tmp(cond) = tmp0;
-  Vc::float_v tmp2 = tmp * tmp;
-  return 55.f * ADC * Vc::exp(-4.f * tmp) * tmp2 * tmp2; /// 55 is for normalization: 1/Integral(Gamma4)
+  const auto tmp0 = (time - startTime) / mEleParam->PeakingTime;
+  const auto cond = (tmp0 > 0);
+  T tmp{};
+  if constexpr (std::is_floating_point_v<T>) {
+    if (!cond) {
+      return T{};
+    }
+    tmp = tmp0;
+  } else {
+    tmp(cond) = tmp0;
+  }
+  const auto tmp2 = tmp * tmp;
+  return 55.f * ADC * std::exp(-4.f * tmp) * tmp2 * tmp2; /// 55 is for normalization: 1/Integral(Gamma4)
 }
 
 inline TimeBin SAMPAProcessing::getTimeBin(float zPos) const
