@@ -409,7 +409,7 @@ void VertexerTraitsGPU::computeVertices()
                                                  tmpArrayLow,                                                        // lower_level
                                                  tmpArrayHigh,                                                       // fupper_level
                                                  nCentroids);                                                        // num_row_pixels
-  GPU::printVectorKernel<<<blocksGrid, threadsPerBlock>>>(getDeviceContext(), 0);
+
   cub::DeviceReduce::ArgMax(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()),
                             bufferSize,
                             histogramXY[0],
@@ -438,7 +438,6 @@ void VertexerTraitsGPU::computeVertices()
                               mStoreVertexerGPU.getHistogramXYZ()[2].get(),
                               mStoreVertexerGPU.getTmpVertexPositionBins().get() + 2,
                               mStoreVertexerGPU.getConfig().nBinsXYZ[2]);
-    // GPU::dumpMaximaKernel<<<blocksGrid, threadsPerBlock>>>(getDeviceContext(), 0);
 #ifdef _ALLOW_DEBUG_TREES_ITS_
     if (isDebugFlag(VertexerDebug::HistCentroids) && !iVertex) {
       mDebugger->fillXYZHistogramTree(std::array<std::vector<int>, 3>{mStoreVertexerGPU.getHistogramXYFromGPU()[0],
