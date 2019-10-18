@@ -32,7 +32,7 @@ constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + sizeof(ui
     return (1);    \
   }
 
-GPUReconstructionOCL::GPUReconstructionOCL(const GPUSettingsProcessing& cfg) : GPUReconstructionDeviceBase(cfg)
+GPUReconstructionOCL::GPUReconstructionOCL(const GPUSettingsProcessing& cfg) : GPUReconstructionDeviceBase(cfg, sizeof(GPUReconstructionDeviceBase))
 {
   mInternals = new GPUReconstructionOCLInternals;
   mProcessingSettings.deviceType = DeviceType::OCL;
