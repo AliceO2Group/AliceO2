@@ -158,6 +158,12 @@ bool GPUChainTracking::ValidateSteps()
     return false;
   }
 #endif
+#ifndef GPUCA_TPC_GEOMETRY_O2
+  if (GetRecoSteps() & GPUDataTypes::RecoStep::TPCClusterFinding) {
+    GPUError("Can not run TPC GPU Cluster Finding with Run 2 Data");
+    return false;
+  }
+#endif
   if (((GetRecoSteps() & GPUDataTypes::RecoStep::TPCConversion) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCSliceTracking) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCCompression) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCdEdx)) && !tpcClustersAvail) {
     GPUError("Invalid Inputs, TPC Clusters required");
     return false;
@@ -712,7 +718,7 @@ void GPUChainTracking::RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clust
 
     std::vector<size_t> counts;
 
-    int nSteps = clusterer.getNSteps(count);
+    unsigned int nSteps = clusterer.getNSteps(count);
     if (nSteps > clusterer.mNBufs) {
       printf("Clusterer buffers exceeded (%d > %d)\n", nSteps, (int)clusterer.mNBufs);
       exit(1);
@@ -720,7 +726,7 @@ void GPUChainTracking::RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clust
 
     runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), 0}, nullptr, krnlRunRangeNone, {}, clustererShadow.mPbuf, clusterer.mBufSize * nSteps * sizeof(clusterer.mPbuf[0])); // TODO: Is it needed to clear the memory here?
     size_t tmpCount = count;
-    for (int i = 1; i < nSteps; i++) {
+    for (unsigned int i = 1; i < nSteps; i++) {
       counts.push_back(tmpCount);
       if (i == 1) {
         runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanUpStart>(GetGrid(tmpCount, clusterer.mScanWorkGroupSize, 0), nullptr, {iSlice}, {}, i);
@@ -732,7 +738,7 @@ void GPUChainTracking::RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clust
 
     runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanTop>(GetGrid(tmpCount, clusterer.mScanWorkGroupSize, 0), nullptr, {iSlice}, {}, nSteps);
 
-    for (int i = nSteps - 1; i > 1; i--) {
+    for (unsigned int i = nSteps - 1; i > 1; i--) {
       tmpCount = counts[i - 1];
       runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanDown>(GetGrid(tmpCount - clusterer.mScanWorkGroupSize, clusterer.mScanWorkGroupSize, 0), nullptr, {iSlice}, {}, i, clusterer.mScanWorkGroupSize);
     }
