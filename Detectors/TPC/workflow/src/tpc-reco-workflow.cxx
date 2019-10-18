@@ -41,6 +41,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::vector<ConfigParamSpec> options{
     {"input-type", VariantType::String, "digits", {"digitizer, digits, raw, clusters"}},
     {"output-type", VariantType::String, "tracks", {"digits, raw, clusters, tracks"}},
+    {"ca-clusterer", VariantType::Bool, false, {"Use clusterer of GPUCATracking"}},
     {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
     {"tpc-sectors", VariantType::String, "0-35", {"TPC sector range, e.g. 5-7,8,9"}},
     {"tpc-lanes", VariantType::Int, 1, {"number of parallel lanes up to the tracker"}},
@@ -168,11 +169,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   gDoMC = not cfgc.options().get<bool>("disable-mc");
   auto dispmode = cfgc.options().get<std::string>("dispatching-mode");
   gDispatchPrompt = !(dispmode == "single");
-  return o2::tpc::reco_workflow::getWorkflow(tpcSectors,                                    // sector configuration
-                                             laneConfiguration,                             // lane configuration
-                                             gDoMC,                                         //
-                                             nLanes,                                        //
-                                             inputType,                                     //
-                                             cfgc.options().get<std::string>("output-type") //
+  return o2::tpc::reco_workflow::getWorkflow(tpcSectors,                                     // sector configuration
+                                             laneConfiguration,                              // lane configuration
+                                             gDoMC,                                          //
+                                             nLanes,                                         //
+                                             inputType,                                      //
+                                             cfgc.options().get<std::string>("output-type"), //
+                                             cfgc.options().get<bool>("ca-clusterer")        //
   );
 }

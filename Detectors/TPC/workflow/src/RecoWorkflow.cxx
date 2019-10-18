@@ -68,7 +68,8 @@ const std::unordered_map<std::string, OutputType> OutputMap{
 };
 
 framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vector<int> const& laneConfiguration,
-                                    bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput)
+                                    bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput,
+                                    int caClusterer)
 {
   InputType inputType;
 
@@ -87,11 +88,21 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     return std::find(outputTypes.begin(), outputTypes.end(), type) != outputTypes.end();
   };
 
-  if (inputType == InputType::Raw && isEnabled(OutputType::Digits)) {
+  if (inputType == InputType::Raw && isEnabled(OutputType::Digits)) { // TODO: We should rename Raw to
     throw std::invalid_argument("input/output type mismatch, can not produce 'digits' from 'raw'");
   }
   if (inputType == InputType::Clusters && (isEnabled(OutputType::Digits) || isEnabled(OutputType::Raw))) {
     throw std::invalid_argument("input/output type mismatch, can not produce 'digits', nor 'raw' from 'clusters'");
+  }
+
+  if (caClusterer && (inputType == InputType::Clusters || inputType == InputType::Raw)) {
+    throw std::invalid_argument("ca-clusterer requires digits as input");
+  }
+  if (caClusterer && (isEnabled(OutputType::Clusters) || isEnabled(OutputType::Raw))) {
+    throw std::invalid_argument("ca-clusterer cannot produce Clusters or Raw output");
+  }
+  if (caClusterer && propagateMC) {
+    throw std::invalid_argument("ca-clusterer cannot yet propagate MC information");
   }
 
   WorkflowSpec specs;
@@ -136,13 +147,13 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
 
   // output matrix
   bool runTracker = isEnabled(OutputType::Tracks);
-  bool runDecoder = runTracker || isEnabled(OutputType::Clusters);
-  bool runClusterer = runDecoder || isEnabled(OutputType::Raw);
+  bool runDecoder = !caClusterer && (runTracker || isEnabled(OutputType::Clusters));
+  bool runClusterer = !caClusterer && (runDecoder || isEnabled(OutputType::Raw));
 
   // input matrix
   runClusterer &= inputType == InputType::Digitizer || inputType == InputType::Digits;
   runDecoder &= runClusterer || inputType == InputType::Raw;
-  runTracker &= runDecoder || inputType == InputType::Clusters;
+  runTracker &= caClusterer || (runDecoder || inputType == InputType::Clusters);
 
   WorkflowSpec parallelProcessors;
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -325,7 +336,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   //
   // selected by output type 'tracks'
   if (runTracker) {
-    specs.emplace_back(o2::tpc::getCATrackerSpec(propagateMC, laneConfiguration));
+    specs.emplace_back(o2::tpc::getCATrackerSpec(propagateMC, caClusterer, laneConfiguration));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////

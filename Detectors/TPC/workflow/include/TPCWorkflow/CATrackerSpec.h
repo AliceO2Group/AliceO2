@@ -22,7 +22,7 @@ namespace tpc
 
 /// create a processor spec
 /// read simulated TPC clusters from file and publish
-framework::DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& inputIds);
+framework::DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector<int> const& inputIds);
 
 } // end namespace tpc
 } // end namespace o2

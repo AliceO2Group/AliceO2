@@ -19,7 +19,7 @@ typedef struct PackedDigit_s {
   row_t row;
 } PackedDigit;
 
-#define PACKED_DIGIT_SIZE 8
+#define PACKED_DIGIT_SIZE 8 // TODO: why not constexpr sizeof(..)?
 
 #endif //!defined(SHARED_DIGIT_H)
 

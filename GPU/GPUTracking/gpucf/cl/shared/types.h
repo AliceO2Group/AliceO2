@@ -10,7 +10,7 @@
 #if !defined(SHARED_TYPES_H)
 #define SHARED_TYPES_H
 
-#if !defined(GPUCA_ALIGPUCODE)
+#if !defined(GPUCA_ALIGPUCODE) && !defined(GPUd) // TODO: This should eventually just include "GPUCommonDef.h"
 #define GPUdi() inline
 #define GPUd()
 #define GPUg() kernel

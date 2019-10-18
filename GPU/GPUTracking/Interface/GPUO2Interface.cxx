@@ -74,6 +74,8 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data)
   if (mDumpEvents) {
     mChain->ClearIOPointers();
     mChain->mIOPtrs.clustersNative = data->clustersNative;
+    memcpy(mChain->mIOPtrs.tpcDigits, data->tpcDigits, sizeof(data->tpcDigits));
+    mChain->mIOPtrs.tpcRaw = data->tpcRaw;
 
     char fname[1024];
     sprintf(fname, "event.%d.dump", nEvent);
