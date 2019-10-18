@@ -169,9 +169,9 @@ FairMQMessagePtr mergePayloads(FairMQDevice& device, FairMQParts& parts, std::ve
   return message;
 }
 
-InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs)
+InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, bool throwOnUnmatchedInputs)
 {
-  return [filterSpecs = std::move(filterSpecs)](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
+  return [filterSpecs = std::move(filterSpecs), throwOnUnmatchedInputs](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
     std::unordered_map<std::string, FairMQParts> outputs;
     std::vector<bool> indicesDone(parts.Size() / 2, false);
     for (size_t i = 0; i < parts.Size() / 2; ++i) {
@@ -215,6 +215,8 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs)
           }
           indicesDone[i] = true;
           break;
+        } else if (throwOnUnmatchedInputs) {
+          throw std::runtime_error("no matching filter rule for input data " + DataSpecUtils::describe(query));
         }
       }
     }
