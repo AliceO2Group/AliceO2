@@ -12,8 +12,8 @@
 /// \brief
 ///
 
-#ifndef TRAKINGITSU_INCLUDE_GPU_CONTEXT_H_
-#define TRAKINGITSU_INCLUDE_GPU_CONTEXT_H_
+#ifndef TRACKINGITS_INCLUDE_CONTEXT_HIP_H_
+#define TRACKINGITS_INCLUDE_CONTEXT_HIP_H_
 
 #include <string>
 #include <vector>
@@ -31,7 +31,7 @@ namespace GPU
 struct DeviceProperties final {
   std::string name;
   int gpuProcessors;
-  // int hipCores;
+  int streamProcessors;
   long globalMemorySize;
   long constantMemorySize;
   long sharedMemorySize;
@@ -41,7 +41,7 @@ struct DeviceProperties final {
   long registersPerBlock;
   int warpSize;
   int maxThreadsPerBlock;
-  // int maxBlocksPerSM;
+  int maxBlocksPerSM;
   dim3 maxThreadsDim;
   dim3 maxGridDim;
 };
@@ -68,4 +68,4 @@ class Context final
 } // namespace its
 } // namespace o2
 
-#endif /* TRAKINGITSU_INCLUDE_GPU_CONTEXT_H_ */
+#endif /* TRACKINGITS_INCLUDE_CONTEXT_HIP_H_ */

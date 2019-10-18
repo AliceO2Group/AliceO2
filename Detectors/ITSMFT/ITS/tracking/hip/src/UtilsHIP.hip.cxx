@@ -82,16 +82,16 @@ void Utils::Host::checkHIPError(const hipError_t error, const char* file, const 
   }
 }
 
-// dim3 Utils::Host::getBlockSize(const int colsNum)
-// {
-//   return getBlockSize(colsNum, 1);
-// }
+dim3 Utils::Host::getBlockSize(const int colsNum)
+{
+  return getBlockSize(colsNum, 1);
+}
 
-// dim3 Utils::Host::getBlockSize(const int colsNum, const int rowsNum)
-// {
-//   const DeviceProperties& deviceProperties = Context::getInstance().getDeviceProperties();
-//   return getBlockSize(colsNum, rowsNum, deviceProperties.hipCores / deviceProperties.maxBlocksPerSM); /// <<<<<<< ALLARME
-// }
+dim3 Utils::Host::getBlockSize(const int colsNum, const int rowsNum)
+{
+  const DeviceProperties& deviceProperties = Context::getInstance().getDeviceProperties();
+  return getBlockSize(colsNum, rowsNum, deviceProperties.streamProcessors / deviceProperties.maxBlocksPerSM); /// <<<<<<< ALLARME
+}
 
 dim3 Utils::Host::getBlockSize(const int colsNum, const int rowsNum, const int maxThreadsPerBlock)
 {

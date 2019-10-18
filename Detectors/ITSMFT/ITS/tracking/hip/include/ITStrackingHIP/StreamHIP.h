@@ -12,8 +12,8 @@
 /// \brief
 ///
 
-#ifndef TRAKINGITSU_INCLUDE_GPU_STREAM_H_
-#define TRAKINGITSU_INCLUDE_GPU_STREAM_H_
+#ifndef TRACKINGITS_INCLUDE_STREAM_HIP_H_
+#define TRACKINGITS_INCLUDE_STREAM_HIP_H_
 
 #include "ITStracking/Definitions.h"
 
@@ -43,4 +43,4 @@ class Stream final
 } // namespace its
 } // namespace o2
 
-#endif /* TRAKINGITSU_INCLUDE_GPU_STREAM_H_ */
+#endif /* TRACKINGITS_INCLUDE_STREAM_HIP_H_ */

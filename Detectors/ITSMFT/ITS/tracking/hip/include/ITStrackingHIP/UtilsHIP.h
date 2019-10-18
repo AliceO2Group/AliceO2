@@ -12,8 +12,8 @@
 /// \brief
 ///
 
-#ifndef TRACKINGITS_INCLUDE_GPU_UTILS_HIP_H_
-#define TRACKINGITS_INCLUDE_GPU_UTILS_HIP_H_
+#ifndef TRACKINGITS_INCLUDE_UTILS_HIP_H_
+#define TRACKINGITS_INCLUDE_UTILS_HIP_H_
 
 #include "GPUCommonDef.h"
 #include "ITStrackingHIP/StreamHIP.h"
@@ -36,8 +36,8 @@ namespace Host
 void checkHIPError(const hipError_t error, const char* file, const int line);
 #endif
 
-// dim3 getBlockSize(const int);
-// dim3 getBlockSize(const int, const int);
+dim3 getBlockSize(const int);
+dim3 getBlockSize(const int, const int);
 dim3 getBlockSize(const int, const int, const int);
 dim3 getBlocksGrid(const dim3&, const int);
 dim3 getBlocksGrid(const dim3&, const int, const int);
@@ -63,4 +63,4 @@ GPUd() int gpuAtomicAdd(int*, const int);
 } // namespace its
 } // namespace o2
 
-#endif /* TRACKINGITS_INCLUDE_GPU_UTILS_HIP_H_ */
+#endif /* TRACKINGITS_INCLUDE_UTILS_HIP_H_ */
