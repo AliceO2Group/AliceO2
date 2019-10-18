@@ -108,7 +108,7 @@ int GPUReconstructionHIPBackend::runKernelBackend(const krnlExec& x, const krnlR
   return 0;
 }
 
-GPUReconstructionHIPBackend::GPUReconstructionHIPBackend(const GPUSettingsProcessing& cfg) : GPUReconstructionDeviceBase(cfg)
+GPUReconstructionHIPBackend::GPUReconstructionHIPBackend(const GPUSettingsProcessing& cfg) : GPUReconstructionDeviceBase(cfg, sizeof(GPUReconstructionDeviceBase))
 {
   mInternals = new GPUReconstructionHIPInternals;
   mProcessingSettings.deviceType = DeviceType::HIP;
