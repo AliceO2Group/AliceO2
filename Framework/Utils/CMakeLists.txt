@@ -60,3 +60,9 @@ o2_add_test(RootTreeReader
             COMPONENT_NAME DPLUtils
             LABELS dplutils
             COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run)
+
+o2_add_test(RawParser
+            SOURCES test/test_RawParser.cxx
+            PUBLIC_LINK_LIBRARIES O2::DPLUtils
+            COMPONENT_NAME DPLUtils
+            LABELS dplutils)
