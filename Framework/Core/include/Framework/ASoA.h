@@ -13,6 +13,7 @@
 
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/CompilerBuiltins.h"
+#include "Framework/Expressions.h"
 #include "Framework/Traits.h"
 #include <arrow/table.h>
 #include <arrow/array.h>
@@ -496,7 +497,8 @@ class TableMetadata
     {                                                                          \
       return *mColumnIterator;                                                 \
     }                                                                          \
-  }
+  };                                                                           \
+  static const o2::framework::expressions::BindingNode _Getter_ { _Label_ }
 
 /// A dynamic column is a column whose values are derived
 /// from those of other real columns. These can be used for
