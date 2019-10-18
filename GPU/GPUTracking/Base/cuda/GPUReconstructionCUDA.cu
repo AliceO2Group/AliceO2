@@ -96,7 +96,7 @@ int GPUReconstructionCUDABackend::runKernelBackend(const krnlExec& x, const krnl
   return 0;
 }
 
-GPUReconstructionCUDABackend::GPUReconstructionCUDABackend(const GPUSettingsProcessing& cfg) : GPUReconstructionDeviceBase(cfg)
+GPUReconstructionCUDABackend::GPUReconstructionCUDABackend(const GPUSettingsProcessing& cfg) : GPUReconstructionDeviceBase(cfg, sizeof(GPUReconstructionDeviceBase))
 {
   mInternals = new GPUReconstructionCUDAInternals;
   mProcessingSettings.deviceType = DeviceType::CUDA;
