@@ -13,7 +13,7 @@
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
-#define BOOST_TEST_MODULE Test Utilities Mergers
+#define BOOST_TEST_MODULE Test Utilities MergersInfrastructureBuilder
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
@@ -25,7 +25,7 @@
 #include <iostream>
 
 using namespace o2::framework;
-using namespace o2::experimental::mergers;
+using namespace o2::mergers;
 
 BOOST_AUTO_TEST_CASE(InfrastructureBuilderUnconfigured)
 {

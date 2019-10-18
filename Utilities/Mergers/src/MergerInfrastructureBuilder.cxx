@@ -14,18 +14,14 @@
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
 #include "Mergers/MergerInfrastructureBuilder.h"
-#include "Mergers/Merger.h"
+#include "Mergers/MergerAlgorithm.h"
 #include "Mergers/MergerBuilder.h"
 
 #include "Framework/DataSpecUtils.h"
 
-// todo use MergerBuilder
-
 using namespace o2::framework;
 
-namespace o2
-{
-namespace experimental::mergers
+namespace o2::mergers
 {
 
 MergerInfrastructureBuilder::MergerInfrastructureBuilder() : mOutputSpec{header::gDataOriginInvalid, header::gDataDescriptionInvalid}
@@ -73,13 +69,7 @@ std::string MergerInfrastructureBuilder::validateConfig()
     error += preamble + "reduction factor smaller than 2 (" + std::to_string(mConfig.topologySize.param) + ")\n";
   }
 
-  if (mConfig.publicationDecision.value == PublicationDecision::WhenXInputsUpdated && (mConfig.publicationDecision.param <= 0.0 || mConfig.publicationDecision.param > 1.0)) {
-    error += preamble + "parameter for PublicationDecision::WhenXInputsUpdated is not inside range (0, 1], it is " + std::to_string(mConfig.publicationDecision.param) + "\n";
-  }
-
-  if (mConfig.ownershipMode.value == OwnershipMode::Full && mConfig.mergingTime.value != MergingTime::BeforePublication) {
-    error += preamble + "with OwnershipMode::Full, only MergingTime::BeforePublication is allowed.";
-  }
+  // todo check if output might be included in input matcher (it might be a common mistake)
 
   return error;
 }
@@ -107,9 +97,9 @@ framework::WorkflowSpec MergerInfrastructureBuilder::generateInfrastructure()
     size_t inputsPerMergerRemainder = layerInputs.size() % numberOfMergers;
 
     MergerConfig layerConfig = mConfig;
-    if (layer > 1 && mConfig.ownershipMode.value == OwnershipMode::Integral) {
-      layerConfig.ownershipMode = {OwnershipMode::Full}; // in Integral mode only the first layer should integrate
-      layerConfig.timespan = {Timespan::LastDifference}; // and objects that are merged should not be used again
+    if (layer > 1 && mConfig.inputObjectTimespan.value == InputObjectsTimespan::LastDifference) {
+      layerConfig.inputObjectTimespan = {InputObjectsTimespan::FullHistory};     // in LastDifference mode only the first layer should integrate
+      layerConfig.mergedObjectTimespan = {MergedObjectTimespan::LastDifference}; // and objects that are merged should not be used again
     }
     mergerBuilder.setConfig(layerConfig);
 
@@ -187,5 +177,4 @@ void MergerInfrastructureBuilder::generateInfrastructure(framework::WorkflowSpec
   workflow.insert(std::end(workflow), std::begin(mergersInfrastructure), std::end(mergersInfrastructure));
 }
 
-} // namespace experimental::mergers
-} // namespace o2
+} // namespace o2::mergers
