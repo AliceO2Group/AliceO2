@@ -12,6 +12,7 @@
 
 #include <variant>
 #include <string>
+#include <memory>
 
 namespace o2::framework::expressions
 {
