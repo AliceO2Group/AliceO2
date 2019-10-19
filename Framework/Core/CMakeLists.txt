@@ -173,14 +173,11 @@ foreach(t
         InputRecord
         Kernels
         LogParsingHelpers
-        Parallel
         PtrHelpers
         Root2ArrowTable
         Services
-        SimpleWildcard
         StringHelpers
         SuppressionGenerator
-        Task
         TMessageSerializer
         TableBuilder
         TimeParallelPipelining
@@ -264,7 +261,10 @@ foreach(w
         SimpleStatefulProcessing01
         SimpleStringProcessing
         SimpleTimer
-        SingleDataSource)
+        SimpleWildcard
+        SingleDataSource
+        Task
+        )
   o2_add_test(${w} NAME test_Framework_test_${w}
               SOURCES test/test_${w}.cxx
               COMPONENT_NAME Framework

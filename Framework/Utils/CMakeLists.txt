@@ -24,14 +24,16 @@ o2_add_test(DPLBroadcasterMerger
                     src/DPLBroadcaster.cxx
             PUBLIC_LINK_LIBRARIES O2::DPLUtils
             COMPONENT_NAME DPLUtils
-            LABELS dplutils)
+            LABELS dplutils
+            COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run)
 
 o2_add_test(DPLOutput
             SOURCES test/test_DPLOutputTest.cxx src/Utils.cxx
                     test/DPLOutputTest.cxx
             PUBLIC_LINK_LIBRARIES O2::DPLUtils
             COMPONENT_NAME DPLUtils
-            LABELS long dplutils)
+            LABELS long dplutils
+            COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run)
 
 o2_add_test(RootTreeWriter
             SOURCES test/test_RootTreeWriter.cxx

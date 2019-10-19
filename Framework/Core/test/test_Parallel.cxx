@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/InputSpec.h"
+#include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/ParallelContext.h"
@@ -188,6 +189,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
     cluster.q = rand() % 1000;
     i++;
   }
+  ctx.services().get<ControlService>().endOfStream();
 }
 
 void someProcessingStageAlgorithm(ProcessingContext& ctx)
