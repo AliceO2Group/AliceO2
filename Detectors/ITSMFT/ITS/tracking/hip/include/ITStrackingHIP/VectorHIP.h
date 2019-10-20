@@ -51,7 +51,7 @@ class Vector final
 
   int getSizeFromDevice() const;
 
-  T getElementFromDevice(const int) const;
+  GPUh() T getElementFromDevice(const int) const;
 
   void resize(const int);
   void reset(const int, const int = 0);
