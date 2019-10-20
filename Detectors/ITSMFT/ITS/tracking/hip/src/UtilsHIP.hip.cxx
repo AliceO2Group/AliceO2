@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file Utils.cu
+/// \file UtilsHIP.hip.cxx
 /// \brief
 ///
 
@@ -18,8 +18,7 @@
 #include <sstream>
 #include <stdexcept>
 
-// #include <HIP_profiler_api.h>
-
+#include <hip/hip_runtime_api.h>
 #include "ITStrackingHIP/ContextHIP.h"
 
 namespace
@@ -28,32 +27,22 @@ namespace
 int roundUp(const int numToRound, const int multiple)
 {
   if (multiple == 0) {
-
     return numToRound;
   }
-
   int remainder{numToRound % multiple};
-
   if (remainder == 0) {
-
     return numToRound;
   }
-
   return numToRound + multiple - remainder;
 }
 
 int findNearestDivisor(const int numToRound, const int divisor)
 {
-
   if (numToRound > divisor) {
-
     return divisor;
   }
-
   int result = numToRound;
-
   while (divisor % result != 0) {
-
     ++result;
   }
 
@@ -72,12 +61,9 @@ namespace GPU
 void Utils::Host::checkHIPError(const hipError_t error, const char* file, const int line)
 {
   if (error != hipSuccess) {
-
     std::ostringstream errorString{};
-
     errorString << file << ":" << line << " HIP API returned error [" << hipGetErrorString(error) << "] (code "
                 << error << ")" << std::endl;
-
     throw std::runtime_error{errorString.str()};
   }
 }
@@ -90,7 +76,7 @@ dim3 Utils::Host::getBlockSize(const int colsNum)
 dim3 Utils::Host::getBlockSize(const int colsNum, const int rowsNum)
 {
   const DeviceProperties& deviceProperties = Context::getInstance().getDeviceProperties();
-  return getBlockSize(colsNum, rowsNum, deviceProperties.streamProcessors / deviceProperties.maxBlocksPerSM); /// <<<<<<< ALLARME
+  return getBlockSize(colsNum, rowsNum, deviceProperties.streamProcessors / deviceProperties.maxBlocksPerSM);
 }
 
 dim3 Utils::Host::getBlockSize(const int colsNum, const int rowsNum, const int maxThreadsPerBlock)
@@ -100,14 +86,11 @@ dim3 Utils::Host::getBlockSize(const int colsNum, const int rowsNum, const int m
   int yThreads = std::max(std::min(rowsNum, static_cast<int>(deviceProperties.maxThreadsDim.y)), 1);
   const int totalThreads = roundUp(std::min(xThreads * yThreads, maxThreadsPerBlock),
                                    static_cast<int>(deviceProperties.warpSize));
-
   if (xThreads > yThreads) {
-
     xThreads = findNearestDivisor(xThreads, totalThreads);
     yThreads = totalThreads / xThreads;
 
   } else {
-
     yThreads = findNearestDivisor(yThreads, totalThreads);
     xThreads = totalThreads / yThreads;
   }
@@ -117,13 +100,11 @@ dim3 Utils::Host::getBlockSize(const int colsNum, const int rowsNum, const int m
 
 dim3 Utils::Host::getBlocksGrid(const dim3& threadsPerBlock, const int rowsNum)
 {
-
   return getBlocksGrid(threadsPerBlock, rowsNum, 1);
 }
 
 dim3 Utils::Host::getBlocksGrid(const dim3& threadsPerBlock, const int rowsNum, const int colsNum)
 {
-
   return dim3{1 + (rowsNum - 1) / threadsPerBlock.x, 1 + (colsNum - 1) / threadsPerBlock.y};
 }
 
