@@ -8,12 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file UniquePointer.h
+/// \file UniquePointerHIP.h
 /// \brief
 ///
 
-#ifndef TRACKINGITS_INCLUDE_UNIQUEPOINTER_HIP_H_
-#define TRACKINGITS_INCLUDE_UNIQUEPOINTER_HIP_H_
+#ifndef O2_ITS_TRACKING_INCLUDE_UNIQUEPOINTER_HIP_H_
+#define O2_ITS_TRACKING_INCLUDE_UNIQUEPOINTER_HIP_H_
 
 #include "GPUCommonDef.h"
 #include "ITStrackingHIP/UtilsHIP.h"
@@ -150,4 +150,4 @@ GPUhd() const T& UniquePointer<T>::operator*() const noexcept
 } // namespace its
 } // namespace o2
 
-#endif /* TRACKINGITS_INCLUDE_UNIQUEPOINTER_HIP_H_ */
+#endif /* O2_ITS_TRACKING_INCLUDE_UNIQUEPOINTER_HIP_H_ */

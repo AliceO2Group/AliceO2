@@ -8,12 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file Stream.h
+/// \file StreamHIP.h
 /// \brief
 ///
 
-#ifndef TRACKINGITS_INCLUDE_STREAM_HIP_H_
-#define TRACKINGITS_INCLUDE_STREAM_HIP_H_
+#ifndef O2_ITS_TRACKING_INCLUDE_STREAM_HIP_H_
+#define O2_ITS_TRACKING_INCLUDE_STREAM_HIP_H_
 
 #include "ITStracking/Definitions.h"
 
@@ -43,4 +43,4 @@ class Stream final
 } // namespace its
 } // namespace o2
 
-#endif /* TRACKINGITS_INCLUDE_STREAM_HIP_H_ */
+#endif /* O2_ITS_TRACKING_INCLUDE_STREAM_HIP_H_ */
