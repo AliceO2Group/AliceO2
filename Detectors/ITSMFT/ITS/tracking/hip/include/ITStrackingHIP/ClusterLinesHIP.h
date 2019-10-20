@@ -27,11 +27,11 @@ namespace GPU
 {
 
 struct GPUVertex final {
-  GPUd() GPUVertex() : realVertex{false}
+  GPUhd() GPUVertex() : realVertex{false}
   {
   }
 
-  GPUd() GPUVertex(float x, float y, float z, float eX, float eY, float eZ, int contrib) : xCoord{x},
+  GPUhd() GPUVertex(float x, float y, float z, float eX, float eY, float eZ, int contrib) : xCoord{x},
                                                                                             yCoord{y},
                                                                                             zCoord{z},
                                                                                             errorX{eZ},
