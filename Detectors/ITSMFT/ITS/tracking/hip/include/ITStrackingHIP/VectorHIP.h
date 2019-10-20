@@ -8,12 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file Vector.h
+/// \file VectorHIP.h
 /// \brief
 ///
 
-#ifndef TRACKINGITS_INCLUDE_VECTOR_HIP_H_
-#define TRACKINGITS_INCLUDE_VECTOR_HIP_H_
+#ifndef O2_ITS_TRACKING_INCLUDE_VECTOR_HIP_H_
+#define O2_ITS_TRACKING_INCLUDE_VECTOR_HIP_H_
 
 #include <assert.h>
 #include <new>
@@ -328,4 +328,4 @@ GPUhd() void Vector<T>::dump()
 } // namespace its
 } // namespace o2
 
-#endif /* TRACKINGITS_INCLUDE_VECTOR_HIP_H_ */
+#endif /* O2_ITS_TRACKING_INCLUDE_VECTOR_HIP_H_ */
