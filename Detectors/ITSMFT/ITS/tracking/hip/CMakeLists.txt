@@ -18,7 +18,8 @@ endif()
 message(STATUS "Building ITS HIP vertexer")
 set(HDRS ContextHIP.h UtilsHIP.h StreamHIP.h)
 o2_add_library(ITStrackingHIP
-               SOURCES src/DeviceStoreVertexerHIP.hip.cxx
+               SOURCES # src/VertexerTraitsHIP.hip.cxx
+                       src/DeviceStoreVertexerHIP.hip.cxx
                        src/ClusterLinesHIP.hip.cxx
                        src/UtilsHIP.hip.cxx
                        src/ContextHIP.hip.cxx

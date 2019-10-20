@@ -8,12 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file Array.h
+/// \file ArrayHIP.h
 /// \brief
 ///
 
-#ifndef TRAKINGITSU_INCLUDE_GPU_ARRAY_H_
-#define TRAKINGITSU_INCLUDE_GPU_ARRAY_H_
+#ifndef O2_ITS_TRACKING_INCLUDE_ARRAY_HIP_H_
+#define O2_ITS_TRACKING_INCLUDE_ARRAY_HIP_H_
 
 #include <hip/hip_runtime.h>
 
@@ -71,4 +71,4 @@ struct Array final {
 } // namespace its
 } // namespace o2
 
-#endif /* TRAKINGITSU_INCLUDE_GPU_CAGPUVECTOR_H_ */
+#endif /* O2_ITS_TRACKING_INCLUDE_ARRAY_HIP_H_ */

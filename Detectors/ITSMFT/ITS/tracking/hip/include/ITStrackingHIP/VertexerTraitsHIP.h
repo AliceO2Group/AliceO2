@@ -8,12 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file VertexerTraitsGPU.h
+/// \file VertexerTraitsHIP.h
 /// \brief
 /// \author matteo.concas@cern.ch
 
-#ifndef O2_ITS_TRACKING_VERTEXER_TRAITS_GPU_H_
-#define O2_ITS_TRACKING_VERTEXER_TRAITS_GPU_H_
+#ifndef O2_ITS_TRACKING_VERTEXERTRAITS_HIP_H_
+#define O2_ITS_TRACKING_VERTEXERTRAITS_HIP_H_
 
 #include <vector>
 #include <array>
@@ -24,8 +24,8 @@
 #include "ITStracking/Definitions.h"
 #include "ITStracking/Tracklet.h"
 
-#include "ITStrackingCUDA/DeviceStoreVertexerGPU.h"
-#include "ITStrackingCUDA/UniquePointer.h"
+#include "ITStrackingHIP/DeviceStoreVertexerHIP.h"
+#include "ITStrackingHIP/UniquePointerHIP.h"
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
 #include "ITStracking/StandaloneDebugger.h"
@@ -60,9 +60,12 @@ class VertexerTraitsGPU : public VertexerTraits
   // GPU-specific getters
   GPUd() static const int2 getBinsPhiRectWindow(const Cluster&, float maxdeltaphi);
   GPUhd() GPU::DeviceStoreVertexerGPU& getDeviceContext();
+  GPUhd() GPU::DeviceStoreVertexerGPU* getDeviceContextPtr();
 
  protected:
-
+  // #ifdef _ALLOW_DEBUG_TREES_ITS_
+  //   StandaloneDebugger* mDebugger;
+  // #endif
   GPU::DeviceStoreVertexerGPU mStoreVertexerGPU;
   GPU::UniquePointer<GPU::DeviceStoreVertexerGPU> mStoreVertexerGPUPtr;
 };
@@ -81,8 +84,13 @@ inline GPU::DeviceStoreVertexerGPU& VertexerTraitsGPU::getDeviceContext()
   return *mStoreVertexerGPUPtr;
 }
 
+inline GPU::DeviceStoreVertexerGPU* VertexerTraitsGPU::getDeviceContextPtr()
+{
+  return mStoreVertexerGPUPtr.get();
+}
+
 extern "C" VertexerTraits* createVertexerTraitsGPU();
 
 } // namespace its
 } // namespace o2
-#endif /* O2_ITS_TRACKING_VERTEXER_TRAITS_GPU_H_ */
+#endif /* O2_ITS_TRACKING_VERTEXERTRAITS_HIP_H_ */

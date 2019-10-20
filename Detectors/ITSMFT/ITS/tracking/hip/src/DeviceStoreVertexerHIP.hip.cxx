@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file DeviceStoreVertexerGPU.cu
+/// \file DeviceStoreVertexerHIP.hip.cxx
 /// \brief
 /// \author matteo.concas@cern.ch
 

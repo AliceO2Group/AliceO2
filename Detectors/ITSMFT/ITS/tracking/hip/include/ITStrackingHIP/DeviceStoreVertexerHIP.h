@@ -8,13 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file DeviceStoreVertexer.h
+/// \file DeviceStoreVertexerHIP.h
 /// \brief This class serves as memory interface for GPU vertexer. It will access needed data structures from devicestore apis.
 ///        routines as static as possible.
 /// \author matteo.concas@cern.ch
 
-#ifndef ITSTRACKING_INCLUDE_DEVICESTOREVERTEXER_HIP_H_
-#define ITSTRACKING_INCLUDE_DEVICESTOREVERTEXER_HIP_H_
+#ifndef O2_ITS_TRACKING_INCLUDE_DEVICESTOREVERTEXER_HIP_H_
+#define O2_ITS_TRACKING_INCLUDE_DEVICESTOREVERTEXER_HIP_H_
 
 #include <hipcub/hipcub.hpp>
 
@@ -294,4 +294,4 @@ inline std::vector<Line> DeviceStoreVertexerGPU::getLinesFromGPU()
 } // namespace GPU
 } // namespace its
 } // namespace o2
-#endif //ITSTRACKING_INCLUDE_DEVICESTOREVERTEXER_HIP_H_
+#endif //O2_ITS_TRACKING_INCLUDE_DEVICESTOREVERTEXER_HIP_H_

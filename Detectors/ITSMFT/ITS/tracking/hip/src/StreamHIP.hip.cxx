@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file Stream.cu
+/// \file StreamHIP.hip.cxx
 /// \brief
 ///
 
