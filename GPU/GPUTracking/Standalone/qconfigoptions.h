@@ -77,6 +77,7 @@ AddOption(tpcRejectThreshold, float, 0.f, "tpcRejectThreshold", 0, "Pt threshold
 AddOption(tpcCompression, int, 7, "tpcCompression", 0, "TPC Compression mode bits (1=truncate charge/width LSB, 2=differences, 4=track-model)")
 AddOption(tpcCompressionSort, int, 0, "tpcCompressionSort", 0, "Sort order of TPC compression (0 = time, 1 = pad, 2 = Z-time-pad, 3 = Z-pad-time)")
 AddOption(ForceEarlyTPCTransform, int, -1, "ForceEarlyTPCTransform", 0, "Force early TPC transformation also for continuous data (-1 = auto)")
+AddOption(fwdTPCDigitsAsClusters, bool, false, "forwardTPCdigits", 0, "Forward TPC digits as clusters (if they pass the ZS threshold)")
 AddHelp("help", 'h')
 EndConfig()
 
