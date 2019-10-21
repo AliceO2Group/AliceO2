@@ -17,9 +17,9 @@
 
 #include <string>
 #include <vector>
-#include "ITStracking/Definitions.h"
-
+// #include "ITStracking/Definitions.h"
 #include <hip/hip_runtime_api.h>
+#include "GPUCommonDef.h"
 
 namespace o2
 {
@@ -46,20 +46,20 @@ struct DeviceProperties final {
   dim3 maxGridDim;
 };
 
-class Context final
+class ContextHIP final
 {
  public:
-  static Context& getInstance();
+  static ContextHIP& getInstance();
 
-  Context(const Context&);
-  Context& operator=(const Context&);
+  ContextHIP(const ContextHIP&);
+  ContextHIP& operator=(const ContextHIP&);
 
   const DeviceProperties& getDeviceProperties();
   const DeviceProperties& getDeviceProperties(const int);
 
  private:
-  Context(bool dumpDevices = true);
-  ~Context() = default;
+  ContextHIP(bool dumpDevices = true);
+  ~ContextHIP() = default;
 
   int mDevicesNum;
   std::vector<DeviceProperties> mDeviceProperties;

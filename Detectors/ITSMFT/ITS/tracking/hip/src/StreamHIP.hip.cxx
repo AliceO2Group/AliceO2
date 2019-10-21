@@ -12,7 +12,7 @@
 /// \brief
 ///
 
-#include "ITStrackingCUDA/Stream.h"
+#include "ITStrackingHIP/StreamHIP.h"
 
 namespace o2
 {
@@ -21,17 +21,17 @@ namespace its
 namespace GPU
 {
 
-Stream::Stream()
+StreamHIP::StreamHIP()
 {
-  hipStreamCreateWithFlags(&mStream, hipStreamNonBlocking);
+  (void)hipStreamCreateWithFlags(&mStream, hipStreamNonBlocking);
 }
 
-Stream::~Stream()
+StreamHIP::~StreamHIP()
 {
-  hipStreamDestroy(mStream);
+  (void)hipStreamDestroy(mStream);
 }
 
-const GPUStream& Stream::get() const
+const hipStream_t& StreamHIP::get() const
 {
   return mStream;
 }

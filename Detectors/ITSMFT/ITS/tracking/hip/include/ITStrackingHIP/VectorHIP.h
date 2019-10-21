@@ -20,10 +20,9 @@
 #include <type_traits>
 #include <vector>
 
-#include "GPUCommonDef.h"
-#include "ITStracking/Definitions.h"
 #include "ITStrackingHIP/StreamHIP.h"
 #include "ITStrackingHIP/UtilsHIP.h"
+#include "GPUCommonDef.h"
 
 namespace o2
 {
@@ -33,21 +32,21 @@ namespace GPU
 {
 
 template <typename T>
-class Vector final
+class VectorHIP final
 {
-  static_assert(std::is_trivially_destructible<T>::value, "Vector only supports trivially destructible objects.");
+  static_assert(std::is_trivially_destructible<T>::value, "VectorHIP only supports trivially destructible objects.");
 
  public:
-  Vector();
-  explicit Vector(const int, const int = 0);
-  Vector(const T* const, const int, const int = 0);
-  GPUhd() ~Vector();
+  VectorHIP();
+  explicit VectorHIP(const int, const int = 0);
+  VectorHIP(const T* const, const int, const int = 0);
+  GPUhd() ~VectorHIP();
 
-  Vector(const Vector&) = delete;
-  Vector& operator=(const Vector&) = delete;
+  VectorHIP(const VectorHIP&) = delete;
+  VectorHIP& operator=(const VectorHIP&) = delete;
 
-  GPUhd() Vector(Vector&&);
-  Vector& operator=(Vector&&);
+  GPUhd() VectorHIP(VectorHIP&&);
+  VectorHIP& operator=(VectorHIP&&);
 
   int getSizeFromDevice() const;
 
@@ -61,7 +60,7 @@ class Vector final
 
   GPUhd() T* get() const;
   GPUhd() int capacity() const;
-  GPUhd() Vector<T> getWeakCopy() const;
+  GPUhd() VectorHIP<T> getWeakCopy() const;
   GPUd() T& operator[](const int) const;
 
   GPUd() int size() const;
@@ -75,7 +74,7 @@ class Vector final
   void destroy();
 
  private:
-  GPUhd() Vector(const Vector&, const bool);
+  GPUhd() VectorHIP(const VectorHIP&, const bool);
 
   T* mArrayPointer = nullptr;
   int* mDeviceSize = nullptr;
@@ -84,34 +83,34 @@ class Vector final
 };
 
 template <typename T>
-Vector<T>::Vector() : Vector{nullptr, 0}
+VectorHIP<T>::VectorHIP() : VectorHIP{nullptr, 0}
 {
   // Nothing to do
 }
 
 template <typename T>
-Vector<T>::Vector(const int capacity, const int initialSize) : Vector{nullptr, capacity, initialSize}
+VectorHIP<T>::VectorHIP(const int capacity, const int initialSize) : VectorHIP{nullptr, capacity, initialSize}
 {
   // Nothing to do
 }
 
 template <typename T>
-Vector<T>::Vector(const T* const source, const int size, const int initialSize) : mCapacity{size}, mIsWeak{false}
+VectorHIP<T>::VectorHIP(const T* const source, const int size, const int initialSize) : mCapacity{size}, mIsWeak{false}
 {
   if (size > 0) {
     try {
 
-      Utils::Host::gpuMalloc(reinterpret_cast<void**>(&mArrayPointer), size * sizeof(T));
-      Utils::Host::gpuMalloc(reinterpret_cast<void**>(&mDeviceSize), sizeof(int));
+      Utils::HostHIP::gpuMalloc(reinterpret_cast<void**>(&mArrayPointer), size * sizeof(T));
+      Utils::HostHIP::gpuMalloc(reinterpret_cast<void**>(&mDeviceSize), sizeof(int));
 
       if (source != nullptr) {
 
-        Utils::Host::gpuMemcpyHostToDevice(mArrayPointer, source, size * sizeof(T));
-        Utils::Host::gpuMemcpyHostToDevice(mDeviceSize, &size, sizeof(int));
+        Utils::HostHIP::gpuMemcpyHostToDevice(mArrayPointer, source, size * sizeof(T));
+        Utils::HostHIP::gpuMemcpyHostToDevice(mDeviceSize, &size, sizeof(int));
 
       } else {
 
-        Utils::Host::gpuMemcpyHostToDevice(mDeviceSize, &initialSize, sizeof(int));
+        Utils::HostHIP::gpuMemcpyHostToDevice(mDeviceSize, &initialSize, sizeof(int));
       }
 
     } catch (...) {
@@ -124,7 +123,7 @@ Vector<T>::Vector(const T* const source, const int size, const int initialSize) 
 }
 
 template <typename T>
-Vector<T>::Vector(const Vector& other, const bool isWeak)
+VectorHIP<T>::VectorHIP(const VectorHIP& other, const bool isWeak)
   : mArrayPointer{other.mArrayPointer},
     mDeviceSize{other.mDeviceSize},
     mCapacity{other.mCapacity},
@@ -134,7 +133,7 @@ Vector<T>::Vector(const Vector& other, const bool isWeak)
 }
 
 template <typename T>
-GPUhd() Vector<T>::~Vector()
+GPUhd() VectorHIP<T>::~VectorHIP()
 {
   if (mIsWeak) {
 
@@ -150,7 +149,7 @@ GPUhd() Vector<T>::~Vector()
 }
 
 template <typename T>
-GPUhd() Vector<T>::Vector(Vector<T>&& other)
+GPUhd() VectorHIP<T>::VectorHIP(VectorHIP<T>&& other)
   : mArrayPointer{other.mArrayPointer},
     mDeviceSize{other.mDeviceSize},
     mCapacity{other.mCapacity},
@@ -161,7 +160,7 @@ GPUhd() Vector<T>::Vector(Vector<T>&& other)
 }
 
 template <typename T>
-Vector<T>& Vector<T>::operator=(Vector<T>&& other)
+VectorHIP<T>& VectorHIP<T>::operator=(VectorHIP<T>&& other)
 {
   destroy();
 
@@ -177,50 +176,50 @@ Vector<T>& Vector<T>::operator=(Vector<T>&& other)
 }
 
 template <typename T>
-int Vector<T>::getSizeFromDevice() const
+int VectorHIP<T>::getSizeFromDevice() const
 {
   int size;
-  Utils::Host::gpuMemcpyDeviceToHost(&size, mDeviceSize, sizeof(int));
+  Utils::HostHIP::gpuMemcpyDeviceToHost(&size, mDeviceSize, sizeof(int));
 
   return size;
 }
 
 template <typename T>
-void Vector<T>::resize(const int size)
+void VectorHIP<T>::resize(const int size)
 {
-  Utils::Host::gpuMemcpyHostToDevice(mDeviceSize, &size, sizeof(int));
+  Utils::HostHIP::gpuMemcpyHostToDevice(mDeviceSize, &size, sizeof(int));
 }
 
 template <typename T>
-void Vector<T>::reset(const int capacity, const int initialSize)
+void VectorHIP<T>::reset(const int capacity, const int initialSize)
 {
   reset(nullptr, capacity, initialSize);
 }
 
 template <typename T>
-void Vector<T>::reset(const T* const source, const int size, const int initialSize)
+void VectorHIP<T>::reset(const T* const source, const int size, const int initialSize)
 {
   if (size > mCapacity) {
     if (mArrayPointer != nullptr) {
-      Utils::Host::gpuFree(mArrayPointer);
+      Utils::HostHIP::gpuFree(mArrayPointer);
     }
 
-    Utils::Host::gpuMalloc(reinterpret_cast<void**>(&mArrayPointer), size * sizeof(T));
+    Utils::HostHIP::gpuMalloc(reinterpret_cast<void**>(&mArrayPointer), size * sizeof(T));
     mCapacity = size;
   }
 
   if (source != nullptr) {
 
-    Utils::Host::gpuMemcpyHostToDevice(mArrayPointer, source, size * sizeof(T));
-    Utils::Host::gpuMemcpyHostToDevice(mDeviceSize, &size, sizeof(int));
+    Utils::HostHIP::gpuMemcpyHostToDevice(mArrayPointer, source, size * sizeof(T));
+    Utils::HostHIP::gpuMemcpyHostToDevice(mDeviceSize, &size, sizeof(int));
 
   } else {
-    Utils::Host::gpuMemcpyHostToDevice(mDeviceSize, &initialSize, sizeof(int));
+    Utils::HostHIP::gpuMemcpyHostToDevice(mDeviceSize, &initialSize, sizeof(int));
   }
 }
 
 template <typename T>
-void Vector<T>::copyIntoVector(std::vector<T>& destinationVector, const int size)
+void VectorHIP<T>::copyIntoVector(std::vector<T>& destinationVector, const int size)
 {
 
   T* hostPrimitivePointer = nullptr;
@@ -228,7 +227,7 @@ void Vector<T>::copyIntoVector(std::vector<T>& destinationVector, const int size
   try {
 
     hostPrimitivePointer = static_cast<T*>(malloc(size * sizeof(T)));
-    Utils::Host::gpuMemcpyDeviceToHost(hostPrimitivePointer, mArrayPointer, size * sizeof(T));
+    Utils::HostHIP::gpuMemcpyDeviceToHost(hostPrimitivePointer, mArrayPointer, size * sizeof(T));
 
     destinationVector = std::move(std::vector<T>(hostPrimitivePointer, hostPrimitivePointer + size));
 
@@ -244,68 +243,68 @@ void Vector<T>::copyIntoVector(std::vector<T>& destinationVector, const int size
 }
 
 template <typename T>
-void Vector<T>::copyIntoSizedVector(std::vector<T>& destinationVector)
+void VectorHIP<T>::copyIntoSizedVector(std::vector<T>& destinationVector)
 {
-  Utils::Host::gpuMemcpyDeviceToHost(destinationVector.data(), mArrayPointer, destinationVector.size() * sizeof(T));
+  Utils::HostHIP::gpuMemcpyDeviceToHost(destinationVector.data(), mArrayPointer, destinationVector.size() * sizeof(T));
 }
 
 template <typename T>
-inline void Vector<T>::destroy()
+inline void VectorHIP<T>::destroy()
 {
   if (mArrayPointer != nullptr) {
 
-    Utils::Host::gpuFree(mArrayPointer);
+    Utils::HostHIP::gpuFree(mArrayPointer);
   }
 
   if (mDeviceSize != nullptr) {
 
-    Utils::Host::gpuFree(mDeviceSize);
+    Utils::HostHIP::gpuFree(mDeviceSize);
   }
 }
 
 template <typename T>
-GPUhd() T* Vector<T>::get() const
+GPUhd() T* VectorHIP<T>::get() const
 {
   return mArrayPointer;
 }
 
 template <typename T>
-GPUhd() int Vector<T>::capacity() const
+GPUhd() int VectorHIP<T>::capacity() const
 {
   return mCapacity;
 }
 
 template <typename T>
-GPUhd() Vector<T> Vector<T>::getWeakCopy() const
+GPUhd() VectorHIP<T> VectorHIP<T>::getWeakCopy() const
 {
-  return Vector{*this, true};
+  return VectorHIP{*this, true};
 }
 
 template <typename T>
-GPUd() T& Vector<T>::operator[](const int index) const
+GPUd() T& VectorHIP<T>::operator[](const int index) const
 {
   return mArrayPointer[index];
 }
 
 template <typename T>
-GPUh() T Vector<T>::getElementFromDevice(const int index) const
+GPUh() T VectorHIP<T>::getElementFromDevice(const int index) const
 {
   T element;
-  Utils::Host::gpuMemcpyDeviceToHost(&element, mArrayPointer + index, sizeof(T));
+  Utils::HostHIP::gpuMemcpyDeviceToHost(&element, mArrayPointer + index, sizeof(T));
 
   return element;
 }
 
 template <typename T>
-GPUd() int Vector<T>::size() const
+GPUd() int VectorHIP<T>::size() const
 {
   return *mDeviceSize;
 }
 
 template <typename T>
-GPUd() int Vector<T>::extend(const int sizeIncrement) const
+GPUd() int VectorHIP<T>::extend(const int sizeIncrement) const
 {
-  const int startIndex = Utils::Device::gpuAtomicAdd(mDeviceSize, sizeIncrement);
+  const int startIndex = Utils::DeviceHIP::gpuAtomicAdd(mDeviceSize, sizeIncrement);
   assert(size() <= mCapacity);
 
   return startIndex;
@@ -313,13 +312,13 @@ GPUd() int Vector<T>::extend(const int sizeIncrement) const
 
 template <typename T>
 template <typename... Args>
-GPUd() void Vector<T>::emplace(const int index, Args&&... arguments)
+GPUd() void VectorHIP<T>::emplace(const int index, Args&&... arguments)
 {
   new (mArrayPointer + index) T(std::forward<Args>(arguments)...);
 }
 
 template <typename T>
-GPUhd() void Vector<T>::dump()
+GPUhd() void VectorHIP<T>::dump()
 {
   printf("mArrayPointer = %p\nmDeviceSize   = %p\nmCapacity     = %d\nmIsWeak       = %s\n",
          mArrayPointer, mDeviceSize, mCapacity, mIsWeak ? "true" : "false");

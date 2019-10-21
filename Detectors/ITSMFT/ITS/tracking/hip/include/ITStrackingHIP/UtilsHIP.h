@@ -29,7 +29,7 @@ namespace GPU
 namespace Utils
 {
 
-namespace Host
+namespace HostHIP
 {
 
 #ifdef __HIPCC__
@@ -52,7 +52,7 @@ void gpuStartProfiler();
 void gpuStopProfiler();
 } // namespace Host
 //
-namespace Device
+namespace DeviceHIP
 {
 GPUd() int getLaneIndex();
 GPUd() int shareToWarp(const int, const int);

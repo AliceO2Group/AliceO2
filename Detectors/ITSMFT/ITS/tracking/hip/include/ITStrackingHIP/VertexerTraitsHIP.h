@@ -21,7 +21,7 @@
 #include "ITStracking/VertexerTraits.h"
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Constants.h"
-#include "ITStracking/Definitions.h"
+// #include "ITStracking/Definitions.h"
 #include "ITStracking/Tracklet.h"
 
 #include "ITStrackingHIP/DeviceStoreVertexerHIP.h"
@@ -39,15 +39,15 @@ class ROframe;
 
 using constants::index_table::InversePhiBinSize;
 
-class VertexerTraitsGPU : public VertexerTraits
+class VertexerTraitsHIP : public VertexerTraits
 {
  public:
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-  VertexerTraitsGPU();
-  virtual ~VertexerTraitsGPU();
+  VertexerTraitsHIP();
+  virtual ~VertexerTraitsHIP();
 #else
-  VertexerTraitsGPU();
-  virtual ~VertexerTraitsGPU() = default;
+  VertexerTraitsHIP();
+  virtual ~VertexerTraitsHIP() = default;
 #endif
   void initialise(ROframe*) override;
   void computeTracklets() override;
@@ -59,18 +59,18 @@ class VertexerTraitsGPU : public VertexerTraits
 
   // GPU-specific getters
   GPUd() static const int2 getBinsPhiRectWindow(const Cluster&, float maxdeltaphi);
-  GPUhd() GPU::DeviceStoreVertexerGPU& getDeviceContext();
-  GPUhd() GPU::DeviceStoreVertexerGPU* getDeviceContextPtr();
+  GPUhd() GPU::DeviceStoreVertexerHIP& getDeviceContext();
+  GPUhd() GPU::DeviceStoreVertexerHIP* getDeviceContextPtr();
 
  protected:
   // #ifdef _ALLOW_DEBUG_TREES_ITS_
   //   StandaloneDebugger* mDebugger;
   // #endif
-  GPU::DeviceStoreVertexerGPU mStoreVertexerGPU;
-  GPU::UniquePointer<GPU::DeviceStoreVertexerGPU> mStoreVertexerGPUPtr;
+  GPU::DeviceStoreVertexerHIP mStoreVertexerGPU;
+  GPU::UniquePointer<GPU::DeviceStoreVertexerHIP> mStoreVertexerGPUPtr;
 };
 
-inline GPUd() const int2 VertexerTraitsGPU::getBinsPhiRectWindow(const Cluster& currentCluster, float phiCut)
+inline GPUd() const int2 VertexerTraitsHIP::getBinsPhiRectWindow(const Cluster& currentCluster, float phiCut)
 {
   // This function returns the lowest PhiBin and the number of phi bins to be spanned, In the form int2{phiBinLow, PhiBinSpan}
   const int phiBinMin{index_table_utils::getPhiBinIndex(
@@ -79,17 +79,17 @@ inline GPUd() const int2 VertexerTraitsGPU::getBinsPhiRectWindow(const Cluster& 
   return int2{phiBinMin, phiBinSpan};
 }
 
-inline GPU::DeviceStoreVertexerGPU& VertexerTraitsGPU::getDeviceContext()
+inline GPU::DeviceStoreVertexerHIP& VertexerTraitsHIP::getDeviceContext()
 {
   return *mStoreVertexerGPUPtr;
 }
 
-inline GPU::DeviceStoreVertexerGPU* VertexerTraitsGPU::getDeviceContextPtr()
+inline GPU::DeviceStoreVertexerHIP* VertexerTraitsHIP::getDeviceContextPtr()
 {
   return mStoreVertexerGPUPtr.get();
 }
 
-extern "C" VertexerTraits* createVertexerTraitsGPU();
+extern "C" VertexerTraits* createVertexerTraitsHIP();
 
 } // namespace its
 } // namespace o2

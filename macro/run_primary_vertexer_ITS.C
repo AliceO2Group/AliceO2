@@ -25,7 +25,7 @@
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 using namespace o2::gpu;
 
-int run_primary_vertexer_ITS(const bool useGPU = false,
+int run_primary_vertexer_ITS(const GPUDataTypes::DeviceType dtype = GPUDataTypes::DeviceType::CPU,
                              const bool useMCcheck = false,
                              const int inspEvt = -1,
                              const int numEvents = 1,
@@ -35,10 +35,22 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
                              const std::string paramfilename = "O2geometry.root",
                              const std::string path = "./")
 {
-  if (useGPU) {
-    R__LOAD_LIBRARY(O2ITStrackingCUDA)
+  std::string gpuName;
+  switch (dtype) {
+    case GPUDataTypes::DeviceType::CUDA:
+      R__LOAD_LIBRARY(O2ITStrackingCUDA)
+      gpuName = "vertexer_cuda";
+      break;
+    case GPUDataTypes::DeviceType::HIP:
+      R__LOAD_LIBRARY(O2ITStrackingHIP)
+      gpuName = "vertexer_hip";
+      break;
+    default:
+      gpuName = "vertexer_serial";
+      break;
   }
-  std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance(useGPU ? GPUDataTypes::DeviceType::CUDA : GPUDataTypes::DeviceType::CPU, true));
+
+  std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance(dtype, true));
   auto* chainITS = rec->AddChain<GPUChainITS>();
   rec->Init();
   o2::its::Vertexer vertexer(chainITS->GetITSVertexerTraits());
@@ -50,7 +62,6 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   // #endif
   //   o2::its::Vertexer vertexer(traitsptr.get());
 
-  std::string gpuName = useGPU ? "vertexer_gpu" : "vertexer_serial";
   std::string mcCheck = useMCcheck ? "_data_MCCheck" : "_data";
   std::string outfile = gpuName + mcCheck + ".root";
 
@@ -147,7 +158,7 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
     }
 #endif
     total[2] = vertexer.evaluateTask(&o2::its::Vertexer::validateTracklets, "Adjacent tracklets validation", std::cout);
-    // In case willing to use the histogram-based vertexer
+    // In case willing to use the histogram-based CPU vertexer
     // total[3] = vertexer.evaluateTask(&o2::its::Vertexer::findHistVertices, "Vertex finding with histograms", std::cout);
     total[3] = vertexer.evaluateTask(&o2::its::Vertexer::findVertices, "Vertex finding", std::cout);
 
@@ -166,6 +177,5 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
   foundVerticesBenchmark.Write();
   timeBenchmark.Write();
   outputfile->Close();
-  // traitsptr.get()->reset();
   return 0;
 }
