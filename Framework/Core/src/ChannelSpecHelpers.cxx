@@ -44,14 +44,24 @@ char const* ChannelSpecHelpers::methodAsString(enum ChannelMethod method)
 
 std::string ChannelSpecHelpers::channelUrl(OutputChannelSpec const& channel)
 {
-  return channel.method == ChannelMethod::Bind ? fmt::format("tcp://*:{}", channel.port)
-                                               : fmt::format("tcp://{}:{}", channel.hostname, channel.port);
+  switch (channel.protocol) {
+    case ChannelProtocol::IPC:
+      return fmt::format("ipc://{}_{},transport=shmem", channel.hostname, channel.port);
+    default:
+      return channel.method == ChannelMethod::Bind ? fmt::format("tcp://*:{}", channel.port)
+                                                   : fmt::format("tcp://{}:{}", channel.hostname, channel.port);
+  }
 }
 
 std::string ChannelSpecHelpers::channelUrl(InputChannelSpec const& channel)
 {
-  return channel.method == ChannelMethod::Bind ? fmt::format("tcp://*:{}", channel.port)
-                                               : fmt::format("tcp://{}:{}", channel.hostname, channel.port);
+  switch (channel.protocol) {
+    case ChannelProtocol::IPC:
+      return fmt::format("ipc://{}_{},transport=shmem", channel.hostname, channel.port);
+    default:
+      return channel.method == ChannelMethod::Bind ? fmt::format("tcp://*:{}", channel.port)
+                                                   : fmt::format("tcp://{}:{}", channel.hostname, channel.port);
+  }
 }
 
 /// Stream operators so that we can use ChannelType with Boost.Test

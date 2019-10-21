@@ -77,7 +77,7 @@ struct DeviceConnectionId {
   size_t consumer;
   size_t timeIndex;
   size_t producerTimeIndex;
-  size_t port;
+  uint16_t port;
 
   bool operator<(const DeviceConnectionId& rhs) const
   {

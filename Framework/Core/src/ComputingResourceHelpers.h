@@ -13,10 +13,21 @@
 
 #include "Framework/ComputingResource.h"
 
+#include <string>
+#include <vector>
+
 namespace o2::framework
 {
 struct ComputingResourceHelpers {
-  static ComputingResource getLocalhostResource(unsigned short startPort, unsigned short rangeSize);
+  /// This will create a ComputingResource which matches what offered by localhost.
+  /// Notice that the port range will always be [22000, 23000) since in any case we will
+  /// use ipc:// in place of tcp://
+  static ComputingResource getLocalhostResource();
+
+  /// Parse a string which contains resources specified in the following format:
+  ///
+  /// <hostname>:<cpu cores>:<memory in MB>:<start port>:<last port>
+  static std::vector<ComputingResource> parseResources(std::string const& resourceString);
 };
 } // namespace o2::framework
 
