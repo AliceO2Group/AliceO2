@@ -784,15 +784,16 @@ void GPUChainTracking::RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clust
       tmpCount /= clusterer.mScanWorkGroupSize;
     }
 
-    runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanTop>(GetGrid(tmpCount, clusterer.mScanWorkGroupSize, 0), nullptr, {iSlice}, {}, nSteps);
+    if (nSteps > 1) {
+      runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanTop>(GetGrid(tmpCount, clusterer.mScanWorkGroupSize, 0), nullptr, {iSlice}, {}, nSteps);
+    }
 
     for (unsigned int i = nSteps - 1; i > 1; i--) {
       tmpCount = counts[i - 1];
       runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanDown>(GetGrid(tmpCount - clusterer.mScanWorkGroupSize, clusterer.mScanWorkGroupSize, 0), nullptr, {iSlice}, {}, i, clusterer.mScanWorkGroupSize);
     }
 
-    tmpCount = counts.front();
-    runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::compactDigit>(GetGrid(tmpCount, clusterer.mScanWorkGroupSize, 0), nullptr, {iSlice}, {}, 1, stage, in, out);
+    runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::compactDigit>(GetGrid(count, clusterer.mScanWorkGroupSize, 0), nullptr, {iSlice}, {}, 1, stage, in, out);
   } else {
     auto& nOut = stage ? clusterer.mPmemory->nClusters : clusterer.mPmemory->nPeaks;
     auto& nIn = stage ? clusterer.mPmemory->nPeaks : clusterer.mPmemory->nDigits;
