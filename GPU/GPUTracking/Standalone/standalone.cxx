@@ -357,8 +357,14 @@ int SetupReconstruction()
   if (configStandalone.configTF.bunchSim || configStandalone.configTF.nMerge) {
     steps.steps.setBits(GPUReconstruction::RecoStep::TRDTracking, false);
   }
-  steps.steps.setBits(GPUReconstruction::RecoStep::TPCClusterFinding, false); // Disable cluster finding for now
   steps.inputs.set(GPUDataTypes::InOutType::TPCClusters, GPUDataTypes::InOutType::TRDTracklets);
+  if (ev.needsClusterer) {
+    steps.inputs.setBits(GPUDataTypes::InOutType::TPCRaw, true);
+    steps.inputs.setBits(GPUDataTypes::InOutType::TPCClusters, false);
+  } else {
+    steps.steps.setBits(GPUReconstruction::RecoStep::TPCClusterFinding, false);
+  }
+
   steps.outputs.set(GPUDataTypes::InOutType::TPCSectorTracks);
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCMergedTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TPCMerging));
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, steps.steps.isSet(GPUReconstruction::RecoStep::TPCCompression));
