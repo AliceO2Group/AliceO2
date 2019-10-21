@@ -74,6 +74,7 @@ struct GPUSettingsRec {
   unsigned char tpcSigBitsCharge;        // Number of significant bits for TPC cluster charge in compression mode 1
   unsigned char tpcSigBitsWidth;         // Number of significant bits for TPC cluster width in compression mode 1
   unsigned char tpcZSthreshold;          // TPC Zero Suppression Threshold (for loading digits / forwarging digits as clusters)
+  unsigned char fwdTPCDigitsAsClusters;  // Simply forward TPC digits as clusters
 };
 
 // Settings describing the events / time frames

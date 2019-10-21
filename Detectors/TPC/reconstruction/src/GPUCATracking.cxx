@@ -84,6 +84,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
   std::vector<gpucf::PackedDigit> gpuDigits[Sector::MAXSECTOR];
   GPUTrackingInOutDigits gpuDigitsMap;
   GPUTrackingInOutPointers ptrs;
+
   if (data->o2Digits) {
     ptrs.clustersNative = nullptr;
     const float zsThreshold = mTrackingCAO2Interface->getConfig().configReconstruction.tpcZSthreshold;
