@@ -291,11 +291,11 @@ int GPUChainTracking::PrepareEvent()
       }
     }
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      processors()->tpcTrackers[iSlice].Data().SetClusterData(nullptr, mRec->MemoryScalers()->NTPCClusters(mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice]), 0); // TODO: fixme
+      processors()->tpcTrackers[iSlice].Data().SetClusterData(nullptr, param().rec.fwdTPCDigitsAsClusters ? mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice] : mRec->MemoryScalers()->NTPCClusters(mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice]), 0); // TODO: fixme
       // Distribute maximum digits, so that we can reuse the memory easily
       processors()->tpcClusterer[iSlice].SetNMaxDigits(maxDigits);
     }
-    mRec->MemoryScalers()->nTPCHits = mRec->MemoryScalers()->NTPCClusters(mRec->MemoryScalers()->nTPCdigits);
+    mRec->MemoryScalers()->nTPCHits = param().rec.fwdTPCDigitsAsClusters ? mRec->MemoryScalers()->nTPCdigits : mRec->MemoryScalers()->NTPCClusters(mRec->MemoryScalers()->nTPCdigits);
     processors()->tpcCompressor.mMaxClusters = mRec->MemoryScalers()->nTPCHits;
     processors()->tpcConverter.mNClustersTotal = mRec->MemoryScalers()->nTPCHits;
     GPUInfo("Event has %lld TPC Digits", (long long int)mRec->MemoryScalers()->nTPCdigits);
@@ -687,6 +687,46 @@ void GPUChainTracking::WriteOutput(int iSlice, int threadId)
   }
 }
 
+void GPUChainTracking::ForwardTPCDigits()
+{
+  if (GetRecoStepsGPU() & RecoStep::TPCClusterFinding) {
+    throw std::runtime_error("Cannot forward TPC digits with Clusterizer on GPU");
+  }
+  std::vector<ClusterNative> tmp[NSLICES][GPUCA_ROW_COUNT];
+  unsigned int nTotal = 0;
+  const float zsThreshold = param().rec.tpcZSthreshold;
+  for (int i = 0; i < NSLICES; i++) {
+    for (int j = 0; j < mIOPtrs.tpcPackedDigits->nTPCDigits[i]; j++) {
+      const auto& d = mIOPtrs.tpcPackedDigits->tpcDigits[i][j];
+      if (d.charge >= zsThreshold) {
+        ClusterNative c;
+        c.setTimeFlags(d.time, 0);
+        c.setPad(d.pad);
+        c.setSigmaTime(1);
+        c.setSigmaPad(1);
+        c.qTot = c.qMax = d.charge;
+        tmp[i][d.row].emplace_back(c);
+        nTotal++;
+      }
+    }
+  }
+  mIOMem.clustersNative.reset(new ClusterNative[nTotal]);
+  nTotal = 0;
+  mClusterNativeAccess->clustersLinear = mIOMem.clustersNative.get();
+  for (int i = 0; i < NSLICES; i++) {
+    for (int j = 0; j < GPUCA_ROW_COUNT; j++) {
+      mClusterNativeAccess->nClusters[i][j] = tmp[i][j].size();
+      memcpy(&mIOMem.clustersNative[nTotal], tmp[i][j].data(), tmp[i][j].size() * sizeof(*mClusterNativeAccess->clustersLinear));
+      nTotal += tmp[i][j].size();
+    }
+  }
+  mClusterNativeAccess->setOffsetPtrs();
+  mIOPtrs.tpcPackedDigits = nullptr;
+  mIOPtrs.clustersNative = mClusterNativeAccess.get();
+  printf("Forwarded %u TPC clusters\n", nTotal);
+  PrepareEventFromNative();
+}
+
 int GPUChainTracking::GlobalTracking(int iSlice, int threadId)
 {
   if (GetDeviceProcessingSettings().debugLevel >= 5) {
@@ -827,7 +867,6 @@ int GPUChainTracking::RunTPCClusterizer()
   tmp->clustersLinear = clsMemory.data();
   tmp->setOffsetPtrs();
   mIOPtrs.clustersNative = tmp;
-
   PrepareEventFromNative();
 #endif
   return 0;
@@ -1588,7 +1627,11 @@ int GPUChainTracking::RunChain()
 
   if (GetRecoSteps().isSet(RecoStep::TPCClusterFinding) && mIOPtrs.tpcPackedDigits) {
     timerClusterer.Start();
-    RunTPCClusterizer();
+    if (param().rec.fwdTPCDigitsAsClusters) {
+      ForwardTPCDigits();
+    } else {
+      RunTPCClusterizer();
+    }
     timerClusterer.Stop();
   }
 
