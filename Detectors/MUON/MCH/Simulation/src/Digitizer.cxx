@@ -7,6 +7,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include <iostream>
 
 #include "MCHSimulation/Digitizer.h"
 
@@ -155,6 +156,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
     auto ymax = ymin + dy;
     auto q = resp.chargePadfraction(xmin, xmax, ymin, ymax);
     if (seg.isBendingPad(padid)) {
+      //add U-ID!
       q *= chargebend;
     } else {
       q *= chargenon;
@@ -169,6 +171,8 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
 void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o2::MCCompLabel> labels)
 {
   std::vector<int> indices(digits.size());
+  std::cout <<"digits size before merging " << digits.size() << std::endl;
+  std::cout  <<"labels size before merging " << labels.size() << std::endl;
   std::iota(begin(indices), end(indices), 0);
   std::sort(indices.begin(), indices.end(), [&digits, this](int a, int b) {
     return (getGlobalDigit(digits[a].getDetID(), digits[a].getPadID()) < getGlobalDigit(digits[b].getDetID(), digits[b].getPadID()));
@@ -184,7 +188,9 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
 
   mDigits.clear();
   mDigits.reserve(digits.size());
+  std::cout <<"digits size before merging after ordering " << digits.size() << std::endl;
   mTrackLabels.clear();
+  std::cout <<"digits size before merging, after ordering " << labels.size() << std::endl;
   mTrackLabels.reserve(labels.size());
   int count = 0;
 
@@ -201,7 +207,7 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
         mTrackLabels.emplace_back(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID(), false);
       } else {
         if ((sortedLabels(k).getTrackID() != sortedLabels(k - 1).getTrackID()) || (sortedLabels(k).getSourceID() != sortedLabels(k - 1).getSourceID())) {
-          mTrackLabels.emplace_back(sortedLabels(k).getTrackID(), sortedLabels(k).getEventID(), sortedLabels(k).getSourceID(), false);
+	  mTrackLabels.emplace_back(sortedLabels(k).getTrackID(), sortedLabels(k).getEventID(), sortedLabels(k).getSourceID(), false);// is this the problem? Two labels for one digit
         }
       }
     }
@@ -211,6 +217,10 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
   }
   mDigits.resize(mDigits.size());
   mTrackLabels.resize(mTrackLabels.size());
+  std::cout <<"digits size after merging " << mDigits.size() << std::endl;
+  std::cout  <<"labels size after merging " << mTrackLabels.size() << std::endl;
+
+  
 }
 //______________________________________________________________________
 void Digitizer::mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer)
@@ -230,7 +240,15 @@ void Digitizer::mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruth
     mTrackLabels.emplace_back(label.getTrackID(), label.getEventID(), label.getSourceID(), false);
   }
 
+  std::cout <<"digits before external merging " << mDigits.size() << std::endl;
+  std::cout << "labels before external merging " << mTrackLabels.size() << std::endl;
+  
   mergeDigits(mDigits, mTrackLabels);
+
+  std::cout <<"digits after external merging " << mDigits.size() << std::endl;
+  std::cout << "labels after external merging " << mTrackLabels.size() << std::endl;
+
+  
   fillOutputContainer(digits, mTrackLabels);
   provideMC(mcContainer);
 }
