@@ -23,6 +23,7 @@
 #include <vector>
 #include <map>
 #include "../src/SimpleResourceManager.h"
+#include "../src/ComputingResourceHelpers.h"
 
 namespace o2
 {
@@ -131,14 +132,14 @@ BOOST_AUTO_TEST_CASE(test_prepareArguments)
 
   std::vector<DeviceSpec> deviceSpecs;
 
-  auto resourceManager = std::make_unique<SimpleResourceManager>(42000, 100);
-  auto resources = resourceManager->getAvailableResources();
+  std::vector<ComputingResource> resources = {ComputingResourceHelpers::getLocalhostResource(22000, 1000)};
+  auto rm = std::make_unique<SimpleResourceManager>(resources);
 
   DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow,
                                                     ChannelConfigurationPolicy::createDefaultPolicies(),
                                                     CompletionPolicy::createDefaultPolicies(),
                                                     deviceSpecs,
-                                                    resources);
+                                                    *rm);
 
   // Now doing the test cases
   CheckMatrix matrix;

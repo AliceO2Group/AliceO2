@@ -20,6 +20,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "../src/SimpleResourceManager.h"
+#include "../src/ComputingResourceHelpers.h"
 #include "test_HelperMacros.h"
 
 using namespace o2::framework;
@@ -44,10 +45,18 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec1)
   BOOST_REQUIRE_EQUAL(channelPolicies.empty(), false);
   BOOST_REQUIRE_EQUAL(completionPolicies.empty(), false);
   std::vector<DeviceSpec> devices;
-  SimpleResourceManager rm(22000, 1000);
-  auto resources = rm.getAvailableResources();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, resources);
-  BOOST_CHECK_EQUAL(devices.size(), 2);
+
+  std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource(22000, 1000)};
+  BOOST_REQUIRE_EQUAL(resources.size(), 1);
+  BOOST_CHECK_EQUAL(resources[0].startPort, 22000);
+  SimpleResourceManager rm(resources);
+  auto offers = rm.getAvailableOffers();
+  BOOST_REQUIRE_EQUAL(offers.size(), 1);
+  BOOST_CHECK_EQUAL(offers[0].startPort, 22000);
+  BOOST_CHECK_EQUAL(offers[0].rangeSize, 1000);
+
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm);
+  BOOST_REQUIRE_EQUAL(devices.size(), 2);
   BOOST_CHECK_EQUAL(devices[0].outputChannels.size(), 1);
   BOOST_CHECK_EQUAL(devices[0].outputChannels[0].method, ChannelMethod::Bind);
   BOOST_CHECK_EQUAL(devices[0].outputChannels[0].type, ChannelType::Push);
@@ -55,13 +64,13 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec1)
   BOOST_CHECK_EQUAL(devices[0].outputChannels[0].port, 22000);
   BOOST_CHECK_EQUAL(devices[0].outputs.size(), 1);
 
-  BOOST_CHECK_EQUAL(devices[1].inputChannels.size(), 1);
+  BOOST_REQUIRE_EQUAL(devices[1].inputChannels.size(), 1);
   BOOST_CHECK_EQUAL(devices[1].inputChannels[0].method, ChannelMethod::Connect);
   BOOST_CHECK_EQUAL(devices[1].inputChannels[0].type, ChannelType::Pull);
   BOOST_CHECK_EQUAL(devices[1].inputChannels[0].name, "from_A_to_B");
   BOOST_CHECK_EQUAL(devices[1].inputChannels[0].port, 22000);
 
-  BOOST_CHECK_EQUAL(devices[1].inputs.size(), 1);
+  BOOST_REQUIRE_EQUAL(devices[1].inputs.size(), 1);
   BOOST_CHECK_EQUAL(devices[1].inputs[0].sourceChannel, "from_A_to_B");
 }
 
@@ -79,9 +88,9 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec1PushPull)
 
   BOOST_REQUIRE_EQUAL(channelPolicies.empty(), false);
   std::vector<DeviceSpec> devices;
-  SimpleResourceManager rm(22000, 1000);
-  auto resources = rm.getAvailableResources();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, resources);
+  std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource(22000, 1000)};
+  SimpleResourceManager rm(resources);
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm);
   BOOST_CHECK_EQUAL(devices.size(), 2);
   BOOST_CHECK_EQUAL(devices[0].outputChannels.size(), 1);
   BOOST_CHECK_EQUAL(devices[0].outputChannels[0].method, ChannelMethod::Bind);
@@ -123,9 +132,9 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec2)
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   std::vector<DeviceSpec> devices;
 
-  SimpleResourceManager rm(22000, 1000);
-  auto resources = rm.getAvailableResources();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, resources);
+  std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource(22000, 1000)};
+  SimpleResourceManager rm(resources);
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm);
   BOOST_CHECK_EQUAL(devices.size(), 2);
   BOOST_CHECK_EQUAL(devices[0].outputChannels.size(), 1);
   BOOST_CHECK_EQUAL(devices[0].outputChannels[0].method, ChannelMethod::Bind);
@@ -165,9 +174,9 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec3)
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   std::vector<DeviceSpec> devices;
 
-  SimpleResourceManager rm(22000, 1000);
-  auto resources = rm.getAvailableResources();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, resources);
+  std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource(22000, 1000)};
+  SimpleResourceManager rm(resources);
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm);
   BOOST_CHECK_EQUAL(devices.size(), 3);
   BOOST_CHECK_EQUAL(devices[0].outputChannels.size(), 2);
   BOOST_CHECK_EQUAL(devices[0].outputChannels[0].method, ChannelMethod::Bind);
@@ -212,10 +221,10 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec4)
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   std::vector<DeviceSpec> devices;
-  SimpleResourceManager rm(22000, 1000);
-  auto resources = rm.getAvailableResources();
+  std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource(22000, 1000)};
+  SimpleResourceManager rm(resources);
 
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, resources);
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm);
   BOOST_CHECK_EQUAL(devices.size(), 4);
   BOOST_CHECK_EQUAL(devices[0].outputChannels.size(), 2);
   BOOST_CHECK_EQUAL(devices[0].outputChannels[0].method, ChannelMethod::Bind);
@@ -282,9 +291,9 @@ BOOST_AUTO_TEST_CASE(TestTopologyForwarding)
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   std::vector<DeviceSpec> devices;
 
-  SimpleResourceManager rm(22000, 1000);
-  auto resources = rm.getAvailableResources();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, resources);
+  std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource(22000, 1000)};
+  SimpleResourceManager rm(resources);
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm);
   BOOST_CHECK_EQUAL(devices.size(), 3);
   BOOST_CHECK_EQUAL(devices[0].outputChannels.size(), 1);
   BOOST_CHECK_EQUAL(devices[0].outputChannels[0].method, ChannelMethod::Bind);
@@ -397,11 +406,14 @@ BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers)
   WorkflowSpec workflow = defineDataProcessing7();
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
 
-  SimpleResourceManager rm(22000, 1000);
-  auto resources = rm.getAvailableResources();
+  std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource(22000, 1000)};
+  SimpleResourceManager rm(resources);
+  ComputingOffer defaultOffer;
+  defaultOffer.cpu = 0.01;
+  defaultOffer.memory = 0.01;
 
-  DeviceSpecHelpers::processOutEdgeActions(devices, deviceIndex, connections, resources, edgeOutIndex, logicalEdges,
-                                           actions, workflow, globalOutputs, channelPolicies);
+  DeviceSpecHelpers::processOutEdgeActions(devices, deviceIndex, connections, rm, edgeOutIndex, logicalEdges,
+                                           actions, workflow, globalOutputs, channelPolicies, defaultOffer);
 
   std::vector<DeviceId> expectedDeviceIndex = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {1, 0, 1}, {1, 0, 1}, {1, 1, 2}, {1, 1, 2}, {1, 2, 3}, {1, 2, 3}};
   BOOST_REQUIRE_EQUAL(devices.size(), 4); // For producers
@@ -427,8 +439,9 @@ BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers)
   BOOST_REQUIRE_EQUAL(devices[2].outputs.size(), 2);
   BOOST_REQUIRE_EQUAL(devices[3].outputs.size(), 2);
 
-  // FIXME: check we have the right connections as well..
-  BOOST_CHECK_EQUAL(resources.back().port, 22009);
+  auto offers = rm.getAvailableOffers();
+  BOOST_REQUIRE_EQUAL(offers.size(), 1);
+  BOOST_CHECK_EQUAL(offers[0].startPort, 22009);
 
   // Not sure this is correct, but lets assume that's the case..
   std::vector<size_t> edgeInIndex{0, 1, 2, 3, 4, 5, 6, 7, 8};
@@ -447,8 +460,8 @@ BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers)
 
   std::sort(connections.begin(), connections.end());
 
-  DeviceSpecHelpers::processInEdgeActions(devices, deviceIndex, resources, connections, edgeInIndex, logicalEdges,
-                                          inActions, workflow, availableForwardsInfo, channelPolicies);
+  DeviceSpecHelpers::processInEdgeActions(devices, deviceIndex, connections, rm, edgeInIndex, logicalEdges,
+                                          inActions, workflow, availableForwardsInfo, channelPolicies, defaultOffer);
   //
   std::vector<DeviceId> expectedDeviceIndexFinal = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {1, 0, 1}, {1, 0, 1}, {1, 1, 2}, {1, 1, 2}, {1, 2, 3}, {1, 2, 3}, {2, 0, 4}, {2, 1, 5}};
   BOOST_REQUIRE_EQUAL(expectedDeviceIndexFinal.size(), deviceIndex.size());
@@ -555,9 +568,9 @@ BOOST_AUTO_TEST_CASE(TestTopologyLayeredTimePipeline)
   std::vector<DeviceSpec> devices;
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
-  SimpleResourceManager rm(22000, 1000);
-  auto resources = rm.getAvailableResources();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, resources);
+  std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource(22000, 1000)};
+  SimpleResourceManager rm(resources);
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm);
   BOOST_CHECK_EQUAL(devices.size(), 6);
   BOOST_CHECK_EQUAL(devices[0].id, "A");
   BOOST_CHECK_EQUAL(devices[1].id, "B_t0");
@@ -675,8 +688,8 @@ WorkflowSpec defineDataProcessing8()
 BOOST_AUTO_TEST_CASE(TestSimpleWildcard)
 {
   auto workflow = defineDataProcessing8();
-  SimpleResourceManager rm(22000, 1000);
-  auto resources = rm.getAvailableResources();
+  std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource(22000, 1000)};
+  SimpleResourceManager rm(resources);
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
 
   std::vector<DeviceSpec> devices;
@@ -711,8 +724,12 @@ BOOST_AUTO_TEST_CASE(TestSimpleWildcard)
     EdgeAction{false, false},
   };
 
-  DeviceSpecHelpers::processOutEdgeActions(devices, deviceIndex, connections, resources, edgeOutIndex, logicalEdges,
-                                           outActions, workflow, globalOutputs, channelPolicies);
+  ComputingOffer defaultOffer;
+  defaultOffer.cpu = 0.01;
+  defaultOffer.memory = 0.01;
+
+  DeviceSpecHelpers::processOutEdgeActions(devices, deviceIndex, connections, rm, edgeOutIndex, logicalEdges,
+                                           outActions, workflow, globalOutputs, channelPolicies, defaultOffer);
 
   BOOST_REQUIRE_EQUAL(devices.size(), 2); // Two devices have outputs: A and Timer
   BOOST_CHECK_EQUAL(devices[0].name, "A");
@@ -727,8 +744,8 @@ BOOST_AUTO_TEST_CASE(TestSimpleWildcard)
 
   std::sort(connections.begin(), connections.end());
 
-  DeviceSpecHelpers::processInEdgeActions(devices, deviceIndex, resources, connections, edgeInIndex, logicalEdges,
-                                          inActions, workflow, availableForwardsInfo, channelPolicies);
+  DeviceSpecHelpers::processInEdgeActions(devices, deviceIndex, connections, rm, edgeInIndex, logicalEdges,
+                                          inActions, workflow, availableForwardsInfo, channelPolicies, defaultOffer);
 
   BOOST_REQUIRE_EQUAL(devices.size(), 3); // Now we also have B
   BOOST_CHECK_EQUAL(devices[0].name, "A");

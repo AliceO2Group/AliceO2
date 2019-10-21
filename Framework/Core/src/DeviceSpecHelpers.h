@@ -22,7 +22,7 @@
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/OutputRoute.h"
-#include "ComputingResource.h"
+#include "ResourceManager.h"
 #include "DataProcessorInfo.h"
 #include "WorkflowHelpers.h"
 #include <boost/program_options.hpp>
@@ -45,14 +45,14 @@ struct DeviceSpecHelpers {
     std::vector<CompletionPolicy> const& completionPolicies,
     std::vector<DispatchPolicy> const& dispatchPolicies,
     std::vector<DeviceSpec>& devices,
-    std::vector<ComputingResource>& resources);
+    ResourceManager& resourceManager);
 
   static void dataProcessorSpecs2DeviceSpecs(
     const WorkflowSpec& workflow,
     std::vector<ChannelConfigurationPolicy> const& channelPolicies,
     std::vector<CompletionPolicy> const& completionPolicies,
     std::vector<DeviceSpec>& devices,
-    std::vector<ComputingResource>& resources)
+    ResourceManager& resources)
   {
     std::vector<DispatchPolicy> dispatchPolicies = DispatchPolicy::createDefaultPolicies();
     dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, dispatchPolicies, devices, resources);
@@ -76,13 +76,14 @@ struct DeviceSpecHelpers {
     std::vector<DeviceSpec>& devices,
     std::vector<DeviceId>& deviceIndex,
     std::vector<DeviceConnectionId>& connections,
-    std::vector<ComputingResource>& resources,
+    ResourceManager& resourceManager,
     const std::vector<size_t>& outEdgeIndex,
     const std::vector<DeviceConnectionEdge>& logicalEdges,
     const std::vector<EdgeAction>& actions,
     const WorkflowSpec& workflow,
     const std::vector<OutputSpec>& outputs,
-    std::vector<ChannelConfigurationPolicy> const& channelPolicies);
+    std::vector<ChannelConfigurationPolicy> const& channelPolicies,
+    ComputingOffer const& defaultOffer);
 
   /// This takes the list of preprocessed edges of a graph
   /// and creates Devices and Channels which are related
@@ -91,14 +92,15 @@ struct DeviceSpecHelpers {
   static void processInEdgeActions(
     std::vector<DeviceSpec>& devices,
     std::vector<DeviceId>& deviceIndex,
-    std::vector<ComputingResource>& resources,
     const std::vector<DeviceConnectionId>& connections,
+    ResourceManager& resourceManager,
     const std::vector<size_t>& inEdgeIndex,
     const std::vector<DeviceConnectionEdge>& logicalEdges,
     const std::vector<EdgeAction>& actions,
     const WorkflowSpec& workflow,
     const std::vector<LogicalForwardInfo>& availableForwardsInfo,
-    std::vector<ChannelConfigurationPolicy> const& channelPolicies);
+    std::vector<ChannelConfigurationPolicy> const& channelPolicies,
+    ComputingOffer const& defaultOffer);
 
   /// return a description of all options to be forwarded to the device
   /// by default

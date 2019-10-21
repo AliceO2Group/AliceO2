@@ -11,6 +11,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "../src/ComputingResourceHelpers.h"
 #include "../src/DeviceSpecHelpers.h"
 #include "../src/GraphvizHelpers.h"
 #include "../src/SimpleResourceManager.h"
@@ -96,9 +97,9 @@ BOOST_AUTO_TEST_CASE(TestGraphviz)
   }
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
-  SimpleResourceManager rm(22000, 1000);
-  auto resources = rm.getAvailableResources();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, resources);
+  std::vector<ComputingResource> resources = {ComputingResourceHelpers::getLocalhostResource(22000, 1000)};
+  SimpleResourceManager rm(resources);
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm);
   str.str("");
   GraphvizHelpers::dumpDeviceSpec2Graphviz(str, devices);
   lineByLineComparision(str.str(), R"EXPECTED(digraph structs {
@@ -134,9 +135,9 @@ BOOST_AUTO_TEST_CASE(TestGraphvizWithPipeline)
   }
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
-  SimpleResourceManager rm(22000, 1000);
-  auto resources = rm.getAvailableResources();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, resources);
+  std::vector<ComputingResource> resources = {ComputingResourceHelpers::getLocalhostResource(22000, 1000)};
+  SimpleResourceManager rm(resources);
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm);
   str.str("");
   GraphvizHelpers::dumpDeviceSpec2Graphviz(str, devices);
   lineByLineComparision(str.str(), R"EXPECTED(digraph structs {

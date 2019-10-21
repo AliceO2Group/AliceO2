@@ -25,12 +25,6 @@ BOOST_AUTO_TEST_CASE(TestChannelMethod)
 
   BOOST_REQUIRE_EQUAL(oss.str(), "bindconnect");
   std::ostringstream oss2;
-
-  oss2 << ChannelSpecHelpers::methodAsUrl(ChannelMethod::Bind)
-       << "\n"
-       << ChannelSpecHelpers::methodAsUrl(ChannelMethod::Connect);
-
-  BOOST_REQUIRE_EQUAL(oss2.str(), "tcp://*:%d\ntcp://127.0.0.1:%d");
 }
 
 BOOST_AUTO_TEST_CASE(TestChannelType)

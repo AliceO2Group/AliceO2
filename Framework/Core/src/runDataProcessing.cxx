@@ -40,6 +40,7 @@
 #include "Framework/CallbackService.h"
 #include "Framework/WorkflowSpec.h"
 
+#include "ComputingResourceHelpers.h"
 #include "DataProcessingStatus.h"
 #include "DDSConfigHelpers.h"
 #include "O2ControlHelpers.h"
@@ -730,7 +731,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   DeviceControls controls;
   DeviceExecutions deviceExecutions;
   DataProcessorInfos dataProcessorInfos = previousDataProcessorInfos;
-  auto resourceManager = std::make_unique<SimpleResourceManager>(driverInfo.startPort, driverInfo.portRange);
+
+  std::vector<ComputingResource> resources{
+    ComputingResourceHelpers::getLocalhostResource(driverInfo.startPort, driverInfo.portRange)};
+
+  auto resourceManager = std::make_unique<SimpleResourceManager>(resources);
 
   void* window = nullptr;
   decltype(gui::getGUIDebugger(infos, deviceSpecs, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
@@ -838,13 +843,12 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         break;
       case DriverState::MATERIALISE_WORKFLOW:
         try {
-          std::vector<ComputingResource> resources = resourceManager->getAvailableResources();
           DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow,
                                                             driverInfo.channelPolicies,
                                                             driverInfo.completionPolicies,
                                                             driverInfo.dispatchPolicies,
                                                             deviceSpecs,
-                                                            resources);
+                                                            *resourceManager);
           // This should expand nodes so that we can build a consistent DAG.
         } catch (std::runtime_error& e) {
           std::cerr << "Invalid workflow: " << e.what() << std::endl;
