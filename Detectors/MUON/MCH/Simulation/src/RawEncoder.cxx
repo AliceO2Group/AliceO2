@@ -169,14 +169,14 @@ int RawEncoder::timeConvert(double time){
   return inttime;
 
 }
-°//______________________________________________________________________
+//______________________________________________________________________
 bool RawEncoder::getFEEcoordfromDetector(int padid, uint16_t &cruID, uint16_t& linkID, uint16_t& dualsampaIDfee, uint16_t& padDualSampaChannelfee, std::string mapfile){
 
   std::ifstream file;
   file.open(mapfile);
   if(!file)
     {
-      std::cerr << "Can't open file " << mapFile <<std::endl;
+      std::cerr << "Can't open file " << mapfile <<std::endl;
       return false;
     }
   uint16_t cruid, linkid, duals, channel;

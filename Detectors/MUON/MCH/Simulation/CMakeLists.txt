@@ -17,7 +17,6 @@ o2_add_library(MCHSimulation
                        src/Hit.cxx
                        src/Materials.cxx
                        src/Materials.h
-		       src/RawEncoder.cxx
                        src/Response.cxx
                        src/Station1Geometry.cxx
                        src/Station1Geometry.h
@@ -38,7 +37,6 @@ o2_target_root_dictionary(MCHSimulation
                                   include/MCHSimulation/Geometry.h
                                   include/MCHSimulation/GeometryTest.h
                                   include/MCHSimulation/Hit.h
-				  include/MCHSimulation/RawEncoder.h
                                   include/MCHSimulation/Response.h)
 
 if(BUILD_TESTING)
