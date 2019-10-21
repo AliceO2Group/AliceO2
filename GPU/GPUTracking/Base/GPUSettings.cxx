@@ -84,4 +84,5 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   trackletConstructorInPipeline = true;
   trackletSelectorInPipeline = false;
   forceMemoryPoolSize = 0;
+  nTPCClustererLanes = 3;
 }

@@ -47,8 +47,8 @@ void* GPUTPCClusterFinder::SetPointersOutput(void* mem)
 
 void* GPUTPCClusterFinder::SetPointersScratch(void* mem)
 {
-  computePointerWithAlignment(mem, mPpeaks, mNMaxDigits);
-  computePointerWithAlignment(mem, mPfilteredPeaks, mNMaxDigits);
+  computePointerWithAlignment(mem, mPpeaks, mNMaxPeaks);
+  computePointerWithAlignment(mem, mPfilteredPeaks, mNMaxPeaks);
   computePointerWithAlignment(mem, mPisPeak, mNMaxDigits);
   computePointerWithAlignment(mem, mPchargeMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED);
   computePointerWithAlignment(mem, mPpeakMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED);
@@ -59,15 +59,15 @@ void* GPUTPCClusterFinder::SetPointersScratch(void* mem)
 void GPUTPCClusterFinder::RegisterMemoryAllocation()
 {
   mRec->RegisterMemoryAllocation(this, &GPUTPCClusterFinder::SetPointersInput, GPUMemoryResource::MEMORY_INPUT | GPUMemoryResource::MEMORY_GPU, "TPCClustererInput");
-  mRec->RegisterMemoryAllocation(this, &GPUTPCClusterFinder::SetPointersScratch, GPUMemoryResource::MEMORY_SCRATCH, "TPCClustererScratch", GPUMemoryReuse{GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::ClustererScratch, mISlice % 8}); // TODO: Refine constant 8
+  mRec->RegisterMemoryAllocation(this, &GPUTPCClusterFinder::SetPointersScratch, GPUMemoryResource::MEMORY_SCRATCH, "TPCClustererScratch", GPUMemoryReuse{GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::ClustererScratch, mISlice % mRec->GetDeviceProcessingSettings().nTPCClustererLanes});
   mMemoryId = mRec->RegisterMemoryAllocation(this, &GPUTPCClusterFinder::SetPointersMemory, GPUMemoryResource::MEMORY_PERMANENT, "TPCClustererMemory");
   mRec->RegisterMemoryAllocation(this, &GPUTPCClusterFinder::SetPointersOutput, GPUMemoryResource::MEMORY_OUTPUT, "TPCClustererOutput");
 }
 
 void GPUTPCClusterFinder::SetMaxData(const GPUTrackingInOutPointers& io)
 {
-  mNMaxPeaks = mNMaxDigits;
-  mNMaxClusters = 0.5f * mNMaxPeaks;
+  mNMaxPeaks = 0.5f * mNMaxDigits;
+  mNMaxClusters = 0.2f * mNMaxPeaks;
   mNMaxClusterPerRow = 0.01f * mNMaxDigits;
   mBufSize = nextMultipleOf<std::max<int>(GPUCA_MEMALIGN_SMALL, mScanWorkGroupSize)>(mNMaxDigits);
   mNBufs = getNSteps(mBufSize);
