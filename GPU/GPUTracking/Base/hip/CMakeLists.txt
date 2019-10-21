@@ -25,7 +25,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(
     ${MODULE}
     SOURCES ${SRCS}
-    PUBLIC_LINK_LIBRARIES O2::GPUTracking hip::host hip::device hip::hipcub ROCm::rocThrust
+    PUBLIC_LINK_LIBRARIES O2::GPUTracking O2::ITStrackingHIP hip::host hip::device hip::hipcub ROCm::rocThrust
     PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src
                                ${CMAKE_SOURCE_DIR}/Detectors/Base/src
     TARGETVARNAME targetName)
@@ -69,7 +69,7 @@ endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   add_definitions(-DGPUCA_GPULIBRARY=HIP)
   add_library(${MODULE} SHARED ${SRCS})
-  target_link_libraries(${MODULE} GPUTracking)
+  target_link_libraries(${MODULE} GPUTracking hip::hipcub)
   set(targetName "${MODULE}")
   install(TARGETS GPUTrackingHIP)
 endif()
