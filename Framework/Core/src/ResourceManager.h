@@ -7,24 +7,22 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_RESOURCEMANAGER_H
-#define FRAMEWORK_RESOURCEMANAGER_H
+#ifndef O2_FRAMEWORK_RESOURCEMANAGER_H_
+#define O2_FRAMEWORK_RESOURCEMANAGER_H_
 
-#include "ComputingResource.h"
+#include "Framework/ComputingResource.h"
 #include <vector>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 class ResourceManager
 {
  public:
-  virtual std::vector<ComputingResource> getAvailableResources() = 0;
+  virtual std::vector<ComputingOffer> getAvailableOffers() = 0;
+  virtual void notifyAcceptedOffer(ComputingOffer const&) = 0;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_RESOURCEMANAGER_H
+#endif // O2_FRAMEWORK_RESOURCEMANAGER_H_

@@ -26,9 +26,9 @@
 #include "Framework/LifetimeHelpers.h"
 #include "Framework/OutputRoute.h"
 #include "Framework/WorkflowSpec.h"
+#include "Framework/ComputingResource.h"
 
 #include "WorkflowHelpers.h"
-#include "ComputingResource.h"
 
 namespace bpo = boost::program_options;
 
@@ -165,13 +165,11 @@ struct ExpirationHandlerHelpers {
 std::string inputChannel2String(const InputChannelSpec& channel)
 {
   std::string result;
-  char buffer[32];
-  auto addressFormat = ChannelSpecHelpers::methodAsUrl(channel.method);
 
   result += "name=" + channel.name;
   result += std::string(",type=") + ChannelSpecHelpers::typeAsString(channel.type);
   result += std::string(",method=") + ChannelSpecHelpers::methodAsString(channel.method);
-  result += std::string(",address=") + (snprintf(buffer, 32, addressFormat, channel.port), buffer);
+  result += std::string(",address=") + ChannelSpecHelpers::channelUrl(channel);
   result += std::string(",rateLogging=60");
 
   return result;
@@ -180,26 +178,26 @@ std::string inputChannel2String(const InputChannelSpec& channel)
 std::string outputChannel2String(const OutputChannelSpec& channel)
 {
   std::string result;
-  char buffer[32];
-  auto addressFormat = ChannelSpecHelpers::methodAsUrl(channel.method);
 
   result += "name=" + channel.name;
   result += std::string(",type=") + ChannelSpecHelpers::typeAsString(channel.type);
   result += std::string(",method=") + ChannelSpecHelpers::methodAsString(channel.method);
-  result += std::string(",address=") + (snprintf(buffer, 32, addressFormat, channel.port), buffer);
+  result += std::string(",address=") + ChannelSpecHelpers::channelUrl(channel);
   result += std::string(",rateLogging=60");
 
   return result;
 }
 
-void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices, std::vector<DeviceId>& deviceIndex,
+void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
+                                              std::vector<DeviceId>& deviceIndex,
                                               std::vector<DeviceConnectionId>& connections,
-                                              std::vector<ComputingResource>& resources,
+                                              ResourceManager& resourceManager,
                                               const std::vector<size_t>& outEdgeIndex,
                                               const std::vector<DeviceConnectionEdge>& logicalEdges,
                                               const std::vector<EdgeAction>& actions, const WorkflowSpec& workflow,
                                               const std::vector<OutputSpec>& outputsMatchers,
-                                              const std::vector<ChannelConfigurationPolicy>& channelPolicies)
+                                              const std::vector<ChannelConfigurationPolicy>& channelPolicies,
+                                              ComputingOffer const& defaultOffer)
 {
   // The topology cannot be empty or not connected. If that is the case, than
   // something before this went wrong.
@@ -208,7 +206,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices, 
 
   // Edges are navigated in order for each device, so the device associaited to
   // an edge is always the last one created.
-  auto deviceForEdge = [&actions, &workflow, &devices, &logicalEdges](size_t ei) {
+  auto deviceForEdge = [&actions, &workflow, &devices, &logicalEdges, &resourceManager, &defaultOffer](size_t ei, ComputingOffer& acceptedOffer) {
     auto& edge = logicalEdges[ei];
     auto& action = actions[ei];
 
@@ -216,7 +214,27 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices, 
       assert(devices.empty() == false);
       return devices.size() - 1;
     }
+    if (acceptedOffer.hostname != "") {
+      resourceManager.notifyAcceptedOffer(acceptedOffer);
+    }
+
     auto processor = workflow[edge.producer];
+
+    acceptedOffer.cpu = defaultOffer.cpu;
+    acceptedOffer.memory = defaultOffer.memory;
+    for (auto offer : resourceManager.getAvailableOffers()) {
+      if (offer.cpu < acceptedOffer.cpu) {
+        continue;
+      }
+      if (offer.memory < acceptedOffer.memory) {
+        continue;
+      }
+      acceptedOffer.hostname = offer.hostname;
+      acceptedOffer.startPort = offer.startPort;
+      acceptedOffer.rangeSize = 0;
+      break;
+    }
+
     DeviceSpec device;
     device.name = processor.name;
     device.id = processor.name;
@@ -228,12 +246,15 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices, 
     device.rank = processor.rank;
     device.nSlots = processor.nSlots;
     device.inputTimesliceId = edge.timeIndex;
+    device.resource = {acceptedOffer};
     devices.push_back(device);
     return devices.size() - 1;
   };
 
-  auto channelFromDeviceEdgeAndPort = [&workflow, &channelPolicies](const DeviceSpec& device,
-                                                                    const DeviceConnectionEdge& edge, short port) {
+  auto channelFromDeviceEdgeAndPort = [&connections, &workflow, &channelPolicies](const DeviceSpec& device,
+                                                                                  ComputingResource& deviceResource,
+                                                                                  ComputingOffer& acceptedOffer,
+                                                                                  const DeviceConnectionEdge& edge) {
     OutputChannelSpec channel;
     auto& consumer = workflow[edge.consumer];
     std::string consumerDeviceId = consumer.name;
@@ -241,20 +262,20 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices, 
       consumerDeviceId += "_t" + std::to_string(edge.timeIndex);
     }
     channel.name = "from_" + device.id + "_to_" + consumerDeviceId;
-    channel.port = port;
+    channel.port = acceptedOffer.startPort + acceptedOffer.rangeSize;
+    channel.hostname = acceptedOffer.hostname;
+    deviceResource.usedPorts += 1;
+    acceptedOffer.rangeSize += 1;
+
     for (auto& policy : channelPolicies) {
       if (policy.match(device.id, consumerDeviceId)) {
         policy.modifyOutput(channel);
         break;
       }
     }
-    return std::move(channel);
-  };
-
-  auto connectionIdFromEdgeAndPort = [&connections](const DeviceConnectionEdge& edge, size_t port) {
-    DeviceConnectionId id{edge.producer, edge.consumer, edge.timeIndex, edge.producerTimeIndex, port};
+    DeviceConnectionId id{edge.producer, edge.consumer, edge.timeIndex, edge.producerTimeIndex, channel.port};
     connections.push_back(id);
-    return connections.back();
+    return std::move(channel);
   };
 
   auto isDifferentDestinationDeviceReferredBy = [&actions](size_t ei) { return actions[ei].requiresNewChannel; };
@@ -264,17 +285,15 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices, 
   // alredy there) and create a new channel only if it connects two new
   // devices. Whether or not this is the case was previously computed
   // in the action.requiresNewChannel field.
-  auto createChannelForDeviceEdge = [&devices, &logicalEdges, &resources, &channelFromDeviceEdgeAndPort,
-                                     &connectionIdFromEdgeAndPort, &outputsMatchers, &deviceIndex,
-                                     &workflow](size_t di, size_t ei) {
+  auto createChannelForDeviceEdge = [&devices, &logicalEdges, &channelFromDeviceEdgeAndPort,
+                                     &outputsMatchers, &deviceIndex,
+                                     &workflow](size_t di, size_t ei, ComputingOffer& offer) {
     auto& device = devices[di];
     auto& edge = logicalEdges[ei];
 
     deviceIndex.emplace_back(DeviceId{edge.producer, edge.producerTimeIndex, di});
 
-    OutputChannelSpec channel = channelFromDeviceEdgeAndPort(device, edge, resources.back().port);
-    const DeviceConnectionId& id = connectionIdFromEdgeAndPort(edge, resources.back().port);
-    resources.pop_back();
+    OutputChannelSpec channel = channelFromDeviceEdgeAndPort(device, device.resource, offer, edge);
 
     device.outputChannels.push_back(channel);
     return device.outputChannels.size() - 1;
@@ -331,28 +350,31 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices, 
   // here refers to the source device. This loop will therefore not create the
   // devices which acts as sink, which are done in the preocessInEdgeActions
   // function.
+  ComputingOffer acceptedOffer;
   for (auto edge : outEdgeIndex) {
-    auto device = deviceForEdge(edge);
+    auto device = deviceForEdge(edge, acceptedOffer);
     size_t channel = -1;
     if (isDifferentDestinationDeviceReferredBy(edge)) {
-      channel = createChannelForDeviceEdge(device, edge);
+      channel = createChannelForDeviceEdge(device, edge, acceptedOffer);
     } else {
       channel = lastChannelFor(device);
     }
     appendOutputRouteToSourceDeviceChannel(edge, device, channel);
   }
+  resourceManager.notifyAcceptedOffer(acceptedOffer);
   sortDeviceIndex();
 }
 
 void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
                                              std::vector<DeviceId>& deviceIndex,
-                                             std::vector<ComputingResource>& resources,
                                              const std::vector<DeviceConnectionId>& connections,
+                                             ResourceManager& resourceManager,
                                              const std::vector<size_t>& inEdgeIndex,
                                              const std::vector<DeviceConnectionEdge>& logicalEdges,
                                              const std::vector<EdgeAction>& actions, const WorkflowSpec& workflow,
                                              std::vector<LogicalForwardInfo> const& availableForwardsInfo,
-                                             std::vector<ChannelConfigurationPolicy> const& channelPolicies)
+                                             std::vector<ChannelConfigurationPolicy> const& channelPolicies,
+                                             ComputingOffer const& defaultOffer)
 {
   auto const& constDeviceIndex = deviceIndex;
 
@@ -392,9 +414,30 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     return lastConsumerSearch->deviceIndex;
   };
 
-  auto createNewDeviceForEdge = [&workflow, &logicalEdges, &devices, &deviceIndex](size_t ei) {
+  auto createNewDeviceForEdge = [&workflow, &logicalEdges, &devices, &deviceIndex, &resourceManager, &defaultOffer](size_t ei, ComputingOffer& acceptedOffer) {
     auto& edge = logicalEdges[ei];
+
+    if (acceptedOffer.hostname != "") {
+      resourceManager.notifyAcceptedOffer(acceptedOffer);
+    }
+
     auto& processor = workflow[edge.consumer];
+
+    acceptedOffer.cpu = defaultOffer.cpu;
+    acceptedOffer.memory = defaultOffer.memory;
+    for (auto offer : resourceManager.getAvailableOffers()) {
+      if (offer.cpu < acceptedOffer.cpu) {
+        continue;
+      }
+      if (offer.memory < acceptedOffer.memory) {
+        continue;
+      }
+      acceptedOffer.hostname = offer.hostname;
+      acceptedOffer.startPort = offer.startPort;
+      acceptedOffer.rangeSize = 0;
+      break;
+    }
+
     DeviceSpec device;
     device.name = processor.name;
     device.id = processor.name;
@@ -406,6 +449,8 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     device.rank = processor.rank;
     device.nSlots = processor.nSlots;
     device.inputTimesliceId = edge.timeIndex;
+    device.resource = {acceptedOffer};
+
     // FIXME: maybe I should use an std::map in the end
     //        but this is really not performance critical
     auto id = DeviceId{edge.consumer, edge.timeIndex, devices.size()};
@@ -442,11 +487,12 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     return true;
   };
   auto appendInputChannelForConsumerDevice = [&devices, &connections, &checkNoDuplicatesFor, &channelPolicies](
-                                               size_t pi, size_t ci, int16_t port) {
+                                               size_t pi, size_t ci, unsigned short port) {
     auto const& producerDevice = devices[pi];
     auto& consumerDevice = devices[ci];
     InputChannelSpec channel;
     channel.name = "from_" + producerDevice.id + "_to_" + consumerDevice.id;
+    channel.hostname = producerDevice.resource.hostname;
     channel.port = port;
     for (auto& policy : channelPolicies) {
       if (policy.match(producerDevice.id, consumerDevice.id)) {
@@ -544,6 +590,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
   // of the sink data processors.
   // New InputChannels need to refer to preexisting OutputChannels we create
   // previously.
+  ComputingOffer acceptedOffer;
   for (size_t edge : inEdgeIndex) {
     auto& action = actions[edge];
 
@@ -553,7 +600,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
       if (hasConsumerForEdge(edge)) {
         consumerDevice = getConsumerForEdge(edge);
       } else {
-        consumerDevice = createNewDeviceForEdge(edge);
+        consumerDevice = createNewDeviceForEdge(edge, acceptedOffer);
       }
     }
     size_t producerDevice = findProducerForEdge(edge);
@@ -567,6 +614,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     }
     appendInputRouteToDestDeviceChannel(edge, consumerDevice, channel);
   }
+  resourceManager.notifyAcceptedOffer(acceptedOffer);
 }
 
 // Construct the list of actual devices we want, given a workflow.
@@ -577,7 +625,7 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workf
                                                        std::vector<CompletionPolicy> const& completionPolicies,
                                                        std::vector<DispatchPolicy> const& dispatchPolicies,
                                                        std::vector<DeviceSpec>& devices,
-                                                       std::vector<ComputingResource>& resources)
+                                                       ResourceManager& resourceManager)
 {
 
   std::vector<LogicalForwardInfo> availableForwardsInfo;
@@ -607,20 +655,36 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workf
   std::vector<size_t> outEdgeIndex;
   WorkflowHelpers::sortEdges(inEdgeIndex, outEdgeIndex, logicalEdges);
 
-  std::vector<EdgeAction> actions = WorkflowHelpers::computeOutEdgeActions(logicalEdges, outEdgeIndex);
-
-  DeviceSpecHelpers::processOutEdgeActions(devices, deviceIndex, connections, resources, outEdgeIndex, logicalEdges,
-                                           actions, workflow, outputs, channelPolicies);
-
+  std::vector<EdgeAction> outActions = WorkflowHelpers::computeOutEdgeActions(logicalEdges, outEdgeIndex);
   // Crete the connections on the inverse map for all of them
   // lookup for port and add as input of the current device.
   std::vector<EdgeAction> inActions = WorkflowHelpers::computeInEdgeActions(logicalEdges, inEdgeIndex);
+  size_t deviceCount = 0;
+  for (auto& action : outActions) {
+    deviceCount += action.requiresNewDevice ? 1 : 0;
+  }
+  for (auto& action : inActions) {
+    deviceCount += action.requiresNewDevice ? 1 : 0;
+  }
+
+  ComputingOffer defaultOffer;
+  for (auto& offer : resourceManager.getAvailableOffers()) {
+    defaultOffer.cpu += offer.cpu;
+    defaultOffer.memory += offer.memory;
+  }
+
+  /// For the moment lets play it safe and underestimate default needed resources.
+  defaultOffer.cpu /= deviceCount + 1;
+  defaultOffer.memory /= deviceCount + 1;
+
+  processOutEdgeActions(devices, deviceIndex, connections, resourceManager, outEdgeIndex, logicalEdges,
+                        outActions, workflow, outputs, channelPolicies, defaultOffer);
 
   // FIXME: is this not the case???
   std::sort(connections.begin(), connections.end());
 
-  processInEdgeActions(devices, deviceIndex, resources, connections, inEdgeIndex, logicalEdges, inActions, workflow,
-                       availableForwardsInfo, channelPolicies);
+  processInEdgeActions(devices, deviceIndex, connections, resourceManager, inEdgeIndex, logicalEdges,
+                       inActions, workflow, availableForwardsInfo, channelPolicies, defaultOffer);
   // We apply the completion policies here since this is where we have all the
   // devices resolved.
   for (auto& device : devices) {
