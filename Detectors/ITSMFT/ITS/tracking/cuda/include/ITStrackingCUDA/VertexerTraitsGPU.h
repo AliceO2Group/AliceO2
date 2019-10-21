@@ -62,7 +62,6 @@ class VertexerTraitsGPU : public VertexerTraits
   GPUhd() GPU::DeviceStoreVertexerGPU& getDeviceContext();
 
  protected:
-
   GPU::DeviceStoreVertexerGPU mStoreVertexerGPU;
   GPU::UniquePointer<GPU::DeviceStoreVertexerGPU> mStoreVertexerGPUPtr;
 };

@@ -51,10 +51,10 @@ struct GPUVertex final {
   unsigned char realVertex;
 };
 
-class ClusterLinesGPU final
+class ClusterLinesHIP final
 {
  public:
-  GPUd() ClusterLinesGPU(const Line& firstLine, const Line& secondLine); // poor man solution to calculate duplets' centroid
+  GPUd() ClusterLinesHIP(const Line& firstLine, const Line& secondLine); // poor man solution to calculate duplets' centroid
   GPUd() void computeClusterCentroid();
   GPUd() inline float* getVertex() { return mVertex; }
 

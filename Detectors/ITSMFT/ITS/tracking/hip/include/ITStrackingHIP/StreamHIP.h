@@ -15,7 +15,7 @@
 #ifndef O2_ITS_TRACKING_INCLUDE_STREAM_HIP_H_
 #define O2_ITS_TRACKING_INCLUDE_STREAM_HIP_H_
 
-#include "ITStracking/Definitions.h"
+#include <hip/hip_runtime_api.h>
 
 namespace o2
 {
@@ -24,20 +24,20 @@ namespace its
 namespace GPU
 {
 
-class Stream final
+class StreamHIP final
 {
 
  public:
-  Stream();
-  ~Stream();
+  StreamHIP();
+  ~StreamHIP();
 
-  Stream(const Stream&) = delete;
-  Stream& operator=(const Stream&) = delete;
+  StreamHIP(const StreamHIP&) = delete;
+  StreamHIP& operator=(const StreamHIP&) = delete;
 
-  const GPUStream& get() const;
+  const hipStream_t& get() const;
 
  private:
-  GPUStream mStream;
+  hipStream_t mStream;
 };
 } // namespace GPU
 } // namespace its

@@ -16,13 +16,15 @@ if(DEFINED HIP_AMDGPUTARGET)
 endif()
 
 message(STATUS "Building ITS HIP vertexer")
-set(HDRS ContextHIP.h UtilsHIP.h StreamHIP.h)
 o2_add_library(ITStrackingHIP
-               SOURCES src/VertexerTraitsHIP.hip.cxx
-                       src/DeviceStoreVertexerHIP.hip.cxx
-                       src/ClusterLinesHIP.hip.cxx
-                       src/UtilsHIP.hip.cxx
+               SOURCES src/ClusterLinesHIP.hip.cxx
                        src/ContextHIP.hip.cxx
+                       # src/DeviceStoreHIP.hip.cxx
+                       src/DeviceStoreVertexerHIP.hip.cxx
+                       src/StreamHIP.hip.cxx
+                       # src/TrackerTraitsHIP.hip.cxx
+                       src/VertexerTraitsHIP.hip.cxx
+                       src/UtilsHIP.hip.cxx                   
                PUBLIC_LINK_LIBRARIES O2::ITStracking hip::host hip::device hip::hipcub
                TARGETVARNAME targetName)
 

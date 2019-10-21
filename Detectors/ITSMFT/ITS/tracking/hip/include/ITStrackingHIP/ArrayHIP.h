@@ -17,7 +17,6 @@
 
 #include <hip/hip_runtime.h>
 
-#include "ITStracking/Definitions.h"
 #include "GPUCommonDef.h"
 
 namespace o2
@@ -30,7 +29,7 @@ namespace GPU
 namespace
 {
 template <typename T, size_t Size>
-struct ArrayTraits final {
+struct ArrayTraitsHIP final {
   typedef T InternalArray[Size];
 
   GPUhd() static constexpr T& getReference(const InternalArray& internalArray, size_t index) noexcept
@@ -46,9 +45,9 @@ struct ArrayTraits final {
 } // namespace
 
 template <typename T, size_t Size>
-struct Array final {
+struct ArrayHIP final {
 
-  void copy(const Array<T, Size>& t)
+  void copy(const ArrayHIP<T, Size>& t)
   {
 #ifdef __OPENCL__
     for (size_t i{0}; i < Size; ++i) {

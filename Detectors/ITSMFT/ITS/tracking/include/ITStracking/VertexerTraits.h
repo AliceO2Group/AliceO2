@@ -186,7 +186,7 @@ GPUhdi() const int2 VertexerTraits::getPhiBins(float phi, float dPhi)
 }
 
 GPUhdi() const int4 VertexerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
-                                                              const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
+                                                const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
 {
   const float zRangeMin = directionZIntersection - 2 * maxdeltaz;
   const float phiRangeMin = currentCluster.phiCoordinate - maxdeltaphi;
