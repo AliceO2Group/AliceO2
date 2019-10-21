@@ -113,7 +113,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
   //convert energy to charge
   auto charge = resp.etocharge(hit.GetEnergyLoss());
   auto time = event_time + hit.GetTime();
-
+  
   //transformation from global to local
   auto t = o2::mch::getTransformation(detID, *gGeoManager);
   Point3D<float> lpos;
@@ -156,13 +156,17 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
     auto ymax = ymin + dy;
     auto q = resp.chargePadfraction(xmin, xmax, ymin, ymax);
     if (seg.isBendingPad(padid)) {
-      //add U-ID!
       q *= chargebend;
     } else {
       q *= chargenon;
     }
     auto signal = resp.response(q);
-    digits.emplace_back(time, detID, padid, signal);
+    int manuID = seg.padDualSampaId(padid);
+    int manuCH = seg.padDualSampaChannel(padid);
+    int32_t uID = detID & 0xFFF;
+    uID += (manuID << 12) & 0xFFF000;
+    uID += (manuCH << 24) & 0x3F000000;
+    digits.emplace_back(time, detID, padid, uID, signal);
     ++ndigits;
   });
   return ndigits;
@@ -211,7 +215,7 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
         }
       }
     }
-    mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc);
+    mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), sortedDigits(i).getUID(), adc);
     i = j;
     ++count;
   }
@@ -232,7 +236,7 @@ void Digitizer::mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruth
 
   for (int index = 0; index < digits.size(); ++index) {
     auto digit = digits.at(index);
-    mDigits.emplace_back(digit.getTimeStamp(), digit.getDetID(), digit.getPadID(), digit.getADC());
+    mDigits.emplace_back(digit.getTimeStamp(), digit.getDetID(), digit.getPadID(), digit.getUID(), digit.getADC());
   }
 
   for (int index = 0; index < mcContainer.getNElements(); ++index) {
