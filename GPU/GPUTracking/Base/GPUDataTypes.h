@@ -131,7 +131,9 @@ class GPUDataTypes
   typedef bitfield<RecoStep, unsigned int> RecoStepField;
   typedef bitfield<InOutType, unsigned int> InOutTypeField;
 #endif
-
+#ifdef GPUCA_NOCOMPAT
+  static constexpr unsigned int NSLICES = 36;
+#endif
   static DeviceType GetDeviceType(const char* type);
 };
 
@@ -157,14 +159,18 @@ struct GPUCalibObjectsConst { // TODO: Any chance to do this as template?
   const o2::trd::TRDGeometryFlat* trdGeometry = nullptr;
 };
 
+struct GPUTrackingInOutDigits {
+  static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
+  const gpucf::PackedDigit* tpcDigits[NSLICES] = {nullptr};
+  unsigned long long int nTPCDigits[NSLICES] = {0};
+};
+
 struct GPUTrackingInOutPointers {
   GPUTrackingInOutPointers() = default;
   GPUTrackingInOutPointers(const GPUTrackingInOutPointers&) = default;
-  static constexpr unsigned int NSLICES = 36;
+  static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
 
-  size_t tpcRaw = 0;
-  const gpucf::PackedDigit* tpcDigits[NSLICES] = {nullptr};
-  size_t nTPCDigits[NSLICES] = {0};
+  GPUTrackingInOutDigits* tpcPackedDigits = nullptr;
   const GPUTPCClusterData* clusterData[NSLICES] = {nullptr};
   unsigned int nClusterData[NSLICES] = {0};
   const AliHLTTPCRawCluster* rawClusters[NSLICES] = {nullptr};

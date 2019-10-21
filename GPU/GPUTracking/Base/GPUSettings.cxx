@@ -51,6 +51,7 @@ void GPUSettingsEvent::SetDefaults()
   constBz = 0;
   homemadeEvents = 0;
   continuousMaxTimeBin = 0;
+  needsClusterer = 0;
 }
 
 void GPUSettingsProcessing::SetDefaults()
