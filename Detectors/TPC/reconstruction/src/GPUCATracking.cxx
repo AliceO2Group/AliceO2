@@ -86,12 +86,15 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
   GPUTrackingInOutPointers ptrs;
   if (data->o2Digits) {
     ptrs.clustersNative = nullptr;
+    const float zsThreshold = mTrackingCAO2Interface->getConfig().configReconstruction.tpcZSthreshold;
     for (int i = 0; i < Sector::MAXSECTOR; i++) {
       const std::vector<o2::tpc::Digit>& d = (*(data->o2Digits))[i];
       gpuDigits[i].reserve(d.size());
       gpuDigitsMap.tpcDigits[i] = gpuDigits[i].data();
       for (int j = 0; j < d.size(); j++) {
-        gpuDigits[i].emplace_back(gpucf::PackedDigit{d[j].getChargeFloat(), (gpucf::timestamp)d[j].getTimeStamp(), (gpucf::pad_t)d[j].getPad(), (gpucf::row_t)d[j].getRow()});
+        if (d[j].getChargeFloat() >= zsThreshold) {
+          gpuDigits[i].emplace_back(gpucf::PackedDigit{d[j].getChargeFloat(), (gpucf::timestamp)d[j].getTimeStamp(), (gpucf::pad_t)d[j].getPad(), (gpucf::row_t)d[j].getRow()});
+        }
       }
       gpuDigitsMap.nTPCDigits[i] = gpuDigits[i].size();
     }
