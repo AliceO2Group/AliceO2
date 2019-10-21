@@ -56,6 +56,8 @@ class GPUTPCO2Interface
   bool GetParamContinuous() { return (mContinuous); }
   void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;
 
+  const GPUO2InterfaceConfiguration& getConfig() const { return *mConfig; }
+
  private:
   GPUTPCO2Interface(const GPUTPCO2Interface&);
   GPUTPCO2Interface& operator=(const GPUTPCO2Interface&);
