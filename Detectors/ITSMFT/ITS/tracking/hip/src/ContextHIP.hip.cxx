@@ -43,12 +43,11 @@ namespace its
 namespace GPU
 {
 
-using Utils::Host::checkHIPError;
+using Utils::HostHIP::checkHIPError;
 
-Context::Context(bool dumpDevices)
+ContextHIP::ContextHIP(bool dumpDevices)
 {
   checkHIPError(hipGetDeviceCount(&mDevicesNum), __FILE__, __LINE__);
-
   if (mDevicesNum == 0) {
     throw std::runtime_error{"There are no available device(s) that support HIP\n"};
   }
@@ -92,7 +91,6 @@ Context::Context(bool dumpDevices)
       std::cout << "Name " << mDeviceProperties[iDevice].name << std::endl;
       std::cout << "gpuProcessors " << mDeviceProperties[iDevice].gpuProcessors << std::endl;
       std::cout << "minor " << minor << " major " << major << std::endl;
-      // std::cout << "hipCores " << mDeviceProperties[iDevice].hipCores << std::endl;
       std::cout << "globalMemorySize " << mDeviceProperties[iDevice].globalMemorySize << std::endl;
       std::cout << "constantMemorySize " << mDeviceProperties[iDevice].constantMemorySize << std::endl;
       std::cout << "sharedMemorySize " << mDeviceProperties[iDevice].sharedMemorySize << std::endl;
@@ -112,13 +110,13 @@ Context::Context(bool dumpDevices)
   checkHIPError(hipSetDevice(currentDeviceIndex), __FILE__, __LINE__);
 }
 
-Context& Context::getInstance()
+ContextHIP& ContextHIP::getInstance()
 {
-  static Context gpuContext;
-  return gpuContext;
+  static ContextHIP gpuContextHIP;
+  return gpuContextHIP;
 }
 
-const DeviceProperties& Context::getDeviceProperties()
+const DeviceProperties& ContextHIP::getDeviceProperties()
 {
   int currentDeviceIndex;
   checkHIPError(hipGetDevice(&currentDeviceIndex), __FILE__, __LINE__);
@@ -126,7 +124,7 @@ const DeviceProperties& Context::getDeviceProperties()
   return getDeviceProperties(currentDeviceIndex);
 }
 
-const DeviceProperties& Context::getDeviceProperties(const int deviceIndex)
+const DeviceProperties& ContextHIP::getDeviceProperties(const int deviceIndex)
 {
   return mDeviceProperties[deviceIndex];
 }
