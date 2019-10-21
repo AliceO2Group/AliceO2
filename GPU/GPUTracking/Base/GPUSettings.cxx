@@ -44,6 +44,7 @@ void GPUSettingsRec::SetDefaults()
   tpcSigBitsCharge = 4;
   tpcSigBitsWidth = 3;
   tpcZSthreshold = 2;
+  fwdTPCDigitsAsClusters = 0;
 }
 
 void GPUSettingsEvent::SetDefaults()

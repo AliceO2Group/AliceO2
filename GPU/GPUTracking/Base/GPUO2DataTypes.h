@@ -27,6 +27,11 @@ struct ClusterNative {
   GPUd() static float getTime() { return 0.f; }
   GPUd() static float getPad() { return 0.f; }
   GPUd() static int getFlags() { return 0; }
+  GPUd() static void setTimeFlags(float t, int f) {}
+  GPUd() static void setPad(float p) {}
+  GPUd() static void setSigmaTime(float s) {}
+  GPUd() static void setSigmaPad(float s) {}
+
   unsigned char qTot, qMax;
 };
 struct ClusterNativeAccess {
