@@ -40,6 +40,7 @@ struct InputChannelSpec {
   std::string name;
   enum ChannelType type;
   enum ChannelMethod method;
+  std::string hostname;
   unsigned short port;
 };
 
@@ -52,6 +53,7 @@ struct OutputChannelSpec {
   std::string name;
   enum ChannelType type;
   enum ChannelMethod method;
+  std::string hostname;
   unsigned short port;
   size_t listeners;
 };

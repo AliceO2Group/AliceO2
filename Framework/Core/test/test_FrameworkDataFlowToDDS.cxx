@@ -15,6 +15,7 @@
 #include "../src/DDSConfigHelpers.h"
 #include "../src/DeviceSpecHelpers.h"
 #include "../src/SimpleResourceManager.h"
+#include "../src/ComputingResourceHelpers.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceSpec.h"
@@ -69,10 +70,10 @@ BOOST_AUTO_TEST_CASE(TestGraphviz)
   std::ostringstream ss{""};
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
   std::vector<DeviceSpec> devices;
-  SimpleResourceManager rm(22000, 1000);
-  auto resources = rm.getAvailableResources();
+  std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource(22000, 1000)};
+  SimpleResourceManager rm(resources);
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, resources);
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm);
   std::vector<DeviceControl> controls;
   std::vector<DeviceExecution> executions;
   controls.resize(devices.size());

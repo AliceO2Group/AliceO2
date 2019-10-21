@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "SimpleResourceManager.h"
-#include "ComputingResource.h"
+#include "Framework/ComputingResource.h"
 #include <exception>
 #include <stdexcept>
 
@@ -20,22 +20,54 @@ namespace framework
 /// The simplest implementation of this allocates mMaxPorts ports starting from
 /// the mInitialPort. For now we still consider everything running on a single
 /// machine.
-std::vector<ComputingResource> SimpleResourceManager::getAvailableResources()
+std::vector<ComputingOffer> SimpleResourceManager::getAvailableOffers()
 {
-  std::vector<ComputingResource> result;
-  if ((mInitialPort < 1025) || ((mInitialPort + mMaxPorts) > 65535)) {
-    throw std::runtime_error("Invalid port number. Valid port range is 1025-65535");
+  std::vector<ComputingOffer> result;
+
+  for (auto& resource : mResources) {
+    if (resource.cpu < 0.01) {
+      continue;
+    }
+    if (resource.memory < 0.01) {
+      continue;
+    }
+    if (resource.usedPorts == (resource.lastPort - resource.startPort + 1)) {
+      continue;
+    }
+    ComputingOffer offer;
+    offer.cpu = resource.cpu;
+    offer.memory = resource.memory;
+    offer.hostname = resource.hostname;
+    offer.startPort = resource.startPort + resource.usedPorts;
+    offer.rangeSize = (resource.lastPort - resource.startPort) - resource.usedPorts;
+    result.push_back(offer);
   }
-  // We insert them backwards for compatibility with the previous
-  // way of assigning them.
-  for (size_t i = mInitialPort + mMaxPorts - 1; i >= mInitialPort; --i) {
-    result.push_back(ComputingResource{
-      1.0,
-      1.0,
-      "localhost",
-      static_cast<unsigned short>(i)});
-  };
   return result;
+}
+
+void SimpleResourceManager::notifyAcceptedOffer(ComputingOffer const& offer)
+{
+  bool resourceFound = false;
+  for (auto& resource : mResources) {
+    if (resource.hostname != offer.hostname) {
+      continue;
+    }
+    if (resource.startPort > offer.startPort) {
+      continue;
+    }
+    if (resource.lastPort < offer.startPort + offer.rangeSize) {
+      continue;
+    }
+    resourceFound = true;
+    resource.cpu -= offer.cpu;
+    resource.memory -= offer.memory;
+    resource.usedPorts += offer.rangeSize;
+    break;
+  }
+
+  if (resourceFound == false) {
+    throw std::runtime_error("Could not match offer to original resource.");
+  }
 }
 
 } // namespace framework

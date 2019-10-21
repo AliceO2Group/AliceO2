@@ -7,25 +7,17 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_COMPUTINGRESOURCE_H
-#define FRAMEWORK_COMPUTINGRESOURCE_H
 
-#include <string>
+#ifndef O2_FRAMEWORK_COMPUTINGRESOURCEHELPERS_H_
+#define O2_FRAMEWORK_COMPUTINGRESOURCEHELPERS_H_
 
-namespace o2
+#include "Framework/ComputingResource.h"
+
+namespace o2::framework
 {
-namespace framework
-{
-
-/// A computing resource which can be used to run a device.
-struct ComputingResource {
-  float cpu;
-  float memory;
-  std::string hostname;
-  unsigned short port;
+struct ComputingResourceHelpers {
+  static ComputingResource getLocalhostResource(unsigned short startPort, unsigned short rangeSize);
 };
+} // namespace o2::framework
 
-} // namespace framework
-} // namespace o2
-
-#endif // FRAMEWORK_COMPUTINGRESOURCES_H
+#endif // O2_FRAMEWORK_COMPUTINGRESOURCEHELPERS_H_
