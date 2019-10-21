@@ -73,6 +73,7 @@ struct GPUSettingsRec {
   unsigned char tpcCompressionSortOrder; // Sort order for clusters storred as differences (0 = time, 1 = pad, 2 = Z-curve-time-pad, 3 = Z-curve-pad-time)
   unsigned char tpcSigBitsCharge;        // Number of significant bits for TPC cluster charge in compression mode 1
   unsigned char tpcSigBitsWidth;         // Number of significant bits for TPC cluster width in compression mode 1
+  unsigned char tpcZSthreshold;          // TPC Zero Suppression Threshold (for loading digits / forwarging digits as clusters)
 };
 
 // Settings describing the events / time frames

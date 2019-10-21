@@ -43,6 +43,7 @@ void GPUSettingsRec::SetDefaults()
   tpcCompressionSortOrder = GPUSettings::SortPad;
   tpcSigBitsCharge = 4;
   tpcSigBitsWidth = 3;
+  tpcZSthreshold = 2;
 }
 
 void GPUSettingsEvent::SetDefaults()
