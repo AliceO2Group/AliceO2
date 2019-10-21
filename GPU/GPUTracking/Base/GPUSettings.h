@@ -90,6 +90,7 @@ struct GPUSettingsEvent {
   int constBz;              // for test-MC events with constant Bz
   int homemadeEvents;       // Toy-MC events
   int continuousMaxTimeBin; // 0 for triggered events, -1 for default of 23ms
+  int needsClusterer;       // Set to true if the data requires the clusterizer
 };
 
 // Settings defining the setup of the GPUReconstruction processing (basically selecting the device / class instance)

@@ -82,24 +82,24 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
 
   const ClusterNativeAccess* clusters;
   std::vector<gpucf::PackedDigit> gpuDigits[Sector::MAXSECTOR];
+  GPUTrackingInOutDigits gpuDigitsMap;
   GPUTrackingInOutPointers ptrs;
   if (data->o2Digits) {
     ptrs.clustersNative = nullptr;
-    ptrs.tpcRaw = 0;
     for (int i = 0; i < Sector::MAXSECTOR; i++) {
       const std::vector<o2::tpc::Digit>& d = (*(data->o2Digits))[i];
       gpuDigits[i].reserve(d.size());
+      gpuDigitsMap.tpcDigits[i] = gpuDigits[i].data();
       for (int j = 0; j < d.size(); j++) {
         gpuDigits[i].emplace_back(gpucf::PackedDigit{d[j].getChargeFloat(), (gpucf::timestamp)d[j].getTimeStamp(), (gpucf::pad_t)d[j].getPad(), (gpucf::row_t)d[j].getRow()});
       }
-      ptrs.tpcRaw += d.size();
-      ptrs.tpcDigits[i] = gpuDigits[i].data();
-      ptrs.nTPCDigits[i] = gpuDigits[i].size();
+      gpuDigitsMap.nTPCDigits[i] = gpuDigits[i].size();
     }
+    ptrs.tpcPackedDigits = &gpuDigitsMap;
   } else {
     clusters = data->clusters;
     ptrs.clustersNative = clusters;
-    ptrs.tpcRaw = 0;
+    ptrs.tpcPackedDigits = nullptr;
   }
   int retVal = mTrackingCAO2Interface->RunTracking(&ptrs);
   if (data->o2Digits) {

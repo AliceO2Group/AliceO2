@@ -95,9 +95,11 @@ class GPUReconstruction
                                          RAW_CLUSTERS = 9,
                                          CLUSTERS_NATIVE = 10,
                                          TRD_TRACKLET_MC = 11,
-                                         TPC_COMPRESSED_CL = 12 };
+                                         TPC_COMPRESSED_CL = 12,
+                                         TPC_DIGIT = 13 };
   static constexpr const char* const IOTYPENAMES[] = {"TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets",
-                                                      "Raw Clusters", "ClusterNative", "TRD Tracklet MC Labels", "TPC Compressed Clusters"};
+                                                      "Raw Clusters", "ClusterNative", "TRD Tracklet MC Labels", "TPC Compressed Clusters", "TPC Digit"};
+  static unsigned int getNIOTypeMultiplicity(InOutPointerType type) { return (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS || type == TPC_DIGIT) ? NSLICES : 1; }
 
   // Functionality to create an instance of GPUReconstruction for the desired device
   static GPUReconstruction* CreateInstance(const GPUSettingsProcessing& cfg);
@@ -223,10 +225,10 @@ class GPUReconstruction
   size_t AllocateRegisteredPermanentMemory();
 
   // Private helper functions for reading / writing / allocating IO buffer from/to file
-  template <class T>
-  void DumpData(FILE* fp, const T* const* entries, const unsigned int* num, InOutPointerType type);
-  template <class T>
-  size_t ReadData(FILE* fp, const T** entries, unsigned int* num, std::unique_ptr<T[]>* mem, InOutPointerType type);
+  template <class T, class S>
+  void DumpData(FILE* fp, const T* const* entries, const S* num, InOutPointerType type);
+  template <class T, class S>
+  size_t ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type);
   template <class T>
   void AllocateIOMemoryHelper(unsigned int n, const T*& ptr, std::unique_ptr<T[]>& u);
 
@@ -390,15 +392,10 @@ inline void GPUReconstruction::SetupGPUProcessor(T* proc, bool allocate)
   }
 }
 
-template <class T>
-inline void GPUReconstruction::DumpData(FILE* fp, const T* const* entries, const unsigned int* num, InOutPointerType type)
+template <class T, class S>
+inline void GPUReconstruction::DumpData(FILE* fp, const T* const* entries, const S* num, InOutPointerType type)
 {
-  int count;
-  if (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS) {
-    count = NSLICES;
-  } else {
-    count = 1;
-  }
+  int count = getNIOTypeMultiplicity(type);
   unsigned int numTotal = 0;
   for (int i = 0; i < count; i++) {
     numTotal += num[i];
@@ -415,8 +412,8 @@ inline void GPUReconstruction::DumpData(FILE* fp, const T* const* entries, const
   }
 }
 
-template <class T>
-inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, unsigned int* num, std::unique_ptr<T[]>* mem, InOutPointerType type)
+template <class T, class S>
+inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type)
 {
   if (feof(fp)) {
     return 0;
@@ -429,12 +426,7 @@ inline size_t GPUReconstruction::ReadData(FILE* fp, const T** entries, unsigned 
     return 0;
   }
 
-  int count;
-  if (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS) {
-    count = NSLICES;
-  } else {
-    count = 1;
-  }
+  int count = getNIOTypeMultiplicity(type);
   size_t numTotal = 0;
   for (int i = 0; i < count; i++) {
     r = fread(&num[i], sizeof(num[i]), 1, fp);
