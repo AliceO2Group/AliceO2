@@ -31,7 +31,7 @@ class Digit : public DigitBase
  public:
   Digit() = default;
 
-  Digit(double time, int detid, int pad, double adc);
+  Digit(double time, int detid, int pad, int uid, double adc);
   ~Digit() = default;
 
   int getDetID() const { return mDetID; }
@@ -40,12 +40,16 @@ class Digit : public DigitBase
   int getPadID() const { return mPadID; }
   void setPadID(int pad) { mPadID = pad; }
 
+  int getUID() const { return mUID; }
+  void setUID(int uid) { mUID = uid; }
+
   double getADC() const { return mADC; }
   void setADC(double adc) { mADC = adc; }
 
  private:
   int mDetID;
   int mPadID;  /// PadIndex to which the digit corresponds to
+  int mUID;    /// Unique ID needed for preclustering stage
   double mADC; /// Amplitude of signal
 
   ClassDefNV(Digit, 1);
