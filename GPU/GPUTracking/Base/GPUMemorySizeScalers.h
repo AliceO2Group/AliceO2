@@ -30,7 +30,7 @@ struct GPUMemorySizeScalers {
   static constexpr double offset = 1000.;
 
   // Scaling Factors
-  static constexpr double tpcClustersPerDigit = 0.5;
+  static constexpr double tpcClustersPerDigit = 0.2;
   static constexpr double tpcTrackletsPerHit = 0.08;
   static constexpr double tpcSectorTracksPerHit = 0.02;
   static constexpr double tpcSectorTrackHitsPerHit = 0.8f;

@@ -696,7 +696,7 @@ void GPUChainTracking::ForwardTPCDigits()
   unsigned int nTotal = 0;
   const float zsThreshold = param().rec.tpcZSthreshold;
   for (int i = 0; i < NSLICES; i++) {
-    for (int j = 0; j < mIOPtrs.tpcPackedDigits->nTPCDigits[i]; j++) {
+    for (unsigned int j = 0; j < mIOPtrs.tpcPackedDigits->nTPCDigits[i]; j++) {
       const auto& d = mIOPtrs.tpcPackedDigits->tpcDigits[i][j];
       if (d.charge >= zsThreshold) {
         ClusterNative c;
@@ -754,14 +754,13 @@ int GPUChainTracking::GlobalTracking(int iSlice, int threadId)
   return (0);
 }
 
-void GPUChainTracking::RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder& clustererShadow, int stage, bool doGPU)
+void GPUChainTracking::RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder& clustererShadow, int stage, bool doGPU, int lane)
 {
 #ifdef HAVE_O2HEADERS
   auto& in = stage ? clustererShadow.mPpeaks : clustererShadow.mPdigits;
   auto& out = stage ? clustererShadow.mPfilteredPeaks : clustererShadow.mPpeaks;
   if (doGPU) {
     const unsigned int iSlice = clusterer.mISlice;
-    TransferMemoryResourceLinkToHost(clusterer.mMemoryId);
     auto& count = stage ? clusterer.mPmemory->nPeaks : clusterer.mPmemory->nDigits;
 
     std::vector<size_t> counts;
@@ -772,28 +771,28 @@ void GPUChainTracking::RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clust
       exit(1);
     }
 
-    runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), 0}, nullptr, krnlRunRangeNone, {}, clustererShadow.mPbuf, clusterer.mBufSize * nSteps * sizeof(clusterer.mPbuf[0])); // TODO: Is it needed to clear the memory here?
+    runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), lane}, nullptr, krnlRunRangeNone, {}, clustererShadow.mPbuf, clusterer.mBufSize * nSteps * sizeof(clusterer.mPbuf[0])); // TODO: Is it needed to clear the memory here?
     size_t tmpCount = count;
-    for (unsigned int i = 1; i < nSteps; i++) {
-      counts.push_back(tmpCount);
-      if (i == 1) {
-        runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanUpStart>(GetGrid(tmpCount, clusterer.mScanWorkGroupSize, 0), nullptr, {iSlice}, {}, i);
-      } else {
-        runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanUp>(GetGrid(tmpCount, clusterer.mScanWorkGroupSize, 0), nullptr, {iSlice}, {}, i);
-      }
-      tmpCount /= clusterer.mScanWorkGroupSize;
-    }
-
     if (nSteps > 1) {
-      runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanTop>(GetGrid(tmpCount, clusterer.mScanWorkGroupSize, 0), nullptr, {iSlice}, {}, nSteps);
+      for (unsigned int i = 1; i < nSteps; i++) {
+        counts.push_back(tmpCount);
+        if (i == 1) {
+          runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanUpStart>(GetGrid(tmpCount, clusterer.mScanWorkGroupSize, lane), nullptr, {iSlice}, {}, i);
+        } else {
+          runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanUp>(GetGrid(tmpCount, clusterer.mScanWorkGroupSize, lane), nullptr, {iSlice}, {}, i);
+        }
+        tmpCount /= clusterer.mScanWorkGroupSize;
+      }
+
+      runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanTop>(GetGrid(tmpCount, clusterer.mScanWorkGroupSize, lane), nullptr, {iSlice}, {}, nSteps);
+
+      for (unsigned int i = nSteps - 1; i > 1; i--) {
+        tmpCount = counts[i - 1];
+        runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanDown>(GetGrid(tmpCount - clusterer.mScanWorkGroupSize, clusterer.mScanWorkGroupSize, lane), nullptr, {iSlice}, {}, i, clusterer.mScanWorkGroupSize);
+      }
     }
 
-    for (unsigned int i = nSteps - 1; i > 1; i--) {
-      tmpCount = counts[i - 1];
-      runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::nativeScanDown>(GetGrid(tmpCount - clusterer.mScanWorkGroupSize, clusterer.mScanWorkGroupSize, 0), nullptr, {iSlice}, {}, i, clusterer.mScanWorkGroupSize);
-    }
-
-    runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::compactDigit>(GetGrid(count, clusterer.mScanWorkGroupSize, 0), nullptr, {iSlice}, {}, 1, stage, in, out);
+    runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::compactDigit>(GetGrid(count, clusterer.mScanWorkGroupSize, lane), nullptr, {iSlice}, {}, 1, stage, in, out);
   } else {
     auto& nOut = stage ? clusterer.mPmemory->nClusters : clusterer.mPmemory->nPeaks;
     auto& nIn = stage ? clusterer.mPmemory->nPeaks : clusterer.mPmemory->nDigits;
@@ -824,38 +823,42 @@ int GPUChainTracking::RunTPCClusterizer()
   size_t pos = 0;
   clsMemory.reserve(mRec->MemoryScalers()->nTPCHits);
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
+    int lane = iSlice % GetDeviceProcessingSettings().nTPCClustererLanes;
     GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSlice];
     GPUTPCClusterFinder& clustererShadow = doGPU ? processorsShadow()->tpcClusterer[iSlice] : clusterer;
     SetupGPUProcessor(&clusterer, false);
     memset((void*)clusterer.mPmemory, 0, sizeof(*clusterer.mPmemory));
     if (doGPU) {
       clusterer.mPmemory->nDigits = mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice];
-      TransferMemoryResourceLinkToGPU(clusterer.mMemoryId, -1);
-      mRec->GPUMemCpy(clustererShadow.mPdigits, mIOPtrs.tpcPackedDigits->tpcDigits[iSlice], sizeof(clustererShadow.mPdigits[0]) * clusterer.mPmemory->nDigits, 0, true);
+      TransferMemoryResourceLinkToGPU(clusterer.mMemoryId, lane);
+      mRec->GPUMemCpy(clustererShadow.mPdigits, mIOPtrs.tpcPackedDigits->tpcDigits[iSlice], sizeof(clustererShadow.mPdigits[0]) * clusterer.mPmemory->nDigits, lane, true);
     } else {
       clusterer.mPdigits = (gpucf::PackedDigit*)mIOPtrs.tpcPackedDigits->tpcDigits[iSlice]; // TODO: Needs fixing, double-allocated and invalid const cast
       clusterer.mPmemory->nDigits = mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice];
     }
-    runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), 0}, nullptr, krnlRunRangeNone, {}, clustererShadow.mPchargeMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED * sizeof(*clustererShadow.mPchargeMap));
-    runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), 0}, nullptr, krnlRunRangeNone, {}, clustererShadow.mPpeakMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED * sizeof(*clustererShadow.mPpeakMap));
-    runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), 0}, nullptr, krnlRunRangeNone, {}, clustererShadow.mPclusterInRow, GPUCA_ROW_COUNT * sizeof(*clustererShadow.mPclusterInRow));
-    runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), 0}, nullptr, krnlRunRangeNone, {}, clustererShadow.mPpeaks, clusterer.mNMaxDigits * sizeof(*clustererShadow.mPpeaks));                 // TODO: Do we really need to empty all of them?
-    runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), 0}, nullptr, krnlRunRangeNone, {}, clustererShadow.mPfilteredPeaks, clusterer.mNMaxDigits * sizeof(*clustererShadow.mPfilteredPeaks)); // These 4 were not emptied originally (i think)
-    runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), 0}, nullptr, krnlRunRangeNone, {}, clustererShadow.mPisPeak, clusterer.mNMaxDigits * sizeof(*clustererShadow.mPisPeak));               // but that yielded fake peaks after nDigits
+    runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), lane}, nullptr, krnlRunRangeNone, {}, clustererShadow.mPchargeMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED * sizeof(*clustererShadow.mPchargeMap));
+    runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), lane}, nullptr, krnlRunRangeNone, {}, clustererShadow.mPpeakMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED * sizeof(*clustererShadow.mPpeakMap));
+    runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), lane}, nullptr, krnlRunRangeNone, {}, clustererShadow.mPclusterInRow, GPUCA_ROW_COUNT * sizeof(*clustererShadow.mPclusterInRow));
+    runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), lane}, nullptr, krnlRunRangeNone, {}, clustererShadow.mPpeaks, clusterer.mNMaxDigits * sizeof(*clustererShadow.mPpeaks));                 // TODO: Do we really need to empty all of them?
+    runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), lane}, nullptr, krnlRunRangeNone, {}, clustererShadow.mPfilteredPeaks, clusterer.mNMaxDigits * sizeof(*clustererShadow.mPfilteredPeaks)); // These 4 were not emptied originally (i think)
+    runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), lane}, nullptr, krnlRunRangeNone, {}, clustererShadow.mPisPeak, clusterer.mNMaxDigits * sizeof(*clustererShadow.mPisPeak));               // but that yielded fake peaks after nDigits
 
-    runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::fillChargeMap>(GetGrid(clusterer.mPmemory->nDigits, ClustererThreadCount(), 0), nullptr, {iSlice}, {});
-    runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::findPeaks>(GetGrid(clusterer.mPmemory->nDigits, ClustererThreadCount(), 0), nullptr, {iSlice}, {});
-    RunTPCClusterizer_compactPeaks(clusterer, clustererShadow, 0, doGPU);
-    TransferMemoryResourceLinkToHost(clusterer.mMemoryId);
-    runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::noiseSuppression>(GetGrid(clusterer.mPmemory->nPeaks, ClustererThreadCount(), 0), nullptr, {iSlice}, {});
-    RunTPCClusterizer_compactPeaks(clusterer, clustererShadow, 1, doGPU);
-    TransferMemoryResourceLinkToHost(clusterer.mMemoryId);
-    runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::countPeaks>(GetGrid(clusterer.mPmemory->nDigits, ClustererThreadCount(), 0), nullptr, {iSlice}, {});
-    runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::computeClusters>(GetGrid(clusterer.mPmemory->nClusters, ClustererThreadCount(), 0), nullptr, {iSlice}, {});
+    runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::fillChargeMap>(GetGrid(clusterer.mPmemory->nDigits, ClustererThreadCount(), lane), nullptr, {iSlice}, {});
+    runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::findPeaks>(GetGrid(clusterer.mPmemory->nDigits, ClustererThreadCount(), lane), nullptr, {iSlice}, {});
+    RunTPCClusterizer_compactPeaks(clusterer, clustererShadow, 0, doGPU, lane);
+    TransferMemoryResourceLinkToHost(clusterer.mMemoryId, lane);
+    SynchronizeStream(lane);
+    runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::noiseSuppression>(GetGrid(clusterer.mPmemory->nPeaks, ClustererThreadCount(), lane), nullptr, {iSlice}, {});
+    RunTPCClusterizer_compactPeaks(clusterer, clustererShadow, 1, doGPU, lane);
+    TransferMemoryResourceLinkToHost(clusterer.mMemoryId, lane);
+    SynchronizeStream(lane);
+    runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::countPeaks>(GetGrid(clusterer.mPmemory->nDigits, ClustererThreadCount(), lane), nullptr, {iSlice}, {});
+    runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::computeClusters>(GetGrid(clusterer.mPmemory->nClusters, ClustererThreadCount(), lane), nullptr, {iSlice}, {});
     if (GetDeviceProcessingSettings().debugLevel >= 3) {
       printf("Found clusters: digits %d peaks %d clusters %d\n", (int)clusterer.mPmemory->nDigits, (int)clusterer.mPmemory->nPeaks, (int)clusterer.mPmemory->nClusters);
     }
-    TransferMemoryResourcesToHost(&clusterer);
+    TransferMemoryResourcesToHost(&clusterer, lane);
+    SynchronizeStream(lane);
     nClsTotal += clusterer.mPmemory->nClusters;
     clsMemory.resize(nClsTotal);
     for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
