@@ -21,7 +21,7 @@ namespace its
 namespace GPU
 {
 
-GPUd() ClusterLinesGPU::ClusterLinesGPU(const Line& firstLine, const Line& secondLine)
+GPUd() ClusterLinesHIP::ClusterLinesHIP(const Line& firstLine, const Line& secondLine)
 {
   float covarianceFirst[3];
   float covarianceSecond[3];
@@ -109,7 +109,7 @@ GPUd() ClusterLinesGPU::ClusterLinesGPU(const Line& firstLine, const Line& secon
   computeClusterCentroid();
 }
 
-GPUd() void ClusterLinesGPU::computeClusterCentroid()
+GPUd() void ClusterLinesHIP::computeClusterCentroid()
 {
 
   float determinant{mAMatrix[0] * (mAMatrix[3] * mAMatrix[5] - mAMatrix[4] * mAMatrix[4]) -

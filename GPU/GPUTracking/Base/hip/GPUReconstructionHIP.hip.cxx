@@ -122,13 +122,13 @@ GPUReconstructionHIPBackend::~GPUReconstructionHIPBackend()
 
 GPUReconstruction* GPUReconstruction_Create_HIP(const GPUSettingsProcessing& cfg) { return new GPUReconstructionHIP(cfg); }
 
-void GPUReconstructionHIPBackend::GetITSTraits(/*std::unique_ptr<o2::its::TrackerTraits>* trackerTraits,*/ std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits)
+void GPUReconstructionHIPBackend::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits)
 {
   // if (trackerTraits) {
   //   trackerTraits->reset(new o2::its::TrackerTraitsNV);
   // }
   if (vertexerTraits) {
-    vertexerTraits->reset(new o2::its::VertexerTraitsGPU);
+    vertexerTraits->reset(new o2::its::VertexerTraitsHIP);
   }
 }
 

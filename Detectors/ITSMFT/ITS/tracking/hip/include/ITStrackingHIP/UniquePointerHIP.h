@@ -82,8 +82,8 @@ UniquePointer<T>::UniquePointer(const T& ref)
 {
   try {
 
-    Utils::Host::gpuMalloc(reinterpret_cast<void**>(&mDevicePointer), sizeof(T));
-    Utils::Host::gpuMemcpyHostToDevice(mDevicePointer, &ref, sizeof(T));
+    Utils::HostHIP::gpuMalloc(reinterpret_cast<void**>(&mDevicePointer), sizeof(T));
+    Utils::HostHIP::gpuMemcpyHostToDevice(mDevicePointer, &ref, sizeof(T));
 
   } catch (...) {
 
@@ -119,7 +119,7 @@ void UniquePointer<T>::destroy()
 {
   if (mDevicePointer != nullptr) {
 
-    Utils::Host::gpuFree(mDevicePointer);
+    Utils::HostHIP::gpuFree(mDevicePointer);
   }
 }
 
