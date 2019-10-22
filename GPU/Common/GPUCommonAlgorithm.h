@@ -268,14 +268,21 @@ GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end, const S& comp)
 
 #ifdef __OPENCL__
 // Nothing to do, work_group functions available
-#elif defined(__CUDACC__)
+
+#elif defined(__CUDACC__) || defined(__HIPCC__)
+// CUDA and HIP work the same way using cub, need just different header
+
+#if defined(__CUDACC__)
 #include <cub/cub.cuh>
+#else
+#include <hipcub/hipcub.hpp>
+#endif
 
 #define work_group_scan_inclusive_add(v) work_group_scan_inclusive_add_FUNC(v, smem)
 template <class T, class S>
 GPUdi() T work_group_scan_inclusive_add_FUNC(T v, S& smem)
 {
-  S::BlockScan(smem.cubTmpMem).InclusiveSum(v, v);
+  typename S::BlockScan(smem.cubTmpMem).InclusiveSum(v, v);
   __syncthreads();
   return v;
 }
@@ -284,7 +291,7 @@ GPUdi() T work_group_scan_inclusive_add_FUNC(T v, S& smem)
 template <class T, class S>
 GPUdi() T work_group_broadcast_FUNC(T v, int i, S& smem)
 {
-  if (threadIdx.x == i) {
+  if ((int)threadIdx.x == i) {
     smem.tmpBroadcast = v;
   }
   __syncthreads();
@@ -292,20 +299,9 @@ GPUdi() T work_group_broadcast_FUNC(T v, int i, S& smem)
   __syncthreads();
   return retVal;
 }
-#elif defined(__HIPCC__) // BUG: THESE ARE WRONG, BUT CANNOT USE HIPCUB YET!
-//#include <hipcub/hipcub.hpp> // BUG: Disabled, until hipcub c++17 issue is solved
-
-template <class T>
-GPUdi() T work_group_scan_inclusive_add(T v)
-{
-  return v;
-}
-template <class T>
-GPUdi() T work_group_broadcast(T v, int i)
-{
-  return v;
-}
 #else
+// Trivial implementation for the CPU
+
 template <class T>
 GPUdi() T work_group_scan_inclusive_add(T v)
 {
