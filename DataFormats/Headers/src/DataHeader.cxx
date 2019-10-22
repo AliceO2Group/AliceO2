@@ -29,51 +29,7 @@ const uint32_t o2::header::BaseHeader::sVersion = o2::header::gInvalidToken32;
 const o2::header::HeaderType o2::header::BaseHeader::sHeaderType = o2::header::gInvalidToken64;
 const o2::header::SerializationMethod o2::header::BaseHeader::sSerializationMethod = o2::header::gInvalidToken64;
 
-//storage for DataHeader static members
-const uint32_t o2::header::DataHeader::sVersion = 1;
-const o2::header::HeaderType o2::header::DataHeader::sHeaderType = String2<uint64_t>("DataHead");
-const o2::header::SerializationMethod o2::header::DataHeader::sSerializationMethod = o2::header::gSerializationMethodNone;
-
 using namespace o2::header;
-
-//__________________________________________________________________________________________________
-o2::header::DataHeader::DataHeader()
-  : BaseHeader(sizeof(DataHeader), sHeaderType, sSerializationMethod, sVersion),
-    dataDescription(gDataDescriptionInvalid),
-    dataOrigin(gDataOriginInvalid),
-    splitPayloadParts(1),
-    payloadSerializationMethod(gSerializationMethodInvalid),
-    subSpecification(0),
-    splitPayloadIndex(0),
-    payloadSize(0)
-{
-}
-
-//__________________________________________________________________________________________________
-o2::header::DataHeader::DataHeader(DataDescription desc, DataOrigin origin, SubSpecificationType subspec, PayloadSizeType size)
-  : BaseHeader(sizeof(DataHeader), sHeaderType, sSerializationMethod, sVersion),
-    dataDescription(desc),
-    dataOrigin(origin),
-    splitPayloadParts(1),
-    payloadSerializationMethod(gSerializationMethodInvalid),
-    subSpecification(subspec),
-    splitPayloadIndex(0),
-    payloadSize(size)
-{
-}
-
-//__________________________________________________________________________________________________
-o2::header::DataHeader::DataHeader(DataDescription desc, DataOrigin origin, SubSpecificationType subspec, PayloadSizeType size, SplitPayloadIndexType partIndex, SplitPayloadPartsType parts)
-  : BaseHeader(sizeof(DataHeader), sHeaderType, sSerializationMethod, sVersion),
-    dataDescription(desc),
-    dataOrigin(origin),
-    splitPayloadParts(parts),
-    payloadSerializationMethod(gSerializationMethodInvalid),
-    subSpecification(subspec),
-    splitPayloadIndex(partIndex),
-    payloadSize(size)
-{
-}
 
 //__________________________________________________________________________________________________
 void o2::header::DataHeader::print() const
