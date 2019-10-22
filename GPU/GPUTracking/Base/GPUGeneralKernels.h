@@ -42,6 +42,8 @@ class GPUKernelTemplate
   {
   };
 
+  enum K { defaultKernel = 0 };
+
   template <class T, int I>
   struct GPUTPCSharedMemoryScan64 {
     // Provides the shared memory resources for CUB collectives
