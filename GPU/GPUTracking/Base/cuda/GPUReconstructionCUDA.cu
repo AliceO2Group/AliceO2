@@ -77,8 +77,11 @@ GPUg() void runKernelCUDAMulti(GPUCA_CONSMEM_PTR int firstSlice, int nSliceCount
 }
 
 template <class T, int I, typename... Args>
-int GPUReconstructionCUDABackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
+int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, const Args&... args)
 {
+  auto& x = _xyz.x;
+  auto& y = _xyz.y;
+  auto& z = _xyz.z;
   if (z.evList) {
     for (int k = 0; k < z.nEvents; k++) {
       GPUFailedMsg(cudaStreamWaitEvent(mInternals->CudaStreams[x.stream], ((cudaEvent_t*)z.evList)[k], 0));

@@ -34,8 +34,11 @@ GPUReconstructionOCL1Backend::GPUReconstructionOCL1Backend(const GPUSettingsProc
 }
 
 template <class T, int I, typename... Args>
-int GPUReconstructionOCL1Backend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
+int GPUReconstructionOCL1Backend::runKernelBackend(krnlSetup& _xyz, const Args&... args)
 {
+  auto& x = _xyz.x;
+  auto& y = _xyz.y;
+  auto& z = _xyz.z;
   cl_kernel k = getKernelObject<cl_kernel, T, I>(y.num);
   if (y.num == -1) {
     if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, args...)) {
