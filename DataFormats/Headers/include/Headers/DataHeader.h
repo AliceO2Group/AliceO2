@@ -394,7 +394,7 @@ constexpr o2::header::SerializationMethod gSerializationMethodArrow{"ARROW"};
 /// @ingroup aliceo2_dataformats_dataheader
 struct BaseHeader {
   // static definitions
-  static const uint32_t sMagicString;
+  static constexpr uint32_t sMagicString{String2<uint32_t>("O2O2")};
 
   static const uint32_t sVersion;
   static const o2::header::HeaderType sHeaderType;
@@ -436,8 +436,11 @@ struct BaseHeader {
   BaseHeader() = delete;
   BaseHeader(const BaseHeader&) = default;
   /// Special ctor for initialization in derived types
-  BaseHeader(uint32_t mySize, HeaderType description,
-             SerializationMethod serialization, uint32_t version);
+  constexpr BaseHeader(uint32_t mySize, HeaderType desc,
+                       SerializationMethod ser, uint32_t version)
+    : magicStringInt(sMagicString), headerSize(mySize), flags(0), headerVersion(version), description(desc), serialization(ser)
+  {
+  }
 
   /// @brief access header in buffer
   ///
@@ -458,8 +461,8 @@ struct BaseHeader {
                                                                                : nullptr;
   }
 
-  inline uint32_t size() const noexcept { return headerSize; }
-  inline const o2::byte* data() const noexcept { return reinterpret_cast<const o2::byte*>(this); }
+  constexpr uint32_t size() const noexcept { return headerSize; }
+  constexpr const o2::byte* data() const noexcept { return reinterpret_cast<const o2::byte*>(this); }
 
   /// get the next header if any (const version)
   inline const BaseHeader* next() const noexcept
