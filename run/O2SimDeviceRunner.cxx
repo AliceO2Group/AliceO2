@@ -24,6 +24,11 @@
 #include <pthread.h> // to set cpu affinity
 #include <cmath>
 
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/filereadstream.h"
+
 namespace bpo = boost::program_options;
 
 void addCustomOptions(bpo::options_description& options)
@@ -114,7 +119,7 @@ int runSim(std::string transport, std::string primaddress, std::string mergeradd
   return 0;
 }
 
-void pinToCPU(int cpuid)
+void pinToCPU(unsigned int cpuid)
 {
 // MacOS does not support this API so we add a protection
 #ifndef __APPLE__
@@ -152,29 +157,75 @@ void pinToCPU(int cpuid)
 
 int main(int argc, char* argv[])
 {
+  // extract the path to FairMQ config
+  bpo::options_description desc{"Options"};
+  // clang-format off
+  desc.add_options()
+      ("control","control type")
+      ("id","ID")
+      ("config-key","config key")
+      ("mq-config",bpo::value<std::string>(),"path to FairMQ config")
+      ("severity","log severity");
+  // clang-format on
+  bpo::variables_map vm;
+  bpo::store(parse_command_line(argc, argv, desc), vm);
+  bpo::notify(vm);
+
+  std::string FMQconfig;
+  if (vm.count("mq-config")) {
+    FMQconfig = vm["mq-config"].as<std::string>();
+  }
+
   auto internalfork = getenv("ALICE_SIMFORKINTERNAL");
   if (internalfork) {
-    // retrieve published port numbers
-    auto serverportenv = getenv("ALICE_O2SIM_SERVERPORT");
-    if (!serverportenv) {
-      LOG(FATAL) << "NEED SERVER PORT PUBLISHED";
+    if (FMQconfig.empty()) {
+      throw std::runtime_error("This should never be called without FairMQ config.");
     }
-    auto mergerportenv = getenv("ALICE_O2SIM_MERGERPORT");
-    if (!mergerportenv) {
-      LOG(FATAL) << "NEED MERGER PORT PUBLISHED";
+    // read the JSON config
+    FILE* fp = fopen(FMQconfig.c_str(), "r");
+    constexpr unsigned short usmax = std::numeric_limits<unsigned short>::max() - 1;
+    char readBuffer[usmax];
+    rapidjson::FileReadStream is(fp, readBuffer, sizeof(readBuffer));
+    rapidjson::Document d;
+    d.ParseStream(is);
+    fclose(fp);
+    // retrieve correct server and merger URLs
+
+    std::string serveraddress;
+    std::string mergeraddress;
+    std::string s;
+
+    auto& options = d["fairMQOptions"];
+    assert(options.IsObject());
+    for (auto option = options.MemberBegin(); option != options.MemberEnd();
+         ++option) {
+      s = option->name.GetString();
+      if (s == "devices") {
+        assert(option->value.IsArray());
+        auto devices = option->value.GetArray();
+        for (auto& device : devices) {
+          s = device["id"].GetString();
+          if (s == "primary-server") {
+            auto channels = device["channels"].GetArray();
+            auto sockets = (channels[0])["sockets"].GetArray();
+            auto address = (sockets[0])["address"].GetString();
+            serveraddress = address;
+          }
+          if (s == "hitmerger") {
+            auto channels = device["channels"].GetArray();
+            auto sockets = (channels[1])["sockets"].GetArray();
+            auto address = (sockets[0])["address"].GetString();
+            mergeraddress = address;
+          }
+        }
+      }
     }
 
-    std::string serveraddress("tcp://localhost:" + std::string(serverportenv));
-    std::string mergeraddress("tcp://localhost:" + std::string(mergerportenv));
-    auto host = getenv("ALICE_SIMMAINHOST");
-    if (host) {
-      // argv[1] is supposed to be an IP address or hostname
-      serveraddress = "tcp://" + std::string(host) + ":" + std::string(serverportenv);
-      mergeraddress = "tcp://" + std::string(host) + ":" + std::string(mergerportenv);
+    LOG(INFO) << serveraddress << "\n";
+    LOG(INFO) << mergeraddress << "\n";
+    if (serveraddress.empty() || mergeraddress.empty()) {
+      throw std::runtime_error("Could not determine server or merger URLs.");
     }
-    LOG(INFO) << serveraddress;
-    LOG(INFO) << mergeraddress;
-
     // This is a solution based on initializing the simulation once
     // and then fork the process to share the simulation memory across
     // many processes. Here we are not using FairMQDevices and just setup
@@ -189,15 +240,15 @@ int main(int argc, char* argv[])
     }
 
     // should be factored out?
-    int nworkers = std::max(1u, std::thread::hardware_concurrency() / 2);
+    unsigned int nworkers = std::max(1u, std::thread::hardware_concurrency() / 2);
     auto f = getenv("ALICE_NSIMWORKERS");
     if (f) {
-      nworkers = atoi(f);
+      nworkers = static_cast<unsigned int>(std::stoi(f));
     }
     LOG(INFO) << "Running with " << nworkers << " sim workers ";
 
     // then we fork and create a device in each fork
-    for (int i = 0; i < nworkers; ++i) {
+    for (auto i = 0u; i < nworkers; ++i) {
       // we use the current process as one of the workers as it has nothing else to do
       auto pid = (i == nworkers - 1) ? 0 : fork();
       if (pid == 0) {

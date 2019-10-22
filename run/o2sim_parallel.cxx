@@ -29,9 +29,9 @@
 #include "Framework/FreePortFinder.h"
 #include <sys/types.h>
 
-const char* serverlogname = "serverlog";
-const char* workerlogname = "workerlog";
-const char* mergerlogname = "mergerlog";
+static const char* serverlogname = "serverlog";
+static const char* workerlogname = "workerlog";
+static const char* mergerlogname = "mergerlog";
 
 void cleanup()
 {
@@ -186,7 +186,7 @@ int main(int argc, char* argv[])
   if (system(cpcmd.str().c_str()) != 0) {
     LOG(WARN) << "error executing system call";
   }
-  updatePorts(localconfig.c_str());
+  //  updatePorts(localconfig.c_str());
 
   auto& conf = o2::conf::SimConfig::Instance();
   if (!conf.resetFromArguments(argc, argv)) {
@@ -269,6 +269,8 @@ int main(int argc, char* argv[])
     }
     std::cerr << "$$$$\n";
     auto r = execv(path.c_str(), (char* const*)arguments);
+    LOG(INFO) << "Starting the server"
+              << "\n";
     if (r != 0) {
       perror(nullptr);
     }
