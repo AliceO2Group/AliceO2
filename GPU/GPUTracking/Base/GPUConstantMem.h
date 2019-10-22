@@ -18,13 +18,10 @@
 #include "GPUParam.h"
 #include "GPUDataTypes.h"
 
+// Dummies for stuff not supported in legacy code (ROOT 5 / OPENCL1.2)
 #if defined(GPUCA_NOCOMPAT_ALLCINT) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB))
-#include "GPUTPCConvert.h"
-#include "GPUTPCCompression.h"
 #include "GPUTPCGMMerger.h"
-#include "GPUITSFitter.h"
 #include "GPUTRDTracker.h"
-#include "GPUTPCClusterFinder.h"
 #else
 namespace GPUCA_NAMESPACE
 {
@@ -33,24 +30,22 @@ namespace gpu
 class GPUTPCGMMerger
 {
 };
-class GPUITSFitter
-{
-};
 class GPUTRDTracker
 {
   void SetMaxData(const GPUTrackingInOutPointers& io) {}
 };
-class GPUTPCConvert
-{
-};
-class GPUTPCCompression
-{
-};
-class GPUTPCClusterFinder
-{
-};
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
+#endif
+
+// Dummies for stuff not suppored in legacy code, or for what requires O2 headers while not available
+#if defined(GPUCA_NOCOMPAT_ALLCINT) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB)) && defined(HAVE_O2HEADERS)
+#include "GPUTPCConvert.h"
+#include "GPUTPCCompression.h"
+#include "GPUITSFitter.h"
+#include "GPUTPCClusterFinder.h"
+#else
+#include "GPUO2FakeClasses.h"
 #endif
 
 namespace GPUCA_NAMESPACE
