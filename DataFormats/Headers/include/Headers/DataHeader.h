@@ -462,7 +462,7 @@ struct BaseHeader {
   }
 
   constexpr uint32_t size() const noexcept { return headerSize; }
-  constexpr const o2::byte* data() const noexcept { return reinterpret_cast<const o2::byte*>(this); }
+  inline const o2::byte* data() const noexcept { return reinterpret_cast<const o2::byte*>(this); }
 
   /// get the next header if any (const version)
   inline const BaseHeader* next() const noexcept
@@ -572,6 +572,45 @@ struct printDataOrigin {
 using DataOrigin = Descriptor<gSizeDataOriginString, printDataOrigin>;
 
 //__________________________________________________________________________________________________
+/// @defgroup data_description_defines Defines for data description
+/// @ingroup aliceo2_dataformats_dataheader
+/// @{
+
+//__________________________________________________________________________________________________
+//possible data origins
+constexpr o2::header::DataOrigin gDataOriginAny{"***"};
+constexpr o2::header::DataOrigin gDataOriginInvalid{"NIL"};
+constexpr o2::header::DataOrigin gDataOriginFLP{"FLP"};
+constexpr o2::header::DataOrigin gDataOriginACO{"ACO"};
+constexpr o2::header::DataOrigin gDataOriginCPV{"CPV"};
+constexpr o2::header::DataOrigin gDataOriginCTP{"CTP"};
+constexpr o2::header::DataOrigin gDataOriginEMC{"EMC"};
+constexpr o2::header::DataOrigin gDataOriginFT0{"FT0"};
+constexpr o2::header::DataOrigin gDataOriginFV0{"FV0"};
+constexpr o2::header::DataOrigin gDataOriginFDD{"FDD"};
+constexpr o2::header::DataOrigin gDataOriginHMP{"HMP"};
+constexpr o2::header::DataOrigin gDataOriginITS{"ITS"};
+constexpr o2::header::DataOrigin gDataOriginMCH{"MCH"};
+constexpr o2::header::DataOrigin gDataOriginMFT{"MFT"};
+constexpr o2::header::DataOrigin gDataOriginMID{"MID"};
+constexpr o2::header::DataOrigin gDataOriginPHS{"PHS"};
+constexpr o2::header::DataOrigin gDataOriginTOF{"TOF"};
+constexpr o2::header::DataOrigin gDataOriginTPC{"TPC"};
+constexpr o2::header::DataOrigin gDataOriginTRD{"TRD"};
+constexpr o2::header::DataOrigin gDataOriginZDC{"ZDC"};
+
+//possible data types
+constexpr o2::header::DataDescription gDataDescriptionAny{"***************"};
+constexpr o2::header::DataDescription gDataDescriptionInvalid{"INVALID_DESC"};
+constexpr o2::header::DataDescription gDataDescriptionRawData{"RAWDATA"};
+constexpr o2::header::DataDescription gDataDescriptionClusters{"CLUSTERS"};
+constexpr o2::header::DataDescription gDataDescriptionTracks{"TRACKS"};
+constexpr o2::header::DataDescription gDataDescriptionConfig{"CONFIGURATION"};
+constexpr o2::header::DataDescription gDataDescriptionInfo{"INFORMATION"};
+constexpr o2::header::DataDescription gDataDescriptionROOTStreamers{"ROOT STREAMERS"};
+/// @} // end of doxygen group
+
+//__________________________________________________________________________________________________
 /// @struct DataHeader
 /// @brief the main header struct
 ///
@@ -591,9 +630,9 @@ struct DataHeader : public BaseHeader {
   using PayloadSizeType = uint64_t;
 
   //static data for this header type/version
-  static const uint32_t sVersion;
-  static const o2::header::HeaderType sHeaderType;
-  static const o2::header::SerializationMethod sSerializationMethod;
+  static constexpr uint32_t sVersion{1};
+  static constexpr o2::header::HeaderType sHeaderType{String2<uint64_t>("DataHead")};
+  static constexpr o2::header::SerializationMethod sSerializationMethod{gSerializationMethodNone};
 
   ///
   /// data type descriptor
@@ -634,9 +673,45 @@ struct DataHeader : public BaseHeader {
   //___NEW STUFF GOES BELOW
 
   //___the functions:
-  DataHeader();                                                                                                  ///ctor
-  explicit DataHeader(DataDescription desc, DataOrigin origin, SubSpecificationType subspec, PayloadSizeType size = 0); /// ctor
-  explicit DataHeader(DataDescription desc, DataOrigin origin, SubSpecificationType subspec, PayloadSizeType size, SplitPayloadIndexType payloadIndex, SplitPayloadPartsType payloadParts);
+  //__________________________________________________________________________________________________
+  constexpr DataHeader()
+    : BaseHeader(sizeof(DataHeader), sHeaderType, sSerializationMethod, sVersion),
+      dataDescription(gDataDescriptionInvalid),
+      dataOrigin(gDataOriginInvalid),
+      splitPayloadParts(1),
+      payloadSerializationMethod(gSerializationMethodInvalid),
+      subSpecification(0),
+      splitPayloadIndex(0),
+      payloadSize(0)
+  {
+  }
+
+  //__________________________________________________________________________________________________
+  constexpr explicit DataHeader(DataDescription desc, DataOrigin origin, SubSpecificationType subspec, PayloadSizeType size = 0)
+    : BaseHeader(sizeof(DataHeader), sHeaderType, sSerializationMethod, sVersion),
+      dataDescription(desc),
+      dataOrigin(origin),
+      splitPayloadParts(1),
+      payloadSerializationMethod(gSerializationMethodInvalid),
+      subSpecification(subspec),
+      splitPayloadIndex(0),
+      payloadSize(size)
+  {
+  }
+
+  //__________________________________________________________________________________________________
+  constexpr explicit DataHeader(DataDescription desc, DataOrigin origin, SubSpecificationType subspec, PayloadSizeType size, SplitPayloadIndexType partIndex, SplitPayloadPartsType parts)
+    : BaseHeader(sizeof(DataHeader), sHeaderType, sSerializationMethod, sVersion),
+      dataDescription(desc),
+      dataOrigin(origin),
+      splitPayloadParts(parts),
+      payloadSerializationMethod(gSerializationMethodInvalid),
+      subSpecification(subspec),
+      splitPayloadIndex(partIndex),
+      payloadSize(size)
+  {
+  }
+
   DataHeader(const DataHeader&) = default;
   DataHeader& operator=(const DataHeader&) = default; //assignment
 
@@ -651,45 +726,6 @@ struct DataHeader : public BaseHeader {
     return (baseHeader->description == DataHeader::sHeaderType) ? static_cast<const DataHeader*>(baseHeader) : nullptr;
   }
 };
-
-//__________________________________________________________________________________________________
-/// @defgroup data_description_defines Defines for data description
-/// @ingroup aliceo2_dataformats_dataheader
-/// @{
-
-//__________________________________________________________________________________________________
-//possible data origins
-constexpr o2::header::DataOrigin gDataOriginAny{"***"};
-constexpr o2::header::DataOrigin gDataOriginInvalid{"NIL"};
-constexpr o2::header::DataOrigin gDataOriginFLP{"FLP"};
-constexpr o2::header::DataOrigin gDataOriginACO{"ACO"};
-constexpr o2::header::DataOrigin gDataOriginCPV{"CPV"};
-constexpr o2::header::DataOrigin gDataOriginCTP{"CTP"};
-constexpr o2::header::DataOrigin gDataOriginEMC{"EMC"};
-constexpr o2::header::DataOrigin gDataOriginFT0{"FT0"};
-constexpr o2::header::DataOrigin gDataOriginFV0{"FV0"};
-constexpr o2::header::DataOrigin gDataOriginFDD{"FDD"};
-constexpr o2::header::DataOrigin gDataOriginHMP{"HMP"};
-constexpr o2::header::DataOrigin gDataOriginITS{"ITS"};
-constexpr o2::header::DataOrigin gDataOriginMCH{"MCH"};
-constexpr o2::header::DataOrigin gDataOriginMFT{"MFT"};
-constexpr o2::header::DataOrigin gDataOriginMID{"MID"};
-constexpr o2::header::DataOrigin gDataOriginPHS{"PHS"};
-constexpr o2::header::DataOrigin gDataOriginTOF{"TOF"};
-constexpr o2::header::DataOrigin gDataOriginTPC{"TPC"};
-constexpr o2::header::DataOrigin gDataOriginTRD{"TRD"};
-constexpr o2::header::DataOrigin gDataOriginZDC{"ZDC"};
-
-//possible data types
-constexpr o2::header::DataDescription gDataDescriptionAny{"***************"};
-constexpr o2::header::DataDescription gDataDescriptionInvalid{"INVALID_DESC"};
-constexpr o2::header::DataDescription gDataDescriptionRawData{"RAWDATA"};
-constexpr o2::header::DataDescription gDataDescriptionClusters{"CLUSTERS"};
-constexpr o2::header::DataDescription gDataDescriptionTracks{"TRACKS"};
-constexpr o2::header::DataDescription gDataDescriptionConfig{"CONFIGURATION"};
-constexpr o2::header::DataDescription gDataDescriptionInfo{"INFORMATION"};
-constexpr o2::header::DataDescription gDataDescriptionROOTStreamers{"ROOT STREAMERS"};
-/// @} // end of doxygen group
 
 //__________________________________________________________________________________________________
 /// @struct DataIdentifier
