@@ -19,46 +19,7 @@
 #include "DetectorsBase/MatLayerCylSet.h"
 #include "TRDBase/TRDGeometryFlat.h"
 #else
-namespace o2
-{
-namespace tpc
-{
-struct ClusterNative {
-  GPUd() static float getTime() { return 0.f; }
-  GPUd() static float getPad() { return 0.f; }
-  GPUd() static int getFlags() { return 0; }
-  GPUd() static void setTimeFlags(float t, int f) {}
-  GPUd() static void setPad(float p) {}
-  GPUd() static void setSigmaTime(float s) {}
-  GPUd() static void setSigmaPad(float s) {}
-
-  unsigned char qTot, qMax;
-};
-struct ClusterNativeAccess {
-  const ClusterNative* clustersLinear;
-  const ClusterNative* clusters[GPUCA_NSLICES][GPUCA_ROW_COUNT];
-  unsigned int nClusters[GPUCA_NSLICES][GPUCA_ROW_COUNT];
-  unsigned int nClustersSector[GPUCA_NSLICES];
-  unsigned int clusterOffset[GPUCA_NSLICES][GPUCA_ROW_COUNT];
-  unsigned int nClustersTotal;
-  void setOffsetPtrs() {}
-};
-} // namespace tpc
-namespace base
-{
-struct MatBudget {
-};
-class MatLayerCylSet
-{
-};
-} // namespace base
-namespace trd
-{
-class TRDGeometryFlat
-{
-};
-} // namespace trd
-} // namespace o2
+#include "GPUO2FakeClasses.h"
 #endif
 
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
