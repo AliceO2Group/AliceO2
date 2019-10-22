@@ -33,6 +33,11 @@ class GPUTPCCompressionKernels : public GPUKernelTemplate
  public:
   GPUhdi() static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::TPCCompression; }
 
+  enum K : int {
+    step0attached = 0,
+    step1unattached = 1
+  };
+
   struct GPUTPCSharedMemory {
 #if !defined(GPUCA_GPUCODE)
     GPUTPCSharedMemory() : nCount(0)

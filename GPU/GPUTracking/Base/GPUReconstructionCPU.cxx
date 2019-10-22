@@ -52,8 +52,10 @@ GPUReconstructionCPU::~GPUReconstructionCPU()
 }
 
 template <class T, int I, typename... Args>
-int GPUReconstructionCPUBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
+int GPUReconstructionCPUBackend::runKernelBackend(krnlSetup& _xyz, const Args&... args)
 {
+  auto& x = _xyz.x;
+  auto& y = _xyz.y;
   if (x.device == krnlDeviceType::Device) {
     throw std::runtime_error("Cannot run device kernel on host");
   }

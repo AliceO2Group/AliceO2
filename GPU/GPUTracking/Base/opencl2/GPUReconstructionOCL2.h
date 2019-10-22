@@ -35,7 +35,7 @@ class GPUReconstructionOCL2Backend : public GPUReconstructionOCL
   GPUReconstructionOCL2Backend(const GPUSettingsProcessing& cfg);
 
   template <class T, int I = 0, typename... Args>
-  int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args);
+  int runKernelBackend(krnlSetup& _xyz, const Args&... args);
   template <class S, class T, int I = 0>
   S& getKernelObject(int num);
 

@@ -21,6 +21,7 @@
 #include "utils/timer.h"
 #include <vector>
 
+#include "GPUDefMacros.h"
 #include "GPUGeneralKernels.h"
 #include "GPUTPCNeighboursFinder.h"
 #include "GPUTPCNeighboursCleaner.h"
@@ -49,22 +50,55 @@ class GPUReconstructionCPUBackend : public GPUReconstruction
  protected:
   GPUReconstructionCPUBackend(const GPUSettingsProcessing& cfg) : GPUReconstruction(cfg) {}
   template <class T, int I = 0, typename... Args>
-  int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args);
+  int runKernelBackend(krnlSetup& _xyz, const Args&... args);
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
 
+#define GPUCA_M_KRNL_TEMPLATE_B(a, b, ...) a, a::b
+#define GPUCA_M_KRNL_TEMPLATE_A(...) GPUCA_M_KRNL_TEMPLATE_B(__VA_ARGS__, defaultKernel)
+#define GPUCA_M_KRNL_TEMPLATE(...) GPUCA_M_KRNL_TEMPLATE_A(GPUCA_M_STRIP(__VA_ARGS__))
+
+template <class T>
+class GPUReconstructionKernels : public T
+{
+ public:
+  using krnlSetup = GPUReconstruction::krnlSetup;
+  template <class X, int Y = 0>
+  using classArgument = GPUReconstruction::classArgument<X, Y>;
+  virtual ~GPUReconstructionKernels() = default; // NOLINT: Do not declare override in template class! AMD hcc will not create the destructor otherwise.
+  GPUReconstructionKernels(const GPUSettingsProcessing& cfg) : T(cfg) {}
+
+ protected:
+#define GPUCA_KRNL(class, attributes, arguments, forward)                                                          \
+  virtual int runKernelImpl(classArgument<GPUCA_M_KRNL_TEMPLATE(class)>, krnlSetup& _xyz GPUCA_M_STRIP(arguments)) \
+  {                                                                                                                \
+    return T::template runKernelBackend<GPUCA_M_KRNL_TEMPLATE(class)>(_xyz GPUCA_M_STRIP(forward));                \
+  }
 #include "GPUReconstructionKernels.h"
+#undef GPUCA_KRNL
+};
+
 #ifndef GPUCA_GPURECONSTRUCTIONCPU_IMPLEMENTATION
-#define GPUCA_GPURECONSTRUCTIONCPU_DECLONLY
-#undef GPURECONSTRUCTIONKERNELS_H
-#include "GPUReconstructionKernels.h"
-#endif
+// Hide the body for all files but GPUReconstructionCPU.cxx, otherwise we get weird symbol clashes when the compiler inlines
+template <>
+class GPUReconstructionKernels<GPUReconstructionCPUBackend> : public GPUReconstructionCPUBackend
+{
+ public:
+  using krnlSetup = GPUReconstruction::krnlSetup;
+  template <class X, int Y = 0>
+  using classArgument = GPUReconstruction::classArgument<X, Y>;
+  virtual ~GPUReconstructionKernels() = default; // NOLINT: Do not declare override in template class! AMD hcc will not create the destructor otherwise.
+  GPUReconstructionKernels(const GPUSettingsProcessing& cfg) : GPUReconstructionCPUBackend(cfg) {}
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
-{
+ protected:
+#define GPUCA_KRNL(class, attributes, arguments, forward) virtual int runKernelImpl(classArgument<GPUCA_M_KRNL_TEMPLATE(class)>, krnlSetup& _xyz GPUCA_M_STRIP(arguments));
+#include "GPUReconstructionKernels.h"
+#undef GPUCA_KRNL
+};
+#endif
+#undef GPUCA_M_KRNL_TEMPLATE
+#undef GPUCA_M_KRNL_TEMPLATE_A
+#undef GPUCA_M_KRNL_TEMPLATE_B
+
 class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCPUBackend>
 {
   friend class GPUReconstruction;
@@ -98,12 +132,13 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
     if (t && mDeviceProcessingSettings.debugLevel) {
       t->Start();
     }
+    krnlSetup setup{x, y, z, 0.};
     if (cpuFallback) {
-      if (GPUReconstructionCPU::runKernelImpl(classArgument<S, I>(), x, y, z, args...)) {
+      if (GPUReconstructionCPU::runKernelImpl(classArgument<S, I>(), setup, args...)) {
         return 1;
       }
     } else {
-      if (runKernelImpl(classArgument<S, I>(), x, y, z, args...)) {
+      if (runKernelImpl(classArgument<S, I>(), setup, args...)) {
         return 1;
       }
     }

@@ -35,9 +35,6 @@ extern "C" unsigned int _makefile_opencl_program_Base_opencl_GPUReconstructionOC
 extern "C" char _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_src[];
 extern "C" unsigned int _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_src_size;
 
-#define MSTR(a) #a
-#define MXSTR(a) MSTR(a)
-
 GPUReconstruction* GPUReconstruction_Create_OCL2(const GPUSettingsProcessing& cfg) { return new GPUReconstructionOCL2(cfg); }
 
 GPUReconstructionOCL2Backend::GPUReconstructionOCL2Backend(const GPUSettingsProcessing& cfg) : GPUReconstructionOCL(cfg)
@@ -45,8 +42,11 @@ GPUReconstructionOCL2Backend::GPUReconstructionOCL2Backend(const GPUSettingsProc
 }
 
 template <class T, int I, typename... Args>
-int GPUReconstructionOCL2Backend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
+int GPUReconstructionOCL2Backend::runKernelBackend(krnlSetup& _xyz, const Args&... args)
 {
+  auto& x = _xyz.x;
+  auto& y = _xyz.y;
+  auto& z = _xyz.z;
   cl_kernel k = getKernelObject<cl_kernel, T, I>(y.num);
   if (y.num == -1) {
     if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, args...)) {
@@ -110,7 +110,7 @@ int GPUReconstructionOCL2Backend::GetOCLPrograms()
     return 1;
   }
 
-  if (GPUFailedMsgI(clBuildProgram(mInternals->program, 1, &mInternals->device, MXSTR(OCL_FLAGS), NULL, NULL))) {
+  if (GPUFailedMsgI(clBuildProgram(mInternals->program, 1, &mInternals->device, GPUCA_M_STR(OCL_FLAGS), NULL, NULL))) {
     cl_build_status status;
     if (GPUFailedMsgI(clGetProgramBuildInfo(mInternals->program, mInternals->device, CL_PROGRAM_BUILD_STATUS, sizeof(status), &status, nullptr)) == 0 && status == CL_BUILD_ERROR) {
       size_t log_size;

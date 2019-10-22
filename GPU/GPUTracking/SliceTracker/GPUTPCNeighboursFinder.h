@@ -30,7 +30,7 @@ class GPUTPCTracker;
  * @class GPUTPCNeighboursFinder
  *
  */
-class GPUTPCNeighboursFinder
+class GPUTPCNeighboursFinder : public GPUKernelTemplate
 {
  public:
   MEM_CLASS_PRE()

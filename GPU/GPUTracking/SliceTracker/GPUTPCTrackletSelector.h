@@ -30,7 +30,7 @@ class GPUTPCTracker;
  * @class GPUTPCTrackletSelector
  *
  */
-class GPUTPCTrackletSelector
+class GPUTPCTrackletSelector : public GPUKernelTemplate
 {
  public:
   MEM_CLASS_PRE()

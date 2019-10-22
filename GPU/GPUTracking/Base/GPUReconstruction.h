@@ -211,6 +211,13 @@ class GPUReconstruction
   virtual int ExitDevice() = 0;
   virtual void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
 
+  struct krnlSetup {
+    krnlExec x;
+    krnlRunRange y;
+    krnlEvent z;
+    double t;
+  };
+
   // Management for GPU thread contexts
   class GPUThreadContext
   {
