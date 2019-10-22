@@ -58,10 +58,10 @@ DataDescriptorMatcher fromConcreteMatcher(ConcreteDataMatcher const& matcher)
     StartTimeValueMatcher{ContextRef{0}},
     std::make_unique<DataDescriptorMatcher>(
       DataDescriptorMatcher::Op::And,
-      OriginValueMatcher{matcher.origin.str},
+      OriginValueMatcher{matcher.origin.as<std::string>()},
       std::make_unique<DataDescriptorMatcher>(
         DataDescriptorMatcher::Op::And,
-        DescriptionValueMatcher{matcher.description.str},
+        DescriptionValueMatcher{matcher.description.as<std::string>()},
         std::make_unique<DataDescriptorMatcher>(
           DataDescriptorMatcher::Op::Just,
           SubSpecificationTypeValueMatcher{matcher.subSpec})))};
