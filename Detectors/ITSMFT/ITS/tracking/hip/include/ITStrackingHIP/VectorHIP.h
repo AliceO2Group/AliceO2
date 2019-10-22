@@ -50,7 +50,7 @@ class VectorHIP final
 
   int getSizeFromDevice() const;
 
-  GPUh() T getElementFromDevice(const int) const;
+  T getElementFromDevice(const int) const;
 
   void resize(const int);
   void reset(const int, const int = 0);
@@ -61,9 +61,9 @@ class VectorHIP final
   GPUhd() T* get() const;
   GPUhd() int capacity() const;
   GPUhd() VectorHIP<T> getWeakCopy() const;
-  GPUd() T& operator[](const int) const;
+  GPUhd() T& operator[](const int) const;
 
-  GPUd() int size() const;
+  GPUhd() int size() const;
   GPUd() int extend(const int) const;
   GPUhd() void dump();
 
@@ -281,13 +281,13 @@ GPUhd() VectorHIP<T> VectorHIP<T>::getWeakCopy() const
 }
 
 template <typename T>
-GPUd() T& VectorHIP<T>::operator[](const int index) const
+GPUhd() T& VectorHIP<T>::operator[](const int index) const
 {
   return mArrayPointer[index];
 }
 
 template <typename T>
-GPUh() T VectorHIP<T>::getElementFromDevice(const int index) const
+T VectorHIP<T>::getElementFromDevice(const int index) const
 {
   T element;
   Utils::HostHIP::gpuMemcpyDeviceToHost(&element, mArrayPointer + index, sizeof(T));
@@ -296,7 +296,7 @@ GPUh() T VectorHIP<T>::getElementFromDevice(const int index) const
 }
 
 template <typename T>
-GPUd() int VectorHIP<T>::size() const
+GPUhd() int VectorHIP<T>::size() const
 {
   return *mDeviceSize;
 }
