@@ -30,10 +30,12 @@
 #include "GPUTPCTrackletSelector.h"
 #include "GPUTPCGMMergerGPU.h"
 #include "GPUTRDTrackerGPU.h"
+#ifdef HAVE_O2HEADERS
 #include "GPUITSFitterKernels.h"
 #include "GPUTPCConvertKernel.h"
 #include "GPUTPCCompressionKernels.h"
 #include "GPUTPCClusterFinderKernels.h"
+#endif
 
 namespace GPUCA_NAMESPACE
 {

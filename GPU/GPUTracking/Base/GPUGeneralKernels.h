@@ -17,6 +17,7 @@
 #include "GPUDef.h"
 #include "GPUDataTypes.h"
 
+#ifdef GPUCA_GPUCODE
 #ifdef __CUDACC__
 #include <cub/cub.cuh>
 #define GPUCA_CUB cub
@@ -24,6 +25,7 @@
 #ifdef __HIPCC__
 #include <hipcub/hipcub.hpp>
 #define GPUCA_CUB hipcub
+#endif
 #endif
 
 namespace GPUCA_NAMESPACE
@@ -43,7 +45,7 @@ class GPUKernelTemplate
   template <class T, int I>
   struct GPUTPCSharedMemoryScan64 {
     // Provides the shared memory resources for CUB collectives
-#if defined(__CUDACC__) || defined(__HIPCC__)
+#if (defined(__CUDACC__) || defined(__HIPCC__)) && defined(GPUCA_GPUCODE)
     typedef GPUCA_CUB::BlockScan<T, I> BlockScan;
     union {
       typename BlockScan::TempStorage cubTmpMem;

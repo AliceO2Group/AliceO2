@@ -97,19 +97,21 @@ include_directories(${CMAKE_SOURCE_DIR}
                     ${CMAKE_SOURCE_DIR}/Base
                     ${CMAKE_SOURCE_DIR}/Base/opencl-common
                     ${CMAKE_SOURCE_DIR}/Common
-                    ${CMAKE_SOURCE_DIR}/DataCompression
                     ${CMAKE_SOURCE_DIR}/dEdx
+                    ${CMAKE_SOURCE_DIR}/TPCConvert
+                    ${CMAKE_SOURCE_DIR}/TPCFastTransformation
                     ${CMAKE_SOURCE_DIR}/display
                     ${CMAKE_SOURCE_DIR}/Global
                     ${CMAKE_SOURCE_DIR}/HLTHeaders
-                    ${CMAKE_SOURCE_DIR}/ITS
                     ${CMAKE_SOURCE_DIR}/Merger
                     ${CMAKE_SOURCE_DIR}/qa
                     ${CMAKE_SOURCE_DIR}/SliceTracker
-                    ${CMAKE_SOURCE_DIR}/TPCConvert
-                    ${CMAKE_SOURCE_DIR}/TPCFastTransformation
-                    ${CMAKE_SOURCE_DIR}/TRDTracking
-                    ${CMAKE_SOURCE_DIR}/gpucf
+                    ${CMAKE_SOURCE_DIR}/TRDTracking)
+
+if(CONFIG_ROOT_AND_O2_EXTENSIONS)
+include_directories(${CMAKE_SOURCE_DIR}/gpucf
+                    ${CMAKE_SOURCE_DIR}/ITS
+                    ${CMAKE_SOURCE_DIR}/DataCompression
                     ${CMAKE_SOURCE_DIR}/../../../Common/Constants/include
                     ${CMAKE_SOURCE_DIR}/../../../Common/MathUtils/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/common/include
@@ -126,6 +128,7 @@ include_directories(${CMAKE_SOURCE_DIR}
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TPC/base/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TRD/base/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TRD/base/src)
+endif()
 
 # Create main targets
 add_executable(ca standalone.cxx
