@@ -204,7 +204,7 @@ void killChildren(std::vector<DeviceInfo>& infos, int sig)
 bool areAllChildrenGone(std::vector<DeviceInfo>& infos)
 {
   for (auto& info : infos) {
-    if (info.active) {
+    if ((info.pid != 0) && info.active) {
       return false;
     }
   }
@@ -936,7 +936,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                             driverControl.defaultStopped,
                                             dataProcessorInfos,
                                             deviceSpecs,
-                                            deviceExecutions, controls);
+                                            deviceExecutions, controls,
+                                            driverInfo.uniqueWorkflowId);
 
         std::ostringstream forwardedStdin;
         WorkflowSerializationHelpers::dump(forwardedStdin, workflow, dataProcessorInfos);
