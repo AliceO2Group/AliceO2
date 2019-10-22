@@ -27,6 +27,7 @@
 #include "Framework/OutputRoute.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ComputingResource.h"
+#include "Framework/Logger.h"
 
 #include "WorkflowHelpers.h"
 
@@ -625,7 +626,8 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workf
                                                        std::vector<CompletionPolicy> const& completionPolicies,
                                                        std::vector<DispatchPolicy> const& dispatchPolicies,
                                                        std::vector<DeviceSpec>& devices,
-                                                       ResourceManager& resourceManager)
+                                                       ResourceManager& resourceManager,
+                                                       std::string const& uniqueWorkflowId)
 {
 
   std::vector<LogicalForwardInfo> availableForwardsInfo;
@@ -701,6 +703,40 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(WorkflowSpec const& workf
       }
     }
   }
+
+  auto findDeviceIndex = [&deviceIndex](size_t processorIndex, size_t timeslice) {
+    for (auto& deviceEdge : deviceIndex) {
+      if (deviceEdge.processorIndex != processorIndex) {
+        continue;
+      }
+      if (deviceEdge.timeslice != timeslice) {
+        continue;
+      }
+      return deviceEdge.deviceIndex;
+    }
+    throw std::runtime_error("Unable to find device.");
+  };
+
+  // Optimize the topology when two devices are
+  // running on the same node.
+  for (auto& connection : connections) {
+    auto& device1 = devices[findDeviceIndex(connection.consumer, connection.timeIndex)];
+    auto& device2 = devices[findDeviceIndex(connection.producer, connection.producerTimeIndex)];
+    // No need to do anything if they are not on the same host
+    if (device1.resource.hostname != device2.resource.hostname) {
+      continue;
+    }
+    for (auto& input : device1.inputChannels) {
+      for (auto& output : device2.outputChannels) {
+        if (input.hostname == output.hostname && input.port == output.port) {
+          input.protocol = ChannelProtocol::IPC;
+          output.protocol = ChannelProtocol::IPC;
+          input.hostname += uniqueWorkflowId;
+          output.hostname += uniqueWorkflowId;
+        }
+      }
+    }
+  }
 }
 
 void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
@@ -756,8 +792,11 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     // FIXME: add some checksum in framework id. We could use this
     //        to avoid redeploys when only a portion of the workflow is changed.
     // FIXME: this should probably be done in one go with char *, but I am lazy.
-    std::vector<std::string> tmpArgs = {argv[0], "--id", spec.id.c_str(), "--control", "static",
-                                        "--log-color", "false", "--color", "false"};
+    std::vector<std::string> tmpArgs = {argv[0],
+                                        "--id", spec.id.c_str(),
+                                        "--control", "static",
+                                        "--log-color", "false",
+                                        "--color", "false"};
     if (defaultStopped) {
       tmpArgs.push_back("-s");
     }
@@ -802,6 +841,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         bpo::options_description realOdesc = odesc;
         realOdesc.add_options()("child-driver", bpo::value<std::string>());
         realOdesc.add_options()("rate", bpo::value<std::string>());
+        realOdesc.add_options()("shm-segment-size", bpo::value<std::string>());
         filterArgsFct(expansions.we_wordc, expansions.we_wordv, realOdesc);
         wordfree(&expansions);
         return;
@@ -871,6 +911,9 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     // FIXME: this should probably be reflected in the GUI
     std::ostringstream str;
     for (size_t ai = 0; ai < execution.args.size() - 1; ai++) {
+      if (execution.args[ai] == nullptr) {
+        LOG(ERROR) << "Bad argument for " << execution.args[ai - 1];
+      }
       assert(execution.args[ai]);
       str << " " << execution.args[ai];
     }
@@ -889,6 +932,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("plugin-search-path,S", bpo::value<std::string>(), "FairMQ plugins search path")                           //
     ("control-port", bpo::value<std::string>(), "Utility port to be used by O2 Control")                        //
     ("rate", bpo::value<std::string>(), "rate for a data source device (Hz)")                                   //
+    ("shm-segment-size", bpo::value<std::string>(), "size of the shared memory segment in bytes")               //
     ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                           //
     ("infologger-mode", bpo::value<std::string>(), "INFOLOGGER_MODE override")                                  //
     ("infologger-severity", bpo::value<std::string>(), "minimun FairLogger severity which goes to info logger") //

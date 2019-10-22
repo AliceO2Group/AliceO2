@@ -132,14 +132,14 @@ BOOST_AUTO_TEST_CASE(test_prepareArguments)
 
   std::vector<DeviceSpec> deviceSpecs;
 
-  std::vector<ComputingResource> resources = {ComputingResourceHelpers::getLocalhostResource(22000, 1000)};
+  std::vector<ComputingResource> resources = {ComputingResourceHelpers::getLocalhostResource()};
   auto rm = std::make_unique<SimpleResourceManager>(resources);
 
   DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow,
                                                     ChannelConfigurationPolicy::createDefaultPolicies(),
                                                     CompletionPolicy::createDefaultPolicies(),
                                                     deviceSpecs,
-                                                    *rm);
+                                                    *rm, "workflow-id");
 
   // Now doing the test cases
   CheckMatrix matrix;

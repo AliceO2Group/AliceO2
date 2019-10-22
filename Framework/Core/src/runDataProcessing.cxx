@@ -28,7 +28,6 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceState.h"
 #include "Framework/FrameworkGUIDebugger.h"
-#include "Framework/FreePortFinder.h"
 #include "Framework/LocalRootFileService.h"
 #include "Framework/LogParsingHelpers.h"
 #include "Framework/Logger.h"
@@ -271,6 +270,31 @@ static void handle_sigint(int)
 
 static void handle_sigchld(int) { sigchld_requested = true; }
 
+void spawnRemoteDevice(std::string const& forwardedStdin,
+                       DeviceSpec const& spec,
+                       std::map<int, size_t>& socket2DeviceInfo,
+                       DeviceControl& control,
+                       DeviceExecution& execution,
+                       std::vector<DeviceInfo>& deviceInfos,
+                       int& maxFd, fd_set& childFdset)
+{
+  LOG(INFO) << "Starting " << spec.id << " as remote device";
+  DeviceInfo info;
+  // FIXME: we should make sure we do not sent a kill to pid 0.
+  info.pid = 0;
+  info.active = true;
+  info.readyToQuit = false;
+  info.historySize = 1000;
+  info.historyPos = 0;
+  info.maxLogLevel = LogParsingHelpers::LogLevel::Debug;
+  info.dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}};
+  info.variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}};
+  info.queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}};
+
+  deviceInfos.emplace_back(info);
+  // Let's add also metrics information for the given device
+  gDeviceMetricsInfos.emplace_back(DeviceMetricsInfo{});
+}
 /// This will start a new device by forking and executing a
 /// new child
 void spawnDevice(std::string const& forwardedStdin,
@@ -732,8 +756,13 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   DeviceExecutions deviceExecutions;
   DataProcessorInfos dataProcessorInfos = previousDataProcessorInfos;
 
-  std::vector<ComputingResource> resources{
-    ComputingResourceHelpers::getLocalhostResource(driverInfo.startPort, driverInfo.portRange)};
+  std::vector<ComputingResource> resources;
+
+  if (driverInfo.resources != "") {
+    resources = ComputingResourceHelpers::parseResources(driverInfo.resources);
+  } else {
+    resources = {ComputingResourceHelpers::getLocalhostResource()};
+  }
 
   auto resourceManager = std::make_unique<SimpleResourceManager>(resources);
 
@@ -848,7 +877,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                                             driverInfo.completionPolicies,
                                                             driverInfo.dispatchPolicies,
                                                             deviceSpecs,
-                                                            *resourceManager);
+                                                            *resourceManager,
+                                                            driverInfo.uniqueWorkflowId);
           // This should expand nodes so that we can build a consistent DAG.
         } catch (std::runtime_error& e) {
           std::cerr << "Invalid workflow: " << e.what() << std::endl;
@@ -907,12 +937,19 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                             dataProcessorInfos,
                                             deviceSpecs,
                                             deviceExecutions, controls);
+
         std::ostringstream forwardedStdin;
         WorkflowSerializationHelpers::dump(forwardedStdin, workflow, dataProcessorInfos);
         for (size_t di = 0; di < deviceSpecs.size(); ++di) {
-          spawnDevice(forwardedStdin.str(),
-                      deviceSpecs[di], driverInfo.socket2DeviceInfo, controls[di], deviceExecutions[di], infos,
-                      driverInfo.maxFd, driverInfo.childFdset);
+          if (deviceSpecs[di].resource.hostname != driverInfo.deployHostname) {
+            spawnRemoteDevice(forwardedStdin.str(),
+                              deviceSpecs[di], driverInfo.socket2DeviceInfo, controls[di], deviceExecutions[di], infos,
+                              driverInfo.maxFd, driverInfo.childFdset);
+          } else {
+            spawnDevice(forwardedStdin.str(),
+                        deviceSpecs[di], driverInfo.socket2DeviceInfo, controls[di], deviceExecutions[di], infos,
+                        driverInfo.maxFd, driverInfo.childFdset);
+          }
         }
         driverInfo.maxFd += 1;
         assert(infos.empty() == false);
@@ -1205,6 +1242,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")         //
     ("single-step", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode")   //
     ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(false), "batch processing mode")           //
+    ("hostname", bpo::value<std::string>()->default_value("localhost"), "hostname to deploy")               //
+    ("resources", bpo::value<std::string>()->default_value(""), "resources allocated for the workflow")     //
     ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")          //
     ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                  //
     ("completion-policy,c", bpo::value<TerminationPolicy>(&policy)->default_value(TerminationPolicy::QUIT), //
@@ -1219,8 +1258,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   executorOptions.add(DeviceSpecHelpers::getForwardedDeviceOptions());
 
   gHiddenDeviceOptions.add_options()                                                    //
-    ((std::string("id") + ",i").c_str(), bpo::value<std::string>(),                     //
-     "device id for child spawning")                                                    //
+    ("id,i", bpo::value<std::string>(), "device id for child spawning")                 //
     ("channel-config", bpo::value<std::vector<std::string>>(), "channel configuration") //
     ("control", "control plugin")                                                       //
     ("log-color", "logging color scheme")("color", "logging color scheme");
@@ -1316,8 +1354,9 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.terminationPolicy = varmap["completion-policy"].as<TerminationPolicy>();
   driverInfo.startTime = std::chrono::steady_clock::now();
   driverInfo.timeout = varmap["timeout"].as<double>();
-  driverInfo.startPort = varmap["start-port"].as<unsigned short>();
-  driverInfo.portRange = varmap["port-range"].as<unsigned short>();
+  driverInfo.deployHostname = varmap["hostname"].as<std::string>();
+  driverInfo.resources = varmap["resources"].as<std::string>();
+
   // FIXME: should use the whole dataProcessorInfos, actually...
   driverInfo.processorInfo = dataProcessorInfos;
   driverInfo.configContext = &configContext;
@@ -1325,15 +1364,11 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   std::string frameworkId;
   // If the id is set, this means this is a device,
   // otherwise this is the driver.
-  FreePortFinder finder(driverInfo.startPort - 1,
-                        65535 - driverInfo.portRange,
-                        driverInfo.portRange);
   if (varmap.count("id")) {
     frameworkId = varmap["id"].as<std::string>();
+    driverInfo.uniqueWorkflowId = fmt::format("{}", getppid());
   } else {
-    finder.scan();
-    driverInfo.startPort = finder.port();
-    driverInfo.portRange = finder.range();
+    driverInfo.uniqueWorkflowId = fmt::format("{}", getpid());
   }
   return runStateMachine(physicalWorkflow,
                          currentWorkflow,

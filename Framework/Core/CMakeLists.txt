@@ -152,6 +152,7 @@ foreach(t
         CallbackRegistry
         ChannelSpecHelpers
         CompletionPolicy
+        ComputingResourceHelpers
         ConfigParamRegistry
         ContextRegistry
         DataDescriptorMatcher
@@ -273,7 +274,7 @@ foreach(w
               PUBLIC_LINK_LIBRARIES O2::Framework
               TIMEOUT 30
               NO_BOOST_TEST
-              COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run)
+              COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run --shm-segment-size 20000000)
 endforeach()
 
 # TODO: DanglingInput test not working for the moment [ERROR] Unable to relay

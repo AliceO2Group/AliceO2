@@ -10,6 +10,7 @@
 #include "ComputingResourceHelpers.h"
 #include <thread>
 #include <unistd.h>
+#include <sstream>
 
 namespace o2::framework
 {
@@ -20,15 +21,34 @@ long getTotalNumberOfBytes()
   return pages * page_size;
 };
 
-ComputingResource ComputingResourceHelpers::getLocalhostResource(unsigned short startPort, unsigned short rangeSize)
+ComputingResource ComputingResourceHelpers::getLocalhostResource()
 {
   ComputingResource result;
   result.cpu = std::thread::hardware_concurrency(),
   result.memory = getTotalNumberOfBytes();
   result.hostname = "localhost";
-  result.startPort = startPort;
-  result.lastPort = startPort + rangeSize;
+  result.startPort = 22000;
+  result.lastPort = 23000;
   result.usedPorts = 0;
   return result;
 }
+
+std::vector<ComputingResource> ComputingResourceHelpers::parseResources(std::string const& resourceString)
+{
+  std::vector<ComputingResource> resources;
+  std::istringstream str{resourceString};
+  std::string result;
+  while (std::getline(str, result, ',')) {
+    std::istringstream in{result};
+    char colon;
+    ComputingResource resource;
+    std::getline(in, resource.hostname, ':');
+    in >> resource.cpu >> colon >> resource.memory >> colon >> resource.startPort >> colon >> resource.lastPort;
+    resource.memory = resource.memory * 1000000;
+    resource.usedPorts = 0;
+    resources.emplace_back(resource);
+  }
+  return resources;
+}
+
 } // namespace o2::framework
