@@ -76,6 +76,9 @@ if(CONFIG_ROOT_AND_O2_EXTENSIONS)
     set(MS_GSL_INCLUDE_DIR $ENV{MS_GSL_ROOT}/include)
   endif()
   find_package(ms_gsl REQUIRED)
+  if(NOT CONFIG_O2_ITS_TRAITS)
+    add_definitions(-DGPUCA_NO_ITS_VERTEXER)
+  endif()
 else()
   set(ROOT_FOUND OFF)
 endif()
@@ -140,17 +143,20 @@ target_compile_definitions(standalone_support PUBLIC $<TARGET_PROPERTY:O2::GPUTr
 if(CONFIG_ROOT_AND_O2_EXTENSIONS)
   target_sources(standalone_support PRIVATE
                ../../..//DataFormats/simulation/src/MCCompLabel.cxx
-               ../../..//Detectors/ITSMFT/ITS/tracking/src/PrimaryVertexContext.cxx
-               ../../..//Detectors/ITSMFT/ITS/tracking/src/Cluster.cxx
-               ../../..//Detectors/ITSMFT/ITS/tracking/src/ClusterLines.cxx
-               ../../..//Detectors/ITSMFT/ITS/tracking/src/TrackerTraitsCPU.cxx
-               ../../..//Detectors/ITSMFT/ITS/tracking/src/VertexerTraits.cxx
-               ../../..//Detectors/ITSMFT/ITS/tracking/src/ROframe.cxx
-               ../../..//Detectors/ITSMFT/ITS/tracking/src/Road.cxx
                ../../..//Detectors/TRD/base/src/TRDGeometryBase.cxx
                ../../..//Detectors/Base/src/MatLayerCylSet.cxx
                ../../..//Detectors/Base/src/MatLayerCyl.cxx
                ../../..//Detectors/Base/src/Ray.cxx)
+  if(CONFIG_O2_ITS_TRAITS)
+    target_sources(standalone_support PRIVATE
+        ../../..//Detectors/ITSMFT/ITS/tracking/src/PrimaryVertexContext.cxx
+        ../../..//Detectors/ITSMFT/ITS/tracking/src/Cluster.cxx
+        ../../..//Detectors/ITSMFT/ITS/tracking/src/ClusterLines.cxx
+        ../../..//Detectors/ITSMFT/ITS/tracking/src/TrackerTraitsCPU.cxx
+        ../../..//Detectors/ITSMFT/ITS/tracking/src/VertexerTraits.cxx
+        ../../..//Detectors/ITSMFT/ITS/tracking/src/ROframe.cxx
+        ../../..//Detectors/ITSMFT/ITS/tracking/src/Road.cxx)
+  endif()
   target_sources(ca PRIVATE qa/genEvents.cxx)
 endif()
 
