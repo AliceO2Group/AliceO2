@@ -268,6 +268,9 @@ class RawPixelReader : public PixelReader
     mSWIO.Stop();
     printf("RawPixelReader IO time: ");
     mSWIO.Print();
+
+    printf("Cache filling time: ");
+    mSWCache.Print();
   }
 
   /// do we interpred GBT words as padded to 128 bits?
@@ -648,6 +651,7 @@ class RawPixelReader : public PixelReader
     if (buffer.isEmpty()) {
       return nRead;
     }
+    mSWCache.Start(false);
     enum LinkFlag : int8_t { NotUpdated,
                              Updated,
                              HasEnoughTriggers };
@@ -748,6 +752,7 @@ class RawPixelReader : public PixelReader
         }
       }
     }
+    mSWCache.Stop();
     LOG(INFO) << "Cached at least " << mMinTriggersCached << " triggers on " << mNLinks << " links of " << mNRUs << " RUs";
 
     return nRead;
@@ -1588,6 +1593,7 @@ class RawPixelReader : public PixelReader
   RawDecodingStat mDecodingStat; //! global decoding statistics
 
   TStopwatch mSWIO; //! timer for IO operations
+  TStopwatch mSWCache; //! timer for caching operations
 
   static constexpr int RawBufferMargin = 5000000;                      // keep uploaded at least this amount
   static constexpr int RawBufferSize = 10000000 + 2 * RawBufferMargin; // size in MB
