@@ -69,7 +69,7 @@ namespace header
 /// The header uses char fields for several members. This allows to define self
 /// consistent unique identifiers. The identifiers are human readable in memory
 /// and, rather than enumerators, independent of software versions. The string
-/// is always zero terminated.
+/// is **NOT** required to be zero terminated!.
 ///
 /// This section defines constant field lengths for char fields
 /// @ingroup aliceo2_dataformats_dataheader
