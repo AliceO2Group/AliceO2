@@ -24,9 +24,6 @@
 #include <cstdio>  // printf
 #include <cstring> // strncpy
 
-//the answer to life and everything
-const uint32_t o2::header::BaseHeader::sMagicString = String2<uint32_t>("O2O2");
-
 //storage for BaseHeader static members, all invalid
 const uint32_t o2::header::BaseHeader::sVersion = o2::header::gInvalidToken32;
 const o2::header::HeaderType o2::header::BaseHeader::sHeaderType = o2::header::gInvalidToken64;
@@ -38,12 +35,6 @@ const o2::header::HeaderType o2::header::DataHeader::sHeaderType = String2<uint6
 const o2::header::SerializationMethod o2::header::DataHeader::sSerializationMethod = o2::header::gSerializationMethodNone;
 
 using namespace o2::header;
-
-//__________________________________________________________________________________________________
-o2::header::BaseHeader::BaseHeader(uint32_t mySize, HeaderType desc, SerializationMethod ser, uint32_t version)
-  : magicStringInt(sMagicString), headerSize(mySize), flags(0), headerVersion(version), description(desc), serialization(ser)
-{
-}
 
 //__________________________________________________________________________________________________
 o2::header::DataHeader::DataHeader()
