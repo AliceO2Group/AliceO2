@@ -45,17 +45,19 @@ struct DeviceSpecHelpers {
     std::vector<CompletionPolicy> const& completionPolicies,
     std::vector<DispatchPolicy> const& dispatchPolicies,
     std::vector<DeviceSpec>& devices,
-    ResourceManager& resourceManager);
+    ResourceManager& resourceManager,
+    std::string const& uniqueWorkflowId);
 
   static void dataProcessorSpecs2DeviceSpecs(
     const WorkflowSpec& workflow,
     std::vector<ChannelConfigurationPolicy> const& channelPolicies,
     std::vector<CompletionPolicy> const& completionPolicies,
     std::vector<DeviceSpec>& devices,
-    ResourceManager& resources)
+    ResourceManager& resourceManager,
+    std::string const& uniqueWorkflowId)
   {
     std::vector<DispatchPolicy> dispatchPolicies = DispatchPolicy::createDefaultPolicies();
-    dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, dispatchPolicies, devices, resources);
+    dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, dispatchPolicies, devices, resourceManager, uniqueWorkflowId);
   }
 
   /// Helper to prepare the arguments which will be used to
