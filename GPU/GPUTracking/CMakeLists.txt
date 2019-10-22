@@ -144,22 +144,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_ROOT_AND_O2_EXTENSIONS)
         gpucf/GPUTPCClusterFinder.cxx)
     set(HDRS_INSTALL ${HDRS_INSTALL} Interface/GPUO2InterfaceConfiguration.h
                      ITS/GPUITSTrack.h dEdx/GPUdEdxInfo.h)
-else()
-  # TODO: Get rid of these bogus includes!
-  set(HDRS_INSTALL
-      ${HDRS_INSTALL}
-      ITS/GPUITSFitter.h
-      ITS/GPUITSFitterKernels.h
-      ITS/GPUITSTrack.h
-      TPCConvert/GPUTPCConvert.h
-      TPCConvert/GPUTPCConvertKernel.h
-      DataCompression/GPUTPCCompression.h
-      DataCompression/GPUTPCCompressionTrackModel.h
-      DataCompression/GPUTPCCompressionKernels.h
-      DataCompression/TPCClusterDecompressor.h
-      DataCompression/GPUTPCClusterStatistics.h
-      gpucf/GPUTPCClusterFinderKernels.h
-      gpucf/GPUTPCClusterFinder.h)
 endif()
 
 # Sources only for AliRoot
@@ -180,7 +164,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                    ${CMAKE_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCDefinitions.cxx
                    ${CMAKE_SOURCE_DIR}/HLT/TRD/AliHLTTRDDefinitions.cxx)
 
-  set(HDRS_INSTALL ${HDRS_INSTALL} SliceTracker/GPUTPCDefinitions.h)
+  set(HDRS_INSTALL ${HDRS_INSTALL} SliceTracker/GPUTPCDefinitions.h
+                                   Base/GPUO2FakeClasses.h)
 endif()
 
 # Optional sources depending on optional dependencies
@@ -302,10 +287,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/SliceTracker
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Global
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/dEdx
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/gpucf
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/ITS
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TPCConvert
+                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/dEdx
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TRDTracking
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Standalone
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/cuda

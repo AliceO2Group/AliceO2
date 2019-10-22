@@ -57,7 +57,9 @@ GPUReconstruction::GPUReconstruction(const GPUSettingsProcessing& cfg) : mHostCo
   mMemoryScalers.reset(new GPUMemorySizeScalers);
   for (unsigned int i = 0; i < NSLICES; i++) {
     processors()->tpcTrackers[i].SetSlice(i); // TODO: Move to a better place
+#ifdef HAVE_O2HEADERS
     processors()->tpcClusterer[i].mISlice = i;
+#endif
   }
 }
 

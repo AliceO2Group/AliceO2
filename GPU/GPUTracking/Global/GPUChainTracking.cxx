@@ -12,8 +12,6 @@
 /// \author David Rohr
 
 #include "GPUChainTracking.h"
-#include "GPUTPCConvert.h"
-#include "GPUTPCCompression.h"
 #include "GPUTPCClusterData.h"
 #include "GPUTPCSliceOutput.h"
 #include "GPUTPCSliceOutTrack.h"
@@ -31,10 +29,15 @@
 #include "GPUTRDTrackletLabels.h"
 #include "GPUDisplay.h"
 #include "GPUQA.h"
-#include "GPUTPCClusterStatistics.h"
 #include "GPULogging.h"
 #include "GPUReconstructionConvert.h"
 #include "GPUMemorySizeScalers.h"
+
+#ifdef HAVE_O2HEADERS
+#include "GPUTPCClusterStatistics.h"
+#else
+#include "GPUO2FakeClasses.h"
+#endif
 
 #include "TPCFastTransform.h"
 
@@ -263,6 +266,7 @@ int GPUChainTracking::Init()
 
 void GPUChainTracking::PrepareEventFromNative()
 {
+#ifdef HAVE_O2HEADERS
   ClusterNativeAccess* tmp = mClusterNativeAccess.get();
   if (tmp != mIOPtrs.clustersNative) {
     *tmp = *mIOPtrs.clustersNative;
@@ -276,12 +280,14 @@ void GPUChainTracking::PrepareEventFromNative()
   processors()->tpcCompressor.mMaxClusters = mIOPtrs.clustersNative->nClustersTotal;
   mRec->MemoryScalers()->nTPCHits = mIOPtrs.clustersNative->nClustersTotal;
   GPUInfo("Event has %d TPC Clusters, %d TRD Tracklets", tmp->nClustersTotal, mIOPtrs.nTRDTracklets);
+#endif
 }
 
 int GPUChainTracking::PrepareEvent()
 {
   mRec->MemoryScalers()->nTRDTracklets = mIOPtrs.nTRDTracklets;
   if (mIOPtrs.tpcPackedDigits) {
+#ifdef HAVE_O2HEADERS
     mRec->MemoryScalers()->nTPCdigits = 0;
     size_t maxDigits = 0;
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
@@ -299,6 +305,7 @@ int GPUChainTracking::PrepareEvent()
     processors()->tpcCompressor.mMaxClusters = mRec->MemoryScalers()->nTPCHits;
     processors()->tpcConverter.mNClustersTotal = mRec->MemoryScalers()->nTPCHits;
     GPUInfo("Event has %lld TPC Digits", (long long int)mRec->MemoryScalers()->nTPCdigits);
+#endif
   } else if (mIOPtrs.clustersNative) {
     PrepareEventFromNative();
   } else {
@@ -307,7 +314,9 @@ int GPUChainTracking::PrepareEvent()
       processors()->tpcTrackers[iSlice].Data().SetClusterData(mIOPtrs.clusterData[iSlice], mIOPtrs.nClusterData[iSlice], offset);
       offset += mIOPtrs.nClusterData[iSlice];
     }
+#ifdef HAVE_O2HEADERS
     processors()->tpcCompressor.mMaxClusters = offset;
+#endif
     mRec->MemoryScalers()->nTPCHits = offset;
     GPUInfo("Event has %d TPC Clusters (converted), %d TRD Tracklets", offset, mIOPtrs.nTRDTracklets);
   }
@@ -689,6 +698,7 @@ void GPUChainTracking::WriteOutput(int iSlice, int threadId)
 
 void GPUChainTracking::ForwardTPCDigits()
 {
+#ifdef HAVE_O2HEADERS
   if (GetRecoStepsGPU() & RecoStep::TPCClusterFinding) {
     throw std::runtime_error("Cannot forward TPC digits with Clusterizer on GPU");
   }
@@ -725,6 +735,7 @@ void GPUChainTracking::ForwardTPCDigits()
   mIOPtrs.clustersNative = mClusterNativeAccess.get();
   printf("Forwarded %u TPC clusters\n", nTotal);
   PrepareEventFromNative();
+#endif
 }
 
 int GPUChainTracking::GlobalTracking(int iSlice, int threadId)
