@@ -77,7 +77,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 // Files for ITS Track Fit
 #include "GPUITSFitterKernels.cxx"
-#if !defined(GPUCA_O2_LIB) && defined(__CUDACC__)
+#if !defined(GPUCA_O2_LIB) && defined(__CUDACC__) && !defined(GPUCA_NO_ITS_VERTEXER)
 #include "TrackerTraitsNV.cu"
 #include "VertexerTraitsGPU.cu"
 #include "Context.cu"
