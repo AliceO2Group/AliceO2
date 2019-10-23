@@ -119,6 +119,26 @@ struct OutputObj {
   {
   }
 
+  OutputObj()
+    : object(nullptr)
+  {
+  }
+
+  void setObject(T const& t)
+  {
+    object = std::make_shared<T>(t);
+  }
+
+  void setObject(T&& t)
+  {
+    object = std::make_shared<T>(t);
+  }
+
+  void setObject(T* t)
+  {
+    object.reset(t);
+  }
+
   // @return the associated OutputSpec
   OutputSpec const spec()
   {

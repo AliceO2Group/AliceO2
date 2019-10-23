@@ -47,11 +47,22 @@ struct BTask {
 
 struct CTask {
   OutputObj<TH1F> ptH{TH1F("pt", "pt", 100, -0.01, 10.01)};
+  OutputObj<TH1F> trZ;
+
+  void init(InitContext const&)
+  {
+    trZ.setObject(new TH1F("Z", "Z", 100, -10., 10.));
+    // other options:
+    // TH1F* t = new TH1F(); trZ.setObject(t);
+    // TH1F t(); trZ.setObject(t) <- makes a copy
+    // trZ.setObject({"Z","Z",100,-10.,10.}); <- creates new
+  }
 
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
-      ptH->Fill(abs(track.signed1Pt()));
+      ptH->Fill(abs(1.f / track.signed1Pt()));
+      trZ->Fill(track.z());
     }
   }
 };
