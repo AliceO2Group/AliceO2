@@ -87,10 +87,25 @@ int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, const Args&.
       GPUFailedMsg(cudaStreamWaitEvent(mInternals->CudaStreams[x.stream], ((cudaEvent_t*)z.evList)[k], 0));
     }
   }
+  cudaEvent_t start, stop;
+  if (mDeviceProcessingSettings.deviceTimers) {
+    GPUFailedMsg(cudaEventCreate(&start));
+    GPUFailedMsg(cudaEventCreate(&stop));
+    GPUFailedMsg(cudaEventRecord(start, mInternals->CudaStreams[x.stream]));
+  }
   if (y.num <= 1) {
     runKernelCUDA<T, I><<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(GPUCA_CONSMEM_CALL y.start, args...);
   } else {
     runKernelCUDAMulti<T, I><<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(GPUCA_CONSMEM_CALL y.start, y.num, args...);
+  }
+  if (mDeviceProcessingSettings.deviceTimers) {
+    GPUFailedMsg(cudaEventRecord(stop, mInternals->CudaStreams[x.stream]));
+    GPUFailedMsg(cudaEventSynchronize(stop));
+    float v;
+    GPUFailedMsg(cudaEventElapsedTime(&v, start, stop));
+    _xyz.t = v * 1.e-3;
+    GPUFailedMsg(cudaEventDestroy(start));
+    GPUFailedMsg(cudaEventDestroy(stop));
   }
   GPUFailedMsg(cudaGetLastError());
   if (z.ev) {

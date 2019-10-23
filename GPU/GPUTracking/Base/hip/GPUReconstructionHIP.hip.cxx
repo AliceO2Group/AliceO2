@@ -99,10 +99,25 @@ int GPUReconstructionHIPBackend::runKernelBackend(krnlSetup& _xyz, Args... args)
       GPUFailedMsg(hipStreamWaitEvent(mInternals->HIPStreams[x.stream], ((hipEvent_t*)z.evList)[k], 0));
     }
   }
+  hipEvent_t start, stop;
+  if (mDeviceProcessingSettings.deviceTimers) {
+    GPUFailedMsg(hipEventCreate(&start));
+    GPUFailedMsg(hipEventCreate(&stop));
+    GPUFailedMsg(hipEventRecord(start, mInternals->HIPStreams[x.stream]));
+  }
   if (y.num <= 1) {
     hipLaunchKernelGGL(HIP_KERNEL_NAME(runKernelHIP<T, I, Args...>), dim3(x.nBlocks), dim3(x.nThreads), 0, mInternals->HIPStreams[x.stream], GPUCA_CONSMEM_CALL y.start, args...);
   } else {
     hipLaunchKernelGGL(HIP_KERNEL_NAME(runKernelHIPMulti<T, I, Args...>), dim3(x.nBlocks), dim3(x.nThreads), 0, mInternals->HIPStreams[x.stream], GPUCA_CONSMEM_CALL y.start, y.num, args...);
+  }
+  if (mDeviceProcessingSettings.deviceTimers) {
+    GPUFailedMsg(hipEventRecord(stop, mInternals->HIPStreams[x.stream]));
+    GPUFailedMsg(hipEventSynchronize(stop));
+    float v;
+    GPUFailedMsg(hipEventElapsedTime(&v, start, stop));
+    _xyz.t = v * 1.e-3;
+    GPUFailedMsg(hipEventDestroy(start));
+    GPUFailedMsg(hipEventDestroy(stop));
   }
   GPUFailedMsg(hipGetLastError());
   if (z.ev) {

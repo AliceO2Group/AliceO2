@@ -64,7 +64,7 @@ class GPUReconstructionKernels : public T
   using krnlSetup = GPUReconstruction::krnlSetup;
   template <class X, int Y = 0>
   using classArgument = GPUReconstruction::classArgument<X, Y>;
-  virtual ~GPUReconstructionKernels() = default; // NOLINT: Do not declare override in template class! AMD hcc will not create the destructor otherwise.
+  virtual ~GPUReconstructionKernels() = default; // NOLINT: BUG: Do not declare override in template class! AMD hcc will not create the destructor otherwise.
   GPUReconstructionKernels(const GPUSettingsProcessing& cfg) : T(cfg) {}
 
  protected:
@@ -129,7 +129,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
     if (mDeviceProcessingSettings.debugLevel >= 3) {
       GPUInfo("Running %s-%d (Stream %d, Range %d/%d, Grid %d/%d) on %s", typeid(S).name(), I, x.stream, y.start, y.num, x.nBlocks, x.nThreads, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
     }
-    if (t && mDeviceProcessingSettings.debugLevel) {
+    if (t && mDeviceProcessingSettings.debugLevel && (!mDeviceProcessingSettings.deviceTimers || cpuFallback)) {
       t->Start();
     }
     krnlSetup setup{x, y, z, 0.};
@@ -147,7 +147,11 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
         throw std::runtime_error("kernel failure");
       }
       if (t) {
-        t->Stop();
+        if (!mDeviceProcessingSettings.deviceTimers || cpuFallback) {
+          t->Stop();
+        } else {
+          t->AddTime(setup.t);
+        }
       }
     }
     return 0;

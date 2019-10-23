@@ -101,4 +101,6 @@ double HighResTimer::GetCurrentElapsedTime(bool reset)
   return (retVal);
 }
 
+void HighResTimer::AddTime(double t) { ElapsedTime += t * Frequency; }
+
 double HighResTimer::Frequency = HighResTimer::GetFrequency();

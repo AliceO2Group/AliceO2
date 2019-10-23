@@ -140,6 +140,7 @@ struct GPUSettingsDeviceProcessing {
   bool trackletSelectorInPipeline;    // Run tracklet selector in pipeline, requres also tracklet constructor in pipeline
   size_t forceMemoryPoolSize;         // Override size of memory pool to be allocated on GPU / Host
   int nTPCClustererLanes;             // Number of TPC clusterers that can run in parallel
+  bool deviceTimers;                  // Use device timers instead of host-based timers
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

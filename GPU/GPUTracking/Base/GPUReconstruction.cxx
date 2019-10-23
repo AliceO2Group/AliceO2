@@ -94,6 +94,9 @@ int GPUReconstruction::Init()
   if (mDeviceProcessingSettings.debugLevel < 6) {
     mDeviceProcessingSettings.debugMask = 0;
   }
+  if (mDeviceProcessingSettings.debugLevel < 1) {
+    mDeviceProcessingSettings.deviceTimers = false;
+  }
 
 #ifndef HAVE_O2HEADERS
   mRecoSteps.setBits(RecoStep::ITSTracking, false);

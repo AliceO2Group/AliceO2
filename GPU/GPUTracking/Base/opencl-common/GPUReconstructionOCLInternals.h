@@ -25,6 +25,7 @@
 
 namespace GPUCA_NAMESPACE::gpu
 {
+
 static const char* opencl_error_string(int errorcode)
 {
   switch (errorcode) {
@@ -180,6 +181,49 @@ struct GPUReconstructionOCLInternals {
 
   std::vector<std::pair<cl_kernel, std::string>> kernels;
 };
+
+template <typename K, typename... Args>
+int GPUReconstructionOCL::runKernelBackendCommon(krnlSetup& _xyz, K& k, const Args&... args)
+{
+  auto& x = _xyz.x;
+  auto& y = _xyz.y;
+  auto& z = _xyz.z;
+  if (y.num == -1) {
+    if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, args...)) {
+      return 1;
+    }
+  } else if (y.num == 0) {
+    if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, y.start, args...)) {
+      return 1;
+    }
+  } else {
+    if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, y.start, y.num, args...)) {
+      return 1;
+    }
+  }
+
+  cl_event ev;
+  cl_event* evr;
+  bool tmpEvent = false;
+  if (z.ev == nullptr && mDeviceProcessingSettings.deviceTimers) {
+    evr = &ev;
+    tmpEvent = true;
+  } else {
+    evr = (cl_event*)z.ev;
+  }
+  int retVal = clExecuteKernelA(mInternals->command_queue[x.stream], k, x.nThreads, x.nThreads * x.nBlocks, evr, (cl_event*)z.evList, z.nEvents);
+  if (mDeviceProcessingSettings.deviceTimers) {
+    cl_ulong time_start, time_end;
+    GPUFailedMsg(clWaitForEvents(1, evr));
+    GPUFailedMsg(clGetEventProfilingInfo(*evr, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL));
+    GPUFailedMsg(clGetEventProfilingInfo(*evr, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL));
+    _xyz.t = (time_end - time_start) * 1.e-9;
+    if (tmpEvent) {
+      GPUFailedMsg(clReleaseEvent(ev));
+    }
+  }
+  return retVal;
+}
 
 template <class T, int I>
 inline int GPUReconstructionOCL::FindKernel(int num)
