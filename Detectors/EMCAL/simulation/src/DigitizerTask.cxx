@@ -81,7 +81,7 @@ void DigitizerTask::Exec(Option_t* option)
   mDigitizer.setCurrSrcID(mSourceID);
   mDigitizer.setCurrEvID(mEventID);
 
-  mDigitizer.process(*mHitsArray, *mDigitsArray);
+  mDigitizer.process(*mHitsArray);
 
   mEventID++;
 }

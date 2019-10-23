@@ -30,6 +30,8 @@ class MCLabel : public o2::MCCompLabel
   MCLabel(Bool_t noise, Double_t efraction) : o2::MCCompLabel(noise), mEnergyFraction(efraction) {}
   void setEnergyFraction(Double_t efraction) { mEnergyFraction = efraction; }
   Double_t getEnergyFraction() const { return mEnergyFraction; }
+
+  ClassDefNV(MCLabel, 1);
 };
 } // namespace emcal
 } //namespace o2

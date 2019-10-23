@@ -12,9 +12,9 @@
 #include <iostream>
 #include <TMath.h>
 
-using namespace o2::emcal;
+O2ParamImpl(o2::emcal::SimParam);
 
-SimParam* SimParam::mSimParam = nullptr;
+using namespace o2::emcal;
 
 std::ostream& operator<<(std::ostream& stream, const o2::emcal::SimParam& s)
 {
@@ -40,6 +40,10 @@ void SimParam::PrintStream(std::ostream& stream) const
   stream << "\nEMCal::SimParam.mA = " << mA;
   stream << "\nEMCal::SimParam.mB = " << mB;
   stream << "\nEMCal::SimParam.mECPrimThreshold = " << mECPrimThreshold;
+  stream << "\nEMCal::SimParam.mSignalDelay = " << mSignalDelay;
+  stream << "\nEMCal::SimParam.mLiveTime = " << mLiveTime;
+  stream << "\nEMCal::SimParam.mBusyTime = " << mBusyTime;
+  stream << "\nEMCal::SimParam.mDisablePileup = " << ((mDisablePileup) ? "true" : "false");
 }
 
 Double_t SimParam::getTimeResolution(Double_t energy) const

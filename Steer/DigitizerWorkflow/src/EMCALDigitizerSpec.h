@@ -18,7 +18,6 @@
 #include "DataFormatsEMCAL/Digit.h"
 #include "EMCALBase/Hit.h"
 #include "EMCALSimulation/Digitizer.h"
-#include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 class TChain;
@@ -74,7 +73,7 @@ class DigitizerSpec : public framework::Task
   std::vector<Hit> mHits;                ///< Vector with input hits
   std::vector<Digit> mDigits;            ///< Vector with non-accumulated digits (per collision)
   std::vector<Digit> mAccumulatedDigits; ///< Vector with accumulated digits (time frame)
-  dataformats::MCTruthContainer<o2::MCCompLabel> mLabels;
+  dataformats::MCTruthContainer<MCLabel> mLabels;
 };
 
 /// \brief Create new digitizer spec
