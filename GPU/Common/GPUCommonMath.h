@@ -86,7 +86,7 @@ typedef GPUCommonMath CAMath;
 
 GPUhdi() float2 GPUCommonMath::MakeFloat2(float x, float y)
 {
-#if !defined(GPUCA_GPUCODE) || defined(__OPENCL__)
+#if !defined(GPUCA_GPUCODE) || defined(__OPENCL__) || defined(__OPENCL_HOST__)
   float2 ret = {x, y};
   return ret;
 #else

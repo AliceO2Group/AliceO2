@@ -63,39 +63,18 @@
 #include "GPUReconstructionIncludesDevice.h"
 #include "GPUConstantMem.h"
 
-#define OCL_DEVICE_KERNELS_PRE GPUglobal() char *gpu_mem, GPUconstant() MEM_CONSTANT(GPUConstantMem) * pConstant
-#define OCL_CALL_KERNEL(T, I, num)                            \
-  GPUshared() typename T::MEM_LOCAL(GPUTPCSharedMemory) smem; \
-  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Processor(*pConstant)[num]);
-
-#define OCL_CALL_KERNEL_MULTI(T, I)                                                                                                                                                \
-  const int iSlice = nSliceCount * (get_group_id(0) + (get_num_groups(0) % nSliceCount != 0 && nSliceCount * (get_group_id(0) + 1) % get_num_groups(0) != 0)) / get_num_groups(0); \
-  const int nSliceBlockOffset = get_num_groups(0) * iSlice / nSliceCount;                                                                                                          \
-  const int sliceBlockId = get_group_id(0) - nSliceBlockOffset;                                                                                                                    \
-  const int sliceGridDim = get_num_groups(0) * (iSlice + 1) / nSliceCount - get_num_groups(0) * (iSlice) / nSliceCount;                                                            \
-  GPUshared() typename T::MEM_LOCAL(GPUTPCSharedMemory) smem;                                                                                                                      \
-  T::template Thread<I>(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, T::Processor(*pConstant)[firstSlice + iSlice]);
-
-#define OCL_CALL_KERNEL_ARGS(T, I, ...)            \
-  GPUshared() typename T::GPUTPCSharedMemory smem; \
-  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Processor(*pConstant)[0], __VA_ARGS__);
-
 // if (gpu_mem != pTracker.GPUParametersConst()->gpumem) return; //TODO!
 
-GPUg() void GPUTPCProcess_N2o23gpu13GPUMemClean16E0(OCL_DEVICE_KERNELS_PRE, unsigned long ptr, unsigned long size) { OCL_CALL_KERNEL_ARGS(GPUMemClean16, 0, (GPUglobalref() void*)(void*)ptr, size); }
-
-GPUg() void GPUTPCProcess_N2o23gpu22GPUTPCNeighboursFinderE0(OCL_DEVICE_KERNELS_PRE, int iSlice) { OCL_CALL_KERNEL(GPUTPCNeighboursFinder, 0, iSlice); }
-
-GPUg() void GPUTPCProcess_N2o23gpu23GPUTPCNeighboursCleanerE0(OCL_DEVICE_KERNELS_PRE, int iSlice) { OCL_CALL_KERNEL(GPUTPCNeighboursCleaner, 0, iSlice); }
-
-GPUg() void GPUTPCProcess_N2o23gpu21GPUTPCStartHitsFinderE0(OCL_DEVICE_KERNELS_PRE, int iSlice) { OCL_CALL_KERNEL(GPUTPCStartHitsFinder, 0, iSlice); }
-
-GPUg() void GPUTPCProcess_N2o23gpu21GPUTPCStartHitsSorterE0(OCL_DEVICE_KERNELS_PRE, int iSlice) { OCL_CALL_KERNEL(GPUTPCStartHitsSorter, 0, iSlice); }
-
-GPUg() void GPUTPCProcess_N2o23gpu25GPUTPCTrackletConstructorE0(OCL_DEVICE_KERNELS_PRE, int iSlice) { OCL_CALL_KERNEL(GPUTPCTrackletConstructor, 0, iSlice); }
-
-GPUg() void GPUTPCProcess_N2o23gpu25GPUTPCTrackletConstructorE1(OCL_DEVICE_KERNELS_PRE) { OCL_CALL_KERNEL(GPUTPCTrackletConstructor, 1, 0); }
-
-GPUg() void GPUTPCProcess_N2o23gpu22GPUTPCTrackletSelectorE0(OCL_DEVICE_KERNELS_PRE, int iSlice) { OCL_CALL_KERNEL(GPUTPCTrackletSelector, 0, iSlice); }
-
-GPUg() void GPUTPCProcess_Multi_N2o23gpu22GPUTPCTrackletSelectorE0(OCL_DEVICE_KERNELS_PRE, int firstSlice, int nSliceCount) { OCL_CALL_KERNEL_MULTI(GPUTPCTrackletSelector, 0); }
+#ifndef __OPENCLCPP__
+#define GPUCA_OPENCL1
+#endif
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
+#define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNLGPU_SINGLE(x_class, x_attributes, x_arguments, x_forward)
+#define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNLGPU_MULTI(x_class, x_attributes, x_arguments, x_forward)
+#define GPUCA_CONSMEM_PTR GPUglobal() char *gpu_mem, GPUconstant() MEM_CONSTANT(GPUConstantMem) * pConstant,
+#define GPUCA_CONSMEM *pConstant
+#include "GPUReconstructionKernels.h"
+#undef GPUCA_KRNL
+#undef GPUCA_OPENCL1
+#undef GPUCA_KRNL_LOAD_single
+#undef GPUCA_KRNL_LOAD_multi

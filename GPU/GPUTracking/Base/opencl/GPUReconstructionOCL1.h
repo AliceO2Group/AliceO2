@@ -36,8 +36,8 @@ class GPUReconstructionOCL1Backend : public GPUReconstructionOCL
 
   template <class T, int I = 0, typename... Args>
   int runKernelBackend(krnlSetup& _xyz, const Args&... args);
-  template <class S, class T, int I = 0>
-  S& getKernelObject(int num);
+  template <class S, class T, int I, bool MULTI>
+  S& getKernelObject();
 
   RecoStepField AvailableRecoSteps() override { return (RecoStep::TPCSliceTracking); }
   bool ContextForAllPlatforms() override { return true; }

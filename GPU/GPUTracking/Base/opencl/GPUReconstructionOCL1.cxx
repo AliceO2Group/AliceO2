@@ -12,6 +12,7 @@
 /// \author David Rohr
 
 #define GPUCA_GPUTYPE_RADEON
+#define __OPENCL_HOST__
 
 #include "GPUReconstructionOCL1.h"
 #include "GPUReconstructionOCL1Internals.h"
@@ -36,14 +37,14 @@ GPUReconstructionOCL1Backend::GPUReconstructionOCL1Backend(const GPUSettingsProc
 template <class T, int I, typename... Args>
 int GPUReconstructionOCL1Backend::runKernelBackend(krnlSetup& _xyz, const Args&... args)
 {
-  cl_kernel k = getKernelObject<cl_kernel, T, I>(_xyz.y.num);
+  cl_kernel k = _xyz.y.num > 1 ? getKernelObject<cl_kernel, T, I, true>() : getKernelObject<cl_kernel, T, I, false>();
   return runKernelBackendCommon(_xyz, k, args...);
 }
 
-template <class S, class T, int I>
-S& GPUReconstructionOCL1Backend::getKernelObject(int num)
+template <class S, class T, int I, bool MULTI>
+S& GPUReconstructionOCL1Backend::getKernelObject()
 {
-  static int krnl = FindKernel<T, I>(num);
+  static unsigned int krnl = FindKernel<T, I>(MULTI ? 2 : 1);
   return mInternals->kernels[krnl].first;
 }
 
@@ -60,6 +61,23 @@ int GPUReconstructionOCL1Backend::GetOCLPrograms()
     GPUError("Could not obtain OpenCL progarm");
     return 1;
   }
+
+#define GPUCA_OPENCL1
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
+#define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward) \
+  if (AddKernel<GPUCA_M_KRNL_TEMPLATE(x_class)>(false)) {                     \
+    return 1;                                                                 \
+  }
+#define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward) \
+  if (AddKernel<GPUCA_M_KRNL_TEMPLATE(x_class)>(true)) {                     \
+    return 1;                                                                \
+  }
+#include "GPUReconstructionKernels.h"
+#undef GPUCA_KRNL
+#undef GPUCA_OPENCL1
+#undef GPUCA_KRNL_LOAD_single
+#undef GPUCA_KRNL_LOAD_multi
+
   return 0;
 }
 

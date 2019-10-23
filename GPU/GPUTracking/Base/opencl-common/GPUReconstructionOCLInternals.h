@@ -188,11 +188,7 @@ int GPUReconstructionOCL::runKernelBackendCommon(krnlSetup& _xyz, K& k, const Ar
   auto& x = _xyz.x;
   auto& y = _xyz.y;
   auto& z = _xyz.z;
-  if (y.num == -1) {
-    if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, args...)) {
-      return 1;
-    }
-  } else if (y.num == 0) {
+  if (y.num <= 1) {
     if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, y.start, args...)) {
       return 1;
     }
@@ -226,18 +222,34 @@ int GPUReconstructionOCL::runKernelBackendCommon(krnlSetup& _xyz, K& k, const Ar
 }
 
 template <class T, int I>
-inline int GPUReconstructionOCL::FindKernel(int num)
+int GPUReconstructionOCL::AddKernel(bool multi)
 {
-  std::string name("GPUTPCProcess_");
-  if (num >= 1) {
-    name += "Multi_";
+  std::string name(GetKernelName<T, I>());
+  if (multi) {
+    name += "_multi";
   }
-  name += typeid(T).name();
-  name += std::to_string(I);
+
+  cl_int ocl_error;
+  cl_kernel krnl = clCreateKernel(mInternals->program, name.c_str(), &ocl_error);
+  if (GPUFailedMsgI(ocl_error)) {
+    GPUError("Error creating OPENCL Kernel: %s", name.c_str());
+    return 1;
+  }
+  mInternals->kernels.emplace_back(krnl, name);
+  return 0;
+}
+
+template <class T, int I>
+inline unsigned int GPUReconstructionOCL::FindKernel(int num)
+{
+  std::string name(GetKernelName<T, I>());
+  if (num > 1) {
+    name += "_multi";
+  }
 
   for (unsigned int k = 0; k < mInternals->kernels.size(); k++) {
     if (mInternals->kernels[k].second == name) {
-      return ((int)k);
+      return (k);
     }
   }
   GPUError("Could not find OpenCL kernel %s", name.c_str());

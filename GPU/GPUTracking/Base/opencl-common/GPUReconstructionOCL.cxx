@@ -12,6 +12,7 @@
 /// \author David Rohr
 
 #define GPUCA_GPUTYPE_RADEON
+#define __OPENCL_HOST__
 
 #include "GPUReconstructionOCL.h"
 #include "GPUReconstructionOCLInternals.h"
@@ -221,38 +222,7 @@ int GPUReconstructionOCL::InitDevice_Runtime()
   }
 
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    GPUInfo("OpenCL program loaded successfully");
-  }
-  if (AddKernel<GPUMemClean16>()) {
-    return 1;
-  }
-  if (AddKernel<GPUTPCNeighboursFinder>()) {
-    return 1;
-  }
-  if (AddKernel<GPUTPCNeighboursCleaner>()) {
-    return 1;
-  }
-  if (AddKernel<GPUTPCStartHitsFinder>()) {
-    return 1;
-  }
-  if (AddKernel<GPUTPCStartHitsSorter>()) {
-    return 1;
-  }
-  if (AddKernel<GPUTPCTrackletConstructor>()) {
-    return 1;
-  }
-  if (AddKernel<GPUTPCTrackletConstructor, 1>()) {
-    return 1;
-  }
-  if (AddKernel<GPUTPCTrackletSelector>(false)) {
-    return 1;
-  }
-  if (AddKernel<GPUTPCTrackletSelector>(true)) {
-    return 1;
-  }
-
-  if (mDeviceProcessingSettings.debugLevel >= 2) {
-    GPUInfo("OpenCL kernels created successfully");
+    GPUInfo("OpenCL program and kernels loaded successfully");
   }
 
   mInternals->mem_gpu = clCreateBuffer(mInternals->context, CL_MEM_READ_WRITE, mDeviceMemorySize, nullptr, &ocl_error);
@@ -485,25 +455,6 @@ int GPUReconstructionOCL::GPUDebug(const char* state, int stream)
     GPUInfo("GPU Sync Done");
   }
   return (0);
-}
-
-template <class T, int I>
-int GPUReconstructionOCL::AddKernel(bool multi)
-{
-  std::string name("GPUTPCProcess_");
-  if (multi) {
-    name += "Multi_";
-  }
-  name += typeid(T).name();
-  name += std::to_string(I);
-
-  cl_int ocl_error;
-  cl_kernel krnl = clCreateKernel(mInternals->program, name.c_str(), &ocl_error);
-  if (ocl_error != CL_SUCCESS) {
-    quit("OPENCL Kernel Error %s", name.c_str());
-  }
-  mInternals->kernels.emplace_back(krnl, name);
-  return 0;
 }
 
 void GPUReconstructionOCL::SetThreadCounts()
