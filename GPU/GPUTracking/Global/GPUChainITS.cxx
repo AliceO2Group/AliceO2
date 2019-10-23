@@ -46,7 +46,7 @@ int GPUChainITS::Init() { return 0; }
 
 TrackerTraits* GPUChainITS::GetITSTrackerTraits()
 {
-#ifndef GPUCA_NO_ITS_VERTEXER
+#ifndef GPUCA_NO_ITS_TRAITS
   if (mITSTrackerTraits == nullptr) {
     mRec->GetITSTraits(&mITSTrackerTraits, nullptr);
     mITSTrackerTraits->SetRecoChain(this, &GPUChainITS::PrepareAndRunITSTrackFit);
@@ -56,7 +56,7 @@ TrackerTraits* GPUChainITS::GetITSTrackerTraits()
 }
 VertexerTraits* GPUChainITS::GetITSVertexerTraits()
 {
-#ifndef GPUCA_NO_ITS_VERTEXER
+#ifndef GPUCA_NO_ITS_TRAITS
   if (mITSVertexerTraits == nullptr) {
     mRec->GetITSTraits(nullptr, &mITSVertexerTraits);
   }

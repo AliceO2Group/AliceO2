@@ -14,7 +14,7 @@
 #ifndef GPURECONSTRUCTIONINCLDUESITS_H
 #define GPURECONSTRUCTIONINCLDUESITS_H
 
-#if defined(HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_VERTEXER)
+#if defined(HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
 #include "ITStracking/TrackerTraitsCPU.h"
 #include "ITStracking/VertexerTraits.h"
 #else

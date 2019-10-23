@@ -38,7 +38,7 @@ texture<cahit2, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu2;
 texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
 #endif
 
-#if defined(HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_VERTEXER)
+#if defined(HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
 #include "ITStrackingCUDA/TrackerTraitsNV.h"
 #include "ITStrackingCUDA/VertexerTraitsGPU.h"
 #else
