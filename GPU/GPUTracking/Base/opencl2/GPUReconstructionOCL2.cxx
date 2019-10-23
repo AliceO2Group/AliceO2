@@ -12,6 +12,7 @@
 /// \author David Rohr
 
 #define GPUCA_GPUTYPE_RADEON
+#define __OPENCL_HOST__
 
 #include "GPUReconstructionOCL2.h"
 #include "GPUReconstructionOCL2Internals.h"
@@ -44,14 +45,14 @@ GPUReconstructionOCL2Backend::GPUReconstructionOCL2Backend(const GPUSettingsProc
 template <class T, int I, typename... Args>
 int GPUReconstructionOCL2Backend::runKernelBackend(krnlSetup& _xyz, const Args&... args)
 {
-  cl_kernel k = getKernelObject<cl_kernel, T, I>(_xyz.y.num);
+  cl_kernel k = _xyz.y.num > 1 ? getKernelObject<cl_kernel, T, I, true>() : getKernelObject<cl_kernel, T, I, false>();
   return runKernelBackendCommon(_xyz, k, args...);
 }
 
-template <class S, class T, int I>
-S& GPUReconstructionOCL2Backend::getKernelObject(int num)
+template <class S, class T, int I, bool MULTI>
+S& GPUReconstructionOCL2Backend::getKernelObject()
 {
-  static int krnl = FindKernel<T, I>(num);
+  static unsigned int krnl = FindKernel<T, I>(MULTI ? 2 : 1);
   return mInternals->kernels[krnl].first;
 }
 
