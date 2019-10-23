@@ -87,25 +87,25 @@ namespace GPU
 {
 
 template <typename... Args>
-GPUd() void printOnThread(const int tId, const char* str, Args... args)
+GPUd() void printOnThread(const unsigned int tId, const char* str, Args... args)
 {
   if (blockIdx.x * blockDim.x + threadIdx.x == tId) {
     printf(str, args...);
   }
 }
 
-GPUd() void printVectorOnThread(const char* name, VectorHIP<int>& vector, size_t size, const int tId = 0)
+GPUd() void printVectorOnThread(const char* name, VectorHIP<int>& vector, size_t size, const unsigned int tId = 0)
 {
   if (blockIdx.x * blockDim.x + threadIdx.x == tId) {
     printf("vector %s :", name);
-    for (int i{0}; i < size; ++i) {
+    for (size_t i{0}; i < size; ++i) {
       printf("%d ", vector[i]);
     }
     printf("\n");
   }
 }
 
-GPUg() void printVectorKernel(DeviceStoreVertexerHIP* store, const int threadId)
+GPUg() void printVectorKernel(DeviceStoreVertexerHIP* store, const unsigned int threadId)
 {
   if (blockIdx.x * blockDim.x + threadIdx.x == threadId) {
     for (int i{0}; i < store->getConfig().nBinsXYZ[0] - 1; ++i) {
@@ -123,7 +123,7 @@ GPUg() void printVectorKernel(DeviceStoreVertexerHIP* store, const int threadId)
   }
 }
 
-GPUg() void dumpMaximaKernel(DeviceStoreVertexerHIP* store, const int threadId)
+GPUg() void dumpMaximaKernel(DeviceStoreVertexerHIP* store, const unsigned int threadId)
 {
   if (blockIdx.x * blockDim.x + threadIdx.x == threadId) {
     printf("XmaxBin: %d at index: %d | YmaxBin: %d at index: %d | ZmaxBin: %d at index: %d\n",
@@ -139,10 +139,10 @@ GPUg() void trackleterKernel(
   const float phiCut)
 {
   const size_t nClustersMiddleLayer = store->getClusters()[1].size();
-  for (int currentClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; currentClusterIndex < nClustersMiddleLayer; currentClusterIndex += blockDim.x * gridDim.x) {
+  for (unsigned int currentClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; currentClusterIndex < nClustersMiddleLayer; currentClusterIndex += blockDim.x * gridDim.x) {
     if (currentClusterIndex < nClustersMiddleLayer) {
       int storedTracklets{0};
-      const int stride{currentClusterIndex * store->getConfig().maxTrackletsPerCluster};
+      const unsigned int stride{currentClusterIndex * store->getConfig().maxTrackletsPerCluster};
       const Cluster& currentCluster = store->getClusters()[1][currentClusterIndex]; // assign-constructor may be a problem, check
       const VertexerLayerName adjacentLayerIndex{layerOrder == TrackletingLayerOrder::fromInnermostToMiddleLayer ? VertexerLayerName::innermostLayer : VertexerLayerName::outerLayer};
       const int4 selectedBinsRect{VertexerTraits::getBinsRect(currentCluster, static_cast<int>(adjacentLayerIndex), 0.f, 50.f, phiCut)};
@@ -151,8 +151,8 @@ GPUg() void trackleterKernel(
         if (phiBinsNum < 0) {
           phiBinsNum += PhiBins;
         }
-        const size_t nClustersAdjacentLayer = store->getClusters()[static_cast<int>(adjacentLayerIndex)].size();
-        for (size_t iPhiBin{static_cast<size_t>(selectedBinsRect.y)}, iPhiCount{0}; iPhiCount < phiBinsNum; iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
+        const int nClustersAdjacentLayer = store->getClusters()[static_cast<int>(adjacentLayerIndex)].size();
+        for (size_t iPhiBin{static_cast<size_t>(selectedBinsRect.y)}, iPhiCount{0}; (int)iPhiCount < phiBinsNum; iPhiBin = ++iPhiBin == PhiBins ? 0 : iPhiBin, iPhiCount++) {
           const int firstBinIndex{index_table_utils::getBinIndex(selectedBinsRect.x, iPhiBin)};
           const int firstRowClusterIndex{store->getIndexTable(adjacentLayerIndex)[firstBinIndex]};
           const int maxRowClusterIndex{store->getIndexTable(adjacentLayerIndex)[firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1]};
@@ -221,9 +221,9 @@ GPUg() void trackletSelectionKernel(
 GPUg() void computeCentroidsKernel(DeviceStoreVertexerHIP* store,
                                    const float pairCut)
 {
-  const int nLines = store->getNExclusiveFoundLines()[store->getClusters()[1].size() - 1] + store->getNFoundLines()[store->getClusters()[1].size() - 1];
-  const int maxIterations{nLines * (nLines - 1) / 2};
-  for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < maxIterations; currentThreadIndex += blockDim.x * gridDim.x) {
+  const unsigned int nLines = store->getNExclusiveFoundLines()[store->getClusters()[1].size() - 1] + store->getNFoundLines()[store->getClusters()[1].size() - 1];
+  const unsigned int maxIterations{nLines * (nLines - 1) / 2};
+  for (unsigned int currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < maxIterations; currentThreadIndex += blockDim.x * gridDim.x) {
     int iFirstLine = currentThreadIndex / nLines;
     int iSecondLine = currentThreadIndex % nLines;
     if (iSecondLine <= iFirstLine) {
@@ -252,8 +252,8 @@ GPUg() void computeCentroidsKernel(DeviceStoreVertexerHIP* store,
 GPUg() void computeZCentroidsKernel(DeviceStoreVertexerHIP* store,
                                     const float pairCut, const int binOpeningX, const int binOpeningY)
 {
-  const int nLines = store->getNExclusiveFoundLines()[store->getClusters()[1].size() - 1] + store->getNFoundLines()[store->getClusters()[1].size() - 1];
-  for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < nLines; currentThreadIndex += blockDim.x * gridDim.x) {
+  const unsigned int nLines = store->getNExclusiveFoundLines()[store->getClusters()[1].size() - 1] + store->getNFoundLines()[store->getClusters()[1].size() - 1];
+  for (unsigned int currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < nLines; currentThreadIndex += blockDim.x * gridDim.x) {
     // printOnThread(0, "Max X: %d Max Y %d \n", store->getTmpVertexPositionBins()[0].value, store->getTmpVertexPositionBins()[1].value);
     if (store->getTmpVertexPositionBins()[0].value || store->getTmpVertexPositionBins()[1].value) {
       float tmpX{store->getConfig().lowHistBoundariesXYZ[0] + store->getTmpVertexPositionBins()[0].key * store->getConfig().binSizeHistX + store->getConfig().binSizeHistX / 2};
@@ -291,7 +291,7 @@ GPUg() void computeZCentroidsKernel(DeviceStoreVertexerHIP* store,
 
 GPUg() void computeVertexKernel(DeviceStoreVertexerHIP* store, const int vertIndex, const int minContributors, const int binOpeningZ)
 {
-  for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < binOpeningZ; currentThreadIndex += blockDim.x * gridDim.x) {
+  for (unsigned int currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; (int)currentThreadIndex < binOpeningZ; currentThreadIndex += blockDim.x * gridDim.x) {
     if (currentThreadIndex == 0) {
       if (store->getTmpVertexPositionBins()[2].value > 1) {
         float z{store->getConfig().lowHistBoundariesXYZ[2] + store->getTmpVertexPositionBins()[2].key * store->getConfig().binSizeHistZ + store->getConfig().binSizeHistZ / 2};
