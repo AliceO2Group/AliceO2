@@ -54,9 +54,17 @@ InitStatus TrackerTask::Init()
     return kERROR;
   }
 
+  // Input clusters array
   mClustersArray = mgr->InitObjectAs<const std::vector<o2::itsmft::Cluster>*>("MFTCluster");
   if (!mClustersArray) {
     LOG(ERROR) << "MFT clusters not registered in the FairRootManager. Exiting ...";
+    return kERROR;
+  }
+
+  // Input ROFs array
+  mROFRecVecPtr = mgr->InitObjectAs<const std::vector<o2::itsmft::ROFRecord>*>("MFTClustersROF");
+  if (!mROFRecVecPtr) {
+    LOG(ERROR) << "MFT ROF records not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
 
@@ -97,5 +105,5 @@ void TrackerTask::Exec(Option_t* option)
   }
   LOG(DEBUG) << "Running digitization on new event";
 
-  mTracker.process(*mClustersArray, *mTracksArray);
+  mTracker.process(*mClustersArray, *mTracksArray, *mROFRecVecPtr);
 }

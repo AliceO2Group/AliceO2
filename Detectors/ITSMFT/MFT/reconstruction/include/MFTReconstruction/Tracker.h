@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "DataFormatsMFT/TrackMFT.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "MFTBase/Constants.h"
 #include "MFTBase/GeometryTGeo.h"
 
@@ -53,7 +54,7 @@ class Tracker
   Int_t getNumberOfThreads() const { return mNumOfThreads; }
 
   // These functions must be implemented
-  void process(const std::vector<Cluster>& clusters, std::vector<TrackMFT>& tracks);
+  void process(const std::vector<Cluster>& clusters, std::vector<TrackMFT>& tracks, const std::vector<o2::itsmft::ROFRecord>& rofs);
   void processFrame(std::vector<TrackMFT>& tracks);
   const Cluster* getCluster(Int_t index) const;
   void setGeometry(o2::mft::GeometryTGeo* geom);
@@ -70,7 +71,7 @@ class Tracker
   class Layer;
 
  protected:
-  int loadClusters(const std::vector<Cluster>& clusters);
+  int loadClusters(const std::vector<Cluster>& clusters, const o2::itsmft::ROFRecord& rof);
   void unloadClusters();
   std::vector<TrackMFT> trackInThread(Int_t first, Int_t last);
 
