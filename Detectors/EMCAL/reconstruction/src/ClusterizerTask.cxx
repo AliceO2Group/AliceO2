@@ -30,20 +30,25 @@ ClusterizerTask::ClusterizerTask(ClusterizerParameters* parameters) : mClusteriz
 void ClusterizerTask::init()
 {
   // Initialize digit reader
-  if (!mDigitReader)
+  if (!mDigitReader) {
     mDigitReader = std::make_unique<DigitReader>();
+  }
 
   // Get default geometry object if not yet set
-  if (!mGeometry)
+  if (!mGeometry) {
     mGeometry = Geometry::GetInstanceFromRunNumber(223409); // NOTE: Hardcoded for run II run
-  if (!mGeometry)
+  }
+  if (!mGeometry) {
     LOG(ERROR) << "Failure accessing geometry";
+  }
 
   // Set geometry object in clusterizer
-  if (!mClusterizer.getGeometry())
+  if (!mClusterizer.getGeometry()) {
     mClusterizer.setGeometry(mGeometry);
-  if (!mClusterizer.getGeometry())
+  }
+  if (!mClusterizer.getGeometry()) {
     LOG(ERROR) << "Could not set geometry in clusterizer";
+  }
 }
 
 //_____________________________________________________________________

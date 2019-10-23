@@ -40,7 +40,7 @@ class DigitReader
   std::unique_ptr<TTree> mInputTree; // input tree for digits
   int mCurrentEntry;                 // current entry in input file
 
-  ClassDef(DigitReader, 1);
+  ClassDefNV(DigitReader, 1);
 };
 
 } // namespace emcal

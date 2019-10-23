@@ -37,8 +37,9 @@ bool DigitReader::readNextEntry()
 {
   // Load next entry from the self-managed input
 
-  if (mCurrentEntry >= mInputTree->GetEntriesFast())
+  if (mCurrentEntry >= mInputTree->GetEntriesFast()) {
     return false;
+  }
 
   mInputTree->GetEntry(mCurrentEntry);
   mCurrentEntry++;

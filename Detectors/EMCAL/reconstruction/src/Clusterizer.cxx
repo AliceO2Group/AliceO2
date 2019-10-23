@@ -29,43 +29,35 @@ Clusterizer::Clusterizer(double timeCut, double timeMin, double timeMax, double 
 void Clusterizer::getClusterFromNeighbours(std::vector<Digit*>& clusterDigits, int row, int column)
 {
   // Recursion 0, add seed digit to cluster
-  if (!clusterDigits.size())
+  if (!clusterDigits.size()) {
     clusterDigits.emplace_back(mDigitMap[row][column]);
+  }
 
   // Mark the current cell as clustered
   mCellMask[row][column] = kTRUE;
 
   // Now go recursively to the next 4 neighbours and add them to the cluster if they fulfill the conditions
+  constexpr int rowDiffs[4] = {-1,0,0,1};
+  constexpr int colDiffs[4] = {0,-1,1,0};
   for (int dir = 0; dir < 4; dir++) {
-    int rowDiff = 0;
-    int colDiff = 0;
-    if (dir == 0) {
-      rowDiff = -1;
-      colDiff = 0;
-    } else if (dir == 1) {
-      rowDiff = 0;
-      colDiff = -1;
-    } else if (dir == 2) {
-      rowDiff = 0;
-      colDiff = +1;
-    } else if (dir == 3) {
-      rowDiff = +1;
-      colDiff = 0;
+    if ((row + rowDiffs[dir] < 0) || (row + rowDiffs[dir] >= NROWS)) {
+      continue;
+    }
+    if ((column + colDiffs[dir] < 0) || (column + colDiffs[dir] >= NCOLS)) {
+      continue;
     }
 
-    if ((row + rowDiff < 0) || (row + rowDiff >= NROWS))
-      continue;
-    if ((column + colDiff < 0) || (column + colDiff >= NCOLS))
-      continue;
-
-    if (mDigitMap[row + rowDiff][column + colDiff])
-      if (!mCellMask[row + rowDiff][column + colDiff])
-        if (mDoEnergyGradientCut && not(mDigitMap[row + rowDiff][column + colDiff]->getEnergy() > mDigitMap[row][column]->getEnergy() + mGradientCut))
-          if (not(TMath::Abs(mDigitMap[row + rowDiff][column + colDiff]->getTimeStamp() - mDigitMap[row][column]->getTimeStamp()) > mTimeCut)) {
-            getClusterFromNeighbours(clusterDigits, row + rowDiff, column + colDiff);
+    if (mDigitMap[row + rowDiffs[dir]][column + colDiffs[dir]]) {
+      if (!mCellMask[row + rowDiffs[dir]][column + colDiffs[dir]]) {
+        if (mDoEnergyGradientCut && not(mDigitMap[row + rowDiffs[dir]][column + colDiffs[dir]]->getEnergy() > mDigitMap[row][column]->getEnergy() + mGradientCut)) {
+          if (not(TMath::Abs(mDigitMap[row + rowDiffs[dir]][column + colDiffs[dir]]->getTimeStamp() - mDigitMap[row][column]->getTimeStamp()) > mTimeCut)) {
+            getClusterFromNeighbours(clusterDigits, row + rowDiffs[dir], column + colDiffs[dir]);
             // Add the digit to the current cluster -- if we end up here, the selected cluster fulfills the condition
-            clusterDigits.emplace_back(mDigitMap[row + rowDiff][column + colDiff]);
+            clusterDigits.emplace_back(mDigitMap[row + rowDiffs[dir]][column + colDiffs[dir]]);
           }
+        }
+      }
+    }
   }
 }
 
@@ -92,10 +84,12 @@ void Clusterizer::getTopologicalRowColumn(const Digit& digit, int& row, int& col
 
   row += nSupMod / 2 * (24 + 1);
   // In DCAL, leave a gap between two SMs with same phi
-  if (!mEMCALGeometry->IsDCALSM(nSupMod)) // EMCAL
+  if (!mEMCALGeometry->IsDCALSM(nSupMod)) { // EMCAL
     column += nSupMod % 2 * 48;
-  else
+  }
+  else {
     column += nSupMod % 2 * (48 + 1);
+  }
 }
 
 ///
@@ -132,11 +126,12 @@ void Clusterizer::findClusters(const std::vector<Digit>& digitArray)
     Float_t digitEnergy = dig.getEnergy();
     Float_t time = dig.getTimeStamp();
 
-    if (digitEnergy < mThresholdCellEnergy || time > mTimeMax || time < mTimeMin)
+    if (digitEnergy < mThresholdCellEnergy || time > mTimeMax || time < mTimeMin) {
       continue;
-    if (!mEMCALGeometry->CheckAbsCellId(dig.getTower()))
+    }
+    if (!mEMCALGeometry->CheckAbsCellId(dig.getTower())) {
       continue;
-
+    }
     ehs += digitEnergy;
 
     // Put digit to 2D map
@@ -154,14 +149,16 @@ void Clusterizer::findClusters(const std::vector<Digit>& digitArray)
   //std::sort(mSeedList, mSeedList+nCells);
 
   // Take next valid digit in calorimeter as seed (in descending energy order)
-  for (int i = nCells - 1; i >= 0; i--) {
+  for (int i = nCells; i--;) {
     int row = mSeedList[i].row, column = mSeedList[i].column;
     // Continue if the cell is already masked (i.e. was already clustered)
-    if (mCellMask[row][column])
+    if (mCellMask[row][column]) {
       continue;
+    }
     // Continue if energy constraints are not fulfilled
-    if (mSeedList[i].energy <= mThresholdSeedEnergy)
+    if (mSeedList[i].energy <= mThresholdSeedEnergy) {
       continue;
+    }
 
     // Seed is found, form cluster recursively
     std::vector<Digit*> clusterDigits;
@@ -169,8 +166,9 @@ void Clusterizer::findClusters(const std::vector<Digit>& digitArray)
 
     // Add digits for current cluster to digit index vector
     int digitIndexStart = mDigitIndices.size();
-    for (auto dig : clusterDigits)
+    for (auto dig : clusterDigits) {
       mDigitIndices.emplace_back(dig->getTower());
+    }
     int digitIndexSize = mDigitIndices.size() - digitIndexStart;
 
     // Now form cluster object from digits
