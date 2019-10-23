@@ -149,6 +149,9 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
     return 0;
   }
 
+  template <class T, int I>
+  constexpr const char* GetKernelName();
+
   virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1);
   void TransferMemoryResourceToGPU(GPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { TransferMemoryInternal(res, stream, ev, evList, nEvents, true, res->Ptr(), res->PtrDevice()); }
   void TransferMemoryResourceToHost(GPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { TransferMemoryInternal(res, stream, ev, evList, nEvents, false, res->PtrDevice(), res->Ptr()); }
@@ -225,6 +228,15 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
  private:
   void TransferMemoryResourcesHelper(GPUProcessor* proc, int stream, bool all, bool toGPU);
 };
+
+#define GPUCA_KRNL(x_class, attributes, x_arguments, x_forward)                               \
+  template <>                                                                                 \
+  constexpr const char* GPUReconstructionCPU::GetKernelName<GPUCA_M_KRNL_TEMPLATE(x_class)>() \
+  {                                                                                           \
+    return GPUCA_M_STR(GPUCA_M_KRNL_NAME(x_class));                                           \
+  }
+#include "GPUReconstructionKernels.h"
+#undef GPUCA_KRNL
 
 template <class T>
 inline void GPUReconstructionCPU::AddGPUEvents(T*& events)

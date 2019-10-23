@@ -22,7 +22,7 @@
 //Define macros for GPU keywords. i-version defines inline functions.
 //All host-functions in GPU code are automatically inlined, to avoid duplicate symbols.
 //For non-inline host only functions, use no keyword at all!
-#if !defined(GPUCA_GPUCODE) // For host / ROOT dictionary
+#if !defined(GPUCA_GPUCODE) || defined(__OPENCL_HOST__) // For host / ROOT dictionary
   #define GPUd()
   #define GPUdDefault()
   #define GPUdi() inline

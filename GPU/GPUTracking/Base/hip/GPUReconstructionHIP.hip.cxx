@@ -71,7 +71,7 @@ GPUg() void runKernelHIP(GPUCA_CONSMEM_PTR int iSlice, Args... args)
 }
 */
 
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(x_class, x_attributes, x_arguments, x_forward)
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_, x_class, x_attributes, x_arguments, x_forward)
 #define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionHIPBackend
 #define GPUCA_KRNL_CALL_single(x_class, x_attributes, x_arguments, x_forward) \
   hipLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_KRNL_NAME(x_class)), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->HIPStreams[x.stream], GPUCA_CONSMEM_CALL y.start, args...);
