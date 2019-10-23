@@ -21,10 +21,11 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 struct GPUTPCGMMergedTrackHit {
-  float x, y, z;
   unsigned int num;
   unsigned char slice, row, leg, state;
-  unsigned short amp;
+
+  float x, y, z;      // TODO: Move to separate struct
+  unsigned short amp; // also
 
   enum hitState { flagSplitPad = 0x1,
                   flagSplitTime = 0x2,

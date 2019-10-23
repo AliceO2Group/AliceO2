@@ -85,7 +85,7 @@ int GPUChainITS::RunITSTrackFit(std::vector<Road>& roads, std::array<const Clust
   for (int i = 0; i < 7; i++) {
     Fitter.SetNumberTF(i, tf[i].size());
   }
-  Fitter.SetMaxData();
+  Fitter.SetMaxData(processors()->ioPtrs);
   std::copy(clusters.begin(), clusters.end(), Fitter.clusters());
   std::copy(cells.begin(), cells.end(), Fitter.cells());
   SetupGPUProcessor(&Fitter, true);

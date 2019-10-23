@@ -9,11 +9,11 @@
 # submit itself to any jurisdiction.
 
 if(pythia_FOUND)
-  set(pythiaTarget pythia)
+  set(pythiaTarget MC::Pythia)
 endif()
 
 if(HepMC_FOUND)
-  set(hepmcTarget HepMC)
+        set(hepmcTarget MC::HepMC)
 endif()
 
 o2_add_library(Generators
@@ -25,6 +25,7 @@ o2_add_library(Generators
                        src/PrimaryGenerator.cxx
                        src/InteractionDiamondParam.cxx
                        src/BoxGunParam.cxx
+		       src/QEDGenParam.cxx
                        src/GeneratorFactory.cxx
                        $<$<BOOL:${pythia_FOUND}>:src/Pythia8Generator.cxx>
                        $<$<BOOL:${HepMC_FOUND}>:src/GeneratorHepMC.cxx>
@@ -49,7 +50,8 @@ set(headers
     include/Generators/PDG.h
     include/Generators/PrimaryGenerator.h
     include/Generators/InteractionDiamondParam.h
-    include/Generators/BoxGunParam.h)
+    include/Generators/BoxGunParam.h
+    include/Generators/QEDGenParam.h)
 
 if(pythia_FOUND)
   list(APPEND headers include/Generators/Pythia8Generator.h
@@ -67,13 +69,23 @@ o2_add_test_root_macro(share/external/extgen.C
                        LABELS generators)
 if(pythia6_FOUND)
   o2_add_test_root_macro(share/external/pythia6.C
-                         PUBLIC_LINK_LIBRARIES O2::Generators pythia6
+                         PUBLIC_LINK_LIBRARIES O2::Generators MC::Pythia6
                          LABELS generators)
 endif()
+
+if(doBuildSimulation)
+  o2_add_test_root_macro(share/external/QEDLoader.C
+                         PUBLIC_LINK_LIBRARIES O2::Generators
+                                               O2::SimConfig
+                                               LABELS generators
+			                       LOAD_ONLY)
+endif()
+
 o2_add_test_root_macro(share/external/tgenerator.C
                        PUBLIC_LINK_LIBRARIES O2::Generators
                        LABELS generators)
 
+		     
 install(FILES share/external/extgen.C share/external/pythia6.C
-              share/external/tgenerator.C
+              share/external/tgenerator.C share/external/QEDLoader.C share/external/QEDepem.C
         DESTINATION share/Generators/external/)

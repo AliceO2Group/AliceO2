@@ -23,6 +23,7 @@
 #include "EventVisualisationView/MultiView.h"
 #include "EventVisualisationBase/VisualisationConstants.h"
 #include "EventVisualisationBase/DataSourceOffline.h"
+#include "EventVisualisationDetectors/DataReaderVSD.h"
 #include "EventVisualisationBase/EventRegistration.h"
 #include "EventVisualisationDetectors/DataInterpreterVSD.h"
 #include "EventVisualisationDetectors/DataInterpreterRND.h"

@@ -49,25 +49,20 @@ NodeColor
     result.hovered = PaletteHelpers::SHADED_RED;
     return result;
   }
-  switch (info.maxLogLevel) {
-    case LogParsingHelpers::LogLevel::Error:
-      result.normal = PaletteHelpers::SHADED_RED;
-      result.hovered = PaletteHelpers::RED;
-      result.title = PaletteHelpers::RED;
-      result.title_hovered = PaletteHelpers::DARK_RED;
-      break;
-    case LogLevel::Warning:
+  switch (info.streamingState) {
+    case StreamingState::EndOfStreaming:
       result.normal = PaletteHelpers::SHADED_YELLOW;
       result.hovered = PaletteHelpers::YELLOW;
       result.title = PaletteHelpers::YELLOW;
       result.title_hovered = PaletteHelpers::DARK_YELLOW;
       break;
-    case LogLevel::Info:
+    case StreamingState::Idle:
       result.normal = PaletteHelpers::SHADED_GREEN;
       result.hovered = PaletteHelpers::GREEN;
       result.title = PaletteHelpers::GREEN;
       result.title_hovered = PaletteHelpers::DARK_GREEN;
       break;
+    case StreamingState::Streaming:
     default:
       result.normal = PaletteHelpers::GRAY;
       result.hovered = PaletteHelpers::LIGHT_GRAY;
@@ -435,7 +430,19 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     bool old_any_active = ImGui::IsAnyItemActive();
     ImGui::SetCursorScreenPos(node_rect_min + NODE_WINDOW_PADDING);
     ImGui::BeginGroup(); // Lock horizontal position
-    ImGui::Text("%s", node->Name);
+    ImGui::TextUnformatted(node->Name);
+    switch (info.maxLogLevel) {
+      case LogLevel::Error:
+        ImGui::SameLine();
+        ImGui::TextColored(ImVec4(1, 1, 1, 1), "%s", " →(errors!!)");
+        break;
+      case LogLevel::Warning:
+        ImGui::SameLine();
+        ImGui::TextColored(ImVec4(1, 1, 1, 1), "%s", "(warnings!!)");
+        break;
+      default:
+        break;
+    }
     gui::displayDataRelayer(metricsInfos[node->ID], infos[node->ID], ImVec2(140., 90.));
     ImGui::EndGroup();
 

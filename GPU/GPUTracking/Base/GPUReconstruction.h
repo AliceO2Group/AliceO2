@@ -21,6 +21,7 @@
 #include <memory>
 #include <fstream>
 #include <vector>
+#include <unordered_map>
 
 #include "GPUTRDDef.h"
 #include "GPUParam.h"
@@ -154,7 +155,7 @@ class GPUReconstruction
   // Helpers for memory allocation
   GPUMemoryResource& Res(short num) { return mMemoryResources[num]; }
   template <class T>
-  short RegisterMemoryAllocation(T* proc, void* (T::*setPtr)(void*), int type, const char* name = "");
+  short RegisterMemoryAllocation(T* proc, void* (T::*setPtr)(void*), int type, const char* name = "", const GPUMemoryReuse& re = GPUMemoryReuse());
   size_t AllocateMemoryResources();
   size_t AllocateRegisteredMemory(GPUProcessor* proc);
   size_t AllocateRegisteredMemory(short res);
@@ -200,6 +201,7 @@ class GPUReconstruction
   template <class T>
   void SetupGPUProcessor(T* proc, bool allocate);
   void RegisterGPUDeviceProcessor(GPUProcessor* proc, GPUProcessor* slaveProcessor);
+  void ConstructGPUProcessor(GPUProcessor* proc);
 
  protected:
   GPUReconstruction(const GPUSettingsProcessing& cfg); // Constructor
@@ -248,6 +250,7 @@ class GPUReconstruction
   const GPUConstantMem* processors() const { return mHostConstantMem.get(); }
   GPUParam& param() { return mHostConstantMem->param; }
   std::unique_ptr<GPUConstantMem> mHostConstantMem;
+  GPUConstantMem* mDeviceConstantMem = nullptr;
 
   // Settings
   GPUSettingsEvent mEventSettings;                       // Event Parameters
@@ -279,13 +282,14 @@ class GPUReconstruction
 
   // Management for GPUProcessors
   struct ProcessorData {
-    ProcessorData(GPUProcessor* p, void (GPUProcessor::*r)(), void (GPUProcessor::*i)(), void (GPUProcessor::*d)()) : proc(p), RegisterMemoryAllocation(r), InitializeProcessor(i), SetMaxData(d) {}
+    ProcessorData(GPUProcessor* p, void (GPUProcessor::*r)(), void (GPUProcessor::*i)(), void (GPUProcessor::*d)(const GPUTrackingInOutPointers&)) : proc(p), RegisterMemoryAllocation(r), InitializeProcessor(i), SetMaxData(d) {}
     GPUProcessor* proc;
     void (GPUProcessor::*RegisterMemoryAllocation)();
     void (GPUProcessor::*InitializeProcessor)();
-    void (GPUProcessor::*SetMaxData)();
+    void (GPUProcessor::*SetMaxData)(const GPUTrackingInOutPointers&);
   };
   std::vector<ProcessorData> mProcessors;
+  std::unordered_map<GPUMemoryReuse::ID, const GPUMemoryResource*> mMemoryReuse1to1;
 
   // Helpers for loading device library via dlopen
   class LibraryLoader
@@ -332,7 +336,7 @@ inline T* GPUReconstruction::AddChain(Args... args)
 }
 
 template <class T>
-inline short GPUReconstruction::RegisterMemoryAllocation(T* proc, void* (T::*setPtr)(void*), int type, const char* name)
+inline short GPUReconstruction::RegisterMemoryAllocation(T* proc, void* (T::*setPtr)(void*), int type, const char* name, const GPUMemoryReuse& re)
 {
   if (!(type & (GPUMemoryResource::MEMORY_HOST | GPUMemoryResource::MEMORY_GPU))) {
     if ((type & GPUMemoryResource::MEMORY_SCRATCH) && !mDeviceProcessingSettings.keepAllMemory) {
@@ -345,16 +349,25 @@ inline short GPUReconstruction::RegisterMemoryAllocation(T* proc, void* (T::*set
     type &= ~GPUMemoryResource::MEMORY_GPU;
   }
   mMemoryResources.emplace_back(proc, static_cast<void* (GPUProcessor::*)(void*)>(setPtr), (GPUMemoryResource::MemoryType)type, name);
-  if (mMemoryResources.size() == 32768) {
+  if (mMemoryResources.size() >= 32768) {
     throw std::bad_alloc();
   }
-  return mMemoryResources.size() - 1;
+  short retVal = mMemoryResources.size() - 1;
+  if (re.type != GPUMemoryReuse::NONE) {
+    const auto& it = mMemoryReuse1to1.find(re.id);
+    if (it == mMemoryReuse1to1.end()) {
+      mMemoryReuse1to1[re.id] = &mMemoryResources[retVal];
+    } else {
+      mMemoryResources[retVal].mReuse = mMemoryReuse1to1[re.id];
+    }
+  }
+  return retVal;
 }
 
 template <class T>
 inline void GPUReconstruction::RegisterGPUProcessor(T* proc, bool deviceSlave)
 {
-  mProcessors.emplace_back(proc, static_cast<void (GPUProcessor::*)()>(&T::RegisterMemoryAllocation), static_cast<void (GPUProcessor::*)()>(&T::InitializeProcessor), static_cast<void (GPUProcessor::*)()>(&T::SetMaxData));
+  mProcessors.emplace_back(proc, static_cast<void (GPUProcessor::*)()>(&T::RegisterMemoryAllocation), static_cast<void (GPUProcessor::*)()>(&T::InitializeProcessor), static_cast<void (GPUProcessor::*)(const GPUTrackingInOutPointers& io)>(&T::SetMaxData));
   GPUProcessor::ProcessorType processorType = deviceSlave ? GPUProcessor::PROCESSOR_TYPE_SLAVE : GPUProcessor::PROCESSOR_TYPE_CPU;
   proc->InitGPUProcessor(this, processorType);
 }
@@ -364,7 +377,7 @@ inline void GPUReconstruction::SetupGPUProcessor(T* proc, bool allocate)
 {
   static_assert(sizeof(T) > sizeof(GPUProcessor), "Need to setup derrived class");
   if (allocate) {
-    proc->SetMaxData();
+    proc->SetMaxData(mHostConstantMem->ioPtrs);
   }
   if (proc->mDeviceProcessor) {
     std::memcpy((void*)proc->mDeviceProcessor, (const void*)proc, sizeof(*proc));

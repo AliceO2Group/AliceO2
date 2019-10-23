@@ -22,12 +22,25 @@
 #pragma link C++ class o2::trd::Digit + ;
 #pragma link C++ class std::vector < o2::trd::Digit> + ;
 #pragma link C++ class o2::trd::FeeParam + ;
-#pragma link C++ class o2::trd::TRDCalSingleChamberStatus + ;
-#pragma link C++ class o2::trd::TRDCalPadStatus + ;
 #pragma link C++ class o2::trd::CalDet + ;
 #pragma link C++ class o2::trd::CalROC + ;
 #pragma link C++ class o2::trd::PadResponse + ;
 #pragma link C++ class o2::trd::MCLabel + ;
+#pragma link C++ class o2::trd::PadParameters < unsigned short > +;
+#pragma link C++ class o2::trd::PadParameters < float > +;
+#pragma link C++ class o2::trd::PadParameters < char > +;
+#pragma link C++ class o2::trd::PadCalibrations < unsigned short > +;
+#pragma link C++ class o2::trd::PadCalibrations < float > +;
+#pragma link C++ class o2::trd::PadCalibrations < char > +;
+#pragma link C++ class o2::trd::ChamberCalibrations + ;
+#pragma link C++ class o2::trd::PadStatus + ;
+#pragma link C++ class o2::trd::LocalT0 + ;
+#pragma link C++ class o2::trd::LocalVDrift + ;
+#pragma link C++ class o2::trd::LocalGainFactor + ;
+#pragma link C++ class o2::trd::ChamberStatus + ;
+#pragma link C++ class o2::trd::Calibrations + ;
+#pragma link C++ class o2::trd::ChamberNoise + ;
+#pragma link C++ class o2::trd::CalOnlineGainTables + ;
 
 #include "SimulationDataFormat/MCTruthContainer.h"
 

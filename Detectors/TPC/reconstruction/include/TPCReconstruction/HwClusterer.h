@@ -64,6 +64,9 @@ class HwClusterer : public Clusterer
   /// Copy Constructor
   HwClusterer(HwClusterer const& other) = default;
 
+  /// initialize the clusterer from HwClustererParam
+  void init();
+
   /// Process digits
   /// \param digits Container with TPC digits
   /// \param mcDigitTruth MC Digit Truth container

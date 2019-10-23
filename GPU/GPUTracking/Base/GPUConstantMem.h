@@ -16,6 +16,7 @@
 
 #include "GPUTPCTracker.h"
 #include "GPUParam.h"
+#include "GPUDataTypes.h"
 
 #if defined(GPUCA_NOCOMPAT_ALLCINT) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB))
 #include "GPUTPCConvert.h"
@@ -23,6 +24,7 @@
 #include "GPUTPCGMMerger.h"
 #include "GPUITSFitter.h"
 #include "GPUTRDTracker.h"
+#include "GPUTPCClusterFinder.h"
 #else
 namespace GPUCA_NAMESPACE
 {
@@ -36,12 +38,15 @@ class GPUITSFitter
 };
 class GPUTRDTracker
 {
-  void SetMaxData() {}
+  void SetMaxData(const GPUTrackingInOutPointers& io) {}
 };
 class GPUTPCConvert
 {
 };
 class GPUTPCCompression
+{
+};
+class GPUTPCClusterFinder
 {
 };
 } // namespace gpu
@@ -62,8 +67,15 @@ struct GPUConstantMem {
   GPUTPCCompression tpcCompressor;
   GPUTPCGMMerger tpcMerger;
   GPUTRDTracker trdTracker;
+  GPUTPCClusterFinder tpcClusterer[GPUCA_NSLICES];
   GPUITSFitter itsFitter;
+  GPUTrackingInOutPointers ioPtrs;
+  GPUCalibObjectsConst calibObjects;
 };
+
+// Must be placed here, to avoid circular header dependency
+GPUdi() GPUconstantref() const MEM_CONSTANT(GPUParam) & GPUProcessor::Param() const { return mConstantMem->param; }
+
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

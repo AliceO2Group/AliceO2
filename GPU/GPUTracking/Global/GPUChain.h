@@ -152,6 +152,7 @@ class GPUChain
   {
     return mRec->runKernel<S, I, Args...>(x, t, y, z, std::forward<Args>(args)...);
   }
+  krnlExec GetGrid(unsigned int totalItems, unsigned int nThreads, int stream);
   unsigned int BlockCount() const { return mRec->mBlockCount; }
   unsigned int ThreadCount() const { return mRec->mThreadCount; }
   unsigned int ConstructorBlockCount() const { return mRec->mConstructorBlockCount; }
@@ -159,6 +160,8 @@ class GPUChain
   unsigned int ConstructorThreadCount() const { return mRec->mConstructorThreadCount; }
   unsigned int SelectorThreadCount() const { return mRec->mSelectorThreadCount; }
   unsigned int FinderThreadCount() const { return mRec->mFinderThreadCount; }
+  unsigned int ClustererThreadCount() const { return mRec->mClustererThreadCount; }
+  unsigned int ScanThreadCount() const { return mRec->mScanThreadCount; }
   unsigned int TRDThreadCount() const { return mRec->mTRDThreadCount; }
   size_t AllocateRegisteredMemory(GPUProcessor* proc) { return mRec->AllocateRegisteredMemory(proc); }
   size_t AllocateRegisteredMemory(short res) { return mRec->AllocateRegisteredMemory(res); }

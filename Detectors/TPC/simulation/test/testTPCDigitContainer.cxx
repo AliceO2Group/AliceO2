@@ -36,6 +36,7 @@ BOOST_AUTO_TEST_CASE(DigitContainer_test1)
 {
   auto& cdb = CDBInterface::instance();
   cdb.setUseDefaults();
+  o2::conf::ConfigurableParam::updateFromString("TPCEleParam.DigiMode=3"); // propagate the ADC values, otherwise the computation get complicated
   const Mapper& mapper = Mapper::instance();
   const SAMPAProcessing& sampa = SAMPAProcessing::instance();
   DigitContainer digitContainer;
@@ -57,10 +58,17 @@ BOOST_AUTO_TEST_CASE(DigitContainer_test1)
     digitContainer.addDigit(MCCompLabel(MCtrack[i], MCevent[i], 0, false), cru[i], Time[i], globalPad, nEle[i]);
   }
 
-  /// here the raw pointer is needed owed to the internal handling of the TClonesArrays in FairRoot
-  /// Usually the mDigitsArray is what is registered to the FairRootManager
   std::vector<Digit> mDigitsArray;
-  digitContainer.fillOutputContainer(mDigitsArray, mMCTruthArray, 0, 0, true, true);
+  std::vector<o2::tpc::CommonMode> commonMode;
+  digitContainer.fillOutputContainer(mDigitsArray, mMCTruthArray, commonMode, 0, 0, true, true);
+
+  for (size_t i = 0; i < commonMode.size(); ++i) {
+    auto digit = mDigitsArray[i];
+    const CRU cru = digit.getCRU();
+    const auto gemStack = cru.gemStack();
+    const float nPads = mapper.getNumberOfPads(GEMstack(gemStack));
+    BOOST_CHECK_CLOSE(commonMode[i].getCommonMode(), digit.getChargeFloat() / nPads, 1E-6);
+  }
 
   BOOST_CHECK(cru.size() == mDigitsArray.size());
 
@@ -78,7 +86,6 @@ BOOST_AUTO_TEST_CASE(DigitContainer_test1)
     BOOST_CHECK(digit.getTimeStamp() == Time[trueDigit]);
     BOOST_CHECK(digit.getRow() == Row[trueDigit]);
     BOOST_CHECK(digit.getPad() == Pad[trueDigit]);
-    //    BOOST_CHECK(digit.getCharge() == static_cast<int>(sampa.getADCSaturation(nEle[trueDigit])));
     ++digits;
   }
 }
@@ -89,6 +96,7 @@ BOOST_AUTO_TEST_CASE(DigitContainer_test2)
 {
   auto& cdb = CDBInterface::instance();
   cdb.setUseDefaults();
+  o2::conf::ConfigurableParam::updateFromString("TPCEleParam.DigiMode=3"); // propagate the ADC values, otherwise the computation get complicated
   const Mapper& mapper = Mapper::instance();
   const SAMPAProcessing& sampa = SAMPAProcessing::instance();
   DigitContainer digitContainer;
@@ -122,13 +130,14 @@ BOOST_AUTO_TEST_CASE(DigitContainer_test2)
     }
   }
 
-  /// here the raw pointer is needed owed to the internal handling of the TClonesArrays in FairRoot
-  /// Usually the mDigitsArray is what is registered to the FairRootManager
   std::vector<Digit> mDigitsArray;
-  digitContainer.fillOutputContainer(mDigitsArray, mMCTruthArray, 0, 0, true, true);
+  std::vector<o2::tpc::CommonMode> commonMode;
+  digitContainer.fillOutputContainer(mDigitsArray, mMCTruthArray, commonMode, 0, 0, true, true);
 
   BOOST_CHECK(mDigitsArray.size() == cru.size());
 
+  std::array<float, GEMSTACKSPERSECTOR> chargeSum;
+  chargeSum.fill(0);
   int digits = 0;
   for (const auto& digit : mDigitsArray) {
     // check MC labels and proper sorting
@@ -146,11 +155,15 @@ BOOST_AUTO_TEST_CASE(DigitContainer_test2)
     BOOST_CHECK(digit.getRow() == row);
     BOOST_CHECK(digit.getPad() == Pad[digits]);
 
-    //    BOOST_CHECK(digit.getCharge() == static_cast<int>(sampa.getADCSaturation(nEleSum -
-    //    digitMetaData.getCommonMode())));
-    //      BOOST_CHECK_CLOSE(digitMetaData.getCommonMode(), nEleSum/static_cast<float>(mapper.getPadsInIROC()),
-    //      1E-4);
+    const CRU cru = digit.getCRU();
+    const auto gemStack = cru.gemStack();
+    chargeSum[gemStack] += digit.getChargeFloat();
     ++digits;
+  }
+
+  for (size_t i = 0; i < commonMode.size(); ++i) {
+    const float nPads = mapper.getNumberOfPads(GEMstack(i));
+    BOOST_CHECK_CLOSE(commonMode[i].getCommonMode(), chargeSum[i] / nPads, 1E-6);
   }
 }
 } // namespace tpc

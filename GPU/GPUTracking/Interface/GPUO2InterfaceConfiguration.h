@@ -20,6 +20,9 @@
 #ifndef GPUCA_TPC_GEOMETRY_O2
 #define GPUCA_TPC_GEOMETRY_O2
 #endif
+#ifndef GPUCA_O2_INTERFACE
+#define GPUCA_O2_INTERFACE
+#endif
 
 #include <memory>
 #include "GPUSettings.h"
@@ -29,20 +32,6 @@
 
 namespace o2
 {
-class MCCompLabel;
-namespace base
-{
-class MatLayerCylSet;
-}
-namespace trd
-{
-class TRDGeometryFlat;
-}
-namespace dataformats
-{
-template <class T>
-class MCTruthContainer;
-}
 namespace tpc
 {
 class TrackTPC;
@@ -73,9 +62,7 @@ struct GPUO2InterfaceConfiguration {
   GPUQAConfig configQA;
   GPUInterfaceSettings configInterface;
   GPURecoStepConfiguration configWorkflow;
-  const TPCFastTransform* fastTransform = nullptr;
-  const o2::base::MatLayerCylSet* matLUT = nullptr;
-  const o2::trd::TRDGeometryFlat* trdGeometry = nullptr;
+  GPUCalibObjects configCalib;
 };
 
 // Structure with pointers to actual data for input and output

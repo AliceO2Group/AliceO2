@@ -19,3 +19,9 @@ endif()
 set_target_properties(geant321
                       PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
                                  "${Geant3_INCLUDE_DIRS}")
+
+# Promote the imported target to global visibility
+# (so we can alias it)
+set_target_properties(geant321 PROPERTIES IMPORTED_GLOBAL TRUE)
+
+add_library(MC::Geant3 ALIAS geant321)

@@ -224,9 +224,9 @@ auto adoptVector(size_t nelem, FairMQMessagePtr message)
 
 //__________________________________________________________________________________________________
 /// Get the allocator associated to a transport factory
-inline static ChannelResource* getTransportAllocator(FairMQTransportFactory* factory)
+inline static FairMQMemoryResource* getTransportAllocator(FairMQTransportFactory* factory)
 {
-  return factory->GetMemoryResource();
+  return *factory;
 }
 
 }; //namespace pmr

@@ -36,6 +36,7 @@ o2_add_library(Framework
                        src/CommonDataProcessors.cxx
                        src/CompletionPolicy.cxx
                        src/CompletionPolicyHelpers.cxx
+                       src/ComputingResourceHelpers.cxx
                        src/DispatchPolicy.cxx
                        src/ConfigParamsHelper.cxx
                        src/DDSConfigHelpers.cxx
@@ -44,6 +45,8 @@ o2_add_library(Framework
                        src/DataDescriptorQueryBuilder.cxx
                        src/DataProcessingDevice.cxx
                        src/DataProcessingHeader.cxx
+                       src/DataProcessingHelpers.cxx
+                       src/SourceInfoHeader.cxx
                        src/DataProcessor.cxx
                        src/DataRelayer.cxx
                        src/DataSampling.cxx
@@ -110,7 +113,7 @@ o2_add_library(Framework
                                      O2::MemoryResources
                                      O2::PCG
                                      RapidJSON::RapidJSON
-                                     arrow_shared
+                                     arrow::arrow_shared
                                      ms_gsl::ms_gsl
                                      ROOT::ROOTDataFrame
                                      ${DEBUGGUI_TARGET}
@@ -149,6 +152,7 @@ foreach(t
         CallbackRegistry
         ChannelSpecHelpers
         CompletionPolicy
+        ComputingResourceHelpers
         ConfigParamRegistry
         ContextRegistry
         DataDescriptorMatcher
@@ -166,14 +170,15 @@ foreach(t
         FairMQResizableBuffer
         FrameworkDataFlowToDDS
         Graphviz
+        HistogramRegistry
         InfoLogger
         InputRecord
         Kernels
         LogParsingHelpers
-        Parallel
         PtrHelpers
         Root2ArrowTable
         Services
+        StringHelpers
         SuppressionGenerator
         TMessageSerializer
         TableBuilder
@@ -230,6 +235,7 @@ foreach(b
         InputRecord
         TableBuilder
         ASoA
+        HistogramRegistry
         )
   o2_add_test(benchmark_${b} NAME test_Framework_benchmark_${b}
               SOURCES test/benchmark_${b}.cxx
@@ -257,7 +263,10 @@ foreach(w
         SimpleStatefulProcessing01
         SimpleStringProcessing
         SimpleTimer
-        SingleDataSource)
+        SimpleWildcard
+        SingleDataSource
+        Task
+        )
   o2_add_test(${w} NAME test_Framework_test_${w}
               SOURCES test/test_${w}.cxx
               COMPONENT_NAME Framework
@@ -265,28 +274,23 @@ foreach(w
               PUBLIC_LINK_LIBRARIES O2::Framework
               TIMEOUT 30
               NO_BOOST_TEST
-              COMMAND_LINE_ARGS --run)
+              COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run --shm-segment-size 20000000)
 endforeach()
 
-# TODO: DanglingInput test not working for the moment
-#    [ERROR] Unable to relay part.
-#    [WARN] Incoming data is already obsolete, not relaying.
-set_property(TEST test_Framework_test_DanglingInputs
-             PROPERTY DISABLED TRUE)
+# TODO: DanglingInput test not working for the moment [ERROR] Unable to relay
+# part. [WARN] Incoming data is already obsolete, not relaying.
+set_property(TEST test_Framework_test_DanglingInputs PROPERTY DISABLED TRUE)
 
-# TODO: investigate the problem with the two unit tests, maybe setup of the CI environment
-# assertion fired
-#     X11: The DISPLAY environment variable is missing
-#     glfw-3.2.1/src/window.c:579: glfwGetFramebufferSize: Assertion `window != ((void *)0)' failed.
-set_property(TEST test_Framework_test_CustomGUIGL
-             PROPERTY DISABLED TRUE)
-set_property(TEST test_Framework_test_CustomGUISokol
-             PROPERTY DISABLED TRUE)
+# TODO: investigate the problem with the two unit tests, maybe setup of the CI
+# environment assertion fired X11: The DISPLAY environment variable is missing
+# glfw-3.2.1/src/window.c:579: glfwGetFramebufferSize: Assertion `window !=
+# ((void *)0)' failed.
+set_property(TEST test_Framework_test_CustomGUIGL PROPERTY DISABLED TRUE)
+set_property(TEST test_Framework_test_CustomGUISokol PROPERTY DISABLED TRUE)
 
 # TODO: investigate the problem and re-enable
 set_property(TEST test_Framework_test_BoostSerializedProcessing
              PROPERTY DISABLED TRUE)
-
 
 # specific tests which needs command line options
 o2_add_test(
@@ -298,7 +302,7 @@ o2_add_test(
   PUBLIC_LINK_LIBRARIES O2::Framework
   NO_BOOST_TEST
   COMMAND_LINE_ARGS
-    --global-config require-me --run
+    --global-config require-me --run ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS}
     # Note: the group switch makes process consumer parse only the group
     arguments --consumer
     "--global-config consumer-config --local-option hello-aliceo2 --a-boolean3 --an-int2 20 --a-double2 22."

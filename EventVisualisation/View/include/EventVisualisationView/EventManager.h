@@ -17,7 +17,8 @@
 #ifndef ALICE_O2_EVENTVISUALISATION_BASE_EVENTMANAGER_H
 #define ALICE_O2_EVENTVISUALISATION_BASE_EVENTMANAGER_H
 
-#include "CCDB/Manager.h"
+#include "CCDB/BasicCCDBManager.h"
+#include "CCDB/CcdbApi.h"
 
 #include <TEveElement.h>
 #include <TEveEventManager.h>
@@ -58,7 +59,7 @@ class EventManager : public TEveEventManager, public TQObject
   /// Sets the CDB path in CCDB Manager
   inline void setCdbPath(const TString& path)
   {
-    o2::ccdb::Manager::Instance()->setDefaultStorage(path.Data());
+    ccdbApi.init(path.Data());
   }
 
   Int_t getCurrentEvent() { return currentEvent; }
@@ -81,6 +82,7 @@ class EventManager : public TEveEventManager, public TQObject
 
  private:
   static EventManager* instance;
+  o2::ccdb::CcdbApi ccdbApi;
   EDataSource mCurrentDataSourceType = EDataSource::SourceOffline;
   DataSource* dataSource = nullptr;
   TString dataPath = "";

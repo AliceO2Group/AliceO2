@@ -278,6 +278,7 @@ int SetupReconstruction()
   recSet.SearchWindowDZDR = configStandalone.dzdr;
   recSet.GlobalTracking = configStandalone.configRec.globalTracking;
   recSet.DisableRefitAttachment = configStandalone.configRec.disableRefitAttachment;
+  recSet.ForceEarlyTPCTransform = configStandalone.configRec.ForceEarlyTPCTransform;
   if (configStandalone.referenceX < 500.) {
     recSet.TrackReferenceX = configStandalone.referenceX;
   }
@@ -356,6 +357,7 @@ int SetupReconstruction()
   if (configStandalone.configTF.bunchSim || configStandalone.configTF.nMerge) {
     steps.steps.setBits(GPUReconstruction::RecoStep::TRDTracking, false);
   }
+  steps.steps.setBits(GPUReconstruction::RecoStep::TPCClusterFinding, false); // Disable cluster finding for now
   steps.inputs.set(GPUDataTypes::InOutType::TPCClusters, GPUDataTypes::InOutType::TRDTracklets);
   steps.outputs.set(GPUDataTypes::InOutType::TPCSectorTracks);
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCMergedTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TPCMerging));
@@ -512,6 +514,10 @@ int main(int argc, char** argv)
           GPUSettingsEvent ev = rec->GetEventSettings();
           ev.continuousMaxTimeBin = GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
           rec->UpdateEventSettings(&ev);
+        }
+        if (!rec->GetParam().earlyTpcTransform && chainTracking->mIOPtrs.clustersNative == nullptr) {
+          printf("Need cluster native data for on-the-fly TPC transform\n");
+          goto breakrun;
         }
 
         printf("Loading time: %'d us\n", (int)(1000000 * timerLoad.GetCurrentElapsedTime()));

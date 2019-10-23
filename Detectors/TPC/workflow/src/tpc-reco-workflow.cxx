@@ -22,6 +22,7 @@
 #include "TPCWorkflow/RecoWorkflow.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "Algorithm/RangeTokenizer.h"
+#include "SimConfig/ConfigurableParam.h"
 
 #include <string>
 #include <stdexcept>
@@ -35,14 +36,18 @@ bool gDispatchPrompt = true;
 // including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  std::vector<o2::framework::ConfigParamSpec> options{
-    {"input-type", o2::framework::VariantType::String, "digits", {"digitizer, digits, raw, clusters"}},
-    {"output-type", o2::framework::VariantType::String, "tracks", {"digits, raw, clusters, tracks"}},
-    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information"}},
-    {"tpc-sectors", o2::framework::VariantType::String, "0-35", {"TPC sector range, e.g. 5-7,8,9"}},
-    {"tpc-lanes", o2::framework::VariantType::Int, 1, {"number of parallel lanes up to the tracker"}},
-    {"dispatching-mode", o2::framework::VariantType::String, "prompt", {"determines when to dispatch: prompt, complete"}},
-  };
+  using namespace o2::framework;
+
+  std::vector<ConfigParamSpec> options{
+    {"input-type", VariantType::String, "digits", {"digitizer, digits, raw, clusters"}},
+    {"output-type", VariantType::String, "tracks", {"digits, raw, clusters, tracks"}},
+    {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
+    {"tpc-sectors", VariantType::String, "0-35", {"TPC sector range, e.g. 5-7,8,9"}},
+    {"tpc-lanes", VariantType::Int, 1, {"number of parallel lanes up to the tracker"}},
+    {"dispatching-mode", VariantType::String, "prompt", {"determines when to dispatch: prompt, complete"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCHwClusterer.peakChargeThreshold=4;...')"}},
+    {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}}};
+
   std::swap(workflowOptions, options);
 }
 
@@ -154,6 +159,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   } else {
     laneConfiguration = tpcSectors;
   }
+
+  // set up configuration
+  o2::conf::ConfigurableParam::updateFromFile(cfgc.options().get<std::string>("configFile"));
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
+  o2::conf::ConfigurableParam::writeINI("o2tpcrecoworkflow_configuration.ini");
 
   gDoMC = not cfgc.options().get<bool>("disable-mc");
   auto dispmode = cfgc.options().get<std::string>("dispatching-mode");

@@ -13,12 +13,18 @@
 #include "Framework/ASoA.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/AnalysisDataModel.h"
+#include "Framework/CallbackService.h"
+#include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/EndOfStreamContext.h"
 #include "Framework/Kernels.h"
 #include "Framework/Logger.h"
+#include "Framework/HistogramRegistry.h"
 #include "Framework/StructToTuple.h"
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/Traits.h"
+#include "Framework/VariantHelpers.h"
+#include "Headers/DataHeader.h"
 
 #include <arrow/compute/context.h>
 #include <arrow/compute/kernel.h>
@@ -26,6 +32,10 @@
 #include <type_traits>
 #include <utility>
 #include <memory>
+
+/// This is an helper to allow users to create and
+/// fill histograms which are then sent to the collector.
+class TH1F;
 
 namespace o2
 {
@@ -94,6 +104,52 @@ struct Produces<soa::Table<C...>> : WritingCursor<typename soa::FilterPersistent
   {
     return OutputRef{metadata::label(), 0};
   }
+};
+
+/// This helper class allow you to declare things which will be crated by a
+/// give analysis task. Notice how the actual cursor is implemented by the
+/// means of the WritingCursor helper class, from which produces actually
+/// derives.
+template <typename T>
+struct OutputObj {
+  using obj_t = T;
+
+  OutputObj(T const& t)
+    : object(std::make_shared<T>(t))
+  {
+  }
+
+  // @return the associated OutputSpec
+  OutputSpec const spec()
+  {
+    static_assert(std::is_base_of_v<TNamed, T>, "You need a TNamed derived class to use OutputObj");
+    std::string label{object->GetName()};
+    header::DataDescription desc{};
+    // FIXME: for the moment we use GetTitle(), in the future
+    //        we should probably use a unique hash to allow
+    //        names longer than 16 bytes.
+    strncpy(desc.str, object->GetTitle(), 16);
+
+    return OutputSpec{OutputLabel{label}, "ATSK", desc, 0};
+  }
+
+  T* operator->()
+  {
+    return object.get();
+  }
+
+  T& operator*()
+  {
+    return *object.get();
+  }
+
+  OutputRef ref()
+  {
+    std::string label{object->GetName()};
+    return OutputRef{label, 0};
+  }
+
+  std::shared_ptr<T> object;
 };
 
 struct AnalysisTask {
@@ -247,7 +303,7 @@ struct AnalysisDataProcessorBuilder {
 };
 
 template <typename T>
-struct OutputAppender {
+struct OutputManager {
   template <typename ANY>
   static bool appendOutput(std::vector<OutputSpec>& outputs, ANY&)
   {
@@ -255,31 +311,89 @@ struct OutputAppender {
   }
 
   template <typename ANY>
-  static bool resetCursors(ProcessingContext& context, ANY&)
+  static bool prepare(ProcessingContext& context, ANY&)
   {
     return false;
   }
+
   template <typename ANY>
-  static bool inspect(ANY& what)
+  static bool postRun(EndOfStreamContext& context, ANY& what)
   {
-    return false;
+    return true;
+  }
+
+  template <typename ANY>
+  static bool finalize(ProcessingContext& context, ANY& what)
+  {
+    return true;
   }
 };
 
 template <typename TABLE>
-struct OutputAppender<Produces<TABLE>> {
+struct OutputManager<Produces<TABLE>> {
   static bool appendOutput(std::vector<OutputSpec>& outputs, Produces<TABLE>& what)
   {
     outputs.emplace_back(what.spec());
     return true;
   }
-  static bool resetCursors(ProcessingContext& context, Produces<TABLE>& what)
+  static bool prepare(ProcessingContext& context, Produces<TABLE>& what)
   {
     what.resetCursor(context.outputs().make<TableBuilder>(what.ref()));
     return true;
   }
-  static bool inspect(Produces<TABLE>& what)
+  static bool finalize(ProcessingContext& context, Produces<TABLE>& what)
   {
+    return true;
+  }
+  static bool postRun(EndOfStreamContext& context, Produces<TABLE>& what)
+  {
+    return true;
+  }
+};
+
+template <>
+struct OutputManager<HistogramRegistry> {
+  static bool appendOutput(std::vector<OutputSpec>& outputs, HistogramRegistry& what)
+  {
+    outputs.emplace_back(what.spec());
+    return true;
+  }
+  static bool prepare(ProcessingContext& context, HistogramRegistry& what)
+  {
+    return true;
+  }
+
+  static bool finalize(ProcessingContext& context, HistogramRegistry& what)
+  {
+    return true;
+  }
+
+  static bool postRun(EndOfStreamContext& context, HistogramRegistry& what)
+  {
+    return true;
+  }
+};
+
+template <typename T>
+struct OutputManager<OutputObj<T>> {
+  static bool appendOutput(std::vector<OutputSpec>& outputs, OutputObj<T>& what)
+  {
+    outputs.emplace_back(what.spec());
+    return true;
+  }
+  static bool prepare(ProcessingContext& context, OutputObj<T>& what)
+  {
+    return true;
+  }
+
+  static bool finalize(ProcessingContext& context, OutputObj<T>& what)
+  {
+    return true;
+  }
+
+  static bool postRun(EndOfStreamContext& context, OutputObj<T>& what)
+  {
+    context.outputs().snapshot(what.ref(), *what);
     return true;
   }
 };
@@ -345,7 +459,7 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
 
   std::vector<OutputSpec> outputs;
   auto tupledTask = o2::framework::to_tuple_refs(*task.get());
-  std::apply([&outputs](auto&... x) { return (OutputAppender<std::decay_t<decltype(x)>>::appendOutput(outputs, x), ...); }, tupledTask);
+  std::apply([&outputs](auto&... x) { return (OutputManager<std::decay_t<decltype(x)>>::appendOutput(outputs, x), ...); }, tupledTask);
   static_assert(has_process<T>::value || has_run<T>::value || has_init<T>::value,
                 "At least one of process(...), T::run(...), init(...) must be defined");
 
@@ -355,19 +469,27 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
   }
 
   auto algo = AlgorithmSpec::InitCallback{[task](InitContext& ic) {
+    auto& callbacks = ic.services().get<CallbackService>();
+    auto endofdatacb = [task](EndOfStreamContext& eosContext) {
+      auto tupledTask = o2::framework::to_tuple_refs(*task.get());
+      std::apply([&eosContext](auto&&... x) { return (OutputManager<std::decay_t<decltype(x)>>::postRun(eosContext, x), ...); }, tupledTask);
+      eosContext.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    };
+    callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
+
     if constexpr (has_init<T>::value) {
       task->init(ic);
     }
     return [task](ProcessingContext& pc) {
       auto tupledTask = o2::framework::to_tuple_refs(*task.get());
-      std::apply([&pc](auto&&... x) { return (OutputAppender<std::decay_t<decltype(x)>>::resetCursors(pc, x), ...); }, tupledTask);
-      std::apply([&pc](auto&&... x) { return (OutputAppender<std::decay_t<decltype(x)>>::inspect(x), ...); }, tupledTask);
+      std::apply([&pc](auto&&... x) { return (OutputManager<std::decay_t<decltype(x)>>::prepare(pc, x), ...); }, tupledTask);
       if constexpr (has_run<T>::value) {
         task->run(pc);
       }
       if constexpr (has_process<T>::value) {
         AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), &T::process);
       }
+      std::apply([&pc](auto&&... x) { return (OutputManager<std::decay_t<decltype(x)>>::finalize(pc, x), ...); }, tupledTask);
     };
   }};
 

@@ -95,7 +95,7 @@ DataProcessorSpec getPHOSDigitWriterSpec()
       labelbr->Fill();
 
       finished = true;
-      pc.services().get<ControlService>().readyToQuit(false);
+      pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     };
 
     // return the actual processing function as a lambda function using variables

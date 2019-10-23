@@ -24,6 +24,7 @@
 #include <Monitoring/Monitoring.h>
 
 #include <gsl/span>
+#include <string>
 
 using namespace o2::framework::data_matcher;
 using DataHeader = o2::header::DataHeader;
@@ -36,6 +37,8 @@ namespace framework
 
 namespace
 {
+/// Calculate how many input routes there are, doublecounting different
+/// timeslices.
 std::vector<size_t> createDistinctRouteIndex(std::vector<InputRoute> const& routes)
 {
   std::vector<size_t> result;
@@ -55,10 +58,10 @@ DataDescriptorMatcher fromConcreteMatcher(ConcreteDataMatcher const& matcher)
     StartTimeValueMatcher{ContextRef{0}},
     std::make_unique<DataDescriptorMatcher>(
       DataDescriptorMatcher::Op::And,
-      OriginValueMatcher{matcher.origin.str},
+      OriginValueMatcher{matcher.origin.as<std::string>()},
       std::make_unique<DataDescriptorMatcher>(
         DataDescriptorMatcher::Op::And,
-        DescriptionValueMatcher{matcher.description.str},
+        DescriptionValueMatcher{matcher.description.as<std::string>()},
         std::make_unique<DataDescriptorMatcher>(
           DataDescriptorMatcher::Op::Just,
           SubSpecificationTypeValueMatcher{matcher.subSpec})))};
@@ -360,15 +363,26 @@ DataRelayer::RelayChoice
   VariableContext pristineContext;
   std::tie(input, timeslice) = getInputTimeslice(pristineContext);
 
+  auto DataHeaderInfo = [&header]() {
+    std::string error;
+    const auto* dh = o2::header::get<o2::header::DataHeader*>(header->GetData());
+    if (dh) {
+      error += dh->dataOrigin.as<std::string>() + "/" + dh->dataDescription.as<std::string>() + "/" + dh->subSpecification;
+    } else {
+      error += "invalid header";
+    }
+    return error;
+  };
+
   if (input == INVALID_INPUT) {
-    LOG(ERROR) << "Could not match incoming data to any input";
+    LOG(ERROR) << "Could not match incoming data to any input route: " << DataHeaderInfo();
     mStats.malformedInputs++;
     mStats.droppedIncomingMessages++;
     return WillNotRelay;
   }
 
   if (TimesliceId::isValid(timeslice) == false) {
-    LOG(ERROR) << "Could not determine the timeslice for input";
+    LOG(ERROR) << "Could not determine the timeslice for input: " << DataHeaderInfo();
     mStats.malformedInputs++;
     mStats.droppedIncomingMessages++;
     return WillNotRelay;

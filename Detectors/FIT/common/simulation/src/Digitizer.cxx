@@ -122,15 +122,13 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits, o2::ft0::Digi
 void Digitizer::smearCFDtime(o2::ft0::Digit* digit, std::vector<std::vector<double>> const& channel_times)
 {
   //smeared CFD time for 50ps
-  //  constexpr Float_t mMip_in_V = 7.;     // mV /250 ph.e.
-  //  constexpr Float_t nPe_in_mip = 250.; // n ph. e. in one mip
   std::vector<o2::ft0::ChannelData> mChDgDataArr;
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
     Float_t amp = parameters.mMip_in_V * d.numberOfParticles / parameters.mPe_in_mip;
     int numpart = d.numberOfParticles;
     if (amp > parameters.mCFD_trsh_mip) {
-      double smeared_time = get_time(channel_times[mcp]) + parameters.mBC_clk_center + mEventTime - parameters.mCfdShift;
+      double smeared_time = get_time(channel_times[mcp]) /*+ parameters.mBC_clk_center + mEventTime*/ - parameters.mCfdShift;
       if (smeared_time < 1e9)
         mChDgDataArr.emplace_back(o2::ft0::ChannelData{mcp, smeared_time, amp, numpart});
     }
@@ -159,7 +157,7 @@ void Digitizer::setTriggers(o2::ft0::Digit* digit)
   Float_t amp[300] = {};
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
-    cfd[mcp] = d.CFDTime - parameters.mBC_clk_center - mEventTime /*+ parameters.mCfdShift*/;
+    cfd[mcp] = d.CFDTime;
     amp[mcp] = d.QTCAmpl;
     if (amp[mcp] < parameters.mCFD_trsh_mip)
       continue;
@@ -220,7 +218,7 @@ void Digitizer::initParameters()
 //_______________________________________________________________________
 void Digitizer::init()
 {
-  std::cout << " @@@ Digitizer::init " << std::endl;
+  LOG(INFO) << " @@@ Digitizer::init " << std::endl;
 }
 //_______________________________________________________________________
 void Digitizer::finish()
@@ -230,7 +228,7 @@ void Digitizer::finish()
 
 void Digitizer::printParameters()
 {
-  std::cout << " Run Digitzation with parametrs: \n"
+  LOG(INFO) << " Run Digitzation with parametrs: \n"
             << "mBC_clk_center \n"
             << parameters.mBC_clk_center << " CFD amplitude threshold \n " << parameters.mCFD_trsh_mip << " CFD signal gate in ns \n"
             << parameters.mSignalWidth << "shift to have signal around zero after CFD trancformation  \n"

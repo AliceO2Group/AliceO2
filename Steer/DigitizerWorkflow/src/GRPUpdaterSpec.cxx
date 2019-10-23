@@ -71,7 +71,7 @@ class GRPDPLUpdatedTask
     flGRP.Close();
     mFinished = true;
 
-    pc.services().get<ControlService>().readyToQuit(false);
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
 
  private:

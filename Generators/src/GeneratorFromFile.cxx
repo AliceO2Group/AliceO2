@@ -94,16 +94,12 @@ Bool_t GeneratorFromFile::ReadEvent(FairPrimaryGenerator* primGen)
     // filter the particles from Kinematics.root originally put by a generator
     // and which are trackable
     auto isFirstTrackableDescendant = [](TParticle const& p) {
-      // according to the current understanding in AliRoot, we
-      // have status code:
-      // == 0    <--->   particle is put by transportation
-      // == 1    <--->   particle is trackable
-      // != 1 but different from 0    <--->   particle is not directly trackable
-      // Note: This might have to be refined (using other information such as UniqueID)
-      if (p.GetStatusCode() == 1) {
-        return true;
+      const int kDoneBit = 4;
+      // The particle should have not set kDone bit and its status should not exceed 1
+      if (p.GetStatusCode() > 1 || p.TestBit(kDoneBit)) {
+        return false;
       }
-      return false;
+      return true;
     };
 
     for (int i = 0; i < branch->GetEntries(); ++i) {
@@ -121,9 +117,7 @@ Bool_t GeneratorFromFile::ReadEvent(FairPrimaryGenerator* primGen)
       auto vy = p.Vy();
       auto vz = p.Vz();
 
-      // a status of 1 means "trackable" in AliRoot kinematics
-      auto status = p.GetStatusCode();
-      bool wanttracking = status == 1;
+      bool wanttracking = true; // RS as far as I understand, if it reached this point, it is trackable
       if (wanttracking || !mSkipNonTrackable) {
         auto parent = -1;
         auto e = p.Energy();

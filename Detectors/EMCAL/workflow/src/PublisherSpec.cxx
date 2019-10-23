@@ -98,7 +98,7 @@ o2::framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, b
         }
       }
       if ((processAttributes->finished = (active == false)) && processAttributes->terminateOnEod) {
-        pc.services().get<o2::framework::ControlService>().readyToQuit(false);
+        pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
       }
     };
 

@@ -14,7 +14,7 @@
 #ifndef O2_GPU_GPUO2DATATYPES_H
 #define O2_GPU_GPUO2DATATYPES_H
 
-#ifdef HAVE_O2HEADERS
+#if defined(HAVE_O2HEADERS) && (!defined(__OPENCL__) || defined(__OPENCLCPP__))
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DetectorsBase/MatLayerCylSet.h"
 #include "TRDBase/TRDGeometryFlat.h"
@@ -24,13 +24,19 @@ namespace o2
 namespace tpc
 {
 struct ClusterNative {
+  GPUd() static float getTime() { return 0.f; }
+  GPUd() static float getPad() { return 0.f; }
+  GPUd() static int getFlags() { return 0; }
+  unsigned char qTot, qMax;
 };
 struct ClusterNativeAccess {
   const ClusterNative* clustersLinear;
+  const ClusterNative* clusters[GPUCA_NSLICES][GPUCA_ROW_COUNT];
   unsigned int nClusters[GPUCA_NSLICES][GPUCA_ROW_COUNT];
   unsigned int nClustersSector[GPUCA_NSLICES];
   unsigned int clusterOffset[GPUCA_NSLICES][GPUCA_ROW_COUNT];
   unsigned int nClustersTotal;
+  void setOffsetPtrs() {}
 };
 } // namespace tpc
 namespace base
@@ -49,6 +55,9 @@ class TRDGeometryFlat
 } // namespace trd
 } // namespace o2
 #endif
+
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
 #include "GPUdEdxInfo.h"
+#endif
 
 #endif

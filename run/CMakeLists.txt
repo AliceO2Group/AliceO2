@@ -36,34 +36,37 @@ target_link_libraries(allsim
                                 O2::ZDCSimulation
                                 O2::Generators)
 
+
+add_library(internal::allsim ALIAS allsim)
+
 o2_add_executable(device-runner
                   COMPONENT_NAME sim
                   SOURCES O2SimDeviceRunner.cxx
-                  PUBLIC_LINK_LIBRARIES allsim)
+                  PUBLIC_LINK_LIBRARIES internal::allsim)
 
 o2_add_executable(serial
                   COMPONENT_NAME sim
                   SOURCES o2sim.cxx
-                  PUBLIC_LINK_LIBRARIES allsim)
+                  PUBLIC_LINK_LIBRARIES internal::allsim)
 
 o2_add_executable(sim
                   SOURCES o2sim_parallel.cxx
-                  PUBLIC_LINK_LIBRARIES allsim O2::Framework)
+                  PUBLIC_LINK_LIBRARIES internal::allsim O2::Framework)
 
 o2_add_executable(primary-server-device-runner
                   COMPONENT_NAME sim
                   SOURCES O2PrimaryServerDeviceRunner.cxx
-                  PUBLIC_LINK_LIBRARIES allsim)
+                  PUBLIC_LINK_LIBRARIES internal::allsim)
 
 o2_add_executable(hit-merger-runner
                   COMPONENT_NAME sim
                   SOURCES O2HitMergerRunner.cxx
-                  PUBLIC_LINK_LIBRARIES allsim)
+                  PUBLIC_LINK_LIBRARIES internal::allsim)
 
 o2_add_executable(tpc
                   COMPONENT_NAME sim
                   SOURCES runTPC.cxx
-                  PUBLIC_LINK_LIBRARIES allsim O2::TPCReconstruction)
+                  PUBLIC_LINK_LIBRARIES internal::allsim O2::TPCReconstruction)
 
 o2_data_file(COPY o2simtopology.json DESTINATION config)
 

@@ -33,6 +33,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 if(BUILD_DEBUG)
   set(CMAKE_CXX_FLAGS "-O0 -ggdb")
+  set(CMAKE_BUILD_TYPE DEBUG)
 else()
   set(CMAKE_CXX_FLAGS "-O3 -march=native -ggdb -minline-all-stringops -ftracer -funroll-loops -fprefetch-loop-arrays -ffast-math -fno-stack-protector -Wno-error -Wall -Wextra -Wshadow -Wno-unused-function -Wno-unused-parameter -Wno-unused-local-typedefs -Wno-unknown-pragmas -Wno-write-strings")
   add_definitions(-DNDEBUG)
@@ -105,6 +106,7 @@ include_directories(${CMAKE_SOURCE_DIR}
                     ${CMAKE_SOURCE_DIR}/TPCConvert
                     ${CMAKE_SOURCE_DIR}/TPCFastTransformation
                     ${CMAKE_SOURCE_DIR}/TRDTracking
+                    ${CMAKE_SOURCE_DIR}/gpucf
                     ${CMAKE_SOURCE_DIR}/../../../Common/Constants/include
                     ${CMAKE_SOURCE_DIR}/../../../Common/MathUtils/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/common/include
