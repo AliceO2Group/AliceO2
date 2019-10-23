@@ -290,6 +290,7 @@ int SetupReconstruction()
   devProc.deviceNum = configStandalone.cudaDevice;
   devProc.forceMemoryPoolSize = configStandalone.forceMemorySize;
   devProc.debugLevel = configStandalone.DebugLevel;
+  devProc.deviceTimers = configStandalone.DeviceTiming;
   devProc.runQA = configStandalone.qa;
   devProc.runCompressionStatistics = configStandalone.compressionStat;
   if (configStandalone.eventDisplay) {

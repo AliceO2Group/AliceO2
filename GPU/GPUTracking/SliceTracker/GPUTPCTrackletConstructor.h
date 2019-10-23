@@ -33,7 +33,7 @@ class GPUTPCTracker;
 class GPUTPCTrackletConstructor
 {
  public:
-  enum K : int {
+  enum K {
     singleSlice = 0,
     allSlices = 1
   };
