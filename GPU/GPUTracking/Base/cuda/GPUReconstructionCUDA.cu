@@ -29,7 +29,7 @@ __constant__ uint4 gGPUConstantMemBuffer[gGPUConstantMemBufferSize / sizeof(uint
 #define GPUCA_CONSMEM (GPUConstantMem&)gGPUConstantMemBuffer
 #else
 #define GPUCA_CONSMEM_PTR const uint4 *gGPUConstantMemBuffer,
-#define GPUCA_CONSMEM_CALL (const uint4*)mDeviceConstantMem,
+#define GPUCA_CONSMEM_CALL (const uint4*)me->mDeviceConstantMem,
 #define GPUCA_CONSMEM (GPUConstantMem&)(*gGPUConstantMemBuffer)
 #endif
 
@@ -58,29 +58,30 @@ class VertexerTraitsGPU : public VertexerTraits
 
 #include "GPUReconstructionIncludesDevice.h"
 
+/*
+// Not using templated kernel any more, since nvidia profiler does not resolve template names
 template <class T, int I, typename... Args>
 GPUg() void runKernelCUDA(GPUCA_CONSMEM_PTR int iSlice, Args... args)
 {
   GPUshared() typename T::GPUTPCSharedMemory smem;
   T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Processor(GPUCA_CONSMEM)[iSlice], args...);
 }
+*/
 
-template <class T, int I, typename... Args>
-GPUg() void runKernelCUDAMulti(GPUCA_CONSMEM_PTR int firstSlice, int nSliceCount, Args... args)
-{
-  const int iSlice = nSliceCount * (get_group_id(0) + (get_num_groups(0) % nSliceCount != 0 && nSliceCount * (get_group_id(0) + 1) % get_num_groups(0) != 0)) / get_num_groups(0);
-  const int nSliceBlockOffset = get_num_groups(0) * iSlice / nSliceCount;
-  const int sliceBlockId = get_group_id(0) - nSliceBlockOffset;
-  const int sliceGridDim = get_num_groups(0) * (iSlice + 1) / nSliceCount - get_num_groups(0) * (iSlice) / nSliceCount;
-  GPUshared() typename T::GPUTPCSharedMemory smem;
-  T::template Thread<I>(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, T::Processor(GPUCA_CONSMEM)[firstSlice + iSlice], args...);
-}
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(x_class, x_attributes, x_arguments, x_forward)
+#define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionCUDABackend
+#define GPUCA_KRNL_CALL_single(x_class, x_attributes, x_arguments, x_forward) \
+  GPUCA_M_KRNL_NAME(x_class)<<<x.nBlocks, x.nThreads, 0, me->mInternals->CudaStreams[x.stream]>>>(GPUCA_CONSMEM_CALL y.start, args...);
+#define GPUCA_KRNL_CALL_multi(x_class, x_attributes, x_arguments, x_forward) \
+  GPUCA_M_CAT(GPUCA_M_KRNL_NAME(x_class), _multi)<<<x.nBlocks, x.nThreads, 0, me->mInternals->CudaStreams[x.stream]>>>(GPUCA_CONSMEM_CALL y.start, y.num, args...);
+
+#include "GPUReconstructionKernels.h"
+#undef GPUCA_KRNL
 
 template <class T, int I, typename... Args>
 int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, const Args&... args)
 {
   auto& x = _xyz.x;
-  auto& y = _xyz.y;
   auto& z = _xyz.z;
   if (z.evList) {
     for (int k = 0; k < z.nEvents; k++) {
@@ -93,11 +94,7 @@ int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, const Args&.
     GPUFailedMsg(cudaEventCreate(&stop));
     GPUFailedMsg(cudaEventRecord(start, mInternals->CudaStreams[x.stream]));
   }
-  if (y.num <= 1) {
-    runKernelCUDA<T, I><<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(GPUCA_CONSMEM_CALL y.start, args...);
-  } else {
-    runKernelCUDAMulti<T, I><<<x.nBlocks, x.nThreads, 0, mInternals->CudaStreams[x.stream]>>>(GPUCA_CONSMEM_CALL y.start, y.num, args...);
-  }
+  backendInternal<T, I>::runKernelBackendInternal(_xyz, this, args...);
   if (mDeviceProcessingSettings.deviceTimers) {
     GPUFailedMsg(cudaEventRecord(stop, mInternals->CudaStreams[x.stream]));
     GPUFailedMsg(cudaEventSynchronize(stop));
