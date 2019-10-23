@@ -77,7 +77,7 @@ if(CONFIG_ROOT_AND_O2_EXTENSIONS)
   endif()
   find_package(ms_gsl REQUIRED)
   if(NOT CONFIG_O2_ITS_TRAITS)
-    add_definitions(-DGPUCA_NO_ITS_VERTEXER)
+    add_definitions(-DGPUCA_NO_ITS_TRAITS)
   endif()
 else()
   set(ROOT_FOUND OFF)
@@ -125,6 +125,8 @@ include_directories(${CMAKE_SOURCE_DIR}/gpucf
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/cuda/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/cuda/src
+                    ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/hip/include
+                    ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/hip/src
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TPC/base/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TRD/base/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TRD/base/src)
@@ -149,7 +151,8 @@ if(CONFIG_ROOT_AND_O2_EXTENSIONS)
                ../../..//Detectors/TRD/base/src/TRDGeometryBase.cxx
                ../../..//Detectors/Base/src/MatLayerCylSet.cxx
                ../../..//Detectors/Base/src/MatLayerCyl.cxx
-               ../../..//Detectors/Base/src/Ray.cxx)
+               ../../..//Detectors/Base/src/Ray.cxx
+               ../../..//Detectors/ITSMFT/ITS/tracking/src/Road.cxx)
   if(CONFIG_O2_ITS_TRAITS)
     target_sources(standalone_support PRIVATE
         ../../..//Detectors/ITSMFT/ITS/tracking/src/PrimaryVertexContext.cxx
@@ -157,8 +160,7 @@ if(CONFIG_ROOT_AND_O2_EXTENSIONS)
         ../../..//Detectors/ITSMFT/ITS/tracking/src/ClusterLines.cxx
         ../../..//Detectors/ITSMFT/ITS/tracking/src/TrackerTraitsCPU.cxx
         ../../..//Detectors/ITSMFT/ITS/tracking/src/VertexerTraits.cxx
-        ../../..//Detectors/ITSMFT/ITS/tracking/src/ROframe.cxx
-        ../../..//Detectors/ITSMFT/ITS/tracking/src/Road.cxx)
+        ../../..//Detectors/ITSMFT/ITS/tracking/src/ROframe.cxx)
   endif()
   target_sources(ca PRIVATE qa/genEvents.cxx)
 endif()
