@@ -38,6 +38,7 @@ struct GPUConstantMem;
 class GPUKernelTemplate
 {
  public:
+  MEM_CLASS_PRE()
   class GPUTPCSharedMemory
   {
   };
@@ -65,12 +66,12 @@ class GPUKernelTemplate
   }
 #ifdef GPUCA_NOCOMPAT
   template <int iKernel, typename... Args>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& processors, Args... args)
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & smem, processorType& processors, Args... args)
   {
   }
 #else
   template <int iKernel>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& processors)
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & smem, processorType& processors)
   {
   }
 #endif
@@ -82,7 +83,7 @@ class GPUMemClean16 : public GPUKernelTemplate
  public:
   GPUhdi() static GPUDataTypes::RecoStep GetRecoStep() { return GPUCA_RECO_STEP::NoRecoStep; }
   template <int iKernel = 0>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& processors, GPUglobalref() void* ptr, unsigned long size);
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & smem, processorType& processors, GPUglobalref() void* ptr, unsigned long size);
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

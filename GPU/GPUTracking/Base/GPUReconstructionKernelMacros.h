@@ -34,7 +34,7 @@
 #define GPUCA_KRNLGPU_SINGLE(x_class, x_attributes, x_arguments, x_forward) \
 GPUg() void GPUCA_M_KRNL_NAME(x_class) (GPUCA_CONSMEM_PTR int iSlice GPUCA_M_STRIP(x_arguments)) \
 { \
-  GPUshared() typename GPUCA_M_STRIP_FIRST(x_class)::GPUTPCSharedMemory smem; \
+  GPUshared() typename GPUCA_M_STRIP_FIRST(x_class)::MEM_LOCAL(GPUTPCSharedMemory) smem; \
   GPUCA_M_STRIP_FIRST(x_class)::template Thread<GPUCA_M_KRNL_NUM(x_class)>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, GPUCA_M_STRIP_FIRST(x_class)::Processor(GPUCA_CONSMEM)[iSlice] GPUCA_M_STRIP(x_forward)); \
 }
 
@@ -46,7 +46,7 @@ GPUg() void GPUCA_M_CAT(GPUCA_M_KRNL_NAME(x_class), _multi)(GPUCA_CONSMEM_PTR in
   const int nSliceBlockOffset = get_num_groups(0) * iSlice / nSliceCount; \
   const int sliceBlockId = get_group_id(0) - nSliceBlockOffset; \
   const int sliceGridDim = get_num_groups(0) * (iSlice + 1) / nSliceCount - get_num_groups(0) * (iSlice) / nSliceCount; \
-  GPUshared() typename GPUCA_M_STRIP_FIRST(x_class)::GPUTPCSharedMemory smem; \
+  GPUshared() typename GPUCA_M_STRIP_FIRST(x_class)::MEM_LOCAL(GPUTPCSharedMemory) smem; \
   GPUCA_M_STRIP_FIRST(x_class)::template Thread<GPUCA_M_KRNL_NUM(x_class)>(sliceGridDim, get_local_size(0), sliceBlockId, get_local_id(0), smem, GPUCA_M_STRIP_FIRST(x_class)::Processor(GPUCA_CONSMEM)[firstSlice + iSlice] GPUCA_M_STRIP(x_forward)); \
 }
 
@@ -93,8 +93,13 @@ GPUg() void GPUCA_M_CAT(GPUCA_M_KRNL_NAME(x_class), _multi)(GPUCA_CONSMEM_PTR in
   } \
   GPUCA_KRNL_POST()
 
+#define GPUCA_KRNL_LOAD_(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward)
+#define GPUCA_KRNL_LOAD_both(x_class, x_attributes, x_arguments, x_forward) \
+  GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward) \
+  GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward)
+
 // Generate GPU kernel and host wrapper
-#define GPUCA_KRNL_WRAP(x_class, x_attributes, x_arguments, x_forward) GPUCA_M_CAT(GPUCA_KRNL_, GPUCA_M_STRIP(x_attributes))(x_class, x_attributes, x_arguments, x_forward)
+#define GPUCA_KRNL_WRAP(x_func, x_class, x_attributes, x_arguments, x_forward) GPUCA_M_CAT(x_func, GPUCA_M_STRIP(x_attributes))(x_class, x_attributes, x_arguments, x_forward)
 #endif
 
 #endif
