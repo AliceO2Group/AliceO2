@@ -44,24 +44,8 @@ GPUReconstructionOCL2Backend::GPUReconstructionOCL2Backend(const GPUSettingsProc
 template <class T, int I, typename... Args>
 int GPUReconstructionOCL2Backend::runKernelBackend(krnlSetup& _xyz, const Args&... args)
 {
-  auto& x = _xyz.x;
-  auto& y = _xyz.y;
-  auto& z = _xyz.z;
-  cl_kernel k = getKernelObject<cl_kernel, T, I>(y.num);
-  if (y.num == -1) {
-    if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, args...)) {
-      return 1;
-    }
-  } else if (y.num == 0) {
-    if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, y.start, args...)) {
-      return 1;
-    }
-  } else {
-    if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, y.start, y.num, args...)) {
-      return 1;
-    }
-  }
-  return clExecuteKernelA(mInternals->command_queue[x.stream], k, x.nThreads, x.nThreads * x.nBlocks, (cl_event*)z.ev, (cl_event*)z.evList, z.nEvents);
+  cl_kernel k = getKernelObject<cl_kernel, T, I>(_xyz.y.num);
+  return runKernelBackendCommon(_xyz, k, args...);
 }
 
 template <class S, class T, int I>
@@ -73,7 +57,7 @@ S& GPUReconstructionOCL2Backend::getKernelObject(int num)
 
 int GPUReconstructionOCL2Backend::GetOCLPrograms()
 {
-  char platform_version[64], platform_vendor[64];
+  char platform_version[64] = {}, platform_vendor[64] = {};
   clGetPlatformInfo(mInternals->platform, CL_PLATFORM_VERSION, sizeof(platform_version), platform_version, nullptr);
   clGetPlatformInfo(mInternals->platform, CL_PLATFORM_VENDOR, sizeof(platform_vendor), platform_vendor, nullptr);
   float ver = 0;
@@ -127,7 +111,7 @@ int GPUReconstructionOCL2Backend::GetOCLPrograms()
 
 bool GPUReconstructionOCL2Backend::CheckPlatform(unsigned int i)
 {
-  char platform_version[64], platform_vendor[64];
+  char platform_version[64] = {}, platform_vendor[64] = {};
   clGetPlatformInfo(mInternals->platforms[i], CL_PLATFORM_VERSION, sizeof(platform_version), platform_version, nullptr);
   clGetPlatformInfo(mInternals->platforms[i], CL_PLATFORM_VENDOR, sizeof(platform_vendor), platform_vendor, nullptr);
   float ver1 = 0;
