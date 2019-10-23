@@ -21,7 +21,6 @@
 #include "utils/timer.h"
 #include <vector>
 
-#include "GPUDefMacros.h"
 #include "GPUGeneralKernels.h"
 #include "GPUTPCNeighboursFinder.h"
 #include "GPUTPCNeighboursCleaner.h"
@@ -53,10 +52,6 @@ class GPUReconstructionCPUBackend : public GPUReconstruction
   int runKernelBackend(krnlSetup& _xyz, const Args&... args);
 };
 
-#define GPUCA_M_KRNL_TEMPLATE_B(a, b, ...) a, a::b
-#define GPUCA_M_KRNL_TEMPLATE_A(...) GPUCA_M_KRNL_TEMPLATE_B(__VA_ARGS__, defaultKernel)
-#define GPUCA_M_KRNL_TEMPLATE(...) GPUCA_M_KRNL_TEMPLATE_A(GPUCA_M_STRIP(__VA_ARGS__))
-
 template <class T>
 class GPUReconstructionKernels : public T
 {
@@ -68,10 +63,10 @@ class GPUReconstructionKernels : public T
   GPUReconstructionKernels(const GPUSettingsProcessing& cfg) : T(cfg) {}
 
  protected:
-#define GPUCA_KRNL(class, attributes, arguments, forward)                                                          \
-  virtual int runKernelImpl(classArgument<GPUCA_M_KRNL_TEMPLATE(class)>, krnlSetup& _xyz GPUCA_M_STRIP(arguments)) \
-  {                                                                                                                \
-    return T::template runKernelBackend<GPUCA_M_KRNL_TEMPLATE(class)>(_xyz GPUCA_M_STRIP(forward));                \
+#define GPUCA_KRNL(x_class, attributes, x_arguments, x_forward)                                                        \
+  virtual int runKernelImpl(classArgument<GPUCA_M_KRNL_TEMPLATE(x_class)>, krnlSetup& _xyz GPUCA_M_STRIP(x_arguments)) \
+  {                                                                                                                    \
+    return T::template runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(_xyz GPUCA_M_STRIP(x_forward));                \
   }
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
@@ -90,14 +85,11 @@ class GPUReconstructionKernels<GPUReconstructionCPUBackend> : public GPUReconstr
   GPUReconstructionKernels(const GPUSettingsProcessing& cfg) : GPUReconstructionCPUBackend(cfg) {}
 
  protected:
-#define GPUCA_KRNL(class, attributes, arguments, forward) virtual int runKernelImpl(classArgument<GPUCA_M_KRNL_TEMPLATE(class)>, krnlSetup& _xyz GPUCA_M_STRIP(arguments));
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) virtual int runKernelImpl(classArgument<GPUCA_M_KRNL_TEMPLATE(x_class)>, krnlSetup& _xyz GPUCA_M_STRIP(x_arguments));
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
 };
 #endif
-#undef GPUCA_M_KRNL_TEMPLATE
-#undef GPUCA_M_KRNL_TEMPLATE_A
-#undef GPUCA_M_KRNL_TEMPLATE_B
 
 class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCPUBackend>
 {

@@ -54,6 +54,8 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
 
   template <class T, int I = 0, typename... Args>
   int runKernelBackend(krnlSetup& _xyz, Args... args);
+  template <class T, int I>
+  class backendInternal;
 
  private:
   GPUReconstructionHIPInternals* mInternals;
