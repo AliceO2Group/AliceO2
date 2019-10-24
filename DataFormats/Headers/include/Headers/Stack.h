@@ -61,7 +61,7 @@ struct Stack {
   static const BaseHeader* lastHeader(o2::byte* buf)
   {
     const BaseHeader* last{firstHeader(buf)};
-    while (last->flagsNextHeader) {
+    while (last && last->flagsNextHeader) {
       last = last->next();
     }
     return last;
@@ -131,6 +131,9 @@ struct Stack {
   static o2::byte* inject(o2::byte* here, T&& h, bool more = false) noexcept
   {
     using headerType = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
+    if (here == nullptr) {
+      return nullptr;
+    }
     if constexpr (std::is_same_v<headerType, Stack>) {
       if (h.data() == nullptr) {
         return here;
@@ -154,7 +157,7 @@ struct Stack {
         here += from->size();
         from = from->next();
       };
-      last->flagsNextHeader = more;
+      if (last) last->flagsNextHeader = more;
       return here;
     } else {
       static_assert(true, "Stack can only be constructed from other stacks and BaseHeader derived classes");
