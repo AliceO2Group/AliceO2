@@ -34,6 +34,7 @@ DECLARE_SOA_COLUMN(Tgl, tgl, float, "fTgl");
 DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float, "fSigned1Pt");
 DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, [](float snp, float alpha) { return asin(snp) + alpha + M_PI; });
 DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, [](float tgl) { return log(tan(0.25 * M_PI - 0.5 * atan(tgl))); });
+DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, [](float signed1Pt) { return abs(1.0 / signed1Pt); });
 // TRACKPARCOV TABLE definition
 DECLARE_SOA_COLUMN(CYY, cZZ, float, "fCYY");
 DECLARE_SOA_COLUMN(CZY, cZY, float, "fCZY");
@@ -72,7 +73,8 @@ DECLARE_SOA_TABLE(Tracks, "RN2", "TRACKPAR",
                   track::Y, track::Z, track::Snp, track::Tgl,
                   track::Signed1Pt,
                   track::Phi<track::Snp, track::Alpha>,
-                  track::Eta<track::Tgl>);
+                  track::Eta<track::Tgl>,
+                  track::Pt<track::Signed1Pt>);
 
 DECLARE_SOA_TABLE(TracksCov, "RN2", "TRACKPARCOV",
                   track::CYY, track::CZY, track::CZZ, track::CSnpY,
@@ -140,12 +142,12 @@ DECLARE_SOA_COLUMN(TimeframeID, timeframeID, uint64_t, "fID4Timeframes");
 DECLARE_SOA_COLUMN(NumTracks, numTracks, uint32_t, "numTracks");
 //DECLARE_SOA_COLUMN(NumCalo, numCalo, uint32_t, "numCalo");         // not in the preliminary table
 //DECLARE_SOA_COLUMN(NumMuons, numMuons, uint32_t, "numMuons");      // not in the preliminary table
-DECLARE_SOA_COLUMN(ID, identifier, int, "identifier");               // index of the vertex inside the timeframe, AliESDVertex, ushort_t
-DECLARE_SOA_COLUMN(PositionX, positionX, double, "positionX");       // vertex x position, AliVertex.h, Double32_t
-DECLARE_SOA_COLUMN(PositionY, positionY, double, "positionY");       // vertex y position, AliVertex.h, Double32_t
-DECLARE_SOA_COLUMN(PositionZ, positionZ, double, "positionZ");       // vertex z position, AliVertex.h, Double32_t
+DECLARE_SOA_COLUMN(ID, identifier, int, "identifier");         // index of the vertex inside the timeframe, AliESDVertex, ushort_t
+DECLARE_SOA_COLUMN(PositionX, positionX, double, "positionX"); // vertex x position, AliVertex.h, Double32_t
+DECLARE_SOA_COLUMN(PositionY, positionY, double, "positionY"); // vertex y position, AliVertex.h, Double32_t
+DECLARE_SOA_COLUMN(PositionZ, positionZ, double, "positionZ"); // vertex z position, AliVertex.h, Double32_t
 //DECLARE_SOA_COLUMN(Cov[3][3], fCov[3][3], double, "fCov");         // 3x3 vertex covariance matrix
-DECLARE_SOA_COLUMN(Chi2, chi2, double, "chi2");                      // chi2 of vertex fit, AliESDVertex.h, Double32_t
+DECLARE_SOA_COLUMN(Chi2, chi2, double, "chi2"); // chi2 of vertex fit, AliESDVertex.h, Double32_t
 //DECLARE_SOA_COLUMN(Indices, fIndices, int*, "indices");            // contributing track IDs to the vertex reconstruction, AliVertex.h, UShort_t*
 DECLARE_SOA_COLUMN(BC, bunchCrossNumber, int, "bunchCrossNumber");   // LHC bunch crossing number, AliESDHeader.h, UShort_t
 DECLARE_SOA_COLUMN(OrbitNumber, orbitNumber, int, "orbitNumber");    // LHC orbit number, AliESDHeader, UInt_t
@@ -154,7 +156,7 @@ DECLARE_SOA_COLUMN(V0mult, v0mult, int, "v0mult");                   // V0 multi
 DECLARE_SOA_COLUMN(T0multA, t0multA, int, "t0multA");                // T0 A multiplicity
 DECLARE_SOA_COLUMN(T0multC, t0multc, int, "t0multC");                // T0 C multiplicity
 DECLARE_SOA_COLUMN(FITmult, fitmult, int, "fitmult");                // FIT  multiplicity
-DECLARE_SOA_COLUMN(TriggerMask, triggerMask, int ,"triggerMask");    // Trigger mask, maybe? int?
+DECLARE_SOA_COLUMN(TriggerMask, triggerMask, int, "triggerMask");    // Trigger mask, maybe? int?
 } // namespace collision
 
 DECLARE_SOA_TABLE(Collisions, "RN2", "COLLISION",
