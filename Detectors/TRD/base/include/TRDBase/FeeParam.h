@@ -11,10 +11,6 @@
 #ifndef O2_TRD_FEEPARAM_H
 #define O2_TRD_FEEPARAM_H
 
-namespace o2
-{
-namespace trd
-{
 
 ////////////////////////////////////////////////////////////////////////////
 //                                                                        //
@@ -30,13 +26,17 @@ namespace trd
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
-#include <iosfwd>
 #include <array>
+#include <vector>
 
 class TRDCommonParam;
 class TRDPadPlane;
 class TRDGeometry;
 
+namespace o2
+{
+namespace trd
+{
 //_____________________________________________________________________________
 class FeeParam
 {
@@ -79,8 +79,7 @@ class FeeParam
   static int getNcolMcm() { return mgkNcolMcm; }
   static int getNrowC0() { return mgkNrowC0; }
   static int getNrowC1() { return mgkNrowC1; }
-
-  // Basic Geometrical numbers these were private but as they are static and const it seems pointless.
+  // Basic Geometrical numbers
   static const int mgkLHCfrequency = 40079000; // [Hz] LHC clock
   static const int mgkNmcmRob = 16;            // Number of MCMs per ROB
   static const int mgkNmcmRobInRow = 4;        // Number of MCMs per ROB in row dir.
@@ -95,13 +94,13 @@ class FeeParam
 
   // tracklet simulation
   bool getTracklet() const { return mgTracklet; }
-  static void setTracklet(bool trackletSim = kTRUE) { mgTracklet = trackletSim; }
+  static void setTracklet(bool trackletSim = true) { mgTracklet = trackletSim; }
   bool getRejectMultipleTracklets() const { return mgRejectMultipleTracklets; }
-  static void setRejectMultipleTracklets(bool rej = kTRUE) { mgRejectMultipleTracklets = rej; }
+  static void setRejectMultipleTracklets(bool rej = true) { mgRejectMultipleTracklets = rej; }
   bool getUseMisalignCorr() const { return mgUseMisalignCorr; }
-  static void setUseMisalignCorr(bool misalign = kTRUE) { mgUseMisalignCorr = misalign; }
+  static void setUseMisalignCorr(bool misalign = true) { mgUseMisalignCorr = misalign; }
   bool getUseTimeOffset() const { return mgUseTimeOffset; }
-  static void setUseTimeOffset(bool timeOffset = kTRUE) { mgUseTimeOffset = timeOffset; }
+  static void setUseTimeOffset(bool timeOffset = true) { mgUseTimeOffset = timeOffset; }
 
   // Concerning raw data format
   int getRAWversion() const { return mRAWversion; }

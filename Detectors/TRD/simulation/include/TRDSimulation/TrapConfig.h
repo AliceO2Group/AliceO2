@@ -36,7 +36,7 @@ namespace trd
 class TrapConfig
 {
  public:
-  TrapConfig();
+  TrapConfig(std::string configname);
   ~TrapConfig();
 
   // allocation
@@ -489,6 +489,7 @@ class TrapConfig
                    kDMDELA,
                    kDMDELS,
                    kLastReg }; // enum of all TRAP registers, to be used for access to them
+
   static const int mlastAlloc = kAllocLast;
   bool setTrapRegAlloc(TrapReg_t reg, Alloc_t mode) { return mRegisterValue[reg].allocate(mode); }
   bool setTrapReg(TrapReg_t reg, int value, int det);
@@ -511,6 +512,11 @@ class TrapConfig
   unsigned int getDmemUnsigned(int addr, int det, int rob, int mcm);
 
   void resetDmem();
+  void configureOnlineGains();
+  // not implemented due to not doing online gains
+  //  double getFGANrm(int det, int rob, int mcm, int ch){return mGainTable.getFGANrm(det,rob,mcm,ch);};
+  //  double getFGFNrm(int det, int rob,int  mcm, int ch){return mGainTable.getFGFNrm(det,rob,mcm,ch);};
+  //  double getAdcdacrm(int det, int rob, int mcm){return mGainTable.getAdcdacrm(det,rob,mcm);};
 
   // access by 16-bit address
   unsigned int peek(int addr, int det, int rob, int mcm);
