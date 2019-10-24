@@ -25,14 +25,15 @@
 #define GPUCA_M_KRNL_NUM_A(...) GPUCA_M_KRNL_NUM_B(__VA_ARGS__, defaultKernel)
 #define GPUCA_M_KRNL_NUM(...) GPUCA_M_KRNL_NUM_A(GPUCA_M_STRIP(__VA_ARGS__))
 
-#define GPUCA_M_KRNL_NAME_B(a, b, ...) GPUCA_M_CAT3(a, _, b)
-#define GPUCA_M_KRNL_NAME_A(...) GPUCA_M_KRNL_NAME_B(__VA_ARGS__, )
+#define GPUCA_M_KRNL_NAME_B0(a, b, ...) GPUCA_M_CAT3(a, _, b)
+#define GPUCA_M_KRNL_NAME_B1(a) a
+#define GPUCA_M_KRNL_NAME_A(...) GPUCA_M_CAT(GPUCA_M_KRNL_NAME_B, GPUCA_M_SINGLEOPT(__VA_ARGS__))(__VA_ARGS__)
 #define GPUCA_M_KRNL_NAME(...) GPUCA_M_KRNL_NAME_A(GPUCA_M_STRIP(__VA_ARGS__))
 
 #ifdef GPUCA_GPUCODE
 // GPU Kernel entry point for single sector
 #define GPUCA_KRNLGPU_SINGLE(x_class, x_attributes, x_arguments, x_forward) \
-GPUg() void GPUCA_M_KRNL_NAME(x_class) (GPUCA_CONSMEM_PTR int iSlice GPUCA_M_STRIP(x_arguments)) \
+GPUg() void GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))(GPUCA_CONSMEM_PTR int iSlice GPUCA_M_STRIP(x_arguments)) \
 { \
   GPUshared() typename GPUCA_M_STRIP_FIRST(x_class)::MEM_LOCAL(GPUTPCSharedMemory) smem; \
   GPUCA_M_STRIP_FIRST(x_class)::template Thread<GPUCA_M_KRNL_NUM(x_class)>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, GPUCA_M_STRIP_FIRST(x_class)::Processor(GPUCA_CONSMEM)[iSlice] GPUCA_M_STRIP(x_forward)); \
@@ -40,7 +41,7 @@ GPUg() void GPUCA_M_KRNL_NAME(x_class) (GPUCA_CONSMEM_PTR int iSlice GPUCA_M_STR
 
 // GPU Kernel entry point for multiple sector
 #define GPUCA_KRNLGPU_MULTI(x_class, x_attributes, x_arguments, x_forward) \
-GPUg() void GPUCA_M_CAT(GPUCA_M_KRNL_NAME(x_class), _multi)(GPUCA_CONSMEM_PTR int firstSlice, int nSliceCount GPUCA_M_STRIP(x_arguments)) \
+GPUg() void GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)(GPUCA_CONSMEM_PTR int firstSlice, int nSliceCount GPUCA_M_STRIP(x_arguments)) \
 { \
   const int iSlice = nSliceCount * (get_group_id(0) + (get_num_groups(0) % nSliceCount != 0 && nSliceCount * (get_group_id(0) + 1) % get_num_groups(0) != 0)) / get_num_groups(0); \
   const int nSliceBlockOffset = get_num_groups(0) * iSlice / nSliceCount; \
