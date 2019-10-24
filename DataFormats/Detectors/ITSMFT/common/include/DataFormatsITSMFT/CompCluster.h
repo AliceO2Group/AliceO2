@@ -80,7 +80,7 @@ class CompCluster
 
   void print() const;
 
-  ClassDefNV(CompCluster, 1);
+  ClassDefNV(CompCluster, 2);
 };
 
 /// Extension of the compact cluster, augmented by the chipID
