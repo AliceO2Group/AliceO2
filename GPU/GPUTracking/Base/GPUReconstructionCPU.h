@@ -93,7 +93,7 @@ class GPUReconstructionKernels<GPUReconstructionCPUBackend> : public GPUReconstr
 
 class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCPUBackend>
 {
-  friend class GPUReconstruction;
+  friend GPUReconstruction* GPUReconstruction::GPUReconstruction_Create_CPU(const GPUSettingsProcessing& cfg);
   friend class GPUChain;
 
  public:
@@ -102,66 +102,22 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   static constexpr krnlEvent krnlEventNone = krnlEvent{nullptr, nullptr, 0};
 
 #ifdef __clang__ // BUG: clang does not accept default parameters before parameter pack
-  template <class S, int I = 0>
-  inline int runKernel(const krnlExec& x, HighResTimer* t = nullptr, const krnlRunRange& y = krnlRunRangeNone)
+  template <class S, int I = 0, int J = -1>
+  inline int runKernel(const krnlExec& x, const krnlRunRange& y = krnlRunRangeNone)
   {
-    return runKernel<S, I>(x, t, y, krnlEventNone);
+    return runKernel<S, I, J>(x, y, krnlEventNone);
   }
-  template <class S, int I = 0, typename... Args>
-  inline int runKernel(const krnlExec& x, HighResTimer* t, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
+  template <class S, int I = 0, int J = -1, typename... Args>
+  int runKernel(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args);
 #else
-  template <class S, int I = 0, typename... Args>
-  inline int runKernel(const krnlExec& x, HighResTimer* t = nullptr, const krnlRunRange& y = krnlRunRangeNone, const krnlEvent& z = krnlEventNone, const Args&... args)
+  template <class S, int I = 0, int J = -1, typename... Args>
+  int runKernel(const krnlExec& x, const krnlRunRange& y = krnlRunRangeNone, const krnlEvent& z = krnlEventNone, const Args&... args);
 #endif
-  {
-    if (x.nThreads > GPUCA_MAX_THREADS) {
-      throw std::runtime_error("GPUCA_MAX_THREADS exceeded");
-    }
-    int cpuFallback = IsGPU() ? (x.device == krnlDeviceType::CPU ? 2 : (mRecoStepsGPU & S::GetRecoStep()) != S::GetRecoStep()) : 0;
-    if (mDeviceProcessingSettings.debugLevel >= 3) {
-      GPUInfo("Running %s-%d (Stream %d, Range %d/%d, Grid %d/%d) on %s", typeid(S).name(), I, x.stream, y.start, y.num, x.nBlocks, x.nThreads, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
-    }
-    if (t && mDeviceProcessingSettings.debugLevel && (!mDeviceProcessingSettings.deviceTimers || cpuFallback)) {
-      t->Start();
-    }
-    krnlSetup setup{x, y, z, 0.};
-    if (cpuFallback) {
-      if (GPUReconstructionCPU::runKernelImpl(classArgument<S, I>(), setup, args...)) {
-        return 1;
-      }
-    } else {
-      if (runKernelImpl(classArgument<S, I>(), setup, args...)) {
-        return 1;
-      }
-    }
-    if (mDeviceProcessingSettings.debugLevel) {
-      if (GPUDebug(typeid(S).name(), x.stream)) {
-        throw std::runtime_error("kernel failure");
-      }
-      if (t) {
-        if (!mDeviceProcessingSettings.deviceTimers || cpuFallback) {
-          t->Stop();
-        } else {
-          t->AddTime(setup.t);
-        }
-      }
-    }
-    return 0;
-  }
 
   template <class T, int I>
-  constexpr const char* GetKernelName();
+  constexpr static const char* GetKernelName();
 
   virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1);
-  void TransferMemoryResourceToGPU(GPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { TransferMemoryInternal(res, stream, ev, evList, nEvents, true, res->Ptr(), res->PtrDevice()); }
-  void TransferMemoryResourceToHost(GPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { TransferMemoryInternal(res, stream, ev, evList, nEvents, false, res->PtrDevice(), res->Ptr()); }
-  void TransferMemoryResourcesToGPU(GPUProcessor* proc, int stream = -1, bool all = false) { TransferMemoryResourcesHelper(proc, stream, all, true); }
-  void TransferMemoryResourcesToHost(GPUProcessor* proc, int stream = -1, bool all = false) { TransferMemoryResourcesHelper(proc, stream, all, false); }
-  void TransferMemoryResourceLinkToGPU(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { TransferMemoryResourceToGPU(&mMemoryResources[res], stream, ev, evList, nEvents); }
-  void TransferMemoryResourceLinkToHost(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { TransferMemoryResourceToHost(&mMemoryResources[res], stream, ev, evList, nEvents); }
-  virtual void GPUMemCpy(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1);
-  virtual void GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1);
-  void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev) override;
   int GPUStuck() { return mGPUStuck; }
   int NStreams() { return mNStreams; }
   void SetThreadCounts(RecoStep step);
@@ -193,7 +149,17 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   virtual int HelperError(int iThread) const { return 0; }
   virtual int HelperDone(int iThread) const { return 0; }
   virtual void ResetHelperThreads(int helpers) {}
-  virtual void TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst);
+
+  size_t TransferMemoryResourceToGPU(GPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryInternal(res, stream, ev, evList, nEvents, true, res->Ptr(), res->PtrDevice()); }
+  size_t TransferMemoryResourceToHost(GPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryInternal(res, stream, ev, evList, nEvents, false, res->PtrDevice(), res->Ptr()); }
+  size_t TransferMemoryResourcesToGPU(GPUProcessor* proc, int stream = -1, bool all = false) { return TransferMemoryResourcesHelper(proc, stream, all, true); }
+  size_t TransferMemoryResourcesToHost(GPUProcessor* proc, int stream = -1, bool all = false) { return TransferMemoryResourcesHelper(proc, stream, all, false); }
+  size_t TransferMemoryResourceLinkToGPU(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryResourceToGPU(&mMemoryResources[res], stream, ev, evList, nEvents); }
+  size_t TransferMemoryResourceLinkToHost(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryResourceToHost(&mMemoryResources[res], stream, ev, evList, nEvents); }
+  virtual size_t GPUMemCpy(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1);
+  virtual size_t GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1);
+  size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev) override;
+  virtual size_t TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst);
 
   virtual void SetThreadCounts();
 
@@ -223,11 +189,85 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   int mGPUStuck = 0;  // Marks that the GPU is stuck, skip future events
   int mNStreams = 1;
 
+  struct timerMeta {
+    std::unique_ptr<HighResTimer[]> timer;
+    std::string name;
+    int num;       // How many parallel instances to sum up (CPU threads / GPU streams)
+    int type;      // 0 = kernel, 1 = CPU step, 2 = DMA transfer
+    RecoStep step; // Which RecoStep is this
+  };
+
+  struct RecoStepTimerMeta {
+    HighResTimer timer;
+    HighResTimer timerToGPU;
+    HighResTimer timerToHost;
+    size_t bytesToGPU = 0;
+    size_t bytesToHost = 0;
+  };
+
+  constexpr static int N_RECO_STEPS = sizeof(GPUDataTypes::RECO_STEP_NAMES) / sizeof(GPUDataTypes::RECO_STEP_NAMES[0]);
+  std::vector<timerMeta> mTimers;
+  RecoStepTimerMeta mTimersRecoSteps[N_RECO_STEPS];
+  template <class T, int I = 0, int J = -1>
+  HighResTimer& getKernelTimer(RecoStep step, int num = 0);
+  template <class T, int J = -1>
+  HighResTimer& getTimer(const char* name, int num = -1);
+  int getRecoStepNum(RecoStep step, bool validCheck = true);
+
   std::vector<std::vector<deviceEvent*>> mEvents;
 
  private:
-  void TransferMemoryResourcesHelper(GPUProcessor* proc, int stream, bool all, bool toGPU);
+  size_t TransferMemoryResourcesHelper(GPUProcessor* proc, int stream, bool all, bool toGPU);
+  HighResTimer* insertTimer(std::string&& name, int J, int num, int type, RecoStep step);
+  int getOMPThreadNum();
+  int getOMPMaxThreads();
 };
+
+template <class S, int I, int J, typename... Args>
+inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
+{
+  if (x.nThreads > GPUCA_MAX_THREADS) {
+    throw std::runtime_error("GPUCA_MAX_THREADS exceeded");
+  }
+  HighResTimer* t = nullptr;
+  GPUCA_RECO_STEP myStep = S::GetRecoStep() == GPUCA_RECO_STEP::NoRecoStep ? x.step : S::GetRecoStep();
+  if (myStep == GPUCA_RECO_STEP::NoRecoStep) {
+    throw std::runtime_error("Failure running general kernel without defining RecoStep");
+  }
+  int cpuFallback = IsGPU() ? (x.device == krnlDeviceType::CPU ? 2 : (mRecoStepsGPU & myStep) != myStep) : 0;
+  if (mDeviceProcessingSettings.debugLevel >= 3) {
+    GPUInfo("Running %s-%d (Stream %d, Range %d/%d, Grid %d/%d) on %s", typeid(S).name(), I, x.stream, y.start, y.num, x.nBlocks, x.nThreads, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
+  }
+  if (mDeviceProcessingSettings.debugLevel >= 0) {
+    t = &getKernelTimer<S, I, J>(myStep, !IsGPU() || cpuFallback ? getOMPThreadNum() : x.stream);
+    if (!mDeviceProcessingSettings.deviceTimers || cpuFallback) {
+      t->Start();
+    }
+  }
+  krnlSetup setup{x, y, z, 0.};
+  if (cpuFallback) {
+    if (GPUReconstructionCPU::runKernelImpl(classArgument<S, I>(), setup, args...)) {
+      return 1;
+    }
+  } else {
+    if (runKernelImpl(classArgument<S, I>(), setup, args...)) {
+      return 1;
+    }
+  }
+  if (mDeviceProcessingSettings.debugLevel >= 0) {
+    if (GPUDebug(typeid(S).name(), x.stream)) {
+      throw std::runtime_error("kernel failure");
+    }
+    if (t) {
+      if (!mDeviceProcessingSettings.deviceTimers || cpuFallback) {
+        t->Stop();
+      } else {
+        t->AddTime(setup.t);
+      }
+    }
+  }
+  return 0;
+}
 
 #define GPUCA_KRNL(x_class, attributes, x_arguments, x_forward)                               \
   template <>                                                                                 \
@@ -244,6 +284,40 @@ inline void GPUReconstructionCPU::AddGPUEvents(T*& events)
   mEvents.emplace_back(std::vector<deviceEvent*>(sizeof(T) / sizeof(deviceEvent*)));
   events = (T*)mEvents.back().data();
 }
+
+inline HighResTimer* GPUReconstructionCPU::insertTimer(std::string&& name, int J, int num, int type, RecoStep step)
+{
+  if (J >= 0) {
+    name += std::to_string(J);
+  }
+  mTimers.emplace_back(timerMeta{std::unique_ptr<HighResTimer[]>{new HighResTimer[num]}, name, num, type, step});
+  return mTimers.back().timer.get();
+}
+
+template <class T, int I, int J>
+HighResTimer& GPUReconstructionCPU::getKernelTimer(RecoStep step, int num)
+{
+  static int max = step == GPUCA_RECO_STEP::NoRecoStep || step == GPUCA_RECO_STEP::TPCSliceTracking || step == GPUCA_RECO_STEP::TPCClusterFinding ? NSLICES : 1;
+  static HighResTimer* timer = insertTimer(GetKernelName<T, I>(), J, max, 0, step);
+  if (num >= max) {
+    throw std::runtime_error("Invalid timer requested");
+  }
+  return timer[num];
+}
+
+template <class T, int J>
+HighResTimer& GPUReconstructionCPU::getTimer(const char* name, int num)
+{
+  static int max = std::max({getOMPMaxThreads(), mDeviceProcessingSettings.nDeviceHelperThreads + 1, mDeviceProcessingSettings.nStreams});
+  static HighResTimer* timer = insertTimer(name, J, max, 1, RecoStep::NoRecoStep);
+  if (num == -1)
+    num = getOMPThreadNum();
+  if (num >= max) {
+    throw std::runtime_error("Invalid timer requested");
+  }
+  return timer[num];
+}
+
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

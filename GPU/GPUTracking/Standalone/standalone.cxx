@@ -538,7 +538,7 @@ int main(int argc, char** argv)
           if (configStandalone.outputcontrolmem) {
             rec->SetOutputControl(outputmemory.get(), configStandalone.outputcontrolmem);
           }
-          rec->SetResetTimers(j1 <= configStandalone.runsInit);
+          rec->SetResetTimers(j1 < configStandalone.runsInit);
 
           int tmpRetVal = rec->RunChains();
 
