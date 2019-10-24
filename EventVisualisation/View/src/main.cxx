@@ -18,6 +18,8 @@
 #include "EventVisualisationBase/ConfigurationManager.h"
 #include "EventVisualisationBase/DataInterpreter.h"
 
+#include "FairLogger.h"
+
 #include <TApplication.h>
 #include <TEveBrowser.h>
 #include <TEveManager.h>
@@ -25,7 +27,6 @@
 
 #include <unistd.h>
 #include <ctime>
-#include <iostream>
 
 using namespace std;
 using namespace o2::event_visualisation;
@@ -82,7 +83,7 @@ Options* processCommandLine(int argc, char* argv[])
 
 int main(int argc, char** argv)
 {
-  cout << "Welcome in O2 event visualisation tool" << endl;
+  LOG(INFO) << "Welcome in O2 event visualisation tool";
   Options* options = processCommandLine(argc, argv);
   if (options == nullptr)
     exit(-1);
@@ -103,9 +104,9 @@ int main(int argc, char** argv)
   TApplication* app = new TApplication("o2eve", &argc, argv);
   app->Connect("TEveBrowser", "CloseWindow()", "TApplication", app, "Terminate()");
 
-  cout << "Initializing TEveManager" << endl;
+  LOG(INFO) << "Initializing TEveManager";
   if (!TEveManager::Create(kTRUE, "FI")) {
-    cout << "FATAL -- Could not create TEveManager!!" << endl;
+    LOG(FATAL) << "Could not create TEveManager!!";
     exit(0);
   }
 
@@ -120,5 +121,6 @@ int main(int argc, char** argv)
   TEveManager::Terminate();
   app->Terminate(0);
 
+  LOG(INFO) << "O2 event visualisation tool terminated properly";
   return 0;
 }
