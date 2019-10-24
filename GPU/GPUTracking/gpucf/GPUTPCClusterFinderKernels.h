@@ -69,7 +69,7 @@ class GPUTPCClusterFinderKernels : public GPUKernelTemplate
   }
 #endif
 
-  GPUhdi() static GPUDataTypes::RecoStep GetRecoStep()
+  GPUhdi() CONSTEXPR static GPUDataTypes::RecoStep GetRecoStep()
   {
     return GPUDataTypes::RecoStep::TPCClusterFinding;
   }

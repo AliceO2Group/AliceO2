@@ -199,8 +199,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   unsigned int mMaxTPCHits;
   unsigned int mMaxTRDTracklets;
 
-  // Timers and debug
-  HighResTimer timerTPCtracking[NSLICES][10];
+  // Debug
   std::ofstream mDebugFile;
 
   // Synchronization and Locks

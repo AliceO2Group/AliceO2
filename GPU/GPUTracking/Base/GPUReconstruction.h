@@ -119,11 +119,14 @@ class GPUReconstruction
                                     Device = 1,
                                     Auto = -1 };
   struct krnlExec {
-    constexpr krnlExec(unsigned int b, unsigned int t, int s, krnlDeviceType d = krnlDeviceType::Auto) : nBlocks(b), nThreads(t), stream(s), device(d) {}
+    constexpr krnlExec(unsigned int b, unsigned int t, int s, krnlDeviceType d = krnlDeviceType::Auto) : nBlocks(b), nThreads(t), stream(s), device(d), step(GPUCA_RECO_STEP::NoRecoStep) {}
+    constexpr krnlExec(unsigned int b, unsigned int t, int s, GPUCA_RECO_STEP st) : nBlocks(b), nThreads(t), stream(s), device(krnlDeviceType::Auto), step(st) {}
+    constexpr krnlExec(unsigned int b, unsigned int t, int s, krnlDeviceType d, GPUCA_RECO_STEP st) : nBlocks(b), nThreads(t), stream(s), device(d), step(st) {}
     unsigned int nBlocks;
     unsigned int nThreads;
     int stream;
     krnlDeviceType device;
+    GPUCA_RECO_STEP step;
   };
   struct krnlRunRange {
     constexpr krnlRunRange() = default;
@@ -153,6 +156,7 @@ class GPUReconstruction
 
   void PrepareEvent();
   virtual int RunChains() = 0;
+  int getNEventsProcessed() { return mStatNEvents; }
 
   // Helpers for memory allocation
   GPUMemoryResource& Res(short num) { return mMemoryResources[num]; }
@@ -209,7 +213,7 @@ class GPUReconstruction
   GPUReconstruction(const GPUSettingsProcessing& cfg); // Constructor
   virtual int InitDevice() = 0;
   virtual int ExitDevice() = 0;
-  virtual void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
+  virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
 
   struct krnlSetup {
     krnlExec x;
@@ -322,7 +326,6 @@ class GPUReconstruction
   };
   static std::shared_ptr<LibraryLoader> sLibCUDA, sLibHIP, sLibOCL, sLibOCL2;
 
- private:
   static GPUReconstruction* GPUReconstruction_Create_CPU(const GPUSettingsProcessing& cfg);
 };
 

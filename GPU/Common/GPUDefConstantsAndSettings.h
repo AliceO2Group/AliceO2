@@ -52,8 +52,6 @@
 
 #define GPUCA_MAX_SLICE_NTRACK (2 << 24)              // Maximum number of tracks per slice (limited by track id format)
 
-#define GPUCA_TIMING_SUM 1
-
 #define GPUCA_MAX_SIN_PHI_LOW 0.99f                   // Must be preprocessor define because c++ pre 11 cannot use static constexpr for initializes
 #define GPUCA_MAX_SIN_PHI 0.999f
 

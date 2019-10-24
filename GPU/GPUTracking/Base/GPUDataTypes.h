@@ -127,7 +127,7 @@ class GPUDataTypes
                               TPCRaw = 64 };
 
 #ifdef GPUCA_NOCOMPAT_ALLOPENCL
-  static constexpr const char* const RECO_STEP_NAMES[] = {"TPC Transformation", "TPC Sector Tracking", "TPC Track Merging and Fit", "TPC Compression", "TRD Tracking", "ITS Tracking", "TPC dEdx Computation"};
+  static constexpr const char* const RECO_STEP_NAMES[] = {"TPC Transformation", "TPC Sector Tracking", "TPC Track Merging and Fit", "TPC Compression", "TRD Tracking", "ITS Tracking", "TPC dEdx Computation", "TPC Cluster Finding"};
   typedef bitfield<RecoStep, unsigned int> RecoStepField;
   typedef bitfield<InOutType, unsigned int> InOutTypeField;
 #endif
