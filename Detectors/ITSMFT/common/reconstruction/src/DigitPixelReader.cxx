@@ -64,7 +64,7 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
   chipData.clear();
   chipData.setStartID(mIdDig - 1); // for the MC references
   chipData.setChipID(mLastDigit->getChipIndex());
-  chipData.setROFrame(mLastDigit->getROFrame());
+  chipData.setROFrame((*mROFRecVec)[mIdROF].getROFrame());
   chipData.setInteractionRecord(mInteractionRecord);
   chipData.setTrigger(mTrigger);
   chipData.getData().emplace_back(mLastDigit);
