@@ -73,13 +73,11 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& out
       for (auto& [route, entry] : *outputObjects) {
         std::string nextDirectory = route.directory;
         if (nextDirectory != currentDirectory) {
-          LOGP(INFO, "Now writing in {}", nextDirectory);
           if (!f->FindKey(nextDirectory.c_str())) {
             f->mkdir(nextDirectory.c_str());
           }
           currentDirectory = nextDirectory;
         }
-        LOGP(INFO, "Now writing {}", entry.name);
         (f->GetDirectory(currentDirectory.c_str()))->WriteObjectAny(entry.obj, entry.kind, entry.name.c_str());
       }
       if (f) {
@@ -115,7 +113,6 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& out
 
       obj.obj = tm.ReadObjectAny(obj.kind);
       TNamed* named = static_cast<TNamed*>(obj.obj);
-      LOGP(info, "Object name {}", named->GetName());
       obj.name = named->GetName();
       auto lookup = outMap.find(obj.name);
       std::string directory{"VariousObjects"};

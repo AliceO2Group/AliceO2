@@ -115,40 +115,48 @@ struct OutputObj {
   using obj_t = T;
 
   OutputObj(T const& t)
-    : object(std::make_shared<T>(t))
+    : object(std::make_shared<T>(t)),
+      label(t.GetName())
   {
   }
 
-  OutputObj()
-    : object(nullptr)
+  OutputObj(std::string const& label_)
+    : object(nullptr),
+      label(label_)
   {
   }
 
   void setObject(T const& t)
   {
     object = std::make_shared<T>(t);
+    object->SetName(label.c_str());
   }
 
   void setObject(T&& t)
   {
     object = std::make_shared<T>(t);
+    object->SetName(label.c_str());
   }
 
   void setObject(T* t)
   {
     object.reset(t);
+    object->SetName(label.c_str());
   }
 
   // @return the associated OutputSpec
   OutputSpec const spec()
   {
     static_assert(std::is_base_of_v<TNamed, T>, "You need a TNamed derived class to use OutputObj");
-    std::string label{object->GetName()};
     header::DataDescription desc{};
-    // FIXME: for the moment we use GetTitle(), in the future
-    //        we should probably use a unique hash to allow
-    //        names longer than 16 bytes.
-    strncpy(desc.str, object->GetTitle(), 16);
+    if (object == nullptr) {
+      strncpy(desc.str, "__OUTPUTOBJECT__", 16);
+    } else {
+      // FIXME: for the moment we use GetTitle(), in the future
+      //        we should probably use a unique hash to allow
+      //        names longer than 16 bytes.
+      strncpy(desc.str, object->GetTitle(), 16);
+    }
 
     return OutputSpec{OutputLabel{label}, "ATSK", desc, 0};
   }
@@ -165,11 +173,11 @@ struct OutputObj {
 
   OutputRef ref()
   {
-    std::string label{object->GetName()};
     return OutputRef{label, 0};
   }
 
   std::shared_ptr<T> object;
+  std::string label;
 };
 
 struct AnalysisTask {
