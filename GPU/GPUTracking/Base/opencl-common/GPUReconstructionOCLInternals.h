@@ -228,6 +228,7 @@ int GPUReconstructionOCL::AddKernel(bool multi)
   if (multi) {
     name += "_multi";
   }
+  std::string kname("krnl_" + name);
 
   cl_int ocl_error;
   cl_kernel krnl = clCreateKernel(mInternals->program, name.c_str(), &ocl_error);
