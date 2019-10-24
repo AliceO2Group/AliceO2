@@ -35,7 +35,7 @@
 using namespace std;
 using namespace o2::trd;
 
-TrapConfigHandler::TrapConfigHandler(TrapConfig* cfg) : mltuParam(), mRestrictiveMask((0x3ffff << 11) | (0x1f << 6) | 0x3f), mTrapConfig(cfg), mGtbl()
+TrapConfigHandler::TrapConfigHandler(TrapConfig* cfg) : mpFeeParam(), mRestrictiveMask((0x3ffff << 11) | (0x1f << 6) | 0x3f), mTrapConfig(cfg), mGtbl()
 {
 }
 
@@ -92,6 +92,8 @@ void TrapConfigHandler::init()
     else
       mTrapConfig->setDmemAlloc(iAddr, TrapConfig::kAllocGlobal);
   }
+  mpFeeParam=FeeParam::instance();
+
 }
 
 void TrapConfigHandler::resetMCMs()
@@ -120,21 +122,21 @@ int TrapConfigHandler::loadConfig()
     return -1;
   }
 
-  // prepare mltuParam
+  // prepare mpFeeParam
   // ndrift (+ 5 binary digits)
-  mltuParam.setNtimebins(20 << 5);
+  mpFeeParam->setNtimebins(20 << 5);
   // deflection + tilt correction
-  mltuParam.setRawOmegaTau(0.16133);
+  mpFeeParam->setRawOmegaTau(0.16133);
   // deflection range table
-  mltuParam.setRawPtMin(0.1);
+  mpFeeParam->setRawPtMin(0.1);
   // magnetic field
-  mltuParam.setRawMagField(0.0);
+  mpFeeParam->setRawMagField(0.0);
   // scaling factors for q0, q1
-  mltuParam.setRawScaleQ0(0);
-  mltuParam.setRawScaleQ1(0);
+  mpFeeParam->setRawScaleQ0(0);
+  mpFeeParam->setRawScaleQ1(0);
   // disable length correction and tilting correction
-  mltuParam.setRawLengthCorrectionEnable(false);
-  mltuParam.setRawTiltCorrectionEnable(false);
+  mpFeeParam->setRawLengthCorrectionEnable(false);
+  mpFeeParam->setRawTiltCorrectionEnable(false);
 
   for (int iDet = 0; iDet < 540; iDet++) {
     // HC header configuration bits
@@ -177,7 +179,7 @@ int TrapConfigHandler::loadConfig()
     mTrapConfig->setTrapReg(TrapConfig::kTPCL, 1, iDet);
     mTrapConfig->setTrapReg(TrapConfig::kTPCT, 10, iDet);
 
-    // apply mltuParams
+    // apply mpFeeParams
     configureDyCorr(iDet);
     configureDRange(iDet);    // deflection range
     configureNTimebins(iDet); // timebins in the drift region
@@ -288,7 +290,7 @@ int TrapConfigHandler::loadConfig(std::string filename)
       }
 
       else if (cmd == mgkScsnLTUparam) {
-        processLTUparam(extali, addr, data);
+   //     processLTUparam(extali, addr, data);
       }
 
       else if (cmd == mgkScsnCmdRestr) {
@@ -393,29 +395,29 @@ void TrapConfigHandler::processLTUparam(int dest, int addr, unsigned int data)
       switch (addr) {
 
         case 0:
-          mltuParam.setPtMin(data);
+          mpFeeParam->setPtMin(data);
           break; // pt_min in GeV/c (*1000)
         case 1:
-          mltuParam.setMagField(data);
+          mpFeeParam->setMagField(data);
           break; // B in T (*1000)
         case 2:
-          mltuParam.setOmegaTau(data);
+          mpFeeParam->setOmegaTau(data);
           break; // omega*tau
         case 3:
-          mltuParam.setNtimebins(data);
+          mpFeeParam->setNtimebins(data);
           break;
           // ntimbins: drift time (for 3 cm) in timebins (5 add. bin. digits)
         case 4:
-          mltuParam.setScaleQ0(data);
+          mpFeeParam->setScaleQ0(data);
           break;
         case 5:
-          mltuParam.setScaleQ1(data);
+          mpFeeParam->setScaleQ1(data);
           break;
         case 6:
-          mltuParam.setLengthCorrectionEnable(data);
+          mpFeeParam->setLengthCorrectionEnable(data);
           break;
         case 7:
-          mltuParam.setTiltCorrectionEnable(data);
+          mpFeeParam->setTiltCorrectionEnable(data);
           break;
       }
       break;
@@ -436,7 +438,7 @@ void TrapConfigHandler::configureNTimebins(int det)
     return;
   }
 
-  addValues(det, mgkScsnCmdWrite, 127, TrapSimulator::mgkDmemAddrNdrift, mltuParam.getNtimebins());
+  addValues(det, mgkScsnCmdWrite, 127, TrapSimulator::mgkDmemAddrNdrift, mpFeeParam->getNtimebins());
 }
 
 void TrapConfigHandler::configureDyCorr(int det)
@@ -457,7 +459,7 @@ void TrapConfigHandler::configureDyCorr(int det)
   for (int r = 0; r < nRobs; r++) {
     for (int m = 0; m < 16; m++) {
       int dest = 1 << 10 | r << 7 | m;
-      int dyCorrInt = mltuParam.getDyCorrection(det, r, m);
+      int dyCorrInt = mpFeeParam->getDyCorrection(det, r, m);
       addValues(det, mgkScsnCmdWrite, dest, TrapSimulator::mgkDmemAddrDeflCorr, dyCorrInt);
     }
   }
@@ -491,7 +493,7 @@ void TrapConfigHandler::configureDRange(int det)
         // 	<< ", min int: " << dyMinInt << ", max int: " << dyMaxInt << endl;
         int dest = 1 << 10 | r << 7 | m;
         int lutAddr = TrapSimulator::mgkDmemAddrDeflCutStart + 2 * c;
-        mltuParam.getDyRange(det, r, m, c, dyMinInt, dyMaxInt);
+        mpFeeParam->getDyRange(det, r, m, c, dyMinInt, dyMaxInt);
         addValues(det, mgkScsnCmdWrite, dest, lutAddr + 0, dyMinInt);
         addValues(det, mgkScsnCmdWrite, dest, lutAddr + 1, dyMaxInt);
       }
@@ -515,9 +517,9 @@ void TrapConfigHandler::printGeoTest()
         for (int m = 0; m < 16; m++) {
           for (int c = 7; c < 8; c++) {
             cout << stack << ";" << layer << ";" << r << ";" << m
-                 << ";" << mltuParam.getX(det, r, m)
-                 << ";" << mltuParam.getLocalY(det, r, m, c)
-                 << ";" << mltuParam.getLocalZ(det, r, m) << endl;
+                 << ";" << mpFeeParam->getX(det, r, m)
+                 << ";" << mpFeeParam->getLocalY(det, r, m, c)
+                 << ";" << mpFeeParam->getLocalZ(det, r, m) << endl;
           }
         }
       }
@@ -560,9 +562,9 @@ void TrapConfigHandler::configurePIDcorr(int det)
       int dest = 1 << 10 | readoutboard << 7 | mcm;
       //TODO impelment a method for determining if gaintables are valid, used to be if pointer was valid.
       if (mGtbl.getMCMGain(det, row, col) != 0.0) //TODO check this logic there might be problems here.
-        mltuParam.getCorrectionFactors(det, readoutboard, mcm, 9, cor0, cor1, mGtbl.getMCMGain(det, row, col));
+        mpFeeParam->getCorrectionFactors(det, readoutboard, mcm, 9, cor0, cor1, mGtbl.getMCMGain(det, row, col));
       else
-        mltuParam.getCorrectionFactors(det, readoutboard, mcm, 9, cor0, cor1);
+        mpFeeParam->getCorrectionFactors(det, readoutboard, mcm, 9, cor0, cor1);
       addValues(det, mgkScsnCmdWrite, dest, addrLUTcor0, cor0);
       addValues(det, mgkScsnCmdWrite, dest, addrLUTcor1, cor1);
     }

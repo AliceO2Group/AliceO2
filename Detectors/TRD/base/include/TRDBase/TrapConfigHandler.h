@@ -18,7 +18,6 @@
 ////////////////////////////////////////////////////////////////
 
 #include <string>
-#include "TRDBase/LTUParam.h"
 #include "TRDBase/CalOnlineGainTables.h"
 
 namespace o2
@@ -40,7 +39,7 @@ class TrapConfigHandler
   int loadConfig(std::string filename);        // load a TRAP configuration from a file
   int setGaintable(CalOnlineGainTables& gtbl); // Set a gain table to correct Q0 and Q1 for PID
 
-  void processLTUparam(int dest, int addr, unsigned int data); // Process the LTU parameters
+//  void processLTUparam(int dest, int addr, unsigned int data); // Process the LTU parameters
   void printGeoTest();                                         // Prints some information about the geometry. Only for debugging
 
   // unsigned int peek(int rob, int mcm, int addr);   // not implemented yet
@@ -83,10 +82,9 @@ class TrapConfigHandler
   static const int mgkMaxLinkPairs = 4;  // number of linkpairs used during configuration
   static const int mgkMcmlistSize = 256; // list of MCMs to which a value has to be written
 
-  LTUParam mltuParam; // ltuParam class for the actual calculation of the parameters
 
   unsigned int mRestrictiveMask; // mask to restrict subsequent commands to specified chambers
-
+  std::shared_ptr<FeeParam> mpFeeParam;
   TrapConfig* mTrapConfig;   // pointer to TRAP config in use
   CalOnlineGainTables mGtbl; // gain table
 };
