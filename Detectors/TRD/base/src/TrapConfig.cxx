@@ -14,6 +14,7 @@
 //                                                                        //
 //  Author: J. Klein (Jochen.Klein@cern.ch)                               //
 //          Lots of mods by S. Murray (murrays@cern.ch)                   //
+//                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
 #include "TRDBase/TRDGeometry.h"
@@ -863,10 +864,17 @@ int TrapConfig::TrapValue::getIdx(int det, int rob, int mcm)
       idx = -1;
       LOG(error) << "Invalid allocation mode";
   }
+<<<<<<< HEAD
   if (idx < mData.size()) {
     return idx;
   } else {
     LOG(error) << "Index too large " << dec << idx << " (size " << mData.size() << ") for " << this->getName();
+=======
+  if (idx < mSize) {
+    return idx;
+  } else {
+    LOG(error) << "Index too large " << dec << idx << " (size " << mSize << ") for " << this->getName();
+>>>>>>> readded some files back, rather important ones
     return -1;
   }
 }
@@ -875,7 +883,11 @@ bool TrapConfig::TrapValue::setData(unsigned int value)
 {
   // set the given value everywhere
 
+<<<<<<< HEAD
   for (int i = 0; i < mData.size(); ++i) {
+=======
+  for (int i = 0; i < mSize; ++i) {
+>>>>>>> readded some files back, rather important ones
     mData[i] = value;
     mValid[i] = false;
   }
@@ -973,6 +985,7 @@ void TrapConfig::TrapRegister::init(const char* name, int addr, int nBits, int r
     mNbits = nBits;
     mResetValue = resetValue;
   } else
+<<<<<<< HEAD
     LOG(fatal) << "Re-initialising an existing TRAP register ";
 }
 
@@ -985,4 +998,7 @@ void TrapConfig::TrapRegister::initfromrun2(const char* name, int addr, int nBit
   mNbits = nBits;
   mResetValue = resetValue;
   //LOG(fatal) << "Re-initialising an existing TRAP register " << name << ":" << mName << " : " << addr << ":" << mAddr << " : " << nBits << ":" << mNbits <<  " : " << resetValue << ":" << mResetValue;
+=======
+    LOG(fatal) << "Re-initialising an existing TRAP register";
+>>>>>>> readded some files back, rather important ones
 }
