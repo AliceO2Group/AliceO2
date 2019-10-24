@@ -29,6 +29,8 @@ o2_add_library(TRDBase
                        src/ChamberNoise.cxx
                        src/CalOnlineGainTables.cxx
                        src/TrapConfig.cxx
+                       src/TrapConfigHandler.cxx
+                       src/TrackletMCM.cxx
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                      O2::DetectorsCommonDataFormats
                                      O2::Field
@@ -36,7 +38,6 @@ o2_add_library(TRDBase
                                      ROOT::Physics
                                      O2::SimulationDataFormat
                                      O2::CCDB)
-
 o2_target_root_dictionary(TRDBase
                           HEADERS include/TRDBase/TRDPadPlane.h
                                   include/TRDBase/TRDGeometryBase.h
@@ -62,6 +63,10 @@ o2_target_root_dictionary(TRDBase
                                   include/TRDBase/ChamberNoise.h
                                   include/TRDBase/CalOnlineGainTables.h
                                   include/TRDBase/TrapConfig.h)
+                                  include/TRDBase/TrapConfig.h
+                                  include/TRDBase/TrapConfigHandler.h
+                                  include/TRDBase/TrackletMCM.h)
+>>>>>>> collapse commits
 
 o2_add_test(DiffusionCoefficient
             SOURCES test/testTRDDiffusionCoefficient.cxx
