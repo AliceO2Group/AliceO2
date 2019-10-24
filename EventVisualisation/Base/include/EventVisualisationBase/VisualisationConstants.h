@@ -35,6 +35,7 @@ enum EVisualisationGroup {
   SPD,
   SSD,
   TOF,
+  ITS,
   TPC,
   TRD,
   RND,
@@ -53,9 +54,47 @@ const std::string gVisualisationGroupName[NvisualisationGroups] = {
   "SPD",
   "SSD",
   "TOF",
+  "ITS",
   "TPC",
   "TRD",
-  "RND"};
+  "RND",
+  "VSD"};
+
+const bool R2Visualisation[NvisualisationGroups] = {
+  true,  //"ACO",
+  true,  //"EMC",
+  true,  //"HMP",
+  true,  //"MCH",
+  true,  //"PHS",
+  true,  //"RPH",
+  true,  //"SDD",
+  true,  //"SPD",
+  true,  //"SSD",
+  true,  //"TOF",
+  false, //ITS
+  true,  //"TPC",
+  true,  //"TRD",
+  true,  //"RND",
+  true   //"VSD"
+};
+
+const bool R3Visualisation[NvisualisationGroups] = {
+  true,  //"ACO",
+  true,  //"EMC",
+  true,  //"HMP",
+  false, //"MCH",
+  true,  //"PHS",
+  false, //"RPH",
+  false, //"SDD",
+  false, //"SPD",
+  false, //"SSD",
+  false, //"TOF",
+  true,  // ITS
+  true,  //"TPC",
+  false, //"TRD",
+  false, //"RND",
+  false  //"VSD"
+};
 
 enum EVisualisationDataType {
   Raw,       ///< Raw data

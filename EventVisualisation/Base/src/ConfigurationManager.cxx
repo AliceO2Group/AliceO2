@@ -14,10 +14,9 @@
 ///
 
 #include "EventVisualisationBase/ConfigurationManager.h"
-
+#include "FairLogger.h"
 #include <TSystem.h>
 
-#include <iostream>
 
 using namespace std;
 
@@ -34,18 +33,23 @@ ConfigurationManager& ConfigurationManager::getInstance()
 
 void ConfigurationManager::getConfig(TEnv& settings) const
 {
-  // TODO:
-  // we need a way to point to the O2 installation directory
-  //
-  if (settings.ReadFile(Form("%s/.o2eve_config", gSystem->Getenv("HOME")), kEnvUser) < 0) {
-    if (settings.ReadFile(Form("%s/o2eve_config", gSystem->Getenv("HOME")), kEnvUser) < 0) {
-      cout << "WARNING -- could not find eve_config in home directory! Trying default one in O2/EventVisualisation/Base/" << endl;
-      if (settings.ReadFile(Form("%s/EventVisualisation/o2eve_config", gSystem->Getenv("ALICEO2_INSTALL_PATH")), kEnvUser) < 0) {
-        cout << "ERROR -- could not find eve_config file!." << endl;
-        exit(0);
+  TString fileName;
+  if (settings.ReadFile(fileName = ".o2eve_config", kEnvUser) < 0) {
+    LOG(WARN) << "could not find .o2eve_config in working directory! Trying .o2eve_config in home directory";
+    if (settings.ReadFile(fileName = Form("%s/.o2eve_config", gSystem->Getenv("HOME")), kEnvUser) < 0) {
+      LOG(WARN) << "could not find .o2eve_config in home directory! Trying o2eve_config in home directory";
+      if (settings.ReadFile(fileName = Form("%s/o2eve_config", gSystem->Getenv("HOME")), kEnvUser) < 0) {
+        LOG(WARN) << "could not find o2eve_config in home directory! Trying o2eve_config in O2/EventVisualisation";
+        if (settings.ReadFile(fileName = Form("%s/EventVisualisation/o2eve_config",
+                                              gSystem->Getenv("ALICEO2_INSTALL_PATH")),
+                              kEnvUser) < 0) {
+          LOG(FATAL) << "could not find .o2eve_config or o2eve_config file!.";
+          exit(0);
+        }
       }
     }
   }
+  LOG(INFO) << Form("using %s config settings", fileName.Data());
 }
 
 } // namespace event_visualisation

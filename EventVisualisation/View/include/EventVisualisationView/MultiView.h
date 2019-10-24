@@ -48,7 +48,7 @@ class MultiView : public EventRegistration
   enum EScenes {
     Scene3dGeom,    ///< 3D scene of geometry
     Scene3dEvent,   ///< 3D scene of event
-    SceneRPhiGeom,  ///< R-Phi scene of geometry
+    SceneRphiGeom,  ///< R-Phi scene of geometry
     SceneZrhoGeom,  ///< Z-Pho scene of geometry
     SceneRphiEvent, ///< R-Phi scene of event
     SceneZrhoEvent, ///< Z-Rho scene of event
@@ -95,7 +95,7 @@ class MultiView : public EventRegistration
   /// Default constructor
   MultiView();
   /// Default destructor
-  ~MultiView() = default;
+  ~MultiView();
 
   static MultiView* sInstance; ///< Single instance of the multiview
 
@@ -115,7 +115,7 @@ class MultiView : public EventRegistration
   ///
   /// This is used just to know what to remove
   /// when destroying of all geometries is requested
-  std::vector<TEveGeoShape*> mGeomVector;
+  //std::vector<TEveGeoShape*> mGeomVector;
 };
 
 } // namespace event_visualisation
