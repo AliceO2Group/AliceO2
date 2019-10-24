@@ -98,10 +98,10 @@ int GPUChainITS::RunITSTrackFit(std::vector<Road>& roads, std::array<const Clust
     std::copy(tf[i].begin(), tf[i].end(), Fitter.trackingFrame()[i]);
   }
 
-  WriteToConstantMemory((char*)&processors()->itsFitter - (char*)processors(), &FitterShadow, sizeof(FitterShadow), 0);
-  TransferMemoryResourcesToGPU(&Fitter, 0);
-  runKernel<GPUITSFitterKernel>({BlockCount(), ThreadCount(), 0}, nullptr, krnlRunRangeNone, krnlEventNone);
-  TransferMemoryResourcesToHost(&Fitter, 0);
+  WriteToConstantMemory(RecoStep::ITSTracking, (char*)&processors()->itsFitter - (char*)processors(), &FitterShadow, sizeof(FitterShadow), 0);
+  TransferMemoryResourcesToGPU(RecoStep::ITSTracking, &Fitter, 0);
+  runKernel<GPUITSFitterKernel>({BlockCount(), ThreadCount(), 0}, krnlRunRangeNone, krnlEventNone);
+  TransferMemoryResourcesToHost(RecoStep::ITSTracking, &Fitter, 0);
 
   SynchronizeGPU();
 
