@@ -157,7 +157,8 @@ struct Stack {
         here += from->size();
         from = from->next();
       };
-      if (last) last->flagsNextHeader = more;
+      if (last)
+        last->flagsNextHeader = more;
       return here;
     } else {
       static_assert(true, "Stack can only be constructed from other stacks and BaseHeader derived classes");
