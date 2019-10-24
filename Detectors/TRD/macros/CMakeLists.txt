@@ -8,6 +8,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(simulation)
-add_subdirectory(macros)
+o2_add_test_root_macro(CheckDigits.C
+                       PUBLIC_LINK_LIBRARIES O2::TRDBase
+                       LABELS trd)
