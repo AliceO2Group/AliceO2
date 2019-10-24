@@ -14,6 +14,7 @@
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DataRelayer.h"
 #include "Framework/DataProcessingHeader.h"
+#include "../src/DataRelayerHelpers.h"
 #include <Monitoring/Monitoring.h>
 #include <fairmq/FairMQTransportFactory.h>
 #include <cstring>
@@ -37,7 +38,7 @@ static void BM_RelayMessageCreation(benchmark::State& state)
   TimesliceIndex index;
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -78,7 +79,7 @@ static void BM_RelaySingleSlot(benchmark::State& state)
   TimesliceIndex index;
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -126,7 +127,7 @@ static void BM_RelayMultipleSlots(benchmark::State& state)
   TimesliceIndex index;
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -178,7 +179,7 @@ static void BM_RelayMultipleRoutes(benchmark::State& state)
   TimesliceIndex index;
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
