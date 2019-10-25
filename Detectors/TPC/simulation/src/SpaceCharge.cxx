@@ -582,6 +582,7 @@ void SpaceCharge::correctElectron(GlobalPosition3D& point)
   float phi = point.phi();
   o2::utils::BringTo02PiGen(phi);
   int roc = o2::utils::Angle2Sector(phi);
+  /// FIXME: which side when z==0?
   if (x[2] < 0) {
     roc += 18;
   }
@@ -599,6 +600,7 @@ void SpaceCharge::distortElectron(GlobalPosition3D& point) const
   float phi = point.phi();
   o2::utils::BringTo02PiGen(phi);
   int roc = o2::utils::Angle2Sector(phi);
+  /// FIXME: which side when z==0?
   if (x[2] < 0) {
     roc += 18;
   }
@@ -633,6 +635,12 @@ void SpaceCharge::setUseIrregularLUTs(int useIrrLUTs)
 void SpaceCharge::setUseFastDistIntegration(int useFastInt)
 {
   mLookUpTableCalculator.SetIntegrationStrategy(useFastInt);
+}
+
+void SpaceCharge::setDistortionLookupTables(TMatrixD** matrixIntDistDrA, TMatrixD** matrixIntDistDrphiA, TMatrixD** matrixIntDistDzA, TMatrixD** matrixIntDistDrC, TMatrixD** matrixIntDistDrphiC, TMatrixD** matrixIntDistDzC)
+{
+  mLookUpTableCalculator.SetDistortionLookupTables(matrixIntDistDrA, matrixIntDistDrphiA, matrixIntDistDzA, matrixIntDistDrC, matrixIntDistDrphiC, matrixIntDistDzC);
+  mInitLookUpTables = true;
 }
 
 float SpaceCharge::ions2Charge(int rBin, int nIons)

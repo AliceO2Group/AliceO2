@@ -50,4 +50,11 @@ if(BUILD_TESTING)
                          PUBLIC_LINK_LIBRARIES O2::TPCBase
                                                O2::SimulationDataFormat
                          LABELS tpc)
+  o2_add_test_root_macro(macro/createResidualDistortionObject.C
+          PUBLIC_LINK_LIBRARIES O2::TPCSpaceChargeBase
+                                O2::CommonUtils
+                                O2::CommonConstants
+                                O2::TPCSimulation
+          LABELS tpc)
+
 endif()

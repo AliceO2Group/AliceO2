@@ -170,6 +170,8 @@ class SpaceCharge
   void setUseIrregularLUTs(int useIrrLUTs);
   void setUseFastDistIntegration(int useFastInt);
 
+  void setDistortionLookupTables(TMatrixD** matrixIntDistDrA, TMatrixD** matrixIntDistDrphiA, TMatrixD** matrixIntDistDzA, TMatrixD** matrixIntDistDrC, TMatrixD** matrixIntDistDrphiC, TMatrixD** matrixIntDistDzC);
+
  private:
   /// Allocate memory for data members
   void allocateMemory();

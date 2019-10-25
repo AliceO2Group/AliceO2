@@ -5122,3 +5122,24 @@ void AliTPCSpaceCharge3DCalc::SetInterpolationOrder(Int_t order)
 
   fLookupIntCorrIrregularC->SetOrder(fInterpolationOrder);
 }
+
+void AliTPCSpaceCharge3DCalc::SetDistortionLookupTables(TMatrixD** matrixIntDistDrA, TMatrixD** matrixIntDistDrphiA, TMatrixD** matrixIntDistDzA, TMatrixD** matrixIntDistDrC, TMatrixD** matrixIntDistDrphiC, TMatrixD** matrixIntDistDzC)
+{
+  fMatrixIntDistDrEzA = matrixIntDistDrA;
+  fMatrixIntDistDPhiREzA = matrixIntDistDrphiA;
+  fMatrixIntDistDzA = matrixIntDistDzA;
+  fLookupIntDistA->SetLookUpR(fMatrixIntDistDrEzA);
+  fLookupIntDistA->SetLookUpPhi(fMatrixIntDistDPhiREzA);
+  fLookupIntDistA->SetLookUpZ(fMatrixIntDistDzA);
+  fLookupIntDistA->CopyFromMatricesToInterpolator();
+
+  fMatrixIntDistDrEzC = matrixIntDistDrC;
+  fMatrixIntDistDPhiREzC = matrixIntDistDrphiC;
+  fMatrixIntDistDzC = matrixIntDistDzC;
+  fLookupIntDistC->SetLookUpR(fMatrixIntDistDrEzC);
+  fLookupIntDistC->SetLookUpPhi(fMatrixIntDistDPhiREzC);
+  fLookupIntDistC->SetLookUpZ(fMatrixIntDistDzC);
+  fLookupIntDistC->CopyFromMatricesToInterpolator();
+
+  fInitLookUp = kTRUE;
+}

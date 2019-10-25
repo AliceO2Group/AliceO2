@@ -241,14 +241,16 @@ class AliTPCSpaceCharge3DCalc
   Profile GetProfile() { return myProfile; }
   void SetIntegrationStrategy(Int_t integrationStrategy) { fIntegrationStrategy = integrationStrategy; }
 
+  void SetDistortionLookupTables(TMatrixD** matrixIntDistDrA, TMatrixD** matrixIntDistDrphiA, TMatrixD** matrixIntDistDzA, TMatrixD** matrixIntDistDrC, TMatrixD** matrixIntDistDrphiC, TMatrixD** matrixIntDistDzC);
+
  private:
-  Profile myProfile;                 //!<!
-  Int_t fNRRows = 129;               ///< the maximum on row-slices so far ~ 2cm slicing
-  Int_t fNPhiSlices = 180;           ///< the maximum of phi-slices so far = (8 per sector)
-  Int_t fNZColumns = 129;            ///< the maximum on column-slices so  ~ 2cm slicing
-  Float_t fC0 = 0.f;                 ///< coefficient C0 (compare Jim Thomas's notes for definitions)
-  Float_t fC1 = 0.f;                 ///< coefficient C1 (compare Jim Thomas's notes for definitions)
-  Float_t fCorrectionFactor = 1.f;   ///< Space Charge Correction factor in comparison to initialized
+  Profile myProfile;               //!<!
+  Int_t fNRRows = 129;             ///< the maximum on row-slices so far ~ 2cm slicing
+  Int_t fNPhiSlices = 180;         ///< the maximum of phi-slices so far = (8 per sector)
+  Int_t fNZColumns = 129;          ///< the maximum on column-slices so  ~ 2cm slicing
+  Float_t fC0 = 0.f;               ///< coefficient C0 (compare Jim Thomas's notes for definitions)
+  Float_t fC1 = 0.f;               ///< coefficient C1 (compare Jim Thomas's notes for definitions)
+  Float_t fCorrectionFactor = 1.f; ///< Space Charge Correction factor in comparison to initialized
 
   Bool_t fInitLookUp = kFALSE; ///< flag to check if the Look Up table was created
   Double_t* fListR;            //[fNRRows] list of r-coordinate of grids
