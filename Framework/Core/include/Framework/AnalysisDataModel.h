@@ -166,14 +166,8 @@ DECLARE_SOA_COLUMN(OrbitNum, orbitnum, int, "orbitnum");          // LHC orbit n
 DECLARE_SOA_COLUMN(TriggerMask, triggermask, int ,"triggermask");  // Trigger mask, AliESDHeader.h, ULong64_t
 } // namespace collision
 
-//DECLARE_SOA_TABLE(Collisions, "RN2", "COLLISION",
- //                 collision::TimeframeID, collision::NumTracks, /*collision::NumCalo, collision::NumMuons,*/ collision::ID, collision::PositionX, collision::PositionY, collision::PositionZ, collision::Chi2, collision::BC, collision::OrbitNumber, collision::PeriodNumber, collision::V0mult, collision::T0multA, collision::T0multC, collision::FITmult, collision::TriggerMask);
-
-
 DECLARE_SOA_TABLE(Collisions, "RN2", "COLLISION",
                   collision::TimeframeID, collision::NumTracks, collision::VtxID, collision::PosX, collision::PosY, collision::PosZ, collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYX, collision::CovYY, collision::CovYZ, collision::CovZX, collision::CovZY, collision::CovZZ, collision::Chi2, collision::BCNum, collision::OrbitNum, collision::TriggerMask);
-
-
 
 using Collision = Collisions::iterator;
 
