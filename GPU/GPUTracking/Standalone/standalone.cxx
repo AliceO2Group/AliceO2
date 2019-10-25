@@ -543,7 +543,7 @@ int main(int argc, char** argv)
           int tmpRetVal = rec->RunChains();
 
           if (tmpRetVal == 0 || tmpRetVal == 2) {
-            int nTracks = 0, nClusters = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0;
+            int nTracks = 0, nClusters = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0, nAdjacentClusters = 0;
             for (int k = 0; k < chainTracking->GetTPCMerger().NOutputTracks(); k++) {
               if (chainTracking->GetTPCMerger().OutputTracks()[k].OK()) {
                 nTracks++;
@@ -551,8 +551,15 @@ int main(int argc, char** argv)
                 nAttachedClustersFitted += chainTracking->GetTPCMerger().OutputTracks()[k].NClustersFitted();
               }
             }
+            for (int k = 0; k < chainTracking->GetTPCMerger().NMaxClusters(); k++) {
+              int attach = chainTracking->GetTPCMerger().ClusterAttachment()[k];
+              if (attach & GPUTPCGMMerger::attachFlagMask) {
+                nAdjacentClusters++;
+              }
+            }
+
             nClusters = chainTracking->GetTPCMerger().NClusters();
-            printf("Output Tracks: %d (%d/%d attached clusters)\n", nTracks, nAttachedClusters, nAttachedClustersFitted);
+            printf("Output Tracks: %d (%d / %d / %d / %d clusters (fitted / attached / adjacent / total))\n", nTracks, nAttachedClustersFitted, nAttachedClusters, nAdjacentClusters, chainTracking->GetTPCMerger().NMaxClusters());
             if (j1 == 0) {
               nTracksTotal += nTracks;
               nClustersTotal += nClusters;
