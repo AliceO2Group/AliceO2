@@ -93,6 +93,9 @@ void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
     }
   }
 #endif
+#ifdef GPUCA_KERNEL_DEBUGGER_OUTPUT
+  mRec->RegisterGPUProcessor(&processors()->debugOutput, true);
+#endif
   mRec->AddGPUEvents(mEvents);
 }
 
@@ -121,6 +124,9 @@ void GPUChainTracking::RegisterGPUProcessors()
   for (unsigned int i = 0; i < NSLICES; i++) {
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcClusterer[i], &processors()->tpcClusterer[i]);
   }
+#endif
+#ifdef GPUCA_KERNEL_DEBUGGER_OUTPUT
+  mRec->RegisterGPUDeviceProcessor(&processorsShadow()->debugOutput, &processors()->debugOutput);
 #endif
 }
 
@@ -1616,6 +1622,8 @@ int GPUChainTracking::RunChain()
     return (1);
   }
 
+  PrepareDebugOutput();
+
   if (GetRecoSteps().isSet(RecoStep::TPCClusterFinding) && mIOPtrs.tpcPackedDigits) {
     timerClusterer.Start();
     if (param().rec.fwdTPCDigitsAsClusters) {
@@ -1752,6 +1760,8 @@ int GPUChainTracking::RunChain()
 
     mEventDisplay->WaitForNextEvent();
   }
+
+  PrintDebugOutput();
 
   //PrintMemoryRelations();
   return 0;
