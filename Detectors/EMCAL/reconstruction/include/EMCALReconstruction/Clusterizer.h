@@ -55,8 +55,10 @@ class Clusterizer
 
  public:
   Clusterizer(double timeCut, double timeMin, double timeMax, double gradientCut, bool doEnergyGradientCut, double thresholdSeedE, double thresholdCellE);
+  Clusterizer();
   ~Clusterizer() = default;
 
+  void initialize(double timeCut, double timeMin, double timeMax, double gradientCut, bool doEnergyGradientCut, double thresholdSeedE, double thresholdCellE);
   void findClusters(const std::vector<Digit>& digitArray);
   const std::vector<Cluster>* getFoundClusters() const { return &mFoundClusters; }
   const std::vector<Short_t>* getFoundClustersDigitIndices() const { return &mDigitIndices; }

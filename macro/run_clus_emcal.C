@@ -1,4 +1,4 @@
-void run_clus_emcal(std::string outputfile = "o2clus_emcal.root", std::string inputfile = "/opt/Data/EMCAL/job0/o2sim.root")
+void run_clus_emcal(std::string outputfile = "EMCALClusters.root", std::string inputfile)
 {
   // Initialize logger
   FairLogger* logger = FairLogger::GetLogger();

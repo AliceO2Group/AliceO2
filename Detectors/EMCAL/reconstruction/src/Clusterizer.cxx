@@ -24,6 +24,28 @@ Clusterizer::Clusterizer(double timeCut, double timeMin, double timeMax, double 
 }
 
 ///
+/// Default constructor
+//____________________________________________________________________________
+Clusterizer::Clusterizer() : mSeedList(), mDigitMap(), mCellMask(), mTimeCut(0), mTimeMin(0), mTimeMax(0), mGradientCut(0), mDoEnergyGradientCut(false), mThresholdSeedEnergy(0), mThresholdCellEnergy(0)
+{
+}
+
+
+///
+/// Initialize class member vars if not done in constructor
+//____________________________________________________________________________
+void Clusterizer::initialize(double timeCut, double timeMin, double timeMax, double gradientCut, bool doEnergyGradientCut, double thresholdSeedE, double thresholdCellE)
+{
+  mTimeCut = timeCut;
+  mTimeMin = timeMin;
+  mTimeMax = timeMax;
+  mGradientCut = gradientCut;
+  mDoEnergyGradientCut = doEnergyGradientCut;
+  mThresholdSeedEnergy = thresholdSeedE;
+  mThresholdCellEnergy = thresholdCellE;
+}
+
+///
 /// Recursively search for neighbours (EMCAL)
 //____________________________________________________________________________
 void Clusterizer::getClusterFromNeighbours(std::vector<Digit*>& clusterDigits, int row, int column)
