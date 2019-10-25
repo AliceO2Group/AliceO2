@@ -138,3 +138,25 @@ void GPUChainTracking::PrintMemoryRelations()
   GPUInfo("MEMREL Tracks NCl %d NTrk %d", processors()->tpcMerger.NMaxClusters(), processors()->tpcMerger.NOutputTracks());
   GPUInfo("MEMREL TrackHitss NCl %d NTrkH %d", processors()->tpcMerger.NMaxClusters(), processors()->tpcMerger.NOutputTrackClusters());
 }
+
+void GPUChainTracking::PrepareDebugOutput()
+{
+#ifdef GPUCA_KERNEL_DEBUGGER_OUTPUT
+  const auto& threadContext = GetThreadContext();
+  if (mRec->IsGPU()) {
+    SetupGPUProcessor(&processors()->debugOutput, false);
+    WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->debugOutput - (char*)processors(), &processorsShadow()->debugOutput, sizeof(processors()->debugOutput), -1);
+    memset(processors()->debugOutput.memory(), 0, processors()->debugOutput.memorySize() * sizeof(processors()->debugOutput.memory()[0]));
+  }
+  runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), 0, RecoStep::TPCSliceTracking}, krnlRunRangeNone, {}, (mRec->IsGPU() ? processorsShadow() : processors())->debugOutput.memory(), processorsShadow()->debugOutput.memorySize() * sizeof(processors()->debugOutput.memory()[0]));
+#endif
+}
+
+void GPUChainTracking::PrintDebugOutput()
+{
+#ifdef GPUCA_KERNEL_DEBUGGER_OUTPUT
+  const auto& threadContext = GetThreadContext();
+  TransferMemoryResourcesToHost(RecoStep::NoRecoStep, &processors()->debugOutput, -1);
+  processors()->debugOutput.Print();
+#endif
+}

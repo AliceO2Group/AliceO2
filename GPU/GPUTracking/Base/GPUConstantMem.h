@@ -48,6 +48,10 @@ class GPUTRDTracker
 #include "GPUO2FakeClasses.h"
 #endif
 
+#ifdef GPUCA_KERNEL_DEBUGGER_OUTPUT
+#include "GPUKernelDebugOutput.h"
+#endif
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -66,6 +70,9 @@ struct GPUConstantMem {
   GPUITSFitter itsFitter;
   GPUTrackingInOutPointers ioPtrs;
   GPUCalibObjectsConst calibObjects;
+#ifdef GPUCA_KERNEL_DEBUGGER_OUTPUT
+  GPUKernelDebugOutput debugOutput;
+#endif
 };
 
 // Must be placed here, to avoid circular header dependency

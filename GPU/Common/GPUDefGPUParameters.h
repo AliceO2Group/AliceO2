@@ -89,8 +89,9 @@
 #define GPUCA_HOST_MEMORY_SIZE       ((size_t) 6 * 1024 * 1024 * 1024) // Size of memory allocated on Host
 #define GPUCA_GPU_STACK_SIZE         ((size_t)               8 * 1024) // Stack size per GPU thread
 
-// Make sure options do not interfere
+// #define GPUCA_KERNEL_DEBUGGER_OUTPUT
 
+// Make sure options do not interfere
 #ifndef GPUCA_GPUCODE
   // No texture fetch for CPU Tracker
   #ifdef GPUCA_TEXTURE_FETCH_CONSTRUCTOR

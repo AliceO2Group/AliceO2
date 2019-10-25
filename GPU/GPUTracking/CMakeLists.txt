@@ -69,6 +69,7 @@ set(SRCS_NO_CINT
     Base/GPUGeneralKernels.cxx
     Base/GPUReconstructionDeviceBase.cxx
     Base/GPUReconstructionConvert.cxx
+    Base/GPUKernelDebugOutput.cxx
     Global/GPUChain.cxx
     Global/GPUChainTracking.cxx
     Standalone/utils/timer.cxx)
