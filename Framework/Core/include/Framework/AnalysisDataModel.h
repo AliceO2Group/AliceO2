@@ -98,12 +98,28 @@ DECLARE_SOA_COLUMN(CollisionId, collisionId, int32_t, "fID4Collisions");
 DECLARE_SOA_COLUMN(CellNumber, cellNumber, int64_t, "fCellNumber");
 DECLARE_SOA_COLUMN(Amplitude, amplitude, float, "fAmplitude");
 DECLARE_SOA_COLUMN(Time, time, float, "fTime");
-DECLARE_SOA_COLUMN(CaloType, caloType, float, "fType");
+DECLARE_SOA_COLUMN(CellType, cellType, int8_t, "fCellType");
+DECLARE_SOA_COLUMN(CaloType, caloType, int8_t, "fType");
 } // namespace calo
 
 DECLARE_SOA_TABLE(Calos, "RN2", "CALO",
-                  calo::CollisionId, calo::CellNumber, calo::Amplitude, calo::Time, calo::CaloType);
+                  calo::CollisionId, calo::CellNumber, calo::Amplitude, calo::Time, calo::CellType, calo::CaloType);
 using Calo = Calos::iterator;
+
+namespace calotrigger
+{
+DECLARE_SOA_COLUMN(CollisionId, collisionId, int32_t, "fID4Collision");
+DECLARE_SOA_COLUMN(FastorAbsId, fastorAbsId, int32_t, "fFastOrAbsID");
+DECLARE_SOA_COLUMN(L0Amplitude, l0Amplitude, float, "fL0Amplitude");
+DECLARE_SOA_COLUMN(L1Timesum, l1Timesum, int32_t, "fL1TimeSum");
+DECLARE_SOA_COLUMN(NL0Times, nl0Times, int8_t, "fNL0Times");
+DECLARE_SOA_COLUMN(Triggerbits, triggerbits, int32_t, "fTriggerBits");
+DECLARE_SOA_COLUMN(CaloType, caloType, int8_t, "fType");
+} // namespace calotrigger
+
+DECLARE_SOA_TABLE(CaloTriggers, "RN2", "CALOTRIGGER",
+                  calotrigger::CollisionId, calotrigger::FastorAbsId, calotrigger::L0Amplitude, calotrigger::L1Timesum, calotrigger::NL0Times, calotrigger::Triggerbits, calotrigger::CaloType);
+using CaloTrigger = CaloTriggers::iterator;
 
 namespace muon
 {
