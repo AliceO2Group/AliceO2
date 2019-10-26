@@ -213,9 +213,14 @@ int main(int argc, char* argv[])
           }
           if (s == "hitmerger") {
             auto channels = device["channels"].GetArray();
-            auto sockets = (channels[1])["sockets"].GetArray();
-            auto address = (sockets[0])["address"].GetString();
-            mergeraddress = address;
+            for (auto& channel : channels) {
+              s = channel["name"].GetString();
+              if (s == "simdata") {
+                auto sockets = channel["sockets"].GetArray();
+                auto address = (sockets[0])["address"].GetString();
+                mergeraddress = address;
+              }
+            }
           }
         }
       }
