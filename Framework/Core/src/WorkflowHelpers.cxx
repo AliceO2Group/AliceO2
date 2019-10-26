@@ -204,6 +204,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     {},
     readers::AODReaderHelpers::run2ESDConverterCallback(),
     {ConfigParamSpec{"esd-file", VariantType::String, "AliESDs.root", {"Input ESD file"}},
+     ConfigParamSpec{"events", VariantType::Int, 0, {"Number of events to process (0 = all)"}},
      ConfigParamSpec{"start-value-enumeration", VariantType::Int, 0, {"initial value for the enumeration"}},
      ConfigParamSpec{"end-value-enumeration", VariantType::Int, -1, {"final value for the enumeration"}},
      ConfigParamSpec{"step-value-enumeration", VariantType::Int, 1, {"step between one value and the other"}}}};
