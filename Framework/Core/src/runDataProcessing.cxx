@@ -936,7 +936,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                             driverControl.defaultStopped,
                                             dataProcessorInfos,
                                             deviceSpecs,
-                                            deviceExecutions, controls);
+                                            deviceExecutions, controls,
+                                            driverInfo.uniqueWorkflowId);
 
         std::ostringstream forwardedStdin;
         WorkflowSerializationHelpers::dump(forwardedStdin, workflow, dataProcessorInfos);

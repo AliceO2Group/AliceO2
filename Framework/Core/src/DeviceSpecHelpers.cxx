@@ -743,7 +743,8 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
                                          std::vector<DataProcessorInfo> const& processorInfos,
                                          std::vector<DeviceSpec> const& deviceSpecs,
                                          std::vector<DeviceExecution>& deviceExecutions,
-                                         std::vector<DeviceControl>& deviceControls)
+                                         std::vector<DeviceControl>& deviceControls,
+                                         std::string const& uniqueWorkflowId)
 {
   assert(deviceSpecs.size() == deviceExecutions.size());
   assert(deviceControls.size() == deviceExecutions.size());
@@ -795,6 +796,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     std::vector<std::string> tmpArgs = {argv[0],
                                         "--id", spec.id.c_str(),
                                         "--control", "static",
+                                        "--session", "dpl_" + uniqueWorkflowId,
                                         "--log-color", "false",
                                         "--color", "false"};
     if (defaultStopped) {
@@ -842,6 +844,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         realOdesc.add_options()("child-driver", bpo::value<std::string>());
         realOdesc.add_options()("rate", bpo::value<std::string>());
         realOdesc.add_options()("shm-segment-size", bpo::value<std::string>());
+        realOdesc.add_options()("session", bpo::value<std::string>());
         filterArgsFct(expansions.we_wordc, expansions.we_wordv, realOdesc);
         wordfree(&expansions);
         return;
@@ -943,12 +946,13 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("plugin-search-path,S", bpo::value<std::string>(), "FairMQ plugins search path")                           //
     ("control-port", bpo::value<std::string>(), "Utility port to be used by O2 Control")                        //
     ("rate", bpo::value<std::string>(), "rate for a data source device (Hz)")                                   //
+    ("transport", bpo::value<std::string>(), "FairMQ transport override")                                       //
     ("shm-segment-size", bpo::value<std::string>(), "size of the shared memory segment in bytes")               //
+    ("session", bpo::value<std::string>(), "unique label for the shm session")                                  //
     ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                           //
     ("infologger-mode", bpo::value<std::string>(), "INFOLOGGER_MODE override")                                  //
     ("infologger-severity", bpo::value<std::string>(), "minimun FairLogger severity which goes to info logger") //
-    ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)")         //
-    ("transport", bpo::value<std::string>(), "FairMQ transport override");                                      //
+    ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)");        //
 
   return forwardedDeviceOptions;
 }
