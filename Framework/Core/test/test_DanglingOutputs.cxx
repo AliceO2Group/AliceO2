@@ -40,12 +40,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
          std::this_thread::sleep_for(std::chrono::milliseconds((rand() % 2 + 1) * 1000));
          auto aData1 = ctx.outputs().make<int>(OutputRef{"a1"}, 1);
          auto aData2 = ctx.outputs().make<int>(Output{"TST", "A2"}, 1);
+         ctx.services().get<ControlService>().endOfStream();
        }}},
     {"B",
      {InputSpec{{"a1"}, "TST", "A1"}},
      {},
      AlgorithmSpec{
        [](ProcessingContext& ctx) {
-         ctx.services().get<ControlService>().readyToQuit(QuitRequest::All);
        }}}};
 }
