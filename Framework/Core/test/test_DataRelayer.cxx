@@ -17,6 +17,7 @@
 #include "Headers/Stack.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DataRelayer.h"
+#include "../src/DataRelayerHelpers.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/WorkflowSpec.h"
 #include <Monitoring/Monitoring.h>
@@ -42,7 +43,7 @@ BOOST_AUTO_TEST_CASE(TestNoWait)
   TimesliceIndex index;
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -81,7 +82,7 @@ BOOST_AUTO_TEST_CASE(TestNoWaitMatcher)
   TimesliceIndex index;
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -132,7 +133,7 @@ BOOST_AUTO_TEST_CASE(TestRelay)
   TimesliceIndex index;
 
   auto policy = CompletionPolicyHelpers::consumeWhenAll();
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   relayer.setPipelineLength(4);
 
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
@@ -199,7 +200,7 @@ BOOST_AUTO_TEST_CASE(TestRelayBug)
   TimesliceIndex index;
 
   auto policy = CompletionPolicyHelpers::consumeWhenAll();
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   relayer.setPipelineLength(3);
 
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
@@ -266,7 +267,7 @@ BOOST_AUTO_TEST_CASE(TestCache)
 
   auto policy = CompletionPolicyHelpers::consumeWhenAll();
   TimesliceIndex index;
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   // Only two messages to fill the cache.
   relayer.setPipelineLength(2);
 
@@ -333,7 +334,7 @@ BOOST_AUTO_TEST_CASE(TestPolicies)
   TimesliceIndex index;
 
   auto policy = CompletionPolicyHelpers::processWhenAny();
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   // Only two messages to fill the cache.
   relayer.setPipelineLength(2);
 
