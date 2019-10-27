@@ -25,11 +25,17 @@ struct ServiceRegistry;
 struct TimesliceIndex;
 struct TimesliceSlot;
 
+/// Typesafe index inside
+struct RouteIndex {
+  int value;
+};
+
 struct ExpirationHandler {
   using Creator = std::function<TimesliceSlot(TimesliceIndex&)>;
   using Checker = std::function<bool(uint64_t timestamp)>;
   using Handler = std::function<void(ServiceRegistry&, PartRef& expiredInput, uint64_t timestamp)>;
 
+  RouteIndex routeIndex;
   Lifetime lifetime;
   Creator creator;
   Checker checker;

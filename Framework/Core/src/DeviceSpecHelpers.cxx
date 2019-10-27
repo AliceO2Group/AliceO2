@@ -41,12 +41,12 @@ namespace framework
 {
 
 struct ExpirationHandlerHelpers {
-  static InputRoute::CreationConfigurator dataDrivenConfigurator()
+  static RouteConfigurator::CreationConfigurator dataDrivenConfigurator()
   {
     return [](ConfigParamRegistry const&) { return LifetimeHelpers::dataDrivenCreation(); };
   }
 
-  static InputRoute::CreationConfigurator timeDrivenConfigurator(InputSpec const& matcher)
+  static RouteConfigurator::CreationConfigurator timeDrivenConfigurator(InputSpec const& matcher)
   {
     return [matcher](ConfigParamRegistry const& options) {
       std::string rateName = std::string{"period-"} + matcher.binding;
@@ -55,7 +55,7 @@ struct ExpirationHandlerHelpers {
     };
   }
 
-  static InputRoute::CreationConfigurator enumDrivenConfigurator(InputSpec const& matcher)
+  static RouteConfigurator::CreationConfigurator enumDrivenConfigurator(InputSpec const& matcher)
   {
     return [matcher](ConfigParamRegistry const& options) {
       std::string startName = std::string{"start-value-"} + matcher.binding;
@@ -68,22 +68,22 @@ struct ExpirationHandlerHelpers {
     };
   }
 
-  static InputRoute::DanglingConfigurator danglingTimeframeConfigurator()
+  static RouteConfigurator::DanglingConfigurator danglingTimeframeConfigurator()
   {
     return [](ConfigParamRegistry const&) { return LifetimeHelpers::expireNever(); };
   }
 
-  static InputRoute::ExpirationConfigurator expiringTimeframeConfigurator()
+  static RouteConfigurator::ExpirationConfigurator expiringTimeframeConfigurator()
   {
     return [](ConfigParamRegistry const&) { return LifetimeHelpers::doNothing(); };
   }
 
-  static InputRoute::DanglingConfigurator danglingConditionConfigurator()
+  static RouteConfigurator::DanglingConfigurator danglingConditionConfigurator()
   {
     return [](ConfigParamRegistry const&) { return LifetimeHelpers::expireAlways(); };
   }
 
-  static InputRoute::ExpirationConfigurator expiringConditionConfigurator(InputSpec const& spec, std::string const& sourceChannel)
+  static RouteConfigurator::ExpirationConfigurator expiringConditionConfigurator(InputSpec const& spec, std::string const& sourceChannel)
   {
     /// FIXME: seems convoluted... Maybe there is a way to avoid all this checking???
     auto m = std::get_if<ConcreteDataMatcher>(&spec.matcher);
@@ -98,7 +98,7 @@ struct ExpirationHandlerHelpers {
     };
   }
 
-  static InputRoute::DanglingConfigurator danglingQAConfigurator()
+  static RouteConfigurator::DanglingConfigurator danglingQAConfigurator()
   {
     // FIXME: this should really be expireAlways. However, since we do not have
     //        a proper backend for conditions yet, I keep it behaving like it was
@@ -106,26 +106,26 @@ struct ExpirationHandlerHelpers {
     return [](ConfigParamRegistry const&) { return LifetimeHelpers::expireNever(); };
   }
 
-  static InputRoute::ExpirationConfigurator expiringQAConfigurator()
+  static RouteConfigurator::ExpirationConfigurator expiringQAConfigurator()
   {
     return [](ConfigParamRegistry const&) { return LifetimeHelpers::fetchFromQARegistry(); };
   }
 
-  static InputRoute::DanglingConfigurator danglingTimerConfigurator(InputSpec const& matcher)
+  static RouteConfigurator::DanglingConfigurator danglingTimerConfigurator(InputSpec const& matcher)
   {
     return [matcher](ConfigParamRegistry const& options) {
       return LifetimeHelpers::expireAlways();
     };
   }
 
-  static InputRoute::DanglingConfigurator danglingEnumerationConfigurator(InputSpec const& matcher)
+  static RouteConfigurator::DanglingConfigurator danglingEnumerationConfigurator(InputSpec const& matcher)
   {
     return [matcher](ConfigParamRegistry const& options) {
       return LifetimeHelpers::expireAlways();
     };
   }
 
-  static InputRoute::ExpirationConfigurator expiringTimerConfigurator(InputSpec const& spec, std::string const& sourceChannel)
+  static RouteConfigurator::ExpirationConfigurator expiringTimerConfigurator(InputSpec const& spec, std::string const& sourceChannel)
   {
     auto m = std::get_if<ConcreteDataMatcher>(&spec.matcher);
     if (m == nullptr) {
@@ -135,7 +135,7 @@ struct ExpirationHandlerHelpers {
     return [matcher = *m, sourceChannel](ConfigParamRegistry const&) { return LifetimeHelpers::enumerate(matcher, sourceChannel); };
   }
 
-  static InputRoute::ExpirationConfigurator expiringEnumerationConfigurator(InputSpec const& spec, std::string const& sourceChannel)
+  static RouteConfigurator::ExpirationConfigurator expiringEnumerationConfigurator(InputSpec const& spec, std::string const& sourceChannel)
   {
     auto m = std::get_if<ConcreteDataMatcher>(&spec.matcher);
     if (m == nullptr) {
@@ -147,7 +147,7 @@ struct ExpirationHandlerHelpers {
     };
   }
 
-  static InputRoute::DanglingConfigurator danglingTransientConfigurator()
+  static RouteConfigurator::DanglingConfigurator danglingTransientConfigurator()
   {
     // FIXME: this should really be expireAlways. However, since we do not have
     //        a proper backend for conditions yet, I keep it behaving like it was
@@ -155,7 +155,7 @@ struct ExpirationHandlerHelpers {
     return [](ConfigParamRegistry const&) { return LifetimeHelpers::expireNever(); };
   }
 
-  static InputRoute::ExpirationConfigurator expiringTransientConfigurator(InputSpec const& matcher)
+  static RouteConfigurator::ExpirationConfigurator expiringTransientConfigurator(InputSpec const& matcher)
   {
     return [](ConfigParamRegistry const&) { return LifetimeHelpers::fetchFromObjectRegistry(); };
   }
@@ -523,53 +523,51 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     auto const& consumer = workflow[edge.consumer];
     auto& consumerDevice = devices[di];
 
-    InputRoute::CreationConfigurator creationConfigurator;
-    InputRoute::DanglingConfigurator danglingConfigurator;
-    InputRoute::ExpirationConfigurator expirationConfigurator;
     auto const& inputSpec = consumer.inputs[edge.consumerInputIndex];
     auto const& sourceChannel = consumerDevice.inputChannels[ci].name;
-
-    switch (consumer.inputs[edge.consumerInputIndex].lifetime) {
-      case Lifetime::Timeframe:
-        creationConfigurator = ExpirationHandlerHelpers::dataDrivenConfigurator();
-        danglingConfigurator = ExpirationHandlerHelpers::danglingTimeframeConfigurator();
-        expirationConfigurator = ExpirationHandlerHelpers::expiringTimeframeConfigurator();
-        break;
-      case Lifetime::Condition:
-        creationConfigurator = ExpirationHandlerHelpers::dataDrivenConfigurator();
-        danglingConfigurator = ExpirationHandlerHelpers::danglingConditionConfigurator();
-        expirationConfigurator = ExpirationHandlerHelpers::expiringConditionConfigurator(inputSpec, sourceChannel);
-        break;
-      case Lifetime::QA:
-        creationConfigurator = ExpirationHandlerHelpers::dataDrivenConfigurator();
-        danglingConfigurator = ExpirationHandlerHelpers::danglingQAConfigurator();
-        expirationConfigurator = ExpirationHandlerHelpers::expiringQAConfigurator();
-        break;
-      case Lifetime::Timer:
-        creationConfigurator = ExpirationHandlerHelpers::timeDrivenConfigurator(inputSpec);
-        danglingConfigurator = ExpirationHandlerHelpers::danglingTimerConfigurator(inputSpec);
-        expirationConfigurator = ExpirationHandlerHelpers::expiringTimerConfigurator(inputSpec, sourceChannel);
-        break;
-      case Lifetime::Enumeration:
-        creationConfigurator = ExpirationHandlerHelpers::enumDrivenConfigurator(inputSpec);
-        danglingConfigurator = ExpirationHandlerHelpers::danglingEnumerationConfigurator(inputSpec);
-        expirationConfigurator = ExpirationHandlerHelpers::expiringEnumerationConfigurator(inputSpec, sourceChannel);
-        break;
-      case Lifetime::Transient:
-        creationConfigurator = ExpirationHandlerHelpers::dataDrivenConfigurator();
-        danglingConfigurator = ExpirationHandlerHelpers::danglingTransientConfigurator();
-        expirationConfigurator = ExpirationHandlerHelpers::expiringTransientConfigurator(inputSpec);
-        break;
-    }
 
     InputRoute route{
       inputSpec,
       edge.consumerInputIndex,
       sourceChannel,
       edge.producerTimeIndex,
-      creationConfigurator,
-      danglingConfigurator,
-      expirationConfigurator};
+      std::nullopt};
+
+    switch (consumer.inputs[edge.consumerInputIndex].lifetime) {
+      case Lifetime::Condition:
+        route.configurator = {
+          ExpirationHandlerHelpers::dataDrivenConfigurator(),
+          ExpirationHandlerHelpers::danglingConditionConfigurator(),
+          ExpirationHandlerHelpers::expiringConditionConfigurator(inputSpec, sourceChannel)};
+        break;
+      case Lifetime::QA:
+        route.configurator = {
+          ExpirationHandlerHelpers::dataDrivenConfigurator(),
+          ExpirationHandlerHelpers::danglingQAConfigurator(),
+          ExpirationHandlerHelpers::expiringQAConfigurator()};
+        break;
+      case Lifetime::Timer:
+        route.configurator = {
+          ExpirationHandlerHelpers::timeDrivenConfigurator(inputSpec),
+          ExpirationHandlerHelpers::danglingTimerConfigurator(inputSpec),
+          ExpirationHandlerHelpers::expiringTimerConfigurator(inputSpec, sourceChannel)};
+        break;
+      case Lifetime::Enumeration:
+        route.configurator = {
+          ExpirationHandlerHelpers::enumDrivenConfigurator(inputSpec),
+          ExpirationHandlerHelpers::danglingEnumerationConfigurator(inputSpec),
+          ExpirationHandlerHelpers::expiringEnumerationConfigurator(inputSpec, sourceChannel)};
+        break;
+      case Lifetime::Transient:
+        route.configurator = {
+          ExpirationHandlerHelpers::dataDrivenConfigurator(),
+          ExpirationHandlerHelpers::danglingTransientConfigurator(),
+          ExpirationHandlerHelpers::expiringTransientConfigurator(inputSpec)};
+        break;
+      default:
+        break;
+    }
+
     // In case we have wildcards, we must make sure that some other edge
     // produced the same route, i.e. has the same matcher.  Without this,
     // otherwise, we would end up with as many input routes as the outputs that

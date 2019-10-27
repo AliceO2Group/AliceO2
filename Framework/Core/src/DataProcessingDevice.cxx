@@ -25,6 +25,7 @@
 #include "Framework/Logger.h"
 #include "DataProcessingStatus.h"
 #include "DataProcessingHelpers.h"
+#include "DataRelayerHelpers.h"
 
 #include "ScopedExit.h"
 
@@ -68,7 +69,10 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
     mRawBufferContext{FairMQDeviceProxy{this}},
     mContextRegistry{&mFairMQContext, &mRootContext, &mStringContext, &mDataFrameContext, &mRawBufferContext},
     mAllocator{&mTimingInfo, &mContextRegistry, spec.outputs},
-    mRelayer{spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>(), registry.get<TimesliceIndex>()},
+    mRelayer{spec.completionPolicy,
+             spec.inputs,
+             registry.get<Monitoring>(),
+             registry.get<TimesliceIndex>()},
     mServiceRegistry{registry},
     mErrorCount{0},
     mProcessingCount{0}
@@ -105,12 +109,21 @@ void DataProcessingDevice::Init()
   mConfigRegistry = std::move(std::make_unique<ConfigParamRegistry>(std::move(optionsRetriever)));
 
   mExpirationHandlers.clear();
-  for (auto& route : mSpec.inputs) {
+
+  auto distinct = DataRelayerHelpers::createDistinctRouteIndex(mSpec.inputs);
+  int i = 0;
+  for (auto& di : distinct) {
+    auto& route = mSpec.inputs[di];
+    if (route.configurator.has_value() == false) {
+      i++;
+      continue;
+    }
     ExpirationHandler handler{
+      RouteIndex{i++},
       route.matcher.lifetime,
-      route.creatorConfigurator(*mConfigRegistry),
-      route.danglingConfigurator(*mConfigRegistry),
-      route.expirationConfigurator(*mConfigRegistry)};
+      route.configurator->creatorConfigurator(*mConfigRegistry),
+      route.configurator->danglingConfigurator(*mConfigRegistry),
+      route.configurator->expirationConfigurator(*mConfigRegistry)};
     mExpirationHandlers.emplace_back(std::move(handler));
   }
 

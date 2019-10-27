@@ -49,6 +49,7 @@ o2_add_library(Framework
                        src/SourceInfoHeader.cxx
                        src/DataProcessor.cxx
                        src/DataRelayer.cxx
+                       src/DataRelayerHelpers.cxx
                        src/DataSampling.cxx
                        src/DataSamplingConditionFactory.cxx
                        src/DataSamplingHeader.cxx
