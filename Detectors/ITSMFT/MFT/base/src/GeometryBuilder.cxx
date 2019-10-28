@@ -65,5 +65,19 @@ void GeometryBuilder::buildGeometry()
   volMFT->AddNode(halfCone1, 1);
   volMFT->AddNode(halfCone2, 1);
 
+  auto* t_patchpanel0 = new TGeoTranslation("translation_patchpanel", 0.0, 0.,-81.5 - 1.5); //z (0,0.7, -81.5 -1.3; 0..81.7
+  auto* r_patchpanel0 = new TGeoRotation("rotation_patchpanel", 0.0, 0.0, 0.0);
+  auto* p_patchpanel0 = new TGeoCombiTrans(*t_patchpanel0, *r_patchpanel0);
+  auto* t_patchpanel1 = new TGeoTranslation("translation_patchpanel", 0.0, 0.,-81.5 - 1.5); //z( 0, 0.7, -81.5-1.3; 0.. 81.7
+  auto* r_patchpanel1 = new TGeoRotation("rotation_patchpanel", 0.0, 0.0, 180.0);
+  auto* p_patchpanel1 = new TGeoCombiTrans(*t_patchpanel1, *r_patchpanel1);
+
+  auto* halfpatchpanel = new PatchPanel();
+  TGeoVolumeAssembly* halfpatchpanel0 = halfpatchpanel->createPatchPanel(0);
+  TGeoVolumeAssembly* halfpatchpanel1 = halfpatchpanel->createPatchPanel(0);
+  volMFT->AddNode(halfpatchpanel0, 1, p_patchpanel0);
+  volMFT->AddNode(halfpatchpanel1, 1, p_patchpanel1);
+
+
   vALIC->AddNode(volMFT, 0);
 }
