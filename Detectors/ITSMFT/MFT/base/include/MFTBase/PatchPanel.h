@@ -35,7 +35,7 @@ class PatchPanel
 
  private:
   //ClassDefNV(PatchPanel, 1);
-  ClassDefNV(PatchPanel, 1);
+  ClassDef(PatchPanel, 1);
 };
 } // namespace mft
 } // namespace o2
