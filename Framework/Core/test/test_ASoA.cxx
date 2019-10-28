@@ -85,11 +85,24 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   ++b;
   BOOST_CHECK(b == e);
 
+  b = tests2.begin();
+  e = tests2.end();
+  BOOST_CHECK(b != e);
+  BOOST_CHECK((b + 1) == (b + 1));
+  BOOST_CHECK((b + 7) != b);
+  BOOST_CHECK((b + 7) != e);
+  BOOST_CHECK((b + 8) == e);
+
   for (auto& t : tests2) {
     BOOST_CHECK_EQUAL(t.x(), value / 4);
     BOOST_CHECK_EQUAL(t.y(), value);
     BOOST_REQUIRE(value < 8);
     value++;
+  }
+
+  for (auto t1 = tests2.begin(); t1 != tests2.end() - 1; ++t1) {
+    for (auto t2 = t1 + 1; t2 != tests2.end(); ++t2) {
+    }
   }
 }
 
