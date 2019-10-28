@@ -79,6 +79,5 @@ void GeometryBuilder::buildGeometry()
   volMFT->AddNode(halfpatchpanel0, 1, p_patchpanel0);
   volMFT->AddNode(halfpatchpanel1, 1, p_patchpanel1);
 
-
   vALIC->AddNode(volMFT, 0);
 }
