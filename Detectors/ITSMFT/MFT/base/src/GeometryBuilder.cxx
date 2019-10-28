@@ -75,7 +75,7 @@ void GeometryBuilder::buildGeometry()
 
   auto* halfpatchpanel = new PatchPanel();
   TGeoVolumeAssembly* halfpatchpanel0 = halfpatchpanel->createPatchPanel(0);
-  TGeoVolumeAssembly* halfpatchpanel1 = halfpatchpanel->createPatchPanel(0);
+  TGeoVolumeAssembly* halfpatchpanel1 = halfpatchpanel->createPatchPanel(1);
   volMFT->AddNode(halfpatchpanel0, 1, p_patchpanel0);
   volMFT->AddNode(halfpatchpanel1, 1, p_patchpanel1);
 
