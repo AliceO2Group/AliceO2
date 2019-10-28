@@ -16,7 +16,7 @@
 #include "MIDBase/ChamberEfficiency.h"
 
 #include <iostream>
-#include "MIDBase/Constants.h"
+#include "MIDBase/DetectorParameters.h"
 #include "MIDBase/Mapping.h"
 
 namespace o2
@@ -92,7 +92,7 @@ ChamberEfficiency createDefaultChamberEfficiency()
   ChamberEfficiency effMap;
   Mapping mapping;
   uint32_t nevents = 10000;
-  for (int ide = 0; ide < Constants::sNDetectionElements; ++ide) {
+  for (int ide = 0; ide < detparams::NDetectionElements; ++ide) {
     for (int icol = mapping.getFirstColumn(ide); icol < 7; ++icol) {
       for (int iline = mapping.getFirstBoardBP(icol, ide); iline <= mapping.getLastBoardBP(icol, ide); ++iline) {
         for (uint32_t ievent = 0; ievent < nevents; ++ievent) {

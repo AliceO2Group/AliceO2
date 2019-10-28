@@ -10,7 +10,7 @@
 
 /// \file   MIDWorkflow/RecoWorkflow.h
 /// \brief  Definition of the reconstruction workflow for MID
-/// \author Diego Stocco <dstocco at cern.ch>
+/// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   11 April 2019
 
 #ifndef O2_MID_RECOWORKFLOWSPEC_H
@@ -22,7 +22,7 @@ namespace o2
 {
 namespace mid
 {
-framework::WorkflowSpec getRecoWorkflow(bool useMC);
+framework::WorkflowSpec getRecoWorkflow();
 }
 } // namespace o2
 

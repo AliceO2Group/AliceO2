@@ -1,0 +1,9 @@
+build
+*.swp
+*.BACK
+tags
+__pycache__
+data
+measurements/in
+measurements/out
+external

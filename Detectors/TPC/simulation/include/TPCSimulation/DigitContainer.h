@@ -69,11 +69,12 @@ class DigitContainer
   /// Fill output vector
   /// \param output Output container
   /// \param mcTruth MC Truth container
+  /// \param commonModeOutput Output container for the common mode
   /// \param sector Sector to be processed
   /// \param eventTime time stamp of the event
   /// \param isContinuous Switch for continuous readout
   /// \param finalFlush Flag whether the whole container is dumped
-  void fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth, const Sector& sector, TimeBin eventTimeBin = 0, bool isContinuous = true, bool finalFlush = false);
+  void fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth, std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin eventTimeBin = 0, bool isContinuous = true, bool finalFlush = false);
 
   /// Get the size of the container for one event
   size_t size() const { return mTimeBins.size(); }

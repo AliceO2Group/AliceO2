@@ -16,8 +16,8 @@
 
 #include <cmath>
 #include <functional>
-#include "fairlogger/Logger.h"
-#include "MIDBase/Constants.h"
+#include "Framework/Logger.h"
+#include "MIDBase/DetectorParameters.h"
 
 namespace o2
 {
@@ -46,6 +46,9 @@ bool Tracker::init(bool keepAll)
   // Prepare storage of tracks
   mTracks.reserve(30);
 
+  mTrackROFRecords.reserve(100);
+  mClusterROFRecords.reserve(100);
+
   if (keepAll) {
     mFollowTrack = &Tracker::followTrackKeepAll;
   } else {
@@ -53,19 +56,6 @@ bool Tracker::init(bool keepAll)
   }
 
   return true;
-}
-
-//______________________________________________________________________________
-void Tracker::reset()
-{
-  /// Resets clusters and the number of tracks
-
-  for (auto& clIdx : mClusterIndexes) {
-    clIdx.clear();
-  }
-
-  mClusters.clear();
-  mTracks.clear();
 }
 
 //______________________________________________________________________________
@@ -105,14 +95,41 @@ bool Tracker::loadClusters(gsl::span<const Cluster2D>& clusters)
   return (clusters.size() > 0);
 }
 
-//______________________________________________________________________________
-bool Tracker::process(gsl::span<const Cluster2D> clusters)
+void Tracker::process(gsl::span<const Cluster2D> clusters, gsl::span<const ROFRecord> rofRecords)
 {
-  /// Main function: runs on a data containing the clusters
+  /// Main function: runs on a data containing the clusters in timeframe
+  /// and builds the tracks
+  mClusters.clear();
+  mTracks.clear();
+  mTrackROFRecords.clear();
+  mClusterROFRecords.clear();
+  for (auto& rofRecord : rofRecords) {
+    auto firstTrackEntry = mTracks.size();
+    mTrackOffset = firstTrackEntry;
+    auto firstClusterEntry = mClusters.size();
+    process(clusters.subspan(rofRecord.firstEntry, rofRecord.nEntries), true);
+    auto nTrackEntries = mTracks.size() - firstTrackEntry;
+    mTrackROFRecords.emplace_back(rofRecord, firstTrackEntry, nTrackEntries);
+    auto nClusterEntries = mClusters.size() - firstClusterEntry;
+    mClusterROFRecords.emplace_back(rofRecord, firstClusterEntry, nClusterEntries);
+  }
+}
+
+//______________________________________________________________________________
+void Tracker::process(gsl::span<const Cluster2D> clusters, bool accumulate)
+{
+  /// Main function: runs on a data containing the clusters per event
   /// and builds the tracks
 
   // Reset cluster and tracks information
-  reset();
+  for (auto& clIdx : mClusterIndexes) {
+    clIdx.clear();
+  }
+
+  if (!accumulate) {
+    mClusters.clear();
+    mTracks.clear();
+  }
 
   // Load the digits to get the fired pads
   if (loadClusters(clusters)) {
@@ -126,8 +143,6 @@ bool Tracker::process(gsl::span<const Cluster2D> clusters)
     // left outward
     processSide(false, false);
   }
-
-  return true;
 }
 
 //______________________________________________________________________________
@@ -136,8 +151,8 @@ bool Tracker::processSide(bool isRight, bool isInward)
   /// Make tracks on one side of the detector
   int firstCh = (isInward) ? 3 : 0;
   int secondCh = (isInward) ? 2 : 1;
-  int rpcOffset1 = Constants::getDEId(isRight, firstCh, 0);
-  int rpcOffset2 = Constants::getDEId(isRight, secondCh, 0);
+  int rpcOffset1 = detparams::getDEId(isRight, firstCh, 0);
+  int rpcOffset2 = detparams::getDEId(isRight, secondCh, 0);
 
   // loop on RPCs in first plane
   Track track;
@@ -226,7 +241,7 @@ bool Tracker::followTrackKeepAll(const Track& track, bool isRight, bool isInward
 
   // loop on next two chambers
   for (int ich = 0; ich < 2; ++ich) {
-    int rpcOffset = Constants::getDEId(isRight, chamberOrder[ich], 0);
+    int rpcOffset = detparams::getDEId(isRight, chamberOrder[ich], 0);
     for (int irpc = 0; irpc <= 8; ++irpc) {
       int deId = rpcOffset + irpc;
       for (auto& clIdx : mClusterIndexes[deId]) {
@@ -300,7 +315,7 @@ bool Tracker::findNextCluster(const Track& track, bool isRight, bool isInward, i
 {
   /// Find next best cluster
   int nextChamber = (isInward) ? chamber - 1 : chamber + 1;
-  int rpcOffset = Constants::getDEId(isRight, chamber, 0);
+  int rpcOffset = detparams::getDEId(isRight, chamber, 0);
   Track newTrack;
   for (int irpc = firstRPC; irpc <= lastRPC; ++irpc) {
     int deId = rpcOffset + irpc;
@@ -311,7 +326,7 @@ bool Tracker::findNextCluster(const Track& track, bool isRight, bool isInward, i
       if (newTrack.getChi2() > bestTrack.getChi2()) {
         continue;
       }
-      newTrack.setClusterMatched(Constants::getChamber(cl.deId), mClusterIndexes[deId][icl].first);
+      newTrack.setClusterMatched(detparams::getChamber(cl.deId), mClusterIndexes[deId][icl].first);
       newTrack.setNDF(track.getNDF() + 1);
       LOG(DEBUG) << "Attach cluster number " << newTrack.getNDF() << ": DeId " << deId << "  cluster " << mClusterIndexes[deId][icl].first;
       if (nextChamber >= 0 && nextChamber <= 3) {
@@ -353,7 +368,7 @@ bool Tracker::findAllClusters(Track& track, int clIdx, bool isRight, bool isInwa
     double bestChi2AtCluster = mMaxChi2;
     int bestClusterIdx = -1;
     int bestClusterDE = -1;
-    int rpcOffset = Constants::getDEId(isRight, nextChamber, 0);
+    int rpcOffset = detparams::getDEId(isRight, nextChamber, 0);
     Track bestTrack;
     for (int jrpc = getFirstNeighbourRPC(irpc); jrpc <= getLastNeighbourRPC(irpc); ++jrpc) {
       int deId2 = rpcOffset + jrpc;
@@ -518,24 +533,24 @@ bool Tracker::tryAddTrack(const Track& track)
   // for the case where one of the two reconstructed tracks has a much better precision
   // of the other
   float chi2Cut = 0.4 * mSigmaCut * mSigmaCut;
-  for (auto& checkTrack : mTracks) {
+  for (auto checkTrack = mTracks.begin() + mTrackOffset; checkTrack != mTracks.end(); ++checkTrack) {
     int nCommonClusters = 0;
     for (int ich = 0; ich < 4; ++ich) {
-      if (track.getClusterMatched(ich) == checkTrack.getClusterMatched(ich)) {
+      if (track.getClusterMatched(ich) == checkTrack->getClusterMatched(ich)) {
         ++nCommonClusters;
       }
     }
     if (nCommonClusters == 4) {
       return false;
     }
-    if (nCommonClusters == 3 && track.isCompatible(checkTrack, chi2Cut)) {
+    if (nCommonClusters == 3 && track.isCompatible(*checkTrack, chi2Cut)) {
       // The new track is compatible with an existing one
-      if (chi2OverNDF < checkTrack.getChi2OverNDF()) {
+      if (chi2OverNDF < checkTrack->getChi2OverNDF()) {
         // The new track is more precise than the old one: replace it!
-        LOG(DEBUG) << "Replacing track " << checkTrack << "    with " << track;
-        checkTrack = track;
+        LOG(DEBUG) << "Replacing track " << *checkTrack << "    with " << track;
+        *checkTrack = track;
       } else {
-        LOG(DEBUG) << "Rejecting track " << track << "     compatible with " << checkTrack;
+        LOG(DEBUG) << "Rejecting track " << track << "     compatible with " << *checkTrack;
         // The new track is less precise than the old one: reject it!
       }
       return false;

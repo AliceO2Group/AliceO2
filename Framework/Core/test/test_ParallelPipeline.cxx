@@ -9,8 +9,10 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/InputSpec.h"
+#include "Framework/CallbackService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/EndOfStreamContext.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/runDataProcessing.h"
 #include "Framework/ControlService.h"
@@ -130,7 +132,8 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
         (*counter)++;
       }
       if (*counter == nRolls) {
-        ctx.services().get<ControlService>().readyToQuit(false);
+        ctx.services().get<ControlService>().endOfStream();
+        ctx.services().get<ControlService>().readyToQuit(QuitRequest::Me);
       }
     }}});
 
@@ -144,16 +147,18 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
                   DataSpecUtils::updateMatchingSubspec(input, subspecs[index]);
                 }),
     Outputs(),
-    AlgorithmSpec{[checkMap](ProcessingContext& ctx) {
-      for (auto const& input : ctx.inputs()) {
+    AlgorithmSpec{adaptStateless([checkMap](InputRecord& inputs, CallbackService& callbacks, ControlService&) {
+      callbacks.set(CallbackService::Id::EndOfStream, [](EndOfStreamContext& ctx) {
+        ctx.services().get<ControlService>().readyToQuit(QuitRequest::All);
+      });
+      for (auto const& input : inputs) {
         LOG(DEBUG) << "consuming : " << *input.spec << ": " << *((int*)input.payload);
         auto const* dataheader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
         if (input.spec->binding.compare(0, 6, "datain") == 0) {
-          ASSERT_ERROR((*checkMap)[dataheader->subSpecification] == ctx.inputs().get<int>(input.spec->binding.c_str()));
+          ASSERT_ERROR((*checkMap)[dataheader->subSpecification] == inputs.get<int>(input.spec->binding.c_str()));
         }
       }
-      ctx.services().get<ControlService>().readyToQuit(true);
-    }}});
+    })}});
 
   return workflowSpecs;
 }

@@ -9,12 +9,17 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/AODReaderHelpers.h"
+#include "DataProcessingHelpers.h"
 #include "Framework/RootTableBuilderHelpers.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/SourceInfoHeader.h"
+#include "Framework/ChannelInfo.h"
+#include "Framework/Logger.h"
+
 #include <FairMQDevice.h>
 #include <ROOT/RDataFrame.hxx>
 #include <TFile.h>
@@ -132,10 +137,11 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
                                                  DeviceSpec const& spec) {
     std::vector<std::string> filenames;
     auto filename = options.get<std::string>("esd-file");
+    auto nEvents = options.get<int>("events");
 
     if (filename.empty()) {
       LOG(error) << "Option --esd-file did not provide a filename";
-      control.readyToQuit(true);
+      control.readyToQuit(QuitRequest::All);
       return adaptStateless([](RawDeviceService& service) {
         service.device()->WaitFor(std::chrono::milliseconds(1000));
       });
@@ -158,24 +164,28 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
     }
 
     uint64_t readMask = calculateReadMask(spec.outputs, header::DataOrigin{"RN2"});
-    auto counter = std::make_shared<int>(0);
+    auto counter = std::make_shared<unsigned int>(0);
     return adaptStateless([readMask,
                            counter,
-                           filenames](DataAllocator& outputs, ControlService& ctrl, RawDeviceService& service) {
+                           filenames,
+                           spec, nEvents](DataAllocator& outputs, ControlService& ctrl, RawDeviceService& service) {
       if (*counter >= filenames.size()) {
         LOG(info) << "All input files processed";
-        ctrl.readyToQuit(false);
-        service.device()->WaitFor(std::chrono::seconds(1));
+        ctrl.endOfStream();
+        ctrl.readyToQuit(QuitRequest::Me);
         return;
       }
       auto f = filenames[*counter];
       setenv("O2RUN2CONVERTER", "run2ESD2Run3AOD", 0);
       auto command = std::string(getenv("O2RUN2CONVERTER"));
+      if (nEvents > 0) {
+        command += fmt::format(" -n {} ", nEvents);
+      }
       FILE* pipe = popen((command + " " + f).c_str(), "r");
       if (pipe == nullptr) {
         LOG(ERROR) << "Unable to run converter: " << (command + " " + f).c_str() << f;
-        ctrl.readyToQuit(true);
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        ctrl.endOfStream();
+        ctrl.readyToQuit(QuitRequest::All);
         return;
       }
       *counter += 1;
@@ -188,9 +198,10 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
           continue;
         }
         ungetc(c, pipe);
+
         std::shared_ptr<arrow::RecordBatchReader> reader;
         auto input = std::make_shared<FileStream>(pipe);
-        auto readerStatus = arrow::ipc::RecordBatchStreamReader::Open(input.get(), &reader);
+        auto readerStatus = arrow::ipc::RecordBatchStreamReader::Open(input, &reader);
         if (readerStatus.ok() == false) {
           LOG(ERROR) << "Reader status not ok: " << readerStatus.message();
           break;
@@ -270,7 +281,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
                            filenames](DataAllocator& outputs, ControlService& control) {
       if (*counter >= filenames.size()) {
         LOG(info) << "All input files processed";
-        control.readyToQuit(false);
+        control.readyToQuit(QuitRequest::Me);
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         return;
       }

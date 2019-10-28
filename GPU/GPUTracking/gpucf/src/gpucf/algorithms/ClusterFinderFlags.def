@@ -1,0 +1,40 @@
+#if defined(CLUSTER_FINDER_FLAG)
+
+CLUSTER_FINDER_FLAG(halfs, false, "CHARGEMAP_TYPE_HALF", "Store charges with half precision.")
+CLUSTER_FINDER_FLAG(correctEdgeClusters, false, "CORRECT_EDGE_CLUSTERS", 
+    "Use position of peak for COG of edge clusters.")
+CLUSTER_FINDER_FLAG(dbg, false, "DEBUG_ON", "Enable debug macros.")
+CLUSTER_FINDER_FLAG(unrollLoops, false, "UNROLL_LOOPS", 
+    "Unroll loops in fillScratchPad and updateCluster.")
+
+#elif defined(CLUSTER_FINDER_PARAM)
+CLUSTER_FINDER_PARAM(qmaxCutoff, 3, "QMAX_CUTOFF", "Remove peaks with charges lower than this cutoff.")
+CLUSTER_FINDER_PARAM(qtotCutoff, 0, "QTOT_CUTOFF", "Remove clusters with qtot lower than this cutoff.")
+CLUSTER_FINDER_PARAM(epsilon, 10, "NOISE_SUPPRESSION_MINIMA_EPSILON", 
+    "Threshold for minima search.")
+CLUSTER_FINDER_PARAM(wgSize, 64, "SCRATCH_PAD_WORK_GROUP_SIZE", "Work group size.")
+
+#elif defined(MEMORY_LAYOUT)
+
+MEMORY_LAYOUT(TimeMajor, "CHARGEMAP_TIME_MAJOR_LAYOUT", "Store charges in time major layout.")
+MEMORY_LAYOUT(PadMajor, "CHARGEMAP_PAD_MAJOR_LAYOUT", "Store charges in pad major layout.")
+MEMORY_LAYOUT(Tiling4x4, "CHARGEMAP_4x4_TILING_LAYOUT", "Store charges in 4x4 tiling layout.")
+MEMORY_LAYOUT(Tiling4x8, "CHARGEMAP_4x8_TILING_LAYOUT", "Store charges in 4x8 tiling layout.")
+MEMORY_LAYOUT(Tiling8x4, "CHARGEMAP_8x4_TILING_LAYOUT", "Store charges in 8x4 tiling layout.")
+
+#elif defined(CLUSTER_BUILDER)
+
+CLUSTER_BUILDER(Naive, "BUILD_CLUSTER_NAIVE", "")
+CLUSTER_BUILDER(ScratchPad, "BUILD_CLUSTER_SCRATCH_PAD", "Use LDS to read charges.")
+
+#else
+
+#  error("Specify which cluster finder option you want.")
+
+#endif
+
+
+#undef CLUSTER_FINDER_FLAG
+#undef CLUSTER_FINDER_PARAM
+#undef MEMORY_LAYOUT
+#undef CLUSTER_BUILDER

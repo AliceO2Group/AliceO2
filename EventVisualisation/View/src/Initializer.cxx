@@ -18,16 +18,17 @@
 #include "EventVisualisationView/Initializer.h"
 
 #include "EventVisualisationBase/ConfigurationManager.h"
-#include "EventVisualisationBase/EventManager.h"
 #include "EventVisualisationBase/GeometryManager.h"
+#include "EventVisualisationView/EventManager.h"
 #include "EventVisualisationView/MultiView.h"
 #include "EventVisualisationBase/VisualisationConstants.h"
-#include "EventVisualisationView/EventManagerFrame.h"
 #include "EventVisualisationBase/DataSourceOffline.h"
-#include "EventVisualisationBase/DataReaderVSD.h"
+#include "EventVisualisationDetectors/DataReaderVSD.h"
 #include "EventVisualisationBase/EventRegistration.h"
 #include "EventVisualisationDetectors/DataInterpreterVSD.h"
 #include "EventVisualisationDetectors/DataInterpreterRND.h"
+#include "EventVisualisationView/EventManagerFrame.h"
+#include "FairLogger.h"
 
 #include <TGTab.h>
 #include <TEnv.h>
@@ -35,10 +36,7 @@
 #include <TEveManager.h>
 #include <TRegexp.h>
 #include <TSystem.h>
-#include <TSystemDirectory.h>
-#include <TROOT.h>
 #include <TEveWindowManager.h>
-#include <iostream>
 #include <TFile.h>
 using namespace std;
 
@@ -54,7 +52,7 @@ void Initializer::setup(const Options options, EventManager::EDataSource default
 
   const bool fullscreen = settings.GetValue("fullscreen.mode", false);                           // hide left and bottom tabs
   const string ocdbStorage = settings.GetValue("OCDB.default.path", "local://$ALICE_ROOT/OCDB"); // default path to OCDB
-  cout << "Initializer -- OCDB path:" << ocdbStorage << endl;
+  LOG(INFO) << "Initializer -- OCDB path:" << ocdbStorage;
 
   auto& eventManager = EventManager::getInstance();
   eventManager.setDataSourceType(defaultDataSource);
@@ -69,7 +67,7 @@ void Initializer::setup(const Options options, EventManager::EDataSource default
   eventManager.setDataSourceType(EventManager::EDataSource::SourceOffline);
   eventManager.Open();
 
-  //gEve->AddEvent(&eventManager);
+  GeometryManager::getInstance().setR2Geometry(std::string(settings.GetValue("simple.geom.default", "R3")).compare("R2") == 0);
 
   setupGeometry();
   gSystem->ProcessEvents();
@@ -111,8 +109,15 @@ void Initializer::setupGeometry()
 
   // get geometry from Geometry Manager and register in multiview
   auto multiView = MultiView::getInstance();
-
+  //auto geometry_enabled = GeometryManager::getInstance().getR2Geometry()? R2Visualisation:R3Visualisation;
   for (int iDet = 0; iDet < NvisualisationGroups; ++iDet) {
+    if (GeometryManager::getInstance().getR2Geometry())
+      if (!R2Visualisation[iDet])
+        continue;
+    if (!GeometryManager::getInstance().getR2Geometry())
+      if (!R3Visualisation[iDet])
+        continue;
+
     EVisualisationGroup det = static_cast<EVisualisationGroup>(iDet);
     string detName = gVisualisationGroupName[det];
     if (settings.GetValue((detName + ".draw").c_str(), false)) {

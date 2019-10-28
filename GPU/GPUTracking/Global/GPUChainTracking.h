@@ -72,7 +72,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) override;
 
   // Structures for input and output data
-  GPUTrackingInOutPointers mIOPtrs;
+  GPUTrackingInOutPointers& mIOPtrs;
 
   struct InOutMemory {
     InOutMemory();
@@ -80,6 +80,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     InOutMemory(InOutMemory&&);
     InOutMemory& operator=(InOutMemory&&);
 
+    std::unique_ptr<gpucf::PackedDigit[]> tpcDigits[NSLICES];
     std::unique_ptr<GPUTPCClusterData[]> clusterData[NSLICES];
     std::unique_ptr<AliHLTTPCRawCluster[]> rawClusters[NSLICES];
     std::unique_ptr<o2::tpc::ClusterNative[]> clustersNative;
@@ -121,6 +122,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int ForceInitQA();
 
   // Processing functions
+  int RunTPCClusterizer();
+  void ForwardTPCDigits();
   int RunTPCTrackingSlices();
   int RunTPCTrackingMerger();
   int RunTRDTracking();
@@ -128,16 +131,16 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int RunTPCCompression();
 
   // Getters / setters for parameters
-  const TPCFastTransform* GetTPCTransform() const { return mTPCFastTransform; }
-  const o2::base::MatLayerCylSet* GetMatLUT() const { return mMatLUT; }
-  const GPUTRDGeometry* GetTRDGeometry() const { return (GPUTRDGeometry*)mTRDGeometry; }
+  const TPCFastTransform* GetTPCTransform() const { return processors()->calibObjects.fastTransform; }
+  const o2::base::MatLayerCylSet* GetMatLUT() const { return processors()->calibObjects.matLUT; }
+  const GPUTRDGeometry* GetTRDGeometry() const { return (GPUTRDGeometry*)processors()->calibObjects.trdGeometry; }
   const o2::tpc::ClusterNativeAccess* GetClusterNativeAccess() const { return mClusterNativeAccess.get(); }
   void SetTPCFastTransform(std::unique_ptr<TPCFastTransform>&& tpcFastTransform);
   void SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut);
   void SetTRDGeometry(std::unique_ptr<o2::trd::TRDGeometryFlat>&& geo);
-  void SetTPCFastTransform(const TPCFastTransform* tpcFastTransform) { mTPCFastTransform = tpcFastTransform; }
-  void SetMatLUT(const o2::base::MatLayerCylSet* lut) { mMatLUT = lut; }
-  void SetTRDGeometry(const o2::trd::TRDGeometryFlat* geo) { mTRDGeometry = geo; }
+  void SetTPCFastTransform(const TPCFastTransform* tpcFastTransform) { processors()->calibObjects.fastTransform = tpcFastTransform; }
+  void SetMatLUT(const o2::base::MatLayerCylSet* lut) { processors()->calibObjects.matLUT = lut; }
+  void SetTRDGeometry(const o2::trd::TRDGeometryFlat* geo) { processors()->calibObjects.trdGeometry = geo; }
   void LoadClusterErrors();
 
   const void* mConfigDisplay = nullptr; // Abstract pointer to Standalone Display Configuration Structure
@@ -146,13 +149,11 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
  protected:
   struct GPUTrackingFlatObjects : public GPUProcessor {
     GPUChainTracking* mChainTracking = nullptr;
-    TPCFastTransform* mTpcTransform = nullptr;
+    GPUCalibObjects mCalibObjects;
     char* mTpcTransformBuffer = nullptr;
-    o2::base::MatLayerCylSet* mMatLUT = nullptr;
     char* mMatLUTBuffer = nullptr;
-    o2::trd::TRDGeometryFlat* mTrdGeometry = nullptr;
-    void* SetPointersFlatObjects(void* mem);
     short mMemoryResFlat = -1;
+    void* SetPointersFlatObjects(void* mem);
   };
 
   struct eventStruct // Must consist only of void* ptr that will hold the GPU event ptrs!
@@ -169,6 +170,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void WriteOutput(int iSlice, int threadId);
   int GlobalTracking(int iSlice, int threadId);
 
+  void PrepareEventFromNative();
   int PrepareProfile();
   int DoProfile();
   void PrintMemoryRelations();
@@ -188,12 +190,10 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   // Ptr to reconstruction detector objects
   std::unique_ptr<o2::tpc::ClusterNativeAccess> mClusterNativeAccess; // Internal memory for clusterNativeAccess
+  std::unique_ptr<GPUTrackingInOutDigits> mDigitMap;                  // Internal memory for digit-map, if needed
   std::unique_ptr<TPCFastTransform> mTPCFastTransformU;               // Global TPC fast transformation object
-  const TPCFastTransform* mTPCFastTransform = nullptr;                //
   std::unique_ptr<o2::base::MatLayerCylSet> mMatLUTU;                 // Material Lookup Table
-  const o2::base::MatLayerCylSet* mMatLUT = nullptr;                  //
   std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometryU;            // TRD Geometry
-  const o2::trd::TRDGeometryFlat* mTRDGeometry = nullptr;             //
 
   // Upper bounds for memory allocation
   unsigned int mMaxTPCHits;
@@ -219,6 +219,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
  private:
   int RunTPCTrackingSlices_internal();
+  void RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder& clustererShadow, int stage, bool doGPU, int lane);
   std::atomic_flag mLockAtomic = ATOMIC_FLAG_INIT;
 
   int HelperReadEvent(int iSlice, int threadId, GPUReconstructionHelpers::helperParam* par);

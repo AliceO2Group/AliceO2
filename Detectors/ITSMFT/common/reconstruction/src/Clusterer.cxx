@@ -251,7 +251,6 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
     }
     UShort_t rowSpan = rowMax - rowMin + 1, colSpan = colMax - colMin + 1;
     Cluster clus;
-    clus.setROFrame(mChipData->getROFrame());
     clus.setSensorID(mChipData->getChipID());
     clus.setNxNzN(rowSpan, colSpan, npix);
 #ifdef _ClusterTopology_
@@ -307,7 +306,7 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
         rowMin += rowShift;
         colMin += colShift;
       }
-      compClus->emplace_back(rowMin, colMin, pattID, mChipData->getChipID(), mChipData->getROFrame());
+      compClus->emplace_back(rowMin, colMin, pattID, mChipData->getChipID());
     }
 
     if (labelsClus) { // MC labels were requested

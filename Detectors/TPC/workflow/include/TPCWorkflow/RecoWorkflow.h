@@ -44,30 +44,33 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,         
                                     std::vector<int> const& laneConfiguration,    //
                                     bool propagateMC = true, unsigned nLanes = 1, //
                                     std::string const& cfgInput = "digitizer",    //
-                                    std::string const& cfgOutput = "tracks"       //
+                                    std::string const& cfgOutput = "tracks",      //
+                                    int caClusterer = 0                           //
 );
 
 framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,           //
                                     bool propagateMC = true, unsigned nLanes = 1, //
                                     std::string const& cfgInput = "digitizer",    //
-                                    std::string const& cfgOutput = "tracks"       //
+                                    std::string const& cfgOutput = "tracks",      //
+                                    int caClusterer = 0                           //
 )
 {
   // create a default lane configuration with ids [0, nLanes-1]
   std::vector<int> laneConfiguration(nLanes);
   std::iota(laneConfiguration.begin(), laneConfiguration.end(), 0);
-  return getWorkflow(tpcSectors, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput);
+  return getWorkflow(tpcSectors, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput, caClusterer);
 }
 
 framework::WorkflowSpec getWorkflow(bool propagateMC = true, unsigned nLanes = 1, //
                                     std::string const& cfgInput = "digitizer",    //
-                                    std::string const& cfgOutput = "tracks"       //
+                                    std::string const& cfgOutput = "tracks",      //
+                                    int caClusterer = 0                           //
 )
 {
   // create a default lane configuration with ids [0, nLanes-1]
   std::vector<int> laneConfiguration(nLanes);
   std::iota(laneConfiguration.begin(), laneConfiguration.end(), 0);
-  return getWorkflow({}, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput);
+  return getWorkflow({}, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput, caClusterer);
 }
 
 } // end namespace reco_workflow

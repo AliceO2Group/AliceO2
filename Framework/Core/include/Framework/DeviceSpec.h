@@ -11,8 +11,10 @@
 #define FRAMEWORK_DEVICESPEC_H
 
 #include "Framework/WorkflowSpec.h"
+#include "Framework/ComputingResource.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ChannelSpec.h"
+#include "Framework/ChannelInfo.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ConfigParamSpec.h"
@@ -53,6 +55,7 @@ struct DeviceSpec {
   /// The completion policy to use for this device.
   CompletionPolicy completionPolicy;
   DispatchPolicy dispatchPolicy;
+  ComputingResource resource;
 };
 
 } // namespace framework

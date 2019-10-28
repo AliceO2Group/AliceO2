@@ -80,6 +80,9 @@ std::ostream& operator<<(std::ostream& os, ValueHolder<V> const& holder)
 inline OriginValueMatcher::OriginValueMatcher(std::string const& s)
   : ValueHolder{ s }
 {
+  if (s.size() > header::gSizeDataOriginString) {
+    throw std::runtime_error("Header DataDescription too long");
+  }
 }
 
 inline OriginValueMatcher::OriginValueMatcher(ContextRef variableId)
@@ -87,13 +90,28 @@ inline OriginValueMatcher::OriginValueMatcher(ContextRef variableId)
 {
 }
 
+template <std::size_t L>
+inline constexpr OriginValueMatcher::OriginValueMatcher(const char (&s)[L])
+  : ValueHolder{ header::DataOrigin(s).as<std::string>() }
+{
+}
+
 inline DescriptionValueMatcher::DescriptionValueMatcher(std::string const& s)
   : ValueHolder{ s }
 {
+  if (s.size() > header::gSizeDataDescriptionString) {
+    throw std::runtime_error("Header DataDescription too long");
+  }
 }
 
 inline DescriptionValueMatcher::DescriptionValueMatcher(ContextRef variableId)
   : ValueHolder{ variableId }
+{
+}
+
+template <std::size_t L>
+inline constexpr DescriptionValueMatcher::DescriptionValueMatcher(const char (&s)[L])
+  : ValueHolder{ header::DataDescription(s).as<std::string>() }
 {
 }
 

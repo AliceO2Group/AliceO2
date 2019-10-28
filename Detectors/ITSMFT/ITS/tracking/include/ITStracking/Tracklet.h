@@ -18,6 +18,7 @@
 #include "ITStracking/Cluster.h"
 #include <iostream>
 #include "GPUCommonMath.h"
+#include "GPUCommonDef.h"
 
 namespace o2
 {
@@ -26,8 +27,12 @@ namespace its
 
 struct Tracklet final {
   Tracklet();
-  GPU_DEVICE Tracklet(const int, const int, const Cluster&, const Cluster&);
+  GPUdi() Tracklet(const int, const int, const Cluster&, const Cluster&);
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  unsigned char isEmpty() const;
   void dump();
+  unsigned char operator<(const Tracklet&);
+#endif
 
   int firstClusterIndex;
   int secondClusterIndex;
@@ -40,8 +45,8 @@ inline Tracklet::Tracklet() : firstClusterIndex{0}, secondClusterIndex{0}, tanLa
   // Nothing to do
 }
 
-inline GPU_DEVICE Tracklet::Tracklet(const int firstClusterOrderingIndex, const int secondClusterOrderingIndex,
-                                     const Cluster& firstCluster, const Cluster& secondCluster)
+GPUdi() Tracklet::Tracklet(const int firstClusterOrderingIndex, const int secondClusterOrderingIndex,
+                           const Cluster& firstCluster, const Cluster& secondCluster)
   : firstClusterIndex{firstClusterOrderingIndex},
     secondClusterIndex{secondClusterOrderingIndex},
     tanLambda{(firstCluster.zCoordinate - secondCluster.zCoordinate) /
@@ -52,6 +57,23 @@ inline GPU_DEVICE Tracklet::Tracklet(const int firstClusterOrderingIndex, const 
   // Nothing to do
 }
 
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+inline unsigned char Tracklet::isEmpty() const
+{
+  return !firstClusterIndex && !secondClusterIndex && !tanLambda && !phiCoordinate;
+}
+
+inline unsigned char Tracklet::operator<(const Tracklet& t)
+{
+  if (isEmpty() && t.isEmpty()) {
+    return false;
+  } else {
+    if (isEmpty())
+      return false;
+  }
+  return true;
+}
+
 inline void Tracklet::dump()
 {
   std::cout << "firstClusterIndex: " << firstClusterIndex << std::endl;
@@ -59,6 +81,7 @@ inline void Tracklet::dump()
   std::cout << "tanLambda: " << tanLambda << std::endl;
   std::cout << "phiCoordinate: " << phiCoordinate << std::endl;
 }
+#endif
 
 } // namespace its
 } // namespace o2

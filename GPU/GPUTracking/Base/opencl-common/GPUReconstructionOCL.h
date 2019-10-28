@@ -57,7 +57,9 @@ class GPUReconstructionOCL : public GPUReconstructionDeviceBase
   template <class T, int I = 0>
   int AddKernel(bool multi = false);
   template <class T, int I = 0>
-  int FindKernel(int num);
+  unsigned int FindKernel(int num);
+  template <typename K, typename... Args>
+  int runKernelBackendCommon(krnlSetup& _xyz, K& k, const Args&... args);
 
   GPUReconstructionOCLInternals* mInternals;
   int mCoreCount = 0;

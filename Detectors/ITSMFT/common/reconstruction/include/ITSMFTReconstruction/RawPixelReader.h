@@ -135,6 +135,7 @@ struct RawDecodingStat {
   };
 
   using ULL = unsigned long long;
+  uint64_t nTriggersProcessed = 0;                  // total number of triggers processed
   uint64_t nPagesProcessed = 0;                     // total number of pages processed
   uint64_t nRUsProcessed = 0;                       // total number of RUs processed (1 RU may take a few pages)
   uint64_t nBytesProcessed = 0;                     // total number of bytes (rdh->memorySize) processed
@@ -146,6 +147,7 @@ struct RawDecodingStat {
 
   void clear()
   {
+    nTriggersProcessed = 0;
     nPagesProcessed = 0;
     nRUsProcessed = 0;
     nBytesProcessed = 0;
@@ -157,7 +159,8 @@ struct RawDecodingStat {
   void print(bool skipEmpty = true) const
   {
     printf("\nDecoding statistics\n");
-    printf("%llu bytes for %llu RUs processed in %llu pages\n", (ULL)nBytesProcessed, (ULL)nRUsProcessed, (ULL)nPagesProcessed);
+    printf("%llu bytes for %llu RUs processed in %llu pages for %llu triggers\n", (ULL)nBytesProcessed, (ULL)nRUsProcessed,
+           (ULL)nPagesProcessed, (ULL)nTriggersProcessed);
     printf("%llu hits found in %llu non-empty chips\n", (ULL)nHitsDecoded, (ULL)nNonEmptyChips);
     int nErr = 0;
     for (int i = NErrorsDefined; i--;) {
@@ -175,7 +178,7 @@ struct RawDecodingStat {
     "RDH cointains invalid FEEID" // ErrInvalidFEEId
   };
 
-  ClassDefNV(RawDecodingStat, 1);
+  ClassDefNV(RawDecodingStat, 2);
 };
 
 // support for the GBT single link data
@@ -265,6 +268,9 @@ class RawPixelReader : public PixelReader
     mSWIO.Stop();
     printf("RawPixelReader IO time: ");
     mSWIO.Print();
+
+    printf("Cache filling time: ");
+    mSWCache.Print();
   }
 
   /// do we interpred GBT words as padded to 128 bits?
@@ -645,10 +651,11 @@ class RawPixelReader : public PixelReader
     if (buffer.isEmpty()) {
       return nRead;
     }
+    mSWCache.Start(false);
     enum LinkFlag : int8_t { NotUpdated,
                              Updated,
                              HasEnoughTriggers };
-    LinkFlag linkFlags[ChipMappingITS::getNRUs()][3] = {NotUpdated}; // flag that enough triggeres were loaded for this link
+    LinkFlag linkFlags[Mapping::getNRUs()][3] = {NotUpdated};        // flag that enough triggeres were loaded for this link
     int nLEnoughTriggers = 0;                                        // number of links for we which enough number of triggers were loaded
     auto ptr = buffer.getPtr();
     o2::header::RAWDataHeader* rdh = reinterpret_cast<o2::header::RAWDataHeader*>(ptr);
@@ -745,6 +752,7 @@ class RawPixelReader : public PixelReader
         }
       }
     }
+    mSWCache.Stop();
     LOG(INFO) << "Cached at least " << mMinTriggersCached << " triggers on " << mNLinks << " links of " << mNRUs << " RUs";
 
     return nRead;
@@ -776,6 +784,9 @@ class RawPixelReader : public PixelReader
 
       nlinks += decodeNextRUData(ruDecode);
       mDecodingStat.nRUsProcessed++;
+    }
+    if (nlinks) {
+      mDecodingStat.nTriggersProcessed++;
     }
     mCurRUDecodeID = 0;
     mMinTriggersCached--;
@@ -1403,7 +1414,7 @@ class RawPixelReader : public PixelReader
         if (res > 0) {
 #ifdef _RAW_READER_ERROR_CHECKS_
           // for the IB staves check if the cable ID is the same as the chip ID on the module
-          if (decData.ruInfo->ruType == 0) { // ATTENTION: this is a hack tailored for temporary check
+          if (mMAP.getName() == "ITS" && decData.ruInfo->ruType == 0) { // ATTENTION: this is a hack tailored for temporary check
             if (chipData->getChipID() != icab) {
               LOG(ERROR) << "FEEId:" << OUTHEX(decData.ruInfo->idHW, 4) << " IB cable " << icab
                          << " shipped chip ID= " << chipData->getChipID();
@@ -1538,9 +1549,9 @@ class RawPixelReader : public PixelReader
   int getNRUs() const { return mNRUs; }
 
   // get vector of RU decode containers for RUs seen in the data
-  const std::array<RUDecodeData, ChipMappingITS::getNRUs()>& getRUDecodeVec() const { return mRUDecodeVec; }
+  const std::array<RUDecodeData, Mapping::getNRUs()>& getRUDecodeVec() const { return mRUDecodeVec; }
 
-  const std::array<int, ChipMappingITS::getNRUs()>& getRUEntries() const { return mRUEntry; }
+  const std::array<int, Mapping::getNRUs()>& getRUEntries() const { return mRUEntry; }
 
   // get RU decode container for RU with given SW ID
   const RUDecodeData* getRUDecode(int ruSW) const
@@ -1569,8 +1580,8 @@ class RawPixelReader : public PixelReader
 
   PayLoadCont mRawBuffer; //! buffer for binary raw data file IO
 
-  std::array<RUDecodeData, ChipMappingITS::getNRUs()> mRUDecodeVec; // decoding buffers for all active RUs
-  std::array<int, ChipMappingITS::getNRUs()> mRUEntry;              //! entry of the RU with given SW ID in the mRUDecodeVec
+  std::array<RUDecodeData, Mapping::getNRUs()> mRUDecodeVec;        // decoding buffers for all active RUs
+  std::array<int, Mapping::getNRUs()> mRUEntry;                     //! entry of the RU with given SW ID in the mRUDecodeVec
   int mNRUs = 0;                                                    //! total number of RUs seen
   int mNLinks = 0;                                                  //! total number of GBT links seen
 
@@ -1582,6 +1593,7 @@ class RawPixelReader : public PixelReader
   RawDecodingStat mDecodingStat; //! global decoding statistics
 
   TStopwatch mSWIO; //! timer for IO operations
+  TStopwatch mSWCache; //! timer for caching operations
 
   static constexpr int RawBufferMargin = 5000000;                      // keep uploaded at least this amount
   static constexpr int RawBufferSize = 10000000 + 2 * RawBufferMargin; // size in MB

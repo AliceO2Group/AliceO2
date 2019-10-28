@@ -59,7 +59,7 @@ class Mapper
   /// \param sec sector
   /// \param globalPad global pad number in sector
   /// \return global cru number
-  int getCRU(const Sector& sec, GlobalPadNumber globalPad)
+  int getCRU(const Sector& sec, GlobalPadNumber globalPad) const
   {
     const auto row = mMapGlobalPadToPadPos[globalPad].getRow();
     const auto nCRUPerSector = mMapPadRegionInfo.size();
@@ -357,6 +357,7 @@ class Mapper
         break;
       }
     }
+    return 0;
   }
 
   unsigned short getNumberOfPads(const ROC roc) const

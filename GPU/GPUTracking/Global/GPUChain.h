@@ -102,13 +102,13 @@ class GPUChain
   {
     mRec->AllocateIOMemoryHelper<T>(n, ptr, u);
   }
-  template <class T>
-  void DumpData(FILE* fp, const T* const* entries, const unsigned int* num, InOutPointerType type)
+  template <class T, class S>
+  void DumpData(FILE* fp, const T* const* entries, const S* num, InOutPointerType type)
   {
     mRec->DumpData<T>(fp, entries, num, type);
   }
-  template <class T>
-  size_t ReadData(FILE* fp, const T** entries, unsigned int* num, std::unique_ptr<T[]>* mem, InOutPointerType type)
+  template <class T, class S>
+  size_t ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type)
   {
     return mRec->ReadData<T>(fp, entries, num, mem, type);
   }
@@ -152,6 +152,7 @@ class GPUChain
   {
     return mRec->runKernel<S, I, Args...>(x, t, y, z, std::forward<Args>(args)...);
   }
+  krnlExec GetGrid(unsigned int totalItems, unsigned int nThreads, int stream);
   unsigned int BlockCount() const { return mRec->mBlockCount; }
   unsigned int ThreadCount() const { return mRec->mThreadCount; }
   unsigned int ConstructorBlockCount() const { return mRec->mConstructorBlockCount; }
@@ -159,6 +160,8 @@ class GPUChain
   unsigned int ConstructorThreadCount() const { return mRec->mConstructorThreadCount; }
   unsigned int SelectorThreadCount() const { return mRec->mSelectorThreadCount; }
   unsigned int FinderThreadCount() const { return mRec->mFinderThreadCount; }
+  unsigned int ClustererThreadCount() const { return mRec->mClustererThreadCount; }
+  unsigned int ScanThreadCount() const { return mRec->mScanThreadCount; }
   unsigned int TRDThreadCount() const { return mRec->mTRDThreadCount; }
   size_t AllocateRegisteredMemory(GPUProcessor* proc) { return mRec->AllocateRegisteredMemory(proc); }
   size_t AllocateRegisteredMemory(short res) { return mRec->AllocateRegisteredMemory(res); }

@@ -8,6 +8,17 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
+set(genmacros fixedEnergyElectronGun.C fixedEnergyPionGun.C fixedEnergyPhotonGun.C)
+foreach(genmacro ${genmacros}) 
+  MESSAGE(STATUS "Adding test for macro ${genmacro}")
+  o2_add_test_root_macro(${genmacro}
+                         COMPILE_ONLY
+                         PUBLIC_LINK_LIBRARIES FairRoot::Base
+                         LABELS emcal)
+  o2_data_file(COPY ${genmacro} DESTINATION Detectors/EMC/testsimulation)
+endforeach()
+
+
 o2_add_test_root_macro(PutEmcalInTop.C
                        PUBLIC_LINK_LIBRARIES O2::EMCALSimulation
                                              O2::DetectorsPassive FairRoot::Base

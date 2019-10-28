@@ -33,6 +33,7 @@ void GPUSettingsRec::SetDefaults()
   SearchWindowDZDR = 0.f;
   TrackReferenceX = 1000.f;
   NonConsecutiveIDs = false;
+  ForceEarlyTPCTransform = -1;
   DisableRefitAttachment = 0;
   dEdxTruncLow = 2;
   dEdxTruncHigh = 77;
@@ -42,6 +43,8 @@ void GPUSettingsRec::SetDefaults()
   tpcCompressionSortOrder = GPUSettings::SortPad;
   tpcSigBitsCharge = 4;
   tpcSigBitsWidth = 3;
+  tpcZSthreshold = 2;
+  fwdTPCDigitsAsClusters = 0;
 }
 
 void GPUSettingsEvent::SetDefaults()
@@ -50,6 +53,7 @@ void GPUSettingsEvent::SetDefaults()
   constBz = 0;
   homemadeEvents = 0;
   continuousMaxTimeBin = 0;
+  needsClusterer = 0;
 }
 
 void GPUSettingsProcessing::SetDefaults()
@@ -67,6 +71,7 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   gpuDeviceOnly = false;
   nDeviceHelperThreads = 2;
   debugLevel = -1;
+  deviceTimers = false;
   debugMask = -1;
   comparableDebutOutput = true;
   resetTimers = 1;
@@ -80,4 +85,5 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   trackletConstructorInPipeline = true;
   trackletSelectorInPipeline = false;
   forceMemoryPoolSize = 0;
+  nTPCClustererLanes = 3;
 }

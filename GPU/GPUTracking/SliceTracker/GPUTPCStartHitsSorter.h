@@ -30,7 +30,7 @@ class GPUTPCTracker;
  * @class GPUTPCStartHitsSorter
  *
  */
-class GPUTPCStartHitsSorter
+class GPUTPCStartHitsSorter : public GPUKernelTemplate
 {
  public:
   MEM_CLASS_PRE()

@@ -102,6 +102,7 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
         // as they are not invoked in parallel
         // the cost of creating the clusterer should be small so we do it in the processing
         clusterers[sector] = std::make_shared<o2::tpc::HwClusterer>(&clusterArray, sector, &mctruthArray);
+        clusterers[sector]->init();
       }
       auto& clusterer = clusterers[sector];
 
@@ -179,7 +180,7 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
       if (finished) {
         // got EOD on all inputs
         processAttributes->finished = true;
-        pc.services().get<ControlService>().readyToQuit(false);
+        pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
       }
     };
     return processingFct;

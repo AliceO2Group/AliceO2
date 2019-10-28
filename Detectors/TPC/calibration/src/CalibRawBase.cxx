@@ -60,15 +60,16 @@ void CalibRawBase::setupContainers(TString fileInfo, uint32_t verbosity, uint32_
       TString files = gSystem->GetFromPipe(TString::Format("ls %s", arrDataInfo->At(0)->GetName()));
       const int timeBins = static_cast<TObjString*>(arrDataInfo->At(1))->String().Atoi();
       std::unique_ptr<TObjArray> arr(files.Tokenize("\n"));
+      mRawReaderCRUManager.setDebugLevel(debugLevel);
       for (auto file : *arr) {
         // fix the number of time bins
-        mRawReadersCRU.emplace_back(std::make_unique<RawReaderCRU>(file->GetName(), timeBins));
-        mRawReadersCRU.back()->setVerbosity(verbosity);
-        mRawReadersCRU.back()->setDebugLevel(debugLevel);
+        auto& reader = mRawReaderCRUManager.createReader(file->GetName(), timeBins);
+        reader.setVerbosity(verbosity);
+        reader.setDebugLevel(debugLevel);
         printf("Adding file: %s\n", file->GetName());
         if (arrDataInfo->GetEntriesFast() == 3) {
           const int cru = static_cast<TObjString*>(arrDataInfo->At(2))->String().Atoi();
-          mRawReadersCRU.back()->forceCRU(cru);
+          reader.forceCRU(cru);
           printf("Forcing CRU %03d\n", cru);
         }
       }

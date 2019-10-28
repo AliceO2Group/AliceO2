@@ -18,19 +18,19 @@ void Hit::PrintStream(std::ostream& stream) const
 {
   stream << "EMCAL point: Track " << GetTrackID() << " in detector segment " << GetDetectorID()
          << " at position (" << GetX() << "|" << GetY() << "|" << GetZ() << "), energy loss " << GetEnergyLoss()
-         << ", parent " << mParent << " with energy " << mInitialEnergy;
+         << ", initial (parent) energy " << mInitialEnergy;
 }
 
 Bool_t Hit::operator<(const Hit& rhs) const
 {
-  if (mParent != rhs.mParent)
-    return mParent < rhs.mParent;
+  if (GetTrackID() != rhs.GetTrackID())
+    return GetTrackID() < rhs.GetTrackID();
   return GetDetectorID() < rhs.GetDetectorID();
 }
 
 Bool_t Hit::operator==(const Hit& rhs) const
 {
-  return (GetDetectorID() == GetDetectorID()) && (mParent == rhs.mParent);
+  return (GetDetectorID() == GetDetectorID()) && (GetTrackID() == rhs.GetTrackID());
 }
 
 Hit& Hit::operator+=(const Hit& rhs)

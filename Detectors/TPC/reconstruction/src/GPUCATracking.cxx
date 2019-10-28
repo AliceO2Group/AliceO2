@@ -25,13 +25,16 @@
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/Sector.h"
+#include "TPCBase/Digit.h"
 
 #include "GPUO2Interface.h"
 #include "GPUO2InterfaceConfiguration.h"
-#define GPUCA_O2_LIB // Temporary workaround, must not be set globally, but needed right now for GPUTPCGM*.h
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUTPCGMMergedTrackHit.h"
-#undef GPUCA_O2_LIB
+namespace gpucf
+{
+#include "cl/shared/Digit.h"
+}
 
 using namespace o2::gpu;
 using namespace o2::tpc;
@@ -60,11 +63,10 @@ void GPUCATracking::deinitialize()
 
 int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
 {
-  if (data->clusters == nullptr) {
+  if (data->o2Digits == nullptr && data->clusters == nullptr) {
     return 0;
   }
 
-  const ClusterNativeAccess& clusters = *data->clusters;
   std::vector<TrackTPC>* outputTracks = data->outputTracks;
   MCLabelContainer* outputTracksMCTruth = data->outputTracksMCTruth;
 
@@ -78,9 +80,35 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
   float vzbinInv = 1.f / vzbin;
   Mapper& mapper = Mapper::instance();
 
+  const ClusterNativeAccess* clusters;
+  std::vector<gpucf::PackedDigit> gpuDigits[Sector::MAXSECTOR];
+  GPUTrackingInOutDigits gpuDigitsMap;
   GPUTrackingInOutPointers ptrs;
-  ptrs.clustersNative = &clusters;
+
+  if (data->o2Digits) {
+    ptrs.clustersNative = nullptr;
+    const float zsThreshold = mTrackingCAO2Interface->getConfig().configReconstruction.tpcZSthreshold;
+    for (int i = 0; i < Sector::MAXSECTOR; i++) {
+      const std::vector<o2::tpc::Digit>& d = (*(data->o2Digits))[i];
+      gpuDigits[i].reserve(d.size());
+      gpuDigitsMap.tpcDigits[i] = gpuDigits[i].data();
+      for (int j = 0; j < d.size(); j++) {
+        if (d[j].getChargeFloat() >= zsThreshold) {
+          gpuDigits[i].emplace_back(gpucf::PackedDigit{d[j].getChargeFloat(), (gpucf::timestamp)d[j].getTimeStamp(), (gpucf::pad_t)d[j].getPad(), (gpucf::row_t)d[j].getRow()});
+        }
+      }
+      gpuDigitsMap.nTPCDigits[i] = gpuDigits[i].size();
+    }
+    ptrs.tpcPackedDigits = &gpuDigitsMap;
+  } else {
+    clusters = data->clusters;
+    ptrs.clustersNative = clusters;
+    ptrs.tpcPackedDigits = nullptr;
+  }
   int retVal = mTrackingCAO2Interface->RunTracking(&ptrs);
+  if (data->o2Digits) {
+    clusters = ptrs.clustersNative;
+  }
   const GPUTPCGMMergedTrack* tracks = ptrs.mergedTracks;
   int nTracks = ptrs.nMergedTracks;
   const GPUTPCGMMergedTrackHit* trackClusters = ptrs.mergedTrackHits;
@@ -122,8 +150,8 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
           if (lastSide ^ (trackClusters[tracks[i].FirstClusterRef() + iCl].slice < Sector::MAXSECTOR / 2)) {
             auto& hltcl1 = trackClusters[tracks[i].FirstClusterRef() + iCl];
             auto& hltcl2 = trackClusters[tracks[i].FirstClusterRef() + iCl - 1];
-            auto& cl1 = clusters.clusters[hltcl1.slice][hltcl1.row][hltcl1.num];
-            auto& cl2 = clusters.clusters[hltcl2.slice][hltcl2.row][hltcl2.num];
+            auto& cl1 = clusters->clusters[hltcl1.slice][hltcl1.row][hltcl1.num];
+            auto& cl2 = clusters->clusters[hltcl2.slice][hltcl2.row][hltcl2.num];
             delta = fabs(cl1.getTime() - cl2.getTime()) * 0.5f;
             break;
           }
@@ -131,28 +159,13 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
         tFwd = tBwd = delta;
       } else {
         // estimate max/min time increments which still keep track in the physical limits of the TPC
-        float zHigh = trackClusters[tracks[i].FirstClusterRef()].z - tracks[i].GetParam().GetZOffset(); // high R cluster
-        float zLow = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].z -
-                     tracks[i].GetParam().GetZOffset(); // low R cluster
-
-        bool sideHighA = trackClusters[tracks[i].FirstClusterRef()].slice < Sector::MAXSECTOR / 2;
-        bool sideLowA =
-          trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1].slice < Sector::MAXSECTOR / 2;
-
-        // calculate time bracket
-        float zLowAbs = zLow < 0.f ? -zLow : zLow;
-        float zHighAbs = zHigh < 0.f ? -zHigh : zHigh;
-        //
-        // tFwd = (Lmax - max(|zLow|,|zAbs|))/vzbin  = drift time from cluster current Z till endcap
-        // tBwd = min(|zLow|,|zAbs|))/vzbin          = drift time from CE till cluster current Z
-        //
-        if (zLowAbs < zHighAbs) {
-          tFwd = (detParam.TPClength - zHighAbs) * vzbinInv;
-          tBwd = zLowAbs * vzbinInv;
-        } else {
-          tFwd = (detParam.TPClength - zLowAbs) * vzbinInv;
-          tBwd = zHighAbs * vzbinInv;
-        }
+        auto& c1 = trackClusters[tracks[i].FirstClusterRef()];
+        auto& c2 = trackClusters[tracks[i].FirstClusterRef() + tracks[i].NClusters() - 1];
+        float t1 = clusters->clusters[c1.slice][c1.row][c1.num].getTime();
+        float t2 = clusters->clusters[c2.slice][c2.row][c2.num].getTime();
+        auto times = std::minmax(t1, t2);
+        tFwd = times.first - time0 + detParam.TPClength * vzbinInv;
+        tBwd = time0 - times.second;
       }
     }
 
@@ -202,14 +215,14 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
       int clusterId = trackClusters[tracks[i].FirstClusterRef() + j].num;
       Sector sector = trackClusters[tracks[i].FirstClusterRef() + j].slice;
       int globalRow = trackClusters[tracks[i].FirstClusterRef() + j].row;
-      const ClusterNative& cl = clusters.clusters[sector][globalRow][clusterId];
+      const ClusterNative& cl = clusters->clusters[sector][globalRow][clusterId];
       int regionNumber = 0;
       while (globalRow > mapper.getGlobalRowOffsetRegion(regionNumber) + mapper.getNumberOfRowsRegion(regionNumber))
         regionNumber++;
       CRU cru(sector, regionNumber);
       oTrack.setClusterReference(nOutCl++, sector, globalRow, clusterId);
       if (outputTracksMCTruth) {
-        for (const auto& element : clusters.clustersMCTruth->getLabels(clusters.clusterOffset[sector][globalRow] + clusterId)) {
+        for (const auto& element : clusters->clustersMCTruth->getLabels(clusters->clusterOffset[sector][globalRow] + clusterId)) {
           bool found = false;
           for (int l = 0; l < labels.size(); l++) {
             if (labels[l].first == element) {

@@ -125,6 +125,7 @@ Context::Context(bool dumpDevices)
     if (dumpDevices) {
       std::cout << "################ CUDA DEVICE " << iDevice << " ################" << std::endl;
       std::cout << "Name " << mDeviceProperties[iDevice].name << std::endl;
+      std::cout << "minor " << minor << " major " << major << std::endl;
       std::cout << "gpuProcessors " << mDeviceProperties[iDevice].gpuProcessors << std::endl;
       std::cout << "cudaCores " << mDeviceProperties[iDevice].cudaCores << std::endl;
       std::cout << "globalMemorySize " << mDeviceProperties[iDevice].globalMemorySize << std::endl;
