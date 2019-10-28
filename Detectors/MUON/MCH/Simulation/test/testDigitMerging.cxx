@@ -28,10 +28,10 @@ BOOST_AUTO_TEST_SUITE(o2_mch_simulation)
 std::vector<Digit> createNonOverlappingDigits()
 {
   return std::vector<Digit>{
-    {0, 100, 2, 0, 5},
-    {0, 100, 3, 0, 6},
-    {0, 100, 1, 0, 2},
-    {0, 100, 0, 0, 1}};
+    {0, 100, 2, 5},
+    {0, 100, 3, 6},
+    {0, 100, 1, 2},
+    {0, 100, 0, 1}};
 }
 
 std::vector<o2::MCCompLabel> createLabelsNonOverlappingDigits()
@@ -46,14 +46,14 @@ std::vector<o2::MCCompLabel> createLabelsNonOverlappingDigits()
 std::vector<Digit> createOverlappingDigits()
 {
   return std::vector<Digit>{
-    {0, 100, 2, 0, 5},
-    {0, 100, 3, 0, 6},
-    {0, 100, 1, 0, 2},
-    {0, 100, 0, 0, 0},
-    {0, 100, 0, 0, 1},
-    {0, 100, 1, 0, 3},
-    {0, 100, 3, 0, 7},
-    {0, 100, 1, 0, 4}};
+    {0, 100, 2, 5},
+    {0, 100, 3, 6},
+    {0, 100, 1, 2},
+    {0, 100, 0, 0},
+    {0, 100, 0, 1},
+    {0, 100, 1, 3},
+    {0, 100, 3, 7},
+    {0, 100, 1, 4}};
 }
 
 std::vector<o2::MCCompLabel> createLabelsOverlappingDigits()
@@ -73,10 +73,10 @@ std::vector<o2::MCCompLabel> createLabelsOverlappingDigits()
 std::vector<Digit> expected()
 {
   return std::vector<Digit>{
-    {0, 100, 0, 0, 1},
-    {0, 100, 1, 0, 9},
-    {0, 100, 2, 0, 5},
-    {0, 100, 3, 0, 13}};
+    {0, 100, 0, 1},
+    {0, 100, 1, 9},
+    {0, 100, 2, 5},
+    {0, 100, 3, 13}};
 }
 
 std::vector<o2::MCCompLabel> labelexpected()

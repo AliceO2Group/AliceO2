@@ -161,12 +161,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
       q *= chargenon;
     }
     auto signal = resp.response(q);
-    int manuID = seg.padDualSampaId(padid);
-    int manuCH = seg.padDualSampaChannel(padid);
-    int32_t uID = detID & 0xFFF;
-    uID += (manuID << 12) & 0xFFF000;
-    uID += (manuCH << 24) & 0x3F000000;
-    digits.emplace_back(time, detID, padid, uID, signal);
+    digits.emplace_back(time, detID, padid, signal);
     ++ndigits;
   });
   return ndigits;
@@ -215,7 +210,7 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
         }
       }
     }
-    mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), sortedDigits(i).getUID(), adc);
+    mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc);
     i = j;
     ++count;
   }
@@ -236,7 +231,7 @@ void Digitizer::mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruth
 
   for (int index = 0; index < digits.size(); ++index) {
     auto digit = digits.at(index);
-    mDigits.emplace_back(digit.getTimeStamp(), digit.getDetID(), digit.getPadID(), digit.getUID(), digit.getADC());
+    mDigits.emplace_back(digit.getTimeStamp(), digit.getDetID(), digit.getPadID(), digit.getADC());
   }
 
   for (int index = 0; index < mcContainer.getNElements(); ++index) {
