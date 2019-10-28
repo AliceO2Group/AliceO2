@@ -76,7 +76,6 @@ BOOST_AUTO_TEST_CASE(addDataBlockForEach_test)
   auto factoryZMQ = FairMQTransportFactory::CreateTransportFactory("zeromq");
   auto factorySHM = FairMQTransportFactory::CreateTransportFactory("shmem");
   auto allocZMQ = getTransportAllocator(factoryZMQ.get());
-  auto allocSHM = getTransportAllocator(factorySHM.get());
 
   {
     //simple addition of a data block from an exisiting message
