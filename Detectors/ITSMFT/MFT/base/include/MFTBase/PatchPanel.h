@@ -26,12 +26,12 @@ namespace mft
 
 class PatchPanel
 {
-
+TNamed
  public:
   PatchPanel();
   ~PatchPanel() = default;
 
-  TGeoVolumeAssembly* createPatchPanel();
+  TGeoVolumeAssembly* createPatchPanel(Int);
 
  private:
   //ClassDefNV(PatchPanel, 1);
