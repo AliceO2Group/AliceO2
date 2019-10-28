@@ -33,5 +33,4 @@
 #pragma link C++ class o2::mft::PowerSupplyUnit + ;
 #pragma link C++ class o2::mft::Barrel + ;
 #pragma link C++ class o2::mft::PatchPanel + ;
-
 #endif
