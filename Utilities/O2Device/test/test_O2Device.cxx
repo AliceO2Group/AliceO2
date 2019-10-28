@@ -74,7 +74,6 @@ BOOST_AUTO_TEST_CASE(addDataBlockForEach_test)
   fair::mq::ProgOptions config;
   config.SetProperty<std::string>("session", std::to_string(session));
   auto factoryZMQ = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  auto factorySHM = FairMQTransportFactory::CreateTransportFactory("shmem");
   auto allocZMQ = getTransportAllocator(factoryZMQ.get());
 
   {
