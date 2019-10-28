@@ -48,7 +48,7 @@ set_package_properties(ROOT PROPERTIES TYPE REQUIRED)
 find_package(fmt)
 set_package_properties(fmt PROPERTIES TYPE REQUIRED)
 
-find_package(Boost 1.59
+find_package(Boost 1.70
              COMPONENTS container
                         thread
                         system
