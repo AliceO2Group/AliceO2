@@ -31,7 +31,7 @@ class PatchPanel
   PatchPanel();
   ~PatchPanel() = default;
 
-  TGeoVolumeAssembly* createPatchPanel(Int);
+  TGeoVolumeAssembly* createPatchPanel();
 
  private:
   //ClassDefNV(PatchPanel, 1);
