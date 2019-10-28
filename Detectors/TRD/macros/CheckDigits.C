@@ -15,7 +15,9 @@
 #include <TFile.h>
 #include <TTree.h>
 #include <TH1F.h>
+#include <TCanvas.h>
 
+#include "FairLogger.h"
 #include "TRDBase/Digit.h"
 #endif
 
@@ -50,7 +52,7 @@ void CheckDigits(std::string digifile = "trddigits.root",
       hPad->Fill(pad);
       int tb = 0;
       for (const auto& adc : adcs) {
-        if (++tb > kTimeBins)
+        if (++tb > 30)
           break;
         hADC->Fill(adc);
       }
