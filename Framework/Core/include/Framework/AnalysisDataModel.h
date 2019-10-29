@@ -34,7 +34,7 @@ DECLARE_SOA_COLUMN(Tgl, tgl, float, "fTgl");
 DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float, "fSigned1Pt");
 DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, [](float snp, float alpha) { return asin(snp) + alpha + M_PI; });
 DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, [](float tgl) { return log(tan(0.25 * M_PI - 0.5 * atan(tgl))); });
-DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, [](float signed1Pt) { return abs(1.0 / signed1Pt); });
+DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, [](float signed1Pt) { return fabs(1.0 / signed1Pt); });
 // TRACKPARCOV TABLE definition
 DECLARE_SOA_COLUMN(CYY, cZZ, float, "fCYY");
 DECLARE_SOA_COLUMN(CZY, cZY, float, "fCZY");
