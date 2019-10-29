@@ -20,6 +20,7 @@
 
 #include <chrono>
 #include <iostream>
+#include <thread>
 
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;

@@ -13,6 +13,7 @@
 #include <InfoLogger/InfoLogger.hxx>
 
 #include <chrono>
+#include <thread>
 #include <vector>
 
 using namespace o2::framework;
