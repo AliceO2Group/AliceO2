@@ -29,6 +29,7 @@ BOOST_AUTO_TEST_CASE(getMessage_Stack)
   size_t session{fair::mq::tools::UuidHash()};
   fair::mq::ProgOptions config;
   config.SetProperty<std::string>("session", std::to_string(session));
+
   auto factoryZMQ = FairMQTransportFactory::CreateTransportFactory("zeromq");
   auto factorySHM = FairMQTransportFactory::CreateTransportFactory("shmem");
   auto allocZMQ = getTransportAllocator(factoryZMQ.get());
@@ -73,6 +74,7 @@ BOOST_AUTO_TEST_CASE(addDataBlockForEach_test)
   size_t session{fair::mq::tools::UuidHash()};
   fair::mq::ProgOptions config;
   config.SetProperty<std::string>("session", std::to_string(session));
+
   auto factoryZMQ = FairMQTransportFactory::CreateTransportFactory("zeromq");
   auto allocZMQ = getTransportAllocator(factoryZMQ.get());
 
