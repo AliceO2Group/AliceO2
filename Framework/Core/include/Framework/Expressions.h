@@ -57,11 +57,6 @@ struct Node;
 
 struct Node {
   template <typename T>
-  Node(T v) : self{LiteralNode<T>(v)}, left{nullptr}, right{nullptr}
-  {
-  }
-
-  template <typename T>
   Node(LiteralNode<T> v) : self{v}, left{nullptr}, right{nullptr}
   {
   }
