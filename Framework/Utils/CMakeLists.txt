@@ -14,6 +14,7 @@ o2_add_library(DPLUtils
                        src/DPLGatherer.cxx
                        src/DPLMerger.cxx
                        src/DPLRouter.cxx
+                       src/RawParser.cxx
                        test/DPLBroadcasterMerger.cxx
                        test/DPLOutputTest.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework)
@@ -71,3 +72,13 @@ o2_add_test(RawParser
             PUBLIC_LINK_LIBRARIES O2::DPLUtils
             COMPONENT_NAME DPLUtils
             LABELS dplutils)
+
+foreach(b
+        RawParser
+        )
+  o2_add_test(benchmark_${b} NAME test_Framework_benchmark_${b}
+              SOURCES test/benchmark_${b}.cxx
+              COMPONENT_NAME DPLUtils
+              LABELS dplutils benchmark
+              PUBLIC_LINK_LIBRARIES O2::DPLUtils benchmark::benchmark)
+endforeach()

@@ -27,9 +27,12 @@ BOOST_AUTO_TEST_CASE(test_RawParser)
   std::array<unsigned char, NofPages * PageSize> buffer;
   for (int pageNo = 0; pageNo < buffer.size() / PageSize; pageNo++) {
     auto* rdh = reinterpret_cast<V5*>(buffer.data() + pageNo * PageSize);
-    rdh->version = 4;
+    rdh->version = 5;
     rdh->headerSize = sizeof(V5);
     rdh->offsetToNext = PageSize;
+    rdh->pageCnt = NofPages;
+    rdh->packetCounter = pageNo;
+    rdh->stop = pageNo + 1 == NofPages;
     auto* data = reinterpret_cast<size_t*>(buffer.data() + pageNo * PageSize + rdh->headerSize);
     *data = pageNo;
   }
@@ -47,13 +50,14 @@ BOOST_AUTO_TEST_CASE(test_RawParser)
 
   parser.reset();
 
+  std::cout << parser << std::endl;
   count = 0;
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it, ++count) {
     BOOST_CHECK(it.length() == PageSize - sizeof(V5));
     BOOST_CHECK(*reinterpret_cast<size_t const*>(it.data()) == count);
-    //BOOST_CHECK(it.as<V5>() != nullptr);
-    //BOOST_CHECK(it.as<V4>() == nullptr);
-    std::cout << "Iterating block of length " << it.length() << std::endl;
+    BOOST_CHECK(it.get_if<V5>() != nullptr);
+    BOOST_CHECK(it.get_if<V4>() == nullptr);
+    std::cout << it << ": block length " << it.length() << std::endl;
   }
 }
 
