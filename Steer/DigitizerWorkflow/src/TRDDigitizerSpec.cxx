@@ -25,6 +25,7 @@
 #include "TRDSimulation/Digitizer.h"
 #include "TRDSimulation/Detector.h" // for the Hit type
 #include "DetectorsBase/GeometryManager.h"
+#include "TRDBase/Calibrations.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -82,6 +83,10 @@ class TRDDPLDigitizerTask
       return;
     }
     LOG(INFO) << "Doing TRD digitization";
+
+    Calibrations simcal;
+    simcal.setCCDBForSimulation(297595);
+    mDigitizer.setCalibrations(&simcal);
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
