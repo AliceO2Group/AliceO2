@@ -305,6 +305,21 @@ struct RowView : public C... {
     return copy;
   }
 
+  /// Allow incrementing by more than one the iterator
+  RowView<C...> operator+(size_t inc) const
+  {
+    RowView<C...> copy = *this;
+    copy.mRowIndex += inc;
+    return copy;
+  }
+
+  RowView<C...> operator-(size_t dec) const
+  {
+    RowView<C...> copy = *this;
+    copy.mRowIndex -= dec;
+    return copy;
+  }
+
   RowView<C...> const& operator*() const
   {
     return *this;
