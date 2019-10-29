@@ -21,6 +21,9 @@
 //    build aliroot as :
 //    aliBuild build AliRoot --defaults=o2
 //    i have aliBuild build AliRoot --defaults=o2 -z O2 --debug
+//    you then call :
+//    alienv enter VO_ALICE@O2::latest-O2-o2,VO_ALICE@AliRoot::latest-O2-o2
+//    according to my configs, modify as required of course.
 //
 
 #include <iostream>
@@ -36,6 +39,7 @@
 #include "TMath.h"
 #include "TObjArray.h"
 #include "TFile.h"
+#include "TList.h"
 #include "TSystem.h"
 #include "TGrid.h"
 #include "AliCDBManager.h"
@@ -73,10 +77,12 @@
 #include "TRDBase/ChamberNoise.h"
 #include "TRDBase/CalOnlineGainTables.h"
 #include "TRDBase/FeeParam.h"
+#include "TRDBase/TrapConfig.h"
 
 using namespace std;
 using namespace o2::ccdb;
 using namespace o2::trd;
+
 // global variables
 // histograms used for extracting the mean and RMS of calibration parameters
 
@@ -153,7 +159,7 @@ void PrintGainTable(ofstream& out, const AliTRDCalOnlineGainTable* tbl)
   AliTRDCalOnlineGainTableROC* tblroc = 0;
   AliTRDCalOnlineGainTableMCM* tblmcm = 0;
 
-  for (int i = 9; i < 540; i++) {
+  for (int i = 0; i < 540; i++) {
     tblroc = tbl->GetGainTableROC(i);
     if (tblroc) {
       out << i << endl;
@@ -185,7 +191,7 @@ void UnpackGainTable(std::string& gainkey, CalOnlineGainTables* gtbl)
   AliCDBEntry* entry = NULL;
   if ((entry = GetCDBentry(Form("TRD/Calib/%s", gainkey.c_str()), 0))) {
     tbl = (AliTRDCalOnlineGainTable*)entry->GetObject();
-    for (int i = 9; i < 540; i++) {
+    for (int i = 0; i < 540; i++) {
       tblroc = tbl->GetGainTableROC(i);
       if (tblroc) {
         for (int j = 0; j < 128; j++) {
@@ -258,7 +264,7 @@ void OCDB2CCDB(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data
         o2chamberstatus->setRawStatus(i, a);
       }
       // store abitrary user object in strongly typed manner
-      ccdb.storeAsTFileAny(o2chamberstatus, "TRD_test/ChamberStatus", metadata, 1000000000000 + Run, 1000000000000 + Run + 1);
+      ccdb.storeAsTFileAny(o2chamberstatus, "TRD_test/ChamberStatus", metadata, Run, Run + 1);
       // // read like this (you have to specify the type)
       //auto o2chamberstatusback = ccdb.retrieveFromTFileAny<o2::trd::ChamberStatus>("TRD_test/ChamberStatus", metadata);
     } else
@@ -307,7 +313,7 @@ void OCDB2CCDB(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data
 
   if (chamberGainFactor && chamberExB && chamberT0 && chamberVDrift) {
     //if all 4 mmebers of calibrations is here then write to ccdb.
-    ccdb.storeAsTFileAny(o2chambercalibrations, "TRD_test/ChamberCalibrations", metadata, 1000000000000 + Run, 1000000000000 + Run + 1);
+    ccdb.storeAsTFileAny(o2chambercalibrations, "TRD_test/ChamberCalibrations", metadata, Run, Run + 1);
   } else
     cout << "something wrong with one of the members of ChamberCalibrations and not writing to ccdb, fix :: " << chamberGainFactor << "&&" << chamberExB << "&&" << chamberT0 << "&&" << chamberVDrift << endl;
 
@@ -327,7 +333,7 @@ void OCDB2CCDB(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data
         } else
           cout << "calroc is undefiend" << endl;
       }
-      ccdb.storeAsTFileAny(o2localvdrift, "TRD_test/LocalVDrift", metadata, 1000000000000 + Run, 1000000000000 + Run + 1);
+      ccdb.storeAsTFileAny(o2localvdrift, "TRD_test/LocalVDrift", metadata, Run, Run + 1);
     } else
       cout << "attempt to get object LocalVdrift from ocdb entry. Will not be writing LocalVDritf" << endl;
   } else
@@ -345,7 +351,7 @@ void OCDB2CCDB(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data
           o2localt0->setPadValue(i, j, calroc->GetValue(j));
         }
       }
-      ccdb.storeAsTFileAny(o2localt0, "TRD_test/LocalT0", metadata, 1000000000000 + Run, 1000000000000 + Run + 1);
+      ccdb.storeAsTFileAny(o2localt0, "TRD_test/LocalT0", metadata, Run, Run + 1);
     } else
       cout << "attempt to get object chamber LocalT0 from ocdb entry. Will not be writing LocalT0" << endl;
   } else
@@ -364,7 +370,7 @@ void OCDB2CCDB(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data
           o2padnoise->setPadValue(i, j, calroc->GetValue(j));
         }
       }
-      ccdb.storeAsTFileAny(o2padnoise, "TRD_test/PadNoise", metadata, 1000000000000 + Run, 1000000000000 + Run + 1);
+      ccdb.storeAsTFileAny(o2padnoise, "TRD_test/PadNoise", metadata, Run, Run + 1);
     } else
       cout << "attempt to get object PadNoise from ocdb entry. Will not be writing PadNoise" << endl;
   }
@@ -381,7 +387,7 @@ void OCDB2CCDB(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data
           o2localgainfactor->setPadValue(i, j, calroc->GetValue(j));
         }
       }
-      ccdb.storeAsTFileAny(o2localgainfactor, "TRD_test/LocalGainFactor", metadata, 1000000000000 + Run, 1000000000000 + Run + 1);
+      ccdb.storeAsTFileAny(o2localgainfactor, "TRD_test/LocalGainFactor", metadata, Run, Run + 1);
     } else
       cout << "attempt to get object LocalGainFactor from ocdb entry. Will not be writing LocalGainFactor" << endl;
   } else
@@ -399,7 +405,7 @@ void OCDB2CCDB(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data
           o2padstatus->setStatus(i, j, rocstatus->GetStatus(j));
         }
       }
-      ccdb.storeAsTFileAny(o2padstatus, "TRD_test/PadStatus", metadata, 1000000000000 + Run, 1000000000000 + Run + 1);
+      ccdb.storeAsTFileAny(o2padstatus, "TRD_test/PadStatus", metadata, Run, Run + 1);
     }
   }
 
@@ -410,74 +416,40 @@ void OCDB2CCDB(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data
       for (int i = 0; i < AliTRDCalDet::kNdet; i++) {
         o2chambernoise->setNoise(i, chambernoise->GetValue(i));
       }
-      ccdb.storeAsTFileAny(o2chambernoise, "TRD_test/ChamberNoise", metadata, 1000000000000 + Run, 1000000000000 + Run + 1);
+      ccdb.storeAsTFileAny(o2chambernoise, "TRD_test/ChamberNoise", metadata, Run, Run + 1);
     } else
       cout << "attempt to get object ChamberNoise from ocdb entry. Will not be writing ChamberNoise" << endl;
   }
-  /*
-  PRFWidth is stored in a CalPad for some reason.
-  Its values appear to be the same values as stored in the static class.
 
-  AliTRDCalPad* prfwidth = 0;
-  auto o2padresponse = new o2::trd::PadResponse();
-  if ((entry = GetCDBentry("TRD/Calib/PRFWidth", 0))) {
-    if ((prfwidth = (AliTRDCalPad*)entry->GetObject())) {
-      for (int i = 0; i < AliTRDCalDet::kNdet; i++) { //need the length of calroc.
-        AliTRDCalROC* calroc = prfwidth->GetCalROC(i);
-        if (calroc) {
-          int rows = calroc->GetNrows();
-          int cols = calroc->GetNcols();
-          //                o2padresponse->setPRF()
-          for (int j = 0; j < calroc->GetNchannels(); j++) {
-            //              o2padresponse->setPRF(i,j, calroc->GetValue(j));
-            cout << "PRF[" << i << "][" << j << "]=" << calroc->GetValue(j);
-          }
-        }
-        cout << "calroc is null for i=" << i << endl;
-      }
-      //ccdb.storeAsTFileAny(o2padresponse,"TRD_test/PRFWidth",metadata,1000000000000+Run,1000000000000+Run+1);
-    } else
-      cout << "attempt to get object PRFWidth from ocdb entry. Will not be writing PRFWidth" << endl;
-  } else
-    cout << "failed to retrieve ocdb entry for PRFWidth" << endl;
-*/
   auto o2gtbl = new CalOnlineGainTables();
   std::string tablekey = "Krypton_2011-01";
   UnpackGainTable(tablekey, o2gtbl);
-  ccdb.storeAsTFileAny(o2gtbl, Form("%s/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1000000000000 + Run); //no uppper timestamp to leave it "always" valid.
+  // Cant have empty upper vaild time, the system simply adds 1 year, so changed it to after run3. its indexed by the name in anycase.
+  ccdb.storeAsTFileAny(o2gtbl, Form("%s/OnlineGainTables/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1, 1670700184549); //no uppper timestamp to leave it "always" valid.
   tablekey = "Krypton_2011-02";
   UnpackGainTable(tablekey, o2gtbl);
-  ccdb.storeAsTFileAny(o2gtbl, Form("%s/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1000000000000 + Run); //no uppper timestamp to leave it "always" valid.
+  ccdb.storeAsTFileAny(o2gtbl, Form("%s/OnlineGainTables/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1, 1670700184549); //no uppper timestamp to leave it "always" valid.
   tablekey = "Krypton_2011-03";
   UnpackGainTable(tablekey, o2gtbl);
-  ccdb.storeAsTFileAny(o2gtbl, Form("%s/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1000000000000 + Run); //no uppper timestamp to leave it "always" valid.
+  ccdb.storeAsTFileAny(o2gtbl, Form("%s/OnlineGainTables/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1, 1670700184549); //no uppper timestamp to leave it "always" valid.
   tablekey = "Krypton_2012-01";
   UnpackGainTable(tablekey, o2gtbl);
-  ccdb.storeAsTFileAny(o2gtbl, Form("%s/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1000000000000 + Run); //no uppper timestamp to leave it "always" valid.
+  ccdb.storeAsTFileAny(o2gtbl, Form("%s/OnlineGainTables/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1, 1670700184549); //no uppper timestamp to leave it "always" valid.
   tablekey = "Krypton_2015-01";
   UnpackGainTable(tablekey, o2gtbl);
-  ccdb.storeAsTFileAny(o2gtbl, Form("%s/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1000000000000 + Run); //no uppper timestamp to leave it "always" valid.
+  ccdb.storeAsTFileAny(o2gtbl, Form("%s/OnlineGainTables/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1, 1670700184549); //no uppper timestamp to leave it "always" valid.
   tablekey = "Krypton_2015-02";
   UnpackGainTable(tablekey, o2gtbl);
-  ccdb.storeAsTFileAny(o2gtbl, Form("%s/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1000000000000 + Run); //no uppper timestamp to leave it "always" valid.
+  ccdb.storeAsTFileAny(o2gtbl, Form("%s/OnlineGainTables/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1, 1670700184549); //no uppper timestamp to leave it "always" valid.
   tablekey = "Krypton_2018-01";
   UnpackGainTable(tablekey, o2gtbl);
-  ccdb.storeAsTFileAny(o2gtbl, Form("%s/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1000000000000 + Run); //no uppper timestamp to leave it "always" valid.
+  ccdb.storeAsTFileAny(o2gtbl, Form("%s/OnlineGainTables/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1, 1670700184549); //no uppper timestamp to leave it "always" valid.
   tablekey = "Gaintbl_Uniform_FGAN0_2011-01";
   UnpackGainTable(tablekey, o2gtbl);
-  ccdb.storeAsTFileAny(o2gtbl, Form("%s/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1000000000000 + Run); //no uppper timestamp to leave it "always" valid.
+  ccdb.storeAsTFileAny(o2gtbl, Form("%s/OnlineGainTables/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1, 1670700184549); //no uppper timestamp to leave it "always" valid.
   tablekey = "Gaintbl_Uniform_FGAN0_2012-01";
   UnpackGainTable(tablekey, o2gtbl);
-  ccdb.storeAsTFileAny(o2gtbl, Form("%s/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1000000000000 + Run); //no uppper timestamp to leave it "always" valid.
-
-  //AliTRDcalibDB *calibdb=AliTRDcalibDB::Instance();
-
-  //const AliTRDCalTrapConfig *caltrap = dynamic_cast<const AliTRDCalTrapConfig*> (calibdb->GetCachedCDBObject(12));
-
-  //cout << "now to print the names of the cal traps" << endl;
-  //if(caltrap) caltrap->Print();
-  //else cout << "caltrap is null" << endl;
-  //RecoParam
+  ccdb.storeAsTFileAny(o2gtbl, Form("%s/OnlineGainTables/%s", TRDCalBase.c_str(), tablekey.c_str()), metadata, 1, 1670700184549); //no uppper timestamp to leave it "always" valid.
 
   /*
 THESE ARE THE ONES NOT CURRENTLY INCLUDED.

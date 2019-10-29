@@ -17,6 +17,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 #include "TRDBase/TRDCommonParam.h"
+#include "TRDBase/Calibrations.h"
 
 namespace o2
 {
@@ -38,12 +39,14 @@ class Digitizer
   void setEventTime(double timeNS) { mTime = timeNS; }
   void setEventID(int entryID) { mEventID = entryID; }
   void setSrcID(int sourceID) { mSrcID = sourceID; }
+  void setCalibrations(Calibrations* calibrations) { mCalib = calibrations; }
 
  private:
   TRDGeometry* mGeo = nullptr;            // access to TRDGeometry
   PadResponse* mPRF = nullptr;            // access to PadResponse
   TRDSimParam* mSimParam = nullptr;       // access to TRDSimParam instance
   TRDCommonParam* mCommonParam = nullptr; // access to TRDCommonParam instance
+  Calibrations* mCalib = nullptr;         // access to Calibrations in CCDB
 
   double mTime = 0.;
   int mEventID = 0;

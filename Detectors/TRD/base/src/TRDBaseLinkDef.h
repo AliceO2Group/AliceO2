@@ -41,6 +41,7 @@
 #pragma link C++ class o2::trd::Calibrations + ;
 #pragma link C++ class o2::trd::ChamberNoise + ;
 #pragma link C++ class o2::trd::CalOnlineGainTables + ;
+#pragma link C++ class o2::trd::TrapConfig + ;
 
 #include "SimulationDataFormat/MCTruthContainer.h"
 

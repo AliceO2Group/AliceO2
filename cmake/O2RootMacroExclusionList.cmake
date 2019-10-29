@@ -25,6 +25,7 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             Detectors/TPC/reconstruction/macro/addInclude.C
             Detectors/TPC/reconstruction/macro/getTPCTransformationExample.C
             Detectors/TRD/base/macros/OCDB2CCDB.C
+            Detectors/TRD/base/macros/OCDB2CCDBTrapConfig.C
             Detectors/EMCAL/calib/macros/ReadTestBadChannelMap_CCDBApi.C
             GPU/GPUTracking/Merger/macros/checkPropagation.C # Needs AliRoot AliExternalTrackParam
             GPU/GPUTracking/Merger/macros/fitPolynomialFieldIts.C # Needs AliRoot AliMagF
