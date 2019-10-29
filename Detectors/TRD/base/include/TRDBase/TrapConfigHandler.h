@@ -39,7 +39,7 @@ class TrapConfigHandler
   int loadConfig(std::string filename);        // load a TRAP configuration from a file
   int setGaintable(CalOnlineGainTables& gtbl); // Set a gain table to correct Q0 and Q1 for PID
 
-//  void processLTUparam(int dest, int addr, unsigned int data); // Process the LTU parameters
+  void processLTUparam(int dest, int addr, unsigned int data); // Process the LTU parameters
   void printGeoTest();                                         // Prints some information about the geometry. Only for debugging
 
   // unsigned int peek(int rob, int mcm, int addr);   // not implemented yet
@@ -84,7 +84,7 @@ class TrapConfigHandler
 
 
   unsigned int mRestrictiveMask; // mask to restrict subsequent commands to specified chambers
-  std::shared_ptr<FeeParam> mpFeeParam;
+  FeeParam* mFeeParam; //pointer to a singleton
   TrapConfig* mTrapConfig;   // pointer to TRAP config in use
   CalOnlineGainTables mGtbl; // gain table
 };

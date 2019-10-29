@@ -35,7 +35,7 @@
 using namespace std;
 using namespace o2::trd;
 
-TrapConfigHandler::TrapConfigHandler(TrapConfig* cfg) : mpFeeParam(), mRestrictiveMask((0x3ffff << 11) | (0x1f << 6) | 0x3f), mTrapConfig(cfg), mGtbl()
+TrapConfigHandler::TrapConfigHandler(TrapConfig* cfg) : mFeeParam(), mRestrictiveMask((0x3ffff << 11) | (0x1f << 6) | 0x3f), mTrapConfig(cfg), mGtbl()
 {
 }
 
@@ -92,7 +92,7 @@ void TrapConfigHandler::init()
     else
       mTrapConfig->setDmemAlloc(iAddr, TrapConfig::kAllocGlobal);
   }
-  mpFeeParam=FeeParam::instance();
+  mFeeParam=FeeParam::instance();
 
 }
 
@@ -122,21 +122,21 @@ int TrapConfigHandler::loadConfig()
     return -1;
   }
 
-  // prepare mpFeeParam
+  // prepare mFeeParam
   // ndrift (+ 5 binary digits)
-  mpFeeParam->setNtimebins(20 << 5);
+  mFeeParam->setNtimebins(20 << 5);
   // deflection + tilt correction
-  mpFeeParam->setRawOmegaTau(0.16133);
+  mFeeParam->setRawOmegaTau(0.16133);
   // deflection range table
-  mpFeeParam->setRawPtMin(0.1);
+  mFeeParam->setRawPtMin(0.1);
   // magnetic field
-  mpFeeParam->setRawMagField(0.0);
+  mFeeParam->setRawMagField(0.0);
   // scaling factors for q0, q1
-  mpFeeParam->setRawScaleQ0(0);
-  mpFeeParam->setRawScaleQ1(0);
+  mFeeParam->setRawScaleQ0(0);
+  mFeeParam->setRawScaleQ1(0);
   // disable length correction and tilting correction
-  mpFeeParam->setRawLengthCorrectionEnable(false);
-  mpFeeParam->setRawTiltCorrectionEnable(false);
+  mFeeParam->setRawLengthCorrectionEnable(false);
+  mFeeParam->setRawTiltCorrectionEnable(false);
 
   for (int iDet = 0; iDet < 540; iDet++) {
     // HC header configuration bits
@@ -179,7 +179,7 @@ int TrapConfigHandler::loadConfig()
     mTrapConfig->setTrapReg(TrapConfig::kTPCL, 1, iDet);
     mTrapConfig->setTrapReg(TrapConfig::kTPCT, 10, iDet);
 
-    // apply mpFeeParams
+    // apply mFeeParams
     configureDyCorr(iDet);
     configureDRange(iDet);    // deflection range
     configureNTimebins(iDet); // timebins in the drift region
@@ -395,29 +395,29 @@ void TrapConfigHandler::processLTUparam(int dest, int addr, unsigned int data)
       switch (addr) {
 
         case 0:
-          mpFeeParam->setPtMin(data);
+          mFeeParam->setPtMin(data);
           break; // pt_min in GeV/c (*1000)
         case 1:
-          mpFeeParam->setMagField(data);
+          mFeeParam->setMagField(data);
           break; // B in T (*1000)
         case 2:
-          mpFeeParam->setOmegaTau(data);
+          mFeeParam->setOmegaTau(data);
           break; // omega*tau
         case 3:
-          mpFeeParam->setNtimebins(data);
+          mFeeParam->setNtimebins(data);
           break;
           // ntimbins: drift time (for 3 cm) in timebins (5 add. bin. digits)
         case 4:
-          mpFeeParam->setScaleQ0(data);
+          mFeeParam->setScaleQ0(data);
           break;
         case 5:
-          mpFeeParam->setScaleQ1(data);
+          mFeeParam->setScaleQ1(data);
           break;
         case 6:
-          mpFeeParam->setLengthCorrectionEnable(data);
+          mFeeParam->setLengthCorrectionEnable(data);
           break;
         case 7:
-          mpFeeParam->setTiltCorrectionEnable(data);
+          mFeeParam->setTiltCorrectionEnable(data);
           break;
       }
       break;
@@ -438,7 +438,7 @@ void TrapConfigHandler::configureNTimebins(int det)
     return;
   }
 
-  addValues(det, mgkScsnCmdWrite, 127, TrapSimulator::mgkDmemAddrNdrift, mpFeeParam->getNtimebins());
+  addValues(det, mgkScsnCmdWrite, 127, TrapSimulator::mgkDmemAddrNdrift, mFeeParam->getNtimebins());
 }
 
 void TrapConfigHandler::configureDyCorr(int det)
@@ -459,7 +459,7 @@ void TrapConfigHandler::configureDyCorr(int det)
   for (int r = 0; r < nRobs; r++) {
     for (int m = 0; m < 16; m++) {
       int dest = 1 << 10 | r << 7 | m;
-      int dyCorrInt = mpFeeParam->getDyCorrection(det, r, m);
+      int dyCorrInt = mFeeParam->getDyCorrection(det, r, m);
       addValues(det, mgkScsnCmdWrite, dest, TrapSimulator::mgkDmemAddrDeflCorr, dyCorrInt);
     }
   }
@@ -493,7 +493,7 @@ void TrapConfigHandler::configureDRange(int det)
         // 	<< ", min int: " << dyMinInt << ", max int: " << dyMaxInt << endl;
         int dest = 1 << 10 | r << 7 | m;
         int lutAddr = TrapSimulator::mgkDmemAddrDeflCutStart + 2 * c;
-        mpFeeParam->getDyRange(det, r, m, c, dyMinInt, dyMaxInt);
+        mFeeParam->getDyRange(det, r, m, c, dyMinInt, dyMaxInt);
         addValues(det, mgkScsnCmdWrite, dest, lutAddr + 0, dyMinInt);
         addValues(det, mgkScsnCmdWrite, dest, lutAddr + 1, dyMaxInt);
       }
@@ -517,9 +517,9 @@ void TrapConfigHandler::printGeoTest()
         for (int m = 0; m < 16; m++) {
           for (int c = 7; c < 8; c++) {
             cout << stack << ";" << layer << ";" << r << ";" << m
-                 << ";" << mpFeeParam->getX(det, r, m)
-                 << ";" << mpFeeParam->getLocalY(det, r, m, c)
-                 << ";" << mpFeeParam->getLocalZ(det, r, m) << endl;
+                 << ";" << mFeeParam->getX(det, r, m)
+                 << ";" << mFeeParam->getLocalY(det, r, m, c)
+                 << ";" << mFeeParam->getLocalZ(det, r, m) << endl;
           }
         }
       }
@@ -555,16 +555,16 @@ void TrapConfigHandler::configurePIDcorr(int det)
   else
     MaxRows = FeeParam::mgkNrowC1;
   int MaxCols = FeeParam::mgkNcol;
-  for (int row = 0; row < MaxRows; row++) {
+  for (int row = 0; row < MaxRows; row++) { //TODO put this back to rob/mcm and not row/col as done in TrapSimulator
     for (int col = 0; col < MaxCols; col++) {
       readoutboard = feeparam->getROBfromPad(row, col);
       mcm = feeparam->getMCMfromPad(row, col);
       int dest = 1 << 10 | readoutboard << 7 | mcm;
       //TODO impelment a method for determining if gaintables are valid, used to be if pointer was valid.
       if (mGtbl.getMCMGain(det, row, col) != 0.0) //TODO check this logic there might be problems here.
-        mpFeeParam->getCorrectionFactors(det, readoutboard, mcm, 9, cor0, cor1, mGtbl.getMCMGain(det, row, col));
+        mFeeParam->getCorrectionFactors(det, readoutboard, mcm, 9, cor0, cor1, mGtbl.getMCMGain(det, row, col));
       else
-        mpFeeParam->getCorrectionFactors(det, readoutboard, mcm, 9, cor0, cor1);
+        mFeeParam->getCorrectionFactors(det, readoutboard, mcm, 9, cor0, cor1);
       addValues(det, mgkScsnCmdWrite, dest, addrLUTcor0, cor0);
       addValues(det, mgkScsnCmdWrite, dest, addrLUTcor1, cor1);
     }
