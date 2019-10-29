@@ -11,6 +11,7 @@
 #define O2_FRAMEWORK_SERVICEREGISTRY_H_
 
 #include "Framework/CompilerBuiltins.h"
+#include "Framework/TypeIdHelpers.h"
 
 #include <algorithm>
 #include <array>
@@ -57,7 +58,7 @@ class ServiceRegistry
     // advance
     static_assert(std::is_base_of<I, C>::value == true,
                   "Registered service is not derived from declared interface");
-    auto typeHash = typeid(I).hash_code() >> 4;
+    auto typeHash = TypeIdHelpers::uniqueId<std::decay_t<I>>();
     auto serviceId = typeHash & MAX_SERVICES_MASK;
     for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
       if (mServices[i + serviceId].second == nullptr) {
@@ -77,7 +78,7 @@ class ServiceRegistry
     // advance
     static_assert(std::is_base_of<I, C>::value == true,
                   "Registered service is not derived from declared interface");
-    auto typeHash = typeid(I).hash_code() >> 4;
+    auto typeHash = TypeIdHelpers::uniqueId<std::decay_t<I>>();
     auto serviceId = typeHash & MAX_SERVICES_MASK;
     for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
       if (mConstServices[i + serviceId].second == nullptr) {
@@ -95,7 +96,7 @@ class ServiceRegistry
   template <typename T>
   std::enable_if_t<std::is_const_v<T> == false, T&> get() const
   {
-    auto typeHash = typeid(T).hash_code() >> 4;
+    auto typeHash = TypeIdHelpers::uniqueId<std::decay_t<T>>();
     auto serviceId = typeHash & MAX_SERVICES_MASK;
     for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
       if (mServices[i + serviceId].first == typeHash) {
@@ -112,7 +113,7 @@ class ServiceRegistry
   template <typename T>
   std::enable_if_t<std::is_const_v<T>, T&> get() const
   {
-    auto typeHash = typeid(T).hash_code() >> 4;
+    auto typeHash = TypeIdHelpers::uniqueId<std::decay_t<T>>();
     auto serviceId = typeHash & MAX_SERVICES_MASK;
     for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
       if (mConstServices[i + serviceId].first == typeHash) {
@@ -125,8 +126,8 @@ class ServiceRegistry
   }
 
  private:
-  std::array<std::pair<std::size_t, ServicePtr>, MAX_SERVICES + MAX_DISTANCE> mServices;
-  std::array<std::pair<std::size_t, ConstServicePtr>, MAX_SERVICES + MAX_DISTANCE> mConstServices;
+  std::array<std::pair<uint32_t, ServicePtr>, MAX_SERVICES + MAX_DISTANCE> mServices;
+  std::array<std::pair<uint32_t, ConstServicePtr>, MAX_SERVICES + MAX_DISTANCE> mConstServices;
 };
 
 } // namespace o2::framework
