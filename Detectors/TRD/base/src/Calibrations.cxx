@@ -40,20 +40,21 @@ using namespace o2::trd;
 // in some FOO detector code (detector initialization)
 // just give the correct path and you will be served the object
 
-void Calibrations::setCCDB(int calibrationobjecttype)
+void Calibrations::setCCDB(int calibrationobjecttype, long timestamp)
 {
   int donothingfornow = 1;
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
+  ccdbmgr.setTimestamp(timestamp); // set which time stamp of data we want this is called per timeframe, and removes the need to call it when querying a value.
   switch (calibrationobjecttype) {
     case 1: //simulation
-      mChamberCalibrations.reset(ccdbmgr.get<o2::trd::ChamberCalibrations>("/TRD_test/ChamberCalibrations"));
-      mLocalVDrift.reset(ccdbmgr.get<o2::trd::LocalVDrift>("/TRD_test/LocalVDrift"));
-      mLocalT0.reset(ccdbmgr.get<o2::trd::LocalT0>("/TRD_test/LocalT0"));
-      mLocalGainFactor.reset(ccdbmgr.get<o2::trd::LocalGainFactor>("/TRD_test/LocalGainFactor"));
-      mPadNoise.reset(ccdbmgr.get<o2::trd::PadNoise>("/TRD_test/PadNoise"));
-      mChamberStatus.reset(ccdbmgr.get<o2::trd::ChamberStatus>("/TRD_test/ChamberStatus"));
-      mPadStatus.reset(ccdbmgr.get<o2::trd::PadStatus>("/TRD_test/PadStatus"));
-      mChamberNoise.reset(ccdbmgr.get<o2::trd::ChamberNoise>("/TRD_test/ChamberNoise"));
+      mChamberCalibrations = ccdbmgr.get<o2::trd::ChamberCalibrations>("TRD_test/ChamberCalibrations");
+      mLocalVDrift = ccdbmgr.get<o2::trd::LocalVDrift>("TRD_test/LocalVDrift");
+      mLocalT0 = ccdbmgr.get<o2::trd::LocalT0>("TRD_test/LocalT0");
+      mLocalGainFactor = ccdbmgr.get<o2::trd::LocalGainFactor>("TRD_test/LocalGainFactor");
+      mPadNoise = ccdbmgr.get<o2::trd::PadNoise>("TRD_test/PadNoise");
+      mChamberStatus = ccdbmgr.get<o2::trd::ChamberStatus>("TRD_test/ChamberStatus");
+      mPadStatus = ccdbmgr.get<o2::trd::PadStatus>("TRD_test/PadStatus");
+      mChamberNoise = ccdbmgr.get<o2::trd::ChamberNoise>("TRD_test/ChamberNoise");
       //std::shared_ptr<TrapConfig> mTrapConfig;
       //std::shared_ptr<PRFWidth> mPRDWidth
       //std::shared_ptr<OnlineGainFactors> mOnlineGainFactors;
@@ -69,7 +70,7 @@ void Calibrations::setCCDB(int calibrationobjecttype)
   }
 }
 
-double Calibrations::getVDrift(long timestamp, int det, int col, int row) const
+double Calibrations::getVDrift(int det, int col, int row) const
 {
   if (mChamberCalibrations && mLocalVDrift)
     return (double)mChamberCalibrations->getVDrift(det) * (double)mLocalVDrift->getValue(det, col, row);
@@ -77,24 +78,31 @@ double Calibrations::getVDrift(long timestamp, int det, int col, int row) const
     return -1;
 }
 
-double Calibrations::getT0(long timestamp, int det, int col, int row) const
+double Calibrations::getT0(int det, int col, int row) const
 {
   if (mChamberCalibrations && mLocalT0)
     return (double)mChamberCalibrations->getT0(det) * (double)mLocalT0->getValue(det, col, row);
   else
     return -1;
 }
-double Calibrations::getExB(long timestamp, int det, int col, int row) const
+double Calibrations::getExB(int det) const
 {
   if (mChamberCalibrations)
     return (double)mChamberCalibrations->getExB(det);
   else
     return -1;
 }
-double Calibrations::getGainFactor(long timestamp, int det, int col, int row) const
+double Calibrations::getGainFactor(int det, int col, int row) const
 {
   if (mChamberCalibrations && mLocalGainFactor)
     return (double)mChamberCalibrations->getGainFactor(det) * (double)mLocalGainFactor->getValue(det, col, row);
+  else
+    return -1;
+}
+double Calibrations::getPadGainFactor(int det, int col, int row) const
+{
+  if (mLocalGainFactor)
+    return (double)mLocalGainFactor->getValue(det, col, row);
   else
     return -1;
 }

@@ -43,9 +43,8 @@
 #include "TRDBase/ChamberNoise.h"
 #include "TRDBase/PadNoise.h"
 #include "TRDBase/PadStatus.h"
-//class PRFWidth;
-//class TrapConfig;
-class TRDGeometry; //
+#include "TRDBase/TrapConfig.h"
+class TRDGeometry;
 
 namespace o2
 {
@@ -66,37 +65,57 @@ class Calibrations
   //
   int const getTimeStamp() { return mTimeStamp; }
   void setTimeStamp(long timestamp) { mTimeStamp = timestamp; }
-  void setCCDB(int calibrationobjecttype);
-  void setCCDBForSimulation() { setCCDB(kSimulation); };
-  void setCCDBForReconstruction() { setCCDB(kReconstruction); };
-  void setCCDBForCalibration() { setCCDB(kCalibration); };
-  //// cant send auto to setCCDB, as a temporary measure, until I can figure something else out. There are 3 formats of getting CCDB parameters defined by the enum at the top.
+  void setCCDB(int calibrationobjecttype, long timestamp);
+  void setCCDBForSimulation(long timestamp) { setCCDB(kSimulation, timestamp); };
+  void setCCDBForReconstruction(long timestamp) { setCCDB(kReconstruction, timestamp); };
+  void setCCDBForCalibration(long timestamp) { setCCDB(kCalibration, timestamp); };
   //
-  //  float getGainMeanRMS();
-  //  float getT0MeanRMS();
-  double getVDrift(long timestamp, int roc, int col, int row) const;
-  double getT0(long timestamp, int roc, int col, int row) const;
-  double getExB(long timestamp, int roc, int col, int row) const;
-  double getGainFactor(long timestamp, int roc, int col, int row) const;
+  double getVDrift(int roc, int col, int row) const;
+  double getT0(int roc, int col, int row) const;
+  double getExB(int roc) const;
+  double getGainFactor(int roc, int col, int row) const;
+  double getPadGainFactor(int roc, int col, int row) const;
+
+  //methods extracted from PadStatus
+  bool isPadMasked(int det, int col, int row) const { return mPadStatus->isMasked(det, col, row); }
+  bool isPadBridgedLeft(int det, int col, int row) const { return mPadStatus->isBridgedLeft(det, col, row); }
+  bool isPadBridgedRight(int det, int col, int row) const { return mPadStatus->isBridgedRight(det, col, row); }
+  bool isPadNotConnected(int det, int col, int row) const { return mPadStatus->isNotConnected(det, col, row); };
+
+  //methods extracted from ChamberStatus
+  bool isChamberGood(int det) const { return mChamberStatus->isGood(det); }
+  bool isChamberNoData(int det, int col, int row) const { return mChamberStatus->isNoData(det); };
+  bool isHalfChamberNoData(int det, int side) const { return side > 0 ? isNoDataSideA(det) : isNoDataSideB(det); };
+  bool isNoDataSideA(int det) const { return mChamberStatus->isNoDataSideA(det); }
+  bool isNoDataSideB(int det) const { return mChamberStatus->isNoDataSideB(det); }
+  bool isChamberBadlyCalibrated(int det) const { return mChamberStatus->isBadCalibrated(det); }
+  bool isChamberNotCalibrated(int det) const { return mChamberStatus->isNotCalibrated(det); }
 
  protected:
-  int mTimeStamp; //run number of related to the current calibration.
+  long mTimeStamp; //run number of related to the current calibration.
   // here we have pointers to all the incoming calibrations, not all of them will be valid
   // this will be dictated by the DPL and what it provides. (if I understand things correctly)
   // pointers to relevant incoming classes will sit here and thereby provide the correct api
   // abstracting all the tedious details from users. Most importantly we can change things with
-  // out them knowing.
-  std::shared_ptr<ChamberCalibrations> mChamberCalibrations;
+  // out the users knowing.
+  // I assume at some point the ccdb will provide shared pointers, but for now its raw pointers.
+  /* std::shared_ptr<ChamberCalibrations> mChamberCalibrations;
   std::shared_ptr<LocalVDrift> mLocalVDrift;
   std::shared_ptr<LocalT0> mLocalT0;
   std::shared_ptr<LocalGainFactor> mLocalGainFactor;
   std::shared_ptr<PadNoise> mPadNoise;
   std::shared_ptr<ChamberStatus> mChamberStatus;
   std::shared_ptr<PadStatus> mPadStatus;
-  std::shared_ptr<ChamberNoise> mChamberNoise;
-  //this will probably get extended (26/09/2019), the list of pointers above.
-  //std::shared_ptr<TrapConfig> mTrapConfig;
-  //std::shared_ptr<PRFWidth> mPRDWidth
+  std::shared_ptr<ChamberNoise> mChamberNoise; */
+  ChamberCalibrations* mChamberCalibrations;
+  LocalVDrift* mLocalVDrift;
+  LocalT0* mLocalT0;
+  LocalGainFactor* mLocalGainFactor;
+  PadNoise* mPadNoise;
+  ChamberStatus* mChamberStatus;
+  PadStatus* mPadStatus;
+  ChamberNoise* mChamberNoise;
+  TrapConfig* mTrapConfig;
   //std::shared_ptr<OnlineGainFactors> mOnlineGainFactors;
   //
 };
