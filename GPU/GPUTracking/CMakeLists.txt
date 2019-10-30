@@ -144,8 +144,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         DataCompression/GPUTPCCompressionKernels.cxx
         DataCompression/TPCClusterDecompressor.cxx
         DataCompression/GPUTPCClusterStatistics.cxx
-        gpucf/GPUTPCClusterFinderKernels.cxx
-        gpucf/GPUTPCClusterFinder.cxx)
+        TPCClusterFinder/GPUTPCClusterFinderKernels.cxx
+        TPCClusterFinder/GPUTPCClusterFinder.cxx)
     set(HDRS_INSTALL ${HDRS_INSTALL} Interface/GPUO2InterfaceConfiguration.h
                      ITS/GPUITSTrack.h dEdx/GPUdEdxInfo.h)
 endif()
@@ -228,7 +228,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                             Interface
                                             Merger
                                             DataCompression
-                                            gpucf
+                                            TPCClusterFinder
                  TARGETVARNAME targetName
                  SOURCES ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H})
 

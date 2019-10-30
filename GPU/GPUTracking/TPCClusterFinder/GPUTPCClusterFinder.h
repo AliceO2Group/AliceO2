@@ -17,6 +17,8 @@
 #include "GPUDef.h"
 #include "GPUProcessor.h"
 
+
+
 namespace gpucf
 {
 typedef struct PackedDigit_s PackedDigit;

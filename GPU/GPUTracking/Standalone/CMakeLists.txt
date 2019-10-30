@@ -115,7 +115,7 @@ include_directories(${CMAKE_SOURCE_DIR}
                     ${CMAKE_SOURCE_DIR}/TRDTracking)
 
 if(CONFIG_O2_EXTENSIONS)
-include_directories(${CMAKE_SOURCE_DIR}/gpucf
+include_directories(${CMAKE_SOURCE_DIR}/TPCClusterFinder
                     ${CMAKE_SOURCE_DIR}/ITS
                     ${CMAKE_SOURCE_DIR}/DataCompression
                     ${CMAKE_SOURCE_DIR}/../../../Common/Constants/include

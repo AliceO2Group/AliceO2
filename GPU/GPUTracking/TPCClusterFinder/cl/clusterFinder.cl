@@ -13,6 +13,18 @@ namespace gpucf
 #include "clusterFinderDefs.h"
 }
 
+#if defined(__CUDACC__)
+# warning Cuda compilation
+#else
+# warning building without cuda
+#endif
+
+#if defined(CUDA_ENABLED)
+# warning Cuda enabled
+#else
+# warning cuda not eabled
+#endif
+
 #if !defined(GPUCA_ALIGPUCODE)
 namespace CAMath
 {
