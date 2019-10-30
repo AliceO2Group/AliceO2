@@ -42,8 +42,9 @@ Response::Response(Station station) : mStation(station)
   }
 
   if(mSampa){
-    mChargeThreshold = 5*1e-4;//arbitrary setting
-    mChargeSat = 0.0;//not yet used
+    mChargeThreshold = 0;//arbitrary setting , was 5*1e-4
+    mChargeSat = 100000. ; //Aliroot: 0.61 * 1.25 * 0.2;//put the same value as aliroot
+    mChargeSlope = 25;//as Aliroot, seems to be too small
   }
 }
 
@@ -91,6 +92,8 @@ double Response::chargefrac1d(float min, float max, double k2, double sqrtk3, do
 double Response::response(float charge)
 {
   //FEE effects
+  if(charge<mChargeThreshold) return 0.0;
+  if(charge>mChargeSat) return mChargeSat;
   return charge;
 }
 //______________________________________________________________________

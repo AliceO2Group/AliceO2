@@ -161,8 +161,11 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
       q *= chargenon;
     }
     auto signal = resp.response(q);
-    digits.emplace_back(time, detID, padid, signal);
-    ++ndigits;
+    if(q>0)//threshold effect
+      {
+	digits.emplace_back(time, detID, padid, signal);
+	++ndigits;
+      }
   });
   return ndigits;
 }

@@ -53,7 +53,7 @@ class Response
   const float mQspreadY = 0.144;
 
   //ChargeSlope for Station 2-5
-  const float mChargeSlope = 25;  //why float in Aliroot?
+  float mChargeSlope = 25;  //why float in Aliroot?
   const float mChargeCorr = 0.11; // number from line 122
   //of AliMUONResponseFactory.cxx
 
