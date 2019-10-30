@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/DataSampling.h"
+#include <thread>
 
 using namespace o2::framework;
 void customize(std::vector<CompletionPolicy>& policies)
@@ -210,7 +211,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   };
 
   // FIXME: this should really be made a workflow configuration option, but for
-  // the moment we simply avoid crashing if BASEDIR is not set by doing 
+  // the moment we simply avoid crashing if BASEDIR is not set by doing
   // a non overwriting setenv.
   setenv("BASEDIR", ".", 0);
   std::string configurationSource = std::string("json://") + getenv("BASEDIR") + "/../../O2/Framework/TestWorkflows/exampleDataSamplingConfig.json";
