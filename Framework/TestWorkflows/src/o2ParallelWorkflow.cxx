@@ -11,6 +11,7 @@
 #include "Framework/ConfigParamSpec.h"
 
 #include <chrono>
+#include <thread>
 #include <vector>
 
 using namespace o2::framework;

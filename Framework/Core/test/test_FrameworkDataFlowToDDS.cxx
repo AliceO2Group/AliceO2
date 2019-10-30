@@ -24,6 +24,7 @@
 
 #include <chrono>
 #include <sstream>
+#include <thread>
 
 using namespace o2::framework;
 

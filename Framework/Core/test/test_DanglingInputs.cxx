@@ -12,6 +12,7 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/ControlService.h"
 
+#include <thread>
 #include <vector>
 
 using namespace o2::framework;

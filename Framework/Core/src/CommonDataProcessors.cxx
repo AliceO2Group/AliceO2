@@ -32,6 +32,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <thread>
 
 using namespace o2::framework::data_matcher;
 

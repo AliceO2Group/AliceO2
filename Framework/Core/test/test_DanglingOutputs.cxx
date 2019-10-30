@@ -13,6 +13,7 @@
 #include "Framework/ControlService.h"
 
 #include <chrono>
+#include <thread>
 #include <vector>
 
 using namespace o2::framework;
