@@ -54,7 +54,7 @@ static void BM_SimpleForLoop(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_SimpleForLoop)->Range(8, 8 << 17);
+BENCHMARK(BM_SimpleForLoop)->Range(8, 8 << 15);
 
 static void BM_TrackForLoop(benchmark::State& state)
 {
@@ -89,7 +89,7 @@ static void BM_TrackForLoop(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_TrackForLoop)->Range(8, 8 << 17);
+BENCHMARK(BM_TrackForLoop)->Range(8, 8 << 15);
 
 static void BM_WholeTrackForLoop(benchmark::State& state)
 {
@@ -124,7 +124,7 @@ static void BM_WholeTrackForLoop(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 6);
 }
 
-BENCHMARK(BM_WholeTrackForLoop)->Range(8, 8 << 17);
+BENCHMARK(BM_WholeTrackForLoop)->Range(8, 8 << 15);
 
 static void BM_TrackForPhi(benchmark::State& state)
 {
@@ -161,7 +161,7 @@ static void BM_TrackForPhi(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_TrackForPhi)->Range(8, 8 << 17);
+BENCHMARK(BM_TrackForPhi)->Range(8, 8 << 15);
 
 static void BM_SimpleForLoopWithOp(benchmark::State& state)
 {
@@ -191,7 +191,7 @@ static void BM_SimpleForLoopWithOp(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_SimpleForLoopWithOp)->Range(8, 8 << 17);
+BENCHMARK(BM_SimpleForLoopWithOp)->Range(8, 8 << 15);
 
 static void BM_ASoASimpleForLoop(benchmark::State& state)
 {
@@ -219,7 +219,7 @@ static void BM_ASoASimpleForLoop(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_ASoASimpleForLoop)->Range(8, 8 << 17);
+BENCHMARK(BM_ASoASimpleForLoop)->Range(8, 8 << 15);
 
 static void BM_ASoASimpleForLoopWithOp(benchmark::State& state)
 {
@@ -247,7 +247,7 @@ static void BM_ASoASimpleForLoopWithOp(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_ASoASimpleForLoopWithOp)->Range(8, 8 << 17);
+BENCHMARK(BM_ASoASimpleForLoopWithOp)->Range(8, 8 << 15);
 
 static void BM_ASoADynamicColumnPresent(benchmark::State& state)
 {
@@ -275,7 +275,7 @@ static void BM_ASoADynamicColumnPresent(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_ASoADynamicColumnPresent)->Range(8, 8 << 17);
+BENCHMARK(BM_ASoADynamicColumnPresent)->Range(8, 8 << 15);
 
 static void BM_ASoADynamicColumnCall(benchmark::State& state)
 {
@@ -303,7 +303,7 @@ static void BM_ASoADynamicColumnCall(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_ASoADynamicColumnCall)->Range(8, 8 << 17);
+BENCHMARK(BM_ASoADynamicColumnCall)->Range(8, 8 << 15);
 
 static void BM_ASoAGettersPhi(benchmark::State& state)
 {
@@ -336,7 +336,7 @@ static void BM_ASoAGettersPhi(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_ASoAGettersPhi)->Range(8, 8 << 17);
+BENCHMARK(BM_ASoAGettersPhi)->Range(8, 8 << 15);
 
 static void BM_ASoAWholeTrackForLoop(benchmark::State& state)
 {
@@ -364,7 +364,7 @@ static void BM_ASoAWholeTrackForLoop(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 6);
 }
 
-BENCHMARK(BM_ASoAWholeTrackForLoop)->Range(8, 8 << 17);
+BENCHMARK(BM_ASoAWholeTrackForLoop)->Range(8, 8 << 15);
 
 static void BM_ASoADynamicColumnPhi(benchmark::State& state)
 {
@@ -395,6 +395,6 @@ static void BM_ASoADynamicColumnPhi(benchmark::State& state)
   }
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
-BENCHMARK(BM_ASoADynamicColumnPhi)->Range(8, 8 << 17);
+BENCHMARK(BM_ASoADynamicColumnPhi)->Range(8, 8 << 15);
 
 BENCHMARK_MAIN();
