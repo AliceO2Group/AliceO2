@@ -25,7 +25,8 @@ struct LiteralNode {
   LiteralNode(T v) : value{v}
   {
   }
-  std::variant<int, bool, float, double> value;
+  using var_t = std::variant<int, bool, float, double>;
+  var_t value;
 };
 
 /// An expression tree node corresponding to a column binding
@@ -54,11 +55,20 @@ struct BinaryOpNode {
   Op op;
 };
 
+struct ArrowDatumSpec {
+  // datum spec either contains an index, a value of a literal or a binding label
+  std::variant<std::monostate, size_t, LiteralNode::var_t, std::string> datum;
+  explicit ArrowDatumSpec(size_t index) : datum{index} {}
+  explicit ArrowDatumSpec(LiteralNode::var_t literal) : datum{literal} {}
+  explicit ArrowDatumSpec(std::string binding) : datum{binding} {}
+  ArrowDatumSpec() : datum{std::monostate{}} {}
+};
+
 struct ArrowKernelSpec {
   std::unique_ptr<arrow::compute::OpKernel> kernel = nullptr;
-  std::shared_ptr<arrow::compute::Datum> left = nullptr;
-  std::shared_ptr<arrow::compute::Datum> right = nullptr;
-  std::shared_ptr<arrow::compute::Datum> result = nullptr;
+  ArrowDatumSpec left;
+  ArrowDatumSpec right;
+  ArrowDatumSpec result;
 };
 
 /// A generic tree node

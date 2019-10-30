@@ -19,46 +19,61 @@ namespace o2::framework::expressions
 {
 // dummy function until arrow has actual scalars...
 struct LiteralNodeHelper {
-  Datum* operator()(LiteralNode) const
+  ArrowDatumSpec operator()(LiteralNode node) const
   {
-    return new Datum{};
+    return ArrowDatumSpec{node.value};
   }
 };
 
 // dummy function: needs to be bound to a table column
 struct BindingNodeHelper {
-  Datum* operator()(BindingNode) const
+  ArrowDatumSpec operator()(BindingNode node) const
   {
-    return new Datum{};
+    return ArrowDatumSpec{node.name};
   }
 };
 
 struct BinaryOpNodeHelper {
-  ArrowKernelSpec operator()(BinaryOpNode) const { return ArrowKernelSpec{}; }
+  ArrowKernelSpec operator()(BinaryOpNode node) const
+  {
+    switch (node.op) {
+      case BinaryOpNode::LogicalAnd:
+      case BinaryOpNode::LogicalOr:
+      case BinaryOpNode::LessThan:
+      case BinaryOpNode::GreaterThan:
+      case BinaryOpNode::LessThanOrEqual:
+      case BinaryOpNode::GreaterThanOrEqual:
+      case BinaryOpNode::Equal:
+      case BinaryOpNode::Addition:
+      case BinaryOpNode::Subtraction:
+      case BinaryOpNode::Division:
+        break;
+    }
+    return ArrowKernelSpec{};
+  }
 };
 
 /// helper struct used to parse trees
 struct NodeRecord {
   /// pointer to the actual tree node
   Node* node_ptr = nullptr;
-  /// index of the assigned output in the datum array
-  size_t index = 0;
-  explicit NodeRecord(Node* node_, size_t di) : node_ptr(node_), index{di} {}
+  explicit NodeRecord(Node* node_) : node_ptr(node_) {}
 };
 
 std::vector<ArrowKernelSpec> createKernelsFromFilter(Filter const& filter)
 {
-  std::vector<std::shared_ptr<Datum>> datums;
+  std::vector<ArrowDatumSpec> datums;
   std::vector<ArrowKernelSpec> kernelSpecs;
   std::stack<NodeRecord> path;
   auto isLeaf = [](Node const* const node) {
     return ((node->left == nullptr) && (node->right == nullptr));
   };
 
+  size_t index = 0;
   // create and put output datum
-  datums.emplace_back();
+  datums.emplace_back(ArrowDatumSpec{index++});
   // insert the top node into stack
-  path.emplace(filter.node.get(), datums.size() - 1);
+  path.emplace(filter.node.get());
 
   // while the stack is not empty
   while (path.empty() == false) {
@@ -72,30 +87,29 @@ std::vector<ArrowKernelSpec> createKernelsFromFilter(Filter const& filter)
 
     size_t li = 0;
     size_t ri = 0;
+    size_t ti = index;
 
     auto processLeaf = [&datums](Node const* const node) {
-      auto nodeDatum =
+      datums.push_back(
         std::visit(
           overloaded{
             [lh = LiteralNodeHelper{}](LiteralNode node) { return lh(node); },
             [bh = BindingNodeHelper{}](BindingNode node) { return bh(node); },
-            [](auto &&)
-              -> arrow::compute::Datum* { return nullptr; }},
-          node->self);
-      datums.push_back(std::shared_ptr<arrow::compute::Datum>(nodeDatum));
+            [](auto&&) { return ArrowDatumSpec{}; }},
+          node->self));
     };
 
     if (leftLeaf) {
       processLeaf(left);
     } else {
-      datums.emplace_back();
+      datums.emplace_back(ArrowDatumSpec{index++});
     }
     li = datums.size() - 1;
 
     if (rightLeaf) {
       processLeaf(right);
     } else {
-      datums.emplace_back();
+      datums.emplace_back(ArrowDatumSpec{index++});
     }
     ri = datums.size() - 1;
 
@@ -106,15 +120,15 @@ std::vector<ArrowKernelSpec> createKernelsFromFilter(Filter const& filter)
           [bh = BinaryOpNodeHelper{}](BinaryOpNode node) { return bh(node); },
           [](auto&&) { return ArrowKernelSpec{}; }},
         top.node_ptr->self);
-    kernel.left = datums[li];
-    kernel.right = datums[ri];
-    kernel.result = datums[top.index];
+    kernel.left = ArrowDatumSpec{li};
+    kernel.right = ArrowDatumSpec{ri};
+    kernel.result = ArrowDatumSpec{ti};
     kernelSpecs.push_back(std::move(kernel));
     path.pop();
     if (!leftLeaf)
-      path.emplace(left, li);
+      path.emplace(left);
     if (!rightLeaf)
-      path.emplace(right, ri);
+      path.emplace(right);
   }
   return kernelSpecs;
 }
