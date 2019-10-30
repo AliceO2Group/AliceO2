@@ -20,7 +20,8 @@
 
 #define CHECK_BIT(var, pos) ((var) & (1 << (pos)))
 using RDH = o2::header::RAWDataHeader;
-using namespace o2::tpc;
+//using namespace o2::tpc;
+using namespace o2::tpc::rawreader;
 
 std::ostream& operator<<(std::ostream& output, const RDH& rdh);
 std::istream& operator>>(std::istream& input, RDH& rdh);
@@ -156,52 +157,66 @@ int RawReaderCRU::scanFile()
   while (currentPacket < numPackets) {
     const uint32_t currentPos = file.tellg();
 
-    // read in the RawDataHeader at the current position
+    // ===| read in the RawDataHeader at the current position |=================
     file >> rdh;
-    //std::cout << std::hex << rdh.word0 << " " << (rdh.word0 & 0xFFFFFFFF) << "\n";
-    // get the link ID from header sub word 3
-    // Bit 28 - 28 : DataWrapper-ID
-    // Bit 27 - 16 : CRU-ID
-    // Bit 15 - 08 : Packet Counter
-    // Bit 07 - 00 : Link ID
-    //auto getLinkID = [rdh]() {
-    //const auto subword3 = rdh.word1 >> 32;
-    //return (subword3 & 0xFF);
-    //};
 
-    //auto getCRUID = [rdh]() {
-    //const auto subword3 = rdh.word1 >> 32;
-    //return (subword3 >> 16) & 0x0FFF;
-    //};
+    // ===| try to detect data type if not already set |========================
+    //
+    // for now we assume only HB scaling and triggered mode
+    //
+    // in case of triggered data we assume that that the for pageCnt == 1 we have
+    //   triggerType == 0x10 in the firt packet
+    //
+    if (mManager) {
+      if (mManager->mDataType == DataType::TryToDetect) {
+        const uint64_t triggerTypeForTriggeredData = 0x10;
+        const uint64_t triggerType = rdh.triggerType;
+        const uint64_t pageCnt = rdh.pageCnt;
 
-    const auto heartbeatOrbit = rdh.heartbeatOrbit;
+        if ((pageCnt == 1) && (triggerType == triggerTypeForTriggeredData)) {
+          mManager->mDataType = DataType::Triggered;
+          O2INFO("Detected triggered data");
+        } else {
+          mManager->mDataType = DataType::HBScaling;
+          O2INFO("Detected HB scaling");
+        }
+      }
+    }
 
-    auto getDataWrapperID = [rdh]() {
-      auto subword3 = rdh.word1 >> 32;
-      return (subword3 >> 28) & 0x01;
-    };
-
-    //const auto linkID = ((rdh.word1 >> 32) & 0xff);
-    const auto dataWrapperID = getDataWrapperID();
+    // ===| get relavant data information |=====================================
+    //const auto heartbeatOrbit = rdh.heartbeatOrbit;
+    const auto dataWrapperID = rdh.endPointID;
     const auto linkID = rdh.linkID;
     const auto globalLinkID = linkID + dataWrapperID * 12;
+    //const auto blockLength = rdh.blockLength;
+    const auto payloadSize = rdh.memorySize - rdh.headerSize;
+
+    // ===| check if cru should be forced |=====================================
     if (!mForceCRU) {
       mCRU = rdh.cruID;
+    } else {
+      //overwrite cru id in rdh for further processing
+      rdh.cruID = mCRU;
     }
 
-    // find evnet info or create a new one
+    // ===| find evnet info or create a new one |===============================
     RawReaderCRUEventSync::LinkInfo* linkInfo = nullptr;
-    if (mEventSync) {
-      linkInfo = &mEventSync->getLinkInfo(heartbeatOrbit, mCRU, globalLinkID);
+    if (mManager) {
+      // in case of triggered mode, we use the first heartbeat orbit as event identifier
+      linkInfo = &mManager->mEventSync.getLinkInfo(rdh, mManager->getDataType());
     }
-    const auto blockLength = rdh.blockLength;
     //std::cout << "block length: " << blockLength << '\n';
 
-    // check Header for Header ID and create the packet descriptor and set the mLinkPresent flag
+    // ===| set up packet descriptor map for GBT frames |=======================
+    //
+    // * check Header for Header ID
+    // * create the packet descriptor
+    // * set the mLinkPresent flag
+    //
     if ((rdh.word0 & 0x0000FFFF) == RDH_HEADERWORD0) {
       // non 0 stop bit means data with payload
       if (rdh.stop == 0) {
-        mPacketDescriptorMaps[globalLinkID].emplace_back(currentPos, mCRU, linkID, dataWrapperID, blockLength);
+        mPacketDescriptorMaps[globalLinkID].emplace_back(currentPos, mCRU, linkID, dataWrapperID, payloadSize);
         mLinkPresent[globalLinkID] = true;
         mPacketsPerLink[globalLinkID]++;
         if (linkInfo) {
@@ -224,14 +239,14 @@ int RawReaderCRU::scanFile()
 
     // debug output
     if (CHECK_BIT(mDebugLevel, 0)) {
-      std::cout << "Packet " << std::setw(5) << currentPacket << " - Link " << linkID << "\n";
+      std::cout << "Packet " << std::setw(5) << currentPacket << " - Link " << int(linkID) << "\n";
       std::cout << rdh;
       std::cout << "\n";
     };
     // std::cout << "Position after read : " << std::dec << file.tellg() << std::endl;
     file.seekg(8128, file.cur);
     ++currentPacket;
-  };
+  }
 
   // close the File
   file.close();
@@ -367,7 +382,70 @@ int RawReaderCRU::processPacket(GBTFrame& gFrame, uint32_t startPos, uint32_t si
   return 0;
 }
 
-int RawReaderCRU::processData()
+int RawReaderCRU::processMemory(const std::vector<o2::byte>& data, ADCRawData& rawData)
+{
+  GBTFrame gFrame;
+
+  // 16 bytes is the size of a GBT frame
+  for (int iFrame = 0; iFrame < data.size() / 16; ++iFrame) {
+    gFrame.readFromMemory(gsl::span<const o2::byte>(data.data() + iFrame * 16, 16));
+    //gFrame.readFromMemory(data.data() + iFrame * 16, 16);
+    // backup the halfword of the frame before calculating the
+    // new halfwords. The previous half words might be needed
+    // to decode the ADC values.
+    gFrame.storePrevFrame();
+    // extract the half words from the 4 32-bit words
+    gFrame.getFrameHalfWords();
+
+    // debug output
+    if (CHECK_BIT(mDebugLevel, 1)) {
+      std::cout << gFrame;
+    }
+
+    gFrame.getAdcValues(rawData);
+    gFrame.updateSyncCheck(CHECK_BIT(mDebugLevel, 0));
+    if (!(rawData.getNumTimebins() % 16) && (rawData.getNumTimebins() >= mNumTimeBins * 16)) {
+      return 1;
+    }
+  };
+  return 0;
+}
+
+size_t RawReaderCRU::getNumberOfEvents() const
+{
+  return mManager ? mManager->mEventSync.getNumberOfEvents(mCRU) : 0;
+}
+
+void RawReaderCRU::fillADCdataMap(const ADCRawData& rawData)
+{
+  const auto& mapper = Mapper::instance();
+
+  // cru and link must be set correctly before
+  const CRU cru(mCRU);
+  const int fecLinkOffsetCRU = (mapper.getPartitionInfo(cru.partition()).getNumberOfFECs() + 1) / 2;
+  const int fecInPartition = (mLink % 12) + (mLink > 11) * fecLinkOffsetCRU;
+  const int regionIter = mCRU % 2;
+
+  const int sampaMapping[10] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 2};
+  const int channelOffset[10] = {0, 16, 0, 16, 0, 0, 16, 0, 16, 16};
+
+  for (int istreamm = 0; istreamm < 5; ++istreamm) {
+    const int partitionStream = istreamm + regionIter * 5;
+    const int sampa = sampaMapping[partitionStream];
+
+    const auto& dataVector = rawData.getDataVector(istreamm);
+
+    // loop over all data. Each stream has 16 ADC values for each sampa channel times nTimeBins
+    for (int idata = 0; idata < dataVector.size(); ++idata) {
+      const int ichannel = idata % 16;
+      const int sampaChannel = ichannel + channelOffset[partitionStream];
+      const auto& padPos = mapper.padPosRegion(cru.region(), fecInPartition, sampa, sampaChannel);
+      mADCdata[padPos].emplace_back(dataVector[idata]);
+    }
+  }
+}
+
+int RawReaderCRU::processDataFile()
 {
   GBTFrame gFrame;
   //gFrame.setSyncPositions(mSyncPositions[mLink]);
@@ -380,19 +458,17 @@ int RawReaderCRU::processData()
   }
 
   // ===| mapping to be updated |===============================================
-  CRU cru; // assuming each decoder only hast once CRU
+  //CRU cru; // assuming each decoder only hast once CRU
   const int link = mLink;
 
-  const auto& mapper = Mapper::instance();
-
-  const auto& linkInfoArray = mEventSync->getLinkInfoArrayForEvent(mEventNumber, mCRU);
+  const auto& linkInfoArray = mManager->mEventSync.getLinkInfoArrayForEvent(mEventNumber, mCRU);
 
   // loop over the packets for each link and process them
   //for (const auto& packet : mPacketDescriptorMaps[link]) {
   for (auto packetNumber : linkInfoArray[link].PacketPositions) {
     const auto& packet = mPacketDescriptorMaps[link][packetNumber];
 
-    cru = packet.getCRUID();
+    //cru = packet.getCRUID();
     // std::cout << "Packet : " << packetID << std::endl;
     gFrame.setPacketNumber(packetNumber);
     int retCode = processPacket(gFrame, packet.getPayloadOffset(), packet.getPayloadSize(), rawData);
@@ -406,27 +482,7 @@ int RawReaderCRU::processData()
 
   // ===| fill ADC data to the output structure |===
   if (mFillADCdataMap) {
-    const int fecLinkOffsetCRU = (mapper.getPartitionInfo(CRU(cru).partition()).getNumberOfFECs() + 1) / 2;
-    const int fecInPartition = (mLink % 12) + (mLink > 11) * fecLinkOffsetCRU;
-    const int regionIter = cru % 2;
-
-    const int sampaMapping[10] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 2};
-    const int channelOffset[10] = {0, 16, 0, 16, 0, 0, 16, 0, 16, 16};
-
-    for (int istreamm = 0; istreamm < 5; ++istreamm) {
-      const int partitionStream = istreamm + regionIter * 5;
-      const int sampa = sampaMapping[partitionStream];
-
-      const auto& dataVector = rawData.getDataVector(istreamm);
-
-      // loop over all data. Each stream has 16 ADC values for each sampa channel times nTimeBins
-      for (int idata = 0; idata < dataVector.size(); ++idata) {
-        const int ichannel = idata % 16;
-        const int sampaChannel = ichannel + channelOffset[partitionStream];
-        const auto& padPos = mapper.padPosRegion(cru.region(), fecInPartition, sampa, sampaChannel);
-        mADCdata[padPos].emplace_back(dataVector[idata]);
-      }
-    }
+    fillADCdataMap(rawData);
   }
 
   // std::cout << "Output Data" << std::endl;
@@ -458,6 +514,66 @@ int RawReaderCRU::processData()
   return 0;
 }
 
+void RawReaderCRU::processDataMemory()
+{
+
+  if (mVerbosity) {
+    std::cout << "Processing data for link " << mLink << std::endl;
+    std::cout << "Num packets : " << mPacketsPerLink[mLink] << std::endl;
+  }
+
+  size_t dataSize = 4000 * 16;
+  //if (mDataType == DataType::HBScaling) {
+  //dataSize =
+  //} else if (mDataType == DataType::Triggered) {
+  //// in triggered mode 4000 GBT frames are read out
+  //// 16 is the size of a GBT frame in byte
+  //dataSize = 4000 * 16;
+  //}
+
+  std::vector<o2::byte> data(dataSize);
+  collectGBTData(data);
+
+  ADCRawData rawData;
+  processMemory(data, rawData);
+
+  // ===| fill ADC data to the output structure |===
+  if (mFillADCdataMap) {
+    fillADCdataMap(rawData);
+  }
+}
+
+void RawReaderCRU::collectGBTData(std::vector<o2::byte>& data)
+{
+  const int link = mLink;
+
+  const auto& mapper = Mapper::instance();
+
+  const auto& linkInfoArray = mManager->mEventSync.getLinkInfoArrayForEvent(mEventNumber, mCRU);
+  std::ifstream file;
+  file.open(mInputFileName, std::ios::binary);
+  if (!file.good())
+    throw std::runtime_error("Unable to open or access file " + mInputFileName);
+
+  size_t presentDataPosition = 0;
+
+  // loop over the packets for each link and process them
+  //for (const auto& packet : mPacketDescriptorMaps[link]) {
+  for (auto packetNumber : linkInfoArray[link].PacketPositions) {
+    const auto& packet = mPacketDescriptorMaps[link][packetNumber];
+
+    const auto payloadStart = packet.getPayloadOffset();
+    const auto payloadSize = std::min(size_t(packet.getPayloadSize()), data.size() - presentDataPosition);
+    // jump to the start position of the packet
+    file.seekg(payloadStart, std::ios::beg);
+
+    // read data
+    file.read(((char*)data.data()) + presentDataPosition, payloadSize);
+
+    presentDataPosition += payloadSize;
+  };
+}
+
 void RawReaderCRU::processLinks(const uint32_t linkMask)
 {
   try {
@@ -466,8 +582,8 @@ void RawReaderCRU::processLinks(const uint32_t linkMask)
     scanFile();
 
     // check if selected event is valid
-    if (mEventSync && mEventNumber >= mEventSync->getNumberOfEvents()) {
-      O2ERROR("Selected event number %u is larger then the events in the file %lu", mEventNumber, mEventSync->getNumberOfEvents());
+    if (mManager && mEventNumber >= mManager->mEventSync.getNumberOfEvents()) {
+      O2ERROR("Selected event number %u is larger then the events in the file %lu", mEventNumber, mManager->mEventSync.getNumberOfEvents());
       return;
     }
 
@@ -482,14 +598,16 @@ void RawReaderCRU::processLinks(const uint32_t linkMask)
           fmt::print("Processing link {}\n", lnk);
         }
         setLink(lnk);
-        processData();
+        //processDataFile();
+        processDataMemory();
       } else if (((linkMask >> lnk) & 0x1) == 0x1 && checkLinkPresent(lnk) == true) {
         // set the active link variable and process the data
         if (mDebugLevel) {
           fmt::print("Processing link {}\n", lnk);
         }
         setLink(lnk);
-        processData();
+        //processDataFile();
+        processDataMemory();
       };
     };
 
@@ -508,17 +626,24 @@ void RawReaderCRU::processLinks(const uint32_t linkMask)
 void RawReaderCRU::processFile(const std::string_view inputFile, uint32_t timeBins, uint32_t linkMask, uint32_t stream, uint32_t debugLevel, uint32_t verbosity, const std::string_view outputFilePrefix)
 {
   // Instantiate the RawReaderCRU
-  RawReaderCRU rawReaderCRU(inputFile, timeBins, 0, stream, debugLevel, verbosity, outputFilePrefix);
+  RawReaderCRUManager cruManager;
+  cruManager.setDebugLevel(debugLevel);
+  RawReaderCRU& rawReaderCRU = cruManager.createReader(inputFile, timeBins, 0, stream, debugLevel, verbosity, outputFilePrefix);
+  cruManager.init();
   rawReaderCRU.mDumpTextFiles = true;
   rawReaderCRU.mFillADCdataMap = false;
-  rawReaderCRU.processLinks(linkMask);
+  for (int ievent = 0; ievent < rawReaderCRU.getNumberOfEvents(); ++ievent) {
+    fmt::print("=============| event {: 5d} |===============\n", ievent);
+    rawReaderCRU.setEventNumber(ievent);
+    rawReaderCRU.processLinks(linkMask);
+  }
 }
 
 //==============================================================================
 //===| stream overloads for helper classes |====================================
 //
 
-void RawReaderCRU::ADCRawData::streamTo(std::ostream& output) const
+void ADCRawData::streamTo(std::ostream& output) const
 {
   const auto numTimeBins = std::min(getNumTimebins(), mNumTimeBins);
   for (int i = 0; i < numTimeBins * 16; i++) {
@@ -529,7 +654,16 @@ void RawReaderCRU::ADCRawData::streamTo(std::ostream& output) const
   };
 };
 
-void RawReaderCRU::GBTFrame::streamFrom(std::istream& input)
+void GBTFrame::readFromMemory(gsl::span<const o2::byte> data)
+{
+  assert(sizeof(mData) == data.size_bytes());
+  memcpy(mData.data(), data.data(), data.size_bytes());
+  //for (int i = 0; i < 4; i++) {
+  //mData[i] = reinterpret_cast<decltype(mData[i])>(data.data() + i * sizeof(mData[i])
+  //};
+}
+
+void GBTFrame::streamFrom(std::istream& input)
 {
   mFilePos = input.tellg();
   mFrameNum++;
@@ -539,7 +673,7 @@ void RawReaderCRU::GBTFrame::streamFrom(std::istream& input)
 }
 
 //std::ostream& operator<<(std::ostream& output, const RawReaderCRU::GBTFrame& frame)
-void RawReaderCRU::GBTFrame::streamTo(std::ostream& output) const
+void GBTFrame::streamTo(std::ostream& output) const
 {
   output << std::dec << "\033[94m"
          << std::setfill('0') << std::setw(8) << mPacketNum << " "
@@ -587,6 +721,8 @@ std::ostream& operator<<(std::ostream& output, const RDH& rdh)
 
   output << "word1            : 0x" << std::setfill('0') << std::setw(16) << std::hex << rdh.word1 << "\n"
          << std::dec;
+  output << "  Offset to next : " << int(rdh.offsetToNext) << "\n";
+  output << "  Memory size    : " << int(rdh.memorySize) << "\n";
   output << "  LinkID         : " << int(rdh.linkID) << "\n";
   output << "  Global LinkID  : " << int(rdh.linkID) + (((rdh.word1 >> 32) >> 28) * 12) << "\n";
   output << "  CRUid          : " << rdh.cruID << "\n";
@@ -651,11 +787,11 @@ std::istream& operator>>(std::istream& input, RDH& rdh)
 //==============================================================================
 void RawReaderCRUManager::init()
 {
-  if (mIsInitialized)
+  if (mIsInitialized) {
     return;
+  }
 
   for (auto& reader : mRawReadersCRU) {
-    reader->setEventSync(&mEventSync);
     reader->scanFile();
   }
 
