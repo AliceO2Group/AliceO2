@@ -67,6 +67,7 @@ o2_add_library(Framework
                        src/Dispatcher.cxx
                        src/DriverControl.cxx
                        src/DriverInfo.cxx
+                       src/Expressions.cxx
                        src/FairMQDeviceProxy.cxx
                        src/FairMQResizableBuffer.cxx
                        src/FairOptionsRetriever.cxx
