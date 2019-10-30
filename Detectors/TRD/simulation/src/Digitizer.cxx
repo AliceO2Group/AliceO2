@@ -281,11 +281,8 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       }
 
       // Apply the gas gain including fluctuations
-      double ggRndm = 0;
-      do {
-        ggRndm = gRandom->Rndm();
-      } while (ggRndm <= 0);
-      double signal = -(mSimParam->GetGasGain()) * TMath::Log(ggRndm);
+      const double ggRndm = gRandom->Rndm();
+      const double signal = -(mSimParam->GetGasGain()) * TMath::Log(ggRndm);
 
       // Apply the pad response
       if (mSimParam->PRFOn()) {
@@ -349,9 +346,6 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
           if (mSimParam->CTOn()) {
             crossTalk = mSimParam->CrossTalk(t);
           }
-          signalOld[0] = 0;
-          signalOld[1] = 0;
-          signalOld[2] = 0;
           signalOld[iPad] = currentSignal[iTimeBin];
           if (colPos != colE) {
             // Cross talk added to non-central pads
