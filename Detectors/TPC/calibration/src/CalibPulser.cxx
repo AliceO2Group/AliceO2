@@ -31,8 +31,8 @@ CalibPulser::CalibPulser(PadSubset padSubset)
     mXminT0{-2},
     mXmaxT0{2},
     mNbinsQtot{200},
-    mXminQtot{10},
-    mXmaxQtot{40},
+    mXminQtot{50},
+    mXmaxQtot{700},
     mNbinsWidth{100},
     mXminWidth{0.1},
     mXmaxWidth{5.1},
@@ -69,16 +69,17 @@ Int_t CalibPulser::updateROC(const Int_t roc, const Int_t row, const Int_t pad,
                              const Int_t timeBin, Float_t signal)
 {
   // ===| range checks |========================================================
-  if (signal < mADCMin || signal > mADCMax)
+  if (timeBin < mFirstTimeBin || timeBin > mLastTimeBin) {
     return 0;
-  if (timeBin < mFirstTimeBin || timeBin > mLastTimeBin)
-    return 0;
+  }
 
-  // ===| correct the signal |==================================================
-  // TODO before or after signal range check?
+  // ---| pedestal subtraction |---
   if (mPedestal) {
     signal -= mPedestal->getValue(ROC(roc), row, pad);
   }
+
+  if (signal < mADCMin || signal > mADCMax)
+    return 0;
 
   // ===| temporary calibration data |==========================================
   const PadROCPos padROCPos(roc, row, pad);
