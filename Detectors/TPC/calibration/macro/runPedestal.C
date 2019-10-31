@@ -14,14 +14,14 @@
 #include "TPCCalibration/CalibRawBase.h"
 #endif
 
-void runPedestal(TString fileInfo, TString outputFileName = "", Int_t nevents = 100, Int_t adcMin = 0, Int_t adcMax = 1100, Int_t numberTimeBins = 500, Int_t statisticsType = 0, uint32_t verbosity = 0, uint32_t debugLevel = 0, Int_t firstEvent = 0)
+void runPedestal(TString fileInfo, TString outputFileName = "", Int_t nevents = 100, Int_t adcMin = 0, Int_t adcMax = 1100, Int_t firstTimeBin = 0, Int_t lastTimeBin = 450, Int_t statisticsType = 0, uint32_t verbosity = 0, uint32_t debugLevel = 0, Int_t firstEvent = 0)
 {
   using namespace o2::tpc;
   CalibPedestal ped; //(PadSubset::Region);
   ped.setADCRange(adcMin, adcMax);
   ped.setupContainers(fileInfo, verbosity, debugLevel);
   ped.setStatisticsType(CalibPedestal::StatisticsType(statisticsType));
-  ped.setTimeBinRange(0, numberTimeBins);
+  ped.setTimeBinRange(firstTimeBin, lastTimeBin);
 
   //ped.processEvent();
   //ped.resetData();

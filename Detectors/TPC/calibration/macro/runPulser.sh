@@ -2,7 +2,7 @@
 
 usage() {
   echo "Usage:"
-  echo "runPedestal <required arguments> [optional arguments]"
+  echo "runPulser.sh <required arguments> [optional arguments]"
   echo
   echo
   echo "required arguments"
@@ -12,13 +12,13 @@ usage() {
   echo "                            the time bin option after the ':' overwrites the --timeBins option"
   echo
   echo "optional arguments:"
-  echo "    -o, --outputFile=    : set output file name (default: pedestals.root)"
+  echo "    -o, --outputFile=    : set output file name (default: '$outputFile')"
   echo "    -f, --fistTimeBin=   : first time bin for pulser search"
   echo "    -l, --lastTimeBin=   : last time bin for pulser search"
   echo "    -n, --nevents=       : number of events to process (default: 1000)"
-  echo "    -m, --adcMin=        : minimal ADC values accepted (default: 0)"
+  echo "    -m, --adcMin=        : minimal ADC values accepted (default: 0)"  // check for pulser
   echo "    -x, --adcMax=        : maximal ADC values accepted (default: 1100)"
-  echo "    -s, --statType=      : statistics type - 0: Gaus fit (default), 1: Mean and StdDev"
+  echo "    -p, --pedestalFile=  : pedestal and noise file"
   echo "    -v, --verbosity=     : set verbosity level for raw reader"
   echo "    -d, --debugLevel=    : set debug level for raw reader"
   echo "    -h, --help           : show this help message"
@@ -26,7 +26,7 @@ usage() {
 
 usageAndExit() {
   usage
-  if [[ "$0" =~ runPedestal.sh ]]; then
+  if [[ "$0" =~ runPulser.sh ]]; then
     exit 0
   else
     return 0
@@ -35,11 +35,10 @@ usageAndExit() {
 
 # ===| default variable values |================================================
 fileInfo=
-outputFile=pedestals.root
+outputFile=pulser.root
 nevents=1000
 firstTimeBin=0
-lastTimeBin=450
-statisticsType=0
+lastTimeBin=475
 verbosity=0
 debugLevel=0
 
@@ -47,7 +46,7 @@ adcMin=0
 adcMax=1100
 
 # ===| parse command line options |=============================================
-OPTIONS=$(getopt -l "fileInfo:,outputFile:,firstTimeBin:,lastTimeBin:,nevents:,adcMin:,adcMax:,statType:,verbosity:,debugLevel:,help" -o "i:o:t:f:l:m:x:s:v:d:h" -n "runPedestal.sh" -- "$@")
+OPTIONS=$(getopt -l "fileInfo:,outputFile:,firstTimeBin:,lastTimeBin:,nevents:,adcMin:,adcMax:,pedestalFile:,verbosity:,debugLevel:,help" -o "i:o:f:l:n:m:x:p:v:d:h" -n "runPulser.sh" -- "$@")
 
 if [ $? != 0 ] ; then
   usageAndExit
@@ -64,8 +63,8 @@ while true; do
     -l|--lastTimeBin) lastTimeBin=$2; shift 2;;
     -n|--nevents) nevents=$2; shift 2;;
     -m|--adcMin) adcMin=$2; shift 2;;
-    -x|--adcMax) adcMax=$2; shift 2;;
-    -s|--statType) statisticsType=$2; shift 2;;
+    -x|--adcMax) adcMin=$2; shift 2;;
+    -p|--pedestalFile) pedestalFile=$2; shift 2;;
     -v|--verbosity) verbosity=$2; shift 2;;
     -d|--debugLevel) debugLevel=$2; shift 2;;
     -h|--help) usageAndExit;;
@@ -87,6 +86,6 @@ else
 fi
 
 # ===| command building and execution |=========================================
-cmd="root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/runPedestal.C'(\"$fileInfo\",\"$outputFile\", $nevents, $adcMin, $adcMax, $firstTimeBin, $lastTimeBin, $statisticsType, $verbosity, $debugLevel)'"
+cmd="root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/runPulser.C'(\"$fileInfo\",\"$outputFile\", $nevents, $adcMin, $adcMax, $firstTimeBin, $lastTimeBin, \"$pedestalFile\", $verbosity, $debugLevel)'"
 echo "running: $cmd"
 eval $cmd
