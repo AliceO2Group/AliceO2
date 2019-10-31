@@ -295,8 +295,8 @@ struct MyTask : AnalysisTask {
   Partition<Tracks> rightTracks = track::eta >= 0;
 
   void process(Tracks const &tracks) {
-    for (auto& left : leftTracks(filteredTracks)) {
-      for (auto& right : rightTracks(filteredTracks)) {
+    for (auto& left : leftTracks(tracks)) {
+      for (auto& right : rightTracks(tracks)) {
         ...
       }
     }
