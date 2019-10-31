@@ -11,10 +11,12 @@
 #define O2_FRAMEWORK_EXPRESSIONS_H_
 
 #include "Framework/Kernels.h"
+#include "Framework/VariantHelpers.h"
 
 #include <variant>
 #include <string>
 #include <memory>
+#include <iostream>
 
 namespace o2::framework::expressions
 {
@@ -63,6 +65,10 @@ struct ArrowDatumSpec {
   explicit ArrowDatumSpec(std::string binding) : datum{binding} {}
   ArrowDatumSpec() : datum{std::monostate{}} {}
 };
+
+bool operator==(ArrowDatumSpec const& lhs, ArrowDatumSpec const& rhs);
+
+std::ostream& operator<<(std::ostream& os, ArrowDatumSpec const& spec);
 
 struct ArrowKernelSpec {
   std::unique_ptr<arrow::compute::OpKernel> kernel = nullptr;
@@ -145,6 +151,8 @@ struct Filter {
 
   std::unique_ptr<Node> node;
 };
+
+std::vector<ArrowKernelSpec> createKernelsFromFilter(Filter const& filter);
 
 } // namespace o2::framework::expressions
 
