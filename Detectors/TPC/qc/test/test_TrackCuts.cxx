@@ -8,16 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#define BOOST_TEST_MODULE Test TPC QC
+#define BOOST_TEST_MAIN
+#define BOOST_TEST_DYN_LINK
+#include <boost/test/unit_test.hpp>
+#include "TPCQC/TrackCuts.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#pragma link C++ class o2::tpc::qc::PID+;
-#pragma link C++ class o2::tpc::qc::TrackCuts+;
-#pragma link C++ function o2::tpc::qc::helpers::makeLogBinning+;
-#pragma link C++ function o2::tpc::qc::helpers::setStyleHistogram1D+;
-#pragma link C++ function o2::tpc::qc::helpers::setStyleHistogram2D+;
-
-#endif
+BOOST_AUTO_TEST_CASE(ReadWriteROOTFile)
+{
+  o2::tpc::qc::TrackCuts trackcuts;
+}
