@@ -118,11 +118,11 @@ BOOST_AUTO_TEST_CASE(ParameterGas_test1)
   BOOST_CHECK_CLOSE(ParameterGas::Instance().Nprim, 14.f, 1e-3);
   BOOST_CHECK_CLOSE(ParameterGas::Instance().ScaleFactorG4, 0.85f, 1e-3);
   BOOST_CHECK_CLOSE(ParameterGas::Instance().FanoFactorG4, 0.7f, 1e-3);
-  BOOST_CHECK_CLOSE(ParameterGas::Instance().BetheBlochParam[0], 0.76176e-1, 1e-3);
-  BOOST_CHECK_CLOSE(ParameterGas::Instance().BetheBlochParam[1], 10.632, 1e-3);
-  BOOST_CHECK_CLOSE(ParameterGas::Instance().BetheBlochParam[2], 0.13279e-4, 1e-3);
-  BOOST_CHECK_CLOSE(ParameterGas::Instance().BetheBlochParam[3], 1.8631, 1e-3);
-  BOOST_CHECK_CLOSE(ParameterGas::Instance().BetheBlochParam[4], 1.9479, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().BetheBlochParam[0], 0.820172e-1, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().BetheBlochParam[1], 9.94795f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().BetheBlochParam[2], 8.97292e-05f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().BetheBlochParam[3], 2.05873f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGas::Instance().BetheBlochParam[4], 1.65272f, 1e-3);
 
   BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.Wion"), 37.3e-9, 1e-3);
   BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.Ipot"), 20.77e-9, 1e-3);
@@ -135,11 +135,11 @@ BOOST_AUTO_TEST_CASE(ParameterGas_test1)
   BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.Nprim"), 14.f, 1e-3);
   BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.ScaleFactorG4"), 0.85f, 1e-3);
   BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.FanoFactorG4"), 0.7f, 1e-3);
-  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.BetheBlochParam[0]"), 0.76176e-1, 1e-3);
-  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.BetheBlochParam[1]"), 10.632, 1e-3);
-  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.BetheBlochParam[2]"), 0.13279e-4, 1e-3);
-  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.BetheBlochParam[3]"), 1.8631, 1e-3);
-  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.BetheBlochParam[4]"), 1.9479, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.BetheBlochParam[0]"), 0.820172e-1, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.BetheBlochParam[1]"), 9.94795f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.BetheBlochParam[2]"), 8.97292e-05f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.BetheBlochParam[3]"), 2.05873f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.BetheBlochParam[4]"), 1.65272f, 1e-3);
 }
 
 /// \brief Trivial test of the initialization of Parameter Gas
@@ -197,7 +197,6 @@ BOOST_AUTO_TEST_CASE(setValues_test1)
   o2::conf::ConfigurableParam::setValue("TPCGasParam.Wion", "5.0");
   BOOST_CHECK_CLOSE(ParameterGas::Instance().Wion, 5.0, 1e-3);
   BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGasParam.Wion"), 5.0, 1e-3);
-  ParameterGas::Instance().printKeyValues(true);
 }
 
 /// \brief Trivial test of the default initialization of Parameter GEM
