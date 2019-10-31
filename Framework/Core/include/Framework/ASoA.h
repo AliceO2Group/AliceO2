@@ -13,8 +13,8 @@
 
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/CompilerBuiltins.h"
-#include "Framework/Expressions.h"
 #include "Framework/Traits.h"
+#include "Framework/Expressions.h"
 #include <arrow/table.h>
 #include <arrow/array.h>
 #include <cassert>
@@ -302,6 +302,21 @@ struct RowView : public C... {
   {
     RowView<C...> copy = *this;
     operator++();
+    return copy;
+  }
+
+  /// Allow incrementing by more than one the iterator
+  RowView<C...> operator+(size_t inc) const
+  {
+    RowView<C...> copy = *this;
+    copy.mRowIndex += inc;
+    return copy;
+  }
+
+  RowView<C...> operator-(size_t dec) const
+  {
+    RowView<C...> copy = *this;
+    copy.mRowIndex -= dec;
     return copy;
   }
 

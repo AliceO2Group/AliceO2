@@ -143,7 +143,7 @@ class CalibRawBase
   PadSubset mPadSubset;                                                //!< pad subset type used
   std::vector<std::unique_ptr<GBTFrameContainer>> mGBTFrameContainers; //!< raw reader pointer
   std::vector<std::unique_ptr<RawReader>> mRawReaders;                 //!< raw reader pointer
-  RawReaderCRUManager mRawReaderCRUManager{};                          //!< cru type raw readers
+  rawreader::RawReaderCRUManager mRawReaderCRUManager{};               //!< cru type raw readers
 
   virtual void resetEvent() = 0;
   virtual void endEvent() = 0;
