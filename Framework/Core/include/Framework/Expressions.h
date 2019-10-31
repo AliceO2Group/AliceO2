@@ -16,7 +16,7 @@
 #include <variant>
 #include <string>
 #include <memory>
-#include <iostream>
+#include <iosfwd>
 
 namespace o2::framework::expressions
 {
