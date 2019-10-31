@@ -19,6 +19,7 @@
 #include <TTree.h>
 
 #include "DataFormatsEMCAL/Digit.h"
+#include "DataFormatsEMCAL/TriggerRecord.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
@@ -50,10 +51,11 @@ class DigitsWriterSpec : public framework::Task
   void run(framework::ProcessingContext& ctx) final;
 
  private:
-  bool mFinished = false;                                 ///< flag indicating whether work is completed
-  std::shared_ptr<TFile> mOutputFile;                     ///< Common output file
-  std::shared_ptr<TTree> mOutputTree;                     ///< Common output tree
-  std::shared_ptr<std::vector<o2::emcal::Digit>> mDigits; ///< Container for incoming digits (Sink responsible for deleting the digits)
+  bool mFinished = false;                                                 ///< flag indicating whether work is completed
+  std::shared_ptr<TFile> mOutputFile;                                     ///< Common output file
+  std::shared_ptr<TTree> mOutputTree;                                     ///< Common output tree
+  std::shared_ptr<std::vector<o2::emcal::Digit>> mDigits;                 ///< Container for incoming digits (Sink responsible for deleting the digits)
+  std::shared_ptr<std::vector<o2::emcal::TriggerRecord>> mTriggerRecords; ///< Container for incoming trigger records
 };
 
 /// \brief Create new digits writer spec
