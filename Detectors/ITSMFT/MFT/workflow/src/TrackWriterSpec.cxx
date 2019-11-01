@@ -18,6 +18,7 @@
 #include "MFTTracking/TrackCA.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "SimulationDataFormat/MCCompLabel.h"

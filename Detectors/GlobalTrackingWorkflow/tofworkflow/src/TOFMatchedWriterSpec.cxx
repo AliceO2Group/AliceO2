@@ -12,6 +12,7 @@
 
 #include "TOFWorkflow/TOFMatchedWriterSpec.h"
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Headers/DataHeader.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>

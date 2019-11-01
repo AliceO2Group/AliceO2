@@ -13,6 +13,7 @@
 #include "FITDigitWriterSpec.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/Task.h"
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFT0/MCLabel.h"
