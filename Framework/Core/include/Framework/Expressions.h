@@ -10,7 +10,7 @@
 #ifndef O2_FRAMEWORK_EXPRESSIONS_H_
 #define O2_FRAMEWORK_EXPRESSIONS_H_
 
-#include "Framework/Kernels.h"
+#include <arrow/compute/kernel.h>
 
 #include <variant>
 #include <string>
