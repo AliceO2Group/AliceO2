@@ -8,8 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef FRAMEWORK_CONTEXTREGISTRY_H
-#define FRAMEWORK_CONTEXTREGISTRY_H
+#ifndef O2_FRAMEWORK_CONTEXTREGISTRY_H_
+#define O2_FRAMEWORK_CONTEXTREGISTRY_H_
+
+#include "Framework/TypeIdHelpers.h"
+#include "Framework/CompilerBuiltins.h"
 
 #include <typeinfo>
 #include <typeindex>
@@ -20,9 +23,7 @@
 #include <utility>
 #include <array>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// @class ContextRegistry
@@ -30,9 +31,16 @@ namespace framework
 /// Decouples getting the various contextes from the actual type
 /// of context, so that the DataAllocator does not need to know
 /// about the various serialization methods.
-///
 class ContextRegistry
 {
+  using ContextElementPtr = void*;
+  /// The maximum distance a entry can be from the optimal slot.
+  constexpr static int MAX_DISTANCE = 8;
+  /// The number of slots in the hashmap.
+  constexpr static int MAX_CONTEXT_ELEMENTS = 256;
+  /// The mask to use to calculate the initial slot id.
+  constexpr static int MAX_ELEMENTS_MASK = MAX_CONTEXT_ELEMENTS - 1;
+
  public:
   ContextRegistry();
 
@@ -42,16 +50,22 @@ class ContextRegistry
     set(std::forward<Types*>(instances)...);
   }
 
+  /// Get a service for the given interface T. The returned reference exposed to
+  /// the user is actually of the last concrete type C registered, however this
+  /// should not be a problem.
   template <typename T>
   T* get() const
   {
-    void* instance = nullptr;
-    for (size_t i = 0; i < mRegistryCount; ++i) {
-      if (mRegistryKey[i] == typeid(T*).hash_code()) {
-        return reinterpret_cast<T*>(mRegistryValue[i]);
+    constexpr auto typeHash = TypeIdHelpers::uniqueId<std::decay_t<T>>();
+    constexpr auto elementId = typeHash & MAX_ELEMENTS_MASK;
+    for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
+      if (mElements[i + elementId].first == typeHash) {
+        return reinterpret_cast<T*>(mElements[i + elementId].second);
       }
     }
-    throw std::out_of_range(std::string("Unsupported backend, no registered context '") + typeid(T).name() + "'");
+    throw std::runtime_error(std::string("Unable to find context element of kind ") +
+                             typeid(T).name() +
+                             " did you register one?");
   }
 
   template <typename T, typename... Types>
@@ -61,31 +75,31 @@ class ContextRegistry
     set(std::forward<Types*>(more)...);
   }
 
+  // Register a service for the given interface T
+  // with actual implementation C, i.e. C is derived from T.
+  // Only one instance of type C can be registered per type T.
+  // The fact we use a bare pointer indicates that the ownership
+  // of the service still belongs to whatever created it, and is
+  // not passed to the registry. It's therefore responsibility of
+  // the creator of the service to properly dispose it.
   template <typename T>
-  void set(T* instance)
+  void set(T* element)
   {
     static_assert(std::is_void<T>::value == false, "can not register a void object");
-    size_t i = 0;
-    for (i = 0; i < mRegistryCount; ++i) {
-      if (typeid(T*).hash_code() == mRegistryKey[i]) {
+    constexpr auto typeHash = TypeIdHelpers::uniqueId<std::decay_t<T>>();
+    constexpr auto elementId = typeHash & MAX_ELEMENTS_MASK;
+    for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
+      if (mElements[i + elementId].second == nullptr) {
+        mElements[i + elementId].first = typeHash;
+        mElements[i + elementId].second = reinterpret_cast<ContextElementPtr>(element);
         return;
       }
     }
-    if (i == MAX_REGISTRY_SIZE) {
-      throw std::runtime_error("Too many entries in ContextRegistry");
-    }
-    mRegistryCount = i + 1;
-    mRegistryKey[i] = typeid(T*).hash_code();
-    mRegistryValue[i] = instance;
+    O2_BUILTIN_UNREACHABLE();
   }
-
  private:
-  static constexpr size_t MAX_REGISTRY_SIZE = 8;
-  size_t mRegistryCount = 0;
-  std::array<size_t, MAX_REGISTRY_SIZE> mRegistryKey;
-  std::array<void*, MAX_REGISTRY_SIZE> mRegistryValue;
+  std::array<std::pair<size_t, ContextElementPtr>, MAX_CONTEXT_ELEMENTS + MAX_DISTANCE> mElements;
 };
 
-} // namespace framework
-} // namespace o2
-#endif // FRAMEWORK_CONTEXTREGISTRY_H
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_CONTEXTREGISTRY_H_
