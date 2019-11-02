@@ -167,6 +167,7 @@ foreach(t
         DeviceMetricsInfo
         DeviceSpec
         DeviceSpecHelpers
+        Expressions
         ExternalFairMQDeviceProxy
         FairMQOptionsRetriever
         FairMQResizableBuffer

@@ -10,11 +10,11 @@
 #ifndef O2_FRAMEWORK_EXPRESSIONS_H_
 #define O2_FRAMEWORK_EXPRESSIONS_H_
 
-#include "Framework/Kernels.h"
-
+#include <arrow/compute/kernel.h>
 #include <variant>
 #include <string>
 #include <memory>
+#include <iosfwd>
 
 namespace o2::framework::expressions
 {
@@ -53,22 +53,6 @@ struct BinaryOpNode {
   };
   BinaryOpNode(Op op_) : op{op_} {}
   Op op;
-};
-
-struct ArrowDatumSpec {
-  // datum spec either contains an index, a value of a literal or a binding label
-  std::variant<std::monostate, size_t, LiteralNode::var_t, std::string> datum;
-  explicit ArrowDatumSpec(size_t index) : datum{index} {}
-  explicit ArrowDatumSpec(LiteralNode::var_t literal) : datum{literal} {}
-  explicit ArrowDatumSpec(std::string binding) : datum{binding} {}
-  ArrowDatumSpec() : datum{std::monostate{}} {}
-};
-
-struct ArrowKernelSpec {
-  std::unique_ptr<arrow::compute::OpKernel> kernel = nullptr;
-  ArrowDatumSpec left;
-  ArrowDatumSpec right;
-  ArrowDatumSpec result;
 };
 
 /// A generic tree node
@@ -145,7 +129,6 @@ struct Filter {
 
   std::unique_ptr<Node> node;
 };
-
 } // namespace o2::framework::expressions
 
 #endif // O2_FRAMEWORK_EXPRESSIONS_H_
