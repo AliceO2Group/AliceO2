@@ -8,21 +8,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef FRAMEWORK_CONTEXTREGISTRY_H
-#define FRAMEWORK_CONTEXTREGISTRY_H
+#ifndef O2_FRAMEWORK_CONTEXTREGISTRY_H_
+#define O2_FRAMEWORK_CONTEXTREGISTRY_H_
 
-#include <typeinfo>
-#include <typeindex>
-#include <type_traits>
-#include <string>
 #include <stdexcept>
-#include <vector>
 #include <utility>
 #include <array>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// @class ContextRegistry
@@ -30,62 +23,38 @@ namespace framework
 /// Decouples getting the various contextes from the actual type
 /// of context, so that the DataAllocator does not need to know
 /// about the various serialization methods.
-///
 class ContextRegistry
 {
+  using ContextElementPtr = void*;
+  /// The maximum distance a entry can be from the optimal slot.
+  constexpr static int MAX_DISTANCE = 8;
+  /// The number of slots in the hashmap.
+  constexpr static int MAX_CONTEXT_ELEMENTS = 256;
+  /// The mask to use to calculate the initial slot id.
+  constexpr static int MAX_ELEMENTS_MASK = MAX_CONTEXT_ELEMENTS - 1;
+
  public:
   ContextRegistry();
 
   template <typename... Types>
-  ContextRegistry(Types*... instances)
-  {
-    set(std::forward<Types*>(instances)...);
-  }
+  inline ContextRegistry(Types*... instances);
 
   template <typename T>
-  T* get() const
-  {
-    void* instance = nullptr;
-    for (size_t i = 0; i < mRegistryCount; ++i) {
-      if (mRegistryKey[i] == typeid(T*).hash_code()) {
-        return reinterpret_cast<T*>(mRegistryValue[i]);
-      }
-    }
-    throw std::out_of_range(std::string("Unsupported backend, no registered context '") + typeid(T).name() + "'");
-  }
+  inline T* get() const;
 
   template <typename T, typename... Types>
-  void set(T* instance, Types*... more)
-  {
-    set(instance);
-    set(std::forward<Types*>(more)...);
-  }
+  inline void set(T* instance, Types*... more);
 
   template <typename T>
-  void set(T* instance)
-  {
-    static_assert(std::is_void<T>::value == false, "can not register a void object");
-    size_t i = 0;
-    for (i = 0; i < mRegistryCount; ++i) {
-      if (typeid(T*).hash_code() == mRegistryKey[i]) {
-        return;
-      }
-    }
-    if (i == MAX_REGISTRY_SIZE) {
-      throw std::runtime_error("Too many entries in ContextRegistry");
-    }
-    mRegistryCount = i + 1;
-    mRegistryKey[i] = typeid(T*).hash_code();
-    mRegistryValue[i] = instance;
-  }
+  inline void set(T* element);
 
  private:
-  static constexpr size_t MAX_REGISTRY_SIZE = 8;
-  size_t mRegistryCount = 0;
-  std::array<size_t, MAX_REGISTRY_SIZE> mRegistryKey;
-  std::array<void*, MAX_REGISTRY_SIZE> mRegistryValue;
+  std::array<std::pair<size_t, ContextElementPtr>, MAX_CONTEXT_ELEMENTS + MAX_DISTANCE> mElements;
 };
 
-} // namespace framework
-} // namespace o2
-#endif // FRAMEWORK_CONTEXTREGISTRY_H
+} // namespace o2::framework
+#ifndef __CLING__
+#include "Framework/ContextRegistry.inc"
+#endif // __CLING__
+
+#endif // O2_FRAMEWORK_CONTEXTREGISTRY_H_
