@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/Expressions.h"
+#include "../src/ExpressionHelpers.h"
 #include "Framework/VariantHelpers.h"
 #include <stack>
 

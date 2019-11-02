@@ -12,7 +12,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
-#include "Framework/Expressions.h"
+#include "../src/ExpressionHelpers.h"
 #include <boost/test/unit_test.hpp>
 
 using namespace o2::framework::expressions;
