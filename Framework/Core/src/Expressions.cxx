@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/Expressions.h"
+#include "../src/ExpressionHelpers.h"
 #include "Framework/VariantHelpers.h"
 #include <stack>
 
@@ -53,16 +53,37 @@ struct BinaryOpNodeHelper {
   }
 };
 
+bool operator==(ArrowDatumSpec const& lhs, ArrowDatumSpec const& rhs)
+{
+  return (lhs.datum == rhs.datum);
+}
+
+std::ostream& operator<<(std::ostream& os, ArrowDatumSpec const& spec)
+{
+  std::visit(
+    overloaded{
+      [&os](LiteralNode::var_t&& arg) -> void {
+        std::visit(
+          [&os](auto&& arg) { os << arg; },
+          arg);
+      },
+      [&os](size_t&& arg) { os << arg; },
+      [&os](std::string&& arg) { os << arg; },
+      [](auto&&) {}},
+    spec.datum);
+  return os;
+}
+
 /// helper struct used to parse trees
 struct NodeRecord {
   /// pointer to the actual tree node
   Node* node_ptr = nullptr;
-  explicit NodeRecord(Node* node_) : node_ptr(node_) {}
+  size_t index = 0;
+  explicit NodeRecord(Node* node_, size_t index_) : node_ptr(node_), index{index_} {}
 };
 
 std::vector<ArrowKernelSpec> createKernelsFromFilter(Filter const& filter)
 {
-  std::vector<ArrowDatumSpec> datums;
   std::vector<ArrowKernelSpec> kernelSpecs;
   std::stack<NodeRecord> path;
   auto isLeaf = [](Node const* const node) {
@@ -70,10 +91,8 @@ std::vector<ArrowKernelSpec> createKernelsFromFilter(Filter const& filter)
   };
 
   size_t index = 0;
-  // create and put output datum
-  datums.emplace_back(ArrowDatumSpec{index++});
   // insert the top node into stack
-  path.emplace(filter.node.get());
+  path.emplace(filter.node.get(), index++);
 
   // while the stack is not empty
   while (path.empty() == false) {
@@ -85,33 +104,14 @@ std::vector<ArrowKernelSpec> createKernelsFromFilter(Filter const& filter)
     bool leftLeaf = isLeaf(left);
     bool rightLeaf = isLeaf(right);
 
-    size_t li = 0;
-    size_t ri = 0;
-    size_t ti = index;
-
-    auto processLeaf = [&datums](Node const* const node) {
-      datums.push_back(
-        std::visit(
-          overloaded{
-            [lh = LiteralNodeHelper{}](LiteralNode node) { return lh(node); },
-            [bh = BindingNodeHelper{}](BindingNode node) { return bh(node); },
-            [](auto&&) { return ArrowDatumSpec{}; }},
-          node->self));
+    auto processLeaf = [](Node const* const node) {
+      return std::visit(
+        overloaded{
+          [lh = LiteralNodeHelper{}](LiteralNode node) { return lh(node); },
+          [bh = BindingNodeHelper{}](BindingNode node) { return bh(node); },
+          [](auto&&) { return ArrowDatumSpec{}; }},
+        node->self);
     };
-
-    if (leftLeaf) {
-      processLeaf(left);
-    } else {
-      datums.emplace_back(ArrowDatumSpec{index++});
-    }
-    li = datums.size() - 1;
-
-    if (rightLeaf) {
-      processLeaf(right);
-    } else {
-      datums.emplace_back(ArrowDatumSpec{index++});
-    }
-    ri = datums.size() - 1;
 
     // create kernel spec, pop the node and add its children
     auto&& kernel =
@@ -120,15 +120,31 @@ std::vector<ArrowKernelSpec> createKernelsFromFilter(Filter const& filter)
           [bh = BinaryOpNodeHelper{}](BinaryOpNode node) { return bh(node); },
           [](auto&&) { return ArrowKernelSpec{}; }},
         top.node_ptr->self);
-    kernel.left = ArrowDatumSpec{li};
-    kernel.right = ArrowDatumSpec{ri};
-    kernel.result = ArrowDatumSpec{ti};
-    kernelSpecs.push_back(std::move(kernel));
+    kernel.result = ArrowDatumSpec{top.index};
     path.pop();
+
+    size_t li = 0;
+    size_t ri = 0;
+
+    if (leftLeaf) {
+      kernel.left = processLeaf(left);
+    } else {
+      li = index;
+      kernel.left = ArrowDatumSpec{index++};
+    }
+
+    if (rightLeaf) {
+      kernel.right = processLeaf(right);
+    } else {
+      ri = index;
+      kernel.right = ArrowDatumSpec{index++};
+    }
+
+    kernelSpecs.push_back(std::move(kernel));
     if (!leftLeaf)
-      path.emplace(left);
+      path.emplace(left, li);
     if (!rightLeaf)
-      path.emplace(right);
+      path.emplace(right, ri);
   }
   return kernelSpecs;
 }
