@@ -11,15 +11,7 @@
 #ifndef O2_FRAMEWORK_CONTEXTREGISTRY_H_
 #define O2_FRAMEWORK_CONTEXTREGISTRY_H_
 
-#include "Framework/TypeIdHelpers.h"
-#include "Framework/CompilerBuiltins.h"
-
-#include <typeinfo>
-#include <typeindex>
-#include <type_traits>
-#include <string>
 #include <stdexcept>
-#include <vector>
 #include <utility>
 #include <array>
 
@@ -45,35 +37,16 @@ class ContextRegistry
   ContextRegistry();
 
   template <typename... Types>
-  ContextRegistry(Types*... instances)
-  {
-    set(std::forward<Types*>(instances)...);
-  }
+  inline ContextRegistry(Types*... instances);
 
   /// Get a service for the given interface T. The returned reference exposed to
   /// the user is actually of the last concrete type C registered, however this
   /// should not be a problem.
   template <typename T>
-  T* get() const
-  {
-    constexpr auto typeHash = TypeIdHelpers::uniqueId<std::decay_t<T>>();
-    constexpr auto elementId = typeHash & MAX_ELEMENTS_MASK;
-    for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
-      if (mElements[i + elementId].first == typeHash) {
-        return reinterpret_cast<T*>(mElements[i + elementId].second);
-      }
-    }
-    throw std::runtime_error(std::string("Unable to find context element of kind ") +
-                             typeid(T).name() +
-                             " did you register one?");
-  }
+  inline T* get() const;
 
   template <typename T, typename... Types>
-  void set(T* instance, Types*... more)
-  {
-    set(instance);
-    set(std::forward<Types*>(more)...);
-  }
+  inline void set(T* instance, Types*... more);
 
   // Register a service for the given interface T
   // with actual implementation C, i.e. C is derived from T.
@@ -83,23 +56,15 @@ class ContextRegistry
   // not passed to the registry. It's therefore responsibility of
   // the creator of the service to properly dispose it.
   template <typename T>
-  void set(T* element)
-  {
-    static_assert(std::is_void<T>::value == false, "can not register a void object");
-    constexpr auto typeHash = TypeIdHelpers::uniqueId<std::decay_t<T>>();
-    constexpr auto elementId = typeHash & MAX_ELEMENTS_MASK;
-    for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
-      if (mElements[i + elementId].second == nullptr) {
-        mElements[i + elementId].first = typeHash;
-        mElements[i + elementId].second = reinterpret_cast<ContextElementPtr>(element);
-        return;
-      }
-    }
-    O2_BUILTIN_UNREACHABLE();
-  }
+  inline void set(T* element);
+
  private:
   std::array<std::pair<size_t, ContextElementPtr>, MAX_CONTEXT_ELEMENTS + MAX_DISTANCE> mElements;
 };
 
 } // namespace o2::framework
+#ifndef __CLING__
+#include "Framework/ContextRegistry.inc"
+#endif // __CLING__
+
 #endif // O2_FRAMEWORK_CONTEXTREGISTRY_H_
