@@ -10,7 +10,7 @@
 
 /// @brief  Processor spec for a ROOT file writer for FT0&FV0 digits
 
-#include "FITDigitWriterSpec.h"
+#include "FT0DigitWriterSpec.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -34,15 +34,17 @@ using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
 namespace o2
 {
-namespace fit
+namespace ft0
 {
 
-class FITDPLDigitWriter
+class FT0DPLDigitWriter
 {
 
   using MCCont = o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>;
 
  public:
+  static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::FT0;
+  static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginFT0;
   void init(framework::InitContext& ic)
   {
     std::string detStrL = mID.getName();
@@ -90,9 +92,9 @@ class FITDPLDigitWriter
     mFinished = true;
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
+  FT0DPLDigitWriter() = default;
 
  protected:
-  FITDPLDigitWriter() = default;
   template <typename T>
   TBranch* getOrMakeBranch(TTree& tree, std::string brname, T* ptr)
   {
@@ -105,13 +107,13 @@ class FITDPLDigitWriter
   }
 
   bool mFinished = false;
-  o2::detectors::DetID mID;
-  o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
+  o2::detectors::DetID mID = DETID;
+  o2::header::DataOrigin mOrigin = DETOR;
   std::vector<o2::ft0::Digit> mDigits; // input digits
   std::unique_ptr<TFile> mOutFile;
   std::unique_ptr<TTree> mOutTree;
 };
-
+/*
 //_______________________________________________
 class FT0DPLDigitWriter : public FITDPLDigitWriter
 {
@@ -125,10 +127,10 @@ class FT0DPLDigitWriter : public FITDPLDigitWriter
     mOrigin = DETOR;
   }
 };
-
+  
 constexpr o2::detectors::DetID::ID FT0DPLDigitWriter::DETID;
 constexpr o2::header::DataOrigin FT0DPLDigitWriter::DETOR;
-
+  */
 //_______________________________________________
 /// create the processor spec
 /// describing a processor receiving digits for ITS/MFT and writing them to file
@@ -154,5 +156,5 @@ DataProcessorSpec getFT0DigitWriterSpec()
     }};
 }
 
-} // end namespace fit
+} // namespace ft0
 } // end namespace o2

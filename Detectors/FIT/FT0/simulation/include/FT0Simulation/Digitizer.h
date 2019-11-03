@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_FIT_DIGITIZER_H
-#define ALICEO2_FIT_DIGITIZER_H
+#ifndef ALICEO2_FT0_DIGITIZER_H
+#define ALICEO2_FT0_DIGITIZER_H
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsFT0/Digit.h"
@@ -17,12 +17,12 @@
 #include "FT0Simulation/Detector.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "FITSimulation/DigitizationParameters.h"
+#include "FT0Simulation/DigitizationParameters.h"
 #include <TH1F.h>
 
 namespace o2
 {
-namespace fit
+namespace ft0
 {
 class Digitizer
 {
@@ -83,7 +83,7 @@ class Digitizer
 
   //static constexpr Float_t signal_width = 5.;         // time gate for signal, ns
 
-  //static std::vector<double> aggregate_channels(const std::vector<o2::fit::HitType>& hits, DigitizationParameters const& parameters);
+  //static std::vector<double> aggregate_channels(const std::vector<o2::ft0::HitType>& hits, DigitizationParameters const& parameters);
 
   ClassDefNV(Digitizer, 1);
 };
@@ -96,7 +96,7 @@ inline double signalForm_i(double x)
   return x > 0 ? -(exp(-0.83344945 * x) - exp(-0.45458 * x)) / 7.8446501 : 0.;
   //return -(exp(-0.83344945 * x) - exp(-0.45458 * x)) * (x >= 0) / 7.8446501; // Maximum should be 7.0/250 mV
 };
-} // namespace fit
+} // namespace ft0
 } // namespace o2
 
 #endif

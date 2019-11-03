@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "FITDigitizerSpec.h"
+#include "FT0DigitizerSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataProcessorSpec.h"
@@ -16,7 +16,7 @@
 #include "Framework/Lifetime.h"
 #include "Headers/DataHeader.h"
 #include "Steer/HitProcessingManager.h" // for RunContext
-#include "FITSimulation/Digitizer.h"
+#include "FT0Simulation/Digitizer.h"
 #include "FT0Simulation/DigitizationParameters.h"
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFT0/MCLabel.h"
@@ -33,19 +33,21 @@ using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
 namespace o2
 {
-namespace fit
+namespace ft0
 {
 // helper function which will be offered as a service
 //template <typename T>
 
-class FITDPLDigitizerTask
+class FT0DPLDigitizerTask
 {
 
  public:
-  explicit FITDPLDigitizerTask(o2::fit::DigitizationParameters const& parameters)
-    : mDigitizer(parameters) {}
-  ~FITDPLDigitizerTask() = default;
-
+  FT0DPLDigitizerTask() : mDigitizer(DigitizationParameters{}) {}
+  explicit  FT0DPLDigitizerTask(o2::ft0::DigitizationParameters const& parameters)
+    : mDigitizer(parameters){};
+  ~FT0DPLDigitizerTask() = default;
+  static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::FT0;
+  static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginFT0;
   void init(framework::InitContext& ic)
   {
     // setup the input chain for the hits
@@ -59,10 +61,7 @@ class FITDPLDigitizerTask
       mSimChains.emplace_back(new TChain("o2sim"));
       mSimChains.back()->AddFile(signalfilename.c_str());
     }
-    static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::FT0;
-    if (mID == o2::detectors::DetID::FT0) {
-      mDigitizer.init();
-    }
+    mDigitizer.init();
     const bool isContinuous = ic.options().get<int>("pileup");
   }
 
@@ -73,7 +72,6 @@ class FITDPLDigitizerTask
     if (finished) {
       return;
     }
-    std::string detStr = mID.getName();
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
@@ -87,7 +85,7 @@ class FITDPLDigitizerTask
     TStopwatch timer;
     timer.Start();
 
-    LOG(INFO) << "CALLING FIT DIGITIZATION";
+    LOG(INFO) << "CALLING FT0 DIGITIZATION";
 
     static std::vector<o2::ft0::HitType> hits;
     o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> labelAccum;
@@ -105,16 +103,17 @@ class FITDPLDigitizerTask
       std::vector<std::vector<double>> channel_times;
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
-      std::cout << " @@@@ mOrigin " << mOrigin << " mID " << mID.getName() << std::endl;
       for (auto& part : eventParts[collID]) {
         // get the hits for this event and this source
         hits.clear();
         retrieveHits(mSimChains, part.sourceID, part.entryID, &hits);
-        LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
+        LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " source ID " << part.sourceID << " found " << hits.size() << " hits ";
 
         // call actual digitization procedure
         labels.clear();
-        // digits.clear();
+        mDigitizer.setEventID(collID);
+        mDigitizer.setSrcID(part.sourceID);
+
         mDigitizer.process(&hits, &digit, channel_times);
         const auto& data = digit.getChDgData();
         LOG(INFO) << "Have " << data.size() << " fired channels ";
@@ -130,11 +129,11 @@ class FITDPLDigitizerTask
     }
 
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-    pc.outputs().snapshot(Output{mOrigin, "DIGITS", 0, Lifetime::Timeframe}, digitAccum);
-    pc.outputs().snapshot(Output{mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
+    pc.outputs().snapshot(Output{DETOR, "DIGITS", 0, Lifetime::Timeframe}, digitAccum);
+    pc.outputs().snapshot(Output{DETOR, "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
 
-    LOG(INFO) << "FIT: Sending ROMode= " << mROMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{mOrigin, "ROMode", 0, Lifetime::Timeframe}, mROMode);
+    LOG(INFO) << "FT0: Sending ROMode= " << mROMode << " to GRPUpdater";
+    pc.outputs().snapshot(Output{DETOR, "ROMode", 0, Lifetime::Timeframe}, mROMode);
     timer.Stop();
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
 
@@ -147,11 +146,10 @@ class FITDPLDigitizerTask
  protected:
   Bool_t mContinuous = kFALSE;  ///< flag to do continuous simulation
   double mFairTimeUnitInNS = 1; ///< Fair time unit in ns
-  o2::detectors::DetID mID;
+  o2::detectors::DetID mID = DETID;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
-  o2::fit::Digitizer mDigitizer; ///< Digitizer
+  o2::ft0::Digitizer mDigitizer; ///< Digitizer
 
-  //Digitizer mV0Digitizer; ///< Digitizer
   // RS: at the moment using hardcoded flag for continuos readout
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
 
@@ -164,7 +162,6 @@ class FITDPLDigitizerTask
   {
     std::string detStr = mID.getName();
     auto br = mSimChains[sourceID]->GetBranch((detStr + "Hit").c_str());
-    //  auto br = chains[sourceID]->GetBranch(brname);
     if (!br) {
       LOG(ERROR) << "No branch found";
       return;
@@ -174,22 +171,6 @@ class FITDPLDigitizerTask
   }
 };
 
-class FT0DPLDigitizerTask : public FITDPLDigitizerTask
-{
- public:
-  // FIXME: origina should be extractable from the DetID, the problem is 3d party header dependencies
-  static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::FT0;
-  static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginFT0;
-  FT0DPLDigitizerTask() : FITDPLDigitizerTask{o2::ft0::FT0DigitizationParameters()}
-  {
-    mID = DETID;
-    mOrigin = DETOR;
-  }
-};
-
-constexpr o2::detectors::DetID::ID FT0DPLDigitizerTask::DETID;
-constexpr o2::header::DataOrigin FT0DPLDigitizerTask::DETOR;
-
 o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel)
 {
   // create the full data processor spec using
@@ -197,11 +178,11 @@ o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel)
   //  input description
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
-  std::string detStr = o2::detectors::DetID::getName(FT0DPLDigitizerTask::DETID);
+
   auto detOrig = FT0DPLDigitizerTask::DETOR;
 
   return DataProcessorSpec{
-    (detStr + "Digitizer").c_str(),
+    "FT0Digitizer",
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
     Outputs{OutputSpec{detOrig, "DIGITS", 0, Lifetime::Timeframe},
             OutputSpec{detOrig, "DIGITSMCTR", 0, Lifetime::Timeframe},
@@ -215,5 +196,5 @@ o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel)
   };
 }
 
-} // end namespace fit
+} // namespace ft0
 } // end namespace o2

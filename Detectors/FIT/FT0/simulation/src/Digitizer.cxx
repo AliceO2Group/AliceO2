@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "FITSimulation/Digitizer.h"
+#include "FT0Simulation/Digitizer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include <CommonDataFormat/InteractionRecord.h>
 
@@ -20,8 +20,8 @@
 #include <iostream>
 #include <optional>
 
-using namespace o2::fit;
-//using o2::fit::Geometry;
+using namespace o2::ft0;
+//using o2::ft0::Geometry;
 
 ClassImp(Digitizer);
 
@@ -100,7 +100,6 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits, o2::ft0::Digi
 
     if (is_hit_in_signal_gate) {
       channel_data[hit_ch].numberOfParticles++;
-      channel_data[hit_ch].QTCAmpl += hit.GetEnergyLoss(); //for FV0
       channel_times[hit_ch].push_back(hit_time);
     }
 
@@ -126,11 +125,11 @@ void Digitizer::smearCFDtime(o2::ft0::Digit* digit, std::vector<std::vector<doub
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
     Float_t amp = parameters.mMip_in_V * d.numberOfParticles / parameters.mPe_in_mip;
-    int numpart = d.numberOfParticles;
+    int chain = (std::rand() % 2) ? 1 : 0;
     if (amp > parameters.mCFD_trsh_mip) {
-      double smeared_time = get_time(channel_times[mcp]) /*+ parameters.mBC_clk_center + mEventTime*/ - parameters.mCfdShift;
+      double smeared_time = get_time(channel_times[mcp]) - parameters.mCfdShift;
       if (smeared_time < 1e9)
-        mChDgDataArr.emplace_back(o2::ft0::ChannelData{mcp, smeared_time, amp, numpart});
+        mChDgDataArr.emplace_back(o2::ft0::ChannelData{mcp, smeared_time, amp, chain});
     }
   }
   digit->setChDgData(std::move(mChDgDataArr));

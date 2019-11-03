@@ -15,5 +15,4 @@ o2_add_library(FITSimulation
 
 o2_target_root_dictionary(
   FITSimulation
-  HEADERS include/FITSimulation/Digitizer.h
-          include/FITSimulation/DigitizationParameters.h)
+  HEADERS   include/FITSimulation/DigitizationParameters.h)
