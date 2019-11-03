@@ -16,6 +16,7 @@
 #define O2_MFT_TRACKCA_H_
 
 #include "SimulationDataFormat/MCCompLabel.h"
+#include <array>
 
 namespace o2
 {
@@ -127,48 +128,44 @@ inline void TrackCA::setPoint(const Float_t x, const Float_t y, const Float_t z,
 class TrackLTF final
 {
  public:
-  TrackLTF() = default;
-  ~TrackLTF() = default;
-  void setPoint(const Float_t x, const Float_t y, const Float_t z, const Int_t layer, const Int_t clusterId, const MCCompLabel label, Bool_t& newPoint);
-  const Int_t getNPoints() const { return mX.size(); }
-  const std::vector<Float_t>& getXCoordinates() const { return mX; }
-  const std::vector<Float_t>& getYCoordinates() const { return mY; }
-  const std::vector<Float_t>& getZCoordinates() const { return mZ; }
-  const std::vector<Int_t>& getLayers() const { return mLayer; }
-  const std::vector<Int_t>& getClustersId() const { return mClusterId; }
-  const std::vector<MCCompLabel>& getMCCompLabels() const { return mMCCompLabels; }
+   TrackLTF() = default;
+   ~TrackLTF() = default;
+   void setPoint(const Float_t x, const Float_t y, const Float_t z, const Int_t layer, const Int_t clusterId, const MCCompLabel label, Bool_t& newPoint);
+   const Int_t getNPoints() const { return  nPoints; }
+   const std::array<Float_t,10>& getXCoordinates() const { return mX; }
+   const std::array<Float_t,10>& getYCoordinates() const { return mY; }
+   const std::array<Float_t,10>& getZCoordinates() const { return mZ; }
+   const std::array<Int_t,10>& getLayers() const { return mLayer; }
+   const std::array<Int_t,10>& getClustersId() const { return mClusterId; }
+   const std::array<MCCompLabel,10>& getMCCompLabels() const { return mMCCompLabels; }
 
  private:
-  std::vector<Float_t> mX;
-  std::vector<Float_t> mY;
-  std::vector<Float_t> mZ;
-  std::vector<Int_t> mLayer;
-  std::vector<Int_t> mClusterId;
-  std::vector<MCCompLabel> mMCCompLabels;
+   Int_t nPoints = -1;
+   std::array<Float_t,10> mX;
+   std::array<Float_t,10> mY;
+   std::array<Float_t,10> mZ;
+   std::array<Int_t,10> mLayer;
+   std::array<Int_t,10> mClusterId;
+   std::array<MCCompLabel,10> mMCCompLabels;
   ClassDefNV(TrackLTF, 1);
 };
 
 inline void TrackLTF::setPoint(const Float_t x, const Float_t y, const Float_t z, const Int_t layer, const Int_t clusterId, const MCCompLabel label, Bool_t& newPoint)
 {
-  if (!newPoint) {
-    if (!mX.empty()) {
-      mX.pop_back();
-      mY.pop_back();
-      mZ.pop_back();
-      mLayer.pop_back();
-      mClusterId.pop_back();
-      mMCCompLabels.pop_back();
-    }
-  } else { // end replace point
-    newPoint = kFALSE;
+  if (newPoint) {
+    nPoints++;
+    if (nPoints == 10) throw std::runtime_error("MFTTrackerContainer Overflow");
   }
-  mX.push_back(x);
-  mY.push_back(y);
-  mZ.push_back(z);
-  mLayer.push_back(layer);
-  mClusterId.push_back(clusterId);
-  mMCCompLabels.emplace_back(label);
+
+  if (nPoints==-1) throw std::runtime_error("MFTTrackerContainer Initialization error");
+  mX[nPoints]=x;
+  mY[nPoints]=y;
+  mZ[nPoints]=z;
+  mLayer[nPoints]=layer;
+  mClusterId[nPoints]=clusterId;
+  mMCCompLabels[nPoints]=label;
 }
+
 
 } // namespace mft
 } // namespace o2
