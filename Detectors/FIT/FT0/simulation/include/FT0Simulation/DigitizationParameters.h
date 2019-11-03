@@ -10,34 +10,30 @@
 
 #ifndef ALICEO2_FT0_DIGITIZATION_PARAMETERS
 #define ALICEO2_FT0_DIGITIZATION_PARAMETERS
-#include <FITSimulation/DigitizationParameters.h>
 #include <FT0Base/Geometry.h>
 
 namespace o2::ft0
 {
-inline o2::fit::DigitizationParameters FT0DigitizationParameters()
-{
-  o2::fit::DigitizationParameters result;
-  result.NCellsA = Geometry::NCellsA;
-  result.NCellsC = Geometry::NCellsC;
-  result.ZdetA = Geometry::ZdetA;
-  result.ZdetC = Geometry::ZdetC;
-  result.ChannelWidth = Geometry::ChannelWidth;
-  result.mBC_clk_center = 12.5;                               // clk center
-  result.mMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4; //number of MCPs
-  result.mCFD_trsh_mip = 3.;                                  // [mV]
-  result.mTime_trg_gate = 4.;                                 // ns
-  result.mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
-  result.mIsFT0 = true;
-  result.mSignalWidth = 5;
-  result.mCfdShift = 1.66;       //ns
-  result.mMip_in_V = 7;          //MIP to mV
-  result.mPe_in_mip = 250;       // Np.e. in MIP
-  result.mCFDShiftPos = 1.47;    //// shift positive part of CFD signal; distance between 0.3 of max amplitude  to max
-  result.mNoiseVar = 0.1;        //noise level
-  result.mNoisePeriod = 1 / 0.9; // GHz low frequency noise period;
+struct DigitizationParameters {
+  int NCellsA = Geometry::NCellsA;
+  int NCellsC = Geometry::NCellsC;
+  float ZdetA = Geometry::ZdetA;
+  float ZdetC = Geometry::ZdetC;
+  float ChannelWidth = Geometry::ChannelWidth;
+  float mBC_clk_center = 12.5;                               // clk center
+  float mMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4; //number of MCPs
+  float mCFD_trsh_mip = 3.;                                  // [mV]
+  float mTime_trg_gate = 4.;                                 // ns
+  float mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
+  float mSignalWidth = 5;
+  float mCfdShift = 1.66;       //ns
+  float mMip_in_V = 7;          //MIP to mV
+  float mPe_in_mip = 250;       // Np.e. in MIP
+  float mCFDShiftPos = 1.47;    //// shift positive part of CFD signal; distance between 0.3 of max amplitude  to max
+  float mNoiseVar = 0.1;        //noise level
+  float mNoisePeriod = 1 / 0.9; // GHz low frequency noise period;
 
-  return result;
-}
+  //  return result;
+};
 } // namespace o2::ft0
 #endif
