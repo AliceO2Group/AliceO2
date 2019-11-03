@@ -8,19 +8,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef STEER_DIGITIZERWORKFLOW_FITDIGITWRITER_H_
-#define STEER_DIGITIZERWORKFLOW_FITDIGITWRITER_H_
+#ifndef STEER_DIGITIZERWORKFLOW_FT0DIGITWRITER_H_
+#define STEER_DIGITIZERWORKFLOW_FT0DIGITWRITER_H_
 
 #include "Framework/DataProcessorSpec.h"
 
 namespace o2
 {
-namespace fit
+namespace ft0
 {
 
 o2::framework::DataProcessorSpec getFT0DigitWriterSpec();
 
-} // namespace fit
+} // namespace ft0
 } // end namespace o2
 
 #endif /* STEER_DIGITIZERWORKFLOW_ITSMFTDIGITWRITER_H_ */
