@@ -15,6 +15,8 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::ft0::Detector + ;
+#pragma link C++ class o2::ft0::Digitizer + ;
+#pragma link C++ class o2::ft0::DigitizationParameters + ;
 #pragma link C++ class o2::base::DetImpl < o2::ft0::Detector> + ;
 
 #endif
