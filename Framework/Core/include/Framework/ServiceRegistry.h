@@ -126,8 +126,8 @@ class ServiceRegistry
   }
 
  private:
-  std::array<std::pair<size_t, ServicePtr>, MAX_SERVICES + MAX_DISTANCE> mServices;
-  std::array<std::pair<size_t, ConstServicePtr>, MAX_SERVICES + MAX_DISTANCE> mConstServices;
+  std::array<std::pair<uint32_t, ServicePtr>, MAX_SERVICES + MAX_DISTANCE> mServices;
+  std::array<std::pair<uint32_t, ConstServicePtr>, MAX_SERVICES + MAX_DISTANCE> mConstServices;
 };
 
 } // namespace o2::framework
