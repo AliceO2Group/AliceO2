@@ -22,12 +22,12 @@
 #include "shared/Digit.h"
 #include "shared/tpc.h"
 
-typedef PackedDigit Digit;
+using Digit = PackedDigit;
 
 #if defined(CHARGEMAP_TYPE_HALF)
-typedef half charge_t;
+using Charge = half;
 #else
-typedef float charge_t;
+using Charge = float;
 #endif
 
 #ifndef __OPENCL__
@@ -38,7 +38,7 @@ typedef float charge_t;
 #define LOOP_UNROLL_ATTR __attribute__((opencl_unroll_hint(1)))
 #endif
 
-GPUdi() size_t idxSquareTiling(global_pad_t gpad, timestamp time, size_t N)
+GPUdi() size_t idxSquareTiling(GlobalPad gpad, Timestamp time, size_t N)
 {
   /* time += PADDING; */
 
@@ -64,17 +64,17 @@ GPUdi() size_t idxSquareTiling(global_pad_t gpad, timestamp time, size_t N)
   return (tileTime * widthInTiles + tilePad) * (tileW * tileH) + inTileTime * tileW + inTilePad;
 }
 
-GPUdi() size_t idxTiling4x4(global_pad_t gpad, timestamp time)
+GPUdi() size_t idxTiling4x4(GlobalPad gpad, Timestamp time)
 {
   return idxSquareTiling(gpad, time, 4);
 }
 
-GPUdi() size_t idxTiling8x8(global_pad_t gpad, timestamp time)
+GPUdi() size_t idxTiling8x8(GlobalPad gpad, Timestamp time)
 {
   return idxSquareTiling(gpad, time, 8);
 }
 
-GPUdi() size_t chargemapIdx(global_pad_t gpad, timestamp time)
+GPUdi() size_t chargemapIdx(GlobalPad gpad, Timestamp time)
 {
 
 #if defined(CHARGEMAP_4x4_TILING_LAYOUT) || defined(CHARGEMAP_4x8_TILING_LAYOUT) || defined(CHARGEMAP_8x4_TILING_LAYOUT)
@@ -141,7 +141,7 @@ GPUdi() size_t chargemapIdx(global_pad_t gpad, timestamp time)
 }
 
 /*
-size_t safeIdx(global_pad_t gpad, timestamp time)
+size_t safeIdx(GlobalPad gpad, Timestamp time)
 {
   size_t allElements = TPC_MAX_TIME_PADDED * TPC_NUM_OF_PADS;
 
