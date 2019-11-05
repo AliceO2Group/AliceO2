@@ -231,7 +231,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       }
       if (finished) {
         // got EOD on all inputs
-        pc.services().get<ControlService>().readyToQuit(false);
+        pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
         processAttributes->readyToQuit = true;
       }
     };

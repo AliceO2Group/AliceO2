@@ -37,7 +37,6 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 #include "GPUO2Interface.h"
-#define GPUCA_O2_LIB // Temporary workaround, must not be set globally, but needed right now for GPUReconstruction/GPUChain
 #include "GPUReconstruction.h"
 #include "GPUChainITS.h"
 
@@ -62,8 +61,8 @@ void run_trac_ca_its(bool useITSVertex = false,
 
   gSystem->Load("libO2ITStracking.so");
 
-  std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance());
-  // std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance("CUDA", true)); // for GPU with CUDA
+  // std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance());
+  std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance("CUDA", true)); // for GPU with CUDA
   auto* chainITS = rec->AddChain<GPUChainITS>();
   rec->Init();
 

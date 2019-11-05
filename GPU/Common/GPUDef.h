@@ -21,19 +21,7 @@
 #include "GPUDefOpenCL12Templates.h"
 #include "GPUCommonRtypes.h"
 
-//Definitions steering enabling of GPU processing components
-#if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !defined(GPUCA_ALIROOT_LIB)
-  #define GPUCA_BUILD_MERGER
-  #if defined(HAVE_O2HEADERS)
-    #define GPUCA_BUILD_DEDX
-    #define GPUCA_BUILD_TPCCONVERT
-    #define GPUCA_BUILD_TPCCOMPRESSION
-    #define GPUCA_BUILD_TRD
-    #define GPUCA_BUILD_ITS
-  #endif
-#endif
-
-//Macros for GRID dimension
+// Macros for GRID dimension
 #if defined(__CUDACC__)
   #define get_global_id(dim) (blockIdx.x * blockDim.x + threadIdx.x)
   #define get_global_size(dim) (blockDim.x * gridDim.x)
@@ -49,7 +37,7 @@
   #define get_local_size(dim) (hipBlockDim_x)
   #define get_group_id(dim) (hipBlockIdx_x)
 #elif defined(__OPENCL__)
-  //Using OpenCL defaults
+  // Using OpenCL defaults
 #else
   #define get_global_id(dim) iBlock
   #define get_global_size(dim) nBlocks
@@ -57,6 +45,15 @@
   #define get_local_id(dim) 0
   #define get_local_size(dim) 1
   #define get_group_id(dim) iBlock
+#endif
+
+// Macros for masking ptrs in OpenCL kernel calls as unsigned long (The API only allows us to pass buffer objects)
+#ifdef __OPENCL__
+  #define GPUPtr1(a, b) unsigned long b
+  #define GPUPtr2(a, b) ((__global a) b)
+#else
+  #define GPUPtr1(a, b) a b
+  #define GPUPtr2(a, b) b
 #endif
 
 #ifdef GPUCA_FULL_CLUSTERDATA

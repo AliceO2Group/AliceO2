@@ -12,6 +12,7 @@
 /// \author David Rohr
 
 #define GPUCA_GPUTYPE_RADEON
+#define __OPENCL_HOST__
 
 #include "GPUReconstructionOCL2.h"
 #include "GPUReconstructionOCL2Internals.h"
@@ -35,9 +36,6 @@ extern "C" unsigned int _makefile_opencl_program_Base_opencl_GPUReconstructionOC
 extern "C" char _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_src[];
 extern "C" unsigned int _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_src_size;
 
-#define MSTR(a) #a
-#define MXSTR(a) MSTR(a)
-
 GPUReconstruction* GPUReconstruction_Create_OCL2(const GPUSettingsProcessing& cfg) { return new GPUReconstructionOCL2(cfg); }
 
 GPUReconstructionOCL2Backend::GPUReconstructionOCL2Backend(const GPUSettingsProcessing& cfg) : GPUReconstructionOCL(cfg)
@@ -45,35 +43,22 @@ GPUReconstructionOCL2Backend::GPUReconstructionOCL2Backend(const GPUSettingsProc
 }
 
 template <class T, int I, typename... Args>
-int GPUReconstructionOCL2Backend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
+int GPUReconstructionOCL2Backend::runKernelBackend(krnlSetup& _xyz, const Args&... args)
 {
-  cl_kernel k = getKernelObject<cl_kernel, T, I>(y.num);
-  if (y.num == -1) {
-    if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, args...)) {
-      return 1;
-    }
-  } else if (y.num == 0) {
-    if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, y.start, args...)) {
-      return 1;
-    }
-  } else {
-    if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, y.start, y.num, args...)) {
-      return 1;
-    }
-  }
-  return clExecuteKernelA(mInternals->command_queue[x.stream], k, x.nThreads, x.nThreads * x.nBlocks, (cl_event*)z.ev, (cl_event*)z.evList, z.nEvents);
+  cl_kernel k = _xyz.y.num > 1 ? getKernelObject<cl_kernel, T, I, true>() : getKernelObject<cl_kernel, T, I, false>();
+  return runKernelBackendCommon(_xyz, k, args...);
 }
 
-template <class S, class T, int I>
-S& GPUReconstructionOCL2Backend::getKernelObject(int num)
+template <class S, class T, int I, bool MULTI>
+S& GPUReconstructionOCL2Backend::getKernelObject()
 {
-  static int krnl = FindKernel<T, I>(num);
+  static unsigned int krnl = FindKernel<T, I>(MULTI ? 2 : 1);
   return mInternals->kernels[krnl].first;
 }
 
 int GPUReconstructionOCL2Backend::GetOCLPrograms()
 {
-  char platform_version[64], platform_vendor[64];
+  char platform_version[64] = {}, platform_vendor[64] = {};
   clGetPlatformInfo(mInternals->platform, CL_PLATFORM_VERSION, sizeof(platform_version), platform_version, nullptr);
   clGetPlatformInfo(mInternals->platform, CL_PLATFORM_VENDOR, sizeof(platform_vendor), platform_vendor, nullptr);
   float ver = 0;
@@ -110,7 +95,7 @@ int GPUReconstructionOCL2Backend::GetOCLPrograms()
     return 1;
   }
 
-  if (GPUFailedMsgI(clBuildProgram(mInternals->program, 1, &mInternals->device, MXSTR(OCL_FLAGS), NULL, NULL))) {
+  if (GPUFailedMsgI(clBuildProgram(mInternals->program, 1, &mInternals->device, GPUCA_M_STR(OCL_FLAGS), NULL, NULL))) {
     cl_build_status status;
     if (GPUFailedMsgI(clGetProgramBuildInfo(mInternals->program, mInternals->device, CL_PROGRAM_BUILD_STATUS, sizeof(status), &status, nullptr)) == 0 && status == CL_BUILD_ERROR) {
       size_t log_size;
@@ -127,7 +112,7 @@ int GPUReconstructionOCL2Backend::GetOCLPrograms()
 
 bool GPUReconstructionOCL2Backend::CheckPlatform(unsigned int i)
 {
-  char platform_version[64], platform_vendor[64];
+  char platform_version[64] = {}, platform_vendor[64] = {};
   clGetPlatformInfo(mInternals->platforms[i], CL_PLATFORM_VERSION, sizeof(platform_version), platform_version, nullptr);
   clGetPlatformInfo(mInternals->platforms[i], CL_PLATFORM_VENDOR, sizeof(platform_vendor), platform_vendor, nullptr);
   float ver1 = 0;

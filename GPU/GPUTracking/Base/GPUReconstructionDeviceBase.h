@@ -36,7 +36,7 @@ class GPUReconstructionDeviceBase : public GPUReconstructionCPU
   int GetMaxThreads() override;
 
  protected:
-  GPUReconstructionDeviceBase(const GPUSettingsProcessing& cfg);
+  GPUReconstructionDeviceBase(const GPUSettingsProcessing& cfg, size_t sizeCheck);
 
   int InitDevice() override;
   virtual int InitDevice_Runtime() = 0;

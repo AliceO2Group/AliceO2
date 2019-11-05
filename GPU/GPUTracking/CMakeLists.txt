@@ -32,9 +32,7 @@ endif()
 # General sources
 set(SRCS
     SliceTracker/GPUTPCTrack.cxx
-    SliceTracker/GPUTPCBaseTrackParam.cxx
     SliceTracker/GPUTPCTrackParam.cxx
-    SliceTracker/GPUTPCTracklet.cxx
     SliceTracker/GPUTPCStartHitsFinder.cxx
     SliceTracker/GPUTPCStartHitsSorter.cxx
     SliceTracker/GPUTPCNeighboursCleaner.cxx
@@ -46,7 +44,6 @@ set(SRCS
     SliceTracker/GPUTPCGrid.cxx
     SliceTracker/GPUTPCTrackletSelector.cxx
     SliceTracker/GPUTPCHitArea.cxx
-    SliceTracker/GPUTPCClusterData.cxx
     SliceTracker/GPUTPCRow.cxx
     Merger/GPUTPCGMMerger.cxx
     Merger/GPUTPCGMSliceTrack.cxx
@@ -83,6 +80,9 @@ set(HDRS_INSTALL
     SliceTracker/GPUTPCMCInfo.h
     SliceTracker/GPUTPCHit.h
     SliceTracker/GPUTPCHitId.h
+    SliceTracker/GPUTPCClusterData.h
+    SliceTracker/GPUTPCBaseTrackParam.h
+    SliceTracker/GPUTPCTracklet.h
     SliceTracker/GPUTPCSliceOutCluster.h
     SliceTracker/GPUTPCSliceOutTrack.h
     SliceTracker/GPUTPCTrackLinearisation.h
@@ -113,6 +113,7 @@ set(HDRS_INSTALL
     Base/GPUO2DataTypes.h
     Base/GPUMemorySizeScalers.h
     dEdx/GPUdEdxInfo.h
+    TPCConvert/GPUTPCConvertImpl.h
 )
 
 # Sources only for O2
@@ -138,22 +139,11 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_ROOT_AND_O2_EXTENSIONS)
         DataCompression/GPUTPCCompressionTrackModel.cxx
         DataCompression/GPUTPCCompressionKernels.cxx
         DataCompression/TPCClusterDecompressor.cxx
-        DataCompression/GPUTPCClusterStatistics.cxx)
+        DataCompression/GPUTPCClusterStatistics.cxx
+        gpucf/GPUTPCClusterFinderKernels.cxx
+        gpucf/GPUTPCClusterFinder.cxx)
     set(HDRS_INSTALL ${HDRS_INSTALL} Interface/GPUO2InterfaceConfiguration.h
                      ITS/GPUITSTrack.h dEdx/GPUdEdxInfo.h)
-else()
-  set(HDRS_INSTALL
-      ${HDRS_INSTALL}
-      ITS/GPUITSFitter.h
-      ITS/GPUITSFitterKernels.h
-      ITS/GPUITSTrack.h
-      TPCConvert/GPUTPCConvert.h
-      TPCConvert/GPUTPCConvertKernel.h
-      DataCompression/GPUTPCCompression.h
-      DataCompression/GPUTPCCompressionTrackModel.h
-      DataCompression/GPUTPCCompressionKernels.h
-      DataCompression/TPCClusterDecompressor.h
-      DataCompression/GPUTPCClusterStatistics.h)
 endif()
 
 # Sources only for AliRoot
@@ -174,7 +164,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                    ${CMAKE_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCDefinitions.cxx
                    ${CMAKE_SOURCE_DIR}/HLT/TRD/AliHLTTRDDefinitions.cxx)
 
-  set(HDRS_INSTALL ${HDRS_INSTALL} SliceTracker/GPUTPCDefinitions.h)
+  set(HDRS_INSTALL ${HDRS_INSTALL} SliceTracker/GPUTPCDefinitions.h
+                                   Base/GPUO2FakeClasses.h)
 endif()
 
 # Optional sources depending on optional dependencies
@@ -205,6 +196,11 @@ string(REPLACE ".cxx" ".h" HDRS_TMP "${SRCS_NO_CINT}")
 set(HDRS_INSTALL ${HDRS_INSTALL} ${HDRS_TMP})
 unset(HDRS_TMP)
 
+if (TARGET AliceO2::DebugGUI)
+  set(DEBUGGUI_TARGET AliceO2::DebugGUI)
+else()
+  set(DEBUGGUI_TARGET O2::DebugGUI)
+endif()
 # Main CMake part for O2
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(${MODULE}
@@ -214,7 +210,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                        O2::TRDBase
                                        O2::ITStracking
                                        O2::TPCFastTransformation
-                                       O2::DebugGUI
+                                       ${DEBUGGUI_TARGET}
                  PUBLIC_INCLUDE_DIRECTORIES SliceTracker
                                             Base
                                             TPCConvert
@@ -229,6 +225,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                             Interface
                                             Merger
                                             DataCompression
+                                            gpucf
                  TARGETVARNAME targetName
                  SOURCES ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H})
 
@@ -254,6 +251,13 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   install(DIRECTORY Standalone/utils
           DESTINATION include/GPU
           FILES_MATCHING PATTERN *.h)
+
+  o2_add_test_root_macro(Standalone/tools/createGeo.C
+                         PUBLIC_LINK_LIBRARIES O2::GPUTracking
+                         LABELS its COMPILE_ONLY)
+  o2_add_test_root_macro(Standalone/tools/createLUT.C
+                         PUBLIC_LINK_LIBRARIES O2::GPUTracking
+                         LABELS its COMPILE_ONLY)
 endif()
 
 # Main CMake part for AliRoot
@@ -283,9 +287,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/SliceTracker
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Global
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/dEdx
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/ITS
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TPCConvert
+                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/dEdx
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TRDTracking
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Standalone
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/cuda

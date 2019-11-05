@@ -18,20 +18,32 @@ o2_add_library(DPLUtils
                        test/DPLOutputTest.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework)
 
+o2_add_executable(raw-proxy
+                  COMPONENT_NAME dpl
+                  SOURCES src/raw-proxy.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils)
+
+o2_add_executable(raw-parser
+                  COMPONENT_NAME dpl
+                  SOURCES src/raw-parser.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils)
+
 o2_add_test(DPLBroadcasterMerger
             SOURCES test/test_DPLBroadcasterMerger.cxx src/Utils.cxx
                     test/DPLBroadcasterMerger.cxx src/DPLMerger.cxx
                     src/DPLBroadcaster.cxx
             PUBLIC_LINK_LIBRARIES O2::DPLUtils
             COMPONENT_NAME DPLUtils
-            LABELS dplutils)
+            LABELS dplutils
+            COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run)
 
 o2_add_test(DPLOutput
             SOURCES test/test_DPLOutputTest.cxx src/Utils.cxx
                     test/DPLOutputTest.cxx
             PUBLIC_LINK_LIBRARIES O2::DPLUtils
             COMPONENT_NAME DPLUtils
-            LABELS long dplutils)
+            LABELS long dplutils
+            COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run)
 
 o2_add_test(RootTreeWriter
             SOURCES test/test_RootTreeWriter.cxx
@@ -45,11 +57,17 @@ o2_add_test(RootTreeWriterWorkflow
             PUBLIC_LINK_LIBRARIES O2::DPLUtils
             COMPONENT_NAME DPLUtils
             LABELS dplutils
-            COMMAND_LINE_ARGS --run)
+            COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run)
 
 o2_add_test(RootTreeReader
             SOURCES test/test_RootTreeReader.cxx
             PUBLIC_LINK_LIBRARIES O2::DPLUtils
             COMPONENT_NAME DPLUtils
             LABELS dplutils
-            COMMAND_LINE_ARGS --run)
+            COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run)
+
+o2_add_test(RawParser
+            SOURCES test/test_RawParser.cxx
+            PUBLIC_LINK_LIBRARIES O2::DPLUtils
+            COMPONENT_NAME DPLUtils
+            LABELS dplutils)

@@ -1,0 +1,13 @@
+input = [
+    { file = "in/timemajor_vega20.json", label = "Ohne LDS - Zeitsort." }
+    { file = "in/scratchpad4x4_vega20.json", label = "Mit LDS - Zeitsort." }
+    { file = "in/timemajor_vega20_pad.json", label = "Ohne LDS - Padsort." }
+    { file = "in/scratchpad4x4_vega20_pad.json", label = "Mit LDS - Padsort." }
+    { file = "in/timemajor_vega20_rand.json", label = "Ohne LDS - Nicht sort." }
+    { file = "in/scratchpad4x4_vega20_rand.json", label = "Mit LDS - Nicht sort." }
+    { file = "in/timemajor_vega20_full.json", label = "Ohne LDS - Vollst. sort." }
+    { file = "in/scratchpad4x4_vega20_full.json", label = "Mit LDS - Vollst. sort." }
+]
+
+type   = "speedup"
+out    = ""

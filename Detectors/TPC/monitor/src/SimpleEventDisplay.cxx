@@ -170,7 +170,18 @@ TH1D* SimpleEventDisplay::makePadSignals(Int_t roc, Int_t row, Int_t pad)
   //const Int_t channel =
   //mTPCmapper.globalPadNumber(PadPos(row, pad)) - (roc >= mTPCmapper.getNumberOfIROCs()) * mTPCmapper.getPadsInIROC();
 
+  const int padOffset = (roc > 35) * Mapper::getPadsInIROC();
   const int channel = mTPCmapper.getPadNumberInROC(PadROCPos(roc, row, pad));
+
+  const FECInfo& fecInfo = mTPCmapper.getFECInfo(PadROCPos(roc, row, pad));
+  const int cruNumber = mTPCmapper.getCRU(ROC(roc).getSector(), channel + padOffset);
+  const CRU cru(cruNumber);
+  const PartitionInfo& partInfo = mTPCmapper.getMapPartitionInfo()[cru.partition()];
+  const int nFECs = partInfo.getNumberOfFECs();
+  const int fecOffset = (nFECs + 1) / 2;
+  const int fecInPartition = fecInfo.getIndex() - partInfo.getSectorFECOffset();
+  const int dataWrapperID = fecInPartition >= fecOffset;
+  const int globalLinkID = (fecInPartition % fecOffset) + dataWrapperID * 12;
 
   mSelectedSector = roc;
   //  mLastSelSector=roc;
@@ -187,8 +198,6 @@ TH1D* SimpleEventDisplay::makePadSignals(Int_t roc, Int_t row, Int_t pad)
     return nullptr;
   const Int_t offset = (nbins + 2) * (channel + 1);
   Double_t* arrP = nullptr;
-
-  const FECInfo& fecInfo = mTPCmapper.getFECInfo(PadROCPos(roc, row, pad));
 
   TString title("#splitline{#lower[.1]{#scale[.5]{");
 
@@ -210,8 +219,8 @@ TH1D* SimpleEventDisplay::makePadSignals(Int_t roc, Int_t row, Int_t pad)
     title += "OROC ";
   }
   title += (roc / 18 % 2 == 0) ? "A" : "C";
-  title += Form("%02d (%02d) row: %02d, pad: %03d, globalpad: %05d (in roc)}}}{#scale[.5]{FEC: %02d, Chip: %02d, Chn: %02d}}",
-                roc % 18, roc, row, pad, channel, fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
+  title += Form("%02d (%02d) row: %02d, pad: %03d, globalpad: %05d (in roc)}}}{#scale[.5]{FEC: %02d (%02d), Chip: %02d, Chn: %02d, CRU: %d, Link: %02d (%s%d)}}",
+                roc % 18, roc, row, pad, channel, fecInfo.getIndex(), fecInPartition, fecInfo.getSampaChip(), fecInfo.getSampaChannel(), cruNumber % CRU::CRUperSector, globalLinkID, dataWrapperID ? "B" : "A", globalLinkID % 12);
   //title+=Form("row: %02d, pad: %03d, cpad: %03d, globalpad: %05d}}}{#scale[.5]{br: %d, FEC: %02d, Chip: %02d, Chn: %02d = HW: %d}}",
   //row,pad,pad-mROC->GetNPads(roc,row)/2,channel,
   //mTPCmapper.GetBranch(roc,row,pad),

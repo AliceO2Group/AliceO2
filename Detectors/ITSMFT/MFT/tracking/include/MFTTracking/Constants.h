@@ -27,7 +27,7 @@ namespace o2
 namespace mft
 {
 
-namespace Constants
+namespace constants
 {
 
 namespace mft
@@ -54,7 +54,7 @@ constexpr Float_t ROADclsRCut{0.0400};
 constexpr Int_t MaxCellNeighbours{10};
 } // namespace mft
 
-namespace IndexTable
+namespace index_table
 {
 constexpr Float_t RMin{2.0}; // [cm]
 constexpr Float_t RMax{16.0};
@@ -89,9 +89,9 @@ constexpr Int_t getBinIndex(const Int_t rIndex, const Int_t phiIndex)
   }
   return -1;
 }
-} // namespace IndexTable
+} // namespace index_table
 
-} // namespace Constants
+} // namespace constants
 } // namespace mft
 } // namespace o2
 

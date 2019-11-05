@@ -25,7 +25,7 @@ class GPUTPCGMMergerTrackFit : public GPUKernelTemplate
 {
  public:
   GPUhdi() static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::TPCMerging; }
-#if defined(GPUCA_BUILD_MERGER) || !defined(GPUCA_GPUCODE)
+#if !defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE)
   typedef GPUTPCGMMerger processorType;
   GPUhdi() static processorType* Processor(GPUConstantMem& processors)
   {

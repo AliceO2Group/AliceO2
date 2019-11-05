@@ -33,6 +33,11 @@ class GPUTPCTracker;
 class GPUTPCTrackletConstructor
 {
  public:
+  enum K {
+    singleSlice = 0,
+    allSlices = 1
+  };
+
   class GPUTPCThreadMemory
   {
     friend class GPUTPCTrackletConstructor; //! friend class

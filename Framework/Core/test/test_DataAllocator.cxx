@@ -66,26 +66,6 @@ struct MetaHeader : public o2::header::BaseHeader {
 constexpr o2::header::HeaderType MetaHeader::sHeaderType = "MetaHead";
 } // namespace test
 
-DataProcessorSpec getTimeoutSpec()
-{
-  // a timer process to terminate the workflow after a timeout
-  auto processingFct = [](ProcessingContext& pc) {
-    static int counter = 0;
-    pc.outputs().snapshot(Output{"TEST", "TIMER", 0, Lifetime::Timeframe}, counter);
-
-    // terminate if WaitFor was not interrupted
-    if (pc.services().get<RawDeviceService>().device()->WaitFor(std::chrono::seconds(1)) && (counter++ > 10)) {
-      LOG(ERROR) << "Timeout reached, the workflow seems to be broken";
-      pc.services().get<ControlService>().readyToQuit(true);
-    }
-  };
-
-  return DataProcessorSpec{"timer",  // name of the processor
-                           Inputs{}, // inputs empty
-                           {OutputSpec{"TEST", "TIMER", 0, Lifetime::Timeframe}},
-                           AlgorithmSpec(processingFct)};
-}
-
 DataProcessorSpec getSourceSpec()
 {
   auto processingFct = [](ProcessingContext& pc) {
@@ -145,10 +125,19 @@ DataProcessorSpec getSourceSpec()
     ASSERT_ERROR(messageablevector.size() == 0);
     messageablevector.push_back(a);
     messageablevector.emplace_back(10, 20, 0xacdc);
+
+    // make a PMR std::vector, make it large to test the auto transport buffer resize funtionality as well
+    Output pmrOutputSpec{"TST", "PMRTESTVECTOR", 0};
+    auto pmrvec = o2::vector<o2::test::TriviallyCopyable>(pc.outputs().getMemoryResource(pmrOutputSpec));
+    pmrvec.reserve(100);
+    pmrvec.emplace_back(o2::test::TriviallyCopyable{1, 2, 3});
+    pc.outputs().adoptContainer(pmrOutputSpec, std::move(pmrvec));
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   };
 
   return DataProcessorSpec{"source", // name of the processor
-                           {InputSpec{"timer", "TEST", "TIMER", 0, Lifetime::Timeframe}},
+                           {},
                            {OutputSpec{"TST", "MESSAGEABLE", 0, Lifetime::Timeframe},
                             OutputSpec{{"makesingle"}, "TST", "MAKESINGLE", 0, Lifetime::Timeframe},
                             OutputSpec{{"makespan"}, "TST", "MAKESPAN", 0, Lifetime::Timeframe},
@@ -163,7 +152,8 @@ DataProcessorSpec getSourceSpec()
                             OutputSpec{"TST", "ROOTNONTOBJECT", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "ROOTVECTOR", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "ROOTSERLZDVEC", 0, Lifetime::Timeframe},
-                            OutputSpec{"TST", "ROOTSERLZDVEC2", 0, Lifetime::Timeframe}},
+                            OutputSpec{"TST", "ROOTSERLZDVEC2", 0, Lifetime::Timeframe},
+                            OutputSpec{"TST", "PMRTESTVECTOR", 0, Lifetime::Timeframe}},
                            AlgorithmSpec(processingFct)};
 }
 
@@ -284,7 +274,14 @@ DataProcessorSpec getSinkSpec()
     ASSERT_ERROR(object15[0] == o2::test::Polymorphic{0xacdc});
     ASSERT_ERROR(object15[1] == o2::test::Polymorphic{0xbeef});
 
-    pc.services().get<ControlService>().readyToQuit(true);
+    LOG(INFO) << "extracting PMR vector";
+    auto pmrspan = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("inputPMR");
+    ASSERT_ERROR((pmrspan[0] == o2::test::TriviallyCopyable{1, 2, 3}));
+    auto dataref = pc.inputs().get<DataRef>("inputPMR");
+    auto header = o2::header::get<const o2::header::DataHeader*>(dataref.header);
+    ASSERT_ERROR((header->payloadSize == sizeof(o2::test::TriviallyCopyable)));
+
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
   };
 
   return DataProcessorSpec{"sink", // name of the processor
@@ -302,7 +299,8 @@ DataProcessorSpec getSinkSpec()
                             InputSpec{"input12", "TST", "MSGABLVECTOR", 0, Lifetime::Timeframe},
                             InputSpec{"input13", "TST", "MAKETOBJECT", 0, Lifetime::Timeframe},
                             InputSpec{"input14", "TST", "ROOTSERLZBLOBJ", 0, Lifetime::Timeframe},
-                            InputSpec{"input15", "TST", "ROOTSERLZBLVECT", 0, Lifetime::Timeframe}},
+                            InputSpec{"input15", "TST", "ROOTSERLZBLVECT", 0, Lifetime::Timeframe},
+                            InputSpec{"inputPMR", "TST", "PMRTESTVECTOR", 0, Lifetime::Timeframe}},
                            Outputs{},
                            AlgorithmSpec(processingFct)};
 }
@@ -310,7 +308,6 @@ DataProcessorSpec getSinkSpec()
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    getTimeoutSpec(),
     getSourceSpec(),
     getSinkSpec()};
 }

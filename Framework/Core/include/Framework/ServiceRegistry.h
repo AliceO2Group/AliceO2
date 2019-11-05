@@ -7,26 +7,42 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_SERVICEREGISTRY_H
-#define FRAMEWORK_SERVICEREGISTRY_H
+#ifndef O2_FRAMEWORK_SERVICEREGISTRY_H_
+#define O2_FRAMEWORK_SERVICEREGISTRY_H_
 
+#include "Framework/CompilerBuiltins.h"
+#include "Framework/TypeIdHelpers.h"
+
+#include <algorithm>
+#include <array>
 #include <exception>
 #include <functional>
 #include <string>
 #include <type_traits>
 #include <typeinfo>
-#include <unordered_map>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// Service registry to hold generic, singleton like, interfaces and retrieve
 /// them by type.
 class ServiceRegistry
 {
+  using ServicePtr = void*;
+  using ConstServicePtr = void const*;
+  /// The maximum distance a entry can be from the optimal slot.
+  constexpr static int MAX_DISTANCE = 8;
+  /// The number of slots in the hashmap.
+  constexpr static int MAX_SERVICES = 256;
+  /// The mask to use to calculate the initial slot id.
+  constexpr static int MAX_SERVICES_MASK = MAX_SERVICES - 1;
+
  public:
+  ServiceRegistry()
+  {
+    mServices.fill(std::make_pair(0L, nullptr));
+    mConstServices.fill(std::make_pair(0L, nullptr));
+  }
   // Register a service for the given interface T
   // with actual implementation C, i.e. C is derived from T.
   // Only one instance of type C can be registered per type T.
@@ -42,7 +58,16 @@ class ServiceRegistry
     // advance
     static_assert(std::is_base_of<I, C>::value == true,
                   "Registered service is not derived from declared interface");
-    mServices[typeid(I)] = reinterpret_cast<ServicePtr>(service);
+    auto typeHash = TypeIdHelpers::uniqueId<std::decay_t<I>>();
+    auto serviceId = typeHash & MAX_SERVICES_MASK;
+    for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
+      if (mServices[i + serviceId].second == nullptr) {
+        mServices[i + serviceId].first = typeHash;
+        mServices[i + serviceId].second = reinterpret_cast<ServicePtr>(service);
+        return;
+      }
+    }
+    O2_BUILTIN_UNREACHABLE();
   }
 
   template <class I, class C>
@@ -53,7 +78,16 @@ class ServiceRegistry
     // advance
     static_assert(std::is_base_of<I, C>::value == true,
                   "Registered service is not derived from declared interface");
-    mConstServices[typeid(I)] = reinterpret_cast<ConstServicePtr>(service);
+    auto typeHash = TypeIdHelpers::uniqueId<std::decay_t<I>>();
+    auto serviceId = typeHash & MAX_SERVICES_MASK;
+    for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
+      if (mConstServices[i + serviceId].second == nullptr) {
+        mConstServices[i + serviceId].first = typeHash;
+        mConstServices[i + serviceId].second = reinterpret_cast<ConstServicePtr>(service);
+        return;
+      }
+    }
+    O2_BUILTIN_UNREACHABLE();
   }
 
   /// Get a service for the given interface T. The returned reference exposed to
@@ -62,13 +96,16 @@ class ServiceRegistry
   template <typename T>
   std::enable_if_t<std::is_const_v<T> == false, T&> get() const
   {
-    auto service = mServices.find(typeid(T));
-    if (service == mServices.end()) {
-      throw std::runtime_error(std::string("Unable to find service of kind ") +
-                               typeid(T).name() +
-                               " did you register one as non-const reference?");
+    auto typeHash = TypeIdHelpers::uniqueId<std::decay_t<T>>();
+    auto serviceId = typeHash & MAX_SERVICES_MASK;
+    for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
+      if (mServices[i + serviceId].first == typeHash) {
+        return *reinterpret_cast<T*>(mServices[i + serviceId].second);
+      }
     }
-    return *reinterpret_cast<T*>(service->second);
+    throw std::runtime_error(std::string("Unable to find service of kind ") +
+                             typeid(T).name() +
+                             " did you register one as non-const reference?");
   }
   /// Get a service for the given interface T. The returned reference exposed to
   /// the user is actually of the last concrete type C registered, however this
@@ -76,35 +113,23 @@ class ServiceRegistry
   template <typename T>
   std::enable_if_t<std::is_const_v<T>, T&> get() const
   {
-    auto service = mConstServices.find(typeid(T));
-    if (service == mConstServices.end()) {
-      throw std::runtime_error(std::string("Unable to find service of kind ") + typeid(T).name() + ". Is it non-const?");
+    auto typeHash = TypeIdHelpers::uniqueId<std::decay_t<T>>();
+    auto serviceId = typeHash & MAX_SERVICES_MASK;
+    for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
+      if (mConstServices[i + serviceId].first == typeHash) {
+        return *reinterpret_cast<T const*>(mConstServices[i + serviceId].second);
+      }
     }
-    return *reinterpret_cast<T const*>(service->second);
+    throw std::runtime_error(std::string("Unable to find service of kind ") +
+                             typeid(T).name() +
+                             " did you register one as const reference?");
   }
 
  private:
-  using TypeInfoRef = std::reference_wrapper<const std::type_info>;
-  using ServicePtr = void*;
-  using ConstServicePtr = void const*;
-  struct Hasher {
-    std::size_t operator()(TypeInfoRef code) const
-    {
-      return code.get().hash_code();
-    }
-  };
-  struct EqualTo {
-    bool operator()(TypeInfoRef lhs, TypeInfoRef rhs) const
-    {
-      return lhs.get() == rhs.get();
-    }
-  };
-  std::unordered_map<TypeInfoRef, ServicePtr, Hasher, EqualTo> mServices;
-  // Services which we want to expose as read only
-  std::unordered_map<TypeInfoRef, ConstServicePtr, Hasher, EqualTo> mConstServices;
+  std::array<std::pair<uint32_t, ServicePtr>, MAX_SERVICES + MAX_DISTANCE> mServices;
+  std::array<std::pair<uint32_t, ConstServicePtr>, MAX_SERVICES + MAX_DISTANCE> mConstServices;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif //FRAMEWORK_SERVICEREGISTRY_H
+#endif // O2_FRAMEWORK_SERVICEREGISTRY_H_

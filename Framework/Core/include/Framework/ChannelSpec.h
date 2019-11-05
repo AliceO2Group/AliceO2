@@ -32,13 +32,23 @@ enum struct ChannelType {
   Pull,
 };
 
+/// The kind of backend to use for the channels
+enum struct ChannelProtocol {
+  Network,
+  IPC
+};
+
 /// This describes an input channel. Since they are point to
 /// point connections, there is not much to say about them.
+/// Notice that this should be considered read only once it
+/// has been created.
 struct InputChannelSpec {
   std::string name;
   enum ChannelType type;
   enum ChannelMethod method;
+  std::string hostname;
   unsigned short port;
+  ChannelProtocol protocol = ChannelProtocol::Network;
 };
 
 /// This describes an output channel. Output channels are semantically
@@ -50,8 +60,10 @@ struct OutputChannelSpec {
   std::string name;
   enum ChannelType type;
   enum ChannelMethod method;
+  std::string hostname;
   unsigned short port;
   size_t listeners;
+  ChannelProtocol protocol = ChannelProtocol::Network;
 };
 
 } // namespace framework

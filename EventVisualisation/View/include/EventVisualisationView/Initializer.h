@@ -16,7 +16,7 @@
 #ifndef ALICE_O2_EVENTVISUALISATION_BASE_INITIALIZER_H
 #define ALICE_O2_EVENTVISUALISATION_BASE_INITIALIZER_H
 
-#include "EventVisualisationBase/EventManager.h"
+#include "EventVisualisationView/EventManager.h"
 
 namespace o2
 {

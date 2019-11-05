@@ -62,7 +62,7 @@ void TrackWriterTPCITS::run(ProcessingContext& pc)
   tree.SetEntries(1);
   tree.Write();
   mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(false);
+  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 DataProcessorSpec getTrackWriterTPCITSSpec(bool useMC)

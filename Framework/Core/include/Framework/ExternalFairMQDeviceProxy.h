@@ -21,9 +21,15 @@ namespace o2
 {
 namespace framework
 {
-void broadcastMessage(FairMQDevice& device, o2::header::Stack&& headerStack, FairMQMessagePtr&& payloadMessage, int index);
+/// A callback function to retrieve the FairMQChannel name to be used for sending
+/// messages of the specified OutputSpec
+using ChannelRetriever = std::function<std::string(OutputSpec const&)>;
+using InjectorFunction = std::function<void(FairMQDevice& device, FairMQParts& inputs, ChannelRetriever)>;
 
-using InjectorFunction = std::function<void(FairMQDevice& device, FairMQParts& inputs, int index)>;
+/// send header/payload O2 message for an OutputSpec, a channel retriever callback is required to
+/// get the associated FairMQChannel
+/// FIXME: can in principle drop the OutputSpec parameter and take the DataHeader
+void sendOnChannel(FairMQDevice& device, o2::header::Stack&& headerStack, FairMQMessagePtr&& payloadMessage, OutputSpec const& spec, ChannelRetriever& channelRetriever);
 
 /// Helper function which takes a set of inputs coming from a device,
 /// massages them so that they are valid DPL messages using @param spec as header
@@ -39,10 +45,11 @@ InjectorFunction incrementalConverter(OutputSpec const& spec, uint64_t startTime
 InjectorFunction o2DataModelAdaptor(OutputSpec const& spec, uint64_t startTime, uint64_t step);
 
 /// This is to be used when the input data is already formatted like DPL
-/// expects it, i.e. with the DataProcessingHeader in the header stack and
-/// with the tuple (origin, description, data subspecification, timestamp)
-/// must be unique for each message.
-InjectorFunction dplModelAdaptor(OutputSpec const& spec);
+/// expects it, i.e. with the DataProcessingHeader in the header stack
+/// The list of specs is used as a filter list, all incoming data matching an entry
+/// in the list will be send through the corresponding channel
+InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& specs = {{header::gDataOriginAny, header::gDataDescriptionAny}},
+                                 bool throwOnUnmatchedInputs = false);
 
 /// The default connection method for the custom source
 static auto gDefaultConverter = incrementalConverter(OutputSpec{"TST", "TEST", 0}, 0, 1);

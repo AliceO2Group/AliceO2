@@ -21,6 +21,9 @@
 #ifndef GPUCA_TPC_GEOMETRY_O2
 #define GPUCA_TPC_GEOMETRY_O2
 #endif
+#ifndef GPUCA_O2_INTERFACE
+#define GPUCA_O2_INTERFACE
+#endif
 
 #include <memory>
 #include "GPUCommonDef.h"
@@ -52,6 +55,8 @@ class GPUTPCO2Interface
 
   bool GetParamContinuous() { return (mContinuous); }
   void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;
+
+  const GPUO2InterfaceConfiguration& getConfig() const { return *mConfig; }
 
  private:
   GPUTPCO2Interface(const GPUTPCO2Interface&);

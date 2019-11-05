@@ -148,7 +148,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     LOG(INFO) << "This is not a real device, merely a placeholder for external inputs";
     LOG(INFO) << "To be hidden / removed at some point.";
     // mark this dummy process as ready-to-quit
-    ic.services().get<ControlService>().readyToQuit(false);
+    ic.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     return [](ProcessingContext& pc) {
       // this callback is never called since there is no expiring input
       pc.services().get<RawDeviceService>().device()->WaitFor(std::chrono::seconds(2));
@@ -204,6 +204,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     {},
     readers::AODReaderHelpers::run2ESDConverterCallback(),
     {ConfigParamSpec{"esd-file", VariantType::String, "AliESDs.root", {"Input ESD file"}},
+     ConfigParamSpec{"events", VariantType::Int, 0, {"Number of events to process (0 = all)"}},
      ConfigParamSpec{"start-value-enumeration", VariantType::Int, 0, {"initial value for the enumeration"}},
      ConfigParamSpec{"end-value-enumeration", VariantType::Int, -1, {"final value for the enumeration"}},
      ConfigParamSpec{"step-value-enumeration", VariantType::Int, 1, {"step between one value and the other"}}}};
@@ -214,6 +215,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
   std::vector<OutputSpec> providedRUN2s;
   std::vector<InputSpec> requestedCCDBs;
   std::vector<OutputSpec> providedCCDBs;
+  std::vector<OutputSpec> providedOutputObj;
+  using outputObjMap = std::unordered_map<std::string, std::string>;
+  outputObjMap outMap;
 
   for (size_t wi = 0; wi < workflow.size(); ++wi) {
     auto& processor = workflow[wi];
@@ -247,8 +251,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
         } break;
         case Lifetime::Condition: {
           if (hasConditionOption == false) {
-            processor.options.emplace_back(ConfigParamSpec{"condition-backend", VariantType::String, "http://localhost:8080", {"Url for CCDB"}}),
-              hasConditionOption = true;
+            processor.options.emplace_back(ConfigParamSpec{"condition-backend", VariantType::String, "http://localhost:8080", {"Url for CCDB"}});
+            processor.options.emplace_back(ConfigParamSpec{"condition-timestamp", VariantType::String, "", {"Force timestamp for CCDB lookup"}});
+            hasConditionOption = true;
           }
           requestedCCDBs.emplace_back(input);
         } break;
@@ -269,6 +274,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
         providedAODs.emplace_back(output);
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"RN2"})) {
         providedRUN2s.emplace_back(output);
+      } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"ATSK"})) {
+        providedOutputObj.emplace_back(output);
+        outMap.insert({output.binding.value, processor.name});
       }
       if (output.lifetime == Lifetime::Condition) {
         providedCCDBs.push_back(output);
@@ -306,7 +314,13 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     extraSpecs.push_back(timer);
   }
 
-  // FIXME: I should insert more things here.
+  // This is to inject a file sink so that any dangling ATSK object is written
+  // to a ROOT file.
+  if (providedOutputObj.size() != 0) {
+    auto rootSink = CommonDataProcessors::getOutputObjSink(outMap);
+    extraSpecs.push_back(rootSink);
+  }
+
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
 
   /// This will inject a file sink so that any dangling

@@ -52,10 +52,15 @@ GPUReconstructionCPU::~GPUReconstructionCPU()
 }
 
 template <class T, int I, typename... Args>
-int GPUReconstructionCPUBackend::runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
+int GPUReconstructionCPUBackend::runKernelBackend(krnlSetup& _xyz, const Args&... args)
 {
+  auto& x = _xyz.x;
+  auto& y = _xyz.y;
   if (x.device == krnlDeviceType::Device) {
     throw std::runtime_error("Cannot run device kernel on host");
+  }
+  if (x.nThreads != 1) {
+    throw std::runtime_error("Cannot run device kernel on host with nThreads != 1");
   }
   unsigned int num = y.num == 0 || y.num == -1 ? 1 : y.num;
   for (unsigned int k = 0; k < num; k++) {
@@ -134,7 +139,7 @@ int GPUReconstructionCPU::ExitDevice()
   return 0;
 }
 
-void GPUReconstructionCPU::SetThreadCounts() { mThreadCount = mBlockCount = mConstructorBlockCount = mSelectorBlockCount = mConstructorThreadCount = mSelectorThreadCount = mFinderThreadCount = mTRDThreadCount = 1; }
+void GPUReconstructionCPU::SetThreadCounts() { mThreadCount = mBlockCount = mConstructorBlockCount = mSelectorBlockCount = mConstructorThreadCount = mSelectorThreadCount = mFinderThreadCount = mTRDThreadCount = mClustererThreadCount = mScanThreadCount = 1; }
 
 void GPUReconstructionCPU::SetThreadCounts(RecoStep step)
 {

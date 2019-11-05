@@ -18,12 +18,14 @@
 #include "Framework/Logger.h"
 #include "Framework/PartRef.h"
 #include "Framework/TimesliceIndex.h"
-#include "DataProcessingStatus.h"
 #include "Framework/Signpost.h"
+#include "DataProcessingStatus.h"
+#include "DataRelayerHelpers.h"
 
 #include <Monitoring/Monitoring.h>
 
 #include <gsl/span>
+#include <string>
 
 using namespace o2::framework::data_matcher;
 using DataHeader = o2::header::DataHeader;
@@ -34,54 +36,6 @@ namespace o2
 namespace framework
 {
 
-namespace
-{
-std::vector<size_t> createDistinctRouteIndex(std::vector<InputRoute> const& routes)
-{
-  std::vector<size_t> result;
-  for (size_t ri = 0; ri < routes.size(); ++ri) {
-    auto& route = routes[ri];
-    if (route.timeslice == 0) {
-      result.push_back(ri);
-    }
-  }
-  return result;
-}
-
-DataDescriptorMatcher fromConcreteMatcher(ConcreteDataMatcher const& matcher)
-{
-  return DataDescriptorMatcher{
-    DataDescriptorMatcher::Op::And,
-    StartTimeValueMatcher{ContextRef{0}},
-    std::make_unique<DataDescriptorMatcher>(
-      DataDescriptorMatcher::Op::And,
-      OriginValueMatcher{matcher.origin.str},
-      std::make_unique<DataDescriptorMatcher>(
-        DataDescriptorMatcher::Op::And,
-        DescriptionValueMatcher{matcher.description.str},
-        std::make_unique<DataDescriptorMatcher>(
-          DataDescriptorMatcher::Op::Just,
-          SubSpecificationTypeValueMatcher{matcher.subSpec})))};
-}
-
-/// This converts from InputRoute to the associated DataDescriptorMatcher.
-std::vector<DataDescriptorMatcher> createInputMatchers(std::vector<InputRoute> const& routes)
-{
-  std::vector<DataDescriptorMatcher> result;
-
-  for (auto& route : routes) {
-    if (auto pval = std::get_if<ConcreteDataMatcher>(&route.matcher.matcher)) {
-      result.emplace_back(fromConcreteMatcher(*pval));
-    } else if (auto matcher = std::get_if<DataDescriptorMatcher>(&route.matcher.matcher)) {
-      result.push_back(*matcher);
-    } else {
-      throw std::runtime_error("Unsupported InputSpec type");
-    }
-  }
-
-  return result;
-}
-} // namespace
 
 constexpr int INVALID_INPUT = -1;
 
@@ -91,64 +45,76 @@ constexpr int DEFAULT_PIPELINE_LENGTH = 16;
 
 // FIXME: do we really need to pass the forwards?
 DataRelayer::DataRelayer(const CompletionPolicy& policy,
-                         const std::vector<InputRoute>& inputRoutes,
-                         const std::vector<ForwardRoute>& forwardRoutes,
+                         std::vector<InputRoute> const& routes,
                          monitoring::Monitoring& metrics,
                          TimesliceIndex& index)
-  : mInputRoutes{inputRoutes},
-    mForwardRoutes{forwardRoutes},
-    mTimesliceIndex{index},
+  : mTimesliceIndex{index},
     mMetrics{metrics},
     mCompletionPolicy{policy},
-    mDistinctRoutesIndex{createDistinctRouteIndex(inputRoutes)},
-    mInputMatchers{createInputMatchers(inputRoutes)}
+    mDistinctRoutesIndex{DataRelayerHelpers::createDistinctRouteIndex(routes)},
+    mInputMatchers{DataRelayerHelpers::createInputMatchers(routes)}
 {
   setPipelineLength(DEFAULT_PIPELINE_LENGTH);
-  for (size_t ci = 0; ci < mCache.size(); ci++) {
-    metrics.send({0, sMetricsNames[ci]});
-  }
-  for (size_t ci = 0; ci < mVariableContextes.size() * 16; ci++) {
-    metrics.send({std::string("null"), sVariablesMetricsNames[ci]});
+
+  // The queries are all the same, so we only have width 1
+  auto numInputTypes = mDistinctRoutesIndex.size();
+  sQueriesMetricsNames.resize(numInputTypes * 1);
+  mMetrics.send({(int)numInputTypes, "data_queries/h"});
+  mMetrics.send({(int)1, "data_queries/w"});
+  for (size_t i = 0; i < numInputTypes; ++i) {
+    sQueriesMetricsNames[i] = std::string("data_queries/") + std::to_string(i);
+    char buffer[128];
+    assert(mDistinctRoutesIndex[i] < routes.size());
+    auto& matcher = routes[mDistinctRoutesIndex[i]].matcher;
+    DataSpecUtils::describe(buffer, 127, matcher);
+    mMetrics.send({std::string{buffer}, sQueriesMetricsNames[i]});
   }
 }
 
 void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& expirationHandlers,
                                         ServiceRegistry& services)
 {
+  /// Nothing to do if nothing can expire.
+  if (expirationHandlers.empty()) {
+    return;
+  }
   // Create any slot for the time based fields
   std::vector<TimesliceSlot> slotsCreatedByHandlers(expirationHandlers.size());
-  for (size_t hi = 0; hi < expirationHandlers.size(); ++hi) {
-    slotsCreatedByHandlers[hi] = expirationHandlers[hi].creator(mTimesliceIndex);
+  for (auto& handler : expirationHandlers) {
+    slotsCreatedByHandlers.push_back(handler.creator(mTimesliceIndex));
   }
-  // Expire the records as needed.
+  // Outer loop, we process all the records because the fact that the record
+  // expires is independent from having received data for it.
   for (size_t ti = 0; ti < mTimesliceIndex.size(); ++ti) {
     TimesliceSlot slot{ti};
     if (mTimesliceIndex.isValid(slot) == false) {
       continue;
     }
     assert(mDistinctRoutesIndex.empty() == false);
-    for (size_t ri = 0; ri < mDistinctRoutesIndex.size(); ++ri) {
-      auto& route = mInputRoutes[mDistinctRoutesIndex[ri]];
-      auto& expirator = expirationHandlers[mDistinctRoutesIndex[ri]];
-      auto timestamp = mTimesliceIndex.getTimesliceForSlot(slot);
-      auto& part = mCache[ti * mDistinctRoutesIndex.size() + ri];
+    auto timestamp = mTimesliceIndex.getTimesliceForSlot(slot);
+    // We iterate on all the hanlders checking if they need to be expired.
+    for (size_t ei = 0; ei < expirationHandlers.size(); ++ei) {
+      auto& expirator = expirationHandlers[ei];
+      // We check that no data is already there for the given cell
+      auto& part = mCache[ti * mDistinctRoutesIndex.size() + expirator.routeIndex.value];
       if (part.header != nullptr) {
         continue;
       }
       if (part.payload != nullptr) {
         continue;
       }
+      // We check that the cell can actually be expired.
       if (!expirator.checker) {
         continue;
       }
-      if (slotsCreatedByHandlers[mDistinctRoutesIndex[ri]].index != slot.index) {
+      if (slotsCreatedByHandlers[ei].index != slot.index) {
         continue;
       }
       if (expirator.checker(timestamp.value) == false) {
         continue;
       }
 
-      assert(ti * mDistinctRoutesIndex.size() + ri < mCache.size());
+      assert(ti * mDistinctRoutesIndex.size() + expirator.routeIndex.value < mCache.size());
       assert(expirator.handler);
       expirator.handler(services, part, timestamp.value);
       mTimesliceIndex.markAsDirty(slot, true);
@@ -204,7 +170,6 @@ DataRelayer::RelayChoice
   // This is the class level state of the relaying. If we start supporting
   // multithreading this will have to be made thread safe before we can invoke
   // relay concurrently.
-  auto const& inputRoutes = mInputRoutes;
   auto& index = mTimesliceIndex;
 
   auto& cache = mCache;
@@ -360,15 +325,26 @@ DataRelayer::RelayChoice
   VariableContext pristineContext;
   std::tie(input, timeslice) = getInputTimeslice(pristineContext);
 
+  auto DataHeaderInfo = [&header]() {
+    std::string error;
+    const auto* dh = o2::header::get<o2::header::DataHeader*>(header->GetData());
+    if (dh) {
+      error += dh->dataOrigin.as<std::string>() + "/" + dh->dataDescription.as<std::string>() + "/" + dh->subSpecification;
+    } else {
+      error += "invalid header";
+    }
+    return error;
+  };
+
   if (input == INVALID_INPUT) {
-    LOG(ERROR) << "Could not match incoming data to any input";
+    LOG(ERROR) << "Could not match incoming data to any input route: " << DataHeaderInfo();
     mStats.malformedInputs++;
     mStats.droppedIncomingMessages++;
     return WillNotRelay;
   }
 
   if (TimesliceId::isValid(timeslice) == false) {
-    LOG(ERROR) << "Could not determine the timeslice for input";
+    LOG(ERROR) << "Could not determine the timeslice for input: " << DataHeaderInfo();
     mStats.malformedInputs++;
     mStats.droppedIncomingMessages++;
     return WillNotRelay;
@@ -538,6 +514,11 @@ void DataRelayer::setPipelineLength(size_t s)
 {
   mTimesliceIndex.resize(s);
   mVariableContextes.resize(s);
+  publishMetrics();
+}
+
+void DataRelayer::publishMetrics()
+{
   auto numInputTypes = mDistinctRoutesIndex.size();
   mCache.resize(numInputTypes * mTimesliceIndex.size());
   mMetrics.send({(int)numInputTypes, "data_relayer/h"});
@@ -557,16 +538,14 @@ void DataRelayer::setPipelineLength(size_t s)
     sVariablesMetricsNames[i] = std::string("matcher_variables/") + std::to_string(i);
     mMetrics.send({std::string("null"), sVariablesMetricsNames[i % 16]});
   }
-  // The queries are all the same, so we only have width 1
-  sQueriesMetricsNames.resize(numInputTypes * 1);
-  mMetrics.send({(int)numInputTypes, "data_queries/h"});
-  mMetrics.send({(int)1, "data_queries/w"});
-  for (size_t i = 0; i < numInputTypes; ++i) {
-    sQueriesMetricsNames[i] = std::string("data_queries/") + std::to_string(i);
-    char buffer[128];
-    auto& matcher = mInputRoutes[mDistinctRoutesIndex[i]].matcher;
-    DataSpecUtils::describe(buffer, 127, matcher);
-    mMetrics.send({std::string{buffer}, sQueriesMetricsNames[i]});
+
+  for (size_t ci = 0; ci < mCache.size(); ci++) {
+    assert(ci < sMetricsNames.size());
+    mMetrics.send({0, sMetricsNames[ci]});
+  }
+  for (size_t ci = 0; ci < mVariableContextes.size() * 16; ci++) {
+    assert(ci < sVariablesMetricsNames.size());
+    mMetrics.send({std::string("null"), sVariablesMetricsNames[ci]});
   }
 }
 

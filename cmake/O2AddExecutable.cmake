@@ -105,6 +105,10 @@ function(o2_add_executable baseTargetName)
 
   # use its dependencies
   foreach(lib IN LISTS A_PUBLIC_LINK_LIBRARIES)
+    string(FIND ${lib} "::" NS)
+    if(${NS} EQUAL -1)
+      message(FATAL_ERROR "Trying to use a non-namespaced target ${lib}")
+    endif()
     target_link_libraries(${target} PUBLIC ${lib})
   endforeach()
 

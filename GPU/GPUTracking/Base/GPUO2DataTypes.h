@@ -14,41 +14,16 @@
 #ifndef O2_GPU_GPUO2DATATYPES_H
 #define O2_GPU_GPUO2DATATYPES_H
 
-#ifdef HAVE_O2HEADERS
+#if defined(HAVE_O2HEADERS) && (!defined(__OPENCL__) || defined(__OPENCLCPP__))
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DetectorsBase/MatLayerCylSet.h"
 #include "TRDBase/TRDGeometryFlat.h"
 #else
-namespace o2
-{
-namespace tpc
-{
-struct ClusterNative {
-};
-struct ClusterNativeAccess {
-  const ClusterNative* clustersLinear;
-  unsigned int nClusters[GPUCA_NSLICES][GPUCA_ROW_COUNT];
-  unsigned int nClustersSector[GPUCA_NSLICES];
-  unsigned int clusterOffset[GPUCA_NSLICES][GPUCA_ROW_COUNT];
-  unsigned int nClustersTotal;
-};
-} // namespace tpc
-namespace base
-{
-struct MatBudget {
-};
-class MatLayerCylSet
-{
-};
-} // namespace base
-namespace trd
-{
-class TRDGeometryFlat
-{
-};
-} // namespace trd
-} // namespace o2
+#include "GPUO2FakeClasses.h"
 #endif
+
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
 #include "GPUdEdxInfo.h"
+#endif
 
 #endif

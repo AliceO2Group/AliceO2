@@ -12,6 +12,7 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/ControlService.h"
 
+#include <thread>
 #include <vector>
 
 using namespace o2::framework;
@@ -56,7 +57,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
      Outputs{},
      AlgorithmSpec{
        [](ProcessingContext& ctx) {
-         ctx.services().get<ControlService>().readyToQuit(true);
+         ctx.services().get<ControlService>().readyToQuit(QuitRequest::All);
        },
      }}};
 }

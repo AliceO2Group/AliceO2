@@ -92,7 +92,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
               LOG(ERROR) << "Wrong average for z";
             }
 
-            control.readyToQuit(true);
+            control.readyToQuit(QuitRequest::All);
           }) //
       }      //
     }        //

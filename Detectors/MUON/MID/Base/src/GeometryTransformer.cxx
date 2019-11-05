@@ -18,8 +18,11 @@
 #include <fstream>
 #include <string>
 #include "TMath.h"
+#include "TGeoVolume.h"
+#include "TGeoManager.h"
 #include "Math/GenVector/RotationX.h"
 #include "Math/GenVector/RotationY.h"
+#include "MIDBase/GeometryParameters.h"
 
 namespace o2
 {
@@ -29,7 +32,7 @@ namespace mid
 void GeometryTransformer::setMatrix(int deId, const ROOT::Math::Transform3D& matrix)
 {
   /// Sets the transformation matrix for detection element deId
-  Constants::assertDEId(deId);
+  detparams::assertDEId(deId);
   mTransformations[deId] = matrix;
 }
 
@@ -37,8 +40,8 @@ ROOT::Math::Transform3D getDefaultChamberTransform(int ichamber)
 {
   /// Returns the default chamber transformation
   const double degToRad = TMath::DegToRad();
-  ROOT::Math::Rotation3D planeRot(ROOT::Math::RotationX(Constants::sBeamAngle * degToRad));
-  ROOT::Math::Translation3D planeTrans(0., 0., Constants::sDefaultChamberZ[ichamber]);
+  ROOT::Math::Rotation3D planeRot(ROOT::Math::RotationX(geoparams::BeamAngle * degToRad));
+  ROOT::Math::Translation3D planeTrans(0., 0., geoparams::DefaultChamberZ[ichamber]);
   return planeTrans * planeRot;
 }
 
@@ -49,15 +52,15 @@ ROOT::Math::Transform3D getDefaultRPCTransform(bool isRight, int chamber, int rp
   double angle = isRight ? 0. : 180.;
   ROOT::Math::Rotation3D rot(ROOT::Math::RotationY(angle * degToRad));
   double xSign = isRight ? 1. : -1.;
-  double xPos = xSign * Constants::getRPCCenterPosX(chamber, rpc);
+  double xPos = xSign * geoparams::getRPCCenterPosX(chamber, rpc);
   double sign = (rpc % 2 == 0) ? 1. : -1;
   if (!isRight) {
     sign *= -1.;
   }
-  double zPos = sign * Constants::sRPCZShift;
-  double newZ = Constants::sDefaultChamberZ[0] + zPos;
-  double oldZ = Constants::sDefaultChamberZ[0] - zPos;
-  double yPos = Constants::getRPCHalfHeight(chamber) * (rpc - 4) * (1. + newZ / oldZ);
+  double zPos = sign * geoparams::RPCZShift;
+  double newZ = geoparams::DefaultChamberZ[0] + zPos;
+  double oldZ = geoparams::DefaultChamberZ[0] - zPos;
+  double yPos = geoparams::getRPCHalfHeight(chamber) * (rpc - 4) * (1. + newZ / oldZ);
   ROOT::Math::Translation3D trans(xPos, yPos, zPos);
   return trans * rot;
 }
@@ -66,15 +69,32 @@ GeometryTransformer createDefaultTransformer()
 {
   /// Creates the default transformer
   GeometryTransformer geoTrans;
-  for (int ich = 0; ich < Constants::sNChambers; ++ich) {
+  for (int ich = 0; ich < detparams::NChambers; ++ich) {
     for (int iside = 0; iside < 2; ++iside) {
       bool isRight = (iside == 0);
-      for (int irpc = 0; irpc < Constants::sNRPCLines; ++irpc) {
-        int deId = Constants::getDEId(isRight, ich, irpc);
+      for (int irpc = 0; irpc < detparams::NRPCLines; ++irpc) {
+        int deId = detparams::getDEId(isRight, ich, irpc);
         ROOT::Math::Transform3D matrix = getDefaultChamberTransform(ich) * getDefaultRPCTransform(isRight, ich, irpc);
         geoTrans.setMatrix(deId, matrix);
       }
     }
+  }
+  return geoTrans;
+}
+
+GeometryTransformer createTransformationFromManager(const TGeoManager* geoManager)
+{
+  /// Creates the transformations from the manager
+  GeometryTransformer geoTrans;
+  TGeoNavigator* navig = geoManager->GetCurrentNavigator();
+  for (int ide = 0; ide < detparams::NDetectionElements; ++ide) {
+    int ichamber = detparams::getChamber(ide);
+    std::stringstream volPath;
+    volPath << geoManager->GetTopVolume()->GetName() << "/" << geoparams::getChamberVolumeName(ichamber) << "_1/" << geoparams::getRPCVolumeName(geoparams::getRPCType(ide), ichamber) << "_" << std::to_string(ide);
+    if (!navig->cd(volPath.str().c_str())) {
+      throw std::runtime_error("Could not get to volPathName=" + volPath.str());
+    }
+    geoTrans.setMatrix(ide, o2::Transform3D{*(navig->GetCurrentMatrix())});
   }
   return geoTrans;
 }

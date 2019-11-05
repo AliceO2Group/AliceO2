@@ -76,6 +76,8 @@ AddOption(tpcReject, int, 0, "tpcReject", 0, "Enable rejection of TPC clusters f
 AddOption(tpcRejectThreshold, float, 0.f, "tpcRejectThreshold", 0, "Pt threshold to reject clusters of TPC tracks")
 AddOption(tpcCompression, int, 7, "tpcCompression", 0, "TPC Compression mode bits (1=truncate charge/width LSB, 2=differences, 4=track-model)")
 AddOption(tpcCompressionSort, int, 0, "tpcCompressionSort", 0, "Sort order of TPC compression (0 = time, 1 = pad, 2 = Z-time-pad, 3 = Z-pad-time)")
+AddOption(ForceEarlyTPCTransform, int, -1, "ForceEarlyTPCTransform", 0, "Force early TPC transformation also for continuous data (-1 = auto)")
+AddOption(fwdTPCDigitsAsClusters, bool, false, "forwardTPCdigits", 0, "Forward TPC digits as clusters (if they pass the ZS threshold)")
 AddHelp("help", 'h')
 EndConfig()
 
@@ -113,6 +115,7 @@ AddOption(helperThreads, int, 1, "helperThreads", 0, "Number of CPU helper threa
 AddOption(noprompt, bool, true, "prompt", 0, "Do prompt for keypress before exiting", def(false))
 AddOption(continueOnError, bool, false, "continue", 0, "Continue processing after an error")
 AddOption(DebugLevel, int, 0, "debug", 'd', "Set debug level")
+AddOption(DeviceTiming, bool, false, "deviceTiming", 0, "Use device timers instead of host-based time measurement")
 AddOption(seed, int, -1, "seed", 0, "Set srand seed (-1: random)")
 AddOption(cleardebugout, bool, false, "clearDebugFile", 0, "Clear debug output file when processing next event")
 AddOption(cudaDevice, int, -1, "gpuDevice", 0, "Set GPU device to use (-1: automatic)")

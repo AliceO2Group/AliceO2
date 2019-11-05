@@ -10,6 +10,8 @@
 
 #include "Framework/DataSampling.h"
 
+#include <thread>
+
 using namespace o2::framework;
 void customize(std::vector<CompletionPolicy>& policies)
 {

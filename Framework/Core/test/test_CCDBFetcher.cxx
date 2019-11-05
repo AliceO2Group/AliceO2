@@ -35,7 +35,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           }
           header->payloadSize;
           auto aData = outputs.make<int>(Output{"TST", "A1", 0}, 1);
-          control.readyToQuit(true);
+          control.readyToQuit(QuitRequest::All);
         })},
       Options{
         {"test-option", VariantType::String, "test", {"A test option"}}},

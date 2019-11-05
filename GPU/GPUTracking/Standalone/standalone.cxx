@@ -278,6 +278,8 @@ int SetupReconstruction()
   recSet.SearchWindowDZDR = configStandalone.dzdr;
   recSet.GlobalTracking = configStandalone.configRec.globalTracking;
   recSet.DisableRefitAttachment = configStandalone.configRec.disableRefitAttachment;
+  recSet.ForceEarlyTPCTransform = configStandalone.configRec.ForceEarlyTPCTransform;
+  recSet.fwdTPCDigitsAsClusters = configStandalone.configRec.fwdTPCDigitsAsClusters;
   if (configStandalone.referenceX < 500.) {
     recSet.TrackReferenceX = configStandalone.referenceX;
   }
@@ -288,6 +290,7 @@ int SetupReconstruction()
   devProc.deviceNum = configStandalone.cudaDevice;
   devProc.forceMemoryPoolSize = configStandalone.forceMemorySize;
   devProc.debugLevel = configStandalone.DebugLevel;
+  devProc.deviceTimers = configStandalone.DeviceTiming;
   devProc.runQA = configStandalone.qa;
   devProc.runCompressionStatistics = configStandalone.compressionStat;
   if (configStandalone.eventDisplay) {
@@ -357,6 +360,13 @@ int SetupReconstruction()
     steps.steps.setBits(GPUReconstruction::RecoStep::TRDTracking, false);
   }
   steps.inputs.set(GPUDataTypes::InOutType::TPCClusters, GPUDataTypes::InOutType::TRDTracklets);
+  if (ev.needsClusterer) {
+    steps.inputs.setBits(GPUDataTypes::InOutType::TPCRaw, true);
+    steps.inputs.setBits(GPUDataTypes::InOutType::TPCClusters, false);
+  } else {
+    steps.steps.setBits(GPUReconstruction::RecoStep::TPCClusterFinding, false);
+  }
+
   steps.outputs.set(GPUDataTypes::InOutType::TPCSectorTracks);
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCMergedTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TPCMerging));
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, steps.steps.isSet(GPUReconstruction::RecoStep::TPCCompression));
@@ -512,6 +522,10 @@ int main(int argc, char** argv)
           GPUSettingsEvent ev = rec->GetEventSettings();
           ev.continuousMaxTimeBin = GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
           rec->UpdateEventSettings(&ev);
+        }
+        if (!rec->GetParam().earlyTpcTransform && chainTracking->mIOPtrs.clustersNative == nullptr && chainTracking->mIOPtrs.tpcPackedDigits == nullptr) {
+          printf("Need cluster native data for on-the-fly TPC transform\n");
+          goto breakrun;
         }
 
         printf("Loading time: %'d us\n", (int)(1000000 * timerLoad.GetCurrentElapsedTime()));

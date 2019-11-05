@@ -1,5 +1,4 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+
 # verbatim in the file "COPYING".
 #
 # See http://alice-o2.web.cern.ch/license for full licensing information.
@@ -17,22 +16,27 @@ o2_add_library(TRDBase
                        src/TRDSimParam.cxx
                        src/PadResponse.cxx
                        src/Digit.cxx
-                       src/TRDCalPadStatus.cxx
-                       src/TRDCalSingleChamberStatus.cxx
                        src/CalDet.cxx
                        src/CalROC.cxx
                        src/FeeParam.cxx
+                       src/PadStatus.cxx
+                       src/LocalVDrift.cxx
+                       src/LocalT0.cxx
+                       src/LocalGainFactor.cxx
+                       src/ChamberStatus.cxx
+                       src/Calibrations.cxx
+                       src/ChamberNoise.cxx
+                       src/CalOnlineGainTables.cxx
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                      O2::DetectorsCommonDataFormats
                                      O2::Field
                                      O2::DetectorsBase
                                      ROOT::Physics
-                                     O2::SimulationDataFormat)
+                                     O2::SimulationDataFormat
+                                     O2::CCDB)
 
 o2_target_root_dictionary(TRDBase
-                          HEADERS include/TRDBase/TRDCalPadStatus.h
-                                  include/TRDBase/TRDCalSingleChamberStatus.h
-                                  include/TRDBase/TRDPadPlane.h
+                          HEADERS include/TRDBase/TRDPadPlane.h
                                   include/TRDBase/TRDGeometryBase.h
                                   include/TRDBase/TRDGeometry.h
                                   include/TRDBase/TRDGeometryFlat.h
@@ -43,7 +47,18 @@ o2_target_root_dictionary(TRDBase
                                   include/TRDBase/MCLabel.h
                                   include/TRDBase/CalDet.h
                                   include/TRDBase/CalROC.h
-                                  include/TRDBase/FeeParam.h)
+                                  include/TRDBase/FeeParam.h
+                                  include/TRDBase/PadParameters.h
+                                  include/TRDBase/PadCalibrations.h
+                                  include/TRDBase/ChamberCalibrations.h
+                                  include/TRDBase/PadStatus.h
+                                  include/TRDBase/LocalVDrift.h
+                                  include/TRDBase/LocalT0.h
+                                  include/TRDBase/LocalGainFactor.h
+                                  include/TRDBase/ChamberStatus.h
+                                  include/TRDBase/Calibrations.h
+                                  include/TRDBase/ChamberNoise.h
+                                  include/TRDBase/CalOnlineGainTables.h)
 
 o2_add_test(DiffusionCoefficient
             SOURCES test/testTRDDiffusionCoefficient.cxx

@@ -30,9 +30,12 @@
 #include "GPUTPCTrackletSelector.h"
 #include "GPUTPCGMMergerGPU.h"
 #include "GPUTRDTrackerGPU.h"
+#ifdef HAVE_O2HEADERS
 #include "GPUITSFitterKernels.h"
 #include "GPUTPCConvertKernel.h"
 #include "GPUTPCCompressionKernels.h"
+#include "GPUTPCClusterFinderKernels.h"
+#endif
 
 namespace GPUCA_NAMESPACE
 {
@@ -46,22 +49,48 @@ class GPUReconstructionCPUBackend : public GPUReconstruction
  protected:
   GPUReconstructionCPUBackend(const GPUSettingsProcessing& cfg) : GPUReconstruction(cfg) {}
   template <class T, int I = 0, typename... Args>
-  int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args);
+  int runKernelBackend(krnlSetup& _xyz, const Args&... args);
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
 
+template <class T>
+class GPUReconstructionKernels : public T
+{
+ public:
+  using krnlSetup = GPUReconstruction::krnlSetup;
+  template <class X, int Y = 0>
+  using classArgument = GPUReconstruction::classArgument<X, Y>;
+  virtual ~GPUReconstructionKernels() = default; // NOLINT: BUG: Do not declare override in template class! AMD hcc will not create the destructor otherwise.
+  GPUReconstructionKernels(const GPUSettingsProcessing& cfg) : T(cfg) {}
+
+ protected:
+#define GPUCA_KRNL(x_class, attributes, x_arguments, x_forward)                                                        \
+  virtual int runKernelImpl(classArgument<GPUCA_M_KRNL_TEMPLATE(x_class)>, krnlSetup& _xyz GPUCA_M_STRIP(x_arguments)) \
+  {                                                                                                                    \
+    return T::template runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(_xyz GPUCA_M_STRIP(x_forward));                \
+  }
 #include "GPUReconstructionKernels.h"
+#undef GPUCA_KRNL
+};
+
 #ifndef GPUCA_GPURECONSTRUCTIONCPU_IMPLEMENTATION
-#define GPUCA_GPURECONSTRUCTIONCPU_DECLONLY
-#undef GPURECONSTRUCTIONKERNELS_H
+// Hide the body for all files but GPUReconstructionCPU.cxx, otherwise we get weird symbol clashes when the compiler inlines
+template <>
+class GPUReconstructionKernels<GPUReconstructionCPUBackend> : public GPUReconstructionCPUBackend
+{
+ public:
+  using krnlSetup = GPUReconstruction::krnlSetup;
+  template <class X, int Y = 0>
+  using classArgument = GPUReconstruction::classArgument<X, Y>;
+  virtual ~GPUReconstructionKernels() = default; // NOLINT: Do not declare override in template class! AMD hcc will not create the destructor otherwise.
+  GPUReconstructionKernels(const GPUSettingsProcessing& cfg) : GPUReconstructionCPUBackend(cfg) {}
+
+ protected:
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) virtual int runKernelImpl(classArgument<GPUCA_M_KRNL_TEMPLATE(x_class)>, krnlSetup& _xyz GPUCA_M_STRIP(x_arguments));
 #include "GPUReconstructionKernels.h"
+#undef GPUCA_KRNL
+};
 #endif
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
-{
 class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCPUBackend>
 {
   friend class GPUReconstruction;
@@ -72,7 +101,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   static constexpr krnlRunRange krnlRunRangeNone{0, -1};
   static constexpr krnlEvent krnlEventNone = krnlEvent{nullptr, nullptr, 0};
 
-#ifdef __clang__ // BUG: clang seems broken and does not accept default parameters before parameter pack
+#ifdef __clang__ // BUG: clang does not accept default parameters before parameter pack
   template <class S, int I = 0>
   inline int runKernel(const krnlExec& x, HighResTimer* t = nullptr, const krnlRunRange& y = krnlRunRangeNone)
   {
@@ -85,19 +114,23 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   inline int runKernel(const krnlExec& x, HighResTimer* t = nullptr, const krnlRunRange& y = krnlRunRangeNone, const krnlEvent& z = krnlEventNone, const Args&... args)
 #endif
   {
+    if (x.nThreads > GPUCA_MAX_THREADS) {
+      throw std::runtime_error("GPUCA_MAX_THREADS exceeded");
+    }
     int cpuFallback = IsGPU() ? (x.device == krnlDeviceType::CPU ? 2 : (mRecoStepsGPU & S::GetRecoStep()) != S::GetRecoStep()) : 0;
     if (mDeviceProcessingSettings.debugLevel >= 3) {
-      GPUInfo("Running %s (Stream %d, Range %d/%d) on %s", typeid(S).name(), x.stream, y.start, y.num, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
+      GPUInfo("Running %s-%d (Stream %d, Range %d/%d, Grid %d/%d) on %s", typeid(S).name(), I, x.stream, y.start, y.num, x.nBlocks, x.nThreads, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
     }
-    if (t && mDeviceProcessingSettings.debugLevel) {
+    if (t && mDeviceProcessingSettings.debugLevel && (!mDeviceProcessingSettings.deviceTimers || cpuFallback)) {
       t->Start();
     }
+    krnlSetup setup{x, y, z, 0.};
     if (cpuFallback) {
-      if (GPUReconstructionCPU::runKernelImpl(classArgument<S, I>(), x, y, z, args...)) {
+      if (GPUReconstructionCPU::runKernelImpl(classArgument<S, I>(), setup, args...)) {
         return 1;
       }
     } else {
-      if (runKernelImpl(classArgument<S, I>(), x, y, z, args...)) {
+      if (runKernelImpl(classArgument<S, I>(), setup, args...)) {
         return 1;
       }
     }
@@ -106,11 +139,18 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
         throw std::runtime_error("kernel failure");
       }
       if (t) {
-        t->Stop();
+        if (!mDeviceProcessingSettings.deviceTimers || cpuFallback) {
+          t->Stop();
+        } else {
+          t->AddTime(setup.t);
+        }
       }
     }
     return 0;
   }
+
+  template <class T, int I>
+  constexpr const char* GetKernelName();
 
   virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1);
   void TransferMemoryResourceToGPU(GPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { TransferMemoryInternal(res, stream, ev, evList, nEvents, true, res->Ptr(), res->PtrDevice()); }
@@ -176,17 +216,27 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   unsigned int mSelectorThreadCount = 0;
   unsigned int mFinderThreadCount = 0;
   unsigned int mTRDThreadCount = 0;
+  unsigned int mClustererThreadCount = 0;
+  unsigned int mScanThreadCount = 0;
 
   int mThreadId = -1; // Thread ID that is valid for the local CUDA context
   int mGPUStuck = 0;  // Marks that the GPU is stuck, skip future events
   int mNStreams = 1;
 
-  GPUConstantMem* mDeviceConstantMem = nullptr;
   std::vector<std::vector<deviceEvent*>> mEvents;
 
  private:
   void TransferMemoryResourcesHelper(GPUProcessor* proc, int stream, bool all, bool toGPU);
 };
+
+#define GPUCA_KRNL(x_class, attributes, x_arguments, x_forward)                               \
+  template <>                                                                                 \
+  constexpr const char* GPUReconstructionCPU::GetKernelName<GPUCA_M_KRNL_TEMPLATE(x_class)>() \
+  {                                                                                           \
+    return GPUCA_M_STR(GPUCA_M_KRNL_NAME(x_class));                                           \
+  }
+#include "GPUReconstructionKernels.h"
+#undef GPUCA_KRNL
 
 template <class T>
 inline void GPUReconstructionCPU::AddGPUEvents(T*& events)

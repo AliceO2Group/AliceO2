@@ -75,7 +75,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
                 LOG(ERROR) << "Expecting " << expected << " found " << *in;
               } else {
                 LOG(INFO) << "Everything OK for " << expected << std::endl;
-                control.readyToQuit(true);
+                control.readyToQuit(QuitRequest::All);
               }
             });
           }) //

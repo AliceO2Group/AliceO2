@@ -17,6 +17,7 @@
 #include "Headers/Stack.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DataRelayer.h"
+#include "../src/DataRelayerHelpers.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/WorkflowSpec.h"
 #include <Monitoring/Monitoring.h>
@@ -36,13 +37,13 @@ BOOST_AUTO_TEST_CASE(TestNoWait)
   InputSpec spec{"clusters", "TPC", "CLUSTERS"};
 
   std::vector<InputRoute> inputs = {
-    InputRoute{spec, "Fake", 0}};
+    InputRoute{spec, 0, "Fake", 0}};
 
   std::vector<ForwardRoute> forwards;
   TimesliceIndex index;
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -75,13 +76,13 @@ BOOST_AUTO_TEST_CASE(TestNoWaitMatcher)
   auto specs = o2::framework::select("clusters:TPC/CLUSTERS");
 
   std::vector<InputRoute> inputs = {
-    InputRoute{specs[0], "Fake", 0}};
+    InputRoute{specs[0], 0, "Fake", 0}};
 
   std::vector<ForwardRoute> forwards;
   TimesliceIndex index;
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -124,15 +125,15 @@ BOOST_AUTO_TEST_CASE(TestRelay)
   };
 
   std::vector<InputRoute> inputs = {
-    InputRoute{spec1, "Fake1", 0},
-    InputRoute{spec2, "Fake2", 0}};
+    InputRoute{spec1, 0, "Fake1", 0},
+    InputRoute{spec2, 1, "Fake2", 0}};
 
   std::vector<ForwardRoute> forwards;
 
   TimesliceIndex index;
 
   auto policy = CompletionPolicyHelpers::consumeWhenAll();
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   relayer.setPipelineLength(4);
 
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
@@ -191,15 +192,15 @@ BOOST_AUTO_TEST_CASE(TestRelayBug)
   };
 
   std::vector<InputRoute> inputs = {
-    InputRoute{spec1, "Fake1", 0},
-    InputRoute{spec2, "Fake2", 0}};
+    InputRoute{spec1, 0, "Fake1", 0},
+    InputRoute{spec2, 1, "Fake2", 0}};
 
   std::vector<ForwardRoute> forwards;
 
   TimesliceIndex index;
 
   auto policy = CompletionPolicyHelpers::consumeWhenAll();
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   relayer.setPipelineLength(3);
 
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
@@ -261,12 +262,12 @@ BOOST_AUTO_TEST_CASE(TestCache)
   InputSpec spec{"clusters", "TPC", "CLUSTERS"};
 
   std::vector<InputRoute> inputs = {
-    InputRoute{spec, "Fake", 0}};
+    InputRoute{spec, 0, "Fake", 0}};
   std::vector<ForwardRoute> forwards;
 
   auto policy = CompletionPolicyHelpers::consumeWhenAll();
   TimesliceIndex index;
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   // Only two messages to fill the cache.
   relayer.setPipelineLength(2);
 
@@ -325,15 +326,15 @@ BOOST_AUTO_TEST_CASE(TestPolicies)
   InputSpec spec2{"tracks", "TPC", "TRACKS"};
 
   std::vector<InputRoute> inputs = {
-    InputRoute{spec1, "Fake1", 0},
-    InputRoute{spec2, "Fake2", 0},
+    InputRoute{spec1, 0, "Fake1", 0},
+    InputRoute{spec2, 1, "Fake2", 0},
   };
 
   std::vector<ForwardRoute> forwards;
   TimesliceIndex index;
 
   auto policy = CompletionPolicyHelpers::processWhenAny();
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   // Only two messages to fill the cache.
   relayer.setPipelineLength(2);
 

@@ -13,12 +13,18 @@
 #include "Framework/ASoA.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/AnalysisDataModel.h"
+#include "Framework/CallbackService.h"
+#include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/EndOfStreamContext.h"
 #include "Framework/Kernels.h"
 #include "Framework/Logger.h"
+#include "Framework/HistogramRegistry.h"
 #include "Framework/StructToTuple.h"
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/Traits.h"
+#include "Framework/VariantHelpers.h"
+#include "Headers/DataHeader.h"
 
 #include <arrow/compute/context.h>
 #include <arrow/compute/kernel.h>
@@ -26,6 +32,10 @@
 #include <type_traits>
 #include <utility>
 #include <memory>
+
+/// This is an helper to allow users to create and
+/// fill histograms which are then sent to the collector.
+class TH1F;
 
 namespace o2
 {
@@ -44,22 +54,45 @@ namespace framework
 //        because we cannot inherit from it due to a C++17 bug
 //        in GCC 7.3. We need to move to 7.4+
 template <typename T>
+struct WritingCursor {
+  static_assert(always_static_assert_v<T>, "Type must be a o2::soa::Table");
+};
+
+template <typename T>
 struct Produces {
   static_assert(always_static_assert_v<T>, "Type must be a o2::soa::Table");
 };
 
-/// This helper class allow you to declare things which will be crated by a
-/// give analysis task and which
-template <typename... C>
-struct Produces<soa::Table<C...>> {
-  using table_t = soa::Table<C...>;
-  using cursor_t = decltype(std::declval<TableBuilder>().cursor<table_t>());
-  using metadata = typename aod::MetadataTrait<table_t>::metadata;
+/// Helper class actually implementing the cursor which can write to
+/// a table. The provided template arguments are if type Column and
+/// therefore refer only to the persisted columns.
+template <typename... PC>
+struct WritingCursor<soa::Table<PC...>> {
+  using persistent_table_t = soa::Table<PC...>;
+  using cursor_t = decltype(std::declval<TableBuilder>().cursor<persistent_table_t>());
 
-  void operator()(typename C::type... args)
+  void operator()(typename PC::type... args)
   {
     cursor(0, args...);
   }
+
+  bool resetCursor(TableBuilder& builder)
+  {
+    cursor = std::move(FFL(builder.cursor<persistent_table_t>()));
+    return true;
+  }
+
+  decltype(FFL(std::declval<cursor_t>())) cursor;
+};
+
+/// This helper class allow you to declare things which will be crated by a
+/// give analysis task. Notice how the actual cursor is implemented by the
+/// means of the WritingCursor helper class, from which produces actually
+/// derives.
+template <typename... C>
+struct Produces<soa::Table<C...>> : WritingCursor<typename soa::FilterPersistentColumns<soa::Table<C...>>::persistent_table_t> {
+  using table_t = soa::Table<C...>;
+  using metadata = typename aod::MetadataTrait<table_t>::metadata;
 
   // @return the associated OutputSpec
   OutputSpec const spec()
@@ -71,14 +104,80 @@ struct Produces<soa::Table<C...>> {
   {
     return OutputRef{metadata::label(), 0};
   }
+};
 
-  bool resetCursor(TableBuilder& builder)
+/// This helper class allow you to declare things which will be crated by a
+/// give analysis task. Notice how the actual cursor is implemented by the
+/// means of the WritingCursor helper class, from which produces actually
+/// derives.
+template <typename T>
+struct OutputObj {
+  using obj_t = T;
+
+  OutputObj(T const& t)
+    : object(std::make_shared<T>(t)),
+      label(t.GetName())
   {
-    cursor = std::move(FFL(builder.cursor<table_t>()));
-    return true;
   }
 
-  decltype(FFL(std::declval<cursor_t>())) cursor;
+  OutputObj(std::string const& label_)
+    : object(nullptr),
+      label(label_)
+  {
+  }
+
+  void setObject(T const& t)
+  {
+    object = std::make_shared<T>(t);
+    object->SetName(label.c_str());
+  }
+
+  void setObject(T&& t)
+  {
+    object = std::make_shared<T>(t);
+    object->SetName(label.c_str());
+  }
+
+  void setObject(T* t)
+  {
+    object.reset(t);
+    object->SetName(label.c_str());
+  }
+
+  // @return the associated OutputSpec
+  OutputSpec const spec()
+  {
+    static_assert(std::is_base_of_v<TNamed, T>, "You need a TNamed derived class to use OutputObj");
+    header::DataDescription desc{};
+    if (object == nullptr) {
+      strncpy(desc.str, "__OUTPUTOBJECT__", 16);
+    } else {
+      // FIXME: for the moment we use GetTitle(), in the future
+      //        we should probably use a unique hash to allow
+      //        names longer than 16 bytes.
+      strncpy(desc.str, object->GetTitle(), 16);
+    }
+
+    return OutputSpec{OutputLabel{label}, "ATSK", desc, 0};
+  }
+
+  T* operator->()
+  {
+    return object.get();
+  }
+
+  T& operator*()
+  {
+    return *object.get();
+  }
+
+  OutputRef ref()
+  {
+    return OutputRef{label, 0};
+  }
+
+  std::shared_ptr<T> object;
+  std::string label;
 };
 
 struct AnalysisTask {
@@ -232,7 +331,7 @@ struct AnalysisDataProcessorBuilder {
 };
 
 template <typename T>
-struct OutputAppender {
+struct OutputManager {
   template <typename ANY>
   static bool appendOutput(std::vector<OutputSpec>& outputs, ANY&)
   {
@@ -240,31 +339,89 @@ struct OutputAppender {
   }
 
   template <typename ANY>
-  static bool resetCursors(ProcessingContext& context, ANY&)
+  static bool prepare(ProcessingContext& context, ANY&)
   {
     return false;
   }
+
   template <typename ANY>
-  static bool inspect(ANY& what)
+  static bool postRun(EndOfStreamContext& context, ANY& what)
   {
-    return false;
+    return true;
+  }
+
+  template <typename ANY>
+  static bool finalize(ProcessingContext& context, ANY& what)
+  {
+    return true;
   }
 };
 
 template <typename TABLE>
-struct OutputAppender<Produces<TABLE>> {
+struct OutputManager<Produces<TABLE>> {
   static bool appendOutput(std::vector<OutputSpec>& outputs, Produces<TABLE>& what)
   {
     outputs.emplace_back(what.spec());
     return true;
   }
-  static bool resetCursors(ProcessingContext& context, Produces<TABLE>& what)
+  static bool prepare(ProcessingContext& context, Produces<TABLE>& what)
   {
     what.resetCursor(context.outputs().make<TableBuilder>(what.ref()));
     return true;
   }
-  static bool inspect(Produces<TABLE>& what)
+  static bool finalize(ProcessingContext& context, Produces<TABLE>& what)
   {
+    return true;
+  }
+  static bool postRun(EndOfStreamContext& context, Produces<TABLE>& what)
+  {
+    return true;
+  }
+};
+
+template <>
+struct OutputManager<HistogramRegistry> {
+  static bool appendOutput(std::vector<OutputSpec>& outputs, HistogramRegistry& what)
+  {
+    outputs.emplace_back(what.spec());
+    return true;
+  }
+  static bool prepare(ProcessingContext& context, HistogramRegistry& what)
+  {
+    return true;
+  }
+
+  static bool finalize(ProcessingContext& context, HistogramRegistry& what)
+  {
+    return true;
+  }
+
+  static bool postRun(EndOfStreamContext& context, HistogramRegistry& what)
+  {
+    return true;
+  }
+};
+
+template <typename T>
+struct OutputManager<OutputObj<T>> {
+  static bool appendOutput(std::vector<OutputSpec>& outputs, OutputObj<T>& what)
+  {
+    outputs.emplace_back(what.spec());
+    return true;
+  }
+  static bool prepare(ProcessingContext& context, OutputObj<T>& what)
+  {
+    return true;
+  }
+
+  static bool finalize(ProcessingContext& context, OutputObj<T>& what)
+  {
+    return true;
+  }
+
+  static bool postRun(EndOfStreamContext& context, OutputObj<T>& what)
+  {
+    context.outputs().snapshot(what.ref(), *what);
     return true;
   }
 };
@@ -330,7 +487,7 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
 
   std::vector<OutputSpec> outputs;
   auto tupledTask = o2::framework::to_tuple_refs(*task.get());
-  std::apply([&outputs](auto&... x) { return (OutputAppender<std::decay_t<decltype(x)>>::appendOutput(outputs, x), ...); }, tupledTask);
+  std::apply([&outputs](auto&... x) { return (OutputManager<std::decay_t<decltype(x)>>::appendOutput(outputs, x), ...); }, tupledTask);
   static_assert(has_process<T>::value || has_run<T>::value || has_init<T>::value,
                 "At least one of process(...), T::run(...), init(...) must be defined");
 
@@ -340,19 +497,27 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
   }
 
   auto algo = AlgorithmSpec::InitCallback{[task](InitContext& ic) {
+    auto& callbacks = ic.services().get<CallbackService>();
+    auto endofdatacb = [task](EndOfStreamContext& eosContext) {
+      auto tupledTask = o2::framework::to_tuple_refs(*task.get());
+      std::apply([&eosContext](auto&&... x) { return (OutputManager<std::decay_t<decltype(x)>>::postRun(eosContext, x), ...); }, tupledTask);
+      eosContext.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    };
+    callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
+
     if constexpr (has_init<T>::value) {
       task->init(ic);
     }
     return [task](ProcessingContext& pc) {
       auto tupledTask = o2::framework::to_tuple_refs(*task.get());
-      std::apply([&pc](auto&&... x) { return (OutputAppender<std::decay_t<decltype(x)>>::resetCursors(pc, x), ...); }, tupledTask);
-      std::apply([&pc](auto&&... x) { return (OutputAppender<std::decay_t<decltype(x)>>::inspect(x), ...); }, tupledTask);
+      std::apply([&pc](auto&&... x) { return (OutputManager<std::decay_t<decltype(x)>>::prepare(pc, x), ...); }, tupledTask);
       if constexpr (has_run<T>::value) {
         task->run(pc);
       }
       if constexpr (has_process<T>::value) {
         AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), &T::process);
       }
+      std::apply([&pc](auto&&... x) { return (OutputManager<std::decay_t<decltype(x)>>::finalize(pc, x), ...); }, tupledTask);
     };
   }};
 

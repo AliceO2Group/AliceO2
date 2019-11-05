@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <string>
 #include <functional>
+#include <optional>
 
 namespace o2
 {
@@ -25,6 +26,16 @@ struct PartRef;
 struct ServiceRegistry;
 class ConfigParamRegistry;
 
+struct RouteConfigurator {
+  using CreationConfigurator = std::function<ExpirationHandler::Creator(ConfigParamRegistry const&)>;
+  using DanglingConfigurator = std::function<ExpirationHandler::Checker(ConfigParamRegistry const&)>;
+  using ExpirationConfigurator = std::function<ExpirationHandler::Handler(ConfigParamRegistry const&)>;
+
+  CreationConfigurator creatorConfigurator = nullptr;
+  DanglingConfigurator danglingConfigurator = nullptr;
+  ExpirationConfigurator expirationConfigurator = nullptr;
+};
+
 /// This uniquely identifies a route to from which data matching @a matcher
 /// input spec gets to the device. In case of time pipelining @a timeslice
 /// refers to the timeslice associated to this route. The three callbacks @a
@@ -34,16 +45,15 @@ class ConfigParamRegistry;
 /// how.  By default inputs are never considered valid and they are never
 /// created from nothing.
 struct InputRoute {
-  using CreationConfigurator = std::function<ExpirationHandler::Creator(ConfigParamRegistry const&)>;
-  using DanglingConfigurator = std::function<ExpirationHandler::Checker(ConfigParamRegistry const&)>;
-  using ExpirationConfigurator = std::function<ExpirationHandler::Handler(ConfigParamRegistry const&)>;
 
+  // FIXME: This should really go away and we should make sure that
+  //        whenever we pass the input routes we also have the associated
+  //        input specs available.
   InputSpec matcher;
+  size_t inputSpecIndex;
   std::string sourceChannel;
   size_t timeslice;
-  CreationConfigurator creatorConfigurator = nullptr;
-  DanglingConfigurator danglingConfigurator = nullptr;
-  ExpirationConfigurator expirationConfigurator = nullptr;
+  std::optional<RouteConfigurator> configurator;
 };
 
 } // namespace framework

@@ -113,6 +113,7 @@ AliTPCLookUpTable3DInterpolatorD::AliTPCLookUpTable3DInterpolatorD(
   fInterpolatorR->SetNR(nRRow);
   fInterpolatorR->SetNZ(nZColumn);
   fInterpolatorR->SetNPhi(nPhiSlice);
+  fInterpolatorR->SetNGridPoints();
   fInterpolatorR->SetRList(rList);
   fInterpolatorR->SetZList(zList);
   fInterpolatorR->SetPhiList(phiList);
@@ -121,6 +122,7 @@ AliTPCLookUpTable3DInterpolatorD::AliTPCLookUpTable3DInterpolatorD(
   fInterpolatorZ->SetNR(nRRow);
   fInterpolatorZ->SetNZ(nZColumn);
   fInterpolatorZ->SetNPhi(nPhiSlice);
+  fInterpolatorZ->SetNGridPoints();
   fInterpolatorZ->SetRList(rList);
   fInterpolatorZ->SetZList(zList);
   fInterpolatorZ->SetPhiList(phiList);
@@ -129,6 +131,7 @@ AliTPCLookUpTable3DInterpolatorD::AliTPCLookUpTable3DInterpolatorD(
   fInterpolatorPhi->SetNR(nRRow);
   fInterpolatorPhi->SetNZ(nZColumn);
   fInterpolatorPhi->SetNPhi(nPhiSlice);
+  fInterpolatorPhi->SetNGridPoints();
   fInterpolatorPhi->SetRList(rList);
   fInterpolatorPhi->SetZList(zList);
   fInterpolatorPhi->SetPhiList(phiList);
@@ -177,7 +180,7 @@ void AliTPCLookUpTable3DInterpolatorD::CopyFromMatricesToInterpolator(Int_t iZ)
 /// \param zValue Double_t value of z-component
 void AliTPCLookUpTable3DInterpolatorD::GetValue(
   Double_t r, Double_t phi, Double_t z,
-  Double_t& rValue, Double_t& phiValue, Double_t& zValue)
+  Double_t& rValue, Double_t& phiValue, Double_t& zValue) const
 {
   rValue = fInterpolatorR->GetValue(r, phi, z);
   phiValue = fInterpolatorPhi->GetValue(r, phi, z);
@@ -194,7 +197,7 @@ void AliTPCLookUpTable3DInterpolatorD::GetValue(
 /// \param zValue Float_t value of z-component
 void AliTPCLookUpTable3DInterpolatorD::GetValue(
   Double_t r, Double_t phi, Double_t z,
-  Float_t& rValue, Float_t& phiValue, Float_t& zValue)
+  Float_t& rValue, Float_t& phiValue, Float_t& zValue) const
 {
   rValue = fInterpolatorR->GetValue(r, phi, z);
   phiValue = fInterpolatorPhi->GetValue(r, phi, z);
