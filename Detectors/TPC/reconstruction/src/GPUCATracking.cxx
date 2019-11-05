@@ -96,7 +96,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
       gpuDigitsMap.tpcDigits[i] = gpuDigits[i].data();
       for (int j = 0; j < d.size(); j++) {
         if (d[j].getChargeFloat() >= zsThreshold) {
-          gpuDigits[i].emplace_back(gpucf::PackedDigit{d[j].getChargeFloat(), (gpucf::timestamp)d[j].getTimeStamp(), (gpucf::pad_t)d[j].getPad(), (gpucf::row_t)d[j].getRow()});
+          gpuDigits[i].emplace_back(gpucf::PackedDigit{d[j].getChargeFloat(), (gpucf::Timestamp)d[j].getTimeStamp(), (gpucf::Pad)d[j].getPad(), (gpucf::Row)d[j].getRow()});
         }
       }
       gpuDigitsMap.nTPCDigits[i] = gpuDigits[i].size();

@@ -23,15 +23,21 @@
 #define TPC_MAX_TIME 4000
 #define TPC_MAX_TIME_PADDED (TPC_MAX_TIME + 2 * PADDING_TIME)
 
-typedef ushort timestamp;
-typedef unsigned char pad_t;
-typedef ushort global_pad_t;
-typedef unsigned char row_t;
-typedef unsigned char cru_t;
+using Timestamp = ushort;
+using Pad = unsigned char;
+using GlobalPad = ushort;
+using Row = unsigned char;
+using Cru = unsigned char;
+
+/* typedef ushort timestamp; */
+/* typedef unsigned char Pad; */
+/* typedef ushort GlobalPad; */
+/* typedef unsigned char Row; */
+/* typedef unsigned char cru_t; */
 
 // Maps the position of a pad given as row and index in that row to a unique
 // index between 0 and TPC_NUM_OF_PADS.
-GPUdi() global_pad_t tpcGlobalPadIdx(row_t row, pad_t pad)
+GPUdi() GlobalPad tpcGlobalPadIdx(Row row, Pad pad)
 {
   return TPC_PADS_PER_ROW_PADDED * row + pad + PADDING_PAD;
 }

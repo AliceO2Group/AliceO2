@@ -48,31 +48,31 @@ struct GPUTPCSharedMemory
 namespace gpucf
 {
 
-GPUd() packed_charge_t packCharge(charge_t q, bool peak3x3, bool wasSplit)
+GPUd() PackedCharge packCharge(Charge q, bool peak3x3, bool wasSplit)
 {
-    packed_charge_t p = q * 16.f;
-    p = CAMath::Min((packed_charge_t)0x3FFF, p); // ensure only lower 14 bits are set
+    PackedCharge p = q * 16.f;
+    p = CAMath::Min((PackedCharge)0x3FFF, p); // ensure only lower 14 bits are set
     p |= (wasSplit << 14);
     p |= (peak3x3 << 15);
     return p;
 }
 
-GPUd() charge_t unpackCharge(packed_charge_t p)
+GPUd() Charge unpackCharge(PackedCharge p)
 {
     return (p & 0x3FFF) / 16.f;
 }
 
-GPUd() bool has3x3Peak(packed_charge_t p)
+GPUd() bool has3x3Peak(PackedCharge p)
 {
     return p & (1 << 15);
 }
 
-GPUd() bool wasSplit(packed_charge_t p)
+GPUd() bool wasSplit(PackedCharge p)
 {
     return p & (1 << 14);
 }
 
-GPUconstexpr() delta2_t INNER_NEIGHBORS[8] =
+GPUconstexpr() Delta2 INNER_NEIGHBORS[8] =
 {
     {-1, -1},
 
@@ -94,7 +94,7 @@ GPUconstexpr() bool INNER_TEST_EQ[8] =
     false, false, false, false
 };
 
-GPUconstexpr() delta2_t OUTER_NEIGHBORS[16] =
+GPUconstexpr() Delta2 OUTER_NEIGHBORS[16] =
 {
     {-2, -1},
     {-2, -2},
@@ -164,7 +164,7 @@ GPUconstexpr() uchar OUTER_TO_INNER_INV[16] =
 
 
 #define NOISE_SUPPRESSION_NEIGHBOR_NUM 34
-GPUconstexpr() delta2_t NOISE_SUPPRESSION_NEIGHBORS[NOISE_SUPPRESSION_NEIGHBOR_NUM] =
+GPUconstexpr() Delta2 NOISE_SUPPRESSION_NEIGHBORS[NOISE_SUPPRESSION_NEIGHBOR_NUM] =
 {
     {-2, -3},
     {-2, -2},
@@ -283,9 +283,9 @@ GPUd() void toNative(const ClusterAccumulator *cluster, const Digit *d, ClusterN
 
 GPUd() void collectCharge(
         ClusterAccumulator *cluster,
-        charge_t            splitCharge,
-        delta_t             dp,
-        delta_t             dt)
+        Charge            splitCharge,
+        Delta             dp,
+        Delta             dt)
 {
     cluster->Q         += splitCharge;
     cluster->padMean   += splitCharge*dp;
@@ -295,13 +295,13 @@ GPUd() void collectCharge(
 }
 
 
-GPUd() charge_t updateClusterInner(
+GPUd() Charge updateClusterInner(
         ClusterAccumulator *cluster,
-        packed_charge_t     charge,
-        delta_t             dp,
-        delta_t             dt)
+        PackedCharge     charge,
+        Delta             dp,
+        Delta             dt)
 {
-    charge_t q = unpackCharge(charge);
+    Charge q = unpackCharge(charge);
 
     collectCharge(cluster, q, dp, dt);
 
@@ -314,11 +314,11 @@ GPUd() charge_t updateClusterInner(
 
 GPUd() void updateClusterOuter(
         ClusterAccumulator *cluster,
-        packed_charge_t     charge,
-        delta_t             dp,
-        delta_t             dt)
+        PackedCharge     charge,
+        Delta             dp,
+        Delta             dt)
 {
-    charge_t q = unpackCharge(charge);
+    Charge q = unpackCharge(charge);
 
     bool split  = wasSplit(charge);
     bool has3x3 = has3x3Peak(charge);
@@ -334,7 +334,7 @@ GPUd() void mergeCluster(
                     ushort              otherll,
                     ClusterAccumulator *myCluster,
               const ClusterAccumulator *otherCluster,
-        GPUsharedref()       charge_t           *clusterBcast)
+        GPUsharedref()       Charge           *clusterBcast)
 {
     clusterBcast[otherll] = otherCluster->Q;
     GPUbarrier();
@@ -369,38 +369,38 @@ GPUd() void mergeCluster(
 
 
 GPUd() void addOuterCharge(
-        GPUglobalref() const packed_charge_t    *chargeMap,
+        GPUglobalref() const PackedCharge    *chargeMap,
                      ClusterAccumulator *cluster,
-                     global_pad_t        gpad,
-                     timestamp           time,
-                     delta_t             dp,
-                     delta_t             dt)
+                     GlobalPad        gpad,
+                     Timestamp           time,
+                     Delta             dp,
+                     Delta             dt)
 {
-    packed_charge_t p = CHARGE(chargeMap, gpad+dp, time+dt);
+    PackedCharge p = CHARGE(chargeMap, gpad+dp, time+dt);
     updateClusterOuter(cluster, p, dp, dt);
 }
 
-GPUd() charge_t addInnerCharge(
-        GPUglobalref() const packed_charge_t    *chargeMap,
+GPUd() Charge addInnerCharge(
+        GPUglobalref() const PackedCharge    *chargeMap,
                      ClusterAccumulator *cluster,
-                     global_pad_t        gpad,
-                     timestamp           time,
-                     delta_t             dp,
-                     delta_t             dt)
+                     GlobalPad        gpad,
+                     Timestamp           time,
+                     Delta             dp,
+                     Delta             dt)
 {
-    packed_charge_t p = CHARGE(chargeMap, gpad+dp, time+dt);
+    PackedCharge p = CHARGE(chargeMap, gpad+dp, time+dt);
     return updateClusterInner(cluster, p, dp, dt);
 }
 
 GPUd() void addCorner(
-        GPUglobalref() const packed_charge_t    *chargeMap,
+        GPUglobalref() const PackedCharge    *chargeMap,
                      ClusterAccumulator *myCluster,
-                     global_pad_t        gpad,
-                     timestamp           time,
-                     delta_t             dp,
-                     delta_t             dt)
+                     GlobalPad        gpad,
+                     Timestamp           time,
+                     Delta             dp,
+                     Delta             dt)
 {
-    charge_t q = addInnerCharge(chargeMap, myCluster, gpad, time, dp, dt);
+    Charge q = addInnerCharge(chargeMap, myCluster, gpad, time, dp, dt);
 
     if (q > CHARGE_THRESHOLD)
     {
@@ -411,14 +411,14 @@ GPUd() void addCorner(
 }
 
 GPUd() void addLine(
-        GPUglobalref() const packed_charge_t    *chargeMap,
+        GPUglobalref() const PackedCharge    *chargeMap,
                      ClusterAccumulator *myCluster,
-                     global_pad_t        gpad,
-                     timestamp           time,
-                     delta_t             dp,
-                     delta_t             dt)
+                     GlobalPad        gpad,
+                     Timestamp           time,
+                     Delta             dp,
+                     Delta             dt)
 {
-    charge_t q = addInnerCharge(chargeMap, myCluster, gpad, time, dp, dt);
+    Charge q = addInnerCharge(chargeMap, myCluster, gpad, time, dp, dt);
 
     if (q > CHARGE_THRESHOLD)
     {
@@ -468,15 +468,15 @@ GPUd() ushort partition(GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem, us
                            ushort     ll, \
                            uint       offset, \
                            uint       N, \
-            GPUconstexprref()      const delta2_t  *neighbors, \
+            GPUconstexprref()      const Delta2  *neighbors, \
             GPUsharedref()    const ChargePos *posBcast, \
             GPUsharedref()          type      *buf) \
 { \
     ushort x = ll % N; \
     ushort y = ll / N; \
-    delta2_t d = neighbors[x + offset]; \
-    delta_t dp = d.x; \
-    delta_t dt = d.y; \
+    Delta2 d = neighbors[x + offset]; \
+    Delta dp = d.x; \
+    Delta dt = d.y; \
     LOOP_UNROLL_ATTR for (unsigned int i = y; i < wgSize; i += (elems / N)) \
     { \
         ChargePos readFrom = posBcast[i]; \
@@ -495,16 +495,16 @@ void anonymousFunction()
                            ushort     ll, \
                            uint       offset, \
                            uint       N, \
-            GPUconstexprref()      const delta2_t  *neighbors, \
+            GPUconstexprref()      const Delta2  *neighbors, \
             GPUsharedref()    const ChargePos *posBcast, \
             GPUsharedref()    const uchar     *aboveThreshold, \
             GPUsharedref()          type      *buf) \
 { \
     ushort y = ll / N; \
     ushort x = ll % N; \
-    delta2_t d = neighbors[x + offset]; \
-    delta_t dp = d.x; \
-    delta_t dt = d.y; \
+    Delta2 d = neighbors[x + offset]; \
+    Delta dp = d.x; \
+    Delta dt = d.y; \
     LOOP_UNROLL_ATTR for (unsigned int i = y; i < wgSize; i += (elems / N)) \
     { \
         ChargePos readFrom = posBcast[i]; \
@@ -521,11 +521,11 @@ void anonymousFunction()
 } \
 void anonymousFunction()
 
-DECL_FILL_SCRATCH_PAD(packed_charge_t, CHARGE);
+DECL_FILL_SCRATCH_PAD(PackedCharge, CHARGE);
 DECL_FILL_SCRATCH_PAD(uchar, IS_PEAK);
-DECL_FILL_SCRATCH_PAD_COND(packed_charge_t, CHARGE, innerAboveThreshold, Cond, 0);
+DECL_FILL_SCRATCH_PAD_COND(PackedCharge, CHARGE, innerAboveThreshold, Cond, 0);
 DECL_FILL_SCRATCH_PAD_COND(uchar, IS_PEAK, innerAboveThreshold, Cond, 0);
-DECL_FILL_SCRATCH_PAD_COND(packed_charge_t, CHARGE, innerAboveThresholdInv, CondInv, 0);
+DECL_FILL_SCRATCH_PAD_COND(PackedCharge, CHARGE, innerAboveThresholdInv, CondInv, 0);
 DECL_FILL_SCRATCH_PAD_COND(uchar, IS_PEAK, innerAboveThresholdInv, CondInv, 0);
 
 GPUd() void fillScratchPadNaive(
@@ -534,7 +534,7 @@ GPUd() void fillScratchPadNaive(
                        ushort     ll,
                        uint       offset,
                        uint       N,
-        GPUconstexprref()      const delta2_t  *neighbors,
+        GPUconstexprref()      const Delta2  *neighbors,
         GPUsharedref()    const ChargePos *posBcast,
         GPUsharedref()          uchar     *buf)
 {
@@ -547,9 +547,9 @@ GPUd() void fillScratchPadNaive(
 
     for (unsigned int i = 0; i < N; i++)
     {
-        delta2_t d = neighbors[i + offset];
-        delta_t dp = d.x;
-        delta_t dt = d.y;
+        Delta2 d = neighbors[i + offset];
+        Delta dp = d.x;
+        Delta dt = d.y;
 
         uint writeTo = N * ll + i;
         buf[writeTo] = IS_PEAK(chargeMap, readFrom.gpad+dp, readFrom.time+dt);
@@ -562,7 +562,7 @@ GPUd() void fillScratchPadNaive(
 GPUd() void updateClusterScratchpadInner(
                     ushort              lid,
                     ushort              N,
-        GPUsharedref() const packed_charge_t    *buf,
+        GPUsharedref() const PackedCharge    *buf,
                     ClusterAccumulator *cluster,
         GPUsharedref()       uchar              *innerAboveThreshold)
 {
@@ -570,14 +570,14 @@ GPUd() void updateClusterScratchpadInner(
 
     LOOP_UNROLL_ATTR for (ushort i = 0; i < N; i++)
     {
-        delta2_t d = INNER_NEIGHBORS[i];
+        Delta2 d = INNER_NEIGHBORS[i];
 
-        delta_t dp = d.x;
-        delta_t dt = d.y;
+        Delta dp = d.x;
+        Delta dt = d.y;
 
-        packed_charge_t p = buf[N * lid + i];
+        PackedCharge p = buf[N * lid + i];
 
-        charge_t q = updateClusterInner(cluster, p, dp, dt);
+        Charge q = updateClusterInner(cluster, p, dp, dt);
 
         aboveThreshold |= ((q > CHARGE_THRESHOLD) << i);
     }
@@ -596,18 +596,18 @@ GPUd() void updateClusterScratchpadOuter(
                     ushort              N,
                     ushort              M,
                     ushort              offset,
-        GPUsharedref() const packed_charge_t    *buf,
+        GPUsharedref() const PackedCharge    *buf,
                     ClusterAccumulator *cluster)
 {
     IF_DBG_INST DBGPR_1("bitset = 0x%02x", aboveThreshold);
 
     LOOP_UNROLL_ATTR for (ushort i = offset; i < M+offset; i++)
     {
-        packed_charge_t p = buf[N * lid + i];
+        PackedCharge p = buf[N * lid + i];
 
-        delta2_t d = OUTER_NEIGHBORS[i];
-        delta_t dp = d.x;
-        delta_t dt = d.y;
+        Delta2 d = OUTER_NEIGHBORS[i];
+        Delta dp = d.x;
+        Delta dt = d.y;
 
         updateClusterOuter(cluster, p, dp, dt);
     }
@@ -615,10 +615,10 @@ GPUd() void updateClusterScratchpadOuter(
 
 
 GPUd() void buildClusterScratchPad(
-        GPUglobalref() const packed_charge_t    *chargeMap,
+        GPUglobalref() const PackedCharge    *chargeMap,
                      ChargePos           pos,
         GPUsharedref()        ChargePos          *posBcast,
-        GPUsharedref()        packed_charge_t    *buf,
+        GPUsharedref()        PackedCharge    *buf,
         GPUsharedref()        uchar              *innerAboveThreshold,
                      ClusterAccumulator *myCluster)
 {
@@ -630,7 +630,7 @@ GPUd() void buildClusterScratchPad(
     GPUbarrier();
 
     /* IF_DBG_INST DBGPR_2("lid = (%d, %d)", lid.x, lid.y); */
-    fillScratchPad_packed_charge_t(
+    fillScratchPad_PackedCharge(
             chargeMap,
             SCRATCH_PAD_WORK_GROUP_SIZE,
             SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -656,7 +656,7 @@ GPUd() void buildClusterScratchPad(
     /* ClusterAccumulator otherCluster; */
     /* reset(&otherCluster); */
 
-    fillScratchPadCond_packed_charge_t(
+    fillScratchPadCond_PackedCharge(
             chargeMap,
             wgSizeHalf,
             SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -678,7 +678,7 @@ GPUd() void buildClusterScratchPad(
                 myCluster);
     }
 
-    fillScratchPadCond_packed_charge_t(
+    fillScratchPadCond_PackedCharge(
             chargeMap,
             wgSizeHalf,
             SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -710,10 +710,10 @@ GPUd() void buildClusterScratchPad(
 
 
 GPUd() void buildClusterNaive(
-        GPUglobalref() const packed_charge_t    *chargeMap,
+        GPUglobalref() const PackedCharge    *chargeMap,
                      ClusterAccumulator *myCluster,
-                     global_pad_t        gpad,
-                     timestamp           time)
+                     GlobalPad        gpad,
+                     Timestamp           time)
 {
     reset(myCluster);
 
@@ -789,17 +789,17 @@ GPUd() bool isPeakScratchPad(
                GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
                const Digit           *digit,
                      ushort           N,
-        GPUglobalref() const packed_charge_t *chargeMap,
+        GPUglobalref() const PackedCharge *chargeMap,
         GPUsharedref()        ChargePos       *posBcast,
-        GPUsharedref()        packed_charge_t *buf)
+        GPUsharedref()        PackedCharge *buf)
 {
     ushort ll = get_local_id(0);
 
-    const timestamp time = digit->time;
-    const row_t row = digit->row;
-    const pad_t pad = digit->pad;
+    const Timestamp time = digit->time;
+    const Row row = digit->row;
+    const Pad pad = digit->pad;
 
-    const global_pad_t gpad = tpcGlobalPadIdx(row, pad);
+    const GlobalPad gpad = tpcGlobalPadIdx(row, pad);
     ChargePos pos = {gpad, time};
 
     bool belowThreshold = (digit->charge <= QMAX_CUTOFF);
@@ -818,7 +818,7 @@ GPUd() bool isPeakScratchPad(
     }
     GPUbarrier();
 
-    fillScratchPad_packed_charge_t(
+    fillScratchPad_PackedCharge(
             chargeMap,
             lookForPeaks,
             SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -837,7 +837,7 @@ GPUd() bool isPeakScratchPad(
     bool peak = true;
     for (ushort i = 0; i < N; i++)
     {
-        charge_t q = unpackCharge(buf[N * partId + i]);
+        Charge q = unpackCharge(buf[N * partId + i]);
         peak &= (digit->charge > q)
             || (INNER_TEST_EQ[i] && digit->charge == q);
     }
@@ -847,27 +847,27 @@ GPUd() bool isPeakScratchPad(
 
 GPUd() bool isPeak(
                const Digit           *digit,
-        GPUglobalref() const packed_charge_t *chargeMap)
+        GPUglobalref() const PackedCharge *chargeMap)
 {
     if (digit->charge <= QMAX_CUTOFF)
     {
         return false;
     }
 
-    const charge_t myCharge = digit->charge;
-    const timestamp time = digit->time;
-    const row_t row = digit->row;
-    const pad_t pad = digit->pad;
+    const Charge myCharge = digit->charge;
+    const Timestamp time = digit->time;
+    const Row row = digit->row;
+    const Pad pad = digit->pad;
 
-    const global_pad_t gpad = tpcGlobalPadIdx(row, pad);
+    const GlobalPad gpad = tpcGlobalPadIdx(row, pad);
 
     bool peak = true;
 
 #define CMP_NEIGHBOR(dp, dt, cmpOp) \
     do \
     { \
-        const packed_charge_t p = CHARGE(chargeMap, gpad+dp, time+dt); \
-        const charge_t otherCharge = unpackCharge(p); \
+        const PackedCharge p = CHARGE(chargeMap, gpad+dp, time+dt); \
+        const Charge otherCharge = unpackCharge(p); \
         peak &= (otherCharge cmpOp myCharge); \
     } \
     while (false)
@@ -948,8 +948,8 @@ GPUd() void finalize(
 }
 
 GPUd() char countPeaksAroundDigit(
-               const global_pad_t  gpad,
-               const timestamp     time,
+               const GlobalPad  gpad,
+               const Timestamp     time,
         GPUglobalref() const uchar        *peakMap)
 {
     char peakCount = 0;
@@ -957,9 +957,9 @@ GPUd() char countPeaksAroundDigit(
     uchar aboveThreshold = 0;
     for (uchar i = 0; i < 8; i++)
     {
-        delta2_t d = INNER_NEIGHBORS[i];
-        delta_t dp = d.x;
-        delta_t dt = d.y;
+        Delta2 d = INNER_NEIGHBORS[i];
+        Delta dp = d.x;
+        Delta dt = d.y;
 
         uchar p = IS_PEAK(peakMap, gpad+dp, time+dt);
         peakCount += GET_IS_PEAK(p);
@@ -973,9 +973,9 @@ GPUd() char countPeaksAroundDigit(
 
     for (uchar i = 0; i < 16; i++)
     {
-        delta2_t d = OUTER_NEIGHBORS[i];
-        delta_t dp = d.x;
-        delta_t dt = d.y;
+        Delta2 d = OUTER_NEIGHBORS[i];
+        Delta dp = d.x;
+        Delta dt = d.y;
 
         if (innerAboveThresholdInv(aboveThreshold, i))
         {
@@ -1038,7 +1038,7 @@ GPUd() void sortIntoBuckets(
 GPUd() void checkForMinima(
         float            q,
         float            epsilon,
-        packed_charge_t  other,
+        PackedCharge  other,
         int              pos,
         ulong           *minimas,
         ulong           *bigger)
@@ -1054,7 +1054,7 @@ GPUd() void checkForMinima(
 
 
 GPUd() void noiseSuppressionFindMinimaScratchPad(
-        GPUsharedref() const packed_charge_t *buf,
+        GPUsharedref() const PackedCharge *buf,
               const ushort           ll,
               const int              N,
                     int              pos,
@@ -1065,7 +1065,7 @@ GPUd() void noiseSuppressionFindMinimaScratchPad(
 {
     for (int i = 0; i < N; i++, pos++)
     {
-        packed_charge_t other = buf[N * ll + i];
+        PackedCharge other = buf[N * ll + i];
         
         checkForMinima(q, epsilon, other, pos, minimas, bigger);
     }
@@ -1088,9 +1088,9 @@ GPUd() void noiseSuppressionFindPeaksScratchPad(
 
 
 GPUd() void noiseSuppressionFindMinima(
-        GPUglobalref() const packed_charge_t *chargeMap,
-               const global_pad_t     gpad,
-               const timestamp        time,
+        GPUglobalref() const PackedCharge *chargeMap,
+               const GlobalPad     gpad,
+               const Timestamp        time,
                const float            q,
                const float            epsilon,
                      ulong           *minimas,
@@ -1101,11 +1101,11 @@ GPUd() void noiseSuppressionFindMinima(
 
     for (int i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++)
     {
-        delta2_t d = NOISE_SUPPRESSION_NEIGHBORS[i];
-        delta_t dp = d.x;
-        delta_t dt = d.y;
+        Delta2 d = NOISE_SUPPRESSION_NEIGHBORS[i];
+        Delta dp = d.x;
+        Delta dt = d.y;
 
-        packed_charge_t other = CHARGE(chargeMap, gpad+dp, time+dt);
+        PackedCharge other = CHARGE(chargeMap, gpad+dp, time+dt);
 
         checkForMinima(q, epsilon, other, i, minimas, bigger);
     }
@@ -1113,15 +1113,15 @@ GPUd() void noiseSuppressionFindMinima(
 
 GPUd() ulong noiseSuppressionFindPeaks(
         GPUglobalref() const uchar        *peakMap,
-               const global_pad_t  gpad,
-               const timestamp     time)
+               const GlobalPad  gpad,
+               const Timestamp     time)
 {
     ulong peaks = 0;
     for (int i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++)
     {
-        delta2_t d = NOISE_SUPPRESSION_NEIGHBORS[i];
-        delta_t dp = d.x;
-        delta_t dt = d.y;
+        Delta2 d = NOISE_SUPPRESSION_NEIGHBORS[i];
+        Delta dp = d.x;
+        Delta dt = d.y;
 
         uchar p = IS_PEAK(peakMap, gpad+dp, time+dt);
 
@@ -1149,13 +1149,13 @@ GPUd() bool noiseSuppressionKeepPeak(
 }
 
 GPUd() void noiseSuppressionFindMinmasAndPeaksScratchpad(
-        GPUglobalref() const packed_charge_t *chargeMap,
+        GPUglobalref() const PackedCharge *chargeMap,
         GPUglobalref() const uchar           *peakMap,
                      float            q,
-                     global_pad_t     gpad,
-                     timestamp        time,
+                     GlobalPad     gpad,
+                     Timestamp        time,
         GPUsharedref()        ChargePos       *posBcast,
-        GPUsharedref()        packed_charge_t *buf,
+        GPUsharedref()        PackedCharge *buf,
                      ulong           *minimas,
                      ulong           *bigger,
                      ulong           *peaks)
@@ -1178,7 +1178,7 @@ GPUd() void noiseSuppressionFindMinmasAndPeaksScratchpad(
      * Look for minima
      **************************************/
 
-    fillScratchPad_packed_charge_t(
+    fillScratchPad_PackedCharge(
             chargeMap,
             SCRATCH_PAD_WORK_GROUP_SIZE,
             SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -1200,7 +1200,7 @@ GPUd() void noiseSuppressionFindMinmasAndPeaksScratchpad(
             bigger);
 
 
-    fillScratchPad_packed_charge_t(
+    fillScratchPad_PackedCharge(
             chargeMap,
             wgSizeHalf,
             SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -1224,7 +1224,7 @@ GPUd() void noiseSuppressionFindMinmasAndPeaksScratchpad(
             bigger);
     }
 
-    fillScratchPad_packed_charge_t(
+    fillScratchPad_PackedCharge(
             chargeMap,
             wgSizeHalf,
             SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -1248,7 +1248,7 @@ GPUd() void noiseSuppressionFindMinmasAndPeaksScratchpad(
             bigger);
     }
 
-    fillScratchPad_packed_charge_t(
+    fillScratchPad_PackedCharge(
             chargeMap,
             wgSizeHalf,
             SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -1272,7 +1272,7 @@ GPUd() void noiseSuppressionFindMinmasAndPeaksScratchpad(
             bigger);
     }
 
-    fillScratchPad_packed_charge_t(
+    fillScratchPad_PackedCharge(
             chargeMap,
             wgSizeHalf,
             SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -1345,7 +1345,7 @@ GPUd() void noiseSuppressionFindMinmasAndPeaksScratchpad(
 GPUd()
 void fillChargeMap(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref() const Digit           *digits,
-        GPUglobalref()       packed_charge_t *chargeMap,
+        GPUglobalref()       PackedCharge *chargeMap,
         size_t maxDigit)
 {
     size_t idx = get_global_id(0);
@@ -1354,7 +1354,7 @@ void fillChargeMap(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClu
     }
     Digit myDigit = digits[idx];
     
-    global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+    GlobalPad gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
     
     CHARGE(chargeMap, gpad, myDigit.time) = packCharge(myDigit.charge, false, false);
 }
@@ -1363,13 +1363,13 @@ void fillChargeMap(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClu
 GPUd()
 void resetMaps(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref() const Digit           *digits,
-        GPUglobalref()       packed_charge_t *chargeMap,
+        GPUglobalref()       PackedCharge *chargeMap,
         GPUglobalref()       uchar           *isPeakMap)
 {
     size_t idx = get_global_id(0);
     Digit myDigit = digits[idx];
 
-    global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+    GlobalPad gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
     CHARGE(chargeMap, gpad, myDigit.time) = 0;
     IS_PEAK(isPeakMap, gpad, myDigit.time) = 0;
@@ -1378,7 +1378,7 @@ void resetMaps(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCCluster
 
 GPUd()
 void findPeaks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
-        GPUglobalref() const packed_charge_t *chargeMap,
+        GPUglobalref() const PackedCharge *chargeMap,
         GPUglobalref() const Digit           *digits,
                      uint             digitnum,
         GPUglobalref()       uchar           *isPeakPredicate,
@@ -1408,7 +1408,7 @@ void findPeaks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCCluster
 
     isPeakPredicate[idx] = peak;
 
-    const global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+    const GlobalPad gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
     IS_PEAK(peakMap, gpad, myDigit.time) =
         ((myDigit.charge > CHARGE_THRESHOLD) << 1) | peak;
@@ -1416,7 +1416,7 @@ void findPeaks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCCluster
 
 GPUd()
 void noiseSuppression(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
-        GPUglobalref() const packed_charge_t *chargeMap,
+        GPUglobalref() const PackedCharge *chargeMap,
         GPUglobalref() const uchar           *peakMap,
         GPUglobalref() const Digit           *peaks,
                const uint             peaknum,
@@ -1426,7 +1426,7 @@ void noiseSuppression(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPC
 
     Digit myDigit = peaks[CAMath::Min(idx, (size_t)(peaknum-1) )];
 
-    global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+    GlobalPad gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
     ulong minimas, bigger, peaksAround;
 
@@ -1478,7 +1478,7 @@ void updatePeaks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClust
     size_t idx = get_global_id(0);
 
     Digit myDigit = peaks[idx];
-    global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+    GlobalPad gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
     uchar peak = isPeak[idx];
 
@@ -1490,7 +1490,7 @@ void updatePeaks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClust
 GPUd()
 void countPeaks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref() const uchar           *peakMap,
-        GPUglobalref()       packed_charge_t *chargeMap,
+        GPUglobalref()       PackedCharge *chargeMap,
         GPUglobalref() const Digit           *digits,
                const uint             digitnum)
 {
@@ -1502,7 +1502,7 @@ void countPeaks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCCluste
 
     Digit myDigit = digits[idx];
 
-    global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+    GlobalPad gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
     bool iamPeak  = GET_IS_PEAK(IS_PEAK(peakMap, gpad, myDigit.time));
 
     char peakCount = (iamPeak) ? 1 : 0;
@@ -1603,7 +1603,7 @@ void countPeaks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCCluste
 
     peakCount = (peakCount == 0) ? 1 : peakCount;
 
-    packed_charge_t p = packCharge(myDigit.charge / peakCount, has3x3, split);
+    PackedCharge p = packCharge(myDigit.charge / peakCount, has3x3, split);
 
     CHARGE(chargeMap, gpad, myDigit.time) = p;
 }
@@ -1611,7 +1611,7 @@ void countPeaks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCCluste
 
 GPUd()
 void computeClusters(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
-        GPUglobalref() const packed_charge_t *chargeMap,
+        GPUglobalref() const PackedCharge *chargeMap,
         GPUglobalref() const Digit           *digits,
                      uint             clusternum,
                      uint             maxClusterPerRow,
@@ -1625,7 +1625,7 @@ void computeClusters(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCC
     // These dummy items also compute the last cluster but discard the result.
     Digit myDigit = digits[CAMath::Min(idx, clusternum-1)];
 
-    global_pad_t gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+    GlobalPad gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
     ClusterAccumulator pc;
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
@@ -1672,7 +1672,7 @@ void computeClusters(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCC
 GPUg()
 void fillChargeMap_kernel(
         GPUglobal() const gpucf::Digit           *digits,
-        GPUglobal()       gpucf::packed_charge_t *chargeMap)
+        GPUglobal()       gpucf::PackedCharge *chargeMap)
 {
     GPUshared() GPUTPCClusterFinderKernels::GPUTPCSharedMemory smem;
     gpucf::fillChargeMap(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, digits, chargeMap, get_global_size(0));
@@ -1681,7 +1681,7 @@ void fillChargeMap_kernel(
 GPUg()
 void resetMaps_kernel(
         GPUglobal() const gpucf::Digit           *digits,
-        GPUglobal()       gpucf::packed_charge_t *chargeMap,
+        GPUglobal()       gpucf::PackedCharge *chargeMap,
         GPUglobal()       gpucf::uchar           *isPeakMap)
 {
     GPUshared() GPUTPCClusterFinderKernels::GPUTPCSharedMemory smem;
@@ -1690,7 +1690,7 @@ void resetMaps_kernel(
 
 GPUg()
 void findPeaks_kernel(
-        GPUglobal() const gpucf::packed_charge_t *chargeMap,
+        GPUglobal() const gpucf::PackedCharge *chargeMap,
         GPUglobal() const gpucf::Digit           *digits,
                      uint             digitnum,
         GPUglobal()       gpucf::uchar           *isPeakPredicate,
@@ -1702,7 +1702,7 @@ void findPeaks_kernel(
 
 GPUg()
 void noiseSuppression_kernel(
-        GPUglobal() const gpucf::packed_charge_t *chargeMap,
+        GPUglobal() const gpucf::PackedCharge *chargeMap,
         GPUglobal() const gpucf::uchar           *peakMap,
         GPUglobal() const gpucf::Digit           *peaks,
                const uint             peaknum,
@@ -1725,7 +1725,7 @@ void updatePeaks_kernel(
 GPUg()
 void countPeaks_kernel(
         GPUglobal() const gpucf::uchar           *peakMap,
-        GPUglobal()       gpucf::packed_charge_t *chargeMap,
+        GPUglobal()       gpucf::PackedCharge *chargeMap,
         GPUglobal() const gpucf::Digit           *digits,
                const uint             digitnum)
 {
@@ -1735,7 +1735,7 @@ void countPeaks_kernel(
 
 GPUg()
 void computeClusters_kernel(
-        GPUglobal() const gpucf::packed_charge_t *chargeMap,
+        GPUglobal() const gpucf::PackedCharge *chargeMap,
         GPUglobal() const gpucf::Digit           *digits,
                      uint             clusternum,
                      uint             maxClusterPerRow,

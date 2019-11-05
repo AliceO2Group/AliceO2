@@ -14,9 +14,9 @@
 
 typedef struct PackedDigit_s {
   float charge;
-  timestamp time;
-  pad_t pad;
-  row_t row;
+  Timestamp time;
+  Pad pad;
+  Row row;
 } PackedDigit;
 
 #define PACKED_DIGIT_SIZE 8 // TODO: why not constexpr sizeof(..)?

@@ -52,35 +52,35 @@ typedef unsigned long ulong;
 #define GET_IS_PEAK(val) (val & 0x01)
 #define GET_IS_ABOVE_THRESHOLD(val) (val >> 1)
 
-typedef ushort packed_charge_t;
+using PackedCharge = ushort;
 
-typedef struct ClusterAccumulator_s {
-  charge_t Q;
-  charge_t padMean;
-  charge_t padSigma;
-  charge_t timeMean;
-  charge_t timeSigma;
+struct ClusterAccumulator {
+  Charge Q;
+  Charge padMean;
+  Charge padSigma;
+  Charge timeMean;
+  Charge timeSigma;
   uchar splitInTime;
   uchar splitInPad;
-} ClusterAccumulator;
+};
 
-typedef short delta_t;
-typedef short2 delta2_t;
+using Delta = short;
+using Delta2 = short2;
 
-typedef struct ChargePos_s {
-  global_pad_t gpad;
-  timestamp time;
-} ChargePos;
+struct ChargePos {
+  GlobalPad gpad;
+  Timestamp time;
+};
 
 typedef short2 local_id;
 
 struct search_t {
   ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
-  packed_charge_t buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_SEARCH_N];
+  PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_SEARCH_N];
 };
 struct noise_t {
   ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
-  packed_charge_t buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_NOISE_N];
+  PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_NOISE_N];
 };
 struct count_t {
   ChargePos posBcast1[SCRATCH_PAD_WORK_GROUP_SIZE];
@@ -89,7 +89,7 @@ struct count_t {
 };
 struct build_t {
   ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
-  packed_charge_t buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_BUILD_N];
+  PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_BUILD_N];
   uchar innerAboveThreshold[SCRATCH_PAD_WORK_GROUP_SIZE];
 };
 
