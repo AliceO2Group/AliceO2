@@ -83,7 +83,7 @@ void AltroDecoder::readChannels()
 
     // decode bunches
     int currentsample = 0;
-    while (currentsample < numberofsamples) {
+    while (currentsample < currentchannel.getPayloadSize()) {
       int bunchlength = bunchwords[currentsample] - 2, // remove words for bunchlength and starttime
         starttime = bunchwords[currentsample + 1];
       auto& currentbunch = currentchannel.createBunch(bunchlength, starttime);
