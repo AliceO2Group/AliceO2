@@ -18,6 +18,7 @@
 
 #include <ostream>
 #include "SimulationDataFormat/BaseHits.h"
+#include "CommonUtils/ShmAllocator.h"
 
 namespace o2
 {

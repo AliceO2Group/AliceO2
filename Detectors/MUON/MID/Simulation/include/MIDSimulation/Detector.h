@@ -42,6 +42,9 @@ class Detector : public o2::base::DetImpl<Detector>
   void EndOfEvent() override;
 
  private:
+  /// copy constructor (used in MT)
+  Detector(const Detector& rhs);
+
   void defineSensitiveVolumes();
 
   bool setHits(int iColl, std::vector<o2::mid::Hit>* ptr);
@@ -55,5 +58,18 @@ class Detector : public o2::base::DetImpl<Detector>
 
 } // namespace mid
 } // namespace o2
+
+#ifdef USESHM
+namespace o2
+{
+namespace base
+{
+template <>
+struct UseShm<o2::mid::Detector> {
+  static constexpr bool value = true;
+};
+} // namespace base
+} // namespace o2
+#endif
 
 #endif
