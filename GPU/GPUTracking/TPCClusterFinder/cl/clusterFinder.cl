@@ -8,22 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-namespace gpucf
-{
 #include "clusterFinderDefs.h"
-}
 
-#if defined(__CUDACC__)
-# warning Cuda compilation
-#else
-# warning building without cuda
-#endif
-
-#if defined(CUDA_ENABLED)
-# warning Cuda enabled
-#else
-# warning cuda not eabled
-#endif
 
 #if !defined(GPUCA_ALIGPUCODE)
 namespace CAMath
@@ -36,17 +22,21 @@ namespace GPUTPCClusterFinderKernels
 struct GPUTPCSharedMemory
 {
     union {
-        gpucf::search_t search;
-        gpucf::noise_t noise;
-        gpucf::count_t count;
-        gpucf::build_t build;
+        search_t search;
+        noise_t noise;
+        count_t count;
+        build_t build;
     };
 };
 }
 #endif
 
-namespace gpucf
+namespace GPUCA_NAMESPACE
 {
+namespace gpu
+{
+
+using namespace deprecated;
 
 GPUd() PackedCharge packCharge(Charge q, bool peak3x3, bool wasSplit)
 {
@@ -441,19 +431,12 @@ GPUd() ushort partition(GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem, us
 {
     bool participates = ll < partSize;
 
-    IF_DBG_INST DBGPR_1("ll = %d", ll);
-    IF_DBG_INST DBGPR_1("partSize = %d", partSize);
-    IF_DBG_INST DBGPR_1("pred = %d", pred);
-
     ushort lpos = work_group_scan_inclusive_add((int) (!pred && participates));
-    IF_DBG_INST DBGPR_1("lpos = %d", lpos);
 
     ushort part = work_group_broadcast(lpos, SCRATCH_PAD_WORK_GROUP_SIZE-1);
-    IF_DBG_INST DBGPR_1("part = %d", part);
 
     lpos -= 1;
     ushort pos = (participates && !pred) ? lpos : part;
-    IF_DBG_INST DBGPR_1("pos = %d", pos);
 
     *newPartSize = part;
     return pos;
@@ -582,8 +565,6 @@ GPUd() void updateClusterScratchpadInner(
         aboveThreshold |= ((q > CHARGE_THRESHOLD) << i);
     }
 
-    IF_DBG_INST DBGPR_1("bitset = 0x%02x", aboveThreshold);
-
     innerAboveThreshold[lid] = aboveThreshold;
 
     GPUbarrier();
@@ -599,8 +580,6 @@ GPUd() void updateClusterScratchpadOuter(
         GPUsharedref() const PackedCharge    *buf,
                     ClusterAccumulator *cluster)
 {
-    IF_DBG_INST DBGPR_1("bitset = 0x%02x", aboveThreshold);
-
     LOOP_UNROLL_ATTR for (ushort i = offset; i < M+offset; i++)
     {
         PackedCharge p = buf[N * lid + i];
@@ -629,7 +608,6 @@ GPUd() void buildClusterScratchPad(
     posBcast[ll] = pos;
     GPUbarrier();
 
-    /* IF_DBG_INST DBGPR_2("lid = (%d, %d)", lid.x, lid.y); */
     fillScratchPad_PackedCharge(
             chargeMap,
             SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -1343,7 +1321,7 @@ GPUd() void noiseSuppressionFindMinmasAndPeaksScratchpad(
 
 
 GPUd()
-void fillChargeMap(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+void fillChargeMapImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref() const Digit           *digits,
         GPUglobalref()       PackedCharge *chargeMap,
         size_t maxDigit)
@@ -1361,7 +1339,7 @@ void fillChargeMap(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClu
 
 
 GPUd()
-void resetMaps(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+void resetMapsImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref() const Digit           *digits,
         GPUglobalref()       PackedCharge *chargeMap,
         GPUglobalref()       uchar           *isPeakMap)
@@ -1377,7 +1355,7 @@ void resetMaps(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCCluster
 
 
 GPUd()
-void findPeaks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+void findPeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref() const PackedCharge *chargeMap,
         GPUglobalref() const Digit           *digits,
                      uint             digitnum,
@@ -1393,7 +1371,6 @@ void findPeaks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCCluster
 
     uchar peak;
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
-    IF_DBG_INST printf("Looking for peaks (using LDS)\n");
     peak = isPeakScratchPad(smem, &myDigit, SCRATCH_PAD_SEARCH_N, chargeMap, smem.search.posBcast, smem.search.buf);
 #else
     peak = isPeak(&myDigit, chargeMap);
@@ -1415,7 +1392,7 @@ void findPeaks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCCluster
 }
 
 GPUd()
-void noiseSuppression(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+void noiseSuppressionImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref() const PackedCharge *chargeMap,
         GPUglobalref() const uchar           *peakMap,
         GPUglobalref() const Digit           *peaks,
@@ -1470,7 +1447,7 @@ void noiseSuppression(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPC
 }
 
 GPUd()
-void updatePeaks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+void updatePeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref() const Digit *peaks,
         GPUglobalref() const uchar *isPeak,
         GPUglobalref()       uchar *peakMap)
@@ -1488,7 +1465,7 @@ void updatePeaks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClust
 
 
 GPUd()
-void countPeaks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+void countPeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref() const uchar           *peakMap,
         GPUglobalref()       PackedCharge *chargeMap,
         GPUglobalref() const Digit           *digits,
@@ -1513,8 +1490,6 @@ void countPeaks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCCluste
 
     ushort in3x3 = 0;
     partId = partition(smem, ll, iamPeak, SCRATCH_PAD_WORK_GROUP_SIZE, &in3x3);
-
-    IF_DBG_INST DBGPR_2("partId = %d, in3x3 = %d", partId, in3x3);
 
     if (partId < in3x3)
     {
@@ -1542,8 +1517,6 @@ void countPeaks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCCluste
 
     ushort in5x5 = 0;
     partId = partition(smem, partId, peakCount > 0, in3x3, &in5x5);
-
-    IF_DBG_INST DBGPR_2("partId = %d, in5x5 = %d", partId, in5x5);
 
     if (partId < in5x5)
     {
@@ -1610,7 +1583,7 @@ void countPeaks(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCCluste
 
 
 GPUd()
-void computeClusters(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+void computeClustersImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref() const PackedCharge *chargeMap,
         GPUglobalref() const Digit           *digits,
                      uint             clusternum,
@@ -1665,7 +1638,8 @@ void computeClusters(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCC
     }
 }
 
-} // namespace gpucf
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #if !defined(GPUCA_ALIGPUCODE)
 

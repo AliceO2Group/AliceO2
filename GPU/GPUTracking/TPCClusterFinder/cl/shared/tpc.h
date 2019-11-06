@@ -10,8 +10,6 @@
 #if !defined(SHARED_TPC_H)
 #define SHARED_TPC_H
 
-#include "types.h"
-
 #define PADDING_PAD 2
 #define PADDING_TIME 2
 #define TPC_SECTORS 36
