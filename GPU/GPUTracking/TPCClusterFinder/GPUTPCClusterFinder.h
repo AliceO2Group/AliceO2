@@ -18,17 +18,16 @@
 #include "GPUProcessor.h"
 
 
-
-namespace gpucf
-{
-typedef struct PackedDigit_s PackedDigit;
-typedef struct ClusterNative_s ClusterNative;
-} // namespace gpucf
-
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
+{ 
+
+namespace deprecated
 {
+class PackedDigit;
+class ClusterNative;
+} // namespace deprecated
 
 class GPUTPCClusterFinder : public GPUProcessor
 {
@@ -53,14 +52,14 @@ class GPUTPCClusterFinder : public GPUProcessor
   void SetNMaxDigits(size_t n);
 #endif
 
-  gpucf::PackedDigit* mPdigits = nullptr;
-  gpucf::PackedDigit* mPpeaks = nullptr;
-  gpucf::PackedDigit* mPfilteredPeaks = nullptr;
+  deprecated::PackedDigit* mPdigits = nullptr;
+  deprecated::PackedDigit* mPpeaks = nullptr;
+  deprecated::PackedDigit* mPfilteredPeaks = nullptr;
   unsigned char* mPisPeak = nullptr;
   ushort* mPchargeMap = nullptr;
   unsigned char* mPpeakMap = nullptr;
   uint* mPclusterInRow = nullptr;
-  gpucf::ClusterNative* mPclusterByRow = nullptr;
+  deprecated::ClusterNative* mPclusterByRow = nullptr;
   int* mPbuf = nullptr;
   Memory* mPmemory = nullptr;
 
