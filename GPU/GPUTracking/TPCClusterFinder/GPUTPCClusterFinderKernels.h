@@ -17,12 +17,7 @@
 #include "GPUGeneralKernels.h"
 #include "GPUConstantMem.h"
 
-#ifdef GPUCA_ALIGPUCODE // TODO: Remove, once Clusterizer is cleaned up
-namespace gpucf
-{
 #include "cl/clusterFinderDefs.h"
-}
-#endif
 
 namespace GPUCA_NAMESPACE
 {
@@ -36,10 +31,10 @@ class GPUTPCClusterFinderKernels : public GPUKernelTemplate
   {
    public:
     union {
-      gpucf::search_t search;
-      gpucf::noise_t noise;
-      gpucf::count_t count;
-      gpucf::build_t build;
+      search_t search;
+      noise_t noise;
+      count_t count;
+      build_t build;
     };
   };
 #else

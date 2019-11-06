@@ -22,7 +22,6 @@
 #include "shared/Digit.h"
 #include "shared/tpc.h"
 
-using Digit = PackedDigit;
 
 #if defined(CHARGEMAP_TYPE_HALF)
 using Charge = half;
@@ -37,108 +36,6 @@ using Charge = float;
 #else
 #define LOOP_UNROLL_ATTR __attribute__((opencl_unroll_hint(1)))
 #endif
-
-GPUdi() size_t idxSquareTiling(GlobalPad gpad, Timestamp time, size_t N)
-{
-  /* time += PADDING; */
-
-  /* const size_t C = TPC_NUM_OF_PADS + N - 1; */
-
-  /* const size_t inTilePad = gpad % N; */
-  /* const size_t inTileTime = time % N; */
-
-  /* return N * (time * C + gpad + inTileTime) + inTilePad; */
-
-  time += PADDING_TIME;
-
-  const size_t tileW = N;
-  const size_t tileH = N;
-  const size_t widthInTiles = (TPC_NUM_OF_PADS + tileW - 1) / tileW;
-
-  const size_t tilePad = gpad / tileW;
-  const size_t tileTime = time / tileH;
-
-  const size_t inTilePad = gpad % tileW;
-  const size_t inTileTime = time % tileH;
-
-  return (tileTime * widthInTiles + tilePad) * (tileW * tileH) + inTileTime * tileW + inTilePad;
-}
-
-GPUdi() size_t idxTiling4x4(GlobalPad gpad, Timestamp time)
-{
-  return idxSquareTiling(gpad, time, 4);
-}
-
-GPUdi() size_t idxTiling8x8(GlobalPad gpad, Timestamp time)
-{
-  return idxSquareTiling(gpad, time, 8);
-}
-
-GPUdi() size_t chargemapIdx(GlobalPad gpad, Timestamp time)
-{
-
-#if defined(CHARGEMAP_4x4_TILING_LAYOUT) || defined(CHARGEMAP_4x8_TILING_LAYOUT) || defined(CHARGEMAP_8x4_TILING_LAYOUT)
-#define CHARGEMAP_TILING_LAYOUT
-#endif
-
-#if defined(CHARGEMAP_4x4_TILING_LAYOUT)
-
-  return idxTiling4x4(gpad, time);
-
-#elif defined(CHARGEMAP_4x8_TILING_LAYOUT)
-#define TILE_WIDTH 4
-#define TILE_HEIGHT 8
-
-  time += PADDING_TIME;
-
-  const size_t tileW = TILE_WIDTH;
-  const size_t tileH = TILE_HEIGHT;
-  const size_t widthInTiles = (TPC_NUM_OF_PADS + tileW - 1) / tileW;
-
-  const size_t tilePad = gpad / tileW;
-  const size_t tileTime = time / tileH;
-
-  const size_t inTilePad = gpad % tileW;
-  const size_t inTileTime = time % tileH;
-
-  return (tileTime * widthInTiles + tilePad) * (tileW * tileH) + inTileTime * tileW + inTilePad;
-
-#undef TILE_WIDTH
-#undef TILE_HEIGHT
-
-#elif defined(CHARGEMAP_8x4_TILING_LAYOUT)
-#define TILE_WIDTH 8
-#define TILE_HEIGHT 4
-
-  time += PADDING_TIME;
-
-  const size_t tileW = TILE_WIDTH;
-  const size_t tileH = TILE_HEIGHT;
-  const size_t widthInTiles = (TPC_NUM_OF_PADS + tileW - 1) / tileW;
-
-  const size_t tilePad = gpad / tileW;
-  const size_t tileTime = time / tileH;
-
-  const size_t inTilePad = gpad % tileW;
-  const size_t inTileTime = time % tileH;
-
-  return (tileTime * widthInTiles + tilePad) * (tileW * tileH) + inTileTime * tileW + inTilePad;
-
-#undef TILE_WIDTH
-#undef TILE_HEIGHT
-
-#elif defined(CHARGEMAP_PAD_MAJOR_LAYOUT)
-
-  time += PADDING_TIME;
-  return TPC_MAX_TIME_PADDED * gpad + time;
-
-#else // Use row time-major layout
-
-  time += PADDING_TIME;
-  return TPC_NUM_OF_PADS * time + gpad;
-
-#endif
-}
 
 /*
 size_t safeIdx(GlobalPad gpad, Timestamp time)
@@ -168,16 +65,6 @@ size_t safeIdx(GlobalPad gpad, Timestamp time)
   return ind;
 }*/
 
-#define ACCESS_2D(map, idxFunc, gpad, time) map[idxFunc(gpad, time)]
-
-#define CHARGE(map, gpad, time) ACCESS_2D(map, chargemapIdx, gpad, time)
-
-#if defined(CHARGEMAP_TILING_LAYOUT)
-/* #if 0 */
-#define IS_PEAK(map, gpad, time) ACCESS_2D(map, idxTiling8x8, gpad, time)
-#else
-#define IS_PEAK(map, gpad, time) ACCESS_2D(map, chargemapIdx, gpad, time)
-#endif
 
 #endif //!defined(CONFIG_H)
 

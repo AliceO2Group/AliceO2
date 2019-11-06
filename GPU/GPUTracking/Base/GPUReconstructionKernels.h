@@ -42,7 +42,7 @@ GPUCA_KRNL((GPUTPCClusterFinderKernels, nativeScanUpStart), (single), (, int iBu
 GPUCA_KRNL((GPUTPCClusterFinderKernels, nativeScanUp     ), (single), (, int iBuf), (, iBuf))
 GPUCA_KRNL((GPUTPCClusterFinderKernels, nativeScanTop    ), (single), (, int iBuf), (, iBuf))
 GPUCA_KRNL((GPUTPCClusterFinderKernels, nativeScanDown   ), (single), (, int iBuf, unsigned int offset), (, iBuf, offset))
-GPUCA_KRNL((GPUTPCClusterFinderKernels, compactDigit     ), (single), (, int iBuf, int stage, GPUPtr1(gpucf::PackedDigit*, in), GPUPtr1(gpucf::PackedDigit*, out)), (, iBuf, stage, GPUPtr2(gpucf::PackedDigit*, in), GPUPtr2(gpucf::PackedDigit*, out)))
+GPUCA_KRNL((GPUTPCClusterFinderKernels, compactDigit     ), (single), (, int iBuf, int stage, GPUPtr1(deprecated::PackedDigit*, in), GPUPtr1(deprecated::PackedDigit*, out)), (, iBuf, stage, GPUPtr2(deprecated::PackedDigit*, in), GPUPtr2(deprecated::PackedDigit*, out)))
 #endif
 #endif
 // clang-format on

@@ -10,8 +10,6 @@
 #if !defined(CLUSTER_NATIVE_H)
 #define CLUSTER_NATIVE_H
 
-#include "types.h"
-
 #define CN_SCALE_TIME_PACKED 64
 #define CN_SCALE_PAD_PACKED 64
 #define CN_SCALE_SIGMA_TIME_PACKED 32
@@ -26,14 +24,21 @@
 #define CAST(type, val) static_cast<type>(val)
 #endif
 
-typedef struct ClusterNative_s {
+namespace GPUCA_NAMESPACE
+{
+namespace gpu
+{
+namespace deprecated
+{
+
+struct ClusterNative {
   uint timeFlagsPacked;
   ushort padPacked;
   unsigned char sigmaTimePacked;
   unsigned char sigmaPadPacked;
   ushort qmax;
   ushort qtot;
-} ClusterNative;
+};
 
 enum CnFlagPos {
   CN_FLAG_POS_IS_EDGE_CLUSTER = 0,
@@ -155,6 +160,10 @@ GPUdi() void cnSetSigmaPad(ClusterNative* c, float sigmaPad)
 {
   c->sigmaPadPacked = cnPackSigma(sigmaPad, CN_SCALE_SIGMA_PAD_PACKED);
 }
+
+} // namespace deprecated
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif // !defined(CLUSTER_NATIVE_H)
 // vim: set ts=4 sw=4 sts=4 expandtab:

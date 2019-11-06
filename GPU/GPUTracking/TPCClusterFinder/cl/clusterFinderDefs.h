@@ -33,24 +33,21 @@ typedef unsigned long ulong;
 #define DCHARGEMAP_TIME_MAJOR_LAYOUT
 #endif
 
-#include "shared/types.h"
+#include "GPUDef.h"
 #include "config.h"
-#include "debug.h"
 
 #include "shared/ClusterNative.h"
 #include "shared/constants.h"
 #include "shared/tpc.h"
 
-#if defined(DEBUG_ON)
-#define IF_DBG_INST if (get_global_id(0) == 8)
-#define IF_DBG_GROUP if (get_group_id(0) == 0)
-#else
-#define IF_DBG_INST if (false)
-#define IF_DBG_GROUP if (false)
-#endif
-
 #define GET_IS_PEAK(val) (val & 0x01)
 #define GET_IS_ABOVE_THRESHOLD(val) (val >> 1)
+
+
+namespace GPUCA_NAMESPACE
+{
+namespace gpu
+{
 
 using PackedCharge = ushort;
 
@@ -92,5 +89,8 @@ struct build_t {
   PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_BUILD_N];
   uchar innerAboveThreshold[SCRATCH_PAD_WORK_GROUP_SIZE];
 };
+
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

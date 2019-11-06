@@ -12,12 +12,24 @@
 
 #include "tpc.h"
 
-typedef struct PackedDigit_s {
+namespace GPUCA_NAMESPACE
+{
+namespace gpu
+{
+namespace deprecated
+{
+
+struct PackedDigit {
   float charge;
   Timestamp time;
   Pad pad;
   Row row;
-} PackedDigit;
+};
+
+using Digit = PackedDigit;
+} // namespace deprecated
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #define PACKED_DIGIT_SIZE 8 // TODO: why not constexpr sizeof(..)?
 

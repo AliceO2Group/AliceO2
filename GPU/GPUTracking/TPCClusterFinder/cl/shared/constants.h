@@ -10,8 +10,6 @@
 #if !defined(SHARED_CONSTANTS_H)
 #define SHARED_CONSTANTS_H
 
-#include "types.h"
-
 #ifndef CONSTANT
 #ifdef __OPENCL__
 #define CONSTANT constant

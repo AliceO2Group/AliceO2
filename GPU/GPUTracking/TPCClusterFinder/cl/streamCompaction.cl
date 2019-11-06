@@ -8,14 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-namespace gpucf
-{
-
 #include "config.h"
 
-#include "debug.h"
-
 #include "shared/ClusterNative.h"
+
+namespace GPUCA_NAMESPACE
+{
+namespace gpu
+{
+
+using namespace deprecated;
 
 /* GPUg() */
 /* void harrissScan( */
@@ -32,7 +34,7 @@ namespace gpucf
 /* } */
 
 GPUd()
-void nativeScanUpStart(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+void nativeScanUpStartImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref() const uchar *predicate,
         GPUglobalref()       int   *sums,
         GPUglobalref()       int   *incr)
@@ -55,7 +57,7 @@ void nativeScanUpStart(int nBlocks, int nThreads, int iBlock, int iThread, GPUTP
 }
 
 GPUd()
-void nativeScanUp(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+void nativeScanUpImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref() int *sums,
         GPUglobalref() int *incr)
 {
@@ -79,7 +81,7 @@ void nativeScanUp(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClus
 }
 
 GPUd()
-void nativeScanTop(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,GPUglobalref() int *incr)
+void nativeScanTopImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,GPUglobalref() int *incr)
 {
     int idx = get_global_id(0);
 
@@ -90,7 +92,7 @@ void nativeScanTop(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClu
 }
 
 GPUd()
-void nativeScanDown(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+void nativeScanDownImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref()       int *sums,
         GPUglobalref() const int *incr,
         unsigned int offset)
@@ -105,7 +107,7 @@ void nativeScanDown(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCCl
 
 
 GPUd()
-void compactDigit(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+void compactDigitImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
         GPUglobalref() const Digit  *in,
         GPUglobalref()       Digit  *out,
         GPUglobalref() const uchar *predicate,
@@ -136,13 +138,14 @@ void compactDigit(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClus
     }
 }
 
-} // namespace gpucf
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #if !defined(GPUCA_ALIGPUCODE)
 
 GPUg()
 void nativeScanUpStart_kernel(
-        GPUglobal() const gpucf::uchar *predicate,
+        GPUglobal() const uchar *predicate,
         GPUglobal()       int   *sums,
         GPUglobal()       int   *incr)
 {

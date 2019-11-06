@@ -14,16 +14,8 @@
 #include "GPUTPCClusterFinder.h"
 #include "GPUReconstruction.h"
 
-#if defined(__CUDACC__)
-# warning Using Cuda!
-#endif
-
-
-namespace gpucf
-{
 #include "cl/shared/ClusterNative.h"
 #include "cl/shared/Digit.h"
-} // namespace gpucf
 
 using namespace GPUCA_NAMESPACE::gpu;
 

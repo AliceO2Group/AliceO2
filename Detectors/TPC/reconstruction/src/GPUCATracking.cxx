@@ -31,10 +31,8 @@
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUTPCGMMergedTrackHit.h"
-namespace gpucf
-{
+
 #include "cl/shared/Digit.h"
-}
 
 using namespace o2::gpu;
 using namespace o2::tpc;
@@ -83,7 +81,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
   Mapper& mapper = Mapper::instance();
 
   const ClusterNativeAccess* clusters;
-  std::vector<gpucf::PackedDigit> gpuDigits[Sector::MAXSECTOR];
+  std::vector<deprecated::PackedDigit> gpuDigits[Sector::MAXSECTOR];
   GPUTrackingInOutDigits gpuDigitsMap;
   GPUTrackingInOutPointers ptrs;
 
@@ -96,7 +94,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
       gpuDigitsMap.tpcDigits[i] = gpuDigits[i].data();
       for (int j = 0; j < d.size(); j++) {
         if (d[j].getChargeFloat() >= zsThreshold) {
-          gpuDigits[i].emplace_back(gpucf::PackedDigit{d[j].getChargeFloat(), (gpucf::Timestamp)d[j].getTimeStamp(), (gpucf::Pad)d[j].getPad(), (gpucf::Row)d[j].getRow()});
+          gpuDigits[i].emplace_back(deprecated::PackedDigit{d[j].getChargeFloat(), (Timestamp)d[j].getTimeStamp(), (Pad)d[j].getPad(), (Row)d[j].getRow()});
         }
       }
       gpuDigitsMap.nTPCDigits[i] = gpuDigits[i].size();
