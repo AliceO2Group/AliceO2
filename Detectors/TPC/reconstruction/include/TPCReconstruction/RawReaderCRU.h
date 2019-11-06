@@ -55,6 +55,9 @@ enum class ReaderType : uint8_t {
   EPNData = 1  ///< STF builder data merged on EPN
 };
 
+using RDH = o2::header::RAWDataHeader;
+static constexpr int MaxNumberOfLinks = 24; ///< maximum number of links
+
 // ===========================================================================
 /// \class ADCRawData
 /// \brief helper to store the ADC raw data
@@ -236,6 +239,12 @@ class GBTFrame
   /// Bit-shift operations helper function operating on the 4 32-bit words of them
   /// GBT frame. Source bit "s" is shifted to target position "t"
   uint32_t bit(int s, int t) const;
+
+  /// get value of specific bit
+  static constexpr uint32_t getBit(uint32_t value, uint32_t bit)
+  {
+    return (value & (1 << bit)) >> bit;
+  }
 }; // class GBTFrame
 class RawReaderCRUManager;
 
@@ -247,7 +256,8 @@ class RawReaderCRUManager;
 class RawReaderCRUEventSync
 {
  public:
-  static constexpr size_t ExpectedNumberOfPacketsPerHBFrame{8}; ///< expected number of packets in one HB frame per link
+  static constexpr size_t ExpectedNumberOfPacketsPerHBFrame{8}; ///< expected number of packets in one HB frame per link for HB scaling mode
+  static constexpr size_t ExpectedPayloadSize{64000};           ///< expected payload size in case of triggered mode (4000 GBT Frames of 16byte)
 
   using RDH = o2::header::RAWDataHeader;
 
@@ -255,13 +265,20 @@ class RawReaderCRUEventSync
   /// \struct LinkInfo
   /// \brief helper to store link information in an event
   struct LinkInfo {
-    size_t getNumberOfPackets() const { return PacketPositions.size(); }
-    bool HBEndSeen{false};
-    bool IsPresent{false};
-    bool isComplete() const { return HBEndSeen && (PacketPositions.size() == ExpectedNumberOfPacketsPerHBFrame); }
-    bool isFirstPacket() const { return (PacketPositions.size() == 0); }
-
+    size_t PayloadSize{};                  ///< total payload size of the link in the present event
+    bool HBEndSeen{false};                 ///< if HB end frame was seen
+    bool IsPresent{false};                 ///< if the link is present in the current event
+    bool WasSeen{false};                   ///< if the link was seen in any event
     std::vector<size_t> PacketPositions{}; ///< all packet positions of this link in an event
+
+    /// number of packets in the link
+    size_t getNumberOfPackets() const { return PacketPositions.size(); }
+
+    /// if link data is complete
+    bool isComplete() const { return HBEndSeen && (((PacketPositions.size() == ExpectedNumberOfPacketsPerHBFrame)) || (PayloadSize == ExpectedPayloadSize)); }
+
+    /// if packet is the first one
+    bool isFirstPacket() const { return (PacketPositions.size() == 0); }
   };
   //using LinkInfoArray_t = std::array<LinkInfo, 24>;
   using LinkInfoArray_t = std::vector<LinkInfo>;
@@ -285,7 +302,7 @@ class RawReaderCRUEventSync
     bool isComplete() const
     {
       for (const auto& link : LinkInformation) {
-        if (link.IsPresent && !link.isComplete()) {
+        if (link.WasSeen && !link.IsPresent && !link.isComplete()) {
           return false;
         }
       }
@@ -301,20 +318,18 @@ class RawReaderCRUEventSync
   /// \struct EventInfo
   /// \brief helper to store event information
   struct EventInfo {
-    using RDH = o2::header::RAWDataHeader;
-
     EventInfo() : CRUInfoArray(CRU::MaxCRU) {}
-    EventInfo(uint32_t heartbeatOrbit) : HeartbeatOrbit{heartbeatOrbit}, CRUInfoArray(CRU::MaxCRU) {}
-    //EventInfo() {}
-    //EventInfo(uint32_t heartbeatOrbit) : HeartbeatOrbit{heartbeatOrbit} {}
+    EventInfo(uint32_t heartbeatOrbit) : CRUInfoArray(CRU::MaxCRU) { HeartbeatOrbits.emplace_back(heartbeatOrbit); }
     EventInfo(const EventInfo&) = default;
 
-    bool operator<(const EventInfo& other) const { return HeartbeatOrbit < other.HeartbeatOrbit; }
+    bool operator<(const EventInfo& other) const { return HeartbeatOrbits.back() < other.HeartbeatOrbits[0]; }
 
-    uint32_t HeartbeatOrbit{0};
+    /// check if heartbeatOrbit contributes to the event
+    bool hasHearbeatOrbit(uint32_t heartbeatOrbit) { return std::find(HeartbeatOrbits.begin(), HeartbeatOrbits.end(), heartbeatOrbit) != HeartbeatOrbits.end(); }
 
-    CRUInfoArray_t CRUInfoArray; ///< Link information for each cru
-    bool IsComplete{false};      ///< if event is complete
+    std::vector<uint32_t> HeartbeatOrbits{}; ///< vector of heartbeat orbits contributing to the event
+    CRUInfoArray_t CRUInfoArray;             ///< Link information for each cru
+    bool IsComplete{false};                  ///< if event is complete
   };
 
   // ---------------------------------------------------------------------------
@@ -365,20 +380,7 @@ class RawReaderCRUEventSync
   void sortEvents() { std::sort(mEventInformation.begin(), mEventInformation.end()); }
 
   /// create a new event or return the one with the given HB orbit
-  EventInfo& createEvent(const RDH& rdh, DataType dataType)
-  {
-    const auto heartbeatOrbit = rdh.heartbeatOrbit;
-    const auto isTriggerd = (dataType == DataType::Triggered);
-
-    for (auto& ev : mEventInformation) {
-      const auto hbMatch = (ev.HeartbeatOrbit == heartbeatOrbit);
-      const auto hbMatchPrev = (ev.HeartbeatOrbit == heartbeatOrbit - 1);
-      if (hbMatch || (isTriggerd && hbMatchPrev)) {
-        return ev;
-      }
-    }
-    return mEventInformation.emplace_back(heartbeatOrbit);
-  }
+  EventInfo& createEvent(const RDH& rdh, DataType dataType);
 
   /// analyse events and mark complete events
   void analyse();
@@ -387,6 +389,12 @@ class RawReaderCRUEventSync
 
   /// write data to ostream
   void streamTo(std::ostream& output) const;
+
+  /// set links that were seen for a CRU
+  void setLinksSeen(const CRU cru, const std::bitset<MaxNumberOfLinks>& links);
+
+  /// set a cru as seen
+  void setCRUSeen(const CRU cru) { mCRUSeen[cru] = true; }
 
   /// overloading output stream operator
   friend std::ostream& operator<<(std::ostream& output, const RawReaderCRUEventSync& eventSync)
@@ -397,7 +405,7 @@ class RawReaderCRUEventSync
 
  private:
   EventInfoVector mEventInformation{}; ///< event information
-  LinkInfo mLinkInfo{};
+  std::bitset<CRU::MaxCRU> mCRUSeen{}; ///< if cru was seen
 
   ClassDefNV(RawReaderCRUEventSync, 0); // event synchronisation for raw reader instances
 };                                      // class RawReaderCRUEventSync
@@ -413,9 +421,6 @@ class RawReaderCRU
 {
  public:
   class PacketDescriptor;
-
-  using RDH = o2::header::RAWDataHeader;
-  static constexpr int MaxNumberOfLinks = 24; ///< maximum number of links
 
   /// constructor
   /// \param
