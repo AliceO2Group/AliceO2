@@ -88,7 +88,6 @@ AliTPC3DCylindricalInterpolatorIrregular::~AliTPC3DCylindricalInterpolatorIrregu
 
   if (fKDTreeIrregularPoints) {
     delete[] fKDTreeIrregularPoints;
-    delete fKDTreeIrregularRoot;
   }
   delete[] fRBFWeightLookUp;
   delete[] fRBFWeight;
