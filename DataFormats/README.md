@@ -9,6 +9,7 @@ There is no module description yet.
 <!-- doxy
 This module contains the following submodules:
 
+* \subpage refDataFormatsAnalysis
 * \subpage refDataFormatsDetectors
 * \subpage refDataFormatsHeaders
 * \subpage refDataFormatsLegacy
