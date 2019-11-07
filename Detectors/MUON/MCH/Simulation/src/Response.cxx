@@ -42,7 +42,7 @@ Response::Response(Station station) : mStation(station)
   }
 
   if(mSampa){
-    mChargeThreshold = 0;//arbitrary setting , was 5*1e-4
+    mChargeThreshold = 1000000000;//arbitrary setting , was 5*1e-4
     mChargeSat = 100000. ; //Aliroot: 0.61 * 1.25 * 0.2;//put the same value as aliroot
     mChargeSlope = 25;//as Aliroot, seems to be too small
   }
@@ -64,7 +64,7 @@ float Response::etocharge(float edepos)
   //translate to fC roughly,
   //equivalent to AliMUONConstants::DefaultADC2MV()*AliMUONConstants::DefaultA0()*AliMUONConstants::DefaultCapa() multiplication in aliroot
   charge *= 0.61 * 1.25 * 0.2;
-  return charge;
+  return charge*1000;
 }
 //_____________________________________________________________________
 double Response::chargePadfraction(float xmin, float xmax, float ymin, float ymax)

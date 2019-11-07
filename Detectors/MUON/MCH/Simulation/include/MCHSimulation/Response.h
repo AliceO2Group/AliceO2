@@ -45,7 +45,7 @@ class Response
   
  private:
   //setter to get Aliroot-readout-chain-optimisation or Sampa optimisation
-  bool mSampa = false;
+  bool mSampa = true;
   //parameter for station number
   Station mStation;
   //proper parameter in aliroot in AliMUONResponseFactory.cxx
