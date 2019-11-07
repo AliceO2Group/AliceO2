@@ -14,12 +14,17 @@
 #include <iosfwd>
 #include <gsl/span>
 #include <string>
+#include "Headers/RAWDataHeader.h"
 #include "EMCALReconstruction/RawReaderFile.h"
+#include "EMCALReconstruction/RAWDataHeader.h"
 
 namespace o2
 {
 namespace emcal
 {
+
+using RawReader = RawReaderFile<o2::emcal::RAWDataHeader>;
+using RawReaderV4 = RawReaderFile<o2::header::RAWDataHeaderV4>;
 
 /// \class AltroDecoder
 /// \brief Decoder of the ALTRO data in the raw page
@@ -417,7 +422,7 @@ class AltroDecoder
 
   /// \brief Constructor
   /// \param reader Raw reader instance to be decoded
-  AltroDecoder(RawReaderFile& reader);
+  AltroDecoder(RawReader& reader);
 
   /// \brief Destructor
   ~AltroDecoder() = default;
@@ -457,7 +462,7 @@ class AltroDecoder
   /// In case of failure an exception is thrown.
   void checkRCUTrailer();
 
-  RawReaderFile& mRawReader;         ///< underlying raw reader
+  RawReader& mRawReader;             ///< underlying raw reader
   RCUTrailer mRCUTrailer;            ///< RCU trailer
   std::vector<Channel> mChannels;    ///< vector of channels in the raw stream
   bool mChannelsInitialized = false; ///< check whether the channels are initialized

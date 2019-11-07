@@ -15,6 +15,7 @@
 #include <iostream>
 #include <boost/program_options.hpp>
 
+#include "EMCALReconstruction/RAWDataHeader.h"
 #include "EMCALReconstruction/RawReaderFile.h"
 #include "EMCALReconstruction/AltroDecoder.h"
 
@@ -64,7 +65,7 @@ int main(int argc, char** argv)
     exit(2);
   }
 
-  o2::emcal::RawReaderFile reader(vm["input-file"].as<std::string>());
+  o2::emcal::RawReaderFile<o2::emcal::RAWDataHeader> reader(vm["input-file"].as<std::string>());
   for (int ipage = 0; ipage < reader.getNumberOfPages(); ipage++) {
     reader.nextPage();
     std::cout << reader.getRawHeader();
