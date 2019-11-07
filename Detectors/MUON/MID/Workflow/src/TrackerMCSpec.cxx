@@ -15,6 +15,7 @@
 
 #include "MIDWorkflow/TrackerMCSpec.h"
 
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/Logger.h"
 #include "Framework/Output.h"

@@ -17,6 +17,7 @@
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "Framework/CallbackService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "TPCBase/Sector.h"
 #include "TPCBase/Digit.h"

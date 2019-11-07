@@ -20,6 +20,7 @@
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ChannelMatching.h"
 #include "Framework/ConfigParamsHelper.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/Lifetime.h"

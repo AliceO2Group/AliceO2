@@ -13,6 +13,7 @@
 ///
 /// \author Philippe Pillot, Subatech
 
+#include "Framework/ConfigParamRegistry.h"
 #include "TrackFinderOriginalSpec.h"
 
 #include <chrono>

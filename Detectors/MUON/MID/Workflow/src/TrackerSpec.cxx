@@ -17,6 +17,7 @@
 
 #include <chrono>
 #include "Framework/DataRefUtils.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"
 #include "Framework/Output.h"

@@ -15,6 +15,7 @@
 #include "TGeoGlobalMagField.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "ITSWorkflow/TrackerSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h"

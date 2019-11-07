@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <gsl/gsl>
 #include "Framework/CallbackService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/Logger.h"
 #include "Framework/Output.h"

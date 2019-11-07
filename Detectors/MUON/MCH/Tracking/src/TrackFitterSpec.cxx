@@ -18,6 +18,7 @@
 #include <stdexcept>
 #include <list>
 
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Lifetime.h"

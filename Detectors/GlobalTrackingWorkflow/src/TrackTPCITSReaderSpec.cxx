@@ -14,6 +14,7 @@
 
 #include "TTree.h"
 
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "GlobalTrackingWorkflow/TrackTPCITSReaderSpec.h"
 #include "DataFormatsParameters/GRPObject.h"

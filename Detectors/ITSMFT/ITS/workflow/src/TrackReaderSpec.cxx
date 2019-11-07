@@ -15,6 +15,7 @@
 #include "TTree.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
 
 using namespace o2::framework;

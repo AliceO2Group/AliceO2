@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "FDDWorkflow/RecoWorkflow.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "SimConfig/ConfigurableParam.h"
 
 using namespace o2::framework;

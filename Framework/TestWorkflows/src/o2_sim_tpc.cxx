@@ -12,6 +12,7 @@
 #include <Monitoring/Monitoring.h>
 #include "Framework/RootFileService.h"
 #include "Framework/AlgorithmSpec.h"
+#include "Framework/ConfigParamRegistry.h"
 
 #include "Framework/Logger.h"
 

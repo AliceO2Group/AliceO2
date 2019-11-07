@@ -15,6 +15,7 @@
 #include "TTree.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "GlobalTrackingWorkflow/TrackWriterTPCITSSpec.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"

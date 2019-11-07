@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "ITSWorkflow/ClustererSpec.h"
 #include "ITSMFTBase/Digit.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"

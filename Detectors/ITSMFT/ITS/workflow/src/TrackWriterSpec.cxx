@@ -15,6 +15,7 @@
 #include "TTree.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "ITSWorkflow/TrackWriterSpec.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsITSMFT/ROFRecord.h"

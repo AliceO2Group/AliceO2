@@ -12,6 +12,7 @@
 #include "DataProcessingHelpers.h"
 #include "Framework/RootTableBuilderHelpers.h"
 #include "Framework/AlgorithmSpec.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/RawDeviceService.h"
