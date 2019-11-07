@@ -12,6 +12,7 @@
 o2_add_library(EMCALReconstruction
                SOURCES src/RawReaderFile.cxx
                        src/RawBuffer.cxx
+                       src/RawHeaderStream.cxx
                        src/RAWDataHeader.cxx
                        src/AltroDecoder.cxx
                        src/Mapper.cxx
@@ -24,6 +25,7 @@ o2_target_root_dictionary(
                           EMCALReconstruction
                           HEADERS include/EMCALReconstruction/RawReaderFile.h
                                   include/EMCALReconstruction/AltroDecoder.h
+                                  include/EMCALReconstruction/RAWDataHeader.h
                                   include/EMCALReconstruction/Mapper.h)
 
 o2_add_executable(rawreader-file

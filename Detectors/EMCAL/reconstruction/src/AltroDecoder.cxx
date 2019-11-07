@@ -18,10 +18,10 @@
 
 using namespace o2::emcal;
 
-AltroDecoder::AltroDecoder(RawReaderFile& reader) : mRawReader(reader),
-                                                    mRCUTrailer(),
-                                                    mChannels(),
-                                                    mChannelsInitialized(false)
+AltroDecoder::AltroDecoder(RawReader& reader) : mRawReader(reader),
+                                                mRCUTrailer(),
+                                                mChannels(),
+                                                mChannelsInitialized(false)
 {
 }
 

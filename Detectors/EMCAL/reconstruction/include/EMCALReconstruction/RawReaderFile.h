@@ -20,7 +20,6 @@
 #include "Rtypes.h"
 #include "RStringView.h"
 
-#include "EMCALReconstruction/RAWDataHeader.h"
 #include "EMCALReconstruction/RawBuffer.h"
 
 namespace o2
@@ -35,6 +34,7 @@ namespace emcal
 /// \since Aug. 12, 2019
 ///
 ///
+template <class RawHeader>
 class RawReaderFile
 {
  public:
@@ -124,7 +124,7 @@ class RawReaderFile
   /// \brief access to the raw header of the current page
   /// \return Raw header of the current page
   /// \throw Error with HEADER_INVALID if the header was not decoded
-  const RAWDataHeader& getRawHeader() const;
+  const RawHeader& getRawHeader() const;
 
   /// \brief access to the
   const RawBuffer& getRawBuffer() const;
@@ -168,7 +168,7 @@ class RawReaderFile
  private:
   std::string mInputFileName;         ///< Name of the input file
   std::ifstream mDataFile;            ///< Stream of the inputfile
-  RAWDataHeader mRawHeader;           ///< Raw header
+  RawHeader mRawHeader;               ///< Raw header
   RawBuffer mRawBuffer;               ///< Raw bufffer
   int mCurrentPosition = 0;           ///< Current page in file
   int mFileSize = 0;                  ///< Size of the file in bytes
