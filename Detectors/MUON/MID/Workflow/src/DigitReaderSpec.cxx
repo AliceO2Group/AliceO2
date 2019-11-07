@@ -16,6 +16,7 @@
 #include "MIDWorkflow/DigitReaderSpec.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "Framework/Output.h"
 #include "Framework/Task.h"
