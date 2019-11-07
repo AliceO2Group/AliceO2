@@ -7,8 +7,6 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include <iostream>
-
 #include "MCHSimulation/Digitizer.h"
 
 #include "MCHMappingInterface/Segmentation.h"
@@ -173,8 +171,6 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
 void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o2::MCCompLabel> labels)
 {
   std::vector<int> indices(digits.size());
-  std::cout <<"digits size before merging " << digits.size() << std::endl;
-  std::cout  <<"labels size before merging " << labels.size() << std::endl;
   std::iota(begin(indices), end(indices), 0);
   std::sort(indices.begin(), indices.end(), [&digits, this](int a, int b) {
     return (getGlobalDigit(digits[a].getDetID(), digits[a].getPadID()) < getGlobalDigit(digits[b].getDetID(), digits[b].getPadID()));
@@ -190,9 +186,7 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
 
   mDigits.clear();
   mDigits.reserve(digits.size());
-  std::cout <<"digits size before merging after ordering " << digits.size() << std::endl;
   mTrackLabels.clear();
-  std::cout <<"digits size before merging, after ordering " << labels.size() << std::endl;
   mTrackLabels.reserve(labels.size());
   int count = 0;
 
@@ -219,8 +213,6 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
   }
   mDigits.resize(mDigits.size());
   mTrackLabels.resize(mTrackLabels.size());
-  std::cout <<"digits size after merging " << mDigits.size() << std::endl;
-  std::cout  <<"labels size after merging " << mTrackLabels.size() << std::endl;
 
   
 }
@@ -242,15 +234,7 @@ void Digitizer::mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruth
     mTrackLabels.emplace_back(label.getTrackID(), label.getEventID(), label.getSourceID(), false);
   }
 
-  std::cout <<"digits before external merging " << mDigits.size() << std::endl;
-  std::cout << "labels before external merging " << mTrackLabels.size() << std::endl;
-  
   mergeDigits(mDigits, mTrackLabels);
-
-  std::cout <<"digits after external merging " << mDigits.size() << std::endl;
-  std::cout << "labels after external merging " << mTrackLabels.size() << std::endl;
-
-  
   fillOutputContainer(digits, mTrackLabels);
   provideMC(mcContainer);
 }
