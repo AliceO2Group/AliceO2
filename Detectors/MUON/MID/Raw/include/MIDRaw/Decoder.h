@@ -18,9 +18,11 @@
 #include <cstdint>
 #include <vector>
 #include <gsl/gsl>
-#include "Headers/RAWDataHeader.h"
 #include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/ROFRecord.h"
+#include "MIDRaw/CrateMapper.h"
+#include "MIDRaw/CRUUserLogicDecoder.h"
+#include "MIDRaw/LocalBoardRO.h"
 #include "MIDRaw/RawUnit.h"
 
 namespace o2
@@ -30,7 +32,6 @@ namespace mid
 class Decoder
 {
  public:
-  void init();
   void process(gsl::span<const raw::RawUnit> bytes);
   /// Gets the vector of data
   const std::vector<ColumnData>& getData() { return mData; }
@@ -39,20 +40,15 @@ class Decoder
   const std::vector<ROFRecord>& getROFRecords() { return mROFRecords; }
 
  private:
-  gsl::span<const raw::RawUnit> mBytes{};     /// Vector with encoded information
-  size_t mVectorIndex{0};                     /// Index in vector
-  size_t mBitIndex{0};                        /// Index of the current bit
-  size_t mHeaderIndex{0};                     /// Index of the current header
-  size_t mNextHeaderIndex{0};                 /// Index of the next header
-  const header::RAWDataHeader* mRDH{nullptr}; /// Current header (not owner)
-  std::vector<ColumnData> mData{};            /// Vector of output column data
-  std::vector<ROFRecord> mROFRecords{};       ///
+  void addData(const LocalBoardRO& col, size_t firstEntry);
+  ColumnData& FindColumnData(uint8_t deId, uint8_t columnId, size_t firstEntry);
 
-  bool nextColumnData();
-  bool isEndOfBuffer() const;
-  int next(unsigned int nBits);
-  bool nextPayload();
-  void reset();
+  gsl::span<const raw::RawUnit> mBytes{};                /// Vector with encoded information
+  CRUUserLogicDecoder mCRUUserLogicDecoder;              /// CRU user logic decoder
+  std::map<uint64_t, std::vector<size_t>> mOrderIndexes; /// Map for time ordering the entries
+  std::vector<ColumnData> mData{};                       /// Vector of output column data
+  std::vector<ROFRecord> mROFRecords{};                  /// Vector of ROF records
+  CrateMapper mCrateMapper;                              /// Mapper to convert the RO info to ColumnData
 };
 } // namespace mid
 } // namespace o2
