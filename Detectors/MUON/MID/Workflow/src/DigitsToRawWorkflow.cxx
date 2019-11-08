@@ -28,17 +28,6 @@ namespace mid
 
 of::WorkflowSpec getDigitsToRawWorkflow()
 {
-
-  auto checkReady = [](o2::framework::DataRef const& ref) {
-    // The default checkReady function is not defined in MakeRootTreeWriterSpec:
-    // this leads to a std::exception in DPL.
-    // While the exception seems harmless (the processing goes on without apparent consequence),
-    // it is quite ugly to see.
-    // So, let us define checkReady here.
-    // FIXME: to be fixed in MakeRootTreeWriterSpec
-    return false;
-  };
-
   of::WorkflowSpec specs;
 
   specs.emplace_back(getDigitReaderSpec());
