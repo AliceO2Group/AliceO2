@@ -49,12 +49,12 @@ class Response
   //parameter for station number
   Station mStation;
   //proper parameter in aliroot in AliMUONResponseFactory.cxx
-  const float mQspreadX = 0.144; //charge spread in cm
-  const float mQspreadY = 0.144;
+  float mQspreadX = 0.0;   //charge spread in cm
+  float mQspreadY = 0.0;
 
   //ChargeSlope for Station 2-5: 10 according to AliMUONResponseFactory.cxx
   //ChargeSlope for Station 1: 25
-  float mChargeSlope = 10;  //why float in Aliroot? 25, found 10 in AliMUONResponseFactory.cxx 
+  float mChargeSlope = 0.0; 
   const float mChargeCorr = 0.11; // number from line 122
   //of AliMUONResponseFactory.cxx
 
@@ -70,6 +70,8 @@ class Response
   //  Float_t cy1 = fKy2 * fSqrtKy3 / 4. / TMath::ATan(Double_t(fSqrtKy3));
   //  fKy4 = cy1 / fKy2 / fSqrtKy3; //this line from AliMUONMathieson::SetSqrtKy3AndDeriveKy2Ky4
   //why this multiplicitation before again division? any number small compared to Float precision?
+
+  double amplO2alir = 1.0; //amplification factor between O2 and aliroot
   double mK2x = 0.0;
   double mSqrtK3x = 0.0;
   double mK4x = 0.0;

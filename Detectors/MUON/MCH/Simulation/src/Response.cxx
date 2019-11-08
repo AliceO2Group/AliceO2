@@ -32,6 +32,8 @@ Response::Response(Station station) : mStation(station)
     mK4y = 0.38658194;
     mInversePitch = 1. / 0.21; // ^cm-1
     mChargeSlope = 25.;
+    mQspreadX = 0.144;
+    mQspreadY = 0.144;
   } else {
     mK2x = 1.010729;
     mSqrtK3x = 0.7131;
@@ -41,11 +43,15 @@ Response::Response(Station station) : mStation(station)
     mK4y = 0.38312571;
     mInversePitch = 1. / 0.25; // cm^-1
     mChargeSlope = 10.;
+    mQspreadX = 0.18;
+    mQspreadY = 0.18;
   }
 
   if(mSampa){
-    mChargeThreshold = 3.9;//5*1e-3;//5*1e-4;//arbitrary setting , was 5*1e-4
-    mChargeSat = 1000. ; //Aliroot: 0.61 * 1.25 * 0.2;//put the same value as aliroot
+    mChargeThreshold = 1e-3;//5*1e-3;//5*1e-4;//arbitrary setting , was 5*1e-4, but to 3 WRONG, 
+    mChargeSat = 3000. ; // value from aliroot for charge
+    amplO2alir = 1.;
+    //to be done: Addd thresholds for ADC counts
   }
 }
 
@@ -64,7 +70,7 @@ float Response::etocharge(float edepos)
   }
   //translate to fC roughly,
   //equivalent to AliMUONConstants::DefaultADC2MV()*AliMUONConstants::DefaultA0()*AliMUONConstants::DefaultCapa() multiplication in aliroot
-  charge *= 0.61 * 1.25 * 0.2;
+  charge *= 0.61 * 1.25 * 0.2 * amplO2alir;
   return charge;
 }
 //_____________________________________________________________________
