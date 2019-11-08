@@ -31,6 +31,7 @@ Response::Response(Station station) : mStation(station)
     mSqrtK3y = 0.7550;
     mK4y = 0.38658194;
     mInversePitch = 1. / 0.21; // ^cm-1
+    mChargeSlope = 25.;
   } else {
     mK2x = 1.010729;
     mSqrtK3x = 0.7131;
@@ -39,12 +40,12 @@ Response::Response(Station station) : mStation(station)
     mSqrtK3y = 0.7642;
     mK4y = 0.38312571;
     mInversePitch = 1. / 0.25; // cm^-1
+    mChargeSlope = 10.;
   }
 
   if(mSampa){
-    mChargeThreshold = 1000000000;//arbitrary setting , was 5*1e-4
-    mChargeSat = 100000. ; //Aliroot: 0.61 * 1.25 * 0.2;//put the same value as aliroot
-    mChargeSlope = 25;//as Aliroot, seems to be too small
+    mChargeThreshold = 3.9;//5*1e-3;//5*1e-4;//arbitrary setting , was 5*1e-4
+    mChargeSat = 1000. ; //Aliroot: 0.61 * 1.25 * 0.2;//put the same value as aliroot
   }
 }
 
@@ -64,7 +65,7 @@ float Response::etocharge(float edepos)
   //translate to fC roughly,
   //equivalent to AliMUONConstants::DefaultADC2MV()*AliMUONConstants::DefaultA0()*AliMUONConstants::DefaultCapa() multiplication in aliroot
   charge *= 0.61 * 1.25 * 0.2;
-  return charge*1000;
+  return charge;
 }
 //_____________________________________________________________________
 double Response::chargePadfraction(float xmin, float xmax, float ymin, float ymax)
@@ -94,6 +95,7 @@ double Response::response(float charge)
   //FEE effects
   if(charge<mChargeThreshold) return 0.0;
   if(charge>mChargeSat) return mChargeSat;
+  charge = (int) charge; //according to aliroot observation
   return charge;
 }
 //______________________________________________________________________
