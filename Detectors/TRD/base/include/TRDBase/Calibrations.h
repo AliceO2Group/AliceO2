@@ -84,7 +84,7 @@ class Calibrations
 
   //methods extracted from ChamberStatus
   bool isChamberGood(int det) const { return mChamberStatus->isGood(det); }
-  bool isChamberNoData(int det, int col, int row) const { return mChamberStatus->isNoData(det); };
+  bool isChamberNoData(int det) const { return mChamberStatus->isNoData(det); };
   bool isHalfChamberNoData(int det, int side) const { return side > 0 ? isNoDataSideA(det) : isNoDataSideB(det); };
   bool isNoDataSideA(int det) const { return mChamberStatus->isNoDataSideA(det); }
   bool isNoDataSideB(int det) const { return mChamberStatus->isNoDataSideB(det); }
