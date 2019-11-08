@@ -15,6 +15,7 @@
 #include "TTree.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "TOFWorkflow/DigitReaderSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
 

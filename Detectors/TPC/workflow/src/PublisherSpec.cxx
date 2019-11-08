@@ -13,6 +13,7 @@
 /// @since  2018-12-06
 /// @brief  Processor spec for a reader of TPC data from ROOT file
 
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataSpecUtils.h"
 #include "TPCWorkflow/PublisherSpec.h"

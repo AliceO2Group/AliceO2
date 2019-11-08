@@ -10,6 +10,7 @@
 
 #include "MIDDigitizerSpec.h"
 #include "TChain.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"

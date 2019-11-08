@@ -11,6 +11,7 @@
 #include "FDDDigitizerSpec.h"
 #include "TChain.h"
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"

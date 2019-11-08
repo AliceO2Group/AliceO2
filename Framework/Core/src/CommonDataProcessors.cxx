@@ -11,6 +11,7 @@
 
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/CallbackService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/DataDescriptorQueryBuilder.h"
