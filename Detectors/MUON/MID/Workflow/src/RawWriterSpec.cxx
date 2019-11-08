@@ -38,9 +38,6 @@ namespace mid
 class RawWriterDeviceDPL
 {
  public:
-  RawWriterDeviceDPL(const char* inputBinding, const char* inputROFBinding) : mInputBinding(inputBinding), mInputROFBinding(inputROFBinding), mEncoder(), mFile(), mInteractionRecord(), mState(0){};
-  ~RawWriterDeviceDPL() = default;
-
   void init(o2::framework::InitContext& ic)
   {
     auto filename = ic.options().get<std::string>("mid-raw-outfile");
@@ -51,12 +48,10 @@ class RawWriterDeviceDPL
       return;
     }
 
-    auto headerOffset = ic.options().get<int>("mid-raw-header-offset");
+    auto headerOffset = ic.options().get<bool>("mid-raw-header-offset");
     mEncoder.setHeaderOffset(headerOffset);
 
     auto stop = [this]() {
-      /// Close the stream
-      mEncoder.newHeader(mInteractionRecord.bc, mInteractionRecord.orbit, 1);
       write();
       mFile.close();
     };
@@ -66,19 +61,15 @@ class RawWriterDeviceDPL
 
   void run(o2::framework::ProcessingContext& pc)
   {
-    auto msg = pc.inputs().get(mInputBinding.c_str());
+    auto msg = pc.inputs().get("mid_data");
     gsl::span<const ColumnData> data = of::DataRefUtils::as<const ColumnData>(msg);
 
-    auto msgROF = pc.inputs().get(mInputROFBinding.c_str());
+    auto msgROF = pc.inputs().get("mid_data_rof");
     gsl::span<const ROFRecord> rofRecords = of::DataRefUtils::as<const ROFRecord>(msgROF);
 
     for (auto& rofRecord : rofRecords) {
-      if (rofRecord.interactionRecord.orbit != mInteractionRecord.orbit) {
-        mEncoder.newHeader(rofRecord.interactionRecord.bc, rofRecord.interactionRecord.orbit, 0);
-        mInteractionRecord = rofRecord.interactionRecord;
-      }
       auto eventData = data.subspan(rofRecord.firstEntry, rofRecord.nEntries);
-      mEncoder.process(eventData, rofRecord.interactionRecord.bc, rofRecord.eventType);
+      mEncoder.process(eventData, rofRecord.interactionRecord, rofRecord.eventType);
     }
     write();
   }
@@ -89,28 +80,23 @@ class RawWriterDeviceDPL
     mFile.write(reinterpret_cast<const char*>(mEncoder.getBuffer().data()), mEncoder.getBufferSize());
     mEncoder.clear();
   }
-  std::string mInputBinding;
-  std::string mInputROFBinding;
   Encoder mEncoder{};
   std::ofstream mFile{};
-  InteractionRecord mInteractionRecord{};
   int mState{0};
 };
 
 framework::DataProcessorSpec getRawWriterSpec()
 {
-  std::string inputBinding = "mid_data";
-  std::string inputROFBinding = "mid_data_rof";
-  std::vector<of::InputSpec> inputSpecs{of::InputSpec{inputBinding, "MID", "DATA"}, of::InputSpec{inputROFBinding, "MID", "DATAROF"}, of::InputSpec{"mid_data_labels", "MID", "DATALABELS"}};
+  std::vector<of::InputSpec> inputSpecs{of::InputSpec{"mid_data", "MID", "DATA"}, of::InputSpec{"mid_data_rof", "MID", "DATAROF"}, of::InputSpec{"mid_data_labels", "MID", "DATALABELS"}};
 
   return of::DataProcessorSpec{
     "MIDRawWriter",
     inputSpecs,
     of::Outputs{},
-    of::AlgorithmSpec{of::adaptFromTask<o2::mid::RawWriterDeviceDPL>(inputBinding.c_str(), inputROFBinding.c_str())},
+    of::AlgorithmSpec{of::adaptFromTask<o2::mid::RawWriterDeviceDPL>()},
     of::Options{
-      {"mid-raw-outfile", of::VariantType::String, "mid_raw.dat", {"Name of the outputfile"}},
-      {"mid-raw-header-offset", of::VariantType::Int, 0x2000, {"Header offset in bytes"}}}};
+      {"mid-raw-outfile", of::VariantType::String, "mid_raw.dat", {"Raw output file name"}},
+      {"mid-raw-header-offset", of::VariantType::Bool, false, {"Header offset in bytes"}}}};
 }
 } // namespace mid
 } // namespace o2
