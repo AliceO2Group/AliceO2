@@ -10,10 +10,16 @@
 
 o2_add_library(
   MIDRaw
-  SOURCES src/CrateMapper.cxx src/Decoder.cxx src/Encoder.cxx
-          src/LocalBoardRO.cxx src/RawBuffer.cxx src/RawFileReader.cxx
+  SOURCES src/CrateMapper.cxx
+          src/CRUUserLogicDecoder.cxx
+          src/CRUUserLogicEncoder.cxx
+          src/Decoder.cxx
+          src/Encoder.cxx
+          src/LocalBoardRO.cxx
+          src/RawBuffer.cxx
+          src/RawFileReader.cxx
   PUBLIC_LINK_LIBRARIES ms_gsl::ms_gsl O2::DataFormatsMID O2::Headers
-                        O2::MIDBase)
+                        O2::CommonConstants O2::CommonUtils O2::MIDBase)
 
 if(BUILD_TESTING)
   add_subdirectory(test)

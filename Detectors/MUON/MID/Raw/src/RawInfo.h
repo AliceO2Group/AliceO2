@@ -21,30 +21,27 @@ namespace o2
 {
 namespace mid
 {
-
 // Local board patterns
-static constexpr unsigned int sNBitsBoardId = 2;
+static constexpr unsigned int sNBitsLocId = 4;
 static constexpr unsigned int sNBitsFiredStrips = 16;
 
 // Column info
-static constexpr unsigned int sNBitsColumnId = 3;
-static constexpr unsigned int sNBitsNFiredBoards = 3;
+static constexpr unsigned int sNBitsCrateId = 4;
+static constexpr unsigned int sNBitsNFiredBoards = 4;
 
-// RPC info
-static constexpr unsigned int sNBitsRPCId = 7;
-static constexpr unsigned int sNBitsNFiredColumns = 3;
-
-static constexpr unsigned int sNBitsNFiredRPCs = 7;
+// Chamber info
+static constexpr unsigned int sNBitsFiredChambers = 4;
 
 // Local clock
 static constexpr unsigned int sNBitsLocalClock = 16;
 
-// Trigger info
-static constexpr unsigned int sNBitsEventType = 2;
-static constexpr unsigned int sStandardEvent = 0;
-static constexpr unsigned int sSoftwareTriggerEvent = 1;
-static constexpr unsigned int sFEEEvent = 2;
+// Event info
+static constexpr unsigned int sNBitsEventWord = 8;
+static constexpr uint16_t sDelayCalibToFET = 10;
+static constexpr uint16_t sDelayBCToLocal = 0;
 
+// Buffer info
+static constexpr unsigned int sMaxPageSize = 0x2000;
 } // namespace mid
 } // namespace o2
 

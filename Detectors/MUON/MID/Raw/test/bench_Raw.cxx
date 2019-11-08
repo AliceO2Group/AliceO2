@@ -15,9 +15,12 @@
 
 #include "benchmark/benchmark.h"
 #include <random>
+#include <array>
+#include <vector>
+#include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsMID/ROFRecord.h"
-#include "MIDRaw/Encoder.h"
 #include "MIDRaw/Decoder.h"
+#include "MIDRaw/Encoder.h"
 #include "MIDRaw/RawUnit.h"
 
 o2::mid::ColumnData getColData(uint8_t deId, uint8_t columnId, uint16_t nbp = 0, uint16_t bp1 = 0, uint16_t bp2 = 0, uint16_t bp3 = 0, uint16_t bp4 = 0)
@@ -54,16 +57,16 @@ std::vector<o2::mid::raw::RawUnit> generateTestData(size_t nTF, size_t nDataInTF
   // Fill TF
   for (size_t itf = 0; itf < nTF; ++itf) {
     colData.clear();
-    encoder.newHeader(40, itf + 1, 0);
     for (int ilocal = 0; ilocal < nDataInTF; ++ilocal) {
-      encoder.process(colData, ilocal + 1, o2::mid::EventType::Standard);
+      o2::InteractionRecord ir(ilocal, itf);
+      encoder.process(colData, ir, o2::mid::EventType::Standard);
     }
   }
 
   return encoder.getBuffer();
 }
 
-static void BM_RAW(benchmark::State& state)
+static void BM_Decoder(benchmark::State& state)
 {
   o2::mid::Encoder encoder;
   o2::mid::Decoder decoder;
@@ -73,13 +76,11 @@ static void BM_RAW(benchmark::State& state)
   int nFiredPerEvent = state.range(2);
   double num{0};
 
-  std::vector<o2::mid::raw::RawUnit> inputData = generateTestData(nTF, nEventPerTF, nFiredPerEvent, encoder);
+  auto inputData = generateTestData(nTF, nEventPerTF, nFiredPerEvent, encoder);
 
   for (auto _ : state) {
-    // state.PauseTiming();
-    // inputData = generateTestData(nTF, nFiredPerEvent, encoder);
-    // state.ResumeTiming();
     decoder.process(inputData);
+
     ++num;
   }
 
@@ -100,6 +101,6 @@ static void CustomArguments(benchmark::internal::Benchmark* bench)
   bench->Args({1, 100, 4});
 }
 
-BENCHMARK(BM_RAW)->Apply(CustomArguments)->Unit(benchmark::kNanosecond);
+BENCHMARK(BM_Decoder)->Apply(CustomArguments)->Unit(benchmark::kNanosecond);
 
 BENCHMARK_MAIN();
