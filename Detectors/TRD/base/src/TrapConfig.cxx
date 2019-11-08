@@ -14,7 +14,6 @@
 //                                                                        //
 //  Author: J. Klein (Jochen.Klein@cern.ch)                               //
 //          Lots of mods by S. Murray (murrays@cern.ch)                   //
-//                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
 #include "TRDBase/TRDGeometry.h"
@@ -832,6 +831,25 @@ bool TrapConfig::TrapValue::allocatei(int alloc)
   return true;
 }
 
+// this exists purely to read in from ocdb to ccdb, and get around a root dictionary error of Alloc_t
+bool TrapConfig::TrapValue::allocatei(int alloc)
+{
+  // allocate memory for the specified granularity
+  mAllocMode = (Alloc_t)alloc;
+  int mSize = mgkSize[mAllocMode];
+  cout << "in allocatei : with alloc = " << alloc << " and mSize is now :" << mSize << endl;
+  if (mSize > 0) {
+    mData.resize(mSize);
+    mValid.resize(mSize);
+    for (int i = 0; i < mSize; ++i) {
+      mData[i] = 0;
+      mValid[i] = false;
+    }
+  }
+
+  return true;
+}
+
 int TrapConfig::TrapValue::getIdx(int det, int rob, int mcm)
 {
   // return Idx to access the data for the given position
@@ -864,17 +882,10 @@ int TrapConfig::TrapValue::getIdx(int det, int rob, int mcm)
       idx = -1;
       LOG(error) << "Invalid allocation mode";
   }
-<<<<<<< HEAD
   if (idx < mData.size()) {
     return idx;
   } else {
     LOG(error) << "Index too large " << dec << idx << " (size " << mData.size() << ") for " << this->getName();
-=======
-  if (idx < mSize) {
-    return idx;
-  } else {
-    LOG(error) << "Index too large " << dec << idx << " (size " << mSize << ") for " << this->getName();
->>>>>>> readded some files back, rather important ones
     return -1;
   }
 }
@@ -883,11 +894,7 @@ bool TrapConfig::TrapValue::setData(unsigned int value)
 {
   // set the given value everywhere
 
-<<<<<<< HEAD
   for (int i = 0; i < mData.size(); ++i) {
-=======
-  for (int i = 0; i < mSize; ++i) {
->>>>>>> readded some files back, rather important ones
     mData[i] = value;
     mValid[i] = false;
   }
@@ -985,7 +992,6 @@ void TrapConfig::TrapRegister::init(const char* name, int addr, int nBits, int r
     mNbits = nBits;
     mResetValue = resetValue;
   } else
-<<<<<<< HEAD
     LOG(fatal) << "Re-initialising an existing TRAP register ";
 }
 
@@ -998,7 +1004,5 @@ void TrapConfig::TrapRegister::initfromrun2(const char* name, int addr, int nBit
   mNbits = nBits;
   mResetValue = resetValue;
   //LOG(fatal) << "Re-initialising an existing TRAP register " << name << ":" << mName << " : " << addr << ":" << mAddr << " : " << nBits << ":" << mNbits <<  " : " << resetValue << ":" << mResetValue;
-=======
     LOG(fatal) << "Re-initialising an existing TRAP register";
->>>>>>> readded some files back, rather important ones
 }

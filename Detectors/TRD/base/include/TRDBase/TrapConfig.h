@@ -548,7 +548,6 @@ class TrapConfig
   {
    public:
     TrapValue();
-<<<<<<< HEAD
     ~TrapValue() = default;
 
     bool allocate(Alloc_t mode);

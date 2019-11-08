@@ -18,7 +18,7 @@
 ////////////////////////////////////////////////////////////////
 
 #include <string>
-#include "TRDBase/CalOnlineGainTables.h"
+#include "TRDBase/OnlineGainTables.h"
 
 namespace o2
 {
@@ -86,7 +86,7 @@ class TrapConfigHandler
   unsigned int mRestrictiveMask; // mask to restrict subsequent commands to specified chambers
   FeeParam* mFeeParam; //pointer to a singleton
   TrapConfig* mTrapConfig;   // pointer to TRAP config in use
-  CalOnlineGainTables mGtbl; // gain table
+  OnlineGainTables mGtbl; // gain table
 };
 
 } //namespace trd
