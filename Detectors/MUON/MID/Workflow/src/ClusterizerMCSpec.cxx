@@ -41,9 +41,6 @@ namespace mid
 class ClusterizerMCDeviceDPL
 {
  public:
-  ClusterizerMCDeviceDPL(const char* inputBinding, const char* inputROFBinding, const char* inputLabelsBinding) : mInputBinding(inputBinding), mInputROFBinding(inputROFBinding), mInputLabelsBinding(inputLabelsBinding), mPreClusterizer(), mClusterizer(), mCorrelation(){};
-  ~ClusterizerMCDeviceDPL() = default;
-
   void init(o2::framework::InitContext& ic)
   {
     if (!mPreClusterizer.init()) {
@@ -60,13 +57,13 @@ class ClusterizerMCDeviceDPL
   }
   void run(o2::framework::ProcessingContext& pc)
   {
-    auto msg = pc.inputs().get(mInputBinding.c_str());
+    auto msg = pc.inputs().get("mid_data");
     gsl::span<const ColumnData> patterns = of::DataRefUtils::as<const ColumnData>(msg);
 
-    auto msgROF = pc.inputs().get(mInputROFBinding.c_str());
+    auto msgROF = pc.inputs().get("mid_data_rof");
     gsl::span<const ROFRecord> inROFRecords = of::DataRefUtils::as<const ROFRecord>(msgROF);
 
-    std::unique_ptr<const o2::dataformats::MCTruthContainer<MCLabel>> labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<MCLabel>*>(mInputLabelsBinding.c_str());
+    std::unique_ptr<const o2::dataformats::MCTruthContainer<MCLabel>> labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<MCLabel>*>("mid_data_labels");
 
     // Pre-clustering
     mPreClusterizer.process(patterns, inROFRecords);
@@ -91,32 +88,26 @@ class ClusterizerMCDeviceDPL
   }
 
  private:
-  std::string mInputBinding;
-  std::string mInputROFBinding;
-  std::string mInputLabelsBinding;
-  PreClusterizer mPreClusterizer;
-  Clusterizer mClusterizer;
-  PreClusterLabeler mPreClusterLabeler;
-  ClusterLabeler mClusterLabeler;
-  std::vector<std::array<size_t, 2>> mCorrelation;
+  PreClusterizer mPreClusterizer{};
+  Clusterizer mClusterizer{};
+  PreClusterLabeler mPreClusterLabeler{};
+  ClusterLabeler mClusterLabeler{};
+  std::vector<std::array<size_t, 2>> mCorrelation{};
 };
 
 framework::DataProcessorSpec getClusterizerMCSpec()
 {
-  std::string inputBinding = "mid_data";
-  std::string inputROFBinding = "mid_data_rof";
-  std::string inputLabelsBinding = "mid_data_labels";
   std::vector<of::InputSpec> inputSpecs{
-    of::InputSpec{inputBinding, "MID", "DATA"},
-    of::InputSpec{inputROFBinding, "MID", "DATAROF"},
-    of::InputSpec{inputLabelsBinding, "MID", "DATALABELS"}};
+    of::InputSpec{"mid_data", "MID", "DATA"},
+    of::InputSpec{"mid_data_rof", "MID", "DATAROF"},
+    of::InputSpec{"mid_data_labels", "MID", "DATALABELS"}};
   std::vector<of::OutputSpec> outputSpecs{of::OutputSpec{"MID", "CLUSTERS"}, of::OutputSpec{"MID", "CLUSTERSROF"}, of::OutputSpec{"MID", "CLUSTERSLABELS"}};
 
   return of::DataProcessorSpec{
     "MIDClusterizerMC",
     {inputSpecs},
     {outputSpecs},
-    of::AlgorithmSpec{of::adaptFromTask<o2::mid::ClusterizerMCDeviceDPL>(inputBinding.c_str(), inputROFBinding.c_str(), inputLabelsBinding.c_str())}};
+    of::AlgorithmSpec{of::adaptFromTask<o2::mid::ClusterizerMCDeviceDPL>()}};
 }
 } // namespace mid
 } // namespace o2
