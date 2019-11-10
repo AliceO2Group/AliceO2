@@ -99,9 +99,7 @@ void RawReaderCRUEventSync::streamTo(std::ostream& output) const
   const std::string bold("\033[1m");
   const std::string clear("\033[0m");
 
-  std::cout << "Event info\n";
-  std::cout << "    Number of all events: " << getNumberOfEvents() << "\n";
-  std::cout << "    Number of complete events: " << getNumberOfCompleteEvents() << "\n\n";
+  std::cout << "Detailed event information\n";
   // event loop
   for (int i = 0; i < mEventInformation.size(); ++i) {
     const auto& event = mEventInformation[i];
@@ -288,7 +286,7 @@ int RawReaderCRU::scanFile()
     };
 
     // debug output
-    if (CHECK_BIT(mDebugLevel, 0)) {
+    if (CHECK_BIT(mDebugLevel, DebugLevel::RDHDump)) {
       std::cout << "Packet " << std::setw(5) << currentPacket << " - Link " << int(linkID) << "\n";
       std::cout << rdh;
       std::cout << "\n";
@@ -387,7 +385,7 @@ void RawReaderCRU::findSyncPositions()
       // TODO: In future there might be more then one sync in the stream
       //       this should be takein into account
       if (syncFoundForLink(link)) {
-        if (CHECK_BIT(mDebugLevel, 0)) {
+        if (CHECK_BIT(mDebugLevel, DebugLevel::SyncPositions)) {
           std::cout << "Sync positions for link " << link << '\n';
           const auto& syncs = mSyncPositions[link];
           for (int i = 0; i < syncs.size(); ++i) {
@@ -425,12 +423,12 @@ int RawReaderCRU::processPacket(GBTFrame& gFrame, uint32_t startPos, uint32_t si
     gFrame.getFrameHalfWords();
 
     // debug output
-    if (CHECK_BIT(mDebugLevel, 1)) {
+    if (CHECK_BIT(mDebugLevel, DebugLevel::GBTFrames)) {
       std::cout << gFrame;
     }
 
     gFrame.getAdcValues(rawData);
-    gFrame.updateSyncCheck(CHECK_BIT(mDebugLevel, 0));
+    gFrame.updateSyncCheck(CHECK_BIT(mDebugLevel, DebugLevel::SyncPositions));
     if (!(rawData.getNumTimebins() % 16) && (rawData.getNumTimebins() >= mNumTimeBins * 16)) {
       return 1;
     }
@@ -444,6 +442,8 @@ int RawReaderCRU::processMemory(const std::vector<o2::byte>& data, ADCRawData& r
 
   // 16 bytes is the size of a GBT frame
   for (int iFrame = 0; iFrame < data.size() / 16; ++iFrame) {
+    gFrame.setFrameNumber(iFrame);
+    gFrame.setPacketNumber(iFrame / 508);
     gFrame.readFromMemory(gsl::span<const o2::byte>(data.data() + iFrame * 16, 16));
     //gFrame.readFromMemory(data.data() + iFrame * 16, 16);
     // backup the halfword of the frame before calculating the
@@ -454,12 +454,12 @@ int RawReaderCRU::processMemory(const std::vector<o2::byte>& data, ADCRawData& r
     gFrame.getFrameHalfWords();
 
     // debug output
-    if (CHECK_BIT(mDebugLevel, 1)) {
+    if (CHECK_BIT(mDebugLevel, DebugLevel::GBTFrames)) {
       std::cout << gFrame;
     }
 
     gFrame.getAdcValues(rawData);
-    gFrame.updateSyncCheck(CHECK_BIT(mDebugLevel, 0));
+    gFrame.updateSyncCheck(CHECK_BIT(mDebugLevel, DebugLevel::SyncPositions));
     if (!(rawData.getNumTimebins() % 16) && (rawData.getNumTimebins() >= mNumTimeBins * 16)) {
       return 1;
     }
@@ -555,7 +555,7 @@ int RawReaderCRU::processDataFile()
         // debug output
         rawData.setOutputStream(s);
         rawData.setNumTimebins(mNumTimeBins);
-        if (CHECK_BIT(mDebugLevel, 2)) {
+        if (CHECK_BIT(mDebugLevel, DebugLevel::ADCValues)) {
           std::cout << rawData << std::endl;
         };
         // write the data to file
@@ -847,7 +847,11 @@ void RawReaderCRUManager::init()
   mEventSync.sortEvents();
   mEventSync.analyse();
 
-  if (mDebugLevel) {
+  O2INFO("Event information:");
+  O2INFO("    Number of all events:      %lu", getNumberOfEvents());
+  O2INFO("    Number of complete events: %lu", getNumberOfCompleteEvents());
+
+  if (CHECK_BIT(mDebugLevel, DebugLevel::EventInfo)) {
     std::cout << mEventSync;
   }
 
