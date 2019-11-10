@@ -10,16 +10,14 @@
 #ifndef O2_FRAMEWORK_EXPRESSIONS_H_
 #define O2_FRAMEWORK_EXPRESSIONS_H_
 
-#include <arrow/compute/kernel.h>
 #include <variant>
 #include <string>
 #include <memory>
-#include <iosfwd>
 
 namespace o2::framework::expressions
 {
 
-/// A helper type for an expression tree node corresponding to a literal value
+/// An expression tree node corresponding to a literal value
 struct LiteralNode {
   template <typename T>
   LiteralNode(T v) : value{v}
@@ -37,7 +35,7 @@ struct BindingNode {
   std::string name;
 };
 
-/// A helper type for an expression tree node corresponding to binary operation
+/// An expression tree node corresponding to binary operation
 struct BinaryOpNode {
   enum Op : unsigned int {
     LogicalAnd,

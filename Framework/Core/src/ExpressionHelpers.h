@@ -10,30 +10,37 @@
 #ifndef O2_FRAMEWORK_EXPRESSIONS_HELPERS_H_
 #define O2_FRAMEWORK_EXPRESSIONS_HELPERS_H_
 #include "Framework/Expressions.h"
+#include <vector>
+#include <iosfwd>
 
 namespace o2::framework::expressions
 {
-struct ArrowDatumSpec {
+struct DatumSpec {
   // datum spec either contains an index, a value of a literal or a binding label
   std::variant<std::monostate, size_t, LiteralNode::var_t, std::string> datum;
-  explicit ArrowDatumSpec(size_t index) : datum{index} {}
-  explicit ArrowDatumSpec(LiteralNode::var_t literal) : datum{literal} {}
-  explicit ArrowDatumSpec(std::string binding) : datum{binding} {}
-  ArrowDatumSpec() : datum{std::monostate{}} {}
+  explicit DatumSpec(size_t index) : datum{index} {}
+  explicit DatumSpec(LiteralNode::var_t literal) : datum{literal} {}
+  explicit DatumSpec(std::string binding) : datum{binding} {}
+  DatumSpec() : datum{std::monostate{}} {}
 };
 
-bool operator==(ArrowDatumSpec const& lhs, ArrowDatumSpec const& rhs);
+bool operator==(DatumSpec const& lhs, DatumSpec const& rhs);
 
-std::ostream& operator<<(std::ostream& os, ArrowDatumSpec const& spec);
+std::ostream& operator<<(std::ostream& os, DatumSpec const& spec);
 
-struct ArrowKernelSpec {
-  std::unique_ptr<arrow::compute::OpKernel> kernel = nullptr;
-  ArrowDatumSpec left;
-  ArrowDatumSpec right;
-  ArrowDatumSpec result;
+struct ColumnOperationSpec {
+  BinaryOpNode::Op op;
+  DatumSpec left;
+  DatumSpec right;
+  DatumSpec result;
+  ColumnOperationSpec() = default;
+  explicit ColumnOperationSpec(BinaryOpNode::Op op_) : op{op_},
+                                                       left{},
+                                                       right{},
+                                                       result{} {}
 };
 
-std::vector<ArrowKernelSpec> createKernelsFromFilter(Filter const& filter);
+std::vector<ColumnOperationSpec> createKernelsFromFilter(Filter const& filter);
 } // namespace o2::framework::expressions
 
 #endif // O2_FRAMEWORK_EXPRESSIONS_HELPERS_H_
