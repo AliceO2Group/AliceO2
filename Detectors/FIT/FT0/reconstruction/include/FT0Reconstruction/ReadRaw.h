@@ -30,6 +30,7 @@
 #include <string>
 #include <bitset>
 #include <vector>
+#include <map>
 
 namespace o2
 {
@@ -93,7 +94,7 @@ class ReadRaw
   char* mBuffer = nullptr;
   std::vector<char> mBufferLocal;
   long mSize;
-  std::vector<o2::ft0::Digit> mDigitAccum; // digit accumulator
+  std::map<o2::InteractionRecord,o2::ft0::Digit> mDigitAccum; // digit accumulator
   template <typename T>
   TBranch* getOrMakeBranch(TTree& tree, std::string brname, T* ptr)
   {

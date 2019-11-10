@@ -35,7 +35,6 @@ struct Topo {
 
 inline bool operator<(Topo const& a, Topo const& b)
 {
-
   return (a.mPM < b.mPM || (a.mPM == b.mPM && a.mMCP < b.mMCP));
   //  return std::tie(a.mPM, a.mMCP) < std::tie(b.mPM, a.mMCP);
   // return (a.mPM<b.mPM && a.mMCP<b.mMCP);
@@ -80,12 +79,10 @@ class LookUpTable
 
   int getLink(int channel) const { return mTopoVector[channel].mPM; }
   int getMCP(int channel) const { return mTopoVector[channel].mMCP; }
-for online/offline and digits to raw conversion
 
  private:
   std::vector<Topo> mTopoVector;
   std::vector<int> mInvTopo;
-
 
   static int getIdx(int link, int mcp)
   {
@@ -99,7 +96,6 @@ for online/offline and digits to raw conversion
   static int getMCPFromIdx(int idx)
   {
     return idx % NUMBER_OF_MCPs;
-
   }
 
   ClassDefNV(LookUpTable, 1);

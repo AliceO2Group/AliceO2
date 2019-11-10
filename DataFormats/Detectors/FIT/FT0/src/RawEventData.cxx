@@ -20,17 +20,9 @@ using namespace std;
 ClassImp(RawEventData);
 
 
-/*******************************************************************************************************************/
 void RawEventData::GenerateData()
 {
   for (int iCh = 0; iCh < mEventHeader.nGBTWords * 2; iCh++) {
-=======
-/*******************************************************************************************************************/
-
-/*******************************************************************************************************************/
-void RawEventData::GenerateData()
-{
-  for (int iCh = 0; iCh < mEventHeader.Nchannels; iCh++) {
     mEventData[iCh].channelID = iCh;
     mEventData[iCh].charge = 1000;
     mEventData[iCh].time = 500;

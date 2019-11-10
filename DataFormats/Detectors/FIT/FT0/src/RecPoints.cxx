@@ -13,6 +13,7 @@
 #include <cassert>
 #include <iostream>
 #include <CommonDataFormat/InteractionRecord.h>
+#include <Framework/Logger.h>
 
 using namespace o2::ft0;
 
@@ -34,8 +35,10 @@ void RecPoints::fillFromDigits(const o2::ft0::Digit& digit)
 
   mIntRecord = digit.getInteractionRecord();
   mEventTime = o2::InteractionRecord::bc2ns(mIntRecord.bc, mIntRecord.orbit);
+  LOG(INFO)<<" event time "<<mEventTime<<" orbit "<<mIntRecord.orbit<<" bc "<<mIntRecord.bc;
   mTimeAmp = digit.getChDgData();
   for (auto& d : mTimeAmp) {
+    LOG(INFO)<<" mcp "<<d.ChId<<" cfd "<<d.CFDTime<<" amp "<<d.QTCAmpl;
     if (std::fabs(d.CFDTime) < 2) {
       if (d.ChId < nMCPsA) {
         sideAtime += d.CFDTime;

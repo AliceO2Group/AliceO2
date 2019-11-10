@@ -78,13 +78,13 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
   LOG(INFO) << "**********ReadRaw::" << std::endl;
   o2::header::RAWDataHeader mRDH;
   const char padding[CRUWordSize] = {0};
-  std::vector<o2::ft0::ChannelData> mChDgDataArr;
+  std::vector<o2::ft0::ChannelData> * chDgDataArr = nullptr;
   o2::ft0::ChannelData chData;
-  o2::ft0::Digit mDigits;
   mFileDest.seekg(0, mFileDest.end);
   long sizeFile = mFileDest.tellg();
   mFileDest.seekg(0);
   LOG(INFO) << "SizeFile " << sizeFile;
+  //int old_bc = -1, old_orbit = -1;
 
   // read content of infile
   long posInFile = 0;
@@ -106,11 +106,21 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
 
     while (pos < mRDH.memorySize) {
       mFileDest.read(reinterpret_cast<char*>(&mEventHeader), sizeof(mEventHeader));
-      mDigits.setInteractionRecord(int(mEventHeader.bc), int(mEventHeader.orbit));
       pos += sizeof(mEventHeader);
+      o2::InteractionRecord intrec { mEventHeader.bc, mEventHeader.orbit };
+      //auto digitIter = mDigitAccum.find(intrec);
+      auto [digitIter, isNew] = mDigitAccum.try_emplace(intrec);
+      auto& digits = digitIter->second;
+      if (isNew) {
+        double eventTime = intrec.bc2ns();
+        digits.setTime(eventTime);
+        digits.setInteractionRecord(intrec);
+        digits.setTriggers(0, 0, 0, 0, 0);
+      }
+      chDgDataArr = &digits.getChDgData();
       LOG(INFO) << " !!@@@read  header for " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos;
       if (mIsPadded) {
-        //  mFileDest.read(reinterpret_cast<char*>(mBuffer), size_t(CRUWordSize - o2::ft0::EventData::PayloadSize));
+        // mFileDest.read(reinterpret_cast<char*>(mBuffer), size_t(CRUWordSize - o2::ft0::EventData::PayloadSize));
         LOG(INFO) << " !!@@@ padding header";
         pos += CRUWordSize - o2::ft0::EventData::PayloadSize;
       }
@@ -121,7 +131,7 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
         chData.CFDTime = mEventData[2 * i].time / CFD_NS_2_Nchannels;
         chData.QTCAmpl = mEventData[2 * i].charge / MV_2_Nchannels;
         chData.numberOfParticles = mEventData[2 * i].numberADC;
-        mChDgDataArr.emplace_back(chData);
+        chDgDataArr->emplace_back(chData);
         pos += o2::ft0::EventData::PayloadSize;
         LOG(INFO) << " read 1st word channelID " << int(mEventData[2 * i].channelID) << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " pos " << pos << " mcp " << int(mEventData[2 * i].channelID) << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID));
 
@@ -133,26 +143,24 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
         chData.CFDTime = mEventData[2 * i + 1].time / CFD_NS_2_Nchannels;
         chData.QTCAmpl = mEventData[2 * i + 1].charge / MV_2_Nchannels;
         chData.numberOfParticles = mEventData[2 * i + 1].numberADC;
-        mChDgDataArr.emplace_back(chData);
+        chDgDataArr->emplace_back(chData);
         LOG(INFO) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " pos " << pos;
         if (mIsPadded) {
           //        mFileDest.read(reinterpret_cast<char*>(mBuffer), size_t(CRUWordSize - o2::ft0::EventData::PayloadSize));
-          LOG(INFO) << " !!@@@ padding data"
-                    << " pos " << pos;
+          //         LOG(INFO) << " !!@@@ padding data"
+          //          << " pos " << pos;
         }
         //    pos += mEventHeader.nGBTWords * EventData::PayloadSize;
       }
-      mDigits.setChDgData(std::move(mChDgDataArr));
-      mDigits.setTriggers(0, 0, 0, 0, 0);
-      mDigitAccum.emplace_back(mDigits);
-      mDigits.printStream(std::cout);
-      mChDgDataArr.clear();
     }
-    if (posInFile < sizeFile - 4) {
+    /*
+    if (posInFile < sizeFile - 64) {
       mFileDest.read(reinterpret_cast<char*>(&mRDH), sizeof(mRDH));
       printRDH(&mRDH);
     }
+    */
   }
+
   close();
 }
 
@@ -175,16 +183,19 @@ void ReadRaw::writeDigits(std::string fileDataOut)
   } else {
     LOG(INFO) << "Opened " << fileDataOut << " output file";
   }
-  TTree* mOutTree = new TTree("FT0rectee", "FT0rectree");
+  TTree* mOutTree = new TTree("o2sim", "o2sim");
   // retrieve the digits from the input
-  auto inDigits = mDigitAccum; //pc.inputs().get<std::vector<o2::ft0::Digit>>((detStr + "digits").c_str());
+  auto inDigits = mDigitAccum; 
   LOG(INFO) << "RECEIVED DIGITS SIZE " << inDigits.size();
 
-  auto digitsP = &inDigits;
   // connect this to a particular branch
 
-  //  auto brDig = getOrMakeBranch(mOutTree, "FT0digits", &digitsP);
-  mOutTree->Branch("FT0digits", &digitsP);
+  std::vector<o2::ft0::Digit> digitVec;
+  digitVec.reserve(mDigitAccum.size());
+  for (auto& [intrec, digit] : mDigitAccum)
+    digitVec.emplace_back(std::move(digit));
+  mDigitAccum.clear();
+  mOutTree->Branch("FT0Digit", &digitVec);
   mOutTree->Fill();
   mOutTree->Print();
 

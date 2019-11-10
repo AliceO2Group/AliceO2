@@ -7,7 +7,6 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-<<<<<<< HEAD
 /*
   Digits to RAW data coding. RAW data format - class DataFormat/Detectors/FIT/FT0/RawEventData
   18 PMs (GBT links) 12 MCPs each  and 1 TCM, each stream transmit separately
@@ -38,18 +37,13 @@ if no data for this PM - only headers.
 Trigger mode : detector sends data to FLP at each trigger;
 Continueous mode  :   for only bunches with data at least in 1 channel.  
 */
-=======
->>>>>>> raw data format for online/offline and digits to raw conversion
 
 #include "Headers/RAWDataHeader.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsFT0/RawEventData.h"
 #include "FT0Simulation/Digits2Raw.h"
-<<<<<<< HEAD
 #include "DetectorsBase/Triggers.h"
 #include <Framework/Logger.h>
-=======
->>>>>>> raw data format for online/offline and digits to raw conversion
 #include <TStopwatch.h>
 #include <cassert>
 #include <fstream>
@@ -87,7 +81,6 @@ void Digits2Raw::readDigits(const std::string fileDigitsName)
   std::vector<o2::ft0::Digit>* digArr = new std::vector<o2::ft0::Digit>;
   digTree->SetBranchAddress("FT0Digit", &digArr);
   Int_t nevD = digTree->GetEntries(); // digits in cont. readout may be grouped as few events per entry
-
   uint32_t old_orbit = ~0;
 
   for (Int_t iev = 0; iev < nevD; iev++) {
@@ -103,8 +96,7 @@ void Digits2Raw::readDigits(const std::string fileDigitsName)
           setRDH(mPages[nlink].mRDH, nlink, intRecord);
         old_orbit = current_orbit;
       }
-
-       convertDigits(digit, lut);
+      convertDigits(digit, lut);
     }
   }
 }
@@ -112,7 +104,6 @@ void Digits2Raw::readDigits(const std::string fileDigitsName)
 /*******************************************************************************************************************/
 void Digits2Raw::convertDigits(const o2::ft0::Digit& digit, const o2::ft0::LookUpTable& lut)
 {
-<<<<<<< HEAD
   auto intRecord = digit.getInteractionRecord();
   std::vector<o2::ft0::ChannelData> mTimeAmp = digit.getChDgData();
   // check empty event
@@ -175,42 +166,6 @@ EventHeader makeGBTHeader(int link, o2::InteractionRecord const& mIntRecord)
 }
 //_____________________________________________________________________________
 void setRDH(o2::header::RAWDataHeader& mRDH, int nlink, o2::InteractionRecord const& mIntRecord)
-    mEventData[nchannels].isDoubleEvent = 0;
-    mEventData[nchannels].isEventInTVDC = is0TVX ? 1 : 0;
-    mEventData[nchannels].isTimeInfoLate = 0;
-    mEventData[nchannels].isTimeInfoLost = 0;
-    int chain = std::rand() % 2;
-    mEventData[nchannels].numberADC = chain ? 1 : 0;
-    //   std::cout << "@@@@ packed GBT "<<nlink<<" channelID   " << mEventData[nchannels].channelID << " charge " << mEventData[nchannels].charge << " time " << mEventData[nchannels].time << std::endl;
-    //   std::cout << "@@@@ digits channelID   " << d.ChId  << " charge " << d.QTCAmpl << " time " << d.CFDTime << std::endl;
-    nchannels++;
-  }
-  flushEvent(oldlink, mIntRecord, nchannels);
-}
-
-void Digits2Raw::flushEvent(int link, o2::InteractionRecord const& mIntRecord, uint nchannels)
-{
-  // If we are called before the first link, just exit
-  if (link < 0)
-    return;
-  std::cout << " new GBT " << link << " with N ch " << nchannels << std::endl;
-  setRDH(link, mIntRecord);
-  setGBTHeader(link, mIntRecord, nchannels);
-  // mFileDest.write(reinterpret_cast<char*>(&mRDH), sizeof(mRDH));
-  mFileDest.write(reinterpret_cast<char*>(&mEventHeader), sizeof(mEventHeader));
-  mFileDest.write(reinterpret_cast<char*>(&mEventData), sizeof(mEventData));
-}
-//_____________________________________________________________________________________
-void Digits2Raw::setGBTHeader(int link, o2::InteractionRecord const& mIntRecord, uint nchannels)
-{
-  mEventHeader.startDescriptor = 15;
-  mEventHeader.Nchannels = nchannels;
-  mEventHeader.reservedField = 0;
-  mEventHeader.bc = mIntRecord.bc;
-  mEventHeader.orbit = mIntRecord.orbit;
-}
-//_____________________________________________________________________________
-void Digits2Raw::setRDH(int nlink, o2::InteractionRecord const& mIntRecord)
 {
   mRDH.triggerOrbit = mRDH.heartbeatOrbit = mIntRecord.orbit;
   mRDH.triggerBC = mRDH.heartbeatBC = mIntRecord.bc;
