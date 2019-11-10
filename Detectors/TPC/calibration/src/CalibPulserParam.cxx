@@ -8,17 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// \file CalibPulserParam.cxx
+/// \brief Implementation of the parameter class for the hardware clusterer
+/// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "TPCCalibration/CalibPulserParam.h"
 
-#pragma link C++ class o2::tpc::CalibRawBase;
-#pragma link C++ class o2::tpc::CalibPedestal;
-#pragma link C++ class o2::tpc::CalibPedestalParam +;
-#pragma link C++ class o2::tpc::CalibPulser;
-#pragma link C++ class o2::tpc::CalibPulserParam +;
-#pragma link C++ class o2::tpc::CalibTreeDump;
-
-#endif
+O2ParamImpl(o2::tpc::CalibPulserParam);
