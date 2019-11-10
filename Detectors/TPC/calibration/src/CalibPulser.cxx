@@ -21,6 +21,7 @@
 #include "TPCBase/ROC.h"
 #include "MathUtils/MathBase.h"
 #include "TPCCalibration/CalibPulser.h"
+#include "TPCCalibration/CalibPulserParam.h"
 
 using namespace o2::tpc;
 using o2::math_utils::math_base::getStatisticsData;
@@ -62,6 +63,30 @@ CalibPulser::CalibPulser(PadSubset padSubset)
   //      as for the time bin selection
   mXminT0 = mFirstTimeBin;
   mXmaxT0 = mLastTimeBin;
+}
+
+//______________________________________________________________________________
+void CalibPulser::init()
+{
+  const auto& param = CalibPulserParam::Instance();
+
+  mNbinsT0 = param.NbinsT0;
+  mXminT0 = param.XminT0;
+  mXmaxT0 = param.XmaxT0;
+  mNbinsQtot = param.NbinsQtot;
+  mXminQtot = param.XminQtot;
+  mXmaxQtot = param.XmaxQtot;
+  mNbinsWidth = param.NbinsWidth;
+  mXminWidth = param.XminWidth;
+  mXmaxWidth = param.XmaxWidth;
+  mFirstTimeBin = param.FirstTimeBin;
+  mLastTimeBin = param.LastTimeBin;
+  mADCMin = param.ADCMin;
+  mADCMax = param.ADCMax;
+  mNumberOfADCs = mADCMax - mADCMin + 1;
+  mPeakIntMinus = param.PeakIntMinus;
+  mPeakIntPlus = param.PeakIntPlus;
+  mMinimumQtot = param.MinimumQtot;
 }
 
 //______________________________________________________________________________

@@ -41,6 +41,16 @@ namespace tpc
 {
 namespace rawreader
 {
+
+/// debug level bits
+enum DebugLevel : uint8_t {
+  SyncPositions = 0, ///< dump sync positions
+  GBTFrames = 1,     ///< dump all GBT frames
+  ADCValues = 2,     ///< dump extracted ADC values
+  RDHDump = 3,       ///< dump full RDH
+  EventInfo = 5      ///< dump event synchronisation information
+};
+
 /// data type
 enum class DataType : uint8_t {
   TryToDetect = 0, ///< try to auto detect the mode
@@ -225,6 +235,9 @@ class GBTFrame
 
   /// set packet number
   void setPacketNumber(uint32_t packetNumber) { mPacketNum = packetNumber; }
+
+  /// set packet number
+  void setFrameNumber(uint32_t frameNumber) { mFrameNum = frameNumber; }
 
  private:
   std::array<uint32_t, 4> mData{};      ///< data to decode

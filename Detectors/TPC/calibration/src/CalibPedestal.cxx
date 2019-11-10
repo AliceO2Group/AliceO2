@@ -40,6 +40,18 @@ CalibPedestal::CalibPedestal(PadSubset padSubset)
 {
   mADCdata.resize(ROC::MaxROC);
 }
+//______________________________________________________________________________
+void CalibPedestal::init()
+{
+  const auto& param = CalibPedestalParam::Instance();
+
+  mFirstTimeBin = param.FirstTimeBin;
+  mLastTimeBin = param.LastTimeBin;
+  mADCMin = param.ADCMin;
+  mADCMax = param.ADCMax;
+  mNumberOfADCs = mADCMax - mADCMin + 1;
+  mStatisticsType = param.StatType;
+}
 
 //______________________________________________________________________________
 Int_t CalibPedestal::updateROC(const Int_t roc, const Int_t row, const Int_t pad,
