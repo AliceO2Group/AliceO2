@@ -17,18 +17,6 @@ namespace CAMath
 template <class T> T Min(const T a, const T b) { return ::min(a, b); }
 template <class T, class S> T AtomicAdd(__generic T* a, const S b) { return ::atomic_add(a, b); }
 }
-namespace GPUTPCClusterFinderKernels
-{
-struct GPUTPCSharedMemory
-{
-    union {
-        search_t search;
-        noise_t noise;
-        count_t count;
-        build_t build;
-    };
-};
-}
 #endif
 
 namespace GPUCA_NAMESPACE
@@ -37,30 +25,6 @@ namespace gpu
 {
 
 using namespace deprecated;
-
-GPUd() PackedCharge packCharge(Charge q, bool peak3x3, bool wasSplit)
-{
-    PackedCharge p = q * 16.f;
-    p = CAMath::Min((PackedCharge)0x3FFF, p); // ensure only lower 14 bits are set
-    p |= (wasSplit << 14);
-    p |= (peak3x3 << 15);
-    return p;
-}
-
-GPUd() Charge unpackCharge(PackedCharge p)
-{
-    return (p & 0x3FFF) / 16.f;
-}
-
-GPUd() bool has3x3Peak(PackedCharge p)
-{
-    return p & (1 << 15);
-}
-
-GPUd() bool wasSplit(PackedCharge p)
-{
-    return p & (1 << 14);
-}
 
 GPUconstexpr() Delta2 INNER_NEIGHBORS[8] =
 {
