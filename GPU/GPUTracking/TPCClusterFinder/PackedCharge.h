@@ -15,10 +15,14 @@
 #define O2_GPU_PACKED_CHARGE_H
 
 #include "GPUDef.h"
+#include "cl/clusterFinderDefs.h"
 
-namespace GPUCA_NAMESPACE::gpu
+namespace GPUCA_NAMESPACE
+{
+namespace gpu
 {
 
+#if 0
 class PackedCharge
 {
 
@@ -47,7 +51,16 @@ class PackedCharge
 
   BasicType val;
 };
+#endif
 
-} // namespace GPUCA_NAMESPACE::gpu
+using PackedCharge = ushort;
+
+GPUd() PackedCharge packCharge(Charge, bool, bool);
+GPUd() Charge unpackCharge(PackedCharge);
+GPUd() bool has3x3Peak(PackedCharge);
+GPUd() bool wasSplit(PackedCharge);
+
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif
