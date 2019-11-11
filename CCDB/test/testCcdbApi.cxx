@@ -410,3 +410,39 @@ BOOST_AUTO_TEST_CASE(TestFetchingHeaders, *utf::precondition(if_reachable()))
   updated = CcdbApi::getCCDBEntryHeaders("http://ccdb-test.cern.ch:8080/TOF/LHCphase/1567080816927", etag, headers);
   BOOST_CHECK_EQUAL(updated, false);
 }
+
+BOOST_AUTO_TEST_CASE(TestRetrieveHeaders, *utf::precondition(if_reachable()))
+{
+  test_fixture f;
+
+  TH1F h1("object1", "object1", 100, 0, 99);
+  cout << "storing object 1 in qc/Test" << endl;
+  map<string, string> metadata;
+  metadata["custom"] = "whatever";
+  f.api.storeAsTFile(&h1, "qc/Test", metadata);
+
+  std::map<std::string, std::string> headers = f.api.retrieveHeaders("qc/Test", f.metadata);
+  BOOST_CHECK_NE(headers.size(), 0);
+  std::string h = headers["custom"];
+  BOOST_CHECK_EQUAL(h, "whatever");
+
+  int i = 0;
+  for(auto h : headers) {
+    cout << i++ << " : " << h.first << " -> " << h.second << endl;
+  }
+
+  headers = f.api.retrieveHeaders("qc/Test", metadata);
+  BOOST_CHECK_NE(headers.size(), 0);
+  h = headers["custom"];
+  BOOST_CHECK_EQUAL(h, "whatever");
+
+  metadata["custom"] = "something";
+  headers = f.api.retrieveHeaders("qc/Test", metadata);
+
+  i = 0;
+  for(auto h : headers) {
+    cout << i++ << " : " << h.first << " -> " << h.second << endl;
+  }
+  BOOST_CHECK_EQUAL(headers.size(), 0);
+
+}
