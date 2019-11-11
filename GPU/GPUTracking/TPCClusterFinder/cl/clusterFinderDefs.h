@@ -33,21 +33,68 @@ typedef unsigned long ulong;
 #define DCHARGEMAP_TIME_MAJOR_LAYOUT
 #endif
 
-#include "GPUDef.h"
-#include "config.h"
+#ifdef __OPENCL__
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#endif
 
-#include "shared/ClusterNative.h"
-#include "shared/constants.h"
-#include "shared/tpc.h"
+#ifndef __OPENCL__
+#define LOOP_UNROLL_ATTR
+#elif defined(UNROLL_LOOPS)
+#define LOOP_UNROLL_ATTR __attribute__((opencl_unroll_hint))
+#else
+#define LOOP_UNROLL_ATTR __attribute__((opencl_unroll_hint(1)))
+#endif
+
+#ifndef CONSTANT
+#ifdef __OPENCL__
+#define CONSTANT constant
+#else
+#define CONSTANT static const
+#endif
+#endif
 
 #define GET_IS_PEAK(val) (val & 0x01)
 #define GET_IS_ABOVE_THRESHOLD(val) (val >> 1)
 
+#define SCRATCH_PAD_SEARCH_N 8
+#define SCRATCH_PAD_COUNT_N 16
+#define SCRATCH_PAD_BUILD_N 8
+#define SCRATCH_PAD_NOISE_N 8
+
+#define PADDING_PAD 2
+#define PADDING_TIME 2
+#define TPC_SECTORS 36
+#define TPC_ROWS_PER_CRU 18
+#define TPC_NUM_OF_ROWS 152
+#define TPC_PADS_PER_ROW 138
+#define TPC_PADS_PER_ROW_PADDED (TPC_PADS_PER_ROW + PADDING_PAD)
+#define TPC_NUM_OF_PADS (TPC_NUM_OF_ROWS * TPC_PADS_PER_ROW_PADDED + PADDING_PAD)
+#define TPC_MAX_TIME 4000
+#define TPC_MAX_TIME_PADDED (TPC_MAX_TIME + 2 * PADDING_TIME)
+
+#include "GPUDef.h"
 
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
+
+using Timestamp = ushort;
+using Pad = unsigned char;
+using GlobalPad = ushort;
+using Row = unsigned char;
+using Cru = unsigned char;
+
+#if defined(CHARGEMAP_TYPE_HALF)
+using Charge = half;
+#else
+using Charge = float;
+#endif
+
+CONSTANT float CHARGE_THRESHOLD = 0.f;
+CONSTANT float OUTER_CHARGE_THRESHOLD = 0.f;
+CONSTANT float QTOT_THRESHOLD = 500.f;
+CONSTANT int MIN_SPLIT_NUM = 1;
 
 struct ClusterAccumulator {
   Charge Q;
@@ -69,8 +116,10 @@ struct ChargePos {
 
 typedef short2 local_id;
 
-
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
+
+#include "shared/Digit.h"
+#include "shared/ClusterNative.h"
 
 #endif
