@@ -8,9 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "config.h"
+#include "clusterFinderDefs.h"
 
-#include "shared/ClusterNative.h"
 
 namespace GPUCA_NAMESPACE
 {

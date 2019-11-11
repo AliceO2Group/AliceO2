@@ -21,6 +21,13 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
+// Maps the position of a pad given as row and index in that row to a unique
+// index between 0 and TPC_NUM_OF_PADS.
+GPUdi() GlobalPad tpcGlobalPadIdx(Row row, Pad pad)
+{
+  return TPC_PADS_PER_ROW_PADDED * row + pad + PADDING_PAD;
+}
+
 GPUdi() size_t idxSquareTiling(GlobalPad gpad, Timestamp time, size_t N)
 {
   /* time += PADDING; */
