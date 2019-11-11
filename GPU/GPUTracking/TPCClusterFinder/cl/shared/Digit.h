@@ -10,7 +10,7 @@
 #if !defined(SHARED_DIGIT_H)
 #define SHARED_DIGIT_H
 
-#include "tpc.h"
+#include "cl/clusterFinderDefs.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -27,6 +27,7 @@ struct PackedDigit {
 };
 
 using Digit = PackedDigit;
+
 } // namespace deprecated
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
