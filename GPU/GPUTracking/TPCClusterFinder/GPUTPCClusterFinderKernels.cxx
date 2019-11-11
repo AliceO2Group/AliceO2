@@ -17,12 +17,12 @@
 #include "GPUCommonAlgorithm.h"
 #include "GPUTPCClusterFinder.h"
 #include "Array2D.h"
+#include "PackedCharge.h"
 
 #include "cl/streamCompaction.cl"
 #include "cl/clusterFinder.cl"
 
 using namespace GPUCA_NAMESPACE::gpu;
-
 
 template <>
 GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::fillChargeMap>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& clusterer)

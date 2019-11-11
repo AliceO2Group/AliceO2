@@ -49,8 +49,6 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
-using PackedCharge = ushort;
-
 struct ClusterAccumulator {
   Charge Q;
   Charge padMean;
@@ -71,24 +69,6 @@ struct ChargePos {
 
 typedef short2 local_id;
 
-struct search_t {
-  ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
-  PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_SEARCH_N];
-};
-struct noise_t {
-  ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
-  PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_NOISE_N];
-};
-struct count_t {
-  ChargePos posBcast1[SCRATCH_PAD_WORK_GROUP_SIZE];
-  uchar aboveThresholdBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
-  uchar buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_COUNT_N];
-};
-struct build_t {
-  ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
-  PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_BUILD_N];
-  uchar innerAboveThreshold[SCRATCH_PAD_WORK_GROUP_SIZE];
-};
 
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

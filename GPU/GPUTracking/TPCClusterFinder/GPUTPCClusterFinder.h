@@ -17,11 +17,10 @@
 #include "GPUDef.h"
 #include "GPUProcessor.h"
 
-
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
-{ 
+{
 
 namespace deprecated
 {

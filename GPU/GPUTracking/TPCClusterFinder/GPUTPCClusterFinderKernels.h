@@ -16,6 +16,7 @@
 
 #include "GPUGeneralKernels.h"
 #include "GPUConstantMem.h"
+#include "GPUTPCSharedMemoryData.h"
 
 #include "cl/clusterFinderDefs.h"
 
@@ -27,18 +28,25 @@ class GPUTPCClusterFinderKernels : public GPUKernelTemplate
 {
  public:
 #ifdef GPUCA_ALIGPUCODE // TODO: Remove, once Clusterizer is cleaned up
-  class GPUTPCSharedMemory : public GPUTPCSharedMemoryScan64<int, GPUCA_THREAD_COUNT_SCAN>
+  class GPUTPCSharedMemory : public GPUKernelTemplate::GPUTPCSharedMemoryScan64<int, GPUCA_THREAD_COUNT_SCAN>
   {
    public:
     union {
-      search_t search;
-      noise_t noise;
-      count_t count;
-      build_t build;
+      GPUTPCSharedMemoryData::search_t search;
+      GPUTPCSharedMemoryData::noise_t noise;
+      GPUTPCSharedMemoryData::count_t count;
+      GPUTPCSharedMemoryData::build_t build;
     };
   };
 #else
-  class GPUTPCSharedMemory;
+  struct GPUTPCSharedMemory {
+    union {
+      GPUTPCSharedMemoryData::search_t search;
+      GPUTPCSharedMemoryData::noise_t noise;
+      GPUTPCSharedMemoryData::count_t count;
+      GPUTPCSharedMemoryData::build_t build;
+    };
+  };
 #endif
 
   enum K : int {

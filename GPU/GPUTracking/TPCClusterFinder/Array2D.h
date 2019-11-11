@@ -122,7 +122,7 @@ GPUdi() size_t chargemapIdx(GlobalPad gpad, Timestamp time)
 
 #endif
 }
-    
+
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
