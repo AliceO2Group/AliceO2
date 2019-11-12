@@ -10,6 +10,8 @@
 #ifndef O2_FRAMEWORK_EXPRESSIONS_H_
 #define O2_FRAMEWORK_EXPRESSIONS_H_
 
+#include "Framework/BasicOps.h"
+
 #include <variant>
 #include <string>
 #include <memory>
@@ -37,20 +39,8 @@ struct BindingNode {
 
 /// An expression tree node corresponding to binary operation
 struct BinaryOpNode {
-  enum Op : unsigned int {
-    LogicalAnd,
-    LogicalOr,
-    Addition,
-    Subtraction,
-    Division,
-    LessThan,
-    LessThanOrEqual,
-    GreaterThan,
-    GreaterThanOrEqual,
-    Equal
-  };
-  BinaryOpNode(Op op_) : op{op_} {}
-  Op op;
+  BinaryOpNode(BasicOp op_) : op{op_} {}
+  BasicOp op;
 };
 
 /// A generic tree node
@@ -84,41 +74,41 @@ struct Node {
 template <typename T>
 inline Node operator>(Node left, T rightValue)
 {
-  return Node{BinaryOpNode{BinaryOpNode::GreaterThan}, std::move(left), LiteralNode{rightValue}};
+  return Node{BinaryOpNode{BasicOp::GreaterThan}, std::move(left), LiteralNode{rightValue}};
 }
 
 template <typename T>
 inline Node operator<(Node left, T rightValue)
 {
-  return Node{BinaryOpNode{BinaryOpNode::LessThan}, std::move(left), LiteralNode{rightValue}};
+  return Node{BinaryOpNode{BasicOp::LessThan}, std::move(left), LiteralNode{rightValue}};
 }
 
 template <typename T>
 inline Node operator>=(Node left, T rightValue)
 {
-  return Node{BinaryOpNode{BinaryOpNode::GreaterThanOrEqual}, std::move(left), LiteralNode{rightValue}};
+  return Node{BinaryOpNode{BasicOp::GreaterThanOrEqual}, std::move(left), LiteralNode{rightValue}};
 }
 
 template <typename T>
 inline Node operator<=(Node left, T rightValue)
 {
-  return Node{BinaryOpNode{BinaryOpNode::LessThanOrEqual}, std::move(left), LiteralNode{rightValue}};
+  return Node{BinaryOpNode{BasicOp::LessThanOrEqual}, std::move(left), LiteralNode{rightValue}};
 }
 
 template <typename T>
 inline Node operator==(Node left, T rightValue)
 {
-  return Node{BinaryOpNode{BinaryOpNode::Equal}, std::move(left), LiteralNode{rightValue}};
+  return Node{BinaryOpNode{BasicOp::Equal}, std::move(left), LiteralNode{rightValue}};
 }
 
 inline Node operator&&(Node left, Node right)
 {
-  return Node{BinaryOpNode{BinaryOpNode::LogicalAnd}, std::move(left), std::move(right)};
+  return Node{BinaryOpNode{BasicOp::LogicalAnd}, std::move(left), std::move(right)};
 }
 
 inline Node operator||(Node left, Node right)
 {
-  return Node{BinaryOpNode{BinaryOpNode::LogicalOr}, std::move(left), std::move(right)};
+  return Node{BinaryOpNode{BasicOp::LogicalOr}, std::move(left), std::move(right)};
 }
 
 /// A struct, containing the root of the expression tree
