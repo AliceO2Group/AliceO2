@@ -11,58 +11,43 @@
 #include "../src/ExpressionHelpers.h"
 #include "Framework/VariantHelpers.h"
 #include <stack>
+#include <iostream>
 
-using namespace arrow::compute;
 using namespace o2::framework;
 
 namespace o2::framework::expressions
 {
-// dummy function until arrow has actual scalars...
 struct LiteralNodeHelper {
-  ArrowDatumSpec operator()(LiteralNode node) const
+  DatumSpec operator()(LiteralNode node) const
   {
-    return ArrowDatumSpec{node.value};
+    return DatumSpec{node.value};
   }
 };
 
-// dummy function: needs to be bound to a table column
 struct BindingNodeHelper {
-  ArrowDatumSpec operator()(BindingNode node) const
+  DatumSpec operator()(BindingNode node) const
   {
-    return ArrowDatumSpec{node.name};
+    return DatumSpec{node.name};
   }
 };
 
 struct BinaryOpNodeHelper {
-  ArrowKernelSpec operator()(BinaryOpNode node) const
+  ColumnOperationSpec operator()(BinaryOpNode node) const
   {
-    switch (node.op) {
-      case BinaryOpNode::LogicalAnd:
-      case BinaryOpNode::LogicalOr:
-      case BinaryOpNode::LessThan:
-      case BinaryOpNode::GreaterThan:
-      case BinaryOpNode::LessThanOrEqual:
-      case BinaryOpNode::GreaterThanOrEqual:
-      case BinaryOpNode::Equal:
-      case BinaryOpNode::Addition:
-      case BinaryOpNode::Subtraction:
-      case BinaryOpNode::Division:
-        break;
-    }
-    return ArrowKernelSpec{};
+    return ColumnOperationSpec{node.op};
   }
 };
 
-bool operator==(ArrowDatumSpec const& lhs, ArrowDatumSpec const& rhs)
+bool operator==(DatumSpec const& lhs, DatumSpec const& rhs)
 {
   return (lhs.datum == rhs.datum);
 }
 
-std::ostream& operator<<(std::ostream& os, ArrowDatumSpec const& spec)
+std::ostream& operator<<(std::ostream& os, DatumSpec const& spec)
 {
   std::visit(
     overloaded{
-      [&os](LiteralNode::var_t&& arg) -> void {
+      [&os](LiteralNode::var_t&& arg) {
         std::visit(
           [&os](auto&& arg) { os << arg; },
           arg);
@@ -82,12 +67,21 @@ struct NodeRecord {
   explicit NodeRecord(Node* node_, size_t index_) : node_ptr(node_), index{index_} {}
 };
 
-std::vector<ArrowKernelSpec> createKernelsFromFilter(Filter const& filter)
+std::vector<ColumnOperationSpec> createKernelsFromFilter(Filter const& filter)
 {
-  std::vector<ArrowKernelSpec> kernelSpecs;
+  std::vector<ColumnOperationSpec> columnOperationSpecs;
   std::stack<NodeRecord> path;
   auto isLeaf = [](Node const* const node) {
     return ((node->left == nullptr) && (node->right == nullptr));
+  };
+
+  auto processLeaf = [](Node const* const node) {
+    return std::visit(
+      overloaded{
+        [lh = LiteralNodeHelper{}](LiteralNode node) { return lh(node); },
+        [bh = BindingNodeHelper{}](BindingNode node) { return bh(node); },
+        [](auto&&) { return DatumSpec{}; }},
+      node->self);
   };
 
   size_t index = 0;
@@ -97,30 +91,20 @@ std::vector<ArrowKernelSpec> createKernelsFromFilter(Filter const& filter)
   // while the stack is not empty
   while (path.empty() == false) {
     auto& top = path.top();
-    //if the top node is not a leaf node
-    // check the children and create datums if needed
+
     auto left = top.node_ptr->left.get();
     auto right = top.node_ptr->right.get();
     bool leftLeaf = isLeaf(left);
     bool rightLeaf = isLeaf(right);
-
-    auto processLeaf = [](Node const* const node) {
-      return std::visit(
-        overloaded{
-          [lh = LiteralNodeHelper{}](LiteralNode node) { return lh(node); },
-          [bh = BindingNodeHelper{}](BindingNode node) { return bh(node); },
-          [](auto&&) { return ArrowDatumSpec{}; }},
-        node->self);
-    };
 
     // create kernel spec, pop the node and add its children
     auto&& kernel =
       std::visit(
         overloaded{
           [bh = BinaryOpNodeHelper{}](BinaryOpNode node) { return bh(node); },
-          [](auto&&) { return ArrowKernelSpec{}; }},
+          [](auto&&) { return ColumnOperationSpec{}; }},
         top.node_ptr->self);
-    kernel.result = ArrowDatumSpec{top.index};
+    kernel.result = DatumSpec{top.index};
     path.pop();
 
     size_t li = 0;
@@ -130,23 +114,23 @@ std::vector<ArrowKernelSpec> createKernelsFromFilter(Filter const& filter)
       kernel.left = processLeaf(left);
     } else {
       li = index;
-      kernel.left = ArrowDatumSpec{index++};
+      kernel.left = DatumSpec{index++};
     }
 
     if (rightLeaf) {
       kernel.right = processLeaf(right);
     } else {
       ri = index;
-      kernel.right = ArrowDatumSpec{index++};
+      kernel.right = DatumSpec{index++};
     }
 
-    kernelSpecs.push_back(std::move(kernel));
+    columnOperationSpecs.push_back(std::move(kernel));
     if (!leftLeaf)
       path.emplace(left, li);
     if (!rightLeaf)
       path.emplace(right, ri);
   }
-  return kernelSpecs;
+  return columnOperationSpecs;
 }
 
 } // namespace o2::framework::expressions
