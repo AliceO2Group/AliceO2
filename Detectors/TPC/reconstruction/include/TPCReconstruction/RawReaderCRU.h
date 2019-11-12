@@ -409,6 +409,13 @@ class RawReaderCRUEventSync
   /// set a cru as seen
   void setCRUSeen(const CRU cru) { mCRUSeen[cru] = true; }
 
+  /// reset all information
+  void reset()
+  {
+    mEventInformation.clear();
+    mCRUSeen.reset();
+  }
+
   /// overloading output stream operator
   friend std::ostream& operator<<(std::ostream& output, const RawReaderCRUEventSync& eventSync)
   {
@@ -823,6 +830,20 @@ class RawReaderCRUManager
 
   /// return last reader
   const RawReaderCRU& getLastReader() const { return *mRawReadersCRU.back().get(); }
+
+  /// reset readers
+  void resetReaders() { mRawReadersCRU.clear(); }
+
+  /// reset event synchronisation info
+  void resetEventSync() { mEventSync.reset(); }
+
+  /// reset all
+  void reset()
+  {
+    resetReaders();
+    resetEventSync();
+    mIsInitialized = false;
+  }
 
   /// set event number to all sub-readers
   void setEventNumber(uint32_t eventNumber)

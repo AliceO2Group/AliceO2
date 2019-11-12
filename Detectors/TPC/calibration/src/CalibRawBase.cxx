@@ -60,6 +60,8 @@ void CalibRawBase::setupContainers(TString fileInfo, uint32_t verbosity, uint32_
       TString files = gSystem->GetFromPipe(TString::Format("ls %s", arrDataInfo->At(0)->GetName()));
       const int timeBins = static_cast<TObjString*>(arrDataInfo->At(1))->String().Atoi();
       std::unique_ptr<TObjArray> arr(files.Tokenize("\n"));
+      mRawReaderCRUManager.reset();
+      mPresentEventNumber = 0; // reset event number for readers
       mRawReaderCRUManager.setDebugLevel(debugLevel);
       for (auto file : *arr) {
         // fix the number of time bins
