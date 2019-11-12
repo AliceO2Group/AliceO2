@@ -200,10 +200,6 @@ GPUconstexpr() uint NOISE_SUPPRESSION_MINIMA[NOISE_SUPPRESSION_NEIGHBOR_NUM] =
 };
 
 
-GPUd() bool isAtEdge(const Digit *d)
-{
-    return (d->pad < 2 || d->pad >= TPC_PADS_PER_ROW-2);
-}
 
 GPUd() bool innerAboveThreshold(uchar aboveThreshold, ushort outerIdx)
 {
@@ -215,112 +211,6 @@ GPUd() bool innerAboveThresholdInv(uchar aboveThreshold, ushort outerIdx)
 {
     return aboveThreshold & (1 << OUTER_TO_INNER_INV[outerIdx]);
 }
-
-
-GPUd() void toNative(const ClusterAccumulator *cluster, const Digit *d, ClusterNative *cn)
-{
-    uchar isEdgeCluster = isAtEdge(d);
-    uchar splitInTime   = cluster->splitInTime >= MIN_SPLIT_NUM;
-    uchar splitInPad    = cluster->splitInPad  >= MIN_SPLIT_NUM;
-    uchar flags =
-          (isEdgeCluster << CN_FLAG_POS_IS_EDGE_CLUSTER)
-        | (splitInTime   << CN_FLAG_POS_SPLIT_IN_TIME)
-        | (splitInPad    << CN_FLAG_POS_SPLIT_IN_PAD);
-
-    cn->qmax = d->charge;
-    cn->qtot = cluster->Q;
-    cnSetTimeFlags(cn, cluster->timeMean, flags);
-    cnSetPad(cn, cluster->padMean);
-    cnSetSigmaTime(cn, cluster->timeSigma);
-    cnSetSigmaPad(cn, cluster->padSigma);
-}
-
-GPUd() void collectCharge(
-        ClusterAccumulator *cluster,
-        Charge            splitCharge,
-        Delta             dp,
-        Delta             dt)
-{
-    cluster->Q         += splitCharge;
-    cluster->padMean   += splitCharge*dp;
-    cluster->timeMean  += splitCharge*dt;
-    cluster->padSigma  += splitCharge*dp*dp;
-    cluster->timeSigma += splitCharge*dt*dt;
-}
-
-
-GPUd() Charge updateClusterInner(
-        ClusterAccumulator *cluster,
-        PackedCharge     charge,
-        Delta             dp,
-        Delta             dt)
-{
-    Charge q = unpackCharge(charge);
-
-    collectCharge(cluster, q, dp, dt);
-
-    bool split = wasSplit(charge);
-    cluster->splitInTime += (dt != 0 && split);
-    cluster->splitInPad  += (dp != 0 && split);
-
-    return q;
-}
-
-GPUd() void updateClusterOuter(
-        ClusterAccumulator *cluster,
-        PackedCharge     charge,
-        Delta             dp,
-        Delta             dt)
-{
-    Charge q = unpackCharge(charge);
-
-    bool split  = wasSplit(charge);
-    bool has3x3 = has3x3Peak(charge);
-
-    collectCharge(cluster, (has3x3) ? 0.f : q, dp, dt);
-
-    cluster->splitInTime += (dt != 0 && split && !has3x3);
-    cluster->splitInPad  += (dp != 0 && split && !has3x3);
-}
-
-GPUd() void mergeCluster(
-                    ushort              ll,
-                    ushort              otherll,
-                    ClusterAccumulator *myCluster,
-              const ClusterAccumulator *otherCluster,
-        GPUsharedref()       Charge           *clusterBcast)
-{
-    clusterBcast[otherll] = otherCluster->Q;
-    GPUbarrier();
-    myCluster->Q           += clusterBcast[ll];
-
-    clusterBcast[otherll] = otherCluster->padMean;
-    GPUbarrier();
-    myCluster->padMean     += clusterBcast[ll];
-
-    clusterBcast[otherll] = otherCluster->timeMean;
-    GPUbarrier();
-    myCluster->timeMean    += clusterBcast[ll];
-
-    clusterBcast[otherll] = otherCluster->padSigma;
-    GPUbarrier();
-    myCluster->padSigma    += clusterBcast[ll];
-
-    clusterBcast[otherll] = otherCluster->timeSigma;
-    GPUbarrier();
-    myCluster->timeSigma   += clusterBcast[ll];
-
-    GPUsharedref() int *splitBcast = (GPUsharedref() int *)clusterBcast;
-
-    splitBcast[otherll] = otherCluster->splitInTime;
-    GPUbarrier();
-    myCluster->splitInTime += splitBcast[ll];
-
-    splitBcast[otherll] = otherCluster->splitInPad;
-    GPUbarrier();
-    myCluster->splitInPad  += splitBcast[ll];
-}
-
 
 GPUd() void addOuterCharge(
         GPUglobalref() const PackedCharge    *chargeMap,
@@ -380,16 +270,6 @@ GPUd() void addLine(
     }
 }
 
-GPUd() void reset(ClusterAccumulator *clus)
-{
-    clus->Q           = 0.f;
-    clus->padMean     = 0.f;
-    clus->timeMean    = 0.f;
-    clus->padSigma    = 0.f;
-    clus->timeSigma   = 0.f;
-    clus->splitInTime = 0;
-    clus->splitInPad  = 0;
-}
 
 GPUd() ushort partition(GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem, ushort ll, bool pred, ushort partSize, ushort *newPartSize)
 {
@@ -533,7 +413,6 @@ GPUd() void updateClusterScratchpadInner(
 
     GPUbarrier();
 }
-
 
 
 GPUd() void updateClusterScratchpadOuter(
@@ -856,37 +735,6 @@ GPUd() bool isPeak(
 #undef CMP_NEIGHBOR
 
     return peak;
-}
-
-
-GPUd() void finalize(
-              ClusterAccumulator *pc,
-        const Digit              *myDigit)
-{
-    pc->Q += myDigit->charge;
-    if (pc->Q == 0) {
-      return; // TODO: Why does this happen?
-    }
-
-    pc->padMean   /= pc->Q;
-    pc->timeMean  /= pc->Q;
-    pc->padSigma  /= pc->Q;
-    pc->timeSigma /= pc->Q;
-
-    pc->padSigma  = sqrt(pc->padSigma  - pc->padMean*pc->padMean);
-    pc->timeSigma = sqrt(pc->timeSigma - pc->timeMean*pc->timeMean);
-
-    pc->padMean  += myDigit->pad;
-    pc->timeMean += myDigit->time;
-
-#if defined(CORRECT_EDGE_CLUSTERS)
-    if (isAtEdge(myDigit))
-    {
-        float s = (myDigit->pad < 2) ? 1.f : -1.f;
-        bool c  = s*(pc->padMean - myDigit->pad) > 0.f;
-        pc->padMean = (c) ? myDigit->pad : pc->padMean;
-    }
-#endif
 }
 
 GPUd() char countPeaksAroundDigit(

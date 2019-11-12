@@ -96,16 +96,6 @@ CONSTANT float OUTER_CHARGE_THRESHOLD = 0.f;
 CONSTANT float QTOT_THRESHOLD = 500.f;
 CONSTANT int MIN_SPLIT_NUM = 1;
 
-struct ClusterAccumulator {
-  Charge Q;
-  Charge padMean;
-  Charge padSigma;
-  Charge timeMean;
-  Charge timeSigma;
-  uchar splitInTime;
-  uchar splitInPad;
-};
-
 using Delta = short;
 using Delta2 = short2;
 
