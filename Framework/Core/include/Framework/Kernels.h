@@ -11,9 +11,11 @@
 #ifndef O2_FRAMEWORK_KERNELS_H_
 #define O2_FRAMEWORK_KERNELS_H_
 
-#include "arrow/compute/kernel.h"
-#include "arrow/status.h"
-#include "arrow/util/visibility.h"
+#include "Framework/BasicOps.h"
+
+#include <arrow/compute/kernel.h>
+#include <arrow/status.h>
+#include <arrow/util/visibility.h>
 #include <arrow/util/variant.h>
 
 #include <string>
@@ -29,9 +31,7 @@ class FunctionContext;
 } // namespace compute
 } // namespace arrow
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 struct ARROW_EXPORT HashByColumnOptions {
@@ -100,7 +100,6 @@ arrow::Status sliceByColumn(arrow::compute::FunctionContext* context,
                             arrow::compute::Datum const& inputTable,
                             std::vector<arrow::compute::Datum>* outputSlices);
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif // O2_FRAMEWORK_KERNELS_H_

@@ -29,15 +29,15 @@ bool operator==(DatumSpec const& lhs, DatumSpec const& rhs);
 std::ostream& operator<<(std::ostream& os, DatumSpec const& spec);
 
 struct ColumnOperationSpec {
-  BinaryOpNode::Op op;
+  BasicOp op;
   DatumSpec left;
   DatumSpec right;
   DatumSpec result;
   ColumnOperationSpec() = default;
-  explicit ColumnOperationSpec(BinaryOpNode::Op op_) : op{op_},
-                                                       left{},
-                                                       right{},
-                                                       result{} {}
+  explicit ColumnOperationSpec(BasicOp op_) : op{op_},
+                                              left{},
+                                              right{},
+                                              result{} {}
 };
 
 std::vector<ColumnOperationSpec> createKernelsFromFilter(Filter const& filter);
