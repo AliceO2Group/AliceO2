@@ -40,6 +40,20 @@ void RawBuffer::readFromStream(std::istream& in, uint32_t payloadsize)
   }
 }
 
+void RawBuffer::readFromMemoryBuffer(const gsl::span<char> rawmemory) {
+  flush();  
+  auto address = reinterpret_cast<uint32_t*>(rawmemory.data());
+  for(auto iword = 0; iword < rawmemory.size() / sizeof(uint32_t); iword++) {
+    if((address[iword] & 0xFFF) == 0x082)  {
+      // Termination word
+      // should normally not be decoded in case the payload size
+      // is determined correctly
+      break;
+      mDataWords[mNDataWords++] = address[iword];
+    }
+  }
+}
+
 uint32_t RawBuffer::getWord(int index) const
 {
   if (index >= mNDataWords)

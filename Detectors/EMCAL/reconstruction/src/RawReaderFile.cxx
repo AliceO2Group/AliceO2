@@ -15,6 +15,7 @@
 #include "EMCALReconstruction/RAWDataHeader.h"
 #include "EMCALReconstruction/RawHeaderStream.h"
 #include "EMCALReconstruction/RawReaderFile.h"
+#include "EMCALReconstruction/RawDecodingError.h"
 
 using namespace o2::emcal;
 
@@ -54,7 +55,7 @@ template <class RawHeader>
 void RawReaderFile<RawHeader>::nextPage()
 {
   if (mCurrentPosition >= mNumData)
-    throw Error(Error::ErrorType_t::PAGE_NOTFOUND);
+    throw RawDecodingError(RawDecodingError::ErrorType_t::PAGE_NOTFOUND);
   auto start = mDataFile.tellg();
   readHeader();
   readPayload();
@@ -68,7 +69,7 @@ void RawReaderFile<RawHeader>::readPage(int page)
   mRawHeaderInitialized = false;
   mPayloadInitialized = false;
   if (page >= mNumData)
-    throw Error(Error::ErrorType_t::PAGE_NOTFOUND);
+    throw RawDecodingError(RawDecodingError::ErrorType_t::PAGE_NOTFOUND);
   mDataFile.seekg(page * 8192);
   auto start = mDataFile.tellg();
   readHeader();
@@ -84,7 +85,7 @@ void RawReaderFile<RawHeader>::readHeader()
     // assume the seek is at the header position
     mDataFile >> mRawHeader;
   } catch (...) {
-    throw Error(Error::ErrorType_t::HEADER_DECODING);
+    throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_DECODING);
   }
   mRawHeaderInitialized = true;
 }
@@ -96,7 +97,7 @@ void RawReaderFile<RawHeader>::readPayload()
     // assume the seek is at the payload position
     mRawBuffer.readFromStream(mDataFile, mRawHeader.memorySize - sizeof(mRawHeader));
   } catch (...) {
-    throw Error(Error::ErrorType_t::PAYLOAD_DECODING);
+    throw RawDecodingError(RawDecodingError::ErrorType_t::PAYLOAD_DECODING);
   }
   mPayloadInitialized = true;
 }
@@ -105,7 +106,7 @@ template <class RawHeader>
 const RawHeader& RawReaderFile<RawHeader>::getRawHeader() const
 {
   if (!mRawHeaderInitialized)
-    throw Error(Error::ErrorType_t::HEADER_INVALID);
+    throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_INVALID);
   return mRawHeader;
 }
 
@@ -113,7 +114,7 @@ template <class RawHeader>
 const RawBuffer& RawReaderFile<RawHeader>::getRawBuffer() const
 {
   if (!mPayloadInitialized)
-    throw Error(Error::ErrorType_t::PAYLOAD_INVALID);
+    throw RawDecodingError(RawDecodingError::ErrorType_t::PAYLOAD_INVALID);
   return mRawBuffer;
 }
 

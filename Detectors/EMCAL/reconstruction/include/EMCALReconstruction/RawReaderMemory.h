@@ -7,17 +7,11 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef __O2_EMCAL_RAWREADERFILE_H__
-#define __O2_EMCAL_RAWREADERFILE_H__
+#ifndef ALICEO2_EMCAL_RAWREADERMEMORY_H
+#define ALICEO2_EMCAL_RAWREADERMEMORY_H
 
-#include <array>
-#include <bitset>
-#include <cstdint>
-#include <fstream>
-#include <string>
-
-#include "Rtypes.h"
-#include "RStringView.h"
+#include <gsl/span>
+#include <Rtypes.h>
 
 #include "EMCALReconstruction/RawBuffer.h"
 
@@ -27,26 +21,18 @@ namespace o2
 namespace emcal
 {
 
-/// \class RawReaderFile
-/// \brief Reader for raw data produced by the ReadoutCard from a binary file
-/// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
-/// \since Aug. 12, 2019
-///
-///
 template <class RawHeader>
-class RawReaderFile
+class RawReaderMemory
 {
  public:
-  /// \brief Constructor
-  ///
-  /// Opening the raw file and determining its size and the number
-  /// of pages.
-  RawReaderFile(const std::string_view filename);
+  RawReaderMemory(const gsl::span<char> rawmemory);
 
   /// \brief Destructor
-  ///
-  /// Closing the raw file
-  ~RawReaderFile();
+  ~RawReaderMemory() = default;
+
+  /// \brief set new raw memory chunk
+  /// \param rawmemory New raw memory chunk
+  void setRawMemory(const gsl::span<char> rawmemory);
 
   /// \brief Read the next page from the stream
   /// \throw Error if the page cannot be read or header or payload cannot be deocded
@@ -63,7 +49,7 @@ class RawReaderFile
 
   /// \brief access to the raw header of the current page
   /// \return Raw header of the current page
-  /// \throw Error with HEADER_INVALID if the header was not decoded
+  /// \throw RawDecodingError with HEADER_INVALID if the header was not decoded
   const RawHeader& getRawHeader() const;
 
   /// \brief access to the
@@ -71,7 +57,7 @@ class RawReaderFile
 
   /// \brief get the size of the file in bytes
   /// \return size of the file in byte
-  int getFileSize() const noexcept { return mFileSize; }
+  int getFileSize() const noexcept { return mRawMemoryBuffer.size(); }
 
   /// \brief get the number of pages in the file
   /// \return number of pages in the file
@@ -81,45 +67,23 @@ class RawReaderFile
   /// \return true if there is a next page
   bool hasNext() const { return mCurrentPosition < mNumData; }
 
-  static void readFile(const std::string_view filename);
-
  protected:
-  /// \bried Init the raw reader
-  ///
-  /// Opening the raw file and determining the number of superpages
   void init();
 
-  /// \brief Decode the Raw Data Header
-  /// \throw RawDecodingError with HEADER_DECODING in case the header decoding failed
-  ///
-  /// Decoding the raw header. Function assumes that the pointer
-  /// is at the beginning of the raw header
-  void readHeader();
-
-  /// \brief Decode the payload
-  /// \throw RawDecodingError with PAYLOAD_DECODING in case the payload decoding failed
-  ///
-  /// Decoding the payload. The function assumes that the pointer is at
-  /// the beginning of the payload of the page. Needs the raw header of the
-  /// page to be decoded before in order to determine size of the payload
-  /// and offset.
-  void readPayload();
-
  private:
-  std::string mInputFileName;         ///< Name of the input file
-  std::ifstream mDataFile;            ///< Stream of the inputfile
-  RawHeader mRawHeader;               ///< Raw header
-  RawBuffer mRawBuffer;               ///< Raw bufffer
+  gsl::span<char> mRawMemoryBuffer;
+  RawBuffer mRawBuffer;
+  RawHeader mRawHeader;
   int mCurrentPosition = 0;           ///< Current page in file
-  int mFileSize = 0;                  ///< Size of the file in bytes
   int mNumData = 0;                   ///< Number of pages
   bool mRawHeaderInitialized = false; ///< RDH for current page initialized
   bool mPayloadInitialized = false;   ///< Payload for current page initialized
 
-  ClassDefNV(RawReaderFile, 1);
+  ClassDefNV(RawReaderMemory, 1);
 };
 
 } // namespace emcal
 
 } // namespace o2
+
 #endif
