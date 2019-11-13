@@ -26,20 +26,6 @@ namespace gpu
 
 using namespace deprecated;
 
-
-
-
-GPUd() bool innerAboveThreshold(uchar aboveThreshold, ushort outerIdx)
-{
-    return aboveThreshold & (1 << OUTER_TO_INNER[outerIdx]);
-}
-
-
-GPUd() bool innerAboveThresholdInv(uchar aboveThreshold, ushort outerIdx)
-{
-    return aboveThreshold & (1 << OUTER_TO_INNER_INV[outerIdx]);
-}
-
 GPUd() void addOuterCharge(
         GPUglobalref() const PackedCharge    *chargeMap,
                      ClusterAccumulator *cluster,
