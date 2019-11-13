@@ -148,7 +148,13 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         TPCClusterFinder/GPUTPCClusterFinder.cxx
         TPCClusterFinder/PackedCharge.cxx
         TPCClusterFinder/ClusterAccumulator.cxx
-        TPCClusterFinder/StreamCompaction.cxx)
+        TPCClusterFinder/StreamCompaction.cxx
+        TPCClusterFinder/ChargeMapFiller.cxx
+        TPCClusterFinder/PeakFinder.cxx
+        TPCClusterFinder/NoiseSuppression.cxx
+        TPCClusterFinder/Clusterizer.cxx
+        TPCClusterFinder/Deconvolution.cxx)
+
     set(HDRS_INSTALL ${HDRS_INSTALL} Interface/GPUO2InterfaceConfiguration.h
                      ITS/GPUITSTrack.h dEdx/GPUdEdxInfo.h)
 endif()
