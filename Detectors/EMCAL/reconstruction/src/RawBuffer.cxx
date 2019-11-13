@@ -40,9 +40,9 @@ void RawBuffer::readFromStream(std::istream& in, uint32_t payloadsize)
   }
 }
 
-void RawBuffer::readFromMemoryBuffer(const gsl::span<char> rawmemory) {
+void RawBuffer::readFromMemoryBuffer(const gsl::span<const char> rawmemory) {
   flush();  
-  auto address = reinterpret_cast<uint32_t*>(rawmemory.data());
+  auto address = reinterpret_cast<const uint32_t*>(rawmemory.data());
   for(auto iword = 0; iword < rawmemory.size() / sizeof(uint32_t); iword++) {
     if((address[iword] & 0xFFF) == 0x082)  {
       // Termination word

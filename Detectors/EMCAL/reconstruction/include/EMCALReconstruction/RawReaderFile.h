@@ -19,7 +19,9 @@
 #include "Rtypes.h"
 #include "RStringView.h"
 
+#include "Headers/RAWDataHeader.h"
 #include "EMCALReconstruction/RawBuffer.h"
+#include "EMCALReconstruction/RAWDataHeader.h"
 
 namespace o2
 {
@@ -118,6 +120,10 @@ class RawReaderFile
 
   ClassDefNV(RawReaderFile, 1);
 };
+
+// template specifications
+using RawReaderFileRDHvE = RawReaderFile<o2::emcal::RAWDataHeader>;
+using RawReaderFileRDHv4 = RawReaderFile<o2::header::RAWDataHeaderV4>;
 
 } // namespace emcal
 
