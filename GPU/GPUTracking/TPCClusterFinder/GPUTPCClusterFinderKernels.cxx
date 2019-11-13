@@ -18,6 +18,7 @@
 #include "GPUTPCClusterFinder.h"
 #include "Array2D.h"
 #include "PackedCharge.h"
+#include "CfConsts.h"
 #include "CfUtils.h"
 #include "ClusterAccumulator.h"
 #include "cl/clusterFinderDefs.h"
