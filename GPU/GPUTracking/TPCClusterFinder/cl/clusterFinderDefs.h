@@ -14,6 +14,8 @@
 #ifndef O2_GPU_CLUSTERFINDERDEFS_H
 #define O2_GPU_CLUSTERFINDERDEFS_H
 
+#include "GPUDef.h"
+
 #ifndef __OPENCL__
 typedef unsigned char uchar;
 #endif
@@ -72,7 +74,6 @@ typedef unsigned long ulong;
 #define TPC_MAX_TIME 4000
 #define TPC_MAX_TIME_PADDED (TPC_MAX_TIME + 2 * PADDING_TIME)
 
-#include "GPUDef.h"
 
 namespace GPUCA_NAMESPACE
 {

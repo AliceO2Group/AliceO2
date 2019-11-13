@@ -17,6 +17,10 @@
 #include "cl/clusterFinderDefs.h"
 #include "PackedCharge.h"
 
+#ifndef SCRATCH_PAD_WORK_GROUP_SIZE
+#error "Work group size not defined"
+#endif
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
