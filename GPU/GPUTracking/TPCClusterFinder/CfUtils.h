@@ -15,7 +15,7 @@
 #define O2_GPU_CF_UTILS_H
 
 #include "GPUDef.h"
-#include "cl/clusterFinderDefs.h"
+#include "clusterFinderDefs.h"
 #include "CfConsts.h"
 
 namespace GPUCA_NAMESPACE

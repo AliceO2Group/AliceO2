@@ -16,7 +16,7 @@
 
 #include "GPUDef.h"
 #include "PackedCharge.h"
-#include "cl/clusterFinderDefs.h"
+#include "clusterFinderDefs.h"
 
 namespace GPUCA_NAMESPACE
 {

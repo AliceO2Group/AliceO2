@@ -15,7 +15,7 @@
 #define O2_GPU_PACKED_CHARGE_H
 
 #include "GPUDef.h"
-#include "cl/clusterFinderDefs.h"
+#include "clusterFinderDefs.h"
 
 namespace GPUCA_NAMESPACE
 {

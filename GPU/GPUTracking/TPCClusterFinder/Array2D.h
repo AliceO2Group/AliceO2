@@ -14,7 +14,7 @@
 #ifndef O2_GPU_ARRAY2D_H
 #define O2_GPU_ARRAY2D_H
 
-#include "cl/clusterFinderDefs.h"
+#include "clusterFinderDefs.h"
 
 namespace GPUCA_NAMESPACE
 {

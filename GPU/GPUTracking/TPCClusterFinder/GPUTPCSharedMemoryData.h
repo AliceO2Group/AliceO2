@@ -14,7 +14,7 @@
 #ifndef O2_GPU_GPU_TPC_SHARED_MEMORY_DATA_H
 #define O2_GPU_GPU_TPC_SHARED_MEMORY_DATA_H
 
-#include "cl/clusterFinderDefs.h"
+#include "clusterFinderDefs.h"
 #include "PackedCharge.h"
 
 #ifndef SCRATCH_PAD_WORK_GROUP_SIZE
