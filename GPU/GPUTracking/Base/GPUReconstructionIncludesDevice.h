@@ -70,6 +70,11 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "ClusterAccumulator.cxx"
 #include "PackedCharge.cxx"
 #include "StreamCompaction.cxx"
+#include "ChargeMapFiller.cxx"
+#include "PeakFinder.cxx"
+#include "NoiseSuppression.cxx"
+#include "Clusterizer.cxx"
+#include "Deconvolution.cxx"
 
 // Files for TRD Tracking
 #include "GPUTRDTrackerGPU.cxx"
