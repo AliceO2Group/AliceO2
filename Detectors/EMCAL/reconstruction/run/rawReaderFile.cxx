@@ -69,7 +69,7 @@ int main(int argc, char** argv)
   for (int ipage = 0; ipage < reader.getNumberOfPages(); ipage++) {
     reader.nextPage();
     std::cout << reader.getRawHeader();
-    o2::emcal::AltroDecoder decoder(reader);
+    o2::emcal::AltroDecoder<o2::emcal::RawReaderFile<o2::emcal::RAWDataHeader>> decoder(reader);
     decoder.decode();
     std::cout << decoder.getRCUTrailer() << std::endl;
     for (auto& chan : decoder.getChannels()) {
