@@ -45,6 +45,6 @@ o2_data_file(COPY files DESTINATION Detectors/EMC)
 
 o2_add_test(Mapper
             SOURCES test/testMapper.cxx
-            PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction
+            PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction O2::Headers
             COMPONENT_NAME emcal
             LABELS emcal)
