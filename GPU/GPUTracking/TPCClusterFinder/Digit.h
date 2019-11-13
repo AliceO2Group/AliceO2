@@ -10,7 +10,7 @@
 #if !defined(SHARED_DIGIT_H)
 #define SHARED_DIGIT_H
 
-#include "cl/clusterFinderDefs.h"
+#include "clusterFinderDefs.h"
 
 namespace GPUCA_NAMESPACE
 {

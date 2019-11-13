@@ -14,8 +14,8 @@
 #include "GPUTPCClusterFinder.h"
 #include "GPUReconstruction.h"
 
-#include "cl/shared/ClusterNative.h"
-#include "cl/shared/Digit.h"
+#include "ClusterNative.h"
+#include "Digit.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 
