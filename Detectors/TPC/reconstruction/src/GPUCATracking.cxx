@@ -32,7 +32,7 @@
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUTPCGMMergedTrackHit.h"
 
-#include "cl/shared/Digit.h"
+#include "Digit.h"
 
 using namespace o2::gpu;
 using namespace o2::tpc;

@@ -14,7 +14,7 @@
 #ifndef O2_GPU_CF_CONSTS_H
 #define O2_GPU_CF_CONSTS_H
 
-#include "cl/clusterFinderDefs.h"
+#include "clusterFinderDefs.h"
 
 namespace GPUCA_NAMESPACE
 {

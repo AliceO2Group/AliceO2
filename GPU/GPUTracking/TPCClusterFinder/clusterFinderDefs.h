@@ -74,7 +74,6 @@ typedef unsigned long ulong;
 #define TPC_MAX_TIME 4000
 #define TPC_MAX_TIME_PADDED (TPC_MAX_TIME + 2 * PADDING_TIME)
 
-
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -110,7 +109,7 @@ typedef short2 local_id;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#include "shared/Digit.h"
-#include "shared/ClusterNative.h"
+#include "Digit.h"
+#include "ClusterNative.h"
 
 #endif

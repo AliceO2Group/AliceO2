@@ -14,7 +14,7 @@
 #ifndef O2_GPU_STREAM_COMPACTION_H
 #define O2_GPU_STREAM_COMPACTION_H
 
-#include "cl/clusterFinderDefs.h"
+#include "clusterFinderDefs.h"
 #include "GPUTPCClusterFinderKernels.h"
 
 namespace GPUCA_NAMESPACE
