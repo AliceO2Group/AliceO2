@@ -16,6 +16,7 @@
 
 #include "GPUDef.h"
 #include "cl/clusterFinderDefs.h"
+#include "CfConsts.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -26,6 +27,16 @@ namespace gpu
 GPUdi() bool isAtEdge(const deprecated::Digit* d)
 {
   return (d->pad < 2 || d->pad >= TPC_PADS_PER_ROW - 2);
+}
+
+GPUdi() bool innerAboveThreshold(uchar aboveThreshold, ushort outerIdx)
+{
+  return aboveThreshold & (1 << OUTER_TO_INNER[outerIdx]);
+}
+
+GPUdi() bool innerAboveThresholdInv(uchar aboveThreshold, ushort outerIdx)
+{
+  return aboveThreshold & (1 << OUTER_TO_INNER_INV[outerIdx]);
 }
 
 } // namespace gpu

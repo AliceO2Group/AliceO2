@@ -21,9 +21,8 @@
 #include "CfConsts.h"
 #include "CfUtils.h"
 #include "ClusterAccumulator.h"
-#include "cl/clusterFinderDefs.h"
+#include "StreamCompaction.h"
 
-#include "cl/streamCompaction.cl"
 #include "cl/clusterFinder.cl"
 
 using namespace GPUCA_NAMESPACE::gpu;
