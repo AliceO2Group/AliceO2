@@ -7,8 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef __O2_EMCAL_ALTRODECODER_H__
-#define __O2_EMCAL_ALTRODECODER_H__
+#ifndef ALICEO2_EMCAL_ALTRODECODER_H
+#define ALICEO2_EMCAL_ALTRODECODER_H
 
 #include <exception>
 #include <iosfwd>
@@ -17,6 +17,12 @@
 #include "EMCALReconstruction/RCUTrailer.h"
 #include "EMCALReconstruction/Bunch.h"
 #include "EMCALReconstruction/Channel.h"
+
+// for template specification
+#include "EMCALReconstruction/RawReaderFile.h"
+#include "EMCALReconstruction/RawReaderMemory.h"
+#include "EMCALReconstruction/RAWDataHeader.h"
+#include "Headers/RAWDataHeader.h"
 
 namespace o2
 {
@@ -129,6 +135,13 @@ class AltroDecoder
 
   ClassDefNV(AltroDecoder, 1);
 };
+
+// template specifications
+using AltroDecoderMemoryRDHvE = AltroDecoder<RawReaderMemory<o2::emcal::RAWDataHeader>>;
+using AltroDecoderMemoryRDHv4 = AltroDecoder<RawReaderMemory<o2::header::RAWDataHeaderV4>>;
+using AltroDecoderFileRDHvE = AltroDecoder<RawReaderFile<o2::emcal::RAWDataHeader>>;
+using AltroDecoderFileRDHv4 = AltroDecoder<RawReaderFile<o2::header::RAWDataHeaderV4>>;
+
 
 } // namespace emcal
 

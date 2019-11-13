@@ -10,21 +10,20 @@
 
 #include <sstream>
 #include <string>
-#include "Headers/RAWDataHeader.h"
-#include "EMCALReconstruction/RAWDataHeader.h"
+#include "EMCALReconstruction/RawHeaderStream.h"
 #include "EMCALReconstruction/RawReaderMemory.h"
 #include "EMCALReconstruction/RawDecodingError.h"
 
 using namespace o2::emcal;
 
 template <class RawHeader>
-RawReaderMemory<RawHeader>::RawReaderMemory(gsl::span<char> rawmemory) : mRawMemoryBuffer(rawmemory)
+RawReaderMemory<RawHeader>::RawReaderMemory(gsl::span<const char> rawmemory) : mRawMemoryBuffer(rawmemory)
 {
   init();
 }
 
 template <class RawHeader>
-void RawReaderMemory<RawHeader>::setRawMemory(const gsl::span<char> rawmemory)
+void RawReaderMemory<RawHeader>::setRawMemory(const gsl::span<const char> rawmemory)
 {
   mRawMemoryBuffer = rawmemory;
   init();
@@ -61,7 +60,7 @@ void RawReaderMemory<RawHeader>::nextPage()
     // Payload incomplete
     throw RawDecodingError(RawDecodingError::ErrorType_t::PAYLOAD_DECODING);
   } else {
-    mRawBuffer.readFromMemoryBuffer(gsl::span<char>(mRawMemoryBuffer.data() + mCurrentPosition + sizeof(RawHeader), mRawHeader.memorySize));
+    mRawBuffer.readFromMemoryBuffer(gsl::span<const char>(mRawMemoryBuffer.data() + mCurrentPosition + sizeof(RawHeader), mRawHeader.memorySize));
   }
   mCurrentPosition += mRawHeader.offsetToNext; /// Assume fixed 8 kB page size
 }
@@ -88,7 +87,7 @@ void RawReaderMemory<RawHeader>::readPage(int page)
     // Payload incomplete
     throw RawDecodingError(RawDecodingError::ErrorType_t::PAYLOAD_DECODING);
   } else {
-    mRawBuffer.readFromMemoryBuffer(gsl::span<char>(mRawMemoryBuffer.data() + currentposition + sizeof(RawHeader), mRawHeader.memorySize));
+    mRawBuffer.readFromMemoryBuffer(gsl::span<const char>(mRawMemoryBuffer.data() + currentposition + sizeof(RawHeader), mRawHeader.memorySize));
   }
 }
 
@@ -109,4 +108,4 @@ const RawBuffer& RawReaderMemory<RawHeader>::getRawBuffer() const
 }
 
 template class o2::emcal::RawReaderMemory<o2::emcal::RAWDataHeader>;
-//template class o2::emcal::RawReaderMemory<o2::header::RAWDataHeaderV4>;
+template class o2::emcal::RawReaderMemory<o2::header::RAWDataHeaderV4>;

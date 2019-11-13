@@ -118,6 +118,6 @@ const std::vector<Channel>& AltroDecoder<RawReader>::getChannels() const
 }
 
 template class o2::emcal::AltroDecoder<o2::emcal::RawReaderFile<o2::emcal::RAWDataHeader>>;
-//template class o2::emcal::AltroDecoder<o2::emcal::RawReaderFile<o2::header::RAWDataHeaderV4>>;
+template class o2::emcal::AltroDecoder<o2::emcal::RawReaderFile<o2::header::RAWDataHeaderV4>>;
 template class o2::emcal::AltroDecoder<o2::emcal::RawReaderMemory<o2::emcal::RAWDataHeader>>;
-//template class o2::emcal::AltroDecoder<o2::emcal::RawReaderMemory<o2::header::RAWDataHeaderV4>>;
+template class o2::emcal::AltroDecoder<o2::emcal::RawReaderMemory<o2::header::RAWDataHeaderV4>>;

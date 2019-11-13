@@ -7,8 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef __O2_EMCAL_RAWBUFFER_H__
-#define __O2_EMCAL_RAWBUFFER_H__
+#ifndef ALICEO2_EMCAL_RAWBUFFER_H
+#define ALICEO2_EMCAL_RAWBUFFER_H
 
 #include <array>
 #include <cstdint>
@@ -48,7 +48,7 @@ class RawBuffer
   /// \param rawmemory Raw memory buffer (as char words) with size of the payload from the raw data header
   /// Converts the char word raw memory buffer of a pages into
   /// into the 32 bit word buffer
-  void readFromMemoryBuffer(const gsl::span<char> rawmemory);
+  void readFromMemoryBuffer(const gsl::span<const char> rawmemory);
 
   /// \brief Get the number of data words read for the superpage
   /// \return Number of data words in the superpage
