@@ -606,7 +606,7 @@ class TableMetadata
   }
 
 template <typename... C1, typename... C2>
-constexpr auto JoinTables(o2::soa::Table<C1...>&, o2::soa::Table<C2...>)
+constexpr auto JoinTables(o2::soa::Table<C1...>&, o2::soa::Table<C2...>&)
 {
   return std::declval<o2::soa::Table<C1..., C2...>>;
 }
