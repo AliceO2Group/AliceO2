@@ -13,6 +13,7 @@
 #include <array>
 #include <cstdint>
 #include <iosfwd>
+#include <gsl/span>
 
 namespace o2
 {
@@ -35,11 +36,19 @@ class RawBuffer
   /// Does not overwrite the word buffer but just resets the counter and iterator
   void flush();
 
-  /// \brief Read superpage from stream
+  /// \brief Read page from stream
+  /// \param in Input file stream
+  /// \param payloadsize Number of char words in payload
   /// Read a whole superpage from the raw stream
   /// and convert the bitwise representation directly
   /// into 32 bit words
   void readFromStream(std::istream& in, uint32_t payloadsize);
+
+  /// \brief Read page from raw memory buffer
+  /// \param rawmemory Raw memory buffer (as char words) with size of the payload from the raw data header
+  /// Converts the char word raw memory buffer of a pages into
+  /// into the 32 bit word buffer
+  void readFromMemoryBuffer(const gsl::span<char> rawmemory);
 
   /// \brief Get the number of data words read for the superpage
   /// \return Number of data words in the superpage
