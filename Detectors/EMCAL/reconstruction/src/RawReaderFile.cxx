@@ -11,8 +11,6 @@
 #include <iostream>
 #include <iomanip>
 
-#include "Headers/RAWDataHeader.h"
-#include "EMCALReconstruction/RAWDataHeader.h"
 #include "EMCALReconstruction/RawHeaderStream.h"
 #include "EMCALReconstruction/RawReaderFile.h"
 #include "EMCALReconstruction/RawDecodingError.h"
@@ -129,4 +127,4 @@ void RawReaderFile<RawHeader>::readFile(const std::string_view filename)
 }
 
 template class o2::emcal::RawReaderFile<o2::emcal::RAWDataHeader>;
-//template class o2::emcal::RawReaderFile<o2::header::RAWDataHeaderV4>;
+template class o2::emcal::RawReaderFile<o2::header::RAWDataHeaderV4>;

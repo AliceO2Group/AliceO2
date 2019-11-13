@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef __O2_EMCAL_RAwDATAHEADER_H__
-#define __O2_EMCAL_RAwDATAHEADER_H__
+#ifndef ALICEO2_EMCAL_RAwDATAHEADER_H
+#define ALICEO2_EMCAL_RAwDATAHEADER_H
 
 #include <iosfwd>
 #include <cstdint>

@@ -14,6 +14,8 @@
 #include <Rtypes.h>
 
 #include "EMCALReconstruction/RawBuffer.h"
+#include "EMCALReconstruction/RAWDataHeader.h"
+#include "Headers/RAWDataHeader.h"
 
 namespace o2
 {
@@ -25,14 +27,14 @@ template <class RawHeader>
 class RawReaderMemory
 {
  public:
-  RawReaderMemory(const gsl::span<char> rawmemory);
+  RawReaderMemory(const gsl::span<const char> rawmemory);
 
   /// \brief Destructor
   ~RawReaderMemory() = default;
 
   /// \brief set new raw memory chunk
   /// \param rawmemory New raw memory chunk
-  void setRawMemory(const gsl::span<char> rawmemory);
+  void setRawMemory(const gsl::span<const char> rawmemory);
 
   /// \brief Read the next page from the stream
   /// \throw Error if the page cannot be read or header or payload cannot be deocded
@@ -71,7 +73,7 @@ class RawReaderMemory
   void init();
 
  private:
-  gsl::span<char> mRawMemoryBuffer;
+  gsl::span<const char> mRawMemoryBuffer;
   RawBuffer mRawBuffer;
   RawHeader mRawHeader;
   int mCurrentPosition = 0;           ///< Current page in file
@@ -81,6 +83,10 @@ class RawReaderMemory
 
   ClassDefNV(RawReaderMemory, 1);
 };
+
+// For template specifications
+using RawReaderMemoryRDHvE = RawReaderMemory<o2::emcal::RAWDataHeader>;
+using RawReaderMemoryRDHv4 = RawReaderMemory<o2::header::RAWDataHeaderV4>;
 
 } // namespace emcal
 
