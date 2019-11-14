@@ -14,7 +14,7 @@
 #include <iosfwd>
 #include <string>
 #include "Rtypes.h"
-#include "EMCALReconstruction/RawBuffer.h"
+#include "EMCALReconstruction/RawPayload.h"
 
 namespace o2
 {
@@ -89,7 +89,7 @@ class RCUTrailer
   ///
   /// Read the RCU trailer according to the RCU formware version
   /// specified in CDH.
-  void constructFromRawBuffer(const RawBuffer& buffer);
+  void constructFromRawPayload(const RawPayload& buffer);
 
   unsigned int getFECErrorsA() const { return mFECERRA; }
   unsigned int getFECErrorsB() const { return mFECERRB; }

@@ -15,6 +15,7 @@
 
 #include "EMCALReconstruction/RawBuffer.h"
 #include "EMCALReconstruction/RAWDataHeader.h"
+#include "EMCALReconstruction/RawPayload.h"
 #include "Headers/RAWDataHeader.h"
 
 namespace o2
@@ -23,10 +24,17 @@ namespace o2
 namespace emcal
 {
 
+/// \class RawReaderMemory
+/// \brief Reader for raw data produced by the Readout application in in-memory format
+/// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
+/// \since Nov. 14, 2019
+///
+//
 template <class RawHeader>
 class RawReaderMemory
 {
  public:
+  /// \brief Constructor
   RawReaderMemory(const gsl::span<const char> rawmemory);
 
   /// \brief Destructor
@@ -36,9 +44,20 @@ class RawReaderMemory
   /// \param rawmemory New raw memory chunk
   void setRawMemory(const gsl::span<const char> rawmemory);
 
-  /// \brief Read the next page from the stream
+  /// \brief Read next payload from the stream
+  ///
+  /// Read the next pages until the stop bit is found.
+  void next();
+
+  /// \brief Read the next page from the stream (single DMA page)
+  /// \param resetPayload If true the raw payload is reset
   /// \throw Error if the page cannot be read or header or payload cannot be deocded
-  void nextPage();
+  ///
+  /// Function reading a single DMA page from the stream. It is called
+  /// inside the next() function for reading payload from multiple DMA
+  /// pages. As the function cannot handle payload from multiple pages
+  /// it should not be called directly by the user.
+  void nextPage(bool resetPayload = true);
 
   /// \brief Read page with a given index
   /// \param page Index of the page to be decoded
@@ -54,8 +73,14 @@ class RawReaderMemory
   /// \throw RawDecodingError with HEADER_INVALID if the header was not decoded
   const RawHeader& getRawHeader() const;
 
-  /// \brief access to the
+  /// \brief access to the raw buffer (single DMA page)
+  /// \return Raw buffer of the current page
+  /// \throw Error with PAYLOAD_INCALID if payload was not decoded
   const RawBuffer& getRawBuffer() const;
+
+  /// \brief access to the full raw payload (single or multiple DMA pages)
+  /// \return Raw Payload of the data until the stop bit is received.
+  const RawPayload& getPayload() const { return mRawPayload; }
 
   /// \brief get the size of the file in bytes
   /// \return size of the file in byte
@@ -70,16 +95,23 @@ class RawReaderMemory
   bool hasNext() const { return mCurrentPosition < mNumData; }
 
  protected:
+  /// \brief Initialize the raw stream
+  ///
+  /// Rewind stream to the first entry
   void init();
 
+  bool isStop(const o2::emcal::RAWDataHeader& hdr) { return true; }
+  bool isStop(const o2::header::RAWDataHeaderV4& hdr) { return hdr.stop; }
+
  private:
-  gsl::span<const char> mRawMemoryBuffer;
-  RawBuffer mRawBuffer;
-  RawHeader mRawHeader;
-  int mCurrentPosition = 0;           ///< Current page in file
-  int mNumData = 0;                   ///< Number of pages
-  bool mRawHeaderInitialized = false; ///< RDH for current page initialized
-  bool mPayloadInitialized = false;   ///< Payload for current page initialized
+  gsl::span<const char> mRawMemoryBuffer; ///< Memory block with multiple DMA pages
+  RawBuffer mRawBuffer;                   ///< Raw buffer
+  RawHeader mRawHeader;                   ///< Raw header
+  RawPayload mRawPayload;                 ///< Raw payload (can consist of multiple pages)
+  int mCurrentPosition = 0;               ///< Current page in file
+  int mNumData = 0;                       ///< Number of pages
+  bool mRawHeaderInitialized = false;     ///< RDH for current page initialized
+  bool mPayloadInitialized = false;       ///< Payload for current page initialized
 
   ClassDefNV(RawReaderMemory, 1);
 };

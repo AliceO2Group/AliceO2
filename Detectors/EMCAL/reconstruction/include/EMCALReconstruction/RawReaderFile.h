@@ -7,8 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef __O2_EMCAL_RAWREADERFILE_H__
-#define __O2_EMCAL_RAWREADERFILE_H__
+#ifndef ALICEO2_EMCAL_RAWREADERFILE_H
+#define ALICEO2_EMCAL_RAWREADERFILE_H
 
 #include <array>
 #include <bitset>
@@ -22,6 +22,7 @@
 #include "Headers/RAWDataHeader.h"
 #include "EMCALReconstruction/RawBuffer.h"
 #include "EMCALReconstruction/RAWDataHeader.h"
+#include "EMCALReconstruction/RawPayload.h"
 
 namespace o2
 {
@@ -50,9 +51,20 @@ class RawReaderFile
   /// Closing the raw file
   ~RawReaderFile();
 
-  /// \brief Read the next page from the stream
+  /// \brief Read next payload from the stream
+  ///
+  /// Read the next pages until the stop bit is found.
+  void next();
+
+  /// \brief Read the next page from the stream (single DMA page)
+  /// \param resetPayload If true the raw payload is reset
   /// \throw Error if the page cannot be read or header or payload cannot be deocded
-  void nextPage();
+  ///
+  /// Function reading a single DMA page from the stream. It is called
+  /// inside the next() function for reading payload from multiple DMA
+  /// pages. As the function cannot handle payload from multiple pages
+  /// it should not be called directly by the user.
+  void nextPage(bool resetPayload = true);
 
   /// \brief Read page with a given index
   /// \param page Index of the page to be decoded
@@ -68,8 +80,14 @@ class RawReaderFile
   /// \throw Error with HEADER_INVALID if the header was not decoded
   const RawHeader& getRawHeader() const;
 
-  /// \brief access to the
+  /// \brief access to the raw buffer (single DMA page)
+  /// \return Raw buffer of the current page
+  /// \throw Error with PAYLOAD_INCALID if payload was not decoded
   const RawBuffer& getRawBuffer() const;
+
+  /// \brief access to the full raw payload (single or multiple DMA pages)
+  /// \return Raw Payload of the data until the stop bit is received.
+  const RawPayload& getPayload() const { return mRawPayload; }
 
   /// \brief get the size of the file in bytes
   /// \return size of the file in byte
@@ -86,7 +104,7 @@ class RawReaderFile
   static void readFile(const std::string_view filename);
 
  protected:
-  /// \bried Init the raw reader
+  /// \brief Init the raw reader
   ///
   /// Opening the raw file and determining the number of superpages
   void init();
@@ -107,11 +125,15 @@ class RawReaderFile
   /// and offset.
   void readPayload();
 
+  bool isStop(const o2::emcal::RAWDataHeader& hdr) { return true; }
+  bool isStop(const o2::header::RAWDataHeaderV4& hdr) { return hdr.stop; }
+
  private:
   std::string mInputFileName;         ///< Name of the input file
   std::ifstream mDataFile;            ///< Stream of the inputfile
   RawHeader mRawHeader;               ///< Raw header
-  RawBuffer mRawBuffer;               ///< Raw bufffer
+  RawBuffer mRawBuffer;               ///< Raw buffer
+  RawPayload mRawPayload;             ///< Raw payload (can consist of multiple pages)
   int mCurrentPosition = 0;           ///< Current page in file
   int mFileSize = 0;                  ///< Size of the file in bytes
   int mNumData = 0;                   ///< Number of pages

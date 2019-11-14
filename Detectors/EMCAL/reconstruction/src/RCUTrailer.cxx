@@ -31,11 +31,12 @@ void RCUTrailer::reset()
   mIsInitialized = false;
 }
 
-void RCUTrailer::constructFromRawBuffer(const RawBuffer& buffer)
+void RCUTrailer::constructFromRawPayload(const RawPayload& buffer)
 {
   reset();
-  int index = buffer.getNDataWords() - 1;
-  auto word = buffer.getWord(index);
+  auto payloadwords = buffer.getPayloadWords();
+  int index = payloadwords.size() - 1;
+  auto word = payloadwords[index];
   if ((word >> 30) != 3)
     throw Error(Error::ErrorType_t::DECODING_INVALID, "Last RCU trailer word not found!");
   mFirmwareVersion = (word >> 16) & 0xFF;
@@ -48,7 +49,7 @@ void RCUTrailer::constructFromRawBuffer(const RawBuffer& buffer)
   mTrailerSize = trailerSize;
 
   for (; trailerSize > 0; trailerSize--) {
-    word = buffer.getWord(--index);
+    word = payloadwords[--index];
     if ((word >> 30) != 2) {
       std::cerr << "Missing RCU trailer identifier pattern!\n";
       continue;
@@ -90,7 +91,7 @@ void RCUTrailer::constructFromRawBuffer(const RawBuffer& buffer)
         break;
     }
   }
-  mPayloadSize = buffer.getWord(--index) & 0x3FFFFFF;
+  mPayloadSize = payloadwords[--index] & 0x3FFFFFF;
   mIsInitialized = true;
 }
 

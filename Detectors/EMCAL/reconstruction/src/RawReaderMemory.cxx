@@ -40,10 +40,21 @@ void RawReaderMemory<RawHeader>::init()
 }
 
 template <class RawHeader>
-void RawReaderMemory<RawHeader>::nextPage()
+void RawReaderMemory<RawHeader>::next()
+{
+  mRawPayload.reset();
+  do {
+    nextPage(false);
+  } while (!isStop(mRawHeader));
+}
+
+template <class RawHeader>
+void RawReaderMemory<RawHeader>::nextPage(bool doResetPayload)
 {
   if (!hasNext())
     throw RawDecodingError(RawDecodingError::ErrorType_t::PAGE_NOTFOUND);
+  if (doResetPayload)
+    mRawPayload.reset();
   mRawHeaderInitialized = false;
   mPayloadInitialized = false;
   // Use std::string stream as byte stream
@@ -61,6 +72,8 @@ void RawReaderMemory<RawHeader>::nextPage()
     throw RawDecodingError(RawDecodingError::ErrorType_t::PAYLOAD_DECODING);
   } else {
     mRawBuffer.readFromMemoryBuffer(gsl::span<const char>(mRawMemoryBuffer.data() + mCurrentPosition + sizeof(RawHeader), mRawHeader.memorySize));
+    mRawPayload.appendPayloadWords(mRawBuffer.getDataWords());
+    mRawPayload.increasePageCount();
   }
   mCurrentPosition += mRawHeader.offsetToNext; /// Assume fixed 8 kB page size
 }

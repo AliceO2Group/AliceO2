@@ -19,6 +19,12 @@ using namespace o2::emcal;
 
 #define CHECK_BIT(var, pos) ((var) & (1 << (pos)))
 
+bool isStop(const o2::emcal::RAWDataHeader& hdr)
+{
+  return true;
+}
+bool isStop(const o2::header::RAWDataHeaderV4& hdr) { return hdr.stop; }
+
 template <class RawHeader>
 RawReaderFile<RawHeader>::RawReaderFile(const std::string_view filename) : mInputFileName(filename),
                                                                            mDataFile(),
@@ -50,13 +56,26 @@ void RawReaderFile<RawHeader>::init()
 }
 
 template <class RawHeader>
-void RawReaderFile<RawHeader>::nextPage()
+void RawReaderFile<RawHeader>::next()
+{
+  mRawPayload.reset();
+  do {
+    nextPage(false);
+  } while (!isStop(mRawHeader));
+}
+
+template <class RawHeader>
+void RawReaderFile<RawHeader>::nextPage(bool doResetPayload)
 {
   if (mCurrentPosition >= mNumData)
     throw RawDecodingError(RawDecodingError::ErrorType_t::PAGE_NOTFOUND);
+  if (doResetPayload)
+    mRawPayload.reset();
   auto start = mDataFile.tellg();
   readHeader();
   readPayload();
+  mRawPayload.appendPayloadWords(mRawBuffer.getDataWords());
+  mRawPayload.increasePageCount();
   mDataFile.seekg(int(start) + mRawHeader.offsetToNext);
   mCurrentPosition++;
 }
