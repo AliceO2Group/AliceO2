@@ -18,6 +18,7 @@
 #include "ITSMFTReconstruction/DigitPixelReader.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"

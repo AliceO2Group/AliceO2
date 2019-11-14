@@ -605,4 +605,13 @@ class TableMetadata
     using metadata = _Name_##Metadata;                                 \
   }
 
+template <typename... C1, typename... C2>
+constexpr auto JoinTables(o2::soa::Table<C1...>&, o2::soa::Table<C2...>&)
+{
+  return std::declval<o2::soa::Table<C1..., C2...>>;
+}
+
+template <typename T1, typename T2>
+using Join = decltype(JoinTables(std::declval<T1>, std::declval<T2>));
+
 #endif // O2_FRAMEWORK_ASOA_H_

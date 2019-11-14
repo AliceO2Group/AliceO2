@@ -12,6 +12,7 @@
 
 #include "EMCALDigitWriterSpec.h"
 #include "Framework/CallbackService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>

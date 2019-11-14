@@ -19,6 +19,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ClusterGroupAttribute.h"
 #include "DataFormatsTPC/ClusterNative.h"

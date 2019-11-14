@@ -36,6 +36,25 @@ RawReaderCRUEventSync::LinkInfo& RawReaderCRUEventSync::getLinkInfo(uint32_t hea
 }
 */
 
+RawReaderCRUEventSync::EventInfo& RawReaderCRUEventSync::createEvent(const RDH& rdh, DataType dataType)
+{
+  const auto heartbeatOrbit = rdh.heartbeatOrbit;
+  const auto isTriggerd = (dataType == DataType::Triggered);
+
+  for (auto& ev : mEventInformation) {
+    //const auto lastHBOrbit = ev.HeartbeatOrbits.back();
+    const auto hbMatch = ev.hasHearbeatOrbit(heartbeatOrbit); //(lastHBOrbit == heartbeatOrbit);
+    //const auto hbMatchPrev = (lastHBOrbit == heartbeatOrbit - 1);
+    if (hbMatch) {
+      return ev;
+    } else if (isTriggerd && (ev.HeartbeatOrbits.back() == heartbeatOrbit - 1)) { //hbMatchPrev) {
+      ev.HeartbeatOrbits.emplace_back(heartbeatOrbit);
+      return ev;
+    }
+  }
+  return mEventInformation.emplace_back(heartbeatOrbit);
+}
+
 void RawReaderCRUEventSync::analyse()
 {
   //expected number of packets in one HBorbit
@@ -46,12 +65,28 @@ void RawReaderCRUEventSync::analyse()
     for (size_t iCRU = 0; iCRU < event.CRUInfoArray.size(); ++iCRU) {
       const auto& cruInfo = event.CRUInfoArray[iCRU];
       if (!cruInfo.isPresent()) {
+        if (mCRUSeen[iCRU]) {
+          event.IsComplete = false;
+          break;
+        }
+
         continue;
       }
       if (!cruInfo.isComplete()) {
         event.IsComplete = false;
         break;
       }
+    }
+  }
+}
+
+void RawReaderCRUEventSync::setLinksSeen(const CRU cru, const std::bitset<MaxNumberOfLinks>& links)
+{
+  for (auto& ev : mEventInformation) {
+    auto& cruInfo = ev.CRUInfoArray[cru];
+    for (int ilink = 0; ilink < cruInfo.LinkInformation.size(); ++ilink) {
+      auto& linkInfo = cruInfo.LinkInformation[ilink];
+      linkInfo.WasSeen = links[ilink];
     }
   }
 }
@@ -77,7 +112,11 @@ void RawReaderCRUEventSync::streamTo(std::ostream& output) const
       std::cout << green;
     }
     std::cout << "Event " << i << "                                \n"
-              << clear << "    heartbeatOrbit: " << event.HeartbeatOrbit << "\n"
+              << clear << "    heartbeatOrbits: ";
+    for (const auto& orbit : event.HeartbeatOrbits) {
+      std::cout << orbit << " ";
+    }
+    std::cout << "\n"
               << "    Is complete: " << isComplete << "\n";
 
     // cru loop
@@ -111,8 +150,10 @@ void RawReaderCRUEventSync::streamTo(std::ostream& output) const
         if (linkInfo.PacketPositions.size() != ExpectedNumberOfPacketsPerHBFrame) {
           std::cout << red;
         }
-        std::cout << "            Number of Packets: " << linkInfo.PacketPositions.size() << " (" << ExpectedNumberOfPacketsPerHBFrame << ")" << clear << "\n"
-                  << "            Packets: ";
+        std::cout << "            Number of Packets: " << linkInfo.PacketPositions.size() << " (" << ExpectedNumberOfPacketsPerHBFrame << ")" << clear << "\n";
+        std::cout << "            Payload size : " << linkInfo.PayloadSize << " (" << linkInfo.PayloadSize / 16 << " GBT frames)"
+                  << "\n";
+        std::cout << "            Packets: ";
         for (const auto& packet : linkInfo.PacketPositions) {
           std::cout << packet << " ";
         }
@@ -160,6 +201,13 @@ int RawReaderCRU::scanFile()
     // ===| read in the RawDataHeader at the current position |=================
     file >> rdh;
 
+    // ===| skip empty packet which are not HB end |============================
+    if ((rdh.memorySize == rdh.headerSize) && (rdh.stop == 0)) {
+      file.seekg(8128, file.cur);
+      ++currentPacket;
+      continue;
+    }
+
     // ===| try to detect data type if not already set |========================
     //
     // for now we assume only HB scaling and triggered mode
@@ -204,6 +252,7 @@ int RawReaderCRU::scanFile()
     if (mManager) {
       // in case of triggered mode, we use the first heartbeat orbit as event identifier
       linkInfo = &mManager->mEventSync.getLinkInfo(rdh, mManager->getDataType());
+      mManager->mEventSync.setCRUSeen(mCRU);
     }
     //std::cout << "block length: " << blockLength << '\n';
 
@@ -222,6 +271,7 @@ int RawReaderCRU::scanFile()
         if (linkInfo) {
           linkInfo->PacketPositions.emplace_back(mPacketsPerLink[globalLinkID] - 1);
           linkInfo->IsPresent = true;
+          linkInfo->PayloadSize += payloadSize;
         }
       } else if (rdh.stop == 1) {
         // stop bit 1 means we hit the HB end frame without payload.
@@ -250,6 +300,12 @@ int RawReaderCRU::scanFile()
 
   // close the File
   file.close();
+
+  // go through events and set the status if links were seen
+  if (mManager) {
+    // in case of triggered mode, we use the first heartbeat orbit as event identifier
+    mManager->mEventSync.setLinksSeen(mCRU, mLinkPresent);
+  }
 
   if (mVerbosity) {
     // show the mLinkPresent map
@@ -772,15 +828,8 @@ std::ostream& operator<<(std::ostream& output, const RDH& rdh)
 std::istream& operator>>(std::istream& input, RDH& rdh)
 {
   const int headerSize = sizeof(rdh);
-  const int wordSize = sizeof(rdh.word0);
-  const int halfWordSize = wordSize / 2;
-  const int numberOfHalfWords = headerSize / halfWordSize; // number of 32 bit words
   auto charPtr = reinterpret_cast<char*>(&rdh);
-
-  for (int iHalfWord = 0; iHalfWord < numberOfHalfWords; ++iHalfWord) {
-    input.read(charPtr + iHalfWord * halfWordSize, halfWordSize); // bits  0-31
-  }
-
+  input.read(charPtr, headerSize);
   return input;
 }
 
@@ -804,44 +853,3 @@ void RawReaderCRUManager::init()
 
   mIsInitialized = true;
 }
-//std::istream& operator>>(std::istream& input, RDH& rdh)
-//{
-//const int wordSize = sizeof(rdh.word0);
-//const int halfWordSize = wordSize / 2;
-//decltype(rdh.word0)* wordPtr = nullptr;
-
-//for (int i = 0; i < 8; ++i) {
-//switch (i) {
-//case 0:
-//wordPtr = &rdh.word0;
-//break;
-//case 1:
-//wordPtr = &rdh.word1;
-//break;
-//case 2:
-//wordPtr = &rdh.word2;
-//break;
-//case 3:
-//wordPtr = &rdh.word3;
-//break;
-//case 4:
-//wordPtr = &rdh.word4;
-//break;
-//case 5:
-//wordPtr = &rdh.word5;
-//break;
-//case 6:
-//wordPtr = &rdh.word6;
-//break;
-//case 7:
-//wordPtr = &rdh.word7;
-//break;
-//}
-//auto charPtr = reinterpret_cast<char*>(wordPtr);
-
-//input.read(charPtr, halfWordSize);                // bits  0-31
-//input.read(charPtr + halfWordSize, halfWordSize); // bits 32-63
-//}
-
-//return input;
-//}
