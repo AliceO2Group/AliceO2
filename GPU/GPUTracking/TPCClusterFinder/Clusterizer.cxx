@@ -141,7 +141,7 @@ GPUd() void Clusterizer::updateClusterScratchpadInner(
 
   LOOP_UNROLL_ATTR for (ushort i = 0; i < N; i++)
   {
-    Delta2 d = INNER_NEIGHBORS[i];
+    Delta2 d = CfConsts::InnerNeighbors[i];
 
     Delta dp = d.x;
     Delta dt = d.y;
@@ -170,7 +170,7 @@ GPUd() void Clusterizer::updateClusterScratchpadOuter(
   {
     PackedCharge p = buf[N * lid + i];
 
-    Delta2 d = OUTER_NEIGHBORS[i];
+    Delta2 d = CfConsts::OuterNeighbors[i];
     Delta dp = d.x;
     Delta dt = d.y;
 
@@ -200,7 +200,7 @@ GPUd() void Clusterizer::buildClusterScratchPad(
     ll,
     0,
     8,
-    INNER_NEIGHBORS,
+    CfConsts::InnerNeighbors,
     posBcast,
     buf);
   updateClusterScratchpadInner(
@@ -226,7 +226,7 @@ GPUd() void Clusterizer::buildClusterScratchPad(
     ll,
     0,
     16,
-    OUTER_NEIGHBORS,
+    CfConsts::OuterNeighbors,
     posBcast,
     innerAboveThreshold,
     buf);
@@ -247,7 +247,7 @@ GPUd() void Clusterizer::buildClusterScratchPad(
     ll,
     0,
     16,
-    OUTER_NEIGHBORS,
+    CfConsts::OuterNeighbors,
     posBcast + wgSizeHalf,
     innerAboveThreshold + wgSizeHalf,
     buf);
