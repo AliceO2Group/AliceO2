@@ -55,7 +55,7 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel()
   // seg tub  disc ;)
   Double_t radin_disc = 28.0;  ////// 27.5;
   Double_t radout_disc = 50.3; // cm
-  Double_t high_disc = 0.2;    // cm
+  Double_t high_disc = 0.4;    // cm
   Double_t ang_in_disc = 180.;
   Double_t ang_fin_disc = 360;
 
