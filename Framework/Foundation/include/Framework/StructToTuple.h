@@ -16,7 +16,7 @@ namespace o2::framework
 {
 struct any_type {
   template <class T>
-  constexpr operator T(); // non explicit
+  constexpr operator T();  // non explicit
 };
 
 template <class T, typename... Args>
@@ -77,4 +77,4 @@ auto constexpr to_tuple_refs(T&& object) noexcept
   }
 }
 
-} // namespace o2::framework
+}  // namespace o2::framework
