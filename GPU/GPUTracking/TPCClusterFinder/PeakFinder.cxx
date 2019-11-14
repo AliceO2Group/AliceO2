@@ -60,7 +60,7 @@ GPUd() bool PeakFinder::isPeakScratchPad(
     ll,
     0,
     N,
-    INNER_NEIGHBORS,
+    CfConsts::InnerNeighbors,
     posBcast,
     buf);
 
@@ -71,7 +71,7 @@ GPUd() bool PeakFinder::isPeakScratchPad(
   bool peak = true;
   for (ushort i = 0; i < N; i++) {
     Charge q = unpackCharge(buf[N * partId + i]);
-    peak &= (digit->charge > q) || (INNER_TEST_EQ[i] && digit->charge == q);
+    peak &= (digit->charge > q) || (CfConsts::InnerTestEq[i] && digit->charge == q);
   }
 
   return peak;

@@ -33,12 +33,12 @@ GPUdi() bool isAtEdge(const deprecated::Digit* d)
 
 GPUdi() bool innerAboveThreshold(uchar aboveThreshold, ushort outerIdx)
 {
-  return aboveThreshold & (1 << OUTER_TO_INNER[outerIdx]);
+  return aboveThreshold & (1 << CfConsts::OuterToInner[outerIdx]);
 }
 
 GPUdi() bool innerAboveThresholdInv(uchar aboveThreshold, ushort outerIdx)
 {
-  return aboveThreshold & (1 << OUTER_TO_INNER_INV[outerIdx]);
+  return aboveThreshold & (1 << CfConsts::OuterToInnerInv[outerIdx]);
 }
 
 GPUdi() ushort partition(GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem, ushort ll, bool pred, ushort partSize, ushort* newPartSize)

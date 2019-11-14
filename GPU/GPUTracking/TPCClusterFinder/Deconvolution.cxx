@@ -57,7 +57,7 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
     ll,
     0,
     8,
-    INNER_NEIGHBORS,
+    CfConsts::InnerNeighbors,
     smem.count.posBcast1,
     smem.count.buf);
 
@@ -82,7 +82,7 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
     ll,
     0,
     16,
-    OUTER_NEIGHBORS,
+    CfConsts::OuterNeighbors,
     smem.count.posBcast1,
     smem.count.aboveThresholdBcast,
     smem.count.buf);
@@ -138,7 +138,7 @@ GPUd() char Deconvolution::countPeaksAroundDigit(
 
   uchar aboveThreshold = 0;
   for (uchar i = 0; i < 8; i++) {
-    Delta2 d = INNER_NEIGHBORS[i];
+    Delta2 d = CfConsts::InnerNeighbors[i];
     Delta dp = d.x;
     Delta dt = d.y;
 
@@ -152,7 +152,7 @@ GPUd() char Deconvolution::countPeaksAroundDigit(
   }
 
   for (uchar i = 0; i < 16; i++) {
-    Delta2 d = OUTER_NEIGHBORS[i];
+    Delta2 d = CfConsts::OuterNeighbors[i];
     Delta dp = d.x;
     Delta dt = d.y;
 
