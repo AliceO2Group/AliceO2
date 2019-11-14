@@ -33,14 +33,7 @@
 #include <utility>
 #include <memory>
 
-/// This is an helper to allow users to create and
-/// fill histograms which are then sent to the collector.
-class TH1F;
-
-namespace o2
-{
-
-namespace framework
+namespace o2::framework
 {
 
 /// A more familiar task API for the DPL analysis framework.
@@ -187,7 +180,7 @@ struct AnalysisTask {
 // the contents of an AnalysisTask...
 struct AnalysisDataProcessorBuilder {
   template <typename Arg>
-  static void appendInputWithMetadata(std::vector<InputSpec>& inputs)
+  static void doAppendInputWithMetadata(std::vector<InputSpec>& inputs)
   {
     using metadata = typename aod::MetadataTrait<std::decay_t<Arg>>::metadata;
     static_assert(std::is_same_v<metadata, void> == false,
@@ -195,10 +188,23 @@ struct AnalysisDataProcessorBuilder {
     inputs.push_back({metadata::label(), "RN2", metadata::description()});
   }
 
+  template <typename T>
+  static void appendSomethingWithMetadata(std::vector<InputSpec>& inputs)
+  {
+    if constexpr (is_specialization<std::decay_t<T>, soa::Join>::value) {
+      using left_t = typename std::decay_t<T>::left_t;
+      using right_t = typename std::decay_t<T>::right_t;
+      doAppendInputWithMetadata<left_t>(inputs);
+      doAppendInputWithMetadata<right_t>(inputs);
+    } else {
+      doAppendInputWithMetadata<T>(inputs);
+    }
+  }
+
   template <typename R, typename C, typename... Args>
   static void inputsFromArgs(R (C::*)(Args...), std::vector<InputSpec>& inputs)
   {
-    (appendInputWithMetadata<Args>(inputs), ...);
+    (appendSomethingWithMetadata<Args>(inputs), ...);
   }
 
   template <typename R, typename C, typename Grouping, typename... Args>
@@ -210,8 +216,7 @@ struct AnalysisDataProcessorBuilder {
   template <typename R, typename C, typename Grouping, typename... Args>
   static auto bindGroupingTable(InputRecord& record, R (C::*)(Grouping, Args...))
   {
-    using metadata = typename aod::MetadataTrait<std::decay_t<Grouping>>::metadata;
-    return typename metadata::table_t(record.get<TableConsumer>(metadata::label())->asArrowTable());
+    return extractSomethingFromRecord<Grouping>(record);
   }
 
   template <typename R, typename C>
@@ -221,11 +226,37 @@ struct AnalysisDataProcessorBuilder {
     return o2::soa::Table<>{nullptr};
   }
 
+  template <typename T>
+  static auto extractTableFromRecord(InputRecord& record)
+  {
+    auto at = record.get<TableConsumer>(aod::MetadataTrait<T>::metadata::label())->asArrowTable();
+    return typename aod::MetadataTrait<T>::metadata::table_t(at);
+  }
+
+  template <typename T1, typename T2>
+  static auto extractJoinFromRecord(InputRecord& record)
+  {
+    auto at1 = record.get<TableConsumer>(aod::MetadataTrait<std::decay_t<T1>>::metadata::label())->asArrowTable();
+    auto at2 = record.get<TableConsumer>(aod::MetadataTrait<std::decay_t<T2>>::metadata::label())->asArrowTable();
+    return typename soa::Join<T1, T2>(at1, at2);
+  }
+
+  template <typename T>
+  static auto extractSomethingFromRecord(InputRecord& record)
+  {
+    if constexpr (is_specialization<std::decay_t<T>, soa::Join>::value) {
+      using left_t = typename std::decay_t<T>::left_t;
+      using right_t = typename std::decay_t<T>::right_t;
+      return extractJoinFromRecord<left_t, right_t>(record);
+    } else {
+      return extractTableFromRecord<std::decay_t<T>>(record);
+    }
+  }
+
   template <typename R, typename C, typename Grouping, typename... Args>
   static auto bindAssociatedTables(InputRecord& record, R (C::*)(Grouping, Args...))
   {
-    using metadata = typename aod::MetadataTrait<std::decay_t<Grouping>>::metadata;
-    return std::make_tuple(typename aod::MetadataTrait<std::decay_t<Args>>::metadata::table_t(record.get<TableConsumer>(aod::MetadataTrait<std::decay_t<Args>>::metadata::label())->asArrowTable())...);
+    return std::make_tuple(extractSomethingFromRecord<Args>(record)...);
   }
 
   template <typename R, typename C>
@@ -251,6 +282,8 @@ struct AnalysisDataProcessorBuilder {
         for (auto& groupedElement : groupingTable) {
           task.process(groupedElement);
         }
+      } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::Join>::value) {
+        task.process(groupingTable);
       } else {
         static_assert(always_static_assert_v<Grouping>,
                       "The first argument of the process method of your task must be either"
@@ -532,6 +565,5 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
   return spec;
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 #endif // FRAMEWORK_ANALYSISTASK_H_
