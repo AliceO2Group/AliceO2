@@ -68,8 +68,8 @@ int main(int argc, char** argv)
   }
 
   auto decode = [](auto reader) {
-    for (int ipage = 0; ipage < reader.getNumberOfPages(); ipage++) {
-      reader.nextPage();
+    while (reader.hasNext()) {
+      reader.next();
       std::cout << reader.getRawHeader();
       o2::emcal::AltroDecoder<decltype(reader)> decoder(reader);
       decoder.decode();
