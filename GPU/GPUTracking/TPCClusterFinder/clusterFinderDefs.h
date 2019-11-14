@@ -47,14 +47,6 @@ typedef unsigned long ulong;
 #define LOOP_UNROLL_ATTR __attribute__((opencl_unroll_hint(1)))
 #endif
 
-#ifndef CONSTANT
-#ifdef __OPENCL__
-#define CONSTANT constant
-#else
-#define CONSTANT static const
-#endif
-#endif
-
 #define GET_IS_PEAK(val) (val & 0x01)
 #define GET_IS_ABOVE_THRESHOLD(val) (val >> 1)
 
@@ -91,11 +83,6 @@ using Charge = half;
 using Charge = float;
 #endif
 
-CONSTANT float CHARGE_THRESHOLD = 0.f;
-CONSTANT float OUTER_CHARGE_THRESHOLD = 0.f;
-CONSTANT float QTOT_THRESHOLD = 500.f;
-CONSTANT int MIN_SPLIT_NUM = 1;
-
 using Delta = short;
 using Delta2 = short2;
 
@@ -104,7 +91,12 @@ struct ChargePos {
   Timestamp time;
 };
 
-typedef short2 local_id;
+using local_id = short2;
+
+GPUconstexpr() float CHARGE_THRESHOLD = 0.f;
+GPUconstexpr() float OUTER_CHARGE_THRESHOLD = 0.f;
+GPUconstexpr() float QTOT_THRESHOLD = 500.f;
+GPUconstexpr() int MIN_SPLIT_NUM = 1;
 
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
