@@ -20,8 +20,10 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
+namespace CfConsts
+{
 
-GPUconstexpr() Delta2 INNER_NEIGHBORS[8] =
+GPUconstexpr() Delta2 InnerNeighbors[8] =
   {
     {-1, -1},
 
@@ -36,12 +38,12 @@ GPUconstexpr() Delta2 INNER_NEIGHBORS[8] =
     {1, 0},
     {1, 1}};
 
-GPUconstexpr() bool INNER_TEST_EQ[8] =
+GPUconstexpr() bool InnerTestEq[8] =
   {
     true, true, true, true,
     false, false, false, false};
 
-GPUconstexpr() Delta2 OUTER_NEIGHBORS[16] =
+GPUconstexpr() Delta2 OuterNeighbors[16] =
   {
     {-2, -1},
     {-2, -2},
@@ -67,7 +69,7 @@ GPUconstexpr() Delta2 OUTER_NEIGHBORS[16] =
     {2, 2},
     {1, 2}};
 
-GPUconstexpr() uchar OUTER_TO_INNER[16] =
+GPUconstexpr() uchar OuterToInner[16] =
   {
     0, 0, 0,
 
@@ -87,7 +89,7 @@ GPUconstexpr() uchar OUTER_TO_INNER[16] =
 
 // outer to inner mapping change for the peak counting step,
 // as the other position is the position of the peak
-GPUconstexpr() uchar OUTER_TO_INNER_INV[16] =
+GPUconstexpr() uchar OuterToInnerInv[16] =
   {
     1,
     0,
@@ -107,7 +109,8 @@ GPUconstexpr() uchar OUTER_TO_INNER_INV[16] =
     4};
 
 #define NOISE_SUPPRESSION_NEIGHBOR_NUM 34
-GPUconstexpr() Delta2 NOISE_SUPPRESSION_NEIGHBORS[NOISE_SUPPRESSION_NEIGHBOR_NUM] =
+
+GPUconstexpr() Delta2 NoiseSuppressionNeighbors[NOISE_SUPPRESSION_NEIGHBOR_NUM] =
   {
     {-2, -3},
     {-2, -2},
@@ -149,7 +152,7 @@ GPUconstexpr() Delta2 NOISE_SUPPRESSION_NEIGHBORS[NOISE_SUPPRESSION_NEIGHBOR_NUM
     {2, 2},
     {2, 3}};
 
-GPUconstexpr() uint NOISE_SUPPRESSION_MINIMA[NOISE_SUPPRESSION_NEIGHBOR_NUM] =
+GPUconstexpr() uint NoiseSuppressionMinima[NOISE_SUPPRESSION_NEIGHBOR_NUM] =
   {
     (1 << 8) | (1 << 9),
     (1 << 9),
@@ -186,6 +189,7 @@ GPUconstexpr() uint NOISE_SUPPRESSION_MINIMA[NOISE_SUPPRESSION_NEIGHBOR_NUM] =
     (1 << 24),
     (1 << 24) | (1 << 25)};
 
+} // namespace CfConsts
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

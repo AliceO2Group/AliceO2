@@ -148,7 +148,7 @@ GPUd() void NoiseSuppression::findMinima(
   *bigger = 0;
 
   for (int i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++) {
-    Delta2 d = NOISE_SUPPRESSION_NEIGHBORS[i];
+    Delta2 d = CfConsts::NoiseSuppressionNeighbors[i];
     Delta dp = d.x;
     Delta dt = d.y;
 
@@ -165,7 +165,7 @@ GPUd() ulong NoiseSuppression::findPeaks(
 {
   ulong peaks = 0;
   for (int i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++) {
-    Delta2 d = NOISE_SUPPRESSION_NEIGHBORS[i];
+    Delta2 d = CfConsts::NoiseSuppressionNeighbors[i];
     Delta dp = d.x;
     Delta dt = d.y;
 
@@ -185,7 +185,7 @@ GPUd() bool NoiseSuppression::keepPeak(
 
   for (int i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++) {
     bool otherPeak = (peaks & (1 << i));
-    bool minimaBetween = (minima & NOISE_SUPPRESSION_MINIMA[i]);
+    bool minimaBetween = (minima & CfConsts::NoiseSuppressionMinima[i]);
 
     keepMe &= (!otherPeak || minimaBetween);
   }
@@ -229,7 +229,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
     ll,
     0,
     2,
-    NOISE_SUPPRESSION_NEIGHBORS + 16,
+    CfConsts::NoiseSuppressionNeighbors + 16,
     posBcast,
     buf);
 
@@ -250,7 +250,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
     ll,
     0,
     16,
-    NOISE_SUPPRESSION_NEIGHBORS,
+    CfConsts::NoiseSuppressionNeighbors,
     posBcast,
     buf);
 
@@ -273,7 +273,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
     ll,
     18,
     16,
-    NOISE_SUPPRESSION_NEIGHBORS,
+    CfConsts::NoiseSuppressionNeighbors,
     posBcast,
     buf);
 
@@ -296,7 +296,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
     ll,
     0,
     16,
-    NOISE_SUPPRESSION_NEIGHBORS,
+    CfConsts::NoiseSuppressionNeighbors,
     posBcast + wgSizeHalf,
     buf);
 
@@ -319,7 +319,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
     ll,
     18,
     16,
-    NOISE_SUPPRESSION_NEIGHBORS,
+    CfConsts::NoiseSuppressionNeighbors,
     posBcast + wgSizeHalf,
     buf);
 
@@ -348,7 +348,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
     ll,
     0,
     16,
-    NOISE_SUPPRESSION_NEIGHBORS,
+    CfConsts::NoiseSuppressionNeighbors,
     posBcast,
     bufp);
 
@@ -366,7 +366,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
     ll,
     18,
     16,
-    NOISE_SUPPRESSION_NEIGHBORS,
+    CfConsts::NoiseSuppressionNeighbors,
     posBcast,
     bufp);
 
