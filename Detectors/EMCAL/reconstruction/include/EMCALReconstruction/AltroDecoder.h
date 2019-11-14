@@ -142,7 +142,6 @@ using AltroDecoderMemoryRDHv4 = AltroDecoder<RawReaderMemory<o2::header::RAWData
 using AltroDecoderFileRDHvE = AltroDecoder<RawReaderFile<o2::emcal::RAWDataHeader>>;
 using AltroDecoderFileRDHv4 = AltroDecoder<RawReaderFile<o2::header::RAWDataHeaderV4>>;
 
-
 } // namespace emcal
 
 } // namespace o2

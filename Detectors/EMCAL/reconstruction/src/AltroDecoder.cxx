@@ -40,7 +40,7 @@ template <class RawReader>
 void AltroDecoder<RawReader>::readRCUTrailer()
 {
   try {
-    mRCUTrailer.constructFromRawBuffer(mRawReader.getRawBuffer());
+    mRCUTrailer.constructFromRawPayload(mRawReader.getPayload());
   } catch (RCUTrailer::Error& e) {
     AliceO2::InfoLogger::InfoLogger logger;
     logger << e.what();
@@ -59,10 +59,10 @@ void AltroDecoder<RawReader>::readChannels()
   mChannelsInitialized = false;
   mChannels.clear();
   int currentpos = 0;
-  auto& buffer = mRawReader.getRawBuffer();
+  auto& buffer = mRawReader.getPayload().getPayloadWords();
   std::array<uint16_t, 1024> bunchwords;
-  while (currentpos < buffer.getNDataWords() - mRCUTrailer.getTrailerSize()) {
-    auto currentword = buffer.getWord(currentpos++);
+  while (currentpos < buffer.size() - mRCUTrailer.getTrailerSize()) {
+    auto currentword = buffer[currentpos++];
     if (currentword >> 30 != 1) {
       continue;
     }
@@ -75,7 +75,7 @@ void AltroDecoder<RawReader>::readChannels()
     int numberofsamples = 0,
         numberofwords = (currentchannel.getPayloadSize() + 2) / 3;
     for (int iword = 0; iword < numberofwords; iword++) {
-      currentword = buffer.getWord(currentpos++);
+      currentword = buffer[currentpos++];
       if ((currentword >> 30) != 0) {
         // AliceO2::InfoLogger::InfoLogger logger;
         // logger << "Unexpected end of payload in altro channel payload! DDL=" << std::setw(3) << std::setfill(0) << mRawReader.getRawHeader().getLink()
