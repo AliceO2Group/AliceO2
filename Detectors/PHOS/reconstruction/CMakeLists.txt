@@ -16,8 +16,3 @@ o2_target_root_dictionary(PHOSReconstruction
                           HEADERS include/PHOSReconstruction/Cluster.h
                                   include/PHOSReconstruction/Clusterer.h
                                   include/PHOSReconstruction/ClustererTask.h)
-
-o2_add_executable(rawreader-file
-                  COMPONENT_NAME phos
-                  PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction
-                  SOURCES raw/rawReaderFile.cxx)
