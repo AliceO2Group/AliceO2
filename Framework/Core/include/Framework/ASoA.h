@@ -387,6 +387,7 @@ struct RowView : public C... {
 
 struct ArrowHelpers {
   static std::shared_ptr<arrow::Table> joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables);
+  static std::shared_ptr<arrow::Table> concatTables(std::vector<std::shared_ptr<arrow::Table>>&& tables);
 };
 
 /// A Table class which observes an arrow::Table and provides
@@ -408,12 +409,6 @@ class Table
       mEnd(mColumnIndex, table->num_rows())
   {
     mEnd.moveToEnd();
-  }
-
-  template <typename... T>
-  Table(std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2, T... tables)
-    : Table(ArrowHelpers::joinTables({t1, t2, tables...}))
-  {
   }
 
   iterator begin()
@@ -621,25 +616,43 @@ class TableMetadata
 namespace o2::soa
 {
 
-namespace
-{
 template <typename... C1, typename... C2>
-constexpr auto joinTables(o2::soa::Table<C1...>&& t1, o2::soa::Table<C2...>&& t2)
+constexpr auto join(o2::soa::Table<C1...>&& t1, o2::soa::Table<C2...>&& t2)
 {
-  return o2::soa::Table<C1..., C2...>(t1.asArrowTable(), t2.asArrowTable());
+  return o2::soa::Table<C1..., C2...>(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
 }
-} // namespace
 
 template <typename T1, typename T2>
-using JoinBase = decltype(joinTables(std::declval<T1>(), std::declval<T2>()));
+constexpr auto concat(T1&& t1, T2&& t2)
+{
+  using table_t = typename PackToTable<framework::pack_intersect_t<typename T1::columns, typename T2::columns>>::table;
+  return table_t(ArrowHelpers::concatTables({t1.asArrowTable(), t2.asArrowTable()}));
+}
+
+template <typename T1, typename T2>
+using JoinBase = decltype(join(std::declval<T1>(), std::declval<T2>()));
+
+template <typename T1, typename T2>
+using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
 
 template <typename T1, typename T2>
 struct Join : JoinBase<T1, T2> {
   Join(std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2)
-    : JoinBase<T1, T2>{t1, t2} {}
+    : JoinBase<T1, T2>{ArrowHelpers::joinTables({t1, t2})} {}
 
   using left_t = T1;
   using right_t = T2;
+  using table_t = JoinBase<T1, T2>;
+};
+
+template <typename T1, typename T2>
+struct Concat : ConcatBase<T1, T2> {
+  Concat(std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2)
+    : ConcatBase<T1, T2>{ArrowHelpers::concatTables({t1, t2})} {}
+
+  using left_t = T1;
+  using right_t = T2;
+  using table_t = ConcatBase<T1, T2>;
 };
 
 } // namespace o2::soa
