@@ -10,7 +10,6 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
-#include "Framework/HistogramRegistry.h"
 #include <TH1F.h>
 
 #include <cmath>
@@ -50,7 +49,7 @@ struct CTask {
   // when adding an object to OutputObj later, the object name will be
   // *reset* to OutputObj label - needed for correct placement in the output file
   OutputObj<TH1F> ptH{TH1F("pt", "pt", 100, -0.01, 10.01)};
-  OutputObj<TH1F> trZ{"trZ"};
+  OutputObj<TH1F> trZ{"trZ", OutputObjHandlingPolicy::QAObject};
 
   void init(InitContext const&)
   {

@@ -7,6 +7,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
 #ifndef FRAMEWORK_ANALYSIS_TASK_H_
 #define FRAMEWORK_ANALYSIS_TASK_H_
 
@@ -24,7 +25,7 @@
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/Traits.h"
 #include "Framework/VariantHelpers.h"
-#include "Headers/DataHeader.h"
+#include "Framework/OutputObjHeader.h"
 
 #include <arrow/compute/context.h>
 #include <arrow/compute/kernel.h>
@@ -99,23 +100,28 @@ struct Produces<soa::Table<C...>> : WritingCursor<typename soa::FilterPersistent
   }
 };
 
-/// This helper class allow you to declare things which will be crated by a
-/// give analysis task. Notice how the actual cursor is implemented by the
-/// means of the WritingCursor helper class, from which produces actually
-/// derives.
+/// This helper class allow you to declare things which will be created by a
+/// given analysis task. Currently wrapped objects are limited to be TNamed
+/// descendants. Objects will be written to a ROOT file at the end of the
+/// workflow, in directories, corresponding to the task they were declared in.
+/// Each object has associated handling policy, which is used by the framework
+/// to determine the target file, e.g. analysis result, QA or control histogram,
+/// etc.
 template <typename T>
 struct OutputObj {
   using obj_t = T;
 
-  OutputObj(T const& t)
+  OutputObj(T const& t, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject)
     : object(std::make_shared<T>(t)),
-      label(t.GetName())
+      label(t.GetName()),
+      policy{policy_}
   {
   }
 
-  OutputObj(std::string const& label_)
+  OutputObj(std::string const& label_, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject)
     : object(nullptr),
-      label(label_)
+      label(label_),
+      policy{policy_}
   {
   }
 
@@ -137,7 +143,7 @@ struct OutputObj {
     object->SetName(label.c_str());
   }
 
-  // @return the associated OutputSpec
+  /// @return the associated OutputSpec
   OutputSpec const spec()
   {
     static_assert(std::is_base_of_v<TNamed, T>, "You need a TNamed derived class to use OutputObj");
@@ -166,11 +172,13 @@ struct OutputObj {
 
   OutputRef ref()
   {
-    return OutputRef{label, 0};
+    return OutputRef{std::string{label}, 0,
+                     o2::header::Stack{OutputObjHeader{policy}}};
   }
 
   std::shared_ptr<T> object;
   std::string label;
+  OutputObjHandlingPolicy policy;
 };
 
 struct AnalysisTask {

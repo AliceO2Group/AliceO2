@@ -24,6 +24,8 @@
 #include "Framework/Logger.h"
 #include "Framework/OutputSpec.h"
 #include "Framework/Variant.h"
+#include "../../../Algorithm/include/Algorithm/HeaderStack.h"
+#include "Framework/OutputObjHeader.h"
 
 #include "TFile.h"
 
@@ -45,6 +47,7 @@ namespace framework
 struct InputObjectRoute {
   std::string uniqueId;
   std::string directory;
+  OutputObjHandlingPolicy policy;
   bool operator<(InputObjectRoute const& other) const
   {
     return this->uniqueId < other.uniqueId;
@@ -57,10 +60,8 @@ struct InputObject {
   std::string name;
 };
 
-std::string outputROOTfilename()
-{
-  return "AnalysisResults.root";
-}
+const static std::unordered_map<OutputObjHandlingPolicy, std::string> ROOTfileNames = {{OutputObjHandlingPolicy::AnalysisObject, "AnalysisResults.root"},
+                                                                                       {OutputObjHandlingPolicy::QAObject, "QAResults.root"}};
 
 DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& outMap)
 {
@@ -71,19 +72,33 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& out
     auto endofdatacb = [outputObjects](EndOfStreamContext& context) {
       LOG(INFO) << "Writing merged objects to file";
       std::string currentDirectory = "";
-      TFile* f = TFile::Open(outputROOTfilename().c_str(), "RECREATE");
-      for (auto& [route, entry] : *outputObjects) {
-        std::string nextDirectory = route.directory;
-        if (nextDirectory != currentDirectory) {
-          if (!f->FindKey(nextDirectory.c_str())) {
-            f->mkdir(nextDirectory.c_str());
-          }
-          currentDirectory = nextDirectory;
-        }
-        (f->GetDirectory(currentDirectory.c_str()))->WriteObjectAny(entry.obj, entry.kind, entry.name.c_str());
+      std::string currentFile = "";
+      TFile* f[OutputObjHandlingPolicy::numPolicies];
+      for (auto i = 0u; i < OutputObjHandlingPolicy::numPolicies; ++i) {
+        f[i] = nullptr;
       }
-      if (f) {
-        f->Close();
+      for (auto& [route, entry] : *outputObjects) {
+        auto file = ROOTfileNames.find(route.policy);
+        if (file != ROOTfileNames.end()) {
+          auto filename = file->second;
+          if (f[route.policy] == nullptr) {
+            f[route.policy] = TFile::Open(filename.c_str(), "RECREATE");
+          }
+          auto nextDirectory = route.directory;
+          if ((nextDirectory != currentDirectory) || (filename != currentFile)) {
+            if (!f[route.policy]->FindKey(nextDirectory.c_str())) {
+              f[route.policy]->mkdir(nextDirectory.c_str());
+            }
+            currentDirectory = nextDirectory;
+            currentFile = filename;
+          }
+          (f[route.policy]->GetDirectory(currentDirectory.c_str()))->WriteObjectAny(entry.obj, entry.kind, entry.name.c_str());
+        }
+      }
+      for (auto i = 0u; i < OutputObjHandlingPolicy::numPolicies; ++i) {
+        if (f[i] != nullptr) {
+          f[i]->Close();
+        }
       }
       LOG(INFO) << "All outputs merged in their respective target files";
       context.services().get<ControlService>().readyToQuit(QuitRequest::All);
@@ -100,18 +115,29 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& out
         LOG(ERROR) << "Payload not found";
         return;
       }
-      auto dh = o2::header::get<o2::header::DataHeader*>(ref.header);
-      if (!dh) {
-        LOG(ERROR) << "DataHeader not found";
+      auto datah = o2::header::get<o2::header::DataHeader*>(ref.header);
+      if (!datah) {
+        LOG(ERROR) << "No data header in stack";
         return;
       }
-      FairTMessage tm(const_cast<char*>(ref.payload), dh->payloadSize);
+
+      auto objh = o2::header::get<o2::framework::OutputObjHeader*>(ref.header);
+      if (!objh) {
+        LOG(ERROR) << "No output object header in stack";
+        return;
+      }
+
+      FairTMessage tm(const_cast<char*>(ref.payload), datah->payloadSize);
       InputObject obj;
       obj.kind = tm.GetClass();
       if (obj.kind == nullptr) {
         LOGP(error, "Cannot read class info from buffer.");
         return;
       }
+
+      OutputObjHandlingPolicy policy = OutputObjHandlingPolicy::AnalysisObject;
+      if (objh)
+        policy = objh->mPolicy;
 
       obj.obj = tm.ReadObjectAny(obj.kind);
       TNamed* named = static_cast<TNamed*>(obj.obj);
@@ -121,7 +147,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& out
       if (lookup != outMap.end()) {
         directory = lookup->second;
       }
-      InputObjectRoute key{obj.name, directory};
+      InputObjectRoute key{obj.name, directory, policy};
       auto existing = outputObjects->find(key);
       if (existing == outputObjects->end()) {
         outputObjects->insert(std::make_pair(key, obj));
