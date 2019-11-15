@@ -18,6 +18,7 @@
 #include <array>
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "MFTTracking/Constants.h"
+#include <fairlogger/Logger.h>
 
 namespace o2
 {
@@ -98,8 +99,10 @@ inline const Int_t TrackCA::getRoadId() const
 inline void TrackCA::setPoint(const Float_t x, const Float_t y, const Float_t z, const Int_t layer, const Int_t clusterId, const MCCompLabel label, Bool_t& newPoint)
 {
   if (newPoint) {
-    if (mNPoints == constants::mft::LayersNumber)
-      throw std::runtime_error("MFT TrackCA Overflow");
+    if (mNPoints == constants::mft::LayersNumber) {
+      LOG(WARN) << "MFT TrackLTF Overflow";
+      return;
+    }
     mX[mNPoints] = x;
     mY[mNPoints] = y;
     mZ[mNPoints] = z;
@@ -145,8 +148,10 @@ class TrackLTF final
 inline void TrackLTF::setPoint(const Float_t x, const Float_t y, const Float_t z, const Int_t layer, const Int_t clusterId, const MCCompLabel label, Bool_t& newPoint)
 {
   if (newPoint) {
-    if (mNPoints == constants::mft::LayersNumber)
-      throw std::runtime_error("MFT TrackLTF Overflow");
+    if (mNPoints == constants::mft::LayersNumber) {
+      LOG(WARN) << "MFT TrackLTF Overflow";
+      return;
+    }
     mX[mNPoints] = x;
     mY[mNPoints] = y;
     mZ[mNPoints] = z;
