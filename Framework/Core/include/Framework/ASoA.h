@@ -88,7 +88,7 @@ struct Flat {
 /// FIXME: the ChunkingPolicy for now is fixed to Flat and is a mere boolean
 /// which is used to switch off slow "chunking aware" parts. This is ok for
 /// now, but most likely we should move the whole chunk navigation logic there.
-template <typename T, typename ChunkingPolicy = Flat>
+template <typename T, typename ChunkingPolicy = Chunked>
 class ColumnIterator : ChunkingPolicy
 {
  public:
@@ -118,20 +118,22 @@ class ColumnIterator : ChunkingPolicy
   /// Move the iterator to the next chunk.
   void nextChunk() const
   {
-    mCurrentChunk++;
     auto chunks = mColumn->data();
+    auto previousArray = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
+    mFirstIndex += previousArray->length();
+    mCurrentChunk++;
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
-    mFirstIndex += array->length();
     mCurrent = array->raw_values() - mFirstIndex;
     mLast = mCurrent + array->length() + mFirstIndex;
   }
 
-  void prevChunk()
+  void prevChunk() const
   {
-    mCurrentChunk--;
     auto chunks = mColumn->data();
+    auto previousArray = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
+    mFirstIndex -= previousArray->length();
+    mCurrentChunk--;
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
-    mFirstIndex -= array->length();
     mCurrent = array->raw_values() - mFirstIndex;
     mLast = mCurrent + array->length() + mFirstIndex;
   }
@@ -164,7 +166,7 @@ class ColumnIterator : ChunkingPolicy
   T const& operator*() const
   {
     if constexpr (ChunkingPolicy::chunked) {
-      if (O2_BUILTIN_UNLIKELY(((mCurrent + *mCurrentPos) > mLast))) {
+      if (O2_BUILTIN_UNLIKELY(((mCurrent + *mCurrentPos) >= mLast))) {
         nextChunk();
       }
     }
@@ -176,7 +178,7 @@ class ColumnIterator : ChunkingPolicy
   {
     // If we get outside range of the current chunk, go to the next.
     if constexpr (ChunkingPolicy::chunked) {
-      while (O2_BUILTIN_UNLIKELY((mCurrent + *mCurrentPos) > mLast)) {
+      while (O2_BUILTIN_UNLIKELY((mCurrent + *mCurrentPos) >= mLast)) {
         nextChunk();
       }
     }
@@ -346,6 +348,7 @@ struct RowView : public C... {
   size_t mRowIndex = 0;
   size_t mMaxRow = 0;
   /// Helper to move to the correct chunk, if needed.
+  /// FIXME: not needed?
   template <typename... PC>
   void checkNextChunk(framework::pack<PC...> pack)
   {
