@@ -120,6 +120,27 @@ struct has_type<T, pack<Us...>> : std::disjunction<std::is_same<T, Us>...> {
 template <typename T, typename... Us>
 inline constexpr bool has_type_v = has_type<T, Us...>::value;
 
+/// Intersect two packs
+template <typename S1, typename S2>
+struct pack_intersect {
+  template <std::size_t... Indices>
+  static constexpr auto make_intersection(std::index_sequence<Indices...>)
+  {
+
+    return concatenate_pack(
+      std::conditional_t<
+        has_type_v<
+          pack_element_t<Indices, S1>,
+          S2>,
+        pack<pack_element_t<Indices, S1>>,
+        pack<>>{}...);
+  }
+  using type = decltype(make_intersection(std::make_index_sequence<pack_size(S1{})>{}));
+};
+
+template <typename S1, typename S2>
+using pack_intersect_t = typename pack_intersect<S1, S2>::type;
+
 /// Type helper to hold metadata about a lambda or a class
 /// method.
 template <typename Ret, typename Class, typename... Args>
