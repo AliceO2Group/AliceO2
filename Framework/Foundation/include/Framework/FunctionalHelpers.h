@@ -89,6 +89,17 @@ constexpr auto filter_pack(Result result, pack<T, Ts...>)
 template <template <typename> typename Condition, typename... Types>
 using filtered_pack = std::decay_t<decltype(filter_pack<Condition>(pack<>{}, pack<Types...>{}))>;
 
+/// Check if a given pack Pack has a type T inside.
+template <typename T, typename Pack>
+struct has_type;
+
+template <typename T, typename... Us>
+struct has_type<T, pack<Us...>> : std::disjunction<std::is_same<T, Us>...> {
+};
+
+template <typename T, typename... Us>
+inline constexpr bool has_type_v = has_type<T, Us...>::value;
+
 /// Type helper to hold metadata about a lambda or a class
 /// method.
 template <typename Ret, typename Class, typename... Args>
