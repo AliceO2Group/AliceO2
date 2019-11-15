@@ -719,7 +719,7 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel()
   tear_R->DefineSection(0, -0.09, 0., 0., 1); //(plane,-zplane/ +zplane, x0, y0,(x/y))
   tear_R->DefineSection(1, 0.6, 0., 0., 1);
 
-  TGeoTranslation* tra_B = new TGeoTranslation("tra_B", 0, 0, -4.8); //-4.8
+  TGeoTranslation* tra_B = new TGeoTranslation("tra_B", 0, 0, -4.7); //-4.8
   tra_B->RegisterYourself();
 
   new TGeoTubeSeg("S_DISCB", radin_discB, radout_discB, high_discB / 2, angin_discB, angfin_discB);
