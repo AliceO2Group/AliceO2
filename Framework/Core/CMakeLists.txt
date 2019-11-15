@@ -26,6 +26,7 @@ endif()
 
 o2_add_library(Framework
                SOURCES src/AODReaderHelpers.cxx
+                       src/ASoA.cxx
                        ${GUI_SOURCES}
                        src/AnalysisHelpers.cxx
                        src/BoostOptionsRetriever.cxx

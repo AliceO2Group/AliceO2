@@ -168,3 +168,39 @@ BOOST_AUTO_TEST_CASE(TestColumnIterators)
   BOOST_REQUIRE_EQUAL(foobar.mFirstIndex, bar.mFirstIndex);
   BOOST_REQUIRE_EQUAL(foobar.mCurrentChunk, bar.mCurrentChunk);
 }
+
+BOOST_AUTO_TEST_CASE(TestJoinedTables)
+{
+  TableBuilder builderX;
+  auto rowWriterX = builderX.persist<uint64_t>({"x"});
+  rowWriterX(0, 0);
+  rowWriterX(0, 1);
+  rowWriterX(0, 2);
+  rowWriterX(0, 3);
+  rowWriterX(0, 4);
+  rowWriterX(0, 5);
+  rowWriterX(0, 6);
+  rowWriterX(0, 7);
+  auto tableX = builderX.finalize();
+
+  TableBuilder builderY;
+  auto rowWriterY = builderY.persist<uint64_t>({"y"});
+  rowWriterY(0, 7);
+  rowWriterY(0, 6);
+  rowWriterY(0, 5);
+  rowWriterY(0, 4);
+  rowWriterY(0, 3);
+  rowWriterY(0, 2);
+  rowWriterY(0, 1);
+  rowWriterY(0, 0);
+  auto tableY = builderY.finalize();
+
+  using TestX = o2::soa::Table<test::X>;
+  using TestY = o2::soa::Table<test::Y>;
+  using Test = Join<TestX, TestY>;
+
+  Test tests{tableX, tableY};
+  for (auto& test : tests) {
+    BOOST_CHECK_EQUAL(7, test.x() + test.y());
+  }
+}
