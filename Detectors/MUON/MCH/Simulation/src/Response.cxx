@@ -48,9 +48,9 @@ Response::Response(Station station) : mStation(station)
   }
 
   if(mSampa){
-    mChargeThreshold = 1e-3;//5*1e-3;//5*1e-4;//arbitrary setting , was 5*1e-4, but to 3 WRONG, 
+    mChargeThreshold = 1e-3;//arbitrary setting for the moment, was 5*1e-4
     mChargeSat = 3000. ; // value from aliroot for charge
-    amplO2alir = 1.;
+    amplO2alir = 1.;//scale factor in case of need
     //to be done: Addd thresholds for ADC counts
   }
 }
@@ -102,6 +102,8 @@ double Response::response(float charge)
   if(charge<mChargeThreshold) return 0.0;
   if(charge>mChargeSat) return mChargeSat;
   charge = (int) charge; //according to aliroot observation
+  //need still to make proper conversion from charge to ADC counts
+  //adapting to proper values for tuning
   return charge;
 }
 //______________________________________________________________________
