@@ -382,6 +382,10 @@ struct RowView : public C... {
   }
 };
 
+struct ArrowHelpers {
+  static std::shared_ptr<arrow::Table> joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables);
+};
+
 /// A Table class which observes an arrow::Table and provides
 /// It is templated on a set of Column / DynamicColumn types.
 template <typename... C>
@@ -401,6 +405,12 @@ class Table
       mEnd(mColumnIndex, table->num_rows())
   {
     mEnd.moveToEnd();
+  }
+
+  template <typename... T>
+  Table(std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2, T... tables)
+    : Table(ArrowHelpers::joinTables({t1, t2, tables...}))
+  {
   }
 
   iterator begin()
@@ -605,13 +615,30 @@ class TableMetadata
     using metadata = _Name_##Metadata;                                 \
   }
 
-template <typename... C1, typename... C2>
-constexpr auto JoinTables(o2::soa::Table<C1...>&, o2::soa::Table<C2...>&)
+namespace o2::soa
 {
-  return std::declval<o2::soa::Table<C1..., C2...>>;
+
+namespace
+{
+template <typename... C1, typename... C2>
+constexpr auto joinTables(o2::soa::Table<C1...>&& t1, o2::soa::Table<C2...>&& t2)
+{
+  return o2::soa::Table<C1..., C2...>(t1.asArrowTable(), t2.asArrowTable());
 }
+} // namespace
 
 template <typename T1, typename T2>
-using Join = decltype(JoinTables(std::declval<T1>, std::declval<T2>));
+using JoinBase = decltype(joinTables(std::declval<T1>(), std::declval<T2>()));
+
+template <typename T1, typename T2>
+struct Join : JoinBase<T1, T2> {
+  Join(std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2)
+    : JoinBase<T1, T2>{t1, t2} {}
+
+  using left_t = T1;
+  using right_t = T2;
+};
+
+} // namespace o2::soa
 
 #endif // O2_FRAMEWORK_ASOA_H_
