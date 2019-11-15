@@ -60,7 +60,7 @@ class Response
 
   float mChargeThreshold = 1e-4;
   //AliMUONResponseV0.cxx constr.
-  float mChargeSat = 0.61 * 1.25 * 0.2;
+  float mChargeSat = 10000.;//very large arbitrary setting for the moment, was in aliroot 0.61 * 1.25 * 0.2;
   //from AliMUONResponseV0.cxx
   //equals AliMUONConstants::DefaultADC2MV()*AliMUONConstants::DefaultA0()*AliMUONConstants::DefaultCapa()
   //Mathieson parameter: NIM A270 (1988) 602-603
