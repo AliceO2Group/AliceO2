@@ -203,4 +203,50 @@ BOOST_AUTO_TEST_CASE(TestJoinedTables)
   for (auto& test : tests) {
     BOOST_CHECK_EQUAL(7, test.x() + test.y());
   }
+
+  auto tests2 = join(TestX{tableX}, TestY{tableY});
+  static_assert(std::is_same_v<Test::table_t, decltype(tests2)>,
+                "Joined tables should have the same type, regardless how we construct them");
+  for (auto& test : tests2) {
+    BOOST_CHECK_EQUAL(7, test.x() + test.y());
+  }
+}
+
+BOOST_AUTO_TEST_CASE(TestConcatTables)
+{
+  TableBuilder builderA;
+  auto rowWriterA = builderA.persist<uint64_t, uint64_t>({"x", "y"});
+  rowWriterA(0, 0, 0);
+  rowWriterA(0, 1, 0);
+  rowWriterA(0, 2, 0);
+  rowWriterA(0, 3, 0);
+  rowWriterA(0, 4, 0);
+  rowWriterA(0, 5, 0);
+  rowWriterA(0, 6, 0);
+  rowWriterA(0, 7, 0);
+  auto tableA = builderA.finalize();
+
+  TableBuilder builderB;
+  auto rowWriterB = builderB.persist<uint64_t>({"x"});
+  rowWriterB(0, 8);
+  rowWriterB(0, 9);
+  rowWriterB(0, 10);
+  rowWriterB(0, 11);
+  rowWriterB(0, 12);
+  rowWriterB(0, 13);
+  rowWriterB(0, 14);
+  rowWriterB(0, 15);
+  auto tableB = builderB.finalize();
+
+  using TestA = o2::soa::Table<test::X, test::Y>;
+  using TestB = o2::soa::Table<test::X>;
+  using Test = Concat<TestA, TestB>;
+
+  static_assert(std::is_same_v<Test::table_t, o2::soa::Table<test::X>>, "Bad intersection of columns");
+  Test tests{tableA, tableB};
+  BOOST_REQUIRE_EQUAL(16, tests.size());
+  int i = 0;
+  for (auto& test : tests) {
+    BOOST_CHECK_EQUAL(i++, test.x());
+  }
 }
