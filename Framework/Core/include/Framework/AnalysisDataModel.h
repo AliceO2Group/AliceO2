@@ -138,29 +138,35 @@ using VZero = VZeros::iterator;
 
 namespace collision
 {
-DECLARE_SOA_COLUMN(TimeframeID, timeframeID, uint64_t, "fID4Timeframes");
-DECLARE_SOA_COLUMN(NumTracks, numTracks, uint32_t, "numTracks");
-//DECLARE_SOA_COLUMN(NumCalo, numCalo, uint32_t, "numCalo");         // not in the preliminary table
-//DECLARE_SOA_COLUMN(NumMuons, numMuons, uint32_t, "numMuons");      // not in the preliminary table
-DECLARE_SOA_COLUMN(ID, identifier, int, "identifier");         // index of the vertex inside the timeframe, AliESDVertex, ushort_t
-DECLARE_SOA_COLUMN(PositionX, positionX, double, "positionX"); // vertex x position, AliVertex.h, Double32_t
-DECLARE_SOA_COLUMN(PositionY, positionY, double, "positionY"); // vertex y position, AliVertex.h, Double32_t
-DECLARE_SOA_COLUMN(PositionZ, positionZ, double, "positionZ"); // vertex z position, AliVertex.h, Double32_t
-//DECLARE_SOA_COLUMN(Cov[3][3], fCov[3][3], double, "fCov");         // 3x3 vertex covariance matrix
-DECLARE_SOA_COLUMN(Chi2, chi2, double, "chi2"); // chi2 of vertex fit, AliESDVertex.h, Double32_t
-//DECLARE_SOA_COLUMN(Indices, fIndices, int*, "indices");            // contributing track IDs to the vertex reconstruction, AliVertex.h, UShort_t*
-DECLARE_SOA_COLUMN(BC, bunchCrossNumber, int, "bunchCrossNumber");   // LHC bunch crossing number, AliESDHeader.h, UShort_t
-DECLARE_SOA_COLUMN(OrbitNumber, orbitNumber, int, "orbitNumber");    // LHC orbit number, AliESDHeader, UInt_t
-DECLARE_SOA_COLUMN(PeriodNumber, periodNumber, int, "periodNumber"); // period number, AliESDHeader, UInt_t
-DECLARE_SOA_COLUMN(V0mult, v0mult, int, "v0mult");                   // V0 multiplicity
-DECLARE_SOA_COLUMN(T0multA, t0multA, int, "t0multA");                // T0 A multiplicity
-DECLARE_SOA_COLUMN(T0multC, t0multc, int, "t0multC");                // T0 C multiplicity
-DECLARE_SOA_COLUMN(FITmult, fitmult, int, "fitmult");                // FIT  multiplicity
-DECLARE_SOA_COLUMN(TriggerMask, triggerMask, int, "triggerMask");    // Trigger mask, maybe? int?
+DECLARE_SOA_COLUMN(TimeframeID, timeframeID, uint64_t, "timeframeID");
+DECLARE_SOA_COLUMN(NumTracks, numtracks, uint32_t, "numtracks");
+DECLARE_SOA_COLUMN(VtxID, vtxID, int, "vtxID");    // index of the vertex inside the timeframe, AliESDVertex, ushort_t
+DECLARE_SOA_COLUMN(PosX, posX, double, "posX");    // vertex x position, AliVertex.h, Double32_t
+DECLARE_SOA_COLUMN(PosY, posY, double, "posY");    // vertex y position, AliVertex.h, Double32_t
+DECLARE_SOA_COLUMN(PosZ, posZ, double, "posZ");    // vertex z position, AliVertex.h, Double32_t
+DECLARE_SOA_COLUMN(CovXX, covXX, double, "covXX"); // vertex covariance matrix element: XX, AliESDVertex.h, Double32_t
+DECLARE_SOA_COLUMN(CovXY, covXY, double, "covXY"); // vertex covariance matrix element: XY, AliESDVertex.h, Double32_t
+DECLARE_SOA_COLUMN(CovXZ, covXZ, double, "covXZ"); // vertex covariance matrix element: XZ, AliESDVertex.h, Double32_t
+DECLARE_SOA_COLUMN(CovYX, covYX, double, "covYX"); // vertex covariance matrix element: YX (same as XY), AliESDVertex.h, Double32_t
+DECLARE_SOA_COLUMN(CovYY, covYY, double, "covYY"); // vertex covariance matrix element: YY, AliESDVertex.h, Double32_t
+DECLARE_SOA_COLUMN(CovYZ, covYZ, double, "covYZ"); // vertex covariance matrix element: YZ, AliESDVertex.h, Double32_t
+DECLARE_SOA_COLUMN(CovZX, covZX, double, "covZX"); // vertex covariance matrix element: ZX (same as XZ), AliESDVertex.h, Double32_t
+DECLARE_SOA_COLUMN(CovZY, covZY, double, "covZY"); // vertex covariance matrix element: ZY (same as YZ), AliESDVertex.h, Double32_t
+DECLARE_SOA_COLUMN(CovZZ, covZZ, double, "covZZ"); // vertex covariance matrix element: ZZ, AliESDVertex.h, Double32_t
+DECLARE_SOA_COLUMN(Chi2, chi2, double, "chi2");    // chi2 of vertex fit, AliESDVertex.h, Double32_t
+//DECLARE_SOA_COLUMN(Indices, indices, int*, "indices");                // contributing track IDs to the vertex reconstruction, AliVertex.h, UShort_t*
+DECLARE_SOA_COLUMN(BCNum, bcnum, int, "bcnum");          // LHC bunch crossing number, AliESDHeader.h, UShort_t
+DECLARE_SOA_COLUMN(OrbitNum, orbitnum, int, "orbitnum"); // LHC orbit number, AliESDHeader, UInt_t
+//DECLARE_SOA_COLUMN(PeriodNumber, periodNumber, int, "periodNumber");  // period number (No period number in run 3. Will be included in orbit number.), AliESDHeader, UInt_t
+//DECLARE_SOA_COLUMN(V0mult, v0mult, int, "v0mult");                    // V0 multiplicity (redundant as it is also in the detector table)
+//DECLARE_SOA_COLUMN(T0multA, t0multA, int, "t0multA");                 // T0 A multiplicity (redundant as it is also in the detector table)
+//DECLARE_SOA_COLUMN(T0multC, t0multc, int, "t0multC");                 // T0 C multiplicity (redundant as it is also in the detector table)
+//DECLARE_SOA_COLUMN(FITmult, fitmult, int, "fitmult");                 // FIT  multiplicity (redundant as it is also in the detector table)
+DECLARE_SOA_COLUMN(TriggerMask, triggermask, int, "triggermask"); // Trigger mask, AliESDHeader.h, ULong64_t
 } // namespace collision
 
-DECLARE_SOA_TABLE(Collisions, "RN2", "COLLISION",
-                  collision::TimeframeID, collision::NumTracks, /*collision::NumCalo, collision::NumMuons,*/ collision::ID, collision::PositionX, collision::PositionY, collision::PositionZ, collision::Chi2, collision::BC, collision::OrbitNumber, collision::PeriodNumber, collision::V0mult, collision::T0multA, collision::T0multC, collision::FITmult, collision::TriggerMask);
+DECLARE_SOA_TABLE(Collisions, "RN2", "COLLISION", collision::TimeframeID, collision::NumTracks, collision::VtxID, collision::PosX, collision::PosY, collision::PosZ, collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYX, collision::CovYY, collision::CovYZ, collision::CovZX, collision::CovZY, collision::CovZZ, collision::Chi2, collision::BCNum, collision::OrbitNum, collision::TriggerMask);
+
 using Collision = Collisions::iterator;
 
 namespace timeframe
