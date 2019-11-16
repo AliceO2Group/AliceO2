@@ -13,6 +13,7 @@
 
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/CompilerBuiltins.h"
+#include "Framework/TypeTraits.h"
 #include "Framework/Traits.h"
 #include "Framework/Expressions.h"
 #include <arrow/table.h>
@@ -239,21 +240,90 @@ struct DynamicColumn {
   static constexpr const char* const& label() { return INHERIT::mLabel; }
 };
 
+template <typename INHERIT>
+struct IndexColumn {
+  using inherited_t = INHERIT;
+
+  using persistent = std::false_type;
+  static constexpr const char* const& label() { return INHERIT::mLabel; }
+};
+
+template <size_t START = 0, size_t END = (size_t)-1>
+struct Index : o2::soa::IndexColumn<Index<START, END>> {
+  using base = o2::soa::IndexColumn<Index<START, END>>;
+  constexpr inline static size_t start = START;
+  constexpr inline static size_t end = END;
+
+  Index() = default;
+  Index(arrow::Column const*)
+  {
+  }
+
+  constexpr inline size_t rangeStart()
+  {
+    return START;
+  }
+
+  constexpr inline size_t rangeEnd()
+  {
+    return END;
+  }
+
+  size_t index() const
+  {
+    return *rowIndex;
+  }
+
+  void setIndex(size_t* rowViewIndex)
+  {
+    rowIndex = rowViewIndex;
+  }
+
+  static constexpr const char* mLabel = "Index";
+  using type = size_t;
+
+  using bindings_t = typename o2::framework::pack<>;
+  std::tuple<> boundIterators;
+  size_t* rowIndex;
+};
+
+template <typename T>
+using is_dynamic_t = framework::is_specialization<typename T::base, DynamicColumn>;
+
 template <typename T>
 using is_persistent_t = typename std::decay_t<T>::persistent::type;
+
+template <typename T, template <auto...> class Ref>
+struct is_index : std::false_type {
+};
+
+template <template <auto...> class Ref, auto... Args>
+struct is_index<Ref<Args...>, Ref> : std::true_type {
+};
+
+template <typename T>
+using is_index_t = is_index<T, Index>;
 
 template <typename... C>
 struct RowView : public C... {
  public:
   using persistent_columns_t = framework::selected_pack<is_persistent_t, C...>;
-  using dynamic_columns_t = framework::filtered_pack<is_persistent_t, C...>;
+  using dynamic_columns_t = framework::selected_pack<is_dynamic_t, C...>;
+  using index_columns_t = framework::selected_pack<is_index_t, C...>;
+  constexpr inline static bool no_index_v = std::is_same_v<index_columns_t, framework::pack<>>;
 
   RowView(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, size_t numRows)
     : C(std::get<std::pair<C*, arrow::Column*>>(columnIndex).second)...
   {
     bindIterators(persistent_columns_t{});
     bindAllDynamicColumns(dynamic_columns_t{});
-    mMaxRow = numRows;
+    if constexpr (no_index_v == false) {
+      mRowIndex = this->rangeStart();
+      mMaxRow = std::min(this->rangeEnd(), numRows);
+    } else {
+      mRowIndex = 0;
+      mMaxRow = numRows;
+    }
   }
 
   RowView(RowView<C...> const& other)
@@ -373,6 +443,9 @@ struct RowView : public C... {
   {
     using namespace o2::soa;
     (bindDynamicColumn<DC>(typename DC::bindings_t{}), ...);
+    if constexpr (no_index_v == false) {
+      this->setIndex(&mRowIndex);
+    }
   }
 
   template <typename DC, typename... B>
@@ -502,6 +575,7 @@ class TableMetadata
 #define DECLARE_SOA_COLUMN(_Name_, _Getter_, _Type_, _Label_)                  \
   struct _Name_ : o2::soa::Column<_Type_, _Name_> {                            \
     static constexpr const char* mLabel = _Label_;                             \
+    using base = o2::soa::Column<_Type_, _Name_>;                              \
     using type = _Type_;                                                       \
     using column_t = _Name_;                                                   \
     _Name_(arrow::Column const* column)                                        \
@@ -622,7 +696,7 @@ constexpr auto join(o2::soa::Table<C1...>&& t1, o2::soa::Table<C2...>&& t2)
 template <typename T1, typename T2>
 constexpr auto concat(T1&& t1, T2&& t2)
 {
-  using table_t = typename PackToTable<framework::pack_intersect_t<typename T1::columns, typename T2::columns>>::table;
+  using table_t = typename PackToTable<framework::intersected_pack_t<typename T1::columns, typename T2::columns>>::table;
   return table_t(ArrowHelpers::concatTables({t1.asArrowTable(), t2.asArrowTable()}));
 }
 
