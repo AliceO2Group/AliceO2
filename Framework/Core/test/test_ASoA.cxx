@@ -238,15 +238,14 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   rowWriterB(0, 15);
   auto tableB = builderB.finalize();
 
-  using TestA = o2::soa::Table<test::X, test::Y>;
-  using TestB = o2::soa::Table<test::X>;
+  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
+  using TestB = o2::soa::Table<o2::soa::Index<>, test::X>;
   using Test = Concat<TestA, TestB>;
 
-  static_assert(std::is_same_v<Test::table_t, o2::soa::Table<test::X>>, "Bad intersection of columns");
+  static_assert(std::is_same_v<Test::table_t, o2::soa::Table<o2::soa::Index<>, test::X>>, "Bad intersection of columns");
   Test tests{tableA, tableB};
   BOOST_REQUIRE_EQUAL(16, tests.size());
-  int i = 0;
   for (auto& test : tests) {
-    BOOST_CHECK_EQUAL(i++, test.x());
+    BOOST_CHECK_EQUAL(test.index(), test.x());
   }
 }

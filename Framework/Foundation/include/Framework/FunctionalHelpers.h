@@ -92,7 +92,7 @@ constexpr auto select_pack(Result result, pack<T, Ts...>)
 template <template <typename> typename Condition, typename... Types>
 using selected_pack = std::decay_t<decltype(select_pack<Condition>(pack<>{}, pack<Types...>{}))>;
 
-/// Removes from the pack types that satisfy the Condition
+/// Select only the items of a pack which match Condition
 template <template <typename> typename Condition, typename Result>
 constexpr auto filter_pack(Result result, pack<>)
 {
