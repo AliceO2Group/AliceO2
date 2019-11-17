@@ -240,15 +240,12 @@ struct DynamicColumn {
 };
 
 template <typename T>
-using is_not_persistent_t = typename std::decay_t<T>::persistent::type;
-
-template <typename T>
-using is_persistent_t = std::is_same<typename std::decay_t<T>::persistent::type, std::false_type>;
+using is_persistent_t = typename std::decay_t<T>::persistent::type;
 
 template <typename... C>
 struct RowView : public C... {
  public:
-  using persistent_columns_t = framework::filtered_pack<is_not_persistent_t, C...>;
+  using persistent_columns_t = framework::selected_pack<is_persistent_t, C...>;
   using dynamic_columns_t = framework::filtered_pack<is_persistent_t, C...>;
 
   RowView(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, size_t numRows)
@@ -478,7 +475,7 @@ struct FilterPersistentColumns {
 template <typename... C>
 struct FilterPersistentColumns<soa::Table<C...>> {
   using columns = typename soa::Table<C...>::columns;
-  using persistent_columns_pack = framework::filtered_pack<is_not_persistent_t, C...>;
+  using persistent_columns_pack = framework::selected_pack<is_persistent_t, C...>;
   using persistent_table_t = typename PackToTable<persistent_columns_pack>::table;
 };
 
