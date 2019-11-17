@@ -18,9 +18,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <gsl/gsl>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 /// Helper trait to determine if a given type T
 /// is a specialization of a given reference type Ref.
@@ -215,6 +213,5 @@ template <class Type>
 struct is_boost_serializable<Type, boost::archive::binary_oarchive, std::void_t<typename Type::value_type>>
   : is_boost_serializable<typename Type::value_type, boost::archive::binary_oarchive> {
 };
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 #endif // FRAMEWORK_TYPETRAITS_H
