@@ -2271,7 +2271,7 @@ void Detector::Reset()
 {
   if (!o2::utils::ShmManager::Instance().isOperational()) {
     mHits->clear();
-    mLastPrincipalTrackEntered = -1;
-    resetHitIndices();
   }
+  mLastPrincipalTrackEntered = -1;
+  resetHitIndices();
 }
