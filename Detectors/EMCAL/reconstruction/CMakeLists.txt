@@ -21,6 +21,9 @@ o2_add_library(EMCALReconstruction
                        src/Bunch.cxx
                        src/Channel.cxx
                        src/Mapper.cxx
+                       src/CaloFitResults.cxx
+                       src/CaloRawFitter.cxx
+                       src/CaloRawFitterStandard.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::Headers
                                      AliceO2::InfoLogger
                                      O2::DataFormatsEMCAL
@@ -36,7 +39,10 @@ o2_target_root_dictionary(
                                   include/EMCALReconstruction/Bunch.h
                                   include/EMCALReconstruction/Channel.h
                                   include/EMCALReconstruction/RAWDataHeader.h
-                                  include/EMCALReconstruction/Mapper.h)
+                                  include/EMCALReconstruction/Mapper.h
+                                  include/EMCALReconstruction/CaloFitResults.h
+                                  include/EMCALReconstruction/CaloRawFitter.h
+                                  include/EMCALReconstruction/CaloRawFitterStandard.h)
 
 o2_add_executable(rawreader-file
                   COMPONENT_NAME emcal
