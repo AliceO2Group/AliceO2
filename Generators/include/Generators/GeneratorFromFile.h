@@ -17,6 +17,7 @@
 
 class TBranch;
 class TFile;
+class TParticle;
 
 namespace o2
 {
@@ -45,13 +46,15 @@ class GeneratorFromFile : public FairGenerator
   void SetStartEvent(int start);
 
   void SetSkipNonTrackable(bool b) { mSkipNonTrackable = b; }
+  void setFixOffShell(bool b) { mFixOffShell = b; }
+  bool rejectOrFixKinematics(TParticle& p);
 
  private:
   TFile* mEventFile = nullptr; //! the file containing the persistent events
   int mEventCounter = 0;
   int mEventsAvailable = 0;
   bool mSkipNonTrackable = true; //! whether to pass non-trackable (decayed particles) to the MC stack
-
+  bool mFixOffShell = true;      // fix particles with M_assigned != M_calculated
   ClassDefOverride(GeneratorFromFile, 1);
 };
 
