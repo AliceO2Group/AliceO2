@@ -43,7 +43,7 @@ class FT0DPLDigitizerTask
 
  public:
   FT0DPLDigitizerTask() : mDigitizer(DigitizationParameters{}) {}
-  explicit  FT0DPLDigitizerTask(o2::ft0::DigitizationParameters const& parameters)
+  explicit FT0DPLDigitizerTask(o2::ft0::DigitizationParameters const& parameters)
     : mDigitizer(parameters){};
   ~FT0DPLDigitizerTask() = default;
   static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::FT0;
