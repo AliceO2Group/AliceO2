@@ -12,9 +12,7 @@
 
 #include <functional>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 namespace
@@ -23,6 +21,7 @@ template <typename T>
 struct memfun_type {
   using type = void;
 };
+} // namespace
 
 /// Type helper to hold a parameter pack.  This is different from a tuple
 /// as there is no data associated to it.
@@ -71,6 +70,9 @@ constexpr auto concatenate_pack(pack<Args1...>, pack<Args2...>)
   return pack<Args1..., Args2...>{};
 }
 
+template <typename P1, typename P2>
+using concatenated_pack_t = decltype(concatenate_pack(P1{}, P2{}));
+
 /// Selects from the pack types that satisfy the Condition
 template <template <typename> typename Condition, typename Result>
 constexpr auto select_pack(Result result, pack<>)
@@ -106,6 +108,12 @@ constexpr auto filter_pack(Result result, pack<T, Ts...>)
     return filter_pack<Condition>(concatenate_pack(result, pack<T>{}), pack<Ts...>{});
 }
 
+template <typename T>
+void print_pack()
+{
+  puts(__PRETTY_FUNCTION__);
+}
+
 template <template <typename> typename Condition, typename... Types>
 using filtered_pack = std::decay_t<decltype(filter_pack<Condition>(pack<>{}, pack<Types...>{}))>;
 
@@ -122,24 +130,20 @@ inline constexpr bool has_type_v = has_type<T, Us...>::value;
 
 /// Intersect two packs
 template <typename S1, typename S2>
-struct pack_intersect {
+struct intersect_pack {
   template <std::size_t... Indices>
   static constexpr auto make_intersection(std::index_sequence<Indices...>)
   {
-
-    return concatenate_pack(
-      std::conditional_t<
-        has_type_v<
-          pack_element_t<Indices, S1>,
-          S2>,
-        pack<pack_element_t<Indices, S1>>,
-        pack<>>{}...);
+    return filtered_pack<std::is_void,
+                         std::conditional_t<
+                           has_type_v<pack_element_t<Indices, S1>, S2>,
+                           pack_element_t<Indices, S1>, void>...>{};
   }
   using type = decltype(make_intersection(std::make_index_sequence<pack_size(S1{})>{}));
 };
 
 template <typename S1, typename S2>
-using pack_intersect_t = typename pack_intersect<S1, S2>::type;
+using intersected_pack_t = typename intersect_pack<S1, S2>::type;
 
 /// Type helper to hold metadata about a lambda or a class
 /// method.
@@ -149,7 +153,6 @@ struct memfun_type<Ret (Class::*)(Args...) const> {
   using args = pack<Args...>;
   using return_type = Ret;
 };
-} // namespace
 
 /// Funtion From Lambda. Helper to create an std::function from a
 /// lambda and therefore being able to use the std::function type
@@ -172,7 +175,6 @@ memfun_type<decltype(&F::operator())>
   return memfun_type<decltype(&F::operator())>();
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif // o2_framework_FunctionalHelpers_H_INCLUDED
