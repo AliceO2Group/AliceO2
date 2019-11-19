@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file ModelGEM.cxx
-/// \brief Implementations of the model calculations + simulations of the GEM efficiencies
+/// \brief Implementations for the model calculations + simulations of the GEM efficiencies
 /// \author Viktor Ratza, University of Bonn, ratza@hiskp.uni-bonn.de
 
 #include <cmath>
@@ -18,28 +18,35 @@
 
 using namespace o2::tpc;
 
-ModelGEM::ModelGEM() :
-
+ModelGEM::ModelGEM() : // We allow a scaling factor of the gain curves for tuning (by default this factor is set to 1.0)
                        mAbsGainScaling(1.0),
+
+                       // By default we do not assume any attachment (in units 1/cm)
                        mAttachment(0.0),
+
+                       // Has the stack energy resolution already been calculated?
                        mStackEnergyCalculated(0),
 
+                       // Definition of GEM geometry
                        mFitElecEffPitch{{140.0f, 200.0f, 280.0f}},
                        mFitElecEffWidth{{2.0f * mFitElecEffPitch[0] - mFitElecEffHoleDiameter, 2.0f * mFitElecEffPitch[1] - mFitElecEffHoleDiameter, 2.0f * mFitElecEffPitch[2] - mFitElecEffHoleDiameter}},
 
+                       // Tuning parameters for GEM efficiency calculations (direct fit results)
                        mFitElecEffTuneEta1{{6.78972f, 11.5214f, 18.788f}},
                        mFitElecEffTuneEta2{{6.88737f, 8.98337f, 9.90459f}},
                        mFitElecEffTuneDiffusion{{1.30061f, 1.30285f, 1.30125f}},
 
+                       // Absolute gain curves (multiplication)
                        mFitAbsGainConstant{{-1.91668f, -1.95479f, -1.98842f}},
                        mFitAbsGainSlope{{0.0183423f, 0.0185194f, 0.0186415f}},
 
-                       mFitSingleGainF0{{0.450676f, 0.457851f, 0.465322f}},
-                       mFitSingleGainU0{{210.0f, 210.0f, 210.0f}},
-                       mFitSingleGainQ{{0.10f, 0.10f, 0.10f}}
-
+                       // Single gain fluctuation curves
+                       mFitSingleGainF0{{0.541429f, 0.549837f, 0.554301f}},
+                       mFitSingleGainU0{{230.0f, 230.0f, 230.0f}},
+                       mFitSingleGainQ{{0.03f, 0.03f, 0.03f}}
 {
 
+  //Calculate constant GEM parameters (0 standard, 1 medium, 2 large)
   for (int i = 0; i <= 2; ++i) {
     mParamC1[i] = getParameterC1(i);
     mParamC2[i] = getParameterC2(i);
@@ -92,7 +99,7 @@ float ModelGEM::getAbsoluteGain(float gemPotential, int geom)
 
 float ModelGEM::getSingleGainFluctuation(float gemPotential, int geom)
 {
-  return 0.5 * (mFitSingleGainF0[geom] + 1.0) + (1.0 - mFitSingleGainF0[geom]) / Pi * std::atan(-mFitSingleGainQ[geom] * (gemPotential - mFitSingleGainU0[geom]));
+  return mFitSingleGainF0[geom] + std::exp(-(gemPotential - mFitSingleGainU0[geom]) * mFitSingleGainQ[geom]);
 }
 
 void ModelGEM::setStackProperties(const std::array<int, 4>& geometry, const std::array<float, 5>& distance, const std::array<float, 4>& potential, const std::array<float, 5>& electricField)
@@ -275,7 +282,8 @@ float ModelGEM::getIntXEndBot(float eta1, float eta2, int geom)
   if (eta2 <= getEta2Kink1(eta1, geom)) {
     result = -(mFitElecEffHoleDiameter + mFitElecEffWidth[geom]) / 4.0;
   } else if (getEta2Kink1(eta1, geom) < eta2 && eta2 < getEta2Kink2(eta1, geom)) {
-    result = -mFitElecEffPitch[geom] / 2.0 + sqrt(getHtop2(geom) * (eta1 - 1.0) * (2.0 * Pi * eta2 + getHtop0(geom) * (1.0 - eta1))) / (getHtop2(geom) * (eta1 - 1.0));
+    result = -mFitElecEffPitch[geom] / 2.0 + sqrt(getHtop2(geom) * (eta1 - 1.0) * (2.0 * Pi * eta2 + getHtop0(geom) * (1.0 - eta1))) /
+                                               (getHtop2(geom) * (eta1 - 1.0));
   } else {
     result = -mFitElecEffHoleDiameter / 2.0;
   }
@@ -290,7 +298,8 @@ float ModelGEM::getIntXEndTop(float eta1, float eta2, int geom)
   if (eta1 <= getEta1Kink1(eta2, geom)) {
     result = -(mFitElecEffHoleDiameter + mFitElecEffWidth[geom]) / 4.0;
   } else if (getEta1Kink1(eta2, geom) < eta1 && eta1 < getEta1Kink2(eta2, geom)) {
-    result = -mFitElecEffPitch[geom] / 2.0 + sqrt(getHtop2(geom) * (eta2 - 1.0) * (2.0 * Pi * eta1 + getHtop0(geom) * (1.0 - eta2))) / (getHtop2(geom) * (eta2 - 1.0));
+    result = -mFitElecEffPitch[geom] / 2.0 + sqrt(getHtop2(geom) * (eta2 - 1.0) * (2.0 * Pi * eta1 + getHtop0(geom) * (1.0 - eta2))) /
+                                               (getHtop2(geom) * (eta2 - 1.0));
   } else {
     result = -mFitElecEffHoleDiameter / 2.0;
   }
