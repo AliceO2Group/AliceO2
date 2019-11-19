@@ -14,6 +14,9 @@
 
 #include "Framework/ASoA.h"
 #include "Framework/TableBuilder.h"
+#include "gandiva/tree_expr_builder.h"
+#include "arrow/status.h"
+#include "gandiva/filter.h"
 #include <boost/test/unit_test.hpp>
 
 using namespace o2::framework;
@@ -22,16 +25,16 @@ using namespace o2::soa;
 
 namespace test
 {
-DECLARE_SOA_COLUMN(X, x, uint64_t, "x");
-DECLARE_SOA_COLUMN(Y, y, uint64_t, "y");
-DECLARE_SOA_COLUMN(Z, z, uint64_t, "z");
-DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](uint64_t x, uint64_t y) { return x + y; });
+DECLARE_SOA_COLUMN(X, x, int32_t, "x");
+DECLARE_SOA_COLUMN(Y, y, int32_t, "y");
+DECLARE_SOA_COLUMN(Z, z, int32_t, "z");
+DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](int32_t x, int32_t y) { return x + y; });
 } // namespace test
 
 BOOST_AUTO_TEST_CASE(TestTableIteration)
 {
   TableBuilder builder;
-  auto rowWriter = builder.persist<uint64_t, uint64_t>({"x", "y"});
+  auto rowWriter = builder.persist<int32_t, int32_t>({"x", "y"});
   rowWriter(0, 0, 0);
   rowWriter(0, 0, 1);
   rowWriter(0, 0, 2);
@@ -42,7 +45,7 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   rowWriter(0, 1, 7);
   auto table = builder.finalize();
 
-  auto i = ColumnIterator<uint64_t>(table->column(0).get());
+  auto i = ColumnIterator<int32_t>(table->column(0).get());
   int64_t pos = 0;
   i.mCurrentPos = &pos;
   BOOST_CHECK_EQUAL(*i, 0);
@@ -110,7 +113,7 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
 BOOST_AUTO_TEST_CASE(TestDynamicColumns)
 {
   TableBuilder builder;
-  auto rowWriter = builder.persist<uint64_t, uint64_t>({"x", "y"});
+  auto rowWriter = builder.persist<int32_t, int32_t>({"x", "y"});
   rowWriter(0, 0, 0);
   rowWriter(0, 0, 1);
   rowWriter(0, 0, 2);
@@ -139,7 +142,7 @@ BOOST_AUTO_TEST_CASE(TestDynamicColumns)
 BOOST_AUTO_TEST_CASE(TestColumnIterators)
 {
   TableBuilder builder;
-  auto rowWriter = builder.persist<uint64_t, uint64_t>({"x", "y"});
+  auto rowWriter = builder.persist<int32_t, int32_t>({"x", "y"});
   rowWriter(0, 0, 0);
   rowWriter(0, 0, 1);
   rowWriter(0, 0, 2);
@@ -152,7 +155,7 @@ BOOST_AUTO_TEST_CASE(TestColumnIterators)
 
   int64_t index1 = 0;
   int64_t index2 = 0;
-  ColumnIterator<uint64_t> foo{table->column(1).get()};
+  ColumnIterator<int32_t> foo{table->column(1).get()};
   foo.mCurrentPos = &index1;
   auto bar{foo};
   bar.mCurrentPos = &index2;
@@ -173,7 +176,7 @@ BOOST_AUTO_TEST_CASE(TestColumnIterators)
 BOOST_AUTO_TEST_CASE(TestJoinedTables)
 {
   TableBuilder builderX;
-  auto rowWriterX = builderX.persist<uint64_t>({"x"});
+  auto rowWriterX = builderX.persist<int32_t>({"x"});
   rowWriterX(0, 0);
   rowWriterX(0, 1);
   rowWriterX(0, 2);
@@ -185,7 +188,7 @@ BOOST_AUTO_TEST_CASE(TestJoinedTables)
   auto tableX = builderX.finalize();
 
   TableBuilder builderY;
-  auto rowWriterY = builderY.persist<uint64_t>({"y"});
+  auto rowWriterY = builderY.persist<int32_t>({"y"});
   rowWriterY(0, 7);
   rowWriterY(0, 6);
   rowWriterY(0, 5);
@@ -216,7 +219,7 @@ BOOST_AUTO_TEST_CASE(TestJoinedTables)
 BOOST_AUTO_TEST_CASE(TestConcatTables)
 {
   TableBuilder builderA;
-  auto rowWriterA = builderA.persist<uint64_t, uint64_t>({"x", "y"});
+  auto rowWriterA = builderA.persist<int32_t, int32_t>({"x", "y"});
   rowWriterA(0, 0, 0);
   rowWriterA(0, 1, 0);
   rowWriterA(0, 2, 0);
@@ -226,9 +229,10 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   rowWriterA(0, 6, 0);
   rowWriterA(0, 7, 0);
   auto tableA = builderA.finalize();
+  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 8);
 
   TableBuilder builderB;
-  auto rowWriterB = builderB.persist<uint64_t>({"x"});
+  auto rowWriterB = builderB.persist<int32_t>({"x"});
   rowWriterB(0, 8);
   rowWriterB(0, 9);
   rowWriterB(0, 10);
@@ -240,7 +244,7 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   auto tableB = builderB.finalize();
 
   TableBuilder builderC;
-  auto rowWriterC = builderC.persist<uint64_t>({"z"});
+  auto rowWriterC = builderC.persist<int32_t>({"z"});
   rowWriterC(0, 8);
   rowWriterC(0, 9);
   rowWriterC(0, 10);
@@ -267,14 +271,41 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   // Hardcode a selection for the first 5 odd numbers
   using FilteredTest = Filtered<TestA>;
   using namespace o2::framework;
+  expressions::Filter testf = (test::x == 1) || (test::x == 3);
   expressions::Selection selection;
   auto status = gandiva::SelectionVector::MakeInt32(tests.size(), arrow::default_memory_pool(), &selection);
-  BOOST_CHECK_EQUAL(status.ok(), true);
-  selection->SetIndex(0, 1);
-  selection->SetIndex(1, 3);
-  selection->SetNumSlots(2);
+  BOOST_REQUIRE(status.ok());
+
+  auto fptr = tableA->schema()->GetFieldByName("x");
+  BOOST_REQUIRE(fptr != nullptr);
+  BOOST_REQUIRE(fptr->name() == "x");
+  BOOST_REQUIRE(fptr->type()->id() == arrow::Type::INT32);
+
+  auto node_x = gandiva::TreeExprBuilder::MakeField(fptr);
+  auto literal_1 = gandiva::TreeExprBuilder::MakeLiteral(static_cast<int32_t>(1));
+  auto literal_3 = gandiva::TreeExprBuilder::MakeLiteral(static_cast<int32_t>(3));
+  auto equals_to_1 = gandiva::TreeExprBuilder::MakeFunction("equal", {node_x, literal_1}, arrow::boolean());
+  auto equals_to_3 = gandiva::TreeExprBuilder::MakeFunction("equal", {node_x, literal_3}, arrow::boolean());
+  auto node_or = gandiva::TreeExprBuilder::MakeOr({equals_to_1, equals_to_3});
+  auto condition = gandiva::TreeExprBuilder::MakeCondition(node_or);
+  BOOST_REQUIRE_EQUAL(condition->ToString(), "bool equal((int32) x, (const int32) 1) || bool equal((int32) x, (const int32) 3)");
+  std::shared_ptr<gandiva::Filter> filter;
+  status = gandiva::Filter::Make(tableA->schema(), condition, &filter);
+  BOOST_REQUIRE_EQUAL(status.ToString(), "OK");
+
+  arrow::TableBatchReader reader(*tableA);
+  std::shared_ptr<RecordBatch> batch;
+  auto s = reader.ReadNext(&batch);
+  BOOST_REQUIRE(s.ok());
+  BOOST_REQUIRE(batch != nullptr);
+  BOOST_REQUIRE_EQUAL(batch->num_rows(), 8);
+  auto st = filter->Evaluate(*batch, selection);
+  BOOST_REQUIRE_EQUAL(st.ToString(), "OK");
+
+  expressions::Selection selection_f = expressions::createSelection(tableA, testf);
+
   TestA testA{tableA};
-  FilteredTest filtered{testA.asArrowTable(), selection};
+  FilteredTest filtered{testA.asArrowTable(), selection_f};
   BOOST_CHECK_EQUAL(2, filtered.size());
 
   auto i = 0;
