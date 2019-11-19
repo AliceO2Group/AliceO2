@@ -38,6 +38,7 @@ o2_add_library(TRDBase
                                      ROOT::Physics
                                      O2::SimulationDataFormat
                                      O2::CCDB)
+
 o2_target_root_dictionary(TRDBase
                           HEADERS include/TRDBase/TRDPadPlane.h
                                   include/TRDBase/TRDGeometryBase.h

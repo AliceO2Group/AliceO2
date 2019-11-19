@@ -30,6 +30,13 @@
 #include "TRDBase/TrapSimulator.h"
 #include "fairlogger/Logger.h"
 
+//to pull in the digitzer incomnig data.
+#include "TRDBase/Digit.h"
+#include "TRDSimulation/Digitizer.h"
+#include <SimulationDataFormat/MCCompLabel.h>
+#include <SimulationDataFormat/MCTruthContainer.h>
+
+
 #include <iostream>
 #include <iomanip>
 #include "TCanvas.h"
@@ -140,6 +147,7 @@ void TrapSimulator::reset()
   filterPedestalInit();
   filterGainInit();
   filterTailInit();
+  labelsInit();
 }
 
 // ----- I/O implementation -----
@@ -181,7 +189,7 @@ std::ostream& o2::trd::operator<<(std::ostream& os, const TrapSimulator& mcm)
   // ----- human-readable output -----
   if (os.iword(TrapSimulator::mgkFormatIndex) == 0) {
 
-    os << "MCM " << mcm.getMcmPos() << " on ROB " << mcm.getRobPos() << " in detector " << mcm.getDetector() << std::endl;
+    os << "TRAP " << mcm.getMcmPos() << " on ROB " << mcm.getRobPos() << " in detector " << mcm.getDetector() << std::endl;
 
     os << "----- Unfiltered ADC data (10 bit) -----" << std::endl;
     os << "ch    ";
@@ -768,7 +776,7 @@ void TrapSimulator::draw(Option_t* const option)
   }
 }
 
-void TrapSimulator::setData(int adc, const int* const data)
+void TrapSimulator::setData(int adc, const int* data)
 {
   //
   // Store ADC data into array of raw data
@@ -792,6 +800,7 @@ void TrapSimulator::setData(int adc, int it, int data)
 {
   //
   // Store ADC data into array of raw data
+  // This time enter it element by element.
   //
 
   if (!checkInitialized())
@@ -804,6 +813,20 @@ void TrapSimulator::setData(int adc, int it, int data)
 
   mADCR[adc * mNTimeBin + it] = data << mgkAddDigits;
   mADCF[adc * mNTimeBin + it] = data << mgkAddDigits;
+}
+
+//This is the message data coming in from the digitzer.
+void TrapSimulator::setDataFromDigitizer(int adc, int it, std::vector<o2::trd::Digit> &digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
+{
+ //extra relevant digits and put them into mADCR and mADCF
+  
+  if( !checkInitialized() )
+    return;
+//get labels out
+
+//get digits out.
+
+
 }
 
 /*  Remove the digitsmanager option for setting data. I cant find it being called from anywhere in aliroot ... this will probably bite me.
