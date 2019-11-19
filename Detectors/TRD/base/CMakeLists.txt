@@ -67,7 +67,6 @@ o2_target_root_dictionary(TRDBase
                                   include/TRDBase/TrapConfig.h
                                   include/TRDBase/TrapConfigHandler.h
                                   include/TRDBase/TrackletMCM.h)
->>>>>>> collapse commits
 
 o2_add_test(DiffusionCoefficient
             SOURCES test/testTRDDiffusionCoefficient.cxx

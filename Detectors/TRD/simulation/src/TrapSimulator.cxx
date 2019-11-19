@@ -27,7 +27,7 @@
 #include "TRDBase/TrackletMCM.h"
 #include "TRDBase/CalOnlineGainTables.h"
 #include "TRDBase/TrapConfigHandler.h"
-#include "TRDBase/TrapSimulator.h"
+#include "TRDSimulation/TrapSimulator.h"
 #include "fairlogger/Logger.h"
 
 //to pull in the digitzer incomnig data.
