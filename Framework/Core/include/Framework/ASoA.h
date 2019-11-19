@@ -767,7 +767,8 @@ class TableMetadata
       return *mColumnIterator;                                                 \
     }                                                                          \
   };                                                                           \
-  static const o2::framework::expressions::BindingNode _Getter_ { _Label_ }
+  static const o2::framework::expressions::BindingNode _Getter_ { _Label_,     \
+                                                                  o2::framework::expressions::selectArrowType<_Type_>() }
 
 /// A dynamic column is a column whose values are derived
 /// from those of other real columns. These can be used for

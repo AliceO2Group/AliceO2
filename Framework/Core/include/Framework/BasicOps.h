@@ -18,11 +18,13 @@ enum BasicOp : unsigned int {
   Addition,
   Subtraction,
   Division,
+  Multiplication,
   LessThan,
   LessThanOrEqual,
   GreaterThan,
   GreaterThanOrEqual,
-  Equal
+  Equal,
+  NotEqual
 };
 } // namespace o2::framework
 
