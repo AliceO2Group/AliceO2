@@ -17,6 +17,7 @@
 #pragma link C++ class o2::tpc::qc::PID+;
 #pragma link C++ class o2::tpc::qc::TrackCuts+;
 #pragma link C++ class o2::tpc::qc::Clusters+;
+#pragma link C++ class o2::tpc::qc::Tracks+;
 #pragma link C++ function o2::tpc::qc::helpers::makeLogBinning+;
 #pragma link C++ function o2::tpc::qc::helpers::setStyleHistogram1D+;
 #pragma link C++ function o2::tpc::qc::helpers::setStyleHistogram2D+;
