@@ -26,6 +26,7 @@
 
 #include <iosfwd>
 #include <array>
+#include <optional>
 #include <Rtypes.h>
 #include <gsl/span>
 #include "EMCALReconstruction/CaloFitResults.h"
