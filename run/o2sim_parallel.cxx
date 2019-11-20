@@ -324,7 +324,7 @@ int main(int argc, char* argv[])
     childpids.push_back(pid);
     close(pipe_serverdriver_fd[1]);
     std::cout << "Spawning particle server on PID " << pid << "; Redirect output to " << serverlogname << "\n";
-    launchThreadMonitoringEvents(pipe_serverdriver_fd[0], "EVENTS DISTRIBUTED : ");
+    launchThreadMonitoringEvents(pipe_serverdriver_fd[0], "DISTRIBUTING EVENT : ");
   }
 
   auto internalfork = getenv("ALICE_SIMFORKINTERNAL");
