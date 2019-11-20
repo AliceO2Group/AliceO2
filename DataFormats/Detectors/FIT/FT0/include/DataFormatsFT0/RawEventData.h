@@ -30,14 +30,11 @@ namespace ft0
 constexpr int Nchannels_FT0 = 208;
 constexpr int Nchannels_PM = 12;
 constexpr int NPMs = 18;
-//constexpr int NBITS_EVENTDATA = 9;
-//static constexpt int PayloadSize = 10; // size in bytes = 1GBT word
 
 struct EventHeader {
-  // static constexpr int PayloadSize = 10; // size in bytes = 1GBT word
   static constexpr int PayloadSize = 16; // size in bytes = 1GBT word
   union {
-    uint32_t w[3] = {0};
+    uint32_t w[4] = {0};
     struct {
       uint16_t startDescriptor : 4;
       uint16_t nGBTWords : 4;
@@ -51,7 +48,6 @@ struct EventHeader {
 };
 
 struct EventData {
-  // static constexpr int PayloadSize = 5; // size in bytes = 1/2 GBT word
   static constexpr int PayloadSize = 8; // size in bytes = 1/2 GBT word
   union {
     uint64_t w = 0;
@@ -76,7 +72,6 @@ class RawEventData
 {
  public:
   RawEventData() = default;
-  //virtual ~RawEventData();
   void GenerateHeader(int nChannels);
   void GenerateData();
   void GenerateRandomHeader(int nChannels);
@@ -127,27 +122,21 @@ class RawEventData
 
     std::vector<char> result(size() * CRUWordSize);
     char* out = result.data();
-    //   str.write(reinterpret_cast<const char*>(&mRDH), sizeof(mRDH));
-    //   printRDH(&mRDH);
-    //  LOG(INFO)<<"orbit "<<mRDH.orbit<<" BC "<<mRDH.BC<<" link "<<mRDH.linkID;
-    //str.write(reinterpret_cast<const char*>(&mEventHeader), EventHeader::PayloadSize);
     std::memcpy(out, &mEventHeader, EventHeader::PayloadSize);
     out += EventHeader::PayloadSize;
-    LOG(INFO) << " !!@@@write header for " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " bc " << int(mEventHeader.bc);
+    LOG(DEBUG) << "write header for " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " bc " << int(mEventHeader.bc);
     if (mIsPadded) {
       out += CRUWordSize - EventHeader::PayloadSize;
-      LOG(INFO) << " !!@@@ padding header";
+      LOG(INFO) << "padding header " << CRUWordSize - EventHeader::PayloadSize;
     }
     for (int i = 0; i < mEventHeader.nGBTWords; ++i) {
       std::memcpy(out, &mEventData[2 * i], EventData::PayloadSize);
       out += EventData::PayloadSize;
-      LOG(INFO) << " !!@@@ write 1st word channel " << int(mEventData[2 * i].channelID);
       std::memcpy(out, &mEventData[2 * i + 1], EventData::PayloadSize);
       out += EventData::PayloadSize;
-      LOG(INFO) << " !!@@@ write 2nd word channel " << int(mEventData[2 * i + 1].channelID);
       if (mIsPadded) {
         out += CRUWordSize - 2 * EventData::PayloadSize;
-        LOG(INFO) << " !!@@@ padding data";
+        LOG(DEBUG) << "padding data " << CRUWordSize - 2 * EventData::PayloadSize;
       }
     }
     return result;

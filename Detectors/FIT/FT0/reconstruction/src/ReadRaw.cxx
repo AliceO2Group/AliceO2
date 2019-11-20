@@ -78,19 +78,19 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
   LOG(INFO) << "**********ReadRaw::" << std::endl;
   o2::header::RAWDataHeader mRDH;
   const char padding[CRUWordSize] = {0};
-  std::vector<o2::ft0::ChannelData> * chDgDataArr = nullptr;
+  std::vector<o2::ft0::ChannelData>* chDgDataArr = nullptr;
   o2::ft0::ChannelData chData;
   mFileDest.seekg(0, mFileDest.end);
   long sizeFile = mFileDest.tellg();
   mFileDest.seekg(0);
-  LOG(INFO) << "SizeFile " << sizeFile;
-  //int old_bc = -1, old_orbit = -1;
+  LOG(DEBUG) << "SizeFile " << sizeFile;
 
   // read content of infile
   long posInFile = 0;
+  while (posInFile < sizeFile - sizeof(mRDH)) {
 
-  while (posInFile < sizeFile) {
     int pos = 0;
+    mFileDest.seekg(posInFile);
     mFileDest.read(reinterpret_cast<char*>(&mRDH), sizeof(mRDH));
     printRDH(&mRDH);
 
@@ -101,13 +101,12 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
     int link = mRDH.linkID;
     pos += int(sizeof(mRDH));
     posInFile += nwords;
-    //  LOG(INFO) << "nwords " << nwords << " npackages " << npackages << " numPage " << numPage << " offset " << offset << " link " << link;
-    // LOG(INFO) << " memory size " << mRDH.memorySize << " size RDH " << sizeof(mRDH) << " pos " << pos << " pos in file " << posInFile;
 
     while (pos < mRDH.memorySize) {
       mFileDest.read(reinterpret_cast<char*>(&mEventHeader), sizeof(mEventHeader));
       pos += sizeof(mEventHeader);
-      o2::InteractionRecord intrec { mEventHeader.bc, mEventHeader.orbit };
+      LOG(DEBUG) << "read  header for " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
+      o2::InteractionRecord intrec{mEventHeader.bc, mEventHeader.orbit};
       //auto digitIter = mDigitAccum.find(intrec);
       auto [digitIter, isNew] = mDigitAccum.try_emplace(intrec);
       auto& digits = digitIter->second;
@@ -118,11 +117,9 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
         digits.setTriggers(0, 0, 0, 0, 0);
       }
       chDgDataArr = &digits.getChDgData();
-      LOG(INFO) << " !!@@@read  header for " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos;
       if (mIsPadded) {
-        // mFileDest.read(reinterpret_cast<char*>(mBuffer), size_t(CRUWordSize - o2::ft0::EventData::PayloadSize));
-        LOG(INFO) << " !!@@@ padding header";
         pos += CRUWordSize - o2::ft0::EventData::PayloadSize;
+        LOG(DEBUG) << " padding header " << pos << " " << CRUWordSize - o2::ft0::EventHeader::PayloadSize;
       }
 
       for (int i = 0; i < mEventHeader.nGBTWords; ++i) {
@@ -133,7 +130,7 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
         chData.numberOfParticles = mEventData[2 * i].numberADC;
         chDgDataArr->emplace_back(chData);
         pos += o2::ft0::EventData::PayloadSize;
-        LOG(INFO) << " read 1st word channelID " << int(mEventData[2 * i].channelID) << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " pos " << pos << " mcp " << int(mEventData[2 * i].channelID) << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID));
+        LOG(DEBUG) << " read 1st word channelID " << int(mEventData[2 * i].channelID) << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " mcp " << int(mEventData[2 * i].channelID) << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID)) << " pos " << pos;
 
         mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i + 1]), EventData::PayloadSize);
         if (mEventData[2 * i + 1].charge <= 0)
@@ -144,23 +141,14 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
         chData.QTCAmpl = mEventData[2 * i + 1].charge / MV_2_Nchannels;
         chData.numberOfParticles = mEventData[2 * i + 1].numberADC;
         chDgDataArr->emplace_back(chData);
-        LOG(INFO) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " pos " << pos;
+        LOG(DEBUG) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " mcp " << int(mEventData[2 * i].channelID) << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID)) << " pos " << pos;
         if (mIsPadded) {
-          //        mFileDest.read(reinterpret_cast<char*>(mBuffer), size_t(CRUWordSize - o2::ft0::EventData::PayloadSize));
-          //         LOG(INFO) << " !!@@@ padding data"
-          //          << " pos " << pos;
+          LOG(DEBUG) << " padding data"
+                     << " pos " << pos << " CRUWordSize - o2::ft0::EventData::PayloadSize " << CRUWordSize - o2::ft0::EventData::PayloadSize;
         }
-        //    pos += mEventHeader.nGBTWords * EventData::PayloadSize;
       }
     }
-    /*
-    if (posInFile < sizeFile - 64) {
-      mFileDest.read(reinterpret_cast<char*>(&mRDH), sizeof(mRDH));
-      printRDH(&mRDH);
-    }
-    */
   }
-
   close();
 }
 
@@ -175,9 +163,7 @@ void ReadRaw::close()
 //_____________________________________________________________________________
 void ReadRaw::writeDigits(std::string fileDataOut)
 {
-  LOG(INFO) << "writeDigits fileDataOut " << fileDataOut.data();
   TFile* mOutFile = new TFile(fileDataOut.data(), "RECREATE");
-  LOG(INFO) << " fileDataOut " << fileDataOut.data();
   if (!mOutFile || mOutFile->IsZombie()) {
     LOG(ERROR) << "Failed to open " << fileDataOut << " output file";
   } else {
@@ -185,7 +171,7 @@ void ReadRaw::writeDigits(std::string fileDataOut)
   }
   TTree* mOutTree = new TTree("o2sim", "o2sim");
   // retrieve the digits from the input
-  auto inDigits = mDigitAccum; 
+  auto inDigits = mDigitAccum;
   LOG(INFO) << "RECEIVED DIGITS SIZE " << inDigits.size();
 
   // connect this to a particular branch
@@ -197,10 +183,8 @@ void ReadRaw::writeDigits(std::string fileDataOut)
   mDigitAccum.clear();
   mOutTree->Branch("FT0Digit", &digitVec);
   mOutTree->Fill();
-  mOutTree->Print();
 
   mOutFile->cd();
   mOutTree->Write();
-  mOutFile->ls();
   mOutFile->Close();
 }

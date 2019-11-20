@@ -36,16 +36,8 @@ struct Topo {
 inline bool operator<(Topo const& a, Topo const& b)
 {
   return (a.mPM < b.mPM || (a.mPM == b.mPM && a.mMCP < b.mMCP));
-  //  return std::tie(a.mPM, a.mMCP) < std::tie(b.mPM, a.mMCP);
-  // return (a.mPM<b.mPM && a.mMCP<b.mMCP);
 }
 
-/*
-    inline std::size_t hash(Topo const& x)
-    {
-    return x.mPM * 12 + x.mMCP;
-    }
-  */
 class LookUpTable
 {
   static constexpr int NUMBER_OF_MCPs = 12;

@@ -22,7 +22,6 @@ void Digit::printStream(std::ostream& stream) const
   for (auto& chdata : mChDgDataArr)
     stream << "CH " << chdata.ChId << " TIME " << chdata.CFDTime << " ns " << chdata.QTCAmpl << " mV "
            << " ADC chain " << chdata.numberOfParticles << std::endl;
-
 }
 
 std::ostream& operator<<(std::ostream& stream, const Digit& digi)

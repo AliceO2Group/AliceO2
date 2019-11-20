@@ -19,7 +19,6 @@ using namespace std;
 
 ClassImp(RawEventData);
 
-
 void RawEventData::GenerateData()
 {
   for (int iCh = 0; iCh < mEventHeader.nGBTWords * 2; iCh++) {
@@ -84,29 +83,29 @@ void RawEventData::GenerateRandomEvent(int nChannels)
 /*******************************************************************************************************************/
 void RawEventData::Print(bool doPrintData)
 {
- std::cout << "==================Raw event data==================" << endl;
- std::cout << "##################Header##################" << endl;
- std::cout << "startDescriptor: " << mEventHeader.startDescriptor << endl;
- std::cout << "Nchannels: " << mEventHeader.nGBTWords * 2 << endl;
- std::cout << "BC: " << mEventHeader.bc << endl;
- std::cout << "Orbit: " << mEventHeader.orbit << endl;
- std::cout << "##########################################" << endl;
+  std::cout << "==================Raw event data==================" << endl;
+  std::cout << "##################Header##################" << endl;
+  std::cout << "startDescriptor: " << mEventHeader.startDescriptor << endl;
+  std::cout << "Nchannels: " << mEventHeader.nGBTWords * 2 << endl;
+  std::cout << "BC: " << mEventHeader.bc << endl;
+  std::cout << "Orbit: " << mEventHeader.orbit << endl;
+  std::cout << "##########################################" << endl;
   if (!doPrintData)
     return;
- std::cout << "###################DATA###################" << endl;
+  std::cout << "###################DATA###################" << endl;
   for (int iCh = 0; iCh < mEventHeader.nGBTWords * 2; iCh++) {
-   std::cout << "------------Channel " << mEventData[iCh].channelID << "------------" << endl;
-   std::cout << "Charge: " << mEventData[iCh].charge << endl;
-   std::cout << "Time: " << mEventData[iCh].time << endl;
-   std::cout << "1TimeLostEvent: " << mEventData[iCh].is1TimeLostEvent << endl;
-   std::cout << "2TimeLostEvent: " << mEventData[iCh].is2TimeLostEvent << endl;
-   std::cout << "ADCinGate: " << mEventData[iCh].isADCinGate << endl;
-   std::cout << "AmpHigh: " << mEventData[iCh].isAmpHigh << endl;
-   std::cout << "DoubleEvent: " << mEventData[iCh].isDoubleEvent << endl;
-   std::cout << "EventInTVDC: " << mEventData[iCh].isEventInTVDC << endl;
-   std::cout << "TimeInfoLate: " << mEventData[iCh].isTimeInfoLate << endl;
-   std::cout << "TimeInfoLost: " << mEventData[iCh].isTimeInfoLost << endl;
-   std::cout << "numberADC: " << mEventData[iCh].numberADC << endl;
+    std::cout << "------------Channel " << mEventData[iCh].channelID << "------------" << endl;
+    std::cout << "Charge: " << mEventData[iCh].charge << endl;
+    std::cout << "Time: " << mEventData[iCh].time << endl;
+    std::cout << "1TimeLostEvent: " << mEventData[iCh].is1TimeLostEvent << endl;
+    std::cout << "2TimeLostEvent: " << mEventData[iCh].is2TimeLostEvent << endl;
+    std::cout << "ADCinGate: " << mEventData[iCh].isADCinGate << endl;
+    std::cout << "AmpHigh: " << mEventData[iCh].isAmpHigh << endl;
+    std::cout << "DoubleEvent: " << mEventData[iCh].isDoubleEvent << endl;
+    std::cout << "EventInTVDC: " << mEventData[iCh].isEventInTVDC << endl;
+    std::cout << "TimeInfoLate: " << mEventData[iCh].isTimeInfoLate << endl;
+    std::cout << "TimeInfoLost: " << mEventData[iCh].isTimeInfoLost << endl;
+    std::cout << "numberADC: " << mEventData[iCh].numberADC << endl;
   }
- std::cout << "##########################################" << endl;
+  std::cout << "##########################################" << endl;
 }
