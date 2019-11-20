@@ -17,6 +17,7 @@
 #define ALICEO2_MCH_TRACK_H_
 
 #include <list>
+#include <memory>
 
 #include "Cluster.h"
 #include "TrackParam.h"
@@ -33,8 +34,8 @@ class Track
   Track() = default;
   ~Track() = default;
 
-  Track(const Track& track) = default;
-  Track& operator=(const Track& track) = default;
+  Track(const Track& track);
+  Track& operator=(const Track& track) = delete;
   Track(Track&&) = delete;
   Track& operator=(Track&&) = delete;
 
@@ -63,7 +64,7 @@ class Track
   auto rend() const { return mParamAtClusters.rend(); }
 
   TrackParam& createParamAtCluster(const Cluster& cluster);
-  TrackParam& addParamAtCluster(TrackParam& param);
+  void addParamAtCluster(const TrackParam& param);
   /// Remove the given track parameters from the internal list and return an iterator to the parameters that follow
   auto removeParamAtCluster(std::list<TrackParam>::iterator& itParam) { return mParamAtClusters.erase(itParam); }
 
@@ -73,17 +74,36 @@ class Track
 
   void tagRemovableClusters(uint8_t requestedStationMask);
 
+  void setCurrentParam(const TrackParam& param, int chamber);
+  TrackParam& getCurrentParam();
+  /// get a reference to the current chamber on which the current parameters are given
+  int& getCurrentChamber() { return mCurrentChamber; }
+  /// check whether the current track parameters exist
+  bool hasCurrentParam() const { return mCurrentParam ? true : false; }
+  /// check if the current parameters are valid
+  bool areCurrentParamValid() const { return (mCurrentChamber > -1); }
+  /// invalidate the current parameters
+  void invalidateCurrentParam() { mCurrentChamber = -1; }
+
   /// set the flag telling if this track shares cluster(s) with another
   void connected(bool connected = true) { mConnected = connected; }
   /// return the flag telling if this track shares cluster(s) with another
   bool isConnected() const { return mConnected; }
 
+  /// set the flag telling if this track should be deleted
+  void removable(bool removable = true) { mRemovable = removable; }
+  /// return the flag telling if this track should be deleted
+  bool isRemovable() const { return mRemovable; }
+
   void print() const;
 
  private:
-  TrackParam mParamAtVertex{};              ///< track parameters at vertex
-  std::list<TrackParam> mParamAtClusters{}; ///< list of track parameters at each cluster
-  bool mConnected = false;                  ///< flag telling if this track shares cluster(s) with another
+  TrackParam mParamAtVertex{};                 ///< track parameters at vertex
+  std::list<TrackParam> mParamAtClusters{};    ///< list of track parameters at each cluster
+  std::unique_ptr<TrackParam> mCurrentParam{}; ///< current track parameters used during tracking
+  int mCurrentChamber = -1;                    ///< current chamber on which the current parameters are given
+  bool mConnected = false;                     ///< flag telling if this track shares cluster(s) with another
+  bool mRemovable = false;                     ///< flag telling if this track should be deleted
 };
 
 } // namespace mch

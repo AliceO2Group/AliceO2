@@ -28,8 +28,11 @@ namespace o2
 namespace mch
 {
 
+bool TrackExtrap::sExtrapV2 = false;
 double TrackExtrap::sSimpleBValue = 0.;
 bool TrackExtrap::sFieldON = false;
+std::size_t TrackExtrap::sNCallExtrapToZCov = 0;
+std::size_t TrackExtrap::sNCallField = 0;
 
 //__________________________________________________________________________
 void TrackExtrap::setField()
@@ -142,6 +145,8 @@ bool TrackExtrap::extrapToZ(TrackParam* trackParam, double zEnd)
   if (!sFieldON) {
     linearExtrapToZ(trackParam, zEnd);
     return true;
+  } else if (sExtrapV2) {
+    return extrapToZRungekuttaV2(trackParam, zEnd);
   } else {
     return extrapToZRungekutta(trackParam, zEnd);
   }
@@ -152,6 +157,8 @@ bool TrackExtrap::extrapToZCov(TrackParam* trackParam, double zEnd, bool updateP
 {
   /// Track parameters and their covariances extrapolated to the plane at "zEnd".
   /// On return, results from the extrapolation are updated in trackParam.
+
+  ++sNCallExtrapToZCov;
 
   if (trackParam->getZ() == zEnd) {
     return true; // nothing to be done if same z
@@ -187,7 +194,6 @@ bool TrackExtrap::extrapToZCov(TrackParam* trackParam, double zEnd, bool updateP
   const TMatrixD& extrapParam = trackParam->getParameters();
 
   // Calculate the jacobian related to the track parameters extrapolation to "zEnd"
-  bool extrapStatus = true;
   TMatrixD jacob(5, 5);
   jacob.Zero();
   TMatrixD dParam(5, 1);
@@ -216,7 +222,7 @@ bool TrackExtrap::extrapToZCov(TrackParam* trackParam, double zEnd, bool updateP
     // Extrapolate new track parameters to "zEnd"
     if (!extrapToZ(&trackParamSave, zEnd)) {
       LOG(WARNING) << "Bad covariance matrix";
-      extrapStatus = false;
+      return false;
     }
 
     // Calculate the jacobian
@@ -235,7 +241,7 @@ bool TrackExtrap::extrapToZCov(TrackParam* trackParam, double zEnd, bool updateP
     trackParam->updatePropagator(jacob);
   }
 
-  return extrapStatus;
+  return true;
 }
 
 //__________________________________________________________________________
@@ -360,6 +366,7 @@ bool TrackExtrap::extrapToZRungekutta(TrackParam* trackParam, double zEnd)
 {
   /// Track parameter extrapolation to the plane at "Z" using Rungekutta algorithm.
   /// On return, the track parameters resulting from the extrapolation are updated in trackParam.
+  /// Return false in case of failure and let the trackParam as they were when that happened
   if (trackParam->getZ() == zEnd) {
     return true; // nothing to be done if same Z
   }
@@ -378,70 +385,110 @@ bool TrackExtrap::extrapToZRungekutta(TrackParam* trackParam, double zEnd)
 
   // Extrapolation loop (until within tolerance or the track turn around)
   double residue = zEnd - trackParam->getZ();
-  bool uturn = false;
-  bool trackingFailed = false;
-  bool tooManyStep = false;
-  while (TMath::Abs(residue) > SRungeKuttaMaxResidue && stepNumber <= SMaxStepNumber) {
+  while (TMath::Abs(residue) > SRungeKuttaMaxResidue) {
 
     dZ = zEnd - trackParam->getZ();
-    // step lenght assuming linear trajectory
+    // step length assuming linear trajectory
     step = dZ * TMath::Sqrt(1.0 + trackParam->getBendingSlope() * trackParam->getBendingSlope() +
                             trackParam->getNonBendingSlope() * trackParam->getNonBendingSlope());
     convertTrackParamForExtrap(trackParam, forwardBackward, v3);
 
-    do { // reduce step lenght while zEnd oversteped
-      if (stepNumber > SMaxStepNumber) {
-        LOG(WARNING) << "Too many trials: " << stepNumber;
-        tooManyStep = true;
-        break;
+    do { // reduce step length while zEnd overstepped
+      if (++stepNumber > SMaxStepNumber) {
+        LOG(WARNING) << "Too many trials";
+        return false;
       }
-      stepNumber++;
       step = TMath::Abs(step);
       if (!extrapOneStepRungekutta(chargeExtrap, step, v3, v3New)) {
-        trackingFailed = true;
-        break;
+        return false;
       }
       residue = zEnd - v3New[2];
       step *= dZ / (v3New[2] - trackParam->getZ());
     } while (residue * dZ < 0 && TMath::Abs(residue) > SRungeKuttaMaxResidue);
 
-    if (trackingFailed) {
-      break;
-    } else if (v3New[5] * v3[5] < 0) { // the track turned around
+    if (v3New[5] * v3[5] < 0) { // the track turned around
       LOG(WARNING) << "The track turned around";
-      uturn = true;
-      break;
-    } else {
-      recoverTrackParam(v3New, chargeExtrap * forwardBackward, trackParam);
+      return false;
     }
+
+    recoverTrackParam(v3New, chargeExtrap * forwardBackward, trackParam);
   }
 
   // terminate the extropolation with a straight line up to the exact "zEnd" value
-  if (trackingFailed || uturn) {
+  trackParam->setNonBendingCoor(trackParam->getNonBendingCoor() + residue * trackParam->getNonBendingSlope());
+  trackParam->setBendingCoor(trackParam->getBendingCoor() + residue * trackParam->getBendingSlope());
+  trackParam->setZ(zEnd);
 
-    // track ends +-100 meters away in the bending direction
-    dZ = zEnd - v3[2];
-    double bendingSlope = TMath::Sign(1.e4, -sSimpleBValue * trackParam->getInverseBendingMomentum()) / dZ;
-    double pZ =
-      TMath::Abs(1. / trackParam->getInverseBendingMomentum()) / TMath::Sqrt(1.0 + bendingSlope * bendingSlope);
-    double nonBendingSlope = TMath::Sign(TMath::Abs(v3[3]) * v3[6] / pZ, trackParam->getNonBendingSlope());
-    trackParam->setNonBendingCoor(trackParam->getNonBendingCoor() + dZ * nonBendingSlope);
-    trackParam->setNonBendingSlope(nonBendingSlope);
-    trackParam->setBendingCoor(trackParam->getBendingCoor() + dZ * bendingSlope);
-    trackParam->setBendingSlope(bendingSlope);
-    trackParam->setZ(zEnd);
+  return true;
+}
 
-    return false;
+//__________________________________________________________________________
+bool TrackExtrap::extrapToZRungekuttaV2(TrackParam* trackParam, double zEnd)
+{
+  /// Track parameter extrapolation to the plane at "Z" using Rungekutta algorithm.
+  /// On return, the track parameters resulting from the extrapolation are updated in trackParam.
+  /// Return false in case of failure and let the trackParam as they were when that happened
 
-  } else {
-
-    // track extrapolated normally
-    trackParam->setNonBendingCoor(trackParam->getNonBendingCoor() + residue * trackParam->getNonBendingSlope());
-    trackParam->setBendingCoor(trackParam->getBendingCoor() + residue * trackParam->getBendingSlope());
-    trackParam->setZ(zEnd);
-
-    return !tooManyStep;
+  if (trackParam->getZ() == zEnd) {
+    return true; // nothing to be done if same Z
   }
+
+  double residue = zEnd - trackParam->getZ();
+  double forwardBackward = (residue < 0) ? 1. : -1.; // +1 if forward, -1 if backward
+  double v3[7] = {0.};
+  convertTrackParamForExtrap(trackParam, forwardBackward, v3);
+  double charge = TMath::Sign(double(1.), trackParam->getInverseBendingMomentum());
+
+  // Extrapolation loop (until within tolerance or the track turn around)
+  double v3New[7] = {0.};
+  int stepNumber = 0;
+  while (true) {
+
+    if (++stepNumber > SMaxStepNumber) {
+      LOG(WARNING) << "Too many trials";
+      return false;
+    }
+
+    // step length assuming linear trajectory
+    double slopeX = v3[3] / v3[5];
+    double slopeY = v3[4] / v3[5];
+    double step = TMath::Abs(residue) * TMath::Sqrt(1.0 + slopeX * slopeX + slopeY * slopeY);
+
+    if (!extrapOneStepRungekutta(forwardBackward * charge, step, v3, v3New)) {
+      return false;
+    }
+
+    if (v3New[5] * v3[5] < 0) {
+      LOG(WARNING) << "The track turned around";
+      return false;
+    }
+
+    residue = zEnd - v3New[2];
+    if (TMath::Abs(residue) < SRungeKuttaMaxResidueV2) {
+      break;
+    }
+
+    for (int i = 0; i < 7; ++i) {
+      v3[i] = v3New[i];
+    }
+
+    // invert the sens of propagation if the track went too far
+    if (forwardBackward * residue > 0) {
+      forwardBackward = -forwardBackward;
+      v3[3] = -v3[3];
+      v3[4] = -v3[4];
+      v3[5] = -v3[5];
+    }
+  }
+
+  recoverTrackParam(v3New, charge, trackParam);
+
+  // terminate the extrapolation with a straight line up to the exact "zEnd" value
+  trackParam->setNonBendingCoor(trackParam->getNonBendingCoor() + residue * trackParam->getNonBendingSlope());
+  trackParam->setBendingCoor(trackParam->getBendingCoor() + residue * trackParam->getBendingSlope());
+  trackParam->setZ(zEnd);
+
+  return true;
 }
 
 //__________________________________________________________________________
@@ -526,6 +573,7 @@ bool TrackExtrap::extrapOneStepRungekutta(double charge, double step, const doub
     }
     // cmodif: call gufld(vout,f) changed into:
     TGeoGlobalMagField::Instance()->Field(vout, f);
+    ++sNCallField;
 
     // *
     // *             start of integration
@@ -574,6 +622,7 @@ bool TrackExtrap::extrapOneStepRungekutta(double charge, double step, const doub
 
     // cmodif: call gufld(xyzt,f) changed into:
     TGeoGlobalMagField::Instance()->Field(xyzt, f);
+    ++sNCallField;
 
     at = a + secxs[0];
     bt = b + secys[0];
@@ -613,6 +662,7 @@ bool TrackExtrap::extrapOneStepRungekutta(double charge, double step, const doub
 
     // cmodif: call gufld(xyzt,f) changed into:
     TGeoGlobalMagField::Instance()->Field(xyzt, f);
+    ++sNCallField;
 
     z = z + (c + (seczs[0] + seczs[1] + seczs[2]) * kthird) * h;
     y = y + (b + (secys[0] + secys[1] + secys[2]) * kthird) * h;
@@ -672,8 +722,7 @@ bool TrackExtrap::extrapOneStepRungekutta(double charge, double step, const doub
   f3 = f[2];
   f4 = TMath::Sqrt(f1 * f1 + f2 * f2 + f3 * f3);
   if (f4 < 1.e-10) {
-    LOG(ERROR) << "magnetic field at (" << xyzt[0] << ", " << xyzt[1] << ", " << xyzt[2] << ") = " << f4
-               << ": giving up";
+    LOG(WARNING) << "magnetic field at (" << xyzt[0] << ", " << xyzt[1] << ", " << xyzt[2] << ") = " << f4 << ": giving up";
     return false;
   }
   rho = -f4 * pinv;
@@ -710,6 +759,14 @@ bool TrackExtrap::extrapOneStepRungekutta(double charge, double step, const doub
   vout[kipz] = vect[kipz] + g4 * vect[kipz] + g5 * hxp[2] + g6 * f3;
 
   return true;
+}
+
+//__________________________________________________________________________
+void TrackExtrap::printNCalls()
+{
+  /// Print the number of times some methods are called
+  LOG(INFO) << "number of times extrapToZCov() is called = " << sNCallExtrapToZCov;
+  LOG(INFO) << "number of times Field() is called = " << sNCallField;
 }
 
 } // namespace mch
