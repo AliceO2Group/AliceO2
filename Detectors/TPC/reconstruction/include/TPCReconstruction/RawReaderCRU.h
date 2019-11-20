@@ -179,6 +179,8 @@ using SyncArray = std::array<SyncPosition, 5>;
 class GBTFrame
 {
  public:
+  using adc_t = uint32_t;
+
   /// default constructor
   GBTFrame() = default;
 
@@ -240,23 +242,31 @@ class GBTFrame
   void setFrameNumber(uint32_t frameNumber) { mFrameNum = frameNumber; }
 
  private:
-  std::array<uint32_t, 4> mData{};      ///< data to decode
-  SyncArray mSyncPos{};                 ///< sync position of the streams
-  uint32_t mFrameHalfWords[5][4]{};     ///< fixed size 2D array to contain the 4 halfwords for the 5 data streams of a link
-  uint32_t mPrevFrameHalfWords[5][4]{}; ///< previous half word, required for decoding
-  uint32_t mSyncCheckRegister[5]{};     ///< array of registers to check the SYNC pattern for the 5 data streams
-  uint32_t mFilePos{0};                 ///< position in the raw data file (for back-tracing)
-  uint32_t mFrameNum{0};                ///< current GBT frame number
-  uint32_t mPacketNum{0};               ///< number of present 8k packet
+  std::array<adc_t, 4> mData{};      ///< data to decode
+  SyncArray mSyncPos{};              ///< sync position of the streams
+  adc_t mFrameHalfWords[5][4]{};     ///< fixed size 2D array to contain the 4 halfwords for the 5 data streams of a link
+  adc_t mPrevFrameHalfWords[5][4]{}; ///< previous half word, required for decoding
+  uint32_t mSyncCheckRegister[5]{};  ///< array of registers to check the SYNC pattern for the 5 data streams
+  uint32_t mFilePos{0};              ///< position in the raw data file (for back-tracing)
+  uint32_t mFrameNum{0};             ///< current GBT frame number
+  uint32_t mPacketNum{0};            ///< number of present 8k packet
 
   /// Bit-shift operations helper function operating on the 4 32-bit words of them
   /// GBT frame. Source bit "s" is shifted to target position "t"
-  uint32_t bit(int s, int t) const;
+  template <typename T>
+  T bit(T s, T t) const;
 
-  /// get value of specific bit
-  static constexpr uint32_t getBit(uint32_t value, uint32_t bit)
+  // /// get value of specific bit
+  //static constexpr uint32_t getBit(uint32_t value, uint32_t bit)
+  //{
+  //return (value & (1 << bit)) >> bit;
+  //}
+
+  /// shift bit from one position to another
+  template <typename T>
+  static constexpr T shiftBit(T value, T from, T to)
   {
-    return (value & (1 << bit)) >> bit;
+    return (value & (1 << from)) >> from << to;
   }
 }; // class GBTFrame
 class RawReaderCRUManager;
@@ -671,10 +681,12 @@ class RawReaderCRU
 }; // class RawReaderCRU
 
 // ===| inline definitions |====================================================
-inline uint32_t GBTFrame::bit(int s, int t) const
+template <typename T>
+inline T GBTFrame::bit(T s, T t) const
 {
   // std::cout << std::dec << s << " ";
-  return (s < 32 ? ((mData[0] & (1 << s)) >> s) << t : (s < 64 ? ((mData[1] & (1 << (s - 32))) >> (s - 32)) << t : (s < 96 ? ((mData[2] & (1 << (s - 64))) >> (s - 64)) << t : (((mData[3] & (1 << (s - 96))) >> (s - 96)) << t))));
+  const T dataWord = s >> 5;
+  return shiftBit(mData[dataWord], s, t);
 };
 
 inline void GBTFrame::updateSyncCheck(SyncArray& syncArray)
@@ -729,13 +741,15 @@ inline void GBTFrame::updateSyncCheck(bool verbose)
 /// extract the 4 5b halfwords for the 5 data streams from one GBT frame
 inline void GBTFrame::getFrameHalfWords()
 {
-  uint32_t P[5][4] = {{19, 18, 17, 16}, {39, 38, 37, 36}, {63, 62, 61, 60}, {83, 82, 81, 80}, {107, 106, 105, 104}};
-  uint32_t res = 0;
+  constexpr adc_t P[5][4] = {{19, 18, 17, 16}, {39, 38, 37, 36}, {63, 62, 61, 60}, {83, 82, 81, 80}, {107, 106, 105, 104}};
   // i = Stream, j = Halfword
   for (int i = 0; i < 5; i++)
     for (int j = 0; j < 4; j++) {
-      res = bit(P[i][j], 4) | bit(P[i][j] - 4, 3) | bit(P[i][j] - 8, 2) | bit(P[i][j] - 12, 1) | bit(P[i][j] - 16, 0);
-      mFrameHalfWords[i][j] = res;
+      mFrameHalfWords[i][j] = bit(P[i][j], adc_t(4)) |
+                              bit(adc_t(P[i][j] - 4), adc_t(3)) |
+                              bit(adc_t(P[i][j] - 8), adc_t(2)) |
+                              bit(adc_t(P[i][j] - 12), adc_t(1)) |
+                              bit(adc_t(P[i][j] - 16), adc_t(0));
       // std::cout << " S : " << i << " H : " << j << " : " << std::hex << res << std::endl;
     };
 }
