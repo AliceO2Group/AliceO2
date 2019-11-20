@@ -204,6 +204,8 @@ struct AnalysisDataProcessorBuilder {
       using right_t = typename std::decay_t<T>::right_t;
       doAppendInputWithMetadata<left_t>(inputs);
       doAppendInputWithMetadata<right_t>(inputs);
+    } else if constexpr (is_specialization<std::decay_t<T>, soa::Filtered>::value) {
+      doAppendInputWithMetadata<typename std::decay_t<T>::table_t>(inputs);
     } else {
       doAppendInputWithMetadata<T>(inputs);
     }
@@ -241,6 +243,14 @@ struct AnalysisDataProcessorBuilder {
     return typename aod::MetadataTrait<T>::metadata::table_t(at);
   }
 
+  template <typename T>
+  static auto extractFilteredTableFromRecord(InputRecord& record)
+  {
+    using metadata = typename aod::MetadataTrait<typename std::decay_t<T>::table_t>::metadata;
+    auto at = record.get<TableConsumer>(metadata::label())->asArrowTable();
+    return soa::Filtered<typename metadata::table_t>(at, nullptr);
+  }
+
   template <typename T1, typename T2>
   static auto extractJoinFromRecord(InputRecord& record)
   {
@@ -256,6 +266,8 @@ struct AnalysisDataProcessorBuilder {
       using left_t = typename std::decay_t<T>::left_t;
       using right_t = typename std::decay_t<T>::right_t;
       return extractJoinFromRecord<left_t, right_t>(record);
+    } else if constexpr (is_specialization<std::decay_t<T>, soa::Filtered>::value) {
+      return extractFilteredTableFromRecord<T>(record);
     } else {
       return extractTableFromRecord<std::decay_t<T>>(record);
     }
@@ -286,11 +298,13 @@ struct AnalysisDataProcessorBuilder {
       // is a o2::soa::Table or a o2::soa::RowView
       if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::Table>::value) {
         task.process(groupingTable);
-      } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::RowView>::value) {
+      } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::RowViewBase>::value) {
         for (auto& groupedElement : groupingTable) {
           task.process(groupedElement);
         }
       } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::Join>::value) {
+        task.process(groupingTable);
+      } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::Filtered>::value) {
         task.process(groupingTable);
       } else {
         static_assert(always_static_assert_v<Grouping>,
@@ -317,9 +331,9 @@ struct AnalysisDataProcessorBuilder {
                       " first argument of type soa::Table which is found as in the "
                       " prototype of the task process method.");
         task.process(groupingTable, std::get<0>(associatedTables));
-      } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::RowView>::value) {
+      } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::RowViewBase>::value) {
         using AssociatedType = std::tuple_element_t<0, std::tuple<Associated...>>;
-        if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::RowView>::value) {
+        if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::RowViewBase>::value) {
           auto groupedTable = std::get<0>(associatedTables);
           size_t currentGrouping = 0;
           Grouping groupingElement = groupingTable.begin();

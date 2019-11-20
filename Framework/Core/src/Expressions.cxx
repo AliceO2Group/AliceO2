@@ -10,6 +10,9 @@
 
 #include "../src/ExpressionHelpers.h"
 #include "Framework/VariantHelpers.h"
+
+#include <arrow/table.h>
+#include <gandiva/selection_vector.h>
 #include <stack>
 #include <iostream>
 
@@ -131,6 +134,16 @@ std::vector<ColumnOperationSpec> createKernelsFromFilter(Filter const& filter)
       path.emplace(right, ri);
   }
   return columnOperationSpecs;
+}
+
+Selection createSelection(std::shared_ptr<arrow::Table> table, Filter const& expr)
+{
+  std::shared_ptr<gandiva::SelectionVector> result;
+  auto status = gandiva::SelectionVector::MakeInt32(table->num_rows(), arrow::default_memory_pool(), &result);
+  if (status.ok() == false) {
+    throw std::runtime_error("Unable to create selection");
+  }
+  return result;
 }
 
 } // namespace o2::framework::expressions
