@@ -12,6 +12,9 @@
 
 #include "Framework/BasicOps.h"
 
+#include <arrow/table.h>
+#include <gandiva/selection_vector.h>
+
 #include <variant>
 #include <string>
 #include <memory>
@@ -117,6 +120,10 @@ struct Filter {
 
   std::unique_ptr<Node> node;
 };
+
+using Selection = std::shared_ptr<gandiva::SelectionVector>;
+Selection createSelection(std::shared_ptr<arrow::Table> table, Filter const& filter);
+
 } // namespace o2::framework::expressions
 
 #endif // O2_FRAMEWORK_EXPRESSIONS_H_

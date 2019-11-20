@@ -19,3 +19,7 @@ endif()
 set_target_properties(arrow_shared PROPERTIES IMPORTED_GLOBAL TRUE)
 
 add_library(arrow::arrow_shared ALIAS arrow_shared)
+
+# Promote the imported target to global visibility (so we can alias it)
+set_target_properties(gandiva_shared PROPERTIES IMPORTED_GLOBAL TRUE)
+add_library(arrow::gandiva_shared ALIAS gandiva_shared)

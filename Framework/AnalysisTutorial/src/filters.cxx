@@ -47,7 +47,7 @@ struct ATask {
 struct BTask {
   Filter ptFilter = (aod::etaphi::phi > 1) && (aod::etaphi::phi < 2);
 
-  void process(aod::EtaPhi const& etaPhis)
+  void process(soa::Filtered<aod::EtaPhi> const& etaPhis)
   {
     for (auto& etaPhi : etaPhis) {
       LOGF(ERROR, "(%f, %f)", etaPhi.eta(), etaPhi.phi());
