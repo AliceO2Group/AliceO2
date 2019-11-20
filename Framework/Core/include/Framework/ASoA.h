@@ -18,11 +18,10 @@
 #include "Framework/Expressions.h"
 #include <arrow/table.h>
 #include <arrow/array.h>
+#include <gandiva/selection_vector.h>
 #include <cassert>
 
-namespace o2
-{
-namespace soa
+namespace o2::soa
 {
 
 template <typename T>
@@ -199,7 +198,7 @@ class ColumnIterator : ChunkingPolicy
   }
 
   mutable T const* mCurrent;
-  size_t const* mCurrentPos;
+  int64_t const* mCurrentPos;
   mutable T const* mLast;
   arrow::Column const* mColumn;
   mutable int mFirstIndex;
@@ -248,43 +247,54 @@ struct IndexColumn {
   static constexpr const char* const& label() { return INHERIT::mLabel; }
 };
 
-template <size_t START = 0, size_t END = (size_t)-1>
+template <int64_t START = 0, int64_t END = -1>
 struct Index : o2::soa::IndexColumn<Index<START, END>> {
   using base = o2::soa::IndexColumn<Index<START, END>>;
-  constexpr inline static size_t start = START;
-  constexpr inline static size_t end = END;
+  constexpr inline static int64_t start = START;
+  constexpr inline static int64_t end = END;
 
   Index() = default;
   Index(arrow::Column const*)
   {
   }
 
-  constexpr inline size_t rangeStart()
+  constexpr inline int64_t rangeStart()
   {
     return START;
   }
 
-  constexpr inline size_t rangeEnd()
+  constexpr inline int64_t rangeEnd()
   {
     return END;
   }
 
-  size_t index() const
+  int64_t index() const
   {
-    return *rowIndex;
+    return index<0>();
   }
 
-  void setIndex(size_t* rowViewIndex)
+  int64_t filteredIndex() const
   {
-    rowIndex = rowViewIndex;
+    return index<1>();
+  }
+
+  template <int N = 0>
+  int64_t index() const
+  {
+    return *std::get<N>(rowIndices);
+  }
+
+  void setIndices(std::tuple<int64_t const*, int64_t const*> indices)
+  {
+    rowIndices = indices;
   }
 
   static constexpr const char* mLabel = "Index";
-  using type = size_t;
+  using type = int64_t;
 
   using bindings_t = typename o2::framework::pack<>;
   std::tuple<> boundIterators;
-  size_t* rowIndex;
+  std::tuple<int64_t const*, int64_t const*> rowIndices;
 };
 
 template <typename T>
@@ -304,116 +314,245 @@ struct is_index<Ref<Args...>, Ref> : std::true_type {
 template <typename T>
 using is_index_t = is_index<T, Index>;
 
-template <typename... C>
-struct RowView : public C... {
- public:
-  using persistent_columns_t = framework::selected_pack<is_persistent_t, C...>;
-  using dynamic_columns_t = framework::selected_pack<is_dynamic_t, C...>;
-  using index_columns_t = framework::selected_pack<is_index_t, C...>;
-  constexpr inline static bool no_index_v = std::is_same_v<index_columns_t, framework::pack<>>;
+struct IndexPolicyBase {
+  int64_t mRowIndex = 0;
+};
 
-  RowView(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, size_t numRows)
-    : C(std::get<std::pair<C*, arrow::Column*>>(columnIndex).second)...
+struct DefaultIndexPolicy : IndexPolicyBase {
+  /// Needed to be able to copy the policy
+  DefaultIndexPolicy() = default;
+  DefaultIndexPolicy(DefaultIndexPolicy&&) = default;
+  DefaultIndexPolicy(DefaultIndexPolicy const&) = default;
+  DefaultIndexPolicy& operator=(DefaultIndexPolicy const&) = default;
+  DefaultIndexPolicy& operator=(DefaultIndexPolicy&&) = default;
+
+  /// mMaxRow is one behind the last row, so effectively equal to the number of
+  /// rows @a nRows.
+  DefaultIndexPolicy(int64_t nRows)
+    : mMaxRow(nRows)
   {
-    bindIterators(persistent_columns_t{});
-    bindAllDynamicColumns(dynamic_columns_t{});
-    if constexpr (no_index_v == false) {
-      mRowIndex = this->rangeStart();
-      mMaxRow = std::min(this->rangeEnd(), numRows);
-    } else {
-      mRowIndex = 0;
-      mMaxRow = numRows;
+  }
+
+  void limitRange(int64_t start, int64_t end)
+  {
+    this->setCursor(start);
+    if (end >= 0) {
+      mMaxRow = std::min(end, mMaxRow);
     }
   }
 
-  RowView(RowView<C...> const& other)
-    : C(static_cast<C const&>(other))...
+  std::tuple<int64_t const*, int64_t const*>
+    getIndices() const
   {
-    mRowIndex = other.mRowIndex;
-    mMaxRow = other.mMaxRow;
-    bindIterators(persistent_columns_t{});
-    bindAllDynamicColumns(dynamic_columns_t{});
+    return std::make_tuple(&mRowIndex, &mRowIndex);
   }
 
-  RowView() = default;
-  RowView<C...>& operator=(RowView<C...> const& other)
+  void setCursor(int64_t i)
   {
-    mRowIndex = other.mRowIndex;
-    mMaxRow = other.mMaxRow;
-    (void(static_cast<C&>(*this) = static_cast<C const&>(other)), ...);
-    bindIterators(persistent_columns_t{});
-    bindAllDynamicColumns(dynamic_columns_t{});
-    return *this;
+    this->mRowIndex = i;
   }
-
-  RowView(RowView<C...>&& other)
+  void moveByIndex(int64_t i)
   {
-    mRowIndex = other.mRowIndex;
-    mMaxRow = other.mMaxRow;
-    (void(static_cast<C&>(*this) = static_cast<C const&>(other)), ...);
-  }
-
-  RowView& operator=(RowView<C...>&& other)
-  {
-    mRowIndex = other.mRowIndex;
-    mMaxRow = other.mMaxRow;
-    (void(static_cast<C&>(*this) = static_cast<C const&>(other)), ...);
-    return *this;
-  }
-
-  RowView<C...>& operator++()
-  {
-    ++mRowIndex;
-    return *this;
-  }
-
-  RowView<C...> operator++(int)
-  {
-    RowView<C...> copy = *this;
-    operator++();
-    return copy;
-  }
-
-  /// Allow incrementing by more than one the iterator
-  RowView<C...> operator+(size_t inc) const
-  {
-    RowView<C...> copy = *this;
-    copy.mRowIndex += inc;
-    return copy;
-  }
-
-  RowView<C...> operator-(size_t dec) const
-  {
-    RowView<C...> copy = *this;
-    copy.mRowIndex -= dec;
-    return copy;
-  }
-
-  RowView<C...> const& operator*() const
-  {
-    return *this;
-  }
-
-  /// Notice this relies on the fact that the iterators in the column are all
-  /// in sync and therefore we check only for the first one.
-  bool operator!=(RowView<C...> const& other) const
-  {
-    return O2_BUILTIN_LIKELY(mRowIndex != other.mRowIndex);
-  }
-
-  bool operator==(RowView<C...> const& other) const
-  {
-    return O2_BUILTIN_UNLIKELY(mRowIndex == other.mRowIndex);
+    this->mRowIndex += i;
   }
 
   void moveToEnd()
   {
-    mRowIndex = mMaxRow;
+    this->setCursor(mMaxRow);
+  }
+
+  bool operator!=(DefaultIndexPolicy const& other) const
+  {
+    return O2_BUILTIN_LIKELY(this->mRowIndex != other.mRowIndex);
+  }
+
+  bool operator==(DefaultIndexPolicy const& other) const
+  {
+    return O2_BUILTIN_UNLIKELY(this->mRowIndex == other.mRowIndex);
+  }
+  int64_t mMaxRow = 0;
+};
+
+struct FilteredIndexPolicy : IndexPolicyBase {
+  FilteredIndexPolicy()
+    : mSelection(nullptr)
+  {
+  }
+
+  FilteredIndexPolicy(gandiva::SelectionVector* selection)
+    : mSelection(selection),
+      mMaxSelection(selection->GetNumSlots())
+  {
+    this->setCursor(0);
+  }
+
+  FilteredIndexPolicy(FilteredIndexPolicy&&) = default;
+  FilteredIndexPolicy(FilteredIndexPolicy const&) = default;
+  FilteredIndexPolicy& operator=(FilteredIndexPolicy const&) = default;
+  FilteredIndexPolicy& operator=(FilteredIndexPolicy&&) = default;
+
+  std::tuple<int64_t const*, int64_t const*>
+    getIndices() const
+  {
+    return std::make_tuple(&mRowIndex, &mSelectionRow);
+  }
+
+  void limitRange(int64_t start, int64_t end)
+  {
+    this->setCursor(start);
+    if (end >= 0) {
+      mMaxSelection = std::min(end, mMaxSelection);
+    }
+  }
+
+  void setCursor(int64_t i)
+  {
+    mSelectionRow = i;
+    this->mRowIndex = mSelection->GetIndex(mSelectionRow);
+  }
+
+  void moveByIndex(int64_t i)
+  {
+    mSelectionRow += i;
+    this->mRowIndex = mSelection->GetIndex(mSelectionRow);
+  }
+
+  bool operator!=(FilteredIndexPolicy const& other) const
+  {
+    return O2_BUILTIN_LIKELY(this->mSelectionRow != other.mSelectionRow);
+  }
+
+  bool operator==(FilteredIndexPolicy const& other) const
+  {
+    return O2_BUILTIN_UNLIKELY(this->mSelectionRow == other.mSelectionRow);
+  }
+
+  /// Move iterator to one after the end. Since this is a view
+  /// we move the mSelectionRow to one past the view size and
+  /// the mRowIndex to one past the last entry in the selection
+  void moveToEnd()
+  {
+    this->mSelectionRow = this->mMaxSelection;
+    this->mRowIndex = -1;
+  }
+
+  int64_t getSelectionRow() const
+  {
+    return mSelectionRow;
   }
 
  private:
-  size_t mRowIndex = 0;
-  size_t mMaxRow = 0;
+  int64_t mSelectionRow = 0;
+  int64_t mMaxSelection = 0;
+  gandiva::SelectionVector* mSelection = nullptr;
+};
+
+template <typename IP, typename... C>
+struct RowViewBase : public IP, C... {
+ public:
+  using persistent_columns_t = framework::selected_pack<is_persistent_t, C...>;
+  using dynamic_columns_t = framework::selected_pack<is_dynamic_t, C...>;
+  using index_columns_t = framework::selected_pack<is_index_t, C...>;
+  constexpr inline static bool has_index_v = !std::is_same_v<index_columns_t, framework::pack<>>;
+
+  RowViewBase(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, IP&& policy)
+    : IP{policy},
+      C(std::get<std::pair<C*, arrow::Column*>>(columnIndex).second)...
+  {
+    bindIterators(persistent_columns_t{});
+    bindAllDynamicColumns(dynamic_columns_t{});
+    // In case we have an index column might need to constrain the actual
+    // number of rows in the view to the range provided by the index.
+    // FIXME: we should really understand what happens to an index when we
+    // have a RowViewFiltered.
+    if constexpr (has_index_v) {
+      this->limitRange(this->rangeStart(), this->rangeEnd());
+    }
+  }
+
+  RowViewBase() = default;
+  RowViewBase(RowViewBase<IP, C...> const& other)
+    : IP{static_cast<IP>(other)},
+      C(static_cast<C const&>(other))...
+  {
+    bindIterators(persistent_columns_t{});
+    bindAllDynamicColumns(dynamic_columns_t{});
+  }
+
+  RowViewBase(RowViewBase<IP, C...>&& other)
+  {
+    IP::operator=(static_cast<IP>(other));
+    (void(static_cast<C&>(*this) = static_cast<C const&>(other)), ...);
+  }
+
+  RowViewBase<IP, C...>& operator=(RowViewBase<IP, C...> const& other)
+  {
+    IP::operator=(static_cast<IP>(other));
+    (void(static_cast<C&>(*this) = static_cast<C const&>(other)), ...);
+    bindIterators(persistent_columns_t{});
+    bindAllDynamicColumns(dynamic_columns_t{});
+    return *this;
+  }
+
+  RowViewBase& operator=(RowViewBase<IP, C...>&& other)
+  {
+    IP::operator=(static_cast<IP>(other));
+    (void(static_cast<C&>(*this) = static_cast<C const&>(other)), ...);
+    return *this;
+  }
+
+  RowViewBase<IP, C...>& operator[](int64_t i)
+  {
+    this->setCursor(i);
+    return *this;
+  }
+
+  RowViewBase<IP, C...>& operator++()
+  {
+    this->moveByIndex(1);
+    return *this;
+  }
+
+  RowViewBase<IP, C...> operator++(int)
+  {
+    RowViewBase<IP, C...> copy = *this;
+    this->operator++();
+    return copy;
+  }
+
+  /// Allow incrementing by more than one the iterator
+  RowViewBase<IP, C...> operator+(int64_t inc) const
+  {
+    RowViewBase<IP, C...> copy = *this;
+    copy.moveByIndex(inc);
+    return copy;
+  }
+
+  RowViewBase<IP, C...> operator-(int64_t dec) const
+  {
+    return operator+(-dec);
+  }
+
+  RowViewBase<IP, C...> const& operator*() const
+  {
+    return *this;
+  }
+
+  /// Inequality operator. Actual implementation
+  /// depend on the policy we use for the index.
+  bool operator!=(RowViewBase<IP, C...> const& other) const
+  {
+    return IP::operator!=(static_cast<IP>(other));
+  }
+
+  /// Equality operator. Actual implementation
+  /// depend on the policy we use for the index.
+  bool operator==(RowViewBase<IP, C...> const& other) const
+  {
+    return IP::operator==(static_cast<IP>(other));
+  }
+
+ private:
   /// Helper to move to the correct chunk, if needed.
   /// FIXME: not needed?
   template <typename... PC>
@@ -435,7 +574,7 @@ struct RowView : public C... {
   auto bindIterators(framework::pack<PC...> pack)
   {
     using namespace o2::soa;
-    (void(PC::mColumnIterator.mCurrentPos = &mRowIndex), ...);
+    (void(PC::mColumnIterator.mCurrentPos = &this->mRowIndex), ...);
   }
 
   template <typename... DC>
@@ -443,8 +582,8 @@ struct RowView : public C... {
   {
     using namespace o2::soa;
     (bindDynamicColumn<DC>(typename DC::bindings_t{}), ...);
-    if constexpr (no_index_v == false) {
-      this->setIndex(&mRowIndex);
+    if constexpr (has_index_v) {
+      this->setIndices(this->getIndices());
     }
   }
 
@@ -454,6 +593,24 @@ struct RowView : public C... {
     DC::boundIterators = std::make_tuple(&(B::mColumnIterator)...);
   }
 };
+
+template <typename... C>
+using RowView = RowViewBase<DefaultIndexPolicy, C...>;
+
+template <typename... C>
+auto&& makeRowView(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, int64_t numRows)
+{
+  return std::move(RowViewBase<DefaultIndexPolicy, C...>{columnIndex, DefaultIndexPolicy{numRows}});
+}
+
+template <typename... C>
+using RowViewFiltered = RowViewBase<FilteredIndexPolicy, C...>;
+
+template <typename... C>
+auto&& makeRowViewFiltered(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, gandiva::SelectionVector* selection)
+{
+  return std::move(RowViewBase<FilteredIndexPolicy, C...>{columnIndex, FilteredIndexPolicy{selection}});
+}
 
 struct ArrowHelpers {
   static std::shared_ptr<arrow::Table> joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables);
@@ -468,6 +625,9 @@ class Table
  public:
   using iterator = RowView<C...>;
   using const_iterator = RowView<C...>;
+  using filtered_iterator = RowViewFiltered<C...>;
+  using filtered_const_iterator = RowViewFiltered<C...>;
+  using table_t = Table<C...>;
   using columns = framework::pack<C...>;
 
   Table(std::shared_ptr<arrow::Table> table)
@@ -491,6 +651,22 @@ class Table
     return iterator{mEnd};
   }
 
+  filtered_iterator filtered_begin(framework::expressions::Selection selection)
+  {
+    // Note that the FilteredIndexPolicy will never outlive the selection which
+    // is held by the table, so we are safe passing the bare pointer. If it does it
+    // means that the iterator on a table is outliving the table itself, which is
+    // a bad idea.
+    return filtered_iterator(mColumnIndex, selection.get());
+  }
+
+  filtered_iterator filtered_end(framework::expressions::Selection selection)
+  {
+    auto end = filtered_iterator(mColumnIndex, selection.get());
+    end.moveToEnd();
+    return end;
+  }
+
   const_iterator begin() const
   {
     return const_iterator(mBegin);
@@ -506,7 +682,7 @@ class Table
     return mTable;
   }
 
-  std::size_t size() const
+  int64_t size() const
   {
     return mTable->num_rows();
   }
@@ -562,9 +738,8 @@ class TableMetadata
   static constexpr char const (&origin())[4] { return INHERIT::mOrigin; }
   static constexpr char const (&description())[16] { return INHERIT::mDescription; }
 };
-} // namespace soa
 
-} // namespace o2
+} // namespace o2::soa
 
 #define DECLARE_SOA_STORE()          \
   template <typename T>              \
@@ -725,6 +900,68 @@ struct Concat : ConcatBase<T1, T2> {
   using right_t = T2;
   using table_t = ConcatBase<T1, T2>;
 };
+
+template <typename T>
+class Filtered : public T
+{
+ public:
+  using iterator = typename T::filtered_iterator;
+  using const_iterator = typename T::filtered_const_iterator;
+
+  Filtered(std::shared_ptr<arrow::Table> table, framework::expressions::Selection selection)
+    : T{table},
+      mSelection{selection},
+      mFilteredBegin{T::filtered_begin(mSelection)},
+      mFilteredEnd{T::filtered_end(mSelection)}
+  {
+  }
+
+  Filtered(std::shared_ptr<arrow::Table> table, framework::expressions::Filter const& expression)
+    : Filtered(table, createSelection(table, expression))
+  {
+  }
+
+  iterator begin()
+  {
+    return iterator(mFilteredBegin);
+  }
+
+  iterator end()
+  {
+    return iterator{mFilteredEnd};
+  }
+
+  const_iterator begin() const
+  {
+    return const_iterator(mFilteredBegin);
+  }
+
+  const_iterator end() const
+  {
+    return const_iterator{mFilteredEnd};
+  }
+
+  int64_t size() const
+  {
+    return mSelection->GetNumSlots();
+  }
+
+  framework::expressions::Selection getSelection() const
+  {
+    return mSelection;
+  }
+
+ private:
+  framework::expressions::Selection mSelection;
+  iterator mFilteredBegin;
+  iterator mFilteredEnd;
+};
+
+template <typename T>
+auto filter(T&& t, framework::expressions::Filter const& expr)
+{
+  return Filtered<T>(t.asArrowTable(), expr);
+}
 
 } // namespace o2::soa
 

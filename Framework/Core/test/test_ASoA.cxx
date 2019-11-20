@@ -24,6 +24,7 @@ namespace test
 {
 DECLARE_SOA_COLUMN(X, x, uint64_t, "x");
 DECLARE_SOA_COLUMN(Y, y, uint64_t, "y");
+DECLARE_SOA_COLUMN(Z, z, uint64_t, "z");
 DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](uint64_t x, uint64_t y) { return x + y; });
 } // namespace test
 
@@ -42,7 +43,7 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   auto table = builder.finalize();
 
   auto i = ColumnIterator<uint64_t>(table->column(0).get());
-  size_t pos = 0;
+  int64_t pos = 0;
   i.mCurrentPos = &pos;
   BOOST_CHECK_EQUAL(*i, 0);
   pos++;
@@ -149,8 +150,8 @@ BOOST_AUTO_TEST_CASE(TestColumnIterators)
   rowWriter(0, 1, 7);
   auto table = builder.finalize();
 
-  size_t index1 = 0;
-  size_t index2 = 0;
+  int64_t index1 = 0;
+  int64_t index2 = 0;
   ColumnIterator<uint64_t> foo{table->column(1).get()};
   foo.mCurrentPos = &index1;
   auto bar{foo};
@@ -238,14 +239,103 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   rowWriterB(0, 15);
   auto tableB = builderB.finalize();
 
+  TableBuilder builderC;
+  auto rowWriterC = builderC.persist<uint64_t>({"z"});
+  rowWriterC(0, 8);
+  rowWriterC(0, 9);
+  rowWriterC(0, 10);
+  rowWriterC(0, 11);
+  rowWriterC(0, 12);
+  rowWriterC(0, 13);
+  rowWriterC(0, 14);
+  rowWriterC(0, 15);
+  auto tableC = builderC.finalize();
+
   using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
   using TestB = o2::soa::Table<o2::soa::Index<>, test::X>;
-  using Test = Concat<TestA, TestB>;
+  using TestC = o2::soa::Table<test::Z>;
+  using ConcatTest = Concat<TestA, TestB>;
+  using JoinedTest = Join<TestA, TestC>;
 
-  static_assert(std::is_same_v<Test::table_t, o2::soa::Table<o2::soa::Index<>, test::X>>, "Bad intersection of columns");
-  Test tests{tableA, tableB};
+  static_assert(std::is_same_v<ConcatTest::table_t, o2::soa::Table<o2::soa::Index<>, test::X>>, "Bad intersection of columns");
+  ConcatTest tests{tableA, tableB};
   BOOST_REQUIRE_EQUAL(16, tests.size());
   for (auto& test : tests) {
     BOOST_CHECK_EQUAL(test.index(), test.x());
   }
+
+  // Hardcode a selection for the first 5 odd numbers
+  using FilteredTest = Filtered<TestA>;
+  using namespace o2::framework;
+  expressions::Selection selection;
+  auto status = gandiva::SelectionVector::MakeInt32(tests.size(), arrow::default_memory_pool(), &selection);
+  BOOST_CHECK_EQUAL(status.ok(), true);
+  selection->SetIndex(0, 1);
+  selection->SetIndex(1, 3);
+  selection->SetNumSlots(2);
+  TestA testA{tableA};
+  FilteredTest filtered{testA.asArrowTable(), selection};
+  BOOST_CHECK_EQUAL(2, filtered.size());
+
+  auto i = 0;
+  BOOST_CHECK(filtered.begin() != filtered.end());
+  for (auto& f : filtered) {
+    BOOST_CHECK_EQUAL(i * 2 + 1, f.x());
+    BOOST_CHECK_EQUAL(i * 2 + 1, f.index());
+    i++;
+  }
+  BOOST_CHECK_EQUAL(i, 2);
+
+  // Hardcode a selection for the first 5 odd numbers
+  using FilteredConcatTest = Filtered<ConcatTest::table_t>;
+  using namespace o2::framework;
+  expressions::Selection selectionConcat;
+  status = gandiva::SelectionVector::MakeInt32(tests.size(), arrow::default_memory_pool(), &selectionConcat);
+  BOOST_CHECK_EQUAL(status.ok(), true);
+  selectionConcat->SetIndex(0, 0);
+  selectionConcat->SetIndex(1, 5);
+  selectionConcat->SetIndex(2, 10);
+  selectionConcat->SetNumSlots(3);
+  ConcatTest concatTest{tableA, tableB};
+  FilteredConcatTest concatTestTable{concatTest.asArrowTable(), selectionConcat};
+  BOOST_CHECK_EQUAL(3, concatTestTable.size());
+
+  i = 0;
+  auto b = concatTestTable.begin();
+  auto e = concatTestTable.end();
+
+  BOOST_CHECK_EQUAL(b.mRowIndex, 0);
+  BOOST_CHECK_EQUAL(e.mRowIndex, -1);
+  BOOST_CHECK_EQUAL(b.getSelectionRow(), 0);
+  BOOST_CHECK_EQUAL(e.getSelectionRow(), 3);
+
+  BOOST_CHECK(concatTestTable.begin() != concatTestTable.end());
+  for (auto& f : concatTestTable) {
+    BOOST_CHECK_EQUAL(i * 5, f.x());
+    BOOST_CHECK_EQUAL(i * 5, f.index());
+    BOOST_CHECK_EQUAL(i, f.filteredIndex());
+    i++;
+  }
+  BOOST_CHECK_EQUAL(i, 3);
+
+  // Test with a Joined table
+  using FilteredJoinTest = Filtered<JoinedTest::table_t>;
+  expressions::Selection selectionJoin;
+  status = gandiva::SelectionVector::MakeInt32(tests.size(), arrow::default_memory_pool(), &selectionJoin);
+  BOOST_CHECK_EQUAL(status.ok(), true);
+  selectionJoin->SetIndex(0, 0);
+  selectionJoin->SetIndex(1, 2);
+  selectionJoin->SetIndex(2, 4);
+  selectionJoin->SetNumSlots(3);
+  JoinedTest testJoin{tableA, tableC};
+  FilteredJoinTest filteredJoin{testJoin.asArrowTable(), selectionJoin};
+
+  i = 0;
+  BOOST_CHECK(filteredJoin.begin() != filteredJoin.end());
+  for (auto& f : filteredJoin) {
+    BOOST_CHECK_EQUAL(i * 2, f.x());
+    BOOST_CHECK_EQUAL(i * 2, f.index());
+    i++;
+  }
+  BOOST_CHECK_EQUAL(i, 3);
 }
