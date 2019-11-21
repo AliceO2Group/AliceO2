@@ -15,6 +15,7 @@
 
 #include "CommonConstants/LHCConstants.h"
 #include <bitset>
+#include <string>
 
 namespace o2
 {
@@ -34,6 +35,8 @@ class BunchFilling
   {
     setBCTrains(12, 96, 48, 2, 0);
   }
+
+  static BunchFilling* loadFrom(const std::string& fileName, const std::string& objName = "");
 
  private:
   std::bitset<o2::constants::lhc::LHCMaxBunches> mPattern;
