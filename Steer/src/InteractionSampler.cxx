@@ -119,3 +119,15 @@ void InteractionSampler::warnOrbitWrapped() const
   print();
   LOG(FATAL) << "Max orbit " << o2::constants::lhc::MaxNOrbits << " overflow";
 }
+
+//_________________________________________________
+void InteractionSampler::setBunchFilling(const std::string& bcFillingFile)
+{
+  // load bunch filling from the file
+  auto* bc = o2::BunchFilling::loadFrom(bcFillingFile);
+  if (!bc) {
+    LOG(FATAL) << "Failed to load bunch filling from " << bcFillingFile;
+  }
+  mBCFilling = *bc;
+  delete bc;
+}

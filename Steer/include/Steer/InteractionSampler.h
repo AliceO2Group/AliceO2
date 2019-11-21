@@ -43,6 +43,8 @@ class InteractionSampler
   float getBCTimeRMS() const { return mBCTimeRMS; }
   const BunchFilling& getBunchFilling() const { return mBCFilling; }
   BunchFilling& getBunchFilling() { return mBCFilling; }
+  void setBunchFilling(const BunchFilling& bc) { mBCFilling = bc; }
+  void setBunchFilling(const std::string& bcFillingFile);
   int getBCMin() const { return mBCMin; }
   int getBCMax() const { return mBCMax; }
 
