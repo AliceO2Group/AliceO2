@@ -452,7 +452,7 @@ class O2HitMerger : public FairMQDevice
   std::string mOutFileName;    //!
 
   TFile* mOutFile;    //!
-  std::unordered_map<int, TTree*> mEventToTTreeMap; //! in memory trees to collect / presort incoming data per event
+  std::unordered_map<int, TTree*> mEventToTTreeMap;       //! in memory trees to collect / presort incoming data per event
   std::unordered_map<int, TMemFile*> mEventToTMemFileMap; //! files associated to the TTrees
   TTree* mOutTree;    //!
   std::thread mMergerIOThread; //! a thread used to do hit merging and IO flushing asynchronously
