@@ -57,6 +57,7 @@ install(FILES CheckClusters_mft.C
               run_trac_ca_its.C
               run_trac_its.C
               run_trac_mft.C
+	      CreateBCPattern.C
         DESTINATION share/macro/)
 
 # FIXME: a lot of macros that are here should really be elsewhere. Those which
@@ -300,6 +301,9 @@ o2_add_test_root_macro(run_rawdecoding_tof.C
                       PUBLIC_LINK_LIBRARIES O2::TOFSimulation
                                             O2::TOFReconstruction
                        LABELS tof)
+
+o2_add_test_root_macro(CreateBCPattern.C
+                      PUBLIC_LINK_LIBRARIES O2::CommonDataFormat)
 
 # FIXME: move to subsystem dir + check compilation o2_add_test_root_macro(
 # run_rec_ca.C PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats
