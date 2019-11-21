@@ -18,7 +18,7 @@
 
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/FeeParam.h"
-#include "TRDBase/TrapConfig.h"
+#include "TRDSimulation/TrapConfig.h"
 #include <fairlogger/Logger.h>
 
 #include <fstream>
@@ -800,25 +800,6 @@ bool TrapConfig::TrapValue::allocate(Alloc_t alloc)
   mAllocMode = alloc;
   int mSize = mgkSize[mAllocMode];
 
-  if (mSize > 0) {
-    mData.resize(mSize);
-    mValid.resize(mSize);
-    for (int i = 0; i < mSize; ++i) {
-      mData[i] = 0;
-      mValid[i] = false;
-    }
-  }
-
-  return true;
-}
-
-// this exists purely to read in from ocdb to ccdb, and get around a root dictionary error of Alloc_t
-bool TrapConfig::TrapValue::allocatei(int alloc)
-{
-  // allocate memory for the specified granularity
-  mAllocMode = (Alloc_t)alloc;
-  int mSize = mgkSize[mAllocMode];
-  cout << "in allocatei : with alloc = " << alloc << " and mSize is now :" << mSize << endl;
   if (mSize > 0) {
     mData.resize(mSize);
     mValid.resize(mSize);

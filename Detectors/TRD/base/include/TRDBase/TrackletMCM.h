@@ -100,7 +100,7 @@ class TrackletMCM : public TrackletBase
   std::vector<float> getClsCharges() const { return mClsCharges; } //TODO this is a problem, giving a pointer out to an internal class member
 
  protected:
-  TRDGeometry* mGeo; //! TRD geometry
+  TRDGeometry*  mGeo; //! TRD geometry
 
   int mHCId;                  // half-chamber ID (only transient)
   unsigned int mTrackletWord; // tracklet word: PID | Z | deflection length | Y

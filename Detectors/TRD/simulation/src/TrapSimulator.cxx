@@ -23,10 +23,10 @@
 #include "TRDBase/TRDCommonParam.h"
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/FeeParam.h"
-#include "TRDBase/TrapConfig.h"
 #include "TRDBase/TrackletMCM.h"
 #include "TRDBase/CalOnlineGainTables.h"
-#include "TRDBase/TrapConfigHandler.h"
+#include "TRDSimulation/TrapConfigHandler.h"
+#include "TRDSimulation/TrapConfig.h"
 #include "TRDSimulation/TrapSimulator.h"
 #include "fairlogger/Logger.h"
 
@@ -147,7 +147,7 @@ void TrapSimulator::reset()
   filterPedestalInit();
   filterGainInit();
   filterTailInit();
-  labelsInit();
+  //labelsInit();
 }
 
 // ----- I/O implementation -----

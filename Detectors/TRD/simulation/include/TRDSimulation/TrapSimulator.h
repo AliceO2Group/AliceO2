@@ -13,7 +13,7 @@
 
 ///////////////////////////////////////////////////////
 //                                                   //
-//  Multi Chip Module Simulation Class               //
+//  TRAP Chip Simulation Class               //
 //                                                   //
 ///////////////////////////////////////////////////////
 
@@ -23,12 +23,13 @@
 #include <fstream>
 
 #include "TRDBase/TrackletMCM.h"
-#include "TRDBase/TrapConfigHandler.h"
 #include "TRDBase/FeeParam.h"
-#include "TRDBase/TrapConfig.h"
 #include "TRDBase/Digit.h"
-#include "TRDSimulation/Digitizer.h"
 #include "TRDBase/MCLabel.h"
+#include "TRDSimulation/Digitizer.h"
+#include "TRDSimulation/TrapConfigHandler.h"
+#include "TRDSimulation/TrapConfig.h"
+
 class TH2F;
 
 namespace o2

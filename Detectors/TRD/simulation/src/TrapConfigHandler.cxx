@@ -21,13 +21,13 @@
 #include <iomanip>
 
 #include "TRDBase/FeeParam.h"
-#include "TRDBase/TrapConfigHandler.h"
 #include "TRDBase/TrackletMCM.h"
-#include "TRDBase/TrapConfig.h"
-#include "TRDBase/TrapSimulator.h"
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/CalOnlineGainTables.h"
 #include "TRDBase/PadResponse.h"
+#include "TRDSimulation/TrapConfigHandler.h"
+#include "TRDSimulation/TrapConfig.h"
+#include "TRDSimulation/TrapSimulator.h"
 #include "TMath.h"
 #include "TGeoMatrix.h"
 #include "TGraph.h"

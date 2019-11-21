@@ -14,6 +14,8 @@ o2_add_library(TRDSimulation
                        src/TRsim.cxx
                        src/Digitizer.cxx
                        src/TRDSimParams.cxx
+                       src/TrapConfig.cxx 
+                       src/TrapConfigHandler.cxx 
                        src/TrapSimulator.cxx
                PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::SimulationDataFormat O2::TRDBase)
 
@@ -21,7 +23,9 @@ o2_target_root_dictionary(TRDSimulation
                           HEADERS include/TRDSimulation/Detector.h
                                   include/TRDSimulation/TRsim.h
                                   include/TRDSimulation/Digitizer.h
-                                  include/TRDSimulation/TRDSimParams.h
+				                  include/TRDSimulation/TRDSimParams.h
+                                  include/TRDSimulation/TrapConfig.h
+                                  include/TRDSimulation/TrapConfigHandler.h
                                   include/TRDSimulation/TrapSimulator.h)
 
 if (OpenMP_CXX_FOUND)

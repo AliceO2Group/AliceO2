@@ -28,8 +28,6 @@ o2_add_library(TRDBase
                        src/Calibrations.cxx
                        src/ChamberNoise.cxx
                        src/CalOnlineGainTables.cxx
-                       src/TrapConfig.cxx
-                       src/TrapConfigHandler.cxx
                        src/TrackletMCM.cxx
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                      O2::DetectorsCommonDataFormats
@@ -63,9 +61,6 @@ o2_target_root_dictionary(TRDBase
                                   include/TRDBase/Calibrations.h
                                   include/TRDBase/ChamberNoise.h
                                   include/TRDBase/CalOnlineGainTables.h
-                                  include/TRDBase/TrapConfig.h)
-                                  include/TRDBase/TrapConfig.h
-                                  include/TRDBase/TrapConfigHandler.h
                                   include/TRDBase/TrackletMCM.h)
 
 o2_add_test(DiffusionCoefficient

@@ -41,14 +41,10 @@
 #pragma link C++ class o2::trd::Calibrations + ;
 #pragma link C++ class o2::trd::ChamberNoise + ;
 #pragma link C++ class o2::trd::CalOnlineGainTables + ;
-#pragma link C++ class o2::trd::TrapConfig + ;
 #pragma link C++ class o2::trd::PadNoise + ;
 #pragma link C++ class o2::trd::PadResponse + ;
 #pragma link C++ class o2::trd::MCLabel + ;
-#pragma link C++ class o2::trd::TrapConfig + ;
-#pragma link C++ class o2::trd::TrapConfigHandler + ;
 #pragma link C++ class o2::trd::TrackletMCM + ;
-#pragma link C++ class o2::trd::TrapSimulator + ;
 
 #include "SimulationDataFormat/MCTruthContainer.h"
 
