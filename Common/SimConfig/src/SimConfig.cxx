@@ -45,7 +45,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "logverbosity", bpo::value<std::string>()->default_value("low"), "level of verbosity for FairLogger (low, medium, high, veryhigh)")(
     "configKeyValues", bpo::value<std::string>()->default_value(""), "semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...")(
     "configFile", bpo::value<std::string>()->default_value(""), "Path to an INI or JSON configuration file")(
-    "chunkSize", bpo::value<unsigned int>()->default_value(5000), "max size of primary chunk (subevent) distributed by server")(
+    "chunkSize", bpo::value<unsigned int>()->default_value(500), "max size of primary chunk (subevent) distributed by server")(
     "chunkSizeI", bpo::value<int>()->default_value(-1), "internalChunkSize")(
     "seed", bpo::value<int>()->default_value(-1), "initial seed (default: -1 random)")(
     "field", bpo::value<int>()->default_value(-5), "L3 field rounded to kGauss, allowed values +-2,+-5 and 0")(
