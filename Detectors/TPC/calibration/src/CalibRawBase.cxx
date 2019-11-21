@@ -36,6 +36,12 @@ void CalibRawBase::setupContainers(TString fileInfo, uint32_t verbosity, uint32_
   for (auto o : *arrData) {
     const TString& data = static_cast<TObjString*>(o)->String();
 
+    std::cout << " data: " << data << "\n";
+    if (data.Contains(".root")) {
+      rorcType = "digits";
+      std::cout << "Setting digits\n";
+    }
+
     // get file info: file name, cru, link
     auto arrDataInfo = data.Tokenize(":");
     if (arrDataInfo->GetEntriesFast() == 1) {
@@ -75,7 +81,15 @@ void CalibRawBase::setupContainers(TString fileInfo, uint32_t verbosity, uint32_
           printf("Forcing CRU %03d\n", cru);
         }
       }
-
+    } else if (rorcType == "digits") {
+      TString files = gSystem->GetFromPipe(TString::Format("ls %s", arrDataInfo->At(0)->GetName()));
+      //const int timeBins = static_cast<TObjString*>(arrDataInfo->At(1))->String().Atoi();
+      std::unique_ptr<TObjArray> arr(files.Tokenize("\n"));
+      mDigitTree = std::make_unique<TChain>("o2sim", "Digit chain");
+      //mDigitTree = new TChain("Digits","Digit chain");
+      for (auto file : *arr) {
+        mDigitTree->AddFile(file->GetName());
+      }
     } else if (arrDataInfo->GetEntriesFast() < 3) {
       printf("Error, badly formatte input data string: %s, expected format is <filename:cru:link[:sampaVersion]>\n",
              data.Data());
@@ -89,7 +103,7 @@ void CalibRawBase::setupContainers(TString fileInfo, uint32_t verbosity, uint32_
       rawReader->addInputFile(data.Data());
 
       addRawReader(rawReader);
-    } else if (rorcType != "cru") {
+    } else if ((rorcType != "cru") && (rorcType != "digits")) {
       TString& filename = static_cast<TObjString*>(arrDataInfo->At(0))->String();
       iCRU = static_cast<TObjString*>(arrDataInfo->At(1))->String().Atoi();
       iLink = static_cast<TObjString*>(arrDataInfo->At(2))->String().Atoi();

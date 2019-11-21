@@ -21,6 +21,7 @@
 
 #include "TString.h"
 #include "Rtypes.h"
+#include "TChain.h"
 
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/Mapper.h"
@@ -152,6 +153,9 @@ class CalibRawBase
   std::vector<std::unique_ptr<RawReader>> mRawReaders;                 //!< raw reader pointer
   rawreader::RawReaderCRUManager mRawReaderCRUManager{};               //!< cru type raw readers
 
+  std::unique_ptr<TChain> mDigitTree{}; //!< Chain of digit inputs
+  //TChain* mDigitTree{};
+
   virtual void resetEvent() = 0;
   virtual void endEvent() = 0;
   virtual void endReader(){};
@@ -164,6 +168,9 @@ class CalibRawBase
 
   /// Process one event using RawReaderCRU
   ProcessStatus processEventRawReaderCRU(int eventNumber = -1);
+
+  /// Process one event using the tree of digits as input
+  ProcessStatus processEventDigitTree(int eventNumber = -1);
 };
 
 //----------------------------------------------------------------
@@ -177,6 +184,8 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEvent(int eventNumber)
     return processEventRawReader(eventNumber);
   } else if (mRawReaderCRUManager.getNumberOfReaders()) {
     return processEventRawReaderCRU(eventNumber);
+  } else if (mDigitTree) {
+    return processEventDigitTree(eventNumber);
   } else {
     return ProcessStatus::NoReaders;
   }
@@ -510,6 +519,114 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int ev
   }
 
   LOG(INFO) << "Present event number : " << mPresentEventNumber << (skipEvent ? " (skipped, incomplete)" : "");
+  LOG(INFO) << "Last event           : " << lastEvent;
+  LOG(INFO) << "Status               : " << int(status);
+
+  return status;
+}
+
+//______________________________________________________________________________
+inline CalibRawBase::ProcessStatus CalibRawBase::processEventDigitTree(int eventNumber)
+{
+
+  if (!mDigitTree) {
+    return ProcessStatus::NoReaders;
+  }
+  resetEvent();
+
+  const int nRowIROC = mMapper.getNumberOfRowsROC(0);
+
+  ProcessStatus status = ProcessStatus::Ok;
+
+  mProcessedTimeBins = 0;
+  bool hasData = false;
+
+  const int64_t numberOfEvents = mDigitTree->GetEntries();
+  const int64_t lastEvent = numberOfEvents - 1;
+
+  if (eventNumber >= 0) {
+    mPresentEventNumber = eventNumber;
+  } else if (eventNumber == -1) {
+    if (mPresentEventNumber == std::numeric_limits<size_t>::max()) {
+      mPresentEventNumber = 0;
+    } else {
+      mPresentEventNumber = (mPresentEventNumber + 1) % numberOfEvents;
+    }
+  } else if (eventNumber == -2) {
+    if (mPresentEventNumber > 0) {
+      mPresentEventNumber -= 1;
+    } else {
+      mPresentEventNumber = numberOfEvents - 1;
+    }
+  }
+  LOG(INFO) << "Processing event number " << eventNumber << " (" << mNevents << ")";
+
+  // set up branches
+  static bool initialized = false;
+  static std::array<std::vector<Digit>*, Sector::MAXSECTOR> digits{};
+  if (!initialized) {
+    for (int iSec = 0; iSec < Sector::MAXSECTOR; ++iSec) {
+      mDigitTree->SetBranchAddress(Form("TPCDigit_%d", iSec), &digits[iSec]);
+    }
+    initialized = true;
+  }
+
+  // loop over digits for selected event
+  mDigitTree->GetEntry(mPresentEventNumber);
+  for (const auto vecSector : digits) {
+    for (const auto& digit : *vecSector) {
+      // cluster information
+      const CRU cru(digit.getCRU());
+      const int roc = cru.roc();
+      const int row = digit.getRow(); // row is global in sector
+      const int pad = digit.getPad();
+      const size_t timeBin = digit.getTimeStamp();
+      //
+      mProcessedTimeBins = std::max(mProcessedTimeBins, timeBin);
+
+      // TODO: OROC case needs subtraction of number of pad rows in IROC
+      const PadRegionInfo& regionInfo = mMapper.getPadRegionInfo(cru.region());
+      const PartitionInfo& partInfo = mMapper.getPartitionInfo(cru.partition());
+
+      if (row == 255 || pad == 255)
+        continue;
+
+      int rowOffset = 0;
+      switch (mPadSubset) {
+        case PadSubset::ROC: {
+          rowOffset -= (cru.rocType() == RocType::OROC) * nRowIROC;
+          break;
+        }
+        case PadSubset::Region: {
+          break;
+        }
+        case PadSubset::Partition: {
+          rowOffset -= partInfo.getGlobalRowOffset();
+          break;
+        }
+      }
+
+      // modify row depending on the calibration type used
+      const float signal = digit.getChargeFloat();
+      //const FECInfo& fecInfo = mMapper.getFECInfo(PadROCPos(roc, row, pad));
+      //printf("Call update: %d, %d (%d), %d, %d, %.3f -- cru: %03d, reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", roc, row, rowOffset, pad, timeBin, signal, cru.number(), cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
+      updateCRU(cru, row, pad, timeBin, signal);
+      updateROC(roc, row + rowOffset, pad, timeBin, signal);
+      hasData = true;
+    }
+  }
+  LOG(INFO) << "Found time bins: " << mProcessedTimeBins << "\n";
+  // set status, don't overwrite decision
+  if (!hasData) {
+    return ProcessStatus::NoMoreData;
+  } else if (mPresentEventNumber == size_t(lastEvent)) {
+    status = ProcessStatus::LastEvent;
+  }
+
+  endEvent();
+  ++mNevents;
+
+  LOG(INFO) << "Present event number : " << mPresentEventNumber;
   LOG(INFO) << "Last event           : " << lastEvent;
   LOG(INFO) << "Status               : " << int(status);
 
