@@ -25,6 +25,8 @@ using namespace o2::tpc::rawreader;
 
 std::ostream& operator<<(std::ostream& output, const RDH& rdh);
 std::istream& operator>>(std::istream& input, RDH& rdh);
+void printHeader();
+void printHorizontal(const RDH& rdh);
 
 /*
 // putting this here instead of inside the header trigger unreasonably large compliation times for some reason
@@ -39,15 +41,12 @@ RawReaderCRUEventSync::LinkInfo& RawReaderCRUEventSync::getLinkInfo(uint32_t hea
 RawReaderCRUEventSync::EventInfo& RawReaderCRUEventSync::createEvent(const RDH& rdh, DataType dataType)
 {
   const auto heartbeatOrbit = rdh.heartbeatOrbit;
-  const auto isTriggerd = (dataType == DataType::Triggered);
 
   for (auto& ev : mEventInformation) {
-    //const auto lastHBOrbit = ev.HeartbeatOrbits.back();
-    const auto hbMatch = ev.hasHearbeatOrbit(heartbeatOrbit); //(lastHBOrbit == heartbeatOrbit);
-    //const auto hbMatchPrev = (lastHBOrbit == heartbeatOrbit - 1);
+    const auto hbMatch = ev.hasHearbeatOrbit(heartbeatOrbit);
     if (hbMatch) {
       return ev;
-    } else if (isTriggerd && (ev.HeartbeatOrbits.back() == heartbeatOrbit - 1)) { //hbMatchPrev) {
+    } else if (ev.HeartbeatOrbits.back() == heartbeatOrbit - 1) {
       ev.HeartbeatOrbits.emplace_back(heartbeatOrbit);
       return ev;
     }
@@ -60,8 +59,10 @@ void RawReaderCRUEventSync::analyse()
   //expected number of packets in one HBorbit
   const size_t numberOfPackets = ExpectedNumberOfPacketsPerHBFrame;
 
-  for (auto& event : mEventInformation) {
+  for (int iEvent = mEventInformation.size() - 1; iEvent >= 0; --iEvent) {
+    auto& event = mEventInformation[iEvent];
     event.IsComplete = true;
+    size_t totalPayloadSize = 0;
     for (size_t iCRU = 0; iCRU < event.CRUInfoArray.size(); ++iCRU) {
       const auto& cruInfo = event.CRUInfoArray[iCRU];
       if (!cruInfo.isPresent()) {
@@ -71,11 +72,22 @@ void RawReaderCRUEventSync::analyse()
         }
 
         continue;
+      } else {
+        totalPayloadSize += cruInfo.totalPayloadSize();
       }
+
       if (!cruInfo.isComplete()) {
         event.IsComplete = false;
         break;
       }
+    }
+
+    // remove empty events
+    // can be problems in the filtering in readout
+    // typically these are empty HB frame with HB start and HB stop packets only
+    if (totalPayloadSize == 0) {
+      O2INFO("Removing empty event with HB Orbit %u", event.HeartbeatOrbits[0]);
+      mEventInformation.erase(mEventInformation.begin() + iEvent);
     }
   }
 }
@@ -199,12 +211,7 @@ int RawReaderCRU::scanFile()
     // ===| read in the RawDataHeader at the current position |=================
     file >> rdh;
 
-    // ===| skip empty packet which are not HB end |============================
-    if ((rdh.memorySize == rdh.headerSize) && (rdh.stop == 0)) {
-      file.seekg(8128, file.cur);
-      ++currentPacket;
-      continue;
-    }
+    const size_t offset = rdh.offsetToNext - rdh.headerSize;
 
     // ===| try to detect data type if not already set |========================
     //
@@ -219,12 +226,14 @@ int RawReaderCRU::scanFile()
         const uint64_t triggerType = rdh.triggerType;
         const uint64_t pageCnt = rdh.pageCnt;
 
-        if ((pageCnt == 1) && (triggerType == triggerTypeForTriggeredData)) {
-          mManager->mDataType = DataType::Triggered;
-          O2INFO("Detected triggered data");
-        } else {
-          mManager->mDataType = DataType::HBScaling;
-          O2INFO("Detected HB scaling");
+        if (pageCnt == 1) {
+          if (triggerType == triggerTypeForTriggeredData) {
+            mManager->mDataType = DataType::Triggered;
+            O2INFO("Detected triggered data");
+          } else {
+            mManager->mDataType = DataType::HBScaling;
+            O2INFO("Detected HB scaling");
+          }
         }
       }
     }
@@ -287,12 +296,16 @@ int RawReaderCRU::scanFile()
 
     // debug output
     if (CHECK_BIT(mDebugLevel, DebugLevel::RDHDump)) {
-      std::cout << "Packet " << std::setw(5) << currentPacket << " - Link " << int(linkID) << "\n";
-      std::cout << rdh;
-      std::cout << "\n";
+      //std::cout << "Packet " << std::setw(5) << currentPacket << " - Link " << int(linkID) << "\n";
+      //std::cout << rdh;
+      printHorizontal(rdh);
+      if (rdh.stop) {
+        std::cout << "\n";
+        printHeader();
+      }
     };
     // std::cout << "Position after read : " << std::dec << file.tellg() << std::endl;
-    file.seekg(8128, file.cur);
+    file.seekg(offset, file.cur);
     ++currentPacket;
   }
 
@@ -823,6 +836,30 @@ std::ostream& operator<<(std::ostream& output, const RDH& rdh)
   output << "\n";
 
   return output;
+}
+
+void printHeader()
+{
+  fmt::print("{:>5} {:>4} {:>4} {:>4} {:>6} {:>4} {:>3} {:>4} {:>10} {:>5} {:>1}\n",
+             "PkC", "pCnt", "trg", "fId", "OffN", "Mem", "CRU", "GLID", "HBOrbit", "HBBC", "s");
+}
+
+void printHorizontal(const RDH& rdh)
+{
+  const int globalLinkID = int(rdh.linkID) + (((rdh.word1 >> 32) >> 28) * 12);
+
+  fmt::print("{:>5} {:>4} {:>4} {:>4} {:>6} {:>4} {:>3} {:>4} {:>10} {:>5} {:>1}\n",
+             (uint64_t)rdh.packetCounter,
+             (uint64_t)rdh.pageCnt,
+             (uint64_t)rdh.triggerType,
+             (uint64_t)rdh.feeId,
+             (uint64_t)rdh.offsetToNext,
+             (uint64_t)rdh.memorySize,
+             (uint64_t)rdh.cruID,
+             (uint64_t)globalLinkID,
+             (uint64_t)rdh.heartbeatOrbit,
+             (uint64_t)rdh.heartbeatBC,
+             (uint64_t)rdh.stop);
 }
 
 std::istream& operator>>(std::istream& input, RDH& rdh)
