@@ -8,10 +8,11 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(MIDRaw
-               SOURCES src/Decoder.cxx src/Encoder.cxx
-               PUBLIC_LINK_LIBRARIES ms_gsl::ms_gsl O2::DataFormatsMID
-                                     O2::Headers)
+o2_add_library(
+  MIDRaw
+  SOURCES src/CrateMapper.cxx src/Decoder.cxx src/Encoder.cxx
+  PUBLIC_LINK_LIBRARIES ms_gsl::ms_gsl O2::DataFormatsMID O2::Headers
+                        O2::MIDBase)
 
 if(BUILD_TESTING)
   add_subdirectory(test)
