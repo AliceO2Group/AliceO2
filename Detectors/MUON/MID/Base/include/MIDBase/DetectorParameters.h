@@ -44,9 +44,18 @@ inline int getRPCLine(int deId) { return deId % NRPCLines; }
 /// @param deId The detection element ID
 inline bool isRightSide(int deId) { return (deId / NDetectionElementsPerSide) == 0; }
 
+/// Checks if the detection element ID is valid
+/// @param deId The detection element ID
 void assertDEId(int deId);
 
+/// Gets detection element Id
+/// @param isRight RPC is in right side
+/// @param chamber The chamber ID (0-3)
+/// @param rpc RPC ID (0-8)
 int getDEId(bool isRight, int chamber, int rpc);
+
+/// Gets the detection element name from its ID
+/// \param deId The detection element ID
 std::string getDEName(int deId);
 } // namespace detparams
 } // namespace mid

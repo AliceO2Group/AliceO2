@@ -17,6 +17,7 @@
 #include <stdexcept>
 #include <sstream>
 #include <string>
+#include <fmt/format.h>
 
 namespace o2
 {
@@ -26,26 +27,19 @@ namespace detparams
 {
 void assertDEId(int deId)
 {
-  /// Checks if the detection element ID is valid
-  if (deId < 0 || deId > NDetectionElements) {
-    throw std::out_of_range("Detection element ID must be between 0 and 72");
+  if (deId < 0 || deId >= NDetectionElements) {
+    throw std::out_of_range(fmt::format("Detection element ID must be between 0 and %i", NDetectionElements - 1));
   }
 }
 
 int getDEId(bool isRight, int chamber, int rpc)
 {
-  /// Gets detection element Id
-  /// \param isRight RPC is in right side
-  /// \param chamber The chamber ID (0-3)
-  /// \param rpc RPC ID (0-8)
   int deOffset = (isRight) ? 0 : NDetectionElementsPerSide;
   return deOffset + NRPCLines * chamber + rpc;
 }
 
 std::string getDEName(int deId)
 {
-  /// Gets the detection element name from its ID
-  /// \param deId The detection element ID
   int chId = getChamber(deId);
   int stId = 1 + chId / 2;
   int planeId = 1 + chId % 2;
