@@ -332,6 +332,17 @@ class RawReaderCRUEventSync
       return true;
     }
 
+    size_t totalPayloadSize() const
+    {
+      size_t totalPayloadSize = 0;
+      for (const auto& link : LinkInformation) {
+        if (link.IsPresent) {
+          totalPayloadSize += link.PayloadSize;
+        }
+      }
+      return totalPayloadSize;
+    }
+
     LinkInfoArray_t LinkInformation;
   };
   //using CRUInfoArray_t = std::array<CRUInfo, CRU::MaxCRU>;
