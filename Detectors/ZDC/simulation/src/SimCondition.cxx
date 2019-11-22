@@ -8,16 +8,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "ZDCSimulation/SimCondition.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+using namespace o2::zdc;
 
-#pragma link C++ class o2::zdc::Geometry + ;
+void ChannelSimCondition::print() const
+{
+  printf("Shape min at bin %d, Pedestal:{%+e,%+e,%+e}, Gain:%.2f, TimeJitter: %.2f TimePos: %.1f\n",
+         ampMinID, pedestal, pedestalNoise, pedestalFluct, gain, timeJitter, timePosition);
+}
 
-#pragma link C++ class o2::zdc::Module + ;
-#pragma link C++ class o2::zdc::ModuleConfig + ;
-#pragma link C++ class o2::zdc::TriggerChannelConfig + ;
-
-#endif
+void SimCondition::print() const
+{
+  for (int i = 0; i < NChannels; i++) {
+    printf("%s ", channelName(i));
+    channels[i].print();
+  }
+}
