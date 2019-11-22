@@ -60,7 +60,7 @@ VertexerTraitsHIP::VertexerTraitsHIP()
 {
   setIsGPU(true);
   std::cout << "[DEBUG] Creating file: dbg_ITSVertexerHIP.root" << std::endl;
-  mDebugger = new StandaloneDebugger::StandaloneDebugger("dbg_ITSVertexerHIP.root");
+  mDebugger = new StandaloneDebugger("dbg_ITSVertexerHIP.root");
 }
 
 VertexerTraitsHIP::~VertexerTraitsHIP()

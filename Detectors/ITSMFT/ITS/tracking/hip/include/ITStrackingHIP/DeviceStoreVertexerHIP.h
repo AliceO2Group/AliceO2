@@ -92,17 +92,17 @@ class DeviceStoreVertexerHIP final
   }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-  GPUh() void updateDuplets(const Order, std::vector<Tracklet>&);
-  GPUh() void updateFoundDuplets(const Order, std::vector<int>&);
-  GPUh() std::vector<int> getNFoundTrackletsFromGPU(const Order);
-  GPUh() std::vector<Tracklet> getRawDupletsFromGPU(const Order);
-  GPUh() std::vector<Tracklet> getDupletsFromGPU(const Order);
-  GPUh() std::vector<Line> getRawLinesFromGPU();
-  GPUh() std::vector<std::array<int, 2>> getDupletIndicesFromGPU();
-  GPUh() std::vector<int> getNFoundLinesFromGPU();
-  GPUh() std::array<std::vector<int>, 2> getHistogramXYFromGPU();
-  GPUh() std::vector<int> getHistogramZFromGPU();
-  GPUh() std::vector<Line> getLinesFromGPU();
+  /*GPUh()*/ void updateDuplets(const Order, std::vector<Tracklet>&);
+  /*GPUh()*/ void updateFoundDuplets(const Order, std::vector<int>&);
+  /*GPUh()*/ std::vector<int> getNFoundTrackletsFromGPU(const Order);
+  /*GPUh()*/ std::vector<Tracklet> getRawDupletsFromGPU(const Order);
+  /*GPUh()*/ std::vector<Tracklet> getDupletsFromGPU(const Order);
+  /*GPUh()*/ std::vector<Line> getRawLinesFromGPU();
+  /*GPUh()*/ std::vector<std::array<int, 2>> getDupletIndicesFromGPU();
+  /*GPUh()*/ std::vector<int> getNFoundLinesFromGPU();
+  /*GPUh()*/ std::array<std::vector<int>, 2> getHistogramXYFromGPU();
+  /*GPUh()*/ std::vector<int> getHistogramZFromGPU();
+  /*GPUh()*/ std::vector<Line> getLinesFromGPU();
 #endif
 
  private:
@@ -267,7 +267,7 @@ inline std::vector<Line> DeviceStoreVertexerHIP::getRawLinesFromGPU()
   return lines;
 }
 
-std::vector<int> DeviceStoreVertexerHIP::getNFoundLinesFromGPU()
+inline std::vector<int> DeviceStoreVertexerHIP::getNFoundLinesFromGPU()
 {
   std::vector<int> nFoundLines;
   nFoundLines.resize(mGPUConf.clustersPerLayerCapacity);
