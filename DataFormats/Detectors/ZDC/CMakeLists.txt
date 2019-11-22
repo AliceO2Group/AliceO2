@@ -8,13 +8,10 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-# @brief  cmake setup for the DataFormats module of AliceO2
+o2_add_library(DataFormatsZDC
+               SOURCES src/ChannelData.cxx SOURCES src/BCData.cxx
+               PUBLIC_LINK_LIBRARIES O2::CommonConstants O2::CommonDataFormat
+	       			     O2::ZDCBase ROOT::MathCore FairRoot::Base)
 
-add_subdirectory(Common)
-add_subdirectory(TPC)
-add_subdirectory(ITSMFT)
-add_subdirectory(MUON)
-add_subdirectory(TOF)
-add_subdirectory(FIT)
-add_subdirectory(EMCAL)
-add_subdirectory(ZDC)
+o2_target_root_dictionary(DataFormatsZDC
+               HEADERS include/DataFormatsZDC/BCData.h include/DataFormatsZDC/ChannelData.h)
