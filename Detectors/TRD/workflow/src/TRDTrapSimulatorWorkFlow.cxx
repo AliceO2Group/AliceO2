@@ -20,6 +20,7 @@
 // for TRD
 #include "TRDTrapSimulatorSpec.h"
 #include "TRDTrackletWriterSpec.h"
+#include "TRDRawReaderSpec.h"
 
 // GRP   not sure if i need GRP, come back TODO
 //#include "DataFormatsParameters/GRPObject.h"
@@ -37,31 +38,6 @@ using namespace o2::framework;
 
 // ------------------------------------------------------------------
 
-// customize the completion policy
-/* void customize(std::vector<o2::framework::CompletionPolicy>& policies)
-{
-  using o2::framework::CompletionPolicy;
-  // we customize the completion policy for the writer since it should stream immediately
-  auto matcher = [](DeviceSpec const& device) {
-    bool matched = device.name == "TPCDigitWriter";
-    if (matched) {
-      LOG(INFO) << "DPL completion policy for " << device.name << " customized";
-    }
-    return matched;
-  };
-
-  auto policy = [](gsl::span<o2::framework::PartRef const> const& inputs) {
-    return CompletionPolicy::CompletionOp::Consume;
-  };
-
-  policies.push_back({CompletionPolicy{"process-any", matcher, policy}});
-}*/
-
-// ------------------------------------------------------------------
-
-// we need to add workflow options before including Framework/runDataProcessing
-// ------------------------------------------------------------------
- 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowoptions)
 {
     //able to specify inputs
@@ -98,9 +74,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // at the end. This places the processor at the beginning of the
   // workflow in the upper left corner of the GUI.
   //
-  LOG(info) << "Input data file is : " << configcontext.options().get<std::string>("simdatasrc");
-  LOG(info) << "simSm is : " << configcontext.options().get<int>("simSM");
   return WorkflowSpec{
+      //?? maybe a read spec to define the input in the case of my text run2 data and possible a proper data input reader.
+    o2::trd::getTRDRawReaderSpec(),
     // connect the TRD digitization
     o2::trd::getTRDTrapSimulatorSpec(0),
     // connect the TRD digit writer

@@ -60,6 +60,8 @@
 // for TRD
 #include "TRDDigitizerSpec.h"
 #include "TRDDigitWriterSpec.h"
+#include "TRDTrapSimulatorSpec.h"
+#include "TRDTrackletWriterSpec.h"
 
 //for MUON MCH
 #include "MCHDigitizerSpec.h"
@@ -458,6 +460,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::trd::getTRDDigitizerSpec(fanoutsize++));
     // connect the TRD digit writer
     specs.emplace_back(o2::trd::getTRDDigitWriterSpec());
+    specs.emplace_back(o2::trd::getTRDTrapSimulatorSpec(0));
+    specs.emplace_back(o2::trd::getTRDTrackletWriterSpec());
   }
 
   //add MUON MCH
