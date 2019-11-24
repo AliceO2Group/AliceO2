@@ -93,7 +93,9 @@ void TrapSimulator::init(int det, int robPos, int mcmPos)
 
   if (!mInitialized) {
     mFeeParam = FeeParam::instance();
+    cout << "calling trap config !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" <<endl;
     mTrapConfig = getTrapConfig();
+    cout << "called trap config !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
   }
 
   mDetector = det;
@@ -816,21 +818,23 @@ void TrapSimulator::setData(int adc, int it, int data)
 }
 
 //This is the message data coming in from the digitzer.
-void TrapSimulator::setDataFromDigitizerAndRun(int adc, int it, std::vector<o2::trd::Digit> &digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
+void TrapSimulator::setDataFromDigitizerAndRun(std::vector<o2::trd::Digit> &digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
- //extract relevant digits 
+ //extract digits for 1 mcm from digits 
  //put them into mADCR and mADCF
  //Filter and etc.
  //write out
   
-  if( !checkInitialized() )
-    return;
 //get labels out
     
 //get digits out.
     //find det rob and mcm from the incoming digits
     //
-   // init(det,rob,mcm);
+    int det,rob,mcm;
+    init(det,rob,mcm);
+    if( !checkInitialized() )
+        LOG(fatal) << "failed to initialise the TrapSimulator for det:rob:mcm::"<<det<<":"<<rob<<":"<<mcm;
+    else{
    // setData();
     filter();
     if(FeeParam::instance()->getTracklet()){
@@ -839,6 +843,7 @@ void TrapSimulator::setDataFromDigitizerAndRun(int adc, int it, std::vector<o2::
     }
     zeroSupressionMapping();
     writeData();
+    }
 }
 
 /*  Remove the digitsmanager option for setting data. I cant find it being called from anywhere in aliroot ... this will probably bite me.
@@ -2686,8 +2691,8 @@ TrapConfig* TrapSimulator::getTrapConfig()
 
       for (int rob = 0; rob < nRobs; ++rob) {
         for (int mcm = 0; mcm < nMcms; ++mcm) {
-          for (int row = 0; row < MaxRows; row++) {
-            for (int col = 0; col < MaxCols; col++) {
+//          for (int row = 0; row < MaxRows; row++) {
+//            for (int col = 0; col < MaxCols; col++) {
               // set ADC reference voltage
               mTrapConfig->setTrapReg(TrapConfig::kADCDAC, mGainTable.getAdcdacrm(iDet, rob, mcm), iDet, rob, mcm);
 
@@ -2699,8 +2704,8 @@ TrapConfig* TrapSimulator::getTrapConfig()
                 mTrapConfig->setTrapReg(regFGFN, mGainTable.getFGFNrm(iDet, rob, mcm, ch), iDet, rob, mcm);
               }
             }
-          }
-        }
+  //        }
+    //    }
       }
     }
     return mTrapConfig;

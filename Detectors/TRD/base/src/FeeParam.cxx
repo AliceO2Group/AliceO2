@@ -85,20 +85,15 @@ FeeParam* FeeParam::instance()
   //
   // Instance constructor
   //
-cout << "A" << ::getpid() << endl;
   if (mgTerminated != false) {
-cout << "B" << ::getpid() << endl;
     return nullptr;
   }
 
-cout << "C" << ::getpid() << " << mgInstance is : "<< mgInstance << endl;
   if (mgInstance == nullptr) {
-cout << "D" << ::getpid() << endl;
     mgInstance = new FeeParam();
   }
   // this is moved here to remove recursive calls induced by the line 2 above this one.
  // if(!mgLUTPadNumberingFilled) mgInstance->createPad2MCMLookUpTable();
-cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!E" << ::getpid() << endl;
   return mgInstance;
 }
 
@@ -131,28 +126,18 @@ FeeParam::FeeParam() : mMagField(0.),
   //
   // Default constructor
   //
-cout << "DA" << ::getpid() << endl;
   mCP = TRDCommonParam::Instance();
-cout << "DB" << endl;
-cout << "DC" << endl;
 
   // These variables are used internally in the class to elliminate divisions.
   // putting them at the top was messy.
   int j = 0;
-cout << "DD" << endl;
   std::for_each(mgInvX.begin(), mgInvX.end(), [&j](float& x) { x = 1. / mgX[j]; });
-cout << "DE" << endl;
   j = 0;
-cout << "DF" << endl;
   std::for_each(mgInvWidthPad.begin(), mgInvWidthPad.end(), [&j](float& x) { x = 1. / mgWidthPad[j]; });
-cout << "DG" << endl;
   j = 0;
-cout << "DH" << endl;
   std::for_each(mgTiltingAngleTan.begin(), mgTiltingAngleTan.end(), [&j](float& x) { x = std::tan(mgTiltingAngle[j] * M_PI / 180.0); });
- cout << "DI" << mPtMin << endl;
 
   mInvPtMin = 1 / mPtMin;
-cout << "DJ" << endl;
 }
 
 //_____________________________________________________________________________
