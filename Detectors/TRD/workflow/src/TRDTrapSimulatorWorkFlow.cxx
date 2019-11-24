@@ -46,8 +46,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowoptions)
     //specify where the data is coming from i.e. ignore incoming message and use data as specified here, mostly for debugging as well.
     std::string filename;
 
-    std::string trapsimindatahelp("Specify the location of incoming data for the simulator, full name of file");
-    workflowoptions.push_back(ConfigParamSpec{"simdatasrc", VariantType::String, "none", {trapsimindatahelp}});
+//    std::string trapsimindatahelp("Specify the location of incoming data for the simulator, full name of file");
+//    workflowoptions.push_back(ConfigParamSpec{"simdatasrc", VariantType::String, "none", {trapsimindatahelp}});
 
     //limit the trapsim to a specific roc or multiple rocs mostly for debugging.
     std::string trapsimrochelp("Specify the ROC to work on [0-540]");

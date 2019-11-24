@@ -40,6 +40,7 @@
 #include "TRDSimulation/Detector.h" // for the Hit type
 #include "DetectorsBase/GeometryManager.h"
 #include "TRDBase/FeeParam.h"
+#include "TRDSimulation/TrapSimulator.h"
 
 using namespace o2::framework;
 
@@ -56,9 +57,9 @@ class TRDDPLTrapSimulatorTask{
            {
 //               LOG(info) << "Input data file is : " << ic.options().get<std::string>("simdatasrc");
 //               LOG(info) << "simSm is : " << ic.options().get<int>("simSM");
-               FeeParam *feeparam=FeeParam::instance();
-            LOG(info) << "TRD Trap Simulator DPL initialising with pid of : "<< ::getpid() << "and feeparam pointer is " << hex << feeparam;
-
+            mfeeparam=FeeParam::instance();
+            LOG(info) << "TRD Trap Simulator DPL initialising with pid of : "<< ::getpid() << "and feeparam pointer is " << hex << mfeeparam;
+             
            }
            void run(o2::framework::ProcessingContext &pc)
            {
@@ -70,21 +71,29 @@ class TRDDPLTrapSimulatorTask{
                //package the resultant tracklets into the outgoing message.
                //send outgoing message.
                auto digits = pc.inputs().get<std::vector<o2::trd::Digit> >("digitinput");
-             //  auto mclabels = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::trd::MCLabel>* >("labelinput");
+               auto mclabels = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::trd::MCLabel>* >("labelinput");
                LOG(info) << "digits size is : "<< digits.size();
-         //      cout  << "digits size is : "<< digits.size() << endl;
-             //  LOG(info) << "labels size is  : " << mclabels->size(); 
               // now loop over the digits for a given trap.
               // send to trapsimulator 
               // repeat 
-               
-             // for (auto digit : digits) {
-                     // LOG(info) << "MCM: " <<  feeparam->getMCMfromPad(digit.getRow(),digit.getPad()) << " == "<< digit.getDetector() <<"::"<<digit.getRow()<<"::"<< digit.getPad();
-             for(int i=i;i<digits.size();i++){
-                int mcmindex= 99;//FeeParam::instance()->getMCMfromPad(digits[i].getRow(), digits[i].getPad());
-                     // LOG(info) << "MCM: " <<  feeparam->getMCMfromPad(digits[i].getRow(),digits[i].getPad()) << " == "<< digits[i].getDetector() <<"::"<<digits[i].getRow()<<"::"<< digits[i].getPad();
+              //mTrapSimulator.init();
+              ArrayADC_t incomingdigits;
+              // std::array<unsigned short,30> mcmdigits; //TODO come back and pull timebins from somehwere.
+               for (auto digit : digits) {
+                      int pad=digit.getPad();
+                      int row=digit.getRow();
+                      int detector=digit.getDetector();
+                      LOG(info) << "MCM: " <<  mfeeparam->getMCMfromPad(row, pad) << " == "<< detector <<"::"<<row<<"::"<< pad;
+                      int rob=mfeeparam->getROBfromPad(row,pad);
+                      int mcm=mfeeparam->getMCMfromPad(row,pad);
+                      // copy adc data from digits to local array and then pass into TrapSimulator
+                      //mTrapSimulator.init(detector,rob,mcm);
+                      //mTrapSimulator.setData(detector,digit.getADC());
+             //for(int i=i;i<digits.size();i++){
+             //   int mcmindex= FeeParam::instance()->getMCMfromPad(digits[i].getRow(), digits[i].getPad());
+                //      LOG(info) << "MCM: " <<  feeparam->getMCMfromPad(digits[i].getRow(),digits[i].getPad()) << " == "<< digits[i].getDetector() <<"::"<<digits[i].getRow()<<"::"<< digits[i].getPad();
                       //cout << "pad: " << ((o2::trd::Digit)digits[i]).getPad() << endl;
-                      LOG(info) << "MCM: " << i <<" :: " << mcmindex << " == "<< digits[i].getDetector() <<"::"<<digits[i].getRow()<<"::"<< digits[i].getPad();
+               //       LOG(info) << "MCM: " << i <<" :: " << mcmindex << " == "<< digits[i].getDetector() <<"::"<<digits[i].getRow()<<"::"<< digits[i].getPad();
                        
               }
                
@@ -94,7 +103,7 @@ class TRDDPLTrapSimulatorTask{
            }
        private:
            TrapSimulator mTrapSimulator;
-           FeeParam *feeparam;
+           FeeParam *mfeeparam;
 };
 
 

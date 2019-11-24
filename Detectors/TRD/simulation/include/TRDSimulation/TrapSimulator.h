@@ -63,9 +63,10 @@ class TrapSimulator
   int getDataFiltered(int iadc, int timebin) const { return (mADCF[iadc * mNTimeBin + timebin] >> 2); }
   // get filtered ADC data
   int getZeroSupressionMap(int iadc) const { return (mZSMap[iadc]); }
-  void setData(int iadc, const int* const adc); // set ADC data with array
+  void setData(int iadc, const std::vector<int>& adc); // set ADC data with array
+  void setData(int iadc, const ArrayADC_t& adc); // set ADC data with array
   void setData(int iadc, int it, int adc);      // set ADC data
-  void setDataFromDigitizer(int adc, int it, std::vector<o2::trd::Digit> &data, o2::dataformats::MCTruthContainer<MCLabel>&);  // data coming in manually from the the digitizer.
+  void setDataFromDigitizerAndRun(int adc, int it, std::vector<o2::trd::Digit> &data, o2::dataformats::MCTruthContainer<MCLabel>&);  // data coming in manually from the the digitizer.
                                                 /*   void setData(TRDArrayADC* const adcArray,
                TRDdigitsManager* const digitsManager = 0x0); // set ADC data from adcArray
   void setDataByPad(const TRDArrayADC* const adcArray,

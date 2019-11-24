@@ -776,7 +776,7 @@ void TrapSimulator::draw(Option_t* const option)
   }
 }
 
-void TrapSimulator::setData(int adc, const int* data)
+void TrapSimulator::setData(int adc, const ArrayADC_t& data)
 {
   //
   // Store ADC data into array of raw data
@@ -816,17 +816,29 @@ void TrapSimulator::setData(int adc, int it, int data)
 }
 
 //This is the message data coming in from the digitzer.
-void TrapSimulator::setDataFromDigitizer(int adc, int it, std::vector<o2::trd::Digit> &digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
+void TrapSimulator::setDataFromDigitizerAndRun(int adc, int it, std::vector<o2::trd::Digit> &digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
- //extra relevant digits and put them into mADCR and mADCF
+ //extract relevant digits 
+ //put them into mADCR and mADCF
+ //Filter and etc.
+ //write out
   
   if( !checkInitialized() )
     return;
 //get labels out
-
+    
 //get digits out.
-
-
+    //find det rob and mcm from the incoming digits
+    //
+   // init(det,rob,mcm);
+   // setData();
+    filter();
+    if(FeeParam::instance()->getTracklet()){
+        tracklet();
+        storeTracklets();
+    }
+    zeroSupressionMapping();
+    writeData();
 }
 
 /*  Remove the digitsmanager option for setting data. I cant find it being called from anywhere in aliroot ... this will probably bite me.
