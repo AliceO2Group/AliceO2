@@ -41,7 +41,8 @@ void RawEventData::GenerateHeader(int nChannels)
 {
   mEventHeader.startDescriptor = 15;
   mEventHeader.nGBTWords = (nChannels + 1) / 2;
-  mEventHeader.reservedField = 0;
+  mEventHeader.reservedField1 = 0;
+  mEventHeader.reservedField2 = 0;
   mEventHeader.bc = 200;
   mEventHeader.orbit = 100;
 }

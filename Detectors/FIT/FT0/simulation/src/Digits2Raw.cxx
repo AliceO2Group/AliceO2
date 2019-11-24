@@ -116,7 +116,6 @@ void Digits2Raw::convertDigits(const o2::ft0::Digit& digit, const o2::ft0::LookU
     bool is0TVX = digit.getisVrtx();
     int oldlink = -1;
     int nchannels = 0;
-    //   o2::ft0::RawEventData rawEventData;
     for (auto& d : mTimeAmp) {
       int nlink = lut.getLink(d.ChId);
       if (nlink != oldlink) {
@@ -125,6 +124,7 @@ void Digits2Raw::convertDigits(const o2::ft0::Digit& digit, const o2::ft0::LookU
           if ((nchannels % 2) == 1)
             mRawEventData.mEventData[nchannels] = {};
           mRawEventData.mEventHeader.nGBTWords = nGBTWords;
+          LOG(INFO) << " header size " << sizeof(mRawEventData.mEventHeader);
           mPages[oldlink].write(mRawEventData.to_vector());
         }
         oldlink = nlink;
@@ -134,8 +134,8 @@ void Digits2Raw::convertDigits(const o2::ft0::Digit& digit, const o2::ft0::LookU
       }
       LOG(DEBUG) << " ChID digits " << d.ChId << " link " << nlink << " channel " << lut.getMCP(d.ChId) << " amp " << d.QTCAmpl << " time " << d.CFDTime;
       auto& newData = mRawEventData.mEventData[nchannels];
-      newData.charge = MV_2_Nchannels * d.QTCAmpl;   //7 mV ->16channels
-      newData.time = CFD_NS_2_Nchannels * d.CFDTime; //1000.(ps)/13.2(channel);
+      newData.charge = d.QTCAmpl;
+      newData.time = d.CFDTime;
       newData.is1TimeLostEvent = 0;
       newData.is2TimeLostEvent = 0;
       newData.isADCinGate = 1;
@@ -164,7 +164,8 @@ EventHeader makeGBTHeader(int link, o2::InteractionRecord const& mIntRecord)
 {
   EventHeader mEventHeader{};
   mEventHeader.startDescriptor = 0xf;
-  mEventHeader.reservedField = 0;
+  mEventHeader.reservedField1 = 0;
+  mEventHeader.reservedField2 = 0;
   mEventHeader.bc = mIntRecord.bc;
   mEventHeader.orbit = mIntRecord.orbit;
   return mEventHeader;

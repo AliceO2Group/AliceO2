@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Digits2Raw.h
-/// \brief converts digits to raw format
+/// \file ReadRaw.h
+/// \brief read raw data and writes digits
 // Alla.Maevskaya@cern.ch
 
 #ifndef ALICEO2_FT0_READRAW_H_
@@ -53,8 +53,6 @@ class ReadRaw
   ReadRaw(const std::string fileRaw, std::string fileDecodeData);
   void readData(const std::string fileRaw, const o2::ft0::LookUpTable& lut);
   void writeDigits(const std::string fileDecodeData);
-  //  void fillDigits(o2::ft0::Digit* digit);
-  //  void decode(const o2::ft0::Digit& digit, const o2::ft0::LookUpTable& lut);
   void close();
   static o2::ft0::LookUpTable linear()
   {
@@ -105,7 +103,6 @@ class ReadRaw
     // otherwise make it
     return tree.Branch(brname.c_str(), ptr);
   }
-  /////////////////////////////////////////////////
 
   ClassDefNV(ReadRaw, 1);
 };

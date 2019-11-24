@@ -40,12 +40,12 @@ class Geometry
   static constexpr int NCellsC = 28;          // number of radiatiors on C side
   static constexpr float ZdetA = 333;         // number of radiatiors on A side
   static constexpr float ZdetC = 82;          // number of radiatiors on C side
-  static constexpr float ChannelWidth = 13.02; // channel width in ps
-
-  ///
-  // Assign operator.
-  ///
-  // Geometry& operator=(const Geometry& rvalue);
+  static constexpr float ChannelWidth = 13.02;       // channel width in ps
+  static constexpr float MV_2_Nchannels = 2.2857143; //amplitude channel 7 mV ->16channels
+                                                     ///
+                                                     // Assign operator.
+                                                     ///
+                                                     // Geometry& operator=(const Geometry& rvalue);
 
  private:
   TVector3 mMCP[52];

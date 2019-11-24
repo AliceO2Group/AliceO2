@@ -75,7 +75,6 @@ ReadRaw::ReadRaw(const std::string fileRaw, std::string fileDataOut)
 
 void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lut)
 {
-  LOG(INFO) << "**********ReadRaw::" << std::endl;
   o2::header::RAWDataHeader mRDH;
   const char padding[CRUWordSize] = {0};
   std::vector<o2::ft0::ChannelData>* chDgDataArr = nullptr;
@@ -106,8 +105,7 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
       mFileDest.read(reinterpret_cast<char*>(&mEventHeader), sizeof(mEventHeader));
       pos += sizeof(mEventHeader);
       LOG(DEBUG) << "read  header for " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
-      o2::InteractionRecord intrec{mEventHeader.bc, mEventHeader.orbit};
-      //auto digitIter = mDigitAccum.find(intrec);
+      o2::InteractionRecord intrec{uint16_t(mEventHeader.bc), uint32_t(mEventHeader.orbit)};
       auto [digitIter, isNew] = mDigitAccum.try_emplace(intrec);
       auto& digits = digitIter->second;
       if (isNew) {
@@ -125,8 +123,8 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
       for (int i = 0; i < mEventHeader.nGBTWords; ++i) {
         mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i]), EventData::PayloadSize);
         chData.ChId = lut.getChannel(link, int(mEventData[2 * i].channelID));
-        chData.CFDTime = mEventData[2 * i].time / CFD_NS_2_Nchannels;
-        chData.QTCAmpl = mEventData[2 * i].charge / MV_2_Nchannels;
+        chData.CFDTime = mEventData[2 * i].time /* / CFD_NS_2_Nchannels*/;
+        chData.QTCAmpl = mEventData[2 * i].charge /* / MV_2_Nchannels*/;
         chData.numberOfParticles = mEventData[2 * i].numberADC;
         chDgDataArr->emplace_back(chData);
         pos += o2::ft0::EventData::PayloadSize;
@@ -137,8 +135,8 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
           continue;
         pos += o2::ft0::EventData::PayloadSize;
         chData.ChId = lut.getChannel(link, int(mEventData[2 * i + 1].channelID));
-        chData.CFDTime = mEventData[2 * i + 1].time / CFD_NS_2_Nchannels;
-        chData.QTCAmpl = mEventData[2 * i + 1].charge / MV_2_Nchannels;
+        chData.CFDTime = mEventData[2 * i + 1].time /* / CFD_NS_2_Nchannels */;
+        chData.QTCAmpl = mEventData[2 * i + 1].charge /*/ MV_2_Nchannels*/;
         chData.numberOfParticles = mEventData[2 * i + 1].numberADC;
         chDgDataArr->emplace_back(chData);
         LOG(DEBUG) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " mcp " << int(mEventData[2 * i].channelID) << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID)) << " pos " << pos;

@@ -31,22 +31,22 @@ constexpr int Nchannels_FT0 = 208;
 constexpr int Nchannels_PM = 12;
 constexpr int NPMs = 18;
 
-struct EventHeader {
+struct EventHeader {                     //no padding
   static constexpr int PayloadSize = 16; // size in bytes = 1GBT word
   union {
-    uint32_t w[4] = {0};
+    uint64_t word[2] = {};
     struct {
-      uint16_t startDescriptor : 4;
-      uint16_t nGBTWords : 4;
-      uint32_t reservedField : 28;
-      uint32_t orbit : 32;
-      uint16_t bc : 12;
+      uint64_t bc : 12;
+      uint64_t orbit : 32;
+      uint64_t reservedField1 : 20;
+      uint64_t reservedField2 : 8;
+      uint64_t nGBTWords : 4;
+      uint64_t startDescriptor : 4;
+      uint64_t reservedField3 : 48;
     };
   };
-
   ClassDefNV(EventHeader, 1);
 };
-
 struct EventData {
   static constexpr int PayloadSize = 8; // size in bytes = 1/2 GBT word
   union {
@@ -68,6 +68,7 @@ struct EventData {
   };
   ClassDefNV(EventData, 1);
 };
+
 class RawEventData
 {
  public:
@@ -161,7 +162,7 @@ class DataPageWriter
   int mNpacketsInBuffer = 0;
   std::vector<std::vector<char>> mPages;
   std::vector<int> mNpackets;
-  static constexpr int MAX_PAGE_SIZE = 8192;
+  static constexpr int MAX_Page_size = 8192;
 
  public:
   o2::header::RAWDataHeader mRDH;
@@ -182,9 +183,9 @@ class DataPageWriter
       mRDH.memorySize = mRDH.headerSize;
       mRDH.offsetToNext = mRDH.memorySize;
       mRDH.stop = 1;
+      mRDH.pageCnt++;
       RawEventData::printRDH(&mRDH);
       str.write(reinterpret_cast<const char*>(&mRDH), sizeof(mRDH));
-      mRDH.pageCnt++;
       mPages.clear();
       mNpackets.clear();
     }
@@ -202,7 +203,7 @@ class DataPageWriter
 
   void write(std::vector<char> const& new_data)
   {
-    if (mBuffer.size() + new_data.size() + mRDH.headerSize > MAX_PAGE_SIZE)
+    if (mBuffer.size() + new_data.size() + mRDH.headerSize > MAX_Page_size)
       writePage();
     mBuffer.insert(mBuffer.end(), new_data.begin(), new_data.end());
     mNpacketsInBuffer++;

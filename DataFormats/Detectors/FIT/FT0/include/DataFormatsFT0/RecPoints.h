@@ -27,6 +27,7 @@ namespace ft0
 
 class RecPoints
 {
+
  public:
   enum : int { TimeMean,
                TimeA,
@@ -61,7 +62,7 @@ class RecPoints
 
   const std::vector<o2::ft0::ChannelData>& getChDgData() const { return mTimeAmp; }
   void setChDgData(const std::vector<o2::ft0::ChannelData>& TimeAmp) { mTimeAmp = TimeAmp; }
-  void setChDgData(std::vector<o2::ft0::ChannelData>&& TimeAmp) { mTimeAmp = std::move(TimeAmp); }
+  //  void setChDgData(std::vector<o2::ft0::ChannelData>&& TimeAmp) { mTimeAmp = std::move(TimeAmp); }
 
   void setInteractionRecord(uint16_t bc, uint32_t orbit)
   {
