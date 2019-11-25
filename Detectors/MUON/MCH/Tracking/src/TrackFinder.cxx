@@ -727,6 +727,7 @@ std::list<Track>::iterator TrackFinder::followTrackInChamber(std::list<Track>::i
 {
   /// Follow the track candidate pointed to by "itTrack" to the given "chamber"
   /// The tracking starts from the current parameters, which must have already been set
+  /// The direction of propagation is supposed to be forward if "chamber" is on station 5 and backward otherwise
   /// Look for compatible cluster(s), excluding those in the "excludedClusters" list, which
   /// correspond to compatible clusters already associated to this candidate in a previous step
   /// For each (pair of) cluster(s) found, continue the tracking to the next chamber, up to "lastChamber"
@@ -737,6 +738,10 @@ std::list<Track>::iterator TrackFinder::followTrackInChamber(std::list<Track>::i
   /// The initial candidate "itTrack" is not modified, with the exception of its current parameters,
   /// which are set to the parameters at "chamber" or invalidated in case of propagation issue
 
+  // list of (half-)planes, 2 or 4 per chamber, ordered according to the direction of propagation,
+  // which is forward when going to station 5 and backward otherwise with the present algorithm
+  constexpr int plane[10][4] = {{1, 0, -1, -1}, {3, 2, -1, -1}, {5, 4, -1, -1}, {7, 6, -1, -1}, {11, 10, 9, 8}, {15, 14, 13, 12}, {19, 18, 17, 16}, {23, 22, 21, 20}, {24, 25, 26, 27}, {28, 29, 30, 31}};
+
   print("followTrackInChamber: follow track #", getTrackIndex(itTrack), " to chamber ", chamber + 1, " up to chamber ", lastChamber + 1);
 
   // the current track parameters must be set at a different chamber and valid
@@ -744,38 +749,14 @@ std::list<Track>::iterator TrackFinder::followTrackInChamber(std::list<Track>::i
     return mTracks.end();
   }
 
-  // determine the 2 planes or 4 half-planes of the chamber, ordered according to the direction of propagation
-  int plane[4] = {-1, -1, -1, -1};
-  int currentChamber = itTrack->getCurrentChamber();
-  if (chamber < currentChamber) {
-    if (chamber < 4) {
-      plane[0] = 2 * chamber + 1;
-      plane[1] = 2 * chamber;
-    } else {
-      plane[0] = 8 + 4 * (chamber - 4) + 3;
-      plane[1] = 8 + 4 * (chamber - 4) + 2;
-      plane[2] = 8 + 4 * (chamber - 4) + 1;
-      plane[3] = 8 + 4 * (chamber - 4);
-    }
-  } else {
-    if (chamber < 4) {
-      plane[0] = 2 * chamber;
-      plane[1] = 2 * chamber + 1;
-    } else {
-      plane[0] = 8 + 4 * (chamber - 4);
-      plane[1] = 8 + 4 * (chamber - 4) + 1;
-      plane[2] = 8 + 4 * (chamber - 4) + 2;
-      plane[3] = 8 + 4 * (chamber - 4) + 3;
-    }
-  }
-
   // determine whether the chamber is the first one reached on the station
+  int currentChamber = itTrack->getCurrentChamber();
   bool isFirstOnStation = ((chamber < currentChamber && chamber % 2 == 1) || (chamber > currentChamber && chamber % 2 == 0));
 
   // follow the track in the 2 planes or 4 half-planes of the chamber
-  auto itFirstNewTrack = followTrackInChamber(itTrack, plane[0], plane[1], lastChamber, excludedClusters);
-  if (plane[2] > 0) {
-    auto itNewTrack = followTrackInChamber(itTrack, plane[2], plane[3], lastChamber, excludedClusters);
+  auto itFirstNewTrack = followTrackInChamber(itTrack, plane[chamber][0], plane[chamber][1], lastChamber, excludedClusters);
+  if (chamber > 3) {
+    auto itNewTrack = followTrackInChamber(itTrack, plane[chamber][2], plane[chamber][3], lastChamber, excludedClusters);
     if (itFirstNewTrack == mTracks.end()) {
       itFirstNewTrack = itNewTrack;
     }
