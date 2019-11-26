@@ -163,7 +163,8 @@ class O2SimDevice : public FairMQDevice
       LOG(INFO) << "Waiting for answer ";
       // asking for primary generation
 
-      if (requestchannel.Receive(reply, timeoutinMS) > 0) {
+      auto code = requestchannel.Receive(reply, timeoutinMS);
+      if (code > 0) {
         LOG(INFO) << "Answer received, containing " << reply->GetSize() << " bytes ";
 
         // wrap incoming bytes as a TMessageWrapper which offers "adoption" of a buffer
@@ -197,6 +198,7 @@ class O2SimDevice : public FairMQDevice
         delete message;
         delete chunk;
       } else {
+        LOG(INFO) << " No answer reveived from server. Return code " << code;
         return false;
       }
     } else {
