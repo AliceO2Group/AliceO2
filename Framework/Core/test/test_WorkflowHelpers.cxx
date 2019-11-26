@@ -310,7 +310,7 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
   std::vector<ConcreteDataMatcher> expectedMatchers = {
     ConcreteDataMatcher{"TST", "A", 0},
     ConcreteDataMatcher{"TST", "B", 0},
-    ConcreteDataMatcher{"DPL", "ENUM", 2}, // Enums value
+    ConcreteDataMatcher{"DPL", "ENUM", 1}, // Enums value
   };
 
   std::vector<Lifetime> expectedLifetimes = {
