@@ -111,15 +111,25 @@ class TRDDPLTrapSimulatorTask{
                         };
               //first sort digits into detector::rob::mcm order
               std::sort(digits.begin(),digits.end(), sortRuleLambda );
-               ArrayADC_t 
+              //TODO optimisation : sort by frequency of trap chip and do all instances of the same trap at each init.
+              // ArrayADC_t 
+              //i
+              //
+//                   for(std::vector<o2::trd::Digits>::iterator digititerator = digits.begin(); digititerator != digits.end(); ++digititerator) {
+                       //loop over and see if the same pad and row appears for a given det:rob:mcm combination i.e. pile up and/or we need to redo out sorting.
+ //j                      while(oldmcm=mcm && old)
+   //                }
                    int oldmcm=-1;
-               for (auto digit : digits) {
-                      int pad=digit.getPad();
-                      int row=digit.getRow();
-                      int detector=digit.getDetector();
+                   int oldrob=-1;
+                   int olddetector=-1;
+                   for(std::vector<o2::trd::Digits>::iterator digititerator = digits.begin(); digititerator != digits.end(); ++digititerator) {
+                      int pad=digititerator.getPad();
+                      int row=digititerator.getRow();
+                      int detector=digititerator.getDetector();
                       int rob=mfeeparam->getROBfromPad(row,pad);
                       int mcm=mfeeparam->getMCMfromPad(row,pad);
-                      LOG(debug3) << "MCM: " << detector <<":" << rob << ":" <<mcm;
+                      LOG(info) << "MCM: " << detector <<":" << rob << ":" <<mcm << " --- " << ;
+    //                  while(mcm==old))
                       if(oldmcm==mcm && oldrob==rob && olddetector==detector){
                           //we are still on the same mcm as the previous loop
                       }

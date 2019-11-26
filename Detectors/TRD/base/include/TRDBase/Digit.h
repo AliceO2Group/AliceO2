@@ -46,11 +46,13 @@ class Digit : TimeStamp
   void setRow(int row) { mRow = row; }
   void setPad(int pad) { mPad = pad; }
   void setADC(ArrayADC const& adc) { mADC = adc; }
+  void setTime(double eventtime) { mTime = eventtime; }
   // Get methods
   int getDetector() const { return mDetector; }
   int getRow() const { return mRow; }
   int getPad() const { return mPad; }
   ArrayADC const& getADC() const { return mADC; }
+  int getTime() const { return mTime; }
   size_t getLabelIndex() const { return mLabelIdx; }
 
  private:
@@ -59,7 +61,7 @@ class Digit : TimeStamp
   std::uint8_t mPad{0};       // pad within pad row, 0-143
   ArrayADC mADC{};            // ADC vector (30 time-bins)
   size_t mLabelIdx{0};        // index for mc label
-
+  double mTime{0};            // time of even
   ClassDefNV(Digit, 1);
 };
 
