@@ -195,24 +195,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
      ConfigParamSpec{"end-value-enumeration", VariantType::Int, -1, {"final value for the enumeration"}},
      ConfigParamSpec{"step-value-enumeration", VariantType::Int, 1, {"step between one value and the other"}}}};
 
-  DataProcessorSpec run2Converter{
-    "internal-dpl-esd-reader",
-    {InputSpec{"enumeration",
-               "DPL",
-               "ENUM",
-               static_cast<DataAllocator::SubSpecificationType>(separateEnumerations++), Lifetime::Enumeration}},
-    {},
-    readers::AODReaderHelpers::run2ESDConverterCallback(),
-    {ConfigParamSpec{"esd-file", VariantType::String, "AliESDs.root", {"Input ESD file"}},
-     ConfigParamSpec{"events", VariantType::Int, 0, {"Number of events to process (0 = all)"}},
-     ConfigParamSpec{"start-value-enumeration", VariantType::Int, 0, {"initial value for the enumeration"}},
-     ConfigParamSpec{"end-value-enumeration", VariantType::Int, -1, {"final value for the enumeration"}},
-     ConfigParamSpec{"step-value-enumeration", VariantType::Int, 1, {"step between one value and the other"}}}};
-
   std::vector<InputSpec> requestedAODs;
   std::vector<OutputSpec> providedAODs;
-  std::vector<InputSpec> requestedRUN2s;
-  std::vector<OutputSpec> providedRUN2s;
   std::vector<InputSpec> requestedCCDBs;
   std::vector<OutputSpec> providedCCDBs;
   std::vector<OutputSpec> providedOutputObj;
@@ -264,16 +248,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
       }
       if (DataSpecUtils::partialMatch(input, header::DataOrigin{"AOD"})) {
         requestedAODs.emplace_back(input);
-      } else if (DataSpecUtils::partialMatch(input, header::DataOrigin{"RN2"})) {
-        requestedRUN2s.emplace_back(input);
       }
     }
     for (size_t oi = 0; oi < processor.outputs.size(); ++oi) {
       auto& output = processor.outputs[oi];
       if (DataSpecUtils::partialMatch(output, header::DataOrigin{"AOD"})) {
         providedAODs.emplace_back(output);
-      } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"RN2"})) {
-        providedRUN2s.emplace_back(output);
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"ATSK"})) {
         providedOutputObj.emplace_back(output);
         outMap.insert({output.binding.value, processor.name});
@@ -285,7 +265,6 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
   }
 
   addMissingOutputsToReader(providedAODs, requestedAODs, aodReader);
-  addMissingOutputsToReader(providedRUN2s, requestedRUN2s, run2Converter);
   addMissingOutputsToReader(providedCCDBs, requestedCCDBs, ccdbBackend);
 
   std::vector<DataProcessorSpec> extraSpecs;
@@ -302,11 +281,6 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
   if (aodReader.outputs.empty() == false) {
     extraSpecs.push_back(aodReader);
     auto concrete = DataSpecUtils::asConcreteDataMatcher(aodReader.inputs[0]);
-    timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
-  }
-  if (run2Converter.outputs.empty() == false) {
-    extraSpecs.push_back(run2Converter);
-    auto concrete = DataSpecUtils::asConcreteDataMatcher(run2Converter.inputs[0]);
     timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
   }
 
