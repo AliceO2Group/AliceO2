@@ -146,7 +146,10 @@ class Mapper
 
   GlobalPosition2D getPadCentre(const PadSecPos& padSec) const
   {
-    const PadCentre& padcent = getPadCentre(padSec.getPadPos());
+    PadCentre padcent = getPadCentre(padSec.getPadPos());
+    if (padSec.getSector().side() == Side::A) {
+      padcent.SetY(-1.f * padcent.Y());
+    }
     return LocalToGlobal(padcent, padSec.getSector());
   }
 
