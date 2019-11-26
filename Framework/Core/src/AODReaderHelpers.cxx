@@ -166,7 +166,7 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
       filenames.push_back(filename);
     }
 
-    uint64_t readMask = calculateReadMask(spec.outputs, header::DataOrigin{"RN2"});
+    uint64_t readMask = calculateReadMask(spec.outputs, header::DataOrigin{"AOD"});
     auto counter = std::make_shared<unsigned int>(0);
     return adaptStateless([readMask,
                            counter,
@@ -220,21 +220,21 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
           batch->schema()->metadata()->ToUnorderedMap(&meta);
           std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
           if (meta["description"] == "TRACKPAR" && (readMask & AODTypeMask::Tracks)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "TRACKPAR"}, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "TRACKPAR"}, batch->schema());
           } else if (meta["description"] == "TRACKPARCOV" && (readMask & AODTypeMask::TracksCov)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "TRACKPARCOV"}, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "TRACKPARCOV"}, batch->schema());
           } else if (meta["description"] == "TRACKEXTRA" && (readMask & AODTypeMask::TracksExtra)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "TRACKEXTRA"}, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "TRACKEXTRA"}, batch->schema());
           } else if (meta["description"] == "CALO" && (readMask & AODTypeMask::Calo)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "CALO"}, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "CALO"}, batch->schema());
           } else if (meta["description"] == "MUON" && (readMask & AODTypeMask::Muon)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "MUON"}, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "MUON"}, batch->schema());
           } else if (meta["description"] == "VZERO" && (readMask & AODTypeMask::VZero)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "VZERO"}, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "VZERO"}, batch->schema());
           } else if (meta["description"] == "COLLISION" && (readMask & AODTypeMask::Collisions)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "COLLISION"}, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "COLLISION"}, batch->schema());
           } else if (meta["description"] == "TIMEFRAME" && (readMask & AODTypeMask::Timeframe)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "TIMEFRAME"}, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "TIMEFRAME"}, batch->schema());
           } else {
             continue;
           }

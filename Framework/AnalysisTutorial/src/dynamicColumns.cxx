@@ -21,7 +21,7 @@ DECLARE_SOA_COLUMN(Alpha, alpha, float, "fAlpha");
 DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, [](float tgl) { return log(tan(0.25 * M_PI - 0.5 * atan(tgl))); });
 DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, [](float snp, float alpha) { return asin(snp) + alpha + M_PI; });
 } // namespace etaphi
-DECLARE_SOA_TABLE(EtaPhis, "RN2", "ETAPHI",
+DECLARE_SOA_TABLE(EtaPhis, "AOD", "ETAPHI",
                   etaphi::Tgl, etaphi::Snp, etaphi::Alpha,
                   etaphi::Eta<etaphi::Tgl>,
                   etaphi::Phi<etaphi::Snp, etaphi::Alpha>);

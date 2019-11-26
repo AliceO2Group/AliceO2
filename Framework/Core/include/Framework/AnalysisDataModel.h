@@ -68,7 +68,7 @@ DECLARE_SOA_COLUMN(Lenght, lenght, float, "fLength");
 
 } // namespace track
 
-DECLARE_SOA_TABLE(Tracks, "RN2", "TRACKPAR",
+DECLARE_SOA_TABLE(Tracks, "AOD", "TRACKPAR",
                   track::CollisionId, track::X, track::Alpha,
                   track::Y, track::Z, track::Snp, track::Tgl,
                   track::Signed1Pt,
@@ -76,13 +76,13 @@ DECLARE_SOA_TABLE(Tracks, "RN2", "TRACKPAR",
                   track::Eta<track::Tgl>,
                   track::Pt<track::Signed1Pt>);
 
-DECLARE_SOA_TABLE(TracksCov, "RN2", "TRACKPARCOV",
+DECLARE_SOA_TABLE(TracksCov, "AOD", "TRACKPARCOV",
                   track::CYY, track::CZY, track::CZZ, track::CSnpY,
                   track::CSnpZ, track::CSnpSnp, track::CTglY,
                   track::CTglZ, track::CTglSnp, track::CTglTgl,
                   track::C1PtY, track::C1PtZ, track::C1PtSnp, track::C1PtTgl,
                   track::C1Pt21Pt2);
-DECLARE_SOA_TABLE(TracksExtra, "RN2", "TRACKEXTRA",
+DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA",
                   track::TPCInnerParam, track::Flags, track::ITSClusterMap,
                   track::TPCNCls, track::TRDNTracklets, track::ITSChi2NCl,
                   track::TPCchi2Ncl, track::TRDchi2, track::TOFchi2,
@@ -102,7 +102,7 @@ DECLARE_SOA_COLUMN(CellType, cellType, int8_t, "fCellType");
 DECLARE_SOA_COLUMN(CaloType, caloType, int8_t, "fType");
 } // namespace calo
 
-DECLARE_SOA_TABLE(Calos, "RN2", "CALO",
+DECLARE_SOA_TABLE(Calos, "AOD", "CALO",
                   calo::CollisionId, calo::CellNumber, calo::Amplitude, calo::Time, calo::CellType, calo::CaloType);
 using Calo = Calos::iterator;
 
@@ -117,7 +117,7 @@ DECLARE_SOA_COLUMN(Triggerbits, triggerbits, int32_t, "fTriggerBits");
 DECLARE_SOA_COLUMN(CaloType, caloType, int8_t, "fType");
 } // namespace calotrigger
 
-DECLARE_SOA_TABLE(CaloTriggers, "RN2", "CALOTRIGGER",
+DECLARE_SOA_TABLE(CaloTriggers, "AOD", "CALOTRIGGER",
                   calotrigger::CollisionId, calotrigger::FastorAbsId, calotrigger::L0Amplitude, calotrigger::L1Timesum, calotrigger::NL0Times, calotrigger::Triggerbits, calotrigger::CaloType);
 using CaloTrigger = CaloTriggers::iterator;
 
@@ -136,7 +136,7 @@ DECLARE_SOA_COLUMN(Chi2, chi2, float, "fChi2");
 DECLARE_SOA_COLUMN(Chi2MatchTrigger, chi2MatchTrigger, float, "fChi2MatchTrigger");
 } // namespace muon
 
-DECLARE_SOA_TABLE(Muons, "RN2", "MUON",
+DECLARE_SOA_TABLE(Muons, "AOD", "MUON",
                   muon::CollisionId, muon::InverseBendingMomentum,
                   muon::ThetaX, muon::ThetaY, muon::ZMu,
                   muon::BendingCoor, muon::NonBendingCoor,
@@ -149,7 +149,7 @@ DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fIDvz");
 // FIXME: add missing arrays...
 } // namespace vzero
 
-DECLARE_SOA_TABLE(VZeros, "RN2", "VZERO", vzero::CollisionId);
+DECLARE_SOA_TABLE(VZeros, "AOD", "VZERO", vzero::CollisionId);
 using VZero = VZeros::iterator;
 
 namespace collision
@@ -181,7 +181,7 @@ DECLARE_SOA_COLUMN(OrbitNum, orbitnum, int, "orbitnum"); // LHC orbit number, Al
 DECLARE_SOA_COLUMN(TriggerMask, triggermask, int, "triggermask"); // Trigger mask, AliESDHeader.h, ULong64_t
 } // namespace collision
 
-DECLARE_SOA_TABLE(Collisions, "RN2", "COLLISION", collision::TimeframeID, collision::NumTracks, collision::VtxID, collision::PosX, collision::PosY, collision::PosZ, collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYX, collision::CovYY, collision::CovYZ, collision::CovZX, collision::CovZY, collision::CovZZ, collision::Chi2, collision::BCNum, collision::OrbitNum, collision::TriggerMask);
+DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", collision::TimeframeID, collision::NumTracks, collision::VtxID, collision::PosX, collision::PosY, collision::PosZ, collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYX, collision::CovYY, collision::CovYZ, collision::CovZX, collision::CovZY, collision::CovZZ, collision::Chi2, collision::BCNum, collision::OrbitNum, collision::TriggerMask);
 
 using Collision = Collisions::iterator;
 
@@ -190,7 +190,7 @@ namespace timeframe
 DECLARE_SOA_COLUMN(Timestamp, timestamp, uint64_t, "timestamp");
 } // namespace timeframe
 
-DECLARE_SOA_TABLE(Timeframes, "RN2", "TIMEFRAME",
+DECLARE_SOA_TABLE(Timeframes, "AOD", "TIMEFRAME",
                   timeframe::Timestamp);
 using Timeframe = Timeframes::iterator;
 

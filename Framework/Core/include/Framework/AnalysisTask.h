@@ -193,7 +193,7 @@ struct AnalysisDataProcessorBuilder {
     using metadata = typename aod::MetadataTrait<std::decay_t<Arg>>::metadata;
     static_assert(std::is_same_v<metadata, void> == false,
                   "Could not find metadata. Did you register your type?");
-    inputs.push_back({metadata::label(), "RN2", metadata::description()});
+    inputs.push_back({metadata::label(), "AOD", metadata::description()});
   }
 
   template <typename T>
