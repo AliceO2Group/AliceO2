@@ -114,6 +114,8 @@ set(HDRS_INSTALL
     Base/GPUMemorySizeScalers.h
     dEdx/GPUdEdxInfo.h
     TPCConvert/GPUTPCConvertImpl.h
+    Base/GPUReconstructionKernelMacros.h
+    Base/GPUO2FakeClasses.h
 )
 
 # Sources only for O2
@@ -164,8 +166,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                    ${CMAKE_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCDefinitions.cxx
                    ${CMAKE_SOURCE_DIR}/HLT/TRD/AliHLTTRDDefinitions.cxx)
 
-  set(HDRS_INSTALL ${HDRS_INSTALL} SliceTracker/GPUTPCDefinitions.h
-                                   Base/GPUO2FakeClasses.h)
+  set(HDRS_INSTALL ${HDRS_INSTALL} SliceTracker/GPUTPCDefinitions.h)
 endif()
 
 # Optional sources depending on optional dependencies
