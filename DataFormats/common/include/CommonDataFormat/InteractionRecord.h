@@ -86,12 +86,12 @@ struct InteractionRecord {
     return (bc != other.bc) || (orbit != other.orbit);
   }
 
-  int differenceInBC(const InteractionRecord& other) const
+  int64_t differenceInBC(const InteractionRecord& other) const
   {
     // return differenc in bunch-crossings
-    int diffBC = int(bc) - other.bc;
+    int64_t diffBC = int(bc) - other.bc;
     if (orbit != other.orbit) {
-      diffBC += (int(orbit) - other.orbit) * o2::constants::lhc::LHCMaxBunches;
+      diffBC += (int64_t(orbit) - other.orbit) * o2::constants::lhc::LHCMaxBunches;
     }
     return diffBC;
   }
@@ -164,7 +164,7 @@ struct InteractionRecord {
     return tmp;
   }
 
-  InteractionRecord& operator+=(int dbc)
+  InteractionRecord& operator+=(int64_t dbc)
   {
     // bc self-addition operator, no check for orbit wrap
     auto l = toLong() + dbc;
@@ -173,7 +173,7 @@ struct InteractionRecord {
     return *this;
   }
 
-  InteractionRecord& operator-=(int dbc)
+  InteractionRecord& operator-=(int64_t dbc)
   {
     // bc self-subtraction operator, no check for orbit wrap
     return operator+=(-dbc);
@@ -197,21 +197,28 @@ struct InteractionRecord {
     return *this;
   }
 
-  InteractionRecord operator+(int dbc)
+  InteractionRecord operator+(int64_t dbc) const
   {
     // bc addition operator, no check for orbit wrap
     auto l = toLong() + dbc;
     return InteractionRecord(l % o2::constants::lhc::LHCMaxBunches, l / o2::constants::lhc::LHCMaxBunches);
   }
 
-  InteractionRecord operator+(const InteractionRecord& add)
+  InteractionRecord operator-(int64_t dbc) const
+  {
+    // bc subtraction operator, no check for orbit wrap
+    auto l = toLong() - dbc;
+    return InteractionRecord(l % o2::constants::lhc::LHCMaxBunches, l / o2::constants::lhc::LHCMaxBunches);
+  }
+
+  InteractionRecord operator+(const InteractionRecord& add) const
   {
     // InteractionRecord addition operator, no check for orbit wrap
     auto l = this->toLong() + add.toLong();
     return InteractionRecord(l % o2::constants::lhc::LHCMaxBunches, l / o2::constants::lhc::LHCMaxBunches);
   }
 
-  InteractionRecord operator-(const InteractionRecord& add)
+  InteractionRecord operator-(const InteractionRecord& add) const
   {
     // InteractionRecord subtraction operator, no check for orbit wrap
     auto l = this->toLong() - add.toLong();
