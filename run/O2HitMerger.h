@@ -65,6 +65,15 @@ namespace o2
 namespace devices
 {
 
+// signal handler
+void sighandler(int signal)
+{
+  if (signal == SIGSEGV) {
+    LOG(WARN) << "segmentation violation ... just exit without coredump in order not to hang";
+    raise(SIGKILL);
+  }
+}
+
 class O2HitMerger : public FairMQDevice
 {
 
@@ -101,6 +110,7 @@ class O2HitMerger : public FairMQDevice
   /// Overloads the InitTask() method of FairMQDevice
   void InitTask() final
   {
+    signal(SIGSEGV, sighandler);
     ROOT::EnableThreadSafety();
 
     std::string outfilename("o2sim_merged_hits.root"); // default name
