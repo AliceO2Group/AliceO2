@@ -57,6 +57,8 @@ class O2PrimaryServerDevice : public FairMQDevice
  protected:
   void initGenerator()
   {
+    TStopwatch timer;
+    timer.Start();
     auto& conf = o2::conf::SimConfig::Instance();
     o2::conf::ConfigurableParam::updateFromString(conf.getKeyValueString());
     o2::eventgen::GeneratorFactory::setPrimaryGenerator(conf, &mPrimGen);
@@ -67,6 +69,7 @@ class O2PrimaryServerDevice : public FairMQDevice
       mPrimGen.embedInto(embedinto_filename);
     }
     mPrimGen.Init();
+    LOG(INFO) << "Generator initialization took " << timer.CpuTime() << "s";
     generateEvent(); // generate a first event
   }
 
