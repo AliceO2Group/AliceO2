@@ -159,7 +159,8 @@ class O2SimDevice : public FairMQDevice
     mVMCApp->setSimDataChannel(&dataoutchannel);
 
     LOG(INFO) << "Requesting work ";
-    int timeoutinMS = 100000; // wait for 100s max -- we should have a more robust solution
+    int timeoutinMS = 1000000; // wait for 1000s max -- we should have a more robust solution
+                               // this should be mostly driven by the time to setup the particle generator in the server
     auto sendcode = requestchannel.Send(request, timeoutinMS);
     if (sendcode > 0) {
       LOG(INFO) << "Waiting for answer ";
