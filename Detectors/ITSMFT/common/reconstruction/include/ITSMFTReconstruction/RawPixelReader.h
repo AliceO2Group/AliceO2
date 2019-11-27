@@ -20,7 +20,7 @@
 #include "ITSMFTReconstruction/ChipMappingITS.h" // this will become template parameter
 #include "ITSMFTReconstruction/AlpideCoder.h"
 #include "ITSMFTReconstruction/GBTWord.h"
-#include "DetectorsBase/Triggers.h"
+#include "CommonConstants/Triggers.h"
 #include "ITSMFTReconstruction/PayLoadCont.h"
 #include "ITSMFTReconstruction/PayLoadSG.h"
 #include <TTree.h>
