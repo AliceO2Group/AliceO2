@@ -107,6 +107,7 @@ class O2SimDevice : public FairMQDevice
 
         auto& conf = o2::conf::SimConfig::Instance();
         conf.resetFromConfigData(*config);
+        FairLogger::GetLogger()->SetLogVerbosityLevel(conf.getLogVerbosity().c_str());
         delete config;
       } else {
         LOG(ERROR) << "No configuration received within " << timeoutinMS << "ms\n";
