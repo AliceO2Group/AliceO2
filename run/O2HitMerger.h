@@ -414,14 +414,12 @@ class O2HitMerger : public FairMQDevice
     }
 
     // put the event headers into the new TTree
-    o2::dataformats::MCEventHeader header;
-    auto headerbr = o2::base::getOrMakeBranch(*mOutTree, "MCEventHeader.", &header);
-    for (int i = 0; i < info->maxEvents; i++) {
-      if (eventheader) {
-        header = *eventheader;
-        headerbr->Fill();
-      }
-    }
+    o2::dataformats::MCEventHeader* headerptr = eventheader.get();
+    auto headerbr = o2::base::getOrMakeBranch(*mOutTree, "MCEventHeader.", &headerptr);
+    headerbr->SetAddress(&headerptr);
+    headerbr->Fill();
+    headerbr->ResetAddress();
+
     // attention: We need to make sure that we write everything in the same event order
     // but iteration over keys of a standard map in C++ is ordered
 
