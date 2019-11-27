@@ -42,7 +42,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "isMT", bpo::value<bool>()->default_value(false), "multi-threaded mode (Geant4 only")(
     "outPrefix,o", bpo::value<std::string>()->default_value("o2sim"), "prefix of output files")(
     "logseverity", bpo::value<std::string>()->default_value("INFO"), "severity level for FairLogger")(
-    "logverbosity", bpo::value<std::string>()->default_value("low"), "level of verbosity for FairLogger (low, medium, high, veryhigh)")(
+    "logverbosity", bpo::value<std::string>()->default_value("medium"), "level of verbosity for FairLogger (low, medium, high, veryhigh)")(
     "configKeyValues", bpo::value<std::string>()->default_value(""), "semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...")(
     "configFile", bpo::value<std::string>()->default_value(""), "Path to an INI or JSON configuration file")(
     "chunkSize", bpo::value<unsigned int>()->default_value(500), "max size of primary chunk (subevent) distributed by server")(
