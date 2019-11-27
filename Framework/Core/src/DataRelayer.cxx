@@ -79,7 +79,7 @@ void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
     return;
   }
   // Create any slot for the time based fields
-  std::vector<TimesliceSlot> slotsCreatedByHandlers(expirationHandlers.size());
+  std::vector<TimesliceSlot> slotsCreatedByHandlers;
   for (auto& handler : expirationHandlers) {
     slotsCreatedByHandlers.push_back(handler.creator(mTimesliceIndex));
   }
