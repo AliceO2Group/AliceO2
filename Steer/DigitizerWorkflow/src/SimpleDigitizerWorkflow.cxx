@@ -460,7 +460,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::trd::getTRDDigitizerSpec(fanoutsize++));
     // connect the TRD digit writer
     specs.emplace_back(o2::trd::getTRDDigitWriterSpec());
+    // connect the TRD Trap Simulator
     specs.emplace_back(o2::trd::getTRDTrapSimulatorSpec(0));
+    // connect to the device to write out the tracklets.
     specs.emplace_back(o2::trd::getTRDTrackletWriterSpec());
   }
 
