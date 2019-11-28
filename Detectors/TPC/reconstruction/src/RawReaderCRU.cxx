@@ -14,6 +14,9 @@
 
 #include <fmt/format.h>
 
+#include "TSystem.h"
+#include "TObjArray.h"
+
 #include "TPCReconstruction/RawReaderCRU.h"
 #include "TPCBase/Mapper.h"
 #include "Framework/Logger.h"
@@ -211,7 +214,8 @@ int RawReaderCRU::scanFile()
     // ===| read in the RawDataHeader at the current position |=================
     file >> rdh;
 
-    const size_t offset = rdh.offsetToNext - rdh.headerSize;
+    const size_t packetSize = rdh.offsetToNext;
+    const size_t offset = packetSize - rdh.headerSize;
 
     // ===| try to detect data type if not already set |========================
     //
@@ -244,6 +248,7 @@ int RawReaderCRU::scanFile()
     const auto linkID = rdh.linkID;
     const auto globalLinkID = linkID + dataWrapperID * 12;
     //const auto blockLength = rdh.blockLength;
+    const auto memorySize = rdh.memorySize;
     const auto payloadSize = rdh.memorySize - rdh.headerSize;
 
     // ===| check if cru should be forced |=====================================
@@ -272,7 +277,7 @@ int RawReaderCRU::scanFile()
     if ((rdh.word0 & 0x0000FFFF) == RDH_HEADERWORD0) {
       // non 0 stop bit means data with payload
       if (rdh.stop == 0) {
-        mPacketDescriptorMaps[globalLinkID].emplace_back(currentPos, mCRU, linkID, dataWrapperID, payloadSize);
+        mPacketDescriptorMaps[globalLinkID].emplace_back(currentPos, mCRU, linkID, dataWrapperID, memorySize, packetSize);
         mLinkPresent[globalLinkID] = true;
         mPacketsPerLink[globalLinkID]++;
         if (linkInfo) {
@@ -708,6 +713,48 @@ void RawReaderCRU::processFile(const std::string_view inputFile, uint32_t timeBi
   }
 }
 
+void RawReaderCRU::copyEvents(const std::vector<uint32_t>& eventNumbers, std::string outputDirectory, std::ios_base::openmode mode)
+{
+  // assemble output file name
+  std::string outputFileName(gSystem->BaseName(mInputFileName.data()));
+  if (outputDirectory.empty()) {
+    outputFileName.insert(0, "filtered.");
+    outputDirectory = gSystem->DirName(mInputFileName.data());
+  }
+  outputFileName.insert(0, "/");
+  outputFileName.insert(0, outputDirectory);
+
+  std::ofstream outputFile(outputFileName, std::ios_base::binary | mode);
+
+  // open the input file
+  std::ifstream file;
+  file.open(mInputFileName, std::ifstream::binary);
+  if (!file.good()) {
+    throw std::runtime_error("Unable to open or access file " + mInputFileName);
+  }
+
+  // data buffer. Maximum size is 8k
+  char buffer[8192];
+
+  // loop over events
+  for (const auto eventNumber : eventNumbers) {
+
+    const auto& linkInfoArray = mManager->mEventSync.getLinkInfoArrayForEvent(eventNumber, mCRU);
+
+    for (int iLink = 0; iLink < MaxNumberOfLinks; ++iLink) {
+      const auto& linkInfo = linkInfoArray[iLink];
+      if (!linkInfo.IsPresent) {
+        continue;
+      }
+      for (auto packetNumber : linkInfo.PacketPositions) {
+        const auto& packet = mPacketDescriptorMaps[iLink][packetNumber];
+        file.seekg(packet.getHeaderOffset(), file.beg);
+        file.read(buffer, packet.getPacketSize());
+        outputFile.write(buffer, packet.getPacketSize());
+      }
+    }
+  }
+}
 //==============================================================================
 //===| stream overloads for helper classes |====================================
 //
@@ -893,4 +940,40 @@ void RawReaderCRUManager::init()
   }
 
   mIsInitialized = true;
+}
+
+void RawReaderCRUManager::setupReaders(const std::string_view inputFileNames,
+                                       uint32_t numTimeBins,
+                                       uint32_t debugLevel,
+                                       uint32_t verbosity,
+                                       const std::string_view outputFilePrefix)
+{
+  reset();
+  const TString files = gSystem->GetFromPipe(TString::Format("ls %s", inputFileNames.data()));
+  std::unique_ptr<TObjArray> arr(files.Tokenize("\n"));
+  setDebugLevel(debugLevel);
+
+  for (auto file : *arr) {
+    // fix the number of time bins
+    auto& reader = createReader(file->GetName(), numTimeBins);
+    reader.setVerbosity(verbosity);
+    reader.setDebugLevel(debugLevel);
+    O2INFO("Adding file: %s\n", file->GetName());
+  }
+}
+
+void RawReaderCRUManager::copyEvents(const std::vector<uint32_t> eventNumbers, std::string_view outputDirectory, std::ios_base::openmode mode)
+{
+  // make sure events have been built
+  init();
+  for (auto& rawReader : mRawReadersCRU) {
+    rawReader->copyEvents(eventNumbers, outputDirectory.data(), mode);
+  }
+}
+
+void RawReaderCRUManager::copyEvents(const std::string_view inputFileNames, const std::vector<uint32_t> eventNumbers, std::string_view outputDirectory, std::ios_base::openmode mode)
+{
+  RawReaderCRUManager manager;
+  manager.setupReaders(inputFileNames);
+  manager.copyEvents(eventNumbers, outputDirectory, mode);
 }

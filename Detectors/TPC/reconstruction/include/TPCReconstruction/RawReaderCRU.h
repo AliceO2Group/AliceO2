@@ -583,6 +583,9 @@ class RawReaderCRU
   /// set the event sync
   void setManager(RawReaderCRUManager* manager) { mManager = manager; }
 
+  /// copy single events to another file
+  void copyEvents(const std::vector<uint32_t>& eventNumbers, std::string outputDirectory, std::ios_base::openmode mode = std::ios_base::openmode(0));
+
   //===========================================================================
   //===| Nested helper classes |===============================================
   //
@@ -619,9 +622,10 @@ class RawReaderCRU
   class PacketDescriptor
   {
    public:
-    PacketDescriptor(uint32_t headOff, uint32_t cruID, uint32_t linkID, uint32_t dataWrapperID, uint32_t payLoadSize = 7840) : mHeaderOffset(headOff),
-                                                                                                                               mFEEID(cruID + (linkID << 9) + (dataWrapperID << 13)),
-                                                                                                                               mPayloadSize(payLoadSize)
+    PacketDescriptor(uint32_t headOff, uint32_t cruID, uint32_t linkID, uint32_t dataWrapperID, uint16_t memorySize = 7840, uint16_t packetSize = 8192) : mHeaderOffset(headOff),
+                                                                                                                                                          mFEEID(cruID + (linkID << 9) + (dataWrapperID << 13)),
+                                                                                                                                                          mMemorySize(memorySize),
+                                                                                                                                                          mPacketSize(packetSize)
     {
     }
 
@@ -631,7 +635,8 @@ class RawReaderCRU
     }
     uint32_t getHeaderOffset() const { return mHeaderOffset; }
     uint32_t getPayloadOffset() const { return mHeaderOffset + getHeaderSize(); }
-    uint32_t getPayloadSize() const { return mPayloadSize; }
+    uint32_t getPayloadSize() const { return mMemorySize - getHeaderSize(); }
+    uint32_t getPacketSize() const { return mPacketSize; }
 
     uint16_t getCRUID() const { return mFEEID & 0x01FF; }
     uint16_t getLinkID() const { return (mFEEID >> 9) & 0x0F; }
@@ -649,7 +654,8 @@ class RawReaderCRU
 
    private:
     uint32_t mHeaderOffset; ///< header offset
-    uint16_t mPayloadSize;  ///< payload size
+    uint16_t mMemorySize;   ///< payload size
+    uint16_t mPacketSize;   ///< packet size
     uint16_t mFEEID;        ///< link ID -- BIT 0-8: CRUid -- BIT 9-12: LinkID -- BIT 13: DataWrapperID -- BIT 14,15: unused
   };
 
@@ -838,6 +844,12 @@ class RawReaderCRUManager
     return *mRawReadersCRU.back().get();
   }
 
+  void setupReaders(const std::string_view inputFileNames,
+                    uint32_t numTimeBins = 1000,
+                    uint32_t debugLevel = 0,
+                    uint32_t verbosity = 0,
+                    const std::string_view outputFilePrefix = "");
+
   /// initialize all readers
   void init();
 
@@ -895,6 +907,12 @@ class RawReaderCRUManager
 
   /// get data type
   DataType getDataType() const { return mDataType; }
+
+  /// copy single events to another file
+  void copyEvents(const std::vector<uint32_t> eventNumbers, std::string_view outputDirectory, std::ios_base::openmode mode = std::ios_base::openmode(0));
+
+  /// copy single events from raw input files to another file
+  static void copyEvents(const std::string_view inputFileNames, const std::vector<uint32_t> eventNumbers, std::string_view outputDirectory, std::ios_base::openmode mode = std::ios_base::openmode(0));
 
  private:
   std::vector<std::unique_ptr<RawReaderCRU>> mRawReadersCRU{}; ///< cru type raw readers
