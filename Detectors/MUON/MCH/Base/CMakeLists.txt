@@ -12,4 +12,5 @@ o2_add_library(MCHBase
                SOURCES src/Mapping.cxx src/DigitBlock.cxx
                        src/PreClusterBlock.cxx src/ClusterBlock.cxx
                        src/TrackBlock.cxx
+		       src/Digit.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Core FairRoot::Base FairMQ::FairMQ)
