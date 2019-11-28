@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TRDTRAPSIMULATORTRACKLETWRITER_H
-#define O2_TRDTRAPSIMULATORTRACKLETWRITER_H
+#ifndef O2_TRDTRAPSIMULATORRAWREADERSPEC_H
+#define O2_TRDTRAPSIMULATORRAWREADERSPEC_H
 
 #include "Framework/DataProcessorSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
@@ -17,7 +17,6 @@
 #include "TRDBase/Digit.h"
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "TRDBase/MCLabel.h"
-#include "TRDBase/TrackletMCM.h"
 
 using namespace o2::framework;
 
@@ -26,10 +25,7 @@ namespace o2
 namespace trd
 {
 
-template <typename T>
-using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
-
-o2::framework::DataProcessorSpec getTRDTrackletWriterSpec()
+o2::framework::DataProcessorSpec getTRDRawReaderSpec()
 {
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;

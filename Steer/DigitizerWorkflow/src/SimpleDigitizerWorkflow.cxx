@@ -60,8 +60,8 @@
 // for TRD
 #include "TRDDigitizerSpec.h"
 #include "TRDDigitWriterSpec.h"
-#include "TRDSimulation/TRDTrapSimulatorSpec.h"
-#include "TRDSimulation/TRDTrackletWriterSpec.h"
+#include "TRDworkflow/TRDTrapSimulatorSpec.h"
+#include "TRDworkflow/TRDTrackletWriterSpec.h"
 
 //for MUON MCH
 #include "MCHDigitizerSpec.h"
