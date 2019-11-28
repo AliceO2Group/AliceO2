@@ -15,6 +15,7 @@
 #define ALICEO2_CALIBLHCPHASETOF_H
 
 #include <vector>
+#include "Rtypes.h"
 
 namespace o2
 {
@@ -39,7 +40,7 @@ class CalibLHCphaseTOF
   // LHCphase calibration
   std::vector<std::pair<int, float>> mLHCphase; ///< <timestamp,LHCphase> from which the LHCphase measurement is valid
 
-  //  ClassDefNV(CalibLHCphaseTOF, 1);
+  ClassDefNV(CalibLHCphaseTOF, 1);
 };
 } // namespace dataformats
 } // namespace o2
