@@ -10,7 +10,8 @@
 
 #include "FairLogger.h"
 #include "CommonDataFormat/BunchFilling.h"
-#include "TFile.h"
+#include <TClass.h>
+#include <TFile.h>
 
 using namespace o2;
 
