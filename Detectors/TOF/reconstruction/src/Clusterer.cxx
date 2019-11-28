@@ -149,7 +149,7 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
 
   c.setMainContributingChannel(mContributingDigit[0]->getChannel());
   c.setTime(mContributingDigit[0]->getTDC() * Geo::TDCBIN + mContributingDigit[0]->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3);
-  c.setTimeRaw(mContributingDigit[0]->getTDC() * Geo::TDCBIN + mContributingDigit[0]->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3));
+  c.setTimeRaw(mContributingDigit[0]->getTDC() * Geo::TDCBIN + mContributingDigit[0]->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3);
 
   c.setTot(mContributingDigit[0]->getTOT() * Geo::TOTBIN * 1E-3); // TOT in ns (for now we assume it calibrated)
   //setL0L1Latency(); // to be filled (maybe)
