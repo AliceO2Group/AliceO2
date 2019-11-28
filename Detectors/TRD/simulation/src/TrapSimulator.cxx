@@ -93,9 +93,7 @@ void TrapSimulator::init(int det, int robPos, int mcmPos)
 
   if (!mInitialized) {
     mFeeParam = FeeParam::instance();
-    cout << "calling trap config !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" <<endl;
     mTrapConfig = getTrapConfig();
-    cout << "called trap config !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
   }
 
   mDetector = det;
@@ -113,8 +111,8 @@ void TrapSimulator::init(int det, int robPos, int mcmPos)
 
     mMCMT.resize(mgkMaxTracklets);
 
-    mADCR.resize(mNTimeBin);
-    mADCF.resize(mNTimeBin);
+    mADCR.resize(mNTimeBin * FeeParam::getNadcMcm());
+    mADCF.resize(mNTimeBin * FeeParam::getNadcMcm() );
   }
 
   mInitialized = true;
@@ -130,21 +128,17 @@ void TrapSimulator::reset()
   if (!checkInitialized())
     return;
 
-  for (int iAdc = 0; iAdc < FeeParam::getNadcMcm(); iAdc++) {
-    for (int it = 0; it < mNTimeBin; it++) {
-      mADCR[iAdc * mNTimeBin + it] = 0;
-      mADCF[iAdc * mNTimeBin + it] = 0;
-    }
-  }
+  memset(&mADCR[1], 0, sizeof(mADCR[0]) * mADCR.size());
+  memset(&mADCF[0], 0, sizeof(mADCF[0]) * mADCF.size());
 
   for (auto filterreg : mInternalFilterRegisters)
     filterreg.reset();
   // Default unread, low active bit mask
   memset(&mZSMap[0], 0, sizeof(mZSMap[0]) * FeeParam::getNadcMcm());
   memset(&mMCMT[0], 0, sizeof(mMCMT[0]) * mgkMaxTracklets);
-  mDict1.clear();
-  mDict2.clear();
-  mDict3.clear();
+  //mDict1.clear();
+  //mDict2.clear();
+  //mDict3.clear();
 
   filterPedestalInit();
   filterGainInit();

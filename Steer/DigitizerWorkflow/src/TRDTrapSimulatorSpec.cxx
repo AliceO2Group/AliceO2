@@ -119,33 +119,6 @@ class TRDDPLTrapSimulatorTask{
               //
               //
               //
-                auto sortRuleLambda = [] (o2::trd::Digit const& a, o2::trd::Digit const& b) -> bool
-                        {
-                            int roba,robb,mcma,mcmb;
-                            int rowa,rowb,pada,padb;
-                            FeeParam *fee=FeeParam::instance();
-                            rowa=a.getRow();rowb=b.getRow();
-                            pada=a.getPad();padb=b.getPad();
-                            roba=fee->getROBfromPad(rowa,pada);
-                            robb=fee->getROBfromPad(rowb,padb);
-                            mcma=fee->getMCMfromPad(rowa,pada);
-                            mcmb=fee->getMCMfromPad(rowb,padb);
-                                 if(a.getDetector()<b.getDetector()) return 1;
-                                 else {
-                                     if(a.getDetector()==b.getDetector()){
-                                        if(roba<robb) return 1;
-                                        else{ 
-                                         if (roba==robb){
-                                            if(mcma<mcmb) return 1;
-                                            else return 0;
-                                         }  
-                                        return 0;
-                                        }
-                                        return 0;
-                                     }
-                                     return 0;
-                                 }
-                        };
               //first sort digits into detector::rob::mcm order
               std::sort(digits.begin(),digits.end(), DigitSortComparator);//sortRuleLambda );
               //TODO optimisation : sort by frequency of trap chip and do all instances of the same trap at each init.

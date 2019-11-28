@@ -114,7 +114,7 @@ class TrackletMCM : public TrackletBase
   int mNHits;  // no. of contributing clusters
   int mNHits0; // no. of contributing clusters in window 0
   int mNHits1; // no. of contributing clusters in window 1
-
+//int  mNHits2 TODO if we add windows we need to add another mNHits2ddp
   std::array<int, 3> mLabel; // up to 3 labels for MC track  TODO no limit on labels in O2 ....
 
   float mSlope;                   // tracklet slope

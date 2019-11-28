@@ -251,7 +251,7 @@ class TrapSimulator
     int mTimebin;                // timebin of the hit
     int mQtot;                   // total charge of the hit
     int mYpos;                   // calculated y-position
-    std::array<int, 3> mLabel{}; // up to 3 labels (only in MC) runs is free to have many, but does more than 1 per digit make sense.
+    std::array<int, 3> mLabel{}; // up to 3 labels (only in MC) run3 is free to have many, but does more than 1 per digit make sense.
   };                             //mHits[mgkNHitsMC];
   std::array<Hit, 50> mHits;
   int mNHits; // Number of detected hits

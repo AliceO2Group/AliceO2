@@ -50,6 +50,43 @@ namespace o2
 namespace trd
 {
 
+
+bool DigitSortComparator( o2::trd::Digit const& a, o2::trd::Digit const &b)
+{
+int roba,robb,mcma,mcmb;
+int rowa,rowb,pada,padb;
+FeeParam *fee=FeeParam::instance();
+double timea,timeb;
+rowa=a.getRow();rowb=b.getRow();
+pada=a.getPad();padb=b.getPad();
+timea=a.getTime();timeb=b.getTime();
+roba=fee->getROBfromPad(rowa,pada);
+robb=fee->getROBfromPad(rowb,padb);
+mcma=fee->getMCMfromPad(rowa,pada);
+mcmb=fee->getMCMfromPad(rowb,padb);
+if(timea < timeb) return 1;
+else if (timea==timeb){
+
+if(a.getDetector()<b.getDetector()) return 1;
+else {
+ if(a.getDetector()==b.getDetector()){
+    if(roba<robb) return 1;
+    else{ 
+        if (roba==robb){
+            if(mcma<mcmb) return 1;
+            else return 0;
+        }    
+        else return 0;
+        }
+    return 0;
+    }
+ return 0;
+ }
+return 0;
+}
+}
+
+
 class TRDDPLTrapSimulatorTask{
 
         public:
@@ -77,13 +114,45 @@ class TRDDPLTrapSimulatorTask{
               // send to trapsimulator 
               // repeat 
               //mTrapSimulator.init();
-              
-             for (auto digit : digits) {
-                      int pad=digit.getPad();
-                      int row=digit.getRow();
-                      int detector=digit.getDetector();
-                      LOG(info) << "MCM: " <<  mfeeparam->getMCMfromPad(row, pad) << " == "<< detector <<"::"<<row<<"::"<< pad;
-
+              ArrayADC_t incomingdigits;
+              // std::array<unsigned short,30> mcmdigits; //TODO come back and pull timebins from somehwere.
+              //
+              //
+              //
+              //first sort digits into detector::rob::mcm order
+              std::sort(digits.begin(),digits.end(), DigitSortComparator);//sortRuleLambda );
+              //TODO optimisation : sort by frequency of trap chip and do all instances of the same trap at each init.
+              // ArrayADC_t 
+              //i
+              //
+//                   for(std::vector<o2::trd::Digits>::iterator digititerator = digits.begin(); digititerator != digits.end(); ++digititerator) {
+                       //loop over and see if the same pad and row appears for a given det:rob:mcm combination i.e. pile up and/or we need to redo out sorting.
+ //j                      while(oldmcm=mcm && old)
+   //                }
+                   int oldmcm=-1;
+                   int oldrob=-1;
+                   int olddetector=-1;
+                   for(std::vector<o2::trd::Digit>::iterator digititerator = digits.begin(); digititerator != digits.end(); ++digititerator) {
+                      int pad=digititerator->getPad();
+                      int row=digititerator->getRow();
+                      int detector=digititerator->getDetector();
+                      int rob=mfeeparam->getROBfromPad(row,pad);
+                      int mcm=mfeeparam->getMCMfromPad(row,pad);
+                      LOG(info) << "MCM: " << detector <<":" << rob << ":" <<mcm << " --- " << pad << ";;" << row;
+    //                  while(mcm==old))
+                      if(oldmcm==mcm && oldrob==rob && olddetector==detector){
+                          //we are still on the same mcm as the previous loop
+                      }
+                      else{
+                          //we have changed mcm so clear out array and put in new data.
+                          //
+                      }
+                      // copy adc data from digits to local array and then pass into TrapSimulator
+                      // keep copying until we change mcm.
+                      // On change of mcm, take what we have send to simulator.
+                      // clean up temp array, and populate it with what we have now and keep going.
+                      //mTrapSimulator.init(detector,rob,mcm);
+                      //mTrapSimulator.setData(detector,digit.getADC());
              //for(int i=i;i<digits.size();i++){
              //   int mcmindex= FeeParam::instance()->getMCMfromPad(digits[i].getRow(), digits[i].getPad());
                 //      LOG(info) << "MCM: " <<  feeparam->getMCMfromPad(digits[i].getRow(),digits[i].getPad()) << " == "<< digits[i].getDetector() <<"::"<<digits[i].getRow()<<"::"<< digits[i].getPad();

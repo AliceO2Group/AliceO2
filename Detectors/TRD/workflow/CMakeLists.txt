@@ -13,7 +13,7 @@ o2_add_executable(trap-sim
                   COMPONENT_NAME trd
                   SOURCES src/TRDTrapSimulatorSpec.cxx
                           src/TRDTrapSimulatorWorkFlow.cxx
-                          src/TRDRawReaderSpec.cxx
+                          #                          src/TRDRawReaderSpec.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                         O2::Steer
                                         O2::DPLUtils
