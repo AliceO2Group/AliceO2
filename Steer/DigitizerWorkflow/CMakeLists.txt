@@ -33,7 +33,7 @@ o2_add_executable(digitizer-workflow
                           src/TPCDigitRootWriterSpec.cxx
                           src/TPCDigitizerSpec.cxx
                           src/TRDDigitizerSpec.cxx
-                          #                          src/TRDTrapSimulatorSpec.cxx
+                          src/TRDTrapSimulatorSpec.cxx
                           src/ZDCDigitizerSpec.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                         O2::Steer
