@@ -51,13 +51,13 @@ class GPUTPCClusterStatistics
   TPCClusterDecompressor mDecoder;
   bool mDecodingError = false;
 
-  static constexpr unsigned int P_MAX_QMAX = 1 << 10;
-  static constexpr unsigned int P_MAX_QTOT = 5 * 5 * P_MAX_QMAX;
-  static constexpr unsigned int P_MAX_TIME = 1 << 24;
-  static constexpr unsigned int P_MAX_PAD = 1 << 16;
-  static constexpr unsigned int P_MAX_SIGMA = 1 << 8;
-  static constexpr unsigned int P_MAX_FLAGS = 1 << 8;
-  static constexpr unsigned int P_MAX_QPT = 1 << 8;
+  static constexpr unsigned int P_MAX_QMAX = GPUTPCCompression::P_MAX_QMAX;
+  static constexpr unsigned int P_MAX_QTOT = GPUTPCCompression::P_MAX_QTOT;
+  static constexpr unsigned int P_MAX_TIME = GPUTPCCompression::P_MAX_TIME;
+  static constexpr unsigned int P_MAX_PAD = GPUTPCCompression::P_MAX_PAD;
+  static constexpr unsigned int P_MAX_SIGMA = GPUTPCCompression::P_MAX_SIGMA;
+  static constexpr unsigned int P_MAX_FLAGS = GPUTPCCompression::P_MAX_FLAGS;
+  static constexpr unsigned int P_MAX_QPT = GPUTPCCompression::P_MAX_QPT;
 
   std::vector<int> mPqTotA = std::vector<int>(P_MAX_QTOT, 0);
   std::vector<int> mPqMaxA = std::vector<int>(P_MAX_QMAX, 0);

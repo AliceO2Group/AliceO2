@@ -122,7 +122,7 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
         for (unsigned int k = 0; k < clustersNative->nClusters[i][j]; k++) {
           tmpClusters[k] = clustersNative->clusters[i][j][k];
           if (param.rec.tpcCompressionModes & GPUSettings::CompressionTruncate) {
-            GPUTPCCompression::truncateSignificantBitsCharge(tmpClusters[k].qMax, param);
+            GPUTPCCompression::truncateSignificantBitsChargeMax(tmpClusters[k].qMax, param);
             GPUTPCCompression::truncateSignificantBitsCharge(tmpClusters[k].qTot, param);
             GPUTPCCompression::truncateSignificantBitsWidth(tmpClusters[k].sigmaPadPacked, param);
             GPUTPCCompression::truncateSignificantBitsWidth(tmpClusters[k].sigmaTimePacked, param);
