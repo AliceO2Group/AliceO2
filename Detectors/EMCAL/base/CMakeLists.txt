@@ -11,6 +11,7 @@
 o2_add_library(EMCALBase
                SOURCES src/Geometry.cxx src/Hit.cxx
                        src/ShishKebabTrd1Module.cxx
+                       src/Mapper.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonDataFormat Boost::serialization
                                      O2::MathUtils O2::DataFormatsEMCAL
                                      O2::SimulationDataFormat ROOT::Physics)
@@ -19,4 +20,13 @@ o2_target_root_dictionary(EMCALBase
                           HEADERS include/EMCALBase/GeometryBase.h
                                   include/EMCALBase/Geometry.h
                                   include/EMCALBase/Hit.h
-                                  include/EMCALBase/ShishKebabTrd1Module.h)
+                                  include/EMCALBase/ShishKebabTrd1Module.h
+                                  include/EMCALBase/Mapper.h)
+
+o2_data_file(COPY files DESTINATION Detectors/EMC)
+
+o2_add_test(Mapper
+            SOURCES test/testMapper.cxx
+            PUBLIC_LINK_LIBRARIES O2::EMCALBase
+            COMPONENT_NAME emcal
+            LABELS emcal)
