@@ -1438,7 +1438,9 @@ int GPUChainTracking::RunTPCTrackingMerger()
   timerCopyToHost.StopAndStart(timerFinalize);
 
   Merger.Finalize();
-  timerFinalize.Stop();
+  timerFinalize.StopAndStart(timerCopyToGPU);
+  TransferMemoryResourceLinkToGPU(RecoStep::TPCMerging, Merger.MemoryResRefit()); // For compression
+  timerCopyToGPU.Stop();
 
   mIOPtrs.mergedTracks = Merger.OutputTracks();
   mIOPtrs.nMergedTracks = Merger.NOutputTracks();
