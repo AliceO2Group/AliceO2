@@ -33,7 +33,7 @@ struct GPUMemoryReuse {
   };
   using ID = unsigned int;
 
-  GPUMemoryReuse(Type t, Group g, int i) : type(t), id((g << 16) | (i & 0xFFFF)) {}
+  GPUMemoryReuse(Type t, Group g, unsigned short i) : type(t), id(((int)g << 16) | ((int)i & 0xFFFF)) {}
   constexpr GPUMemoryReuse() = default;
 
   Type type = NONE;
@@ -67,7 +67,7 @@ class GPUMemoryResource
                         ALLOCATION_GLOBAL = 2 };
 
 #ifndef GPUCA_GPUCODE
-  GPUMemoryResource(GPUProcessor* proc, void* (GPUProcessor::*setPtr)(void*), MemoryType type, const char* name = "") : mProcessor(proc), mReuse(nullptr), mPtr(nullptr), mPtrDevice(nullptr), mSetPointers(setPtr), mType(type), mSize(0), mName(name)
+  GPUMemoryResource(GPUProcessor* proc, void* (GPUProcessor::*setPtr)(void*), MemoryType type, const char* name = "") : mProcessor(proc), mReuse(-1), mPtr(nullptr), mPtrDevice(nullptr), mSetPointers(setPtr), mType(type), mSize(0), mName(name)
   {
   }
   GPUMemoryResource(const GPUMemoryResource&) CON_DEFAULT;
@@ -88,7 +88,7 @@ class GPUMemoryResource
 
  private:
   GPUProcessor* mProcessor;
-  const GPUMemoryResource* mReuse;
+  int mReuse;
   void* mPtr;
   void* mPtrDevice;
   void* (GPUProcessor::*mSetPointers)(void*);

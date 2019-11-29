@@ -302,7 +302,7 @@ class GPUReconstruction
     void (GPUProcessor::*SetMaxData)(const GPUTrackingInOutPointers&);
   };
   std::vector<ProcessorData> mProcessors;
-  std::unordered_map<GPUMemoryReuse::ID, const GPUMemoryResource*> mMemoryReuse1to1;
+  std::unordered_map<GPUMemoryReuse::ID, int> mMemoryReuse1to1;
 
   // Helpers for loading device library via dlopen
   class LibraryLoader
@@ -368,7 +368,7 @@ inline short GPUReconstruction::RegisterMemoryAllocation(T* proc, void* (T::*set
   if (re.type != GPUMemoryReuse::NONE) {
     const auto& it = mMemoryReuse1to1.find(re.id);
     if (it == mMemoryReuse1to1.end()) {
-      mMemoryReuse1to1[re.id] = &mMemoryResources[retVal];
+      mMemoryReuse1to1[re.id] = retVal;
     } else {
       mMemoryResources[retVal].mReuse = mMemoryReuse1to1[re.id];
     }
