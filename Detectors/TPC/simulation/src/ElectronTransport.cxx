@@ -18,6 +18,7 @@
 #include <cmath>
 
 using namespace o2::tpc;
+using namespace o2::math_utils;
 
 ElectronTransport::ElectronTransport() : mRandomGaus(), mRandomFlat(RandomRing<>::RandomType::Flat)
 {

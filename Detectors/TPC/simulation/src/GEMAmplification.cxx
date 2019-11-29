@@ -21,6 +21,7 @@
 #include "FairLogger.h"
 
 using namespace o2::tpc;
+using namespace o2::math_utils;
 using boost::format;
 
 GEMAmplification::GEMAmplification()

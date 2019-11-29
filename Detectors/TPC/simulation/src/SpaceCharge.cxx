@@ -28,6 +28,7 @@
 #include "TPCSimulation/SpaceCharge.h"
 
 using namespace o2::tpc;
+using namespace o2::math_utils;
 
 const float o2::tpc::SpaceCharge::sEzField = (AliTPCPoissonSolver::fgkCathodeV - AliTPCPoissonSolver::fgkGG) / AliTPCPoissonSolver::fgkTPCZ0;
 
