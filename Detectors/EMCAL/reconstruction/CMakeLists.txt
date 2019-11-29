@@ -20,7 +20,6 @@ o2_add_library(EMCALReconstruction
                        src/RCUTrailer.cxx
                        src/Bunch.cxx
                        src/Channel.cxx
-                       src/Mapper.cxx
                        src/CaloFitResults.cxx
                        src/CaloRawFitter.cxx
                        src/CaloRawFitterStandard.cxx
@@ -39,7 +38,6 @@ o2_target_root_dictionary(
                                   include/EMCALReconstruction/Bunch.h
                                   include/EMCALReconstruction/Channel.h
                                   include/EMCALReconstruction/RAWDataHeader.h
-                                  include/EMCALReconstruction/Mapper.h
                                   include/EMCALReconstruction/CaloFitResults.h
                                   include/EMCALReconstruction/CaloRawFitter.h
                                   include/EMCALReconstruction/CaloRawFitterStandard.h)
@@ -48,11 +46,3 @@ o2_add_executable(rawreader-file
                   COMPONENT_NAME emcal
                   PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction
                   SOURCES run/rawReaderFile.cxx)
-
-o2_data_file(COPY files DESTINATION Detectors/EMC)
-
-o2_add_test(Mapper
-            SOURCES test/testMapper.cxx
-            PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction O2::Headers
-            COMPONENT_NAME emcal
-            LABELS emcal)
