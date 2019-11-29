@@ -26,8 +26,6 @@
 #ifndef ALICEO2_MATHUTILS_RANDOMRING_H_
 #define ALICEO2_MATHUTILS_RANDOMRING_H_
 
-// #include <boost/format.hpp>
-
 #include "Vc/Vc"
 #include <array>
 
