@@ -16,7 +16,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "TGeoManager.h"
-#include "MCHSimulation/Digit.h"
+#include "MCHBase/Digit.h"
 #include "MCHSimulation/Digitizer.h"
 #include "MCHSimulation/Hit.h"
 #include "MCHSimulation/Geometry.h"

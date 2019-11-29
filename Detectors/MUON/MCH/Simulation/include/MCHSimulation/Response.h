@@ -11,7 +11,7 @@
 #ifndef O2_MCH_SIMULATION_RESPONSE_H_
 #define O2_MCH_SIMULATION_RESPONSE_H_
 
-#include "MCHSimulation/Digit.h"
+#include "MCHBase/Digit.h"
 #include "MCHSimulation/Detector.h"
 #include "MCHSimulation/Hit.h"
 

@@ -23,7 +23,7 @@ namespace mch
 
 // \class Digit
 /// \brief MCH digit implementation
-class Digit : public DigitBase
+  class Digit //: public DigitBase
 {
  public:
   Digit() = default;
@@ -31,8 +31,8 @@ class Digit : public DigitBase
   Digit(double time, int detid, int pad, double adc);
   ~Digit() = default;
 
-  double getTime() const { return mTime; }
-  void setTime(double time) { mTime = time; }
+  double getTimeStamp() const { return mTime; }
+  void setTimeStamp(double time) { mTime = time; }
   
   int getDetID() const { return mDetID; }
   void setDetID(int detid) { mDetID = detid; }
@@ -49,7 +49,7 @@ class Digit : public DigitBase
   int mPadID;  /// PadIndex to which the digit corresponds to
   double mADC; /// Amplitude of signal
 
-  ClassDefNV(Digit, 1);
+  //  ClassDefNV(Digit, 1);
 }; //class Digit
 
 } //namespace mch

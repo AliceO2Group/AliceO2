@@ -8,11 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MCHSimulation/Digit.h"
+#include "MCHBase/Digit.h"
 
 using namespace o2::mch;
 
-ClassImp(o2::mch::Digit);
+//ClassImp(o2::mch::Digit);
 
 Digit::Digit(double time, int detid, int pad, double adc)
   : mTime(time), mDetID(detid), mPadID(pad), mADC(adc)
