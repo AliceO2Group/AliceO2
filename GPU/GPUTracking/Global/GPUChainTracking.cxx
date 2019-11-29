@@ -493,11 +493,6 @@ int GPUChainTracking::ReadData(const char* filename)
   }
   ReadData(fp, mIOPtrs.clusterData, mIOPtrs.nClusterData, mIOMem.clusterData, InOutPointerType::CLUSTER_DATA);
   int nClustersTotal = 0;
-  for (unsigned int i = 0; i < NSLICES; i++) {
-    for (unsigned int j = 0; j < mIOPtrs.nClusterData[i]; j++) {
-      mIOMem.clusterData[i][j].id = nClustersTotal++;
-    }
-  }
   ReadData(fp, mIOPtrs.rawClusters, mIOPtrs.nRawClusters, mIOMem.rawClusters, InOutPointerType::RAW_CLUSTERS);
 #ifdef HAVE_O2HEADERS
   if (ReadData<ClusterNative>(fp, &mClusterNativeAccess->clustersLinear, &mClusterNativeAccess->nClustersTotal, &mIOMem.clustersNative, InOutPointerType::CLUSTERS_NATIVE)) {
@@ -521,6 +516,25 @@ int GPUChainTracking::ReadData(const char* filename)
   ReadData(fp, &mIOPtrs.trdTrackletsMC, &mIOPtrs.nTRDTrackletsMC, &mIOMem.trdTrackletsMC, InOutPointerType::TRD_TRACKLET_MC);
   fclose(fp);
   (void)r;
+  for (unsigned int i = 0; i < NSLICES; i++) {
+    for (unsigned int j = 0; j < mIOPtrs.nClusterData[i]; j++) {
+      mIOMem.clusterData[i][j].id = nClustersTotal++;
+      if ((unsigned int)mIOMem.clusterData[i][j].amp >= 25 * 1024) {
+        GPUError("Invalid cluster charge, truncating (%d >= %d)", (int)mIOMem.clusterData[i][j].amp, 25 * 1024);
+        mIOMem.clusterData[i][j].amp = 25 * 1024 - 1;
+      }
+    }
+    for (unsigned int j = 0; j < mIOPtrs.nRawClusters[i]; j++) {
+      if ((unsigned int)mIOMem.rawClusters[i][j].GetCharge() >= 25 * 1024) {
+        GPUError("Invalid raw cluster charge, truncating (%d >= %d)", (int)mIOMem.rawClusters[i][j].GetCharge(), 25 * 1024);
+        mIOMem.rawClusters[i][j].SetCharge(25 * 1024 - 1);
+      }
+      if ((unsigned int)mIOMem.rawClusters[i][j].GetQMax() >= 1024) {
+        GPUError("Invalid raw cluster charge max, truncating (%d >= %d)", (int)mIOMem.rawClusters[i][j].GetQMax(), 1024);
+        mIOMem.rawClusters[i][j].SetQMax(1024 - 1);
+      }
+    }
+  }
 
   return (0);
 }
