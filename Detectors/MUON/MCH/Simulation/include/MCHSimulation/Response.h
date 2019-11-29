@@ -40,27 +40,27 @@ class Response
   double response(float charge);
   float getAnod(float x);
   float chargeCorr();
-  bool getIsSampa() {return mSampa; };
-  void setIsSampa(bool isSampa=true) { mSampa=isSampa; };
-  
+  bool getIsSampa() { return mSampa; };
+  void setIsSampa(bool isSampa = true) { mSampa = isSampa; };
+
  private:
   //setter to get Aliroot-readout-chain-optimisation or Sampa optimisation
   bool mSampa = true;
   //parameter for station number
   Station mStation;
   //proper parameter in aliroot in AliMUONResponseFactory.cxx
-  float mQspreadX = 0.0;   //charge spread in cm
+  float mQspreadX = 0.0; //charge spread in cm
   float mQspreadY = 0.0;
 
   //ChargeSlope for Station 2-5: 10 according to AliMUONResponseFactory.cxx
   //ChargeSlope for Station 1: 25
-  float mChargeSlope = 0.0; 
+  float mChargeSlope = 0.0;
   const float mChargeCorr = 0.11; // number from line 122
   //of AliMUONResponseFactory.cxx
 
   float mChargeThreshold = 1e-4;
   //AliMUONResponseV0.cxx constr.
-  float mChargeSat = 10000.;//very large arbitrary setting for the moment, was in aliroot 0.61 * 1.25 * 0.2;
+  float mChargeSat = 10000.; //very large arbitrary setting for the moment, was in aliroot 0.61 * 1.25 * 0.2;
   //from AliMUONResponseV0.cxx
   //equals AliMUONConstants::DefaultADC2MV()*AliMUONConstants::DefaultA0()*AliMUONConstants::DefaultCapa()
   //Mathieson parameter: NIM A270 (1988) 602-603

@@ -111,7 +111,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
   //convert energy to charge
   auto charge = resp.etocharge(hit.GetEnergyLoss());
   auto time = event_time + hit.GetTime();
-  
+
   //transformation from global to local
   auto t = o2::mch::getTransformation(detID, *gGeoManager);
   Point3D<float> lpos;
@@ -145,7 +145,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
     return 0;
   }
 
-  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, &ndigits, detID, time](int padid) {
+  seg.forEachPadInArea(xMin, yMin, xMax, yMax, [&resp, &digits = this->mDigits, chargebend, chargenon, localX, localY, &seg, &ndigits, detID, time ](int padid) {
     auto dx = seg.padSizeX(padid) * 0.5;
     auto dy = seg.padSizeY(padid) * 0.5;
     auto xmin = (localX - seg.padPositionX(padid)) - dx;
@@ -159,10 +159,10 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
       q *= chargenon;
     }
     auto signal = resp.response(q);
-    if(signal>0)//threshold effect
-      {
-	digits.emplace_back(time, detID, padid, signal);
-	++ndigits;
+    if (signal > 0) //threshold effect
+    {
+      digits.emplace_back(time, detID, padid, signal);
+      ++ndigits;
     }
   });
   return ndigits;
@@ -203,7 +203,7 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
         mTrackLabels.emplace_back(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID(), false);
       } else {
         if ((sortedLabels(k).getTrackID() != sortedLabels(k - 1).getTrackID()) || (sortedLabels(k).getSourceID() != sortedLabels(k - 1).getSourceID())) {
-	  mTrackLabels.emplace_back(sortedLabels(k).getTrackID(), sortedLabels(k).getEventID(), sortedLabels(k).getSourceID(), false);// is this the problem? Two labels for one digit
+          mTrackLabels.emplace_back(sortedLabels(k).getTrackID(), sortedLabels(k).getEventID(), sortedLabels(k).getSourceID(), false); // is this the problem? Two labels for one digit
         }
       }
     }
@@ -213,8 +213,6 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
   }
   mDigits.resize(mDigits.size());
   mTrackLabels.resize(mTrackLabels.size());
-
-  
 }
 //______________________________________________________________________
 void Digitizer::mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer)

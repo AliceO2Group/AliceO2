@@ -47,10 +47,10 @@ Response::Response(Station station) : mStation(station)
     mQspreadY = 0.18;
   }
 
-  if(mSampa){
-    mChargeThreshold = 1e-3;//arbitrary setting for the moment, was 5*1e-4
-    mChargeSat = 3000. ; // value from aliroot for charge
-    amplO2alir = 1.;//scale factor in case of need
+  if (mSampa) {
+    mChargeThreshold = 1e-3; //arbitrary setting for the moment, was 5*1e-4
+    mChargeSat = 3000.;      // value from aliroot for charge
+    amplO2alir = 1.;         //scale factor in case of need
     //to be done: Addd thresholds for ADC counts
   }
 }
@@ -99,9 +99,11 @@ double Response::chargefrac1d(float min, float max, double k2, double sqrtk3, do
 double Response::response(float charge)
 {
   //FEE effects
-  if(charge<mChargeThreshold) return 0.0;
-  if(charge>mChargeSat) return mChargeSat;
-  charge = (int) charge; //according to aliroot observation
+  if (charge < mChargeThreshold)
+    return 0.0;
+  if (charge > mChargeSat)
+    return mChargeSat;
+  charge = (int)charge; //according to aliroot observation
   //need still to make proper conversion from charge to ADC counts
   //adapting to proper values for tuning
   return charge;
