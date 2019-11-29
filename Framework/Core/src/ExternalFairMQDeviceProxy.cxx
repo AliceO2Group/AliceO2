@@ -26,6 +26,7 @@
 #include <memory>
 #include <optional>
 #include <unordered_map>
+#include <numeric> // std::accumulate
 
 namespace o2
 {
@@ -41,6 +42,12 @@ void sendOnChannel(FairMQDevice& device, FairMQParts& messages, std::string cons
   constexpr auto index = 0;
   LOG(DEBUG) << "sending " << messages.Size() << " messages on " << channel;
   device.Send(messages, channel, index);
+  // TODO: feeling this is a bit awkward, but the interface of FairMQParts does not provide a
+  // method to clear the content.
+  // Maybe the FairMQ API can be improved at some point. Actually the ownership of all messages should be passed
+  // on to the transport and the messages should be empty after sending and the parts content can be cleared.
+  //assert(std::accumulate(messages.begin(), messages.end(), true, [](bool a, auto const& msg) {return a && (msg.get() == nullptr);}));
+  messages.fParts.clear();
 }
 
 void sendOnChannel(FairMQDevice& device, FairMQParts& messages, OutputSpec const& spec, ChannelRetriever& channelRetriever)
@@ -174,15 +181,18 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
   return [filterSpecs = std::move(filterSpecs), throwOnUnmatchedInputs](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
     std::unordered_map<std::string, FairMQParts> outputs;
     std::vector<bool> indicesDone(parts.Size() / 2, false);
-    for (size_t i = 0; i < parts.Size() / 2; ++i) {
-      if (indicesDone[i]) {
+    for (size_t msgidx = 0; msgidx < parts.Size() / 2; ++msgidx) {
+      if (indicesDone[msgidx]) {
         continue;
       }
-      auto dh = o2::header::get<DataHeader*>(parts.At(i * 2)->GetData());
+
+      auto dh = o2::header::get<DataHeader*>(parts.At(msgidx * 2)->GetData());
       if (!dh) {
-        LOG(ERROR) << "data on input " << i << " does not follow the O2 data model, DataHeader missing";
+        LOG(ERROR) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
         continue;
       }
+      LOG(DEBUG) << msgidx << ": " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}) << " part " << dh->splitPayloadIndex << " of " << dh->splitPayloadParts << "  payload " << parts.At(msgidx * 2 + 1)->GetSize();
+
       OutputSpec query{dh->dataOrigin, dh->dataDescription, dh->subSpecification};
       LOG(DEBUG) << "processing " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}) << " part " << dh->splitPayloadIndex << " of " << dh->splitPayloadParts;
       for (auto const& spec : filterSpecs) {
@@ -195,11 +205,20 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
             break;
           }
           if (dh->splitPayloadParts > 1 && dh->splitPayloadParts != std::numeric_limits<decltype(dh->splitPayloadParts)>::max()) {
-            auto [indexList, payloadSize] = findSplitParts(parts, i, indicesDone);
+            auto [indexList, payloadSize] = findSplitParts(parts, msgidx, indicesDone);
+            for (auto const& partidx : indexList) {
+              if (partidx == msgidx) {
+                continue;
+              }
+              auto dh = o2::header::get<DataHeader*>(parts.At(partidx * 2)->GetData());
+              if (dh) {
+                LOG(DEBUG) << partidx << ": " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}) << " part " << dh->splitPayloadIndex << " of " << dh->splitPayloadParts << "  payload " << parts.At(partidx * 2 + 1)->GetSize();
+              }
+            }
             if (payloadSize > 0) {
-              size_t headerSize = parts.At(i * 2)->GetSize();
+              size_t headerSize = parts.At(msgidx * 2)->GetSize();
               auto headerMessage = device.NewMessageFor(channelName, 0, headerSize);
-              memcpy(headerMessage->GetData(), parts.At(i * 2)->GetData(), headerSize);
+              memcpy(headerMessage->GetData(), parts.At(msgidx * 2)->GetData(), headerSize);
               auto clonedh = const_cast<DataHeader*>(o2::header::get<DataHeader*>(headerMessage->GetData()));
               clonedh->splitPayloadParts = 0;
               clonedh->splitPayloadIndex = 0;
@@ -209,11 +228,13 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
               LOG(DEBUG) << "merged " << indexList.size() << " split payload parts in new message of size " << payloadSize << " on channel " << channelName << " (" << outputs[channelName].Size() << " parts)";
             }
           } else {
-            outputs[channelName].AddPart(std::move(parts.At(i * 2)));
-            outputs[channelName].AddPart(std::move(parts.At(i * 2 + 1)));
-            LOG(DEBUG) << "associating part with index " << i << " to channel " << channelName << " (" << outputs[channelName].Size() << ")";
+            outputs[channelName].AddPart(std::move(parts.At(msgidx * 2)));
+            outputs[channelName].AddPart(std::move(parts.At(msgidx * 2 + 1)));
+            LOG(DEBUG) << "associating part with index " << msgidx << " to channel " << channelName << " (" << outputs[channelName].Size() << ")";
           }
-          indicesDone[i] = true;
+          // TODO: implement configurable dispatch policy preferably via the workflow spec config
+          sendOnChannel(device, outputs[channelName], channelName);
+          indicesDone[msgidx] = true;
           break;
         } else if (throwOnUnmatchedInputs) {
           throw std::runtime_error("no matching filter rule for input data " + DataSpecUtils::describe(query));
@@ -221,6 +242,9 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
       }
     }
     for (auto& [channelName, channelParts] : outputs) {
+      if (channelParts.Size() == 0) {
+        continue;
+      }
       sendOnChannel(device, channelParts, channelName);
     }
   };
