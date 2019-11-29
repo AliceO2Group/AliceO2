@@ -16,6 +16,7 @@
 
 #pragma link C++ class o2::emcal::Hit + ;
 #pragma link C++ class o2::emcal::Geometry + ;
+#pragma link C++ class o2::emcal::Mapper + ;
 
 #pragma link C++ class std::vector < o2::emcal::Hit> + ;
 

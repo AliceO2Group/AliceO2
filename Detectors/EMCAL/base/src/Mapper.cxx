@@ -11,7 +11,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include "EMCALReconstruction/Mapper.h"
+#include "EMCALBase/Mapper.h"
 
 using namespace o2::emcal;
 

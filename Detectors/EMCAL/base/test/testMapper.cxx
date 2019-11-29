@@ -12,7 +12,7 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include <DataFormatsEMCAL/Constants.h>
-#include "EMCALReconstruction/Mapper.h"
+#include "EMCALBase/Mapper.h"
 #include <array>
 #include <iostream>
 #include <fstream>

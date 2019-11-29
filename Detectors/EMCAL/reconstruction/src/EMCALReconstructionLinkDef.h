@@ -26,9 +26,9 @@
 #pragma link C++ class o2::emcal::Bunch + ;
 #pragma link C++ class o2::emcal::Channel + ;
 #pragma link C++ class o2::emcal::RCUTrailer + ;
-#pragma link C++ class o2::emcal::Mapper + ;
 #pragma link C++ class o2::emcal::CaloFitResults + ;
 #pragma link C++ class o2::emcal::CaloRawFitter + ;
 #pragma link C++ class o2::emcal::CaloRawFitterStandard + ;
+
 
 #endif
