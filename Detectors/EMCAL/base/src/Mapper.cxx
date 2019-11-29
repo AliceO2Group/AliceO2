@@ -11,6 +11,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <TSystem.h>
 #include "EMCALBase/Mapper.h"
 
 using namespace o2::emcal;
@@ -89,6 +90,27 @@ int Mapper::getHardwareAddress(int row, int col, ChannelType_t channeltype) cons
   if (found == mInverseMapping.end())
     throw ChannelNotFoundException(channelToFind);
   return found->second;
+}
+
+MappingHandler::MappingHandler()
+{
+  const std::array<char, 2> SIDES = {{'A', 'C'}};
+  const int NDDL = 2;
+  for (int iside = 0; iside < 2; iside++) {
+    for (int iddl = 0; iddl < NDDL; iddl++) {
+      mMappings[iside * NDDL + iddl].setMapping(Form("%s/share/Detectors/EMC/file/RCU%d%c.data", gSystem->Getenv("O2_ROOT"), iddl, SIDES[iside]));
+    }
+  }
+}
+
+Mapper& MappingHandler::getMappingForDDL(int ddl)
+{
+  if (ddl > 40)
+    throw MappingHandler::DDLInvalid(ddl);
+  const int NDDLSM = 2, NSIDES = 2;
+  int ddlInSM = ddl % NDDLSM,
+      sideID = (ddl / NDDLSM) % NSIDES;
+  return mMappings[sideID * NDDLSM + ddlInSM];
 }
 
 std::ostream& o2::emcal::operator<<(std::ostream& stream, const Mapper::ChannelID& channel)
