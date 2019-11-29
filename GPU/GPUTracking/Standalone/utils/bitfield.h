@@ -53,6 +53,7 @@ class bitfield
     }
     return *this;
   }
+  void clear() { bits = 0; }
   void set(S v) { bits = v; }
   void set(T v) { bits = static_cast<S>(v); }
   template <typename... Args>
