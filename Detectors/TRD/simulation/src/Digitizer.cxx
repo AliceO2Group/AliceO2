@@ -20,10 +20,12 @@
 #include "TRDBase/PadResponse.h"
 
 #include "TRDSimulation/Digitizer.h"
+#include <cmath>
 
 using namespace o2::trd;
+using namespace o2::math_utils;
 
-Digitizer::Digitizer()
+Digitizer::Digitizer() : mGausRandomRing(RandomRing<>::RandomType::Gaus), mFlatRandomRing(RandomRing<>::RandomType::Flat)
 {
   // Check if you need more initialization
   o2::base::GeometryManager::loadGeometry();
@@ -46,6 +48,9 @@ Digitizer::Digitizer()
       LOG(FATAL) << "TRD Common Parameters does not have magnetic field available";
     }
   }
+
+  mLogRandomRing.initialize([]() -> float { return std::log(gRandom->Rndm()); });
+
   // if (!mCalib) { // PLEASE FIX ME when CCDB is ready
   //   LOG(FATAL) << "TRD mCalib database not available";
   // }
@@ -227,7 +232,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
     for (int el = 0; el < nElectrons; ++el) {
       // Electron attachment
       if (mSimParam->ElAttachOn()) {
-        if (gRandom->Rndm() < absDriftLength * elAttachProp) {
+        if (mFlatRandomRing.getNextValue() < absDriftLength * elAttachProp) {
           continue;
         }
       }
@@ -281,8 +286,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       }
 
       // Apply the gas gain including fluctuations
-      const double ggRndm = gRandom->Rndm();
-      const double signal = -(mSimParam->GetGasGain()) * TMath::Log(ggRndm);
+      const double signal = -(mSimParam->GetGasGain()) * mLogRandomRing.getNextValue();
 
       // Apply the pad response
       if (mSimParam->PRFOn()) {
@@ -398,6 +402,13 @@ bool Digitizer::convertSignalsToSDigits(const int det, SignalContainer_t& adcMap
   return false;
 }
 
+float drawGaus(o2::math_utils::RandomRing<>& normaldistRing, float mu, float sigma)
+{
+  // this is using standard normally distributed random numbers and rescaling to make
+  // them gaussian distributed with general mu and sigma
+  return mu + sigma * normaldistRing.getNextValue();
+}
+
 bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont)
 {
   //
@@ -461,7 +472,7 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont
       signalAmp *= coupling;                // Pad and time coupling
       signalAmp *= padgain;                 // Gain factors
       // Add the noise, starting from minus ADC baseline in electrons
-      signalAmp = TMath::Max((double)gRandom->Gaus(signalAmp, mSimParam->GetNoise()), -baselineEl);
+      signalAmp = std::max((double)drawGaus(mGausRandomRing, signalAmp, mSimParam->GetNoise()), -baselineEl);
       signalAmp *= convert;  // Convert to mV
       signalAmp += baseline; // Add ADC baseline in mV
       // Convert to ADC counts
@@ -479,8 +490,8 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont
   return true;
 }
 
-bool Digitizer::diffusion(float vdrift, double absdriftlength, double exbvalue,
-                          double lRow0, double lCol0, double lTime0,
+bool Digitizer::diffusion(float vdrift, float absdriftlength, float exbvalue,
+                          float lRow0, float lCol0, float lTime0,
                           double& lRow, double& lCol, double& lTime)
 {
   //
@@ -490,16 +501,17 @@ bool Digitizer::diffusion(float vdrift, double absdriftlength, double exbvalue,
   float diffL = 0.0;
   float diffT = 0.0;
   if (mCommonParam->GetDiffCoeff(diffL, diffT, vdrift)) {
-    float driftSqrt = TMath::Sqrt(absdriftlength);
+    float driftSqrt = std::sqrt(absdriftlength);
     float sigmaT = driftSqrt * diffT;
     float sigmaL = driftSqrt * diffL;
-    lRow = gRandom->Gaus(lRow0, sigmaT);
+    lRow = drawGaus(mGausRandomRing, lRow0, sigmaT);
     if (mCommonParam->ExBOn()) {
-      lCol = gRandom->Gaus(lCol0, sigmaT * 1.0 / (1.0 + exbvalue * exbvalue));
-      lTime = gRandom->Gaus(lTime0, sigmaL * 1.0 / (1.0 + exbvalue * exbvalue));
+      const float exbfactor = 1.f / (1.f + exbvalue * exbvalue);
+      lCol = drawGaus(mGausRandomRing, lCol0, sigmaT * exbfactor);
+      lTime = drawGaus(mGausRandomRing, lTime0, sigmaL * exbfactor);
     } else {
-      lCol = gRandom->Gaus(lCol0, sigmaT);
-      lTime = gRandom->Gaus(lTime0, sigmaL);
+      lCol = drawGaus(mGausRandomRing, lCol0, sigmaT);
+      lTime = drawGaus(mGausRandomRing, lTime0, sigmaL);
     }
     return true;
   } else {
