@@ -1631,12 +1631,16 @@ int GPUChainTracking::RunChain()
   static HighResTimer timerTracking, timerMerger, timerQA, timerTransform, timerCompression, timerClusterer;
   int nCount = mRec->getNEventsProcessed();
 
+#ifdef GPUCA_STANDALONE
+  mRec->PrepareEvent();
+#else
   try {
     mRec->PrepareEvent();
   } catch (const std::bad_alloc& e) {
     GPUError("Memory Allocation Error");
     return (1);
   }
+#endif
 
   PrepareDebugOutput();
 
