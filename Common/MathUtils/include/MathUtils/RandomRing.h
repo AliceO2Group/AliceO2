@@ -21,13 +21,12 @@
 /// The numbers can then be used as a continuous stream in
 /// a ring buffer
 ///
-/// origin: TPC
 /// @author Jens Wiechula, Jens.Wiechula@cern.ch
 
-#ifndef ALICEO2_TPC_RANDOMRING_H_
-#define ALICEO2_TPC_RANDOMRING_H_
+#ifndef ALICEO2_MATHUTILS_RANDOMRING_H_
+#define ALICEO2_MATHUTILS_RANDOMRING_H_
 
-#include <boost/format.hpp>
+// #include <boost/format.hpp>
 
 #include "Vc/Vc"
 #include <array>
@@ -39,7 +38,7 @@ using float_v = Vc::float_v;
 
 namespace o2
 {
-namespace tpc
+namespace math_utils
 {
 
 template <size_t N = float_v::size() * 100000>
@@ -170,6 +169,6 @@ inline void RandomRing<N>::initialize(TF1& function)
   }
 }
 
-} // namespace tpc
+} // namespace math_utils
 } // namespace o2
 #endif

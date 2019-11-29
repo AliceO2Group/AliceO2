@@ -30,7 +30,6 @@ o2_add_library(TPCBase
                        src/ParameterGas.cxx
                        src/ParameterGEM.cxx
                        src/PartitionInfo.cxx
-                       src/RandomRing.cxx
                        src/ROC.cxx
                        src/Sector.cxx
                PUBLIC_LINK_LIBRARIES Vc::Vc Boost::boost O2::DataFormatsTPC
@@ -58,7 +57,6 @@ o2_target_root_dictionary(TPCBase
                                   include/TPCBase/ParameterGas.h
                                   include/TPCBase/ParameterGEM.h
                                   include/TPCBase/PartitionInfo.h
-                                  include/TPCBase/RandomRing.h
                                   include/TPCBase/ROC.h
                                   include/TPCBase/Sector.h)
 

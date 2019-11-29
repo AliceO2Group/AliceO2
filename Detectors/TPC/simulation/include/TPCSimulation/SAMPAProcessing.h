@@ -20,7 +20,7 @@
 #include "TPCBase/PadPos.h"
 #include "TPCBase/CalDet.h"
 #include "TPCBase/CRU.h"
-#include "TPCBase/RandomRing.h"
+#include "MathUtils/RandomRing.h"
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGas.h"
@@ -131,7 +131,7 @@ class SAMPAProcessing
   const ParameterElectronics* mEleParam; ///< Caching of the parameter class to avoid multiple CDB calls
   const CalPad* mNoiseMap;               ///< Caching of the parameter class to avoid multiple CDB calls
   const CalPad* mPedestalMap;            ///< Caching of the parameter class to avoid multiple CDB calls
-  RandomRing<> mRandomNoiseRing;         ///< Ring with random number for noise
+  math_utils::RandomRing<> mRandomNoiseRing; ///< Ring with random number for noise
 };
 
 template <typename T>
