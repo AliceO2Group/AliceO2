@@ -41,7 +41,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     AlgorithmSpec{[](InitContext& setup) { return adaptStateless([](InputRecord& inputs, DataAllocator& outputs) {
                                              for (auto& input : inputs) {
                                                const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
-                                               LOG(INFO) << *(input.spec) << " payload size " << dh->payloadSize;
+                                               // InputSpec implements operator<< so we could print (input.spec) but that is the
+                                               // matcher instead of the matched data
+                                               LOG(INFO) << dh->dataOrigin.as<std::string>() << "/"
+                                                         << dh->dataDescription.as<std::string>() << "/"
+                                                         << dh->subSpecification << " payload size " << dh->payloadSize;
 
                                                // there is a bug in InpuRecord::get for vectors of simple types, not catched in
                                                // DataAllocator unit test
@@ -57,7 +61,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
                                                } catch (const std::runtime_error& e) {
                                                  LOG(ERROR) << "can not create raw parser form input data";
                                                  o2::header::hexDump("payload", input.payload, dh->payloadSize, 64);
-                                                 throw e;
+                                                 LOG(ERROR) << e.what();
                                                }
                                              }
                                            }); }}});

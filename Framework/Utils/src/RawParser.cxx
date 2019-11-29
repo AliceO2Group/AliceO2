@@ -47,7 +47,7 @@ void RDHFormatter<V4>::apply(std::ostream& os, V4 const& header, FormatSpec choi
   if (choice == FormatSpec::Info) {
     os << "RDH v4";
   } else if (choice == FormatSpec::TableHeader) {
-    os << fmt::format(sFormatString, "PkC", "pCnt", "fId", "Mem", "CRU", "EP", "LID", "s");
+    os << fmt::format(sFormatString, "PkC", "pCnt", "fId", "Mem", "CRU", "EP", "LID", "HBOrbit", "HBBC", "s");
   } else if (choice == FormatSpec::Entry) {
     os << fmt::format(sFormatString,
                       header.packetCounter,
