@@ -69,14 +69,20 @@ if(CONFIG_O2)
   add_definitions(-DGPUCA_TPC_GEOMETRY_O2)
 endif()
 
-if(CONFIG_ROOT_AND_O2_EXTENSIONS)
+if(CONFIG_ROOT)
   find_package(ROOT CONFIG REQUIRED)
+endif()
+if(CONFIG_O2_EXTENSIONS)
   add_definitions(-DHAVE_O2HEADERS)
   if(NOT DEFINED MS_GSL_INCLUDE_DIR AND DEFINED ENV{MS_GSL_ROOT})
     set(MS_GSL_INCLUDE_DIR $ENV{MS_GSL_ROOT}/include)
   endif()
   find_package(ms_gsl REQUIRED)
-  if(NOT CONFIG_O2_ITS_TRAITS)
+  if(CONFIG_O2_ITS_TRAITS)
+    if(NOT CONFIG_ROOT)
+      message(FATAL_ERROR "Can not build ITS traits without ROOT")
+    endif()
+  else()
     add_definitions(-DGPUCA_NO_ITS_TRAITS)
   endif()
 else()
@@ -108,7 +114,7 @@ include_directories(${CMAKE_SOURCE_DIR}
                     ${CMAKE_SOURCE_DIR}/SliceTracker
                     ${CMAKE_SOURCE_DIR}/TRDTracking)
 
-if(CONFIG_ROOT_AND_O2_EXTENSIONS)
+if(CONFIG_O2_EXTENSIONS)
 include_directories(${CMAKE_SOURCE_DIR}/gpucf
                     ${CMAKE_SOURCE_DIR}/ITS
                     ${CMAKE_SOURCE_DIR}/DataCompression
@@ -145,7 +151,7 @@ target_compile_definitions(ca PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_D
 target_compile_definitions(standalone_support PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
 
 # Add all sources and dependencies to to support based on Config File
-if(CONFIG_ROOT_AND_O2_EXTENSIONS)
+if(CONFIG_O2_EXTENSIONS)
   target_sources(standalone_support PRIVATE
                ../../..//DataFormats/simulation/src/MCCompLabel.cxx
                ../../..//Detectors/TRD/base/src/TRDGeometryBase.cxx
@@ -162,6 +168,8 @@ if(CONFIG_ROOT_AND_O2_EXTENSIONS)
         ../../..//Detectors/ITSMFT/ITS/tracking/src/VertexerTraits.cxx
         ../../..//Detectors/ITSMFT/ITS/tracking/src/ROframe.cxx)
   endif()
+endif()
+if(CONFIG_ROOT)
   target_sources(ca PRIVATE qa/genEvents.cxx)
 endif()
 
@@ -182,13 +190,15 @@ if(BUILD_EVENT_DISPLAY)
                              display/GPUDisplayBackendGlut.cxx)
 endif()
 
-if(CONFIG_ROOT_AND_O2_EXTENSIONS)
+if(CONFIG_ROOT)
   target_link_libraries(standalone_support PUBLIC
                              ROOT::Core
                              ROOT::RIO
                              ROOT::Hist
-                             ROOT::Gui
-                             ms_gsl::ms_gsl)
+                             ROOT::Gui)
+endif()
+if(CONFIG_O2_EXTENSIONS)
+  target_link_libraries(standalone_support PUBLIC ms_gsl::ms_gsl)
 endif()
 
 if(CONFIG_VC)
