@@ -11,7 +11,8 @@
 o2_add_library(CommonUtils
                SOURCES src/TreeStream.cxx src/TreeStreamRedirector.cxx
                        src/RootChain.cxx src/CompStream.cxx src/ShmManager.cxx
-               PUBLIC_LINK_LIBRARIES ROOT::Tree Boost::iostreams
+	               src/HBFUtils.cxx
+               PUBLIC_LINK_LIBRARIES ROOT::Tree Boost::iostreams O2::CommonDataFormat O2::Headers
                                      FairLogger::FairLogger)
 
 o2_target_root_dictionary(CommonUtils
@@ -21,7 +22,8 @@ o2_target_root_dictionary(CommonUtils
                                   include/CommonUtils/BoostSerializer.h
                                   include/CommonUtils/ShmManager.h
                                   include/CommonUtils/RngHelper.h
-                                  include/CommonUtils/StringUtils.h)
+                                  include/CommonUtils/StringUtils.h
+				  include/CommonUtils/HBFUtils.h)
 
 o2_add_test(TreeStream
             COMPONENT_NAME CommonUtils
@@ -40,3 +42,9 @@ o2_add_test(CompStream
             LABELS utils
             SOURCES test/testCompStream.cxx
             PUBLIC_LINK_LIBRARIES O2::CommonUtils Boost::filesystem)
+
+o2_add_test(HBFUtils
+            PUBLIC_LINK_LIBRARIES O2::CommonUtils O2::Steer
+            SOURCES test/testHBFUtils.cxx
+            LABELS steer)
+
