@@ -25,6 +25,7 @@
 // debug
 #ifdef _ALLOW_DEBUG_TREES_ITS_
 #include "CommonUtils/TreeStreamRedirector.h"
+#include <unordered_map>
 #endif
 // \debug
 
@@ -51,7 +52,7 @@ void trackleterKernelSerial(
   const float phiCut,
   std::vector<Tracklet>& Tracklets,
   std::vector<int>& foundTracklets,
-  const ROframe* evt = nullptr,
+  // const ROframe* evt = nullptr,
   const int maxTrackletsPerCluster = static_cast<int>(2e3))
 {
   foundTracklets.resize(clustersCurrentLayer.size(), 0);
@@ -101,6 +102,8 @@ void trackletSelectionKernelSerial(
   std::vector<Line>& destTracklets,
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   std::vector<std::array<int, 2>>& allowedTrackletPairs,
+  StandaloneDebugger* debugger,
+  ROframe* event,
 #endif
   const float tanLambdaCut = 0.025f,
   const float phiCut = 0.005f,
@@ -116,9 +119,11 @@ void trackletSelectionKernelSerial(
         const float deltaPhi{gpu::GPUCommonMath::Abs(tracklets01[iTracklet01].phiCoordinate - tracklets12[iTracklet12].phiCoordinate)};
         if (deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTracklets) {
           assert(tracklets01[iTracklet01].secondClusterIndex == tracklets12[iTracklet12].firstClusterIndex);
-          destTracklets.emplace_back(tracklets01[iTracklet01], clustersNextLayer.data(), clustersCurrentLayer.data());
 #ifdef _ALLOW_DEBUG_TREES_ITS_
           allowedTrackletPairs.push_back(std::array<int, 2>{iTracklet01, iTracklet12});
+          destTracklets.emplace_back(tracklets01[iTracklet01], clustersNextLayer.data(), clustersCurrentLayer.data(), debugger->getEventId(clustersNextLayer[tracklets01[iTracklet01].firstClusterIndex].clusterId, clustersCurrentLayer[tracklets01[iTracklet01].secondClusterIndex].clusterId, event));
+#else
+          destTracklets.emplace_back(tracklets01[iTracklet01], clustersNextLayer.data(), clustersCurrentLayer.data());
 #endif
           ++validTracklets;
         }
@@ -128,6 +133,7 @@ void trackletSelectionKernelSerial(
     offset12 += foundTracklets12[iCurrentLayerClusterIndex];
   }
 }
+
 #ifdef _ALLOW_DEBUG_TREES_ITS_
 VertexerTraits::VertexerTraits() : mAverageClustersRadii{std::array<float, 3>{0.f, 0.f, 0.f}},
                                    mMaxDirectorCosine3{0.f}
@@ -277,7 +283,7 @@ void VertexerTraits::computeTrackletsPureMontecarlo()
   }
 
   for (auto& trk : mComb01) {
-    mTracklets.emplace_back(trk, mClusters[0].data(), mClusters[1].data());
+    mTracklets.emplace_back(trk, mClusters[0].data(), mClusters[1].data()); // any check on the propagation to the third layer?
   }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
@@ -309,8 +315,7 @@ void VertexerTraits::computeTracklets()
     LAYER0_TO_LAYER1,
     mVrtParams.phiCut,
     mComb01,
-    mFoundTracklets01,
-    mEvent);
+    mFoundTracklets01);
 
   trackleterKernelSerial(
     mClusters[2],
@@ -319,8 +324,7 @@ void VertexerTraits::computeTracklets()
     LAYER1_TO_LAYER2,
     mVrtParams.phiCut,
     mComb12,
-    mFoundTracklets12,
-    mEvent);
+    mFoundTracklets12);
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   if (isDebugFlag(VertexerDebug::CombinatoricsTreeAll)) {
@@ -341,6 +345,8 @@ void VertexerTraits::computeTrackletMatching()
     mTracklets,
 #ifdef _ALLOW_DEBUG_TREES_ITS_
     mAllowedTrackletPairs,
+    mDebugger,
+    mEvent,
 #endif
     mVrtParams.tanLambdaCut,
     mVrtParams.phiCut);
@@ -417,7 +423,11 @@ void VertexerTraits::computeVertices()
       }
     }
   }
-
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  if (isDebugFlag(VertexerDebug::LineSummaryAll)) {
+    mDebugger->fillLineClustersTree(mTrackletClusters, mEvent);
+  }
+#endif
   std::sort(mTrackletClusters.begin(), mTrackletClusters.end(),
             [](ClusterLines& cluster1, ClusterLines& cluster2) { return cluster1.getSize() > cluster2.getSize(); });
   int noClusters{static_cast<int>(mTrackletClusters.size())};
@@ -427,7 +437,6 @@ void VertexerTraits::computeVertices()
     for (int iCluster2{iCluster1 + 1}; iCluster2 < noClusters; ++iCluster2) {
       vertex2 = mTrackletClusters[iCluster2].getVertex();
       if (std::abs(vertex1[2] - vertex2[2]) < mVrtParams.clusterCut) {
-
         float distance{(vertex1[0] - vertex2[0]) * (vertex1[0] - vertex2[0]) +
                        (vertex1[1] - vertex2[1]) * (vertex1[1] - vertex2[1]) +
                        (vertex1[2] - vertex2[2]) * (vertex1[2] - vertex2[2])};
@@ -459,15 +468,33 @@ void VertexerTraits::computeVertices()
                                                                             // off-diagonal: square mean of projections on planes.
                              mTrackletClusters[iCluster].getSize(),         // Contributors
                              mTrackletClusters[iCluster].getAvgDistance2(), // In place of chi2
-                             mEvent->getROFrameId());
+                             mEvent->getROFrameId()
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+                               ,
+                             mTrackletClusters[iCluster].getEventId(),
+                             mTrackletClusters[iCluster].getPurity()
+#endif
+      );
       mEvent->addPrimaryVertex(mVertices.back().mX, mVertices.back().mY, mVertices.back().mZ);
     }
   }
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  for (auto& vertex : mVertices) {
+    mDebugger->fillVerticesInfoTree(vertex.mX, vertex.mY, vertex.mZ, vertex.mContributors, mEvent->getROFrameId(), vertex.mEventId, vertex.mPurity);
+  }
+#endif
 }
 
 void VertexerTraits::computeHistVertices()
 {
   o2::its::VertexerHistogramsConfiguration histConf;
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  std::array<std::vector<int>, 4001> indicesBookKeeper; // HARD_TO_CODE
+  for (auto v : indicesBookKeeper) {
+    v.clear();
+  }
+  const float binSize{histConf.highHistBoundariesXYZ[2] - histConf.lowHistBoundariesXYZ[2]};
+#endif
   std::vector<boost::histogram::axis::regular<float>> axes;
   axes.reserve(3);
   for (size_t iAxis{0}; iAxis < 3; ++iAxis) {
@@ -478,6 +505,7 @@ void VertexerTraits::computeHistVertices()
   auto histY = boost::histogram::make_histogram(axes[1]);
   auto histZ = boost::histogram::make_histogram(axes[2]);
 
+  // Loop over lines, calculate transverse vertices within beampipe and fill XY histogram to find pseudobeam projection
   for (size_t iTracklet1{0}; iTracklet1 < mTracklets.size(); ++iTracklet1) {
     for (size_t iTracklet2{iTracklet1 + 1}; iTracklet2 < mTracklets.size(); ++iTracklet2) {
       if (Line::getDCA(mTracklets[iTracklet1], mTracklets[iTracklet2]) < mVrtParams.histPairCut) {
@@ -491,7 +519,7 @@ void VertexerTraits::computeHistVertices()
   }
 
   // Try again to use std::max_element as soon as boost is upgraded to 1.71...
-  // atm you can iterate over histograms, not really poossible to get bin index. Need to use iterate(histogram)
+  // atm you can iterate over histograms, not really possible to get bin index. Need to use iterate(histogram)
   int maxXBinContent{0};
   int maxYBinContent{0};
   int maxXIndex{0};
@@ -510,6 +538,7 @@ void VertexerTraits::computeHistVertices()
     }
   }
 
+  // Compute weighted average around XY to smooth the position
   if (maxXBinContent || maxYBinContent) {
     float tmpX{histConf.lowHistBoundariesXYZ[0] + histConf.binSizeHistX * maxXIndex + histConf.binSizeHistX / 2};
     float tmpY{histConf.lowHistBoundariesXYZ[1] + histConf.binSizeHistY * maxYIndex + histConf.binSizeHistY / 2};
@@ -532,24 +561,45 @@ void VertexerTraits::computeHistVertices()
 
     const float beamCoordinateX{wX / sumX};
     const float beamCoordinateY{wY / sumY};
+
+    // create actual pseudobeam line
     Line pseudoBeam{std::array<float, 3>{beamCoordinateX, beamCoordinateY, 1}, std::array<float, 3>{beamCoordinateX, beamCoordinateY, -1}};
+
+    // Fill z coordinate histogram
     for (auto& line : mTracklets) {
       if (Line::getDCA(line, pseudoBeam) < mVrtParams.histPairCut) {
         ClusterLines cluster{line, pseudoBeam};
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+        // here needs to store ID and bin
+        int b_index = StandaloneDebugger::getBinIndex(cluster.getVertex()[2],
+                                                      histConf.nBinsXYZ[2] - 1,
+                                                      histConf.lowHistBoundariesXYZ[2],
+                                                      histConf.highHistBoundariesXYZ[2]);
+        const int evId = cluster.getEventId();
+        if (!(evId < 0)) {
+          indicesBookKeeper[b_index].push_back(evId);
+        }
+#endif
         histZ(cluster.getVertex()[2]);
       }
     }
     for (int iVertex{0};; ++iVertex) {
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+      int mVotes{0};
+      int mNVotes{0};
+      int mPoll{-1};
+      int mTotVotes{0};
+      int mSwitches{0};
+      std::unordered_map<int, int> mMap;
+#endif
       int maxZBinContent{0};
       int maxZIndex{0};
+      // find maximum
       for (auto z : indexed(histZ)) {
         if (z.get() > maxZBinContent) {
           maxZBinContent = z.get();
           maxZIndex = z.index();
         }
-      }
-      if (maxZBinContent < mVrtParams.clusterContributorsCut && iVertex) {
-        break;
       }
       float tmpZ{histConf.lowHistBoundariesXYZ[2] + histConf.binSizeHistZ * maxZIndex + histConf.binSizeHistZ / 2};
       int sumZ{maxZBinContent};
@@ -559,17 +609,74 @@ void VertexerTraits::computeHistVertices()
           wZ += (histConf.lowHistBoundariesXYZ[2] + histConf.binSizeHistZ * iBinZ + histConf.binSizeHistZ / 2) * histZ.at(iBinZ);
           sumZ += histZ.at(iBinZ);
           histZ.at(iBinZ) = 0;
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+          indicesBookKeeper[iBinZ].clear();
+#endif
         }
       }
+      if ((sumZ < mVrtParams.clusterContributorsCut) && (iVertex != 0)) {
+        break;
+      }
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+      for (int iBinZ{std::max(0, maxZIndex - histConf.binSpanXYZ[2])};
+           iBinZ < std::min(maxZIndex + histConf.binSpanXYZ[2] + 1, histConf.nBinsXYZ[2] - 1);
+           ++iBinZ) {
+        // Boyer-Moore-ish
+        for (auto& evId : indicesBookKeeper[iBinZ]) {
+          if (mNVotes == 0) {
+            mPoll = evId;
+            ++mNVotes;
+          } else {
+            if (evId == mPoll) {
+              ++mNVotes;
+            } else {
+              ++mSwitches;
+              --mNVotes;
+            }
+          }
+          auto it = mMap.find(evId);
+          if (it == mMap.end()) {
+            mMap.emplace(evId, 1);
+          } else {
+            it->second += 1;
+          }
+          ++mTotVotes;
+        }
+        // std::cout<<"\n";
+      }
+      // Compute purity
+      auto it = mMap.find(mPoll);
+      assert(it != mMap.end());
+      float purity{(float)it->second / (float)mTotVotes};
+#endif
       histZ.at(maxZIndex) = 0;
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+      indicesBookKeeper[maxZIndex].clear();
+#endif
       const float vertexZCoordinate{wZ / sumZ};
-      mVertices.emplace_back(beamCoordinateX, beamCoordinateY, vertexZCoordinate, std::array<float, 6>{0., 0., 0., 0., 0., 0.}, sumZ, 0., mEvent->getROFrameId());
+      mVertices.emplace_back(beamCoordinateX,
+                             beamCoordinateY,
+                             vertexZCoordinate,
+                             std::array<float, 6>{0., 0., 0., 0., 0., 0.},
+                             sumZ,
+                             0.,
+                             mEvent->getROFrameId()
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+                               ,
+                             mPoll,
+                             purity
+#endif
+      );
     }
   }
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  for (auto& vertex : mVertices) {
+    mDebugger->fillVerticesInfoTree(vertex.mX, vertex.mY, vertex.mZ, vertex.mContributors, mEvent->getROFrameId(), vertex.mEventId, vertex.mPurity);
+  }
+#endif
 }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-
 // Montecarlo validation for externally-provided tracklets (GPU-like cases)
 void VertexerTraits::filterTrackletsWithMC(std::vector<Tracklet>& tracklets01,
                                            std::vector<Tracklet>& tracklets12,
@@ -614,7 +721,6 @@ void VertexerTraits::filterTrackletsWithMC(std::vector<Tracklet>& tracklets01,
     indices12[iFoundTrackletIndex] -= removed; // decrease number of tracklets by the number of removed ones
   }
 }
-
 #endif
 
 void VertexerTraits::dumpVertexerTraits()

@@ -18,6 +18,10 @@
 #include "ITStracking/Tracklet.h"
 #include "GPUCommonMath.h"
 
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+#include <unordered_map>
+#endif
+
 namespace o2
 {
 namespace its
@@ -29,6 +33,10 @@ struct Line final {
   Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint);
   GPUhd() Line(const float firstPoint[3], const float secondPoint[3]);
   GPUhd() Line(const Tracklet&, const Cluster*, const Cluster*);
+
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters, const int evId);
+#endif
 
   inline static float getDistanceFromPoint(const Line& line, const std::array<float, 3>& point);
   GPUhd() static float getDistanceFromPoint(const Line& line, const float point[3]);
@@ -47,6 +55,10 @@ struct Line final {
   //    3 --> 1,1
   //    4 --> 1,2
   //    5 --> 2,2
+  // Debug quantities
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  int evtId; // -1 if fake
+#endif
 };
 
 inline Line::Line() : weightMatrix{1., 0., 0., 1., 0., 1.}
@@ -64,6 +76,9 @@ inline Line::Line(const Line& other)
   for (int i{0}; i < 6; ++i) {
     weightMatrix[i] = other.weightMatrix[i];
   }
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+  evtId = other.evtId;
+#endif
 }
 
 inline Line::Line(const float firstPoint[3], const float secondPoint[3])
@@ -96,6 +111,25 @@ inline Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const 
   for (int index{0}; index < 3; ++index)
     cosinesDirector[index] *= inverseNorm;
 }
+
+#ifdef _ALLOW_DEBUG_TREES_ITS_
+inline Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters, const int evId) : evtId{evId}
+{
+  originPoint[0] = innerClusters[tracklet.firstClusterIndex].xCoordinate;
+  originPoint[1] = innerClusters[tracklet.firstClusterIndex].yCoordinate;
+  originPoint[2] = innerClusters[tracklet.firstClusterIndex].zCoordinate;
+
+  cosinesDirector[0] = outerClusters[tracklet.secondClusterIndex].xCoordinate - innerClusters[tracklet.firstClusterIndex].xCoordinate;
+  cosinesDirector[1] = outerClusters[tracklet.secondClusterIndex].yCoordinate - innerClusters[tracklet.firstClusterIndex].yCoordinate;
+  cosinesDirector[2] = outerClusters[tracklet.secondClusterIndex].zCoordinate - innerClusters[tracklet.firstClusterIndex].zCoordinate;
+
+  float inverseNorm{1.f / gpu::CAMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
+                                            cosinesDirector[2] * cosinesDirector[2])};
+
+  for (int index{0}; index < 3; ++index)
+    cosinesDirector[index] *= inverseNorm;
+}
+#endif
 
 // static functions
 inline float Line::getDistanceFromPoint(const Line& line, const std::array<float, 3>& point)
@@ -179,7 +213,10 @@ class ClusterLines final
   ClusterLines(const Line& firstLine, const Line& secondLine);
   void add(const int& lineLabel, const Line& line, const bool& weight = false);
   void computeClusterCentroid();
-  inline std::vector<int>& getLabels() { return mLabels; }
+  inline std::vector<int>& getLabels()
+  {
+    return mLabels;
+  }
   inline int getSize() const { return mLabels.size(); }
   inline std::array<float, 3> getVertex() const { return mVertex; }
   inline std::array<float, 6> getRMS2() const { return mRMS2; }
@@ -190,6 +227,15 @@ class ClusterLines final
   {
     return mLines;
   }
+  void vote(const Line& line);
+  inline int getEventId() const { return mPoll; }
+  inline float getPurity()
+  {
+    auto id = getEventId();
+    auto it = mMap.find(id);
+    assert(it != mMap.end());
+    return (float)it->second / (float)mLabels.size();
+  }
 #endif
 
  protected:
@@ -198,11 +244,15 @@ class ClusterLines final
   std::vector<int> mLabels;              // labels
   std::array<float, 3> mVertexCandidate; // vertex candidate
   std::array<float, 9> mWeightMatrix;    // weight matrix
-  std::array<float, 3> mVertex;          // cluster centroid posdtion
+  std::array<float, 3> mVertex;          // cluster centroid position
   std::array<float, 6> mRMS2;            // symmetric matrix: diagonal is RMS2
   float mAvgDistance2;                   // substitute for chi2
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   std::vector<Line> mLines;
+  int mPoll;
+  int mNVotes;
+  std::unordered_map<int, int> mMap;
+  int mSwitches;
 #endif
 };
 
