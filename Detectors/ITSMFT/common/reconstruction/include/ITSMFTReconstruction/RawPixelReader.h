@@ -51,6 +51,7 @@ constexpr int MaxLinksPerRU = 3;            // max number of GBT links per RU
 constexpr int MaxCablesPerRU = 28;          // max number of cables RU can readout
 constexpr int MaxChipsPerRU = 196;          // max number of chips the RU can readout
 constexpr int MaxGBTPacketBytes = 8 * 1024; // Max size of GBT packet in bytes (8KB)
+constexpr int MaxGBTWordsPerPacket = MaxGBTPacketBytes / GBTPaddedWordLength; // Max N of GBT words per CRU page
 constexpr int NCRUPagesPerSuperpage = 256;  // Expected max number of CRU pages per superpage
 
 struct GBTLinkDecodingStat {
@@ -183,6 +184,9 @@ struct RawDecodingStat {
 
 // support for the GBT single link data
 struct GBTLink {
+  uint16_t id = 0;      // link ID within the CRU
+  uint16_t cruID = 0;   // CRU ID
+  uint16_t feeID = 0;   // FEE ID
   PayLoadCont data;     // data buffer per link
   int lastPageSize = 0; // size of last added page = offset from the end to get to the RDH
   int nTriggers = 0;    // number of triggers loaded (the last one might be incomplete)
@@ -193,7 +197,7 @@ struct GBTLink {
   uint32_t lanesTimeOut = 0;  // lanes received timeout
   uint32_t lanesWithData = 0; // lanes with data transmitted
   int32_t packetCounter = -1; // current packet counter from RDH (RDH.packetCounter)
-  const o2::header::RAWDataHeader* lastRDH = nullptr;
+  o2::header::RAWDataHeader* lastRDH = nullptr;
   GBTLinkDecodingStat statistics; // decoding statistics
 
   void clear(bool resetStat = true)
@@ -223,7 +227,9 @@ struct RUDecodeData {
   const RUInfo* ruInfo = nullptr;
 
   RUDecodeData() = default;
-  //  RUDecodeData(const RUDecodeData& src) {}; // dummy?
+  // We don't want to have copy c-tor since the object has unique_ptr members
+  // This also means that we cannot have vector<RUDecodeData>, but the number of RUs is limited, so it is ok
+  RUDecodeData(const RUDecodeData& src) = delete;
 
   void clear(bool resetStat = true)
   {
@@ -501,7 +507,7 @@ class RawPixelReader : public PixelReader
       o2::itsmft::GBTDataHeader gbtHeader(0, link->lanes);
       o2::itsmft::GBTDataTrailer gbtTrailer; // lanes will be set on closing the last page
 
-      gbtHeader.setPacketID(rdh.pageCnt);
+      gbtHeader.packetIdx = rdh.pageCnt;
       link->data.addFast(gbtHeader.getW8(), mGBTWordSize); // write GBT header for current packet
       if (mVerbose) {
         LOG(INFO) << "Filling RU data";
@@ -556,7 +562,7 @@ class RawPixelReader : public PixelReader
           if (mVerbose) {
             printRDH(&rdh);
           }
-          gbtHeader.setPacketID(rdh.pageCnt);
+          gbtHeader.packetIdx = rdh.pageCnt;
           link->data.addFast(gbtHeader.getW8(), mGBTWordSize); // write GBT header for current packet
           if (mVerbose) {
             gbtHeader.printX(mPadding128);
@@ -565,8 +571,8 @@ class RawPixelReader : public PixelReader
         }
       } while (nGBTWordsNeeded);
 
-      gbtTrailer.setLanesStop(link->lanes);
-      gbtTrailer.setPacketState(0x1 << GBTDataTrailer::PacketDone);
+      gbtTrailer.lanesStops = link->lanes;
+      gbtTrailer.packetDone = true;
       link->data.addFast(gbtTrailer.getW8(), mGBTWordSize); // write GBT trailer for the last packet
       if (mVerbose) {
         gbtTrailer.printX(mPadding128);
@@ -622,24 +628,6 @@ class RawPixelReader : public PixelReader
   }
 
   ///================================== Decoding methods ========================
-
-  //_____________________________________________________________________________
-  void printRDH(const o2::header::RAWDataHeader* h)
-  {
-    if (!h) {
-      printf("Provided RDH pointer is null\n");
-      return;
-    }
-    printf("RDH| Ver:%2u Hsz:%2u Blgt:%4u FEEId:0x%04x PBit:%u\n",
-           uint32_t(h->version), uint32_t(h->headerSize), uint32_t(h->blockLength), uint32_t(h->feeId), uint32_t(h->priority));
-    printf("RDH|[CRU: Offs:%5u Msz:%4u LnkId:0x%02x Packet:%3u CRUId:0x%04x]\n",
-           uint32_t(h->offsetToNext), uint32_t(h->memorySize), uint32_t(h->linkID), uint32_t(h->packetCounter), uint32_t(h->cruID));
-    printf("RDH| TrgOrb:%9u HBOrb:%9u TrgBC:%4u HBBC:%4u TrgType:%u\n",
-           uint32_t(h->triggerOrbit), uint32_t(h->heartbeatOrbit), uint32_t(h->triggerBC), uint32_t(h->heartbeatBC),
-           uint32_t(h->triggerType));
-    printf("RDH| DetField:0x%05x Par:0x%04x Stop:0x%04x PageCnt:%5u\n",
-           uint32_t(h->detectorField), uint32_t(h->par), uint32_t(h->stop), uint32_t(h->pageCnt));
-  }
 
   //_____________________________________
   size_t cacheLinksData(PayLoadCont& buffer)
@@ -875,7 +863,7 @@ class RawPixelReader : public PixelReader
     aborted = false;
 
     // data must start by RDH
-    auto rdh = reinterpret_cast<const o2::header::RAWDataHeader*>(raw);
+    auto rdh = reinterpret_cast<o2::header::RAWDataHeader*>(raw);
 
 #ifdef _RAW_READER_ERROR_CHECKS_
     if (!isRDHHeuristic(rdh)) {
@@ -952,8 +940,8 @@ class RawPixelReader : public PixelReader
         return raw;
       }
 
-      if (gbtH->getPacketID() != rdh->pageCnt) {
-        LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " Different GBT header " << gbtH->getPacketID()
+      if (gbtH->packetIdx != rdh->pageCnt) {
+        LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " Different GBT header " << gbtH->packetIdx
                    << " and RDH page " << rdh->pageCnt << " counters";
         printRDH(rdh);
         ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrRDHvsGBTHPageCnt]++;
@@ -967,7 +955,7 @@ class RawPixelReader : public PixelReader
         }
       }
 
-      ruLink->lanesActive = gbtH->getLanes(); // TODO do we need to update this for every page?
+      ruLink->lanesActive = gbtH->activeLanes; // TODO do we need to update this for every page?
 
       if (~(mMAP.getCablesOnRUType(ruDecData.ruInfo->ruType)) & ruLink->lanesActive) { // are there wrong lanes?
         std::bitset<32> expectL(mMAP.getCablesOnRUType(ruDecData.ruInfo->ruType)), gotL(ruLink->lanesActive);
@@ -1033,8 +1021,8 @@ class RawPixelReader : public PixelReader
         return raw;
       }
 
-      ruLink->lanesTimeOut |= gbtT->getLanesTimeout(); // register timeouts
-      ruLink->lanesStop |= gbtT->getLanesStop();       // register stops
+      ruLink->lanesTimeOut |= gbtT->lanesTimeout; // register timeouts
+      ruLink->lanesStop |= gbtT->lanesStops;      // register stops
 #endif
       raw += mGBTWordSize;
       // we finished the GBT page, see if there is a continuation and if it belongs to the same multipacket
@@ -1044,7 +1032,7 @@ class RawPixelReader : public PixelReader
       }
 
       raw = ((uint8_t*)rdh) + rdh->offsetToNext; // jump to the next packet:
-      auto rdhN = reinterpret_cast<const o2::header::RAWDataHeader*>(raw);
+      auto rdhN = reinterpret_cast<o2::header::RAWDataHeader*>(raw);
       // check if data of given RU are over, i.e. we the page counter was wrapped to 0 (should be enough!) or other RU/trigger started
       if (!isSameRUandTrigger(rdh, rdhN)) {
 
@@ -1137,7 +1125,7 @@ class RawPixelReader : public PixelReader
     aborted = false;
 
     // data must start by RDH
-    auto rdh = reinterpret_cast<const o2::header::RAWDataHeader*>(raw);
+    auto rdh = reinterpret_cast<o2::header::RAWDataHeader*>(raw);
 #ifdef _RAW_READER_ERROR_CHECKS_
     if (!isRDHHeuristic(rdh)) {
       LOG(ERROR) << "Page does not start with RDH";
@@ -1221,8 +1209,8 @@ class RawPixelReader : public PixelReader
         outBuffer.shrinkToSize(sizeAtEntry); // reset output buffer to initial state
         return raw;
       }
-      if (gbtH->getPacketID() != rdh->pageCnt) {
-        LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " Different GBT header " << gbtH->getPacketID()
+      if (gbtH->packetIdx != rdh->pageCnt) {
+        LOG(ERROR) << "FEEId:" << OUTHEX(rdh->feeId, 4) << " Different GBT header " << gbtH->packetIdx
                    << " and RDH page " << rdh->pageCnt << " counters";
         printRDH(rdh);
         ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrRDHvsGBTHPageCnt]++;
@@ -1236,7 +1224,7 @@ class RawPixelReader : public PixelReader
         }
       }
 
-      ruLink->lanesActive = gbtH->getLanes(); // TODO do we need to update this for every page?
+      ruLink->lanesActive = gbtH->activeLanes; // TODO do we need to update this for every page?
 
       if (!rdh->pageCnt) { // reset flags
         ruLink->lanesStop = 0;
@@ -1298,8 +1286,8 @@ class RawPixelReader : public PixelReader
         return raw;
       }
 
-      ruLink->lanesTimeOut |= gbtT->getLanesTimeout(); // register timeouts
-      ruLink->lanesStop |= gbtT->getLanesStop();       // register stops
+      ruLink->lanesTimeOut |= gbtT->lanesTimeout; // register timeouts
+      ruLink->lanesStop |= gbtT->lanesStops;      // register stops
 #endif
 
       outBuffer.addFast(reinterpret_cast<const uint8_t*>(gbtT), mGBTWordSize); // save gbt trailer w/o 128b padding
@@ -1315,7 +1303,7 @@ class RawPixelReader : public PixelReader
       }
 
       raw = ((uint8_t*)rdh) + rdh->offsetToNext; // jump to the next packet:
-      auto rdhN = reinterpret_cast<const o2::header::RAWDataHeader*>(raw);
+      auto rdhN = reinterpret_cast<o2::header::RAWDataHeader*>(raw);
       // check if data of given RU are over, i.e. we the page counter was wrapped to 0 (should be enough!) or other RU/trigger started
       if (!isSameRUandTrigger(rdh, rdhN)) {
 
@@ -1569,6 +1557,24 @@ class RawPixelReader : public PixelReader
       LOG(INFO) << "Defining container for RU " << ruSW << " at slot " << mRUEntry[ruSW];
     }
     return mRUDecodeVec[mRUEntry[ruSW]];
+  }
+
+  //_____________________________________________________________________________
+  void printRDH(const o2::header::RAWDataHeader* h)
+  {
+    if (!h) {
+      printf("Provided RDH pointer is null\n");
+      return;
+    }
+    printf("RDH| Ver:%2u Hsz:%2u Blgt:%4u FEEId:0x%04x PBit:%u\n",
+           uint32_t(h->version), uint32_t(h->headerSize), uint32_t(h->blockLength), uint32_t(h->feeId), uint32_t(h->priority));
+    printf("RDH|[CRU: Offs:%5u Msz:%4u LnkId:0x%02x Packet:%3u CRUId:0x%04x]\n",
+           uint32_t(h->offsetToNext), uint32_t(h->memorySize), uint32_t(h->linkID), uint32_t(h->packetCounter), uint32_t(h->cruID));
+    printf("RDH| TrgOrb:%9u HBOrb:%9u TrgBC:%4u HBBC:%4u TrgType:%u\n",
+           uint32_t(h->triggerOrbit), uint32_t(h->heartbeatOrbit), uint32_t(h->triggerBC), uint32_t(h->heartbeatBC),
+           uint32_t(h->triggerType));
+    printf("RDH| DetField:0x%05x Par:0x%04x Stop:0x%04x PageCnt:%5u\n",
+           uint32_t(h->detectorField), uint32_t(h->par), uint32_t(h->stop), uint32_t(h->pageCnt));
   }
 
  private:
