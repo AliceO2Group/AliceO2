@@ -16,6 +16,8 @@
 #ifndef ALICEO2_MCH_DIGIT_H_
 #define ALICEO2_MCH_DIGIT_H_
 
+#include "Rtypes.h"
+
 namespace o2
 {
 namespace mch
@@ -23,7 +25,7 @@ namespace mch
 
 // \class Digit
 /// \brief MCH digit implementation
-  class Digit //: public DigitBase
+class Digit
 {
  public:
   Digit() = default;
@@ -31,14 +33,13 @@ namespace mch
   Digit(double time, int detid, int pad, double adc);
   ~Digit() = default;
 
+  bool operator==(const Digit&) const;
+
   double getTimeStamp() const { return mTime; }
-  void setTimeStamp(double time) { mTime = time; }
-  
+
   int getDetID() const { return mDetID; }
-  void setDetID(int detid) { mDetID = detid; }
 
   int getPadID() const { return mPadID; }
-  void setPadID(int pad) { mPadID = pad; }
 
   double getADC() const { return mADC; }
   void setADC(double adc) { mADC = adc; }
@@ -49,7 +50,7 @@ namespace mch
   int mPadID;  /// PadIndex to which the digit corresponds to
   double mADC; /// Amplitude of signal
 
-  //  ClassDefNV(Digit, 1);
+  ClassDefNV(Digit, 1);
 }; //class Digit
 
 } //namespace mch
