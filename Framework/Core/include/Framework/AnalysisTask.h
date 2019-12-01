@@ -199,7 +199,7 @@ struct AnalysisDataProcessorBuilder {
   template <typename T>
   static void appendSomethingWithMetadata(std::vector<InputSpec>& inputs)
   {
-    if constexpr (is_specialization<std::decay_t<T>, soa::Join>::value) {
+    if constexpr (is_specialization<std::decay_t<T>, soa::Join>::value || is_specialization<std::decay_t<T>, soa::Concat>::value) {
       using left_t = typename std::decay_t<T>::left_t;
       using right_t = typename std::decay_t<T>::right_t;
       doAppendInputWithMetadata<left_t>(inputs);
@@ -259,6 +259,14 @@ struct AnalysisDataProcessorBuilder {
     return typename soa::Join<T1, T2>(at1, at2);
   }
 
+  template <typename T1, typename T2>
+  static auto extractConcatFromRecord(InputRecord& record)
+  {
+    auto at1 = record.get<TableConsumer>(aod::MetadataTrait<std::decay_t<T1>>::metadata::label())->asArrowTable();
+    auto at2 = record.get<TableConsumer>(aod::MetadataTrait<std::decay_t<T2>>::metadata::label())->asArrowTable();
+    return typename soa::Concat<T1, T2>(at1, at2);
+  }
+
   template <typename T>
   static auto extractSomethingFromRecord(InputRecord& record)
   {
@@ -266,6 +274,10 @@ struct AnalysisDataProcessorBuilder {
       using left_t = typename std::decay_t<T>::left_t;
       using right_t = typename std::decay_t<T>::right_t;
       return extractJoinFromRecord<left_t, right_t>(record);
+    } else if constexpr (is_specialization<std::decay_t<T>, soa::Concat>::value) {
+      using left_t = typename std::decay_t<T>::left_t;
+      using right_t = typename std::decay_t<T>::right_t;
+      return extractConcatFromRecord<left_t, right_t>(record);
     } else if constexpr (is_specialization<std::decay_t<T>, soa::Filtered>::value) {
       return extractFilteredTableFromRecord<T>(record);
     } else {
@@ -349,7 +361,7 @@ struct AnalysisDataProcessorBuilder {
             }
             task.process(groupingElement, groupedElement);
           }
-        } else if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Table>::value) {
+        } else if constexpr (is_base_of_template<o2::soa::Table, std::decay_t<AssociatedType>>::value) {
           auto allGroupedTable = std::get<0>(associatedTables);
           using groupingMetadata = typename aod::MetadataTrait<std::decay_t<Grouping>>::metadata;
           arrow::compute::FunctionContext ctx;
@@ -366,9 +378,19 @@ struct AnalysisDataProcessorBuilder {
 
           // FIXME: this assumes every groupingElement has a group associated,
           // which migh not be the case.
-          for (auto& groupedDatum : groupsCollection) {
-            auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
-            task.process(groupingElement, AssociatedType{groupedElementsTable});
+          if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Table>::value || is_specialization<std::decay_t<AssociatedType>, o2::soa::Filtered>::value) {
+            for (auto& groupedDatum : groupsCollection) {
+              auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
+              task.process(groupingElement, AssociatedType{groupedElementsTable});
+              ++const_cast<std::decay_t<Grouping>&>(groupingElement);
+            }
+          } else if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Join>::value || is_specialization<std::decay_t<AssociatedType>, o2::soa::Concat>::value) {
+            std::vector<std::shared_ptr<arrow::Table>> tables;
+            for (auto& groupedDatum : groupsCollection) {
+              auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
+              tables.push_back(groupedElementsTable);
+            }
+            task.process(groupingElement, AssociatedType{tables});
             ++const_cast<std::decay_t<Grouping>&>(groupingElement);
           }
         } else {
