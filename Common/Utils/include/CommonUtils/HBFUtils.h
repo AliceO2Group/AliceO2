@@ -16,13 +16,12 @@
 
 #include <Rtypes.h>
 #include "CommonDataFormat/InteractionRecord.h"
-#include "Steer/InteractionSampler.h"
 #include "Headers/RAWDataHeader.h"
 #include "CommonConstants/Triggers.h"
 
 namespace o2
 {
-namespace steer
+namespace utils
 {
 /*
     In the MC->Raw conversion we have to make sure that
@@ -31,26 +30,30 @@ namespace steer
     2) All HBF and TF (RAWDataHeaders with corresponding HB and TF trigger flags) are present
     in the emulated raw data, even if some of them had no data in particular detector.
     
-    The HBFSampler class provides tools for interaction record -> HBF conversion and sampling
+    The HBFUtils class provides tools for interaction record -> HBF conversion and sampling
     of IRs for which the HBF RDH should be added to the raw data from the CRU.
     
-    See testHBFSampler.cxx for the outline of generating HBF frames for simulated data.
+    See testHBFUtils.cxx for the outline of generating HBF frames for simulated data.
   */
 
-class HBFSampler
+class HBFUtils
 {
   using IR = o2::InteractionRecord;
 
  public:
-  HBFSampler() = default;
-  HBFSampler(const IR& ir0) : mFirstIR(ir0) {}
+  HBFUtils() = default;
+  HBFUtils(const IR& ir0) : mFirstIR(ir0) {}
   const IR& getFirstIR() const { return mFirstIR; }
+  IR& getFirstIR() { return mFirstIR; }
 
   void setNOrbitsPerTF(int n) { mNHBFPerTF = n > 0 ? n : 1; }
   int getNOrbitsPerTF() const { return mNHBFPerTF; }
 
   ///< get IR corresponding to start of the HBF
-  IR getIR(uint32_t hbf) const { return mFirstIR + int64_t(hbf) * o2::constants::lhc::LHCMaxBunches; }
+  IR getIRHBF(uint32_t hbf) const { return mFirstIR + int64_t(hbf) * o2::constants::lhc::LHCMaxBunches; }
+
+  ///< get IR corresponding to start of the TF
+  IR getIRTF(uint32_t tf) const { return getIRHBF(tf * mNHBFPerTF); }
 
   ///< get HBF ID corresponding to this IR
   int getHBF(const IR& rec) const;
@@ -85,7 +88,7 @@ class HBFSampler
     for Int.records ir[0], ir[1], ... ir[N]
     The pseudo-code:
 
-    HBFSampler sampler;
+    HBFUtils sampler;
     uint8_t packetCounter = 0;
     std::vector<o2::InteractionRecord> HBIRVec;
     auto irFrom = sampler.getFirstIR();
@@ -109,22 +112,30 @@ class HBFSampler
       // dress rdh with cruID/FEE/Link ID, estimate size, offset etc. and flush
       // flush raw data payload
     }
-    // see tstHBFSampler for more details
+    // see tstHBFUtils for more details
     //-------------------------------------------------------------------------------------*/
   int fillHBIRvector(std::vector<IR>& dst, const IR& fromIR, const IR& toIR) const;
 
   void print() const;
 
- protected:
-  int mNHBFPerTF = 0xff;                                        // number of orbits per BC
-  IR mFirstIR = {0, o2::steer::InteractionSampler::FirstOrbit}; // 1st record of the 1st TF
+  static void printRDH(const o2::header::RAWDataHeaderV5& rdh);
+  static void printRDH(const o2::header::RAWDataHeaderV4& rdh);
+  static void dumpRDH(const o2::header::RAWDataHeaderV5& rdh);
+  static void dumpRDH(const o2::header::RAWDataHeaderV4& rdh)
+  {
+    dumpRDH(reinterpret_cast<const o2::header::RAWDataHeaderV5&>(rdh));
+  }
 
-  ClassDefNV(HBFSampler, 1);
+ protected:
+  int mNHBFPerTF = 1 + 0xff; // number of orbits per BC
+  IR mFirstIR = {0, 0};      // 1st record of the 1st TF
+
+  ClassDefNV(HBFUtils, 1);
 };
 
 //_________________________________________________
 template <>
-inline o2::header::RAWDataHeaderV4 HBFSampler::createRDH<o2::header::RAWDataHeaderV4>(const o2::InteractionRecord& rec) const
+inline o2::header::RAWDataHeaderV4 HBFUtils::createRDH<o2::header::RAWDataHeaderV4>(const o2::InteractionRecord& rec) const
 {
   auto tfhb = getTFandHBinTF(rec);
   o2::header::RAWDataHeaderV4 rdh;
@@ -145,7 +156,7 @@ inline o2::header::RAWDataHeaderV4 HBFSampler::createRDH<o2::header::RAWDataHead
 
 //_________________________________________________
 template <>
-inline o2::header::RAWDataHeaderV5 HBFSampler::createRDH<o2::header::RAWDataHeaderV5>(const o2::InteractionRecord& rec) const
+inline o2::header::RAWDataHeaderV5 HBFUtils::createRDH<o2::header::RAWDataHeaderV5>(const o2::InteractionRecord& rec) const
 {
   auto tfhb = getTFandHBinTF(rec);
   o2::header::RAWDataHeaderV5 rdh;
@@ -162,7 +173,7 @@ inline o2::header::RAWDataHeaderV5 HBFSampler::createRDH<o2::header::RAWDataHead
   return rdh;
 }
 
-} // namespace steer
+} // namespace utils
 } // namespace o2
 
 #endif
