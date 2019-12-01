@@ -290,6 +290,9 @@ void VertexerTraits::computeTrackletsPureMontecarlo()
       }
     }
   }
+  if (isDebugFlag(VertexerDebug::CombinatoricsTreeAll)) {
+    mDebugger->fillCombinatoricsTree(mComb01, mComb12);
+  }
   if (isDebugFlag(VertexerDebug::TrackletTreeAll)) {
     mDebugger->fillTrackletSelectionTree(mClusters, mComb01, mComb12, mAllowedTrackletPairs, mEvent);
   }
