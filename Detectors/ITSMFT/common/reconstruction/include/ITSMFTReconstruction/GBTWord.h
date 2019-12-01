@@ -93,7 +93,7 @@ struct GBTWord {
   bool isTriggerWord() const { return id == GBTFlagTrigger; }
 
   /// check if the GBT Header corresponds to ITS IB data (header is combined with lanes info)
-  bool isDataIB() const { return (id & 0xe0) == GBTFlagData IB; }
+  bool isDataIB() const { return (id & 0xe0) == GBTFlagDataIB; }
 
   /// check if the GBT Header corresponds to ITS OB data (header is combined with lanes/connector info)
   bool isDataOB() const { return (id & 0xe0) == GBTFlagDataOB; }
