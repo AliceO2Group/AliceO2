@@ -886,6 +886,8 @@ template <typename T1, typename T2>
 struct Join : JoinBase<T1, T2> {
   Join(std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2)
     : JoinBase<T1, T2>{ArrowHelpers::joinTables({t1, t2})} {}
+  Join(std::vector<std::shared_ptr<arrow::Table>> tables)
+    : JoinBase<T1, T2>{ArrowHelpers::joinTables(std::move(tables))} {}
 
   using left_t = T1;
   using right_t = T2;
@@ -896,6 +898,8 @@ template <typename T1, typename T2>
 struct Concat : ConcatBase<T1, T2> {
   Concat(std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2)
     : ConcatBase<T1, T2>{ArrowHelpers::concatTables({t1, t2})} {}
+  Concat(std::vector<std::shared_ptr<arrow::Table>> tables)
+    : ConcatBase<T1, T2>{ArrowHelpers::concatTables(std::move(tables))} {}
 
   using left_t = T1;
   using right_t = T2;

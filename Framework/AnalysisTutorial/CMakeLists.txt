@@ -40,6 +40,11 @@ o2_add_executable(new-collections
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
+o2_add_executable(associated-derived
+                  SOURCES src/associatedExample.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME AnalysisTutorial)
+
 o2_add_executable(dynamic-columns
                   SOURCES src/dynamicColumns.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
