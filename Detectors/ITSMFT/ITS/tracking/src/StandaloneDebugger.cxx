@@ -90,8 +90,8 @@ void StandaloneDebugger::fillTrackletSelectionTree(std::array<std::vector<Cluste
     o2::MCCompLabel lblClus1 = event->getClusterLabels(1, clusters[1][comb01[trackletPair[0]].secondClusterIndex].clusterId);
     o2::MCCompLabel lblClus2 = event->getClusterLabels(2, clusters[2][comb12[trackletPair[1]].secondClusterIndex].clusterId);
     unsigned char isValidated{(lblClus0.compare(lblClus1) == 1 && lblClus0.compare(lblClus2) == 1)};
-    float deltaPhi{gpu::GPUCommonMath::Abs(comb01[trackletPair[0]].phiCoordinate - comb12[trackletPair[1]].phiCoordinate)};
-    float deltaTanLambda{gpu::GPUCommonMath::Abs(comb01[trackletPair[0]].tanLambda - comb12[trackletPair[1]].tanLambda)};
+    float deltaPhi{comb01[trackletPair[0]].phiCoordinate - comb12[trackletPair[1]].phiCoordinate};
+    float deltaTanLambda{comb01[trackletPair[0]].tanLambda - comb12[trackletPair[1]].tanLambda};
     mTreeStream->GetDirectory()->cd(); // in case of existing other open files
     (*mTreeStream)
       << "selectedTracklets"
@@ -101,8 +101,10 @@ void StandaloneDebugger::fillTrackletSelectionTree(std::array<std::vector<Cluste
       << "isValidated=" << isValidated
       << "cluster0z=" << clusters[0][comb01[trackletPair[0]].firstClusterIndex].zCoordinate
       << "cluster0r=" << clusters[0][comb01[trackletPair[0]].firstClusterIndex].rCoordinate
+      << "cluster0phi=" << clusters[0][comb01[trackletPair[0]].firstClusterIndex].phiCoordinate
       << "cluster1z=" << clusters[1][comb01[trackletPair[0]].secondClusterIndex].zCoordinate
       << "cluster1r=" << clusters[1][comb01[trackletPair[0]].secondClusterIndex].rCoordinate
+      << "cluster1phi=" << clusters[1][comb01[trackletPair[0]].secondClusterIndex].phiCoordinate
       << "cluster2z=" << clusters[2][comb12[trackletPair[1]].secondClusterIndex].zCoordinate
       << "cluster2r=" << clusters[2][comb12[trackletPair[1]].secondClusterIndex].rCoordinate
       << "lblClus0=" << lblClus0

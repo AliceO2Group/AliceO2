@@ -25,7 +25,8 @@
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 using namespace o2::gpu;
 
-int run_primary_vertexer_ITS(const GPUDataTypes::DeviceType dtype = GPUDataTypes::DeviceType::CPU,
+int run_primary_vertexer_ITS(const float phiCut = -1.f,
+                             const GPUDataTypes::DeviceType dtype = GPUDataTypes::DeviceType::CPU,
                              const bool useMCcheck = false,
                              const int inspEvt = -1,
                              const int numEvents = 1,
@@ -122,7 +123,7 @@ int run_primary_vertexer_ITS(const GPUDataTypes::DeviceType dtype = GPUDataTypes
 
   // Settings
   o2::its::VertexingParameters parameters;
-  // parameters.phiCut = 0.05f;
+  parameters.phiCut = phiCut > 0 ? phiCut : 0.05f;
   // e.g. parameters.clusterContributorsCut = 5;
   // \Settings
 
@@ -143,10 +144,10 @@ int run_primary_vertexer_ITS(const GPUDataTypes::DeviceType dtype = GPUDataTypes
 
     // debug
     vertexer.setDebugTrackletSelection();
-    vertexer.setDebugLines(); // Handle with care, takes very long
+    // vertexer.setDebugLines(); // Handle with care, takes very long
     vertexer.setDebugCombinatorics();
-    vertexer.setDebugSummaryLines();
-    vertexer.setDebugCentroidsHistograms();
+    // vertexer.setDebugSummaryLines();
+    // vertexer.setDebugCentroidsHistograms();
     // \debug
 
     total[0] = vertexer.evaluateTask(&o2::its::Vertexer::initialiseVertexer, "Vertexer initialisation", std::cout, eventptr);
