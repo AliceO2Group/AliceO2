@@ -39,7 +39,10 @@ class StandaloneDebugger
   void setDebugTreeFileName(std::string);
   const std::string& getDebugTreeFileName() const { return mDebugTreeFileName; }
 
-  void fillCombinatoricsTree(std::vector<Tracklet>, std::vector<Tracklet>);
+  void fillCombinatoricsTree(std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>&,
+                             std::vector<Tracklet>,
+                             std::vector<Tracklet>,
+                             const ROframe*);
   void fillCombinatoricsMCTree(std::vector<Tracklet>, std::vector<Tracklet>);
   void fillTrackletSelectionTree(std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>&,
                                  std::vector<Tracklet> comb01,

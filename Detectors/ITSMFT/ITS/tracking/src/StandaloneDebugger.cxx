@@ -37,21 +37,35 @@ StandaloneDebugger::~StandaloneDebugger()
   delete mTreeStream;
 }
 
-void StandaloneDebugger::fillCombinatoricsTree(std::vector<Tracklet> comb01, std::vector<Tracklet> comb12)
+void StandaloneDebugger::fillCombinatoricsTree(std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>& clusters,
+                                               std::vector<Tracklet> comb01,
+                                               std::vector<Tracklet> comb12,
+                                               const ROframe* event)
 {
+  assert(event != nullptr);
+  assert(mTreeStream != nullptr);
+
   for (auto& combination : comb01) {
+    o2::MCCompLabel lblClus0 = event->getClusterLabels(0, clusters[0][combination.firstClusterIndex].clusterId);
+    o2::MCCompLabel lblClus1 = event->getClusterLabels(1, clusters[1][combination.secondClusterIndex].clusterId);
+    unsigned char isValidated{lblClus0.compare(lblClus1) == 1};
     (*mTreeStream)
       << "combinatorics01"
       << "tanLambda=" << combination.tanLambda
       << "phi=" << combination.phiCoordinate
+      << "isValidated=" << isValidated
       << "\n";
   }
 
   for (auto& combination : comb12) {
+    o2::MCCompLabel lblClus1 = event->getClusterLabels(1, clusters[1][combination.secondClusterIndex].clusterId);
+    o2::MCCompLabel lblClus2 = event->getClusterLabels(2, clusters[2][combination.secondClusterIndex].clusterId);
+    unsigned char isValidated{lblClus1.compare(lblClus2) == 1};
     (*mTreeStream)
       << "combinatorics12"
       << "tanLambda=" << combination.tanLambda
       << "phi=" << combination.phiCoordinate
+      << "isValidated=" << isValidated
       << "\n";
   }
 }
@@ -89,7 +103,7 @@ void StandaloneDebugger::fillTrackletSelectionTree(std::array<std::vector<Cluste
     o2::MCCompLabel lblClus0 = event->getClusterLabels(0, clusters[0][comb01[trackletPair[0]].firstClusterIndex].clusterId);
     o2::MCCompLabel lblClus1 = event->getClusterLabels(1, clusters[1][comb01[trackletPair[0]].secondClusterIndex].clusterId);
     o2::MCCompLabel lblClus2 = event->getClusterLabels(2, clusters[2][comb12[trackletPair[1]].secondClusterIndex].clusterId);
-    unsigned char isValidated{(lblClus0.compare(lblClus1) == 1 && lblClus0.compare(lblClus2) == 1)};
+    unsigned char isValidated{lblClus0.compare(lblClus1) == 1 && lblClus0.compare(lblClus2) == 1};
     float deltaPhi{comb01[trackletPair[0]].phiCoordinate - comb12[trackletPair[1]].phiCoordinate};
     float deltaTanLambda{comb01[trackletPair[0]].tanLambda - comb12[trackletPair[1]].tanLambda};
     mTreeStream->GetDirectory()->cd(); // in case of existing other open files
