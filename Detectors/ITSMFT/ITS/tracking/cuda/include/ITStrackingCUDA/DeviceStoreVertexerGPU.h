@@ -193,7 +193,6 @@ inline std::vector<Tracklet> DeviceStoreVertexerGPU::getDupletsFromGPU(const Ord
     mDuplets12.copyIntoSizedVector(tmpDuplets);
     mNFoundDuplets[1].copyIntoSizedVector(nFoundDuplets);
   }
-
   for (int iCluster{0}; iCluster < sizes[1]; ++iCluster) {
     const int stride{iCluster * mGPUConf.maxTrackletsPerCluster};
     for (int iDuplet{0}; iDuplet < nFoundDuplets[iCluster]; ++iDuplet) {
@@ -236,7 +235,6 @@ inline std::vector<int> DeviceStoreVertexerGPU::getHistogramZFromGPU()
 {
   std::vector<int> histoZ;
   histoZ.resize(mGPUConf.nBinsXYZ[2] - 1);
-  std::cout << "Size of dest vector to be refined" << std::endl;
   mHistogramXYZ[2].copyIntoSizedVector(histoZ);
 
   return histoZ;

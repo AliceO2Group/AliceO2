@@ -115,7 +115,7 @@ struct VertexingParameters {
   float phiCut = 0.005f; //0.005f
   float pairCut = 0.04f;
   float clusterCut = 0.8f;
-  float histPairCut = 0.01f;
+  float histPairCut = 0.04f;
   float tanLambdaCut = 0.002f; // tanLambda = deltaZ/deltaR
   int clusterContributorsCut = 16;
   int phiSpan = -1;
@@ -132,9 +132,9 @@ struct VertexerStoreConfigurationGPU {
   int maxTrackletCapacity = 2e4;
   int maxCentroidsXYCapacity = std::ceil(maxTrackletCapacity * (maxTrackletCapacity - 1) / 2);
   int nMaxVertices = 10;
-  int nBinsXYZ[3] = {402, 402, 2002};
+  int nBinsXYZ[3] = {402, 402, 4002};
   // int nBinsXYZ[3] = {5, 5, 2002};
-  int binSpanXYZ[3] = {1, 1, 1};
+  int binSpanXYZ[3] = {2, 2, 4};
   float lowHistBoundariesXYZ[3] = {-1.98f, -1.98f, -40.f};
   float highHistBoundariesXYZ[3] = {1.98f, 1.98f, 40.f};
   float binSizeHistX = (highHistBoundariesXYZ[0] - lowHistBoundariesXYZ[0]) / (nBinsXYZ[0] - 1);
@@ -143,8 +143,8 @@ struct VertexerStoreConfigurationGPU {
 };
 
 struct VertexerHistogramsConfiguration {
-  int nBinsXYZ[3] = {402, 402, 2002};
-  int binSpanXYZ[3] = {2, 2, 1};
+  int nBinsXYZ[3] = {402, 402, 4002};
+  int binSpanXYZ[3] = {2, 2, 4};
   float lowHistBoundariesXYZ[3] = {-1.98f, -1.98f, -40.f};
   float highHistBoundariesXYZ[3] = {1.98f, 1.98f, 40.f};
   float binSizeHistX = (highHistBoundariesXYZ[0] - lowHistBoundariesXYZ[0]) / (nBinsXYZ[0] - 1);

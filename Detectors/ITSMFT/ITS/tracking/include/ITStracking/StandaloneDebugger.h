@@ -37,8 +37,12 @@ class StandaloneDebugger
   explicit StandaloneDebugger(const std::string debugTreeFileName = "dbg_ITS.root");
   ~StandaloneDebugger();
   void setDebugTreeFileName(std::string);
-  const std::string& getDebugTreeFileName() const { return mDebugTreeFileName; }
 
+  // Monte carlo oracle
+  int getEventId(const int firstClusterId, const int secondClusterId, ROframe* frame);
+
+  // Tree part
+  const std::string& getDebugTreeFileName() const { return mDebugTreeFileName; }
   void fillCombinatoricsTree(std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>&,
                              std::vector<Tracklet>,
                              std::vector<Tracklet>,
@@ -51,7 +55,11 @@ class StandaloneDebugger
                                  const ROframe*);
   void fillLinesSummaryTree(std::vector<Line>, const ROframe*);
   void fillPairsInfoTree(std::vector<Line>, const ROframe*);
+  void fillLineClustersTree(std::vector<ClusterLines> clusters, const ROframe* event);
   void fillXYZHistogramTree(std::array<std::vector<int>, 3>, const std::array<int, 3>);
+  void fillVerticesInfoTree(float x, float y, float z, int size, int rId, int eId, float pur);
+
+  static int getBinIndex(const float, const int, const float, const float);
 
  private:
   std::string mDebugTreeFileName = "dbg_ITS.root"; // output filename
