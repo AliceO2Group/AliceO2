@@ -15,7 +15,7 @@
 #include <bitset>
 #include <boost/test/unit_test.hpp>
 #include "Steer/InteractionSampler.h"
-#include "Steer/HBFSampler.h"
+#include "CommonUtils/HBFUtils.h"
 #include "Headers/RAWDataHeader.h"
 #include <TRandom.h>
 #include <FairLogger.h>
@@ -25,7 +25,7 @@
 
 namespace o2
 {
-BOOST_AUTO_TEST_CASE(HBFSampler)
+BOOST_AUTO_TEST_CASE(HBFUtils)
 {
   using RDH = o2::header::RAWDataHeaderV5;
   using IR = o2::InteractionRecord;
@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE(HBFSampler)
   LOG(INFO) << "Emulate RDHs for raw data between IRs " << irs.front() << " and " << irs.back();
 
   // default sampler with BC filling like in TPC TDR, 50kHz
-  o2::steer::HBFSampler sampler;
+  o2::utils::HBFUtils sampler;
 
   uint8_t packetCounter = 0;
   std::vector<o2::InteractionRecord> HBIRVec;
