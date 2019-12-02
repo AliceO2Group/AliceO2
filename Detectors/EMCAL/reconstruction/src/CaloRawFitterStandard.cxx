@@ -51,6 +51,7 @@ double CaloRawFitterStandard::rawResponseFunction(double* x, double* par)
 CaloFitResults CaloRawFitterStandard::evaluate(const std::vector<Bunch>& bunchlist,
                                                std::optional<unsigned int> altrocfg1, std::optional<unsigned int> altrocfg2)
 {
+
   float time = 0;
   float amp = 0;
   float chi2 = 0;
@@ -66,7 +67,7 @@ CaloFitResults CaloRawFitterStandard::evaluate(const std::vector<Bunch>& bunchli
     amp = ampEstimate;
 
     if (nsamples > 1 && maxADC < constants::OVERFLOWCUT) {
-      auto [amp, time, chi2, fitDone] = fitRaw(first, last);
+      std::tie(amp, time, chi2, fitDone) = fitRaw(first, last);
       time += timebinOffset;
       timeEstimate += timebinOffset;
       ndf = nsamples - 2;
@@ -91,8 +92,7 @@ CaloFitResults CaloRawFitterStandard::evaluate(const std::vector<Bunch>& bunchli
     time = time * constants::EMCAL_TIMESAMPLE;
     time -= mL1Phase;
 
-    return CaloFitResults(-99, -99, mAlgo, amp, time,
-                          (int)time, chi2, ndf);
+    return CaloFitResults(-99, pedEstimate, mAlgo, amp, time, (int)time, chi2, ndf);
   }
   return CaloFitResults(-1, -1);
 }
