@@ -98,7 +98,7 @@ MappingHandler::MappingHandler()
   const int NDDL = 2;
   for (int iside = 0; iside < 2; iside++) {
     for (int iddl = 0; iddl < NDDL; iddl++) {
-      mMappings[iside * NDDL + iddl].setMapping(Form("%s/share/Detectors/EMC/file/RCU%d%c.data", gSystem->Getenv("O2_ROOT"), iddl, SIDES[iside]));
+      mMappings[iside * NDDL + iddl].setMapping(Form("%s/share/Detectors/EMC/files/RCU%d%c.data", gSystem->Getenv("O2_ROOT"), iddl, SIDES[iside]));
     }
   }
 }
