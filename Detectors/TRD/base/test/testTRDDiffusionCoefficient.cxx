@@ -17,6 +17,7 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include "TRDBase/TRDCommonParam.h"
+#include "TRDBase/TRDDiffandTimeStructEstimator.h"
 
 #include "Field/MagneticField.h"
 #include <TGeoGlobalMagField.h>
@@ -41,6 +42,17 @@ BOOST_AUTO_TEST_CASE(TRDDiffusionCoefficient_test1)
   // check whether the values match the expected AliRoot known output
   BOOST_CHECK_CLOSE(dl, 0.0255211, 0.1);
   BOOST_CHECK_CLOSE(dt, 0.0179734, 0.1);
+}
+
+/// \brief Test time structure
+BOOST_AUTO_TEST_CASE(TRDTimeStructure_test)
+{
+  auto commonParam = TRDCommonParam::Instance();
+  TRDDiffusionAndTimeStructEstimator estimator;
+  BOOST_CHECK_CLOSE(estimator.TimeStruct(1.48, 1., 0.1), commonParam->TimeStruct(1.48, 1., 0.1), 0.001);
+  BOOST_CHECK_CLOSE(estimator.TimeStruct(1.1, 1., 0.1), commonParam->TimeStruct(1.1, 1., 0.1), 0.001);
+  BOOST_CHECK_CLOSE(estimator.TimeStruct(2, 1., 0.1), commonParam->TimeStruct(2, 1., 0.1), 0.001);
+  BOOST_CHECK_CLOSE(estimator.TimeStruct(4, 1., 0.1), commonParam->TimeStruct(4, 1., 0.1), 0.001);
 }
 
 } // namespace trd
