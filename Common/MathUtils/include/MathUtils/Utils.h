@@ -171,7 +171,7 @@ GPUhdi() float FastATan2(float y, float x)
   };
 
   // fast atan2(y,x) for any angle [-Pi,Pi]
-  return copysignf(atan2P(o2::gpu::CAMath::Abs(y), x), y);
+  return o2::gpu::GPUCommonMath::Copysign(atan2P(o2::gpu::CAMath::Abs(y), x), y);
 }
 
 } // namespace utils

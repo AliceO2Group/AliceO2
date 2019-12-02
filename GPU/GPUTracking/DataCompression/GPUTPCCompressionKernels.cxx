@@ -116,7 +116,7 @@ GPUd() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0atta
       unsigned short qtot = orgCl.qTot, qmax = orgCl.qMax;
       unsigned char sigmapad = orgCl.sigmaPadPacked, sigmatime = orgCl.sigmaTimePacked;
       if (param.rec.tpcCompressionModes & GPUSettings::CompressionTruncate) {
-        compressor.truncateSignificantBitsCharge(qmax, param);
+        compressor.truncateSignificantBitsChargeMax(qmax, param);
         compressor.truncateSignificantBitsCharge(qtot, param);
         compressor.truncateSignificantBitsWidth(sigmapad, param);
         compressor.truncateSignificantBitsWidth(sigmatime, param);
@@ -242,7 +242,7 @@ GPUd() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1unat
       unsigned short qtot = orgCl.qTot, qmax = orgCl.qMax;
       unsigned char sigmapad = orgCl.sigmaPadPacked, sigmatime = orgCl.sigmaTimePacked;
       if (param.rec.tpcCompressionModes & GPUSettings::CompressionTruncate) {
-        compressor.truncateSignificantBitsCharge(qmax, param);
+        compressor.truncateSignificantBitsChargeMax(qmax, param);
         compressor.truncateSignificantBitsCharge(qtot, param);
         compressor.truncateSignificantBitsWidth(sigmapad, param);
         compressor.truncateSignificantBitsWidth(sigmatime, param);

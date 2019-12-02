@@ -121,7 +121,9 @@ o2_add_library(Framework
                                      ROOT::ROOTDataFrame
                                      ${DEBUGGUI_TARGET}
                                      O2::FrameworkLogger
-                                     Boost::serialization)
+                                     Boost::serialization
+                                     arrow::gandiva_shared
+                                     )
 
 o2_target_root_dictionary(Framework
                           HEADERS test/TestClasses.h

@@ -415,16 +415,40 @@ class Geometry
   ///
   std::tuple<int, int> GetModulePhiEtaIndexInSModule(Int_t nSupMod, Int_t nModule) const;
 
-  ///
   /// \brief Get eta-phi indexes of cell in SM
-  ///
   /// \param nSupMod[in] super module number
   /// \param nModule[in] module number
   /// \param nIphi[in] index in phi direction in module
   /// \param nIeta[in] index in phi direction in module
-  /// \return tuple (index in phi direction in super module, index in eta direction in super module)
-  ///
   std::tuple<int, int> GetCellPhiEtaIndexInSModule(Int_t nSupMod, Int_t nModule, Int_t nIphi, Int_t nIeta) const;
+
+  /// \brief Adapt cell indices in supermodule to online indexing
+  /// \param supermoduleID: super module number of the channel/cell
+  /// \param iphi: row/phi cell index, modified for DCal
+  /// \param ieta: column/eta index, modified for DCal
+  /// \return tuple with (0 - row/phi, 1 - col, eta) after shift
+  ///
+  /// Online mapping and numbering is the same for EMCal and DCal SMs but:
+  ///  - DCal odd SM (13,15,17) has online cols: 16-47; offline cols 0-31.
+  ///  - Even DCal SMs have the same numbering online and offline 0-31.
+  ///  - DCal 1/3 SM (18,19), online rows 16-23; offline rows 0-7
+  ///
+  /// Here shift the online cols or rows depending on the
+  /// super-module number to match the offline mapping.
+  std::tuple<int, int> ShiftOnlineToOfflineCellIndexes(Int_t supermoduleID, Int_t iphi, Int_t ieta) const;
+
+  /// \brief Adapt cell indices in supermodule to offline indexing
+  /// \param supermoduleID: super module number of the channel/cell
+  /// \param iphi: row/phi cell index, modified for DCal
+  /// \param ieta: column/eta index, modified for DCal
+  /// \return tuple with (0 - row/phi, 1 - col, eta) after shift
+  ///
+  /// Here shift the DCal online cols or rows depending on the
+  /// super-module number to match the online mapping.
+  ///
+  /// Reverse procedure to the one in the method above
+  /// ShiftOnlineToOfflineCellIndexes().
+  std::tuple<int, int> ShiftOfflineToOnlineCellIndexes(Int_t supermoduleID, Int_t iphi, Int_t ieta) const;
 
   ///
   /// \brief Get cell SM,  from absolute ID number

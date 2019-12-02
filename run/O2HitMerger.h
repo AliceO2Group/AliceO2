@@ -65,6 +65,15 @@ namespace o2
 namespace devices
 {
 
+// signal handler
+void sighandler(int signal)
+{
+  if (signal == SIGSEGV) {
+    LOG(WARN) << "segmentation violation ... just exit without coredump in order not to hang";
+    raise(SIGKILL);
+  }
+}
+
 class O2HitMerger : public FairMQDevice
 {
 
@@ -101,6 +110,7 @@ class O2HitMerger : public FairMQDevice
   /// Overloads the InitTask() method of FairMQDevice
   void InitTask() final
   {
+    signal(SIGSEGV, sighandler);
     ROOT::EnableThreadSafety();
 
     std::string outfilename("o2sim_merged_hits.root"); // default name
@@ -404,14 +414,12 @@ class O2HitMerger : public FairMQDevice
     }
 
     // put the event headers into the new TTree
-    o2::dataformats::MCEventHeader header;
-    auto headerbr = o2::base::getOrMakeBranch(*mOutTree, "MCEventHeader.", &header);
-    for (int i = 0; i < info->maxEvents; i++) {
-      if (eventheader) {
-        header = *eventheader;
-        headerbr->Fill();
-      }
-    }
+    o2::dataformats::MCEventHeader* headerptr = eventheader.get();
+    auto headerbr = o2::base::getOrMakeBranch(*mOutTree, "MCEventHeader.", &headerptr);
+    headerbr->SetAddress(&headerptr);
+    headerbr->Fill();
+    headerbr->ResetAddress();
+
     // attention: We need to make sure that we write everything in the same event order
     // but iteration over keys of a standard map in C++ is ordered
 

@@ -19,6 +19,8 @@
 #include "TRDBase/TRDCommonParam.h"
 #include "TRDBase/Calibrations.h"
 
+#include "MathUtils/RandomRing.h"
+
 namespace o2
 {
 namespace trd
@@ -47,6 +49,9 @@ class Digitizer
   TRDSimParam* mSimParam = nullptr;       // access to TRDSimParam instance
   TRDCommonParam* mCommonParam = nullptr; // access to TRDCommonParam instance
   Calibrations* mCalib = nullptr;         // access to Calibrations in CCDB
+  math_utils::RandomRing<> mGausRandomRing; // pre-generated normal distributed random numbers
+  math_utils::RandomRing<> mFlatRandomRing; // pre-generated flat distributed random numbers
+  math_utils::RandomRing<> mLogRandomRing;  // pre-generated exp distributed random number
 
   double mTime = 0.;
   int mEventID = 0;
@@ -62,7 +67,7 @@ class Digitizer
   bool convertSignalsToSDigits(const int, SignalContainer_t&);                                                               // True if signal-to-sdigit conversion is successful
   bool convertSignalsToADC(const int, SignalContainer_t&);                                                                   // True if signal-to-ADC conversion is successful
 
-  bool diffusion(float, double, double, double, double, double, double&, double&, double&); // True if diffusion is applied successfully
+  bool diffusion(float, float, float, float, float, float, double&, double&, double&); // True if diffusion is applied successfully
 };
 } // namespace trd
 } // namespace o2

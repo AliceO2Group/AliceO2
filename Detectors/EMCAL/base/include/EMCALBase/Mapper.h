@@ -10,6 +10,7 @@
 #ifndef __O2_EMCAL_MAPPER_H__
 #define __O2_EMCAL_MAPPER_H__
 
+#include <array>
 #include <cstdint>
 #include <exception>
 #include <functional>
@@ -18,6 +19,7 @@
 #include <sstream>
 #include <string>
 
+#include "fmt/format.h"
 #include "RStringView.h"
 #include "Rtypes.h"
 #include "DataFormatsEMCAL/Constants.h"
@@ -284,6 +286,62 @@ class Mapper
   bool mInitStatus = false;                                            ///< Initialization status
 
   ClassDefNV(Mapper, 1);
+};
+
+/// \class MappingHandler
+/// \brief Handler providing the correct mapping for the given DDL
+///
+/// EMCAL channel mapping consists of 4 mappings, organized in
+/// - A- and C-side
+/// - First or second DDL within the supermodule
+/// The mapping handler provides user-friendly access to the correct
+/// mapping for a given DDL automatically determining the proper mapping
+/// data based on side and DDL in supermodule calculated from the DDL ID
+class MappingHandler
+{
+ public:
+  /// \class DDLInvalid
+  /// \brief Error handling for invalid DDL IDs (not in range for EMCAL)
+  ///
+  /// Error thrown in queries to the MappingHandler where the DDL ID is
+  /// out-of-range for EMCAL.
+  class DDLInvalid : public std::exception
+  {
+   public:
+    DDLInvalid(int ddlID) : mDDL(ddlID) { mMessage = fmt::format("DDL {0} not existing for EMCAL", mDDL); };
+
+    /// \brief Destructor
+    ~DDLInvalid() noexcept final = default;
+
+    /// \brief Access to the error message of the exception
+    /// \return Error message
+    const char* what() const noexcept final { return mMessage.data(); }
+
+    /// \brief Access to DDL ID responsible for the exception
+    /// \return DDL ID
+    int getDDDL() const { return mDDL; }
+
+   private:
+    std::string mMessage; ///< error message
+    int mDDL;             ///< DDL
+  };
+
+  /// \brief Constructor
+  MappingHandler();
+
+  /// \brief Destructor
+  ~MappingHandler() = default;
+
+  /// \brief Get Mapping for given DDL
+  /// \param ddl ID of the DDL for which to get the mapping
+  /// \return Mapping for the DDL (if valid)
+  /// \throw DDLInvalid if DDL is invalid for EMCAL
+  Mapper& getMappingForDDL(int ddl);
+
+ private:
+  std::array<Mapper, 4> mMappings; ///< Mapping container
+
+  ClassDefNV(MappingHandler, 1);
 };
 
 /// \brief stream operator for Mapper::Channel

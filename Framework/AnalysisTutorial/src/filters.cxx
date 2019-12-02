@@ -18,7 +18,7 @@ namespace etaphi
 DECLARE_SOA_COLUMN(Eta, eta, float, "fEta");
 DECLARE_SOA_COLUMN(Phi, phi, float, "fPhi");
 } // namespace etaphi
-DECLARE_SOA_TABLE(EtaPhi, "RN2", "ETAPHI",
+DECLARE_SOA_TABLE(EtaPhi, "AOD", "ETAPHI",
                   etaphi::Eta, etaphi::Phi);
 } // namespace o2::aod
 
@@ -47,7 +47,7 @@ struct ATask {
 struct BTask {
   Filter ptFilter = (aod::etaphi::phi > 1) && (aod::etaphi::phi < 2);
 
-  void process(aod::EtaPhi const& etaPhis)
+  void process(soa::Filtered<aod::EtaPhi> const& etaPhis)
   {
     for (auto& etaPhi : etaPhis) {
       LOGF(ERROR, "(%f, %f)", etaPhi.eta(), etaPhi.phi());

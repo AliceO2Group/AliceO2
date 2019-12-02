@@ -124,7 +124,7 @@ AddOption(NEvents, int, -1, "n", 'n', "Number of events to process (-1; all)", m
 AddOption(merger, int, 1, "runMerger", 0, "Run track merging / refit", min(0), max(1))
 AddOption(runs, int, 1, "runs", 'r', "Number of iterations to perform (repeat each event)", min(0))
 AddOption(runs2, int, 1, "runsExternal", 0, "Number of iterations to perform (repeat full processing)", min(1))
-AddOption(runsInit, int, 0, "runsInit", 0, "Number of initial iterations excluded from average", min(0))
+AddOption(runsInit, int, 1, "runsInit", 0, "Number of initial iterations excluded from average", min(0))
 AddOption(EventsDir, const char*, "pp", "events", 'e', "Directory with events to process", message("Reading events from Directory events/%s"))
 AddOption(OMPThreads, int, -1, "omp", 't', "Number of OMP threads to run (-1: all)", min(-1), message("Using %d OMP threads"))
 AddOption(eventDisplay, int, 0, "display", 'd', "Show standalone event display", def(1)) //1: default display (Windows / X11), 2: glut, 3: glfw

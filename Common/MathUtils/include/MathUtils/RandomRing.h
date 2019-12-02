@@ -15,31 +15,31 @@
 
 /// @brief  Ring with random number
 ///
-/// This class creates a set of random numbers.
+/// This class creates a set of random (or any sort of pregenerated) numbers
+/// in a ring buffer.
+
 /// The idea is to create a set of random numbers that can be
 /// reused in order to save computing time.
 /// The numbers can then be used as a continuous stream in
 /// a ring buffer
 ///
-/// origin: TPC
 /// @author Jens Wiechula, Jens.Wiechula@cern.ch
 
-#ifndef ALICEO2_TPC_RANDOMRING_H_
-#define ALICEO2_TPC_RANDOMRING_H_
-
-#include <boost/format.hpp>
+#ifndef ALICEO2_MATHUTILS_RANDOMRING_H_
+#define ALICEO2_MATHUTILS_RANDOMRING_H_
 
 #include "Vc/Vc"
 #include <array>
 
 #include "TF1.h"
 #include "TRandom.h"
+#include <functional>
 
 using float_v = Vc::float_v;
 
 namespace o2
 {
-namespace tpc
+namespace math_utils
 {
 
 template <size_t N = float_v::size() * 100000>
@@ -47,9 +47,10 @@ class RandomRing
 {
  public:
   enum class RandomType : char {
-    Gaus,     ///< Gaussian distribution
-    Flat,     ///< Flat distribution
-    CustomTF1 ///< Custom TF1 function to be used
+    Gaus,         ///< Gaussian distribution
+    Flat,         ///< Flat distribution
+    CustomTF1,    ///< Custom TF1 function to be used
+    CustomLambda, ///< Initialized through external lambda
   };
 
   /// disallow copy constructor
@@ -73,6 +74,10 @@ class RandomRing
   /// initialisation of the random ring
   /// @param [in] randomType type of the random generator
   void initialize(TF1& function);
+
+  /// initialisation of the random ring
+  /// @param [in] randomType type of the random generator
+  void initialize(std::function<float()> function);
 
   /// next random value from the ring buffer
   /// This function return a value from the ring buffer
@@ -165,11 +170,22 @@ inline void RandomRing<N>::initialize(const RandomType randomType)
 template <size_t N>
 inline void RandomRing<N>::initialize(TF1& function)
 {
+  mRandomType = RandomType::CustomTF1;
   for (auto& v : mRandomNumbers) {
     v = function.GetRandom();
   }
 }
 
-} // namespace tpc
+//______________________________________________________________________________
+template <size_t N>
+inline void RandomRing<N>::initialize(std::function<float()> function)
+{
+  mRandomType = RandomType::CustomLambda;
+  for (auto& v : mRandomNumbers) {
+    v = function();
+  }
+}
+
+} // namespace math_utils
 } // namespace o2
 #endif
