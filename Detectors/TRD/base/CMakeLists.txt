@@ -13,6 +13,7 @@ o2_add_library(TRDBase
                        src/TRDGeometry.cxx
                        src/TRDGeometryFlat.cxx
                        src/TRDCommonParam.cxx
+                       src/TRDDiffAndTimeStructEstimator.cxx
                        src/TRDSimParam.cxx
                        src/PadResponse.cxx
                        src/Digit.cxx
