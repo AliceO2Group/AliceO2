@@ -255,14 +255,26 @@ std::tuple<int, int, float, short, short, float, int, int> CaloRawFitter::preFit
   // something valid was found, and non-zero amplitude
   if (index >= 0 && maxamp >= acut) {
     // use more convenient numbering and possibly subtract pedestal
-    auto [ped, mReversed] = reverseAndSubtractPed((bunchvector.at(index)), altrocfg1, altrocfg2);
-    maxf = (float)*std::max_element(mReversed.begin(), mReversed.end());
+
+    //std::tie(ped, mReversed) = reverseAndSubtractPed((bunchvector.at(index)), altrocfg1, altrocfg2);
+    //maxf = (float)*std::max_element(mReversed.begin(), mReversed.end());
+
+    int length = bunchvector.at(index).getBunchLength();
+    const std::vector<uint16_t>& sig = bunchvector.at(index).getADC();
+
+    double ped = evaluatePedestal(sig, length);
+
+    for (int i = 0; i < length; i++) {
+      mReversed[i] = sig[length - i - 1] - ped;
+      if (maxf < mReversed[i])
+        maxf = mReversed[i];
+    }
 
     if (maxf >= acut) // possibly significant signal
     {
       // select array around max to possibly be used in fit
       maxrev = maxampindex - bunchvector.at(index).getStartTime();
-      auto [first, last] = selectSubarray(gsl::span<double>(&mReversed[0], bunchvector.at(index).getBunchLength()), maxrev, acut);
+      std::tie(first, last) = selectSubarray(gsl::span<double>(&mReversed[0], bunchvector.at(index).getBunchLength()), maxrev, acut);
 
       // sanity check: maximum should not be in first or last bin
       // if we should do a fit

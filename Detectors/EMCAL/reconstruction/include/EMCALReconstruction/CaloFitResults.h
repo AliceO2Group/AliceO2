@@ -1,3 +1,4 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
 //
@@ -70,7 +71,7 @@ class CaloFitResults
   unsigned short getMinSig() const { return mMinSig; }
   int getStatus() const { return mStatus; }
   float getAmp() const { return mAmpSig; }
-  float getTof() const { return mTime; }
+  float getMaxTimeBin() const { return mMaxTimebin; }
   double getTime() const { return mTime; }
   int getMaxTimebin() const { return mMaxTimebin; }
   float getChi2() const { return mChi2Sig; }
