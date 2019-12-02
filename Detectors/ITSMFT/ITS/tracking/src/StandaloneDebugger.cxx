@@ -54,6 +54,8 @@ void StandaloneDebugger::fillCombinatoricsTree(std::array<std::vector<Cluster>, 
       << "tanLambda=" << combination.tanLambda
       << "phi=" << combination.phiCoordinate
       << "isValidated=" << isValidated
+      << "lblClus0=" << lblClus0
+      << "lblClus1=" << lblClus1
       << "\n";
   }
 
@@ -66,6 +68,8 @@ void StandaloneDebugger::fillCombinatoricsTree(std::array<std::vector<Cluster>, 
       << "tanLambda=" << combination.tanLambda
       << "phi=" << combination.phiCoordinate
       << "isValidated=" << isValidated
+      << "lblClus1=" << lblClus1
+      << "lblClus2=" << lblClus2
       << "\n";
   }
 }
