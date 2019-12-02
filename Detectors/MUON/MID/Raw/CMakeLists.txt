@@ -11,7 +11,7 @@
 o2_add_library(
   MIDRaw
   SOURCES src/CrateMapper.cxx src/Decoder.cxx src/Encoder.cxx
-          src/LocalBoardRO.cxx
+          src/LocalBoardRO.cxx src/RawBuffer.cxx
   PUBLIC_LINK_LIBRARIES ms_gsl::ms_gsl O2::DataFormatsMID O2::Headers
                         O2::MIDBase)
 
