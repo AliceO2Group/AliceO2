@@ -75,6 +75,8 @@ ReadRaw::ReadRaw(const std::string fileRaw, std::string fileDataOut)
 
 void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lut)
 {
+
+  LOG(INFO) << " readData ";
   o2::header::RAWDataHeader mRDH;
   const char padding[CRUWordSize] = {0};
   std::vector<o2::ft0::ChannelData>* chDgDataArr = nullptr;
@@ -117,7 +119,6 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
       chDgDataArr = &digits.getChDgData();
       if (mIsPadded) {
         pos += CRUWordSize - o2::ft0::EventHeader::PayloadSize;
-        //     LOG(DEBUG) << " padding header " << pos << " " << CRUWordSize - o2::ft0::EventHeader::PayloadSize;
       }
 
       for (int i = 0; i < mEventHeader.nGBTWords; ++i) {
@@ -133,7 +134,6 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
         mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i + 1]), EventData::PayloadSizeSecondWord);
         pos += o2::ft0::EventData::PayloadSizeSecondWord;
         LOG(DEBUG) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID)) << " pos " << pos;
-        //   mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i + 1]), EventData::PayloadSize);
         if (mEventData[2 * i + 1].charge <= 0 && mEventData[2 * i + 1].channelID <= 0 && mEventData[2 * i + 1].time <= 0) {
           continue;
         }
@@ -142,10 +142,6 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
         chData.QTCAmpl = mEventData[2 * i + 1].charge;
         chData.numberOfParticles = mEventData[2 * i + 1].numberADC;
         chDgDataArr->emplace_back(chData);
-        if (mIsPadded) {
-          //        LOG(DEBUG) << " padding data"
-          //                   << " pos " << pos << " CRUWordSize - o2::ft0::EventData::PayloadSize " << CRUWordSize - o2::ft0::EventData::PayloadSize;
-        }
       }
     }
   }

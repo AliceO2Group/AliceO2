@@ -31,8 +31,8 @@ constexpr int Nchannels_FT0 = 208;
 constexpr int Nchannels_PM = 12;
 constexpr int NPMs = 18;
 
-struct EventHeader {                    
-  static constexpr int PayloadSize = 16; 
+struct EventHeader {
+  static constexpr int PayloadSize = 16;
   union {
     uint64_t word[2] = {};
     struct {
@@ -67,13 +67,12 @@ struct EventData {
     };
   };
   uint64_t word_zeros = 0x0;
-  static constexpr int PayloadSize = 8; // size in bytes = 1/2 GBT word
   static const size_t PayloadSizeSecondWord = 11;
   static const size_t PayloadSizeFirstWord = 5;
 
   ClassDefNV(EventData, 1);
 };
- 
+
 class RawEventData
 {
  public:
@@ -133,7 +132,6 @@ class RawEventData
     LOG(DEBUG) << "write header words " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " bc " << int(mEventHeader.bc);
     if (mIsPadded) {
       out += CRUWordSize - EventHeader::PayloadSize;
-      LOG(INFO) << "padding header " << CRUWordSize - EventHeader::PayloadSize;
     }
     for (int i = 0; i < mEventHeader.nGBTWords; ++i) {
       std::memcpy(out, &mEventData[2 * i], EventData::PayloadSizeFirstWord);
@@ -144,7 +142,6 @@ class RawEventData
       LOG(DEBUG) << " 2nd word " << mEventData[2 * i + 1].channelID << " charge " << mEventData[2 * i + 1].charge << " time " << mEventData[2 * i + 1].time;
       if (mIsPadded) {
         out += CRUWordSize - EventData::PayloadSizeSecondWord - EventData::PayloadSizeFirstWord;
-        LOG(DEBUG) << "padding data " << CRUWordSize - 2 * EventData::PayloadSize;
       }
     }
     return result;

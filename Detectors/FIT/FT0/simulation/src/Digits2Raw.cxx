@@ -124,15 +124,12 @@ void Digits2Raw::convertDigits(const o2::ft0::Digit& digit, const o2::ft0::LookU
           if ((nchannels % 2) == 1)
             mRawEventData.mEventData[nchannels] = {};
           mRawEventData.mEventHeader.nGBTWords = nGBTWords;
-          LOG(INFO) << " header size " << sizeof(mRawEventData.mEventHeader);
           mPages[oldlink].write(mRawEventData.to_vector());
         }
         oldlink = nlink;
         mRawEventData.mEventHeader = makeGBTHeader(nlink, intRecord);
-        LOG(DEBUG) << " mRawEventData.mEventHeader size " << sizeof(mRawEventData.mEventHeader);
         nchannels = 0;
       }
-      //     LOG(DEBUG) << " ChID digits " << d.ChId << " link " << nlink << " channel " << lut.getMCP(d.ChId) << " amp " << d.QTCAmpl << " time " << d.CFDTime;
       auto& newData = mRawEventData.mEventData[nchannels];
       newData.charge = d.QTCAmpl;
       newData.time = d.CFDTime;
