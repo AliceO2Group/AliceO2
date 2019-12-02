@@ -482,8 +482,10 @@ void VertexerTraitsHIP::computeMCFiltering()
   mStoreVertexerGPU.updateDuplets(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer, tracklets12);
 
   if (isDebugFlag(VertexerDebug::CombinatoricsTreeAll)) {
-    mDebugger->fillCombinatoricsMCTree(mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer),
-                                       mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer));
+    mDebugger->fillCombinatoricsTree(mClusters,
+                                     mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer),
+                                     mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer),
+                                     mEvent);
   }
 }
 #endif

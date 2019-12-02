@@ -74,26 +74,6 @@ void StandaloneDebugger::fillCombinatoricsTree(std::array<std::vector<Cluster>, 
   }
 }
 
-void StandaloneDebugger::fillCombinatoricsMCTree(std::vector<Tracklet> comb01, std::vector<Tracklet> comb12)
-{
-  mTreeStream->GetDirectory()->cd(); // in case of existing other open files
-  for (auto& combination : comb01) {
-    (*mTreeStream)
-      << "combinatorics01_MC"
-      << "tanLambda=" << combination.tanLambda
-      << "phi=" << combination.phiCoordinate
-      << "\n";
-  }
-
-  for (auto& combination : comb12) {
-    (*mTreeStream)
-      << "combinatorics12_MC"
-      << "tanLambda=" << combination.tanLambda
-      << "phi=" << combination.phiCoordinate
-      << "\n";
-  }
-}
-
 void StandaloneDebugger::fillTrackletSelectionTree(std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>& clusters,
                                                    std::vector<Tracklet> comb01,
                                                    std::vector<Tracklet> comb12,
