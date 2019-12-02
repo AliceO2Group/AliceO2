@@ -14,6 +14,9 @@
 #include <TGeoMatrix.h>
 #include <boost/test/unit_test.hpp>
 #include <iostream>
+#include <algorithm>
+#include <memory>
+#include <cstring>
 #include "MathUtils/Cartesian3D.h"
 
 using namespace o2;
@@ -68,4 +71,25 @@ BOOST_AUTO_TEST_CASE(Cartesian3D_test)
   BOOST_CHECK(std::abs(pdti.X() - pfti.X()) < toler);
   BOOST_CHECK(std::abs(pdti.Y() - pfti.Y()) < toler);
   BOOST_CHECK(std::abs(pdti.Z() - pfti.Z()) < toler);
+}
+
+BOOST_AUTO_TEST_CASE(Point3D_messageable)
+{
+  using ElementType = Point3D<int>;
+  static_assert(std::is_trivially_copyable<ElementType>::value == true);
+  std::vector<ElementType> pts(10);
+  auto makeElement = [](int idx) {
+    return ElementType{idx, idx + 10, idx + 20};
+  };
+  std::generate(pts.begin(), pts.end(), [makeElement, idx = std::make_shared<int>(0)]() { return makeElement(++(*idx)); });
+
+  size_t memsize = sizeof(ElementType) * pts.size();
+  auto buffer = std::make_unique<char[]>(memsize);
+  memcpy(buffer.get(), (char*)pts.data(), memsize);
+  auto* pp = reinterpret_cast<ElementType*>(buffer.get());
+
+  for (auto const& point : pts) {
+    BOOST_REQUIRE(point == *pp);
+    ++pp;
+  }
 }
