@@ -117,7 +117,7 @@ TGeoVolume* V3Services::createIBEndWheelsSideC(const TGeoManager* mgr)
 TGeoVolume* V3Services::createCYSSAssembly(const TGeoManager* mgr)
 {
   //
-  // Creates the CYSS Assembly (i.e. the supporting half cylinder and cone)
+  // Creates the CYSS Assembly (i.e. the supporting cylinder and cone)
   //
   // Input:
   //         mgr : the GeoManager (used only to get the proper material)
@@ -128,6 +128,7 @@ TGeoVolume* V3Services::createCYSSAssembly(const TGeoManager* mgr)
   //         a TGeoVolume(Assembly) with all the elements
   //
   // Created:      21 Oct 2019  Mario Sitta
+  // Updated:      21 Oct 2019  Mario Sitta   Full cylinder implemented
   //
 
   static const Double_t sCyssFlangeAZpos = 9.0 * sMm;
@@ -142,19 +143,23 @@ TGeoVolume* V3Services::createCYSSAssembly(const TGeoManager* mgr)
   zlen = (static_cast<TGeoTubeSeg*>(cyssCylinder->GetShape()))->GetDz();
   zpos = sIBCYSSFlangeCZPos - sCyssFlangeCZpos - zlen;
   cyssVol->AddNode(cyssCylinder, 1, new TGeoTranslation(0, 0, -zpos));
+  cyssVol->AddNode(cyssCylinder, 2, new TGeoCombiTrans(0, 0, -zpos, new TGeoRotation("", 180, 0, 0)));
 
   TGeoVolume* cyssCone = ibCyssCone(mgr);
   zpos = -zpos + zlen - (static_cast<TGeoPcon*>(cyssCone->GetShape()))->GetZ(2);
   cyssVol->AddNode(cyssCone, 1, new TGeoTranslation(0, 0, zpos));
+  cyssVol->AddNode(cyssCone, 2, new TGeoCombiTrans(0, 0, zpos, new TGeoRotation("", 180, 0, 0)));
 
   TGeoVolume* cyssFlangeA = ibCyssFlangeSideA(mgr);
   Int_t nZPlanes = (static_cast<TGeoPcon*>(cyssCone->GetShape()))->GetNz();
   zpos = zpos + (static_cast<TGeoPcon*>(cyssCone->GetShape()))->GetZ(nZPlanes - 1) + sCyssFlangeAZpos;
   cyssVol->AddNode(cyssFlangeA, 1, new TGeoCombiTrans(0, 0, zpos, new TGeoRotation("", 180, 180, 0)));
+  cyssVol->AddNode(cyssFlangeA, 2, new TGeoCombiTrans(0, 0, zpos, new TGeoRotation("", 0, 180, 0)));
 
   TGeoVolume* cyssFlangeC = ibCyssFlangeSideC(mgr);
   zpos = sIBCYSSFlangeCZPos;
   cyssVol->AddNode(cyssFlangeC, 1, new TGeoTranslation(0, 0, -zpos));
+  cyssVol->AddNode(cyssFlangeC, 2, new TGeoCombiTrans(0, 0, -zpos, new TGeoRotation("", 180, 0, 0)));
 
   // Return the whole assembly
   return cyssVol;
