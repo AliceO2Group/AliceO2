@@ -23,6 +23,8 @@ o2_add_library(
   PUBLIC_LINK_LIBRARIES ms_gsl::ms_gsl O2::DataFormatsMID O2::Headers
                         O2::CommonConstants O2::CommonUtils O2::MIDBase)
 
+add_subdirectory(exe)
+
 if(BUILD_TESTING)
   add_subdirectory(test)
 endif()
