@@ -303,6 +303,54 @@ class RootTreeWriter
   template <typename T = char>
   using BinaryBranchStoreType = std::tuple<std::vector<T>, TBranch*, size_t>;
 
+  template <typename T>
+  using VectorBranchStoreType = std::tuple<T>;
+
+  // type trait to determine the type of the storage
+  // the storage type is different depending on the type, because
+  // - binary branches are supported
+  // - the ROOT TTree API makes a difference between fundamental types where the pointer to variable is
+  //   passed and complex objects with dictionary where the pointer to a pointer variable needs to be
+  //   passed. The former case will allways include a copy of the value, the latter uses the deserialized
+  //   object by pointer
+  // It appears, that also vectors of fundamental and also messageable tyapes can be treated in the same
+  // way as fundamental types, as long as there is a corresponding TClass implementation. ROOT creates those
+  // for vectors of fundamental types, for all other types, ClassDefNV macro is needed in the class
+  // declaration together with entry in LinkDef.
+  template <typename T, typename _ = void>
+  struct StructureElementTypeTrait {
+  };
+
+  // the binary branch format is chosen for const char*
+  // using internally a vector<char>, this involves for the moment a copy, investigate if ROOT
+  // can write a simple array of chars and use a pointer
+  template <typename T>
+  struct StructureElementTypeTrait<T, std::enable_if_t<std::is_same<T, const char*>::value>> {
+    using type = BinaryBranchStoreType<char>;
+  };
+
+  // all messageable types
+  // using an internal variable of the given type, involves a copy
+  template <typename T>
+  struct StructureElementTypeTrait<T, std::enable_if_t<is_messageable<T>::value>> {
+    using type = T;
+  };
+
+  // vectors of messageable types
+  template <typename T>
+  struct StructureElementTypeTrait<T, std::enable_if_t<has_messageable_value_type<T>::value &&
+                                                       is_specialization<T, std::vector>::value>> {
+    using type = VectorBranchStoreType<T>;
+  };
+
+  // types with root dictionary but non-messageable and not vectors of messageable type
+  template <typename T>
+  struct StructureElementTypeTrait<T, std::enable_if_t<has_root_dictionary<T>::value &&
+                                                       is_messageable<T>::value == false &&
+                                                       has_messageable_value_type<T>::value == false>> {
+    using type = T*;
+  };
+
   /// one element in the tree structure object
   /// it contains the previous element as base class and is bound to a data type.
   template <typename DataT, typename BASE>
@@ -311,11 +359,7 @@ class RootTreeWriter
    public:
     using PrevT = BASE;
     using value_type = DataT;
-    using store_type = typename std::conditional<std::is_same<DataT, const char*>::value,
-                                                 BinaryBranchStoreType<char>,
-                                                 typename std::conditional<has_root_dictionary<value_type>::value,
-                                                                           value_type*,
-                                                                           value_type>::type>::type;
+    using store_type = typename StructureElementTypeTrait<DataT>::type;
     static const size_t STAGE = BASE::STAGE + 1;
     TreeStructureElement() = default;
     ~TreeStructureElement() override = default;
@@ -389,12 +433,12 @@ class RootTreeWriter
     template <typename T, typename std::enable_if_t<std::is_same<T, value_type>::value, int> = 0>
     void fillData(InputContext& context, const char* key, TBranch* branch, size_t branchIdx)
     {
-      auto data = context.get<typename std::add_pointer<value_type>::type>(key);
-      mStore[branchIdx] = *data;
+      auto data = context.get<value_type>(key);
+      mStore[branchIdx] = data;
       branch->Fill();
     }
 
-    // specialization for objects with ROOT dictionary
+    // specialization for non-messageable types with ROOT dictionary
     // for non-trivial structs, the address of the pointer to the objects needs to be used
     // in order to directly use the pointer to extracted object
     // store is a pointer to object
@@ -418,6 +462,21 @@ class RootTreeWriter
       std::get<1>(mStore.at(branchIdx))->Fill();
       std::get<0>(mStore.at(branchIdx)).resize(data.size());
       memcpy(std::get<0>(mStore.at(branchIdx)).data(), data.data(), data.size());
+      branch->Fill();
+    }
+
+    // specialization for vectors of messageable types
+    // have been trying to use trait is_specialization but this did not work for VectorBranchStoreType
+    // the tuple is a workaround but has also the possibility for later extension
+    template <typename T, typename std::enable_if_t<std::tuple_size<T>::value == 1, int> = 0>
+    void fillData(InputContext& context, const char* key, TBranch* branch, size_t branchIdx)
+    {
+      using ValueType = typename std::tuple_element<0, T>::type::value_type;
+      static_assert(is_messageable<ValueType>::value, "logical error: should be correctly selected by StructureElementTypeTrait");
+      // TODO: the message can be serialized and we might need to handle this
+      auto data = context.get<gsl::span<ValueType>>(key);
+      std::get<0>(mStore.at(branchIdx)).resize(data.size());
+      memcpy(std::get<0>(mStore.at(branchIdx)).data(), data.data(), data.size() * sizeof(ValueType));
       branch->Fill();
     }
 

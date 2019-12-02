@@ -103,9 +103,11 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
                           },
                           // the branch names are simply built by adding the index
                           [](std::string base, size_t i) { return base + "_" + std::to_string(i); }},
-                        RootTreeWriter::BranchDef<const char*>{"input4", "binarybranch"});
+                        RootTreeWriter::BranchDef<const char*>{"input4", "binarybranch"},
+                        RootTreeWriter::BranchDef<std::vector<int>>{"input5", "intvecbranch"},
+                        RootTreeWriter::BranchDef<std::vector<o2::test::TriviallyCopyable>>{"input6", "trivvecbranch"});
 
-  BOOST_CHECK(writer.getStoreSize() == 3);
+  BOOST_CHECK(writer.getStoreSize() == 5);
 
   // need to mimic a context to actually call the processing
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
@@ -120,6 +122,19 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
     FairMQMessagePtr payload = transport->CreateMessage(sizeof(data));
     memcpy(header->GetData(), stack.data(), stack.size());
     memcpy(payload->GetData(), &data, sizeof(data));
+    store.emplace_back(std::move(header));
+    store.emplace_back(std::move(payload));
+  };
+
+  auto createVectorMessage = [&transport, &store](DataHeader&& dh, auto& data) {
+    dh.payloadSize = data.size() * sizeof(typename std::remove_reference<decltype(data)>::type::value_type);
+    dh.payloadSerializationMethod = o2::header::gSerializationMethodNone;
+    DataProcessingHeader dph{0, 1};
+    o2::header::Stack stack{dh, dph};
+    FairMQMessagePtr header = transport->CreateMessage(stack.size());
+    FairMQMessagePtr payload = transport->CreateMessage(dh.payloadSize);
+    memcpy(header->GetData(), stack.data(), stack.size());
+    memcpy(payload->GetData(), data.data(), dh.payloadSize);
     store.emplace_back(std::move(header));
     store.emplace_back(std::move(payload));
   };
@@ -141,10 +156,14 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
   int a = 23;
   Container b{{0}};
   Container c{{21}};
+  std::vector<int> intvec{10, 21, 42};
+  std::vector<o2::test::TriviallyCopyable> trivvec{{10, 21, 42}, {1, 2, 3}};
   createPlainMessage(o2::header::DataHeader{"INT", "TST", 0}, a);
   createSerializedMessage(o2::header::DataHeader{"CONTAINER", "TST", 0}, b);
   createSerializedMessage(o2::header::DataHeader{"CONTAINER", "TST", 1}, c);
   createPlainMessage(o2::header::DataHeader{"BINARY", "TST", 0}, a);
+  createVectorMessage(o2::header::DataHeader{"FDMTLVEC", "TST", 0}, intvec);
+  createVectorMessage(o2::header::DataHeader{"TRIV_VEC", "TST", 0}, trivvec);
 
   // Note: InputRecord works on references to the schema and the message vector
   // so we can not specify the schema definition directly in the definition of
@@ -157,6 +176,8 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
     {InputSpec{"input2", "TST", "CONTAINER"}, 1, "input2", 0}, //
     {InputSpec{"input3", "TST", "CONTAINER"}, 2, "input3", 1}, //
     {InputSpec{"input4", "TST", "BINARY"}, 3, "input4", 0},    //
+    {InputSpec{"input5", "TST", "FDMTLVEC"}, 4, "input5", 0},  //
+    {InputSpec{"input6", "TST", "TRIV_VEC"}, 5, "input6", 0},  //
   };
 
   auto getter = [&store](size_t i) -> char const* { return static_cast<char const*>(store[i]->GetData()); };
@@ -169,9 +190,11 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
   writer.close();
 
   checkTree(filename.c_str(), treename,
-            BranchContent<int>{"intbranch", a},
-            BranchContent<Container>{"containerbranch_0", b},
-            BranchContent<Container>{"containerbranch_1", c});
+            BranchContent<decltype(a)>{"intbranch", a},
+            BranchContent<decltype(b)>{"containerbranch_0", b},
+            BranchContent<decltype(c)>{"containerbranch_1", c},
+            BranchContent<decltype(intvec)>{"intvecbranch", intvec},
+            BranchContent<decltype(trivvec)>{"trivvecbranch", trivvec});
 }
 
 template <typename T>
@@ -185,4 +208,44 @@ BOOST_AUTO_TEST_CASE(test_MakeRootTreeWriterSpec)
                          BranchDefinition<float>{InputSpec{"input2", "TST", "FLOATDATA"},           //
                                                  "floatbranch", "floatbranchname"}                  //
                          )();
+}
+
+template <typename T>
+using Trait = RootTreeWriter::StructureElementTypeTrait<T>;
+template <typename T>
+using BinaryBranchStoreType = RootTreeWriter::BinaryBranchStoreType<T>;
+template <typename T>
+using VectorBranchStoreType = RootTreeWriter::VectorBranchStoreType<T>;
+BOOST_AUTO_TEST_CASE(test_RootTreeWriterSpec_store_types)
+{
+  using TriviallyCopyable = o2::test::TriviallyCopyable;
+  using Polymorphic = o2::test::Polymorphic;
+
+  // simple fundamental type
+  // type itself used as store type
+  static_assert(std::is_same<Trait<int>::type, int>::value == true);
+
+  // messageable type with or without ROOT dictionary
+  // type itself used as store type
+  static_assert(std::is_same<Trait<TriviallyCopyable>::type, TriviallyCopyable>::value == true);
+
+  // non-messageable type with ROOT dictionary
+  // pointer type used as store type
+  static_assert(std::is_same<Trait<Polymorphic>::type, Polymorphic*>::value == true);
+
+  // binary branch indicated through const char*
+  // BinaryBranchStoreType is used
+  static_assert(std::is_same<Trait<const char*>::type, BinaryBranchStoreType<char>>::value == true);
+
+  // vectors of fundamental types
+  // VectorBranchStoreType is used
+  static_assert(std::is_same<Trait<std::vector<int>>::type, VectorBranchStoreType<std::vector<int>>>::value == true);
+
+  // vector of messageable type with or without ROOT dictionary
+  // VectorBranchStoreType is used
+  static_assert(std::is_same<Trait<std::vector<TriviallyCopyable>>::type, VectorBranchStoreType<std::vector<TriviallyCopyable>>>::value == true);
+
+  // vector of non-messageable type with ROOT dictionary
+  // pointer type used as store type
+  static_assert(std::is_same<Trait<std::vector<Polymorphic>>::type, std::vector<Polymorphic>*>::value == true);
 }
