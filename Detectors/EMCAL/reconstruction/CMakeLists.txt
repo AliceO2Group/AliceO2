@@ -46,3 +46,7 @@ o2_add_executable(rawreader-file
                   COMPONENT_NAME emcal
                   PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction
                   SOURCES run/rawReaderFile.cxx)
+
+o2_add_test_root_macro(macros/RawFitterTESTs.C
+            PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction O2::Headers
+            LABELS emcal COMPILE_ONLY)
