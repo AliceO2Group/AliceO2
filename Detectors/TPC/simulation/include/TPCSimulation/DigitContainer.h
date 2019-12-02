@@ -80,17 +80,23 @@ class DigitContainer
   size_t size() const { return mTimeBins.size(); }
 
  private:
-  TimeBin mFirstTimeBin = 0;            ///< First time bin to consider
-  TimeBin mEffectiveTimeBin = 0;        ///< Effective time bin of that digit
-  TimeBin mTmaxTriggered = 0;           ///< Maximum time bin in case of triggered mode (hard cut at average drift speed with additional margin)
-  TimeBin mOffset = 700;                ///< Size of the container for one event
-  std::deque<DigitTime> mTimeBins{700}; ///< Time bin Container for the ADC value
+  TimeBin mFirstTimeBin = 0;       ///< First time bin to consider
+  TimeBin mEffectiveTimeBin = 0;   ///< Effective time bin of that digit
+  TimeBin mTmaxTriggered = 0;      ///< Maximum time bin in case of triggered mode (hard cut at average drift speed with additional margin)
+  TimeBin mOffset;                 ///< Size of the container for one event
+  std::deque<DigitTime> mTimeBins; ///< Time bin Container for the ADC value
 };
 
 inline DigitContainer::DigitContainer()
 {
   auto& detParam = ParameterDetector::Instance();
+  auto& gasParam = ParameterGas::Instance();
+  auto& eleParam = ParameterElectronics::Instance();
   mTmaxTriggered = detParam.TmaxTriggered;
+
+  // always have 50 % contingency for the size of the container depending on the input
+  mOffset = static_cast<TimeBin>(1.5 * detParam.TPClength / gasParam.DriftV / eleParam.ZbinWidth);
+  mTimeBins.resize(mOffset);
 }
 
 inline void DigitContainer::reset()
