@@ -48,11 +48,15 @@ void StandaloneDebugger::fillCombinatoricsTree(std::array<std::vector<Cluster>, 
   for (auto& combination : comb01) {
     o2::MCCompLabel lblClus0 = event->getClusterLabels(0, clusters[0][combination.firstClusterIndex].clusterId);
     o2::MCCompLabel lblClus1 = event->getClusterLabels(1, clusters[1][combination.secondClusterIndex].clusterId);
+    float c0z{clusters[0][combination.firstClusterIndex].zCoordinate};
+    float c1z{clusters[1][combination.secondClusterIndex].zCoordinate};
     unsigned char isValidated{lblClus0.compare(lblClus1) == 1};
     (*mTreeStream)
       << "combinatorics01"
       << "tanLambda=" << combination.tanLambda
       << "phi=" << combination.phiCoordinate
+      << "c0z=" << c0z
+      << "c1z=" << c1z
       << "isValidated=" << isValidated
       << "lblClus0=" << lblClus0
       << "lblClus1=" << lblClus1
@@ -62,11 +66,15 @@ void StandaloneDebugger::fillCombinatoricsTree(std::array<std::vector<Cluster>, 
   for (auto& combination : comb12) {
     o2::MCCompLabel lblClus1 = event->getClusterLabels(1, clusters[1][combination.secondClusterIndex].clusterId);
     o2::MCCompLabel lblClus2 = event->getClusterLabels(2, clusters[2][combination.secondClusterIndex].clusterId);
+    float c1z{clusters[1][combination.firstClusterIndex].zCoordinate};
+    float c2z{clusters[2][combination.secondClusterIndex].zCoordinate};
     unsigned char isValidated{lblClus1.compare(lblClus2) == 1};
     (*mTreeStream)
       << "combinatorics12"
       << "tanLambda=" << combination.tanLambda
       << "phi=" << combination.phiCoordinate
+      << "c1z=" << c1z
+      << "c2z=" << c2z
       << "isValidated=" << isValidated
       << "lblClus1=" << lblClus1
       << "lblClus2=" << lblClus2
