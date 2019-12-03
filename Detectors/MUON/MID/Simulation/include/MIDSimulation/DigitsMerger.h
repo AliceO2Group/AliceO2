@@ -29,7 +29,7 @@ namespace mid
 class DigitsMerger
 {
  public:
-  void process(const std::vector<ColumnDataMC>& inDigitStore, const o2::dataformats::MCTruthContainer<MCLabel>& inMCContainer, const std::vector<ROFRecord>& inROFRecords);
+  void process(const std::vector<ColumnDataMC>& inDigitStore, const o2::dataformats::MCTruthContainer<MCLabel>& inMCContainer, const std::vector<ROFRecord>& inROFRecords, bool mergeInBunchPileup = true);
 
   /// Gets the merged column data
   const std::vector<ColumnData>& getColumnData() const { return mDigitStore; }
