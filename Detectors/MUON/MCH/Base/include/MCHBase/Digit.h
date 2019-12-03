@@ -23,12 +23,13 @@ namespace mch
 
 // \class Digit
 /// \brief MCH digit implementation
-  class Digit //: public DigitBase
+//template <typename T>
+class Digit //: public DigitBase
 {
  public:
   Digit() = default;
 
-  Digit(double time, int detid, int pad, double adc);
+  Digit(double time, int detid, int pad, std::uint32_t adc);
   ~Digit() = default;
 
   double getTimeStamp() const { return mTime; }
@@ -40,16 +41,19 @@ namespace mch
   int getPadID() const { return mPadID; }
   void setPadID(int pad) { mPadID = pad; }
 
-  double getADC() const { return mADC; }
-  void setADC(double adc) { mADC = adc; }
+  uint32_t getADC() const { return mADC; }
+  void setADC(std::uint32_t adc) { mADC = adc; }
 
+  bool operator==(const Digit &) const { return mTime == this->getTimeStamp(); }
+
+  
  private:
   double mTime;
   int mDetID;
   int mPadID;  /// PadIndex to which the digit corresponds to
-  double mADC; /// Amplitude of signal
+  uint32_t mADC; /// Amplitude of signal
 
-  //  ClassDefNV(Digit, 1);
+  ClassDefNV(Digit, 1);
 }; //class Digit
 
 } //namespace mch
