@@ -14,3 +14,7 @@ o2_add_library(MCHBase
                        src/TrackBlock.cxx
 		       src/Digit.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Core FairRoot::Base FairMQ::FairMQ)
+
+
+o2_target_root_dictionary(MCHBase
+	       HEADERS include/MCHBase/Digit.h)
