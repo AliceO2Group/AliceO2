@@ -623,15 +623,25 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
   std::vector<DataMatcherId> inputs;
   std::vector<DataMatcherId> outputs;
   std::vector<InputSpec> results;
+  size_t totalInputs = 0;
+  size_t totalOutputs = 0;
+
+  for (auto& spec : workflow) {
+    totalInputs += spec.inputs.size();
+    totalOutputs += spec.outputs.size();
+  }
+
+  inputs.reserve(totalInputs);
+  outputs.reserve(totalOutputs);
 
   /// Prepare an index to do the iterations quickly.
   for (size_t wi = 0, we = workflow.size(); wi != we; ++wi) {
     auto& spec = workflow[wi];
     for (size_t ii = 0, ie = spec.inputs.size(); ii != ie; ++ii) {
-      inputs.push_back(DataMatcherId{wi, ii});
+      inputs.emplace_back(DataMatcherId{wi, ii});
     }
     for (size_t oi = 0, oe = spec.outputs.size(); oi != oe; ++oi) {
-      outputs.push_back(DataMatcherId{wi, oi});
+      outputs.emplace_back(DataMatcherId{wi, oi});
     }
   }
 
