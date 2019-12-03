@@ -25,12 +25,5 @@ namespace event_visualisation
 DataInterpreter* DataInterpreter::instance[EVisualisationGroup::NvisualisationGroups];
 DataInterpreter::DataInterpreter() = default;
 
-TEveElement* DataInterpreter::interpretDataForType(TObject* /*data*/, EVisualisationDataType /*type*/)
-{
-  LOG(FATAL) << "Virtual method interpretDataForType(EventManager::EDataType type) -- should be implemented in deriving class!!";
-
-  return nullptr;
-}
-
 } // namespace event_visualisation
 } // namespace o2
