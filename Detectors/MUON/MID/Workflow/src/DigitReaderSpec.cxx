@@ -86,7 +86,7 @@ class DigitsReaderDeviceDPL
     pc.outputs().snapshot(of::Output{"MID", "DATALABELS", 0, of::Lifetime::Timeframe}, mDigitsMerger.getMCContainer());
 
     mState = 2;
-    pc.services().get<of::ControlService>().readyToQuit(of::QuitRequest::Me);
+    pc.services().get<of::ControlService>().endOfStream();
   }
 
  private:
