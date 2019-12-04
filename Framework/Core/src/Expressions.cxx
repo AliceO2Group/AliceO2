@@ -17,6 +17,8 @@
 #include <stack>
 #include <iostream>
 #include <unordered_map>
+#include <set>
+#include <algorithm>
 
 using namespace o2::framework;
 
@@ -208,13 +210,43 @@ std::shared_ptr<gandiva::Filter>
   createFilter(SchemaPtr const& Schema, Operations const& opSpecs)
 {
   std::shared_ptr<gandiva::Filter> filter;
-  auto s = gandiva::Filter::Make(Schema, createCondition(opSpecs, Schema), &filter);
+  auto s = gandiva::Filter::Make(Schema,
+                                 gandiva::TreeExprBuilder::MakeCondition(createExpressionTree(opSpecs, Schema)),
+                                 &filter);
   if (s.ok())
     return filter;
   throw std::runtime_error(fmt::format("Failed to create filter: {}", s));
 }
 
-gandiva::ConditionPtr createCondition(Operations const& opSpecs,
+Selection createSelection(std::shared_ptr<arrow::Table> table,
+                          Filter const& expression)
+{
+  auto filter = createFilter(table->schema(), createOperations(expression));
+  Selection selection;
+  auto s = gandiva::SelectionVector::MakeInt64(table->num_rows(),
+                                               arrow::default_memory_pool(),
+                                               &selection);
+  if (!s.ok())
+    throw std::runtime_error(fmt::format("Cannot allocate selection vector {}", s));
+  arrow::TableBatchReader reader(*table);
+  std::shared_ptr<arrow::RecordBatch> batch;
+  while (true) {
+    s = reader.ReadNext(&batch);
+    if (!s.ok()) {
+      throw std::runtime_error(fmt::format("Cannot read batches from table {}", s));
+    }
+    if (batch == nullptr) {
+      break;
+    }
+    s = filter->Evaluate(*batch, selection);
+    if (!s.ok())
+      throw std::runtime_error(fmt::format("Cannot apply filter {}", s));
+  }
+
+  return selection;
+}
+
+gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
                                       SchemaPtr const& Schema)
 {
   std::vector<gandiva::NodePtr> opNodes;
@@ -270,35 +302,26 @@ gandiva::ConditionPtr createCondition(Operations const& opSpecs,
     opNodes[std::get<size_t>(it->result.datum)] = tree;
   }
 
-  return gandiva::TreeExprBuilder::MakeCondition(tree);
+  return tree;
 }
 
-Selection createSelection(std::shared_ptr<arrow::Table> table,
-                          Filter const& expression)
+bool isSchemaCompatible(SchemaPtr const& Schema, Operations const& opSpecs)
 {
-  auto filter = createFilter(table->schema(), createOperations(expression));
-  Selection selection;
-  auto st = gandiva::SelectionVector::MakeInt64(table->num_rows(),
-                                                arrow::default_memory_pool(),
-                                                &selection);
-  if (!st.ok())
-    throw std::runtime_error(fmt::format("Cannot allocate selection vector {}", st));
-  arrow::TableBatchReader reader(*table);
-  std::shared_ptr<arrow::RecordBatch> batch;
-  while (true) {
-    auto s = reader.ReadNext(&batch);
-    if (!s.ok()) {
-      throw std::runtime_error(fmt::format("Cannot read batches from table {}", s));
-    }
-    if (batch == nullptr) {
-      break;
-    }
-    st = filter->Evaluate(*batch, selection);
-    if (!st.ok())
-      throw std::runtime_error(fmt::format("Cannot apply filter {}", st));
+  std::set<std::string> opFieldNames;
+  for (auto& spec : opSpecs) {
+    if (spec.left.datum.index() == 3)
+      opFieldNames.insert(std::get<std::string>(spec.left.datum));
+    if (spec.right.datum.index() == 3)
+      opFieldNames.insert(std::get<std::string>(spec.right.datum));
   }
 
-  return selection;
+  std::set<std::string> schemaFieldNames;
+  for (auto& field : Schema->fields()) {
+    schemaFieldNames.insert(field->name());
+  }
+
+  return std::includes(schemaFieldNames.begin(), schemaFieldNames.end(),
+                       opFieldNames.begin(), opFieldNames.end());
 }
 
 } // namespace o2::framework::expressions
