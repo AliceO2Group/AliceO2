@@ -45,8 +45,8 @@ size_t getCurrentTime()
 
 ExpirationHandler::Creator LifetimeHelpers::dataDrivenCreation()
 {
-  return [](TimesliceIndex&) -> TimesliceSlot {
-    return {TimesliceSlot::INVALID};
+  return [](TimesliceIndex& index) -> TimesliceSlot {
+    return {TimesliceSlot::ANY};
   };
 }
 
