@@ -114,7 +114,7 @@ void DataInterpreterVSD::DropEvent()
   mDirectory = nullptr;
 }
 
-void DataInterpreterVSD::LoadEsdTracks(VisualisationEvent& event)
+void DataInterpreterVSD::LoadEsdTracks(VisualisationEvent& /*event*/)
 {
   // Read reconstructed tracks from current event.
 

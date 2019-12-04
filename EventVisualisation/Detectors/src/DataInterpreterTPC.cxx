@@ -47,8 +47,8 @@ DataInterpreterTPC::~DataInterpreterTPC() = default;
 std::unique_ptr<VisualisationEvent> DataInterpreterTPC::interpretDataForType(TObject* data, EVisualisationDataType type)
 {
   TList* list = (TList*)data;
-  Int_t event = ((TVector2*)list->At(2))->X();
 
+  // Int_t event = ((TVector2*)list->At(2))->X();
   auto ret_event = std::make_unique<VisualisationEvent>(0, 0, 0, 0, "", 0);
 
   if (type == Clusters) {
