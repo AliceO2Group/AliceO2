@@ -16,7 +16,7 @@ o2_add_library(MCHBase
 	       src/Mapping.cxx
                src/PreClusterBlock.cxx
                src/TrackBlock.cxx
-	       PUBLIC_LINK_LIBRARIES ROOT::Core FairRoot::Base FairMQ::FairMQ)
+	       PUBLIC_LINK_LIBRARIES ROOT::Core FairRoot::Base FairMQ::FairMQ O2::MCHBase)
 	     
 
 o2_target_root_dictionary(MCHBase
