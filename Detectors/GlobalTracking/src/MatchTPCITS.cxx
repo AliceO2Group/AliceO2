@@ -797,9 +797,9 @@ bool MatchTPCITS::prepareITSTracks()
 
   if (!mDPLIO) { // for input from tree read ROFrecords vector, in DPL IO mode the vector should be already attached
     mTimerIO.Start(false);
-    mTreeITSTracks->GetEntry(0);
+    mTreeITSTrackROFRec->GetEntry(0);
     mITSTrackROFRec = gsl::span<const o2::itsmft::ROFRecord>(mITSTrackROFRecPtr->data(), mITSTrackROFRecPtr->size());
-    mTreeITSClusters->GetEntry(0); // keep clusters ROFRecs ready
+    mTreeITSClusterROFRec->GetEntry(0); // keep clusters ROFRecs ready
     mITSClustersArray = gsl::span<const o2::itsmft::Cluster>(mITSClustersArrayPtr->data(), mITSClustersArrayPtr->size());
     mITSClusterROFRec = gsl::span<const o2::itsmft::ROFRecord>(mITSClusterROFRecPtr->data(), mITSClusterROFRecPtr->size());
     mTimerIO.Stop();
@@ -848,7 +848,6 @@ bool MatchTPCITS::prepareITSTracks()
     int trlim = rofRec.getFirstEntry() + rofRec.getNEntries();
     for (int it = rofRec.getFirstEntry(); it < trlim; it++) {
       const auto& trcOrig = mITSTracksArray[it];
-
       if (isRunAfterBurner()) {
         flagUsedITSClusters(trcOrig, cluROFOffset);
       }
@@ -1670,7 +1669,7 @@ bool MatchTPCITS::loadTPCClusters()
 bool MatchTPCITS::refitTrackTPCITSloopTPC(int iTPC, int& iITS)
 {
   ///< refit in inward direction the pair of TPC and ITS tracks
-
+  
   const float maxStep = 2.f; // max propagation step (TODO: tune)
 
   const auto& tTPC = mTPCWork[iTPC];

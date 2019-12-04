@@ -382,6 +382,14 @@ class MatchTPCITS
     mTPCTrackClusIdx = inp;
   }
 
+  ///< set input TPC tracks cluster indices received via DPL
+  // TODO Temporary solution, see disclaimer about TPCClRefElem in TrackTPC. Later should be changed to uint32_t
+  void setTPCTrackClusIdxInp(const gsl::span<const o2::tpc::TPCClRefElem> inp)
+  {
+    assertDPLIO(true);
+    mTPCTrackClusIdxInp = inp;
+  }
+
   ///< set input TPC clusters received via DPL
   void setTPCClustersInp(const o2::tpc::ClusterNativeAccess* inp)
   {
