@@ -26,9 +26,15 @@ namespace event_visualisation
 class DataReaderTPC : public DataReader
 {
  private:
+<<<<<<< HEAD:EventVisualisation/Detectors/include/EventVisualisationDetectors/DataReaderTPC.h
   Int_t mMaxEv;
   TFile* mClusFile;
   TFile* mTracFile;
+=======
+  Int_t fMaxEv;
+  TFile* clusFile;
+  TFile* tracFile;
+>>>>>>> f2dea92bebb772f1eb0800290b722a2a284eb318:EventVisualisation/Detectors/include/EventVisualisationDetectors/DataReaderTPC.h
 
  public:
   DataReaderTPC();

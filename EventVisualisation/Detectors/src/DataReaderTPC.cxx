@@ -41,7 +41,7 @@ void DataReaderTPC::open()
   trec->SetBranchAddress("TPCTracks", &trackBuffer);
   trec->GetEntry(0);
 
-    mMaxEv = trackBuffer->size();
+  mMaxEv = trackBuffer->size();
 }
 
 Int_t DataReaderTPC::GetEventCount()
