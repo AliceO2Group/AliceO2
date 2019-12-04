@@ -64,7 +64,7 @@ class EventManager : public TEveEventManager, public TQObject
     ccdbApi.init(path.Data());
   }
 
-  Int_t getCurrentEvent() { return currentEvent; }
+  Int_t getCurrentEvent() const { return currentEvent; }
   DataSource* getDataSource() { return dataSource; }
   void setDataSource(DataSource* dataSource) { this->dataSource = dataSource; }
 
