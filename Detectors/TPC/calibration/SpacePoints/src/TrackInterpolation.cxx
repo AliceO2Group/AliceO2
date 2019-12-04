@@ -162,8 +162,8 @@ bool TrackInterpolation::interpolateTrackITSTOF(const std::pair<o2::dataformats:
   for (int iCl = trkTPC.getNClusterReferences(); iCl--;) {
     uint8_t sector, row;
     uint32_t clusterIndexInRow;
-    trkTPC.getClusterReference(iCl, sector, row, clusterIndexInRow);
-    const auto& clTPC = trkTPC.getCluster(iCl, *mTPCClusterIdxStruct, sector, row);
+    trkTPC.getClusterReference(*mTPCTrackClIdxVecInput, iCl, sector, row, clusterIndexInRow);
+    const auto& clTPC = trkTPC.getCluster(*mTPCTrackClIdxVecInput, iCl, *mTPCClusterIdxStruct, sector, row);
     float clTPCX;
     std::array<float, 2> clTPCYZ;
     mFastTransform->TransformIdeal(sector, row, clTPC.getPad(), clTPC.getTime(), clTPCX, clTPCYZ[0], clTPCYZ[1], clusterTimeBinOffset);
@@ -299,8 +299,8 @@ bool TrackInterpolation::extrapolateTrackITS(const o2::its::TrackITS& trkITS, co
   for (int iCl = trkTPC.getNClusterReferences(); iCl--;) {
     uint8_t sector, row;
     uint32_t clusterIndexInRow;
-    trkTPC.getClusterReference(iCl, sector, row, clusterIndexInRow);
-    const auto& cl = trkTPC.getCluster(iCl, *mTPCClusterIdxStruct, sector, row);
+    trkTPC.getClusterReference(*mTPCTrackClIdxVecInput, iCl, sector, row, clusterIndexInRow);
+    const auto& cl = trkTPC.getCluster(*mTPCTrackClIdxVecInput, iCl, *mTPCClusterIdxStruct, sector, row);
     float x = 0, y = 0, z = 0;
     mFastTransform->TransformIdeal(sector, row, cl.getPad(), cl.getTime(), x, y, z, clusterTimeBinOffset);
     if (!trk.rotate(o2::utils::Sector2Angle(sector))) {
@@ -371,6 +371,10 @@ void TrackInterpolation::attachInputTrees()
   mTreeTPCTracks->SetBranchAddress(mTPCTrackBranchName.data(), &mTPCTrackVecInput);
   LOG(info) << "Attached TPC tracks " << mTPCTrackBranchName << " branch with "
             << mTreeTPCTracks->GetEntries() << " entries";
+  mTreeTPCTracks->SetBranchAddress(mTPCTrackClIdxBranchName.data(), &mTPCTrackClIdxVecInput);
+  LOG(info) << "Attached TPC tracks cluster indices " << mTPCTrackClIdxBranchName << " branch with "
+            << mTreeTPCTracks->GetBranch(mTPCTrackClIdxBranchName.data())->GetEntries() << " entries";
+
   // access input for TPC clusters
   if (!mTPCClusterReader) {
     LOG(fatal) << "TPC clusters reader is not set";
