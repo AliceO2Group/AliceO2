@@ -41,7 +41,8 @@ static void BM_CreateGraphOverhead(benchmark::State& state)
 
     WorkflowHelpers::verifyWorkflow(workflow);
     WorkflowHelpers::injectServiceDevices(workflow);
-    WorkflowHelpers::constructGraph(workflow, logicalEdges,
+    WorkflowHelpers::constructGraph(workflow,
+                                    logicalEdges,
                                     outputs,
                                     availableForwardsInfo);
   }
