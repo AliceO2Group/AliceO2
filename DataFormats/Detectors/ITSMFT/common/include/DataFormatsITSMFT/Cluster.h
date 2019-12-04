@@ -206,4 +206,8 @@ struct is_messageable<o2::itsmft::Cluster> : public std::true_type {
 } // namespace framework
 } // namespace o2
 
+template <>
+struct o2::framework::is_messageable<o2::itsmft::Cluster> : std::true_type {
+};
+
 #endif /* ALICEO2_ITSMFT_CLUSTER_H */
