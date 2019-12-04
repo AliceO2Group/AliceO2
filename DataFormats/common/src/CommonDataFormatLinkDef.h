@@ -32,6 +32,7 @@
 
 #pragma link C++ class o2::dataformats::EvIndex < int, int> + ;
 #pragma link C++ class o2::dataformats::RangeReference < int, int> + ;
+#pragma link C++ class o2::dataformats::RangeReference < uint32_t, uint16_t> + ;
 #pragma link C++ class o2::dataformats::RangeReference < o2::dataformats::EvIndex < int, int>, int> + ;
 
 #pragma link C++ class o2::dataformats::RangeRefComp < 4> + ; // reference to a set with 15 entries max (ITS clusters)

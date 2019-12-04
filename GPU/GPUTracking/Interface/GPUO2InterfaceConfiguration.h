@@ -85,6 +85,7 @@ struct GPUO2InterfaceIOPtrs {
 
   // Input / Output for Merged TPC tracks, two ptrs, for the tracks themselves, and for the MC labels.
   std::vector<o2::tpc::TrackTPC>* outputTracks = nullptr;
+  std::vector<uint32_t>* outputClusRefs = nullptr;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* outputTracksMCTruth = nullptr;
 
   // Output for entropy-reduced clusters of TPC compression

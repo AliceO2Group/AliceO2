@@ -354,24 +354,32 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
 
     //branch definitions for RootTreeWriter spec
     using TrackOutputType = std::vector<o2::tpc::TrackTPC>;
-    using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-    auto tracksdef = BranchDefinition<TrackOutputType>{InputSpec{"input", "TPC", "TRACKS"},     //
-                                                       "TPCTracks", "track-branch-name"};       //
-    auto mcdef = BranchDefinition<MCLabelContainer>{InputSpec{"mcinput", "TPC", "TRACKMCLBL"},  //
-                                                    "TPCTracksMCTruth", "trackmc-branch-name"}; //
 
-    // depending on the MC propagation flag, the RootTreeWriter spec is created with two
-    // or one branch definition
+    // Temporary solution, see disclaimer about TPCClRefElem in the TrackTPC.h
+    //    using ClusRefsOutputType = std::vector<uint32_t>;
+    using ClusRefsOutputType = std::vector<o2::tpc::TPCClRefElem>;
+
+    using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+    auto tracksdef = BranchDefinition<TrackOutputType>{InputSpec{"inputTracks", "TPC", "TRACKS"},      //
+                                                       "TPCTracks", "track-branch-name"};              //
+    auto clrefdef = BranchDefinition<ClusRefsOutputType>{InputSpec{"inputClusRef", "TPC", "CLUSREFS"}, //
+                                                         "ClusRefs", "trackclusref-branch-name"};      //
+    auto mcdef = BranchDefinition<MCLabelContainer>{InputSpec{"mcinput", "TPC", "TRACKMCLBL"},         //
+                                                    "TPCTracksMCTruth", "trackmc-branch-name"};        //
+
+    // depending on the MC propagation flag, the RootTreeWriter spec is created with 3 or 2
+    // branch definition
     if (propagateMC) {
       specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,            //
                                              MakeRootTreeWriterSpec::TerminationPolicy::Process,       //
                                              MakeRootTreeWriterSpec::TerminationCondition{checkReady}, //
-                                             std::move(tracksdef), std::move(mcdef))());               //
+                                             std::move(tracksdef), std::move(clrefdef),                //
+                                             std::move(mcdef))());                                     //
     } else {                                                                                           //
       specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,            //
                                              MakeRootTreeWriterSpec::TerminationPolicy::Process,       //
                                              MakeRootTreeWriterSpec::TerminationCondition{checkReady}, //
-                                             std::move(tracksdef))());                                 //
+                                             std::move(tracksdef), std::move(clrefdef))());            //
     }
   }
 

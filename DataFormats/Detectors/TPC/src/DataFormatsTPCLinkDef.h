@@ -37,4 +37,8 @@
 #pragma link C++ class o2::tpc::CompressedClustersPtrs_helper < o2::tpc::CompressedClustersCounters> + ;
 #pragma link C++ class o2::tpc::CompressedClusters + ;
 
+// TODO Temporary solution, see disclaimer about TPCClRefElem in the TrackTPC.h
+#pragma link C++ class o2::tpc::TPCClRefElem + ;
+#pragma link C++ class std::vector < o2::tpc::TPCClRefElem> + ;
+
 #endif
