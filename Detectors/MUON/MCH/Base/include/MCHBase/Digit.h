@@ -16,6 +16,8 @@
 #ifndef ALICEO2_MCH_BASE_DIGIT_H_
 #define ALICEO2_MCH_BASE_DIGIT_H_
 
+#include "Rtypes.h"
+
 namespace o2
 {
 namespace mch
@@ -23,7 +25,7 @@ namespace mch
 
 // \class Digit
 /// \brief MCH digit implementation
-class Digit //: public DigitBase
+class Digit
 {
  public:
   Digit() = default;
@@ -31,25 +33,23 @@ class Digit //: public DigitBase
   Digit(double time, int detid, int pad, unsigned long adc);
   ~Digit() = default;
 
+  bool operator==(const Digit&) const;
+
   double getTimeStamp() const { return mTime; }
-  void setTimeStamp(double time) { mTime = time; }
-  
+
   int getDetID() const { return mDetID; }
-  void setDetID(int detid) { mDetID = detid; }
 
   int getPadID() const { return mPadID; }
-  void setPadID(int pad) { mPadID = pad; }
 
   unsigned long getADC() const { return mADC; }
   void setADC(unsigned long adc) { mADC = adc; }
-  
-  bool operator==(const Digit & d) const { return mTime == d.getTimeStamp(); }
   
  private:
   double mTime;
   int mDetID;
   int mPadID;  /// PadIndex to which the digit corresponds to
   unsigned long mADC; /// Amplitude of signal
+
   ClassDefNV(Digit, 1);
 }; //class Digit
 

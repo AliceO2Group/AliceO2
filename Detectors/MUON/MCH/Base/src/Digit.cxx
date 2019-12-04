@@ -9,12 +9,28 @@
 // or submit itself to any jurisdiction.
 
 #include "MCHBase/Digit.h"
+#include <cmath>
 
-using namespace o2::mch;
+namespace o2::mch
+{
 
 ClassImp(Digit);
+bool closeEnough(double x, double y, double eps = 1E-6)
+{
+  return std::fabs(x - y) <= eps * std::max(1.0, std::max(std::fabs(x), std::fabs(y)));
+}
 
 Digit::Digit(double time, int detid, int pad, unsigned long adc)
   : mTime(time), mDetID(detid), mPadID(pad), mADC(adc)
 {
 }
+
+bool Digit::operator==(const Digit& other) const
+{
+  return mDetID == other.mDetID &&
+         mPadID == other.mPadID &&
+         mADC == other.mADC &&
+         closeEnough(mTime, other.mTime);
+}
+
+} // namespace o2::mch
