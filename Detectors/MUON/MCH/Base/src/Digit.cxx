@@ -12,9 +12,9 @@
 
 using namespace o2::mch;
 
-ClassImp(o2::mch::Digit);
+//ClassImp(Digit);
 
-Digit::Digit(double time, int detid, int pad, std::uint32_t adc)
+Digit::Digit(double time, int detid, int pad, unsigned long adc)
   : mTime(time), mDetID(detid), mPadID(pad), mADC(adc)
 {
 }

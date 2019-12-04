@@ -13,8 +13,8 @@
  * @author  Michael Winn
  */
 
-#ifndef ALICEO2_MCH_DIGIT_H_
-#define ALICEO2_MCH_DIGIT_H_
+#ifndef ALICEO2_MCH_BASE_DIGIT_H_
+#define ALICEO2_MCH_BASE_DIGIT_H_
 
 namespace o2
 {
@@ -23,13 +23,12 @@ namespace mch
 
 // \class Digit
 /// \brief MCH digit implementation
-//template <typename T>
 class Digit //: public DigitBase
 {
  public:
   Digit() = default;
 
-  Digit(double time, int detid, int pad, std::uint32_t adc);
+  Digit(double time, int detid, int pad, unsigned long adc);
   ~Digit() = default;
 
   double getTimeStamp() const { return mTime; }
@@ -41,19 +40,17 @@ class Digit //: public DigitBase
   int getPadID() const { return mPadID; }
   void setPadID(int pad) { mPadID = pad; }
 
-  uint32_t getADC() const { return mADC; }
-  void setADC(std::uint32_t adc) { mADC = adc; }
-
-  bool operator==(const Digit &) const { return mTime == this->getTimeStamp(); }
-
+  unsigned long getADC() const { return mADC; }
+  void setADC(unsigned long adc) { mADC = adc; }
+  
+  bool operator==(const Digit & d) const { return mTime == d.getTimeStamp(); }
   
  private:
   double mTime;
   int mDetID;
   int mPadID;  /// PadIndex to which the digit corresponds to
-  uint32_t mADC; /// Amplitude of signal
-
-  ClassDefNV(Digit, 1);
+  unsigned long mADC; /// Amplitude of signal
+  //ClassDefNV(Digit, 1);
 }; //class Digit
 
 } //namespace mch
