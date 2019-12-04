@@ -43,21 +43,15 @@ Digitizer::Digitizer() : mGausRandomRing(RandomRing<>::RandomType::Gaus), mFlatR
       LOG(FATAL) << "TRD Common Parameters does not have magnetic field available";
     }
   }
-
   mLogRandomRing.initialize([]() -> float { return std::log(gRandom->Rndm()); });
-
-  // if (!mCalib) { // PLEASE FIX ME when CCDB is ready
-  //   LOG(FATAL) << "TRD mCalib database not available";
-  // }
   mSDigits = false;
 }
 
 void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digitCont, o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
-  // (WIP) Implementation for digitization
-
-  // Check if Geometry and if CCDB are available as they will be requiered
-  // const int nTimeBins = mCalib->GetNumberOfTimeBinsDCS(); PLEASE FIX ME when CCDB is ready
+  if (!mCalib) {
+    LOG(FATAL) << "TRD Calibration database not available";
+  }
 
   SignalContainer_t adcMapCont;
 
