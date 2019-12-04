@@ -81,15 +81,19 @@ struct ColumnOperationSpec {
     result.type = type;
   }
 };
+
 using Operations = std::vector<ColumnOperationSpec>;
 using SchemaPtr = std::shared_ptr<arrow::Schema>;
 
 Operations createOperations(Filter const& expression);
-gandiva::ConditionPtr createCondition(Operations const& opSpecs,
-                                      SchemaPtr const& Schema);
+
 std::shared_ptr<gandiva::Filter> createFilter(SchemaPtr const& Schema,
                                               gandiva::ConditionPtr condition);
 
+gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
+                                      SchemaPtr const& Schema);
+
+bool isSchemaCompatible(SchemaPtr const& Schema, Operations const& opSpecs);
 } // namespace o2::framework::expressions
 
 #endif // O2_FRAMEWORK_EXPRESSIONS_HELPERS_H_
