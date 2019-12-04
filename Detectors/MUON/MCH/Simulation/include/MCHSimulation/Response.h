@@ -37,7 +37,7 @@ class Response
   float etocharge(float edepos);
   double chargePadfraction(float xmin, float xmax, float ymin, float ymax);
   double chargefrac1d(float min, float max, double k2, double sqrtk3, double k4);
-  double response(float charge);
+  unsigned long response(float charge);
   float getAnod(float x);
   float chargeCorr();
 

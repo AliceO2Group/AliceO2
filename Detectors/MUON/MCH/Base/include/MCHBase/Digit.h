@@ -13,8 +13,8 @@
  * @author  Michael Winn
  */
 
-#ifndef ALICEO2_MCH_DIGIT_H_
-#define ALICEO2_MCH_DIGIT_H_
+#ifndef ALICEO2_MCH_BASE_DIGIT_H_
+#define ALICEO2_MCH_BASE_DIGIT_H_
 
 #include "Rtypes.h"
 
@@ -30,7 +30,7 @@ class Digit
  public:
   Digit() = default;
 
-  Digit(double time, int detid, int pad, double adc);
+  Digit(double time, int detid, int pad, unsigned long adc);
   ~Digit() = default;
 
   bool operator==(const Digit&) const;
@@ -41,15 +41,16 @@ class Digit
 
   int getPadID() const { return mPadID; }
 
-  double getADC() const { return mADC; }
-  void setADC(double adc) { mADC = adc; }
-
+  unsigned long getADC() const { return mADC; }
+  void setADC(unsigned long adc) { mADC = adc; }
+  
+  bool operator==(const Digit & d) const { return mTime == d.getTimeStamp(); }
+  
  private:
   double mTime;
   int mDetID;
   int mPadID;  /// PadIndex to which the digit corresponds to
-  double mADC; /// Amplitude of signal
-
+  unsigned long mADC; /// Amplitude of signal
   ClassDefNV(Digit, 1);
 }; //class Digit
 
