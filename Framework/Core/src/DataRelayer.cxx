@@ -107,7 +107,7 @@ void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
       if (!expirator.checker) {
         continue;
       }
-      if (slotsCreatedByHandlers[ei].index != slot.index) {
+      if (slotsCreatedByHandlers[ei] != slot) {
         continue;
       }
       if (expirator.checker(timestamp.value) == false) {
