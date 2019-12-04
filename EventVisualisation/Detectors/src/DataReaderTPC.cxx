@@ -44,10 +44,6 @@ void DataReaderTPC::open()
   mMaxEv = trackBuffer->size();
 }
 
-Int_t DataReaderTPC::GetEventCount()
-{
-  return mMaxEv;
-}
 
 TObject* DataReaderTPC::getEventData(int no)
 {

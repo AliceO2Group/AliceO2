@@ -38,9 +38,9 @@ class VisualisationCluster
   // Default constructor
   VisualisationCluster(double XYZ[]);
 
-  double X() { return mCoordinates[0]; }
-  double Y() { return mCoordinates[1]; }
-  double Z() { return mCoordinates[2]; }
+  double X() const { return mCoordinates[0]; }
+  double Y() const { return mCoordinates[1]; }
+  double Z() const { return mCoordinates[2]; }
 
  private:
   void setCoordinates(double xyz[3]);

@@ -33,7 +33,7 @@ class DataReaderTPC : public DataReader
  public:
   DataReaderTPC();
   void open() override;
-  Int_t GetEventCount() override;
+  Int_t GetEventCount() const override { return mMaxEv; };
   TObject* getEventData(int no) override;
 };
 

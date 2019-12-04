@@ -38,15 +38,6 @@ VisualisationEvent::VisualisationEvent(int eventNumber,
 {
 }
 
-const VisualisationTrack& VisualisationEvent::getTrack(int i) const
-{
-  return mTracks[i];
-}
-
-const VisualisationCluster& VisualisationEvent::getCluster(int i) const
-{
-  return mClusters[i];
-}
 
 } // namespace event_visualisation
 } // namespace o2

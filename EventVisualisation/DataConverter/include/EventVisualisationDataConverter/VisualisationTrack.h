@@ -73,14 +73,14 @@ class VisualisationTrack
   // Momentum vector getter
   double* getMomentum() { return mMomentum; }
   // Beta (velocity) getter
-  double getBeta() { return sqrt(1 - std::pow(mMass / mEnergy, 2)); }
+  double getBeta() const { return sqrt(1 - std::pow(mMass / mEnergy, 2)); }
   // Charge getter
-  int getCharge() { return mCharge; }
+  int getCharge() const { return mCharge; }
   // PID (particle identification code) getter
-  int getPID() { return mPID; }
+  int getPID() const { return mPID; }
 
-  size_t getPointCount() { return mPolyX.size(); }
-  std::array<double, 3> getPoint(size_t i) { return std::array<double, 3>{mPolyX[i], mPolyY[i], mPolyZ[i]}; }
+  size_t getPointCount() const { return mPolyX.size(); }
+  std::array<double, 3> getPoint(size_t i) const { return std::array<double, 3>{mPolyX[i], mPolyY[i], mPolyZ[i]}; }
 
  private:
   // Set coordinates of the beginning of the track
