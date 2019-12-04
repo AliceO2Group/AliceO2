@@ -14,7 +14,7 @@
 namespace o2::mch
 {
 
-ClassImp(Digit);
+
 bool closeEnough(double x, double y, double eps = 1E-6)
 {
   return std::fabs(x - y) <= eps * std::max(1.0, std::max(std::fabs(x), std::fabs(y)));
