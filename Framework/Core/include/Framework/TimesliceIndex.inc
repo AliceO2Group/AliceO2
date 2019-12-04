@@ -15,14 +15,14 @@ namespace framework
 inline bool TimesliceId::isValid(TimesliceId const& timeslice) { return timeslice.value != INVALID; }
 inline bool TimesliceSlot::isValid(TimesliceSlot const& slot) { return slot.index != INVALID; }
 
-inline bool TimesliceSlot::operator==(const TimesliceSlot that) const;
+inline bool TimesliceSlot::operator==(const TimesliceSlot that) const
 {
   return index == that.index ||
          index == TimesliceSlot::ANY && TimesliceSlot::INVALID != that.index ||
-         index != TimesliceSlot::INVALID && TimesliceSlot::ANY == that.index ||;
+         index != TimesliceSlot::INVALID && TimesliceSlot::ANY == that.index;
 }
 
-inline bool TimesliceSlot::operator!=(const TimesliceSlot that) const;
+inline bool TimesliceSlot::operator!=(const TimesliceSlot that) const
 {
   return !(*this == that);
 }
