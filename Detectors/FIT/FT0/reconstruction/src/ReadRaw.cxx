@@ -31,7 +31,7 @@ Event header - 80bits
   bool isTimeInfoLost : 1;
   uint channelID : 4;
 GBT packet:
-RDH + Event header + event data, 2 channels per 1 GBT word;
+Event header + event data, 2 channels per 1 GBT word;
 if no data for this PM - only headers.
 
 Trigger mode : detector sends data to FLP at each trigger;
@@ -43,7 +43,7 @@ Continueous mode  :   for only bunches with data at least in 1 channel.
 #include "DataFormatsFT0/RawEventData.h"
 #include "DataFormatsFT0/Digit.h"
 #include "FT0Reconstruction/ReadRaw.h"
-#include "DetectorsBase/Triggers.h"
+#include "CommonConstants/Triggers.h"
 #include <Framework/Logger.h>
 #include <TStopwatch.h>
 #include <cassert>
@@ -116,33 +116,35 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
       }
       chDgDataArr = &digits.getChDgData();
       if (mIsPadded) {
-        pos += CRUWordSize - o2::ft0::EventData::PayloadSize;
-        LOG(DEBUG) << " padding header " << pos << " " << CRUWordSize - o2::ft0::EventHeader::PayloadSize;
+        pos += CRUWordSize - o2::ft0::EventHeader::PayloadSize;
+        //     LOG(DEBUG) << " padding header " << pos << " " << CRUWordSize - o2::ft0::EventHeader::PayloadSize;
       }
 
       for (int i = 0; i < mEventHeader.nGBTWords; ++i) {
-        mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i]), EventData::PayloadSize);
+        mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i]), o2::ft0::EventData::PayloadSizeFirstWord);
         chData.ChId = lut.getChannel(link, int(mEventData[2 * i].channelID));
-        chData.CFDTime = mEventData[2 * i].time /* / CFD_NS_2_Nchannels*/;
-        chData.QTCAmpl = mEventData[2 * i].charge /* / MV_2_Nchannels*/;
+        chData.CFDTime = mEventData[2 * i].time;
+        chData.QTCAmpl = mEventData[2 * i].charge;
         chData.numberOfParticles = mEventData[2 * i].numberADC;
         chDgDataArr->emplace_back(chData);
-        pos += o2::ft0::EventData::PayloadSize;
-        LOG(DEBUG) << " read 1st word channelID " << int(mEventData[2 * i].channelID) << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " mcp " << int(mEventData[2 * i].channelID) << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID)) << " pos " << pos;
+        pos += o2::ft0::EventData::PayloadSizeFirstWord;
+        LOG(DEBUG) << " read 1st word channelID " << int(mEventData[2 * i].channelID) << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID)) << " pos " << pos;
 
-        mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i + 1]), EventData::PayloadSize);
-        if (mEventData[2 * i + 1].charge <= 0)
+        mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i + 1]), EventData::PayloadSizeSecondWord);
+        pos += o2::ft0::EventData::PayloadSizeSecondWord;
+        LOG(DEBUG) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID)) << " pos " << pos;
+        //   mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i + 1]), EventData::PayloadSize);
+        if (mEventData[2 * i + 1].charge <= 0 && mEventData[2 * i + 1].channelID <= 0 && mEventData[2 * i + 1].time <= 0) {
           continue;
-        pos += o2::ft0::EventData::PayloadSize;
+        }
         chData.ChId = lut.getChannel(link, int(mEventData[2 * i + 1].channelID));
-        chData.CFDTime = mEventData[2 * i + 1].time /* / CFD_NS_2_Nchannels */;
-        chData.QTCAmpl = mEventData[2 * i + 1].charge /*/ MV_2_Nchannels*/;
+        chData.CFDTime = mEventData[2 * i + 1].time;
+        chData.QTCAmpl = mEventData[2 * i + 1].charge;
         chData.numberOfParticles = mEventData[2 * i + 1].numberADC;
         chDgDataArr->emplace_back(chData);
-        LOG(DEBUG) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " mcp " << int(mEventData[2 * i].channelID) << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID)) << " pos " << pos;
         if (mIsPadded) {
-          LOG(DEBUG) << " padding data"
-                     << " pos " << pos << " CRUWordSize - o2::ft0::EventData::PayloadSize " << CRUWordSize - o2::ft0::EventData::PayloadSize;
+          //        LOG(DEBUG) << " padding data"
+          //                   << " pos " << pos << " CRUWordSize - o2::ft0::EventData::PayloadSize " << CRUWordSize - o2::ft0::EventData::PayloadSize;
         }
       }
     }

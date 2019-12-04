@@ -42,7 +42,7 @@ Continueous mode  :   for only bunches with data at least in 1 channel.
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsFT0/RawEventData.h"
 #include "FT0Simulation/Digits2Raw.h"
-#include "DetectorsBase/Triggers.h"
+#include "CommonConstants/Triggers.h"
 #include <Framework/Logger.h>
 #include <TStopwatch.h>
 #include <cassert>
@@ -132,7 +132,7 @@ void Digits2Raw::convertDigits(const o2::ft0::Digit& digit, const o2::ft0::LookU
         LOG(DEBUG) << " mRawEventData.mEventHeader size " << sizeof(mRawEventData.mEventHeader);
         nchannels = 0;
       }
-      LOG(DEBUG) << " ChID digits " << d.ChId << " link " << nlink << " channel " << lut.getMCP(d.ChId) << " amp " << d.QTCAmpl << " time " << d.CFDTime;
+      //     LOG(DEBUG) << " ChID digits " << d.ChId << " link " << nlink << " channel " << lut.getMCP(d.ChId) << " amp " << d.QTCAmpl << " time " << d.CFDTime;
       auto& newData = mRawEventData.mEventData[nchannels];
       newData.charge = d.QTCAmpl;
       newData.time = d.CFDTime;

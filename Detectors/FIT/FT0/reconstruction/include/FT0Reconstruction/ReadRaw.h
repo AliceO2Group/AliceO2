@@ -43,7 +43,7 @@ class ReadRaw
   static constexpr int NPMs = 18;
   static constexpr float MV_2_Nchannels = 2.2857143;     //7 mV ->16channels
   static constexpr float CFD_NS_2_Nchannels = 76.804916; //1000.(ps)/13.02(channel);
-  //  static constexpr int GBTWORDSIZE = 80;            //real size
+  //static constexpr int GBTWORDSIZE = 80;            //real size
   static constexpr int GBTWordSize = 128;            // with padding
   static constexpr int MaxGBTpacketBytes = 8 * 1024; // Max size of GBT packet in bytes (8KB)
   static constexpr int CRUWordSize = 16;
