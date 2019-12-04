@@ -346,7 +346,8 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector
         // EOD is transmitted in the sectorHeader with sector number equal to -1
         o2::tpc::TPCSectorHeader sh{-1};
         sh.activeSectors = activeSectors;
-        pc.outputs().snapshot(OutputRef{"output", 0, {sh}}, -1);
+        pc.outputs().snapshot(OutputRef{"outTracks", 0, {sh}}, -1);
+        pc.outputs().snapshot(OutputRef{"outClusRefs", 0, {sh}}, -1);
         if (processMC) {
           pc.outputs().snapshot(OutputRef{"mclblout", 0, {sh}}, -1);
         }
@@ -443,12 +444,14 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector
       }
 
       std::vector<TrackTPC> tracks;
+      std::vector<uint32_t> clusRefs;
       MCLabelContainer tracksMCTruth;
       GPUO2InterfaceIOPtrs ptrs;
       ClusterNativeAccess clusterIndex;
       std::unique_ptr<ClusterNative[]> clusterBuffer;
       MCLabelContainer clustersMCBuffer;
       ptrs.outputTracks = &tracks;
+      ptrs.outputClusRefs = &clusRefs;
       ptrs.outputTracksMCTruth = (processMC ? &tracksMCTruth : nullptr);
       if (caClusterer) {
         ptrs.o2Digits = &inputDigits; // TODO: We will also create ClusterNative as output stored in ptrs. Should be added to the output
@@ -463,7 +466,8 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector
         LOG(ERROR) << "tracker returned error code " << retVal;
       }
       LOG(INFO) << "found " << tracks.size() << " track(s)";
-      pc.outputs().snapshot(OutputRef{"output"}, tracks);
+      pc.outputs().snapshot(OutputRef{"outTracks"}, tracks);
+      pc.outputs().snapshot(OutputRef{"outClusRefs"}, clusRefs);
       if (processMC) {
         LOG(INFO) << "sending " << tracksMCTruth.getIndexedSize() << " track label(s)";
         pc.outputs().snapshot(OutputRef{"mclblout"}, tracksMCTruth);
@@ -515,7 +519,8 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector
 
   auto createOutputSpecs = [](bool makeMcOutput) {
     std::vector<OutputSpec> outputSpecs{
-      OutputSpec{{"output"}, gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe},
+      OutputSpec{{"outTracks"}, gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe},
+      OutputSpec{{"outClusRefs"}, gDataOriginTPC, "CLUSREFS", 0, Lifetime::Timeframe},
     };
     if (makeMcOutput) {
       OutputLabel label{"mclblout"};
