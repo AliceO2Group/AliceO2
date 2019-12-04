@@ -439,7 +439,7 @@ class RawParser
 
     friend std::ostream& operator<<(std::ostream& os, self_type const& it)
     {
-      std::visit([&os](auto& parser) { return parser.format(os); }, it.mParser);
+      std::visit([&os](auto& parser) { return parser.format(os, raw_parser::FormatSpec::Entry, ""); }, it.mParser);
       return os;
     }
 
