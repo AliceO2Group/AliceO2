@@ -18,8 +18,8 @@ inline bool TimesliceSlot::isValid(TimesliceSlot const& slot) { return slot.inde
 inline bool TimesliceSlot::operator==(const TimesliceSlot that) const
 {
   return index == that.index ||
-         index == TimesliceSlot::ANY && TimesliceSlot::INVALID != that.index ||
-         index != TimesliceSlot::INVALID && TimesliceSlot::ANY == that.index;
+         (index == TimesliceSlot::ANY && TimesliceSlot::INVALID != that.index) ||
+         (index != TimesliceSlot::INVALID && TimesliceSlot::ANY == that.index);
 }
 
 inline bool TimesliceSlot::operator!=(const TimesliceSlot that) const
