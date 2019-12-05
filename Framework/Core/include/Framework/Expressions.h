@@ -16,6 +16,8 @@
 #include <arrow/type.h>
 #include <arrow/table.h>
 #include <gandiva/selection_vector.h>
+#include <gandiva/node.h>
+#include "gandiva/filter.h"
 #include <variant>
 #include <string>
 #include <memory>
@@ -218,6 +220,17 @@ struct Filter {
 
 using Selection = std::shared_ptr<gandiva::SelectionVector>;
 Selection createSelection(std::shared_ptr<arrow::Table> table, Filter const& expression);
+
+struct ColumnOperationSpec;
+using Operations = std::vector<ColumnOperationSpec>;
+
+Operations createOperations(Filter const& expression);
+bool isSchemaCompatible(gandiva::SchemaPtr const& Schema, Operations const& opSpecs);
+gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
+                                      gandiva::SchemaPtr const& Schema);
+std::shared_ptr<gandiva::Filter> createFilter(gandiva::SchemaPtr const& Schema,
+                                              gandiva::ConditionPtr condition);
+
 } // namespace o2::framework::expressions
 
 #endif // O2_FRAMEWORK_EXPRESSIONS_H_

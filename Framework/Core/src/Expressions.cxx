@@ -207,7 +207,7 @@ Operations createOperations(Filter const& expression)
 }
 
 std::shared_ptr<gandiva::Filter>
-  createFilter(SchemaPtr const& Schema, Operations const& opSpecs)
+  createFilter(gandiva::SchemaPtr const& Schema, Operations const& opSpecs)
 {
   std::shared_ptr<gandiva::Filter> filter;
   auto s = gandiva::Filter::Make(Schema,
@@ -247,7 +247,7 @@ Selection createSelection(std::shared_ptr<arrow::Table> table,
 }
 
 gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
-                                      SchemaPtr const& Schema)
+                                      gandiva::SchemaPtr const& Schema)
 {
   std::vector<gandiva::NodePtr> opNodes;
   opNodes.resize(opSpecs.size());
@@ -305,7 +305,7 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
   return tree;
 }
 
-bool isSchemaCompatible(SchemaPtr const& Schema, Operations const& opSpecs)
+bool isSchemaCompatible(gandiva::SchemaPtr const& Schema, Operations const& opSpecs)
 {
   std::set<std::string> opFieldNames;
   for (auto& spec : opSpecs) {
