@@ -46,6 +46,7 @@ struct BinaryOpNodeHelper {
     return ColumnOperationSpec{node.op};
   }
 };
+} // namespace
 
 std::shared_ptr<arrow::DataType> concreteArrowType(atype::type type)
 {
@@ -59,8 +60,6 @@ std::shared_ptr<arrow::DataType> concreteArrowType(atype::type type)
     return arrow::boolean();
   return nullptr;
 }
-
-} // namespace
 
 bool operator==(DatumSpec const& lhs, DatumSpec const& rhs)
 {
@@ -206,22 +205,37 @@ Operations createOperations(Filter const& expression)
   return OperationSpecs;
 }
 
+gandiva::ConditionPtr createCondition(gandiva::NodePtr node)
+{
+  return gandiva::TreeExprBuilder::MakeCondition(node);
+}
+
 std::shared_ptr<gandiva::Filter>
   createFilter(gandiva::SchemaPtr const& Schema, Operations const& opSpecs)
 {
   std::shared_ptr<gandiva::Filter> filter;
   auto s = gandiva::Filter::Make(Schema,
-                                 gandiva::TreeExprBuilder::MakeCondition(createExpressionTree(opSpecs, Schema)),
+                                 createCondition(createExpressionTree(opSpecs, Schema)),
                                  &filter);
   if (s.ok())
     return filter;
   throw std::runtime_error(fmt::format("Failed to create filter: {}", s));
 }
 
-Selection createSelection(std::shared_ptr<arrow::Table> table,
-                          Filter const& expression)
+std::shared_ptr<gandiva::Filter>
+  createFilter(gandiva::SchemaPtr const& Schema, gandiva::ConditionPtr condition)
 {
-  auto filter = createFilter(table->schema(), createOperations(expression));
+  std::shared_ptr<gandiva::Filter> filter;
+  auto s = gandiva::Filter::Make(Schema,
+                                 condition,
+                                 &filter);
+  if (s.ok())
+    return filter;
+  throw std::runtime_error(fmt::format("Failed to create filter: {}", s));
+}
+
+Selection createSelection(std::shared_ptr<arrow::Table> table, std::shared_ptr<gandiva::Filter> gfilter)
+{
   Selection selection;
   auto s = gandiva::SelectionVector::MakeInt64(table->num_rows(),
                                                arrow::default_memory_pool(),
@@ -238,12 +252,18 @@ Selection createSelection(std::shared_ptr<arrow::Table> table,
     if (batch == nullptr) {
       break;
     }
-    s = filter->Evaluate(*batch, selection);
+    s = gfilter->Evaluate(*batch, selection);
     if (!s.ok())
       throw std::runtime_error(fmt::format("Cannot apply filter {}", s));
   }
 
   return selection;
+}
+
+Selection createSelection(std::shared_ptr<arrow::Table> table,
+                          Filter const& expression)
+{
+  return createSelection(table, createFilter(table->schema(), createOperations(expression)));
 }
 
 gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
@@ -322,6 +342,21 @@ bool isSchemaCompatible(gandiva::SchemaPtr const& Schema, Operations const& opSp
 
   return std::includes(schemaFieldNames.begin(), schemaFieldNames.end(),
                        opFieldNames.begin(), opFieldNames.end());
+}
+
+std::vector<ExpressionInfo> createExpressionInfos(std::vector<SchemaInfo> const& infos, expressions::Filter const& filter)
+{
+  std::vector<ExpressionInfo> eInfos;
+  Operations ops = createOperations(filter);
+  for (auto& info : infos) {
+    if (isSchemaCompatible(info.second, ops)) {
+      // FIXME: if there is already a tree for a given label, merge a new
+      //        one into it
+      eInfos.push_back({info.first, createExpressionTree(ops, info.second)});
+    }
+  }
+
+  return eInfos;
 }
 
 } // namespace o2::framework::expressions
