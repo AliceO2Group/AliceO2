@@ -23,10 +23,11 @@
 #include <memory>
 
 using atype = arrow::Type;
+using SchemaInfo = std::pair<std::string, gandiva::SchemaPtr>;
+using ExpressionInfo = std::pair<std::string, gandiva::NodePtr>;
 
 namespace o2::framework::expressions
 {
-
 template <typename... T>
 struct LiteralStorage {
   using stored_type = std::variant<T...>;
@@ -51,6 +52,8 @@ constexpr auto selectArrowType()
   }
   O2_BUILTIN_UNREACHABLE();
 }
+
+std::shared_ptr<arrow::DataType> concreteArrowType(atype::type type);
 
 /// An expression tree node corresponding to a literal value
 struct LiteralNode {
@@ -200,6 +203,12 @@ inline Node operator/(Node left, T right)
 }
 
 template <typename T>
+inline Node operator/(T left, Node right)
+{
+  return Node{BinaryOpNode{BasicOp::Division}, LiteralNode{left}, std::move(right)};
+}
+
+template <typename T>
 inline Node operator+(Node left, T right)
 {
   return Node{BinaryOpNode{BasicOp::Addition}, std::move(left), LiteralNode{right}};
@@ -220,6 +229,7 @@ struct Filter {
 
 using Selection = std::shared_ptr<gandiva::SelectionVector>;
 Selection createSelection(std::shared_ptr<arrow::Table> table, Filter const& expression);
+Selection createSelection(std::shared_ptr<arrow::Table> table, std::shared_ptr<gandiva::Filter> gfilter);
 
 struct ColumnOperationSpec;
 using Operations = std::vector<ColumnOperationSpec>;
@@ -230,7 +240,10 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
                                       gandiva::SchemaPtr const& Schema);
 std::shared_ptr<gandiva::Filter> createFilter(gandiva::SchemaPtr const& Schema,
                                               gandiva::ConditionPtr condition);
-
+std::shared_ptr<gandiva::Filter> createFilter(gandiva::SchemaPtr const& Schema,
+                                              Operations const& opSpecs);
+std::vector<ExpressionInfo> createExpressionInfos(std::vector<SchemaInfo> const& infos, expressions::Filter const& filter);
+gandiva::ConditionPtr createCondition(gandiva::NodePtr node);
 } // namespace o2::framework::expressions
 
 #endif // O2_FRAMEWORK_EXPRESSIONS_H_
