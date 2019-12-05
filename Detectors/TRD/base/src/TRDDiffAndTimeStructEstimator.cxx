@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "TRDBase/TRDCommonParam.h"
-#include "TRDBase/TRDDiffandTimeStructEstimator.h"
+#include "TRDBase/TRDDiffAndTimeStructEstimator.h"
 #include "TRDBase/TRDGeometry.h"
 #include <cmath>
 
