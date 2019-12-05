@@ -76,6 +76,16 @@ struct ETask {
   }
 };
 
+// FIXME: for the moment we do not derive from AnalysisTask as
+// we need GCC 7.4+ to fix a bug.
+struct FTask {
+  expressions::Filter fooFilter = aod::track::foo > 1.;
+  void process(soa::Filtered<o2::aod::FooBars>::iterator const& foobar)
+  {
+    foobar.sum();
+  }
+};
+
 BOOST_AUTO_TEST_CASE(AdaptorCompilation)
 {
   auto task1 = adaptAnalysisTask<ATask>("test1");
@@ -101,4 +111,8 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
   auto task5 = adaptAnalysisTask<ETask>("test5");
   BOOST_CHECK_EQUAL(task5.inputs.size(), 1);
   BOOST_CHECK_EQUAL(task5.inputs[0].binding, "FooBars");
+
+  auto task6 = adaptAnalysisTask<FTask>("test6");
+  BOOST_CHECK_EQUAL(task6.inputs.size(), 1);
+  BOOST_CHECK_EQUAL(task6.inputs[0].binding, "FooBars");
 }

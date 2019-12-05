@@ -17,6 +17,7 @@
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/Expressions.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/Kernels.h"
 #include "Framework/Logger.h"
@@ -30,6 +31,7 @@
 #include <arrow/compute/context.h>
 #include <arrow/compute/kernel.h>
 #include <arrow/table.h>
+#include <gandiva/node.h>
 #include <type_traits>
 #include <utility>
 #include <memory>
@@ -184,6 +186,17 @@ struct OutputObj {
 struct AnalysisTask {
 };
 
+using SchemaInfo = std::pair<std::string, gandiva::SchemaPtr>;
+
+namespace me
+{
+template <typename T>
+gandiva::SchemaPtr createSchemaFromTable()
+{
+  return nullptr;
+}
+} // namespace me
+
 // Helper struct which builds a DataProcessorSpec from
 // the contents of an AnalysisTask...
 struct AnalysisDataProcessorBuilder {
@@ -197,7 +210,8 @@ struct AnalysisDataProcessorBuilder {
   }
 
   template <typename T>
-  static void appendSomethingWithMetadata(std::vector<InputSpec>& inputs)
+  static void appendSomethingWithMetadata(std::vector<InputSpec>& inputs,
+                                          std::vector<SchemaInfo>& filteredSchemas)
   {
     if constexpr (is_specialization<std::decay_t<T>, soa::Join>::value) {
       using left_t = typename std::decay_t<T>::left_t;
@@ -205,16 +219,18 @@ struct AnalysisDataProcessorBuilder {
       doAppendInputWithMetadata<left_t>(inputs);
       doAppendInputWithMetadata<right_t>(inputs);
     } else if constexpr (is_specialization<std::decay_t<T>, soa::Filtered>::value) {
-      doAppendInputWithMetadata<typename std::decay_t<T>::table_t>(inputs);
+      using table_t = typename std::decay_t<T>::table_t;
+      doAppendInputWithMetadata<table_t>(inputs);
+      filteredSchemas.push_back({table_t::label(), me::createSchemaFromTable<table_t::persistent_columns>()});
     } else {
       doAppendInputWithMetadata<T>(inputs);
     }
   }
 
   template <typename R, typename C, typename... Args>
-  static void inputsFromArgs(R (C::*)(Args...), std::vector<InputSpec>& inputs)
+  static void inputsFromArgs(R (C::*)(Args...), std::vector<InputSpec>& inputs, std::vector<SchemaInfo>& filteredSchemas)
   {
-    (appendSomethingWithMetadata<Args>(inputs), ...);
+    (appendSomethingWithMetadata<Args>(inputs, filteredSchemas), ...);
   }
 
   template <typename R, typename C, typename Grouping, typename... Args>
@@ -385,6 +401,46 @@ struct AnalysisDataProcessorBuilder {
   }
 };
 
+namespace fixme
+{
+bool isSchemaCompatible(gandiva::SchemaPtr schema, std::vector<expressions::ColumnOperationSpec> const&)
+{
+  return false;
+}
+
+gandiva::NodePtr createExpressionTree(gandiva::SchemaPtr schema, std::vector<expressions::ColumnOperationSpec> const&)
+{
+  return nullptr;
+}
+
+} // namespace fixme
+
+using ExpressionInfo = std::pair<std::string, gandiva::NodePtr>;
+
+template <typename T>
+struct FilterManager {
+  template <typename ANY>
+  static bool createExpressionTree(std::vector<SchemaInfo> const& infos, ANY&, std::vector<ExpressionInfo> &)
+  {
+    return false;
+  }
+};
+
+template <>
+struct FilterManager<expressions::Filter> {
+  static bool createExpressionTree(std::vector<SchemaInfo> const& infos, expressions::Filter const& filter, std::vector<ExpressionInfo> &expressionInfos)
+  {
+    auto ops = expressions::createOperations(filter);
+
+    for (auto& info : infos) {
+      if (fixme::isSchemaCompatible(info.second, ops) == false) {
+        continue;
+      }
+      expressionInfos.push_back({info.first, fixme::createExpressionTree(info.second, ops)});
+    }
+  }
+};
+
 template <typename T>
 struct OutputManager {
   template <typename ANY>
@@ -547,9 +603,18 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
                 "At least one of process(...), T::run(...), init(...) must be defined");
 
   std::vector<InputSpec> inputs;
+  std::vector<SchemaInfo> filteredSchemas;
+  std::vector<ExpressionInfo> expressionInfos;
+
   if constexpr (has_process<T>::value) {
-    AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, inputs);
+    AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, inputs, filteredSchemas);
+    std::apply([&filteredSchemas, &expressionInfos](auto&... x) {
+        return (FilterManager<std::decay_t<decltype(x)>>::createExpressionTree(filteredSchemas, x, expressionInfos)), ...);
+    },
+               tupledTask);
   }
+
+  std::apply([&outputs](auto&... x) { return (OutputManager<std::decay_t<decltype(x)>>::appendOutput(outputs, x), ...); }, tupledTask);
 
   auto algo = AlgorithmSpec::InitCallback{[task](InitContext& ic) {
     auto& callbacks = ic.services().get<CallbackService>();
