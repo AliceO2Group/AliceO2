@@ -63,6 +63,8 @@ class TrackFinderTask
     mTrackFinder.debug(debugLevel);
 
     auto stop = [this]() {
+      mTrackFinder.printStats();
+      mTrackFinder.printTimers();
       LOG(INFO) << "tracking duration = " << mElapsedTime.count() << " s";
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
@@ -156,7 +158,7 @@ class TrackFinderTask
 
     int size(0);
     for (const auto& track : tracks) {
-      size += SSizeOfTrackParamStruct + SSizeOfInt + track.getNClusters() * SSizeOfClusterStruct;
+      size += SSizeOfTrackParamStruct + SSizeOfDouble + SSizeOfInt + track.getNClusters() * SSizeOfClusterStruct;
     }
     if (size > 0) {
       size += SSizeOfInt;
@@ -196,6 +198,11 @@ class TrackFinderTask
       memcpy(bufferPtr, &paramStruct, SSizeOfTrackParamStruct);
       bufferPtr += SSizeOfTrackParamStruct;
 
+      // write track chi2
+      double chi2 = track.first().getTrackChi2();
+      memcpy(bufferPtr, &chi2, SSizeOfDouble);
+      bufferPtr += SSizeOfDouble;
+
       // write the number of clusters
       int nClusters = track.getNClusters();
       memcpy(bufferPtr, &nClusters, SSizeOfInt);
@@ -212,6 +219,7 @@ class TrackFinderTask
   }
 
   static constexpr int SSizeOfInt = sizeof(int);
+  static constexpr int SSizeOfDouble = sizeof(double);
   static constexpr int SHeaderSize = 2 * SSizeOfInt;
   static constexpr int SSizeOfClusterStruct = sizeof(ClusterStruct);
   static constexpr int SSizeOfTrackParamStruct = sizeof(TrackParamStruct);
