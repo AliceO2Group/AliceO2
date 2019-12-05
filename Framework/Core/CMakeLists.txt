@@ -240,6 +240,7 @@ foreach(b
         DeviceMetricsInfo
         InputRecord
         TableBuilder
+        WorkflowHelpers
         ASoA
         HistogramRegistry
         )
