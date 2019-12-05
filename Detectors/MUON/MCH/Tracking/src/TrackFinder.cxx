@@ -740,7 +740,7 @@ std::list<Track>::iterator TrackFinder::followTrackInChamber(std::list<Track>::i
 
   // list of (half-)planes, 2 or 4 per chamber, ordered according to the direction of propagation,
   // which is forward when going to station 5 and backward otherwise with the present algorithm
-  constexpr int plane[10][4] = {{1, 0, -1, -1}, {3, 2, -1, -1}, {5, 4, -1, -1}, {7, 6, -1, -1}, {11, 10, 9, 8}, {15, 14, 13, 12}, {19, 18, 17, 16}, {23, 22, 21, 20}, {24, 25, 26, 27}, {28, 29, 30, 31}};
+  static constexpr int plane[10][4] = {{1, 0, -1, -1}, {3, 2, -1, -1}, {5, 4, -1, -1}, {7, 6, -1, -1}, {11, 10, 9, 8}, {15, 14, 13, 12}, {19, 18, 17, 16}, {23, 22, 21, 20}, {24, 25, 26, 27}, {28, 29, 30, 31}};
 
   print("followTrackInChamber: follow track #", getTrackIndex(itTrack), " to chamber ", chamber + 1, " up to chamber ", lastChamber + 1);
 

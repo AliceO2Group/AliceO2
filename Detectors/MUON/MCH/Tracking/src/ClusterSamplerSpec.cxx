@@ -69,6 +69,7 @@ class ClusterSamplerTask
     int event(0);
     mInputFile.read(reinterpret_cast<char*>(&event), SSizeOfInt);
     if (mInputFile.fail()) {
+      pc.services().get<ControlService>().endOfStream();
       return; // probably reached eof
     }
 
