@@ -67,10 +67,17 @@ const std::list<Track>& TrackFinderOriginal::findTracks(const std::array<std::li
 
   // Look for candidates from clusters in stations(1..) 4 and 5
   print("\n--> Step 1: find track candidates\n");
+  auto tStart = std::chrono::high_resolution_clock::now();
   findTrackCandidates();
+  auto tEnd = std::chrono::high_resolution_clock::now();
+  mTimeFindCandidates += tEnd - tStart;
   if (mMoreCandidates) {
+    tStart = std::chrono::high_resolution_clock::now();
     findMoreTrackCandidates();
+    tEnd = std::chrono::high_resolution_clock::now();
+    mTimeFindMoreCandidates += tEnd - tStart;
   }
+  mNCandidates += mTracks.size();
 
   // Stop tracking if no candidate found
   if (mTracks.empty()) {
@@ -79,24 +86,36 @@ const std::list<Track>& TrackFinderOriginal::findTracks(const std::array<std::li
 
   // Follow tracks in stations(1..) 3, 2 then 1
   print("\n--> Step 2: Follow track candidates\n");
+  tStart = std::chrono::high_resolution_clock::now();
   followTracks(mTracks.begin(), mTracks.end(), 2);
+  tEnd = std::chrono::high_resolution_clock::now();
+  mTimeFollowTracks += tEnd - tStart;
 
   // Complete the reconstructed tracks
+  tStart = std::chrono::high_resolution_clock::now();
   if (completeTracks()) {
     printTracks();
     removeDuplicateTracks();
   }
+  tEnd = std::chrono::high_resolution_clock::now();
+  mTimeCompleteTracks += tEnd - tStart;
   print("Currently ", mTracks.size(), " candidates");
   printTracks();
 
   // Improve the reconstructed tracks
+  tStart = std::chrono::high_resolution_clock::now();
   improveTracks();
+  tEnd = std::chrono::high_resolution_clock::now();
+  mTimeImproveTracks += tEnd - tStart;
   print("Currently ", mTracks.size(), " candidates");
   printTracks();
 
   // Remove connected tracks in stations(1..) 3, 4 and 5
+  tStart = std::chrono::high_resolution_clock::now();
   removeConnectedTracks(3, 4);
   removeConnectedTracks(2, 2);
+  tEnd = std::chrono::high_resolution_clock::now();
+  mTimeCleanTracks += tEnd - tStart;
 
   // Set the final track parameters and covariances
   finalize();
@@ -888,6 +907,8 @@ bool TrackFinderOriginal::tryOneClusterFast(const TrackParam& param, const Clust
   /// and assuming linear propagation of the track to the z position of the cluster
   /// Return true if they are compatibles
 
+  ++mNCallTryOneClusterFast;
+
   double dZ = cluster.getZ() - param.getZ();
   double dX = cluster.getX() - (param.getNonBendingCoor() + param.getNonBendingSlope() * dZ);
   double dY = cluster.getY() - (param.getBendingCoor() + param.getBendingSlope() * dZ);
@@ -912,6 +933,8 @@ double TrackFinderOriginal::tryOneCluster(const TrackParam& param, const Cluster
   /// given the track covariance matrix and the cluster resolution
   /// and propagating properly the track to the z position of the cluster
   /// Return the matching chi2 and the track parameters at the cluster
+
+  ++mNCallTryOneCluster;
 
   // Extrapolate the track parameters and covariances at the z position of the cluster
   paramAtCluster = param;
@@ -1036,26 +1059,19 @@ std::list<Track>::iterator TrackFinderOriginal::recoverTrack(std::list<Track>::i
   }
 
   // Remove the worst cluster
-  auto itParam = itTrack->removeParamAtCluster(itWorstParam);
+  itTrack->removeParamAtCluster(itWorstParam);
 
-  // refit the track from the second cluster as currently done in AliRoot
-  //itParam = std::next(itTrack->begin());
-
-  // In case the cluster removed was not the last attached:
-  if (itParam != itTrack->begin()) {
-
-    // Recompute the track parameters at the clusters upstream the one removed, starting from the parameters downstream
-    try {
-      auto ritParam = std::make_reverse_iterator(++itParam);
-      mTrackFitter.fit(*itTrack, false, false, &ritParam);
-    } catch (exception const&) {
-      return mTracks.end();
-    }
-
-    // Skip tracks out of limits
-    if (!isAcceptable(itTrack->first())) {
-      return mTracks.end();
-    }
+  // Recompute the track parameters at the first cluster from the second, as currently done in AliRoot
+  try {
+    auto itParam = std::next(itTrack->begin());
+    auto ritParam = std::make_reverse_iterator(++itParam);
+    mTrackFitter.fit(*itTrack, false, false, &ritParam);
+  } catch (exception const&) {
+    return mTracks.end();
+  }
+  // Skip tracks out of limits
+  if (!isAcceptable(itTrack->first())) {
+    return mTracks.end();
   }
 
   // Look for new cluster(s) in the next station
@@ -1103,7 +1119,7 @@ bool TrackFinderOriginal::completeTracks()
         }
 
         // Fast try to add the current cluster
-        if (!tryOneClusterFast(*param, cluster)) {
+        if (!tryOneClusterFast(*itParam, cluster)) {
           continue;
         }
 
@@ -1337,6 +1353,28 @@ void TrackFinderOriginal::print(Args... args) const
   if (mDebugLevel > 0) {
     (cout << ... << args) << "\n";
   }
+}
+
+//_________________________________________________________________________________________________
+void TrackFinderOriginal::printStats() const
+{
+  /// print the timers
+  LOG(INFO) << "number of candidates tracked = " << mNCandidates;
+  TrackExtrap::printNCalls();
+  LOG(INFO) << "number of times tryOneClusterFast() is called = " << mNCallTryOneClusterFast;
+  LOG(INFO) << "number of times tryOneCluster() is called = " << mNCallTryOneCluster;
+}
+
+//_________________________________________________________________________________________________
+void TrackFinderOriginal::printTimers() const
+{
+  /// print the timers
+  LOG(INFO) << "findTrackCandidates duration = " << mTimeFindCandidates.count() << " s";
+  LOG(INFO) << "findMoreTrackCandidates duration = " << mTimeFindMoreCandidates.count() << " s";
+  LOG(INFO) << "followTracks duration = " << mTimeFollowTracks.count() << " s";
+  LOG(INFO) << "completeTracks duration = " << mTimeCompleteTracks.count() << " s";
+  LOG(INFO) << "improveTracks duration = " << mTimeImproveTracks.count() << " s";
+  LOG(INFO) << "removeConnectedTracks duration = " << mTimeCleanTracks.count() << " s";
 }
 
 } // namespace mch
