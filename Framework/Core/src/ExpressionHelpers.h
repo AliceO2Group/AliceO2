@@ -10,7 +10,6 @@
 #ifndef O2_FRAMEWORK_EXPRESSIONS_HELPERS_H_
 #define O2_FRAMEWORK_EXPRESSIONS_HELPERS_H_
 #include "Framework/Expressions.h"
-#include "gandiva/filter.h"
 
 #include <vector>
 #include <iosfwd>
@@ -81,19 +80,6 @@ struct ColumnOperationSpec {
     result.type = type;
   }
 };
-
-using Operations = std::vector<ColumnOperationSpec>;
-using SchemaPtr = std::shared_ptr<arrow::Schema>;
-
-Operations createOperations(Filter const& expression);
-
-std::shared_ptr<gandiva::Filter> createFilter(SchemaPtr const& Schema,
-                                              gandiva::ConditionPtr condition);
-
-gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
-                                      SchemaPtr const& Schema);
-
-bool isSchemaCompatible(SchemaPtr const& Schema, Operations const& opSpecs);
 } // namespace o2::framework::expressions
 
 #endif // O2_FRAMEWORK_EXPRESSIONS_HELPERS_H_
