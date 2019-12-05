@@ -68,7 +68,6 @@ class Digit
     //
     // Create a digit and a digit-index container from a map container
     //
-    digitCont.reserve(adcMapCont.size());
     for (const auto& element : adcMapCont) {
       const int key = element.first;
       ArrayADC_t adcs{};

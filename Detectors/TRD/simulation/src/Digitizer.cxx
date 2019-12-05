@@ -22,10 +22,14 @@
 #include "TRDSimulation/Digitizer.h"
 #include <cmath>
 
+#ifdef WITH_OPENMP
+#include <omp.h>
+#endif
+
 using namespace o2::trd;
 using namespace o2::math_utils;
 
-Digitizer::Digitizer() : mGausRandomRing(RandomRing<>::RandomType::Gaus), mFlatRandomRing(RandomRing<>::RandomType::Flat)
+Digitizer::Digitizer()
 {
   o2::base::GeometryManager::loadGeometry();
   mGeo = new TRDGeometry();
@@ -43,7 +47,18 @@ Digitizer::Digitizer() : mGausRandomRing(RandomRing<>::RandomType::Gaus), mFlatR
       LOG(FATAL) << "TRD Common Parameters does not have magnetic field available";
     }
   }
-  mLogRandomRing.initialize([]() -> float { return std::log(gRandom->Rndm()); });
+
+  // initialize structures that we need per thread
+  mGausRandomRings.resize(mNumThreads);
+  mFlatRandomRings.resize(mNumThreads);
+  mLogRandomRings.resize(mNumThreads);
+  for (int i = 0; i < mNumThreads; ++i) {
+    mGausRandomRings[i].initialize(RandomRing<>::RandomType::Gaus);
+    mFlatRandomRings[i].initialize(RandomRing<>::RandomType::Flat);
+    mLogRandomRings[i].initialize([]() -> float { return std::log(gRandom->Rndm()); });
+    mDriftEstimators.emplace_back();
+  }
+
   mSDigits = false;
 }
 
@@ -53,14 +68,27 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
     LOG(FATAL) << "TRD Calibration database not available";
   }
 
-  SignalContainer_t adcMapCont;
+  // TODO: it might be worth making these member variables
+  // in order to have less memory allocations
+  std::array<SignalContainer_t, kNdet> adcMapCont;
+  std::array<o2::dataformats::MCTruthContainer<MCLabel>, kNdet> labelsperdetector;
 
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
   std::array<std::vector<HitType>, kNdet> hitsPerDetector;
   getHitContainerPerDetector(hits, hitsPerDetector);
 
-  // Loop over all TRD detectors
+#ifdef WITH_OPENMP
+  omp_set_num_threads(mNumThreads);
+// Loop over all TRD detectors (in a parallel fashion)
+#pragma omp parallel for schedule(dynamic)
+#endif
   for (int det = 0; det < kNdet; ++det) {
+#ifdef WITH_OPENMP
+    const int threadid = omp_get_thread_num();
+#else
+    const int threadid = 0;
+#endif
+    auto& adcmap = adcMapCont[det];
     // Jump to the next detector if the detector is
     // switched off, not installed, etc
     if (mCalib->isChamberNoData(det)) {
@@ -75,24 +103,29 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
       continue;
     }
 
-    if (!convertHits(det, hitsPerDetector[det], adcMapCont, labels)) {
+    if (!convertHits(det, hitsPerDetector[det], adcmap, labelsperdetector[det], threadid)) {
       LOG(WARN) << "TRD conversion of hits failed for detector " << det;
       continue; // go to the next chamber
     }
 
     // O2-790
-    if (adcMapCont.size() == 0) {
+    if (adcmap.size() == 0) {
       continue; // go to the next chamber
     }
 
-    if (!convertSignalsToDigits(det, adcMapCont)) {
+    if (!convertSignalsToDigits(det, adcmap, threadid)) {
       LOG(WARN) << "TRD conversion of signals to digits failed for detector " << det;
       continue; // go to the next chamber
     }
   }
 
   // Finalize
-  Digit::convertMapToVectors(adcMapCont, digitCont);
+  // a) combine all adcs into single digit container
+  // b) merge labels into single labelcontainer
+  for (int det = 0; det < kNdet; ++det) {
+    Digit::convertMapToVectors(adcMapCont[det], digitCont);
+    labels.mergeAtBack(labelsperdetector[det]);
+  }
 }
 
 void Digitizer::getHitContainerPerDetector(const std::vector<HitType>& hits, std::array<std::vector<HitType>, kNdet>& hitsPerDetector)
@@ -107,7 +140,7 @@ void Digitizer::getHitContainerPerDetector(const std::vector<HitType>& hits, std
   }
 }
 
-bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, SignalContainer_t& adcMapCont, o2::dataformats::MCTruthContainer<MCLabel>& labels)
+bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, SignalContainer_t& adcMapCont, o2::dataformats::MCTruthContainer<MCLabel>& labels, int thread)
 {
   //
   // Convert the detector-wise sorted hits to detector signals
@@ -203,7 +236,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
     for (int el = 0; el < nElectrons; ++el) {
       // Electron attachment
       if (mSimParam->ElAttachOn()) {
-        if (mFlatRandomRing.getNextValue() < absDriftLength * elAttachProp) {
+        if (mFlatRandomRings[thread].getNextValue() < absDriftLength * elAttachProp) {
           continue;
         }
       }
@@ -212,10 +245,11 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
 
       // Apply diffusion smearing
       if (mSimParam->DiffusionOn()) {
-        if (!diffusion(driftVelocity, absDriftLength, calExBDetValue, locR, locC, locT, locRd, locCd, locTd)) {
+        if (!diffusion(driftVelocity, absDriftLength, calExBDetValue, locR, locC, locT, locRd, locCd, locTd, thread)) {
           continue;
         }
       }
+
       // Apply E x B effects
       if (mCommonParam->ExBOn()) {
         locCd = locCd + calExBDetValue * driftLength;
@@ -247,13 +281,14 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
           zz = 0.5 - zz;
         }
         // Use drift time map (GARFIELD)
-        driftTime = mCommonParam->TimeStruct(driftVelocity, 0.5 * kAmWidth - 1.0 * locTd, zz) + hit.GetTime();
+        driftTime = mDriftEstimators[thread].TimeStruct(driftVelocity, 0.5 * kAmWidth - 1.0 * locTd, zz) + hit.GetTime();
       } else {
         // Use constant drift velocity
         driftTime = abs(locTd) / driftVelocity + hit.GetTime();
       }
+
       // Apply the gas gain including fluctuations
-      const double signal = -(mSimParam->GetGasGain()) * mLogRandomRing.getNextValue();
+      const double signal = -(mSimParam->GetGasGain()) * mLogRandomRings[thread].getNextValue();
 
       // Apply the pad response
       if (mSimParam->PRFOn()) {
@@ -332,7 +367,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
   return true;
 }
 
-bool Digitizer::convertSignalsToDigits(const int det, SignalContainer_t& adcMapCont)
+bool Digitizer::convertSignalsToDigits(const int det, SignalContainer_t& adcMapCont, int thread)
 {
   //
   // conversion of signals to digits
@@ -340,19 +375,19 @@ bool Digitizer::convertSignalsToDigits(const int det, SignalContainer_t& adcMapC
 
   if (mSDigits) {
     // Convert the signal array to s-digits
-    if (!convertSignalsToSDigits(det, adcMapCont)) {
+    if (!convertSignalsToSDigits(det, adcMapCont, thread)) {
       return false;
     }
   } else {
     // Convert the signal array to digits
-    if (!convertSignalsToADC(det, adcMapCont)) {
+    if (!convertSignalsToADC(det, adcMapCont, thread)) {
       return false;
     }
   }
   return true;
 }
 
-bool Digitizer::convertSignalsToSDigits(const int det, SignalContainer_t& adcMapCont)
+bool Digitizer::convertSignalsToSDigits(const int det, SignalContainer_t& adcMapCont, int thread)
 {
   //
   // Convert signals to S-digits
@@ -368,7 +403,7 @@ float drawGaus(o2::math_utils::RandomRing<>& normaldistRing, float mu, float sig
   return mu + sigma * normaldistRing.getNextValue();
 }
 
-bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont)
+bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont, int thread)
 {
   //
   // Converts the sampled electron signals to ADC values for a given chamber
@@ -419,7 +454,7 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont
       signalAmp *= coupling;                // Pad and time coupling
       signalAmp *= padgain;                 // Gain factors
       // Add the noise, starting from minus ADC baseline in electrons
-      signalAmp = std::max((double)drawGaus(mGausRandomRing, signalAmp, mSimParam->GetNoise()), -baselineEl);
+      signalAmp = std::max((double)drawGaus(mGausRandomRings[thread], signalAmp, mSimParam->GetNoise()), -baselineEl);
       signalAmp *= convert;  // Convert to mV
       signalAmp += baseline; // Add ADC baseline in mV
       // Convert to ADC counts
@@ -439,7 +474,7 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont
 
 bool Digitizer::diffusion(float vdrift, float absdriftlength, float exbvalue,
                           float lRow0, float lCol0, float lTime0,
-                          double& lRow, double& lCol, double& lTime)
+                          double& lRow, double& lCol, double& lTime, int thread)
 {
   //
   // Applies the diffusion smearing to the position of a single electron.
@@ -447,18 +482,18 @@ bool Digitizer::diffusion(float vdrift, float absdriftlength, float exbvalue,
   //
   float diffL = 0.0;
   float diffT = 0.0;
-  if (mCommonParam->GetDiffCoeff(diffL, diffT, vdrift)) {
+  if (mDriftEstimators[thread].GetDiffCoeff(diffL, diffT, vdrift)) {
     float driftSqrt = std::sqrt(absdriftlength);
     float sigmaT = driftSqrt * diffT;
     float sigmaL = driftSqrt * diffL;
-    lRow = drawGaus(mGausRandomRing, lRow0, sigmaT);
+    lRow = drawGaus(mGausRandomRings[thread], lRow0, sigmaT);
     if (mCommonParam->ExBOn()) {
       const float exbfactor = 1.f / (1.f + exbvalue * exbvalue);
-      lCol = drawGaus(mGausRandomRing, lCol0, sigmaT * exbfactor);
-      lTime = drawGaus(mGausRandomRing, lTime0, sigmaL * exbfactor);
+      lCol = drawGaus(mGausRandomRings[thread], lCol0, sigmaT * exbfactor);
+      lTime = drawGaus(mGausRandomRings[thread], lTime0, sigmaL * exbfactor);
     } else {
-      lCol = drawGaus(mGausRandomRing, lCol0, sigmaT);
-      lTime = drawGaus(mGausRandomRing, lTime0, sigmaL);
+      lCol = drawGaus(mGausRandomRings[thread], lCol0, sigmaT);
+      lTime = drawGaus(mGausRandomRings[thread], lTime0, sigmaL);
     }
     return true;
   } else {
