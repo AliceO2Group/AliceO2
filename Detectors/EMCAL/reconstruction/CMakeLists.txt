@@ -45,7 +45,7 @@ o2_target_root_dictionary(
                                   include/EMCALReconstruction/RAWDataHeader.h
                                   include/EMCALReconstruction/CaloFitResults.h
                                   include/EMCALReconstruction/CaloRawFitter.h
-                                  include/EMCALReconstruction/CaloRawFitterStandard.h)
+                                  include/EMCALReconstruction/CaloRawFitterStandard.h
                                   include/EMCALReconstruction/Mapper.h
                                   include/EMCALReconstruction/ClusterizerParameters.h
                                   include/EMCALReconstruction/Clusterizer.h
