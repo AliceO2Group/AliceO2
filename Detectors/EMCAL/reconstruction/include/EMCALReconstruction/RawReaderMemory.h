@@ -92,7 +92,7 @@ class RawReaderMemory
 
   /// \brief check if more pages are available in the raw file
   /// \return true if there is a next page
-  bool hasNext() const { return mCurrentPosition < mNumData; }
+  bool hasNext() const { return mCurrentPosition < mRawMemoryBuffer.size(); }
 
  protected:
   /// \brief Initialize the raw stream
