@@ -14,7 +14,6 @@
 #define ALICEO2_ITSMFT_CLUSTER_H
 
 #include "ReconstructionDataFormats/BaseCluster.h"
-#include "Framework/TypeTraits.h"
 
 // uncomment this to have cluster topology stored
 #define _ClusterTopology_
@@ -200,14 +199,13 @@ inline void Cluster::setClusterUsage(Int_t n)
 /// type trait, adding a corresponding unit test to go beyond make-believe
 namespace framework
 {
+template <typename T>
+struct is_messageable;
 template <>
-struct is_messageable<o2::itsmft::Cluster> : public std::true_type {
+struct is_messageable<o2::itsmft::Cluster> : std::true_type {
 };
 } // namespace framework
-} // namespace o2
 
-template <>
-struct o2::framework::is_messageable<o2::itsmft::Cluster> : std::true_type {
-};
+} // namespace o2
 
 #endif /* ALICEO2_ITSMFT_CLUSTER_H */
