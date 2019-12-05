@@ -53,12 +53,6 @@ class RandomRing
     CustomLambda, ///< Initialized through external lambda
   };
 
-  /// disallow copy constructor
-  RandomRing(const RandomRing&) = delete;
-
-  /// disallow assignment operator
-  void operator=(const RandomRing&) = delete;
-
   /// constructor
   /// @param [in] randomType type of the random generator
   RandomRing(const RandomType randomType = RandomType::Gaus);
