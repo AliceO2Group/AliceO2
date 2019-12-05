@@ -85,6 +85,5 @@ BOOST_AUTO_TEST_CASE(TRDDiffusion_test)
   BOOST_CHECK_CLOSE(dt1, dt2, 0.001);
 }
 
-
 } // namespace trd
 } // namespace o2

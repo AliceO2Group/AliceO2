@@ -8,10 +8,14 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
+set (_libs O2::DetectorsBase O2::SimulationDataFormat O2::TRDBase)
+if (OpenMP_FOUND)
+set (_libs ${_libs} OpenMP::OpenMP)
+endif()
+
 o2_add_library(TRDSimulation
                SOURCES src/Detector.cxx src/TRsim.cxx src/Digitizer.cxx
-               PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::SimulationDataFormat
-                                     O2::TRDBase)
+               PUBLIC_LINK_LIBRARIES ${_libs})
 
 o2_target_root_dictionary(TRDSimulation
                           HEADERS include/TRDSimulation/Detector.h

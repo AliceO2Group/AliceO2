@@ -17,6 +17,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 #include "TRDBase/TRDCommonParam.h"
+#include "TRDBase/TRDDiffAndTimeStructEstimator.h"
 #include "TRDBase/Calibrations.h"
 
 #include "MathUtils/RandomRing.h"
@@ -49,9 +50,17 @@ class Digitizer
   TRDSimParam* mSimParam = nullptr;       // access to TRDSimParam instance
   TRDCommonParam* mCommonParam = nullptr; // access to TRDCommonParam instance
   Calibrations* mCalib = nullptr;         // access to Calibrations in CCDB
-  math_utils::RandomRing<> mGausRandomRing; // pre-generated normal distributed random numbers
-  math_utils::RandomRing<> mFlatRandomRing; // pre-generated flat distributed random numbers
-  math_utils::RandomRing<> mLogRandomRing;  // pre-generated exp distributed random number
+
+  // number of digitizer threads
+  // TODO: make this configurable
+  int mNumThreads = 4;
+
+  // we create one such service structure per thread
+  std::vector<math_utils::RandomRing<>> mGausRandomRings; // pre-generated normal distributed random numbers
+  std::vector<math_utils::RandomRing<>> mFlatRandomRings; // pre-generated flat distributed random numbers
+  std::vector<math_utils::RandomRing<>> mLogRandomRings;  // pre-generated exp distributed random number
+
+  std::vector<TRDDiffusionAndTimeStructEstimator> mDriftEstimators;
 
   double mTime = 0.;
   int mEventID = 0;
@@ -62,12 +71,12 @@ class Digitizer
 
   void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, kNdet>&);
   // Digitization chaing methods
-  bool convertHits(const int, const std::vector<HitType>&, SignalContainer_t&, o2::dataformats::MCTruthContainer<MCLabel>&); // True if hit-to-signal conversion is successful
-  bool convertSignalsToDigits(const int, SignalContainer_t&);                                                                // True if signal-to-digit conversion is successful
-  bool convertSignalsToSDigits(const int, SignalContainer_t&);                                                               // True if signal-to-sdigit conversion is successful
-  bool convertSignalsToADC(const int, SignalContainer_t&);                                                                   // True if signal-to-ADC conversion is successful
+  bool convertHits(const int, const std::vector<HitType>&, SignalContainer_t&, o2::dataformats::MCTruthContainer<MCLabel>&, int thread = 0); // True if hit-to-signal conversion is successful
+  bool convertSignalsToDigits(const int, SignalContainer_t&, int thread = 0);                                                                // True if signal-to-digit conversion is successful
+  bool convertSignalsToSDigits(const int, SignalContainer_t&, int thread = 0);                                                               // True if signal-to-sdigit conversion is successful
+  bool convertSignalsToADC(const int, SignalContainer_t&, int thread = 0);                                                                   // True if signal-to-ADC conversion is successful
 
-  bool diffusion(float, float, float, float, float, float, double&, double&, double&); // True if diffusion is applied successfully
+  bool diffusion(float, float, float, float, float, float, double&, double&, double&, int thread = 0); // True if diffusion is applied successfully
 };
 } // namespace trd
 } // namespace o2

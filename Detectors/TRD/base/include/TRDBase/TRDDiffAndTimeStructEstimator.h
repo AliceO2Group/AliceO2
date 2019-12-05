@@ -50,8 +50,6 @@ class TRDDiffusionAndTimeStructEstimator
   float mDiffLastVdrift = -1.f;
   float mDiffusionL = -1.f;
   float mDiffusionT = -1.f;
-
-  // ClassDef(TRDDiffusionAndTimeStructEstimator, 1);
 };
 
 } // namespace trd
