@@ -203,7 +203,7 @@ class CcdbApi //: public DatabaseInterface
    * @return A map containing the headers. The map is empty if no CCDB entry can be found.
    */
   std::map<std::string, std::string> retrieveHeaders(std::string const& path, std::map<std::string, std::string> const& metadata,
-      long timestamp = -1) const;
+                                                     long timestamp = -1) const;
 
   /**
    * A helper function to extract an object from an existing in-memory TFile

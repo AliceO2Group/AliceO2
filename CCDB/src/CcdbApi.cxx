@@ -840,11 +840,10 @@ size_t header_map_callback(char* buffer, size_t size, size_t nitems, void* userd
   std::map<std::string, std::string>* headers = static_cast<std::map<std::string, std::string>*>(userdata);
   auto header = std::string(buffer, size * nitems);
   std::string::size_type index = header.find(':', 0);
-  if(index != std::string::npos) {
+  if (index != std::string::npos) {
     headers->insert(std::make_pair(
-        boost::algorithm::trim_copy(header.substr(0, index)),
-        boost::algorithm::trim_copy(header.substr(index + 1))
-        ));
+      boost::algorithm::trim_copy(header.substr(0, index)),
+      boost::algorithm::trim_copy(header.substr(index + 1))));
   }
   return size * nitems;
 }
@@ -860,7 +859,7 @@ std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& p
   std::map<std::string, std::string> headers;
 
   if (curl != nullptr) {
-    struct curl_slist *list = nullptr;
+    struct curl_slist* list = nullptr;
     list = curl_slist_append(list, ("If-None-Match: " + std::to_string(timestamp)).c_str());
 
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);

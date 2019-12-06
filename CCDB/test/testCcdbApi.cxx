@@ -427,7 +427,7 @@ BOOST_AUTO_TEST_CASE(TestRetrieveHeaders, *utf::precondition(if_reachable()))
   BOOST_CHECK_EQUAL(h, "whatever");
 
   int i = 0;
-  for(auto h : headers) {
+  for (auto h : headers) {
     cout << i++ << " : " << h.first << " -> " << h.second << endl;
   }
 
@@ -440,9 +440,8 @@ BOOST_AUTO_TEST_CASE(TestRetrieveHeaders, *utf::precondition(if_reachable()))
   headers = f.api.retrieveHeaders("qc/Test", metadata);
 
   i = 0;
-  for(auto h : headers) {
+  for (auto h : headers) {
     cout << i++ << " : " << h.first << " -> " << h.second << endl;
   }
   BOOST_CHECK_EQUAL(headers.size(), 0);
-
 }
