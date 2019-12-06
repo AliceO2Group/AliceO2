@@ -1,4 +1,9 @@
-void run_clus_emcal(std::string outputfile = "EMCALClusters.root", std::string inputfile)
+#include "FairLogger.h"
+#include "TStopwatch.h"
+#include "EMCALReconstruction/ClusterizerParameters.h"
+#include "EMCALReconstruction/ClusterizerTask.h"
+
+void run_clus_emcal(std::string outputfile = "EMCALClusters.root", std::string inputfile = "Data.root")
 {
   // Initialize logger
   FairLogger* logger = FairLogger::GetLogger();

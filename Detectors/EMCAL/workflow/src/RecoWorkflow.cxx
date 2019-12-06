@@ -186,7 +186,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                    BranchDefinition<ClusterOutputType>{o2::framework::InputSpec{"clusters", "EMC", "CLUSTERS", 0},
                                                                      "EMCCluster",
                                                                      "cluster-branch-name"},
-                                   BranchDefinition<ClusterOutputType>{o2::framework::InputSpec{"clusterindices", "EMC", "INDICES", 0},
+                                   BranchDefinition<ClusterIndicesOutputType>{o2::framework::InputSpec{"clusterindices", "EMC", "INDICES", 0},
                                                                      "EMCClusterDigitIndex",
                                                                      "clusterdigitindices-branch-name"})());
   }
