@@ -14,6 +14,7 @@
 #define ALICEO2_ITSMFT_CLUSTER_H
 
 #include "ReconstructionDataFormats/BaseCluster.h"
+#include "Framework/TypeTraits.h"
 
 // uncomment this to have cluster topology stored
 #define _ClusterTopology_
@@ -184,6 +185,25 @@ inline void Cluster::setClusterUsage(Int_t n)
     resetBit(kUsed);
 }
 } // namespace itsmft
+
+/// Defining o2::itsmft::Cluster explicitly as messageable
+///
+/// o2::itsmft::Cluster does not fulfill is_messageable because the underlying ROOT
+/// classes of Point3D are note trivially copyable.
+/// std::is_trivially_copyable<ROOT::Math::Cartesian3D<float>> fails because the class
+/// implements a copy constructor, although it does not much more than the default copy
+/// constructor. Have been trying to specialize std::is_trivially_copyable for Point3D
+/// alias in MathUtils/Cartesian3D.h, but structures with a member of Point3D are
+/// still not fulfilling the condition. Need to understand how the type trait checks
+/// the condition for members.
+/// We believe that o2::itsmft::Cluster is messageable and explicitly specialize the
+/// type trait, adding a corresponding unit test to go beyond make-believe
+namespace framework
+{
+template <>
+struct is_messageable<o2::itsmft::Cluster> : public std::true_type {
+};
+} // namespace framework
 } // namespace o2
 
 #endif /* ALICEO2_ITSMFT_CLUSTER_H */
