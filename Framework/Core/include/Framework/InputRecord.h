@@ -42,6 +42,9 @@ namespace framework
 
 struct InputSpec;
 
+template <typename T>
+using SpectatorMemoryResource = o2::pmr::SpectatorMemoryResource<T>;
+
 /// @class InputRecord
 /// @brief The input API of the Data Processing Layer
 /// This class holds the inputs which are valid for processing. The user can get an
@@ -313,11 +316,11 @@ class InputRecord
         auto header = o2::header::get<const DataHeader*>(ref.header);
         auto method = header->payloadSerializationMethod;
         if (method == o2::header::gSerializationMethodNone) {
-          // TODO: construct a vector spectator
-          // this is a quick solution now which makes a copy of the plain vector data
-          auto* start = reinterpret_cast<typename T::value_type const*>(ref.payload);
-          auto* end = start + header->payloadSize / sizeof(typename T::value_type);
-          T result(start, end);
+          std::unique_ptr<char, Deleter<char>> resourcebuffer((char*)ref.payload, Deleter<char>(false));
+          std::unique_ptr<boost::container::pmr::memory_resource> resource(new SpectatorMemoryResource<decltype(resourcebuffer)>(std::move(resourcebuffer), header->payloadSize));
+          const_cast<InputRecord*>(this)->mSpectatorResources.push_back(std::unique_ptr<boost::container::pmr::memory_resource>(resource.release()));
+          size_t size = header->payloadSize / sizeof(typename T::value_type);
+          std::vector<typename T::value_type const, o2::pmr::SpectatorAllocator<typename T::value_type const>> result(size, o2::pmr::SpectatorAllocator<typename T::value_type const>(mSpectatorResources.back().get()));
           return result;
         } else if (method == o2::header::gSerializationMethodROOT) {
           /// substitution for container of non-messageable objects with ROOT dictionary
@@ -330,10 +333,10 @@ class InputRecord
             // we expect the unique_ptr to hold an object, exception should have been thrown
             // otherwise
             auto object = DataRefUtils::as<NonConstT>(ref);
-            // need to swap the content of the deserialized container to a local variable to force return
-            // value optimization
-            T container;
-            std::swap(const_cast<NonConstT&>(container), *object);
+            size_t nElements = object->size();
+            std::unique_ptr<boost::container::pmr::memory_resource> resource(new SpectatorMemoryResource<decltype(object)>(std::move(object)));
+            const_cast<InputRecord*>(this)->mSpectatorResources.push_back(std::unique_ptr<boost::container::pmr::memory_resource>(resource.release()));
+            std::vector<typename T::value_type const, o2::pmr::SpectatorAllocator<typename T::value_type const>> container(nElements, o2::pmr::SpectatorAllocator<typename T::value_type const>(mSpectatorResources.back().get()));
             return container;
           } else {
             throw std::runtime_error("No supported conversion function for ROOT serialized message");
@@ -639,6 +642,7 @@ class InputRecord
  private:
   std::vector<InputRoute> const& mInputsSchema;
   InputSpan mSpan;
+  std::vector<std::unique_ptr<boost::container::pmr::memory_resource>> mSpectatorResources;
 };
 
 } // namespace framework
