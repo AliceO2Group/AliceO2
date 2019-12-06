@@ -18,6 +18,7 @@
 #include <vector>
 #include <memory>
 #include <algorithm>
+#include <gsl/span>
 
 #include "TString.h"
 #include "Rtypes.h"
@@ -25,6 +26,7 @@
 
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/Mapper.h"
+#include "TPCBase/PadROCPos.h"
 
 #include "TPCReconstruction/GBTFrameContainer.h"
 #include "TPCReconstruction/RawReader.h"
@@ -80,6 +82,8 @@ class CalibRawBase
   /// \param signal ADC signal
   virtual Int_t updateCRU(const CRU& cru, const Int_t row, const Int_t pad,
                           const Int_t timeBin, const Float_t signal) = 0;
+
+  Int_t update(const PadROCPos& padROCPos, const CRU& cru, const gsl::span<const uint32_t> data);
 
   /// add GBT frame container to process
   void addGBTFrameContainer(GBTFrameContainer* cont) { mGBTFrameContainers.push_back(std::unique_ptr<GBTFrameContainer>(cont)); }
@@ -228,7 +232,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventGBT()
           switch (mPadSubset) {
             case PadSubset::ROC: {
               rowOffset = regionInfo.getGlobalRowOffset();
-              rowOffset -= (cru.rocType() == RocType::OROC) * nRowIROC;
+              rowOffset -= (cru.isOROC()) * nRowIROC;
               break;
             }
             case PadSubset::Region: {
@@ -437,10 +441,16 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int ev
 
       // process data
       reader->processLinks();
+      hasData = true;
 
       const auto& cru = reader->getCRU();
+      const int roc = cru.roc();
 
-      LOG(INFO) << "  Found ADC values: " << reader->getADCMap().size();
+      // TODO: OROC case needs subtraction of number of pad rows in IROC
+      const PadRegionInfo& regionInfo = mMapper.getPadRegionInfo(cru.region());
+      const PartitionInfo& partInfo = mMapper.getPartitionInfo(cru.partition());
+
+      //LOG(INFO) << "  Found ADC values: " << reader->getADCMap().size();
       // loop over pads
       for (const auto& pair : reader->getADCMap()) {
         const auto& padPos = pair.first;
@@ -449,11 +459,6 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int ev
         // TODO: fix this?
         mProcessedTimeBins = std::max(mProcessedTimeBins, dataVector.size());
 
-        const int roc = cru.roc();
-        // TODO: OROC case needs subtraction of number of pad rows in IROC
-        const PadRegionInfo& regionInfo = mMapper.getPadRegionInfo(cru.region());
-        const PartitionInfo& partInfo = mMapper.getPartitionInfo(cru.partition());
-
         // row is local in region (CRU)
         const int row = padPos.getRow();
         const int pad = padPos.getPad();
@@ -461,28 +466,29 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int ev
           continue;
 
         int timeBin = 0;
-        for (const auto& signalI : dataVector) {
 
-          int rowOffset = 0;
-          switch (mPadSubset) {
-            case PadSubset::ROC: {
-              rowOffset = regionInfo.getGlobalRowOffset();
-              rowOffset -= (cru.rocType() == RocType::OROC) * nRowIROC;
-              break;
-            }
-            case PadSubset::Region: {
-              break;
-            }
-            case PadSubset::Partition: {
-              rowOffset = regionInfo.getGlobalRowOffset();
-              rowOffset -= partInfo.getGlobalRowOffset();
-              break;
-            }
+        int rowOffset = 0;
+        switch (mPadSubset) {
+          case PadSubset::ROC: {
+            rowOffset = regionInfo.getGlobalRowOffset();
+            rowOffset -= (cru.isOROC()) * nRowIROC;
+            break;
           }
+          case PadSubset::Region: {
+            break;
+          }
+          case PadSubset::Partition: {
+            rowOffset = regionInfo.getGlobalRowOffset();
+            rowOffset -= partInfo.getGlobalRowOffset();
+            break;
+          }
+        }
 
+        //const FECInfo& fecInfo = mMapper.getFECInfo(PadROCPos(roc, row, pad));
+
+        for (const auto& signalI : dataVector) {
           // modify row depending on the calibration type used
           const float signal = float(signalI);
-          const FECInfo& fecInfo = mMapper.getFECInfo(PadROCPos(roc, row, pad));
           //printf("Call update: %d, %d (%d), %d, %d, %.3f -- cru: %03d, reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", roc, row, rowOffset, pad, timeBin, signal, cru.number(), cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
           updateCRU(cru, row, pad, timeBin, signal);
           updateROC(roc, row + rowOffset, pad, timeBin, signal);
@@ -631,6 +637,49 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventDigitTree(int event
   LOG(INFO) << "Status               : " << int(status);
 
   return status;
+}
+
+//______________________________________________________________________________
+inline Int_t CalibRawBase::update(const PadROCPos& padROCPos, const CRU& cru, const gsl::span<const uint32_t> data)
+{
+  //LOG(INFO) << "  Found ADC values: " << data.size();
+  const int row = padROCPos.getRow();
+  const int pad = padROCPos.getPad();
+  if (row == 255 || pad == 255) {
+    return 1;
+  }
+
+  int rowOffset = 0;
+  switch (mPadSubset) {
+    case PadSubset::ROC: {
+      break;
+    }
+    case PadSubset::Region: {
+      break;
+    }
+    case PadSubset::Partition: {
+      const PartitionInfo& partInfo = mMapper.getPartitionInfo(cru.partition());
+      const int nRowIROC = mMapper.getNumberOfRowsROC(0);
+      rowOffset = (cru.isOROC()) * nRowIROC;
+      rowOffset -= partInfo.getGlobalRowOffset();
+      break;
+    }
+  }
+
+  //const FECInfo& fecInfo = mMapper.getFECInfo(padROCPos);
+  const int roc = padROCPos.getROC();
+  int timeBin = 0;
+  //for (const auto& signalI : data) {
+  //for the moment data of all 16 channels are passed, starting with the present channel
+  for (int i = 0; i < data.size(); i += 16) {
+    const float signal = float(data[i]);
+    //printf("Call update: %d, %d (%d), %d, %d, %.3f -- cru: %03d, reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", roc, row, rowOffset, pad, timeBin, signal, cru.number(), cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
+    // TODO: To be implemented
+    //updateCRU(cru, row, pad, timeBin, signal);
+    updateROC(roc, row + rowOffset, pad, timeBin, signal);
+    ++timeBin;
+  }
+  return timeBin;
 }
 
 } // namespace tpc
