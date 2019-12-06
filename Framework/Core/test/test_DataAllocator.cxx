@@ -303,6 +303,11 @@ DataProcessorSpec getSinkSpec()
     // forward the read-only span on a different route
     pc.outputs().snapshot(Output{"TST", "MSGABLVECTORCPY", 0, Lifetime::Timeframe}, object12);
 
+    // extract the trivially copyable vector by std::vector object which will return vector
+    // with special allocator and the underlting pointer is the original input data
+    auto vector12 = pc.inputs().get<std::vector<o2::test::TriviallyCopyable>>("input12");
+    ASSERT_ERROR((object12.data() == vector12.data()) && (object12.size() == vector12.size()));
+
     LOG(INFO) << "extracting TNamed object from input13";
     auto object13 = pc.inputs().get<TNamed*>("input13");
     ASSERT_ERROR(strcmp(object13->GetName(), "a_name") == 0);
