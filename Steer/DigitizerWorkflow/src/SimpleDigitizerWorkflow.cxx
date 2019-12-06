@@ -143,6 +143,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
   workflowOptions.push_back(
     ConfigParamSpec{"configFile", VariantType::String, "", {"configuration file for configurable parameters"}});
+
+  // option to use/not use CCDB for TOF
+  workflowOptions.push_back(ConfigParamSpec{"use-ccdb-tof", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
+
 }
 
 // ------------------------------------------------------------------
@@ -402,9 +406,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // the TOF part
   if (isEnabled(o2::detectors::DetID::TOF)) {
+    auto useCCDB = configcontext.options().get<bool>("use-ccdb-tof");
     detList.emplace_back(o2::detectors::DetID::TOF);
     // connect the TOF digitization
-    specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB));
     // add TOF digit writer
     specs.emplace_back(o2::tof::getTOFDigitWriterSpec());
   }

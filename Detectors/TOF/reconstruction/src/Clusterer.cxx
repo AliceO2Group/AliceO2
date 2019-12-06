@@ -53,9 +53,11 @@ void Clusterer::calibrateStrip()
   for (int idig = 0; idig < mStripData.digits.size(); idig++) {
     //    LOG(DEBUG) << "Checking digit " << idig;
     Digit* dig = &mStripData.digits[idig];
-    double calib = mCalibApi->getTimeCalibration(dig->getChannel(), dig->getTOT());
+    double calib = mCalibApi->getTimeCalibration(dig->getChannel(), dig->getTOT() * Geo::TOTBIN_NS);
+    //printf("channel %d) isProblematic = %d, fractionUnderPeak = %f\n",dig->getChannel(),mCalibApi->isProblematic(dig->getChannel()),mCalibApi->getFractionUnderPeak(dig->getChannel())); // toberem
     dig->setIsProblematic(mCalibApi->isProblematic(dig->getChannel()));
-    dig->setCalibratedTime(dig->getTDC() * Geo::TDCBIN + mContributingDigit[0]->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3 - calib); //TODO:  to be checked that "-" is correct, and we did not need "+" instead :-)
+    dig->setCalibratedTime(dig->getTDC() * Geo::TDCBIN + dig->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3 - calib); //TODO:  to be checked that "-" is correct, and we did not need "+" instead :-)
+    //printf("calibration correction = %f\n",calib); // toberem
   }
 }
 
@@ -73,6 +75,7 @@ void Clusterer::processStrip(std::vector<Cluster>& clusters, MCLabelContainer co
   for (int idig = 0; idig < mStripData.digits.size(); idig++) {
     //    LOG(DEBUG) << "Checking digit " << idig;
     Digit* dig = &mStripData.digits[idig];
+    //printf("checking digit %d - alreadyUsed=%d   -  problematic=%d\n",idig,dig->isUsedInCluster(),dig->isProblematic()); // toberem
     if (dig->isUsedInCluster() || dig->isProblematic())
       continue; // the digit was already used to build a cluster, or it was declared problematic
 
@@ -111,7 +114,8 @@ void Clusterer::processStrip(std::vector<Cluster>& clusters, MCLabelContainer co
 
     } // loop on the second digit
 
-    buildCluster(c, digitMCTruth);
+    //printf("build cluster\n");
+    buildCluster(c, digitMCTruth); // toberem
 
   } // loop on the first digit
 }
@@ -166,7 +170,7 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
   c.setTime(mContributingDigit[0]->getCalibratedTime()); // time in ps (for now we assume it calibrated)
   c.setTimeRaw(mContributingDigit[0]->getTDC() * Geo::TDCBIN + mContributingDigit[0]->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3);// time in ps (for now we assume it calibrated)
 
-  c.setTot(mContributingDigit[0]->getTOT() * Geo::TOTBIN * 1E-3); // TOT in ns (for now we assume it calibrated)
+  c.setTot(mContributingDigit[0]->getTOT() * Geo::TOTBIN_NS); // TOT in ns (for now we assume it calibrated)
   //setL0L1Latency(); // to be filled (maybe)
   //setDeltaBC(); // to be filled (maybe)
 

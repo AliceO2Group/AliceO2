@@ -46,6 +46,7 @@ o2_add_executable(digitizer-workflow
                                         O2::MIDSimulation
                                         O2::PHOSSimulation
                                         O2::TOFSimulation
+					O2::TOFCalibration
                                         O2::TOFReconstruction
                                         O2::TPCSimulation
                                         O2::TPCWorkflow

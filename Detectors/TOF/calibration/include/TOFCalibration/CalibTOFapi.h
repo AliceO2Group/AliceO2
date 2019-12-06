@@ -51,7 +51,8 @@ public:
   float getTimeCalibration(int ich, float tot);
   float getTimeDecalibration(int ich, float tot);
   bool isProblematic(int ich);
-    
+  float getFractionUnderPeak(int ich) const {return mSlewParam->getFractionUnderPeak(ich);}
+  
  private:
 
   long mTimeStamp;        ///< timeStamp for queries

@@ -101,8 +101,9 @@ float CalibTOFapi::getTimeCalibration(int ich, float tot) {
   corr += mLHCphase->getLHCphase(int(mTimeStamp/1000)); // timestamp that we use in LHCPhase is in seconds, but for CCDB we need it in ms
   
   // time slewing + channel offset
+  //printf("eval time sleweing calibration: ch=%d   tot=%f (lhc phase = %f)\n",ich,tot,corr);
   corr += mSlewParam->evalTimeSlewing(ich, tot);
-
+  //printf("corr = %f\n",corr);
   return corr;
   
 }
