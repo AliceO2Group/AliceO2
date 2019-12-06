@@ -27,12 +27,14 @@
 #include <cmath>
 #include <string_view>
 #include <algorithm>
+#include <functional>
 #include <gsl/span>
 
 #include "MemoryResources/Types.h"
 #include "TPCBase/CRU.h"
 #include "Headers/RAWDataHeader.h"
 #include "TPCBase/PadPos.h"
+#include "TPCBase/PadROCPos.h"
 
 //#include "git_info.hpp"
 namespace o2
@@ -75,6 +77,15 @@ class ADCRawData
 {
  public:
   using DataVector = std::vector<uint32_t>;
+
+  /// default ctor. Resesrve 520 time bins per stream
+  ADCRawData()
+  {
+    for (auto& data : mADCRaw) {
+      data.reserve(520 * 16);
+    }
+  }
+
   /// add a stream
   void add(int stream, uint32_t v0, uint32_t v1)
   {
@@ -242,14 +253,14 @@ class GBTFrame
   void setFrameNumber(uint32_t frameNumber) { mFrameNum = frameNumber; }
 
  private:
-  std::array<adc_t, 4> mData{};      ///< data to decode
-  SyncArray mSyncPos{};              ///< sync position of the streams
-  adc_t mFrameHalfWords[5][4]{};     ///< fixed size 2D array to contain the 4 halfwords for the 5 data streams of a link
-  adc_t mPrevFrameHalfWords[5][4]{}; ///< previous half word, required for decoding
-  uint32_t mSyncCheckRegister[5]{};  ///< array of registers to check the SYNC pattern for the 5 data streams
-  uint32_t mFilePos{0};              ///< position in the raw data file (for back-tracing)
-  uint32_t mFrameNum{0};             ///< current GBT frame number
-  uint32_t mPacketNum{0};            ///< number of present 8k packet
+  std::array<adc_t, 4> mData{};     ///< data to decode
+  SyncArray mSyncPos{};             ///< sync position of the streams
+  adc_t mFrameHalfWords[5][8]{};    ///< fixed size 2D array to contain the 4 half words + 4 previous half words for the 5 data streams of a link
+  uint32_t mPrevHWpos{0};           ///< indicating the position of the previous HW in mFrameHalfWords, either 0 or 4
+  uint32_t mSyncCheckRegister[5]{}; ///< array of registers to check the SYNC pattern for the 5 data streams
+  uint32_t mFilePos{0};             ///< position in the raw data file (for back-tracing)
+  uint32_t mFrameNum{0};            ///< current GBT frame number
+  uint32_t mPacketNum{0};           ///< number of present 8k packet
 
   /// Bit-shift operations helper function operating on the 4 32-bit words of them
   /// GBT frame. Source bit "s" is shifted to target position "t"
@@ -522,6 +533,9 @@ class RawReaderCRU
   /// set event number
   void setEventNumber(uint32_t eventNumber = 0) { mEventNumber = eventNumber; }
 
+  /// set filling of ADC data map
+  void setFillADCdataMap(bool fill) { mFillADCdataMap = fill; }
+
   /// get event number
   uint32_t getEventNumber() const { return mEventNumber; }
 
@@ -693,6 +707,9 @@ class RawReaderCRU
   /// fill adc data to output map
   void fillADCdataMap(const ADCRawData& rawData);
 
+  /// run a data filling callback function
+  void runADCDataCallback(const ADCRawData& rawData);
+
   ClassDefNV(RawReaderCRU, 0); // raw reader class
 
 }; // class RawReaderCRU
@@ -701,20 +718,22 @@ class RawReaderCRU
 template <typename T>
 inline T GBTFrame::bit(T s, T t) const
 {
-  // std::cout << std::dec << s << " ";
   const T dataWord = s >> 5;
   return shiftBit(mData[dataWord], s, t);
 };
 
 inline void GBTFrame::updateSyncCheck(SyncArray& syncArray)
 {
+  const auto offset = mPrevHWpos ^ 4;
+
   for (int s = 0; s < 5; s++)
     for (int h = 0; h < 4; h++) {
+      const auto hPos = h + offset; // set position of last filled HW
       // shift in a 1 if the halfword is 0x15
-      if (mFrameHalfWords[s][h] == 0x15)
+      if (mFrameHalfWords[s][hPos] == 0x15)
         mSyncCheckRegister[s] = (mSyncCheckRegister[s] << 1) | 1;
       // shift in a 0 if the halfword is 0xA
-      else if (mFrameHalfWords[s][h] == 0xA)
+      else if (mFrameHalfWords[s][hPos] == 0xA)
         mSyncCheckRegister[s] = (mSyncCheckRegister[s] << 1);
       // otherwise reset the register to 0
       else
@@ -731,13 +750,16 @@ inline void GBTFrame::updateSyncCheck(SyncArray& syncArray)
 
 inline void GBTFrame::updateSyncCheck(bool verbose)
 {
-  for (int s = 0; s < 5; s++)
+  const auto offset = mPrevHWpos ^ 4;
+
+  for (int s = 0; s < 5; s++) {
     for (int h = 0; h < 4; h++) {
+      const auto hPos = h + offset; // set position of last filled HW
       // shift in a 1 if the halfword is 0x15
-      if (mFrameHalfWords[s][h] == 0x15)
+      if (mFrameHalfWords[s][hPos] == 0x15)
         mSyncCheckRegister[s] = (mSyncCheckRegister[s] << 1) | 1;
       // shift in a 0 if the halfword is 0xA
-      else if (mFrameHalfWords[s][h] == 0xA)
+      else if (mFrameHalfWords[s][hPos] == 0xA)
         mSyncCheckRegister[s] = (mSyncCheckRegister[s] << 1);
       // otherwise reset the register to 0
       else
@@ -751,67 +773,56 @@ inline void GBTFrame::updateSyncCheck(bool verbose)
         if (verbose) {
           std::cout << s << " : " << mSyncPos[s];
         }
-      };
-    };
+      }
+    }
+  }
 }
 
 /// extract the 4 5b halfwords for the 5 data streams from one GBT frame
+/// the 4 5b halfwords of the previous frame are stored in the same structure
+/// the position of the previous frame is indicated by mPrevHWpos
 inline void GBTFrame::getFrameHalfWords()
 {
   constexpr adc_t P[5][4] = {{19, 18, 17, 16}, {39, 38, 37, 36}, {63, 62, 61, 60}, {83, 82, 81, 80}, {107, 106, 105, 104}};
   // i = Stream, j = Halfword
-  for (int i = 0; i < 5; i++)
+  for (int i = 0; i < 5; i++) {
     for (int j = 0; j < 4; j++) {
-      mFrameHalfWords[i][j] = bit(P[i][j], adc_t(4)) |
-                              bit(adc_t(P[i][j] - 4), adc_t(3)) |
-                              bit(adc_t(P[i][j] - 8), adc_t(2)) |
-                              bit(adc_t(P[i][j] - 12), adc_t(1)) |
-                              bit(adc_t(P[i][j] - 16), adc_t(0));
+      mFrameHalfWords[i][j + mPrevHWpos] = bit(P[i][j], adc_t(4)) |
+                                           bit(adc_t(P[i][j] - 4), adc_t(3)) |
+                                           bit(adc_t(P[i][j] - 8), adc_t(2)) |
+                                           bit(adc_t(P[i][j] - 12), adc_t(1)) |
+                                           bit(adc_t(P[i][j] - 16), adc_t(0));
       // std::cout << " S : " << i << " H : " << j << " : " << std::hex << res << std::endl;
     };
-}
-
-/// store the half words of the current frame in the previous frame data structure. Both
-/// frame information is needed to reconstruct the ADC stream since it can spread across
-/// 2 frames, depending on the position of the SYNC pattern.
-inline void GBTFrame::storePrevFrame()
-{
-  for (int s = 0; s < 5; s++)
-    for (int h = 0; h < 4; h++)
-      mPrevFrameHalfWords[s][h] = mFrameHalfWords[s][h];
+  }
+  mPrevHWpos ^= 4; // toggle position of previous HW position
 }
 
 /// decode ADC values
 inline void GBTFrame::getAdcValues(ADCRawData& rawData)
 {
-  uint32_t pos;
-  uint32_t v0;
-  uint32_t v1;
   // loop over all the 5 data streams
   for (int s = 0; s < 5; s++) {
+    if (!mSyncPos[s].synched()) {
+      continue;
+    }
+
     // assemble the 2 ADC words from 4 half-words. Which halfwords are
     // used depends on the position of the SYNC pattern.
-    pos = mSyncPos[s].getHalfWordPosition();
-    if (pos == 0) {
-      v0 = (mPrevFrameHalfWords[s][2] << 5) | mPrevFrameHalfWords[s][1];
-      v1 = (mFrameHalfWords[s][0] << 5) | mPrevFrameHalfWords[s][3];
-    } else if (pos == 1) {
-      v0 = (mPrevFrameHalfWords[s][3] << 5) | mPrevFrameHalfWords[s][2];
-      v1 = (mFrameHalfWords[s][1] << 5) | mFrameHalfWords[s][0];
-    } else if (pos == 2) {
-      v0 = (mFrameHalfWords[s][0] << 5) | mPrevFrameHalfWords[s][3];
-      v1 = (mFrameHalfWords[s][2] << 5) | mFrameHalfWords[s][1];
-    } else if (pos == 3) {
-      v0 = (mFrameHalfWords[s][1] << 5) | mFrameHalfWords[s][0];
-      v1 = (mFrameHalfWords[s][3] << 5) | mFrameHalfWords[s][2];
-    };
+    const uint32_t pos = mSyncPos[s].getHalfWordPosition();
+    const uint32_t v0 = (mFrameHalfWords[s][(pos + 2 + mPrevHWpos) & 7] << 5) | mFrameHalfWords[s][(pos + 1 + mPrevHWpos) & 7];
+    const uint32_t v1 = (mFrameHalfWords[s][(pos + 4 + mPrevHWpos) & 7] << 5) | mFrameHalfWords[s][(pos + 3 + mPrevHWpos) & 7];
+
     // add the two ADC values for the current processed stream
-    if (mSyncPos[s].synched() == true) {
-      // std::cout << "Adding ADC" << std::endl;
-      rawData.add(s, v0, v1);
-    };
+    rawData.add(s, v0, v1);
   };
   // std::cout << std::endl;
+}
+
+inline void GBTFrame::readFromMemory(gsl::span<const o2::byte> data)
+{
+  assert(sizeof(mData) == data.size_bytes());
+  memcpy(mData.data(), data.data(), data.size_bytes());
 }
 
 // =============================================================================
@@ -826,6 +837,8 @@ inline void GBTFrame::getAdcValues(ADCRawData& rawData)
 class RawReaderCRUManager
 {
  public:
+  using ADCDataCallback = std::function<Int_t(const PadROCPos&, const CRU&, const gsl::span<const uint32_t>)>;
+
   /// constructor
   RawReaderCRUManager() = default;
 
@@ -914,12 +927,16 @@ class RawReaderCRUManager
   /// copy single events from raw input files to another file
   static void copyEvents(const std::string_view inputFileNames, const std::vector<uint32_t> eventNumbers, std::string_view outputDirectory, std::ios_base::openmode mode = std::ios_base::openmode(0));
 
+  /// set a callback function
+  void setADCDataCallback(ADCDataCallback function) { mADCDataCallback = function; }
+
  private:
   std::vector<std::unique_ptr<RawReaderCRU>> mRawReadersCRU{}; ///< cru type raw readers
   RawReaderCRUEventSync mEventSync{};                          ///< event synchronisation
   uint32_t mDebugLevel{0};                                     ///< debug level
   DataType mDataType{DataType::TryToDetect};                   ///< data type
   bool mIsInitialized{false};                                  ///< if init was called already
+  ADCDataCallback mADCDataCallback{nullptr};                   ///< callback function for filling the ADC data
 
   friend class RawReaderCRU;
 

@@ -69,11 +69,17 @@ void CalibRawBase::setupContainers(TString fileInfo, uint32_t verbosity, uint32_
       mRawReaderCRUManager.reset();
       mPresentEventNumber = 0; // reset event number for readers
       mRawReaderCRUManager.setDebugLevel(debugLevel);
+      mRawReaderCRUManager.setADCDataCallback([this](const PadROCPos& padROCPos, const CRU& cru, const gsl::span<const uint32_t> data) -> Int_t {
+        Int_t timeBins = update(padROCPos, cru, data);
+        mProcessedTimeBins = std::max(mProcessedTimeBins, size_t(timeBins));
+        return timeBins;
+      });
       for (auto file : *arr) {
         // fix the number of time bins
         auto& reader = mRawReaderCRUManager.createReader(file->GetName(), timeBins);
         reader.setVerbosity(verbosity);
         reader.setDebugLevel(debugLevel);
+        reader.setFillADCdataMap(false); // switch off filling and use callback above
         printf("Adding file: %s\n", file->GetName());
         if (arrDataInfo->GetEntriesFast() == 3) {
           const int cru = static_cast<TObjString*>(arrDataInfo->At(2))->String().Atoi();

@@ -433,10 +433,7 @@ int RawReaderCRU::processPacket(GBTFrame& gFrame, uint32_t startPos, uint32_t si
   // vectors
   for (int frames = 0; frames < size / 16; frames++) {
     file >> gFrame;
-    // backup the halfword of the frame before calculating the
-    // new halfwords. The previous half words might be needed
-    // to decode the ADC values.
-    gFrame.storePrevFrame();
+
     // extract the half words from the 4 32-bit words
     gFrame.getFrameHalfWords();
 
@@ -462,12 +459,14 @@ int RawReaderCRU::processMemory(const std::vector<o2::byte>& data, ADCRawData& r
   for (int iFrame = 0; iFrame < data.size() / 16; ++iFrame) {
     gFrame.setFrameNumber(iFrame);
     gFrame.setPacketNumber(iFrame / 508);
+
+    // in readFromMemory a simple memcopy to the internal data structure is done
+    // I tried using the memory block directly, storing in an internal data member
+    // reinterpret_cast<const uint32_t*>(data.data() + iFrame * 16), so it could be accessed the
+    // same way as the mData array.
+    // however, this was ~5% slower in execution time. I suspect due to cache misses
     gFrame.readFromMemory(gsl::span<const o2::byte>(data.data() + iFrame * 16, 16));
-    //gFrame.readFromMemory(data.data() + iFrame * 16, 16);
-    // backup the halfword of the frame before calculating the
-    // new halfwords. The previous half words might be needed
-    // to decode the ADC values.
-    gFrame.storePrevFrame();
+
     // extract the half words from the 4 32-bit words
     gFrame.getFrameHalfWords();
 
@@ -492,6 +491,7 @@ size_t RawReaderCRU::getNumberOfEvents() const
 
 void RawReaderCRU::fillADCdataMap(const ADCRawData& rawData)
 {
+  // TODO: Ugly copy below in runADCDataCallback. Modification in here should be also refected there
   const auto& mapper = Mapper::instance();
 
   // cru and link must be set correctly before
@@ -515,6 +515,39 @@ void RawReaderCRU::fillADCdataMap(const ADCRawData& rawData)
       const int sampaChannel = ichannel + channelOffset[partitionStream];
       const auto& padPos = mapper.padPosRegion(cru.region(), fecInPartition, sampa, sampaChannel);
       mADCdata[padPos].emplace_back(dataVector[idata]);
+    }
+  }
+}
+
+void RawReaderCRU::runADCDataCallback(const ADCRawData& rawData)
+{
+  // TODO: Ugly copy below in runADCDataCallback. Modification in here should be also refected there
+  const auto& mapper = Mapper::instance();
+
+  // cru and link must be set correctly before
+  const CRU cru(mCRU);
+  const int fecLinkOffsetCRU = (mapper.getPartitionInfo(cru.partition()).getNumberOfFECs() + 1) / 2;
+  const int fecInPartition = (mLink % 12) + (mLink > 11) * fecLinkOffsetCRU;
+  const int regionIter = mCRU % 2;
+
+  const int sampaMapping[10] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 2};
+  const int channelOffset[10] = {0, 16, 0, 16, 0, 0, 16, 0, 16, 16};
+
+  for (int istreamm = 0; istreamm < 5; ++istreamm) {
+    const int partitionStream = istreamm + regionIter * 5;
+    const int sampa = sampaMapping[partitionStream];
+
+    const auto& dataVector = rawData.getDataVector(istreamm);
+    if (dataVector.size() < 16) {
+      continue;
+    }
+
+    // loop over all data. Each stream has 16 ADC values for each sampa channel times nTimeBins
+    for (int ichannel = 0; ichannel < 16; ++ichannel) {
+      const int sampaChannel = ichannel + channelOffset[partitionStream];
+      const auto& padPos = mapper.padROCPos(cru, fecInPartition, sampa, sampaChannel);
+      //printf("Fill: %d %d %d %d / %d %d %d\n", int(mCRU), int(cru.roc()), ichannel, sampaChannel, int(padPos.getROC()), int(padPos.getRow()), int(padPos.getPad()));
+      mManager->mADCDataCallback(padPos, cru, gsl::span<const uint32_t>(dataVector.data() + ichannel, dataVector.size() - ichannel));
     }
   }
 }
@@ -557,6 +590,9 @@ int RawReaderCRU::processDataFile()
   // ===| fill ADC data to the output structure |===
   if (mFillADCdataMap) {
     fillADCdataMap(rawData);
+  }
+  if (mManager && mManager->mADCDataCallback) {
+    runADCDataCallback(rawData);
   }
 
   // std::cout << "Output Data" << std::endl;
@@ -614,6 +650,9 @@ void RawReaderCRU::processDataMemory()
   // ===| fill ADC data to the output structure |===
   if (mFillADCdataMap) {
     fillADCdataMap(rawData);
+  }
+  if (mManager && mManager->mADCDataCallback) {
+    runADCDataCallback(rawData);
   }
 }
 
@@ -770,15 +809,6 @@ void ADCRawData::streamTo(std::ostream& output) const
   };
 };
 
-void GBTFrame::readFromMemory(gsl::span<const o2::byte> data)
-{
-  assert(sizeof(mData) == data.size_bytes());
-  memcpy(mData.data(), data.data(), data.size_bytes());
-  //for (int i = 0; i < 4; i++) {
-  //mData[i] = reinterpret_cast<decltype(mData[i])>(data.data() + i * sizeof(mData[i])
-  //};
-}
-
 void GBTFrame::streamFrom(std::istream& input)
 {
   mFilePos = input.tellg();
@@ -791,6 +821,7 @@ void GBTFrame::streamFrom(std::istream& input)
 //std::ostream& operator<<(std::ostream& output, const RawReaderCRU::GBTFrame& frame)
 void GBTFrame::streamTo(std::ostream& output) const
 {
+  const auto offset = mPrevHWpos ^ 4;
   output << std::dec << "\033[94m"
          << std::setfill('0') << std::setw(8) << mPacketNum << " "
          << std::setfill('0') << std::setw(8) << mFilePos << " "
@@ -802,8 +833,9 @@ void GBTFrame::streamTo(std::ostream& output) const
          << std::setfill('0') << std::setw(8) << mData[0] << " : "
          << "\033[0m";
   for (int i = 0; i < 5; i++) {
-    for (int j = 0; j < 4; j++)
-      output << std::hex << std::setw(4) << mFrameHalfWords[i][j] << " ";
+    for (int j = 0; j < 4; j++) {
+      output << std::hex << std::setw(4) << mFrameHalfWords[i][j + offset] << " ";
+    }
     output << "| ";
   };
   output << std::endl;

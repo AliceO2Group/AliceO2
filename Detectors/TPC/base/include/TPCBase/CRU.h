@@ -63,6 +63,8 @@ class CRU
   unsigned char region() const { return (mCRU % CRUperSector); }
   const Sector sector() const { return Sector(mCRU / CRUperSector); }
   RocType rocType() const { return mCRU % CRUperSector < CRUperIROC ? RocType::IROC : RocType::OROC; }
+  bool isIROC() const { return mCRU % CRUperSector < CRUperIROC; }
+  bool isOROC() const { return mCRU % CRUperSector >= CRUperIROC; }
   GEMstack gemStack() const;
 
   /// int return operator to use similar as integer
