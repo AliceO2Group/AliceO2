@@ -102,6 +102,7 @@ class Geo
   static constexpr Float_t TDCBIN = o2::constants::lhc::LHCBunchSpacingNS * 1E3 / 1024; ///< TDC bin width [ps]
   static constexpr Float_t NTDCBIN_PER_PS = 1. / TDCBIN;     ///< number of TDC bins in 1 ns
   static constexpr Float_t TOTBIN = TDCBIN * 2;              // time-over-threshold bin width [ps]
+  static constexpr Float_t TOTBIN_NS = TOTBIN * 1E-3;          // time-over-threshold bin width [ns]
   static constexpr Float_t NTOTBIN_PER_NS = 1000. / TOTBIN;  // number of time-over-threshold bin in 1 ns
   static constexpr Float_t BUNCHCROSSINGBIN = TDCBIN * 1024; // bunch-crossing bin width [ps]
 

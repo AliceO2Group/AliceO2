@@ -44,6 +44,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information, TBI"}});
   workflowOptions.push_back(ConfigParamSpec{"tof-sectors", o2::framework::VariantType::String, "0-17", {"TOF sector range, e.g. 5-7,8,9 ,TBI"}});
   workflowOptions.push_back(ConfigParamSpec{"tof-lanes", o2::framework::VariantType::Int, 1, {"number of parallel lanes up to the matcher, TBI"}});
+  workflowOptions.push_back(ConfigParamSpec{"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -107,15 +108,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   LOG(INFO) << "TOF sectors = " << cfgc.options().get<std::string>("tof-sectors");
   LOG(INFO) << "TOF disable-mc = " << cfgc.options().get<std::string>("disable-mc");
   LOG(INFO) << "TOF lanes = " << cfgc.options().get<std::string>("tof-lanes");
+  LOG(INFO) << "TOF use-ccdb = " << cfgc.options().get<std::string>("use-ccdb");
 
   auto useMC = !cfgc.options().get<bool>("disable-mc");
+  auto useCCDB = cfgc.options().get<bool>("use-ccdb");
 
   if (!clusterinput) {
     // TOF clusterizer
     LOG(INFO) << "Insert TOF Digit reader from file";
     specs.emplace_back(o2::tof::getDigitReaderSpec(useMC));
     LOG(INFO) << "Insert TOF Clusterizer";
-    specs.emplace_back(o2::tof::getTOFClusterizerSpec(useMC));
+    specs.emplace_back(o2::tof::getTOFClusterizerSpec(useMC,useCCDB));
     if (writecluster) {
       LOG(INFO) << "Insert TOF Cluster Writer";
       specs.emplace_back(o2::tof::getTOFClusterWriterSpec(useMC));

@@ -265,7 +265,8 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Float_t time, Float_t x, 
   }
   time += TMath::Sqrt(timewalkX * timewalkX + timewalkZ * timewalkZ) - mTimeDelayCorr - mTimeWalkeSlope * 2;
 
-  // DECALIBRATE HERE
+  // Decalibrate
+  time -= mCalibApi->getTimeDecalibration(channel, tot); //TODO:  to be checked that "-" is correct, and we did not need "+" instead :-)
 
   Int_t nbc = Int_t(time * Geo::BC_TIME_INPS_INV); // time elapsed in number of bunch crossing
   //Digit newdigit(time, channel, (time - Geo::BC_TIME_INPS * nbc) * Geo::NTDCBIN_PER_PS, tot * Geo::NTOTBIN_PER_NS, nbc);

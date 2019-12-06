@@ -22,7 +22,7 @@ using namespace o2::dataformats;
 float CalibLHCphaseTOF::getLHCphase(int timestamp) const
 {
   int n = 0;
-  while (n < mLHCphase.size() && mLHCphase[n].first < timestamp)
+  while (n < mLHCphase.size() && mLHCphase[n].first <= timestamp)
     n++;
   n--;
 
