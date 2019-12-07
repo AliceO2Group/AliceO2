@@ -92,8 +92,8 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits, o2::ft0::Digi
     if (hit.GetEnergyLoss() > 0)
       continue;
     Int_t hit_ch = hit.GetDetectorID();
-    Bool_t is_A_side = (hit_ch < 4 * parameters.NCellsA);
-    Float_t time_compensate = is_A_side ? A_side_cable_cmps : C_side_cable_cmps;
+    Bool_t is_A_side = (hit_ch < 4 * parameters.nCellsA);
+    Float_t time_compensate = is_A_side ? parameters.A_side_cable_cmps : parameters.C_side_cable_cmps;
     Double_t hit_time = hit.GetTime() - time_compensate;
 
     Bool_t is_hit_in_signal_gate = (abs(hit_time) < parameters.mSignalWidth * .5);
@@ -124,12 +124,12 @@ void Digitizer::smearCFDtime(o2::ft0::Digit* digit, std::vector<std::vector<doub
   std::vector<o2::ft0::ChannelData> mChDgDataArr;
   for (const auto& d : digit->getChDgData()) {
     Int_t mcp = d.ChId;
-    Float_t amp = parameters.mMip_in_V * d.numberOfParticles / parameters.mPe_in_mip;
+    Float_t amp = (parameters.mMip_in_V * d.numberOfParticles / parameters.mPe_in_mip);
     int chain = (std::rand() % 2) ? 1 : 0;
-    if (amp > parameters.mCFD_trsh_mip) {
-      double smeared_time = get_time(channel_times[mcp]) - parameters.mCfdShift;
+    if (amp > parameters.mCFD_trsh) {
+      double smeared_time = 1000. * (get_time(channel_times[mcp]) - parameters.mCfdShift);
       if (smeared_time < 1e9)
-        mChDgDataArr.emplace_back(o2::ft0::ChannelData{mcp, smeared_time, amp, chain});
+        mChDgDataArr.emplace_back(o2::ft0::ChannelData{mcp, int(smeared_time / parameters.channelWidth), int(parameters.mV_2_Nchannels * amp), chain});
     }
   }
   digit->setChDgData(std::move(mChDgDataArr));
@@ -139,51 +139,39 @@ void Digitizer::smearCFDtime(o2::ft0::Digit* digit, std::vector<std::vector<doub
 void Digitizer::setTriggers(o2::ft0::Digit* digit)
 {
 
-  constexpr Double_t trg_central_trh = 100.;    // mip
-  constexpr Double_t trg_semicentral_trh = 50.; // mip
-  constexpr Double_t trg_vertex_min = -3.;      //ns
-  constexpr Double_t trg_vertex_max = 3.;       //ns
-
   // Calculating triggers -----------------------------------------------------
-  Int_t n_hit_A = 0, n_hit_C = 0;
-  Float_t mean_time_A = 0.;
-  Float_t mean_time_C = 0.;
-  Float_t summ_ampl_A = 0.;
-  Float_t summ_ampl_C = 0.;
-  Float_t vertex_time;
+  int n_hit_A = 0, n_hit_C = 0, mean_time_A = 0, mean_time_C = 0;
+  int summ_ampl_A = 0, summ_ampl_C = 0;
+  int vertex_time;
 
-  Double_t cfd[300] = {};
-  Float_t amp[300] = {};
   for (const auto& d : digit->getChDgData()) {
-    Int_t mcp = d.ChId;
-    cfd[mcp] = d.CFDTime;
-    amp[mcp] = d.QTCAmpl;
-    if (amp[mcp] < parameters.mCFD_trsh_mip)
-      continue;
-    if (cfd[mcp] < -parameters.mTime_trg_gate / 2. || cfd[mcp] > parameters.mTime_trg_gate / 2.)
+    int mcp = d.ChId;
+    int cfd = d.CFDTime;
+    int amp = d.QTCAmpl;
+    if (std::abs(cfd) > parameters.mTime_trg_gate / 2.)
       continue;
 
-    Bool_t is_A_side = (mcp <= 4 * parameters.NCellsA);
+    Bool_t is_A_side = (mcp <= 4 * parameters.nCellsA);
     if (is_A_side) {
       n_hit_A++;
-      summ_ampl_A += amp[mcp];
-      mean_time_A += cfd[mcp];
+      summ_ampl_A += amp;
+      mean_time_A += cfd;
     } else {
       n_hit_C++;
-      summ_ampl_C += amp[mcp];
-      mean_time_C += cfd[mcp];
+      summ_ampl_C += amp;
+      mean_time_C += cfd;
     }
   }
 
   Bool_t is_A = n_hit_A > 0;
   Bool_t is_C = n_hit_C > 0;
-  Bool_t is_Central = summ_ampl_A + summ_ampl_C >= trg_central_trh;
-  Bool_t is_SemiCentral = summ_ampl_A + summ_ampl_C >= trg_semicentral_trh;
+  Bool_t is_Central = summ_ampl_A + summ_ampl_C >= parameters.mtrg_central_trh;
+  Bool_t is_SemiCentral = summ_ampl_A + summ_ampl_C >= parameters.mtrg_semicentral_trh;
 
   mean_time_A = is_A ? mean_time_A / n_hit_A : 0;
   mean_time_C = is_C ? mean_time_C / n_hit_C : 0;
-  vertex_time = (mean_time_A - mean_time_C) * .5;
-  Bool_t is_Vertex = is_A && is_C && (vertex_time > trg_vertex_min) && (vertex_time < trg_vertex_max);
+  vertex_time = (mean_time_A - mean_time_C) * 0.5;
+  Bool_t is_Vertex = is_A && is_C && (std::abs(vertex_time) < parameters.mtrg_vertex);
 
   //filling digit
   digit->setTriggers(is_A, is_C, is_Central, is_SemiCentral, is_Vertex);
@@ -228,8 +216,7 @@ void Digitizer::finish()
 void Digitizer::printParameters()
 {
   LOG(INFO) << " Run Digitzation with parametrs: \n"
-            << "mBC_clk_center \n"
-            << parameters.mBC_clk_center << " CFD amplitude threshold \n " << parameters.mCFD_trsh_mip << " CFD signal gate in ns \n"
+            << " CFD amplitude threshold \n " << parameters.mCFD_trsh << " CFD signal gate in ps \n"
             << parameters.mSignalWidth << "shift to have signal around zero after CFD trancformation  \n"
             << parameters.mCfdShift << "CFD distance between 0.3 of max amplitude  to max \n"
             << parameters.mCFDShiftPos << "MIP -> mV " << parameters.mMip_in_V << " Pe in MIP \n"

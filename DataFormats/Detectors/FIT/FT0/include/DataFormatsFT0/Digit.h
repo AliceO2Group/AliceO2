@@ -23,8 +23,10 @@ namespace ft0
 
 struct ChannelData {
   Int_t ChId;       //channel Id
-  Double_t CFDTime; //time in ns, 0 at lhc clk center
-  Double_t QTCAmpl; // Amplitude in mips
+  //  Double_t CFDTime; //time in ns, 0 at lhc clk center
+  //  Double_t QTCAmpl; // Amplitude in mips
+  int CFDTime; //time in ns, 0 at lhc clk center
+  int QTCAmpl; // Amplitude in mips
   int numberOfParticles;
   ClassDefNV(ChannelData, 2);
 };
