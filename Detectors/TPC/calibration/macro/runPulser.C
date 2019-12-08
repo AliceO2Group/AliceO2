@@ -59,7 +59,9 @@ void runPulser(std::vector<std::string_view> fileInfos, TString outputFileName =
     for (Int_t i = 0; i < nevents; ++i) {
       status = calib.processEvent(i);
       cout << "Processing event " << i << " with status " << int(status) << '\n';
-      if (status != CalibRawBase::ProcessStatus::Ok) {
+      if (status == CalibRawBase::ProcessStatus::IncompleteEvent) {
+        continue;
+      } else if (status != CalibRawBase::ProcessStatus::Ok) {
         break;
       }
     }

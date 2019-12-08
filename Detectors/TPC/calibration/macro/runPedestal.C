@@ -36,7 +36,9 @@ void runPedestal(std::vector<std::string_view> fileInfos, TString outputFileName
     for (Int_t i = firstEvent; i < firstEvent + nevents; ++i) {
       status = ped.processEvent(i);
       cout << "Processing event " << i << " with status " << int(status) << '\n';
-      if (status != CalibRawBase::ProcessStatus::Ok) {
+      if (status == CalibRawBase::ProcessStatus::IncompleteEvent) {
+        continue;
+      } else if (status != CalibRawBase::ProcessStatus::Ok) {
         break;
       }
     }
