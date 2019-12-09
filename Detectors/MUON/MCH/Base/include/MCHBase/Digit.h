@@ -44,13 +44,12 @@ class Digit
   unsigned long getADC() const { return mADC; }
   void setADC(unsigned long adc) { mADC = adc; }
   
-  bool operator==(const Digit & d) const { return mTime == d.getTimeStamp(); }
-  
  private:
   double mTime;
   int mDetID;
   int mPadID;  /// PadIndex to which the digit corresponds to
   unsigned long mADC; /// Amplitude of signal
+
   ClassDefNV(Digit, 1);
 }; //class Digit
 
