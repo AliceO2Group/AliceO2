@@ -178,8 +178,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
 
   if (isEnabled(OutputType::Clusters)) {
     using ClusterOutputType = std::vector<o2::emcal::Cluster>;
-    // FIXME: Using type ClusterIndicesOutputType for BranchDefinition does not work
-    using ClusterIndicesOutputType = std::vector<Short_t>;
+    using ClusterIndicesOutputType = std::vector<o2::emcal::ClusterIndex>;
     specs.push_back(makeWriterSpec_Cluster("emcal-clusters-writer",
                                    "emcclusters.root",
                                    "o2sim",

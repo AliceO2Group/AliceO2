@@ -32,6 +32,8 @@
 
 
 //#pragma link C++ namespace o2::emcal+;
+#pragma link C++ class o2::emcal::ClusterIndex + ;
+#pragma link C++ class std::vector < o2::emcal::ClusterIndex > + ;
 #pragma link C++ class o2::emcal::ClusterizerParameters + ;
 #pragma link C++ class o2::emcal::Clusterizer + ;
 #pragma link C++ class o2::emcal::ClusterizerTask + ;

@@ -29,6 +29,17 @@ namespace emcal
 constexpr unsigned int NROWS = (24 + 1) * (6 + 4); // 10x supermodule rows (6 for EMCAL, 4 for DCAL). +1 accounts for topological gap between two supermodules
 constexpr unsigned int NCOLS = 48 * 2 + 1;         // 2x  supermodule columns + 1 empty space in between for DCAL (not used for EMCAL)
 
+// FIXME: This is a workaround for what is discussed here struct YourType {shor v; ClassDefNV(YourType,1);}
+//        Should be using ClusterIndex = Short_t
+struct ClusterIndex {
+  Short_t value;
+  operator Short_t() const { return value; }
+
+  ClusterIndex(Short_t val) : value(val) {}
+  ClusterIndex() = default;
+  ClassDefNV(ClusterIndex,1);
+};
+
 //_________________________________________________________________________
 /// \class Clusterizer
 /// \brief Meta class for recursive clusterizer
@@ -61,7 +72,7 @@ class Clusterizer
   void initialize(double timeCut, double timeMin, double timeMax, double gradientCut, bool doEnergyGradientCut, double thresholdSeedE, double thresholdCellE);
   void findClusters(const std::vector<Digit>& digitArray);
   const std::vector<Cluster>* getFoundClusters() const { return &mFoundClusters; }
-  const std::vector<Short_t>* getFoundClustersDigitIndices() const { return &mDigitIndices; }
+  const std::vector<ClusterIndex>* getFoundClustersDigitIndices() const { return &mDigitIndices; }
   void setGeometry(Geometry* geometry) { mEMCALGeometry = geometry; }
   Geometry* getGeometry() { return mEMCALGeometry; }
 
@@ -74,7 +85,7 @@ class Clusterizer
   std::array<std::array<bool, NCOLS>, NROWS> mCellMask;   //!<! topology arrays
 
   std::vector<Cluster> mFoundClusters; ///<  vector of cluster objects
-  std::vector<Short_t> mDigitIndices;  ///<  vector of associated digit tower ID, ordered by cluster
+  std::vector<ClusterIndex> mDigitIndices;  ///<  vector of associated digit tower ID, ordered by cluster
 
   double mTimeCut;             ///<  maximum time difference between the digits inside EMC cluster
   double mTimeMin;             ///<  minimum time of physical signal in a cell/digit

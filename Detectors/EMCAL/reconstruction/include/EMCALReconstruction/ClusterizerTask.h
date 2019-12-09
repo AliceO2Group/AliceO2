@@ -45,7 +45,7 @@ class ClusterizerTask
   std::unique_ptr<DigitReader> mDigitReader;                   ///< Pointer to digit reader
   const std::vector<Digit>* mDigitArray = nullptr;             ///< Array of input digits
   const std::vector<Cluster>* mClustersArray = nullptr;        ///< Array of clusters
-  const std::vector<Short_t>* mClustersDigitIndices = nullptr; ///< Array of digit indices
+  const std::vector<ClusterIndex>* mClustersDigitIndices = nullptr; ///< Array of digit indices
   ClassDefNV(ClusterizerTask, 1)
 };
 } // namespace emcal

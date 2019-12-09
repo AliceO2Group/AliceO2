@@ -62,7 +62,7 @@ class ClusterizerSpec : public framework::Task
   o2::emcal::Clusterizer mClusterizer;               ///< Clusterizer object
   o2::emcal::Geometry* mGeometry = nullptr;          ///< Pointer to geometry object
   const std::vector<o2::emcal::Cluster>* mOutputClusters = nullptr;   ///< Container with output clusters (pointer)
-  const std::vector<Short_t>* mOutputDigitIndices = nullptr;          ///< Container with indices of cluster digits (pointer)
+  const std::vector<o2::emcal::ClusterIndex>* mOutputDigitIndices = nullptr;          ///< Container with indices of cluster digits (pointer)
 };
 
 /// \brief Creating DataProcessorSpec for the EMCAL Clusterizer Spec
