@@ -30,7 +30,7 @@
 #include <TGListTree.h>
 #include "FairLogger.h"
 
-#define elemof(e)  (sizeof(e)/sizeof(e[0]))
+#define elemof(e)  (unsigned int)(sizeof(e)/sizeof(e[0]))
 
 using namespace std;
 

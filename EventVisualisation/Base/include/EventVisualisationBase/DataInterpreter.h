@@ -51,11 +51,10 @@ class DataInterpreter
   }
 
   // Should return visualisation objects for required data type
-  //virtual TEveElement* interpretDataForType(TObject* data, EVisualisationDataType type);
   virtual std::unique_ptr<VisualisationEvent> interpretDataForType(TObject* data, EVisualisationDataType type) = 0;
 
   static DataInterpreter* getInstance(EVisualisationGroup type) { return instance[type]; }
-  static void setInstance(DataInterpreter* instance, EVisualisationGroup type) { DataInterpreter::instance[type] = instance; }
+  //static void setInstance(DataInterpreter* instance, EVisualisationGroup type) { DataInterpreter::instance[type] = instance; }
 };
 
 } // namespace event_visualisation

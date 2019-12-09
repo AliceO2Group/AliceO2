@@ -56,8 +56,6 @@ void Initializer::setup(const Options options, EventManager::EDataSource default
   eventManager.setDataSourceType(defaultDataSource);
   eventManager.setCdbPath(ocdbStorage);
 
-  //EventRegistration::setInstance(MultiView::getInstance());
-
   eventManager.registerDetector(new DataReaderTPC(), new DataInterpreterTPC(), EVisualisationGroup::TPC);
 
   eventManager.setDataSourceType(EventManager::EDataSource::SourceOffline);
