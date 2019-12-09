@@ -61,7 +61,7 @@ class Digit : TimeStamp
   std::uint8_t mPad{0};       // pad within pad row, 0-143
   ArrayADC mADC{};            // ADC vector (30 time-bins)
   size_t mLabelIdx{0};        // index for mc label
-  double mTime{0};            // time of even
+  double mTime{0};            // time of event
   ClassDefNV(Digit, 1);
 };
 

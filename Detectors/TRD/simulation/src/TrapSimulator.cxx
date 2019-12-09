@@ -23,7 +23,7 @@
 #include "TRDBase/TRDCommonParam.h"
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/FeeParam.h"
-#include "TRDBase/TrackletMCM.h"
+#include "TRDBase/Tracklet.h"
 #include "TRDBase/CalOnlineGainTables.h"
 #include "TRDSimulation/TrapConfigHandler.h"
 #include "TRDSimulation/TrapConfig.h"
@@ -746,7 +746,7 @@ void TrapSimulator::draw(Option_t* const option)
   if (opt.find("T")) {
     TLine* trklLines = new TLine[4];
     for (int iTrkl = 0; iTrkl < mTrackletArray.size(); iTrkl++) {
-      TrackletMCM trkl = mTrackletArray[iTrkl];
+      Tracklet trkl = mTrackletArray[iTrkl];
       float padWidth = 0.635 + 0.03 * (mDetector % 6);
       float offset = padWidth / 256. * ((((((mRobPos & 0x1) << 2) + (mMcmPos & 0x3)) * 18) << 8) - ((18 * 4 * 2 - 18 * 2 - 3) << 7)); // revert adding offset in FitTracklet
                                                                                                                                       //TODO replace the 18, 4 3 and 7 with constants for readability
@@ -2099,7 +2099,7 @@ void TrapSimulator::fitTracklet()
 	    }
 	  }*/
         }
-        mTrackletArray.push_back(TrackletMCM((unsigned int)mMCMT[cpu], mDetector * 2 + mRobPos % 2, mRobPos, mMcmPos));
+        mTrackletArray.push_back(Tracklet((unsigned int)mMCMT[cpu], mDetector * 2 + mRobPos % 2, mRobPos, mMcmPos));
         int newtrackposition = mTrackletArray.size() - 1;
         mTrackletArray[newtrackposition].setLabel(mcLabel);
         mTrackletArray[newtrackposition].setNHits(fit0->mNhits + fit1->mNhits);
@@ -2190,13 +2190,13 @@ bool TrapSimulator::storeTracklets()
     trackletTree = dl->Tree();
   }
 
-  TrackletMCM *trkl = 0x0;
+  Tracklet *trkl = 0x0;
   TBranch *trkbranch = trackletTree->getBranch(fTrklBranchName.Data());
   if (!trkbranch)
-    trkbranch = trackletTree->Branch(fTrklBranchName.Data(), "TrackletMCM", &trkl, 32000);
+    trkbranch = trackletTree->Branch(fTrklBranchName.Data(), "Tracklet", &trkl, 32000);
 
   for (int iTracklet = 0; iTracklet < mTrackletArray->size(); iTracklet++) {
-    trkl = ((TrackletMCM*) (*mTrackletArray)[iTracklet]);
+    trkl = ((Tracklet*) (*mTrackletArray)[iTracklet]);
     trkbranch->SetAddress(&trkl);
     trkbranch->Fill();
   }

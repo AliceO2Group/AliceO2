@@ -8,18 +8,41 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TRD_TRACKLETMCM_H
-#define O2_TRD_TRACKLETMCM_H
+//#include "TRDBase/TRDGeometryBase.h"
+//#include "DetectorsCommonDataFormats/DetMatrixCache.h"
+//#include "DetectorsCommonDataFormats/DetID.h"
 
+#ifndef O2_TRDTRAPTRACKLET_H
+#define O2_TRDTRAPTRACKLET_H
+
+////////////////////////////////////////////////////////////////////////////
+//                                                                        //
+// TRD TRAP tracklet                                                      //
+// class for TRD tracklets from the TRAP                                  //
+//   (originall TrackletBase and TrackletMCM)                             //
+//
+// Authors                                                                //
+//  Alex Bercuci (A.Bercuci@gsi.de)                                       //
+//  Jochen Klein (jochen.klein@cern.ch)                                   //
+//  Sean Murray (murrays@cern.ch)                                         //
+//
+////////////////////////////////////////////////////////////////////////////
 #include <vector>
 #include <array>
+#include <memory> // for std::unique_ptr
+
 //#include "fairlogger/Logger.h"
-//#include "TRDBase/TRDGeometry.h"
-#include "TRDBase/TrackletBase.h"
+#include "TRDBase/TRDGeometry.h"
 
 namespace o2
 {
 namespace trd
+{
+
+//TODO check with ?? I think Ole, about this as I think my freedom to
+//define my own thing is limited by his requirements.
+
+class Tracklet
 {
 
 //-----------------------------------
@@ -28,22 +51,28 @@ namespace trd
 // only 32-bit of information + detector ID
 //
 //----------------------------------
-
-class TRDGeometry;
-
-class TrackletMCM : public TrackletBase
-{
  public:
-  TrackletMCM(unsigned int trackletWord = 0);
-  TrackletMCM(unsigned int trackletWword, int hcid);
-  TrackletMCM(unsigned int trackletWword, int hcid, int rob, int mcm);
-  TrackletMCM(const TrackletMCM& rhs);
-  ~TrackletMCM();
+  Tracklet(unsigned int trackletWord = 0);
+  Tracklet(unsigned int trackletWword, int hcid);
+  Tracklet(unsigned int trackletWword, int hcid, int rob, int mcm);
+  Tracklet(const Tracklet& rhs);
+  ~Tracklet() = default;
+
+  Tracklet& operator=(const Tracklet& o) { return *this; }
+
+
+ // int getHCId() const { return 2 * getDetector() + (getYbin() > 0 ? 1 : 0); }
+
+  float getdZdX() const { return 0; }
+
+   void localToGlobal(float&, float&, float&, float&) {}
+
+  void print(std::string* /*option=""*/) const {}
 
   // ----- Getters for contents of tracklet word -----
-  int getYbin() const;
-  int getdY() const;
-  int getZbin() const { return ((mTrackletWord >> 20) & 0xf); }
+  int getYbin() const;  // in units of 160 um
+  int getdY() const;    // in units of 140 um
+  int getZbin() const { return ((mTrackletWord >> 20) & 0xf); } // in pad length units
   int getPID() const { return ((mTrackletWord >> 24) & 0xff); }
 
   // ----- Getters for MCM-tracklet information -----
@@ -100,7 +129,7 @@ class TrackletMCM : public TrackletBase
   std::vector<float> getClsCharges() const { return mClsCharges; } //TODO this is a problem, giving a pointer out to an internal class member
 
  protected:
-  TRDGeometry*  mGeo; //! TRD geometry
+  std::unique_ptr<TRDGeometry>  mGeo; //! TRD geometry
 
   int mHCId;                  // half-chamber ID (only transient)
   unsigned int mTrackletWord; // tracklet word: PID | Z | deflection length | Y
@@ -114,7 +143,7 @@ class TrackletMCM : public TrackletBase
   int mNHits;  // no. of contributing clusters
   int mNHits0; // no. of contributing clusters in window 0
   int mNHits1; // no. of contributing clusters in window 1
-//int  mNHits2 TODO if we add windows we need to add another mNHits2ddp
+//int  mNHits2 TODO if we add windows we need to add another mNHits2
   std::array<int, 3> mLabel; // up to 3 labels for MC track  TODO no limit on labels in O2 ....
 
   float mSlope;                   // tracklet slope

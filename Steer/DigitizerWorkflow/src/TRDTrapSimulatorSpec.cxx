@@ -67,23 +67,24 @@ mcmb=fee->getMCMfromPad(rowb,padb);
 if(timea < timeb) return 1;
 else if (timea==timeb){
 
-if(a.getDetector()<b.getDetector()) return 1;
-else {
- if(a.getDetector()==b.getDetector()){
-    if(roba<robb) return 1;
-    else{ 
-        if (roba==robb){
-            if(mcma<mcmb) return 1;
-            else return 0;
-        }    
-        else return 0;
-        }
-    return 0;
-    }
- return 0;
- }
+  if(a.getDetector()<b.getDetector()) return 1;
+  else {
+   if(a.getDetector()==b.getDetector()){
+      if(roba<robb) return 1;
+      else{ 
+          if (roba==robb){
+              if(mcma<mcmb) return 1;
+              else return 0;
+          }    
+          else return 0;
+          }
+      return 0;
+      }
+   return 0;
+   }
+  return 0;
+  }
 return 0;
-}
 }
 
 
@@ -132,21 +133,35 @@ class TRDDPLTrapSimulatorTask{
                    int oldmcm=-1;
                    int oldrob=-1;
                    int olddetector=-1;
+                   int currentmcm=-1;
+                   int currentrob=-1;
                    for(std::vector<o2::trd::Digit>::iterator digititerator = digits.begin(); digititerator != digits.end(); ++digititerator) {
+                      //originally loop was over side:rob:mcm so we need side
+                      //in here as well. as per the end of AliTRDdigitizer
+                      //mcm is [0,16] rob is [side,digits.getNrowRows] and side is [0,1]
+                     // for (Int_t side = 0; side <= 1; side++)     {
+                     // for(Int_t rob = side; rob < digits->GetNrow() / 2; rob += 2) {
+                     // TODO I need to sort by an extra criterian.
+                     // time:detector:side:rob:mcm
+                     // else change the fundamental loop of TrapSimulator. 
+                      double digittime=digititerator->getTime();
                       int pad=digititerator->getPad();
                       int row=digititerator->getRow();
                       int detector=digititerator->getDetector();
                       int rob=mfeeparam->getROBfromPad(row,pad);
                       int mcm=mfeeparam->getMCMfromPad(row,pad);
-                      LOG(info) << "MCM: " << detector <<":" << rob << ":" <<mcm << " --- " << pad << ";;" << row;
-    //                  while(mcm==old))
-                      if(oldmcm==mcm && oldrob==rob && olddetector==detector){
-                          //we are still on the same mcm as the previous loop
+                      if(currentmcm==-1) currentmcm=mcm;
+                      if(currentrob==-1) currentrob=rob;
+                      if(currentrob!=rob || currentmcm!= mcm){
+                        // we are on a new rob:mcm combination, send trapsim
+                        // off to do its thing.
+                        //mTrapSimulator.init();
                       }
-                      else{
-                          //we have changed mcm so clear out array and put in new data.
-                          //
-                      }
+                      LOG(info) << "Time: " << digittime << " MCM: " << detector <<":" << rob << ":" <<mcm << " --- " << pad << ";;" << row;
+                      incomingdigits=digititerator->getADC();
+                      //determine which adc for this mcm we are populating.
+//                      mTrapSimulator.setData(incomingdigits);
+                      
                       // copy adc data from digits to local array and then pass into TrapSimulator
                       // keep copying until we change mcm.
                       // On change of mcm, take what we have send to simulator.

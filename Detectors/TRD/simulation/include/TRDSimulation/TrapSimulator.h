@@ -22,7 +22,7 @@
 #include <ostream>
 #include <fstream>
 
-#include "TRDBase/TrackletMCM.h"
+#include "TRDBase/Tracklet.h"
 #include "TRDBase/FeeParam.h"
 #include "TRDBase/Digit.h"
 #include "TRDBase/MCLabel.h"
@@ -177,7 +177,7 @@ class TrapSimulator
   static const int mgkDmemAddrYcorr = 0xc3ff;        // DMEM address of y correction (mis-alignment)
   static const int mgkMaxTracklets = 4;              // maximum number of tracklet-words submitted per MCM (one per CPU)
   //std::array<TrackletMCM> getTrackletArray() const { return mTrackletArray; }
-  std::vector<TrackletMCM>& getTrackletArray() { return mTrackletArray; }
+  std::vector<Tracklet>& getTrackletArray() { return mTrackletArray; }
 
   bool checkInitialized() const;     // Check whether the class is initialized
   static const int mgkFormatIndex;   // index for format settings in stream
@@ -201,7 +201,7 @@ class TrapSimulator
   std::vector<int> mADCF; // Array with MCM ADC values (Filtered, 12 bit) 2d with dimension mNTimeBin
 
   std::vector<unsigned int> mMCMT;         // tracklet word for one mcm/trap-chip
-  std::vector<TrackletMCM> mTrackletArray; // Array of TRDtrackletMCM which contains MC information in addition to the tracklet word
+  std::vector<Tracklet> mTrackletArray; // Array of TRDtrackletMCM which contains MC information in addition to the tracklet word
   std::vector<int> mZSMap;                 // Zero suppression map (1 dimensional projection)
 
   std::array<int, mgkNCPU> mFitPtr{}; // pointer to the tracklet to be calculated by CPU i

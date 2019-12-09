@@ -82,8 +82,9 @@ double Calibrations::getT0(int det, int col, int row) const
 {
   if (mChamberCalibrations && mLocalT0)
     return (double)mChamberCalibrations->getT0(det) + (double)mLocalT0->getValue(det, col, row);
-  else
+  else{
     return -1;
+  }
 }
 double Calibrations::getExB(int det) const
 {

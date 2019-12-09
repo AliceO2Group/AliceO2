@@ -491,8 +491,9 @@ void FeeParam::setRAWversion(int rawver)
 }
 
 /* 
- * This was originally moved here from arrayADC, signalADC etc. We know long use those classes
+ * This was originally moved here from arrayADC, signalADC etc. We now longer use those classes
  * so removing this for now as its crashing.
+*/
 void FeeParam::createPad2MCMLookUpTable()
 {
 
@@ -501,22 +502,23 @@ void FeeParam::createPad2MCMLookUpTable()
   // pad numbering and mcm channel numbering
   //
 
-  if (!mgLUTPadNumberingFilled) {
+/*  if (!mgLUTPadNumberingFilled) {
 
     //   mgLUTPadNumbering.resize(FeeParam::getNcol());
-    //  memset(&mgLUTPadNumbering[0], 0, sizeof(mgLUTPadNumbering[0]) * FeeParam::getNcol());
+    //  memset(&mgLUTPadNumbering[0], 0, sizeof(mgLUTPadNumbering[0]) * getNcol());
 
     for (int mcm = 0; mcm < 8; mcm++) {
       int lowerlimit = 0 + mcm * 18;
       int upperlimit = 18 + mcm * 18;
       int shiftposition = 1 + 3 * mcm;
       for (int index = lowerlimit; index < upperlimit; index++) {
-          mgInstance->mgLUTPadNumbering[index] = index + shiftposition;
+          mgLUTPadNumbering[index] = index + shiftposition;
       }
     }
     mgLUTPadNumberingFilled = true;
   }
-}*/
+*/
+}
 
 int FeeParam::getDyCorrection(int det, int rob, int mcm) const
 {
