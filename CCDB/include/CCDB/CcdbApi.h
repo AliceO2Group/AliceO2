@@ -196,6 +196,15 @@ class CcdbApi //: public DatabaseInterface
   void retrieveBlob(std::string const& path, std::string const& targetdir, std::map<std::string, std::string> const& metadata, long timestamp) const;
 
   /**
+   * Retrieve the headers of a CCDB entry, if it exists.
+   * @param path The path where the object is to be found.
+   * @param metadata Key-values representing the metadata to filter out objects.
+   * @param timestamp Timestamp of the object to retrieve. If omitted, current timestamp is used.
+   * @return A map containing the headers. The map is empty if no CCDB entry can be found.
+   */
+  std::map<std::string, std::string> retrieveHeaders(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp = -1) const;
+
+  /**
    * A helper function to extract an object from an existing in-memory TFile
    * @param file a TFile instance
    * @param objname name of serialized object
