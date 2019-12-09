@@ -37,7 +37,7 @@ class DataReaderVSD : public DataReader
 
  public:
   //Int_t GetEventCount() override { return mEvDirKeys->GetEntriesFast(); };
-  int GetEventCount() const override  { return mEvDirKeys.size(); };
+  int GetEventCount() const override { return mEvDirKeys.size(); };
   DataReaderVSD();
   ~DataReaderVSD() override;
   void open() override;

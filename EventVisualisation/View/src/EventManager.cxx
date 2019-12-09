@@ -30,7 +30,7 @@
 #include <TGListTree.h>
 #include "FairLogger.h"
 
-#define elemof(e)  (unsigned int)(sizeof(e)/sizeof(e[0]))
+#define elemof(e) (unsigned int)(sizeof(e) / sizeof(e[0]))
 
 using namespace std;
 
@@ -50,37 +50,33 @@ EventManager& EventManager::getInstance()
 
 EventManager::EventManager() : TEveEventManager("Event", "")
 {
-    LOG(INFO) << "Initializing TEveManager";
-    for(int i=0; i < elemof(dataInterpreters); i++)
-        dataInterpreters[i] = nullptr;
-    for(int i=0; i < elemof(dataReaders); i++)
-        dataReaders[i] = nullptr;
-    for(int i=0; i < elemof(dataTypeLists); i++)
-        dataTypeLists[i] = nullptr;
-
+  LOG(INFO) << "Initializing TEveManager";
+  for (int i = 0; i < elemof(dataInterpreters); i++)
+    dataInterpreters[i] = nullptr;
+  for (int i = 0; i < elemof(dataReaders); i++)
+    dataReaders[i] = nullptr;
+  for (int i = 0; i < elemof(dataTypeLists); i++)
+    dataTypeLists[i] = nullptr;
 }
 
-void EventManager::Open() {
-    switch(mCurrentDataSourceType)
-    {
-        case SourceOnline:
-            break;
-        case SourceOffline:
-        {
-            DataSourceOffline *source = new DataSourceOffline();
-            for (int i = 0; i < EVisualisationGroup::NvisualisationGroups; i++)
-            {
-                if (dataInterpreters[i] != nullptr) {
-                    dataReaders[i]->open();
-                    source->registerReader(dataReaders[i], static_cast<EVisualisationGroup>(i));
-                }
-            }
-            setDataSource(source);
+void EventManager::Open()
+{
+  switch (mCurrentDataSourceType) {
+    case SourceOnline:
+      break;
+    case SourceOffline: {
+      DataSourceOffline* source = new DataSourceOffline();
+      for (int i = 0; i < EVisualisationGroup::NvisualisationGroups; i++) {
+        if (dataInterpreters[i] != nullptr) {
+          dataReaders[i]->open();
+          source->registerReader(dataReaders[i], static_cast<EVisualisationGroup>(i));
         }
-            break;
-        case SourceHLT:
-            break;
-    }
+      }
+      setDataSource(source);
+    } break;
+    case SourceHLT:
+      break;
+  }
 }
 
 void EventManager::GotoEvent(Int_t no)
@@ -206,10 +202,10 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
   }
 }
 
-void EventManager::registerDetector(DataReader *reader, DataInterpreter *interpreter, EVisualisationGroup type)
+void EventManager::registerDetector(DataReader* reader, DataInterpreter* interpreter, EVisualisationGroup type)
 {
-    dataReaders[type] = reader;
-    dataInterpreters[type] = interpreter;
+  dataReaders[type] = reader;
+  dataInterpreters[type] = interpreter;
 }
 
 } // namespace event_visualisation

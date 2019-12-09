@@ -41,7 +41,6 @@ namespace o2
 namespace event_visualisation
 {
 
-
 DataInterpreterTPC::~DataInterpreterTPC() = default;
 
 std::unique_ptr<VisualisationEvent> DataInterpreterTPC::interpretDataForType(TObject* data, EVisualisationDataType type)

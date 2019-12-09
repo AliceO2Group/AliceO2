@@ -38,6 +38,5 @@ VisualisationEvent::VisualisationEvent(int eventNumber,
 {
 }
 
-
 } // namespace event_visualisation
 } // namespace o2

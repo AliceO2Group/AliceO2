@@ -44,7 +44,6 @@ void DataReaderTPC::open()
   mMaxEv = trackBuffer->size();
 }
 
-
 TObject* DataReaderTPC::getEventData(int no)
 {
   /// FIXME: Redesign the data reader class
