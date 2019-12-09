@@ -26,6 +26,7 @@ class TempCalibParamSM;
 class TimeCalibrationParams;
 class TimeCalibParamL1Phase;
 class GainCalibrationFactors;
+class TriggerDCS;
 
 /// \class CalibDB
 /// \brief Interface to calibration data from CCDB for EMCAL
@@ -252,6 +253,20 @@ class CalibDB
   /// \throw ObjectNotFoundException if object is not found for the given timestamp
   /// \throw TypeMismatchException if object is present but type is different (CCDB corrupted)
   GainCalibrationFactors* readGainCalibFactors(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
+
+  /// \brief Store Trigger DCS data in the CCDB
+  /// \brief dcs trigger DCS data to be stored
+  /// \brief metadata Additional metadata that can be used in the query
+  /// \timestart Start of the time range of the validity of the object
+  /// \timeend End of the time range of the validity of the object
+  void storeTriggerDCSData(TriggerDCS* dcs, const std::map<std::string, std::string>& metadata, ULong_t timestart, ULong_t timeend);
+
+  /// \brief Find trigger DCS data in the CCDB for given timestamp
+  /// \param timestamp Timestamp used in query
+  /// \param metadata Additional metadata to be used in the query
+  /// \throw ObjectNotFoundException if object is not found for the given timestamp
+  /// \throw TypeMismatchException if object is present but type is different (CCDB corrupted)
+  TriggerDCS* readTriggerDCSData(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
 
   /// \brief Set new CCDB server URL
   /// \param server Name of the CCDB server to be used in queries

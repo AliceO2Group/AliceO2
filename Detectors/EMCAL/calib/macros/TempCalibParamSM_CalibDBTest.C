@@ -51,7 +51,7 @@ void TempCalibParamSM_CalibDBTest(const std::string_view ccdbserver = "emcccdb-t
   std::string inputDir = " ";
   if (aliceO2env)
     inputDir = aliceO2env;
-  inputDir += "/share/Detectors/EMCAL/files/";
+  inputDir += "/share/Detectors/EMC/files/";
 
   std::string file = inputDir + "TempCalibSM_LHC18k_289166.txt";
   std::ifstream fileTempCalibSM(file, std::ifstream::in);
