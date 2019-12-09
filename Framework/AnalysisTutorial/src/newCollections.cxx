@@ -18,7 +18,7 @@ namespace etaphi
 DECLARE_SOA_COLUMN(Eta, eta, float, "fEta");
 DECLARE_SOA_COLUMN(Phi, phi, float, "fPhi");
 } // namespace etaphi
-DECLARE_SOA_TABLE(EtaPhi, "RN2", "ETAPHI",
+DECLARE_SOA_TABLE(EtaPhi, "AOD", "ETAPHI",
                   etaphi::Eta, etaphi::Phi);
 } // namespace o2::aod
 
@@ -35,8 +35,8 @@ struct ATask {
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
-      auto phi = asin(track.snp()) + track.alpha() + M_PI;
-      auto eta = log(tan(0.25 * M_PI - 0.5 * atan(track.tgl())));
+      float phi = asin(track.snp()) + track.alpha() + static_cast<float>(M_PI);
+      float eta = log(tan(0.25f * static_cast<float>(M_PI) - 0.5f * atan(track.tgl())));
 
       etaphi(phi, eta);
     }
@@ -47,7 +47,7 @@ struct BTask {
   void process(aod::EtaPhi const& etaPhis)
   {
     for (auto& etaPhi : etaPhis) {
-      LOGF(ERROR, "(%f, %f)", etaPhi.eta(), etaPhi.phi());
+      LOGF(INFO, "(%f, %f)", etaPhi.eta(), etaPhi.phi());
     }
   }
 };

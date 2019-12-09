@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef __O2_EMCAL_RAwDATAHEADER_H__
-#define __O2_EMCAL_RAwDATAHEADER_H__
+#ifndef ALICEO2_EMCAL_RAwDATAHEADER_H
+#define ALICEO2_EMCAL_RAwDATAHEADER_H
 
 #include <iosfwd>
 #include <cstdint>
@@ -19,52 +19,84 @@ namespace o2
 {
 namespace emcal
 {
-class RAWDataHeader
-{
- public:
-  RAWDataHeader() = default;
-  ~RAWDataHeader() = default;
-
-  uint16_t getEventID1() const { return (uint16_t)(mWord1 & 0xFFF); }
-  uint16_t getBlockSize() const { return (uint16_t)((mBlockSizeOffset >> 16) & 0xFFFF); }
-  uint16_t getOffset() const { return (uint16_t)(mBlockSizeOffset & 0xFFFF); }
-  uint8_t getPacketCounter() const { return (uint8_t)((mPacketCounterLink >> 8) & 0xFF); }
-  uint8_t getLink() const { return (uint8_t)(mPacketCounterLink & 0xFF); }
-  uint8_t getL1TriggerMessage() const { return (uint8_t)((mWord1 >> 14) & 0xFF); }
-  uint8_t getVersion() const { return (uint8_t)((mWord1 >> 24) & 0xFF); }
-  uint32_t getStatus() const { return (mStatusMiniEventID >> 12) & 0xFFFF; }
-  uint32_t getMiniEventID() const { return mStatusMiniEventID & 0xFFF; }
-  uint64_t getTriggerClasses() const { return (((uint64_t)(mTriggerClassesMiddleLow & 0x3FFFF)) << 32) | mTriggerClassLow; }
-  uint64_t getTriggerClassesNext50() const { return ((((uint64_t)(mROILowTriggerClassHigh & 0xF)) << 46) | ((uint64_t)mTriggerClassesMiddleHigh << 14) | (((uint64_t)mTriggerClassesMiddleLow >> 18) & 0x3fff)); }
-  uint64_t getROI() const { return (((uint64_t)mROIHigh) << 4) | ((mROILowTriggerClassHigh >> 28) & 0xF); }
-  void setTriggerClass(uint64_t mask)
-  {
-    mTriggerClassLow = (uint32_t)(mask & 0xFFFFFFFF);                                                          // low bits of trigger class
-    mTriggerClassesMiddleLow = (mTriggerClassesMiddleLow & 0xFFFC0000) | ((uint32_t)((mask >> 32) & 0x3FFFF)); // middle low bits of trigger class
-  };
-  void SetTriggerClassNext50(uint64_t mask)
-  {
-    mTriggerClassesMiddleLow = (mTriggerClassesMiddleLow & 0x3FFFF) | (((uint32_t)(mask & 0x3FFF) << 18));
-    mTriggerClassesMiddleHigh = (uint32_t)((mask >> 14) & 0xFFFFFFFF);                                 // middle high bits of trigger class
-    mROILowTriggerClassHigh = (mROILowTriggerClassHigh & 0xFFFFFFF0) | (uint32_t)((mask >> 46) & 0xF); // low bits of ROI data (bits 28-31) and high bits of trigger class (bits 0-3)
+struct RAWDataHeader {
+  union {
+    uint32_t word0 = 0xFFFFFFFF; // size of the raw data in bytes
   };
 
-  void printStream(std::ostream& stream) const;
-  void readStream(std::istream& stream);
+  union {
+    uint32_t word1 = 3 << 24; // bunch crossing, L1 trigger message and format version
+    struct {
+      uint32_t triggerBC : 14;       ///< bunch crossing [0-13]
+      uint32_t triggermessageL1 : 8; ///< L1 trigger message [14-21]
+      uint32_t zero11 : 2;           ///< Unassigned [22-23]
+      uint32_t version : 8;          ///< Version [24-31]
+    };
+  };
 
- private:
-  uint32_t mSize = 0xFFFFFFFF;            // size of the raw data in bytes
-  uint32_t mWord1 = 3 << 24;              // bunch crossing, L1 trigger message and format version
-  uint32_t mBlockSizeOffset = 0;          // Size [16-31] and offset [0-15]
-  uint32_t mPacketCounterLink = 0;        // Number of packets [8-15] and linkID [0-7]
-  uint32_t mStatusMiniEventID = 0x10000;  // status & error bits (bits 12-27) and mini event ID (bits 0-11)
-  uint32_t mTriggerClassLow = 0;          // low bits of trigger class
-  uint32_t mTriggerClassesMiddleLow = 0;  // 18 bits go into eventTriggerPattern[1] (low), 14 bits are zeroes (cdhMBZ2)
-  uint32_t mTriggerClassesMiddleHigh = 0; // Goes into eventTriggerPattern[1] (high) and [2] (low)
-  uint32_t mROILowTriggerClassHigh = 0;   // low bits of ROI data (bits 28-31) and high bits of trigger class (bits 0-17)
-  uint32_t mROIHigh = 0;                  // high bits of ROI datadata */
+  union {
+    uint32_t word2 = 0; //< Size and offset
+    struct {
+      uint32_t offsetToNext : 16; ///< offset [0-15]
+      uint32_t memorySize : 16;   ///< size [16-31]
+    };
+  };
 
-  ClassDefNV(RAWDataHeader, 1);
+  union {
+    uint32_t word3 = 0; ///< Number of packets and linkID
+    struct {
+      uint8_t linkID : 8;        ///< Link ID  [0-7]
+      uint8_t packetCounter : 8; ///< Number of packets  [8-15]
+      uint16_t zero31 : 16;      ///< Unassigned [16-31]
+    };
+  };
+
+  union {
+    uint32_t word4 = 0x10000; // status & error bits and mini event ID
+    struct {
+      uint32_t triggerOrbit : 12; ///< mini event ID [0-11]
+      uint32_t status : 16;       ///< status & error bits [12-27]
+      uint32_t zero41 : 4;        ///< Unassigned [28-31]
+    };
+  };
+
+  union {
+    uint32_t word5; ///< First word of the tirgger types
+    struct {
+      uint32_t triggerType : 32; ///< low trigger types [0-49]
+    };
+  };
+
+  union {
+    uint32_t word6; ///< Second word of the trigger types
+    struct {
+      uint32_t triggerTypesHigh : 18;   ///< Second part of the trigger types [0-17]
+      uint32_t triggerTypesNext50 : 14; ///< First part of the trigger types next 50 [18-31]
+    };
+  };
+
+  union {
+    uint32_t word7; ///< Third word of the trigger types
+    struct {
+      uint32_t triggerTypesNext50Middle : 32; ///< Second part of the trigger types next 50
+    };
+  };
+
+  union {
+    uint32_t word8; ///< Fourth word of the trigger types
+    struct {
+      uint32_t triggerTypesNext50High : 4; ///< Third part of the trigger types next 50 [0-3]
+      uint32_t zero81 : 24;                ///< Unassigned [4-27]
+      uint32_t roi : 4;                    ///< First part of the roi [28-31]
+    };
+  };
+
+  union {
+    uint32_t word9; ///< Second word of the roi
+    struct {
+      uint32_t roiHigh : 32; ///< Second part of the roi
+    };
+  };
 };
 
 std::istream& operator>>(std::istream& in, o2::emcal::RAWDataHeader& header);

@@ -7,6 +7,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
 #ifndef FRAMEWORK_ANALYSIS_TASK_H_
 #define FRAMEWORK_ANALYSIS_TASK_H_
 
@@ -24,7 +25,7 @@
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/Traits.h"
 #include "Framework/VariantHelpers.h"
-#include "Headers/DataHeader.h"
+#include "Framework/OutputObjHeader.h"
 
 #include <arrow/compute/context.h>
 #include <arrow/compute/kernel.h>
@@ -33,14 +34,7 @@
 #include <utility>
 #include <memory>
 
-/// This is an helper to allow users to create and
-/// fill histograms which are then sent to the collector.
-class TH1F;
-
-namespace o2
-{
-
-namespace framework
+namespace o2::framework
 {
 
 /// A more familiar task API for the DPL analysis framework.
@@ -106,23 +100,28 @@ struct Produces<soa::Table<C...>> : WritingCursor<typename soa::FilterPersistent
   }
 };
 
-/// This helper class allow you to declare things which will be crated by a
-/// give analysis task. Notice how the actual cursor is implemented by the
-/// means of the WritingCursor helper class, from which produces actually
-/// derives.
+/// This helper class allow you to declare things which will be created by a
+/// given analysis task. Currently wrapped objects are limited to be TNamed
+/// descendants. Objects will be written to a ROOT file at the end of the
+/// workflow, in directories, corresponding to the task they were declared in.
+/// Each object has associated handling policy, which is used by the framework
+/// to determine the target file, e.g. analysis result, QA or control histogram,
+/// etc.
 template <typename T>
 struct OutputObj {
   using obj_t = T;
 
-  OutputObj(T const& t)
+  OutputObj(T const& t, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject)
     : object(std::make_shared<T>(t)),
-      label(t.GetName())
+      label(t.GetName()),
+      policy{policy_}
   {
   }
 
-  OutputObj(std::string const& label_)
+  OutputObj(std::string const& label_, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject)
     : object(nullptr),
-      label(label_)
+      label(label_),
+      policy{policy_}
   {
   }
 
@@ -144,7 +143,7 @@ struct OutputObj {
     object->SetName(label.c_str());
   }
 
-  // @return the associated OutputSpec
+  /// @return the associated OutputSpec
   OutputSpec const spec()
   {
     static_assert(std::is_base_of_v<TNamed, T>, "You need a TNamed derived class to use OutputObj");
@@ -173,11 +172,13 @@ struct OutputObj {
 
   OutputRef ref()
   {
-    return OutputRef{label, 0};
+    return OutputRef{std::string{label}, 0,
+                     o2::header::Stack{OutputObjHeader{policy}}};
   }
 
   std::shared_ptr<T> object;
   std::string label;
+  OutputObjHandlingPolicy policy;
 };
 
 struct AnalysisTask {
@@ -187,18 +188,33 @@ struct AnalysisTask {
 // the contents of an AnalysisTask...
 struct AnalysisDataProcessorBuilder {
   template <typename Arg>
-  static void appendInputWithMetadata(std::vector<InputSpec>& inputs)
+  static void doAppendInputWithMetadata(std::vector<InputSpec>& inputs)
   {
     using metadata = typename aod::MetadataTrait<std::decay_t<Arg>>::metadata;
     static_assert(std::is_same_v<metadata, void> == false,
                   "Could not find metadata. Did you register your type?");
-    inputs.push_back({metadata::label(), "RN2", metadata::description()});
+    inputs.push_back({metadata::label(), "AOD", metadata::description()});
+  }
+
+  template <typename T>
+  static void appendSomethingWithMetadata(std::vector<InputSpec>& inputs)
+  {
+    if constexpr (is_specialization<std::decay_t<T>, soa::Join>::value || is_specialization<std::decay_t<T>, soa::Concat>::value) {
+      using left_t = typename std::decay_t<T>::left_t;
+      using right_t = typename std::decay_t<T>::right_t;
+      doAppendInputWithMetadata<left_t>(inputs);
+      doAppendInputWithMetadata<right_t>(inputs);
+    } else if constexpr (is_specialization<std::decay_t<T>, soa::Filtered>::value) {
+      doAppendInputWithMetadata<typename std::decay_t<T>::table_t>(inputs);
+    } else {
+      doAppendInputWithMetadata<T>(inputs);
+    }
   }
 
   template <typename R, typename C, typename... Args>
   static void inputsFromArgs(R (C::*)(Args...), std::vector<InputSpec>& inputs)
   {
-    (appendInputWithMetadata<Args>(inputs), ...);
+    (appendSomethingWithMetadata<Args>(inputs), ...);
   }
 
   template <typename R, typename C, typename Grouping, typename... Args>
@@ -210,8 +226,7 @@ struct AnalysisDataProcessorBuilder {
   template <typename R, typename C, typename Grouping, typename... Args>
   static auto bindGroupingTable(InputRecord& record, R (C::*)(Grouping, Args...))
   {
-    using metadata = typename aod::MetadataTrait<std::decay_t<Grouping>>::metadata;
-    return typename metadata::table_t(record.get<TableConsumer>(metadata::label())->asArrowTable());
+    return extractSomethingFromRecord<Grouping>(record);
   }
 
   template <typename R, typename C>
@@ -221,11 +236,59 @@ struct AnalysisDataProcessorBuilder {
     return o2::soa::Table<>{nullptr};
   }
 
+  template <typename T>
+  static auto extractTableFromRecord(InputRecord& record)
+  {
+    auto at = record.get<TableConsumer>(aod::MetadataTrait<T>::metadata::label())->asArrowTable();
+    return typename aod::MetadataTrait<T>::metadata::table_t(at);
+  }
+
+  template <typename T>
+  static auto extractFilteredTableFromRecord(InputRecord& record)
+  {
+    using metadata = typename aod::MetadataTrait<typename std::decay_t<T>::table_t>::metadata;
+    auto at = record.get<TableConsumer>(metadata::label())->asArrowTable();
+    return soa::Filtered<typename metadata::table_t>(at, nullptr);
+  }
+
+  template <typename T1, typename T2>
+  static auto extractJoinFromRecord(InputRecord& record)
+  {
+    auto at1 = record.get<TableConsumer>(aod::MetadataTrait<std::decay_t<T1>>::metadata::label())->asArrowTable();
+    auto at2 = record.get<TableConsumer>(aod::MetadataTrait<std::decay_t<T2>>::metadata::label())->asArrowTable();
+    return typename soa::Join<T1, T2>(at1, at2);
+  }
+
+  template <typename T1, typename T2>
+  static auto extractConcatFromRecord(InputRecord& record)
+  {
+    auto at1 = record.get<TableConsumer>(aod::MetadataTrait<std::decay_t<T1>>::metadata::label())->asArrowTable();
+    auto at2 = record.get<TableConsumer>(aod::MetadataTrait<std::decay_t<T2>>::metadata::label())->asArrowTable();
+    return typename soa::Concat<T1, T2>(at1, at2);
+  }
+
+  template <typename T>
+  static auto extractSomethingFromRecord(InputRecord& record)
+  {
+    if constexpr (is_specialization<std::decay_t<T>, soa::Join>::value) {
+      using left_t = typename std::decay_t<T>::left_t;
+      using right_t = typename std::decay_t<T>::right_t;
+      return extractJoinFromRecord<left_t, right_t>(record);
+    } else if constexpr (is_specialization<std::decay_t<T>, soa::Concat>::value) {
+      using left_t = typename std::decay_t<T>::left_t;
+      using right_t = typename std::decay_t<T>::right_t;
+      return extractConcatFromRecord<left_t, right_t>(record);
+    } else if constexpr (is_specialization<std::decay_t<T>, soa::Filtered>::value) {
+      return extractFilteredTableFromRecord<T>(record);
+    } else {
+      return extractTableFromRecord<std::decay_t<T>>(record);
+    }
+  }
+
   template <typename R, typename C, typename Grouping, typename... Args>
   static auto bindAssociatedTables(InputRecord& record, R (C::*)(Grouping, Args...))
   {
-    using metadata = typename aod::MetadataTrait<std::decay_t<Grouping>>::metadata;
-    return std::make_tuple(typename aod::MetadataTrait<std::decay_t<Args>>::metadata::table_t(record.get<TableConsumer>(aod::MetadataTrait<std::decay_t<Args>>::metadata::label())->asArrowTable())...);
+    return std::make_tuple(extractSomethingFromRecord<Args>(record)...);
   }
 
   template <typename R, typename C>
@@ -247,10 +310,14 @@ struct AnalysisDataProcessorBuilder {
       // is a o2::soa::Table or a o2::soa::RowView
       if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::Table>::value) {
         task.process(groupingTable);
-      } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::RowView>::value) {
+      } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::RowViewBase>::value) {
         for (auto& groupedElement : groupingTable) {
           task.process(groupedElement);
         }
+      } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::Join>::value) {
+        task.process(groupingTable);
+      } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::Filtered>::value) {
+        task.process(groupingTable);
       } else {
         static_assert(always_static_assert_v<Grouping>,
                       "The first argument of the process method of your task must be either"
@@ -276,9 +343,9 @@ struct AnalysisDataProcessorBuilder {
                       " first argument of type soa::Table which is found as in the "
                       " prototype of the task process method.");
         task.process(groupingTable, std::get<0>(associatedTables));
-      } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::RowView>::value) {
+      } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::RowViewBase>::value) {
         using AssociatedType = std::tuple_element_t<0, std::tuple<Associated...>>;
-        if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::RowView>::value) {
+        if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::RowViewBase>::value) {
           auto groupedTable = std::get<0>(associatedTables);
           size_t currentGrouping = 0;
           Grouping groupingElement = groupingTable.begin();
@@ -294,7 +361,7 @@ struct AnalysisDataProcessorBuilder {
             }
             task.process(groupingElement, groupedElement);
           }
-        } else if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Table>::value) {
+        } else if constexpr (is_base_of_template<o2::soa::Table, std::decay_t<AssociatedType>>::value) {
           auto allGroupedTable = std::get<0>(associatedTables);
           using groupingMetadata = typename aod::MetadataTrait<std::decay_t<Grouping>>::metadata;
           arrow::compute::FunctionContext ctx;
@@ -311,9 +378,19 @@ struct AnalysisDataProcessorBuilder {
 
           // FIXME: this assumes every groupingElement has a group associated,
           // which migh not be the case.
-          for (auto& groupedDatum : groupsCollection) {
-            auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
-            task.process(groupingElement, AssociatedType{groupedElementsTable});
+          if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Table>::value || is_specialization<std::decay_t<AssociatedType>, o2::soa::Filtered>::value) {
+            for (auto& groupedDatum : groupsCollection) {
+              auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
+              task.process(groupingElement, AssociatedType{groupedElementsTable});
+              ++const_cast<std::decay_t<Grouping>&>(groupingElement);
+            }
+          } else if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Join>::value || is_specialization<std::decay_t<AssociatedType>, o2::soa::Concat>::value) {
+            std::vector<std::shared_ptr<arrow::Table>> tables;
+            for (auto& groupedDatum : groupsCollection) {
+              auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
+              tables.push_back(groupedElementsTable);
+            }
+            task.process(groupingElement, AssociatedType{tables});
             ++const_cast<std::decay_t<Grouping>&>(groupingElement);
           }
         } else {
@@ -532,6 +609,5 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
   return spec;
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 #endif // FRAMEWORK_ANALYSISTASK_H_

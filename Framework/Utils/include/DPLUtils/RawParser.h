@@ -32,6 +32,37 @@ namespace o2::framework
 namespace raw_parser
 {
 
+/// specifier for printout
+enum struct FormatSpec {
+  Info,          // basic info: version
+  TableHeader,   // table header
+  Entry,         // table entry, i.e. RDH at current position
+  FullTable,     // full table with header and all entiries
+  FullTableInfo, // info and full table with header and all entries
+};
+
+template <typename T>
+struct RDHFormatter {
+  using type = T;
+  static void apply(std::ostream&, type const&, FormatSpec, const char* = "")
+  {
+  }
+};
+
+template <>
+struct RDHFormatter<header::RAWDataHeaderV5> {
+  using type = header::RAWDataHeaderV5;
+  static const char* sFormatString;
+  static void apply(std::ostream&, type const&, FormatSpec, const char* = "");
+};
+
+template <>
+struct RDHFormatter<header::RAWDataHeaderV4> {
+  using type = header::RAWDataHeaderV4;
+  static const char* sFormatString;
+  static void apply(std::ostream&, type const&, FormatSpec, const char* = "");
+};
+
 /// @class ConcreteRawParser
 /// Raw parser implementation for a particular version of RAWDataHeader.
 /// Parses a contiguous sequence of raw pages in a raw buffer.
@@ -170,6 +201,11 @@ class ConcreteRawParser
     }
   }
 
+  void format(std::ostream& os, FormatSpec choice = FormatSpec::Entry, const char* delimiter = "\n") const
+  {
+    RDHFormatter<header_type>::apply(os, header(), choice, delimiter);
+  }
+
  private:
   buffer_type const* mRawBuffer;
   buffer_type const* mPosition = nullptr;
@@ -214,6 +250,40 @@ ConcreteParserVariants<PageSize> create(T const* buffer, size_t size)
   throw std::runtime_error("can not create RawParser: invalid version " + std::to_string(v5->version));
 }
 
+/// iteratively walk through the available instances and parse with instance
+/// specified by index
+template <size_t N, typename T, typename P>
+void walk_parse(T& instances, P&& processor, size_t index)
+{
+  if constexpr (N > 0) {
+    if (index == N - 1) {
+      std::get<N - 1>(instances).parse(processor);
+    }
+
+    walk_parse<N - 1>(instances, processor, index);
+  }
+}
+
+template <typename U, typename T, size_t N = std::variant_size_v<T>>
+U const* get_if(T& instances)
+{
+  if constexpr (N > 0) {
+    auto* parser = std::get_if<N - 1>(&instances);
+    if (parser) {
+      // we are in the active instance, return header if type matches
+      using parser_type = typename std::variant_alternative<N - 1, T>::type;
+      using header_type = typename parser_type::header_type;
+      if constexpr (std::is_same<U, header_type>::value == true) {
+        return &(parser->header());
+      }
+    } else {
+      // continue walking through instances until active one is found
+      return get_if<U, T, N - 1>(instances);
+    }
+  }
+  return nullptr;
+}
+
 } // namespace raw_parser
 
 /// @class RawParser parser for the O2 raw data
@@ -240,12 +310,17 @@ ConcreteParserVariants<PageSize> create(T const* buffer, size_t size)
 ///       std::cout << "Iterating block of length " << it.length() << std::endl;
 ///       auto dataptr = it.data();
 ///     }
+///
+/// TODO:
+/// - iterators are not independent at the moment and this can cause conflicts, this must be
+///   improved
 template <size_t MAX_SIZE = 8192>
 class RawParser
 {
  public:
   using buffer_type = unsigned char;
   size_t max_size = MAX_SIZE;
+  using self_type = RawParser<MAX_SIZE>;
 
   RawParser() = delete;
 
@@ -262,7 +337,11 @@ class RawParser
   template <typename Processor>
   void parse(Processor&& processor)
   {
-    return std::visit([&processor](auto& parser) { return parser.parse(processor); }, mParser);
+    constexpr size_t NofAlternatives = std::variant_size_v<decltype(mParser)>;
+    static_assert(NofAlternatives == 2);
+    raw_parser::walk_parse<NofAlternatives>(mParser, processor, mParser.index());
+    // it turned out that using a iterative function is faster than using std::visit
+    //std::visit([&processor](auto& parser) { return parser.parse(processor); }, mParser);
   }
 
   /// Reset parser and set position to beginning of buffer
@@ -353,20 +432,15 @@ class RawParser
     /// get header as specific type
     /// @return pointer to header of the specified type, or nullptr if type does not match to actual type
     template <typename U>
-    U const* as() const
+    U const* get_if() const
     {
-      return std::visit([](auto& parser) {
-        using header_type = typename std::remove_reference<decltype(parser)>::type::header_type;
-        if constexpr (std::is_same<U, header_type>::value == true) {
-          U const* h = &parser.header();
-          // FIXME: does not want to compile when return ing the pointer
-          throw std::runtime_error("code path not yet implemented");
-          return nullptr;
-        } else {
-          return nullptr;
-        }
-      },
-                        mParser);
+      return raw_parser::get_if<U>(mParser);
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, self_type const& it)
+    {
+      std::visit([&os](auto& parser) { return parser.format(os, raw_parser::FormatSpec::Entry, ""); }, it.mParser);
+      return os;
     }
 
    private:
@@ -384,6 +458,20 @@ class RawParser
   const_iterator end()
   {
     return const_iterator(mParser, -1);
+  }
+
+  friend std::ostream& operator<<(std::ostream& os, self_type const& parser)
+  {
+    std::visit([&os](auto& parser) { return parser.format(os, raw_parser::FormatSpec::Info, "\n"); }, parser.mParser);
+    std::visit([&os](auto& parser) { return parser.format(os, raw_parser::FormatSpec::TableHeader); }, parser.mParser);
+    // FIXME: need to decide what kind of information we want to have in the printout
+    // for the moment its problematic, because the parser has only one variable determining the position and all
+    // iterators work with the same instance which is asking for conflicts
+    // this needs to be changed in order to have fully independent iterators over the same constant buffer
+    //for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
+    //  os << "\n" << it;
+    //}
+    return os;
   }
 
  private:

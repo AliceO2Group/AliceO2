@@ -25,6 +25,11 @@ o2_add_executable(track-iteration
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
+o2_add_executable(full-track-iteration
+                  SOURCES src/fullTrackIteration.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME AnalysisTutorial)
+
 o2_add_executable(collision-tracks-iteration
                   SOURCES src/collisionTracksIteration.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
@@ -32,6 +37,11 @@ o2_add_executable(collision-tracks-iteration
 
 o2_add_executable(new-collections
                   SOURCES src/newCollections.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME AnalysisTutorial)
+
+o2_add_executable(associated-derived
+                  SOURCES src/associatedExample.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 

@@ -14,9 +14,21 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::emcal::RAWDataHeader + ;
-#pragma link C++ class o2::emcal::RawReaderFile + ;
-#pragma link C++ class o2::emcal::AltroDecoder + ;
-#pragma link C++ class o2::emcal::Mapper + ;
+#pragma link C++ class o2::emcal::RawReaderFile < o2::emcal::RAWDataHeader> + ;
+#pragma link C++ class o2::emcal::RawReaderFile < o2::header::RAWDataHeaderV4> + ;
+#pragma link C++ class o2::emcal::RawReaderMemory < o2::emcal::RAWDataHeader> + ;
+#pragma link C++ class o2::emcal::RawReaderMemory < o2::header::RAWDataHeaderV4> + ;
+#pragma link C++ class o2::emcal::AltroDecoder < o2::emcal::RawReaderFile < o2::emcal::RAWDataHeader>> + ;
+#pragma link C++ class o2::emcal::AltroDecoder < o2::emcal::RawReaderFile < o2::header::RAWDataHeaderV4>> + ;
+#pragma link C++ class o2::emcal::AltroDecoder < o2::emcal::RawReaderMemory < o2::emcal::RAWDataHeader>> + ;
+#pragma link C++ class o2::emcal::AltroDecoder < o2::emcal::RawReaderMemory < o2::header::RAWDataHeaderV4>> + ;
+#pragma link C++ class o2::emcal::RawPayload + ;
+#pragma link C++ class o2::emcal::Bunch + ;
+#pragma link C++ class o2::emcal::Channel + ;
+#pragma link C++ class o2::emcal::RCUTrailer + ;
+#pragma link C++ class o2::emcal::CaloFitResults + ;
+#pragma link C++ class o2::emcal::CaloRawFitter + ;
+#pragma link C++ class o2::emcal::CaloRawFitterStandard + ;
+
 
 #endif

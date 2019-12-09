@@ -69,6 +69,7 @@ set(SRCS_NO_CINT
     Base/GPUGeneralKernels.cxx
     Base/GPUReconstructionDeviceBase.cxx
     Base/GPUReconstructionConvert.cxx
+    Base/GPUKernelDebugOutput.cxx
     Global/GPUChain.cxx
     Global/GPUChainTracking.cxx
     Standalone/utils/timer.cxx)
@@ -114,6 +115,8 @@ set(HDRS_INSTALL
     Base/GPUMemorySizeScalers.h
     dEdx/GPUdEdxInfo.h
     TPCConvert/GPUTPCConvertImpl.h
+    Base/GPUReconstructionKernelMacros.h
+    Base/GPUO2FakeClasses.h
 )
 
 # Sources only for O2
@@ -126,7 +129,7 @@ endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   set(SRCS_NO_CINT ${SRCS_NO_CINT} Standalone/display/GPUDisplayBackend.cxx)
 endif()
-if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_ROOT_AND_O2_EXTENSIONS)
+if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
     set(SRCS_NO_CINT
         ${SRCS_NO_CINT}
         Global/GPUChainITS.cxx
@@ -164,8 +167,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                    ${CMAKE_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCDefinitions.cxx
                    ${CMAKE_SOURCE_DIR}/HLT/TRD/AliHLTTRDDefinitions.cxx)
 
-  set(HDRS_INSTALL ${HDRS_INSTALL} SliceTracker/GPUTPCDefinitions.h
-                                   Base/GPUO2FakeClasses.h)
+  set(HDRS_INSTALL ${HDRS_INSTALL} SliceTracker/GPUTPCDefinitions.h)
 endif()
 
 # Optional sources depending on optional dependencies

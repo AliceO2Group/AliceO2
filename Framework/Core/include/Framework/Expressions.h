@@ -10,49 +10,72 @@
 #ifndef O2_FRAMEWORK_EXPRESSIONS_H_
 #define O2_FRAMEWORK_EXPRESSIONS_H_
 
-#include <arrow/compute/kernel.h>
+#include "Framework/BasicOps.h"
+#include "Framework/CompilerBuiltins.h"
+#include "Framework/FunctionalHelpers.h"
+#include <arrow/type.h>
+#include <arrow/table.h>
+#include <gandiva/selection_vector.h>
+#include <gandiva/node.h>
+#include "gandiva/filter.h"
 #include <variant>
 #include <string>
 #include <memory>
-#include <iosfwd>
+
+using atype = arrow::Type;
 
 namespace o2::framework::expressions
 {
 
-/// A helper type for an expression tree node corresponding to a literal value
+template <typename... T>
+struct LiteralStorage {
+  using stored_type = std::variant<T...>;
+  using stored_pack = framework::pack<T...>;
+};
+
+using LiteralValue = LiteralStorage<int, bool, float, double>;
+
+template <typename T>
+constexpr auto selectArrowType()
+{
+  if constexpr (std::is_same_v<T, int>) {
+    return atype::INT32;
+  } else if constexpr (std::is_same_v<T, bool>) {
+    return atype::BOOL;
+  } else if constexpr (std::is_same_v<T, float>) {
+    return atype::FLOAT;
+  } else if constexpr (std::is_same_v<T, double>) {
+    return atype::DOUBLE;
+  } else {
+    return atype::NA;
+  }
+  O2_BUILTIN_UNREACHABLE();
+}
+
+/// An expression tree node corresponding to a literal value
 struct LiteralNode {
   template <typename T>
-  LiteralNode(T v) : value{v}
+  LiteralNode(T v) : value{v}, type{selectArrowType<T>()}
   {
   }
-  using var_t = std::variant<int, bool, float, double>;
+  using var_t = LiteralValue::stored_type;
   var_t value;
+  atype::type type = atype::NA;
 };
 
 /// An expression tree node corresponding to a column binding
 struct BindingNode {
   BindingNode(BindingNode const&) = default;
   BindingNode(BindingNode&&) = delete;
-  BindingNode(std::string const& name_) : name{name_} {}
+  BindingNode(std::string const& name_, atype::type type_) : name{name_}, type{type_} {}
   std::string name;
+  atype::type type;
 };
 
-/// A helper type for an expression tree node corresponding to binary operation
+/// An expression tree node corresponding to binary operation
 struct BinaryOpNode {
-  enum Op : unsigned int {
-    LogicalAnd,
-    LogicalOr,
-    Addition,
-    Subtraction,
-    Division,
-    LessThan,
-    LessThanOrEqual,
-    GreaterThan,
-    GreaterThanOrEqual,
-    Equal
-  };
-  BinaryOpNode(Op op_) : op{op_} {}
-  Op op;
+  BinaryOpNode(BasicOp op_) : op{op_} {}
+  BasicOp op;
 };
 
 /// A generic tree node
@@ -83,44 +106,109 @@ struct Node {
 };
 
 /// overloaded operators to build the tree from an expression
+
+/// literal comparisons
 template <typename T>
 inline Node operator>(Node left, T rightValue)
 {
-  return Node{BinaryOpNode{BinaryOpNode::GreaterThan}, std::move(left), LiteralNode{rightValue}};
+  return Node{BinaryOpNode{BasicOp::GreaterThan}, std::move(left), LiteralNode{rightValue}};
 }
 
 template <typename T>
 inline Node operator<(Node left, T rightValue)
 {
-  return Node{BinaryOpNode{BinaryOpNode::LessThan}, std::move(left), LiteralNode{rightValue}};
+  return Node{BinaryOpNode{BasicOp::LessThan}, std::move(left), LiteralNode{rightValue}};
 }
 
 template <typename T>
 inline Node operator>=(Node left, T rightValue)
 {
-  return Node{BinaryOpNode{BinaryOpNode::GreaterThanOrEqual}, std::move(left), LiteralNode{rightValue}};
+  return Node{BinaryOpNode{BasicOp::GreaterThanOrEqual}, std::move(left), LiteralNode{rightValue}};
 }
 
 template <typename T>
 inline Node operator<=(Node left, T rightValue)
 {
-  return Node{BinaryOpNode{BinaryOpNode::LessThanOrEqual}, std::move(left), LiteralNode{rightValue}};
+  return Node{BinaryOpNode{BasicOp::LessThanOrEqual}, std::move(left), LiteralNode{rightValue}};
 }
 
 template <typename T>
 inline Node operator==(Node left, T rightValue)
 {
-  return Node{BinaryOpNode{BinaryOpNode::Equal}, std::move(left), LiteralNode{rightValue}};
+  return Node{BinaryOpNode{BasicOp::Equal}, std::move(left), LiteralNode{rightValue}};
 }
 
+template <typename T>
+inline Node operator!=(Node left, T rightValue)
+{
+  return Node{BinaryOpNode{BasicOp::NotEqual}, std::move(left), LiteralNode{rightValue}};
+}
+
+/// node comparisons
+inline Node operator>(Node left, Node right)
+{
+  return Node{BinaryOpNode{BasicOp::GreaterThan}, std::move(left), std::move(right)};
+}
+
+inline Node operator<(Node left, Node right)
+{
+  return Node{BinaryOpNode{BasicOp::LessThan}, std::move(left), std::move(right)};
+}
+
+inline Node operator>=(Node left, Node right)
+{
+  return Node{BinaryOpNode{BasicOp::GreaterThanOrEqual}, std::move(left), std::move(right)};
+}
+
+inline Node operator<=(Node left, Node right)
+{
+  return Node{BinaryOpNode{BasicOp::LessThanOrEqual}, std::move(left), std::move(right)};
+}
+
+inline Node operator==(Node left, Node right)
+{
+  return Node{BinaryOpNode{BasicOp::Equal}, std::move(left), std::move(right)};
+}
+
+inline Node operator!=(Node left, Node right)
+{
+  return Node{BinaryOpNode{BasicOp::NotEqual}, std::move(left), std::move(right)};
+}
+
+/// logical operations
 inline Node operator&&(Node left, Node right)
 {
-  return Node{BinaryOpNode{BinaryOpNode::LogicalAnd}, std::move(left), std::move(right)};
+  return Node{BinaryOpNode{BasicOp::LogicalAnd}, std::move(left), std::move(right)};
 }
 
 inline Node operator||(Node left, Node right)
 {
-  return Node{BinaryOpNode{BinaryOpNode::LogicalOr}, std::move(left), std::move(right)};
+  return Node{BinaryOpNode{BasicOp::LogicalOr}, std::move(left), std::move(right)};
+}
+
+/// arithmetical operations between node and literal
+template <typename T>
+inline Node operator*(Node left, T right)
+{
+  return Node{BinaryOpNode{BasicOp::Multiplication}, std::move(left), LiteralNode{right}};
+}
+
+template <typename T>
+inline Node operator/(Node left, T right)
+{
+  return Node{BinaryOpNode{BasicOp::Division}, std::move(left), LiteralNode{right}};
+}
+
+template <typename T>
+inline Node operator+(Node left, T right)
+{
+  return Node{BinaryOpNode{BasicOp::Addition}, std::move(left), LiteralNode{right}};
+}
+
+template <typename T>
+inline Node operator-(Node left, T right)
+{
+  return Node{BinaryOpNode{BasicOp::Subtraction}, std::move(left), LiteralNode{right}};
 }
 
 /// A struct, containing the root of the expression tree
@@ -129,6 +217,20 @@ struct Filter {
 
   std::unique_ptr<Node> node;
 };
+
+using Selection = std::shared_ptr<gandiva::SelectionVector>;
+Selection createSelection(std::shared_ptr<arrow::Table> table, Filter const& expression);
+
+struct ColumnOperationSpec;
+using Operations = std::vector<ColumnOperationSpec>;
+
+Operations createOperations(Filter const& expression);
+bool isSchemaCompatible(gandiva::SchemaPtr const& Schema, Operations const& opSpecs);
+gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
+                                      gandiva::SchemaPtr const& Schema);
+std::shared_ptr<gandiva::Filter> createFilter(gandiva::SchemaPtr const& Schema,
+                                              gandiva::ConditionPtr condition);
+
 } // namespace o2::framework::expressions
 
 #endif // O2_FRAMEWORK_EXPRESSIONS_H_

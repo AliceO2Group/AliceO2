@@ -12,9 +12,7 @@
 
 #include <functional>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 namespace
@@ -23,6 +21,7 @@ template <typename T>
 struct memfun_type {
   using type = void;
 };
+} // namespace
 
 /// Type helper to hold a parameter pack.  This is different from a tuple
 /// as there is no data associated to it.
@@ -71,6 +70,29 @@ constexpr auto concatenate_pack(pack<Args1...>, pack<Args2...>)
   return pack<Args1..., Args2...>{};
 }
 
+template <typename P1, typename P2>
+using concatenated_pack_t = decltype(concatenate_pack(P1{}, P2{}));
+
+/// Selects from the pack types that satisfy the Condition
+template <template <typename> typename Condition, typename Result>
+constexpr auto select_pack(Result result, pack<>)
+{
+  return result;
+}
+
+template <template <typename> typename Condition, typename Result, typename T, typename... Ts>
+constexpr auto select_pack(Result result, pack<T, Ts...>)
+{
+  if constexpr (Condition<T>())
+    return select_pack<Condition>(concatenate_pack(result, pack<T>{}), pack<Ts...>{});
+  else
+    return select_pack<Condition>(result, pack<Ts...>{});
+}
+
+template <template <typename> typename Condition, typename... Types>
+using selected_pack = std::decay_t<decltype(select_pack<Condition>(pack<>{}, pack<Types...>{}))>;
+
+/// Select only the items of a pack which match Condition
 template <template <typename> typename Condition, typename Result>
 constexpr auto filter_pack(Result result, pack<>)
 {
@@ -81,13 +103,47 @@ template <template <typename> typename Condition, typename Result, typename T, t
 constexpr auto filter_pack(Result result, pack<T, Ts...>)
 {
   if constexpr (Condition<T>())
-    return filter_pack<Condition>(concatenate_pack(result, pack<T>{}), pack<Ts...>{});
-  else
     return filter_pack<Condition>(result, pack<Ts...>{});
+  else
+    return filter_pack<Condition>(concatenate_pack(result, pack<T>{}), pack<Ts...>{});
+}
+
+template <typename T>
+void print_pack()
+{
+  puts(__PRETTY_FUNCTION__);
 }
 
 template <template <typename> typename Condition, typename... Types>
 using filtered_pack = std::decay_t<decltype(filter_pack<Condition>(pack<>{}, pack<Types...>{}))>;
+
+/// Check if a given pack Pack has a type T inside.
+template <typename T, typename Pack>
+struct has_type;
+
+template <typename T, typename... Us>
+struct has_type<T, pack<Us...>> : std::disjunction<std::is_same<T, Us>...> {
+};
+
+template <typename T, typename... Us>
+inline constexpr bool has_type_v = has_type<T, Us...>::value;
+
+/// Intersect two packs
+template <typename S1, typename S2>
+struct intersect_pack {
+  template <std::size_t... Indices>
+  static constexpr auto make_intersection(std::index_sequence<Indices...>)
+  {
+    return filtered_pack<std::is_void,
+                         std::conditional_t<
+                           has_type_v<pack_element_t<Indices, S1>, S2>,
+                           pack_element_t<Indices, S1>, void>...>{};
+  }
+  using type = decltype(make_intersection(std::make_index_sequence<pack_size(S1{})>{}));
+};
+
+template <typename S1, typename S2>
+using intersected_pack_t = typename intersect_pack<S1, S2>::type;
 
 /// Type helper to hold metadata about a lambda or a class
 /// method.
@@ -97,7 +153,6 @@ struct memfun_type<Ret (Class::*)(Args...) const> {
   using args = pack<Args...>;
   using return_type = Ret;
 };
-} // namespace
 
 /// Funtion From Lambda. Helper to create an std::function from a
 /// lambda and therefore being able to use the std::function type
@@ -120,7 +175,6 @@ memfun_type<decltype(&F::operator())>
   return memfun_type<decltype(&F::operator())>();
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif // o2_framework_FunctionalHelpers_H_INCLUDED

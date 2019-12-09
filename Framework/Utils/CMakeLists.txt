@@ -14,6 +14,7 @@ o2_add_library(DPLUtils
                        src/DPLGatherer.cxx
                        src/DPLMerger.cxx
                        src/DPLRouter.cxx
+                       src/RawParser.cxx
                        test/DPLBroadcasterMerger.cxx
                        test/DPLOutputTest.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework)
@@ -27,6 +28,12 @@ o2_add_executable(raw-parser
                   COMPONENT_NAME dpl
                   SOURCES src/raw-parser.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils)
+
+# Converter can now be a separate workflow which we merge if needed
+o2_add_executable(esd-2-arrow-converter
+                  COMPONENT_NAME dpl
+                  SOURCES src/esd-2-arrow-converter.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework)
 
 o2_add_test(DPLBroadcasterMerger
             SOURCES test/test_DPLBroadcasterMerger.cxx src/Utils.cxx
@@ -71,3 +78,13 @@ o2_add_test(RawParser
             PUBLIC_LINK_LIBRARIES O2::DPLUtils
             COMPONENT_NAME DPLUtils
             LABELS dplutils)
+
+foreach(b
+        RawParser
+        )
+  o2_add_test(benchmark_${b} NAME test_Framework_benchmark_${b}
+              SOURCES test/benchmark_${b}.cxx
+              COMPONENT_NAME DPLUtils
+              LABELS dplutils benchmark
+              PUBLIC_LINK_LIBRARIES O2::DPLUtils benchmark::benchmark)
+endforeach()

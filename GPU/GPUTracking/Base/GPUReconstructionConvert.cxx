@@ -47,7 +47,7 @@ void GPUReconstructionConvert::ConvertNativeToClusterData(o2::tpc::ClusterNative
         cout.y = y;
         cout.z = z;
         cout.row = j;
-        cout.amp = cin.qMax;
+        cout.amp = cin.qTot;
         cout.flags = cin.getFlags();
         cout.id = offset + k;
         nClSlice++;

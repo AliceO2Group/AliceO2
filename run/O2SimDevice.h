@@ -107,6 +107,7 @@ class O2SimDevice : public FairMQDevice
 
         auto& conf = o2::conf::SimConfig::Instance();
         conf.resetFromConfigData(*config);
+        FairLogger::GetLogger()->SetLogVerbosityLevel(conf.getLogVerbosity().c_str());
         delete config;
       } else {
         LOG(ERROR) << "No configuration received within " << timeoutinMS << "ms\n";
@@ -158,48 +159,57 @@ class O2SimDevice : public FairMQDevice
     mVMCApp->setSimDataChannel(&dataoutchannel);
 
     LOG(INFO) << "Requesting work ";
-    int timeoutinMS = 100000; // wait for 100s max -- we should have a more robust solution
-    if (requestchannel.Send(request, timeoutinMS) > 0) {
+    int timeoutinMS = 1000000; // wait for 1000s max -- we should have a more robust solution
+                               // this should be mostly driven by the time to setup the particle generator in the server
+    auto sendcode = requestchannel.Send(request, timeoutinMS);
+    if (sendcode > 0) {
       LOG(INFO) << "Waiting for answer ";
       // asking for primary generation
 
-      if (requestchannel.Receive(reply, timeoutinMS) > 0) {
-        LOG(INFO) << "Answer received, containing " << reply->GetSize() << " bytes ";
+      int trial = 0;
+      int code = -1;
+      do {
+        code = requestchannel.Receive(reply, timeoutinMS);
+        trial++;
+        if (code > 0) {
+          LOG(INFO) << "Answer received, containing " << reply->GetSize() << " bytes ";
 
-        // wrap incoming bytes as a TMessageWrapper which offers "adoption" of a buffer
-        auto message = new TMessageWrapper(reply->GetData(), reply->GetSize());
-        auto chunk = static_cast<o2::data::PrimaryChunk*>(message->ReadObjectAny(message->GetClass()));
+          // wrap incoming bytes as a TMessageWrapper which offers "adoption" of a buffer
+          auto message = new TMessageWrapper(reply->GetData(), reply->GetSize());
+          auto chunk = static_cast<o2::data::PrimaryChunk*>(message->ReadObjectAny(message->GetClass()));
 
-        mVMCApp->setPrimaries(chunk->mParticles);
+          mVMCApp->setPrimaries(chunk->mParticles);
 
-        auto info = chunk->mSubEventInfo;
-        mVMCApp->setSubEventInfo(&info);
+          auto info = chunk->mSubEventInfo;
+          mVMCApp->setSubEventInfo(&info);
 
-        LOG(INFO) << "Processing " << chunk->mParticles.size() << " primary particles "
-                  << "for event " << info.eventID << "/" << info.maxEvents << " "
-                  << "part " << info.part << "/" << info.nparts;
-        gRandom->SetSeed(chunk->mSubEventInfo.seed);
+          LOG(INFO) << "Processing " << chunk->mParticles.size() << " primary particles "
+                    << "for event " << info.eventID << "/" << info.maxEvents << " "
+                    << "part " << info.part << "/" << info.nparts;
+          gRandom->SetSeed(chunk->mSubEventInfo.seed);
 
-        auto& conf = o2::conf::SimConfig::Instance();
-        if (strcmp(conf.getMCEngine().c_str(), "TGeant4") == 0) {
-          mVMC->ProcessEvent();
+          auto& conf = o2::conf::SimConfig::Instance();
+          if (strcmp(conf.getMCEngine().c_str(), "TGeant4") == 0) {
+            mVMC->ProcessEvent();
+          } else {
+            // for Geant3 at least calling ProcessEvent is not enough
+            // as some hooks are not called
+            mVMC->ProcessRun(1);
+          }
+
+          FairSystemInfo sysinfo;
+          LOG(INFO) << "TIME-STAMP " << mTimer.RealTime() << "\t";
+          mTimer.Continue();
+          LOG(INFO) << "MEM-STAMP " << sysinfo.GetCurrentMemory() / (1024. * 1024) << " "
+                    << sysinfo.GetMaxMemory() << " MB\n";
+          delete message;
+          delete chunk;
         } else {
-          // for Geant3 at least calling ProcessEvent is not enough
-          // as some hooks are not called
-          mVMC->ProcessRun(1);
+          LOG(INFO) << " No answer reveived from server. Return code " << code;
         }
-
-        FairSystemInfo sysinfo;
-        LOG(INFO) << "TIME-STAMP " << mTimer.RealTime() << "\t";
-        mTimer.Continue();
-        LOG(INFO) << "MEM-STAMP " << sysinfo.GetCurrentMemory() / (1024. * 1024) << " "
-                  << sysinfo.GetMaxMemory() << " MB\n";
-        delete message;
-        delete chunk;
-      } else {
-        return false;
-      }
+      } while (code == -1 && trial <= 2);
     } else {
+      LOG(INFO) << " Requesting work from server not possible. Return code " << sendcode;
       return false;
     }
     return true;

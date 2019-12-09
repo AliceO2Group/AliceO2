@@ -7,28 +7,39 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include <array>
 #include <iostream>
 #include <iomanip>
 
+#include "EMCALReconstruction/RawHeaderStream.h"
 #include "EMCALReconstruction/RawReaderFile.h"
+#include "EMCALReconstruction/RawDecodingError.h"
 
 using namespace o2::emcal;
 
 #define CHECK_BIT(var, pos) ((var) & (1 << (pos)))
 
-RawReaderFile::RawReaderFile(const std::string_view filename) : mInputFileName(filename),
-                                                                mDataFile(),
-                                                                mRawHeader()
+bool isStop(const o2::emcal::RAWDataHeader& hdr)
+{
+  return true;
+}
+bool isStop(const o2::header::RAWDataHeaderV4& hdr) { return hdr.stop; }
+
+template <class RawHeader>
+RawReaderFile<RawHeader>::RawReaderFile(const std::string_view filename) : mInputFileName(filename),
+                                                                           mDataFile(),
+                                                                           mRawHeader()
 {
   init();
 }
-
-RawReaderFile::~RawReaderFile()
+template <class RawHeader>
+RawReaderFile<RawHeader>::~RawReaderFile()
 {
   mDataFile.close();
 }
 
-void RawReaderFile::init()
+template <class RawHeader>
+void RawReaderFile<RawHeader>::init()
 {
   mDataFile.open(mInputFileName, std::ifstream::binary);
   if (!mDataFile.good())
@@ -44,68 +55,88 @@ void RawReaderFile::init()
   mNumData = mFileSize / (8 * 1024);
 }
 
-void RawReaderFile::nextPage()
+template <class RawHeader>
+void RawReaderFile<RawHeader>::next()
+{
+  mRawPayload.reset();
+  do {
+    nextPage(false);
+  } while (!isStop(mRawHeader));
+}
+
+template <class RawHeader>
+void RawReaderFile<RawHeader>::nextPage(bool doResetPayload)
 {
   if (mCurrentPosition >= mNumData)
-    throw Error(Error::ErrorType_t::PAGE_NOTFOUND);
+    throw RawDecodingError(RawDecodingError::ErrorType_t::PAGE_NOTFOUND);
+  if (doResetPayload)
+    mRawPayload.reset();
   auto start = mDataFile.tellg();
   readHeader();
   readPayload();
-  mDataFile.seekg(int(start) + mRawHeader.getOffset());
+  mRawPayload.appendPayloadWords(mRawBuffer.getDataWords());
+  mRawPayload.increasePageCount();
+  mDataFile.seekg(int(start) + mRawHeader.offsetToNext);
   mCurrentPosition++;
 }
 
-void RawReaderFile::readPage(int page)
+template <class RawHeader>
+void RawReaderFile<RawHeader>::readPage(int page)
 {
   mRawHeaderInitialized = false;
   mPayloadInitialized = false;
   if (page >= mNumData)
-    throw Error(Error::ErrorType_t::PAGE_NOTFOUND);
+    throw RawDecodingError(RawDecodingError::ErrorType_t::PAGE_NOTFOUND);
   mDataFile.seekg(page * 8192);
   auto start = mDataFile.tellg();
   readHeader();
   readPayload();
-  mDataFile.seekg(int(start) + mRawHeader.getOffset());
+  mDataFile.seekg(int(start) + mRawHeader.offsetToNext);
   mCurrentPosition = page;
 }
 
-void RawReaderFile::readHeader()
+template <class RawHeader>
+void RawReaderFile<RawHeader>::readHeader()
 {
   try {
     // assume the seek is at the header position
     mDataFile >> mRawHeader;
   } catch (...) {
-    throw Error(Error::ErrorType_t::HEADER_DECODING);
+    throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_DECODING);
   }
   mRawHeaderInitialized = true;
 }
 
-void RawReaderFile::readPayload()
+template <class RawHeader>
+void RawReaderFile<RawHeader>::readPayload()
 {
   try {
     // assume the seek is at the payload position
-    mRawBuffer.readFromStream(mDataFile, mRawHeader.getBlockSize() - sizeof(o2::emcal::RAWDataHeader));
+    mRawBuffer.readFromStream(mDataFile, mRawHeader.memorySize - sizeof(mRawHeader));
   } catch (...) {
-    throw Error(Error::ErrorType_t::PAYLOAD_DECODING);
+    throw RawDecodingError(RawDecodingError::ErrorType_t::PAYLOAD_DECODING);
   }
   mPayloadInitialized = true;
 }
 
-const RAWDataHeader& RawReaderFile::getRawHeader() const
+template <class RawHeader>
+const RawHeader& RawReaderFile<RawHeader>::getRawHeader() const
 {
   if (!mRawHeaderInitialized)
-    throw Error(Error::ErrorType_t::HEADER_INVALID);
+    throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_INVALID);
   return mRawHeader;
 }
 
-const RawBuffer& RawReaderFile::getRawBuffer() const
+template <class RawHeader>
+const RawBuffer& RawReaderFile<RawHeader>::getRawBuffer() const
 {
   if (!mPayloadInitialized)
-    throw Error(Error::ErrorType_t::PAYLOAD_INVALID);
+    throw RawDecodingError(RawDecodingError::ErrorType_t::PAYLOAD_INVALID);
   return mRawBuffer;
 }
 
-void RawReaderFile::readFile(const std::string_view filename)
+template <class RawHeader>
+void RawReaderFile<RawHeader>::readFile(const std::string_view filename)
 {
   RawReaderFile reader(filename);
   for (int ipage = 0; ipage < reader.getNumberOfPages(); ipage++) {
@@ -113,3 +144,6 @@ void RawReaderFile::readFile(const std::string_view filename)
     std::cout << reader.getRawHeader();
   }
 }
+
+template class o2::emcal::RawReaderFile<o2::emcal::RAWDataHeader>;
+template class o2::emcal::RawReaderFile<o2::header::RAWDataHeaderV4>;

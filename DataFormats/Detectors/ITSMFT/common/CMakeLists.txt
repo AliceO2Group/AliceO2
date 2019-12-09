@@ -15,7 +15,8 @@ o2_add_library(DataFormatsITSMFT
                        src/ClusterPattern.cxx
                        src/ClusterTopology.cxx
                        src/TopologyDictionary.cxx
-               PUBLIC_LINK_LIBRARIES O2::ITSMFTBase O2::ReconstructionDataFormats)
+               PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
+	                             O2::ReconstructionDataFormats)
 
 o2_target_root_dictionary(DataFormatsITSMFT
                           HEADERS include/DataFormatsITSMFT/ROFRecord.h
@@ -25,3 +26,8 @@ o2_target_root_dictionary(DataFormatsITSMFT
                                   include/DataFormatsITSMFT/ClusterTopology.h
                                   include/DataFormatsITSMFT/TopologyDictionary.h
                           LINKDEF src/ITSMFTDataFormatsLinkDef.h)
+
+o2_add_test(Cluster
+            SOURCES test/test_Cluster.cxx
+            COMPONENT_NAME DataFormatsITSMFT
+            PUBLIC_LINK_LIBRARIES O2::DataFormatsITSMFT)

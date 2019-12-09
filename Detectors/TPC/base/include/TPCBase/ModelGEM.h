@@ -15,34 +15,83 @@
 // ================================================================================
 // How are the electron efficiencies obtained?
 // ================================================================================
-// Within the scope of two PhD thesis (by Viktor Ratza and Jonathan Ottnad, HISKP University
-// of Bonn, 2019) models have been derived in order to
+// Within the scope of two PhD thesis models have been derived in order to
 // describe the collection as well as the extraction efficiencies for GEM
 // foils. In the following you can find a brief sketch about the procedure behind this.
+// Details can be found in the following two papers which emerged out of this
+// research:
+//   [1] Paper Jonathan,
+//   [2] Paper Viktor.
 //
-// Simulations / Measurements:
+// Simulations / Measurements [1]:
 // For different GEM geometries (standard, medium, large pitch) the electric potentials
 // and fieldmaps were obtained by numerical calculations in Ansys. The fieldmaps were
 // then used in Garfield++ in order to simulate the drift of the charge carriers
-// and the amplification processes. In order to obtain the efficiencies, a fixed
+// and the amplification processes. In order to obtain the efficiencies a fixed
 // amount of electrons has been randomely distributed above the GEM for the simulations.
 // The efficiencies were thereupon derived by counting where the initial electrons and
 // electrons from the amplification region ended, e.g. Copper top / bottom, anode etc.
-// Indeed the simulated efficiencies are in a good agreement to measurements.
+// Indeed the simulated efficiencies are in a good agreement to measurements. See [1] for
+// more details.
 //
 // Calculations [2]:
-// In oder to get an analytic understanding of the efficiencies, a simplified and
+// In oder to get an analytic understanding of the efficiencies a simplified and
 // two-dimensional model has been investigated. Simplified means: No differentian
 // between an inner and an outer diameter, no Polyimide layer, no gas/no diffusion
 // and two-dimensional cut of the hexagonal 3D GEM structure.
 // The resulting equations are in a good agreement to the results from the simulations
 // in terms of limits, offsets and curves for different pitches (in case of no diffusion).
 // Nevertheless differences can be found due to the simplifications in the model.
-// By introducing three fit parameter, the calculations can be tuned
+// By introducing three fit parameter (s1, s2 and s3) the calculations can be tuned
 // in a way to describe the simulated datapoints. The resulting equations
-// describe the efficiencies in a full region and for different GEM pitches.
+// describe the efficiencies in a full region and for different GEM geometries.
 //
-// The results from the fitted equations are implemented in this class for NeCO2N2 90-10-5.
+// The results from the fitted equations are implemented in this class.
+
+// ================================================================================
+// Remarks for naming of the variables:
+// ================================================================================
+//
+// mFitElecEffNumberHoles (in PhD/paper: N)
+//   Describes the number of holes for the 2D model calculations. The number
+//   of holes is given by 2N-1, i.e. mFitElecEffNumberHoles=2 refers to 3 GEM holes (one
+//   central GEM hole and two GEM holes at the outside).
+//
+// mFitElecEffThickness (in PhD/paper: d) [unit: micrometers]
+//   Thickness of the GEM foil which
+//
+// mFitElecEffPitch (in PhD/paper: p) [unit: micrometers]
+//   Pitch of the GEM foil.
+//
+// mFitElecEffHoleDiameter (in PhD/paper: L) [unit: micrometers]
+//   Hole diameter for the GEM hole. There is no differentiation between an inner
+//   and an outer hole diameter for the 2D model calculations.
+//
+// mFitElecEffWidth (in PhD/paper: w) [unit: micrometers]
+//   Describes the width for a unit cell (pitch) + 2x the distance to the end of the
+//   GEM electrodes. This variable can be expressed in terms of the pitch and the hole
+//   diameter according to w=2p-L. It is only used for internal calculations and no
+//   definition is required by the user.
+//
+// mFitElecEffDistancePrevStage (in PhD/paper: g1) [unit: micrometers]
+//   Here g1/2 describes the distance from the center of the GEM foil to the cathode
+//   or the previous amplification stage.
+//
+// mFitElecEffDistanceNextStage (in PhD/paper: g2) [unit: micrometers]
+//   Here g2/2 describes the distance from the center of the GEM foil to the anode
+//   or the next amplification stage.
+//
+// mGeometryTuneEta1 (in PhD/paper: s1) [unitless]
+//   This is a fit parameter which has been used in order to scale eta1 for the fit
+//   of the calculations to the simulations.
+//
+// mGeometryTuneEta2 (in PhD/paper: s2) [unitless]
+//   This is a fit parameter which has been used in order to scale eta2 for the fit
+//   of the calculations to the simulations.
+//
+// mGeometryTuneDiffusion (in PhD/paper: s3) [unitless]
+//   This is a fit parameter which has been used in order to tune the equations to
+//   describe diffusion.
 
 #ifndef ALICEO2_TPC_ModelGEM_H_
 #define ALICEO2_TPC_ModelGEM_H_
@@ -65,20 +114,20 @@ class ModelGEM
   /// Destructor
   ~ModelGEM() = default;
 
-  /// Get the electron collection efficiency of the GEM for the given field configuration
+  /// Get the electron collection efficiency of the GEM for the a given field ratio
   /// \param elecFieldAbove Electric field above the GEM in kV/cm
-  /// \param gemPotential GEM potential in volt
+  /// \param gemPotential GEM potential in Volts
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getElectronCollectionEfficiency(float elecFieldAbove, float gemPotential, int geom);
 
-  /// Get the electron extraction efficiency of the GEM for the given field configuration
+  /// Get the electron extraction efficiency of the GEM for the a given field ratio
   /// \param elecFieldBelow Electric field below the GEM in kV/cm
-  /// \param gemPotential GEM potential in volt
+  /// \param gemPotential GEM potential in Volts
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getElectronExtractionEfficiency(float elecFieldBelow, float gemPotential, int geom);
 
-  /// Get the absolute gain (=multiplication) for a given GEM
-  /// \param gemPotential GEM potential in volt
+  /// Get the absolute gain for a given GEM (multiplication inside GEM)
+  /// \param gemPotential GEM potential in Volts
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getAbsoluteGain(float gemPotential, int geom);
 
@@ -87,15 +136,15 @@ class ModelGEM
   /// \param absGainScaling Scaling factor for absolute gain curves
   void setAbsGainScalingFactor(float absGainScaling) { mAbsGainScaling = absGainScaling; };
 
-  /// Get the single gain fluctuation of a GEM
-  /// \param gemPotential GEM potential in volt
+  /// Get the single gain fluctuation
+  /// \param gemPotential GEM potential in Volts
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getSingleGainFluctuation(float gemPotential, int geom);
 
   /// Define a 4 GEM stack for further calculations
   /// \param geometry Array with GEM geometries (possible geometries are 0 standard, 1 medium, 2 large)
-  /// \param distance Array with distances between cathode-GEM1, GEM1-GEM2, GEM2-GEM3, GEM3-GEM4, GEM4-anode (in cm)
-  /// \param potential Array with GEM potentials (in volt)
+  /// \param distance Array with widths between cathode/anode and GEMs (in cm)
+  /// \param potential Array with GEM potentials (in Volts)
   /// \param electricField Array with electric field configuration (in kV/cm)
   void setStackProperties(const std::array<int, 4>& geometry, const std::array<float, 5>& distance, const std::array<float, 4>& potential, const std::array<float, 5>& electricField);
 
@@ -110,90 +159,85 @@ class ModelGEM
   void setAttachment(float attachment) { mAttachment = attachment; };
 
  private:
-  /// Geometric parameter C1 for electron collection efficiency
+  /// Geometric parameter C1 for collection efficiency
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getParameterC1(int geom);
 
-  /// Geometric parameter C2 for electron collection efficiency
+  /// Geometric parameter C2 for collection efficiency
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getParameterC2(int geom);
 
-  /// Geometric parameter C3 for electron collection efficiency
+  /// Geometric parameter C3 for collection efficiency
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getParameterC3(int geom);
 
-  /// Geometric parameter C4 for electron extraction efficiency
+  /// Geometric parameter C4 for extraction efficiency
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getParameterC4(int geom);
 
-  /// Geometric parameter C5 for electron extraction efficiency
+  /// Geometric parameter C5 for extraction efficiency
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getParameterC5(int geom);
 
-  /// Geometric parameter C6 for electron extraction efficiency.
-  /// This parameter turns out to be constant.
+  /// Geometric parameter C6 for extraction efficiency.
   float getParameterC6();
 
-  /// Geometric parameter C7 for electron extraction efficiency as function of electric field ratios
+  /// Geometric parameter C7 for extraction efficiency as function of electric fields
   /// \param eta1 Ratio of electric fields: Above GEM / Field in GEM hole
   /// \param eta2 Ratio of electric fields: Below GEM / Field in GEM hole
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getParameterC7(float eta1, float eta2, int geom);
 
-  /// Geometric parameter C8 for electron extraction efficiency as function of electric field ratios
+  /// Geometric parameter C8 for extraction efficiency as function of electric fields
   /// \param eta1 Ratio of electric fields: Above GEM / Field in GEM hole
   /// \param eta2 Ratio of electric fields: Below GEM / Field in GEM hole
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getParameterC8(float eta1, float eta2, int geom);
 
-  /// Geometric parameter C9 for electron extraction efficiency as function of electric field ratios
+  /// Geometric parameter C9 for extraction efficiency as function of electric fields
   /// \param eta1 Ratio of electric fields: Above GEM / Field in GEM hole
   /// \param eta2 Ratio of electric fields: Below GEM / Field in GEM hole
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getParameterC9(float eta1, float eta2, int geom);
 
-  /// Geometric parameter C7Bar for electron collection efficiency as function of electric field ratios
+  /// Geometric parameter C7Bar for collection efficiency as function of electric fields
   /// \param eta1 Ratio of electric fields: Above GEM / Field in GEM hole
   /// \param eta2 Ratio of electric fields: Below GEM / Field in GEM hole
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getParameterC7Bar(float eta1, float eta2, int geom);
 
-  /// Geometric parameter C8Bar for electron collection efficiency as function of electric field ratios
+  /// Geometric parameter C8Bar for collection efficiency as function of electric fields
   /// \param eta1 Ratio of electric fields: Above GEM / Field in GEM hole
   /// \param eta2 Ratio of electric fields: Below GEM / Field in GEM hole
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getParameterC8Bar(float eta1, float eta2, int geom);
 
-  /// Geometric parameter C9Bar for electron collection efficiency as function of electric field ratios
+  /// Geometric parameter C9Bar for collection efficiency as function of electric fields
   /// \param eta1 Ratio of electric fields: Above GEM / Field in GEM hole
   /// \param eta2 Ratio of electric fields: Below GEM / Field in GEM hole
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getParameterC9Bar(float eta1, float eta2, int geom);
 
-  /// Geometric parameter C7Bar for electron collection efficiency as function of the integration limits on the top GEM electrode
+  /// Geometric parameter C7Bar for collection efficiency as function of the integration limits on the top GEM electrode
   /// For region 1 (before the kink) we integrate from -(w+L)/4 to -(w+L)/4 (no distance)
   /// For region 2 (within the kink) we integrate from -(w+L)/4 to return value of getIntXEndTop(float eta1, float eta2)
   /// For region 3 (after the kink) we integrate from -(w+L)/4 to -L/2 (hole top electrode of unit cell)
-  /// \param intXStart Start value for x integration in micrometers
-  /// \param intXEnd End value for x integration in micrometers
+  /// \param intXStart Start value for x integration
+  /// \param intXEnd End value for x integration
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getParameterC7BarFromX(float intXStart, float intXEnd, int geom);
 
-  /// Geometric parameter C8Bar for electron collection efficiency as function of the integration limits on the top GEM electrode
-  /// For region 1 (before the kink) we integrate from -(w+L)/4 to -(w+L)/4 (no distance)
-  /// For region 2 (within the kink) we integrate from -(w+L)/4 to return value of getIntXEndTop(float eta1, float eta2)
-  /// For region 3 (after the kink) we integrate from -(w+L)/4 to -L/2 (hole top electrode of unit cell)
-  /// \param intXStart Start value for x integration in micrometers
-  /// \param intXEnd End value for x integration in micrometers
+  /// Geometric parameter C8Bar for collection efficiency as function of the integration limits on the top GEM electrode
+  /// Integration limits same as for C7Bar
+  /// \param intXStart Start value for x integration
+  /// \param intXEnd End value for x integration
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getParameterC8BarFromX(float intXStart, float intXEnd, int geom);
 
-  /// Geometric parameter C9Bar for electron collection efficiency as function of the integration limits on the top GEM electrode
-  /// For region 1 (before the kink) we integrate from -(w+L)/4 to -(w+L)/4 (no distance)
-  /// For region 2 (within the kink) we integrate from -(w+L)/4 to return value of getIntXEndTop(float eta1, float eta2)
-  /// For region 3 (after the kink) we integrate from -(w+L)/4 to -L/2 (hole top electrode of unit cell)
-  /// \param intXStart Start value for x integration in micrometers
-  /// \param intXEnd End value for x integration in micrometers
+  /// Geometric parameter C9Bar for collection efficiency as function of the integration limits on the top GEM electrode
+  /// Integration limits same as for C7Bar
+  /// \param intXStart Start value for x integration
+  /// \param intXEnd End value for x integration
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getParameterC9BarFromX(float intXStart, float intXEnd, int geom);
 
@@ -240,14 +284,14 @@ class ModelGEM
   /// For region 1 (before the kink) we integrate from -(w+L)/4 to -(w+L)/4 (no distance)
   /// For region 2 (within the kink) we integrate from -(w+L)/4 to return value of getIntXEndTop(float eta1, float eta2)
   /// For region 3 (after the kink) we integrate from -(w+L)/4 to -L/2 (hole top electrode of unit cell)
-  /// \param intXStart Start value for x integration in micrometers
-  /// \param intXEnd End value for x integration in micrometers
+  /// \param intXStart Start value for x integration
+  /// \param intXEnd End value for x integration
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getMu2Top(float intXStart, float intXEnd, int geom);
 
   /// Flux C at top electrode: Term in front of (mu2-lambda): Basic term for central GEM hole
-  /// \param intXStart Start value for x integration in micrometers
-  /// \param intXEnd End value for x integration in micrometers
+  /// \param intXStart Start value for x integration
+  /// \param intXEnd End value for x integration
   float getMu2Topf2(float intXStart, float intXEnd);
 
   /// Electric field (y component) at top electrode: Term in front of (mu2-lambda):
@@ -262,8 +306,8 @@ class ModelGEM
 
   /// Flux C at top electrode: Term in front of (mu2-lambda): Additional terms for outer GEM holes (2N-1 holes in total)
   /// \param n Summation index where n=2..N
-  /// \param intXStart Start value for x integration in micrometers
-  /// \param intXEnd End value for x integration in micrometers
+  /// \param intXStart Start value for x integration
+  /// \param intXEnd End value for x integration
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getMu2TopF2(int n, float intXStart, float intXEnd, int geom);
 
@@ -277,13 +321,15 @@ class ModelGEM
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getMu2TopFTaylorTerm2(int n, int geom);
 
-  /// Returns the x position (in micrometers) on the bottom electrode of the GEM where the sign flip of the electric field in y direction appears
+  /// Returns the x position on the bottom electrode of the GEM where the sign flip of the electric field in y direction
+  /// appears
   /// \param eta1 Ratio of electric fields: Above GEM / Field in GEM hole
   /// \param eta2 Ratio of electric fields: Below GEM / Field in GEM hole
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
   float getIntXEndBot(float eta1, float eta2, int geom);
 
-  /// Returns the x position (in micrometers) on the top electrode of the GEM where the sign flip of the electric field in y direction appears
+  /// Returns the x position on the top electrode of the GEM where the sign flip of the electric field in y direction
+  /// appears
   /// \param eta1 Ratio of electric fields: Above GEM / Field in GEM hole
   /// \param eta2 Ratio of electric fields: Below GEM / Field in GEM hole
   /// \param geom Geometry of the GEM (0 standard, 1 medium, 2 large)
@@ -332,31 +378,31 @@ class ModelGEM
   float mFitElecEffDistancePrevStage = 2110.0; ///< 2*Distance from center of GEM to previous stage (i.e. cathode or GEM) in micrometers
   float mFitElecEffDistanceNextStage = 2110.0; ///< 2*Distance from center of GEM to next stage (i.e. anode or GEM) in micrometers
 
-  const std::array<float, 3> mFitElecEffPitch; ///< Pitch of the GEM geometries (standard, medium, large) in micrometers
-  const std::array<float, 3> mFitElecEffWidth; ///< 2*Pitch-HoleDiameter of the GEM geometries (standard, medium, large)  in micrometers
+  const std::array<float, 3> mFitElecEffPitch; ///< Pitch of the GEM in micrometers
+  const std::array<float, 3> mFitElecEffWidth; ///< 2*Pitch-Hole diameter in micrometers
 
   /// Field configuration as it was used in fits
-  const float mFitElecEffFieldAbove = 2000.0;                                                  ///< Electric field above the GEM in V/cm (for extraction efficiency scans)
-  const float mFitElecEffFieldBelow = 0.0;                                                     ///< Electric field below the GEM in V/cm (for collection efficiency scans)
-  const float mFitElecEffPotentialGEM = 300.0;                                                 ///< Electric potential applied to GEM in volt
-  const float mFitElecEffFieldGEM = mFitElecEffPotentialGEM / (mFitElecEffThickness * 0.0001); ///< Electric field inside of the GEM approximated as parallel plate capacitor in V/cm
+  const float mFitElecEffFieldAbove = 2000.0;                                                  ///< Electric field above the GEM in Volts/cm (for extraction efficiency scans)
+  const float mFitElecEffFieldBelow = 0.0;                                                     ///< Electric field below the GEM in Volts/cm (for collection efficiency scans)
+  const float mFitElecEffPotentialGEM = 300.0;                                                 ///< Electric potential applied to GEM in Volts
+  const float mFitElecEffFieldGEM = mFitElecEffPotentialGEM / (mFitElecEffThickness * 0.0001); ///< Electric field inside of GEM approximated as parallel plate capacitor
 
-  /// Scaling parameters from fits (standard, medium, large)
+  /// Scaling parameters from fits
   const std::array<float, 3> mFitElecEffTuneEta1;      ///< Tuning of field ratio eta1 (also referred to as parameter s1)
   const std::array<float, 3> mFitElecEffTuneEta2;      ///< Tuning of field ratio eta2 (also referred to as parameter s2)
   const std::array<float, 3> mFitElecEffTuneDiffusion; ///< Tuning of geometric parameter C4 in order to implement diffusion (also referred to as parameter s3)
 
-  /// Results from absolute gain simulations (standard, medium, large)
+  /// Results from absolute gain simulations
   const std::array<float, 3> mFitAbsGainConstant; ///< Constant from exponential fit function
   const std::array<float, 3> mFitAbsGainSlope;    ///< Slope from exponential fit function
-  float mAbsGainScaling;                          ///< We allow a scaling factor of the gain curves for tuning (by default this factor is set to 1.0
+  float mAbsGainScaling;                          ///< We allow a scaling factor of the gain curves for tuning (by default this factor is set to 1
 
-  /// Results from single gain fluctuation simulations and fit to distribution (standard, medium, large)
+  /// Results from single gain fluctuation simulations and fit to distribution
   const std::array<float, 3> mFitSingleGainF0; ///< Value for f0 in single gain fluctuation distribution
   const std::array<float, 3> mFitSingleGainU0; ///< Value for U0 in single gain fluctuation distribution
   const std::array<float, 3> mFitSingleGainQ;  ///< Value for Q in single gain fluctuation distribution
 
-  /// Some parameters are constant for a fixed GEM pitch, so we evaluate them once in the constructor (standard, medium, large)
+  /// Some parameters are constant for a fixed GEM pitch, so we evaluate them once in the constructor
   std::array<float, 3> mParamC1;
   std::array<float, 3> mParamC2;
   std::array<float, 3> mParamC3;
@@ -366,8 +412,8 @@ class ModelGEM
 
   /// Properties of quadruple GEM stack
   std::array<int, 4> mGeometry;        ///< Array with GEM geometries (possible geometries are 0 standard, 1 medium, 2 large)
-  std::array<float, 5> mDistance;      ///< Array with distances between cathode-GEM1, GEM1-GEM2, GEM2-GEM3, GEM3-GEM4, GEM4-anode (in cm)
-  std::array<float, 4> mPotential;     ///< Array with GEM potentials (in volt)
+  std::array<float, 5> mDistance;      ///< Array with widths between cathode/anode and GEMs (in cm)
+  std::array<float, 4> mPotential;     ///< Array with GEM potentials (in Volts)
   std::array<float, 5> mElectricField; ///< Array with electric field configuration (in kV/cm)
 
   /// Total effective gain of a given stack [defined in setStackProperties()]
@@ -389,7 +435,7 @@ class ModelGEM
   // Energy of incident photons (eV)
   const float PhotonEnergy = 5900.0;
 
-  // Mean energy to create electron-ion pair in gas (here NeCO2N2 90-10-5, in eV)
+  // Mean energy to create electron-ion pair in gas (here NeCO2N2, in eV)
   const float Wi = 37.3;
 
   // Fano factor for NeCO2N2 90-10-5 (Please check this!)

@@ -14,6 +14,7 @@
 /// \author Parinya Namwongsa <parinya.namwongsa@cern.ch>
 
 #include "ITSSimulation/V3Services.h"
+#include "ITSSimulation/V11Geometry.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSSimulation/Detector.h"
 #include "ITSMFTSimulation/AlpideChip.h"
@@ -42,8 +43,8 @@ using namespace TMath;
 using namespace o2::its;
 
 // Parameters
-//const Double_t V3Services::sIBWheelACZdist = 308.0 * sMm;
 const Double_t V3Services::sIBWheelACZdist = 306.0 * sMm;
+const Double_t V3Services::sIBCYSSFlangeCZPos = 171.5 * sMm; // Computed from different drawings
 const Double_t V3Services::sOBWheelThickness = 2.0 * sMm;
 const Double_t V3Services::sMBWheelsZpos = 457.0 * sMm;
 const Double_t V3Services::sOBWheelsZpos = 770.0 * sMm;
@@ -111,6 +112,57 @@ TGeoVolume* V3Services::createIBEndWheelsSideC(const TGeoManager* mgr)
 
   // Return the wheels
   return endWheelsVol;
+}
+
+TGeoVolume* V3Services::createCYSSAssembly(const TGeoManager* mgr)
+{
+  //
+  // Creates the CYSS Assembly (i.e. the supporting cylinder and cone)
+  //
+  // Input:
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //         a TGeoVolume(Assembly) with all the elements
+  //
+  // Created:      21 Oct 2019  Mario Sitta
+  // Updated:      21 Oct 2019  Mario Sitta   Full cylinder implemented
+  //
+
+  static const Double_t sCyssFlangeAZpos = 9.0 * sMm;
+  static const Double_t sCyssFlangeCZpos = 1.0 * sMm;
+
+  Double_t zlen, zpos;
+
+  TGeoVolume* cyssVol = new TGeoVolumeAssembly("IBCYSSAssembly");
+  cyssVol->SetVisibility(kTRUE);
+
+  TGeoVolume* cyssCylinder = ibCyssCylinder(mgr);
+  zlen = (static_cast<TGeoTubeSeg*>(cyssCylinder->GetShape()))->GetDz();
+  zpos = sIBCYSSFlangeCZPos - sCyssFlangeCZpos - zlen;
+  cyssVol->AddNode(cyssCylinder, 1, new TGeoTranslation(0, 0, -zpos));
+  cyssVol->AddNode(cyssCylinder, 2, new TGeoCombiTrans(0, 0, -zpos, new TGeoRotation("", 180, 0, 0)));
+
+  TGeoVolume* cyssCone = ibCyssCone(mgr);
+  zpos = -zpos + zlen - (static_cast<TGeoPcon*>(cyssCone->GetShape()))->GetZ(2);
+  cyssVol->AddNode(cyssCone, 1, new TGeoTranslation(0, 0, zpos));
+  cyssVol->AddNode(cyssCone, 2, new TGeoCombiTrans(0, 0, zpos, new TGeoRotation("", 180, 0, 0)));
+
+  TGeoVolume* cyssFlangeA = ibCyssFlangeSideA(mgr);
+  Int_t nZPlanes = (static_cast<TGeoPcon*>(cyssCone->GetShape()))->GetNz();
+  zpos = zpos + (static_cast<TGeoPcon*>(cyssCone->GetShape()))->GetZ(nZPlanes - 1) + sCyssFlangeAZpos;
+  cyssVol->AddNode(cyssFlangeA, 1, new TGeoCombiTrans(0, 0, zpos, new TGeoRotation("", 180, 180, 0)));
+  cyssVol->AddNode(cyssFlangeA, 2, new TGeoCombiTrans(0, 0, zpos, new TGeoRotation("", 0, 180, 0)));
+
+  TGeoVolume* cyssFlangeC = ibCyssFlangeSideC(mgr);
+  zpos = sIBCYSSFlangeCZPos;
+  cyssVol->AddNode(cyssFlangeC, 1, new TGeoTranslation(0, 0, -zpos));
+  cyssVol->AddNode(cyssFlangeC, 2, new TGeoCombiTrans(0, 0, -zpos, new TGeoRotation("", 180, 0, 0)));
+
+  // Return the whole assembly
+  return cyssVol;
 }
 
 void V3Services::createMBEndWheelsSideA(TGeoVolume* mother, const TGeoManager* mgr)
@@ -717,6 +769,711 @@ TGeoXtru* V3Services::ibEndWheelARibShape(const Int_t iLay)
   ribShape->DefineSection(1, sConeARibThick / 2);
 
   return ribShape;
+}
+
+TGeoVolume* V3Services::ibCyssCylinder(const TGeoManager* mgr)
+{
+  //
+  // Creates the cylinder of the Inner Barrel CYSS
+  // (ALIITSUP0191)
+  //
+  // Input:
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //         the cylinder as a TGeoVolume
+  //
+  // Created:      21 Oct 2019  Mario Sitta
+  //
+
+  static const Double_t sCyssCylInnerD = 95.6 * sMm;
+  static const Double_t sCyssCylOuterD = 100.0 * sMm;
+  static const Double_t sCyssCylZLength = 353.0 * sMm;
+  static const Double_t sCyssCylFabricThick = 0.1 * sMm;
+
+  // Local variables
+  Double_t rmin, rmax, zlen, phimin, phimax, dphi;
+
+  // First create the shapes
+  rmin = sCyssCylInnerD / 2;
+  rmax = sCyssCylOuterD / 2;
+  zlen = sCyssCylZLength / 2;
+  TGeoTubeSeg* cyssOuterCylSh = new TGeoTubeSeg(rmin, rmax, zlen, 180, 360);
+
+  rmin += sCyssCylFabricThick;
+  rmax -= sCyssCylFabricThick;
+  zlen -= sCyssCylFabricThick;
+
+  dphi = TMath::ASin(sCyssCylFabricThick / rmax);
+  phimin = 180 + dphi * TMath::RadToDeg();
+  phimax = 360 - dphi * TMath::RadToDeg();
+
+  TGeoTubeSeg* cyssInnerCylSh = new TGeoTubeSeg(rmin, rmax, zlen, phimin, phimax);
+
+  // We have all shapes: now create the real volumes
+  TGeoMedium* medPrepreg = mgr->GetMedium("ITS_F6151B05M$");
+  TGeoMedium* medRohacell = mgr->GetMedium("ITS_ROHACELL$");
+
+  TGeoVolume* cyssOuterCylVol = new TGeoVolume("IBCYSSCylinder", cyssOuterCylSh, medPrepreg);
+  cyssOuterCylVol->SetLineColor(35);
+
+  TGeoVolume* cyssInnerCylVol = new TGeoVolume("IBCYSSCylinderFoam", cyssInnerCylSh, medRohacell);
+  cyssInnerCylVol->SetLineColor(kGreen);
+
+  cyssOuterCylVol->AddNode(cyssInnerCylVol, 1, nullptr);
+
+  // Finally return the cylinder volume
+  return cyssOuterCylVol;
+}
+
+TGeoVolume* V3Services::ibCyssCone(const TGeoManager* mgr)
+{
+  //
+  // Creates the cone of the Inner Barrel CYSS
+  // (ALIITSUP0190)
+  //
+  // Input:
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //         the cone as a TGeoVolume
+  //
+  // Created:      24 Oct 2019  Mario Sitta
+  //
+
+  static const Double_t sCyssConeTotalLength = 150.0 * sMm;
+
+  static const Double_t sCyssConeIntSectDmin = 100.0 * sMm;
+  static const Double_t sCyssConeIntSectDmax = 101.2 * sMm;
+  static const Double_t sCyssConeIntSectZlen = 23.0 * sMm;
+  static const Double_t sCyssConeIntCylZlen = 15.0 * sMm;
+
+  static const Double_t sCyssConeExtSectDmin = 246.0 * sMm;
+  static const Double_t sCyssConeExtSectDmax = 257.2 * sMm;
+  static const Double_t sCyssConeExtSectZlen = 42.0 * sMm;
+  static const Double_t sCyssConeExtCylZlen = 40.0 * sMm;
+
+  static const Double_t sCyssConeOpeningAngle = 40.0; // Deg
+
+  static const Double_t sCyssConeFabricThick = 0.3 * sMm;
+
+  // Local variables
+  Double_t rmin, rmax, zlen1, zlen2, phimin, phirot, dphi;
+  Double_t x1, y1, x2, y2, x3, y3, m, xin, yin;
+
+  // The CYSS Cone is physically a single piece made by a cylindrical
+  // section, a conical section, and a second cylindrical section
+  // The cone and the second cylinder have a foam core
+  // Both are implemented as two Pcon's
+
+  TGeoPcon* cyssConeSh = new TGeoPcon(180, 180, 6);
+
+  rmin = sCyssConeIntSectDmin / 2;
+  rmax = sCyssConeIntSectDmax / 2;
+  cyssConeSh->DefineSection(0, 0, rmin, rmax);
+  cyssConeSh->DefineSection(1, sCyssConeIntCylZlen, rmin, rmax);
+  zlen1 = sCyssConeTotalLength - sCyssConeExtSectZlen;
+  rmax = yFrom2Points(sCyssConeIntCylZlen, sCyssConeIntSectDmax / 2, zlen1, sCyssConeExtSectDmax / 2, sCyssConeIntSectZlen);
+  cyssConeSh->DefineSection(2, sCyssConeIntSectZlen, rmin, rmax);
+  zlen2 = sCyssConeTotalLength - sCyssConeExtCylZlen;
+  rmin = yFrom2Points(sCyssConeIntSectZlen, sCyssConeIntSectDmin / 2, zlen2, sCyssConeExtSectDmin / 2, zlen1);
+  rmax = sCyssConeExtSectDmax / 2;
+  cyssConeSh->DefineSection(3, zlen1, rmin, rmax);
+  rmin = sCyssConeExtSectDmin / 2;
+  cyssConeSh->DefineSection(4, zlen2, rmin, rmax);
+  cyssConeSh->DefineSection(5, sCyssConeTotalLength, rmin, rmax);
+
+  dphi = TMath::ASin(sCyssConeFabricThick / (0.5 * sCyssConeIntSectDmax));
+  phimin = 180 + dphi * TMath::RadToDeg();
+  phirot = 180 - 2 * dphi * TMath::RadToDeg();
+
+  // The foam cone is built from the points of the outer cone
+  TGeoPcon* cyssConeFoamSh = new TGeoPcon(phimin, phirot, 5);
+
+  m = TMath::Tan(sCyssConeOpeningAngle * TMath::DegToRad());
+  x1 = cyssConeSh->GetZ(2);
+  y1 = cyssConeSh->GetRmin(2);
+  x2 = cyssConeSh->GetZ(1);
+  y2 = cyssConeSh->GetRmin(1);
+  x3 = x1;
+  y3 = y2 + m * (x3 - x2);
+
+  insidePoint(x1, y1, x2, y2, x3, y3, -sCyssConeFabricThick, xin, yin);
+  cyssConeFoamSh->DefineSection(0, xin, yin, yin);
+
+  x3 = cyssConeSh->GetZ(3);
+  y3 = cyssConeSh->GetRmin(3);
+
+  insidePoint(x3, y3, x1, y1, x2, y2, -sCyssConeFabricThick, xin, yin);
+  zlen1 = xin;
+  rmin = yin;
+  rmax = y2 + m * (zlen1 - x2);
+  cyssConeFoamSh->DefineSection(1, zlen1, rmin, rmax);
+
+  x1 = cyssConeSh->GetZ(5);
+  y1 = cyssConeSh->GetRmax(5);
+  x2 = cyssConeSh->GetZ(3);
+  y2 = cyssConeSh->GetRmax(3);
+  x3 = cyssConeSh->GetZ(2);
+  y3 = cyssConeSh->GetRmax(2);
+
+  insidePoint(x1, y1, x2, y2, x3, y3, -sCyssConeFabricThick, xin, yin);
+  zlen1 = xin;
+  rmin = cyssConeFoamSh->GetRmin(1) + m * (zlen1 - cyssConeFoamSh->GetZ(1));
+  rmax = sCyssConeExtSectDmax / 2 - sCyssConeFabricThick;
+  cyssConeFoamSh->DefineSection(2, zlen1, rmin, rmax);
+
+  rmin = sCyssConeExtSectDmin / 2 + sCyssConeFabricThick;
+  zlen1 = cyssConeSh->GetZ(4);
+  cyssConeFoamSh->DefineSection(3, zlen1, rmin, rmax);
+
+  zlen1 = sCyssConeTotalLength - sCyssConeFabricThick;
+  cyssConeFoamSh->DefineSection(4, zlen1, rmin, rmax);
+
+  // We have all shapes: now create the real volumes
+  TGeoMedium* medPrepreg = mgr->GetMedium("ITS_F6151B05M$");
+  TGeoMedium* medRohacell = mgr->GetMedium("ITS_ROHACELL$");
+
+  TGeoVolume* cyssConeVol = new TGeoVolume("IBCYSSCone", cyssConeSh, medPrepreg);
+  cyssConeVol->SetLineColor(35);
+
+  TGeoVolume* cyssConeFoamVol = new TGeoVolume("IBCYSSConeFoam", cyssConeFoamSh, medRohacell);
+  cyssConeFoamVol->SetLineColor(kGreen);
+
+  cyssConeVol->AddNode(cyssConeFoamVol, 1, nullptr);
+
+  // Finally return the cone volume
+  return cyssConeVol;
+}
+
+TGeoVolume* V3Services::ibCyssFlangeSideA(const TGeoManager* mgr)
+{
+  //
+  // Creates the Flange on Side A for the Inner Barrel CYSS
+  // (ALIITSUP0189)
+  //
+  // Input:
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //         the flange as a TGeoVolume
+  //
+  // Created:      28 Oct 2019  Mario Sitta
+  //
+
+  // Radii of the steps
+  static const Double_t sCyssFlangeAStep1Dmin = 254.1 * sMm;
+  static const Double_t sCyssFlangeAStep1Dmax = 287.0 * sMm;
+  static const Double_t sCyssFlangeAStep2Dmax = 259.0 * sMm;
+  static const Double_t sCyssFlangeAStep3Dmin = 243.0 * sMm;
+  static const Double_t sCyssFlangeAStep3Dmax = 245.5 * sMm;
+  static const Double_t sCyssFlangeAStep4Dmax = 239.0 * sMm;
+  static const Double_t sCyssFlangeAInnerD = 236.0 * sMm;
+  static const Double_t sCyssFlangeAInRingD = 238.0 * sMm;
+
+  // Heights of the steps
+  static const Double_t sCyssFlangeATotHei = 39.0 * sMm;
+  static const Double_t sCyssFlangeAStep1H = 5.5 * sMm;
+  static const Double_t sCyssFlangeAInRingH = 7.0 * sMm;
+  static const Double_t sCyssFlangeAInRingUp = 1.0 * sMm;
+  static const Double_t sCyssFlangeAStep2H = 9.0 * sMm;
+  static const Double_t sCyssFlangeAStep3H = 10.0 * sMm;
+  static const Double_t sCyssFlangeAStep4H = 8.5 * sMm;
+
+  // The wings
+  static const Double_t sCyssFlangeAWingD = 307.0 * sMm;
+  static const Double_t sCyssFlangeAWingW = 16.0 * sMm;
+
+  // Holes
+  static const Double_t sCyssFlangeANotchW = 3.0 * sMm;
+
+  static const Double_t sCyssFlangeAHolesDpos = 274.0 * sMm;
+
+  static const Double_t sCyssFlangeAHole1Num = 8;
+  static const Double_t sCyssFlangeAHole1D = 5.5 * sMm;
+  static const Double_t sCyssFlangeAHole1Phi0 = 10;    // Deg
+  static const Double_t sCyssFlangeAHole1PhiStep = 20; // Deg
+
+  static const Double_t sCyssFlangeAHole2D = 4.0 * sMm;
+  static const Double_t sCyssFlangeAHole2Phi = 20; // Deg
+
+  static const Double_t sCyssFlangeAHole3D = 7.0 * sMm;
+  static const Double_t sCyssFlangeAHole3Phi = 6; // Deg
+
+  static const Double_t sCyssFlangeAWingHoleD = 8.1 * sMm;
+  static const Double_t sCyssFlangeAWingHoleYpos = 9.0 * sMm;
+  static const Double_t sCyssFlangeAWingHoleRpos = 146.0 * sMm;
+
+  // Local variables
+  Double_t rmin, rmax, zlen, phi, dphi;
+  Double_t xpos, ypos;
+
+  // The CYSS Flange on Side A is physically a single piece.
+  // It is implemented as a CompositeShape of two Pcon's and one TubeSeg
+  // minus a huge number of holes
+
+  // The flange body
+  TGeoPcon* cyssFlangeABody = new TGeoPcon("cyssflangeabody", 180, 180, 12);
+
+  rmin = sCyssFlangeAStep1Dmin / 2;
+  rmax = sCyssFlangeAStep1Dmax / 2;
+  cyssFlangeABody->DefineSection(0, 0, rmin, rmax);
+  cyssFlangeABody->DefineSection(1, sCyssFlangeAStep1H, rmin, rmax);
+  rmax = sCyssFlangeAStep2Dmax / 2;
+  cyssFlangeABody->DefineSection(2, sCyssFlangeAStep1H, rmin, rmax);
+  cyssFlangeABody->DefineSection(3, sCyssFlangeAInRingH, rmin, rmax);
+  rmin = sCyssFlangeAStep3Dmin / 2;
+  cyssFlangeABody->DefineSection(4, sCyssFlangeAInRingH, rmin, rmax);
+  cyssFlangeABody->DefineSection(5, sCyssFlangeAStep2H, rmin, rmax);
+  rmax = sCyssFlangeAStep3Dmax / 2;
+  cyssFlangeABody->DefineSection(6, sCyssFlangeAStep2H, rmin, rmax);
+  zlen = sCyssFlangeATotHei - sCyssFlangeAStep3H;
+  cyssFlangeABody->DefineSection(7, zlen, rmin, rmax);
+  rmin = sCyssFlangeAInnerD / 2;
+  cyssFlangeABody->DefineSection(8, zlen, rmin, rmax);
+  zlen = sCyssFlangeATotHei - sCyssFlangeAStep4H;
+  cyssFlangeABody->DefineSection(9, zlen, rmin, rmax);
+  rmax = sCyssFlangeAStep4Dmax / 2;
+  cyssFlangeABody->DefineSection(10, zlen, rmin, rmax);
+  cyssFlangeABody->DefineSection(11, sCyssFlangeATotHei, rmin, rmax);
+
+  // The inner ring
+  // We define half of it and put two copies to leave the notch space
+  rmin = sCyssFlangeAStep3Dmin / 2;
+  phi = 0.5 * (sCyssFlangeANotchW / rmin) * TMath::RadToDeg();
+
+  TGeoPcon* cyssFlangeAInRing = new TGeoPcon("cflangearing", 180, 90 - phi, 4);
+
+  rmin = sCyssFlangeAInnerD / 2;
+  rmax = sCyssFlangeAInRingD / 2;
+  cyssFlangeAInRing->DefineSection(0, sCyssFlangeAInRingUp, rmin, rmax);
+  cyssFlangeAInRing->DefineSection(1, sCyssFlangeAInRingH, rmin, rmax);
+  rmax = sCyssFlangeAStep3Dmin / 2;
+  cyssFlangeAInRing->DefineSection(2, sCyssFlangeAInRingH, rmin, rmax);
+  cyssFlangeAInRing->DefineSection(3, sCyssFlangeAStep2H, rmin, rmax);
+
+  TGeoRotation* flangeARingRot = new TGeoRotation("cringrot", 90 + phi, 0, 0);
+  flangeARingRot->RegisterYourself();
+
+  TString cyssFlangeAComposite = Form("cyssflangeabody+cflangearing+cflangearing:cringrot");
+
+  // The wings
+  rmin = sCyssFlangeAStep1Dmax / 2;
+  rmax = sCyssFlangeAWingD / 2;
+  zlen = sCyssFlangeAStep1H / 2;
+  phi = 0.5 * (sCyssFlangeAWingW / rmin) * TMath::RadToDeg();
+
+  TGeoTubeSeg* cyssFlangeAWing = new TGeoTubeSeg("cflangeawing", rmin, rmax, zlen, 270 - phi, 270 + phi);
+
+  TGeoTranslation* cwingTR1 = new TGeoTranslation("cwingtr1", 0, 0, zlen);
+  cwingTR1->RegisterYourself();
+
+  TGeoCombiTrans* cwingCT2 = new TGeoCombiTrans("cwingct2", 0, 0, zlen, new TGeoRotation("", 90 - phi, 0, 0));
+  cwingCT2->RegisterYourself();
+
+  TGeoCombiTrans* cwingCT3 = new TGeoCombiTrans("cwingct3", 0, 0, zlen, new TGeoRotation("", -90 + phi, 0, 0));
+  cwingCT3->RegisterYourself();
+
+  cyssFlangeAComposite += "+cflangeawing:cwingtr1+cflangeawing:cwingct2+cflangeawing:cwingct3";
+
+  // The (many) holes
+  zlen = cyssFlangeAWing->GetDz();
+
+  // The 8 round holes (4 on each side)
+  rmax = sCyssFlangeAHole1D / 2;
+  TGeoTube* hole1 = new TGeoTube("hole1", 0, rmax, 2 * zlen);
+
+  for (Int_t i = 0; i < sCyssFlangeAHole1Num / 2; i++) {
+    Double_t phi = sCyssFlangeAHole1Phi0 + i * sCyssFlangeAHole1PhiStep;
+    xpos = 0.5 * sCyssFlangeAHolesDpos * TMath::Sin(phi * TMath::DegToRad());
+    ypos = 0.5 * sCyssFlangeAHolesDpos * TMath::Cos(phi * TMath::DegToRad());
+    TGeoTranslation* hole1Tr1 = new TGeoTranslation(Form("hole1Tr1%d", i), xpos, -ypos, zlen);
+    hole1Tr1->RegisterYourself();
+    TGeoTranslation* hole1Tr2 = new TGeoTranslation(Form("hole1Tr2%d", i), -xpos, -ypos, zlen);
+    hole1Tr2->RegisterYourself();
+    cyssFlangeAComposite += Form("-hole1:hole1Tr1%d-hole1:hole1Tr2%d", i, i);
+  }
+
+  // The 2 smaller round holes (1 on each side)
+  rmax = sCyssFlangeAHole2D / 2;
+  TGeoTube* hole2 = new TGeoTube("hole2", 0, rmax, 2 * zlen);
+
+  xpos = 0.5 * sCyssFlangeAHolesDpos * TMath::Sin(sCyssFlangeAHole2Phi * TMath::DegToRad());
+  ypos = 0.5 * sCyssFlangeAHolesDpos * TMath::Cos(sCyssFlangeAHole2Phi * TMath::DegToRad());
+  TGeoTranslation* hole2Tr1 = new TGeoTranslation("hole2Tr1", xpos, -ypos, zlen);
+  hole2Tr1->RegisterYourself();
+  TGeoTranslation* hole2Tr2 = new TGeoTranslation("hole2Tr2", -xpos, -ypos, zlen);
+  hole2Tr2->RegisterYourself();
+
+  cyssFlangeAComposite += "-hole2:hole2Tr1-hole2:hole2Tr2";
+
+  // The 2 bigger round holes (1 on each side)
+  rmax = sCyssFlangeAHole3D / 2;
+  TGeoTube* hole3 = new TGeoTube("hole3", 0, rmax, 2 * zlen);
+
+  xpos = 0.5 * sCyssFlangeAHolesDpos * TMath::Sin(sCyssFlangeAHole3Phi * TMath::DegToRad());
+  ypos = 0.5 * sCyssFlangeAHolesDpos * TMath::Cos(sCyssFlangeAHole3Phi * TMath::DegToRad());
+  TGeoTranslation* hole3Tr1 = new TGeoTranslation("hole3Tr1", xpos, -ypos, zlen);
+  hole3Tr1->RegisterYourself();
+  TGeoTranslation* hole3Tr2 = new TGeoTranslation("hole3Tr2", -xpos, -ypos, zlen);
+  hole3Tr2->RegisterYourself();
+
+  cyssFlangeAComposite += "-hole3:hole3Tr1-hole3:hole3Tr2";
+
+  // The holes in the wings
+  rmax = sCyssFlangeAWingHoleD / 2;
+  TGeoTube* wingHole = new TGeoTube("wingHole", 0, rmax, 2 * zlen);
+
+  TGeoTranslation* wingHoleTr1 = new TGeoTranslation("wingHoleTr1", 0, -sCyssFlangeAWingHoleRpos, zlen);
+  wingHoleTr1->RegisterYourself();
+
+  TGeoTranslation* wingHoleTr2 = new TGeoTranslation("wingHoleTr2", sCyssFlangeAWingHoleRpos, -sCyssFlangeAWingHoleYpos, zlen);
+  wingHoleTr2->RegisterYourself();
+
+  TGeoTranslation* wingHoleTr3 = new TGeoTranslation("wingHoleTr3", -sCyssFlangeAWingHoleRpos, -sCyssFlangeAWingHoleYpos, zlen);
+  wingHoleTr3->RegisterYourself();
+
+  cyssFlangeAComposite += "-wingHole:wingHoleTr1-wingHole:wingHoleTr2-wingHole:wingHoleTr3";
+
+  // Lastly the hollows (évidements): a nightmare deserving its own method
+  TString cyssFlangeAHollows = ibCreateHollowsCyssFlangeSideA(zlen);
+
+  cyssFlangeAComposite += cyssFlangeAHollows.Data();
+
+  // The final flange shape
+  TGeoCompositeShape* cyssFlangeASh = new TGeoCompositeShape(cyssFlangeAComposite.Data());
+
+  // We have all shapes: now create the real volumes
+  TGeoMedium* medAlu = mgr->GetMedium("ITS_ALUMINUM$");
+
+  TGeoVolume* cyssFlangeAVol = new TGeoVolume("IBCYSSFlangeA", cyssFlangeASh, medAlu);
+  cyssFlangeAVol->SetLineColor(kCyan);
+  cyssFlangeAVol->SetFillColor(kCyan);
+
+  // Finally return the flange volume
+  return cyssFlangeAVol;
+}
+
+TString V3Services::ibCreateHollowsCyssFlangeSideA(const Double_t zlen)
+{
+  //
+  // Creates the very complicate hollow holes in the Flange
+  // on Side A for the Inner Barrel CYSS
+  // (ALIITSUP0189)
+  //
+  // Input:
+  //         zlen : the thickness of the ring where the hollows are located
+  //
+  // Output:
+  //
+  // Return:
+  //         the string describing the holes and their positions
+  //
+  // Created:      04 Nov 2019  Mario Sitta
+  //
+
+  static const Double_t sCyssFlangeAHolesDpos = 274.0 * sMm;
+
+  static const Double_t sCyssFlangeAHole1Phi0 = 10;    // Deg
+  static const Double_t sCyssFlangeAHole1PhiStep = 20; // Deg
+
+  static const Double_t sCyssFlangeAHole2Phi = 20; // Deg
+
+  static const Double_t sCyssFlangeAHollowD = 7.0 * sMm;
+  static const Double_t sCyssFlangeAHollowPhi0 = 13; // Deg
+  static const Double_t sCyssFlangeAHollowPhi1 = 8;  // Deg
+
+  // Local variables
+  Double_t rmin, rmax, phi, dphi;
+  Double_t xpos, ypos;
+
+  TString cyssFlangeAHollows;
+
+  //
+  rmax = sCyssFlangeAHollowD / 2;
+  TGeoTubeSeg* roundHalf = new TGeoTubeSeg("roundhalf", 0, rmax, 2 * zlen, 0, 180);
+
+  Double_t rHoles = sCyssFlangeAHolesDpos / 2;
+
+  xpos = rHoles * TMath::Cos(sCyssFlangeAHollowPhi0 * TMath::DegToRad());
+  ypos = rHoles * TMath::Sin(sCyssFlangeAHollowPhi0 * TMath::DegToRad());
+  TGeoCombiTrans* roundTr1 = new TGeoCombiTrans("roundtr1", xpos, -ypos, zlen, new TGeoRotation("", -sCyssFlangeAHollowPhi0, 0, 0));
+  roundTr1->RegisterYourself();
+  TGeoCombiTrans* roundTr2 = new TGeoCombiTrans("roundtr2", -xpos, -ypos, zlen, new TGeoRotation("", sCyssFlangeAHollowPhi0, 0, 0));
+  roundTr2->RegisterYourself();
+
+  cyssFlangeAHollows += "-roundhalf:roundtr1-roundhalf:roundtr2";
+
+  TGeoTranslation* noRot = new TGeoTranslation("norot", 0, 0, zlen);
+  noRot->RegisterYourself();
+  TGeoCombiTrans* yRot180 = new TGeoCombiTrans("yrot180", 0, 0, zlen, new TGeoRotation("", 0, 180, 180));
+  yRot180->RegisterYourself();
+
+  rmin = sCyssFlangeAHolesDpos / 2 - sCyssFlangeAHollowD / 2;
+  rmax = sCyssFlangeAHolesDpos / 2 + sCyssFlangeAHollowD / 2;
+
+  for (Int_t j = 1; j < 4; j++) {
+    phi = 90 - (sCyssFlangeAHole1Phi0 + j * sCyssFlangeAHole1PhiStep + 0.5 * sCyssFlangeAHollowPhi1);
+    xpos = rHoles * TMath::Cos(phi * TMath::DegToRad());
+    ypos = rHoles * TMath::Sin(phi * TMath::DegToRad());
+    TGeoCombiTrans* roundTr3 = new TGeoCombiTrans(Form("roundtr%d", j + 2), xpos, -ypos, zlen, new TGeoRotation("", 180 - phi, 0, 0));
+    roundTr3->RegisterYourself();
+    TGeoCombiTrans* roundTr4 = new TGeoCombiTrans(Form("roundtr%d", j + 5), -xpos, -ypos, zlen, new TGeoRotation("", phi - 180, 0, 0));
+    roundTr4->RegisterYourself();
+
+    cyssFlangeAHollows += Form("-roundhalf:roundtr%d-roundhalf:roundtr%d", j + 2, j + 5);
+
+    phi = 360 - phi - 0.05;
+    if (j == 3)
+      dphi = 360 - sCyssFlangeAHollowPhi0 + 0.05;
+    else
+      dphi = phi + (sCyssFlangeAHole1PhiStep - sCyssFlangeAHollowPhi1) + 0.1;
+
+    TGeoTubeSeg* hollow1 = new TGeoTubeSeg(Form("hollow%d", j), rmin, rmax, 2 * zlen, phi, dphi);
+
+    cyssFlangeAHollows += Form("-hollow%d:norot-hollow%d:yrot180", j, j);
+
+    phi = 90 - (sCyssFlangeAHole1Phi0 + j * sCyssFlangeAHole1PhiStep - 0.5 * sCyssFlangeAHollowPhi1);
+    xpos = rHoles * TMath::Cos(phi * TMath::DegToRad());
+    ypos = rHoles * TMath::Sin(phi * TMath::DegToRad());
+    TGeoCombiTrans* roundTr5 = new TGeoCombiTrans(Form("roundtr%d", j + 8), xpos, -ypos, zlen, new TGeoRotation("", -phi, 0, 0));
+    roundTr5->RegisterYourself();
+    TGeoCombiTrans* roundTr6 = new TGeoCombiTrans(Form("roundtr%d", j + 11), -xpos, -ypos, zlen, new TGeoRotation("", phi, 0, 0));
+    roundTr6->RegisterYourself();
+
+    cyssFlangeAHollows += Form("-roundhalf:roundtr%d-roundhalf:roundtr%d", j + 8, j + 11);
+  }
+
+  //
+  phi = 90 - (sCyssFlangeAHole2Phi + 0.5 * sCyssFlangeAHollowPhi1);
+  xpos = rHoles * TMath::Cos(phi * TMath::DegToRad());
+  ypos = rHoles * TMath::Sin(phi * TMath::DegToRad());
+  TGeoCombiTrans* roundTr15 = new TGeoCombiTrans("roundtr15", xpos, -ypos, zlen, new TGeoRotation("", 180 - phi, 0, 0));
+  roundTr15->RegisterYourself();
+  TGeoCombiTrans* roundTr16 = new TGeoCombiTrans("roundtr16", -xpos, -ypos, zlen, new TGeoRotation("", phi - 180, 0, 0));
+  roundTr16->RegisterYourself();
+
+  cyssFlangeAHollows += "-roundhalf:roundtr15-roundhalf:roundtr16";
+
+  phi = 360 - phi - 0.5;
+  dphi = phi + (sCyssFlangeAHole1Phi0 + sCyssFlangeAHole1PhiStep - sCyssFlangeAHole2Phi - sCyssFlangeAHollowPhi1) + 0.5;
+  TGeoTubeSeg* hollow4 = new TGeoTubeSeg("hollow4", rmin, rmax, 2 * zlen, phi, dphi);
+
+  cyssFlangeAHollows += "-hollow4:norot-hollow4:yrot180";
+
+  //
+  phi = 90 - (sCyssFlangeAHole2Phi - 0.5 * sCyssFlangeAHollowPhi1);
+  xpos = rHoles * TMath::Cos(phi * TMath::DegToRad());
+  ypos = rHoles * TMath::Sin(phi * TMath::DegToRad());
+  TGeoCombiTrans* roundTr17 = new TGeoCombiTrans("roundtr17", xpos, -ypos, zlen, new TGeoRotation("", -phi, 0, 0));
+  roundTr17->RegisterYourself();
+  TGeoCombiTrans* roundTr18 = new TGeoCombiTrans("roundtr18", -xpos, -ypos, zlen, new TGeoRotation("", phi, 0, 0));
+  roundTr18->RegisterYourself();
+
+  cyssFlangeAHollows += "-roundhalf:roundtr17-roundhalf:roundtr18";
+
+  phi = 90 - (sCyssFlangeAHole1Phi0 + 0.5 * sCyssFlangeAHollowPhi1);
+  xpos = rHoles * TMath::Cos(phi * TMath::DegToRad());
+  ypos = rHoles * TMath::Sin(phi * TMath::DegToRad());
+  TGeoCombiTrans* roundTr19 = new TGeoCombiTrans("roundtr19", xpos, -ypos, zlen, new TGeoRotation("", 180 - phi, 0, 0));
+  roundTr19->RegisterYourself();
+  TGeoCombiTrans* roundTr20 = new TGeoCombiTrans("roundtr20", -xpos, -ypos, zlen, new TGeoRotation("", phi - 180, 0, 0));
+  roundTr20->RegisterYourself();
+
+  cyssFlangeAHollows += "-roundhalf:roundtr19-roundhalf:roundtr20";
+
+  TGeoCombiTrans* zRotPhi = new TGeoCombiTrans("zrotphi", 0, 0, zlen, new TGeoRotation("", -sCyssFlangeAHole1Phi0, 0, 0));
+  zRotPhi->RegisterYourself();
+  TGeoCombiTrans* yzRot180Phi = new TGeoCombiTrans("yzrot180phi", 0, 0, zlen, new TGeoRotation("", 0, 180, 180 - sCyssFlangeAHole1Phi0));
+  yzRot180Phi->RegisterYourself();
+
+  cyssFlangeAHollows += "-hollow4:zrotphi-hollow4:yzrot180phi";
+
+  // Finally we return the string
+  return cyssFlangeAHollows;
+}
+
+TGeoVolume* V3Services::ibCyssFlangeSideC(const TGeoManager* mgr)
+{
+  //
+  // Creates the Flange on Side C for the Inner Barrel CYSS
+  // (ALIITSUP0098)
+  //
+  // Input:
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //         the flange as a TGeoVolume
+  //
+  // Created:      23 Oct 2019  Mario Sitta
+  //
+
+  // Radii of the rings
+  static const Double_t sCyssFlangeCDmin1 = 44.0 * sMm;
+  static const Double_t sCyssFlangeCDmin2 = 57.0 * sMm;
+  static const Double_t sCyssFlangeCDmin3 = 73.0 * sMm;
+
+  static const Double_t sCyssFlangeCDmax1 = 58.8 * sMm;
+  static const Double_t sCyssFlangeCDmax2 = 74.8 * sMm;
+  static const Double_t sCyssFlangeCDmax3 = 94.0 * sMm;
+
+  static const Double_t sCyssFlangeCDWallIn = 89.0 * sMm;
+  static const Double_t sCyssFlangeCDWallOut = 95.6 * sMm;
+
+  static const Double_t sCyssFlangeCDExt = 100.0 * sMm;
+
+  // Thicknesses and heights
+  static const Double_t sCyssFlangeCTotH = 10.0 * sMm;
+  static const Double_t sCyssFlangeCExtThick = 1.0 * sMm;
+
+  static const Double_t sCyssFlangeCHmax1 = 1.5 * sMm;
+  static const Double_t sCyssFlangeCHmax2 = 4.0 * sMm;
+  static const Double_t sCyssFlangeCHmax3 = 6.5 * sMm;
+
+  static const Double_t sCyssFlangeCHmin2 = 2.5 * sMm;
+  static const Double_t sCyssFlangeCHmin3 = 5.0 * sMm;
+
+  // Holes
+  static const Double_t sHoles22Dia = 2.2 * sMm;
+  static const Double_t sHoles22Phi = 60; // Deg
+
+  static const Double_t sHoles30Dia = 3.0 * sMm;
+  static const Double_t sHoles30Phi = 15; // Deg
+
+  static const Double_t sHoles12Dia = 1.2 * sMm;
+  static const Double_t sHoles12Phi = 75; // Deg
+
+  static const Double_t sHolesDdist[3] = {50.0 * sMm, 64.0 * sMm, 80.0 * sMm};
+
+  static const Double_t sCyssFlangeCNotchH = 3.2 * sMm;
+  static const Double_t sCyssFlangeCNotchW = 3.0 * sMm;
+
+  // Local variables
+  Double_t rmin, rmax, zlen;
+  Double_t xpos, ypos;
+
+  // The CYSS Flange on Side C is physically a single piece.
+  // It is implemented as a CompositeShape of two Pcon's minus the holes
+
+  // The flange body
+  TGeoPcon* cyssFlangeCDisks = new TGeoPcon("cyssflangecdisks", 180, 180, 12);
+
+  rmin = sCyssFlangeCDmin1 / 2;
+  rmax = sCyssFlangeCDmax1 / 2;
+  cyssFlangeCDisks->DefineSection(0, 0, rmin, rmax);
+  cyssFlangeCDisks->DefineSection(1, sCyssFlangeCHmax1, rmin, rmax);
+  rmin = sCyssFlangeCDmin2 / 2;
+  cyssFlangeCDisks->DefineSection(2, sCyssFlangeCHmax1, rmin, rmax);
+  cyssFlangeCDisks->DefineSection(3, sCyssFlangeCHmin2, rmin, rmax);
+  rmax = sCyssFlangeCDmax2 / 2;
+  cyssFlangeCDisks->DefineSection(4, sCyssFlangeCHmin2, rmin, rmax);
+  cyssFlangeCDisks->DefineSection(5, sCyssFlangeCHmax2, rmin, rmax);
+  rmin = sCyssFlangeCDmin3 / 2;
+  cyssFlangeCDisks->DefineSection(6, sCyssFlangeCHmax2, rmin, rmax);
+  cyssFlangeCDisks->DefineSection(7, sCyssFlangeCHmin3, rmin, rmax);
+  rmax = sCyssFlangeCDWallOut / 2;
+  cyssFlangeCDisks->DefineSection(8, sCyssFlangeCHmin3, rmin, rmax);
+  cyssFlangeCDisks->DefineSection(9, sCyssFlangeCHmax3, rmin, rmax);
+  rmin = sCyssFlangeCDWallIn / 2;
+  cyssFlangeCDisks->DefineSection(10, sCyssFlangeCHmax3, rmin, rmax);
+  cyssFlangeCDisks->DefineSection(11, sCyssFlangeCTotH, rmin, rmax);
+
+  TGeoPcon* cyssFlangeCExt = new TGeoPcon("cflangecext", 180, 180, 4);
+
+  rmin = sCyssFlangeCDmax3 / 2;
+  rmax = sCyssFlangeCDExt / 2;
+  cyssFlangeCExt->DefineSection(0, 0, rmin, rmax);
+  cyssFlangeCExt->DefineSection(1, sCyssFlangeCExtThick, rmin, rmax);
+  rmax = sCyssFlangeCDWallOut / 2;
+  cyssFlangeCExt->DefineSection(2, sCyssFlangeCExtThick, rmin, rmax);
+  cyssFlangeCExt->DefineSection(3, sCyssFlangeCHmin3, rmin, rmax);
+
+  TString cyssFlangeCComposite = Form("cyssflangecdisks+cflangecext");
+
+  // The flange holes
+  rmax = sHoles22Dia / 2;
+  zlen = sCyssFlangeCTotH / 2;
+  TGeoTube* hole22 = new TGeoTube("hole22", 0, rmax, 1.1 * zlen);
+
+  for (Int_t j = 0; j < 3; j++) {
+    ypos = sHolesDdist[j] / 2;
+    TGeoTranslation* holeCTr = new TGeoTranslation(Form("holeCTr%d", j), 0, -ypos, zlen);
+    holeCTr->RegisterYourself();
+    cyssFlangeCComposite += Form("-hole22:holeCTr%d", j);
+
+    xpos = TMath::Sin(sHoles22Phi * TMath::DegToRad()) * sHolesDdist[j] / 2;
+    ypos = TMath::Cos(sHoles22Phi * TMath::DegToRad()) * sHolesDdist[j] / 2;
+    TGeoTranslation* holeLTr = new TGeoTranslation(Form("holeLTr%d", j), xpos, -ypos, zlen);
+    holeLTr->RegisterYourself();
+    cyssFlangeCComposite += Form("-hole22:holeLTr%d", j);
+
+    TGeoTranslation* holeRTr = new TGeoTranslation(Form("holeRTr%d", j), -xpos, -ypos, zlen);
+    holeRTr->RegisterYourself();
+    cyssFlangeCComposite += Form("-hole22:holeRTr%d", j);
+  }
+
+  rmax = sHoles30Dia / 2;
+  TGeoTube* hole30 = new TGeoTube("hole30", 0, rmax, zlen);
+
+  for (Int_t k = 0; k < 3; k++) {
+    Double_t phi = (k + 1) * sHoles30Phi;
+    for (Int_t j = 0; j < 3; j++) {
+      xpos = TMath::Sin(phi * TMath::DegToRad()) * sHolesDdist[j] / 2;
+      ypos = TMath::Cos(phi * TMath::DegToRad()) * sHolesDdist[j] / 2;
+
+      TGeoTranslation* holeLTr = new TGeoTranslation(Form("holeLTr%d%d", k, j), xpos, -ypos, zlen);
+      holeLTr->RegisterYourself();
+      cyssFlangeCComposite += Form("-hole30:holeLTr%d%d", k, j);
+
+      TGeoTranslation* holeRTr = new TGeoTranslation(Form("holeRTr%d%d", k, j), -xpos, -ypos, zlen);
+      holeRTr->RegisterYourself();
+      cyssFlangeCComposite += Form("-hole30:holeRTr%d%d", k, j);
+    }
+  }
+
+  rmax = sHoles12Dia / 2;
+  TGeoTube* hole12 = new TGeoTube("hole12", 0, rmax, 1.1 * zlen);
+
+  for (Int_t j = 0; j < 3; j++) {
+    xpos = TMath::Sin(sHoles12Phi * TMath::DegToRad()) * sHolesDdist[j] / 2;
+    ypos = TMath::Cos(sHoles12Phi * TMath::DegToRad()) * sHolesDdist[j] / 2;
+    TGeoTranslation* holeLTr = new TGeoTranslation(Form("holeLTrM%d", j), xpos, -ypos, zlen);
+    holeLTr->RegisterYourself();
+    cyssFlangeCComposite += Form("-hole12:holeLTrM%d", j);
+
+    TGeoTranslation* holeRTr = new TGeoTranslation(Form("holeRTrM%d", j), -xpos, -ypos, zlen);
+    holeRTr->RegisterYourself();
+    cyssFlangeCComposite += Form("-hole12:holeRTrM%d", j);
+  }
+
+  TGeoBBox* notch = new TGeoBBox("notch", sCyssFlangeCNotchW / 2, (sCyssFlangeCDWallOut - sCyssFlangeCDWallIn), sCyssFlangeCNotchH);
+
+  ypos = (sCyssFlangeCDWallIn + sCyssFlangeCDWallOut) / 4;
+  TGeoTranslation* notchTr = new TGeoTranslation("notchTr", 0, -ypos, sCyssFlangeCTotH);
+  notchTr->RegisterYourself();
+
+  cyssFlangeCComposite += "-notch:notchTr";
+
+  // The final flange shape
+  TGeoCompositeShape* cyssFlangeCSh = new TGeoCompositeShape(cyssFlangeCComposite.Data());
+
+  // We have all shapes: now create the real volumes
+  TGeoMedium* medAlu = mgr->GetMedium("ITS_ALUMINUM$");
+
+  TGeoVolume* cyssFlangeCVol = new TGeoVolume("IBCYSSFlangeC", cyssFlangeCSh, medAlu);
+  cyssFlangeCVol->SetLineColor(kCyan);
+  cyssFlangeCVol->SetFillColor(kCyan);
+
+  // Finally return the flange volume
+  return cyssFlangeCVol;
 }
 
 void V3Services::obEndWheelSideA(const Int_t iLay, TGeoVolume* mother, const TGeoManager* mgr)

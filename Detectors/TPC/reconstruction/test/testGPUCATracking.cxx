@@ -95,6 +95,9 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   std::vector<TrackTPC> tracks;
   ptrs.clusters = clusters.get();
   ptrs.outputTracks = &tracks;
+  // TODO Temporary solution, see disclaimer about TPCClRefElem in TrackTPC. Later will be changed to uint32_t and remove the cast
+  std::vector<TPCClRefElem> trackClusRefs;
+  ptrs.outputClusRefs = reinterpret_cast<std::vector<uint32_t>*>(&trackClusRefs);
 
   int retVal = tracker.runTracking(&ptrs);
   BOOST_CHECK_EQUAL(retVal, 0);

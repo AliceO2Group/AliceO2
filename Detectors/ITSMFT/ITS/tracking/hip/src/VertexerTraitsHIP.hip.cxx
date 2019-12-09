@@ -60,7 +60,7 @@ VertexerTraitsHIP::VertexerTraitsHIP()
 {
   setIsGPU(true);
   std::cout << "[DEBUG] Creating file: dbg_ITSVertexerHIP.root" << std::endl;
-  mDebugger = new StandaloneDebugger::StandaloneDebugger("dbg_ITSVertexerHIP.root");
+  mDebugger = new StandaloneDebugger("dbg_ITSVertexerHIP.root");
 }
 
 VertexerTraitsHIP::~VertexerTraitsHIP()
@@ -339,8 +339,10 @@ void VertexerTraitsHIP::computeTracklets()
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   if (isDebugFlag(VertexerDebug::CombinatoricsTreeAll)) {
-    mDebugger->fillCombinatoricsTree(mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer),
-                                     mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer));
+    mDebugger->fillCombinatoricsTree(mClusters,
+                                     mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer),
+                                     mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer),
+                                     mEvent);
   }
 #endif
 }
@@ -480,8 +482,10 @@ void VertexerTraitsHIP::computeMCFiltering()
   mStoreVertexerGPU.updateDuplets(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer, tracklets12);
 
   if (isDebugFlag(VertexerDebug::CombinatoricsTreeAll)) {
-    mDebugger->fillCombinatoricsMCTree(mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer),
-                                       mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer));
+    mDebugger->fillCombinatoricsTree(mClusters,
+                                     mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromInnermostToMiddleLayer),
+                                     mStoreVertexerGPU.getDupletsFromGPU(GPU::TrackletingLayerOrder::fromMiddleToOuterLayer),
+                                     mEvent);
   }
 }
 #endif

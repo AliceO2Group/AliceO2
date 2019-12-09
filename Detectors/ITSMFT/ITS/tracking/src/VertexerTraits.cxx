@@ -287,8 +287,12 @@ void VertexerTraits::computeTrackletsPureMontecarlo()
       auto& trklet12 = mComb12[iTracklet12];
       if (trklet01.secondClusterIndex == trklet12.firstClusterIndex) {
         mAllowedTrackletPairs.push_back(std::array<int, 2>{iTracklet01, iTracklet12});
+        break;
       }
     }
+  }
+  if (isDebugFlag(VertexerDebug::CombinatoricsTreeAll)) {
+    mDebugger->fillCombinatoricsTree(mClusters, mComb01, mComb12, mEvent);
   }
   if (isDebugFlag(VertexerDebug::TrackletTreeAll)) {
     mDebugger->fillTrackletSelectionTree(mClusters, mComb01, mComb12, mAllowedTrackletPairs, mEvent);
@@ -320,8 +324,7 @@ void VertexerTraits::computeTracklets()
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   if (isDebugFlag(VertexerDebug::CombinatoricsTreeAll)) {
-    // fillCombinatoricsTree();
-    mDebugger->fillCombinatoricsTree(mComb01, mComb12);
+    mDebugger->fillCombinatoricsTree(mClusters, mComb01, mComb12, mEvent);
   }
 #endif
 }
@@ -376,7 +379,7 @@ void VertexerTraits::computeMCFiltering()
     }
   }
   if (isDebugFlag(VertexerDebug::CombinatoricsTreeAll)) {
-    mDebugger->fillCombinatoricsMCTree(mComb01, mComb12);
+    mDebugger->fillCombinatoricsTree(mClusters, mComb01, mComb12, mEvent);
   }
 }
 #endif

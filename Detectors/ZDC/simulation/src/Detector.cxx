@@ -2269,7 +2269,9 @@ void Detector::Register()
 //_____________________________________________________________________________
 void Detector::Reset()
 {
-  mHits->clear();
+  if (!o2::utils::ShmManager::Instance().isOperational()) {
+    mHits->clear();
+  }
   mLastPrincipalTrackEntered = -1;
   resetHitIndices();
 }

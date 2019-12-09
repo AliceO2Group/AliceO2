@@ -73,6 +73,7 @@ TH1* mHFFTO = nullptr;
 TH1* mHFFTI = nullptr;
 TGCheckButton* mCheckFFT = nullptr;
 TGTextEntry* mEventNumber = nullptr;
+Bool_t mShowSides = 0;
 
 Double_t mElePosMax = 0.;
 Double_t mElePosTot = 0.;
@@ -287,32 +288,41 @@ void DrawPadSignal(TString type)
   //
 
   // check if an event was alreay loaded
-  if (!mEvDisp.getNumberOfProcessedEvents())
+  if (!mEvDisp.getNumberOfProcessedEvents()) {
     return;
+  }
 
   //return if mouse is pressed to allow looking at one pad
   Int_t event = gPad->GetEvent();
-  if (event != 51)
+  if (event != 51) {
     return;
+  }
 
   Int_t binx, biny;
   Float_t bincx, bincy;
   TH1* h = GetBinInfoXY(binx, biny, bincx, bincy);
-  if (!h)
+  if (!h) {
     return;
-  Int_t row = Int_t(TMath::Floor(bincx));
-  Int_t cpad = Int_t(TMath::Floor(bincy));
+  }
+
+  const Int_t row = Int_t(TMath::Floor(bincx));
+  const Int_t cpad = Int_t(TMath::Floor(bincy));
   //find pad and channel
-  Int_t roc = h->GetUniqueID();
-  if (roc < 0 || roc >= (Int_t)ROC::MaxROC)
+  const Int_t roc = h->GetUniqueID();
+  if (roc < 0 || roc >= (Int_t)ROC::MaxROC) {
     return;
-  if (row < 0 || row >= (Int_t)mMapper.getNumberOfRowsROC(roc))
+  }
+
+  if (row < 0 || row >= (Int_t)mMapper.getNumberOfRowsROC(roc)) {
     return;
+  }
+
   const int nPads = mMapper.getNumberOfPadsInRowROC(roc, row);
-  Int_t pad = cpad + nPads / 2;
+  const int pad = cpad + nPads / 2;
   //printf("row %d, cpad %d, pad %d, nPads %d\n", row, cpad, pad, nPads);
-  if (pad < 0 || pad >= (Int_t)nPads)
+  if (pad < 0 || pad >= (Int_t)nPads) {
     return;
+  }
   //   Int_t chn = tpcROC->GetRowIndexes(roc)[row]+pad;
   //draw requested pad signal
 
@@ -369,9 +379,9 @@ void FillMaxHists(Int_t type = 0)
   const bool eventComplete = mEvDisp.isPresentEventComplete();
   for (Int_t iROC = 0; iROC < 72; iROC++) {
     // TODO: remove again at some point
-    if (iROC % 36 != 0) {
-      continue;
-    }
+    //if (iROC % 36 != 0) {
+    //continue;
+    //}
     hROC = mHMaxOROC;
     hSide = mHMaxC;
     if (iROC < 36)
@@ -394,7 +404,7 @@ void FillMaxHists(Int_t type = 0)
         //printf("iROC: %02d, sel: %02d, row %02d, pad: %02d, value: %.5f\n", iROC, mSelectedSector, irow, ipad, value);
         if (TMath::Abs(value) > kEpsilon) {
           if (!type && hSide) {
-            const GlobalPosition2D global2D = mMapper.getPadCentre(PadSecPos(Sector(iROC % 36), PadPos(irow, ipad + (iROC >= 36) * mMapper.getNumberOfRowsROC(iROC))));
+            const GlobalPosition2D global2D = mMapper.getPadCentre(PadSecPos(Sector(iROC % 36), PadPos(irow + (iROC >= 36) * mMapper.getNumberOfRowsROC(0), ipad)));
             Int_t binx = 1 + TMath::Nint((global2D.X() + 250.) * hSide->GetNbinsX() / 500.);
             Int_t biny = 1 + TMath::Nint((global2D.Y() + 250.) * hSide->GetNbinsY() / 500.);
             hSide->SetBinContent(binx, biny, value);
@@ -486,8 +496,9 @@ void SelectSectorExec()
     mOldHooverdSector = sector;
   }
   int event = gPad->GetEvent();
-  if (event != 11)
+  if (event != 11) {
     return;
+  }
   //   printf("SelectSector: %d.%02d.%d = %02d\n",side,sector,roc<36,roc);
   SelectSector(sector);
 }
@@ -498,38 +509,35 @@ void InitGUI()
   Int_t w = 400;
   Int_t h = 400;
   TCanvas* c = nullptr;
-  //histograms and canvases for max values A-Side
-  //histograms for the sides are not needed for the GEM test, so they are commented...
 
-  //   c = new TCanvas("MaxValsA","MaxValsA",0*w,0*h,w,h);
-  //   c->AddExec("findSec","SelectSectorExec()");
-  //   mHMaxA=new TH2F("hMaxValsA","Max Values Side A;x [cm];y [cm]",330,-250,250,330,-250,250);
-  //   mHMaxA->SetStats(kFALSE);
-  //   mHMaxA->SetUniqueID(0); //A-Side
-  //   mHMaxA->Draw("colz");
-  //histograms and canvases for max values C-Side
-  //   c = new TCanvas("MaxValsC","MaxValsC",0*w,1*h,w,h);
-  //   c->AddExec("findSec","SelectSectorExec()");
-  //   mHMaxC=new TH2F("hMaxValsC","Max Values Side C;x [cm];y [cm]",330,-250,250,330,-250,250);
-  //   mHMaxC->SetStats(kFALSE);
-  //   mHMaxC->SetUniqueID(1); //C-Side
-  //   mHMaxC->Draw("colz");
+  if (mShowSides) {
+    //histograms and canvases for max values A-Side
+    c = new TCanvas("MaxValsA", "MaxValsA", 0 * w, 0 * h, w, h);
+    c->AddExec("findSec", "SelectSectorExec()");
+    mHMaxA = new TH2F("hMaxValsA", "Max Values Side A;x [cm];y [cm]", 330, -250, 250, 330, -250, 250);
+    mHMaxA->SetStats(kFALSE);
+    mHMaxA->SetUniqueID(0); //A-Side
+    mHMaxA->Draw("colz");
+    //histograms and canvases for max values C-Side
+    c = new TCanvas("MaxValsC", "MaxValsC", 0 * w, 1 * h, w, h);
+    c->AddExec("findSec", "SelectSectorExec()");
+    mHMaxC = new TH2F("hMaxValsC", "Max Values Side C;x [cm];y [cm]", 330, -250, 250, 330, -250, 250);
+    mHMaxC->SetStats(kFALSE);
+    mHMaxC->SetUniqueID(1); //C-Side
+    mHMaxC->Draw("colz");
+  }
 
   //histograms and canvases for max values IROC
-  // For the GEM test only the IROC is needed, so comment the OROC
-
   c = new TCanvas("MaxValsI", "MaxValsI", 1 * w, 0 * h, w, h);
   c->AddExec("padSig", "DrawPadSignal(\"SigI\")");
   mHMaxIROC = new TH2F("hMaxValsIROC", "Max Values IROC;row;pad", 63, 0, 63, 108, -54, 54);
   mHMaxIROC->SetDirectory(nullptr);
-  //mHMaxIROC->GetYaxis()->SetRangeUser(-20,15);
   mHMaxIROC->SetStats(kFALSE);
   mHMaxIROC->Draw("colz");
 
   //histograms and canvases for max values OROC
   c = new TCanvas("MaxValsO", "MaxValsO", 1 * w, 1 * h, w, h);
   c->AddExec("padSig", "DrawPadSignal(\"SigO\")");
-  //mHMaxOROC = new TH2F("hMaxValsOROC", "Max Values OROC;row;pad", 96, 0, 96, 140, -70, 70);
   mHMaxOROC = new TH2F("hMaxValsOROC", "Max Values OROC;row;pad", 89, 0, 89, 140, -70, 70);
   mHMaxOROC->SetDirectory(nullptr);
   mHMaxOROC->SetStats(kFALSE);
@@ -592,7 +600,7 @@ void CallEventNumber()
 }
 
 //__________________________________________________________________________
-void RunSimpleEventDisplay(TString fileInfo, TString pedestalFile = "", Int_t nTimeBinsPerCall = 500, uint32_t verbosity = 0, uint32_t debugLevel = 0)
+void RunSimpleEventDisplay(TString fileInfo, TString pedestalFile = "", Int_t nTimeBinsPerCall = 500, uint32_t verbosity = 0, uint32_t debugLevel = 0, int selectedSector = 0, bool showSides = 0)
 {
   FairLogger* logger = FairLogger::GetLogger();
   logger->SetLogVerbosityLevel("LOW");
@@ -605,15 +613,21 @@ void RunSimpleEventDisplay(TString fileInfo, TString pedestalFile = "", Int_t nT
       mEvDisp.setPedstals(pedestal);
     }
   }
+
+  mSelectedSector = selectedSector;
+  mShowSides = showSides;
+
   mEvDisp.setupContainers(fileInfo, verbosity, debugLevel);
+  mEvDisp.setSkipIncompleteEvents(false); // in case of the online monitor do not skip incomplete events
   mEvDisp.setSelectedSector(mSelectedSector);
   mEvDisp.setLastSelSector(mSelectedSector);
   mEvDisp.setTimeBinsPerCall(nTimeBinsPerCall);
   mEvDisp.setTimeBinRange(0, nTimeBinsPerCall);
+
   InitGUI();
   //  while (mRawReader->NextEvent() && mRawReader->GetEventFromTag()==0) Next();
   MonitorGui();
-  //   SelectSector(15);
+  //SelectSector(selectedSector);
   // select first event
   Next(0);
 }

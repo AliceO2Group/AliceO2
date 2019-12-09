@@ -73,7 +73,7 @@ class DigitizerSpec : public framework::Task
   std::vector<TChain*> mSimChains;
   std::vector<Hit> mHits;                ///< Vector with input hits
   std::vector<Digit> mDigits;            ///< Vector with non-accumulated digits (per collision)
-  std::vector<Digit> mAccumulatedDigits; /// Vector with accumulated digits (time frame)
+  std::vector<Digit> mAccumulatedDigits; ///< Vector with accumulated digits (time frame)
   dataformats::MCTruthContainer<o2::MCCompLabel> mLabels;
 };
 

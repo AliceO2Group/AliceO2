@@ -107,6 +107,7 @@ class MIDDPLDigitizerTask
     for (int collID = 0; collID < irecords.size(); ++collID) {
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
+      auto firstEntry = digitsAccum.size();
       for (auto& part : eventParts[collID]) {
         mDigitizer->setEventID(part.entryID);
         mDigitizer->setSrcID(part.sourceID);
@@ -120,9 +121,12 @@ class MIDDPLDigitizerTask
         if (digits.empty()) {
           continue;
         }
-        rofRecords.emplace_back(irecords[collID], EventType::Standard, digitsAccum.size(), digits.size());
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
         labelsAccum.mergeAtBack(labels);
+      }
+      auto nEntries = digitsAccum.size() - firstEntry;
+      if (nEntries > 0) {
+        rofRecords.emplace_back(irecords[collID], EventType::Standard, firstEntry, nEntries);
       }
     }
 
