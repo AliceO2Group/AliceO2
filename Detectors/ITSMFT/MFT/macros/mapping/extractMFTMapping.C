@@ -8,7 +8,7 @@ constexpr int NLayers = 10;
 constexpr int NZonesPerLayer = 2 * 4;
 constexpr int NConnectors = 5;
 constexpr int NMaxChipsPerLadder = 5;
-constexpr int NRUTypes = 12;
+constexpr int NRUTypes = 13;
 
 struct MFTChipMappingData {
   UShort_t module = 0;      // global module ID
@@ -55,12 +55,10 @@ constexpr Int_t ZoneRUType[NZonesPerLayer / 2][NLayers / 2]{
   {1, 1, 1, 7, 11},
   {2, 2, 4, 8, 9},
   {2, 2, 3, 8, 10},
-  {0, 0, 5, 6, 7}};
+  {0, 0, 5, 6, 12}};
 
 ///< number of chips per zone (RU)
-constexpr std::array<int, NRUTypes> NChipsOnRUType{7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19};
-
-constexpr Int_t RUType[20]{-1, -1, -1, -1, -1, -1, -1, 0, 1, 2, 3, 4, 5, 6, 7, -1, 8, 9, 10, 11};
+constexpr std::array<int, NRUTypes> NChipsOnRUType{7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 14};
 
 void createCXXfile(o2::mft::GeometryTGeo*);
 Int_t getZone(Int_t layer, Int_t ladderID, Int_t& connector);
@@ -97,11 +95,7 @@ void extractMFTMapping(const std::string inputGeom = "O2geometry.root")
             continue;
           for (Int_t iChip = 0; iChip < ModuleMappingData[iMod].nChips; ++iChip) {
             Int_t chipID = iChip + ModuleMappingData[iMod].firstChipID;
-            // reverse connectors for zone 3 on disk 4 (layers 8 and 9), an RU 7
             iconnector = ModuleMappingData[iMod].connector;
-            if ((layer / 2) == 4 && (zone % 4) == 3) {
-              iconnector = 3 - ModuleMappingData[iMod].connector;
-            }
             ChipOnRUSW[iRU][iconnector][iChip] = chipsOnRUType[iRU];
             ++chipsOnRUType[iRU];
           } // loop over chips per module
@@ -145,7 +139,7 @@ void createCXXfile(o2::mft::GeometryTGeo* gm)
           "// In applying this license CERN does not waive the privileges and immunities\n"
           "// granted to it by virtue of its status as an Intergovernmental Organization\n"
           "// or submit itself to any jurisdiction.\n\n"
-          "// \\file ChipMappingITS.cxx \n"
+          "// \\file ChipMappingMFT.cxx \n"
           "// \\brief Automatically generated MFT chip <-> module mapping\n");
 
   fprintf(srcFile, "%s\n\n", R"(#include "ITSMFTReconstruction/ChipMappingMFT.h")");
@@ -173,9 +167,6 @@ void createCXXfile(o2::mft::GeometryTGeo* gm)
       fprintf(srcFile, "// chip: %3d (%1d), ladder: %2d (%2d), layer: %1d, disk: %1d, half: %1d, zone: %1d \n", iChip, nChipsPerLadder, ladder, ladderID, layer, disk, half, zone);
     }
     Int_t iconnector = connector;
-    if ((layer / 2) == 4 && zone == 3) {
-      iconnector = 3 - iconnector;
-    }
     fprintf(srcFile, "{%d, %d, %d, %d}%s\n", (nModules - 1), sensor, ChipConnectorCable[connector][sensor], ChipOnRUSW[ZoneRUType[zone][layer / 2]][iconnector][sensor], (iChip < nChips - 1 ? "," : ""));
     ChipMappingData[iChip].module = nModules - 1;
     ChipMappingData[iChip].chipOnModule = sensor;
