@@ -23,9 +23,8 @@
 #include "EventVisualisationView/MultiView.h"
 #include "EventVisualisationBase/VisualisationConstants.h"
 #include "EventVisualisationBase/DataSourceOffline.h"
-#include "EventVisualisationDetectors/DataReaderVSD.h"
-#include "EventVisualisationBase/EventRegistration.h"
-#include "EventVisualisationDetectors/DataInterpreterVSD.h"
+#include "EventVisualisationDetectors/DataReaderTPC.h"
+#include "EventVisualisationDetectors/DataInterpreterTPC.h"
 #include "EventVisualisationView/EventManagerFrame.h"
 #include "FairLogger.h"
 
@@ -57,10 +56,9 @@ void Initializer::setup(const Options options, EventManager::EDataSource default
   eventManager.setDataSourceType(defaultDataSource);
   eventManager.setCdbPath(ocdbStorage);
 
-  EventRegistration::setInstance(MultiView::getInstance());
+  //EventRegistration::setInstance(MultiView::getInstance());
 
-  if (options.vsd)
-    DataInterpreter::setInstance(new DataInterpreterVSD(), EVisualisationGroup::VSD);
+  eventManager.registerDetector(new DataReaderTPC(), new DataInterpreterTPC(), EVisualisationGroup::TPC);
 
   eventManager.setDataSourceType(EventManager::EDataSource::SourceOffline);
   eventManager.Open();

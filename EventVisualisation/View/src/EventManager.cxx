@@ -28,8 +28,9 @@
 #include <TEnv.h>
 #include <TEveElement.h>
 #include <TGListTree.h>
+#include "FairLogger.h"
 
-#include <iostream>
+#define elemof(e)  (sizeof(e)/sizeof(e[0]))
 
 using namespace std;
 
@@ -49,25 +50,37 @@ EventManager& EventManager::getInstance()
 
 EventManager::EventManager() : TEveEventManager("Event", "")
 {
+    LOG(INFO) << "Initializing TEveManager";
+    for(int i=0; i < elemof(dataInterpreters); i++)
+        dataInterpreters[i] = nullptr;
+    for(int i=0; i < elemof(dataReaders); i++)
+        dataReaders[i] = nullptr;
+    for(int i=0; i < elemof(dataTypeLists); i++)
+        dataTypeLists[i] = nullptr;
+
 }
 
-void EventManager::Open()
-{
-  switch (mCurrentDataSourceType) {
-    case SourceOnline:
-      break;
-    case SourceOffline: {
-      DataSourceOffline* source = new DataSourceOffline();
-      if (DataInterpreter::getInstance(EVisualisationGroup::VSD)) {
-        DataReader* vsd = new DataReaderVSD();
-        vsd->open();
-        source->registerReader(vsd, EVisualisationGroup::VSD);
-      }
-      setDataSource(source);
-    } break;
-    case SourceHLT:
-      break;
-  }
+void EventManager::Open() {
+    switch(mCurrentDataSourceType)
+    {
+        case SourceOnline:
+            break;
+        case SourceOffline:
+        {
+            DataSourceOffline *source = new DataSourceOffline();
+            for (int i = 0; i < EVisualisationGroup::NvisualisationGroups; i++)
+            {
+                if (dataInterpreters[i] != nullptr) {
+                    dataReaders[i]->open();
+                    source->registerReader(dataReaders[i], static_cast<EVisualisationGroup>(i));
+                }
+            }
+            setDataSource(source);
+        }
+            break;
+        case SourceHLT:
+            break;
+    }
 }
 
 void EventManager::GotoEvent(Int_t no)
@@ -191,6 +204,12 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
   if (clusterCount != 0) {
     dataTypeLists[EVisualisationDataType::Clusters]->AddElement(point_list);
   }
+}
+
+void EventManager::registerDetector(DataReader *reader, DataInterpreter *interpreter, EVisualisationGroup type)
+{
+    dataReaders[type] = reader;
+    dataInterpreters[type] = interpreter;
 }
 
 } // namespace event_visualisation

@@ -19,6 +19,7 @@
 
 #include "EventVisualisationBase/VisualisationConstants.h"
 #include "EventVisualisationBase/DataInterpreter.h"
+#include "EventVisualisationBase/DataReader.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CcdbApi.h"
 
@@ -80,12 +81,14 @@ class EventManager : public TEveEventManager, public TQObject
   void RemoveNewEventCommand(const TString& cmd) override;
   void ClearNewEventCommands() override;
 
+  void registerDetector(DataReader *reader, DataInterpreter *interpreter, EVisualisationGroup type);
   void DropEvent();
 
  private:
   static EventManager* instance;
   o2::ccdb::CcdbApi ccdbApi;
   DataInterpreter* dataInterpreters[EVisualisationGroup::NvisualisationGroups];
+  DataReader* dataReaders[EVisualisationGroup::NvisualisationGroups];
   TEveElementList* dataTypeLists[EVisualisationDataType::NdataTypes];
   EDataSource mCurrentDataSourceType = EDataSource::SourceOffline;
   DataSource* dataSource = nullptr;
