@@ -9,20 +9,14 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(MCHBase
-               SOURCES
+         SOURCES
 	       src/ClusterBlock.cxx
 	       src/Digit.cxx
 	       src/DigitBlock.cxx
 	       src/Mapping.cxx
                src/PreClusterBlock.cxx
                src/TrackBlock.cxx
-	       PUBLIC_LINK_LIBRARIES ROOT::Core FairRoot::Base FairMQ::FairMQ O2::MCHBase)
+	       PUBLIC_LINK_LIBRARIES ROOT::Core FairRoot::Base FairMQ::FairMQ)
 
 o2_target_root_dictionary(MCHBase
-  HEADERS include/MCHBase/ClusterBlock.h
-          include/MCHBase/Digit.h
-          include/MCHBase/DigitBlock.h
-          include/MCHBase/Mapping.h
-	  include/MCHBase/PreClusterBlock.h
-	  include/MCHBase/TrackBlock.h
-	  )
+  HEADERS include/MCHBase/Digit.h)
