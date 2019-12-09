@@ -42,7 +42,7 @@ void TimeRangeFlags<time_type, bitmap_type>::setReason(size_t reason)
   const auto& flags = FlagReasons::instance();
 
   const auto numberOfReasons = flags.getReasonCollection().size();
-  if ( reason >= numberOfReasons) {
+  if (reason >= numberOfReasons) {
     O2ERROR("Reason {} outside of reason collection size ({})", reason, numberOfReasons);
     return;
   }
@@ -73,7 +73,7 @@ std::string TimeRangeFlags<time_type, bitmap_type>::collectMaskReasonNames() con
 template <typename time_type, typename bitmap_type>
 void TimeRangeFlags<time_type, bitmap_type>::streamTo(std::ostream& output) const
 {
-  fmt::print("{:>20} - {:>20} : {:>60}\n", mStart,  mEnd, collectMaskReasonNames());
+  output << fmt::format("{:>20} - {:>20} : {:>60}\n", mStart, mEnd, collectMaskReasonNames());
 }
 // default implementations
 template class TimeRangeFlags<uint64_t>;

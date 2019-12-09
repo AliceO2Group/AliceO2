@@ -14,6 +14,7 @@ o2_add_library(DataFormatsAnalysis
                        src/TimeRangeFlagsCollection.cxx
                PUBLIC_LINK_LIBRARIES O2::Headers
                                      O2::FrameworkLogger
+                                     O2::DetectorsCommonDataFormats
                                      fmt::fmt)
 
 o2_target_root_dictionary(DataFormatsAnalysis
@@ -24,8 +25,10 @@ o2_target_root_dictionary(DataFormatsAnalysis
 o2_add_test(TimeRange
             SOURCES test/testTimeRange.cxx
             COMPONENT_NAME DataFormatsAnalysis
-            PUBLIC_LINK_LIBRARIES O2::DataFormatsAnalysis)
+            PUBLIC_LINK_LIBRARIES O2::DataFormatsAnalysis
+                                  O2::DetectorsCommonDataFormats)
 
 o2_add_test_root_macro(macros/testTimeRangeFlagsCollection.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsAnalysis
+                                             O2::DetectorsCommonDataFormats
                        LABELS analysis)

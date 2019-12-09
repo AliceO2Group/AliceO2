@@ -17,29 +17,29 @@ using namespace o2::analysis;
 templateClassImp(TimeRangeFlagsCollection);
 
 template <typename time_type, typename bitmap_type>
-TimeRangeFlags<time_type, bitmap_type>* TimeRangeFlagsCollection<time_type, bitmap_type>::addTimeRangeFlags(time_type start, time_type end, bitmap_type reasons)
+TimeRangeFlags<time_type, bitmap_type>* TimeRangeFlagsCollection<time_type, bitmap_type>::addTimeRangeFlags(DetID detID, time_type start, time_type end, bitmap_type reasons)
 {
-  if (const auto* range = findTimeRangeFlags(start)) {
+  if (const auto* range = findTimeRangeFlags(detID, start)) {
     const std::string reasonsString = range->collectMaskReasonNames();
     O2ERROR("Start time %llu already in range [%llu, %llu]: %s",
             start, range->getStart(), range->getEnd(), reasonsString.data());
     return nullptr;
   }
 
-  if (const auto* range = findTimeRangeFlags(end)) {
+  if (const auto* range = findTimeRangeFlags(detID, end)) {
     const std::string reasonsString = range->collectMaskReasonNames();
     O2ERROR("End time %llu already in range [%llu, %llu]: %s",
             end, range->getStart(), range->getEnd(), reasonsString.data());
     return nullptr;
   }
 
-  return &mTimeRangeFlagsCollection.emplace_back(start, end, reasons);
+  return &mTimeRangeFlagsCollection[detID.getID()].emplace_back(start, end, reasons);
 }
 
 template <typename time_type, typename bitmap_type>
-const TimeRangeFlags<time_type, bitmap_type>* TimeRangeFlagsCollection<time_type, bitmap_type>::findTimeRangeFlags(time_type time) const
+const TimeRangeFlags<time_type, bitmap_type>* TimeRangeFlagsCollection<time_type, bitmap_type>::findTimeRangeFlags(DetID detID, time_type time) const
 {
-  for (const auto& timeRange : mTimeRangeFlagsCollection) {
+  for (const auto& timeRange : mTimeRangeFlagsCollection[detID.getID()]) {
     if (timeRange == time) {
       return &timeRange;
     }
@@ -50,10 +50,17 @@ const TimeRangeFlags<time_type, bitmap_type>* TimeRangeFlagsCollection<time_type
 template <typename time_type, typename bitmap_type>
 void TimeRangeFlagsCollection<time_type, bitmap_type>::streamTo(std::ostream& output) const
 {
-  fmt::print("{:=^106}\n", "| Time range flags |");
-  fmt::print("{:>20} - {:>20} : {:>60}\n", "start",  "end", "flag mask");
-  for (const auto& range : mTimeRangeFlagsCollection) {
-    range.streamTo(output);
+  for (DetID::ID id = 0; id < mTimeRangeFlagsCollection.size(); ++id) {
+    const auto& timeRangeDet = mTimeRangeFlagsCollection[id];
+    if (!timeRangeDet.size()) {
+      continue;
+    }
+    const DetID detID(id);
+    output << fmt::format("{:=^106}\n", fmt::format("{} {} {}", "| Time range flags", detID.getName(), " |"));
+    output << fmt::format("{:>20} - {:>20} : {:>60}\n", "start", "end", "flag mask");
+    for (const auto& range : mTimeRangeFlagsCollection[id]) {
+      range.streamTo(output);
+    }
   }
 }
 

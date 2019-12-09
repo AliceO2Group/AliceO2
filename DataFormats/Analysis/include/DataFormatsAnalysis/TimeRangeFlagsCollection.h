@@ -24,7 +24,10 @@
 #include "Rtypes.h"
 
 // O2 includes
+#include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsAnalysis/TimeRangeFlags.h"
+
+using o2::detectors::DetID;
 
 namespace o2
 {
@@ -37,13 +40,17 @@ template <typename time_type, typename bitmap_type = uint16_t>
 class TimeRangeFlagsCollection
 {
  public:
+  using TimeRangeFlags_t = TimeRangeFlags<time_type, bitmap_type>;
+  using TimeRangeFlagsColl_t = std::vector<TimeRangeFlags_t>;
+  using TimeRangeFlagsDetColl_t = std::array<TimeRangeFlagsColl_t, DetID::nDetectors>;
+
   TimeRangeFlagsCollection() = default;
 
   /// add a time range with mask reason
-  TimeRangeFlags<time_type, bitmap_type>* addTimeRangeFlags(time_type start, time_type end, bitmap_type reasons = {});
+  TimeRangeFlags<time_type, bitmap_type>* addTimeRangeFlags(DetID detID, time_type start, time_type end, bitmap_type reasons = {});
 
   /// find range that contains 'time'
-  const TimeRangeFlags<time_type, bitmap_type>* findTimeRangeFlags(time_type time) const;
+  const TimeRangeFlags<time_type, bitmap_type>* findTimeRangeFlags(DetID detID, time_type time) const;
 
   /// write data to ostream
   void streamTo(std::ostream& output) const;
@@ -59,7 +66,8 @@ class TimeRangeFlagsCollection
   virtual void print(/*Option_t* option = ""*/) const { std::cout << *this; }
 
  private:
-  std::vector<TimeRangeFlags<time_type, bitmap_type>> mTimeRangeFlagsCollection{}; ///< flag reasons
+  //std::vector<TimeRangeFlags<time_type, bitmap_type>> mTimeRangeFlagsCollection{}; ///< flag reasons
+  TimeRangeFlagsDetColl_t mTimeRangeFlagsCollection{}; ///< flag reasons
 
   ClassDefNV(TimeRangeFlagsCollection, 1);
 };
