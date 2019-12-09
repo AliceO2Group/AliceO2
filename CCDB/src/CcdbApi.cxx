@@ -33,6 +33,7 @@
 #include <CCDB/CCDBTimeStampUtils.h>
 #include <algorithm>
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 
 namespace o2
 {
@@ -833,7 +834,57 @@ size_t header_callback(char* buffer, size_t size, size_t nitems, void* userdata)
   headers->emplace_back(std::string(header.data()));
   return size * nitems;
 }
+
+size_t header_map_callback(char* buffer, size_t size, size_t nitems, void* userdata)
+{
+  std::map<std::string, std::string>* headers = static_cast<std::map<std::string, std::string>*>(userdata);
+  auto header = std::string(buffer, size * nitems);
+  std::string::size_type index = header.find(':', 0);
+  if (index != std::string::npos) {
+    headers->insert(std::make_pair(
+      boost::algorithm::trim_copy(header.substr(0, index)),
+      boost::algorithm::trim_copy(header.substr(index + 1))));
+  }
+  return size * nitems;
+}
 } // namespace
+
+std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp) const
+{
+
+  CURL* curl = curl_easy_init();
+  CURLcode res;
+  string fullUrl = getFullUrlForRetrieval(path, metadata, timestamp);
+  std::map<std::string, std::string> headers;
+
+  if (curl != nullptr) {
+    struct curl_slist* list = nullptr;
+    list = curl_slist_append(list, ("If-None-Match: " + std::to_string(timestamp)).c_str());
+
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
+    curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
+    /* get us the resource without a body! */
+    curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_map_callback);
+    curl_easy_setopt(curl, CURLOPT_HEADERDATA, &headers);
+
+    // Perform the request, res will get the return code
+    res = curl_easy_perform(curl);
+    if (res != CURLE_OK) {
+      fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+    }
+    long http_code = 0;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+    if (http_code == 404) {
+      headers.clear();
+    }
+
+    curl_easy_cleanup(curl);
+  }
+
+  return headers;
+}
 
 bool CcdbApi::getCCDBEntryHeaders(std::string const& url, std::string const& etag, std::vector<std::string>& headers)
 {
