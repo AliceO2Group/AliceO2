@@ -934,7 +934,6 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("plugin-search-path,S", bpo::value<std::string>(), "FairMQ plugins search path")                           //
     ("control-port", bpo::value<std::string>(), "Utility port to be used by O2 Control")                        //
     ("rate", bpo::value<std::string>(), "rate for a data source device (Hz)")                                   //
-    ("transport", bpo::value<std::string>(), "FairMQ transport override")                                       //
     ("shm-segment-size", bpo::value<std::string>(), "size of the shared memory segment in bytes")               //
     ("session", bpo::value<std::string>(), "unique label for the shm session")                                  //
     ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                           //
