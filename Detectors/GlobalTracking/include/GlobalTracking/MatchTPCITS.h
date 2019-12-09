@@ -43,6 +43,7 @@
 #include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "ITSReconstruction/RecoGeomHelper.h"
 #include "TPCFastTransform.h"
+#include "GlobalTracking/MatchTPCITSParams.h"
 
 class TTree;
 
@@ -98,7 +99,7 @@ enum TrackRejFlag : int {
 ///< TPC track parameters propagated to reference X, with time bracket and index of
 ///< original track in the currently loaded TPC reco output
 struct TrackLocTPC : public o2::track::TrackParCov {
-  TimeBracket timeBins;                      ///< bracketing time-bins
+  o2::utils::Bracket<float> timeBins;        ///< bracketing time-bins
   int sourceID = 0;                          ///< track origin id
   float zMin = 0;                            // min possible Z of this track
   float zMax = 0;                            // max possible Z of this track
@@ -141,7 +142,7 @@ struct ABTrackLink : public o2::track::TrackParCov {
   int icCandID = MinusOne; ///< ID of the interaction candidate this track belongs to
   uint8_t nDaughters = 0;  ///< number of daughter links on lower layers
   int8_t layerID = -1;     ///< layer ID
-  uint8_t ladderID = 0xff;   ///< ladder ID in the layer (used for seeds with 2 hits in the layer)
+  uint8_t ladderID = 0xff; ///< ladder ID in the layer (used for seeds with 2 hits in the layer)
   float chi2 = 0.f;        ///< chi2 after update
 #ifdef _ALLOW_DEBUG_AB_
   o2::track::TrackParCov seed; // seed before update
@@ -152,7 +153,7 @@ struct ABTrackLink : public o2::track::TrackParCov {
   bool isDisabled() const { return clID == Disabled; }
   void disable() { clID = Disabled; }
   bool isDummyTop() const { return clID == MinusTen; }
-  float chi2Norm() const { return layerID<o2::its::RecoGeomHelper::getNLayers() ? chi2/(o2::its::RecoGeomHelper::getNLayers()-layerID) : 999.; }
+  float chi2Norm() const { return layerID < o2::its::RecoGeomHelper::getNLayers() ? chi2 / (o2::its::RecoGeomHelper::getNLayers() - layerID) : 999.; }
   float chi2NormPredict(float chi2cl) const { return (chi2 + chi2cl) / (1 + o2::its::RecoGeomHelper::getNLayers() - layerID); }
 };
 
@@ -173,14 +174,13 @@ struct ABTrackLinksList {
   void validate() { status = Validated; }
 };
 
-struct ABOrderLink {  ///< link used for cross-layer sorting of best ABTrackLinks of the ABTrackLinksList
-  int trackLinkID = MinusOne;   ///< ABTrackLink ID
-  int nextLinkID = MinusOne;    ///< indext on the next ABOrderLink
+struct ABOrderLink {          ///< link used for cross-layer sorting of best ABTrackLinks of the ABTrackLinksList
+  int trackLinkID = MinusOne; ///< ABTrackLink ID
+  int nextLinkID = MinusOne;  ///< indext on the next ABOrderLink
   ABOrderLink() = default;
   ABOrderLink(int id, int nxt = MinusOne) : trackLinkID(id), nextLinkID(nxt) {}
 };
- 
- 
+
 //---------------------------------------------------
 struct ABDebugLink : o2::BaseCluster<float> {
 #ifdef _ALLOW_DEBUG_AB_
@@ -257,6 +257,7 @@ class MatchTPCITS
   using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
   using TPCTransform = o2::gpu::TPCFastTransform;
   using BracketF = o2::utils::Bracket<float>;
+  using Params = o2::globaltracking::MatchITSTPCParams;
 
  public:
   MatchTPCITS(); // std::unique_ptr to forward declared type needs constructor / destructor in .cxx
@@ -320,10 +321,6 @@ class MatchTPCITS
   ///< set ITS 0-th ROFrame time start in \mus
   void setITSROFrameOffsetMUS(float v) { mITSROFrameOffsetMUS = v; }
 
-  ///< After-burner getter/setter
-  void setRunAfterBurner(bool v) { mRunAfterBurner = v; }
-  bool isRunAfterBurner() const { return mRunAfterBurner; }
-
   // ==================== >> DPL-driven input >> =======================
 
   ///< set flag to use MC truth from the DPL input
@@ -382,14 +379,6 @@ class MatchTPCITS
     mTPCTrackClusIdx = inp;
   }
 
-  ///< set input TPC tracks cluster indices received via DPL
-  // TODO Temporary solution, see disclaimer about TPCClRefElem in TrackTPC. Later should be changed to uint32_t
-  void setTPCTrackClusIdxInp(const gsl::span<const o2::tpc::TPCClRefElem> inp)
-  {
-    assertDPLIO(true);
-    mTPCTrackClusIdxInp = inp;
-  }
-
   ///< set input TPC clusters received via DPL
   void setTPCClustersInp(const o2::tpc::ClusterNativeAccess* inp)
   {
@@ -420,9 +409,10 @@ class MatchTPCITS
 
   ///< set input FIT info received via DPL
   void setFITInfoInp(const std::vector<o2::ft0::RecPoints>* inp)
+  //  void setFITInfoInp(const gsl::span<const o2::ft0::RecPoints> inp) // FT0 recpoints are not yet
   {
     assertDPLIO(true);
-    mFITInfoInp = inp;
+    mFITInfo = inp;
   }
 
   // ===================== << DPL-driven input << ========================
@@ -486,45 +476,6 @@ class MatchTPCITS
 
   //<<< ====================== options =============================<<<
 
-  //>>> ====================== cuts ================================>>>
-
-  ///< set cuts on absolute difference of ITS vs TPC track parameters
-  void setCrudeAbsDiffCut(const std::array<float, o2::track::kNParams>& vals) { mCrudeAbsDiffCut = vals; }
-  ///< get cuts on absolute difference of ITS vs TPC track parameters
-  const std::array<float, o2::track::kNParams>& getCrudeAbsDiffCut() const { return mCrudeAbsDiffCut; }
-
-  ///< set cuts on difference^2/sig^2 of ITS vs TPC track parameters
-  void setCrudeNSigma2Cut(const std::array<float, o2::track::kNParams>& vals) { mCrudeNSigma2Cut = vals; }
-  ///< get cuts on absolute difference of ITS vs TPC track parameters
-  const std::array<float, o2::track::kNParams>& getCrudeNSigma2Cut() const { return mCrudeNSigma2Cut; }
-
-  ///< set cut matching chi2
-  void setCutMatchingChi2(float val) { mCutMatchingChi2 = val; }
-  ///< get cut on matching chi2
-  float getCutMatchingChi2() const { return mCutMatchingChi2; }
-
-  ///< set cut on AB track-cluster chi2
-  void setCutABTrack2ClChi2(float val) { mCutABTrack2ClChi2 = val; }
-  ///< get cut on matching chi2
-  float getCutABTrack2ClChi2() const { return mCutABTrack2ClChi2; }
-
-  ///< set max number of matching candidates to consider
-  void setMaxMatchCandidates(int n) { mMaxMatchCandidates = n > 1 ? 1 : n; }
-  ///< get max number of matching candidates to consider
-  int getMaxMatchCandidates() const { return mMaxMatchCandidates; }
-
-  ///< set tolerance (TPC time bins) on ITS-TPC times comparison
-  void setTimeBinTolerance(float val) { mTimeBinTolerance = val; }
-  ///< get tolerance (TPC time bins) on ITS-TPC times comparison
-  float getTimeBinTolerance() const { return mTimeBinTolerance; }
-
-  ///< set tolerance on TPC time-bins estimate from highest cluster Z
-  void setTPCTimeEdgeZSafeMargin(float val) { mTPCTimeEdgeZSafeMargin = val; }
-  ///< get tolerance on TPC time-bins estimate from highest cluster Z
-  float getTPCTimeEdgeZSafeMargin() const { return mTPCTimeEdgeZSafeMargin; }
-
-  //<<< ====================== cuts ================================<<<
-
 #ifdef _ALLOW_DEBUG_TREES_
   enum DebugFlagTypes : UInt_t {
     MatchTreeAll = 0x1 << 1,     ///< produce matching candidates tree for all candidates
@@ -567,7 +518,6 @@ class MatchTPCITS
   int prepareTPCTracksAfterBurner();
   bool prepareTPCTracks();
   bool prepareITSTracks();
-  bool prepareITSClusters();
   bool prepareFITInfo();
   bool loadTPCTracks();
   bool loadTPCClusters();
@@ -649,7 +599,10 @@ class MatchTPCITS
   bool mMCTruthON = false;        ///< flag availability of MC truth
 
   o2::InteractionRecord mStartIR; ///< IR corresponding to the start of the TF
+
   ///========== Parameters to be set externally, e.g. from CCDB ====================
+  const Params* mParams = nullptr;
+
   int mUseMatCorrFlag = o2::base::Propagator::USEMatCorrTGeo;
 
   bool mITSTriggered = false; ///< ITS readout is triggered
@@ -657,40 +610,11 @@ class MatchTPCITS
   ///< do we use track Z difference to reject fake matches? makes sense for triggered mode only
   bool mCompareTracksDZ = false;
 
-  ///< do we want to run an afterburner for secondaries matchint?
-  bool mRunAfterBurner = true;
-
-  ///<tolerance on abs. different of ITS/TPC params
-  std::array<float, o2::track::kNParams> mCrudeAbsDiffCut = {2.f, 2.f, 0.2f, 0.2f, 4.f};
-
-  ///<tolerance on per-component ITS/TPC params NSigma
-  std::array<float, o2::track::kNParams> mCrudeNSigma2Cut = {49.f, 49.f, 49.f, 49.f, 49.f};
-
-  float mMinTPCPt = 0.04;   ///< cut on minimal pT of TPC tracks to consider for matching
-  int mMinTPCClusters = 25; ///< minimum number of clusters to consider
-  int mAskMinTPCRow = 15;   ///< disregard tracks starting above this row
-
-  float mCutMatchingChi2 = 30.f; ///< cut on matching chi2
-
-  float mCutABTrack2ClChi2 = 30.f; ///< cut on AfterBurner track-cluster chi2
-
   float mSectEdgeMargin2 = 0.; ///< crude check if ITS track should be matched also in neighbouring sector
-
-  int mMaxMatchCandidates = 5; ///< max allowed matching candidates per TPC track
-
-  int mABRequireToReachLayer = 5; ///< AB tracks should reach at least this layer from above
-
-  ///< safety margin (in TPC time bins) for ITS-TPC tracks time (in TPC time bins!) comparison
-  float mTPCITSTimeBinSafeMargin = 1.f;
-
-  ///< safety margin in cm when estimating TPC track tMin and tMax from assigned time0 and its
-  ///< track Z position
-  float mTPCTimeEdgeZSafeMargin = 20.f;
 
   ///< safety margin in TPC time bins when estimating TPC track tMin and tMax from
   ///< assigned time0 and its track Z position (converted from mTPCTimeEdgeZSafeMargin)
   float mTPCTimeEdgeTSafeMargin = 0.f;
-  float mTimeBinTolerance = 10.f; ///<tolerance in time-bin for ITS-TPC time bracket matching
 
   float mITSROFrameLengthMUS = -1.; ///< ITS RO frame in \mus
   float mITSROFrameOffsetMUS = 0;   ///< time in \mus corresponding to start of 1st ITS ROFrame,
@@ -744,7 +668,11 @@ class MatchTPCITS
   const std::vector<o2::itsmft::ROFRecord>* mITSClusterROFRecPtr = nullptr; ///< input ITS clusters ROFRecord from tree
   gsl::span<const o2::itsmft::ROFRecord> mITSClusterROFRec;                 ///< input ITS clusters ROFRecord span from DPL
 
-  const std::vector<o2::ft0::RecPoints>* mFITInfoInp = nullptr;           ///< optional input FIT info
+  const std::vector<o2::ft0::RecPoints>* mFITInfoPtr = nullptr; ///< optional input FIT info from the tree
+  // FT0 is not POD yet
+  const std::vector<o2::ft0::RecPoints>* mFITInfo = nullptr; ///<  optional input FIT info span from DPL
+  //gsl::span<const o2::ft0::RecPoints> mFITInfo;                           ///<  optional input FIT info span from DPL
+
   const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr;     ///< struct holding the TPC cluster indices
 
   const MCLabCont* mITSTrkLabels = nullptr; ///< input ITS Track MC labels
@@ -910,7 +838,7 @@ inline void MatchTPCITS::flagUsedITSClusters(const o2::its::TrackITS& track, int
   // flag clusters used by this track
   int clEntry = track.getFirstClusterEntry();
   for (int icl = track.getNumberOfClusters(); icl--;) {
-    mABClusterLinkIndex[rofOffset + (*mITSTrackClusIdxInp)[clEntry++]] = MinusTen;
+    mABClusterLinkIndex[rofOffset + mITSTrackClusIdx[clEntry++]] = MinusTen;
   }
 }
 //__________________________________________________________
@@ -922,7 +850,7 @@ inline int MatchTPCITS::preselectChipClusters(std::vector<int>& clVecOut, const 
   int icID = clRange.getFirstEntry();
   for (int icl = clRange.getEntries(); icl--;) { // note: clusters within a chip are sorted in Z
     int clID = clRefs.clusterID[icID++];         // so, we go in clusterID increasing direction
-    const auto& cls = (*mITSClustersArrayInp)[clID];
+    const auto& cls = mITSClustersArray[clID];
     float dz = trackZ - cls.getZ();
     auto label = mITSClsLabels->getLabels(clID)[0]; // tmp
     //    if (!(label == lblTrc)) {
