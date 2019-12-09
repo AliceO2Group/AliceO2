@@ -22,9 +22,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{
     "disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}});
 
-  workflowOptions.push_back(ConfigParamSpec{
-    "use-FIT", o2::framework::VariantType::Bool, false, {"use FIT info for matching"}});
-
   std::string keyvaluehelp("Semicolon separated key=value strings ...");
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
 }
@@ -37,10 +34,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  // write the configuration used for the digitizer workflow
-  o2::conf::ConfigurableParam::writeINI("o2tpcits-match-recoflow_configuration.ini");
+  // write the configuration used for the workflow
+  o2::conf::ConfigurableParam::writeINI("o2matchtpcits-workflow_configuration.ini");
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
-  auto useFIT = configcontext.options().get<bool>("use-FIT");
-  return std::move(o2::globaltracking::getMatchTPCITSWorkflow(useMC, useFIT));
+  return std::move(o2::globaltracking::getMatchTPCITSWorkflow(useMC));
 }

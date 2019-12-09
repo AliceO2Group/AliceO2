@@ -20,6 +20,7 @@
 #pragma link C++ class o2::globaltracking::CollectCalibInfoTOF + ;
 #pragma link C++ class o2::globaltracking::TrackLocTPC + ;
 #pragma link C++ class o2::globaltracking::TrackLocITS + ;
+#pragma link C++ class o2::globaltracking::MatchITSTPCParams + ;
 
 #pragma link C++ class o2::globaltracking::ABDebugLink + ;
 #pragma link C++ class o2::globaltracking::ABDebugTrack + ;

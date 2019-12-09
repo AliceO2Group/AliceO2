@@ -8,20 +8,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MATCHT_TPCITS_WORKFLOW_H
-#define O2_MATCHT_TPCITS_WORKFLOW_H
+/// \file MatchTPCITSParams.h
+/// \brief Configurable params for TPC ITS matching
+/// \author ruben.shahoyan@cern.ch
 
-/// @file   RecoWorkflow.h
-
-#include "Framework/WorkflowSpec.h"
-
-namespace o2
-{
-namespace globaltracking
-{
-
-framework::WorkflowSpec getMatchTPCITSWorkflow(bool useMC);
-
-} // namespace globaltracking
-} // namespace o2
-#endif
+#include "GlobalTracking/MatchTPCITSParams.h"
+O2ParamImpl(o2::globaltracking::MatchITSTPCParams);

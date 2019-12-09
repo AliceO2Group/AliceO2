@@ -31,6 +31,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
+#include "GlobalTracking/MatchTPCITSParams.h"
 
 using namespace o2::framework;
 using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
@@ -52,14 +53,6 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   mMatching.setITSROFrameLengthMUS(alpParams.roFrameLength / 1.e3); // ITS ROFrame duration in \mus
   mMatching.setMCTruthOn(mUseMC);
   //
-  // configure matching cuts, should be eventually read from the CCDB
-  mMatching.setCutMatchingChi2(100.);
-  std::array<float, o2::track::kNParams> cutsAbs = {2.f, 2.f, 0.2f, 0.2f, 4.f};
-  std::array<float, o2::track::kNParams> cutsNSig2 = {49.f, 49.f, 49.f, 49.f, 49.f};
-  mMatching.setCrudeAbsDiffCut(cutsAbs);
-  mMatching.setCrudeNSigma2Cut(cutsNSig2);
-  mMatching.setTPCTimeEdgeZSafeMargin(3);
-
   mMatching.init();
 }
 
@@ -255,14 +248,23 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     mMatching.setTPCTrkLabelsInp(lblTPCPtr);
   }
 
+  //  const gsl::span<o2::ft0::RecPoints> fitInfo; // not yet POD
+  std::vector<o2::ft0::RecPoints> fitInfo;
+  if (o2::globaltracking::MatchITSTPCParams::Instance().runAfterBurner) {
+    //    fitInfo = pc.inputs().get<gsl::span<o2::ft0::RecPoints>>("fitInfo");
+    fitInfo = pc.inputs().get<std::vector<o2::ft0::RecPoints>>("fitInfo");
+    mMatching.setFITInfoInp(&fitInfo);
+  }
+
+  /*
   const std::vector<o2::ft0::RecPoints>* rpFIT = nullptr;
   std::unique_ptr<const std::vector<o2::ft0::RecPoints>> rpFITU;
-  if (mUseFIT) {
+  if (o2::globaltracking::MatchITSTPCParams::Instance().runAfterBurner) {
     rpFITU = pc.inputs().get<const std::vector<o2::ft0::RecPoints>*>("fitInfo");
     rpFIT = rpFITU.get();
     mMatching.setFITInfoInp(rpFIT);
   }
-
+  */
   mMatching.run();
 
   /* // at the moment we don't assume need for bufferization, no nead to clear
@@ -281,7 +283,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
-DataProcessorSpec getTPCITSMatchingSpec(bool useMC, bool useFIT, const std::vector<int>& tpcClusLanes)
+DataProcessorSpec getTPCITSMatchingSpec(bool useMC, const std::vector<int>& tpcClusLanes)
 {
 
   std::vector<InputSpec> inputs;
@@ -298,7 +300,8 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useMC, bool useFIT, const std::vect
     std::string clusBind = "clusTPC" + std::to_string(lane);
     inputs.emplace_back(clusBind.c_str(), "TPC", "CLUSTERNATIVE", lane, Lifetime::Timeframe);
   }
-  if (useFIT) {
+
+  if (o2::globaltracking::MatchITSTPCParams::Instance().runAfterBurner) {
     inputs.emplace_back("fitInfo", "FT0", "RECPOINTS", 0, Lifetime::Timeframe);
   }
 
@@ -317,7 +320,7 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useMC, bool useFIT, const std::vect
     "itstpc-track-matcher",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(useMC, useFIT, tpcClusLanes)},
+    AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(useMC, tpcClusLanes)},
     Options{}};
 }
 

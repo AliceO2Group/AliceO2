@@ -20,13 +20,14 @@
 #include "GlobalTrackingWorkflow/TrackWriterTPCITSSpec.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "DataFormatsTPC/Constants.h"
+#include "GlobalTracking/MatchTPCITSParams.h"
 
 namespace o2
 {
 namespace globaltracking
 {
 
-framework::WorkflowSpec getMatchTPCITSWorkflow(bool useMC, bool useFIT)
+framework::WorkflowSpec getMatchTPCITSWorkflow(bool useMC)
 {
   framework::WorkflowSpec specs;
 
@@ -51,10 +52,10 @@ framework::WorkflowSpec getMatchTPCITSWorkflow(bool useMC, bool useFIT)
                                                  tpcClusLanes},
                                                useMC));
 
-  specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(useMC, useFIT, tpcClusLanes));
+  specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(useMC, tpcClusLanes));
   specs.emplace_back(o2::globaltracking::getTrackWriterTPCITSSpec(useMC));
 
-  if (useFIT) {
+  if (o2::globaltracking::MatchITSTPCParams::Instance().runAfterBurner) {
     specs.emplace_back(o2::ft0::getFT0RecPointReaderSpec(useMC));
   }
 
