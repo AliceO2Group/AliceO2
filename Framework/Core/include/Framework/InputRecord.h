@@ -263,13 +263,14 @@ class InputRecord
       // implementation (f)
     } else if constexpr (is_span<T>::value) {
       // substitution for span of messageable objects
-      // Note: there is no check for serialization type for the moment, which means that the method
-      // can be used to get the raw buffer by simply querying gsl::span<unsigned char>.
       // FIXME: there will be std::span in C++20
-      static_assert(has_messageable_value_type<T>::value, "span can only be created for messageable types");
+      static_assert(is_messageable<typename T::value_type>::value, "span can only be created for messageable types");
       DataRef ref = get<DataRef>(binding);
       auto header = header::get<const header::DataHeader*>(ref.header);
       assert(header);
+      if (sizeof(typename T::value_type) > 1 && header->payloadSerializationMethod != o2::header::gSerializationMethodNone) {
+        throw std::runtime_error("Inconsistent serialization method for extracting span");
+      }
       using ValueT = typename T::value_type;
       if (header->payloadSize % sizeof(ValueT)) {
         throw std::runtime_error("Inconsistent type and payload size at " + std::string(binding) +
