@@ -53,9 +53,12 @@ struct RecoGeomHelper {
   };
 
   struct RecoLadder {
-    enum Overlap : int8_t {Undefined, Above, NoOverlap, Below};
+    enum Overlap : int8_t { Undefined,
+                            Above,
+                            NoOverlap,
+                            Below };
     ///< group of chips at same (modulo alignment) phi, r (stave in IB, 1/4 stave in OB)
-    short id = 0; // assigned ladder ID within the layer
+    short id = 0;                        // assigned ladder ID within the layer
     Overlap overlapWithNext = Undefined; // special flag saying if for double-hit layers this one is above, excluded or below the next one
     BracketF phiRange = {o2::constants::math::TwoPI, 0.};
     BracketF zRange = {1e9, -1e9}; // Z ranges in lab frame
