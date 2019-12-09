@@ -38,7 +38,7 @@ class Merger : public framework::Task
 {
  public:
   /// \brief Default constructor. It expects merger configuration and subSpec of output channel.
-  Merger(MergerConfig, header::DataHeader::SubSpecificationType);
+  Merger(const MergerConfig&, const header::DataHeader::SubSpecificationType&);
   /// \brief Default destructor.
   ~Merger() override = default;
 

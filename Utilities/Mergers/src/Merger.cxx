@@ -36,7 +36,7 @@ namespace o2
 namespace experimental::mergers
 {
 
-Merger::Merger(MergerConfig config, header::DataHeader::SubSpecificationType subSpec)
+Merger::Merger(const MergerConfig& config, const header::DataHeader::SubSpecificationType& subSpec)
   : mConfig(config),
     mSubSpec(subSpec),
     mCache(config.ownershipMode.value == OwnershipMode::Full)
