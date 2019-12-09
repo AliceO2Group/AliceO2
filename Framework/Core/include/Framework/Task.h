@@ -66,8 +66,8 @@ class Task
 template <typename T, typename... Args>
 AlgorithmSpec adaptFromTask(Args&&... args)
 {
-  auto task = std::make_shared<T>(std::forward<Args>(args)...);
-  return AlgorithmSpec::InitCallback{[task](InitContext& ic) {
+  return AlgorithmSpec::InitCallback{[=](InitContext& ic) {
+    auto task = std::make_shared<T>(args...);
     if constexpr (has_endOfStream<T>::value) {
       auto& callbacks = ic.services().get<CallbackService>();
       callbacks.set(CallbackService::Id::EndOfStream, [task](EndOfStreamContext& eosContext) {
