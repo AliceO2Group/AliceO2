@@ -849,7 +849,7 @@ size_t header_map_callback(char* buffer, size_t size, size_t nitems, void* userd
 }
 } // namespace
 
-std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& path, std::map<std::string,
+std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& path, std::map<std::string, //
     std::string> const& metadata, long timestamp) const
 {
 
