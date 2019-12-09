@@ -892,25 +892,14 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     // filter device options, and handle option groups
     filterArgsFct(argc, argv, od);
 
-    bool changeTransport = false;
     // Add the channel configuration
     for (auto& channel : spec.outputChannels) {
       tmpArgs.emplace_back(std::string("--channel-config"));
       tmpArgs.emplace_back(outputChannel2String(channel));
-      if (!changeTransport && (channel.protocol == o2::framework::ChannelProtocol::IPC)) {
-        changeTransport = true;
-      }
     }
     for (auto& channel : spec.inputChannels) {
       tmpArgs.emplace_back(std::string("--channel-config"));
       tmpArgs.emplace_back(inputChannel2String(channel));
-      if (!changeTransport && (channel.protocol == o2::framework::ChannelProtocol::IPC)) {
-        changeTransport = true;
-      }
-    }
-    if (changeTransport) {
-      tmpArgs.emplace_back(std::string("--transport"));
-      tmpArgs.emplace_back(std::string("shmem"));
     }
 
     // We create the final option list, depending on the channels
