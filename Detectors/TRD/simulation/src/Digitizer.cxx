@@ -20,6 +20,7 @@
 #include "TRDBase/PadResponse.h"
 
 #include "TRDSimulation/Digitizer.h"
+#include "TRDSimulation/TRDSimParams.h"
 #include <cmath>
 
 #ifdef WITH_OPENMP
@@ -47,6 +48,18 @@ Digitizer::Digitizer()
       LOG(FATAL) << "TRD Common Parameters does not have magnetic field available";
     }
   }
+
+  // obtain the number of threads from configuration
+#ifdef WITH_OPENMP
+  int askedthreads = TRDSimParams::Instance().digithreads;
+  int maxthreads = omp_get_max_threads();
+  if (askedthreads < 0) {
+    mNumThreads = maxthreads;
+  } else {
+    mNumThreads = std::min(maxthreads, askedthreads);
+  }
+  LOG(INFO) << "TRD: Digitizing with " << mNumThreads << " threads ";
+#endif
 
   // initialize structures that we need per thread
   mGausRandomRings.resize(mNumThreads);
