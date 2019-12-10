@@ -164,8 +164,8 @@ bool Detector::ProcessHits(FairVolume* v)
 
   // Calculate the charge according to GEANT Edep
   // Create a new dEdx hit
-  const float enDep = TMath::Max(fMC->Edep(), 0.0) * 1e9; // Energy in eV
-  const int totalChargeDep = (int)(enDep / mWion);        // Total charge
+  const float enDep = std::max(fMC->Edep(), 0.0) * 1e9; // Energy in eV
+  const int totalChargeDep = (int)(enDep / mWion);      // Total charge
 
   // Store those hits with enDep bigger than the ionization potential of the gas mixture for in-flight tracks
   // or store hits of tracks that are entering or exiting
@@ -176,7 +176,10 @@ bool Detector::ProcessHits(FairVolume* v)
     double pos[3] = {xp, yp, zp};
     double loc[3] = {-99, -99, -99};
     gGeoManager->MasterToLocal(pos, loc); // Go to the local coordinate system (locR, locC, locT)
-    const float locC = loc[0], locR = loc[1], locT = loc[2];
+    float locC = loc[0], locR = loc[1], locT = loc[2];
+    if (drRegion) {
+      locT = locT - 0.5 * (TRDGeometry::drThick() + TRDGeometry::amThick());
+    }
     addHit(xp, yp, zp, locC, locR, locT, tof, totalChargeDep, trackID, det, drRegion);
     stack->addHit(GetDetId());
     return true;
@@ -264,7 +267,8 @@ void Detector::createTRhit(int det)
     double pos[3] = {x, y, z};
     double loc[3] = {-99, -99, -99};
     gGeoManager->MasterToLocal(pos, loc); // Go to the local coordinate system (locR, locC, locT)
-    const float locC = loc[0], locR = loc[1], locT = loc[2];
+    float locC = loc[0], locR = loc[1], locT = loc[2];
+    locT = locT - 0.5 * (TRDGeometry::drThick() + TRDGeometry::amThick());
     addHit(x, y, z, locC, locR, locT, tof, totalChargeDep, trackID, det, true); // All TR hits are in drift region
     stack->addHit(GetDetId());
   }

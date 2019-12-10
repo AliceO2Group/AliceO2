@@ -44,11 +44,11 @@ class Digitizer
   void setCalibrations(Calibrations* calibrations) { mCalib = calibrations; }
 
  private:
-  TRDGeometry* mGeo = nullptr;            // access to TRDGeometry
-  PadResponse* mPRF = nullptr;            // access to PadResponse
-  TRDSimParam* mSimParam = nullptr;       // access to TRDSimParam instance
-  TRDCommonParam* mCommonParam = nullptr; // access to TRDCommonParam instance
-  Calibrations* mCalib = nullptr;         // access to Calibrations in CCDB
+  TRDGeometry* mGeo = nullptr;              // access to TRDGeometry
+  PadResponse* mPRF = nullptr;              // access to PadResponse
+  TRDSimParam* mSimParam = nullptr;         // access to TRDSimParam instance
+  TRDCommonParam* mCommonParam = nullptr;   // access to TRDCommonParam instance
+  Calibrations* mCalib = nullptr;           // access to Calibrations in CCDB
   math_utils::RandomRing<> mGausRandomRing; // pre-generated normal distributed random numbers
   math_utils::RandomRing<> mFlatRandomRing; // pre-generated flat distributed random numbers
   math_utils::RandomRing<> mLogRandomRing;  // pre-generated exp distributed random number
@@ -63,9 +63,9 @@ class Digitizer
   void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, kNdet>&);
   // Digitization chaing methods
   bool convertHits(const int, const std::vector<HitType>&, SignalContainer_t&, o2::dataformats::MCTruthContainer<MCLabel>&); // True if hit-to-signal conversion is successful
-  bool convertSignalsToDigits(const int, SignalContainer_t&);                                                                // True if signal-to-digit conversion is successful
-  bool convertSignalsToSDigits(const int, SignalContainer_t&);                                                               // True if signal-to-sdigit conversion is successful
-  bool convertSignalsToADC(const int, SignalContainer_t&);                                                                   // True if signal-to-ADC conversion is successful
+  bool convertSignalsToDigits(SignalContainer_t&);                                                                           // True if signal-to-digit conversion is successful
+  bool convertSignalsToSDigits(SignalContainer_t&);                                                                          // True if signal-to-sdigit conversion is successful
+  bool convertSignalsToADC(SignalContainer_t&);                                                                              // True if signal-to-ADC conversion is successful
 
   bool diffusion(float, float, float, float, float, float, double&, double&, double&); // True if diffusion is applied successfully
 };

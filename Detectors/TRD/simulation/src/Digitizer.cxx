@@ -61,38 +61,31 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
 
   // Loop over all TRD detectors
   for (int det = 0; det < kNdet; ++det) {
-    // Jump to the next detector if the detector is
-    // switched off, not installed, etc
+    // Jump to the next detector if the detector is switched off, not installed, etc
     if (mCalib->isChamberNoData(det)) {
       continue;
     }
     if (!mGeo->chamberInGeometry(det)) {
       continue;
     }
-
     // Go to the next detector if there are no hits
-    if (hitsPerDetector[det].size() == 0) {
-      continue;
-    }
-
-    if (!convertHits(det, hitsPerDetector[det], adcMapCont, labels)) {
-      LOG(WARN) << "TRD conversion of hits failed for detector " << det;
-      continue; // go to the next chamber
-    }
-
-    // O2-790
-    if (adcMapCont.size() == 0) {
-      continue; // go to the next chamber
-    }
-
-    if (!convertSignalsToDigits(det, adcMapCont)) {
-      LOG(WARN) << "TRD conversion of signals to digits failed for detector " << det;
-      continue; // go to the next chamber
+    if (hitsPerDetector[det].size() > 0) {
+      auto status = convertHits(det, hitsPerDetector[det], adcMapCont, labels);
+      if (!status) {
+        LOG(WARN) << "TRD conversion of hits failed for detector " << det;
+      }
     }
   }
 
-  // Finalize
-  Digit::convertMapToVectors(adcMapCont, digitCont);
+  // Convert signals to ADC and prepare to output digits to the DPL
+  if (adcMapCont.size() > 0) {
+    auto status = convertSignalsToDigits(adcMapCont);
+    if (!status) {
+      LOG(WARN) << "TRD conversion of signals to digits failed";
+    } else {
+      Digit::convertMapToVectors(adcMapCont, digitCont);
+    }
+  }
 }
 
 void Digitizer::getHitContainerPerDetector(const std::vector<HitType>& hits, std::array<std::vector<HitType>, kNdet>& hitsPerDetector)
@@ -157,10 +150,6 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
     double locC = hit.getLocalC(); // col direction in amplification or drift volume
     double locR = hit.getLocalR(); // row direction in amplification or drift volume
     double locT = hit.getLocalT(); // time direction in amplification or drift volume
-
-    if (hit.isFromDriftRegion()) {
-      locT = locT - kDrWidth / 2 - kAmWidth / 2;
-    }
 
     const double driftLength = -1 * locT; // The drift length in cm without diffusion
 
@@ -332,7 +321,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
   return true;
 }
 
-bool Digitizer::convertSignalsToDigits(const int det, SignalContainer_t& adcMapCont)
+bool Digitizer::convertSignalsToDigits(SignalContainer_t& adcMapCont)
 {
   //
   // conversion of signals to digits
@@ -340,19 +329,19 @@ bool Digitizer::convertSignalsToDigits(const int det, SignalContainer_t& adcMapC
 
   if (mSDigits) {
     // Convert the signal array to s-digits
-    if (!convertSignalsToSDigits(det, adcMapCont)) {
+    if (!convertSignalsToSDigits(adcMapCont)) {
       return false;
     }
   } else {
     // Convert the signal array to digits
-    if (!convertSignalsToADC(det, adcMapCont)) {
+    if (!convertSignalsToADC(adcMapCont)) {
       return false;
     }
   }
   return true;
 }
 
-bool Digitizer::convertSignalsToSDigits(const int det, SignalContainer_t& adcMapCont)
+bool Digitizer::convertSignalsToSDigits(SignalContainer_t& adcMapCont)
 {
   //
   // Convert signals to S-digits
@@ -368,7 +357,7 @@ float drawGaus(o2::math_utils::RandomRing<>& normaldistRing, float mu, float sig
   return mu + sigma * normaldistRing.getNextValue();
 }
 
-bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont)
+bool Digitizer::convertSignalsToADC(SignalContainer_t& adcMapCont)
 {
   //
   // Converts the sampled electron signals to ADC values for a given chamber
@@ -383,10 +372,7 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont
   double adcConvert = mSimParam->GetADCoutRange() / mSimParam->GetADCinRange(); // ADC conversion factor
   double baseline = mSimParam->GetADCbaseline() / adcConvert;                   // The electronics baseline in mV
   double baselineEl = baseline / convert;                                       // The electronics baseline in electrons
-
-  int nRowMax = mGeo->getPadPlane(det)->getNrows();
-  int nColMax = mGeo->getPadPlane(det)->getNcols();
-  int nTimeTotal = kTimeBins; // fDigitsManager->GetDigitsParam()->GetNTimeBins(det);
+  int nTimeTotal = kTimeBins;                                                   // fDigitsManager->GetDigitsParam()->GetNTimeBins(det);
 
   for (auto& adcMapIter : adcMapCont) {
     const int det = Digit::getDetectorFromKey(adcMapIter.first);
