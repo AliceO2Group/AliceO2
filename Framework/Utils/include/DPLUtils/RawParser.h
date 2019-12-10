@@ -110,8 +110,8 @@ class ConcreteRawParser
     return *reinterpret_cast<header_type const*>(mPosition);
   }
 
-  /// Get length of payload at current position
-  size_t length() const
+  /// Get size of payload at current position
+  size_t size() const
   {
     if (mPosition == mRawBuffer + mSize) {
       return 0;
@@ -124,15 +124,34 @@ class ConcreteRawParser
   /// Get pointer to payload data at current position
   buffer_type const* data() const
   {
-    size_t len = length();
-    if (len == 0) {
+    size_t size = this->size();
+    if (size == 0) {
       return nullptr;
     }
     header_type const& h = header();
-    if (mPosition + len + h.headerSize > mRawBuffer + mSize) {
+    if (mPosition + size + h.headerSize > mRawBuffer + mSize) {
       throw std::runtime_error("not enough data at position " + std::to_string(mPosition - mRawBuffer));
     }
     return mPosition + h.headerSize;
+  }
+
+  /// Get pointer to raw buffer at current position
+  buffer_type const* raw() const
+  {
+    if (mPosition < mRawBuffer + mSize) {
+      return mPosition;
+    }
+    return nullptr;
+  }
+
+  /// Get offset of payload in the raw buffer at current position
+  size_t offset() const
+  {
+    if (mPosition < mRawBuffer + mSize) {
+      header_type const& h = header();
+      return h.headerSize;
+    }
+    return 0;
   }
 
   /// Parse the complete buffer
@@ -145,7 +164,7 @@ class ConcreteRawParser
     reset();
     //auto deleter = [](buffer_type*) {};
     do {
-      processor(data(), length());
+      processor(data(), size());
       //processor(std::unique_ptr<buffer_type, decltype(deleter)>(data(), deleter), size());
     } while (next());
   }
@@ -299,15 +318,15 @@ U const* get_if(T& instances)
 ///
 ///     // option 1: parse method
 ///     RawParser parser(buffer, size);
-///     auto processor = [&count](auto data, size_t length) {
-///       std::cout << "Processing block of length " << length << std::endl;
+///     auto processor = [&count](auto data, size_t size) {
+///       std::cout << "Processing block of size " << size << std::endl;
 ///     };
 ///     parser.parse(processor);
 ///
 ///     // option 2: iterator
 ///     RawParser parser(buffer, size);
 ///     for (auto it = parser.begin(), end = parser.end(); it != end; ++it, ++count) {
-///       std::cout << "Iterating block of length " << it.length() << std::endl;
+///       std::cout << "Iterating block of size " << it.size() << std::endl;
 ///       auto dataptr = it.data();
 ///     }
 ///
@@ -366,7 +385,7 @@ class RawParser
   /// - increment (there is no decrement, its not a bidirectional parser)
   /// - dereference operator returns @a RawDataHeaderInfo as common header
   /// - member function data() returns pointer to payload at current position
-  /// - member function length() return size of payload at current position
+  /// - member function size() return size of payload at current position
   template <typename T, typename ParentType>
   class Iterator : public IteratorBase<T>
   {
@@ -417,16 +436,28 @@ class RawParser
       return not operator==(rh);
     }
 
+    /// get pointer to raw block at current position, rdh starts here
+    buffer_type const* raw() const
+    {
+      return std::visit([](auto& parser) { return parser.raw(); }, mParser);
+    }
+
     /// get pointer to payload at current position
     buffer_type const* data() const
     {
       return std::visit([](auto& parser) { return parser.data(); }, mParser);
     }
 
-    /// get length of payload at current position
-    size_t length() const
+    /// offset of payload at current position
+    size_t offset() const
     {
-      return std::visit([](auto& parser) { return parser.length(); }, mParser);
+      return std::visit([](auto& parser) { return parser.offset(); }, mParser);
+    }
+
+    /// get size of payload at current position
+    size_t size() const
+    {
+      return std::visit([](auto& parser) { return parser.size(); }, mParser);
     }
 
     /// get header as specific type
