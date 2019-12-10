@@ -13,7 +13,6 @@
 
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/CompilerBuiltins.h"
-#include "Framework/TypeTraits.h"
 #include "Framework/Traits.h"
 #include "Framework/Expressions.h"
 #include <arrow/table.h>
