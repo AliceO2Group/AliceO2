@@ -8,14 +8,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-# @brief  cmake setup for the DataFormats module of AliceO2
+o2_add_library(DataFormatsTRD
+               SOURCES src/TriggerRecord.cxx
+               PUBLIC_LINK_LIBRARIES O2::CommonDataFormat 
+                                     O2::SimulationDataFormat
+                                     )
 
-add_subdirectory(Common)
-add_subdirectory(TPC)
-add_subdirectory(ITSMFT)
-add_subdirectory(MUON)
-add_subdirectory(TOF)
-add_subdirectory(FIT)
-add_subdirectory(EMCAL)
-add_subdirectory(ZDC)
-add_subdirectory(TRD)
+o2_target_root_dictionary(DataFormatsTRD
+                          HEADERS include/DataFormatsTRD/TriggerRecord.h)
+
