@@ -49,6 +49,7 @@ class DataProcessingDevice : public FairMQDevice
   void PreRun() final;
   void PostRun() final;
   void Reset() final;
+  void ResetTask() final;
   bool ConditionalRun() final;
 
  protected:
