@@ -14,12 +14,16 @@ set (_libs ${_libs} OpenMP::OpenMP)
 endif()
 
 o2_add_library(TRDSimulation
-               SOURCES src/Detector.cxx src/TRsim.cxx src/Digitizer.cxx
+               SOURCES src/Detector.cxx
+                       src/TRsim.cxx
+	               src/Digitizer.cxx
+		       src/TRDSimParams.cxx
                PUBLIC_LINK_LIBRARIES ${_libs})
 
 o2_target_root_dictionary(TRDSimulation
                           HEADERS include/TRDSimulation/Detector.h
                                   include/TRDSimulation/TRsim.h
-                                  include/TRDSimulation/Digitizer.h)
+                                  include/TRDSimulation/Digitizer.h
+				  include/TRDSimulation/TRDSimParams.h)
 
 o2_data_file(COPY data DESTINATION Detectors/TRD/simulation)
