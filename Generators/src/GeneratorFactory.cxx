@@ -53,8 +53,17 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     boxGen->SetEtaRange(boxparam.eta[0], boxparam.eta[1]);
     boxGen->SetPRange(boxparam.prange[0], boxparam.prange[1]);
     boxGen->SetPhiRange(boxparam.phirange[0], boxparam.phirange[1]);
+    if ((boxparam.vertexWidth[0] == 0) & (boxparam.vertexWidth[1] == 0)) {
+      boxGen->SetXYZ(boxparam.vertexPosition[0], boxparam.vertexPosition[1], boxparam.vertexPosition[2]);
+    } else {
+      auto X1 = boxparam.vertexPosition[0] - boxparam.vertexWidth[0];
+      auto X2 = boxparam.vertexPosition[0] + boxparam.vertexWidth[0];
+      auto Y1 = boxparam.vertexPosition[1] - boxparam.vertexWidth[1];
+      auto Y2 = boxparam.vertexPosition[1] + boxparam.vertexWidth[1];
+      auto Z = boxparam.vertexPosition[2];
+      boxGen->SetBoxXYZ(X1, Y1, X2, Y2, Z);
+    }
     boxGen->SetDebug(boxparam.debug);
-
     primGen->AddGenerator(boxGen);
   } else if (genconfig.compare("fwmugen") == 0) {
     // a simple "box" generator for forward muons

@@ -24,7 +24,7 @@ namespace eventgen
 /**
  ** A parameter class/struct holding values for
  ** the box/gun generator. Allows for quick runtime configurability
- ** of particle type, energy, direction, etc.
+ ** of particle type, energy, vertex, direction, etc.
  **/
 struct BoxGunParam : public o2::conf::ConfigurableParamHelper<BoxGunParam> {
   int pdg = 211;                   // which particle (default pion); could make this an enum
@@ -32,6 +32,8 @@ struct BoxGunParam : public o2::conf::ConfigurableParamHelper<BoxGunParam> {
   double eta[2] = {-1, 1};         // eta range
   double prange[2] = {0.1, 5};     // energy range min, max in GeV
   double phirange[2] = {0., 360.}; // phi range
+  double vertexPosition[3] = {0., 0., 0.}; // Vertex position
+  double vertexWidth[2] = {0., 0.};        // Vertex  widths in X and Y
   bool debug = false;              // whether to print out produced particles
   O2ParamDef(BoxGunParam, "BoxGun");
 };
@@ -39,4 +41,4 @@ struct BoxGunParam : public o2::conf::ConfigurableParamHelper<BoxGunParam> {
 } // end namespace eventgen
 } // end namespace o2
 
-#endif // ALICEO2_EVENTGEN_INTERACTIONDIAMONDPARAM_H_
+#endif // ALICEO2_EVENTGEN_GUNPARAM_H_
