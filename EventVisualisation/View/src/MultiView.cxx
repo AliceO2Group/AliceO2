@@ -19,8 +19,6 @@
 #include "EventVisualisationBase/GeometryManager.h"
 #include "EventVisualisationBase/VisualisationConstants.h"
 
-#include "EventVisualisationDetectors/DataInterpreterRND.h"
-
 #include <TBrowser.h>
 #include <TEnv.h>
 #include <TEveBrowser.h>
@@ -217,13 +215,10 @@ void MultiView::destroyAllEvents()
   getScene(SceneZrhoEvent)->DestroyElements();
 }
 
-void MultiView::drawRandomEvent()
+void MultiView::redraw3D()
 {
-  DataInterpreterRND* dataInterpreterRND = new DataInterpreterRND();
-  TEveElement* dataRND = dataInterpreterRND->interpretDataForType(nullptr, NoData);
-  registerElement(dataRND);
-  TEveElement* dataRND1 = dataInterpreterRND->interpretDataForType(nullptr, NoData);
-  registerElement(dataRND1);
+  gEve->Redraw3D();
 }
+
 } // namespace event_visualisation
 } // namespace o2

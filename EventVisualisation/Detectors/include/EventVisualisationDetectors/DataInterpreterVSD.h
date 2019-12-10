@@ -13,8 +13,8 @@
 /// \author julian.myrcha@cern.ch
 /// \author p.nowakowski@cern.ch
 
-#ifndef ALICE_O2_EVENTVISUALISATION_BASE_DATAINTERPRETERVSD_H
-#define ALICE_O2_EVENTVISUALISATION_BASE_DATAINTERPRETERVSD_H
+#ifndef ALICE_O2_EVENTVISUALISATION_DETECTORS_DATAINTERPRETERVSD_H
+#define ALICE_O2_EVENTVISUALISATION_DETECTORS_DATAINTERPRETERVSD_H
 
 ///
 /// This class overrides DataInterpreter and implements method
@@ -41,7 +41,7 @@ class DataInterpreterVSD : public DataInterpreter
 
   TEveViewerList* mViewers = nullptr; // for debug purpose
 
-  void LoadEsdTracks();
+  void LoadEsdTracks(VisualisationEvent& event);
   TEveTrackList* mTrackList = nullptr;
   TEvePointSet* mITSClusters = nullptr;
   TEvePointSet* mTPCClusters = nullptr;
@@ -58,10 +58,10 @@ class DataInterpreterVSD : public DataInterpreter
   ~DataInterpreterVSD() final;
 
   // Returns a list of random tracks colored by PID
-  TEveElement* interpretDataForType(TObject* data, EVisualisationDataType type) final;
+  std::unique_ptr<VisualisationEvent> interpretDataForType(TObject* data, EVisualisationDataType type) final;
 };
 
 } // namespace event_visualisation
 } // namespace o2
 
-#endif //ALICE_O2_EVENTVISUALISATION_BASE_DATAINTERPRETERVSD_H
+#endif // ALICE_O2_EVENTVISUALISATION_DETECTORS_DATAINTERPRETERVSD_H

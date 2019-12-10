@@ -14,8 +14,8 @@
 /// \author  Maciej Grochowicz
 ///
 
-#ifndef ALIROOT_CONVERSIONCONSTANTS_H
-#define ALIROOT_CONVERSIONCONSTANTS_H
+#ifndef ALICE_O2_DATACONVERTER_CONVERSIONCONSTANTS_H
+#define ALICE_O2_DATACONVERTER_CONVERSIONCONSTANTS_H
 
 #include <string>
 
@@ -95,4 +95,4 @@ const std::string gTrackTypes[nTrackTypes] = {
   "muon_not_matched",
   "muon_ghost"};
 
-#endif //ALIROOT_CONVERSIONCONSTANTS_H
+#endif //ALICE_O2_DATACONVERTER_CONVERSIONCONSTANTS_H

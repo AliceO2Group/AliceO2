@@ -9,43 +9,29 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// \file    Track.cxx
-/// \author  Jeremi Niedziela
+/// \file    VisualisationCluster.cxx
+/// \author  Julian Myrcha
+///
 
-#include "EventVisualisationBase/Track.h"
+#include "EventVisualisationDataConverter/VisualisationCluster.h"
+#include <iostream>
 
-#include <TROOT.h>
-#include <TMath.h>
-#include <TEveUtil.h>
-#include <TEvePointSet.h>
-#include <TEveElement.h>
-#include <TEveManager.h>
-#include <TEveTrackPropagator.h>
+using namespace std;
 
 namespace o2
 {
 namespace event_visualisation
 {
 
-Track::Track() : TEveTrack()
+VisualisationCluster::VisualisationCluster(double XYZ[])
 {
+  setCoordinates(XYZ);
 }
 
-Track::~Track() = default;
-
-void Track::setVertex(double v[3])
+void VisualisationCluster::setCoordinates(double xyz[3])
 {
-  fV.Set(v);
-}
-
-void Track::setMomentum(double p[3])
-{
-  fP.Set(p);
-}
-
-void Track::setBeta(double beta)
-{
-  fBeta = beta;
+  for (int i = 0; i < 3; i++)
+    mCoordinates[i] = xyz[i];
 }
 
 } // namespace event_visualisation

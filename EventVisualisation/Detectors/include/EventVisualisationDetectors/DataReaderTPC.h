@@ -8,30 +8,36 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file DataReader.h
-/// \brief Abstract base class for Detector-specific reading from file(s)
+/// \file DataReaderTPC.h
+/// \brief TPC Detector-specific reading from file(s)
 /// \author julian.myrcha@cern.ch
 
-#ifndef ALICE_O2_EVENTVISUALISATION_BASE_DATAREADER_H
-#define ALICE_O2_EVENTVISUALISATION_BASE_DATAREADER_H
+#ifndef O2EVE_EVENTVISUALISATION_DETECTORS_DATAREADERTPC_H
+#define O2EVE_EVENTVISUALISATION_DETECTORS_DATAREADERTPC_H
 
-class TObject;
+#include <TFile.h>
+#include "EventVisualisationBase/DataReader.h"
 
 namespace o2
 {
 namespace event_visualisation
 {
 
-class DataReader
+class DataReaderTPC : public DataReader
 {
+ private:
+  Int_t mMaxEv;
+  TFile* mClusFile;
+  TFile* mTracFile;
+
  public:
-  virtual int GetEventCount() const = 0;
-  virtual ~DataReader() = default;
-  virtual void open() = 0;
-  virtual TObject* getEventData(int no) = 0;
+  DataReaderTPC();
+  void open() override;
+  Int_t GetEventCount() const override { return mMaxEv; };
+  TObject* getEventData(int no) override;
 };
 
 } // namespace event_visualisation
 } // namespace o2
 
-#endif //ALICE_O2_EVENTVISUALISATION_BASE_DATAREADER_H
+#endif // O2EVE_EVENTVISUALISATION_DETECTORS_DATAREADERTPC_H

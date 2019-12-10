@@ -63,4 +63,4 @@ class GeometryManager
 } // namespace event_visualisation
 } // namespace o2
 
-#endif
+#endif // ALICE_O2_EVENTVISUALISATION_BASE_GEOMETRYMANAGER_H

@@ -9,4 +9,8 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(EventVisualisationDataConverter
-               SOURCES src/MinimalisticEvent.cxx src/MinimalisticTrack.cxx)
+               SOURCES src/VisualisationEvent.cxx 
+                       src/VisualisationTrack.cxx
+                       src/VisualisationCluster.cxx
+
+)

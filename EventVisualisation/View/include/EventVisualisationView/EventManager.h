@@ -14,9 +14,12 @@
 /// \author julian.myrcha@cern.ch
 /// \author p.nowakowski@cern.ch
 
-#ifndef ALICE_O2_EVENTVISUALISATION_BASE_EVENTMANAGER_H
-#define ALICE_O2_EVENTVISUALISATION_BASE_EVENTMANAGER_H
+#ifndef ALICE_O2_EVENTVISUALISATION_VIEW_EVENTMANAGER_H
+#define ALICE_O2_EVENTVISUALISATION_VIEW_EVENTMANAGER_H
 
+#include "EventVisualisationBase/VisualisationConstants.h"
+#include "EventVisualisationBase/DataInterpreter.h"
+#include "EventVisualisationBase/DataReader.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CcdbApi.h"
 
@@ -62,7 +65,7 @@ class EventManager : public TEveEventManager, public TQObject
     ccdbApi.init(path.Data());
   }
 
-  Int_t getCurrentEvent() { return currentEvent; }
+  Int_t getCurrentEvent() const { return currentEvent; }
   DataSource* getDataSource() { return dataSource; }
   void setDataSource(DataSource* dataSource) { this->dataSource = dataSource; }
 
@@ -78,11 +81,15 @@ class EventManager : public TEveEventManager, public TQObject
   void RemoveNewEventCommand(const TString& cmd) override;
   void ClearNewEventCommands() override;
 
+  void registerDetector(DataReader* reader, DataInterpreter* interpreter, EVisualisationGroup type);
   void DropEvent();
 
  private:
   static EventManager* instance;
   o2::ccdb::CcdbApi ccdbApi;
+  DataInterpreter* dataInterpreters[EVisualisationGroup::NvisualisationGroups];
+  DataReader* dataReaders[EVisualisationGroup::NvisualisationGroups];
+  TEveElementList* dataTypeLists[EVisualisationDataType::NdataTypes];
   EDataSource mCurrentDataSourceType = EDataSource::SourceOffline;
   DataSource* dataSource = nullptr;
   TString dataPath = "";
@@ -96,9 +103,11 @@ class EventManager : public TEveEventManager, public TQObject
   EventManager(EventManager const&) = delete;
   /// Deleted assignemt operator
   void operator=(EventManager const&) = delete;
+
+  void displayVisualisationEvent(VisualisationEvent& event, const std::string& detectorName);
 };
 
 } // namespace event_visualisation
 } // namespace o2
 
-#endif
+#endif // ALICE_O2_EVENTVISUALISATION_VIEW_EVENTMANAGER_H

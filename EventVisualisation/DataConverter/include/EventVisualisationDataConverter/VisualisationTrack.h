@@ -9,19 +9,20 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// \file    MinimalisticTrack.h
+/// \file    VisualisationTrack.h
 /// \author  Jeremi Niedziela
 /// \author  Maciej Grochowicz
 ///
 
-#ifndef ALICE_O2_EVENTVISUALISATION_BASE_MINIMALISTICTRACK_H
-#define ALICE_O2_EVENTVISUALISATION_BASE_MINIMALISTICTRACK_H
+#ifndef ALICE_O2_EVENTVISUALISATION_BASE_VISUALISATIONTRACK_H
+#define ALICE_O2_EVENTVISUALISATION_BASE_VISUALISATIONTRACK_H
 
 #include "ConversionConstants.h"
 
 #include <iosfwd>
 #include <string>
 #include <vector>
+#include <array>
 #include <cmath>
 
 namespace o2
@@ -35,14 +36,14 @@ namespace event_visualisation
 /// It keeps basic information about a track, such as its vertex,
 /// momentum, PID, phi and theta or helix curvature.
 
-class MinimalisticTrack
+class VisualisationTrack
 {
  public:
   // Default constructor
-  MinimalisticTrack();
+  VisualisationTrack();
 
   // Constructor with properties initialisation
-  MinimalisticTrack(
+  VisualisationTrack(
     int charge,
     double energy,
     int ID,
@@ -72,14 +73,14 @@ class MinimalisticTrack
   // Momentum vector getter
   double* getMomentum() { return mMomentum; }
   // Beta (velocity) getter
-  double getBeta() { return sqrt(1 - std::pow(mMass / mEnergy, 2)); }
+  double getBeta() const { return sqrt(1 - std::pow(mMass / mEnergy, 2)); }
   // Charge getter
-  int getCharge() { return mCharge; }
+  int getCharge() const { return mCharge; }
   // PID (particle identification code) getter
-  int getPID() { return mPID; }
+  int getPID() const { return mPID; }
 
-  // Generates random track
-  void fillWithRandomData();
+  size_t getPointCount() const { return mPolyX.size(); }
+  std::array<double, 3> getPoint(size_t i) const { return std::array<double, 3>{mPolyX[i], mPolyY[i], mPolyZ[i]}; }
 
  private:
   // Set coordinates of the beginning of the track
@@ -112,6 +113,6 @@ class MinimalisticTrack
   std::vector<double> mPolyZ;
 };
 
-#endif
-}
-}
+} // namespace event_visualisation
+} // namespace o2
+#endif // ALICE_O2_EVENTVISUALISATION_BASE_VISUALISATIONTRACK_H

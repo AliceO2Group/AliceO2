@@ -12,8 +12,8 @@
 /// \file    MultiView.h
 /// \author  Jeremi Niedziela
 
-#ifndef ALICE_O2_EVENTVISUALISATION_BASE_MULTIVIEW_H
-#define ALICE_O2_EVENTVISUALISATION_BASE_MULTIVIEW_H
+#ifndef ALICE_O2_EVENTVISUALISATION_VIEW_MULTIVIEW_H
+#define ALICE_O2_EVENTVISUALISATION_VIEW_MULTIVIEW_H
 
 #include <EventVisualisationBase/EventRegistration.h>
 #include <TGLViewer.h>
@@ -88,8 +88,7 @@ class MultiView : public EventRegistration
   void registerEvent(TEveElement* event) { return registerElement(event); }
   /// Removes all shapes representing current event
   void destroyAllEvents() override;
-
-  void drawRandomEvent();
+  void redraw3D();
 
  private:
   /// Default constructor
@@ -110,15 +109,9 @@ class MultiView : public EventRegistration
   void setupMultiview();
   /// Returns geometry scene for given projection manager
   EScenes getSceneOfProjection(EProjections projection);
-
-  /// Vector keeping all geometries
-  ///
-  /// This is used just to know what to remove
-  /// when destroying of all geometries is requested
-  //std::vector<TEveGeoShape*> mGeomVector;
 };
 
 } // namespace event_visualisation
 } // namespace o2
 
-#endif
+#endif // ALICE_O2_EVENTVISUALISATION_VIEW_MULTIVIEW_H
