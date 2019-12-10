@@ -52,8 +52,7 @@ class Digitizer
   Calibrations* mCalib = nullptr;         // access to Calibrations in CCDB
 
   // number of digitizer threads
-  // TODO: make this configurable
-  int mNumThreads = 4;
+  int mNumThreads = 1;
 
   // we create one such service structure per thread
   std::vector<math_utils::RandomRing<>> mGausRandomRings; // pre-generated normal distributed random numbers
