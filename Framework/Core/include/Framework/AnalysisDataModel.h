@@ -144,7 +144,8 @@ DECLARE_SOA_TABLE(Muons, "AOD", "MUON",
                   muon::Chi2, muon::Chi2MatchTrigger);
 using Muon = Muons::iterator;
 
-namespace muoncluster {
+namespace muoncluster
+{
 DECLARE_SOA_COLUMN(TrackId, trackId, int, "fMuTrackID");
 DECLARE_SOA_COLUMN(X, x, float, "fX");
 DECLARE_SOA_COLUMN(Y, y, float, "fY");
@@ -157,13 +158,14 @@ DECLARE_SOA_COLUMN(Chi2, chi2, float, "fChi2");
 
 DECLARE_SOA_TABLE(MuonClusters, "AOD", "MUONCLUSTER",
                   muoncluster::TrackId,
-		  muoncluster::X, muoncluster::Y, muoncluster::Z,
+                  muoncluster::X, muoncluster::Y, muoncluster::Z,
                   muoncluster::ErrX, muoncluster::ErrY,
                   muoncluster::Charge, muoncluster::Chi2);
 
 using MuonCluster = MuonClusters::iterator;
 
-namespace zdc {
+namespace zdc
+{
 DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fCollisionID");
 DECLARE_SOA_COLUMN(ZEM1Energy, zem1Energy, float, "fZEM1Energy");
 DECLARE_SOA_COLUMN(ZEM2Energy, zem2Energy, float, "fZEM2Energy");
@@ -197,7 +199,8 @@ DECLARE_SOA_COLUMN(BGFlag, bgFlag, uint64_t, "fBGFlag");
 DECLARE_SOA_TABLE(VZeros, "AOD", "VZERO", vzero::CollisionId, vzero::BBFlag, vzero::BGFlag);
 using VZero = VZeros::iterator;
 
-namespace v0 {
+namespace v0
+{
 DECLARE_SOA_COLUMN(PosTrackId, posTrackId, int, "fPosTrackID");
 DECLARE_SOA_COLUMN(NegTrackId, negTrackId, int, "fNegTrackID");
 } // namespace v0
@@ -205,7 +208,8 @@ DECLARE_SOA_COLUMN(NegTrackId, negTrackId, int, "fNegTrackID");
 DECLARE_SOA_TABLE(V0s, "AOD", "V0", v0::PosTrackId, v0::NegTrackId);
 using V0 = V0s::iterator;
 
-namespace cascade {
+namespace cascade
+{
 DECLARE_SOA_COLUMN(V0Id, v0Id, int, "fV0ID");
 DECLARE_SOA_COLUMN(BachelorId, bachelorId, int, "fBachelorID");
 } // namespace cascade
@@ -215,7 +219,7 @@ using Casecade = Cascades::iterator;
 
 namespace collision
 {
-  // DECLARE_SOA_COLUMN(TimeframeId, timeframeId, uint64_t, "timeframeID");
+// DECLARE_SOA_COLUMN(TimeframeId, timeframeId, uint64_t, "timeframeID");
 DECLARE_SOA_COLUMN(VtxId, vtxId, int, "fEventId");
 DECLARE_SOA_COLUMN(PosX, posX, double, "fX");
 DECLARE_SOA_COLUMN(PosY, posY, double, "fY");
@@ -227,7 +231,7 @@ DECLARE_SOA_COLUMN(CovYY, covYY, double, "fCovYY");
 DECLARE_SOA_COLUMN(CovYZ, covYZ, double, "fCovYZ");
 DECLARE_SOA_COLUMN(CovZZ, covZZ, double, "fCovZZ");
 DECLARE_SOA_COLUMN(Chi2, chi2, double, "fChi2");
-DECLARE_SOA_COLUMN(NumContrib, numContrib, uint32_t , "fN");
+DECLARE_SOA_COLUMN(NumContrib, numContrib, uint32_t, "fN");
 DECLARE_SOA_COLUMN(EventTime, eventTime, double, "fEventTime");
 DECLARE_SOA_COLUMN(EventTimeRes, eventTimeRes, double, "fEventTimeRes");
 DECLARE_SOA_COLUMN(EventTimeMask, eventTimeMask, uint8_t, "fEventTimeMask");
