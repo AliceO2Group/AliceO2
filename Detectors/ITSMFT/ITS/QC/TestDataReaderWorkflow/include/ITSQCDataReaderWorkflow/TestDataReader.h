@@ -110,9 +110,10 @@ class TestDataReader : public Task
   std::vector<std::array<unsigned int, sNError>> mErrorsVec;
   std::vector<std::array<unsigned int, sNError>> mErrorsVecTest;
   //  int pos;
-  //  int j;
+  int j;
   int mFileDone;
   int mFileID;
+  int mEpNumber;
   int mRunNumber;
   int mTrackError;
   int mIndexPushEx;
