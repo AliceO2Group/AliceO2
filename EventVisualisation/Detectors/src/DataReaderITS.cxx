@@ -15,10 +15,12 @@
 /// \author p.nowakowski@cern.ch
 
 #include "EventVisualisationDetectors/DataReaderITS.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
+
 #include <TTree.h>
 #include <TVector2.h>
 #include <TError.h>
-#include "DataFormatsITSMFT/ROFRecord.h"
+
 
 namespace o2
 {
@@ -37,10 +39,10 @@ void DataReaderITS::open()
   TTree* rofc = (TTree*)this->mClusFile->Get("ITSClustersROF");
 
   if (roft != nullptr && rofc != nullptr) {
-    TTree* tracks = (TTree*)this->mTracFile->Get("o2sim");
+    // TTree* tracks = (TTree*)this->mTracFile->Get("o2sim");
     TTree* tracksRof = (TTree*)this->mTracFile->Get("ITSTracksROF");
 
-    TTree* clusters = (TTree*)this->mClusFile->Get("o2sim");
+    // TTree* clusters = (TTree*)this->mClusFile->Get("o2sim");
     TTree* clustersRof = (TTree*)this->mClusFile->Get("ITSClustersROF");
 
     //Read all track RO frames to a buffer

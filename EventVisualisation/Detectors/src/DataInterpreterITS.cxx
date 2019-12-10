@@ -13,11 +13,14 @@
 /// \author julian.myrcha@cern.ch
 /// \author p.nowakowski@cern.ch
 
-#include "EventVisualisationDetectors/DataInterpreterITS.h"
-
 #include "EventVisualisationBase/ConfigurationManager.h"
-
+#include "EventVisualisationDetectors/DataInterpreterITS.h"
 #include "EventVisualisationDataConverter/VisualisationEvent.h"
+
+#include "DataFormatsITS/TrackITS.h"
+#include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
+#include "ITSBase/GeometryTGeo.h"
 
 #include <TEveManager.h>
 #include <TEveTrackPropagator.h>
@@ -27,12 +30,6 @@
 #include <TTree.h>
 #include <TVector2.h>
 
-#include "DataFormatsITS/TrackITS.h"
-#include "DataFormatsITSMFT/Cluster.h"
-#include "DataFormatsITSMFT/ROFRecord.h"
-#include "ITSBase/GeometryTGeo.h"
-
-#include <iostream>
 #include <gsl/span>
 
 using namespace std;
