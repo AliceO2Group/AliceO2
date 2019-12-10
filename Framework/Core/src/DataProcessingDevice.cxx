@@ -49,9 +49,7 @@ using DataHeader = o2::header::DataHeader;
 constexpr unsigned int MONITORING_QUEUE_SIZE = 100;
 constexpr unsigned int MIN_RATE_LOGGING = 60;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegistry& registry, DeviceState& state)
@@ -736,5 +734,4 @@ void DataProcessingDevice::error(const char* msg)
   mServiceRegistry.get<Monitoring>().send(Metric{mErrorCount, "errors"}.addTag(Key::Subsystem, Value::DPL));
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

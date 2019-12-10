@@ -95,6 +95,9 @@ class DataRelayer
   void sendContextState();
   void publishMetrics();
 
+  /// Remove all pending messages
+  void clear();
+
  private:
   monitoring::Monitoring& mMetrics;
 
