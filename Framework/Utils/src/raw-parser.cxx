@@ -51,18 +51,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 			  << dh->subSpecification << " payload size " << dh->payloadSize;
 	      }
 
-	      // there is a bug in InpuRecord::get for vectors of simple types, not catched in
-	      // DataAllocator unit test
-	      //auto data = inputs.get<std::vector<char>>(input.spec->binding.c_str());
-	      //LOG(INFO) << "data size " << data.size();
+	      auto raw = inputs.get<std::span<char>>(input.spec->binding.c_str());
 
 	      try {
-		o2::framework::RawParser parser(input.payload, dh->payloadSize);
+		o2::framework::RawParser parser(raw.data(), raw.size());
 
 		std::stringstream rdhprintout;
 		rdhprintout << parser;
 		for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-		  rdhprintout << it << ": block length " << it.length() << std::endl;
+		  rdhprintout << it << ": payload size " << it.size() << std::endl;
 		}
 		if (loglevel > 1) {
 		  LOG(INFO) << rdhprintout.str();
