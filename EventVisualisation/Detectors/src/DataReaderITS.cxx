@@ -21,7 +21,6 @@
 #include <TVector2.h>
 #include <TError.h>
 
-
 namespace o2
 {
 namespace event_visualisation
