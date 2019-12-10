@@ -298,10 +298,17 @@ bool DataProcessingDevice::ConditionalRun()
     for (auto& channel : mSpec.outputChannels) {
       DataProcessingHelpers::sendEndOfStream(*this, channel);
     }
+    // This is needed because the transport is deleted before the device.
+    mRelayer.clear();
     switchState(StreamingState::Idle);
     return true;
   }
   return true;
+}
+
+void DataProcessingDevice::ResetTask()
+{
+  mRelayer.clear();
 }
 
 /// This is the inner loop of our framework. The actual implementation
