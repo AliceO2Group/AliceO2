@@ -50,4 +50,5 @@ o2_add_executable(digitizer-workflow
                                         O2::TPCSimulation
                                         O2::TPCWorkflow
                                         O2::TRDSimulation
+                                        O2::DataFormatsTRD
                                         O2::ZDCSimulation)
