@@ -31,6 +31,7 @@ void CreateSimCondition(std::string sourceDataPath = "signal_shapes.root",
   o2::zdc::SimCondition conf;
 
   const float Gains[5] = {15.e-3, 30.e-3, 100.e-3, 15.e-3, 30.e-3}; // gain (response per photoelectron)
+  const float fudgeFactor = 2.7;                                    // ad hoc factor to tune the gain in the MC
 
   for (int ic = 0; ic < o2::zdc::NChannels; ic++) {
 
@@ -38,7 +39,7 @@ void CreateSimCondition(std::string sourceDataPath = "signal_shapes.root",
     int tower = 0;
     int det = o2::zdc::toDet(ic, tower); // detector ID for this channel
     //
-    channel.gain = Gains[det - 1];
+    channel.gain = (tower != o2::zdc::Sum) ? fudgeFactor * Gains[det - 1] : 1.0;
     //
     // at the moment we use wf_znatc histo for all channels, to be fixed when
     // more histos are created. So, we read in the loop the same histo
@@ -62,8 +63,9 @@ void CreateSimCondition(std::string sourceDataPath = "signal_shapes.root",
     if (ampMin == 0.) {
       LOG(FATAL) << "Amplitude minimum =0 for histo " << histoShapeName;
     }
+    auto ampMinAInv = 1. / std::abs(ampMin);
     for (int i = 0; i < nb; i++) {
-      channel.shape[i] /= ampMin * channel.gain;
+      channel.shape[i] *= ampMinAInv;
     }
     //
     channel.pedestal = gRandom->Gaus(1800., 30.);

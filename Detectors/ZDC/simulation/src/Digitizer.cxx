@@ -46,6 +46,8 @@ void Digitizer::process(const std::vector<o2::zdc::Hit>& hits,
                         o2::dataformats::MCTruthContainer<o2::zdc::MCLabel>& labels)
 {
   // loop over all hits and produce digits
+  LOG(DEBUG) << "Processing IR = " << mIR << " | NHits = " << hits.size();
+
   flush(digitsBC, digitsCh, labels); // flush cached signal which cannot be affect by new event
 
   for (auto& hit : hits) {
@@ -64,6 +66,12 @@ void Digitizer::process(const std::vector<o2::zdc::Hit>& hits,
     if (!nPhotons) {
       continue;
     }
+    if (nPhotons < 0 || nPhotons > 1e6) {
+      int chan = toChannel(detID, secID);
+      LOG(ERROR) << "Anomalous number of photons " << nPhotons << " for channel " << chan << '(' << channelName(chan) << ')';
+      continue;
+    }
+
     double hTime = hit.GetTime() - getTOFCorrection(detID); // account for TOF to detector
     hTime += mIR.timeNS;
     //
@@ -97,36 +105,32 @@ void Digitizer::flush(std::vector<o2::zdc::BCData>& digitsBC,
   if (nCached < 1) {
     return;
   }
-  std::array<float, NChannels> pedestal;
+  if (mIR.differenceInBC(mCache.back()) > -BCCacheMin) {
+    LOG(DEBUG) << "Generating new pedestal BL fluct. for BC range " << mCache.front() << " : " << mCache.back();
+    generatePedestal();
+  } else {
+    return;
+  }
   o2::InteractionRecord ir0(mCache.front());
   int cacheSpan = 1 + mCache.back().differenceInBC(ir0);
   LOG(DEBUG) << "Cache spans " << cacheSpan << " with " << nCached << " BCs cached";
+
   mFastCache.clear();
   mFastCache.resize(cacheSpan, nullptr);
   mStoreChanMask.clear();
   mStoreChanMask.resize(cacheSpan + mNBCAHead, 0);
+
   for (int ibc = nCached; ibc--;) { // digitize BCs which might not be affected by future events
     auto& bc = mCache[ibc];
-    int diff = mIR.differenceInBC(bc);
-    if (diff > -BCCacheMin) { // ignore BC's which might be affected by future events
-      if (lastDoneBCid < 0) {
-        lastDoneBCid = ibc;
-        diff2Last = diff;
-        generatePedestal(pedestal);
-      }
-      if (!bc.digitized) {
-        digitizeBC(bc, pedestal);
-      }
-      int bcSlot = mCache[ibc].differenceInBC(ir0);
-      mFastCache[bcSlot] = &mCache[ibc]; // add to fast access cache
+    lastDoneBCid = ibc;
+    if (!bc.digitized) {
+      digitizeBC(bc);
     }
+    int bcSlot = mCache[ibc].differenceInBC(ir0);
+    mFastCache[bcSlot] = &mCache[ibc]; // add to fast access cache
   }
-  if (lastDoneBCid < 0) {
-    return; // nothing to process
-  }
-  for (int ich = NChannels; ich--;) {
-    mDummyBC.data[ich].fill(pedestal[ich]); // prepare dummy BC, note: the dummy IR to be fixed at filling time
-  }
+  mDummyBC.clear();
+  digitizeBC(mDummyBC);
 
   // check trigger condition for digitized BCs
   for (int ibc = 0; ibc < cacheSpan; ibc++) {
@@ -152,40 +156,59 @@ void Digitizer::flush(std::vector<o2::zdc::BCData>& digitsBC,
   } // all allowed BCs are checked for trigger
 
   // clean cache for BCs which are not needed anymore
-  int lastIDToClean = std::min(lastDoneBCid, lastDoneBCid + diff2Last - mNBCAHead);
-  LOG(DEBUG) << "Cleaning " << lastIDToClean + 1 << " cache entries from " << mCache.size();
-  mCache.erase(mCache.begin(), mCache.begin() + lastIDToClean + 1);
+  LOG(DEBUG) << "Cleaning cache";
+  mCache.erase(mCache.begin(), mCache.end());
 }
 
-void Digitizer::generatePedestal(std::array<float, NChannels>& pedestals) const
+void Digitizer::generatePedestal()
 {
   for (int idet : {ZNA, ZPA, ZNC, ZPC}) {
     int chanSum = toChannel(idet, Sum);
-    pedestals[chanSum] = 0.;
+    mPedestalBLFluct[chanSum] = 0.;
     int comm = toChannel(idet, Common);
-    pedestals[comm] = gRandom->Gaus(0, mSimCondition->channels[comm].pedestalFluct);
+    mPedestalBLFluct[comm] = gRandom->Gaus(0, mSimCondition->channels[comm].pedestalFluct);
     for (int ic : {Ch1, Ch2, Ch3, Ch4}) {
       int chan = toChannel(idet, ic);
-      pedestals[chanSum] += pedestals[chan] = gRandom->Gaus(0, mSimCondition->channels[chan].pedestalFluct);
+      mPedestalBLFluct[chanSum] += mPedestalBLFluct[chan] = gRandom->Gaus(0, mSimCondition->channels[chan].pedestalFluct);
     }
   }
-  pedestals[IdZEM1] = gRandom->Gaus(0, mSimCondition->channels[IdZEM1].pedestalFluct);
-  pedestals[IdZEM2] = gRandom->Gaus(0, mSimCondition->channels[IdZEM2].pedestalFluct);
+  mPedestalBLFluct[IdZEM1] = gRandom->Gaus(0, mSimCondition->channels[IdZEM1].pedestalFluct);
+  mPedestalBLFluct[IdZEM2] = gRandom->Gaus(0, mSimCondition->channels[IdZEM2].pedestalFluct);
 }
 
-void Digitizer::digitizeBC(BCCache& bc, const std::array<float, NChannels>& pedestals) const
+void Digitizer::digitizeBC(BCCache& bc)
 {
   auto& bcdata = bc.data;
+  // apply gain
+  for (int idet : {ZNA, ZPA, ZNC, ZPC}) {
+    for (int ic : {Ch1, Ch2, Ch3, Ch4}) {
+      int chan = toChannel(idet, ic);
+      auto gain = mSimCondition->channels[chan].gain;
+      for (int ib = NTimeBinsPerBC; ib--;) {
+        bcdata[chan][ib] *= gain;
+      }
+    }
+  }
   for (int ib = NTimeBinsPerBC; ib--;) {
-    bcdata[IdZNASum][ib] = bcdata[IdZNA1][ib] + bcdata[IdZNA2][ib] + bcdata[IdZNA3][ib] + bcdata[IdZNA4][ib];
-    bcdata[IdZPASum][ib] = bcdata[IdZPA1][ib] + bcdata[IdZPA2][ib] + bcdata[IdZPA3][ib] + bcdata[IdZPA4][ib];
-    bcdata[IdZNCSum][ib] = bcdata[IdZNC1][ib] + bcdata[IdZNC2][ib] + bcdata[IdZNC3][ib] + bcdata[IdZNC4][ib];
-    bcdata[IdZPCSum][ib] = bcdata[IdZPC1][ib] + bcdata[IdZPC2][ib] + bcdata[IdZPC3][ib] + bcdata[IdZPC4][ib];
+    bcdata[IdZEM1][ib] *= mSimCondition->channels[IdZEM1].gain;
+    bcdata[IdZEM2][ib] *= mSimCondition->channels[IdZEM2].gain;
+  }
+  //
+  for (int ib = NTimeBinsPerBC; ib--;) {
+    bcdata[IdZNASum][ib] = mSimCondition->channels[IdZNASum].gain *
+                           (bcdata[IdZNA1][ib] + bcdata[IdZNA2][ib] + bcdata[IdZNA3][ib] + bcdata[IdZNA4][ib]);
+    bcdata[IdZPASum][ib] = mSimCondition->channels[IdZPASum].gain *
+                           (bcdata[IdZPA1][ib] + bcdata[IdZPA2][ib] + bcdata[IdZPA3][ib] + bcdata[IdZPA4][ib]);
+    bcdata[IdZNCSum][ib] = mSimCondition->channels[IdZNCSum].gain *
+                           (bcdata[IdZNC1][ib] + bcdata[IdZNC2][ib] + bcdata[IdZNC3][ib] + bcdata[IdZNC4][ib]);
+    bcdata[IdZPCSum][ib] = mSimCondition->channels[IdZPCSum].gain *
+                           (bcdata[IdZPC1][ib] + bcdata[IdZPC2][ib] + bcdata[IdZPC3][ib] + bcdata[IdZPC4][ib]);
   }
   for (int chan = NChannels; chan--;) {
     const auto& chanConf = mSimCondition->channels[chan];
+    auto pedBaseLine = mSimCondition->channels[chan].pedestal;
     for (int ib = NTimeBinsPerBC; ib--;) {
-      bcdata[chan][ib] += gRandom->Gaus(pedestals[chan], chanConf.pedestalNoise);
+      bcdata[chan][ib] += gRandom->Gaus(pedBaseLine + mPedestalBLFluct[chan], chanConf.pedestalNoise);
       int adc = std::nearbyint(bcdata[chan][ib]);
       bcdata[chan][ib] = adc < ADCMax ? (adc > ADCMin ? adc : ADCMin) : ADCMax;
     }
@@ -193,11 +216,12 @@ void Digitizer::digitizeBC(BCCache& bc, const std::array<float, NChannels>& pede
   bc.digitized = true;
 }
 
-void Digitizer::triggerBC(int ibc)
+bool Digitizer::triggerBC(int ibc)
 {
   // check trigger for the cached BC in the position ibc
   auto& bcCached = *mFastCache[ibc];
-  LOG(DEBUG) << "CHECK TRIGGER " << ibc;
+
+  LOG(DEBUG) << "CHECK TRIGGER " << ibc << " IR=" << bcCached;
   if (mIsContinuous) {
     for (int ic = mTriggerConfig.size(); ic--;) {
       const auto& trigCh = mTriggerConfig[ic];
@@ -213,7 +237,7 @@ void Digitizer::triggerBC(int ibc)
         bool ok = bcF.data[trigCh.id][binF] - bcL.data[trigCh.id][binL] > trigCh.threshold;
         if (ok && okPrev) {                          // trigger ok!
           bcCached.trigChanMask |= 0x1 << trigCh.id; // register trigger mask
-          LOG(DEBUG) << " triggering channel " << trigCh.id << " => " << bcCached.trigChanMask;
+          LOG(DEBUG) << " triggering channel " << int(trigCh.id) << " => " << bcCached.trigChanMask;
           break;
         }
         okPrev = ok;
@@ -238,6 +262,7 @@ void Digitizer::triggerBC(int ibc)
     }
   }
   bcCached.triggerChecked = true;
+  return bcCached.trigChanMask;
 }
 
 void Digitizer::storeBC(const BCCache& bc, uint32_t chan2Store,
@@ -279,6 +304,7 @@ void Digitizer::phe2Sample(int nphe, int parID, double timeHit, std::array<o2::I
   int sample = (timeDiff - gRandom->Gaus(chanConfig.timePosition, chanConfig.timeJitter)) * ChannelSimCondition::ShapeBinWidthInv + chanConfig.ampMinID;
   int ir = 0;
   bool stop = false;
+
   do {
     auto bcCache = getBCCache(cachedIR[ir]);
     bool added = false;
@@ -384,7 +410,11 @@ void Digitizer::refreshCCDB()
             }
             if (!skip) {
               const auto& trgChanConf = md.trigChannelConf[ic];
+              if (trgChanConf.last + trgChanConf.shift + 1 >= NTimeBinsPerBC) {
+                LOG(FATAL) << "Wrong trigger settings";
+              }
               mTriggerConfig.emplace_back(trgChanConf);
+              LOG(INFO) << "Adding channel " << int(trgChanConf.id) << '(' << channelName(trgChanConf.id) << ") as triggering one";
               if (trgChanConf.first < mTrigBinMin) {
                 mTrigBinMin = trgChanConf.first;
               }
@@ -404,5 +434,20 @@ void Digitizer::refreshCCDB()
     mSimCondition = mgr.get<SimCondition>(CCDBPathConfigSim);
     LOG(INFO) << "Loaded simulation configuration for timestamp " << mTimeStamp;
     mSimCondition->print();
+  }
+}
+
+//______________________________________________________________
+void Digitizer::BCCache::print() const
+{
+  std::bitset<NChannels> tmsk(trigChanMask);
+  printf("Cached Orbit:%5d/BC:%4d | digitized:%d  triggerChecked:%d (trig.: %s)\n",
+         orbit, bc, digitized, triggerChecked, tmsk.to_string().c_str());
+  for (int ic = 0; ic < NChannels; ic++) {
+    printf("Ch[%d](%s) | ", ic, channelName(ic));
+    for (int ib = 0; ib < NTimeBinsPerBC; ib++) {
+      printf("%+8.1f ", data[ic][ib]);
+    }
+    printf("\n");
   }
 }
