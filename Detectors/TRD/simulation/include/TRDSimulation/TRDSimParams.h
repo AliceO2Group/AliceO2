@@ -24,8 +24,8 @@ namespace trd
 // Global parameters for TRD simulation / digitization
 struct TRDSimParams : public o2::conf::ConfigurableParamHelper<TRDSimParams> {
 
-  int digithreads = 4;  // number of digitizer threads
-  
+  int digithreads = 4; // number of digitizer threads
+
   O2ParamDef(TRDSimParams, "TRDSimParams");
 };
 
