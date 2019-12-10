@@ -23,10 +23,8 @@
 #include "EventVisualisationView/MultiView.h"
 #include "EventVisualisationBase/VisualisationConstants.h"
 #include "EventVisualisationBase/DataSourceOffline.h"
-#include "EventVisualisationDetectors/DataReaderVSD.h"
-#include "EventVisualisationBase/EventRegistration.h"
-#include "EventVisualisationDetectors/DataInterpreterVSD.h"
-#include "EventVisualisationDetectors/DataInterpreterRND.h"
+#include "EventVisualisationDetectors/DataReaderTPC.h"
+#include "EventVisualisationDetectors/DataInterpreterTPC.h"
 #include "EventVisualisationView/EventManagerFrame.h"
 #include "FairLogger.h"
 
@@ -58,11 +56,7 @@ void Initializer::setup(const Options options, EventManager::EDataSource default
   eventManager.setDataSourceType(defaultDataSource);
   eventManager.setCdbPath(ocdbStorage);
 
-  EventRegistration::setInstance(MultiView::getInstance());
-  if (options.randomTracks)
-    DataInterpreter::setInstance(new DataInterpreterRND(), EVisualisationGroup::RND);
-  if (options.vsd)
-    DataInterpreter::setInstance(new DataInterpreterVSD(), EVisualisationGroup::VSD);
+  eventManager.registerDetector(new DataReaderTPC(), new DataInterpreterTPC(), EVisualisationGroup::TPC);
 
   eventManager.setDataSourceType(EventManager::EDataSource::SourceOffline);
   eventManager.Open();
@@ -97,7 +91,7 @@ void Initializer::setup(const Options options, EventManager::EDataSource default
   // For the time being we draw single random event on startup.
   // Later this will be triggered by button, and finally moved to configuration.
   gEve->AddEvent(&EventManager::getInstance());
-  //  MultiView::getInstance()->drawRandomEvent();
+
   frame->DoFirstEvent();
 }
 
