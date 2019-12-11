@@ -369,9 +369,9 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     mCurrentHitsIndices[detector - 1][sector] = mHits->size() - 1;
 
     mXImpact = xImp;
-    printf("### NEW HIT CREATED in vol %d %d for track %d (mother: %d) \t E %f  light %1.0f %1.0f\n",
-      //detector, sector, trackn, stack->GetCurrentTrack()->GetMother(0), eDep, mTotLightPMC, mTotLightPMQ);
-      detector, sector, trackn, stack->GetCurrentTrack()->GetFirstMother(), eDep, mTotLightPMC, mTotLightPMQ);
+    printf("### NEW HIT CREATED in vol %d %d for track %d (mother: %d) \t light %1.0f %1.0f\n",
+      //detector, sector, trackn, stack->GetCurrentTrack()->GetMother(0), mTotLightPMC, mTotLightPMQ);
+      detector, sector, trackn, stack->GetCurrentTrack()->GetFirstMother(), mTotLightPMC, mTotLightPMQ);
     return true;
 
   } else {
@@ -384,14 +384,13 @@ Bool_t Detector::ProcessHits(FairVolume* v)
       mTotLightPMQ += nphe;
     }
     float incenloss = curHit.GetEnergyLoss() + eDep;
-    //if (eDep > 0 || nphe > 0) {
     if (nphe > 0) {
       curHit.SetEnergyLoss(incenloss);
       curHit.setPMCLightYield(mTotLightPMC);
       curHit.setPMQLightYield(mTotLightPMQ);
-      printf("  >>> Hit updated in vol %d %d  for track %d (mother: %d) \t E %f  light %1.0f %1.0f \n",
-        detector, sector, trackn, stack->GetCurrentTrack()->GetFirstMother(), incenloss, mTotLightPMC, mTotLightPMQ);
-        //detector, sector, trackn, stack->GetCurrentTrack()->GetMother(0), incenloss, mTotLightPMC, mTotLightPMQ);
+      printf("  >>> Hit updated in vol %d %d  for track %d (mother: %d) \t light %1.0f %1.0f \n",
+        detector, sector, trackn, stack->GetCurrentTrack()->GetFirstMother(), mTotLightPMC, mTotLightPMQ);
+        //detector, sector, trackn, stack->GetCurrentTrack()->GetMother(0), mTotLightPMC, mTotLightPMQ);
     }
     return true;
   }
@@ -400,7 +399,8 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
 //_____________________________________________________________________________
 o2::zdc::Hit* Detector::addHit(Int_t trackID, Int_t parentID, Int_t sFlag, Float_t primaryEnergy, Int_t detID,
-                               Int_t secID, Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Vector3D<float> xImpact, Double_t energyloss, Int_t nphePMC, Int_t nphePMQ)
+                               Int_t secID, Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Vector3D<float> xImpact,
+                               Double_t energyloss, Int_t nphePMC, Int_t nphePMQ)
 {
   LOG(DEBUG4) << "Adding hit for track " << trackID << " X (" << pos.X() << ", " << pos.Y() << ", "
               << pos.Z() << ") P (" << mom.X() << ", " << mom.Y() << ", " << mom.Z() << ")  Ekin "

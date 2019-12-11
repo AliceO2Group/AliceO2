@@ -9,27 +9,25 @@
 *
 * ZDC
 * ===
-* 
+*
 *   Med  GAM   ELEC  NHAD  CHAD  MUON  EBREM MUHAB EDEL  MUDEL MUPA ANNI BREM COMP DCAY DRAY HADR LOSS MULS PAIR PHOT RAYL STRA
 * W alloy
-ZDC  1   1e-3  1e-3  1e-2  1e-2
+ZDC  kWalloy   1e-3  1e-3  1e-2  1e-2
 * brass
-ZDC  2   1e-3  1e-3  1e-2  1e-2
+ZDC  kCuZn   1e-3  1e-3  1e-2  1e-2
 * Si02 (I)
-ZDC  3   1e-3  1e-3  1e-3  1e-3  0.01  1e-3  1e-3  -1     -1  -1     0    0    0    0   0     0   1     0    0    0   0
+ZDC  kSiO2pmc   1e-3  1e-3  1e-3  1e-3  0.01  1e-3  1e-3  -1     -1  -1     0    0    0    0   0     0   1     0    0    0   0
 * Si02 (II)
-ZDC  4   1e-3  1e-3  1e-3  1e-3  0.01  1e-3  1e-3  -1     -1  -1     0    0    0    0   0     0   1     0    0    0   0
+ZDC  kSiO2pmq   1e-3  1e-3  1e-3  1e-3  0.01  1e-3  1e-3  -1     -1  -1     0    0    0    0   0     0   1     0    0    0   0
 * Pb
-ZDC  5   1e-3  1e-3  1e-2  1e-2
+ZDC  kPb   1e-3  1e-3  1e-2  1e-2
 * Cu (to avoid too detailed showering in TDI)
-ZDC  6   .1  .1  1.  1.
+ZDC  kCu   .1  .1  1.  1.
 * Fe with energy loss and high thresholds (beam pipe)
-ZDC  7   .1  .1  1.  1.
+ZDC  kFe   .1  .1  1.  1.
 * Fe with energy loss and low threshold (recombination chamber)
-ZDC  8   1e-3  1e-3  1e-2  1e-2
+ZDC  kFeLowTh   1e-3  1e-3  1e-2  1e-2
 * Cu (luminometer)
-ZDC  9   1e-3  1e-3  1e-2  1e-2
+ZDC  kCuLumi   1e-3  1e-3  1e-2  1e-2
 * void with field
-ZDC  11  1e-3  1e-3  1e-3  1e-3  0.01  1e-3  1e-3  -1     -1  -1     0    0    0    0   0     0   0     0    0    0   0
-* Graphite
-ZDC  14  .1  .1  1.  1.
+ZDC  kVoidwField  1e-3  1e-3  1e-3  1e-3  0.01  1e-3  1e-3  -1     -1  -1     0    0    0    0   0     0   0     0    0    0   0
