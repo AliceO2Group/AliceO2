@@ -66,6 +66,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           auto aBoolean3 = ic.options().get<bool>("a-boolean3");
           auto anInt = ic.options().get<int>("an-int");
           auto anInt2 = ic.options().get<int>("an-int2");
+          auto anInt64 = ic.options().get<int64_t>("an-int64");
+          auto anInt64_2 = ic.options().get<int64_t>("an-int64-2");
           auto aDouble = ic.options().get<double>("a-double");
           auto aDouble2 = ic.options().get<double>("a-double2");
 
@@ -74,6 +76,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           ASSERT_ERROR(aBoolean3 == true);
           ASSERT_ERROR(anInt == 10);
           ASSERT_ERROR(anInt2 == 20);
+          ASSERT_ERROR(anInt64 == 1l);
+          ASSERT_ERROR(anInt64_2 == 50000000000000l);
           ASSERT_ERROR(aDouble == 11.);
           ASSERT_ERROR(aDouble2 == 22.);
           ASSERT_ERROR(configstring == "consumer-config");
@@ -93,6 +97,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         ConfigParamSpec{"a-boolean3", VariantType::Bool, false, {"Another boolean which we pick from the outside options"}},
         ConfigParamSpec{"an-int", VariantType::Int, 10, {"An int for which we pick up the default"}},
         ConfigParamSpec{"an-int2", VariantType::Int, 1, {"An int for which we pick up the override"}},
+        ConfigParamSpec{"an-int64", VariantType::Int64, 1l, {"An int64 for which we pick up the default"}},
+        ConfigParamSpec{"an-int64-2", VariantType::Int64, 2l, {"An int64 for which we pick up the override"}},
         ConfigParamSpec{"a-double", VariantType::Double, 11., {"A double for which we pick up the override"}},
         ConfigParamSpec{"a-double2", VariantType::Double, 12., {"A double for which we pick up the override"}},
       },
