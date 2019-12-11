@@ -94,7 +94,7 @@ using TrackExtra = TracksExtra::iterator;
 
 namespace calo
 {
-DECLARE_SOA_COLUMN(CollisionId, collisionId, int32_t, "fCollisionID");
+DECLARE_SOA_COLUMN(CollisionId, collisionId, int32_t, "fCollisionsID");
 DECLARE_SOA_COLUMN(CellNumber, cellNumber, int64_t, "fCellNumber");
 DECLARE_SOA_COLUMN(Amplitude, amplitude, float, "fAmplitude");
 DECLARE_SOA_COLUMN(Time, time, float, "fTime");
@@ -108,7 +108,7 @@ using Calo = Calos::iterator;
 
 namespace calotrigger
 {
-DECLARE_SOA_COLUMN(CollisionId, collisionId, int32_t, "fCollisionID");
+DECLARE_SOA_COLUMN(CollisionId, collisionId, int32_t, "fCollisionsID");
 DECLARE_SOA_COLUMN(FastorAbsId, fastorAbsId, int32_t, "fFastorAbsID");
 DECLARE_SOA_COLUMN(L0Amplitude, l0Amplitude, float, "fL0Amplitude");
 DECLARE_SOA_COLUMN(L0Time, l0Time, float, "fL0Time");
@@ -124,7 +124,7 @@ using CaloTrigger = CaloTriggers::iterator;
 
 namespace muon
 {
-DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fCollisionID");
+DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fCollisionsID");
 DECLARE_SOA_COLUMN(InverseBendingMomentum, inverseBendingMomentum, float, "fInverseBendingMomentum");
 DECLARE_SOA_COLUMN(ThetaX, thetaX, float, "fThetaX");
 DECLARE_SOA_COLUMN(ThetaY, thetaY, float, "fThetaY");
@@ -166,7 +166,7 @@ using MuonCluster = MuonClusters::iterator;
 
 namespace zdc
 {
-DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fCollisionID");
+DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fCollisionsID");
 DECLARE_SOA_COLUMN(ZEM1Energy, zem1Energy, float, "fZEM1Energy");
 DECLARE_SOA_COLUMN(ZEM2Energy, zem2Energy, float, "fZEM2Energy");
 // FIXME: arrays...
@@ -187,7 +187,7 @@ using Zdc = Zdcs::iterator;
 
 namespace vzero
 {
-DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fCollisionID");
+DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fCollisionsID");
 // FIXME: add missing arrays...
 // DECLARE_SOA_COLUMN(Adc, adc, float[64], "fAdc");
 // DECLARE_SOA_COLUMN(Time, time, float[64], "fTime");

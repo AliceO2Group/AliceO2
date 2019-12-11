@@ -366,7 +366,7 @@ struct AnalysisDataProcessorBuilder {
           using groupingMetadata = typename aod::MetadataTrait<std::decay_t<Grouping>>::metadata;
           arrow::compute::FunctionContext ctx;
           std::vector<arrow::compute::Datum> groupsCollection;
-          auto indexColumnName = std::string("fID4") + groupingMetadata::label();
+          auto indexColumnName = std::string("f") + groupingMetadata::label() + "ID";
           auto result = o2::framework::sliceByColumn(&ctx, indexColumnName,
                                                      allGroupedTable.asArrowTable(), &groupsCollection);
           if (result.ok() == false) {
