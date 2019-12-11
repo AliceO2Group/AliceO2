@@ -116,9 +116,11 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
                         RootTreeWriter::BranchDef<const char*>{"input4", "binarybranch"},
                         RootTreeWriter::BranchDef<o2::test::TriviallyCopyable>{"input6", "msgablebranch"},
                         RootTreeWriter::BranchDef<std::vector<int>>{"input6", "intvecbranch"},
-                        RootTreeWriter::BranchDef<std::vector<o2::test::TriviallyCopyable>>{"input7", "trivvecbranch"});
+                        RootTreeWriter::BranchDef<std::vector<o2::test::TriviallyCopyable>>{"input7", "trivvecbranch"},
+                        // TriviallyCopyable can be sent with either serialization methods NONE or ROOT
+                        RootTreeWriter::BranchDef<std::vector<o2::test::TriviallyCopyable>>{"input8", "srlzdvecbranch"});
 
-  BOOST_CHECK(writer.getStoreSize() == 6);
+  BOOST_CHECK(writer.getStoreSize() == 7);
 
   // need to mimic a context to actually call the processing
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
@@ -177,6 +179,7 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
   createPlainMessage(o2::header::DataHeader{"MSGABLE", "TST", 0}, msgable);
   createVectorMessage(o2::header::DataHeader{"FDMTLVEC", "TST", 0}, intvec);
   createVectorMessage(o2::header::DataHeader{"TRIV_VEC", "TST", 0}, trivvec);
+  createSerializedMessage(o2::header::DataHeader{"SRLZDVEC", "TST", 0}, trivvec);
 
   // Note: InputRecord works on references to the schema and the message vector
   // so we can not specify the schema definition directly in the definition of
@@ -192,6 +195,7 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
     {InputSpec{"input5", "TST", "MSGABLE"}, 5, "input5", 0},   //
     {InputSpec{"input6", "TST", "FDMTLVEC"}, 6, "input6", 0},  //
     {InputSpec{"input7", "TST", "TRIV_VEC"}, 7, "input7", 0},  //
+    {InputSpec{"input8", "TST", "SRLZDVEC"}, 8, "input8", 0},  //
   };
 
   auto getter = [&store](size_t i) -> char const* { return static_cast<char const*>(store[i]->GetData()); };
@@ -209,7 +213,8 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
             BranchContent<decltype(c)>{"containerbranch_1", c},
             BranchContent<decltype(msgable)>{"msgablebranch", msgable},
             BranchContent<decltype(intvec)>{"intvecbranch", intvec},
-            BranchContent<decltype(trivvec)>{"trivvecbranch", trivvec});
+            BranchContent<decltype(trivvec)>{"trivvecbranch", trivvec},
+            BranchContent<decltype(trivvec)>{"srlzdvecbranch", trivvec});
 }
 
 template <typename T>

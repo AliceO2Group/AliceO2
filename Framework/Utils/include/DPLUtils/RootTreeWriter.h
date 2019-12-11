@@ -483,11 +483,26 @@ class RootTreeWriter
     {
       using ValueType = typename value_type::value_type;
       static_assert(is_messageable<ValueType>::value, "logical error: should be correctly selected by StructureElementTypeTrait");
-      // TODO: the message can be serialized and we might need to handle this
-      auto data = context.get<gsl::span<ValueType>>(key);
-      value_type clone(data.begin(), data.end());
-      mStore[branchIdx] = &clone;
-      branch->Fill();
+      // if the value type is messagable and has a ROOT dictionary, two serialization methods are possible
+      // for the moment, the InputRecord API can not handle both with the same call
+      try {
+        // try extracting from message with serialization method NONE, throw runtime error
+        // if message is serialized
+        auto data = context.get<gsl::span<ValueType>>(key);
+        value_type clone(data.begin(), data.end());
+        mStore[branchIdx] = &clone;
+        branch->Fill();
+      } catch (const std::runtime_error& e) {
+        if constexpr (has_root_dictionary<value_type>::value == true) {
+          // try extracting from message with serialization method ROOT
+          auto data = context.get<typename std::add_pointer<value_type>::type>(key);
+          mStore[branchIdx] = const_cast<value_type*>(data.get());
+          branch->Fill();
+        } else {
+          // the type has no ROOT dictionary, re-throw exception
+          throw e;
+        }
+      }
     }
 
     // process previous stage and this stage
