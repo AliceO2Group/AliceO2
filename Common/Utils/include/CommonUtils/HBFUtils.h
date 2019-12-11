@@ -146,7 +146,7 @@ inline o2::header::RAWDataHeaderV4 HBFUtils::createRDH<o2::header::RAWDataHeader
   rdh.heartbeatOrbit = rec.orbit;
   //
   if (rec.bc == mFirstIR.bc) { // if we are starting new HB, set the HB trigger flag
-    rdh.triggerType |= o2::trigger::HB;
+    rdh.triggerType |= o2::trigger::ORBIT | o2::trigger::HB;
     if (tfhb.second == 0) { // if we are starting new TF, set the TF trigger flag
       rdh.triggerType |= o2::trigger::TF;
     }
@@ -165,7 +165,7 @@ inline o2::header::RAWDataHeaderV5 HBFUtils::createRDH<o2::header::RAWDataHeader
   rdh.orbit = rec.orbit;
   //
   if (rec.bc == mFirstIR.bc) { // if we are starting new HB, set the HB trigger flag
-    rdh.triggerType |= o2::trigger::HB;
+    rdh.triggerType |= o2::trigger::ORBIT | o2::trigger::HB;
     if (tfhb.second == 0) { // if we are starting new TF, set the TF trigger flag
       rdh.triggerType |= o2::trigger::TF;
     }
