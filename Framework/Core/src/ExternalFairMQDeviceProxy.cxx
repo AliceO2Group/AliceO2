@@ -41,7 +41,34 @@ void sendOnChannel(FairMQDevice& device, FairMQParts& messages, std::string cons
   // array of channels, the index is 0 in the call
   constexpr auto index = 0;
   LOG(DEBUG) << "sending " << messages.Size() << " messages on " << channel;
-  device.Send(messages, channel, index);
+  // TODO: we can make this configurable
+  const int maxTimeout = 10000;
+  int timeout = 0;
+  // try dispatch with increasing timeout in order to also drop a warning if the dispatching
+  // has been tried multiple times within max timeout
+  // since we do not want any messages to be dropped at this stage, we stay in the loop until
+  // the downstream congestion is resolved
+  // TODO: we might want to treat this error condition some levels higher up, but for
+  // the moment its an appropriate solution. The important thing is not to drop
+  // messages and to be informed about the congestion.
+  while (device.Send(messages, channel, index, timeout) < 0) {
+    if (timeout == 0) {
+      timeout = 1;
+    } else if (timeout < maxTimeout) {
+      timeout *= 10;
+    } else {
+      LOG(ERROR) << "failed to dispatch messages on channel " << channel << ", downstream queue might be full\n"
+                 << "or unconnected. No data is dropped, keep on trying, but this will hold the reading from\n"
+                 << "the input and expose back-pressure upstream. RESOLVE DOWNSTREAM CONGESTION to continue";
+      if (timeout == maxTimeout) {
+        // we add 1ms to disable the warning below
+        timeout += 1;
+      }
+    }
+  }
+  if (timeout > 0 && timeout <= maxTimeout) {
+    LOG(WARNING) << "dispatching on channel " << channel << "was delayed by " << timeout << " ms";
+  }
   // TODO: feeling this is a bit awkward, but the interface of FairMQParts does not provide a
   // method to clear the content.
   // Maybe the FairMQ API can be improved at some point. Actually the ownership of all messages should be passed
@@ -82,7 +109,7 @@ void sendOnChannel(FairMQDevice& device, o2::header::Stack&& headerStack, FairMQ
     FairMQParts out;
     out.AddPart(std::move(headerMessage));
     out.AddPart(std::move(payloadMessage));
-    device.Send(out, channelName, 0);
+    sendOnChannel(device, out, channelName);
     return;
   }
   LOG(ERROR) << "internal mismatch, can not find channel " << channelName << " in the list of channel infos of the device";
