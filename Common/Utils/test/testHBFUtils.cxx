@@ -30,6 +30,8 @@ BOOST_AUTO_TEST_CASE(HBFUtils)
   using RDH = o2::header::RAWDataHeaderV5;
   using IR = o2::InteractionRecord;
 
+  const bool useContinuous = true;
+
   o2::steer::InteractionSampler irSampler;
   irSampler.setInteractionRate(12000); // ~1.5 interactions per orbit
   irSampler.init();
@@ -55,11 +57,13 @@ BOOST_AUTO_TEST_CASE(HBFUtils)
     std::bitset<32> trig(rdh.triggerType);
     int hbfID = sampler.getHBF(rdhIR);
     auto tfhb = sampler.getTFandHBinTF(rdhIR);
+    static bool firstCall = true;
 
-    printf("%s HBF%4d (TF%3d/HB%3d) Sz:%4d| HB Orbit/BC :%4d/%4d Trigger: %s Packet: %3d Page: %3d Stop: %d\n",
-           rdh.stop ? "Close" : "Open ",
-           hbfID, tfhb.first, tfhb.second, rdh.memorySize, rdhIR.orbit, rdhIR.bc, trig.to_string().c_str(),
-           rdh.packetCounter, int(rdh.pageCnt), int(rdh.stop));
+    printf("%s HBF%4d (TF%3d/HB%3d) Sz:%4d| HB Orbit/BC :%4d/%4d Trigger:(0x%08x) %s Packet: %3d Page: %3d Stop: %d\n",
+           rdh.stop ? "Close" : "Open ", hbfID, tfhb.first, tfhb.second, rdh.memorySize, rdhIR.orbit, rdhIR.bc,
+           int(rdh.triggerType), trig.to_string().c_str(), rdh.packetCounter, int(rdh.pageCnt), int(rdh.stop));
+    bool sox = (rdh.triggerType & o2::trigger::SOC || rdh.triggerType & o2::trigger::SOT);
+
     if (rdh.stop) {
       nHBFClose++;
     } else {
@@ -67,14 +71,18 @@ BOOST_AUTO_TEST_CASE(HBFUtils)
       if (rdh.triggerType & o2::trigger::TF) {
         nTF++;
       }
-      if (rdh.triggerType & o2::trigger::HB) {
+      if (rdh.triggerType & (o2::trigger::ORBIT | o2::trigger::HB)) {
         nHBF++;
       }
       if (empty) {
         nHBFEmpty++;
       }
+      BOOST_CHECK(firstCall == sox);
+      firstCall = false;
     }
   };
+
+  bool flagSOX = true; // the 1st RDH must provide readout mode: SOT or SOC
 
   for (int i = 0; i < nIRs; i++) {
     int nHBF = sampler.fillHBIRvector(HBIRVec, irFrom, irs[i]);
@@ -93,7 +101,12 @@ BOOST_AUTO_TEST_CASE(HBFUtils)
         rdh.memorySize = sizeof(rdh);
         rdh.offsetToNext = sizeof(rdh);
 
+        if (flagSOX) {
+          rdh.triggerType |= useContinuous ? o2::trigger::SOC : o2::trigger::SOT;
+          flagSOX = false;
+        }
         flushRDH(); // open empty HBH
+        rdh.packetCounter = packetCounter++;
         rdh.stop = 0x1;
         rdh.pageCnt++;
         flushRDH(); // close empty HBF
@@ -105,6 +118,7 @@ BOOST_AUTO_TEST_CASE(HBFUtils)
       rdh.memorySize = sizeof(rdh) + 16 + gRandom->Integer(8192 - sizeof(rdh) - 16); // random payload
       rdh.offsetToNext = rdh.memorySize;
       flushRDH();     // open non-empty HBH
+      rdh.packetCounter = packetCounter++;
       rdh.stop = 0x1; // flag that it should be closed
       rdh.pageCnt++;
     }
