@@ -288,7 +288,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     if ((mLastPrincipalTrackEntered == -1) || !(stack->isTrackDaughterOf(trackn, mLastPrincipalTrackEntered))) {
       mLastPrincipalTrackEntered = trackn;
       resetHitIndices();
-      printf(">>> RESETTING HITS!!!!\n\n");
+      //printf(">>> RESETTING HITS!!!!\n\n");
 
       // there is nothing more to do here as we are not
       // in the fiber volumes
@@ -304,7 +304,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     // if we come here we are definitely in a sensitive volume !!
     mLastPrincipalTrackEntered = trackn;
     resetHitIndices();
-    printf(" Problem with principal track detection\n >>> RESETTING HITS!!!!\n");
+    //printf(" Problem with principal track detection\n >>> RESETTING HITS!!!!\n");
   }
 
   Float_t p[3] = {0., 0., 0.};
@@ -388,9 +388,8 @@ Bool_t Detector::ProcessHits(FairVolume* v)
       curHit.SetEnergyLoss(incenloss);
       curHit.setPMCLightYield(mTotLightPMC);
       curHit.setPMQLightYield(mTotLightPMQ);
-      printf("  >>> Hit updated in vol %d %d  for track %d (mother: %d) \t light %1.0f %1.0f \n",
-        detector, sector, trackn, stack->GetCurrentTrack()->GetFirstMother(), mTotLightPMC, mTotLightPMQ);
-        //detector, sector, trackn, stack->GetCurrentTrack()->GetMother(0), mTotLightPMC, mTotLightPMQ);
+      //printf("  >>> Hit updated in vol %d %d  for track %d (mother: %d) \t light %1.0f %1.0f \n",
+        //detector, sector, trackn, stack->GetCurrentTrack()->GetFirstMother(), mTotLightPMC, mTotLightPMQ);
     }
     return true;
   }
