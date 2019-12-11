@@ -16,6 +16,7 @@
 
 #include "Framework/TableBuilder.h"
 #include "Framework/RootTableBuilderHelpers.h"
+#include "Framework/ASoA.h"
 #include "../src/ArrowDebugHelpers.h"
 
 #include <ROOT/RDataFrame.hxx>
@@ -101,4 +102,90 @@ BOOST_AUTO_TEST_CASE(RootTree2Table)
       BOOST_CHECK_EQUAL(*(ptr + offset + 1), i + 1);
     }
   }
+}
+
+namespace o2::aod
+{
+DECLARE_SOA_STORE();
+namespace test
+{
+DECLARE_SOA_COLUMN(Px, px, float, "px");
+DECLARE_SOA_COLUMN(Py, py, float, "py");
+DECLARE_SOA_COLUMN(Pz, pz, float, "pz");
+DECLARE_SOA_COLUMN(Random, random, double, "random");
+DECLARE_SOA_COLUMN(Ev, ev, int, "ev");
+} // namespace test
+
+DECLARE_SOA_TABLE(Test, "AOD", "ETAPHI",
+                  test::Px, test::Py, test::Pz,
+                  test::Random, test::Ev);
+} // namespace o2::aod
+
+BOOST_AUTO_TEST_CASE(RootTree2TableViaASoA)
+{
+  using namespace o2::framework;
+  /// Create a simple TTree
+  TTree t2("t2", "a simple Tree with simple variables");
+  Float_t xyz[3];
+  Int_t ij[2];
+  Float_t px, py, pz;
+  Double_t random;
+  Int_t ev;
+  t2.Branch("px", &px, "px/F");
+  t2.Branch("py", &py, "py/F");
+  t2.Branch("pz", &pz, "pz/F");
+  t2.Branch("random", &random, "random/D");
+  t2.Branch("ev", &ev, "ev/I");
+  t2.Branch("xyz", xyz, "xyz[3]/F");
+  t2.Branch("ij", ij, "ij[2]/I");
+  //fill the tree
+  for (Int_t i = 0; i < 1000; i++) {
+    gRandom->Rannor(xyz[0], xyz[1]);
+    gRandom->Rannor(px, py);
+    pz = px * px + py * py;
+    xyz[2] = i + 1;
+    ij[0] = i;
+    ij[1] = i + 1;
+    random = gRandom->Rndm();
+    ev = i + 1;
+    t2.Fill();
+  }
+
+  // Create an arrow table from this.
+  TableBuilder builder;
+  TTreeReader reader(&t2);
+  BOOST_REQUIRE_EQUAL(t2.GetEntries(), 1000);
+
+  RootTableBuilderHelpers::convertASoA<o2::aod::Test>(builder, reader);
+  auto table = builder.finalize();
+  BOOST_REQUIRE_EQUAL(table->num_rows(), 1000);
+  BOOST_REQUIRE_EQUAL(table->num_columns(), 5);
+  // FIXME: Arrays not yet implemented
+  //BOOST_REQUIRE_EQUAL(table->column(0)->type()->id(), arrow::list(arrow::float32())->id());
+  //BOOST_REQUIRE_EQUAL(table->column(1)->type()->id(), arrow::list(arrow::int32())->id());
+  BOOST_REQUIRE_EQUAL(table->column(0)->type()->id(), arrow::float32()->id());
+  BOOST_REQUIRE_EQUAL(table->column(1)->type()->id(), arrow::float32()->id());
+  BOOST_REQUIRE_EQUAL(table->column(2)->type()->id(), arrow::float32()->id());
+  BOOST_REQUIRE_EQUAL(table->column(3)->type()->id(), arrow::float64()->id());
+  BOOST_REQUIRE_EQUAL(table->column(4)->type()->id(), arrow::int32()->id());
+
+  // FIXME: Arrays not yet implemented
+  //{
+  //  auto array = std::static_pointer_cast<arrow::ListArray>(table->column(0)->data()->chunk(0));
+  //  BOOST_CHECK_EQUAL(array->value_length(0), 3);
+  //}
+  //{
+  //  auto array = std::static_pointer_cast<arrow::ListArray>(table->column(1)->data()->chunk(0));
+  //  auto values = std::static_pointer_cast<arrow::Int32Array>(array->values());
+  //  BOOST_CHECK_EQUAL(array->value_length(0), 2);
+  //  const int* ptr = values->raw_values() + values->offset();
+  //  for (size_t i = 0; i < 1000; i++) {
+  //    auto offset = array->value_offset(i);
+  //    auto length = array->value_length(i);
+  //    BOOST_CHECK_EQUAL(offset, i * 2);
+  //    BOOST_CHECK_EQUAL(length, 2);
+  //    BOOST_CHECK_EQUAL(*(ptr + offset), i);
+  //    BOOST_CHECK_EQUAL(*(ptr + offset + 1), i + 1);
+  //  }
+  //}
 }
