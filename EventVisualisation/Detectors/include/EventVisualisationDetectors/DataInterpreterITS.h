@@ -8,35 +8,34 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file DataInterpreterTPC.h
-/// \brief converting TPC data to Event Visualisation primitives
+/// \file DataInterpreterITS.h
+/// \brief converting ITS data to Event Visualisation primitives
 /// \author julian.myrcha@cern.ch
 /// \author p.nowakowski@cern.ch
 
-#ifndef ALICE_O2_EVENTVISUALISATION_DETECTORS_DATAINTERPRETERTPC_H
-#define ALICE_O2_EVENTVISUALISATION_DETECTORS_DATAINTERPRETERTPC_H
+#ifndef ALICE_O2_EVENTVISUALISATION_DETECTORS_DATAINTERPRETERITS_H
+#define ALICE_O2_EVENTVISUALISATION_DETECTORS_DATAINTERPRETERITS_H
 
 ///
 /// This class overrides DataInterpreter and implements method
-/// returning visualisation objects representing data from TPC file.
+/// returning visualisation objects representing data from ITS file.
 
 #include "EventVisualisationBase/DataInterpreter.h"
 #include "EventVisualisationBase/VisualisationConstants.h"
-#include "EventVisualisationDataConverter/VisualisationEvent.h"
 
 namespace o2
 {
 namespace event_visualisation
 {
 
-class DataInterpreterTPC : public DataInterpreter
+class DataInterpreterITS : public DataInterpreter
 {
  public:
   // Default constructor
-  DataInterpreterTPC() = default;
+  DataInterpreterITS();
 
   // Default destructor
-  ~DataInterpreterTPC() final;
+  ~DataInterpreterITS() final = default;
 
   // Returns a visualisation Event for this data type
   std::unique_ptr<VisualisationEvent> interpretDataForType(TObject* data, EVisualisationDataType type) final;
@@ -45,4 +44,4 @@ class DataInterpreterTPC : public DataInterpreter
 } // namespace event_visualisation
 } // namespace o2
 
-#endif //ALICE_O2_EVENTVISUALISATION_DETECTORS_DATAINTERPRETERTPC_H
+#endif //ALICE_O2_EVENTVISUALISATION_BASE_DATAINTERPRETERITS_H

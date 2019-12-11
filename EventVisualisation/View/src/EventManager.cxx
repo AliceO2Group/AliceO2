@@ -51,11 +51,11 @@ EventManager& EventManager::getInstance()
 EventManager::EventManager() : TEveEventManager("Event", "")
 {
   LOG(INFO) << "Initializing TEveManager";
-  for (int i = 0; i < elemof(dataInterpreters); i++)
+  for (unsigned int i = 0; i < elemof(dataInterpreters); i++)
     dataInterpreters[i] = nullptr;
-  for (int i = 0; i < elemof(dataReaders); i++)
+  for (unsigned int i = 0; i < elemof(dataReaders); i++)
     dataReaders[i] = nullptr;
-  for (int i = 0; i < elemof(dataTypeLists); i++)
+  for (unsigned int i = 0; i < elemof(dataTypeLists); i++)
     dataTypeLists[i] = nullptr;
 }
 

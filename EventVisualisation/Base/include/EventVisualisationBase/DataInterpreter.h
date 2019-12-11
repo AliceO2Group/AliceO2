@@ -11,6 +11,8 @@
 ///
 /// \file    DataInterpreter.h
 /// \author  Jeremi Niedziela
+/// \author julian.myrcha@cern.ch
+/// \author p.nowakowski@cern.ch
 
 #ifndef ALICE_O2_EVENTVISUALISATION_BASE_DATAINTERPRETER_H
 #define ALICE_O2_EVENTVISUALISATION_BASE_DATAINTERPRETER_H

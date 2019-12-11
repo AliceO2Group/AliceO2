@@ -25,6 +25,8 @@
 #include "EventVisualisationBase/DataSourceOffline.h"
 #include "EventVisualisationDetectors/DataReaderTPC.h"
 #include "EventVisualisationDetectors/DataInterpreterTPC.h"
+#include "EventVisualisationDetectors/DataReaderITS.h"
+#include "EventVisualisationDetectors/DataInterpreterITS.h"
 #include "EventVisualisationView/EventManagerFrame.h"
 #include "FairLogger.h"
 
@@ -57,6 +59,7 @@ void Initializer::setup(const Options options, EventManager::EDataSource default
   eventManager.setCdbPath(ocdbStorage);
 
   eventManager.registerDetector(new DataReaderTPC(), new DataInterpreterTPC(), EVisualisationGroup::TPC);
+  eventManager.registerDetector(new DataReaderITS(), new DataInterpreterITS(), EVisualisationGroup::ITS);
 
   eventManager.setDataSourceType(EventManager::EDataSource::SourceOffline);
   eventManager.Open();

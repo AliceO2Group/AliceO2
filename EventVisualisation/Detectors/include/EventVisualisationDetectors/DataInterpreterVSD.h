@@ -57,7 +57,7 @@ class DataInterpreterVSD : public DataInterpreter
   // Default destructor
   ~DataInterpreterVSD() final;
 
-  // Returns a list of random tracks colored by PID
+  // Returns a visualisation Event for this data type
   std::unique_ptr<VisualisationEvent> interpretDataForType(TObject* data, EVisualisationDataType type) final;
 };
 
