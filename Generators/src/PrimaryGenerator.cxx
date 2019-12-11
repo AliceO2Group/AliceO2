@@ -135,10 +135,21 @@ void PrimaryGenerator::setInteractionDiamond(const Double_t* xyz, const Double_t
             << sigmaxyz[0] << "," << sigmaxyz[1] << "," << sigmaxyz[2] << "} cm";
   SetBeam(xyz[0], xyz[1], sigmaxyz[0], sigmaxyz[1]);
   SetTarget(xyz[2], sigmaxyz[2]);
+
+  auto const& param = InteractionDiamondParam::Instance();
   SmearVertexXY(false);
   SmearVertexZ(false);
-  SmearGausVertexXY(true);
-  SmearGausVertexZ(true);
+  SmearGausVertexXY(false);
+  SmearGausVertexZ(false);
+  if (param.distribution == o2::eventgen::EVertexDistribution::kFlat) {
+    SmearVertexXY(true);
+    SmearVertexZ(true);
+  } else if (param.distribution == o2::eventgen::EVertexDistribution::kGaus) {
+    SmearGausVertexXY(true);
+    SmearGausVertexZ(true);
+  } else {
+    LOG(ERROR) << "PrimaryGenerator: Unsupported vertex distribution";
+  }
 }
 
 /*****************************************************************/
