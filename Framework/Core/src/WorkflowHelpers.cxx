@@ -191,9 +191,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     {},
     readers::AODReaderHelpers::rootFileReaderCallback(),
     {ConfigParamSpec{"aod-file", VariantType::String, "aod.root", {"Input AOD file"}},
-     ConfigParamSpec{"start-value-enumeration", VariantType::Int, 0, {"initial value for the enumeration"}},
-     ConfigParamSpec{"end-value-enumeration", VariantType::Int, -1, {"final value for the enumeration"}},
-     ConfigParamSpec{"step-value-enumeration", VariantType::Int, 1, {"step between one value and the other"}}}};
+     ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
+     ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}},
+     ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}}};
 
   std::vector<InputSpec> requestedAODs;
   std::vector<OutputSpec> providedAODs;
@@ -208,9 +208,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     std::string prefix = "internal-dpl-";
     if (processor.inputs.empty() && processor.name.compare(0, prefix.size(), prefix) != 0) {
       processor.inputs.push_back(InputSpec{"enumeration", "DPL", "ENUM", static_cast<DataAllocator::SubSpecificationType>(separateEnumerations++), Lifetime::Enumeration});
-      processor.options.push_back(ConfigParamSpec{"start-value-enumeration", VariantType::Int, 0, {"initial value for the enumeration"}});
-      processor.options.push_back(ConfigParamSpec{"end-value-enumeration", VariantType::Int, -1, {"final value for the enumeration"}});
-      processor.options.push_back(ConfigParamSpec{"step-value-enumeration", VariantType::Int, 1, {"step between one value and the other"}});
+      processor.options.push_back(ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}});
+      processor.options.push_back(ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}});
+      processor.options.push_back(ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}});
     }
     bool hasConditionOption = false;
     for (size_t ii = 0; ii < processor.inputs.size(); ++ii) {
