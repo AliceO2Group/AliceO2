@@ -40,11 +40,11 @@ class ClusterizerTask
   Geometry* getGeometry() { return mGeometry; }
 
  private:
-  Clusterizer mClusterizer;                                    ///< Clusterizer
-  Geometry* mGeometry = nullptr;                               ///< Pointer to geometry object
-  std::unique_ptr<DigitReader> mDigitReader;                   ///< Pointer to digit reader
-  const std::vector<Digit>* mDigitArray = nullptr;             ///< Array of input digits
-  const std::vector<Cluster>* mClustersArray = nullptr;        ///< Array of clusters
+  Clusterizer mClusterizer;                                         ///< Clusterizer
+  Geometry* mGeometry = nullptr;                                    ///< Pointer to geometry object
+  std::unique_ptr<DigitReader> mDigitReader;                        ///< Pointer to digit reader
+  const std::vector<Digit>* mDigitArray = nullptr;                  ///< Array of input digits
+  const std::vector<Cluster>* mClustersArray = nullptr;             ///< Array of clusters
   const std::vector<ClusterIndex>* mClustersDigitIndices = nullptr; ///< Array of digit indices
   ClassDefNV(ClusterizerTask, 1)
 };

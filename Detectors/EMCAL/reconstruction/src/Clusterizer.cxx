@@ -30,7 +30,6 @@ Clusterizer::Clusterizer() : mSeedList(), mDigitMap(), mCellMask(), mTimeCut(0),
 {
 }
 
-
 ///
 /// Initialize class member vars if not done in constructor
 //____________________________________________________________________________
@@ -59,8 +58,8 @@ void Clusterizer::getClusterFromNeighbours(std::vector<Digit*>& clusterDigits, i
   mCellMask[row][column] = kTRUE;
 
   // Now go recursively to the next 4 neighbours and add them to the cluster if they fulfill the conditions
-  constexpr int rowDiffs[4] = {-1,0,0,1};
-  constexpr int colDiffs[4] = {0,-1,1,0};
+  constexpr int rowDiffs[4] = {-1, 0, 0, 1};
+  constexpr int colDiffs[4] = {0, -1, 1, 0};
   for (int dir = 0; dir < 4; dir++) {
     if ((row + rowDiffs[dir] < 0) || (row + rowDiffs[dir] >= NROWS)) {
       continue;
@@ -108,8 +107,7 @@ void Clusterizer::getTopologicalRowColumn(const Digit& digit, int& row, int& col
   // In DCAL, leave a gap between two SMs with same phi
   if (!mEMCALGeometry->IsDCALSM(nSupMod)) { // EMCAL
     column += nSupMod % 2 * 48;
-  }
-  else {
+  } else {
     column += nSupMod % 2 * (48 + 1);
   }
 }
@@ -137,8 +135,8 @@ void Clusterizer::findClusters(const std::vector<Digit>& digitArray)
   // Reset digit maps and cell masks
   // Loop over one array dim, then reset each array
   for (auto iArr = 0; iArr < NROWS; iArr++) {
-    mCellMask[iArr].fill(0);
-    mDigitMap[iArr].fill(0);
+    mCellMask[iArr].fill(kFALSE);
+    mDigitMap[iArr].fill(nullptr);
   }
 
   // Calibrate digits and fill the maps/arrays

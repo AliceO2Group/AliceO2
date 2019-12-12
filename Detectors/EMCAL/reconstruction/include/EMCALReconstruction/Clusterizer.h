@@ -29,16 +29,7 @@ namespace emcal
 constexpr unsigned int NROWS = (24 + 1) * (6 + 4); // 10x supermodule rows (6 for EMCAL, 4 for DCAL). +1 accounts for topological gap between two supermodules
 constexpr unsigned int NCOLS = 48 * 2 + 1;         // 2x  supermodule columns + 1 empty space in between for DCAL (not used for EMCAL)
 
-// FIXME: This is a workaround for what is discussed here struct YourType {shor v; ClassDefNV(YourType,1);}
-//        Should be using ClusterIndex = Short_t
-struct ClusterIndex {
-  Short_t value;
-  operator Short_t() const { return value; }
-
-  ClusterIndex(Short_t val) : value(val) {}
-  ClusterIndex() = default;
-  ClassDefNV(ClusterIndex,1);
-};
+using ClusterIndex = Short_t;
 
 //_________________________________________________________________________
 /// \class Clusterizer
@@ -84,8 +75,8 @@ class Clusterizer
   std::array<std::array<Digit*, NCOLS>, NROWS> mDigitMap; //!<! topology arrays
   std::array<std::array<bool, NCOLS>, NROWS> mCellMask;   //!<! topology arrays
 
-  std::vector<Cluster> mFoundClusters; ///<  vector of cluster objects
-  std::vector<ClusterIndex> mDigitIndices;  ///<  vector of associated digit tower ID, ordered by cluster
+  std::vector<Cluster> mFoundClusters;     ///<  vector of cluster objects
+  std::vector<ClusterIndex> mDigitIndices; ///<  vector of associated digit tower ID, ordered by cluster
 
   double mTimeCut;             ///<  maximum time difference between the digits inside EMC cluster
   double mTimeMin;             ///<  minimum time of physical signal in a cell/digit

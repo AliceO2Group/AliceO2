@@ -56,13 +56,12 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
   // Get found clusters + digit indices for output
   // * A cluster contains a range that correspond to the vector of digit indices
   // * The digit index vector contains the indices of the clusterized digits wrt to the original digit array
-  mOutputClusters     = mClusterizer.getFoundClusters();
+  mOutputClusters = mClusterizer.getFoundClusters();
   mOutputDigitIndices = mClusterizer.getFoundClustersDigitIndices();
 
   LOG(DEBUG) << "[EMCALClusterizer - run] Writing " << mOutputClusters->size() << " clusters ...";
   ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "CLUSTERS", 0, o2::framework::Lifetime::Timeframe}, *mOutputClusters);
   ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "INDICES", 0, o2::framework::Lifetime::Timeframe}, *mOutputDigitIndices);
-
 }
 
 o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getClusterizerSpec()

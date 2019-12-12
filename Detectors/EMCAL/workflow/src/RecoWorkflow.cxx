@@ -100,7 +100,6 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
       // add clusterizer
       specs.emplace_back(o2::emcal::reco_workflow::getClusterizerSpec());
     }
-
   }
 
   // check if the process is ready to quit
@@ -139,14 +138,13 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
 
   // TODO: Write comment in push comment @matthiasrichter
   auto makeWriterSpec_Cluster = [checkReady](const char* processName, const char* defaultFileName, const char* defaultTreeName,
-                                                  auto&& clusterbranch, auto&& digitindicesbranch) {
+                                             auto&& clusterbranch, auto&& digitindicesbranch) {
     // RootTreeWriter spec is created with one branch definition
     return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
                                                            o2::framework::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
                                                            std::move(clusterbranch),
                                                            std::move(digitindicesbranch)));
   };
-
 
   if (isEnabled(OutputType::Digits)) {
     using DigitOutputType = std::vector<o2::emcal::Digit>;
@@ -180,14 +178,14 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
     using ClusterOutputType = std::vector<o2::emcal::Cluster>;
     using ClusterIndicesOutputType = std::vector<o2::emcal::ClusterIndex>;
     specs.push_back(makeWriterSpec_Cluster("emcal-clusters-writer",
-                                   "emcclusters.root",
-                                   "o2sim",
-                                   BranchDefinition<ClusterOutputType>{o2::framework::InputSpec{"clusters", "EMC", "CLUSTERS", 0},
-                                                                     "EMCCluster",
-                                                                     "cluster-branch-name"},
-                                   BranchDefinition<ClusterIndicesOutputType>{o2::framework::InputSpec{"clusterindices", "EMC", "INDICES", 0},
-                                                                     "EMCClusterDigitIndex",
-                                                                     "clusterdigitindices-branch-name"})());
+                                           "emcclusters.root",
+                                           "o2sim",
+                                           BranchDefinition<ClusterOutputType>{o2::framework::InputSpec{"clusters", "EMC", "CLUSTERS", 0},
+                                                                               "EMCCluster",
+                                                                               "cluster-branch-name"},
+                                           BranchDefinition<ClusterIndicesOutputType>{o2::framework::InputSpec{"clusterindices", "EMC", "INDICES", 0},
+                                                                                      "EMCClusterDigitIndex",
+                                                                                      "clusterdigitindices-branch-name"})());
   }
 
   return std::move(specs);
