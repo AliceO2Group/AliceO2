@@ -19,4 +19,8 @@
 #pragma link C++ class std::vector < o2::zdc::ChannelData> + ;
 #pragma link C++ class std::vector < o2::zdc::BCData> + ;
 
+#pragma link C++ class std::vector < o2::zdc::RecEvent> + ;
+#pragma link C++ class std::vector < o2::zdc::OrbitRawData> + ;
+#pragma link C++ class std::vector < o2::zdc::OrbitRecData> + ;
+
 #endif

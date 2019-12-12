@@ -54,6 +54,22 @@ constexpr int NChannels = 2 * (NChannelsZN + NChannelsZP) + NChannelsZEM;
 constexpr uint32_t AllChannelsMask = (0x1 << NChannels) - 1;
 
 constexpr int NModules = 8;
+constexpr int MaxTriggerChannels = 10;
+
+constexpr int MaxTDCValues = 5;  // max number of TDC values to store in reconstructed event
+constexpr int NTDCChannels = 10; // max number of TDC values to store in reconstructed event
+enum TDCChannelID {
+  TDCZNAC,
+  TDCZNAS,
+  TDCZPAC,
+  TDCZPAS,
+  TDCZEM1,
+  TDCZEM2,
+  TDCZNCC,
+  TDCZNCS,
+  TDCZPCC,
+  TDCZPCS
+}; // TDC channels in reconstructed event, their number should be equal to NTDCChannels
 
 //< get detector TOF correction in ns
 constexpr float getTOFCorrection(int det)

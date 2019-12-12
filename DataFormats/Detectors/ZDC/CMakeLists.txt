@@ -9,9 +9,13 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(DataFormatsZDC
-               SOURCES src/ChannelData.cxx SOURCES src/BCData.cxx
+               SOURCES src/ChannelData.cxx src/BCData.cxx src/RecEvent.cxx
+	       	       src/OrbitRawData.cxx src/OrbitRecData.cxx 
                PUBLIC_LINK_LIBRARIES O2::CommonConstants O2::CommonDataFormat
-	       			     O2::ZDCBase ROOT::MathCore FairRoot::Base)
+	       			     O2::ZDCBase ROOT::MathCore FairRoot::Base
+				     O2::MathUtils)
 
 o2_target_root_dictionary(DataFormatsZDC
-               HEADERS include/DataFormatsZDC/BCData.h include/DataFormatsZDC/ChannelData.h)
+               HEADERS include/DataFormatsZDC/BCData.h include/DataFormatsZDC/ChannelData.h
+	       	       include/DataFormatsZDC/RecEvent.h include/DataFormatsZDC/OrbitRawData.h
+		       include/DataFormatsZDC/OrbitRecData.h)
