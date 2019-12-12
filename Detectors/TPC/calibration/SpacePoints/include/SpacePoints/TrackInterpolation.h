@@ -223,7 +223,6 @@ class TrackInterpolation
   TTree* mTreeTOFClusters{nullptr};                                                                              ///< input tree for TOF clusters
   std::vector<o2::dataformats::TrackTPCITS>* mITSTPCTrackVecInput{nullptr};                                      ///< input vector with ITS-TPC matched tracks
   std::vector<TrackTPC>* mTPCTrackVecInput{nullptr};                                                             ///< input vector with TPC tracks
-  // TODO Temporary solution, see disclaimer about TPCClRefElem in TrackTPC. Later will be changed to uint32_t
   std::vector<TPCClRefElem>* mTPCTrackClIdxVecInput{nullptr};                                                    ///< input vector with TPC tracks cluster indicies
   std::vector<o2::its::TrackITS>* mITSTrackVecInput{nullptr};                                                    ///< input vector with ITS tracks
   std::vector<o2::itsmft::Cluster>* mITSClusterVecInput{nullptr};                                                ///< input vector with ITS clusters

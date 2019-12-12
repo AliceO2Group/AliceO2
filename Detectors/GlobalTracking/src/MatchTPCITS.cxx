@@ -713,7 +713,6 @@ bool MatchTPCITS::loadTPCTracksNextChunk()
       continue;
     }
     mTPCTracksArrayInp = gsl::span<const o2::tpc::TrackTPC>(mTPCTracksArrayPtr->data(), mTPCTracksArrayPtr->size());
-    // TODO Temporary solution, see disclaimer about TPCClRefElem in TrackTPC. Later should be changed to uint32_t
     mTPCTrackClusIdxInp = gsl::span<const o2::tpc::TPCClRefElem>(mTPCTrackClusIdxPtr->data(), mTPCTrackClusIdxPtr->size());
 
     mTimerIO.Stop();
