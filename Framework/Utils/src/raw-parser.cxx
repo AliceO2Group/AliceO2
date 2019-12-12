@@ -51,7 +51,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
                           << dh->subSpecification << " payload size " << dh->payloadSize;
               }
 
-              auto raw = inputs.get<std::span<char>>(input.spec->binding.c_str());
+              auto raw = inputs.get<gsl::span<char>>(input.spec->binding.c_str());
 
               try {
                 o2::framework::RawParser parser(raw.data(), raw.size());
