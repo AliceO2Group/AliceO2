@@ -426,6 +426,9 @@ void Digitizer::refreshCCDB()
         }
       }
     }
+    if (int(mTriggerConfig.size()) > MaxTriggerChannels) {
+      LOG(FATAL) << "Too many triggering channels (" << mTriggerConfig.size() << ')';
+    }
     mModuleConfig->print();
     //
   }
