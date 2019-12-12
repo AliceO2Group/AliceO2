@@ -15,7 +15,7 @@
 #include <bitset>
 #include <boost/test/unit_test.hpp>
 #include "Steer/InteractionSampler.h"
-#include "Steer/HBFSampler.h"
+#include "CommonUtils/HBFUtils.h"
 #include "Headers/RAWDataHeader.h"
 #include <TRandom.h>
 #include <FairLogger.h>
@@ -25,7 +25,7 @@
 
 namespace o2
 {
-BOOST_AUTO_TEST_CASE(HBFSampler)
+BOOST_AUTO_TEST_CASE(HBFUtils)
 {
   using RDH = o2::header::RAWDataHeaderV5;
   using IR = o2::InteractionRecord;
@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE(HBFSampler)
   LOG(INFO) << "Emulate RDHs for raw data between IRs " << irs.front() << " and " << irs.back();
 
   // default sampler with BC filling like in TPC TDR, 50kHz
-  o2::steer::HBFSampler sampler;
+  o2::utils::HBFUtils sampler;
 
   uint8_t packetCounter = 0;
   std::vector<o2::InteractionRecord> HBIRVec;
@@ -118,9 +118,27 @@ BOOST_AUTO_TEST_CASE(HBFSampler)
     BOOST_CHECK(false); // lost closing RDH?
   }
 
+  // the TF must be completed, generate HBF till the end of the current TF
+  int tf = sampler.getTF(irs.back());
+  auto lastHBIR = sampler.getIRTF(tf + 1) - 1; // last IR of the current TF
+  sampler.fillHBIRvector(HBIRVec, irs.back(), lastHBIR);
+  for (const auto& ir : HBIRVec) {
+    rdh = sampler.createRDH<RDH>(rdhIR);
+    // dress rdh with cruID/FEE/Link ID ...
+    rdh.packetCounter = packetCounter++;
+    rdh.memorySize = sizeof(rdh);
+    rdh.offsetToNext = sizeof(rdh);
+
+    flushRDH(); // open empty HBH
+    rdh.stop = 0x1;
+    rdh.pageCnt++;
+    flushRDH(); // close empty HBF
+  }
+
   printf("\nN_TF=%d, N_HBF=%d (%d empty), Opened %d / Closed %d\n", nTF, nHBF, nHBFEmpty, nHBFOpen, nHBFClose);
   BOOST_CHECK(nHBF > nHBFEmpty);
   BOOST_CHECK(nTF > 0);
   BOOST_CHECK(nHBFOpen == nHBFClose);
+  BOOST_CHECK(nHBF == nTF * sampler.getNOrbitsPerTF()); // make sure all TFs are complete
 }
 } // namespace o2

@@ -8,18 +8,5 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-///
-/// \file   EventRegistration.cxx
-/// \brief  breaking link dependency between EventVisualisation modules (here MultiView can register)
-/// \author julian.myrcha@cern.ch
-
-#include <EventVisualisationBase/EventRegistration.h>
-
-namespace o2
-{
-namespace event_visualisation
-{
-
-EventRegistration* EventRegistration::instance = nullptr;
-}
-} // namespace o2
+#include "TRDSimulation/TRDSimParams.h"
+O2ParamImpl(o2::trd::TRDSimParams);

@@ -49,9 +49,7 @@ using DataHeader = o2::header::DataHeader;
 constexpr unsigned int MONITORING_QUEUE_SIZE = 100;
 constexpr unsigned int MIN_RATE_LOGGING = 60;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegistry& registry, DeviceState& state)
@@ -300,10 +298,17 @@ bool DataProcessingDevice::ConditionalRun()
     for (auto& channel : mSpec.outputChannels) {
       DataProcessingHelpers::sendEndOfStream(*this, channel);
     }
+    // This is needed because the transport is deleted before the device.
+    mRelayer.clear();
     switchState(StreamingState::Idle);
     return true;
   }
   return true;
+}
+
+void DataProcessingDevice::ResetTask()
+{
+  mRelayer.clear();
 }
 
 /// This is the inner loop of our framework. The actual implementation
@@ -736,5 +741,4 @@ void DataProcessingDevice::error(const char* msg)
   mServiceRegistry.get<Monitoring>().send(Metric{mErrorCount, "errors"}.addTag(Key::Subsystem, Value::DPL));
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

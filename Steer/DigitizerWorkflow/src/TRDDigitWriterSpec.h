@@ -15,6 +15,7 @@
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
 #include "TRDBase/Digit.h"
+#include "DataFormatsTRD/TriggerRecord.h"
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "TRDBase/MCLabel.h"
 
@@ -35,6 +36,7 @@ o2::framework::DataProcessorSpec getTRDDigitWriterSpec()
                                 "o2sim",
                                 1,
                                 BranchDefinition<std::vector<o2::trd::Digit>>{InputSpec{"input", "TRD", "DIGITS"}, "TRDDigit"},
+                                BranchDefinition<std::vector<o2::trd::TriggerRecord>>{InputSpec{"trinput", "TRD", "TRGRDIG"}, "TriggerRecord"},
                                 BranchDefinition<o2::dataformats::MCTruthContainer<o2::trd::MCLabel>>{InputSpec{"labelinput", "TRD", "LABELS"}, "TRDMCLabels"})();
 }
 

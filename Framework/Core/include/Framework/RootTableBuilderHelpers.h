@@ -66,6 +66,15 @@ struct ValueExtractor {
   }
 };
 
+template <typename C>
+struct ColumnReaderTrait {
+  using Reader = TTreeReaderValue<typename C::type>;
+  static std::unique_ptr<Reader> createReader(TTreeReader& reader)
+  {
+    return std::make_unique<Reader>(reader, C::base::label());
+  };
+};
+
 struct RootTableBuilderHelpers {
   template <typename... TTREEREADERVALUE>
   static void convertTTree(TableBuilder& builder,
@@ -73,11 +82,23 @@ struct RootTableBuilderHelpers {
                            TTREEREADERVALUE&... values)
   {
     std::vector<std::string> branchNames = {values.GetBranchName()...};
-    auto filler = builder.preallocatedPersist<typename TreeReaderValueTraits<TTREEREADERVALUE>::Type...>(branchNames, reader.GetEntries(true));
+    auto filler = builder.preallocatedPersist<typename TreeReaderValueTraits<std::decay_t<TTREEREADERVALUE>>::Type...>(branchNames, reader.GetEntries(true));
     reader.Restart();
     while (reader.Next()) {
       filler(0, ValueExtractor::deref(values)...);
     }
+  }
+
+  template <typename... C>
+  static void convertASoAColumns(TableBuilder& builder, TTreeReader& reader, pack<C...>)
+  {
+    return convertTTree(builder, reader, *ColumnReaderTrait<C>::createReader(reader)...);
+  }
+
+  template <typename T>
+  static void convertASoA(TableBuilder& builder, TTreeReader& reader)
+  {
+    return convertASoAColumns(builder, reader, typename T::persistent_columns_t{});
   }
 };
 

@@ -51,7 +51,7 @@ struct ATask {
 struct BTask {
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::EtaPhi> const& extTracks)
   {
-    LOG(INFO) << "TF: " << collision.timeframeID() << std::endl;
+    //    LOG(INFO) << "TF: " << collision.timeframeID() << std::endl;
     LOG(INFO) << "Rows: " << extTracks.asArrowTable()->num_rows() << std::endl;
     for (auto& track : extTracks) {
       LOGF(INFO, "(%f, %f) - (%f, %f)", track.eta(), track.phi(), track.etas(), track.phis());
@@ -62,7 +62,7 @@ struct BTask {
 struct CTask {
   void process(aod::Collision const& collision, soa::Concat<aod::EtaPhi, aod::EtaPhiPt> const& concatenated)
   {
-    LOG(INFO) << "TF: " << collision.timeframeID() << std::endl;
+    //    LOG(INFO) << "TF: " << collision.timeframeID() << std::endl;
     LOG(INFO) << "Rows: " << concatenated.asArrowTable()->num_rows() << std::endl;
   }
 };

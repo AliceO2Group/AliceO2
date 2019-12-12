@@ -13,7 +13,6 @@
 
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/CompilerBuiltins.h"
-#include "Framework/TypeTraits.h"
 #include "Framework/Traits.h"
 #include "Framework/Expressions.h"
 #include <arrow/table.h>
@@ -629,6 +628,7 @@ class Table
   using filtered_const_iterator = RowViewFiltered<C...>;
   using table_t = Table<C...>;
   using columns = framework::pack<C...>;
+  using persistent_columns_t = framework::selected_pack<is_persistent_t, C...>;
 
   Table(std::shared_ptr<arrow::Table> table)
     : mTable(table),
@@ -692,7 +692,9 @@ class Table
   arrow::Column* lookupColumn()
   {
     if constexpr (T::persistent::value) {
-      return mTable->column(mTable->schema()->GetFieldIndex(T::label())).get();
+      auto label = T::label();
+      auto index = mTable->schema()->GetFieldIndex(label);
+      return mTable->column(index).get();
     } else {
       return nullptr;
     }

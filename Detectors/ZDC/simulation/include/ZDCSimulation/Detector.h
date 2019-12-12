@@ -128,7 +128,7 @@ class Detector : public o2::base::DetImpl<Detector>
   int mLastPrincipalTrackEntered = -1;
 
   static constexpr int NUMDETS = 5; // number of detectors
-  static constexpr int NUMSECS = 4; // number of (max) possible sectors
+  static constexpr int NUMSECS = 5; // number of (max) possible sectors (including COMMON one)
 
   // current hits per detector and per sector FOR THE CURRENT track first entering a detector
   // (as given by mLastPrincipalTrackEntered)
@@ -139,8 +139,8 @@ class Detector : public o2::base::DetImpl<Detector>
   static constexpr int ZPRADIUSBINS = 28;
   static constexpr int ANGLEBINS = 90;
 
-  float mLightTableZN[4][ZNRADIUSBINS][ANGLEBINS] = {1.}; //!
-  float mLightTableZP[4][ZPRADIUSBINS][ANGLEBINS] = {1.}; //!
+  float mLightTableZN[4][ANGLEBINS][ZNRADIUSBINS] = {1.}; //!
+  float mLightTableZP[4][ANGLEBINS][ZPRADIUSBINS] = {1.}; //!
 
   template <typename Det>
   friend class o2::base::DetImpl;

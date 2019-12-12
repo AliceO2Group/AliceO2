@@ -91,9 +91,11 @@ void run_digi2raw_its(std::string outName = "rawits.bin",                       
       if (lnkAs[il]) {
         ru.links[il] = std::make_unique<o2::itsmft::GBTLink>();
         ru.links[il]->lanes = lanes & ((0x1 << lnkAs[il]) - 1) << (accL);
+        ru.links[il]->id = il;
+        ru.links[il]->feeID = mp.RUSW2FEEId(ir, il);
         accL += lnkAs[il];
         LOG(INFO) << "RU " << std::setw(3) << ir << " on lr" << int(ru.ruInfo->layer)
-                  << " : FEEId 0x" << std::hex << std::setfill('0') << std::setw(6) << mp.RUSW2FEEId(ir, il)
+                  << " : FEEId 0x" << std::hex << std::setfill('0') << std::setw(6) << ru.links[il]->feeID
                   << " reads lanes " << std::bitset<28>(ru.links[il]->lanes);
       }
     }

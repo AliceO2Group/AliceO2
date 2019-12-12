@@ -38,7 +38,7 @@ class DataInterpreterTPC : public DataInterpreter
   // Default destructor
   ~DataInterpreterTPC() final;
 
-  //
+  // Returns a visualisation Event for this data type
   std::unique_ptr<VisualisationEvent> interpretDataForType(TObject* data, EVisualisationDataType type) final;
 };
 

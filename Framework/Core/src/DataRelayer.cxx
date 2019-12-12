@@ -31,11 +31,8 @@ using namespace o2::framework::data_matcher;
 using DataHeader = o2::header::DataHeader;
 using DataProcessingHeader = o2::framework::DataProcessingHeader;
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
-{
-
 
 constexpr int INVALID_INPUT = -1;
 
@@ -107,7 +104,7 @@ void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
       if (!expirator.checker) {
         continue;
       }
-      if (slotsCreatedByHandlers[ei].index != slot.index) {
+      if (slotsCreatedByHandlers[ei] != slot) {
         continue;
       }
       if (expirator.checker(timestamp.value) == false) {
@@ -500,6 +497,17 @@ std::vector<std::unique_ptr<FairMQMessage>>
   return std::move(messages);
 }
 
+void DataRelayer::clear()
+{
+  for (auto& cache : mCache) {
+    cache.header.reset();
+    cache.payload.reset();
+  }
+  for (size_t s = 0; s < mTimesliceIndex.size(); ++s) {
+    mTimesliceIndex.markAsInvalid(TimesliceSlot{s});
+  }
+}
+
 size_t
   DataRelayer::getParallelTimeslices() const
 {
@@ -569,5 +577,4 @@ void DataRelayer::sendContextState()
 std::vector<std::string> DataRelayer::sMetricsNames;
 std::vector<std::string> DataRelayer::sVariablesMetricsNames;
 std::vector<std::string> DataRelayer::sQueriesMetricsNames;
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
