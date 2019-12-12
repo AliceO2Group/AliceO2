@@ -61,10 +61,6 @@ class MC2RawEncoder
   }
   int getSuperPageSize() const { return mSuperPageSize; }
 
-  /// continuous or triggered readout data
-  bool isContinuous() const { return mIsContinuous; }
-  void setSetContinuous(bool v) { mIsContinuous = v; }
-
   /// do we treat CRU pages as having max size?
   bool isMaxPageImposed() const { return mImposeMaxPage; }
   /// CRU pages are of max size of 8KB
@@ -90,6 +86,9 @@ class MC2RawEncoder
   int getRUSWMin() const { return mRUSWMin; }
   int getRUSWMax() const { return mRUSWMax; }
 
+  void setContinuousReadout(bool v) { mROMode = v ? Continuous : Triggered; }
+  bool isContinuousReadout() const { return mROMode == Continuous; }
+
  private:
   void convertEmptyChips(int fromChip, int uptoChip, RUDecodeData& ru);
   void convertChip(ChipPixelData& chipData, RUDecodeData& ru);
@@ -103,6 +102,9 @@ class MC2RawEncoder
   void flushAllLinks();
 
  private:
+  enum RoMode_t { NotSet,
+                  Continuous,
+                  Triggered };
   o2::utils::HBFUtils mHBFUtils;
   std::vector<o2::InteractionRecord> mHBIRVec; // workspace for HB IR generation
   o2::InteractionRecord mLastIR;               // last IR processed (or 1st in TF if none)
@@ -122,9 +124,11 @@ class MC2RawEncoder
   std::array<RUDecodeData, Mapping::getNRUs()> mRUDecodeVec; /// decoding buffers for all active RUs
   std::array<int, Mapping::getNRUs()> mRUEntry;              /// entry of the RU with given SW ID in the mRUDecodeVec
   int mCurRUDecodeID = -1;
-  bool mIsContinuous = true;
   bool mImposeMaxPage = true; /// force (pad) all CRU pages to be 8KB
-  bool mStartTFOnNewSPage = true;
+  bool mStartTFOnNewSPage = true; /// user muse set explicitly RO mode
+  bool mImposeROModeFlag = true;  /// Propagate SOT or SOC to RDH.triggerType when true
+  RoMode_t mROMode = NotSet;
+
   ClassDefNV(MC2RawEncoder, 1);
 };
 
