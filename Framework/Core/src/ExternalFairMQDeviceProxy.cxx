@@ -205,9 +205,42 @@ FairMQMessagePtr mergePayloads(FairMQDevice& device, FairMQParts& parts, std::ve
 
 InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, bool throwOnUnmatchedInputs)
 {
-  return [filterSpecs = std::move(filterSpecs), throwOnUnmatchedInputs](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
+  // structure to hald information on the unmatch ed data and print a warning at cleanup
+  class DroppedDataSpecs
+  {
+   public:
+    DroppedDataSpecs() = default;
+    ~DroppedDataSpecs()
+    {
+      warning();
+    }
+
+    bool find(std::string const& desc) const
+    {
+      return descriptions.find(desc) != std::string::npos;
+    }
+
+    void add(std::string const& desc)
+    {
+      descriptions += "\n   " + desc;
+    }
+
+    void warning() const
+    {
+      if (not descriptions.empty()) {
+        LOG(WARNING) << "Some input data are not matched by filter rules " << descriptions << "\n"
+                     << "DROPPING OF THESE MESSAGES HAS BEEN ENABLED BY CONFIGURATION";
+      }
+    }
+
+   private:
+    std::string descriptions;
+  };
+
+  return [filterSpecs = std::move(filterSpecs), throwOnUnmatchedInputs, droppedDataSpecs = std::make_shared<DroppedDataSpecs>()](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
     std::unordered_map<std::string, FairMQParts> outputs;
     std::vector<bool> indicesDone(parts.Size() / 2, false);
+    std::vector<std::string> unmatchedDescriptions;
     for (size_t msgidx = 0; msgidx < parts.Size() / 2; ++msgidx) {
       if (indicesDone[msgidx]) {
         continue;
@@ -263,9 +296,10 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
           sendOnChannel(device, outputs[channelName], channelName);
           indicesDone[msgidx] = true;
           break;
-        } else if (throwOnUnmatchedInputs) {
-          throw std::runtime_error("no matching filter rule for input data " + DataSpecUtils::describe(query));
         }
+      }
+      if (indicesDone[msgidx] == false) {
+        unmatchedDescriptions.emplace_back(DataSpecUtils::describe(query));
       }
     }
     for (auto& [channelName, channelParts] : outputs) {
@@ -273,6 +307,28 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
         continue;
       }
       sendOnChannel(device, channelParts, channelName);
+    }
+    if (not unmatchedDescriptions.empty()) {
+      if (throwOnUnmatchedInputs) {
+        std::string descriptions;
+        for (auto const& desc : unmatchedDescriptions) {
+          descriptions += "\n   " + desc;
+        }
+        throw std::runtime_error("No matching filter rule for input data " + descriptions +
+                                 "\n Add appropriate matcher(s) to dataspec definition or allow to drop unmatched data");
+      } else {
+        bool changed = false;
+        for (auto const& desc : unmatchedDescriptions) {
+          if (not droppedDataSpecs->find(desc)) {
+            // a new description
+            droppedDataSpecs->add(desc);
+            changed = true;
+          }
+        }
+        if (changed) {
+          droppedDataSpecs->warning();
+        }
+      }
     }
   };
 }
