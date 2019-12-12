@@ -285,8 +285,8 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
                            filenames](DataAllocator& outputs, ControlService& control) {
       if (*counter >= filenames.size()) {
         LOG(info) << "All input files processed";
+        control.endOfStream();
         control.readyToQuit(QuitRequest::Me);
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         return;
       }
       auto f = filenames[*counter];
