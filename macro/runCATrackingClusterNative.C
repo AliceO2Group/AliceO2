@@ -99,7 +99,6 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile)
     ClusterNativeHelper::createClusterNativeIndex(clusterBuffer, cont, doMC ? &clusterMCBuffer : nullptr, doMC ? &contMC : nullptr);
 
   vector<TrackTPC> tracks;
-  // TODO Temporary solution, see disclaimer about TPCClRefElem in TrackTPC. Later will be changed to uint32_t
   vector<TPCClRefElem> trackClusRefs;
   MCLabelContainer tracksMC;
 
@@ -113,8 +112,7 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile)
   GPUO2InterfaceIOPtrs ptrs;
   ptrs.clusters = clusters.get();
   ptrs.outputTracks = &tracks;
-  // TODO Temporary solution, see disclaimer about TPCClRefElem in TrackTPC. Later will remove the cast
-  ptrs.outputClusRefs = reinterpret_cast<vector<uint32_t>*>(&trackClusRefs);
+  ptrs.outputClusRefs = &trackClusRefs;
   ptrs.outputTracksMCTruth = doMC ? &tracksMC : nullptr;
   if (tracker.runTracking(&ptrs) == 0) {
     printf("\tFound %d tracks\n", (int)tracks.size());
