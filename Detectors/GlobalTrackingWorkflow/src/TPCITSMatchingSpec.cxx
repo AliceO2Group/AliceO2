@@ -76,7 +76,6 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   const auto clusITS = pc.inputs().get<gsl::span<o2::itsmft::Cluster>>("clusITS");
   const auto clusITSROF = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("clusITSROF");
   const auto tracksTPC = pc.inputs().get<gsl::span<o2::tpc::TrackTPC>>("trackTPC");
-  // TODO Temporary solution, see disclaimer about TPCClRefElem in TrackTPC. Later should be changed to uint32_t
   const auto tracksTPCClRefs = pc.inputs().get<gsl::span<o2::tpc::TPCClRefElem>>("trackTPCClRefs");
 
   //---------------------------->> TPC Clusters loading >>------------------------------------------

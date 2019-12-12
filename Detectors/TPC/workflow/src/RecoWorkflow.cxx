@@ -355,8 +355,6 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     //branch definitions for RootTreeWriter spec
     using TrackOutputType = std::vector<o2::tpc::TrackTPC>;
 
-    // Temporary solution, see disclaimer about TPCClRefElem in the TrackTPC.h
-    //    using ClusRefsOutputType = std::vector<uint32_t>;
     using ClusRefsOutputType = std::vector<o2::tpc::TPCClRefElem>;
 
     using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;

@@ -238,7 +238,6 @@ class MatchTPCITS
   }
 
   ///< set input TPC tracks cluster indices received via DPL
-  // TODO Temporary solution, see disclaimer about TPCClRefElem in TrackTPC. Later should be changed to uint32_t
   void setTPCTrackClusIdxInp(const gsl::span<const o2::tpc::TPCClRefElem> inp)
   {
     assertDPLIO(true);
@@ -562,7 +561,6 @@ class MatchTPCITS
   std::vector<o2::tpc::TrackTPC>* mTPCTracksArrayPtr = nullptr; ///< input TPC tracks from tree
   gsl::span<const o2::tpc::TrackTPC> mTPCTracksArrayInp;        ///< input TPC tracks span
 
-  // TODO Temporary solution, see disclaimer about TPCClRefElem in TrackTPC. Later will be changed to uint32_t
   std::vector<o2::tpc::TPCClRefElem>* mTPCTrackClusIdxPtr = nullptr; ///< input TPC track cluster indices from tree
   gsl::span<const o2::tpc::TPCClRefElem> mTPCTrackClusIdxInp;        ///< input TPC track cluster indices span from DPL
 
