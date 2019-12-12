@@ -17,7 +17,7 @@
 #include "TRDBase/Digit.h"
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "TRDBase/MCLabel.h"
-#include "TRDBase/TrackletMCM.h"
+#include "TRDBase/Tracklet.h"
 
 using namespace o2::framework;
 
@@ -37,7 +37,7 @@ o2::framework::DataProcessorSpec getTRDTrackletWriterSpec()
                                 "trdtracklets.root",
                                 "o2sim",
                                 1,
-                              //  BranchDefinition<std::vector<o2::trd::TrackletMCM>>{InputSpec{"tracklets", "TRD", "TRACKLETS"}, "TRDTracklet"},
+//                                BranchDefinition<std::vector<o2::trd::Tracklet>>{InputSpec{"tracklets", "TRD", "TRACKLETS"}, "TRDTracklet"},
                                 BranchDefinition<o2::dataformats::MCTruthContainer<o2::trd::MCLabel>>{InputSpec{"labels", "TRD", "LABELS"}, "TRDMCLabels"})();
   //TODO maybe dont pass the labels through, come back and check this 
 }

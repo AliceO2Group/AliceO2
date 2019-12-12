@@ -17,7 +17,7 @@
 #include "TRDBase/Digit.h"
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "TRDBase/MCLabel.h"
-#include "TRDBase/TrackletMCM.h"
+#include "TRDBase/Tracklet.h"
 
 using namespace o2::framework;
 
