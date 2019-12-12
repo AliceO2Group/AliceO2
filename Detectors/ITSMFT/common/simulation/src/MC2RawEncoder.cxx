@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "ITSMFTSimulation/MC2RawEncoder.h"
+#include "CommonConstants/Triggers.h"
 
 using namespace o2::itsmft;
 
@@ -16,6 +17,9 @@ using namespace o2::itsmft;
 template <class Mapping>
 void MC2RawEncoder<Mapping>::init()
 {
+  if (mROMode == NotSet) {
+    LOG(FATAL) << "Readout Mode must be set explicitly via setContinuousReadout(bool)";
+  }
   // limit RUs to convert to existing ones
   mRUSWMax = (mRUSWMax < uint8_t(mMAP.getNRUs())) ? mRUSWMax : mMAP.getNRUs() - 1;
   //
@@ -147,6 +151,9 @@ template <class Mapping>
 void MC2RawEncoder<Mapping>::openPageLinkHBF(GBTLink& link)
 {
   /// create 1st page of the new HBF
+  if (mImposeROModeFlag) {
+    mRDH.triggerType |= (mROMode == Continuous) ? o2::trigger::SOC : o2::trigger::SOT;
+  }
   if (mRDH.triggerType & o2::trigger::TF) {
     if (mVerbose) {
       LOG(INFO) << "Starting new TF for link FEEId 0x" << std::hex << std::setfill('0') << std::setw(6) << link.feeID;
@@ -204,10 +211,12 @@ void MC2RawEncoder<Mapping>::addPageLinkHBF(GBTLink& link, bool stop)
     rdh = reinterpret_cast<RDH*>(link.data.getEnd()); // fetch pointer on to-be-written new RDH
 
     link.data.addFast(reinterpret_cast<uint8_t*>(link.lastRDH), sizeof(RDH)); // write RDH for old packet
+    //    rdh->triggerType &= ~(o2::trigger::SOT | o2::trigger::SOC);               // SOx is issued only once, suppress if any
+    rdh->packetCounter = link.packetCounter++;
     if (mVerbose) {
       LOG(INFO) << "Prev HBF for link FEEId 0x" << std::hex << std::setfill('0') << std::setw(6) << link.feeID;
       if (mVerbose > 1) {
-        mHBFUtils.printRDH(*rdh);
+        mHBFUtils.printRDH(*link.lastRDH);
       }
     }
     rdh->offsetToNext = rdh->headerSize;
@@ -235,26 +244,6 @@ void MC2RawEncoder<Mapping>::addPageLinkHBF(GBTLink& link, bool stop)
   //
 }
 
-/*
-//___________________________________________________________________________________
-template <class Mapping>
-void MC2RawEncoder<Mapping>::addPageLinkHBF(GBTLink& link)
-{
-  /// close current page and open new one for the same HB
-  RDH rdh = *link.lastRDH;
-  closePageLinkHBF(link);
-  if (mVerbose) {
-    LOG(INFO) << "Adding new page to HBF of link FEEId 0x" << std::hex << std::setfill('0') << std::setw(6) << link.feeID;
-  }
-  // TODO check if we should flush the superpage
-  link.data.ensureFreeCapacity(MaxGBTPacketBytes + sizeof(RDH)); // make sure there is a room for next page
-  rdh.stop = 0;
-  rdh.pageCnt++;
-  link.lastRDH = reinterpret_cast<RDH*>(link.data.getEnd());        // pointer on last (to be written) RDH for HBreopen
-  link.data.addFast(reinterpret_cast<uint8_t*>(&rdh), sizeof(RDH)); // write RDH for old packet
-}
-*/
-
 //___________________________________________________________________________________
 template <class Mapping>
 void MC2RawEncoder<Mapping>::openHBF()
@@ -270,6 +259,10 @@ void MC2RawEncoder<Mapping>::openHBF()
       closePageLinkHBF(*link);
       openPageLinkHBF(*link);
     }
+  }
+  if (mImposeROModeFlag) {
+    mRDH.triggerType &= ~(o2::trigger::SOT | o2::trigger::SOC);
+    mImposeROModeFlag = false;
   }
 }
 
@@ -345,7 +338,7 @@ void MC2RawEncoder<Mapping>::fillGBTLinks(RUDecodeData& ru)
   GBTTrigger gbtTrigger;
   gbtTrigger.bc = mCurrIR.bc;
   gbtTrigger.orbit = mCurrIR.orbit;
-  gbtTrigger.internal = mIsContinuous;
+  gbtTrigger.internal = isContinuousReadout();
   gbtTrigger.triggerType = 0; //TODO
 
   for (int il = 0; il < MaxLinksPerRU; il++) {
