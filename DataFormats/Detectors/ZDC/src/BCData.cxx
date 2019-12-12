@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "DataFormatsZDC/BCData.h"
+#include "DataFormatsZDC/ChannelData.h"
 #include <bitset>
 
 using namespace o2::zdc;
@@ -30,4 +31,10 @@ void BCData::print() const
     }
   }
   printf("]\n");
+}
+
+gsl::span<const ChannelData> BCData::getBunchChannelData(const gsl::span<const ChannelData> tfdata) const
+{
+  // extract the span of channel data for this bunch from the whole TF data
+  return gsl::span<const ChannelData>(&tfdata[ref.getFirstEntry()], ref.getEntries());
 }

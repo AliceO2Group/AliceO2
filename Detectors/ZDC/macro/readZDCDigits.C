@@ -57,11 +57,18 @@ void readZDCDigits(std::string digiFName = "zdcdigits.root")
       }
       bcd.print();
       //
+      auto channels = bcd.getBunchChannelData(zdcChData);
+      int nch = channels.size();
+      for (int ich = 0; ich < nch; ich++) {
+        channels[ich].print();
+      }
+      /* // alternative way:
       int chEnt = bcd.ref.getFirstEntry();
       for (int ic = 0; ic < bcd.ref.getEntries(); ic++) {
         const auto& chd = zdcChData[chEnt++];
         chd.print();
       }
+      */
       if (labelsPtr) {
         const auto lbl = labelsPtr->getLabels(ibc);
         for (int lb = 0; lb < lbl.size(); lb++) {
