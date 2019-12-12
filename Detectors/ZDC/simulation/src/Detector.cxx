@@ -41,6 +41,7 @@ Detector::Detector(Bool_t active)
     mXImpact(-999, -999, -999)
 {
   mTrackEta = 999;
+  // REsetting summed variables
   mTotLightPMC = 0;
   mTotLightPMQ = 0;
   mMediumPMCid = 0;
@@ -111,7 +112,6 @@ void Detector::InitializeO2Detector()
   assert(std::abs(mLightTableZN[0][0][2] - .47985) < 1.E-4);                 // beta=0; radius = 0; anglebin = 2;
   assert(std::abs(mLightTableZN[0][0][11] - .01358) < 1.E-4);                // beta=0; radius = 0; anglebin = 11;
   */
-  assert(std::abs(mLightTableZN[3][10][ZNRADIUSBINS - 1] - 0.08459) < 1.E-4); // beta=3; radius = ZNRADIUSBINS-1; anglebin = 10;
 
   //ZP case
   loadLightTable(mLightTableZP, 0, ZPRADIUSBINS, inputDir + "light22620552207s");
@@ -240,17 +240,18 @@ void Detector::getDetIDandSecID(TString const& volname, Vector3D<float> const& x
   assert(false);
 }
 
+//_____________________________________________________________________________
 void Detector::resetHitIndices()
 {
   // reinit hit buffer to null (because we make new hits for each principal track)
   for (int det = 0; det < NUMDETS; ++det) {
     for (int sec = 0; sec < NUMSECS; ++sec) {
       mCurrentHitsIndices[det][sec] = -1;
-      // Summed variables are set to 0
-      mTotLightPMC = 0;
-      mTotLightPMQ = 0;
     }
   }
+  // Summed variables are set to 0
+  mTotLightPMC = 0;
+  mTotLightPMQ = 0;
 }
 
 //_____________________________________________________________________________
@@ -288,7 +289,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     if ((mLastPrincipalTrackEntered == -1) || !(stack->isTrackDaughterOf(trackn, mLastPrincipalTrackEntered))) {
       mLastPrincipalTrackEntered = trackn;
       resetHitIndices();
-      printf(">>> RESETTING HITS!!!!\n\n");
+      //printf(">>> RESETTING HITS!!!!\n\n");
 
       // there is nothing more to do here as we are not
       // in the fiber volumes
@@ -304,7 +305,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     // if we come here we are definitely in a sensitive volume !!
     mLastPrincipalTrackEntered = trackn;
     resetHitIndices();
-    printf(" Problem with principal track detection\n >>> RESETTING HITS!!!!\n");
+    //printf(" Problem with principal track detection\n >>> RESETTING HITS!!!!\n");
   }
 
   Float_t p[3] = {0., 0., 0.};
@@ -355,6 +356,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     bool issecondary = trackn != stack->getCurrentPrimaryIndex();
     //if(!issecondary) printf("     !!! primary track (index %d)\n",stack->getCurrentPrimaryIndex());
 
+    mTotLightPMC = mTotLightPMQ = 0;
     if (currentMediumid == mMediumPMCid) {
       mTotLightPMC = nphe;
     } else if (currentMediumid == mMediumPMQid) {
@@ -369,29 +371,29 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     mCurrentHitsIndices[detector - 1][sector] = mHits->size() - 1;
 
     mXImpact = xImp;
-    printf("### NEW HIT CREATED in vol %d %d for track %d (mother: %d) \t E %f  light %1.0f %1.0f\n",
-      //detector, sector, trackn, stack->GetCurrentTrack()->GetMother(0), eDep, mTotLightPMC, mTotLightPMQ);
-      detector, sector, trackn, stack->GetCurrentTrack()->GetFirstMother(), eDep, mTotLightPMC, mTotLightPMQ);
+    //printf("### NEW HIT CREATED in vol %d %d for track %d (mother: %d) \t light %1.0f %1.0f\n",
+    //detector, sector, trackn, stack->GetCurrentTrack()->GetFirstMother(), mTotLightPMC, mTotLightPMQ);
     return true;
 
   } else {
     auto& curHit = (*mHits)[mCurrentHitsIndices[detector - 1][sector]];
     // summing variables that needs to be updated (Eloss and light yield)
     curHit.setNoNumContributingSteps(curHit.getNumContributingSteps() + 1);
+    int nPMC{0}, nPMQ{0};
     if (currentMediumid == mMediumPMCid) {
       mTotLightPMC += nphe;
+      nPMC = nphe;
     } else if (currentMediumid == mMediumPMQid) {
       mTotLightPMQ += nphe;
+      nPMQ = nphe;
     }
     float incenloss = curHit.GetEnergyLoss() + eDep;
-    //if (eDep > 0 || nphe > 0) {
     if (nphe > 0) {
       curHit.SetEnergyLoss(incenloss);
-      curHit.setPMCLightYield(mTotLightPMC);
-      curHit.setPMQLightYield(mTotLightPMQ);
-      printf("  >>> Hit updated in vol %d %d  for track %d (mother: %d) \t E %f  light %1.0f %1.0f \n",
-        detector, sector, trackn, stack->GetCurrentTrack()->GetFirstMother(), incenloss, mTotLightPMC, mTotLightPMQ);
-        //detector, sector, trackn, stack->GetCurrentTrack()->GetMother(0), incenloss, mTotLightPMC, mTotLightPMQ);
+      curHit.setPMCLightYield(curHit.getPMCLightYield() + nPMC);
+      curHit.setPMQLightYield(curHit.getPMQLightYield() + nPMQ);
+      //printf("  >>> Hit updated in vol %d %d  for track %d (mother: %d) \t light %1.0f %1.0f \n",
+      //detector, sector, trackn, stack->GetCurrentTrack()->GetFirstMother(), curHit.getPMCLightYield(), curHit.getPMQLightYield());
     }
     return true;
   }
@@ -400,7 +402,8 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
 //_____________________________________________________________________________
 o2::zdc::Hit* Detector::addHit(Int_t trackID, Int_t parentID, Int_t sFlag, Float_t primaryEnergy, Int_t detID,
-                               Int_t secID, Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Vector3D<float> xImpact, Double_t energyloss, Int_t nphePMC, Int_t nphePMQ)
+                               Int_t secID, Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Vector3D<float> xImpact,
+                               Double_t energyloss, Int_t nphePMC, Int_t nphePMQ)
 {
   LOG(DEBUG4) << "Adding hit for track " << trackID << " X (" << pos.X() << ", " << pos.Y() << ", "
               << pos.Z() << ") P (" << mom.X() << ", " << mom.Y() << ", " << mom.Z() << ")  Ekin "
