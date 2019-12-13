@@ -89,6 +89,10 @@ class RawReaderFile
   /// \return Raw Payload of the data until the stop bit is received.
   const RawPayload& getPayload() const { return mRawPayload; }
 
+  /// \brief Return size of the payload
+  /// \return size of the payload
+  int getPayloadSize() const { return mRawPayload.getPayloadSize(); }
+
   /// \brief get the size of the file in bytes
   /// \return size of the file in byte
   int getFileSize() const noexcept { return mFileSize; }
