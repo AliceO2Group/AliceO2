@@ -78,7 +78,7 @@ function(o2_add_test)
       # testProgram -- arg1 arg2 ...
       #
       # if they have arguments.
-      set(A_COMMAND_LINE_ARGS "--" ${A_COMMAND_LINE_ARGS})
+      set(A_COMMAND_LINE_ARGS ${A_COMMAND_LINE_ARGS})
     endif()
   endif()
 
