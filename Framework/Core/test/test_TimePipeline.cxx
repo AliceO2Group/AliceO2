@@ -68,7 +68,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
   std::this_thread::sleep_for(std::chrono::seconds(1));
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
-  auto tpcClusters = ctx.outputs().make<FakeCluster>(Output{"TPC", "CLUSTERS", index}, collectionChunkSize);
+  auto& tpcClusters = ctx.outputs().make<FakeCluster>(Output{"TPC", "CLUSTERS", index}, collectionChunkSize);
   int i = 0;
 
   for (auto& cluster : tpcClusters) {
