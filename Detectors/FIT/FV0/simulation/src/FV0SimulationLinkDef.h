@@ -16,5 +16,9 @@
 
 #pragma link C++ class o2::fv0::Detector + ;
 #pragma link C++ class o2::base::DetImpl < o2::fv0::Detector> + ;
+#pragma link C++ class o2::fv0::Digitizer + ;
+#pragma link C++ class o2::fv0::MCLabel + ;
+#pragma link C++ class o2::dataformats::MCTruthContainer < o2::fv0::MCLabel> + ;
+#pragma link C++ class o2::fv0::DigitizationParameters + ;
 
 #endif
