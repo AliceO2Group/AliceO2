@@ -8,18 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "DataFormatsFV0/ChannelData.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+using namespace o2::fv0;
 
-#pragma link C++ class o2::fv0::Hit + ;
-#pragma link C++ class vector < o2::fv0::Hit> + ;
-
-#pragma link C++ class o2::fv0::ChannelData + ;
-#pragma link C++ class o2::fv0::BCData + ;
-#pragma link C++ class std::vector < o2::fv0::ChannelData> + ;
-#pragma link C++ class std::vector < o2::fv0::BCData> + ;
-
-#endif
+void ChannelData::print() const
+{
+  printf("  Pmt=%2d  |  time =%5d  |  charge =%6d\n", pmtNumber, time, chargeAdc);
+}
