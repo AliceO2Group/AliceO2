@@ -89,13 +89,9 @@ void TestDataReader::init(InitContext& ic)
     mErrors[i] = 0;
   }
 
-  //		mEventPerPush = 3000;
+
   mEventRegistered = 0;
   mTotalPixelSize = 0;
-
-  //	GetFileName("infile");
-
-  //
 
   const Int_t numOfChips = o2::itsmft::ChipMappingITS::getNChips();
   LOG(DEBUG) << "numOfChips = " << numOfChips;
@@ -114,7 +110,6 @@ void TestDataReader::run(ProcessingContext& pc)
   // If found, process them one by one
 
   //Defining all local variables
- // int j = 0;
   int NEventPre;
   int NEvent;
   double PercentDone = 0;
@@ -238,7 +233,6 @@ void TestDataReader::run(ProcessingContext& pc)
       if (pos != string::npos)
         FileIDS = mDiffFileNames[i][0].substr(pos + 1);
       mEpNumber = stoi(mDiffFileNames[i][0].substr(pos+8, 1));
-     // cout << "ep: " << mEpNumber << endl;
      // cout << "Before FileIDS = " << FileIDS << endl;
 
       size_t last_index2 = FileIDS.find_last_not_of("0123456789");
@@ -378,15 +372,13 @@ void TestDataReader::run(ProcessingContext& pc)
         }
 
         auto ChipID = mChipData->getChipID();
-      //  cout << "ChiID is " << ChipID << endl;
-      //  if(ChipID == 0) cout << "ChipID is :" << ChipID << endl;
+     
         for (auto& pixel : pixels) {
           if (Index < IndexMax)
             break;
           int col = pixel.getCol();
           int row = pixel.getRow();
           mDigits.emplace_back((UShort_t)ChipID, NEvent, row, col, 0);
-        //  cout << "ChipID is in:" << (UShort_t)ChipID << " " << NEvent << " " << row << " " << col << endl;
           Index = Index + 1;
         }
         NChip = NChip + 1;
@@ -398,15 +390,12 @@ void TestDataReader::run(ProcessingContext& pc)
       mNDigits.push_back(mTotalPixelSize);
       mTotalPixelSize = 0;
       mErrorsVec.push_back(mErrors);
-    // mErrorsVec.push_back(0);
-     // cout << "Run " << mNowFolderNames[i] << " File " << mInputName << "    Integrated Raw Pixel Pushed " << mDigits.size() << endl;
-      
+        
       LOG(DEBUG) << "Run " << mNowFolderNames[i] << " File " << mInputName << "    Integrated Raw Pixel Pushed " << mDigits.size();
       if (mFolderNames.size() < mNowFolderNames.size())
         mFileNames.push_back(NewNextFold);
       mFileNames[i].push_back(mInputName);
 
-     // mFileNames.at(i).push_back(mInputName);
       fout << " END OF ERROR REPORT " << endl;
     }
   }
