@@ -8,18 +8,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef STEER_DIGITIZERWORKFLOW_FV0DIGITIZER_H_
+#define STEER_DIGITIZERWORKFLOW_FV0DIGITIZER_H_
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "Framework/DataProcessorSpec.h"
 
-#pragma link C++ class o2::fv0::Hit + ;
-#pragma link C++ class vector < o2::fv0::Hit> + ;
+namespace o2
+{
+namespace fv0
+{
 
-#pragma link C++ class o2::fv0::ChannelData + ;
-#pragma link C++ class o2::fv0::BCData + ;
-#pragma link C++ class std::vector < o2::fv0::ChannelData> + ;
-#pragma link C++ class std::vector < o2::fv0::BCData> + ;
+o2::framework::DataProcessorSpec getFV0DigitizerSpec(int channel);
 
-#endif
+} // namespace fv0
+} // end namespace o2
+
+#endif /* STEER_DIGITIZERWORKFLOW_FITDIGITIZER_H_ */
