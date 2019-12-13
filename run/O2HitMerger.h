@@ -442,7 +442,7 @@ class O2HitMerger : public FairMQDevice
     // increase the entry count in the tree
     mOutTree->SetEntries(mOutTree->GetEntries() + 1);
     LOG(INFO) << "outtree has file " << mOutTree->GetDirectory()->GetFile()->GetName();
-    mOutFile->Write();
+    mOutFile->Write("", TObject::kOverwrite);
 
     // remove tree for that eventID
     delete mEventToTTreeMap[eventID];
