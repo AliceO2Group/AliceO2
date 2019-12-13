@@ -15,6 +15,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::emcal::TriggerRecord + ;
+#pragma link C++ class o2::dataformats::TimeStamp < Float16_t > +;
 #pragma link C++ class o2::emcal::Cell + ;
 #pragma link C++ class o2::emcal::Digit + ;
 #pragma link C++ class o2::emcal::Cluster + ;
@@ -26,5 +27,7 @@
 
 // For channel type in digits and cells
 #pragma link C++ enum o2::emcal::ChannelType_t + ;
+
+#pragma link C++ class std::vector < o2::emcal::Cluster > +;
 
 #endif

@@ -8,7 +8,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-
 o2_add_library(EMCALReconstruction
                SOURCES src/RawReaderFile.cxx
                        src/RawReaderMemory.cxx
@@ -23,9 +22,14 @@ o2_add_library(EMCALReconstruction
                        src/CaloFitResults.cxx
                        src/CaloRawFitter.cxx
                        src/CaloRawFitterStandard.cxx
+		       src/ClusterizerParameters.cxx 
+                       src/Clusterizer.cxx 
+                       src/ClusterizerTask.cxx
+                       src/DigitReader.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::Headers
                                      AliceO2::InfoLogger
                                      O2::DataFormatsEMCAL
+                                     O2::DetectorsBase
                                      O2::EMCALBase)
 
 o2_target_root_dictionary(
@@ -40,7 +44,12 @@ o2_target_root_dictionary(
                                   include/EMCALReconstruction/RAWDataHeader.h
                                   include/EMCALReconstruction/CaloFitResults.h
                                   include/EMCALReconstruction/CaloRawFitter.h
-                                  include/EMCALReconstruction/CaloRawFitterStandard.h)
+                                  include/EMCALReconstruction/CaloRawFitterStandard.h
+                                  include/EMCALReconstruction/ClusterizerParameters.h
+                                  include/EMCALReconstruction/Clusterizer.h
+                                  include/EMCALReconstruction/ClusterizerTask.h
+                                  include/EMCALReconstruction/DigitReader.h
+)
 
 o2_add_executable(rawreader-file
                   COMPONENT_NAME emcal
