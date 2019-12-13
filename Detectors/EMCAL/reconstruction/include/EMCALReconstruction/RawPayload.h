@@ -71,6 +71,10 @@ class RawPayload
   /// \brief Resetting payload words and page counter
   void reset();
 
+  /// \brief Get the size of the payload
+  /// \return Size of the payload
+  int getPayloadSize() const { return mPayloadWords.size() * sizeof(uint32_t); }
+
  private:
   std::vector<uint32_t> mPayloadWords; ///< Payload words (excluding raw header)
   int mNumberOfPages;                  ///< Number of DMA pages
