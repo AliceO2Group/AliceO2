@@ -15,6 +15,8 @@
 #include "FairRootManager.h" // for FairRootManager
 #include "EMCALReconstruction/ClusterizerTask.h"
 
+#include <TFile.h>
+
 ClassImp(o2::emcal::ClusterizerTask);
 
 using namespace o2::emcal;
