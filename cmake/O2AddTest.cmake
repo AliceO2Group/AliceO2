@@ -72,14 +72,6 @@ function(o2_add_test)
 
   if(NOT A_NO_BOOST_TEST)
     set(linkLibraries ${linkLibraries} Boost::unit_test_framework)
-    if(A_COMMAND_LINE_ARGS)
-      # Boost test programs are to be called like this :
-      #
-      # testProgram -- arg1 arg2 ...
-      #
-      # if they have arguments.
-      set(A_COMMAND_LINE_ARGS ${A_COMMAND_LINE_ARGS})
-    endif()
   endif()
 
   set(noInstall NO_INSTALL)
