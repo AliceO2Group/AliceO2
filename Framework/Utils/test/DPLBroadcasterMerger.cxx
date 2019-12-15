@@ -142,5 +142,4 @@ o2::framework::WorkflowSpec DPLBroadcasterMergerWorkflow()
   return std::move(lspec);
 }
 
-} // namespace workflows
-} // namespace o2
+} // namespace o2::workflows
