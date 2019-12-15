@@ -16,12 +16,11 @@
 #include "Framework/DataProcessorSpec.h"
 #include "random"
 #include "Framework/Logger.h"
+#include "Framework/ControlService.h"
 
 namespace o2f = o2::framework;
 
-namespace o2
-{
-namespace workflows
+namespace o2::workflows
 {
 
 o2f::DataProcessorSpec defineTestGenerator()
@@ -39,6 +38,9 @@ o2f::DataProcessorSpec defineTestGenerator()
             // Processing context in captured from return on InitCallback
             return [msgCounter_shptr](o2f::ProcessingContext& ctx) {
               int msgIndex = (*msgCounter_shptr)++;
+              if (msgIndex > 10) {
+                ctx.services().get<framework::ControlService>().endOfStream();
+              }
               LOG(INFO) << ">>> MSG:" << msgIndex << "\n";
 
               LOG(INFO) << ">>> Preparing MSG:" << msgIndex;
@@ -96,5 +98,4 @@ o2::framework::WorkflowSpec DPLOutputTest()
   return std::move(lspec);
 }
 
-} // namespace workflows
-} // namespace o2
+} // namespace o2::workflows
