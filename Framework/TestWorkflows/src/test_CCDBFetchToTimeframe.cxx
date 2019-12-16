@@ -42,7 +42,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           if (header->payloadSize != 1509) {
             LOG(ERROR) << "Wrong size for condition payload (expected " << 1509 << ", found " << header->payloadSize;
           }
-          header->payloadSize;
           control.readyToQuit(QuitRequest::All);
         })},
     }};
