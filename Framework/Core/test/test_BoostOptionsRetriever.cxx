@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE(TrivialBoostOptionsRetrieverTest)
 
   auto specs = std::vector<ConfigParamSpec>{
     {"someInt", VariantType::Int, 2, {"some int option"}},
-    {"someInt64", VariantType::Int64, 3ll, {"some int64 option"}},
+    {"someInt64", VariantType::Int64, 4ll, {"some int64 option"}},
     {"someBool", VariantType::Bool, false, {"some bool option"}},
     {"someFloat", VariantType::Float, 2.0f, {"some float option"}},
     {"someDouble", VariantType::Double, 2.0, {"some double option"}},
