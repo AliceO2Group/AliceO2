@@ -26,7 +26,7 @@ BOOST_AUTO_TEST_CASE(TestOptionsRetriever)
     ("aFloat", bpo::value<float>()->default_value(10.f))                  //
     ("aDouble", bpo::value<double>()->default_value(20.))                 //
     ("anInt", bpo::value<int>()->default_value(1))                        //
-    ("anInt64", bpo::value<int64_t>()->default_value(1ll))                 //
+    ("anInt64", bpo::value<int64_t>()->default_value(1ll))                //
     ("aBoolean", bpo::value<bool>()->zero_tokens()->default_value(false)) //
     ("aString", bpo::value<std::string>()->default_value("something"))    //
     ("aNested.int", bpo::value<int>()->default_value(2))                  //
