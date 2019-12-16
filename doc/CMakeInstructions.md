@@ -2,32 +2,35 @@
 
 <!-- vim-markdown-toc GFM -->
 
-- [CMake](#cmake)
-  - [Instructions for contributors (aka developers' documentation)](#instructions-for-contributors-aka-developers-documentation)
-  - [Typical CMakeLists.txt](#typical-cmakeliststxt)
-  - [Examples](#examples)
-    - [Ex1 Adding a basic library](#ex1-adding-a-basic-library)
-    - [Ex2 Adding a basic library with a Root dictionary](#ex2-adding-a-basic-library-with-a-root-dictionary)
-    - [Ex3 Adding an executable](#ex3-adding-an-executable)
-    - [Ex4 Adding a couple of tests](#ex4-adding-a-couple-of-tests)
-    - [Ex5 Adding a man page](#ex5-adding-a-man-page)
-- [CTest](#ctest)
-  - [Selecting/excluding by test name (-R/-E)](#selectingexcluding-by-test-name--r-e)
-  - [Selecting/excluding by label (-L/-LE)](#selectingexcluding-by-label--l-le)
-  - [Speeding up ctest execution](#speeding-up-ctest-execution)
+- [CMake and CTest tips for AliceO2](#cmake-and-ctest-tips-for-aliceo2)
+  - [CMake](#cmake)
+    - [Instructions for contributors (aka developers' documentation)](#instructions-for-contributors-aka-developers-documentation)
+    - [Typical CMakeLists.txt](#typical-cmakeliststxt)
+    - [Examples](#examples)
+      - [Ex1 Adding a basic library](#ex1-adding-a-basic-library)
+      - [Ex2 Adding a basic library with a Root dictionary](#ex2-adding-a-basic-library-with-a-root-dictionary)
+      - [Ex3 Adding an executable](#ex3-adding-an-executable)
+      - [Ex4 Adding a couple of tests](#ex4-adding-a-couple-of-tests)
+      - [Ex5 Adding a man page](#ex5-adding-a-man-page)
+  - [CTest](#ctest)
+    - [Selecting/excluding by test name (-R/-E)](#selectingexcluding-by-test-name--r-e)
+    - [Selecting/excluding by label (-L/-LE)](#selectingexcluding-by-label--l-le)
+    - [Speeding up ctest execution](#speeding-up-ctest-execution)
 
 <!-- vim-markdown-toc -->
 
-# CMake
+# CMake and CTest tips for AliceO2
+
+## CMake
 
 > Note that this document describe the [new CMake system](CMakeMigration.md) : the one based on buckets has been discontinued.
 
-## Instructions for contributors (aka developers' documentation)
+### Instructions for contributors (aka developers' documentation)
 
 A sub-module `CMakeLists.txt` defines one or more _targets_.
 A target generally corresponds to an actual build artifact like a (static or shared) library or an executable. Targets are the cornerstone of any modern cmake build system.
 
-## Typical CMakeLists.txt
+### Typical CMakeLists.txt
 
 A typical module's `CMakeLists.txt` contains
 
@@ -43,11 +46,11 @@ Note that despite the parameter name, the `PUBLIC_LINK_LIBRARIES` should refer t
 
 Note also CMakeLists.txt should be considered as code and so the same care you put into writing code (e.g. do not repeat yourself, comments, etc...) should be applied to CMakeLists.txt. Also, like the rest of our code, we can take of the formatting using the [cmake-format](https://github.com/cheshirekow/cmake_format) tool (that tool is certainly not as robust as `clang-format` but it can get most of the job done easily).
 
-## Examples
+### Examples
 
 The example outputs below are from a Mac, so the shared library extension is `dylib`. On Linux it would be `so`.
 
-### [Ex1](../Examples/Ex1) Adding a basic library
+#### [Ex1](../Examples/Ex1) Adding a basic library
 
 Using the following source dir :
 
@@ -98,7 +101,7 @@ And upon install `cmake --build . -- install` (the lonely `--` is not a typo) th
     ├── lib
     │   ├── libO2Ex1.dylib
 
-### [Ex2](../Examples/Ex2) Adding a basic library with a Root dictionary
+#### [Ex2](../Examples/Ex2) Adding a basic library with a Root dictionary
 
 Using a slightly modified version of the previous example (the [A.h](../Examples/Ex2/include/Ex2/A.h) now uses ClassDef for instance), we'll now add a Root dictionary :
 
@@ -156,7 +159,7 @@ The include installation will be similar to Ex1 : the `LinkDef.h` file is _not_ 
     │   ├── libO2Ex2.dylib
     │   ├── libO2Ex2.rootmap
 
-### [Ex3](../Examples/Ex3) Adding an executable
+#### [Ex3](../Examples/Ex3) Adding an executable
 
 Adding an executable to previous example :
 
@@ -219,7 +222,7 @@ Third, the created executable can be launched "as is" from the build tree, witho
 
 That is because the [RPATH](https://gitlab.kitware.com/cmake/community/wikis/doc/cmake/RPATH-handling) was correctly set by CMake for the build tree. It should be set correctly also when installing.
 
-### [Ex4](../Examples/Ex4) Adding a couple of tests
+#### [Ex4](../Examples/Ex4) Adding a couple of tests
 
 Let's add two basic test2 to our previous example.
 
@@ -329,7 +332,7 @@ Tests can also be _excluded_ based on label (`-LE`) or name (`-RE`).
     dummy    =   0.07 sec*proc (1 test)
     fast     =   0.07 sec*proc (1 test)
 
-### [Ex5](../Examples/Ex5) Adding a man page
+#### [Ex5](../Examples/Ex5) Adding a man page
 
 If a module provides one or more executables, it might be of interest for the users of those executables to have access to a man page for them. Ex5 illustates that use case.
 
@@ -347,7 +350,7 @@ The [man page](ManPages.md) is created using :
 
 where `NAME xx` refers to a file `doc/xx.[SECTION].in`, and the actual `targetName` can be found from the base target name (ex5 in that case) using the [o2_name_target](../cmake/O2NameTarget.cmake) function.
 
-# CTest
+## CTest
 
 In the build directory of O2, if you launch the `ctest` command, all the O2 tests will be ran, which is not always what you want/need, in particular during development.
 
@@ -355,11 +358,11 @@ As shown above in [Ex4](#ex4-adding-a-couple-of-tests), there are fortunately va
 
 Note that in all the commands below, the `-N` option is used to show the list of test that would be selected, without running them. Remove that option to actually run the tests.
 
-## Selecting/excluding by test name (-R/-E)
+### Selecting/excluding by test name (-R/-E)
 
 Probably the simplest is to select the test name, using the `-R` (regexp) option :
 
-```
+```shell
 > ctest -N -R test/Contour
   Test #269: Detectors/MUON/MCH/Contour/test/Contour.cxx
   Test #270: Detectors/MUON/MCH/Contour/test/ContourCreator.cxx
@@ -371,11 +374,11 @@ Probably the simplest is to select the test name, using the `-R` (regexp) option
 
 Instead of selecting the tests to run, you can invert the logic and exclude tests matching a regular expression using `-E` instead of `-R`.
 
-## Selecting/excluding by label (-L/-LE)
+### Selecting/excluding by label (-L/-LE)
 
 Assuming the tests have been labelled, you can use `-L` (to include) or `-LE` (to exclude) tests based on their labels. The full list of defined labels can be shown using the `--print-labels` option.
 
-```
+```shell
 > ctest -N -L mch
   Test #268: Detectors/MUON/MCH/Contour/test/BBox.cxx
   Test #269: Detectors/MUON/MCH/Contour/test/Contour.cxx
@@ -389,13 +392,13 @@ Assuming the tests have been labelled, you can use `-L` (to include) or `-LE` (t
   Test #277: Detectors/MUON/MCH/Simulation/macros/drawMCHGeometry.C_compiled
 ```
 
-## Speeding up ctest execution
+### Speeding up ctest execution
 
 Finally, note that `ctest` can run tests in parallel (unless those that are explicitely marked as not safe to run in parallel) using the `-j n` option, where `n` is the max number of tests to run in parallel.
 
 Serial execution :
 
-```
+```shell
 > ctest -L mch -LE long -E Raw
     Start 265: Detectors/MUON/MCH/Contour/test/BBox.cxx
 1/8 Test #265: Detectors/MUON/MCH/Contour/test/BBox.cxx .............   Passed    0.04 sec
@@ -426,7 +429,7 @@ Total Test time (real) =   0.49 sec
 
 Parallel execution (on a machine with 16 cores) :
 
-```
+```shell
 > ctest -L mch -LE long -E Raw -j 16
     Start 270: Detectors/MUON/MCH/Contour/test/Polygon.cxx
     Start 271: Detectors/MUON/MCH/Contour/test/SegmentTree.cxx
