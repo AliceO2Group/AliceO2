@@ -41,8 +41,10 @@ void ConfigParamsHelper::populateBoostProgramOptions(
       // FIXME: Should we handle int and size_t diffently?
       // FIXME: We should probably raise an error if the type is unknown
       case VariantType::Int:
-      case VariantType::Int64:
         addConfigSpecOption<VariantType::Int>(spec, options);
+        break;
+      case VariantType::Int64:
+        addConfigSpecOption<VariantType::Int64>(spec, options);
         break;
       case VariantType::Float:
         addConfigSpecOption<VariantType::Float>(spec, options);

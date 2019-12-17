@@ -33,6 +33,7 @@ class BoostOptionsRetriever : public ParamRetriever
                         int& argc, char**& argv);
 
   int getInt(const char* name) const final;
+  int64_t getInt64(const char* name) const final;
   float getFloat(const char* name) const final;
   double getDouble(const char* name) const final;
   bool getBool(const char* name) const final;

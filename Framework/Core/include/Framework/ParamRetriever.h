@@ -25,6 +25,7 @@ class ParamRetriever
 {
  public:
   virtual int getInt(const char* name) const = 0;
+  virtual int64_t getInt64(const char* name) const = 0;
   virtual float getFloat(const char* name) const = 0;
   virtual double getDouble(const char* name) const = 0;
   virtual bool getBool(const char* name) const = 0;
