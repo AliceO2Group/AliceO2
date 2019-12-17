@@ -10,7 +10,7 @@
 
 /// @brief  Processor spec for a ROOT file writer for TOF digits
 
-#include "TOFDigitWriterSpec.h"
+#include "TOFWorkflow/TOFDigitWriterSpec.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
@@ -44,9 +44,9 @@ TBranch* getOrMakeBranch(TTree& tree, std::string brname, T* ptr)
 
 /// create the processor spec
 /// describing a processor receiving digits for ITS writing them to file
-DataProcessorSpec getTOFDigitWriterSpec()
+DataProcessorSpec getTOFDigitWriterSpec(bool useMC)
 {
-  auto initFunction = [](InitContext& ic) {
+  auto initFunction = [useMC](InitContext& ic) {
     // get the option from the init context
     auto filename = ic.options().get<std::string>("tof-digit-outfile");
     auto treename = ic.options().get<std::string>("treename");
@@ -69,7 +69,7 @@ DataProcessorSpec getTOFDigitWriterSpec()
     // using by-copy capture of the worker instance shared pointer
     // the shared pointer makes sure to clean up the instance when the processing
     // function gets out of scope
-    auto processingFct = [outputfile, outputtree, digits](ProcessingContext& pc) {
+    auto processingFct = [outputfile, outputtree, digits, useMC](ProcessingContext& pc) {
       static bool finished = false;
       if (finished) {
         // avoid being executed again when marked as finished;
@@ -86,14 +86,16 @@ DataProcessorSpec getTOFDigitWriterSpec()
       br->Fill();
 
       // retrieve labels from the input
-      auto labeldata = pc.inputs().get<std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>*>("tofdigitlabels");
-      for (int i = 0; i < labeldata->size(); i++) {
-        LOG(INFO) << "TOF GOT " << labeldata->at(i).getNElements() << " LABELS ";
+      if(useMC){
+        auto labeldata = pc.inputs().get<std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>*>("tofdigitlabels");
+        for (int i = 0; i < labeldata->size(); i++) {
+          LOG(INFO) << "TOF GOT " << labeldata->at(i).getNElements() << " LABELS ";
+        }
+        auto labeldataraw = labeldata.get();
+        // connect this to a particular branch
+        auto labelbr = getOrMakeBranch(*outputtree.get(), "TOFDigitMCTruth", &labeldataraw);
+        labelbr->Fill();
       }
-      auto labeldataraw = labeldata.get();
-      // connect this to a particular branch
-      auto labelbr = getOrMakeBranch(*outputtree.get(), "TOFDigitMCTruth", &labeldataraw);
-      labelbr->Fill();
 
       finished = true;
       pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
@@ -104,10 +106,14 @@ DataProcessorSpec getTOFDigitWriterSpec()
     return processingFct;
   };
 
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("tofdigits", "TOF", "DIGITS", 0, Lifetime::Timeframe);
+  if (useMC)
+    inputs.emplace_back("tofdigitlabels", "TOF", "DIGITSMCTR", 0, Lifetime::Timeframe);
+
   return DataProcessorSpec{
     "TOFDigitWriter",
-    Inputs{InputSpec{"tofdigits", "TOF", "DIGITS", 0, Lifetime::Timeframe},
-           InputSpec{"tofdigitlabels", "TOF", "DIGITSMCTR", 0, Lifetime::Timeframe}},
+    inputs,
     {}, // no output
     AlgorithmSpec(initFunction),
     Options{

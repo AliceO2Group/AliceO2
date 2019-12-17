@@ -219,16 +219,16 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
   // filling the MC labels of this cluster; the first will be those of the main digit; then the others
   if (digitMCTruth != nullptr) {
     int lbl = mClsLabels->getIndexedSize(); // this should correspond to the number of digits also;
-    printf("lbl = %d\n", lbl);
+    //printf("lbl = %d\n", lbl);
     for (int i = 0; i < mNumberOfContributingDigits; i++) {
-      printf("contributing digit = %d\n", i);
+      //printf("contributing digit = %d\n", i);
       int digitLabel = mContributingDigit[i]->getLabel();
-      printf("digitLabel = %d\n", digitLabel);
+      //printf("digitLabel = %d\n", digitLabel);
       gsl::span<const o2::MCCompLabel> mcArray = digitMCTruth->getLabels(digitLabel);
       for (int j = 0; j < static_cast<int>(mcArray.size()); j++) {
-        printf("checking element %d in the array of labels\n", j);
+        //printf("checking element %d in the array of labels\n", j);
         auto label = digitMCTruth->getElement(digitMCTruth->getMCTruthHeader(digitLabel).index + j);
-        printf("EventID = %d\n", label.getEventID());
+        //printf("EventID = %d\n", label.getEventID());
         mClsLabels->addElement(lbl, label);
       }
     }

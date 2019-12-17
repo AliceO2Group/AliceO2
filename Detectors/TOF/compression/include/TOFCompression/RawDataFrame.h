@@ -8,17 +8,35 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// @file   RawDataFrame.h
+/// @author Roberto Preghenella
+/// @since  2019-12-18
+/// @brief  TOF raw data frame
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#ifndef O2_TOF_RAWDATAFRAME
+#define O2_TOF_RAWDATAFRAME
 
-#pragma link C++ class o2::tof::Detector + ;
-#pragma link C++ class o2::tof::Digitizer + ;
-#pragma link C++ class o2::tof::DigitizerTask + ;
-#pragma link C++ class o2::base::DetImpl < o2::tof::Detector> + ;
-#pragma link C++ class o2::tof::HitType + ;
-#pragma link C++ class vector < o2::tof::HitType> + ;
+namespace o2
+{
+namespace tof
+{
 
-#endif
+class RawDataFrame
+{
+
+ public:
+  RawDataFrame() = default;
+  ~RawDataFrame() = default;
+
+  // private:
+
+  char mBuffer[8192]; // [mSize]
+  long mSize = 8192;
+
+  ClassDef(RawDataFrame, 1);
+};
+
+} // namespace tof
+} // namespace o2
+
+#endif /* O2_TOF_RAWDATAFRAME */

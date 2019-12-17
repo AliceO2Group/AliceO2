@@ -48,3 +48,8 @@ o2_add_test_root_macro(testCCDB.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF
 		       			     O2::TOFCalibration
 		       LABELS tof)
+
+o2_add_test_root_macro(checkChannelMapping.C
+                       PUBLIC_LINK_LIBRARIES O2::TOFBase
+                       LABELS tof)
+
