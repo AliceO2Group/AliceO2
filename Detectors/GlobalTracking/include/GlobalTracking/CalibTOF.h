@@ -108,7 +108,7 @@ class CalibTOF
 
   void setCCDBpath(std::string path) { mCCDBpath = path; }
   std::string getCCDBpath() const { return mCCDBpath; }
-  
+
  private:
   Int_t mDebugMode = 0; ///< >0= time slewing extra plot, >1= problematic fits stored
 
@@ -137,8 +137,8 @@ class CalibTOF
 
   bool mInitDone = false; ///< flag init already done
   bool mFillCCDB = false; ///< flag init already doneto decide whether to fill or not the CCDB
-  std::string mCCDBpath = "http://ccdb-test.cern.ch:8080"; ///< path to CCDB 
-  
+  std::string mCCDBpath = "http://ccdb-test.cern.ch:8080"; ///< path to CCDB
+
   ///========== Parameters to be set externally, e.g. from CCDB ====================
 
   // to be done later

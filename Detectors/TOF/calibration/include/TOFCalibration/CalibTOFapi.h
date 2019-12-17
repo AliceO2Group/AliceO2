@@ -22,25 +22,28 @@
 
 namespace o2
 {
-  namespace tof {
+namespace tof
+{
 
 class CalibTOFapi
 {
 
-using lhcPhase = o2::dataformats::CalibLHCphaseTOF;
-using slewParam = o2::dataformats::CalibTimeSlewingParamTOF;
-using ccdbManager = o2::ccdb::BasicCCDBManager;
-using CcdbApi = o2::ccdb::CcdbApi;
+  using lhcPhase = o2::dataformats::CalibLHCphaseTOF;
+  using slewParam = o2::dataformats::CalibTimeSlewingParamTOF;
+  using ccdbManager = o2::ccdb::BasicCCDBManager;
+  using CcdbApi = o2::ccdb::CcdbApi;
 
-public:
+ public:
   CalibTOFapi() = default;
   CalibTOFapi(const std::string url);
   CalibTOFapi(long timestamp, o2::dataformats::CalibLHCphaseTOF* phase, o2::dataformats::CalibTimeSlewingParamTOF* slew) : mTimeStamp(timestamp), mLHCphase(phase), mSlewParam(slew) {}
   ~CalibTOFapi() = default;
-  void setTimeStamp(long t) {
+  void setTimeStamp(long t)
+  {
     mTimeStamp = t;
   }
-  void setURL(const std::string url) {
+  void setURL(const std::string url)
+  {
     auto& mgr = ccdbManager::instance();
     mgr.setURL(url);
   }
@@ -51,14 +54,13 @@ public:
   float getTimeCalibration(int ich, float tot);
   float getTimeDecalibration(int ich, float tot);
   bool isProblematic(int ich);
-  float getFractionUnderPeak(int ich) const {return mSlewParam->getFractionUnderPeak(ich);}
-  
- private:
+  float getFractionUnderPeak(int ich) const { return mSlewParam->getFractionUnderPeak(ich); }
 
-  long mTimeStamp;        ///< timeStamp for queries
-  lhcPhase* mLHCphase = nullptr;    ///< object for LHC phase
-  slewParam* mSlewParam = nullptr;  ///< object for timeslewing (containing info also for offset and problematic)
-  
+ private:
+  long mTimeStamp;                 ///< timeStamp for queries
+  lhcPhase* mLHCphase = nullptr;   ///< object for LHC phase
+  slewParam* mSlewParam = nullptr; ///< object for timeslewing (containing info also for offset and problematic)
+
   ClassDefNV(CalibTOFapi, 1);
 };
 } // namespace tof

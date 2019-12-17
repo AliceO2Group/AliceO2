@@ -42,7 +42,8 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
   namefile.ReplaceAll(".root", "");
 
   int ninstance = 4;
-  if (calibType == o2::globaltracking::CalibTOF::kLHCphase) ninstance = 1;
+  if (calibType == o2::globaltracking::CalibTOF::kLHCphase)
+    ninstance = 1;
   o2::globaltracking::CalibTOF calib;
   calib.setDebugMode(1);
 
@@ -92,15 +93,15 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
         cout << "Child process: Value returned by fork() = " << pids[i] << endl;
 
         // only for the first child
-        if (i == 0 && calibType & o2::globaltracking::CalibTOF::kLHCphase) 
+        if (i == 0 && calibType & o2::globaltracking::CalibTOF::kLHCphase)
           calib.run(o2::globaltracking::CalibTOF::kLHCphase);
-	if (calibType > o2::globaltracking::CalibTOF::kLHCphase) { // we do more than only the LHCphase
-	  for (int sect = i; sect < 18; sect += ninstance)
-	    calib.run((~o2::globaltracking::CalibTOF::kLHCphase) & calibType, sect); // we switch off the LHCphase, if it was enabled in the calibType
-	}
-	calib.fillOutput();
-	outFile.cd();
-	outTree.Write();
+        if (calibType > o2::globaltracking::CalibTOF::kLHCphase) { // we do more than only the LHCphase
+          for (int sect = i; sect < 18; sect += ninstance)
+            calib.run((~o2::globaltracking::CalibTOF::kLHCphase) & calibType, sect); // we switch off the LHCphase, if it was enabled in the calibType
+        }
+        calib.fillOutput();
+        outFile.cd();
+        outTree.Write();
         if (i == 0)
           calib.getLHCphaseHisto()->Write();
         calib.getChTimeSlewingHistoAll()->Write();
@@ -119,8 +120,8 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
     }
   }
 
-  delete [] pids;
-  
+  delete[] pids;
+
   timerTot.Stop();
   Printf("Time to run the calibration was:");
   timerTot.Print();

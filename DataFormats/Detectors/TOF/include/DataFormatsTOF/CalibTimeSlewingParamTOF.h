@@ -30,7 +30,7 @@ class CalibTimeSlewingParamTOF
 
   CalibTimeSlewingParamTOF();
 
-  CalibTimeSlewingParamTOF &operator=(const CalibTimeSlewingParamTOF& source);
+  CalibTimeSlewingParamTOF& operator=(const CalibTimeSlewingParamTOF& source);
 
   float evalTimeSlewing(int channel, float tot) const;
 
@@ -51,18 +51,20 @@ class CalibTimeSlewingParamTOF
   int getStartIndexForChannel(int sector, int channel) const { return mChannelStart[sector][channel]; }
   float getFractionUnderPeak(int sector, int channel) const { return mFractionUnderPeak[sector][channel]; }
   float getSigmaPeak(int sector, int channel) const { return mSigmaPeak[sector][channel]; }
-  float getFractionUnderPeak(int channel) const { 
-    int sector = channel/NCHANNELXSECTOR;
-    int channelInSector = channel%NCHANNELXSECTOR;
+  float getFractionUnderPeak(int channel) const
+  {
+    int sector = channel / NCHANNELXSECTOR;
+    int channelInSector = channel % NCHANNELXSECTOR;
     return getFractionUnderPeak(sector, channelInSector);
   }
 
   void setFractionUnderPeak(int sector, int channel, float value) { mFractionUnderPeak[sector][channel] = value; }
   void setSigmaPeak(int sector, int channel, float value) { mSigmaPeak[sector][channel] = value; }
 
-  bool isProblematic(int channel) {
-    int sector = channel/NCHANNELXSECTOR;
-    int channelInSector = channel%NCHANNELXSECTOR;
+  bool isProblematic(int channel)
+  {
+    int sector = channel / NCHANNELXSECTOR;
+    int channelInSector = channel % NCHANNELXSECTOR;
     return (getFractionUnderPeak(sector, channelInSector) < 0);
   }
 
