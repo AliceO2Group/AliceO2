@@ -84,6 +84,11 @@ void run_digi2rawVarPage_its(std::string outName = "rawits.bin",          // nam
   // If the links of the container are not defined, a single link readout will be assigned
   const auto& mp = m2r.getMapping();
   int lnkAssign[3][3] = {
+    /* // uncomment this to have 1 link per RU
+    {9, 0, 0}, // IB
+    {16, 0, 0}, // MB
+    {28, 0, 0} // OB
+     */
     {3, 3, 3}, // IB
     {5, 5, 6}, // MB
     {9, 9, 10} // OB

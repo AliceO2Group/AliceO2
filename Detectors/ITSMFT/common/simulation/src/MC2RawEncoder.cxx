@@ -170,11 +170,11 @@ void MC2RawEncoder<Mapping>::openPageLinkHBF(GBTLink& link)
   rdh.detectorField = mMAP.getRUDetectorField();
   rdh.feeId = link.feeID;
   rdh.linkID = link.id;
+  rdh.cruID = link.cruID;
   rdh.pageCnt = 0;
   rdh.stop = 0;
   rdh.packetCounter = link.packetCounter++;
   link.lastRDH = reinterpret_cast<RDH*>(link.data.getEnd()); // pointer on last (to be written RDH for HBopen)
-
   link.data.addFast(reinterpret_cast<uint8_t*>(&rdh), sizeof(RDH)); // write RDH for new packet
 }
 
@@ -204,35 +204,33 @@ void MC2RawEncoder<Mapping>::addPageLinkHBF(GBTLink& link, bool stop)
     flushLinkSuperPage(link);
   }
   auto rdh = link.lastRDH;
-  if (!rdh->stop) {
-    rdh->memorySize = link.data.getEnd() - reinterpret_cast<uint8_t*>(rdh); // set the size for the previous header RDH
-    rdh->offsetToNext = rdh->memorySize;
-    // pointer on last (to be written) RDH for HBclose
-    rdh = reinterpret_cast<RDH*>(link.data.getEnd()); // fetch pointer on to-be-written new RDH
-
-    link.data.addFast(reinterpret_cast<uint8_t*>(link.lastRDH), sizeof(RDH)); // write RDH for old packet
-    //    rdh->triggerType &= ~(o2::trigger::SOT | o2::trigger::SOC);               // SOx is issued only once, suppress if any
-    rdh->packetCounter = link.packetCounter++;
-    if (mVerbose) {
-      LOG(INFO) << "Prev HBF for link FEEId 0x" << std::hex << std::setfill('0') << std::setw(6) << link.feeID;
-      if (mVerbose > 1) {
-        mHBFUtils.printRDH(*link.lastRDH);
-      }
-    }
-    rdh->offsetToNext = rdh->headerSize;
-    rdh->memorySize = rdh->headerSize;
-    rdh->pageCnt++;
-    rdh->stop = stop ? 0x1 : 0;
-    if (mVerbose) {
-      LOG(INFO) << (stop ? "Stop" : "Add") << " HBF for link FEEId 0x"
-                << std::hex << std::setfill('0') << std::setw(6) << link.feeID << " Pages: " << link.nTriggers;
-      if (mVerbose > 1 && stop) {
-        mHBFUtils.printRDH(*rdh);
-      }
-    }
-    link.lastRDH = rdh; // redirect to newly written RDH
-  }
+  rdh->memorySize = link.data.getEnd() - reinterpret_cast<uint8_t*>(rdh); // set the size for the previous header RDH
+  rdh->offsetToNext = rdh->memorySize;
   link.lastPageSize = link.data.getSize(); // register current size of the superpage
+
+  // pointer on last (to be written) RDH for HBclose
+  rdh = reinterpret_cast<RDH*>(link.data.getEnd()); // fetch pointer on to-be-written new RDH
+
+  link.data.addFast(reinterpret_cast<uint8_t*>(link.lastRDH), sizeof(RDH)); // copy RDH for old packet as a prototope for the new one
+  rdh->packetCounter = link.packetCounter++;
+  if (mVerbose) {
+    LOG(INFO) << "Prev HBF for link FEEId 0x" << std::hex << std::setfill('0') << std::setw(6) << link.feeID;
+    if (mVerbose > 1) {
+      mHBFUtils.printRDH(*link.lastRDH);
+    }
+  }
+  rdh->offsetToNext = rdh->headerSize; // these settings will be correct only for the empty page, in case of payload the offset/size
+  rdh->memorySize = rdh->headerSize;   // will be set at the next call of this method
+  rdh->pageCnt++;
+  rdh->stop = stop ? 0x1 : 0;
+  if (mVerbose) {
+    LOG(INFO) << (stop ? "Stop" : "Add") << " HBF for link FEEId 0x"
+              << std::hex << std::setfill('0') << std::setw(6) << link.feeID << " Pages: " << link.nTriggers;
+    if (mVerbose > 1 && stop) {
+      mHBFUtils.printRDH(*rdh);
+    }
+  }
+  link.lastRDH = rdh;                      // redirect to newly written RDH
   link.nTriggers++;                        // number of pages on this superpage
   if (stop) {
     link.lastRDH = nullptr; // after closing it is not valid anymore
@@ -314,12 +312,13 @@ void MC2RawEncoder<Mapping>::flushLinkSuperPage(GBTLink& link, FILE* outFl)
   if (mVerbose) {
     LOG(INFO) << "Flushing super page for link FEEId 0x" << std::hex << std::setfill('0') << std::setw(6)
               << link.feeID << std::dec << std::setfill(' ') << " | size= " << link.lastPageSize << " bytes";
+    LOG(INFO) << "ptr=0x" << (void*)link.data.getPtr() << " head=0x" << (void*)link.data.data() << " lastRDH = 0x" << (void*)link.lastRDH;
   }
   const auto ptr = link.data.getPtr();                     // beginning of the buffer
   fwrite(link.data.getPtr(), 1, link.lastPageSize, outFl); //write to file
   link.data.setPtr(ptr + link.lastPageSize);
   if (link.lastRDH) {
-    reinterpret_cast<uint8_t&>(link.lastRDH) -= link.lastPageSize; // move pointer on the last RDH
+    link.lastRDH = reinterpret_cast<RDH*>(reinterpret_cast<uint8_t*>(link.lastRDH) - link.lastPageSize);
   }
   link.data.moveUnusedToHead(); // bring non-flushed data to top of the buffer
   link.lastPageSize = 0;        // will be updated on following closePageLinkHBF
