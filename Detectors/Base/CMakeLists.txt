@@ -16,6 +16,7 @@ o2_add_library(DetectorsBase
                        src/MatLayerCyl.cxx
                        src/MatLayerCylSet.cxx
                        src/Ray.cxx
+		       src/DCAFitter.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::CommonUtils
                                      O2::DetectorsCommonDataFormats
