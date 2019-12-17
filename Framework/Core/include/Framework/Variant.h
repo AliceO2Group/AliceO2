@@ -45,6 +45,10 @@ struct variant_trait<int64_t> {
   static VariantType type() { return VariantType::Int64; }
 };
 template <>
+struct variant_trait<long long int> {
+  static VariantType type() { return VariantType::Int64; }
+};
+template <>
 struct variant_trait<float> {
   static VariantType type() { return VariantType::Float; }
 };
