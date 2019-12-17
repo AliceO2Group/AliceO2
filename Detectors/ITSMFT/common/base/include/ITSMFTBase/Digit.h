@@ -30,7 +30,7 @@ class Digit
 
  public:
   /// Constructor, initializing values for position, charge and readout frame
-  Digit(UShort_t chipindex = 0, UInt_t frame = 0, UShort_t row = 0, UShort_t col = 0, Int_t charge = 0);
+  Digit(UShort_t chipindex = 0, UShort_t row = 0, UShort_t col = 0, Int_t charge = 0);
 
   /// Destructor
   ~Digit() = default;
@@ -63,12 +63,6 @@ class Digit
   /// Add charge to the digit, registering the label if provided
   void addCharge(int charge) { setCharge(charge + int(mCharge)); }
 
-  /// Get the RO frame ID
-  UInt_t getROFrame() const { return mROFrame; }
-
-  /// Set RO frame ID
-  void setROFrame(UInt_t v) { mROFrame = v; }
-
   /// Print function: Print basic digit information on the  output stream
   std::ostream& print(std::ostream& output) const;
 
@@ -84,10 +78,9 @@ class Digit
   UShort_t mChipIndex = 0; ///< Chip index
   UShort_t mRow = 0;       ///< Pixel index in X
   UShort_t mCol = 0;       ///< Pixel index in Z
-  UShort_t mCharge = 0.f;  ///< Accumulated N electrons
-  UInt_t mROFrame = 0;     ///< readout frame ID
+  UShort_t mCharge = 0;    ///< Accumulated N electrons
 
-  ClassDefNV(Digit, 1);
+  ClassDefNV(Digit, 2);
 };
 } // namespace itsmft
 } // namespace o2
