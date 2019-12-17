@@ -18,16 +18,14 @@ ClassImp(o2::itsmft::Digit);
 
 using namespace o2::itsmft;
 
-Digit::Digit(UShort_t chipindex, UInt_t frame, UShort_t row, UShort_t col, Int_t charge)
-  : mChipIndex(chipindex), mRow(row), mCol(col), mROFrame(0)
+Digit::Digit(UShort_t chipindex, UShort_t row, UShort_t col, Int_t charge)
+  : mChipIndex(chipindex), mRow(row), mCol(col)
 {
-  setROFrame(frame);
   setCharge(charge);
 }
 
 std::ostream& Digit::print(std::ostream& output) const
 {
-  output << "ITSMFTDigit chip [" << mChipIndex << "] R:" << mRow << " C:" << mCol << " Q: " << mCharge << "ROFrame "
-         << getROFrame();
+  output << "ITSMFTDigit chip [" << mChipIndex << "] R:" << mRow << " C:" << mCol << " Q: " << mCharge;
   return output;
 }
