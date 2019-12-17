@@ -312,5 +312,5 @@ o2_add_test(
     --global-config require-me --run ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS}
     # Note: the group switch makes process consumer parse only the group
     arguments --consumer
-    "--global-config consumer-config --local-option hello-aliceo2 --a-boolean3 --an-int2 20 --a-double2 22."
+    "--global-config consumer-config --local-option hello-aliceo2 --a-boolean3 --an-int2 20 --a-double2 22. --an-int64-2 50000000000000"
   )
