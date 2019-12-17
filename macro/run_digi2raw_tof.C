@@ -39,7 +39,7 @@ void run_digi2raw_tof(std::string outName = "rawtof.bin",     // name of the out
 
   printf("Encoding %d tof window\n", nwindow);
 
-  o2::tof::compressed::Encoder encoder;
+  o2::tof::raw::Encoder encoder;
   encoder.setVerbose(verbosity);
 
   encoder.open(outName.c_str());

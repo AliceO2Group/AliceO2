@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 //
-//  Strip.cxx: structure to store the TOF hits and digits in strips - useful
+//  Strip.cxx: structure to store the TOF digits in strips - useful
 // for clusterization purposes
 //  ALICEO2
 //
@@ -19,7 +19,7 @@
 #include <TMath.h>
 #include <TObjArray.h>
 
-#include "TOFSimulation/Strip.h"
+#include "TOFBase/Strip.h"
 
 using namespace o2::tof;
 
@@ -29,31 +29,6 @@ ClassImp(o2::tof::Strip);
 Strip::Strip(Int_t index)
   : mStripIndex(index)
 {
-}
-
-//_______________________________________________________________________
-void Strip::insertHit(const HitType* h)
-{
-  int stripIndex = getStripIndex(h);
-  if (stripIndex != mStripIndex) {
-    LOG(ERROR) << "Strip Index of of requested hit (" << stripIndex << ") does not match with current strip (" << stripIndex << ")"
-               << "\n";
-    return;
-  }
-  mHits.push_back(h);
-}
-
-//_______________________________________________________________________
-void Strip::clear() { clearHits(); }
-//_______________________________________________________________________
-Int_t Strip::getStripIndex(const HitType* hit)
-{
-  // finds the strip index given the hit
-  Float_t pos[3] = {hit->GetX(), hit->GetY(), hit->GetZ()};
-  Int_t detInd[5];
-  Geo::getDetID(pos, detInd);
-  Int_t channelID = Geo::getIndex(detInd);
-  return channelID / Geo::NPADS;
 }
 //_______________________________________________________________________
 Int_t Strip::addDigit(Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t lbl)
@@ -92,5 +67,4 @@ void Strip::fillOutputContainer(std::vector<Digit>& digits)
 
   //  if (iter!=mDigits.end()) iter--;
   mDigits.erase(itBeg, iter);
-  clearHits();
 }

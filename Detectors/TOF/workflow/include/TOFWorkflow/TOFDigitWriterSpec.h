@@ -18,7 +18,7 @@ namespace o2
 namespace tof
 {
 
-o2::framework::DataProcessorSpec getTOFDigitWriterSpec();
+o2::framework::DataProcessorSpec getTOFDigitWriterSpec(bool useMC=1);
 
 } // end namespace tof
 } // end namespace o2

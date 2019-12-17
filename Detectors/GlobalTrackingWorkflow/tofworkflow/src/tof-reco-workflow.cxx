@@ -16,11 +16,14 @@
 #include "DetectorsBase/Propagator.h"
 #include "GlobalTrackingWorkflow/TrackTPCITSReaderSpec.h"
 #include "TOFWorkflow/DigitReaderSpec.h"
+#include "TOFWorkflow/TOFDigitWriterSpec.h"
+#include "TOFWorkflow/RawReaderSpec.h"
 #include "TOFWorkflow/ClusterReaderSpec.h"
 #include "TOFWorkflow/TOFClusterizerSpec.h"
 #include "TOFWorkflow/TOFClusterWriterSpec.h"
 #include "TOFWorkflow/TOFMatchedWriterSpec.h"
 #include "TOFWorkflow/TOFCalibWriterSpec.h"
+#include "TOFWorkflow/TOFRawWriterSpec.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "TOFWorkflow/RecoWorkflowSpec.h"
@@ -40,7 +43,7 @@
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.push_back(ConfigParamSpec{"input-type", o2::framework::VariantType::String, "digits", {"digits, raw, clusters, TBI"}});
-  workflowOptions.push_back(ConfigParamSpec{"output-type", o2::framework::VariantType::String, "clusters,matching-info,calib-info", {"clusters, matching-info, calib-info, TBI"}});
+  workflowOptions.push_back(ConfigParamSpec{"output-type", o2::framework::VariantType::String, "clusters,matching-info,calib-info", {"digits,clusters, matching-info, calib-info, TBI"}});
   workflowOptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information, TBI"}});
   workflowOptions.push_back(ConfigParamSpec{"tof-sectors", o2::framework::VariantType::String, "0-17", {"TOF sector range, e.g. 5-7,8,9 ,TBI"}});
   workflowOptions.push_back(ConfigParamSpec{"tof-lanes", o2::framework::VariantType::Int, 1, {"number of parallel lanes up to the matcher, TBI"}});
@@ -89,6 +92,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool writecluster = 0;
   bool writematching = 0;
   bool writecalib = 0;
+  bool writedigit = 0;
+  bool writeraw = 0;
 
   if (outputType.rfind("clusters") < outputType.size())
     writecluster = 1;
@@ -96,10 +101,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     writematching = 1;
   if (outputType.rfind("calib-info") < outputType.size())
     writecalib = 1;
+  if (outputType.rfind("digits") < outputType.size())
+    writedigit = 1;
+  if (outputType.rfind("raw") < outputType.size())
+    writeraw = 1;
 
   bool clusterinput = 0;
   if (inputType == "clusters") {
     clusterinput = 1;
+  }
+  bool rawinput = 0;
+  if (inputType == "raw") {
+    rawinput = 1;
   }
 
   LOG(INFO) << "TOF RECO WORKFLOW configuration";
@@ -113,19 +126,38 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto useMC = !cfgc.options().get<bool>("disable-mc");
   auto useCCDB = cfgc.options().get<bool>("use-ccdb");
 
-  if (!clusterinput) {
+  if(clusterinput){
+    LOG(INFO) << "Insert TOF Cluster Reader";
+    specs.emplace_back(o2::tof::getClusterReaderSpec(useMC));
+  }
+  else if (!rawinput) {
     // TOF clusterizer
     LOG(INFO) << "Insert TOF Digit reader from file";
     specs.emplace_back(o2::tof::getDigitReaderSpec(useMC));
+
+    if(writeraw){
+      LOG(INFO) << "Insert TOF Raw writer";
+      specs.emplace_back(o2::tof::getTOFRawWriterSpec());
+    }
+  } else {
+    LOG(INFO) << "Insert TOF Raw Reader";
+    specs.emplace_back(o2::tof::getRawReaderSpec());
+    useMC=0;
+
+    if(writedigit){
+      // add TOF digit writer without mc labels
+      LOG(INFO) << "Insert TOF Digit Writer";
+      specs.emplace_back(o2::tof::getTOFDigitWriterSpec(0));
+    }
+  }
+
+  if(! clusterinput && writecluster){
     LOG(INFO) << "Insert TOF Clusterizer";
     specs.emplace_back(o2::tof::getTOFClusterizerSpec(useMC, useCCDB));
     if (writecluster) {
       LOG(INFO) << "Insert TOF Cluster Writer";
       specs.emplace_back(o2::tof::getTOFClusterWriterSpec(useMC));
     }
-  } else {
-    LOG(INFO) << "Insert TOF Cluster Reader";
-    specs.emplace_back(o2::tof::getClusterReaderSpec(useMC));
   }
 
   if (writematching || writecalib) {
@@ -144,9 +176,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     }
   }
   LOG(INFO) << "Number of active devices = " << specs.size();
-
-  // TOF matcher
-  // to be implemented
 
   return std::move(specs);
 }

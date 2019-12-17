@@ -52,7 +52,7 @@ raw time = trigger time (Norbit and Nbunch) - latency window + TDC(Ntdc)
                                    |<- matching3->|
                                    |<>| = overlap between two consecutive matching windows
 
-- NO OVERLAP between two consecutive windows at the moment (to be implemented)
+- OVERLAP between two consecutive windows: implemented, to be extensively checked
 - NO LATENCY WINDOW (we manage it during raw encoding/decoding) then digits already corrected
 
 NBC = Number of bunch since timeframe beginning = Norbit*3564 + Nbunch
@@ -74,7 +74,7 @@ void Digitizer::init()
       mStrips[j].emplace_back(i);
       if (j < MAXWINDOWS - 1) {
         mMCTruthContainerNext[j] = &(mMCTruthContainer[j + 1]);
-        mStripsNext[j] = &(mStrips[j + 1]);
+        // mStripsNext[j] = &(mStrips[j + 1]);
       }
     }
   }
@@ -87,7 +87,7 @@ void Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* di
   // hits array of TOF hits for a given simulated event
   // digits passed from external to be filled, in continuous readout mode we will push it on mDigitsPerTimeFrame vector of vectors of digits
 
-  Int_t readoutwindow = Int_t((mEventTime)*Geo::READOUTWINDOW_INV); // to be replaced with "uncalibrated" time
+  Int_t readoutwindow = Int_t((mEventTime - Geo::BC_TIME_INPS * Geo::OVERLAP_IN_BC*1E-3)*Geo::READOUTWINDOW_INV); // to be replaced with "uncalibrated" time
 
   printf("process TOF -> continuous = %i, %i > %i?\n", mContinuous, readoutwindow, mReadoutWindowCurrent);
 
@@ -277,9 +277,25 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Float_t time, Float_t x, 
 
   bool iscurrent = true; // if we are in the current readout window
   Int_t isnext = -1;
+  Int_t isIfOverlap = -1;
 
   if (mContinuous) {
     isnext = Int_t(time * 1E-3 * Geo::READOUTWINDOW_INV) - mReadoutWindowCurrent; // to be replaced with uncalibrated time
+    isIfOverlap = Int_t((time - Geo::BC_TIME_INPS * Geo::OVERLAP_IN_BC) * 1E-3 * Geo::READOUTWINDOW_INV) - mReadoutWindowCurrent; // to be replaced with uncalibrated time;
+
+    if(isnext == isIfOverlap) isIfOverlap = -1;
+    else if(isnext < 0 && isIfOverlap >= 0){
+      isnext = isIfOverlap;
+      isIfOverlap = -1;
+    }
+    else if(isnext < 0 && isIfOverlap >= 0){
+      isnext = isIfOverlap;
+      isIfOverlap = -1;
+    }
+    else if (isnext >= MAXWINDOWS && isIfOverlap < MAXWINDOWS) {
+      isnext = isIfOverlap;
+      isIfOverlap = MAXWINDOWS;
+    }
 
     if (isnext < 0) {
       LOG(ERROR) << "error: isnext =" << isnext << "(current window = " << mReadoutWindowCurrent << ")"
@@ -296,9 +312,17 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Float_t time, Float_t x, 
       mFutureItrackID.push_back(trackID);
 
       // fill temporary digits array
-      mFutureDigits.emplace_back(channel, tdc, tot * Geo::NTOTBIN_PER_NS, nbc, lblCurrent);
-
+      insertDigitInFuture(channel, tdc, tot * Geo::NTOTBIN_PER_NS, nbc, lblCurrent);
       return; // don't fill if doesn't match any available readout window
+    }
+    else if(isIfOverlap == MAXWINDOWS){ // add in future digits but also in one of the current readout windows (beacuse of windows overlap)
+      lblCurrent = mFutureIevent.size();
+      mFutureIevent.push_back(mEventID);
+      mFutureIsource.push_back(mSrcID);
+      mFutureItrackID.push_back(trackID);
+
+      // fill temporary digits array
+      insertDigitInFuture(channel, tdc, tot * Geo::NTOTBIN_PER_NS, nbc, lblCurrent);
     }
 
     if (isnext)
@@ -319,6 +343,13 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Float_t time, Float_t x, 
   }
 
   fillDigitsInStrip(strips, mcTruthContainer, channel, tdc, tot, nbc, istrip, trackID, mEventID, mSrcID);
+
+  if(isIfOverlap > -1 && isIfOverlap < MAXWINDOWS){ // fill also a second readout window because of the overlap
+    if(!isIfOverlap)  strips = mStripsCurrent;
+    else strips = mStripsNext[isIfOverlap - 1];
+
+    fillDigitsInStrip(strips, mcTruthContainer, channel, tdc, tot, nbc, istrip, trackID, mEventID, mSrcID);
+  }
 }
 //______________________________________________________________________
 void Digitizer::fillDigitsInStrip(std::vector<Strip>* strips, o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer, int channel, int tdc, int tot, int nbc, UInt_t istrip, Int_t trackID, Int_t eventID, Int_t sourceID)
@@ -784,13 +815,18 @@ void Digitizer::flushOutputContainer(std::vector<Digit>& digits)
       checkIfReuseFutureDigits();
       mReadoutWindowCurrent++;
     }
-
+    
     while (mFutureDigits.size()) {
       fillOutputContainer(digits); // fill all windows which are before (not yet stored) of the new current one
       checkIfReuseFutureDigits();
       mReadoutWindowCurrent++;
     }
   }
+
+  // clear vector of label in future
+  mFutureItrackID.clear();
+  mFutureIsource.clear();
+  mFutureIevent.clear();
 }
 //______________________________________________________________________
 void Digitizer::checkIfReuseFutureDigits()
@@ -798,43 +834,94 @@ void Digitizer::checkIfReuseFutureDigits()
   // check if digits stored very far in future match the new readout windows currently available
   int idigit = mFutureDigits.size() - 1;
 
+  int bclimit = 999999; // if bc is larger than this value stop the search  in the next loop since bc are ordered in descending order
+
   for (std::vector<Digit>::reverse_iterator digit = mFutureDigits.rbegin(); digit != mFutureDigits.rend(); ++digit) {
-    double timestamp = digit->getBC() * 25 + digit->getTDC() * Geo::TDCBIN * 1E-3;        // in ns
+
+    if(digit->getBC() > bclimit) break;
+
+    double timestamp = digit->getBC() * Geo::BC_TIME + digit->getTDC() * Geo::TDCBIN * 1E-3;        // in ns
     int isnext = Int_t(timestamp * Geo::READOUTWINDOW_INV) - (mReadoutWindowCurrent + 1); // to be replaced with uncalibrated time
-    if (isnext < 0)                                                                       // we jump too ahead in future, digit will be not stored
+    int isIfOverlap = Int_t((timestamp - Geo::BC_TIME_INPS * Geo::OVERLAP_IN_BC * 1E-3) * Geo::READOUTWINDOW_INV) - (mReadoutWindowCurrent+1); // to be replaced with uncalibrated time;
+    
+    if(isnext == isIfOverlap) isIfOverlap = -1;
+    else if(isnext < 0 && isIfOverlap >= 0){
+      isnext = isIfOverlap;
+      isIfOverlap = -1;
+    }
+    else if(isnext < 0 && isIfOverlap >= 0){
+      isnext = isIfOverlap;
+      isIfOverlap = -1;
+    }
+    else if (isnext >= MAXWINDOWS && isIfOverlap < MAXWINDOWS) {
+      isnext = isIfOverlap;
+      isIfOverlap = MAXWINDOWS;
+    }
+
+    if (isnext < 0){                                                           // we jump too ahead in future, digit will be not stored
       LOG(INFO) << "Digit lost because we jump too ahead in future. Current RO window=" << isnext << "\n";
-    if (isnext < MAXWINDOWS - 1) { // move from digit buffer array to the proper window
-      if (isnext >= 0) {
-        std::vector<Strip>* strips = mStripsCurrent;
-        o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer = mMCTruthContainerCurrent;
 
-        if (isnext) {
-          strips = mStripsNext[isnext - 1];
-          mcTruthContainer = mMCTruthContainerNext[isnext - 1];
-        }
-
-        int trackID = mFutureItrackID[digit->getLabel()];
-        int sourceID = mFutureIsource[digit->getLabel()];
-        int eventID = mFutureIevent[digit->getLabel()];
-        fillDigitsInStrip(strips, mcTruthContainer, digit->getChannel(), digit->getTDC(), digit->getTOT(), digit->getBC(), digit->getChannel() / Geo::NPADS, trackID, eventID, sourceID);
-      }
-      // remove the element from the buffers
+      // remove digit from array in the future
+      int labelremoved = digit->getLabel();
+      mFutureDigits.erase(mFutureDigits.begin() + idigit);
+      
+      /* NOT TO REMOVE LABELS TO SAVE CPU TIME (clear of vector when flushing)
+      // remove also the element from the buffers
       mFutureItrackID.erase(mFutureItrackID.begin() + digit->getLabel());
       mFutureIsource.erase(mFutureIsource.begin() + digit->getLabel());
       mFutureIevent.erase(mFutureIevent.begin() + digit->getLabel());
-
-      int labelremoved = digit->getLabel();
-      mFutureDigits.erase(mFutureDigits.begin() + idigit);
-
+      
       // adjust labels
       for (auto& digit2 : mFutureDigits) {
-        if (digit2.getLabel() > labelremoved) {
-          digit2.setLabel(digit2.getLabel() - 1);
-        }
+	if (digit2.getLabel() > labelremoved) {
+	  digit2.setLabel(digit2.getLabel() - 1);
+	}
       }
-      // remove also digit from buffer
-      //      mFutureDigits.erase(mFutureDigits.begin() + idigit);
+      */
+
+      idigit--;
+
+      continue;
     }
+    
+    if (isnext < MAXWINDOWS - 1) { // move from digit buffer array to the proper window
+      std::vector<Strip>* strips = mStripsCurrent;
+      o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer = mMCTruthContainerCurrent;
+      
+      if (isnext) {
+	strips = mStripsNext[isnext - 1];
+	mcTruthContainer = mMCTruthContainerNext[isnext - 1];
+      }
+      
+      int trackID = mFutureItrackID[digit->getLabel()];
+      int sourceID = mFutureIsource[digit->getLabel()];
+      int eventID = mFutureIevent[digit->getLabel()];
+      fillDigitsInStrip(strips, mcTruthContainer, digit->getChannel(), digit->getTDC(), digit->getTOT(), digit->getBC(), digit->getChannel() / Geo::NPADS, trackID, eventID, sourceID);
+    
+      if(isIfOverlap < 0){ // if there is no overlap candidate
+	// remove digit from array in the future
+	int labelremoved = digit->getLabel();
+	mFutureDigits.erase(mFutureDigits.begin() + idigit);
+	
+	/* NOT TO REMOVE LABELS TO SAVE CPU TIME (clear of vector when flushing)
+	// remove also the element from the buffers
+	mFutureItrackID.erase(mFutureItrackID.begin() + digit->getLabel());
+	mFutureIsource.erase(mFutureIsource.begin() + digit->getLabel());
+	mFutureIevent.erase(mFutureIevent.begin() + digit->getLabel());
+	
+	// adjust labels
+	for (auto& digit2 : mFutureDigits) {
+	  if (digit2.getLabel() > labelremoved) {
+	    digit2.setLabel(digit2.getLabel() - 1);
+	  }
+	}
+	*/
+      }
+    }
+    else{
+      bclimit = digit->getBC();
+    }
+
     idigit--; // go back to the next position in the reverse iterator
   }           // close future digit loop
 }

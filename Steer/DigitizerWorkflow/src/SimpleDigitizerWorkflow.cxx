@@ -35,7 +35,7 @@
 
 // for TOF
 #include "TOFDigitizerSpec.h"
-#include "TOFDigitWriterSpec.h"
+#include "TOFWorkflow/TOFDigitWriterSpec.h"
 
 // for FT0
 #include "FT0DigitizerSpec.h"
