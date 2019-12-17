@@ -72,6 +72,17 @@ class GPUTPCClusterFinder : public GPUProcessor
   size_t mNBufs = 0;
 
   unsigned short mMemoryId = 0;
+
+#ifndef GPUCA_GPUCODE
+  void DumpDigits(std::ostream& out);
+  void DumpChargeMap(std::ostream& out);
+  void DumpPeaks(std::ostream& out);
+  void DumpPeaksCompacted(std::ostream& out);
+  void DumpSuppressedPeaks(std::ostream& out);
+  void DumpSuppressedPeaksCompacted(std::ostream& out);
+  void DumpCountedPeaks(std::ostream& out);
+  void DumpClusters(std::ostream& out);
+#endif
 };
 
 } // namespace gpu
