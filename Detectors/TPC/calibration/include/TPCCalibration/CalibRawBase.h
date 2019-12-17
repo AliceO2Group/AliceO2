@@ -650,6 +650,11 @@ inline Int_t CalibRawBase::update(const PadROCPos& padROCPos, const CRU& cru, co
   }
 
   int rowOffset = 0;
+  const int nRowIROC = mMapper.getNumberOfRowsROC(0);
+  const auto& regionInfo = mMapper.getPadRegionInfo(cru.region());
+  const int globalRow = row + (cru.isOROC()) * nRowIROC;
+  const int rowInRegion = globalRow - regionInfo.getGlobalRowOffset();
+
   switch (mPadSubset) {
     case PadSubset::ROC: {
       break;
@@ -659,7 +664,6 @@ inline Int_t CalibRawBase::update(const PadROCPos& padROCPos, const CRU& cru, co
     }
     case PadSubset::Partition: {
       const PartitionInfo& partInfo = mMapper.getPartitionInfo(cru.partition());
-      const int nRowIROC = mMapper.getNumberOfRowsROC(0);
       rowOffset = (cru.isOROC()) * nRowIROC;
       rowOffset -= partInfo.getGlobalRowOffset();
       break;
@@ -675,7 +679,7 @@ inline Int_t CalibRawBase::update(const PadROCPos& padROCPos, const CRU& cru, co
     const float signal = float(data[i]);
     //printf("Call update: %d, %d (%d), %d, %d, %.3f -- cru: %03d, reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", roc, row, rowOffset, pad, timeBin, signal, cru.number(), cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
     // TODO: To be implemented
-    //updateCRU(cru, row, pad, timeBin, signal);
+    updateCRU(cru, rowInRegion, pad, timeBin, signal);
     updateROC(roc, row + rowOffset, pad, timeBin, signal);
     ++timeBin;
   }
