@@ -699,6 +699,9 @@ class Table
     if constexpr (T::persistent::value) {
       auto label = T::label();
       auto index = mTable->schema()->GetFieldIndex(label);
+      if (index == -1) {
+        throw std::runtime_error(std::string("Unable to find column with label ") + label);
+      }
       return mTable->column(index).get();
     } else {
       return nullptr;
