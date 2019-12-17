@@ -68,7 +68,7 @@ class TOFDPLClustererTask
     o2::dataformats::CalibLHCphaseTOF lhcPhaseObj;
     o2::dataformats::CalibTimeSlewingParamTOF channelCalibObj;
 
-    if(mUseCCDB){ // read calibration objects from ccdb
+    if (mUseCCDB) { // read calibration objects from ccdb
       // check LHC phase
       auto lhcPhase = pc.inputs().get<o2::dataformats::CalibLHCphaseTOF*>("tofccdbLHCphase");
       auto channelCalib = pc.inputs().get<o2::dataformats::CalibTimeSlewingParamTOF*>("tofccdbChannelCalib");
@@ -79,16 +79,15 @@ class TOFDPLClustererTask
       // make a copy in global scope
       lhcPhaseObj = lhcPhaseObjTmp;
       channelCalibObj = channelCalibObjTmp;
-    }
-    else{ // calibration objects set to zero
+    } else { // calibration objects set to zero
       lhcPhaseObj.addLHCphase(0, 0);
       lhcPhaseObj.addLHCphase(2000000000, 0);
 
-      for (int ich = 0; ich <o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELS; ich++){
-	  channelCalibObj.addTimeSlewingInfo(ich, 0, 0);
-	  int sector = ich/o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
-	  int channelInSector = ich%o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
-	  channelCalibObj.setFractionUnderPeak(sector, channelInSector, 1);
+      for (int ich = 0; ich < o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELS; ich++) {
+        channelCalibObj.addTimeSlewingInfo(ich, 0, 0);
+        int sector = ich / o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
+        int channelInSector = ich % o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
+        channelCalibObj.setFractionUnderPeak(sector, channelInSector, 1);
       }
     }
 
@@ -135,7 +134,7 @@ o2::framework::DataProcessorSpec getTOFClusterizerSpec(bool useMC, bool useCCDB)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("tofdigits", "TOF", "DIGITS", 0, Lifetime::Timeframe);
-  if(useCCDB){
+  if (useCCDB) {
     inputs.emplace_back("tofccdbLHCphase", "TOF", "LHCphase");
     inputs.emplace_back("tofccdbChannelCalib", "TOF", "ChannelCalib");
   }

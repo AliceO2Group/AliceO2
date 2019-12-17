@@ -53,7 +53,7 @@ void retrieveHits(std::vector<TChain*> const& chains,
   br->GetEntry(entryID);
 }
 
-  DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
+DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
 {
   // setup of some data structures shared between init and processing functions
   // (a shared pointer is used since then automatic cleanup is guaranteed with a lifetime beyond
@@ -94,7 +94,7 @@ void retrieveHits(std::vector<TChain*> const& chains,
     o2::dataformats::CalibLHCphaseTOF lhcPhaseObj;
     o2::dataformats::CalibTimeSlewingParamTOF channelCalibObj;
 
-    if(useCCDB){ // read calibration objects from ccdb
+    if (useCCDB) { // read calibration objects from ccdb
       // check LHC phase
       auto lhcPhase = pc.inputs().get<o2::dataformats::CalibLHCphaseTOF*>("tofccdbLHCphase");
       auto channelCalib = pc.inputs().get<o2::dataformats::CalibTimeSlewingParamTOF*>("tofccdbChannelCalib");
@@ -105,16 +105,15 @@ void retrieveHits(std::vector<TChain*> const& chains,
       // make a copy in global scope
       lhcPhaseObj = lhcPhaseObjTmp;
       channelCalibObj = channelCalibObjTmp;
-    }
-    else{ // calibration objects set to zero
+    } else { // calibration objects set to zero
       lhcPhaseObj.addLHCphase(0, 0);
       lhcPhaseObj.addLHCphase(2000000000, 0);
 
-      for (int ich = 0; ich <o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELS; ich++){
-	  channelCalibObj.addTimeSlewingInfo(ich, 0, 0);
-	  int sector = ich/o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
-	  int channelInSector = ich%o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
-	  channelCalibObj.setFractionUnderPeak(sector, channelInSector, 1);
+      for (int ich = 0; ich < o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELS; ich++) {
+        channelCalibObj.addTimeSlewingInfo(ich, 0, 0);
+        int sector = ich / o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
+        int channelInSector = ich % o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
+        channelCalibObj.setFractionUnderPeak(sector, channelInSector, 1);
       }
     }
 
@@ -230,8 +229,8 @@ void retrieveHits(std::vector<TChain*> const& chains,
   }
   return DataProcessorSpec{
     "TOFDigitizer",
-      inputs,
-      Outputs{OutputSpec{"TOF", "DIGITS", 0, Lifetime::Timeframe},
+    inputs,
+    Outputs{OutputSpec{"TOF", "DIGITS", 0, Lifetime::Timeframe},
             OutputSpec{"TOF", "DIGITSMCTR", 0, Lifetime::Timeframe},
             OutputSpec{"TOF", "ROMode", 0, Lifetime::Timeframe}},
     AlgorithmSpec{initIt},

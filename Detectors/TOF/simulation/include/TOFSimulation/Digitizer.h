@@ -28,7 +28,7 @@ class Digitizer
 {
   using CalibApi = o2::tof::CalibTOFapi;
 
-public:
+ public:
   Digitizer(Int_t mode = 0) : mMode(mode) { init(); };
   ~Digitizer() = default;
 
@@ -73,9 +73,9 @@ public:
   std::vector<std::vector<Digit>>* getDigitPerTimeFrame() { return &mDigitsPerTimeFrame; }
   std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* getMCTruthPerTimeFrame() { return &mMCTruthOutputContainerPerTimeFrame; }
 
-  void setCalibApi(CalibApi* calibApi) {mCalibApi = calibApi;}
+  void setCalibApi(CalibApi* calibApi) { mCalibApi = calibApi; }
 
-private:
+ private:
   // parameters
   Int_t mMode;
   Float_t mBound1;
