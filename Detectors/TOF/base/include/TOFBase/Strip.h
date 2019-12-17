@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 //
-//  TOF strip class: it will be used to store the hits and digits at TOF that
+//  TOF strip class: it will be used to store the digits at TOF that
 //  fall in the same strip
 //
 
@@ -23,7 +23,6 @@
 #include <sstream>
 #include <vector>
 #include "MathUtils/Cartesian3D.h"
-#include "TOFSimulation/Detector.h" // for HitType
 
 namespace o2
 {
@@ -72,34 +71,20 @@ class Strip
   /// Get the chip index
   /// @return Index of the chip
   Int_t getStripIndex() const { return mStripIndex; }
-  /// Insert new ITSMFT point into the Chip
-  /// @param p Hit to be added
-  void insertHit(const o2::tof::HitType* p);
 
   /// Get the number of point assigned to the chip
   /// @return Number of points assigned to the chip
-  Int_t getNumberOfHits() const { return mHits.size(); }
   Int_t getNumberOfDigits() const { return mDigits.size(); }
 
-  /// Get the strip index from hit
-  Int_t getStripIndex(const o2::tof::HitType* hit);
-
   /// reset points container
-  void clearHits() { mHits.clear(); }
   o2::tof::Digit* findDigit(ULong64_t key);
 
-  /// Access Hit assigned to chip at a given index
-  /// @param index Index of the point
-  /// @return Hit at given index (nullptr if index is out of bounds)
-  inline const o2::tof::HitType* getHitAt(Int_t index) const { return mHits.at(index); }
-
-  Int_t addDigit(Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t lbl); // returns the MC label
+  Int_t addDigit(Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t lbl=0); // returns the MC label
 
   void fillOutputContainer(std::vector<o2::tof::Digit>& digits);
 
  protected:
   Int_t mStripIndex = -1;                      ///< Strip ID
-  std::vector<const o2::tof::HitType*> mHits;  ///< Hits connected to the given strip
   std::map<ULong64_t, o2::tof::Digit> mDigits; ///< Map of fired digits, possibly in multiple frames
 
   ClassDefNV(Strip, 1);

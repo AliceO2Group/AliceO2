@@ -17,7 +17,7 @@
 #pragma link C++ class o2::tof::DataReader + ;
 #pragma link C++ class o2::tof::Clusterer + ;
 #pragma link C++ class o2::tof::ClustererTask + ;
-#pragma link C++ class o2::tof::compressed::Encoder + ;
+#pragma link C++ class o2::tof::raw::Encoder + ;
 #pragma link C++ class o2::tof::compressed::Decoder + ;
 
 #endif

@@ -13,11 +13,14 @@ o2_add_library(TOFBase
                        src/Digit.cxx
                        src/CableLength.cxx
                        src/Mapping.cxx
+                       src/Strip.cxx
+                       src/WindowFiller.cxx
                PUBLIC_LINK_LIBRARIES Boost::serialization FairRoot::Base
                                      O2::DetectorsBase)
 
 o2_target_root_dictionary(TOFBase
-                          HEADERS include/TOFBase/Geo.h include/TOFBase/Digit.h)
+                          HEADERS include/TOFBase/Geo.h include/TOFBase/Digit.h
+                                  include/TOFBase/Strip.h include/TOFBase/WindowFiller.h)
 
 o2_add_test(TOFIndex
             SOURCES test/testTOFIndex.cxx
