@@ -70,11 +70,11 @@ class Digit
   Int_t getElTDCIndex() const { return Geo::getTDCFromECH(mElectronIndex); }     // to be derived from mElectronIndex
   Int_t getElChIndex() const { return Geo::getTDCChFromECH(mElectronIndex); }    // to be derived from mElectronIndex
 
-  void setCalibratedTime(Double_t time) {mCalibratedTime = time;}
-  double getCalibratedTime() const {return mCalibratedTime;}
-  
-  void setIsProblematic(bool flag) {mIsProblematic = flag;}
-  bool isProblematic() const {return mIsProblematic;}
+  void setCalibratedTime(Double_t time) { mCalibratedTime = time; }
+  double getCalibratedTime() const { return mCalibratedTime; }
+
+  void setIsProblematic(bool flag) { mIsProblematic = flag; }
+  bool isProblematic() const { return mIsProblematic; }
 
  private:
   friend class boost::serialization::access;
@@ -86,9 +86,9 @@ class Digit
   Int_t mLabel;            ///< Index of the corresponding entry in the MC label array
   Bool_t mIsUsedInCluster; //!/< flag to declare that the digit was used to build a cluster
   Int_t mElectronIndex;    //!/< index in electronic format
-  Double_t mCalibratedTime; //!< time of the digits after calibration (not persistent; it will be filled during clusterization)
-  Bool_t mIsProblematic = false;    //!< flag to tell whether the channel of the digit was problemati; not persistent; default = ok
-  
+  Double_t mCalibratedTime;      //!< time of the digits after calibration (not persistent; it will be filled during clusterization)
+  Bool_t mIsProblematic = false; //!< flag to tell whether the channel of the digit was problemati; not persistent; default = ok
+
   ClassDefNV(Digit, 1);
 };
 

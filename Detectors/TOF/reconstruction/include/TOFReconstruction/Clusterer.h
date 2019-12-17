@@ -34,7 +34,7 @@ class Clusterer
   using StripData = o2::tof::DataReader::StripData;
   using Digit = o2::tof::Digit;
   using CalibApi = o2::tof::CalibTOFapi;
-  
+
  public:
   Clusterer() = default;
   ~Clusterer() = default;
@@ -46,10 +46,14 @@ class Clusterer
 
   void setMCTruthContainer(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* truth) { mClsLabels = truth; }
 
-  void setCalibApi(CalibApi* calibApi) {mCalibApi = calibApi; Printf("mCalibApi = %p", mCalibApi);}
+  void setCalibApi(CalibApi* calibApi)
+  {
+    mCalibApi = calibApi;
+    Printf("mCalibApi = %p", mCalibApi);
+  }
 
  private:
-  void calibrateStrip();   
+  void calibrateStrip();
   void processStrip(std::vector<Cluster>& clusters, MCLabelContainer const* digitMCTruth);
   //void fetchMCLabels(const Digit* dig, std::array<Label, Cluster::maxLabels>& labels, int& nfilled) const;
 
@@ -62,7 +66,6 @@ class Clusterer
   void addContributingDigit(Digit* dig);
   void buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth);
   CalibApi* mCalibApi = nullptr; //! calib api to handle the TOF calibration
-  
 };
 
 } // namespace tof

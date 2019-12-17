@@ -118,7 +118,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     LOG(INFO) << "Insert TOF Digit reader from file";
     specs.emplace_back(o2::tof::getDigitReaderSpec(useMC));
     LOG(INFO) << "Insert TOF Clusterizer";
-    specs.emplace_back(o2::tof::getTOFClusterizerSpec(useMC,useCCDB));
+    specs.emplace_back(o2::tof::getTOFClusterizerSpec(useMC, useCCDB));
     if (writecluster) {
       LOG(INFO) << "Insert TOF Cluster Writer";
       specs.emplace_back(o2::tof::getTOFClusterWriterSpec(useMC));

@@ -16,34 +16,32 @@
 // gROOT->LoadMacro("CalibTimeSlewingParamTOF.cxx+")
 // .x ConvertRun2CalibrationToO2.C+
 
-
 class MyFineTimeSlewing : public AliTOFCalibFineSlewing
 
 // class needed to access some data members of the AliTOFCalibFineSlewing class that are protected
 
 {
-public:
-
-  Int_t GetSize() {return fSize;}
-  void GetChannelArrays(Int_t ich, Float_t* x, Float_t* y, Int_t& n) {
-    n = fStart[ich+1] - fStart[ich];
-    if (ich == 157247) n = fSize - fStart[ich];
-    for (Int_t i = 0; i < n; i++){
+ public:
+  Int_t GetSize() { return fSize; }
+  void GetChannelArrays(Int_t ich, Float_t* x, Float_t* y, Int_t& n)
+  {
+    n = fStart[ich + 1] - fStart[ich];
+    if (ich == 157247)
+      n = fSize - fStart[ich];
+    for (Int_t i = 0; i < n; i++) {
       x[i] = fX[fStart[ich] + i] * 0.001; // in the OCDB, we saves the tot in ps
-      y[i] = fY[fStart[ich] + i] * 1.; // make it float
+      y[i] = fY[fStart[ich] + i] * 1.;    // make it float
     }
   }
-  
+
   ClassDef(MyFineTimeSlewing, 1);
-
 };
-  
 
-
-void ConvertRun2CalibrationToO2() {
+void ConvertRun2CalibrationToO2()
+{
 
   // Remember: Use AliRoot!!
-  
+
   // actually you need to call this outside the macro, or it won't work
 
   gROOT->LoadMacro("CalibTimeSlewingParamTOF.cxx+");
@@ -60,22 +58,21 @@ void ConvertRun2CalibrationToO2() {
   // - then call:
   //      - gROOT->LoadMacro("CalibTimeSlewingParamTOF.cxx+")
   //   from the prompt
-  
+
   o2::dataformats::CalibTimeSlewingParamTOF* mTimeSlewingObj = new o2::dataformats::CalibTimeSlewingParamTOF();
- 
+
   TFile* ffineSlewing = new TFile("TOF/Calib/FineSlewing/Run0_999999999_v2_s0.root");
   AliCDBEntry* efineSlewing = (AliCDBEntry*)ffineSlewing->Get("AliCDBEntry");
   AliTOFCalibFineSlewing* fs = (AliTOFCalibFineSlewing*)efineSlewing->GetObject();
-  TFile* foffset  = new TFile("TOF/Calib/ParOffline/Run297624_999999999_v4_s0.root");
+  TFile* foffset = new TFile("TOF/Calib/ParOffline/Run297624_999999999_v4_s0.root");
   AliCDBEntry* eoffset = (AliCDBEntry*)foffset->Get("AliCDBEntry");
   TObjArray* foff = (TObjArray*)eoffset->GetObject();
-  TFile *fproblematic = new TFile("TOF/Calib/Problematic/Run296631_999999999_v3_s0.root");
+  TFile* fproblematic = new TFile("TOF/Calib/Problematic/Run296631_999999999_v3_s0.root");
   AliCDBEntry* eproblematic = (AliCDBEntry*)fproblematic->Get("AliCDBEntry");
   TH1C* hProb = (TH1C*)eproblematic->GetObject();
 
   MyFineTimeSlewing* mfs = (MyFineTimeSlewing*)fs;
   Printf("size = %d", mfs->GetSize());
-  
 
   Float_t x[10000];
   Float_t y[10000];
@@ -91,29 +88,30 @@ void ConvertRun2CalibrationToO2() {
     for (Int_t islew = 0; islew < 6; islew++)
       corr0 += parOffline->GetSlewPar(islew) * TMath::Power(AliTOFGeometry::SlewTOTMin(), islew) * 1.e3;
     for (Int_t j = 0; j < n; j++) {
-       float toteff = x[j];
-       if (toteff < AliTOFGeometry::SlewTOTMin())
-         toteff = AliTOFGeometry::SlewTOTMin();
-       if (toteff > AliTOFGeometry::SlewTOTMax())
-         toteff = AliTOFGeometry::SlewTOTMax();
+      float toteff = x[j];
+      if (toteff < AliTOFGeometry::SlewTOTMin())
+        toteff = AliTOFGeometry::SlewTOTMin();
+      if (toteff > AliTOFGeometry::SlewTOTMax())
+        toteff = AliTOFGeometry::SlewTOTMax();
 
-      Float_t corr = 0; 
+      Float_t corr = 0;
       for (Int_t islew = 0; islew < 6; islew++)
-	corr += parOffline->GetSlewPar(islew) * TMath::Power(toteff, islew) * 1.e3;
-      if(j==0 && x[j] > 0.03)  mTimeSlewingObj->addTimeSlewingInfo(i, 0.025, y[j]+corr0); // force to have an entry for ToT=0
-      mTimeSlewingObj->addTimeSlewingInfo(i, x[j], y[j]+corr);
+        corr += parOffline->GetSlewPar(islew) * TMath::Power(toteff, islew) * 1.e3;
+      if (j == 0 && x[j] > 0.03)
+        mTimeSlewingObj->addTimeSlewingInfo(i, 0.025, y[j] + corr0); // force to have an entry for ToT=0
+      mTimeSlewingObj->addTimeSlewingInfo(i, x[j], y[j] + corr);
     }
-    if(n==0) // force to have at least one entry
+    if (n == 0) // force to have at least one entry
       mTimeSlewingObj->addTimeSlewingInfo(i, 0.025, corr0);
 
-  // set problematics
-     int sector = i/8736;
-     int localchannel = i%8736;
-     float fraction = float(hProb->GetBinContent(i)==0) - 0.01; // negative means problematic
-     mTimeSlewingObj->setFractionUnderPeak(sector, localchannel, fraction);
-     mTimeSlewingObj->setSigmaPeak(sector, localchannel, 100.);
+    // set problematics
+    int sector = i / 8736;
+    int localchannel = i % 8736;
+    float fraction = float(hProb->GetBinContent(i) == 0) - 0.01; // negative means problematic
+    mTimeSlewingObj->setFractionUnderPeak(sector, localchannel, fraction);
+    mTimeSlewingObj->setSigmaPeak(sector, localchannel, 100.);
   }
-    
+
   TGraph* g = new TGraph(n, x, y);
 
   new TCanvas();
@@ -121,13 +119,10 @@ void ConvertRun2CalibrationToO2() {
 
   Printf("time slewing object has size = %d", mTimeSlewingObj->size());
 
-  
-
-  TFile *fout = new TFile("outputCCDBfromOCDB.root","RECREATE");
-  TTree *t = new TTree("tree","tree");
-  t->Branch("CalibTimeSlewingParamTOF",&mTimeSlewingObj);
+  TFile* fout = new TFile("outputCCDBfromOCDB.root", "RECREATE");
+  TTree* t = new TTree("tree", "tree");
+  t->Branch("CalibTimeSlewingParamTOF", &mTimeSlewingObj);
   t->Fill();
   t->Write();
   fout->Close();
 }
-  
