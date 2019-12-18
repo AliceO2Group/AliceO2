@@ -49,9 +49,9 @@ class CalibTOF
                                             // each sector has 91 = 13x7 strips
   static constexpr int NPADSPERSTEP = Geo::NPADS * NSTRIPSPERSTEP;
   static constexpr int NSTEPSPERSECTOR = 91 / NSTRIPSPERSTEP;
-  enum { kLHCphase = 1,
-         kChannelOffset = 2,
-         kChannelTimeSlewing = 4 }; // enum to define which calibration we will do
+  enum CalibType : int { kLHCphase = 1,
+                         kChannelOffset = 2,
+                         kChannelTimeSlewing = 4 }; // enum to define which calibration we will do
 
   ///< constructor
   CalibTOF();
@@ -61,7 +61,7 @@ class CalibTOF
 
   ///< calibrate using the provided input
   void run(int flag, int sector = -1);
-  void fillOutput(int flag);
+  void fillOutput(int flag = kLHCphase | kChannelOffset | kChannelTimeSlewing);
 
   ///< perform all initializations
   void init();
