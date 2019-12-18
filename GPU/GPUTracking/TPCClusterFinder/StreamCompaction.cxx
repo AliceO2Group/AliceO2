@@ -21,13 +21,17 @@ namespace gpu
 
 using namespace deprecated;
 
-GPUd() void nativeScanUpStartImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
-                                  GPUglobalref() const uchar* predicate,
-                                  GPUglobalref() int* sums,
-                                  GPUglobalref() int* incr)
+GPUd() void StreamCompaction::nativeScanUpStartImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+                                                    GPUglobalref() const uchar* predicate,
+                                                    GPUglobalref() int* sums,
+                                                    GPUglobalref() int* incr, int nElems)
 {
   int idx = get_global_id(0);
-  int scanRes = work_group_scan_inclusive_add((int)predicate[idx]); // TODO: Why don't we store scanRes and read it back in compactDigit?
+  int pred = predicate[idx];
+  if (idx >= nElems) {
+    pred = 0;
+  }
+  int scanRes = work_group_scan_inclusive_add((int)pred); // TODO: Why don't we store scanRes and read it back in compactDigit?
 
   /* sums[idx] = scanRes; */
 
@@ -42,12 +46,12 @@ GPUd() void nativeScanUpStartImpl(int nBlocks, int nThreads, int iBlock, int iTh
   }
 }
 
-GPUd() void nativeScanUpImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
-                             GPUglobalref() int* sums,
-                             GPUglobalref() int* incr)
+GPUd() void StreamCompaction::nativeScanUpImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+                                               GPUglobalref() int* sums,
+                                               GPUglobalref() int* incr, int nElems)
 {
   int idx = get_global_id(0);
-  int scanRes = work_group_scan_inclusive_add(sums[idx]);
+  int scanRes = work_group_scan_inclusive_add((idx < nElems) ? sums[idx] : 0);
 
   /* DBGPR_2("ScanUp: idx = %d, res = %d", idx, scanRes); */
 
@@ -64,42 +68,47 @@ GPUd() void nativeScanUpImpl(int nBlocks, int nThreads, int iBlock, int iThread,
   }
 }
 
-GPUd() void nativeScanTopImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem, GPUglobalref() int* incr)
+GPUd() void StreamCompaction::nativeScanTopImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem, GPUglobalref() int* incr, int nElems)
 {
   int idx = get_global_id(0);
 
   /* DBGPR_1("ScanTop: idx = %d", idx); */
 
-  int scanRes = work_group_scan_inclusive_add(incr[idx]);
+  int scanRes = work_group_scan_inclusive_add((idx < nElems) ? incr[idx] : 0);
   incr[idx] = scanRes;
 }
 
-GPUd() void nativeScanDownImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
-                               GPUglobalref() int* sums,
-                               GPUglobalref() const int* incr,
-                               unsigned int offset)
+GPUd() void StreamCompaction::nativeScanDownImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+                                                 GPUglobalref() int* sums,
+                                                 GPUglobalref() const int* incr,
+                                                 unsigned int offset, int nElems)
 {
   int gid = get_group_id(0);
   int idx = get_global_id(0) + offset;
 
   int shift = incr[gid];
 
-  sums[idx] += shift;
+  if (idx < nElems) {
+    sums[idx] += shift;
+  }
 }
 
-GPUd() void compactDigitImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
-                             GPUglobalref() const Digit* in,
-                             GPUglobalref() Digit* out,
-                             GPUglobalref() const uchar* predicate,
-                             GPUglobalref() int* newIdx,
-                             GPUglobalref() const int* incr)
+GPUd() void StreamCompaction::compactDigitImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+                                               GPUglobalref() const Digit* in,
+                                               GPUglobalref() Digit* out,
+                                               GPUglobalref() const uchar* predicate,
+                                               GPUglobalref() int* newIdx,
+                                               GPUglobalref() const int* incr,
+                                               int nElems)
 {
   int gid = get_group_id(0);
   int idx = get_global_id(0);
 
   int lastItem = get_global_size(0) - 1;
 
-  int pred = predicate[idx];
+  bool iAmDummy = (idx >= nElems);
+
+  int pred = (iAmDummy) ? 0 : predicate[idx];
   int scanRes = work_group_scan_inclusive_add(pred);
 
   int compIdx = scanRes;

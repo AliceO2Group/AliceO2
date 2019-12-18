@@ -22,21 +22,28 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
-GPUd() void nativeScanUpStartImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&,
-                                  GPUglobalref() const uchar*, GPUglobalref() int*, GPUglobalref() int*);
+class StreamCompaction
+{
 
-GPUd() void nativeScanUpImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&,
-                             GPUglobalref() int*, GPUglobalref() int*);
+ public:
+  static GPUd() void nativeScanUpStartImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&,
+                                           GPUglobalref() const uchar*, GPUglobalref() int*, GPUglobalref() int*,
+                                           int);
 
-GPUd() void nativeScanTopImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&,
-                              GPUglobalref() int*);
+  static GPUd() void nativeScanUpImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&,
+                                      GPUglobalref() int*, GPUglobalref() int*, int);
 
-GPUd() void nativeScanDownImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&,
-                               GPUglobalref() int*, GPUglobalref() const int*, unsigned int);
+  static GPUd() void nativeScanTopImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&,
+                                       GPUglobalref() int*, int);
 
-GPUd() void compactDigitImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&,
-                             GPUglobalref() const deprecated::Digit*, GPUglobalref() deprecated::Digit*,
-                             GPUglobalref() const uchar*, GPUglobalref() int*, const GPUglobalref() int*);
+  static GPUd() void nativeScanDownImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&,
+                                        GPUglobalref() int*, GPUglobalref() const int*, unsigned int, int);
+
+  static GPUd() void compactDigitImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&,
+                                      GPUglobalref() const deprecated::Digit*, GPUglobalref() deprecated::Digit*,
+                                      GPUglobalref() const uchar*, GPUglobalref() int*, const GPUglobalref() int*,
+                                      int);
+};
 
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
