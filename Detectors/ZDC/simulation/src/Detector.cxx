@@ -283,29 +283,10 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   //printf("ProcessHits:  x=(%f, %f, %f)  \n",x[0], x[1], x[2]);
   //printf("\tDET %d  SEC %d  -> XImpact=(%f, %f, %f)\n",detector,sector, xImp.X(), xImp.Y(), xImp.Z());
 
-  // a new principal track is a track which previously was not seen by any ZDC detector
-  // we will account all detector response associated to principal tracks only
-  if ((volID == mZNENVVolID || volID == mZPENVVolID || volID == mZEMVolID) && fMC->IsTrackEntering()) {
-    if ((mLastPrincipalTrackEntered == -1) || !(stack->isTrackDaughterOf(trackn, mLastPrincipalTrackEntered))) {
-      mLastPrincipalTrackEntered = trackn;
-      resetHitIndices();
-      //printf(">>> RESETTING HITS!!!!\n\n");
-
-      // there is nothing more to do here as we are not
-      // in the fiber volumes
-      return false;
-    }
-  }
-
-  // it could be that the entering track was not noticed
-  // (tracking precision problems); warn about it for the moment until we have
-  // a better solution (like checking the origin coordinates of the track)
-  if (mLastPrincipalTrackEntered == -1) {
-    LOG(WARN) << "Problem with principal track detection ; now in " << volname;
-    // if we come here we are definitely in a sensitive volume !!
-    mLastPrincipalTrackEntered = trackn;
-    resetHitIndices();
-    //printf(" Problem with principal track detection\n >>> RESETTING HITS!!!!\n");
+  if ((volID == mZNENVVolID || volID == mZPENVVolID || volID == mZEMVolID)) {
+    // there is nothing more to do here as we are not
+    // in the fiber volumes
+    return false;
   }
 
   Float_t p[3] = {0., 0., 0.};
@@ -2281,6 +2262,12 @@ void Detector::FinishPrimary()
 {
   // after each primary we should definitely reset
   mLastPrincipalTrackEntered = -1;
+}
+
+void Detector::BeginPrimary()
+{
+  // set current principal track
+  mLastPrincipalTrackEntered = fMC->GetStack()->GetCurrentTrackNumber();
   resetHitIndices();
 }
 
