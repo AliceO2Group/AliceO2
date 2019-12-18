@@ -19,6 +19,9 @@
 #include "DetectorsCommonDataFormats/DetID.h" // for Detector
 #include "ZDCBase/Geometry.h"
 #include "ZDCSimulation/Hit.h"
+#include "ZDCSimulation/SpatialPhotonResponse.h"
+#include "TParticle.h"
+#include <utility>
 
 class FairVolume;
 
@@ -104,6 +107,9 @@ class Detector : public o2::base::DetImpl<Detector>
 
   void resetHitIndices();
 
+  // helper function taking care of writing the photon response pattern at cern moments
+  void flushSpatialResponse();
+
   Float_t mTrackEta;
   Float_t mPrimaryEnergy;
   Vector3D<float> mXImpact;
@@ -143,6 +149,19 @@ class Detector : public o2::base::DetImpl<Detector>
 
   float mLightTableZN[4][ANGLEBINS][ZNRADIUSBINS] = {1.}; //!
   float mLightTableZP[4][ANGLEBINS][ZPRADIUSBINS] = {1.}; //!
+
+  SpatialPhotonResponse mNeutronResponseImage;
+  // there is only one proton detector per side
+  SpatialPhotonResponse mProtonResponseImage;
+
+  TParticle mCurrentPrincipalParticle{};
+
+  // collecting the responses for the current event
+  using ParticlePhotonResponse = std::vector<std::pair<TParticle,
+                                                       std::pair<SpatialPhotonResponse, SpatialPhotonResponse>>>;
+
+  ParticlePhotonResponse mResponses;
+  ParticlePhotonResponse* mResponsesPtr = &mResponses;
 
   template <typename Det>
   friend class o2::base::DetImpl;
