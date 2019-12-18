@@ -28,9 +28,9 @@ namespace tof
 class CalibTOFapi
 {
 
-  using lhcPhase = o2::dataformats::CalibLHCphaseTOF;
-  using slewParam = o2::dataformats::CalibTimeSlewingParamTOF;
-  using ccdbManager = o2::ccdb::BasicCCDBManager;
+  using LhcPhase = o2::dataformats::CalibLHCphaseTOF;
+  using SlewParam = o2::dataformats::CalibTimeSlewingParamTOF;
+  using CcdbManager = o2::ccdb::BasicCCDBManager;
   using CcdbApi = o2::ccdb::CcdbApi;
 
  public:
@@ -44,13 +44,13 @@ class CalibTOFapi
   }
   void setURL(const std::string url)
   {
-    auto& mgr = ccdbManager::instance();
+    auto& mgr = CcdbManager::instance();
     mgr.setURL(url);
   }
   void readLHCphase();
   void readTimeSlewingParam();
-  void writeLHCphase(lhcPhase* phase, std::map<std::string, std::string> metadataLHCphase, ulong minTimeSTamp, ulong maxTimeStamp);
-  void writeTimeSlewingParam(slewParam* param, std::map<std::string, std::string> metadataChannelCalib, ulong minTimeSTamp, ulong maxTimeStamp = 0);
+  void writeLHCphase(LhcPhase* phase, std::map<std::string, std::string> metadataLHCphase, ulong minTimeSTamp, ulong maxTimeStamp);
+  void writeTimeSlewingParam(SlewParam* param, std::map<std::string, std::string> metadataChannelCalib, ulong minTimeSTamp, ulong maxTimeStamp = 0);
   float getTimeCalibration(int ich, float tot);
   float getTimeDecalibration(int ich, float tot);
   bool isProblematic(int ich);
@@ -58,8 +58,8 @@ class CalibTOFapi
 
  private:
   long mTimeStamp;                 ///< timeStamp for queries
-  lhcPhase* mLHCphase = nullptr;   ///< object for LHC phase
-  slewParam* mSlewParam = nullptr; ///< object for timeslewing (containing info also for offset and problematic)
+  LhcPhase* mLHCphase = nullptr;   ///< object for LHC phase
+  SlewParam* mSlewParam = nullptr; ///< object for timeslewing (containing info also for offset and problematic)
 
   ClassDefNV(CalibTOFapi, 1);
 };
