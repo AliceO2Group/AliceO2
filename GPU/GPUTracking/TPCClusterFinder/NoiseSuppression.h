@@ -40,7 +40,7 @@ class NoiseSuppression
 
   static GPUd() void findMinima(GPUglobalref() const PackedCharge*, const GlobalPad, const Timestamp, const float, const float, ulong*, ulong*);
 
-  static GPUd() ulong findPeaks(GPUglobalref() const uchar*, const GlobalPad, const Timestamp);
+  static GPUd() ulong findPeaks(GPUglobalref() const uchar*, const GlobalPad, const Timestamp, bool);
 
   static GPUd() bool keepPeak(ulong, ulong);
 

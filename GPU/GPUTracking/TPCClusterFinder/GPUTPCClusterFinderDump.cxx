@@ -13,12 +13,8 @@
 
 #include "GPUTPCClusterFinder.h"
 #include "GPUReconstruction.h"
-
-namespace gpucf
-{
-#include "cl/shared/ClusterNative.h"
-#include "cl/shared/Digit.h"
-} // namespace gpucf
+#include "ClusterNative.h"
+#include "Digit.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 

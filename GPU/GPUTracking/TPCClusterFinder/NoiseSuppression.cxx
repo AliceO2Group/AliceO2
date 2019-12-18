@@ -34,6 +34,8 @@ GPUd() void NoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, in
 
   ulong minimas, bigger, peaksAround;
 
+  bool debug = false;
+
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
   findMinimaAndPeaksScratchpad(
     chargeMap,
@@ -56,9 +58,10 @@ GPUd() void NoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, in
     &minimas,
     &bigger);
 
-  peaksAround = findPeaks(peakMap, gpad, myDigit.time);
+  peaksAround = findPeaks(peakMap, gpad, myDigit.time, debug);
 #endif
 
+  ulong peaksAroundBack = peaksAround;
   peaksAround &= bigger;
 
   bool keepMe = keepPeak(minimas, peaksAround);
@@ -68,7 +71,13 @@ GPUd() void NoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, in
     return;
   }
 
+  if (debug) {
+    printf("%d: p:%lx, m:%lx, b:%lx.\n", int(idx), peaksAroundBack, minimas, bigger);
+  }
+
   isPeakPredicate[idx] = keepMe;
+  /* isPeakPredicate[idx] = keepMe && false; */
+  /* isPeakPredicate[idx] = keepMe || true; */
 }
 
 GPUd() void NoiseSuppression::updatePeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
@@ -97,10 +106,10 @@ GPUd() void NoiseSuppression::checkForMinima(
 {
   float r = unpackCharge(other);
 
-  bool isMinima = (q - r > epsilon);
+  ulong isMinima = (q - r > epsilon);
   *minimas |= (isMinima << pos);
 
-  bool lq = (r > q);
+  ulong lq = (r > q);
   *bigger |= (lq << pos);
 }
 
@@ -161,9 +170,13 @@ GPUd() void NoiseSuppression::findMinima(
 GPUd() ulong NoiseSuppression::findPeaks(
   GPUglobalref() const uchar* peakMap,
   const GlobalPad gpad,
-  const Timestamp time)
+  const Timestamp time,
+  bool debug)
 {
   ulong peaks = 0;
+  if (debug) {
+    printf("Looking around %d, %d\n", gpad, time);
+  }
   for (int i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++) {
     Delta2 d = CfConsts::NoiseSuppressionNeighbors[i];
     Delta dp = d.x;
@@ -171,7 +184,11 @@ GPUd() ulong NoiseSuppression::findPeaks(
 
     uchar p = IS_PEAK(peakMap, gpad + dp, time + dt);
 
-    peaks |= (GET_IS_PEAK(p) << i);
+    if (debug) {
+      printf("%d, %d: %d\n", dp, dt, p);
+    }
+
+    peaks |= (ulong(GET_IS_PEAK(p)) << i);
   }
 
   return peaks;
@@ -184,7 +201,7 @@ GPUd() bool NoiseSuppression::keepPeak(
   bool keepMe = true;
 
   for (int i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++) {
-    bool otherPeak = (peaks & (1 << i));
+    bool otherPeak = (peaks & (ulong(1) << i));
     bool minimaBetween = (minima & CfConsts::NoiseSuppressionMinima[i]);
 
     keepMe &= (!otherPeak || minimaBetween);

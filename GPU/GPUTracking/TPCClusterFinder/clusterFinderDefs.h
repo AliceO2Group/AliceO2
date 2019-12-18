@@ -28,11 +28,11 @@ typedef unsigned long ulong;
 #define QTOT_CUTOFF 0
 #define NOISE_SUPPRESSION_MINIMA_EPSILON 10
 #define SCRATCH_PAD_WORK_GROUP_SIZE GPUCA_THREAD_COUNT_CLUSTERER
-#define BUILD_CLUSTER_NAIVE
-#ifdef GPUCA_GPUCODE
-#define BUILD_CLUSTER_SCRATCH_PAD
-#endif
-#define DCHARGEMAP_TIME_MAJOR_LAYOUT
+/* #define BUILD_CLUSTER_NAIVE */
+/* #ifdef GPUCA_GPUCODE */
+/* #define BUILD_CLUSTER_SCRATCH_PAD */
+/* #endif */
+#define CHARGEMAP_TIME_MAJOR_LAYOUT
 #endif
 
 #ifdef __OPENCL__
@@ -56,7 +56,7 @@ typedef unsigned long ulong;
 #define SCRATCH_PAD_NOISE_N 8
 
 #define PADDING_PAD 2
-#define PADDING_TIME 2
+#define PADDING_TIME 3
 #define TPC_SECTORS 36
 #define TPC_ROWS_PER_CRU 18
 #define TPC_NUM_OF_ROWS 152

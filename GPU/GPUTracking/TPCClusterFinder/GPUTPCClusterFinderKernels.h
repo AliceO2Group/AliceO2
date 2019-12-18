@@ -78,7 +78,11 @@ class GPUTPCClusterFinderKernels : public GPUKernelTemplate
   }
   template <int iKernel = 0, typename... Args>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& clusterer, Args... args);
+
+ private:
+  GPUd() static int compactionElems(processorType& clusterer, int stage);
 };
+
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
