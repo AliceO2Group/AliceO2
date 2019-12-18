@@ -28,7 +28,7 @@ using namespace o2::aod;
 BOOST_AUTO_TEST_CASE(TestJoinedTables)
 {
   TableBuilder trackBuilder;
-  auto trackWriter = trackBuilder.cursor<Tracks>();
+  auto trackWriter = trackBuilder.cursor<StoredTracks>();
   trackWriter(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
   auto tracks = trackBuilder.finalize();
 

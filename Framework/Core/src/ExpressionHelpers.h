@@ -13,6 +13,7 @@
 
 #include <vector>
 #include <iosfwd>
+#include <fmt/format.h>
 
 namespace o2::framework::expressions
 {
@@ -31,6 +32,7 @@ static std::array<std::string, BasicOp::Abs + 1> binaryOperationsMap = {
   "greater_than_or_equal_to",
   "equal",
   "not_equal",
+  "power",
   "exp",
   "log",
   "log10",
@@ -85,6 +87,34 @@ struct ColumnOperationSpec {
     result.type = type;
   }
 };
+
+template <typename... C>
+std::shared_ptr<gandiva::Projector> createProjectors(framework::pack<C...>, gandiva::SchemaPtr schema)
+{
+  auto findField = [&schema](const char* label) -> gandiva::FieldPtr const {
+    for (auto i = 0; i < schema->num_fields(); ++i) {
+      if (schema->field(i)->name() == label) {
+        return gandiva::FieldPtr{schema->field(i)};
+      }
+    }
+    throw std::runtime_error(fmt::format("Cannot find field \"{}\"", label));
+  };
+
+  std::shared_ptr<gandiva::Projector> projector;
+  auto s = gandiva::Projector::Make(
+    schema,
+    {makeExpression(
+      framework::expressions::createExpressionTree(
+        framework::expressions::createOperations(C::Projector()),
+        schema),
+      C::asArrowField())...},
+    &projector);
+  if (s.ok()) {
+    return projector;
+  } else {
+    throw std::runtime_error(fmt::format("Failed to create projector: {}", s.ToString()));
+  }
+}
 } // namespace o2::framework::expressions
 
 #endif // O2_FRAMEWORK_EXPRESSIONS_HELPERS_H_

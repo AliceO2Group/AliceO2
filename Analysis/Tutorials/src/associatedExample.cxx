@@ -19,6 +19,7 @@ DECLARE_SOA_COLUMN(Eta, etas, float);
 DECLARE_SOA_COLUMN(Phi, phis, float);
 DECLARE_SOA_COLUMN(Pt, pts, float);
 } // namespace etaphi
+
 DECLARE_SOA_TABLE(EtaPhi, "AOD", "ETAPHI",
                   etaphi::Eta, etaphi::Phi);
 DECLARE_SOA_TABLE(EtaPhiPt, "AOD", "ETAPHIPT",
@@ -59,7 +60,7 @@ struct ATask {
 struct MTask {
   Produces<aod::CollisionsExtra> colextra;
 
-  void process(aod::Collision const& collision, aod::Tracks const& tracks)
+  void process(aod::Collision const&, aod::Tracks const& tracks)
   {
     colextra(tracks.size());
   }

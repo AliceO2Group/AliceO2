@@ -45,6 +45,7 @@ class FairMQMessage;
 namespace arrow
 {
 class Schema;
+class Table;
 
 namespace ipc
 {
@@ -198,6 +199,10 @@ class DataAllocator
   /// it as an Arrow table to all consumers of @a spec once done
   void
     adopt(const Output& spec, struct TreeToTable*);
+
+  /// Adopt an Arrow table and send it to all consumers of @a spec
+  void
+    adopt(const Output& spec, std::shared_ptr<class arrow::Table>);
 
   /// Adopt a raw buffer in the framework and serialize / send
   /// it to the consumers of @a spec once done.
