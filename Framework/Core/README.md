@@ -1,5 +1,6 @@
 \page refFrameworkCore Core
 \subpage refFrameworkCoreCOOKBOOK Core COOKBOOK
+\subpage refFrameworkCoreANALYSIS Core ANALYSIS
 
 # Data Processing Layer in O2 Framework
 

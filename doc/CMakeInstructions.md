@@ -1,4 +1,4 @@
-\\page refdocCMakeInstructions CMake Instructions
+\page refdocCMakeInstructions CMake Instructions
 
 <!-- vim-markdown-toc GFM -->
 

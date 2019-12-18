@@ -13,6 +13,7 @@ This module contains the following submodules:
 - \subpage refUtilitiesDataCompression
 - \subpage refUtilitiesDataFlow
 - \subpage refUtilitiesMCStepLogger
+- \subpage refUtilitiesMergers
 - \subpage refUtilitiesO2Device
 - \subpage refUtilitiesO2MessageMonitor
 - \subpage refUtilitiesPCG

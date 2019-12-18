@@ -3,7 +3,7 @@
 This module contains the following submodules:
 
 - \subpage refCommonConstants
-- \subpage refCommonField
+- \subpage refCommonFieldMacros
 - \subpage refCommonMathUtils
 - \subpage refCommonSimConfig
 - \subpage refCommonTopologies

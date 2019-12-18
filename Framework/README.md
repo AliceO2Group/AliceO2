@@ -6,5 +6,6 @@ This module contains the following submodules:
 - \subpage refFrameworkCore
 - \subpage refFrameworkDebugGUI
 - \subpage refFrameworkFoundation
+- \subpage refFrameworkLogger
 - \subpage refFrameworkTestWorkflows
 - \subpage refFrameworkUtils

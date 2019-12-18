@@ -2,7 +2,7 @@
 
 This module contains the following submodules:
 
-- \subpage refDetectorsBase
+- \subpage refDetectorsBasetest
 - \subpage refDetectorsEMCAL
 - \subpage refDetectorsFIT
 - \subpage refDetectorsGeometry

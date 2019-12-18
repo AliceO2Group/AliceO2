@@ -1,3 +1,5 @@
+\page refdocModernCMakeMigration Modern CMake Migration
+
 # Migration to "Modern" CMake
 
 ## Big picture

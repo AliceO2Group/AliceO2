@@ -4,6 +4,7 @@ This is a top page for the MUON detector documentation.
 
 - \subpage refMUONMIDClustering
 - \subpage refMUONMIDTracking
+- \subpage refMUONMIDWorkflow
 - \subpage refMUONMCHMappingSegContour
 - \subpage refMUONMCHMapping
 - \subpage refMUONMCHMappingtest

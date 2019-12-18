@@ -1,3 +1,5 @@
+\page refCommonFieldMacros Magnetic Field Macros
+
 ## Macros for magnetic field manipulations
 
 ```o2::field::MagneticWrapperChebyshev``` class allows to dump the field data to text file and recreate it back as a ROOT object from this file. This is useful if one needs to change the name or the namespace of this class or persistent classes it usese internally (e.g. ``MathUtils/Chebyshev3D.h``, ``MathUtils/Chebyshev3DCalc.h``)

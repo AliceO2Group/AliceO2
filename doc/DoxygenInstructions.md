@@ -9,6 +9,8 @@ The Doxygen documentation pages are generated from the `README.md` files placed 
 
 The references between the Doxygen pages and subpages are achieved using a Doxygen `page` and `subpage` keywords. All `README.md` files must contain the Doxygen `page` tag on the top, and if the module contains other documentation pages (usually in its sub-directories), it must be linked using the Doxygen `subpage` tag.
 
+*When adding a new documentation page you must always add a `\subpage` declaration in an upper category page otherwise your page will pollute the "global" references in the left tab menu.*
+
 #### An example of a `README` file in the O2 directories at the top level.
 
     \page refModulename Module 'Modulename'

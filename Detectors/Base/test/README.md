@@ -1,3 +1,5 @@
+\page refDetectorsBasetest DetectorsBasetest
+
 # WORK IN PROGRESS: Mat.Budget LUT classes
 
 

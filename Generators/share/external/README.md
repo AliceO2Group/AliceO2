@@ -1,3 +1,5 @@
+\page refGeneratorsshareexternal External Generators
+
 # External generators
 
 
