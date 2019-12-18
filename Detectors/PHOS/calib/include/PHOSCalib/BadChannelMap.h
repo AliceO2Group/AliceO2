@@ -7,6 +7,9 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#ifndef O2_PHOS_PHOSBADCHANNELSMAP_H_
+#define O2_PHOS_PHOSBADCHANNELSMAP_H_
+
 #include <iosfwd>
 #include <bitset>
 #include <Rtypes.h>
@@ -54,6 +57,9 @@ class BadChannelMap
  public:
   /// \brief Constructor
   BadChannelMap() = default;
+
+  /// \brief Constructur used to build test bad map
+  BadChannelMap(int test);
 
   /// \brief Destructor
   ~BadChannelMap() = default;
@@ -143,3 +149,5 @@ std::ostream& operator<<(std::ostream& in, const BadChannelMap& bcm);
 } // namespace phos
 
 } // namespace o2
+
+#endif /* O2_PHOS_PHOSBADCHANNELSMAP_H_ */

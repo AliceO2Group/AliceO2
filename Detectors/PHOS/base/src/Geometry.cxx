@@ -33,7 +33,7 @@ Geometry::Geometry(const std::string_view name) : mGeoName(name) {}
 //     return sGeom;
 // }
 
-int Geometry::RelToAbsId(int moduleNumber, int strip, int cell) const
+int Geometry::relToAbsId(int moduleNumber, int strip, int cell) const
 {
   // calculates absolute cell Id from moduleNumber, strip (number) and cell (number)
   // PHOS layout parameters:
@@ -49,7 +49,7 @@ int Geometry::RelToAbsId(int moduleNumber, int strip, int cell) const
          (cell & 1 ? 1 : 0);
 }
 
-Bool_t Geometry::AbsToRelNumbering(int absId, int* relid) const
+Bool_t Geometry::absToRelNumbering(int absId, int* relid) const
 {
   // Converts the absolute numbering into the following array
   //  relid[0] = PHOS Module number 1:fNModules
@@ -67,7 +67,7 @@ Bool_t Geometry::AbsToRelNumbering(int absId, int* relid) const
 
   return true;
 }
-int Geometry::AbsIdToModule(int absId)
+int Geometry::absIdToModule(int absId)
 {
   const int nZ = 56;
   const int nPhi = 64;
@@ -75,7 +75,7 @@ int Geometry::AbsIdToModule(int absId)
   return 1 + (absId - 1) / (nZ * nPhi);
 }
 
-int Geometry::AreNeighbours(int absId1, int absId2) const
+int Geometry::areNeighbours(int absId1, int absId2) const
 {
 
   // Gives the neighbourness of two digits = 0 are not neighbour but continue searching
@@ -88,10 +88,10 @@ int Geometry::AreNeighbours(int absId1, int absId2) const
   //                                      which is compared to a digit (d2)  not yet in a cluster
 
   int relid1[3];
-  AbsToRelNumbering(absId1, relid1);
+  absToRelNumbering(absId1, relid1);
 
   int relid2[3];
-  AbsToRelNumbering(absId2, relid2);
+  absToRelNumbering(absId2, relid2);
 
   if (relid1[0] == relid2[0]) { // inside the same PHOS module
     int rowdiff = TMath::Abs(relid1[1] - relid2[1]);
@@ -112,18 +112,18 @@ int Geometry::AreNeighbours(int absId1, int absId2) const
   }
   return 0;
 }
-void Geometry::AbsIdToRelPosInModule(int absId, double& x, double& z) const
+void Geometry::absIdToRelPosInModule(int absId, double& x, double& z) const
 {
 
   const double cellStep = 2.25;
 
   int relid[3];
-  AbsToRelNumbering(absId, relid);
+  absToRelNumbering(absId, relid);
 
   x = (relid[1] - 28 - 0.5) * cellStep;
   z = (relid[2] - 32 - 0.5) * cellStep;
 }
-bool Geometry::RelToAbsNumbering(const int* relId, int& absId) const
+bool Geometry::relToAbsNumbering(const int* relId, int& absId) const
 {
   const int nZ = 56;   // nStripZ * nCellsZInStrip
   const int nPhi = 64; // nStripZ * nCellsZInStrip

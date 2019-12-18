@@ -19,6 +19,15 @@
 
 using namespace o2::phos;
 
+CalibParams::CalibParams(int /*dummy*/)
+{
+  //produce reasonable objest for test purposes
+  mGainCalib.fill(0.005);
+  mHGLGRatio.fill(16.);
+  mHGTimeCalib.fill(0.);
+  mLGTimeCalib.fill(0.);
+}
+
 bool CalibParams::setGain(TH2* h, int module)
 {
   const int MAXX = 64,
@@ -46,7 +55,7 @@ bool CalibParams::setGain(TH2* h, int module)
     for (int iz = 1; iz <= MAXZ; iz++) {
       relid[2] = iz;
 
-      if (geo->RelToAbsNumbering(relid, absId)) {
+      if (geo->relToAbsNumbering(relid, absId)) {
         mGainCalib[absId] = h->GetBinContent(ix, iz);
       }
     }
@@ -81,7 +90,7 @@ bool CalibParams::setHGLGRatio(TH2* h, int module)
     for (int iz = 1; iz <= MAXZ; iz++) {
       relid[2] = iz;
 
-      if (geo->RelToAbsNumbering(relid, absId)) {
+      if (geo->relToAbsNumbering(relid, absId)) {
         mHGLGRatio[absId] = h->GetBinContent(ix, iz);
       }
     }
@@ -116,7 +125,7 @@ bool CalibParams::setHGTimeCalib(TH2* h, int module)
     for (int iz = 1; iz <= MAXZ; iz++) {
       relid[2] = iz;
 
-      if (geo->RelToAbsNumbering(relid, absId)) {
+      if (geo->relToAbsNumbering(relid, absId)) {
         mHGTimeCalib[absId] = h->GetBinContent(ix, iz);
       }
     }
@@ -151,7 +160,7 @@ bool CalibParams::setLGTimeCalib(TH2* h, int module)
     for (int iz = 1; iz <= MAXZ; iz++) {
       relid[2] = iz;
 
-      if (geo->RelToAbsNumbering(relid, absId)) {
+      if (geo->relToAbsNumbering(relid, absId)) {
         mLGTimeCalib[absId] = h->GetBinContent(ix, iz);
       }
     }

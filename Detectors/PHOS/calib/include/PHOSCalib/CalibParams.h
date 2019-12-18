@@ -15,8 +15,8 @@
 ///
 ///
 
-#ifndef CALIBPARAMS_H
-#define CALIBPARAMS_H
+#ifndef PHOS_CALIBPARAMS_H
+#define PHOS_CALIBPARAMS_H
 
 #include <array>
 #include "TObject.h"
@@ -35,13 +35,16 @@ class CalibParams
   /// \brief Constructor
   CalibParams() = default;
 
+  /// \brief Constructor for tests
+  CalibParams(int test);
+
   /// \brief Destructor
   ~CalibParams() = default;
 
   /// \brief Get High Gain energy calibration coefficients
   /// \param cellID Absolute ID of cell
   /// \return high gain energy calibration coefficient of the cell
-  float getGain(unsigned short cellID) { return mGainCalib.at(cellID); }
+  float getGain(unsigned short cellID) const { return mGainCalib.at(cellID); }
 
   /// \brief Set High Gain energy calibration coefficient
   /// \param cellID Absolute ID of cell
@@ -57,7 +60,7 @@ class CalibParams
   /// \brief Get High Gain to Low Gain ratio calibration coefficients
   /// \param cellID Absolute ID of cell
   /// \return High Gain to Low Gain ratio of the cell
-  float getHGLGRatio(unsigned short cellID) { return mHGLGRatio.at(cellID); }
+  float getHGLGRatio(unsigned short cellID) const { return mHGLGRatio.at(cellID); }
 
   /// \brief Set High Gain to Low Gain ratio
   /// \param cellID Absolute ID of cell
@@ -73,7 +76,7 @@ class CalibParams
   /// \brief Get High Gain time calibration coefficients
   /// \param cellID Absolute ID of cell
   /// \return high gain time calibration coefficient of the cell
-  float getHGTimeCalib(unsigned short cellID) { return mHGTimeCalib.at(cellID); }
+  float getHGTimeCalib(unsigned short cellID) const { return mHGTimeCalib.at(cellID); }
 
   /// \brief Set High Gain time calibration coefficient
   /// \param cellID Absolute ID of cell
@@ -89,7 +92,7 @@ class CalibParams
   /// \brief Get Low Gain time calibration coefficient
   /// \param cellID Absolute ID of cell
   /// \return low gain time calibration coefficient of the cell
-  float getLGTimeCalib(unsigned short cellID) { return mLGTimeCalib.at(cellID); }
+  float getLGTimeCalib(unsigned short cellID) const { return mLGTimeCalib.at(cellID); }
 
   /// \brief Set time calibration coefficient
   /// \param cellID Absolute ID of cell

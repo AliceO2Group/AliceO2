@@ -10,6 +10,9 @@
 
 #include "PHOSReconstruction/Cluster.h"
 #include "PHOSBase/Geometry.h"
+#include "PHOSBase/PHOSSimParams.h"
+
+#include "FairLogger.h" // for LOG
 
 using namespace o2::phos;
 
@@ -47,7 +50,8 @@ bool Cluster::operator<(const Cluster& other) const
   GetLocalPosition(posX, posZ);
   double posOtherX, posOtherZ;
   other.GetLocalPosition(posOtherX, posOtherZ);
-  Int_t rowdifX = (Int_t)std::ceil(posX / kSortingDelta) - (Int_t)std::ceil(posOtherX / kSortingDelta);
+  Int_t rowdifX = (Int_t)std::ceil(posX / o2::phos::PHOSSimParams::Instance().mSortingDelta) - 
+                  (Int_t)std::ceil(posOtherX / o2::phos::PHOSSimParams::Instance().mSortingDelta);
   if (rowdifX == 0) {
     return posZ > posOtherZ;
   } else {
@@ -72,7 +76,8 @@ bool Cluster::operator>(const Cluster& other) const
   GetLocalPosition(posX, posZ);
   double posOtherX, posOtherZ;
   other.GetLocalPosition(posOtherX, posOtherZ);
-  Int_t rowdifX = (Int_t)std::ceil(posX / kSortingDelta) - (Int_t)std::ceil(posOtherX / kSortingDelta);
+  Int_t rowdifX = (Int_t)std::ceil(posX / o2::phos::PHOSSimParams::Instance().mSortingDelta) - 
+                  (Int_t)std::ceil(posOtherX / o2::phos::PHOSSimParams::Instance().mSortingDelta);
   if (rowdifX == 0) {
     return posZ < posOtherZ;
   } else {
@@ -213,7 +218,7 @@ void Cluster::EvalLocalPosition()
     double xi = 0., zi = 0.;
     mPHOSGeom->AbsIdToRelPosInModule(*i, xi, zi);
     if (*itE > 0) {
-      double w = std::max(0., kLogWeight + std::log(*itE / mFullEnergy));
+      double w = std::max(0., o2::phos::PHOSSimParams::Instance().mLogWeight + std::log(*itE / mFullEnergy));
       mLocalPosX += xi * w;
       mLocalPosZ += zi * w;
       wtot += w;
@@ -244,7 +249,7 @@ void Cluster::EvalDispersion()
     double xi = 0., zi = 0.;
     mPHOSGeom->AbsIdToRelPosInModule(*i, xi, zi);
     if (*itE > 0) {
-      double w = std::max(0., kLogWeight + std::log(*itE / mFullEnergy));
+      double w = std::max(0., o2::phos::PHOSSimParams::Instance().mLogWeight + std::log(*itE / mFullEnergy));
       mDispersion += w * ((xi - mLocalPosX) * (xi - mLocalPosX) + (zi - mLocalPosZ) * (zi - mLocalPosZ));
       wtot += w;
     }
@@ -276,7 +281,7 @@ void Cluster::EvalElipsAxis()
     double xi = 0., zi = 0.;
     mPHOSGeom->AbsIdToRelPosInModule(*i, xi, zi);
     if (*itE > 0) {
-      double w = std::max(0., kLogWeight + std::log(*itE / mFullEnergy));
+      double w = std::max(0., o2::phos::PHOSSimParams::Instance().mLogWeight + std::log(*itE / mFullEnergy));
       dxx += w * xi * xi;
       x += w * xi;
       dzz += w * zi * zi;
@@ -380,4 +385,63 @@ std::vector<Digit>::const_iterator Cluster::BinarySearch(const std::vector<Digit
   }
 
   return endIt;
+}
+//____________________________________________________________________________
+int Cluster::GetNumberOfLocalMax(int* maxAt, float* maxAtEnergy) const
+{
+  // Calculates the number of local maxima in the cluster using LocalMaxCut as the minimum
+  // energy difference between maximum and surrounding digits
+
+  int n = GetMultiplicity();
+  float locMaxCut = o2::phos::PHOSSimParams::Instance().mLocalMaximumCut;
+
+  bool* isLocalMax = new bool[n];
+  for (int i = 0; i < n; i++)
+   {
+    isLocalMax[i] = false;
+    float en1 = mEnergyList.at(i);
+    if (en1 > o2::phos::PHOSSimParams::Instance().mClusteringThreshold) isLocalMax[i] = true;
+   }
+
+  for (int i = 0; i < n; i++) {
+    int detId1 = mDigitsIdList.at(i);
+    float en1 = mEnergyList.at(i);
+
+    for (int j = i + 1; j < n; j++) {
+      int detId2 = mDigitsIdList.at(j);
+      float en2 = mEnergyList.at(j);
+
+      if (Geometry::GetInstance()->AreNeighbours(detId1, detId2) == 1) {
+        if (en1 > en2) {
+          isLocalMax[j] = false;
+          // but may be digit too is not local max ?
+          if (en2 > en1 - locMaxCut) {
+            isLocalMax[i] = false;
+          }
+        } else {
+          isLocalMax[i] = false;
+          // but may be digitN is not local max too?
+          if (en1 > en2 - locMaxCut) {
+            isLocalMax[j] = false;
+          }
+        }
+      } // if Areneighbours
+    }   // digit j
+  }     // digit i
+
+  int iDigitN = 0;
+  for (int i = 0; i < n; i++) {
+    if (isLocalMax[i]) {
+      maxAt[iDigitN] = i;
+      maxAtEnergy[iDigitN] = mEnergyList.at(i);
+      iDigitN++;
+      if (iDigitN >= o2::phos::PHOSSimParams::Instance().mNLMMax) { // Note that size of output arrays is limited:
+        LOG(ERROR) << "Too many local maxima, cluster multiplicity " << n;
+        delete[] isLocalMax;
+        return 0;
+      }
+    }
+  }
+  delete[] isLocalMax;
+  return iDigitN;
 }

@@ -77,30 +77,35 @@ class Geometry
     return sGeom;
   }
 
-  int AreNeighbours(int absId1, int absId2) const;
+  /// \breif Checks if two channels have common side
+  /// \param absId1: absId of first channel, order important!
+  /// \param absId2: absId of secont channel, order important!
+  /// \return  0 are not neighbour but continue searching
+  //         = 1 are neighbour
+  //         = 2 are not neighbour but do not continue searching
+  //         =-1 are not neighbour, continue searching, but do not look before d2 next time
+  int areNeighbours(int absId1, int absId2) const;
 
-  ///
+  /// \breif Converts Geant volume numbers to absId
   /// \return AbsId index of the PHOS cell
-  ///
   /// \param moduleNumber: module number
   /// \param strip: strip number
   //  \param cell: cell in strip number
-  ///
-  int RelToAbsId(int moduleNumber, int strip, int cell) const;
+  int relToAbsId(int moduleNumber, int strip, int cell) const;
   // Converts the absolute numbering into the following array
   //  relid[0] = PHOS Module number 1:module
   //  relid[1] = Row number inside a PHOS module (Phi coordinate)
   //  relid[2] = Column number inside a PHOS module (Z coordinate)
-  bool AbsToRelNumbering(int absId, int* relid) const;
-  int AbsIdToModule(int absId);
-  void AbsIdToRelPosInModule(int absId, double& x, double& z) const;
-  bool RelToAbsNumbering(const int* RelId, int& AbsId) const;
+  bool absToRelNumbering(int absId, int* relid) const;
+  int absIdToModule(int absId);
+  void absIdToRelPosInModule(int absId, double& x, double& z) const;
+  bool relToAbsNumbering(const int* RelId, int& AbsId) const;
   // converts the absolute PHOS numbering to a relative
 
-  int GetTotalNCells() const { return 56 * 64 * 4; } // TODO: evaluate from real geometry
-  int IsCellExists(int absId) const
+  int getTotalNCells() const { return 56 * 64 * 4; } // TODO: evaluate from real geometry
+  int isCellExists(int absId) const
   {
-    return absId > 0 && absId <= GetTotalNCells();
+    return absId > 0 && absId <= getTotalNCells();
   } // TODO: evaluate from real geometry
 
   const std::string& GetName() const { return mGeoName; }

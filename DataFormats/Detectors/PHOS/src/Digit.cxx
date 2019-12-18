@@ -9,21 +9,22 @@
 // or submit itself to any jurisdiction.
 #include "FairLogger.h"
 
-#include "PHOSBase/Digit.h"
+#include "DataFormatsPHOS/Digit.h"
+#include "PHOSBase/Hit.h"
 #include <iostream>
 
 using namespace o2::phos;
 
 ClassImp(Digit);
 
-Digit::Digit(Int_t absId, Double_t amplitude, Double_t time, Int_t label)
+Digit::Digit(int absId, double amplitude, double time, int label)
   : DigitBase(time), mAbsId(absId), mAmplitude(amplitude), mTime(time), mLabel(label)
 {
 }
 Digit::Digit(Hit hit, int label) : mAbsId(hit.GetDetectorID()), mAmplitude(hit.GetEnergyLoss()), mTime(hit.GetTime()), mLabel(label)
 {
 }
-void Digit::FillFromHit(Hit hit)
+void Digit::fillFromHit(Hit hit)
 {
   mAbsId = hit.GetDetectorID();
   mAmplitude = hit.GetEnergyLoss();

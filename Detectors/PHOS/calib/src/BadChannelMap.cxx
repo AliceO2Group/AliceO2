@@ -19,6 +19,31 @@
 
 using namespace o2::phos;
 
+BadChannelMap::BadChannelMap(int /*dummy*/)
+{
+
+  //Mark few channels as bad for test peurposes
+  for (int i = 0; i < 56; i++) {
+    //module 2
+    int channelID = 3584 + i * 57;
+    mBadCells.set(channelID);
+    channelID = 3640 + i * 55;
+    mBadCells.set(channelID);
+  }
+
+  for (int i = 0; i < 16; i++) {
+    //module 3
+    int channelID = 8972 + i * 57;
+    mBadCells.set(channelID);
+    channelID = 8092 + i * 57;
+    mBadCells.set(channelID);
+    channelID = 8147 + i * 55;
+    mBadCells.set(channelID);
+    channelID = 9059 + i * 55;
+    mBadCells.set(channelID);
+  }
+}
+
 void BadChannelMap::getHistogramRepresentation(int module, TH2* h) const
 {
   if (!h) {
@@ -45,7 +70,7 @@ void BadChannelMap::getHistogramRepresentation(int module, TH2* h) const
     relid[1] = ix;
     for (int iz = 1; iz <= MAXZ; iz++) {
       relid[2] = iz;
-      if (geo->RelToAbsNumbering(relid, absId)) {
+      if (geo->relToAbsNumbering(relid, absId)) {
         if (!isChannelGood(absId)) {
           h->SetBinContent(ix, iz, 1);
         }

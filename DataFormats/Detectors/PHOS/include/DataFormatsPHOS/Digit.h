@@ -12,8 +12,6 @@
 #define ALICEO2_PHOS_DIGIT_H_
 
 #include "CommonDataFormat/TimeStamp.h"
-#include "SimulationDataFormat/MCCompLabel.h"
-#include "PHOSBase/Hit.h"
 
 namespace o2
 {
@@ -22,12 +20,11 @@ namespace phos
 {
 /// \class PHOSDigit
 /// \brief PHOS digit implementation
+class Hit;
 
 using DigitBase = o2::dataformats::TimeStamp<double>;
 class Digit : public DigitBase
 {
-
-  using Label = o2::MCCompLabel;
 
  public:
   static constexpr int kTimeGate = 25; // Time in ns between digits to be added as one signal.
@@ -50,7 +47,7 @@ class Digit : public DigitBase
   /// \brief Replace content of this digit with new one, from hit
   /// \param PHOS Hit
   /// \return
-  void FillFromHit(Hit hit);
+  void fillFromHit(Hit hit);
 
   /// \brief Comparison oparator, based on time and absId
   /// \param another PHOS Digit
