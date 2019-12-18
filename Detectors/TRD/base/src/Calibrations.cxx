@@ -81,7 +81,7 @@ double Calibrations::getVDrift(int det, int col, int row) const
 double Calibrations::getT0(int det, int col, int row) const
 {
   if (mChamberCalibrations && mLocalT0)
-    return (double)mChamberCalibrations->getT0(det) * (double)mLocalT0->getValue(det, col, row);
+    return (double)mChamberCalibrations->getT0(det) + (double)mLocalT0->getValue(det, col, row);
   else
     return -1;
 }
