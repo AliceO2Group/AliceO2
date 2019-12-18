@@ -30,8 +30,8 @@ void CalibTOFapi::readLHCphase()
 
   // getting the LHCphase calibration
 
-  auto& mgr = ccdbManager::instance();
-  mLHCphase = mgr.getForTimeStamp<lhcPhase>("TOF/LHCphase", mTimeStamp);
+  auto& mgr = CcdbManager::instance();
+  mLHCphase = mgr.getForTimeStamp<LhcPhase>("TOF/LHCphase", mTimeStamp);
 }
 
 //______________________________________________________________________
@@ -42,18 +42,18 @@ void CalibTOFapi::readTimeSlewingParam()
   // getting the TimeSlewing calibration
   // it includes also offset and information on problematic
 
-  auto& mgr = ccdbManager::instance();
-  mSlewParam = mgr.getForTimeStamp<slewParam>("TOF/ChannelCalib", mTimeStamp);
+  auto& mgr = CcdbManager::instance();
+  mSlewParam = mgr.getForTimeStamp<SlewParam>("TOF/ChannelCalib", mTimeStamp);
 }
 
 //______________________________________________________________________
 
-void CalibTOFapi::writeLHCphase(lhcPhase* phase, std::map<std::string, std::string> metadataLHCphase, ulong minTimeStamp, ulong maxTimeStamp)
+void CalibTOFapi::writeLHCphase(LhcPhase* phase, std::map<std::string, std::string> metadataLHCphase, ulong minTimeStamp, ulong maxTimeStamp)
 {
 
   // write LHCphase object to CCDB
 
-  auto& mgr = ccdbManager::instance();
+  auto& mgr = CcdbManager::instance();
   CcdbApi api;
   api.init(mgr.getURL());
   api.storeAsTFileAny(phase, "TOF/LHCphase", metadataLHCphase, minTimeStamp, maxTimeStamp);
@@ -61,12 +61,12 @@ void CalibTOFapi::writeLHCphase(lhcPhase* phase, std::map<std::string, std::stri
 
 //______________________________________________________________________
 
-void CalibTOFapi::writeTimeSlewingParam(slewParam* param, std::map<std::string, std::string> metadataChannelCalib, ulong minTimeStamp, ulong maxTimeStamp)
+void CalibTOFapi::writeTimeSlewingParam(SlewParam* param, std::map<std::string, std::string> metadataChannelCalib, ulong minTimeStamp, ulong maxTimeStamp)
 {
 
   // write TiemSlewing object to CCDB (it includes offset + problematic)
 
-  auto& mgr = ccdbManager::instance();
+  auto& mgr = CcdbManager::instance();
   CcdbApi api;
   api.init(mgr.getURL());
   if (maxTimeStamp == 0) {
