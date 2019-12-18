@@ -72,6 +72,8 @@ class Detector : public o2::base::DetImpl<Detector>
   void EndOfEvent() final;
   void FinishPrimary() final;
 
+  void BeginPrimary() final;
+
   void ConstructGeometry() final;
 
   void createMaterials();
