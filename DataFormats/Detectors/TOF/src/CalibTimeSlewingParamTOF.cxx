@@ -62,6 +62,7 @@ CalibTimeSlewingParamTOF& CalibTimeSlewingParamTOF::operator=(const CalibTimeSle
       mSigmaPeak[i][j] = source.mSigmaPeak[i][j];
     }
   }
+  return *this;
 }
 //______________________________________________
 float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float tot) const
