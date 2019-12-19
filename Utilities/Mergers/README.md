@@ -1,4 +1,6 @@
+<!-- doxy
 \page refUtilitiesMergers Mergers
+/doxy -->
 
 # O2 Mergers (experimental)
 

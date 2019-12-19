@@ -1,4 +1,6 @@
-\page refCommonFieldMacros Magnetic Field Macros
+<!-- doxy
+\page refCommonFieldMacros Field Macros
+/doxy -->
 
 ## Macros for magnetic field manipulations
 

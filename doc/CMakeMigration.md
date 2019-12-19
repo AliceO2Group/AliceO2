@@ -1,4 +1,6 @@
+<!-- doxy
 \page refdocModernCMakeMigration Modern CMake Migration
+/doxy -->
 
 # Migration to "Modern" CMake
 

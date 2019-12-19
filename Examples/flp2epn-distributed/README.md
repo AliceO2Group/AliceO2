@@ -1,4 +1,8 @@
+<!-- doxy
 \page refExamplesflp2epn-distributed Example flp2epn-distributed
+/doxy -->
+
+## Example flp2epn-distributed
 
 #### Prototype Devices for the transport between FLPs and EPNs
 --------------------------------------------------------------
