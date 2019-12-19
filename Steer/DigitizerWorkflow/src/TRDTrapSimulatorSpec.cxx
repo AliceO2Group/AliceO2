@@ -133,8 +133,9 @@ class TRDDPLTrapSimulatorTask{
                    int oldmcm=-1;
                    int oldrob=-1;
                    int olddetector=-1;
-                   int currentmcm=-1;
-                   int currentrob=-1;
+                   int oldrow=-1;
+                   int oldpad=-1;
+                   std::array<ArrayADC_t,21> mcmadcs;
                    for(std::vector<o2::trd::Digit>::iterator digititerator = digits.begin(); digititerator != digits.end(); ++digititerator) {
                       //originally loop was over side:rob:mcm so we need side
                       //in here as well. as per the end of AliTRDdigitizer
@@ -150,29 +151,49 @@ class TRDDPLTrapSimulatorTask{
                       int detector=digititerator->getDetector();
                       int rob=mfeeparam->getROBfromPad(row,pad);
                       int mcm=mfeeparam->getMCMfromPad(row,pad);
-                      if(currentmcm==-1) currentmcm=mcm;
-                      if(currentrob==-1) currentrob=rob;
-                      if(currentrob!=rob || currentmcm!= mcm){
-                        // we are on a new rob:mcm combination, send trapsim
-                        // off to do its thing.
-                        //mTrapSimulator.init();
-                      }
-                      LOG(info) << "Time: " << digittime << " MCM: " << detector <<":" << rob << ":" <<mcm << " --- " << pad << ";;" << row;
+                      if(oldmcm==-1) oldmcm=mcm;
+                      if(oldrob==-1) oldrob=rob;
+                      if(olddetector==-1) olddetector=detector;
+                      
                       incomingdigits=digititerator->getADC();
                       //determine which adc for this mcm we are populating.
-//                      mTrapSimulator.setData(incomingdigits);
+                      if(olddetector!=detector || oldrob!= rob || oldmcm !=mcm){
+                          //fireup Trapsim.
+                          LOG(info) << "------- heading off to TrapSim for " << " Det:rob:mcm:pad:row ::  " << olddetector <<":" << oldrob << ":" <<oldmcm << ":" << oldrow << ":"<< oldpad;
+                          int padrow=mfeeparam->getPadRowFromMCM(oldrob,oldmcm);
+                          int firstadc=mfeeparam->getPadColFromADC(oldrob,oldmcm,1);
+                          int lastadc =mfeeparam->getPadColFromADC(oldrob,oldmcm,19);
+                          int adcoffset = oldpad-firstadc;
+                          LOG(info) << "------- heading off to TrapSim for " << " Det:rob:mcm:pad:row ::  " << olddetector <<":" << oldrob << ":" <<oldmcm << ":" << oldrow << ":"<< oldpad 
+                                    << " == " << padrow << ":" << firstadc << ":" << lastadc << " adcoffset : " << adcoffset;
+                          ///LOG(info) << "------- heading off to TrapSim for " << " Det:rob:mcm:pad:row ::  " << olddetector <<":" << oldrob << ":" <<oldmcm;
+                         // mTrapSimulator.setData(incomingdigits);
                       
                       // copy adc data from digits to local array and then pass into TrapSimulator
                       // keep copying until we change mcm.
                       // On change of mcm, take what we have send to simulator.
                       // clean up temp array, and populate it with what we have now and keep going.
-                      //mTrapSimulator.init(detector,rob,mcm);
-                      //mTrapSimulator.setData(detector,digit.getADC());
-             //for(int i=i;i<digits.size();i++){
-             //   int mcmindex= FeeParam::instance()->getMCMfromPad(digits[i].getRow(), digits[i].getPad());
+                        // mTrapSimulator.init(detector,rob,mcm);
+                        // mTrapSimulator.setData(detector,digit.getADC());
+                         //for(int i=i;i<digits.size();i++){
+                          //   int mcmindex= FeeParam::instance()->getMCMfromPad(digits[i].getRow(), digits[i].getPad());
                 //      LOG(info) << "MCM: " <<  feeparam->getMCMfromPad(digits[i].getRow(),digits[i].getPad()) << " == "<< digits[i].getDetector() <<"::"<<digits[i].getRow()<<"::"<< digits[i].getPad();
                       //cout << "pad: " << ((o2::trd::Digit)digits[i]).getPad() << endl;
                //       LOG(info) << "MCM: " << i <<" :: " << mcmindex << " == "<< digits[i].getDetector() <<"::"<<digits[i].getRow()<<"::"<< digits[i].getPad();
+                      
+                      
+                      
+                      
+                      }
+                      else LOG(info) << "-------- Time: " << digittime << " det:rob:mcm:pad:row:: " << olddetector <<":" << oldrob << ":" <<oldmcm ;
+                      LOG(info) << "Time: " << digittime << " det:rob:mcm:pad:row:: " << detector <<":" << rob << ":" <<mcm ;
+                      olddetector=detector;
+                      oldrob=rob;
+                      oldmcm=mcm;
+                      oldrow=row;
+                      oldpad=pad;
+
+
                        
               }
                
