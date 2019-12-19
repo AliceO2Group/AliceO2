@@ -14,51 +14,53 @@
 #ifndef O2_GPU_PACKED_CHARGE_H
 #define O2_GPU_PACKED_CHARGE_H
 
-#include "GPUDef.h"
 #include "clusterFinderDefs.h"
+#include "GPUCommonMath.h"
 
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 
-#if 0
+// Ugly workaround because cuda doesn't like member constants
+namespace PackedChargeDefs
+{
+using BasicType = unsigned short;
+GPUconstexpr() int ADCBits = 10;
+GPUconstexpr() int DecimalBits = 4;
+GPUconstexpr() int ChargeBits = 14;
+GPUconstexpr() int Has3x3PeakBit = 14;
+GPUconstexpr() BasicType Has3x3PeakMask = 1 << 14;
+GPUconstexpr() int IsSplitBit = 15;
+GPUconstexpr() BasicType IsSplitMask = 1 << 15;
+
+GPUconstexpr() BasicType ChargeMask = (1 << 14) - 1;
+GPUconstexpr() BasicType MaxVal = (1 << 14) - 1;
+GPUconstexpr() Charge Shift = 16.f;
+} // namespace PackedChargeDefs
+
 class PackedCharge
 {
-
  public:
-  using BasicType = unsigned short;
+  using BasicType = PackedChargeDefs::BasicType;
 
-  GPUd() PackedCharge(float);
-  GPUd() PackedCharge(float, bool, bool);
+  PackedCharge() = default;
+  GPUdi() explicit PackedCharge(Charge q) : PackedCharge(q, false, false) {}
+  GPUdi() PackedCharge(Charge q, bool peak3x3, bool wasSplit)
+  {
+    val = q * PackedChargeDefs::Shift;
+    val = CAMath::Min(PackedChargeDefs::MaxVal, val); // ensure only lower 14 bits are set
+    val |= (BasicType(peak3x3) << PackedChargeDefs::Has3x3PeakBit);
+    val |= (BasicType(wasSplit) << PackedChargeDefs::IsSplitBit);
+  }
 
-  GPUd() float unpack() const;
-  GPUd() bool has3x3Peak() const;
-  GPUd() bool isSplit() const;
+  GPUdi() Charge unpack() const { return Charge(val & PackedChargeDefs::ChargeMask) / PackedChargeDefs::Shift; }
+  GPUdi() bool has3x3Peak() const { return val & PackedChargeDefs::Has3x3PeakMask; }
+  GPUdi() bool isSplit() const { return val & PackedChargeDefs::IsSplitMask; }
 
  private:
-  GPUconstexpr() int ADCBits = 10;
-  GPUconstexpr() int DecimalBits = 4;
-  GPUconstexpr() int ChargeBits = ADCBits + DecimalBits;
-  GPUconstexpr() int Has3x3PeakBit = ChargeBits;
-  GPUconstexpr() BasicType Has3x3PeakMask = 1 << Has3x3PeakBit;
-  GPUconstexpr() int IsSplitBit = ChargeBits + 1;
-  GPUconstexpr() BasicType IsSplitMask = 1 << IsSplitBit;
-
-  GPUconstexpr() BasicType ChargeMask = (1 << ChargeBits) - 1;
-  GPUconstexpr() BasicType MaxVal = ChargeMask;
-  GPUconstexpr() float Shift = 1 << DecimalBits;
-
   BasicType val;
 };
-#endif
-
-using PackedCharge = ushort;
-
-GPUd() PackedCharge packCharge(Charge, bool, bool);
-GPUd() Charge unpackCharge(PackedCharge);
-GPUd() bool has3x3Peak(PackedCharge);
-GPUd() bool wasSplit(PackedCharge);
 
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
