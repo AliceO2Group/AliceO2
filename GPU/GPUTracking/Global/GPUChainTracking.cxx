@@ -1060,7 +1060,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
   int streamMap[NSLICES];
 
   bool error = false;
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp parallel for num_threads(doGPU ? 1 : GetDeviceProcessingSettings().nThreads)
 #endif
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
@@ -1397,7 +1397,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     WaitForHelperThreads();
   } else {
     mSliceOutputReady = NSLICES;
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp parallel for num_threads(doGPU ? 1 : GetDeviceProcessingSettings().nThreads)
 #endif
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {

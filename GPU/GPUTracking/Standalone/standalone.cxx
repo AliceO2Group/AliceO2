@@ -28,7 +28,7 @@
 #include <chrono>
 #include <tuple>
 #include <algorithm>
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #include <omp.h>
 #endif
 
@@ -198,7 +198,7 @@ int ReadConfiguration(int argc, char** argv)
     configStandalone.OMPThreads = 1;
   }
 
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
   if (configStandalone.OMPThreads != -1) {
     omp_set_num_threads(configStandalone.OMPThreads);
   } else {

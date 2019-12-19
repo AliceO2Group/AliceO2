@@ -40,7 +40,7 @@
 #include <unistd.h>
 #endif
 
-#if defined(GPUCA_HAVE_OPENMP) || defined(_OPENMP)
+#if defined(WITH_OPENMP) || defined(_OPENMP)
 #include <omp.h>
 #else
 static inline int omp_get_thread_num() { return 0; }

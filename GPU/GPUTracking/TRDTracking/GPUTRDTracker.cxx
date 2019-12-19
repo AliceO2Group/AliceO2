@@ -34,7 +34,7 @@ class GPUTPCGMPolynomialField;
 #ifndef GPUCA_GPUCODE
 
 #ifndef __OPENCL__
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #include <omp.h>
 #endif
 #include <chrono>
@@ -232,7 +232,7 @@ void GPUTRDTracker::DoTracking()
   if (mRec->GetRecoStepsGPU() & GPUReconstruction::RecoStep::TRDTracking) {
     mChainTracking->DoTRDGPUTracking();
   } else {
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp parallel for
     for (int iTrk = 0; iTrk < mNTracks; ++iTrk) {
       if (omp_get_num_threads() > mMaxThreads) {
