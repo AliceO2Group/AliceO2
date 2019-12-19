@@ -53,10 +53,10 @@ GPUd() void Clusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlo
   if (idx >= clusternum) {
     return;
   }
-  finalize(&pc, &myDigit);
+  pc.finalize(myDigit);
 
   deprecated::ClusterNative myCluster;
-  toNative(&pc, &myDigit, &myCluster);
+  pc.toNative(myDigit, myCluster);
 
 #if defined(CUT_QTOT)
   bool aboveQTotCutoff = (pc.Q > QTOT_CUTOFF);
@@ -83,7 +83,7 @@ GPUd() void Clusterizer::addOuterCharge(
   Delta dt)
 {
   PackedCharge p = CHARGE(chargeMap, gpad + dp, time + dt);
-  updateClusterOuter(cluster, p, dp, dt);
+  cluster->updateOuter(p, dp, dt);
 }
 
 GPUd() Charge Clusterizer::addInnerCharge(
@@ -95,7 +95,7 @@ GPUd() Charge Clusterizer::addInnerCharge(
   Delta dt)
 {
   PackedCharge p = CHARGE(chargeMap, gpad + dp, time + dt);
-  return updateClusterInner(cluster, p, dp, dt);
+  return cluster->updateInner(p, dp, dt);
 }
 
 GPUd() void Clusterizer::addCorner(
@@ -148,7 +148,7 @@ GPUd() void Clusterizer::updateClusterScratchpadInner(
 
     PackedCharge p = buf[N * lid + i];
 
-    Charge q = updateClusterInner(cluster, p, dp, dt);
+    Charge q = cluster->updateInner(p, dp, dt);
 
     aboveThreshold |= ((q > CHARGE_THRESHOLD) << i);
   }
@@ -174,7 +174,7 @@ GPUd() void Clusterizer::updateClusterScratchpadOuter(
     Delta dp = d.x;
     Delta dt = d.y;
 
-    updateClusterOuter(cluster, p, dp, dt);
+    cluster->updateOuter(p, dp, dt);
   }
 }
 
@@ -186,8 +186,6 @@ GPUd() void Clusterizer::buildClusterScratchPad(
   GPUsharedref() uchar* innerAboveThreshold,
   ClusterAccumulator* myCluster)
 {
-  reset(myCluster);
-
   ushort ll = get_local_id(0);
 
   posBcast[ll] = pos;
@@ -275,8 +273,6 @@ GPUd() void Clusterizer::buildClusterNaive(
   GlobalPad gpad,
   Timestamp time)
 {
-  reset(myCluster);
-
   // Add charges in top left corner:
   // O O o o o
   // O I i i o
