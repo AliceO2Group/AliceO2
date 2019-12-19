@@ -387,7 +387,7 @@ endif()
 
 if(OpenMP_CXX_FOUND)
   message(STATUS "GPU: Using OpenMP: ${OpenMP_CXX_SPEC_DATE}")
-  target_compile_definitions(${targetName} PRIVATE GPUCA_HAVE_OPENMP)
+  target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
   # Must be private, depending libraries might be compiled by compiler not understanding -fopenmp
   target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
 endif()

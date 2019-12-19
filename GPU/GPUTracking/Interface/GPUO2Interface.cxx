@@ -17,7 +17,7 @@
 #include "GPUO2InterfaceConfiguration.h"
 #include <iostream>
 #include <fstream>
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #include <omp.h>
 #endif
 
