@@ -222,22 +222,22 @@ void MC2RawEncoder<Mapping>::addPageLinkHBF(GBTLink& link, bool stop)
   rdh->offsetToNext = rdh->headerSize; // these settings will be correct only for the empty page, in case of payload the offset/size
   rdh->memorySize = rdh->headerSize;   // will be set at the next call of this method
   rdh->pageCnt++;
-  rdh->stop = stop ? 0x1 : 0;
+  link.nTriggers++; // number of pages on this superpage
+  if (stop) {
+    rdh->stop = 0x1;
+    link.lastPageSize = link.data.getSize(); // register current size of the superpage
+    link.lastRDH = nullptr;                  // after closing, the previous RDH is not valid anymore
+  } else {
+    size_t offs = reinterpret_cast<uint8_t*>(rdh) - link.data.getPtr();
+    link.data.ensureFreeCapacity(MaxGBTPacketBytes + sizeof(RDH)); // make sure there is a room for next page
+    rdh = link.lastRDH = reinterpret_cast<RDH*>(&link.data[offs]); // fix link.lastRDH if the array was relocated
+  }
   if (mVerbose) {
     LOG(INFO) << (stop ? "Stop" : "Add") << " HBF for link FEEId 0x"
               << std::hex << std::setfill('0') << std::setw(6) << link.feeID << " Pages: " << link.nTriggers;
     if (mVerbose > 1 && stop) {
       mHBFUtils.printRDH(*rdh);
     }
-  }
-  link.lastRDH = rdh;                      // redirect to newly written RDH
-  link.nTriggers++;                        // number of pages on this superpage
-  if (stop) {
-    link.lastRDH = nullptr; // after closing it is not valid anymore
-  } else {
-    size_t offs = reinterpret_cast<uint8_t*>(link.lastRDH) - link.data.getPtr();
-    link.data.ensureFreeCapacity(MaxGBTPacketBytes + sizeof(RDH)); // make sure there is a room for next page
-    link.lastRDH = reinterpret_cast<RDH*>(&link.data[offs]);       // fix link.lastRDH if the array was relocated
   }
   //
 }
