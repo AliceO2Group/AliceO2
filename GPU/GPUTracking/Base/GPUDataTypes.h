@@ -162,7 +162,7 @@ struct GPUCalibObjectsConst { // TODO: Any chance to do this as template?
 struct GPUTrackingInOutDigits {
   static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
   const gpucf::PackedDigit* tpcDigits[NSLICES] = {nullptr};
-  unsigned long long int nTPCDigits[NSLICES] = {0};
+  size_t nTPCDigits[NSLICES] = {0};
 };
 
 struct GPUTrackingInOutPointers {
