@@ -43,14 +43,14 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
   ushort partId = ll;
 
   ushort in3x3 = 0;
-  partId = partition(smem, ll, iamPeak, SCRATCH_PAD_WORK_GROUP_SIZE, &in3x3);
+  partId = CfUtils::partition(smem, ll, iamPeak, SCRATCH_PAD_WORK_GROUP_SIZE, &in3x3);
 
   if (partId < in3x3) {
     smem.count.posBcast1[partId] = (ChargePos){gpad, myDigit.time};
   }
   GPUbarrier();
 
-  fillScratchPad_uchar(
+  CfUtils::fillScratchPad_uchar(
     peakMap,
     in3x3,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -67,7 +67,7 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
   }
 
   ushort in5x5 = 0;
-  partId = partition(smem, partId, peakCount > 0, in3x3, &in5x5);
+  partId = CfUtils::partition(smem, partId, peakCount > 0, in3x3, &in5x5);
 
   if (partId < in5x5) {
     smem.count.posBcast1[partId] = (ChargePos){gpad, myDigit.time};
@@ -75,7 +75,7 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
   }
   GPUbarrier();
 
-  fillScratchPadCondInv_uchar(
+  CfUtils::fillScratchPadCondInv_uchar(
     peakMap,
     in5x5,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -156,7 +156,7 @@ GPUd() char Deconvolution::countPeaksAroundDigit(
     Delta dp = d.x;
     Delta dt = d.y;
 
-    if (innerAboveThresholdInv(aboveThreshold, i)) {
+    if (CfUtils::innerAboveThresholdInv(aboveThreshold, i)) {
       peakCount -= GET_IS_PEAK(IS_PEAK(peakMap, gpad + dp, time + dt));
     }
   }

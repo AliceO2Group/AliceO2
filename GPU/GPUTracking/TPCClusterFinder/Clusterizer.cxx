@@ -193,7 +193,7 @@ GPUd() void Clusterizer::buildClusterScratchPad(
   posBcast[ll] = pos;
   GPUbarrier();
 
-  fillScratchPad_PackedCharge(
+  CfUtils::fillScratchPad_PackedCharge(
     chargeMap,
     SCRATCH_PAD_WORK_GROUP_SIZE,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -219,7 +219,7 @@ GPUd() void Clusterizer::buildClusterScratchPad(
   /* ClusterAccumulator otherCluster; */
   /* reset(&otherCluster); */
 
-  fillScratchPadCond_PackedCharge(
+  CfUtils::fillScratchPadCond_PackedCharge(
     chargeMap,
     wgSizeHalf,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -240,7 +240,7 @@ GPUd() void Clusterizer::buildClusterScratchPad(
       myCluster);
   }
 
-  fillScratchPadCond_PackedCharge(
+  CfUtils::fillScratchPadCond_PackedCharge(
     chargeMap,
     wgSizeHalf,
     SCRATCH_PAD_WORK_GROUP_SIZE,

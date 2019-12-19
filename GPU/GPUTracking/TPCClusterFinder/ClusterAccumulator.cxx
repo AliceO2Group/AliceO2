@@ -40,7 +40,7 @@ GPUd() void reset(ClusterAccumulator* clus)
 
 GPUd() void toNative(const ClusterAccumulator* cluster, const Digit* d, ClusterNative* cn)
 {
-  uchar isEdgeCluster = isAtEdge(d);
+  uchar isEdgeCluster = CfUtils::isAtEdge(d);
   uchar splitInTime = cluster->splitInTime >= MIN_SPLIT_NUM;
   uchar splitInPad = cluster->splitInPad >= MIN_SPLIT_NUM;
   uchar flags =
@@ -122,7 +122,7 @@ GPUd() void finalize(
   pc->timeMean += myDigit->time;
 
 #if defined(CORRECT_EDGE_CLUSTERS)
-  if (isAtEdge(myDigit)) {
+  if (CfUtils::isAtEdge(myDigit)) {
     float s = (myDigit->pad < 2) ? 1.f : -1.f;
     bool c = s * (pc->padMean - myDigit->pad) > 0.f;
     pc->padMean = (c) ? myDigit->pad : pc->padMean;
