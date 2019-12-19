@@ -25,40 +25,43 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
-// TODO wrap these function in a CfUtils class
-GPUdi() bool isAtEdge(const deprecated::Digit* d)
+class CfUtils
 {
-  return (d->pad < 2 || d->pad >= TPC_PADS_PER_ROW - 2);
-}
 
-GPUdi() bool innerAboveThreshold(uchar aboveThreshold, ushort outerIdx)
-{
-  return aboveThreshold & (1 << CfConsts::OuterToInner[outerIdx]);
-}
+ public:
+  static GPUdi() bool isAtEdge(const deprecated::Digit* d)
+  {
+    return (d->pad < 2 || d->pad >= TPC_PADS_PER_ROW - 2);
+  }
 
-GPUdi() bool innerAboveThresholdInv(uchar aboveThreshold, ushort outerIdx)
-{
-  return aboveThreshold & (1 << CfConsts::OuterToInnerInv[outerIdx]);
-}
+  static GPUdi() bool innerAboveThreshold(uchar aboveThreshold, ushort outerIdx)
+  {
+    return aboveThreshold & (1 << CfConsts::OuterToInner[outerIdx]);
+  }
 
-GPUdi() ushort partition(GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem, ushort ll, bool pred, ushort partSize, ushort* newPartSize)
-{
-  bool participates = ll < partSize;
+  static GPUdi() bool innerAboveThresholdInv(uchar aboveThreshold, ushort outerIdx)
+  {
+    return aboveThreshold & (1 << CfConsts::OuterToInnerInv[outerIdx]);
+  }
 
-  ushort lpos = work_group_scan_inclusive_add((int)(!pred && participates));
+  static GPUdi() ushort partition(GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem, ushort ll, bool pred, ushort partSize, ushort* newPartSize)
+  {
+    bool participates = ll < partSize;
 
-  ushort part = work_group_broadcast(lpos, SCRATCH_PAD_WORK_GROUP_SIZE - 1);
+    ushort lpos = work_group_scan_inclusive_add((int)(!pred && participates));
 
-  lpos -= 1;
-  ushort pos = (participates && !pred) ? lpos : part;
+    ushort part = work_group_broadcast(lpos, SCRATCH_PAD_WORK_GROUP_SIZE - 1);
 
-  *newPartSize = part;
-  return pos;
-}
+    lpos -= 1;
+    ushort pos = (participates && !pred) ? lpos : part;
+
+    *newPartSize = part;
+    return pos;
+  }
 
 // TODO: replace macros by templates
 #define DECL_FILL_SCRATCH_PAD(type, accessFunc)                                     \
-  GPUdi() void fillScratchPad_##type(                                               \
+  static GPUdi() void fillScratchPad_##type(                                        \
     GPUglobalref() const type* chargeMap,                                           \
     uint wgSize,                                                                    \
     uint elems,                                                                     \
@@ -83,10 +86,11 @@ GPUdi() ushort partition(GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem, u
     }                                                                               \
     GPUbarrier();                                                                   \
   }                                                                                 \
-  void anonymousFunction()
+  union {                                                                           \
+  }
 
 #define DECL_FILL_SCRATCH_PAD_COND(type, accessFunc, expandFunc, nameAppendix, null) \
-  GPUdi() void fillScratchPad##nameAppendix##_##type(                                \
+  static GPUdi() void fillScratchPad##nameAppendix##_##type(                         \
     GPUglobalref() const type* chargeMap,                                            \
     uint wgSize,                                                                     \
     uint elems,                                                                      \
@@ -117,42 +121,44 @@ GPUdi() ushort partition(GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem, u
     }                                                                                \
     GPUbarrier();                                                                    \
   }                                                                                  \
-  void anonymousFunction()
-
-DECL_FILL_SCRATCH_PAD(PackedCharge, CHARGE);
-DECL_FILL_SCRATCH_PAD(uchar, IS_PEAK);
-DECL_FILL_SCRATCH_PAD_COND(PackedCharge, CHARGE, innerAboveThreshold, Cond, PackedCharge(0));
-DECL_FILL_SCRATCH_PAD_COND(uchar, IS_PEAK, innerAboveThreshold, Cond, 0);
-DECL_FILL_SCRATCH_PAD_COND(PackedCharge, CHARGE, innerAboveThresholdInv, CondInv, PackedCharge(0));
-DECL_FILL_SCRATCH_PAD_COND(uchar, IS_PEAK, innerAboveThresholdInv, CondInv, 0);
-
-GPUdi() void fillScratchPadNaive(
-  GPUglobalref() const uchar* chargeMap,
-  uint wgSize,
-  ushort ll,
-  uint offset,
-  uint N,
-  GPUconstexprref() const Delta2* neighbors,
-  GPUsharedref() const ChargePos* posBcast,
-  GPUsharedref() uchar* buf)
-{
-  if (ll >= wgSize) {
-    return;
+  union {                                                                            \
   }
 
-  ChargePos readFrom = posBcast[ll];
+  DECL_FILL_SCRATCH_PAD(PackedCharge, CHARGE);
+  DECL_FILL_SCRATCH_PAD(uchar, IS_PEAK);
+  DECL_FILL_SCRATCH_PAD_COND(PackedCharge, CHARGE, innerAboveThreshold, Cond, PackedCharge(0));
+  DECL_FILL_SCRATCH_PAD_COND(uchar, IS_PEAK, innerAboveThreshold, Cond, 0);
+  DECL_FILL_SCRATCH_PAD_COND(PackedCharge, CHARGE, innerAboveThresholdInv, CondInv, PackedCharge(0));
+  DECL_FILL_SCRATCH_PAD_COND(uchar, IS_PEAK, innerAboveThresholdInv, CondInv, 0);
 
-  for (unsigned int i = 0; i < N; i++) {
-    Delta2 d = neighbors[i + offset];
-    Delta dp = d.x;
-    Delta dt = d.y;
+  static GPUdi() void fillScratchPadNaive(
+    GPUglobalref() const uchar* chargeMap,
+    uint wgSize,
+    ushort ll,
+    uint offset,
+    uint N,
+    GPUconstexprref() const Delta2* neighbors,
+    GPUsharedref() const ChargePos* posBcast,
+    GPUsharedref() uchar* buf)
+  {
+    if (ll >= wgSize) {
+      return;
+    }
 
-    uint writeTo = N * ll + i;
-    buf[writeTo] = IS_PEAK(chargeMap, readFrom.gpad + dp, readFrom.time + dt);
+    ChargePos readFrom = posBcast[ll];
+
+    for (unsigned int i = 0; i < N; i++) {
+      Delta2 d = neighbors[i + offset];
+      Delta dp = d.x;
+      Delta dt = d.y;
+
+      uint writeTo = N * ll + i;
+      buf[writeTo] = IS_PEAK(chargeMap, readFrom.gpad + dp, readFrom.time + dt);
+    }
+
+    GPUbarrier();
   }
-
-  GPUbarrier();
-}
+};
 
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

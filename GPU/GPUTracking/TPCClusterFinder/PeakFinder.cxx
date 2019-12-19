@@ -41,7 +41,7 @@ GPUd() bool PeakFinder::isPeakScratchPad(
   bool belowThreshold = (digit->charge <= QMAX_CUTOFF);
 
   ushort lookForPeaks;
-  ushort partId = partition(
+  ushort partId = CfUtils::partition(
     smem,
     ll,
     belowThreshold,
@@ -53,7 +53,7 @@ GPUd() bool PeakFinder::isPeakScratchPad(
   }
   GPUbarrier();
 
-  fillScratchPad_PackedCharge(
+  CfUtils::fillScratchPad_PackedCharge(
     chargeMap,
     lookForPeaks,
     SCRATCH_PAD_WORK_GROUP_SIZE,
