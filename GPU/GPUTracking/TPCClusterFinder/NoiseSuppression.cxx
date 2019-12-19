@@ -104,7 +104,7 @@ GPUd() void NoiseSuppression::checkForMinima(
   ulong* minimas,
   ulong* bigger)
 {
-  float r = unpackCharge(other);
+  float r = other.unpack();
 
   ulong isMinima = (q - r > epsilon);
   *minimas |= (isMinima << pos);

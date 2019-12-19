@@ -34,25 +34,25 @@ using namespace GPUCA_NAMESPACE::gpu;
 template <>
 GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::fillChargeMap>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& clusterer)
 {
-  ChargeMapFiller::fillChargeMapImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPdigits, clusterer.mPchargeMap, clusterer.mPmemory->nDigits);
+  ChargeMapFiller::fillChargeMapImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPdigits, reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap), clusterer.mPmemory->nDigits);
 }
 
 template <>
 GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::resetMaps>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& clusterer)
 {
-  ChargeMapFiller::resetMapsImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPdigits, clusterer.mPchargeMap, clusterer.mPpeakMap);
+  ChargeMapFiller::resetMapsImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPdigits, reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap), clusterer.mPpeakMap);
 }
 
 template <>
 GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::findPeaks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& clusterer)
 {
-  PeakFinder::findPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPchargeMap, clusterer.mPdigits, clusterer.mPmemory->nDigits, clusterer.mPisPeak, clusterer.mPpeakMap);
+  PeakFinder::findPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap), clusterer.mPdigits, clusterer.mPmemory->nDigits, clusterer.mPisPeak, clusterer.mPpeakMap);
 }
 
 template <>
 GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::noiseSuppression>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& clusterer)
 {
-  NoiseSuppression::noiseSuppressionImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPchargeMap, clusterer.mPpeakMap, clusterer.mPpeaks, clusterer.mPmemory->nPeaks, clusterer.mPisPeak);
+  NoiseSuppression::noiseSuppressionImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap), clusterer.mPpeakMap, clusterer.mPpeaks, clusterer.mPmemory->nPeaks, clusterer.mPisPeak);
 }
 
 template <>
@@ -64,13 +64,13 @@ GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::updat
 template <>
 GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::countPeaks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& clusterer)
 {
-  Deconvolution::countPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPpeakMap, clusterer.mPchargeMap, clusterer.mPdigits, clusterer.mPmemory->nDigits);
+  Deconvolution::countPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPpeakMap, reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap), clusterer.mPdigits, clusterer.mPmemory->nDigits);
 }
 
 template <>
 GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::computeClusters>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& clusterer)
 {
-  Clusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPchargeMap, clusterer.mPfilteredPeaks, clusterer.mPmemory->nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterer.mPclusterByRow);
+  Clusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap), clusterer.mPfilteredPeaks, clusterer.mPmemory->nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterer.mPclusterByRow);
 }
 
 template <>
