@@ -234,8 +234,8 @@ DECLARE_SOA_COLUMN(CovYZ, covYZ, float, "fCovYZ");
 DECLARE_SOA_COLUMN(CovZZ, covZZ, float, "fCovZZ");
 DECLARE_SOA_COLUMN(Chi2, chi2, float, "fChi2");
 DECLARE_SOA_COLUMN(NumContrib, numContrib, uint32_t, "fN");
-DECLARE_SOA_COLUMN(EventTime, eventTime, double, "fEventTime");
-DECLARE_SOA_COLUMN(EventTimeRes, eventTimeRes, double, "fEventTimeRes");
+DECLARE_SOA_COLUMN(EventTime, eventTime, float, "fEventTime");
+DECLARE_SOA_COLUMN(EventTimeRes, eventTimeRes, float, "fEventTimeRes");
 DECLARE_SOA_COLUMN(EventTimeMask, eventTimeMask, uint8_t, "fEventTimeMask");
 } // namespace collision
 
