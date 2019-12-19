@@ -35,7 +35,7 @@ GPUd() void Clusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlo
   // These dummy items also compute the last cluster but discard the result.
   deprecated::Digit myDigit = digits[CAMath::Min(idx, clusternum - 1)];
 
-  GlobalPad gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+  GlobalPad gpad = Array2D::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
   ClusterAccumulator pc;
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
