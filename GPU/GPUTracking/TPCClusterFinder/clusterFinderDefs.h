@@ -28,10 +28,11 @@ typedef unsigned long ulong;
 #define QTOT_CUTOFF 0
 #define NOISE_SUPPRESSION_MINIMA_EPSILON 10
 #define SCRATCH_PAD_WORK_GROUP_SIZE GPUCA_THREAD_COUNT_CLUSTERER
-/* #define BUILD_CLUSTER_NAIVE */
-/* #ifdef GPUCA_GPUCODE */
-/* #define BUILD_CLUSTER_SCRATCH_PAD */
-/* #endif */
+#ifdef GPUCA_GPUCODE
+#define BUILD_CLUSTER_SCRATCH_PAD
+#else
+#define BUILD_CLUSTER_NAIVE
+#endif
 #define CHARGEMAP_TIME_MAJOR_LAYOUT
 #endif
 

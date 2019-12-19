@@ -138,7 +138,7 @@ GPUd() void NoiseSuppression::findPeaksScratchPad(
   ulong* peaks)
 {
   for (int i = 0; i < N; i++, pos++) {
-    uchar p = GET_IS_PEAK(buf[N * ll + i]);
+    ulong p = GET_IS_PEAK(buf[N * ll + i]);
 
     *peaks |= (p << pos);
   }
