@@ -227,7 +227,11 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
   posBcast[ll] = (ChargePos){gpad, time};
   GPUbarrier();
 
+#if defined(GPUCA_GPUCODE)
   ushort wgSizeHalf = SCRATCH_PAD_WORK_GROUP_SIZE / 2;
+#else
+  ushort wgSizeHalf = 1;
+#endif
   bool inGroup1 = ll < wgSizeHalf;
   ushort llhalf = (inGroup1) ? ll : (ll - wgSizeHalf);
 
@@ -236,8 +240,8 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
   *peaks = 0;
 
   /**************************************
-     * Look for minima
-     **************************************/
+   * Look for minima
+   **************************************/
 
   CfUtils::fillScratchPad_PackedCharge(
     chargeMap,
@@ -306,6 +310,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
       bigger);
   }
 
+#if defined(GPUCA_GPUCODE)
   CfUtils::fillScratchPad_PackedCharge(
     chargeMap,
     wgSizeHalf,
@@ -351,6 +356,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
       minimas,
       bigger);
   }
+#endif
 
   GPUsharedref() uchar* bufp = (GPUsharedref() uchar*)buf;
 
