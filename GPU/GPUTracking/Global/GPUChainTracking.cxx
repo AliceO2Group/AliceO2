@@ -805,10 +805,7 @@ void GPUChainTracking::RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clust
       exit(1);
     }
 
-    /* runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), lane, RecoStep::TPCClusterFinding}, krnlRunRangeNone, {}, clustererShadow.mPbuf, clusterer.mBufSize * nSteps * sizeof(clusterer.mPbuf[0])); // TODO: Is it needed to clear the memory here? */
-    runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), lane, RecoStep::TPCClusterFinding}, krnlRunRangeNone, {}, clustererShadow.mPbuf, clusterer.mBufSize * clusterer.getNSteps(clusterer.mPmemory->nDigits) * sizeof(clusterer.mPbuf[0])); // TODO: Is it needed to clear the memory here?
     size_t tmpCount = count;
-    /* GPUInfo("compaction Workgroup size = %d", clusterer.mScanWorkGroupSize); */
     if (nSteps > 1) {
       for (unsigned int i = 1; i < nSteps; i++) {
         counts.push_back(tmpCount);
@@ -977,6 +974,7 @@ int GPUChainTracking::RunTPCClusterizer()
         tmp->nClusters[iSlice][j] = clusterer.mPclusterInRow[j];
         pos += clusterer.mPclusterInRow[j];
       }
+      runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::resetMaps>(GetGrid(clusterer.mPmemory->nDigits, ClustererThreadCount(), lane), {iSlice}, {});
     }
   }
 
