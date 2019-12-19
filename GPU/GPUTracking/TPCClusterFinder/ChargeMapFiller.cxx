@@ -29,7 +29,7 @@ GPUd() void ChargeMapFiller::fillChargeMapImpl(int nBlocks, int nThreads, int iB
   }
   Digit myDigit = digits[idx];
 
-  GlobalPad gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+  GlobalPad gpad = Array2D::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
   CHARGE(chargeMap, gpad, myDigit.time) = PackedCharge(myDigit.charge, false, false);
 }
@@ -42,7 +42,7 @@ GPUd() void ChargeMapFiller::resetMapsImpl(int nBlocks, int nThreads, int iBlock
   size_t idx = get_global_id(0);
   Digit myDigit = digits[idx];
 
-  GlobalPad gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+  GlobalPad gpad = Array2D::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
   CHARGE(chargeMap, gpad, myDigit.time) = PackedCharge(0);
   IS_PEAK(isPeakMap, gpad, myDigit.time) = 0;

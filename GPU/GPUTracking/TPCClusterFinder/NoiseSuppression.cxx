@@ -30,7 +30,7 @@ GPUd() void NoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, in
 
   Digit myDigit = peaks[CAMath::Min(idx, (size_t)(peaknum - 1))];
 
-  GlobalPad gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+  GlobalPad gpad = Array2D::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
   ulong minimas, bigger, peaksAround;
 
@@ -88,7 +88,7 @@ GPUd() void NoiseSuppression::updatePeaksImpl(int nBlocks, int nThreads, int iBl
   size_t idx = get_global_id(0);
 
   Digit myDigit = peaks[idx];
-  GlobalPad gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+  GlobalPad gpad = Array2D::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
   uchar peak = isPeak[idx];
 

@@ -33,7 +33,7 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
 
   Digit myDigit = digits[idx];
 
-  GlobalPad gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+  GlobalPad gpad = Array2D::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
   bool iamPeak = GET_IS_PEAK(IS_PEAK(peakMap, gpad, myDigit.time));
 
   char peakCount = (iamPeak) ? 1 : 0;

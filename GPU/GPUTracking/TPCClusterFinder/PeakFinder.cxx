@@ -35,7 +35,7 @@ GPUd() bool PeakFinder::isPeakScratchPad(
   const Row row = digit->row;
   const Pad pad = digit->pad;
 
-  const GlobalPad gpad = tpcGlobalPadIdx(row, pad);
+  const GlobalPad gpad = Array2D::tpcGlobalPadIdx(row, pad);
   ChargePos pos = {gpad, time};
 
   bool belowThreshold = (digit->charge <= QMAX_CUTOFF);
@@ -90,7 +90,7 @@ GPUd() bool PeakFinder::isPeak(
   const Row row = digit->row;
   const Pad pad = digit->pad;
 
-  const GlobalPad gpad = tpcGlobalPadIdx(row, pad);
+  const GlobalPad gpad = Array2D::tpcGlobalPadIdx(row, pad);
 
   bool peak = true;
 
@@ -174,7 +174,7 @@ GPUd() void PeakFinder::findPeaksImpl(int nBlocks, int nThreads, int iBlock, int
 
   isPeakPredicate[idx] = peak;
 
-  const GlobalPad gpad = tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+  const GlobalPad gpad = Array2D::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
   IS_PEAK(peakMap, gpad, myDigit.time) =
     ((myDigit.charge > CHARGE_THRESHOLD) << 1) | peak;
