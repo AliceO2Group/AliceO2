@@ -239,7 +239,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
      * Look for minima
      **************************************/
 
-  fillScratchPad_PackedCharge(
+  CfUtils::fillScratchPad_PackedCharge(
     chargeMap,
     SCRATCH_PAD_WORK_GROUP_SIZE,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -260,7 +260,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
     minimas,
     bigger);
 
-  fillScratchPad_PackedCharge(
+  CfUtils::fillScratchPad_PackedCharge(
     chargeMap,
     wgSizeHalf,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -283,7 +283,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
       bigger);
   }
 
-  fillScratchPad_PackedCharge(
+  CfUtils::fillScratchPad_PackedCharge(
     chargeMap,
     wgSizeHalf,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -306,7 +306,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
       bigger);
   }
 
-  fillScratchPad_PackedCharge(
+  CfUtils::fillScratchPad_PackedCharge(
     chargeMap,
     wgSizeHalf,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -329,7 +329,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
       bigger);
   }
 
-  fillScratchPad_PackedCharge(
+  CfUtils::fillScratchPad_PackedCharge(
     chargeMap,
     wgSizeHalf,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -358,7 +358,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
      * Look for peaks
      **************************************/
 
-  fillScratchPad_uchar(
+  CfUtils::fillScratchPad_uchar(
     peakMap,
     SCRATCH_PAD_WORK_GROUP_SIZE,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -376,7 +376,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
     0,
     peaks);
 
-  fillScratchPad_uchar(
+  CfUtils::fillScratchPad_uchar(
     peakMap,
     SCRATCH_PAD_WORK_GROUP_SIZE,
     SCRATCH_PAD_WORK_GROUP_SIZE,
