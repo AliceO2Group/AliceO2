@@ -124,7 +124,7 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
 
   peakCount = (peakCount == 0) ? 1 : peakCount;
 
-  PackedCharge p = packCharge(myDigit.charge / peakCount, has3x3, split);
+  PackedCharge p(myDigit.charge / peakCount, has3x3, split);
 
   CHARGE(chargeMap, gpad, myDigit.time) = p;
 }

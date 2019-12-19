@@ -73,11 +73,11 @@ GPUd() Charge updateClusterInner(
   Delta dp,
   Delta dt)
 {
-  Charge q = unpackCharge(charge);
+  Charge q = charge.unpack();
 
   collectCharge(cluster, q, dp, dt);
 
-  bool split = wasSplit(charge);
+  bool split = charge.isSplit();
   cluster->splitInTime += (dt != 0 && split);
   cluster->splitInPad += (dp != 0 && split);
 
@@ -90,10 +90,10 @@ GPUd() void updateClusterOuter(
   Delta dp,
   Delta dt)
 {
-  Charge q = unpackCharge(charge);
+  Charge q = charge.unpack();
 
-  bool split = wasSplit(charge);
-  bool has3x3 = has3x3Peak(charge);
+  bool split = charge.isSplit();
+  bool has3x3 = charge.has3x3Peak();
 
   collectCharge(cluster, (has3x3) ? 0.f : q, dp, dt);
 

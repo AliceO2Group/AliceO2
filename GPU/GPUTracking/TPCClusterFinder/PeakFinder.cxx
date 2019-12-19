@@ -70,7 +70,7 @@ GPUd() bool PeakFinder::isPeakScratchPad(
 
   bool peak = true;
   for (ushort i = 0; i < N; i++) {
-    Charge q = unpackCharge(buf[N * partId + i]);
+    Charge q = buf[N * partId + i].unpack();
     peak &= (digit->charge > q) || (CfConsts::InnerTestEq[i] && digit->charge == q);
   }
 
@@ -94,11 +94,11 @@ GPUd() bool PeakFinder::isPeak(
 
   bool peak = true;
 
-#define CMP_NEIGHBOR(dp, dt, cmpOp)                                 \
-  do {                                                              \
-    const PackedCharge p = CHARGE(chargeMap, gpad + dp, time + dt); \
-    const Charge otherCharge = unpackCharge(p);                     \
-    peak &= (otherCharge cmpOp myCharge);                           \
+#define CMP_NEIGHBOR(dp, dt, cmpOp)                           \
+  do {                                                        \
+    PackedCharge p = CHARGE(chargeMap, gpad + dp, time + dt); \
+    const Charge otherCharge = p.unpack();                    \
+    peak &= (otherCharge cmpOp myCharge);                     \
   } while (false)
 
 #define CMP_LT CMP_NEIGHBOR(-1, -1, <=)

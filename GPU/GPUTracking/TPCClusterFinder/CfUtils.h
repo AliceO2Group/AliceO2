@@ -69,6 +69,7 @@ GPUdi() ushort partition(GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem, u
     GPUsharedref() const ChargePos* posBcast,                                       \
     GPUsharedref() type* buf)                                                       \
   {                                                                                 \
+    GPUbarrier();                                                                   \
     ushort x = ll % N;                                                              \
     ushort y = ll / N;                                                              \
     Delta2 d = neighbors[x + offset];                                               \
@@ -97,6 +98,7 @@ GPUdi() ushort partition(GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem, u
     GPUsharedref() const uchar* aboveThreshold,                                      \
     GPUsharedref() type* buf)                                                        \
   {                                                                                  \
+    GPUbarrier();                                                                    \
     ushort y = ll / N;                                                               \
     ushort x = ll % N;                                                               \
     Delta2 d = neighbors[x + offset];                                                \
@@ -119,9 +121,9 @@ GPUdi() ushort partition(GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem, u
 
 DECL_FILL_SCRATCH_PAD(PackedCharge, CHARGE);
 DECL_FILL_SCRATCH_PAD(uchar, IS_PEAK);
-DECL_FILL_SCRATCH_PAD_COND(PackedCharge, CHARGE, innerAboveThreshold, Cond, 0);
+DECL_FILL_SCRATCH_PAD_COND(PackedCharge, CHARGE, innerAboveThreshold, Cond, PackedCharge(0));
 DECL_FILL_SCRATCH_PAD_COND(uchar, IS_PEAK, innerAboveThreshold, Cond, 0);
-DECL_FILL_SCRATCH_PAD_COND(PackedCharge, CHARGE, innerAboveThresholdInv, CondInv, 0);
+DECL_FILL_SCRATCH_PAD_COND(PackedCharge, CHARGE, innerAboveThresholdInv, CondInv, PackedCharge(0));
 DECL_FILL_SCRATCH_PAD_COND(uchar, IS_PEAK, innerAboveThresholdInv, CondInv, 0);
 
 GPUdi() void fillScratchPadNaive(
