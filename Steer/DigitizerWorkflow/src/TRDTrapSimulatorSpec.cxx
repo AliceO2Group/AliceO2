@@ -114,7 +114,6 @@ class TRDDPLTrapSimulatorTask{
               // now loop over the digits for a given trap.
               // send to trapsimulator 
               // repeat 
-              //mTrapSimulator.init();
               ArrayADC_t incomingdigits;
               // std::array<unsigned short,30> mcmdigits; //TODO come back and pull timebins from somehwere.
               //
@@ -155,7 +154,7 @@ class TRDDPLTrapSimulatorTask{
                       if(oldrob==-1) oldrob=rob;
                       if(olddetector==-1) olddetector=detector;
                       
-                      incomingdigits=digititerator->getADC();
+                      mcmadcs.push_back(digititerator->getADC());
                       //determine which adc for this mcm we are populating.
                       if(olddetector!=detector || oldrob!= rob || oldmcm !=mcm){
                           //fireup Trapsim.
@@ -166,14 +165,25 @@ class TRDDPLTrapSimulatorTask{
                           int adcoffset = oldpad-firstadc;
                           LOG(info) << "------- heading off to TrapSim for " << " Det:rob:mcm:pad:row ::  " << olddetector <<":" << oldrob << ":" <<oldmcm << ":" << oldrow << ":"<< oldpad 
                                     << " == " << padrow << ":" << firstadc << ":" << lastadc << " adcoffset : " << adcoffset;
-                          ///LOG(info) << "------- heading off to TrapSim for " << " Det:rob:mcm:pad:row ::  " << olddetector <<":" << oldrob << ":" <<oldmcm;
                          // mTrapSimulator.setData(incomingdigits);
+                         //
+                         //if (iadc < 0 || iadc > mgkNadcMcm)
+                         //    return -100;
+                         //      int mcmcol = imcm % mgkNmcmRobInCol + getRobSide(irob) * mgkNmcmRobInCol; // MCM column number on ROC [0..7]
+                         //        int padcol = mcmcol * mgkNcolMcm + mgkNcolMcm + 1 - iadc;
+                         //          if (padcol < 0 || padcol >= mgkNcol)
+                         //              return -1; // this is commented because of reason above OK
+                         //
+                         //                return padcol;
+                         // why is this returning -1 for firstadc, sometimes.
+                         //
+                         //
                       
                       // copy adc data from digits to local array and then pass into TrapSimulator
                       // keep copying until we change mcm.
                       // On change of mcm, take what we have send to simulator.
                       // clean up temp array, and populate it with what we have now and keep going.
-                        // mTrapSimulator.init(detector,rob,mcm);
+                        mTrapSimulator.init(detector,rob,mcm);
                         // mTrapSimulator.setData(detector,digit.getADC());
                          //for(int i=i;i<digits.size();i++){
                           //   int mcmindex= FeeParam::instance()->getMCMfromPad(digits[i].getRow(), digits[i].getPad());
@@ -182,19 +192,19 @@ class TRDDPLTrapSimulatorTask{
                //       LOG(info) << "MCM: " << i <<" :: " << mcmindex << " == "<< digits[i].getDetector() <<"::"<<digits[i].getRow()<<"::"<< digits[i].getPad();
                       
                       
-                      
-                      
+                              
+                      mcmadcs.clear();
                       }
-                      else LOG(info) << "-------- Time: " << digittime << " det:rob:mcm:pad:row:: " << olddetector <<":" << oldrob << ":" <<oldmcm ;
+                      else {
+                          //we are still on the same mcm, so add the adc timebins to the mcmadcs array at the back (it should be ordered coming in)
+                          LOG(info) << "-------- Time: " << digittime << " det:rob:mcm:pad:row:: " << olddetector <<":" << oldrob << ":" <<oldmcm ;
+                      }
                       LOG(info) << "Time: " << digittime << " det:rob:mcm:pad:row:: " << detector <<":" << rob << ":" <<mcm ;
                       olddetector=detector;
                       oldrob=rob;
                       oldmcm=mcm;
                       oldrow=row;
                       oldpad=pad;
-
-
-                       
               }
                
                LOG(info) << "and we are in the run method of TRDDPLTrapSimulatorTask \\o/ ";
