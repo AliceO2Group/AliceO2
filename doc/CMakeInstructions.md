@@ -1,4 +1,8 @@
-\\page refdocCMakeInstructions CMake Instructions
+<!-- doxy
+\page refdocCMakeInstructions CMake Instructions
+
+\cond DOXYGEN_IGNORE
+/doxy -->
 
 <!-- vim-markdown-toc GFM -->
 
@@ -18,6 +22,10 @@
     - [Speeding up ctest execution](#speeding-up-ctest-execution)
 
 <!-- vim-markdown-toc -->
+
+<!-- doxy
+\endcond
+/doxy -->
 
 # CMake and CTest tips for AliceO2
 

@@ -1,4 +1,6 @@
+<!-- doxy
 \page refdocDetectorSimulation Detector Simulation
+/doxy -->
 
 # Detector simulation documentation
 

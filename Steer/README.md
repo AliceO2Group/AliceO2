@@ -1,4 +1,6 @@
+<!-- doxy
 \page refSteer Module 'Steer'
+/doxy -->
 
 # ALICEO2 Steer
 
@@ -11,6 +13,8 @@ a) quick prototyping of ideas without having to require immediate changes in Fai
 b) adaptations to classes because some things are done differently than in FairRoot
    (MC truth handling, parameter handling etc)
 
+<!-- doxy
 This module contains the following submodules:
 
-\subpage refSteerDigitizerWorkflow
+* \subpage refSteerDigitizerWorkflow
+/doxy -->

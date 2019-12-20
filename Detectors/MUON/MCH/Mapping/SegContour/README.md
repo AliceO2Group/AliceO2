@@ -1,4 +1,6 @@
+<!-- doxy
 \page refMUONMCHMappingSegContour MCH Mapping SegContour
+/doxy -->
 
 # Segmentation contours
 
