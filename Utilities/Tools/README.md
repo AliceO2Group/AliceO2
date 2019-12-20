@@ -1,4 +1,6 @@
+<!-- doxy
 \page refUtilitiesTools Tools
+/doxy -->
 
 # Using the Code checker / fixer
 

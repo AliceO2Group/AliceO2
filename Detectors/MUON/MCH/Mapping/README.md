@@ -1,4 +1,6 @@
+<!-- doxy
 \page refMUONMCHMapping MCH Mapping
+/doxy -->
 
 # MCH Mapping
 

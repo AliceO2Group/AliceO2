@@ -1,4 +1,6 @@
+<!-- doxy
 \page refUtilitiesO2Device O2Device
+/doxy -->
 
 # O2Device
 

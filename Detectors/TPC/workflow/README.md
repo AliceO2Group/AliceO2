@@ -1,4 +1,6 @@
+<!-- doxy
 \page refTPCworkflow TPC workflow
+/doxy -->
 
 # DPL workflows for the TPC
 

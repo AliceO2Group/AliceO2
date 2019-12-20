@@ -1,10 +1,17 @@
+<!-- doxy
 \page refdoc Documentation pages
+/doxy -->
 
-This module contains the following documentation pages
+# Documentation pages
 
-- \subpage refdocCLion
-- \subpage refdocCMakeInstructions
-- \subpage refdocCodeOrganization
-- \subpage refdocDetectorSimulation
-- \subpage refdocDoxygenInstructions
-- \subpage refdocManPages
+This module contains the documentation pages.
+
+<!-- doxy
+* \subpage refdocCLion
+* \subpage refdocCMakeInstructions
+* \subpage refdocModernCMakeMigration
+* \subpage refdocCodeOrganization
+* \subpage refdocDetectorSimulation
+* \subpage refdocDoxygenInstructions
+* \subpage refdocManPages
+/doxy -->

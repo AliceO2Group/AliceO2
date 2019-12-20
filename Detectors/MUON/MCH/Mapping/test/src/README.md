@@ -1,4 +1,6 @@
-\page refMUONMCHMappingtest  MCH Mapping test
+<!-- doxy
+\page refMUONMCHMappingtest MCH Mapping test
+/doxy -->
 
 By default the tests are running without any input.
 

@@ -1,4 +1,6 @@
+<!-- doxy
 \page refdocCodeOrganization Code Organization
+/doxy -->
 
 # Code organisation
 

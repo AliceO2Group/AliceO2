@@ -1,4 +1,6 @@
+<!-- doxy
 \page refMUONMIDWorkflow MID Workflow
+/doxy -->
 
 # Running MID workflow
 

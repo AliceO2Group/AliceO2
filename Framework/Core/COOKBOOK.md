@@ -1,4 +1,6 @@
+<!-- doxy
 \page refFrameworkCoreCOOKBOOK Core COOKBOOK
+/doxy -->
 
 # Data Processing Layer Cookbook
 

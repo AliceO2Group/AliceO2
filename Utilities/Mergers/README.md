@@ -1,3 +1,7 @@
+<!-- doxy
+\page refUtilitiesMergers Mergers
+/doxy -->
+
 # O2 Mergers (experimental)
 
 Mergers are DPL devices able to merge ROOT objects produced in parallel. Topologies of mergers can be created using the

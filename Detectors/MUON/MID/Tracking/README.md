@@ -1,4 +1,6 @@
+<!-- doxy
 \page refMUONMIDTracking MID Tracking
+/doxy -->
 
 # Running MID Tracking
 

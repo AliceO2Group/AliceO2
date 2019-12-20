@@ -1,4 +1,6 @@
+<!-- doxy
 \page refMUONMCHMappingImpl3 MCH Mapping Impl3
+/doxy -->
 
 # MCH Mapping Implementation
 
