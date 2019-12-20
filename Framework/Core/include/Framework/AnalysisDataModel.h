@@ -222,20 +222,20 @@ namespace collision
 {
 // DECLARE_SOA_COLUMN(TimeframeId, timeframeId, uint64_t, "timeframeID");
 DECLARE_SOA_COLUMN(RunNumber, runNumber, int, "fRunNumber");
-DECLARE_SOA_COLUMN(VtxId, vtxId, int, "fEventId");
-DECLARE_SOA_COLUMN(PosX, posX, double, "fX");
-DECLARE_SOA_COLUMN(PosY, posY, double, "fY");
-DECLARE_SOA_COLUMN(PosZ, posZ, double, "fZ");
-DECLARE_SOA_COLUMN(CovXX, covXX, double, "fCovXX");
-DECLARE_SOA_COLUMN(CovXY, covXY, double, "fcovXY");
-DECLARE_SOA_COLUMN(CovXZ, covXZ, double, "fCovXZ");
-DECLARE_SOA_COLUMN(CovYY, covYY, double, "fCovYY");
-DECLARE_SOA_COLUMN(CovYZ, covYZ, double, "fCovYZ");
-DECLARE_SOA_COLUMN(CovZZ, covZZ, double, "fCovZZ");
-DECLARE_SOA_COLUMN(Chi2, chi2, double, "fChi2");
+DECLARE_SOA_COLUMN(VtxId, vtxId, uint64_t, "fEventId");
+DECLARE_SOA_COLUMN(PosX, posX, float, "fX");
+DECLARE_SOA_COLUMN(PosY, posY, float, "fY");
+DECLARE_SOA_COLUMN(PosZ, posZ, float, "fZ");
+DECLARE_SOA_COLUMN(CovXX, covXX, float, "fCovXX");
+DECLARE_SOA_COLUMN(CovXY, covXY, float, "fCovXY");
+DECLARE_SOA_COLUMN(CovXZ, covXZ, float, "fCovXZ");
+DECLARE_SOA_COLUMN(CovYY, covYY, float, "fCovYY");
+DECLARE_SOA_COLUMN(CovYZ, covYZ, float, "fCovYZ");
+DECLARE_SOA_COLUMN(CovZZ, covZZ, float, "fCovZZ");
+DECLARE_SOA_COLUMN(Chi2, chi2, float, "fChi2");
 DECLARE_SOA_COLUMN(NumContrib, numContrib, uint32_t, "fN");
-DECLARE_SOA_COLUMN(EventTime, eventTime, double, "fEventTime");
-DECLARE_SOA_COLUMN(EventTimeRes, eventTimeRes, double, "fEventTimeRes");
+DECLARE_SOA_COLUMN(EventTime, eventTime, float, "fEventTime");
+DECLARE_SOA_COLUMN(EventTimeRes, eventTimeRes, float, "fEventTimeRes");
 DECLARE_SOA_COLUMN(EventTimeMask, eventTimeMask, uint8_t, "fEventTimeMask");
 } // namespace collision
 

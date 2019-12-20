@@ -298,6 +298,12 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       }
 
       /// FIXME: Substitute here the actual data you want to convert for the AODReader
+      if (readMask & AODTypeMask::Collisions) {
+        std::unique_ptr<TTreeReader> reader = std::make_unique<TTreeReader>("O2events", infile.get());
+        auto& collisionBuilder = outputs.make<TableBuilder>(Output{"AOD", "COLLISION"});
+        RootTableBuilderHelpers::convertASoA<o2::aod::Collisions>(collisionBuilder, *reader);
+      }
+
       if (readMask & AODTypeMask::Tracks) {
         std::unique_ptr<TTreeReader> reader = std::make_unique<TTreeReader>("O2tracks", infile.get());
         auto& trackParBuilder = outputs.make<TableBuilder>(Output{"AOD", "TRACKPAR"});
@@ -323,13 +329,13 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       }
 
       if (readMask & AODTypeMask::Muon) {
-        std::unique_ptr<TTreeReader> muReader = std::make_unique<TTreeReader>("O2mu", infile.get());
+        std::unique_ptr<TTreeReader> muReader = std::make_unique<TTreeReader>("O2muon", infile.get());
         auto& muBuilder = outputs.make<TableBuilder>(Output{"AOD", "MUON"});
         RootTableBuilderHelpers::convertASoA<o2::aod::Muons>(muBuilder, *muReader);
       }
 
       if (readMask & AODTypeMask::VZero) {
-        std::unique_ptr<TTreeReader> vzReader = std::make_unique<TTreeReader>("O2vz", infile.get());
+        std::unique_ptr<TTreeReader> vzReader = std::make_unique<TTreeReader>("O2vzero", infile.get());
         auto& vzBuilder = outputs.make<TableBuilder>(Output{"AOD", "VZERO"});
         RootTableBuilderHelpers::convertASoA<o2::aod::Muons>(vzBuilder, *vzReader);
       }
