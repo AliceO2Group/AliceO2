@@ -12,34 +12,40 @@ The references between the Doxygen pages and subpages are achieved using a Doxyg
 
 *When adding a new documentation page you must always add a `\subpage` declaration in an upper category page otherwise your page will pollute the "global" references in the left tab menu.*
 
+See the examples of `README.md` files both at the top and a submodule levels below, or follow <a href="https://github.com/AliceO2Group/AliceO2/blob/dev/doc/DoxygenInstructions.md"> this link </a> if you are in Doxygen documentation.
 
-#### An example of a `README` file in the O2 directories at the top level.
+<!--  /// \cond EXCLUDE_FOR_DOXYGEN -->
 
-    <!-- doxy
-    \page refModulename Module 'Modulename'
-    /doxy -->
+#### An example of a `README.md` file in the O2 directories at the top level.
 
-    # The module title
+```
+<!-- doxy
+\page refModulename Module 'Modulename'
+/doxy -->
 
-    The paragraph(s) with the module description.
+# The module title
 
-    <!-- doxy
-    This module contains the following submodules:
-    
-    * \subpage refModulenameSubmodulename1
-    * \subpage refModulenameSubmodulename2
-    * \subpage refModulenameSubmodulename3
-    /doxy -->
+The paragraph(s) with the module description.
 
+<!-- doxy
+This module contains the following submodules:
 
-#### An example of a `README` file at a submodule level:
+* \subpage refModulenameSubmodulename1
+* \subpage refModulenameSubmodulename2
+* \subpage refModulenameSubmodulename3
+/doxy -->
+```
+#### An example of a `README.md` file at a submodule level:
 
-    <!-- doxy
-    \page refModulenameSubmodulename1 Submodulename1
-    /doxy -->
+```
+!-- doxy
+\page refModulenameSubmodulename1 Submodulename1
+/doxy -->
 
-    # The submodule1 title
+# The submodule1 title
 
-    The paragraph(s) with the submodule description.
+The paragraph(s) with the submodule description.
+```
+<!--  /// \endcond  -->
 
 The `Modulename` and `Submodulename` in the `page` and `subpage` tags must be identical (including case match) with the directories name. 
