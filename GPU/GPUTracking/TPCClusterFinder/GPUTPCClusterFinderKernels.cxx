@@ -28,7 +28,6 @@
 #include "Deconvolution.h"
 #include "StreamCompaction.h"
 
-
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <>

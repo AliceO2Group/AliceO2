@@ -19,10 +19,16 @@
 
 // These are some dummies of O2 classes needed by AliGPU, to be used when O2 header unavailable
 
-namespace o2::gpu
+namespace o2
+{
+namespace gpu
+{
+namespace deprecated
 {
 class PackedDigit;
-} 
+}
+} // namespace gpu
+} // namespace o2
 
 namespace o2
 {

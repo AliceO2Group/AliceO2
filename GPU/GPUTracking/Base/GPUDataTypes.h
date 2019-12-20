@@ -66,9 +66,8 @@ namespace deprecated
 {
 struct PackedDigit;
 }
-}
-}
-
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 namespace GPUCA_NAMESPACE
 {
