@@ -77,7 +77,7 @@ GENERATE_TODOLIST      = YES
 GENERATE_TESTLIST      = YES
 GENERATE_BUGLIST       = YES
 GENERATE_DEPRECATEDLIST= YES
-ENABLED_SECTIONS       =
+ENABLED_SECTIONS       = YES
 MAX_INITIALIZER_LINES  = 30
 SHOW_USED_FILES        = YES
 SHOW_FILES             = YES
@@ -98,7 +98,24 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # Configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  = "@CMAKE_SOURCE_DIR@"
+INPUT                  = @CMAKE_SOURCE_DIR@/README.md \
+                         @CMAKE_SOURCE_DIR@/doc \
+                         @CMAKE_SOURCE_DIR@/Algorithm \
+                         @CMAKE_SOURCE_DIR@/CCDB \
+                         @CMAKE_SOURCE_DIR@/Common \
+                         @CMAKE_SOURCE_DIR@/DataFormats \
+                         @CMAKE_SOURCE_DIR@/Detectors \
+                         @CMAKE_SOURCE_DIR@/EventVisualisation \
+                         @CMAKE_SOURCE_DIR@/Examples \
+                         @CMAKE_SOURCE_DIR@/Framework \
+                         @CMAKE_SOURCE_DIR@/GPU \
+                         @CMAKE_SOURCE_DIR@/Generators \
+                         @CMAKE_SOURCE_DIR@/Steer \
+                         @CMAKE_SOURCE_DIR@/Testing \
+                         @CMAKE_SOURCE_DIR@/Utilities \
+                         @CMAKE_SOURCE_DIR@/macro \
+                         @CMAKE_SOURCE_DIR@/run \
+                         @CMAKE_SOURCE_DIR@/tests
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = *.cxx *.h *.inl *.md
 RECURSIVE              = YES
