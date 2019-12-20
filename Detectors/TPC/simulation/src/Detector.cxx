@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "TPCSimulation/Detector.h"
+#include "TPCSimulation/DetectorParam.h"
 #include "TPCSimulation/Point.h"
 #include "TPCBase/ParameterGas.h"
 
@@ -102,10 +103,19 @@ void Detector::SetSpecialPhysicsCuts()
 {
   using namespace o2::base; // to have enum values of EProc and ECut available
 
+  const auto& detectorParam = DetectorParam::Instance();
+
   FairRun* fRun = FairRun::Instance();
   if (strcmp(fRun->GetName(), "TGeant3") == 0) {
-    const Float_t cut1 = 1e-5;
+    Float_t cutDefault = 1e-5;
+    Float_t cutDeltaEle = 1e-5;
     const Float_t cutTofmax = 1e10;
+    int klossModel = 1;
+
+    if (detectorParam.SimType == DetectorParam::SimulationType::Krypton) {
+      cutDefault = 1e-6;
+      klossModel = 5;
+    }
 
     // Some cuts implemented in AliRoot
     // \note
@@ -114,16 +124,16 @@ void Detector::SetSpecialPhysicsCuts()
     //    Now cuts are set in both cases, for G3 and G4; Further cuts are only set for TPC medium DriftGas2.
     // \todo discussion needed!!
     // cut settings for DriftGas2
-    SpecialCuts(kDriftGas2, {{ECut::kCUTGAM, cut1},
-                             {ECut::kCUTELE, cut1},
-                             {ECut::kCUTNEU, cut1},
-                             {ECut::kCUTHAD, cut1},
-                             {ECut::kCUTMUO, cut1},
-                             {ECut::kBCUTE, cut1},
-                             {ECut::kBCUTM, cut1},
-                             {ECut::kDCUTE, cut1},
-                             {ECut::kDCUTM, cut1},
-                             {ECut::kPPCUTM, cut1},
+    SpecialCuts(kDriftGas2, {{ECut::kCUTGAM, cutDefault},
+                             {ECut::kCUTELE, cutDefault},
+                             {ECut::kCUTNEU, cutDefault},
+                             {ECut::kCUTHAD, cutDefault},
+                             {ECut::kCUTMUO, cutDefault},
+                             {ECut::kBCUTE, cutDefault},
+                             {ECut::kBCUTM, cutDefault},
+                             {ECut::kDCUTE, cutDeltaEle},
+                             {ECut::kDCUTM, cutDefault},
+                             {ECut::kPPCUTM, cutDefault},
                              {ECut::kTOFMAX, cutTofmax}});
     // process settings for DriftGas2
     SpecialProcesses(kDriftGas2, {{EProc::kPAIR, 1},
@@ -144,7 +154,6 @@ void Detector::SetSpecialPhysicsCuts()
 Bool_t Detector::ProcessHits(FairVolume* vol)
 {
   mStepCounter++;
-  auto& gasParam = ParameterGas::Instance();
 
   /* This method is called from the MC stepping for the sensitive volume only */
   //   LOG(INFO) << "tpc::ProcessHits";
@@ -194,49 +203,61 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   // ===| CONVERT THE ENERGY LOSS TO IONIZATION ELECTRONS |=====================
   //
-  // The energy loss is implemented directly below and taken GEANT3,
-  // ILOSS model 5 (in gfluct.F), which gives
-  // the energy loss in a single collision (NA49 model).
-  // TODO: Add discussion about drawback
 
-  Int_t numberOfElectrons = 0;
-  // I.H. - the type expected in addHit is short
-
-  // ---| Stepsize in cm |---
-  const double stepSize = fMC->TrackStep();
-
-  double betaGamma = momentum.P() / fMC->TrackMass();
-  betaGamma = TMath::Max(betaGamma, 7.e-3); // protection against too small bg
-
-  // ---| number of primary ionisations per cm |---
-  const double primaryElectronsPerCM =
-    gasParam.Nprim * BetheBlochAleph(static_cast<float>(betaGamma), gasParam.BetheBlochParam[0],
-                                     gasParam.BetheBlochParam[1], gasParam.BetheBlochParam[2],
-                                     gasParam.BetheBlochParam[3], gasParam.BetheBlochParam[4]);
-
-  // ---| mean number of collisions and random for this event |---
-  const double meanNcoll = stepSize * trackCharge * trackCharge * primaryElectronsPerCM;
-  const int nColl = static_cast<int>(fMC->GetRandom()->Poisson(meanNcoll));
-
-  // Variables needed to generate random powerlaw distributed energy loss
-  const double alpha_p1 = 1. - gasParam.Exp; // NA49/G3 value
-  const double oneOverAlpha_p1 = 1. / alpha_p1;
+  const auto& gasParam = ParameterGas::Instance();
+  const auto& detectorParam = DetectorParam::Instance();
+  // common gas variables
   const double eMin = gasParam.Ipot;
-  const double eMax = gasParam.Eend;
-  const double kMin = TMath::Power(eMin, alpha_p1);
-  const double kMax = TMath::Power(eMax, alpha_p1);
   const double wIon = gasParam.Wion;
+  int numberOfElectrons = 0;
 
-  for (Int_t n = 0; n < nColl; n++) {
-    // Use GEANT3 / NA49 expression:
-    // P(eDep) ~ k * edep^-gasParam.getExp()
-    // eMin(~I) < eDep < eMax(300 electrons)
-    // k fixed so that Int_Emin^EMax P(Edep) = 1.
-    const double rndm = fMC->GetRandom()->Rndm();
-    const double eDep = TMath::Power((kMax - kMin) * rndm + kMin, oneOverAlpha_p1);
-    int nel_step = static_cast<int>(((eDep - eMin) / wIon) + 1);
-    nel_step = TMath::Min(nel_step, 300); // 300 electrons corresponds to 10 keV
-    numberOfElectrons += nel_step;
+  // distinguish between the different simulation type (Physics, Krypton, ...)
+  // since they need different treatment in the energy loss
+  if (detectorParam.SimType == DetectorParam::SimulationType::Physics) {
+    // The energy loss is implemented directly below and taken GEANT3,
+    // ILOSS model 5 (in gfluct.F), which gives
+    // the energy loss in a single collision (NA49 model).
+    // TODO: Add discussion about drawback
+
+    // I.H. - the type expected in addHit is short
+
+    // ---| Stepsize in cm |---
+    const double stepSize = fMC->TrackStep();
+
+    double betaGamma = momentum.P() / fMC->TrackMass();
+    betaGamma = TMath::Max(betaGamma, 7.e-3); // protection against too small bg
+
+    // ---| number of primary ionisations per cm |---
+    const double primaryElectronsPerCM =
+      gasParam.Nprim * BetheBlochAleph(static_cast<float>(betaGamma), gasParam.BetheBlochParam[0],
+                                       gasParam.BetheBlochParam[1], gasParam.BetheBlochParam[2],
+                                       gasParam.BetheBlochParam[3], gasParam.BetheBlochParam[4]);
+
+    // ---| mean number of collisions and random for this event |---
+    const double meanNcoll = stepSize * trackCharge * trackCharge * primaryElectronsPerCM;
+    const int nColl = static_cast<int>(fMC->GetRandom()->Poisson(meanNcoll));
+
+    // Variables needed to generate random powerlaw distributed energy loss
+    const double alpha_p1 = 1. - gasParam.Exp; // NA49/G3 value
+    const double oneOverAlpha_p1 = 1. / alpha_p1;
+    const double eMax = gasParam.Eend;
+    const double kMin = TMath::Power(eMin, alpha_p1);
+    const double kMax = TMath::Power(eMax, alpha_p1);
+
+    for (Int_t n = 0; n < nColl; n++) {
+      // Use GEANT3 / NA49 expression:
+      // P(eDep) ~ k * edep^-gasParam.getExp()
+      // eMin(~I) < eDep < eMax(300 electrons)
+      // k fixed so that Int_Emin^EMax P(Edep) = 1.
+      const double rndm = fMC->GetRandom()->Rndm();
+      const double eDep = TMath::Power((kMax - kMin) * rndm + kMin, oneOverAlpha_p1);
+      const int nel_step = static_cast<int>(((eDep - eMin) / wIon) + 1);
+      numberOfElectrons += std::min(nel_step, 300); // 300 electrons corresponds to 10 keV
+    }
+  } else if (detectorParam.SimType == DetectorParam::SimulationType::Physics) {
+    const double eDep = fMC->Edep();
+    const int nel_step = static_cast<int>(((eDep - eMin) / wIon) + 1);
+    numberOfElectrons = std::min(nel_step, 300);
   }
 
   // LOG(INFO) << "tpc::AddHit" << FairLogger::endl << "Eloss: "

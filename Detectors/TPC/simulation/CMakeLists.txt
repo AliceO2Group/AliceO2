@@ -11,6 +11,7 @@
 o2_add_library(TPCSimulation
                SOURCES src/CommonMode.cxx
                        src/Detector.cxx
+                       src/DetectorParam.cxx
                        src/DigitMCMetaData.cxx
                        src/DigitContainer.cxx
                        src/DigitGlobalPad.cxx
@@ -29,6 +30,7 @@ o2_add_library(TPCSimulation
 o2_target_root_dictionary(TPCSimulation
                           HEADERS include/TPCSimulation/CommonMode.h
                                   include/TPCSimulation/Detector.h
+                                  include/TPCSimulation/DetectorParam.h
                                   include/TPCSimulation/DigitMCMetaData.h
                                   include/TPCSimulation/DigitContainer.h
                                   include/TPCSimulation/DigitGlobalPad.h

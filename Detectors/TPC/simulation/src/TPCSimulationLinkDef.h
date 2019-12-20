@@ -15,6 +15,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::tpc::Detector + ;
+#pragma link C++ class o2::tpc::DetectorParam + ;
 #pragma link C++ class o2::base::DetImpl < o2::tpc::Detector> + ;
 #pragma link C++ class o2::tpc::DigitMCMetaData + ;
 #pragma link C++ class std::vector < o2::tpc::DigitMCMetaData> + ;
