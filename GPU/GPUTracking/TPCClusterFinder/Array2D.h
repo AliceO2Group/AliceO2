@@ -77,25 +77,25 @@ class Array2D
 
 #if defined(CHARGEMAP_4x4_TILING_LAYOUT)
 
-  return idxTiling4x4(gpad, time);
+    return idxTiling4x4(gpad, time);
 
 #elif defined(CHARGEMAP_4x8_TILING_LAYOUT)
 #define TILE_WIDTH 4
 #define TILE_HEIGHT 8
 
-  time += PADDING_TIME;
+    time += PADDING_TIME;
 
-  const size_t tileW = TILE_WIDTH;
-  const size_t tileH = TILE_HEIGHT;
-  const size_t widthInTiles = (TPC_NUM_OF_PADS + tileW - 1) / tileW;
+    const size_t tileW = TILE_WIDTH;
+    const size_t tileH = TILE_HEIGHT;
+    const size_t widthInTiles = (TPC_NUM_OF_PADS + tileW - 1) / tileW;
 
-  const size_t tilePad = gpad / tileW;
-  const size_t tileTime = time / tileH;
+    const size_t tilePad = gpad / tileW;
+    const size_t tileTime = time / tileH;
 
-  const size_t inTilePad = gpad % tileW;
-  const size_t inTileTime = time % tileH;
+    const size_t inTilePad = gpad % tileW;
+    const size_t inTileTime = time % tileH;
 
-  return (tileTime * widthInTiles + tilePad) * (tileW * tileH) + inTileTime * tileW + inTilePad;
+    return (tileTime * widthInTiles + tilePad) * (tileW * tileH) + inTileTime * tileW + inTilePad;
 
 #undef TILE_WIDTH
 #undef TILE_HEIGHT
@@ -104,35 +104,35 @@ class Array2D
 #define TILE_WIDTH 8
 #define TILE_HEIGHT 4
 
-  time += PADDING_TIME;
+    time += PADDING_TIME;
 
-  const size_t tileW = TILE_WIDTH;
-  const size_t tileH = TILE_HEIGHT;
-  const size_t widthInTiles = (TPC_NUM_OF_PADS + tileW - 1) / tileW;
+    const size_t tileW = TILE_WIDTH;
+    const size_t tileH = TILE_HEIGHT;
+    const size_t widthInTiles = (TPC_NUM_OF_PADS + tileW - 1) / tileW;
 
-  const size_t tilePad = gpad / tileW;
-  const size_t tileTime = time / tileH;
+    const size_t tilePad = gpad / tileW;
+    const size_t tileTime = time / tileH;
 
-  const size_t inTilePad = gpad % tileW;
-  const size_t inTileTime = time % tileH;
+    const size_t inTilePad = gpad % tileW;
+    const size_t inTileTime = time % tileH;
 
-  return (tileTime * widthInTiles + tilePad) * (tileW * tileH) + inTileTime * tileW + inTilePad;
+    return (tileTime * widthInTiles + tilePad) * (tileW * tileH) + inTileTime * tileW + inTilePad;
 
 #undef TILE_WIDTH
 #undef TILE_HEIGHT
 
 #elif defined(CHARGEMAP_PAD_MAJOR_LAYOUT)
 
-  time += PADDING_TIME;
-  return TPC_MAX_TIME_PADDED * gpad + time;
+    time += PADDING_TIME;
+    return TPC_MAX_TIME_PADDED * gpad + time;
 
 #else // Use row time-major layout
 
-  time += PADDING_TIME;
-  return TPC_NUM_OF_PADS * time + gpad;
+    time += PADDING_TIME;
+    return TPC_NUM_OF_PADS * time + gpad;
 
 #endif
-}
+  }
 };
 
 } // namespace gpu
