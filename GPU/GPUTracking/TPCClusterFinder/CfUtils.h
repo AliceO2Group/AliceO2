@@ -86,8 +86,6 @@ class CfUtils
       buf[writeTo] = accessFunc(chargeMap, readFrom.gpad + dp, readFrom.time + dt); \
     }                                                                               \
     GPUbarrier();                                                                   \
-  }                                                                                 \
-  union {                                                                           \
   }
 
 #define DECL_FILL_SCRATCH_PAD_COND(type, accessFunc, expandFunc, nameAppendix, null) \
@@ -121,8 +119,6 @@ class CfUtils
       buf[writeTo] = v;                                                              \
     }                                                                                \
     GPUbarrier();                                                                    \
-  }                                                                                  \
-  union {                                                                            \
   }
 #else
 #define DECL_FILL_SCRATCH_PAD(type, accessFunc)                                     \
@@ -155,8 +151,6 @@ class CfUtils
     }                                                                               \
                                                                                     \
     GPUbarrier();                                                                   \
-  }                                                                                 \
-  union {                                                                           \
   }
 
 #define DECL_FILL_SCRATCH_PAD_COND(type, accessFunc, expandFunc, nameAppendix, null) \
@@ -195,8 +189,6 @@ class CfUtils
     }                                                                                \
                                                                                      \
     GPUbarrier();                                                                    \
-  }                                                                                  \
-  union {                                                                            \
   }
 #endif
 
@@ -206,7 +198,6 @@ class CfUtils
   DECL_FILL_SCRATCH_PAD_COND(uchar, IS_PEAK, innerAboveThreshold, Cond, 0);
   DECL_FILL_SCRATCH_PAD_COND(PackedCharge, CHARGE, innerAboveThresholdInv, CondInv, PackedCharge(0));
   DECL_FILL_SCRATCH_PAD_COND(uchar, IS_PEAK, innerAboveThresholdInv, CondInv, 0);
-
 };
 
 } // namespace gpu

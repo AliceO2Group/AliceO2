@@ -23,7 +23,6 @@ typedef unsigned char uchar;
 typedef unsigned long ulong;
 #endif
 
-#ifdef GPUCA_ALIGPUCODE
 #define QMAX_CUTOFF 3
 #define QTOT_CUTOFF 0
 #define NOISE_SUPPRESSION_MINIMA_EPSILON 10
@@ -40,7 +39,6 @@ typedef unsigned long ulong;
 #endif
 /* #define CHARGEMAP_TIME_MAJOR_LAYOUT */
 #define CHARGEMAP_4x4_TILING_LAYOUT
-#endif
 
 #ifdef __OPENCL__
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
