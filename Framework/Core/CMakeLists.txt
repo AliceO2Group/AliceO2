@@ -259,7 +259,6 @@ foreach(w
         CustomGUIGL
         CustomGUISokol
         SimpleTracksED
-        CCDBFetcher
         DanglingInputs
         DanglingOutputs
         DataAllocator
