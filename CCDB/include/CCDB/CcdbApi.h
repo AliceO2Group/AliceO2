@@ -23,6 +23,7 @@
 #include <TObject.h>
 #include <TMessage.h>
 #include "CCDB/CcdbObjectInfo.h"
+#include <TJAlienSSLContext.h>
 
 class TFile;
 class TGrid;
@@ -304,6 +305,13 @@ class CcdbApi //: public DatabaseInterface
   constexpr static const char* CCDBQUERY_ENTRY = "ccdb_query";
   constexpr static const char* CCDBMETA_ENTRY = "ccdb_meta";
   constexpr static const char* CCDBOBJECT_ENTRY = "ccdb_object";
+
+  /**
+   * Set curl SSL options. The client still will be able to connect to non-ssl endpoints
+   * @param curl curl handler
+   * @return
+   */
+  static void curlSetSSLOptions(CURL *curl);
 
  private:
   /**

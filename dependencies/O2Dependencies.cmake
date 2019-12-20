@@ -109,6 +109,9 @@ set_package_properties(JAliEnROOT PROPERTIES TYPE RECOMMENDED)
 find_package(XRootD MODULE)
 set_package_properties(XRootD PROPERTIES TYPE RECOMMENDED)
 
+find_package(libjalienO2 MODULE)
+set_package_properties(libjalienO2 PROPERTIES TYPE REQUIRED PURPOSE "For CCDB API")
+
 # MC specific packages
 message(STATUS "Input BUILD_SIMULATION=${BUILD_SIMULATION}")
 include("${CMAKE_CURRENT_LIST_DIR}/O2SimulationDependencies.cmake")

@@ -18,6 +18,7 @@ o2_add_library(CCDB
                                     ROOT::Hist
                                     O2::CommonUtils
                                     FairMQ::FairMQ
+                                    libjalien::libjalienO2
                TARGETVARNAME targetName)
 
 o2_target_root_dictionary(CCDB

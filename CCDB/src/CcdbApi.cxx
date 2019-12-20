@@ -174,6 +174,8 @@ void CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::stri
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
     curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
 
+    curlSetSSLOptions(curl);
+
     /* Perform the request, res will get the return code */
     CURLcode res = curl_easy_perform(curl);
     /* Check for errors */
@@ -300,11 +302,55 @@ static size_t WriteMemoryCallback(void* contents, size_t size, size_t nmemb, voi
  * @param nmemb
  * @param userp a MemoryStruct where data is stored.
  * @return the size of the data we received and stored at userp.
+ * If an error is returned no attempt to establish a connection is made
+ * and the perform operation will return the callback's error code
  */
 static size_t WriteToFileCallback(void* ptr, size_t size, size_t nmemb, FILE* stream)
 {
   size_t written = fwrite(ptr, size, nmemb, stream);
   return written;
+}
+
+/**
+ * Callback to load credentials and CA's
+ * @param curl curl handler
+ * @param ssl_ctx SSL context that will be modified
+ * @param parm
+ * @return
+ */
+static CURLcode ssl_ctx_callback(CURL *curl, void *ssl_ctx, void *parm)
+{
+	//(void)curl;
+  //(void)parm;
+
+  TJAlienSSLContext context;
+  context.SetCertAndKey((SSL_CTX*) ssl_ctx);
+  context.SetCAPath((SSL_CTX*) ssl_ctx);
+
+  return CURLE_OK;
+}
+
+void CcdbApi::curlSetSSLOptions(CURL *curl)
+{
+  // Enable full error reporting
+  char errbuf[CURL_ERROR_SIZE];
+  curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
+  errbuf[0] = 0;
+
+  // Turn off the default CA locations, otherwise libcurl will load CA
+  // certificates from the locations that were detected/specified at
+  // build-time
+  curl_easy_setopt(curl, CURLOPT_CAINFO, NULL);
+  curl_easy_setopt(curl, CURLOPT_CAPATH, NULL);
+
+  CURLcode ret = curl_easy_setopt(curl, CURLOPT_SSL_CTX_FUNCTION, *ssl_ctx_callback);
+  if (ret != CURLE_OK) {
+    size_t len = strlen(errbuf);
+    if (len)
+      fprintf(stderr, "%s%s", errbuf, ((errbuf[len - 1] != '\n') ? "\n" : ""));
+    else
+      fprintf(stderr, "curl_easy_setopt() failed: %s\n", curl_easy_strerror(ret));
+  }
 }
 
 TObject* CcdbApi::retrieve(std::string const& path, std::map<std::string, std::string> const& metadata,
@@ -341,6 +387,8 @@ TObject* CcdbApi::retrieve(std::string const& path, std::map<std::string, std::s
 
   /* if redirected , we tell libcurl to follow redirection */
   curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
+
+  curlSetSSLOptions(curl_handle);
 
   /* get it! */
   res = curl_easy_perform(curl_handle);
@@ -477,6 +525,8 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
     curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, list);
   }
 
+  curlSetSSLOptions(curl_handle);
+
   /* get it! */
   res = curl_easy_perform(curl_handle);
   std::string errStr;
@@ -561,6 +611,8 @@ void CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
 
   /* if redirected , we tell libcurl to follow redirection */
   curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
+
+  curlSetSSLOptions(curl_handle);
 
   /* get it! */
   res = curl_easy_perform(curl_handle);
@@ -747,6 +799,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
   // send all data to this function
   curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
   curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void*)&chunk);
+  curlSetSSLOptions(curl_handle);
 
   auto res = curl_easy_perform(curl_handle);
   long response_code = -1;
@@ -900,6 +953,8 @@ std::string CcdbApi::list(std::string const& path, bool latestOnly, std::string 
     headers = curl_slist_append(headers, (string("Content-Type: ") + returnFormat).c_str());
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
+    curlSetSSLOptions(curl);
+
     // Perform the request, res will get the return code
     res = curl_easy_perform(curl);
     if (res != CURLE_OK) {
@@ -933,6 +988,8 @@ void CcdbApi::deleteObject(std::string const& path, long timestamp) const
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
     curl_easy_setopt(curl, CURLOPT_URL, fullUrl.str().c_str());
 
+    curlSetSSLOptions(curl);
+
     // Perform the request, res will get the return code
     res = curl_easy_perform(curl);
     if (res != CURLE_OK) {
@@ -952,6 +1009,8 @@ void CcdbApi::truncate(std::string const& path) const
   curl = curl_easy_init();
   if (curl != nullptr) {
     curl_easy_setopt(curl, CURLOPT_URL, fullUrl.str().c_str());
+
+    curlSetSSLOptions(curl);
 
     // Perform the request, res will get the return code
     res = curl_easy_perform(curl);
@@ -977,6 +1036,7 @@ bool CcdbApi::isHostReachable() const
   if (curl) {
     curl_easy_setopt(curl, CURLOPT_URL, mUrl.data());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+    curlSetSSLOptions(curl);
     res = curl_easy_perform(curl);
     result = (res == CURLE_OK);
 
@@ -1043,6 +1103,8 @@ std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& p
     curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_map_callback<>);
     curl_easy_setopt(curl, CURLOPT_HEADERDATA, &headers);
 
+    curlSetSSLOptions(curl);
+
     // Perform the request, res will get the return code
     res = curl_easy_perform(curl);
     if (res != CURLE_OK) {
@@ -1079,6 +1141,8 @@ bool CcdbApi::getCCDBEntryHeaders(std::string const& url, std::string const& eta
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
   curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback);
   curl_easy_setopt(curl, CURLOPT_HEADERDATA, &headers);
+
+  curlSetSSLOptions(curl);
 
   /* Perform the request */
   curl_easy_perform(curl);
