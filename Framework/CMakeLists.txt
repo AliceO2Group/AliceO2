@@ -12,10 +12,6 @@ add_subdirectory(Logger)
 
 add_subdirectory(Foundation)
 
-if (NOT TARGET AliceO2::DebugGUI)
-add_subdirectory(DebugGUI)
-endif()
-
 add_subdirectory(Core)
 
 add_subdirectory(Utils)
