@@ -43,6 +43,7 @@ Continueous mode  :   for only bunches with data at least in 1 channel.
 #include "DataFormatsFT0/RawEventData.h"
 #include "FT0Simulation/Digits2Raw.h"
 #include "CommonConstants/Triggers.h"
+#include "CommonUtils/HBFUtils.h"
 #include <Framework/Logger.h>
 #include <TStopwatch.h>
 #include <cassert>
@@ -83,11 +84,26 @@ void Digits2Raw::readDigits(const std::string fileDigitsName)
   Int_t nevD = digTree->GetEntries(); // digits in cont. readout may be grouped as few events per entry
   uint32_t old_orbit = ~0;
   o2::InteractionRecord intRecord;
+  o2::InteractionRecord lastIR = mSampler.getFirstIR();
+  std::vector<o2::InteractionRecord> HBIRVec;
 
   for (Int_t iev = 0; iev < nevD; iev++) {
     digTree->GetEvent(iev);
     for (const auto& digit : *digArr) {
       intRecord = digit.getInteractionRecord();
+      int nHBF = mSampler.fillHBIRvector(HBIRVec, lastIR, intRecord);
+      lastIR = intRecord + 1;
+
+      if (nHBF) {
+        for (int j = 0; j < nHBF - 1; j++) {
+          o2::InteractionRecord rdhIR = HBIRVec[j];
+          for (int link = 0; link < (int)mPages.size(); ++link) {
+            setRDH(mPages[link].mRDH, link, intRecord);
+            mPages[link].flush(mFileDest);
+          }
+        }
+      }
+
       uint32_t current_orbit = intRecord.orbit;
       LOG(DEBUG) << "old orbit " << old_orbit << " new orbit " << current_orbit;
       if (old_orbit != current_orbit) {
@@ -111,13 +127,13 @@ void Digits2Raw::convertDigits(const o2::ft0::Digit& digit, const o2::ft0::LookU
 {
   auto intRecord = digit.getInteractionRecord();
   std::vector<o2::ft0::ChannelData> mTimeAmp = digit.getChDgData();
-  auto& tcmdata = mRawEventData.mTCMdata;
-  int sumTimeA, sumTimeC, sumAmpA, sumAmpC, nChA, nChC;
   // check empty event
   if (mTimeAmp.size() != 0) {
     bool is0TVX = digit.getisVrtx();
     int oldlink = -1;
     int nchannels = 0;
+    auto& tcmdata = mRawEventData.mTCMdata;
+    int sumTimeA, sumTimeC, sumAmpA, sumAmpC, nChA, nChC;
     //TCM
     tcmdata.vertex = digit.getisVrtx();
     tcmdata.orA = digit.getisA();
@@ -206,17 +222,18 @@ EventHeader makeGBTHeader(int link, o2::InteractionRecord const& mIntRecord)
   return mEventHeader;
 }
 //_____________________________________________________________________________
-void setRDH(o2::header::RAWDataHeader& mRDH, int nlink, o2::InteractionRecord const& mIntRecord)
+void Digits2Raw::setRDH(o2::header::RAWDataHeader& rdh, int nlink, o2::InteractionRecord rdhIR)
 {
-  mRDH.triggerOrbit = mRDH.heartbeatOrbit = mIntRecord.orbit;
-  mRDH.triggerBC = mRDH.heartbeatBC = mIntRecord.bc;
-  mRDH.linkID = nlink;
-  mRDH.feeId = nlink;
+  rdh = mSampler.createRDH<o2::header::RAWDataHeader>(rdhIR);
+  //rdh.triggerOrbit = rdh.heartbeatOrbit = mIntRecord.orbit;
+  //rdh.triggerBC = rdh.heartbeatBC = mIntRecord.bc;
+  rdh.linkID = nlink;
+  rdh.feeId = nlink;
 
-  mRDH.triggerType = o2::trigger::PhT; // ??
-  mRDH.detectorField = 0xffff;         //empty for FIt yet
-  mRDH.blockLength = 0xffff;           // ITS keeps this dummy
-  mRDH.stop = 0;                       // ??? last package  on page
+  rdh.triggerType = o2::trigger::PhT; // ??
+  rdh.detectorField = 0xffff;         //empty for FIt yet
+  rdh.blockLength = 0xffff;           // ITS keeps this dummy
+  rdh.stop = 0;                       // ??? last package  on page
 }
 //_____________________________________________________________________________
 

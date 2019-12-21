@@ -20,6 +20,7 @@
 #include "DataFormatsFT0/RawEventData.h"
 #include "DataFormatsFT0/LookUpTable.h"
 #include "DataFormatsFT0/Digit.h"
+#include "CommonUtils/HBFUtils.h"
 #include <TStopwatch.h>
 #include <cassert>
 #include <fstream>
@@ -58,6 +59,7 @@ class Digits2Raw
 
     return o2::ft0::LookUpTable{lut_data};
   }
+  void setRDH(o2::header::RAWDataHeader& rdh, int nlink, o2::InteractionRecord rdhIR);
   void printRDH(const o2::header::RAWDataHeader* h)
   {
     {
@@ -81,6 +83,7 @@ class Digits2Raw
   std::ofstream mFileDest;
   std::array<o2::ft0::DataPageWriter, NPMs> mPages;
   o2::ft0::RawEventData mRawEventData;
+  o2::utils::HBFUtils mSampler;
 
   /////////////////////////////////////////////////
 

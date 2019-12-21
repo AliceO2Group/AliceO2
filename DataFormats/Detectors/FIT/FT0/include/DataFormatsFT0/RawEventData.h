@@ -451,7 +451,15 @@ class DataPageWriter
       str.write(mPages[page].data(), mPages[page].size());
       mRDH.pageCnt++;
     }
-    if (!mPages.empty()) {
+    if (mPages.empty()) {
+      mRDH.memorySize = mRDH.headerSize;
+      mRDH.offsetToNext = mRDH.memorySize;
+      RawEventData::printRDH(&mRDH);
+      str.write(reinterpret_cast<const char*>(&mRDH), sizeof(mRDH));
+      str.write(mPages[page].data(), mPages[page].size());
+      mRDH.pageCnt++;
+    }
+    /*if (!mPages.empty()) */ {
       mRDH.memorySize = mRDH.headerSize;
       mRDH.offsetToNext = mRDH.memorySize;
       mRDH.stop = 1;
