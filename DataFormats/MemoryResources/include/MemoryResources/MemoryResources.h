@@ -163,7 +163,7 @@ class SpectatorMemoryResource : public boost::container::pmr::memory_resource
   {
     if (p == mPointer) {
       mBuffer.reset();
-      mPointer = 0;
+      mPointer = nullptr;
     } else if (mPointer == nullptr) {
       // there is an error in the logic flow, this should never be called more than once
       throw std::logic_error("underlying controlled resource has been released already");
