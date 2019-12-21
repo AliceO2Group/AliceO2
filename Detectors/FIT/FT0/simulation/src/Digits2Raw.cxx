@@ -111,11 +111,20 @@ void Digits2Raw::convertDigits(const o2::ft0::Digit& digit, const o2::ft0::LookU
 {
   auto intRecord = digit.getInteractionRecord();
   std::vector<o2::ft0::ChannelData> mTimeAmp = digit.getChDgData();
+  auto& tcmdata = mRawEventData.mTCMdata;
+  int sumTimeA, sumTimeC, sumAmpA, sumAmpC, nChA, nChC;
   // check empty event
   if (mTimeAmp.size() != 0) {
     bool is0TVX = digit.getisVrtx();
     int oldlink = -1;
     int nchannels = 0;
+    //TCM
+    tcmdata.vertex = digit.getisVrtx();
+    tcmdata.orA = digit.getisA();
+    tcmdata.orC = digit.getisC();
+    tcmdata.sCen = digit.getisSCnt();
+    tcmdata.cen = digit.getisCnt();
+    sumTimeA = sumTimeC = sumAmpA = sumAmpC = nChA = nChC = 0;
     for (auto& d : mTimeAmp) {
       int nlink = lut.getLink(d.ChId);
       if (nlink != oldlink) {
@@ -124,13 +133,14 @@ void Digits2Raw::convertDigits(const o2::ft0::Digit& digit, const o2::ft0::LookU
           if ((nchannels % 2) == 1)
             mRawEventData.mEventData[nchannels] = {};
           mRawEventData.mEventHeader.nGBTWords = nGBTWords;
-          mPages[oldlink].write(mRawEventData.to_vector());
+          mPages[oldlink].write(mRawEventData.to_vector(0));
         }
         oldlink = nlink;
         mRawEventData.mEventHeader = makeGBTHeader(nlink, intRecord);
         nchannels = 0;
       }
       auto& newData = mRawEventData.mEventData[nchannels];
+      bool isAside = (d.ChId < 96);
       newData.charge = d.QTCAmpl;
       newData.time = d.CFDTime;
       newData.is1TimeLostEvent = 0;
@@ -138,7 +148,7 @@ void Digits2Raw::convertDigits(const o2::ft0::Digit& digit, const o2::ft0::LookU
       newData.isADCinGate = 1;
       newData.isAmpHigh = 0;
       newData.isDoubleEvent = 0;
-      newData.isEventInTVDC = is0TVX ? 1 : 0;
+      newData.isEventInTVDC = digit.getisVrtx() ? 1 : 0;
       newData.isTimeInfoLate = 0;
       newData.isTimeInfoLost = 0;
       int chain = std::rand() % 2;
@@ -146,13 +156,40 @@ void Digits2Raw::convertDigits(const o2::ft0::Digit& digit, const o2::ft0::LookU
       newData.channelID = lut.getMCP(d.ChId);
       LOG(DEBUG) << "packed GBT " << nlink << " channelID   " << (int)newData.channelID << " charge " << newData.charge << " time " << newData.time << " chain " << int(newData.numberADC) << " size " << sizeof(newData);
       nchannels++;
+      if (isAside) {
+        sumTimeA += d.CFDTime;
+        sumAmpA += d.QTCAmpl;
+        nChA++;
+      } else {
+        sumTimeC += d.CFDTime;
+        sumAmpC += d.QTCAmpl;
+        nChC++;
+      }
     }
     // fill mEventData[nchannels] with 0s to flag that this is a dummy data
     uint nGBTWords = uint((nchannels + 1) / 2);
     if ((nchannels % 2) == 1)
       mRawEventData.mEventData[nchannels] = {};
     mRawEventData.mEventHeader.nGBTWords = nGBTWords;
-    mPages[oldlink].write(mRawEventData.to_vector());
+    mPages[oldlink].write(mRawEventData.to_vector(0));
+    LOG(DEBUG) << " last " << oldlink;
+    mRawEventData.mEventHeader = makeGBTHeader(LinkTCM, intRecord); //TCM
+    mRawEventData.mEventHeader.nGBTWords = 1;
+    tcmdata.timeA = sumTimeA;
+    tcmdata.timeC = sumTimeC;
+    tcmdata.amplA = sumAmpA;
+    tcmdata.amplC = sumAmpC;
+    tcmdata.nChanA = nChA;
+    tcmdata.nChanC = nChC;
+    LOG(DEBUG) << "TCMdata"
+               << " time A " << int(tcmdata.timeA) << " time C " << int(tcmdata.timeC)
+               << " amp A " << int(tcmdata.amplA) << " amp C " << int(tcmdata.amplC)
+               << " N A " << int(tcmdata.nChanA) << " N C " << int(tcmdata.nChanC)
+               << " trig "
+               << " ver " << tcmdata.vertex << " A " << tcmdata.orA << " C " << tcmdata.orC
+               << " size " << sizeof(tcmdata);
+    mPages.at(LinkTCM).write(mRawEventData.to_vector(1));
+    LOG(DEBUG) << " write TCM " << LinkTCM;
   }
 }
 
@@ -165,6 +202,7 @@ EventHeader makeGBTHeader(int link, o2::InteractionRecord const& mIntRecord)
   mEventHeader.reservedField2 = 0;
   mEventHeader.bc = mIntRecord.bc;
   mEventHeader.orbit = mIntRecord.orbit;
+  LOG(DEBUG) << " makeGBTHeader " << link << " orbit " << mEventHeader.orbit << " BC " << mEventHeader.bc;
   return mEventHeader;
 }
 //_____________________________________________________________________________
