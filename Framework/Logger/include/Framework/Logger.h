@@ -19,6 +19,30 @@
 #include <fmt/format.h>
 #include <fmt/printf.h>
 FMT_BEGIN_NAMESPACE
+#if FMT_VERSION >= 60000
+template <typename S, typename Char = char_t<S>>
+inline int vfprintf(fair::Logger& logger,
+                    const S& format,
+                    basic_format_args<basic_printf_context_t<Char>> args)
+{
+  basic_memory_buffer<Char> buffer;
+  printf(buffer, to_string_view(format), args);
+  logger << std::string_view(buffer.data(), buffer.size());
+  return static_cast<int>(buffer.size());
+}
+
+template <typename S, typename... Args>
+inline enable_if_t<internal::is_string<S>::value, int>
+  fprintf(fair::Logger& logger,
+          const S& format_str, const Args&... args)
+{
+  internal::check_format_string<Args...>(format_str);
+  using context = basic_printf_context_t<char_t<S>>;
+  format_arg_store<context, Args...> as{args...};
+  return vfprintf(logger, to_string_view(format_str),
+                  basic_format_args<context>(as));
+}
+#else
 template <typename S, typename Char = FMT_CHAR(S)>
 inline int vfprintf(fair::Logger& logger,
                     const S& format,
@@ -44,7 +68,7 @@ inline FMT_ENABLE_IF_T(internal::is_string<S>::value, int)
   return vfprintf(logger, to_string_view(format_str),
                   basic_format_args<context>(as));
 }
-
+#endif
 FMT_END_NAMESPACE
 
 #define LOGF(severity, ...)                                                                                                                                        \
