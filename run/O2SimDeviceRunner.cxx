@@ -23,7 +23,7 @@
 #include <sys/wait.h>
 #include <pthread.h> // to set cpu affinity
 #include <cmath>
-#include <signal.h>
+#include <csignal>
 #include <unistd.h>
 
 #include "rapidjson/document.h"
