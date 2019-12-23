@@ -411,9 +411,8 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel()
 
   new TGeoTubeSeg("S_SCUT2", radin_scut2, radout_scut2, high_scut2 / 2, ang_in_scut2, ang_fin_scut2);
 
-  new TGeoTubeSeg("S_ARM", radin_arm, radout_arm, high_arm / 2, angin_arm, angfin_arm);
-
-  new TGeoTubeSeg("S_ARM_R", radin_armR, radout_armR, high_armR / 2, angin_armR, angfin_armR);
+  //new TGeoTubeSeg("S_ARM", radin_arm, radout_arm, high_arm / 2, angin_arm, angfin_arm);
+  //new TGeoTubeSeg("S_ARM_R", radin_armR, radout_armR, high_armR / 2, angin_armR, angfin_armR);
 
   new TGeoBBox("Abox", x_Abox / 2, y_Abox / 2, z_Abox / 2);
 
