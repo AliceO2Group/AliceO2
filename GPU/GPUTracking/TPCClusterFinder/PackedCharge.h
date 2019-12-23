@@ -17,26 +17,25 @@
 #include "clusterFinderDefs.h"
 #include "GPUCommonMath.h"
 
+// Ugly workaround because cuda doesn't like member constants
+#define O2_GPU_PACKED_CHARGE_ADC_BITS 10
+#define O2_GPU_PACKED_CHARGE_DECIMAL_BITS 4
+#define O2_GPU_PACKED_CHARGE_CHARGE_BITS (O2_GPU_PACKED_CHARGE_ADC_BITS + O2_GPU_PACKED_CHARGE_DECIMAL_BITS)
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 
-// Ugly workaround because cuda doesn't like member constants
 namespace PackedChargeDefs
 {
 using BasicType = unsigned short;
-GPUconstexpr() int ADCBits = 10;
-GPUconstexpr() int DecimalBits = 4;
-GPUconstexpr() int ChargeBits = 14;
-GPUconstexpr() int Has3x3PeakBit = 14;
-GPUconstexpr() BasicType Has3x3PeakMask = 1 << 14;
-GPUconstexpr() int IsSplitBit = 15;
-GPUconstexpr() BasicType IsSplitMask = 1 << 15;
 
-GPUconstexpr() BasicType ChargeMask = (1 << 14) - 1;
-GPUconstexpr() BasicType MaxVal = (1 << 14) - 1;
-GPUconstexpr() Charge Shift = 16.f;
+GPUconstexpr() BasicType Has3x3PeakMask = 1 << O2_GPU_PACKED_CHARGE_CHARGE_BITS;
+GPUconstexpr() BasicType IsSplitMask = 1 << (O2_GPU_PACKED_CHARGE_CHARGE_BITS + 1);
+GPUconstexpr() BasicType ChargeMask = (1 << O2_GPU_PACKED_CHARGE_CHARGE_BITS) - 1;
+GPUconstexpr() BasicType MaxVal = (1 << O2_GPU_PACKED_CHARGE_CHARGE_BITS) - 1;
+GPUconstexpr() Charge Shift = 1 << O2_GPU_PACKED_CHARGE_DECIMAL_BITS;
 } // namespace PackedChargeDefs
 
 class PackedCharge
@@ -48,18 +47,20 @@ class PackedCharge
   GPUdi() explicit PackedCharge(Charge q) : PackedCharge(q, false, false) {}
   GPUdi() PackedCharge(Charge q, bool peak3x3, bool wasSplit)
   {
-    val = q * PackedChargeDefs::Shift;
-    val = CAMath::Min(PackedChargeDefs::MaxVal, val); // ensure only lower 14 bits are set
-    val |= (BasicType(peak3x3) << PackedChargeDefs::Has3x3PeakBit);
-    val |= (BasicType(wasSplit) << PackedChargeDefs::IsSplitBit);
+    using namespace PackedChargeDefs;
+
+    mVal = q * Shift;
+    mVal = CAMath::Min(MaxVal, mVal); // ensure only lower 14 bits are set
+    mVal |= (peak3x3) ? Has3x3PeakMask : 0;
+    mVal |= (wasSplit) ? IsSplitMask : 0;
   }
 
-  GPUdi() Charge unpack() const { return Charge(val & PackedChargeDefs::ChargeMask) / PackedChargeDefs::Shift; }
-  GPUdi() bool has3x3Peak() const { return val & PackedChargeDefs::Has3x3PeakMask; }
-  GPUdi() bool isSplit() const { return val & PackedChargeDefs::IsSplitMask; }
+  GPUdi() Charge unpack() const { return Charge(mVal & PackedChargeDefs::ChargeMask) / PackedChargeDefs::Shift; }
+  GPUdi() bool has3x3Peak() const { return mVal & PackedChargeDefs::Has3x3PeakMask; }
+  GPUdi() bool isSplit() const { return mVal & PackedChargeDefs::IsSplitMask; }
 
  private:
-  BasicType val;
+  BasicType mVal;
 };
 
 } // namespace gpu
