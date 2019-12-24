@@ -61,7 +61,7 @@ void CheckHits(const int detector = 50, // 354, 14, 242, 50
         // LOG(INFO) << "REJECTED Detector = " << det <<"\t Stack = " << o2::trd::TRDGeometry::getStack(det) << "\t Sector = " << o2::trd::TRDGeometry::getSector(det);
         continue;
       }
-      LOG(INFO) << "ACCEPTED Detector = " << det <<"\t Stack = " << o2::trd::TRDGeometry::getStack(det) << "\t Sector = " << o2::trd::TRDGeometry::getSector(det);
+      LOG(INFO) << "ACCEPTED Detector = " << det << "\t Stack = " << o2::trd::TRDGeometry::getStack(det) << "\t Sector = " << o2::trd::TRDGeometry::getSector(det);
       // loop over det, pad, row?
       double locC = hit.getLocalC(); // col direction in amplification or drift volume
       double locR = hit.getLocalR(); // row direction in amplification or drift volume
