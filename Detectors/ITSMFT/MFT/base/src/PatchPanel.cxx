@@ -133,6 +133,10 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel()
   TGeoTranslation* tr_II = new TGeoTranslation("tr_II", -25.25, -6.65, 0);
   tr_II->RegisterYourself();
 
+  //
+  TGeoTranslation* tr_H = new TGeoTranslation("tr_H", -26.092, -34.042, 0);
+  tr_H->RegisterYourself();
+
   // shoulder
   TGeoXtru* shoulder = new TGeoXtru(2);
   shoulder->SetName("S_shoulder");
