@@ -322,8 +322,8 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel()
   Double_t x_pyramid[4] = { -1.2, 1.2, 1.4, -1.4 };
   Double_t y_pyramid[4] = { -26.4 - 1.05, -26.4 - 1.05, -26.4, -26.4 };
   pyramid->DefinePolygon(4, x_pyramid, y_pyramid);
-  pyramid->DefineSection(0, -0.2, 0., 0., 1); //(plane,-zplane/ +zplane, x0, y0,(x/y))
-  pyramid->DefineSection(1, 4.6, 0., 0., 1);
+  pyramid->DefineSection(0, 0., 0., 0., 1); //(plane,-zplane/ +zplane, x0, y0,(x/y))
+  pyramid->DefineSection(1, 4.8, 0., 0., 1);
   ////////////////
 
   TGeoXtru* tanqL = new TGeoXtru(2);
@@ -332,8 +332,8 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel()
   Double_t x_tanqL[6] = { -29., -26.78, -25.57, -26.2, -27.6, -27.25 };
   Double_t y_tanqL[6] = { -41., -41.9, -39.534, -36., -35.2, -37.8 }; //
   tanqL->DefinePolygon(6, x_tanqL, y_tanqL);
-  tanqL->DefineSection(0, -0.1, 0., 0., 1);
-  tanqL->DefineSection(1, 1.6, 0., 0., 1);
+  tanqL->DefineSection(0, 0., 0., 0., 1);
+  tanqL->DefineSection(1, 1.65, 0., 0., 1);
   ////////////////
 
   TGeoXtru* tanqR = new TGeoXtru(2);
@@ -342,8 +342,8 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel()
   Double_t x_tanqR[6] = { 29., 26.78, 25.57, 26.2, 27.6, 27.25 };
   Double_t y_tanqR[6] = { -41., -41.9, -39.534, -36., -35.2, -37.8 }; //
   tanqR->DefinePolygon(6, x_tanqR, y_tanqR);
-  tanqR->DefineSection(0, -0.1, 0., 0., 1);
-  tanqR->DefineSection(1, 1.6, 0., 0., 1);
+  tanqR->DefineSection(0, 0., 0., 0., 1);
+  tanqR->DefineSection(1, 1.65, 0., 0., 1);
 
   // eyess L
   TGeoXtru* frog_eyeL = new TGeoXtru(2);
@@ -352,8 +352,8 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel()
   Double_t x_frog_eyeL[4] = { -13.33, -10.72, -11.11, -11.89 };
   Double_t y_frog_eyeL[4] = { -47.78, -48.61, -45.41, -45.41 };
   frog_eyeL->DefinePolygon(4, x_frog_eyeL, y_frog_eyeL);
-  frog_eyeL->DefineSection(0, -0.1, 0., 0., 1);
-  frog_eyeL->DefineSection(1, 1.6, 0., 0., 1);
+  frog_eyeL->DefineSection(0, 0., 0., 0., 1);
+  frog_eyeL->DefineSection(1, 1.65, 0., 0., 1);
   ////////////////
   // eyess R
   TGeoXtru* frog_eyeR = new TGeoXtru(2);
@@ -362,8 +362,8 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel()
   Double_t x_frog_eyeR[4] = { 13.33, 10.72, 11.11, 11.89 };
   Double_t y_frog_eyeR[4] = { -47.78, -48.61, -45.41, -45.41 };
   frog_eyeR->DefinePolygon(4, x_frog_eyeR, y_frog_eyeR);
-  frog_eyeR->DefineSection(0, -0.1, 0., 0., 1);
-  frog_eyeR->DefineSection(1, 1.6, 0., 0., 1);
+  frog_eyeR->DefineSection(0, 0., 0., 0., 1);
+  frog_eyeR->DefineSection(1, 1.65, 0., 0., 1);
 
   TGeoRotation* rot_A = new TGeoRotation("rot_A", 180, 180, 0);
   rot_A->SetName("rot_A");
@@ -393,7 +393,7 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel()
   Double_t x_earL[8] = { -44., -47.5, -47.5, -44.61, -44.08, -44.08, -43.59, -43.59 };
   Double_t y_earL[8] = { -21.39, -21.39, -14.74, -14.74, -15.14, -19.47, -20.08, -20.97 }; //
   earL->DefinePolygon(8, x_earL, y_earL);
-  earL->DefineSection(0, -0.5, 0., 0., 1); //(plane,-zplane/ +zplane, x0, y0,(x/y))
+  earL->DefineSection(0, 0.5, 0., 0., 1); //(plane,-zplane/ +zplane, x0, y0,(x/y))
   earL->DefineSection(1, 1.2, 0., 0., 1);
 
   TGeoXtru* earR = new TGeoXtru(2);
