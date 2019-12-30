@@ -492,7 +492,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadFlatObjectFromFile(const char* 
   retVal->clearInternalBufferPtr();
   retVal->setActualBufferAddress(buf);
   retVal->adoptInternalBuffer(buf);
-  return std::move(retVal);
+  return retVal;
 }
 
 template <class T>
@@ -527,7 +527,7 @@ inline std::unique_ptr<T> GPUReconstruction::ReadStructFromFile(const char* file
   if (mDeviceProcessingSettings.debugLevel >= 2) {
     GPUInfo("Read %d bytes from %s", (int)r, file);
   }
-  return std::move(newObj);
+  return newObj;
 }
 
 template <class T>
