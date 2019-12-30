@@ -93,7 +93,7 @@ void GPUTPCClusterFinder::DumpClusters(std::ostream& out)
   out << "Clusterer - Clusters - Slice " << mISlice << "\n";
   for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
     out << "Row: " << i << ": " << mPclusterInRow[i] << "\n";
-    for (int j = 0; j < mPclusterInRow[i]; j++) {
+    for (unsigned int j = 0; j < mPclusterInRow[i]; j++) {
       const auto& cl = mPclusterByRow[i * mNMaxClusterPerRow + j];
       out << cl.timeFlagsPacked << ", " << cl.padPacked << ", " << (int)cl.sigmaTimePacked << ", " << (int)cl.sigmaPadPacked << ", " << cl.qmax << ", " << cl.qtot << "\n";
     }
