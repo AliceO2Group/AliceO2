@@ -86,8 +86,6 @@ if(CONFIG_O2_EXTENSIONS)
   else()
     add_definitions(-DGPUCA_NO_ITS_TRAITS)
   endif()
-else()
-  set(ROOT_FOUND OFF)
 endif()
 
 if(CONFIG_FMT)

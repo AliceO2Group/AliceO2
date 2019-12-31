@@ -75,7 +75,6 @@ set(SRCS_NO_CINT
     Standalone/utils/timer.cxx)
 
 set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
-              TPCClusterFinder/GPUTPCClusterFinderDump.cxx
               Global/GPUChainTrackingDebugAndProfiling.cxx)
 
 set(HDRS_INSTALL
@@ -153,6 +152,9 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         TPCClusterFinder/NoiseSuppression.cxx
         TPCClusterFinder/Clusterizer.cxx
         TPCClusterFinder/Deconvolution.cxx)
+
+    set(SRCS_NO_H ${SRCS_NO_H}
+        TPCClusterFinder/GPUTPCClusterFinderDump.cxx)
 
     set(HDRS_INSTALL ${HDRS_INSTALL} Interface/GPUO2InterfaceConfiguration.h
                      ITS/GPUITSTrack.h dEdx/GPUdEdxInfo.h)

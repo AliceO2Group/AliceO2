@@ -23,10 +23,6 @@ namespace o2
 {
 namespace gpu
 {
-namespace deprecated
-{
-class PackedDigit;
-}
 } // namespace gpu
 } // namespace o2
 
@@ -75,6 +71,12 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
+namespace deprecated
+{
+class PackedDigit
+{
+};
+} // namespace deprecated
 class GPUFakeEmpty
 {
 };
