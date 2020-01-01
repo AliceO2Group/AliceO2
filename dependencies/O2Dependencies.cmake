@@ -116,8 +116,9 @@ find_package(benchmark CONFIG NAMES benchmark googlebenchmark)
 set_package_properties(benchmark PROPERTIES TYPE OPTIONAL)
 find_package(OpenMP)
 set_package_properties(OpenMP PROPERTIES TYPE OPTIONAL)
-if (OpenMP_FOUND)
-  add_definitions("-DWITH_OPENMP")
+if (NOT OpenMP_CXX_FOUND AND CMAKE_SYSTEM_NAME MATCHES Darwin)
+  message(STATUS "MacOS OpenMP not found, attempting workaround")
+  find_package(OpenMPMacOS)
 endif()
 
 find_package(GLFW MODULE)
@@ -148,4 +149,3 @@ endif()
 find_package(O2GPU)
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
-
