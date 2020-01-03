@@ -22,6 +22,7 @@
 #include "GPUTPCTrackLinearisation.h"
 #include "GPUO2DataTypes.h"
 #include "GPUTPCTrackParam.h"
+#include "GPUParam.inc"
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
 #include "GPUTPCConvertImpl.h"
 #endif
@@ -338,7 +339,7 @@ GPUh() int GPUTPCTracker::PerformGlobalTrackingRun(GPUTPCTracker& sliceSource, i
   } while (fabsf(tParam.Y()) > Row(rowIndex).MaxY());
 
   float err2Y, err2Z;
-  GetErrors2(rowIndex, tParam.Z(), tParam.SinPhi(), tParam.DzDs(), err2Y, err2Z);
+  GetErrors2Seeding(rowIndex, tParam.Z(), tParam.SinPhi(), tParam.DzDs(), err2Y, err2Z);
   if (tParam.GetCov(0) < err2Y) {
     tParam.SetCov(0, err2Y);
   }

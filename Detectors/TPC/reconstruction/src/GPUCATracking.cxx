@@ -285,10 +285,10 @@ float GPUCATracking::getPseudoVDrift()
   return (elParam.ZbinWidth * gasParam.DriftV);
 }
 
-void GPUCATracking::GetClusterErrors2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
+void GPUCATracking::GetClusterErrors2(int row, float z, float sinPhi, float DzDs, short clusterState, float& ErrY2, float& ErrZ2) const
 {
   if (mTrackingCAO2Interface == nullptr) {
     return;
   }
-  mTrackingCAO2Interface->GetClusterErrors2(row, z, sinPhi, DzDs, ErrY2, ErrZ2);
+  mTrackingCAO2Interface->GetClusterErrors2(row, z, sinPhi, DzDs, clusterState, ErrY2, ErrZ2);
 }

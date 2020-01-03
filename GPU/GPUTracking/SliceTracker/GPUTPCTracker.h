@@ -108,12 +108,12 @@ class GPUTPCTracker : public GPUProcessor
   }
 
   MEM_CLASS_PRE2()
-  GPUd() void GetErrors2(int iRow, const MEM_LG2(GPUTPCTrackParam) & t, float& ErrY2, float& ErrZ2) const
+  GPUd() void GetErrors2Seeding(int iRow, const MEM_LG2(GPUTPCTrackParam) & t, float& ErrY2, float& ErrZ2) const
   {
     // Param().GetClusterErrors2( iRow, Param().GetContinuousTracking() != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
     Param().GetClusterRMS2(iRow, Param().ContinuousTracking != 0.f ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2);
   }
-  GPUd() void GetErrors2(int iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
+  GPUd() void GetErrors2Seeding(int iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
   {
     // Param().GetClusterErrors2( iRow, Param().GetContinuousTracking() != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
     Param().GetClusterRMS2(iRow, Param().ContinuousTracking != 0.f ? 125.f : z, sinPhi, DzDs, ErrY2, ErrZ2);
