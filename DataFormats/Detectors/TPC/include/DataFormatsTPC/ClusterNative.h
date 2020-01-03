@@ -48,8 +48,13 @@ namespace tpc
  * Not for permanent storage.
  */
 struct ClusterNative {
-  static constexpr int scaleTimePacked =
-    64;                                           //< ~50 is needed for 0.1mm precision, but leads to float rounding artifacts around 20ms
+  // NOTE: These states must match those from GPUTPCGMMergedTrackHit!
+  enum clusterState { flagSplitPad = 0x1,  // Split in pad direction
+                      flagSplitTime = 0x2, // Split in time direction
+                      flagEdge = 0x4,      // At edge of TPC sector
+                      flagSingle = 0x8 };  // Single pad or single time-bin cluster
+
+  static constexpr int scaleTimePacked = 64;      //< ~50 is needed for 0.1mm precision, but leads to float rounding artifacts around 20ms
   static constexpr int scalePadPacked = 64;       //< ~60 is needed for 0.1mm precision, but power of two avoids rounding
   static constexpr int scaleSigmaTimePacked = 32; // 1/32nd of pad/timebin precision for cluster size
   static constexpr int scaleSigmaPadPacked = 32;

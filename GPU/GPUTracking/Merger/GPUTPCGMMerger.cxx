@@ -1253,7 +1253,7 @@ void GPUTPCGMMerger::CollectMergedTracks()
         cl[i].num = nOutTrackClusters + i;
         clid[i] = trackClusters[i].GetId();
       }
-      cl[i].state = trackClusters[i].GetFlags() & GPUTPCGMMergedTrackHit::hwcmFlags; // Only allow edge and deconvoluted flags
+      cl[i].state = trackClusters[i].GetFlags() & GPUTPCGMMergedTrackHit::clustererAndSharedFlags; // Only allow edge, deconvoluted, and shared flags
       cl[i].slice = clA[i].x;
       cl[i].leg = clA[i].y;
     }
