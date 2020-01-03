@@ -17,6 +17,7 @@
 #include "GPUO2DataTypes.h"
 #include "GPUTPCGMMerger.h"
 #include "GPUTPCConvertImpl.h"
+#include "GPUParam.inc"
 #ifndef __OPENCLCPP__
 #include <cmath>
 #endif

@@ -40,6 +40,7 @@
 #include "GPUTPCMCInfo.h"
 #include "GPUTPCClusterData.h"
 #include "GPUO2DataTypes.h"
+#include "GPUParam.inc"
 #ifdef GPUCA_O2_LIB
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"

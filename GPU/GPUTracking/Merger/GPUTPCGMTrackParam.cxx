@@ -97,8 +97,8 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUT
     int resetT0 = CAMath::Max(10.f, CAMath::Min(40.f, 150.f / mP[4]));
     const bool refit = (nWays == 1 || iWay >= 1);
     const float maxSinForUpdate = CAMath::Sin(70.f * kDeg2Rad);
-    if (refit && attempt == 0) {
-      prop.SetSpecialErrors(true);
+    if (!(refit && attempt == 0)) {
+      prop.SetSeedingErrors(true);
     }
 
     ResetCovariance();
@@ -870,7 +870,7 @@ GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& track, int iTrk,
 
     if (!ok && ++attempt < nAttempts) {
       for (unsigned int i = 0; i < track.NClusters(); i++) {
-        clusters[track.FirstClusterRef() + i].state &= GPUTPCGMMergedTrackHit::hwcmFlags;
+        clusters[track.FirstClusterRef() + i].state &= GPUTPCGMMergedTrackHit::clustererAndSharedFlags;
       }
       CADEBUG(printf("Track rejected, running refit\n"));
       continue;

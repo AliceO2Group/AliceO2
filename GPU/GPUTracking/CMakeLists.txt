@@ -117,6 +117,7 @@ set(HDRS_INSTALL
     TPCConvert/GPUTPCConvertImpl.h
     Base/GPUReconstructionKernelMacros.h
     Base/GPUO2FakeClasses.h
+    Base/GPUParam.inc
 )
 
 # Sources only for O2

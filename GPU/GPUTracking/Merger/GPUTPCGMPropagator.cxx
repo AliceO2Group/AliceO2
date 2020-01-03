@@ -16,6 +16,7 @@
 #include "GPUParam.h"
 #include "GPUTPCGMMergedTrackHit.h"
 #include "GPUO2DataTypes.h"
+#include "GPUParam.inc"
 
 #ifndef __OPENCL__
 #include <cmath>
@@ -568,28 +569,12 @@ GPUd() int GPUTPCGMPropagator::GetPropagatedYZ(float x, float& projY, float& pro
 
 GPUd() void GPUTPCGMPropagator::GetErr2(float& err2Y, float& err2Z, const GPUParam& param, float posZ, int iRow, short clusterState) const
 {
-  if (mSpecialErrors) {
+  if (!mSeedingErrors) {
     param.GetClusterErrors2(iRow, posZ, mT0.GetSinPhi(), mT0.DzDs(), err2Y, err2Z);
   } else {
     param.GetClusterRMS2(iRow, posZ, mT0.GetSinPhi(), mT0.DzDs(), err2Y, err2Z);
   }
-
-  if (clusterState & GPUTPCGMMergedTrackHit::flagEdge) {
-    err2Y += 0.35f;
-    err2Z += 0.15f;
-  }
-  if (clusterState & GPUTPCGMMergedTrackHit::flagSingle) {
-    err2Y += 0.2f;
-    err2Z += 0.2f;
-  }
-  if (clusterState & (GPUTPCGMMergedTrackHit::flagSplitPad | GPUTPCGMMergedTrackHit::flagShared | GPUTPCGMMergedTrackHit::flagSingle)) {
-    err2Y += 0.03f;
-    err2Y *= 3;
-  }
-  if (clusterState & (GPUTPCGMMergedTrackHit::flagSplitTime | GPUTPCGMMergedTrackHit::flagShared | GPUTPCGMMergedTrackHit::flagSingle)) {
-    err2Z += 0.03f;
-    err2Z *= 3;
-  }
+  param.UpdateClusterError2ByState(clusterState, err2Y, err2Z);
   mStatErrors.GetOfflineStatisticalErrors(err2Y, err2Z, mT0.SinPhi(), mT0.DzDs(), clusterState);
 }
 
@@ -687,8 +672,8 @@ GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, short clusterState
   }
   float dChi2 = chiY + chiZ;
   // GPUInfo("hits %d chi2 %f, new %f %f (dy %f dz %f)", N, mChi2, chiY, chiZ, z0, z1);
-  if (mSpecialErrors && rejectChi2 && RejectCluster(chiY, chiZ, clusterState)) {
-    return 2; // DR: TOTO get rid of stupid specialerror
+  if (!mSeedingErrors && rejectChi2 && RejectCluster(chiY, chiZ, clusterState)) {
+    return 2; // DR: TOTO get rid of stupid seedingerror
   }
   mT->Chi2() += dChi2;
   mT->NDF() += 2;
