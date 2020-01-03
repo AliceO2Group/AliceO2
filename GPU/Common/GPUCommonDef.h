@@ -44,10 +44,12 @@
   #define CON_DELETE = delete
   #define CON_DEFAULT = default
   #define CONSTEXPR constexpr
+  #define CONSTEXPRRET CONSTEXPR
 #else
   #define CON_DELETE
   #define CON_DEFAULT
   #define CONSTEXPR const
+  #define CONSTEXPRRET
 #endif
 
 //Set AliRoot / O2 namespace
