@@ -151,7 +151,7 @@ class GPUTPCTrackParam
   int mNDF;          // the Number of Degrees of Freedom
 };
 
-GPUd() MEM_CLASS_PRE() inline void MEM_LG(GPUTPCTrackParam)::InitParam()
+GPUdi() MEM_CLASS_PRE() void MEM_LG(GPUTPCTrackParam)::InitParam()
 {
   // Initialize Tracklet Parameters using default values
   SetSinPhi(0);

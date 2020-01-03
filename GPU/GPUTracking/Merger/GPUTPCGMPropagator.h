@@ -150,7 +150,7 @@ class GPUTPCGMPropagator
   const o2::base::MatLayerCylSet* mMatLUT = nullptr;
 };
 
-GPUd() inline void GPUTPCGMPropagator::SetMaterial(float radLen, float rho)
+GPUdi() void GPUTPCGMPropagator::SetMaterial(float radLen, float rho)
 {
   mMaterial.rho = rho;
   mMaterial.radLen = radLen;
@@ -158,7 +158,7 @@ GPUd() inline void GPUTPCGMPropagator::SetMaterial(float radLen, float rho)
   CalculateMaterialCorrection();
 }
 
-GPUd() inline void GPUTPCGMPropagator::SetTrack(GPUTPCGMTrackParam* track, float Alpha)
+GPUdi() void GPUTPCGMPropagator::SetTrack(GPUTPCGMTrackParam* track, float Alpha)
 {
   mT = track;
   if (!mT) {
@@ -169,13 +169,13 @@ GPUd() inline void GPUTPCGMPropagator::SetTrack(GPUTPCGMTrackParam* track, float
   CalculateMaterialCorrection();
 }
 
-GPUd() inline float GPUTPCGMPropagator::GetMirroredYModel() const
+GPUdi() float GPUTPCGMPropagator::GetMirroredYModel() const
 {
   float Bz = GetBz(mAlpha, mT0.GetX(), mT0.GetY(), mT0.GetZ());
   return mT0.GetMirroredY(Bz);
 }
 
-GPUd() inline float GPUTPCGMPropagator::GetMirroredYTrack() const
+GPUdi() float GPUTPCGMPropagator::GetMirroredYTrack() const
 {
   if (!mT) {
     return -1.E10f;
