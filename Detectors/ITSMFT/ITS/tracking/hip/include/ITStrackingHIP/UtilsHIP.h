@@ -48,8 +48,8 @@ void gpuMemset(void*, int, int);
 void gpuMemcpyHostToDevice(void*, const void*, int);
 void gpuMemcpyHostToDeviceAsync(void*, const void*, int, hipStream_t&);
 void gpuMemcpyDeviceToHost(void*, const void*, int);
-void gpuStartProfiler();
-void gpuStopProfiler();
+// void gpuStartProfiler();
+// void gpuStopProfiler();
 } // namespace Host
 //
 namespace DeviceHIP

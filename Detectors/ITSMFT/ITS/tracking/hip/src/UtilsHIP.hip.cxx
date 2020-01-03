@@ -138,15 +138,15 @@ void Utils::HostHIP::gpuMemcpyDeviceToHost(void* dst, const void* src, int size)
   checkHIPError(hipMemcpy(dst, src, size, hipMemcpyDeviceToHost), __FILE__, __LINE__);
 }
 
-void Utils::HostHIP::gpuStartProfiler()
-{
-  checkHIPError(hipProfilerStart(), __FILE__, __LINE__);
-}
+// void Utils::HostHIP::gpuStartProfiler()
+// {
+//   checkHIPError(hipProfilerStart(), __FILE__, __LINE__);
+// }
 
-void Utils::HostHIP::gpuStopProfiler()
-{
-  checkHIPError(hipProfilerStop(), __FILE__, __LINE__);
-}
+// void Utils::HostHIP::gpuStopProfiler()
+// {
+//   checkHIPError(hipProfilerStop(), __FILE__, __LINE__);
+// }
 
 GPUd() int Utils::DeviceHIP::getLaneIndex()
 {
