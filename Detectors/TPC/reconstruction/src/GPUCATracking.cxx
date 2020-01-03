@@ -154,10 +154,10 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
         float delta = 0.f;
         for (int iCl = 1; iCl < tracks[i].NClusters(); iCl++) {
           if (lastSide ^ (trackClusters[tracks[i].FirstClusterRef() + iCl].slice < Sector::MAXSECTOR / 2)) {
-            auto& hltcl1 = trackClusters[tracks[i].FirstClusterRef() + iCl];
-            auto& hltcl2 = trackClusters[tracks[i].FirstClusterRef() + iCl - 1];
-            auto& cl1 = clusters->clusters[hltcl1.slice][hltcl1.row][hltcl1.num];
-            auto& cl2 = clusters->clusters[hltcl2.slice][hltcl2.row][hltcl2.num];
+            auto& cacl1 = trackClusters[tracks[i].FirstClusterRef() + iCl];
+            auto& cacl2 = trackClusters[tracks[i].FirstClusterRef() + iCl - 1];
+            auto& cl1 = clusters->clusters[cacl1.slice][cacl1.row][cacl1.num];
+            auto& cl2 = clusters->clusters[cacl2.slice][cacl2.row][cacl2.num];
             delta = fabs(cl1.getTime() - cl2.getTime()) * 0.5f;
             break;
           }
@@ -226,12 +226,10 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
       int clusterId = trackClusters[tracks[i].FirstClusterRef() + j].num;
       Sector sector = trackClusters[tracks[i].FirstClusterRef() + j].slice;
       int globalRow = trackClusters[tracks[i].FirstClusterRef() + j].row;
-      const ClusterNative& cl = clusters->clusters[sector][globalRow][clusterId];
       int regionNumber = 0;
       while (globalRow > mapper.getGlobalRowOffsetRegion(regionNumber) + mapper.getNumberOfRowsRegion(regionNumber)) {
         regionNumber++;
       }
-      CRU cru(sector, regionNumber);
       clIndArr[nOutCl] = clusterId;
       sectorIndexArr[nOutCl] = sector;
       rowIndexArr[nOutCl] = globalRow;
