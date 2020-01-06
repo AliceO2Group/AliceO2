@@ -200,26 +200,18 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       region), meaning locT = 0, and is negative for hits coming from the
       drift region.
     */
-    double locC = hit.getLocalC(); // col direction in amplification or drift volume
-    double locR = hit.getLocalR(); // row direction in amplification or drift volume
-    double locT = hit.getLocalT(); // time direction in amplification or drift volume
-
-    if (hit.isFromDriftRegion()) {
-      locT = locT - kDrWidth / 2 - kAmWidth / 2;
-    }
-
+    double locC = hit.getLocalC();        // col direction in amplification or drift volume
+    double locR = hit.getLocalR();        // row direction in amplification or drift volume
+    double locT = hit.getLocalT();        // time direction in amplification or drift volume
     const double driftLength = -1 * locT; // The drift length in cm without diffusion
-
     // Patch to take care of TR photons that are absorbed
     // outside the chamber volume. A real fix would actually need
     // a more clever implementation of the TR hit generation
     if (qTotal < 0) {
-      if ((locR < rowEndROC) ||
-          (locR > row0)) {
+      if ((locR < rowEndROC) || (locR > row0)) {
         continue;
       }
-      if ((driftLength < kDrMin) ||
-          (driftLength > kDrMax)) {
+      if ((driftLength < kDrMin) || (driftLength > kDrMax)) {
         continue;
       }
     }
@@ -236,16 +228,16 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       continue;
     }
 
-    double absDriftLength = abs(driftLength); // Normalized drift length
+    double absDriftLength = std::fabs(driftLength); // Normalized drift length
     if (mCommonParam->ExBOn()) {
-      absDriftLength /= TMath::Sqrt(1 / (1 + calExBDetValue * calExBDetValue));
+      absDriftLength /= std::sqrt(1 / (1 + calExBDetValue * calExBDetValue));
     }
 
     float driftVelocity = mCalib->getVDrift(det, colE, rowE); // The drift velocity
     float t0 = mCalib->getT0(det, colE, rowE);                // The T0 velocity
 
     // Loop over all created electrons
-    const int nElectrons = abs(qTotal);
+    const int nElectrons = std::fabs(qTotal);
     for (int el = 0; el < nElectrons; ++el) {
       // Electron attachment
       if (mSimParam->ElAttachOn()) {
@@ -269,7 +261,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       }
       // The electron position after diffusion and ExB in pad coordinates.
       rowE = padPlane->getPadRowNumberROC(locRd);
-      if (rowE < 1) {
+      if (rowE < 0) {
         continue;
       }
       rowOffset = padPlane->getPadRowOffsetROC(rowE, locRd);
@@ -297,7 +289,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
         driftTime = mDriftEstimators[thread].TimeStruct(driftVelocity, 0.5 * kAmWidth - 1.0 * locTd, zz) + hit.GetTime();
       } else {
         // Use constant drift velocity
-        driftTime = abs(locTd) / driftVelocity + hit.GetTime();
+        driftTime = std::fabs(locTd) / driftVelocity + hit.GetTime();
       }
 
       // Apply the gas gain including fluctuations
@@ -321,7 +313,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       // The time bin (always positive), with t0 distortion
       double timeBinIdeal = driftTime * samplingRate + t0;
       // Protection
-      if (abs(timeBinIdeal) > 2 * nTimeTotal) {
+      if (std::fabs(timeBinIdeal) > (2 * nTimeTotal)) {
         timeBinIdeal = 2 * nTimeTotal;
       }
       int timeBinTruncated = ((int)timeBinIdeal);
@@ -329,8 +321,8 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       double timeOffset = ((float)timeBinTruncated + 0.5 - timeBinIdeal) / samplingRate;
       // Sample the time response inside the drift region + additional time bins before and after.
       // The sampling is done always in the middle of the time bin
-      const int firstTimeBin = TMath::Max(timeBinTruncated, 0);
-      const int lastTimeBin = TMath::Min(timeBinTruncated + timeBinTRFend, nTimeTotal);
+      const int firstTimeBin = std::max(timeBinTruncated, 0);
+      const int lastTimeBin = std::min(timeBinTruncated + timeBinTRFend, nTimeTotal);
       // loop over pads first then over timebins for better cache friendliness
       // and less access to adcMapCont
       for (int iPad = 0; iPad < kNpad; iPad++) {
@@ -437,9 +429,10 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont
   int nTimeTotal = kTimeBins; // fDigitsManager->GetDigitsParam()->GetNTimeBins(det);
 
   for (auto& adcMapIter : adcMapCont) {
-    const int det = Digit::getDetectorFromKey(adcMapIter.first);
-    const int row = Digit::getRowFromKey(adcMapIter.first);
-    const int col = Digit::getColFromKey(adcMapIter.first);
+    const auto& key = adcMapIter.first;
+    const int det = Digit::getDetectorFromKey(key);
+    const int row = Digit::getRowFromKey(key);
+    const int col = Digit::getColFromKey(key);
     // halfchamber masking
     int iMcm = (int)(col / 18);               // current group of 18 col pads
     int halfchamberside = (iMcm > 3 ? 1 : 0); // 0=Aside, 1=Bside
@@ -449,8 +442,7 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont
     }
     // Check whether pad is masked
     // Bridged pads are not considered yet!!!
-    if (mCalib->isPadMasked(det, col, row) ||
-        mCalib->isPadNotConnected(det, col, row)) {
+    if (mCalib->isPadMasked(det, col, row) || mCalib->isPadNotConnected(det, col, row)) {
       continue;
     }
 
@@ -459,16 +451,15 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont
       LOG(FATAL) << "Not a valid gain " << padgain << ", " << det << ", " << col << ", " << row;
     }
 
-    int tb = 0; // loop over time bins
-    for (auto& adcArrayVal : adcMapIter.second) {
-      if (++tb > kTimeBins) // avoid accessing the mc label index
-        break;
-      float signalAmp = (float)adcArrayVal; // The signal amplitude
-      signalAmp *= coupling;                // Pad and time coupling
-      signalAmp *= padgain;                 // Gain factors
+    // Loop over the all timebins in the ADC array
+    auto& adcArray = adcMapIter.second;
+    for (int tb = 0; tb < kTimeBins; ++tb) {
+      float signalAmp = (float)adcArray[tb]; // The signal amplitude
+      signalAmp *= coupling;                 // Pad and time coupling
+      signalAmp *= padgain;                  // Gain factors
       // Add the noise, starting from minus ADC baseline in electrons
       signalAmp = std::max((double)drawGaus(mGausRandomRings[thread], signalAmp, mSimParam->GetNoise()), -baselineEl);
-      signalAmp *= convert;  // Convert to mV
+      signalAmp *= convert; // Convert to mV
       signalAmp += baseline; // Add ADC baseline in mV
       // Convert to ADC counts
       // Set the overflow-bit fADCoutRange if the signal is larger than fADCinRange
@@ -476,10 +467,10 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont
       if (signalAmp >= mSimParam->GetADCinRange()) {
         adc = ((ADC_t)mSimParam->GetADCoutRange());
       } else {
-        adc = TMath::Nint(signalAmp * adcConvert);
+        adc = std::lround(signalAmp * adcConvert);
       }
       // update the adc array value
-      adcArrayVal = adc;
+      adcArray[tb] = adc;
     } // loop over timebins
   }   // loop over digits
   return true;

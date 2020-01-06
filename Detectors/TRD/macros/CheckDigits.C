@@ -19,6 +19,7 @@
 
 #include "FairLogger.h"
 #include "TRDBase/Digit.h"
+#include "TRDBase/TRDSimParam.h"
 #endif
 
 void CheckDigits(std::string digifile = "trddigits.root",
@@ -36,7 +37,7 @@ void CheckDigits(std::string digifile = "trddigits.root",
   TH1F* hDet = new TH1F("hDet", ";Detector number;Counts", 504, 0, 539);
   TH1F* hRow = new TH1F("hRow", ";Row number;Counts", 16, 0, 15);
   TH1F* hPad = new TH1F("hPad", ";Pad number;Counts", 144, 0, 143);
-  TH1* hADC = new TH1F("hADC", ";ADC value;Counts", 300, 0, 300);
+  TH1* hADC = new TH1F("hADC", ";ADC value;Counts", 1024, 0, 1023);
 
   LOG(INFO) << nev << " entries found";
   for (int iev = 0; iev < nev; ++iev) {
@@ -50,10 +51,12 @@ void CheckDigits(std::string digifile = "trddigits.root",
       hDet->Fill(det);
       hRow->Fill(row);
       hPad->Fill(pad);
-      int tb = 0;
-      for (const auto& adc : adcs) {
-        if (++tb > 30)
-          break;
+      for (int tb = 0; tb < kTimeBins; ++tb) {
+        ADC_t adc = adcs[tb];
+        if (adc == (ADC_t)TRDSimParam::Instance()->GetADCoutRange()) {
+          LOG(INFO) << "Out of range ADC " << adc;
+          continue;
+        }
         hADC->Fill(adc);
       }
     }
