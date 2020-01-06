@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "MCHDigitizerSpec.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"
@@ -139,7 +140,7 @@ class MCHDPLDigitizerTask
     pc.outputs().snapshot(Output{"MCH", "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
     // we should be only called once; tell DPL that this process is ready to exit
-    pc.services().get<ControlService>().readyToQuit(false);
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     finished = true;
   }
 

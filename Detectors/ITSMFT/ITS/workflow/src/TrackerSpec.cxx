@@ -15,6 +15,7 @@
 #include "TGeoGlobalMagField.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "ITSWorkflow/TrackerSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h"
@@ -147,7 +148,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   }
 
   mState = 2;
-  pc.services().get<ControlService>().readyToQuit(false);
+  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 DataProcessorSpec getTrackerSpec(bool useMC)

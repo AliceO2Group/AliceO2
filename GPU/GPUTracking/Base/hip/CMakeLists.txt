@@ -13,6 +13,11 @@ set(MODULE GPUTrackingHIP)
 set(CMAKE_CXX_COMPILER ${hip_HIPCC_EXECUTABLE})
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+string(REPLACE " -g " " " CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} ")
+string(REPLACE " -g " " " CMAKE_CXX_FLAGS_${CMAKE_BUILT_TYPE} " ${CMAKE_CXX_FLAGS_${CMAKE_BUILT_TYPE}} ")
+string(REPLACE " -g " " " CMAKE_LINK_FLAGS " ${CMAKE_LD_FLAGS} ")
+string(REPLACE " -g " " " CMAKE_LINK_FLAGS_${CMAKE_BUILT_TYPE} " ${CMAKE_LD_FLAGS_${CMAKE_BUILT_TYPE}} ")
+
 if(DEFINED HIP_AMDGPUTARGET)
   set(TMP_TARGET "(GPU Target ${HIP_AMDGPUTARGET})")
 endif()
@@ -25,7 +30,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(
     ${MODULE}
     SOURCES ${SRCS}
-    PUBLIC_LINK_LIBRARIES O2::GPUTracking hip::host hip::device hip::hipcub rocthrust
+    PUBLIC_LINK_LIBRARIES O2::GPUTracking O2::ITStrackingHIP hip::host hip::device hip::hipcub ROCm::rocThrust
     PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src
                                ${CMAKE_SOURCE_DIR}/Detectors/Base/src
     TARGETVARNAME targetName)
@@ -49,6 +54,10 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 
   # Add a library to the project using the specified source files
   add_library_tested(Ali${MODULE} SHARED ${SRCS} G__Ali${MODULE}.cxx)
+  # ROOT Cannot load this library, so we have to remove it from the list
+  list(REMOVE_ITEM ALILIBSTESTED Ali${MODULE})
+  set(ALILIBSTESTED ${ALILIBSTESTED} CACHE INTERNAL "ALILIBSTESTED")
+
   # HIP run-time and driver
   target_link_libraries(Ali${MODULE} PUBLIC AliGPUTracking)
 
@@ -65,13 +74,14 @@ endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   add_definitions(-DGPUCA_GPULIBRARY=HIP)
   add_library(${MODULE} SHARED ${SRCS})
-  target_link_libraries(${MODULE} GPUTracking)
+  target_link_libraries(${MODULE} GPUTracking hip::host hip::device hip::hipcub ROCm::rocThrust)
   set(targetName "${MODULE}")
   install(TARGETS GPUTrackingHIP)
 endif()
 
 if(HIP_AMDGPUTARGET)
   target_link_options(${targetName} PUBLIC --amdgpu-target=${HIP_AMDGPUTARGET})
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --amdgpu-target=${HIP_AMDGPUTARGET}")
 endif()
 
 target_compile_options(${targetName}

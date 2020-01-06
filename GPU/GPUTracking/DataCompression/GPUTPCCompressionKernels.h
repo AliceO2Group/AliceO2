@@ -31,9 +31,13 @@ namespace gpu
 class GPUTPCCompressionKernels : public GPUKernelTemplate
 {
  public:
-  GPUhdi() static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::TPCCompression; }
+  GPUhdi() CONSTEXPR static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::TPCCompression; }
 
-#if defined(GPUCA_BUILD_TPCCOMPRESSION) && !defined(GPUCA_ALIROOT_LIB)
+  enum K : int {
+    step0attached = 0,
+    step1unattached = 1
+  };
+
   struct GPUTPCSharedMemory {
 #if !defined(GPUCA_GPUCODE)
     GPUTPCSharedMemory() : nCount(0)
@@ -45,9 +49,8 @@ class GPUTPCCompressionKernels : public GPUKernelTemplate
 
   template <int iKernel = 0>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& processors);
-#endif
 
- protected:
+ public:
   template <int I>
   class GPUTPCCompressionKernels_Compare
   {

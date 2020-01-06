@@ -1,3 +1,9 @@
+<!-- doxy
+\page refFrameworkCoreANALYSIS Core ANALYSIS
+/doxy -->
+
+##  Core ANALYSIS
+
 This document is WIP and provides an idea of what kind of API to expect from the DPL enabled analysis framework. APIs are neither final nor fully implemented in O2.
 
 # Analysis Task infrastructure on top of DPL
@@ -176,6 +182,31 @@ the `etaphi` object is a functor that will effectively act as a cursor which all
 etaphi(track::Phi(calculatePhi(track), track::Eta(calculateEta(track)));
 ```
 
+### Adding dynamic columns to a data type
+
+Sometimes columns are not backed by actual persisted data, but they are merely
+derived from it. For example you might want to have different representations
+(e.g. spherical, cylindrical) for a given persisten representation. You can
+do that by using the `DECLARE_SOA_DYNAMIC_COLUMN` macro.
+
+```cpp
+namespace point {
+DECLARE_SOA_COLUMN(X, x, float, "fX");
+DECLARE_SOA_COLUMN(Y, y, float, "fY");
+}
+
+DECLARE_SOA_DYNAMIC_COLUMN(R2, r2, [](float x, float y) { return x*x + y+y; });
+
+DECLARE_SOA_TABLE(Point, "MISC", "POINT", X, Y, (R2<X,Y>));
+```
+
+Notice how the dynamic column is defined as a standalone column and binds to X and Y
+only when you attach it as part of a table.
+
+### Executing a finalisation method, post run
+
+Sometimes it's handy to perform an action when all the data has been processed, for example executing a fit on a histogram we filled during the processing. This can be done by implementing the postRun method.
+
 ### Creating histograms
 
 New tables are not the only kind on objects you want to create, but most likely you would like to fill histograms associated to the objects you have calculated.
@@ -270,8 +301,8 @@ struct MyTask : AnalysisTask {
   Partition<Tracks> rightTracks = track::eta >= 0;
 
   void process(Tracks const &tracks) {
-    for (auto& left : leftTracks(filteredTracks)) {
-      for (auto& right : rightTracks(filteredTracks)) {
+    for (auto& left : leftTracks(tracks)) {
+      for (auto& right : rightTracks(tracks)) {
         ...
       }
     }
@@ -299,4 +330,15 @@ struct MyTask : AnalysisTask {
     }
   }
 };
+```
+
+### Possible ideas
+
+We could add a template `<typename C...> reshuffle()` method to the Table class which allows you to reduce the number of columns or attach new dynamic columns. A template wrapper could
+even be used to specify if a given dynamic column should be precalculated (or not). This would come handy to optimize the creation of a RowView, which could bind only the required (dynamic) columns. E.g.:
+
+```cpp
+for (auto twoD : points.reshuffle<point::X, point::Y, Cached<point::R>>()) {
+...
+} 
 ```

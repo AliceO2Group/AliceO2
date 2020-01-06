@@ -10,6 +10,7 @@
 
 #include "TPCDigitizerSpec.h"
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
@@ -85,46 +86,71 @@ class TPCDPLDigitizerTask
     LOG(INFO) << "Initializing TPC digitization";
 
     auto useDistortions = ic.options().get<int>("distortionType");
-    auto gridSizeString = ic.options().get<std::string>("gridSize");
     auto triggeredMode = ic.options().get<bool>("TPCtriggered");
 
-    std::vector<int> gridSize;
-    std::stringstream ss(gridSizeString);
-    while (ss.good()) {
-      std::string substr;
-      getline(ss, substr, ',');
-      gridSize.push_back(std::stoi(substr));
-    }
-    auto inputHistoString = ic.options().get<std::string>("initialSpaceChargeDensity");
-    std::vector<std::string> inputHisto;
-    std::stringstream ssHisto(inputHistoString);
-    while (ssHisto.good()) {
-      std::string substr;
-      getline(ssHisto, substr, ',');
-      inputHisto.push_back(substr);
-    }
     if (useDistortions > 0) {
-      o2::tpc::SpaceCharge::SCDistortionType distortionType = useDistortions == 1 ? o2::tpc::SpaceCharge::SCDistortionType::SCDistortionsRealistic : o2::tpc::SpaceCharge::SCDistortionType::SCDistortionsConstant;
-      std::unique_ptr<TH3> hisSCDensity;
-      if (TString(inputHisto[0].data()).EndsWith(".root") && inputHisto[1].size() != 0) {
-        auto fileSCInput = std::unique_ptr<TFile>(TFile::Open(inputHisto[0].data()));
-        hisSCDensity.reset((TH3*)fileSCInput->Get(inputHisto[1].data()));
-        hisSCDensity->SetDirectory(nullptr);
+      if (useDistortions == 1) {
+        LOG(INFO) << "Using realistic space-charge distortions.";
+      } else {
+        LOG(INFO) << "Using constant space-charge distortions.";
       }
-      if (distortionType == SpaceCharge::SCDistortionType::SCDistortionsConstant) {
-        LOG(INFO) << "TPC: Using constant space-charge distortions.";
-        if (hisSCDensity == nullptr) {
-          LOG(FATAL) << "Constant space-charge distortions require an initial space-charge density histogram. Please provide the path to the root file (O2TPCSCDensityHisFilePath) and the histogram name (O2TPCSCDensityHisName) in your environment variables.";
+      auto readSpaceChargeString = ic.options().get<std::string>("readSpaceCharge");
+      std::vector<std::string> readSpaceCharge;
+      std::stringstream ssSpaceCharge(readSpaceChargeString);
+      while (ssSpaceCharge.good()) {
+        std::string substr;
+        getline(ssSpaceCharge, substr, ',');
+        readSpaceCharge.push_back(substr);
+      }
+      if (readSpaceCharge[0].size() != 0) { // use pre-calculated space-charge object
+        std::unique_ptr<o2::tpc::SpaceCharge> spaceCharge;
+        if (!gSystem->AccessPathName(readSpaceCharge[0].data())) {
+          auto fileSC = std::unique_ptr<TFile>(TFile::Open(readSpaceCharge[0].data()));
+          if (fileSC->FindKey(readSpaceCharge[1].data())) {
+            spaceCharge.reset((o2::tpc::SpaceCharge*)fileSC->Get(readSpaceCharge[1].data()));
+          }
+        }
+        if (spaceCharge.get() != nullptr) {
+          LOG(INFO) << "Using pre-calculated space-charge object: " << readSpaceCharge[1].data();
+          mDigitizer.setUseSCDistortions(spaceCharge.release());
+        } else {
+          LOG(ERROR) << "Space-charge object or file not found!";
+        }
+      } else { // create new space-charge object either with empty TPC or an initial space-charge density provided by histogram
+        o2::tpc::SpaceCharge::SCDistortionType distortionType = useDistortions == 2 ? o2::tpc::SpaceCharge::SCDistortionType::SCDistortionsConstant : o2::tpc::SpaceCharge::SCDistortionType::SCDistortionsRealistic;
+        auto gridSizeString = ic.options().get<std::string>("gridSize");
+        std::vector<int> gridSize;
+        std::stringstream ss(gridSizeString);
+        while (ss.good()) {
+          std::string substr;
+          getline(ss, substr, ',');
+          gridSize.push_back(std::stoi(substr));
+        }
+        auto inputHistoString = ic.options().get<std::string>("initialSpaceChargeDensity");
+        std::vector<std::string> inputHisto;
+        std::stringstream ssHisto(inputHistoString);
+        while (ssHisto.good()) {
+          std::string substr;
+          getline(ssHisto, substr, ',');
+          inputHisto.push_back(substr);
+        }
+        std::unique_ptr<TH3> hisSCDensity;
+        if (!gSystem->AccessPathName(inputHisto[0].data())) {
+          auto fileSCInput = std::unique_ptr<TFile>(TFile::Open(inputHisto[0].data()));
+          if (fileSCInput->FindKey(inputHisto[1].data())) {
+            hisSCDensity.reset((TH3*)fileSCInput->Get(inputHisto[1].data()));
+            hisSCDensity->SetDirectory(nullptr);
+          }
+        }
+        if (hisSCDensity.get() != nullptr) {
+          LOG(INFO) << "TPC: Providing initial space-charge density histogram: " << hisSCDensity->GetName();
+          mDigitizer.setUseSCDistortions(distortionType, hisSCDensity.get(), gridSize[0], gridSize[1], gridSize[2]);
+        } else {
+          if (distortionType == SpaceCharge::SCDistortionType::SCDistortionsConstant) {
+            LOG(ERROR) << "Input space-charge density histogram or file not found!";
+          }
         }
       }
-      if (distortionType == SpaceCharge::SCDistortionType::SCDistortionsRealistic) {
-        LOG(INFO) << "TPC: Using realistic space-charge distortions.";
-      }
-      if (hisSCDensity) {
-        LOG(INFO) << "TPC: Providing initial space-charge density histogram: " << hisSCDensity->GetName();
-      }
-
-      mDigitizer.enableSCDistortions(distortionType, hisSCDensity.get(), gridSize[0], gridSize[1], gridSize[2]);
     }
     mDigitizer.setContinuousReadout(!triggeredMode);
 
@@ -203,6 +229,15 @@ class TPCDPLDigitizerTask
                                    header},
                             const_cast<std::vector<o2::tpc::Digit>&>(digits));
     };
+    // lambda that snapshots the common mode vector to be sent out; prepares and attaches header with sector information
+    auto snapshotCommonMode = [this, sector, &pc, activeSectors](std::vector<o2::tpc::CommonMode> const& commonMode) {
+      o2::tpc::TPCSectorHeader header{sector};
+      header.activeSectors = activeSectors;
+      // note that snapshoting only works with non-const references (to be fixed?)
+      pc.outputs().snapshot(Output{"TPC", "COMMONMODE", static_cast<SubSpecificationType>(mChannel), Lifetime::Timeframe,
+                                   header},
+                            const_cast<std::vector<o2::tpc::CommonMode>&>(commonMode));
+    };
     // lambda that snapshots labels to be sent out; prepares and attaches header with sector information
     auto snapshotLabels = [this, &sector, &pc, activeSectors](o2::dataformats::MCTruthContainer<o2::MCCompLabel> const& labels) {
       o2::tpc::TPCSectorHeader header{sector};
@@ -223,21 +258,24 @@ class TPCDPLDigitizerTask
 
     std::vector<o2::tpc::Digit> digitsAccum;                       // accumulator for digits
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum; // timeframe accumulator for labels
+    std::vector<CommonMode> commonModeAccum;
     std::vector<DigiGroupRef> eventAccum;
 
     // no more tasks can be marked with a negative sector
     if (sector < 0) {
       digitsAccum.clear();
       labelAccum.clear();
+      commonModeAccum.clear();
       std::vector<DigiGroupRef> evAccDummy;
 
       snapshotEvents(evAccDummy);
       snapshotDigits(digitsAccum);
+      snapshotCommonMode(commonModeAccum);
       snapshotLabels(labelAccum);
 
       if (sector == -1) {
         LOG(INFO) << "TPC: Processing done - exit through the gift shop...";
-        pc.services().get<ControlService>().readyToQuit(false);
+        pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
         finished = true;
       }
       return;
@@ -248,14 +286,16 @@ class TPCDPLDigitizerTask
 
     auto& eventParts = context->getEventParts();
 
-    auto flushDigitsAndLabels = [this, &digitsAccum, &labelAccum](bool finalFlush = false) {
+    auto flushDigitsAndLabels = [this, &digitsAccum, &labelAccum, &commonModeAccum](bool finalFlush = false) {
       // flush previous buffer
       mDigits.clear();
       mLabels.clear();
-      mDigitizer.flush(mDigits, mLabels, finalFlush);
-      LOG(INFO) << "TPC: Flushed " << mDigits.size() << " digits and " << mLabels.getNElements() << " labels";
+      mCommonMode.clear();
+      mDigitizer.flush(mDigits, mLabels, mCommonMode, finalFlush);
+      LOG(INFO) << "TPC: Flushed " << mDigits.size() << " digits, " << mLabels.getNElements() << " labels and " << mCommonMode.size() << " common mode entries";
       std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(digitsAccum));
       labelAccum.mergeAtBack(mLabels);
+      std::copy(mCommonMode.begin(), mCommonMode.end(), std::back_inserter(commonModeAccum));
     };
 
     static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
@@ -309,6 +349,7 @@ class TPCDPLDigitizerTask
     // send out to next stage
     snapshotEvents(eventAccum);
     snapshotDigits(digitsAccum);
+    snapshotCommonMode(commonModeAccum);
     snapshotLabels(labelAccum);
 
     timer.Stop();
@@ -320,6 +361,7 @@ class TPCDPLDigitizerTask
   std::vector<TChain*> mSimChains;
   std::vector<o2::tpc::Digit> mDigits;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels;
+  std::vector<o2::tpc::CommonMode> mCommonMode;
   bool mWriteGRP;
   int mChannel;
 };
@@ -338,6 +380,7 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP)
   outputs.emplace_back("TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   outputs.emplace_back("TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   outputs.emplace_back("TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  outputs.emplace_back("TPC", "COMMONMODE", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   if (writeGRP) {
     outputs.emplace_back("TPC", "ROMode", 0, Lifetime::Timeframe);
     LOG(INFO) << "TPC: Channel " << channel << " will supply ROMode";
@@ -351,8 +394,9 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP)
     Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
             {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
             {"distortionType", VariantType::Int, 0, {"Distortion type to be used. 0 = no distortions (default), 1 = realistic distortions (not implemented yet), 2 = constant distortions"}},
-            {"gridSize", VariantType::String, "33,180,33", {"Comma separated list of number of bins in z, phi and r for distortion lookup tables (z and r can only be 2**N + 1, N=1,2,3,...)"}},
+            {"gridSize", VariantType::String, "129,144,129", {"Comma separated list of number of bins in (r,phi,z) for distortion lookup tables (r and z can only be 2**N + 1, N=1,2,3,...)"}},
             {"initialSpaceChargeDensity", VariantType::String, "", {"Path to root file containing TH3 with initial space-charge density and name of the TH3 (comma separated)"}},
+            {"readSpaceCharge", VariantType::String, "", {"Path to root file containing pre-calculated space-charge object and name of the object (comma separated)"}},
             {"TPCtriggered", VariantType::Bool, false, {"Impose triggered RO mode (default: continuous)"}}}};
 }
 

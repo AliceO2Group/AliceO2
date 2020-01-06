@@ -31,12 +31,15 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
   InputSpec spec2{"y", "ITS", "CLUSTERS", 0, Lifetime::Timeframe};
   InputSpec spec3{"z", "TST", "EMPTY", 0, Lifetime::Timeframe};
 
-  auto createRoute = [](const char* source, InputSpec& spec) {
+  size_t i = 0;
+  auto createRoute = [&i](const char* source, InputSpec& spec) {
     return InputRoute{
       spec,
+      i++,
       source};
   };
 
+  /// FIXME: keep it simple and simply use the constructor...
   std::vector<InputRoute> schema = {
     createRoute("x_source", spec1),
     createRoute("y_source", spec2),
@@ -125,3 +128,9 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
   BOOST_CHECK_EQUAL(record.get<int>("x"), 1);
   BOOST_CHECK_EQUAL(record.get<int>("x"), 1);
 }
+
+// TODO:
+// - test all `get` implementations
+// - create a list of supported types and check that the API compiles
+// - test return value optimization for vectors, unique_ptr
+// - check objects which work directly on the payload for zero-copy

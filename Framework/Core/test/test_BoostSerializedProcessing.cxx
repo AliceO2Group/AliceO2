@@ -116,7 +116,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
             assert((test.fBar4 == check[i].fBar4)); // fBar4 wrong
             i++;
           }
-          ctx.services().get<ControlService>().readyToQuit(true);
+          ctx.services().get<ControlService>().readyToQuit(QuitRequest::All);
         } //
       }   //
     }     //

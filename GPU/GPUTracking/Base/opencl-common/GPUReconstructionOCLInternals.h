@@ -25,6 +25,7 @@
 
 namespace GPUCA_NAMESPACE::gpu
 {
+
 static const char* opencl_error_string(int errorcode)
 {
   switch (errorcode) {
@@ -181,19 +182,75 @@ struct GPUReconstructionOCLInternals {
   std::vector<std::pair<cl_kernel, std::string>> kernels;
 };
 
-template <class T, int I>
-inline int GPUReconstructionOCL::FindKernel(int num)
+template <typename K, typename... Args>
+int GPUReconstructionOCL::runKernelBackendCommon(krnlSetup& _xyz, K& k, const Args&... args)
 {
-  std::string name("GPUTPCProcess_");
-  if (num >= 1) {
-    name += "Multi_";
+  auto& x = _xyz.x;
+  auto& y = _xyz.y;
+  auto& z = _xyz.z;
+  if (y.num <= 1) {
+    if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, y.start, args...)) {
+      return 1;
+    }
+  } else {
+    if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, y.start, y.num, args...)) {
+      return 1;
+    }
   }
-  name += typeid(T).name();
-  name += std::to_string(I);
+
+  cl_event ev;
+  cl_event* evr;
+  bool tmpEvent = false;
+  if (z.ev == nullptr && mDeviceProcessingSettings.deviceTimers) {
+    evr = &ev;
+    tmpEvent = true;
+  } else {
+    evr = (cl_event*)z.ev;
+  }
+  int retVal = clExecuteKernelA(mInternals->command_queue[x.stream], k, x.nThreads, x.nThreads * x.nBlocks, evr, (cl_event*)z.evList, z.nEvents);
+  if (mDeviceProcessingSettings.deviceTimers) {
+    cl_ulong time_start, time_end;
+    GPUFailedMsg(clWaitForEvents(1, evr));
+    GPUFailedMsg(clGetEventProfilingInfo(*evr, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL));
+    GPUFailedMsg(clGetEventProfilingInfo(*evr, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL));
+    _xyz.t = (time_end - time_start) * 1.e-9;
+    if (tmpEvent) {
+      GPUFailedMsg(clReleaseEvent(ev));
+    }
+  }
+  return retVal;
+}
+
+template <class T, int I>
+int GPUReconstructionOCL::AddKernel(bool multi)
+{
+  std::string name(GetKernelName<T, I>());
+  if (multi) {
+    name += "_multi";
+  }
+  std::string kname("krnl_" + name);
+
+  cl_int ocl_error;
+  cl_kernel krnl = clCreateKernel(mInternals->program, name.c_str(), &ocl_error);
+  if (GPUFailedMsgI(ocl_error)) {
+    GPUError("Error creating OPENCL Kernel: %s", name.c_str());
+    return 1;
+  }
+  mInternals->kernels.emplace_back(krnl, name);
+  return 0;
+}
+
+template <class T, int I>
+inline unsigned int GPUReconstructionOCL::FindKernel(int num)
+{
+  std::string name(GetKernelName<T, I>());
+  if (num > 1) {
+    name += "_multi";
+  }
 
   for (unsigned int k = 0; k < mInternals->kernels.size(); k++) {
     if (mInternals->kernels[k].second == name) {
-      return ((int)k);
+      return (k);
     }
   }
   GPUError("Could not find OpenCL kernel %s", name.c_str());

@@ -10,6 +10,7 @@
 #include <fstream>
 #include <iostream>
 #include <cstring>
+#include <FairLogger.h>
 #include "EMCALReconstruction/RawBuffer.h"
 
 using namespace o2::emcal;
@@ -30,13 +31,29 @@ void RawBuffer::readFromStream(std::istream& in, uint32_t payloadsize)
   while (nbyte < payloadsize) {
     in.read(address, sizeof(word));
     nbyte += sizeof(word);
-    if ((word & 0xFFF) == 0x082) {
+    if ((word & 0xFFFFFF) == 0x1d3082) {
+      LOG(ERROR) << "Found stop word" << std::endl;
       // Termination word
       // should normally not be decoded in case the payload size
       // is determined correctly
       break;
     }
     mDataWords[mNDataWords++] = word;
+  }
+}
+
+void RawBuffer::readFromMemoryBuffer(const gsl::span<const char> rawmemory)
+{
+  flush();
+  auto address = reinterpret_cast<const uint32_t*>(rawmemory.data());
+  for (auto iword = 0; iword < rawmemory.size() / sizeof(uint32_t); iword++) {
+    if ((address[iword] & 0xFFF) == 0x082) {
+      // Termination word
+      // should normally not be decoded in case the payload size
+      // is determined correctly
+      break;
+    }
+    mDataWords[mNDataWords++] = address[iword];
   }
 }
 

@@ -84,3 +84,10 @@ o2_add_test_root_macro(run_buildTopoDict_its.C
                                              O2::ITSMFTSimulation
                                              O2::SimulationDataFormat
                        LABELS its)
+
+o2_add_test_root_macro(run_digi2rawVarPage_its.C
+                       PUBLIC_LINK_LIBRARIES O2::ITSMFTReconstruction
+                                             O2::DataFormatsITSMFT
+                                             O2::ITSMFTBase
+                                             O2::ITSMFTSimulation
+                       LABELS its)

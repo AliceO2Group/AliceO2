@@ -77,7 +77,7 @@ LOGFILE=${DICTIONARY_FILE}.log
   -rml ${ROOTMAP_LIBRARY_NAME} \
   ${INCLUDE_DIRS//;/ } \
   ${COMPILE_DEFINITIONS//;/ } \
-  ${HEADERS//;/ } >${LOGFILE} 2>&1
+  ${HEADERS//;/ } > ${LOGFILE} 2>&1 || cat ${LOGFILE} >&2
 
 MSG="Warning: Unused class rule"
 if [[ -s ${LOGFILE} ]]; then

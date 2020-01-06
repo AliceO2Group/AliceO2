@@ -29,6 +29,7 @@
 #ifndef ALICEO2_ITSMFT_TOPOLOGYDICTIONARY_H
 #define ALICEO2_ITSMFT_TOPOLOGYDICTIONARY_H
 #include "DataFormatsITSMFT/ClusterPattern.h"
+#include "Framework/Logger.h"
 #include <fstream>
 #include <string>
 #include <unordered_map>
@@ -118,7 +119,7 @@ class TopologyDictionary
 
  private:
   std::unordered_map<unsigned long, int> mFinalMap; ///< Map of pair <hash, position in mVectorOfGroupIDs>
-  int mSmallTopologiesLUT[8 * 255];                 ///< Look-Up Table for the topologies with 1-byte linearised matrix
+  int mSmallTopologiesLUT[8 * 255 + 1];             ///< Look-Up Table for the topologies with 1-byte linearised matrix
   std::vector<GroupStruct> mVectorOfGroupIDs;       ///< Vector of topologies and groups
 
   ClassDefNV(TopologyDictionary, 3);

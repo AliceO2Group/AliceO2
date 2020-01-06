@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file DataReaderITS.h
-/// \brief VSD specific reading from file(s) (Visualisation Summary Data)
+/// \brief reading from file(s)
 /// \author julian.myrcha@cern.ch
 /// \author p.nowakowski@cern.ch
 

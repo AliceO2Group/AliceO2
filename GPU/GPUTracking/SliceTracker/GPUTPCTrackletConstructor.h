@@ -33,6 +33,11 @@ class GPUTPCTracker;
 class GPUTPCTrackletConstructor
 {
  public:
+  enum K {
+    singleSlice = 0,
+    allSlices = 1
+  };
+
   class GPUTPCThreadMemory
   {
     friend class GPUTPCTrackletConstructor; //! friend class
@@ -112,7 +117,7 @@ class GPUTPCTrackletConstructor
 #endif // GPUCA_GPUCODE
 
   typedef GPUconstantref() MEM_GLOBAL(GPUTPCTracker) processorType;
-  GPUhdi() static GPUDataTypes::RecoStep GetRecoStep() { return GPUCA_RECO_STEP::TPCSliceTracking; }
+  GPUhdi() CONSTEXPR static GPUDataTypes::RecoStep GetRecoStep() { return GPUCA_RECO_STEP::TPCSliceTracking; }
   MEM_TEMPLATE()
   GPUhdi() static processorType* Processor(MEM_TYPE(GPUConstantMem) & processors)
   {
@@ -121,6 +126,11 @@ class GPUTPCTrackletConstructor
   template <int iKernel = 0>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & smem, processorType& tracker);
 };
+
+class GPUTPCGlobalTracking
+{
+};
+
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

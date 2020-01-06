@@ -25,7 +25,9 @@ class HighResTimer
   void ResetStart();
   double GetElapsedTime();
   double GetCurrentElapsedTime(bool reset = false);
+  void StopAndStart(HighResTimer& startTimer);
   int IsRunning() { return running; }
+  void AddTime(double t);
 
  private:
   double ElapsedTime = 0.;

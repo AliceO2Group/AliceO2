@@ -14,6 +14,7 @@
 
 #include "TTree.h"
 
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "FITWorkflow/FT0RecPointReaderSpec.h"
 
@@ -70,7 +71,7 @@ void RecPointReader::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, *mRecPoints);
 
   mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(false);
+  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 DataProcessorSpec getFT0RecPointReaderSpec(bool useMC)

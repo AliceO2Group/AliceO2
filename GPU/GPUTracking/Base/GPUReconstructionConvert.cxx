@@ -47,7 +47,7 @@ void GPUReconstructionConvert::ConvertNativeToClusterData(o2::tpc::ClusterNative
         cout.y = y;
         cout.z = z;
         cout.row = j;
-        cout.amp = cin.qMax;
+        cout.amp = cin.qTot;
         cout.flags = cin.getFlags();
         cout.id = offset + k;
         nClSlice++;
@@ -88,5 +88,24 @@ void GPUReconstructionConvert::ConvertRun2RawToNative(o2::tpc::ClusterNativeAcce
       c.qTot = org.GetCharge();
     }
   }
+#endif
+}
+
+int GPUReconstructionConvert::GetMaxTimeBin(const ClusterNativeAccess& native)
+{
+#ifdef HAVE_O2HEADERS
+  float retVal = 0;
+  for (unsigned int i = 0; i < NSLICES; i++) {
+    for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
+      for (unsigned int k = 0; k < native.nClusters[i][j]; k++) {
+        if (native.clusters[i][j][k].getTime() > retVal) {
+          retVal = native.clusters[i][j][k].getTime();
+        }
+      }
+    }
+  }
+  return ceil(retVal);
+#else
+  return 0;
 #endif
 }

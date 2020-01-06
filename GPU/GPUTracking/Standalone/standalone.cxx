@@ -14,6 +14,7 @@
 #include "utils/qconfig.h"
 #include "GPUReconstruction.h"
 #include "GPUReconstructionTimeframe.h"
+#include "GPUReconstructionConvert.h"
 #include "GPUChainTracking.h"
 #include "GPUTPCDef.h"
 #include "GPUQA.h"
@@ -277,6 +278,8 @@ int SetupReconstruction()
   recSet.SearchWindowDZDR = configStandalone.dzdr;
   recSet.GlobalTracking = configStandalone.configRec.globalTracking;
   recSet.DisableRefitAttachment = configStandalone.configRec.disableRefitAttachment;
+  recSet.ForceEarlyTPCTransform = configStandalone.configRec.ForceEarlyTPCTransform;
+  recSet.fwdTPCDigitsAsClusters = configStandalone.configRec.fwdTPCDigitsAsClusters;
   if (configStandalone.referenceX < 500.) {
     recSet.TrackReferenceX = configStandalone.referenceX;
   }
@@ -287,6 +290,7 @@ int SetupReconstruction()
   devProc.deviceNum = configStandalone.cudaDevice;
   devProc.forceMemoryPoolSize = configStandalone.forceMemorySize;
   devProc.debugLevel = configStandalone.DebugLevel;
+  devProc.deviceTimers = configStandalone.DeviceTiming;
   devProc.runQA = configStandalone.qa;
   devProc.runCompressionStatistics = configStandalone.compressionStat;
   if (configStandalone.eventDisplay) {
@@ -356,16 +360,25 @@ int SetupReconstruction()
     steps.steps.setBits(GPUReconstruction::RecoStep::TRDTracking, false);
   }
   steps.inputs.set(GPUDataTypes::InOutType::TPCClusters, GPUDataTypes::InOutType::TRDTracklets);
-  steps.outputs.set(GPUDataTypes::InOutType::TPCSectorTracks);
-  steps.outputs.setBits(GPUDataTypes::InOutType::TPCMergedTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TPCMerging));
-  steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, steps.steps.isSet(GPUReconstruction::RecoStep::TPCCompression));
-  steps.outputs.setBits(GPUDataTypes::InOutType::TRDTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TRDTracking));
+  if (ev.needsClusterer) {
+    steps.inputs.setBits(GPUDataTypes::InOutType::TPCRaw, true);
+    steps.inputs.setBits(GPUDataTypes::InOutType::TPCClusters, false);
+  } else {
+    steps.steps.setBits(GPUReconstruction::RecoStep::TPCClusterFinding, false);
+  }
+
   if (configStandalone.configProc.recoSteps >= 0) {
     steps.steps &= configStandalone.configProc.recoSteps;
   }
   if (configStandalone.configProc.recoStepsGPU >= 0) {
     steps.stepsGPUMask &= configStandalone.configProc.recoStepsGPU;
   }
+
+  steps.outputs.clear();
+  steps.outputs.setBits(GPUDataTypes::InOutType::TPCSectorTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TPCSliceTracking));
+  steps.outputs.setBits(GPUDataTypes::InOutType::TPCMergedTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TPCMerging));
+  steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, steps.steps.isSet(GPUReconstruction::RecoStep::TPCCompression));
+  steps.outputs.setBits(GPUDataTypes::InOutType::TRDTracks, steps.steps.isSet(GPUReconstruction::RecoStep::TRDTracking));
 
   rec->SetSettings(&ev, &recSet, &devProc, &steps);
   if (rec->Init()) {
@@ -464,6 +477,7 @@ int main(int argc, char** argv)
 
     for (int j2 = 0; j2 < configStandalone.runs2; j2++) {
       if (configStandalone.configQA.inputHistogramsOnly) {
+        chainTracking->ForceInitQA();
         break;
       }
       if (configStandalone.runs2 > 1) {
@@ -506,6 +520,16 @@ int main(int argc, char** argv)
           }
         }
 
+        if (configStandalone.overrideMaxTimebin && chainTracking->mIOPtrs.clustersNative) {
+          GPUSettingsEvent ev = rec->GetEventSettings();
+          ev.continuousMaxTimeBin = GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
+          rec->UpdateEventSettings(&ev);
+        }
+        if (!rec->GetParam().earlyTpcTransform && chainTracking->mIOPtrs.clustersNative == nullptr && chainTracking->mIOPtrs.tpcPackedDigits == nullptr) {
+          printf("Need cluster native data for on-the-fly TPC transform\n");
+          goto breakrun;
+        }
+
         printf("Loading time: %'d us\n", (int)(1000000 * timerLoad.GetCurrentElapsedTime()));
 
         printf("Processing Event %d\n", iEvent);
@@ -516,12 +540,12 @@ int main(int argc, char** argv)
           if (configStandalone.outputcontrolmem) {
             rec->SetOutputControl(outputmemory.get(), configStandalone.outputcontrolmem);
           }
-          rec->SetResetTimers(j1 <= configStandalone.runsInit);
+          rec->SetResetTimers(j1 < configStandalone.runsInit);
 
           int tmpRetVal = rec->RunChains();
 
           if (tmpRetVal == 0 || tmpRetVal == 2) {
-            int nTracks = 0, nClusters = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0;
+            int nTracks = 0, nClusters = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0, nAdjacentClusters = 0;
             for (int k = 0; k < chainTracking->GetTPCMerger().NOutputTracks(); k++) {
               if (chainTracking->GetTPCMerger().OutputTracks()[k].OK()) {
                 nTracks++;
@@ -529,8 +553,15 @@ int main(int argc, char** argv)
                 nAttachedClustersFitted += chainTracking->GetTPCMerger().OutputTracks()[k].NClustersFitted();
               }
             }
+            for (int k = 0; k < chainTracking->GetTPCMerger().NMaxClusters(); k++) {
+              int attach = chainTracking->GetTPCMerger().ClusterAttachment()[k];
+              if (attach & GPUTPCGMMerger::attachFlagMask) {
+                nAdjacentClusters++;
+              }
+            }
+
             nClusters = chainTracking->GetTPCMerger().NClusters();
-            printf("Output Tracks: %d (%d/%d attached clusters)\n", nTracks, nAttachedClusters, nAttachedClustersFitted);
+            printf("Output Tracks: %d (%d / %d / %d / %d clusters (fitted / attached / adjacent / total))\n", nTracks, nAttachedClustersFitted, nAttachedClusters, nAdjacentClusters, chainTracking->GetTPCMerger().NMaxClusters());
             if (j1 == 0) {
               nTracksTotal += nTracks;
               nClustersTotal += nClusters;

@@ -371,16 +371,15 @@ template <typename T>
 bool LTMUnbinnedSig(const std::vector<T>& data, std::vector<size_t>& index, std::array<float, 7>& params, float fracKeepMin, float sigTgt, bool sorted = false)
 {
   int nPoints = data.size();
-  std::vector<float> w(2 * nPoints);
+  std::vector<double> wx(nPoints);
+  std::vector<double> wx2(nPoints);
 
   if (!sorted) {
     // sort in increasing order
     SortData(data, index);
   } else {
     // array is already sorted
-    for (int i = 0; i < nPoints; ++i) {
-      index[i] = i;
-    }
+    std::iota(index.begin(), index.end(), 0);
   }
   // build cumulants
   double sum1 = 0.0;
@@ -389,8 +388,8 @@ bool LTMUnbinnedSig(const std::vector<T>& data, std::vector<size_t>& index, std:
     double x = data[index[i]];
     sum1 += x;
     sum2 += x * x;
-    w[i] = sum1;
-    w[i + nPoints] = sum2;
+    wx[i] = sum1;
+    wx2[i] = sum2;
   }
   int keepMax = nPoints;
   int keepMin = fracKeepMin * nPoints;
@@ -400,7 +399,7 @@ bool LTMUnbinnedSig(const std::vector<T>& data, std::vector<size_t>& index, std:
   float sigTgt2 = sigTgt * sigTgt;
   //
   while (true) {
-    double maxRMS = sum2 + 1e6;
+    double maxRMS = wx2.back() + 1e6;
     int keepN = (keepMax + keepMin) / 2;
     if (keepN < 2) {
       return false;
@@ -409,8 +408,8 @@ bool LTMUnbinnedSig(const std::vector<T>& data, std::vector<size_t>& index, std:
     int limI = nPoints - keepN + 1;
     for (int i = 0; i < limI; ++i) {
       const int limJ = i + keepN - 1;
-      sum1 = w[limJ] - (i ? w[i - 1] : 0.);
-      sum2 = w[limJ + nPoints] - (i ? w[nPoints + i - 1] : 0.);
+      sum1 = wx[limJ] - (i ? wx[i - 1] : 0.);
+      sum2 = wx2[limJ] - (i ? wx2[i - 1] : 0.);
       const double mean = sum1 / keepN;
       const double rms2 = sum2 / keepN - mean * mean;
       if (rms2 > maxRMS) {

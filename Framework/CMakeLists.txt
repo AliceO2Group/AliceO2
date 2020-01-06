@@ -8,17 +8,15 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-#add_subdirectory(Logger) #Included at top level due to depency order
+add_subdirectory(Logger)
 
 add_subdirectory(Foundation)
-
-add_subdirectory(DebugGUI)
 
 add_subdirectory(Core)
 
 add_subdirectory(Utils)
 
-# add_subdirectory(TestWorkflows)
+add_subdirectory(TestWorkflows) 
 
 add_subdirectory(AnalysisTutorial)
 

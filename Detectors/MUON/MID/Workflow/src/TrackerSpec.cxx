@@ -15,12 +15,15 @@
 
 #include "MIDWorkflow/TrackerSpec.h"
 
+#include <chrono>
 #include "Framework/DataRefUtils.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "Framework/ControlService.h"
+#include "Framework/Logger.h"
 #include "Framework/Output.h"
 #include "Framework/Task.h"
 #include "DataFormatsMID/Cluster3D.h"
 #include "DataFormatsMID/Track.h"
-#include "MIDSimulation/Geometry.h"
 #include "MIDTracking/Tracker.h"
 #include "DetectorsBase/GeometryManager.h"
 
@@ -33,14 +36,12 @@ namespace mid
 class TrackerDeviceDPL
 {
  public:
-  explicit TrackerDeviceDPL(const char* inputBinding) : mInputBinding(inputBinding), mTracker(nullptr){};
-  ~TrackerDeviceDPL() = default;
-
   void init(o2::framework::InitContext& ic)
   {
 
+    auto geoFilename = ic.options().get<std::string>("geometry-filename");
     if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry();
+      o2::base::GeometryManager::loadGeometry(geoFilename);
     }
 
     mTracker = std::make_unique<Tracker>(createTransformationFromManager(gGeoManager));
@@ -48,45 +49,67 @@ class TrackerDeviceDPL
     if (!mTracker->init()) {
       LOG(ERROR) << "Initialization of MID tracker device failed";
     }
+
+    auto stop = [this]() {
+      LOG(INFO) << "Capacities: ROFRecords: " << mTracker->getTrackROFRecords().capacity() << "  tracks: " << mTracker->getTracks().capacity() << "  clusters: " << mTracker->getClusters().capacity();
+      double scaleFactor = 1.e6 / mNROFs;
+      LOG(INFO) << "Processing time / " << mNROFs << " ROFs: full: " << mTimer.count() * scaleFactor << " us  tracking: " << mTimerAlgo.count() * scaleFactor << " us";
+    };
+    ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);
   }
 
   void run(o2::framework::ProcessingContext& pc)
   {
-    auto msg = pc.inputs().get(mInputBinding.c_str());
+    auto tStart = std::chrono::high_resolution_clock::now();
+
+    auto msg = pc.inputs().get("mid_clusters");
     gsl::span<const Cluster2D> clusters = of::DataRefUtils::as<const Cluster2D>(msg);
 
-    mTracker->process(clusters);
+    auto msgROF = pc.inputs().get("mid_clusters_rof");
+    gsl::span<const ROFRecord> inROFRecords = of::DataRefUtils::as<const ROFRecord>(msgROF);
+
+    auto tAlgoStart = std::chrono::high_resolution_clock::now();
+    mTracker->process(clusters, inROFRecords);
+    mTimerAlgo += std::chrono::high_resolution_clock::now() - tAlgoStart;
 
     pc.outputs().snapshot(of::Output{"MID", "TRACKS", 0, of::Lifetime::Timeframe}, mTracker->getTracks());
-    LOG(INFO) << "Sent " << mTracker->getTracks().size() << " tracks.";
-
+    LOG(DEBUG) << "Sent " << mTracker->getTracks().size() << " tracks.";
     pc.outputs().snapshot(of::Output{"MID", "TRACKCLUSTERS", 0, of::Lifetime::Timeframe}, mTracker->getClusters());
-    LOG(INFO) << "Sent " << mTracker->getClusters().size() << " track clusters.";
+    LOG(DEBUG) << "Sent " << mTracker->getClusters().size() << " track clusters.";
+
+    pc.outputs().snapshot(of::Output{"MID", "TRACKSROF", 0, of::Lifetime::Timeframe}, mTracker->getTrackROFRecords());
+    LOG(DEBUG) << "Sent " << mTracker->getTrackROFRecords().size() << " ROFs.";
+    pc.outputs().snapshot(of::Output{"MID", "TRCLUSROF", 0, of::Lifetime::Timeframe}, mTracker->getClusterROFRecords());
+    LOG(DEBUG) << "Sent " << mTracker->getClusterROFRecords().size() << " ROFs.";
+
+    mTimer += std::chrono::high_resolution_clock::now() - tStart;
+    mNROFs += inROFRecords.size();
   }
 
  private:
-  std::string mInputBinding;
-  std::unique_ptr<Tracker> mTracker = nullptr;
+  std::unique_ptr<Tracker> mTracker{nullptr};
+  std::chrono::duration<double> mTimer{0};     ///< full timer
+  std::chrono::duration<double> mTimerAlgo{0}; ///< algorithm timer
+  unsigned int mNROFs{0};                      /// Total number of processed ROFs
 };
 
-framework::DataProcessorSpec getTrackerSpec(bool useMC)
+framework::DataProcessorSpec getTrackerSpec()
 {
-  std::string inputBinding = "mid_clusters";
+  std::vector<of::InputSpec> inputSpecs{of::InputSpec{"mid_clusters", "MID", "CLUSTERS"}, of::InputSpec{"mid_clusters_rof", "MID", "CLUSTERSROF"}};
 
-  std::vector<of::InputSpec> inputSpecs;
-  if (useMC) {
-    inputSpecs.emplace_back(of::InputSpec{inputBinding, "MID", "CLUSTERS_DATA"});
-  } else {
-    inputSpecs.emplace_back(of::InputSpec{inputBinding, "MID", "CLUSTERS"});
-  }
-
-  std::vector<of::OutputSpec> outputSpecs{of::OutputSpec{"MID", "TRACKS"}, of::OutputSpec{"MID", "TRACKCLUSTERS"}};
+  std::vector<of::OutputSpec> outputSpecs{
+    of::OutputSpec{"MID", "TRACKS"},
+    of::OutputSpec{"MID", "TRACKCLUSTERS"},
+    of::OutputSpec{"MID", "TRACKSROF"},
+    of::OutputSpec{"MID", "TRCLUSROF"}};
 
   return of::DataProcessorSpec{
-    "Tracker",
+    "MIDTracker",
     {inputSpecs},
     {outputSpecs},
-    of::adaptFromTask<o2::mid::TrackerDeviceDPL>(inputBinding.c_str())};
+    of::adaptFromTask<o2::mid::TrackerDeviceDPL>(),
+    of::Options{
+      {"geometry-filename", of::VariantType::String, "O2geometry.root", {"Name of the geometry file"}}}};
 }
 } // namespace mid
 } // namespace o2

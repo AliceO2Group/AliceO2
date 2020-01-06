@@ -48,8 +48,13 @@ namespace tpc
  * Not for permanent storage.
  */
 struct ClusterNative {
-  static constexpr int scaleTimePacked =
-    64;                                           //< ~50 is needed for 0.1mm precision, but leads to float rounding artifacts around 20ms
+  // NOTE: These states must match those from GPUTPCGMMergedTrackHit!
+  enum clusterState { flagSplitPad = 0x1,  // Split in pad direction
+                      flagSplitTime = 0x2, // Split in time direction
+                      flagEdge = 0x4,      // At edge of TPC sector
+                      flagSingle = 0x8 };  // Single pad or single time-bin cluster
+
+  static constexpr int scaleTimePacked = 64;      //< ~50 is needed for 0.1mm precision, but leads to float rounding artifacts around 20ms
   static constexpr int scalePadPacked = 64;       //< ~60 is needed for 0.1mm precision, but power of two avoids rounding
   static constexpr int scaleSigmaTimePacked = 32; // 1/32nd of pad/timebin precision for cluster size
   static constexpr int scaleSigmaPadPacked = 32;
@@ -93,6 +98,19 @@ struct ClusterNative {
   {
     timeFlagsPacked = (packTime(time) & 0xFFFFFF) | ((decltype(timeFlagsPacked))flags << 24);
   }
+
+  /// @return Returns the pad position of the cluster.
+  /// note that the pad position is defined on the left side of the pad.
+  /// the pad position from clusters are calculated in HwClusterer::hwClusterProcessor()
+  /// around the centre of gravity around the left side of the pad.
+  /// i.e. the center of the first pad has pad position zero.
+  /// To get the corresponding local Y coordinate of the cluster:
+  /// Y = (pad_position - 0.5 * (n_pads - 1)) * padWidth
+  /// example:
+  /// the pad position is for example 12.4 (pad_position = 12.4).
+  /// there are 66 pads in the first pad row (n_pads = 66).
+  /// the pad width for pads in the first padrow is 4.16mm (padWidth = 4.16mm).
+  /// Y = (12.4 - 0.5 * (66 - 1)) * 4.16mm = -83.616mm
   GPUd() float getPad() const { return unpackPad(padPacked); }
   GPUd() void setPad(float pad) { padPacked = packPad(pad); }
   GPUd() float getSigmaTime() const { return float(sigmaTimePacked) * (1.f / scaleSigmaTimePacked); }

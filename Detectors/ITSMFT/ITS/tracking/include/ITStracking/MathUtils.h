@@ -18,8 +18,11 @@
 #ifndef __OPENCL__
 #include <array>
 #include <cmath>
+#include <cassert>
+#include <iostream>
 #endif
 
+#include "MathUtils/Utils.h"
 #include "ITStracking/Constants.h"
 #include "GPUCommonMath.h"
 #include "GPUCommonDef.h"
@@ -43,7 +46,8 @@ GPUhdni() float computeTanDipAngle(float x1, float y1, float x2, float y2, float
 
 GPUhdi() float math_utils::calculatePhiCoordinate(const float xCoordinate, const float yCoordinate)
 {
-  return o2::gpu::CAMath::ATan2(-yCoordinate, -xCoordinate) + constants::math::Pi;
+  //return o2::gpu::CAMath::ATan2(-yCoordinate, -xCoordinate) + constants::math::Pi;
+  return utils::FastATan2(-yCoordinate, -xCoordinate) + constants::math::Pi;
 }
 
 GPUhdi() float math_utils::calculateRCoordinate(const float xCoordinate, const float yCoordinate)

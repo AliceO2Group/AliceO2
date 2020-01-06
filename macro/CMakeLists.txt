@@ -35,6 +35,7 @@ install(FILES CheckClusters_mft.C
               run_clus_mftSA.C
               run_clus_tof.C
               run_clus_tpc.C
+              run_clus_emcal.C
               run_collect_calib_tof.C
               run_digi.C
               run_digi2raw_its.C
@@ -57,6 +58,7 @@ install(FILES CheckClusters_mft.C
               run_trac_ca_its.C
               run_trac_its.C
               run_trac_mft.C
+	      CreateBCPattern.C
         DESTINATION share/macro/)
 
 # FIXME: a lot of macros that are here should really be elsewhere. Those which
@@ -216,6 +218,11 @@ o2_add_test_root_macro(run_clus_tpc.C
                        LABELS tpc)
 
 # FIXME: move to subsystem dir
+o2_add_test_root_macro(run_clus_emcal.C
+                       PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction
+                       LABELS emcal)
+
+# FIXME: move to subsystem dir
 o2_add_test_root_macro(run_collect_calib_tof.C
                        PUBLIC_LINK_LIBRARIES O2::GlobalTracking)
 
@@ -276,9 +283,10 @@ o2_add_test_root_macro(run_match_tof.C
 o2_add_test_root_macro(run_primary_vertexer_ITS.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsITSMFT
                                              O2::DataFormatsParameters
+                                             O2::GPUTracking
                                              O2::SimulationDataFormat
                                              O2::ITSBase O2::ITStracking
-                       LABELS its)
+                       LABELS its COMPILE_ONLY)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(run_rawdecoding_its.C
@@ -299,6 +307,9 @@ o2_add_test_root_macro(run_rawdecoding_tof.C
                       PUBLIC_LINK_LIBRARIES O2::TOFSimulation
                                             O2::TOFReconstruction
                        LABELS tof)
+
+o2_add_test_root_macro(CreateBCPattern.C
+                      PUBLIC_LINK_LIBRARIES O2::CommonDataFormat)
 
 # FIXME: move to subsystem dir + check compilation o2_add_test_root_macro(
 # run_rec_ca.C PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats
@@ -344,7 +355,7 @@ o2_add_test_root_macro(run_sim_tpc.C
                                              O2::Generators O2::TPCSimulation
                        LABELS tpc)
 
-# FIXME: move to subsystem dir + check how to deal with GPU dependencies
+# FIXME: move to subsystem dir
 o2_add_test_root_macro(run_trac_ca_its.C
                        PUBLIC_LINK_LIBRARIES O2::GPUTracking
                        LABELS its COMPILE_ONLY)

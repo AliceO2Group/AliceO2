@@ -25,9 +25,7 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 
 #include "TPCFastTransform.h"
-
 #include "GPUO2InterfaceConfiguration.h"
-#include "GPUReconstruction.h"
 
 using namespace o2::gpu;
 
@@ -52,7 +50,7 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   bool continuous = false;     //time frame data v.s. triggered events
 
   GPUO2InterfaceConfiguration config;
-  config.configProcessing.deviceType = GPUReconstruction::DeviceType::CPU;
+  config.configProcessing.deviceType = GPUDataTypes::DeviceType::CPU;
   config.configProcessing.forceDeviceType = true;
 
   config.configDeviceProcessing.nThreads = 4;           //4 threads if we run on the CPU, 1 = default, 0 = auto-detect
@@ -74,7 +72,7 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   config.configWorkflow.outputs.set(GPUDataTypes::InOutType::TPCMergedTracks);
 
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
-  config.fastTransform = fastTransform.get();
+  config.configCalib.fastTransform = fastTransform.get();
 
   tracker.initialize(config);
   std::vector<ClusterNativeContainer> cont(Constants::MAXGLOBALPADROW);
@@ -97,6 +95,8 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   std::vector<TrackTPC> tracks;
   ptrs.clusters = clusters.get();
   ptrs.outputTracks = &tracks;
+  std::vector<TPCClRefElem> trackClusRefs;
+  ptrs.outputClusRefs = &trackClusRefs;
 
   int retVal = tracker.runTracking(&ptrs);
   BOOST_CHECK_EQUAL(retVal, 0);

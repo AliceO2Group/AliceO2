@@ -14,6 +14,7 @@
 
 #include "TTree.h"
 
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "FITWorkflow/FT0DigitReaderSpec.h"
 
@@ -74,7 +75,7 @@ void DigitReader::run(ProcessingContext& pc)
   }
 
   mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(false);
+  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 DataProcessorSpec getFT0DigitReaderSpec(bool useMC)

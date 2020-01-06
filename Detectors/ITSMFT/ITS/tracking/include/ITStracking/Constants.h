@@ -51,11 +51,16 @@ constexpr float Resolution{0.0005f};
 
 GPU_HOST_DEVICE constexpr GPUArray<float, LayersNumber> LayersZCoordinate()
 {
-  return GPUArray<float, LayersNumber>{{16.333f, 16.333f, 16.333f, 42.140f, 42.140f, 73.745f, 73.745f}};
+  constexpr double s = 1.; // safety margin
+  return GPUArray<float, LayersNumber>{{16.333f + s, 16.333f + s, 16.333f + s, 42.140f + s, 42.140f + s, 73.745f + s, 73.745f + s}};
 }
 GPU_HOST_DEVICE constexpr GPUArray<float, LayersNumber> LayersRCoordinate()
 {
   return GPUArray<float, LayersNumber>{{2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f}};
+}
+GPU_HOST_DEVICE constexpr GPUArray<float, 3> VertexerHistogramVolume()
+{
+  return GPUArray<float, 3>{{1.98, 1.98, 40.f}};
 }
 } // namespace its
 
@@ -66,9 +71,10 @@ constexpr int PhiBins{20};
 constexpr float InversePhiBinSize{constants::index_table::PhiBins / constants::math::TwoPi};
 GPU_HOST_DEVICE constexpr GPUArray<float, its::LayersNumber> InverseZBinSize()
 {
-  return GPUArray<float, its::LayersNumber>{{0.5 * ZBins / 16.333f, 0.5 * ZBins / 16.333f, 0.5 * ZBins / 16.333f,
-                                             0.5 * ZBins / 42.140f, 0.5 * ZBins / 42.140f, 0.5 * ZBins / 73.745f,
-                                             0.5 * ZBins / 73.745f}};
+  constexpr auto zSize = its::LayersZCoordinate();
+  return GPUArray<float, its::LayersNumber>{{0.5f * ZBins / (zSize[0]), 0.5f * ZBins / (zSize[1]), 0.5f * ZBins / (zSize[2]),
+                                             0.5f * ZBins / (zSize[3]), 0.5f * ZBins / (zSize[4]), 0.5f * ZBins / (zSize[5]),
+                                             0.5f * ZBins / (zSize[6])}};
 }
 } // namespace index_table
 

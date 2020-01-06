@@ -15,6 +15,7 @@
 #include "TTree.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "ITSWorkflow/ClusterWriterSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h"
@@ -87,7 +88,7 @@ void ClusterWriter::run(ProcessingContext& pc)
   mFile->Close();
 
   mState = 2;
-  pc.services().get<ControlService>().readyToQuit(false);
+  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 DataProcessorSpec getClusterWriterSpec(bool useMC)

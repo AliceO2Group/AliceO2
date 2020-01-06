@@ -30,8 +30,14 @@ namespace gpu
 class GPUTRDTrackerDebug
 {
  public:
-  GPUTRDTrackerDebug() { fStreamer = new TTreeSRedirector("TRDhlt.root", "recreate"); }
+  GPUTRDTrackerDebug() : fStreamer(0x0) {}
   ~GPUTRDTrackerDebug() { delete fStreamer; }
+
+  void CreateStreamer()
+  {
+    GPUInfo("Creating streamer for debugging");
+    fStreamer = new TTreeSRedirector("TRDhlt.root", "recreate");
+  }
 
   int GetSector(float alpha)
   {
@@ -49,6 +55,7 @@ class GPUTRDTrackerDebug
     fTrackPhi.ResizeTo(6);
     fTrackLambda.ResizeTo(6);
     fTrackPt.ResizeTo(6);
+    fTrackQPt.ResizeTo(6);
     fTrackSector.ResizeTo(6);
     fTrackYerr.ResizeTo(6);
     fTrackZerr.ResizeTo(6);
@@ -102,6 +109,7 @@ class GPUTRDTrackerDebug
     fTrackPhi.Zero();
     fTrackLambda.Zero();
     fTrackPt.Zero();
+    fTrackQPt.Zero();
     fTrackSector.Zero();
     fTrackYerr.Zero();
     fTrackZerr.Zero();
@@ -192,6 +200,7 @@ class GPUTRDTrackerDebug
     fTrackPhi(ly) = trk.getSnp();
     fTrackLambda(ly) = trk.getTgl();
     fTrackPt(ly) = trk.getPt();
+    fTrackQPt(ly) = trk.getQ2Pt();
     fTrackSector(ly) = GetSector(trk.getAlpha());
     fTrackYerr(ly) = trk.getSigmaY2();
     fTrackZerr(ly) = trk.getSigmaZ2();
@@ -316,6 +325,7 @@ class GPUTRDTrackerDebug
       "trackZ.=" << &fTrackZ <<                            // z-pos of track (layerwise)
       "trackPhi.=" << &fTrackPhi <<                        // phi angle of track (track.fP[2])
       "trackLambda.=" << &fTrackLambda <<                  // lambda angle of track (track.fP[3])
+      "trackQPt.=" << &fTrackQPt <<                        // track q/pT (track.fP[4])
       "trackPt.=" << &fTrackPt <<                          // track pT (layerwise)
       "trackYerr.=" << &fTrackYerr <<                      // sigma_y^2 for track
       "trackZerr.=" << &fTrackZerr <<                      // sigma_z^2 for track
@@ -400,6 +410,7 @@ class GPUTRDTrackerDebug
   TVectorF fTrackPhi;
   TVectorF fTrackLambda;
   TVectorF fTrackPt;
+  TVectorF fTrackQPt;
   TVectorF fTrackSector;
   TVectorF fTrackYerr;
   TVectorF fTrackZerr;
@@ -460,6 +471,7 @@ namespace gpu
 class GPUTRDTrackerDebug
 {
  public:
+  GPUd() void CreateStreamer() {}
   GPUd() void ExpandVectors() {}
   GPUd() void Reset() {}
 

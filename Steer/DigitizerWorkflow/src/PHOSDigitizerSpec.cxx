@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "PHOSDigitizerSpec.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"
@@ -131,7 +132,7 @@ DataProcessorSpec getPHOSDigitizerSpec(int channel)
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
 
     // we should be only called once; tell DPL that this process is ready to exit
-    pc.services().get<ControlService>().readyToQuit(false);
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     finished = true;
   };
 

@@ -21,6 +21,26 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
+
+#ifdef GPUCA_NOCOMPAT_ALLOPENCL
+struct GPUMemoryReuse {
+  enum Type : int {
+    NONE = 0,
+    REUSE_1TO1 = 1
+  };
+  enum Group : unsigned short {
+    ClustererScratch
+  };
+  using ID = unsigned int;
+
+  GPUMemoryReuse(Type t, Group g, unsigned short i) : type(t), id(((int)g << 16) | ((int)i & 0xFFFF)) {}
+  constexpr GPUMemoryReuse() = default;
+
+  Type type = NONE;
+  ID id = 0;
+};
+#endif
+
 class GPUMemoryResource
 {
   friend class GPUReconstruction;
@@ -47,7 +67,7 @@ class GPUMemoryResource
                         ALLOCATION_GLOBAL = 2 };
 
 #ifndef GPUCA_GPUCODE
-  GPUMemoryResource(GPUProcessor* proc, void* (GPUProcessor::*setPtr)(void*), MemoryType type, const char* name = "") : mProcessor(proc), mPtr(nullptr), mPtrDevice(nullptr), mSetPointers(setPtr), mType(type), mSize(0), mName(name)
+  GPUMemoryResource(GPUProcessor* proc, void* (GPUProcessor::*setPtr)(void*), MemoryType type, const char* name = "") : mProcessor(proc), mReuse(-1), mPtr(nullptr), mPtrDevice(nullptr), mSetPointers(setPtr), mType(type), mSize(0), mName(name)
   {
   }
   GPUMemoryResource(const GPUMemoryResource&) CON_DEFAULT;
@@ -68,6 +88,7 @@ class GPUMemoryResource
 
  private:
   GPUProcessor* mProcessor;
+  int mReuse;
   void* mPtr;
   void* mPtrDevice;
   void* (GPUProcessor::*mSetPointers)(void*);

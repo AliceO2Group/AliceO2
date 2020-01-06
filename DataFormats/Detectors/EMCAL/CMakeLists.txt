@@ -10,6 +10,8 @@
 
 o2_add_library(DataFormatsEMCAL
                SOURCES src/EMCALBlockHeader.cxx 
+                       src/TriggerRecord.cxx
+                       src/Constants.cxx
                        src/Cluster.cxx
                        src/Cell.cxx 
                        src/Digit.cxx
@@ -22,7 +24,14 @@ o2_add_library(DataFormatsEMCAL
 
 o2_target_root_dictionary(DataFormatsEMCAL
                           HEADERS include/DataFormatsEMCAL/EMCALBlockHeader.h
+                                  include/DataFormatsEMCAL/TriggerRecord.h
                                   include/DataFormatsEMCAL/Constants.h
                                   include/DataFormatsEMCAL/Cell.h
                                   include/DataFormatsEMCAL/Digit.h
                                   include/DataFormatsEMCAL/Cluster.h)
+
+o2_add_test(Cell
+            SOURCES test/testCell.cxx
+            COMPONENT_NAME DataFormats-EMCAL
+            PUBLIC_LINK_LIBRARIES O2::DataFormatsEMCAL
+            LABELS emcal dataformats)

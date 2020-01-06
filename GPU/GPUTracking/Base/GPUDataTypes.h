@@ -16,8 +16,13 @@
 
 #include "GPUCommonDef.h"
 
+#ifndef __OPENCL__
+#include <cstddef>
+#endif
 #ifdef GPUCA_NOCOMPAT_ALLOPENCL
 #include <type_traits>
+#endif
+#ifdef GPUCA_NOCOMPAT
 #include "GPUTRDDef.h"
 
 class AliHLTTPCClusterMCLabel;
@@ -34,6 +39,43 @@ using CompressedClusters = CompressedClustersPtrs_helper<CompressedClustersCount
 } // namespace tpc
 } // namespace o2
 #endif
+
+namespace o2
+{
+class MCCompLabel;
+namespace base
+{
+class MatLayerCylSet;
+} // namespace base
+namespace trd
+{
+class TRDGeometryFlat;
+} // namespace trd
+namespace dataformats
+{
+template <class T>
+class MCTruthContainer;
+} // namespace dataformats
+} // namespace o2
+
+namespace GPUCA_NAMESPACE
+{
+namespace gpu
+{
+namespace deprecated
+{
+struct PackedDigit;
+}
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
+
+namespace GPUCA_NAMESPACE
+{
+namespace gpu
+{
+class TPCFastTransform;
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 namespace GPUCA_NAMESPACE
 {
@@ -79,6 +121,7 @@ class GPUDataTypes
                              TRDTracking = 16,
                              ITSTracking = 32,
                              TPCdEdx = 64,
+                             TPCClusterFinding = 128,
                              AllRecoSteps = 0x7FFFFFFF,
                              NoRecoStep = 0 };
   enum ENUM_CLASS InOutType { TPCClusters = 1,
@@ -86,14 +129,17 @@ class GPUDataTypes
                               TPCMergedTracks = 4,
                               TPCCompressedClusters = 8,
                               TRDTracklets = 16,
-                              TRDTracks = 32 };
+                              TRDTracks = 32,
+                              TPCRaw = 64 };
 
 #ifdef GPUCA_NOCOMPAT_ALLOPENCL
-  static constexpr const char* const RECO_STEP_NAMES[] = {"TPC Transformation", "TPC Sector Tracking", "TPC Track Merging and Fit", "TPC Compression", "TRD Tracking", "ITS Tracking", "TPC dEdx Computation"};
+  static constexpr const char* const RECO_STEP_NAMES[] = {"TPC Transformation", "TPC Sector Tracking", "TPC Track Merging and Fit", "TPC Compression", "TRD Tracking", "ITS Tracking", "TPC dEdx Computation", "TPC Cluster Finding"};
   typedef bitfield<RecoStep, unsigned int> RecoStepField;
   typedef bitfield<InOutType, unsigned int> InOutTypeField;
 #endif
-
+#ifdef GPUCA_NOCOMPAT
+  static constexpr unsigned int NSLICES = 36;
+#endif
   static DeviceType GetDeviceType(const char* type);
 };
 
@@ -104,12 +150,33 @@ struct GPURecoStepConfiguration {
   GPUDataTypes::InOutTypeField inputs = 0;
   GPUDataTypes::InOutTypeField outputs = 0;
 };
+#endif
+
+#ifdef GPUCA_NOCOMPAT
+struct GPUCalibObjects {
+  TPCFastTransform* fastTransform = nullptr;
+  o2::base::MatLayerCylSet* matLUT = nullptr;
+  o2::trd::TRDGeometryFlat* trdGeometry = nullptr;
+};
+
+struct GPUCalibObjectsConst { // TODO: Any chance to do this as template?
+  const TPCFastTransform* fastTransform = nullptr;
+  const o2::base::MatLayerCylSet* matLUT = nullptr;
+  const o2::trd::TRDGeometryFlat* trdGeometry = nullptr;
+};
+
+struct GPUTrackingInOutDigits {
+  static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
+  const deprecated::PackedDigit* tpcDigits[NSLICES] = {nullptr};
+  size_t nTPCDigits[NSLICES] = {0};
+};
 
 struct GPUTrackingInOutPointers {
   GPUTrackingInOutPointers() = default;
   GPUTrackingInOutPointers(const GPUTrackingInOutPointers&) = default;
-  static constexpr unsigned int NSLICES = 36;
+  static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
 
+  GPUTrackingInOutDigits* tpcPackedDigits = nullptr;
   const GPUTPCClusterData* clusterData[NSLICES] = {nullptr};
   unsigned int nClusterData[NSLICES] = {0};
   const AliHLTTPCRawCluster* rawClusters[NSLICES] = {nullptr};
@@ -134,7 +201,11 @@ struct GPUTrackingInOutPointers {
   unsigned int nTRDTrackletsMC = 0;
   const GPUTRDTrack* trdTracks = nullptr;
   unsigned int nTRDTracks = 0;
-  friend class GPUReconstruction;
+};
+#else
+struct GPUTrackingInOutPointers {
+};
+struct GPUCalibObjectsConst {
 };
 #endif
 

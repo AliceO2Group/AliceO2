@@ -1,7 +1,6 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
 #include <memory>
-
 #include <TChain.h>
 #include <TFile.h>
 #include <TSystem.h>
@@ -16,18 +15,18 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Vertexer.h"
+// #include "ITStrackingCUDA/VertexerTraitsGPU.h"
 
-#if defined(__VERTEXER_ITS_GPU)
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
-#include "GPUChainTracking.h"
 #include "GPUChainITS.h"
 #endif
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 using namespace o2::gpu;
 
-int run_primary_vertexer_ITS(const bool useGPU = false,
+int run_primary_vertexer_ITS(const float phiCut = -1.f,
+                             const GPUDataTypes::DeviceType dtype = GPUDataTypes::DeviceType::CPU,
                              const bool useMCcheck = false,
                              const int inspEvt = -1,
                              const int numEvents = 1,
@@ -37,21 +36,35 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
                              const std::string paramfilename = "O2geometry.root",
                              const std::string path = "./")
 {
-  std::string outfile;
-
-  if (useGPU) {
-    if (useMCcheck) {
-      outfile = "vertexer_gpu_data_MCCheck.root";
-    } else {
-      outfile = "vertexer_gpu_data.root";
-    }
-  } else {
-    if (useMCcheck) {
-      outfile = "vertexer_serial_data_MCCheck.root";
-    } else {
-      outfile = "vertexer_serial_data.root";
-    }
+  std::string gpuName;
+  switch (dtype) {
+    case GPUDataTypes::DeviceType::CUDA:
+      R__LOAD_LIBRARY(O2ITStrackingCUDA)
+      gpuName = "vertexer_cuda";
+      break;
+    case GPUDataTypes::DeviceType::HIP:
+      R__LOAD_LIBRARY(O2ITStrackingHIP)
+      gpuName = "vertexer_hip";
+      break;
+    default:
+      gpuName = "vertexer_serial";
+      break;
   }
+
+  std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance(dtype, true));
+  auto* chainITS = rec->AddChain<GPUChainITS>();
+  rec->Init();
+  o2::its::Vertexer vertexer(chainITS->GetITSVertexerTraits());
+
+  // #ifdef _ALLOW_DEBUG_TREES_ITS_
+  //   std::unique_ptr<o2::its::VertexerTraits> traitsptr{useGPU ? new o2::its::VertexerTraitsGPU{"dbg_ITSVertexerGPU.root"} : new o2::its::VertexerTraits{"dbg_ITSVertexerCPU.root"}};
+  // #else
+  //   std::unique_ptr<o2::its::VertexerTraits> traitsptr{useGPU ? new o2::its::VertexerTraitsGPU : new o2::its::VertexerTraits};
+  // #endif
+  //   o2::its::Vertexer vertexer(traitsptr.get());
+
+  std::string mcCheck = useMCcheck ? "_data_MCCheck" : "_data";
+  std::string outfile = gpuName + mcCheck + ".root";
 
   const auto grp = o2::parameters::GRPObject::loadFrom(path + inputGRP);
   const bool isITS = grp->isDetReadOut(o2::detectors::DetID::ITS);
@@ -108,27 +121,15 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
 
   std::uint32_t roFrame = 0;
 
-  //Settings
+  // Settings
   o2::its::VertexingParameters parameters;
+  parameters.phiCut = phiCut > 0 ? phiCut : 0.05f;
   // e.g. parameters.clusterContributorsCut = 5;
-  //\Settings
+  // \Settings
 
   const int stopAt = (inspEvt == -1) ? rofs->size() : inspEvt + numEvents;
   const int startAt = (inspEvt == -1) ? 0 : inspEvt;
 
-  std::unique_ptr<o2::its::VertexerTraits> traits;
-
-#if defined(__VERTEXER_ITS_GPU)
-  if (useGPU) {
-    traits = o2::its::createVertexerTraitsGPU();
-  }
-#else
-  if (!useGPU) {
-    traits = std::make_unique<o2::its::VertexerTraits>();
-  }
-#endif
-
-  o2::its::Vertexer vertexer(traits.get());
   vertexer.setParameters(parameters);
   itsClusters.GetEntry(0);
   mcHeaderTree.GetEntry(0);
@@ -143,36 +144,39 @@ int run_primary_vertexer_ITS(const bool useGPU = false,
 
     // debug
     vertexer.setDebugTrackletSelection();
-    vertexer.setDebugLines(); // Handle with care, takes very long
+    // vertexer.setDebugLines(); // Handle with care, takes very long
     vertexer.setDebugCombinatorics();
-    vertexer.setDebugSummaryLines();
+    // vertexer.setDebugSummaryLines();
+    // vertexer.setDebugCentroidsHistograms();
     // \debug
 
     total[0] = vertexer.evaluateTask(&o2::its::Vertexer::initialiseVertexer, "Vertexer initialisation", std::cout, eventptr);
     // total[1] = vertexer.evaluateTask(&o2::its::Vertexer::findTrivialMCTracklets, "Trivial Tracklet finding", std::cout); // If enable this, comment out the validateTracklets
     total[1] = vertexer.evaluateTask(&o2::its::Vertexer::findTracklets, "Tracklet finding", std::cout);
+#ifdef _ALLOW_DEBUG_TREES_ITS_
     if (useMCcheck) {
       vertexer.evaluateTask(&o2::its::Vertexer::filterMCTracklets, "MC tracklets filtering", std::cout);
     }
+#endif
     total[2] = vertexer.evaluateTask(&o2::its::Vertexer::validateTracklets, "Adjacent tracklets validation", std::cout);
+    // In case willing to use the histogram-based CPU vertexer
+    // total[3] = vertexer.evaluateTask(&o2::its::Vertexer::findHistVertices, "Vertex finding with histograms", std::cout);
     total[3] = vertexer.evaluateTask(&o2::its::Vertexer::findVertices, "Vertex finding", std::cout);
 
     std::vector<Vertex> vertITS = vertexer.exportVertices();
     const size_t numVert = vertITS.size();
     foundVerticesBenchmark.Fill(static_cast<float>(iROfCount), static_cast<float>(numVert));
     verticesITS->swap(vertITS);
-    // TODO: get vertexer postion form MC truth
-
+    //   // TODO: get vertexer postion form MC truth
+    //
     timeBenchmark.Fill(total[0], total[1], total[2], total[3], total[0] + total[1] + total[2] + total[3]);
     outTree.Fill();
   }
-  traits.reset();
+
   outputfile->cd();
   outTree.Write();
   foundVerticesBenchmark.Write();
   timeBenchmark.Write();
-
   outputfile->Close();
   return 0;
 }
-#endif

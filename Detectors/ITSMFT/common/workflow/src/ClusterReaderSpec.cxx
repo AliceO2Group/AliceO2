@@ -15,6 +15,7 @@
 #include "TTree.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
 
 using namespace o2::framework;
@@ -68,7 +69,7 @@ void ClusterReader::run(ProcessingContext& pc)
   }
 
   mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(false);
+  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 void ClusterReader::accumulate()

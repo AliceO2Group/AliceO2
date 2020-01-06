@@ -76,6 +76,8 @@ AddOption(tpcReject, int, 0, "tpcReject", 0, "Enable rejection of TPC clusters f
 AddOption(tpcRejectThreshold, float, 0.f, "tpcRejectThreshold", 0, "Pt threshold to reject clusters of TPC tracks")
 AddOption(tpcCompression, int, 7, "tpcCompression", 0, "TPC Compression mode bits (1=truncate charge/width LSB, 2=differences, 4=track-model)")
 AddOption(tpcCompressionSort, int, 0, "tpcCompressionSort", 0, "Sort order of TPC compression (0 = time, 1 = pad, 2 = Z-time-pad, 3 = Z-pad-time)")
+AddOption(ForceEarlyTPCTransform, int, -1, "ForceEarlyTPCTransform", 0, "Force early TPC transformation also for continuous data (-1 = auto)")
+AddOption(fwdTPCDigitsAsClusters, bool, false, "forwardTPCdigits", 0, "Forward TPC digits as clusters (if they pass the ZS threshold)")
 AddHelp("help", 'h')
 EndConfig()
 
@@ -113,6 +115,7 @@ AddOption(helperThreads, int, 1, "helperThreads", 0, "Number of CPU helper threa
 AddOption(noprompt, bool, true, "prompt", 0, "Do prompt for keypress before exiting", def(false))
 AddOption(continueOnError, bool, false, "continue", 0, "Continue processing after an error")
 AddOption(DebugLevel, int, 0, "debug", 'd', "Set debug level")
+AddOption(DeviceTiming, bool, false, "deviceTiming", 0, "Use device timers instead of host-based time measurement")
 AddOption(seed, int, -1, "seed", 0, "Set srand seed (-1: random)")
 AddOption(cleardebugout, bool, false, "clearDebugFile", 0, "Clear debug output file when processing next event")
 AddOption(cudaDevice, int, -1, "gpuDevice", 0, "Set GPU device to use (-1: automatic)")
@@ -121,7 +124,7 @@ AddOption(NEvents, int, -1, "n", 'n', "Number of events to process (-1; all)", m
 AddOption(merger, int, 1, "runMerger", 0, "Run track merging / refit", min(0), max(1))
 AddOption(runs, int, 1, "runs", 'r', "Number of iterations to perform (repeat each event)", min(0))
 AddOption(runs2, int, 1, "runsExternal", 0, "Number of iterations to perform (repeat full processing)", min(1))
-AddOption(runsInit, int, 0, "runsInit", 0, "Number of initial iterations excluded from average", min(0))
+AddOption(runsInit, int, 1, "runsInit", 0, "Number of initial iterations excluded from average", min(0))
 AddOption(EventsDir, const char*, "pp", "events", 'e', "Directory with events to process", message("Reading events from Directory events/%s"))
 AddOption(OMPThreads, int, -1, "omp", 't', "Number of OMP threads to run (-1: all)", min(-1), message("Using %d OMP threads"))
 AddOption(eventDisplay, int, 0, "display", 'd', "Show standalone event display", def(1)) //1: default display (Windows / X11), 2: glut, 3: glfw
@@ -140,6 +143,7 @@ AddOption(fifo, bool, false, "fifoScheduler", 0, "Use FIFO realtime scheduler", 
 AddOption(fpe, bool, true, "fpe", 0, "Trap on floating point exceptions")
 AddOption(solenoidBz, float, -1e6f, "solenoidBz", 0, "Field strength of solenoid Bz in kGaus")
 AddOption(constBz, bool, false, "constBz", 0, "Force constand Bz")
+AddOption(overrideMaxTimebin, bool, false, "overrideMaxTimebin", 0, "Override max time bin setting for continuous data with max time bin in time frame")
 AddOption(referenceX, float, 500.f, "referenceX", 0, "Reference X position to transport track to after fit")
 AddOption(rejectMode, char, 5, "rejectMode", 0, "Merger Reject Mode")
 AddOption(allocationStrategy, int, 0, "allocationStrategy", 0, "Memory Allocation Stragegy (0 = auto, 1 = individual allocations, 2 = single global allocation)")

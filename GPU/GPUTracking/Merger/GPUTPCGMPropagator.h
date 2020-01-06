@@ -68,7 +68,7 @@ class GPUTPCGMPropagator
 
   GPUd() void SetFitInProjections(bool Flag) { mFitInProjections = Flag; }
   GPUd() void SetToyMCEventsFlag(bool Flag) { mToyMCEvents = Flag; }
-  GPUd() void SetSpecialErrors(bool Flag) { mSpecialErrors = Flag; }
+  GPUd() void SetSeedingErrors(bool Flag) { mSeedingErrors = Flag; }
   GPUd() void SetMatLUT(const o2::base::MatLayerCylSet* lut) { mMatLUT = lut; }
 
   GPUd() void SetMaxSinPhi(float maxSinPhi) { mMaxSinPhi = maxSinPhi; }
@@ -86,7 +86,7 @@ class GPUTPCGMPropagator
 
   GPUd() int PropagateToXAlpha(float posX, float posAlpha, bool inFlyDirection);
 
-  //  GPUd() int PropagateToXAlphaBz( float posX, float posAlpha, bool inFlyDirection );
+  GPUd() int PropagateToXAlphaBz(float posX, float posAlpha, bool inFlyDirection);
 
   GPUd() int Update(float posY, float posZ, int iRow, const GPUParam& param, short clusterState, bool rejectChi2, bool refit);
   GPUd() int Update(float posY, float posZ, short clusterState, bool rejectChi2, float err2Y, float err2Z);
@@ -132,6 +132,7 @@ class GPUTPCGMPropagator
 
  private:
   GPUd() static float ApproximateBetheBloch(float beta2);
+  GPUd() int FollowLinearization(const GPUTPCGMPhysicalTrackModel& t0e, float Bz, float dLp, bool inFlyDirection);
 
   const GPUTPCGMPolynomialField* mField = nullptr;
   FieldRegion mFieldRegion = TPC;
@@ -140,7 +141,7 @@ class GPUTPCGMPropagator
   float mAlpha = 0; // rotation angle of the track coordinate system
   GPUTPCGMPhysicalTrackModel mT0;
   MaterialCorrection mMaterial;
-  bool mSpecialErrors = 0;
+  bool mSeedingErrors = 0;
   bool mFitInProjections = 1; // fit (Y,SinPhi,QPt) and (Z,DzDs) paramteres separatelly
   bool mToyMCEvents = 0;      // events are simulated with simple home-made simulation
   float mMaxSinPhi = GPUCA_MAX_SIN_PHI;

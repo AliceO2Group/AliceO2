@@ -20,6 +20,10 @@
 #ifdef GENERATORS_WITH_PYTHIA8
 #include <Generators/Pythia8Generator.h>
 #endif
+#include <Generators/GeneratorTGenerator.h>
+#ifdef GENERATORS_WITH_HEPMC3
+#include <Generators/GeneratorHepMC.h>
+#endif
 #include <Generators/BoxGunParam.h>
 #include "TROOT.h"
 #include "TSystem.h"
@@ -97,6 +101,21 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     boxGenA->SetPhiRange(0., 360.);
     primGen->AddGenerator(boxGenC);
     primGen->AddGenerator(boxGenA);
+  } else if (genconfig.compare("emcgenele") == 0) {
+    // box generator with one electron per event
+    LOG(INFO) << "Init box generator for electrons in EMCAL";
+    auto elecgen = new FairBoxGenerator(11, 1);
+    elecgen->SetEtaRange(-0.67, 0.67);
+    elecgen->SetPhiRange(80., 187.); // Phi range of the EMCAL
+    elecgen->SetPtRange(15., 15.);
+    primGen->AddGenerator(elecgen);
+  } else if (genconfig.compare("emcgenphoton") == 0) {
+    LOG(INFO) << "Init box generator for photons in EMCAL";
+    auto photongen = new FairBoxGenerator(22, 1);
+    photongen->SetEtaRange(-0.67, 0.67);
+    photongen->SetPhiRange(80., 187.); // Phi range of the EMCAL
+    photongen->SetPtRange(15., 15.);
+    primGen->AddGenerator(photongen);
   } else if (genconfig.compare("fddgen") == 0) {
     LOG(INFO) << "Init box FDD generator";
     auto boxGenFDC = new FairBoxGenerator(13, 1000);
@@ -117,6 +136,14 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     extGen->SetStartEvent(conf.getStartEvent());
     primGen->AddGenerator(extGen);
     LOG(INFO) << "using external kinematics";
+#ifdef GENERATORS_WITH_HEPMC3
+  } else if (genconfig.compare("hepmc") == 0) {
+    // external HepMC file
+    auto hepmcGen = new o2::eventgen::GeneratorHepMC();
+    hepmcGen->setFileName(conf.getHepMCFileName());
+    hepmcGen->setVersion(2);
+    primGen->AddGenerator(hepmcGen);
+#endif
 #ifdef GENERATORS_WITH_PYTHIA8
   } else if (genconfig.compare("pythia8") == 0) {
     // pythia8 pp

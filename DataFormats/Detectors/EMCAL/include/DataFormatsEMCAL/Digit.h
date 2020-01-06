@@ -58,13 +58,29 @@ class Digit : public DigitBase
   void setEnergy(Double_t energy) { mEnergy = energy; }
   Double_t getEnergy() const { return mEnergy; }
 
+  void setType(ChannelType_t ctype) { mChannelType = ctype; }
+  ChannelType_t getType() const { return mChannelType; }
+
+  void setLowGain() { mChannelType = ChannelType_t::LOW_GAIN; }
+  Bool_t getLowGain() const { return mChannelType == ChannelType_t::LOW_GAIN; }
+
+  void setHighGain() { mChannelType = ChannelType_t::HIGH_GAIN; }
+  Bool_t getHighGain() const { return mChannelType == ChannelType_t::HIGH_GAIN; }
+
+  void setLEDMon() { mChannelType = ChannelType_t::LEDMON; }
+  Bool_t getLEDMon() const { return mChannelType == ChannelType_t::LEDMON; }
+
+  void setTRU() { mChannelType = ChannelType_t::TRU; }
+  Bool_t getTRU() const { return mChannelType == ChannelType_t::TRU; }
+
   void PrintStream(std::ostream& stream) const;
 
  private:
   friend class boost::serialization::access;
 
-  Double_t mEnergy; ///< Energy (GeV/c^2)
-  Short_t mTower;   ///< Tower index (absolute cell ID)
+  Double_t mEnergy = 0.;                                 ///< Energy (GeV/c^2)
+  Short_t mTower = -1;                                   ///< Tower index (absolute cell ID)
+  ChannelType_t mChannelType = ChannelType_t::HIGH_GAIN; ///< Channel type (high gain, low gain, TRU, LEDMON)
 
   ClassDefNV(Digit, 1);
 };

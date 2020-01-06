@@ -159,15 +159,15 @@ void Utils::Host::gpuMemcpyDeviceToHost(void* dst, const void* src, int size)
   checkCUDAError(cudaMemcpy(dst, src, size, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
 }
 
-void Utils::Host::gpuStartProfiler()
-{
-  checkCUDAError(cudaProfilerStart(), __FILE__, __LINE__);
-}
+// void Utils::Host::gpuStartProfiler()
+// {
+//   checkCUDAError(cudaProfilerStart(), __FILE__, __LINE__);
+// }
 
-void Utils::Host::gpuStopProfiler()
-{
-  checkCUDAError(cudaProfilerStop(), __FILE__, __LINE__);
-}
+// void Utils::Host::gpuStopProfiler()
+// {
+//   checkCUDAError(cudaProfilerStop(), __FILE__, __LINE__);
+// }
 
 GPUd() int Utils::Device::getLaneIndex()
 {

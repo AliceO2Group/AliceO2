@@ -28,14 +28,14 @@ void CalibDB::storeBadChannelMap(BadChannelMap* bcm, const std::map<std::string,
 {
   if (!mInit)
     init();
-  mCCDBManager.store(new o2::TObjectWrapper<o2::phos::BadChannelMap>(bcm), "BadChannelMap/PHS", metadata, rangestart, rangeend);
+  mCCDBManager.storeAsTFile(new o2::TObjectWrapper<o2::phos::BadChannelMap>(bcm), "BadChannelMap/PHS", metadata, rangestart, rangeend);
 }
 
 BadChannelMap* CalibDB::readBadChannelMap(ULong_t timestamp, const std::map<std::string, std::string>& metadata)
 {
   if (!mInit)
     init();
-  auto result = mCCDBManager.retrieve("BadChannelMap/PHS", metadata, timestamp);
+  auto result = mCCDBManager.retrieveFromTFile("BadChannelMap/PHS", metadata, timestamp);
   if (!result)
     throw ObjectNotFoundException(mCCDBServer, "BadChannelMap/PHS", metadata, timestamp);
   if (result->IsA() != TObjectWrapper<o2::phos::BadChannelMap>::Class())
@@ -49,13 +49,13 @@ void CalibDB::storeCalibParams(CalibParams* prms, const std::map<std::string, st
 {
   if (!mInit)
     init();
-  mCCDBManager.store(new o2::TObjectWrapper<o2::phos::CalibParams>(prms), "CalibParams/PHS", metadata, rangestart, rangeend);
+  mCCDBManager.storeAsTFile(new o2::TObjectWrapper<o2::phos::CalibParams>(prms), "CalibParams/PHS", metadata, rangestart, rangeend);
 }
 CalibParams* CalibDB::readCalibParams(ULong_t timestamp, const std::map<std::string, std::string>& metadata)
 {
   if (!mInit)
     init();
-  auto result = mCCDBManager.retrieve("CalibParams/PHS", metadata, timestamp);
+  auto result = mCCDBManager.retrieveFromTFile("CalibParams/PHS", metadata, timestamp);
   if (!result)
     throw ObjectNotFoundException(mCCDBServer, "CalibParams/PHS", metadata, timestamp);
   if (result->IsA() != TObjectWrapper<o2::phos::CalibParams>::Class())

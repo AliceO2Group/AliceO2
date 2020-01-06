@@ -22,6 +22,7 @@
 
 #include <chrono>
 #include <iostream>
+#include <thread>
 
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
@@ -37,7 +38,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
      AlgorithmSpec{
        adaptStateless([](DataAllocator& outputs) {
          std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-         auto out = outputs.make<int>(OutputRef{"test", 0});
+         auto& out = outputs.make<int>(OutputRef{"test", 0});
        })}},
     {"dest",
      Inputs{
@@ -60,7 +61,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
                     (*count)++; window ? pollGUI(window, guiCallback) : false; });
          return adaptStateless([count](ControlService& control) {
            if (*count > 1000) {
-             control.readyToQuit(true);
+             control.readyToQuit(QuitRequest::All);
            }
          });
        })}}};

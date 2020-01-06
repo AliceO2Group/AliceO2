@@ -9,12 +9,19 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/AODReaderHelpers.h"
+#include "Framework/AnalysisDataModel.h"
+#include "DataProcessingHelpers.h"
 #include "Framework/RootTableBuilderHelpers.h"
 #include "Framework/AlgorithmSpec.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/SourceInfoHeader.h"
+#include "Framework/ChannelInfo.h"
+#include "Framework/Logger.h"
+
 #include <FairMQDevice.h>
 #include <ROOT/RDataFrame.hxx>
 #include <TFile.h>
@@ -24,6 +31,8 @@
 #include <arrow/io/interfaces.h>
 #include <arrow/table.h>
 #include <arrow/util/key_value_metadata.h>
+
+#include <thread>
 
 namespace o2::framework::readers
 {
@@ -132,10 +141,11 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
                                                  DeviceSpec const& spec) {
     std::vector<std::string> filenames;
     auto filename = options.get<std::string>("esd-file");
+    auto nEvents = options.get<int>("events");
 
     if (filename.empty()) {
       LOG(error) << "Option --esd-file did not provide a filename";
-      control.readyToQuit(true);
+      control.readyToQuit(QuitRequest::All);
       return adaptStateless([](RawDeviceService& service) {
         service.device()->WaitFor(std::chrono::milliseconds(1000));
       });
@@ -157,25 +167,29 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
       filenames.push_back(filename);
     }
 
-    uint64_t readMask = calculateReadMask(spec.outputs, header::DataOrigin{"RN2"});
-    auto counter = std::make_shared<int>(0);
+    uint64_t readMask = calculateReadMask(spec.outputs, header::DataOrigin{"AOD"});
+    auto counter = std::make_shared<unsigned int>(0);
     return adaptStateless([readMask,
                            counter,
-                           filenames](DataAllocator& outputs, ControlService& ctrl, RawDeviceService& service) {
+                           filenames,
+                           spec, nEvents](DataAllocator& outputs, ControlService& ctrl, RawDeviceService& service) {
       if (*counter >= filenames.size()) {
         LOG(info) << "All input files processed";
-        ctrl.readyToQuit(false);
-        service.device()->WaitFor(std::chrono::seconds(1));
+        ctrl.endOfStream();
+        ctrl.readyToQuit(QuitRequest::Me);
         return;
       }
       auto f = filenames[*counter];
       setenv("O2RUN2CONVERTER", "run2ESD2Run3AOD", 0);
       auto command = std::string(getenv("O2RUN2CONVERTER"));
+      if (nEvents > 0) {
+        command += fmt::format(" -n {} ", nEvents);
+      }
       FILE* pipe = popen((command + " " + f).c_str(), "r");
       if (pipe == nullptr) {
         LOG(ERROR) << "Unable to run converter: " << (command + " " + f).c_str() << f;
-        ctrl.readyToQuit(true);
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        ctrl.endOfStream();
+        ctrl.readyToQuit(QuitRequest::All);
         return;
       }
       *counter += 1;
@@ -188,9 +202,10 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
           continue;
         }
         ungetc(c, pipe);
+
         std::shared_ptr<arrow::RecordBatchReader> reader;
         auto input = std::make_shared<FileStream>(pipe);
-        auto readerStatus = arrow::ipc::RecordBatchStreamReader::Open(input.get(), &reader);
+        auto readerStatus = arrow::ipc::RecordBatchStreamReader::Open(input, &reader);
         if (readerStatus.ok() == false) {
           LOG(ERROR) << "Reader status not ok: " << readerStatus.message();
           break;
@@ -206,21 +221,21 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
           batch->schema()->metadata()->ToUnorderedMap(&meta);
           std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
           if (meta["description"] == "TRACKPAR" && (readMask & AODTypeMask::Tracks)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "TRACKPAR"}, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "TRACKPAR"}, batch->schema());
           } else if (meta["description"] == "TRACKPARCOV" && (readMask & AODTypeMask::TracksCov)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "TRACKPARCOV"}, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "TRACKPARCOV"}, batch->schema());
           } else if (meta["description"] == "TRACKEXTRA" && (readMask & AODTypeMask::TracksExtra)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "TRACKEXTRA"}, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "TRACKEXTRA"}, batch->schema());
           } else if (meta["description"] == "CALO" && (readMask & AODTypeMask::Calo)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "CALO"}, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "CALO"}, batch->schema());
           } else if (meta["description"] == "MUON" && (readMask & AODTypeMask::Muon)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "MUON"}, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "MUON"}, batch->schema());
           } else if (meta["description"] == "VZERO" && (readMask & AODTypeMask::VZero)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "VZERO"}, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "VZERO"}, batch->schema());
           } else if (meta["description"] == "COLLISION" && (readMask & AODTypeMask::Collisions)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "COLLISION"}, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "COLLISION"}, batch->schema());
           } else if (meta["description"] == "TIMEFRAME" && (readMask & AODTypeMask::Timeframe)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"RN2", "TIMEFRAME"}, batch->schema());
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "TIMEFRAME"}, batch->schema());
           } else {
             continue;
           }
@@ -270,8 +285,8 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
                            filenames](DataAllocator& outputs, ControlService& control) {
       if (*counter >= filenames.size()) {
         LOG(info) << "All input files processed";
-        control.readyToQuit(false);
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        control.endOfStream();
+        control.readyToQuit(QuitRequest::Me);
         return;
       }
       auto f = filenames[*counter];
@@ -283,99 +298,46 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       }
 
       /// FIXME: Substitute here the actual data you want to convert for the AODReader
+      if (readMask & AODTypeMask::Collisions) {
+        std::unique_ptr<TTreeReader> reader = std::make_unique<TTreeReader>("O2events", infile.get());
+        auto& collisionBuilder = outputs.make<TableBuilder>(Output{"AOD", "COLLISION"});
+        RootTableBuilderHelpers::convertASoA<o2::aod::Collisions>(collisionBuilder, *reader);
+      }
+
       if (readMask & AODTypeMask::Tracks) {
         std::unique_ptr<TTreeReader> reader = std::make_unique<TTreeReader>("O2tracks", infile.get());
         auto& trackParBuilder = outputs.make<TableBuilder>(Output{"AOD", "TRACKPAR"});
-        TTreeReaderValue<int> c0(*reader, "fID4Tracks");
-        TTreeReaderValue<float> c1(*reader, "fX");
-        TTreeReaderValue<float> c2(*reader, "fAlpha");
-        TTreeReaderValue<float> c3(*reader, "fY");
-        TTreeReaderValue<float> c4(*reader, "fZ");
-        TTreeReaderValue<float> c5(*reader, "fSnp");
-        TTreeReaderValue<float> c6(*reader, "fTgl");
-        TTreeReaderValue<float> c7(*reader, "fSigned1Pt");
-        RootTableBuilderHelpers::convertTTree(trackParBuilder, *reader,
-                                              c0, c1, c2, c3, c4, c5, c6, c7);
+        RootTableBuilderHelpers::convertASoA<o2::aod::Tracks>(trackParBuilder, *reader);
       }
 
       if (readMask & AODTypeMask::TracksCov) {
         std::unique_ptr<TTreeReader> covReader = std::make_unique<TTreeReader>("O2tracks", infile.get());
-        TTreeReaderValue<float> c0(*covReader, "fCYY");
-        TTreeReaderValue<float> c1(*covReader, "fCZY");
-        TTreeReaderValue<float> c2(*covReader, "fCZZ");
-        TTreeReaderValue<float> c3(*covReader, "fCSnpY");
-        TTreeReaderValue<float> c4(*covReader, "fCSnpZ");
-        TTreeReaderValue<float> c5(*covReader, "fCSnpSnp");
-        TTreeReaderValue<float> c6(*covReader, "fCTglSnp");
-        TTreeReaderValue<float> c7(*covReader, "fCTglTgl");
-        TTreeReaderValue<float> c8(*covReader, "fC1PtY");
-        TTreeReaderValue<float> c9(*covReader, "fC1PtZ");
-        TTreeReaderValue<float> c10(*covReader, "fC1PtSnp");
-        TTreeReaderValue<float> c11(*covReader, "fC1PtTgl");
-        TTreeReaderValue<float> c12(*covReader, "fC1Pt21Pt2");
         auto& trackParCovBuilder = outputs.make<TableBuilder>(Output{"AOD", "TRACKPARCOV"});
-        RootTableBuilderHelpers::convertTTree(trackParCovBuilder, *covReader,
-                                              c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12);
+        RootTableBuilderHelpers::convertASoA<o2::aod::TracksCov>(trackParCovBuilder, *covReader);
       }
 
       if (readMask & AODTypeMask::TracksExtra) {
         std::unique_ptr<TTreeReader> extraReader = std::make_unique<TTreeReader>("O2tracks", infile.get());
-        TTreeReaderValue<float> c0(*extraReader, "fTPCinnerP");
-        TTreeReaderValue<uint64_t> c1(*extraReader, "fFlags");
-        TTreeReaderValue<unsigned char> c2(*extraReader, "fITSClusterMap");
-        TTreeReaderValue<unsigned short> c3(*extraReader, "fTPCncls");
-        TTreeReaderValue<unsigned char> c4(*extraReader, "fTRDntracklets");
-        TTreeReaderValue<float> c5(*extraReader, "fITSchi2Ncl");
-        TTreeReaderValue<float> c6(*extraReader, "fTPCchi2Ncl");
-        TTreeReaderValue<float> c7(*extraReader, "fTRDchi2");
-        TTreeReaderValue<float> c8(*extraReader, "fTOFchi2");
-        TTreeReaderValue<float> c9(*extraReader, "fTPCsignal");
-        TTreeReaderValue<float> c10(*extraReader, "fTRDsignal");
-        TTreeReaderValue<float> c11(*extraReader, "fTOFsignal");
-        TTreeReaderValue<float> c12(*extraReader, "fLength");
         auto& extraBuilder = outputs.make<TableBuilder>(Output{"AOD", "TRACKEXTRA"});
-        RootTableBuilderHelpers::convertTTree(extraBuilder, *extraReader,
-                                              c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11);
+        RootTableBuilderHelpers::convertASoA<o2::aod::TracksExtra>(extraBuilder, *extraReader);
       }
 
       if (readMask & AODTypeMask::Calo) {
         std::unique_ptr<TTreeReader> extraReader = std::make_unique<TTreeReader>("O2calo", infile.get());
-        TTreeReaderValue<int> c0(*extraReader, "fID4Calo");
-        TTreeReaderValue<short> c1(*extraReader, "fCellNumber");
-        TTreeReaderValue<float> c2(*extraReader, "fAmplitude");
-        TTreeReaderValue<float> c3(*extraReader, "fTime");
-        TTreeReaderValue<int8_t> c4(*extraReader, "fType");
         auto& extraBuilder = outputs.make<TableBuilder>(Output{"AOD", "CALO"});
-        RootTableBuilderHelpers::convertTTree(extraBuilder, *extraReader,
-                                              c0, c1, c2, c3, c4);
+        RootTableBuilderHelpers::convertASoA<o2::aod::Calos>(extraBuilder, *extraReader);
       }
 
       if (readMask & AODTypeMask::Muon) {
-        std::unique_ptr<TTreeReader> muReader = std::make_unique<TTreeReader>("O2mu", infile.get());
-        TTreeReaderValue<int> c0(*muReader, "fID4mu");
-        TTreeReaderValue<float> c1(*muReader, "fInverseBendingMomentum");
-        TTreeReaderValue<float> c2(*muReader, "fThetaX");
-        TTreeReaderValue<float> c3(*muReader, "fThetaY");
-        TTreeReaderValue<float> c4(*muReader, "fZmu");
-        TTreeReaderValue<float> c5(*muReader, "fBendingCoor");
-        TTreeReaderValue<float> c6(*muReader, "fNonBendingCoor");
-        TTreeReaderArray<float> c7(*muReader, "fCovariances");
-        TTreeReaderValue<float> c8(*muReader, "fChi2");
-        TTreeReaderValue<float> c9(*muReader, "fChi2MatchTrigger");
-        TTreeReaderValue<int> c10(*muReader, "fID4vz");
+        std::unique_ptr<TTreeReader> muReader = std::make_unique<TTreeReader>("O2muon", infile.get());
         auto& muBuilder = outputs.make<TableBuilder>(Output{"AOD", "MUON"});
-        RootTableBuilderHelpers::convertTTree(muBuilder, *muReader,
-                                              c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10);
+        RootTableBuilderHelpers::convertASoA<o2::aod::Muons>(muBuilder, *muReader);
       }
 
       if (readMask & AODTypeMask::VZero) {
-        std::unique_ptr<TTreeReader> vzReader = std::make_unique<TTreeReader>("O2vz", infile.get());
-        TTreeReaderArray<float> c0(*vzReader, "fAdcVZ"); // FIXME: we do not support arrays for now
-        TTreeReaderArray<float> c1(*vzReader, "fTimeVZ");
-        TTreeReaderArray<float> c2(*vzReader, "fWidthVZ");
+        std::unique_ptr<TTreeReader> vzReader = std::make_unique<TTreeReader>("O2vzero", infile.get());
         auto& vzBuilder = outputs.make<TableBuilder>(Output{"AOD", "VZERO"});
-        RootTableBuilderHelpers::convertTTree(vzBuilder, *vzReader,
-                                              c0, c1, c2);
+        RootTableBuilderHelpers::convertASoA<o2::aod::Muons>(vzBuilder, *vzReader);
       }
 
       // Candidates as described by Gianmichele example

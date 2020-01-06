@@ -14,8 +14,8 @@ o2_add_executable(digitizer-workflow
                   SOURCES src/CollisionTimePrinter.cxx
                           src/EMCALDigitWriterSpec.cxx
                           src/EMCALDigitizerSpec.cxx
-                          src/FITDigitWriterSpec.cxx
-                          src/FITDigitizerSpec.cxx
+                          src/FT0DigitWriterSpec.cxx
+                          src/FT0DigitizerSpec.cxx
 			  src/FDDDigitizerSpec.cxx
                           src/GRPUpdaterSpec.cxx
                           src/HMPIDDigitizerSpec.cxx
@@ -36,7 +36,7 @@ o2_add_executable(digitizer-workflow
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                         O2::Steer
                                         O2::EMCALSimulation
-                                        O2::FITSimulation
+                                        O2::FT0Simulation
 					O2::FDDSimulation
                                         O2::HMPIDSimulation
                                         O2::ITSMFTSimulation
@@ -50,4 +50,5 @@ o2_add_executable(digitizer-workflow
                                         O2::TPCSimulation
                                         O2::TPCWorkflow
                                         O2::TRDSimulation
+                                        O2::DataFormatsTRD
                                         O2::ZDCSimulation)

@@ -15,11 +15,10 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/runDataProcessing.h"
-#include "Framework/DebugGUI.h"
-#include "DebugGUI/imgui.h"
 
 #include <chrono>
 #include <iostream>
+#include <thread>
 
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
@@ -35,7 +34,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
      AlgorithmSpec{
        [](ProcessingContext& ctx) {
          std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-         auto out = ctx.outputs().make<int>(OutputRef{"test", 0});
+         auto& out = ctx.outputs().make<int>(OutputRef{"test", 0});
        }}},
     {"dest",
      Inputs{
@@ -50,7 +49,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
          ic.services().get<CallbackService>().set(CallbackService::Id::ClockTick, callback);
          return [count](ProcessingContext& ctx) {
            if (*count > 1000) {
-             ctx.services().get<ControlService>().readyToQuit(true);
+             ctx.services().get<ControlService>().readyToQuit(QuitRequest::All);
            }
          };
        }}}};

@@ -59,7 +59,7 @@ class Mapper
   /// \param sec sector
   /// \param globalPad global pad number in sector
   /// \return global cru number
-  int getCRU(const Sector& sec, GlobalPadNumber globalPad)
+  int getCRU(const Sector& sec, GlobalPadNumber globalPad) const
   {
     const auto row = mMapGlobalPadToPadPos[globalPad].getRow();
     const auto nCRUPerSector = mMapPadRegionInfo.size();
@@ -146,7 +146,10 @@ class Mapper
 
   GlobalPosition2D getPadCentre(const PadSecPos& padSec) const
   {
-    const PadCentre& padcent = getPadCentre(padSec.getPadPos());
+    PadCentre padcent = getPadCentre(padSec.getPadPos());
+    if (padSec.getSector().side() == Side::A) {
+      padcent.SetY(-1.f * padcent.Y());
+    }
     return LocalToGlobal(padcent, padSec.getSector());
   }
 
@@ -216,7 +219,6 @@ class Mapper
 
   const PadPos padPosRegion(const int cruNumber, const int fecInRegion, const int sampaOnFEC,
                             const int channelOnSAMPA) const
-
   {
     const CRU cru(cruNumber);
     const PadRegionInfo& regionInfo = mMapPadRegionInfo[cru.region()];
@@ -225,6 +227,30 @@ class Mapper
     const GlobalPadNumber padNumber = globalPadNumber(fecInSector, sampaOnFEC, channelOnSAMPA);
     PadPos pos = padPos(padNumber);
     pos.setRow(pos.getRow() - regionInfo.getGlobalRowOffset());
+    return pos;
+  }
+
+  const PadROCPos padROCPos(const CRU cru, const int fecInRegion, const int sampaOnFEC,
+                            const int channelOnSAMPA) const
+  {
+    const PartitionInfo& partInfo = mMapPartitionInfo[cru.partition()];
+    const int fecInSector = partInfo.getSectorFECOffset() + fecInRegion;
+    const GlobalPadNumber padNumber = globalPadNumber(fecInSector, sampaOnFEC, channelOnSAMPA);
+    const ROC roc = cru.roc();
+    PadROCPos pos(roc, padPos(padNumber));
+    if (roc.isOROC()) {
+      pos.getPadPos().setRow(pos.getRow() - mNumberOfPadRowsIROC);
+    }
+    return pos;
+  }
+
+  const PadSecPos padSecPos(const CRU cru, const int fecInRegion, const int sampaOnFEC,
+                            const int channelOnSAMPA) const
+  {
+    const PartitionInfo& partInfo = mMapPartitionInfo[cru.partition()];
+    const int fecInSector = partInfo.getSectorFECOffset() + fecInRegion;
+    const GlobalPadNumber padNumber = globalPadNumber(fecInSector, sampaOnFEC, channelOnSAMPA);
+    PadSecPos pos(cru.sector(), padPos(padNumber));
     return pos;
   }
 
@@ -357,6 +383,7 @@ class Mapper
         break;
       }
     }
+    return 0;
   }
 
   unsigned short getNumberOfPads(const ROC roc) const

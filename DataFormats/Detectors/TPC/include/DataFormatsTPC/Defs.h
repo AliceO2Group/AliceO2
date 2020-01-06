@@ -59,6 +59,13 @@ enum class PadSubset : char {
   Partition, ///< Partitions (up to 36*5)
   Region     ///< Regions (up to 36*10)
 };
+
+/// Statistics type
+enum class StatisticsType {
+  GausFit,   ///< Use Gaus fit for pedestal and noise
+  MeanStdDev ///< Use mean and standard deviation
+};
+
 // default point definitions for PointND, PointNDlocal, PointNDglobal are in
 // MathUtils/CartesianND.h
 

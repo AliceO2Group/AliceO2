@@ -12,6 +12,7 @@
 
 #include "ITSMFTDigitWriterSpec.h"
 #include "Framework/CallbackService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/Task.h"
 #include "ITSMFTBase/Digit.h"
@@ -112,7 +113,7 @@ class ITSMFTDPLDigitWriter
 
     mOutFile->Close();
     mFinished = true;
-    pc.services().get<ControlService>().readyToQuit(false);
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
 
  protected:

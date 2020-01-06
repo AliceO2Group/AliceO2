@@ -17,6 +17,7 @@
 
 #include "DPLUtils/RootTreeWriter.h"
 #include "Framework/InputSpec.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
@@ -382,7 +383,7 @@ class MakeRootTreeWriterSpec
 
         if ((nEvents >= 0 && counter == nEvents) || checkReady(pc.inputs())) {
           writer->close();
-          pc.services().get<ControlService>().readyToQuit(terminationPolicy == TerminationPolicy::Workflow);
+          pc.services().get<ControlService>().readyToQuit(terminationPolicy == TerminationPolicy::Workflow ? QuitRequest::All : QuitRequest::Me);
         }
       };
 

@@ -19,6 +19,7 @@
 #pragma link C++ class o2::itsmft::DigitPixelReader + ;
 #pragma link C++ class o2::itsmft::RawPixelReader < o2::itsmft::ChipMappingITS> + ;
 #pragma link C++ class o2::itsmft::RawPixelReader < o2::itsmft::ChipMappingMFT> + ;
+
 #pragma link C++ class o2::itsmft::PixelData + ;
 #pragma link C++ class o2::itsmft::ChipPixelData + ;
 #pragma link C++ class o2::itsmft::BuildTopologyDictionary + ;

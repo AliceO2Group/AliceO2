@@ -53,8 +53,7 @@ class DataRelayer
   };
 
   DataRelayer(CompletionPolicy const&,
-              std::vector<InputRoute> const&,
-              std::vector<ForwardRoute> const&,
+              std::vector<InputRoute> const& routes,
               monitoring::Monitoring&,
               TimesliceIndex&);
 
@@ -94,10 +93,12 @@ class DataRelayer
 
   /// Send metrics with the VariableContext information
   void sendContextState();
+  void publishMetrics();
+
+  /// Remove all pending messages
+  void clear();
 
  private:
-  std::vector<InputRoute> const& mInputRoutes;
-  std::vector<ForwardRoute> const& mForwardRoutes;
   monitoring::Monitoring& mMetrics;
 
   /// This is the actual cache of all the parts in flight.
@@ -110,7 +111,6 @@ class DataRelayer
   /// cacheline.
   TimesliceIndex& mTimesliceIndex;
 
-  std::vector<bool> mForwardingMask;
   CompletionPolicy mCompletionPolicy;
   std::vector<size_t> mDistinctRoutesIndex;
   std::vector<data_matcher::DataDescriptorMatcher> mInputMatchers;

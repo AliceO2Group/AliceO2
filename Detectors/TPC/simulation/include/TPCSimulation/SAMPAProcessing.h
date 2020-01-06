@@ -20,7 +20,7 @@
 #include "TPCBase/PadPos.h"
 #include "TPCBase/CalDet.h"
 #include "TPCBase/CRU.h"
-#include "TPCBase/RandomRing.h"
+#include "MathUtils/RandomRing.h"
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGas.h"
@@ -65,9 +65,10 @@ class SAMPAProcessing
   /// \param ADCcounts ADC value of the signal (common mode already subtracted)
   /// \param sector Sector number
   /// \param globalPadInSector global pad number in the sector
+  /// \param commonMode value of the common mode
   /// \return ADC value after application of noise, pedestal and saturation
   template <DigitzationMode MODE>
-  float makeSignal(float ADCcounts, const int sector, const int globalPadInSector, float& pedestal, float& noise);
+  float makeSignal(float ADCcounts, const int sector, const int globalPadInSector, const float commonMode, float& pedestal, float& noise);
 
   /// A delta signal is shaped by the FECs and thus spread over several time bins
   /// This function returns an array with the signal spread into the following time bins
@@ -130,7 +131,7 @@ class SAMPAProcessing
   const ParameterElectronics* mEleParam; ///< Caching of the parameter class to avoid multiple CDB calls
   const CalPad* mNoiseMap;               ///< Caching of the parameter class to avoid multiple CDB calls
   const CalPad* mPedestalMap;            ///< Caching of the parameter class to avoid multiple CDB calls
-  RandomRing<> mRandomNoiseRing;         ///< Ring with random number for noise
+  math_utils::RandomRing<> mRandomNoiseRing; ///< Ring with random number for noise
 };
 
 template <typename T>
@@ -142,7 +143,7 @@ inline T SAMPAProcessing::getADCvalue(T nElectrons) const
 }
 
 template <DigitzationMode MODE>
-inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, const int globalPadInSector,
+inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, const int globalPadInSector, const float commonMode,
                                          float& pedestal, float& noise)
 {
   float signal = ADCcounts;
@@ -150,12 +151,14 @@ inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, cons
   noise = getNoise(sector, globalPadInSector);
   switch (MODE) {
     case DigitzationMode::FullMode: {
+      signal -= commonMode;
       signal += noise;
       signal += pedestal;
       return getADCSaturation(signal);
       break;
     }
     case DigitzationMode::SubtractPedestal: {
+      signal -= commonMode;
       signal += noise;
       signal += pedestal;
       float signalSubtractPedestal = getADCSaturation(signal) - pedestal;
@@ -163,6 +166,7 @@ inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, cons
       break;
     }
     case DigitzationMode::NoSaturation: {
+      signal -= commonMode;
       signal += noise;
       signal += pedestal;
       return signal;
@@ -187,12 +191,19 @@ inline float SAMPAProcessing::getADCSaturation(const float signal) const
 template <typename T>
 inline T SAMPAProcessing::getGamma4(T time, T startTime, T ADC) const
 {
-  Vc::float_v tmp0 = (time - startTime) / mEleParam->PeakingTime;
-  Vc::float_m cond = (tmp0 > 0);
-  Vc::float_v tmp;
-  tmp(cond) = tmp0;
-  Vc::float_v tmp2 = tmp * tmp;
-  return 55.f * ADC * Vc::exp(-4.f * tmp) * tmp2 * tmp2; /// 55 is for normalization: 1/Integral(Gamma4)
+  const auto tmp0 = (time - startTime) / mEleParam->PeakingTime;
+  const auto cond = (tmp0 > 0);
+  T tmp{};
+  if constexpr (std::is_floating_point_v<T>) {
+    if (!cond) {
+      return T{};
+    }
+    tmp = tmp0;
+  } else {
+    tmp(cond) = tmp0;
+  }
+  const auto tmp2 = tmp * tmp;
+  return 55.f * ADC * std::exp(-4.f * tmp) * tmp2 * tmp2; /// 55 is for normalization: 1/Integral(Gamma4)
 }
 
 inline TimeBin SAMPAProcessing::getTimeBin(float zPos) const

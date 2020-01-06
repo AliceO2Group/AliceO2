@@ -148,7 +148,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     LOG(INFO) << "This is not a real device, merely a placeholder for external inputs";
     LOG(INFO) << "To be hidden / removed at some point.";
     // mark this dummy process as ready-to-quit
-    ic.services().get<ControlService>().readyToQuit(false);
+    ic.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     return [](ProcessingContext& pc) {
       // this callback is never called since there is no expiring input
       pc.services().get<RawDeviceService>().device()->WaitFor(std::chrono::seconds(2));
@@ -191,38 +191,26 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     {},
     readers::AODReaderHelpers::rootFileReaderCallback(),
     {ConfigParamSpec{"aod-file", VariantType::String, "aod.root", {"Input AOD file"}},
-     ConfigParamSpec{"start-value-enumeration", VariantType::Int, 0, {"initial value for the enumeration"}},
-     ConfigParamSpec{"end-value-enumeration", VariantType::Int, -1, {"final value for the enumeration"}},
-     ConfigParamSpec{"step-value-enumeration", VariantType::Int, 1, {"step between one value and the other"}}}};
-
-  DataProcessorSpec run2Converter{
-    "internal-dpl-esd-reader",
-    {InputSpec{"enumeration",
-               "DPL",
-               "ENUM",
-               static_cast<DataAllocator::SubSpecificationType>(separateEnumerations++), Lifetime::Enumeration}},
-    {},
-    readers::AODReaderHelpers::run2ESDConverterCallback(),
-    {ConfigParamSpec{"esd-file", VariantType::String, "AliESDs.root", {"Input ESD file"}},
-     ConfigParamSpec{"start-value-enumeration", VariantType::Int, 0, {"initial value for the enumeration"}},
-     ConfigParamSpec{"end-value-enumeration", VariantType::Int, -1, {"final value for the enumeration"}},
-     ConfigParamSpec{"step-value-enumeration", VariantType::Int, 1, {"step between one value and the other"}}}};
+     ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
+     ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}},
+     ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}}};
 
   std::vector<InputSpec> requestedAODs;
   std::vector<OutputSpec> providedAODs;
-  std::vector<InputSpec> requestedRUN2s;
-  std::vector<OutputSpec> providedRUN2s;
   std::vector<InputSpec> requestedCCDBs;
   std::vector<OutputSpec> providedCCDBs;
+  std::vector<OutputSpec> providedOutputObj;
+  using outputObjMap = std::unordered_map<std::string, std::string>;
+  outputObjMap outMap;
 
   for (size_t wi = 0; wi < workflow.size(); ++wi) {
     auto& processor = workflow[wi];
     std::string prefix = "internal-dpl-";
     if (processor.inputs.empty() && processor.name.compare(0, prefix.size(), prefix) != 0) {
       processor.inputs.push_back(InputSpec{"enumeration", "DPL", "ENUM", static_cast<DataAllocator::SubSpecificationType>(separateEnumerations++), Lifetime::Enumeration});
-      processor.options.push_back(ConfigParamSpec{"start-value-enumeration", VariantType::Int, 0, {"initial value for the enumeration"}});
-      processor.options.push_back(ConfigParamSpec{"end-value-enumeration", VariantType::Int, -1, {"final value for the enumeration"}});
-      processor.options.push_back(ConfigParamSpec{"step-value-enumeration", VariantType::Int, 1, {"step between one value and the other"}});
+      processor.options.push_back(ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}});
+      processor.options.push_back(ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}});
+      processor.options.push_back(ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}});
     }
     bool hasConditionOption = false;
     for (size_t ii = 0; ii < processor.inputs.size(); ++ii) {
@@ -247,8 +235,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
         } break;
         case Lifetime::Condition: {
           if (hasConditionOption == false) {
-            processor.options.emplace_back(ConfigParamSpec{"condition-backend", VariantType::String, "http://localhost:8080", {"Url for CCDB"}}),
-              hasConditionOption = true;
+            processor.options.emplace_back(ConfigParamSpec{"condition-backend", VariantType::String, "http://localhost:8080", {"Url for CCDB"}});
+            processor.options.emplace_back(ConfigParamSpec{"condition-timestamp", VariantType::String, "", {"Force timestamp for CCDB lookup"}});
+            hasConditionOption = true;
           }
           requestedCCDBs.emplace_back(input);
         } break;
@@ -259,14 +248,15 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
       }
       if (DataSpecUtils::partialMatch(input, header::DataOrigin{"AOD"})) {
         requestedAODs.emplace_back(input);
-      } else if (DataSpecUtils::partialMatch(input, header::DataOrigin{"RN2"})) {
-        requestedRUN2s.emplace_back(input);
       }
     }
     for (size_t oi = 0; oi < processor.outputs.size(); ++oi) {
       auto& output = processor.outputs[oi];
       if (DataSpecUtils::partialMatch(output, header::DataOrigin{"AOD"})) {
         providedAODs.emplace_back(output);
+      } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"ATSK"})) {
+        providedOutputObj.emplace_back(output);
+        outMap.insert({output.binding.value, processor.name});
       }
       if (output.lifetime == Lifetime::Condition) {
         providedCCDBs.push_back(output);
@@ -275,7 +265,6 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
   }
 
   addMissingOutputsToReader(providedAODs, requestedAODs, aodReader);
-  addMissingOutputsToReader(providedRUN2s, requestedRUN2s, run2Converter);
   addMissingOutputsToReader(providedCCDBs, requestedCCDBs, ccdbBackend);
 
   std::vector<DataProcessorSpec> extraSpecs;
@@ -294,17 +283,18 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     auto concrete = DataSpecUtils::asConcreteDataMatcher(aodReader.inputs[0]);
     timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
   }
-  if (run2Converter.outputs.empty() == false) {
-    extraSpecs.push_back(run2Converter);
-    auto concrete = DataSpecUtils::asConcreteDataMatcher(run2Converter.inputs[0]);
-    timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
-  }
 
   if (timer.outputs.empty() == false) {
     extraSpecs.push_back(timer);
   }
 
-  // FIXME: I should insert more things here.
+  // This is to inject a file sink so that any dangling ATSK object is written
+  // to a ROOT file.
+  if (providedOutputObj.size() != 0) {
+    auto rootSink = CommonDataProcessors::getOutputObjSink(outMap);
+    extraSpecs.push_back(rootSink);
+  }
+
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
 
   /// This will inject a file sink so that any dangling
@@ -633,15 +623,25 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
   std::vector<DataMatcherId> inputs;
   std::vector<DataMatcherId> outputs;
   std::vector<InputSpec> results;
+  size_t totalInputs = 0;
+  size_t totalOutputs = 0;
+
+  for (auto& spec : workflow) {
+    totalInputs += spec.inputs.size();
+    totalOutputs += spec.outputs.size();
+  }
+
+  inputs.reserve(totalInputs);
+  outputs.reserve(totalOutputs);
 
   /// Prepare an index to do the iterations quickly.
   for (size_t wi = 0, we = workflow.size(); wi != we; ++wi) {
     auto& spec = workflow[wi];
     for (size_t ii = 0, ie = spec.inputs.size(); ii != ie; ++ii) {
-      inputs.push_back(DataMatcherId{wi, ii});
+      inputs.emplace_back(DataMatcherId{wi, ii});
     }
     for (size_t oi = 0, oe = spec.outputs.size(); oi != oe; ++oi) {
-      outputs.push_back(DataMatcherId{wi, oi});
+      outputs.emplace_back(DataMatcherId{wi, oi});
     }
   }
 

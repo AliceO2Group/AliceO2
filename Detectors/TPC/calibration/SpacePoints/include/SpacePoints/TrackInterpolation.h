@@ -177,6 +177,7 @@ class TrackInterpolation
   /// Setters and Getters for the input branch/file names
   void setITSTPCTrackBranchName(const std::string& name) { mITSTPCTrackBranchName = name; }
   void setTPCTrackBranchName(const std::string& name) { mTPCTrackBranchName = name; }
+  void setTPCTrackClIdxBranchName(const std::string& name) { mTPCTrackClIdxBranchName = name; }
   void setTPCClusterFileName(const std::string& name) { mTPCClusterFileName = name; }
   void setITSTrackBranchName(const std::string& name) { mITSTrackBranchName = name; }
   void setITSClusterBranchName(const std::string& name) { mITSClusterBranchName = name; }
@@ -185,6 +186,7 @@ class TrackInterpolation
 
   const std::string& getITSTPCTrackBranchName() const { return mITSTPCTrackBranchName; }
   const std::string& getTPCTrackBranchName() const { return mTPCTrackBranchName; }
+  const std::string& getTPCTrackClIdxBranchName() const { return mTPCTrackClIdxBranchName; }
   const std::string& getTPCClusterFileName() const { return mTPCClusterFileName; }
   const std::string& getITSTrackBranchName() const { return mITSTrackBranchName; }
   const std::string& getITSClusterBranchName() const { return mITSClusterBranchName; }
@@ -195,6 +197,7 @@ class TrackInterpolation
   // names of input files / branches
   std::string mITSTPCTrackBranchName{"TPCITS"};                ///< name of branch containing ITS-TPC matched tracks
   std::string mTPCTrackBranchName{"Tracks"};                   ///< name of branch containing TPC tracks (needed for TPC cluster access)
+  std::string mTPCTrackClIdxBranchName{"ClusRefs"};            ///< name of branch containing TPC tracks cluster refs (needed for TPC cluster access)
   std::string mTPCClusterFileName{"tpc-native-clusters.root"}; ///< name of file containing TPC native clusters
   std::string mITSTrackBranchName{"ITSTrack"};                 ///< name of branch containing input ITS tracks
   std::string mITSClusterBranchName{"ITSCluster"};             ///< name of branch containing input ITS clusters
@@ -220,6 +223,7 @@ class TrackInterpolation
   TTree* mTreeTOFClusters{nullptr};                                                                              ///< input tree for TOF clusters
   std::vector<o2::dataformats::TrackTPCITS>* mITSTPCTrackVecInput{nullptr};                                      ///< input vector with ITS-TPC matched tracks
   std::vector<TrackTPC>* mTPCTrackVecInput{nullptr};                                                             ///< input vector with TPC tracks
+  std::vector<TPCClRefElem>* mTPCTrackClIdxVecInput{nullptr};                                                    ///< input vector with TPC tracks cluster indicies
   std::vector<o2::its::TrackITS>* mITSTrackVecInput{nullptr};                                                    ///< input vector with ITS tracks
   std::vector<o2::itsmft::Cluster>* mITSClusterVecInput{nullptr};                                                ///< input vector with ITS clusters
   ClusterNativeHelper::Reader* mTPCClusterReader = nullptr;                                                      ///< TPC cluster reader

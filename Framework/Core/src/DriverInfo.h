@@ -119,10 +119,13 @@ struct DriverInfo {
   /// The optional timeout after which the driver will request
   /// all the children to quit.
   double timeout;
-  /// The start port to use when looking for a free range
-  unsigned short startPort;
-  /// The size of the port range to consider allocated
-  unsigned short portRange;
+  /// The hostname which needs to be deployed by this instance of
+  /// the driver. By default it will be localhost
+  std::string deployHostname;
+  /// resources which are allocated for the whole workflow by
+  /// an external resource manager. If the value is an empty string
+  /// resources are obtained from the localhost.
+  std::string resources;
   /// The current set of metadata associated to each DataProcessor being
   /// executed.
   std::vector<DataProcessorInfo> processorInfo;
@@ -139,6 +142,8 @@ struct DriverInfo {
   float frameCost;
   /// The time between one frame and the other.
   float frameLatency;
+  /// The unique id used for ipc communications
+  std::string uniqueWorkflowId = "";
 };
 
 } // namespace framework

@@ -34,8 +34,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
             LOG(ERROR) << "Wrong size for condition payload (expected " << 1024 << ", found " << header->payloadSize;
           }
           header->payloadSize;
-          auto aData = outputs.make<int>(Output{"TST", "A1", 0}, 1);
-          control.readyToQuit(true);
+          auto& aData = outputs.make<int>(Output{"TST", "A1", 0}, 1);
+          control.readyToQuit(QuitRequest::All);
         })},
       Options{
         {"test-option", VariantType::String, "test", {"A test option"}}},

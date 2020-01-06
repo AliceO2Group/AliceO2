@@ -59,7 +59,11 @@
 #elif defined(GPUCA_GPUCODE)
   #error GPU TYPE NOT SET
 #endif
+
 #define GPUCA_THREAD_COUNT_TRD 512
+#define GPUCA_THREAD_COUNT_CLUSTERER 64 // TODO: why does the result change, if I modify this?
+#define GPUCA_THREAD_COUNT_SCAN 64
+#define GPUCA_MAX_THREADS 1024
 
 #define GPUCA_MAX_STREAMS 32
 
@@ -72,22 +76,22 @@
 
 // #define GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE                        // Output Profiling Data for Tracklet Constructor Tracklet Scheduling
 
-#define GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE 12
 #define GPUCA_TRACKLET_SELECTOR_SLICE_COUNT 8                          // Currently must be smaller than avaiable MultiProcessors on GPU or will result in wrong results
 
 // Default maximum numbers
-#define GPUCA_MAX_CLUSTERS           ((size_t) 1024 * 1024 * 1024)     // Maximum number of TPC clusters
-#define GPUCA_MAX_TRD_TRACKLETS      ((size_t)         128 * 1024)     // Maximum number of TRD tracklets
-#define GPUCA_MAX_ITS_FIT_TRACKS     ((size_t)          96 * 1024)     // Max number of tracks for ITS track fit
-#define GPUCA_TRACKER_CONSTANT_MEM   ((size_t)          63 * 1024)     // Amount of Constant Memory to reserve
-#define GPUCA_MEMALIGN               ((size_t)          64 * 1024)     // Alignment of memory blocks, all constants above must be multiple of this!!!
-#define GPUCA_MEMALIGN_SMALL         ((size_t)          64 * 1024)     // Alignment of small blocks, GPUCA_MEMALIGN must be multiple of this!!!
-#define GPUCA_MEMORY_SIZE            ((size_t) 4096 * 1024 * 1024)     // Size of memory allocated on Device
-#define GPUCA_HOST_MEMORY_SIZE       ((size_t) 4096 * 1024 * 1024)     // Size of memory allocated on Host
-#define GPUCA_GPU_STACK_SIZE         ((size_t)               8192)     // Stack size per GPU thread
+#define GPUCA_MAX_CLUSTERS           ((size_t)     1024 * 1024 * 1024) // Maximum number of TPC clusters
+#define GPUCA_MAX_TRD_TRACKLETS      ((size_t)             128 * 1024) // Maximum number of TRD tracklets
+#define GPUCA_MAX_ITS_FIT_TRACKS     ((size_t)              96 * 1024) // Max number of tracks for ITS track fit
+#define GPUCA_TRACKER_CONSTANT_MEM   ((size_t)              63 * 1024) // Amount of Constant Memory to reserve
+#define GPUCA_MEMALIGN               ((size_t)              64 * 1024) // Alignment of memory blocks, all constants above must be multiple of this!!!
+#define GPUCA_MEMALIGN_SMALL         ((size_t)              64 * 1024) // Alignment of small blocks, GPUCA_MEMALIGN must be multiple of this!!!
+#define GPUCA_MEMORY_SIZE            ((size_t) 6 * 1024 * 1024 * 1024) // Size of memory allocated on Device
+#define GPUCA_HOST_MEMORY_SIZE       ((size_t) 6 * 1024 * 1024 * 1024) // Size of memory allocated on Host
+#define GPUCA_GPU_STACK_SIZE         ((size_t)               8 * 1024) // Stack size per GPU thread
+
+// #define GPUCA_KERNEL_DEBUGGER_OUTPUT
 
 // Make sure options do not interfere
-
 #ifndef GPUCA_GPUCODE
   // No texture fetch for CPU Tracker
   #ifdef GPUCA_TEXTURE_FETCH_CONSTRUCTOR
@@ -97,14 +101,17 @@
     #undef GPUCA_TEXTURE_FETCH_NEIGHBORS
   #endif
 
-  // Do not cache Row Hits during Tracklet selection in Registers for CPU Tracker
-  #undef GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE
   #define GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE 0
-
   #define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 0
 #else
   #define GPUCA_SORT_STARTHITS // Sort start hits for GPU tracker
-  #define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 6
+  #ifdef __HIPCC__
+    #define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 6
+    #define GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE 12
+  #else
+    #define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 6
+    #define GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE 12
+  #endif
 #endif
 
 #ifdef GPUCA_NOCOMPAT

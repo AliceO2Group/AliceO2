@@ -9,7 +9,8 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(ZDCBase
-               SOURCES src/Geometry.cxx
-               PUBLIC_LINK_LIBRARIES ROOT::MathCore FairRoot::Base)
+               SOURCES src/Geometry.cxx src/ModuleConfig.cxx 
+               PUBLIC_LINK_LIBRARIES O2::CommonConstants ROOT::MathCore FairRoot::Base)
 
-o2_target_root_dictionary(ZDCBase HEADERS include/ZDCBase/Geometry.h)
+o2_target_root_dictionary(ZDCBase HEADERS include/ZDCBase/Geometry.h include/ZDCBase/Constants.h
+				  include/ZDCBase/ModuleConfig.h)

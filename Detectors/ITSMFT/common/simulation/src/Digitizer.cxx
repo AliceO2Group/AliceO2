@@ -153,7 +153,7 @@ void Digitizer::fillOutputContainer(UInt_t frameLast)
         auto& preDig = iter->second; // preDigit
         if (preDig.charge >= mParams.getChargeThreshold()) {
           int digID = mDigits->size();
-          mDigits->emplace_back(chip.getChipIndex(), mROFrameMin, preDig.row, preDig.col, preDig.charge);
+          mDigits->emplace_back(chip.getChipIndex(), preDig.row, preDig.col, preDig.charge);
           mMCLabels->addElement(digID, preDig.labelRef.label);
           auto& nextRef = preDig.labelRef; // extra contributors are in extra array
           while (nextRef.next >= 0) {
@@ -206,6 +206,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, UInt_t& maxFr, int evID, 
   const auto& matrix = mGeometry->getMatrixL2G(hit.GetDetectorID());
   Vector3D<float> xyzLocS(matrix ^ (hit.GetPosStart())); // start position in sensor frame
   Vector3D<float> xyzLocE(matrix ^ (hit.GetPos()));      // end position in sensor frame
+
   Vector3D<float> step(xyzLocE);
   step -= xyzLocS;
   step *= nStepsInv; // position increment at each step
@@ -268,8 +269,11 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, UInt_t& maxFr, int evID, 
 
   const o2::itsmft::AlpideSimResponse* resp = mParams.getAlpSimResponse();
 
-  // take into account that the AlpideSimResponse has min/max thickness non-symmetric around 0
-  xyzLocS.SetY(xyzLocS.Y() + resp->getDepthShift());
+  // take into account that the AlpideSimResponse depth defintion has different min/max boundaries
+  // although the max should coincide with the surface of the epitaxial layer, which in the chip
+  // local coordinates has Y = +SensorLayerThicknessEff/2
+
+  xyzLocS.SetY(xyzLocS.Y() + resp->getDepthMax() - Segmentation::SensorLayerThicknessEff / 2.);
 
   // collect charge in evey pixel which might be affected by the hit
   for (int iStep = nSteps; iStep--;) {

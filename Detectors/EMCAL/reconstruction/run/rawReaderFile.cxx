@@ -8,13 +8,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file rawReaderCRU.cxx
-/// \author Jens Wiechula (Jens.Wiechula@ikf.uni-frankfurt.de)
-/// \author Torsten Alt (Torsten.Alt@cern.ch)
+/// \file rawReaderFile.cxx
+/// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 
 #include <iostream>
 #include <boost/program_options.hpp>
 
+#include "Headers/RAWDataHeader.h"
+#include "EMCALReconstruction/RawHeaderStream.h"
+#include "EMCALReconstruction/RAWDataHeader.h"
 #include "EMCALReconstruction/RawReaderFile.h"
 #include "EMCALReconstruction/AltroDecoder.h"
 
@@ -37,6 +39,7 @@ int main(int argc, char** argv)
     add_option("help,h", "Print this help message");
     add_option("verbose,v", bpo::value<uint32_t>()->default_value(0), "Select verbosity level [0 = no output]");
     add_option("version", "Print version information");
+    add_option("rdh,r", bpo::value<int>()->default_value(3), "RAW Data Header version (3 - CDHv3, 4 - RDHv4)");
     add_option("input-file,i", bpo::value<std::string>()->required(), "Specifies input file.");
     add_option("debug,d", bpo::value<uint32_t>()->default_value(0), "Select debug output level [0 = no debug output]");
 
@@ -64,25 +67,34 @@ int main(int argc, char** argv)
     exit(2);
   }
 
-  o2::emcal::RawReaderFile reader(vm["input-file"].as<std::string>());
-  for (int ipage = 0; ipage < reader.getNumberOfPages(); ipage++) {
-    reader.nextPage();
-    std::cout << reader.getRawHeader();
-    o2::emcal::AltroDecoder decoder(reader);
-    decoder.decode();
-    std::cout << decoder.getRCUTrailer() << std::endl;
-    for (auto& chan : decoder.getChannels()) {
-      std::cout << "Hw address: " << chan.getHardwareAddress() << std::endl;
-      for (auto& bunch : chan.getBunches()) {
-        std::cout << "BunchLength: " << int(bunch.getBunchLength()) << std::endl;
-        auto adcs = bunch.getADC();
-        int time = bunch.getStartTime();
-        for (int i = adcs.size() - 1; i >= 0; i--) {
-          std::cout << "Timebin " << time << ", ADC " << adcs[i] << std::endl;
-          time--;
+  auto decode = [](auto reader) {
+    while (reader.hasNext()) {
+      reader.next();
+      std::cout << reader.getRawHeader();
+      o2::emcal::AltroDecoder<decltype(reader)> decoder(reader);
+      decoder.decode();
+      std::cout << decoder.getRCUTrailer() << std::endl;
+      for (auto& chan : decoder.getChannels()) {
+        std::cout << "Hw address: " << chan.getHardwareAddress() << std::endl;
+        for (auto& bunch : chan.getBunches()) {
+          std::cout << "BunchLength: " << int(bunch.getBunchLength()) << std::endl;
+          auto adcs = bunch.getADC();
+          int time = bunch.getStartTime();
+          for (int i = adcs.size() - 1; i >= 0; i--) {
+            std::cout << "Timebin " << time << ", ADC " << adcs[i] << std::endl;
+            time--;
+          }
         }
       }
     }
+  };
+
+  auto rawfilename = vm["input-file"].as<std::string>();
+  auto rawHeaderVersion = vm["rdh"].as<int>();
+  if (rawHeaderVersion == 4) {
+    decode(o2::emcal::RawReaderFileRDHv4(rawfilename));
+  } else {
+    decode(o2::emcal::RawReaderFileRDHvE(rawfilename));
   }
   return 0;
 }

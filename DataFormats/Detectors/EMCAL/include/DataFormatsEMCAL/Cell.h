@@ -13,6 +13,7 @@
 
 #include <bitset>
 #include "Rtypes.h"
+#include "DataFormatsEMCAL/Constants.h"
 
 // Structure:
 // Bits 38-39: Cell type: 00=Low Gain, 01=High Gain, 10=LED mon, 11=TRU
@@ -25,18 +26,11 @@ namespace o2
 namespace emcal
 {
 
-enum CellType {
-  kLowGain,
-  kHighGain,
-  kLEDMon,
-  kTRU
-};
-
 class Cell
 {
  public:
   Cell() = default;
-  Cell(Short_t tower, Double_t energy, Double_t time, CellType ctype = CellType::kLowGain);
+  Cell(Short_t tower, Double_t energy, Double_t time, ChannelType_t ctype = ChannelType_t::LOW_GAIN);
   ~Cell() = default; // override
 
   void setTower(Short_t tower);
@@ -51,8 +45,8 @@ class Cell
   void setEnergy(Double_t energy);
   Double_t getEnergy() const;
 
-  void setType(CellType ctype);
-  UInt_t getType() const;
+  void setType(ChannelType_t ctype);
+  ChannelType_t getType() const;
 
   void setLowGain();
   Bool_t getLowGain() const;

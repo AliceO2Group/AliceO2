@@ -27,6 +27,9 @@
 
 #pragma link C++ class o2::eventgen::Generator + ;
 #pragma link C++ class o2::eventgen::GeneratorTGenerator + ;
+#ifdef GENERATORS_WITH_HEPMC3
+#pragma link C++ class o2::eventgen::GeneratorHepMC + ;
+#endif
 #pragma link C++ class o2::eventgen::Pythia6Generator + ;
 #ifdef GENERATORS_WITH_PYTHIA8
 #pragma link C++ class o2::eventgen::Pythia8Generator + ;
@@ -35,9 +38,13 @@
 #pragma link C++ class o2::eventgen::GeneratorFromFile + ;
 #pragma link C++ class o2::PDG + ;
 #pragma link C++ class o2::eventgen::PrimaryGenerator + ;
-#pragma link C++ class o2::eventgen::InteractionDiamondParam + ;
+
+#pragma link C++ enum o2::eventgen::EVertexDistribution;
+#pragma link C++ class o2::eventgen::InteractionDiamondParam +;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::InteractionDiamondParam> + ;
 #pragma link C++ class o2::eventgen::BoxGunParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::BoxGunParam> + ;
+#pragma link C++ class o2::eventgen::QEDGenParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::QEDGenParam> + ;
 
 #endif

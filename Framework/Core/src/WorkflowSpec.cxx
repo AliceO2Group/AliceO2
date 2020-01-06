@@ -64,12 +64,13 @@ WorkflowSpec parallelPipeline(const WorkflowSpec& specs,
     nPipelines = numberOfSubspecs;
   }
   for (auto process : specs) {
-    size_t index = 0;
+    size_t channels = numberOfSubspecs;
     size_t inputMultiplicity = numberOfSubspecs / nPipelines;
     if (numberOfSubspecs % nPipelines) {
+      // some processes will get one more channel to handle all channels
       inputMultiplicity += 1;
     }
-    auto amendProcess = [numberOfSubspecs, nPipelines, &index, &inputMultiplicity, getSubSpec](DataProcessorSpec& spec, size_t pipeline) {
+    auto amendProcess = [numberOfSubspecs, nPipelines, &channels, &inputMultiplicity, getSubSpec](DataProcessorSpec& spec, size_t pipeline) {
       auto inputs = std::move(spec.inputs);
       auto outputs = std::move(spec.outputs);
       spec.inputs.reserve(inputMultiplicity);
@@ -78,18 +79,18 @@ WorkflowSpec parallelPipeline(const WorkflowSpec& specs,
         for (auto& input : inputs) {
           spec.inputs.push_back(input);
           spec.inputs.back().binding += std::to_string(inputNo);
-          DataSpecUtils::updateMatchingSubspec(spec.inputs.back(), getSubSpec(index + inputNo));
+          DataSpecUtils::updateMatchingSubspec(spec.inputs.back(), getSubSpec(pipeline + inputNo * nPipelines));
         }
         for (auto& output : outputs) {
           spec.outputs.push_back(output);
           spec.outputs.back().binding.value += std::to_string(inputNo);
           // FIXME: this will be unneeded once we have a subSpec-less variant...
-          DataSpecUtils::updateMatchingSubspec(spec.outputs.back(), getSubSpec(index + inputNo));
+          DataSpecUtils::updateMatchingSubspec(spec.outputs.back(), getSubSpec(pipeline + inputNo * nPipelines));
         }
       }
-      index += inputMultiplicity;
+      channels -= inputMultiplicity;
       if (inputMultiplicity > numberOfSubspecs / nPipelines &&
-          ((numberOfSubspecs - index) % (nPipelines - (pipeline + 1))) == 0) {
+          (channels % (nPipelines - (pipeline + 1))) == 0) {
         // if the remaining ids can be distributed equally among the remaining pipelines
         // we can decrease multiplicity
         inputMultiplicity = numberOfSubspecs / nPipelines;

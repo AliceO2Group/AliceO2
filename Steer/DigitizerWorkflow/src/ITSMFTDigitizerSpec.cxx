@@ -10,6 +10,7 @@
 
 #include "ITSMFTDigitizerSpec.h"
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
@@ -163,7 +164,7 @@ class ITSMFTDPLDigitizerTask
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
 
     // we should be only called once; tell DPL that this process is ready to exit
-    pc.services().get<ControlService>().readyToQuit(false);
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 
     mFinished = true;
   }

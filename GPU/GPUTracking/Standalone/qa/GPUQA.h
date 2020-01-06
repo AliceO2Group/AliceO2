@@ -53,6 +53,7 @@ class GPUQA
   int GetMCTrackLabel(unsigned int trackId) const { return -1; }
   bool clusterRemovable(int cid, bool prot) const { return false; }
   static bool QAAvailable() { return false; }
+  static bool IsInitialized() { return false; }
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
@@ -98,6 +99,7 @@ class GPUQA
   int GetMCTrackLabel(unsigned int trackId) const;
   bool clusterRemovable(int cid, bool prot) const;
   static bool QAAvailable() { return true; }
+  bool IsInitialized() { return mQAInitialized; }
 
  private:
   struct additionalMCParameters {

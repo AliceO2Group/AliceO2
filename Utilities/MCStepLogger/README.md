@@ -1,4 +1,6 @@
+<!-- doxy
 \page refUtilitiesMCStepLogger MCStepLogger
+/doxy -->
 
 ### NOTE: The MCStepLogger has moved to https://github.com/AliceO2Group/VMCStepLogger.git
 

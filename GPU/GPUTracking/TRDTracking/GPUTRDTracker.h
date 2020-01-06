@@ -44,7 +44,6 @@ namespace gpu
 
 class GPUTRDTrackletWord;
 class GPUTRDGeometry;
-class GPUTPCGMMerger;
 class GPUChainTracking;
 
 //-------------------------------------------------------------------------
@@ -57,7 +56,7 @@ class GPUTRDTracker : public GPUProcessor
   GPUTRDTracker& operator=(const GPUTRDTracker& tracker) CON_DELETE;
   ~GPUTRDTracker();
 
-  void SetMaxData();
+  void SetMaxData(const GPUTrackingInOutPointers& io);
   void RegisterMemoryAllocation();
   void InitializeProcessor();
   void* SetPointersBase(void* base);
@@ -71,6 +70,7 @@ class GPUTRDTracker : public GPUProcessor
   void PrintSettings() const;
   bool IsInitialized() const { return mIsInitialized; }
   void SetTrackingChain(GPUChainTracking* c) { mChainTracking = c; }
+  void StartDebugging() { mDebug->CreateStreamer(); }
 #endif
 
   enum EGPUTRDTracker { kNLayers = 6,
@@ -108,7 +108,7 @@ class GPUTRDTracker : public GPUProcessor
   void Reset(bool fast = false);
   GPUd() int LoadTracklet(const GPUTRDTrackletWord& tracklet, const int* labels = nullptr);
   template <class T>
-  GPUd() int LoadTrack(const T& trk, const int label = -1)
+  GPUd() int LoadTrack(const T& trk, const int label = -1, const int* nTrkltsOffline = nullptr, const int labelOffline = -1)
   {
     if (mNTracks >= mNMaxTracks) {
 #ifndef GPUCA_GPUCODE
@@ -124,9 +124,15 @@ class GPUTRDTracker : public GPUProcessor
     if (label >= 0) {
       mTracks[mNTracks - 1].SetLabel(label);
     }
+    if (nTrkltsOffline) {
+      for (int i = 0; i < 4; ++i) {
+        mTracks[mNTracks - 1].SetNtrackletsOffline(i, nTrkltsOffline[i]); // see GPUTRDTrack.h for information on the index
+      }
+    }
+    mTracks[mNTracks - 1].SetLabelOffline(labelOffline);
     return (0);
   }
-  GPUd() void DoTrackingThread(int iTrk, const GPUTPCGMMerger* merger, int threadId = 0);
+  GPUd() void DoTrackingThread(int iTrk, int threadId = 0);
   GPUd() bool CalculateSpacePoints();
   GPUd() bool FollowProlongation(GPUTRDPropagator* prop, GPUTRDTrack* t, int threadId);
   GPUd() int GetDetectorNumber(const float zPos, const float alpha, const int layer) const;
@@ -134,6 +140,9 @@ class GPUTRDTracker : public GPUProcessor
   GPUd() int GetSector(float alpha) const;
   GPUd() float GetAlphaOfSector(const int sec) const;
   GPUd() float GetRPhiRes(float snp) const { return (0.04f * 0.04f + 0.33f * 0.33f * (snp - 0.126f) * (snp - 0.126f)); } // parametrization obtained from track-tracklet residuals
+  GPUd() float GetAngularResolution(float snp) const { return 0.0415f * 0.0415f + 0.43f * 0.43f * (snp - 0.147f) * (snp - 0.147f); }
+  GPUd() float ConvertAngleToDy(float snp) const { return 0.132f + 2.379f * snp - 0.517f * snp * snp; } // more accurate than sin(phi) = (dy / xDrift) / sqrt(1+(dy/xDrift)^2)
+  GPUd() float GetAngularPull(float dYtracklet, float snp) const;
   GPUd() void RecalcTrkltCov(const float tilt, const float snp, const float rowSize, My_Float (&cov)[3]);
   GPUd() void CheckTrackRefs(const int trackID, bool* findableMC) const;
   GPUd() void FindChambersInRoad(const GPUTRDTrack* t, const float roadY, const float roadZ, const int iLayer, int* det, const float zMax, const float alpha) const;
@@ -199,7 +208,6 @@ class GPUTRDTracker : public GPUProcessor
   float mChi2Penalty;                      // chi2 added to the track for no update
   float mZCorrCoefNRC;                     // tracklet z-position depends linearly on track dip angle
   AliMCEvent* mMCEvent;                    //! externaly supplied optional MC event
-  const GPUTPCGMMerger* mMerger;           // supplying parameters for GPUTPCGMPropagator
   GPUTRDTrackerDebug* mDebug;              // debug output
   GPUChainTracking* mChainTracking;        // Tracking chain with access to input data / parameters
 };

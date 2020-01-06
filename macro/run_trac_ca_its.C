@@ -1,6 +1,8 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <memory>
 #include <string>
+#include <chrono>
+#include <iostream>
 
 #include <TChain.h>
 #include <TFile.h>
@@ -37,14 +39,21 @@
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
 #include "GPUChainITS.h"
+
+#include <TGraph.h>
+
+#include "ITStracking/Configuration.h"
+
 using namespace o2::gpu;
+using o2::its::MemoryParameters;
+using o2::its::TrackingParameters;
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
 void run_trac_ca_its(bool useITSVertex = false,
                      std::string path = "./",
-                     std::string outputfile = "o2ca_its.root",
+                     std::string outputfile = "o2trac_its.root",
                      std::string inputClustersITS = "o2clus_its.root", std::string inputGeom = "O2geometry.root",
                      std::string inputGRP = "o2sim_grp.root", std::string simfilename = "o2sim.root",
                      std::string paramfilename = "o2sim_par.root")
@@ -52,8 +61,8 @@ void run_trac_ca_its(bool useITSVertex = false,
 
   gSystem->Load("libO2ITStracking.so");
 
-  std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance());
-  // std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance("CUDA", true)); // for GPU with CUDA
+  // std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance());
+  std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance("CUDA", true)); // for GPU with CUDA
   auto* chainITS = rec->AddChain<GPUChainITS>();
   rec->Init();
 
@@ -142,10 +151,33 @@ void run_trac_ca_its(bool useITSVertex = false,
   o2::its::Vertexer vertexer(traits);
 
   int roFrameCounter{0};
+
+  std::vector<double> ncls;
+  std::vector<double> time;
+
+  std::vector<TrackingParameters> trackParams(3);
+  trackParams[0].TrackletMaxDeltaPhi = 0.05f;
+  trackParams[1].TrackletMaxDeltaPhi = 0.1f;
+  trackParams[2].MinTrackLength = 4;
+  trackParams[2].TrackletMaxDeltaPhi = 0.3;
+
+  std::vector<MemoryParameters> memParams(3);
+
+  tracker.setParameters(memParams, trackParams);
+
+  int currentEvent = -1;
   for (auto& rof : *rofs) {
-    itsClusters.GetEntry(rof.getROFEntry().getEvent());
-    mcHeaderTree.GetEntry(rof.getROFEntry().getEvent());
+
+    if (currentEvent != rof.getROFEntry().getEvent()) {
+      currentEvent = rof.getROFEntry().getEvent();
+      itsClusters.GetEntry(rof.getROFEntry().getEvent());
+      mcHeaderTree.GetEntry(rof.getROFEntry().getEvent());
+    }
+
+    auto start = std::chrono::high_resolution_clock::now();
+
     o2::its::ioutils::loadROFrameData(rof, event, clusters, labels);
+
     if (useITSVertex) {
 
       vertexer.initialiseVertexer(&event);
@@ -168,6 +200,13 @@ void run_trac_ca_its(bool useITSVertex = false,
     trackClIdx.clear();
     tracksITS.clear();
     tracker.clustersToTracks(event);
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> diff_t{end - start};
+
+    ncls.push_back(event.getTotalClusters());
+    time.push_back(diff_t.count());
+
     tracks.swap(tracker.getTracks());
     for (auto& trc : tracks) {
       trc.setFirstClusterEntry(trackClIdx.size()); // before adding tracks, create final cluster indices
@@ -186,6 +225,10 @@ void run_trac_ca_its(bool useITSVertex = false,
   outFile.cd();
   outTree.Write();
   outFile.Close();
+
+  TGraph* graph = new TGraph(ncls.size(), ncls.data(), time.data());
+  graph->SetMarkerStyle(20);
+  graph->Draw("AP");
 }
 
 #endif

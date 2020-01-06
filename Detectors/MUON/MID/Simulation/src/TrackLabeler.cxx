@@ -82,10 +82,10 @@ std::vector<MCCompLabel> TrackLabeler::findLabels(const Track& track, const o2::
     }
   }
 
-  return std::move(labels);
+  return labels;
 }
 
-void TrackLabeler::process(gsl::span<const Cluster3D>& clusters, gsl::span<const Track>& tracks, const o2::dataformats::MCTruthContainer<MCClusterLabel>& inMCContainer)
+void TrackLabeler::process(gsl::span<const Cluster3D> clusters, gsl::span<const Track> tracks, const o2::dataformats::MCTruthContainer<MCClusterLabel>& inMCContainer)
 {
   /// Applies labels to the tracks
   mMCTracksLabels.clear();
@@ -104,7 +104,7 @@ void TrackLabeler::process(gsl::span<const Cluster3D>& clusters, gsl::span<const
   // For the moment we store all clusters
   // This can change if we decide to store only associated clusters
   mMCTrackClustersLabels.clear();
-  mMCTrackClustersLabels = inMCContainer;
+  mMCTrackClustersLabels.mergeAtBack(inMCContainer);
 }
 } // namespace mid
 } // namespace o2

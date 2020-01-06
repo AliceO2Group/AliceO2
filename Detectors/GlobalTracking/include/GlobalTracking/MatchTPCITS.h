@@ -21,6 +21,7 @@
 #include <array>
 #include <vector>
 #include <string>
+#include <gsl/span>
 #include <TStopwatch.h>
 #include "DataFormatsTPC/TrackTPC.h"
 #include "ReconstructionDataFormats/Track.h"
@@ -35,8 +36,6 @@
 #include "DataFormatsFT0/RecPoints.h"
 #include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "TPCFastTransform.h"
-#include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
-#include "GPUParam.h"       // Consider more universal access
 
 class TTree;
 
@@ -62,6 +61,11 @@ class Cluster;
 namespace tpc
 {
 class TrackTPC;
+}
+
+namespace gpu
+{
+struct GPUParam;
 }
 
 namespace globaltracking
@@ -148,6 +152,9 @@ class MatchTPCITS
   using TPCTransform = o2::gpu::TPCFastTransform;
 
  public:
+  MatchTPCITS(); // std::unique_ptr to forward declared type needs constructor / destructor in .cxx
+  ~MatchTPCITS();
+
   static constexpr float XTPCInnerRef = 83.0;                            ///< reference radius at which TPC provides the tracks
   static constexpr float XTPCOuterRef = 255.0;                           ///< reference radius to propagate outer TPC track
   static constexpr float XMatchingRef = 70.0;                            ///< reference radius to propage tracks for matching
@@ -189,52 +196,52 @@ class MatchTPCITS
   }
 
   ///< set input ITS tracks received via DPL
-  void setITSTracksInp(const std::vector<o2::its::TrackITS>* inp)
+  void setITSTracksInp(const gsl::span<const o2::its::TrackITS> inp)
   {
     assertDPLIO(true);
     mITSTracksArrayInp = inp;
   }
 
   ///< set input ITS tracks cluster indices received via DPL
-  void setITSTrackClusIdxInp(const std::vector<int>* inp)
+  void setITSTrackClusIdxInp(const gsl::span<const int> inp)
   {
     assertDPLIO(true);
     mITSTrackClusIdxInp = inp;
   }
 
-  ///< set input ITS tracks cluster indices received via DPL
-  void setITSTrackClusIdxInp(gsl::span<const int> inp)
-  {
-    assertDPLIO(true);
-    mITSTrackClusIdxSPAN = inp;
-  }
-
   ///< set input ITS tracks ROF records received via DPL
-  void setITSTrackROFRecInp(const std::vector<o2::itsmft::ROFRecord>* inp)
+  void setITSTrackROFRecInp(const gsl::span<const o2::itsmft::ROFRecord> inp)
   {
     assertDPLIO(true);
     mITSTrackROFRec = inp;
   }
 
   ///< set input ITS clusters received via DPL
-  void setITSClustersInp(const std::vector<o2::itsmft::Cluster>* inp)
+  void setITSClustersInp(const gsl::span<const o2::itsmft::Cluster> inp)
   {
     assertDPLIO(true);
     mITSClustersArrayInp = inp;
   }
 
   ///< set input ITS clusters ROF records received via DPL
-  void setITSClusterROFRecInp(const std::vector<o2::itsmft::ROFRecord>* inp)
+  void setITSClusterROFRecInp(const gsl::span<const o2::itsmft::ROFRecord> inp)
   {
     assertDPLIO(true);
     mITSClusterROFRec = inp;
   }
 
   ///< set input TPC tracks received via DPL
-  void setTPCTracksInp(const std::vector<o2::tpc::TrackTPC>* inp)
+  void setTPCTracksInp(const gsl::span<const o2::tpc::TrackTPC> inp)
   {
     assertDPLIO(true);
     mTPCTracksArrayInp = inp;
+  }
+
+  ///< set input TPC tracks cluster indices received via DPL
+  void setTPCTrackClusIdxInp(const gsl::span<const o2::tpc::TPCClRefElem> inp)
+  {
+    assertDPLIO(true);
+    mTPCTrackClusIdxInp = inp;
   }
 
   ///< set input TPC clusters received via DPL
@@ -294,6 +301,7 @@ class MatchTPCITS
   ///< set input branch names for the input from the tree
   void setITSTrackBranchName(const std::string& nm) { mITSTrackBranchName = nm; }
   void setTPCTrackBranchName(const std::string& nm) { mTPCTrackBranchName = nm; }
+  void setTPCTrackClusIdxBranchName(const std::string& nm) { mTPCTrackClusIdxBranchName = nm; }
   void setITSClusterBranchName(const std::string& nm) { mITSClusterBranchName = nm; }
   void setITSMCTruthBranchName(const std::string& nm) { mITSMCTruthBranchName = nm; }
   void setTPCMCTruthBranchName(const std::string& nm) { mTPCMCTruthBranchName = nm; }
@@ -305,6 +313,7 @@ class MatchTPCITS
   ///< get input branch names for the input from the tree
   const std::string& getITSTrackBranchName() const { return mITSTrackBranchName; }
   const std::string& getTPCTrackBranchName() const { return mTPCTrackBranchName; }
+  const std::string& getTPCTrackClusIdxBranchName() const { return mTPCTrackClusIdxBranchName; }
   const std::string& getITSClusterBranchName() const { return mITSClusterBranchName; }
   const std::string& getITSMCTruthBranchName() const { return mITSMCTruthBranchName; }
   const std::string& getTPCMCTruthBranchName() const { return mTPCMCTruthBranchName; }
@@ -549,13 +558,27 @@ class MatchTPCITS
 
   ///>>>------ these are input arrays which should not be modified by the matching code
   //           since this info is provided by external device
-  const std::vector<o2::itsmft::ROFRecord>* mITSTrackROFRec = nullptr;    ///< input ITS tracks ROFRecord
-  const std::vector<o2::its::TrackITS>* mITSTracksArrayInp = nullptr;     ///< input ITS tracks
-  const std::vector<o2::tpc::TrackTPC>* mTPCTracksArrayInp = nullptr;     ///< input TPC tracks
-  gsl::span<const int> mITSTrackClusIdxSPAN;                              ///< input ITS track cluster indices span from DPL
-  const std::vector<int>* mITSTrackClusIdxInp = nullptr;                  ///< input ITS track cluster indices
-  const std::vector<o2::itsmft::Cluster>* mITSClustersArrayInp = nullptr; ///< input ITS clusters
-  const std::vector<o2::itsmft::ROFRecord>* mITSClusterROFRec = nullptr;  ///< input ITS clusters ROFRecord
+  std::vector<o2::tpc::TrackTPC>* mTPCTracksArrayPtr = nullptr; ///< input TPC tracks from tree
+  gsl::span<const o2::tpc::TrackTPC> mTPCTracksArrayInp;        ///< input TPC tracks span
+
+  std::vector<o2::tpc::TPCClRefElem>* mTPCTrackClusIdxPtr = nullptr; ///< input TPC track cluster indices from tree
+  gsl::span<const o2::tpc::TPCClRefElem> mTPCTrackClusIdxInp;        ///< input TPC track cluster indices span from DPL
+
+  std::vector<o2::itsmft::ROFRecord>* mITSTrackROFRecPtr = nullptr; ///< input ITS tracks ROFRecord from tree
+  gsl::span<const o2::itsmft::ROFRecord> mITSTrackROFRec;           ///< input ITS tracks ROFRecord span from DPL
+
+  std::vector<o2::its::TrackITS>* mITSTracksArrayPtr = nullptr; ///< input ITS tracks read from tree
+  gsl::span<const o2::its::TrackITS> mITSTracksArrayInp;        ///< input ITS tracks span
+
+  std::vector<int>* mITSTrackClusIdxPtr = nullptr; ///< input ITS track cluster indices from tree
+  gsl::span<const int> mITSTrackClusIdxInp;        ///< input ITS track cluster indices span from DPL
+
+  const std::vector<o2::itsmft::Cluster>* mITSClustersArrayPtr = nullptr; ///< input ITS clusters from tree
+  gsl::span<const o2::itsmft::Cluster> mITSClustersArrayInp;              ///< input ITS clusters from tree from DPL
+
+  const std::vector<o2::itsmft::ROFRecord>* mITSClusterROFRecPtr = nullptr; ///< input ITS clusters ROFRecord from tree
+  gsl::span<const o2::itsmft::ROFRecord> mITSClusterROFRec;                 ///< input ITS clusters ROFRecord span from DPL
+
   const std::vector<o2::ft0::RecPoints>* mFITInfoInp = nullptr;           ///< optional input FIT info
   const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr;     ///< struct holding the TPC cluster indices
 
@@ -607,6 +630,7 @@ class MatchTPCITS
   std::string mITSTrackClusIdxBranchName = "ITSTrackClusIdx"; ///< name of branch containing input ITS tracks cluster indices
   std::string mITSTrackROFRecBranchName = "ITSTracksROF";     ///< name of branch containing input ITS tracks ROFRecords
   std::string mTPCTrackBranchName = "Tracks";                 ///< name of branch containing input TPC tracks
+  std::string mTPCTrackClusIdxBranchName = "ClusRefs";        ///< name of branch containing input TPC tracks cluster references
   std::string mITSClusterBranchName = "ITSCluster";           ///< name of branch containing input ITS clusters
   std::string mITSClusterROFRecBranchName = "ITSClustersROF"; ///< name of branch containing input ITS clusters ROFRecords
   std::string mITSMCTruthBranchName = "ITSTrackMCTruth";      ///< name of branch containing ITS MC labels

@@ -16,7 +16,7 @@
 #define O2_MID_CHAMBERHV_H
 
 #include <array>
-#include "MIDBase/Constants.h"
+#include "MIDBase/DetectorParameters.h"
 
 namespace o2
 {
@@ -32,7 +32,7 @@ class ChamberHV
   void setHV(int deId, double hv) { mHV[deId] = hv; }
 
  private:
-  std::array<double, Constants::sNDetectionElements> mHV; ///< High voltage values
+  std::array<double, detparams::NDetectionElements> mHV; ///< High voltage values
 };
 
 ChamberHV createDefaultChamberHV();

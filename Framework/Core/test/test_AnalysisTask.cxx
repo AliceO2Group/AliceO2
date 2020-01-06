@@ -23,20 +23,23 @@ namespace o2::aod
 {
 namespace track
 {
-DECLARE_SOA_COLUMN(Eta, eta, float, "fEta");
-DECLARE_SOA_COLUMN(Phi, phi, float, "fPhi");
+DECLARE_SOA_COLUMN(Foo, foo, float, "fBar");
+DECLARE_SOA_COLUMN(Bar, bar, float, "fFoo");
+DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](float x, float y) { return x + y; });
 } // namespace track
-DECLARE_SOA_TABLE(EtaPhis, "AOD", "ETAPHI", track::Eta, track::Phi);
+DECLARE_SOA_TABLE(FooBars, "AOD", "FOOBAR",
+                  track::Foo, track::Bar,
+                  track::Sum<track::Foo, track::Bar>);
 } // namespace o2::aod
 
 // FIXME: for the moment we do not derive from AnalysisTask as
 // we need GCC 7.4+ to fix a bug.
 struct ATask {
-  Produces<aod::EtaPhis> phis;
+  Produces<aod::FooBars> foobars;
 
   void process(o2::aod::Track const& track)
   {
-    phis(0.01102005, 0.27092016); // dummy value for phi for now...
+    foobars(0.01102005, 0.27092016); // dummy value for phi for now...
   }
 };
 
@@ -64,13 +67,32 @@ struct DTask {
   }
 };
 
+// FIXME: for the moment we do not derive from AnalysisTask as
+// we need GCC 7.4+ to fix a bug.
+struct ETask {
+  void process(o2::aod::FooBars::iterator const& foobar)
+  {
+    foobar.sum();
+  }
+};
+
+// FIXME: for the moment we do not derive from AnalysisTask as
+// we need GCC 7.4+ to fix a bug.
+struct FTask {
+  expressions::Filter fooFilter = aod::track::foo > 1.;
+  void process(soa::Filtered<o2::aod::FooBars>::iterator const& foobar)
+  {
+    foobar.sum();
+  }
+};
+
 BOOST_AUTO_TEST_CASE(AdaptorCompilation)
 {
   auto task1 = adaptAnalysisTask<ATask>("test1");
   BOOST_CHECK_EQUAL(task1.inputs.size(), 1);
-  BOOST_CHECK_EQUAL(task1.outputs.size(), 1);
+  BOOST_CHECK_EQUAL(task1.outputs.size(), 2);
   BOOST_CHECK_EQUAL(task1.inputs[0].binding, std::string("Tracks"));
-  BOOST_CHECK_EQUAL(task1.outputs[0].binding.value, std::string("EtaPhis"));
+  BOOST_CHECK_EQUAL(task1.outputs[0].binding.value, std::string("FooBars"));
 
   auto task2 = adaptAnalysisTask<BTask>("test2");
   BOOST_CHECK_EQUAL(task2.inputs.size(), 2);
@@ -85,4 +107,12 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
   auto task4 = adaptAnalysisTask<DTask>("test4");
   BOOST_CHECK_EQUAL(task4.inputs.size(), 1);
   BOOST_CHECK_EQUAL(task4.inputs[0].binding, "Tracks");
+
+  auto task5 = adaptAnalysisTask<ETask>("test5");
+  BOOST_CHECK_EQUAL(task5.inputs.size(), 1);
+  BOOST_CHECK_EQUAL(task5.inputs[0].binding, "FooBars");
+
+  auto task6 = adaptAnalysisTask<FTask>("test6");
+  BOOST_CHECK_EQUAL(task6.inputs.size(), 1);
+  BOOST_CHECK_EQUAL(task6.inputs[0].binding, "FooBars");
 }

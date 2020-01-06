@@ -71,7 +71,7 @@ auto constexpr to_tuple_refs(T&& object) noexcept
     return std::tie(p0, p1);
   } else if constexpr (is_braces_constructible<type, any_type>{}) {
     auto&& [p0] = object;
-    return std::make_tuple(p0);
+    return std::tie(p0);
   } else {
     return std::make_tuple();
   }

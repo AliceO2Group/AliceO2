@@ -1,4 +1,6 @@
+<!-- doxy
 \page refMUONMCHContour MCH Contour
+/doxy -->
 
 # MCH Contour library
 

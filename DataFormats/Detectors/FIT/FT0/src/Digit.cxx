@@ -15,12 +15,13 @@ using namespace o2::ft0;
 
 void Digit::printStream(std::ostream& stream) const
 {
-  stream << "FIT Digit: event time " << mTime << " BC " << mIntRecord.bc << " orbit " << mIntRecord.orbit << std::endl;
+  stream << "FT0 Digit: event time " << mTime << " BC " << mIntRecord.bc << " orbit " << mIntRecord.orbit << std::endl;
   stream << "IS A " << mIsA << " IS C " << mIsC << " is Central " << mIsCentral
          << " is SemiCentral " << mIsSemiCentral << " is Vertex " << mIsVertex << std::endl;
 
   for (auto& chdata : mChDgDataArr)
-    stream << "CH " << chdata.ChId << " TIME " << chdata.CFDTime - mTime - 12.5 << " MIP " << chdata.QTCAmpl << std::endl;
+    stream << "CH " << chdata.ChId << " TIME " << chdata.CFDTime << " ns " << chdata.QTCAmpl << " mV "
+           << " ADC chain " << chdata.numberOfParticles << std::endl;
 }
 
 std::ostream& operator<<(std::ostream& stream, const Digit& digi)

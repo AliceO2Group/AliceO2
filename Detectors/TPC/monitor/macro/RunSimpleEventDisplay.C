@@ -17,6 +17,8 @@
 #include "TF1.h"
 #include "TStopwatch.h"
 #include "TGFrame.h"
+#include "TGTextEntry.h"
+#include "TGLabel.h"
 #include "TFile.h"
 #include "TLegend.h"
 #include "TSystem.h"
@@ -70,6 +72,8 @@ TH1F* mHNcls = nullptr;
 TH1* mHFFTO = nullptr;
 TH1* mHFFTI = nullptr;
 TGCheckButton* mCheckFFT = nullptr;
+TGTextEntry* mEventNumber = nullptr;
+Bool_t mShowSides = 0;
 
 Double_t mElePosMax = 0.;
 Double_t mElePosTot = 0.;
@@ -90,9 +94,13 @@ void ToggleFFT();
 void MonitorGui()
 {
   Float_t xsize = 145;
-  Float_t ysize = 30;
+  Float_t ysize = 25;
+  Float_t yoffset = 10;
+  Float_t ysize_dist = 2;
   Float_t mainx = 170;
   Float_t mainy = 170;
+  int ycount = 0;
+
   TGMainFrame* mFrameMain = new TGMainFrame(gClient->GetRoot(), 200, 200, kMainFrame | kVerticalFrame);
   mFrameMain->SetLayoutBroken(kTRUE);
 
@@ -106,7 +114,9 @@ void MonitorGui()
   mFrameNextEvent->SetCommand("Next(-1)");
   mFrameNextEvent->SetTextColor(200);
   mFrameNextEvent->SetToolTipText("Go to next event");
-  mFrameNextEvent->MoveResize(10, 10, xsize, (UInt_t)ysize);
+  //mFrameNextEvent->MoveResize(10, yoffset + ycount * (ysize_dist + ysize), xsize, (UInt_t)ysize);
+  mFrameNextEvent->MoveResize(10, yoffset + ycount * (ysize_dist + ysize), xsize, (UInt_t)ysize);
+  ++ycount;
 
   //---------------------------
   TGTextButton* mFramePreviousEvent = new TGTextButton(mContRight, "&Previous Event");
@@ -114,8 +124,33 @@ void MonitorGui()
 
   mFramePreviousEvent->SetCommand("Next(-2)");
   mFramePreviousEvent->SetTextColor(200);
-  mFramePreviousEvent->SetToolTipText("Go to next event");
-  mFramePreviousEvent->MoveResize(10, 10 + ysize, xsize, (UInt_t)ysize);
+  mFramePreviousEvent->SetToolTipText("Go to previous event");
+  mFramePreviousEvent->MoveResize(10, yoffset + ycount * (ysize_dist + ysize), xsize, (UInt_t)ysize);
+  ++ycount;
+
+  //---------------------------
+
+  //TGCompositeFrame* mContGoToEvent = new TGCompositeFrame(mContRight, 155, ysize, kHorizontalFrame | kFitWidth | kFixedHeight);
+  //mContRight->AddFrame(mContGoToEvent, new TGLayoutHints(kLHintsExpandX));
+  //mContGoToEvent->Move(10, yoffset + ycount * (ysize_dist + ysize));
+
+  TGTextButton* mGoToEvent = new TGTextButton(mContRight, "&Go to event");
+  //mContGoToEvent->AddFrame(mGoToEvent, new TGLayoutHints(kLHintsExpandX));
+  mContRight->AddFrame(mGoToEvent, new TGLayoutHints(kLHintsNormal));
+
+  mGoToEvent->SetTextColor(200);
+  mGoToEvent->SetToolTipText("Go to event");
+  mGoToEvent->MoveResize(10, yoffset + ycount * (ysize_dist + ysize), 0.65 * xsize, (UInt_t)ysize);
+  mGoToEvent->SetCommand("CallEventNumber()");
+
+  //
+  auto* ftbuf = new TGTextBuffer(10);
+  ftbuf->AddText(0, "0");
+  mEventNumber = new TGTextEntry(mContRight, ftbuf);
+  mContRight->AddFrame(mEventNumber, new TGLayoutHints(kFitHeight));
+  mEventNumber->MoveResize(0.7 * xsize, yoffset + ycount * (ysize_dist + ysize), 0.3 * xsize, (UInt_t)ysize);
+  mEventNumber->SetAlignment(kTextRight);
+  ++ycount;
 
   //---------------------------
   //TGTextButton*  mFrameRewindEvent  = new TGTextButton(mContRight,  "Rewind Events"           );
@@ -132,7 +167,7 @@ void MonitorGui()
   mCheckFFT->SetCommand("ToggleFFT()");
   mCheckFFT->SetTextColor(200);
   mCheckFFT->SetToolTipText("Switch on FFT calculation");
-  mCheckFFT->MoveResize(10, 10 + ysize * 2, xsize, (UInt_t)ysize);
+  mCheckFFT->MoveResize(10, 10 + ysize * 4, xsize, (UInt_t)ysize);
   mCheckFFT->SetDown(1);
   ToggleFFT();
 
@@ -143,13 +178,14 @@ void MonitorGui()
   mFrameExit->SetCommand("ExitRoot()");
   mFrameExit->SetTextColor(200);
   mFrameExit->SetToolTipText("Exit the ROOT process");
-  mFrameExit->MoveResize(10, 10 + ysize * 4, xsize, (UInt_t)ysize);
+  mFrameExit->MoveResize(10, 10 + ysize * 5, xsize, (UInt_t)ysize);
 
   //---------------------------
   mFrameMain->MapSubwindows();
   mFrameMain->MapWindow();
   mFrameMain->SetWindowName("OM");
   mFrameMain->MoveResize(50, 50, (UInt_t)mainx, (UInt_t)mainy);
+  mFrameMain->Move(4 * 400 + 10, 10);
 }
 
 //__________________________________________________________________________
@@ -253,32 +289,41 @@ void DrawPadSignal(TString type)
   //
 
   // check if an event was alreay loaded
-  if (!mEvDisp.getNumberOfProcessedEvents())
+  if (!mEvDisp.getNumberOfProcessedEvents()) {
     return;
+  }
 
   //return if mouse is pressed to allow looking at one pad
   Int_t event = gPad->GetEvent();
-  if (event != 51)
+  if (event != 51) {
     return;
+  }
 
   Int_t binx, biny;
   Float_t bincx, bincy;
   TH1* h = GetBinInfoXY(binx, biny, bincx, bincy);
-  if (!h)
+  if (!h) {
     return;
-  Int_t row = Int_t(TMath::Floor(bincx));
-  Int_t cpad = Int_t(TMath::Floor(bincy));
+  }
+
+  const Int_t row = Int_t(TMath::Floor(bincx));
+  const Int_t cpad = Int_t(TMath::Floor(bincy));
   //find pad and channel
-  Int_t roc = h->GetUniqueID();
-  if (roc < 0 || roc >= (Int_t)ROC::MaxROC)
+  const Int_t roc = h->GetUniqueID();
+  if (roc < 0 || roc >= (Int_t)ROC::MaxROC) {
     return;
-  if (row < 0 || row >= (Int_t)mMapper.getNumberOfRowsROC(roc))
+  }
+
+  if (row < 0 || row >= (Int_t)mMapper.getNumberOfRowsROC(roc)) {
     return;
+  }
+
   const int nPads = mMapper.getNumberOfPadsInRowROC(roc, row);
-  Int_t pad = cpad + nPads / 2;
+  const int pad = cpad + nPads / 2;
   //printf("row %d, cpad %d, pad %d, nPads %d\n", row, cpad, pad, nPads);
-  if (pad < 0 || pad >= (Int_t)nPads)
+  if (pad < 0 || pad >= (Int_t)nPads) {
     return;
+  }
   //   Int_t chn = tpcROC->GetRowIndexes(roc)[row]+pad;
   //draw requested pad signal
 
@@ -332,11 +377,12 @@ void FillMaxHists(Int_t type = 0)
   const int runNumber = TString(gSystem->Getenv("RUN_NUMBER")).Atoi();
   //const int eventNumber = mEvDisp.getNumberOfProcessedEvents() - 1;
   const int eventNumber = mEvDisp.getPresentEventNumber();
+  const bool eventComplete = mEvDisp.isPresentEventComplete();
   for (Int_t iROC = 0; iROC < 72; iROC++) {
     // TODO: remove again at some point
-    if (iROC % 36 != 0) {
-      continue;
-    }
+    //if (iROC % 36 != 0) {
+    //continue;
+    //}
     hROC = mHMaxOROC;
     hSide = mHMaxC;
     if (iROC < 36)
@@ -344,10 +390,11 @@ void FillMaxHists(Int_t type = 0)
     if (iROC % 36 < 18)
       hSide = mHMaxA;
     if (iROC % 36 == mSelectedSector % 36) {
-      TString title = Form("Max Values %cROC %c%02d (%02d)", (iROC < 36) ? 'I' : 'O', (iROC % 36 < 18) ? 'A' : 'C', iROC % 18, iROC);
+      TString title = Form("Max Values %cROC %c%02d (%02d) Event %s%d%s", (iROC < 36) ? 'I' : 'O', (iROC % 36 < 18) ? 'A' : 'C', iROC % 18, iROC, eventComplete ? "" : "(", eventNumber, eventComplete ? "" : ")");
       //TString title = Form("Max Values Run %d Event %d", runNumber, eventNumber);
-      if (hROC)
+      if (hROC) {
         hROC->SetTitle(title.Data());
+      }
     }
     auto& calRoc = pad->getCalArray(iROC);
     const int nRows = mMapper.getNumberOfRowsROC(iROC);
@@ -358,7 +405,7 @@ void FillMaxHists(Int_t type = 0)
         //printf("iROC: %02d, sel: %02d, row %02d, pad: %02d, value: %.5f\n", iROC, mSelectedSector, irow, ipad, value);
         if (TMath::Abs(value) > kEpsilon) {
           if (!type && hSide) {
-            const GlobalPosition2D global2D = mMapper.getPadCentre(PadSecPos(Sector(iROC % 36), PadPos(irow, ipad + (iROC >= 36) * mMapper.getNumberOfRowsROC(iROC))));
+            const GlobalPosition2D global2D = mMapper.getPadCentre(PadSecPos(Sector(iROC % 36), PadPos(irow + (iROC >= 36) * mMapper.getNumberOfRowsROC(0), ipad)));
             Int_t binx = 1 + TMath::Nint((global2D.X() + 250.) * hSide->GetNbinsX() / 500.);
             Int_t biny = 1 + TMath::Nint((global2D.Y() + 250.) * hSide->GetNbinsY() / 500.);
             hSide->SetBinContent(binx, biny, value);
@@ -450,8 +497,9 @@ void SelectSectorExec()
     mOldHooverdSector = sector;
   }
   int event = gPad->GetEvent();
-  if (event != 11)
+  if (event != 11) {
     return;
+  }
   //   printf("SelectSector: %d.%02d.%d = %02d\n",side,sector,roc<36,roc);
   SelectSector(sector);
 }
@@ -462,37 +510,37 @@ void InitGUI()
   Int_t w = 400;
   Int_t h = 400;
   TCanvas* c = nullptr;
-  //histograms and canvases for max values A-Side
-  //histograms for the sides are not needed for the GEM test, so they are commented...
 
-  //   c = new TCanvas("MaxValsA","MaxValsA",0*w,0*h,w,h);
-  //   c->AddExec("findSec","SelectSectorExec()");
-  //   mHMaxA=new TH2F("hMaxValsA","Max Values Side A;x [cm];y [cm]",330,-250,250,330,-250,250);
-  //   mHMaxA->SetStats(kFALSE);
-  //   mHMaxA->SetUniqueID(0); //A-Side
-  //   mHMaxA->Draw("colz");
-  //histograms and canvases for max values C-Side
-  //   c = new TCanvas("MaxValsC","MaxValsC",0*w,1*h,w,h);
-  //   c->AddExec("findSec","SelectSectorExec()");
-  //   mHMaxC=new TH2F("hMaxValsC","Max Values Side C;x [cm];y [cm]",330,-250,250,330,-250,250);
-  //   mHMaxC->SetStats(kFALSE);
-  //   mHMaxC->SetUniqueID(1); //C-Side
-  //   mHMaxC->Draw("colz");
+  if (mShowSides) {
+    //histograms and canvases for max values A-Side
+    c = new TCanvas("MaxValsA", "MaxValsA", 0 * w, 0 * h, w, h);
+    c->AddExec("findSec", "SelectSectorExec()");
+    mHMaxA = new TH2F("hMaxValsA", "Max Values Side A;x [cm];y [cm]", 330, -250, 250, 330, -250, 250);
+    mHMaxA->SetStats(kFALSE);
+    mHMaxA->SetUniqueID(0); //A-Side
+    mHMaxA->Draw("colz");
+    //histograms and canvases for max values C-Side
+    c = new TCanvas("MaxValsC", "MaxValsC", 0 * w, 1 * h, w, h);
+    c->AddExec("findSec", "SelectSectorExec()");
+    mHMaxC = new TH2F("hMaxValsC", "Max Values Side C;x [cm];y [cm]", 330, -250, 250, 330, -250, 250);
+    mHMaxC->SetStats(kFALSE);
+    mHMaxC->SetUniqueID(1); //C-Side
+    mHMaxC->Draw("colz");
+  }
 
   //histograms and canvases for max values IROC
-  // For the GEM test only the IROC is needed, so comment the OROC
-
   c = new TCanvas("MaxValsI", "MaxValsI", 1 * w, 0 * h, w, h);
   c->AddExec("padSig", "DrawPadSignal(\"SigI\")");
   mHMaxIROC = new TH2F("hMaxValsIROC", "Max Values IROC;row;pad", 63, 0, 63, 108, -54, 54);
-  //mHMaxIROC->GetYaxis()->SetRangeUser(-20,15);
+  mHMaxIROC->SetDirectory(nullptr);
   mHMaxIROC->SetStats(kFALSE);
   mHMaxIROC->Draw("colz");
 
   //histograms and canvases for max values OROC
   c = new TCanvas("MaxValsO", "MaxValsO", 1 * w, 1 * h, w, h);
   c->AddExec("padSig", "DrawPadSignal(\"SigO\")");
-  mHMaxOROC = new TH2F("hMaxValsOROC", "Max Values OROC;row;pad", 96, 0, 96, 140, -70, 70);
+  mHMaxOROC = new TH2F("hMaxValsOROC", "Max Values OROC;row;pad", 89, 0, 89, 140, -70, 70);
+  mHMaxOROC->SetDirectory(nullptr);
   mHMaxOROC->SetStats(kFALSE);
   mHMaxOROC->Draw("colz");
 
@@ -504,12 +552,16 @@ void InitGUI()
 //__________________________________________________________________________
 void Next(int eventNumber = -1)
 {
+  printf("Calling event number %d\n", eventNumber);
   //Int_t ev=mRawReader->NextEvent();
   //if (!ev) return;
   using Status = CalibRawBase::ProcessStatus;
   Status status = mEvDisp.processEvent(eventNumber);
   //const Int_t timeBins = mEvDisp.getTimeBinsPerCall();
   const Int_t timeBins = mEvDisp.getNumberOfProcessedTimeBins();
+
+  const int presentEventNumber = mEvDisp.getPresentEventNumber();
+  mEventNumber->SetText(Form("%d", presentEventNumber));
 
   switch (status) {
     case Status::Ok: {
@@ -542,7 +594,14 @@ void Next(int eventNumber = -1)
 }
 
 //__________________________________________________________________________
-void RunSimpleEventDisplay(TString fileInfo, TString pedestalFile = "", Int_t nTimeBinsPerCall = 500, uint32_t verbosity = 0, uint32_t debugLevel = 0)
+void CallEventNumber()
+{
+  const int event = TString(mEventNumber->GetText()).Atoi();
+  Next(event);
+}
+
+//__________________________________________________________________________
+void RunSimpleEventDisplay(TString fileInfo, TString pedestalFile = "", Int_t nTimeBinsPerCall = 500, uint32_t verbosity = 0, uint32_t debugLevel = 0, int selectedSector = 0, bool showSides = 0)
 {
   FairLogger* logger = FairLogger::GetLogger();
   logger->SetLogVerbosityLevel("LOW");
@@ -555,15 +614,23 @@ void RunSimpleEventDisplay(TString fileInfo, TString pedestalFile = "", Int_t nT
       mEvDisp.setPedstals(pedestal);
     }
   }
+
+  mSelectedSector = selectedSector;
+  mShowSides = showSides;
+
   mEvDisp.setupContainers(fileInfo, verbosity, debugLevel);
+  mEvDisp.setSkipIncompleteEvents(false); // in case of the online monitor do not skip incomplete events
   mEvDisp.setSelectedSector(mSelectedSector);
   mEvDisp.setLastSelSector(mSelectedSector);
   mEvDisp.setTimeBinsPerCall(nTimeBinsPerCall);
   mEvDisp.setTimeBinRange(0, nTimeBinsPerCall);
+
   InitGUI();
   //  while (mRawReader->NextEvent() && mRawReader->GetEventFromTag()==0) Next();
   MonitorGui();
-  //   SelectSector(15);
+  //SelectSector(selectedSector);
+  // select first event
+  Next(0);
 }
 
 //__________________________________________________________________________

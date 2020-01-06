@@ -21,6 +21,7 @@
 #include "TPCBase/ROC.h"
 #include "MathUtils/MathBase.h"
 #include "TPCCalibration/CalibPulser.h"
+#include "TPCCalibration/CalibPulserParam.h"
 
 using namespace o2::tpc;
 using o2::math_utils::math_base::getStatisticsData;
@@ -31,8 +32,8 @@ CalibPulser::CalibPulser(PadSubset padSubset)
     mXminT0{-2},
     mXmaxT0{2},
     mNbinsQtot{200},
-    mXminQtot{10},
-    mXmaxQtot{40},
+    mXminQtot{50},
+    mXmaxQtot{700},
     mNbinsWidth{100},
     mXminWidth{0.1},
     mXmaxWidth{5.1},
@@ -65,20 +66,45 @@ CalibPulser::CalibPulser(PadSubset padSubset)
 }
 
 //______________________________________________________________________________
+void CalibPulser::init()
+{
+  const auto& param = CalibPulserParam::Instance();
+
+  mNbinsT0 = param.NbinsT0;
+  mXminT0 = param.XminT0;
+  mXmaxT0 = param.XmaxT0;
+  mNbinsQtot = param.NbinsQtot;
+  mXminQtot = param.XminQtot;
+  mXmaxQtot = param.XmaxQtot;
+  mNbinsWidth = param.NbinsWidth;
+  mXminWidth = param.XminWidth;
+  mXmaxWidth = param.XmaxWidth;
+  mFirstTimeBin = param.FirstTimeBin;
+  mLastTimeBin = param.LastTimeBin;
+  mADCMin = param.ADCMin;
+  mADCMax = param.ADCMax;
+  mNumberOfADCs = mADCMax - mADCMin + 1;
+  mPeakIntMinus = param.PeakIntMinus;
+  mPeakIntPlus = param.PeakIntPlus;
+  mMinimumQtot = param.MinimumQtot;
+}
+
+//______________________________________________________________________________
 Int_t CalibPulser::updateROC(const Int_t roc, const Int_t row, const Int_t pad,
                              const Int_t timeBin, Float_t signal)
 {
   // ===| range checks |========================================================
-  if (signal < mADCMin || signal > mADCMax)
+  if (timeBin < mFirstTimeBin || timeBin > mLastTimeBin) {
     return 0;
-  if (timeBin < mFirstTimeBin || timeBin > mLastTimeBin)
-    return 0;
+  }
 
-  // ===| correct the signal |==================================================
-  // TODO before or after signal range check?
+  // ---| pedestal subtraction |---
   if (mPedestal) {
     signal -= mPedestal->getValue(ROC(roc), row, pad);
   }
+
+  if (signal < mADCMin || signal > mADCMax)
+    return 0;
 
   // ===| temporary calibration data |==========================================
   const PadROCPos padROCPos(roc, row, pad);

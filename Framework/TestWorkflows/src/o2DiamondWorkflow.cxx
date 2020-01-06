@@ -13,6 +13,7 @@
 #include <InfoLogger/InfoLogger.hxx>
 
 #include <chrono>
+#include <thread>
 #include <vector>
 
 using namespace o2::framework;
@@ -48,7 +49,7 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
     srand(getpid());
     return adaptStateless([what, minDelay](DataAllocator& outputs) {
       std::this_thread::sleep_for(std::chrono::seconds((rand() % 5) + minDelay));
-      auto bData = outputs.make<int>(OutputRef{what}, 1);
+      auto& bData = outputs.make<int>(OutputRef{what}, 1);
     });
   })};
 }
@@ -64,8 +65,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
      AlgorithmSpec{adaptStateless(
        [](DataAllocator& outputs, InfoLogger& logger) {
          std::this_thread::sleep_for(std::chrono::seconds(rand() % 2));
-         auto aData = outputs.make<int>(OutputRef{"a1"}, 1);
-         auto bData = outputs.make<int>(OutputRef{"a2"}, 1);
+         auto& aData = outputs.make<int>(OutputRef{"a1"}, 1);
+         auto& bData = outputs.make<int>(OutputRef{"a2"}, 1);
          logger.log("This goes to infologger");
        })}},
     {"B",

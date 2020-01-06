@@ -41,50 +41,69 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCStartHitsSorter.cxx"
 #include "GPUTPCTrackletConstructor.cxx"
 
-#ifdef GPUCA_BUILD_MERGER
+#if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !defined(GPUCA_ALIROOT_LIB)
+// Files for TPC Merger
 #include "GPUTPCGMMergerGPU.cxx"
 #include "GPUTPCGMMerger.h"
 #include "GPUTPCGMTrackParam.cxx"
 #include "GPUTPCGMPhysicalTrackModel.cxx"
 #include "GPUTPCGMPropagator.cxx"
-#ifdef HAVE_O2HEADERS
+
+#if defined(HAVE_O2HEADERS)
+// Files for propagation with material
 #include "MatLayerCylSet.cxx"
 #include "MatLayerCyl.cxx"
 #include "Ray.cxx"
-#endif
-#endif
 
-#ifdef GPUCA_BUILD_DEDX
+// Files for GPU dEdx
 #include "GPUdEdx.cxx"
-#endif
 
-#ifdef GPUCA_BUILD_TPCCONVERT
+// Files for TPC Transformation
 #include "GPUTPCConvertKernel.cxx"
-#endif
 
-#ifdef GPUCA_BUILD_TPCCOMPRESSION
+// Files for TPC Compression
 #include "GPUTPCCompressionKernels.cxx"
 #include "GPUTPCCompressionTrackModel.cxx"
-#endif
 
-#ifdef GPUCA_BUILD_TRD
+// Files for TPC Cluster Finder
+#include "GPUTPCClusterFinderKernels.cxx"
+#include "ClusterAccumulator.cxx"
+#include "StreamCompaction.cxx"
+#include "ChargeMapFiller.cxx"
+#include "PeakFinder.cxx"
+#include "NoiseSuppression.cxx"
+#include "Clusterizer.cxx"
+#include "Deconvolution.cxx"
+
+// Files for TRD Tracking
 #include "GPUTRDTrackerGPU.cxx"
 #include "GPUTRDTrack.cxx"
 #include "GPUTRDTracker.cxx"
 #include "GPUTRDTrackletWord.cxx"
 #include "TRDGeometryBase.cxx"
-#endif
 
-#ifdef GPUCA_BUILD_ITS
+// Files for ITS Track Fit
 #include "GPUITSFitterKernels.cxx"
-#if !defined(GPUCA_O2_LIB) && defined(__CUDACC__)
+#if !defined(GPUCA_O2_LIB) && defined(__CUDACC__) && !defined(GPUCA_NO_ITS_TRAITS)
 #include "TrackerTraitsNV.cu"
 #include "VertexerTraitsGPU.cu"
 #include "Context.cu"
 #include "Stream.cu"
 #include "DeviceStoreNV.cu"
+#include "DeviceStoreVertexerGPU.cu"
+#include "ClusterLinesGPU.cu"
 #include "Utils.cu"
-#endif
-#endif
+#endif // !defined(GPUCA_O2_LIB) && defined(__CUDACC__) && !defined(GPUCA_NO_ITS_TRAITS)
 
-#endif
+#if !defined(GPUCA_O2_LIB) && defined(__HIPCC__) && !defined(GPUCA_NO_ITS_TRAITS)
+#include "VertexerTraitsHIP.hip.cxx"
+#include "ContextHIP.hip.cxx"
+#include "DeviceStoreVertexerHIP.hip.cxx"
+#include "ClusterLinesHIP.hip.cxx"
+#include "UtilsHIP.hip.cxx"
+#endif // !defined(GPUCA_O2_LIB) && defined(__HIPCC__) && !defined(GPUCA_NO_ITS_TRAITS)
+
+#endif // HAVE_O2HEADERS
+#endif // (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !defined(GPUCA_ALIROOT_LIB)
+
+#endif // GPURECONSTRUCTIONINCLUDESDEVICE_H

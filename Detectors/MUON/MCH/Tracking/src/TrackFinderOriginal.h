@@ -16,6 +16,8 @@
 #ifndef ALICEO2_MCH_TRACKFINDERORIGINAL_H_
 #define ALICEO2_MCH_TRACKFINDERORIGINAL_H_
 
+#include <chrono>
+
 #include "Cluster.h"
 #include "Track.h"
 #include "TrackFitter.h"
@@ -45,6 +47,9 @@ class TrackFinderOriginal
 
   /// set the debug level defining the verbosity
   void debug(int debugLevel) { mDebugLevel = debugLevel; }
+
+  void printStats() const;
+  void printTimers() const;
 
  private:
   void findTrackCandidates();
@@ -103,6 +108,17 @@ class TrackFinderOriginal
   bool mMoreCandidates = false; ///< try to find more track candidates starting from 1 cluster in each of station (1..) 4 and 5
 
   int mDebugLevel = 0; ///< debug level defining the verbosity
+
+  std::size_t mNCandidates = 0;            ///< counter
+  std::size_t mNCallTryOneCluster = 0;     ///< counter
+  std::size_t mNCallTryOneClusterFast = 0; ///< counter
+
+  std::chrono::duration<double> mTimeFindCandidates{};     ///< timer
+  std::chrono::duration<double> mTimeFindMoreCandidates{}; ///< timer
+  std::chrono::duration<double> mTimeFollowTracks{};       ///< timer
+  std::chrono::duration<double> mTimeCompleteTracks{};     ///< timer
+  std::chrono::duration<double> mTimeImproveTracks{};      ///< timer
+  std::chrono::duration<double> mTimeCleanTracks{};        ///< timer
 };
 
 } // namespace mch

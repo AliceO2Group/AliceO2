@@ -21,6 +21,7 @@ class SimpleOptionsRetriever : public ParamRetriever
 {
  public:
   int getInt(const char* name) const final;
+  int64_t getInt64(const char* name) const final;
   float getFloat(const char* name) const final;
   double getDouble(const char* name) const final;
   bool getBool(const char* name) const final;
@@ -28,6 +29,7 @@ class SimpleOptionsRetriever : public ParamRetriever
   boost::property_tree::ptree getPTree(const char* name) const final;
 
   void setInt(char const* name, int);
+  void setInt64(char const* name, int64_t);
   void setFloat(char const* name, float);
   void setDouble(char const* name, double);
   void setBool(char const* name, bool);

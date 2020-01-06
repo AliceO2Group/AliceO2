@@ -51,7 +51,7 @@ void GainCalibrationFactors_CalibDBTest(const std::string_view ccdbserver = "emc
   std::string inputDir = " ";
   if (aliceO2env)
     inputDir = aliceO2env;
-  inputDir += "/share/Detectors/EMCAL/files/";
+  inputDir += "/share/Detectors/EMC/files/";
 
   std::string fileNameGainCalib = inputDir + "GainCalibrationFactors_LHC18q.txt";
   std::ifstream fileGainCalib(fileNameGainCalib, std::ifstream::in);

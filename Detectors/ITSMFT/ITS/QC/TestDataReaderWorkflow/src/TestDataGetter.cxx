@@ -53,7 +53,7 @@ void TestDataGetter::run(ProcessingContext& pc)
 			LOG(DEBUG) << "Chip ID Getting " << digit.getChipIndex() << " Row = " << digit.getRow() << "   Column = " << digit.getColumn();
 			*/
 
-  //pc.services().get<ControlService>().readyToQuit(true);
+  //pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
 }
 
 DataProcessorSpec getTestDataGetterSpec()

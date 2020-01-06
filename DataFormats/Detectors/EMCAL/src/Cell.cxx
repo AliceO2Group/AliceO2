@@ -15,7 +15,7 @@
 
 using namespace o2::emcal;
 
-Cell::Cell(Short_t tower, Double_t energy, Double_t time, CellType ctype)
+Cell::Cell(Short_t tower, Double_t energy, Double_t time, ChannelType_t ctype)
 {
   setTower(tower);
   setTimeStamp(time);
@@ -86,45 +86,46 @@ Short_t Cell::getEnergyBits() const
 
 void Cell::setEnergy(Double_t energy)
 {
-  ULong_t a = 0;
-  if (energy > 0x3fff * (constants::EMCAL_ADCENERGY / 16.0))
-    a = 0x3fff;
-  else if (energy < 0)
-    a = 0;
-  else
-    a = (ULong_t)((energy / (constants::EMCAL_ADCENERGY)*16.0) + 0.5);
+  ULong_t a = static_cast<ULong_t>(energy / 0.0153);
+  a = a & 0x3FFF;
 
   a <<= 24;
-  ULong_t b = getLong() & 0xc00ffffff; // 1100000000000000111111111111111111111111
+  ULong_t b = getLong() & 0xc000ffffff; // 1100000000000000111111111111111111111111
   mBits = b + a;
 }
 
 Double_t Cell::getEnergy() const
 {
-  return getEnergyBits() * (constants::EMCAL_ADCENERGY) / 16.0;
+  return double(getEnergyBits() * 0.0153);
 }
 
-void Cell::setType(CellType ctype)
+void Cell::setType(ChannelType_t ctype)
 {
-  if (ctype == CellType::kHighGain)
-    setHighGain();
-  else if (ctype == CellType::kLEDMon)
-    setLEDMon();
-  else if (ctype == CellType::kTRU)
-    setTRU();
-  else
-    setLowGain();
+  switch (ctype) {
+    case ChannelType_t::HIGH_GAIN:
+      setHighGain();
+      break;
+    case ChannelType_t::LOW_GAIN:
+      setLowGain();
+      break;
+    case ChannelType_t::TRU:
+      setTRU();
+      break;
+    case ChannelType_t::LEDMON:
+      setHighGain();
+      break;
+  };
 }
 
-UInt_t Cell::getType() const
+ChannelType_t Cell::getType() const
 {
   if (getHighGain())
-    return CellType::kHighGain;
+    return ChannelType_t::HIGH_GAIN;
   else if (getLEDMon())
-    return CellType::kLEDMon;
+    return ChannelType_t::LEDMON;
   else if (getTRU())
-    return CellType::kTRU;
-  return CellType::kLowGain;
+    return ChannelType_t::TRU;
+  return ChannelType_t::LOW_GAIN;
 }
 
 void Cell::setLowGain()

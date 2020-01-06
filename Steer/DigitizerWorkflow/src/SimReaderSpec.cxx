@@ -13,6 +13,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/Lifetime.h"
 #include "Headers/DataHeader.h"
 #include "Steer/HitProcessingManager.h"
@@ -96,7 +97,7 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<int>& tpcse
         tpc_end_messagesent = true;
       }
       // now mark the reader as ready to finish
-      pc.services().get<ControlService>().readyToQuit(false);
+      pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
       return;
     }
 
@@ -157,6 +158,12 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<int>& tpcse
       }
       LOG(INFO) << "Imposing hadronic interaction rate " << intRate << "Hz";
       mgr.getInteractionSampler().setInteractionRate(intRate);
+
+      auto bcPatternFile = ctx.options().get<std::string>("bcPatternFile");
+      if (!bcPatternFile.empty()) {
+        mgr.getInteractionSampler().setBunchFilling(bcPatternFile);
+      }
+
       mgr.getInteractionSampler().init();
 
       // number of collisions asked?
@@ -188,6 +195,7 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<int>& tpcse
     /* OPTIONS */
     Options{
       {"interactionRate", VariantType::Float, 50000.0f, {"Total hadronic interaction rate (Hz)"}},
+      {"bcPatternFile", VariantType::String, "", {"Interacting BC pattern file (e.g. from CreateBCPattern.C)"}},
       {"simFile", VariantType::String, "o2sim.root", {"Sim input filename"}},
       {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
       {"simFileQED", VariantType::String, "", {"Sim (QED) input filename"}},

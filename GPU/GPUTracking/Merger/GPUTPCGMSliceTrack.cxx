@@ -14,19 +14,33 @@
 #include "GPUParam.h"
 #include "GPUTPCGMBorderTrack.h"
 #include "GPUTPCGMSliceTrack.h"
+#include "GPUO2DataTypes.h"
+#include "GPUTPCGMMerger.h"
+#include "GPUTPCConvertImpl.h"
+#include "GPUParam.inc"
 #ifndef __OPENCLCPP__
 #include <cmath>
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
+using namespace o2::tpc;
 
-bool GPUTPCGMSliceTrack::FilterErrors(const GPUParam& param, float maxSinPhi, float sinPhiMargin)
+bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int iSlice, float maxSinPhi, float sinPhiMargin)
 {
-  float lastX = mOrigTrack->Cluster(mOrigTrack->NClusters() - 1).GetX();
+  float lastX;
+  if (merger->Param().earlyTpcTransform) {
+    lastX = mOrigTrack->Cluster(mOrigTrack->NClusters() - 1).GetX(); // TODO: Why is this needed, Row2X should work, but looses some tracks
+  } else {
+    //float lastX = merger->Param().tpcGeometry.Row2X(mOrigTrack->Cluster(mOrigTrack->NClusters() - 1).GetRow()); // TODO: again, why does this reduce efficiency?
+    float y, z;
+    const GPUTPCSliceOutCluster& clo = mOrigTrack->Cluster(mOrigTrack->NClusters() - 1);
+    const ClusterNative& cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clo.GetId()];
+    GPUTPCConvertImpl::convert(*merger->GetConstantMem(), iSlice, clo.GetRow(), cl.getPad(), cl.getTime(), lastX, y, z);
+  }
 
   const int N = 3;
 
-  float bz = -param.ConstBz;
+  float bz = -merger->Param().ConstBz;
 
   float k = mQPt * bz;
   float dx = (1.f / N) * (lastX - mX);
@@ -35,9 +49,9 @@ bool GPUTPCGMSliceTrack::FilterErrors(const GPUParam& param, float maxSinPhi, fl
   float kdx205 = 2.f + kdx * kdx * 0.5f;
 
   {
-    param.GetClusterErrors2(0, mZ, mSinPhi, mDzDs, mC0, mC2);
+    merger->Param().GetClusterErrors2(0, mZ, mSinPhi, mDzDs, mC0, mC2);
     float C0a, C2a;
-    param.GetClusterRMS2(0, mZ, mSinPhi, mDzDs, C0a, C2a);
+    merger->Param().GetClusterRMS2(0, mZ, mSinPhi, mDzDs, C0a, C2a);
     if (C0a > mC0) {
       mC0 = C0a;
     }
@@ -93,9 +107,9 @@ bool GPUTPCGMSliceTrack::FilterErrors(const GPUParam& param, float maxSinPhi, fl
       float dz = dS * mDzDs;
       float ex1i = 1.f / ex1;
       {
-        param.GetClusterErrors2(0, mZ, mSinPhi, mDzDs, err2Y, err2Z);
+        merger->Param().GetClusterErrors2(0, mZ, mSinPhi, mDzDs, err2Y, err2Z);
         float C0a, C2a;
-        param.GetClusterRMS2(0, mZ, mSinPhi, mDzDs, C0a, C2a);
+        merger->Param().GetClusterRMS2(0, mZ, mSinPhi, mDzDs, C0a, C2a);
         if (C0a > err2Y) {
           err2Y = C0a;
         }
@@ -271,6 +285,9 @@ bool GPUTPCGMSliceTrack::TransportToX(float x, float Bz, GPUTPCGMBorderTrack& b,
   b.SetCov(4, c44);
   b.SetCovD(0, c20ph4c42 + h2c22 + dxBz * (c40 + h2 * c42 + h4c44));
   b.SetCovD(1, n7);
+
+  b.LimitCov();
+
   return 1;
 }
 
@@ -388,6 +405,8 @@ bool GPUTPCGMSliceTrack::TransportToXAlpha(float newX, float sinAlpha, float cos
   b.SetCov(4, c44);
   b.SetCovD(0, c20ph4c42 + h2c22 + dxBz * (c40 + h2 * c42 + h4c44));
   b.SetCovD(1, n7);
+
+  b.LimitCov();
 
   return 1;
 }

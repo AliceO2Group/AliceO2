@@ -77,6 +77,9 @@ DataProcessorSpec getSourceSpec()
         // test signature without headers for the rest of the entries
         (++(*reader))(pc);
       }
+      if (reader->getCount() >= kTreeSize) {
+        pc.services().get<ControlService>().endOfStream();
+      }
     };
 
     return processingFct;
@@ -117,7 +120,8 @@ DataProcessorSpec getSinkSpec()
       ASSERT_ERROR(data[idx].get() == 10 * counter + idx);
     }
     if (++counter >= kTreeSize) {
-      pc.services().get<ControlService>().readyToQuit(true);
+      pc.services().get<ControlService>().endOfStream();
+      pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     }
   };
 

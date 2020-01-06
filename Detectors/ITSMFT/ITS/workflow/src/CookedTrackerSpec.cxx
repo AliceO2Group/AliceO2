@@ -15,6 +15,7 @@
 #include "TGeoGlobalMagField.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "ITSWorkflow/CookedTrackerSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h"
@@ -122,7 +123,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   }
 
   mState = 2;
-  pc.services().get<ControlService>().readyToQuit(false);
+  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 DataProcessorSpec getCookedTrackerSpec(bool useMC)

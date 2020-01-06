@@ -14,6 +14,7 @@
 
 #include "TTree.h"
 
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "ITSWorkflow/DigitReaderSpec.h"
 #include "ITSMFTBase/Digit.h"
@@ -110,7 +111,7 @@ void DigitReader::run(ProcessingContext& pc)
     return;
   }
   mState = 2;
-  pc.services().get<ControlService>().readyToQuit(false);
+  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 DataProcessorSpec getDigitReaderSpec(bool useMC)

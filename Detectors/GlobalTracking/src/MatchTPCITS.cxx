@@ -7,6 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
+#include <TSystem.h>
 #include <TTree.h>
 #include <cassert>
 
@@ -37,6 +39,9 @@
 #include "GlobalTracking/MatchTPCITS.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 
+#include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
+#include "GPUParam.inc"     // Consider more universal access
+
 using namespace o2::globaltracking;
 
 using MatrixDSym4 = ROOT::Math::SMatrix<double, 4, 4, ROOT::Math::MatRepSym<double, 4>>;
@@ -47,6 +52,12 @@ constexpr float MatchTPCITS::XTPCOuterRef;
 constexpr float MatchTPCITS::XMatchingRef;
 constexpr float MatchTPCITS::YMaxAtXMatchingRef;
 constexpr float MatchTPCITS::Tan70, MatchTPCITS::Cos70I2, MatchTPCITS::MaxSnp, MatchTPCITS::MaxTgp;
+
+//______________________________________________
+MatchTPCITS::MatchTPCITS() = default;
+
+//______________________________________________
+MatchTPCITS::~MatchTPCITS() = default;
 
 //______________________________________________
 void MatchTPCITS::setDPLIO(bool v)
@@ -328,42 +339,49 @@ void MatchTPCITS::attachInputTrees()
   if (!mTreeITSTracks->GetBranch(mITSTrackBranchName.data())) {
     LOG(FATAL) << "Did not find ITS tracks branch " << mITSTrackBranchName << " in the input tree";
   }
-  mTreeITSTracks->SetBranchAddress(mITSTrackBranchName.data(), &mITSTracksArrayInp);
+  mTreeITSTracks->SetBranchAddress(mITSTrackBranchName.data(), &mITSTracksArrayPtr);
   LOG(INFO) << "Attached ITS tracks " << mITSTrackBranchName << " branch with " << mTreeITSTracks->GetEntries()
             << " entries";
 
   if (!mTreeITSTracks->GetBranch(mITSTrackClusIdxBranchName.data())) {
     LOG(FATAL) << "Did not find ITS track cluster indices branch " << mITSTrackClusIdxBranchName << " in the input tree";
   }
-  mTreeITSTracks->SetBranchAddress(mITSTrackClusIdxBranchName.data(), &mITSTrackClusIdxInp);
+  mTreeITSTracks->SetBranchAddress(mITSTrackClusIdxBranchName.data(), &mITSTrackClusIdxPtr);
   LOG(INFO) << "Attached ITS track cluster indices " << mITSTrackClusIdxBranchName << " branch with "
             << mTreeITSTracks->GetEntries() << " entries";
 
   if (!mTreeITSTrackROFRec->GetBranch(mITSTrackROFRecBranchName.data())) {
     LOG(FATAL) << "Did not find ITS tracks ROFRecords branch " << mITSTrackROFRecBranchName << " in the input tree";
   }
-  mTreeITSTrackROFRec->SetBranchAddress(mITSTrackROFRecBranchName.data(), &mITSTrackROFRec);
+  mTreeITSTrackROFRec->SetBranchAddress(mITSTrackROFRecBranchName.data(), &mITSTrackROFRecPtr);
   LOG(INFO) << "Attached ITS tracks ROFRec " << mITSTrackROFRecBranchName << " branch with "
             << mTreeITSTrackROFRec->GetEntries() << " entries";
 
   if (!mTreeTPCTracks->GetBranch(mTPCTrackBranchName.data())) {
     LOG(FATAL) << "Did not find TPC tracks branch " << mTPCTrackBranchName << " in the input tree";
   }
-  mTreeTPCTracks->SetBranchAddress(mTPCTrackBranchName.data(), &mTPCTracksArrayInp);
-  LOG(INFO) << "Attached TPC tracks " << mTPCTrackBranchName << " branch with " << mTreeTPCTracks->GetEntries()
-            << " entries";
+  mTreeTPCTracks->SetBranchAddress(mTPCTrackBranchName.data(), &mTPCTracksArrayPtr);
+  LOG(INFO) << "Attached TPC tracks " << mTPCTrackBranchName << " branch with "
+            << mTreeTPCTracks->GetBranch(mTPCTrackBranchName.data())->GetEntries() << " entries";
+
+  if (!mTreeTPCTracks->GetBranch(mTPCTrackClusIdxBranchName.data())) {
+    LOG(FATAL) << "Did not find TPC tracks cluster references branch " << mTPCTrackClusIdxBranchName << " in the input tree";
+  }
+  mTreeTPCTracks->SetBranchAddress(mTPCTrackClusIdxBranchName.data(), &mTPCTrackClusIdxPtr);
+  LOG(INFO) << "Attached TPC tracks cluster references " << mTPCTrackClusIdxBranchName << " branch with "
+            << mTreeTPCTracks->GetBranch(mTPCTrackClusIdxBranchName.data())->GetEntries() << " entries";
 
   if (!mTreeITSClusters->GetBranch(mITSClusterBranchName.data())) {
     LOG(FATAL) << "Did not find ITS clusters branch " << mITSClusterBranchName << " in the input tree";
   }
-  mTreeITSClusters->SetBranchAddress(mITSClusterBranchName.data(), &mITSClustersArrayInp);
+  mTreeITSClusters->SetBranchAddress(mITSClusterBranchName.data(), &mITSClustersArrayPtr);
   LOG(INFO) << "Attached ITS clusters " << mITSClusterBranchName << " branch with " << mTreeITSClusters->GetEntries()
             << " entries";
 
   if (!mTreeITSClusterROFRec->GetBranch(mITSClusterROFRecBranchName.data())) {
     LOG(FATAL) << "Did not find ITS clusters ROFRecords branch " << mITSClusterROFRecBranchName << " in the input tree";
   }
-  mTreeITSClusterROFRec->SetBranchAddress(mITSClusterROFRecBranchName.data(), &mITSClusterROFRec);
+  mTreeITSClusterROFRec->SetBranchAddress(mITSClusterROFRecBranchName.data(), &mITSClusterROFRecPtr);
   LOG(INFO) << "Attached ITS clusters ROFRec " << mITSClusterROFRecBranchName << " branch with "
             << mTreeITSClusterROFRec->GetEntries() << " entries";
 
@@ -409,7 +427,7 @@ bool MatchTPCITS::prepareTPCTracks()
     curTracksEntry = mTreeTPCTracks ? mTreeTPCTracks->GetReadEntry() : 0;
   }
 
-  int ntr = mTPCTracksArrayInp->size();
+  int ntr = mTPCTracksArrayInp.size();
   mMatchesTPC.reserve(mMatchesTPC.size() + ntr);
   // number of records might be actually more than N tracks!
   mMatchRecordsTPC.reserve(mMatchRecordsTPC.size() + mMaxMatchCandidates * ntr);
@@ -429,7 +447,7 @@ bool MatchTPCITS::prepareTPCTracks()
 
   for (int it = 0; it < ntr; it++) {
 
-    const auto& trcOrig = (*mTPCTracksArrayInp)[it];
+    const auto& trcOrig = mTPCTracksArrayInp[it];
 
     // make sure the track was propagated to inner TPC radius at the ref. radius
     if (trcOrig.getX() > XTPCInnerRef + 0.1)
@@ -530,9 +548,11 @@ bool MatchTPCITS::prepareITSTracks()
 
   if (!mDPLIO) { // for input from tree read ROFrecords vector, in DPL IO mode the vector should be already attached
     mTreeITSTrackROFRec->GetEntry(0);
+    mITSTrackROFRec = gsl::span<const o2::itsmft::ROFRecord>(mITSTrackROFRecPtr->data(), mITSTrackROFRecPtr->size());
     mTreeITSClusterROFRec->GetEntry(0); // keep clusters ROFRecs ready
+    mITSClusterROFRec = gsl::span<const o2::itsmft::ROFRecord>(mITSClusterROFRecPtr->data(), mITSClusterROFRecPtr->size());
   }
-  int nROFs = mITSTrackROFRec->size();
+  int nROFs = mITSTrackROFRec.size();
 
   mMatchesITS.clear();
 
@@ -554,13 +574,15 @@ bool MatchTPCITS::prepareITSTracks()
     mITSTimeBinStart[sec].clear();
     mITSTimeBinStart[sec].resize(nROFs, -1); // start of ITS work tracks in every sector
   }
-  setStartIR((*mITSTrackROFRec)[0].getBCData());
+  setStartIR(mITSTrackROFRec[0].getBCData());
   for (int irof = 0; irof < nROFs; irof++) {
-    const auto& rofRec = (*mITSTrackROFRec)[irof];
+    const auto& rofRec = mITSTrackROFRec[irof];
     // in case of the input from the tree make sure needed entry is loaded
     auto rEntry = rofRec.getROFEntry().getEvent();
     if (!mDPLIO && mCurrITSTracksTreeEntry != rEntry) { // in DPL IO mode the input tracks must be already attached
       mTreeITSTracks->GetEntry((mCurrITSTracksTreeEntry = rEntry));
+      mITSTracksArrayInp = gsl::span<const o2::its::TrackITS>(mITSTracksArrayPtr->data(), mITSTracksArrayPtr->size());
+      mITSTrackClusIdxInp = gsl::span<const int>(mITSTrackClusIdxPtr->data(), mITSTrackClusIdxPtr->size());
     }
     float tmn = intRecord2TPCTimeBin(rofRec.getBCData());     // ITS track min time in TPC time-bins
     mITSROFTimes.emplace_back(tmn, tmn + mITSROFrame2TPCBin); // ITS track min/max time in TPC time-bins
@@ -571,7 +593,7 @@ bool MatchTPCITS::prepareITSTracks()
 
     int trlim = rofRec.getROFEntry().getIndex() + rofRec.getNROFEntries();
     for (int it = rofRec.getROFEntry().getIndex(); it < trlim; it++) {
-      auto& trcOrig = (*mITSTracksArrayInp)[it];
+      const auto& trcOrig = mITSTracksArrayInp[it];
       if (trcOrig.getParamOut().getX() < 1.) {
         continue; // backward refit failed
       }
@@ -685,11 +707,14 @@ bool MatchTPCITS::loadTPCTracksNextChunk()
   mTimerIO.Start(false);
   while (++mCurrTPCTracksTreeEntry < mTreeTPCTracks->GetEntries()) {
     mTreeTPCTracks->GetEntry(mCurrTPCTracksTreeEntry);
-    LOG(DEBUG) << "Loading TPC tracks entry " << mCurrTPCTracksTreeEntry << " -> " << mTPCTracksArrayInp->size()
+    LOG(DEBUG) << "Loading TPC tracks entry " << mCurrTPCTracksTreeEntry << " -> " << mTPCTracksArrayPtr->size()
                << " tracks";
-    if (mTPCTracksArrayInp->size() < 1) {
+    if (mTPCTrackClusIdxPtr->size() < 1) {
       continue;
     }
+    mTPCTracksArrayInp = gsl::span<const o2::tpc::TrackTPC>(mTPCTracksArrayPtr->data(), mTPCTracksArrayPtr->size());
+    mTPCTrackClusIdxInp = gsl::span<const o2::tpc::TPCClRefElem>(mTPCTrackClusIdxPtr->data(), mTPCTrackClusIdxPtr->size());
+
     mTimerIO.Stop();
     return true;
   }
@@ -1234,7 +1259,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iITS)
     loadTPCTracksChunk(tTPC.source.getEvent());
     loadTPCClustersChunk(tTPC.source.getEvent());
   }
-  auto itsTrOrig = (*mITSTracksArrayInp)[tITS.source.getIndex()]; // currently we store clusterIDs in the track
+  const auto& itsTrOrig = mITSTracksArrayInp[tITS.source.getIndex()]; // currently we store clusterIDs in the track
 
   mMatchedTracks.emplace_back(tTPC, tITS); // create a copy of TPC track at xRef
   auto& trfit = mMatchedTracks.back();
@@ -1253,11 +1278,11 @@ bool MatchTPCITS::refitTrackTPCITS(int iITS)
   auto propagator = o2::base::Propagator::Instance();
   // NOTE: the ITS cluster index is stored wrt 1st cluster of relevant ROF, while here we extract clusters from the
   // buffer for the whole TF. Therefore, we should shift the index by the entry of the ROF's 1st cluster in the global cluster buffer
-  int clusIndOffs = (*mITSClusterROFRec)[tITS.roFrame].getROFEntry().getIndex();
+  int clusIndOffs = mITSClusterROFRec[tITS.roFrame].getROFEntry().getIndex();
 
   int clEntry = itsTrOrig.getFirstClusterEntry();
   for (int icl = 0; icl < ncl; icl++) {
-    const auto& clus = (*mITSClustersArrayInp)[clusIndOffs + (*mITSTrackClusIdxInp)[clEntry++]];
+    const auto& clus = mITSClustersArrayInp[clusIndOffs + mITSTrackClusIdxInp[clEntry++]];
     float alpha = geom->getSensorRefAlpha(clus.getSensorID()), x = clus.getX();
     if (!trfit.rotate(alpha) ||
         // note: here we also calculate the L,T integral (in the inward direction, but this is irrelevant)
@@ -1292,7 +1317,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iITS)
   }
 
   /// precise time estimate
-  auto tpcTrOrig = (*mTPCTracksArrayInp)[tTPC.source.getIndex()];
+  auto tpcTrOrig = mTPCTracksArrayInp[tTPC.source.getIndex()];
   float timeTB = tpcTrOrig.getTime0() - mNTPCBinsFullDrift;
   if (tpcTrOrig.hasASideClustersOnly()) {
     timeTB += deltaT;
@@ -1316,7 +1341,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iITS)
     std::array<float, 3> clsCov = {};
     float clsX;
 
-    const auto& cl = tpcTrOrig.getCluster(icl, *mTPCClusterIdxStruct, sector, row);
+    const auto& cl = tpcTrOrig.getCluster(mTPCTrackClusIdxInp, icl, *mTPCClusterIdxStruct, sector, row);
     mTPCTransform->Transform(sector, row, cl.getPad(), cl.getTime(), clsX, clsYZ[0], clsYZ[1], timeTB);
     // rotate to 1 cluster's sector
     if (!tracOut.rotate(o2::utils::Sector2Angle(sector % 18))) {
@@ -1345,7 +1370,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iITS)
     prevsector = sector;
 
     for (; icl--;) {
-      const auto& cl = tpcTrOrig.getCluster(icl, *mTPCClusterIdxStruct, sector, row);
+      const auto& cl = tpcTrOrig.getCluster(mTPCTrackClusIdxInp, icl, *mTPCClusterIdxStruct, sector, row);
       if (row <= prevrow) {
         LOG(WARNING) << "New row/sect " << int(row) << '/' << int(sector) << " is <= the previous " << int(prevrow)
                      << '/' << int(prevsector) << " TrackID: " << tTPC.source.getIndex() << " Pt:" << tracOut.getPt();
@@ -1410,6 +1435,7 @@ void MatchTPCITS::loadITSClustersChunk(int chunk)
   if (mCurrITSClustersTreeEntry != chunk) {
     mTimerIO.Start(false);
     mTreeITSClusters->GetEntry(mCurrITSClustersTreeEntry = chunk);
+    mITSClustersArrayInp = gsl::span<const o2::itsmft::Cluster>(mITSClustersArrayPtr->data(), mITSClustersArrayPtr->size());
     mTimerIO.Stop();
   }
 }

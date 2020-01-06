@@ -46,17 +46,21 @@ int GPUChainITS::Init() { return 0; }
 
 TrackerTraits* GPUChainITS::GetITSTrackerTraits()
 {
+#ifndef GPUCA_NO_ITS_TRAITS
   if (mITSTrackerTraits == nullptr) {
     mRec->GetITSTraits(&mITSTrackerTraits, nullptr);
     mITSTrackerTraits->SetRecoChain(this, &GPUChainITS::PrepareAndRunITSTrackFit);
   }
+#endif
   return mITSTrackerTraits.get();
 }
 VertexerTraits* GPUChainITS::GetITSVertexerTraits()
 {
+#ifndef GPUCA_NO_ITS_TRAITS
   if (mITSVertexerTraits == nullptr) {
     mRec->GetITSTraits(nullptr, &mITSVertexerTraits);
   }
+#endif
   return mITSVertexerTraits.get();
 }
 
@@ -85,7 +89,7 @@ int GPUChainITS::RunITSTrackFit(std::vector<Road>& roads, std::array<const Clust
   for (int i = 0; i < 7; i++) {
     Fitter.SetNumberTF(i, tf[i].size());
   }
-  Fitter.SetMaxData();
+  Fitter.SetMaxData(processors()->ioPtrs);
   std::copy(clusters.begin(), clusters.end(), Fitter.clusters());
   std::copy(cells.begin(), cells.end(), Fitter.cells());
   SetupGPUProcessor(&Fitter, true);
@@ -94,10 +98,10 @@ int GPUChainITS::RunITSTrackFit(std::vector<Road>& roads, std::array<const Clust
     std::copy(tf[i].begin(), tf[i].end(), Fitter.trackingFrame()[i]);
   }
 
-  WriteToConstantMemory((char*)&processors()->itsFitter - (char*)processors(), &FitterShadow, sizeof(FitterShadow), 0);
-  TransferMemoryResourcesToGPU(&Fitter, 0);
-  runKernel<GPUITSFitterKernel>({BlockCount(), ThreadCount(), 0}, nullptr, krnlRunRangeNone, krnlEventNone);
-  TransferMemoryResourcesToHost(&Fitter, 0);
+  WriteToConstantMemory(RecoStep::ITSTracking, (char*)&processors()->itsFitter - (char*)processors(), &FitterShadow, sizeof(FitterShadow), 0);
+  TransferMemoryResourcesToGPU(RecoStep::ITSTracking, &Fitter, 0);
+  runKernel<GPUITSFitterKernel>({BlockCount(), ThreadCount(), 0}, krnlRunRangeNone, krnlEventNone);
+  TransferMemoryResourcesToHost(RecoStep::ITSTracking, &Fitter, 0);
 
   SynchronizeGPU();
 

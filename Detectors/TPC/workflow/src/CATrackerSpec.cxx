@@ -19,6 +19,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ClusterGroupAttribute.h"
 #include "DataFormatsTPC/ClusterNative.h"
@@ -26,6 +27,7 @@
 #include "DataFormatsTPC/Helpers.h"
 #include "TPCReconstruction/GPUCATracking.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "TPCBase/Digit.h"
 #include "TPCFastTransform.h"
 #include "DetectorsBase/MatLayerCylSet.h"
 #include "GPUO2InterfaceConfiguration.h"
@@ -54,7 +56,7 @@ namespace o2
 namespace tpc
 {
 
-DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& inputIds)
+DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector<int> const& inputIds)
 {
   constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
   using ClusterGroupParser = o2::algorithm::ForwardParser<o2::tpc::ClusterGroupHeader>;
@@ -75,7 +77,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
     bool readyToQuit = false;
   };
 
-  auto initFunction = [processMC, inputIds](InitContext& ic) {
+  auto initFunction = [processMC, caClusterer, inputIds](InitContext& ic) {
     auto options = ic.options().get<std::string>("tracker-options");
 
     auto processAttributes = std::make_shared<ProcessAttributes>();
@@ -91,16 +93,18 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       // This should go away eventually.
 
       // Default Settings
-      float solenoidBz = 5.00668;           // B-field
-      float refX = 83.;                     // transport tracks to this x after tracking, >500 for disabling
-      bool continuous = false;              // time frame data v.s. triggered events
-      int nThreads = 1;                     // number of threads if we run on the CPU, 1 = default, 0 = auto-detect
-      bool useGPU = false;                  // use a GPU for processing, if false uses GPU
-      int debugLevel = 0;                   // Enable additional debug output
-      bool dump = false;                    // create memory dump of processed events for standalone runs
-      char gpuType[1024] = "CUDA";          // Type of GPU device, if useGPU is set to true
-      GPUDisplayBackend* display = nullptr; // Ptr to display backend (enables event display)
-      bool qa = false;                      // Run the QA after tracking
+      float solenoidBz = 5.00668;                // B-field
+      float refX = 83.;                          // transport tracks to this x after tracking, >500 for disabling
+      bool continuous = false;                   // time frame data v.s. triggered events
+      int nThreads = 1;                          // number of threads if we run on the CPU, 1 = default, 0 = auto-detect
+      bool useGPU = false;                       // use a GPU for processing, if false uses GPU
+      int debugLevel = 0;                        // Enable additional debug output
+      bool dump = false;                         // create memory dump of processed events for standalone runs
+      char gpuType[1024] = "CUDA";               // Type of GPU device, if useGPU is set to true
+      GPUDisplayBackend* display = nullptr;      // Ptr to display backend (enables event display)
+      bool qa = false;                           // Run the QA after tracking
+      bool readTransformationFromFile = false;   // Read the TPC transformation from the file
+      char tpcTransformationFileName[1024] = ""; // A file with the TPC transformation
 
       const auto grp = o2::parameters::GRPObject::loadFrom("o2sim_grp.root");
       if (grp) {
@@ -158,6 +162,12 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
             gpuType[len] = 0;
             useGPU = true;
             printf("Using GPU Type %s\n", gpuType);
+          } else if (optLen > 15 && strncmp(optPtr, "transformation=", 15) == 0) {
+            int len = std::min(optLen - 15, 1023);
+            memcpy(tpcTransformationFileName, optPtr + 15, len);
+            tpcTransformationFileName[len] = 0;
+            readTransformationFromFile = true;
+            printf("Read TPC transformation from the file \"%s\"\n", tpcTransformationFileName);
           } else {
             printf("Unknown option: %s\n", optPtr);
             throw std::invalid_argument("Unknown config string option");
@@ -209,12 +219,25 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       // Alternative inputs: GPUDataTypes::InOutType::TRDTracklets
       config.configWorkflow.outputs.set(GPUDataTypes::InOutType::TPCMergedTracks, GPUDataTypes::InOutType::TPCCompressedClusters);
       // Alternative outputs: GPUDataTypes::InOutType::TPCSectorTracks, GPUDataTypes::InOutType::TRDTracks
+      if (caClusterer) { // Override some settings if we have raw data as input
+        config.configWorkflow.inputs.set(GPUDataTypes::InOutType::TPCRaw);
+        config.configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCClusterFinding, true);
+      }
 
       // Create and forward data objects for TPC transformation, material LUT, ...
-      processAttributes->fastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
-      config.fastTransform = processAttributes->fastTransform.get();
+      if (readTransformationFromFile) {
+        processAttributes->fastTransform = nullptr;
+        config.configCalib.fastTransform = TPCFastTransform::loadFromFile(tpcTransformationFileName);
+      } else {
+        processAttributes->fastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
+        config.configCalib.fastTransform = processAttributes->fastTransform.get();
+      }
+      if (config.configCalib.fastTransform == nullptr) {
+        throw std::invalid_argument("GPUCATracking: initialization of the TPC transformation failed");
+      }
+      config.configCalib.fastTransform = processAttributes->fastTransform.get();
       o2::base::MatLayerCylSet* lut = o2::base::MatLayerCylSet::loadFromFile("matbud.root", "MatBud");
-      config.matLUT = lut;
+      config.configCalib.matLUT = lut;
       // Sample code what needs to be done for the TRD Geometry, when we extend this to TRD tracking.
       /*o2::base::GeometryManager::loadGeometry();
       o2::trd::TRDGeometry gm;
@@ -231,7 +254,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       processAttributes->validMcInputs.reset();
     }
 
-    auto processingFct = [processAttributes, processMC](ProcessingContext& pc) {
+    auto processingFct = [processAttributes, processMC, caClusterer](ProcessingContext& pc) {
       if (processAttributes->readyToQuit) {
         return;
       }
@@ -243,6 +266,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       // FIXME cleanup almost duplicated code
       auto& validMcInputs = processAttributes->validMcInputs;
       auto& mcInputs = processAttributes->mcInputs;
+      std::array<std::vector<o2::tpc::Digit>, NSectors> inputDigits;
       if (processMC) {
         // we can later extend this to multiple inputs
         for (auto const& inputId : processAttributes->inputIds) {
@@ -313,17 +337,21 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
         activeSectors |= sectorHeader->activeSectors;
         validInputs.set(sector);
         datarefs[sector] = ref;
+        if (caClusterer) {
+          inputDigits[sector] = pc.inputs().get<const std::vector<o2::tpc::Digit>>(inputLabel);
+        }
       }
 
       if (operation == -1) {
         // EOD is transmitted in the sectorHeader with sector number equal to -1
         o2::tpc::TPCSectorHeader sh{-1};
         sh.activeSectors = activeSectors;
-        pc.outputs().snapshot(OutputRef{"output", 0, {sh}}, -1);
+        pc.outputs().snapshot(OutputRef{"outTracks", 0, {sh}}, -1);
+        pc.outputs().snapshot(OutputRef{"outClusRefs", 0, {sh}}, -1);
         if (processMC) {
           pc.outputs().snapshot(OutputRef{"mclblout", 0, {sh}}, -1);
         }
-        pc.services().get<ControlService>().readyToQuit(false);
+        pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
         processAttributes->readyToQuit = true;
         return;
       }
@@ -341,12 +369,15 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
       if (activeSectors == 0 || (activeSectors & validInputs.to_ulong()) != activeSectors ||
           (processMC && (activeSectors & validMcInputs.to_ulong()) != activeSectors)) {
         // not all sectors available, we have to buffer the inputs
+        if (caClusterer) {
+          throw std::runtime_error("Buffering not possible with digits");
+        }
         for (auto const& refentry : datarefs) {
           auto& sector = refentry.first;
           auto& ref = refentry.second;
-          auto payploadSize = DataRefUtils::getPayloadSize(ref);
-          bufferedInputs[sector].resize(payploadSize);
-          std::copy(ref.payload, ref.payload + payploadSize, bufferedInputs[sector].begin());
+          auto payloadSize = DataRefUtils::getPayloadSize(ref);
+          bufferedInputs[sector].resize(payloadSize);
+          std::copy(ref.payload, ref.payload + payloadSize, bufferedInputs[sector].begin());
           printInputLog(ref, "buffering", sector);
         }
 
@@ -411,25 +442,32 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
         }
         LOG(INFO) << "running tracking for sector(s) " << bitInfo;
       }
+
+      std::vector<TrackTPC> tracks;
+      std::vector<uint32_t> clusRefs;
+      MCLabelContainer tracksMCTruth;
+      GPUO2InterfaceIOPtrs ptrs;
       ClusterNativeAccess clusterIndex;
-      memset(&clusterIndex, 0, sizeof(clusterIndex));
       std::unique_ptr<ClusterNative[]> clusterBuffer;
       MCLabelContainer clustersMCBuffer;
-      ClusterNativeHelper::Reader::fillIndex(clusterIndex, clusterBuffer, clustersMCBuffer, inputs, mcInputs, [&validInputs](auto& index) { return validInputs.test(index); });
-
-      GPUO2InterfaceIOPtrs ptrs;
-      std::vector<TrackTPC> tracks;
-      MCLabelContainer tracksMCTruth;
-      ptrs.clusters = &clusterIndex;
       ptrs.outputTracks = &tracks;
+      ptrs.outputClusRefs = &clusRefs;
       ptrs.outputTracksMCTruth = (processMC ? &tracksMCTruth : nullptr);
+      if (caClusterer) {
+        ptrs.o2Digits = &inputDigits; // TODO: We will also create ClusterNative as output stored in ptrs. Should be added to the output
+      } else {
+        memset(&clusterIndex, 0, sizeof(clusterIndex));
+        ClusterNativeHelper::Reader::fillIndex(clusterIndex, clusterBuffer, clustersMCBuffer, inputs, mcInputs, [&validInputs](auto& index) { return validInputs.test(index); });
+        ptrs.clusters = &clusterIndex;
+      }
       int retVal = tracker->runTracking(&ptrs);
       if (retVal != 0) {
         // FIXME: error policy
         LOG(ERROR) << "tracker returned error code " << retVal;
       }
       LOG(INFO) << "found " << tracks.size() << " track(s)";
-      pc.outputs().snapshot(OutputRef{"output"}, tracks);
+      pc.outputs().snapshot(OutputRef{"outTracks"}, tracks);
+      pc.outputs().snapshot(OutputRef{"outClusRefs"}, clusRefs);
       if (processMC) {
         LOG(INFO) << "sending " << tracksMCTruth.getIndexedSize() << " track label(s)";
         pc.outputs().snapshot(OutputRef{"mclblout"}, tracksMCTruth);
@@ -459,8 +497,13 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
   // changing the binding name of the input in order to identify inputs by unique labels
   // in the processing. Think about how the processing can be made agnostic of input size,
   // e.g. by providing a span of inputs under a certain label
-  auto createInputSpecs = [inputIds](bool makeMcInput) {
-    Inputs inputs = {InputSpec{"input", gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe}};
+  auto createInputSpecs = [inputIds](bool makeMcInput, bool caClusterer) {
+    Inputs inputs;
+    if (caClusterer) {
+      inputs.emplace_back(InputSpec{"input", gDataOriginTPC, "DIGITS", 0, Lifetime::Timeframe});
+    } else {
+      inputs.emplace_back(InputSpec{"input", gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe});
+    }
     if (makeMcInput) {
       inputs.emplace_back(InputSpec{"mclblin", gDataOriginTPC, "CLNATIVEMCLBL", 0, Lifetime::Timeframe});
     }
@@ -476,7 +519,8 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
 
   auto createOutputSpecs = [](bool makeMcOutput) {
     std::vector<OutputSpec> outputSpecs{
-      OutputSpec{{"output"}, gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe},
+      OutputSpec{{"outTracks"}, gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe},
+      OutputSpec{{"outClusRefs"}, gDataOriginTPC, "CLUSREFS", 0, Lifetime::Timeframe},
     };
     if (makeMcOutput) {
       OutputLabel label{"mclblout"};
@@ -487,7 +531,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, std::vector<int> const& input
   };
 
   return DataProcessorSpec{"tpc-tracker", // process id
-                           {createInputSpecs(processMC)},
+                           {createInputSpecs(processMC, caClusterer)},
                            {createOutputSpecs(processMC)},
                            AlgorithmSpec(initFunction),
                            Options{

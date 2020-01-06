@@ -15,25 +15,18 @@
 #include "Framework/Logger.h"
 
 #include <chrono>
+#include <thread>
 #include <vector>
 
 #include "Framework/runDataProcessing.h"
 
 using namespace o2::framework;
 
-AlgorithmSpec simplePipe(std::string const& what, int minDelay)
-{
-  return AlgorithmSpec{adaptStateful([what, minDelay]() {
-    srand(getpid());
-    return adaptStateless([what, minDelay](DataAllocator& outputs) {
-      auto rn = rand() % 5;
-      std::this_thread::sleep_for(std::chrono::seconds(rn + minDelay));
-      auto bData = outputs.make<int>(OutputRef{what}, rn);
-    });
-  })};
-}
-
-// This is how you can define your processing in a declarative way
+// This allows defining a workflow where the subSpecification
+// for the inputs and the outputs are left unspecified.
+// The source will produce one message at the time with random
+// subspecification and the receiver will match the any message
+// with origin "TST" and description "A1" regardless of the subspec.
 WorkflowSpec defineDataProcessing(ConfigContext const& specs)
 {
   return WorkflowSpec{

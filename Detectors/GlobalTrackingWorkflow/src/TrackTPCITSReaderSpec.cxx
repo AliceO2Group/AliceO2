@@ -14,6 +14,7 @@
 
 #include "TTree.h"
 
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "GlobalTrackingWorkflow/TrackTPCITSReaderSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -73,7 +74,7 @@ void TrackTPCITSReader::run(ProcessingContext& pc)
   }
 
   mState = 2;
-  //  pc.services().get<ControlService>().readyToQuit(false);
+  //  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 DataProcessorSpec getTrackTPCITSReaderSpec(bool useMC)

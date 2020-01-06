@@ -11,6 +11,7 @@
 #include "Framework/ConfigParamSpec.h"
 
 #include <chrono>
+#include <thread>
 #include <vector>
 
 using namespace o2::framework;
@@ -55,7 +56,7 @@ DataProcessorSpec templateProcessor()
                              return [](ProcessingContext& ctx) {
                                // Create a single output.
                                size_t index = ctx.services().get<ParallelContext>().index1D();
-                               auto aData = ctx.outputs().make<int>(
+                               auto& aData = ctx.outputs().make<int>(
                                  Output{"TST", "P", static_cast<o2::header::DataHeader::SubSpecificationType>(index)}, 1);
                                std::this_thread::sleep_for(std::chrono::seconds(rand() % 5));
                              };
