@@ -69,5 +69,5 @@ void CheckDigits(std::string digifile = "trddigits.root",
   c->cd(4);
   c->cd(4)->SetLogy();
   hADC->Draw();
-  c->SaveAs("test.pdf");
+  c->SaveAs("testCheckDigits.pdf");
 }
