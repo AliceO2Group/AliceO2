@@ -459,7 +459,7 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont
       signalAmp *= padgain;                  // Gain factors
       // Add the noise, starting from minus ADC baseline in electrons
       signalAmp = std::max((double)drawGaus(mGausRandomRings[thread], signalAmp, mSimParam->GetNoise()), -baselineEl);
-      signalAmp *= convert; // Convert to mV
+      signalAmp *= convert;  // Convert to mV
       signalAmp += baseline; // Add ADC baseline in mV
       // Convert to ADC counts
       // Set the overflow-bit fADCoutRange if the signal is larger than fADCinRange
