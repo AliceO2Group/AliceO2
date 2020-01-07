@@ -77,7 +77,7 @@ DataProcessorSpec getSourceSpec()
         // test signature without headers for the rest of the entries
         (++(*reader))(pc);
       }
-      if (reader->getCount() >= kTreeSize) {
+      if ((reader->getCount() + 1) >= kTreeSize) {
         pc.services().get<ControlService>().endOfStream();
       }
     };
