@@ -242,7 +242,7 @@ class TrapSimulator
     };
   };
   std::array<FilterReg, NOfAdcPerMcm> mInternalFilterRegisters;
-  //TODO these 2 structs should be "unified" with digitisation? mm second thoughts just the first Hit_t?
+  
   // hit detection
   // individual hits can be stored as MC info
   class Hit

@@ -175,16 +175,14 @@ class TRDDPLTrapSimulatorTask{
                    int olddetector=-1;
                    int oldrow=-1;
                    int oldpad=-1;
-                   std::array<ArrayADC_t,21> mcmadcs;
+                   std::array<ArrayADC_t,144> padsinrow;
+                   unsigned char firedmcms=0;                   
                    for(std::vector<o2::trd::Digit>::iterator digititerator = digits.begin(); digititerator != digits.end(); ++digititerator) {
                       //originally loop was over side:rob:mcm so we need side
-                      //in here as well. as per the end of AliTRDdigitizer
-                      //mcm is [0,16] rob is [side,digits.getNrowRows] and side is [0,1]
-                     // for (Int_t side = 0; side <= 1; side++)     {
-                     // for(Int_t rob = side; rob < digits->GetNrow() / 2; rob += 2) {
-                     // TODO I need to sort by an extra criterian.
-                     // time:detector:side:rob:mcm
-                     // else change the fundamental loop of TrapSimulator. 
+                      //in here we have an entire padrow which corresponds to 8 MCM.
+                      //while on a single padrow, populate array padsinrow.
+                      //on change of padrow
+                      //  fireup trapsim, do its thing with each 18 sequence of pads by copying relevant data into the 20 ADCs of the mcm as well. as per the end of AliTRDdigitizer
                       double digittime=digititerator->getTime();
                       int pad=digititerator->getPad();
                       int row=digititerator->getRow();
@@ -202,35 +200,9 @@ class TRDDPLTrapSimulatorTask{
                       //determine which adc for this mcm we are populating.
                       if(olddetector!=detector || oldrow!= row){
                         LOG(info) << "*Det : " << detector << " Row : " << row << " pad : " << pad;
-
+                        // 
                           //fireup Trapsim.
- //                         LOG(info) << "------- heading off to TrapSim for " << " Det:rob:mcm:pad:row ::  " << olddetector <<":" << oldrob << ":" <<oldmcm << ":" << oldrow << ":"<< oldpad;
-                //          int padrow=mfeeparam->getPadRowFromMCM(oldrob,oldmcm);
-               //           int firstadc=mfeeparam->getPadColFromADC(oldrob,oldmcm,0);
-               //           int lastadc =mfeeparam->getPadColFromADC(oldrob,oldmcm,20);
-               //           int firstadcext=mfeeparam->getExtendedPadColFromADC(oldrob,oldmcm,0);
-               //           int lastadcext =mfeeparam->getExtendedPadColFromADC(oldrob,oldmcm,20);
-               //           int adcoffset = oldpad-firstadc;
-                  //        LOG(info) << "------- heading off to TrapSim for " << " Det:rob:mcm:pad:row ::  " << olddetector <<":" << oldrob << ":" <<oldmcm << ":" << oldrow << ":"<< oldpad 
-                  //                  << " == " << padrow << ":" << firstadc << ":" << lastadc << " oldpad : " << oldpad << " adcoffset : " << adcoffset;
-                  //        LOG(info) << "------- heading off to TrapSim for " << " Det:rob:mcm:pad:row ::  " << olddetector <<":" << oldrob << ":" <<oldmcm << ":" << oldrow << ":"<< oldpad 
-                  //                  << " == " << padrow << ":" << firstadcext << ":" << lastadcext << " oldpad : " << oldpad << " adcoffset : " << adcoffset;
-                  //
-                  //
                          // mTrapSimulator.setData(incomingdigits);
-                         //
-                         //if (iadc < 0 || iadc > mgkNadcMcm)
-                         //    return -100;
-                         //      int mcmcol = imcm % mgkNmcmRobInCol + getRobSide(irob) * mgkNmcmRobInCol; // MCM column number on ROC [0..7]
-                         //        int padcol = mcmcol * mgkNcolMcm + mgkNcolMcm + 1 - iadc;
-                         //          if (padcol < 0 || padcol >= mgkNcol)
-                         //              return -1; // this is commented because of reason above OK
-                         //
-                         //                return padcol;
-                         // why is this returning -1 for firstadc, sometimes.
-                         //
-                         //
-                      
                       // copy adc data from digits to local array and then pass into TrapSimulator
                       // keep copying until we change mcm.
                       // On change of mcm, take what we have send to simulator.
@@ -239,13 +211,11 @@ class TRDDPLTrapSimulatorTask{
                         // mTrapSimulator.setData(detector,digit.getADC());
                          //for(int i=i;i<digits.size();i++){
                           //   int mcmindex= FeeParam::instance()->getMCMfromPad(digits[i].getRow(), digits[i].getPad());
-                //      LOG(info) << "MCM: " <<  feeparam->getMCMfromPad(digits[i].getRow(),digits[i].getPad()) << " == "<< digits[i].getDetector() <<"::"<<digits[i].getRow()<<"::"<< digits[i].getPad();
-                      //cout << "pad: " << ((o2::trd::Digit)digits[i]).getPad() << endl;
-               //       LOG(info) << "MCM: " << i <<" :: " << mcmindex << " == "<< digits[i].getDetector() <<"::"<<digits[i].getRow()<<"::"<< digits[i].getPad();
-                      
-                      
-                              
-                     // mcmadcs.clear();
+                          //
+
+                        //now clean up 
+                        firedmcms=; // mcm of the now fire padrow pad.
+
                       }
                       else {
                           //we are still on the same detector and row.
