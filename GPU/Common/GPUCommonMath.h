@@ -241,7 +241,7 @@ GPUdi() unsigned int GPUCommonMath::AtomicExch(GPUglobalref() GPUAtomic(unsigned
   return ::atomicExch(addr, val);
 #else
   unsigned int old;
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp atomic capture
 #endif
   {
@@ -262,7 +262,7 @@ GPUdi() unsigned int GPUCommonMath::AtomicAdd(GPUglobalref() GPUAtomic(unsigned 
   return ::atomicAdd(addr, val);
 #else
   unsigned int old;
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp atomic capture
 #endif
   {
@@ -282,7 +282,7 @@ GPUdi() void GPUCommonMath::AtomicMax(GPUglobalref() GPUAtomic(unsigned int) * a
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   ::atomicMax(addr, val);
 #else
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
   while (*addr < val)
     AtomicExch(addr, val);
 #else
@@ -301,7 +301,7 @@ GPUdi() void GPUCommonMath::AtomicMin(GPUglobalref() GPUAtomic(unsigned int) * a
 #elif defined(GPUCA_GPUCODE) && (defined(__CUDACC__) || defined(__HIPCC__))
   ::atomicMin(addr, val);
 #else
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
   while (*addr > val)
     AtomicExch(addr, val);
 #else

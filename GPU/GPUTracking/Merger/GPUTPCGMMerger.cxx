@@ -1285,6 +1285,10 @@ void GPUTPCGMMerger::CollectMergedTracks()
     p1.DzDs() = p2.DzDs();
     p1.QPt() = p2.QPt();
     mergedTrack.SetAlpha(p2.Alpha());
+    const double kCLight = 0.000299792458;
+    if (CAMath::Abs(Param().polynomialField.GetNominalBz()) < (0.01 * kCLight)) {
+      p1.QPt() = 0.01f * Param().rec.bz0Pt;
+    }
 
     // if (nParts > 1) printf("Merged %d: QPt %f %d parts %d hits\n", mNOutputTracks, p1.QPt(), nParts, nHits);
 

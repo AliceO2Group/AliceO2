@@ -18,7 +18,7 @@
 #include "GPUParam.inc"
 #include <iostream>
 #include <fstream>
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #include <omp.h>
 #endif
 
@@ -106,9 +106,6 @@ void GPUTPCO2Interface::Clear(bool clearOutputs) { mRec->ClearAllocatedMemory(cl
 
 void GPUTPCO2Interface::GetClusterErrors2(int row, float z, float sinPhi, float DzDs, short clusterState, float& ErrY2, float& ErrZ2) const
 {
-  if (!mInitialized) {
-    return;
-  }
   mRec->GetParam().GetClusterErrors2(row, z, sinPhi, DzDs, ErrY2, ErrZ2);
   mRec->GetParam().UpdateClusterError2ByState(clusterState, ErrY2, ErrZ2);
 }

@@ -211,6 +211,7 @@ class GPUTPCGMTrackParam
 
  private:
   GPUd() bool FollowCircleChk(float lrFactor, float toY, float toX, bool up, bool right);
+  GPUd() int initResetT0();
 
   float mX; // x position
   float mZOffset;
@@ -220,7 +221,16 @@ class GPUTPCGMTrackParam
   int mNDF;     // the Number of Degrees of Freedom
 };
 
-GPUd() inline void GPUTPCGMTrackParam::ResetCovariance()
+GPUdi() int GPUTPCGMTrackParam::initResetT0()
+{
+  const float absQPt = CAMath::Abs(mP[4]);
+  if (absQPt < (150.f / 40.f)) {
+    return 150.f / 40.f;
+  }
+  return CAMath::Max(10.f, 150.f / mP[4]);
+}
+
+GPUdi() void GPUTPCGMTrackParam::ResetCovariance()
 {
   mC[0] = 100.f;
   mC[1] = 0.f;
@@ -241,7 +251,7 @@ GPUd() inline void GPUTPCGMTrackParam::ResetCovariance()
   mNDF = -5;
 }
 
-GPUd() inline float GPUTPCGMTrackParam::GetMirroredY(float Bz) const
+GPUdi() float GPUTPCGMTrackParam::GetMirroredY(float Bz) const
 {
   // get Y of the point which has the same X, but located on the other side of trajectory
   float qptBz = GetQPt() * Bz;
