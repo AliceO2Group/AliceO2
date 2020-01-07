@@ -86,7 +86,7 @@ double Response::chargefrac1d(float min, float max, double k2, double sqrtk3, do
 unsigned long Response::response(float charge)
 {
   //FEE effects
-  return (unsigned long) charge;
+  return (unsigned long)charge;
 }
 //______________________________________________________________________
 float Response::getAnod(float x)

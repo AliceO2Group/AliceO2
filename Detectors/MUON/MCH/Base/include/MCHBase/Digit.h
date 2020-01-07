@@ -43,11 +43,11 @@ class Digit
 
   unsigned long getADC() const { return mADC; }
   void setADC(unsigned long adc) { mADC = adc; }
-  
+
  private:
   double mTime;
   int mDetID;
-  int mPadID;  /// PadIndex to which the digit corresponds to
+  int mPadID;         /// PadIndex to which the digit corresponds to
   unsigned long mADC; /// Amplitude of signal
 
   ClassDefNV(Digit, 1);
