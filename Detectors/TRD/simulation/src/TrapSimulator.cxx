@@ -822,6 +822,8 @@ void TrapSimulator::setDataFromDigitizerAndRun(std::vector<o2::trd::Digit> &digi
 //get labels out
     
 //get digits out.
+// TODO this function is postponed as we will execute the simulator externally not internally, might come back to this.
+  LOG(fatal) << "function postponed, you should not be calling this";
     //find det rob and mcm from the incoming digits
     //
     int det,rob,mcm;
@@ -840,123 +842,43 @@ void TrapSimulator::setDataFromDigitizerAndRun(std::vector<o2::trd::Digit> &digi
     }
 }
 
-/*  Remove the digitsmanager option for setting data. I cant find it being called from anywhere in aliroot ... this will probably bite me.
-void TrapSimulator::SetData(TRDArrayADC* const adcArray, TRDdigitsManager * const digitsManager)
+void TrapSimulator::setDataByPad(std::vector<o2::trd::Digit> &padrowdigits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
-  // Set the ADC data from an TRDArrayADC
+  // Set the ADC data from the incoming digits vector which contains an entire row
+  // (by pad, to be used during initial reading in simulation)
+  // digits contains an entire padrow from the simulation, this is done to sort out the shared pads.
 
   if( !checkInitialized() )
     return;
-
-  mDigitsManager = digitsManager;
-  if (mDigitsManager) {
-    for (int iDict = 0; iDict < 3; iDict++) {
-      TRDarrayDictionary *newDict = (TRDarrayDictionary*) mDigitsManager->getDictionary(mDetector, iDict);
-      if (mDict[iDict] != 0x0 && newDict != 0x0) {
-
-        if (mDict[iDict] == newDict)
-          continue;
-
-        mDict[iDict] = newDict;
-	if(mDict[iDict]->getDim() != 0)
-	  mDict[iDict]->Expand();
-      }
-      else {
-        mDict[iDict] = newDict;
-        if (mDict[iDict] && (mDict[iDict]->getDim() != 0) )
-          mDict[iDict]->Expand();
-      }
-
-      // If there is no data, set dictionary to zero to avoid crashes
-      if (mDict[iDict]->getDim() == 0)  {
-	 // LOG (error) << (Form("Dictionary %i of det. %i has dim. 0", iDict, mDetector));
-        mDict[iDict] = 0x0;
-      }
-    }
+//Do we need to copy the labels into an internal format or just keep for passing through later.
+//
+  if (mNTimeBin != o2::trd::kTB ){
+    LOG(info) << "Changing number of time bins in the simulation from " << mNTimeBin << " to " << o2::trd::kTB;
+    setNTimebins(o2::trd::kTB);
+    LOG(fatal) << "Changing number of time bins in the simulation this is fatal as I think this timebin changee is going to mess things up. timebins are fixed with in digit class.";
   }
 
-  if (mNTimeBin != adcArray->getNtime())
-    SetNTimebins(adcArray->getNtime());
+  int offset = (mMcmPos % 4 + 1) * 18 + (mRobPos % 2) * 72 + 1;
 
-  int offset = (mMcmPos % 4 + 1) * 21 + (mRobPos % 2) * 84 - 1;
-
-  for (int iTimeBin = 0; iTimeBin < mNTimeBin; iTimeBin++) {
-    for (int iAdc = 0; iAdc < FeeParam::getNadcMcm(); iAdc++) {
-      int value = adcArray->getDataByAdcCol(getRow(), offset - iAdc, iTimeBin);
-      // treat 0 as suppressed,
-      // this is not correct but reported like that from arrayADC
-      if (value <= 0 || (offset - iAdc < 1) || (offset - iAdc > 165)) {
-        mADCR[iAdc*mNTimeBin+iTimeBin] = mTrapConfig->getTrapReg(TrapConfig::kFPNP, mDetector, mRobPos, mMcmPos) + (mgAddBaseline << mgkAddDigits);
-        mADCF[iAdc*mNTimeBin+iTimeBin] = mTrapConfig->getTrapReg(TrapConfig::kTPFP, mDetector, mRobPos, mMcmPos) + (mgAddBaseline << mgkAddDigits);
+    for (int adc = 0; adc < FeeParam::getNadcMcm(); adc++) {
+      ArrayADC_t timebins;
+      int pad = offset - adc;
+      if (pad > -1 && pad < 144)
+	     timebins = padrowdigits[pad].getADC();
+  for (int timebin = 0; timebin < mNTimeBin; timebin++) {
+      int value=timebins[timebin];
+      if (value < 0 || (offset - adc < 1) || (offset - adc > 165)) {
+        mADCR[adc*mNTimeBin+timebin] = mTrapConfig->getTrapReg(TrapConfig::kFPNP, mDetector, mRobPos, mMcmPos) + (mgAddBaseline << mgkAddDigits);
+        mADCF[adc*mNTimeBin+timebin] = mTrapConfig->getTrapReg(TrapConfig::kTPFP, mDetector, mRobPos, mMcmPos) + (mgAddBaseline << mgkAddDigits);
       }
       else {
-        mZSMap[iAdc] = 0;
-        mADCR[iAdc*mNTimeBin+iTimeBin] = (value << mgkAddDigits) + (mgAddBaseline << mgkAddDigits);
-        mADCF[iAdc*mNTimeBin+iTimeBin] = (value << mgkAddDigits) + (mgAddBaseline << mgkAddDigits);
+        mZSMap[adc] = 0;
+        mADCR[adc*mNTimeBin+timebin] = (value << mgkAddDigits) + (mgAddBaseline << mgkAddDigits);
+        mADCF[adc*mNTimeBin+timebin] = (value << mgkAddDigits) + (mgAddBaseline << mgkAddDigits);
       }
     }
   }
 }
-*/
-/*
-void TrapSimulator::SetDataByPad(const TRDArrayADC* const adcArray, TRDdigitsManager * const digitsManager)/
-{
-  // Set the ADC data from an TRDArrayADC
-  // (by pad, to be used during initial reading in simulation)
-
-  if( !checkInitialized() )
-    return;
-
-  mDigitsManager = digitsManager;
-  if (mDigitsManager) {
-    for (int iDict = 0; iDict < 3; iDict++) {
-      TRDarrayDictionary *newDict = (TRDarrayDictionary*) mDigitsManager->getDictionary(mDetector, iDict);
-      if (mDict[iDict] != 0x0 && newDict != 0x0) {
-
-        if (mDict[iDict] == newDict)
-          continue;
-
-        mDict[iDict] = newDict;
-        mDict[iDict]->Expand();
-      }
-      else {
-        mDict[iDict] = newDict;
-        if (mDict[iDict])
-          mDict[iDict]->Expand();
-      }
-
-      // If there is no data, set dictionary to zero to avoid crashes
-      if (mDict[iDict]->getDim() == 0)  {
-        LOG (error) << "Dictionary "<< iDict << " of det. "<< mDetector << " has dim. 0";
-        mDict[iDict] = 0x0;
-      }
-    }
-  }
-
-  if (mNTimeBin != adcArray->getNtime())
-    SetNTimebins(adcArray->getNtime());
-
-  int offset = (mMcmPos % 4 + 1) * 18 + (mRobPos % 2) * 72 + 1;
-
-  for (int iTimeBin = 0; iTimeBin < mNTimeBin; iTimeBin++) {
-    for (int iAdc = 0; iAdc < FeeParam::getNadcMcm(); iAdc++) {
-      int value = -1;
-      int pad = offset - iAdc;
-      if (pad > -1 && pad < 144)
-	value = adcArray->getData(getRow(), offset - iAdc, iTimeBin);
-      //      int value = adcArray->getDataByAdcCol(getRow(), offset - iAdc, iTimeBin);
-      if (value < 0 || (offset - iAdc < 1) || (offset - iAdc > 165)) {
-        mADCR[iAdc*mNTimeBin+iTimeBin] = mTrapConfig->getTrapReg(TrapConfig::kFPNP, mDetector, mRobPos, mMcmPos) + (mgAddBaseline << mgkAddDigits);
-        mADCF[iAdc*mNTimeBin+iTimeBin] = mTrapConfig->getTrapReg(TrapConfig::kTPFP, mDetector, mRobPos, mMcmPos) + (mgAddBaseline << mgkAddDigits);
-      }
-      else {
-        mZSMap[iAdc] = 0;
-        mADCR[iAdc*mNTimeBin+iTimeBin] = (value << mgkAddDigits) + (mgAddBaseline << mgkAddDigits);
-        mADCF[iAdc*mNTimeBin+iTimeBin] = (value << mgkAddDigits) + (mgAddBaseline << mgkAddDigits);
-      }
-    }
-  }
-}*/
 
 void TrapSimulator::setDataPedestal(int adc)
 {
