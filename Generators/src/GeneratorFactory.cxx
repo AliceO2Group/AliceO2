@@ -18,7 +18,7 @@
 #include <SimConfig/SimConfig.h>
 #include <Generators/GeneratorFromFile.h>
 #ifdef GENERATORS_WITH_PYTHIA8
-#include <Generators/Pythia8Generator.h>
+#include <Generators/GeneratorPythia8.h>
 #endif
 #include <Generators/GeneratorTGenerator.h>
 #ifdef GENERATORS_WITH_HEPMC3
@@ -56,18 +56,10 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
   };
 
 #ifdef GENERATORS_WITH_PYTHIA8
-  auto makePythia8Gen = []() {
-    // pythia8 pp
-    // configures pythia for min.bias pp collisions at 14 TeV
-    // TODO: make this configurable
-    auto py8Gen = new o2::eventgen::Pythia8Generator();
-    py8Gen->SetParameters("Beams:idA 2212");       // p
-    py8Gen->SetParameters("Beams:idB 2212");       // p
-    py8Gen->SetParameters("Beams:eCM 14000.");     // [GeV]
-    py8Gen->SetParameters("SoftQCD:inelastic on"); // all inelastic processes
-    py8Gen->SetParameters("ParticleDecays:tau0Max 0.001");
-    py8Gen->SetParameters("ParticleDecays:limitTau0 on");
-    return py8Gen;
+  auto makePythia8Gen = [](std::string& config) {
+    auto gen = new o2::eventgen::GeneratorPythia8();
+    gen->readFile(config);
+    return gen;
   };
 #endif
 
@@ -141,47 +133,34 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     primGen->AddGenerator(hepmcGen);
 #endif
 #ifdef GENERATORS_WITH_PYTHIA8
-  } else if (genconfig.compare("pythia8") == 0) {
-    primGen->AddGenerator(makePythia8Gen());
   } else if (genconfig.compare("alldets") == 0) {
     // a simple generator for test purposes - making sure to generate hits
     // in all detectors
     // I compose it of:
     // 1) pythia8
-    auto p8 = makePythia8Gen();
-    primGen->AddGenerator(p8);
+    auto py8config = std::string(std::getenv("O2_ROOT")) + "/share/Generators/egconfig/pythia8_inel.cfg";
+    auto py8 = makePythia8Gen(py8config);
+    primGen->AddGenerator(py8);
     // 2) forward muons
     auto muon = makeBoxGen(13, 100, -2.5, -4.0, 100, 100, 0., 360);
     primGen->AddGenerator(muon);
+  } else if (genconfig.compare("pythia8") == 0) {
+    auto py8config = std::string(std::getenv("O2_ROOT")) + "/share/Generators/egconfig/pythia8_inel.cfg";
+    auto py8 = makePythia8Gen(py8config);
+    primGen->AddGenerator(py8);
   } else if (genconfig.compare("pythia8hf") == 0) {
     // pythia8 pp (HF production)
     // configures pythia for HF production in pp collisions at 14 TeV
-    // TODO: make this configurable
-    auto py8Gen = new o2::eventgen::Pythia8Generator();
-    py8Gen->SetParameters("Beams:idA 2212");   // p
-    py8Gen->SetParameters("Beams:idB 2212");   // p
-    py8Gen->SetParameters("Beams:eCM 14000."); // [GeV]
-    py8Gen->SetParameters("HardQCD:hardccbar on");
-    py8Gen->SetParameters("HardQCD:hardbbbar on");
-    py8Gen->SetParameters("ParticleDecays:tau0Max 0.001");
-    py8Gen->SetParameters("ParticleDecays:limitTau0 on");
-    primGen->AddGenerator(py8Gen);
+    auto py8config = std::string(std::getenv("O2_ROOT")) + "/share/Generators/egconfig/pythia8_hf.cfg";
+    auto py8 = makePythia8Gen(py8config);
+    primGen->AddGenerator(py8);
   } else if (genconfig.compare("pythia8hi") == 0) {
     // pythia8 heavy-ion
     // exploits pythia8 heavy-ion machinery (available from v8.230)
     // configures pythia for min.bias Pb-Pb collisions at 5.52 TeV
-    // TODO: make this configurable
-    auto py8Gen = new o2::eventgen::Pythia8Generator();
-    py8Gen->SetParameters("Beams:idA 1000822080");                                      // Pb ion
-    py8Gen->SetParameters("Beams:idB 1000822080");                                      // Pb ion
-    py8Gen->SetParameters("Beams:eCM 5520.0");                                          // [GeV]
-    py8Gen->SetParameters("HeavyIon:SigFitNGen 0");                                     // valid for Pb-Pb 5520 only
-    py8Gen->SetParameters("HeavyIon:SigFitDefPar 14.82,1.82,0.25,0.0,0.0,0.0,0.0,0.0"); // valid for Pb-Pb 5520 only
-    py8Gen->SetParameters(
-      ("HeavyIon:bWidth " + std::to_string(conf.getBMax())).c_str()); // impact parameter from 0-x [fm]
-    py8Gen->SetParameters("ParticleDecays:tau0Max 0.001");
-    py8Gen->SetParameters("ParticleDecays:limitTau0 on");
-    primGen->AddGenerator(py8Gen);
+    auto py8config = std::string(std::getenv("O2_ROOT")) + "/share/Generators/egconfig/pythia8_hi.cfg";
+    auto py8 = makePythia8Gen(py8config);
+    primGen->AddGenerator(py8);
 #endif
   } else if (genconfig.compare("extgen") == 0) {
     // external generator via configuration macro
