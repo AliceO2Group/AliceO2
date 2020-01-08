@@ -15,8 +15,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 string(REPLACE " -g " " " CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} ")
 string(REPLACE " -g " " " CMAKE_CXX_FLAGS_${CMAKE_BUILT_TYPE} " ${CMAKE_CXX_FLAGS_${CMAKE_BUILT_TYPE}} ")
-string(REPLACE " -g " " " CMAKE_LINK_FLAGS " ${CMAKE_LD_FLAGS} ")
-string(REPLACE " -g " " " CMAKE_LINK_FLAGS_${CMAKE_BUILT_TYPE} " ${CMAKE_LD_FLAGS_${CMAKE_BUILT_TYPE}} ")
+string(REPLACE " -g " " " CMAKE_LINK_FLAGS " ${CMAKE_LINK_FLAGS} ")
+string(REPLACE " -g " " " CMAKE_LINK_FLAGS_${CMAKE_BUILT_TYPE} " ${CMAKE_LINK_FLAGS_${CMAKE_BUILT_TYPE}} ")
+
+#setting flags as a global option for all HIP targets.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-invalid-command-line-argument -Wno-unused-command-line-argument -Wno-invalid-constexpr -Wno-ignored-optimization-argument -Wno-unused-private-field")
 
 if(DEFINED HIP_AMDGPUTARGET)
   set(TMP_TARGET "(GPU Target ${HIP_AMDGPUTARGET})")
@@ -83,10 +86,3 @@ if(HIP_AMDGPUTARGET)
   target_link_options(${targetName} PUBLIC --amdgpu-target=${HIP_AMDGPUTARGET})
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --amdgpu-target=${HIP_AMDGPUTARGET}")
 endif()
-
-target_compile_options(${targetName}
-                       PUBLIC -Wno-invalid-command-line-argument
-                              -Wno-unused-command-line-argument
-                              -Wno-invalid-constexpr
-                              -Wno-ignored-optimization-argument
-                              -Wno-unused-private-field)
