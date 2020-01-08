@@ -52,10 +52,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
             callbacks.set(CallbackService::Id::Start, startcb);
             callbacks.set(CallbackService::Id::Stop, stopcb);
             callbacks.set(CallbackService::Id::Reset, resetcb);
-            return adaptStateless([](DataAllocator& outputs) {
+            return adaptStateless([](DataAllocator& outputs, ControlService& control) {
               auto& out = outputs.newChunk({"TES", "STATEFUL", 0}, sizeof(int));
               auto outI = reinterpret_cast<int*>(out.data());
+              LOG(INFO) << "foo " << foo;
               outI[0] = foo++;
+              control.endOfStream();
+              control.readyToQuit(QuitRequest::Me);
             });
           }) //
       }      //
@@ -74,8 +77,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
               if (*in != expected++) {
                 LOG(ERROR) << "Expecting " << expected << " found " << *in;
               } else {
-                LOG(INFO) << "Everything OK for " << expected << std::endl;
-                control.readyToQuit(QuitRequest::All);
+                LOG(INFO) << "Everything OK for " << (expected - 1);
               }
             });
           }) //
