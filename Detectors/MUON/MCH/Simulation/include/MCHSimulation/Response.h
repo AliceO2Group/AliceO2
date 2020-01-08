@@ -11,7 +11,7 @@
 #ifndef O2_MCH_SIMULATION_RESPONSE_H_
 #define O2_MCH_SIMULATION_RESPONSE_H_
 
-#include "MCHSimulation/Digit.h"
+#include "MCHBase/Digit.h"
 #include "MCHSimulation/Detector.h"
 #include "MCHSimulation/Hit.h"
 
@@ -37,7 +37,7 @@ class Response
   float etocharge(float edepos);
   double chargePadfraction(float xmin, float xmax, float ymin, float ymax);
   double chargefrac1d(float min, float max, double k2, double sqrtk3, double k4);
-  double response(float charge);
+  unsigned long response(float charge);
   float getAnod(float x);
   float chargeCorr();
 

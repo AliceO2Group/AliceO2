@@ -83,10 +83,10 @@ double Response::chargefrac1d(float min, float max, double k2, double sqrtk3, do
   return 2. * k4 * (TMath::ATan(u2) - TMath::ATan(u1));
 }
 //______________________________________________________________________
-double Response::response(float charge)
+unsigned long Response::response(float charge)
 {
   //FEE effects
-  return charge;
+  return (unsigned long)charge;
 }
 //______________________________________________________________________
 float Response::getAnod(float x)
