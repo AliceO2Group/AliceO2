@@ -8,18 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file testGPUsortCUDA.cu
+/// \file testGPUsortHIP.hip.cxx
 /// \author Michael Lettrich
 
-#define GPUCA_GPUTYPE_PASCAL
+#define GPUCA_GPUTYPE_HIP
 
-#define BOOST_TEST_MODULE Test GPUCommonAlgorithm Sorting CUDA
+#define BOOST_TEST_MODULE Test GPUCommonAlgorithm Sorting HIP
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
 #include <iostream>
 #include <cstring>
-#include <cuda.h>
+#include <hip/hip_runtime.h>
 #include <boost/test/unit_test.hpp>
 #include "GPUCommonAlgorithm.h"
 
@@ -29,19 +29,25 @@
 
 static constexpr float TOLERANCE = 10 * std::numeric_limits<float>::epsilon();
 
-cudaError_t cudaCheckError(cudaError_t cudaErrorCode)
+hipError_t hipCheckError(hipError_t hipErrorCode)
 {
-  if (cudaErrorCode != cudaSuccess) {
-    std::cerr << "ErrorCode " << cudaErrorCode << " " << cudaGetErrorName(cudaErrorCode) << ": " << cudaGetErrorString(cudaErrorCode) << std::endl;
+  if (hipErrorCode != hipSuccess) {
+    std::cerr << "ErrorCode " << hipErrorCode << " " << hipGetErrorName(hipErrorCode) << ": " << hipGetErrorString(hipErrorCode) << std::endl;
+  }
+  return hipErrorCode;
+}
+
+void hipCheckErrorFatal(hipError_t hipErrorCode)
+{
+  if (hipCheckError(hipErrorCode) != hipSuccess) {
     exit(-1);
   }
-  return cudaErrorCode;
 }
 
 struct TestEnvironment {
   TestEnvironment() : size(101), data(nullptr), sorted(size)
   {
-    cudaCheckError(cudaMallocManaged(&data, size * sizeof(float)));
+    hipCheckErrorFatal(hipHostMalloc(&data, size * sizeof(float), hipHostRegisterDefault));
 
     // create an array of unordered floats with negative and positive values
     for (size_t i = 0; i < size; i++) {
@@ -55,7 +61,7 @@ struct TestEnvironment {
 
   ~TestEnvironment()
   {
-    cudaFree(data);
+    hipCheckErrorFatal(hipFree(data));
   };
 
   const size_t size;
@@ -80,7 +86,7 @@ void testAlmostEqualArray(T* correct, T* testing, size_t size)
 __global__ void sortInThread(float* data, size_t dataLength)
 {
   // make sure only one thread is working on this.
-  if (blockIdx.x == 0 && blockIdx.y == 0 && blockIdx.z == 0 && threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0) {
+  if (hipBlockIdx_x == 0 && hipBlockIdx_y == 0 && hipBlockIdx_z == 0 && hipThreadIdx_x == 0 && hipThreadIdx_y == 0 && hipThreadIdx_z == 0) {
     o2::gpu::CAAlgo::sort(data, data + dataLength);
   }
 }
@@ -88,7 +94,7 @@ __global__ void sortInThread(float* data, size_t dataLength)
 __global__ void sortInThreadWithOperator(float* data, size_t dataLength)
 {
   // make sure only one thread is working on this.
-  if (blockIdx.x == 0 && blockIdx.y == 0 && blockIdx.z == 0 && threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0) {
+  if (hipBlockIdx_x == 0 && hipBlockIdx_y == 0 && hipBlockIdx_z == 0 && hipThreadIdx_x == 0 && hipThreadIdx_y == 0 && hipThreadIdx_z == 0) {
     o2::gpu::CAAlgo::sort(data, data + dataLength, [](float a, float b) { return a < b; });
   }
 }
@@ -108,17 +114,19 @@ __global__ void sortInBlockWithOperator(float* data, size_t dataLength)
 
 BOOST_AUTO_TEST_SUITE(TestsortInThread)
 
-BOOST_FIXTURE_TEST_CASE(GPUsortThreadCUDA, TestEnvironment)
+BOOST_FIXTURE_TEST_CASE(GPUsortThreadHIP, TestEnvironment)
 {
-  sortInThread<<<1, 1>>>(data, size);
-  BOOST_CHECK_EQUAL(cudaCheckError(cudaDeviceSynchronize()), CUDA_SUCCESS);
+  hipLaunchKernelGGL(sortInThread, dim3(1), dim3(1), 0, 0, data, size);
+  // sortInThread<<<dim3(1), dim3(1), 0, 0>>>(data, size);
+  BOOST_CHECK_EQUAL(hipCheckError(hipDeviceSynchronize()), hipSuccess);
   testAlmostEqualArray(sorted.data(), data, size);
 }
 
-BOOST_FIXTURE_TEST_CASE(GPUsortThreadOperatorCUDA, TestEnvironment)
+BOOST_FIXTURE_TEST_CASE(GPUsortThreadOperatorHIP, TestEnvironment)
 {
-  sortInThreadWithOperator<<<1, 1>>>(data, size);
-  BOOST_CHECK_EQUAL(cudaCheckError(cudaDeviceSynchronize()), CUDA_SUCCESS);
+  hipLaunchKernelGGL(sortInThreadWithOperator, dim3(1), dim3(1), 0, 0, data, size);
+  // sortInThreadWithOperator<<<dim3(1), dim3(1), 0, 0>>>(data, size);
+  BOOST_CHECK_EQUAL(hipCheckError(hipDeviceSynchronize()), hipSuccess);
   testAlmostEqualArray(sorted.data(), data, size);
 }
 
@@ -126,17 +134,19 @@ BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE(TestsortInBlock)
 
-BOOST_FIXTURE_TEST_CASE(GPUsortBlockCUDA, TestEnvironment)
+BOOST_FIXTURE_TEST_CASE(GPUsortBlockHIP, TestEnvironment)
 {
-  sortInBlock<<<1, 128>>>(data, size);
-  BOOST_CHECK_EQUAL(cudaCheckError(cudaDeviceSynchronize()), CUDA_SUCCESS);
+  hipLaunchKernelGGL(sortInBlock, dim3(1), dim3(128), 0, 0, data, size);
+  // sortInBlock<<<dim3(1), dim3(128), 0, 0>>>(data, size);
+  BOOST_CHECK_EQUAL(hipCheckError(hipDeviceSynchronize()), hipSuccess);
   testAlmostEqualArray(sorted.data(), data, size);
 }
 
-BOOST_FIXTURE_TEST_CASE(GPUsortBlockOperatorCUDA, TestEnvironment)
+BOOST_FIXTURE_TEST_CASE(GPUsortBlockOperatorHIP, TestEnvironment)
 {
-  sortInBlockWithOperator<<<1, 128>>>(data, size);
-  BOOST_CHECK_EQUAL(cudaCheckError(cudaDeviceSynchronize()), CUDA_SUCCESS);
+  hipLaunchKernelGGL(sortInBlockWithOperator, dim3(1), dim3(128), 0, 0, data, size);
+  // sortInBlockWithOperator<<<dim3(1), dim3(128), 0, 0>>>(data, size);
+  BOOST_CHECK_EQUAL(hipCheckError(hipDeviceSynchronize()), hipSuccess);
   testAlmostEqualArray(sorted.data(), data, size);
 }
 

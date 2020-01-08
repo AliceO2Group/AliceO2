@@ -199,8 +199,8 @@ typedef GPUCommonAlgorithm CAAlgo;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#ifdef __CUDACC__
-#include "GPUCommonAlgorithmCUDA.cuh"
+#if defined(__CUDACC__) || defined(__HIPCC__)
+#include "GPUCommonAlgorithmThrust.h"
 
 #else
 
