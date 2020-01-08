@@ -258,7 +258,7 @@ void TestDataReader::run(ProcessingContext& pc)
       if (mNewFileInj == 1) {
         cout << "New File Injected, Now Updating the Canvas and Light" << endl;
         mDigitsTest.emplace_back(0, 0, 0, 0);
-        mMultiDigitsTest.push_back(mDigitsTest[0]);
+        //mMultiDigitsTest.push_back(mDigitsTest[0]);
         mErrorsVecTest.push_back(mErrors);
         mFileDone = 1;
         mFileInfo = mFileDone + mFileRemain * 10;
