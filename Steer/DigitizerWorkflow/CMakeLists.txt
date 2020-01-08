@@ -42,6 +42,7 @@ o2_add_executable(digitizer-workflow
                                         O2::ITSMFTSimulation
                                         O2::ITSSimulation
                                         O2::MCHSimulation
+					O2::MCHBase
                                         O2::MFTSimulation
                                         O2::MIDSimulation
                                         O2::PHOSSimulation

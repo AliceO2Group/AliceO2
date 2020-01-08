@@ -10,7 +10,6 @@
 
 o2_add_library(MCHSimulation
                SOURCES src/Detector.cxx
-                       src/Digit.cxx
                        src/Digitizer.cxx
                        src/Geometry.cxx
                        src/GeometryTest.cxx
@@ -26,13 +25,13 @@ o2_add_library(MCHSimulation
                        src/Station345Geometry.h
                        src/Stepper.cxx
                        src/Stepper.h
-               PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
+		       PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
+		                     O2::MCHBase
                                      O2::MCHMappingImpl3 O2::DetectorsBase
                                      RapidJSON::RapidJSON)
 
 o2_target_root_dictionary(MCHSimulation
                           HEADERS include/MCHSimulation/Detector.h
-                                  include/MCHSimulation/Digit.h
                                   include/MCHSimulation/Digitizer.h
                                   include/MCHSimulation/Geometry.h
                                   include/MCHSimulation/GeometryTest.h
@@ -42,6 +41,6 @@ o2_target_root_dictionary(MCHSimulation
 if(BUILD_TESTING)
   add_subdirectory(test)
   o2_add_test_root_macro(macros/drawMCHGeometry.C
-                         PUBLIC_LINK_LIBRARIES O2::MCHSimulation
+                         PUBLIC_LINK_LIBRARIES O2::MCHSimulation O2::MCHBase
                          LABELS "muon;mch")
 endif()

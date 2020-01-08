@@ -12,7 +12,7 @@
 #define O2_MCH_SIMULATION_TEST_DIGITMERGING_H
 
 #include <vector>
-#include "MCHSimulation/Digit.h"
+#include "MCHBase/Digit.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
 std::vector<o2::mch::Digit> mergeDigitsMW(const std::vector<o2::mch::Digit>& inputDigits, const std::vector<o2::MCCompLabel>& labels);
