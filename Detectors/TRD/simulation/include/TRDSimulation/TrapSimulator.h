@@ -72,7 +72,7 @@ class TrapSimulator
   void setDataByPad(const TRDArrayADC* const adcArray,
                     TRDdigitsManager* const digitsManager = 0x0); // set ADC data from adcArray
 */
-  void setDataByPad(std::vector<o2::trd::Digit> &padrowdata, o2::dataformats::MCTruthContainer<MCLabel>&);  // data coming in manually from the the digitizer. 
+  void setDataByPad(std::vector<o2::trd::Digit> &padrowdata, o2::dataformats::MCTruthContainer<MCLabel>& labels, int padrowoffset);  // data coming in manually from the the digitizer. 
   void setDataPedestal(int iadc);               // Fill ADC data with pedestal values
 
   static bool getApplyCut() { return mgApplyCut; }

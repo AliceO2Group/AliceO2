@@ -842,7 +842,7 @@ void TrapSimulator::setDataFromDigitizerAndRun(std::vector<o2::trd::Digit> &digi
     }
 }
 
-void TrapSimulator::setDataByPad(std::vector<o2::trd::Digit> &padrowdigits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
+void TrapSimulator::setDataByPad(std::vector<o2::trd::Digit> &padrowdigits, o2::dataformats::MCTruthContainer<MCLabel>& labels, int padrowoffset)
 {
   // Set the ADC data from the incoming digits vector which contains an entire row
   // (by pad, to be used during initial reading in simulation)
@@ -857,8 +857,8 @@ void TrapSimulator::setDataByPad(std::vector<o2::trd::Digit> &padrowdigits, o2::
     setNTimebins(o2::trd::kTB);
     LOG(fatal) << "Changing number of time bins in the simulation this is fatal as I think this timebin changee is going to mess things up. timebins are fixed with in digit class.";
   }
-
-  int offset = (mMcmPos % 4 + 1) * 18 + (mRobPos % 2) * 72 + 1;
+  //this is the offset with in a padrow, and due to the reverse number of mcm adcs vs the pads, we offset to the end and then loop back through the adcs
+  int offset = padrowoffset;//(mMcmPos % 4 + 1) * 18 + (mRobPos % 2) * 72 + 1;
 
     for (int adc = 0; adc < FeeParam::getNadcMcm(); adc++) {
       ArrayADC_t timebins;

@@ -111,11 +111,11 @@ else if (timea==timeb){
    if(a.getDetector()==b.getDetector()){
       if(rowa<rowb) return 1;
       else{ 
-          /*  if (rowa==rowb){
-                if(pada<padb) return 1; dont have to deal with pad sorting, its going to be 1 of 144 and inserted into the required array.
+            if (rowa==rowb){
+                if(pada<padb) return 1; //leaving in for now. so I dont have to have a 144x30 entry array for the pad data. dont have to deal with pad sorting, its going to be 1 of 144 and inserted into the required array.
               else return 0;
           }    
-          else*/ return 0;
+          else return 0;
           }
       return 0;
       }
@@ -147,37 +147,26 @@ class TRDDPLTrapSimulatorTask{
            {
                LOG(info) << "TRD Trap Simulator DPL running over incoming message ...";
                // basic idea, just for my sanity.
-               //get message
-               //unpack by mcm, should be sequential on mcm.
-               //call trap simulator for each mcm in the message and do its thing.
-               //package the resultant tracklets into the outgoing message.
-               //send outgoing message.
                auto digits = pc.inputs().get<std::vector<o2::trd::Digit> >("digitinput");
                auto mclabels = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::trd::MCLabel>* >("labelinput");
                LOG(info) << "digits size is : "<< digits.size();
-              // now loop over the digits for a given trap.
-              // send to trapsimulator 
-              // repeat 
-              ArrayADC_t incomingdigits;
-              // std::array<unsigned short,30> mcmdigits; //TODO come back and pull timebins from somehwere.
-              //
-              //
-              //
-              //first sort digits into detector::rob::mcm order
+              
+              //first sort digits into detector::padrow order
               std::sort(digits.begin(),digits.end(), DigitSortComparator);//sortRuleLambda );
               //TODO optimisation : sort by frequency of trap chip and do all instances of the same trap at each init.
               //TODO dont sort, just build an index array 
               // ArrayADC_t 
-              //i
-              //
+              
+              
                    int oldmcm=-1;
                    int oldrob=-1;
                    int olddetector=-1;
                    int oldrow=-1;
                    int oldpad=-1;
-                   std::array<ArrayADC_t,144> padsinrow;
+                   std::vector<o2::trd::Digit> padsinrow;
+                   //std::array<std::vector<o2::trd::Digit>::iterator,144> padsinrow_it;
                    unsigned char firedmcms=0;                   
-                   for(std::vector<o2::trd::Digit>::iterator digititerator = digits.begin(); digititerator != digits.end(); ++digititerator) {
+                   for(std::vector<o2::trd::Digit>::iterator digititerator = digits.begin(); digititerator != digits.end(); digititerator++) {
                       //originally loop was over side:rob:mcm so we need side
                       //in here we have an entire padrow which corresponds to 8 MCM.
                       //while on a single padrow, populate array padsinrow.
@@ -194,38 +183,30 @@ class TRDDPLTrapSimulatorTask{
                       if(oldpad==-1) oldpad=pad;
                       if(oldrow==-1) oldrow=pad;
                       if(olddetector==-1) olddetector=detector;
-                      LOG(info) << "Det : " << detector << " Row : " << row << " pad : " << pad;
-
-                      //mcmadcs.push_back(digititerator->getADC());
+                      LOG(info) << "Det : " << detector << " Row : " << row << " pad : " << pad << " rob: "<< rob << " mcm: "<< mcm;
+                      if(pad%18==0 || (pad-1)%18==0 || (pad+1)%18==0 ) LOG(info) << "Det : " << detector << " Row : " << row << " pad : " << pad << " rob: "<< rob << " mcm: "<< mcm << " && robfromshared:" << mfeeparam->getROBfromPad(row,pad) << " mcmfromshared:" << mfeeparam->getMCMfromSharedPad(row,pad);
                       //determine which adc for this mcm we are populating.
                       if(olddetector!=detector || oldrow!= row){
-                        LOG(info) << "*Det : " << detector << " Row : " << row << " pad : " << pad;
-                        // 
-                          //fireup Trapsim.
-                         // mTrapSimulator.setData(incomingdigits);
-                      // copy adc data from digits to local array and then pass into TrapSimulator
-                      // keep copying until we change mcm.
-                      // On change of mcm, take what we have send to simulator.
-                      // clean up temp array, and populate it with what we have now and keep going.
-//                        mTrapSimulator.init(detector,rob,mcm);
+                        LOG(info) << "change row|detector";
+                        mcm=mfeeparam->getMCMfromPad(oldrow,oldpad);
+                        rob=mfeeparam->getROBfromPad(oldrow,oldpad);// 
+                        //fireup Trapsim.
+                        // mTrapSimulator.init(detector,rob,mcm);
                         // mTrapSimulator.setData(detector,digit.getADC());
-                         //for(int i=i;i<digits.size();i++){
-                          //   int mcmindex= FeeParam::instance()->getMCMfromPad(digits[i].getRow(), digits[i].getPad());
-                          //
 
                         //now clean up 
-                        firedmcms=; // mcm of the now fire padrow pad.
-
+                        firedmcms |= mcm; // mcm of the now fire padrow pad.
+                        
                       }
                       else {
                           //we are still on the same detector and row.
                           //add the digits to the padrow.
+                          //copy pad time data into where they belong in the 8 TrapSimulators for this pad.
+                          int mcmoffset=-1;
+                          //mTrapSimulators[mcm].setData();
 
-                      LOG(info) << "-Det : " << detector << " Row : " << row << " pad : " << pad;
-                              //we are still on the same mcm, so add the adc timebins to the mcmadcs array at the back (it should be ordered coming in)
-  //                        LOG(info) << "-------- Time: " << digittime << " det:rob:mcm:pad:row:: " << olddetector <<":" << oldrob << ":" <<oldmcm ;
+                       LOG(info) << "!change row|detector";
                       }
-   //                   LOG(info) << "Time: " << digittime << " det:rob:mcm:pad:row:: " << detector <<":" << rob << ":" <<mcm ;
                       olddetector=detector;
                       oldrob=rob;
                       oldmcm=mcm;
@@ -238,7 +219,7 @@ class TRDDPLTrapSimulatorTask{
 
            }
        private:
-           TrapSimulator mTrapSimulator;
+           std::array<TrapSimulator,8> mTrapSimulator;
            FeeParam *mfeeparam;
 };
 
