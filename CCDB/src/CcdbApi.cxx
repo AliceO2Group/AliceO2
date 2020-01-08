@@ -508,14 +508,6 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
     fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
   }
 
-  //  if(headers != nullptr) {
-  //    cout << "headers : " << endl;
-  //    int i = 0;
-  //    for (auto h : *headers) {
-  //      cout << i++ << " : " << h.first << " -> " << h.second << endl;
-  //    }
-  //  }
-
   curl_easy_cleanup(curl_handle);
   free(chunk.memory);
   return result;
