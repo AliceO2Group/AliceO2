@@ -420,29 +420,30 @@ TObject* CcdbApi::retrieve(std::string const& path, std::map<std::string, std::s
   return result;
 }
 
-namespace{
-  size_t header_map_callback(char* buffer, size_t size, size_t nitems, void* userdata)
-  {
-    auto* headers = static_cast<std::map<std::string, std::string>*>(userdata);
-    auto header = std::string(buffer, size * nitems);
-    std::string::size_type index = header.find(':', 0);
-    if (index != std::string::npos) {
-      headers->insert(std::make_pair(
-          boost::algorithm::trim_copy(header.substr(0, index)),
-          boost::algorithm::trim_copy(header.substr(index + 1))));
-    }
-    return size * nitems;
+namespace
+{
+size_t header_map_callback(char* buffer, size_t size, size_t nitems, void* userdata)
+{
+  auto* headers = static_cast<std::map<std::string, std::string>*>(userdata);
+  auto header = std::string(buffer, size * nitems);
+  std::string::size_type index = header.find(':', 0);
+  if (index != std::string::npos) {
+    headers->insert(std::make_pair(
+      boost::algorithm::trim_copy(header.substr(0, index)),
+      boost::algorithm::trim_copy(header.substr(index + 1))));
   }
+  return size * nitems;
+}
 } // namespace
 
 TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::string, std::string> const& metadata,
-    long timestamp, std::map<std::string, std::string> *headers) const
+                                    long timestamp, std::map<std::string, std::string>* headers) const
 {
   // Note : based on https://curl.haxx.se/libcurl/c/getinmemory.html
   // Thus it does not comply to our coding guidelines as it is a copy paste.
 
   string fullUrl = getFullUrlForRetrieval(path, metadata, timestamp);
-//  std::map<std::string, std::string> headers2;
+  //  std::map<std::string, std::string> headers2;
 
   // Prepare CURL
   CURL* curl_handle;
@@ -471,8 +472,8 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
   curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
 
   // setup curl for headers handling
-  if(headers != nullptr) {
-    struct curl_slist *list = nullptr;
+  if (headers != nullptr) {
+    struct curl_slist* list = nullptr;
     list = curl_slist_append(list, ("If-None-Match: " + to_string(timestamp)).c_str());
     curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, list);
     curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback);
@@ -507,13 +508,13 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
     fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
   }
 
-//  if(headers != nullptr) {
-//    cout << "headers : " << endl;
-//    int i = 0;
-//    for (auto h : *headers) {
-//      cout << i++ << " : " << h.first << " -> " << h.second << endl;
-//    }
-//  }
+  //  if(headers != nullptr) {
+  //    cout << "headers : " << endl;
+  //    int i = 0;
+  //    for (auto h : *headers) {
+  //      cout << i++ << " : " << h.first << " -> " << h.second << endl;
+  //    }
+  //  }
 
   curl_easy_cleanup(curl_handle);
   free(chunk.memory);
@@ -631,7 +632,7 @@ void* CcdbApi::extractFromLocalFile(std::string const& filename, std::string con
 }
 
 void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const& path,
-                                 std::map<std::string, std::string> const& metadata, long timestamp, std::map<std::string, std::string> *headers) const
+                                 std::map<std::string, std::string> const& metadata, long timestamp, std::map<std::string, std::string>* headers) const
 {
   // We need the TClass for this type; will verify if dictionary exists
   auto tcl = TClass::GetClass(tinfo);
@@ -679,8 +680,8 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
   curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
 
   // setup curl for headers handling
-  if(headers != nullptr) {
-    struct curl_slist *list = nullptr;
+  if (headers != nullptr) {
+    struct curl_slist* list = nullptr;
     list = curl_slist_append(list, ("If-None-Match: " + to_string(timestamp)).c_str());
     curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, list);
     curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback);

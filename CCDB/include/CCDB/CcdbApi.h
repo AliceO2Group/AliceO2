@@ -108,7 +108,7 @@ class CcdbApi //: public DatabaseInterface
    * @deprecated in favour of retrieveFromTFileAny as it is not limited to TObjects.
    */
   TObject* retrieveFromTFile(std::string const& path, std::map<std::string, std::string> const& metadata,
-                             long timestamp = -1, std::map<std::string, std::string> *headers = nullptr) const;
+                             long timestamp = -1, std::map<std::string, std::string>* headers = nullptr) const;
 
   /**
    * Retrieve object at the given path for the given timestamp.
@@ -121,7 +121,7 @@ class CcdbApi //: public DatabaseInterface
    */
   template <typename T>
   T* retrieveFromTFileAny(std::string const& path, std::map<std::string, std::string> const& metadata,
-                          long timestamp = -1, std::map<std::string, std::string> *headers = nullptr) const;
+                          long timestamp = -1, std::map<std::string, std::string>* headers = nullptr) const;
 
   /**
    * Delete all versions of the object at this path.
@@ -286,7 +286,7 @@ class CcdbApi //: public DatabaseInterface
    * A generic helper implementation to query obj whose type is given by a std::type_info
    */
   void* retrieveFromTFile(std::type_info const&, std::string const& path, std::map<std::string, std::string> const& metadata,
-                          long timestamp = -1, std::map<std::string, std::string> *headers = nullptr) const;
+                          long timestamp = -1, std::map<std::string, std::string>* headers = nullptr) const;
 
   /**
    * A helper function to extract object from a local ROOT file
@@ -322,7 +322,7 @@ inline void CcdbApi::storeAsTFileAny(T* obj, std::string const& path, std::map<s
 
 template <typename T>
 T* CcdbApi::retrieveFromTFileAny(std::string const& path, std::map<std::string, std::string> const& metadata,
-    long timestamp, std::map<std::string, std::string> *headers) const
+                                 long timestamp, std::map<std::string, std::string>* headers) const
 {
   return static_cast<T*>(retrieveFromTFile(typeid(T), path, metadata, timestamp, headers));
 }
