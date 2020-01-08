@@ -45,9 +45,9 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   
   # cuda test, only compile if CUDA
   if(CUDA_ENABLED AND NOT $ENV{ALIBUILT_O2_TESTS})
-    o2_add_test(${MODULE}
-                PUBLIC_LINK_LIBRARIES O2::${MODULE}
+    o2_add_test(GPUsortCUDA NAME test_GPUsortCUDA
                 SOURCES ctest/testGPUsortCUDA.cu
+                PUBLIC_LINK_LIBRARIES O2::${MODULE} cub::cub
                 COMPONENT_NAME GPU
                 LABELS gpu)
   endif()

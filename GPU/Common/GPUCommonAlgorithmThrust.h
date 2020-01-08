@@ -8,11 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUCommonAlgorithmCUDA.cuh
-/// \author David Rohr
+/// \file GPUCommonAlgorithmThrust.h
+/// \author Michael Lettrich
 
-#ifndef GPUCOMMONALGORITHMCUDA_CUH
-#define GPUCOMMONALGORITHMCUDA_CUH
+#ifndef GPUCOMMONALGORITHMTHRUST_H
+#define GPUCOMMONALGORITHMTHRUST_H
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
@@ -21,7 +21,7 @@
 #include <thrust/device_ptr.h>
 #pragma GCC diagnostic pop
 
-#include <cuda.h>
+#include "GPUCommonDef.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -47,20 +47,28 @@ GPUdi() void GPUCommonAlgorithm::sort(T* begin, T* end, const S& comp)
 template <class T>
 GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end)
 {
-  if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0) {
+  if (get_local_id(0) == 0) {
     thrust::device_ptr<T> thrustBegin(begin);
     thrust::device_ptr<T> thrustEnd(end);
+#if defined(__CUDACC__)
     thrust::sort(thrust::cuda::par, thrustBegin, thrustEnd);
+#elif defined(__HIPCC__)
+    thrust::sort(thrust::hip::par, thrustBegin, thrustEnd);
+#endif
   }
 }
 
 template <class T, class S>
 GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end, const S& comp)
 {
-  if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0) {
+  if (get_local_id(0) == 0) {
     thrust::device_ptr<T> thrustBegin(begin);
     thrust::device_ptr<T> thrustEnd(end);
+#if defined(__CUDACC__)
     thrust::sort(thrust::cuda::par, thrustBegin, thrustEnd, comp);
+#elif defined(__HIPCC__)
+    thrust::sort(thrust::hip::par, thrustBegin, thrustEnd, comp);
+#endif
   }
 }
 

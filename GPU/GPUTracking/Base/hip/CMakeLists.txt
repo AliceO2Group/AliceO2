@@ -17,6 +17,7 @@ string(REPLACE " -g " " " CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} ")
 string(REPLACE " -g " " " CMAKE_CXX_FLAGS_${CMAKE_BUILT_TYPE} " ${CMAKE_CXX_FLAGS_${CMAKE_BUILT_TYPE}} ")
 string(REPLACE " -g " " " CMAKE_LINK_FLAGS " ${CMAKE_LINK_FLAGS} ")
 string(REPLACE " -g " " " CMAKE_LINK_FLAGS_${CMAKE_BUILT_TYPE} " ${CMAKE_LINK_FLAGS_${CMAKE_BUILT_TYPE}} ")
+
 string(REPLACE " -ggdb " " " CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} ")
 string(REPLACE " -ggdb " " " CMAKE_CXX_FLAGS_${CMAKE_BUILT_TYPE} " ${CMAKE_CXX_FLAGS_${CMAKE_BUILT_TYPE}} ")
 string(REPLACE " -ggdb " " " CMAKE_LINK_FLAGS " ${CMAKE_LINK_FLAGS} ")
@@ -24,10 +25,12 @@ string(REPLACE " -ggdb " " " CMAKE_LINK_FLAGS_${CMAKE_BUILT_TYPE} " ${CMAKE_LINK
 
 #setting flags as a global option for all HIP targets.
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-invalid-command-line-argument -Wno-unused-command-line-argument -Wno-invalid-constexpr -Wno-ignored-optimization-argument -Wno-unused-private-field")
-
 if(DEFINED HIP_AMDGPUTARGET)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --amdgpu-target=${HIP_AMDGPUTARGET}")
+  set(CMAKE_LINK_FLAGS "${CMAKE_LINK_FLAGS} --amdgpu-target=${HIP_AMDGPUTARGET}")
   set(TMP_TARGET "(GPU Target ${HIP_AMDGPUTARGET})")
 endif()
+
 message(STATUS "Building GPUTracking with HIP support ${TMP_TARGET}")
 
 set(SRCS GPUReconstructionHIP.hip.cxx)
@@ -47,6 +50,14 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
 
   install(FILES ${HDRS} DESTINATION include/GPU)
+
+ if(NOT $ENV{ALIBUILT_O2_TESTS})
+  o2_add_test(GPUsortHIP NAME test_GPUsortHIP
+                  SOURCES ctest/testGPUsortHIP.hip.cxx
+                  PUBLIC_LINK_LIBRARIES O2::GPUCommon hip::host hip::device hip::hipcub ROCm::rocThrust
+                  COMPONENT_NAME GPU
+                  LABELS gpu)
+  endif()
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
@@ -84,9 +95,4 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   target_link_libraries(${MODULE} GPUTracking hip::host hip::device hip::hipcub ROCm::rocThrust)
   set(targetName "${MODULE}")
   install(TARGETS GPUTrackingHIP)
-endif()
-
-if(HIP_AMDGPUTARGET)
-  target_link_options(${targetName} PUBLIC --amdgpu-target=${HIP_AMDGPUTARGET})
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --amdgpu-target=${HIP_AMDGPUTARGET}")
 endif()
