@@ -1,4 +1,6 @@
+<!-- doxy
 \page refCCDB Module 'CCDB'
+/doxy -->
 
 # CCDB
 

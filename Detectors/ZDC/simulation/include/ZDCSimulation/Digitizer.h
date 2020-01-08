@@ -45,11 +45,22 @@ class Digitizer
 
     BCCache();
 
+    void clear()
+    {
+      digitized = false;
+      triggerChecked = false;
+      trigChanMask = 0;
+      for (auto& chan : data) {
+        chan.fill(0.);
+      }
+    }
+
     BCCache& operator=(const o2::InteractionRecord& ir)
     {
       o2::InteractionRecord::operator=(ir);
       return *this;
     }
+    void print() const;
   };
 
   struct ModuleConfAux {
@@ -108,9 +119,9 @@ class Digitizer
   BCCache& getCreateBCCache(const o2::InteractionRecord& ir);
   BCCache* getBCCache(const o2::InteractionRecord& ir);
 
-  void generatePedestal(std::array<float, NChannels>& pedestals) const;
-  void digitizeBC(BCCache& bc, const std::array<float, NChannels>& pedestals) const;
-  void triggerBC(int ibc);
+  void generatePedestal();
+  void digitizeBC(BCCache& bc);
+  bool triggerBC(int ibc);
   void storeBC(const BCCache& bc, uint32_t chan2Store,
                std::vector<o2::zdc::BCData>& digitsBC, std::vector<o2::zdc::ChannelData>& digitsCh,
                o2::dataformats::MCTruthContainer<o2::zdc::MCLabel>& labels);
@@ -136,6 +147,7 @@ class Digitizer
   std::vector<BCCache*> mFastCache;                 ///< for the fast iteration over cached BCs + dummy
   std::vector<uint32_t> mStoreChanMask;             ///< pattern of channels to store
   BCCache mDummyBC;                                 ///< dummy BC
+  std::array<float, NChannels> mPedestalBLFluct;    ///< pedestal baseline fluctuations per channel for currently digitized cache
 
   // helper for inspection of bins in preceding or following BC: if we are at the cached BC = I and we need to
   // inspect the bin = ib, we have to look in the binInSiftedBC of BC I-binHelper(ib,binInSiftedBC);

@@ -28,7 +28,7 @@
 #include "bitmapfile.h"
 #include "../utils/linux_helpers.h"
 #endif
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #include <omp.h>
 #endif
 
@@ -46,6 +46,7 @@
 #include "GPUTRDTrackletWord.h"
 #include "GPUTRDGeometry.h"
 #include "GPUO2DataTypes.h"
+#include "GPUParam.inc"
 #include "GPUTPCConvertImpl.h"
 #include "utils/qconfig.h"
 
@@ -600,7 +601,7 @@ int GPUDisplay::InitGL_internal()
   setDepthBuffer();
   setQuality();
   ReSizeGLScene(GPUDisplayBackend::INIT_WIDTH, GPUDisplayBackend::INIT_HEIGHT, true);
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
   int maxThreads = mChain->GetDeviceProcessingSettings().nThreads > 1 ? mChain->GetDeviceProcessingSettings().nThreads : 1;
   omp_set_num_threads(maxThreads);
 #else
@@ -1496,7 +1497,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         mGlDLFinal[iSlice].resize(mNCollissions);
       }
     }
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp parallel num_threads(mChain->GetDeviceProcessingSettings().nThreads)
     {
       int numThread = omp_get_thread_num();
@@ -1520,7 +1521,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
       prop.SetPolynomialField(&mMerger.Param().polynomialField);
       prop.SetToyMCEventsFlag(mMerger.Param().ToyMCEventsFlag);
 
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp barrier
 #pragma omp for
 #endif
@@ -1534,7 +1535,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         mGlDLGrid[iSlice] = DrawGrid(tracker);
       }
 
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp barrier
 #pragma omp for
 #endif
@@ -1543,7 +1544,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         mGlDLLines[iSlice][tGLOBALTRACK] = DrawTracks(tracker, 1);
       }
 
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp barrier
 #endif
       mThreadTracks[numThread].resize(mNCollissions);
@@ -1554,7 +1555,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
           }
         }
       }
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp for
 #endif
       for (int i = 0; i < mMerger.NOutputTracks(); i++) {
@@ -1575,7 +1576,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         }
         mThreadTracks[numThread][col][slice][0].emplace_back(i);
       }
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp for
 #endif
       for (unsigned int i = 0; i < ioptrs().nMCInfosTPC; i++) {
@@ -1603,7 +1604,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         }
         mThreadTracks[numThread][col][slice][1].emplace_back(i);
       }
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp barrier
 #pragma omp for
 #endif
@@ -1625,7 +1626,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         }
       }
 
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp barrier
 #pragma omp for
 #endif

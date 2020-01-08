@@ -17,6 +17,12 @@
 #include "FrameworkGUIDeviceInspector.h"
 #include "../src/WorkflowHelpers.h"
 #include "DebugGUI/imgui.h"
+#if __has_include("DebugGUI/icons_font_awesome.h")
+#include "DebugGUI/icons_font_awesome.h"
+#else
+#define ICON_FA_EXCLAMATION_CIRCLE "(Errors!)"
+#define ICON_FA_EXCLAMATION_TRIANGLE "(Warnings!)"
+#endif
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -434,11 +440,11 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     switch (info.maxLogLevel) {
       case LogLevel::Error:
         ImGui::SameLine();
-        ImGui::TextColored(ImVec4(1, 1, 1, 1), "%s", " →(errors!!)");
+        ImGui::TextColored(ImVec4(1, 0, 0, 1), "%s", ICON_FA_EXCLAMATION_CIRCLE);
         break;
       case LogLevel::Warning:
         ImGui::SameLine();
-        ImGui::TextColored(ImVec4(1, 1, 1, 1), "%s", "(warnings!!)");
+        ImGui::TextColored(ImVec4(0, 1, 1, 1), "%s", ICON_FA_EXCLAMATION_TRIANGLE);
         break;
       default:
         break;

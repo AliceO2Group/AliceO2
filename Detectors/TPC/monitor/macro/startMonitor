@@ -78,6 +78,7 @@ fi
 
 # ===| command building and execution |=========================================
 
+#cmd="valgrind --log-file=valgrind.log root.exe -l $O2_SRC/Detectors/TPC/reconstruction/macro/addInclude.C $O2_SRC/Detectors/TPC/monitor/macro/RunSimpleEventDisplay.C+g'(\"$fileInfo\",\"$pedestalFile\",$timeBins,$verbosity,$debugLevel,$selectedSector,$showOverview)'"
 cmd="root.exe -l $O2_SRC/Detectors/TPC/reconstruction/macro/addInclude.C $O2_SRC/Detectors/TPC/monitor/macro/RunSimpleEventDisplay.C+g'(\"$fileInfo\",\"$pedestalFile\",$timeBins,$verbosity,$debugLevel,$selectedSector,$showOverview)'"
 echo "running: $cmd"
 eval $cmd

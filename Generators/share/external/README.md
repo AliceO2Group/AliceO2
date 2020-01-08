@@ -1,3 +1,7 @@
+<!-- doxy
+\page refGeneratorsshareexternal External Generators
+/doxy -->
+
 # External generators
 
 

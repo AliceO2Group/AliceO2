@@ -62,9 +62,9 @@ struct ExpirationHandlerHelpers {
       std::string startName = std::string{"start-value-"} + matcher.binding;
       std::string endName = std::string{"end-value-"} + matcher.binding;
       std::string stepName = std::string{"step-value-"} + matcher.binding;
-      auto start = options.get<int>(startName.c_str());
-      auto stop = options.get<int>(endName.c_str());
-      auto step = options.get<int>(stepName.c_str());
+      auto start = options.get<int64_t>(startName.c_str());
+      auto stop = options.get<int64_t>(endName.c_str());
+      auto step = options.get<int64_t>(stepName.c_str());
       return LifetimeHelpers::enumDrivenCreation(start, stop, step);
     };
   }

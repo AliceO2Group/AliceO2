@@ -117,6 +117,7 @@ set(HDRS_INSTALL
     TPCConvert/GPUTPCConvertImpl.h
     Base/GPUReconstructionKernelMacros.h
     Base/GPUO2FakeClasses.h
+    Base/GPUParam.inc
 )
 
 # Sources only for O2
@@ -143,8 +144,19 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         DataCompression/GPUTPCCompressionKernels.cxx
         DataCompression/TPCClusterDecompressor.cxx
         DataCompression/GPUTPCClusterStatistics.cxx
-        gpucf/GPUTPCClusterFinderKernels.cxx
-        gpucf/GPUTPCClusterFinder.cxx)
+        TPCClusterFinder/GPUTPCClusterFinderKernels.cxx
+        TPCClusterFinder/GPUTPCClusterFinder.cxx
+        TPCClusterFinder/ClusterAccumulator.cxx
+        TPCClusterFinder/StreamCompaction.cxx
+        TPCClusterFinder/ChargeMapFiller.cxx
+        TPCClusterFinder/PeakFinder.cxx
+        TPCClusterFinder/NoiseSuppression.cxx
+        TPCClusterFinder/Clusterizer.cxx
+        TPCClusterFinder/Deconvolution.cxx)
+
+    set(SRCS_NO_H ${SRCS_NO_H}
+        TPCClusterFinder/GPUTPCClusterFinderDump.cxx)
+
     set(HDRS_INSTALL ${HDRS_INSTALL} Interface/GPUO2InterfaceConfiguration.h
                      ITS/GPUITSTrack.h dEdx/GPUdEdxInfo.h)
 endif()
@@ -227,7 +239,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                             Interface
                                             Merger
                                             DataCompression
-                                            gpucf
+                                            TPCClusterFinder
                  TARGETVARNAME targetName
                  SOURCES ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H})
 
@@ -376,7 +388,7 @@ endif()
 
 if(OpenMP_CXX_FOUND)
   message(STATUS "GPU: Using OpenMP: ${OpenMP_CXX_SPEC_DATE}")
-  target_compile_definitions(${targetName} PRIVATE GPUCA_HAVE_OPENMP)
+  target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
   # Must be private, depending libraries might be compiled by compiler not understanding -fopenmp
   target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
 endif()

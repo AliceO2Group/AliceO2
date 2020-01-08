@@ -257,8 +257,8 @@ void TestDataReader::run(ProcessingContext& pc)
 
       if (mNewFileInj == 1) {
         cout << "New File Injected, Now Updating the Canvas and Light" << endl;
-        mDigitsTest.emplace_back(0, 0, 0, 0, 0);
-       // mMultiDigitsTest.push_back(mDigitsTest[0]);
+        mDigitsTest.emplace_back(0, 0, 0, 0);
+        mMultiDigitsTest.push_back(mDigitsTest[0]);
         mErrorsVecTest.push_back(mErrors);
         mFileDone = 1;
         mFileInfo = mFileDone + mFileRemain * 10;
@@ -378,7 +378,7 @@ void TestDataReader::run(ProcessingContext& pc)
             break;
           int col = pixel.getCol();
           int row = pixel.getRow();
-          mDigits.emplace_back((UShort_t)ChipID, NEvent, row, col, 0);
+          mDigits.emplace_back(ChipID, row, col, 0);
           Index = Index + 1;
         }
         NChip = NChip + 1;

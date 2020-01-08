@@ -67,6 +67,13 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 // Files for TPC Cluster Finder
 #include "GPUTPCClusterFinderKernels.cxx"
+#include "ClusterAccumulator.cxx"
+#include "StreamCompaction.cxx"
+#include "ChargeMapFiller.cxx"
+#include "PeakFinder.cxx"
+#include "NoiseSuppression.cxx"
+#include "Clusterizer.cxx"
+#include "Deconvolution.cxx"
 
 // Files for TRD Tracking
 #include "GPUTRDTrackerGPU.cxx"

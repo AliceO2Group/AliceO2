@@ -24,6 +24,7 @@ target_link_libraries(allsim
                                 O2::Field
                                 O2::HMPIDSimulation
                                 O2::ITSSimulation
+				O2::MCHBase
                                 O2::MCHSimulation
                                 O2::MFTSimulation
                                 O2::MIDSimulation

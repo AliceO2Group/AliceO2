@@ -10,6 +10,7 @@
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/GBTWord.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include "DataFormatsParameters/GRPObject.h"
 #include "ITSMFTBase/Digit.h"
 #include "ITSMFTSimulation/MC2RawEncoder.h"
 #endif
@@ -21,6 +22,7 @@ void run_digi2rawVarPage_its(std::string outName = "rawits.bin",          // nam
                              std::string digTreeName = "o2sim",           // name of the digits tree
                              std::string digBranchName = "ITSDigit",      // name of the digits branch
                              std::string rofRecName = "ITSDigitROF",      // name of the ROF records tree and its branch
+                             std::string inputGRP = "o2sim_grp.root",     // name of the simulated data GRP file
                              uint8_t ruSWMin = 0, uint8_t ruSWMax = 0xff, // seq.ID of 1st and last RU (stave) to convert
                              int superPageSizeInB = 1024 * 1024           // superpage in bytes
 )
@@ -65,9 +67,12 @@ void run_digi2rawVarPage_its(std::string outName = "rawits.bin",          // nam
   }
   ///-------< output
 
+  const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
+
   o2::itsmft::MC2RawEncoder<o2::itsmft::ChipMappingITS> m2r;
   m2r.setVerbosity(2);
   m2r.setOutFile(outFl);
+  m2r.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::ITS)); // must be set explicitly
 
   m2r.setMinMaxRUSW(ruSWMin, ruSWMax);
 
@@ -79,6 +84,11 @@ void run_digi2rawVarPage_its(std::string outName = "rawits.bin",          // nam
   // If the links of the container are not defined, a single link readout will be assigned
   const auto& mp = m2r.getMapping();
   int lnkAssign[3][3] = {
+    /* // uncomment this to have 1 link per RU
+    {9, 0, 0}, // IB
+    {16, 0, 0}, // MB
+    {28, 0, 0} // OB
+     */
     {3, 3, 3}, // IB
     {5, 5, 6}, // MB
     {9, 9, 10} // OB

@@ -36,21 +36,18 @@ struct ATask {
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
-      auto phi = asin(track.snp()) + track.alpha() + M_PI;
-      auto eta = log(tan(0.25 * M_PI - 0.5 * atan(track.tgl())));
-
-      etaphi(phi, eta);
+      etaphi(track.phi(), track.eta());
     }
   }
 };
 
 struct BTask {
-  Filter ptFilter = (aod::etaphi::phi > 1) && (aod::etaphi::phi < 2);
+  Filter ptFilter = (aod::etaphi::phi > 1.f) && (aod::etaphi::phi < 2.f);
 
   void process(soa::Filtered<aod::EtaPhi> const& etaPhis)
   {
     for (auto& etaPhi : etaPhis) {
-      LOGF(ERROR, "(%f, %f)", etaPhi.eta(), etaPhi.phi());
+      LOGF(INFO, "(%f, 1 < %f < 2)", etaPhi.eta(), etaPhi.phi());
     }
   }
 };

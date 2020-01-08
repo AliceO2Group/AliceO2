@@ -14,6 +14,9 @@
 
 #include <fmt/format.h>
 
+#include "TSystem.h"
+#include "TObjArray.h"
+
 #include "TPCReconstruction/RawReaderCRU.h"
 #include "TPCBase/Mapper.h"
 #include "Framework/Logger.h"
@@ -25,6 +28,8 @@ using namespace o2::tpc::rawreader;
 
 std::ostream& operator<<(std::ostream& output, const RDH& rdh);
 std::istream& operator>>(std::istream& input, RDH& rdh);
+void printHeader();
+void printHorizontal(const RDH& rdh);
 
 /*
 // putting this here instead of inside the header trigger unreasonably large compliation times for some reason
@@ -39,15 +44,12 @@ RawReaderCRUEventSync::LinkInfo& RawReaderCRUEventSync::getLinkInfo(uint32_t hea
 RawReaderCRUEventSync::EventInfo& RawReaderCRUEventSync::createEvent(const RDH& rdh, DataType dataType)
 {
   const auto heartbeatOrbit = rdh.heartbeatOrbit;
-  const auto isTriggerd = (dataType == DataType::Triggered);
 
   for (auto& ev : mEventInformation) {
-    //const auto lastHBOrbit = ev.HeartbeatOrbits.back();
-    const auto hbMatch = ev.hasHearbeatOrbit(heartbeatOrbit); //(lastHBOrbit == heartbeatOrbit);
-    //const auto hbMatchPrev = (lastHBOrbit == heartbeatOrbit - 1);
+    const auto hbMatch = ev.hasHearbeatOrbit(heartbeatOrbit);
     if (hbMatch) {
       return ev;
-    } else if (isTriggerd && (ev.HeartbeatOrbits.back() == heartbeatOrbit - 1)) { //hbMatchPrev) {
+    } else if (ev.HeartbeatOrbits.back() == heartbeatOrbit - 1) {
       ev.HeartbeatOrbits.emplace_back(heartbeatOrbit);
       return ev;
     }
@@ -60,8 +62,10 @@ void RawReaderCRUEventSync::analyse()
   //expected number of packets in one HBorbit
   const size_t numberOfPackets = ExpectedNumberOfPacketsPerHBFrame;
 
-  for (auto& event : mEventInformation) {
+  for (int iEvent = mEventInformation.size() - 1; iEvent >= 0; --iEvent) {
+    auto& event = mEventInformation[iEvent];
     event.IsComplete = true;
+    size_t totalPayloadSize = 0;
     for (size_t iCRU = 0; iCRU < event.CRUInfoArray.size(); ++iCRU) {
       const auto& cruInfo = event.CRUInfoArray[iCRU];
       if (!cruInfo.isPresent()) {
@@ -71,11 +75,22 @@ void RawReaderCRUEventSync::analyse()
         }
 
         continue;
+      } else {
+        totalPayloadSize += cruInfo.totalPayloadSize();
       }
+
       if (!cruInfo.isComplete()) {
         event.IsComplete = false;
         break;
       }
+    }
+
+    // remove empty events
+    // can be problems in the filtering in readout
+    // typically these are empty HB frame with HB start and HB stop packets only
+    if (totalPayloadSize == 0) {
+      O2INFO("Removing empty event with HB Orbit %u", event.HeartbeatOrbits[0]);
+      mEventInformation.erase(mEventInformation.begin() + iEvent);
     }
   }
 }
@@ -99,9 +114,7 @@ void RawReaderCRUEventSync::streamTo(std::ostream& output) const
   const std::string bold("\033[1m");
   const std::string clear("\033[0m");
 
-  std::cout << "Event info\n";
-  std::cout << "    Number of all events: " << getNumberOfEvents() << "\n";
-  std::cout << "    Number of complete events: " << getNumberOfCompleteEvents() << "\n\n";
+  std::cout << "Detailed event information\n";
   // event loop
   for (int i = 0; i < mEventInformation.size(); ++i) {
     const auto& event = mEventInformation[i];
@@ -201,12 +214,8 @@ int RawReaderCRU::scanFile()
     // ===| read in the RawDataHeader at the current position |=================
     file >> rdh;
 
-    // ===| skip empty packet which are not HB end |============================
-    if ((rdh.memorySize == rdh.headerSize) && (rdh.stop == 0)) {
-      file.seekg(8128, file.cur);
-      ++currentPacket;
-      continue;
-    }
+    const size_t packetSize = rdh.offsetToNext;
+    const size_t offset = packetSize - rdh.headerSize;
 
     // ===| try to detect data type if not already set |========================
     //
@@ -221,12 +230,14 @@ int RawReaderCRU::scanFile()
         const uint64_t triggerType = rdh.triggerType;
         const uint64_t pageCnt = rdh.pageCnt;
 
-        if ((pageCnt == 1) && (triggerType == triggerTypeForTriggeredData)) {
-          mManager->mDataType = DataType::Triggered;
-          O2INFO("Detected triggered data");
-        } else {
-          mManager->mDataType = DataType::HBScaling;
-          O2INFO("Detected HB scaling");
+        if (pageCnt == 1) {
+          if (triggerType == triggerTypeForTriggeredData) {
+            mManager->mDataType = DataType::Triggered;
+            O2INFO("Detected triggered data");
+          } else {
+            mManager->mDataType = DataType::HBScaling;
+            O2INFO("Detected HB scaling");
+          }
         }
       }
     }
@@ -237,6 +248,7 @@ int RawReaderCRU::scanFile()
     const auto linkID = rdh.linkID;
     const auto globalLinkID = linkID + dataWrapperID * 12;
     //const auto blockLength = rdh.blockLength;
+    const auto memorySize = rdh.memorySize;
     const auto payloadSize = rdh.memorySize - rdh.headerSize;
 
     // ===| check if cru should be forced |=====================================
@@ -265,7 +277,7 @@ int RawReaderCRU::scanFile()
     if ((rdh.word0 & 0x0000FFFF) == RDH_HEADERWORD0) {
       // non 0 stop bit means data with payload
       if (rdh.stop == 0) {
-        mPacketDescriptorMaps[globalLinkID].emplace_back(currentPos, mCRU, linkID, dataWrapperID, payloadSize);
+        mPacketDescriptorMaps[globalLinkID].emplace_back(currentPos, mCRU, linkID, dataWrapperID, memorySize, packetSize);
         mLinkPresent[globalLinkID] = true;
         mPacketsPerLink[globalLinkID]++;
         if (linkInfo) {
@@ -288,13 +300,17 @@ int RawReaderCRU::scanFile()
     };
 
     // debug output
-    if (CHECK_BIT(mDebugLevel, 0)) {
-      std::cout << "Packet " << std::setw(5) << currentPacket << " - Link " << int(linkID) << "\n";
-      std::cout << rdh;
-      std::cout << "\n";
+    if (CHECK_BIT(mDebugLevel, DebugLevel::RDHDump)) {
+      //std::cout << "Packet " << std::setw(5) << currentPacket << " - Link " << int(linkID) << "\n";
+      //std::cout << rdh;
+      printHorizontal(rdh);
+      if (rdh.stop) {
+        std::cout << "\n";
+        printHeader();
+      }
     };
     // std::cout << "Position after read : " << std::dec << file.tellg() << std::endl;
-    file.seekg(8128, file.cur);
+    file.seekg(offset, file.cur);
     ++currentPacket;
   }
 
@@ -387,7 +403,7 @@ void RawReaderCRU::findSyncPositions()
       // TODO: In future there might be more then one sync in the stream
       //       this should be takein into account
       if (syncFoundForLink(link)) {
-        if (CHECK_BIT(mDebugLevel, 0)) {
+        if (CHECK_BIT(mDebugLevel, DebugLevel::SyncPositions)) {
           std::cout << "Sync positions for link " << link << '\n';
           const auto& syncs = mSyncPositions[link];
           for (int i = 0; i < syncs.size(); ++i) {
@@ -417,20 +433,17 @@ int RawReaderCRU::processPacket(GBTFrame& gFrame, uint32_t startPos, uint32_t si
   // vectors
   for (int frames = 0; frames < size / 16; frames++) {
     file >> gFrame;
-    // backup the halfword of the frame before calculating the
-    // new halfwords. The previous half words might be needed
-    // to decode the ADC values.
-    gFrame.storePrevFrame();
+
     // extract the half words from the 4 32-bit words
     gFrame.getFrameHalfWords();
 
     // debug output
-    if (CHECK_BIT(mDebugLevel, 1)) {
+    if (CHECK_BIT(mDebugLevel, DebugLevel::GBTFrames)) {
       std::cout << gFrame;
     }
 
     gFrame.getAdcValues(rawData);
-    gFrame.updateSyncCheck(CHECK_BIT(mDebugLevel, 0));
+    gFrame.updateSyncCheck(CHECK_BIT(mDebugLevel, DebugLevel::SyncPositions));
     if (!(rawData.getNumTimebins() % 16) && (rawData.getNumTimebins() >= mNumTimeBins * 16)) {
       return 1;
     }
@@ -444,22 +457,26 @@ int RawReaderCRU::processMemory(const std::vector<o2::byte>& data, ADCRawData& r
 
   // 16 bytes is the size of a GBT frame
   for (int iFrame = 0; iFrame < data.size() / 16; ++iFrame) {
+    gFrame.setFrameNumber(iFrame);
+    gFrame.setPacketNumber(iFrame / 508);
+
+    // in readFromMemory a simple memcopy to the internal data structure is done
+    // I tried using the memory block directly, storing in an internal data member
+    // reinterpret_cast<const uint32_t*>(data.data() + iFrame * 16), so it could be accessed the
+    // same way as the mData array.
+    // however, this was ~5% slower in execution time. I suspect due to cache misses
     gFrame.readFromMemory(gsl::span<const o2::byte>(data.data() + iFrame * 16, 16));
-    //gFrame.readFromMemory(data.data() + iFrame * 16, 16);
-    // backup the halfword of the frame before calculating the
-    // new halfwords. The previous half words might be needed
-    // to decode the ADC values.
-    gFrame.storePrevFrame();
+
     // extract the half words from the 4 32-bit words
     gFrame.getFrameHalfWords();
 
     // debug output
-    if (CHECK_BIT(mDebugLevel, 1)) {
+    if (CHECK_BIT(mDebugLevel, DebugLevel::GBTFrames)) {
       std::cout << gFrame;
     }
 
     gFrame.getAdcValues(rawData);
-    gFrame.updateSyncCheck(CHECK_BIT(mDebugLevel, 0));
+    gFrame.updateSyncCheck(CHECK_BIT(mDebugLevel, DebugLevel::SyncPositions));
     if (!(rawData.getNumTimebins() % 16) && (rawData.getNumTimebins() >= mNumTimeBins * 16)) {
       return 1;
     }
@@ -474,6 +491,7 @@ size_t RawReaderCRU::getNumberOfEvents() const
 
 void RawReaderCRU::fillADCdataMap(const ADCRawData& rawData)
 {
+  // TODO: Ugly copy below in runADCDataCallback. Modification in here should be also refected there
   const auto& mapper = Mapper::instance();
 
   // cru and link must be set correctly before
@@ -497,6 +515,39 @@ void RawReaderCRU::fillADCdataMap(const ADCRawData& rawData)
       const int sampaChannel = ichannel + channelOffset[partitionStream];
       const auto& padPos = mapper.padPosRegion(cru.region(), fecInPartition, sampa, sampaChannel);
       mADCdata[padPos].emplace_back(dataVector[idata]);
+    }
+  }
+}
+
+void RawReaderCRU::runADCDataCallback(const ADCRawData& rawData)
+{
+  // TODO: Ugly copy below in runADCDataCallback. Modification in here should be also refected there
+  const auto& mapper = Mapper::instance();
+
+  // cru and link must be set correctly before
+  const CRU cru(mCRU);
+  const int fecLinkOffsetCRU = (mapper.getPartitionInfo(cru.partition()).getNumberOfFECs() + 1) / 2;
+  const int fecInPartition = (mLink % 12) + (mLink > 11) * fecLinkOffsetCRU;
+  const int regionIter = mCRU % 2;
+
+  const int sampaMapping[10] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 2};
+  const int channelOffset[10] = {0, 16, 0, 16, 0, 0, 16, 0, 16, 16};
+
+  for (int istreamm = 0; istreamm < 5; ++istreamm) {
+    const int partitionStream = istreamm + regionIter * 5;
+    const int sampa = sampaMapping[partitionStream];
+
+    const auto& dataVector = rawData.getDataVector(istreamm);
+    if (dataVector.size() < 16) {
+      continue;
+    }
+
+    // loop over all data. Each stream has 16 ADC values for each sampa channel times nTimeBins
+    for (int ichannel = 0; ichannel < 16; ++ichannel) {
+      const int sampaChannel = ichannel + channelOffset[partitionStream];
+      const auto& padPos = mapper.padROCPos(cru, fecInPartition, sampa, sampaChannel);
+      //printf("Fill: %d %d %d %d / %d %d %d\n", int(mCRU), int(cru.roc()), ichannel, sampaChannel, int(padPos.getROC()), int(padPos.getRow()), int(padPos.getPad()));
+      mManager->mADCDataCallback(padPos, cru, gsl::span<const uint32_t>(dataVector.data() + ichannel, dataVector.size() - ichannel));
     }
   }
 }
@@ -540,6 +591,9 @@ int RawReaderCRU::processDataFile()
   if (mFillADCdataMap) {
     fillADCdataMap(rawData);
   }
+  if (mManager && mManager->mADCDataCallback) {
+    runADCDataCallback(rawData);
+  }
 
   // std::cout << "Output Data" << std::endl;
 
@@ -555,7 +609,7 @@ int RawReaderCRU::processDataFile()
         // debug output
         rawData.setOutputStream(s);
         rawData.setNumTimebins(mNumTimeBins);
-        if (CHECK_BIT(mDebugLevel, 2)) {
+        if (CHECK_BIT(mDebugLevel, DebugLevel::ADCValues)) {
           std::cout << rawData << std::endl;
         };
         // write the data to file
@@ -596,6 +650,9 @@ void RawReaderCRU::processDataMemory()
   // ===| fill ADC data to the output structure |===
   if (mFillADCdataMap) {
     fillADCdataMap(rawData);
+  }
+  if (mManager && mManager->mADCDataCallback) {
+    runADCDataCallback(rawData);
   }
 }
 
@@ -695,6 +752,48 @@ void RawReaderCRU::processFile(const std::string_view inputFile, uint32_t timeBi
   }
 }
 
+void RawReaderCRU::copyEvents(const std::vector<uint32_t>& eventNumbers, std::string outputDirectory, std::ios_base::openmode mode)
+{
+  // assemble output file name
+  std::string outputFileName(gSystem->BaseName(mInputFileName.data()));
+  if (outputDirectory.empty()) {
+    outputFileName.insert(0, "filtered.");
+    outputDirectory = gSystem->DirName(mInputFileName.data());
+  }
+  outputFileName.insert(0, "/");
+  outputFileName.insert(0, outputDirectory);
+
+  std::ofstream outputFile(outputFileName, std::ios_base::binary | mode);
+
+  // open the input file
+  std::ifstream file;
+  file.open(mInputFileName, std::ifstream::binary);
+  if (!file.good()) {
+    throw std::runtime_error("Unable to open or access file " + mInputFileName);
+  }
+
+  // data buffer. Maximum size is 8k
+  char buffer[8192];
+
+  // loop over events
+  for (const auto eventNumber : eventNumbers) {
+
+    const auto& linkInfoArray = mManager->mEventSync.getLinkInfoArrayForEvent(eventNumber, mCRU);
+
+    for (int iLink = 0; iLink < MaxNumberOfLinks; ++iLink) {
+      const auto& linkInfo = linkInfoArray[iLink];
+      if (!linkInfo.IsPresent) {
+        continue;
+      }
+      for (auto packetNumber : linkInfo.PacketPositions) {
+        const auto& packet = mPacketDescriptorMaps[iLink][packetNumber];
+        file.seekg(packet.getHeaderOffset(), file.beg);
+        file.read(buffer, packet.getPacketSize());
+        outputFile.write(buffer, packet.getPacketSize());
+      }
+    }
+  }
+}
 //==============================================================================
 //===| stream overloads for helper classes |====================================
 //
@@ -710,15 +809,6 @@ void ADCRawData::streamTo(std::ostream& output) const
   };
 };
 
-void GBTFrame::readFromMemory(gsl::span<const o2::byte> data)
-{
-  assert(sizeof(mData) == data.size_bytes());
-  memcpy(mData.data(), data.data(), data.size_bytes());
-  //for (int i = 0; i < 4; i++) {
-  //mData[i] = reinterpret_cast<decltype(mData[i])>(data.data() + i * sizeof(mData[i])
-  //};
-}
-
 void GBTFrame::streamFrom(std::istream& input)
 {
   mFilePos = input.tellg();
@@ -731,6 +821,7 @@ void GBTFrame::streamFrom(std::istream& input)
 //std::ostream& operator<<(std::ostream& output, const RawReaderCRU::GBTFrame& frame)
 void GBTFrame::streamTo(std::ostream& output) const
 {
+  const auto offset = mPrevHWpos ^ 4;
   output << std::dec << "\033[94m"
          << std::setfill('0') << std::setw(8) << mPacketNum << " "
          << std::setfill('0') << std::setw(8) << mFilePos << " "
@@ -742,8 +833,9 @@ void GBTFrame::streamTo(std::ostream& output) const
          << std::setfill('0') << std::setw(8) << mData[0] << " : "
          << "\033[0m";
   for (int i = 0; i < 5; i++) {
-    for (int j = 0; j < 4; j++)
-      output << std::hex << std::setw(4) << mFrameHalfWords[i][j] << " ";
+    for (int j = 0; j < 4; j++) {
+      output << std::hex << std::setw(4) << mFrameHalfWords[i][j + offset] << " ";
+    }
     output << "| ";
   };
   output << std::endl;
@@ -825,6 +917,30 @@ std::ostream& operator<<(std::ostream& output, const RDH& rdh)
   return output;
 }
 
+void printHeader()
+{
+  fmt::print("{:>5} {:>4} {:>4} {:>4} {:>6} {:>4} {:>3} {:>4} {:>10} {:>5} {:>1}\n",
+             "PkC", "pCnt", "trg", "fId", "OffN", "Mem", "CRU", "GLID", "HBOrbit", "HBBC", "s");
+}
+
+void printHorizontal(const RDH& rdh)
+{
+  const int globalLinkID = int(rdh.linkID) + (((rdh.word1 >> 32) >> 28) * 12);
+
+  fmt::print("{:>5} {:>4} {:>4} {:>4} {:>6} {:>4} {:>3} {:>4} {:>10} {:>5} {:>1}\n",
+             (uint64_t)rdh.packetCounter,
+             (uint64_t)rdh.pageCnt,
+             (uint64_t)rdh.triggerType,
+             (uint64_t)rdh.feeId,
+             (uint64_t)rdh.offsetToNext,
+             (uint64_t)rdh.memorySize,
+             (uint64_t)rdh.cruID,
+             (uint64_t)globalLinkID,
+             (uint64_t)rdh.heartbeatOrbit,
+             (uint64_t)rdh.heartbeatBC,
+             (uint64_t)rdh.stop);
+}
+
 std::istream& operator>>(std::istream& input, RDH& rdh)
 {
   const int headerSize = sizeof(rdh);
@@ -847,9 +963,49 @@ void RawReaderCRUManager::init()
   mEventSync.sortEvents();
   mEventSync.analyse();
 
-  if (mDebugLevel) {
+  O2INFO("Event information:");
+  O2INFO("    Number of all events:      %lu", getNumberOfEvents());
+  O2INFO("    Number of complete events: %lu", getNumberOfCompleteEvents());
+
+  if (CHECK_BIT(mDebugLevel, DebugLevel::EventInfo)) {
     std::cout << mEventSync;
   }
 
   mIsInitialized = true;
+}
+
+void RawReaderCRUManager::setupReaders(const std::string_view inputFileNames,
+                                       uint32_t numTimeBins,
+                                       uint32_t debugLevel,
+                                       uint32_t verbosity,
+                                       const std::string_view outputFilePrefix)
+{
+  reset();
+  const TString files = gSystem->GetFromPipe(TString::Format("ls %s", inputFileNames.data()));
+  std::unique_ptr<TObjArray> arr(files.Tokenize("\n"));
+  setDebugLevel(debugLevel);
+
+  for (auto file : *arr) {
+    // fix the number of time bins
+    auto& reader = createReader(file->GetName(), numTimeBins);
+    reader.setVerbosity(verbosity);
+    reader.setDebugLevel(debugLevel);
+    O2INFO("Adding file: %s\n", file->GetName());
+  }
+}
+
+void RawReaderCRUManager::copyEvents(const std::vector<uint32_t> eventNumbers, std::string_view outputDirectory, std::ios_base::openmode mode)
+{
+  // make sure events have been built
+  init();
+  for (auto& rawReader : mRawReadersCRU) {
+    rawReader->copyEvents(eventNumbers, outputDirectory.data(), mode);
+  }
+}
+
+void RawReaderCRUManager::copyEvents(const std::string_view inputFileNames, const std::vector<uint32_t> eventNumbers, std::string_view outputDirectory, std::ios_base::openmode mode)
+{
+  RawReaderCRUManager manager;
+  manager.setupReaders(inputFileNames);
+  manager.copyEvents(eventNumbers, outputDirectory, mode);
 }

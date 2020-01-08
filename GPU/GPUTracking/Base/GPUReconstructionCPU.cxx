@@ -31,6 +31,7 @@
 #include "GPUTRDTrackletLabels.h"
 #include "GPUMemoryResource.h"
 #include "GPUConstantMem.h"
+#include <atomic>
 
 #define GPUCA_LOGGING_PRINTF
 #include "GPULogging.h"
@@ -39,7 +40,7 @@
 #include <unistd.h>
 #endif
 
-#if defined(GPUCA_HAVE_OPENMP) || defined(_OPENMP)
+#if defined(WITH_OPENMP) || defined(_OPENMP)
 #include <omp.h>
 #else
 static inline int omp_get_thread_num() { return 0; }
@@ -204,22 +205,22 @@ int GPUReconstructionCPU::RunChains()
 
     for (unsigned int i = 0; i < mTimers.size(); i++) {
       double time = 0;
-      for (int j = 0; j < mTimers[i].num; j++) {
-        HighResTimer& timer = mTimers[i].timer[j];
+      for (int j = 0; j < mTimers[i]->num; j++) {
+        HighResTimer& timer = mTimers[i]->timer[j];
         time += timer.GetElapsedTime();
         if (mDeviceProcessingSettings.resetTimers) {
           timer.Reset();
         }
       }
 
-      char type = mTimers[i].type;
+      char type = mTimers[i]->type;
       if (type == 0) {
         kernelTotal += time;
-        int stepNum = getRecoStepNum(mTimers[i].step);
+        int stepNum = getRecoStepNum(mTimers[i]->step);
         kernelStepTimes[stepNum] += time;
       }
       type = type == 0 ? 'K' : 'C';
-      printf("Execution Time: Task (%c): %50s Time: %'10d us\n", type, mTimers[i].name.c_str(), (int)(time * 1000000 / mStatNEvents));
+      printf("Execution Time: Task (%c): %50s Time: %'10d us\n", type, mTimers[i]->name.c_str(), (int)(time * 1000000 / mStatNEvents));
     }
     for (int i = 0; i < N_RECO_STEPS; i++) {
       if (kernelStepTimes[i] != 0.) {
@@ -267,4 +268,42 @@ int GPUReconstructionCPU::getOMPThreadNum()
 int GPUReconstructionCPU::getOMPMaxThreads()
 {
   return omp_get_max_threads();
+}
+
+static std::atomic_flag timerFlag; // TODO: Should be a class member not global, but cannot be moved to header due to ROOT limitation
+
+GPUReconstructionCPU::timerMeta* GPUReconstructionCPU::insertTimer(unsigned int id, std::string&& name, int J, int num, int type, RecoStep step)
+{
+  while (timerFlag.test_and_set())
+    ;
+  if (mTimers.size() <= id) {
+    mTimers.resize(id + 1);
+  }
+  if (mTimers[id] == nullptr) {
+    if (J >= 0) {
+      name += std::to_string(J);
+    }
+    mTimers[id].reset(new timerMeta{std::unique_ptr<HighResTimer[]>{new HighResTimer[num]}, name, num, type, step});
+  }
+  timerMeta* retVal = mTimers[id].get();
+  timerFlag.clear();
+  return retVal;
+}
+
+GPUReconstructionCPU::timerMeta* GPUReconstructionCPU::getTimerById(unsigned int id)
+{
+  timerMeta* retVal = nullptr;
+  while (timerFlag.test_and_set())
+    ;
+  if (mTimers.size() > id && mTimers[id]) {
+    retVal = mTimers[id].get();
+  }
+  timerFlag.clear();
+  return retVal;
+}
+
+unsigned int GPUReconstructionCPU::getNextTimerId()
+{
+  static std::atomic<unsigned int> id{0};
+  return id.fetch_add(1);
 }

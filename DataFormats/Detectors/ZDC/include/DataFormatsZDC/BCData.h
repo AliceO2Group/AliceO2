@@ -15,6 +15,7 @@
 #include "CommonDataFormat/RangeReference.h"
 #include "ZDCBase/Constants.h"
 #include <Rtypes.h>
+#include <gsl/span>
 
 /// \file BCData.h
 /// \brief Class to describe fired triggered and/or stored channels for the BC and to refer to channel data
@@ -24,6 +25,7 @@ namespace o2
 {
 namespace zdc
 {
+class ChannelData;
 
 struct BCData {
   /// we are going to refer to at most 26 channels, so 5 bits for the NChannels and 27 for the reference
@@ -41,6 +43,8 @@ struct BCData {
     channels = chSto;
     triggers = chTrig;
   }
+
+  gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
   void print() const;
 
   ClassDefNV(BCData, 1);

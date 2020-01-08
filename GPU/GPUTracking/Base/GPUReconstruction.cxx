@@ -28,7 +28,7 @@
 #include <unistd.h>
 #endif
 
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #include <omp.h>
 #endif
 
@@ -97,6 +97,9 @@ int GPUReconstruction::Init()
   if (mDeviceProcessingSettings.debugLevel < 1) {
     mDeviceProcessingSettings.deviceTimers = false;
   }
+  if (GetDeviceProcessingSettings().debugLevel >= 6 && GetDeviceProcessingSettings().comparableDebutOutput) {
+    mDeviceProcessingSettings.nTPCClustererLanes = 1;
+  }
 
 #ifndef HAVE_O2HEADERS
   mRecoSteps.setBits(RecoStep::ITSTracking, false);
@@ -120,7 +123,7 @@ int GPUReconstruction::Init()
     mDeviceProcessingSettings.trackletSelectorInPipeline = false;
   }
 
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
   if (mDeviceProcessingSettings.nThreads <= 0) {
     mDeviceProcessingSettings.nThreads = omp_get_max_threads();
   } else {

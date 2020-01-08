@@ -32,9 +32,9 @@ DECLARE_SOA_COLUMN(Z, z, float, "fZ");
 DECLARE_SOA_COLUMN(Snp, snp, float, "fSnp");
 DECLARE_SOA_COLUMN(Tgl, tgl, float, "fTgl");
 DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float, "fSigned1Pt");
-DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, [](float snp, float alpha) { return asin(snp) + alpha + M_PI; });
-DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, [](float tgl) { return log(tan(0.25 * M_PI - 0.5 * atan(tgl))); });
-DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, [](float signed1Pt) { return fabs(1.0 / signed1Pt); });
+DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, [](float snp, float alpha) -> float { return asin(snp) + alpha + M_PI; });
+DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, [](float tgl) -> float { return log(tan(0.25 * M_PI - 0.5 * atan(tgl))); });
+DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, [](float signed1Pt) -> float { return fabs(1.0 / signed1Pt); });
 // TRACKPARCOV TABLE definition
 DECLARE_SOA_COLUMN(CYY, cZZ, float, "fCYY");
 DECLARE_SOA_COLUMN(CZY, cZY, float, "fCZY");
@@ -146,7 +146,7 @@ using Muon = Muons::iterator;
 
 namespace muoncluster
 {
-DECLARE_SOA_COLUMN(TrackId, trackId, int, "fMuTrackID");
+DECLARE_SOA_COLUMN(TrackId, trackId, int, "fMuonsID");
 DECLARE_SOA_COLUMN(X, x, float, "fX");
 DECLARE_SOA_COLUMN(Y, y, float, "fY");
 DECLARE_SOA_COLUMN(Z, z, float, "fZ");
@@ -201,6 +201,7 @@ using VZero = VZeros::iterator;
 
 namespace v0
 {
+// FIXME: This probably will become DECLARE_SOA_INDEX
 DECLARE_SOA_COLUMN(PosTrackId, posTrackId, int, "fPosTrackID");
 DECLARE_SOA_COLUMN(NegTrackId, negTrackId, int, "fNegTrackID");
 } // namespace v0
@@ -210,8 +211,8 @@ using V0 = V0s::iterator;
 
 namespace cascade
 {
-DECLARE_SOA_COLUMN(V0Id, v0Id, int, "fV0ID");
-DECLARE_SOA_COLUMN(BachelorId, bachelorId, int, "fBachelorID");
+DECLARE_SOA_COLUMN(V0Id, v0Id, int, "fV0sID");
+DECLARE_SOA_COLUMN(BachelorId, bachelorId, int, "fTracksID");
 } // namespace cascade
 
 DECLARE_SOA_TABLE(Cascades, "AOD", "CASCADE", cascade::V0Id, cascade::BachelorId);
@@ -220,24 +221,25 @@ using Casecade = Cascades::iterator;
 namespace collision
 {
 // DECLARE_SOA_COLUMN(TimeframeId, timeframeId, uint64_t, "timeframeID");
-DECLARE_SOA_COLUMN(VtxId, vtxId, int, "fEventId");
-DECLARE_SOA_COLUMN(PosX, posX, double, "fX");
-DECLARE_SOA_COLUMN(PosY, posY, double, "fY");
-DECLARE_SOA_COLUMN(PosZ, posZ, double, "fZ");
-DECLARE_SOA_COLUMN(CovXX, covXX, double, "fCovXX");
-DECLARE_SOA_COLUMN(CovXY, covXY, double, "fcovXY");
-DECLARE_SOA_COLUMN(CovXZ, covXZ, double, "fCovXZ");
-DECLARE_SOA_COLUMN(CovYY, covYY, double, "fCovYY");
-DECLARE_SOA_COLUMN(CovYZ, covYZ, double, "fCovYZ");
-DECLARE_SOA_COLUMN(CovZZ, covZZ, double, "fCovZZ");
-DECLARE_SOA_COLUMN(Chi2, chi2, double, "fChi2");
+DECLARE_SOA_COLUMN(RunNumber, runNumber, int, "fRunNumber");
+DECLARE_SOA_COLUMN(VtxId, vtxId, uint64_t, "fEventId");
+DECLARE_SOA_COLUMN(PosX, posX, float, "fX");
+DECLARE_SOA_COLUMN(PosY, posY, float, "fY");
+DECLARE_SOA_COLUMN(PosZ, posZ, float, "fZ");
+DECLARE_SOA_COLUMN(CovXX, covXX, float, "fCovXX");
+DECLARE_SOA_COLUMN(CovXY, covXY, float, "fCovXY");
+DECLARE_SOA_COLUMN(CovXZ, covXZ, float, "fCovXZ");
+DECLARE_SOA_COLUMN(CovYY, covYY, float, "fCovYY");
+DECLARE_SOA_COLUMN(CovYZ, covYZ, float, "fCovYZ");
+DECLARE_SOA_COLUMN(CovZZ, covZZ, float, "fCovZZ");
+DECLARE_SOA_COLUMN(Chi2, chi2, float, "fChi2");
 DECLARE_SOA_COLUMN(NumContrib, numContrib, uint32_t, "fN");
-DECLARE_SOA_COLUMN(EventTime, eventTime, double, "fEventTime");
-DECLARE_SOA_COLUMN(EventTimeRes, eventTimeRes, double, "fEventTimeRes");
+DECLARE_SOA_COLUMN(EventTime, eventTime, float, "fEventTime");
+DECLARE_SOA_COLUMN(EventTimeRes, eventTimeRes, float, "fEventTimeRes");
 DECLARE_SOA_COLUMN(EventTimeMask, eventTimeMask, uint8_t, "fEventTimeMask");
 } // namespace collision
 
-DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", collision::VtxId, collision::PosX, collision::PosY, collision::PosZ, collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYY, collision::CovYZ, collision::CovZZ, collision::Chi2, collision::NumContrib, collision::EventTime, collision::EventTimeRes, collision::EventTimeMask);
+DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", collision::RunNumber, collision::VtxId, collision::PosX, collision::PosY, collision::PosZ, collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYY, collision::CovYZ, collision::CovZZ, collision::Chi2, collision::NumContrib, collision::EventTime, collision::EventTimeRes, collision::EventTimeMask);
 
 using Collision = Collisions::iterator;
 

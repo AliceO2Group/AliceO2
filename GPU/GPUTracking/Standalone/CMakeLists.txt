@@ -82,11 +82,10 @@ if(CONFIG_O2_EXTENSIONS)
     if(NOT CONFIG_ROOT)
       message(FATAL_ERROR "Can not build ITS traits without ROOT")
     endif()
+    find_package(Boost REQUIRED)
   else()
     add_definitions(-DGPUCA_NO_ITS_TRAITS)
   endif()
-else()
-  set(ROOT_FOUND OFF)
 endif()
 
 if(CONFIG_FMT)
@@ -115,7 +114,7 @@ include_directories(${CMAKE_SOURCE_DIR}
                     ${CMAKE_SOURCE_DIR}/TRDTracking)
 
 if(CONFIG_O2_EXTENSIONS)
-include_directories(${CMAKE_SOURCE_DIR}/gpucf
+include_directories(${CMAKE_SOURCE_DIR}/TPCClusterFinder
                     ${CMAKE_SOURCE_DIR}/ITS
                     ${CMAKE_SOURCE_DIR}/DataCompression
                     ${CMAKE_SOURCE_DIR}/../../../Common/Constants/include
@@ -167,6 +166,7 @@ if(CONFIG_O2_EXTENSIONS)
         ../../..//Detectors/ITSMFT/ITS/tracking/src/TrackerTraitsCPU.cxx
         ../../..//Detectors/ITSMFT/ITS/tracking/src/VertexerTraits.cxx
         ../../..//Detectors/ITSMFT/ITS/tracking/src/ROframe.cxx)
+    target_link_libraries(standalone_support PUBLIC Boost::boost)
   endif()
 endif()
 if(CONFIG_ROOT)

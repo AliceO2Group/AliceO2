@@ -94,11 +94,11 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUT
       outerParam->alpha = prop.GetAlpha();
     }
 
-    int resetT0 = CAMath::Max(10.f, CAMath::Min(40.f, 150.f / mP[4]));
+    int resetT0 = initResetT0();
     const bool refit = (nWays == 1 || iWay >= 1);
     const float maxSinForUpdate = CAMath::Sin(70.f * kDeg2Rad);
-    if (refit && attempt == 0) {
-      prop.SetSpecialErrors(true);
+    if (!(refit && attempt == 0)) {
+      prop.SetSeedingErrors(true);
     }
 
     ResetCovariance();
@@ -183,7 +183,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUT
           lastSlice = clusters[ihit].slice;
           lastRow = 255;
           N++;
-          resetT0 = CAMath::Max(10.f, CAMath::Min(40.f, 150.f / mP[4]));
+          resetT0 = initResetT0();
           // clang-format off
           CADEBUG(printf("\n"));
           CADEBUG(printf("\t%21sMirror  Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f\n", "", prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), "", sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10]));
@@ -236,7 +236,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* merger, int iTrk, GPUT
           lastLeg = clusters[ihit].leg;
           lastRow = 255;
           N++;
-          resetT0 = CAMath::Max(10.f, CAMath::Min(40.f, 150.f / mP[4]));
+          resetT0 = initResetT0();
           // clang-format off
           CADEBUG(printf("\n"));
           CADEBUG(printf("\t%21sMirror  Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f) %28s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f\n", "", prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), "", sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10]));
@@ -700,7 +700,8 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMergedTrackHit* clusters, c
   const float cosPhi = CAMath::Abs(mP[2]) < 1.f ? CAMath::Sqrt(1 - mP[2] * mP[2]) : 0.f;
   const float dxf = -CAMath::Abs(mP[2]);
   const float dyf = cosPhi * (mP[2] > 0 ? 1.f : -1.f);
-  const float r = 1.f / CAMath::Abs(mP[4] * merger->Param().polynomialField.GetNominalBz());
+  const float r1 = CAMath::Abs(mP[4] * merger->Param().polynomialField.GetNominalBz());
+  const float r = r1 > 0.0001 ? (1.f / CAMath::Abs(r1)) : 10000;
   float xp = mX + dxf * r;
   float yp = mP[0] + dyf * r;
   // printf("X %f Y %f SinPhi %f QPt %f R %f --> XP %f YP %f\n", mX, mP[0], mP[2], mP[4], r, xp, yp);
@@ -870,7 +871,7 @@ GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& track, int iTrk,
 
     if (!ok && ++attempt < nAttempts) {
       for (unsigned int i = 0; i < track.NClusters(); i++) {
-        clusters[track.FirstClusterRef() + i].state &= GPUTPCGMMergedTrackHit::hwcmFlags;
+        clusters[track.FirstClusterRef() + i].state &= GPUTPCGMMergedTrackHit::clustererAndSharedFlags;
       }
       CADEBUG(printf("Track rejected, running refit\n"));
       continue;

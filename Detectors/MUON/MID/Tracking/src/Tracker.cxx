@@ -16,7 +16,6 @@
 
 #include <cmath>
 #include <functional>
-#include "Framework/Logger.h"
 #include "MIDBase/DetectorParameters.h"
 
 namespace o2
@@ -33,21 +32,7 @@ Tracker::Tracker(const GeometryTransformer& geoTrans) : mTransformer(geoTrans)
 //______________________________________________________________________________
 bool Tracker::init(bool keepAll)
 {
-  /// Initializes the task
-
-  // Sets the proper size
-  for (auto& clIdx : mClusterIndexes) {
-    clIdx.reserve(20);
-  }
-
-  // Prepare storage of clusters
-  mClusters.reserve(100);
-
-  // Prepare storage of tracks
-  mTracks.reserve(30);
-
-  mTrackROFRecords.reserve(100);
-  mClusterROFRecords.reserve(100);
+  /// Initializes the tracker
 
   if (keepAll) {
     mFollowTrack = &Tracker::followTrackKeepAll;
@@ -77,7 +62,6 @@ bool Tracker::loadClusters(gsl::span<const Cluster2D>& clusters)
 {
   /// Fills the array of clusters per detection element
 
-  LOG(DEBUG) << "Loading clusters:";
   for (auto& currData : clusters) {
     int deId = currData.deId;
     // This needs to be done before adding the element to mClusters
@@ -86,10 +70,6 @@ bool Tracker::loadClusters(gsl::span<const Cluster2D>& clusters)
     mClusters.push_back({currData.deId,
                          position.x(), position.y(), position.z(),
                          currData.sigmaX2, currData.sigmaY2});
-
-    LOG(DEBUG) << "deId " << deId << " pos: (" << currData.xCoor << ", " << currData.yCoor << ") err2: ("
-               << currData.sigmaX2 << ", " << currData.sigmaY2 << ") => (" << mClusters.back().xCoor << "," << mClusters.back().yCoor
-               << "," << mClusters.back().zCoor << ")";
   }
 
   return (clusters.size() > 0);
@@ -178,8 +158,6 @@ bool Tracker::processSide(bool isRight, bool isInward)
           track.setClusterMatched(secondCh, mClusterIndexes[deId2][icl2].first);
           track.setClusterMatched(3 - firstCh, -1);
           track.setClusterMatched(3 - secondCh, -1);
-          LOG(DEBUG) << "Track seed: " << mClusterIndexes[deId1][icl1].first << " - " << mClusterIndexes[deId2][icl2].first << "  Position: (" << track.getPositionX() << ", " << track.getPositionY() << ", " << track.getPositionZ() << ")";
-          // LOG(DEBUG) << "Covariance: " << track.getCovarianceParameters();
           std::invoke(mFollowTrack, this, track, isRight, isInward);
         } // loop on clusters in second plane
       }   // loop on RPCs in second plane
@@ -201,8 +179,6 @@ bool Tracker::makeTrackSeed(Track& track, const Cluster3D& cl1, const Cluster3D&
   double nonBendingImpactParamErr = std::sqrt(
     (cl1.zCoor * cl1.zCoor * cl2.sigmaX2 + cl2.zCoor * cl2.zCoor * cl1.sigmaX2) / dZ2);
   if ((nonBendingImpactParam - mSigmaCut * nonBendingImpactParamErr) > mImpactParamCut) {
-    LOG(DEBUG) << "NB slope: " << nonBendingSlope << " NB impact param: " << nonBendingImpactParam << " - " << mSigmaCut
-               << " * " << nonBendingImpactParamErr << " > " << mImpactParamCut;
     return false;
   }
 
@@ -228,7 +204,7 @@ bool Tracker::followTrackKeepAll(const Track& track, bool isRight, bool isInward
   /// This algorithm keeps all of the tracks that can be obtained by pairing
   /// all of the clusters in the two stations (if they pass the chi2 cut).
   /// Tests show that this method allows to correctly reconstruct all real tracks
-  /// even when the track multiplicty is large.
+  /// even when the track multiplicity is large.
   /// However, the method is of course more time consuming and also reconstruct
   /// a larger number of fake tracks.
   std::array<int, 2> chamberOrder;
@@ -328,7 +304,6 @@ bool Tracker::findNextCluster(const Track& track, bool isRight, bool isInward, i
       }
       newTrack.setClusterMatched(detparams::getChamber(cl.deId), mClusterIndexes[deId][icl].first);
       newTrack.setNDF(track.getNDF() + 1);
-      LOG(DEBUG) << "Attach cluster number " << newTrack.getNDF() << ": DeId " << deId << "  cluster " << mClusterIndexes[deId][icl].first;
       if (nextChamber >= 0 && nextChamber <= 3) {
         // We found a cluster in the first chamber of the station
         // We search for a cluster in the last chamber, this time limiting to the RPC above and below this one
@@ -337,7 +312,6 @@ bool Tracker::findNextCluster(const Track& track, bool isRight, bool isInward, i
       if (newTrack.getNDF() >= bestTrack.getNDF() && newTrack.getChi2OverNDF() < bestTrack.getChi2OverNDF()) {
         // Prefer tracks with a larger number of attached clusters, even if the chi2 is worse
         bestTrack = newTrack;
-        LOG(DEBUG) << "Selected track with clusters: " << bestTrack.getClusterMatched(0) << " " << bestTrack.getClusterMatched(1) << " " << bestTrack.getClusterMatched(2) << " " << bestTrack.getClusterMatched(3) << "  chi2: " << bestTrack.getChi2OverNDF() << "  NDF: " << bestTrack.getNDF();
       }
     } // loop on clusters
   }   // loop on RPC
@@ -359,7 +333,6 @@ bool Tracker::findAllClusters(Track& track, int clIdx, bool isRight, bool isInwa
   newTrack.setClusterMatched(chamber, clIdx);
   newTrack.setNDF(track.getNDF() + 1);
   track = newTrack;
-  LOG(DEBUG) << "Attach cluster number " << track.getNDF() << ": DeId " << static_cast<int>(mClusters[clIdx].deId) << "  cluster " << clIdx;
 
   // We found a cluster in the first chamber of the station
   // We search for a cluster in the last chamber, limiting to the RPC above and below this one
@@ -389,11 +362,8 @@ bool Tracker::findAllClusters(Track& track, int clIdx, bool isRight, bool isInwa
       bestTrack.setNDF(track.getNDF() + 1);
       mClusterIndexes[bestClusterDE][bestClusterIdx].second = true;
       track = bestTrack;
-      LOG(DEBUG) << "Attach cluster number " << track.getNDF() << ": DeId " << bestClusterDE << "  cluster " << mClusterIndexes[bestClusterDE][bestClusterIdx].first;
     }
   }
-
-  LOG(DEBUG) << "Selected track with clusters: " << track.getClusterMatched(0) << " " << track.getClusterMatched(1) << " " << track.getClusterMatched(2) << " " << track.getClusterMatched(3) << "  chi2/NDF: " << track.getChi2OverNDF() << "  NDF: " << track.getNDF();
 
   return true;
 }
@@ -405,7 +375,7 @@ double Tracker::tryOneCluster(const Track& track, const Cluster3D& cluster, Trac
   /// given the track and cluster resolutions + the maximum-distance-to-track value
   /// If the cluster is compatible, it propagates a copy of the track to the z of the cluster,
   /// runs the kalman filter and returns the additional chi2.
-  /// It returns twice the maximum allowd chi2 otherwise
+  /// It returns twice the maximum allowed chi2 otherwise
   double dZ = cluster.zCoor - track.getPositionZ();
   double dZ2 = dZ * dZ;
   double cpos[2] = {cluster.xCoor, cluster.yCoor};
@@ -421,8 +391,6 @@ double Tracker::tryOneCluster(const Track& track, const Cluster3D& cluster, Trac
     double err2 = covParams[icoor] + dZ2 * covParams[icoor + 2] + 2. * dZ * covParams[icoor + 4] + cerr2[icoor];
     double distMax = mSigmaCut * std::sqrt(2. * err2) + 4.;
     if (std::abs(dist[icoor]) > distMax) {
-      LOG(DEBUG) << "Reject cluster: coordinate " << icoor << "  cl " << cpos[icoor] << " tr " << newPos[icoor] << " err "
-                 << std::sqrt(err2);
       return 2. * mMaxChi2;
     }
   }
@@ -515,7 +483,6 @@ void Tracker::finalizeTrack(Track& track)
   }
   track.setChi2(chi2);
   track.setNDF(ndf);
-  LOG(DEBUG) << "Finalize track: " << track;
 }
 
 //______________________________________________________________________________
@@ -547,11 +514,7 @@ bool Tracker::tryAddTrack(const Track& track)
       // The new track is compatible with an existing one
       if (chi2OverNDF < checkTrack->getChi2OverNDF()) {
         // The new track is more precise than the old one: replace it!
-        LOG(DEBUG) << "Replacing track " << *checkTrack << "    with " << track;
         *checkTrack = track;
-      } else {
-        LOG(DEBUG) << "Rejecting track " << track << "     compatible with " << *checkTrack;
-        // The new track is less precise than the old one: reject it!
       }
       return false;
     }

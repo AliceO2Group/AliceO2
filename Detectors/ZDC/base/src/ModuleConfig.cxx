@@ -72,6 +72,9 @@ void Module::setChannel(int slot, int8_t chID, int16_t lID, bool read, bool trig
   readChannel[slot] = read;
   trigChannel[slot] = trig;
   if (trig) {
+    if (tL + tS + 1 >= NTimeBinsPerBC) {
+      LOG(FATAL) << "Sum of Last and Shift trigger parameters exceed allowed range";
+    }
     trigChannelConf[slot].id = chID;
     trigChannelConf[slot].first = tF;
     trigChannelConf[slot].last = tL;

@@ -9,19 +9,23 @@
 // or submit itself to any jurisdiction.
 
 /// \file   MIDRaw/Encoder.h
-/// \brief  MID raw data encoder for MID
+/// \brief  MID raw data encoder
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   30 September 2019
 #ifndef O2_MID_ENCODER_H
 #define O2_MID_ENCODER_H
 
 #include <cstdint>
-#include <vector>
-#include <deque>
 #include <gsl/gsl>
-#include "Headers/RAWDataHeader.h"
+#include <map>
+#include "CommonDataFormat/InteractionRecord.h"
+#include "CommonUtils/HBFUtils.h"
 #include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/ROFRecord.h"
+#include "MIDRaw/CrateMapper.h"
+#include "MIDRaw/CrateParameters.h"
+#include "MIDRaw/CRUUserLogicEncoder.h"
+#include "MIDRaw/LocalBoardRO.h"
 #include "MIDRaw/RawUnit.h"
 
 namespace o2
@@ -31,24 +35,24 @@ namespace mid
 class Encoder
 {
  public:
-  void newHeader(uint32_t bcId, uint32_t orbitId, uint32_t triggerType = 0);
-  void process(gsl::span<const ColumnData> data, const uint16_t localClock, EventType eventType = EventType::Standard);
+  void process(gsl::span<const ColumnData> data, const InteractionRecord& ir, EventType eventType = EventType::Standard);
   const std::vector<raw::RawUnit>& getBuffer();
-  /// Gets the buffer size in bytes
-  size_t getBufferSize() const { return mBytes.size() * raw::sElementSizeInBytes; }
+  /// Gets the size in bytes of the buffer
+  size_t getBufferSize() { return mBytes.size() * raw::sElementSizeInBytes; }
   /// Sets the next header offset in bytes
-  void setHeaderOffset(uint16_t headerOffset = 0x2000);
+  void setHeaderOffset(bool headerOffset = true);
   void clear();
 
  private:
-  void add(int value, unsigned int nBits);
-  void completePage(bool stop);
-  header::RAWDataHeader* getRDH() { return reinterpret_cast<header::RAWDataHeader*>(&(mBytes[mHeaderIndex])); }
+  bool convertData(gsl::span<const ColumnData> data);
+  void newHeader(const InteractionRecord& ir);
 
-  std::vector<raw::RawUnit> mBytes{};                      /// Vector with encoded information
-  size_t mBitIndex{0};                                     /// Index of the current bit
-  size_t mHeaderIndex{0};                                  /// Index in the the current header
-  size_t mHeaderOffset{0x2000 / raw::sElementSizeInBytes}; /// Header offset
+  std::array<CRUUserLogicEncoder, crateparams::sNGBTs> mCRUUserLogicEncoders{}; /// Array of encoders per link
+  std::map<uint16_t, LocalBoardRO> mROData{};                                   /// Map of data per board
+  std::vector<raw::RawUnit> mBytes{};                                           /// Vector with encoded information
+  CrateMapper mCrateMapper{};                                                   /// Crate mapper
+  utils::HBFUtils mHBFUtils{};                                                  /// Utility for HBF
+  InteractionRecord mLastIR{};                                                  /// Last interaction record
 };
 } // namespace mid
 } // namespace o2

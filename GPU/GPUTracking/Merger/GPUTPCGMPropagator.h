@@ -68,7 +68,7 @@ class GPUTPCGMPropagator
 
   GPUd() void SetFitInProjections(bool Flag) { mFitInProjections = Flag; }
   GPUd() void SetToyMCEventsFlag(bool Flag) { mToyMCEvents = Flag; }
-  GPUd() void SetSpecialErrors(bool Flag) { mSpecialErrors = Flag; }
+  GPUd() void SetSeedingErrors(bool Flag) { mSeedingErrors = Flag; }
   GPUd() void SetMatLUT(const o2::base::MatLayerCylSet* lut) { mMatLUT = lut; }
 
   GPUd() void SetMaxSinPhi(float maxSinPhi) { mMaxSinPhi = maxSinPhi; }
@@ -141,7 +141,7 @@ class GPUTPCGMPropagator
   float mAlpha = 0; // rotation angle of the track coordinate system
   GPUTPCGMPhysicalTrackModel mT0;
   MaterialCorrection mMaterial;
-  bool mSpecialErrors = 0;
+  bool mSeedingErrors = 0;
   bool mFitInProjections = 1; // fit (Y,SinPhi,QPt) and (Z,DzDs) paramteres separatelly
   bool mToyMCEvents = 0;      // events are simulated with simple home-made simulation
   float mMaxSinPhi = GPUCA_MAX_SIN_PHI;
@@ -150,7 +150,7 @@ class GPUTPCGMPropagator
   const o2::base::MatLayerCylSet* mMatLUT = nullptr;
 };
 
-GPUd() inline void GPUTPCGMPropagator::SetMaterial(float radLen, float rho)
+GPUdi() void GPUTPCGMPropagator::SetMaterial(float radLen, float rho)
 {
   mMaterial.rho = rho;
   mMaterial.radLen = radLen;
@@ -158,7 +158,7 @@ GPUd() inline void GPUTPCGMPropagator::SetMaterial(float radLen, float rho)
   CalculateMaterialCorrection();
 }
 
-GPUd() inline void GPUTPCGMPropagator::SetTrack(GPUTPCGMTrackParam* track, float Alpha)
+GPUdi() void GPUTPCGMPropagator::SetTrack(GPUTPCGMTrackParam* track, float Alpha)
 {
   mT = track;
   if (!mT) {
@@ -169,13 +169,13 @@ GPUd() inline void GPUTPCGMPropagator::SetTrack(GPUTPCGMTrackParam* track, float
   CalculateMaterialCorrection();
 }
 
-GPUd() inline float GPUTPCGMPropagator::GetMirroredYModel() const
+GPUdi() float GPUTPCGMPropagator::GetMirroredYModel() const
 {
   float Bz = GetBz(mAlpha, mT0.GetX(), mT0.GetY(), mT0.GetZ());
   return mT0.GetMirroredY(Bz);
 }
 
-GPUd() inline float GPUTPCGMPropagator::GetMirroredYTrack() const
+GPUdi() float GPUTPCGMPropagator::GetMirroredYTrack() const
 {
   if (!mT) {
     return -1.E10f;

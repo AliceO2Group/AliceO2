@@ -58,10 +58,16 @@ class MCTruthContainer;
 } // namespace dataformats
 } // namespace o2
 
-namespace gpucf // TODO: Clean up namespace
+namespace GPUCA_NAMESPACE
 {
-typedef struct PackedDigit_s PackedDigit;
+namespace gpu
+{
+namespace deprecated
+{
+struct PackedDigit;
 }
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 namespace GPUCA_NAMESPACE
 {
@@ -161,8 +167,8 @@ struct GPUCalibObjectsConst { // TODO: Any chance to do this as template?
 
 struct GPUTrackingInOutDigits {
   static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
-  const gpucf::PackedDigit* tpcDigits[NSLICES] = {nullptr};
-  unsigned long long int nTPCDigits[NSLICES] = {0};
+  const deprecated::PackedDigit* tpcDigits[NSLICES] = {nullptr};
+  size_t nTPCDigits[NSLICES] = {0};
 };
 
 struct GPUTrackingInOutPointers {

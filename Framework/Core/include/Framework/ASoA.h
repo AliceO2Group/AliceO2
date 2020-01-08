@@ -446,9 +446,14 @@ struct FilteredIndexPolicy : IndexPolicyBase {
   gandiva::SelectionVector* mSelection = nullptr;
 };
 
+template <typename... C>
+class Table;
+
 template <typename IP, typename... C>
 struct RowViewBase : public IP, C... {
  public:
+  using policy_t = IP;
+  using table_t = o2::soa::Table<C...>;
   using persistent_columns_t = framework::selected_pack<is_persistent_t, C...>;
   using dynamic_columns_t = framework::selected_pack<is_dynamic_t, C...>;
   using index_columns_t = framework::selected_pack<is_index_t, C...>;
@@ -694,6 +699,9 @@ class Table
     if constexpr (T::persistent::value) {
       auto label = T::label();
       auto index = mTable->schema()->GetFieldIndex(label);
+      if (index == -1) {
+        throw std::runtime_error(std::string("Unable to find column with label ") + label);
+      }
       return mTable->column(index).get();
     } else {
       return nullptr;
@@ -860,7 +868,12 @@ class TableMetadata
   template <>                                                          \
   struct MetadataTrait<_Name_::iterator> {                             \
     using metadata = _Name_##Metadata;                                 \
-  }
+  };                                                                   \
+                                                                       \
+  template <>                                                          \
+  struct MetadataTrait<o2::soa::Filtered<_Name_>::iterator> {          \
+    using metadata = _Name_##Metadata;                                 \
+  };
 
 namespace o2::soa
 {
@@ -969,7 +982,6 @@ auto filter(T&& t, framework::expressions::Filter const& expr)
 {
   return Filtered<T>(t.asArrowTable(), expr);
 }
-
 } // namespace o2::soa
 
 #endif // O2_FRAMEWORK_ASOA_H_

@@ -40,6 +40,10 @@ inline int getChamber(int deId) { return (deId % NDetectionElementsPerSide) / NR
 /// @param deId The detection element ID
 inline int getRPCLine(int deId) { return deId % NRPCLines; }
 
+/// Check if the detection element is in the right side
+/// @param deId The detection element ID
+inline bool isRightSide(int deId) { return (deId / NDetectionElementsPerSide) == 0; }
+
 void assertDEId(int deId);
 
 int getDEId(bool isRight, int chamber, int rpc);

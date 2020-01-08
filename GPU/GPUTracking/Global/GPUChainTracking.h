@@ -80,7 +80,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     InOutMemory(InOutMemory&&);
     InOutMemory& operator=(InOutMemory&&);
 
-    std::unique_ptr<gpucf::PackedDigit[]> tpcDigits[NSLICES];
+    std::unique_ptr<deprecated::PackedDigit[]> tpcDigits[NSLICES];
     std::unique_ptr<GPUTPCClusterData[]> clusterData[NSLICES];
     std::unique_ptr<AliHLTTPCRawCluster[]> rawClusters[NSLICES];
     std::unique_ptr<o2::tpc::ClusterNative[]> clustersNative;
