@@ -26,14 +26,14 @@ void GPUTPCClusterFinder::DumpDigits(std::ostream& out)
   }
 }
 
-void GPUTPCClusterFinder::DumpChargeMap(std::ostream& out)
+void GPUTPCClusterFinder::DumpChargeMap(std::ostream& out, std::string_view title)
 {
-  out << "Clusterer - Charges - Slice " << mISlice << "\n";
+  out << "Clusterer - " << title << " - Slice " << mISlice << "\n";
   for (unsigned int i = 0; i < TPC_MAX_TIME_PADDED; i++) {
     out << "Line " << i;
     for (unsigned int j = 0; j < TPC_NUM_OF_PADS; j++) {
       if (mPchargeMap[i * TPC_NUM_OF_PADS + j]) {
-        out << " " << mPchargeMap[i * TPC_NUM_OF_PADS + j];
+        out << " " << std::hex << mPchargeMap[i * TPC_NUM_OF_PADS + j] << std::dec;
       }
     }
     out << "\n";
@@ -74,7 +74,7 @@ void GPUTPCClusterFinder::DumpSuppressedPeaks(std::ostream& out)
 
 void GPUTPCClusterFinder::DumpSuppressedPeaksCompacted(std::ostream& out)
 {
-  out << "Clusterer - Noise Suppression Peaks Compacted - Slice " << mISlice << "\n";
+  out << "Clusterer - Noise Suppression Peaks Compacted - Slice " << mISlice << ": " << mPmemory->nClusters <<"\n";
   for (size_t i = 0; i < mPmemory->nClusters; i++) {
     out << i << ": " << mPfilteredPeaks[i].charge << ", " << mPfilteredPeaks[i].time << ", " << (int)mPfilteredPeaks[i].pad << ", " << (int)mPfilteredPeaks[i].row << "\n";
   }

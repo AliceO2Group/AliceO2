@@ -873,9 +873,6 @@ int GPUChainTracking::RunTPCClusterizer()
         clusterer.mPdigits = (deprecated::PackedDigit*)mIOPtrs.tpcPackedDigits->tpcDigits[iSlice]; // TODO: Needs fixing, double-allocated and invalid const cast
         clusterer.mPmemory->nDigits = mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice];
       }
-      if (GetDeviceProcessingSettings().debugLevel >= 6) {
-        clusterer.DumpDigits(mDebugFile);
-      }
       if (clusterer.mPmemory->nDigits == 0) {
         continue;
       }
@@ -893,7 +890,7 @@ int GPUChainTracking::RunTPCClusterizer()
       if (GetDeviceProcessingSettings().keepAllMemory) {
         TransferMemoryResourcesToHost(RecoStep::TPCClusterFinding, &clusterer, -1, true);
         if (GetDeviceProcessingSettings().debugLevel >= 6) {
-          clusterer.DumpChargeMap(mDebugFile);
+          clusterer.DumpChargeMap(mDebugFile, "Charges");
         }
       }
       runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::findPeaks>(GetGrid(clusterer.mPmemory->nDigits, ClustererThreadCount(), lane), {iSlice}, {});
@@ -921,6 +918,7 @@ int GPUChainTracking::RunTPCClusterizer()
         continue;
       }
       runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::noiseSuppression>(GetGrid(clusterer.mPmemory->nPeaks, ClustererThreadCount(), lane), {iSlice}, {});
+      runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::updatePeaks>(GetGrid(clusterer.mPmemory->nPeaks, ClustererThreadCount(), lane), {iSlice}, {});
       if (GetDeviceProcessingSettings().keepAllMemory) {
         TransferMemoryResourcesToHost(RecoStep::TPCClusterFinding, &clusterer, -1, true);
         if (GetDeviceProcessingSettings().debugLevel >= 6) {
@@ -951,6 +949,7 @@ int GPUChainTracking::RunTPCClusterizer()
         TransferMemoryResourcesToHost(RecoStep::TPCClusterFinding, &clusterer, -1, true);
         if (GetDeviceProcessingSettings().debugLevel >= 6) {
           clusterer.DumpCountedPeaks(mDebugFile);
+          clusterer.DumpChargeMap(mDebugFile, "Split Charges");
         }
       }
       runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::computeClusters>(GetGrid(clusterer.mPmemory->nClusters, ClustererThreadCount(), lane), {iSlice}, {});
