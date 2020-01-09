@@ -166,7 +166,6 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
 
   int timeBinTRFend = 0;
   double padSignal[kNpad];
-  double signalOld[kNpad];
 
   if (mSimParam->TRFOn()) {
     timeBinTRFend = ((int)(mSimParam->GetTRFhi() * mCommonParam->GetSamplingFrequency())) - 1;
@@ -351,16 +350,16 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
           if (mSimParam->CTOn()) {
             crossTalk = mSimParam->CrossTalk(t);
           }
-          signalOld[iPad] = currentSignal[iTimeBin];
+          float signalOld = currentSignal[iTimeBin];
           if (colPos != colE) {
             // Cross talk added to non-central pads
-            signalOld[iPad] += padSignal[iPad] * (timeResponse + crossTalk);
+            signalOld += padSignal[iPad] * (timeResponse + crossTalk);
           } else {
             // Without cross talk at central pad
-            signalOld[iPad] += padSignal[iPad] * timeResponse;
+            signalOld += padSignal[iPad] * timeResponse;
           }
           // Update the final signal
-          currentSignal[iTimeBin] = signalOld[iPad];
+          currentSignal[iTimeBin] = signalOld;
         } // Loop: time bins
       }   // Loop: pads
     }     // end of loop over electrons

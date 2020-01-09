@@ -29,10 +29,11 @@ constexpr int KEY_MIN = 0;
 constexpr int KEY_MAX = 2211727;
 
 typedef std::uint16_t ADC_t;                                      // the ADC value type
-typedef std::array<ADC_t, kTB> ArrayADC_t;                        // the array ADC
-typedef std::array<ADC_t, kTB + 1> ArrayADCext_t;                 // the array ADC + label index
-typedef std::vector<Digit> DigitContainer_t;                      // the digit container type
-typedef std::unordered_map<int, ArrayADCext_t> SignalContainer_t; // a map container type for signal handling during digitization
+typedef float Signal_t;                                           // the signal value type
+typedef std::array<ADC_t, kTB> ArrayADC_t;                        // the array ADC - the main member of the Digit class
+typedef std::array<Signal_t, kTB + 1> ArraySignal_t;              // the signal array + 1 element for mc label indexing - for the digitization process only
+typedef std::vector<Digit> DigitContainer_t;                      // the digit container type to send the digits to the DPL
+typedef std::unordered_map<int, ArraySignal_t> SignalContainer_t; // a map container type for signal handling during digitization
 
 class Digit
 {
@@ -91,11 +92,11 @@ class Digit
       const int key = calculateKey(element.getDetector(),
                                    element.getRow(),
                                    element.getPad());
-      ArrayADCext_t adcsext{};
+      ArraySignal_t adcs{};
       for (int i = 0; i < kTB; ++i) {
-        adcsext[i] = element.getADC()[i];
+        adcs[i] = element.getADC()[i];
       }
-      adcMapCont[key] = adcsext;
+      adcMapCont[key] = adcs;
     }
   }
 
