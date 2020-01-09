@@ -427,12 +427,12 @@ BOOST_AUTO_TEST_CASE(TestRetrieveHeaders, *utf::precondition(if_reachable()))
   test_fixture f;
 
   TH1F h1("object1", "object1", 100, 0, 99);
-  cout << "storing object 1 in qc/Test" << endl;
+  cout << "storing object 1 in " << basePath << "Test" << endl;
   map<string, string> metadata;
   metadata["custom"] = "whatever";
-  f.api.storeAsTFile(&h1, "qc/Test", metadata);
+  f.api.storeAsTFile(&h1, basePath + "Test", metadata);
 
-  std::map<std::string, std::string> headers = f.api.retrieveHeaders("qc/Test", f.metadata);
+  std::map<std::string, std::string> headers = f.api.retrieveHeaders(basePath + "Test", metadata);
   BOOST_CHECK_NE(headers.size(), 0);
   std::string h = headers["custom"];
   BOOST_CHECK_EQUAL(h, "whatever");
@@ -442,13 +442,13 @@ BOOST_AUTO_TEST_CASE(TestRetrieveHeaders, *utf::precondition(if_reachable()))
     cout << i++ << " : " << h.first << " -> " << h.second << endl;
   }
 
-  headers = f.api.retrieveHeaders("qc/Test", metadata);
+  headers = f.api.retrieveHeaders(basePath + "Test", metadata);
   BOOST_CHECK_NE(headers.size(), 0);
   h = headers["custom"];
   BOOST_CHECK_EQUAL(h, "whatever");
 
   metadata["custom"] = "something";
-  headers = f.api.retrieveHeaders("qc/Test", metadata);
+  headers = f.api.retrieveHeaders(basePath + "Test", metadata);
 
   i = 0;
   for (auto h : headers) {
