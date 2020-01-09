@@ -847,7 +847,9 @@ int GPUChainTracking::RunTPCClusterizer()
   mRec->SetThreadCounts(RecoStep::TPCClusterFinding);
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCClusterFinding;
 
-  WriteToConstantMemory(RecoStep::TPCClusterFinding, (char*)processors()->tpcClusterer - (char*)processors(), processorsShadow()->tpcClusterer, sizeof(GPUTPCClusterFinder) * NSLICES, mRec->NStreams() - 1, &mEvents->init);
+  if (doGPU) {
+    WriteToConstantMemory(RecoStep::TPCClusterFinding, (char*)processors()->tpcClusterer - (char*)processors(), processorsShadow()->tpcClusterer, sizeof(GPUTPCClusterFinder) * NSLICES, mRec->NStreams() - 1, &mEvents->init);
+  }
   SynchronizeGPU();
 
   static std::vector<o2::tpc::ClusterNative> clsMemory;
