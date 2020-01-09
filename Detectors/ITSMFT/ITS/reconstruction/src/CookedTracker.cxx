@@ -196,7 +196,7 @@ static o2::its::TrackITSExt cookSeed(const Point3Df& r1, Point3Df& r2, const Poi
   par[2] = sf;
 
   par[3] = 0.5 * (tgl12 + tgl23);
-  par[4] = (TMath::Abs(bz) < Almost0) ? Almost0 : crv / (bz * B2C);
+  par[4] = (TMath::Abs(bz) < Almost0) ? TMath::Sign(1 / o2::track::kMostProbablePt, crv) : crv / (bz * B2C);
 
   std::array<float, 15> cov;
   /*
@@ -210,8 +210,12 @@ static o2::its::TrackITSExt cookSeed(const Point3Df& r1, Point3Df& r2, const Poi
   const Double_t dlt = 0.0005;
   Double_t fy = 1. / (rad2 - rad3);
   Double_t tz = fy;
-  Double_t cy = (f1(x1, y1, x2, y2 + dlt, x3, y3) - crv) / dlt / bz / B2C;
-  cy *= 20; // FIXME: MS contribution to the cov[14]
+  constexpr auto big = sqrt(o2::constants::math::VeryBig);
+  auto cy = big;
+  if (TMath::Abs(bz) >= Almost0) {
+    cy = (f1(x1, y1, x2, y2 + dlt, x3, y3) - crv) / dlt / bz / B2C;
+    cy *= 20; // FIXME: MS contribution to the cov[14]
+  }
   Double_t s2 = kSigma2;
 
   cov[0] = s2;
@@ -245,7 +249,8 @@ void CookedTracker::makeSeeds(std::vector<TrackITSExt>& seeds, Int_t first, Int_
   Layer& layer2 = sLayers[kSeedingLayer2];
   Layer& layer3 = sLayers[kSeedingLayer3];
 
-  const Double_t maxC = TMath::Abs(getBz() * B2C / kminPt);
+  auto bz = getBz();
+  const Double_t maxC = (TMath::Abs(bz) < Almost0) ? 0.03 : TMath::Abs(bz * B2C / kminPt);
   const Double_t kpWin = TMath::ASin(0.5 * maxC * layer1.getR()) - TMath::ASin(0.5 * maxC * layer2.getR());
   const float kpWin100 = kpWin / 100;
 
@@ -369,8 +374,12 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
 
     for (Int_t l = kSeedingLayer2 - 1; l >= 0; l--) {
       Float_t r2 = sLayers[l].getR();
-      phi += 0.5 * crv * (r2 - r1);
-      z += tgl / (0.5 * crv) * (TMath::ASin(0.5 * crv * r2) - TMath::ASin(0.5 * crv * r1));
+      if (TMath::Abs(crv) < Almost0) {
+        z += tgl * (r2 - r1);
+      } else {
+        phi += 0.5 * crv * (r2 - r1);
+        z += tgl / (0.5 * crv) * (TMath::ASin(0.5 * crv * r2) - TMath::ASin(0.5 * crv * r1));
+      }
       selec[l].clear();
       sLayers[l].selectClusters(selec[l], phi, kRoadY, z, kRoadZ * (1 + 2 * std::abs(tgl)));
       r1 = r2;
