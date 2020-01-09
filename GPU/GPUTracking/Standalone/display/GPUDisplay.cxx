@@ -1222,7 +1222,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
       glTranslatef(-vals[0], -vals[1], -vals[2]);
     }
   } else if (mResetScene) {
-    glTranslatef(0, 0, -8);
+    glTranslatef(0, 0, param().ContinuousTracking ? (-param().continuousMaxTimeBin / 500 * 250 / GL_SCALE_FACTOR - 8) : -8);
 
     mCfg.pointSize = 2.0;
     mCfg.drawSlice = -1;
