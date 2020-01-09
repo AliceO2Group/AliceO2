@@ -35,6 +35,7 @@
 
 #ifdef HAVE_O2HEADERS
 #include "GPUTPCClusterStatistics.h"
+#include "DataFormatsTPC/ZeroSuppression.h"
 #else
 #include "GPUO2FakeClasses.h"
 #endif
@@ -292,25 +293,52 @@ void GPUChainTracking::PrepareEventFromNative()
 int GPUChainTracking::PrepareEvent()
 {
   mRec->MemoryScalers()->nTRDTracklets = mIOPtrs.nTRDTracklets;
-  if (mIOPtrs.tpcPackedDigits) {
+  if (mIOPtrs.tpcPackedDigits || mIOPtrs.tpcZS) {
 #ifdef HAVE_O2HEADERS
     mRec->MemoryScalers()->nTPCdigits = 0;
     size_t maxDigits = 0;
-    for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      mRec->MemoryScalers()->nTPCdigits += mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice];
-      if (mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice] > maxDigits) {
-        maxDigits = mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice];
-      }
+    size_t maxPages = 0;
+    size_t nPagesTotal = 0;
+    unsigned int maxClusters[NSLICES] = {0};
+    if (mIOPtrs.tpcZS && param().rec.fwdTPCDigitsAsClusters) {
+      throw std::runtime_error("Forwading zero-suppressed hits not supported");
     }
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      processors()->tpcTrackers[iSlice].Data().SetClusterData(nullptr, param().rec.fwdTPCDigitsAsClusters ? mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice] : mRec->MemoryScalers()->NTPCClusters(mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice]), 0); // TODO: fixme
+      unsigned int nMaxDigits = 0;
+      if (mIOPtrs.tpcZS) {
+        size_t nPages = 0;
+        for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
+          for (unsigned int k = 0; k < mIOPtrs.tpcZS->slice[iSlice].count[j]; k++) {
+            nPages += mIOPtrs.tpcZS->slice[iSlice].nZSPtr[j][k];
+          }
+        }
+        nMaxDigits += nPages * TPCZSHDR::MAX_DIGITS_IN_PAGE;
+        if (nPages > maxPages) {
+          maxPages = nPages;
+        }
+        nPagesTotal += nPages;
+      } else {
+        nMaxDigits = mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice];
+      }
+      mRec->MemoryScalers()->nTPCdigits += nMaxDigits;
+      if (nMaxDigits > maxDigits) {
+        maxDigits = nMaxDigits;
+      }
+      maxClusters[iSlice] = param().rec.fwdTPCDigitsAsClusters ? nMaxDigits : mRec->MemoryScalers()->NTPCClusters(mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice]);
+    }
+    for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
+      processors()->tpcTrackers[iSlice].Data().SetClusterData(nullptr, maxClusters[iSlice], 0); // TODO: fixme
       // Distribute maximum digits, so that we can reuse the memory easily
-      processors()->tpcClusterer[iSlice].SetNMaxDigits(maxDigits);
+      processors()->tpcClusterer[iSlice].SetNMaxDigits(maxDigits, maxPages);
     }
     mRec->MemoryScalers()->nTPCHits = param().rec.fwdTPCDigitsAsClusters ? mRec->MemoryScalers()->nTPCdigits : mRec->MemoryScalers()->NTPCClusters(mRec->MemoryScalers()->nTPCdigits);
     processors()->tpcCompressor.mMaxClusters = mRec->MemoryScalers()->nTPCHits;
     processors()->tpcConverter.mNClustersTotal = mRec->MemoryScalers()->nTPCHits;
-    GPUInfo("Event has %lld TPC Digits", (long long int)mRec->MemoryScalers()->nTPCdigits);
+    if (mIOPtrs.tpcZS) {
+      GPUInfo("Event has %lld 8kb TPC ZS pages", (long long int)nPagesTotal);
+    } else {
+      GPUInfo("Event has %lld TPC Digits", (long long int)mRec->MemoryScalers()->nTPCdigits);
+    }
 #endif
   } else if (mIOPtrs.clustersNative) {
     PrepareEventFromNative();
