@@ -63,45 +63,39 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
 
   // ROFrecords
   std::vector<ROFRec> rofRecVec, *rofRecVecP = &rofRecVec;
-  TTree* ROFRecTree = (TTree*)fileC.Get("ITSClustersROF");
-  ROFRecTree->SetBranchAddress("ITSClustersROF", &rofRecVecP);
+  clusTree->SetBranchAddress("ITSClustersROF", &rofRecVecP);
 
   // Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clusLabArr = nullptr;
   std::vector<MC2ROF> mc2rofVec, *mc2rofVecP = &mc2rofVec;
-  TTree* MC2ROFRecTree = nullptr;
   if (hitTree && clusTree->GetBranch("ITSClusterMCTruth")) {
     clusTree->SetBranchAddress("ITSClusterMCTruth", &clusLabArr);
-    MC2ROFRecTree = (TTree*)fileC.Get("ITSClustersMC2ROF");
-    MC2ROFRecTree->SetBranchAddress("ITSClustersMC2ROF", &mc2rofVecP);
+    clusTree->SetBranchAddress("ITSClustersMC2ROF", &mc2rofVecP);
   }
 
-  ROFRecTree->GetEntry(0);
+  clusTree->GetEntry(0);
   int nROFRec = (int)rofRecVec.size();
   std::vector<int> mcEvMin(nROFRec, hitTree->GetEntries());
   std::vector<int> mcEvMax(nROFRec, -1);
 
   // >> build min and max MC events used by each ROF
-  for (int ent = 0; ent < MC2ROFRecTree->GetEntries(); ent++) {
-    MC2ROFRecTree->GetEntry(ent);
-    for (int imc = mc2rofVec.size(); imc--;) {
-      const auto& mc2rof = mc2rofVec[imc];
-      printf("MCRecord: ");
-      mc2rof.print();
-      if (mc2rof.rofRecordID < 0) {
-        continue; // this MC event did not contribute to any ROF
+  for (int imc = mc2rofVec.size(); imc--;) {
+    const auto& mc2rof = mc2rofVec[imc];
+    printf("MCRecord: ");
+    mc2rof.print();
+    if (mc2rof.rofRecordID < 0) {
+      continue; // this MC event did not contribute to any ROF
+    }
+    for (int irfd = mc2rof.maxROF - mc2rof.minROF + 1; irfd--;) {
+      int irof = mc2rof.rofRecordID + irfd;
+      if (irof >= nROFRec) {
+        LOG(ERROR) << "ROF=" << irof << " from MC2ROF record is >= N ROFs=" << nROFRec;
       }
-      for (int irfd = mc2rof.maxROF - mc2rof.minROF + 1; irfd--;) {
-        int irof = mc2rof.rofRecordID + irfd;
-        if (irof >= nROFRec) {
-          LOG(ERROR) << "ROF=" << irof << " from MC2ROF record is >= N ROFs=" << nROFRec;
-        }
-        if (mcEvMin[irof] > imc) {
-          mcEvMin[irof] = imc;
-        }
-        if (mcEvMax[irof] < imc) {
-          mcEvMax[irof] = imc;
-        }
+      if (mcEvMin[irof] > imc) {
+        mcEvMin[irof] = imc;
+      }
+      if (mcEvMax[irof] < imc) {
+        mcEvMax[irof] = imc;
       }
     }
   }
@@ -111,9 +105,7 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
     const auto& rofRec = rofRecVec[irof];
 
     rofRec.print();
-    if (clusTree->GetReadEntry() != rofRec.getROFEntry().getEvent()) { // read the entry containing clusters of given ROF
-      clusTree->GetEntry(rofRec.getROFEntry().getEvent());             // all clusters of the same ROF are in a single entry
-    }
+
     // >> read and map MC events contributing to this ROF
     for (int im = mcEvMin[irof]; im <= mcEvMax[irof]; im++) {
       if (!hitVecPool[im]) {
@@ -129,8 +121,8 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
       }
     }
     // << cache MC events contributing to this ROF
-    for (int icl = 0; icl < rofRec.getNROFEntries(); icl++) {
-      int clEntry = rofRec.getROFEntry().getIndex() + icl; // entry of icl-th cluster of this ROF in the vector of clusters
+    for (int icl = 0; icl < rofRec.getNEntries(); icl++) {
+      int clEntry = rofRec.getFirstEntry() + icl; // entry of icl-th cluster of this ROF in the vector of clusters
 
       const auto& cluster = (*clusArr)[clEntry];
 

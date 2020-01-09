@@ -27,7 +27,6 @@
 #include "ITSMFTReconstruction/PixelData.h"
 #include "ITSMFTReconstruction/LookUp.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "CommonDataFormat/EvIndex.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonConstants/LHCConstants.h"
 #include "Rtypes.h"
@@ -59,7 +58,6 @@ class Clusterer
   using Label = o2::MCCompLabel;
   using MCTruth = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
-  using EvIdx = o2::dataformats::EvIndex<int, int>;
   using BCData = o2::InteractionRecord;
 
  public:

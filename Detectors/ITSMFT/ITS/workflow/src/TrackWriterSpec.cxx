@@ -69,26 +69,19 @@ void TrackWriter::run(ProcessingContext& pc)
     plabels = labels.get();
     tree.Branch("ITSTrackMCTruth", &plabels);
   }
-  tree.Fill();
-  tree.Write();
-
   // write ROFrecords vector to a tree
-  TTree treeROF("ITSTracksROF", "ROF records tree");
   auto* rofsPtr = &rofs;
-  treeROF.Branch("ITSTracksROF", &rofsPtr);
-  treeROF.Fill();
-  treeROF.Write();
+  tree.Branch("ITSTracksROF", &rofsPtr);
 
   if (mUseMC) {
     // write MC2ROFrecord vector (directly inherited from digits input) to a tree
-    TTree treeMC2ROF("ITSTracksMC2ROF", "MC -> ROF records tree");
     auto mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
     auto* mc2rofsPtr = &mc2rofs;
-    treeMC2ROF.Branch("ITSTracksMC2ROF", &mc2rofsPtr);
-    treeMC2ROF.Fill();
-    treeMC2ROF.Write();
+    tree.Branch("ITSTracksMC2ROF", &mc2rofsPtr);
   }
 
+  tree.Fill();
+  tree.Write();
   mFile->Close();
 
   mState = 2;

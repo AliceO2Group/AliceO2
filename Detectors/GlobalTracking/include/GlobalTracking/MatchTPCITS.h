@@ -26,7 +26,6 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
-#include "CommonDataFormat/EvIndex.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "CommonUtils/TreeStreamRedirector.h"
@@ -103,12 +102,12 @@ struct TimeBracket {
 ///< TPC track parameters propagated to reference X, with time bracket and index of
 ///< original track in the currently loaded TPC reco output
 struct TrackLocTPC : public o2::track::TrackParCov {
-  o2::dataformats::EvIndex<int, int> source; ///< track origin id
   TimeBracket timeBins;                      ///< bracketing time-bins
+  int sourceID = 0;                          ///< track origin id
   float zMin = 0;                            // min possible Z of this track
   float zMax = 0;                            // max possible Z of this track
   int matchID = MinusOne;                    ///< entry (non if MinusOne) of its matchTPC struct in the mMatchesTPC
-  TrackLocTPC(const o2::track::TrackParCov& src, int tch, int tid) : o2::track::TrackParCov(src), source(tch, tid) {}
+  TrackLocTPC(const o2::track::TrackParCov& src, int tid) : o2::track::TrackParCov(src), sourceID(tid) {}
   TrackLocTPC() = default;
   ClassDefNV(TrackLocTPC, 1);
 };
@@ -116,10 +115,10 @@ struct TrackLocTPC : public o2::track::TrackParCov {
 ///< ITS track outward parameters propagated to reference X, with time bracket and index of
 ///< original track in the currently loaded ITS reco output
 struct TrackLocITS : public o2::track::TrackParCov {
-  o2::dataformats::EvIndex<int, int> source; ///< track origin id
+  int sourceID = 0;                          ///< track origin id
   int roFrame = MinusOne;                    ///< ITS readout frame assigned to this track
   int matchID = MinusOne;                    ///< entry (non if MinusOne) of its matchCand struct in the mMatchesITS
-  TrackLocITS(const o2::track::TrackParCov& src, int tch, int tid) : o2::track::TrackParCov(src), source(tch, tid) {}
+  TrackLocITS(const o2::track::TrackParCov& src, int tid) : o2::track::TrackParCov(src), sourceID(tid) {}
   TrackLocITS() = default;
   ClassDefNV(TrackLocITS, 1);
 };
@@ -128,9 +127,9 @@ struct TrackLocITS : public o2::track::TrackParCov {
 ///< in the matchCandidate the ID of the 1st (best) matchRecord in the mMatchRecordsITS
 ///< ot mMatchRecordsTPC container
 struct matchCand {
-  o2::dataformats::EvIndex<int, int> source; ///< track origin id
+  int sourceID;                              ///< track origin id
   int first = MinusOne;                      ///< 1st match for this track in the mMatchRecordsTPC
-  matchCand(const o2::dataformats::EvIndex<int, int>& src) : source(src) {}
+  matchCand(int id) : sourceID(id) {}
   matchCand() = default;
 };
 
@@ -199,14 +198,14 @@ class MatchTPCITS
   void setITSTracksInp(const gsl::span<const o2::its::TrackITS> inp)
   {
     assertDPLIO(true);
-    mITSTracksArrayInp = inp;
+    mITSTracksArray = inp;
   }
 
   ///< set input ITS tracks cluster indices received via DPL
   void setITSTrackClusIdxInp(const gsl::span<const int> inp)
   {
     assertDPLIO(true);
-    mITSTrackClusIdxInp = inp;
+    mITSTrackClusIdx = inp;
   }
 
   ///< set input ITS tracks ROF records received via DPL
@@ -220,7 +219,7 @@ class MatchTPCITS
   void setITSClustersInp(const gsl::span<const o2::itsmft::Cluster> inp)
   {
     assertDPLIO(true);
-    mITSClustersArrayInp = inp;
+    mITSClustersArray = inp;
   }
 
   ///< set input ITS clusters ROF records received via DPL
@@ -234,14 +233,14 @@ class MatchTPCITS
   void setTPCTracksInp(const gsl::span<const o2::tpc::TrackTPC> inp)
   {
     assertDPLIO(true);
-    mTPCTracksArrayInp = inp;
+    mTPCTracksArray = inp;
   }
 
   ///< set input TPC tracks cluster indices received via DPL
   void setTPCTrackClusIdxInp(const gsl::span<const o2::tpc::TPCClRefElem> inp)
   {
     assertDPLIO(true);
-    mTPCTrackClusIdxInp = inp;
+    mTPCTrackClusIdx = inp;
   }
 
   ///< set input TPC clusters received via DPL
@@ -277,17 +276,11 @@ class MatchTPCITS
   ///< set tree/chain containing ITS tracks
   void setInputTreeITSTracks(TTree* tree) { mTreeITSTracks = tree; }
 
-  ///< set tree/chain containing ITS ROFRecs
-  void setInputTreeITSTrackROFRec(TTree* tree) { mTreeITSTrackROFRec = tree; }
-
   ///< set tree/chain containing TPC tracks
   void setInputTreeTPCTracks(TTree* tree) { mTreeTPCTracks = tree; }
 
   ///< set tree/chain containing ITS clusters
   void setInputTreeITSClusters(TTree* tree) { mTreeITSClusters = tree; }
-
-  ///< set tree/chain containing ITS cluster ROF records
-  void setInputTreeITSClusterROFRec(TTree* tree) { mTreeITSClusterROFRec = tree; }
 
   ///< set optional input for FIT info
   void setInputTreeFITInfo(TTree* tree) { mTreeFITInfo = tree; }
@@ -402,12 +395,8 @@ class MatchTPCITS
   bool prepareTPCTracks();
   bool prepareITSTracks();
   bool prepareFITInfo();
-  bool loadTPCTracksNextChunk();
-  bool loadITSTracksNextChunk();
-  void loadITSClustersChunk(int chunk);
-  void loadITSTracksChunk(int chunk);
-  void loadTPCClustersChunk(int chunk);
-  void loadTPCTracksChunk(int chunk);
+  bool loadTPCTracks();
+  bool loadTPCClusters();
 
   void doMatching(int sec);
 
@@ -487,11 +476,6 @@ class MatchTPCITS
   bool mInitDone = false; ///< flag init already done
   bool mDPLIO = false;    ///< inputs are set by from DLP device rather than trees
 
-  int mCurrTPCTracksTreeEntry = -1;   ///< current TPC tracks tree entry loaded to memory
-  int mCurrTPCClustersTreeEntry = -1; ///< current TPC clusters tree entry loaded to memory
-  int mCurrITSClustersTreeEntry = -1; ///< current ITS clusters tree entry loaded to memory
-  int mCurrITSTracksTreeEntry = -1;   ///< current ITS tracks tree entry loaded to memory
-
   bool mMCTruthON = false;        ///< flag availability of MC truth
   o2::InteractionRecord mStartIR; ///< IR corresponding to the start of the TF
   ///========== Parameters to be set externally, e.g. from CCDB ====================
@@ -540,10 +524,8 @@ class MatchTPCITS
   float mTPCZMax = 0.;              ///< max drift length
 
   TTree* mTreeITSTracks = nullptr;        ///< input tree for ITS tracks
-  TTree* mTreeITSTrackROFRec = nullptr;   ///< input tree for ITS Tracks ROFRecords vector
   TTree* mTreeTPCTracks = nullptr;        ///< input tree for TPC tracks
   TTree* mTreeITSClusters = nullptr;      ///< input tree for ITS clusters
-  TTree* mTreeITSClusterROFRec = nullptr; ///< input tree for ITS Clusters ROFRecords vector
   TTree* mTreeFITInfo = nullptr;          ///< input tree for FIT info
 
   o2::tpc::ClusterNativeHelper::Reader* mTPCClusterReader = nullptr;     ///< TPC cluster reader
@@ -559,22 +541,22 @@ class MatchTPCITS
   ///>>>------ these are input arrays which should not be modified by the matching code
   //           since this info is provided by external device
   std::vector<o2::tpc::TrackTPC>* mTPCTracksArrayPtr = nullptr; ///< input TPC tracks from tree
-  gsl::span<const o2::tpc::TrackTPC> mTPCTracksArrayInp;        ///< input TPC tracks span
+  gsl::span<const o2::tpc::TrackTPC> mTPCTracksArray;           ///< input TPC tracks span
 
   std::vector<o2::tpc::TPCClRefElem>* mTPCTrackClusIdxPtr = nullptr; ///< input TPC track cluster indices from tree
-  gsl::span<const o2::tpc::TPCClRefElem> mTPCTrackClusIdxInp;        ///< input TPC track cluster indices span from DPL
+  gsl::span<const o2::tpc::TPCClRefElem> mTPCTrackClusIdx;           ///< input TPC track cluster indices span from DPL
 
   std::vector<o2::itsmft::ROFRecord>* mITSTrackROFRecPtr = nullptr; ///< input ITS tracks ROFRecord from tree
   gsl::span<const o2::itsmft::ROFRecord> mITSTrackROFRec;           ///< input ITS tracks ROFRecord span from DPL
 
   std::vector<o2::its::TrackITS>* mITSTracksArrayPtr = nullptr; ///< input ITS tracks read from tree
-  gsl::span<const o2::its::TrackITS> mITSTracksArrayInp;        ///< input ITS tracks span
+  gsl::span<const o2::its::TrackITS> mITSTracksArray;           ///< input ITS tracks span
 
   std::vector<int>* mITSTrackClusIdxPtr = nullptr; ///< input ITS track cluster indices from tree
-  gsl::span<const int> mITSTrackClusIdxInp;        ///< input ITS track cluster indices span from DPL
+  gsl::span<const int> mITSTrackClusIdx;           ///< input ITS track cluster indices span from DPL
 
   const std::vector<o2::itsmft::Cluster>* mITSClustersArrayPtr = nullptr; ///< input ITS clusters from tree
-  gsl::span<const o2::itsmft::Cluster> mITSClustersArrayInp;              ///< input ITS clusters from tree from DPL
+  gsl::span<const o2::itsmft::Cluster> mITSClustersArray;                 ///< input ITS clusters span from DPL
 
   const std::vector<o2::itsmft::ROFRecord>* mITSClusterROFRecPtr = nullptr; ///< input ITS clusters ROFRecord from tree
   gsl::span<const o2::itsmft::ROFRecord> mITSClusterROFRec;                 ///< input ITS clusters ROFRecord span from DPL
@@ -668,7 +650,7 @@ inline matchCand& MatchTPCITS::getTPCMatchEntry(TrackLocTPC& tTPC)
   ///< create if neaded
   if (tTPC.matchID == MinusOne) { // does this TPC track already have any match? If not, create matchCand entry
     tTPC.matchID = mMatchesTPC.size();
-    mMatchesTPC.emplace_back(tTPC.source);
+    mMatchesTPC.emplace_back(tTPC.sourceID);
     return mMatchesTPC.back();
   }
   return mMatchesTPC[tTPC.matchID];
@@ -681,7 +663,7 @@ inline matchCand& MatchTPCITS::getITSMatchEntry(TrackLocITS& tITS)
   ///< create if neaded
   if (tITS.matchID == MinusOne) { // does this ITS track already have any match? If not, create matchCand entry
     tITS.matchID = mMatchesITS.size();
-    mMatchesITS.emplace_back(tITS.source);
+    mMatchesITS.emplace_back(tITS.sourceID);
     return mMatchesITS.back();
   }
   return mMatchesITS[tITS.matchID];

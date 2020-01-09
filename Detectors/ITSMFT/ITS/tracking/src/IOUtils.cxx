@@ -148,8 +148,8 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, c
   geom->fillMatrixCache(utils::bit2Mask(TransformType::T2GRot));
   int clusterId{0};
 
-  auto first = rof.getROFEntry().getIndex();
-  auto number = rof.getNROFEntries();
+  auto first = rof.getFirstEntry();
+  auto number = rof.getNEntries();
   auto clusters_in_frame = gsl::make_span(&(*clusters)[first], number);
   for (auto& c : clusters_in_frame) {
     int layer = geom->getLayer(c.getSensorID());

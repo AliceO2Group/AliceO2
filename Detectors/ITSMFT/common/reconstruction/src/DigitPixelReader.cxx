@@ -54,11 +54,11 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
   int lim = -1;
   if (mIdROF >= 0) {
     const auto& rofRec = (*mROFRecVec)[mIdROF];
-    lim = rofRec.getROFEntry().getIndex() + rofRec.getNROFEntries();
+    lim = rofRec.getFirstEntry() + rofRec.getNEntries();
   }
   while (mIdDig > lim) {
     const auto& rofRec = (*mROFRecVec)[++mIdROF];
-    lim = rofRec.getROFEntry().getIndex() + rofRec.getNROFEntries();
+    lim = rofRec.getFirstEntry() + rofRec.getNEntries();
     mInteractionRecord = rofRec.getBCData(); // update interaction record
   }
   chipData.clear();
@@ -100,20 +100,14 @@ void DigitPixelReader::openInput(const std::string inpName, o2::detectors::DetID
   }
   setDigits(mDigitsSelf);
 
-  if (!(mInputTreeROF = o2::utils::RootChain::load((detName + "DigitROF").c_str(), inpName))) {
-    LOG(FATAL) << "Failed to load ROF records tree from " << inpName;
-  }
-  mInputTreeROF->SetBranchAddress((detName + "DigitROF").c_str(), &mROFRecVecSelf);
+  mInputTree->SetBranchAddress((detName + "DigitROF").c_str(), &mROFRecVecSelf);
   if (!mROFRecVecSelf) {
     LOG(FATAL) << "Failed to find " << (detName + "DigitROF").c_str() << " branch in the " << mInputTree->GetName()
                << " from file " << inpName;
   }
   setROFRecords(mROFRecVecSelf);
 
-  if (!(mInputTreeMC2ROF = o2::utils::RootChain::load((detName + "DigitMC2ROF").c_str(), inpName))) {
-    LOG(FATAL) << "Failed to load MC2ROF records tree from " << inpName;
-  }
-  mInputTreeMC2ROF->SetBranchAddress((detName + "DigitMC2ROF").c_str(), &mMC2ROFRecVecSelf);
+  mInputTree->SetBranchAddress((detName + "DigitMC2ROF").c_str(), &mMC2ROFRecVecSelf);
   if (!mMC2ROFRecVecSelf) {
     LOG(FATAL) << "Failed to find " << (detName + "DigitMC2ROF").c_str() << " branch in the " << mInputTree->GetName()
                << " from file " << inpName;
@@ -129,19 +123,12 @@ bool DigitPixelReader::readNextEntry()
 {
   // load next entry from the self-managed input
   auto nev = mInputTree->GetEntries();
-  if (mInputTreeROF->GetEntries() != nev || nev != 1) {
-    LOG(FATAL) << "In the self-managed mode the Digits and ROFRecords trees must have 1 entry only";
-  }
   auto evID = mInputTree->GetReadEntry();
   if (evID < -1)
     evID = -1;
   if (++evID < nev) {
     init();
     mInputTree->GetEntry(evID);
-    mInputTreeROF->GetEntry(evID);
-    if (evID == 0) {
-      mInputTreeMC2ROF->GetEntry(0); // onle one entry is expected
-    }
     return true;
   } else {
     return false;

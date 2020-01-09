@@ -134,7 +134,7 @@ void Digitizer::fillOutputContainer(UInt_t frameLast)
   // we have to write chips in RO increasing order, therefore have to loop over the frames here
   for (; mROFrameMin <= frameLast; mROFrameMin++) {
     rcROF.setROFrame(mROFrameMin);
-    rcROF.getROFEntry().setIndex(mDigits->size()); // start of current ROF in digits
+    rcROF.setFirstEntry(mDigits->size()); // start of current ROF in digits
 
     auto& extra = *(mExtraBuff.front().get());
     for (auto& chip : mChips) {
@@ -165,7 +165,7 @@ void Digitizer::fillOutputContainer(UInt_t frameLast)
       buffer.erase(itBeg, iter);
     }
     // finalize ROF record
-    rcROF.setNROFEntries(mDigits->size() - rcROF.getROFEntry().getIndex()); // number of digits
+    rcROF.setNEntries(mDigits->size() - rcROF.getFirstEntry()); // number of digits
     rcROF.getBCData().setFromNS(mROFrameMin * mParams.getROFrameLength() + mParams.getTimeOffset());
     if (mROFRecords) {
       mROFRecords->push_back(rcROF);
