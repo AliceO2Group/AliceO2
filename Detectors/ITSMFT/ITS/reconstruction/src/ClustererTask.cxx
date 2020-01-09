@@ -70,7 +70,7 @@ void ClustererTask::Init()
 }
 
 //_____________________________________________________________________
-void ClustererTask::run(const std::string inpName, const std::string outName, bool entryPerROF)
+void ClustererTask::run(const std::string inpName, const std::string outName)
 {
   // standalone execution
   setSelfManagedMode(true);
@@ -81,7 +81,6 @@ void ClustererTask::run(const std::string inpName, const std::string outName, bo
     LOG(FATAL) << "Failed to open output file " << outName;
   }
   std::unique_ptr<TTree> outTree = std::make_unique<TTree>("o2sim", "ITS Clusters");
-  std::unique_ptr<TTree> outTreeROF = std::make_unique<TTree>("ITSClustersROF", "ROF records tree");
 
   if (mClusterer.getWantFullClusters()) {
     mFullClusPtr = &mFullClus;
@@ -100,11 +99,7 @@ void ClustererTask::run(const std::string inpName, const std::string outName, bo
   }
 
   mROFRecVecPtr = &mROFRecVec;
-  outTreeROF->Branch("ITSClustersROF", mROFRecVecPtr);
-
-  if (entryPerROF) {
-    mClusterer.setOutputTree(outTree.get()); // this will force flushing at every ROF
-  }
+  outTree->Branch("ITSClustersROF", mROFRecVecPtr);
 
   if (mRawDataMode) {
     mReaderRaw->openInput(inpName);
@@ -131,26 +126,16 @@ void ClustererTask::run(const std::string inpName, const std::string outName, bo
       mClusterer.process(*mReaderMC.get(), mFullClusPtr, mCompClusPtr, mClsLabelsPtr, mROFRecVecPtr);
     }
   }
-
+  /*
   if (!mRawDataMode && mReaderMC->getMC2ROFRecords()) {
-    std::unique_ptr<TTree> outTreeMC2ROF = std::make_unique<TTree>("ITSClustersMC2ROF", "MC->ROF records tree");
     auto mc2rof = *mReaderMC->getMC2ROFRecords(); // clone
     auto* mc2rofPtr = &mc2rof;
-    outTreeMC2ROF->Branch("ITSClustersMC2ROF", &mc2rofPtr);
-    outTreeMC2ROF->Fill();
-    outTreeMC2ROF->Write();
   }
-
-  if (!entryPerROF) { // Clustered was not managing the output, do it here
-    outTree->Fill();  // in this mode all ROF will go to single entry of the tree
-  }
-  outTreeROF->Fill(); // ROF records are stored as a single vector
-
+  */
+  outTree->Fill();
   outTree->Write();
-  outTreeROF->Write();
 
   outTree.reset(); // tree should be destroyed before the file is closed
-  outTreeROF.reset();
 
   outFile->Close();
 

@@ -82,124 +82,113 @@ void run_buildTopoDict_its(std::string clusfile = "o2clus_its.root",
 
   // ROFrecords
   std::vector<ROFRec> rofRecVec, *rofRecVecP = &rofRecVec;
-  TTree* ROFRecTree = (TTree*)fileCl->Get("ITSClustersROF");
-  ROFRecTree->SetBranchAddress("ITSClustersROF", &rofRecVecP);
+  clusTree->SetBranchAddress("ITSClustersROF", &rofRecVecP);
 
   // Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clusLabArr = nullptr;
   std::vector<MC2ROF> mc2rofVec, *mc2rofVecP = &mc2rofVec;
-  TTree* MC2ROFRecTree = nullptr;
   if (hitTree && clusTree->GetBranch("ITSClusterMCTruth")) {
     clusTree->SetBranchAddress("ITSClusterMCTruth", &clusLabArr);
-    MC2ROFRecTree = (TTree*)fileCl->Get("ITSClustersMC2ROF");
-    MC2ROFRecTree->SetBranchAddress("ITSClustersMC2ROF", &mc2rofVecP);
+    clusTree->SetBranchAddress("ITSClustersMC2ROF", &mc2rofVecP);
   }
+  clusTree->GetEntry(0);
 
   BuildTopologyDictionary dict;
 
-  for (int rofEnt = 0; rofEnt < ROFRecTree->GetEntries(); rofEnt++) {
-    ROFRecTree->GetEntry(rofEnt);
-    int nROFRec = (int)rofRecVec.size();
-    std::vector<int> mcEvMin(nROFRec, hitTree->GetEntries()), mcEvMax(nROFRec, -1);
+  int nROFRec = (int)rofRecVec.size();
+  std::vector<int> mcEvMin(nROFRec, hitTree->GetEntries()), mcEvMax(nROFRec, -1);
 
-    if (clusLabArr) { // >> build min and max MC events used by each ROF
-      for (int ent = 0; ent < MC2ROFRecTree->GetEntries(); ent++) {
-        MC2ROFRecTree->GetEntry(ent);
-        for (int imc = mc2rofVec.size(); imc--;) {
-          const auto& mc2rof = mc2rofVec[imc];
-          if (mc2rof.rofRecordID < 0) {
-            continue; // this MC event did not contribute to any ROF
-          }
-          for (int irfd = mc2rof.maxROF - mc2rof.minROF + 1; irfd--;) {
-            int irof = mc2rof.rofRecordID + irfd;
-            if (mcEvMin[irof] > imc) {
-              mcEvMin[irof] = imc;
-            }
-            if (mcEvMax[irof] < imc) {
-              mcEvMax[irof] = imc;
-            }
+  if (clusLabArr) { // >> build min and max MC events used by each ROF
+    for (int imc = mc2rofVec.size(); imc--;) {
+      const auto& mc2rof = mc2rofVec[imc];
+      if (mc2rof.rofRecordID < 0) {
+        continue; // this MC event did not contribute to any ROF
+      }
+      for (int irfd = mc2rof.maxROF - mc2rof.minROF + 1; irfd--;) {
+        int irof = mc2rof.rofRecordID + irfd;
+        if (mcEvMin[irof] > imc) {
+          mcEvMin[irof] = imc;
+        }
+        if (mcEvMax[irof] < imc) {
+          mcEvMax[irof] = imc;
+        }
+      }
+    }
+  } // << build min and max MC events used by each ROF
+
+  for (int irof = 0; irof < nROFRec; irof++) {
+    const auto& rofRec = rofRecVec[irof];
+
+    rofRec.print();
+
+    if (clusLabArr) { // >> read and map MC events contributing to this ROF
+      for (int im = mcEvMin[irof]; im <= mcEvMax[irof]; im++) {
+        if (!hitVecPool[im]) {
+          hitTree->SetBranchAddress("ITSHit", &hitVecPool[im]);
+          hitTree->GetEntry(im);
+          auto& mc2hit = mc2hitVec[im];
+          const auto* hitArray = hitVecPool[im];
+          for (int ih = hitArray->size(); ih--;) {
+            const auto& hit = (*hitArray)[ih];
+            uint64_t key = (uint64_t(hit.GetTrackID()) << 32) + hit.GetDetectorID();
+            mc2hit.emplace(key, ih);
           }
         }
       }
-    } // << build min and max MC events used by each ROF
+    } // << cache MC events contributing to this ROF
 
-    for (int irof = 0; irof < nROFRec; irof++) {
-      const auto& rofRec = rofRecVec[irof];
+    for (int icl = 0; icl < rofRec.getNEntries(); icl++) {
+      int clEntry = rofRec.getFirstEntry() + icl; // entry of icl-th cluster of this ROF in the vector of clusters
+      // do we read MC data?
 
-      rofRec.print();
-      if (clusTree->GetReadEntry() != rofRec.getROFEntry().getEvent()) { // read the entry containing clusters of given ROF
-        clusTree->GetEntry(rofRec.getROFEntry().getEvent());             // all clusters of the same ROF are in a single entry
+      const auto& cluster = (*clusArr)[clEntry];
+
+      int rowSpan = cluster.getPatternRowSpan();
+      int columnSpan = cluster.getPatternColSpan();
+      int nBytes = (rowSpan * columnSpan) >> 3;
+      if (((rowSpan * columnSpan) % 8) != 0) {
+        nBytes++;
       }
-
-      if (clusLabArr) { // >> read and map MC events contributing to this ROF
-        for (int im = mcEvMin[irof]; im <= mcEvMax[irof]; im++) {
-          if (!hitVecPool[im]) {
-            hitTree->SetBranchAddress("ITSHit", &hitVecPool[im]);
-            hitTree->GetEntry(im);
-            auto& mc2hit = mc2hitVec[im];
-            const auto* hitArray = hitVecPool[im];
-            for (int ih = hitArray->size(); ih--;) {
-              const auto& hit = (*hitArray)[ih];
-              uint64_t key = (uint64_t(hit.GetTrackID()) << 32) + hit.GetDetectorID();
-              mc2hit.emplace(key, ih);
-            }
+      unsigned char patt[Cluster::kMaxPatternBytes];
+      cluster.getPattern(&patt[0], nBytes);
+      ClusterTopology topology(rowSpan, columnSpan, patt);
+      //
+      // do we need to account for the bias of cluster COG wrt MC hit center?
+      float dX = BuildTopologyDictionary::IgnoreVal, dZ = BuildTopologyDictionary::IgnoreVal;
+      if (clusLabArr) {
+        const auto& lab = (clusLabArr->getLabels(clEntry))[0]; // we neglect effect of cluster contributed by multiple hits
+        auto srcID = lab.getSourceID();
+        if (!lab.isNoise() && srcID != QEDSourceID) { // use MC truth info only for non-QED and non-noise clusters
+          auto trID = lab.getTrackID();
+          const auto& mc2hit = mc2hitVec[lab.getEventID()];
+          const auto* hitArray = hitVecPool[lab.getEventID()];
+          int chipID = cluster.getSensorID();
+          uint64_t key = (uint64_t(trID) << 32) + chipID;
+          auto hitEntry = mc2hit.find(key);
+          if (hitEntry != mc2hit.end()) {
+            const auto& hit = (*hitArray)[hitEntry->second];
+            auto locH = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
+            auto locHsta = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
+            locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
+            const auto locC = cluster.getXYZLoc(*gman); // convert from tracking to local frame
+            dX = locH.X() - locC.X();
+            dZ = locH.Z() - locC.Z();
+          } else {
+            printf("Failed to find MC hit entry for Tr:%d chipID:%d\n", trID, chipID);
           }
         }
-      } // << cache MC events contributing to this ROF
-
-      for (int icl = 0; icl < rofRec.getNROFEntries(); icl++) {
-        int clEntry = rofRec.getROFEntry().getIndex() + icl; // entry of icl-th cluster of this ROF in the vector of clusters
-        // do we read MC data?
-
-        const auto& cluster = (*clusArr)[clEntry];
-
-        int rowSpan = cluster.getPatternRowSpan();
-        int columnSpan = cluster.getPatternColSpan();
-        int nBytes = (rowSpan * columnSpan) >> 3;
-        if (((rowSpan * columnSpan) % 8) != 0) {
-          nBytes++;
-        }
-        unsigned char patt[Cluster::kMaxPatternBytes];
-        cluster.getPattern(&patt[0], nBytes);
-        ClusterTopology topology(rowSpan, columnSpan, patt);
-        //
-        // do we need to account for the bias of cluster COG wrt MC hit center?
-        float dX = BuildTopologyDictionary::IgnoreVal, dZ = BuildTopologyDictionary::IgnoreVal;
-        if (clusLabArr) {
-          const auto& lab = (clusLabArr->getLabels(clEntry))[0]; // we neglect effect of cluster contributed by multiple hits
-          auto srcID = lab.getSourceID();
-          if (!lab.isNoise() && srcID != QEDSourceID) { // use MC truth info only for non-QED and non-noise clusters
-            auto trID = lab.getTrackID();
-            const auto& mc2hit = mc2hitVec[lab.getEventID()];
-            const auto* hitArray = hitVecPool[lab.getEventID()];
-            int chipID = cluster.getSensorID();
-            uint64_t key = (uint64_t(trID) << 32) + chipID;
-            auto hitEntry = mc2hit.find(key);
-            if (hitEntry != mc2hit.end()) {
-              const auto& hit = (*hitArray)[hitEntry->second];
-              auto locH = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
-              auto locHsta = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
-              locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
-              const auto locC = cluster.getXYZLoc(*gman); // convert from tracking to local frame
-              dX = locH.X() - locC.X();
-              dZ = locH.Z() - locC.Z();
-            } else {
-              printf("Failed to find MC hit entry for Tr:%d chipID:%d\n", trID, chipID);
-            }
-          }
-        }
-        dict.accountTopology(topology, dX, dZ);
       }
-      // clean MC cache for events which are not needed anymore
-      int irfNext = irof;
-      while ((++irfNext < nROFRec) && mcEvMax[irfNext] < 0) {
-      }                                                                      // find next ROF having MC contribution
-      int limMC = irfNext == nROFRec ? hitVecPool.size() : mcEvMin[irfNext]; // can clean events up to this
-      for (int imc = mcEvMin[irof]; imc < limMC; imc++) {
-        delete hitVecPool[imc];
-        hitVecPool[imc] = nullptr;
-        mc2hitVec[imc].clear();
-      }
+      dict.accountTopology(topology, dX, dZ);
+    }
+    // clean MC cache for events which are not needed anymore
+    int irfNext = irof;
+    while ((++irfNext < nROFRec) && mcEvMax[irfNext] < 0) {
+    }                                                                      // find next ROF having MC contribution
+    int limMC = irfNext == nROFRec ? hitVecPool.size() : mcEvMin[irfNext]; // can clean events up to this
+    for (int imc = mcEvMin[irof]; imc < limMC; imc++) {
+      delete hitVecPool[imc];
+      hitVecPool[imc] = nullptr;
+      mc2hitVec[imc].clear();
     }
   }
 

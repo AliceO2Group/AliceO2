@@ -479,8 +479,8 @@ void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<Tr
   int first = tracks.size();
   processLoadedClusters(tracks, clusIdx);
   int number = tracks.size() - first;
-  rof.getROFEntry().setIndex(first);
-  rof.setNROFEntries(number);
+  rof.setFirstEntry(first);
+  rof.setNEntries(number);
 
   unloadClusters();
   end = std::chrono::system_clock::now();
@@ -595,8 +595,8 @@ int CookedTracker::loadClusters(const std::vector<Cluster>& clusters, const o2::
   // This function reads the ITSU clusters from the tree,
   // sort them, distribute over the internal tracker arrays, etc
   //--------------------------------------------------------------------
-  auto first = rof.getROFEntry().getIndex();
-  auto number = rof.getNROFEntries();
+  auto first = rof.getFirstEntry();
+  auto number = rof.getNEntries();
 
   mFirstInFrame = first;
 

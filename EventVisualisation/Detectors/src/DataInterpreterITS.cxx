@@ -59,23 +59,20 @@ std::unique_ptr<VisualisationEvent> DataInterpreterITS::interpretDataForType(TOb
 
     TFile* clustFile = (TFile*)list->At(1);
     TTree* clusters = (TTree*)clustFile->Get("o2sim");
-    TTree* clustersRof = (TTree*)clustFile->Get("ITSClustersROF");
 
     //Read all clusters to a buffer
     std::vector<itsmft::Cluster>* clusArr = nullptr;
     clusters->SetBranchAddress("ITSCluster", &clusArr);
-    clusters->GetEntry(0);
 
-    //Read all cluster RO frames to a buffer
     std::vector<itsmft::ROFRecord>* clusterROFrames = nullptr;
-    clustersRof->SetBranchAddress("ITSClustersROF", &clusterROFrames);
-    clustersRof->GetEntry(0);
+    clusters->SetBranchAddress("ITSClustersROF", &clusterROFrames);
+    clusters->GetEntry(0);
 
     auto currentClusterROF = clusterROFrames->at(event);
 
     int first, last;
-    first = currentClusterROF.getROFEntry().getIndex();
-    last = first + currentClusterROF.getNROFEntries();
+    first = currentClusterROF.getFirstEntry();
+    last = first + currentClusterROF.getNEntries();
 
     gsl::span<itsmft::Cluster> mClusters = gsl::make_span(&(*clusArr)[first], last - first);
 
@@ -91,30 +88,26 @@ std::unique_ptr<VisualisationEvent> DataInterpreterITS::interpretDataForType(TOb
     TFile* clustFile = (TFile*)list->At(1);
 
     TTree* tracks = (TTree*)trackFile->Get("o2sim");
-    TTree* tracksRof = (TTree*)trackFile->Get("ITSTracksROF");
 
     TTree* clusters = (TTree*)clustFile->Get("o2sim");
-    TTree* clustersRof = (TTree*)clustFile->Get("ITSClustersROF");
 
     //Read all tracks to a buffer
     std::vector<its::TrackITS>* trkArr = nullptr;
     tracks->SetBranchAddress("ITSTrack", &trkArr);
-    tracks->GetEntry(0);
 
     //Read all track RO frames to a buffer
     std::vector<itsmft::ROFRecord>* trackROFrames = nullptr;
-    tracksRof->SetBranchAddress("ITSTracksROF", &trackROFrames);
-    tracksRof->GetEntry(0);
+    tracks->SetBranchAddress("ITSTracksROF", &trackROFrames);
+
+    tracks->GetEntry(0);
 
     //Read all clusters to a buffer
     std::vector<itsmft::Cluster>* clusArr = nullptr;
     clusters->SetBranchAddress("ITSCluster", &clusArr);
-    clusters->GetEntry(0);
 
-    //Read all cluster RO frames to a buffer
     std::vector<itsmft::ROFRecord>* clusterROFrames = nullptr;
-    clustersRof->SetBranchAddress("ITSClustersROF", &clusterROFrames);
-    clustersRof->GetEntry(0);
+    clusters->SetBranchAddress("ITSClustersROF", &clusterROFrames);
+    clusters->GetEntry(0);
 
     TEveTrackList* trackList = new TEveTrackList("tracks");
     trackList->IncDenyDestroy();
@@ -125,8 +118,8 @@ std::unique_ptr<VisualisationEvent> DataInterpreterITS::interpretDataForType(TOb
     auto currentTrackROF = trackROFrames->at(event);
 
     int first, last;
-    first = currentTrackROF.getROFEntry().getIndex();
-    last = first + currentTrackROF.getNROFEntries();
+    first = currentTrackROF.getFirstEntry();
+    last = first + currentTrackROF.getNEntries();
 
     gsl::span<its::TrackITS> mTracks = gsl::make_span(&(*trkArr)[first], last - first);
 

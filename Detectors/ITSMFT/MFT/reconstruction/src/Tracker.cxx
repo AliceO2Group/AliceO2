@@ -127,8 +127,8 @@ void Tracker::setGeometry(o2::mft::GeometryTGeo* geom)
 //_____________________________________________________________________________
 Int_t Tracker::loadClusters(const std::vector<Cluster>& clusters, const o2::itsmft::ROFRecord& rof)
 {
-  auto first = rof.getROFEntry().getIndex();
-  auto number = rof.getNROFEntries();
+  auto first = rof.getFirstEntry();
+  auto number = rof.getNEntries();
 
   auto clusters_in_frame = gsl::make_span(&clusters[first], number);
   for (const auto& c : clusters_in_frame) {

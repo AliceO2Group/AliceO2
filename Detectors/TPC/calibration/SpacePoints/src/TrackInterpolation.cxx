@@ -86,10 +86,9 @@ void TrackInterpolation::process()
         continue;
       }
       mTrackData.emplace_back();
-      const auto& trkIdTPC = trk.getRefTPC().getIndex();
-      const auto& trkTPC = mTPCTrackVecInput->at(trkIdTPC);
-      const auto& trkITS = mITSTrackVecInput->at(trk.getRefITS().getIndex());
-      if (!extrapolateTrackITS(trkITS, trkTPC, trk.getTimeMUS().getTimeStamp(), trkIdTPC)) {
+      const auto& trkTPC = mTPCTrackVecInput->at(trk.getRefTPC());
+      const auto& trkITS = mITSTrackVecInput->at(trk.getRefITS());
+      if (!extrapolateTrackITS(trkITS, trkTPC, trk.getTimeMUS().getTimeStamp(), trk.getRefTPC())) {
         mTrackData.pop_back();
         continue;
       }
@@ -111,8 +110,8 @@ void TrackInterpolation::process()
 bool TrackInterpolation::trackPassesQualityCuts(const o2::dataformats::TrackTPCITS& matchITSTPC, bool hasOuterPoint) const
 {
   // apply track quality cuts (assume different settings for track with and without points in TRD or TOF)
-  const auto& trkTPC = mTPCTrackVecInput->at(matchITSTPC.getRefTPC().getIndex());
-  const auto& trkITS = mITSTrackVecInput->at(matchITSTPC.getRefITS().getIndex());
+  const auto& trkTPC = mTPCTrackVecInput->at(matchITSTPC.getRefTPC());
+  const auto& trkITS = mITSTrackVecInput->at(matchITSTPC.getRefITS());
   if (hasOuterPoint) {
     // track has a match in TRD or TOF
     if (trkTPC.getNClusterReferences() < param::MinTPCNCls ||
@@ -147,8 +146,8 @@ bool TrackInterpolation::interpolateTrackITSTOF(const std::pair<o2::dataformats:
   //const int clTOFSec = (TMath::ATan2(-clTOF.getY(), -clTOF.getX()) + o2::constants::math::PI) * o2::constants::math::Rad2Deg * 0.05; // taken from TOF cluster class as there is no const getter for the sector
   const int clTOFSec = clTOF.getCount();
   const float clTOFAlpha = o2::utils::Sector2Angle(clTOFSec);
-  const auto& trkTPC = mTPCTrackVecInput->at(matchITSTPC.getRefTPC().getIndex());
-  const auto& trkITS = mITSTrackVecInput->at(matchITSTPC.getRefITS().getIndex());
+  const auto& trkTPC = mTPCTrackVecInput->at(matchITSTPC.getRefTPC());
+  const auto& trkITS = mITSTrackVecInput->at(matchITSTPC.getRefITS());
   auto trkWork = trkITS.getParamOut();
   // reset the cache array (sufficient to set )
   for (auto& elem : mCache) {
@@ -273,7 +272,7 @@ bool TrackInterpolation::interpolateTrackITSTOF(const std::pair<o2::dataformats:
     deltaRow = 1;
   }
 
-  mTrackData[trkIdx].trkId = matchITSTPC.getRefTPC().getIndex();
+  mTrackData[trkIdx].trkId = matchITSTPC.getRefTPC();
   mTrackData[trkIdx].eta = trkTPC.getEta();
   mTrackData[trkIdx].phi = trkTPC.getSnp();
   mTrackData[trkIdx].qPt = trkTPC.getQ2Pt();
