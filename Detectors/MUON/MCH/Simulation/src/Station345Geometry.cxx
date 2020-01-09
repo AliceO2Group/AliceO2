@@ -148,13 +148,9 @@ bool isShort(string name)
   return name.find('S') < name.size();
 }
 
-TGeoVolume* getRoundedVolume(const char* name, int mediumID, float halfLength, float halfHeight, float halfThickness, float xPos, float yPos, float radius)
+TGeoCompositeShape* getRoundedShape(const char* name, float halfThickness, float xPos, float yPos, float radius)
 {
-  /// Function creating a volume with a rounded shape by creating a hole in a box
-
-  // create the box
-  const char* boxName = Form("%sBox", name);
-  new TGeoBBox(boxName, halfLength, halfHeight, halfThickness);
+  /// Function creating a rounded shape by creating a hole in a box (previously created !)
 
   // create the position where the hole will be created
   const char* shiftName = Form("%sX%.1fY%.1fShift", name, TMath::Abs(xPos), TMath::Abs(yPos));
@@ -167,8 +163,8 @@ TGeoVolume* getRoundedVolume(const char* name, int mediumID, float halfLength, f
 
   const char* shapeName = Form("%sX%.1fY%.1fR%.1fShape", name, TMath::Abs(xPos), TMath::Abs(yPos), radius);
 
-  // create the hole in the box and return the volume built
-  return new TGeoVolume(name, new TGeoCompositeShape(shapeName, Form("%s-%s:%s", boxName, tubeName, shiftName)), assertMedium(mediumID));
+  // create the hole in the box and return the built shape
+  return new TGeoCompositeShape(shapeName, Form("%sBox-%s:%s", name, tubeName, shiftName));
 }
 
 //______________________________________________________________________________
@@ -250,21 +246,22 @@ void createPCBs()
 
     // create the volume of each material (a box by default)
     // sensitive gas
-    auto gas = gGeoManager->MakeBox(Form("%s gas", name), assertMedium(Medium::Gas), gasLength / 2., kGasHalfHeight, kGasHalfThickness);
+    auto gas = new TGeoVolume(Form("%s gas", name), new TGeoBBox(Form("%sGasBox", name), gasLength / 2., kGasHalfHeight, kGasHalfThickness), assertMedium(Medium::Gas));
 
     float x = pcbLength / 2;
     float halfHeight = kPCBHalfHeight;
+
     // bending cathode
-    auto bend = gGeoManager->MakeBox(bendName.data(), assertMedium(Medium::Copper), x, halfHeight, kCathodeHalfThickness);
+    auto bend = new TGeoVolume(bendName.data(), new TGeoBBox(Form("%sBendBox", name), x, halfHeight, kCathodeHalfThickness), assertMedium(Medium::Copper));
 
     // non-bending cathode
-    auto nonbend = gGeoManager->MakeBox(nonbendName.data(), assertMedium(Medium::Copper), x, halfHeight, kCathodeHalfThickness);
+    auto nonbend = new TGeoVolume(nonbendName.data(), new TGeoBBox(Form("%sNonBendBox", name), x, halfHeight, kCathodeHalfThickness), assertMedium(Medium::Copper));
 
     // insulating material
-    auto insu = gGeoManager->MakeBox(Form("%s insulator", name), assertMedium(Medium::FR4), x, halfHeight, kInsuHalfThickness);
+    auto insu = new TGeoVolume(Form("%s insulator", name), new TGeoBBox(Form("%sInsuBox", name), x, halfHeight, kInsuHalfThickness), assertMedium(Medium::FR4));
 
     // bottom spacer (noryl)
-    auto spacer = gGeoManager->MakeBox(Form("%s bottom spacer", name), assertMedium(Medium::Noryl), x, kHoriSpacerHalfHeight, kSpacerHalfThickness);
+    auto spacer = new TGeoVolume(Form("%s bottom spacer", name), new TGeoBBox(Form("%sBottomSpacerBox", name), x, kHoriSpacerHalfHeight, kSpacerHalfThickness), assertMedium(Medium::Noryl));
 
     // change the volume shape if we are creating a rounded PCB
     if (isRounded(pcbName)) {
@@ -286,19 +283,19 @@ void createPCBs()
       float curvRad = radius + 2 * kRoundedSpacerHalfLength;
 
       x = -kRoundedPCBLength + gasLength / 2 + kVertSpacerHalfLength;
-      gas = getRoundedVolume(Form("%sGas", name), Medium::Gas, gasLength / 2, kGasHalfHeight, kGasHalfThickness, x, -y, curvRad);
+      gas->SetShape(getRoundedShape(Form("%sGas", name), kGasHalfThickness, x, -y, curvRad));
 
       x = -kRoundedPCBLength + pcbLength / 2 + kVertSpacerHalfLength;
 
-      bend = getRoundedVolume(Form("%sBending", name), Medium::Copper, pcbLength / 2, halfHeight, kCathodeHalfThickness, x, -y, curvRad);
+      bend->SetShape(getRoundedShape(Form("%sBend", name), kCathodeHalfThickness, x, -y, curvRad));
 
-      nonbend = getRoundedVolume(Form("%sNonBending", name), Medium::Copper, pcbLength / 2, halfHeight, kCathodeHalfThickness, x, -y, curvRad);
+      nonbend->SetShape(getRoundedShape(Form("%sNonBend", name), kCathodeHalfThickness, x, -y, curvRad));
 
-      insu = getRoundedVolume(Form("%sInsulator", name), Medium::FR4, pcbLength / 2, halfHeight, kInsuHalfThickness, x, -y, curvRad);
+      insu->SetShape(getRoundedShape(Form("%sInsu", name), kInsuHalfThickness, x, -y, curvRad));
 
       if (pcbName.back() != '1') { // change the bottom spacer and border shape for "R2" and "R3" PCBs
 
-        spacer = getRoundedVolume(Form("%sBottomSpacer", name), Medium::Noryl, pcbLength / 2, kHoriSpacerHalfHeight, kSpacerHalfThickness, x, -y + kGasHalfHeight + kHoriSpacerHalfHeight, radius);
+        spacer->SetShape(getRoundedShape(Form("%sBottomSpacer", name), kSpacerHalfThickness, x, -y + kGasHalfHeight + kHoriSpacerHalfHeight, radius));
 
         borderLength -= (pcbName.back() == '3') ? curvRad : curvRad + kRoundedSpacerHalfLength;
       }
@@ -425,7 +422,8 @@ void createSlats()
     }
 
     // left vertical spacer
-    auto leftSpacer = gGeoManager->MakeBox(Form("%s left spacer", name), kSpacerMed, kVertSpacerHalfLength, leftSpacerHalfHeight, kSpacerHalfThickness);
+    auto leftSpacer = new TGeoVolume(Form("%s left spacer", name),
+                                     new TGeoBBox(Form("%sLeftSpacerBox", name), kVertSpacerHalfLength, leftSpacerHalfHeight, kSpacerHalfThickness), kSpacerMed);
 
     // glue a slat panel on each side of the PCBs
     auto panel = new TGeoVolumeAssembly(Form("%s panel", name));
@@ -434,16 +432,16 @@ void createSlats()
     float halfHeight = kSlatPanelHalfHeight;
 
     // glue
-    auto glue = gGeoManager->MakeBox(Form("%s panel glue", name), assertMedium(Medium::Glue), x, halfHeight, kGlueHalfThickness);
+    auto glue = new TGeoVolume(Form("%s panel glue", name), new TGeoBBox(Form("%sGlueBox", name), x, halfHeight, kGlueHalfThickness), assertMedium(Medium::Glue));
 
     // nomex (bulk)
-    auto nomexBulk = gGeoManager->MakeBox(Form("%s panel nomex (bulk)", name), assertMedium(Medium::BulkNomex), x, halfHeight, kNomexBulkHalfThickness);
+    auto nomexBulk = new TGeoVolume(Form("%s panel nomex (bulk)", name), new TGeoBBox(Form("%sNomexBulkBox", name), x, halfHeight, kNomexBulkHalfThickness), assertMedium(Medium::BulkNomex));
 
     // carbon fiber
-    auto carbon = gGeoManager->MakeBox(Form("%s panel carbon fiber", name), assertMedium(Medium::Carbon), x, halfHeight, kCarbonHalfThickness);
+    auto carbon = new TGeoVolume(Form("%s panel carbon fiber", name), new TGeoBBox(Form("%sCarbonBox", name), x, halfHeight, kCarbonHalfThickness), assertMedium(Medium::Carbon));
 
     // nomex (honeycomb)
-    auto nomex = gGeoManager->MakeBox(Form("%s panel nomex (honeycomb)", name), assertMedium(Medium::HoneyNomex), x, halfHeight, kNomexHalfThickness);
+    auto nomex = new TGeoVolume(Form("%s panel nomex (honeycomb)", name), new TGeoBBox(Form("%sNomexBox", name), x, halfHeight, kNomexHalfThickness), assertMedium(Medium::HoneyNomex));
 
     // change the volume shape if we are creating a rounded slat
     if (isRounded(typeName)) {
@@ -490,15 +488,15 @@ void createSlats()
                                           radius + 2 * kRoundedSpacerHalfLength, kSpacerHalfThickness, angMin, angMax),
                     1, new TGeoTranslation(-xRoundedPos, -y, 0.));
 
-      glue = getRoundedVolume(Form("%sGlue", name), Medium::Glue, length / 2, halfHeight, kGlueHalfThickness, -x, -y, radius);
+      glue->SetShape(getRoundedShape(Form("%sGlue", name), kGlueHalfThickness, -x, -y, radius));
 
-      nomexBulk = getRoundedVolume(Form("%sNomexBulk", name), Medium::BulkNomex, length / 2, halfHeight, kNomexBulkHalfThickness, -x, -y, radius);
+      nomexBulk->SetShape(getRoundedShape(Form("%sNomexBulk", name), kNomexBulkHalfThickness, -x, -y, radius));
 
-      carbon = getRoundedVolume(Form("%sCarbon", name), Medium::Carbon, length / 2, halfHeight, kCarbonHalfThickness, -x, -y, radius);
+      carbon->SetShape(getRoundedShape(Form("%sCarbon", name), kCarbonHalfThickness, -x, -y, radius));
 
-      nomex = getRoundedVolume(Form("%sNomex", name), Medium::HoneyNomex, length / 2, halfHeight, kNomexHalfThickness, -x, -y, radius);
+      nomex->SetShape(getRoundedShape(Form("%sNomex", name), kNomexHalfThickness, -x, -y, radius));
 
-      leftSpacer = getRoundedVolume(Form("%sLeftSpacer", name), Medium::Noryl, kVertSpacerHalfLength, leftSpacerHalfHeight, kSpacerHalfThickness, 0., -y, radius);
+      leftSpacer->SetShape(getRoundedShape(Form("%sLeftSpacer", name), kSpacerHalfThickness, 0., -y, radius));
 
     } // end of the "rounded" condition
 
@@ -586,18 +584,24 @@ void createSupportPanels()
 
     float x = -halfLength + kVertSpacerHalfLength;
 
-    // create the nomex volume, change its shape by extracting the pipe shape and place it in the support panel
     float halfThickness = kNomexSupportHalfThickness;
     float z = 0.;
 
-    support->AddNode(getRoundedVolume(Form("NomexSupportPanelCh%d", i), Medium::HoneyNomex, halfLength, halfHeight, halfThickness, x, 0., radius), i, new TGeoTranslation(halfLength, 0., z));
+    // create a box for the nomex volume
+    const char* nomexName = Form("NomexSupportPanelCh%d", i);
+    new TGeoBBox(Form("%sBox", nomexName), halfLength, halfHeight, halfThickness);
+
+    support->AddNode(new TGeoVolume(nomexName, getRoundedShape(nomexName, halfThickness, x, 0., radius), assertMedium(Medium::HoneyNomex)),
+                     i, new TGeoTranslation(halfLength, 0., z));
 
     z += halfThickness; // increment this value when adding a new layer
 
-    // create the glue volume and change its shape by extracting the pipe shape
+    // create a box for the glue volume
     halfThickness = kGlueSupportHalfThickness;
+    const char* glueName = Form("GlueSupportPanelCh%d", i);
+    new TGeoBBox(Form("%sBox", glueName), halfLength, halfHeight, halfThickness);
 
-    auto glue = getRoundedVolume(Form("GlueSupportPanelCh%d", i), Medium::Glue, halfLength, halfHeight, halfThickness, x, 0., radius);
+    auto glue = new TGeoVolume(glueName, getRoundedShape(glueName, halfThickness, x, 0., radius), assertMedium(Medium::Glue));
 
     // place it on each side of the nomex volume
     z += halfThickness;
@@ -605,10 +609,12 @@ void createSupportPanels()
     support->AddNode(glue, 2, new TGeoTranslation(halfLength, 0., -z));
     z += halfThickness;
 
-    // create the carbon volume and change its shape by extracting the pipe shape
+    // create a box for the carbon volume
     halfThickness = kCarbonSupportHalfThickness;
+    const char* carbonName = Form("CarbonSupportPanelCh%d", i);
+    new TGeoBBox(Form("%sBox", carbonName), halfLength, halfHeight, halfThickness);
 
-    auto carbon = getRoundedVolume(Form("CarbonSupportPanelCh%d", i), Medium::Carbon, halfLength, halfHeight, halfThickness, x, 0., radius);
+    auto carbon = new TGeoVolume(carbonName, getRoundedShape(carbonName, halfThickness, x, 0., radius), assertMedium(Medium::Carbon));
 
     // place it on each side of the glue volume
     z += halfThickness;
