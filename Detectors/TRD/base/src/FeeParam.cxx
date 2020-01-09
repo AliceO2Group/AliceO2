@@ -217,11 +217,8 @@ int FeeParam::getPadColFromADC(int irob, int imcm, int iadc) const
     return -100;
   int mcmcol = imcm % mgkNmcmRobInCol + getRobSide(irob) * mgkNmcmRobInCol; // MCM column number on ROC [0..7]
   int padcol = mcmcol * mgkNcolMcm + mgkNcolMcm + 1 - iadc;
-  cout << " --- int padcol = mcmcol * mgkNcolMcm + mgkNcolMcm + 1 - iadc" << endl;
-  cout << " -- " << padcol << "=" << mcmcol << "*"<< mgkNcolMcm <<"+" << mgkNcolMcm <<"+1 - " << iadc << endl; 
   if (padcol < 0 || padcol >= mgkNcol)
   {
-      cout << "Padcol is < 0 or >= " << mgkNcol << " sooooo returning -1" << endl;
     return -1; // this is commented because of reason above OK
   }
   return padcol;
@@ -305,10 +302,12 @@ int FeeParam::getROBfromSharedPad(int irow, int icol) const
   // Return on which rob this pad is for shared pads
   //
 
-  if (icol < 72)
+  if (icol < 72){
     return (irow / mgkNmcmRobInRow) * 2 + getColSide(icol + 5);
-  else
+  }
+  else{
     return (irow / mgkNmcmRobInRow) * 2 + getColSide(icol - 5);
+  }
 }
 
 //_____________________________________________________________________________

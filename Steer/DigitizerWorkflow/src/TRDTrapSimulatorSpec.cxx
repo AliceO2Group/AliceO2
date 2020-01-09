@@ -183,9 +183,11 @@ class TRDDPLTrapSimulatorTask{
                       if(oldpad==-1) oldpad=pad;
                       if(oldrow==-1) oldrow=pad;
                       if(olddetector==-1) olddetector=detector;
-                      LOG(info) << "Det : " << detector << " Row : " << row << " pad : " << pad << " rob: "<< rob << " mcm: "<< mcm;
-                      if(pad%18==0 || (pad-1)%18==0 || (pad+1)%18==0 ) LOG(info) << "Det : " << detector << " Row : " << row << " pad : " << pad << " rob: "<< rob << " mcm: "<< mcm << " && robfromshared:" << mfeeparam->getROBfromPad(row,pad) << " mcmfromshared:" << mfeeparam->getMCMfromSharedPad(row,pad);
+                      //LOG(info) << "Det : " << detector << " Row : " << row << " pad : " << pad << " rob: "<< rob << " mcm: "<< mcm << " first mcm : " << mfeeparam->getMCMfromPad(row,0) << " last mcm : " << mfeeparam->getMCMfromPad(row,143) << " diff : " << 
+                      //    mfeeparam->getMCMfromPad(row,143)- mfeeparam->getMCMfromPad(row, 2) << "test of calc " << (143%(144/2))/18+4*(row%4)  << " test of first pad : " << (1%(144/2))/18+4*(row%4); 
+                      //if(i%18==0 || (i-1)%18==0 || (i+1)%18==0 ) LOG(info) << "shared row : " << row << " pad : " << i << " robfromshared:" << mfeeparam->getROBfromSharedPad(row,i) << " mcmfromshared:" << mfeeparam->getMCMfromSharedPad(row,i);
                       //determine which adc for this mcm we are populating.
+
                       if(olddetector!=detector || oldrow!= row){
                         LOG(info) << "change row|detector";
                         mcm=mfeeparam->getMCMfromPad(oldrow,oldpad);
@@ -195,7 +197,7 @@ class TRDDPLTrapSimulatorTask{
                         // mTrapSimulator.setData(detector,digit.getADC());
 
                         //now clean up 
-                        firedmcms |= mcm; // mcm of the now fire padrow pad.
+                        firedmcms = 1<<mcm; // mcm of the now fire padrow pad.
                         
                       }
                       else {
