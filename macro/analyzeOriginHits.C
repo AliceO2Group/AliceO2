@@ -1,5 +1,28 @@
 // Brief macro to get origins of tracks leaving at least one hit in a detector.
 // All histograms are summarised in a ROOT file to be processed further.
+
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+
+#include <vector>
+#include <unordered_map>
+#include <iostream>
+#include <fstream>
+#include <numeric>
+#include <string>
+#include <type_traits>
+
+#include "TFile.h"
+#include "TTree.h"
+#include "TH1F.h"
+#include "TGeoManager.h"
+#include "TGeoNode.h"
+#include "TVector3.h"
+
+#include "SimulationDataFormat/MCTrack.h"
+#include "DetectorsCommonDataFormats/DetID.h"
+
+#endif
+
 const std::string UNKNOWN = "NULL";
 
 class VolModMap
