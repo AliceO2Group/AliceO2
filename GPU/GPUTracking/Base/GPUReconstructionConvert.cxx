@@ -15,7 +15,9 @@
 #include "TPCFastTransform.h"
 #include "GPUTPCClusterData.h"
 #include "GPUO2DataTypes.h"
+#include "GPUDataTypes.h"
 #include "AliHLTTPCRawCluster.h"
+#include "Digit.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
@@ -101,6 +103,23 @@ int GPUReconstructionConvert::GetMaxTimeBin(const ClusterNativeAccess& native)
         if (native.clusters[i][j][k].getTime() > retVal) {
           retVal = native.clusters[i][j][k].getTime();
         }
+      }
+    }
+  }
+  return ceil(retVal);
+#else
+  return 0;
+#endif
+}
+
+int GPUReconstructionConvert::GetMaxTimeBin(const GPUTrackingInOutDigits& digits)
+{
+#ifdef HAVE_O2HEADERS
+  float retVal = 0;
+  for (unsigned int i = 0; i < NSLICES; i++) {
+    for (unsigned int k = 0; k < digits.nTPCDigits[i]; k++) {
+      if (digits.tpcDigits[i][k].time > retVal) {
+        retVal = digits.tpcDigits[i][k].time;
       }
     }
   }
