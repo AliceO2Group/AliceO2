@@ -50,7 +50,8 @@ class GPUTPCClusterFinderKernels : public GPUKernelTemplate
     nativeScanUp = 8,
     nativeScanTop = 9,
     nativeScanDown = 10,
-    compactDigit = 11
+    compactDigit = 11,
+    decodeZS = 12
   };
 
 #ifdef HAVE_O2HEADERS

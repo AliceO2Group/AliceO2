@@ -152,7 +152,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         TPCClusterFinder/PeakFinder.cxx
         TPCClusterFinder/NoiseSuppression.cxx
         TPCClusterFinder/Clusterizer.cxx
-        TPCClusterFinder/Deconvolution.cxx)
+        TPCClusterFinder/Deconvolution.cxx
+        TPCClusterFinder/DecodeZS.cxx)
 
     set(SRCS_NO_H ${SRCS_NO_H}
         TPCClusterFinder/GPUTPCClusterFinderDump.cxx)

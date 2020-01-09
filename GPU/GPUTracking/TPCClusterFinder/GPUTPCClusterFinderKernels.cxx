@@ -27,6 +27,7 @@
 #include "NoiseSuppression.h"
 #include "Deconvolution.h"
 #include "StreamCompaction.h"
+#include "DecodeZS.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -115,4 +116,10 @@ GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::compa
 GPUd() int GPUTPCClusterFinderKernels::compactionElems(processorType& clusterer, int stage)
 {
   return (stage) ? clusterer.mPmemory->nPeaks : clusterer.mPmemory->nDigits;
+}
+
+template <>
+GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::decodeZS>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& clusterer)
+{
+  DecodeZS::decode(clusterer, nBlocks, nThreads, iBlock, iThread);
 }
