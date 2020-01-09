@@ -8,13 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MCHSimulation/Digit.h"
+#ifdef __CLING__
 
-using namespace o2::mch;
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
 
-ClassImp(o2::mch::Digit);
+#pragma link C++ namespace o2;
+#pragma link C++ namespace o2::mch;
 
-Digit::Digit(double time, int detid, int pad, double adc)
-  : DigitBase(time), mDetID(detid), mPadID(pad), mADC(adc)
-{
-}
+#pragma link C++ class o2::mch::Digit + ;
+#pragma link C++ class std::vector < o2::mch::Digit> + ;
+
+#endif

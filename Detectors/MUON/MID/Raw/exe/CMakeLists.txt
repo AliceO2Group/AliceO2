@@ -8,15 +8,14 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(MCHBase
-         SOURCES
-	       src/ClusterBlock.cxx
-	       src/Digit.cxx
-	       src/DigitBlock.cxx
-	       src/Mapping.cxx
-               src/PreClusterBlock.cxx
-               src/TrackBlock.cxx
-	       PUBLIC_LINK_LIBRARIES ROOT::Core FairRoot::Base FairMQ::FairMQ)
+o2_add_executable(
+  rawdump
+  COMPONENT_NAME mid
+  SOURCES mid-rawdump.cxx
+  PUBLIC_LINK_LIBRARIES O2::MIDRaw)
 
-o2_target_root_dictionary(MCHBase
-  HEADERS include/MCHBase/Digit.h)
+o2_add_executable(
+  raw-checker
+  COMPONENT_NAME mid
+  SOURCES mid-raw-checker.cxx CRUBareDataChecker.cxx
+  PUBLIC_LINK_LIBRARIES O2::MIDRaw)

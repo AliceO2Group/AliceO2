@@ -12,7 +12,7 @@ o2_add_test(simulation
             COMPONENT_NAME mchsimulation
             SOURCES testDigitMerging.cxx DigitMerging.cxx testGeometry.cxx
                     testDigitization.cxx testResponse.cxx
-            PUBLIC_LINK_LIBRARIES O2::MCHSimulation
+            PUBLIC_LINK_LIBRARIES O2::MCHSimulation O2::MCHBase
             LABELS muon mch long CONFIGURATIONS RelWithDebInfo)
 
 if(benchmark_FOUND)

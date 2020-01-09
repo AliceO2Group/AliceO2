@@ -28,6 +28,7 @@
 #include <TRandom.h>
 #include <cassert>
 #include <fstream>
+#include "ZDCSimulation/ZDCSimParam.h"
 
 using namespace o2::zdc;
 
@@ -38,7 +39,19 @@ ClassImp(o2::zdc::Detector);
 Detector::Detector(Bool_t active)
   : o2::base::DetImpl<Detector>("ZDC", active),
     mHits(new std::vector<o2::zdc::Hit>),
-    mXImpact(-999, -999, -999)
+    mXImpact(-999, -999, -999),
+    mNeutronResponseImage(Geometry::ZNDIVISION[0] * Geometry::ZNSECTORS[0] * 2,
+                          Geometry::ZNDIVISION[1] * Geometry::ZNSECTORS[1] * 2,
+                          Geometry::ZNAPOSITION[0] - Geometry::ZNDIMENSION[0],
+                          Geometry::ZNAPOSITION[1] - Geometry::ZNDIMENSION[1],
+                          Geometry::ZNDIMENSION[0] * 2,
+                          Geometry::ZNDIMENSION[1] * 2),
+    mProtonResponseImage(Geometry::ZPDIVISION[0] * Geometry::ZPSECTORS[0] * 2,
+                         Geometry::ZPDIVISION[1] * Geometry::ZPSECTORS[1] * 2,
+                         Geometry::ZPAPOSITION[0] - Geometry::ZPDIMENSION[0],
+                         Geometry::ZPAPOSITION[1] - Geometry::ZPDIMENSION[1],
+                         Geometry::ZPDIMENSION[0] * 2,
+                         Geometry::ZPDIMENSION[1] * 2)
 {
   mTrackEta = 999;
   // REsetting summed variables
@@ -254,6 +267,19 @@ void Detector::resetHitIndices()
   mTotLightPMQ = 0;
 }
 
+void Detector::flushSpatialResponse()
+{
+  if (o2::zdc::ZDCSimParam::Instance().recordSpatialResponse) {
+    // only write non-trivial image pairs
+    if (mNeutronResponseImage.getPhotonSum() > 0 || mProtonResponseImage.getPhotonSum() > 0) {
+      mResponses.push_back(std::make_pair(mCurrentPrincipalParticle,
+                                          std::make_pair(mNeutronResponseImage, mProtonResponseImage)));
+    }
+    mNeutronResponseImage.reset();
+    mProtonResponseImage.reset();
+  }
+}
+
 //_____________________________________________________________________________
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
@@ -283,29 +309,10 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   //printf("ProcessHits:  x=(%f, %f, %f)  \n",x[0], x[1], x[2]);
   //printf("\tDET %d  SEC %d  -> XImpact=(%f, %f, %f)\n",detector,sector, xImp.X(), xImp.Y(), xImp.Z());
 
-  // a new principal track is a track which previously was not seen by any ZDC detector
-  // we will account all detector response associated to principal tracks only
-  if ((volID == mZNENVVolID || volID == mZPENVVolID || volID == mZEMVolID) && fMC->IsTrackEntering()) {
-    if ((mLastPrincipalTrackEntered == -1) || !(stack->isTrackDaughterOf(trackn, mLastPrincipalTrackEntered))) {
-      mLastPrincipalTrackEntered = trackn;
-      resetHitIndices();
-      //printf(">>> RESETTING HITS!!!!\n\n");
-
-      // there is nothing more to do here as we are not
-      // in the fiber volumes
-      return false;
-    }
-  }
-
-  // it could be that the entering track was not noticed
-  // (tracking precision problems); warn about it for the moment until we have
-  // a better solution (like checking the origin coordinates of the track)
-  if (mLastPrincipalTrackEntered == -1) {
-    LOG(WARN) << "Problem with principal track detection ; now in " << volname;
-    // if we come here we are definitely in a sensitive volume !!
-    mLastPrincipalTrackEntered = trackn;
-    resetHitIndices();
-    //printf(" Problem with principal track detection\n >>> RESETTING HITS!!!!\n");
+  if ((volID == mZNENVVolID || volID == mZPENVVolID || volID == mZEMVolID)) {
+    // there is nothing more to do here as we are not
+    // in the fiber volumes
+    return false;
   }
 
   Float_t p[3] = {0., 0., 0.};
@@ -347,6 +354,16 @@ Bool_t Detector::ProcessHits(FairVolume* v)
       }
     }
    }
+  }
+
+  if (o2::zdc::ZDCSimParam::Instance().recordSpatialResponse) {
+    // some diagnostic; trying to really get the pixel fired
+    if (nphe > 0 && (detector == 1 || detector == 4)) {
+      mNeutronResponseImage.addPhoton(x[0], x[1], nphe);
+    }
+    if (nphe > 0 && (detector == 2 || detector == 5)) {
+      mProtonResponseImage.addPhoton(x[0], x[1], nphe);
+    }
   }
 
   // A new hit is created when there is nothing yet for this det + sector
@@ -2281,7 +2298,18 @@ void Detector::FinishPrimary()
 {
   // after each primary we should definitely reset
   mLastPrincipalTrackEntered = -1;
+  flushSpatialResponse();
+}
+
+void Detector::BeginPrimary()
+{
+  // set current principal track
+  auto stack = (o2::data::Stack*)fMC->GetStack();
+
+  mLastPrincipalTrackEntered = stack->GetCurrentTrackNumber();
   resetHitIndices();
+
+  mCurrentPrincipalParticle = *stack->GetCurrentTrack();
 }
 
 //_____________________________________________________________________________
@@ -2293,6 +2321,10 @@ void Detector::Register()
 
   if (FairRootManager::Instance()) {
     FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
+
+    if (o2::zdc::ZDCSimParam::Instance().recordSpatialResponse) {
+      FairRootManager::Instance()->RegisterAny(addNameTo("ResponseImage").data(), mResponsesPtr, kTRUE);
+    }
   }
 }
 
@@ -2302,6 +2334,7 @@ void Detector::Reset()
   if (!o2::utils::ShmManager::Instance().isOperational()) {
     mHits->clear();
   }
+  mResponses.clear();
   mLastPrincipalTrackEntered = -1;
   resetHitIndices();
 }
