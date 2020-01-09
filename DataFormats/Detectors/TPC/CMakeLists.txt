@@ -41,7 +41,8 @@ o2_target_root_dictionary(
           include/DataFormatsTPC/Constants.h
           include/DataFormatsTPC/Defs.h
           include/DataFormatsTPC/dEdxInfo.h
-          include/DataFormatsTPC/CompressedClusters.h)
+          include/DataFormatsTPC/CompressedClusters.h
+          include/DataFormatsTPC/ZeroSuppression.h)
 
 o2_add_test(
   ClusterNative

@@ -15,7 +15,9 @@
 /// @since  2017-11-22
 /// @brief  Definition of the RAW Data Header
 
+#ifndef __OPENCL__
 #include <cstdint>
+#endif
 
 namespace o2
 {

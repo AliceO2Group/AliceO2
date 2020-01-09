@@ -172,6 +172,17 @@ struct GPUCalibObjectsTemplate {
 typedef GPUCalibObjectsTemplate<DefaultPtr> GPUCalibObjects;
 typedef GPUCalibObjectsTemplate<ConstPtr> GPUCalibObjectsConst;
 
+struct GPUTrackingInOutZS {
+  static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
+  static constexpr unsigned int NENDPOINTS = 20;
+  struct GPUTrackingInOutZSSlice {
+    void** zsPtr[NENDPOINTS];
+    unsigned int* nZSPtr[NENDPOINTS];
+    unsigned int count[NENDPOINTS];
+  };
+  GPUTrackingInOutZSSlice slice[NSLICES];
+};
+
 struct GPUTrackingInOutDigits {
   static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
   const deprecated::PackedDigit* tpcDigits[NSLICES] = {nullptr};
@@ -183,6 +194,7 @@ struct GPUTrackingInOutPointers {
   GPUTrackingInOutPointers(const GPUTrackingInOutPointers&) = default;
   static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
 
+  GPUTrackingInOutZS* tpcZS = nullptr;
   GPUTrackingInOutDigits* tpcPackedDigits = nullptr;
   const GPUTPCClusterData* clusterData[NSLICES] = {nullptr};
   unsigned int nClusterData[NSLICES] = {0};

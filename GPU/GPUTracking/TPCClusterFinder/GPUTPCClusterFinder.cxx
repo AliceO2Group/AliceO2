@@ -14,10 +14,12 @@
 #include "GPUTPCClusterFinder.h"
 #include "GPUReconstruction.h"
 
+#include "DataFormatsTPC/ZeroSuppression.h"
 #include "ClusterNative.h"
 #include "Digit.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
+using namespace o2::tpc;
 
 void GPUTPCClusterFinder::InitializeProcessor() {}
 
@@ -29,7 +31,10 @@ void* GPUTPCClusterFinder::SetPointersMemory(void* mem)
 
 void* GPUTPCClusterFinder::SetPointersInput(void* mem)
 {
-  if (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding) {
+  if (GetConstantMem()->ioPtrs.tpcZS && (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding)) {
+    computePointerWithAlignment(mem, mPzs, mNMaxPages * TPCZSHDR::TPC_ZS_PAGE_SIZE);
+  }
+  if (GetConstantMem()->ioPtrs.tpcZS || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding)) {
     computePointerWithAlignment(mem, mPdigits, mNMaxDigits);
   }
   return mem;
@@ -70,9 +75,10 @@ void GPUTPCClusterFinder::SetMaxData(const GPUTrackingInOutPointers& io)
   mNBufs = getNSteps(mBufSize);
 }
 
-void GPUTPCClusterFinder::SetNMaxDigits(size_t n)
+void GPUTPCClusterFinder::SetNMaxDigits(size_t nDigits, size_t nPages)
 {
-  mNMaxDigits = nextMultipleOf<std::max<int>(GPUCA_MEMALIGN_SMALL, mScanWorkGroupSize)>(n);
+  mNMaxDigits = nextMultipleOf<std::max<int>(GPUCA_MEMALIGN_SMALL, mScanWorkGroupSize)>(nDigits);
+  mNMaxPages = nPages;
 }
 
 size_t GPUTPCClusterFinder::getNSteps(size_t items) const
