@@ -120,9 +120,9 @@ void TrackerDPL::run(ProcessingContext& pc)
         int first = allTracks.size();
         int number = tracks.size();
         trackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
-        int shiftIdx = -rof.getROFEntry().getIndex();
-        rofs[roFrame].getROFEntry().setIndex(first);
-        rofs[roFrame].setNROFEntries(number);
+        int shiftIdx = -rof.getFirstEntry();
+        rofs[roFrame].setFirstEntry(first);
+        rofs[roFrame].setNEntries(number);
         copyTracks(tracks, allTracks, allClusIdx, shiftIdx);
         allTrackLabels.mergeAtBack(trackLabels);
       }

@@ -21,8 +21,6 @@
 
 #include "DataFormatsITSMFT/ROFRecord.h"
 
-#include "CommonDataFormat/EvIndex.h"
-
 #endif
 
 void CheckDigits(std::string digifile = "itsdigits.root", std::string hitfile = "o2sim.root", std::string inputGeom = "O2geometry.root", std::string paramfile = "o2sim_par.root")
@@ -72,50 +70,42 @@ void CheckDigits(std::string digifile = "itsdigits.root", std::string hitfile = 
   int nDigitRead = 0, nDigitFilled = 0;
 
   // Get Read Out Frame arrays
-  TTree* ROFTree = (TTree*)digFile->Get("ITSDigitROF");
   std::vector<o2::itsmft::ROFRecord>* ROFRecordArrray = nullptr;
-  ROFTree->SetBranchAddress("ITSDigitROF", &ROFRecordArrray);
+  digTree->SetBranchAddress("ITSDigitROF", &ROFRecordArrray);
   std::vector<o2::itsmft::ROFRecord>& ROFRecordArrrayRef = *ROFRecordArrray;
-  ROFTree->GetEntry(0);
 
-  TTree* MC2ROFTree = (TTree*)digFile->Get("ITSDigitMC2ROF");
   std::vector<o2::itsmft::MC2ROFRecord>* MC2ROFRecordArrray = nullptr;
-  MC2ROFTree->SetBranchAddress("ITSDigitMC2ROF", &MC2ROFRecordArrray);
+  digTree->SetBranchAddress("ITSDigitMC2ROF", &MC2ROFRecordArrray);
   std::vector<o2::itsmft::MC2ROFRecord>& MC2ROFRecordArrrayRef = *MC2ROFRecordArrray;
-  MC2ROFTree->GetEntry(0);
+
+  digTree->GetEntry(0);
 
   int nROFRec = (int)ROFRecordArrrayRef.size();
   std::vector<int> mcEvMin(nROFRec, hitTree->GetEntries());
   std::vector<int> mcEvMax(nROFRec, -1);
 
   // >> build min and max MC events used by each ROF
-  for (int ent = 0; ent < MC2ROFTree->GetEntries(); ent++) {
+  for (int imc = MC2ROFRecordArrrayRef.size(); imc--;) {
+    const auto& mc2rof = MC2ROFRecordArrrayRef[imc];
+    printf("MCRecord: ");
+    mc2rof.print();
 
-    MC2ROFTree->GetEntry(ent);
+    if (mc2rof.rofRecordID < 0) {
+      continue; // this MC event did not contribute to any ROF
+    }
 
-    for (int imc = MC2ROFRecordArrrayRef.size(); imc--;) {
+    for (int irfd = mc2rof.maxROF - mc2rof.minROF + 1; irfd--;) {
 
-      const auto& mc2rof = MC2ROFRecordArrrayRef[imc];
-      printf("MCRecord: ");
-      mc2rof.print();
+      int irof = mc2rof.rofRecordID + irfd;
 
-      if (mc2rof.rofRecordID < 0) {
-        continue; // this MC event did not contribute to any ROF
+      if (irof >= nROFRec) {
+        LOG(ERROR) << "ROF=" << irof << " from MC2ROF record is >= N ROFs=" << nROFRec;
       }
-
-      for (int irfd = mc2rof.maxROF - mc2rof.minROF + 1; irfd--;) {
-
-        int irof = mc2rof.rofRecordID + irfd;
-
-        if (irof >= nROFRec) {
-          LOG(ERROR) << "ROF=" << irof << " from MC2ROF record is >= N ROFs=" << nROFRec;
-        }
-        if (mcEvMin[irof] > imc) {
-          mcEvMin[irof] = imc;
-        }
-        if (mcEvMax[irof] < imc) {
-          mcEvMax[irof] = imc;
-        }
+      if (mcEvMin[irof] > imc) {
+        mcEvMin[irof] = imc;
+      }
+      if (mcEvMax[irof] < imc) {
+        mcEvMax[irof] = imc;
       }
     }
   } // << build min and max MC events used by each ROF
@@ -126,14 +116,8 @@ void CheckDigits(std::string digifile = "itsdigits.root", std::string hitfile = 
   // LOOP on : ROFRecord array
   for (unsigned int iROF = 0; iROF < ROFRecordArrrayRef.size(); iROF++) {
 
-    auto eventIndex = ROFRecordArrrayRef[iROF].getROFEntry();
-    rofIndex = eventIndex.getIndex();
-    rofNEntries = ROFRecordArrrayRef[iROF].getNROFEntries();
-
-    if (digTree->GetReadEntry() != eventIndex.getEvent()) {
-
-      digTree->GetEntry(eventIndex.getEvent());
-    }
+    rofIndex = ROFRecordArrrayRef[iROF].getFirstEntry();
+    rofNEntries = ROFRecordArrrayRef[iROF].getNEntries();
 
     // >> read and map MC events contributing to this ROF
     for (int im = mcEvMin[iROF]; im <= mcEvMax[iROF]; im++) {
@@ -196,7 +180,7 @@ void CheckDigits(std::string digifile = "itsdigits.root", std::string hitfile = 
         locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
 
         int row, col;
-        float xlc, zlc;
+        float xlc = 0., zlc = 0.;
 
         seg.localToDetector(locH.X(), locH.Z(), row, col);
         seg.detectorToLocal(row, col, xlc, zlc);

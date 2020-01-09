@@ -267,6 +267,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe}, mMatching.getMatchedTPCLabels());
   }
   mFinished = true;
+  pc.services().get<ControlService>().endOfStream();
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 

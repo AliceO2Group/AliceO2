@@ -55,7 +55,7 @@ class ClustererTask
 
   void Init();
   Clusterer& getClusterer() { return mClusterer; }
-  void run(const std::string inpName, const std::string outName, bool entryPerROF = true);
+  void run(const std::string inpName, const std::string outName);
   void setSelfManagedMode(bool v) { mSelfManagedMode = v; }
   bool isSelfManagedMode() const { return mSelfManagedMode; }
   o2::itsmft::PixelReader* getReader() const { return (o2::itsmft::PixelReader*)mReader; }

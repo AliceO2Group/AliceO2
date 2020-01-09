@@ -41,10 +41,10 @@ class TrackReader : public Task
  protected:
   void accumulate();
 
-  std::vector<o2::itsmft::ROFRecord>*mROFRecInp = nullptr, mROFRecOut;
-  std::vector<o2::its::TrackITS>*mTracksInp = nullptr, mTracksOut;
-  std::vector<int>*mClusIndInp = nullptr, mClusIndOut;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>*mMCTruthInp = nullptr, mMCTruthOut;
+  std::vector<o2::itsmft::ROFRecord> mROFRec, *mROFRecInp = &mROFRec;
+  std::vector<o2::its::TrackITS> mTracks, *mTracksInp = &mTracks;
+  std::vector<int> mClusInd, *mClusIndInp = &mClusInd;
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruth, *mMCTruthInp = &mMCTruth;
 
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginITS;
 
@@ -53,7 +53,7 @@ class TrackReader : public Task
 
   std::string mInputFileName = "";
   std::string mTrackTreeName = "o2sim";
-  std::string mROFTreeName = "ITSTracksROF";
+  std::string mROFBranchName = "ITSTracksROF";
   std::string mTrackBranchName = "ITSTrack";
   std::string mClusIdxBranchName = "ITSTrackClusIdx";
   std::string mTrackMCTruthBranchName = "ITSTrackMCTruth";
