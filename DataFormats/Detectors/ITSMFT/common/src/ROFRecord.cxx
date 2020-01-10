@@ -15,8 +15,8 @@ using namespace o2::itsmft;
 
 void ROFRecord::print() const
 {
-  std::cout << "ROF: " << mROFrame << " | " << mNROFEntries << " entries starting from "
-            << mROFEntry.getEvent() << '/' << mROFEntry.getIndex() << std::endl;
+  std::cout << "ROF: " << mROFrame << " | " << getNEntries() << " entries starting from "
+            << getFirstEntry() << std::endl;
   mBCData.print();
 }
 
