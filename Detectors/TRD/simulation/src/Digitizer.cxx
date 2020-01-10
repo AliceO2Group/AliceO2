@@ -137,12 +137,6 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
   // Finalize: Dump the digitCollection to the output digitCont
   for (int det = 0; det < kNdet; ++det) {
     auto& digits = digitCollection[det];
-    for (const auto& digit : digits) {
-      auto digitDet = digit.getDetector();
-      if (digitDet != det) {
-        LOG(FATAL) << "process: Digit is carryng the wrong detector number (" << digitDet << ") for loop " << det;
-      }
-    }
     digitCont.insert(digitCont.end(), digits.begin(), digits.end());
     // std::move(digits.begin(), digits.end(), std::back_inserter(digitCont));
     // digitCont.insert(digitCont.end(), std::make_move_iterator(digits.begin()), std::make_move_iterator(digits.end()));
@@ -392,7 +386,6 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& signalMapC
   //
   // Converts the sampled electron signals to ADC values for a given chamber
   //
-  LOG(INFO) << "Signal2ADC: Starting signal to adc conversion for detector " << det;
   if (signalMapCont.size() == 0) {
     return false;
   }
@@ -453,7 +446,6 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& signalMapC
     } // loop over timebins
     // Convert the map to digits here, and push them to the container
     size_t labelIdx = adcArray[kTB];
-    LOG(INFO) << "Signal2ADC: Pushing digit with detector number " << det;
     digits.emplace_back(det, row, col, adcs, labelIdx);
   } // loop over digits
   return true;

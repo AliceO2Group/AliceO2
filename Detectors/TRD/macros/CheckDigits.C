@@ -37,7 +37,10 @@ void CheckDigits(std::string digifile = "trddigits.root",
   TH1F* hDet = new TH1F("hDet", ";Detector number;Counts", 504, 0, 539);
   TH1F* hRow = new TH1F("hRow", ";Row number;Counts", 16, 0, 15);
   TH1F* hPad = new TH1F("hPad", ";Pad number;Counts", 144, 0, 143);
-  TH1* hADC = new TH1F("hADC", ";ADC value;Counts", 512, 0, 511);
+  TH1* hADC[540];
+  for (int d = 0; d < 540; ++d) {
+    hADC[d] = new TH1F(Form("hADC_%d", d), ";ADC value;Counts", 1024, 0, 1023);
+  }
 
   LOG(INFO) << nev << " entries found";
   for (int iev = 0; iev < nev; ++iev) {
@@ -57,7 +60,7 @@ void CheckDigits(std::string digifile = "trddigits.root",
           LOG(INFO) << "Out of range ADC " << adc;
           continue;
         }
-        hADC->Fill(adc);
+        hADC[det]->Fill(adc);
       }
     }
   }
@@ -71,6 +74,10 @@ void CheckDigits(std::string digifile = "trddigits.root",
   hPad->Draw();
   c->cd(4);
   c->cd(4)->SetLogy();
-  hADC->Draw();
+  hADC[0]->Draw();
+  for (int d = 1; d < 540; ++d) {
+    // hADC[d]->SetLineColor(d+1);
+    hADC[d]->Draw("SAME");
+  }
   c->SaveAs("testCheckDigits.pdf");
 }
