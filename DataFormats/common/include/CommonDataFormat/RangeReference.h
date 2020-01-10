@@ -36,6 +36,7 @@ class RangeReference
     mFirstEntry = ent;
     mEntries = n;
   }
+  void clear() { set(0, 0); }
   FirstEntry getFirstEntry() const { return mFirstEntry; }
   NElem getEntries() const { return mEntries; }
   void setFirstEntry(FirstEntry ent) { mFirstEntry = ent; }
