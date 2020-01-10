@@ -15,6 +15,7 @@
 #define ALICEO2_CALIBTIMESLEWINGPARAMTOF_H
 
 #include <vector>
+#include "Rtypes.h"
 
 namespace o2
 {
@@ -28,6 +29,8 @@ class CalibTimeSlewingParamTOF
   static const int NCHANNELXSECTOR = NCHANNELS / NSECTORS; //
 
   CalibTimeSlewingParamTOF();
+
+  CalibTimeSlewingParamTOF& operator=(const CalibTimeSlewingParamTOF& source);
 
   float evalTimeSlewing(int channel, float tot) const;
 
@@ -45,12 +48,25 @@ class CalibTimeSlewingParamTOF
 
   int getSize(int sector) const { return (*(mTimeSlewing[sector])).size(); }
 
-  int getStartTimeStamp(int sector, int channel) const { return mChannelStart[sector][channel]; }
+  int getStartIndexForChannel(int sector, int channel) const { return mChannelStart[sector][channel]; }
   float getFractionUnderPeak(int sector, int channel) const { return mFractionUnderPeak[sector][channel]; }
   float getSigmaPeak(int sector, int channel) const { return mSigmaPeak[sector][channel]; }
+  float getFractionUnderPeak(int channel) const
+  {
+    int sector = channel / NCHANNELXSECTOR;
+    int channelInSector = channel % NCHANNELXSECTOR;
+    return getFractionUnderPeak(sector, channelInSector);
+  }
 
   void setFractionUnderPeak(int sector, int channel, float value) { mFractionUnderPeak[sector][channel] = value; }
   void setSigmaPeak(int sector, int channel, float value) { mSigmaPeak[sector][channel] = value; }
+
+  bool isProblematic(int channel)
+  {
+    int sector = channel / NCHANNELXSECTOR;
+    int channelInSector = channel % NCHANNELXSECTOR;
+    return (getFractionUnderPeak(sector, channelInSector) < 0);
+  }
 
   CalibTimeSlewingParamTOF& operator+=(const CalibTimeSlewingParamTOF& other);
 
@@ -81,7 +97,7 @@ class CalibTimeSlewingParamTOF
   float mFractionUnderPeak[NSECTORS][NCHANNELXSECTOR]; ///< array with the fraction of entries below the peak
   float mSigmaPeak[NSECTORS][NCHANNELXSECTOR];         ///< array with the sigma of the peak
 
-  //  ClassDefNV(CalibTimeSlewingParamTOF, 2); // class for TOF time slewing params
+  ClassDefNV(CalibTimeSlewingParamTOF, 1); // class for TOF time slewing params
 };
 } // namespace dataformats
 } // namespace o2

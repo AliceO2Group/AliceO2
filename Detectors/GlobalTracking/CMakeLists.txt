@@ -20,7 +20,8 @@ o2_add_library(GlobalTracking
                                      O2::GPUTracking
                                      O2::TPCBase
                                      O2::TPCReconstruction
-                                     O2::TOFBase)
+                                     O2::TOFBase
+				     O2::TOFCalibration)
 
 o2_target_root_dictionary(GlobalTracking
                           HEADERS include/GlobalTracking/MatchTPCITS.h

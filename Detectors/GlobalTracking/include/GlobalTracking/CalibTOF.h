@@ -30,7 +30,7 @@
 #include "TF1.h"
 #include "TFile.h"
 #include "TGraphErrors.h"
-#include "CCDB/CcdbApi.h"
+#include "TOFCalibration/CalibTOFapi.h"
 
 class TTree;
 
@@ -42,15 +42,16 @@ namespace globaltracking
 class CalibTOF
 {
   using Geo = o2::tof::Geo;
+  using CalibTOFapi = o2::tof::CalibTOFapi;
 
  public:
   static constexpr int NSTRIPSPERSTEP = 13; // we chose this number because we process per sector, and
                                             // each sector has 91 = 13x7 strips
   static constexpr int NPADSPERSTEP = Geo::NPADS * NSTRIPSPERSTEP;
   static constexpr int NSTEPSPERSECTOR = 91 / NSTRIPSPERSTEP;
-  enum { kLHCphase = 1,
-         kChannelOffset = 2,
-         kChannelTimeSlewing = 4 }; // enum to define which calibration we will do
+  enum CalibType : int { kLHCphase = 1,
+                         kChannelOffset = 2,
+                         kChannelTimeSlewing = 4 }; // enum to define which calibration we will do
 
   ///< constructor
   CalibTOF();
@@ -60,7 +61,7 @@ class CalibTOF
 
   ///< calibrate using the provided input
   void run(int flag, int sector = -1);
-  void fillOutput();
+  void fillOutput(int flag = kLHCphase | kChannelOffset | kChannelTimeSlewing);
 
   ///< perform all initializations
   void init();
@@ -102,6 +103,12 @@ class CalibTOF
   float getNsigmaFractionProblematicCut() const { return mNsigmaFractionProblematicCut; }
   float getNsigmaSigmaProblematicCut() const { return mNsigmaSigmaProblematicCut; }
 
+  void setFillCCDB(bool flag) { mFillCCDB = flag; }
+  bool getFillCCDB() const { return mFillCCDB; }
+
+  void setCCDBpath(std::string path) { mCCDBpath = path; }
+  std::string getCCDBpath() const { return mCCDBpath; }
+
  private:
   Int_t mDebugMode = 0; ///< >0= time slewing extra plot, >1= problematic fits stored
 
@@ -129,6 +136,8 @@ class CalibTOF
   // Data members
 
   bool mInitDone = false; ///< flag init already done
+  bool mFillCCDB = false; ///< flag init already doneto decide whether to fill or not the CCDB
+  std::string mCCDBpath = "http://ccdb-test.cern.ch:8080"; ///< path to CCDB
 
   ///========== Parameters to be set externally, e.g. from CCDB ====================
 
@@ -156,6 +165,8 @@ class CalibTOF
 
   int mMaxTimestamp = 1; ///< maximum timestamp over the hits that we collect; we need it to
                          ///< book the histogram for the LHCPhase calibration
+
+  CalibTOFapi mCalibTOFapi; ///< API to handle TOF calibration objects
 
   //  ClassDefNV(CalibTOF, 1);
 };

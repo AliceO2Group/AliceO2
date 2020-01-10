@@ -8,19 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef STEER_DIGITIZERWORKFLOW_TOFDIGITIZER_H_
-#define STEER_DIGITIZERWORKFLOW_TOFDIGITIZER_H_
+#ifdef __CLING__
 
-#include "Framework/DataProcessorSpec.h"
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
 
-namespace o2
-{
-namespace tof
-{
+#pragma link C++ class o2::tof::CalibTOFapi + ;
 
-o2::framework::DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB);
-
-} // end namespace tof
-} // end namespace o2
-
-#endif /* STEER_DIGITIZERWORKFLOW_TOFDIGITIZER_H_ */
+#endif
