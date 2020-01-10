@@ -22,6 +22,8 @@
 #include "TRDBase/TRDSimParam.h"
 #endif
 
+constexpr int kMINENTRIES = 1000;
+
 void CheckDigits(std::string digifile = "trddigits.root",
                  std::string hitfile = "o2sim.root",
                  std::string inputGeom = "O2geometry.root",
@@ -57,7 +59,7 @@ void CheckDigits(std::string digifile = "trddigits.root",
       for (int tb = 0; tb < kTimeBins; ++tb) {
         ADC_t adc = adcs[tb];
         if (adc == (ADC_t)TRDSimParam::Instance()->GetADCoutRange()) {
-          LOG(INFO) << "Out of range ADC " << adc;
+          // LOG(INFO) << "Out of range ADC " << adc;
           continue;
         }
         hADC[det]->Fill(adc);
@@ -74,10 +76,64 @@ void CheckDigits(std::string digifile = "trddigits.root",
   hPad->Draw();
   c->cd(4);
   c->cd(4)->SetLogy();
-  hADC[0]->Draw();
+  int first = 0;
+  int count = 0;
+  int max = 0;
   for (int d = 1; d < 540; ++d) {
-    // hADC[d]->SetLineColor(d+1);
-    hADC[d]->Draw("SAME");
+    if (hADC[d]->GetEntries() < kMINENTRIES) {
+      continue;
+    }
+    if (count > 6) {
+      break;
+    }
+    hADC[d]->SetLineColor(count + 1);
+    if (count == 0) {
+      hADC[d]->Draw();
+      first = d;
+      if (max < hADC[d]->GetMaximum()) {
+        max = hADC[d]->GetMaximum();
+      }
+      count++;
+    } else {
+      hADC[d]->Draw("SAME");
+      if (max < hADC[d]->GetMaximum()) {
+        max = hADC[d]->GetMaximum();
+      }
+      count++;
+    }
   }
+  hADC[first]->GetYaxis()->SetLimits(1.1,max+100);
   c->SaveAs("testCheckDigits.pdf");
+
+
+  TCanvas* c1 = new TCanvas("c1", "trd digits analysis", 600, 600);
+  first = 0;
+  count = 0;
+  max = 0;
+  for (int d = 1; d < 540; ++d) {
+    if (hADC[d]->GetEntries() < kMINENTRIES) {
+      continue;
+    }
+    if (count > 6) {
+      break;
+    }
+    hADC[d]->SetLineColor(count + 1);
+    if (count == 0) {
+      hADC[d]->Draw();
+      first = d;
+      if (max < hADC[d]->GetMaximum()) {
+        max = hADC[d]->GetMaximum();
+      }
+      count++;
+    } else {
+      hADC[d]->Draw("SAME");
+      if (max < hADC[d]->GetMaximum()) {
+        max = hADC[d]->GetMaximum();
+      }
+      count++;
+    }
+  }
+  hADC[first]->GetYaxis()->SetLimits(1.1,max+100);
+  c1->SetLogy();
+  c1->SaveAs("testCheckDigits_ADCs.pdf");
 }
