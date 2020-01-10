@@ -86,22 +86,12 @@ class TrackAtVertexTask
     /// propagate them to the corresponding vertex and send the new version
 
     // get the vertex
-    int eventVtx(-1);
     Point3D<double> vertex(0., 0., 0.);
-    try {
-      eventVtx = readVertex(pc.inputs().get<gsl::span<char>>("vertex"), vertex);
-    } catch (exception const& e) {
-      throw;
-    }
+    int eventVtx = readVertex(pc.inputs().get<gsl::span<char>>("vertex"), vertex);
 
     // get the tracks
-    int eventTracks(-1);
     std::list<TrackStruct> tracks{};
-    try {
-      eventTracks = readTracks(pc.inputs().get<gsl::span<char>>("tracks"), tracks);
-    } catch (exception const& e) {
-      throw;
-    }
+    int eventTracks = readTracks(pc.inputs().get<gsl::span<char>>("tracks"), tracks);
 
     if (eventVtx > -1 && eventVtx != eventTracks) {
       throw runtime_error("vertex and tracks are from different events");
