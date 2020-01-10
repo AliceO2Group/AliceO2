@@ -101,9 +101,9 @@ class Digit
   }
 
  private:
-  std::uint16_t mDetector{0}; // TRD detector number, 0-539
-  std::uint8_t mRow{0};       // pad row, 0-15
-  std::uint8_t mPad{0};       // pad within pad row, 0-143
+  int mDetector{0}; // TRD detector number, 0-539
+  int mRow{0};       // pad row, 0-15
+  int mPad{0};       // pad within pad row, 0-143
   ArrayADC_t mADC{};          // ADC vector (30 time-bins)
   size_t mLabelIdx{0};        // index for mc label
 

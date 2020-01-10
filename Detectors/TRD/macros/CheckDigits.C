@@ -37,7 +37,7 @@ void CheckDigits(std::string digifile = "trddigits.root",
   TH1F* hDet = new TH1F("hDet", ";Detector number;Counts", 504, 0, 539);
   TH1F* hRow = new TH1F("hRow", ";Row number;Counts", 16, 0, 15);
   TH1F* hPad = new TH1F("hPad", ";Pad number;Counts", 144, 0, 143);
-  TH1* hADC = new TH1F("hADC", ";ADC value;Counts", 1024, 0, 1023);
+  TH1* hADC = new TH1F("hADC", ";ADC value;Counts", 512, 0, 511);
 
   LOG(INFO) << nev << " entries found";
   for (int iev = 0; iev < nev; ++iev) {
