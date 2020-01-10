@@ -14,7 +14,7 @@
 #ifndef ALICEO2_ITSMFT_ROFRECORD_H
 #define ALICEO2_ITSMFT_ROFRECORD_H
 
-#include "CommonDataFormat/EvIndex.h"
+#include "CommonDataFormat/RangeReference.h"
 #include "CommonDataFormat/InteractionRecord.h"
 
 namespace o2
@@ -27,31 +27,32 @@ namespace itsmft
 
 class ROFRecord
 {
-  using EvIdx = o2::dataformats::EvIndex<int, int>;
+  using EvIdx = o2::dataformats::RangeReference<int, int>;
   using BCData = o2::InteractionRecord;
   using ROFtype = unsigned int;
 
  public:
   ROFRecord() = default;
-  ROFRecord(const BCData& bc, ROFtype rof, EvIdx entry, int n)
-    : mBCData(bc), mROFEntry(entry), mROFrame(rof), mNROFEntries(n) {}
+  ROFRecord(const BCData& bc, ROFtype rof, int idx, int n)
+    : mBCData(bc), mROFEntry(idx, n), mROFrame(rof) {}
 
   void setBCData(const BCData& bc) { mBCData = bc; }
   void setROFrame(ROFtype rof) { mROFrame = rof; }
-  void setROFEntry(EvIdx entry) { mROFEntry = entry; }
-  void setNROFEntries(int n) { mNROFEntries = n; }
+  void setEntry(EvIdx entry) { mROFEntry = entry; }
+  void setFirstEntry(int idx) { mROFEntry.setFirstEntry(idx); }
+  void setNEntries(int n) { mROFEntry.setEntries(n); }
 
   const BCData& getBCData() const { return mBCData; }
   BCData& getBCData() { return mBCData; }
-  EvIdx getROFEntry() const { return mROFEntry; }
-  EvIdx& getROFEntry() { return mROFEntry; }
+  EvIdx getEntry() const { return mROFEntry; }
+  EvIdx& getEntry() { return mROFEntry; }
+  int getNEntries() const { return mROFEntry.getEntries(); }
+  int getFirstEntry() const { return mROFEntry.getFirstEntry(); }
   ROFtype getROFrame() const { return mROFrame; }
-  int getNROFEntries() const { return mNROFEntries; }
 
   void clear()
   {
     mROFEntry.clear();
-    mNROFEntries = 0;
     mBCData.clear();
   }
   void print() const;
@@ -60,9 +61,8 @@ class ROFRecord
   o2::InteractionRecord mBCData; // BC data for given trigger
   EvIdx mROFEntry;               //< reference on the 1st object of the ROF in data
   ROFtype mROFrame = 0;          //< frame ID
-  int mNROFEntries = 0;          //< number of objects of the ROF
 
-  ClassDefNV(ROFRecord, 1);
+  ClassDefNV(ROFRecord, 2);
 };
 
 /// this is a simple reference connecting (composed) MC event ID (from the EventRecord of the RunContext)
@@ -77,6 +77,7 @@ struct MC2ROFRecord {
 
   MC2ROFRecord() = default;
   MC2ROFRecord(int evID, int rofRecID, ROFtype mnrof, ROFtype mxrof) : eventRecordID(evID), rofRecordID(rofRecID), minROF(mnrof), maxROF(mxrof) {}
+  int getNROFs() const { return eventRecordID < 0 ? 0 : (maxROF - minROF); }
   void print() const;
   ClassDefNV(MC2ROFRecord, 1);
 };
