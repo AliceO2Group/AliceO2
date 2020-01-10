@@ -115,13 +115,13 @@ class TrackExtrap
   static bool extrapOneStepRungekutta(double charge, double step, const double* vect, double* vout);
 
   static constexpr double SMuMass = 0.105658;                         ///< Muon mass (GeV/c2)
-  static constexpr double SAbsZBeg = -90.;                            ///< Position of the begining of the absorber
-  static constexpr double SAbsZEnd = -505.;                           ///< Position of the end of the absorber
-  static constexpr double SSimpleBPosition = -0.5 * (994.05 + 986.6); ///< Position of the dipole
-  static constexpr double SSimpleBLength = 0.5 * (502.1 + 309.4);     ///< Length of the dipole
+  static constexpr double SAbsZBeg = -90.;                            ///< Position of the begining of the absorber (cm)
+  static constexpr double SAbsZEnd = -505.;                           ///< Position of the end of the absorber (cm)
+  static constexpr double SSimpleBPosition = -0.5 * (994.05 + 986.6); ///< Position of the dipole (cm)
+  static constexpr double SSimpleBLength = 0.5 * (502.1 + 309.4);     ///< Length of the dipole (cm)
   static constexpr int SMaxStepNumber = 5000;                         ///< Maximum number of steps for track extrapolation
-  static constexpr double SRungeKuttaMaxResidue = 0.002;              ///< Max z-distance to destination to stop the track extrap
-  static constexpr double SRungeKuttaMaxResidueV2 = 0.01;             ///< Max z-distance to destination to stop the track extrap v2
+  static constexpr double SRungeKuttaMaxResidue = 0.002;              ///< Max z-distance to destination to stop the track extrap (cm)
+  static constexpr double SRungeKuttaMaxResidueV2 = 0.01;             ///< Max z-distance to destination to stop the track extrap v2 (cm)
   /// Most probable value (GeV/c) of muon momentum in bending plane (used when B = 0)
   /// Needed to get some "reasonable" corrections for MCS and E loss even if B = 0
   static constexpr double SMostProbBendingMomentum = 2.;
