@@ -79,7 +79,7 @@ class Digit
       digitCont.emplace_back(Digit::getDetectorFromKey(key),
                              Digit::getRowFromKey(key),
                              Digit::getColFromKey(key),
-                             adcs, idx);
+                             adcs, idx);  
     }
   }
   static void convertVectorsToMap(const DigitContainer_t& digitCont,

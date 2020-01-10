@@ -71,9 +71,9 @@ class Digitizer
   void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, kNdet>&);
   // Digitization chaing methods
   bool convertHits(const int, const std::vector<HitType>&, SignalContainer_t&, o2::dataformats::MCTruthContainer<MCLabel>&, int thread = 0); // True if hit-to-signal conversion is successful
-  bool convertSignalsToDigits(const int, SignalContainer_t&, int thread = 0);                                                                // True if signal-to-digit conversion is successful
+  bool convertSignalsToDigits(const int, SignalContainer_t&, DigitContainer_t&, int thread = 0);                                             // True if signal-to-digit conversion is successful
   bool convertSignalsToSDigits(const int, SignalContainer_t&, int thread = 0);                                                               // True if signal-to-sdigit conversion is successful
-  bool convertSignalsToADC(const int, SignalContainer_t&, int thread = 0);                                                                   // True if signal-to-ADC conversion is successful
+  bool convertSignalsToADC(const int, SignalContainer_t&, DigitContainer_t&, int thread = 0);                                                // True if signal-to-ADC conversion is successful
 
   bool diffusion(float, float, float, float, float, float, double&, double&, double&, int thread = 0); // True if diffusion is applied successfully
 };
