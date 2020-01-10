@@ -194,6 +194,7 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
       }
 
       if ((processAttributes->finished = (operation == -1)) && processAttributes->terminateOnEod) {
+        pc.services().get<ControlService>().endOfStream();
         pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
       }
     };
