@@ -168,20 +168,9 @@ template <>
 class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
 {
  public:
-  GPUd() trackInterface<GPUTPCGMTrackParam>() : GPUTPCGMTrackParam(){};
+  GPUd() trackInterface<GPUTPCGMTrackParam>() = default;
   GPUd() trackInterface<GPUTPCGMTrackParam>(const GPUTPCGMTrackParam& param) CON_DELETE;
-  GPUd() trackInterface<GPUTPCGMTrackParam>(const GPUTPCGMMergedTrack& trk) : GPUTPCGMTrackParam(), mAlpha(trk.GetAlpha())
-  {
-    SetX(trk.GetParam().GetX());
-    SetPar(0, trk.GetParam().GetY());
-    SetPar(1, trk.GetParam().GetZ());
-    SetPar(2, trk.GetParam().GetSinPhi());
-    SetPar(3, trk.GetParam().GetDzDs());
-    SetPar(4, trk.GetParam().GetQPt());
-    for (int i = 0; i < 15; i++) {
-      SetCov(i, trk.GetParam().GetCov(i));
-    }
-  };
+  GPUd() trackInterface<GPUTPCGMTrackParam>(const GPUTPCGMMergedTrack& trk) : GPUTPCGMTrackParam(trk.GetParam()), mAlpha(trk.GetAlpha()) {}
   GPUd() trackInterface<GPUTPCGMTrackParam>(const GPUTPCGMTrackParam::GPUTPCOuterParam& param) : GPUTPCGMTrackParam(), mAlpha(param.alpha)
   {
     SetX(param.X);
@@ -192,16 +181,8 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
       SetCov(i, param.C[i]);
     }
   };
-  GPUd() trackInterface<GPUTPCGMTrackParam>(const trackInterface<GPUTPCGMTrackParam>& param) : GPUTPCGMTrackParam(), mAlpha(param.mAlpha)
-  {
-    SetX(param.getX());
-    for (int i = 0; i < 5; i++) {
-      SetPar(i, param.GetPar(i));
-    }
-    for (int j = 0; j < 15; j++) {
-      SetCov(j, param.GetCov(j));
-    }
-  }
+  GPUd() trackInterface<GPUTPCGMTrackParam>(const trackInterface<GPUTPCGMTrackParam>& param) = default;
+  GPUd() trackInterface<GPUTPCGMTrackParam>& operator=(const trackInterface<GPUTPCGMTrackParam>& param) = default;
 #ifdef GPUCA_ALIROOT_LIB
   trackInterface<GPUTPCGMTrackParam>(const AliHLTExternalTrackParam& param) : GPUTPCGMTrackParam(), mAlpha(param.fAlpha)
   {
