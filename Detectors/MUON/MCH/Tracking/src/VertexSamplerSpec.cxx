@@ -87,7 +87,6 @@ class VertexSamplerSpec
         mInputFile.read(reinterpret_cast<char*>(&eventVtx), SSizeOfInt);
         if (mInputFile.fail()) {
           throw out_of_range(std::string("missing vertex for event ") + eventTracks);
-          return; // probably reached eof
         }
         VertexStruct vtx{};
         mInputFile.read(reinterpret_cast<char*>(&vtx), SSizeOfVertexStruct);
