@@ -54,6 +54,7 @@ matrix:
           fi
         fi
     - os: linux
+      dist: bionic
       env: JOB=doxygen
       addons:
         apt:
