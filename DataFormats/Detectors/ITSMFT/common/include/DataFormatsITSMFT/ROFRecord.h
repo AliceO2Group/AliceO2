@@ -16,6 +16,7 @@
 
 #include "CommonDataFormat/RangeReference.h"
 #include "CommonDataFormat/InteractionRecord.h"
+#include <gsl/span>
 
 namespace o2
 {
@@ -56,6 +57,17 @@ class ROFRecord
     mBCData.clear();
   }
   void print() const;
+
+  template <typename T>
+  gsl::span<const T> getROFData(const gsl::span<const T> tfdata) const
+  {
+    return gsl::span<const T>(&tfdata[getFirstEntry()], getNEntries());
+  }
+  template <typename T>
+  const T* getROFDataAt(int i, const gsl::span<const T> tfdata) const
+  {
+    return i < getNEntries() ? &tfdata[getFirstEntry() + i] : nullptr;
+  }
 
  private:
   o2::InteractionRecord mBCData; // BC data for given trigger
