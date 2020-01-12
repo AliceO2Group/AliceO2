@@ -32,4 +32,14 @@
 #pragma link C++ class o2::itsmft::TopologyDictionary + ;
 #pragma link C++ class o2::itsmft::GroupStruct + ;
 
+#pragma link C++ function o2::itsmft::getROFData(const gsl::span <const o2::itsmft::Digit> tfdata) const;
+#pragma link C++ function o2::itsmft::getROFData(const gsl::span <const o2::itsmft::Cluster> tfdata) const;
+#pragma link C++ function o2::itsmft::getROFData(const gsl::span <const o2::itsmft::CompCluster> tfdata) const;
+#pragma link C++ function o2::itsmft::getROFData(const gsl::span <const o2::itsmft::CompClusterExt> tfdata) const;
+
+#pragma link C++ function o2::itsmft::getROFDataAt(int i, const gsl::span <const o2::itsmft::Digit> tfdata) const;
+#pragma link C++ function o2::itsmft::getROFDataAt(int i, const gsl::span <const o2::itsmft::Cluster> tfdata) const;
+#pragma link C++ function o2::itsmft::getROFDataAt(int i, const gsl::span <const o2::itsmft::CompCluster> tfdata) const;
+#pragma link C++ function o2::itsmft::getROFDataAt(int i, const gsl::span <const o2::itsmft::CompClusterExt> tfdata) const;
+
 #endif
