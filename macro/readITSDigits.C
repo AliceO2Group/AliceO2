@@ -7,7 +7,7 @@
 #include <iostream>
 #include "FairLogger.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "SimulationDataFormat/RunContext.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"

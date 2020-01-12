@@ -11,7 +11,7 @@
 #include "ITSMFTReconstruction/GBTWord.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTSimulation/MC2RawEncoder.h"
 #endif
 

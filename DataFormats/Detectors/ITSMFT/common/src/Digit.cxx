@@ -11,7 +11,7 @@
 /// \file Digit.cxx
 /// \brief Implementation of the ITSMFT digit
 
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include <iostream>
 
 ClassImp(o2::itsmft::Digit);
