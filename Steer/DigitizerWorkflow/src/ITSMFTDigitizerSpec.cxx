@@ -17,7 +17,7 @@
 #include "Framework/Task.h"
 #include "Headers/DataHeader.h"
 #include "Steer/HitProcessingManager.h" // for RunContext
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DataFormatsParameters/GRPObject.h"

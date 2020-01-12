@@ -9,7 +9,7 @@
 #include "ITSMFTReconstruction/GBTWord.h"
 #include "ITSMFTReconstruction/PayLoadCont.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTReconstruction/RawPixelReader.h"
 #endif
 
