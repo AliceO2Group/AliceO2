@@ -17,7 +17,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "ITSWorkflow/DigitReaderSpec.h"
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"

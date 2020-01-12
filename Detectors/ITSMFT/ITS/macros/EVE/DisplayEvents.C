@@ -29,7 +29,7 @@
 #include "ITSMFTReconstruction/DigitPixelReader.h"
 #include "ITSMFTReconstruction/RawPixelReader.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"

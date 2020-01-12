@@ -12,7 +12,7 @@
 /// \brief Implementation of the ITS cluster finder task
 
 #include "ITSReconstruction/TrivialClustererTask.h"
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "MathUtils/Cartesian3D.h"
 #include "MathUtils/Utils.h"

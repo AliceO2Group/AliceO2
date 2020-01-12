@@ -11,7 +11,7 @@
 /// \file TrivialClusterer.cxx
 /// \brief Implementation of the ITS cluster finder
 #include "MathUtils/Cartesian3D.h"
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSReconstruction/TrivialClusterer.h"
 #include "DataFormatsITSMFT/Cluster.h"

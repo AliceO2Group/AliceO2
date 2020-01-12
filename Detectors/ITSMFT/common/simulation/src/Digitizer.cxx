@@ -11,7 +11,7 @@
 /// \file Digitizer.cxx
 /// \brief Implementation of the ITS/MFT digitizer
 
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSMFTSimulation/Digitizer.h"
 #include "MathUtils/Cartesian3D.h"

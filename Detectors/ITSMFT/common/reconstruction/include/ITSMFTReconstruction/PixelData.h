@@ -13,7 +13,7 @@
 #ifndef ALICEO2_ITSMFT_PIXELDATA_H
 #define ALICEO2_ITSMFT_PIXELDATA_H
 
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include <vector>
 #include <utility>

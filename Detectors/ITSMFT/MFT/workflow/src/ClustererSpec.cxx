@@ -13,7 +13,7 @@
 #include "MFTWorkflow/ClustererSpec.h"
 #include "MFTBase/GeometryTGeo.h"
 
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 #include "ITSMFTReconstruction/DigitPixelReader.h"
 

@@ -12,7 +12,7 @@
 
 #include "Framework/ControlService.h"
 #include "ITSQCDataReaderWorkflow/TestDataGetter.h"
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h"
