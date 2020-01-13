@@ -16,6 +16,7 @@ install(FILES CheckClusters_mft.C
               CheckDigits_mft.C
               SetIncludePath.C
               analyzeHits.C
+              analyzeOriginHits.C
               build_geometry.C
               checkTOFMatching.C
               compareTopologyDistributions.C
@@ -92,6 +93,10 @@ o2_add_test_root_macro(analyzeHits.C
                                              O2::TPCSimulation
                                              O2::PHOSBase
                                              O2::FDDSimulation)
+
+o2_add_test_root_macro(analyzeOriginHits.C
+                       PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
+                                             O2::DetectorsCommonDataFormats)
 
 o2_add_test_root_macro(build_geometry.C
                        PUBLIC_LINK_LIBRARIES O2::DetectorsPassive
