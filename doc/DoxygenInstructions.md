@@ -38,7 +38,7 @@ This module contains the following submodules:
 #### An example of a `README.md` file at a submodule level:
 
 ```
-!-- doxy
+<!-- doxy
 \page refModulenameSubmodulename1 Submodulename1
 /doxy -->
 
