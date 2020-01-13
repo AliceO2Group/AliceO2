@@ -407,12 +407,14 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& signalMapC
     // halfchamber masking
     int mcm = (int)(col / 18);               // current group of 18 col pads
     int halfchamberside = (mcm > 3 ? 1 : 0); // 0=Aside, 1=Bside
-/* Something is wrong with isHalfChamberNoData - deactivated for now
+
     // Halfchambers that are switched off, masked by mCalib
+    /* Something is wrong with isHalfChamberNoData - deactivated for now
     if (mCalib->isHalfChamberNoData(det, halfchamberside)) {
       continue;
     }
-*/
+    */
+
     // Check whether pad is masked
     // Bridged pads are not considered yet!!!
     if (mCalib->isPadMasked(det, col, row) || mCalib->isPadNotConnected(det, col, row)) {
