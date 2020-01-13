@@ -75,6 +75,7 @@ const float k2PI = 2 * kPI;
 // use exact r's for the clusters
 
 CookedTracker::Layer CookedTracker::sLayers[CookedTracker::kNLayers];
+float CookedTracker::mMostProbablePt = o2::track::kMostProbablePt;
 
 CookedTracker::CookedTracker(Int_t n) : mNumOfThreads(n), mBz(0.)
 {
@@ -196,7 +197,7 @@ static o2::its::TrackITSExt cookSeed(const Point3Df& r1, Point3Df& r2, const Poi
   par[2] = sf;
 
   par[3] = 0.5 * (tgl12 + tgl23);
-  par[4] = (TMath::Abs(bz) < Almost0) ? TMath::Sign(1 / o2::track::kMostProbablePt, crv) : crv / (bz * B2C);
+  par[4] = (TMath::Abs(bz) < Almost0) ? 1 / CookedTracker::getMostProbablePt() : crv / (bz * B2C);
 
   std::array<float, 15> cov;
   /*
