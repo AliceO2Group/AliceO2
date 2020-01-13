@@ -245,33 +245,5 @@ void build_geometry(FairRunSim* run = nullptr)
 
   if (geomonly) {
     run->Init();
-    finalize_geometry(run);
-    gGeoManager->Export("O2geometry.root");
-  }
-}
-
-void finalize_geometry(FairRunSim* run)
-{
-  // finalize geometry and declare alignable volumes
-  // this should be called geometry is fully built
-
-  if (!gGeoManager) {
-    LOG(ERROR) << "gGeomManager is not available";
-    return;
-  }
-
-  gGeoManager->CloseGeometry();
-  if (!run) {
-    LOG(ERROR) << "FairRunSim is not available";
-    return;
-  }
-
-  const TObjArray* modArr = run->GetListOfModules();
-  TIter next(modArr);
-  FairModule* module = nullptr;
-  while ((module = (FairModule*)next())) {
-    o2::base::Detector* det = dynamic_cast<o2::base::Detector*>(module);
-    if (det)
-      det->addAlignableVolumes();
   }
 }
