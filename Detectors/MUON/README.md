@@ -8,6 +8,7 @@ This is a top page for the MUON detector documentation.
 
 <!-- doxy
 * \subpage refMUONMIDClustering
+* \subpage refMUONMIDRawExe
 * \subpage refMUONMIDTracking
 * \subpage refMUONMIDWorkflow
 * \subpage refMUONMCHMappingSegContour

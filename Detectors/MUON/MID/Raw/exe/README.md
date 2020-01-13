@@ -1,4 +1,6 @@
+<!-- doxy
 \page refMUONMIDRawExe MID RAW executable
+/doxy -->
 
 # Utilities for MID RAW data
 This directory contains two utilities that can be executed to verify the raw data.
