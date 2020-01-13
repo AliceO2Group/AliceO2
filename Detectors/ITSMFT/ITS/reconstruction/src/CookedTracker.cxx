@@ -211,7 +211,7 @@ static o2::its::TrackITSExt cookSeed(const Point3Df& r1, Point3Df& r2, const Poi
   const Double_t dlt = 0.0005;
   Double_t fy = 1. / (rad2 - rad3);
   Double_t tz = fy;
-  constexpr auto big = sqrt(o2::constants::math::VeryBig);
+  const auto big = sqrt(o2::constants::math::VeryBig);
   auto cy = big;
   if (TMath::Abs(bz) >= Almost0) {
     cy = (f1(x1, y1, x2, y2 + dlt, x3, y3) - crv) / dlt / bz / B2C;
