@@ -59,3 +59,9 @@ o2_add_executable(filters
                   SOURCES src/filters.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
+
+o2_add_executable(vertexingHF
+	  	  SOURCES src/vertexinghf/vertexerhf.cxx
+		  PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase 
+	          COMPONENT_NAME AnalysisTutorial)
+
