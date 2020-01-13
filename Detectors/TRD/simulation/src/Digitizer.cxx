@@ -137,8 +137,8 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
   // Finalize: Dump the digitCollection to the output digitCont
   for (int det = 0; det < kNdet; ++det) {
     auto& digits = digitCollection[det];
-    digitCont.insert(digitCont.end(), digits.begin(), digits.end());
-    // std::move(digits.begin(), digits.end(), std::back_inserter(digitCont));
+    // digitCont.insert(digitCont.end(), digits.begin(), digits.end());
+    std::move(digits.begin(), digits.end(), std::back_inserter(digitCont));
     // digitCont.insert(digitCont.end(), std::make_move_iterator(digits.begin()), std::make_move_iterator(digits.end()));
     labels.mergeAtBack(labelsperdetector[det]);
   }
@@ -412,7 +412,7 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& signalMapC
     if (mCalib->isHalfChamberNoData(det, halfchamberside)) {
       continue;
     }
-/ *
+*/
     // Check whether pad is masked
     // Bridged pads are not considered yet!!!
     if (mCalib->isPadMasked(det, col, row) || mCalib->isPadNotConnected(det, col, row)) {
