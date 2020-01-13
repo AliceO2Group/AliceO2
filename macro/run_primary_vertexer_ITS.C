@@ -137,7 +137,7 @@ int run_primary_vertexer_ITS(const float phiCut = -1.f,
     auto& rof = (*rofs)[iROfCount];
     o2::its::ROframe frame(iROfCount); // to get meaningful roframeId
     std::cout << "ROframe: " << iROfCount << std::endl;
-    int nclUsed = o2::its::ioutils::loadROFrameData(rof, frame, clusters, labels);
+    int nclUsed = o2::its::ioutils::loadROFrameData(rof, frame, gsl::span(clusters->data(), clusters->size()), labels);
 
     std::array<float, 3> total{0.f, 0.f, 0.f};
     o2::its::ROframe* eventptr = &frame;

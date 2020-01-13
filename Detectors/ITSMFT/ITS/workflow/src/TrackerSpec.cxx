@@ -68,18 +68,20 @@ void TrackerDPL::run(ProcessingContext& pc)
   if (mState != 1)
     return;
 
-  auto compClusters = pc.inputs().get<const std::vector<itsmft::CompClusterExt>>("compClusters");
-  auto clusters = pc.inputs().get<const std::vector<itsmft::Cluster>>("clusters");
-  auto rofs = pc.inputs().get<const std::vector<itsmft::ROFRecord>>("ROframes");
+  auto compClusters = pc.inputs().get<gsl::span<const itsmft::CompClusterExt>>("compClusters");
+  auto clusters = pc.inputs().get<gsl::span<itsmft::Cluster>>("clusters");
+  auto rofs = pc.inputs().get<std::vector<itsmft::ROFRecord>>("ROframes"); // use vector rather than span, since used for output
 
   LOG(INFO) << "ITSTracker pulled " << clusters.size() << " clusters, "
             << rofs.size() << " RO frames and ";
 
-  const dataformats::MCTruthContainer<MCCompLabel>* labels = mIsMC ? pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("labels").release() : nullptr;
-  std::vector<itsmft::MC2ROFRecord> mc2rofs = mIsMC ? pc.inputs().get<std::vector<itsmft::MC2ROFRecord>>("MC2ROframes") : std::vector<itsmft::MC2ROFRecord>();
+  const dataformats::MCTruthContainer<MCCompLabel>* labels = nullptr;
+  std::vector<itsmft::MC2ROFRecord> mc2rofs;
   if (mIsMC) {
-    LOG(INFO) << labels->getIndexedSize() << " MC label objects , in "
-              << mc2rofs.size() << " MC events";
+    labels = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("labels").release();
+    // use vector rather than span since we are using it also for the output
+    mc2rofs = pc.inputs().get<std::vector<itsmft::MC2ROFRecord>>("MC2ROframes");
+    LOG(INFO) << labels->getIndexedSize() << " MC label objects , in " << mc2rofs.size() << " MC events";
   }
 
   std::vector<o2::its::TrackITSExt> tracks;
@@ -108,7 +110,7 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   if (continuous) {
     for (const auto& rof : rofs) {
-      int nclUsed = ioutils::loadROFrameData(rof, event, &clusters, labels);
+      int nclUsed = ioutils::loadROFrameData(rof, event, clusters, labels);
       if (nclUsed) {
         LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
         mVertexer->clustersToVertices(event);
@@ -129,7 +131,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       roFrame++;
     }
   } else {
-    ioutils::loadEventData(event, &clusters, labels);
+    ioutils::loadEventData(event, clusters, labels);
     event.addPrimaryVertex(0.f, 0.f, 0.f); //FIXME :  run an actual vertex finder !
     mTracker->clustersToTracks(event);
     tracks.swap(mTracker->getTracks());

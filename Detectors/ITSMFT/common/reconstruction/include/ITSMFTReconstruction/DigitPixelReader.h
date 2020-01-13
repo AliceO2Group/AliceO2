@@ -24,6 +24,7 @@
 #include <TTree.h>
 #include <vector>
 #include <memory>
+#include <gsl/span>
 
 namespace o2
 {
@@ -36,23 +37,23 @@ class DigitPixelReader : public PixelReader
   DigitPixelReader() = default;
   ~DigitPixelReader() override;
 
-  const std::vector<o2::itsmft::MC2ROFRecord>* getMC2ROFRecords() const
+  const auto getMC2ROFRecords() const
   {
     return mMC2ROFRecVec;
   }
 
-  void setMC2ROFRecords(const std::vector<o2::itsmft::MC2ROFRecord>* a)
+  void setMC2ROFRecords(const gsl::span<const o2::itsmft::MC2ROFRecord> a)
   {
     mMC2ROFRecVec = a;
   }
 
-  void setROFRecords(const std::vector<o2::itsmft::ROFRecord>* a)
+  void setROFRecords(const gsl::span<const o2::itsmft::ROFRecord> a)
   {
     mROFRecVec = a;
     mIdROF = -1;
   }
 
-  void setDigits(const std::vector<o2::itsmft::Digit>* a)
+  void setDigits(const gsl::span<const o2::itsmft::Digit> a)
   {
     mDigits = a;
     mIdDig = 0;
@@ -98,9 +99,9 @@ class DigitPixelReader : public PixelReader
   std::vector<o2::itsmft::MC2ROFRecord>* mMC2ROFRecVecSelf = nullptr;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mDigitsMCTruthSelf = nullptr;
 
-  const std::vector<o2::itsmft::Digit>* mDigits = nullptr;
-  const std::vector<o2::itsmft::ROFRecord>* mROFRecVec = nullptr;
-  const std::vector<o2::itsmft::MC2ROFRecord>* mMC2ROFRecVec = nullptr;
+  gsl::span<const o2::itsmft::Digit> mDigits;
+  gsl::span<const o2::itsmft::ROFRecord> mROFRecVec;
+  gsl::span<const o2::itsmft::MC2ROFRecord> mMC2ROFRecVec;
 
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mDigitsMCTruth = nullptr;
   const Digit* mLastDigit = nullptr;

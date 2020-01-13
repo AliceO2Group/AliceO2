@@ -76,15 +76,15 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   if (mState != 1)
     return;
 
-  auto compClusters = pc.inputs().get<const std::vector<o2::itsmft::CompClusterExt>>("compClusters");
-  auto clusters = pc.inputs().get<const std::vector<o2::itsmft::Cluster>>("clusters");
-  auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
+  auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
+  auto clusters = pc.inputs().get<gsl::span<o2::itsmft::Cluster>>("clusters");
+  auto rofs = pc.inputs().get<std::vector<o2::itsmft::ROFRecord>>("ROframes"); // since we use it also for output, use the vector instead of span
 
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
-  std::vector<o2::itsmft::MC2ROFRecord> mc2rofs;
+  std::vector<o2::itsmft::MC2ROFRecord> mc2rofs; // use vector rather than span (since we use it for output)
   if (mUseMC) {
     labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
-    mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
+    mc2rofs = pc.inputs().get<std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
   }
 
   LOG(INFO) << "ITSCookedTracker pulled " << clusters.size() << " clusters, in "
@@ -102,7 +102,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   std::vector<o2::its::TrackITS> tracks;
   std::vector<int> clusIdx;
   for (auto& rof : rofs) {
-    o2::its::ioutils::loadROFrameData(rof, event, &clusters, labels.get());
+    o2::its::ioutils::loadROFrameData(rof, event, clusters, labels.get());
     vertexer.clustersToVertices(event);
     auto vertices = vertexer.exportVertices();
     if (vertices.empty()) {

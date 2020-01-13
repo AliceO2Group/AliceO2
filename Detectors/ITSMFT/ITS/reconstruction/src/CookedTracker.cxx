@@ -452,7 +452,7 @@ std::vector<TrackITSExt> CookedTracker::trackInThread(Int_t first, Int_t last)
   return seeds;
 }
 
-void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<TrackITS>& tracks,
+void CookedTracker::process(gsl::span<const Cluster> clusters, std::vector<TrackITS>& tracks,
                             std::vector<int>& clusIdx, o2::itsmft::ROFRecord& rof)
 {
   //--------------------------------------------------------------------
@@ -466,7 +466,7 @@ void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<Tr
 
   auto start = std::chrono::system_clock::now();
 
-  mFirstCluster = &clusters.front();
+  mFirstCluster = &clusters[0];
 
   auto nClFrame = loadClusters(clusters, rof);
 
@@ -589,24 +589,21 @@ bool CookedTracker::makeBackPropParam(TrackITSExt& track) const
   return true;
 }
 
-int CookedTracker::loadClusters(const std::vector<Cluster>& clusters, const o2::itsmft::ROFRecord& rof)
+int CookedTracker::loadClusters(gsl::span<const Cluster> clusters, const o2::itsmft::ROFRecord& rof)
 {
   //--------------------------------------------------------------------
   // This function reads the ITSU clusters from the tree,
   // sort them, distribute over the internal tracker arrays, etc
   //--------------------------------------------------------------------
-  auto first = rof.getFirstEntry();
-  auto number = rof.getNEntries();
+  mFirstInFrame = rof.getFirstEntry();
 
-  mFirstInFrame = first;
-
-  auto clusters_in_frame = gsl::make_span(&clusters[first], number);
+  auto clusters_in_frame = rof.getROFData(clusters);
   for (const auto& c : clusters_in_frame) {
     Int_t layer = mGeom->getLayer(c.getSensorID());
     sLayers[layer].insertCluster(&c);
   }
 
-  if (number) {
+  if (clusters_in_frame.size()) {
     std::vector<std::future<void>> fut;
     for (Int_t l = 0; l < kNLayers; l += mNumOfThreads) {
       for (Int_t t = 0; t < mNumOfThreads; t++) {
@@ -619,7 +616,7 @@ int CookedTracker::loadClusters(const std::vector<Cluster>& clusters, const o2::
         fut[t].wait();
     }
   }
-  return number;
+  return clusters_in_frame.size();
 }
 
 void CookedTracker::unloadClusters()

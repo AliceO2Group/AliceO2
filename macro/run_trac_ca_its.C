@@ -117,6 +117,12 @@ void run_trac_ca_its(std::string path = "./",
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels = nullptr;
   itsClusters.SetBranchAddress("ITSClusterMCTruth", &labels);
 
+  std::vector<o2::itsmft::MC2ROFRecord>* mc2rofs = nullptr;
+  if (!itsClusters.GetBranch("ITSClustersMC2ROF")) {
+    LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
+  }
+  itsClusters.SetBranchAddress("ITSClustersMC2ROF", &mc2rofs);
+
   std::vector<o2::its::TrackITSExt> tracks;
   // create/attach output tree
   TFile outFile((path + outputfile).data(), "recreate");
@@ -127,7 +133,7 @@ void run_trac_ca_its(std::string path = "./",
   outTree.Branch("ITSTrack", &tracksITSPtr);
   outTree.Branch("ITSTrackClusIdx", &trackClIdxPtr);
   outTree.Branch("ITSTrackMCTruth", &trackLabelsPtr);
-
+  outTree.Branch("ITSTracksMC2ROF", &mc2rofs);
   if (!itsClusters.GetBranch("ITSClustersROF")) {
     LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
   }
@@ -158,7 +164,7 @@ void run_trac_ca_its(std::string path = "./",
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    o2::its::ioutils::loadROFrameData(rof, event, clusters, labels);
+    o2::its::ioutils::loadROFrameData(rof, event, gsl::span(clusters->data(), clusters->size()), labels);
 
     vertexer.initialiseVertexer(&event);
     vertexer.findTracklets();
