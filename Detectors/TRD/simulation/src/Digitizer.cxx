@@ -449,7 +449,7 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& signalMapC
       adcs[tb] = adc;
     } // loop over timebins
     // Convert the map to digits here, and push them to the container
-    size_t labelIdx = adcArray[kTB];
+    size_t labelIdx = (size_t)    adcArray[kTB];
     digits.emplace_back(det, row, col, adcs, labelIdx);
   } // loop over digits
   return true;
