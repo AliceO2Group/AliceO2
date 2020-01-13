@@ -102,9 +102,8 @@ void CheckDigits(std::string digifile = "trddigits.root",
       count++;
     }
   }
-  hADC[first]->GetYaxis()->SetLimits(1.1,max+100);
+  hADC[first]->GetYaxis()->SetLimits(1.1, max + 100);
   c->SaveAs("testCheckDigits.pdf");
-
 
   TCanvas* c1 = new TCanvas("c1", "trd digits analysis", 600, 600);
   first = 0;
@@ -133,7 +132,7 @@ void CheckDigits(std::string digifile = "trddigits.root",
       count++;
     }
   }
-  hADC[first]->GetYaxis()->SetLimits(1.1,max+100);
+  hADC[first]->GetYaxis()->SetLimits(1.1, max + 100);
   c1->SetLogy();
   c1->SaveAs("testCheckDigits_ADCs.pdf");
 }
