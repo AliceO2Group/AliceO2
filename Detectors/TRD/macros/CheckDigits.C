@@ -20,7 +20,10 @@
 #include "FairLogger.h"
 #include "TRDBase/Digit.h"
 #include "TRDBase/TRDSimParam.h"
+#include "TRDBase/TRDCommonParam.h"
 #endif
+
+using namespace o2::trd;
 
 constexpr int kMINENTRIES = 1000;
 
@@ -29,10 +32,9 @@ void CheckDigits(std::string digifile = "trddigits.root",
                  std::string inputGeom = "O2geometry.root",
                  std::string paramfile = "o2sim_par.root")
 {
-  using o2::trd::Digit;
   TFile* fin = TFile::Open(digifile.data());
   TTree* digitTree = (TTree*)fin->Get("o2sim");
-  std::vector<o2::trd::Digit>* digitCont = nullptr;
+  std::vector<Digit>* digitCont = nullptr;
   digitTree->SetBranchAddress("TRDDigit", &digitCont);
   int nev = digitTree->GetEntries();
 
