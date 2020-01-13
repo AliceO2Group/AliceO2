@@ -405,17 +405,19 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& signalMapC
     const int row = Digit::getRowFromKey(key);
     const int col = Digit::getColFromKey(key);
     // halfchamber masking
-    int iMcm = (int)(col / 18);               // current group of 18 col pads
-    int halfchamberside = (iMcm > 3 ? 1 : 0); // 0=Aside, 1=Bside
-    // // Halfchambers that are switched off, masked by mCalib
-    // if (mCalib->isHalfChamberNoData(det, halfchamberside)) {
-    //   continue;
-    // }
-    // // Check whether pad is masked
-    // // Bridged pads are not considered yet!!!
-    // if (mCalib->isPadMasked(det, col, row) || mCalib->isPadNotConnected(det, col, row)) {
-    //   continue;
-    // }
+    int mcm = (int)(col / 18);               // current group of 18 col pads
+    int halfchamberside = (mcm > 3 ? 1 : 0); // 0=Aside, 1=Bside
+/* Something is wrong with isHalfChamberNoData - deactivated for now
+    // Halfchambers that are switched off, masked by mCalib
+    if (mCalib->isHalfChamberNoData(det, halfchamberside)) {
+      continue;
+    }
+/ *
+    // Check whether pad is masked
+    // Bridged pads are not considered yet!!!
+    if (mCalib->isPadMasked(det, col, row) || mCalib->isPadNotConnected(det, col, row)) {
+      continue;
+    }
 
     float padgain = mCalib->getPadGainFactor(det, row, col); // The gain factor
     if (padgain <= 0) {
