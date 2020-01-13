@@ -83,10 +83,10 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   if (!itsClusters.GetBranch("ITSCluster")) {
     LOG(FATAL) << "Did not find ITS clusters branch ITSCluster in the input tree";
   }
-  std::vector<o2::itsmft::Cluster> allClusters, *clusters = &allClusters;
+  std::vector<o2::itsmft::Cluster>* clusters = nullptr;
   itsClusters.SetBranchAddress("ITSCluster", &clusters);
 
-  MCLabCont allLabels, *labels = &allLabels;
+  MCLabCont* labels = nullptr;
   if (!itsClusters.GetBranch("ITSClusterMCTruth")) {
     LOG(WARNING) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree";
   } else {
@@ -96,6 +96,13 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   if (!itsClusters.GetBranch("ITSClustersROF")) {
     LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
   }
+
+  std::vector<o2::itsmft::MC2ROFRecord>* mc2rofs = nullptr;
+  if (!itsClusters.GetBranch("ITSClustersMC2ROF")) {
+    LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
+  }
+  itsClusters.SetBranchAddress("ITSClustersMC2ROF", &mc2rofs);
+
   std::vector<o2::itsmft::ROFRecord>* rofs = nullptr;
   itsClusters.SetBranchAddress("ITSClustersROF", &rofs);
 
@@ -112,8 +119,8 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   outTree.Branch("ITSTrack", &tracksITSPtr);
   outTree.Branch("ITSTrackClusIdx", &trackClIdxPtr);
   outTree.Branch("ITSTrackMCTruth", &trackLabelsPtr);
-
   outTree.Branch("ITSTracksROF", &rofs);
+  outTree.Branch("ITSTracksMC2ROF", &mc2rofs);
   //<<<--------- create/attach output -------------<<<
 
   //=================== INIT ==================
@@ -124,7 +131,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   tracker.setBz(field->solenoidField()); // in kG
   tracker.setGeometry(gman);
   if (mcTruth) {
-    tracker.setMCTruthContainers(&allLabels, trackLabelsPtr);
+    tracker.setMCTruthContainers(labels, trackLabelsPtr);
   }
   //===========================================
 
@@ -132,15 +139,16 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   o2::its::Vertexer vertexer(&vertexerTraits);
   o2::its::ROframe event(0);
 
+  auto clSpan = gsl::span(clusters->data(), clusters->size());
   for (auto& rof : *rofs) {
-    o2::its::ioutils::loadROFrameData(rof, event, &allClusters, &allLabels);
+    o2::its::ioutils::loadROFrameData(rof, event, clSpan, labels);
     vertexer.clustersToVertices(event);
     auto vertices = vertexer.exportVertices();
     if (vertices.empty()) {
       vertices.emplace_back();
     }
     tracker.setVertices(vertices);
-    tracker.process(allClusters, tracksITS, trackClIdx, rof);
+    tracker.process(clSpan, tracksITS, trackClIdx, rof);
   }
   outTree.Fill();
 

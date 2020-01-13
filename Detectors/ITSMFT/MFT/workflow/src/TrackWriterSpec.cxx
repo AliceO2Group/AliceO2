@@ -75,10 +75,14 @@ void TrackWriter::run(ProcessingContext& pc)
   auto* rofsPtr = &rofs;
   tree.Branch("MFTTracksROF", &rofsPtr);
 
+  std::vector<o2::itsmft::MC2ROFRecord> mc2rofs, *mc2rofsPtr = &mc2rofs;
   if (mUseMC) {
     // write MC2ROFrecord vector (directly inherited from digits input) to a tree
-    auto mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
-    auto* mc2rofsPtr = &mc2rofs;
+    const auto m2rvec = pc.inputs().get<gsl::span<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
+    mc2rofs.reserve(m2rvec.size());
+    for (const auto& m2rv : m2rvec) {
+      mc2rofs.push_back(m2rv);
+    }
     tree.Branch("MFTTracksMC2ROF", &mc2rofsPtr);
   }
 

@@ -129,9 +129,14 @@ void ClustererTask::run(const std::string inpName, const std::string outName)
     }
   }
 
-  if (!mRawDataMode && mReaderMC->getMC2ROFRecords()) {
-    auto mc2rof = *mReaderMC->getMC2ROFRecords(); // clone
-    auto* mc2rofPtr = &mc2rof;
+  std::vector<o2::itsmft::MC2ROFRecord> mc2rof, *mc2rofPtr = &mc2rof;
+  if (!mRawDataMode && mUseMCTruth) {
+    auto mc2rofOrig = mReaderMC->getMC2ROFRecords();
+    mc2rof.reserve(mc2rofOrig.size());
+    for (const auto& m2r : mc2rofOrig) { // clone from the span
+      mc2rof.push_back(m2r);
+    }
+    outTree->Branch("MFTClustersMC2ROF", mc2rofPtr);
   }
 
   outTree->Fill();
