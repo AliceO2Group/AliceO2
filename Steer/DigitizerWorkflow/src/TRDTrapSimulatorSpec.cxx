@@ -217,20 +217,20 @@ class TRDDPLTrapSimulatorTask{
                               mTrapSimulator[trapindex].init(detector,rob,mcm);
                               LOG(debug3) << "Initialised trapsimulator for triplet ("<< detector << "," << rob << "," << mcm << ")";
                           }
-
-                          if(mTrapSimulator[trapindex].setData(adc,digititerator->getADC());
+                          int adc=0;
+                          //if(mTrapSimulator[trapindex].setData(adc,digititerator->getADC());
 
                           // now take care of the case of shared pads (the whole reason for doing this pad row wise).
 
                           if(pad%18==0 || (pad+1)%18==0){ //case of pad 18 and 19 must be shared to preceding trap chip adc 1 and 0 respectively.
                           //check trap is initialised.
-                              mTrapSimualtor[trapindex-1].setData(adc,digititerator->getADC());
-                              LOG(debug3) << "shared pad: " << pad << " pad : " << i << " robfromshared:" << mfeeparam->getROBfromSharedPad(row,i) << " mcmfromshared:" << mfeeparam->getMCMfromSharedPad(row,i);
+                              mTrapSimulator[trapindex-1].setData(adc,digititerator->getADC());
+                              LOG(debug3) << "shared pad: " << pad << " pad : " << pad << " robfromshared:" << mfeeparam->getROBfromSharedPad(row,pad) << " mcmfromshared:" << mfeeparam->getMCMfromSharedPad(row,pad);
                           } 
                           if((pad-1)%18==0 ) { // case of pad 17 must shared to next trap chip as adc 20
                           //check trap is initialised.
-                              mTrapSimualtor[trapindex+1].setData(adc,digititerator->getADC());
-                              LOG(debug3) << "shared pad: " << pad << " pad : " << i << " robfromshared:" << mfeeparam->getROBfromSharedPad(row,i) << " mcmfromshared:" << mfeeparam->getMCMfromSharedPad(row,i);
+                              mTrapSimulator[trapindex+1].setData(adc,digititerator->getADC());
+                              LOG(debug3) << "shared pad: " << pad << " pad : " << pad << " robfromshared:" << mfeeparam->getROBfromSharedPad(row,pad) << " mcmfromshared:" << mfeeparam->getMCMfromSharedPad(row,pad);
                           }
 
                        LOG(debug3) << "adding data for adc : " << adc << " for row,mcm combo of : "<< row <<"," << mcm;
