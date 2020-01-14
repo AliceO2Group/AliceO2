@@ -9,14 +9,13 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(SimSetup
-               SOURCES src/G3Config.cxx src/G4Config.cxx src/VMCReplayConfig.cxx
+               SOURCES src/G3Config.cxx src/G4Config.cxx
                        src/GlobalProcessCutSimParam.cxx src/SimSetup.cxx
                PUBLIC_LINK_LIBRARIES MC::Geant3
                                      MC::Geant4VMC
                                      MC::Geant4
                                      O2::SimulationDataFormat
                                      O2::DetectorsPassive
-                                     O2::VMCReplay
                                      MC::Pythia6 # this is needed by Geant3 and
                                                  # EGPythia6
                                      ROOT::EGPythia6 # this is needed by Geant4
@@ -49,7 +48,3 @@ o2_add_test_root_macro(g3Config.C
 o2_add_test_root_macro(g4Config.C
                        PUBLIC_LINK_LIBRARIES O2::SimSetup
                        LABELS simsetup)
-
-o2_add_test_root_macro(VMCReplayConfig.C
-        PUBLIC_LINK_LIBRARIES O2::SimSetup
-        LABELS simsetup)

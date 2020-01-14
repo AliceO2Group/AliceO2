@@ -23,10 +23,6 @@ namespace g4config
 {
 void G4Config();
 }
-namespace vmcreplayconfig
-{
-void VMCReplayConfig();
-}
 
 void SimSetup::setup(const char* engine)
 {
@@ -34,8 +30,6 @@ void SimSetup::setup(const char* engine)
     g3config::G3Config();
   } else if (strcmp(engine, "TGeant4") == 0) {
     g4config::G4Config();
-  } else if (strcmp(engine, "VMCReplay") == 0) {
-    vmcreplayconfig::VMCReplayConfig();
   } else {
     LOG(FATAL) << "Unsupported engine " << engine;
   }

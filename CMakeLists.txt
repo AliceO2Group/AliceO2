@@ -73,13 +73,11 @@ add_subdirectory(EventVisualisation)
 add_subdirectory(Generators)
 add_subdirectory(Steer) # consider building this only for simulation ?
 
-
 if(BUILD_EXAMPLES)
   add_subdirectory(Examples)
 endif()
 
 if(BUILD_SIMULATION)
-  add_subdirectory(VMCReplay)
   add_subdirectory(run)
 endif()
 
