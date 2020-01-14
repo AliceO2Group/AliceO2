@@ -126,7 +126,7 @@ void FullCluster::evalCoreEnergy()
 
   float coreRadius = o2::phos::PHOSSimParams::Instance().mCoreR;
   std::vector<float>::iterator itE = mEnergyList.begin();
-  for (std::vector<short>::iterator i = mDigitsIdList.begin(); i != mDigitsIdList.end(); i++) {
+  for (std::vector<short>::iterator i = mDigitsIdList.begin(); i != mDigitsIdList.end(); ++i) {
     float xi = 0., zi = 0.;
     mPHOSGeom->absIdToRelPosInModule(*i, xi, zi);
     Float_t distance = std::sqrt((xi - mLocalPosX) * (xi - mLocalPosX) + (zi - mLocalPosZ) * (zi - mLocalPosX));

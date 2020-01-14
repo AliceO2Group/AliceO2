@@ -39,8 +39,8 @@ void DigitizerSpec::init(framework::InitContext& ic)
 {
 
   // setup the input chain for the hits
-  if(mSimChain){
-    delete mSimChain ;
+  if (mSimChain) {
+    delete mSimChain;
   }
   mSimChain = new TChain("o2sim");
 
@@ -64,17 +64,16 @@ void DigitizerSpec::init(framework::InitContext& ic)
   // init digitizer
   mDigitizer.init();
 
-  if(mHitsS){
+  if (mHitsS) {
     delete mHitsS;
   }
   mHitsS = new std::vector<Hit>();
-  if(mHitsBg){
+  if (mHitsBg) {
     delete mHitsBg;
   }
   mHitsBg = new std::vector<Hit>();
 
   mFinished = false;
-  }
 }
 // helper function which will be offered as a service
 void DigitizerSpec::retrieveHits(const char* brname,
