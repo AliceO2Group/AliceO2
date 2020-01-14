@@ -66,6 +66,11 @@ set_package_properties(HepMC
 		       PROPERTIES
 		       TYPE ${mcPackageRequirement} DESCRIPTION
 		       	    "the HepMC3 event record package")
+find_package(MCStepLogger MODULE)
+set_package_properties(MCStepLogger
+                       PROPERTIES
+                       TYPE ${mcPackageRequirement} DESCRIPTION
+                            "log steps done in VMC transport engine")
 set(doBuildSimulation OFF)
 
 if(pythia_FOUND

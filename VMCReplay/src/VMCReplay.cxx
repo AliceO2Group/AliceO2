@@ -10,4 +10,16 @@
 
 #include "VMCReplay/VMCReplay.h"
 
+VMCReplay::VMC::Replay(const std::string& inputTreeName)
+  : TGeant3TGeo("VMCReplay"), mChain(inputTreeName.c_str())
+{
+}
+
+VMCReplay::AddInputFiles(std::initializer_list<std::string> inputFileNames)
+{
+  for (auto& f : inputFileNames) {
+    mChain.Add(f.c_str());
+  }
+}
+
 ClassImp(VMCReplay);

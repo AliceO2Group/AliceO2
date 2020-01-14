@@ -11,12 +11,36 @@
 #ifndef O2_VMCREPLAY_H
 #define O2_VMCREPLAY_H
 
+#include <vector>
+
+#include "TChain.h"
+
+#include "MCStepLogger/StepInfo.h"
+
 #include "TGeant3TGeo.h"
 
 class VMCReplay : public TGeant3TGeo
 {
  public:
-  using TGeant3TGeo::TGeant3TGeo;
+  VMCReplay(const std::string& inputTreeName);
+
+  void AddInputFiles(std::initializer_list<std::string> inputFileNames);
+
+  virtual Bool_t ProcessRun(Int_t nofEvents) override;
+
+ private:
+  bool ConnectToStepTree();
+  bool ProcessStepTree();
+
+  bool LoadNextStep();
+  bool ProcessStep();
+
+ private:
+  TChain mChain;
+
+  std::vector<o2::StepInfo>* mStepInfo = nullptr;
+  std::vector<o2::MagCallInfo>* mMagInfo = nullptr;
+  o2::StepLookups* mLookups = nullptr;
 
   ClassDef(VMCReplay, 1); // needed as long we inherit from TObject
 };

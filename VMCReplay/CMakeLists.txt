@@ -12,6 +12,7 @@
 o2_add_library(VMCReplay
         SOURCES src/VMCReplay.cxx
         PUBLIC_LINK_LIBRARIES MC::Geant3
+        PUBLIC_LINK_LIBRARIES MC::MCStepLogger
         )
 
 set(headers
