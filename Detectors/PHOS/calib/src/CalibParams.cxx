@@ -48,7 +48,7 @@ bool CalibParams::setGain(TH2* h, char module)
     return false;
   }
 
-  char  relid[3] = {module, 1, 1};
+  char relid[3] = {module, 1, 1};
   short absId;
   for (char ix = 1; ix <= MAXX; ix++) {
     relid[1] = ix;

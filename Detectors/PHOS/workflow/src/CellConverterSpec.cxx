@@ -52,7 +52,6 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
   LOG(INFO) << "[PHOSCellConverter - run]  Received " << digits.size() << " digits and " << digitsTR.size() << " TriggerRecords";
 
   //Get TimeStamp from TriggerRecord
-  long bcTime = -1; //TODO!!! Convert BC time to time o2::InteractionRecord bcTime = digitsTR.front().getBCData() ;
   if (!mBadMap) {
     if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
       mBadMap = new BadChannelMap(1); // test default map
@@ -62,6 +61,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
       o2::ccdb::CcdbApi ccdb;
       std::map<std::string, std::string> metadata; // do we want to store any meta data?
       ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
+      long bcTime = -1;                            //TODO!!! Convert BC time to time o2::InteractionRecord bcTime = digitsTR.front().getBCData() ;
       mBadMap = ccdb.retrieveFromTFileAny<o2::phos::BadChannelMap>("PHOS/BadMap", metadata, bcTime);
       if (!mBadMap) {
         LOG(FATAL) << "[PHOSCellConverter - run] can not get Bad Map";

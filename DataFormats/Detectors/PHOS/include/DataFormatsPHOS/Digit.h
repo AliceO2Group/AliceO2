@@ -40,14 +40,14 @@ class Digit : public DigitBase
   /// \brief Digit constructor from Hit
   /// \param PHOS Hit
   /// \return constructed Digit
-  Digit(const Hit &hit, int label);
+  Digit(const Hit& hit, int label);
 
   ~Digit() = default; // override
 
   /// \brief Replace content of this digit with new one, from hit
   /// \param PHOS Hit
   /// \return
-  void fillFromHit(const Hit &hit);
+  void fillFromHit(const Hit& hit);
 
   /// \brief Comparison oparator, based on time and absId
   /// \param another PHOS Digit
@@ -68,15 +68,15 @@ class Digit : public DigitBase
 
   /// \brief Absolute sell id
   short getAbsId() const { return mAbsId; }
-  void  setAbsId(short cellId) { mAbsId = cellId; }
+  void setAbsId(short cellId) { mAbsId = cellId; }
 
   /// \brief Energy deposited in a cell
   float getAmplitude() const { return mAmplitude; }
-  void  setAmplitude(float amplitude) { mAmplitude = amplitude; }
+  void setAmplitude(float amplitude) { mAmplitude = amplitude; }
 
   /// \brief time measured in digit w.r.t. photon to PHOS arrival
   float getTime() const { return mTime; }
-  void  setTime(float time) { mTime = time; }
+  void setTime(float time) { mTime = time; }
 
   /// \brief Checks if this digit is produced in High Gain or Low Gain channels
   bool isHighGain() const { return mIsHighGain; }
@@ -84,18 +84,18 @@ class Digit : public DigitBase
 
   /// \brief index of entry in MCLabels array
   /// \return ndex of entry in MCLabels array
-  int  getLabel() const { return mLabel; }
+  int getLabel() const { return mLabel; }
 
   void PrintStream(std::ostream& stream) const;
 
  private:
   // friend class boost::serialization::access;
 
-  int   mLabel =-1;          ///< Index of the corresponding entry/entries in the MC label array
-  float mAmplitude = 0;      ///< Amplitude
-  float mTime = 0.;          ///< Time
-  short mAbsId = 0;          ///< cell index (absolute cell ID)
-  bool  mIsHighGain = true;  ///< High Gain or Low Gain channel (for calibration)
+  int mLabel = -1;         ///< Index of the corresponding entry/entries in the MC label array
+  float mAmplitude = 0;    ///< Amplitude
+  float mTime = 0.;        ///< Time
+  short mAbsId = 0;        ///< cell index (absolute cell ID)
+  bool mIsHighGain = true; ///< High Gain or Low Gain channel (for calibration)
 
   ClassDefNV(Digit, 1);
 };

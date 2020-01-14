@@ -62,11 +62,11 @@ class FullCluster : public Cluster
   std::vector<Digit>::const_iterator BinarySearch(const std::vector<Digit>* container, Digit& element);
 
  private:
-  std::vector<short> mDigitsIdList;             //!  Transient Array of digits absID
-  std::vector<float> mEnergyList;               //!  Transient Array of digits energy
-  std::vector<int> mTimeList;                   //!  Transient Array of digits times
-  std::vector<std::pair<int, float>> mLabels;   //!  Transient Array of label indexes
-  Geometry* mPHOSGeom;                          //!
+  std::vector<short> mDigitsIdList;           //!  Transient Array of digits absID
+  std::vector<float> mEnergyList;             //!  Transient Array of digits energy
+  std::vector<int> mTimeList;                 //!  Transient Array of digits times
+  std::vector<std::pair<int, float>> mLabels; //!  Transient Array of label indexes
+  Geometry* mPHOSGeom;                        //!
 
   ClassDefNV(FullCluster, 1);
 };

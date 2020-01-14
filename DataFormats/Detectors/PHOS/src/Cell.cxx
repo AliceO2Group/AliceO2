@@ -22,10 +22,9 @@ using namespace o2::phos;
 
 Cell::Cell(short absId, float energy, float time, ChannelType_t ctype)
 {
-  if(ctype==ChannelType_t::TRU){
+  if (ctype == ChannelType_t::TRU) {
     setTRUId(absId);
-  }
-  else{
+  } else {
     setAbsId(absId);
   }
   setTime(time);
@@ -46,9 +45,9 @@ void Cell::setAbsId(short absId)
 void Cell::setTRUId(short absId)
 {
   //14 bits available
-  absId+=kNmaxCell+1;
-//  if (absId > kNmaxCell || absId < 0)
-//    absId = kNmaxCell;
+  absId += kNmaxCell + 1;
+  //  if (absId > kNmaxCell || absId < 0)
+  //    absId = kNmaxCell;
   ULong_t t = (ULong_t)absId;
 
   ULong_t b = getLong() & 0xffffffd000; // 1111111111111111111111111 10000 00000 00000
@@ -58,23 +57,23 @@ void Cell::setTRUId(short absId)
 short Cell::getAbsId() const
 {
   ULong_t t = getLong();
-  t &= 0x3fff;   //14 bits
-  short a = (short)t ;
-  if(a<=kNmaxCell)
+  t &= 0x3fff; //14 bits
+  short a = (short)t;
+  if (a <= kNmaxCell)
     return a;
   else
-    return 0 ;
+    return 0;
 }
 
 short Cell::getTRUId() const
 {
   ULong_t t = getLong();
-  t &= 0x3fff;   //14 bits
-  short a = (short)t ;
-  if(a>kNmaxCell)
-    return a-kNmaxCell-1;
+  t &= 0x3fff; //14 bits
+  short a = (short)t;
+  if (a > kNmaxCell)
+    return a - kNmaxCell - 1;
   else
-    return 0 ;
+    return 0;
 }
 
 void Cell::setTime(float time)
@@ -82,7 +81,7 @@ void Cell::setTime(float time)
   //10 bits available for time
   ULong_t t = 0;
   //Convert time to long
-  t=(time+kTime0)/kTimeAccuracy ;
+  t = (time + kTime0) / kTimeAccuracy;
 
   if (time > 0x3ff)
     t = 0x3ff;
@@ -101,7 +100,7 @@ float Cell::getTime() const
   t &= 0x3ff;
   //Convert back long to double
 
-  return float(t*kTimeAccuracy)-kTime0;
+  return float(t * kTimeAccuracy) - kTime0;
 }
 
 void Cell::setEnergy(float energy)
@@ -123,7 +122,6 @@ float Cell::getEnergy() const
   return float(a * kEnergyConv);
 }
 
-
 void Cell::setType(ChannelType_t ctype)
 {
   switch (ctype) {
@@ -133,7 +131,7 @@ void Cell::setType(ChannelType_t ctype)
     case ChannelType_t::LOW_GAIN:
       setLowGain();
       break;
-    default: ;
+    default:;
   };
 }
 
@@ -174,13 +172,12 @@ Bool_t Cell::getHighGain() const
   return false;
 }
 
-
 Bool_t Cell::getTRU() const
 {
   ULong_t t = getLong();
-  t &= 0x3fff;   //14 bits
-  int a = (int)t ;
-  return (a>kNmaxCell) ; //TRU addresses
+  t &= 0x3fff; //14 bits
+  int a = (int)t;
+  return (a > kNmaxCell); //TRU addresses
 }
 
 void Cell::setLong(ULong_t l)

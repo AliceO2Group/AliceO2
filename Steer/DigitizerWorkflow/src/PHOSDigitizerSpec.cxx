@@ -56,7 +56,8 @@ void DigitizerSpec::init(framework::InitContext& ic)
     o2::base::GeometryManager::loadGeometry();
   }
   // run 3 geometry == run 2 geometry for PHOS
-  auto geom = o2::phos::Geometry::GetInstance();
+  // create singleton geometry
+  o2::phos::Geometry::GetInstance("Run2");
   // init digitizer
   mDigitizer.init();
 

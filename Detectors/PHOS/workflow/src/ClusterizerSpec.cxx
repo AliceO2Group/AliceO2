@@ -29,12 +29,12 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
 {
   LOG(DEBUG) << "[PHOSClusterizer - run] called";
   auto dataref = ctx.inputs().get("digits");
-  // auto const* phosheader = o2::framework::DataRefUtils::getHeader<o2::phos::PHOSBlockHeader*>(dataref);
-  // if (!phosheader->mHasPayload) {
-  //   LOG(DEBUG) << "[PHOSClusterizer - run] No more digits" << std::endl;
-  //   ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
-  //   return;
-  // }
+  auto const* phosheader = o2::framework::DataRefUtils::getHeader<o2::phos::PHOSBlockHeader*>(dataref);
+  if (!phosheader->mHasPayload) {
+    LOG(DEBUG) << "[PHOSClusterizer - run] No more digits" << std::endl;
+    ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
+    return;
+  }
 
   auto digits = ctx.inputs().get<std::vector<o2::phos::Digit>>("digits");
   LOG(DEBUG) << "[PHOSClusterizer - run]  Received " << digits.size() << " digits, running clusterizer ...";

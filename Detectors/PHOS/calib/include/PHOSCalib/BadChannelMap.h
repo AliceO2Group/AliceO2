@@ -132,7 +132,7 @@ class BadChannelMap
 
  private:
   static constexpr short NCHANNELS = 14337; ///< Number of channels starting from 1 (4*64*56+1
-  std::bitset<NCHANNELS> mBadCells;       ///< Container for bad cells, 1 means bad sell
+  std::bitset<NCHANNELS> mBadCells;         ///< Container for bad cells, 1 means bad sell
 
   ClassDefNV(BadChannelMap, 1);
 };

@@ -28,7 +28,7 @@ namespace phos
 /// \class DigitizerSpec
 /// \brief Task for PHOS digitization in the data processing layer
 /// \author Dmitri Peresunko, NRC "Kurchatov institute"
-/// \author Adopted from EMCAL code write by Markus Fasel 
+/// \author Adopted from EMCAL code write by Markus Fasel
 /// \since Dec, 2019
 class DigitizerSpec : public framework::Task
 {
@@ -61,14 +61,14 @@ class DigitizerSpec : public framework::Task
                     int sourceID,
                     int entryID);
 
-  Bool_t mFinished = false;                ///< Flag for digitization finished
-  Digitizer mDigitizer;                    ///< Digitizer object
-  TChain* mSimChain;                       ///< Chain of files with background events
-  TChain* mSimChainS;                      ///< Chain of files with signal events
-  std::vector<Hit> * mHitsBg;                ///< Vector with input hits from Bg event
-  std::vector<Hit> * mHitsS;                 ///< Vector with input hits from Signal event
-  std::vector<Digit> mDigits;              ///< Vector with non-accumulated digits (per collision)
-  dataformats::MCTruthContainer<o2::phos::MCLabel> mLabels;    ///< List of labels
+  Bool_t mFinished = false;                                 ///< Flag for digitization finished
+  Digitizer mDigitizer;                                     ///< Digitizer object
+  TChain* mSimChain = nullptr;                              ///< Chain of files with background events
+  TChain* mSimChainS = nullptr;                             ///< Chain of files with signal events
+  std::vector<Hit>* mHitsBg = nullptr;                      ///< Vector with input hits from Bg event
+  std::vector<Hit>* mHitsS = nullptr;                       ///< Vector with input hits from Signal event
+  std::vector<Digit> mDigits;                               ///< Vector with non-accumulated digits (per collision)
+  dataformats::MCTruthContainer<o2::phos::MCLabel> mLabels; ///< List of labels
 };
 
 /// \brief Create new digitizer spec

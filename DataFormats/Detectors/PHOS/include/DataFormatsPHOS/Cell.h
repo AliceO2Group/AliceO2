@@ -25,17 +25,16 @@ namespace o2
 namespace phos
 {
 
-constexpr int   kNmaxCell = 12545 ;      //56*64*3.5 + 1
-constexpr float kEnergyConv = 0.005 ;    //Energy digitization step
-constexpr float kTimeAccuracy = 1.e-9;   //Time digitization step
-constexpr float kTime0 = 150.e-9 ;       //-Minimal time to be digitized
+constexpr int kNmaxCell = 12545;       //56*64*3.5 + 1
+constexpr float kEnergyConv = 0.005;   //Energy digitization step
+constexpr float kTimeAccuracy = 1.e-9; //Time digitization step
+constexpr float kTime0 = 150.e-9;      //-Minimal time to be digitized
 
 enum ChannelType_t {
   HIGH_GAIN, ///< High gain channel
   LOW_GAIN,  ///< Low gain channel
   TRU        ///< TRU channel
 };
-
 
 class Cell
 {
@@ -44,17 +43,16 @@ class Cell
   Cell(short absId, float energy, float time, ChannelType_t ctype);
   ~Cell() = default; // override
 
-  void  setAbsId(short absId) ;
+  void setAbsId(short absId);
   short getAbsId() const;
 
-  void  setTRUId(short truId) ;
+  void setTRUId(short truId);
   short getTRUId() const;
 
-
-  void  setTime(float time);
+  void setTime(float time);
   float getTime() const;
 
-  void  setEnergy(float energy);
+  void setEnergy(float energy);
   float getEnergy() const;
 
   void setType(ChannelType_t ctype);

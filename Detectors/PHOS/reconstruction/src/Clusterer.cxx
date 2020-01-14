@@ -52,7 +52,6 @@ void Clusterer::process(const std::vector<Digit>* digits, const std::vector<Trig
     mClusters.clear(); // internal list of FullClusters
 
     if (!mBadMap) {
-      long bcTime = 1; //TODO!!! Convert BC time to time o2::InteractionRecord bcTime = digitsTR.front().getBCData() ;
       if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
         mBadMap = new BadChannelMap(1);    // test default map
         mCalibParams = new CalibParams(1); //test calibration map
@@ -62,6 +61,7 @@ void Clusterer::process(const std::vector<Digit>* digits, const std::vector<Trig
         o2::ccdb::CcdbApi ccdb;
         std::map<std::string, std::string> metadata; // do we want to store any meta data?
         ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
+        long bcTime = 1;                             //TODO!!! Convert BC time to time o2::InteractionRecord bcTime = digitsTR.front().getBCData() ;
         mBadMap = ccdb.retrieveFromTFileAny<o2::phos::BadChannelMap>("PHOS/BadMap", metadata, bcTime);
         mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, bcTime);
         if (!mBadMap) {

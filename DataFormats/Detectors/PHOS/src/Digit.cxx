@@ -21,10 +21,10 @@ Digit::Digit(short absId, float amplitude, float time, int label)
   : DigitBase(time), mAmplitude(amplitude), mTime(time), mAbsId(absId), mLabel(label)
 {
 }
-Digit::Digit(const Hit &hit, int label) : mAbsId(hit.GetDetectorID()), mAmplitude(hit.GetEnergyLoss()), mTime(hit.GetTime()), mLabel(label)
+Digit::Digit(const Hit& hit, int label) : mAbsId(hit.GetDetectorID()), mAmplitude(hit.GetEnergyLoss()), mTime(hit.GetTime()), mLabel(label)
 {
 }
-void Digit::fillFromHit(const Hit &hit)
+void Digit::fillFromHit(const Hit& hit)
 {
   mAbsId = hit.GetDetectorID();
   mAmplitude = hit.GetEnergyLoss();

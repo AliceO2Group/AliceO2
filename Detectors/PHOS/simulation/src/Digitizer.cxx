@@ -60,9 +60,9 @@ void Digitizer::process(const std::vector<Hit>* hitsBg, const std::vector<Hit>* 
   std::vector<Hit>::const_iterator hitS = hitsS->cbegin();
   std::vector<Hit>::const_iterator hit; //Far above maximal PHOS absId
   const short kBigAbsID = 32767;
-  short hitAbsId   = kBigAbsID;
+  short hitAbsId = kBigAbsID;
   short hitBgAbsId = kBigAbsID;
-  short hitSAbsId  = kBigAbsID;
+  short hitSAbsId = kBigAbsID;
 
   if (hitBg != hitsBg->end()) {
     hitBgAbsId = hitBg->GetDetectorID();
@@ -74,13 +74,13 @@ void Digitizer::process(const std::vector<Hit>* hitsBg, const std::vector<Hit>* 
     hitAbsId = hitBgAbsId;
     hit = hitBg;
     mCurrSrcID = 0;
-    hitBg++;
+    ++hitBg;
   } else {
     if (hitSAbsId < kBigAbsID) { //Signal hit exists and smaller than Bg
       hitAbsId = hitSAbsId;
       hit = hitS;
       mCurrSrcID = 1;
-      hitS++;
+      ++hitS;
     }
   }
 
@@ -111,13 +111,13 @@ void Digitizer::process(const std::vector<Hit>* hitsBg, const std::vector<Hit>* 
         hitAbsId = hitBgAbsId;
         hit = hitBg;
         mCurrSrcID = 0;
-        hitBg++;
+        ++hitBg;
       } else {
         if (hitSAbsId < kBigAbsID) { //Signal hit exists and smaller than Bg
           hitAbsId = hitSAbsId;
           hit = hitS;
           mCurrSrcID = 1;
-          hitS++;
+          ++hitS;
         } else { //no hits left
           hitAbsId = kBigAbsID;
           continue;
@@ -147,13 +147,13 @@ void Digitizer::process(const std::vector<Hit>* hitsBg, const std::vector<Hit>* 
           hitAbsId = hitBgAbsId;
           hit = hitBg;
           mCurrSrcID = 0;
-          hitBg++;
+          ++hitBg;
         } else {
           if (hitSAbsId < kBigAbsID) { //Signal hit exists and smaller than Bg
             hitAbsId = hitSAbsId;
             hit = hitS;
             mCurrSrcID = 1;
-            hitS++;
+            ++hitS;
           } else { //no hits left
             hitAbsId = kBigAbsID;
             digitNext.setAbsId(kBigAbsID);

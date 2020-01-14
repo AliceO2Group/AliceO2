@@ -64,9 +64,9 @@ void FullCluster::purify(float threshold)
       itId = mDigitsIdList.erase(itId);
       itTime = mTimeList.erase(itTime);
     } else {
-      itId++;
-      itE++;
-      itTime++;
+      ++itId;
+      ++itE;
+      ++itTime;
     }
   }
 
@@ -83,7 +83,7 @@ void FullCluster::purify(float threshold)
     itE = mEnergyList.begin();
     for (itId = mDigitsIdList.begin(); itId != mDigitsIdList.end();) {
       bool hasNeighbours = false;
-      for (jtId = mDigitsIdList.begin(); jtId != mDigitsIdList.end(); jtId++) {
+      for (jtId = mDigitsIdList.begin(); jtId != mDigitsIdList.end(); ++jtId) {
         if (itId == jtId) {
           continue;
         }
