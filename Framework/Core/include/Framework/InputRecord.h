@@ -167,19 +167,15 @@ class InputRecord
 
   DataRef getByPos(int pos) const
   {
-    if (pos * 2 + 1 > mSpan.size() || pos < 0) {
+    if (pos >= mSpan.size() || pos < 0) {
       throw std::runtime_error("Unknown message requested at position " + std::to_string(pos));
     }
     if (pos > mInputsSchema.size()) {
       throw std::runtime_error("Unknown schema at position" + std::to_string(pos));
     }
-    if (mSpan.get(pos * 2) != nullptr && mSpan.get(pos * 2 + 1) != nullptr) {
-      return DataRef{&mInputsSchema[pos].matcher,
-                     mSpan.get(pos * 2),
-                     mSpan.get(pos * 2 + 1)};
-    } else {
-      return DataRef{&mInputsSchema[pos].matcher, nullptr, nullptr};
-    }
+    auto ref = mSpan.get(pos);
+    ref.spec = &mInputsSchema[pos].matcher;
+    return ref;
   }
 
   template <typename T = DataRef, typename std::enable_if_t<std::is_same<T, DataRef>::value == true, int> = 0>
@@ -433,7 +429,7 @@ class InputRecord
 
   size_t size() const
   {
-    return mSpan.size() / 2;
+    return mSpan.size();
   }
 
   template <typename T>

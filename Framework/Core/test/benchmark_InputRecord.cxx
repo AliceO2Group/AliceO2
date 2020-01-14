@@ -45,7 +45,7 @@ static void BM_InputRecordGenericGetters(benchmark::State& state)
     createRoute("z_source", spec3)};
   // First of all we test if an empty registry behaves as expected, raising a
   // bunch of exceptions.
-  InputRecord emptyRecord(schema, {[](size_t) { return nullptr; }, 0});
+  InputRecord emptyRecord(schema, {[](size_t) { return DataRef{nullptr, nullptr, nullptr}; }, 0});
 
   std::vector<void*> inputs;
 
@@ -78,7 +78,7 @@ static void BM_InputRecordGenericGetters(benchmark::State& state)
   createMessage(dh1, 1);
   createMessage(dh2, 2);
   createEmpty();
-  InputSpan span{[&inputs](size_t i) { return static_cast<char const*>(inputs[i]); }, inputs.size()};
+  InputSpan span{[&inputs](size_t i) { return DataRef{nullptr, static_cast<char const*>(inputs[2 * i]), static_cast<char const*>(inputs[2 * i + 1])}; }, inputs.size() / 2};
   InputRecord record{schema, std::move(span)};
 
   for (auto _ : state) {

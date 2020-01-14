@@ -525,10 +525,15 @@ bool DataProcessingDevice::tryDispatchComputation()
   // the execution.
   auto fillInputs = [&relayer, &inputsSchema, &currentSetOfInputs](TimesliceSlot slot) -> InputRecord {
     currentSetOfInputs = std::move(relayer.getInputsForTimeslice(slot));
-    InputSpan span{[&currentSetOfInputs](size_t i) -> char const* {
-                     return currentSetOfInputs.at(i) ? static_cast<char const*>(currentSetOfInputs.at(i)->GetData()) : nullptr;
-                   },
-                   currentSetOfInputs.size()};
+    auto getter = [&currentSetOfInputs](size_t i) -> DataRef {
+      if (currentSetOfInputs.at(2 * i) && currentSetOfInputs.at(2 * i + 1)) {
+        return DataRef{nullptr,
+                       static_cast<char const*>(currentSetOfInputs.at(2 * i)->GetData()),
+                       static_cast<char const*>(currentSetOfInputs.at(2 * i + 1)->GetData())};
+      }
+      return DataRef{nullptr, nullptr, nullptr};
+    };
+    InputSpan span{getter, currentSetOfInputs.size() / 2};
     return InputRecord{inputsSchema, std::move(span)};
   };
 
