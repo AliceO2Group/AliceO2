@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_CASE(Cell_test)
     BOOST_CHECK_EQUAL(c.getAbsId(), j);
     BOOST_CHECK_EQUAL(c.getTRUId(), 0);
     BOOST_CHECK_EQUAL(c.getTime(), 0);
-    BOOST_CHECK_EQUAL(c.getEnergy(), 0);
+    BOOST_CHECK_EQUAL(c.getEnergy(), float(0));
     BOOST_CHECK_EQUAL(c.getLowGain(), true);
     BOOST_CHECK_EQUAL(c.getTRU(), false);
   }
@@ -42,8 +42,8 @@ BOOST_AUTO_TEST_CASE(Cell_test)
     c.setTRUId(j);
     BOOST_CHECK_EQUAL(c.getAbsId(), 0);
     BOOST_CHECK_EQUAL(c.getTRUId(), j);
-    BOOST_CHECK_EQUAL(c.getTime(), 0);
-    BOOST_CHECK_EQUAL(c.getEnergy(), 0);
+    BOOST_CHECK_EQUAL(c.getTime(), float(0));
+    BOOST_CHECK_EQUAL(c.getEnergy(), float(0));
     BOOST_CHECK_EQUAL(c.getTRU(), true);
   }
 
@@ -53,8 +53,8 @@ BOOST_AUTO_TEST_CASE(Cell_test)
   for (auto t : times) {
     c.setTime(t);
     BOOST_CHECK_EQUAL(c.getAbsId(), 0);
-    BOOST_CHECK_EQUAL(c.getTime() - t, 1.e-9);
-    BOOST_CHECK_EQUAL(c.getEnergy(), 0);
+    BOOST_CHECK_EQUAL(c.getTime() - t, float(1.e-9));
+    BOOST_CHECK_EQUAL(c.getEnergy(), float(0));
     BOOST_CHECK_EQUAL(c.getLowGain(), true);
   }
 
@@ -64,8 +64,8 @@ BOOST_AUTO_TEST_CASE(Cell_test)
   for (auto e : energies) {
     c.setEnergy(e);
     BOOST_CHECK_EQUAL(c.getAbsId(), 0);
-    BOOST_CHECK_EQUAL(c.getTime(), 0);
-    BOOST_CHECK_SMALL(e - c.getEnergy(), 0.005); // Require 5 MeV resolution
+    BOOST_CHECK_EQUAL(c.getTime(), float(0));
+    BOOST_CHECK_SMALL(e - c.getEnergy(), float(0.005)); // Require 5 MeV resolution
     BOOST_CHECK_EQUAL(c.getLowGain(), true);
   }
 
@@ -73,16 +73,16 @@ BOOST_AUTO_TEST_CASE(Cell_test)
 
   c.setLowGain();
   BOOST_CHECK_EQUAL(c.getAbsId(), 0);
-  BOOST_CHECK_EQUAL(c.getTime(), 0);
-  BOOST_CHECK_EQUAL(c.getEnergy(), 0);
+  BOOST_CHECK_EQUAL(c.getTime(), float(0));
+  BOOST_CHECK_EQUAL(c.getEnergy(), float(0));
   BOOST_CHECK_EQUAL(c.getLowGain(), true);
   BOOST_CHECK_EQUAL(c.getHighGain(), false);
   BOOST_CHECK_EQUAL(c.getTRU(), false);
 
   c.setHighGain();
   BOOST_CHECK_EQUAL(c.getAbsId(), 0);
-  BOOST_CHECK_EQUAL(c.getTime(), 0);
-  BOOST_CHECK_EQUAL(c.getEnergy(), 0);
+  BOOST_CHECK_EQUAL(c.getTime(), float(0));
+  BOOST_CHECK_EQUAL(c.getEnergy(), float(0));
   BOOST_CHECK_EQUAL(c.getLowGain(), false);
   BOOST_CHECK_EQUAL(c.getHighGain(), true);
   BOOST_CHECK_EQUAL(c.getTRU(), false);
