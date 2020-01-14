@@ -65,8 +65,8 @@ struct VertexerHFTask {
   OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 100, -10., 10)};
   Produces<aod::SecVtx> secvtx;
 
-  //void process(aod::Collision const& collision, aod::Tracks const& tracks)
-  void process(soa::Join<aod::Tracks, aod::TracksCov> const& tracks)
+  //void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksCov> const& tracks)
+  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksCov> const& tracks)
   {
     LOGF(info, "Tracks for collision: %d", tracks.size());
     o2::base::DCAFitter df(5.0,10.);
