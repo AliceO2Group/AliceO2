@@ -19,12 +19,16 @@
 #include "Mergers/MergerConfig.h"
 
 #include <Framework/DataProcessorSpec.h>
-#include <Framework/CompletionPolicy.h>
 
 #include <string>
 
 namespace o2
 {
+namespace framework
+{
+class CompletionPolicy;
+}
+
 namespace experimental::mergers
 {
 
