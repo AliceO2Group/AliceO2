@@ -14,7 +14,7 @@
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/ForwardRoute.h"
 #include "Framework/CompletionPolicy.h"
-#include "Framework/PartRef.h"
+#include "Framework/MessageSet.h"
 #include "Framework/TimesliceIndex.h"
 
 #include <cstddef>
@@ -106,7 +106,7 @@ class DataRelayer
   /// Notice that we store them as a NxM sized vector, where
   /// N is the maximum number of inflight timeslices, while
   /// M is the number of inputs which are requested.
-  std::vector<PartRef> mCache;
+  std::vector<MessageSet> mCache;
 
   /// This is the index which maps a given timestamp to the associated
   /// cacheline.
