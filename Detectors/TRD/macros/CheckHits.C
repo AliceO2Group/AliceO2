@@ -42,7 +42,7 @@ void CheckHits(const int detector = 50, // 354, 14, 242, 50
   TH1F* hlocC = new TH1F("hlocC", ";locC (cm);Counts", 100, -60, 60);
   TH1F* hlocR = new TH1F("hlocR", ";locR (cm);Counts", 100, -80, 80);
   TH1F* hlocT = new TH1F("hlocT", ";locT (cm);Counts", 100, -3.5, 0.5);
-  TH1F* hnEl = new TH1F("hnEl", ";locT (cm);Counts", 100, 0, 5000);
+  TH1F* hnEl = new TH1F("hnEl", ";Number of Electrons;Counts", 100, 0, 5000);
   TH1F* hnElPhoton = new TH1F("hnElPhoton", ";Number of Electrons;Counts", 100, 0, 1000);
 
   TH2F* h2locClocT = new TH2F("h2locClocT", ";locC (cm);locT(cm)", 100, -60, 60, 100, -3.5, 0.5);
