@@ -60,11 +60,11 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel()
   Double_t ang_fin_disc = 360;
 
   // seg tub 2  SCUT1 ;)
-  Double_t radin_scut1 = 0;     ////// 29.87;
+  Double_t radin_scut1 = 0;     
   Double_t radout_scut1 = 15.5; //// 29.87; //cm
   Double_t high_scut1 = 2;      // cm
   Double_t ang_in_scut1 = 180;
-  Double_t ang_fin_scut1 = 270; // 232.50;
+  Double_t ang_fin_scut1 = 270;
 
   TGeoTranslation* tr_discL = new TGeoTranslation("tr_discL", -12.5, -10.4, 0); // left
   tr_discL->RegisterYourself();
@@ -250,8 +250,7 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel()
   Double_t high_kiroc = 4.8;
   Double_t angin_kiroc = 256.5;
   Double_t angfin_kiroc = 283.5;
-  //////////////
-
+  
   // seg tub 1 hole
   Double_t radin_1hole = 23.0;
   Double_t radout_1hole = 25.5;
