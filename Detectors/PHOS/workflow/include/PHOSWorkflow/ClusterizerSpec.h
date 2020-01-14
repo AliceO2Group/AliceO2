@@ -39,7 +39,7 @@ class ClusterizerSpec : public framework::Task
 {
  public:
   /// \brief Constructor
-  ClusterizerSpec(bool propagateMC) : framework::Task(), mPropagateMC(propagateMC){}
+  ClusterizerSpec(bool propagateMC) : framework::Task(), mPropagateMC(propagateMC) {}
 
   /// \brief Destructor
   ~ClusterizerSpec() override = default;
@@ -57,11 +57,11 @@ class ClusterizerSpec : public framework::Task
   void run(framework::ProcessingContext& ctx) final;
 
  private:
-   bool mPropagateMC = false;                   ///< Switch whether to process MC true labels
-   o2::phos::Clusterer mClusterizer;            ///< Clusterizer object
-   std::vector<o2::phos::Cluster> mOutputClusters ;
-   std::vector<o2::phos::TriggerRecord> mOutputClusterTrigRecs  ;
-   o2::dataformats::MCTruthContainer<o2::phos::MCLabel> mOutputTruthCont  ;
+  bool mPropagateMC = false;        ///< Switch whether to process MC true labels
+  o2::phos::Clusterer mClusterizer; ///< Clusterizer object
+  std::vector<o2::phos::Cluster> mOutputClusters;
+  std::vector<o2::phos::TriggerRecord> mOutputClusterTrigRecs;
+  o2::dataformats::MCTruthContainer<o2::phos::MCLabel> mOutputTruthCont;
 };
 
 /// \brief Creating DataProcessorSpec for the PHOS Clusterizer Spec

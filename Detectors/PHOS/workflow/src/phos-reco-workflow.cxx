@@ -11,7 +11,7 @@
 /// @file   phos-reco-workflow.cxx
 /// @author Dmitri Peresunko after Markus Fasel
 /// @since  2019-12-14
-/// @brief  Basic DPL workflow for PHOS reconstruction starting from digits 
+/// @brief  Basic DPL workflow for PHOS reconstruction starting from digits
 
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
@@ -53,8 +53,8 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
 {
   //
   return o2::phos::reco_workflow::getWorkflow(not cfgc.options().get<bool>("disable-mc"),        //
-                                               cfgc.options().get<bool>("enable-digits-printer"), //
-                                               cfgc.options().get<std::string>("input-type"),     //
-                                               cfgc.options().get<std::string>("output-type")     //
+                                              cfgc.options().get<bool>("enable-digits-printer"), //
+                                              cfgc.options().get<std::string>("input-type"),     //
+                                              cfgc.options().get<std::string>("output-type")     //
   );
 }

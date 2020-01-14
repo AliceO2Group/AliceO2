@@ -22,7 +22,7 @@ namespace reco_workflow
 
 /// \class DigitsPrinterSpec
 /// \brief Example task for PHOS digits monitoring
-/// \author Dmitri Peresunko after Markus Fasel 
+/// \author Dmitri Peresunko after Markus Fasel
 /// \since Dec 14, 2019
 ///
 /// Example payload for workflows using o2::phos::Digit as payload.

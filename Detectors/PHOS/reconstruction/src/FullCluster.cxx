@@ -156,7 +156,7 @@ void FullCluster::evalLocalPosition()
   mLocalPosX = 0.;
   mLocalPosZ = 0.;
   std::vector<float>::iterator itE = mEnergyList.begin();
-  for (std::vector<short>::iterator i = mDigitsIdList.begin(); i != mDigitsIdList.end(); i++) {
+  for (std::vector<short>::iterator i = mDigitsIdList.begin(); i != mDigitsIdList.end(); ++i) {
     float xi = 0., zi = 0.;
     mPHOSGeom->absIdToRelPosInModule(*i, xi, zi);
     if (*itE > 0) {
@@ -187,7 +187,7 @@ void FullCluster::evalDispersion()
 
   float wtot = 0.;
   std::vector<float>::iterator itE = mEnergyList.begin();
-  for (std::vector<short>::iterator i = mDigitsIdList.begin(); i != mDigitsIdList.end(); i++) {
+  for (std::vector<short>::iterator i = mDigitsIdList.begin(); i != mDigitsIdList.end(); ++i) {
     float xi = 0., zi = 0.;
     mPHOSGeom->absIdToRelPosInModule(*i, xi, zi);
     if (*itE > 0) {
@@ -219,7 +219,7 @@ void FullCluster::evalElipsAxis()
 
   float wtot = 0., x = 0., z = 0., dxx = 0., dxz = 0., dzz = 0.;
   std::vector<float>::iterator itE = mEnergyList.begin();
-  for (std::vector<short>::iterator i = mDigitsIdList.begin(); i != mDigitsIdList.end(); i++) {
+  for (std::vector<short>::iterator i = mDigitsIdList.begin(); i != mDigitsIdList.end(); ++i) {
     float xi = 0., zi = 0.;
     mPHOSGeom->absIdToRelPosInModule(*i, xi, zi);
     if (*itE > 0) {
@@ -265,12 +265,12 @@ void FullCluster::evalTime()
   float eMax = 0.;
   std::vector<float>::iterator itE;
   std::vector<int>::iterator itTime = mTimeList.begin();
-  for (itE = mEnergyList.begin(); itE != mEnergyList.end(); itE++) {
+  for (itE = mEnergyList.begin(); itE != mEnergyList.end(); ++itE) {
     if (*itE > eMax) {
       mTime = 0.1 * (*itTime);
       eMax = *itE;
     }
-    itTime++;
+    ++itTime;
   }
 }
 //____________________________________________________________________________

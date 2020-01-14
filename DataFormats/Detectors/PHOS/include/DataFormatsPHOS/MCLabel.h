@@ -26,21 +26,20 @@ class MCLabel : public o2::MCCompLabel
 
  public:
   MCLabel() = default;
-  MCLabel(Int_t trackID, Int_t eventID, Int_t srcID, bool fake, float edep): o2::MCCompLabel(trackID, eventID, srcID, fake), mEdep(edep) {}
+  MCLabel(Int_t trackID, Int_t eventID, Int_t srcID, bool fake, float edep) : o2::MCCompLabel(trackID, eventID, srcID, fake), mEdep(edep) {}
 
   /// \brief Comparison oparator, based on track, event and src Id
   /// \param another PHOS MCLabel
   /// \return result of comparison: same tracks or not
-  bool operator==(const MCLabel& other) const { return compare(other)>=0; }
+  bool operator==(const MCLabel& other) const { return compare(other) >= 0; }
 
-
-  MCLabel& operator=(const MCLabel & other) = default ;
+  MCLabel& operator=(const MCLabel& other) = default;
 
   // /// \brief Add  deposited energy of a thack, do not check if track the same
   // /// \param another PHOS MCLabel
-  void add(const MCLabel& other, float scale){ mEdep+=other.mEdep * scale;}
+  void add(const MCLabel& other, float scale) { mEdep += other.mEdep * scale; }
 
-  void scale(float s){mEdep*=s;}
+  void scale(float s) { mEdep *= s; }
 
   float getEdep() const { return mEdep; }
 

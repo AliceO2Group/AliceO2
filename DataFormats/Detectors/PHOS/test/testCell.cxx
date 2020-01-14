@@ -53,13 +53,13 @@ BOOST_AUTO_TEST_CASE(Cell_test)
   for (auto t : times) {
     c.setTime(t);
     BOOST_CHECK_EQUAL(c.getAbsId(), 0);
-    BOOST_CHECK_EQUAL(c.getTime()-t, 1.e-9);
+    BOOST_CHECK_EQUAL(c.getTime() - t, 1.e-9);
     BOOST_CHECK_EQUAL(c.getEnergy(), 0);
     BOOST_CHECK_EQUAL(c.getLowGain(), true);
   }
 
   c.setTime(0);
-  std::vector<double> energies = {0.010, 0.025, 1, 2, 5, 10, 20, 40, 60, 100, 150 };
+  std::vector<double> energies = {0.010, 0.025, 1, 2, 5, 10, 20, 40, 60, 100, 150};
 
   for (auto e : energies) {
     c.setEnergy(e);
@@ -86,8 +86,7 @@ BOOST_AUTO_TEST_CASE(Cell_test)
   BOOST_CHECK_EQUAL(c.getLowGain(), false);
   BOOST_CHECK_EQUAL(c.getHighGain(), true);
   BOOST_CHECK_EQUAL(c.getTRU(), false);
-
-  }
+}
 
 } // namespace phos
 
