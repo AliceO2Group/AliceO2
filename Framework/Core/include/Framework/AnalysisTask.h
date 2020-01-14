@@ -611,7 +611,6 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
   auto tupledTask = o2::framework::to_tuple_refs(*task.get());
   static_assert(has_process<T>::value || has_run<T>::value || has_init<T>::value,
                 "At least one of process(...), T::run(...), init(...) must be defined");
-  std::apply([&outputs](auto&... x) { return (OutputManager<std::decay_t<decltype(x)>>::appendOutput(outputs, x), ...); }, tupledTask);
 
   std::vector<InputSpec> inputs;
   std::vector<SchemaInfo> filteredSchemas;
