@@ -19,23 +19,51 @@ namespace framework
 /// actual inputs to be processed in a given go.
 /// In general this will use an helper which returns
 /// `FairMQMessages->GetData()` from the Message cache, but in principle
-/// the mechanism should be flexible enough to
+/// the mechanism should be flexible enough to allow all kind of input stores.
 class InputSpan
 {
  public:
   /// @a getter is the mapping between an element of the span referred by
   /// index and the buffer associated.
   /// @a size is the number of elements in the span.
-  InputSpan(std::function<const char*(size_t)> getter, size_t size)
-    : mGetter{getter},
-      mSize{size}
+  InputSpan(std::function<DataRef(size_t)> getter, size_t size)
+    : mGetter{}, mNofPartsGetter{}, mSize{size}
+  {
+    mGetter = [getter](size_t index, size_t) -> DataRef {
+      return getter(index);
+    };
+  }
+
+  /// @a getter is the mapping between an element of the span referred by
+  /// index and the buffer associated.
+  /// @a size is the number of elements in the span.
+  InputSpan(std::function<DataRef(size_t, size_t)> getter, size_t size)
+    : mGetter{getter}, mNofPartsGetter{}, mSize{size}
+  {
+  }
+
+  /// @a getter is the mapping between an element of the span referred by
+  /// index and the buffer associated.
+  /// @nofPartsGetter is the getter for the number of parts associated with an index
+  /// @a size is the number of elements in the span.
+  InputSpan(std::function<DataRef(size_t, size_t)> getter, std::function<size_t(size_t)> nofPartsGetter, size_t size)
+    : mGetter{getter}, mNofPartsGetter{nofPartsGetter}, mSize{size}
   {
   }
 
   /// @a i-th element of the InputSpan
-  char const* get(size_t i) const
+  DataRef get(size_t i, size_t partidx = 0) const
   {
-    return mGetter(i);
+    return mGetter(i, partidx);
+  }
+
+  /// @a number of parts in the i-th element of the InputSpan
+  size_t getNofParts(size_t i) const
+  {
+    if (!mNofPartsGetter) {
+      return 1;
+    }
+    return mNofPartsGetter(i);
   }
 
   /// Number of elements in the InputSpan
@@ -44,8 +72,19 @@ class InputSpan
     return mSize;
   }
 
+  const char* header(size_t i) const
+  {
+    return get(i).header;
+  }
+
+  const char* payload(size_t i) const
+  {
+    return get(i).payload;
+  }
+
  private:
-  std::function<char const*(size_t)> mGetter;
+  std::function<DataRef(size_t, size_t)> mGetter;
+  std::function<size_t(size_t)> mNofPartsGetter;
   size_t mSize;
 };
 
