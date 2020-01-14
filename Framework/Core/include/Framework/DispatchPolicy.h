@@ -10,8 +10,6 @@
 #ifndef FRAMEWORK_DISPATCHPOLICY_H
 #define FRAMEWORK_DISPATCHPOLICY_H
 
-#include "Framework/PartRef.h"
-
 #include <functional>
 #include <string>
 #include <vector>
