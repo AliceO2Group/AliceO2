@@ -28,10 +28,10 @@ CalibParams::CalibParams(int /*dummy*/)
   mLGTimeCalib.fill(0.);
 }
 
-bool CalibParams::setGain(TH2* h, int module)
+bool CalibParams::setGain(TH2* h, char module)
 {
-  const int MAXX = 64,
-            MAXZ = 56;
+  const char MAXX = 64,
+             MAXZ = 56;
   if (!h) {
     LOG(ERROR) << "no input histogam";
     return false;
@@ -48,11 +48,11 @@ bool CalibParams::setGain(TH2* h, int module)
     return false;
   }
 
-  int relid[3] = {module, 1, 1};
-  int absId;
-  for (int ix = 1; ix <= MAXX; ix++) {
+  char  relid[3] = {module, 1, 1};
+  short absId;
+  for (char ix = 1; ix <= MAXX; ix++) {
     relid[1] = ix;
-    for (int iz = 1; iz <= MAXZ; iz++) {
+    for (char iz = 1; iz <= MAXZ; iz++) {
       relid[2] = iz;
 
       if (geo->relToAbsNumbering(relid, absId)) {
@@ -63,10 +63,10 @@ bool CalibParams::setGain(TH2* h, int module)
   return true;
 }
 
-bool CalibParams::setHGLGRatio(TH2* h, int module)
+bool CalibParams::setHGLGRatio(TH2* h, char module)
 {
-  const int MAXX = 64,
-            MAXZ = 56;
+  const char MAXX = 64,
+             MAXZ = 56;
   if (!h) {
     LOG(ERROR) << "no input histogam";
     return false;
@@ -83,11 +83,11 @@ bool CalibParams::setHGLGRatio(TH2* h, int module)
     return false;
   }
 
-  int relid[3] = {module, 1, 1};
-  int absId;
-  for (int ix = 1; ix <= MAXX; ix++) {
+  char relid[3] = {module, 1, 1};
+  short absId;
+  for (char ix = 1; ix <= MAXX; ix++) {
     relid[1] = ix;
-    for (int iz = 1; iz <= MAXZ; iz++) {
+    for (char iz = 1; iz <= MAXZ; iz++) {
       relid[2] = iz;
 
       if (geo->relToAbsNumbering(relid, absId)) {
@@ -98,10 +98,10 @@ bool CalibParams::setHGLGRatio(TH2* h, int module)
   return true;
 }
 
-bool CalibParams::setHGTimeCalib(TH2* h, int module)
+bool CalibParams::setHGTimeCalib(TH2* h, char module)
 {
-  const int MAXX = 64,
-            MAXZ = 56;
+  const char MAXX = 64,
+             MAXZ = 56;
   if (!h) {
     LOG(ERROR) << "no input histogam";
     return false;
@@ -118,11 +118,11 @@ bool CalibParams::setHGTimeCalib(TH2* h, int module)
     return false;
   }
 
-  int relid[3] = {module, 1, 1};
-  int absId;
-  for (int ix = 1; ix <= MAXX; ix++) {
+  char relid[3] = {module, 1, 1};
+  short absId;
+  for (char ix = 1; ix <= MAXX; ix++) {
     relid[1] = ix;
-    for (int iz = 1; iz <= MAXZ; iz++) {
+    for (char iz = 1; iz <= MAXZ; iz++) {
       relid[2] = iz;
 
       if (geo->relToAbsNumbering(relid, absId)) {
@@ -133,10 +133,10 @@ bool CalibParams::setHGTimeCalib(TH2* h, int module)
   return true;
 }
 
-bool CalibParams::setLGTimeCalib(TH2* h, int module)
+bool CalibParams::setLGTimeCalib(TH2* h, char module)
 {
-  const int MAXX = 64,
-            MAXZ = 56;
+  const char MAXX = 64,
+             MAXZ = 56;
   if (!h) {
     LOG(ERROR) << "no input histogam";
     return false;
@@ -153,11 +153,11 @@ bool CalibParams::setLGTimeCalib(TH2* h, int module)
     return false;
   }
 
-  int relid[3] = {module, 1, 1};
-  int absId;
-  for (int ix = 1; ix <= MAXX; ix++) {
+  char relid[3] = {module, 1, 1};
+  short absId;
+  for (char ix = 1; ix <= MAXX; ix++) {
     relid[1] = ix;
-    for (int iz = 1; iz <= MAXZ; iz++) {
+    for (char iz = 1; iz <= MAXZ; iz++) {
       relid[2] = iz;
 
       if (geo->relToAbsNumbering(relid, absId)) {

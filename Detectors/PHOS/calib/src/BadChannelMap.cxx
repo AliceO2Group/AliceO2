@@ -23,15 +23,15 @@ BadChannelMap::BadChannelMap(int /*dummy*/)
 {
 
   //Mark few channels as bad for test peurposes
-  for (int i = 0; i < 56; i++) {
+  for (short i = 0; i < 56; i++) {
     //module 2
-    int channelID = 3584 + i * 57;
+    short channelID = 3584 + i * 57;
     mBadCells.set(channelID);
     channelID = 3640 + i * 55;
     mBadCells.set(channelID);
   }
 
-  for (int i = 0; i < 16; i++) {
+  for (short i = 0; i < 16; i++) {
     //module 3
     int channelID = 8972 + i * 57;
     mBadCells.set(channelID);
@@ -44,14 +44,14 @@ BadChannelMap::BadChannelMap(int /*dummy*/)
   }
 }
 
-void BadChannelMap::getHistogramRepresentation(int module, TH2* h) const
+void BadChannelMap::getHistogramRepresentation(char module, TH2* h) const
 {
   if (!h) {
     LOG(ERROR) << "provide histogram to be filled";
   }
 
-  const int MAXX = 64,
-            MAXZ = 56;
+  const char MAXX = 64,
+             MAXZ = 56;
   if (h->GetNbinsX() != MAXX || h->GetNbinsY() != MAXZ) {
     LOG(ERROR) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << "," << h->GetNbinsY() << " instead of " << MAXX << "," << MAXZ;
     return;
@@ -64,11 +64,11 @@ void BadChannelMap::getHistogramRepresentation(int module, TH2* h) const
     return;
   }
 
-  int relid[3] = {module, 1, 1};
-  int absId;
-  for (int ix = 1; ix <= MAXX; ix++) {
+  char relid[3] = {module, 1, 1};
+  short absId;
+  for (char ix = 1; ix <= MAXX; ix++) {
     relid[1] = ix;
-    for (int iz = 1; iz <= MAXZ; iz++) {
+    for (char iz = 1; iz <= MAXZ; iz++) {
       relid[2] = iz;
       if (geo->relToAbsNumbering(relid, absId)) {
         if (!isChannelGood(absId)) {

@@ -26,7 +26,7 @@ class Cluster
 
  public:
   Cluster() = default;
-  Cluster(const Cluster& clu);
+  Cluster(const Cluster& clu) = default ;
 
   ~Cluster() = default;
 
@@ -39,16 +39,16 @@ class Cluster
   /// \return result of comparison: x and z coordinates
   bool operator>(const Cluster& other) const;
 
-  double getEnergy() const { return mFullEnergy; }
-  double getCoreEnergy() const { return mCoreEnergy; }
-  double getDispersion() const { return mDispersion; }
-  double getDistanceToBadChannel() const { return mDistToBadChannel; }
-  void getElipsAxis(double* lambda) const
+  float getEnergy() const { return mFullEnergy; }
+  float getCoreEnergy() const { return mCoreEnergy; }
+  float getDispersion() const { return mDispersion; }
+  float getDistanceToBadChannel() const { return mDistToBadChannel; }
+  void  getElipsAxis(float* lambda) const
   {
     lambda[0] = mLambdaLong;
     lambda[1] = mLambdaShort;
   }
-  void getLocalPosition(double& posX, double& posZ) const
+  void getLocalPosition(float& posX, float& posZ) const
   {
     posX = mLocalPosX;
     posZ = mLocalPosZ;
@@ -56,29 +56,30 @@ class Cluster
   int getMultiplicity() const { return mMulDigit; } // gets the number of digits making this recpoint
 
   // 0: was no unfolging, -1: unfolding failed
-  void setNExMax(short nmax = 1) { mNExMax = nmax; }
-  short getNExMax() const { return mNExMax; } // Number of maxima found in cluster in unfolding:
+  void  setNExMax(char nmax = 1) { mNExMax = nmax; }
+  char getNExMax() const { return mNExMax; } // Number of maxima found in cluster in unfolding:
                                               // 0: was no unfolging, -1: unfolding failed
-  int getPHOSMod() const { return mModule; }  // PHOS module of a current cluster
-  double getTime() const { return mTime; }
+  char   getPHOSMod() const { return mModule; }  // PHOS module of a current cluster
 
-  short getLabel() const { return mLabel; }
-  void setLabel(int l) { mLabel = l; }
+  float getTime() const { return mTime; }
+
+  int getLabel() const { return mLabel; }  //Index in MCContainer entry
+  void  setLabel(int l) { mLabel = l; }
 
  protected:
-  int mMulDigit;            ///< Digit nultiplicity
-  int mModule;              ///< Module number
-  short mLabel;             ///< Ref to entry in MCTruthContainer with list of labels
-  short mNExMax;            ///< number of (Ex-)maxima before unfolding
-  double mLocalPosX;        ///< Center of gravity position in local module coordunates (phi direction)
-  double mLocalPosZ;        ///< Center of gravity position in local module coordunates (z direction)
-  double mFullEnergy;       ///< full energy of a shower
-  double mCoreEnergy;       ///< energy in a shower core
-  double mLambdaLong;       ///< shower ellipse axes
-  double mLambdaShort;      ///< shower ellipse axes
-  double mDispersion;       ///< shower dispersion
-  double mTime;             ///< Time of the digit with maximal energy deposition
-  double mDistToBadChannel; ///< Distance to nearest bad crystal
+  char  mMulDigit = 0;           ///< Digit nultiplicity
+  char  mModule   = 0;           ///< Module number
+  int   mLabel    =-1;           ///< Ref to entry in MCTruthContainer with list of labels
+  char  mNExMax   =-1;           ///< number of (Ex-)maxima before unfolding
+  float mLocalPosX = 0.;         ///< Center of gravity position in local module coordunates (phi direction)
+  float mLocalPosZ = 0.;         ///< Center of gravity position in local module coordunates (z direction)
+  float mFullEnergy = 0.;        ///< full energy of a shower
+  float mCoreEnergy = 0.;        ///< energy in a shower core
+  float mLambdaLong = 0.;        ///< shower ellipse axes
+  float mLambdaShort= 0.;        ///< shower ellipse axes
+  float mDispersion = 0.;        ///< shower dispersion
+  float mTime = 0.;              ///< Time of the digit with maximal energy deposition
+  float mDistToBadChannel = 999; ///< Distance to nearest bad crystal
 
   ClassDefNV(Cluster, 1);
 };

@@ -16,40 +16,23 @@ using namespace o2::phos;
 
 ClassImp(Cluster);
 
-Cluster::Cluster(const Cluster& clu)
-  : mMulDigit(clu.mMulDigit),
-    mModule(clu.mModule),
-    mLabel(clu.mLabel),
-    mNExMax(clu.mNExMax),
-    mLocalPosX(clu.mLocalPosX),
-    mLocalPosZ(clu.mLocalPosZ),
-    mFullEnergy(clu.mFullEnergy),
-    mCoreEnergy(clu.mCoreEnergy),
-    mLambdaLong(clu.mLambdaLong),
-    mLambdaShort(clu.mLambdaShort),
-    mDispersion(clu.mDispersion),
-    mTime(clu.mTime),
-    mDistToBadChannel(clu.mDistToBadChannel)
-{
-}
-
 //____________________________________________________________________________
 bool Cluster::operator<(const Cluster& other) const
 {
   // Compares two Clusters according to their position in the PHOS modules
 
-  Int_t phosmod1 = getPHOSMod();
-  Int_t phosmod2 = other.getPHOSMod();
+  char phosmod1 = getPHOSMod();
+  char phosmod2 = other.getPHOSMod();
   if (phosmod1 != phosmod2) {
     return phosmod1 < phosmod2;
   }
 
-  double posX, posZ;
+  float posX, posZ;
   getLocalPosition(posX, posZ);
-  double posOtherX, posOtherZ;
+  float posOtherX, posOtherZ;
   other.getLocalPosition(posOtherX, posOtherZ);
-  Int_t rowdifX = (Int_t)std::ceil(posX / o2::phos::PHOSSimParams::Instance().mSortingDelta) -
-                  (Int_t)std::ceil(posOtherX / o2::phos::PHOSSimParams::Instance().mSortingDelta);
+  int rowdifX = (int)std::ceil(posX / o2::phos::PHOSSimParams::Instance().mSortingDelta) -
+                (int)std::ceil(posOtherX / o2::phos::PHOSSimParams::Instance().mSortingDelta);
   if (rowdifX == 0) {
     return posZ > posOtherZ;
   } else {
@@ -64,18 +47,18 @@ bool Cluster::operator>(const Cluster& other) const
 {
   // Compares two Clusters according to their position in the PHOS modules
 
-  Int_t phosmod1 = getPHOSMod();
-  Int_t phosmod2 = other.getPHOSMod();
+  char phosmod1 = getPHOSMod();
+  char phosmod2 = other.getPHOSMod();
   if (phosmod1 != phosmod2) {
     return phosmod1 > phosmod2;
   }
 
-  double posX, posZ;
+  float posX, posZ;
   getLocalPosition(posX, posZ);
-  double posOtherX, posOtherZ;
+  float posOtherX, posOtherZ;
   other.getLocalPosition(posOtherX, posOtherZ);
-  Int_t rowdifX = (Int_t)std::ceil(posX / o2::phos::PHOSSimParams::Instance().mSortingDelta) -
-                  (Int_t)std::ceil(posOtherX / o2::phos::PHOSSimParams::Instance().mSortingDelta);
+  int rowdifX = (int)std::ceil(posX / o2::phos::PHOSSimParams::Instance().mSortingDelta) -
+                (int)std::ceil(posOtherX / o2::phos::PHOSSimParams::Instance().mSortingDelta);
   if (rowdifX == 0) {
     return posZ < posOtherZ;
   } else {

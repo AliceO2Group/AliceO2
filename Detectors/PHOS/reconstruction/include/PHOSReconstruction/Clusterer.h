@@ -43,18 +43,18 @@ class Clusterer
                          const o2::dataformats::MCTruthContainer<MCLabel>* dmc,
                          o2::dataformats::MCTruthContainer<MCLabel>* cluMC);
 
-  double showerShape(double dx, double dz); // Parameterization of EM shower
+  float showerShape(float dx, float dz); // Parameterization of EM shower
 
   void makeUnfoldings(const std::vector<Digit>* digits); // Find and unfold clusters with few local maxima
-  void unfoldOneCluster(FullCluster* iniClu, int nMax, int* digitId, float* maxAtEnergy, const std::vector<Digit>* digits);
+  void unfoldOneCluster(FullCluster* iniClu, char nMax, int* digitId, float* maxAtEnergy, const std::vector<Digit>* digits);
 
  protected:
   //Calibrate energy
-  float calibrate(float amp, int absId);
+  float calibrate(float amp, short absId);
   //Calibrate time
-  float calibrateT(float time, int absId, bool isHighGain);
+  float calibrateT(float time, short absId, bool isHighGain);
   //Test Bad map
-  bool isBadChannel(int absId);
+  bool isBadChannel(short absId);
 
  protected:
   Geometry* mPHOSGeom = nullptr;             ///< PHOS geometry

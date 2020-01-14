@@ -19,13 +19,13 @@ using namespace o2::phos;
 
 ClassImp(FullCluster);
 
-FullCluster::FullCluster(int digitAbsId, double energy, double time, int label, float scale)
+FullCluster::FullCluster(short digitAbsId, float energy, float time, int label, float scale)
   : Cluster()
 {
   addDigit(digitAbsId, energy, time, label, scale);
 }
 //____________________________________________________________________________
-void FullCluster::addDigit(int digitIndex, double energy, double time, int label, float scale)
+void FullCluster::addDigit(short digitIndex, float energy, float time, int label, float scale)
 {
 
   // Adds digit to the FullCluster
@@ -50,14 +50,14 @@ void FullCluster::evalAll(const std::vector<Digit>* digits)
   evalTime();
 }
 //____________________________________________________________________________
-void FullCluster::purify(double threshold)
+void FullCluster::purify(float threshold)
 {
   // Removes digits below threshold
 
   std::vector<float>::iterator itE = mEnergyList.begin();
-  std::vector<int>::iterator itId = mDigitsIdList.begin();
+  std::vector<short>::iterator itId = mDigitsIdList.begin();
   std::vector<int>::iterator itTime = mTimeList.begin();
-  std::vector<int>::iterator jtId;
+  std::vector<short>::iterator jtId;
   while (itE != mEnergyList.end()) {
     if (*itE < threshold) {
       itE = mEnergyList.erase(itE);
@@ -95,7 +95,7 @@ void FullCluster::purify(double threshold)
       if (!hasNeighbours) {
         itE = mEnergyList.erase(itE);
         itId = mDigitsIdList.erase(itId);
-        itTime = mTimeList.erase(itId);
+        itTime = mTimeList.erase(itTime);
       } else {
         mFullEnergy += *itE;
         ++itId;
@@ -126,8 +126,8 @@ void FullCluster::evalCoreEnergy()
 
   float coreRadius = o2::phos::PHOSSimParams::Instance().mCoreR;
   std::vector<float>::iterator itE = mEnergyList.begin();
-  for (std::vector<int>::iterator i = mDigitsIdList.begin(); i != mDigitsIdList.end(); i++) {
-    double xi = 0., zi = 0.;
+  for (std::vector<short>::iterator i = mDigitsIdList.begin(); i != mDigitsIdList.end(); i++) {
+    float xi = 0., zi = 0.;
     mPHOSGeom->absIdToRelPosInModule(*i, xi, zi);
     Float_t distance = std::sqrt((xi - mLocalPosX) * (xi - mLocalPosX) + (zi - mLocalPosZ) * (zi - mLocalPosX));
     if (distance < coreRadius) {
@@ -152,15 +152,15 @@ void FullCluster::evalLocalPosition()
   // find module number
   mModule = mPHOSGeom->absIdToModule(mDigitsIdList[0]);
 
-  double wtot = 0.;
+  float wtot = 0.;
   mLocalPosX = 0.;
   mLocalPosZ = 0.;
   std::vector<float>::iterator itE = mEnergyList.begin();
-  for (std::vector<int>::iterator i = mDigitsIdList.begin(); i != mDigitsIdList.end(); i++) {
-    double xi = 0., zi = 0.;
+  for (std::vector<short>::iterator i = mDigitsIdList.begin(); i != mDigitsIdList.end(); i++) {
+    float xi = 0., zi = 0.;
     mPHOSGeom->absIdToRelPosInModule(*i, xi, zi);
     if (*itE > 0) {
-      double w = std::max(0., o2::phos::PHOSSimParams::Instance().mLogWeight + std::log(*itE / mFullEnergy));
+      float w = std::max(float(0.), o2::phos::PHOSSimParams::Instance().mLogWeight + std::log(*itE / mFullEnergy));
       mLocalPosX += xi * w;
       mLocalPosZ += zi * w;
       wtot += w;
@@ -185,13 +185,13 @@ void FullCluster::evalDispersion()
     evalLocalPosition();
   }
 
-  double wtot = 0.;
+  float wtot = 0.;
   std::vector<float>::iterator itE = mEnergyList.begin();
-  for (std::vector<int>::iterator i = mDigitsIdList.begin(); i != mDigitsIdList.end(); i++) {
-    double xi = 0., zi = 0.;
+  for (std::vector<short>::iterator i = mDigitsIdList.begin(); i != mDigitsIdList.end(); i++) {
+    float xi = 0., zi = 0.;
     mPHOSGeom->absIdToRelPosInModule(*i, xi, zi);
     if (*itE > 0) {
-      double w = std::max(0., o2::phos::PHOSSimParams::Instance().mLogWeight + std::log(*itE / mFullEnergy));
+      float w = std::max(float(0.), o2::phos::PHOSSimParams::Instance().mLogWeight + std::log(*itE / mFullEnergy));
       mDispersion += w * ((xi - mLocalPosX) * (xi - mLocalPosX) + (zi - mLocalPosZ) * (zi - mLocalPosZ));
       wtot += w;
     }
@@ -217,13 +217,13 @@ void FullCluster::evalElipsAxis()
     return;
   }
 
-  double wtot = 0., x = 0., z = 0., dxx = 0., dxz = 0., dzz = 0.;
+  float wtot = 0., x = 0., z = 0., dxx = 0., dxz = 0., dzz = 0.;
   std::vector<float>::iterator itE = mEnergyList.begin();
-  for (std::vector<int>::iterator i = mDigitsIdList.begin(); i != mDigitsIdList.end(); i++) {
-    double xi = 0., zi = 0.;
+  for (std::vector<short>::iterator i = mDigitsIdList.begin(); i != mDigitsIdList.end(); i++) {
+    float xi = 0., zi = 0.;
     mPHOSGeom->absIdToRelPosInModule(*i, xi, zi);
     if (*itE > 0) {
-      double w = std::max(0., o2::phos::PHOSSimParams::Instance().mLogWeight + std::log(*itE / mFullEnergy));
+      float w = std::max(float(0.), o2::phos::PHOSSimParams::Instance().mLogWeight + std::log(*itE / mFullEnergy));
       dxx += w * xi * xi;
       x += w * xi;
       dzz += w * zi * zi;
@@ -262,7 +262,7 @@ void FullCluster::evalTime()
 
   // Calculate time as time in the digit with maximal energy
 
-  double eMax = 0.;
+  float eMax = 0.;
   std::vector<float>::iterator itE;
   std::vector<int>::iterator itTime = mTimeList.begin();
   for (itE = mEnergyList.begin(); itE != mEnergyList.end(); itE++) {
@@ -302,12 +302,12 @@ std::vector<Digit>::const_iterator FullCluster::BinarySearch(const std::vector<D
   return endIt;
 }
 //____________________________________________________________________________
-int FullCluster::getNumberOfLocalMax(int* maxAt, float* maxAtEnergy) const
+char FullCluster::getNumberOfLocalMax(int* maxAt, float* maxAtEnergy) const
 {
   // Calculates the number of local maxima in the cluster using LocalMaxCut as the minimum
   // energy difference between maximum and surrounding digits
 
-  int n = getMultiplicity();
+  char n = getMultiplicity();
   float locMaxCut = o2::phos::PHOSSimParams::Instance().mLocalMaximumCut;
 
   bool* isLocalMax = new bool[n];
@@ -319,11 +319,11 @@ int FullCluster::getNumberOfLocalMax(int* maxAt, float* maxAtEnergy) const
   }
 
   for (int i = 0; i < n; i++) {
-    int detId1 = mDigitsIdList.at(i);
+    short detId1 = mDigitsIdList.at(i);
     float en1 = mEnergyList.at(i);
 
     for (int j = i + 1; j < n; j++) {
-      int detId2 = mDigitsIdList.at(j);
+      short detId2 = mDigitsIdList.at(j);
       float en2 = mEnergyList.at(j);
 
       if (Geometry::GetInstance()->areNeighbours(detId1, detId2) == 1) {

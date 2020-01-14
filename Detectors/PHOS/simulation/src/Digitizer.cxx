@@ -59,10 +59,10 @@ void Digitizer::process(const std::vector<Hit>* hitsBg, const std::vector<Hit>* 
   std::vector<Hit>::const_iterator hitBg = hitsBg->cbegin();
   std::vector<Hit>::const_iterator hitS = hitsS->cbegin();
   std::vector<Hit>::const_iterator hit; //Far above maximal PHOS absId
-  const int kBigAbsID = 99999;
-  int hitAbsId = kBigAbsID;
-  int hitBgAbsId = kBigAbsID;
-  int hitSAbsId = kBigAbsID;
+  const short kBigAbsID = 32767;
+  short hitAbsId   = kBigAbsID;
+  short hitBgAbsId = kBigAbsID;
+  short hitSAbsId  = kBigAbsID;
 
   if (hitBg != hitsBg->end()) {
     hitBgAbsId = hitBg->GetDetectorID();
@@ -76,7 +76,7 @@ void Digitizer::process(const std::vector<Hit>* hitsBg, const std::vector<Hit>* 
     mCurrSrcID = 0;
     hitBg++;
   } else {
-    if (hitSAbsId < 99999) { //Signal hit exists and smaller than Bg
+    if (hitSAbsId < kBigAbsID) { //Signal hit exists and smaller than Bg
       hitAbsId = hitSAbsId;
       hit = hitS;
       mCurrSrcID = 1;
@@ -85,7 +85,7 @@ void Digitizer::process(const std::vector<Hit>* hitsBg, const std::vector<Hit>* 
   }
 
   Int_t nTotCells = mGeometry->getTotalNCells();
-  for (Int_t absId = 1; absId < nTotCells; absId++) {
+  for (short absId = 1; absId < nTotCells; absId++) {
 
     // If signal exist in this cell, add noise to it, otherwise just create noise digit
     if (absId == hitAbsId) {
@@ -94,7 +94,7 @@ void Digitizer::process(const std::vector<Hit>* hitsBg, const std::vector<Hit>* 
       o2::phos::MCLabel label(hit->GetTrackID(), mCurrEvID, mCurrSrcID, true, hit->GetEnergyLoss());
       labels.addElement(labelIndex, label);
 
-      Digit digit(*hit, labelIndex);
+      Digit digit((*hit), labelIndex);
 
       //May be add more hits to this digit?
       if (hitBg == hitsBg->end()) {
@@ -125,7 +125,7 @@ void Digitizer::process(const std::vector<Hit>* hitsBg, const std::vector<Hit>* 
       }
 
       while (absId == hitAbsId) {
-        Digit digitNext(*hit, labelIndex); //Use same MCTruth entry so far
+        Digit digitNext((*hit), labelIndex); //Use same MCTruth entry so far
         digit += digitNext;
 
         //add MCLabel to list (add energy if same primary or add another label)
@@ -209,9 +209,9 @@ void Digitizer::process(const std::vector<Hit>* hitsBg, const std::vector<Hit>* 
 //_______________________________________________________________________
 float Digitizer::nonLinearity(const float e)
 {
-  double a = o2::phos::PHOSSimParams::Instance().mCellNonLineaityA;
-  double b = o2::phos::PHOSSimParams::Instance().mCellNonLineaityB;
-  double c = o2::phos::PHOSSimParams::Instance().mCellNonLineaityC;
+  float a = o2::phos::PHOSSimParams::Instance().mCellNonLineaityA;
+  float b = o2::phos::PHOSSimParams::Instance().mCellNonLineaityB;
+  float c = o2::phos::PHOSSimParams::Instance().mCellNonLineaityC;
   return e * c * (1. + a * exp(-e * e / 2. / b / b));
 }
 //_______________________________________________________________________

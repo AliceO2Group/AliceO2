@@ -9,15 +9,13 @@
 #submit itself to any jurisdiction.
 
 o2_add_library(PHOSReconstruction
-                 SOURCES src /
-               Clusterer.cxx
-                 SOURCES src /
-               FullCluster.cxx
-                 PUBLIC_LINK_LIBRARIES O2::PHOSBase
-                   O2::PHOSCalib
-                     O2::DataFormatsPHOS
-                       AliceO2::InfoLogger)
+               SOURCES src/Clusterer.cxx
+                       src/FullCluster.cxx
+               PUBLIC_LINK_LIBRARIES O2::PHOSBase
+                                     O2::PHOSCalib
+                                     O2::DataFormatsPHOS
+                                     AliceO2::InfoLogger)
 
-  o2_target_root_dictionary(PHOSReconstruction
-                              HEADERS include /
-                            PHOSReconstruction / Clusterer.h include / PHOSReconstruction / FullCluster.h)
+o2_target_root_dictionary(PHOSReconstruction
+                          HEADERS include/PHOSReconstruction/Clusterer.h 
+                                  include/PHOSReconstruction/FullCluster.h)

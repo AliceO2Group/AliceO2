@@ -20,7 +20,7 @@ using namespace o2::phos;
 // 15 bits: Energy
 // 1 bit:    High/low gain
 
-Cell::Cell(Int_t absId, double energy, double time, ChannelType_t ctype)
+Cell::Cell(short absId, float energy, float time, ChannelType_t ctype)
 {
   if(ctype==ChannelType_t::TRU){
     setTRUId(absId);
@@ -33,7 +33,7 @@ Cell::Cell(Int_t absId, double energy, double time, ChannelType_t ctype)
   setType(ctype);
 }
 
-void Cell::setAbsId(int absId)
+void Cell::setAbsId(short absId)
 {
   //14 bits available
   if (absId > kNmaxCell || absId < 0)
@@ -43,7 +43,7 @@ void Cell::setAbsId(int absId)
   ULong_t b = getLong() & 0xffffffd000; // 1111111111111111111111111 10000 00000 00000
   mBits = b + t;
 }
-void Cell::setTRUId(int absId)
+void Cell::setTRUId(short absId)
 {
   //14 bits available
   absId+=kNmaxCell+1;
@@ -55,29 +55,29 @@ void Cell::setTRUId(int absId)
   mBits = b + t;
 }
 
-int Cell::getAbsId() const
+short Cell::getAbsId() const
 {
   ULong_t t = getLong();
   t &= 0x3fff;   //14 bits
-  int a = (int)t ;
+  short a = (short)t ;
   if(a<=kNmaxCell)
     return a;
   else
     return 0 ;
 }
 
-int Cell::getTRUId() const
+short Cell::getTRUId() const
 {
   ULong_t t = getLong();
   t &= 0x3fff;   //14 bits
-  int a = (int)t ;
+  short a = (short)t ;
   if(a>kNmaxCell)
     return a-kNmaxCell-1;
   else
     return 0 ;
 }
 
-void Cell::setTime(double time)
+void Cell::setTime(float time)
 {
   //10 bits available for time
   ULong_t t = 0;
@@ -94,17 +94,17 @@ void Cell::setTime(double time)
   mBits = b + t;
 }
 
-double Cell::getTime() const
+float Cell::getTime() const
 {
   ULong_t t = getLong();
   t >>= 14;
   t &= 0x3ff;
   //Convert back long to double
 
-  return double(t*kTimeAccuracy)-kTime0;
+  return float(t*kTimeAccuracy)-kTime0;
 }
 
-void Cell::setEnergy(Double_t energy)
+void Cell::setEnergy(float energy)
 {
   //15 bits
   ULong_t a = static_cast<ULong_t>(energy / kEnergyConv);
@@ -115,12 +115,12 @@ void Cell::setEnergy(Double_t energy)
   mBits = b + a;
 }
 
-Double_t Cell::getEnergy() const
+float Cell::getEnergy() const
 {
   ULong_t a = getLong();
   a >>= 24;
   a &= 0x7FFF;
-  return double(a * kEnergyConv);
+  return float(a * kEnergyConv);
 }
 
 

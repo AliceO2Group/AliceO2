@@ -134,7 +134,7 @@ void Clusterer::makeClusters(const std::vector<Digit>* digits)
     // Now scan remaining digits in list to find neigbours of our seed
     int index = 0;
     while (index < iDigitInCluster) { // scan over digits already in cluster
-      int digitSeedAbsId = clu->getDigitAbsId(index);
+      short digitSeedAbsId = clu->getDigitAbsId(index);
       index++;
       for (Int_t j = iFirst; j < mLastDigitInEvent; j++) {
         if (digitsUsed[j - mFirstDigitInEvent])
@@ -185,8 +185,8 @@ void Clusterer::makeUnfoldings(const std::vector<Digit>* digits)
     if (clu->getNExMax() > -1) { //already unfolded
       continue;
     }
-    Int_t nMultipl = clu->getMultiplicity();
-    int nMax = clu->getNumberOfLocalMax(maxAt, maxAtEnergy);
+    char nMultipl = clu->getMultiplicity();
+    char nMax = clu->getNumberOfLocalMax(maxAt, maxAtEnergy);
     if (nMax > 1) {
       unfoldOneCluster(&(*clu), nMax, maxAt, maxAtEnergy, digits);
 
@@ -201,7 +201,7 @@ void Clusterer::makeUnfoldings(const std::vector<Digit>* digits)
   delete[] maxAtEnergy;
 }
 //____________________________________________________________________________
-void Clusterer::unfoldOneCluster(FullCluster* iniClu, int nMax, int* digitId, float* maxAtEnergy, const std::vector<Digit>* digits)
+void Clusterer::unfoldOneCluster(FullCluster* iniClu, char nMax, int* digitId, float* maxAtEnergy, const std::vector<Digit>* digits)
 {
   // Performs the unfolding of a cluster with nMax overlapping showers
   // Parameters: iniClu cluster to be unfolded
@@ -211,22 +211,22 @@ void Clusterer::unfoldOneCluster(FullCluster* iniClu, int nMax, int* digitId, fl
 
   // Take initial cluster and calculate local coordinates of digits
   // To avoid multiple re-calculation of same parameters
-  int mult = iniClu->getMultiplicity();
-  std::vector<double> x(mult);
-  std::vector<double> z(mult);
-  std::vector<double> e(mult);
-  std::vector<double> t(mult);
+  char mult = iniClu->getMultiplicity();
+  std::vector<float> x(mult);
+  std::vector<float> z(mult);
+  std::vector<float> e(mult);
+  std::vector<float> t(mult);
   std::vector<int> lbl(mult);
-  std::vector<std::vector<double>> eInClusters(mult, std::vector<double>(nMax));
+  std::vector<std::vector<float>> eInClusters(mult, std::vector<float>(nMax));
 
   const std::vector<float>* cluElist = iniClu->getEnergyList();
   // gets the list of energies of digits making this recpoint
 
   for (int idig = 0; idig < mult; idig++) {
-    int absID = iniClu->getDigitAbsId(idig);
+    short absID = iniClu->getDigitAbsId(idig);
     float eDigit = cluElist->at(idig);
     e[idig] = eDigit;
-    double lx, lz;
+    float lx, lz;
     mPHOSGeom->absIdToRelPosInModule(absID, lx, lz);
     x[idig] = lx;
     z[idig] = lz;
@@ -240,9 +240,9 @@ void Clusterer::unfoldOneCluster(FullCluster* iniClu, int nMax, int* digitId, fl
   }
 
   // Coordinates of centers of clusters
-  std::vector<double> xMax(nMax);
-  std::vector<double> zMax(nMax);
-  std::vector<double> eMax(nMax);
+  std::vector<float> xMax(nMax);
+  std::vector<float> zMax(nMax);
+  std::vector<float> eMax(nMax);
 
   for (int iclu = 0; iclu < nMax; iclu++) {
     xMax[iclu] = x[digitId[iclu]];
@@ -250,7 +250,7 @@ void Clusterer::unfoldOneCluster(FullCluster* iniClu, int nMax, int* digitId, fl
     eMax[iclu] = e[digitId[iclu]];
   }
 
-  std::vector<double> prop(nMax); // proportion of clusters in the current digit
+  std::vector<float> prop(nMax); // proportion of clusters in the current digit
 
   // Try to decompose cluster to contributions
   int nIterations = 0;
@@ -259,7 +259,7 @@ void Clusterer::unfoldOneCluster(FullCluster* iniClu, int nMax, int* digitId, fl
     // Loop over all digits of parent cluster and split their energies between daughter clusters
     // according to shower shape
     for (int idig = 0; idig < mult; idig++) {
-      double eEstimated = 0;
+      float eEstimated = 0;
       for (int iclu = 0; iclu < nMax; iclu++) {
         prop[iclu] = eMax[iclu] * showerShape(x[idig] - xMax[iclu],
                                               z[idig] - zMax[iclu]);
@@ -277,9 +277,9 @@ void Clusterer::unfoldOneCluster(FullCluster* iniClu, int nMax, int* digitId, fl
     // Recalculate parameters of clusters and check relative variation of energy and absolute of position
     insuficientAccuracy = false; // will be true if at least one parameter changed too much
     for (int iclu = 0; iclu < nMax; iclu++) {
-      double oldX = xMax[iclu];
-      double oldZ = zMax[iclu];
-      double oldE = eMax[iclu];
+      float oldX = xMax[iclu];
+      float oldZ = zMax[iclu];
+      float oldE = eMax[iclu];
       // new energy, need for weight
       eMax[iclu] = 0;
       for (int idig = 0; idig < mult; idig++) {
@@ -287,9 +287,9 @@ void Clusterer::unfoldOneCluster(FullCluster* iniClu, int nMax, int* digitId, fl
       }
       xMax[iclu] = 0;
       zMax[iclu] = 0.;
-      double wtot = 0.;
+      float wtot = 0.;
       for (int idig = 0; idig < mult; idig++) {
-        double w = std::max(std::log(eInClusters[idig][iclu] / eMax[iclu]) + o2::phos::PHOSSimParams::Instance().mLogWeight, 0.);
+        float w = std::max(std::log(eInClusters[idig][iclu] / eMax[iclu]) + o2::phos::PHOSSimParams::Instance().mLogWeight, float(0.));
         xMax[iclu] += x[idig] * w;
         zMax[iclu] += z[idig] * w;
         wtot += w;
@@ -314,7 +314,7 @@ void Clusterer::unfoldOneCluster(FullCluster* iniClu, int nMax, int* digitId, fl
     clu.setNExMax(nMax);
 
     for (int idig = 0; idig < mult; idig++) {
-      double eDigit = eInClusters[idig][iclu];
+      float eDigit = eInClusters[idig][iclu];
       if (eDigit < o2::phos::PHOSSimParams::Instance().mDigitMinEnergy) {
         continue;
       }
@@ -397,27 +397,27 @@ void Clusterer::evalCluProperties(const std::vector<Digit>* digits, std::vector<
   }
 }
 //____________________________________________________________________________
-double Clusterer::showerShape(double x, double z)
+float Clusterer::showerShape(float x, float z)
 {
   // Shape of the shower (see PHOS TDR)
   // If you change this function, change also the gradient evaluation in ChiSquare()
 
   //for the moment we neglect dependence on the incident angle.
 
-  double r2 = x * x + z * z;
-  double r4 = r2 * r2;
-  double r295 = TMath::Power(r2, 2.95 / 2.);
-  double shape = TMath::Exp(-r4 * (1. / (2.32 + 0.26 * r4) + 0.0316 / (1 + 0.0652 * r295)));
+  float r2 = x * x + z * z;
+  float r4 = r2 * r2;
+  float r295 = TMath::Power(r2, 2.95 / 2.);
+  float shape = TMath::Exp(-r4 * (1. / (2.32 + 0.26 * r4) + 0.0316 / (1 + 0.0652 * r295)));
   return shape;
 }
 //____________________________________________________________________________
-float Clusterer::calibrate(float amp, int absId)
+float Clusterer::calibrate(float amp, short absId)
 {
   return amp * mCalibParams->getGain(absId);
 }
 //Calibrate energy
 //____________________________________________________________________________
-float Clusterer::calibrateT(float time, int absId, bool isHG)
+float Clusterer::calibrateT(float time, short absId, bool isHG)
 {
   //Calibrate time
   if (isHG) {
@@ -427,7 +427,7 @@ float Clusterer::calibrateT(float time, int absId, bool isHG)
   }
 }
 //____________________________________________________________________________
-bool Clusterer::isBadChannel(int absId)
+bool Clusterer::isBadChannel(short absId)
 {
   return (!mBadMap->isChannelGood(absId));
 }

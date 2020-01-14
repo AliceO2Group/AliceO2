@@ -25,10 +25,10 @@ namespace o2
 namespace phos
 {
 
-constexpr int kNmaxCell = 12545 ; //56*64*3.5 + 1
-constexpr double kEnergyConv = 0.005 ;    //Energy digitization step
-constexpr double kTimeAccuracy = 1.e-9;   //Time digitization step
-constexpr double kTime0 = 150.e-9 ;       //-Minimal time to be digitized
+constexpr int   kNmaxCell = 12545 ;      //56*64*3.5 + 1
+constexpr float kEnergyConv = 0.005 ;    //Energy digitization step
+constexpr float kTimeAccuracy = 1.e-9;   //Time digitization step
+constexpr float kTime0 = 150.e-9 ;       //-Minimal time to be digitized
 
 enum ChannelType_t {
   HIGH_GAIN, ///< High gain channel
@@ -41,32 +41,32 @@ class Cell
 {
  public:
   Cell() = default;
-  Cell(Int_t absId, Double_t energy, Double_t time, ChannelType_t ctype);
+  Cell(short absId, float energy, float time, ChannelType_t ctype);
   ~Cell() = default; // override
 
-  void setAbsId(Int_t absId) ;
-  int getAbsId() const;
+  void  setAbsId(short absId) ;
+  short getAbsId() const;
 
-  void setTRUId(Int_t truId) ;
-  int getTRUId() const;
+  void  setTRUId(short truId) ;
+  short getTRUId() const;
 
 
-  void setTime(Double_t time);
-  Double_t getTime() const;
+  void  setTime(float time);
+  float getTime() const;
 
-  void setEnergy(Double_t energy);
-  Double_t getEnergy() const;
+  void  setEnergy(float energy);
+  float getEnergy() const;
 
   void setType(ChannelType_t ctype);
   ChannelType_t getType() const;
 
   void setLowGain();
-  Bool_t getLowGain() const;
+  bool getLowGain() const;
 
   void setHighGain();
-  Bool_t getHighGain() const;
+  bool getHighGain() const;
 
-  Bool_t getTRU() const;
+  bool getTRU() const;
 
   void setLong(ULong_t l);
   ULong_t getLong() const { return mBits.to_ulong(); }

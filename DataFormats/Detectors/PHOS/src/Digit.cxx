@@ -17,14 +17,14 @@ using namespace o2::phos;
 
 ClassImp(Digit);
 
-Digit::Digit(int absId, double amplitude, double time, int label)
-  : DigitBase(time), mAbsId(absId), mAmplitude(amplitude), mTime(time), mLabel(label)
+Digit::Digit(short absId, float amplitude, float time, int label)
+  : DigitBase(time), mAmplitude(amplitude), mTime(time), mAbsId(absId), mLabel(label)
 {
 }
-Digit::Digit(Hit hit, int label) : mAbsId(hit.GetDetectorID()), mAmplitude(hit.GetEnergyLoss()), mTime(hit.GetTime()), mLabel(label)
+Digit::Digit(const Hit &hit, int label) : mAbsId(hit.GetDetectorID()), mAmplitude(hit.GetEnergyLoss()), mTime(hit.GetTime()), mLabel(label)
 {
 }
-void Digit::fillFromHit(Hit hit)
+void Digit::fillFromHit(const Hit &hit)
 {
   mAbsId = hit.GetDetectorID();
   mAmplitude = hit.GetEnergyLoss();

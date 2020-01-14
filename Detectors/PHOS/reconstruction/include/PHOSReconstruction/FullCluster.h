@@ -30,27 +30,27 @@ class FullCluster : public Cluster
 
  public:
   FullCluster() = default;
-  FullCluster(int digitAbsId, double energy, double time, int label, float scale);
+  FullCluster(short digitAbsId, float energy, float time, int label, float scale);
 
   ~FullCluster() = default;
 
   /// \brief Method to add digit to a cluster
   /// \param digit being added, energy of this digit, may be smaller than full due to everlap
-  void addDigit(int digitAbsId, double energy, double time, int label, float scale);
+  void addDigit(short digitAbsId, float energy, float time, int label, float scale);
 
   void evalAll(const std::vector<Digit>* digits);
 
   // Get index of a digit with i
-  int getDigitAbsId(Int_t i) const { return mDigitsIdList.at(i); }
+  short getDigitAbsId(Int_t i) const { return mDigitsIdList.at(i); }
 
   const std::vector<float>* getEnergyList() const { return &mEnergyList; }
   // gets the list of energies of digits making this recpoint
   const std::vector<int>* getTimeList() const { return &mTimeList; }
 
   const std::vector<std::pair<int, float>>* getLabels() const { return &mLabels; }
-  int getNumberOfLocalMax(int* maxAt, float* maxAtEnergy) const; //Counts local maxima and returns their positions
+  char getNumberOfLocalMax(int* maxAt, float* maxAtEnergy) const; //Counts local maxima and returns their positions
 
-  void purify(double threshold); // Removes digits below threshold
+  void purify(float threshold); // Removes digits below threshold
 
  protected:
   void evalCoreEnergy();    // computes energy within radius Rcore
@@ -62,11 +62,11 @@ class FullCluster : public Cluster
   std::vector<Digit>::const_iterator BinarySearch(const std::vector<Digit>* container, Digit& element);
 
  private:
-  std::vector<int> mDigitsIdList;             //!  Transient Array of digits absID
-  std::vector<float> mEnergyList;             //!  Transient Array of digits energy
-  std::vector<int> mTimeList;                 //!  Transient Array of digits times
-  std::vector<std::pair<int, float>> mLabels; //!  Transient Array of label indexes
-  Geometry* mPHOSGeom;                        //!
+  std::vector<short> mDigitsIdList;             //!  Transient Array of digits absID
+  std::vector<float> mEnergyList;               //!  Transient Array of digits energy
+  std::vector<int> mTimeList;                   //!  Transient Array of digits times
+  std::vector<std::pair<int, float>> mLabels;   //!  Transient Array of label indexes
+  Geometry* mPHOSGeom;                          //!
 
   ClassDefNV(FullCluster, 1);
 };
