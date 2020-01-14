@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(Cell_test)
   }
 
   c.setAbsId(0);
-  std::vector<double> times = {-150.e-9, -10.e-9, 2.e-9, 3.e-9, 4.e-9, 5.e-9, 6.e-9, 7.e-9, 8.e-9, 9.e-9, 10.e-9, 20.e-9, 50.e-9, 100.e-9, 200.e-9, 500.e-9, 800.e-9};
+  std::vector<float> times = {-150.e-9, -10.e-9, 2.e-9, 3.e-9, 4.e-9, 5.e-9, 6.e-9, 7.e-9, 8.e-9, 9.e-9, 10.e-9, 20.e-9, 50.e-9, 100.e-9, 200.e-9, 500.e-9, 800.e-9};
 
   for (auto t : times) {
     c.setTime(t);
@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE(Cell_test)
   }
 
   c.setTime(0);
-  std::vector<double> energies = {0.010, 0.025, 1, 2, 5, 10, 20, 40, 60, 100, 150};
+  std::vector<float> energies = {0.010, 0.025, 1, 2, 5, 10, 20, 40, 60, 100, 150};
 
   for (auto e : energies) {
     c.setEnergy(e);

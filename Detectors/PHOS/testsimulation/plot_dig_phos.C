@@ -4,21 +4,15 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <sstream>
 
-#include <TStopwatch.h>
+#include "TROOT.h"
+#include "TTree.h"
 #include "TCanvas.h"
+#include "TFile.h"
 #include "TH2.h"
-//#include "DataFormatsParameters/GRPObject.h"
-#include "FairFileSource.h"
-#include "FairLogger.h"
-#include "FairRunAna.h"
-//#include "FairRuntimeDb.h"
-#include "FairParRootFileIo.h"
-#include "FairSystemInfo.h"
-#include "SimulationDataFormat/MCCompLabel.h"
-
-#include "PHOSBase/Digit.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "DataFormatsPHOS/Digit.h"
+#include "DataFormatsPHOS/MCLabel.h"
 #include "PHOSBase/Geometry.h"
-#include "PHOSSimulation/DigitizerTask.h"
 #endif
 
 void plot_dig_phos(int ievent = 0, TString inputfile = "o2dig.root")
@@ -27,12 +21,12 @@ void plot_dig_phos(int ievent = 0, TString inputfile = "o2dig.root")
   TFile* file1 = TFile::Open(inputfile.Data());
   TTree* digTree = (TTree*)gFile->Get("o2sim");
   std::vector<o2::phos::Digit>* mDigitsArray = nullptr;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels = nullptr;
+  o2::dataformats::MCTruthContainer<o2::phos::MCLabel>* labels = nullptr;
   digTree->SetBranchAddress("PHSDigit", &mDigitsArray);
   digTree->SetBranchAddress("PHSDigitMCTruth", &labels);
 
   if (!mDigitsArray) {
-    cout << "PHOS digits not registered in the FairRootManager. Exiting ..." << endl;
+    cout << "PHOS digits not in tree. Exiting ..." << endl;
     return;
   }
   digTree->GetEvent(ievent);
@@ -46,13 +40,13 @@ void plot_dig_phos(int ievent = 0, TString inputfile = "o2dig.root")
   o2::phos::Geometry* geom = new o2::phos::Geometry("PHOS");
 
   std::vector<o2::phos::Digit>::const_iterator it;
-  int relId[3];
+  char relId[3];
 
   for (it = mDigitsArray->begin(); it != mDigitsArray->end(); it++) {
-    int absId = (*it).getAbsId();
-    double en = (*it).getAmplitude();
+    short absId = (*it).getAbsId();
+    float en = (*it).getAmplitude();
     int lab = (*it).getLabel();
-    geom->AbsToRelNumbering(absId, relId);
+    geom->absToRelNumbering(absId, relId);
     // check, if this label already exist
     int j = 0;
     bool found = false;
