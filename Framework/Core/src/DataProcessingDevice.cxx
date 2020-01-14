@@ -613,7 +613,9 @@ bool DataProcessingDevice::tryDispatchComputation()
         if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification) && (dph->startTime % forward.maxTimeslices) == forward.timeslice) {
 
           if (header.get() == nullptr) {
-            LOG(ERROR) << "Missing header!";
+            // FIXME: this should not happen, however it's actually harmless and
+            //        we can simply discard it for the moment.
+            // LOG(ERROR) << "Missing header! " << dh->dataDescription.as<std::string>();
             continue;
           }
           auto fdph = o2::header::get<DataProcessingHeader*>(header.get()->GetData());
