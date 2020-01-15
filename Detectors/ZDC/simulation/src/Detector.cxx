@@ -29,6 +29,7 @@
 #include <cassert>
 #include <fstream>
 #include "ZDCSimulation/ZDCSimParam.h"
+#include "ZDCBase/Constants.h"
 
 using namespace o2::zdc;
 
@@ -194,24 +195,24 @@ void Detector::getDetIDandSecID(TString const& volname, Vector3D<float> const& x
     // for the neutron calorimeter
 
     if (x.Z() > 0) {
-      detector = 1; //ZNA
+      detector = ZNA;
       xDet = x - Vector3D<float>(Geometry::ZNAPOSITION[0], Geometry::ZNAPOSITION[1], Geometry::ZNAPOSITION[2]);
 
     } else if (x.Z() < 0) {
-      detector = 4; //ZNC
+      detector = ZNC;
       xDet = x - Vector3D<float>(Geometry::ZNCPOSITION[0], Geometry::ZNCPOSITION[1], Geometry::ZNCPOSITION[2]);
     }
     // now determine sector/tower
     if (xDet.X() <= 0.) {
       if (xDet.Y() <= 0.) {
-        sector = 1;
+        sector = Ch1;
       } else
-        sector = 3;
+        sector = Ch3;
     } else {
       if (xDet.Y() <= 0.) {
-        sector = 2;
+        sector = Ch2;
       } else {
-        sector = 4;
+        sector = Ch4;
       }
     }
     return;
@@ -219,10 +220,10 @@ void Detector::getDetIDandSecID(TString const& volname, Vector3D<float> const& x
   } else if (volname.BeginsWith("ZP")) {
     // proton calorimeter
     if (x.Z() > 0) {
-      detector = 2; //ZPA (NB -> DIFFERENT FROM AliRoot!!!)
+      detector = ZPA; // (NB -> DIFFERENT FROM AliRoot!!!)
       xDet = x - Vector3D<float>(Geometry::ZPAPOSITION[0], Geometry::ZPAPOSITION[1], Geometry::ZPAPOSITION[2]);
     } else if (x.Z() < 0) {
-      detector = 5; //ZPC (NB -> DIFFERENT FROM AliRoot!!!)
+      detector = ZPC; // (NB -> DIFFERENT FROM AliRoot!!!)
       xDet = x - Vector3D<float>(Geometry::ZPCPOSITION[0], Geometry::ZPCPOSITION[1], Geometry::ZPCPOSITION[2]);
     }
 
@@ -244,9 +245,9 @@ void Detector::getDetIDandSecID(TString const& volname, Vector3D<float> const& x
 
   } else if (volname.BeginsWith("ZE")) {
     // electromagnetic calorimeter
-    detector = 3;
+    detector = ZEM;
     xDet = x - Vector3D<float>(Geometry::ZEMPOSITION[0], Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2]);
-    sector = (x.X() > 0.) ? 1 : 2;
+    sector = (x.X() > 0.) ? Ch1 : Ch2;
     return;
   }
 
@@ -305,7 +306,8 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
   // If the particle is in a ZN or ZP fiber connected to the common PMT
   // then the assigned sector is 0 (PMC) NB-> does not work for ZEM
-  if((fMC->CurrentMedium() == mMediumPMCid) && (volID != mZEMVolID)) sector = 0;
+  if ((fMC->CurrentMedium() == mMediumPMCid) && (detector != ZEM))
+    sector = 0;
   //printf("ProcessHits:  x=(%f, %f, %f)  \n",x[0], x[1], x[2]);
   //printf("\tDET %d  SEC %d  -> XImpact=(%f, %f, %f)\n",detector,sector, xImp.X(), xImp.Y(), xImp.Z());
 
