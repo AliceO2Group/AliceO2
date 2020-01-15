@@ -8,10 +8,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(Interface)
-add_subdirectory(Impl3)
-add_subdirectory(SegContour)
-add_subdirectory(Factory)
-if(BUILD_TESTING)
-  add_subdirectory(test)
-endif()
+o2_add_library(MCHMappingFactory
+        SOURCES src/CreateSegmentation.cxx
+        PUBLIC_LINK_LIBRARIES O2::MCHMappingImpl3 fmt::fmt)
