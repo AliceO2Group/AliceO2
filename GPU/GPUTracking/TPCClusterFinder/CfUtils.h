@@ -171,7 +171,7 @@ class CfUtils
     }                                                                                \
                                                                                      \
     ChargePos readFrom = posBcast[ll];                                               \
-                                                                                     \
+    uchar above = aboveThreshold[ll];                                                \
     GPUbarrier();                                                                    \
                                                                                      \
     for (unsigned int i = 0; i < N; i++) {                                           \
@@ -180,7 +180,6 @@ class CfUtils
       Delta dt = d.y;                                                                \
                                                                                      \
       uint writeTo = N * ll + i;                                                     \
-      uchar above = aboveThreshold[i];                                               \
       type v = null;                                                                 \
       if (expandFunc(above, i + offset)) {                                           \
         v = accessFunc(chargeMap, readFrom.gpad + dp, readFrom.time + dt);           \
