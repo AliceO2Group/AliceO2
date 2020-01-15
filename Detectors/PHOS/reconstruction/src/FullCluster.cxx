@@ -39,7 +39,7 @@ void FullCluster::addDigit(short digitIndex, float energy, float time, int label
   mMulDigit++;
 }
 //____________________________________________________________________________
-void FullCluster::evalAll(const std::vector<Digit>* digits)
+void FullCluster::evalAll()
 {
   // Evaluate cluster parameters
   mPHOSGeom = Geometry::GetInstance();
@@ -302,7 +302,7 @@ std::vector<Digit>::const_iterator FullCluster::BinarySearch(const std::vector<D
   return endIt;
 }
 //____________________________________________________________________________
-char FullCluster::getNumberOfLocalMax(int* maxAt, float* maxAtEnergy) const
+char FullCluster::getNumberOfLocalMax(gsl::span<int> maxAt, gsl::span<float> maxAtEnergy) const
 {
   // Calculates the number of local maxima in the cluster using LocalMaxCut as the minimum
   // energy difference between maximum and surrounding digits
@@ -310,7 +310,7 @@ char FullCluster::getNumberOfLocalMax(int* maxAt, float* maxAtEnergy) const
   char n = getMultiplicity();
   float locMaxCut = o2::phos::PHOSSimParams::Instance().mLocalMaximumCut;
 
-  bool* isLocalMax = new bool[n];
+  std::unique_ptr<bool[]> isLocalMax = std::make_unique<bool[]>(n);
   for (int i = 0; i < n; i++) {
     isLocalMax[i] = false;
     float en1 = mEnergyList.at(i);
@@ -352,11 +352,10 @@ char FullCluster::getNumberOfLocalMax(int* maxAt, float* maxAtEnergy) const
       iDigitN++;
       if (iDigitN >= o2::phos::PHOSSimParams::Instance().mNLMMax) { // Note that size of output arrays is limited:
         LOG(ERROR) << "Too many local maxima, cluster multiplicity " << n;
-        delete[] isLocalMax;
         return 0;
       }
     }
   }
-  delete[] isLocalMax;
+
   return iDigitN;
 }

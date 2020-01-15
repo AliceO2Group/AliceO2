@@ -91,11 +91,11 @@ class Digit : public DigitBase
  private:
   // friend class boost::serialization::access;
 
+  bool mIsHighGain = true; ///< High Gain or Low Gain channel (for calibration)
+  short mAbsId = 0;        ///< cell index (absolute cell ID)
   int mLabel = -1;         ///< Index of the corresponding entry/entries in the MC label array
   float mAmplitude = 0;    ///< Amplitude
   float mTime = 0.;        ///< Time
-  short mAbsId = 0;        ///< cell index (absolute cell ID)
-  bool mIsHighGain = true; ///< High Gain or Low Gain channel (for calibration)
 
   ClassDefNV(Digit, 1);
 };

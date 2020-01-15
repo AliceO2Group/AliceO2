@@ -39,7 +39,7 @@ void Cell::setAbsId(short absId)
     absId = kNmaxCell;
   ULong_t t = (ULong_t)absId;
 
-  ULong_t b = getLong() & 0xffffffd000; // 1111111111111111111111111 10000 00000 00000
+  ULong_t b = getLong() & 0xffffffc000; // 1111111111111111111111111 10000 00000 00000
   mBits = b + t;
 }
 void Cell::setTRUId(short absId)
@@ -50,14 +50,13 @@ void Cell::setTRUId(short absId)
   //    absId = kNmaxCell;
   ULong_t t = (ULong_t)absId;
 
-  ULong_t b = getLong() & 0xffffffd000; // 1111111111111111111111111 10000 00000 00000
+  ULong_t b = getLong() & 0xffffffc000; // 1111111111111111111111111 10000 00000 00000
   mBits = b + t;
 }
 
 short Cell::getAbsId() const
 {
-  ULong_t t = getLong();
-  t &= 0x3fff; //14 bits
+  ULong_t t = getLong() & 0x3fff; //14 bits
   short a = (short)t;
   if (a <= kNmaxCell)
     return a;
@@ -67,8 +66,7 @@ short Cell::getAbsId() const
 
 short Cell::getTRUId() const
 {
-  ULong_t t = getLong();
-  t &= 0x3fff; //14 bits
+  ULong_t t = getLong() & 0x3fff; //14 bits
   short a = (short)t;
   if (a > kNmaxCell)
     return a - kNmaxCell - 1;

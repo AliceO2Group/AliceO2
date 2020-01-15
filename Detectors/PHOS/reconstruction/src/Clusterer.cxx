@@ -10,6 +10,7 @@
 
 /// \file Clusterer.cxx
 /// \brief Implementation of the PHOS cluster finder
+#include <memory>
 
 #include "PHOSReconstruction/Clusterer.h" // for LOG
 #include "PHOSBase/Geometry.h"
@@ -35,7 +36,7 @@ void Clusterer::initialize()
   mLastDigitInEvent = -1;
 }
 //____________________________________________________________________________
-void Clusterer::process(const std::vector<Digit>* digits, const std::vector<TriggerRecord>* dtr,
+void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRecord> dtr,
                         const o2::dataformats::MCTruthContainer<MCLabel>* dmc,
                         std::vector<Cluster>* clusters, std::vector<TriggerRecord>* trigRec,
                         o2::dataformats::MCTruthContainer<MCLabel>* cluMC)
@@ -45,7 +46,7 @@ void Clusterer::process(const std::vector<Digit>* digits, const std::vector<Trig
   trigRec->clear();
   cluMC->clear();
 
-  for (const auto& tr : (*dtr)) {
+  for (const auto& tr : dtr) {
     mFirstDigitInEvent = tr.getFirstEntry();
     mLastDigitInEvent = mFirstDigitInEvent + tr.getNumberOfObjects();
     int indexStart = clusters->size();
@@ -76,7 +77,6 @@ void Clusterer::process(const std::vector<Digit>* digits, const std::vector<Trig
     // Collect digits to clusters
     makeClusters(digits);
 
-    LOG(DEBUG) << "Number of PHOS clusters" << clusters->size();
     // Unfold overlapped clusters
     // Split clusters with several local maxima if necessary
     if (o2::phos::PHOSSimParams::Instance().mUnfoldClusters) {
@@ -87,29 +87,26 @@ void Clusterer::process(const std::vector<Digit>* digits, const std::vector<Trig
 
     trigRec->emplace_back(tr.getBCData(), indexStart, clusters->size());
   }
-  LOG(DEBUG) << "PHOS clustrization done";
 }
 //____________________________________________________________________________
-void Clusterer::makeClusters(const std::vector<Digit>* digits)
+void Clusterer::makeClusters(gsl::span<const Digit> digits)
 {
   // A cluster is defined as a list of neighbour digits
 
   // Mark all digits as unused yet
   const int maxNDigits = 12546; // There is no digits more than in PHOS modules ;)
   bool digitsUsed[maxNDigits];
+  memset(digitsUsed, 0, sizeof(bool) * maxNDigits);
 
-  for (int i = 0; i < maxNDigits; i++) {
-    digitsUsed[i] = false;
-  }
   int iFirst = mFirstDigitInEvent; // first index of digit which potentially can be a part of cluster
 
   for (int i = iFirst; i < mLastDigitInEvent; i++) {
     if (digitsUsed[i - mFirstDigitInEvent])
       continue;
 
-    const Digit* digitSeed = &(digits->at(i));
-    float digitSeedEnergy = calibrate(digitSeed->getAmplitude(), digitSeed->getAbsId());
-    if (isBadChannel(digitSeed->getAbsId())) {
+    const Digit& digitSeed = digits[i];
+    float digitSeedEnergy = calibrate(digitSeed.getAmplitude(), digitSeed.getAbsId());
+    if (isBadChannel(digitSeed.getAbsId())) {
       digitSeedEnergy = 0.;
     }
     if (digitSeedEnergy < o2::phos::PHOSSimParams::Instance().mDigitMinEnergy) {
@@ -120,10 +117,10 @@ void Clusterer::makeClusters(const std::vector<Digit>* digits)
     FullCluster* clu = nullptr;
     int iDigitInCluster = 0;
     if (digitSeedEnergy > o2::phos::PHOSSimParams::Instance().mClusteringThreshold) {
-      // start a new EMC RecPoint
-      FullCluster cluTmp(digitSeed->getAbsId(), digitSeedEnergy, calibrateT(digitSeed->getTime(), digitSeed->getAbsId(), digitSeed->isHighGain()),
-                         digitSeed->getLabel(), 1.);
-      mClusters.push_back(cluTmp);
+      // start new cluster
+      mClusters.emplace_back(digitSeed.getAbsId(), digitSeedEnergy,
+                             calibrateT(digitSeed.getTime(), digitSeed.getAbsId(), digitSeed.isHighGain()),
+                             digitSeed.getLabel(), 1.);
       clu = &(mClusters.back());
 
       digitsUsed[i - mFirstDigitInEvent] = true;
@@ -139,7 +136,7 @@ void Clusterer::makeClusters(const std::vector<Digit>* digits)
       for (Int_t j = iFirst; j < mLastDigitInEvent; j++) {
         if (digitsUsed[j - mFirstDigitInEvent])
           continue; // look through remaining digits
-        const Digit* digitN = &(digits->at(j));
+        const Digit* digitN = &(digits[j]);
         float digitNEnergy = calibrate(digitN->getAmplitude(), digitN->getAbsId());
         if (isBadChannel(digitN->getAbsId())) { //remove digit
           digitNEnergy = 0.;
@@ -170,38 +167,33 @@ void Clusterer::makeClusters(const std::vector<Digit>* digits)
   }   // energy theshold
 }
 //__________________________________________________________________________
-void Clusterer::makeUnfoldings(const std::vector<Digit>* digits)
+void Clusterer::makeUnfoldings(gsl::span<const Digit> digits)
 {
   //Split cluster if several local maxima are found
 
-  int* maxAt = new int[o2::phos::PHOSSimParams::Instance().mNLMMax]; // NLMMax:Maximal number of local maxima
-  float* maxAtEnergy = new float[o2::phos::PHOSSimParams::Instance().mNLMMax];
+  std::vector<int> maxAt(o2::phos::PHOSSimParams::Instance().mNLMMax); // NLMMax:Maximal number of local maxima
+  std::vector<float> maxAtEnergy(o2::phos::PHOSSimParams::Instance().mNLMMax);
 
   int numberOfNotUnfolded = mClusters.size();
 
-  auto clu = mClusters.begin();
-
-  for (int i = 0; i < numberOfNotUnfolded; i++) {
-    if (clu->getNExMax() > -1) { //already unfolded
+  for (int i = 0; i < numberOfNotUnfolded; i++) { //can not use iterator here as list can expand
+    FullCluster& clu = mClusters[i];
+    if (clu.getNExMax() > -1) { //already unfolded
       continue;
     }
-    char nMultipl = clu->getMultiplicity();
-    char nMax = clu->getNumberOfLocalMax(maxAt, maxAtEnergy);
+    char nMultipl = clu.getMultiplicity();
+    char nMax = clu.getNumberOfLocalMax(maxAt, maxAtEnergy);
     if (nMax > 1) {
-      unfoldOneCluster(&(*clu), nMax, maxAt, maxAtEnergy, digits);
-
-      clu = mClusters.erase(clu); //remove current and move iterator to next cluster
+      unfoldOneCluster(clu, nMax, maxAt, maxAtEnergy, digits);
+      clu.setEnergy(0); // will be skipped later
     } else {
-      clu->setNExMax(1); // Only one local maximum
-      clu++;
+      clu.setNExMax(nMax); // Only one local maximum
     }
   }
-
-  delete[] maxAt;
-  delete[] maxAtEnergy;
 }
 //____________________________________________________________________________
-void Clusterer::unfoldOneCluster(FullCluster* iniClu, char nMax, int* digitId, float* maxAtEnergy, const std::vector<Digit>* digits)
+void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> digitId, gsl::span<float> maxAtEnergy,
+                                 gsl::span<const Digit> digits)
 {
   // Performs the unfolding of a cluster with nMax overlapping showers
   // Parameters: iniClu cluster to be unfolded
@@ -211,7 +203,7 @@ void Clusterer::unfoldOneCluster(FullCluster* iniClu, char nMax, int* digitId, f
 
   // Take initial cluster and calculate local coordinates of digits
   // To avoid multiple re-calculation of same parameters
-  char mult = iniClu->getMultiplicity();
+  char mult = iniClu.getMultiplicity();
   std::vector<float> x(mult);
   std::vector<float> z(mult);
   std::vector<float> e(mult);
@@ -219,11 +211,11 @@ void Clusterer::unfoldOneCluster(FullCluster* iniClu, char nMax, int* digitId, f
   std::vector<int> lbl(mult);
   std::vector<std::vector<float>> eInClusters(mult, std::vector<float>(nMax));
 
-  const std::vector<float>* cluElist = iniClu->getEnergyList();
+  const std::vector<float>* cluElist = iniClu.getEnergyList();
   // gets the list of energies of digits making this recpoint
 
   for (int idig = 0; idig < mult; idig++) {
-    short absID = iniClu->getDigitAbsId(idig);
+    short absID = iniClu.getDigitAbsId(idig);
     float eDigit = cluElist->at(idig);
     e[idig] = eDigit;
     float lx, lz;
@@ -232,8 +224,8 @@ void Clusterer::unfoldOneCluster(FullCluster* iniClu, char nMax, int* digitId, f
     z[idig] = lz;
     //Extract time from digits: first find digit in list
     Digit testDigit(absID, 0., 0., 0.);
-    auto dIter = std::lower_bound(digits->begin(), digits->end(), testDigit); //finds first (and the only) digit with same absId. Binary search is used
-    if (dIter != digits->end()) {
+    auto dIter = std::lower_bound(digits.begin(), digits.end(), testDigit); //finds first (and the only) digit with same absId. Binary search is used
+    if (dIter != digits.end()) {
       t[idig] = (*dIter).getTime();
       lbl[idig] = (*dIter).getLabel();
     }
@@ -318,18 +310,17 @@ void Clusterer::unfoldOneCluster(FullCluster* iniClu, char nMax, int* digitId, f
       if (eDigit < o2::phos::PHOSSimParams::Instance().mDigitMinEnergy) {
         continue;
       }
-      int absID = iniClu->getDigitAbsId(idig);
+      int absID = iniClu.getDigitAbsId(idig);
       clu.addDigit(absID, eDigit, t[idig], lbl[idig], eDigit / e[idig]);
     }
   }
 }
 
 //____________________________________________________________________________
-void Clusterer::evalCluProperties(const std::vector<Digit>* digits, std::vector<Cluster>* clusters,
+void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Cluster>* clusters,
                                   const o2::dataformats::MCTruthContainer<MCLabel>* dmc,
                                   o2::dataformats::MCTruthContainer<MCLabel>* cluMC)
 {
-  LOG(DEBUG) << "EvalCluProperties: nclu=" << mClusters.size();
 
   if (clusters->capacity() - clusters->size() < mClusters.size()) { //avoid expanding vector per element
     clusters->reserve(clusters->size() + mClusters.size());
@@ -343,10 +334,16 @@ void Clusterer::evalCluProperties(const std::vector<Digit>* digits, std::vector<
 
   while (clu != mClusters.end()) {
 
+    if (clu->getEnergy() < 1.e-4) { //Marked earlier for removal
+      ++clu;
+      continue;
+    }
+
+    // may be soft digits remain after unfolding
     clu->purify(o2::phos::PHOSSimParams::Instance().mDigitMinEnergy);
 
     //  LOG(DEBUG) << "Purify done";
-    clu->evalAll(digits);
+    clu->evalAll();
 
     if (clu->getEnergy() > 1.e-4) { //Non-empty cluster
       clusters->emplace_back(*clu);
@@ -373,7 +370,7 @@ void Clusterer::evalCluProperties(const std::vector<Digit>* digits, std::vector<
                 merged = true;
                 break;
               }
-              cluL++;
+              ++cluL;
             }
             if (!merged) { //just add label
               if (scale == 1.) {
@@ -384,16 +381,16 @@ void Clusterer::evalCluProperties(const std::vector<Digit>* digits, std::vector<
                 cluMC->addElement(labelIndex, tmpL);
               }
             }
-            digL++;
+            ++digL;
           }
-          ll++;
+          ++ll;
         }
         clusters->back().setLabel(labelIndex);
         labelIndex++;
       } // Work with MC
     }
 
-    clu++;
+    ++clu;
   }
 }
 //____________________________________________________________________________

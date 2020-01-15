@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <gsl/gsl>
 #ifndef ALICEO2_PHOS_FULLCLUSTER_H_
 #define ALICEO2_PHOS_FULLCLUSTER_H_
 
@@ -38,7 +39,7 @@ class FullCluster : public Cluster
   /// \param digit being added, energy of this digit, may be smaller than full due to everlap
   void addDigit(short digitAbsId, float energy, float time, int label, float scale);
 
-  void evalAll(const std::vector<Digit>* digits);
+  void evalAll();
 
   // Get index of a digit with i
   short getDigitAbsId(Int_t i) const { return mDigitsIdList.at(i); }
@@ -48,7 +49,7 @@ class FullCluster : public Cluster
   const std::vector<int>* getTimeList() const { return &mTimeList; }
 
   const std::vector<std::pair<int, float>>* getLabels() const { return &mLabels; }
-  char getNumberOfLocalMax(int* maxAt, float* maxAtEnergy) const; //Counts local maxima and returns their positions
+  char getNumberOfLocalMax(gsl::span<int> maxAt, gsl::span<float> maxAtEnergy) const; //Counts local maxima and returns their positions
 
   void purify(float threshold); // Removes digits below threshold
 

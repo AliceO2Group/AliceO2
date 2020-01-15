@@ -39,6 +39,7 @@ class Cluster
   /// \return result of comparison: x and z coordinates
   bool operator>(const Cluster& other) const;
 
+  void setEnergy(float e) { mFullEnergy = e; }
   float getEnergy() const { return mFullEnergy; }
   float getCoreEnergy() const { return mCoreEnergy; }
   float getDispersion() const { return mDispersion; }
@@ -69,8 +70,8 @@ class Cluster
  protected:
   char mMulDigit = 0;            ///< Digit nultiplicity
   char mModule = 0;              ///< Module number
-  int mLabel = -1;               ///< Ref to entry in MCTruthContainer with list of labels
   char mNExMax = -1;             ///< number of (Ex-)maxima before unfolding
+  int mLabel = -1;               ///< Ref to entry in MCTruthContainer with list of labels
   float mLocalPosX = 0.;         ///< Center of gravity position in local module coordunates (phi direction)
   float mLocalPosZ = 0.;         ///< Center of gravity position in local module coordunates (z direction)
   float mFullEnergy = 0.;        ///< full energy of a shower

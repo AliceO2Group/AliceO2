@@ -34,19 +34,20 @@ class Clusterer
   ~Clusterer() = default;
 
   void initialize();
-  void process(const std::vector<Digit>* digits, const std::vector<TriggerRecord>* dtr,
+  void process(gsl::span<const Digit> digits, gsl::span<const TriggerRecord> dtr,
                const o2::dataformats::MCTruthContainer<MCLabel>* dmc,
                std::vector<Cluster>* clusters, std::vector<TriggerRecord>* rigRec,
                o2::dataformats::MCTruthContainer<MCLabel>* cluMC);
-  void makeClusters(const std::vector<Digit>* digits);
-  void evalCluProperties(const std::vector<Digit>* digits, std::vector<Cluster>* clusters,
+  void makeClusters(gsl::span<const Digit> digits);
+  void evalCluProperties(gsl::span<const Digit> digits, std::vector<Cluster>* clusters,
                          const o2::dataformats::MCTruthContainer<MCLabel>* dmc,
                          o2::dataformats::MCTruthContainer<MCLabel>* cluMC);
 
   float showerShape(float dx, float dz); // Parameterization of EM shower
 
-  void makeUnfoldings(const std::vector<Digit>* digits); // Find and unfold clusters with few local maxima
-  void unfoldOneCluster(FullCluster* iniClu, char nMax, int* digitId, float* maxAtEnergy, const std::vector<Digit>* digits);
+  void makeUnfoldings(gsl::span<const Digit> digits); // Find and unfold clusters with few local maxima
+  void unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> digitId, gsl::span<float> maxAtEnergy,
+                        gsl::span<const Digit> digits);
 
  protected:
   //Calibrate energy
