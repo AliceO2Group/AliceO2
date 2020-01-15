@@ -57,7 +57,7 @@ struct CompletionPolicyHelpers {
     // DataHeader interface requires to specify header pointer type, need to check if the template parameter
     // is already pointer type, and add pointer if not
     using return_type = typename std::conditional<std::is_pointer<T>::value, T, typename std::add_pointer<T>::type>::type;
-    return o2::header::get<return_type>(input.header ? input.header->GetData() : nullptr);
+    return o2::header::get<return_type>(input.header);
   }
 };
 

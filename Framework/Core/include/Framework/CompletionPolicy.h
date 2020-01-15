@@ -10,7 +10,7 @@
 #ifndef FRAMEWORK_COMPLETIONPOLICY_H
 #define FRAMEWORK_COMPLETIONPOLICY_H
 
-#include "Framework/PartRef.h"
+#include "Framework/DataRef.h"
 
 #include <functional>
 #include <string>
@@ -50,7 +50,7 @@ struct CompletionPolicy {
   };
 
   using Matcher = std::function<bool(DeviceSpec const& device)>;
-  using InputSetElement = PartRef;
+  using InputSetElement = DataRef;
   using InputSet = gsl::span<InputSetElement const> const&;
   using Callback = std::function<CompletionOp(InputSet)>;
 
