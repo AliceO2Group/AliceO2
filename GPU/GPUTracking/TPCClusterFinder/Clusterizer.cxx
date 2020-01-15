@@ -39,6 +39,8 @@ GPUd() void Clusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlo
 
   ClusterAccumulator pc;
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
+  /* #if defined(BUILD_CLUSTER_SCRATCH_PAD) && defined(GPUCA_GPUCODE) */
+  /* #if 0 */
   buildClusterScratchPad(
     chargeMap,
     (ChargePos){gpad, myDigit.time},
@@ -150,7 +152,7 @@ GPUd() void Clusterizer::updateClusterScratchpadInner(
 
     Charge q = cluster->updateInner(p, dp, dt);
 
-    aboveThreshold |= ((q > CHARGE_THRESHOLD) << i);
+    aboveThreshold |= (uchar(q > CHARGE_THRESHOLD) << i);
   }
 
   innerAboveThreshold[lid] = aboveThreshold;
@@ -208,7 +210,7 @@ GPUd() void Clusterizer::buildClusterScratchPad(
     myCluster,
     innerAboveThreshold);
 
-  ushort wgSizeHalf = SCRATCH_PAD_WORK_GROUP_SIZE / 2;
+  ushort wgSizeHalf = (SCRATCH_PAD_WORK_GROUP_SIZE + 1) / 2;
 
   bool inGroup1 = ll < wgSizeHalf;
 
@@ -238,6 +240,7 @@ GPUd() void Clusterizer::buildClusterScratchPad(
       myCluster);
   }
 
+#if defined(GPUCA_GPUCODE)
   CfUtils::fillScratchPadCond_PackedCharge(
     chargeMap,
     wgSizeHalf,
@@ -258,13 +261,7 @@ GPUd() void Clusterizer::buildClusterScratchPad(
       buf,
       myCluster);
   }
-
-  /* mergeCluster( */
-  /*         ll, */
-  /*         (inGroup1) ? ll+wgSizeHalf : llhalf, */
-  /*         myCluster, */
-  /*         &otherCluster, */
-  /*         (GPUsharedref() void *)(posBcast)); */
+#endif
 }
 
 GPUd() void Clusterizer::buildClusterNaive(

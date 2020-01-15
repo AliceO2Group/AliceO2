@@ -31,11 +31,22 @@ namespace PackedChargeDefs
 {
 using BasicType = unsigned short;
 
+static_assert(sizeof(BasicType) == 2);
+
 GPUconstexpr() BasicType Has3x3PeakMask = 1 << O2_GPU_PACKED_CHARGE_CHARGE_BITS;
 GPUconstexpr() BasicType IsSplitMask = 1 << (O2_GPU_PACKED_CHARGE_CHARGE_BITS + 1);
 GPUconstexpr() BasicType ChargeMask = (1 << O2_GPU_PACKED_CHARGE_CHARGE_BITS) - 1;
 GPUconstexpr() BasicType MaxVal = (1 << O2_GPU_PACKED_CHARGE_CHARGE_BITS) - 1;
 GPUconstexpr() Charge Shift = 1 << O2_GPU_PACKED_CHARGE_DECIMAL_BITS;
+
+#ifdef GPUCA_CPUCODE
+static_assert(Has3x3PeakMask == 0x4000);
+static_assert(IsSplitMask == 0x8000);
+static_assert(ChargeMask == 0x3FFF);
+static_assert(MaxVal == 0x3FFF);
+static_assert(Shift == 16.f);
+#endif
+
 } // namespace PackedChargeDefs
 
 class PackedCharge
@@ -51,8 +62,8 @@ class PackedCharge
 
     mVal = q * Shift;
     mVal = CAMath::Min(MaxVal, mVal); // ensure only lower 14 bits are set
-    mVal |= (peak3x3) ? Has3x3PeakMask : 0;
-    mVal |= (wasSplit) ? IsSplitMask : 0;
+    mVal |= (peak3x3) ? Has3x3PeakMask : BasicType(0);
+    mVal |= (wasSplit) ? IsSplitMask : BasicType(0);
   }
 
   GPUdi() Charge unpack() const { return Charge(mVal & PackedChargeDefs::ChargeMask) / PackedChargeDefs::Shift; }

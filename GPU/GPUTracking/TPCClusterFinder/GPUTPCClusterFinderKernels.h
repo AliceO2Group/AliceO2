@@ -27,7 +27,6 @@ namespace gpu
 class GPUTPCClusterFinderKernels : public GPUKernelTemplate
 {
  public:
-#ifdef GPUCA_ALIGPUCODE // TODO: Remove, once Clusterizer is cleaned up
   class GPUTPCSharedMemory : public GPUKernelTemplate::GPUTPCSharedMemoryScan64<int, GPUCA_THREAD_COUNT_SCAN>
   {
    public:
@@ -38,16 +37,6 @@ class GPUTPCClusterFinderKernels : public GPUKernelTemplate
       GPUTPCSharedMemoryData::build_t build;
     };
   };
-#else
-  struct GPUTPCSharedMemory {
-    union {
-      GPUTPCSharedMemoryData::search_t search;
-      GPUTPCSharedMemoryData::noise_t noise;
-      GPUTPCSharedMemoryData::count_t count;
-      GPUTPCSharedMemoryData::build_t build;
-    };
-  };
-#endif
 
   enum K : int {
     fillChargeMap = 0,
