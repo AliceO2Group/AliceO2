@@ -181,8 +181,10 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
       SetCov(i, param.C[i]);
     }
   };
-  GPUd() trackInterface<GPUTPCGMTrackParam>(const trackInterface<GPUTPCGMTrackParam>& param) = default;
-  GPUd() trackInterface<GPUTPCGMTrackParam>& operator=(const trackInterface<GPUTPCGMTrackParam>& param) = default;
+#ifdef GPUCA_NOCOMPAT
+  GPUdDefault() trackInterface<GPUTPCGMTrackParam>(const trackInterface<GPUTPCGMTrackParam>& param) = default;
+  GPUdDefault() trackInterface<GPUTPCGMTrackParam>& operator=(const trackInterface<GPUTPCGMTrackParam>& param) = default;
+#endif
 #ifdef GPUCA_ALIROOT_LIB
   trackInterface<GPUTPCGMTrackParam>(const AliHLTExternalTrackParam& param) : GPUTPCGMTrackParam(), mAlpha(param.fAlpha)
   {
