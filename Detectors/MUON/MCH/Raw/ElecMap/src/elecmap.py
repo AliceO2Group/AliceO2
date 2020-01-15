@@ -1,18 +1,16 @@
 #!/usr/bin/env python
 
 from oauth2client.service_account import ServiceAccountCredentials
-from string import Template
 from subprocess import call
 import argparse
 import gspread
 import numpy as np
 import os
 import pandas as pd
-import sys
 
 def gencode_clang_format(filename):
     """ Run clang-format on file """
-    lc = ["clang-format","-i",filename] 
+    lc = ["clang-format","-i",filename]
     return call(lc)
 
 def gencode_open_generated(filename):
