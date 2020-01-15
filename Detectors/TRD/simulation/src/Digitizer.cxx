@@ -430,7 +430,7 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer& signalMapCon
     // Loop over the all timebins in the ADC array
     SignalArray& signalData = signalMapIter.second;
     auto& signalArray = signalData.signals;
-    ArrayADC adcs{}; // fails if declared as AdcArray_t
+    ArrayADC adcs{};
     for (int tb = 0; tb < nTimeTotal; ++tb) {
       float signalAmp = (float)signalArray[tb]; // The signal amplitude
       signalAmp *= coupling;                    // Pad and time coupling
