@@ -104,11 +104,19 @@ void GPUTPCClusterFinder::DumpClusters(std::ostream& out)
       float t2 = deprecated::cnGetTime(&c2);
       float p1 = deprecated::cnGetPad(&c1);
       float p2 = deprecated::cnGetPad(&c2);
+      uchar f1 = deprecated::cnGetFlags(&c1);
+      uchar f2 = deprecated::cnGetFlags(&c2);
 
       if (t1 < t2) {
         return true;
       } else if (t1 == t2) {
-        return p1 < p2;
+        if (p1 < p2) {
+          return true;
+        } else if (p1 == p2) {
+          return f1 < f2;
+        } else {
+          return false;
+        }
       } else {
         return false;
       }
