@@ -248,9 +248,9 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
     SCRATCH_PAD_WORK_GROUP_SIZE,
     SCRATCH_PAD_WORK_GROUP_SIZE,
     ll,
-    0,
+    16,
     2,
-    CfConsts::NoiseSuppressionNeighbors + 16,
+    CfConsts::NoiseSuppressionNeighbors,
     posBcast,
     buf);
 
