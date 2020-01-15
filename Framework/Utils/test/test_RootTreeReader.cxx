@@ -33,7 +33,7 @@ using namespace o2::framework;
     LOG(ERROR) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
-constexpr int kTreeSize = 10; // elements in the test tree
+const int gTreeSize = 10; // elements in the test tree
 DataProcessorSpec getSourceSpec()
 {
   auto initFct = [](InitContext& ic) {
@@ -48,7 +48,7 @@ DataProcessorSpec getSourceSpec()
       std::vector<o2::test::Polymorphic> valarray;
       auto* branch = testTree->Branch("dataarray", &valarray);
 
-      for (int entry = 0; entry < kTreeSize; entry++) {
+      for (int entry = 0; entry < gTreeSize; entry++) {
         valarray.clear();
         for (int idx = 0; idx < entry + 1; ++idx) {
           valarray.emplace_back((entry * 10) + idx);
@@ -68,6 +68,9 @@ DataProcessorSpec getSourceSpec()
                                                    RootTreeReader::PublishingMode::Single);
 
     auto processingFct = [reader](ProcessingContext& pc) {
+      if (reader->getCount() >= gTreeSize) {
+        return;
+      }
       if (reader->getCount() == 0) {
         // add two additional headers on the stack in the first entry
         o2::header::NameHeader<16> auxHeader("extended_info");
@@ -77,8 +80,9 @@ DataProcessorSpec getSourceSpec()
         // test signature without headers for the rest of the entries
         (++(*reader))(pc);
       }
-      if ((reader->getCount() + 1) >= kTreeSize) {
+      if ((reader->getCount()) >= gTreeSize) {
         pc.services().get<ControlService>().endOfStream();
+        pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
       }
     };
 
@@ -119,10 +123,7 @@ DataProcessorSpec getSinkSpec()
       LOG(INFO) << data[idx].get();
       ASSERT_ERROR(data[idx].get() == 10 * counter + idx);
     }
-    if (++counter >= kTreeSize) {
-      pc.services().get<ControlService>().endOfStream();
-      pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-    }
+    ++counter;
   };
 
   return DataProcessorSpec{"sink", // name of the processor
