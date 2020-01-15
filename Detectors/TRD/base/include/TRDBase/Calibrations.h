@@ -90,7 +90,7 @@ class Calibrations
   bool isNoDataSideB(int det) const { return mChamberStatus->isNoDataSideB(det); }
   bool isChamberBadlyCalibrated(int det) const { return mChamberStatus->isBadCalibrated(det); }
   bool isChamberNotCalibrated(int det) const { return mChamberStatus->isNotCalibrated(det); }
-  char getChamberStatusRaw(int det) const { return mChamberStatus->getStatus(det); } 
+  char getChamberStatusRaw(int det) const { return mChamberStatus->getStatus(det); }
 
  protected:
   long mTimeStamp; //run number of related to the current calibration.

@@ -39,7 +39,7 @@ class ChamberStatus
          kNoDataHalfChamberSideB = 3,
          kBadCalibrated = 4,
          kNotCalibrated = 5 };
-         // the above it the bitth position of the status, i.e. kGood is the 0th bit being true
+  // the above it the bitth position of the status, i.e. kGood is the 0th bit being true
   enum { kGoodpat = 1,
          kNoDatapat = 2,
          kNoDataHalfChamberSideApat = 4,
