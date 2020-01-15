@@ -44,7 +44,7 @@ void CheckDigits(std::string digifile = "trddigits.root",
   TH1F* hPad = new TH1F("hPad", ";Pad number;Counts", 144, 0, 143);
   TH1* hADC[540];
   for (int d = 0; d < 540; ++d) {
-    hADC[d] = new TH1F(Form("hADC_%d", d), Form("ADC distribution for chamber %d;ADC value;Counts",d), 1024, 0, 1023);
+    hADC[d] = new TH1F(Form("hADC_%d", d), Form("ADC distribution for chamber %d;ADC value;Counts", d), 1024, 0, 1023);
   }
 
   LOG(INFO) << nev << " entries found";
@@ -117,7 +117,7 @@ void CheckDigits(std::string digifile = "trddigits.root",
     if (hADC[d]->GetEntries() < kMINENTRIES) {
       continue;
     }
-    if (count > 0) {
+    if (count > 5) {
       break;
     }
     hADC[d]->SetLineColor(count + 1);
@@ -138,7 +138,7 @@ void CheckDigits(std::string digifile = "trddigits.root",
     }
   }
   hADC[first]->GetYaxis()->SetLimits(1.1, max + 100);
-  hADC[first]->GetXaxis()->SetRangeUser(0,512);
+  hADC[first]->GetXaxis()->SetRangeUser(0, 512);
 
   TLegend* legend = new TLegend(0.7, 0.6, 0.9, 0.9);
   legend->SetBorderSize(0); // no border
