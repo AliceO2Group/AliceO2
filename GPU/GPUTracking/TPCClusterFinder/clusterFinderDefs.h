@@ -32,6 +32,7 @@ typedef unsigned long ulong;
 #define SCRATCH_PAD_WORK_GROUP_SIZE 1
 #endif
 #ifdef GPUCA_GPUCODE
+/* #define BUILD_CLUSTER_NAIVE */
 #define BUILD_CLUSTER_SCRATCH_PAD
 #else
 /* #define BUILD_CLUSTER_NAIVE */
