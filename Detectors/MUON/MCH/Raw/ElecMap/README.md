@@ -18,8 +18,8 @@ In addition, one must know to which CRU a given solar board is connected.
 
 As the time of this writing the electronic mapping is still a bit in flux, as :
 
-- the detector electronic is still being (re)installed
-- the CRU to Solar part is still to be clarified
+-   the detector electronic is still being (re)installed
+-   the CRU to Solar part is still to be clarified
 
 so things might evolve...
 
@@ -31,10 +31,10 @@ The API is to be found in [Mapper.h](include/MCHRawElecMap/Mapper.h) file.
 
 ## Generation of electronic mapping
 
-The code generation uses the [gen.sh](src/gen.sh) script which basically loops on all
-chambers and call `elecmap.py` for each one, e.g.
+The code generation uses the [gen.sh](src/gen.sh) script which basically loops 
+on all chambers and call `elecmap.py` for each one, e.g.
 
-```
+```bash
 ./elecmap.py -gs "MCH Electronic Mapping" -s CH6R --credentials=cred.json -c CH6R
 ```
 
