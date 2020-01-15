@@ -13,7 +13,6 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-#include <fairmq/FairMQTransportFactory.h>
 #include "Framework/CompletionPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Headers/DataHeader.h"
@@ -36,20 +35,15 @@ BOOST_AUTO_TEST_CASE(TestCompletionPolicy)
 BOOST_AUTO_TEST_CASE(TestCompletionPolicy_callback)
 {
   o2::header::Stack stack{o2::header::DataHeader{"SOMEDATA", "TST", 0, 0}, o2::header::NameHeader<9>{"somename"}};
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  FairMQMessagePtr header = transport->CreateMessage(stack.size());
-  auto* pointer = header->GetData();
-  memcpy(pointer, stack.data(), stack.size());
-  FairMQMessagePtr payload = transport->CreateMessage();
 
   auto matcher = [](auto const&) {
     return true;
   };
 
-  auto callback = [&stack, &pointer](CompletionPolicy::InputSet inputRefs) {
+  auto callback = [&stack](CompletionPolicy::InputSet inputRefs) {
     for (auto const& ref : inputRefs) {
       auto const* header = CompletionPolicyHelpers::getHeader<o2::header::DataHeader>(ref);
-      BOOST_CHECK_EQUAL(header, reinterpret_cast<o2::header::DataHeader*>(pointer));
+      BOOST_CHECK_EQUAL(header, reinterpret_cast<o2::header::DataHeader*>(stack.data()));
       BOOST_CHECK(CompletionPolicyHelpers::getHeader<o2::header::NameHeader<9>>(ref) != nullptr);
       BOOST_CHECK(CompletionPolicyHelpers::getHeader<o2::header::NameHeader<9>*>(ref) != nullptr);
     }
@@ -59,7 +53,7 @@ BOOST_AUTO_TEST_CASE(TestCompletionPolicy_callback)
   std::vector<CompletionPolicy> policies;
   policies.emplace_back("test", matcher, callback);
 
-  CompletionPolicy::InputSetElement ref{std::move(header), std::move(payload)};
+  CompletionPolicy::InputSetElement ref{nullptr, reinterpret_cast<const char*>(stack.data()), nullptr};
   CompletionPolicy::InputSet inputs{&ref, 1};
   for (auto& policy : policies) {
     policy.callback(inputs);
