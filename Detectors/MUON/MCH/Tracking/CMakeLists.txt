@@ -41,7 +41,9 @@ o2_add_executable(trackfinderoriginal-workflow
         SOURCES
         src/TrackFinderWorkflow.cxx
         src/ClusterSamplerSpec.cxx
+        src/VertexSamplerSpec.cxx
         src/TrackFinderSpec.cxx
+        src/TrackAtVertexSpec.cxx
         src/TrackSinkSpec.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::MCHTracking)
+        PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::MCHTracking)
