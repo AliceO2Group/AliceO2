@@ -38,7 +38,8 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
 
   char peakCount = (iamPeak) ? 1 : 0;
 
-#if defined(BUILD_CLUSTER_SCRATCH_PAD) && defined(GPUCA_GPUCODE)
+#if defined(BUILD_CLUSTER_SCRATCH_PAD)
+  /* #if defined(BUILD_CLUSTER_SCRATCH_PAD) && defined(GPUCA_GPUCODE) */
   /* #if 0 */
   ushort ll = get_local_id(0);
   ushort partId = ll;
