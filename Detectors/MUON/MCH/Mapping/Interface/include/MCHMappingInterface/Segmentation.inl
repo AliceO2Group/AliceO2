@@ -15,7 +15,7 @@ namespace mch
 namespace mapping
 {
 
-inline Segmentation::Segmentation(int deid) : mDetElemId{ deid }, mBending{ CathodeSegmentation(deid, true) }, mNonBending{ CathodeSegmentation(deid, false) }, mPadIndexOffset{ mBending.nofPads() }
+inline Segmentation::Segmentation(int deid) : mDetElemId{deid}, mBending{CathodeSegmentation(deid, true)}, mNonBending{CathodeSegmentation(deid, false)}, mPadIndexOffset{mBending.nofPads()}
 {
 }
 
@@ -35,7 +35,7 @@ inline void swap(Segmentation& a, Segmentation& b)
 
 inline Segmentation::Segmentation(const Segmentation& seg) = default;
 
-inline Segmentation::Segmentation(const Segmentation&& seg) : mBending{ std::move(seg.mBending) }, mNonBending{ std::move(seg.mNonBending) }, mDetElemId{ seg.mDetElemId }, mPadIndexOffset{ seg.mPadIndexOffset }
+inline Segmentation::Segmentation(const Segmentation&& seg) : mBending{std::move(seg.mBending)}, mNonBending{std::move(seg.mNonBending)}, mDetElemId{seg.mDetElemId}, mPadIndexOffset{seg.mPadIndexOffset}
 {
 }
 
@@ -110,7 +110,7 @@ template <typename CALLABLE>
 void Segmentation::forEachPad(CALLABLE&& func) const
 {
   mBending.forEachPad(func);
-  int offset{ mPadIndexOffset };
+  int offset{mPadIndexOffset};
   mNonBending.forEachPad([&offset, &func](int catPadIndex) {
     func(catPadIndex + offset);
   });
@@ -120,7 +120,7 @@ template <typename CALLABLE>
 void Segmentation::forEachPadInArea(double xmin, double ymin, double xmax, double ymax, CALLABLE&& func) const
 {
   mBending.forEachPadInArea(xmin, ymin, xmax, ymax, func);
-  int offset{ mPadIndexOffset };
+  int offset{mPadIndexOffset};
   mNonBending.forEachPadInArea(xmin, ymin, xmax, ymax, [&offset, &func](int catPadIndex) {
     func(catPadIndex + offset);
   });
@@ -129,11 +129,11 @@ void Segmentation::forEachPadInArea(double xmin, double ymin, double xmax, doubl
 template <typename CALLABLE>
 void Segmentation::forEachNeighbouringPad(int dePadIndex, CALLABLE&& func) const
 {
-  const CathodeSegmentation* catSeg{ nullptr };
+  const CathodeSegmentation* catSeg{nullptr};
   int catPadIndex;
   catSegPad(dePadIndex, catSeg, catPadIndex);
 
-  int offset{ 0 };
+  int offset{0};
   if (!isBendingPad(dePadIndex)) {
     offset = mPadIndexOffset;
   }
@@ -142,12 +142,18 @@ void Segmentation::forEachNeighbouringPad(int dePadIndex, CALLABLE&& func) const
   });
 }
 
+inline void Segmentation::forEachDualSampa(std::function<void(int dualSampaId)> func) const
+{
+  mBending.forEachDualSampa(func);
+  mNonBending.forEachDualSampa(func);
+}
+
 inline std::string Segmentation::padAsString(int dePadIndex) const
 {
   if (!isValid(dePadIndex)) {
     return "invalid pad with index=" + std::to_string(dePadIndex);
   }
-  const CathodeSegmentation* catSeg{ nullptr };
+  const CathodeSegmentation* catSeg{nullptr};
   int catPadIndex;
   catSegPad(dePadIndex, catSeg, catPadIndex);
   auto s = catSeg->padAsString(catPadIndex);
@@ -161,7 +167,7 @@ inline std::string Segmentation::padAsString(int dePadIndex) const
 
 inline int Segmentation::padDualSampaId(int dePadIndex) const
 {
-  const CathodeSegmentation* catSeg{ nullptr };
+  const CathodeSegmentation* catSeg{nullptr};
   int catPadIndex;
   catSegPad(dePadIndex, catSeg, catPadIndex);
   return catSeg->padDualSampaId(catPadIndex);
@@ -169,7 +175,7 @@ inline int Segmentation::padDualSampaId(int dePadIndex) const
 
 inline int Segmentation::padDualSampaChannel(int dePadIndex) const
 {
-  const CathodeSegmentation* catSeg{ nullptr };
+  const CathodeSegmentation* catSeg{nullptr};
   int catPadIndex;
   catSegPad(dePadIndex, catSeg, catPadIndex);
   return catSeg->padDualSampaChannel(catPadIndex);
@@ -177,7 +183,7 @@ inline int Segmentation::padDualSampaChannel(int dePadIndex) const
 
 inline double Segmentation::padPositionX(int dePadIndex) const
 {
-  const CathodeSegmentation* catSeg{ nullptr };
+  const CathodeSegmentation* catSeg{nullptr};
   int catPadIndex;
   catSegPad(dePadIndex, catSeg, catPadIndex);
   return catSeg->padPositionX(catPadIndex);
@@ -185,7 +191,7 @@ inline double Segmentation::padPositionX(int dePadIndex) const
 
 inline double Segmentation::padPositionY(int dePadIndex) const
 {
-  const CathodeSegmentation* catSeg{ nullptr };
+  const CathodeSegmentation* catSeg{nullptr};
   int catPadIndex;
   catSegPad(dePadIndex, catSeg, catPadIndex);
   return catSeg->padPositionY(catPadIndex);
@@ -193,7 +199,7 @@ inline double Segmentation::padPositionY(int dePadIndex) const
 
 inline double Segmentation::padSizeX(int dePadIndex) const
 {
-  const CathodeSegmentation* catSeg{ nullptr };
+  const CathodeSegmentation* catSeg{nullptr};
   int catPadIndex;
   catSegPad(dePadIndex, catSeg, catPadIndex);
   return catSeg->padSizeX(catPadIndex);
@@ -201,7 +207,7 @@ inline double Segmentation::padSizeX(int dePadIndex) const
 
 inline double Segmentation::padSizeY(int dePadIndex) const
 {
-  const CathodeSegmentation* catSeg{ nullptr };
+  const CathodeSegmentation* catSeg{nullptr};
   int catPadIndex;
   catSegPad(dePadIndex, catSeg, catPadIndex);
   return catSeg->padSizeY(catPadIndex);

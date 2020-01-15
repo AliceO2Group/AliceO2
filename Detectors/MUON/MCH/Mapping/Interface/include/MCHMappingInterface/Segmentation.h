@@ -104,7 +104,10 @@ class Segmentation
   std::string padAsString(int dePadIndex) const;
   /// @}
 
-  /** @name ForEach methods.
+  /// Loop over dual sampas of this detection element
+  void forEachDualSampa(std::function<void(int dualSampaId)> func) const;
+
+  /** @name ForEach (pad) methods.
    * Those methods let you execute a function on each of the pads belonging to
    * some group.
    */
