@@ -97,7 +97,9 @@ class TopologyDictionary
   inline bool IsGroup(int n) const
   {
     if (n >= (int)mVectorOfGroupIDs.size()) {
-      LOG(ERROR) << "Index out of bounds";
+      if (mVectorOfGroupIDs.size()) { // produce error only if there is a real overflow
+        LOG(ERROR) << "Index out of bounds";
+      }
       return false;
     } else
       return mVectorOfGroupIDs[n].mIsGroup;
