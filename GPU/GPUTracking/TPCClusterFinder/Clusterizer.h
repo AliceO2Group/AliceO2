@@ -20,21 +20,22 @@
 
 namespace GPUCA_NAMESPACE
 {
+
+namespace tpc
+{
+class ClusterNative;
+}
+
 namespace gpu
 {
 
 class ClusterAccumulator;
 
-namespace deprecated
-{
-class ClusterNavite;
-}
-
 class Clusterizer
 {
 
  public:
-  static GPUd() void computeClustersImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, GPUglobalref() const PackedCharge*, GPUglobalref() const deprecated::Digit*, uint, uint, GPUglobalref() uint*, GPUglobalref() deprecated::ClusterNative*);
+  static GPUd() void computeClustersImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, GPUglobalref() const PackedCharge*, GPUglobalref() const deprecated::Digit*, uint, uint, GPUglobalref() uint*, GPUglobalref() tpc::ClusterNative*);
 
  private:
   static GPUd() void addOuterCharge(GPUglobalref() const PackedCharge*, ClusterAccumulator*, GlobalPad, Timestamp, Delta, Delta);
@@ -53,7 +54,7 @@ class Clusterizer
 
   static GPUd() void buildClusterNaive(GPUglobalref() const PackedCharge*, ClusterAccumulator*, GlobalPad, Timestamp);
 
-  static GPUd() void sortIntoBuckets(const deprecated::ClusterNative*, const uint, const uint, GPUglobalref() uint*, GPUglobalref() deprecated::ClusterNative*);
+  static GPUd() void sortIntoBuckets(const tpc::ClusterNative&, const uint, const uint, GPUglobalref() uint*, GPUglobalref() tpc::ClusterNative*);
 };
 
 } // namespace gpu
