@@ -38,9 +38,13 @@ GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, int nBlocks, int nT
       pagePtr += sizeof(o2::header::RAWDataHeader);
       TPCZSHDR* hdr = reinterpret_cast<TPCZSHDR*>(pagePtr);
       pagePtr += sizeof(*hdr);
-      if (hdr->version != 1) {
+      if (hdr->version != 1 && hdr->version != 2) {
         return;
       }
+      bool decode12bit = hdr->version == 2;
+      unsigned int decodeBits = decode12bit ? TPCZSHDR::TPC_ZS_NBITS_V2 : TPCZSHDR::TPC_ZS_NBITS_V1;
+      const float decodeBitsFactor = 1.f / (1 << (decodeBits - 10));
+      unsigned int mask = (1 << decodeBits) - 1;
       int cruid = hdr->cruID;
       unsigned int sector = cruid / 10;
       if (sector != slice) {
@@ -70,23 +74,23 @@ GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, int nBlocks, int nT
           unsigned char* rowData = rowPos == 0 ? pagePtr : (page + tbHdr->rowAddr1[rowPos - 1]);
           const int nSeqRead = *rowData;
           unsigned char* adcData = rowData + 2 * nSeqRead + 1;
-          int nADC = (rowData[2 * nSeqRead] * 10 + 7) / 8;
+          int nADC = (rowData[2 * nSeqRead] * decodeBits + 7) / 8;
           pagePtr += 1 + 2 * nSeqRead + nADC;
-          int byte = 0, bits = 0, pos10 = 0;
+          unsigned int byte = 0, bits = 0, pos10 = 0;
           for (int n = 0; n < nADC; n++) {
             byte |= *(adcData++) << bits;
             bits += 8;
-            while (bits >= 10) {
-              streamBuffer[pos10++] = byte & 0x3FF;
-              byte = byte >> 10;
-              bits -= 10;
+            while (bits >= decodeBits) {
+              streamBuffer[pos10++] = byte & mask;
+              byte = byte >> decodeBits;
+              bits -= decodeBits;
             }
           }
           pos10 = 0;
           for (int n = 0; n < nSeqRead; n++) {
             const int seqLen = rowData[(n + 1) * 2] - (n ? rowData[n * 2] : 0);
             for (int o = 0; o < seqLen; o++) {
-              digits[nDigits++] = deprecated::PackedDigit{(float)streamBuffer[pos10++], (Timestamp)(timeBin + l), (Pad)(rowData[n * 2 + 1] + o), (Row)(rowOffset + m)};
+              digits[nDigits++] = deprecated::PackedDigit{(float)streamBuffer[pos10++] * decodeBitsFactor, (Timestamp)(timeBin + l), (Pad)(rowData[n * 2 + 1] + o), (Row)(rowOffset + m)};
             }
           }
           rowPos++;

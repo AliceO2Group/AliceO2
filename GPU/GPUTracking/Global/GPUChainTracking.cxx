@@ -691,14 +691,14 @@ void GPUChainTracking::ConvertRun2RawToNative()
   mIOPtrs.clustersNative = mClusterNativeAccess.get();
 }
 
-void GPUChainTracking::ConvertZSEncoder()
+void GPUChainTracking::ConvertZSEncoder(bool zs12bit)
 {
-  GPUReconstructionConvert::RunZSEncoder(mIOPtrs.tpcPackedDigits, mIOPtrs.tpcZS, param());
+  GPUReconstructionConvert::RunZSEncoder(mIOPtrs.tpcPackedDigits, mIOPtrs.tpcZS, param(), zs12bit);
 }
 
-void GPUChainTracking::ConvertZSFilter()
+void GPUChainTracking::ConvertZSFilter(bool zs12bit)
 {
-  GPUReconstructionConvert::RunZSFilter(mIOMem.tpcDigits, mIOPtrs.tpcPackedDigits->tpcDigits, mIOPtrs.tpcPackedDigits->nTPCDigits, param());
+  GPUReconstructionConvert::RunZSFilter(mIOMem.tpcDigits, mIOPtrs.tpcPackedDigits->tpcDigits, mIOPtrs.tpcPackedDigits->nTPCDigits, param(), zs12bit);
 }
 
 void GPUChainTracking::LoadClusterErrors() { param().LoadClusterErrors(); }
