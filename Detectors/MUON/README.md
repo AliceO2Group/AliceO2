@@ -16,4 +16,5 @@ This is a top page for the MUON detector documentation.
 * \subpage refMUONMCHMappingtest
 * \subpage refMUONMCHMappingImpl3
 * \subpage refMUONMCHContour
+* \subpage refMUONMCHRaw
 /doxy -->
