@@ -117,8 +117,7 @@ class ConcreteRawParser
       return 0;
     }
     header_type const& h = header();
-    // FIXME: block length disappeared in V5, check what can be used
-    return max_size - h.headerSize;
+    return h.memorySize - h.headerSize;
   }
 
   /// Get pointer to payload data at current position
