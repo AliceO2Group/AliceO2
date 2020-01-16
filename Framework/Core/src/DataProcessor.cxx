@@ -22,6 +22,7 @@
 #include <arrow/io/memory.h>
 #include <arrow/ipc/writer.h>
 #include <cstddef>
+#include <unordered_map>
 
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
@@ -39,13 +40,18 @@ void DataProcessor::doSend(FairMQDevice& device, FairMQParts&& parts, const char
 
 void DataProcessor::doSend(FairMQDevice& device, MessageContext& context)
 {
+  std::unordered_map<std::string, FairMQParts> messages;
   for (auto& message : context) {
     //     monitoringService.send({ message->parts.Size(), "outputs/total" });
     FairMQParts parts = std::move(message->finalize());
     assert(message->empty());
     assert(parts.Size() == 2);
-    device.Send(parts, message->channel(), 0);
-    assert(parts.Size() == 2);
+    for (auto& part : parts) {
+      messages[message->channel()].AddPart(std::move(part));
+    }
+  }
+  for (auto& [channel, parts] : messages) {
+    device.Send(parts, channel, 0);
   }
 }
 
