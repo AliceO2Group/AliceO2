@@ -102,7 +102,8 @@ class FDDDPLDigitizerTask
     auto& eventParts = context->getEventParts();
     std::vector<o2::fdd::Digit> digitsAccum; // accumulator for digits
     o2::dataformats::MCTruthContainer<o2::fdd::MCLabel> labelsAccum;
-
+    o2::dataformats::MCTruthContainer<o2::fdd::MCLabel> labels;
+    mDigitizer->setMCLabels(&labels);
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
@@ -114,19 +115,19 @@ class FDDDPLDigitizerTask
       for (auto& part : eventParts[collID]) {
         mDigitizer->SetEventID(part.entryID);
         mDigitizer->SetSrcID(part.sourceID);
-
+	labels.clear();
+	
         // get the hits for this event and this source
         std::vector<o2::fdd::Hit> hits;
         retrieveHits(mSimChains, "FDDHit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found FDD " << hits.size() << " hits ";
+	
 
         o2::fdd::Digit digit; // digits which get filled
-        o2::dataformats::MCTruthContainer<o2::fdd::MCLabel> labels;
         mDigitizer->process(&hits, &digit);
-        //std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
         labelsAccum.mergeAtBack(labels);
         mDigitizer->SetTriggers(&digit);
-        digitsAccum.push_back(digit); // we should move it there actually
+        digitsAccum.push_back(digit);
         LOG(INFO) << "Have " << digitsAccum.back().GetChannelData().size() << " fired channels ";
       }
     }
