@@ -32,12 +32,24 @@ enum struct InputType { Digitizer,        // directly read digits from channel {
                         Digits,           // read digits from file
                         ClustersHardware, // read hardware clusters in raw page format from file
                         Clusters,         // read native clusters from file
+                        CompClusters,     // read compressed cluster container
+                        EncodedClusters,  // read encoded clusters
                         ZSRaw,
 };
+
+/// Output types of the workflow, workflow layout is built depending on configured types
+/// - Digits           simulated digits
+/// - ClustersHardware the first attempt of a raw format storing ClusterHardware in 8k pages
+/// - Clusters         decoded clusters, ClusterNative, as input to the tracker
+/// - Tracks           tracks
+/// - CompClusters     compressed clusters, CompClusters container
+/// - EncodedClusters  the encoded CompClusters container
 enum struct OutputType { Digits,
                          ClustersHardware,
                          Clusters,
                          Tracks,
+                         CompClusters,
+                         EncodedClusters,
                          DisableWriter,
 };
 

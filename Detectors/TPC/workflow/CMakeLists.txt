@@ -15,6 +15,7 @@ o2_add_library(TPCWorkflow
                        src/ClustererSpec.cxx
                        src/ClusterDecoderRawSpec.cxx
                        src/CATrackerSpec.cxx
+                       src/EntropyEncoderSpec.cxx
                        src/TrackReaderSpec.cxx
                        src/RawToDigitsSpec.cxx
                        src/LinkZSToDigitsSpec.cxx

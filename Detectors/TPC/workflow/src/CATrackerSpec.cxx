@@ -21,10 +21,13 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/InputRecordWalker.h"
+#include "Framework/SerializationMethods.h"
+#include "Framework/Logger.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ClusterGroupAttribute.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/ClusterNativeHelper.h"
+#include "DataFormatsTPC/CompressedClusters.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "TPCReconstruction/GPUCATracking.h"
@@ -44,7 +47,6 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "Algorithm/Parser.h"
-#include <FairMQLogger.h>
 #include <memory> // for make_shared
 #include <vector>
 #include <iomanip>
@@ -60,8 +62,11 @@ namespace o2
 namespace tpc
 {
 
-DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, bool zsDecoder, std::vector<int> const& inputIds)
+DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> const& inputIds)
 {
+  auto& processMC = config.processMC;
+  auto& caClusterer = config.caClusterer;
+  auto& zsDecoder = config.zsDecoder;
   constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
   using ClusterGroupParser = o2::algorithm::ForwardParser<o2::tpc::ClusterGroupHeader>;
   struct ProcessAttributes {
@@ -578,20 +583,31 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, bool zsDeco
         LOG(ERROR) << "tracker returned error code " << retVal;
       }
       LOG(INFO) << "found " << tracks.size() << " track(s)";
-      pc.outputs().snapshot(OutputRef{"outTracks"}, tracks);
-      pc.outputs().snapshot(OutputRef{"outClusRefs"}, clusRefs);
-      if (processMC) {
-        LOG(INFO) << "sending " << tracksMCTruth.getIndexedSize() << " track label(s)";
-        pc.outputs().snapshot(OutputRef{"mclblout"}, tracksMCTruth);
+      // tracks are published if the output channel is configured
+      if (pc.outputs().isAllowed({gDataOriginTPC, "TRACKS", 0})) {
+        pc.outputs().snapshot(OutputRef{"outTracks"}, tracks);
+        pc.outputs().snapshot(OutputRef{"outClusRefs"}, clusRefs);
+        if (pc.outputs().isAllowed({gDataOriginTPC, "TRACKMCLBL", 0})) {
+          LOG(INFO) << "sending " << tracksMCTruth.getIndexedSize() << " track label(s)";
+          pc.outputs().snapshot(OutputRef{"mclblout"}, tracksMCTruth);
+        }
       }
 
-      // TODO - Process Compressed Clusters Output
-      const o2::tpc::CompressedClusters* compressedClusters = ptrs.compressedClusters; // This is a ROOT-serializable container with compressed TPC clusters
+      // The tracker produces a ROOT-serializable container with compressed TPC clusters
+      // It is published if the output channel for the CompClusters container is configured
       // Example to decompress clusters
       //#include "TPCClusterDecompressor.cxx"
       //o2::tpc::ClusterNativeAccess clustersNativeDecoded; // Cluster native access structure as used by the tracker
       //std::vector<o2::tpc::ClusterNative> clusterBuffer; // std::vector that will hold the actual clusters, clustersNativeDecoded will point inside here
       //mDecoder.decompress(clustersCompressed, clustersNativeDecoded, clusterBuffer, param); // Run decompressor
+      if (pc.outputs().isAllowed({gDataOriginTPC, "COMPCLUSTERS", 0})) {
+        const o2::tpc::CompressedClusters* compressedClusters = ptrs.compressedClusters;
+        if (compressedClusters != nullptr) {
+          pc.outputs().snapshot(Output{gDataOriginTPC, "COMPCLUSTERS", 0}, ROOTSerialized<o2::tpc::CompressedClusters const>(*compressedClusters));
+        } else {
+          LOG(ERROR) << "unable to get compressed cluster info from track";
+        }
+      }
 
       processAttributes->bufferCache.clear();
       processAttributes->tpcZSmessagesReceived = 0;
@@ -617,20 +633,20 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, bool zsDeco
   // changing the binding name of the input in order to identify inputs by unique labels
   // in the processing. Think about how the processing can be made agnostic of input size,
   // e.g. by providing a span of inputs under a certain label
-  auto createInputSpecs = [inputIds](bool makeMcInput, bool caClusterer, bool zsDecoder) {
+  auto createInputSpecs = [&inputIds, &config]() {
     Inputs inputs;
-    if (caClusterer) {
+    if (config.caClusterer) {
       // We accept digits and MC labels also if we run on ZS Raw data, since they are needed for MC label propagation
-      if (!zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
+      if (!config.zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
         inputs.emplace_back(InputSpec{"input", gDataOriginTPC, "DIGITS", 0, Lifetime::Timeframe});
       }
     } else {
       inputs.emplace_back(InputSpec{"input", gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe});
     }
-    if (makeMcInput) {
-      if (caClusterer) {
+    if (config.processMC) {
+      if (config.caClusterer) {
         constexpr o2::header::DataDescription datadesc("DIGITSMCTR");
-        if (!zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
+        if (!config.zsDecoder) { // FIXME: We can have digits input in zs decoder mode for MC labels, to be made optional
           inputs.emplace_back(InputSpec{"mclblin", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe});
         }
       } else {
@@ -645,29 +661,36 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, bool zsDeco
                                        input.binding += std::to_string(inputIds[index]);
                                        DataSpecUtils::updateMatchingSubspec(input, inputIds[index]);
                                      }));
-    if (zsDecoder) {
+    if (config.zsDecoder) {
       // We add this after the mergeInputs, since we need to keep the subspecification
       tmp.emplace_back(InputSpec{"zsraw", ConcreteDataTypeMatcher{"TPC", "RAWDATA"}, Lifetime::Timeframe});
     }
     return tmp;
   };
 
-  auto createOutputSpecs = [](bool makeMcOutput) {
+  auto createOutputSpecs = [&config]() {
     std::vector<OutputSpec> outputSpecs{
       OutputSpec{{"outTracks"}, gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe},
       OutputSpec{{"outClusRefs"}, gDataOriginTPC, "CLUSREFS", 0, Lifetime::Timeframe},
     };
-    if (makeMcOutput) {
+    if (!config.outputTracks) {
+      // this case is the less unlikely one, that's why the logic this way
+      outputSpecs.clear();
+    }
+    if (config.processMC && config.outputTracks) {
       OutputLabel label{"mclblout"};
       constexpr o2::header::DataDescription datadesc("TRACKMCLBL");
       outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
+    }
+    if (config.outputCompClusters) {
+      outputSpecs.emplace_back(gDataOriginTPC, "COMPCLUSTERS", 0, Lifetime::Timeframe);
     }
     return std::move(outputSpecs);
   };
 
   return DataProcessorSpec{"tpc-tracker", // process id
-                           {createInputSpecs(processMC, caClusterer, zsDecoder)},
-                           {createOutputSpecs(processMC)},
+                           {createInputSpecs()},
+                           {createOutputSpecs()},
                            AlgorithmSpec(initFunction),
                            Options{
                              {"tracker-options", VariantType::String, "", {"Option string passed to tracker"}},
