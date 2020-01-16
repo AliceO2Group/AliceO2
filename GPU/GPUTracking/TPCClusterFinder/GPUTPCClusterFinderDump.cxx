@@ -13,7 +13,6 @@
 
 #include "GPUTPCClusterFinder.h"
 #include "GPUReconstruction.h"
-#include "ClusterNative.h"
 #include "Digit.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -95,35 +94,14 @@ void GPUTPCClusterFinder::DumpClusters(std::ostream& out)
   for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
     size_t N = mPclusterInRow[i];
     out << "Row: " << i << ": " << N << "\n";
-    std::vector<deprecated::ClusterNative> sortedCluster(N);
-    deprecated::ClusterNative* row = &mPclusterByRow[i * mNMaxClusterPerRow];
+    std::vector<tpc::ClusterNative> sortedCluster(N);
+    tpc::ClusterNative* row = &mPclusterByRow[i * mNMaxClusterPerRow];
     std::copy(row, &row[N], sortedCluster.begin());
 
-    std::sort(sortedCluster.begin(), sortedCluster.end(), [](const auto& c1, const auto& c2) {
-      float t1 = deprecated::cnGetTime(&c1);
-      float t2 = deprecated::cnGetTime(&c2);
-      float p1 = deprecated::cnGetPad(&c1);
-      float p2 = deprecated::cnGetPad(&c2);
-      uchar f1 = deprecated::cnGetFlags(&c1);
-      uchar f2 = deprecated::cnGetFlags(&c2);
-
-      if (t1 < t2) {
-        return true;
-      } else if (t1 == t2) {
-        if (p1 < p2) {
-          return true;
-        } else if (p1 == p2) {
-          return f1 < f2;
-        } else {
-          return false;
-        }
-      } else {
-        return false;
-      }
-    });
+    std::sort(sortedCluster.begin(), sortedCluster.end());
 
     for (const auto& cl : sortedCluster) {
-      out << std::hex << cl.timeFlagsPacked << std::dec << ", " << cl.padPacked << ", " << (int)cl.sigmaTimePacked << ", " << (int)cl.sigmaPadPacked << ", " << cl.qmax << ", " << cl.qtot << "\n";
+      out << std::hex << cl.timeFlagsPacked << std::dec << ", " << cl.padPacked << ", " << (int)cl.sigmaTimePacked << ", " << (int)cl.sigmaPadPacked << ", " << cl.qMax << ", " << cl.qTot << "\n";
     }
   }
 }

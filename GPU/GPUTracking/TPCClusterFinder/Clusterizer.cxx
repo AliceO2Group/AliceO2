@@ -26,7 +26,7 @@ GPUd() void Clusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlo
                                              uint clusternum,
                                              uint maxClusterPerRow,
                                              GPUglobalref() uint* clusterInRow,
-                                             GPUglobalref() deprecated::ClusterNative* clusterByRow)
+                                             GPUglobalref() tpc::ClusterNative* clusterByRow)
 {
   uint idx = get_global_id(0);
 
@@ -57,7 +57,7 @@ GPUd() void Clusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlo
   }
   pc.finalize(myDigit);
 
-  deprecated::ClusterNative myCluster;
+  tpc::ClusterNative myCluster;
   pc.toNative(myDigit, myCluster);
 
 #if defined(CUT_QTOT)
@@ -68,7 +68,7 @@ GPUd() void Clusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlo
 
   if (aboveQTotCutoff) {
     sortIntoBuckets(
-      &myCluster,
+      myCluster,
       myDigit.row,
       maxClusterPerRow,
       clusterInRow,
@@ -335,9 +335,9 @@ GPUd() void Clusterizer::buildClusterNaive(
   addCorner(chargeMap, myCluster, gpad, time, 1, 1);
 }
 
-GPUd() void Clusterizer::sortIntoBuckets(const deprecated::ClusterNative* cluster, const uint bucket, const uint maxElemsPerBucket, GPUglobalref() uint* elemsInBucket, GPUglobalref() deprecated::ClusterNative* buckets)
+GPUd() void Clusterizer::sortIntoBuckets(const tpc::ClusterNative& cluster, const uint bucket, const uint maxElemsPerBucket, GPUglobalref() uint* elemsInBucket, GPUglobalref() tpc::ClusterNative* buckets)
 {
   uint posInBucket = CAMath::AtomicAdd(&elemsInBucket[bucket], 1);
 
-  buckets[maxElemsPerBucket * bucket + posInBucket] = *cluster; // TODO: Must check for overflow over maxElemsPerBucket!
+  buckets[maxElemsPerBucket * bucket + posInBucket] = cluster; // TODO: Must check for overflow over maxElemsPerBucket!
 }
