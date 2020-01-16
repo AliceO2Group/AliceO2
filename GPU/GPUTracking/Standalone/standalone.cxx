@@ -287,6 +287,7 @@ int SetupReconstruction()
   if (configStandalone.referenceX < 500.) {
     recSet.TrackReferenceX = configStandalone.referenceX;
   }
+  recSet.tpcZSthreshold = configStandalone.zsThreshold;
 
   if (configStandalone.OMPThreads != -1) {
     devProc.nThreads = configStandalone.OMPThreads;
@@ -514,12 +515,17 @@ int main(int argc, char** argv)
             break;
           }
         }
-        if (configStandalone.encodeZS) {
+        if (configStandalone.encodeZS || configStandalone.zsFilter) {
           if (!chainTracking->mIOPtrs.tpcPackedDigits) {
             printf("Need digit input to run ZS\n");
             goto breakrun;
           }
-          chainTracking->ConvertZSEncoder();
+          if (configStandalone.zsFilter) {
+            chainTracking->ConvertZSFilter();
+          }
+          if (configStandalone.encodeZS) {
+            chainTracking->ConvertZSEncoder();
+          }
         }
         if (!configStandalone.configRec.runTransformation) {
           chainTracking->mIOPtrs.clustersNative = nullptr;

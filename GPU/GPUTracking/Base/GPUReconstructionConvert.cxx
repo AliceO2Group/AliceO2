@@ -386,3 +386,25 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
   }
 #endif
 }
+
+void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<deprecated::PackedDigit[]>* buffers, const deprecated::PackedDigit** ptrs, size_t* ns, const GPUParam& param)
+{
+#ifdef HAVE_O2HEADERS
+  for (unsigned int i = 0; i < NSLICES; i++) {
+    if (buffers[i].get() != ptrs[i]) {
+      throw std::runtime_error("Not owning digits");
+    }
+    unsigned int j = 0;
+    for (unsigned int k = 0; k < ns[i]; k++) {
+      if (buffers[i][k].charge >= param.rec.tpcZSthreshold) {
+        if (k > j) {
+          buffers[i][j] = buffers[i][k];
+        }
+        buffers[i][j].charge = (float)((int)(buffers[i][j].charge + 0.5f));
+        j++;
+      }
+    }
+    ns[i] = j;
+  }
+#endif
+}
