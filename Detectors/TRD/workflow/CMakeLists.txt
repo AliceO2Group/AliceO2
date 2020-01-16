@@ -19,3 +19,12 @@ o2_add_executable(trap-sim
                                         O2::DPLUtils
                                         O2::TRDSimulation
                                         O2::TRDBase)
+o2_add_executable(trd-qc-test
+                  COMPONENT_NAME trd
+                  SOURCES src/TRDQCTestSpec.cxx
+                          src/TRDQCTestWorkFlow.cxx
+                          #                          src/TRDRawReaderSpec.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                                        O2::Steer
+                                        O2::DPLUtils
+                                        O2::TRDSimulation)
