@@ -50,7 +50,7 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
   }
   GPUbarrier();
 
-  CfUtils::fillScratchPad_uchar(
+  CfUtils::blockLoad(
     peakMap,
     in3x3,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -75,7 +75,7 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
   }
   GPUbarrier();
 
-  CfUtils::fillScratchPadCondInv_uchar(
+  CfUtils::condBlockLoad(
     peakMap,
     in5x5,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -85,7 +85,8 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
     CfConsts::OuterNeighbors,
     smem.count.posBcast1,
     smem.count.aboveThresholdBcast,
-    smem.count.buf);
+    smem.count.buf,
+    CfUtils::innerAboveThresholdInv);
 
   if (partId < in5x5) {
     peakCount = countPeaksScratchpadOuter(partId, 0, aboveThreshold, smem.count.buf);

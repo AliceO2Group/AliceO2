@@ -53,7 +53,7 @@ GPUd() bool PeakFinder::isPeakScratchPad(
   }
   GPUbarrier();
 
-  CfUtils::fillScratchPad_PackedCharge(
+  CfUtils::blockLoad<PackedCharge>(
     chargeMap,
     lookForPeaks,
     SCRATCH_PAD_WORK_GROUP_SIZE,
