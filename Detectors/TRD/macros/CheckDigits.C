@@ -16,6 +16,7 @@
 #include <TTree.h>
 #include <TH1F.h>
 #include <TCanvas.h>
+#include <TLegend.h>
 
 #include "FairLogger.h"
 #include "TRDBase/Digit.h"
@@ -43,7 +44,7 @@ void CheckDigits(std::string digifile = "trddigits.root",
   TH1F* hPad = new TH1F("hPad", ";Pad number;Counts", 144, 0, 143);
   TH1* hADC[540];
   for (int d = 0; d < 540; ++d) {
-    hADC[d] = new TH1F(Form("hADC_%d", d), ";ADC value;Counts", 1024, 0, 1023);
+    hADC[d] = new TH1F(Form("hADC_%d", d), Form("ADC distribution for chamber %d;ADC value;Counts", d), 1024, 0, 1023);
   }
 
   LOG(INFO) << nev << " entries found";
@@ -111,14 +112,16 @@ void CheckDigits(std::string digifile = "trddigits.root",
   first = 0;
   count = 0;
   max = 0;
+  std::vector<int> dets;
   for (int d = 1; d < 540; ++d) {
     if (hADC[d]->GetEntries() < kMINENTRIES) {
       continue;
     }
-    if (count > 6) {
+    if (count > 5) {
       break;
     }
     hADC[d]->SetLineColor(count + 1);
+    dets.push_back(d);
     if (count == 0) {
       hADC[d]->Draw();
       first = d;
@@ -135,6 +138,19 @@ void CheckDigits(std::string digifile = "trddigits.root",
     }
   }
   hADC[first]->GetYaxis()->SetLimits(1.1, max + 100);
+  hADC[first]->GetXaxis()->SetRangeUser(0, 512);
+
+  TLegend* legend = new TLegend(0.7, 0.6, 0.9, 0.9);
+  legend->SetBorderSize(0); // no border
+  legend->SetFillStyle(0);
+  legend->SetFillColor(0); // Legend background should be white
+  legend->SetTextFont(42);
+  legend->SetTextSize(0.03); // Increase entry font size!
+  for (const auto& d : dets) {
+    legend->AddEntry(hADC[d], hADC[d]->GetName(), "l");
+  }
+  legend->Draw();
+
   c1->SetLogy();
   c1->SaveAs("testCheckDigits_ADCs.pdf");
 }
