@@ -109,7 +109,7 @@ class FDDDPLDigitizerTask
     for (int collID = 0; collID < irecords.size(); ++collID) {
       mDigitizer->SetEventTime(irecords[collID].timeNS);
       mDigitizer->SetInteractionRecord(irecords[collID]);
-
+      o2::fdd::Digit digit; // digits which get filled
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
@@ -122,14 +122,13 @@ class FDDDPLDigitizerTask
         retrieveHits(mSimChains, "FDDHit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found FDD " << hits.size() << " hits ";
 	
-
-        o2::fdd::Digit digit; // digits which get filled
+        
         mDigitizer->process(&hits, &digit);
         labelsAccum.mergeAtBack(labels);
-        mDigitizer->SetTriggers(&digit);
-        digitsAccum.push_back(digit);
-        LOG(INFO) << "Have " << digitsAccum.back().GetChannelData().size() << " fired channels ";
       }
+      mDigitizer->SetTriggers(&digit);
+      digitsAccum.push_back(digit);
+      LOG(INFO) << "Have " << digitsAccum.back().GetChannelData().size() << " fired channels ";
     }
 
     LOG(INFO) << "FDD: Sending " << digitsAccum.size() << " digits";
