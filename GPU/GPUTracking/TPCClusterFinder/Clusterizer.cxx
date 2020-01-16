@@ -192,7 +192,7 @@ GPUd() void Clusterizer::buildClusterScratchPad(
   posBcast[ll] = pos;
   GPUbarrier();
 
-  CfUtils::fillScratchPad_PackedCharge(
+  CfUtils::blockLoad<PackedCharge>(
     chargeMap,
     SCRATCH_PAD_WORK_GROUP_SIZE,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -218,7 +218,7 @@ GPUd() void Clusterizer::buildClusterScratchPad(
   /* ClusterAccumulator otherCluster; */
   /* reset(&otherCluster); */
 
-  CfUtils::fillScratchPadCond_PackedCharge(
+  CfUtils::condBlockLoad(
     chargeMap,
     wgSizeHalf,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -228,7 +228,8 @@ GPUd() void Clusterizer::buildClusterScratchPad(
     CfConsts::OuterNeighbors,
     posBcast,
     innerAboveThreshold,
-    buf);
+    buf,
+    CfUtils::innerAboveThreshold);
   if (inGroup1) {
     updateClusterScratchpadOuter(
       llhalf,
@@ -240,7 +241,7 @@ GPUd() void Clusterizer::buildClusterScratchPad(
   }
 
 #if defined(GPUCA_GPUCODE)
-  CfUtils::fillScratchPadCond_PackedCharge(
+  CfUtils::condBlockLoad(
     chargeMap,
     wgSizeHalf,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -250,7 +251,8 @@ GPUd() void Clusterizer::buildClusterScratchPad(
     CfConsts::OuterNeighbors,
     posBcast + wgSizeHalf,
     innerAboveThreshold + wgSizeHalf,
-    buf);
+    buf,
+    CfUtils::innerAboveThreshold);
   if (!inGroup1) {
     updateClusterScratchpadOuter(
       llhalf,
