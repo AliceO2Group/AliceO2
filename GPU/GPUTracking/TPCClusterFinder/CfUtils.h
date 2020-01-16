@@ -66,144 +66,113 @@ class CfUtils
     return TPC_PADS_PER_ROW_PADDED * row + pad + PADDING_PAD;
   }
 
-// TODO: replace macros by templates
+  template <typename T>
+  static GPUdi() void blockLoad(
+    const Array2D<T>& map,
+    uint wgSize,
+    uint elems,
+    ushort ll,
+    uint offset,
+    uint N,
+    GPUconstexprref() const Delta2* neighbors,
+    GPUsharedref() const ChargePos* posBcast,
+    GPUsharedref() T* buf)
+  {
 #if defined(GPUCA_GPUCODE)
-#define DECL_FILL_SCRATCH_PAD(type, accessFunc)                                     \
-  static GPUdi() void fillScratchPad_##type(                                        \
-    const Array2D<type>& chargeMap,                                                 \
-    uint wgSize,                                                                    \
-    uint elems,                                                                     \
-    ushort ll,                                                                      \
-    uint offset,                                                                    \
-    uint N,                                                                         \
-    GPUconstexprref() const Delta2* neighbors,                                      \
-    GPUsharedref() const ChargePos* posBcast,                                       \
-    GPUsharedref() type* buf)                                                       \
-  {                                                                                 \
-    GPUbarrier();                                                                   \
-    ushort x = ll % N;                                                              \
-    ushort y = ll / N;                                                              \
-    Delta2 d = neighbors[x + offset];                                               \
-    Delta dp = d.x;                                                                 \
-    Delta dt = d.y;                                                                 \
-    LOOP_UNROLL_ATTR for (unsigned int i = y; i < wgSize; i += (elems / N))         \
-    {                                                                               \
-      ChargePos readFrom = posBcast[i];                                             \
-      uint writeTo = N * i + x;                                                     \
-      buf[writeTo] = accessFunc(chargeMap, readFrom.gpad + dp, readFrom.time + dt); \
-    }                                                                               \
-    GPUbarrier();                                                                   \
-  }
-
-#define DECL_FILL_SCRATCH_PAD_COND(type, accessFunc, expandFunc, nameAppendix, null) \
-  static GPUdi() void fillScratchPad##nameAppendix##_##type(                         \
-    const Array2D<type>& chargeMap,                                                  \
-    uint wgSize,                                                                     \
-    uint elems,                                                                      \
-    ushort ll,                                                                       \
-    uint offset,                                                                     \
-    uint N,                                                                          \
-    GPUconstexprref() const Delta2* neighbors,                                       \
-    GPUsharedref() const ChargePos* posBcast,                                        \
-    GPUsharedref() const uchar* aboveThreshold,                                      \
-    GPUsharedref() type* buf)                                                        \
-  {                                                                                  \
-    GPUbarrier();                                                                    \
-    ushort y = ll / N;                                                               \
-    ushort x = ll % N;                                                               \
-    Delta2 d = neighbors[x + offset];                                                \
-    Delta dp = d.x;                                                                  \
-    Delta dt = d.y;                                                                  \
-    LOOP_UNROLL_ATTR for (unsigned int i = y; i < wgSize; i += (elems / N))          \
-    {                                                                                \
-      ChargePos readFrom = posBcast[i];                                              \
-      uchar above = aboveThreshold[i];                                               \
-      uint writeTo = N * i + x;                                                      \
-      type v = null;                                                                 \
-      if (expandFunc(above, x + offset)) {                                           \
-        v = accessFunc(chargeMap, readFrom.gpad + dp, readFrom.time + dt);           \
-      }                                                                              \
-      buf[writeTo] = v;                                                              \
-    }                                                                                \
-    GPUbarrier();                                                                    \
-  }
+    GPUbarrier();
+    ushort x = ll % N;
+    ushort y = ll / N;
+    Delta2 d = neighbors[x + offset];
+    Delta dp = d.x;
+    Delta dt = d.y;
+    LOOP_UNROLL_ATTR for (unsigned int i = y; i < wgSize; i += (elems / N))
+    {
+      ChargePos readFrom = posBcast[i];
+      uint writeTo = N * i + x;
+      buf[writeTo] = map[{readFrom.gpad + dp, readFrom.time + dt}];
+    }
+    GPUbarrier();
 #else
-#define DECL_FILL_SCRATCH_PAD(type, accessFunc)                                     \
-  static GPUdi() void fillScratchPad_##type(                                        \
-    const Array2D<type>& chargeMap,                                                 \
-    uint wgSize,                                                                    \
-    uint,                                                                           \
-    ushort ll,                                                                      \
-    uint offset,                                                                    \
-    uint N,                                                                         \
-    GPUconstexprref() const Delta2* neighbors,                                      \
-    GPUsharedref() const ChargePos* posBcast,                                       \
-    GPUsharedref() type* buf)                                                       \
-  {                                                                                 \
-    if (ll >= wgSize) {                                                             \
-      return;                                                                       \
-    }                                                                               \
-                                                                                    \
-    ChargePos readFrom = posBcast[ll];                                              \
-                                                                                    \
-    GPUbarrier();                                                                   \
-                                                                                    \
-    for (unsigned int i = 0; i < N; i++) {                                          \
-      Delta2 d = neighbors[i + offset];                                             \
-      Delta dp = d.x;                                                               \
-      Delta dt = d.y;                                                               \
-                                                                                    \
-      uint writeTo = N * ll + i;                                                    \
-      buf[writeTo] = accessFunc(chargeMap, readFrom.gpad + dp, readFrom.time + dt); \
-    }                                                                               \
-                                                                                    \
-    GPUbarrier();                                                                   \
-  }
+    if (ll >= wgSize) {
+      return;
+    }
 
-#define DECL_FILL_SCRATCH_PAD_COND(type, accessFunc, expandFunc, nameAppendix, null) \
-  static GPUdi() void fillScratchPad##nameAppendix##_##type(                         \
-    const Array2D<type>& chargeMap,                                                  \
-    uint wgSize,                                                                     \
-    uint elems,                                                                      \
-    ushort ll,                                                                       \
-    uint offset,                                                                     \
-    uint N,                                                                          \
-    GPUconstexprref() const Delta2* neighbors,                                       \
-    GPUsharedref() const ChargePos* posBcast,                                        \
-    GPUsharedref() const uchar* aboveThreshold,                                      \
-    GPUsharedref() type* buf)                                                        \
-  {                                                                                  \
-    if (ll >= wgSize) {                                                              \
-      return;                                                                        \
-    }                                                                                \
-                                                                                     \
-    ChargePos readFrom = posBcast[ll];                                               \
-    uchar above = aboveThreshold[ll];                                                \
-    GPUbarrier();                                                                    \
-                                                                                     \
-    for (unsigned int i = 0; i < N; i++) {                                           \
-      Delta2 d = neighbors[i + offset];                                              \
-      Delta dp = d.x;                                                                \
-      Delta dt = d.y;                                                                \
-                                                                                     \
-      uint writeTo = N * ll + i;                                                     \
-      type v = null;                                                                 \
-      if (expandFunc(above, i + offset)) {                                           \
-        v = accessFunc(chargeMap, readFrom.gpad + dp, readFrom.time + dt);           \
-      }                                                                              \
-      buf[writeTo] = v;                                                              \
-    }                                                                                \
-                                                                                     \
-    GPUbarrier();                                                                    \
-  }
+    ChargePos readFrom = posBcast[ll];
+
+    GPUbarrier();
+
+    for (unsigned int i = 0; i < N; i++) {
+      Delta2 d = neighbors[i + offset];
+      Delta dp = d.x;
+      Delta dt = d.y;
+
+      uint writeTo = N * ll + i;
+      buf[writeTo] = map[{readFrom.gpad + dp, readFrom.time + dt}];
+    }
+
+    GPUbarrier();
 #endif
+  }
 
-  DECL_FILL_SCRATCH_PAD(PackedCharge, CHARGE);
-  DECL_FILL_SCRATCH_PAD(uchar, IS_PEAK);
-  DECL_FILL_SCRATCH_PAD_COND(PackedCharge, CHARGE, innerAboveThreshold, Cond, PackedCharge(0));
-  DECL_FILL_SCRATCH_PAD_COND(uchar, IS_PEAK, innerAboveThreshold, Cond, 0);
-  DECL_FILL_SCRATCH_PAD_COND(PackedCharge, CHARGE, innerAboveThresholdInv, CondInv, PackedCharge(0));
-  DECL_FILL_SCRATCH_PAD_COND(uchar, IS_PEAK, innerAboveThresholdInv, CondInv, 0);
+  template <typename T, typename Pred>
+  static GPUdi() void condBlockLoad(
+    const Array2D<T>& map,
+    ushort wgSize,
+    ushort elems,
+    ushort ll,
+    ushort offset,
+    ushort N,
+    GPUconstexprref() const Delta2* neighbors,
+    GPUsharedref() const ChargePos* posBcast,
+    GPUsharedref() const uchar* aboveThreshold,
+    GPUsharedref() T* buf,
+    Pred&& pred)
+  {
+#if defined(GPUCA_GPUCODE)
+    GPUbarrier();
+    ushort y = ll / N;
+    ushort x = ll % N;
+    Delta2 d = neighbors[x + offset];
+    Delta dp = d.x;
+    Delta dt = d.y;
+    LOOP_UNROLL_ATTR for (unsigned int i = y; i < wgSize; i += (elems / N))
+    {
+      ChargePos readFrom = posBcast[i];
+      uchar above = aboveThreshold[i];
+      uint writeTo = N * i + x;
+      T v(0);
+      if (pred(above, x + offset)) {
+        v = map[{readFrom.gpad + dp, readFrom.time + dt}];
+      }
+      buf[writeTo] = v;
+    }
+    GPUbarrier();
+
+#else
+    if (ll >= wgSize) {
+      return;
+    }
+
+    ChargePos readFrom = posBcast[ll];
+    uchar above = aboveThreshold[ll];
+    GPUbarrier();
+
+    for (unsigned int i = 0; i < N; i++) {
+      Delta2 d = neighbors[i + offset];
+      Delta dp = d.x;
+      Delta dt = d.y;
+
+      uint writeTo = N * ll + i;
+      T v(0);
+      if (pred(above, i + offset)) {
+        v = map[{readFrom.gpad + dp, readFrom.time + dt}];
+      }
+      buf[writeTo] = v;
+    }
+
+    GPUbarrier();
+#endif
+  }
 };
 
 } // namespace gpu
