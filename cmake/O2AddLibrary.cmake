@@ -27,7 +27,7 @@ include(O2NameTarget)
 # * SOURCES (required) : the list of source files to compile into this library
 #
 # * PUBLIC_LINK_LIBRARIES (needed in most cases) : the list of targets this
-#   library depends on (e.g. ROOT::Hist, O2::CommonConstants). It is recommended
+#   library depends on (e.g. ROOT::Hist, O2::CommonConstants). It is mandatory
 #   to use the fully qualified target name (i.e. including the namespace part)
 #   even for internal (O2) targets.
 #
@@ -38,6 +38,12 @@ include(O2NameTarget)
 #   account, which should cover most of the use cases. Use this parameter only
 #   for special cases then. Note that if you do specify this parameter it
 #   replaces the default, it does not add to them.
+#
+# * PRIVATE_LINK_LIBRARIES (not needed in most cases) : the list of targets this
+#   library needs at compile time (i.e. those dependencies won't be propagated
+#   to the targets depending on this one). It is mandatory to use the fully
+#   qualified target name (i.e. including the namespace part) even for internal
+#   (O2) targets.
 #
 # * PRIVATE_INCLUDE_DIRECTORIES (not needed in most cases) : the list of include
 #   directories where to find the include files needed to compile this library,
@@ -54,7 +60,7 @@ function(o2_add_library baseTargetName)
     A
     ""
     "TARGETVARNAME"
-    "SOURCES;PUBLIC_INCLUDE_DIRECTORIES;PUBLIC_LINK_LIBRARIES;PRIVATE_INCLUDE_DIRECTORIES"
+    "SOURCES;PUBLIC_INCLUDE_DIRECTORIES;PUBLIC_LINK_LIBRARIES;PRIVATE_INCLUDE_DIRECTORIES;PRIVATE_LINK_LIBRARIES"
     )
 
   if(A_UNPARSED_ARGUMENTS)
@@ -81,7 +87,7 @@ function(o2_add_library baseTargetName)
     set(${A_TARGETVARNAME} ${target} PARENT_SCOPE)
   endif()
 
-  # Start by adding the dependencies to other targets
+  # Start by adding the public dependencies to other targets
   if(A_PUBLIC_LINK_LIBRARIES)
     foreach(L IN LISTS A_PUBLIC_LINK_LIBRARIES)
       string(FIND ${L} "::" NS)
@@ -92,6 +98,16 @@ function(o2_add_library baseTargetName)
     endforeach()
   endif()
 
+  # Then add the private dependencies to other targets
+  if(A_PRIVATE_LINK_LIBRARIES)
+    foreach(L IN LISTS A_PRIVATE_LINK_LIBRARIES)
+      string(FIND ${L} "::" NS)
+      if(${NS} EQUAL -1)
+        message(FATAL_ERROR "Trying to use a non-namespaced target ${L}")
+      endif()
+      target_link_libraries(${target} PRIVATE ${L})
+    endforeach()
+  endif()
   # set the public include directories if available
   if(A_PUBLIC_INCLUDE_DIRECTORIES)
     foreach(d IN LISTS A_PUBLIC_INCLUDE_DIRECTORIES)
