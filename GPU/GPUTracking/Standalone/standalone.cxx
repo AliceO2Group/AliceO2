@@ -297,20 +297,24 @@ int SetupReconstruction()
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
 #ifdef _WIN32
     if (configStandalone.eventDisplay == 1) {
+      printf("Enabling event display (windows backend)\n");
       eventDisplay.reset(new GPUDisplayBackendWindows);
     }
 
 #else
     if (configStandalone.eventDisplay == 1) {
       eventDisplay.reset(new GPUDisplayBackendX11);
+      printf("Enabling event display (X11 backend)\n");
     }
     if (configStandalone.eventDisplay == 3) {
       eventDisplay.reset(new GPUDisplayBackendGlfw);
+      printf("Enabling event display (GLFW backend)\n");
     }
 
 #endif
     else if (configStandalone.eventDisplay == 2) {
       eventDisplay.reset(new GPUDisplayBackendGlut);
+      printf("Enabling event display (GLUT backend)\n");
     }
 
 #endif
