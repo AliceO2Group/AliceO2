@@ -28,7 +28,6 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
   size_t idx = get_global_id(0);
 
   bool iamDummy = (idx >= digitnum);
-  /* idx = select(idx, (size_t)(digitnum-1), (size_t)iamDummy); */
   idx = iamDummy ? digitnum - 1 : idx;
 
   Digit myDigit = digits[idx];
@@ -173,8 +172,6 @@ GPUd() char Deconvolution::countPeaksScratchpadOuter(
   char peaks = 0;
   for (uchar i = 0; i < 16; i++) {
     uchar p = isPeak[ll * 16 + i];
-    /* bool extend = innerAboveThresholdInv(aboveThreshold, i + offset); */
-    /* p = (extend) ? p : 0; */
     peaks += GET_IS_PEAK(p);
   }
 

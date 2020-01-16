@@ -76,8 +76,6 @@ GPUd() void NoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, in
   }
 
   isPeakPredicate[idx] = keepMe;
-  /* isPeakPredicate[idx] = keepMe && false; */
-  /* isPeakPredicate[idx] = keepMe || true; */
 }
 
 GPUd() void NoiseSuppression::updatePeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
