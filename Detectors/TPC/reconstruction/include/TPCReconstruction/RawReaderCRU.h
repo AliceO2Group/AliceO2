@@ -600,6 +600,9 @@ class RawReaderCRU
   /// copy single events to another file
   void copyEvents(const std::vector<uint32_t>& eventNumbers, std::string outputDirectory, std::ios_base::openmode mode = std::ios_base::openmode(0));
 
+  /// run a data filling callback function
+  void runADCDataCallback(const ADCRawData& rawData);
+
   //===========================================================================
   //===| Nested helper classes |===============================================
   //
@@ -706,9 +709,6 @@ class RawReaderCRU
 
   /// fill adc data to output map
   void fillADCdataMap(const ADCRawData& rawData);
-
-  /// run a data filling callback function
-  void runADCDataCallback(const ADCRawData& rawData);
 
   ClassDefNV(RawReaderCRU, 0); // raw reader class
 
