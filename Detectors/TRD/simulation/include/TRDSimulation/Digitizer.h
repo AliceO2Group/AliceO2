@@ -77,8 +77,8 @@ class Digitizer
   int mEventID = 0;
   int mSrcID = 0;
 
-  bool mSDigits{false};                    // true: convert signals to summable digits, false by defaults
-  std::vector<HitType> mHitContainer;      // the container of hits in a given detector
+  bool mSDigits{false};               // true: convert signals to summable digits, false by defaults
+  std::vector<HitType> mHitContainer; // the container of hits in a given detector
 
   void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, kNdet>&);
   // Digitization chaing methods
