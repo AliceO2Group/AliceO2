@@ -412,12 +412,10 @@ struct AnalysisDataProcessorBuilder {
               ++const_cast<std::decay_t<Grouping>&>(groupingElement);
             }
           } else if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Join>::value || is_specialization<std::decay_t<AssociatedType>, o2::soa::Concat>::value) {
-            std::vector<std::shared_ptr<arrow::Table>> tables;
             for (auto& groupedDatum : groupsCollection) {
               auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
-              tables.push_back(groupedElementsTable);
+              task.process(groupingElement, AssociatedType{{groupedElementsTable}});
             }
-            task.process(groupingElement, AssociatedType{tables});
             ++const_cast<std::decay_t<Grouping>&>(groupingElement);
           }
         } else {
