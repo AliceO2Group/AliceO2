@@ -79,7 +79,6 @@ class Digitizer
 
   bool mSDigits{false};                    // true: convert signals to summable digits, false by defaults
   std::vector<HitType> mHitContainer;      // the container of hits in a given detector
-  std::queue<Digit> mPileupDigitContainer; // first-in first out continer for pileup digits
 
   void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, kNdet>&);
   // Digitization chaing methods
