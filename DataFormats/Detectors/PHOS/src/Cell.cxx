@@ -39,7 +39,7 @@ void Cell::setAbsId(short absId)
     absId = kNmaxCell;
   ULong_t t = (ULong_t)absId;
 
-  ULong_t b = getLong() & 0xffffffc000; // 1111111111111111111111111 10000 00000 00000
+  ULong_t b = getLong() & 0xffffffc000; // 1111 1111 1111 1111 1111 1111 1100 0000 0000 0000
   mBits = b + t;
 }
 void Cell::setTRUId(short absId)
@@ -50,7 +50,7 @@ void Cell::setTRUId(short absId)
   //    absId = kNmaxCell;
   ULong_t t = (ULong_t)absId;
 
-  ULong_t b = getLong() & 0xffffffc000; // 1111111111111111111111111 10000 00000 00000
+  ULong_t b = getLong() & 0xffffffc000; // 1111 1111 1111 1111 1111 1111 1100 0000 0000 0000
   mBits = b + t;
 }
 
@@ -79,15 +79,17 @@ void Cell::setTime(float time)
   //10 bits available for time
   ULong_t t = 0;
   //Convert time to long
-  t = (time + kTime0) / kTimeAccuracy;
-
-  if (time > 0x3ff)
+  t = ULong_t((time + kTime0) / kTimeAccuracy);
+  if (t > 0x3ff) {
     t = 0x3ff;
-  else if (time < 0)
-    t = 0;
+  } else {
+    if (t < 0) {
+      t = 0;
+    }
+  }
 
   t <<= 14;
-  ULong_t b = getLong() & 0xffff103fff; // 111111111111111 10000 00000 01111 11111 11111
+  ULong_t b = getLong() & 0xffff003fff; // 1111 1111 1111 1111 0000 0000 0011 1111 1111 1111
   mBits = b + t;
 }
 
@@ -96,7 +98,7 @@ float Cell::getTime() const
   ULong_t t = getLong();
   t >>= 14;
   t &= 0x3ff;
-  //Convert back long to double
+  //Convert back long to float
 
   return float(t * kTimeAccuracy) - kTime0;
 }
@@ -108,7 +110,7 @@ void Cell::setEnergy(float energy)
   a = a & 0x7FFF; //15 bits
 
   a <<= 24;
-  ULong_t b = getLong() & 0x8000ffffff; // 10000 00000 00000 01111 11111 11111 11111 11111
+  ULong_t b = getLong() & 0x8000ffffff; // 1000 0000 0000 0000 1111 1111 1111 1111 1111 1111
   mBits = b + a;
 }
 
