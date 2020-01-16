@@ -20,13 +20,18 @@
 
 namespace GPUCA_NAMESPACE
 {
+
+namespace tpc
+{
+class ClusterNative;
+}
+
 namespace gpu
 {
 
 namespace deprecated
 {
 struct PackedDigit;
-struct ClusterNative;
 } // namespace deprecated
 
 class GPUTPCClusterFinder : public GPUProcessor
@@ -63,7 +68,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   ushort* mPchargeMap = nullptr;
   unsigned char* mPpeakMap = nullptr;
   uint* mPclusterInRow = nullptr;
-  deprecated::ClusterNative* mPclusterByRow = nullptr;
+  tpc::ClusterNative* mPclusterByRow = nullptr;
   int* mPbuf = nullptr;
   Memory* mPmemory = nullptr;
 

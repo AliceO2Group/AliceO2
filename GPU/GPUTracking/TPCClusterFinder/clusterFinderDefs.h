@@ -32,8 +32,8 @@ typedef unsigned long ulong;
 #define SCRATCH_PAD_WORK_GROUP_SIZE 1
 #endif
 #ifdef GPUCA_GPUCODE
-/* #define BUILD_CLUSTER_NAIVE */
-#define BUILD_CLUSTER_SCRATCH_PAD
+#define BUILD_CLUSTER_NAIVE
+/* #define BUILD_CLUSTER_SCRATCH_PAD */
 #else
 /* #define BUILD_CLUSTER_NAIVE */
 #define BUILD_CLUSTER_SCRATCH_PAD
@@ -114,6 +114,5 @@ GPUconstexpr() int MIN_SPLIT_NUM = 1;
 } // namespace GPUCA_NAMESPACE
 
 #include "Digit.h"
-#include "ClusterNative.h"
 
 #endif

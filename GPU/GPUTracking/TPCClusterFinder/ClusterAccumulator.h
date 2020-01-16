@@ -19,6 +19,12 @@
 
 namespace GPUCA_NAMESPACE
 {
+
+namespace tpc
+{
+class ClusterNative;
+}
+
 namespace gpu
 {
 
@@ -30,7 +36,7 @@ class ClusterAccumulator
   GPUd() Charge updateOuter(PackedCharge, Delta, Delta);
 
   GPUd() void finalize(const deprecated::Digit&);
-  GPUd() void toNative(const deprecated::Digit&, deprecated::ClusterNative&) const;
+  GPUd() void toNative(const deprecated::Digit&, tpc::ClusterNative&) const;
 
  private:
   float mQtot = 0;

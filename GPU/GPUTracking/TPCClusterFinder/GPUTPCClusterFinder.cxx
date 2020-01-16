@@ -15,7 +15,6 @@
 #include "GPUReconstruction.h"
 
 #include "DataFormatsTPC/ZeroSuppression.h"
-#include "ClusterNative.h"
 #include "Digit.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
