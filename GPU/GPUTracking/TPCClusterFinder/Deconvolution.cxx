@@ -12,7 +12,6 @@
 /// \author Felix Weiglhofer
 
 #include "Deconvolution.h"
-#include "Array2D.h"
 #include "CfConsts.h"
 #include "CfUtils.h"
 
@@ -20,8 +19,8 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::deprecated;
 
 GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
-                                          GPUglobalref() const uchar* peakMap,
-                                          GPUglobalref() PackedCharge* chargeMap,
+                                          const Array2D<uchar>& peakMap,
+                                          Array2D<PackedCharge>& chargeMap,
                                           GPUglobalref() const Digit* digits,
                                           const uint digitnum)
 {
@@ -32,7 +31,7 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
 
   Digit myDigit = digits[idx];
 
-  GlobalPad gpad = Array2D::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+  GlobalPad gpad = CfUtils::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
   bool iamPeak = GET_IS_PEAK(IS_PEAK(peakMap, gpad, myDigit.time));
 
   char peakCount = (iamPeak) ? 1 : 0;
@@ -116,7 +115,7 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
 GPUd() char Deconvolution::countPeaksAroundDigit(
   const GlobalPad gpad,
   const Timestamp time,
-  GPUglobalref() const uchar* peakMap)
+  const Array2D<uchar>& peakMap)
 {
   char peakCount = 0;
 

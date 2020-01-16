@@ -59,11 +59,18 @@ class CfUtils
     return pos;
   }
 
+  // Maps the position of a pad given as row and index in that row to a unique
+  // index between 0 and TPC_NUM_OF_PADS.
+  static GPUdi() GlobalPad tpcGlobalPadIdx(Row row, Pad pad)
+  {
+    return TPC_PADS_PER_ROW_PADDED * row + pad + PADDING_PAD;
+  }
+
 // TODO: replace macros by templates
 #if defined(GPUCA_GPUCODE)
 #define DECL_FILL_SCRATCH_PAD(type, accessFunc)                                     \
   static GPUdi() void fillScratchPad_##type(                                        \
-    GPUglobalref() const type* chargeMap,                                           \
+    const Array2D<type>& chargeMap,                                                 \
     uint wgSize,                                                                    \
     uint elems,                                                                     \
     ushort ll,                                                                      \
@@ -90,7 +97,7 @@ class CfUtils
 
 #define DECL_FILL_SCRATCH_PAD_COND(type, accessFunc, expandFunc, nameAppendix, null) \
   static GPUdi() void fillScratchPad##nameAppendix##_##type(                         \
-    GPUglobalref() const type* chargeMap,                                            \
+    const Array2D<type>& chargeMap,                                                  \
     uint wgSize,                                                                     \
     uint elems,                                                                      \
     ushort ll,                                                                       \
@@ -123,7 +130,7 @@ class CfUtils
 #else
 #define DECL_FILL_SCRATCH_PAD(type, accessFunc)                                     \
   static GPUdi() void fillScratchPad_##type(                                        \
-    GPUglobalref() const type* chargeMap,                                           \
+    const Array2D<type>& chargeMap,                                                 \
     uint wgSize,                                                                    \
     uint,                                                                           \
     ushort ll,                                                                      \
@@ -155,7 +162,7 @@ class CfUtils
 
 #define DECL_FILL_SCRATCH_PAD_COND(type, accessFunc, expandFunc, nameAppendix, null) \
   static GPUdi() void fillScratchPad##nameAppendix##_##type(                         \
-    GPUglobalref() const type* chargeMap,                                            \
+    const Array2D<type>& chargeMap,                                                  \
     uint wgSize,                                                                     \
     uint elems,                                                                      \
     ushort ll,                                                                       \

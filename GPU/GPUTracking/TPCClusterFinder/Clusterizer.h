@@ -16,6 +16,7 @@
 
 #include "clusterFinderDefs.h"
 #include "GPUTPCClusterFinderKernels.h"
+#include "Array2D.h"
 #include "PackedCharge.h"
 
 namespace GPUCA_NAMESPACE
@@ -35,24 +36,24 @@ class Clusterizer
 {
 
  public:
-  static GPUd() void computeClustersImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, GPUglobalref() const PackedCharge*, GPUglobalref() const deprecated::Digit*, uint, uint, GPUglobalref() uint*, GPUglobalref() tpc::ClusterNative*);
+  static GPUd() void computeClustersImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, const Array2D<PackedCharge>&, GPUglobalref() const deprecated::Digit*, uint, uint, GPUglobalref() uint*, GPUglobalref() tpc::ClusterNative*);
 
  private:
-  static GPUd() void addOuterCharge(GPUglobalref() const PackedCharge*, ClusterAccumulator*, GlobalPad, Timestamp, Delta, Delta);
+  static GPUd() void addOuterCharge(const Array2D<PackedCharge>&, ClusterAccumulator*, GlobalPad, Timestamp, Delta, Delta);
 
-  static GPUd() Charge addInnerCharge(GPUglobalref() const PackedCharge*, ClusterAccumulator*, GlobalPad, Timestamp, Delta, Delta);
+  static GPUd() Charge addInnerCharge(const Array2D<PackedCharge>&, ClusterAccumulator*, GlobalPad, Timestamp, Delta, Delta);
 
-  static GPUd() void addCorner(GPUglobalref() const PackedCharge*, ClusterAccumulator*, GlobalPad, Timestamp, Delta, Delta);
+  static GPUd() void addCorner(const Array2D<PackedCharge>&, ClusterAccumulator*, GlobalPad, Timestamp, Delta, Delta);
 
-  static GPUd() void addLine(GPUglobalref() const PackedCharge*, ClusterAccumulator*, GlobalPad, Timestamp, Delta, Delta);
+  static GPUd() void addLine(const Array2D<PackedCharge>&, ClusterAccumulator*, GlobalPad, Timestamp, Delta, Delta);
 
   static GPUd() void updateClusterScratchpadInner(ushort, ushort, GPUsharedref() const PackedCharge*, ClusterAccumulator*, GPUsharedref() uchar*);
 
   static GPUd() void updateClusterScratchpadOuter(ushort, ushort, ushort, ushort, GPUsharedref() const PackedCharge*, ClusterAccumulator*);
 
-  static GPUd() void buildClusterScratchPad(GPUglobalref() const PackedCharge*, ChargePos, GPUsharedref() ChargePos*, GPUsharedref() PackedCharge*, GPUsharedref() uchar*, ClusterAccumulator*);
+  static GPUd() void buildClusterScratchPad(const Array2D<PackedCharge>&, ChargePos, GPUsharedref() ChargePos*, GPUsharedref() PackedCharge*, GPUsharedref() uchar*, ClusterAccumulator*);
 
-  static GPUd() void buildClusterNaive(GPUglobalref() const PackedCharge*, ClusterAccumulator*, GlobalPad, Timestamp);
+  static GPUd() void buildClusterNaive(const Array2D<PackedCharge>&, ClusterAccumulator*, GlobalPad, Timestamp);
 
   static GPUd() void sortIntoBuckets(const tpc::ClusterNative&, const uint, const uint, GPUglobalref() uint*, GPUglobalref() tpc::ClusterNative*);
 };

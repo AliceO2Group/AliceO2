@@ -16,6 +16,7 @@
 
 #include "clusterFinderDefs.h"
 #include "GPUTPCClusterFinderKernels.h"
+#include "Array2D.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -26,12 +27,12 @@ class PeakFinder
 {
 
  public:
-  static GPUd() void findPeaksImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, GPUglobalref() const PackedCharge*, GPUglobalref() const deprecated::Digit*, uint, GPUglobalref() uchar*, GPUglobalref() uchar*);
+  static GPUd() void findPeaksImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, const Array2D<gpu::PackedCharge>&, GPUglobalref() const deprecated::Digit*, uint, GPUglobalref() uchar*, Array2D<uchar>&);
 
  private:
-  static GPUd() bool isPeakScratchPad(GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, const deprecated::Digit*, ushort, GPUglobalref() const PackedCharge*, GPUsharedref() ChargePos*, GPUsharedref() PackedCharge*);
+  static GPUd() bool isPeakScratchPad(GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, const deprecated::Digit*, ushort, const Array2D<o2::gpu::PackedCharge>&, GPUsharedref() ChargePos*, GPUsharedref() PackedCharge*);
 
-  static GPUd() bool isPeak(const deprecated::Digit*, GPUglobalref() const PackedCharge*);
+  static GPUd() bool isPeak(const deprecated::Digit*, const Array2D<PackedCharge>&);
 };
 
 } // namespace gpu
