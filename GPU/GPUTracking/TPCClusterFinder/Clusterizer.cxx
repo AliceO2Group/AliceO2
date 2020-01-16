@@ -339,5 +339,7 @@ GPUd() void Clusterizer::sortIntoBuckets(const tpc::ClusterNative& cluster, cons
 {
   uint posInBucket = CAMath::AtomicAdd(&elemsInBucket[bucket], 1);
 
-  buckets[maxElemsPerBucket * bucket + posInBucket] = cluster; // TODO: Must check for overflow over maxElemsPerBucket!
+  if (posInBucket < maxElemsPerBucket) {
+    buckets[maxElemsPerBucket * bucket + posInBucket] = cluster;
+  }
 }
