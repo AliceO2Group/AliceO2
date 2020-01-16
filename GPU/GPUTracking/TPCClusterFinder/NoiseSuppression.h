@@ -16,6 +16,7 @@
 
 #include "clusterFinderDefs.h"
 #include "GPUTPCClusterFinderKernels.h"
+#include "Array2D.h"
 #include "PackedCharge.h"
 
 namespace GPUCA_NAMESPACE
@@ -27,9 +28,9 @@ class NoiseSuppression
 {
 
  public:
-  static GPUd() void noiseSuppressionImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, GPUglobalref() const PackedCharge*, GPUglobalref() const uchar*, GPUglobalref() const deprecated::Digit*, const uint, GPUglobalref() uchar*);
+  static GPUd() void noiseSuppressionImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, const Array2D<PackedCharge>&, const Array2D<uchar>&, GPUglobalref() const deprecated::Digit*, const uint, GPUglobalref() uchar*);
 
-  static GPUd() void updatePeaksImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, GPUglobalref() const deprecated::Digit*, GPUglobalref() const uchar*, GPUglobalref() uchar*);
+  static GPUd() void updatePeaksImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, GPUglobalref() const deprecated::Digit*, GPUglobalref() const uchar*, Array2D<uchar>&);
 
  private:
   static GPUd() void checkForMinima(float, float, PackedCharge, int, ulong*, ulong*);
@@ -38,13 +39,13 @@ class NoiseSuppression
 
   static GPUd() void findPeaksScratchPad(GPUsharedref() const uchar*, const ushort, const int, int, ulong*);
 
-  static GPUd() void findMinima(GPUglobalref() const PackedCharge*, const GlobalPad, const Timestamp, const float, const float, ulong*, ulong*);
+  static GPUd() void findMinima(const Array2D<PackedCharge>&, const GlobalPad, const Timestamp, const float, const float, ulong*, ulong*);
 
-  static GPUd() ulong findPeaks(GPUglobalref() const uchar*, const GlobalPad, const Timestamp, bool);
+  static GPUd() ulong findPeaks(const Array2D<uchar>&, const GlobalPad, const Timestamp, bool);
 
   static GPUd() bool keepPeak(ulong, ulong);
 
-  static GPUd() void findMinimaAndPeaksScratchpad(GPUglobalref() const PackedCharge*, GPUglobalref() const uchar*, float, GlobalPad, Timestamp, GPUsharedref() ChargePos*, GPUsharedref() PackedCharge*, ulong*, ulong*, ulong*);
+  static GPUd() void findMinimaAndPeaksScratchpad(const Array2D<PackedCharge>&, const Array2D<uchar>&, float, GlobalPad, Timestamp, GPUsharedref() ChargePos*, GPUsharedref() PackedCharge*, ulong*, ulong*, ulong*);
 };
 
 } // namespace gpu

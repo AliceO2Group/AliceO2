@@ -39,7 +39,7 @@ typedef unsigned long ulong;
 #define BUILD_CLUSTER_SCRATCH_PAD
 #endif
 /* #define CHARGEMAP_TIME_MAJOR_LAYOUT */
-#define CHARGEMAP_4x4_TILING_LAYOUT
+#define CHARGEMAP_TILING_LAYOUT
 
 #ifdef __OPENCL__
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable

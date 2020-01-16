@@ -16,6 +16,7 @@
 
 #include "clusterFinderDefs.h"
 #include "GPUTPCClusterFinderKernels.h"
+#include "Array2D.h"
 #include "PackedCharge.h"
 
 namespace GPUCA_NAMESPACE
@@ -27,10 +28,10 @@ class Deconvolution
 {
 
  public:
-  static GPUd() void countPeaksImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, GPUglobalref() const uchar*, GPUglobalref() PackedCharge*, GPUglobalref() const deprecated::Digit*, const uint);
+  static GPUd() void countPeaksImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, const Array2D<uchar>&, Array2D<PackedCharge>&, GPUglobalref() const deprecated::Digit*, const uint);
 
  private:
-  static GPUd() char countPeaksAroundDigit(const GlobalPad, const Timestamp, GPUglobalref() const uchar*);
+  static GPUd() char countPeaksAroundDigit(const GlobalPad, const Timestamp, const Array2D<uchar>&);
   static GPUd() char countPeaksScratchpadInner(ushort, GPUsharedref() const uchar*, uchar*);
   static GPUd() char countPeaksScratchpadOuter(ushort, ushort, uchar, GPUsharedref() const uchar*);
 };

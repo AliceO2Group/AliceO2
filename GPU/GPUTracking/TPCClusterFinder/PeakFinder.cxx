@@ -25,7 +25,7 @@ GPUd() bool PeakFinder::isPeakScratchPad(
   GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
   const Digit* digit,
   ushort N,
-  GPUglobalref() const PackedCharge* chargeMap,
+  const Array2D<o2::gpu::PackedCharge>& chargeMap,
   GPUsharedref() ChargePos* posBcast,
   GPUsharedref() PackedCharge* buf)
 {
@@ -35,7 +35,7 @@ GPUd() bool PeakFinder::isPeakScratchPad(
   const Row row = digit->row;
   const Pad pad = digit->pad;
 
-  const GlobalPad gpad = Array2D::tpcGlobalPadIdx(row, pad);
+  const GlobalPad gpad = CfUtils::tpcGlobalPadIdx(row, pad);
   ChargePos pos = {gpad, time};
 
   bool belowThreshold = (digit->charge <= QMAX_CUTOFF);
@@ -79,7 +79,7 @@ GPUd() bool PeakFinder::isPeakScratchPad(
 
 GPUd() bool PeakFinder::isPeak(
   const Digit* digit,
-  GPUglobalref() const PackedCharge* chargeMap)
+  const Array2D<PackedCharge>& chargeMap)
 {
   if (digit->charge <= QMAX_CUTOFF) {
     return false;
@@ -90,7 +90,7 @@ GPUd() bool PeakFinder::isPeak(
   const Row row = digit->row;
   const Pad pad = digit->pad;
 
-  const GlobalPad gpad = Array2D::tpcGlobalPadIdx(row, pad);
+  const GlobalPad gpad = CfUtils::tpcGlobalPadIdx(row, pad);
 
   bool peak = true;
 
@@ -146,11 +146,11 @@ GPUd() bool PeakFinder::isPeak(
 }
 
 GPUd() void PeakFinder::findPeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
-                                      GPUglobalref() const PackedCharge* chargeMap,
+                                      const Array2D<PackedCharge>& chargeMap,
                                       GPUglobalref() const Digit* digits,
                                       uint digitnum,
                                       GPUglobalref() uchar* isPeakPredicate,
-                                      GPUglobalref() uchar* peakMap)
+                                      Array2D<uchar>& peakMap)
 {
   size_t idx = get_global_id(0);
 
@@ -174,8 +174,8 @@ GPUd() void PeakFinder::findPeaksImpl(int nBlocks, int nThreads, int iBlock, int
 
   isPeakPredicate[idx] = peak;
 
-  const GlobalPad gpad = Array2D::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+  const GlobalPad gpad = CfUtils::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
   IS_PEAK(peakMap, gpad, myDigit.time) =
-    ((myDigit.charge > CHARGE_THRESHOLD) << 1) | peak;
+    (uchar(myDigit.charge > CHARGE_THRESHOLD) << 1) | peak;
 }
