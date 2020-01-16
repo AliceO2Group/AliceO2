@@ -20,8 +20,8 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::deprecated;
 
 GPUd() void NoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
-                                                   GPUglobalref() const PackedCharge* chargeMap,
-                                                   GPUglobalref() const uchar* peakMap,
+                                                   const Array2D<PackedCharge>& chargeMap,
+                                                   const Array2D<uchar>& peakMap,
                                                    GPUglobalref() const Digit* peaks,
                                                    const uint peaknum,
                                                    GPUglobalref() uchar* isPeakPredicate)
@@ -30,7 +30,7 @@ GPUd() void NoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, in
 
   Digit myDigit = peaks[CAMath::Min(idx, (size_t)(peaknum - 1))];
 
-  GlobalPad gpad = Array2D::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+  GlobalPad gpad = CfUtils::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
   ulong minimas, bigger, peaksAround;
 
@@ -81,17 +81,17 @@ GPUd() void NoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, in
 GPUd() void NoiseSuppression::updatePeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
                                               GPUglobalref() const Digit* peaks,
                                               GPUglobalref() const uchar* isPeak,
-                                              GPUglobalref() uchar* peakMap)
+                                              Array2D<uchar>& peakMap)
 {
   size_t idx = get_global_id(0);
 
   Digit myDigit = peaks[idx];
-  GlobalPad gpad = Array2D::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+  GlobalPad gpad = CfUtils::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
   uchar peak = isPeak[idx];
 
   IS_PEAK(peakMap, gpad, myDigit.time) =
-    ((myDigit.charge > CHARGE_THRESHOLD) << 1) | peak;
+    (uchar(myDigit.charge > CHARGE_THRESHOLD) << 1) | peak;
 }
 
 GPUd() void NoiseSuppression::checkForMinima(
@@ -143,7 +143,7 @@ GPUd() void NoiseSuppression::findPeaksScratchPad(
 }
 
 GPUd() void NoiseSuppression::findMinima(
-  GPUglobalref() const PackedCharge* chargeMap,
+  const Array2D<PackedCharge>& chargeMap,
   const GlobalPad gpad,
   const Timestamp time,
   const float q,
@@ -166,7 +166,7 @@ GPUd() void NoiseSuppression::findMinima(
 }
 
 GPUd() ulong NoiseSuppression::findPeaks(
-  GPUglobalref() const uchar* peakMap,
+  const Array2D<uchar>& peakMap,
   const GlobalPad gpad,
   const Timestamp time,
   bool debug)
@@ -209,8 +209,8 @@ GPUd() bool NoiseSuppression::keepPeak(
 }
 
 GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
-  GPUglobalref() const PackedCharge* chargeMap,
-  GPUglobalref() const uchar* peakMap,
+  const Array2D<PackedCharge>& chargeMap,
+  const Array2D<uchar>& peakMap,
   float q,
   GlobalPad gpad,
   Timestamp time,

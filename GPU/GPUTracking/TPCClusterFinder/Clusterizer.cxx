@@ -13,7 +13,6 @@
 
 #include "Clusterizer.h"
 
-#include "Array2D.h"
 #include "CfConsts.h"
 #include "CfUtils.h"
 #include "ClusterAccumulator.h"
@@ -21,7 +20,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 GPUd() void Clusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
-                                             GPUglobalref() const PackedCharge* chargeMap,
+                                             const Array2D<PackedCharge>& chargeMap,
                                              GPUglobalref() const deprecated::Digit* digits,
                                              uint clusternum,
                                              uint maxClusterPerRow,
@@ -35,7 +34,7 @@ GPUd() void Clusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlo
   // These dummy items also compute the last cluster but discard the result.
   deprecated::Digit myDigit = digits[CAMath::Min(idx, clusternum - 1)];
 
-  GlobalPad gpad = Array2D::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+  GlobalPad gpad = CfUtils::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
   ClusterAccumulator pc;
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
@@ -77,7 +76,7 @@ GPUd() void Clusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlo
 }
 
 GPUd() void Clusterizer::addOuterCharge(
-  GPUglobalref() const PackedCharge* chargeMap,
+  const Array2D<PackedCharge>& chargeMap,
   ClusterAccumulator* cluster,
   GlobalPad gpad,
   Timestamp time,
@@ -89,7 +88,7 @@ GPUd() void Clusterizer::addOuterCharge(
 }
 
 GPUd() Charge Clusterizer::addInnerCharge(
-  GPUglobalref() const PackedCharge* chargeMap,
+  const Array2D<PackedCharge>& chargeMap,
   ClusterAccumulator* cluster,
   GlobalPad gpad,
   Timestamp time,
@@ -101,7 +100,7 @@ GPUd() Charge Clusterizer::addInnerCharge(
 }
 
 GPUd() void Clusterizer::addCorner(
-  GPUglobalref() const PackedCharge* chargeMap,
+  const Array2D<PackedCharge>& chargeMap,
   ClusterAccumulator* myCluster,
   GlobalPad gpad,
   Timestamp time,
@@ -118,7 +117,7 @@ GPUd() void Clusterizer::addCorner(
 }
 
 GPUd() void Clusterizer::addLine(
-  GPUglobalref() const PackedCharge* chargeMap,
+  const Array2D<PackedCharge>& chargeMap,
   ClusterAccumulator* myCluster,
   GlobalPad gpad,
   Timestamp time,
@@ -181,7 +180,7 @@ GPUd() void Clusterizer::updateClusterScratchpadOuter(
 }
 
 GPUd() void Clusterizer::buildClusterScratchPad(
-  GPUglobalref() const PackedCharge* chargeMap,
+  const Array2D<PackedCharge>& chargeMap,
   ChargePos pos,
   GPUsharedref() ChargePos* posBcast,
   GPUsharedref() PackedCharge* buf,
@@ -265,7 +264,7 @@ GPUd() void Clusterizer::buildClusterScratchPad(
 }
 
 GPUd() void Clusterizer::buildClusterNaive(
-  GPUglobalref() const PackedCharge* chargeMap,
+  const Array2D<PackedCharge>& chargeMap,
   ClusterAccumulator* myCluster,
   GlobalPad gpad,
   Timestamp time)

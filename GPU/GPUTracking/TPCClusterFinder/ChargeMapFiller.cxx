@@ -12,6 +12,7 @@
 /// \author Felix Weiglhofer
 
 #include "ChargeMapFiller.h"
+#include "CfUtils.h"
 #include "Array2D.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -19,7 +20,7 @@ using namespace GPUCA_NAMESPACE::gpu::deprecated;
 
 GPUd() void ChargeMapFiller::fillChargeMapImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
                                                GPUglobalref() const Digit* digits,
-                                               GPUglobalref() PackedCharge* chargeMap,
+                                               Array2D<PackedCharge>& chargeMap,
                                                size_t maxDigit)
 {
   size_t idx = get_global_id(0);
@@ -28,20 +29,20 @@ GPUd() void ChargeMapFiller::fillChargeMapImpl(int nBlocks, int nThreads, int iB
   }
   Digit myDigit = digits[idx];
 
-  GlobalPad gpad = Array2D::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+  GlobalPad gpad = CfUtils::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
   CHARGE(chargeMap, gpad, myDigit.time) = PackedCharge(myDigit.charge, false, false);
 }
 
 GPUd() void ChargeMapFiller::resetMapsImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
                                            GPUglobalref() const Digit* digits,
-                                           GPUglobalref() PackedCharge* chargeMap,
-                                           GPUglobalref() uchar* isPeakMap)
+                                           Array2D<PackedCharge>& chargeMap,
+                                           Array2D<uchar>& isPeakMap)
 {
   size_t idx = get_global_id(0);
   Digit myDigit = digits[idx];
 
-  GlobalPad gpad = Array2D::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+  GlobalPad gpad = CfUtils::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
   CHARGE(chargeMap, gpad, myDigit.time) = PackedCharge(0);
   IS_PEAK(isPeakMap, gpad, myDigit.time) = 0;
