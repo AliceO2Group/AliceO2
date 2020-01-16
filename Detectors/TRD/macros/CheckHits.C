@@ -67,9 +67,6 @@ void CheckHits(const int detector = 50, // 354, 14, 242, 50
       double locR = hit.getLocalR(); // row direction in amplification or drift volume
       double locT = hit.getLocalT(); // time direction in amplification or drift volume
       int nEl = hit.GetHitValue();
-      if (hit.isFromDriftRegion()) {
-        locT = locT - 0.5 * (o2::trd::TRDGeometry::drThick() + o2::trd::TRDGeometry::amThick());
-      }
       hlocC->Fill(locC);
       hlocR->Fill(locR);
       hlocT->Fill(locT);
@@ -99,10 +96,10 @@ void CheckHits(const int detector = 50, // 354, 14, 242, 50
   c->SaveAs("testCheckHits_1D.pdf");
 
   TCanvas* c2 = new TCanvas("c2", "trd hits analysis", 800, 800);
-  h2locClocT->Draw("*");
+  h2locClocT->Draw("COL");
   c2->SaveAs("testCheckHits_2D.pdf");
 
   TCanvas* c3 = new TCanvas("c3", "trd hits analysis", 800, 800);
   h2locClocTnEl->Draw("COL");
-  c2->SaveAs("testCheckHits_2D_nEl.pdf");
+  c3->SaveAs("testCheckHits_2D_nEl.pdf");
 }
