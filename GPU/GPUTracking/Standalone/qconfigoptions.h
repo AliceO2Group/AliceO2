@@ -148,6 +148,7 @@ AddOption(overrideMaxTimebin, bool, false, "overrideMaxTimebin", 0, "Override ma
 AddOption(encodeZS, bool, false, "encodeZS", 0, "Zero-Suppress TPC data")
 AddOption(zsFilter, bool, false, "zsFilter", 0, "Apply Zero-Suppression when loading digits and remove those below threshold")
 AddOption(zsThreshold, float, 2.0f, "zsThreshold", 0, "Zero-Suppression threshold")
+AddOption(zs12bit, bool, false, "zs12bit", 0, "Perform 12 bit zero-suppression encoding / filter")
 AddOption(referenceX, float, 500.f, "referenceX", 0, "Reference X position to transport track to after fit")
 AddOption(rejectMode, char, 5, "rejectMode", 0, "Merger Reject Mode")
 AddOption(allocationStrategy, int, 0, "allocationStrategy", 0, "Memory Allocation Stragegy (0 = auto, 1 = individual allocations, 2 = single global allocation)")

@@ -136,12 +136,13 @@ int GPUReconstructionConvert::GetMaxTimeBin(const GPUTrackingInOutDigits& digits
 #endif
 }
 
-void GPUReconstructionConvert::ZSstreamOut(unsigned short* bufIn, unsigned int& lenIn, unsigned char* bufOut, unsigned int& lenOut)
+void GPUReconstructionConvert::ZSstreamOut(unsigned short* bufIn, unsigned int& lenIn, unsigned char* bufOut, unsigned int& lenOut, unsigned int nBits)
 {
   unsigned int byte = 0, bits = 0;
+  unsigned int mask = (1 << nBits) - 1;
   for (unsigned int i = 0; i < lenIn; i++) {
-    byte |= (bufIn[i] & 0x3FF) << bits;
-    bits += 10;
+    byte |= (bufIn[i] & mask) << bits;
+    bits += nBits;
     while (bits >= 8) {
       bufOut[lenOut++] = (unsigned char)(byte & 0xFF);
       byte = byte >> 8;
@@ -154,7 +155,7 @@ void GPUReconstructionConvert::ZSstreamOut(unsigned short* bufIn, unsigned int& 
   lenIn = 0;
 }
 
-void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GPUTrackingInOutZS*& out, const GPUParam& param)
+void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GPUTrackingInOutZS*& out, const GPUParam& param, bool zs12bit)
 {
 #ifdef GPUCA_TPC_GEOMETRY_O2
   static std::vector<std::array<long long int, TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(long long int)>> buffer[NSLICES][GPUTrackingInOutZS::NENDPOINTS];
@@ -167,6 +168,8 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
   std::array<unsigned short, TPCZSHDR::TPC_ZS_PAGE_SIZE> streamBuffer;
   std::array<unsigned char, TPCZSHDR::TPC_ZS_PAGE_SIZE> streamBuffer8;
   size_t nErrors = 0;
+  int encodeBits = zs12bit ? TPCZSHDR::TPC_ZS_NBITS_V2 : TPCZSHDR::TPC_ZS_NBITS_V1;
+  const float encodeBitsFactor = (1 << (encodeBits - 10));
   for (unsigned int i = 0; i < NSLICES; i++) {
     tmpBuffer.resize(in->nTPCDigits[i]);
     std::copy(in->tpcDigits[i], in->tpcDigits[i] + in->nTPCDigits[i], tmpBuffer.begin());
@@ -220,7 +223,7 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
         sizeChk += (tmpBuffer[k].time != lastTime || tmpBuffer[k].row != lastRow) ? 3 : 0;                          // new row overhead
         sizeChk += (lastTime != -1 && tmpBuffer[k].time > lastTime) ? ((tmpBuffer[k].time - lastTime - 1) * 2) : 0; // empty time bins
         sizeChk += 2;                                                                                               // sequence metadata
-        sizeChk += ((seqLen + streamSize) * 10 + 7) / 8;                                                            // adc buffer + sequence length
+        sizeChk += ((seqLen + streamSize) * encodeBits + 7) / 8;                                                    // adc buffer + sequence length
         if (sizeChk > TPCZSHDR::TPC_ZS_PAGE_SIZE) {
           lastEndpoint = -1;
         }
@@ -232,7 +235,7 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
       if (k >= tmpBuffer.size() || endpoint != lastEndpoint || tmpBuffer[k].time != lastTime) {
         if (pagePtr != reinterpret_cast<unsigned char*>(page)) {
           pagePtr += 2 * nRowsInTB;
-          ZSstreamOut(streamBuffer.data(), streamSize, streamBuffer8.data(), streamSize8);
+          ZSstreamOut(streamBuffer.data(), streamSize, streamBuffer8.data(), streamSize8, encodeBits);
           pagePtr = std::copy(streamBuffer8.data(), streamBuffer8.data() + streamSize8, pagePtr);
           streamSize8 = 0;
           for (int l = 1; l < nRowsInTB; l++) {
@@ -251,7 +254,7 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
         pagePtr += sizeof(o2::header::RAWDataHeader);
         hdr = reinterpret_cast<TPCZSHDR*>(pagePtr);
         pagePtr += sizeof(*hdr);
-        hdr->version = 1;
+        hdr->version = zs12bit ? 2 : 1;
         hdr->cruID = i * 10 + region;
         hdr->timeOffset = tmpBuffer[k].time;
         lastTime = -1;
@@ -276,7 +279,7 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
       if (tmpBuffer[k].row != lastRow) {
         tbHdr->rowMask |= 1 << (tmpBuffer[k].row - endpointStart);
         lastRow = tmpBuffer[k].row;
-        ZSstreamOut(streamBuffer.data(), streamSize, streamBuffer8.data(), streamSize8);
+        ZSstreamOut(streamBuffer.data(), streamSize, streamBuffer8.data(), streamSize8, encodeBits);
         if (nRowsInTB) {
           tbHdr->rowAddr1[nRowsInTB - 1] = (pagePtr - reinterpret_cast<unsigned char*>(page)) + streamSize8;
         }
@@ -288,7 +291,7 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
       streamBuffer8[streamSize8++] = tmpBuffer[k].pad;
       streamBuffer8[streamSize8++] = streamSize + seqLen;
       for (int l = 0; l < seqLen; l++) {
-        streamBuffer[streamSize++] = tmpBuffer[k + l].charge + 0.5f;
+        streamBuffer[streamSize++] = (unsigned short)(tmpBuffer[k + l].charge * encodeBitsFactor + 0.5f);
       }
       k += seqLen - 1;
     }
@@ -303,9 +306,13 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
         pagePtr += sizeof(o2::header::RAWDataHeader);
         hdr = reinterpret_cast<TPCZSHDR*>(pagePtr);
         pagePtr += sizeof(*hdr);
-        if (hdr->version != 1) {
+        if (hdr->version != 1 && hdr->version != 2) {
           throw std::runtime_error("invalid ZS version");
         }
+        const bool decode12bit = hdr->version == 2;
+        const unsigned int decodeBits = decode12bit ? TPCZSHDR::TPC_ZS_NBITS_V2 : TPCZSHDR::TPC_ZS_NBITS_V1;
+        const float decodeBitsFactor = 1.f / (1 << (decodeBits - 10));
+        unsigned int mask = (1 << decodeBits) - 1;
         int cruid = hdr->cruID;
         unsigned int sector = cruid / 10;
         if (sector != i) {
@@ -336,23 +343,23 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
             unsigned char* rowData = rowPos == 0 ? pagePtr : (reinterpret_cast<unsigned char*>(page) + tbHdr->rowAddr1[rowPos - 1]);
             const int nSeqRead = *rowData;
             unsigned char* adcData = rowData + 2 * nSeqRead + 1;
-            int nADC = (rowData[2 * nSeqRead] * 10 + 7) / 8;
+            int nADC = (rowData[2 * nSeqRead] * decodeBits + 7) / 8;
             pagePtr += 1 + 2 * nSeqRead + nADC;
-            int byte = 0, bits = 0, pos10 = 0;
+            unsigned int byte = 0, bits = 0, pos10 = 0;
             for (int n = 0; n < nADC; n++) {
               byte |= *(adcData++) << bits;
               bits += 8;
-              while (bits >= 10) {
-                streamBuffer[pos10++] = byte & 0x3FF;
-                byte = byte >> 10;
-                bits -= 10;
+              while (bits >= decodeBits) {
+                streamBuffer[pos10++] = byte & mask;
+                byte = byte >> decodeBits;
+                bits -= decodeBits;
               }
             }
             pos10 = 0;
             for (int n = 0; n < nSeqRead; n++) {
               const int seqLen = rowData[(n + 1) * 2] - (n ? rowData[n * 2] : 0);
               for (int o = 0; o < seqLen; o++) {
-                compareBuffer.emplace_back(deprecated::PackedDigit{(float)streamBuffer[pos10++], (Timestamp)(timeBin + l), (Pad)(rowData[n * 2 + 1] + o), (Row)(rowOffset + m)});
+                compareBuffer.emplace_back(deprecated::PackedDigit{(float)streamBuffer[pos10++] * decodeBitsFactor, (Timestamp)(timeBin + l), (Pad)(rowData[n * 2 + 1] + o), (Row)(rowOffset + m)});
               }
             }
             rowPos++;
@@ -361,13 +368,16 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
       }
     }
     for (unsigned int j = 0; j < tmpBuffer.size(); j++) {
-      int ok = (int)(tmpBuffer[j].charge + 0.5f) == (int)compareBuffer[j].charge && (int)tmpBuffer[j].time == (int)compareBuffer[j].time && (int)tmpBuffer[j].pad == (int)compareBuffer[j].pad && (int)tmpBuffer[j].row == (int)compareBuffer[j].row;
+      const unsigned int decodeBits = zs12bit ? TPCZSHDR::TPC_ZS_NBITS_V2 : TPCZSHDR::TPC_ZS_NBITS_V1;
+      const float decodeBitsFactor = (1 << (decodeBits - 10));
+      const float c = zs12bit ? (float)((int)(tmpBuffer[j].charge * decodeBitsFactor + 0.5f)) / decodeBitsFactor : (float)(int)(tmpBuffer[j].charge + 0.5f);
+      int ok = c == compareBuffer[j].charge && (int)tmpBuffer[j].time == (int)compareBuffer[j].time && (int)tmpBuffer[j].pad == (int)compareBuffer[j].pad && (int)tmpBuffer[j].row == (int)compareBuffer[j].row;
       if (ok) {
         continue;
       }
       nErrors++;
       printf("%4u: OK %d: Charge %3d %3d Time %4d %4d Pad %3d %3d Row %3d %3d\n", j, ok,
-             (int)(tmpBuffer[j].charge + 0.5f), (int)compareBuffer[j].charge, (int)tmpBuffer[j].time, (int)compareBuffer[j].time, (int)tmpBuffer[j].pad, (int)compareBuffer[j].pad, (int)tmpBuffer[j].row, (int)compareBuffer[j].row);
+             (int)c, (int)compareBuffer[j].charge, (int)tmpBuffer[j].time, (int)compareBuffer[j].time, (int)tmpBuffer[j].pad, (int)compareBuffer[j].pad, (int)tmpBuffer[j].row, (int)compareBuffer[j].row);
     }
   }
 
@@ -387,7 +397,7 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
 #endif
 }
 
-void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<deprecated::PackedDigit[]>* buffers, const deprecated::PackedDigit** ptrs, size_t* ns, const GPUParam& param)
+void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<deprecated::PackedDigit[]>* buffers, const deprecated::PackedDigit** ptrs, size_t* ns, const GPUParam& param, bool zs12bit)
 {
 #ifdef HAVE_O2HEADERS
   for (unsigned int i = 0; i < NSLICES; i++) {
@@ -395,12 +405,18 @@ void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<deprecated::PackedDig
       throw std::runtime_error("Not owning digits");
     }
     unsigned int j = 0;
+    const unsigned int decodeBits = zs12bit ? TPCZSHDR::TPC_ZS_NBITS_V2 : TPCZSHDR::TPC_ZS_NBITS_V1;
+    const float decodeBitsFactor = (1 << (decodeBits - 10));
     for (unsigned int k = 0; k < ns[i]; k++) {
       if (buffers[i][k].charge >= param.rec.tpcZSthreshold) {
         if (k > j) {
           buffers[i][j] = buffers[i][k];
         }
-        buffers[i][j].charge = (float)((int)(buffers[i][j].charge + 0.5f));
+        if (zs12bit) {
+          buffers[i][j].charge = (float)((int)(buffers[i][j].charge * decodeBitsFactor + 0.5f)) / decodeBitsFactor;
+        } else {
+          buffers[i][j].charge = (float)((int)(buffers[i][j].charge + 0.5f));
+        }
         j++;
       }
     }

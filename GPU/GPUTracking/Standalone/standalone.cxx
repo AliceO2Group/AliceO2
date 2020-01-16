@@ -521,10 +521,10 @@ int main(int argc, char** argv)
             goto breakrun;
           }
           if (configStandalone.zsFilter) {
-            chainTracking->ConvertZSFilter();
+            chainTracking->ConvertZSFilter(configStandalone.zs12bit);
           }
           if (configStandalone.encodeZS) {
-            chainTracking->ConvertZSEncoder();
+            chainTracking->ConvertZSEncoder(configStandalone.zs12bit);
           }
         }
         if (!configStandalone.configRec.runTransformation) {
