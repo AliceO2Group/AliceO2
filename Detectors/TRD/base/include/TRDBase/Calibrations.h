@@ -43,7 +43,7 @@
 #include "TRDBase/ChamberNoise.h"
 #include "TRDBase/PadNoise.h"
 #include "TRDBase/PadStatus.h"
-#include "TRDBase/TrapConfig.h"
+
 class TRDGeometry;
 
 namespace o2
@@ -116,7 +116,6 @@ class Calibrations
   ChamberStatus* mChamberStatus;
   PadStatus* mPadStatus;
   ChamberNoise* mChamberNoise;
-  TrapConfig* mTrapConfig;
   //std::shared_ptr<OnlineGainFactors> mOnlineGainFactors;
   //
 };
