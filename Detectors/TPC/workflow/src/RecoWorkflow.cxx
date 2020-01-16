@@ -107,6 +107,10 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
 
   WorkflowSpec specs;
 
+  // The OutputSpec of the PublisherSpec is configured depending on the input
+  // type. Note that the configuration of the dispatch trigger in the main file
+  // needs to be done in accordance. This means, if a new input option is added
+  // also the dispatch trigger needs to be updated.
   if (inputType == InputType::Digits) {
     specs.emplace_back(o2::tpc::getPublisherSpec(PublisherConf{
                                                    "tpc-digit-reader",
