@@ -75,7 +75,7 @@ Digitizer::Digitizer()
   mSDigits = false;
 }
 
-void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digitCont, o2::dataformats::MCTruthContainer<MCLabel>& labels)
+void Digitizer::process(std::vector<HitType> const& hits, DigitContainer& digitCont, o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
   if (!mCalib) {
     LOG(FATAL) << "TRD Calibration database not available";
@@ -83,8 +83,8 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
 
   // TODO: it might be worth making these member variables
   // in order to have less memory allocations
-  std::array<SignalContainer_t, kNdet> signalsMapCollection;
-  std::array<DigitContainer_t, kNdet> digitCollection;
+  std::array<SignalContainer, kNdet> signalsMapCollection;
+  std::array<DigitContainer, kNdet> digitCollection;
   std::array<o2::dataformats::MCTruthContainer<MCLabel>, kNdet> labelsperdetector;
 
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
@@ -156,7 +156,7 @@ void Digitizer::getHitContainerPerDetector(const std::vector<HitType>& hits, std
   }
 }
 
-bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, SignalContainer_t& signalMapCont, o2::dataformats::MCTruthContainer<MCLabel>& labels, int thread)
+bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, SignalContainer& signalMapCont, o2::dataformats::MCTruthContainer<MCLabel>& labels, int thread)
 {
   //
   // Convert the detector-wise sorted hits to detector signals
@@ -335,13 +335,14 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
         if (colPos >= nColMax) {
           break;
         }
-        const int key = Digit::calculateKey(det, rowE, colPos);
+        const int key = calculateKey(det, rowE, colPos);
         if (key < KEY_MIN || key > KEY_MAX) {
           LOG(FATAL) << "Wrong TRD key " << key << " for (det,row,col) = (" << det << ", " << rowE << ", " << colPos << ")";
         }
-        auto& currentSignal = signalMapCont[key]; // Get the old signal
         isDigit = true;
-        currentSignal[kTB] = labelIndex; // store the label index in this extra timebin to pass it to the digit structure
+        auto& currentSignalData = signalMapCont[key]; // Get the old signal or make a new one if it doesn't exist
+        auto& currentSignal = currentSignalData.signals;
+        currentSignalData.labelIndex = labelIndex;
         for (int tb = firstTimeBin; tb < lastTimeBin; ++tb) {
           // Apply the time response
           double timeResponse = 1;
@@ -367,7 +368,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       }   // Loop: pads
     }     // end of loop over electrons
     if (isDigit) {
-      MCLabel label(hit.GetTrackID(), mEventID, mSrcID); // add one label if at least one digit is created
+      MCLabel label(hit.GetTrackID(), getEventID(), getSrcID()); // add one label if at least one digit is created
       labels.addElement(labelIndex, label);
     }
   } // end of loop over hits
@@ -381,7 +382,7 @@ float drawGaus(o2::math_utils::RandomRing<>& normaldistRing, float mu, float sig
   return mu + sigma * normaldistRing.getNextValue();
 }
 
-bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& signalMapCont, DigitContainer_t& digits, int thread)
+bool Digitizer::convertSignalsToADC(const int det, SignalContainer& signalMapCont, DigitContainer& digits, int thread)
 {
   //
   // Converts the sampled electron signals to ADC values for a given chamber
@@ -401,9 +402,9 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& signalMapC
 
   for (auto& signalMapIter : signalMapCont) {
     const auto key = signalMapIter.first;
-    const int det = Digit::getDetectorFromKey(key);
-    const int row = Digit::getRowFromKey(key);
-    const int col = Digit::getColFromKey(key);
+    const int det = getDetectorFromKey(key);
+    const int row = getRowFromKey(key);
+    const int col = getColFromKey(key);
     // halfchamber masking
     int mcm = (int)(col / 18);               // current group of 18 col pads
     int halfchamberside = (mcm > 3 ? 1 : 0); // 0=Aside, 1=Bside
@@ -427,12 +428,13 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& signalMapC
     }
 
     // Loop over the all timebins in the ADC array
-    auto& adcArray = signalMapIter.second;
-    std::array<ADC_t, kTB> adcs{}; // fails if declared as AdcArray_t
+    SignalArray& signalData = signalMapIter.second;
+    auto& signalArray = signalData.signals;
+    ArrayADC adcs{};
     for (int tb = 0; tb < nTimeTotal; ++tb) {
-      float signalAmp = (float)adcArray[tb]; // The signal amplitude
-      signalAmp *= coupling;                 // Pad and time coupling
-      signalAmp *= padgain;                  // Gain factors
+      float signalAmp = (float)signalArray[tb]; // The signal amplitude
+      signalAmp *= coupling;                    // Pad and time coupling
+      signalAmp *= padgain;                     // Gain factors
       // Add the noise, starting from minus ADC baseline in electrons
       signalAmp = std::max((double)drawGaus(mGausRandomRings[thread], signalAmp, mSimParam->GetNoise()), -baselineEl);
       signalAmp *= convert;  // Convert to mV
@@ -449,8 +451,8 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& signalMapC
       adcs[tb] = adc;
     } // loop over timebins
     // Convert the map to digits here, and push them to the container
-    size_t labelIdx = (size_t)adcArray[kTB];
-    digits.emplace_back(det, row, col, adcs, labelIdx);
+    size_t labelIndex = signalData.labelIndex;
+    digits.emplace_back(det, row, col, adcs, labelIndex, getEventTime());
   } // loop over digits
   return true;
 }
