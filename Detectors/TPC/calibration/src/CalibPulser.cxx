@@ -249,29 +249,33 @@ void CalibPulser::analyse()
 }
 
 //______________________________________________________________________________
-void CalibPulser::dumpToFile(const std::string filename)
+void CalibPulser::dumpToFile(const std::string filename, uint32_t type /* = 0*/)
 {
   auto f = std::unique_ptr<TFile>(TFile::Open(filename.c_str(), "recreate"));
-  f->WriteObject(&mT0, "T0");
-  f->WriteObject(&mWidth, "Width");
-  f->WriteObject(&mQtot, "Qtot");
+  if (type == 0) {
+    f->WriteObject(&mT0, "T0");
+    f->WriteObject(&mWidth, "Width");
+    f->WriteObject(&mQtot, "Qtot");
 
-  if (mDebugLevel) {
-    printf("dump debug info\n");
-    // temporary arrays for writing the objects
-    TObjArray vT0;
-    for (auto& val : mT0Histograms)
-      vT0.Add(val.get());
-    TObjArray vWidth;
-    for (auto& val : mWidthHistograms)
-      vWidth.Add(val.get());
-    TObjArray vQtot;
-    for (auto& val : mQtotHistograms)
-      vQtot.Add(val.get());
+    if (mDebugLevel) {
+      printf("dump debug info\n");
+      // temporary arrays for writing the objects
+      TObjArray vT0;
+      for (auto& val : mT0Histograms)
+        vT0.Add(val.get());
+      TObjArray vWidth;
+      for (auto& val : mWidthHistograms)
+        vWidth.Add(val.get());
+      TObjArray vQtot;
+      for (auto& val : mQtotHistograms)
+        vQtot.Add(val.get());
 
-    vT0.Write("T0Histograms", TObject::kSingleKey);
-    vWidth.Write("WidthHistograms", TObject::kSingleKey);
-    vQtot.Write("QtotHistograms", TObject::kSingleKey);
+      vT0.Write("T0Histograms", TObject::kSingleKey);
+      vWidth.Write("WidthHistograms", TObject::kSingleKey);
+      vQtot.Write("QtotHistograms", TObject::kSingleKey);
+    }
+  } else if (type == 1) {
+    f->WriteObject(this, "CalibPulser");
   }
 
   f->Close();
