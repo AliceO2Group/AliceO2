@@ -95,7 +95,7 @@ using TrackExtra = TracksExtra::iterator;
 namespace calo
 {
 DECLARE_SOA_COLUMN(CollisionId, collisionId, int32_t, "fCollisionsID");
-DECLARE_SOA_COLUMN(CellNumber, cellNumber, int64_t, "fCellNumber");
+DECLARE_SOA_COLUMN(CellNumber, cellNumber, int16_t, "fCellNumber");
 DECLARE_SOA_COLUMN(Amplitude, amplitude, float, "fAmplitude");
 DECLARE_SOA_COLUMN(Time, time, float, "fTime");
 DECLARE_SOA_COLUMN(CellType, cellType, int8_t, "fCellType");
