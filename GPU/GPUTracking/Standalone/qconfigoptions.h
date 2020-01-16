@@ -141,6 +141,7 @@ AddOption(outputcontrolmem, unsigned long long int, 0, "outputMemory", 0, "Use p
 AddOption(affinity, int, -1, "cpuAffinity", 0, "Pin CPU affinity to this CPU core", min(-1), message("Setting affinity to restrict on CPU %d"))
 AddOption(fifo, bool, false, "fifoScheduler", 0, "Use FIFO realtime scheduler", message("Setting FIFO scheduler: %s"))
 AddOption(fpe, bool, true, "fpe", 0, "Trap on floating point exceptions")
+AddOption(flushDenormals, bool, true, "flushDenormals", 0, "Enable FTZ and DAZ (Flush all denormals to zero)")
 AddOption(solenoidBz, float, -1e6f, "solenoidBz", 0, "Field strength of solenoid Bz in kGaus")
 AddOption(constBz, bool, false, "constBz", 0, "Force constand Bz")
 AddOption(overrideMaxTimebin, bool, false, "overrideMaxTimebin", 0, "Override max time bin setting for continuous data with max time bin in time frame")

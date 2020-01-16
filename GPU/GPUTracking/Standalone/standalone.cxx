@@ -44,6 +44,7 @@
 #include <sys/stat.h>
 #endif
 #include "utils/timer.h"
+#include "utils/qmaths_helpers.h"
 
 #include "TPCFastTransform.h"
 #include "GPUTPCGMMergedTrack.h"
@@ -134,6 +135,9 @@ int ReadConfiguration(int argc, char** argv)
   }
   if (configStandalone.fpe) {
     feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
+  }
+  if (configStandalone.flushDenormals) {
+    disable_denormals();
   }
 
 #else
