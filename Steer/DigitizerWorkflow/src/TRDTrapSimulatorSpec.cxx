@@ -155,9 +155,6 @@ class TRDDPLTrapSimulatorTask{
               std::sort(digits.begin(),digits.end(), DigitSortComparator);//sortRuleLambda );
               //TODO optimisation : sort by frequency of trap chip and do all instances of the same trap at each init.
               //TODO dont sort, just build an index array 
-              // ArrayADC_t 
-              
-              
                    int oldmcm=-1;
                    int oldrob=-1;
                    int olddetector=-1;
@@ -195,6 +192,19 @@ class TRDDPLTrapSimulatorTask{
                         rob=mfeeparam->getROBfromPad(oldrow,oldpad);// 
                         LOG(debug3) << "processing of row,mcm" << " padrow changed from " << olddetector <<"," << oldrow << " to " << detector << "," << row;
                         //fireup Trapsim.
+
+                        for(int trapcounter=0;trapcounter<8;trapcounter++){
+                            if(mTrapSimulator[trapcounter].checkInitialized())){
+                                //this one has been filled with data for the now previous pad row.
+                                mTrapsimulator[trapcounter].Filter();
+                                if(feeParam->getTracklet()){
+                                    mTrapSimulator[trapcounter].Tracklet();
+                                    mTrapSimulator[trapcounter].StoreTracklets();
+                                }
+                                mTrapSimulator[trapcounter].ZSMapping();
+                                //TODO build message.
+                            }
+                        }
                         // mTrapSimulator.init(detector,rob,mcm);
                         // mTrapSimulator.setData(detector,digit.getADC());
 
@@ -215,22 +225,27 @@ class TRDDPLTrapSimulatorTask{
                           //check trap is initialised.
                           if(!mTrapSimulator[trapindex].checkInitialized()){
                               mTrapSimulator[trapindex].init(detector,rob,mcm);
-                              LOG(debug3) << "Initialised trapsimulator for triplet ("<< detector << "," << rob << "," << mcm << ")";
+                              LOG(debug3) << "Initialised trapsimulator for triplet ("<< detector << "," << rob << "," << mcm << ") as its not initialized and we need to send it some adc data.";
                           }
-                          int adc=0;
-                          //if(mTrapSimulator[trapindex].setData(adc,digititerator->getADC());
+                          
+                          adc=20-(pad % 18)-1;
+                          if(mTrapSimulator[trapindex].setData(adc,digititerator->getADC());
 
+                          LOG(debug3) << "pad: " << pad << " robfromPad:" << mfeeparam->getROBfromPad(row,pad) << " mcmfrompad:" << mfeeparam->getMCMfromPad(row,pad) << " adc : " << adc;
                           // now take care of the case of shared pads (the whole reason for doing this pad row wise).
 
                           if(pad%18==0 || (pad+1)%18==0){ //case of pad 18 and 19 must be shared to preceding trap chip adc 1 and 0 respectively.
                           //check trap is initialised.
+                          
+                              adc=20-(pad % 18)-1;
                               mTrapSimulator[trapindex-1].setData(adc,digititerator->getADC());
-                              LOG(debug3) << "shared pad: " << pad << " pad : " << pad << " robfromshared:" << mfeeparam->getROBfromSharedPad(row,pad) << " mcmfromshared:" << mfeeparam->getMCMfromSharedPad(row,pad);
+                              LOG(debug3) << "shared pad: " << pad << " pad : " << pad << " robfromshared:" << mfeeparam->getROBfromSharedPad(row,pad) << " mcmfromshared:" << mfeeparam->getMCMfromSharedPad(row,pad) << " adc : " << adc;
                           } 
                           if((pad-1)%18==0 ) { // case of pad 17 must shared to next trap chip as adc 20
                           //check trap is initialised.
+                              adc=20-(pad % 18)-1;
                               mTrapSimulator[trapindex+1].setData(adc,digititerator->getADC());
-                              LOG(debug3) << "shared pad: " << pad << " pad : " << pad << " robfromshared:" << mfeeparam->getROBfromSharedPad(row,pad) << " mcmfromshared:" << mfeeparam->getMCMfromSharedPad(row,pad);
+                              LOG(debug3) << "shared pad: " << pad << " pad : " << pad << " robfromshared:" << mfeeparam->getROBfromSharedPad(row,pad) << " mcmfromshared:" << mfeeparam->getMCMfromSharedPad(row,pad) << " adc : " << adc;
                           }
 
                        LOG(debug3) << "adding data for adc : " << adc << " for row,mcm combo of : "<< row <<"," << mcm;
