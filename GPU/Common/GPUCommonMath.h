@@ -60,6 +60,7 @@ class GPUCommonMath
   GPUhdni() static int Nint(float x);
   GPUhdni() static bool Finite(float x);
   GPUhdni() static unsigned int Clz(unsigned int val);
+  GPUhdni() static unsigned int Popcount(unsigned int val);
 
   GPUhdni() static float Log(float x);
   GPUd() static unsigned int AtomicExch(GPUglobalref() GPUAtomic(unsigned int) * addr, unsigned int val);
@@ -127,10 +128,26 @@ GPUhdi() unsigned int GPUCommonMath::Clz(unsigned int x)
   return x == 0 ? 32 : CHOICE(__builtin_clz(x), __clz(x), __builtin_clz(x)); // use builtin if available
 #else
   for (int i = 31; i >= 0; i--) {
-    if (x & (1 << i))
+    if (x & (1 << i)) {
       return (31 - i);
+    }
   }
   return 32;
+#endif
+}
+
+GPUhdi() unsigned int GPUCommonMath::Popcount(unsigned int x)
+{
+#if (defined(__GNUC__) || defined(__clang__) || defined(__CUDACC__) || defined(__HIPCC__)) && (!defined(__OPENCL__) || defined(__OPENCLCPP__))
+  return CHOICE(__builtin_popcount(x), __popc(x), __builtin_popcount(x)); // use builtin if available
+#else
+  unsigned int retVal = 0;
+  for (int i = 0; i < 32; i++) {
+    if (x & (1 << i)) {
+      retVal++;
+    }
+  }
+  return retVal;
 #endif
 }
 
