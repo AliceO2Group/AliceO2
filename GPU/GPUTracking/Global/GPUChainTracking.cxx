@@ -686,6 +686,11 @@ void GPUChainTracking::ConvertRun2RawToNative()
   mIOPtrs.clustersNative = mClusterNativeAccess.get();
 }
 
+void GPUChainTracking::ConvertZSEncoder()
+{
+  GPUReconstructionConvert::RunZSEncoder(mIOPtrs.tpcPackedDigits, mIOPtrs.tpcZS, param());
+}
+
 void GPUChainTracking::LoadClusterErrors() { param().LoadClusterErrors(); }
 
 void GPUChainTracking::SetTPCFastTransform(std::unique_ptr<TPCFastTransform>&& tpcFastTransform)

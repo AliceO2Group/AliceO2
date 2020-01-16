@@ -109,6 +109,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int ConvertNativeToClusterData();
   void ConvertNativeToClusterDataLegacy();
   void ConvertRun2RawToNative();
+  void ConvertZSEncoder();
 
   // Getters for external usage of tracker classes
   GPUTRDTracker* GetTRDTracker() { return &processors()->trdTracker; }

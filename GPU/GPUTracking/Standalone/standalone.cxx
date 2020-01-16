@@ -510,6 +510,13 @@ int main(int argc, char** argv)
             break;
           }
         }
+        if (configStandalone.encodeZS) {
+          if (!chainTracking->mIOPtrs.tpcPackedDigits) {
+            printf("Need digit input to run ZS\n");
+            goto breakrun;
+          }
+          chainTracking->ConvertZSEncoder();
+        }
         if (!configStandalone.configRec.runTransformation) {
           chainTracking->mIOPtrs.clustersNative = nullptr;
         } else {
