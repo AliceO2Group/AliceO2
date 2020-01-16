@@ -118,7 +118,10 @@ class CalibRawBase
   void rewindEvents();
 
   /// Dump the relevant data to file
-  virtual void dumpToFile(const std::string filename) {}
+  virtual void dumpToFile(const std::string filename, uint32_t type = 0) {}
+
+  /// increment number of events
+  void incrementNEvents() { ++mNevents; }
 
   /// number of processed events
   size_t getNumberOfProcessedEvents() const { return mNevents; }
@@ -128,6 +131,9 @@ class CalibRawBase
 
   /// check if present event is complete
   bool isPresentEventComplete() const { return mRawReaderCRUManager.isEventComplete(mPresentEventNumber); }
+
+  /// number of processed time bins in last event
+  void setNumberOfProcessedTimeBins(size_t timeBins) { mProcessedTimeBins = timeBins; }
 
   /// number of processed time bins in last event
   size_t getNumberOfProcessedTimeBins() const { return mProcessedTimeBins; }

@@ -149,12 +149,16 @@ void CalibPedestal::resetData()
 }
 
 //______________________________________________________________________________
-void CalibPedestal::dumpToFile(const std::string filename)
+void CalibPedestal::dumpToFile(const std::string filename, uint32_t type /* = 0*/)
 {
   auto f = std::unique_ptr<TFile>(TFile::Open(filename.c_str(), "recreate"));
-  f->WriteObject(&mPedestal, "Pedestals");
-  f->WriteObject(&mNoise, "Noise");
-  f->Close();
+  if (type == 0) {
+    f->WriteObject(&mPedestal, "Pedestals");
+    f->WriteObject(&mNoise, "Noise");
+    f->Close();
+  } else if (type == 1) {
+    f->WriteObject(this, "CalibPedestal");
+  }
 }
 
 //______________________________________________________________________________

@@ -135,7 +135,7 @@ class CalibPulser : public CalibRawBase
   const CalPad& getQtot() const { return mQtot; }
 
   /// Dump the relevant data to file
-  void dumpToFile(const std::string filename) final;
+  void dumpToFile(const std::string filename, uint32_t type = 0) final;
 
   /// Process the end of one raw reader
   void endReader() final;
