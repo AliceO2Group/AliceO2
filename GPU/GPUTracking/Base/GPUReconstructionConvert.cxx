@@ -223,9 +223,10 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
         sizeChk += (tmpBuffer[k].time != lastTime || tmpBuffer[k].row != lastRow) ? 3 : 0;                          // new row overhead
         sizeChk += (lastTime != -1 && tmpBuffer[k].time > lastTime) ? ((tmpBuffer[k].time - lastTime - 1) * 2) : 0; // empty time bins
         sizeChk += 2;                                                                                               // sequence metadata
-        sizeChk += ((seqLen + streamSize) * encodeBits + 7) / 8;                                                    // adc buffer + sequence length
-        if (sizeChk > TPCZSHDR::TPC_ZS_PAGE_SIZE) {
+        if (sizeChk + ((1 + streamSize) * encodeBits + 7) / 8 > TPCZSHDR::TPC_ZS_PAGE_SIZE) {
           lastEndpoint = -1;
+        } else if (sizeChk + ((seqLen + streamSize) * encodeBits + 7) / 8 > TPCZSHDR::TPC_ZS_PAGE_SIZE) {
+          seqLen = (TPCZSHDR::TPC_ZS_PAGE_SIZE - sizeChk) * 8 / encodeBits - streamSize;
         }
         if (lastTime != -1 && (int)hdr->nTimeBins + tmpBuffer[k].time - lastTime >= 256) {
           lastEndpoint = -1;
