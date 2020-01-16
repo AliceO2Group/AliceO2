@@ -72,6 +72,7 @@ set(SRCS_NO_CINT
     Base/GPUKernelDebugOutput.cxx
     Global/GPUChain.cxx
     Global/GPUChainTracking.cxx
+    Global/GPUTrackingInputProvider.cxx
     Standalone/utils/timer.cxx)
 
 set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
