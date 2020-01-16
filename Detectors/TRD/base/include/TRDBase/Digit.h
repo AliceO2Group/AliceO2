@@ -45,12 +45,12 @@ class Digit : TimeStamp
   void setDetector(int det) { mDetector = det; }
   void setRow(int row) { mRow = row; }
   void setPad(int pad) { mPad = pad; }
-  void setADC(ArrayADC adc) { mADC = adc; }
+  void setADC(ArrayADC const& adc) { mADC = adc; }
   // Get methods
   int getDetector() const { return mDetector; }
   int getRow() const { return mRow; }
   int getPad() const { return mPad; }
-  ArrayADC getADC() const& { return mADC; }
+  ArrayADC const& getADC() const { return mADC; }
   size_t getLabelIndex() const { return mLabelIdx; }
 
  private:
