@@ -8,67 +8,54 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TrackReaderSpec.h
+/// @file   VertexReaderSpec.h
 
-#ifndef O2_ITS_TRACKREADER
-#define O2_ITS_TRACKREADER
+#ifndef O2_ITS_VERTEXREADER
+#define O2_ITS_VERTEXREADER
 
 #include "TFile.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "Headers/DataHeader.h"
-#include "DataFormatsITS/TrackITS.h"
-#include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
-#include "DataFormatsITSMFT/ROFRecord.h"
 #include "ReconstructionDataFormats/Vertex.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 
 namespace o2
 {
 namespace its
 {
+// read ITS vertices from the output tree of ITS tracking
 
-class TrackReader : public o2::framework::Task
+class VertexReader : public o2::framework::Task
 {
   using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
  public:
-  TrackReader(bool useMC = true);
-  ~TrackReader() override = default;
+  VertexReader() = default;
+  ~VertexReader() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
 
  protected:
   void accumulate();
 
-  std::vector<o2::itsmft::ROFRecord> mROFRec, *mROFRecInp = &mROFRec;
   std::vector<o2::itsmft::ROFRecord> mVerticesROFRec, *mVerticesROFRecInp = &mVerticesROFRec;
-  std::vector<o2::its::TrackITS> mTracks, *mTracksInp = &mTracks;
   std::vector<Vertex> mVertices, *mVerticesInp = &mVertices;
-  std::vector<int> mClusInd, *mClusIndInp = &mClusInd;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruth, *mMCTruthInp = &mMCTruth;
 
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginITS;
 
   bool mFinished = false;
-  bool mUseMC = true; // use MC truth
-
   std::string mInputFileName = "";
-  std::string mTrackTreeName = "o2sim";
-  std::string mROFBranchName = "ITSTracksROF";
-  std::string mTrackBranchName = "ITSTrack";
-  std::string mClusIdxBranchName = "ITSTrackClusIdx";
+  std::string mVertexTreeName = "o2sim";
   std::string mVertexBranchName = "Vertices";
   std::string mVertexROFBranchName = "VerticesROF";
-  std::string mTrackMCTruthBranchName = "ITSTrackMCTruth";
 };
 
 /// create a processor spec
-/// read ITS track data from a root file
-framework::DataProcessorSpec getITSTrackReaderSpec(bool useMC = true);
+/// read ITS vertex data from a root file
+o2::framework::DataProcessorSpec getITSVertexReaderSpec();
 
 } // namespace its
 } // namespace o2
 
-#endif /* O2_ITS_TRACKREADER */
+#endif /* O2_ITS_VERTEXREADER */
