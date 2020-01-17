@@ -14,6 +14,8 @@
 #include "Framework/DataProcessor.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DeviceState.h"
+#include "Framework/DispatchPolicy.h"
+#include "Framework/DispatchControl.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/FairOptionsRetriever.h"
 #include "Framework/FairMQDeviceProxy.h"
@@ -79,9 +81,15 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
   auto dispatcher = [this](FairMQParts&& parts, std::string const& channel, unsigned int index) {
     DataProcessor::doSend(*this, std::move(parts), channel.c_str(), index);
   };
+  auto matcher = [policy = spec.dispatchPolicy](o2::header::DataHeader const& header) {
+    if (policy.triggerMatcher == nullptr) {
+      return true;
+    }
+    return policy.triggerMatcher(Output{header});
+  };
 
   if (spec.dispatchPolicy.action == DispatchPolicy::DispatchOp::WhenReady) {
-    mFairMQContext.init(dispatcher);
+    mFairMQContext.init(DispatchControl{dispatcher, matcher});
   }
 }
 

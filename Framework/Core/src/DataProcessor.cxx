@@ -34,23 +34,23 @@ namespace framework
 
 void DataProcessor::doSend(FairMQDevice& device, FairMQParts&& parts, const char* channel, unsigned int index)
 {
-  assert(parts.Size() == 2);
   device.Send(parts, channel, index);
 }
 
 void DataProcessor::doSend(FairMQDevice& device, MessageContext& context)
 {
-  std::unordered_map<std::string, FairMQParts> messages;
-  for (auto& message : context) {
+  std::unordered_map<std::string, FairMQParts> outputs;
+  auto contextMessages = context.getMessagesForSending();
+  for (auto& message : contextMessages) {
     //     monitoringService.send({ message->parts.Size(), "outputs/total" });
     FairMQParts parts = std::move(message->finalize());
     assert(message->empty());
     assert(parts.Size() == 2);
     for (auto& part : parts) {
-      messages[message->channel()].AddPart(std::move(part));
+      outputs[message->channel()].AddPart(std::move(part));
     }
   }
-  for (auto& [channel, parts] : messages) {
+  for (auto& [channel, parts] : outputs) {
     device.Send(parts, channel, 0);
   }
 }

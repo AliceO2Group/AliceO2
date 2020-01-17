@@ -41,7 +41,7 @@ struct DispatchPolicy {
 
   using DeviceMatcher = std::function<bool(DeviceSpec const& device)>;
   // OutputMatcher can be a later extension, but not expected to be of high priority
-  using OutputMatcher = std::function<bool(Output const&)>;
+  using TriggerMatcher = std::function<bool(Output const&)>;
 
   /// Name of the policy itself.
   std::string name;
@@ -50,6 +50,8 @@ struct DispatchPolicy {
   DeviceMatcher deviceMatcher;
   /// the action to be used for matched devices
   DispatchOp action = DispatchOp::AfterComputation;
+  /// matcher on specific output to trigger sending
+  TriggerMatcher triggerMatcher = [](Output const&) { return true; };
 
   /// Helper to create the default configuration.
   static std::vector<DispatchPolicy> createDefaultPolicies();
