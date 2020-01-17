@@ -115,14 +115,13 @@ class FDDDPLDigitizerTask
       for (auto& part : eventParts[collID]) {
         mDigitizer->SetEventID(part.entryID);
         mDigitizer->SetSrcID(part.sourceID);
-	labels.clear();
-	
+        labels.clear();
+
         // get the hits for this event and this source
         std::vector<o2::fdd::Hit> hits;
         retrieveHits(mSimChains, "FDDHit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found FDD " << hits.size() << " hits ";
-	
-        
+
         mDigitizer->process(&hits, &digit);
         labelsAccum.mergeAtBack(labels);
       }
