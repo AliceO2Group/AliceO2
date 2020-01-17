@@ -202,6 +202,7 @@ if(GPUCA_EVENT_DISPLAY)
   set(SRCS_NO_H ${SRCS_NO_H} Standalone/display/GPUDisplayQuaternion.cxx
                 Standalone/display/GPUDisplayInterpolation.cxx
                 Standalone/display/GPUDisplayKeys.cxx)
+  set(HDRS_INSTALL ${HDRS_INSTALL} Standalone/display/GPUDisplayExt.h)
 else()
   set(HDRS_INSTALL ${HDRS_INSTALL} Standalone/display/GPUDisplay.h)
 endif()

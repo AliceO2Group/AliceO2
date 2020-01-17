@@ -11,16 +11,13 @@
 /// \file GPUDisplayBackendGlfw.cxx
 /// \author David Rohr
 
+// GL EXT must be the first header
+#include "GPUDisplayExt.h"
+
 #include "GPUDisplayBackendGlfw.h"
 #include "GPULogging.h"
 
-//#ifdef GPUCA_O2_LIB //Use GL3W for O2, GLEW otherwise
-//#include "../src/GL/gl3w.h"
-//#else
-#include <GL/glew.h>
-//#endif
-
-#ifdef GPUCA_O2_LIB // Hack: we have to define this in order to initialize gl3w, cannot include the header as it clashes with glew
+#if defined(GPUCA_O2_LIB) && !defined(GPUCA_DISPLAY_GL3W) // Hack: we have to define this in order to initialize gl3w, cannot include the header as it clashes with glew
 extern "C" int gl3wInit();
 #endif
 
@@ -250,15 +247,12 @@ int GPUDisplayBackendGlfw::OpenGLMain()
   mGlfwRunning = true;
   pthread_mutex_unlock(&mSemLockExit);
 
-  //#ifdef GPUCA_O2_LIB //Use GL3W for O2, GLEW otherwise
-  //	if (gl3wInit()) return(-1);
-  //#else
-  if (glewInit()) {
+  if (GPUDisplayExtInit()) {
+    fprintf(stderr, "Error initializing GL extension wrapper\n");
     return (-1);
   }
-  //#endif
 
-#ifdef GPUCA_O2_LIB
+#if defined(GPUCA_O2_LIB) && !defined(GPUCA_DISPLAY_GL3W)
   if (gl3wInit()) {
     return (-1); // Hack: We have to initialize gl3w as well, as the DebugGUI uses it.
   }
