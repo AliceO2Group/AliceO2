@@ -226,8 +226,8 @@ int GPUDisplayBackendGlfw::OpenGLMain()
   glfwSetErrorCallback(error_callback);
 
   glfwWindowHint(GLFW_MAXIMIZED, 1);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, GL_MIN_VERSION_MAJOR);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, GL_MIN_VERSION_MINOR);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 0);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
   mWindow = glfwCreateWindow(INIT_WIDTH, INIT_HEIGHT, GL_WINDOW_NAME, nullptr, nullptr);

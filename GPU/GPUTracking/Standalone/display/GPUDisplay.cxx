@@ -587,8 +587,8 @@ int GPUDisplay::InitGL_internal()
   int glVersion[2] = {0, 0};
   glGetIntegerv(GL_MAJOR_VERSION, &glVersion[0]);
   glGetIntegerv(GL_MINOR_VERSION, &glVersion[1]);
-  if (glVersion[0] < 4 || (glVersion[0] == 4 && glVersion[1] < 5)) {
-    GPUError("Unsupported OpenGL runtime %d.%d < 4.5", glVersion[0], glVersion[1]);
+  if (glVersion[0] < GPUDisplayBackend::GL_MIN_VERSION_MAJOR || (glVersion[0] == GPUDisplayBackend::GL_MIN_VERSION_MAJOR && glVersion[1] < GPUDisplayBackend::GL_MIN_VERSION_MINOR)) {
+    GPUError("Unsupported OpenGL runtime %d.%d < %d.%d", glVersion[0], glVersion[1], GPUDisplayBackend::GL_MIN_VERSION_MAJOR, GPUDisplayBackend::GL_MIN_VERSION_MINOR);
     return (1);
   }
 
@@ -1087,7 +1087,6 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
   if (!mixAnimation && mOffscreenBuffer.created) {
     setFrameBuffer(1, mOffscreenBuffer.fb_id);
   }
-
   // Initialize
   if (!mixAnimation) {
     if (mInvertColors) {
@@ -1354,7 +1353,6 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
     mBackend->mMouseDnX = mBackend->mouseMvX;
     mBackend->mMouseDnY = mBackend->mouseMvY;
   }
-
   // Open GL Default Values
   if (mCfg.smoothPoints) {
     CHKERR(glEnable(GL_POINT_SMOOTH));
