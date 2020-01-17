@@ -21,6 +21,8 @@
 #include <cstdlib>
 #include <cstring>
 
+typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
+
 using namespace GPUCA_NAMESPACE::gpu;
 
 int GPUDisplayBackendX11::GetKey(int key)
@@ -210,7 +212,17 @@ int GPUDisplayBackendX11::OpenGLMain()
   }
 
   // Create an OpenGL rendering context
-  glxContext = glXCreateContext(mDisplay, visualInfo, nullptr, GL_TRUE);
+  glXCreateContextAttribsARBProc glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc)glXGetProcAddressARB((const GLubyte*)"glXCreateContextAttribsARB");
+  if (glXCreateContextAttribsARB) {
+    int context_attribs[] = {
+      GLX_CONTEXT_MAJOR_VERSION_ARB, GL_MIN_VERSION_MAJOR,
+      GLX_CONTEXT_MINOR_VERSION_ARB, GL_MIN_VERSION_MINOR,
+      GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
+      None};
+    glxContext = glXCreateContextAttribsARB(mDisplay, fbconfig, nullptr, GL_TRUE, context_attribs);
+  } else {
+    glxContext = glXCreateContext(mDisplay, visualInfo, nullptr, GL_TRUE);
+  }
   if (glxContext == nullptr) {
     GPUError("could not create rendering context");
     return (-1);
