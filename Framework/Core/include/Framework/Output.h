@@ -50,6 +50,12 @@ struct Output {
   {
   }
 
+  Output(header::DataHeader const& header)
+    : origin(header.dataOrigin), description(header.dataDescription), subSpec(header.subSpecification)
+  {
+    // TODO: we might also want to create the stack object as a copy
+  }
+
   Output(const Output&& rhs)
     : origin(rhs.origin),
       description(rhs.description),
