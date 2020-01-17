@@ -63,8 +63,21 @@ class ROFRecord
   {
     return gsl::span<const T>(&tfdata[getFirstEntry()], getNEntries());
   }
+
   template <typename T>
   const T* getROFDataAt(int i, const gsl::span<const T> tfdata) const
+  {
+    return i < getNEntries() ? &tfdata[getFirstEntry() + i] : nullptr;
+  }
+
+  template <typename T>
+  gsl::span<const T> getROFData(const std::vector<T>& tfdata) const
+  {
+    return gsl::span<const T>(&tfdata[getFirstEntry()], getNEntries());
+  }
+
+  template <typename T>
+  const T* getROFDataAt(int i, const std::vector<T>& tfdata) const
   {
     return i < getNEntries() ? &tfdata[getFirstEntry() + i] : nullptr;
   }

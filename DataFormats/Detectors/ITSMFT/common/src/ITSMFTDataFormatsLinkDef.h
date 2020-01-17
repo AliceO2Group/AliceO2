@@ -36,10 +36,24 @@
 #pragma link C++ function o2::itsmft::getROFData(const gsl::span <const o2::itsmft::Cluster> tfdata) const;
 #pragma link C++ function o2::itsmft::getROFData(const gsl::span <const o2::itsmft::CompCluster> tfdata) const;
 #pragma link C++ function o2::itsmft::getROFData(const gsl::span <const o2::itsmft::CompClusterExt> tfdata) const;
+#pragma link C++ function o2::itsmft::getROFData(const gsl::span < const o2::dataformats::Vertex <o2::dataformats::TimeStamp <int>> tfdata) const;
 
 #pragma link C++ function o2::itsmft::getROFDataAt(int i, const gsl::span <const o2::itsmft::Digit> tfdata) const;
 #pragma link C++ function o2::itsmft::getROFDataAt(int i, const gsl::span <const o2::itsmft::Cluster> tfdata) const;
 #pragma link C++ function o2::itsmft::getROFDataAt(int i, const gsl::span <const o2::itsmft::CompCluster> tfdata) const;
 #pragma link C++ function o2::itsmft::getROFDataAt(int i, const gsl::span <const o2::itsmft::CompClusterExt> tfdata) const;
+#pragma link C++ function o2::itsmft::getROFDataAt(int i, const gsl::span <const o2::dataformats::Vertex <o2::dataformats::TimeStamp <int>>> tfdata) const;
+
+#pragma link C++ function o2::itsmft::getROFData(const std::vector <o2::itsmft::Digit>& tfdata) const;
+#pragma link C++ function o2::itsmft::getROFData(const std::vector <o2::itsmft::Cluster>& tfdata) const;
+#pragma link C++ function o2::itsmft::getROFData(const std::vector <o2::itsmft::CompCluster>& tfdata) const;
+#pragma link C++ function o2::itsmft::getROFData(const std::vector <o2::itsmft::CompClusterExt>& tfdata) const;
+#pragma link C++ function o2::itsmft::getROFData(const gsl::span < const o2::dataformats::Vertex <o2::dataformats::TimeStamp <int>>& tfdata) const;
+
+#pragma link C++ function o2::itsmft::getROFDataAt(int i, const std::vector <o2::itsmft::Digit>& tfdata) const;
+#pragma link C++ function o2::itsmft::getROFDataAt(int i, const std::vector <o2::itsmft::Cluster>& tfdata) const;
+#pragma link C++ function o2::itsmft::getROFDataAt(int i, const std::vector <o2::itsmft::CompCluster>& tfdata) const;
+#pragma link C++ function o2::itsmft::getROFDataAt(int i, const std::vector <o2::itsmft::CompClusterExt>& tfdata) const;
+#pragma link C++ function o2::itsmft::getROFDataAt(int i, const std::vector <o2::dataformats::Vertex <o2::dataformats::TimeStamp <int>>>& tfdata) const;
 
 #endif

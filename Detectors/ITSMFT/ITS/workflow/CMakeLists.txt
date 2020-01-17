@@ -17,7 +17,8 @@ o2_add_library(ITSWorkflow
                        src/CookedTrackerSpec.cxx
                        src/TrackWriterSpec.cxx
                        src/TrackReaderSpec.cxx
-               PUBLIC_LINK_LIBRARIES O2::Framework
+		       src/VertexReaderSpec.cxx
+	       PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::SimConfig
                                      O2::DataFormatsITS
                                      O2::SimulationDataFormat

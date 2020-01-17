@@ -18,20 +18,18 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
-using namespace o2::framework;
-
 namespace o2
 {
 namespace its
 {
 
-class TrackWriter : public Task
+class TrackWriter : public o2::framework::Task
 {
  public:
   TrackWriter(bool useMC) : mUseMC(useMC) {}
   ~TrackWriter() override = default;
-  void init(InitContext& ic) final;
-  void run(ProcessingContext& pc) final;
+  void init(o2::framework::InitContext& ic) final;
+  void run(o2::framework::ProcessingContext& pc) final;
 
  private:
   int mState = 0;
@@ -41,7 +39,7 @@ class TrackWriter : public Task
 
 /// create a processor spec
 /// write ITS tracks a root file
-framework::DataProcessorSpec getTrackWriterSpec(bool useMC);
+o2::framework::DataProcessorSpec getTrackWriterSpec(bool useMC);
 
 } // namespace its
 } // namespace o2

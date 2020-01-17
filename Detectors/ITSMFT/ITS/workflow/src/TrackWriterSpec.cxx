@@ -21,6 +21,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "ReconstructionDataFormats/Vertex.h"
 
 using namespace o2::framework;
 
@@ -28,6 +29,7 @@ namespace o2
 {
 namespace its
 {
+using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 void TrackWriter::init(InitContext& ic)
 {
@@ -49,6 +51,8 @@ void TrackWriter::run(ProcessingContext& pc)
   auto tracks = pc.inputs().get<const std::vector<o2::its::TrackITS>>("tracks");
   auto clusIdx = pc.inputs().get<gsl::span<int>>("trackClIdx");
   auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
+  auto vertices = pc.inputs().get<const std::vector<Vertex>>("vertices");
+  auto verticesROF = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("verticesROF");
 
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* plabels = nullptr;
@@ -64,6 +68,8 @@ void TrackWriter::run(ProcessingContext& pc)
   TTree tree("o2sim", "Tree with ITS tracks");
   tree.Branch("ITSTrack", &tracks);
   tree.Branch("ITSTrackClusIdx", &clusIdxOutPtr);
+  tree.Branch("Vertices", &vertices);
+  tree.Branch("VerticesROF", &verticesROF);
   if (mUseMC) {
     labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
     plabels = labels.get();
@@ -97,6 +103,8 @@ DataProcessorSpec getTrackWriterSpec(bool useMC)
   inputs.emplace_back("tracks", "ITS", "TRACKS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackClIdx", "ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
   inputs.emplace_back("ROframes", "ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("vertices", "ITS", "VERTICES", 0, Lifetime::Timeframe);
+  inputs.emplace_back("verticesROF", "ITS", "VERTICESROF", 0, Lifetime::Timeframe);
   if (useMC) {
     inputs.emplace_back("labels", "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
     inputs.emplace_back("MC2ROframes", "ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);

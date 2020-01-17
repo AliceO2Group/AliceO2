@@ -37,6 +37,7 @@ namespace o2
 using namespace framework;
 namespace its
 {
+using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 void TrackerDPL::init(InitContext& ic)
 {
@@ -90,6 +91,9 @@ void TrackerDPL::run(ProcessingContext& pc)
   std::vector<o2::its::TrackITS> allTracks;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> allTrackLabels;
 
+  std::vector<o2::itsmft::ROFRecord> vertROFvec;
+  std::vector<Vertex> vertices;
+
   std::uint32_t roFrame = 0;
   ROframe event(0);
 
@@ -114,7 +118,8 @@ void TrackerDPL::run(ProcessingContext& pc)
       if (nclUsed) {
         LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
         mVertexer->clustersToVertices(event);
-        event.addPrimaryVertices(mVertexer->exportVertices());
+        auto vtxVecLoc = mVertexer->exportVertices();
+        event.addPrimaryVertices(vtxVecLoc);
         mTracker->setROFrame(roFrame);
         mTracker->clustersToTracks(event);
         tracks.swap(mTracker->getTracks());
@@ -127,6 +132,14 @@ void TrackerDPL::run(ProcessingContext& pc)
         rofs[roFrame].setNEntries(number);
         copyTracks(tracks, allTracks, allClusIdx, shiftIdx);
         allTrackLabels.mergeAtBack(trackLabels);
+
+        // for vertices output
+        auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
+        vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
+        vtxROF.setNEntries(vtxVecLoc.size());
+        for (const auto& vtx : vtxVecLoc) {
+          vertices.push_back(vtx);
+        }
       }
       roFrame++;
     }
@@ -144,12 +157,15 @@ void TrackerDPL::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{"ITS", "TRACKCLSID", 0, Lifetime::Timeframe}, allClusIdx);
   pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
   pc.outputs().snapshot(Output{"ITS", "ITSTrackROF", 0, Lifetime::Timeframe}, rofs);
+  pc.outputs().snapshot(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe}, vertices);
+  pc.outputs().snapshot(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe}, vertROFvec);
   if (mIsMC) {
     pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
     pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
   }
 
   mState = 2;
+  pc.services().get<ControlService>().endOfStream();
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
@@ -164,12 +180,14 @@ DataProcessorSpec getTrackerSpec(bool useMC)
   outputs.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "VERTICESROF", 0, Lifetime::Timeframe);
 
   if (useMC) {
     inputs.emplace_back("labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
     inputs.emplace_back("MC2ROframes", "ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
