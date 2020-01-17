@@ -186,7 +186,9 @@ int GPUDisplayBackendX11::OpenGLMain()
   const char* glxExt = glXQueryExtensionsString(mDisplay, DefaultScreen(mDisplay));
   if (strstr(glxExt, "GLX_EXT_swap_control") == nullptr) {
     GPUError("No vsync support!");
-    return (-1);
+    vsync_supported = false;
+  } else {
+    vsync_supported = true;
   }
 
   // Require MSAA, double buffering, and Depth buffer
@@ -275,12 +277,14 @@ int GPUDisplayBackendX11::OpenGLMain()
   int x11_fd = ConnectionNumber(mDisplay);
 
   // Enable vsync
-  mGlXSwapIntervalEXT = (PFNGLXSWAPINTERVALEXTPROC)glXGetProcAddressARB((const GLubyte*)"glXSwapIntervalEXT");
-  if (mGlXSwapIntervalEXT == nullptr) {
-    GPUError("Cannot enable vsync");
-    return (-1);
+  if (vsync_supported) {
+    mGlXSwapIntervalEXT = (PFNGLXSWAPINTERVALEXTPROC)glXGetProcAddressARB((const GLubyte*)"glXSwapIntervalEXT");
+    if (mGlXSwapIntervalEXT == nullptr) {
+      GPUError("Cannot enable vsync");
+      return (-1);
+    }
+    mGlXSwapIntervalEXT(mDisplay, glXGetCurrentDrawable(), 0);
   }
-  mGlXSwapIntervalEXT(mDisplay, glXGetCurrentDrawable(), 0);
 
   if (InitGL()) {
     return (1);
@@ -462,7 +466,12 @@ void GPUDisplayBackendX11::ToggleMaximized(bool set)
   XSendEvent(mDisplay, DefaultRootWindow(mDisplay), False, SubstructureNotifyMask, &xev);
 }
 
-void GPUDisplayBackendX11::SetVSync(bool enable) { mGlXSwapIntervalEXT(mDisplay, glXGetCurrentDrawable(), (int)enable); }
+void GPUDisplayBackendX11::SetVSync(bool enable)
+{
+  if (vsync_supported) {
+    mGlXSwapIntervalEXT(mDisplay, glXGetCurrentDrawable(), (int)enable);
+  }
+}
 
 int GPUDisplayBackendX11::StartDisplay()
 {
