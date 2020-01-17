@@ -217,6 +217,7 @@ int GPUDisplayBackendGlut::OpenGLMain()
     return (-1);
   }
   if (InitGL()) {
+    fprintf(stderr, "Error in OpenGL initialization\n");
     return (1);
   }
 
