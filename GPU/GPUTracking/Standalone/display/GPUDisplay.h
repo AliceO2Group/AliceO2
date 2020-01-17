@@ -19,6 +19,7 @@
 // GL EXT must be the first header
 #include "GPUDisplayExt.h"
 
+// Runtime minimum version defined in GPUDisplayBackend.h, keep in sync!
 #if !defined(GL_VERSION_4_5) || GL_VERSION_4_5 != 1
 #ifdef GPUCA_STANDALONE
 #error Unsupported OpenGL version < 4.5
