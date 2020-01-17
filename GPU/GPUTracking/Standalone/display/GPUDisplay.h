@@ -15,15 +15,9 @@
 #define GPUDISPLAY_H
 
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
-#ifdef GPUCA_O2_LIB
-//#define GPUCA_DISPLAY_GL3W
-#endif
 
-#ifdef GPUCA_DISPLAY_GL3W
-#include "../src/GL/gl3w.h"
-#else
-#include <GL/glew.h>
-#endif
+// GL EXT must be the first header
+#include "GPUDisplayExt.h"
 
 #if !defined(GL_VERSION_4_5) || GL_VERSION_4_5 != 1
 #ifdef GPUCA_STANDALONE

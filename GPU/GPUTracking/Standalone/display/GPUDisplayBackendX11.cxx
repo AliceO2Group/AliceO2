@@ -11,8 +11,8 @@
 /// \file GPUDisplayBackendX11.cxx
 /// \author David Rohr
 
-// GLEW must be the first header
-#include <GL/glew.h>
+// GL EXT must be the first header
+#include "GPUDisplayExt.h"
 
 // Now the other headers
 #include "GPUDisplayBackendX11.h"
@@ -254,7 +254,8 @@ int GPUDisplayBackendX11::OpenGLMain()
   }
 
   // Init OpenGL...
-  if (glewInit()) {
+  if (GPUDisplayExtInit()) {
+    fprintf(stderr, "Error initializing GL extension wrapper\n");
     return (-1);
   }
 

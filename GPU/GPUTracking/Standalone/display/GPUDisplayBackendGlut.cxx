@@ -11,8 +11,8 @@
 /// \file GPUDisplayBackendGlut.cxx
 /// \author David Rohr
 
-// GLEW must be the first header
-#include <GL/glew.h>
+// GL EXT must be the first header
+#include "GPUDisplayExt.h"
 
 // Now the other headers
 #include "GPUDisplayBackendGlut.h"
@@ -212,7 +212,8 @@ int GPUDisplayBackendGlut::OpenGLMain()
   glutCreateWindow(GL_WINDOW_NAME);
   glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 
-  if (glewInit()) {
+  if (GPUDisplayExtInit()) {
+    fprintf(stderr, "Error initializing GL extension wrapper\n");
     return (-1);
   }
   if (InitGL()) {

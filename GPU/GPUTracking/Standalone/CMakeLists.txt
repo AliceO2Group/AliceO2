@@ -191,6 +191,10 @@ if(BUILD_EVENT_DISPLAY)
                              glut)
   target_sources(GPUTracking PRIVATE display/GPUDisplayBackendX11.cxx
                              display/GPUDisplayBackendGlut.cxx)
+  if(CONFIG_GL3W)
+    target_sources(GPUTracking PRIVATE display/gl3w/gl3w.c)
+    target_compile_definitions(GPUTracking PUBLIC GPUCA_DISPLAY_GL3W)
+  endif()
 endif()
 
 if(CONFIG_ROOT)
