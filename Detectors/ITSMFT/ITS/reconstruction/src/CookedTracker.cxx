@@ -214,7 +214,8 @@ static o2::its::TrackITSExt cookSeed(const Point3Df& r1, Point3Df& r2, const Poi
   const auto big = sqrt(o2::constants::math::VeryBig);
   auto cy = big;
   if (TMath::Abs(bz) >= Almost0) {
-    cy = (f1(x1, y1, x2, y2 + dlt, x3, y3) - crv) / dlt / bz / B2C;
+    auto tmp = dlt * bz * B2C;
+    cy = (f1(x1, y1, x2, y2 + dlt, x3, y3) - crv) / tmp;
     cy *= 20; // FIXME: MS contribution to the cov[14]
   }
   Double_t s2 = kSigma2;
