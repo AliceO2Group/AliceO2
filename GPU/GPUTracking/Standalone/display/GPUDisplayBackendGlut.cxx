@@ -207,6 +207,8 @@ int GPUDisplayBackendGlut::OpenGLMain()
   char opt2[] = "-direct";
   char* opts[] = {opt1, opt2};
   glutInit(&nopts, opts);
+  glutInitContextVersion(GL_MIN_VERSION_MAJOR, GL_MIN_VERSION_MINOR);
+  glutInitContextProfile(GLUT_COMPATIBILITY_PROFILE);
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
   glutInitWindowSize(INIT_WIDTH, INIT_HEIGHT);
   glutCreateWindow(GL_WINDOW_NAME);
