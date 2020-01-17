@@ -171,13 +171,13 @@ int GPUDisplayBackendX11::OpenGLMain()
   mDisplay = XOpenDisplay(nullptr);
 
   if (mDisplay == nullptr) {
-    GPUError("glxsimple: %s", "could not open display");
+    GPUError("could not open display");
     return (-1);
   }
 
   // Make sure OpenGL's GLX extension supported
   if (!glXQueryExtension(mDisplay, &errorBase, &eventBase)) {
-    GPUError("glxsimple: %s", "X server has no OpenGL GLX extension");
+    GPUError("X server has no OpenGL GLX extension");
     return (-1);
   }
 
@@ -205,14 +205,14 @@ int GPUDisplayBackendX11::OpenGLMain()
   visualInfo = glXGetVisualFromFBConfig(mDisplay, fbconfig);
 
   if (visualInfo == nullptr) {
-    GPUError("glxsimple: %s", "no RGB visual with depth buffer");
+    GPUError("no RGB visual with depth buffer");
     return (-1);
   }
 
   // Create an OpenGL rendering context
   glxContext = glXCreateContext(mDisplay, visualInfo, nullptr, GL_TRUE);
   if (glxContext == nullptr) {
-    GPUError("glxsimple: %s", "could not create rendering context");
+    GPUError("could not create rendering context");
     return (-1);
   }
 
@@ -235,7 +235,6 @@ int GPUDisplayBackendX11::OpenGLMain()
   // Receive signal when window closed
   Atom WM_DELETE_WINDOW = XInternAtom(mDisplay, "WM_DELETE_WINDOW", False);
   XSetWMProtocols(mDisplay, mWindow, &WM_DELETE_WINDOW, 1);
-
   // Prepare fonts
   mFontBase = glGenLists(256);
   if (!glIsList(mFontBase)) {

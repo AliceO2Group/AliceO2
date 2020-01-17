@@ -221,6 +221,7 @@ int GPUDisplayBackendGlfw::OpenGLMain()
   me = this;
 
   if (!glfwInit()) {
+    fprintf(stderr, "Error initializing glfw\n");
     return (-1);
   }
   glfwSetErrorCallback(error_callback);
@@ -232,6 +233,7 @@ int GPUDisplayBackendGlfw::OpenGLMain()
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
   mWindow = glfwCreateWindow(INIT_WIDTH, INIT_HEIGHT, GL_WINDOW_NAME, nullptr, nullptr);
   if (!mWindow) {
+    fprintf(stderr, "Error creating glfw window\n");
     glfwTerminate();
     return (-1);
   }
@@ -254,11 +256,13 @@ int GPUDisplayBackendGlfw::OpenGLMain()
 
 #if defined(GPUCA_O2_LIB) && !defined(GPUCA_DISPLAY_GL3W)
   if (gl3wInit()) {
+    fprintf(stderr, "Error initializing gl3w (2)\n");
     return (-1); // Hack: We have to initialize gl3w as well, as the DebugGUI uses it.
   }
 #endif
 
   if (InitGL()) {
+    fprintf(stderr, "Error in OpenGL initialization\n");
     return (1);
   }
 
@@ -273,6 +277,7 @@ int GPUDisplayBackendGlfw::OpenGLMain()
   while (!glfwWindowShouldClose(mWindow)) {
     HandleSendKey();
     if (DrawGLScene()) {
+      fprintf(stderr, "Error drawing GL scene\n");
       return (1);
     }
     glfwSwapBuffers(mWindow);
