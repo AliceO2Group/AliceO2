@@ -16,6 +16,7 @@ install(FILES CheckClusters_mft.C
               CheckDigits_mft.C
               SetIncludePath.C
               analyzeHits.C
+              analyzeDigitLabels.C
               analyzeOriginHits.C
               build_geometry.C
               checkTOFMatching.C
@@ -92,7 +93,11 @@ o2_add_test_root_macro(analyzeHits.C
                                              O2::HMPIDBase
                                              O2::TPCSimulation
                                              O2::PHOSBase
-                                             O2::FDDSimulation)
+                                             O2::FDDSimulation
+                                             O2::MCHSimulation
+                                             O2::MIDSimulation
+					     O2::ZDCSimulation
+					     O2::CPVBase)
 
 o2_add_test_root_macro(analyzeOriginHits.C
                        PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
@@ -133,6 +138,26 @@ o2_add_test_root_macro(eventDisplay.C PUBLIC_LINK_LIBRARIES FairRoot::Base)
 o2_add_test_root_macro(
   initSimGeomAndField.C
   PUBLIC_LINK_LIBRARIES O2::DataFormatsParameters O2::Field)
+
+o2_add_test_root_macro(
+        analyzeDigitLabels.C
+        PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::ITSMFTSimulation
+                                             O2::TOFSimulation
+                                             O2::EMCALBase
+                                             O2::TRDSimulation
+                                             O2::FT0Simulation
+                                             O2::DataFormatsFV0
+                                             O2::HMPIDBase
+                                             O2::TPCSimulation
+                                             O2::PHOSBase
+                                             O2::PHOSSimulation
+                                             O2::FDDSimulation
+                                             O2::MCHSimulation
+                                             O2::MIDSimulation
+					     O2::ZDCSimulation
+					     O2::CPVBase 
+                                             O2::CPVSimulation
+                                             O2::ZDCSimulation)
 
 if(Geant4_FOUND)
 o2_add_test_root_macro(o2sim.C
