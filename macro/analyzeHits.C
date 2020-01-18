@@ -12,7 +12,10 @@
 #include "TPCSimulation/Point.h"
 #include "PHOSBase/Hit.h"
 #include "DataFormatsFDD/Hit.h"
-
+#include "MCHSimulation/Hit.h"
+#include "MIDSimulation/Hit.h"
+#include "CPVBase/Hit.h"
+#include "ZDCSimulation/Hit.h"
 #endif
 
 TString gPrefix("");
@@ -255,7 +258,7 @@ void analyzeFT0(TTree* reftree)
 void analyzeHMP(TTree* reftree)
 {
   auto refresult = analyse<o2::hmpid::HitType, HitStats<o2::hmpid::HitType>>(reftree, "HMPHit");
-  std::cout << gPrefix << " HMPID ";
+  std::cout << gPrefix << " HMP ";
   refresult.print();
 }
 
@@ -280,6 +283,34 @@ void analyzeFV0(TTree* reftree)
   refresult.print();
 }
 
+void analyzeMCH(TTree* reftree)
+{
+  auto refresult = analyse<o2::mch::Hit, HitStats<o2::mch::Hit>>(reftree, "MCHHit");
+  std::cout << gPrefix << " MCH ";
+  refresult.print();
+}
+
+void analyzeMID(TTree* reftree)
+{
+  auto refresult = analyse<o2::mid::Hit, HitStats<o2::mid::Hit>>(reftree, "MIDHit");
+  std::cout << gPrefix << " MID ";
+  refresult.print();
+}
+
+void analyzeCPV(TTree* reftree)
+{
+  auto refresult = analyse<o2::cpv::Hit, HitStats<o2::cpv::Hit>>(reftree, "CPVHit");
+  std::cout << gPrefix << " CPV ";
+  refresult.print();
+}
+
+void analyzeZDC(TTree* reftree)
+{
+  auto refresult = analyse<o2::zdc::Hit, HitStats<o2::zdc::Hit>>(reftree, "ZDCHit");
+  std::cout << gPrefix << " ZDC ";
+  refresult.print();
+}
+
 void analyzeTPC(TTree* reftree)
 {
   // need to loop over sectors
@@ -301,6 +332,7 @@ void analyzeHits(const char* filename = "o2sim.root", const char* prefix = "")
   auto reftree = (TTree*)rf.Get("o2sim");
 
   gPrefix = prefix;
+  // should correspond to the same number as defined in DetID
   analyzeITS(reftree);
   analyzeTPC(reftree);
   analyzeMFT(reftree);
@@ -308,8 +340,13 @@ void analyzeHits(const char* filename = "o2sim.root", const char* prefix = "")
   analyzeEMC(reftree);
   analyzeTRD(reftree);
   analyzePHS(reftree);
+  analyzeCPV(reftree);
   analyzeFT0(reftree);
   analyzeFV0(reftree);
   analyzeFDD(reftree);
   analyzeHMP(reftree);
+  analyzeMCH(reftree);
+  analyzeMID(reftree);
+  analyzeZDC(reftree);
+  // analyzeACO(reftree);
 }
