@@ -69,48 +69,46 @@ struct VertexerHFTask {
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksCov> const& tracks)
   {
     LOGF(info, "Tracks for collision: %d", tracks.size());
-    o2::base::DCAFitter df(5.0,10.);
+    o2::base::DCAFitter df(5.0, 10.);
     auto hvtx_x = new TH1F("hvtx_x", "2-track vtx", 100, -10., 10.);
 
-    for (auto it1 = tracks.begin(); it1 != tracks.end(); ++it1)
-    {
+    for (auto it1 = tracks.begin(); it1 != tracks.end(); ++it1) {
       auto& track1 = *it1;
       if (track1.pt() < 20.)
         continue;
       float x1_ = track1.x();
       float alpha1_ = track1.alpha();
       std::array<float, 5> arraypar1 = {track1.y(), track1.z(), track1.snp(), track1.tgl(), track1.signed1Pt()};
-      std::array<float, 15> covpar1 = {1e-6,0,1e-6,0,0,1e-6,0,0,0,1e-6,0,0,0,0,1e-5};
-      o2::track::TrackParCov trackparvar1(x1_,alpha1_,arraypar1,covpar1);
+      std::array<float, 15> covpar1 = {1e-6, 0, 1e-6, 0, 0, 1e-6, 0, 0, 0, 1e-6, 0, 0, 0, 0, 1e-5};
+      o2::track::TrackParCov trackparvar1(x1_, alpha1_, arraypar1, covpar1);
       //LOGF(info, "track1 %f", trackparvar1.getSigmaY2());
-      
-      for (auto it2 = it1 + 1; it2 != tracks.end(); ++it2)
-      {
+
+      for (auto it2 = it1 + 1; it2 != tracks.end(); ++it2) {
         auto& track2 = *it2;
         if (track2.pt() < 20.)
           continue;
         float x2_ = track2.x();
         float alpha2_ = track2.alpha();
         std::array<float, 5> arraypar2 = {track2.y(), track2.z(), track2.snp(), track2.tgl(), track2.signed1Pt()};
-        std::array<float, 15> covpar2 = {1e-6,0,1e-6,0,0,1e-6,0,0,0,1e-6,0,0,0,0,1e-5};
-        o2::track::TrackParCov trackparvar2(x2_,alpha2_,arraypar2,covpar2);
+        std::array<float, 15> covpar2 = {1e-6, 0, 1e-6, 0, 0, 1e-6, 0, 0, 0, 1e-6, 0, 0, 0, 0, 1e-5};
+        o2::track::TrackParCov trackparvar2(x2_, alpha2_, arraypar2, covpar2);
         //LOGF(info, "track2 %f", trackparvar2.getSigmaY2());
 
-  	df.setUseAbsDCA(true);
-  	int nCand = df.process(trackparvar1, trackparvar2);
- 	printf("\n\nTesting with abs DCA minimization: %d candidates found\n",nCand);
-  	// we can have up to 2 candidates
-  	for (int ic=0;ic<nCand;ic++) {
+        df.setUseAbsDCA(true);
+        int nCand = df.process(trackparvar1, trackparvar2);
+        printf("\n\nTesting with abs DCA minimization: %d candidates found\n", nCand);
+        // we can have up to 2 candidates
+        for (int ic = 0; ic < nCand; ic++) {
           const o2::base::DCAFitter::Triplet& vtx = df.getPCACandidate(ic);
- 	  LOGF(info, "print %f", vtx.x);
- 	  //LOGF(info, "LABELELELELELLE %d", track2.index());
-	  hvtx_x_out->Fill(vtx.x);
-	  secvtx(vtx.x, vtx.y, -1, -1, -1.);
-	  //secvtx(vtx.x, vtx.y, track1.index, track2.index, -1.);
-	  //LOGF(info, "DONE");
-	}
+          LOGF(info, "print %f", vtx.x);
+          //LOGF(info, "LABELELELELELLE %d", track2.index());
+          hvtx_x_out->Fill(vtx.x);
+          secvtx(vtx.x, vtx.y, -1, -1, -1.);
+          //secvtx(vtx.x, vtx.y, track1.index, track2.index, -1.);
+          //LOGF(info, "DONE");
+        }
       }
-    }  
+    }
   }
 };
 
@@ -123,7 +121,7 @@ struct SkimVtxTable {
     for (auto& secVtx : secVtxs) {
       LOGF(INFO, "Consume the table (%f, %f)", secVtx.posx(), secVtx.posy());
       LOGF(INFO, "Labels tracks (%f, %f, %f)", secVtx.label0(), secVtx.label1(), secVtx.label2());
-    }  
+    }
   }
 };
 
