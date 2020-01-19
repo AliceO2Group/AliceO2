@@ -8,7 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/runDataProcessing.h"
+#include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
+
+#include <memory>
 
 using namespace o2::framework;
 
@@ -34,11 +37,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           // read back the option from the command line, see CMakeLists.txt
           ASSERT_ERROR(configstring == "require-me");
 
-          return [](ProcessingContext& ctx) {
+          return [isReady = std::make_shared<bool>(false)](ProcessingContext& ctx) {
+            if (*isReady == true) {
+              return;
+            }
             // there is nothing to do, simply stop the workflow but we have to send at least one message
             // to make sure that the callback of the consumer is called
             ctx.outputs().make<int>(Output{"TST", "TEST", 0, Lifetime::Timeframe}) = 42;
             ctx.services().get<ControlService>().endOfStream();
+            *isReady = true;
           };
         },
       },
@@ -84,8 +91,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           ASSERT_ERROR(configstring == "consumer-config");
           ASSERT_ERROR(anotheroption == "hello-aliceo2");
 
-          return [](ProcessingContext& ctx) {
+          auto data = std::make_shared<int>(0);
+          ic.services().get<CallbackService>().set(CallbackService::Id::EndOfStream,
+                                                   [data](EndOfStreamContext& context) {
+                                                     ASSERT_ERROR(*data == 42);
+                                                   });
+          return [data](ProcessingContext& ctx) {
             // there is nothing to do, simply stop the workflow
+            *data = ctx.inputs().get<int>("in");
           };
         },
       },
