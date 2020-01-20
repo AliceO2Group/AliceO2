@@ -105,6 +105,26 @@ class DigitDump : public CalibRawBase
     mLastTimeBin = last;
   }
 
+  /// sort the digits
+  void sortDigits();
+
+  /// clear the digits
+  void clearDigits()
+  {
+    for (auto& digits : mDigits) {
+      digits.clear();
+    }
+  }
+
+  /// set in memory only mode
+  void setInMemoryOnly(bool mode = true) { mInMemoryOnly = mode; }
+
+  /// get in memory mode
+  bool getInMemoryMode() const { return mInMemoryOnly; }
+
+  /// return digits for specific sector
+  std::vector<Digit>& getDigits(int sector) { return mDigits[sector]; }
+
  private:
   std::unique_ptr<CalPad> mPedestal{}; ///< CalDet object with pedestal information
   std::unique_ptr<CalPad> mNoise{};    ///< CalDet object with noise
@@ -123,6 +143,8 @@ class DigitDump : public CalibRawBase
   int mADCMin{-100};         ///< minimum adc value
   int mADCMax{1024};         ///< maximum adc value
   float mNoiseThreshold{-1}; ///< zero suppression threshold in noise sigma
+  bool mInMemoryOnly{false}; ///< if processing is only done in memory, no file writing
+  bool mInitialized{false};  ///< if init was called
 
   /// set up the output tree
   void setupOutputTree();
