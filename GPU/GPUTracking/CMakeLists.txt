@@ -159,8 +159,18 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
     set(SRCS_NO_H ${SRCS_NO_H}
         TPCClusterFinder/GPUTPCClusterFinderDump.cxx)
 
-    set(HDRS_INSTALL ${HDRS_INSTALL} Interface/GPUO2InterfaceConfiguration.h
-                     ITS/GPUITSTrack.h dEdx/GPUdEdxInfo.h)
+    set(HDRS_INSTALL ${HDRS_INSTALL}
+                     Interface/GPUO2InterfaceConfiguration.h
+                     ITS/GPUITSTrack.h
+                     dEdx/GPUdEdxInfo.h
+                     TPCClusterFinder/Array2D.h
+                     TPCClusterFinder/CfConsts.h
+                     TPCClusterFinder/CfUtils.h
+                     TPCClusterFinder/clusterFinderDefs.h
+                     TPCClusterFinder/ClusterNative.h
+                     TPCClusterFinder/Digit.h
+                     TPCClusterFinder/GPUTPCSharedMemoryData.h
+                     TPCClusterFinder/PackedCharge.h)
 endif()
 
 # Sources only for AliRoot
