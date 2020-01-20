@@ -1,5 +1,5 @@
 <!-- doxy
-\page refMUONMCHMappingFactory MCH Mapping Factory
+\page refDetectorsMUONMCHMappingFactory Factory (helper function)
 /doxy -->
 
 A single utility function to create segmentations, avoiding duplications
@@ -32,5 +32,5 @@ object creation time).
 Note that depending on your use case, both approaches might be valid ones.
 While the factory one ensures you get only get one object for each detection
 element, it creates all detection elements at once. So, if you only need the
-segmentation of one detection element, you'd better off _not_ using the
+segmentation of one detection element, you'd better off *not* using the
 factory.

@@ -1,5 +1,5 @@
 <!-- doxy
-\page refMUONMCHRawElecMap MCH Raw Electronic Mapping
+\page refDetectorsMUONMCHRawElecMap Electronic Mapping
 /doxy -->
 
 # MCH Raw Electronic Mapping
