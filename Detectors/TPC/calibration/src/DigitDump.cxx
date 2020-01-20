@@ -97,6 +97,7 @@ Int_t DigitDump::updateCRU(const CRU& cru, const Int_t row, const Int_t pad,
 //______________________________________________________________________________
 void DigitDump::sortDigits()
 {
+  // sort digits
   for (auto& digits : mDigits) {
     std::sort(digits.begin(), digits.end(), [](const auto& a, const auto& b) {
       if (a.getTimeStamp() < b.getTimeStamp())

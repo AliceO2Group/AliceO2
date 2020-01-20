@@ -16,13 +16,20 @@ o2_add_library(TPCWorkflow
                        src/ClusterDecoderRawSpec.cxx
                        src/CATrackerSpec.cxx
                        src/TrackReaderSpec.cxx
+                       src/RawToDigitsSpec.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
-                                     O2::DPLUtils O2::TPCReconstruction)
+                                     O2::DPLUtils O2::TPCReconstruction
+                                     O2::TPCCalibration O2::TPCSimulation)
 
 o2_add_executable(reco-workflow
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-reco-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(raw-to-digits-workflow
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-raw-to-digits-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_test(workflow
