@@ -99,6 +99,22 @@ o2_add_test_root_macro(analyzeHits.C
 					     O2::ZDCSimulation
 					     O2::CPVBase)
 
+o2_add_test_root_macro(duplicateHits.C
+		PUBLIC_LINK_LIBRARIES O2::ITSMFTSimulation
+		O2::TOFSimulation
+		O2::EMCALBase
+		O2::TRDSimulation
+		O2::FT0Simulation
+		O2::DataFormatsFV0
+		O2::HMPIDBase
+		O2::TPCSimulation
+		O2::PHOSBase
+		O2::FDDSimulation
+		O2::MCHSimulation
+		O2::MIDSimulation
+		O2::ZDCSimulation
+		O2::CPVBase)
+
 o2_add_test_root_macro(analyzeOriginHits.C
                        PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
                                              O2::DetectorsCommonDataFormats)
