@@ -12,7 +12,6 @@
 
 #include "Framework/ContextRegistry.h"
 #include "Framework/MessageContext.h"
-#include "Framework/RootObjectContext.h"
 #include "Framework/StringContext.h"
 #include "Framework/ArrowContext.h"
 #include "Framework/RawBufferContext.h"
@@ -181,11 +180,6 @@ class DataAllocator
     adopt_boost(spec, buff);
     return *buff;
   }
-
-  /// Adopt a TObject in the framework and serialize / send
-  /// it to the consumers of @a spec once done.
-  void
-    adopt(const Output& spec, TObject* obj);
 
   /// Adopt a string in the framework and serialize / send
   /// it to the consumers of @a spec once done.

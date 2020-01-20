@@ -19,7 +19,6 @@
 #include "Framework/DataProcessingStats.h"
 #include "Framework/ExpirationHandler.h"
 #include "Framework/MessageContext.h"
-#include "Framework/RootObjectContext.h"
 #include "Framework/ArrowContext.h"
 #include "Framework/StringContext.h"
 #include "Framework/RawBufferContext.h"
@@ -70,7 +69,6 @@ class DataProcessingDevice : public FairMQDevice
   ServiceRegistry& mServiceRegistry;
   TimingInfo mTimingInfo;
   MessageContext mFairMQContext;
-  RootObjectContext mRootContext;
   StringContext mStringContext;
   ArrowContext mDataFrameContext;
   RawBufferContext mRawBufferContext;

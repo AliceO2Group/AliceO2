@@ -69,11 +69,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
             static int i = 0;
             if (i++ >= 1000) { return; }
 
-            TH1F* histo = new TH1F("gauss", "gauss", producersAmount, 0, 1);
-            histo->Fill(p / (double) producersAmount);
-
-            processingContext.outputs().adopt(
-              Output{ "TST", "HISTO", static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1) }, histo);
+            auto subspec = static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1);
+            TH1F& histo = processingContext.outputs().make<TH1F>(Output{ "TST", "HISTO", subspec });
+            histo.Fill(p / (double) producersAmount);
           }
         }
       };
@@ -139,9 +137,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
             usleep(1000000);
             char str[2] = "a";
             str[0] += p;
-            processingContext.outputs().adopt(
-              Output{ "TST", "STRING", static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1) },
-              new TObjString(str));
+            auto subspec = static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1);
+            // we make a framework-owned object with a title, but we do not modify it
+            processingContext.outputs().make<TObjString>(Output{ "TST", "STRING", subspec }, str);
                                                 } } };
       specs.push_back(producer);
     }
@@ -207,9 +205,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
             static int i = 0;
             if (i++ >= 1000) { return; }
 
-            auto* histo = new MergeInterfaceOverrideExample(1);
-            processingContext.outputs().adopt(
-              OutputRef{ "mo", static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1) }, histo);
+            auto histo = std::make_unique<MergeInterfaceOverrideExample>(1);
+            auto subspec = static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1);
+            processingContext.outputs().snapshot(OutputRef{ "mo", subspec }, *histo);
           }
         }
       };

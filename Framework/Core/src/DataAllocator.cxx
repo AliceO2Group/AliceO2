@@ -10,7 +10,6 @@
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/MessageContext.h"
-#include "Framework/RootObjectContext.h"
 #include "Framework/ArrowContext.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataProcessingHeader.h"
@@ -111,8 +110,6 @@ void DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage, const Ou
                                      o2::header::SerializationMethod serializationMethod)
 {
   std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
-  // the correct payload size is st later when sending the
-  // RootObjectContext, see DataProcessor::doSend
   auto headerMessage = headerMessageFromOutput(spec, channel, serializationMethod, 0);
 
   // FIXME: this is kind of ugly, we know that we can change the content of the
@@ -125,17 +122,6 @@ void DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage, const Ou
   // scope immediately, the created object is scheduled and can be directly sent if the context
   // is configured with the dispatcher callback
   context->make_scoped<MessageContext::TrivialObject>(std::move(headerMessage), std::move(payloadMessage), channel);
-}
-
-void DataAllocator::adopt(const Output& spec, TObject* ptr)
-{
-  std::unique_ptr<TObject> payload(ptr);
-  std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
-  // the correct payload size is set later when sending the
-  // RootObjectContext, see DataProcessor::doSend
-  auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodROOT, 0);
-  mContextRegistry->get<RootObjectContext>()->addObject(std::move(header), std::move(payload), channel);
-  assert(payload.get() == nullptr);
 }
 
 void DataAllocator::adopt(const Output& spec, std::string* ptr)
