@@ -33,12 +33,14 @@ struct PublisherConf {
   BranchOptionConfig databranch;
   BranchOptionConfig datatrbranch;
   BranchOptionConfig mcbranch;
+  BranchOptionConfig mcmapbranch;
   OutputSpec dataoutput;
   OutputSpec datatroutput;
   OutputSpec mcoutput;
+  OutputSpec mcmapoutput;
 };
 
-framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC = true);
+framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC = true, bool createMCMap = false);
 
 } // namespace phos
 } // end namespace o2

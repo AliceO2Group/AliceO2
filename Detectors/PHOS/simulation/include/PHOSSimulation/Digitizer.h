@@ -42,8 +42,6 @@ class Digitizer : public TObject
   void setCurrEvID(int v);
   int getCurrEvID() const { return mCurrEvID; }
 
-  void setCoeffToNanoSecond(double c) { mCoeffToNanoSecond = c; }
-
  protected:
   float nonLinearity(float e);
   float uncalibrate(float e, int absId);
@@ -56,7 +54,6 @@ class Digitizer : public TObject
   const Geometry* mGeometry = nullptr;       //!  PHOS geometry
   const CalibParams* mCalibParams = nullptr; //! Calibration coefficients
   double mEventTime = 0;                     ///< global event time
-  double mCoeffToNanoSecond = 1.0;           ///< coefficient to convert event time (Fair) to ns
   uint mROFrameMin = 0;                      ///< lowest RO frame of current digits
   uint mROFrameMax = 0;                      ///< highest RO frame of current digits
   int mCurrSrcID = 0;                        ///< current MC source from the manager

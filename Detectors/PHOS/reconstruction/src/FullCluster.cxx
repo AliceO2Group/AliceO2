@@ -30,19 +30,18 @@ void FullCluster::addDigit(short digitIndex, float energy, float time, int label
 
   // Adds digit to the FullCluster
   // and accumulates the total amplitude and the multiplicity, list of primaries
-  mDigitsIdList.push_back(digitIndex);
-  mEnergyList.push_back(energy);
-  mTimeList.push_back(int(time * 10.)); // store time in units ot 100 ps
-  if (label >= 0) {
-    mLabels.push_back(std::pair(label, scale));
-  }
+  float x = 0., z = 0.;
+  Geometry* phosGeom = Geometry::GetInstance();
+  phosGeom->absIdToRelPosInModule(digitIndex, x, z);
+
+  mElementList.emplace_back(digitIndex, energy, time, x, z, label, scale);
+  mFullEnergy += energy; //To be updated when calculate cluster properties.
   mMulDigit++;
 }
 //____________________________________________________________________________
 void FullCluster::evalAll()
 {
   // Evaluate cluster parameters
-  mPHOSGeom = Geometry::GetInstance();
   evalCoreEnergy();
   evalLocalPosition();
   evalElipsAxis();
@@ -50,27 +49,23 @@ void FullCluster::evalAll()
   evalTime();
 }
 //____________________________________________________________________________
-void FullCluster::purify(float threshold)
+void FullCluster::purify()
 {
   // Removes digits below threshold
 
-  std::vector<float>::iterator itE = mEnergyList.begin();
-  std::vector<short>::iterator itId = mDigitsIdList.begin();
-  std::vector<int>::iterator itTime = mTimeList.begin();
-  std::vector<short>::iterator jtId;
-  while (itE != mEnergyList.end()) {
-    if (*itE < threshold) {
-      itE = mEnergyList.erase(itE);
-      itId = mDigitsIdList.erase(itId);
-      itTime = mTimeList.erase(itTime);
+  float threshold = o2::phos::PHOSSimParams::Instance().mDigitMinEnergy;
+  Geometry* phosGeom = Geometry::GetInstance();
+
+  std::vector<CluElement>::iterator itEl = mElementList.begin();
+  while (itEl != mElementList.end()) {
+    if ((*itEl).energy < threshold) { //very rare case
+      itEl = mElementList.erase(itEl);
     } else {
-      ++itId;
-      ++itE;
-      ++itTime;
+      ++itEl;
     }
   }
 
-  mMulDigit = mEnergyList.size();
+  mMulDigit = mElementList.size();
 
   if (mMulDigit == 0) { // too soft cluster
     mFullEnergy = 0.;
@@ -80,36 +75,29 @@ void FullCluster::purify(float threshold)
   // Remove non-connected cells
   if (mMulDigit > 1) {
     mFullEnergy = 0.; // Recalculate total energy
-    itE = mEnergyList.begin();
-    for (itId = mDigitsIdList.begin(); itId != mDigitsIdList.end();) {
+    auto it = mElementList.begin();
+    while (it != mElementList.end()) {
       bool hasNeighbours = false;
-      for (jtId = mDigitsIdList.begin(); jtId != mDigitsIdList.end(); ++jtId) {
-        if (itId == jtId) {
+      for (auto jt = mElementList.begin(); jt != mElementList.end(); ++jt) {
+        if (it == jt) {
           continue;
         }
-        if (mPHOSGeom->areNeighbours(*itId, *jtId) == 1) {
+        if (phosGeom->areNeighbours((*it).absId, (*jt).absId) == 1) {
           hasNeighbours = true;
           break;
         }
       }
-      if (!hasNeighbours) {
-        itE = mEnergyList.erase(itE);
-        itId = mDigitsIdList.erase(itId);
-        itTime = mTimeList.erase(itTime);
+      if (!hasNeighbours) { //Isolated digits are rare
+        it = mElementList.erase(it);
+        --mMulDigit;
       } else {
-        mFullEnergy += *itE;
-        ++itId;
-        ++itTime;
-        ++itE;
+        mFullEnergy += (*it).energy;
+        ++it;
       }
     }
   } else {
-    mFullEnergy = mEnergyList[0];
+    mFullEnergy = mElementList[0].energy;
   }
-
-  mDigitsIdList.shrink_to_fit();
-  mTimeList.shrink_to_fit();
-  mEnergyList.shrink_to_fit();
 }
 //____________________________________________________________________________
 void FullCluster::evalCoreEnergy()
@@ -125,15 +113,12 @@ void FullCluster::evalCoreEnergy()
   }
 
   float coreRadius = o2::phos::PHOSSimParams::Instance().mCoreR;
-  std::vector<float>::iterator itE = mEnergyList.begin();
-  for (std::vector<short>::iterator i = mDigitsIdList.begin(); i != mDigitsIdList.end(); ++i) {
-    float xi = 0., zi = 0.;
-    mPHOSGeom->absIdToRelPosInModule(*i, xi, zi);
-    Float_t distance = std::sqrt((xi - mLocalPosX) * (xi - mLocalPosX) + (zi - mLocalPosZ) * (zi - mLocalPosX));
+  for (auto it : mElementList) {
+    Float_t distance = std::sqrt((it.localX - mLocalPosX) * (it.localX - mLocalPosX) +
+                                 (it.localZ - mLocalPosZ) * (it.localZ - mLocalPosX));
     if (distance < coreRadius) {
-      mCoreEnergy += *itE;
+      mCoreEnergy += it.energy;
     }
-    ++itE;
   }
 }
 //____________________________________________________________________________
@@ -150,26 +135,23 @@ void FullCluster::evalLocalPosition()
   }
 
   // find module number
-  mModule = mPHOSGeom->absIdToModule(mDigitsIdList[0]);
+  Geometry* phosGeom = Geometry::GetInstance();
+  mModule = phosGeom->absIdToModule(mElementList[0].absId);
 
   float wtot = 0.;
   mLocalPosX = 0.;
   mLocalPosZ = 0.;
-  std::vector<float>::iterator itE = mEnergyList.begin();
-  for (std::vector<short>::iterator i = mDigitsIdList.begin(); i != mDigitsIdList.end(); ++i) {
-    float xi = 0., zi = 0.;
-    mPHOSGeom->absIdToRelPosInModule(*i, xi, zi);
-    if (*itE > 0) {
-      float w = std::max(float(0.), o2::phos::PHOSSimParams::Instance().mLogWeight + std::log(*itE / mFullEnergy));
-      mLocalPosX += xi * w;
-      mLocalPosZ += zi * w;
-      wtot += w;
-    }
-    ++itE;
+  float invE = 1. / mFullEnergy;
+  for (auto it : mElementList) {
+    float w = std::max(float(0.), o2::phos::PHOSSimParams::Instance().mLogWeight + std::log(it.energy * invE));
+    mLocalPosX += it.localX * w;
+    mLocalPosZ += it.localZ * w;
+    wtot += w;
   }
   if (wtot > 0) {
-    mLocalPosX /= wtot;
-    mLocalPosZ /= wtot;
+    wtot = 1. / wtot;
+    mLocalPosX *= wtot;
+    mLocalPosZ *= wtot;
   }
 }
 //____________________________________________________________________________
@@ -186,16 +168,12 @@ void FullCluster::evalDispersion()
   }
 
   float wtot = 0.;
-  std::vector<float>::iterator itE = mEnergyList.begin();
-  for (std::vector<short>::iterator i = mDigitsIdList.begin(); i != mDigitsIdList.end(); ++i) {
-    float xi = 0., zi = 0.;
-    mPHOSGeom->absIdToRelPosInModule(*i, xi, zi);
-    if (*itE > 0) {
-      float w = std::max(float(0.), o2::phos::PHOSSimParams::Instance().mLogWeight + std::log(*itE / mFullEnergy));
-      mDispersion += w * ((xi - mLocalPosX) * (xi - mLocalPosX) + (zi - mLocalPosZ) * (zi - mLocalPosZ));
-      wtot += w;
-    }
-    ++itE;
+  float invE = 1. / mFullEnergy;
+  for (auto it : mElementList) {
+    float w = std::max(float(0.), o2::phos::PHOSSimParams::Instance().mLogWeight + std::log(it.energy * invE));
+    mDispersion += w * ((it.localX - mLocalPosX) * (it.localX - mLocalPosX) +
+                        (it.localZ - mLocalPosZ) * (it.localZ - mLocalPosZ));
+    wtot += w;
   }
 
   if (wtot > 0) {
@@ -218,29 +196,26 @@ void FullCluster::evalElipsAxis()
   }
 
   float wtot = 0., x = 0., z = 0., dxx = 0., dxz = 0., dzz = 0.;
-  std::vector<float>::iterator itE = mEnergyList.begin();
-  for (std::vector<short>::iterator i = mDigitsIdList.begin(); i != mDigitsIdList.end(); ++i) {
+  float invE = 1. / mFullEnergy;
+  for (auto it : mElementList) {
     float xi = 0., zi = 0.;
-    mPHOSGeom->absIdToRelPosInModule(*i, xi, zi);
-    if (*itE > 0) {
-      float w = std::max(float(0.), o2::phos::PHOSSimParams::Instance().mLogWeight + std::log(*itE / mFullEnergy));
-      dxx += w * xi * xi;
-      x += w * xi;
-      dzz += w * zi * zi;
-      z += w * zi;
-      dxz += w * xi * zi;
-      wtot += w;
-    }
-    ++itE;
+    float w = std::max(float(0.), o2::phos::PHOSSimParams::Instance().mLogWeight + std::log(it.energy * invE));
+    dxx += w * it.localX * it.localX;
+    x += w * it.localX;
+    dzz += w * it.localZ * it.localZ;
+    z += w * it.localZ;
+    dxz += w * it.localX * it.localZ;
+    wtot += w;
   }
   if (wtot > 0) {
-    dxx /= wtot;
-    x /= wtot;
+    wtot = 1. / wtot;
+    dxx *= wtot;
+    x *= wtot;
     dxx -= x * x;
-    dzz /= wtot;
-    z /= wtot;
+    dzz *= wtot;
+    z *= wtot;
     dzz -= z * z;
-    dxz /= wtot;
+    dxz *= wtot;
     dxz -= x * z;
 
     mLambdaLong = 0.5 * (dxx + dzz) + std::sqrt(0.25 * (dxx - dzz) * (dxx - dzz) + dxz * dxz);
@@ -263,14 +238,11 @@ void FullCluster::evalTime()
   // Calculate time as time in the digit with maximal energy
 
   float eMax = 0.;
-  std::vector<float>::iterator itE;
-  std::vector<int>::iterator itTime = mTimeList.begin();
-  for (itE = mEnergyList.begin(); itE != mEnergyList.end(); ++itE) {
-    if (*itE > eMax) {
-      mTime = 0.1 * (*itTime);
-      eMax = *itE;
+  for (auto it : mElementList) {
+    if (it.energy > eMax) {
+      mTime = it.time;
+      eMax = it.energy;
     }
-    ++itTime;
   }
 }
 //____________________________________________________________________________
@@ -302,41 +274,37 @@ std::vector<Digit>::const_iterator FullCluster::BinarySearch(const std::vector<D
   return endIt;
 }
 //____________________________________________________________________________
-char FullCluster::getNumberOfLocalMax(gsl::span<int> maxAt, gsl::span<float> maxAtEnergy) const
+char FullCluster::getNumberOfLocalMax(gsl::span<int> maxAt) const
 {
   // Calculates the number of local maxima in the cluster using LocalMaxCut as the minimum
   // energy difference between maximum and surrounding digits
 
-  char n = getMultiplicity();
   float locMaxCut = o2::phos::PHOSSimParams::Instance().mLocalMaximumCut;
 
-  std::unique_ptr<bool[]> isLocalMax = std::make_unique<bool[]>(n);
-  for (int i = 0; i < n; i++) {
-    isLocalMax[i] = false;
-    float en1 = mEnergyList.at(i);
-    if (en1 > o2::phos::PHOSSimParams::Instance().mClusteringThreshold)
+  std::unique_ptr<bool[]> isLocalMax = std::make_unique<bool[]>(mMulDigit);
+
+  for (int i = 0; i < mMulDigit; i++) {
+    if (mElementList[i].energy > o2::phos::PHOSSimParams::Instance().mClusteringThreshold) {
       isLocalMax[i] = true;
+    } else {
+      isLocalMax[i] = false;
+    }
   }
+  for (int i = 0; i < mMulDigit; i++) {
 
-  for (int i = 0; i < n; i++) {
-    short detId1 = mDigitsIdList.at(i);
-    float en1 = mEnergyList.at(i);
+    for (int j = i + 1; j < mMulDigit; j++) {
 
-    for (int j = i + 1; j < n; j++) {
-      short detId2 = mDigitsIdList.at(j);
-      float en2 = mEnergyList.at(j);
-
-      if (Geometry::GetInstance()->areNeighbours(detId1, detId2) == 1) {
-        if (en1 > en2) {
+      if (Geometry::GetInstance()->areNeighbours(mElementList[i].absId, mElementList[j].absId) == 1) {
+        if (mElementList[i].energy > mElementList[j].energy) {
           isLocalMax[j] = false;
           // but may be digit too is not local max ?
-          if (en2 > en1 - locMaxCut) {
+          if (mElementList[j].energy > mElementList[i].energy - locMaxCut) {
             isLocalMax[i] = false;
           }
         } else {
           isLocalMax[i] = false;
           // but may be digitN is not local max too?
-          if (en1 > en2 - locMaxCut) {
+          if (mElementList[i].energy > mElementList[j].energy - locMaxCut) {
             isLocalMax[j] = false;
           }
         }
@@ -345,13 +313,12 @@ char FullCluster::getNumberOfLocalMax(gsl::span<int> maxAt, gsl::span<float> max
   }     // digit i
 
   int iDigitN = 0;
-  for (int i = 0; i < n; i++) {
+  for (int i = 0; i < mMulDigit; i++) {
     if (isLocalMax[i]) {
       maxAt[iDigitN] = i;
-      maxAtEnergy[iDigitN] = mEnergyList.at(i);
       iDigitN++;
       if (iDigitN >= o2::phos::PHOSSimParams::Instance().mNLMMax) { // Note that size of output arrays is limited:
-        LOG(ERROR) << "Too many local maxima, cluster multiplicity " << n;
+        LOG(ERROR) << "Too many local maxima, cluster multiplicity " << mMulDigit;
         return 0;
       }
     }

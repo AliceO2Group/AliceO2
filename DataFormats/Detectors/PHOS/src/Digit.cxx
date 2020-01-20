@@ -31,24 +31,6 @@ void Digit::fillFromHit(const Hit& hit)
   mTime = hit.GetTime();
 }
 
-bool Digit::operator<(const Digit& other) const
-{
-  if (fabs(getTimeStamp() - other.getTimeStamp()) <= kTimeGate) {
-    return getAbsId() < other.getAbsId();
-  } else {
-    return getTimeStamp() < other.getTimeStamp();
-  }
-}
-
-bool Digit::operator>(const Digit& other) const
-{
-  if (fabs(getTimeStamp() - other.getTimeStamp()) <= kTimeGate) {
-    return getAbsId() > other.getAbsId();
-  } else {
-    return getTimeStamp() > other.getTimeStamp();
-  }
-}
-
 bool Digit::canAdd(const Digit other) const
 {
   return (mAbsId == other.getAbsId() && fabs(getTimeStamp() - other.getTimeStamp()) <= kTimeGate);

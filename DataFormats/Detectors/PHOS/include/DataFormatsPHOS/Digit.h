@@ -11,6 +11,7 @@
 #ifndef ALICEO2_PHOS_DIGIT_H_
 #define ALICEO2_PHOS_DIGIT_H_
 
+#include <cmath>
 #include "CommonDataFormat/TimeStamp.h"
 
 namespace o2
@@ -52,11 +53,34 @@ class Digit : public DigitBase
   /// \brief Comparison oparator, based on time and absId
   /// \param another PHOS Digit
   /// \return result of comparison: first time, if time same, then absId
-  bool operator<(const Digit& other) const;
+  inline bool operator<(const Digit& other) const
+  {
+    if (fabs(getTimeStamp() - other.getTimeStamp()) < kTimeGate) {
+      return getAbsId() < other.getAbsId();
+    } else
+      return getTimeStamp() < other.getTimeStamp();
+  }
+
   /// \brief Comparison oparator, based on time and absId
   /// \param another PHOS Digit
   /// \return result of comparison: first time, if time same, then absId
-  bool operator>(const Digit& other) const;
+  inline bool operator>(const Digit& other) const
+  {
+    if (fabs(getTimeStamp() - other.getTimeStamp()) <= kTimeGate) {
+      return getAbsId() > other.getAbsId();
+    } else
+      return getTimeStamp() > other.getTimeStamp();
+  }
+
+  /// \brief Comparison oparator, based on time and absId
+  /// \param another PHOS Digit
+  /// \return result of comparison: first time, if time same, then absId
+  inline bool operator==(const Digit& other) const
+  {
+    return ((fabs(getTimeStamp() - other.getTimeStamp()) <= kTimeGate) &&
+            getAbsId() == other.getAbsId());
+  }
+
   /// \brief Check, if one can add two digits
   /// \param another PHOS Digit
   /// \return true if time stamps are same and absId are same

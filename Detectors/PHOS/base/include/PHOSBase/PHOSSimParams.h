@@ -56,9 +56,9 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
   float mClusteringThreshold = 0.050; ///< Minimal energy of digit to start clustering (GeV)
   float mLocalMaximumCut = 0.015;     ///< Minimal height of local maximum over neighbours
   bool mUnfoldClusters = false;       ///< To perform cluster unfolding
-  float mUnfogingEAccuracy = 1.e-4;   ///< Accuracy of energy calculation in unfoding prosedure (GeV)
-  float mUnfogingXZAccuracy = 1.e-2;  ///< Accuracy of position calculation in unfolding procedure (cm)
-  int mNMaxIterations = 100;          ///< Maximal number of iterations in unfolding procedure
+  float mUnfogingEAccuracy = 1.e-3;   ///< Accuracy of energy calculation in unfoding prosedure (GeV)
+  float mUnfogingXZAccuracy = 1.e-1;  ///< Accuracy of position calculation in unfolding procedure (cm)
+  int mNMaxIterations = 10;           ///< Maximal number of iterations in unfolding procedure
   int mNLMMax = 30;                   ///< Maximal number of local maxima in unfolding
   float mCoreR = 3.5;                 ///< Radius to caluclate core energy
   float mSortingDelta = 1.;           ///< used in sorting clusters

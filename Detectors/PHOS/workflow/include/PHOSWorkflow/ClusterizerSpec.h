@@ -68,6 +68,7 @@ class ClusterizerSpec : public framework::Task
 ///
 /// Refer to ClusterizerSpec::run for input and output specs
 framework::DataProcessorSpec getClusterizerSpec(bool propagateMC);
+framework::DataProcessorSpec getCellClusterizerSpec(bool propagateMC);
 
 } // namespace reco_workflow
 

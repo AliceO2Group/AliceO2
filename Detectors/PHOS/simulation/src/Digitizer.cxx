@@ -212,7 +212,7 @@ float Digitizer::nonLinearity(const float e)
   float a = o2::phos::PHOSSimParams::Instance().mCellNonLineaityA;
   float b = o2::phos::PHOSSimParams::Instance().mCellNonLineaityB;
   float c = o2::phos::PHOSSimParams::Instance().mCellNonLineaityC;
-  return e * c * (1. + a * exp(-e * e / 2. / b / b));
+  return e * c * (1. + a * exp(-e * e / (2. * b * b)));
 }
 //_______________________________________________________________________
 float Digitizer::uncalibrate(const float e, const int absId)
@@ -258,8 +258,7 @@ float Digitizer::simulateNoiseTime() { return gRandom->Uniform(o2::phos::PHOSSim
 void Digitizer::setEventTime(double t)
 {
   // assign event time, it should be in a strictly increasing order
-  // convert to ns
-  t *= mCoeffToNanoSecond;
+  // in ns
 
   if (t < mEventTime) {
     LOG(INFO) << "New event time (" << t << ") is < previous event time (" << mEventTime << ")";
