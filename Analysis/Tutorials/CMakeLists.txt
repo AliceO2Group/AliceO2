@@ -60,7 +60,7 @@ o2_add_executable(filters
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
-o2_add_executable(vertexingHF
+o2_add_executable(vertexing-hf
 	  	  SOURCES src/vertexinghf/vertexerhf.cxx
 		  PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase 
 	          COMPONENT_NAME AnalysisTutorial)
