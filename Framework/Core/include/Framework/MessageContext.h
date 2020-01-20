@@ -242,14 +242,14 @@ class MessageContext
     /// constructor taking header message by move and creating the payload message for the span
     template <typename ContextType>
     SpanObject(ContextType* context, FairMQMessagePtr&& headerMsg, const std::string& bindingChannel, int index, size_t nElements)
+      : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), bindingChannel)
     {
       // create the span object for the memory of the payload message
       // TODO: we probably also want to check consistency of the header message, i.e. payloadSize member
       auto payloadMsg = context->createMessage(bindingChannel, index, nElements * sizeof(T));
       mValue = value_type(reinterpret_cast<T*>(payloadMsg->GetData()), nElements);
-      mParts.AddPart(std::move(headerMsg));
+      assert(mParts.Size() == 1);
       mParts.AddPart(std::move(payloadMsg));
-      mChannel = bindingChannel;
     }
     ~SpanObject() override = default;
 
