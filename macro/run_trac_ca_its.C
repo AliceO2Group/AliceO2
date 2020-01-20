@@ -129,11 +129,16 @@ void run_trac_ca_its(std::string path = "./",
   TTree outTree("o2sim", "CA ITS Tracks");
   std::vector<o2::its::TrackITS> tracksITS, *tracksITSPtr = &tracksITS;
   std::vector<int> trackClIdx, *trackClIdxPtr = &trackClIdx;
+  std::vector<o2::itsmft::ROFRecord> vertROFvec, *vertROFvecPtr = &vertROFvec;
+  std::vector<Vertex> vertices, *verticesPtr = &vertices;
+
   MCLabCont trackLabels, *trackLabelsPtr = &trackLabels;
   outTree.Branch("ITSTrack", &tracksITSPtr);
   outTree.Branch("ITSTrackClusIdx", &trackClIdxPtr);
   outTree.Branch("ITSTrackMCTruth", &trackLabelsPtr);
   outTree.Branch("ITSTracksMC2ROF", &mc2rofs);
+  outTree.Branch("Vertices", &verticesPtr);
+  outTree.Branch("VerticesROF", &vertROFvecPtr);
   if (!itsClusters.GetBranch("ITSClustersROF")) {
     LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
   }
@@ -172,6 +177,13 @@ void run_trac_ca_its(std::string path = "./",
     vertexer.validateTracklets();
     vertexer.findVertices();
     std::vector<Vertex> vertITS = vertexer.exportVertices();
+    auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
+    vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
+    vtxROF.setNEntries(vertITS.size());
+    for (const auto& vtx : vertITS) {
+      vertices.push_back(vtx);
+    }
+
     if (!vertITS.empty()) {
       // Using only the first vertex in the list
       cout << " - Reconstructed vertexer: x = " << vertITS[0].getX() << " y = " << vertITS[0].getY() << " x = " << vertITS[0].getZ() << std::endl;
