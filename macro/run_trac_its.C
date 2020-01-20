@@ -115,12 +115,17 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   TTree outTree("o2sim", "Cooked ITS Tracks");
   std::vector<o2::its::TrackITS> tracksITS, *tracksITSPtr = &tracksITS;
   std::vector<int> trackClIdx, *trackClIdxPtr = &trackClIdx;
+  std::vector<o2::itsmft::ROFRecord> vertROFvec, *vertROFvecPtr = &vertROFvec;
+  std::vector<Vertex> vertices, *verticesPtr = &vertices;
+
   MCLabCont trackLabels, *trackLabelsPtr = &trackLabels;
   outTree.Branch("ITSTrack", &tracksITSPtr);
   outTree.Branch("ITSTrackClusIdx", &trackClIdxPtr);
   outTree.Branch("ITSTrackMCTruth", &trackLabelsPtr);
   outTree.Branch("ITSTracksROF", &rofs);
   outTree.Branch("ITSTracksMC2ROF", &mc2rofs);
+  outTree.Branch("Vertices", &verticesPtr);
+  outTree.Branch("VerticesROF", &vertROFvecPtr);
   //<<<--------- create/attach output -------------<<<
 
   //=================== INIT ==================
@@ -143,11 +148,18 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   for (auto& rof : *rofs) {
     o2::its::ioutils::loadROFrameData(rof, event, clSpan, labels);
     vertexer.clustersToVertices(event);
-    auto vertices = vertexer.exportVertices();
-    if (vertices.empty()) {
-      vertices.emplace_back();
+    auto verticesL = vertexer.exportVertices();
+
+    auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
+    vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
+    vtxROF.setNEntries(verticesL.size());
+    for (const auto& vtx : verticesL) {
+      vertices.push_back(vtx);
     }
-    tracker.setVertices(vertices);
+    if (verticesL.empty()) {
+      verticesL.emplace_back();
+    }
+    tracker.setVertices(verticesL);
     tracker.process(clSpan, tracksITS, trackClIdx, rof);
   }
   outTree.Fill();
