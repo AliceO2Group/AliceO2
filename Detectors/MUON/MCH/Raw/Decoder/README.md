@@ -1,5 +1,5 @@
 <!-- doxy
-\page refMUONMCHRawDecoder MCH Raw Data Decoder
+\page refDetectorsMUONMCHRawDecoder Decoder
 /doxy -->
 
 # MCH Raw Data Decoder
@@ -62,7 +62,7 @@ using RawDataHeaderHandler = std::function<std::optional<RDH>(const RDH& rdh)>;
 ```
 
 If no RDH is returned (i.e. `std::nullopt` is returned) then that part of the
-raw data is _not_ decoded at all.
+raw data is *not* decoded at all.
 The returned RDH can be a modified version of the argument, e.g. to change some
 of the values (like `feeId` according to some mapping).
 
@@ -73,7 +73,7 @@ identifier (in electronics realm, aka solar,group,index tuple), a channel
 identifier within that dual sampa, a `SampaCluster` and returns nothing, i.e. :
 
 > A word of caution here about the naming. A `SampaCluster` is a group of raw
-> data samples of _one_ dual sampa channel, and has nothing to do with a
+> data samples of *one* dual sampa channel, and has nothing to do with a
 > cluster of pads or something alike. 
 
 ```.cpp
