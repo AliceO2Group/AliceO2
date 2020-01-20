@@ -1,5 +1,5 @@
 <!-- doxy
-\page refMUONMCHRawTools MCH Raw Data Tools
+\page refDetectorsMUONMCHRawTools Tools
 /doxy -->
 
 # MCH RawData Tools
