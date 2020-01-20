@@ -63,11 +63,10 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
     mError{spec.algorithm.onError},
     mConfigRegistry{nullptr},
     mFairMQContext{FairMQDeviceProxy{this}},
-    mRootContext{FairMQDeviceProxy{this}},
     mStringContext{FairMQDeviceProxy{this}},
     mDataFrameContext{FairMQDeviceProxy{this}},
     mRawBufferContext{FairMQDeviceProxy{this}},
-    mContextRegistry{&mFairMQContext, &mRootContext, &mStringContext, &mDataFrameContext, &mRawBufferContext},
+    mContextRegistry{&mFairMQContext, &mStringContext, &mDataFrameContext, &mRawBufferContext},
     mAllocator{&mTimingInfo, &mContextRegistry, spec.outputs},
     mRelayer{spec.completionPolicy,
              spec.inputs,
@@ -292,14 +291,12 @@ bool DataProcessingDevice::ConditionalRun()
     sendRelayerMetrics();
     flushMetrics();
     mContextRegistry.get<MessageContext>()->clear();
-    mContextRegistry.get<RootObjectContext>()->clear();
     mContextRegistry.get<StringContext>()->clear();
     mContextRegistry.get<ArrowContext>()->clear();
     mContextRegistry.get<RawBufferContext>()->clear();
     EndOfStreamContext eosContext{mServiceRegistry, mAllocator};
     mServiceRegistry.get<CallbackService>()(CallbackService::Id::EndOfStream, eosContext);
     DataProcessor::doSend(*this, *mContextRegistry.get<MessageContext>());
-    DataProcessor::doSend(*this, *mContextRegistry.get<RootObjectContext>());
     DataProcessor::doSend(*this, *mContextRegistry.get<StringContext>());
     DataProcessor::doSend(*this, *mContextRegistry.get<ArrowContext>());
     DataProcessor::doSend(*this, *mContextRegistry.get<RawBufferContext>());
@@ -454,7 +451,6 @@ bool DataProcessingDevice::tryDispatchComputation()
   auto& processingCount = mProcessingCount;
   auto& rdfContext = *mContextRegistry.get<ArrowContext>();
   auto& relayer = mRelayer;
-  auto& rootContext = *mContextRegistry.get<RootObjectContext>();
   auto& serviceRegistry = mServiceRegistry;
   auto& statefulProcess = mStatefulProcess;
   auto& statelessProcess = mStatelessProcess;
@@ -513,7 +509,7 @@ bool DataProcessingDevice::tryDispatchComputation()
   // PROCESSING:{START,END} is done so that we can trigger on begin / end of processing
   // in the GUI.
   auto dispatchProcessing = [&processingCount, &allocator, &statefulProcess, &statelessProcess, &monitoringService,
-                             &context, &rootContext, &stringContext, &rdfContext, &rawContext, &serviceRegistry, &device](TimesliceSlot slot, InputRecord& record) {
+                             &context, &stringContext, &rdfContext, &rawContext, &serviceRegistry, &device](TimesliceSlot slot, InputRecord& record) {
     if (statefulProcess) {
       ProcessingContext processContext{record, serviceRegistry, allocator};
       StateMonitoring<DataProcessingStatus>::moveTo(DataProcessingStatus::IN_DPL_USER_CALLBACK);
@@ -530,7 +526,6 @@ bool DataProcessingDevice::tryDispatchComputation()
     }
 
     DataProcessor::doSend(device, context);
-    DataProcessor::doSend(device, rootContext);
     DataProcessor::doSend(device, stringContext);
     DataProcessor::doSend(device, rdfContext);
     DataProcessor::doSend(device, rawContext);
@@ -552,10 +547,9 @@ bool DataProcessingDevice::tryDispatchComputation()
   // propagates it to the various contextes (i.e. the actual entities which
   // create messages) because the messages need to have the timeslice id into
   // it.
-  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &rootContext, &stringContext, &rdfContext, &rawContext, &context, &relayer, &timesliceIndex](TimesliceSlot i) {
+  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo, &stringContext, &rdfContext, &rawContext, &context, &relayer, &timesliceIndex](TimesliceSlot i) {
     auto timeslice = timesliceIndex.getTimesliceForSlot(i);
     timingInfo.timeslice = timeslice.value;
-    rootContext.clear();
     context.clear();
     stringContext.clear();
     rdfContext.clear();
