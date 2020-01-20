@@ -107,9 +107,14 @@ inline int InteractionSampler::genPoissonZT()
   // generate 0-truncated poisson number
   // https://en.wikipedia.org/wiki/Zero-truncated_Poisson_distribution
   int k = 1;
-  double t = mMuBCZTRed, u = gRandom->Rndm(), s = t;
-  while (s < u) {
-    s += t *= mMuBC / (++k);
+  if (mMuBCZTRed > 0) {
+    double t = mMuBCZTRed, u = gRandom->Rndm(), s = t;
+    while (s < u) {
+      s += t *= mMuBC / (++k);
+    }
+  } else { // need to generate explicitly since the prob of
+    while (!(k = gRandom->Poisson(mMuBC))) {
+    };
   }
   return k;
 }
