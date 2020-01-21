@@ -1045,6 +1045,15 @@ int GPUChainTracking::RunTPCClusterizer()
       unsigned int iSlice = iSliceBase + lane;
       GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSlice];
       SynchronizeStream(lane);
+      if (clusterer.mPmemory->nDigits) {
+        runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::resetMaps>(GetGrid(clusterer.mPmemory->nDigits, ClustererThreadCount(), lane), {iSlice}, {});
+      }
+      if (clusterer.mPmemory->nClusters == 0) {
+        for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
+          tmp->nClusters[iSlice][j] = 0;
+        }
+        continue;
+      }
       nClsTotal += clusterer.mPmemory->nClusters;
       clsMemory.resize(nClsTotal);
       for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
@@ -1052,7 +1061,6 @@ int GPUChainTracking::RunTPCClusterizer()
         tmp->nClusters[iSlice][j] = clusterer.mPclusterInRow[j];
         pos += clusterer.mPclusterInRow[j];
       }
-      runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::resetMaps>(GetGrid(clusterer.mPmemory->nDigits, ClustererThreadCount(), lane), {iSlice}, {});
     }
   }
 

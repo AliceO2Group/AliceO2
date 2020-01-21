@@ -31,10 +31,10 @@ void* GPUTPCClusterFinder::SetPointersMemory(void* mem)
 
 void* GPUTPCClusterFinder::SetPointersInput(void* mem)
 {
-  if (GetConstantMem()->ioPtrs.tpcZS && (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding)) {
+  if (mNMaxPages && (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding)) {
     computePointerWithAlignment(mem, mPzs, mNMaxPages * TPCZSHDR::TPC_ZS_PAGE_SIZE);
   }
-  if (GetConstantMem()->ioPtrs.tpcZS || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding)) {
+  if (mNMaxPages || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding)) {
     computePointerWithAlignment(mem, mPdigits, mNMaxDigits);
   }
   return mem;

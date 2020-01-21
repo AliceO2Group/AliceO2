@@ -21,7 +21,7 @@ using namespace o2::tpc;
 void GPUTrackingInputProvider::InitializeProcessor() {}
 void* GPUTrackingInputProvider::SetPointersInputZS(void* mem)
 {
-  if (GetConstantMem()->ioPtrs.tpcZS && (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding)) {
+  if (holdsTPCZS && (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding)) {
     computePointerWithAlignment(mem, mPzsMeta, 1);
     computePointerWithAlignment(mem, mPzsSizes, GPUTrackingInOutZS::NSLICES * GPUTrackingInOutZS::NENDPOINTS);
     computePointerWithAlignment(mem, mPzsPtrs, GPUTrackingInOutZS::NSLICES * GPUTrackingInOutZS::NENDPOINTS);
@@ -42,4 +42,5 @@ void GPUTrackingInputProvider::RegisterMemoryAllocation()
 
 void GPUTrackingInputProvider::SetMaxData(const GPUTrackingInOutPointers& io)
 {
+  holdsTPCZS = io.tpcZS;
 }
