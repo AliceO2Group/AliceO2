@@ -44,6 +44,34 @@ void duplicate(TTree* tr, const char* brname, TTree* outtree, int factor)
   outtree->SetEntries(entries * factor);
 }
 
+// we need to do something special for MCEventHeaders
+template <>
+void duplicate<o2::dataformats::MCEventHeader>(TTree* tr, const char* brname, TTree* outtree, int factor)
+{
+  auto br = tr->GetBranch(brname);
+  if (!br) {
+    return;
+  }
+  auto entries = br->GetEntries();
+  o2::dataformats::MCEventHeader* entrydata = nullptr;
+  br->SetAddress(&entrydata);
+
+  auto outbranch = outtree->Branch(brname, &entrydata);
+  if (!outbranch) {
+    std::cerr << "branch " << brname << " not created\n";
+  }
+
+  int eventID = 1;
+  for (int i = 0; i < entries; ++i) {
+    br->GetEntry(i);
+    for (int i = 0; i < factor; ++i) {
+      entrydata->SetEventID(eventID++);
+      outbranch->Fill();
+    }
+  }
+  outtree->SetEntries(entries * factor);
+}
+
 template <typename T>
 void duplicateV(TTree* tr, const char* brname, TTree* outtree, int factor)
 {
