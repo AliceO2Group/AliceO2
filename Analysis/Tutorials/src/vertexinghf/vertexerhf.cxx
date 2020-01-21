@@ -79,16 +79,19 @@ struct VertexerHFTask {
       float x1_ = track1.x();
       float alpha1_ = track1.alpha();
       std::array<float, 5> arraypar1 = {track1.y(), track1.z(), track1.snp(), track1.tgl(), track1.signed1Pt()};
-      std::array<float, 15> covpar1 = {1e-6, 0, 1e-6, 0, 0, 1e-6, 0, 0, 0, 1e-6, 0, 0, 0, 0, 1e-5};
+      std::array<float, 15> covpar1 = {track1.cYY(), track1.cZY(), track1.cZZ(), track1.cSnpY(), track1.cSnpZ(), \
+	                               track1.cSnpSnp(), track1.cTglY(), track1.cTglZ(), track1.cTglSnp(), track1.cTglTgl(), \
+	                               track1.c1PtY(), track1.c1PtZ(), track1.c1PtSnp(), track1.c1PtTgl(), track1.c1Pt21Pt2()};
       o2::track::TrackParCov trackparvar1(x1_, alpha1_, arraypar1, covpar1);
-      //LOGF(info, "track1 %f", trackparvar1.getSigmaY2());
 
       for (auto it2 = it1 + 1; it2 != tracks.end(); ++it2) {
         auto& track2 = *it2;
         float x2_ = track2.x();
         float alpha2_ = track2.alpha();
         std::array<float, 5> arraypar2 = {track2.y(), track2.z(), track2.snp(), track2.tgl(), track2.signed1Pt()};
-        std::array<float, 15> covpar2 = {1e-6, 0, 1e-6, 0, 0, 1e-6, 0, 0, 0, 1e-6, 0, 0, 0, 0, 1e-5};
+        std::array<float, 15> covpar2 = {track2.cYY(), track2.cZY(), track2.cZZ(), track2.cSnpY(), track2.cSnpZ(), \
+	                                 track2.cSnpSnp(), track2.cTglY(), track2.cTglZ(), track2.cTglSnp(), track2.cTglTgl(), \
+	                                 track2.c1PtY(), track2.c1PtZ(), track2.c1PtSnp(), track2.c1PtTgl(), track2.c1Pt21Pt2()};
         o2::track::TrackParCov trackparvar2(x2_, alpha2_, arraypar2, covpar2);
         //LOGF(info, "track2 %f", trackparvar2.getSigmaY2());
 
