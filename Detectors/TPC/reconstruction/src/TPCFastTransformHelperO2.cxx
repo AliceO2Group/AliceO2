@@ -120,6 +120,8 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
 
     // adjust the number of knots and the knot positions for the TPC distortion splines
 
+    /*
+     TODO: update the calibrator
     IrregularSpline2D3DCalibrator calibrator;
     calibrator.setRasterSize(41, 41);
     calibrator.setMaxNKnots(21, 21);
@@ -128,13 +130,16 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
     IrregularSpline2D3D raster;
     raster.constructRegular(101, 101);
     std::vector<float> rasterData(3 * raster.getNumberOfKnots());
-
+    */
     for (int scenario = 0; scenario < nDistortionScenarios; scenario++) {
       int row = scenario * 10;
       IrregularSpline2D3D spline;
-      if (!mSpaceChargeCorrection || row >= nRows) {
-        spline.constructRegular(21, 21);
+      if (!mSpaceChargeCorrection || row >= nRows) { //SG!!!
+        spline.constructRegular(15, 40);
       } else {
+        // TODO: update the calibrator
+        spline.constructRegular(15, 40);
+        /*
         // create the input function
         for (int knot = 0; knot < raster.getNumberOfKnots(); knot++) {
           float su = 0.f, sv = 0.f;
@@ -156,6 +161,7 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
         std::cout << "calibrated spline for scenario " << scenario << ", TPC row " << row << ": knots u "
                   << spline.getGridU().getNumberOfKnots() << ", v "
                   << spline.getGridV().getNumberOfKnots() << std::endl;
+                  */
       }
       distortion.setSplineScenario(scenario, spline);
     }
@@ -316,7 +322,7 @@ int TPCFastTransformHelperO2::getSpaceChargeCorrection(int slice, int row, float
   {
     double xyz[3] = {gx, gy, gz};
     double dxyz[3] = {0., 0., 0.};
-    mSpaceChargeCorrection(xyz, dxyz);
+    mSpaceChargeCorrection(slice, xyz, dxyz);
     gx1 += dxyz[0];
     gy1 += dxyz[1];
     gz1 += dxyz[2];
