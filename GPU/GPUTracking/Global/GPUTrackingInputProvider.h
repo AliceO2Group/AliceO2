@@ -38,6 +38,8 @@ class GPUTrackingInputProvider : public GPUProcessor
 
   unsigned short mResourceZS = 0;
 
+  bool holdsTPCZS = false;
+
   GPUTrackingInOutZS* mPzsMeta = nullptr;
   unsigned int* mPzsSizes = nullptr;
   void** mPzsPtrs = nullptr;
