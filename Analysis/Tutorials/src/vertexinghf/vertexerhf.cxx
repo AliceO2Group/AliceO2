@@ -74,8 +74,6 @@ struct VertexerHFTask {
 
     for (auto it1 = tracks.begin(); it1 != tracks.end(); ++it1) {
       auto& track1 = *it1;
-      if (track1.pt() < 20.)
-        continue;
       float x1_ = track1.x();
       float alpha1_ = track1.alpha();
       std::array<float, 5> arraypar1 = {track1.y(), track1.z(), track1.snp(), track1.tgl(), track1.signed1Pt()};
@@ -85,8 +83,6 @@ struct VertexerHFTask {
 
       for (auto it2 = it1 + 1; it2 != tracks.end(); ++it2) {
         auto& track2 = *it2;
-        if (track2.pt() < 20.)
-          continue;
         float x2_ = track2.x();
         float alpha2_ = track2.alpha();
         std::array<float, 5> arraypar2 = {track2.y(), track2.z(), track2.snp(), track2.tgl(), track2.signed1Pt()};
