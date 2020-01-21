@@ -62,7 +62,9 @@ struct ATask {
   }
 };
 struct VertexerHFTask {
-  OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 100, -10., 10)};
+  OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 100, -0.1, 0.1)};
+  OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 100, -0.1, 0.1)};
+  OutputObj<TH1F> hvtx_z_out{TH1F("hvtx_z", "2-track vtx", 100, -0.1, 0.1)};
   Produces<aod::SecVtx> secvtx;
 
   //void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksCov> const& tracks)
@@ -99,6 +101,8 @@ struct VertexerHFTask {
           LOGF(info, "print %f", vtx.x);
           //LOGF(info, "LABELELELELELLE %d", track2.index());
           hvtx_x_out->Fill(vtx.x);
+          hvtx_y_out->Fill(vtx.y);
+          hvtx_z_out->Fill(vtx.z);
           secvtx(vtx.x, vtx.y, -1, -1, -1.);
           //secvtx(vtx.x, vtx.y, track1.index, track2.index, -1.);
           //LOGF(info, "DONE");
