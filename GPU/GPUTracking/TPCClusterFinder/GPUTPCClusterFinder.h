@@ -24,8 +24,8 @@ namespace gpu
 
 namespace deprecated
 {
-class PackedDigit;
-class ClusterNative;
+struct PackedDigit;
+struct ClusterNative;
 } // namespace deprecated
 
 class GPUTPCClusterFinder : public GPUProcessor
