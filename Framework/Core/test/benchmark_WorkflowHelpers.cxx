@@ -8,6 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/WorkflowSpec.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "Framework/ConfigContext.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/OutputSpec.h"
 #include "Framework/SimpleOptionsRetriever.h"
