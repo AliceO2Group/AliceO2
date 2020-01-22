@@ -37,8 +37,8 @@ static os_log_t gDPLLog;
 #endif
 #define O2_SIGNPOST_INIT() gDPLLog = os_log_create("ch.cern.alice.dpl", O2_SIGNPOST_TYPE);
 #define O2_SIGNPOST(code, arg1, arg2, arg3, color) os_signpost_event_emit(gDPLLog, OS_SIGNPOST_ID_EXCLUSIVE, "##code", "%d %d %d %d", arg1, arg2, arg3, color)
-#define O2_SIGNPOST_START(code, interval_id, arg2, arg3, color) os_signpost_interval_begin(gDPLLog, interval_id, "##code", "%d %d %d", arg2, arg3, color)
-#define O2_SIGNPOST_END(code, interval_id, arg2, arg3, color) os_signpost_interval_end(gDPLLog, interval_id, "##code", "%d %d %d", arg2, arg3, color)
+#define O2_SIGNPOST_START(code, interval_id, arg2, arg3, color) os_signpost_interval_begin(gDPLLog, (os_signpost_id_t) interval_id, "##code", "%d %d %d", arg2, arg3, color)
+#define O2_SIGNPOST_END(code, interval_id, arg2, arg3, color) os_signpost_interval_end(gDPLLog, (os_signpost_id_t) interval_id, "##code", "%d %d %d", arg2, arg3, color)
 #define O2_SIGNPOST_API_AVAILABLE
 #elif defined(__APPLE__) && __has_include(<sys/kdebug_signpost.h>) && (__MAC_OS_X_VERSION_MAX_ALLOWED < __MAC_10_15) // Deprecated in Catalina
 #include <sys/kdebug_signpost.h>
