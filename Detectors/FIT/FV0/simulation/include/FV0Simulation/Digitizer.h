@@ -63,7 +63,7 @@ class Digitizer
   // Internal helper methods related to conversion of energy-deposition into photons -> photoelectrons -> el. signal
   Int_t SimulateLightYield(Int_t pmt, Int_t nPhot);
   Float_t SimulateTimeCfd(Int_t channel);
-  static Float_t PmtResponse(const Float_t x, const Float_t par);
+  static Float_t PmtResponse(Float_t x);
   Double_t SinglePhESpectrum(Double_t* x, Double_t* par);
   Float_t mPmtTimeIntegral; //
 

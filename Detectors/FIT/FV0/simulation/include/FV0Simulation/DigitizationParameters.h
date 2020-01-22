@@ -39,6 +39,8 @@ struct DigitizationParameters {
   static constexpr int photoelMin = 0;             // Integration lower limit
   static constexpr int photoelMax = 30;            // Integration upper limit
   static constexpr float singleMipThreshold = 3.0; // in [MeV] of deposited energy
+  // Optimization-related, derived constants
+  static constexpr float mPmtTransitTime2 = mPmtTransitTime * mPmtTransitTime;
 };
 } // namespace o2::fv0
 #endif
