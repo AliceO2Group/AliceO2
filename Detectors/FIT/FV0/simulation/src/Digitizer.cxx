@@ -56,7 +56,6 @@ void Digitizer::init()
 
   for (Int_t i = 0; i < DigitizationParameters::NCHANNELS; i++) {
     mPmtChargeVsTime[i].resize(mNBins);
-    std::fill(mPmtChargeVsTime[i].begin(), mPmtChargeVsTime[i].end(), 0); // TODO: should this be in the process() function?
   }
 
   // Initialize function describing the PMT time response
@@ -117,17 +116,31 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
 
     Double_t const nPhotons = hitEdep * DigitizationParameters::N_PHOTONS_PER_MEV;
     Int_t const nPhE = SimulateLightYield(detId, nPhotons);
-    Float_t const t = mScintillatorDelay.at(mIteratorScintDelay++ % mScintillatorDelay.size()) + hit.GetTime() * 1e9;
+    Float_t const t = mScintillatorDelay.at(mIteratorScintDelay) + hit.GetTime() * 1e9;
     Float_t charge = TMath::Qe() * DigitizationParameters::mPmtGain * mBinSize / mPmtTimeIntegral;
     for (Int_t iPhE = 0; iPhE < nPhE; ++iPhE) {
-      Float_t const tPhE = t + mSignalShape.at(mIteratorSignalShape++ % mSignalShape.size());
+      Float_t const tPhE = t + mSignalShape.at(mIteratorSignalShape);
       Int_t const firstBin = TMath::Max((Int_t)0, (Int_t)((tPhE - DigitizationParameters::mPmtTransitTime) / mBinSize));
       Int_t const lastBin = TMath::Min((Int_t)mNBins - 1, (Int_t)((tPhE + 2. * DigitizationParameters::mPmtTransitTime) / mBinSize));
       for (Int_t iBin = firstBin; iBin <= lastBin; ++iBin) {
         Float_t const tempT = mBinSize * (0.5 + iBin) - tPhE;
-        mPmtChargeVsTime.at(detId).at(iBin) += mGainVar.at(mIteratorGainVar++ % mGainVar.size()) * charge * PmtResponse(tempT, DigitizationParameters::mPmtTransitTime);
+        mPmtChargeVsTime.at(detId).at(iBin) += mGainVar.at(mIteratorGainVar) * charge * PmtResponse(tempT);
       } // time-bin loop
+
+      // RandomRing servicing (perhaps a separate class could do better)
+      mIteratorGainVar++;
+      if (mIteratorGainVar >= mGainVar.size()) {
+        mIteratorGainVar = 0;
+      }
+      mIteratorSignalShape++;
+      if (mIteratorSignalShape >= mSignalShape.size()) {
+        mIteratorSignalShape = 0;
+      }
     }   //photo electron loop
+    mIteratorScintDelay++;
+    if (mIteratorScintDelay >= mScintillatorDelay.size()) {
+      mIteratorScintDelay = 0;
+    }
 
     // Charged particles in MCLabel
     Int_t parentId = hit.GetTrackID();
@@ -135,7 +148,6 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
       mMCLabels.emplace_back(parentId, mEventId, mSrcId, detId);
       parentIdPrev = parentId;
     }
-    //LOG(INFO) << "--> Id(parent, event, src, det) = (" << parentId << ", " << mEventId << ", " << mSrcId << ", " << detId << ")   mMCLabels.size() = " << mMCLabels.size();
   } //hit loop
 
   // Sum charge of all time bins to get total charge collected for a given channel
@@ -143,7 +155,8 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
   for (Int_t ipmt = 0; ipmt < DigitizationParameters::NCHANNELS; ++ipmt) {
     Float_t totalCharge = 0;
     for (Int_t iTimeBin = 0; iTimeBin < mNBins; ++iTimeBin) {
-      totalCharge += mPmtChargeVsTime[ipmt][iTimeBin] / DigitizationParameters::CHARGE_PER_ADC;
+      Float_t timeBinCharge = mPmtChargeVsTime[ipmt][iTimeBin] / DigitizationParameters::CHARGE_PER_ADC;
+      totalCharge += timeBinCharge;
     }
     digitsCh.emplace_back(ipmt, SimulateTimeCfd(ipmt), totalCharge);
     nStored++;
@@ -151,7 +164,7 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
 
   // Send MClabels and digitsBC to storage
   int nBC = digitsBC.size();
-  digitsBC.emplace_back(first, nStored, mIntRecord, 0, 0);
+  digitsBC.emplace_back(first, nStored, mIntRecord);
   for (const auto& lbl : mMCLabels) {
     labels.addElement(nBC, lbl);
   }
@@ -165,8 +178,9 @@ Int_t Digitizer::SimulateLightYield(Int_t pmt, Int_t nPhot)
 {
   const Float_t epsilon = 0.0001;
   const Float_t p = DigitizationParameters::mLightYield * DigitizationParameters::mPhotoCathodeEfficiency;
-  if ((p - 1.0f < epsilon) || nPhot == 0)
+  if ((fabs(1.0f - p) < epsilon) || nPhot == 0) {
     return nPhot;
+  }
   const Int_t n = Int_t(nPhot < 100
                           ? gRandom->Binomial(nPhot, p)
                           : gRandom->Gaus(p * nPhot + 0.5, TMath::Sqrt(p * (1 - p) * nPhot)));
@@ -196,11 +210,12 @@ Float_t Digitizer::SimulateTimeCfd(Int_t channel)
 }
 
 //_______________________________________________________________________
-Float_t Digitizer::PmtResponse(const Float_t x, const Float_t t)
+Float_t Digitizer::PmtResponse(Float_t x)
 {
   // this function describes the PMT time response to a single photoelectron
-  Float_t const y = x + t; //parameters.mPmtTransitTime, x -- time (PMT), t -- Pmt response time
-  return y * y * TMath::Exp(-y * y / (t * t));
+  x += DigitizationParameters::mPmtTransitTime;
+  Float_t x2 = x * x;
+  return x2 * TMath::Exp(-x2 / DigitizationParameters::mPmtTransitTime2);
 }
 
 //_______________________________________________________________________
