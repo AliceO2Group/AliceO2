@@ -12,6 +12,7 @@
 #include "Framework/AODReaderHelpers.h"
 #include "Framework/ChannelMatching.h"
 #include "Framework/CommonDataProcessors.h"
+#include "Framework/ConfigContext.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/ControlService.h"
@@ -142,7 +143,7 @@ void addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
   }
 }
 
-void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
+void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx)
 {
   auto fakeCallback = AlgorithmSpec{[](InitContext& ic) {
     LOG(INFO) << "This is not a real device, merely a placeholder for external inputs";
@@ -279,7 +280,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow)
     extraSpecs.push_back(qaStore);
   }
   if (aodReader.outputs.empty() == false) {
-    extraSpecs.push_back(aodReader);
+    extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
     auto concrete = DataSpecUtils::asConcreteDataMatcher(aodReader.inputs[0]);
     timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
   }

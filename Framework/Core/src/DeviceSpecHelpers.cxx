@@ -248,6 +248,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
     device.rank = processor.rank;
     device.nSlots = processor.nSlots;
     device.inputTimesliceId = edge.timeIndex;
+    device.maxInputTimeslices = processor.maxInputTimeslices;
     device.resource = {acceptedOffer};
     devices.push_back(device);
     return devices.size() - 1;
@@ -451,6 +452,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     device.rank = processor.rank;
     device.nSlots = processor.nSlots;
     device.inputTimesliceId = edge.timeIndex;
+    device.maxInputTimeslices = processor.maxInputTimeslices;
     device.resource = {acceptedOffer};
 
     // FIXME: maybe I should use an std::map in the end
