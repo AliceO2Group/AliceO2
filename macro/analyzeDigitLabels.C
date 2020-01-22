@@ -181,7 +181,7 @@ void analyzeFT0(TTree* reftree)
 void analyzeFDD(TTree* reftree)
 {
   LabelStats result;
-  analyse<o2::fdd::MCLabel>(reftree, "FDDDigitMCTruth", result);
+  analyse<o2::fdd::MCLabel>(reftree, "FDDDigitLabels", result);
   std::cout << gPrefix << " FDD ";
   result.print();
 }
