@@ -26,7 +26,6 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::eventgen::Generator + ;
-#pragma link C++ class o2::eventgen::GeneratorHepMC + ;
 #pragma link C++ class o2::eventgen::GeneratorTGenerator + ;
 #ifdef GENERATORS_WITH_HEPMC3
 #pragma link C++ class o2::eventgen::GeneratorHepMC + ;
