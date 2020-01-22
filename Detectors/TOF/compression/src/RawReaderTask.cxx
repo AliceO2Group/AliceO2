@@ -16,6 +16,7 @@
 #include "TOFCompression/RawReaderTask.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Headers/RAWDataHeader.h"
 
 using namespace o2::framework;
 
@@ -28,7 +29,8 @@ void RawReaderTask::init(InitContext& ic)
 {
   LOG(INFO) << "RawReader init";
   auto filename = ic.options().get<std::string>("tof-raw-filename");
-
+  mBuffer.reserve(1048576);
+  
   /** open file **/
   if (mFile.is_open()) {
     LOG(WARNING) << "a file was already open, closing";
@@ -53,12 +55,25 @@ void RawReaderTask::run(ProcessingContext& pc)
     return;
   }
 
-  /** read file **/
-  mFile.read(mDataFrame.mBuffer, mDataFrame.mSize);
+  /** read full HBF **/
+  int headerSize = sizeof(o2::header::RAWDataHeader);
+  char* inputPointer = mBuffer.data();
+  mFile.read(inputPointer, headerSize);
+  inputPointer += headerSize;
+  auto rdh = reinterpret_cast<o2::header::RAWDataHeader*>(inputPointer);
+  while (!rdh->stop) {
+    auto dataSize = rdh->offsetToNext - headerSize;
+    mFile.read(inputPointer, dataSize);
+    inputPointer += dataSize;
+    mFile.read(inputPointer, headerSize);
+    rdh = reinterpret_cast<o2::header::RAWDataHeader*>(inputPointer);
+    inputPointer += headerSize;
+  }
+  mBuffer.resize(inputPointer - mBuffer.data());
 
-  /** push the data **/
-  pc.outputs().snapshot(Output{"TOF", "RAWDATAFRAME", 0, Lifetime::Timeframe}, mDataFrame);
-
+  auto freefct = [](void* data, void* hint) {}; // simply ignore the cleanup for the test
+  pc.outputs().adoptChunk(Output{"TOF", "RAWDATAFRAME", 0, Lifetime::Timeframe}, mBuffer.data(), mBuffer.size(), freefct, nullptr);
+  
   /** check eof **/
   if (mFile.eof()) {
     LOG(WARNING) << "nothig else to read";

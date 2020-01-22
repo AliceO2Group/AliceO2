@@ -40,7 +40,8 @@ class DigitReader : public Task
   int mState = 0;
   bool mUseMC = true;
   std::unique_ptr<TFile> mFile = nullptr;
-  std::vector<std::vector<o2::tof::Digit>> mDigits, *mPdigits = &mDigits;
+  std::vector<o2::tof::Digit> mDigits, *mPdigits = &mDigits;
+  std::vector<o2::tof::ReadoutWindowData> mRow, *mProw = &mRow;
   std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mLabels, *mPlabels = &mLabels;
 };
 

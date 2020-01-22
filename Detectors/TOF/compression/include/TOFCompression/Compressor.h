@@ -38,10 +38,7 @@ class Compressor
   inline bool run()
   {
     rewind();
-    if (processRDH())
-      return false;
-    for (int i = 0; i < 3 && !processDRM(); ++i)
-      ;
+    while (!processHBF());
     return false;
   };
 
@@ -56,9 +53,8 @@ class Compressor
   };
   inline bool write() { return encoderWrite(); };
 
-  bool processRDH();
-  bool processDRM();
   void checkSummary();
+  void resetCounters();
 
   void setDecoderVerbose(bool val) { mDecoderVerbose = val; };
   void setEncoderVerbose(bool val) { mEncoderVerbose = val; };
@@ -77,29 +73,48 @@ class Compressor
   double mIntegratedTime = 0.;
 
  protected:
+
+  bool processSave();
+  bool processHBF();
+  bool processHBFsave();
+  bool processRDH();
+  bool processDRM();
+
   /** decoder private functions and data members **/
 
   bool decoderInit();
   bool decoderOpen(std::string name);
   bool decoderRead();
   bool decoderClose();
-  void decoderClear();
+  bool decoderParanoid();
   inline void decoderRewind() { mDecoderPointer = reinterpret_cast<uint32_t*>(mDecoderBuffer); };
   inline void decoderNext()
   {
     mDecoderPointer += mDecoderNextWord;
-    mDecoderNextWord = (mDecoderNextWord + 2) % 4;
+    //    mDecoderNextWord = mDecoderNextWord == 1 ? 3 : 1;
+    //    mDecoderNextWord = (mDecoderNextWord + 2) % 4;
+    mDecoderNextWord = (mDecoderNextWord + 2) & 0x3;
   };
 
+  int mJumpRDH = 0;
+  
   std::ifstream mDecoderFile;
   char* mDecoderBuffer = nullptr;
   bool mOwnDecoderBuffer = false;
   long mDecoderBufferSize = 8192;
+  //  long mDecoderBufferSize = 1048576;
   uint32_t* mDecoderPointer = nullptr;
-  uint32_t mDecoderNextWord = 1;
+  uint32_t* mDecoderPointerMax = nullptr;
+  uint32_t* mDecoderPointerNext = nullptr;
+  uint8_t mDecoderNextWord = 1;
   o2::header::RAWDataHeader* mDecoderRDH;
   bool mDecoderVerbose = false;
-
+  bool mDecoderError = false;
+  bool mDecoderFatal = false;
+  char mDecoderSaveBuffer[1048576];
+  uint32_t mDecoderSaveBufferDataSize = 0;
+  uint32_t mDecoderSaveBufferDataLeft = 0;
+  
   /** encoder private functions and data members **/
 
   bool encoderInit();
@@ -113,9 +128,11 @@ class Compressor
   std::ofstream mEncoderFile;
   char* mEncoderBuffer = nullptr;
   bool mOwnEncoderBuffer = false;
-  long mEncoderBufferSize = 8192;
+  long mEncoderBufferSize = 1048576;
   uint32_t* mEncoderPointer = nullptr;
-  uint32_t mEncoderNextWord = 1;
+  uint32_t* mEncoderPointerMax = nullptr;
+  uint32_t* mEncoderPointerStart = nullptr;
+  uint8_t mEncoderNextWord = 1;
   o2::header::RAWDataHeader* mEncoderRDH;
   bool mEncoderVerbose = false;
 
@@ -123,13 +140,15 @@ class Compressor
 
   bool checkerCheck();
 
-  uint32_t mCounter;
+  uint32_t mEventCounter;
+  uint32_t mFatalCounter;
+  uint32_t mErrorCounter;
   bool mCheckerVerbose = false;
 
   struct DRMCounters_t {
     uint32_t Headers;
     uint32_t EventWordsMismatch;
-    uint32_t CBit;
+    uint32_t clockStatus;
     uint32_t Fault;
     uint32_t RTOBit;
   } mDRMCounters = {0};

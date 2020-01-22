@@ -59,10 +59,11 @@ class DigitDataReader : public DataReader
 {
  public:
   DigitDataReader() = default;
-  void setDigitArray(const std::vector<o2::tof::Digit>* a)
+  void setDigitArray(const gsl::span<const o2::tof::Digit>* a)
   {
     mDigitArray = a;
     mIdx = 0;
+    mLastDigit = nullptr;
   }
 
   void init() override
@@ -74,7 +75,7 @@ class DigitDataReader : public DataReader
   Bool_t getNextStripData(StripData& stripData) override;
 
  private:
-  const std::vector<o2::tof::Digit>* mDigitArray = nullptr;
+  const gsl::span<const o2::tof::Digit>* mDigitArray = nullptr;
   const Digit* mLastDigit = nullptr;
   Int_t mIdx = 0;
 };

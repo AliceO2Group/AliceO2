@@ -52,8 +52,8 @@ class Digitizer : public WindowFiller
   // Method used for digitization
   void initParameters();
   void printParameters();
-  Float_t getShowerTimeSmeared(Float_t time, Float_t charge);
-  Float_t getDigitTimeSmeared(Float_t time, Float_t x, Float_t z, Float_t charge);
+  Double_t getShowerTimeSmeared(Double_t time, Float_t charge);
+  Double_t getDigitTimeSmeared(Double_t time, Float_t x, Float_t z, Float_t charge);
   Float_t getCharge(Float_t eDep);
   Bool_t isFired(Float_t x, Float_t z, Float_t charge);
   Float_t getEffX(Float_t x);
@@ -117,7 +117,7 @@ class Digitizer : public WindowFiller
   void fillDigitsInStrip(std::vector<Strip>* strips, o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer, int channel, int tdc, int tot, int nbc, UInt_t istrip, Int_t trackID, Int_t eventID, Int_t sourceID);
 
   Int_t processHit(const HitType& hit, Double_t event_time);
-  void addDigit(Int_t channel, UInt_t istrip, Float_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ, Int_t padZfired,
+  void addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ, Int_t padZfired,
                 Int_t trackID);
 
   void checkIfReuseFutureDigits();

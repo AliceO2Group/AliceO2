@@ -34,8 +34,9 @@ void RawWriter::run(ProcessingContext& pc)
     return;
   }
 
-  auto digits = pc.inputs().get<std::vector<std::vector<o2::tof::Digit>>*>("tofdigits");
-  int nwindow = digits->size();
+  auto digits = pc.inputs().get<std::vector<o2::tof::Digit>*>("tofdigits");
+  auto row = pc.inputs().get<std::vector<o2::tof::ReadoutWindowData>*>("readoutwin");
+  int nwindow = row->size();
   LOG(INFO) << "Encoding " << nwindow << " TOF readout windows";
 
   int cache = 1024*1024; // 1 MB
@@ -52,17 +53,26 @@ void RawWriter::run(ProcessingContext& pc)
   
   std::vector<o2::tof::Digit> emptyWindow;
 
+  std::vector<o2::tof::Digit> digitRO;
+
+  std::vector<std::vector<o2::tof::Digit>> digitWindows;
+
   for(int i=0;i < nwindowintimeframe;i+=nwindowperorbit){ // encode 3 tof windows (1 orbit)
     if(verbosity) printf("----------\nwindow = %d - %d\n----------\n",i,i+nwindowperorbit-1);
-    std::vector<std::vector<o2::tof::Digit>> digitWindows;
+
+    digitWindows.clear();
 
     // push all windows in the current orbit in the structure
     for(int j=i;j < i+nwindowperorbit;j++){
-       if(j < nwindow)
-          digitWindows.push_back(digits->at(j));
-       else{
-          digitWindows.push_back(emptyWindow);
-       }
+      if(j < nwindow){
+	digitRO.clear();
+	for(int id=0; id < row->at(j).size(); id++)
+	  digitRO.push_back((*digits)[row->at(j).first() + id]);
+	digitWindows.push_back(digitRO);
+      }
+      else{
+	digitWindows.push_back(emptyWindow);
+      }
     }
 
     encoder.encode(digitWindows,i);
@@ -79,6 +89,7 @@ DataProcessorSpec getTOFRawWriterSpec()
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("tofdigits", "TOF", "DIGITS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("readoutwin", "TOF", "READOUTWINDOW", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "TOFRawWriter",

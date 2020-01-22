@@ -87,44 +87,31 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
 {
   if (mContinuous) {
     digits.clear();
-  //   mMCTruthOutputContainer->clear();
   }
 
-  printf("TOF fill output container\n");
   // filling the digit container doing a loop on all strips
   for (auto& strip : *mStripsCurrent) {
     strip.fillOutputContainer(digits);
   }
 
   if (mContinuous) {
-    printf("%i) # TOF digits = %lu (%p)\n", mIcurrentReadoutWindow, digits.size(), mStripsCurrent);
-    mDigitsPerTimeFrame.push_back(digits);
+    int first = mDigitsPerTimeFrame.size();
+    int ne = digits.size();
+    ReadoutWindowData info(first,ne);
+    if(digits.size())
+      mDigitsPerTimeFrame.insert(mDigitsPerTimeFrame.end(), digits.begin(), digits.end());
+    mReadoutWindowData.push_back(info);
   }
-
-  // copying the transient labels to the output labels (stripping the tdc information)
-  // if (mMCTruthOutputContainer) {
-  //   // copy from transientTruthContainer to mMCTruthAray
-  //   // a brute force solution for the moment; should be handled by a dedicated API
-  //   for (int index = 0; index < mMCTruthContainerCurrent->getIndexedSize(); ++index) {
-  //     mMCTruthOutputContainer->addElements(index, mMCTruthContainerCurrent->getLabels(index));
-  //   }
-  // }
-
-  // if (mContinuous)
-  //   mMCTruthOutputContainerPerTimeFrame.push_back(*mMCTruthOutputContainer);
-  // mMCTruthContainerCurrent->clear();
 
   // switch to next mStrip after flushing current readout window data
   mIcurrentReadoutWindow++;
   if (mIcurrentReadoutWindow >= MAXWINDOWS)
     mIcurrentReadoutWindow = 0;
   mStripsCurrent = &(mStrips[mIcurrentReadoutWindow]);
-  // mMCTruthContainerCurrent = &(mMCTruthContainer[mIcurrentReadoutWindow]);
   int k = mIcurrentReadoutWindow + 1;
   for (Int_t i = 0; i < MAXWINDOWS - 1; i++) {
     if (k >= MAXWINDOWS)
       k = 0;
-    // mMCTruthContainerNext[i] = &(mMCTruthContainer[k]);
     mStripsNext[i] = &(mStrips[k]);
     k++;
   }
@@ -133,7 +120,9 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
 void WindowFiller::flushOutputContainer(std::vector<Digit>& digits)
 { // flush all residual buffered data
   // TO be implemented
+  
   printf("flushOutputContainer\n");
+
   if (!mContinuous)
     fillOutputContainer(digits);
   else {
@@ -143,7 +132,9 @@ void WindowFiller::flushOutputContainer(std::vector<Digit>& digits)
       mReadoutWindowCurrent++;
     }
 
+    int round = 0;
     while (mFutureDigits.size()) {
+      round++;
       fillOutputContainer(digits); // fill all windows which are before (not yet stored) of the new current one
       checkIfReuseFutureDigits();
       mReadoutWindowCurrent++;
@@ -153,7 +144,16 @@ void WindowFiller::flushOutputContainer(std::vector<Digit>& digits)
 //______________________________________________________________________
 void WindowFiller::checkIfReuseFutureDigits()
 {
+  if(! mFutureDigits.size()) return;
+
   // check if digits stored very far in future match the new readout windows currently available
+  if(mFutureToBeSorted){
+    // sort digit in descending BC order: kept last as first
+    std::sort(mFutureDigits.begin(), mFutureDigits.end(),
+	      [](o2::tof::Digit a, o2::tof::Digit b) { return a.getBC() > b.getBC(); });
+    mFutureToBeSorted=false;
+  }
+
   int idigit = mFutureDigits.size() - 1;
 
   int bclimit = 999999; // if bc is larger than this value stop the search  in the next loop since bc are ordered in descending order
@@ -176,39 +176,20 @@ void WindowFiller::checkIfReuseFutureDigits()
       
       continue;
     }
-    
+   
     
     if (isnext < MAXWINDOWS - 1) { // move from digit buffer array to the proper window
       std::vector<Strip>* strips = mStripsCurrent;
-      // o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer = mMCTruthContainerCurrent;
 
       if (isnext) {
 	strips = mStripsNext[isnext - 1];
-	// mcTruthContainer = mMCTruthContainerNext[isnext - 1];
       }
 
-      // int trackID = mFutureItrackID[digit->getLabel()];
-      // int sourceID = mFutureIsource[digit->getLabel()];
-      // int eventID = mFutureIevent[digit->getLabel()];
-      // fillDigitsInStrip(strips, mcTruthContainer, digit->getChannel(), digit->getTDC(), digit->getTOT(), digit->getBC(), digit->getChannel() / Geo::NPADS, trackID, eventID, sourceID);
       fillDigitsInStrip(strips, digit->getChannel(), digit->getTDC(), digit->getTOT(), digit->getBC(), digit->getChannel() / Geo::NPADS);
       
-      // // remove the element from the buffers
-      // mFutureItrackID.erase(mFutureItrackID.begin() + digit->getLabel());
-      // mFutureIsource.erase(mFutureIsource.begin() + digit->getLabel());
-      // mFutureIevent.erase(mFutureIevent.begin() + digit->getLabel());
-
       // int labelremoved = digit->getLabel();
       mFutureDigits.erase(mFutureDigits.begin() + idigit);
 
-      // // adjust labels
-      // for (auto& digit2 : mFutureDigits) {
-      //   if (digit2.getLabel() > labelremoved) {
-      //     digit2.setLabel(digit2.getLabel() - 1);
-      //   }
-      // }
-      // remove also digit from buffer
-      //      mFutureDigits.erase(mFutureDigits.begin() + idigit);
     }
     else{
       bclimit = digit->getBC();

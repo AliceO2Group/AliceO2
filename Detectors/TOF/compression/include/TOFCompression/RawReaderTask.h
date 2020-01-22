@@ -41,7 +41,7 @@ class RawReaderTask : public Task
  private:
   bool mStatus = false;
   std::ifstream mFile;
-  RawDataFrame mDataFrame;
+  std::string mBuffer;
 };
 
 } // namespace tof

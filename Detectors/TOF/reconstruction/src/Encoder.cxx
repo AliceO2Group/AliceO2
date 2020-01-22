@@ -285,7 +285,7 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
 
       mUnion[i]->drmHeadW1.slotId = 1;
       mUnion[i]->drmHeadW1.partSlotMask = (i % 2 == 0 ? 0x7fc : 0x7fe);
-      mUnion[i]->drmHeadW1.clockStatus = 0;
+      mUnion[i]->drmHeadW1.clockStatus = 2;
       mUnion[i]->drmHeadW1.drmhVersion = 0x11;
       mUnion[i]->drmHeadW1.drmHSize = 5;
       mUnion[i]->drmHeadW1.mbz = 0;
@@ -351,7 +351,6 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
     mIntegratedBytes[i] += mRDH[i]->offsetToNext;
 
     // add RDH close
-    mRDH[i] = reinterpret_cast<o2::header::RAWDataHeader*>(nextPage(mRDH[i],mRDH[i]->offsetToNext));
     closeRDH(i);
     mIntegratedBytes[i] += mRDH[i]->offsetToNext;
     mUnion[i] = reinterpret_cast<Union_t *>(nextPage(mRDH[i],mRDH[i]->offsetToNext));
@@ -405,7 +404,7 @@ void Encoder::openRDH(int icrate){
     mRDH[icrate]->triggerType |= o2::trigger::TF; 
 
   // word6
-  mRDH[icrate]->pageCnt = mNRDH[icrate];
+  mRDH[icrate]->pageCnt = 0;
 
   char* shift = reinterpret_cast<char*>(mRDH[icrate]);
 
@@ -421,13 +420,20 @@ void Encoder::addPage(int icrate){
 
   // printf("add page (crate = %d - current size = %d)\n",icrate,mRDH[icrate]->offsetToNext);
 
+  int pgCnt = mRDH[icrate]->pageCnt + 1;
+
   // move to next RDH
   mRDH[icrate] = reinterpret_cast<o2::header::RAWDataHeader*>(nextPage(mRDH[icrate],mRDH[icrate]->offsetToNext));
 
   openRDH(icrate);
+  mRDH[icrate]->pageCnt = pgCnt;
 }
 
 void Encoder::closeRDH(int icrate){
+  int pgCnt = mRDH[icrate]->pageCnt + 1;
+
+  mRDH[icrate] = reinterpret_cast<o2::header::RAWDataHeader*>(nextPage(mRDH[icrate],mRDH[icrate]->offsetToNext));
+
   *mRDH[icrate] = mHBFSampler.createRDH<o2::header::RAWDataHeader>(mIR);
 
   mRDH[icrate]->stop = 0x1; 
@@ -456,7 +462,7 @@ void Encoder::closeRDH(int icrate){
     mRDH[icrate]->triggerType |= o2::trigger::TF; 
 
   // word6
-  mRDH[icrate]->pageCnt = mNRDH[icrate];
+  mRDH[icrate]->pageCnt = pgCnt;
   mNRDH[icrate]++;
 }
 

@@ -25,13 +25,35 @@ class RawDataFrame
 {
 
  public:
-  RawDataFrame() = default;
-  ~RawDataFrame() = default;
+  RawDataFrame(int size = 1048576)
+    : mSize(size), mBuffer(new char[size]){};
+  RawDataFrame(const RawDataFrame& other)
+    : mSize(other.mSize), mBuffer(new char[other.mSize])
+  {
+    for (int i = 0; i < mSize; ++i)
+      mBuffer[i] = other.mBuffer[i];
+  };
+  RawDataFrame& operator=(const RawDataFrame& other)
+  {
+    if (&other == this)
+      return *this;
+    if (mSize != other.mSize) {
+      delete[] mBuffer;
+      mSize = other.mSize;
+      mBuffer = new char[mSize];
+    }
+    for (int i = 0; i < mSize; ++i)
+      mBuffer[i] = other.mBuffer[i];
+    return *this;
+  };
+  ~RawDataFrame() { delete[] mBuffer; };
+  int getSize() const { return mSize; };
+  char* getBuffer() const { return mBuffer; };
 
   // private:
 
-  char mBuffer[8192]; // [mSize]
-  long mSize = 8192;
+  int mSize;
+  char* mBuffer; // [mSize]
 
   ClassDef(RawDataFrame, 1);
 };
