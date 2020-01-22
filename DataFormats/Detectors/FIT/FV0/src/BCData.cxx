@@ -17,19 +17,6 @@ using namespace o2::fv0;
 void BCData::print() const
 {
   ir.print();
-  // printf("[FV0] %d channels starting from %d\n", ref.getEntries(), ref.getFirstEntry());
-  printf("Read : [");
-  for (int ic = 0; ic < 48; ic++) {
-    if (channels & ((int64_t)0x1 << ic)) {
-      printf("%d ", ic);
-    }
-  }
-  printf("] Triggered: [");
-  for (int ic = 0; ic < 48; ic++) {
-    if (triggers & ((int64_t)0x1 << ic)) {
-      printf("%d ", ic);
-    }
-  }
   printf("]\n");
 }
 

@@ -50,11 +50,6 @@ void readFV0Digits(std::string digiFName = "fv0digits.root")
 
     for (int ibc = 0; ibc < nbc; ibc++) {
       const auto& bcd = fv0BCData[ibc];
-      if (bcd.triggers) {
-        LOG(INFO) << "Triggered BC " << itrig++;
-      } else {
-        LOG(INFO) << "Non-Triggered BC ";
-      }
       bcd.print();
       int chEnt = bcd.ref.getFirstEntry();
       for (int ic = 0; ic < bcd.ref.getEntries(); ic++) {

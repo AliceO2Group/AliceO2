@@ -31,18 +31,12 @@ struct BCData {
   o2::dataformats::RangeRefComp<6> ref;
   o2::InteractionRecord ir;
 
-  // TODO: These are not implemented yet - always set to 0
-  int64_t channels = 0; // pattern of channels it refers to
-  int64_t triggers = 0; // pattern of channels that triggered
-
   BCData() = default;
-  BCData(int first, int ne, o2::InteractionRecord iRec, uint32_t channelsStored, uint32_t chTrig)
+  BCData(int first, int ne, o2::InteractionRecord iRec)
   {
     ref.setFirstEntry(first);
     ref.setEntries(ne);
     ir = iRec;
-    channels = channelsStored;
-    triggers = chTrig;
   }
 
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
