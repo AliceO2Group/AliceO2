@@ -221,7 +221,7 @@ GPUd() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1unat
         CAAlgo::sortInBlock(sortBuffer, sortBuffer + smem.nCount, GPUTPCCompressionKernels_Compare<GPUSettings::SortZTimePad>(clusters->clusters[iSlice][iRow]));
       } else if (param.rec.tpcCompressionSortOrder == GPUSettings::SortPad) {
         CAAlgo::sortInBlock(sortBuffer, sortBuffer + smem.nCount, GPUTPCCompressionKernels_Compare<GPUSettings::SortPad>(clusters->clusters[iSlice][iRow]));
-      } else {
+      } else if (param.rec.tpcCompressionSortOrder == GPUSettings::SortTime) {
         CAAlgo::sortInBlock(sortBuffer, sortBuffer + smem.nCount, GPUTPCCompressionKernels_Compare<GPUSettings::SortTime>(clusters->clusters[iSlice][iRow]));
       }
       GPUbarrier();
