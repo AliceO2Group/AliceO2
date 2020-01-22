@@ -41,9 +41,10 @@ Continueous mode  :   for only bunches with data at least in 1 channel.
 #include "Headers/RAWDataHeader.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsFT0/RawEventData.h"
-#include "DataFormatsFT0/Digit.h"
 #include "FT0Reconstruction/ReadRaw.h"
 #include "CommonConstants/Triggers.h"
+#include "DataFormatsFT0/Digit.h"
+#include "DataFormatsFT0/ChannelData.h"
 #include <Framework/Logger.h>
 #include <TStopwatch.h>
 #include <cassert>
@@ -79,8 +80,10 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
   LOG(INFO) << " readData ";
   o2::header::RAWDataHeader mRDH;
   const char padding[CRUWordSize] = {0};
-  std::vector<o2::ft0::ChannelData>* chDgDataArr = nullptr;
-  o2::ft0::ChannelData chData;
+  //  std::vector<o2::ft0::ChannelData>* chDgDataArr = nullptr;
+  std::vector<o2::ft0::Digit> digitsBC;
+  std::vector<o2::ft0::ChannelData> digitsCh;
+  o2::ft0::Digit.Triggers triggers;
   mFileDest.seekg(0, mFileDest.end);
   long sizeFile = mFileDest.tellg();
   mFileDest.seekg(0);
@@ -102,46 +105,61 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
     int link = mRDH.linkID;
     pos += int(sizeof(mRDH));
     posInFile += nwords;
+    int64_t trigword = 0;
+    int first = 0;
 
     while (pos < mRDH.memorySize) {
       mFileDest.read(reinterpret_cast<char*>(&mEventHeader), sizeof(mEventHeader));
       pos += sizeof(mEventHeader);
-      LOG(DEBUG) << "read  header for " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
-      o2::InteractionRecord intrec{uint16_t(mEventHeader.bc), uint32_t(mEventHeader.orbit)};
-      auto [digitIter, isNew] = mDigitAccum.try_emplace(intrec);
-      auto& digits = digitIter->second;
-      if (isNew) {
-        double eventTime = intrec.bc2ns();
-        digits.setTime(eventTime);
-        digits.setInteractionRecord(intrec);
-        digits.setTriggers(0, 0, 0, 0, 0);
-      }
-      chDgDataArr = &digits.getChDgData();
-      if (mIsPadded) {
-        pos += CRUWordSize - o2::ft0::EventHeader::PayloadSize;
-      }
+      LOG(INFO) << "read  header for " << link << "word " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
+      uint orA, orC, cen, sCen, vertex;
+      if (link == 18) {
+        auto& bctriggers = digitsBC.mTriggers;
+        mFileDest.read(reinterpret_cast<char*>(&mTCMdata), sizeof(mTCMdata));
+        pos += sizeof(mTCMdata);
+        // set trigger structure bctriggers
+        // digitsBC. = mTCMdata;
+        /*      bctriggers.orA = mTCMdata.orA;
+        bctriggers.orC = mTCMdata.orA;
+        bctriggers.cen = mTCMdata.cen;
+        bctriggers.sCen = mTCMdata.sCen;
+        bctriggers.vertex = mTCMdata.vertex;
+        */
+        LOG(INFO) << "read TCM  " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
+      } else {
+        o2::InteractionRecord intrec{uint16_t(mEventHeader.bc), uint32_t(mEventHeader.orbit)};
+        auto [digitIter, isNew] = mDigitAccum.try_emplace(intrec);
+        auto& digitsBC = digitIter->second;
+        if (isNew) 
+          digitsBC.emplace_back(first, nStored, mIntRecord, uint64_t (bctriggers) );
+        
+        chDgDataArr = &digits.getChDgData();
 
-      for (int i = 0; i < mEventHeader.nGBTWords; ++i) {
-        mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i]), o2::ft0::EventData::PayloadSizeFirstWord);
-        chData.ChId = lut.getChannel(link, int(mEventData[2 * i].channelID));
-        chData.CFDTime = mEventData[2 * i].time;
-        chData.QTCAmpl = mEventData[2 * i].charge;
-        chData.numberOfParticles = mEventData[2 * i].numberADC;
-        chDgDataArr->emplace_back(chData);
-        pos += o2::ft0::EventData::PayloadSizeFirstWord;
-        LOG(DEBUG) << " read 1st word channelID " << int(mEventData[2 * i].channelID) << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID)) << " pos " << pos;
-
-        mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i + 1]), EventData::PayloadSizeSecondWord);
-        pos += o2::ft0::EventData::PayloadSizeSecondWord;
-        LOG(DEBUG) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID)) << " pos " << pos;
-        if (mEventData[2 * i + 1].charge <= 0 && mEventData[2 * i + 1].channelID <= 0 && mEventData[2 * i + 1].time <= 0) {
-          continue;
+        if (mIsPadded) {
+          pos += CRUWordSize - o2::ft0::EventHeader::PayloadSize;
         }
-        chData.ChId = lut.getChannel(link, int(mEventData[2 * i + 1].channelID));
-        chData.CFDTime = mEventData[2 * i + 1].time;
-        chData.QTCAmpl = mEventData[2 * i + 1].charge;
-        chData.numberOfParticles = mEventData[2 * i + 1].numberADC;
-        chDgDataArr->emplace_back(chData);
+         for (int i = 0; i < mEventHeader.nGBTWords; ++i) {
+          mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i]), o2::ft0::EventData::PayloadSizeFirstWord);
+          chData.ChId = lut.getChannel(link, int(mEventData[2 * i].channelID));
+          chData.CFDTime = mEventData[2 * i].time;
+          chData.QTCAmpl = mEventData[2 * i].charge;
+          chData.numberOfParticles = mEventData[2 * i].numberADC;
+          chDgDataArr->emplace_back(chData);
+          pos += o2::ft0::EventData::PayloadSizeFirstWord;
+          LOG(DEBUG) << " read 1st word channelID " << int(mEventData[2 * i].channelID) << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID)) << " pos " << pos;
+
+          mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i + 1]), EventData::PayloadSizeSecondWord);
+          pos += o2::ft0::EventData::PayloadSizeSecondWord;
+          LOG(DEBUG) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID)) << " pos " << pos;
+          if (mEventData[2 * i + 1].charge <= 0 && mEventData[2 * i + 1].channelID <= 0 && mEventData[2 * i + 1].time <= 0) {
+            continue;
+          }
+          chData.ChId = lut.getChannel(link, int(mEventData[2 * i + 1].channelID));
+          chData.CFDTime = mEventData[2 * i + 1].time;
+          chData.QTCAmpl = mEventData[2 * i + 1].charge;
+          chData.numberOfParticles = mEventData[2 * i + 1].numberADC;
+          chDgDataArr->emplace_back(chData);
+        }
       }
     }
   }

@@ -18,7 +18,9 @@
 #include "Steer/HitProcessingManager.h" // for RunContext
 #include "FT0Simulation/Digitizer.h"
 #include "FT0Simulation/DigitizationParameters.h"
-#include "DataFormatsFT0/Digit.h"
+#include "DataFormatsFT0/ChannelData.h"
+#include "DataFormatsFT0/HitType.h"
+#include "DataFormatsFT0/BCData.h"
 #include "DataFormatsFT0/MCLabel.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -61,15 +63,22 @@ class FT0DPLDigitizerTask
       mSimChains.emplace_back(new TChain("o2sim"));
       mSimChains.back()->AddFile(signalfilename.c_str());
     }
+    const std::string inputGRP = "o2sim_grp.root";
+    const std::string grpName = "GRP";
+    TFile flGRP(inputGRP.c_str());
+    if (flGRP.IsZombie()) {
+      LOG(FATAL) << "Failed to open " << inputGRP;
+    }
+    std::unique_ptr<GRP> grp(static_cast<GRP*>(flGRP.GetObjectChecked(grpName.c_str(), GRP::Class())));
+
     mDigitizer.init();
-    const bool isContinuous = ic.options().get<int>("pileup");
+    mROMode = mDigitizer.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
   }
 
   void run(framework::ProcessingContext& pc)
   {
 
-    static bool finished = false;
-    if (finished) {
+    if (mFinished) {
       return;
     }
 
@@ -90,14 +99,13 @@ class FT0DPLDigitizerTask
     static std::vector<o2::ft0::HitType> hits;
     o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> labelAccum;
     o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> labels;
-    o2::ft0::Digit digit;
-    std::vector<o2::ft0::Digit> digitAccum; // digit accumulator
+ 
     mDigitizer.setMCLabels(&labels);
     auto& eventParts = context->getEventParts();
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
-      mDigitizer.setEventTime(timesview[collID].timeNS);
+      mDigitizer.setTimeStamp(timesview[collID].timeNS);
       mDigitizer.setInteractionRecord(timesview[collID]);
       digit.cleardigits();
       std::vector<std::vector<double>> channel_times;
@@ -114,36 +122,39 @@ class FT0DPLDigitizerTask
         mDigitizer.setEventID(collID);
         mDigitizer.setSrcID(part.sourceID);
 
-        mDigitizer.process(&hits, &digit, channel_times);
-        const auto& data = digit.getChDgData();
-        LOG(INFO) << "Have " << data.size() << " fired channels ";
-        // copy digits into accumulator
-        labelAccum.mergeAtBack(labels);
+        mDigitizer.process(&hits, &mDigitsBC, &mDigitsCh, mLabels);
+        // copy labels into accumulator
+        labelAccum.mergeAtBack(mLabels);
       }
-      // mDigitizer.computeAverage(digit);
-      mDigitizer.smearCFDtime(&digit, channel_times);
-      mDigitizer.setTriggers(&digit);
-      digitAccum.push_back(digit); // we should move it there actually
-      LOG(INFO) << "Have " << digitAccum.back().getChDgData().size() << " fired channels ";
-      digit.printStream(std::cout);
+      mDigitizer.setDigits(&mDigitsBC, &mDigitsCh);
+      //     digitAccum.push_back(digit); // we should move it there actually
+      //   LOG(INFO) << "Have " << digitAccum.back().getChDgData().size() << " fired channels ";
+      mDigitsBC.print();
     }
 
-    // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-    pc.outputs().snapshot(Output{DETOR, "DIGITS", 0, Lifetime::Timeframe}, digitAccum);
-    pc.outputs().snapshot(Output{DETOR, "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
+    // send out to next stage
+    pc.outputs().snapshot(Output{"FT0", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
+    pc.outputs().snapshot(Output{"FT0", "DIGITSCH", 0, Lifetime::Timeframe}, mDigitsCh);
+    pc.outputs().snapshot(Output{"FT0", "DIGITLBL", 0, Lifetime::Timeframe}, mLabels);
 
     LOG(INFO) << "FT0: Sending ROMode= " << mROMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{DETOR, "ROMode", 0, Lifetime::Timeframe}, mROMode);
+    pc.outputs().snapshot(Output{"FT0", "ROMode", 0, Lifetime::Timeframe}, mROMode);
+
     timer.Stop();
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-    finished = true;
+    mFinished = true;
   }
 
   // private:
  protected:
+  bool mFinished = false;
+  std::vector<o2::ft0::ChannelData> mDigitsCh;
+  std::vector<o2::ft0::BCData> mDigitsBC;
+  o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> mLabels; // labels which get filled
+
   Bool_t mContinuous = kFALSE;  ///< flag to do continuous simulation
   double mFairTimeUnitInNS = 1; ///< Fair time unit in ns
   o2::detectors::DetID mID = DETID;

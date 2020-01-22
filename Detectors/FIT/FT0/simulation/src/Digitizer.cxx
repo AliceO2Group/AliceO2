@@ -66,7 +66,10 @@ double Digitizer::get_time(const std::vector<double>& times)
   return 1e10;
 }
 
-void Digitizer::process(const std::vector<o2::ft0::HitType>* hits, o2::ft0::Digit* digit, std::vector<std::vector<double>>& channel_times)
+void Digitizer::process(const std::vector<o2::ft0::HitType>* hits,
+                        std::vector<o2::ft0::Digit>& digitsBC,
+                        std::vector<o2::ft0::ChannelData>& digitsCh,
+                        o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels)
 
 {
 
@@ -74,18 +77,17 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits, o2::ft0::Digi
   std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::ft0::HitType const& a, o2::ft0::HitType const& b) {
     return a.GetTrackID() < b.GetTrackID();
   });
-  digit->setTime(mEventTime);
-  digit->setInteractionRecord(mIntRecord);
 
   //Calculating signal time, amplitude in mean_time +- time_gate --------------
-  std::vector<o2::ft0::ChannelData>& channel_data = digit->getChDgData();
-  if (channel_data.size() == 0) {
-    channel_data.reserve(parameters.mMCPs);
-    for (int i = 0; i < parameters.mMCPs; ++i)
-      channel_data.emplace_back(o2::ft0::ChannelData{i, 0, 0, 0});
+  if (digitsCh.size() == 0) {
+    digitsCh.reserve(parameters.mMCPs);
+    for (int i = 0; i < parameters.mMCPs; ++i) {
+      digitsCh.emplace_back(o2::ft0::ChannelData{i, 0, 0, 0});
+      mNumParticles[i] = 0;
+    }
   }
-  if (channel_times.size() == 0)
-    channel_times.resize(parameters.mMCPs);
+  if (mChannel_times.size() == 0)
+    mChannel_times.resize(parameters.mMCPs);
   Int_t parent = -10;
   assert(digit->getChDgData().size() == parameters.mMCPs);
   for (auto& hit : sorted_hits) {
@@ -99,8 +101,8 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits, o2::ft0::Digi
     Bool_t is_hit_in_signal_gate = (abs(hit_time) < parameters.mSignalWidth * .5);
 
     if (is_hit_in_signal_gate) {
-      channel_data[hit_ch].numberOfParticles++;
-      channel_times[hit_ch].push_back(hit_time);
+      mNumParticles[hit_ch]++;
+      mChannel_times[hit_ch].push_back(hit_time);
     }
 
     //charge particles in MCLabel
@@ -118,68 +120,64 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits, o2::ft0::Digi
 }
 
 //------------------------------------------------------------------------
-void Digitizer::smearCFDtime(o2::ft0::Digit* digit, std::vector<std::vector<double>> const& channel_times)
+void Digitizer::setDigits(std::vector<o2::ft0::Digit>& digitsBC,
+                          std::vector<o2::ft0::ChannelData>& digitsCh,
+                          std::vector<std::vector<double>> const& channel_times)
 {
   //smeared CFD time for 50ps
-  std::vector<o2::ft0::ChannelData> mChDgDataArr;
-  for (const auto& d : digit->getChDgData()) {
-    Int_t mcp = d.ChId;
-    Float_t amp = (parameters.mMip_in_V * d.numberOfParticles / parameters.mPe_in_mip);
-    int chain = (std::rand() % 2) ? 1 : 0;
-    if (amp > parameters.mCFD_trsh) {
-      double smeared_time = 1000. * (get_time(channel_times[mcp]) - parameters.mCfdShift);
-      if (smeared_time < 1e9)
-        mChDgDataArr.emplace_back(o2::ft0::ChannelData{mcp, int(smeared_time / parameters.channelWidth), int(parameters.mV_2_Nchannels * amp), chain});
-    }
-  }
-  digit->setChDgData(std::move(mChDgDataArr));
-}
-
-//------------------------------------------------------------------------
-void Digitizer::setTriggers(o2::ft0::Digit* digit)
-{
-
-  // Calculating triggers -----------------------------------------------------
   int n_hit_A = 0, n_hit_C = 0, mean_time_A = 0, mean_time_C = 0;
   int summ_ampl_A = 0, summ_ampl_C = 0;
   int vertex_time;
 
-  for (const auto& d : digit->getChDgData()) {
-    int mcp = d.ChId;
-    int cfd = d.CFDTime;
-    int amp = d.QTCAmpl;
-    if (std::abs(cfd) > parameters.mTime_trg_gate / 2.)
+  int first = digitsCh.size(), nStored = 0;
+  for (Int_t ipmt = 0; ipmt < parameter.mMCPs; ++ipmt) {
+    if (mNumParticles[ipmt] < 1)
       continue;
-
-    Bool_t is_A_side = (mcp <= 4 * parameters.nCellsA);
-    if (is_A_side) {
-      n_hit_A++;
-      summ_ampl_A += amp;
-      mean_time_A += cfd;
-    } else {
-      n_hit_C++;
-      summ_ampl_C += amp;
-      mean_time_C += cfd;
+    Float_t amp = (parameters.mMip_in_V * mNumParticles[ipmt] / parameters.mPe_in_mip);
+    int chain = (std::rand() % 2) ? 1 : 0;
+    if (amp > parameters.mCFD_trsh) {
+      int smeared_time = 1000. * (get_time(mChannel_times[ipmt]) - parameters.mCfdShift);
+      if (smeared_time < 1e9) {
+        digitsCh.emplace_back(ipmt, smeared_time / parameters.channelWidth, int(parameters.mV_2_Nchannels * amp), chain);
+        nStored++;
+      }
+      // fill triggers
+      Bool_t is_A_side = (ipmt <= 4 * parameters.nCellsA);
+      if (std::abs(smeared_time) > parameters.mTime_trg_gate / 2.)
+        continue;
+      if (is_A_side) {
+        n_hit_A++;
+        summ_ampl_A += amp;
+        mean_time_A += smeared_time;
+      } else {
+        n_hit_C++;
+        summ_ampl_C += amp;
+        mean_time_C += smeared_time;
+      }
     }
   }
-
+  auto& bctriggers = digitsBC.Triggers;
   Bool_t is_A = n_hit_A > 0;
   Bool_t is_C = n_hit_C > 0;
   Bool_t is_Central = summ_ampl_A + summ_ampl_C >= parameters.mtrg_central_trh;
   Bool_t is_SemiCentral = summ_ampl_A + summ_ampl_C >= parameters.mtrg_semicentral_trh;
-
-  mean_time_A = is_A ? mean_time_A / n_hit_A : 0;
-  mean_time_C = is_C ? mean_time_C / n_hit_C : 0;
+  bctriggers.orA = isA ? 1 : 0;
+  bctriggers.orC = isC ? 1 : 0;
+  bctriggers.timeA = is_A ? mean_time_A / n_hit_A : 0;
+  bctriggers.timeC = is_C ? mean_time_C / n_hit_C : 0;
+  bctriggers.amplA = is_A ? summ_ampl_A : 0;
+  bctriggers.amplC = is_C ? summ_ampl_C : 0;
+  bctriggers.cen = is_Central ? 1 : 0;
+  bctriggers.sCen = is_SemiCentral ? 1 : 0;
   vertex_time = (mean_time_A - mean_time_C) * 0.5;
-  Bool_t is_Vertex = is_A && is_C && (std::abs(vertex_time) < parameters.mtrg_vertex);
+  bctriggers.vertex = is_A && is_C && (std::abs(vertex_time) < parameters.mtrg_vertex);
 
-  //filling digit
-  digit->setTriggers(is_A, is_C, is_Central, is_SemiCentral, is_Vertex);
+  digitsBC.emplace_back(first, nStored, mIntRecord, uint64_t (bctriggers) );
 
   // Debug output -------------------------------------------------------------
   LOG(DEBUG) << "\n\nTest digizing data ===================";
 
-  LOG(INFO) << "Event ID: " << mEventID << " Event Time " << mEventTime;
+  LOG(INFO) << "Event ID: " << mEventID ;
   LOG(INFO) << "N hit A: " << n_hit_A << " N hit C: " << n_hit_C << " summ ampl A: " << summ_ampl_A
             << " summ ampl C: " << summ_ampl_C << " mean time A: " << mean_time_A
             << " mean time C: " << mean_time_C;
@@ -188,7 +186,6 @@ void Digitizer::setTriggers(o2::ft0::Digit* digit)
             << " is SemiCentral " << is_SemiCentral << " is Vertex " << is_Vertex;
 
   LOG(DEBUG) << "======================================\n\n";
-  // --------------------------------------------------------------------------
 }
 
 void Digitizer::initParameters()

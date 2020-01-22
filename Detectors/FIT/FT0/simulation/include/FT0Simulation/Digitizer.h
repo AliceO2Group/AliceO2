@@ -13,6 +13,7 @@
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsFT0/Digit.h"
+#include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/MCLabel.h"
 #include "FT0Simulation/Detector.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -27,37 +28,33 @@ namespace ft0
 class Digitizer
 {
  public:
-  Digitizer(const DigitizationParameters& params, Int_t mode = 0) : mMode(mode), parameters(params) { initParameters(); };
+  Digitizer(const DigitizationParameters& params, Int_t mode = 0) : mMode(mode), parameters(params) { initParameters();  mChannel_times (0)};
   ~Digitizer() = default;
 
-  //void process(const std::vector<HitType>* hits, std::vector<Digit>* digits);
-  void process(const std::vector<o2::ft0::HitType>* hits, o2::ft0::Digit* digit, std::vector<std::vector<double>>& channel_times);
-  void computeAverage(o2::ft0::Digit& digit);
+  void process(const std::vector<o2::ft0::HitType>* hits,
+               std::vector<o2::ft0::Digit>& digitsBC,
+               std::vector<o2::ft0::ChannelData>& digitsCh,
+               o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels);
 
+  void setDigits(std::vector<o2::ft0::Digit>& digitsBC,
+                 std::vector<o2::ft0::ChannelData>& digitsCh);
   void initParameters();
   void printParameters();
-  void setEventTime(double value) { mEventTime = value; }
+  void setTimeStamp(double value) { mEventTime = value; }
   void setEventID(Int_t id) { mEventID = id; }
   void setSrcID(Int_t id) { mSrcID = id; }
-  void setInteractionRecord(uint16_t bc, uint32_t orbit)
-  {
-    mIntRecord.bc = bc;
-    mIntRecord.orbit = orbit;
-  }
   const o2::InteractionRecord& getInteractionRecord() const { return mIntRecord; }
   o2::InteractionRecord& getInteractionRecord(o2::InteractionRecord& src) { return mIntRecord; }
   void setInteractionRecord(const o2::InteractionRecord& src) { mIntRecord = src; }
-  uint32_t getOrbit() const { return mIntRecord.orbit; }
-  uint16_t getBC() const { return mIntRecord.bc; }
-
-  void setTriggers(o2::ft0::Digit* digit);
-  void smearCFDtime(o2::ft0::Digit* digit, std::vector<std::vector<double>> const& channel_times);
+  // uint32_t getOrbit() const { return mIntRecord.orbit; }
+  //  uint16_t getBC() const { return mIntRecord.bc; }
 
   void init();
   void finish();
 
   void setMCLabels(o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mclb) { mMCLabels = mclb; }
   double get_time(const std::vector<double>& times);
+  std::vector<std::vector<double>> const& mChannel_times = nullptr;
 
  private:
   // digit info
@@ -70,18 +67,15 @@ class Digitizer
   int mNoisePeriod;    //low frequency noise period
   int mBinshift;       // number of bin to shift positive part of CFD signal
 
+  int mNumParticles[208];
+
   DigitizationParameters parameters;
 
   o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mMCLabels = nullptr;
 
-
   TH1F* mHist;      // ("time_histogram", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
   TH1F* mHistsum;   //("time_sum", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
   TH1F* mHistshift; //("time_shift", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-
-  //static constexpr Float_t signal_width = 5.;         // time gate for signal, ns
-
-  //static std::vector<double> aggregate_channels(const std::vector<o2::ft0::HitType>& hits, DigitizationParameters const& parameters);
 
   ClassDefNV(Digitizer, 1);
 };

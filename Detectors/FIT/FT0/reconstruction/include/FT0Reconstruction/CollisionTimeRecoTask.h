@@ -15,19 +15,35 @@
 
 #include <vector>
 #include "DataFormatsFT0/Digit.h"
+#include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/RecPoints.h"
+#include "CommonDataFormat/InteractionRecord.h"
+#include "CommonDataFormat/TimeStamp.h"
+
 namespace o2
 {
 namespace ft0
 {
 class CollisionTimeRecoTask
 {
+
  public:
+  enum : int { TimeMean,
+               TimeA,
+               TimeC };
   CollisionTimeRecoTask() = default;
   ~CollisionTimeRecoTask() = default;
-  void Process(const o2::ft0::Digit& digits, RecPoints& recPoints) const;
+  void Process(const std::vector<o2::ft0::Digit>& digitsBC,
+               const std::vector<o2::ft0::ChannelData>& digitsCh,
+               RecPoints& recPoints) const;
   void FinishTask();
-
+  o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
+  std::array<Float_t, 3> mCollisionTime = {2 * o2::InteractionRecord::DummyTime,
+                                           2 * o2::InteractionRecord::DummyTime,
+                                           2 * o2::InteractionRecord::DummyTime};
+  Float_t mVertex = 0;
+  Double_t mTimeStamp = 2 * o2::InteractionRecord::DummyTime; //event time from Fair for continuous
+ 
  private:
   ClassDefNV(CollisionTimeRecoTask, 1);
 };
