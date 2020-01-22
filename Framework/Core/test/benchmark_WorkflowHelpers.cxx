@@ -10,6 +10,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/OutputSpec.h"
+#include "Framework/SimpleOptionsRetriever.h"
 #include "../src/WorkflowHelpers.h"
 #include <benchmark/benchmark.h>
 #include <algorithm>
