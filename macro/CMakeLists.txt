@@ -46,12 +46,12 @@ install(FILES CheckClusters_mft.C
               run_digi_mft.C
               run_digi_tof.C
               run_digi2raw_tof.C
+              run_cmp2digit_tof.C
               run_match_TPCITS.C
               run_match_tof.C
               run_primary_vertexer_ITS.C
               run_rawdecoding_its.C
               run_rawdecoding_mft.C
-              run_rawdecoding_tof.C
               run_sim.C
               run_sim_emcal.C
               run_sim_mft.C
@@ -257,7 +257,8 @@ o2_add_test_root_macro(run_clus_mftSA.C
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(run_clus_tof.C
-                       PUBLIC_LINK_LIBRARIES O2::TOFReconstruction
+                       PUBLIC_LINK_LIBRARIES O2::TOFReconstruction O2::Framework O2::TOFBase 
+                                             O2::SimulationDataFormat O2::TOFCalibration O2::DataFormatsTOF
                        LABELS tof)
 
 # FIXME: move to subsystem dir
@@ -310,6 +311,11 @@ o2_add_test_root_macro(run_digi2raw_tof.C
                                              O2::TOFReconstruction
                        LABELS tof)
 
+o2_add_test_root_macro(run_cmp2digit_tof.C
+                       PUBLIC_LINK_LIBRARIES O2::TOFBase
+                                             O2::TOFReconstruction
+                       LABELS tof)
+
 o2_add_test_root_macro(run_match_TPCITS.C
                        PUBLIC_LINK_LIBRARIES O2::Field
                                              O2::DataFormatsParameters
@@ -349,12 +355,6 @@ o2_add_test_root_macro(run_rawdecoding_mft.C
                                              O2::DataFormatsITSMFT
                                              O2::CommonDataFormat
                        LABELS mft)
-
-# FIXME: move to subsystem dir
-o2_add_test_root_macro(run_rawdecoding_tof.C
-                      PUBLIC_LINK_LIBRARIES O2::TOFSimulation
-                                            O2::TOFReconstruction
-                       LABELS tof)
 
 o2_add_test_root_macro(CreateBCPattern.C
                       PUBLIC_LINK_LIBRARIES O2::CommonDataFormat)

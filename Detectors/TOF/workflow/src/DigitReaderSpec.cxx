@@ -50,6 +50,7 @@ void DigitReader::run(ProcessingContext& pc)
 
   if (treeDig) {
     treeDig->SetBranchAddress("TOFDigit", &mPdigits);
+    treeDig->SetBranchAddress("TOFReadoutWindow", &mProw);
 
     if (mUseMC) {
       treeDig->SetBranchAddress("TOFDigitMCTruth", &mPlabels);
@@ -59,6 +60,7 @@ void DigitReader::run(ProcessingContext& pc)
 
     // add digits loaded in the output snapshot
     pc.outputs().snapshot(Output{"TOF", "DIGITS", 0, Lifetime::Timeframe}, mDigits);
+    pc.outputs().snapshot(Output{"TOF", "READOUTWINDOW", 0, Lifetime::Timeframe}, mRow);
     if (mUseMC)
       pc.outputs().snapshot(Output{"TOF", "DIGITSMCTR", 0, Lifetime::Timeframe}, mLabels);
 
@@ -80,6 +82,7 @@ DataProcessorSpec getDigitReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("TOF", "DIGITS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("TOF", "READOUTWINDOW", 0, Lifetime::Timeframe);
   if (useMC) {
     outputs.emplace_back("TOF", "DIGITSMCTR", 0, Lifetime::Timeframe);
   }

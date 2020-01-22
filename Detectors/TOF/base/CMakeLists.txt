@@ -15,8 +15,8 @@ o2_add_library(TOFBase
                        src/Mapping.cxx
                        src/Strip.cxx
                        src/WindowFiller.cxx
-               PUBLIC_LINK_LIBRARIES Boost::serialization FairRoot::Base
-                                     O2::DetectorsBase)
+               PUBLIC_LINK_LIBRARIES Boost::serialization FairRoot::Base ms_gsl::ms_gsl
+                                     O2::DetectorsBase O2::CommonDataFormat)
 
 o2_target_root_dictionary(TOFBase
                           HEADERS include/TOFBase/Geo.h include/TOFBase/Digit.h

@@ -33,26 +33,31 @@ class WindowFiller
   void setCurrentReadoutWindow(Double_t value) { mReadoutWindowCurrent = value; }
   void setEventTime(double value) { mEventTime = value; }
 
-  std::vector<std::vector<Digit>>* getDigitPerTimeFrame() { return &mDigitsPerTimeFrame; }
+  std::vector<Digit>* getDigitPerTimeFrame() { return &mDigitsPerTimeFrame; }
+  std::vector<ReadoutWindowData>* getReadoutWindowData() { return &mReadoutWindowData; }
 
   void fillOutputContainer(std::vector<Digit>& digits);
   void flushOutputContainer(std::vector<Digit>& digits); // flush all residual buffered data
   void setContinuous(bool value=true) {mContinuous=value;}
   bool isContinuous() const {return mContinuous;}
 
+  void resizeVectorFutureDigit(int size) {mFutureDigits.resize(size);}
+
  protected:
   // info TOF timewindow
   Int_t mReadoutWindowCurrent = 0;
   Double_t mEventTime;
 
-  bool mContinuous = false;
+  bool mContinuous = true;
+  bool mFutureToBeSorted = false;
 
   // digit info
   //std::vector<Digit>* mDigits;
 
   static const int MAXWINDOWS = 2; // how many readout windows we can buffer
 
-  std::vector<std::vector<Digit>> mDigitsPerTimeFrame;
+  std::vector<Digit> mDigitsPerTimeFrame;
+  std::vector<ReadoutWindowData> mReadoutWindowData;
 
   int mIcurrentReadoutWindow = 0;
 
@@ -71,9 +76,7 @@ class WindowFiller
 
   void insertDigitInFuture(int digitInfo0, int digitInfo1, int digitInfo2, int digitInfo3, int lbl=0){
     mFutureDigits.emplace_back(digitInfo0, digitInfo1, digitInfo2, digitInfo3, lbl);
-    // sort digit in descending BC order: kept last as first
-    std::sort(mFutureDigits.begin(), mFutureDigits.end(),
-	      [](o2::tof::Digit a, o2::tof::Digit b) { return a.getBC() > b.getBC(); });
+    mFutureToBeSorted=true;
   }
 
   bool isMergable(Digit digit1, Digit digit2)

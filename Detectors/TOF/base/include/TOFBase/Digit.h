@@ -14,6 +14,8 @@
 #include <iosfwd>
 #include "Rtypes.h"
 #include "TOFBase/Geo.h"
+#include "CommonDataFormat/RangeReference.h"
+#include <gsl/span>
 
 #include <boost/serialization/base_object.hpp> // for base_object
 
@@ -93,6 +95,32 @@ class Digit
 };
 
 std::ostream& operator<<(std::ostream& stream, const Digit& dig);
+
+struct ReadoutWindowData {
+  // 1st entry and number of entries in the full vector of digits 
+  // for given trigger (or BC or RO frame)
+  int firstEntry;
+  int nEntries;
+  gsl::span<const Digit> getBunchChannelData(const gsl::span<const Digit> tfdata) const
+  {
+    // extract the span of channel data for this readout window from the whole TF data
+    if(!nEntries) return gsl::span<const Digit>(nullptr, nEntries);
+    return gsl::span<const Digit>(&tfdata[firstEntry], nEntries);
+  }
+
+  ReadoutWindowData() = default;
+  ReadoutWindowData(int first, int ne)
+  {
+    firstEntry = first;
+    nEntries = ne ;
+  }
+
+  int first() const {return firstEntry;}
+  int size() const {return nEntries;}
+
+  ClassDefNV(ReadoutWindowData, 1);
+};
+
 } // namespace tof
 } // namespace o2
 #endif

@@ -54,9 +54,6 @@ DataProcessorSpec getTOFDigitWriterSpec(bool useMC)
     auto outputfile = std::make_shared<TFile>(filename.c_str(), "RECREATE");
     auto outputtree = std::make_shared<TTree>(treename.c_str(), treename.c_str());
 
-    // container for incoming digits
-    auto digits = std::make_shared<std::vector<std::vector<o2::tof::Digit>>>();
-
     // the callback to be set as hook at stop of processing for the framework
     auto finishWriting = [outputfile, outputtree]() {
       outputtree->SetEntries(1);
@@ -69,7 +66,7 @@ DataProcessorSpec getTOFDigitWriterSpec(bool useMC)
     // using by-copy capture of the worker instance shared pointer
     // the shared pointer makes sure to clean up the instance when the processing
     // function gets out of scope
-    auto processingFct = [outputfile, outputtree, digits, useMC](ProcessingContext& pc) {
+    auto processingFct = [outputfile, outputtree, useMC](ProcessingContext& pc) {
       static bool finished = false;
       if (finished) {
         // avoid being executed again when marked as finished;
@@ -77,13 +74,19 @@ DataProcessorSpec getTOFDigitWriterSpec(bool useMC)
       }
 
       // retrieve the digits from the input
-      auto indata = pc.inputs().get<std::vector<std::vector<o2::tof::Digit>>>("tofdigits");
-      LOG(INFO) << "RECEIVED DIGITS SIZE " << indata.size();
-      *digits.get() = std::move(indata);
+      auto indata = pc.inputs().get<std::vector<o2::tof::Digit>*>("tofdigits");
+      LOG(INFO) << "RECEIVED DIGITS SIZE " << indata->size();
+      auto row = pc.inputs().get<std::vector<o2::tof::ReadoutWindowData>*>("readoutwin");
+      LOG(INFO) << "RECEIVED READOUT WINDOWS " << row->size();
+
+      auto digVect = indata.get();
+      auto rowVect = row.get();
 
       // connect this to a particular branch
-      auto br = getOrMakeBranch(*outputtree.get(), "TOFDigit", digits.get());
-      br->Fill();
+      auto brDig = getOrMakeBranch(*outputtree.get(), "TOFDigit", &digVect);
+      brDig->Fill();
+      auto brRow = getOrMakeBranch(*outputtree.get(), "TOFReadoutWindow", &rowVect);
+      brRow->Fill();
 
       // retrieve labels from the input
       if(useMC){
@@ -108,6 +111,7 @@ DataProcessorSpec getTOFDigitWriterSpec(bool useMC)
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("tofdigits", "TOF", "DIGITS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("readoutwin", "TOF", "READOUTWINDOW", 0, Lifetime::Timeframe);
   if (useMC)
     inputs.emplace_back("tofdigitlabels", "TOF", "DIGITSMCTR", 0, Lifetime::Timeframe);
 
