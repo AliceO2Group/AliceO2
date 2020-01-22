@@ -6,20 +6,14 @@ set -x
 # work
 
 # The approach is the following:
-# 1) for each detector we simulate 2 events that both leave hits
+# 1) for each detector we simulate event sequences that leave (identical) hits
 # 2) we digitize the events with the same collision time assigned to both of them
 #    and check whether the output digits have multiple labels --> checks pileup
 # 3) we digitize with trivial embedding: background and signal events are the same
 #    and check whether the output digits have multiple labels --> checks embedding
 
-# o2-sim -j 4 -g pythia8 -n 4 --seed 1 ok for 
-# CVP, MCH, MID, HMP need special gun
-
-dets=(       ITS     TPC   TRD    EMC     PHS    TOF      CPV    HMP     MCH   MID   MFT   FV0   FT0   FDD   ZDC )
-generators=(boxgen boxgen boxgen boxgen hmpidgun  boxgen  boxgen  hmpidgun fwpigen fwpigen fwpigen  fddgen fddgen fddgen pythia8 )
-
-dets=(       ITS  TPC  TOF  EMC  HMP  MCH  MID  MFT  FV0  FT0  FDD)
-generators=( boxgen boxgen boxgen boxgen hmpidgun fwpigen fwpigen fwpigen fddgen fddgen fddgen)
+dets=(  ITS  TPC  TOF  EMC  HMP  MCH  MID  MFT  FV0  FT0  FDD  TRD  PHS CPV  ZDC )
+generators=( boxgen boxgen boxgen boxgen hmpidgun fwpigen fwpigen fwpigen fddgen fddgen fddgen boxgen boxgen boxgen boxgen )
 
 for idx in "${!dets[@]}"; do
   d=${dets[$idx]}
