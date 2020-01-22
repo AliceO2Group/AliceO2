@@ -90,7 +90,6 @@ void TrapSimulator::init(int det, int robPos, int mcmPos)
   // Initialize the class with new MCM position information
   // memory is allocated in the first initialization
   //
-
   if (!mInitialized) {
     mFeeParam = FeeParam::instance();
     mTrapConfig = getTrapConfig();
@@ -106,9 +105,9 @@ void TrapSimulator::init(int det, int robPos, int mcmPos)
     mZSMap.resize(FeeParam::getNadcMcm());
 
     // tracklet calculation
-    //  mFitReg.resize(FeeParam::getNadcMcm()); //TODO for now this is constant size in an array not a vector
+    mFitReg.resize(FeeParam::getNadcMcm()); //TODO for now this is constant size in an array not a vector
     mTrackletArray.resize(mgkMaxTracklets);
-
+    mHits.resize(50);
     mMCMT.resize(mgkMaxTracklets);
 
     mADCR.resize(mNTimeBin * FeeParam::getNadcMcm());
@@ -128,7 +127,7 @@ void TrapSimulator::reset()
   if (!checkInitialized())
     return;
 
-  memset(&mADCR[1], 0, sizeof(mADCR[0]) * mADCR.size());
+  memset(&mADCR[0], 0, sizeof(mADCR[0]) * mADCR.size());
   memset(&mADCF[0], 0, sizeof(mADCF[0]) * mADCF.size());
 
   for (auto filterreg : mInternalFilterRegisters)
@@ -647,8 +646,8 @@ bool TrapSimulator::checkInitialized() const
   // Check whether object is initialized
   //
 
-  if (!mInitialized)
-    LOG(error) << "TrapSimulator is not initialized but function other than Init() is called.";
+//  if (!mInitialized)
+ //   LOG(debug4) << "TrapSimulator is not initialized but function other than Init() is called.";
 
   return mInitialized;
 }
@@ -676,7 +675,7 @@ void TrapSimulator::print(Option_t* const option) const
   }
 
   if (opt.find("H")) {
-    LOG(info) << "Found " << mNHits << " hits:";
+   LOG(info) << "Found " << mNHits << " hits:";
     for (int iHit = 0; iHit < mNHits; iHit++) {
       LOG(info) << "Hit " << std::setw(3) << iHit << " in timebin " << std::setw(2) << mHits[iHit].mTimebin << ", ADC " << std::setw(2) << mHits[iHit].mChannel << " has charge " << std::setw(3) << mHits[iHit].mQtot << " and position " << mHits[iHit].mYpos;
     }
@@ -772,6 +771,7 @@ void TrapSimulator::draw(Option_t* const option)
   }
 }
 
+
 void TrapSimulator::setData(int adc, const ArrayADC_t& data)
 {
   //
@@ -790,6 +790,7 @@ void TrapSimulator::setData(int adc, const ArrayADC_t& data)
     mADCR[adc * mNTimeBin + it] = (int)(data[it]) << mgkAddDigits;
     mADCF[adc * mNTimeBin + it] = (int)(data[it]) << mgkAddDigits;
   }
+  mDataIsSet=true;
 }
 
 void TrapSimulator::setData(int adc, int it, int data)
@@ -913,7 +914,7 @@ bool TrapSimulator::getHit(int index, int& channel, int& timebin, int& qtot, int
   y = (float)((((((mRobPos & 0x1) << 2) + (mMcmPos & 0x3)) * 18) << 8) - ((18 * 4 * 2 - 18 * 2 - 1) << 7) -
               (channel << 8) - ypos) *
       (0.635 + 0.03 * (mDetector % 6)) / 256.0;
-  label = mHits[index].mLabel[0];
+  //label = mHits[index].mLabel[0];
 
   return true;
 }
@@ -1426,16 +1427,16 @@ void TrapSimulator::addHitToFitreg(int adc, unsigned short timebin, unsigned sho
                << mFitReg[adc].mSumY << ", Y2=" << mFitReg[adc].mSumY2 << ", XY=" << mFitReg[adc].mSumXY
                << ", Q0=" << mFitReg[adc].mQ0 << ", Q1=" << mFitReg[adc].mQ1;
   }
-
+  
   // register hits (MC info)
   if (mNHits < mgkNHitsMC) {
     mHits[mNHits].mChannel = adc;
     mHits[mNHits].mQtot = qtot;
     mHits[mNHits].mYpos = ypos;
     mHits[mNHits].mTimebin = timebin;
-    mHits[mNHits].mLabel[0] = label[0];
-    mHits[mNHits].mLabel[1] = label[1];
-    mHits[mNHits].mLabel[2] = label[2];
+//    mHits[mNHits].mLabel[0] = label[0];
+//    mHits[mNHits].mLabel[1] = label[1];
+//    mHits[mNHits].mLabel[2] = label[2];
     mNHits++;
   } else {
     LOG(warning) << "no space left to store MC information for hit";
@@ -1447,8 +1448,8 @@ void TrapSimulator::calcFitreg()
   // Preprocessing.
   // Detect the hits and fill the fit registers.
   // Requires 12-bit data from mADCF which means Filter()
-  // has to be called before even if all filters are bypassed.
-
+  // has to be called before even if all filters are bypassed.  
+  LOG(debug4) << "Starting CalFitReg";
   //??? to be clarified:
   unsigned int adcMask = 0xffffffff;
 
@@ -1527,7 +1528,7 @@ void TrapSimulator::calcFitreg()
         //TODO for now simply log it to LOG system can parse and dump to a tree if
         //TODO if i really want later.
         if ((qtotTemp > 130)) {
-          LOG(info) << "testtree "
+          LOG(debug1) << "testtree "
                     << "qtot=" << qtotTemp
                     << " qleft=" << adcLeft
                     << " qcent=" << adcCentral
@@ -1613,7 +1614,7 @@ void TrapSimulator::calcFitreg()
         LOG(debug3) << "Kill ch " << worse2;
       }
     }
-
+    
     for (adcch = 0; adcch < 19; adcch++) {
       if (qTotal[adcch] > 0) // the channel is marked for processing
       {
@@ -1624,7 +1625,7 @@ void TrapSimulator::calcFitreg()
         // subtract the pedestal TPFP, clipping instead of wrapping
 
         int regTPFP = mTrapConfig->getTrapReg(TrapConfig::kTPFP, mDetector, mRobPos, mMcmPos);
-        LOG(debug3) << "Hit found, time=" << timebin << ", adcch=" << adcch << "/" << adcch + 1 << "/"
+        LOG(debug3) << "Hit found, time=" << timebin << ", adcch=" << adcch << "/" << adcch + 1 << "/" 
                     << adcch + 2 << ", adc values=" << adcLeft << "/" << adcCentral << "/"
                     << adcRight << ", regTPFP=" << regTPFP << ", TPHT=" << mTrapConfig->getTrapReg(TrapConfig::kTPHT, mDetector, mRobPos, mMcmPos);
 
@@ -1715,6 +1716,7 @@ void TrapSimulator::calcFitreg()
       LOG(debug3) << "fitreg[" << iAdc << "]: nHits = " << mFitReg[iAdc].mNhits << "]: sumX = " << mFitReg[iAdc].mSumX << ", sumY = " << mFitReg[iAdc].mSumY << ", sumX2 = " << mFitReg[iAdc].mSumX2 << ", sumY2 = " << mFitReg[iAdc].mSumY2 << ", sumXY = " << mFitReg[iAdc].mSumXY;
     }
   }
+  LOG(debug4) << "Ending CalFitReg";
 }
 
 void TrapSimulator::trackletSelection()
@@ -1777,7 +1779,7 @@ void TrapSimulator::trackletSelection()
     mFitPtr[i] = trackletCandch[i]; // pointer to the left channel with tracklet for CPU[i]
   for (i = ntracks; i < 4; i++)     // CPUs without tracklets
     mFitPtr[i] = 31;                // pointer to the left channel with tracklet for CPU[i] = 31 (invalid)
-  LOG(debug3) << "found " << ntracks << " tracklet candidates\n";
+  LOG(debug3) << "-------------------------------------------- found " << ntracks << " tracklet candidates";
   for (i = 0; i < 4; i++)
     LOG(debug3) << "fitPtr[" << i << "]: " << mFitPtr[i];
 
@@ -1807,9 +1809,9 @@ void TrapSimulator::trackletSelection()
     }
     ntracks = ntracks - counts;
 
-    LOG(debug3) << "found " << ntracks << " tracklet candidates";
+    LOG(debug1) << "found " << ntracks << " tracklet candidates";
     for (i = 0; i < 4; i++)
-      LOG(debug3) << "fitPtr[" << i << "]: " << mFitPtr[i];
+      LOG(debug1) << "fitPtr[" << i << "]: " << mFitPtr[i];
   }
 }
 
@@ -1993,7 +1995,7 @@ void TrapSimulator::fitTracklet()
 
           // label calculation only if there is a digitsmanager to get the labels from
           // if (mDigitsManager) {
-          for (int i = 0; i < 3; i++) {
+/*          for (int i = 0; i < 3; i++) {
             int currLabel = mHits[iHit].mLabel[i];
             for (int iLabel = 0; iLabel < nLabels; iLabel++) {
               if (currLabel == label[iLabel]) {
@@ -2007,7 +2009,7 @@ void TrapSimulator::fitTracklet()
               count[nLabels]++;
               nLabels++;
             }
-          }
+          }*/
           //} if mDigitsManager
 
           /* TODO labels now from from something else, get from Jorge
@@ -2023,7 +2025,7 @@ void TrapSimulator::fitTracklet()
         }
         mTrackletArray.push_back(Tracklet((unsigned int)mMCMT[cpu], mDetector * 2 + mRobPos % 2, mRobPos, mMcmPos));
         int newtrackposition = mTrackletArray.size() - 1;
-        mTrackletArray[newtrackposition].setLabel(mcLabel);
+//        mTrackletArray[newtrackposition].setLabel(mcLabel);
         mTrackletArray[newtrackposition].setNHits(fit0->mNhits + fit1->mNhits);
         mTrackletArray[newtrackposition].setNHits0(nHits0);
         mTrackletArray[newtrackposition].setNHits1(nHits1);
@@ -2056,9 +2058,10 @@ void TrapSimulator::fitTracklet()
           mTrackletArray[newtrackposition].setClusters(res, qtot, getNumberOfTimeBins());
         }
 
-        if (fitError < 0)
+        if (fitError < 0){
           LOG(debug3) << "fit slope: " << fitSlope << ", offset: " << fitOffset << ", error: " << TMath::Sqrt(TMath::Abs(fitError) / nHits);
-        LOG(error) << "Strange fit error: " << fitError << " from Sx: " << sumX << ", Sy: " << sumY << ", Sxy: " << sumXY << ", Sx2: " << sumX2 << ", Sy2: " << sumY2 << ", nHits: " << nHits;
+          LOG(error) << "Strange fit error: " << fitError << " from Sx: " << sumX << ", Sy: " << sumY << ", Sxy: " << sumXY << ", Sx2: " << sumX2 << ", Sy2: " << sumY2 << ", nHits: " << nHits;
+        }
       }
     }
   }
@@ -2086,24 +2089,13 @@ void TrapSimulator::tracklet()
 
 bool TrapSimulator::storeTracklets()
 {
-  // store the found tracklets via the loader
-  //TODO replace alirunloader and alidataloader
-  //TODO all really need is the data loader tree "dl->Tree()" below
+  // store the found tracklets 
   //TODO we just need to define a output place for the tree of tracklets "TTree *trackletTree"
   //
 
   if (mTrackletArray.size() == 0)
     return true;
-
-  //  AliRunLoader *rl = AliRunLoader::Instance();
-  // AliDataLoader *dl = 0x0;
-  //  if (rl)
-  //    dl = rl->getLoader("TRDLoader")->getDataLoader("tracklets");
-  //    TODO sort out storing of tracklets with out runloader ....
-  //if (!dl) {
-  LOG(error) << "Could not get the tracklets data loader!";
-  return false;
-  // }
+  LOG(info) << "!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@!@    We  HAVE : " << mTrackletArray.size() << " tracklets";
   /*
  * TODO fill a tree with tracklets, where exactly does that tree go ? or should I be filling another structure not a root tree.
   TTree *trackletTree = dl->Tree();
@@ -2123,6 +2115,7 @@ bool TrapSimulator::storeTracklets()
     trkbranch->Fill();
   }
 */
+  LOG(debug1) << "Storing of tracklets not done (to implement) in sim for tracklet size of " << mTrackletArray.size();
   return true;
 }
 
@@ -2552,33 +2545,32 @@ TrapConfig* TrapSimulator::getTrapConfig()
 {
   // return an existing TRAPconfig or load it from the CCDB
   // in case of failure, a default TRAPconfig is created
-
-  if (mTrapConfig)
+LOG(debug3) << "start of gettrapconfig";
+  if (mTrapConfig){
+        LOG(debug3) << "mTrapConfig is valid : 0x" << hex << mTrapConfig << dec;
     return mTrapConfig;
+  }
   else {
-    if ((mTrapConfig->getConfigName().length() <= 0) || (mTrapConfig->getConfigVersion().length() <= 0)) {
-      // query the configuration to be used
-      //his->GetGlobalConfiguration(fTrapConfigName);   //TODO fix this one
-      //his->GetGlobalConfigurationVersion(fTrapConfigVersion); //TODO fix this one
-    }
+        LOG(debug3) << "mTrapConfig is invalid : 0x" << hex << mTrapConfig << dec;
 
     // try to load the requested configuration
-    // this->loadTrapConfig(mTrapConfig.getName(), mTrapConfig.getVersion());
+    //this->loadTrapConfig(mTrapConfig.getName(), mTrapConfig.getVersion());
     // TODO need a mechanism for getting the run to get stuff outof OCDB will
     // TODO this be the same in CCDB ?
+   // Calibrations calib;
+   // calib.setCCDBForSimulation(297595);
+    //calib.
+    
+    
     // if we still don't have a valid TRAPconfig, we give up
-    if (!mTrapConfig) { // produce fatal only for year>=2012 -- run 170717
-      if (170718 /*mRun*/ > 170718)
-        LOG(info) << "Requested TRAP configuration not found!";
-      else {
+        LOG(debug3) << "mTrapConfig is not valid now : 0x" << hex << mTrapConfig << dec;
         LOG(warn) << "Falling back to default configuration for year<2012";
         //static TrapConfig trapConfigDefault("default", "default TRAP configuration");
         mTrapConfig = new TrapConfig; //&trapConfigDefault;
         TrapConfigHandler cfgHandler(mTrapConfig);
         cfgHandler.init();
         cfgHandler.loadConfig();
-      }
-    }
+      
     LOG(info) << "using TRAPconfig :" << mTrapConfig->getConfigName().c_str() << "." << mTrapConfig->getConfigVersion().c_str();
 
     // we still have to load the gain tables

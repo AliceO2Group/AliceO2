@@ -48,8 +48,7 @@ class TrapSimulator
 
   void reset();
   // clears filter registers and internal data
-
-  //TODO figure out another way of dumping a debug stream somewhere ??? for now
+  void clear(); 
   //we simply log it as its only doing text.
   //  void setDebugStream(TTreeSRedirector* stream) { mDebugStream = stream; }
   //  TTreeSRedirector* getDebugStream() const { return mDebugStream; }
@@ -63,6 +62,8 @@ class TrapSimulator
   int getDataFiltered(int iadc, int timebin) const { return (mADCF[iadc * mNTimeBin + timebin] >> 2); }
   // get filtered ADC data
   int getZeroSupressionMap(int iadc) const { return (mZSMap[iadc]); }
+  bool isDataSet(){ return mDataIsSet;};
+  void unsetData() { mDataIsSet=false;};//' mHits.clear(); mFitReg.clear();};
   void setData(int iadc, const std::vector<int>& adc); // set ADC data with array
   void setData(int iadc, const ArrayADC_t& adc); // set ADC data with array
   void setData(int iadc, int it, int adc);      // set ADC data
@@ -189,6 +190,49 @@ class TrapSimulator
   static const int mgkNHitsMC = 100; // maximum number of hits for which MC information is kept
 
   static const std::array<unsigned short, 4> mgkFPshifts; // shifts for pedestal filter
+  // hit detection
+  // individual hits can be stored as MC info
+  class Hit
+  { // Array of detected hits (only available in MC)
+   public:
+    int mChannel;                // ADC channel of the hit
+    int mTimebin;                // timebin of the hit
+    int mQtot;                   // total charge of the hit
+    int mYpos;                   // calculated y-position
+  //  std::array<int, 3> mLabel{}; // up to 3 labels (only in MC) run3 is free to have many, but does more than 1 per digit make sense.
+  };                             //mHits[mgkNHitsMC];
+  //std::array<Hit, 50> mHits;
+  std::vector<Hit> mHits;
+  class FilterReg
+  {
+   public:
+    unsigned int mPedAcc;          // Accumulator for pedestal filter
+    unsigned int mGainCounterA;    // Counter for values above FGTA in the gain filter
+    unsigned int mGainCounterB;    // Counter for values above FGTB in the gain filter
+    unsigned short mTailAmplLong;  // Amplitude of the long component in the tail filter
+    unsigned short mTailAmplShort; // Amplitude of the short component in the tail filter
+    void reset()
+    {
+      mPedAcc = 0;
+      mGainCounterA = 0;
+      mGainCounterB = 0;
+      mTailAmplLong = 0;
+      mTailAmplShort = 0;
+    };
+  };
+  // tracklet calculation
+  struct FitReg {        // pointer to the 18 fit registers
+    int mNhits;          // number of hits
+    unsigned int mQ0;    // charge accumulated in first window
+    unsigned int mQ1;    // charge accumulated in second window
+    unsigned int mSumX;  // sum x
+    int mSumY;           // sum y
+    unsigned int mSumX2; // sum x**2
+    unsigned int mSumY2; // sum y**2
+    int mSumXY;          // sum x*y
+  };
+  std::vector<FitReg> mFitReg;
+
  protected:
   void setNTimebins(int ntimebins); // allocate data arrays corr. to the no. of timebins
 
@@ -224,51 +268,10 @@ class TrapSimulator
   std::vector<int> mDict3;
   // internal filter registers
 
-  class FilterReg
-  {
-   public:
-    unsigned int mPedAcc;          // Accumulator for pedestal filter
-    unsigned int mGainCounterA;    // Counter for values above FGTA in the gain filter
-    unsigned int mGainCounterB;    // Counter for values above FGTB in the gain filter
-    unsigned short mTailAmplLong;  // Amplitude of the long component in the tail filter
-    unsigned short mTailAmplShort; // Amplitude of the short component in the tail filter
-    void reset()
-    {
-      mPedAcc = 0;
-      mGainCounterA = 0;
-      mGainCounterB = 0;
-      mTailAmplLong = 0;
-      mTailAmplShort = 0;
-    };
-  };
   std::array<FilterReg, NOfAdcPerMcm> mInternalFilterRegisters;
   
-  // hit detection
-  // individual hits can be stored as MC info
-  class Hit
-  { // Array of detected hits (only available in MC)
-   public:
-    int mChannel;                // ADC channel of the hit
-    int mTimebin;                // timebin of the hit
-    int mQtot;                   // total charge of the hit
-    int mYpos;                   // calculated y-position
-    std::array<int, 3> mLabel{}; // up to 3 labels (only in MC) run3 is free to have many, but does more than 1 per digit make sense.
-  };                             //mHits[mgkNHitsMC];
-  std::array<Hit, 50> mHits;
   int mNHits; // Number of detected hits
 
-  // tracklet calculation
-  struct FitReg {        // pointer to the 18 fit registers
-    int mNhits;          // number of hits
-    unsigned int mQ0;    // charge accumulated in first window
-    unsigned int mQ1;    // charge accumulated in second window
-    unsigned int mSumX;  // sum x
-    int mSumY;           // sum y
-    unsigned int mSumX2; // sum x**2
-    unsigned int mSumY2; // sum y**2
-    int mSumXY;          // sum x*y
-  };
-  std::array<FitReg, 50> mFitReg;
   // Sort functions as in TRAP
   void sort2(unsigned short idx1i, unsigned short idx2i, unsigned short val1i, unsigned short val2i,
              unsigned short* const idx1o, unsigned short* const idx2o, unsigned short* const val1o, unsigned short* const val2o) const;
@@ -298,6 +301,7 @@ class TrapSimulator
   static bool mgStoreClusters; // whether to store all clusters in the tracklets
   TrapConfig* getTrapConfig();
   void loadTrapConfig(const std::string& name, const std::string& version); //load a config into the trap
+  bool mDataIsSet=false;
 };
 
 std::ostream& operator<<(std::ostream& os, const TrapSimulator& mcm);
