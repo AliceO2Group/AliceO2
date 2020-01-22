@@ -911,9 +911,8 @@ int GPUChainTracking::RunTPCClusterizer()
       GPUTPCClusterFinder& clustererShadow = doGPU ? processorsShadow()->tpcClusterer[iSlice] : clusterer;
       SetupGPUProcessor(&clusterer, false);
       memset((void*)clusterer.mPmemory, 0, sizeof(*clusterer.mPmemory));
-      TransferMemoryResourceLinkToGPU(RecoStep::TPCClusterFinding, clusterer.mMemoryId, lane);
+      unsigned int nPagesTotal = 0;
       if (mIOPtrs.tpcZS) {
-        unsigned int nPagesTotal = 0;
         for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
           for (unsigned int k = 0; k < mIOPtrs.tpcZS->slice[iSlice].count[j]; k++) {
             nPagesTotal += mIOPtrs.tpcZS->slice[iSlice].nZSPtr[j][k];
@@ -934,16 +933,14 @@ int GPUChainTracking::RunTPCClusterizer()
           }
           TransferMemoryResourceLinkToGPU(RecoStep::TPCClusterFinding, mInputsShadow->mResourceZS, lane);
         }
-        if (nPagesTotal == 0) {
-          continue;
-        }
       } else {
-        GPUMemCpy(RecoStep::TPCClusterFinding, clustererShadow.mPdigits, mIOPtrs.tpcPackedDigits->tpcDigits[iSlice], sizeof(clustererShadow.mPdigits[0]) * clusterer.mPmemory->nDigits, lane, true);
         clusterer.mPmemory->nDigits = mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice];
+        GPUMemCpy(RecoStep::TPCClusterFinding, clustererShadow.mPdigits, mIOPtrs.tpcPackedDigits->tpcDigits[iSlice], sizeof(clustererShadow.mPdigits[0]) * clusterer.mPmemory->nDigits, lane, true);
         clusterer.mPdigits = (deprecated::PackedDigit*)mIOPtrs.tpcPackedDigits->tpcDigits[iSlice]; // TODO: Needs fixing (invalid const cast) + need pointer on CPU clusterizer for debug output
-        if (clusterer.mPmemory->nDigits == 0) {
-          continue;
-        }
+      }
+      TransferMemoryResourceLinkToGPU(RecoStep::TPCClusterFinding, clusterer.mMemoryId, lane);
+      if (mIOPtrs.tpcZS ? (nPagesTotal == 0) : (clusterer.mPmemory->nDigits == 0)) {
+        continue;
       }
       if (mIOPtrs.tpcZS) {
         runKernel<GPUTPCClusterFinderKernels, GPUTPCClusterFinderKernels::decodeZS>({GPUTrackingInOutZS::NENDPOINTS, ClustererThreadCount(), lane}, {iSlice}, {});
