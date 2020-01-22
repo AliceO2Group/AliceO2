@@ -16,6 +16,7 @@
 #include "TOFCompression/CompressorTask.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/WorkflowSpec.h"
 
 using namespace o2::framework;
 
@@ -38,6 +39,12 @@ void CompressorTask::init(InitContext& ic)
   mCompressor.setDecoderVerbose(decoderVerbose);
   mCompressor.setEncoderVerbose(encoderVerbose);
   mCompressor.setCheckerVerbose(checkerVerbose);
+
+  auto finishFunction = [this]() {
+    LOG(INFO) << "Compressor finish";
+    mCompressor.checkSummary();
+  };
+  ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
 }
 
 void CompressorTask::run(ProcessingContext& pc)
@@ -45,15 +52,21 @@ void CompressorTask::run(ProcessingContext& pc)
   LOG(DEBUG) << "Compressor run";
 
   /** receive input **/
-  auto dataFrame = pc.inputs().get<RawDataFrame*>("dataframe");
-  mCompressor.setDecoderBuffer(const_cast<char*>(dataFrame->mBuffer));
+  for (auto& input : pc.inputs()) {
+    const auto* header = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
+    auto payload = const_cast<char*>(input.payload);
+    auto payloadSize = header->payloadSize;
+    mCompressor.setDecoderBuffer(payload);
+    mCompressor.setDecoderBufferSize(payloadSize);
+    
+    /** run **/
+    mCompressor.run();
+    
+    /** push output **/
+    mDataFrame.mSize = mCompressor.getEncoderByteCounter();
+    pc.outputs().snapshot(Output{"TOF", "CMPDATAFRAME", 0, Lifetime::Timeframe}, mDataFrame);
 
-  /** run **/
-  mCompressor.run();
-
-  /** push output **/
-  mDataFrame.mSize = mCompressor.getEncoderByteCounter();
-  pc.outputs().snapshot(Output{"TOF", "CMPDATAFRAME", 0, Lifetime::Timeframe}, mDataFrame);
+  }
 }
 
 DataProcessorSpec CompressorTask::getSpec()
@@ -63,9 +76,9 @@ DataProcessorSpec CompressorTask::getSpec()
 
   return DataProcessorSpec{
     "tof-compressor",
-    Inputs{InputSpec("dataframe", "TOF", "RAWDATAFRAME", 0, Lifetime::Timeframe)}, // inputs
-    Outputs{OutputSpec("TOF", "CMPDATAFRAME", 0, Lifetime::Timeframe)},            // outputs
-    AlgorithmSpec{adaptFromTask<CompressorTask>()},                                // call constructor + execute init (check)
+    select("x:TOF/RAWDATA"),
+    Outputs{OutputSpec("TOF", "CMPDATAFRAME", 0, Lifetime::Timeframe)},
+    AlgorithmSpec{adaptFromTask<CompressorTask>()},
     Options{
       {"tof-compressor-decoder-verbose", VariantType::Bool, false, {"Decoder verbose flag"}},
       {"tof-compressor-encoder-verbose", VariantType::Bool, false, {"Encoder verbose flag"}},

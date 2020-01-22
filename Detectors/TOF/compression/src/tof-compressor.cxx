@@ -39,7 +39,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   // add devices (Spec) to the workflow
   WorkflowSpec specs;
-  specs.emplace_back(o2::tof::RawReaderTask::getSpec());
+  //  specs.emplace_back(o2::tof::RawReaderTask::getSpec());
   specs.emplace_back(o2::tof::CompressorTask::getSpec());
   specs.emplace_back(o2::tof::CompressedWriterTask::getSpec());
 

@@ -77,7 +77,7 @@ DataProcessorSpec CompressedWriterTask::getSpec()
     Outputs{},                                                                     // outputs
     AlgorithmSpec{adaptFromTask<CompressedWriterTask>()},                          // call constructor + execute init (check)
     Options{
-      {"tof-compressed-filename", VariantType::String, "", {"Name of the compressed output file"}}}};
+      {"tof-compressed-filename", VariantType::String, "/dev/null", {"Name of the compressed output file"}}}};
 }
 
 } // namespace tof

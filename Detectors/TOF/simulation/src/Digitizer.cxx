@@ -136,7 +136,7 @@ Int_t Digitizer::processHit(const HitType& hit, Double_t event_time)
 
   Float_t charge = getCharge(hit.GetEnergyLoss());
   // NOTE: FROM NOW ON THE TIME IS IN PS ... AND NOT IN NS
-  Float_t time = getShowerTimeSmeared((event_time + hit.GetTime()) * 1E3, charge);
+  Double_t time = getShowerTimeSmeared((double(hit.GetTime()) + event_time) * 1E3, charge);
 
   Float_t xLocal = deltapos[0];
   Float_t zLocal = deltapos[2];
@@ -234,7 +234,7 @@ Int_t Digitizer::processHit(const HitType& hit, Double_t event_time)
 }
 
 //______________________________________________________________________
-void Digitizer::addDigit(Int_t channel, UInt_t istrip, Float_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ,
+void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x, Float_t z, Float_t charge, Int_t iX, Int_t iZ,
                          Int_t padZfired, Int_t trackID)
 {
   // TOF digit requires: channel, time and time-over-threshold
@@ -250,7 +250,7 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Float_t time, Float_t x, 
 
   Float_t timewalkX = x * mTimeWalkeSlope;
   Float_t timewalkZ = (z - (padZfired - 0.5) * Geo::ZPAD) * mTimeWalkeSlope;
-
+  
   if (border < 0) { // keep the effect onlu if hit out of pad
     border *= -1;
     Float_t extraTimeSmear = border * mTimeSlope;
@@ -271,7 +271,19 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Float_t time, Float_t x, 
   Int_t nbc = Int_t(time * Geo::BC_TIME_INPS_INV); // time elapsed in number of bunch crossing
   //Digit newdigit(time, channel, (time - Geo::BC_TIME_INPS * nbc) * Geo::NTDCBIN_PER_PS, tot * Geo::NTOTBIN_PER_NS, nbc);
 
-  auto tdc = (time - Geo::BC_TIME_INPS * nbc) * Geo::NTDCBIN_PER_PS;
+  int tdc = int((time - Geo::BC_TIME_INPS * nbc) * Geo::NTDCBIN_PER_PS);
+
+  // additional check to avoid very rare truncation
+  if(tdc < 0){
+    nbc--;
+    tdc += 1024;
+  }
+  else if(tdc >= 1024){
+    nbc++;
+    tdc -= 1024;
+  }
+
+  //  printf("tdc = %d\n",tdc);
 
   int lblCurrent = 0;
 
@@ -377,14 +389,14 @@ void Digitizer::fillDigitsInStrip(std::vector<Strip>* strips, o2::dataformats::M
   }
 }
 //______________________________________________________________________
-Float_t Digitizer::getShowerTimeSmeared(Float_t time, Float_t charge)
+Double_t Digitizer::getShowerTimeSmeared(Double_t time, Float_t charge)
 {
   // add the smearing common to all the digits belongin to the same shower
   return time + gRandom->Gaus(0, mShowerResolution);
 }
 
 //______________________________________________________________________
-Float_t Digitizer::getDigitTimeSmeared(Float_t time, Float_t x, Float_t z, Float_t charge)
+Double_t Digitizer::getDigitTimeSmeared(Double_t time, Float_t x, Float_t z, Float_t charge)
 {
   // add the smearing component which is indepedent for any digit even if belonging to the same shower (in case of
   // multiple hits)
@@ -769,7 +781,11 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
 
   if (mContinuous) {
     printf("%i) # TOF digits = %lu (%p)\n", mIcurrentReadoutWindow, digits.size(), mStripsCurrent);
-    mDigitsPerTimeFrame.push_back(digits);
+    int first = mDigitsPerTimeFrame.size();
+    int ne = digits.size();
+    ReadoutWindowData info(first,ne);
+    mDigitsPerTimeFrame.insert(mDigitsPerTimeFrame.end(), digits.begin(), digits.end());
+    mReadoutWindowData.push_back(info);
   }
 
   // if(! digits.size()) return;
