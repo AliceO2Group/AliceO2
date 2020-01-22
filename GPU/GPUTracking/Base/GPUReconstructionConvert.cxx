@@ -20,6 +20,7 @@
 #include "Digit.h"
 #include "GPUParam.h"
 #include <algorithm>
+#include <vector>
 
 #ifdef HAVE_O2HEADERS
 #include "DataFormatsTPC/ZeroSuppression.h"
