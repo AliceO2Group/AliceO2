@@ -36,9 +36,9 @@ DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, [](float snp, float alpha) -> float { retur
 DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, [](float tgl) -> float { return log(tan(0.25 * M_PI - 0.5 * atan(tgl))); });
 DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, [](float signed1Pt) -> float { return fabs(1.0 / signed1Pt); });
 // TRACKPARCOV TABLE definition
-DECLARE_SOA_COLUMN(CYY, cZZ, float, "fCYY");
+DECLARE_SOA_COLUMN(CYY, cYY, float, "fCYY");
 DECLARE_SOA_COLUMN(CZY, cZY, float, "fCZY");
-DECLARE_SOA_COLUMN(CZZ, cXX, float, "fCZZ");
+DECLARE_SOA_COLUMN(CZZ, cZZ, float, "fCZZ");
 DECLARE_SOA_COLUMN(CSnpY, cSnpY, float, "fCSnpY");
 DECLARE_SOA_COLUMN(CSnpZ, cSnpZ, float, "fCSnpZ");
 DECLARE_SOA_COLUMN(CSnpSnp, cSnpSnp, float, "fCSnpSnp");
@@ -64,7 +64,7 @@ DECLARE_SOA_COLUMN(TOFchi2, tofChi2, float, "fTOFchi2");
 DECLARE_SOA_COLUMN(TPCsignal, tpcSignal, float, "fTPCsignal");
 DECLARE_SOA_COLUMN(TRDsignal, trdSignal, float, "fTRDsignal");
 DECLARE_SOA_COLUMN(TOFsignal, tofSignal, float, "fTOFsignal");
-DECLARE_SOA_COLUMN(Lenght, lenght, float, "fLength");
+DECLARE_SOA_COLUMN(Length, length, float, "fLength");
 
 } // namespace track
 
@@ -86,7 +86,7 @@ DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA",
                   track::TPCInnerParam, track::Flags, track::ITSClusterMap,
                   track::TPCNCls, track::TRDNTracklets, track::ITSChi2NCl,
                   track::TPCchi2Ncl, track::TRDchi2, track::TOFchi2,
-                  track::TPCsignal, track::TRDsignal, track::TOFsignal, track::Lenght);
+                  track::TPCsignal, track::TRDsignal, track::TOFsignal, track::Length);
 
 using Track = Tracks::iterator;
 using TrackCov = TracksCov::iterator;
