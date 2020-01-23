@@ -1311,10 +1311,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     }
   }
 
-  WorkflowHelpers::injectServiceDevices(physicalWorkflow);
-  std::stable_sort(physicalWorkflow.begin(), physicalWorkflow.end(), [&rankIndex](DataProcessorSpec const& a, DataProcessorSpec const& b) {
-    return rankIndex[a.name] < rankIndex[b.name];
-  });
+  WorkflowHelpers::injectServiceDevices(physicalWorkflow, configContext);
 
   // Use the hidden options as veto, all config specs matching a definition
   // in the hidden options are skipped in order to avoid duplicate definitions
