@@ -52,6 +52,7 @@ class RawWriterDeviceDPL
     mEncoder.setHeaderOffset(headerOffset);
 
     auto stop = [this]() {
+      mEncoder.finalize();
       write();
       mFile.close();
     };

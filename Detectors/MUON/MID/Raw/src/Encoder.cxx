@@ -28,18 +28,21 @@ void Encoder::clear()
   for (auto& linkEnc : mCRUUserLogicEncoders) {
     linkEnc.clear();
   }
+  mBytes.clear();
 }
 
 void Encoder::newHeader(const InteractionRecord& ir)
 {
   /// Add new RDH
   std::vector<InteractionRecord> HBIRVec;
-  InteractionRecord irFrom = mLastIR.isDummy() ? mHBFUtils.getFirstIR() : mLastIR + 1;
-  mHBFUtils.fillHBIRvector(HBIRVec, irFrom, ir);
-  mLastIR = ir;
+  mHBFUtils.fillHBIRvector(HBIRVec, mLastIR, ir);
+  mLastIR = ir + 1;
   for (auto& hbIr : HBIRVec) {
     auto rdh = mHBFUtils.createRDH<header::RAWDataHeader>(hbIr);
     for (auto linkEncIt = mCRUUserLogicEncoders.begin(); linkEncIt != mCRUUserLogicEncoders.end(); ++linkEncIt) {
+      if (rdh.triggerType & o2::trigger::TF || linkEncIt->getBufferSize() * raw::sElementSizeInBytes >= mMaxSuperpageSize) {
+        flushGBT(*linkEncIt);
+      }
       // The link ID is sequential
       uint16_t feeId = linkEncIt - mCRUUserLogicEncoders.begin();
       linkEncIt->newHeader(feeId, rdh);
@@ -78,6 +81,20 @@ bool Encoder::convertData(gsl::span<const ColumnData> data)
 void Encoder::process(gsl::span<const ColumnData> data, const InteractionRecord& ir, EventType eventType)
 {
   /// Encode data
+  if (mLastIR.isDummy()) {
+    mLastIR = mHBFUtils.getFirstIR();
+  }
+  if (mSkipEmptyTFs) {
+    // This is useful when converting Run 2 data to the new format
+    // Since the first orbit is a very large number.
+    // Moreover, many orbits are empty in pp collisions.
+    auto lastTF = mHBFUtils.getTF(mLastIR);
+    auto currentTF = mHBFUtils.getTF(ir);
+    if (currentTF > lastTF) {
+      finalize();
+      mLastIR = mHBFUtils.getIRTF(currentTF);
+    }
+  }
   newHeader(ir);
 
   if (convertData(data)) {
@@ -120,12 +137,26 @@ void Encoder::process(gsl::span<const ColumnData> data, const InteractionRecord&
 const std::vector<raw::RawUnit>& Encoder::getBuffer()
 {
   /// Gets the buffer
-  mBytes.clear();
   for (uint16_t roId = 0; roId < crateparams::sNGBTs; ++roId) {
-    auto& buffer = mCRUUserLogicEncoders[roId].getBuffer();
-    std::copy(buffer.begin(), buffer.end(), std::back_inserter(mBytes));
+    flushGBT(mCRUUserLogicEncoders[roId]);
   }
   return mBytes;
+}
+
+void Encoder::flushGBT(CRUUserLogicEncoder& gbtEncoder)
+{
+  /// Gets the buffer
+  auto& buffer = gbtEncoder.getBuffer();
+  std::copy(buffer.begin(), buffer.end(), std::back_inserter(mBytes));
+  gbtEncoder.clear();
+}
+
+void Encoder::finalize()
+{
+  /// Complete the last TF with empty HBF if needed
+  int tf = mHBFUtils.getTF(mLastIR);
+  auto lastIRofTF = mHBFUtils.getIRTF(tf + 1) - 1; // last IR of the current TF
+  newHeader(lastIRofTF);
 }
 
 } // namespace mid
