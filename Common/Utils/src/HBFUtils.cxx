@@ -93,11 +93,11 @@ void HBFUtils::dumpRDH(const o2::header::RAWDataHeaderV5& rdh)
 {
   constexpr int hsz = sizeof(o2::header::RAWDataHeaderV5);
   static_assert(hsz == 64, "Expect 64 bytes long header");
-  const uint32_t* w32 = reinterpret_cast<const uint32_t*>(&rdh);
-  for (int iw128 = 0; iw128 < hsz / 16; iw128++) {
-    printf("[rdh%d] 0x:", iw128);
-    for (int iw = hsz / sizeof(uint32_t); iw--;) {
-      printf(" %08x", w32[iw128 * 16 / sizeof(uint32_t) + iw]);
+  const uint16_t* w16 = reinterpret_cast<const uint16_t*>(&rdh);
+  for (int il = 0; il < 4; il++) { // 4 lines
+    printf("[rdh%d] 0x:", il);
+    for (int iw = 8; iw--;) { // with 4 shorts per line
+      printf(" %04x", w16[il * 4 + iw]);
     }
     printf("\n");
   }
