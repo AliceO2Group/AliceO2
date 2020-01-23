@@ -28,14 +28,21 @@ template <typename T>
 class RawBuffer
 {
  public:
-  void setBuffer(gsl::span<const T> bytes, bool keepUnconsumed = true);
+  enum class ResetMode {
+    all,            // Reset buffer and indexes
+    keepUnconsumed, // Keep the last unconsumed HB
+    bufferOnly      // Do not reset indexes
+  };
+
+  void setBuffer(gsl::span<const T> bytes, ResetMode resetMode = ResetMode::keepUnconsumed);
 
   /// Gets the current RDH
   const header::RAWDataHeader* getRDH() { return mRDH; }
 
   unsigned int next(unsigned int nBits);
   T next();
-  bool nextHeader(gsl::span<const T> bytes);
+
+  bool nextHeader();
 
   bool hasNext(unsigned int nBytes);
 
@@ -46,9 +53,10 @@ class RawBuffer
  private:
   gsl::span<const T> mBytes{};                                    /// gsl span with encoded information
   gsl::span<const T> mCurrentBuffer{};                            /// gsl span with the current encoded information
-  std::vector<T> mUnconsumed;                                     /// Unconsumed buffer
+  std::vector<T> mUnconsumed{};                                   /// Unconsumed buffer
   size_t mElementIndex{0};                                        /// Index of the current element in the buffer
   size_t mBitIndex{0};                                            /// Index of the current bit
+  size_t mHeaderIndex{0};                                         /// Index of the current header
   size_t mNextHeaderIndex{0};                                     /// Index of the next header
   size_t mEndOfPayloadIndex{0};                                   /// Index of the end of payload
   const unsigned int mElementSizeInBytes{sizeof(T)};              /// Element size in bytes

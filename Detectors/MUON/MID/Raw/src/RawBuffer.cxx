@@ -27,6 +27,10 @@ template <typename T>
 unsigned int RawBuffer<T>::next(unsigned int nBits)
 {
   /// Reads the next nBits
+  if (mNextHeaderIndex == 0) {
+    // This is the first entry
+    nextPayload();
+  }
   unsigned int value = 0;
   for (int ibit = 0; ibit < nBits; ++ibit) {
     if (mBitIndex == mElementSizeInBits) {
@@ -52,30 +56,41 @@ T RawBuffer<T>::next()
 }
 
 template <typename T>
+bool RawBuffer<T>::nextHeader()
+{
+  /// Goes to next RDH
+  if (mNextHeaderIndex >= mBytes.size()) {
+    // This is the end of the buffer
+    if (mUnconsumed.empty()) {
+      mElementIndex = mNextHeaderIndex;
+      mEndOfPayloadIndex = mNextHeaderIndex;
+      return false;
+    }
+    // We were reading the unconsumed part: switch to new buffer
+    mUnconsumed.clear();
+    reset();
+    mBytes = mCurrentBuffer;
+  }
+  mHeaderIndex = mNextHeaderIndex;
+  mRDH = reinterpret_cast<const header::RAWDataHeader*>(&mBytes[mHeaderIndex]);
+  mEndOfPayloadIndex = mHeaderIndex + (mRDH->memorySize / mElementSizeInBytes);
+  // Go to end of header, i.e. beginning of payload
+  mElementIndex = mHeaderIndex + (mRDH->headerSize / mElementSizeInBytes);
+  mNextHeaderIndex = mHeaderIndex + mRDH->offsetToNext / mElementSizeInBytes;
+  mBitIndex = 0;
+
+  return true;
+}
+
+template <typename T>
 bool RawBuffer<T>::nextPayload()
 {
   /// Goes to next payload
   while (mElementIndex == mEndOfPayloadIndex) {
-    if (mNextHeaderIndex == mBytes.size()) {
-      // This is the end of the buffer
-      if (mUnconsumed.empty()) {
-        mElementIndex = mNextHeaderIndex;
-        mEndOfPayloadIndex = mNextHeaderIndex;
-        return false;
-      }
-      // We were reading the unconsumed part: switch to new buffer
-      mUnconsumed.clear();
-      reset();
-      mBytes = mCurrentBuffer;
+    if (!nextHeader()) {
+      return false;
     }
-    mRDH = reinterpret_cast<const header::RAWDataHeader*>(&mBytes[mNextHeaderIndex]);
-    mEndOfPayloadIndex = mNextHeaderIndex + (mRDH->memorySize / mElementSizeInBytes);
-    // Go to end of header, i.e. beginning of payload
-    mElementIndex = mNextHeaderIndex + (mRDH->headerSize / mElementSizeInBytes);
-    mNextHeaderIndex += mRDH->offsetToNext / mElementSizeInBytes;
-    mBitIndex = 0;
   }
-
   return true;
 }
 
@@ -84,6 +99,7 @@ void RawBuffer<T>::reset()
 {
   /// Rewind bytes
   mElementIndex = 0;
+  mHeaderIndex = 0;
   mNextHeaderIndex = 0;
   mEndOfPayloadIndex = 0;
   mBitIndex = 0;
@@ -92,21 +108,23 @@ void RawBuffer<T>::reset()
 }
 
 template <typename T>
-void RawBuffer<T>::setBuffer(gsl::span<const T> bytes, bool keepUnconsumed)
+void RawBuffer<T>::setBuffer(gsl::span<const T> bytes, ResetMode resetMode)
 {
   /// Sets the buffer and reset the internal indexes
-  if (keepUnconsumed && !mUnconsumed.empty()) {
+  if (resetMode == ResetMode::keepUnconsumed && !mUnconsumed.empty()) {
     // There are some unconsumed bytes from the previous buffer
-    mNextHeaderIndex = mUnconsumed.size();
-    mEndOfPayloadIndex -= mElementIndex;
-    mElementIndex = 0;
+    mNextHeaderIndex -= mHeaderIndex;
+    mEndOfPayloadIndex -= mHeaderIndex;
+    mElementIndex -= mHeaderIndex;
+    mHeaderIndex = 0;
     mBytes = gsl::span<const T>(mUnconsumed);
   } else {
     mBytes = bytes;
-    reset();
+    if (resetMode != ResetMode::bufferOnly) {
+      reset();
+    }
   }
   mCurrentBuffer = bytes;
-  nextPayload();
 }
 
 template <typename T>
@@ -144,27 +162,14 @@ bool RawBuffer<T>::hasNext(unsigned int nBytes)
   // With lot of memory left in the buffer but no payload
   nextPayload();
   bool isOk = mCurrentBuffer.size() + mUnconsumed.size() - mNextHeaderIndex + mEndOfPayloadIndex - mElementIndex >= nBytes / mElementSizeInBytes;
-  if (!isOk) {
+  if (!isOk && mElementIndex != mCurrentBuffer.size()) {
     // Store the remaining bits for further use
-    // We need to do it here because we know that the vector of which the mBytes is just a spas, is valid
-    // If we do it in set buffer, this might not be the case anymore
-    std::copy(mBytes.begin() + mElementIndex, mBytes.end(), std::back_inserter(mUnconsumed));
+    // We need to do it here because the vector of which the mBytes is just a span might not be valid afterwards
+    // (e.g. when we do the next setBuffer)
+    // If we do not want to invalidate the mRDH pointer, we need to copy bytes from the last header
+    mUnconsumed.insert(mUnconsumed.end(), mBytes.begin() + mHeaderIndex, mBytes.end());
   }
   return isOk;
-}
-
-template <typename T>
-bool RawBuffer<T>::nextHeader(gsl::span<const T> bytes)
-{
-  /// Go to next header
-  /// This is only useful when one reads from file
-  /// and wants to read up to the next header to find out how many bytes to read next
-  mBytes = bytes;
-  if (mElementIndex >= mBytes.size()) {
-    reset();
-  }
-  mEndOfPayloadIndex = mElementIndex;
-  return nextPayload();
 }
 
 template class RawBuffer<raw::RawUnit>;
