@@ -17,6 +17,10 @@ string(REPLACE " -g " " " CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} ")
 string(REPLACE " -g " " " CMAKE_CXX_FLAGS_${CMAKE_BUILT_TYPE} " ${CMAKE_CXX_FLAGS_${CMAKE_BUILT_TYPE}} ")
 string(REPLACE " -g " " " CMAKE_LINK_FLAGS " ${CMAKE_LINK_FLAGS} ")
 string(REPLACE " -g " " " CMAKE_LINK_FLAGS_${CMAKE_BUILT_TYPE} " ${CMAKE_LINK_FLAGS_${CMAKE_BUILT_TYPE}} ")
+string(REPLACE " -ggdb " " " CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} ")
+string(REPLACE " -ggdb " " " CMAKE_CXX_FLAGS_${CMAKE_BUILT_TYPE} " ${CMAKE_CXX_FLAGS_${CMAKE_BUILT_TYPE}} ")
+string(REPLACE " -ggdb " " " CMAKE_LINK_FLAGS " ${CMAKE_LINK_FLAGS} ")
+string(REPLACE " -ggdb " " " CMAKE_LINK_FLAGS_${CMAKE_BUILT_TYPE} " ${CMAKE_LINK_FLAGS_${CMAKE_BUILT_TYPE}} ")
 
 #setting flags as a global option for all HIP targets.
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-invalid-command-line-argument -Wno-unused-command-line-argument -Wno-invalid-constexpr -Wno-ignored-optimization-argument -Wno-unused-private-field")
