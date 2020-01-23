@@ -45,6 +45,7 @@ Detector::Detector(Bool_t active)
     mBirkC2(0.),
     mSensitive(),
     mSMVolumeID(),
+    mSMVolNames(),
     mVolumeIDScintillator(-1),
     mHits(o2::utils::createSimVector<Hit>()),
     mGeometry(nullptr),
@@ -82,6 +83,7 @@ Detector::Detector(const Detector& rhs)
     mBirkC2(rhs.mBirkC2),
     mSensitive(),
     mSMVolumeID(),
+    mSMVolNames(),
     mVolumeIDScintillator(-1),
     mHits(o2::utils::createSimVector<Hit>()),
     mGeometry(rhs.mGeometry),
@@ -113,10 +115,15 @@ void Detector::InitializeO2Detector()
   // the decay chains are broken by volumes not processed in ProceeHits
   for (const auto& child : mSensitive) {
     LOG(DEBUG1) << "Adding sensitive volume " << child;
-    auto svolID = registerSensitiveVolumeAndGetVolID(child); 
+    auto svolID = registerSensitiveVolumeAndGetVolID(child);
     if (child == "SCMX") {
       LOG(DEBUG1) << "Adding SCMX volume as sensitive volume with ID " << svolID;
       mVolumeIDScintillator = svolID;
+    }
+    auto smtype = mSMVolNames.find(child);
+    if (smtype != mSMVolNames.end()) {
+      std::cout << "Adding supermodule type " << smtype->second << " for SM " << smtype->first << " with volume ID " << svolID << std::endl;
+      mSMVolumeID[svolID] = smtype->second;
     }
   }
 
@@ -801,8 +808,8 @@ void Detector::CreateSupermoduleGeometry(const std::string_view mother)
       };
 
       if (SMOrder == 1) { // first time, create the SM
-        auto volID = CreateEMCALVolume(smName, "BOX", ID_AIR, parC, 3);
-        mSMVolumeID[volID] = EMCALSMType(tmpType);
+        CreateEMCALVolume(smName, "BOX", ID_AIR, parC, 3);
+        mSMVolNames[smName] = EMCALSMType(tmpType);
 
         LOG(DEBUG2) << R"( Super module with name \")" << smName << R"(\" was created in \"box\" with: par[0] = )"
                     << parC[0] << ", par[1] = " << parC[1] << ", par[2] = " << parC[2];
