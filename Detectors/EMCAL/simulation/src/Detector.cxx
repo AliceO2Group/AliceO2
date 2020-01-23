@@ -112,12 +112,11 @@ void Detector::InitializeO2Detector()
   // All EMCAL volumes must be declared as sensitive, otherwise
   // the decay chains are broken by volumes not processed in ProceeHits
   for (const auto& child : mSensitive) {
-    auto vsense = gGeoManager->GetVolume(child.data());
-    if (vsense) {
-      LOG(DEBUG1) << "Adding sensitive volume " << child;
-      AddSensitiveVolume(vsense);
-    } else {
-      LOG(ERROR) << "EMCAL sensitive volume " << child << " not found ";
+    LOG(DEBUG1) << "Adding sensitive volume " << child;
+    auto svolID = registerSensitiveVolumeAndGetVolID(child); 
+    if (child == "SCMX") {
+      LOG(DEBUG1) << "Adding SCMX volume as sensitive volume with ID " << svolID;
+      mVolumeIDScintillator = svolID;
     }
   }
 
