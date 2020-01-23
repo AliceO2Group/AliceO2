@@ -37,8 +37,10 @@ static constexpr unsigned int sNBitsLocalClock = 16;
 
 // Event info
 static constexpr unsigned int sNBitsTriggerWord = 8;
+// The delays are in local clocks, and correspond to the LHC clocks (aka BCs)
 static constexpr uint16_t sDelayCalibToFET = 10;
 static constexpr uint16_t sDelayBCToLocal = 0;
+static constexpr uint16_t sDelayRegToLocal = 3;
 
 // Buffer info
 static constexpr unsigned int sMaxPageSize = 0x2000;
