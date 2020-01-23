@@ -28,13 +28,17 @@ class Barrel
   Barrel();
   ~Barrel() = default;
 
+  Float_t GetFixationServicesThickness() { return mFSThickness; };
+  void SetFixationServicesThickness(Float_t& tFSThickness) { mFSThickness = tFSThickness; };
   TGeoVolumeAssembly* createBarrel();
 
   // protected:
   //  TGeoVolumeAssembly* mBarrel;
 
  private:
-  ClassDefNV(Barrel, 1);
+  Float_t mFSThickness; //fixation services thickness
+
+  ClassDefNV(Barrel, 2);
 };
 } // namespace mft
 } // namespace o2
