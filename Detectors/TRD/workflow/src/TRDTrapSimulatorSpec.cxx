@@ -300,7 +300,8 @@ class TRDDPLTrapSimulatorTask{
 o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec(int channelfan) 
 {
     return DataProcessorSpec{"TRAP",Inputs{ InputSpec{"digitinput","TRD","DIGITS",0},
-                                            InputSpec{"labelinput","TRD","LABELS",0}
+                                            InputSpec{"labelinput","TRD","LABELS",0},
+                                            InputSpec{"labelinput","TRD","TRGLABELS",0}
                                           },
                                     Outputs{OutputSpec{"TRD","TRACKLETS",0}},
                                           AlgorithmSpec{adaptFromTask<TRDDPLTrapSimulatorTask>()}};

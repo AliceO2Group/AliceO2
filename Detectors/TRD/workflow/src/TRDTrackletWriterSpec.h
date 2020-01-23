@@ -33,7 +33,7 @@ using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
 o2::framework::DataProcessorSpec getTRDTrackletWriterSpec()
 {
-  using InputSpec = framework::InputSpec;
+//  using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
 int producejson=1;
   if(producejson){

@@ -20,7 +20,7 @@
 // for TRD
 #include "TRDTrapSimulatorSpec.h"
 #include "TRDTrackletWriterSpec.h"
-#include "TRDRawReaderSpec.h"
+#include "TRDDigitReaderSpec.h"
 
 // GRP   not sure if i need GRP, come back TODO
 //#include "DataFormatsParameters/GRPObject.h"
@@ -76,7 +76,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   //
   return WorkflowSpec{
       //?? maybe a read spec to define the input in the case of my text run2 data and possible a proper data input reader.
-    o2::trd::getTRDRawReaderSpec(),
+    o2::trd::getTRDDigitReaderSpec(),
     // connect the TRD digitization
     o2::trd::getTRDTrapSimulatorSpec(0),
     // connect the TRD digit writer
