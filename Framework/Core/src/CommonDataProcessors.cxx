@@ -28,7 +28,12 @@
 #include "Framework/OutputObjHeader.h"
 
 #include "TFile.h"
+#include "TTree.h"
 
+#include <ROOT/RSnapshotOptions.hxx>
+#include <ROOT/RDataFrame.hxx>
+#include <ROOT/RArrowDS.hxx>
+#include <ROOT/RVec.hxx>
 #include <chrono>
 #include <exception>
 #include <fstream>
@@ -62,6 +67,225 @@ struct InputObject {
 
 const static std::unordered_map<OutputObjHandlingPolicy, std::string> ROOTfileNames = {{OutputObjHandlingPolicy::AnalysisObject, "AnalysisResults.root"},
                                                                                        {OutputObjHandlingPolicy::QAObject, "QAResults.root"}};
+
+
+void CommonDataProcessors::DataRef2Tree(TFile* f, InputRecord inprec, DataRef ref)
+{
+
+  // check healt of DataRef
+  if (!ref.header) {
+    LOG(ERROR) << "Header not found";
+    return;
+  }
+
+  if (!ref.payload) {
+    LOG(ERROR) << "Payload not found";
+    return;
+  }
+
+  auto datah = o2::header::get<o2::header::DataHeader*>(ref.header);
+  if (!datah) {
+    LOG(ERROR) << "No data header in stack";
+    return;
+  }
+
+  // check if serialisation method is arrow
+  if (datah->payloadSerializationMethod == o2::header::gSerializationMethodArrow)
+  {
+    
+    // get the table name
+    auto treename = datah->dataDescription.as<std::string>();
+    LOG(DEBUG) << "The tree name is " << treename << std::endl; 
+    
+    // get the TableConsumer and convert it into an arrow table
+    auto s = inprec.get<TableConsumer>(ref.spec->binding);
+    auto table = s->asArrowTable();
+    LOG(DEBUG) << "Number of columns " << table->num_columns() << std::endl; 
+    LOG(DEBUG) << "Number of rows     " << table->num_rows() << std::endl;
+    if (table->num_columns()==0 || table->num_rows()==0)
+      return;
+
+
+    // create the corresponding tree
+    TTree *T = new TTree(treename.c_str(),treename.c_str());
+    
+    // loop over the columns
+    for (int ii=0; ii<table->num_columns(); ii++)
+    { 
+    
+      // get column information
+      auto col = table->column(ii);
+      auto chs = col->data()->chunks();
+      LOG(DEBUG) << "number of chunks " << chs.size() << std::endl;
+      LOG(DEBUG)  << " column type " << col->type()->ToString() << std::endl;
+    
+      // what follows is an ugly switch
+      // the cases cover the different data types of the branches
+      auto cdt = col->type()->id();
+      switch (cdt) {
+      case arrow::Type::type::FLOAT:
+        {
+          LOG(DEBUG) << "case FLOAT" << std::endl;
+          Float_t *dbuf = new Float_t();
+          TBranch *br = T->Branch(col->name().c_str(),&dbuf[0]);
+          for(auto const& ch: chs)
+          {
+            auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::FloatType>>(ch);
+            for (int jj=0; jj<ch->length(); jj++)
+            {
+              dbuf[0] = p->Value(jj);
+              // the following if-clause is needed to have all branches filled properly
+              if (ii==0) { T->Fill(); } else { br->Fill(); }
+            }
+          }
+          T->Write("", TObject::kOverwrite);
+          delete dbuf;
+          break;
+        }
+        
+      case arrow::Type::type::DOUBLE:
+        {
+          LOG(DEBUG) << "case DOUBLE" << std::endl;
+          Double_t *dbuf = new Double_t();
+          TBranch *br = T->Branch(col->name().c_str(),&dbuf[0]);
+          for(auto const& ch: chs)
+          {
+            auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::DoubleType>>(ch);
+            for (int jj=0; jj<ch->length(); jj++)
+            {
+              dbuf[0] = p->Value(jj);
+              if (ii==0) { T->Fill(); } else { br->Fill(); }
+            }
+          }
+          T->Write("", TObject::kOverwrite);
+          delete dbuf;
+          break;
+        }
+        
+      case arrow::Type::type::UINT16:
+        {
+          LOG(DEBUG) << "case UINT" << std::endl;
+          UShort_t *dbuf = new UShort_t();
+          TBranch *br = T->Branch(col->name().c_str(),&dbuf[0]);
+          for(auto const& ch: chs)
+          {
+            auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt16Type>>(ch);
+            for (int jj=0; jj<ch->length(); jj++)
+            {
+              dbuf[0] = p->Value(jj);
+              if (ii==0) { T->Fill(); } else { br->Fill(); }
+            }
+          }
+          T->Write("", TObject::kOverwrite);
+          delete dbuf;
+          break;
+        }
+                  
+      case arrow::Type::type::UINT32:
+        {
+          LOG(DEBUG) << "case UINT" << std::endl;
+          UInt_t *dbuf = new UInt_t();
+          TBranch *br = T->Branch(col->name().c_str(),&dbuf[0]);
+          for(auto const& ch: chs)
+          {
+            auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt32Type>>(ch);
+            for (int jj=0; jj<ch->length(); jj++)
+            {
+              dbuf[0] = p->Value(jj);
+              if (ii==0) { T->Fill(); } else { br->Fill(); }
+            }
+          }
+          T->Write("", TObject::kOverwrite);
+          delete dbuf;
+          break;
+        }
+                  
+      case arrow::Type::type::UINT64:
+        {
+          LOG(DEBUG) << "case UINT64" << std::endl;
+          ULong64_t *dbuf = new ULong64_t();
+          TBranch *br = T->Branch(col->name().c_str(),&dbuf[0]);
+          for(auto const& ch: chs)
+          {
+            auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt64Type>>(ch);
+            for (int jj=0; jj<ch->length(); jj++)
+            {
+              dbuf[0] = p->Value(jj);
+              if (ii==0) { T->Fill(); } else { br->Fill(); }
+            }
+          }
+          T->Write("", TObject::kOverwrite);
+          delete dbuf;
+          break;
+        }
+                  
+      case arrow::Type::type::INT16:
+        {
+          LOG(DEBUG) << "case INT16" << std::endl;
+          Short_t *dbuf = new Short_t();
+          TBranch *br = T->Branch(col->name().c_str(),&dbuf[0]);
+          for(auto const& ch: chs)
+          {
+            auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int16Type>>(ch);
+            for (int jj=0; jj<ch->length(); jj++)
+            {
+              dbuf[0] = p->Value(jj);
+              if (ii==0) { T->Fill(); } else { br->Fill(); }
+            }
+          }
+          T->Write("", TObject::kOverwrite);
+          delete dbuf;
+          break;
+        }
+        
+      case arrow::Type::type::INT32:
+        {
+          LOG(DEBUG) << "case INT" << std::endl;
+          Int_t *dbuf = new Int_t();
+          TBranch *br = T->Branch(col->name().c_str(),&dbuf[0]);
+          for(auto const& ch: chs)
+          {
+            auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(ch);
+            for (int jj=0; jj<ch->length(); jj++)
+            {
+              dbuf[0] = p->Value(jj);
+              if (ii==0) { T->Fill(); } else { br->Fill(); }
+            }
+          }
+          T->Write("", TObject::kOverwrite);
+          delete dbuf;
+          break;
+        }
+        
+      case arrow::Type::type::INT64:
+        {
+          LOG(DEBUG) << "case INT64" << std::endl;
+          Long64_t *dbuf = new Long64_t();
+          TBranch *br = T->Branch(col->name().c_str(),&dbuf[0]);
+          for(auto const& ch: chs)
+          {
+            auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int64Type>>(ch);
+            for (int jj=0; jj<ch->length(); jj++)
+            {
+              dbuf[0] = p->Value(jj);
+              if (ii==0) { T->Fill(); } else { br->Fill(); }
+            }
+          }
+          T->Write("", TObject::kOverwrite);
+          delete dbuf;
+          break;
+        }
+        
+      }
+    
+    }
+    // clean up, delete the TTree pointer
+    delete T;
+
+  }
+
+}
+
 
 DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& outMap)
 {
@@ -175,6 +399,80 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& out
   return spec;
 }
 
+
+// add sink for dangling AODs 
+DataProcessorSpec
+  CommonDataProcessors::getGlobalAODSink(std::vector<InputSpec> const& danglingOutputInputs)
+{
+
+  auto writerFunction = [danglingOutputInputs](InitContext& ic) -> std::function<void(ProcessingContext&)>
+  {
+    
+    LOG(DEBUG) << "======== getGlobalAODSink::Inint ==========" << std::endl;
+    LOG(DEBUG) << "starting the getGlobalAODSink init function" << std::endl;
+    
+    // analyze ic and take actions accordingly
+    auto filename = ic.options().get<std::string>("res-file");
+    auto filemode = ic.options().get<std::string>("res-mode");
+    LOG(DEBUG) <<"Result file name " << filename << std::endl;
+ 
+
+     // this functor is called once per file
+    return std::move([filename, filemode](ProcessingContext& pc) mutable -> void {
+      LOG(DEBUG) << "======== getGlobalAODSink::processing ==========" << std::endl;
+      LOG(DEBUG) << "processing data set with " << pc.inputs().size() << " entries" << std::endl;
+      
+      // return immediately if pc.inputs() is empty
+      auto ninputs = pc.inputs().size();
+      if (ninputs==0) {
+        LOG(DEBUG) << "no inputs available!" << std::endl;
+        return;
+      }
+      
+      // new strategy since RDataFrame::Snapshot does not work
+      //
+      // loop over all inputs and extract the arrow::tables
+      // create a tree for each arrow::table
+      // loop over the columns of a table
+      // for each column create a branch
+      // loop over the rows of the column
+      // write the values to the corresponding branch 
+      
+      // open the file
+      TFile *f = new TFile(filename.c_str(),filemode.c_str());
+      
+      // loop over the DataRefs which are contained in pc.inputs()
+      for (const auto& ref : pc.inputs()) {
+        
+        DataRef2Tree(f,pc.inputs(),ref);
+
+      }
+      
+      // clean up, close the file
+      if (f)
+      {
+        f->Close();
+        delete f;
+      }
+
+    });  
+  };      // end of writerFunction
+
+
+  DataProcessorSpec spec{
+    "internal-dpl-AOD-writter",
+    danglingOutputInputs,
+    Outputs{},
+    AlgorithmSpec(writerFunction),
+    {{"res-file", VariantType::String, "AnalysisResults.root", {"Name of the output file"}},
+     {"res-mode", VariantType::String, "RECREATE",             {"Creation mode of the result file: NEW, CREATE, RECREATE, UPDATE"}}
+    }
+  };
+
+  return spec;
+}
+
+
 DataProcessorSpec
   CommonDataProcessors::getGlobalFileSink(std::vector<InputSpec> const& danglingOutputInputs,
                                           std::vector<InputSpec>& unmatched)
@@ -202,7 +500,7 @@ DataProcessorSpec
         /// We do it like this until we can use the interruptible sleep
         /// provided by recent FairMQ releases.
         if (!once) {
-          LOG(INFO) << "No dangling output to be dumped.";
+          LOG(DEBUG) << "No dangling output to be dumped.";
           once = true;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -211,9 +509,9 @@ DataProcessorSpec
     auto output = std::make_shared<std::ofstream>(filename.c_str(), std::ios_base::binary);
     return std::move([output, matcher = outputMatcher](ProcessingContext& pc) mutable -> void {
       VariableContext matchingContext;
-      LOG(INFO) << "processing data set with " << pc.inputs().size() << " entries";
+      LOG(DEBUG) << "processing data set with " << pc.inputs().size() << " entries";
       for (const auto& entry : pc.inputs()) {
-        LOG(INFO) << "  " << *(entry.spec);
+        LOG(DEBUG) << "  " << *(entry.spec);
         auto header = DataRefUtils::getHeader<header::DataHeader*>(entry);
         auto dataProcessingHeader = DataRefUtils::getHeader<DataProcessingHeader*>(entry);
         if (matcher->match(*header, matchingContext) == false) {
