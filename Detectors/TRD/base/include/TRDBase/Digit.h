@@ -30,7 +30,7 @@ using ArrayADC = std::array<ADC_t, kTimeBins>;
 
 using TimeStamp = o2::dataformats::TimeStamp<double>;
 
-class Digit : TimeStamp
+class Digit : public TimeStamp
 {
  public:
   Digit() = default;
