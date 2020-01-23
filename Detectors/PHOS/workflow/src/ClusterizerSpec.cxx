@@ -38,7 +38,7 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
       return;
     }
 
-//    auto digits = ctx.inputs().get<gsl::span<o2::phos::Digit>>("digits");
+    //    auto digits = ctx.inputs().get<gsl::span<o2::phos::Digit>>("digits");
     // results in [7968:PHOSClusterizerSpec]: [20:51:44][ERROR] Exception caught: Inconsistent serialization method for extracting span
     auto digits = ctx.inputs().get<std::vector<o2::phos::Digit>>("digits");
     auto digitsTR = ctx.inputs().get<std::vector<o2::phos::TriggerRecord>>("digitTriggerRecords");
