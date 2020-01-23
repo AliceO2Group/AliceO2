@@ -53,6 +53,7 @@ void RawFileReader<T>::clear()
 {
   /// Clears the bytes and counters
   mBytes.clear();
+  mBuffer.setBuffer(mBytes, RawBuffer<T>::ResetMode::all);
   mHBCounters.fill(0);
 }
 
@@ -136,22 +137,25 @@ bool RawFileReader<T>::readHB(bool sendCompleteHBs)
     }
     replaceRDH(headerIndex);
     // We use the buffer only to correctly initialize the RDH
-    mBuffer.nextHeader(mBytes);
+    mBuffer.setBuffer(mBytes, RawBuffer<T>::ResetMode::bufferOnly);
+    mBuffer.nextHeader();
     isHBClosed = mBuffer.isHBClosed();
     gbtId = mBuffer.getRDH()->feeId;
-    // CAVEAT: do not call mBuffer.getRDH() beyond this line
-    // To save memory/CPU time, the RawBuffer does not hold a copy of the buffer,
-    // but just a span of it.
-    // If we add bytes to mBytes, the vector can go beyond the capacity
-    // and the memory is re-allocated.
-    // If this happens, the span is no longer valid, and we can no longer
-    // call mBuffer.getRDH() until we pass it mBytes again
     if (gbtId >= crateparams::sNGBTs) {
       // FIXME: this is a problem of the header of some test files
       gbtId = 0;
     }
     if (mBuffer.getRDH()->offsetToNext > raw::sHeaderSizeInBytes) {
       read(mBuffer.getRDH()->offsetToNext - raw::sHeaderSizeInBytes);
+      // CAVEAT: to save memory / CPU time, the RawBuffer does not hold a copy of the buffer,
+      // but just a span of it.
+      // If we add bytes to mBytes, the vector can go beyond the capacity
+      // and the memory is re-allocated.
+      // If this happens, the span is no longer valid, and we can no longer
+      // call mBuffer.getRDH() until we pass it mBytes again
+      // To do so, you need to call:
+      // mBuffer.setBuffer(mBytes, RawBuffer<T>::ResetMode::bufferOnly);
+      // mBuffer.nextHeader();
     }
     if (!sendCompleteHBs) {
       break;
