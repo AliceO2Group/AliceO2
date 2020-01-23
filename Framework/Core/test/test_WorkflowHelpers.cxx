@@ -12,14 +12,27 @@
 #define BOOST_TEST_DYN_LINK
 
 #include "test_HelperMacros.h"
+#include "Framework/ConfigContext.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/SimpleOptionsRetriever.h"
 #include "../src/WorkflowHelpers.h"
 #include <boost/test/unit_test.hpp>
 #include <boost/test/tools/detail/per_element_manip.hpp>
 #include <algorithm>
+#include <memory>
 
 using namespace o2::framework;
+
+std::unique_ptr<ConfigContext> makeEmptyConfigContext()
+{
+  // FIXME: Ugly... We need to fix ownership and make sure the ConfigContext
+  //        either owns or shares ownership of the registry.
+  static std::unique_ptr<ParamRetriever> retriever(new SimpleOptionsRetriever);
+  static ConfigParamRegistry registry{std::move(retriever)};
+  auto context = std::make_unique<ConfigContext>(registry);
+  return context;
+}
 
 BOOST_AUTO_TEST_CASE(TestVerifyWorkflow)
 {
@@ -206,7 +219,8 @@ BOOST_AUTO_TEST_CASE(TestSimpleConnection)
   std::vector<LogicalForwardInfo> availableForwardsInfo;
 
   WorkflowHelpers::verifyWorkflow(workflow);
-  WorkflowHelpers::injectServiceDevices(workflow);
+  auto context = makeEmptyConfigContext();
+  WorkflowHelpers::injectServiceDevices(workflow, *context);
   BOOST_CHECK_EQUAL(workflow.size(), 3);
   WorkflowHelpers::constructGraph(workflow, logicalEdges,
                                   outputs,
@@ -245,9 +259,9 @@ BOOST_AUTO_TEST_CASE(TestSimpleForward)
   std::vector<DeviceConnectionEdge> logicalEdges;
   std::vector<OutputSpec> outputs;
   std::vector<LogicalForwardInfo> availableForwardsInfo;
-
   WorkflowHelpers::verifyWorkflow(workflow);
-  WorkflowHelpers::injectServiceDevices(workflow);
+  auto context = makeEmptyConfigContext();
+  WorkflowHelpers::injectServiceDevices(workflow, *context);
   WorkflowHelpers::constructGraph(workflow, logicalEdges,
                                   outputs,
                                   availableForwardsInfo);
@@ -303,7 +317,8 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
   std::vector<OutputSpec> outputs;
 
   WorkflowHelpers::verifyWorkflow(workflow);
-  WorkflowHelpers::injectServiceDevices(workflow);
+  auto context = makeEmptyConfigContext();
+  WorkflowHelpers::injectServiceDevices(workflow, *context);
   WorkflowHelpers::constructGraph(workflow, logicalEdges,
                                   outputs,
                                   availableForwardsInfo);
@@ -427,7 +442,8 @@ BOOST_AUTO_TEST_CASE(TestExternalInput)
 
   BOOST_CHECK_EQUAL(workflow.size(), 1);
 
-  WorkflowHelpers::injectServiceDevices(workflow);
+  auto context = makeEmptyConfigContext();
+  WorkflowHelpers::injectServiceDevices(workflow, *context);
   // The added devices are the one which should connect to
   // the condition DB and the sink for the dangling outputs.
   BOOST_CHECK_EQUAL(workflow.size(), 3);
@@ -507,7 +523,8 @@ BOOST_AUTO_TEST_CASE(TestOriginWildcard)
   std::vector<LogicalForwardInfo> availableForwardsInfo;
 
   WorkflowHelpers::verifyWorkflow(workflow);
-  WorkflowHelpers::injectServiceDevices(workflow);
+  auto context = makeEmptyConfigContext();
+  WorkflowHelpers::injectServiceDevices(workflow, *context);
   BOOST_CHECK_EQUAL(workflow.size(), 3);
   BOOST_REQUIRE(workflow.size() >= 3);
   BOOST_CHECK_EQUAL(workflow[0].name, "A");
