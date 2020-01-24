@@ -187,6 +187,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   std::vector<std::string> mSensitive;               //!<! List of sensitive volumes
   std::unordered_map<int, EMCALSMType> mSMVolumeID;  //!<! map of EMCAL supermodule volume IDs
+  std::unordered_map<std::string, EMCALSMType> mSMVolNames; //!<! map of EMCAL supermodule names
   Int_t mVolumeIDScintillator;                       //!<! Volume ID of the scintillator volume
   std::vector<Hit>* mHits;                           //!<! Collection of EMCAL hits
   Geometry* mGeometry;                               //!<! Geometry pointer
