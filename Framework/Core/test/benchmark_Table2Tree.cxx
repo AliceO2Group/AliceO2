@@ -76,7 +76,7 @@ static void BM_Table2Tree(benchmark::State& state)
   
   }
 
-  state.SetBytesProcessed(state.iterations()*state.range(0)*sizeof(float)*2);
+  state.SetBytesProcessed(state.iterations()*state.range(0)*24);
 }
 
 BENCHMARK(BM_Table2Tree)->Range(8, 8 << maxrange);
