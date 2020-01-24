@@ -20,9 +20,9 @@ struct InputSpec;
 struct DataRef {
   // FIXME: had to remove the second 'const' in const T* const
   // to allow assignment
-  const InputSpec* spec;
-  const char* header;
-  const char* payload;
+  const InputSpec* spec = nullptr;
+  const char* header = nullptr;
+  const char* payload = nullptr;
 };
 
 } // namespace framework
