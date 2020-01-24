@@ -29,12 +29,3 @@ o2_add_test_root_macro(plot_hit_phos.C
                        O2::SimulationDataFormat
                        O2::PHOSSimulation
                        LABELS phos)
-
-o2_add_test_root_macro(run_digi_phos.C
-                       PUBLIC_LINK_LIBRARIES FairRoot::Base O2::PHOSSimulation
-                       LABELS phos)
-
-o2_add_test_root_macro(run_sim_phos.C
-                       PUBLIC_LINK_LIBRARIES FairRoot::Base O2::DetectorsPassive
-                       O2::PHOSSimulation
-                       LABELS phos)

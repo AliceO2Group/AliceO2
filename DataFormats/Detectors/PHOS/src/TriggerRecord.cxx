@@ -8,30 +8,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-// Declaration of a transient MC label class for PHOS
-
-#ifndef ALICEO2_PHOS_MCLABEL_H_
-#define ALICEO2_PHOS_MCLABEL_H_
-
-#include "SimulationDataFormat/MCCompLabel.h"
+#include <iostream>
+#include "DataFormatsPHOS/TriggerRecord.h"
 
 namespace o2
 {
+
 namespace phos
 {
-class MCLabel : public o2::MCCompLabel
+
+void TriggerRecord::PrintStream(std::ostream& stream) const
 {
- private:
-  float mEdep = 0; //deposited energy
+  stream << "Data for bc " << getBCData().bc << ", orbit " << getBCData().orbit << ", starting from entry " << getFirstEntry() << " with " << getNumberOfObjects() << " objects";
+}
 
- public:
-  MCLabel() = default;
-  MCLabel(Int_t trackID, Int_t eventID, Int_t srcID, bool fake, float edep) : o2::MCCompLabel(trackID, eventID, srcID, fake), mEdep(edep) {}
-  float getEdep() const { return mEdep; }
-
-  ClassDefNV(MCLabel, 1);
-};
+std::ostream& operator<<(std::ostream& stream, const TriggerRecord& trg)
+{
+  trg.PrintStream(stream);
+  return stream;
+}
 } // namespace phos
 } // namespace o2
-
-#endif

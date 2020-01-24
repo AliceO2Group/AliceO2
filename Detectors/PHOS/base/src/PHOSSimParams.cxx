@@ -15,5 +15,5 @@
  *      Author: Dmitri
  */
 
-#include "PHOSSimulation/PHOSSimParams.h"
+#include "PHOSBase/PHOSSimParams.h"
 O2ParamImpl(o2::phos::PHOSSimParams);

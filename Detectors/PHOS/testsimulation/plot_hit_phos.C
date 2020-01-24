@@ -4,19 +4,14 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <sstream>
 
-#include <TStopwatch.h>
+#include "TROOT.h"
+#include "TTree.h"
 #include "TCanvas.h"
+#include "TFile.h"
 #include "TH2.h"
-//#include "DataFormatsParameters/GRPObject.h"
-#include "FairFileSource.h"
-#include "FairLogger.h"
-#include "FairRunAna.h"
-//#include "FairRuntimeDb.h"
-#include "FairParRootFileIo.h"
-#include "FairSystemInfo.h"
-#include "SimulationDataFormat/MCCompLabel.h"
-
+#include "SimulationDataFormat/MCTruthContainer.h"
 #include "PHOSBase/Hit.h"
+#include "DataFormatsPHOS/MCLabel.h"
 #include "PHOSBase/Geometry.h"
 #endif
 
@@ -32,7 +27,7 @@ void plot_hit_phos(int ievent = 0, TString inputfile = "AliceO2_TGeant3.phos.mc_
   //  digTree->SetBranchAddress("PHSDigitMCTruth", &labels);
 
   if (!mHitsArray) {
-    cout << "PHOS hits not registered in the FairRootManager. Exiting ..." << endl;
+    cout << "PHOS hits not present. Exiting ..." << endl;
     return;
   }
   hitTree->GetEvent(ievent);
@@ -46,14 +41,14 @@ void plot_hit_phos(int ievent = 0, TString inputfile = "AliceO2_TGeant3.phos.mc_
   o2::phos::Geometry* geom = new o2::phos::Geometry("PHOS");
 
   std::vector<o2::phos::Hit>::iterator it;
-  int relId[3];
+  char relId[3];
 
   //  for(it=mHitsArray->begin(); it!=mHitsArray->end(); it++){
   for (auto& it : *mHitsArray) {
-    int absId = it.GetDetectorID();
-    double en = it.GetEnergyLoss();
+    short absId = it.GetDetectorID();
+    float en = it.GetEnergyLoss();
     int lab = it.GetTrackID();
-    geom->AbsToRelNumbering(absId, relId);
+    geom->absToRelNumbering(absId, relId);
     // check, if this label already exist
     int j = 0;
     bool found = false;

@@ -30,7 +30,7 @@ class GeometryParams : public TNamed
   /// Destructor
   ~GeometryParams() final = default;
 
-  /// Get singleton (create if necessary)
+  /// get singleton (create if necessary)
   static GeometryParams* GetInstance(const std::string_view name = "Run2")
   {
     if (!sGeomParam)
@@ -39,93 +39,93 @@ class GeometryParams : public TNamed
   }
 
   // Return general PHOS parameters
-  Float_t GetIPtoCrystalSurface() const { return mIPtoCrystalSurface; }
-  Float_t GetIPtoOuterCoverDistance() const { return mIPtoOuterCoverDistance; }
-  Float_t GetCrystalSize(Int_t index) const { return 2. * mCrystalHalfSize[index]; }
-  Int_t GetNPhi() const { return mNPhi; }
-  Int_t GetNZ() const { return mNz; }
-  Int_t GetNCristalsInModule() const { return mNPhi * mNz; }
-  Int_t GetNModules() const { return mNModules; }
-  Float_t GetPHOSAngle(Int_t index) const { return mPHOSAngle[index - 1]; }
-  Float_t* GetPHOSParams() { return mPHOSParams; }       // Half-sizes of PHOS trapecoid
-  Float_t* GetPHOSATBParams() { return mPHOSATBParams; } // Half-sizes of PHOS trapecoid
-  Float_t GetOuterBoxSize(Int_t index) const { return 2. * mPHOSParams[index]; }
-  Float_t GetCellStep() const { return 2. * mAirCellHalfSize[0]; }
+  float getIPtoCrystalSurface() const { return mIPtoCrystalSurface; }
+  float getIPtoOuterCoverDistance() const { return mIPtoOuterCoverDistance; }
+  float getCrystalSize(int index) const { return 2. * mCrystalHalfSize[index]; }
+  int getNPhi() const { return mNPhi; }
+  int getNZ() const { return mNz; }
+  int getNCristalsInModule() const { return mNPhi * mNz; }
+  int getNModules() const { return mNModules; }
+  float getPHOSAngle(int index) const { return mPHOSAngle[index - 1]; }
+  float* getPHOSParams() { return mPHOSParams; }       // Half-sizes of PHOS trapecoid
+  float* getPHOSATBParams() { return mPHOSATBParams; } // Half-sizes of PHOS trapecoid
+  float getOuterBoxSize(int index) const { return 2. * mPHOSParams[index]; }
+  float getCellStep() const { return 2. * mAirCellHalfSize[0]; }
 
-  void GetModuleCenter(Int_t module, Float_t* pos) const
+  void getModuleCenter(int module, float* pos) const
   {
     for (int i = 0; i < 3; i++)
       pos[i] = mModuleCenter[module][i];
   }
-  void GetModuleAngle(Int_t module, Float_t angle[3][2]) const
+  void getModuleAngle(int module, float angle[3][2]) const
   {
     for (int i = 0; i < 3; i++)
       for (int ian = 0; ian < 2; ian++)
         angle[i][ian] = mModuleAngle[module][i][ian];
   }
   // Return PHOS support geometry parameters
-  Float_t GetRailOuterSize(Int_t index) const { return mRailOuterSize[index]; }
-  Float_t GetRailPart1(Int_t index) const { return mRailPart1[index]; }
-  Float_t GetRailPart2(Int_t index) const { return mRailPart2[index]; }
-  Float_t GetRailPart3(Int_t index) const { return mRailPart3[index]; }
-  Float_t GetRailPos(Int_t index) const { return mRailPos[index]; }
-  Float_t GetRailLength() const { return mRailLength; }
-  Float_t GetDistanceBetwRails() const { return mDistanceBetwRails; }
-  Float_t GetRailsDistanceFromIP() const { return mRailsDistanceFromIP; }
-  Float_t GetRailRoadSize(Int_t index) const { return mRailRoadSize[index]; }
-  Float_t GetCradleWallThickness() const { return mCradleWallThickness; }
-  Float_t GetCradleWall(Int_t index) const { return mCradleWall[index]; }
-  Float_t GetCradleWheel(Int_t index) const { return mCradleWheel[index]; }
+  float getRailOuterSize(int index) const { return mRailOuterSize[index]; }
+  float getRailPart1(int index) const { return mRailPart1[index]; }
+  float getRailPart2(int index) const { return mRailPart2[index]; }
+  float getRailPart3(int index) const { return mRailPart3[index]; }
+  float getRailPos(int index) const { return mRailPos[index]; }
+  float getRailLength() const { return mRailLength; }
+  float getDistanceBetwRails() const { return mDistanceBetwRails; }
+  float getRailsDistanceFromIP() const { return mRailsDistanceFromIP; }
+  float getRailRoadSize(int index) const { return mRailRoadSize[index]; }
+  float getCradleWallThickness() const { return mCradleWallThickness; }
+  float getCradleWall(int index) const { return mCradleWall[index]; }
+  float getCradleWheel(int index) const { return mCradleWheel[index]; }
 
   // Return ideal EMC geometry parameters
-  const Float_t* GetStripHalfSize() const { return mStripHalfSize; }
-  Float_t GetStripWallWidthOut() const { return mStripWallWidthOut; }
-  const Float_t* GetAirCellHalfSize() const { return mAirCellHalfSize; }
-  const Float_t* GetWrappedHalfSize() const { return mWrappedHalfSize; }
-  Float_t GetAirGapLed() const { return mAirGapLed; }
-  const Float_t* GetCrystalHalfSize() const { return mCrystalHalfSize; }
-  const Float_t* GetSupportPlateHalfSize() const { return mSupportPlateHalfSize; }
-  const Float_t* GetSupportPlateInHalfSize() const { return mSupportPlateInHalfSize; }
-  Float_t GetSupportPlateThickness() const { return mSupportPlateThickness; }
+  const float* getStripHalfSize() const { return mStripHalfSize; }
+  float getStripWallWidthOut() const { return mStripWallWidthOut; }
+  const float* getAirCellHalfSize() const { return mAirCellHalfSize; }
+  const float* getWrappedHalfSize() const { return mWrappedHalfSize; }
+  float getAirGapLed() const { return mAirGapLed; }
+  const float* getCrystalHalfSize() const { return mCrystalHalfSize; }
+  const float* getSupportPlateHalfSize() const { return mSupportPlateHalfSize; }
+  const float* getSupportPlateInHalfSize() const { return mSupportPlateInHalfSize; }
+  float getSupportPlateThickness() const { return mSupportPlateThickness; }
 
-  const Float_t* GetPreampHalfSize() const { return mPreampHalfSize; }
-  const Float_t* GetAPDHalfSize() const { return mPinDiodeHalfSize; }
-  const Float_t* GetOuterThermoParams() const { return mOuterThermoParams; }
-  const Float_t* GetCoolerHalfSize() const { return mCoolerHalfSize; }
-  const Float_t* GetAirGapHalfSize() const { return mAirGapHalfSize; }
-  const Float_t* GetInnerThermoHalfSize() const { return mInnerThermoHalfSize; }
-  const Float_t* GetAlCoverParams() const { return mAlCoverParams; }
-  const Float_t* GetFiberGlassHalfSize() const { return mFiberGlassHalfSize; }
-  const Float_t* GetWarmAlCoverHalfSize() const { return mWarmAlCoverHalfSize; }
-  const Float_t* GetWarmThermoHalfSize() const { return mWarmThermoHalfSize; }
-  const Float_t* GetTSupport1HalfSize() const { return mTSupport1HalfSize; }
-  const Float_t* GetTSupport2HalfSize() const { return mTSupport2HalfSize; }
-  const Float_t* GetTCables1HalfSize() const { return mTCables1HalfSize; }
-  const Float_t* GetTCables2HalfSize() const { return mTCables2HalfSize; }
-  Float_t GetTSupportDist() const { return mTSupportDist; }
-  const Float_t* GetFrameXHalfSize() const { return mFrameXHalfSize; }
-  const Float_t* GetFrameZHalfSize() const { return mFrameZHalfSize; }
-  const Float_t* GetFrameXPosition() const { return mFrameXPosition; }
-  const Float_t* GetFrameZPosition() const { return mFrameZPosition; }
-  const Float_t* GetFGupXHalfSize() const { return mFGupXHalfSize; }
-  const Float_t* GetFGupXPosition() const { return mFGupXPosition; }
-  const Float_t* GetFGupZHalfSize() const { return mFGupZHalfSize; }
-  const Float_t* GetFGupZPosition() const { return mFGupZPosition; }
-  const Float_t* GetFGlowXHalfSize() const { return mFGlowXHalfSize; }
-  const Float_t* GetFGlowXPosition() const { return mFGlowXPosition; }
-  const Float_t* GetFGlowZHalfSize() const { return mFGlowZHalfSize; }
-  const Float_t* GetFGlowZPosition() const { return mFGlowZPosition; }
-  const Float_t* GetFEEAirHalfSize() const { return mFEEAirHalfSize; }
-  const Float_t* GetFEEAirPosition() const { return mFEEAirPosition; }
-  const Float_t* GetEMCParams() const { return mEMCParams; }
-  const Float_t GetDistATBtoModule() const { return mzAirTightBoxToTopModuleDist; }
-  const Float_t GetATBWallWidth() const { return mATBoxWall; }
+  const float* getPreampHalfSize() const { return mPreampHalfSize; }
+  const float* getAPDHalfSize() const { return mPinDiodeHalfSize; }
+  const float* getOuterThermoParams() const { return mOuterThermoParams; }
+  const float* getCoolerHalfSize() const { return mCoolerHalfSize; }
+  const float* getAirGapHalfSize() const { return mAirGapHalfSize; }
+  const float* getInnerThermoHalfSize() const { return mInnerThermoHalfSize; }
+  const float* getAlCoverParams() const { return mAlCoverParams; }
+  const float* getFiberGlassHalfSize() const { return mFiberGlassHalfSize; }
+  const float* getWarmAlCoverHalfSize() const { return mWarmAlCoverHalfSize; }
+  const float* getWarmThermoHalfSize() const { return mWarmThermoHalfSize; }
+  const float* getTSupport1HalfSize() const { return mTSupport1HalfSize; }
+  const float* getTSupport2HalfSize() const { return mTSupport2HalfSize; }
+  const float* getTCables1HalfSize() const { return mTCables1HalfSize; }
+  const float* getTCables2HalfSize() const { return mTCables2HalfSize; }
+  float getTSupportDist() const { return mTSupportDist; }
+  const float* getFrameXHalfSize() const { return mFrameXHalfSize; }
+  const float* getFrameZHalfSize() const { return mFrameZHalfSize; }
+  const float* getFrameXPosition() const { return mFrameXPosition; }
+  const float* getFrameZPosition() const { return mFrameZPosition; }
+  const float* getFGupXHalfSize() const { return mFGupXHalfSize; }
+  const float* getFGupXPosition() const { return mFGupXPosition; }
+  const float* getFGupZHalfSize() const { return mFGupZHalfSize; }
+  const float* getFGupZPosition() const { return mFGupZPosition; }
+  const float* getFGlowXHalfSize() const { return mFGlowXHalfSize; }
+  const float* getFGlowXPosition() const { return mFGlowXPosition; }
+  const float* getFGlowZHalfSize() const { return mFGlowZHalfSize; }
+  const float* getFGlowZPosition() const { return mFGlowZPosition; }
+  const float* getFEEAirHalfSize() const { return mFEEAirHalfSize; }
+  const float* getFEEAirPosition() const { return mFEEAirPosition; }
+  const float* getEMCParams() const { return mEMCParams; }
+  float getDistATBtoModule() const { return mzAirTightBoxToTopModuleDist; }
+  float getATBWallWidth() const { return mATBoxWall; }
 
-  Int_t GetNCellsXInStrip() const { return mNCellsXInStrip; }
-  Int_t GetNCellsZInStrip() const { return mNCellsZInStrip; }
-  Int_t GetNStripX() const { return mNStripX; }
-  Int_t GetNStripZ() const { return mNStripZ; }
-  Int_t GetNTSuppots() const { return mNTSupports; }
+  int getNCellsXInStrip() const { return mNCellsXInStrip; }
+  int getNCellsZInStrip() const { return mNCellsZInStrip; }
+  int getNStripX() const { return mNStripX; }
+  int getNStripZ() const { return mNStripZ; }
+  int getNTSuppots() const { return mNTSupports; }
 
  private:
   ///
@@ -137,122 +137,122 @@ class GeometryParams : public TNamed
   static GeometryParams* sGeomParam; ///< Pointer to the unique instance of the singleton
 
   // General PHOS modules parameters
-  Int_t mNModules;               ///< Number of PHOS modules
-  Float_t mAngle;                ///< Position angles between modules
-  Float_t mPHOSAngle[4];         ///< Position angles of modules
-  Float_t mPHOSParams[4];        ///< Half-sizes of PHOS trapecoid
-  Float_t mPHOSATBParams[4];     ///< Half-sizes of (air-filled) inner part of PHOS air tight box
-  Float_t mCrystalShift;         ///< Distance from crystal center to front surface
-  Float_t mCryCellShift;         ///< Distance from crystal center to front surface
-  Float_t mModuleCenter[5][3];   ///< xyz-position of the module center
-  Float_t mModuleAngle[5][3][2]; ///< polar and azymuth angles for 3 axes of modules
+  int mNModules;               ///< Number of PHOS modules
+  float mAngle;                ///< Position angles between modules
+  float mPHOSAngle[4];         ///< Position angles of modules
+  float mPHOSParams[4];        ///< Half-sizes of PHOS trapecoid
+  float mPHOSATBParams[4];     ///< Half-sizes of (air-filled) inner part of PHOS air tight box
+  float mCrystalShift;         ///< Distance from crystal center to front surface
+  float mCryCellShift;         ///< Distance from crystal center to front surface
+  float mModuleCenter[5][3];   ///< xyz-position of the module center
+  float mModuleAngle[5][3][2]; ///< polar and azymuth angles for 3 axes of modules
 
   // EMC geometry parameters
 
-  Float_t mStripHalfSize[3];          ///< Strip unit size/2
-  Float_t mAirCellHalfSize[3];        ///< geometry parameter
-  Float_t mWrappedHalfSize[3];        ///< geometry parameter
-  Float_t mSupportPlateHalfSize[3];   ///< geometry parameter
-  Float_t mSupportPlateInHalfSize[3]; ///< geometry parameter
-  Float_t mCrystalHalfSize[3];        ///< crystal size/2
-  Float_t mAirGapLed;                 ///< geometry parameter
-  Float_t mStripWallWidthOut;         ///< Side to another strip
-  Float_t mStripWallWidthIn;          ///< geometry parameter
-  Float_t mTyvecThickness;            ///< geometry parameter
-  Float_t mTSupport1HalfSize[3];      ///< geometry parameter
-  Float_t mTSupport2HalfSize[3];      ///< geometry parameter
-  Float_t mPreampHalfSize[3];         ///< geometry parameter
-  Float_t mPinDiodeHalfSize[3];       ///< Size of the PIN Diode
+  float mStripHalfSize[3];          ///< Strip unit size/2
+  float mAirCellHalfSize[3];        ///< geometry parameter
+  float mWrappedHalfSize[3];        ///< geometry parameter
+  float mSupportPlateHalfSize[3];   ///< geometry parameter
+  float mSupportPlateInHalfSize[3]; ///< geometry parameter
+  float mCrystalHalfSize[3];        ///< crystal size/2
+  float mAirGapLed;                 ///< geometry parameter
+  float mStripWallWidthOut;         ///< Side to another strip
+  float mStripWallWidthIn;          ///< geometry parameter
+  float mTyvecThickness;            ///< geometry parameter
+  float mTSupport1HalfSize[3];      ///< geometry parameter
+  float mTSupport2HalfSize[3];      ///< geometry parameter
+  float mPreampHalfSize[3];         ///< geometry parameter
+  float mPinDiodeHalfSize[3];       ///< Size of the PIN Diode
 
-  Float_t mOuterThermoParams[4];   // geometry parameter
-  Float_t mCoolerHalfSize[3];      // geometry parameter
-  Float_t mAirGapHalfSize[3];      // geometry parameter
-  Float_t mInnerThermoHalfSize[3]; // geometry parameter
-  Float_t mAlCoverParams[4];       // geometry parameter
-  Float_t mFiberGlassHalfSize[3];  // geometry parameter
+  float mOuterThermoParams[4];   // geometry parameter
+  float mCoolerHalfSize[3];      // geometry parameter
+  float mAirGapHalfSize[3];      // geometry parameter
+  float mInnerThermoHalfSize[3]; // geometry parameter
+  float mAlCoverParams[4];       // geometry parameter
+  float mFiberGlassHalfSize[3];  // geometry parameter
 
-  Float_t mInnerThermoWidthX;      // geometry parameter
-  Float_t mInnerThermoWidthY;      // geometry parameter
-  Float_t mInnerThermoWidthZ;      // geometry parameter
-  Float_t mAirGapWidthX;           // geometry parameter
-  Float_t mAirGapWidthY;           // geometry parameter
-  Float_t mAirGapWidthZ;           // geometry parameter
-  Float_t mCoolerWidthX;           // geometry parameter
-  Float_t mCoolerWidthY;           // geometry parameter
-  Float_t mCoolerWidthZ;           // geometry parameter
-  Float_t mAlCoverThickness;       // geometry parameter
-  Float_t mOuterThermoWidthXUp;    // geometry parameter
-  Float_t mOuterThermoWidthXLow;   // geometry parameter
-  Float_t mOuterThermoWidthY;      // geometry parameter
-  Float_t mOuterThermoWidthZ;      // geometry parameter
-  Float_t mAlFrontCoverX;          // geometry parameter
-  Float_t mAlFrontCoverZ;          // geometry parameter
-  Float_t mFiberGlassSup2X;        // geometry parameter
-  Float_t mFiberGlassSup1X;        // geometry parameter
-  Float_t mFrameHeight;            // geometry parameter
-  Float_t mFrameThickness;         // geometry parameter
-  Float_t mAirSpaceFeeX;           // geometry parameter
-  Float_t mAirSpaceFeeZ;           // geometry parameter
-  Float_t mAirSpaceFeeY;           // geometry parameter
-  Float_t mTCables2HalfSize[3];    // geometry parameter
-  Float_t mTCables1HalfSize[3];    // geometry parameter
-  Float_t mWarmUpperThickness;     // geometry parameter
-  Float_t mWarmBottomThickness;    // geometry parameter
-  Float_t mWarmAlCoverWidthX;      // geometry parameter
-  Float_t mWarmAlCoverWidthY;      // geometry parameter
-  Float_t mWarmAlCoverWidthZ;      // geometry parameter
-  Float_t mWarmAlCoverHalfSize[3]; // geometry parameter
-  Float_t mWarmThermoHalfSize[3];  // geometry parameter
-  Float_t mFiberGlassSup1Y;        // geometry parameter
-  Float_t mFiberGlassSup2Y;        // geometry parameter
-  Float_t mTSupportDist;           // geometry parameter
-  Float_t mTSupport1Thickness;     // geometry parameter
-  Float_t mTSupport2Thickness;     // geometry parameter
-  Float_t mTSupport1Width;         // geometry parameter
-  Float_t mTSupport2Width;         // geometry parameter
-  Float_t mFrameXHalfSize[3];      // geometry parameter
-  Float_t mFrameZHalfSize[3];      // geometry parameter
-  Float_t mFrameXPosition[3];      // geometry parameter
-  Float_t mFrameZPosition[3];      // geometry parameter
-  Float_t mFGupXHalfSize[3];       // geometry parameter
-  Float_t mFGupXPosition[3];       // geometry parameter
-  Float_t mFGupZHalfSize[3];       // geometry parameter
-  Float_t mFGupZPosition[3];       // geometry parameter
-  Float_t mFGlowXHalfSize[3];      // geometry parameter
-  Float_t mFGlowXPosition[3];      // geometry parameter
-  Float_t mFGlowZHalfSize[3];      // geometry parameter
-  Float_t mFGlowZPosition[3];      // geometry parameter
-  Float_t mFEEAirHalfSize[3];      // geometry parameter
-  Float_t mFEEAirPosition[3];      // geometry parameter
-  Float_t mEMCParams[4];           // geometry parameter
-  Float_t mIPtoOuterCoverDistance; ///< Distances from interaction point to outer cover
-  Float_t mIPtoCrystalSurface;     ///< Distances from interaction point to Xtal surface
+  float mInnerThermoWidthX;      // geometry parameter
+  float mInnerThermoWidthY;      // geometry parameter
+  float mInnerThermoWidthZ;      // geometry parameter
+  float mAirGapWidthX;           // geometry parameter
+  float mAirGapWidthY;           // geometry parameter
+  float mAirGapWidthZ;           // geometry parameter
+  float mCoolerWidthX;           // geometry parameter
+  float mCoolerWidthY;           // geometry parameter
+  float mCoolerWidthZ;           // geometry parameter
+  float mAlCoverThickness;       // geometry parameter
+  float mOuterThermoWidthXUp;    // geometry parameter
+  float mOuterThermoWidthXLow;   // geometry parameter
+  float mOuterThermoWidthY;      // geometry parameter
+  float mOuterThermoWidthZ;      // geometry parameter
+  float mAlFrontCoverX;          // geometry parameter
+  float mAlFrontCoverZ;          // geometry parameter
+  float mFiberGlassSup2X;        // geometry parameter
+  float mFiberGlassSup1X;        // geometry parameter
+  float mFrameHeight;            // geometry parameter
+  float mFrameThickness;         // geometry parameter
+  float mAirSpaceFeeX;           // geometry parameter
+  float mAirSpaceFeeZ;           // geometry parameter
+  float mAirSpaceFeeY;           // geometry parameter
+  float mTCables2HalfSize[3];    // geometry parameter
+  float mTCables1HalfSize[3];    // geometry parameter
+  float mWarmUpperThickness;     // geometry parameter
+  float mWarmBottomThickness;    // geometry parameter
+  float mWarmAlCoverWidthX;      // geometry parameter
+  float mWarmAlCoverWidthY;      // geometry parameter
+  float mWarmAlCoverWidthZ;      // geometry parameter
+  float mWarmAlCoverHalfSize[3]; // geometry parameter
+  float mWarmThermoHalfSize[3];  // geometry parameter
+  float mFiberGlassSup1Y;        // geometry parameter
+  float mFiberGlassSup2Y;        // geometry parameter
+  float mTSupportDist;           // geometry parameter
+  float mTSupport1Thickness;     // geometry parameter
+  float mTSupport2Thickness;     // geometry parameter
+  float mTSupport1Width;         // geometry parameter
+  float mTSupport2Width;         // geometry parameter
+  float mFrameXHalfSize[3];      // geometry parameter
+  float mFrameZHalfSize[3];      // geometry parameter
+  float mFrameXPosition[3];      // geometry parameter
+  float mFrameZPosition[3];      // geometry parameter
+  float mFGupXHalfSize[3];       // geometry parameter
+  float mFGupXPosition[3];       // geometry parameter
+  float mFGupZHalfSize[3];       // geometry parameter
+  float mFGupZPosition[3];       // geometry parameter
+  float mFGlowXHalfSize[3];      // geometry parameter
+  float mFGlowXPosition[3];      // geometry parameter
+  float mFGlowZHalfSize[3];      // geometry parameter
+  float mFGlowZPosition[3];      // geometry parameter
+  float mFEEAirHalfSize[3];      // geometry parameter
+  float mFEEAirPosition[3];      // geometry parameter
+  float mEMCParams[4];           // geometry parameter
+  float mIPtoOuterCoverDistance; ///< Distances from interaction point to outer cover
+  float mIPtoCrystalSurface;     ///< Distances from interaction point to Xtal surface
 
-  Float_t mSupportPlateThickness;       ///< Thickness of the Aluminium support plate for Strip
-  Float_t mzAirTightBoxToTopModuleDist; ///< Distance between PHOS upper surface and inner part of Air Tight Box
-  Float_t mATBoxWall;                   ///< width of the wall of air tight box
+  float mSupportPlateThickness;       ///< Thickness of the Aluminium support plate for Strip
+  float mzAirTightBoxToTopModuleDist; ///< Distance between PHOS upper surface and inner part of Air Tight Box
+  float mATBoxWall;                   ///< width of the wall of air tight box
 
-  Int_t mNCellsXInStrip; ///< Number of cells in a strip unit in X
-  Int_t mNCellsZInStrip; ///< Number of cells in a strip unit in Z
-  Int_t mNStripX;        ///< Number of strip units in X
-  Int_t mNStripZ;        ///< Number of strip units in Z
-  Int_t mNTSupports;     ///< geometry parameter
-  Int_t mNPhi;           ///< Number of crystal units in X (phi) direction
-  Int_t mNz;             ///< Number of crystal units in Z direction
+  int mNCellsXInStrip; ///< Number of cells in a strip unit in X
+  int mNCellsZInStrip; ///< Number of cells in a strip unit in Z
+  int mNStripX;        ///< Number of strip units in X
+  int mNStripZ;        ///< Number of strip units in Z
+  int mNTSupports;     ///< geometry parameter
+  int mNPhi;           ///< Number of crystal units in X (phi) direction
+  int mNz;             ///< Number of crystal units in Z direction
 
   // Support geometry parameters
-  Float_t mRailOuterSize[3];    ///< Outer size of a rail                 +-------+
-  Float_t mRailPart1[3];        ///< Upper & bottom parts of the rail     |--+ +--|
-  Float_t mRailPart2[3];        ///< Vertical middle parts of the rail       | |
-  Float_t mRailPart3[3];        ///< Vertical upper parts of the rail        | |
-  Float_t mRailPos[3];          ///< Rail position vs. the ALICE center   |--+ +--|
-  Float_t mRailLength;          ///< Length of the rail under the support +-------+
-  Float_t mDistanceBetwRails;   ///< Distance between rails
-  Float_t mRailsDistanceFromIP; ///< Distance of rails from IP
-  Float_t mRailRoadSize[3];     ///< Outer size of the dummy box with rails
-  Float_t mCradleWallThickness; ///< PHOS cradle wall thickness
-  Float_t mCradleWall[5];       ///< Size of the wall of the PHOS cradle (shape TUBS)
-  Float_t mCradleWheel[3];      ///< "Wheels" by which the cradle rolls over the rails
+  float mRailOuterSize[3];    ///< Outer size of a rail                 +-------+
+  float mRailPart1[3];        ///< Upper & bottom parts of the rail     |--+ +--|
+  float mRailPart2[3];        ///< Vertical middle parts of the rail       | |
+  float mRailPart3[3];        ///< Vertical upper parts of the rail        | |
+  float mRailPos[3];          ///< Rail position vs. the ALICE center   |--+ +--|
+  float mRailLength;          ///< Length of the rail under the support +-------+
+  float mDistanceBetwRails;   ///< Distance between rails
+  float mRailsDistanceFromIP; ///< Distance of rails from IP
+  float mRailRoadSize[3];     ///< Outer size of the dummy box with rails
+  float mCradleWallThickness; ///< PHOS cradle wall thickness
+  float mCradleWall[5];       ///< Size of the wall of the PHOS cradle (shape TUBS)
+  float mCradleWheel[3];      ///< "Wheels" by which the cradle rolls over the rails
 
   ClassDefOverride(GeometryParams, 1);
 };

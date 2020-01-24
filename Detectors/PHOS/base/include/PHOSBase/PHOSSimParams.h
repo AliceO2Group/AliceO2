@@ -21,6 +21,9 @@ namespace phos
 // parameters used in responce calculation and digitization
 // (mostly used in GEANT stepping and Digitizer)
 struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
+
+  std::string mCCDBPath = "localtest"; ///< use "localtest" to avoid connecting ccdb server, otherwise use ccdb-test.cern.ch
+
   //Parameters used in conversion of deposited energy to APD response
   float mLightYieldMean = 47000;                                  // Average number of photoelectrons per GeV
   float mIntrinsicAPDEfficiency = 0.02655;                        // APD efficiency including geometric coverage
@@ -31,9 +34,8 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
   bool mApplyTimeResolution = false; ///< Apply time resolution in digitization
   bool mApplyNonLinearity = false;   ///< Apply energy non-linearity in digitization
   bool mApplyDigitization = false;   ///< Apply energy digitization in digitization
-  bool mApplyDecalibration = false;  ///< Apply de-calibration in digitization
-  float mAPDNoise = 0.004;           ///< RMS of APD noise
-  float mDigitThreshold = 2.5;       ///< minimal energy to keep digit
+  float mAPDNoise = 0.005;           ///< RMS of APD noise
+  float mDigitThreshold = 2.5;       ///< minimal energy to keep digit in ADC counts
   float mADCwidth = 0.005;           ///< width of ADC channel in GeV
   float mTOFa = 0.5e-9;              ///< constant term of TOF resolution
   float mTOFb = 1.e-9;               ///< stohastic term of TOF resolution
@@ -41,12 +43,25 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
   float mCellNonLineaityB = 0.109;   ///< Energy scale of cel non-linearity
   float mCellNonLineaityC = 1.;      ///< Overall calibration
 
-  float mZSthreshold = 0.005;    ///< Zero Suppression threshold
+  float mZSthreshold = 2.5;      ///< Zero Suppression threshold
   float mTimeResolutionA = 2.;   ///< Time resolution parameter A (in ns)
   float mTimeResolutionB = 2.;   ///< Time resolution parameter B (in ns/GeV)
   float mTimeResThreshold = 0.5; ///< threshold for time resolution calculation (in GeV)
   float mMinNoiseTime = -200.;   ///< minimum time in noise channels (in ns)
   float mMaxNoiseTime = 2000.;   ///< minimum time in noise channels (in ns)
+
+  //Parameters used in clusterization
+  float mLogWeight = 4.5;             ///< Cutoff used in log. weight calculation
+  float mDigitMinEnergy = 0.010;      ///< Minimal energy of digits to be used in cluster (GeV)
+  float mClusteringThreshold = 0.050; ///< Minimal energy of digit to start clustering (GeV)
+  float mLocalMaximumCut = 0.015;     ///< Minimal height of local maximum over neighbours
+  bool mUnfoldClusters = false;       ///< To perform cluster unfolding
+  float mUnfogingEAccuracy = 1.e-3;   ///< Accuracy of energy calculation in unfoding prosedure (GeV)
+  float mUnfogingXZAccuracy = 1.e-1;  ///< Accuracy of position calculation in unfolding procedure (cm)
+  int mNMaxIterations = 10;           ///< Maximal number of iterations in unfolding procedure
+  int mNLMMax = 30;                   ///< Maximal number of local maxima in unfolding
+  float mCoreR = 3.5;                 ///< Radius to caluclate core energy
+  float mSortingDelta = 1.;           ///< used in sorting clusters
 
   O2ParamDef(PHOSSimParams, "PHOSSimParams");
 };

@@ -208,9 +208,9 @@ class CalibDB
   /// \brief Initialize CCDB server (when new object is created or the server URL changes)
   void init();
 
-  ccdb::CcdbApi mCCDBManager;                       ///< Handler for queries of the CCDB content
-  std::string mCCDBServer = "phsccdb-test.cern.ch"; ///< Name of the CCDB server
-  Bool_t mInit = false;                             ///< Init status (needed for lazy evaluation of the CcdbApi init)
+  ccdb::CcdbApi mCCDBManager;                    ///< Handler for queries of the CCDB content
+  std::string mCCDBServer = "ccdb-test.cern.ch"; ///< Name of the CCDB server
+  Bool_t mInit = false;                          ///< Init status (needed for lazy evaluation of the CcdbApi init)
 
   ClassDefNV(CalibDB, 1);
 };

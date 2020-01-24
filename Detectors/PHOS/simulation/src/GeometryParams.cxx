@@ -378,8 +378,8 @@ GeometryParams::GeometryParams(const std::string_view name)
   Double_t const kRADDEG = 180.0 / TMath::Pi();
   mAngle = 20;
   for (Int_t i = 1; i <= mNModules; i++) {
-    Float_t angle = mAngle * (i - 3);
-    mPHOSAngle[i - 1] = -angle;
+    Float_t angle = mAngle * (i - 2);
+    mPHOSAngle[i - 1] = angle;
   }
 
   Float_t r = mIPtoOuterCoverDistance + mPHOSParams[3];
