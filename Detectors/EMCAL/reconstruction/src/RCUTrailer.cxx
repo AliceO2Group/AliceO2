@@ -124,13 +124,26 @@ double RCUTrailer::getL1Phase() const
   double tSample = getTimeSample(),
          phase = ((double)(mAltroCFG2 & 0x1F)) * o2::constants::lhc::LHCBunchSpacingNS * 1.e-9;
   if (phase >= tSample) {
-    throw Error(Error::ErrorType_t::L1PHASE_INVALID, (boost::format("Invalid L1 trigger phase (%f >= %f) !") % phase % tSample).str().data());
+    throw Error(Error::ErrorType_t::L1PHASE_INVALID, (boost::format("Invalid L1 trigger phase (%e s (phase) >= %e s (sampling time)) !") % phase % tSample).str().data());
   }
   return phase;
 }
 
 void RCUTrailer::printStream(std::ostream& stream) const
 {
+  std::vector<std::string> errors;
+  double timesample = -1., l1phase = -1.;
+  try {
+    timesample = getTimeSample();
+  } catch (Error& e) {
+    errors.push_back(e.what());
+  }
+  try {
+    l1phase = getL1Phase();
+  } catch (Error& e) {
+    errors.push_back(e.what());
+  }
+
   stream << "RCU trailer (Format version 2):\n"
          << "==================================================\n"
          << "RCU ID:                                    " << mRCUId << "\n"
@@ -155,12 +168,19 @@ void RCUTrailer::printStream(std::ostream& stream) const
          << "Number of pretrigger samples:              " << std::dec << int(getNumberOfPretriggerSamples()) << "\n"
          << "Number of samples per channel:             " << std::dec << getNumberOfSamplesPerChannel() << "\n"
          << "Sparse readout:                            " << (isSparseReadout() ? "yes" : "no") << "\n"
-         << "Sampling time:                             " << std::scientific << getTimeSample() << " s\n"
-         << "L1 Phase:                                  " << std::scientific << getL1Phase() << " s\n"
          << "AltroCFG1:                                 0x" << std::hex << mAltroCFG1 << "\n"
          << "AltroCFG2:                                 0x" << std::hex << mAltroCFG2 << "\n"
-         << "==================================================\n"
+         << "Sampling time:                             " << std::scientific << timesample << " s\n"
+         << "L1 Phase:                                  " << std::scientific << l1phase << " s\n"
          << std::dec << std::fixed;
+  if (errors.size()) {
+    stream << "Errors: \n"
+           << "-------------------------------------------------\n";
+    for (const auto& e : errors) {
+      stream << e << "\n";
+    }
+  }
+  stream << "==================================================\n";
 }
 
 std::ostream& o2::emcal::operator<<(std::ostream& stream, const o2::emcal::RCUTrailer& trailer)
