@@ -12,6 +12,7 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/InputSpec.h"
+#include "TTree.h"
 
 #include <vector>
 
@@ -33,9 +34,8 @@ struct CommonDataProcessors {
   static DataProcessorSpec getGlobalFileSink(std::vector<InputSpec> const& danglingInputs,
                                              std::vector<InputSpec>& unmatched);
   /// Helper function to create and write TTree
-  static void DataRef2Tree(TFile* f,
-                           InputRecord inprec,
-                           DataRef ref);
+  static void table2tree(TTree* tout,
+                         std::shared_ptr<arrow::Table> table);
   static DataProcessorSpec getGlobalAODSink(std::vector<InputSpec> const& danglingInputs);
   /// @return a dummy DataProcessorSpec which requires all the passed @a InputSpec
   /// and simply discards them.
