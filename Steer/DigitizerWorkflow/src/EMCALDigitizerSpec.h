@@ -26,6 +26,8 @@ namespace o2
 {
 namespace emcal
 {
+/// \brief Create new digitizer spec
+/// \return Digitizer spec
 
 /// \class DigitizerSpec
 /// \brief Task for EMCAL digitization in the data processing layer

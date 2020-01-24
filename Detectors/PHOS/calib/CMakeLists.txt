@@ -20,3 +20,14 @@ o2_target_root_dictionary(PHOSCalib
                                   include/PHOSCalib/CalibDB.h
                           LINKDEF src/PHOSCalibLinkDef.h)
 
+if(BUILD_TESTING)
+  o2_add_test_root_macro(macros/PostBadMapCCDB.C  
+                         PUBLIC_LINK_LIBRARIES O2::CCDB O2::PHOSBase O2::PHOSCalib
+                         LABELS PHOS COMPILE_ONLY)
+
+  o2_add_test_root_macro( macros/PostCalibCCDB.C
+                         PUBLIC_LINK_LIBRARIES O2::CCDB O2::PHOSBase O2::PHOSCalib
+                         LABELS PHOS COMPILE_ONLY)
+
+endif()
+

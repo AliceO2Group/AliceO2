@@ -4,7 +4,7 @@
 #include "TString.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "PHOSSimulation/MCLabel.h"
+#include "DataFormatsPHOS/MCLabel.h"
 #include "DataFormatsFT0/MCLabel.h"
 #include "DataFormatsFDD/MCLabel.h"
 #include "ZDCSimulation/MCLabel.h"

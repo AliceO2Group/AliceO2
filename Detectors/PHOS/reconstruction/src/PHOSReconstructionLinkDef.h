@@ -14,8 +14,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::phos::Cluster + ;
 #pragma link C++ class o2::phos::Clusterer + ;
-#pragma link C++ class o2::phos::ClustererTask + ;
+#pragma link C++ class o2::phos::FullCluster + ;
 
 #endif
