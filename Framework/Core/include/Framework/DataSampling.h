@@ -17,7 +17,6 @@
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
 #include "Framework/WorkflowSpec.h"
-#include "Framework/CompletionPolicy.h"
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/InputSpec.h"
 
@@ -29,6 +28,8 @@ namespace o2
 {
 namespace framework
 {
+
+class CompletionPolicy;
 
 /// A class responsible for providing data from main processing flow to QC tasks.
 ///

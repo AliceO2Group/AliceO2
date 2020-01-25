@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/ConfigParamSpec.h"
-#include "Framework/CompletionPolicy.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/AODReaderHelpers.h"
 
