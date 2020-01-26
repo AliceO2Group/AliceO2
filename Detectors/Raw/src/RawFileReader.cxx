@@ -16,7 +16,7 @@
 #include <cstring>
 #include "DetectorsRaw/RawFileReader.h"
 #include "CommonConstants/Triggers.h"
-#include "CommonUtils/HBFUtils.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 using namespace o2::raw;
 
@@ -103,9 +103,9 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
   if (rdh.feeId != rdhl.feeId) { // make sure links with different FEEID were not assigned same subspec
     LOG(ERROR) << "Same SubSpec is found for Links with different RDH.feeId";
     printf("old RDH assigned SubSpec=0x%-8d:\n", subspec);
-    o2::utils::HBFUtils::dumpRDH(rdhl);
+    o2::raw::HBFUtils::dumpRDH(rdhl);
     printf("new RDH assigned SubSpec=0x%-8d:\n", subspec);
-    o2::utils::HBFUtils::dumpRDH(rdh);
+    o2::raw::HBFUtils::dumpRDH(rdh);
     LOG(FATAL) << "Critical error, aborting";
     ok = false;
     nErrors++;
@@ -207,11 +207,11 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
   if (!ok) {
     LOG(ERROR) << " ^^^Problem(s) was encountered at offset " << reader->mPosInFile << " of file " << reader->mCurrentFileID;
     if (reader->mVerbosity > 0) {
-      o2::utils::HBFUtils::printRDH(rdh);
+      o2::raw::HBFUtils::printRDH(rdh);
     }
   } else {
     if (reader->mVerbosity > 1) {
-      o2::utils::HBFUtils::printRDH(rdh);
+      o2::raw::HBFUtils::printRDH(rdh);
     }
   }
   return true;
@@ -244,7 +244,7 @@ bool RawFileReader::checkRDH(const o2::header::RAWDataHeaderV4& rdh) const
     ok = false;
   }
   if (!ok) {
-    o2::utils::HBFUtils::dumpRDH(rdh);
+    o2::raw::HBFUtils::dumpRDH(rdh);
   }
   return ok;
 }
@@ -272,7 +272,7 @@ bool RawFileReader::checkRDH(const o2::header::RAWDataHeaderV5& rdh) const
     ok = false;
   }
   if (!ok) {
-    o2::utils::HBFUtils::dumpRDH(rdh);
+    o2::raw::HBFUtils::dumpRDH(rdh);
   }
   return ok;
 }

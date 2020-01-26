@@ -21,7 +21,7 @@
 
 namespace o2
 {
-namespace utils
+namespace raw
 {
 /*
     In the MC->Raw conversion we have to make sure that
@@ -173,7 +173,7 @@ inline o2::header::RAWDataHeaderV5 HBFUtils::createRDH<o2::header::RAWDataHeader
   return rdh;
 }
 
-} // namespace utils
+} // namespace raw
 } // namespace o2
 
 #endif

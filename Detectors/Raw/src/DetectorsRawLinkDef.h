@@ -17,4 +17,6 @@
 #pragma link C++ class o2::raw::RawFileReader + ;
 #pragma link C++ class o2::raw::RawFileReader::LinkData + ;
 
+#pragma link C++ class o2::raw::HBFUtils + ;
+
 #endif
