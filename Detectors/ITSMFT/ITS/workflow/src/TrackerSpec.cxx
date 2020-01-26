@@ -69,9 +69,9 @@ void TrackerDPL::run(ProcessingContext& pc)
   if (mState != 1)
     return;
 
-  auto compClusters = pc.inputs().get<gsl::span<const itsmft::CompClusterExt>>("compClusters");
-  auto clusters = pc.inputs().get<gsl::span<itsmft::Cluster>>("clusters");
-  auto rofs = pc.inputs().get<std::vector<itsmft::ROFRecord>>("ROframes"); // use vector rather than span, since used for output
+  auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
+  auto clusters = pc.inputs().get<gsl::span<o2::itsmft::Cluster>>("clusters");
+  auto rofs = pc.inputs().get<std::vector<o2::itsmft::ROFRecord>>("ROframes"); // use vector rather than span, since used for output
 
   LOG(INFO) << "ITSTracker pulled " << clusters.size() << " clusters, "
             << rofs.size() << " RO frames and ";
