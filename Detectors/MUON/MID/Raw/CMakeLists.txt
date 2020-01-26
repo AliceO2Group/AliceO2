@@ -21,7 +21,7 @@ o2_add_library(
           src/RawBuffer.cxx
           src/RawFileReader.cxx
   PUBLIC_LINK_LIBRARIES ms_gsl::ms_gsl O2::DataFormatsMID O2::Headers
-                        O2::CommonConstants O2::CommonUtils O2::MIDBase)
+                        O2::CommonConstants O2::DetectorsRaw O2::MIDBase)
 
 add_subdirectory(exe)
 

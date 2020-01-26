@@ -15,7 +15,7 @@
 #include <bitset>
 #include <boost/test/unit_test.hpp>
 #include "Steer/InteractionSampler.h"
-#include "CommonUtils/HBFUtils.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "Headers/RAWDataHeader.h"
 #include <TRandom.h>
 #include <FairLogger.h>
@@ -43,7 +43,7 @@ BOOST_AUTO_TEST_CASE(HBFUtils)
   LOG(INFO) << "Emulate RDHs for raw data between IRs " << irs.front() << " and " << irs.back();
 
   // default sampler with BC filling like in TPC TDR, 50kHz
-  o2::utils::HBFUtils sampler;
+  o2::raw::HBFUtils sampler;
 
   uint8_t packetCounter = 0;
   std::vector<o2::InteractionRecord> HBIRVec;
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(HBFUtils)
       rdh.packetCounter = packetCounter++;
       rdh.memorySize = sizeof(rdh) + 16 + gRandom->Integer(8192 - sizeof(rdh) - 16); // random payload
       rdh.offsetToNext = rdh.memorySize;
-      flushRDH();     // open non-empty HBH
+      flushRDH(); // open non-empty HBH
       rdh.packetCounter = packetCounter++;
       rdh.stop = 0x1; // flag that it should be closed
       rdh.pageCnt++;

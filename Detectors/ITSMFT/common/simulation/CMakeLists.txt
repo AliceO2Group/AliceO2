@@ -21,7 +21,7 @@ o2_add_library(ITSMFTSimulation
 		       src/MC2RawEncoder.cxx
 		PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::ITSMFTBase
 		                      O2::ITSMFTReconstruction
-                                      O2::DataFormatsITSMFT O2::CommonUtils)
+                                      O2::DataFormatsITSMFT O2::DetectorsRaw)
 
 o2_target_root_dictionary(
   ITSMFTSimulation
