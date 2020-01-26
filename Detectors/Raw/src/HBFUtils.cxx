@@ -8,12 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "CommonUtils/HBFUtils.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include <FairLogger.h>
 #include <bitset>
 #include <cassert>
 
-using namespace o2::utils;
+using namespace o2::raw;
 
 //_________________________________________________
 int HBFUtils::getHBF(const IR& rec) const
