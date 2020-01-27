@@ -9,4 +9,4 @@
 # submit itself to any jurisdiction.
 
 
-install(PROGRAMS sim_performance_test.sh sim_challenge.sh check_embedding_pileup.sh DESTINATION prodtests)
+install(PROGRAMS sim_performance_test.sh sim_challenge.sh check_embedding_pileup.sh check_embedding_pileup_global.sh DESTINATION prodtests)
