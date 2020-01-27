@@ -89,11 +89,11 @@ DataProcessorSpec getTOFDigitWriterSpec(bool useMC)
       brRow->Fill();
 
       // retrieve labels from the input
-      if(useMC){
+      if (useMC) {
         auto labeldata = pc.inputs().get<std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>*>("tofdigitlabels");
-        for (int i = 0; i < labeldata->size(); i++) {
-          LOG(INFO) << "TOF GOT " << labeldata->at(i).getNElements() << " LABELS ";
-        }
+        //        for (int i = 0; i < labeldata->size(); i++) {
+        //          LOG(INFO) << "TOF GOT " << labeldata->at(i).getNElements() << " LABELS ";
+        //        }
         auto labeldataraw = labeldata.get();
         // connect this to a particular branch
         auto labelbr = getOrMakeBranch(*outputtree.get(), "TOFDigitMCTruth", &labeldataraw);
@@ -110,10 +110,10 @@ DataProcessorSpec getTOFDigitWriterSpec(bool useMC)
   };
 
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("tofdigits", "TOF", "DIGITS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("readoutwin", "TOF", "READOUTWINDOW", 0, Lifetime::Timeframe);
+  inputs.emplace_back("tofdigits", o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("readoutwin", o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe);
   if (useMC)
-    inputs.emplace_back("tofdigitlabels", "TOF", "DIGITSMCTR", 0, Lifetime::Timeframe);
+    inputs.emplace_back("tofdigitlabels", o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "TOFDigitWriter",

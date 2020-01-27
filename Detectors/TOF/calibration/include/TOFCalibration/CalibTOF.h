@@ -106,7 +106,7 @@ class CalibTOF
   void setFillCCDB(bool flag) { mFillCCDB = flag; }
   bool getFillCCDB() const { return mFillCCDB; }
 
-  void setCCDBpath(std::string path) { mCCDBpath = path; }
+  void setCCDBpath(const std::string path) { mCCDBpath = path; }
   std::string getCCDBpath() const { return mCCDBpath; }
 
  private:
@@ -135,8 +135,8 @@ class CalibTOF
 
   // Data members
 
-  bool mInitDone = false; ///< flag init already done
-  bool mFillCCDB = false; ///< flag init already doneto decide whether to fill or not the CCDB
+  bool mInitDone = false;                                  ///< flag init already done
+  bool mFillCCDB = false;                                  ///< flag init already doneto decide whether to fill or not the CCDB
   std::string mCCDBpath = "http://ccdb-test.cern.ch:8080"; ///< path to CCDB
 
   ///========== Parameters to be set externally, e.g. from CCDB ====================

@@ -34,6 +34,9 @@
 // GRP
 #include "DataFormatsParameters/GRPObject.h"
 
+// FIT
+#include "FITWorkflow/FT0RecPointReaderSpec.h"
+
 #include <string>
 #include <stdexcept>
 #include <unordered_map>
@@ -48,6 +51,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"tof-sectors", o2::framework::VariantType::String, "0-17", {"TOF sector range, e.g. 5-7,8,9 ,TBI"}});
   workflowOptions.push_back(ConfigParamSpec{"tof-lanes", o2::framework::VariantType::Int, 1, {"number of parallel lanes up to the matcher, TBI"}});
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
+  workflowOptions.push_back(ConfigParamSpec{"use-fit", o2::framework::VariantType::Bool, false, {"enable access to fit info for calibration"}});
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -122,36 +126,37 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   LOG(INFO) << "TOF disable-mc = " << cfgc.options().get<std::string>("disable-mc");
   LOG(INFO) << "TOF lanes = " << cfgc.options().get<std::string>("tof-lanes");
   LOG(INFO) << "TOF use-ccdb = " << cfgc.options().get<std::string>("use-ccdb");
+  LOG(INFO) << "TOF use-fit = " << cfgc.options().get<std::string>("use-fit");
 
   auto useMC = !cfgc.options().get<bool>("disable-mc");
   auto useCCDB = cfgc.options().get<bool>("use-ccdb");
+  auto useFIT = cfgc.options().get<bool>("use-fit");
 
-  if(clusterinput){
+  if (clusterinput) {
     LOG(INFO) << "Insert TOF Cluster Reader";
     specs.emplace_back(o2::tof::getClusterReaderSpec(useMC));
-  }
-  else if (!rawinput) {
+  } else if (!rawinput) {
     // TOF clusterizer
     LOG(INFO) << "Insert TOF Digit reader from file";
     specs.emplace_back(o2::tof::getDigitReaderSpec(useMC));
 
-    if(writeraw){
+    if (writeraw) {
       LOG(INFO) << "Insert TOF Raw writer";
       specs.emplace_back(o2::tof::getTOFRawWriterSpec());
     }
   } else {
     LOG(INFO) << "Insert TOF Raw Reader";
     specs.emplace_back(o2::tof::getRawReaderSpec());
-    useMC=0;
+    useMC = 0;
 
-    if(writedigit){
+    if (writedigit) {
       // add TOF digit writer without mc labels
       LOG(INFO) << "Insert TOF Digit Writer";
       specs.emplace_back(o2::tof::getTOFDigitWriterSpec(0));
     }
   }
 
-  if(! clusterinput && writecluster){
+  if (!clusterinput && writecluster) {
     LOG(INFO) << "Insert TOF Clusterizer";
     specs.emplace_back(o2::tof::getTOFClusterizerSpec(useMC, useCCDB));
     if (writecluster) {
@@ -160,11 +165,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     }
   }
 
+  if (useFIT) {
+    specs.emplace_back(o2::ft0::getFT0RecPointReaderSpec(useMC));
+  }
+
   if (writematching || writecalib) {
     LOG(INFO) << "Insert ITS-TPC Track Reader";
     specs.emplace_back(o2::globaltracking::getTrackTPCITSReaderSpec(useMC));
     LOG(INFO) << "Insert TOF Matching";
-    specs.emplace_back(o2::tof::getTOFRecoWorkflowSpec(useMC));
+    specs.emplace_back(o2::tof::getTOFRecoWorkflowSpec(useMC, useFIT));
 
     if (writematching) {
       LOG(INFO) << "Insert TOF Matched Info Writer";

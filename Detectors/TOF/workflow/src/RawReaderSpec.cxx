@@ -19,7 +19,7 @@
 #include "TOFWorkflow/RawReaderSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "TOFBase/Geo.h"
-#include <fstream> 
+#include <fstream>
 
 using namespace o2::framework;
 using namespace o2::tof;
@@ -35,7 +35,7 @@ void RawReader::init(InitContext& ic)
   mFilename = ic.options().get<std::string>("tof-raw-infile");
   mState = 1;
 
-/*
+  /*
   std::ifstream f(mFilename.c_str(), std::ifstream::in);
 
   if(f.good()){
@@ -72,24 +72,23 @@ void RawReader::run(ProcessingContext& pc)
   decoder.decode();
   printf("end decoding raw\n");
 
-  std::vector<o2::tof::Digit> *alldigits = decoder.getDigitPerTimeFrame();
-  std::vector<o2::tof::ReadoutWindowData> *row = decoder.getReadoutWindowData();
+  std::vector<o2::tof::Digit>* alldigits = decoder.getDigitPerTimeFrame();
+  std::vector<o2::tof::ReadoutWindowData>* row = decoder.getReadoutWindowData();
 
-  int n_tof_window=row->size();
-  int n_orbits=n_tof_window/3;
+  int n_tof_window = row->size();
+  int n_orbits = n_tof_window / 3;
   int digit_size = alldigits->size();
 
-
-  LOG(INFO) << "TOF: N tof window decoded = " << n_tof_window << "(orbits = " << n_orbits << ") with " << digit_size<< " digits";
+  LOG(INFO) << "TOF: N tof window decoded = " << n_tof_window << "(orbits = " << n_orbits << ") with " << digit_size << " digits";
 
   // add digits in the output snapshot
-  pc.outputs().snapshot(Output{"TOF", "DIGITS", 0, Lifetime::Timeframe}, *alldigits);
-  pc.outputs().snapshot(Output{"TOF", "READOUTWINDOW", 0, Lifetime::Timeframe}, *row);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, *alldigits);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, *row);
 
   static o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::CONTINUOUS;
 
   LOG(INFO) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
-  pc.outputs().snapshot(Output{"TOF", "ROMode", 0, Lifetime::Timeframe}, roMode);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}, roMode);
 
   //pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   pc.services().get<ControlService>().endOfStream();
@@ -98,9 +97,9 @@ void RawReader::run(ProcessingContext& pc)
 DataProcessorSpec getRawReaderSpec()
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("TOF", "DIGITS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("TOF", "READOUTWINDOW", 0, Lifetime::Timeframe);
-  outputs.emplace_back("TOF", "ROMode", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "tof-raw-reader",

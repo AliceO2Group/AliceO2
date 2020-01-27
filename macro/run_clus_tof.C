@@ -51,12 +51,12 @@ void run_clus_tof(std::string outputfile = "tofclusters.root", std::string input
   o2::tof::DigitDataReader reader; ///< Digit reader
 
   // Load digits
-  TFile *file = new TFile(inputfile.c_str(), "OLD");
+  TFile* file = new TFile(inputfile.c_str(), "OLD");
   std::unique_ptr<TTree> treeDig((TTree*)file->Get("o2sim"));
   if (treeDig) {
     treeDig->SetBranchAddress("TOFDigit", &mPdigits);
     treeDig->SetBranchAddress("TOFReadoutWindow", &mProw);
-    
+
     if (isMC) {
       treeDig->SetBranchAddress("TOFDigitMCTruth", &mPlabels);
     }
@@ -69,7 +69,7 @@ void run_clus_tof(std::string outputfile = "tofclusters.root", std::string input
   // calibration objects set to zero
   lhcPhaseObj.addLHCphase(0, 0);
   lhcPhaseObj.addLHCphase(2000000000, 0);
-  
+
   for (int ich = 0; ich < o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELS; ich++) {
     channelCalibObj.addTimeSlewingInfo(ich, 0, 0);
     int sector = ich / o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
@@ -77,34 +77,35 @@ void run_clus_tof(std::string outputfile = "tofclusters.root", std::string input
     channelCalibObj.setFractionUnderPeak(sector, channelInSector, 1);
   }
   o2::tof::CalibTOFapi calibapi(long(0), &lhcPhaseObj, &channelCalibObj);
-  
+
   o2::tof::Clusterer clusterer;
-  std::vector<o2::tof::Cluster> clustersArray, *pClustersArray=&clustersArray;
+  std::vector<o2::tof::Cluster> clustersArray, *pClustersArray = &clustersArray;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> clsLabels, *pClsLabels = &clsLabels;
   clusterer.setCalibApi(&calibapi);
-  if(isMC) clusterer.setMCTruthContainer(pClsLabels);
-  
+  if (isMC)
+    clusterer.setMCTruthContainer(pClsLabels);
+
   for (int i = 0; i < mRow.size(); i++) {
     printf("# TOF readout window for clusterization = %d/%d (N digits = %d)\n", i, int(mRow.size()), int(mRow.at(i).size()));
     auto digitsRO = mRow.at(i).getBunchChannelData(mDigits);
-    
+
     reader.setDigitArray(&digitsRO);
-    
+
     if (isMC) {
       clusterer.process(reader, clustersArray, &(mPlabels->at(i)));
     } else
       clusterer.process(reader, clustersArray, nullptr);
   }
-    
+
   LOG(INFO) << "TOF CLUSTERER : TRANSFORMED " << mDigits.size()
-              << " DIGITS TO " << clustersArray.size() << " CLUSTERS";
-  
-  
-  TFile *fout = new TFile(outputfile.c_str(),"RECREATE");
-  TTree *tout = new TTree("o2sim","o2sim");
-  tout->Branch("TOFCluster",&pClustersArray);
-  if(isMC) tout->Branch("TOFClusterMCTruth",&pClsLabels);
+            << " DIGITS TO " << clustersArray.size() << " CLUSTERS";
+
+  TFile* fout = new TFile(outputfile.c_str(), "RECREATE");
+  TTree* tout = new TTree("o2sim", "o2sim");
+  tout->Branch("TOFCluster", &pClustersArray);
+  if (isMC)
+    tout->Branch("TOFClusterMCTruth", &pClsLabels);
   tout->Fill();
   tout->Write();
-  fout->Close();  
+  fout->Close();
 }

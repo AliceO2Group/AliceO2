@@ -8,17 +8,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TOFRawWriterSpec.h
+/// @file   CompressedInspectorTask.h
+/// @author Roberto Preghenella
+/// @since  2020-01-25
+/// @brief  TOF compressed data inspector task
 
-#ifndef O2_TOF_RAWWRITER_H
-#define O2_TOF_RAWWRITER_H
+#ifndef O2_TOF_COMPRESSEDINSPECTORTASK
+#define O2_TOF_COMPRESSEDINSPECTORTASK
 
-#include "TFile.h"
-
-#include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include <string>
-#include "TOFReconstruction/Encoder.h"
+#include "Framework/DataProcessorSpec.h"
+#include <fstream>
+
+class TFile;
+class TH1;
+class TH2;
 
 using namespace o2::framework;
 
@@ -27,24 +31,24 @@ namespace o2
 namespace tof
 {
 
-class RawWriter : public Task
+class CompressedInspectorTask : public Task
 {
  public:
-  RawWriter() = default;
-  ~RawWriter() override = default;
+  CompressedInspectorTask() = default;
+  ~CompressedInspectorTask() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
- private:
-  bool mFinished = false;
-  std::string mOutFileName; // read from workflow
-};
+  static DataProcessorSpec getSpec();
 
-/// create a processor spec
-/// write TOF raw file
-o2::framework::DataProcessorSpec getTOFRawWriterSpec();
+ private:
+  bool mStatus = false;
+  TFile* mFile = nullptr;
+  std::map<std::string, TH1*> mHistos1D;
+  std::map<std::string, TH1*> mHistos2D;
+};
 
 } // namespace tof
 } // namespace o2
 
-#endif /* O2_TOF_RAWWRITER_H */
+#endif /* O2_TOF_COMPRESSEDINSPECTORTASK */

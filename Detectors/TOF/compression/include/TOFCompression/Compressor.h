@@ -32,18 +32,19 @@ class Compressor
 {
 
  public:
-  Compressor();
+  Compressor() = default;
   ~Compressor();
 
   inline bool run()
   {
     rewind();
-    while (!processHBF());
+    while (!processHBF())
+      ;
     return false;
   };
 
   bool init();
-  bool open(std::string inFileName, std::string outFileName);
+  bool open(const std::string inFileName, const std::string outFileName);
   bool close();
   inline bool read() { return decoderRead(); };
   inline void rewind()
@@ -73,17 +74,13 @@ class Compressor
   double mIntegratedTime = 0.;
 
  protected:
-
-  bool processSave();
   bool processHBF();
-  bool processHBFsave();
-  bool processRDH();
   bool processDRM();
 
   /** decoder private functions and data members **/
 
   bool decoderInit();
-  bool decoderOpen(std::string name);
+  bool decoderOpen(const std::string name);
   bool decoderRead();
   bool decoderClose();
   bool decoderParanoid();
@@ -97,7 +94,7 @@ class Compressor
   };
 
   int mJumpRDH = 0;
-  
+
   std::ifstream mDecoderFile;
   char* mDecoderBuffer = nullptr;
   bool mOwnDecoderBuffer = false;
@@ -114,11 +111,11 @@ class Compressor
   char mDecoderSaveBuffer[1048576];
   uint32_t mDecoderSaveBufferDataSize = 0;
   uint32_t mDecoderSaveBufferDataLeft = 0;
-  
+
   /** encoder private functions and data members **/
 
   bool encoderInit();
-  bool encoderOpen(std::string name);
+  bool encoderOpen(const std::string name);
   bool encoderWrite();
   bool encoderClose();
   void encoderSpider(int itrm);
@@ -201,7 +198,6 @@ class Compressor
     uint32_t nDiagnosticWords;
     uint32_t DiagnosticWord[12];
   } mCheckerSummary = {0};
-
 };
 
 } // namespace tof

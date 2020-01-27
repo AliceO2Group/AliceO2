@@ -31,7 +31,7 @@ namespace tof
 class RawReaderTask : public Task
 {
  public:
-  RawReaderTask(){};
+  RawReaderTask() = default;
   ~RawReaderTask() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;

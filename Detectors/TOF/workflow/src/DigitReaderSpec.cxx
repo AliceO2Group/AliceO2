@@ -59,15 +59,15 @@ void DigitReader::run(ProcessingContext& pc)
     treeDig->GetEntry(0);
 
     // add digits loaded in the output snapshot
-    pc.outputs().snapshot(Output{"TOF", "DIGITS", 0, Lifetime::Timeframe}, mDigits);
-    pc.outputs().snapshot(Output{"TOF", "READOUTWINDOW", 0, Lifetime::Timeframe}, mRow);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, mDigits);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, mRow);
     if (mUseMC)
-      pc.outputs().snapshot(Output{"TOF", "DIGITSMCTR", 0, Lifetime::Timeframe}, mLabels);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe}, mLabels);
 
     static o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::CONTINUOUS;
 
     LOG(INFO) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{"TOF", "ROMode", 0, Lifetime::Timeframe}, roMode);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}, roMode);
   } else {
     LOG(ERROR) << "Cannot read the TOF digits !";
     return;
@@ -81,12 +81,12 @@ void DigitReader::run(ProcessingContext& pc)
 DataProcessorSpec getDigitReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("TOF", "DIGITS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("TOF", "READOUTWINDOW", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe);
   if (useMC) {
-    outputs.emplace_back("TOF", "DIGITSMCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
-  outputs.emplace_back("TOF", "ROMode", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "tof-digit-reader",

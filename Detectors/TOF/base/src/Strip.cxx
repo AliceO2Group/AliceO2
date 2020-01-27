@@ -25,13 +25,15 @@ using namespace o2::tof;
 
 ClassImp(o2::tof::Strip);
 
+int Strip::mDigitMerged = 0;
+
 //_______________________________________________________________________
 Strip::Strip(Int_t index)
   : mStripIndex(index)
 {
 }
 //_______________________________________________________________________
-Int_t Strip::addDigit(Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t lbl)
+Int_t Strip::addDigit(Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t lbl, Int_t triggerorbit, Int_t triggerbunch)
 {
 
   // return the MC label. We pass it also as argument, but it can change in
@@ -42,8 +44,9 @@ Int_t Strip::addDigit(Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t lbl)
   if (dig) {
     lbl = dig->getLabel(); // getting the label from the already existing digit
     dig->merge(tdc, tot);  // merging to the existing digit
+    mDigitMerged++;
   } else {
-    auto digIter = mDigits.emplace(std::make_pair(key, Digit(channel, tdc, tot, bc, lbl)));
+    mDigits.emplace(std::make_pair(key, Digit(channel, tdc, tot, bc, lbl, triggerorbit, triggerbunch)));
   }
 
   return lbl;

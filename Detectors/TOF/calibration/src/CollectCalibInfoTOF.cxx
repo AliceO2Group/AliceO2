@@ -14,7 +14,7 @@
 #include "TOFBase/Geo.h"
 
 #include <TFile.h>
-#include "GlobalTracking/CollectCalibInfoTOF.h"
+#include "TOFCalibration/CollectCalibInfoTOF.h"
 
 using namespace o2::globaltracking;
 

@@ -43,9 +43,9 @@ void CompressedWriterTask::init(InitContext& ic)
   }
 
   auto finishFunction = [this]() {
-			  LOG(INFO) << "CompressedWriter finish";
-			  mFile.close();
-			    };
+    LOG(INFO) << "CompressedWriter finish";
+    mFile.close();
+  };
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
 }
 
@@ -73,9 +73,9 @@ DataProcessorSpec CompressedWriterTask::getSpec()
 
   return DataProcessorSpec{
     "tof-compressed-writer",
-    Inputs{InputSpec("dataframe", "TOF", "CMPDATAFRAME", 0, Lifetime::Timeframe)}, // inputs
-    Outputs{},                                                                     // outputs
-    AlgorithmSpec{adaptFromTask<CompressedWriterTask>()},                          // call constructor + execute init (check)
+    Inputs{InputSpec("dataframe", o2::header::gDataOriginTOF, "CMPDATAFRAME", 0, Lifetime::Timeframe)}, // inputs
+    Outputs{},                                                                                          // outputs
+    AlgorithmSpec{adaptFromTask<CompressedWriterTask>()},                                               // call constructor + execute init (check)
     Options{
       {"tof-compressed-filename", VariantType::String, "/dev/null", {"Name of the compressed output file"}}}};
 }

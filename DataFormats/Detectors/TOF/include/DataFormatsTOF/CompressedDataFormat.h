@@ -16,7 +16,7 @@
 #ifndef O2_TOF_COMPRESSEDDATAFORMAT
 #define O2_TOF_COMPRESSEDDATAFORMAT
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace o2
 {

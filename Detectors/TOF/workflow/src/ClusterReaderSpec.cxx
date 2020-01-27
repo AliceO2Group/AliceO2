@@ -58,14 +58,14 @@ void ClusterReader::run(ProcessingContext& pc)
     treeClu->GetEntry(0);
 
     // add clusters loaded in the output snapshot
-    pc.outputs().snapshot(Output{"TOF", "CLUSTERS", 0, Lifetime::Timeframe}, mClusters);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERS", 0, Lifetime::Timeframe}, mClusters);
     if (mUseMC)
-      pc.outputs().snapshot(Output{"TOF", "CLUSTERSMCTR", 0, Lifetime::Timeframe}, mLabels);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, mLabels);
 
     static o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::CONTINUOUS;
 
     LOG(INFO) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{"TOF", "ROMode", 0, Lifetime::Timeframe}, roMode);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}, roMode);
   } else {
     LOG(ERROR) << "Cannot read the TOF clusters !";
     return;
@@ -78,11 +78,11 @@ void ClusterReader::run(ProcessingContext& pc)
 DataProcessorSpec getClusterReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("TOF", "CLUSTERS", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "CLUSTERS", 0, Lifetime::Timeframe);
   if (useMC) {
-    outputs.emplace_back("TOF", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe);
   }
-  outputs.emplace_back("TOF", "ROMode", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "tof-cluster-reader",

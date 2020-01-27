@@ -16,7 +16,7 @@
 #include <string>
 #include <FairLogger.h>
 
-#include "GlobalTracking/CollectCalibInfoTOF.h"
+#include "TOFCalibration/CollectCalibInfoTOF.h"
 #endif
 
 void run_collect_calib_tof(std::string path = "./", std::string outputfile = "o2calibration_tof.root",

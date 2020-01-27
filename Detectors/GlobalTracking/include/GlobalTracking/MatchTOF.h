@@ -33,6 +33,9 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "ReconstructionDataFormats/PID.h"
 
+// from FIT
+#include "DataFormatsFT0/RecPoints.h"
+
 #ifdef _ALLOW_DEBUG_TREES_
 //#define _ALLOW_TOF_DEBUG_
 #endif
@@ -175,6 +178,9 @@ class MatchTOF
   std::vector<o2::MCCompLabel>& getMatchedTPCLabelsVector() { return mOutTPCLabels; } ///< get vector of TPC label of matched tracks
   std::vector<o2::MCCompLabel>& getMatchedITSLabelsVector() { return mOutITSLabels; } ///< get vector of ITS label of matched tracks
 
+  void setFITRecPoints(const std::vector<o2::ft0::RecPoints>* recpoints) { mFITRecPoints = recpoints; }
+  int findFITIndex(int bc);
+
  private:
   void attachInputTrees();
   bool prepareTracks();
@@ -228,6 +234,8 @@ class MatchTOF
   const std::vector<o2::MCCompLabel>* mTPCLabels = nullptr; ///< TPC label of input tracks
   const std::vector<o2::MCCompLabel>* mITSLabels = nullptr; ///< ITS label of input tracks
 
+  const std::vector<o2::ft0::RecPoints>* mFITRecPoints = nullptr; ///< FIT recpoints
+
   /// <<<-----
 
   ///<working copy of the input tracks
@@ -280,7 +288,7 @@ class MatchTOF
 
   TStopwatch mTimerTot;
   TStopwatch mTimerDBG;
-  ClassDefNV(MatchTOF, 2);
+  ClassDefNV(MatchTOF, 3);
 };
 } // namespace globaltracking
 } // namespace o2

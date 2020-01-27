@@ -16,6 +16,7 @@
 #include "TOFCompression/RawReaderTask.h"
 #include "TOFCompression/CompressorTask.h"
 #include "TOFCompression/CompressedWriterTask.h"
+#include "TOFCompression/CompressedInspectorTask.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/runDataProcessing.h" // the main driver
@@ -42,6 +43,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   //  specs.emplace_back(o2::tof::RawReaderTask::getSpec());
   specs.emplace_back(o2::tof::CompressorTask::getSpec());
   specs.emplace_back(o2::tof::CompressedWriterTask::getSpec());
+  specs.emplace_back(o2::tof::CompressedInspectorTask::getSpec());
 
   LOG(INFO) << "Number of active devices = " << specs.size();
   return std::move(specs);

@@ -1,3 +1,4 @@
+#if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <vector>
 #include <string>
 #include "TTree.h"
@@ -5,6 +6,7 @@
 #include "TOFCalibration/CalibTOFapi.h"
 #include "DataFormatsTOF/CalibTimeSlewingParamTOF.h"
 #include "DataFormatsTOF/CalibLHCphaseTOF.h"
+#endif
 
 void testCCDB()
 {

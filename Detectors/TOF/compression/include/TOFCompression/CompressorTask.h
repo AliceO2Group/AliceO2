@@ -32,7 +32,7 @@ namespace tof
 class CompressorTask : public Task
 {
  public:
-  CompressorTask(){};
+  CompressorTask() = default;
   ~CompressorTask() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -41,6 +41,7 @@ class CompressorTask : public Task
 
  private:
   Compressor mCompressor;
+  int mTicks = 0;
   RawDataFrame mDataFrame;
 };
 

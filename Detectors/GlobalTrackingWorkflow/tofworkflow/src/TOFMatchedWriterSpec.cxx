@@ -93,11 +93,11 @@ void TOFMatchedWriter::run(ProcessingContext& pc)
 DataProcessorSpec getTOFMatchedWriterSpec(bool useMC)
 {
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("tofmatching", "TOF", "MATCHINFOS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("tofmatching", o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe);
   if (useMC) {
-    inputs.emplace_back("matchtoflabels", "TOF", "MATCHTOFINFOSMC", 0, Lifetime::Timeframe);
-    inputs.emplace_back("matchtpclabels", "TOF", "MATCHTPCINFOSMC", 0, Lifetime::Timeframe);
-    inputs.emplace_back("matchitslabels", "TOF", "MATCHITSINFOSMC", 0, Lifetime::Timeframe);
+    inputs.emplace_back("matchtoflabels", o2::header::gDataOriginTOF, "MATCHTOFINFOSMC", 0, Lifetime::Timeframe);
+    inputs.emplace_back("matchtpclabels", o2::header::gDataOriginTOF, "MATCHTPCINFOSMC", 0, Lifetime::Timeframe);
+    inputs.emplace_back("matchitslabels", o2::header::gDataOriginTOF, "MATCHITSINFOSMC", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

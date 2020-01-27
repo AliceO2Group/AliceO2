@@ -10,8 +10,8 @@
 
 o2_add_library(
   GlobalTracking
-  SOURCES src/MatchTPCITS.cxx src/MatchTOF.cxx src/CalibTOF.cxx
-          src/MatchTPCITSParams.cxx src/CollectCalibInfoTOF.cxx
+  SOURCES src/MatchTPCITS.cxx src/MatchTOF.cxx
+          src/MatchTPCITSParams.cxx
   PUBLIC_LINK_LIBRARIES
     O2::DataFormatsTPC
     O2::DataFormatsITSMFT
@@ -25,10 +25,10 @@ o2_add_library(
     O2::TPCReconstruction
     O2::TOFBase
     O2::TOFCalibration
-    O2::SimConfig)
+    O2::SimConfig
+    O2::DataFormatsFT0)
 
 o2_target_root_dictionary(
   GlobalTracking
   HEADERS include/GlobalTracking/MatchTPCITS.h include/GlobalTracking/MatchTPCITSParams.h
-          include/GlobalTracking/MatchTOF.h include/GlobalTracking/CalibTOF.h
-          include/GlobalTracking/CollectCalibInfoTOF.h)
+          include/GlobalTracking/MatchTOF.h)

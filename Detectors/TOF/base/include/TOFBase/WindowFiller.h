@@ -38,14 +38,16 @@ class WindowFiller
 
   void fillOutputContainer(std::vector<Digit>& digits);
   void flushOutputContainer(std::vector<Digit>& digits); // flush all residual buffered data
-  void setContinuous(bool value=true) {mContinuous=value;}
-  bool isContinuous() const {return mContinuous;}
+  void setContinuous(bool value = true) { mContinuous = value; }
+  bool isContinuous() const { return mContinuous; }
 
-  void resizeVectorFutureDigit(int size) {mFutureDigits.resize(size);}
+  void resizeVectorFutureDigit(int size) { mFutureDigits.resize(size); }
 
  protected:
   // info TOF timewindow
   Int_t mReadoutWindowCurrent = 0;
+  Int_t mFirstOrbit = 0;
+  Int_t mFirstBunch = 0;
   Double_t mEventTime;
 
   bool mContinuous = true;
@@ -69,14 +71,16 @@ class WindowFiller
   // arrays with digit and MCLabels out of the current readout windows (stored to fill future readout window)
   std::vector<Digit> mFutureDigits;
 
-  void fillDigitsInStrip(std::vector<Strip>* strips, int channel, int tdc, int tot, int nbc, UInt_t istrip);
+  void fillDigitsInStrip(std::vector<Strip>* strips, int channel, int tdc, int tot, int nbc, UInt_t istrip, Int_t triggerorbit = 0, Int_t triggerbunch = 0);
   //  void fillDigitsInStrip(std::vector<Strip>* strips, o2::dataformats::MCTruthContainer<o2::tof::MCLabel>* mcTruthContainer, int channel, int tdc, int tot, int nbc, UInt_t istrip, Int_t trackID, Int_t eventID, Int_t sourceID);
 
   void checkIfReuseFutureDigits();
+  void checkIfReuseFutureDigitsRO();
 
-  void insertDigitInFuture(int digitInfo0, int digitInfo1, int digitInfo2, int digitInfo3, int lbl=0){
-    mFutureDigits.emplace_back(digitInfo0, digitInfo1, digitInfo2, digitInfo3, lbl);
-    mFutureToBeSorted=true;
+  void insertDigitInFuture(Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t label = 0, Int_t triggerorbit = 0, Int_t triggerbunch = 0)
+  {
+    mFutureDigits.emplace_back(channel, tdc, tot, bc, label, triggerorbit, triggerbunch);
+    mFutureToBeSorted = true;
   }
 
   bool isMergable(Digit digit1, Digit digit2)
