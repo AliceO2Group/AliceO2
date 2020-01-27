@@ -21,6 +21,7 @@
 #include <vector>
 #include <map>
 #include "CommonDataFormat/InteractionRecord.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "DataFormatsMID/ColumnData.h"
 #include "MIDBase/DetectorParameters.h"
 #include "MIDBase/Mapping.h"
@@ -72,6 +73,66 @@ void doTest(const o2::mid::EventType& inEventType, const std::map<uint16_t, std:
       }
     }
     ++inItMap;
+  }
+}
+
+BOOST_AUTO_TEST_CASE(RawBuffer)
+{
+  std::vector<o2::InteractionRecord> HBIRVec;
+  o2::raw::HBFUtils hbfUtils;
+  o2::InteractionRecord irFrom = hbfUtils.getFirstIR();
+  o2::InteractionRecord ir(5, 4);
+  hbfUtils.fillHBIRvector(HBIRVec, irFrom, ir);
+  std::vector<uint8_t> bytes;
+  unsigned int memSize = 0;
+  for (auto& hbIr : HBIRVec) {
+    auto rdh = hbfUtils.createRDH<o2::header::RAWDataHeader>(hbIr);
+    rdh.offsetToNext = (hbIr.orbit == ir.orbit) ? 0x2000 : rdh.headerSize;
+    rdh.memorySize = (hbIr.orbit == ir.orbit) ? 0x1000 : rdh.headerSize;
+    memSize = rdh.memorySize - rdh.headerSize;
+    auto rdhBuf = reinterpret_cast<const uint8_t*>(&rdh);
+    for (size_t ii = 0; ii < rdh.headerSize; ++ii) {
+      bytes.emplace_back(rdhBuf[ii]);
+    }
+    for (size_t ii = 0; ii < rdh.memorySize - rdh.headerSize; ++ii) {
+      bytes.emplace_back(ii);
+    }
+    for (size_t ii = 0; ii < rdh.offsetToNext - rdh.memorySize; ++ii) {
+      bytes.emplace_back(0);
+    }
+
+    if (bytes.size() < rdh.offsetToNext) {
+      o2::mid::RawBuffer<uint8_t> rb;
+      rb.setBuffer(bytes);
+      BOOST_TEST(rb.getRDH()->word0 == rdh.word0);
+    }
+  }
+
+  o2::mid::RawBuffer<uint8_t> rb;
+  size_t nHeaders = 0;
+  rb.setBuffer(bytes);
+  // Reads only the headers
+  while (rb.nextHeader()) {
+    ++nHeaders;
+  }
+  BOOST_TEST(nHeaders == HBIRVec.size());
+
+  // Set buffer again after full reset
+  rb.setBuffer(bytes, o2::mid::RawBuffer<uint8_t>::ResetMode::all);
+  rb.next();
+  BOOST_TEST(static_cast<int>(rb.next()) == 1);
+
+  if (!rb.hasNext(memSize - 1)) {
+    // Set buffer but keep unconsumed
+    rb.setBuffer(bytes);
+    // This should come from the last unconsumed buffer
+    BOOST_TEST(static_cast<int>(rb.next()) == 2);
+
+    for (int ibyte = 0; ibyte < memSize; ++ibyte) {
+      rb.next();
+    }
+    // And this comes from the new buffer
+    BOOST_TEST(static_cast<int>(rb.next()) == 3);
   }
 }
 
@@ -132,7 +193,7 @@ BOOST_AUTO_TEST_CASE(LargeBufferSample)
   std::map<uint16_t, std::vector<o2::mid::ColumnData>> inData;
   // Big event that should pass the 8kB
   for (int irepeat = 0; irepeat < 150; ++irepeat) {
-    uint16_t bc = 100 + irepeat;
+    uint16_t bc = 1 + irepeat;
     for (int ide = 0; ide < o2::mid::detparams::NDetectionElements; ++ide) {
       // Since we have 1 RDH per GBT, we can put data only on 1 column
       int icol = 4;
