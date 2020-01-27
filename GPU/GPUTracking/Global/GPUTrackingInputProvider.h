@@ -36,7 +36,7 @@ class GPUTrackingInputProvider : public GPUProcessor
   void* SetPointersInputGPUOnly(void* mem);
 #endif
 
-  unsigned short mResourceZS = 0;
+  unsigned short mResourceZS = -1;
 
   bool holdsTPCZS = false;
 

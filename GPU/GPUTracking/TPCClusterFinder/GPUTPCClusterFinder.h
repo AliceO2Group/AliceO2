@@ -16,6 +16,7 @@
 
 #include "GPUDef.h"
 #include "GPUProcessor.h"
+#include "GPUDataTypes.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -32,9 +33,12 @@ class GPUTPCClusterFinder : public GPUProcessor
 {
  public:
   struct Memory {
-    size_t nDigits = 0;
-    size_t nPeaks = 0;
-    size_t nClusters = 0;
+    struct counters_t {
+      size_t nDigits = 0;
+      size_t nPeaks = 0;
+      size_t nClusters = 0;
+    } counters;
+    unsigned int nDigitsOffset[GPUTrackingInOutZS::NENDPOINTS];
   };
 
 #ifndef GPUCA_GPUCODE

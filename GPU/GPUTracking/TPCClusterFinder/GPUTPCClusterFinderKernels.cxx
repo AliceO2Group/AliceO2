@@ -34,7 +34,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 template <>
 GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::fillChargeMap>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& clusterer)
 {
-  ChargeMapFiller::fillChargeMapImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPdigits, reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap), clusterer.mPmemory->nDigits);
+  ChargeMapFiller::fillChargeMapImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPdigits, reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap), clusterer.mPmemory->counters.nDigits);
 }
 
 template <>
@@ -46,13 +46,13 @@ GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::reset
 template <>
 GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::findPeaks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& clusterer)
 {
-  PeakFinder::findPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap), clusterer.mPdigits, clusterer.mPmemory->nDigits, clusterer.mPisPeak, clusterer.mPpeakMap);
+  PeakFinder::findPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap), clusterer.mPdigits, clusterer.mPmemory->counters.nDigits, clusterer.mPisPeak, clusterer.mPpeakMap);
 }
 
 template <>
 GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::noiseSuppression>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& clusterer)
 {
-  NoiseSuppression::noiseSuppressionImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap), clusterer.mPpeakMap, clusterer.mPpeaks, clusterer.mPmemory->nPeaks, clusterer.mPisPeak);
+  NoiseSuppression::noiseSuppressionImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap), clusterer.mPpeakMap, clusterer.mPpeaks, clusterer.mPmemory->counters.nPeaks, clusterer.mPisPeak);
 }
 
 template <>
@@ -64,13 +64,13 @@ GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::updat
 template <>
 GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::countPeaks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& clusterer)
 {
-  Deconvolution::countPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPpeakMap, reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap), clusterer.mPdigits, clusterer.mPmemory->nDigits);
+  Deconvolution::countPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPpeakMap, reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap), clusterer.mPdigits, clusterer.mPmemory->counters.nDigits);
 }
 
 template <>
 GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::computeClusters>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& clusterer)
 {
-  Clusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap), clusterer.mPfilteredPeaks, clusterer.mPmemory->nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterer.mPclusterByRow);
+  Clusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap), clusterer.mPfilteredPeaks, clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterer.mPclusterByRow);
 }
 
 template <>
@@ -106,16 +106,16 @@ GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::compa
   unsigned int lastId = get_global_size(0) - 1;
   if ((unsigned int)get_global_id(0) == lastId) {
     if (stage) {
-      clusterer.mPmemory->nClusters = clusterer.mPbuf[lastId];
+      clusterer.mPmemory->counters.nClusters = clusterer.mPbuf[lastId];
     } else {
-      clusterer.mPmemory->nPeaks = clusterer.mPbuf[lastId];
+      clusterer.mPmemory->counters.nPeaks = clusterer.mPbuf[lastId];
     }
   }
 }
 
 GPUd() int GPUTPCClusterFinderKernels::compactionElems(processorType& clusterer, int stage)
 {
-  return (stage) ? clusterer.mPmemory->nPeaks : clusterer.mPmemory->nDigits;
+  return (stage) ? clusterer.mPmemory->counters.nPeaks : clusterer.mPmemory->counters.nDigits;
 }
 
 template <>
