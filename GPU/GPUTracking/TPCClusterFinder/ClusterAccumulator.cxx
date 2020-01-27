@@ -17,9 +17,9 @@
 
 #if !defined(__OPENCL__)
 #include <cmath>
+using namespace std;
 #endif
 
-using namespace std;
 using namespace GPUCA_NAMESPACE::gpu;
 
 GPUd() void ClusterAccumulator::toNative(const deprecated::Digit& d, deprecated::ClusterNative& cn) const

@@ -14,8 +14,22 @@
 #include "DecodeZS.h"
 #include "GPUCommonMath.h"
 #include "GPUTPCClusterFinder.h"
-#include "Headers/RAWDataHeader.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
+
+#ifndef __OPENCL__
+#include "Headers/RAWDataHeader.h"
+#else
+namespace o2
+{
+namespace header
+{
+struct RAWDataHeader {
+  unsigned int words[16];
+};
+} // namespace header
+} // namespace o2
+
+#endif
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
