@@ -292,6 +292,7 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
       (*nSeq)++;
       streamBuffer8[streamSize8++] = tmpBuffer[k].pad;
       streamBuffer8[streamSize8++] = streamSize + seqLen;
+      hdr->nADCsamples += seqLen;
       for (int l = 0; l < seqLen; l++) {
         streamBuffer[streamSize++] = (unsigned short)(tmpBuffer[k + l].charge * encodeBitsFactor + 0.5f);
       }
@@ -329,12 +330,12 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
             pagePtr++;
           }
           tbHdr = reinterpret_cast<TPCZSTBHDR*>(pagePtr);
-          endpoint = tbHdr->rowMask & 0x8000;
-          if (tbHdr->rowMask != 0 && ((endpoint != 0) ^ ((j & 1) != 0))) {
+          bool upperRows = tbHdr->rowMask & 0x8000;
+          if (tbHdr->rowMask != 0 && ((upperRows) ^ ((j & 1) != 0))) {
             throw std::runtime_error("invalid endpoint");
           }
-          const int rowOffset = param.tpcGeometry.GetRegionStart(region) + (endpoint ? (nRowsRegion / 2) : 0);
-          const int nRows = endpoint ? (nRowsRegion - nRowsRegion / 2) : nRowsRegion;
+          const int rowOffset = param.tpcGeometry.GetRegionStart(region) + (upperRows ? (nRowsRegion / 2) : 0);
+          const int nRows = upperRows ? (nRowsRegion - nRowsRegion / 2) : nRowsRegion;
           const int nRowsUsed = __builtin_popcount((unsigned int)(tbHdr->rowMask & 0x7FFF));
           pagePtr += nRowsUsed ? (2 * nRowsUsed) : 2;
           int rowPos = 0;
