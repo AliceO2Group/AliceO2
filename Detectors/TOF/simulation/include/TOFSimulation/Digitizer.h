@@ -30,7 +30,7 @@ class Digitizer : public WindowFiller
   using CalibApi = o2::tof::CalibTOFapi;
 
  public:
- Digitizer(Int_t mode = 0) : WindowFiller(), mMode(mode) { init(); };
+  Digitizer(Int_t mode = 0) : WindowFiller(), mMode(mode) { init(); };
   ~Digitizer() = default;
 
   void init();

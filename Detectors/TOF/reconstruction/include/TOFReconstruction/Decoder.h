@@ -55,9 +55,9 @@ class Decoder : public WindowFiller
   void printCrateTrailerInfo(int icru) const;
   void printHitInfo(int icru) const;
 
-  static void fromRawHit2Digit(int icrate, int itrm, int itdc, int ichain, int channel, int orbit, int bunchid, int tdc, int tot, std::array<int, 4>& digitInfo); // convert raw info in digit info (channel, tdc, tot, bc), tdc = packetHit.time + (frameHeader.frameID << 13)
+  static void fromRawHit2Digit(int icrate, int itrm, int itdc, int ichain, int channel, int orbit, int bunchid, int tdc, int tot, std::array<int, 6>& digitInfo); // convert raw info in digit info (channel, tdc, tot, bc), tdc = packetHit.time + (frameHeader.frameID << 13)
 
-  char *nextPage(void *current,int shift=8192);
+  char* nextPage(void* current, int shift = 8192);
 
  protected:
   static const int NCRU = 4;
@@ -75,6 +75,8 @@ class Decoder : public WindowFiller
   long mSize[NCRU];
   Union_t* mUnion[NCRU];
   Union_t* mUnionEnd[NCRU];
+
+  int mHitDecoded = 0;
 
   o2::header::RAWDataHeader* mRDH;
 };

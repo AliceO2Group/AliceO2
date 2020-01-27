@@ -30,7 +30,7 @@ namespace tof
 class CompressedWriterTask : public Task
 {
  public:
-  CompressedWriterTask(){};
+  CompressedWriterTask() = default;
   ~CompressedWriterTask() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
