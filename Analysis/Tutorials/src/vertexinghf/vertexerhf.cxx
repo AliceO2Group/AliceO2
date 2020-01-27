@@ -12,8 +12,6 @@
 #include "Framework/AnalysisDataModel.h"
 #include "DetectorsBase/DCAFitter.h"
 #include "ReconstructionDataFormats/Track.h"
-//#include <ROOT/RDataframe.hxx>
-//#include <ROOT/RArrowDS.hxx>
 
 #include <TFile.h>
 #include <TH1F.h>
@@ -44,10 +42,6 @@ DECLARE_SOA_TABLE(SecVtx, "AOD", "SECVTX",
 using namespace o2;
 using namespace o2::framework;
 
-// This is a very simple example showing how to iterate over tracks
-// and create a new collection for them.
-// FIXME: this should really inherit from AnalysisTask but
-//        we need GCC 7.4+ for that
 struct ATask {
   Produces<aod::EtaPhi> etaphi;
 
@@ -67,7 +61,6 @@ struct VertexerHFTask {
   OutputObj<TH1F> hvtx_z_out{TH1F("hvtx_z", "2-track vtx", 100, -0.1, 0.1)};
   Produces<aod::SecVtx> secvtx;
 
-  //void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksCov> const& tracks)
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksCov> const& tracks)
   {
     LOGF(info, "Tracks for collision: %d", tracks.size());
@@ -92,22 +85,17 @@ struct VertexerHFTask {
                                          track2.cSnpSnp(), track2.cTglY(), track2.cTglZ(), track2.cTglSnp(), track2.cTglTgl(),
                                          track2.c1PtY(), track2.c1PtZ(), track2.c1PtSnp(), track2.c1PtTgl(), track2.c1Pt21Pt2()};
         o2::track::TrackParCov trackparvar2(x2_, alpha2_, arraypar2, covpar2);
-        //LOGF(info, "track2 %f", trackparvar2.getSigmaY2());
 
         df.setUseAbsDCA(true);
         int nCand = df.process(trackparvar1, trackparvar2);
         printf("\n\nTesting with abs DCA minimization: %d candidates found\n", nCand);
-        // we can have up to 2 candidates
         for (int ic = 0; ic < nCand; ic++) {
           const o2::base::DCAFitter::Triplet& vtx = df.getPCACandidate(ic);
           LOGF(info, "print %f", vtx.x);
-          //LOGF(info, "LABELELELELELLE %d", track2.index());
           hvtx_x_out->Fill(vtx.x);
           hvtx_y_out->Fill(vtx.y);
           hvtx_z_out->Fill(vtx.z);
           secvtx(vtx.x, vtx.y, -1, -1, -1.);
-          //secvtx(vtx.x, vtx.y, track1.index, track2.index, -1.);
-          //LOGF(info, "DONE");
         }
       }
     }
@@ -117,9 +105,6 @@ struct VertexerHFTask {
 struct SkimVtxTable {
   void process(aod::SecVtx const& secVtxs)
   {
-    //auto source = std::make_unique<ROOT::RDF::RArrowDS>(tracks.asArrowTable(), std::vector<std::string>{});
-    //ROOT::RDataFrame rdf(std::move(source));
-    //rdf.Snapshot("outputTree", "outputFile.root", {"fPosx", "fPosy"});
     for (auto& secVtx : secVtxs) {
       LOGF(INFO, "Consume the table (%f, %f)", secVtx.posx(), secVtx.posy());
       LOGF(INFO, "Labels tracks (%f, %f, %f)", secVtx.label0(), secVtx.label1(), secVtx.label2());
