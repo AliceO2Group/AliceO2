@@ -259,7 +259,7 @@ float GPUTPCClusterStatistics::Analyze(std::vector<int>& p, const char* name, bo
     mEntropy += entropy * total;
     mHuffman += huffmanSize * total;
   }
-  GPUInfo("Size: %30s: Entropy %7.4f Huffman %7.4f", name, entropy, huffmanSize);
+  GPUInfo("Size: %30s: Entropy %7.4f Huffman %7.4f (Count) %9lld", name, entropy, huffmanSize, (long long int)total);
   return entropy;
 }
 
