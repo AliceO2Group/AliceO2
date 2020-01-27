@@ -36,7 +36,7 @@ void* GPUTrackingInputProvider::SetPointersInputGPUOnly(void* mem)
 
 void GPUTrackingInputProvider::RegisterMemoryAllocation()
 {
-  mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersInputZS, GPUMemoryResource::MEMORY_GPU, "InputZS");
+  mResourceZS = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersInputZS, GPUMemoryResource::MEMORY_INPUT, "InputZS");
   mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersInputGPUOnly, GPUMemoryResource::MEMORY_INPUT | GPUMemoryResource::MEMORY_GPU, "InputGPU"); // TODO: move more here (example)
 }
 

@@ -186,8 +186,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   // Pointers to tracker classes
   GPUTrackingFlatObjects mFlatObjectsShadow; // Host copy of flat objects that will be used on the GPU
   GPUTrackingFlatObjects mFlatObjectsDevice; // flat objects that will be used on the GPU
+  std::unique_ptr<GPUTrackingInputProvider> mInputsHost;
   std::unique_ptr<GPUTrackingInputProvider> mInputsShadow;
-  std::unique_ptr<GPUTrackingInputProvider> mInputsDevice;
 
   // Display / QA
   std::unique_ptr<GPUDisplay> mEventDisplay;
