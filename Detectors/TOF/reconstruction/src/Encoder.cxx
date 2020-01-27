@@ -30,7 +30,7 @@ namespace raw
 Encoder::Encoder()
 {
   // intialize 72 buffers (one per crate)
-  for(int i=0;i < 72;i++){
+  for (int i = 0; i < 72; i++) {
     mIntegratedBytes[i] = 0;
     mBuffer[i] = nullptr;
     mUnion[i] = nullptr;
@@ -39,8 +39,9 @@ Encoder::Encoder()
   }
 }
 
-void Encoder::nextWord(int icrate){
-  if(mNextWordStatus[icrate]){
+void Encoder::nextWord(int icrate)
+{
+  if (mNextWordStatus[icrate]) {
     nextWordNoEmpty(icrate);
     mUnion[icrate]->data = 0;
     nextWordNoEmpty(icrate);
@@ -50,28 +51,28 @@ void Encoder::nextWord(int icrate){
   mNextWordStatus[icrate] = !mNextWordStatus[icrate];
 }
 
-void Encoder::nextWordNoEmpty(int icrate){
+void Encoder::nextWordNoEmpty(int icrate)
+{
   mUnion[icrate]++;
 
   // check if you went over the buffer size
-  int csize = getSize(mRDH[icrate],mUnion[icrate]);
-  if(csize >= Geo::RAW_PAGE_MAX_SIZE){
+  int csize = getSize(mRDH[icrate], mUnion[icrate]);
+  if (csize >= Geo::RAW_PAGE_MAX_SIZE) {
     addPage(icrate);
-  } 
-
+  }
 }
 
-bool Encoder::open(std::string name)
+bool Encoder::open(const std::string name)
 {
   bool status = false;
 
-  for(int i=0;i < NCRU;i++){
+  for (int i = 0; i < NCRU; i++) {
     std::string nametmp;
-    nametmp.append(Form("cru%02d",i));
+    nametmp.append(Form("cru%02d", i));
     nametmp.append(name);
-    printf("TOF Raw encoder: create stream to CRU: %s\n",nametmp.c_str());
+    printf("TOF Raw encoder: create stream to CRU: %s\n", nametmp.c_str());
     if (mFileCRU[i].is_open()) {
-      std::cout << "Warning: a file (" << i  << ") was already open, closing" << std::endl;
+      std::cout << "Warning: a file (" << i << ") was already open, closing" << std::endl;
       mFileCRU[i].close();
     }
     mFileCRU[i].open(nametmp.c_str(), std::fstream::out | std::fstream::binary);
@@ -79,45 +80,48 @@ bool Encoder::open(std::string name)
       std::cerr << "Cannot open " << nametmp << std::endl;
       status = true;
     }
-
   }
 
   return status;
 }
 
-bool Encoder::flush(int icrate){
-  if(mIntegratedBytes[icrate]){
+bool Encoder::flush(int icrate)
+{
+  if (mIntegratedBytes[icrate]) {
     mIntegratedAllBytes += mIntegratedBytes[icrate];
     mIntegratedBytes[icrate] = 0;
     mUnion[icrate] = mStart[icrate];
   }
+  return false;
 }
 
 bool Encoder::flush()
 {
-  bool allempty=true;
-  for(int i=0;i < 72;i++)
-    if(mIntegratedBytes[i]) allempty = false;
+  bool allempty = true;
+  for (int i = 0; i < 72; i++)
+    if (mIntegratedBytes[i])
+      allempty = false;
 
-  if(allempty) return true;
+  if (allempty)
+    return true;
 
   // write superpages
-  for(int i=0;i < 72;i++){
-    int icru = i/NLINKSPERCRU;
+  for (int i = 0; i < 72; i++) {
+    int icru = i / NLINKSPERCRU;
     mFileCRU[icru].write(mBuffer[i], mIntegratedBytes[i]);
   }
 
-  for(int i=0;i < 72;i++)
+  for (int i = 0; i < 72; i++)
     flush(i);
-  
-  memset(mBuffer[0], 0, mSize*72);
+
+  memset(mBuffer[0], 0, mSize * 72);
 
   return false;
 }
 
 bool Encoder::close()
 {
-  for(int i=0;i < NCRU;i++)
+  for (int i = 0; i < NCRU; i++)
     if (mFileCRU[i].is_open())
       mFileCRU[i].close();
   return false;
@@ -125,19 +129,20 @@ bool Encoder::close()
 
 bool Encoder::alloc(long size)
 {
-  if(size < 500000) size = 500000;
+  if (size < 500000)
+    size = 500000;
 
   mSize = size;
 
-  mBufferLocal.resize(size*72);
+  mBufferLocal.resize(size * 72);
 
   mBuffer[0] = mBufferLocal.data();
-  memset(mBuffer[0], 0, mSize*72);
+  memset(mBuffer[0], 0, mSize * 72);
   mStart[0] = reinterpret_cast<Union_t*>(mBuffer[0]);
   mUnion[0] = mStart[0]; // rewind
 
-  for(int i=1;i < 72;i++){
-    mBuffer[i] = mBuffer[i-1]+size;
+  for (int i = 1; i < 72; i++) {
+    mBuffer[i] = mBuffer[i - 1] + size;
     mStart[i] = reinterpret_cast<Union_t*>(mBuffer[i]);
     mUnion[i] = mStart[i]; // rewind
   }
@@ -148,7 +153,8 @@ void Encoder::encodeTRM(const std::vector<Digit>& summary, Int_t icrate, Int_t i
 // return next TRM index (-1 if not in the same crate)
 // start to convert digiti from istart --> then update istart to the starting position of the new TRM
 {
-  if(mVerbose) printf("Crate %d: encode TRM %d \n",icrate,itrm);
+  if (mVerbose)
+    printf("Crate %d: encode TRM %d \n", icrate, itrm);
 
   // TRM HEADER
   mUnion[icrate]->trmDataHeader.slotId = itrm;
@@ -159,39 +165,46 @@ void Encoder::encodeTRM(const std::vector<Digit>& summary, Int_t icrate, Int_t i
   nextWord(icrate);
 
   // LOOP OVER CHAINS
-  for(int ichain=0;ichain < 2; ichain++){
+  for (int ichain = 0; ichain < 2; ichain++) {
     // CHAIN HEADER
     mUnion[icrate]->trmChainHeader.slotId = itrm;
     mUnion[icrate]->trmChainHeader.bunchCnt = mIR.bc;
     mUnion[icrate]->trmChainHeader.mbz = 0;
-    mUnion[icrate]->trmChainHeader.dataId = 2*ichain;
+    mUnion[icrate]->trmChainHeader.dataId = 2 * ichain;
     nextWord(icrate);
-    
-    while(istart < summary.size()){ // fill hits
+
+    while (istart < summary.size()) { // fill hits
       /** loop over hits **/
       int whatChain = summary[istart].getElChainIndex();
-      if (whatChain != ichain) break;
+      if (whatChain != ichain)
+        break;
       int whatTRM = summary[istart].getElTRMIndex();
-      if (whatTRM != itrm) break;
+      if (whatTRM != itrm)
+        break;
       int whatCrate = summary[istart].getElCrateIndex();
-      if (whatCrate != icrate) break;
-      
+      if (whatCrate != icrate)
+        break;
+
       int hittimeTDC = (summary[istart].getBC() - mEventCounter * Geo::BC_IN_WINDOW) * 1024 + summary[istart].getTDC(); // time in TDC bin within the TOF WINDOW
-      
+
+      if (hittimeTDC < 0) {
+        LOG(ERROR) << "Negative hit encoded " << hittimeTDC << ", something went wrong in filling readout window";
+        printf("%d %d %d\n", summary[istart].getBC(), mEventCounter * Geo::BC_IN_WINDOW, summary[istart].getTDC());
+      }
       // leading time
       mUnion[icrate]->trmDataHit.time = hittimeTDC;
       mUnion[icrate]->trmDataHit.chanId = summary[istart].getElChIndex();
       mUnion[icrate]->trmDataHit.tdcId = summary[istart].getElTDCIndex();
       mUnion[icrate]->trmDataHit.dataId = 0xa;
       nextWord(icrate);
-      
+
       // trailing time
-      mUnion[icrate]->trmDataHit.time = hittimeTDC + summary[istart].getTOT()*Geo::RATIO_TOT_TDC_BIN;
+      mUnion[icrate]->trmDataHit.time = hittimeTDC + summary[istart].getTOT() * Geo::RATIO_TOT_TDC_BIN;
       mUnion[icrate]->trmDataHit.chanId = summary[istart].getElChIndex();
       mUnion[icrate]->trmDataHit.tdcId = summary[istart].getElTDCIndex();
       mUnion[icrate]->trmDataHit.dataId = 0xc;
       nextWord(icrate);
-      
+
       istart++;
     }
 
@@ -199,7 +212,7 @@ void Encoder::encodeTRM(const std::vector<Digit>& summary, Int_t icrate, Int_t i
     mUnion[icrate]->trmChainTrailer.status = 0;
     mUnion[icrate]->trmChainTrailer.mbz = 0;
     mUnion[icrate]->trmChainTrailer.eventCnt = mEventCounter;
-    mUnion[icrate]->trmChainTrailer.dataId = 1 + 2*ichain;
+    mUnion[icrate]->trmChainTrailer.dataId = 1 + 2 * ichain;
     nextWord(icrate);
   }
 
@@ -217,39 +230,43 @@ void Encoder::encodeTRM(const std::vector<Digit>& summary, Int_t icrate, Int_t i
 
 bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int tofwindow) // pass a vector of digits in a TOF readout window, tof window is the entry in the vector-of-vector of digits needed to extract bunch id and orbit
 {
-  if(digitWindow.size() != Geo::NWINDOW_IN_ORBIT){
-    printf("Something went wrong in encoding: digitWindow=%d different from %d\n",digitWindow.size(),Geo::NWINDOW_IN_ORBIT);
+  if (digitWindow.size() != Geo::NWINDOW_IN_ORBIT) {
+    printf("Something went wrong in encoding: digitWindow=%lu different from %d\n", digitWindow.size(), Geo::NWINDOW_IN_ORBIT);
     return 999;
   }
 
-  for(int i=0;i < 72;i++){
-    if(mIntegratedBytes[i] + 100000 > mSize)
+  for (int i = 0; i < 72; i++) {
+    if (mIntegratedBytes[i] + 100000 > mSize)
       flush();
   }
 
-  for (int iwin=0; iwin < Geo::NWINDOW_IN_ORBIT; iwin++) {
-    std::vector<o2::tof::Digit> &summary = digitWindow.at(iwin);
+  for (int iwin = 0; iwin < Geo::NWINDOW_IN_ORBIT; iwin++) {
+    std::vector<o2::tof::Digit>& summary = digitWindow.at(iwin);
     // caching electronic indexes in digit array
     for (auto dig = summary.begin(); dig != summary.end(); dig++) {
       int digitchannel = dig->getChannel();
       dig->setElectronicIndex(Geo::getECHFromCH(digitchannel));
     }
-    
+
     // sorting by electroni indexes
     std::sort(summary.begin(), summary.end(),
-	      [](Digit a, Digit b) { return a.getElectronicIndex() < b.getElectronicIndex(); });
+              [](Digit a, Digit b) { return a.getElectronicIndex() < b.getElectronicIndex(); });
   }
-  
+
 #ifdef VERBOSE
   if (mVerbose)
     std::cout << "-------- START ENCODE EVENT ----------------------------------------" << std::endl;
 #endif
   auto start = std::chrono::high_resolution_clock::now();
 
-    mEventCounter = tofwindow; // tof window index
-    mIR.orbit = mEventCounter / Geo::NWINDOW_IN_ORBIT; // since 3 tof window = 1 orbit
+  mEventCounter = tofwindow; // tof window index
+  mIR.orbit = mEventCounter / Geo::NWINDOW_IN_ORBIT;
 
-  for(int i=0;i < 72;i++){
+  if (!(mIR.orbit % 256)) { // new TF
+    flush();
+  }
+
+  for (int i = 0; i < 72; i++) {
     // add RDH open
     mRDH[i] = reinterpret_cast<o2::header::RAWDataHeader*>(mUnion[i]);
     mNextWordStatus[i] = false;
@@ -257,30 +274,30 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
   }
 
   // encode all windows
-  for (int iwin=0; iwin < Geo::NWINDOW_IN_ORBIT; iwin++) {
-    mEventCounter = tofwindow+iwin;                                                                       // tof window index
+  for (int iwin = 0; iwin < Geo::NWINDOW_IN_ORBIT; iwin++) {
+    mEventCounter = tofwindow + iwin; // tof window index
 
-    std::vector<o2::tof::Digit> &summary = digitWindow.at(iwin);
+    std::vector<o2::tof::Digit>& summary = digitWindow.at(iwin);
 
     mIR.bc = ((mEventCounter % Geo::NWINDOW_IN_ORBIT) * Geo::BC_IN_ORBIT) / Geo::NWINDOW_IN_ORBIT; // bunch crossing in the current orbit at the beginning of the window
 
     int icurrentdigit = 0;
     // TOF data header
-    for(int i=0;i < 72;i++){
+    for (int i = 0; i < 72; i++) {
       mTOFDataHeader[i] = reinterpret_cast<TOFDataHeader_t*>(mUnion[i]);
-      mTOFDataHeader[i]->bytePayload=0; // event length in byte (to be filled later)
-      mTOFDataHeader[i]->mbz=0;
-      mTOFDataHeader[i]->dataId=4;
+      mTOFDataHeader[i]->bytePayload = 0; // event length in byte (to be filled later)
+      mTOFDataHeader[i]->mbz = 0;
+      mTOFDataHeader[i]->dataId = 4;
       nextWord(i);
 
       mUnion[i]->tofOrbit.orbit = mIR.orbit;
       nextWord(i);
 
       mDRMDataHeader[i] = reinterpret_cast<DRMDataHeader_t*>(mUnion[i]);
-      mDRMDataHeader[i]->slotId =1;
-      mDRMDataHeader[i]->eventWords =0; // event length in word (to be filled later) --> word = byte/4
-      mDRMDataHeader[i]->drmId =i;
-      mDRMDataHeader[i]->dataId =4;
+      mDRMDataHeader[i]->slotId = 1;
+      mDRMDataHeader[i]->eventWords = 0; // event length in word (to be filled later) --> word = byte/4
+      mDRMDataHeader[i]->drmId = i;
+      mDRMDataHeader[i]->dataId = 4;
       nextWord(i);
 
       mUnion[i]->drmHeadW1.slotId = 1;
@@ -293,7 +310,7 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
       nextWord(i);
 
       mUnion[i]->drmHeadW2.slotId = 1;
-      mUnion[i]->drmHeadW2.enaSlotMask =  (i % 2 == 0 ? 0x7fc : 0x7fe);
+      mUnion[i]->drmHeadW2.enaSlotMask = (i % 2 == 0 ? 0x7fc : 0x7fe);
       mUnion[i]->drmHeadW2.mbz = 0;
       mUnion[i]->drmHeadW2.faultSlotMask = 0;
       mUnion[i]->drmHeadW2.readoutTimeOut = 0;
@@ -321,11 +338,11 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
       mUnion[i]->drmHeadW5.dataId = 4;
       nextWord(i);
 
-      int trm0 = 4 - (i%2);
-      for(int itrm=trm0;itrm < 13;itrm++){
-	encodeTRM(summary,i,itrm,icurrentdigit);
+      int trm0 = 4 - (i % 2);
+      for (int itrm = trm0; itrm < 13; itrm++) {
+        encodeTRM(summary, i, itrm, icurrentdigit);
       }
-      
+
       mUnion[i]->drmDataTrailer.slotId = 1;
       mUnion[i]->drmDataTrailer.locEvCnt = mEventCounter;
       mUnion[i]->drmDataTrailer.mbz = 0;
@@ -334,26 +351,26 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
       mUnion[i]->data = 0x70000000;
       nextWord(i);
 
-      mTOFDataHeader[i]->bytePayload = getSize(mTOFDataHeader[i],mUnion[i]);
+      mTOFDataHeader[i]->bytePayload = getSize(mTOFDataHeader[i], mUnion[i]);
       mDRMDataHeader[i]->eventWords = mTOFDataHeader[i]->bytePayload / 4;
     }
-    
+
     // check that all digits were used
-    if(icurrentdigit < summary.size()){
+    if (icurrentdigit < summary.size()) {
       LOG(ERROR) << "Not all digits are been used : only " << icurrentdigit << " of " << summary.size();
     }
   }
 
-  for(int i=0;i < 72;i++){
+  for (int i = 0; i < 72; i++) {
     // adjust RDH open with the size
-    mRDH[i]->memorySize = getSize(mRDH[i],mUnion[i]);
+    mRDH[i]->memorySize = getSize(mRDH[i], mUnion[i]);
     mRDH[i]->offsetToNext = mRDH[i]->memorySize;
     mIntegratedBytes[i] += mRDH[i]->offsetToNext;
 
     // add RDH close
     closeRDH(i);
     mIntegratedBytes[i] += mRDH[i]->offsetToNext;
-    mUnion[i] = reinterpret_cast<Union_t *>(nextPage(mRDH[i],mRDH[i]->offsetToNext));
+    mUnion[i] = reinterpret_cast<Union_t*>(nextPage(mRDH[i], mRDH[i]->offsetToNext));
   }
 
   mStartRun = false;
@@ -364,7 +381,7 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
 
 #ifdef VERBOSE
   int allBytes = mIntegratedAllBytes;
-  for(int i=0;i < 72;i++)
+  for (int i = 0; i < 72; i++)
     allBytes += mIntegratedBytes[i];
   if (mVerbose && mIntegratedTime)
     std::cout << "-------- END ENCODE EVENT ------------------------------------------"
@@ -377,31 +394,32 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
   return false;
 }
 
-void Encoder::openRDH(int icrate){    
+void Encoder::openRDH(int icrate)
+{
   *mRDH[icrate] = mHBFSampler.createRDH<o2::header::RAWDataHeader>(mIR);
 
   // word1
   mRDH[icrate]->memorySize = mRDH[icrate]->headerSize;
   mRDH[icrate]->offsetToNext = mRDH[icrate]->memorySize;
-  mRDH[icrate]->linkID = icrate%NLINKSPERCRU;
+  mRDH[icrate]->linkID = icrate % NLINKSPERCRU;
   mRDH[icrate]->packetCounter = mNRDH[icrate];
-  mRDH[icrate]->cruID = icrate/NCRU;
+  mRDH[icrate]->cruID = icrate / NLINKSPERCRU;
   mRDH[icrate]->feeId = icrate;
 
   // word2
-  mRDH[icrate]->triggerOrbit = 0; // to be checked
+  mRDH[icrate]->triggerOrbit = mIR.orbit; // to be checked
   mRDH[icrate]->heartbeatOrbit = mIR.orbit;
-  
+
   // word4
   mRDH[icrate]->triggerBC = 0; // to be checked (it should be constant)
   mRDH[icrate]->heartbeatBC = 0;
-  mRDH[icrate]->triggerType = o2::trigger::HB|o2::trigger::ORBIT;
-  if(mStartRun){
-    //    mRDH[icrate]->triggerType |= mIsContinuous ? o2::trigger::SOC : o2::trigger::SOT; 
-    mRDH[icrate]->triggerType |= o2::trigger::SOT; 
+  mRDH[icrate]->triggerType = o2::trigger::HB | o2::trigger::ORBIT;
+  if (mStartRun) {
+    //    mRDH[icrate]->triggerType |= mIsContinuous ? o2::trigger::SOC : o2::trigger::SOT;
+    mRDH[icrate]->triggerType |= o2::trigger::SOT;
   }
-  if(!(mIR.orbit%256))
-    mRDH[icrate]->triggerType |= o2::trigger::TF; 
+  if (!(mIR.orbit % 256))
+    mRDH[icrate]->triggerType |= o2::trigger::TF;
 
   // word6
   mRDH[icrate]->pageCnt = 0;
@@ -412,9 +430,10 @@ void Encoder::openRDH(int icrate){
   mNRDH[icrate]++;
 }
 
-void Encoder::addPage(int icrate){   
+void Encoder::addPage(int icrate)
+{
   // adjust RDH open with the size
-  mRDH[icrate]->memorySize = getSize(mRDH[icrate],mUnion[icrate]);
+  mRDH[icrate]->memorySize = getSize(mRDH[icrate], mUnion[icrate]);
   mRDH[icrate]->offsetToNext = mRDH[icrate]->memorySize;
   mIntegratedBytes[icrate] += mRDH[icrate]->offsetToNext;
 
@@ -423,59 +442,62 @@ void Encoder::addPage(int icrate){
   int pgCnt = mRDH[icrate]->pageCnt + 1;
 
   // move to next RDH
-  mRDH[icrate] = reinterpret_cast<o2::header::RAWDataHeader*>(nextPage(mRDH[icrate],mRDH[icrate]->offsetToNext));
+  mRDH[icrate] = reinterpret_cast<o2::header::RAWDataHeader*>(nextPage(mRDH[icrate], mRDH[icrate]->offsetToNext));
 
   openRDH(icrate);
   mRDH[icrate]->pageCnt = pgCnt;
 }
 
-void Encoder::closeRDH(int icrate){
+void Encoder::closeRDH(int icrate)
+{
   int pgCnt = mRDH[icrate]->pageCnt + 1;
 
-  mRDH[icrate] = reinterpret_cast<o2::header::RAWDataHeader*>(nextPage(mRDH[icrate],mRDH[icrate]->offsetToNext));
+  mRDH[icrate] = reinterpret_cast<o2::header::RAWDataHeader*>(nextPage(mRDH[icrate], mRDH[icrate]->offsetToNext));
 
   *mRDH[icrate] = mHBFSampler.createRDH<o2::header::RAWDataHeader>(mIR);
 
-  mRDH[icrate]->stop = 0x1; 
+  mRDH[icrate]->stop = 0x1;
 
-   // word1
+  // word1
   mRDH[icrate]->memorySize = mRDH[icrate]->headerSize;
   mRDH[icrate]->offsetToNext = mRDH[icrate]->memorySize;
-  mRDH[icrate]->linkID = icrate%NLINKSPERCRU;
+  mRDH[icrate]->linkID = icrate % NLINKSPERCRU;
   mRDH[icrate]->packetCounter = mNRDH[icrate];
-  mRDH[icrate]->cruID = icrate/NCRU;
+  mRDH[icrate]->cruID = icrate / NLINKSPERCRU;
   mRDH[icrate]->feeId = icrate;
 
   // word2
-  mRDH[icrate]->triggerOrbit = 0; // to be checked
+  mRDH[icrate]->triggerOrbit = mIR.orbit; // to be checked
   mRDH[icrate]->heartbeatOrbit = mIR.orbit;
-  
+
   // word4
   mRDH[icrate]->triggerBC = 0; // to be checked (it should be constant)
   mRDH[icrate]->heartbeatBC = 0;
-  mRDH[icrate]->triggerType = o2::trigger::HB|o2::trigger::ORBIT;
-  if(mStartRun){
-    //    mRDH[icrate]->triggerType |= mIsContinuous ? o2::trigger::SOC : o2::trigger::SOT; 
-    mRDH[icrate]->triggerType |= o2::trigger::SOT; 
+  mRDH[icrate]->triggerType = o2::trigger::HB | o2::trigger::ORBIT;
+  if (mStartRun) {
+    //    mRDH[icrate]->triggerType |= mIsContinuous ? o2::trigger::SOC : o2::trigger::SOT;
+    mRDH[icrate]->triggerType |= o2::trigger::SOT;
   }
-  if(!(mIR.orbit%256))
-    mRDH[icrate]->triggerType |= o2::trigger::TF; 
+  if (!(mIR.orbit % 256))
+    mRDH[icrate]->triggerType |= o2::trigger::TF;
 
   // word6
   mRDH[icrate]->pageCnt = pgCnt;
   mNRDH[icrate]++;
 }
 
-char *Encoder::nextPage(void *current,int step){
-  char *point = reinterpret_cast<char *>(current);
+char* Encoder::nextPage(void* current, int step)
+{
+  char* point = reinterpret_cast<char*>(current);
   point += step;
 
   return point;
 }
 
-int Encoder::getSize(void *first,void *last){
-  char *in = reinterpret_cast<char *>(first);
-  char *out = reinterpret_cast<char *>(last);
+int Encoder::getSize(void* first, void* last)
+{
+  char* in = reinterpret_cast<char*>(first);
+  char* out = reinterpret_cast<char*>(last);
 
   return int(out - in);
 }

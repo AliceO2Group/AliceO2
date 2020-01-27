@@ -139,7 +139,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
         hits.clear();
         retrieveHits(*simChains.get(), "TOFHit", part.sourceID, part.entryID, &hits);
 
-        LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
+        //        LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
 
         // call actual digitization procedure
         labels->clear();
@@ -148,7 +148,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
         // copy digits into accumulator
         //std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
         //labelAccum.mergeAtBack(*labels);
-        LOG(INFO) << "Have " << digits->size() << " digits ";
+        //        LOG(INFO) << "Have " << digits->size() << " digits ";
       }
     }
     if (digitizer->isContinuous()) {
@@ -163,11 +163,11 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
     std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* mcLabVecOfVec = digitizer->getMCTruthPerTimeFrame();
 
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-    pc.outputs().snapshot(Output{"TOF", "DIGITS", 0, Lifetime::Timeframe}, *digitsVector);
-    pc.outputs().snapshot(Output{"TOF", "DIGITSMCTR", 0, Lifetime::Timeframe}, *mcLabVecOfVec);
-    pc.outputs().snapshot(Output{"TOF", "READOUTWINDOW", 0, Lifetime::Timeframe}, *readoutwindow);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, *digitsVector);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe}, *mcLabVecOfVec);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, *readoutwindow);
     LOG(INFO) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{"TOF", "ROMode", 0, Lifetime::Timeframe}, roMode);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}, roMode);
 
     timer.Stop();
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
@@ -216,16 +216,16 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
   std::vector<InputSpec> inputs;
   inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   if (useCCDB) {
-    inputs.emplace_back("tofccdbLHCphase", "TOF", "LHCphase");
-    inputs.emplace_back("tofccdbChannelCalib", "TOF", "ChannelCalib");
+    inputs.emplace_back("tofccdbLHCphase", o2::header::gDataOriginTOF, "LHCphase");
+    inputs.emplace_back("tofccdbChannelCalib", o2::header::gDataOriginTOF, "ChannelCalib");
   }
   return DataProcessorSpec{
     "TOFDigitizer",
     inputs,
-    Outputs{OutputSpec{"TOF", "DIGITS", 0, Lifetime::Timeframe},
-	    OutputSpec{"TOF", "READOUTWINDOW", 0, Lifetime::Timeframe},
-            OutputSpec{"TOF", "DIGITSMCTR", 0, Lifetime::Timeframe},
-            OutputSpec{"TOF", "ROMode", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe},
+            OutputSpec{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe},
+            OutputSpec{o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe},
+            OutputSpec{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}},
     AlgorithmSpec{initIt},
     Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
             {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},

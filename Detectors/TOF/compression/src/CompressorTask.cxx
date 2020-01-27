@@ -41,9 +41,9 @@ void CompressorTask::init(InitContext& ic)
   mCompressor.setCheckerVerbose(checkerVerbose);
 
   auto finishFunction = [this]() {
-    LOG(INFO) << "Compressor finish";
     mCompressor.checkSummary();
   };
+
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
 }
 
@@ -58,14 +58,13 @@ void CompressorTask::run(ProcessingContext& pc)
     auto payloadSize = header->payloadSize;
     mCompressor.setDecoderBuffer(payload);
     mCompressor.setDecoderBufferSize(payloadSize);
-    
+
     /** run **/
     mCompressor.run();
-    
+
     /** push output **/
     mDataFrame.mSize = mCompressor.getEncoderByteCounter();
-    pc.outputs().snapshot(Output{"TOF", "CMPDATAFRAME", 0, Lifetime::Timeframe}, mDataFrame);
-
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CMPDATAFRAME", 0, Lifetime::Timeframe}, mDataFrame);
   }
 }
 
@@ -77,7 +76,7 @@ DataProcessorSpec CompressorTask::getSpec()
   return DataProcessorSpec{
     "tof-compressor",
     select("x:TOF/RAWDATA"),
-    Outputs{OutputSpec("TOF", "CMPDATAFRAME", 0, Lifetime::Timeframe)},
+    Outputs{OutputSpec(o2::header::gDataOriginTOF, "CMPDATAFRAME", 0, Lifetime::Timeframe)},
     AlgorithmSpec{adaptFromTask<CompressorTask>()},
     Options{
       {"tof-compressor-decoder-verbose", VariantType::Bool, false, {"Decoder verbose flag"}},

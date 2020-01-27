@@ -15,7 +15,7 @@
 #include <TParameter.h>
 #include <TStopwatch.h>
 
-#include "GlobalTracking/CalibTOF.h"
+#include "TOFCalibration/CalibTOF.h"
 
 #include <string>
 #include <sys/wait.h>

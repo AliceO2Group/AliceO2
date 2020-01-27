@@ -17,7 +17,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "ReconstructionDataFormats/PID.h"
 
-#include "GlobalTracking/CalibTOF.h"
+#include "TOFCalibration/CalibTOF.h"
 
 #include "CommonConstants/LHCConstants.h"
 
@@ -415,8 +415,8 @@ float CalibTOF::doChannelCalibration(int ipad, TH1F* histo, TF1* funcChOffset)
   float sigma = funcChOffset->GetParameter(2);
   float intmin = mean - 5 * sigma;
   float intmax = mean + 5 * sigma;
-  float intmin2 = -25000;
-  float intmax2 = -25000;
+  float intmin2;
+  float intmax2;
 
   // if peak is at the border of our bunch-crossing window (-12.5:12.5 ns)
   // continue to extrapolate gaussian integral from the other border

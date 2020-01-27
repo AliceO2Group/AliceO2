@@ -17,8 +17,8 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "TOFReconstruction/Decoder.h" 
-#include "TOFBase/Digit.h" 
+#include "TOFReconstruction/Decoder.h"
+#include "TOFBase/Digit.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
@@ -32,7 +32,7 @@ namespace tof
 class RawReader : public Task
 {
  public:
-  RawReader() {}
+  RawReader() = default;
   ~RawReader() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
