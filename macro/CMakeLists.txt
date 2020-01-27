@@ -162,6 +162,7 @@ o2_add_test_root_macro(
                                              O2::TOFSimulation
                                              O2::EMCALBase
                                              O2::TRDSimulation
+                                             O2::FV0Simulation
                                              O2::FT0Simulation
                                              O2::DataFormatsFV0
                                              O2::HMPIDBase
