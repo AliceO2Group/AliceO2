@@ -71,169 +71,168 @@ const static std::unordered_map<OutputObjHandlingPolicy, std::string> ROOTfileNa
 
 void CommonDataProcessors::table2tree(TTree* tout, std::shared_ptr<arrow::Table> table)
 {
+  
+  // loop over the columns
+  for (int ii=0; ii<table->num_columns(); ii++)
+  {                                                                              
+    // get column information
+    TBranch *br = nullptr;
+    auto col = table->column(ii);
+    const char *cname = col->name().c_str();
+    auto chs = col->data()->chunks();
+    LOG(DEBUG) << "number of chunks " << chs.size() << std::endl;
+    LOG(DEBUG) << " column type " << col->type()->ToString() << std::endl;
 
-  // loop over the columns                                                                 
-  for (int ii=0; ii<table->num_columns(); ii++)                                            
-  {                                                                                        
-                                                                                           
-    // get column information                                                              
-    auto col = table->column(ii);                                                          
-    auto chs = col->data()->chunks();                                                      
-    LOG(DEBUG) << "number of chunks " << chs.size() << std::endl;                          
-    LOG(DEBUG)  << " column type " << col->type()->ToString() << std::endl;                
-                                                                                           
-    // what follows is an ugly switch                                                      
-    // the cases cover the different data types of the branches                            
-    auto cdt = col->type()->id();                                                          
-    switch (cdt) {                                                                         
-    case arrow::Type::type::FLOAT:                                                         
-      {                                                                                    
-        LOG(DEBUG) << "case FLOAT" << std::endl;                                           
-        Float_t dbuf;                                                     
-        TBranch *br = tout->Branch(col->name().c_str(),&dbuf);                             
-        for(auto const& ch: chs)                                                           
-        {                                                                                  
+    // what follows is an ugly switch
+    // the cases cover the different data types of the branches
+    auto cdt = col->type()->id();
+    switch (cdt) {
+    
+    case arrow::Type::type::FLOAT:
+      {
+        LOG(DEBUG) << "case FLOAT" << std::endl;
+        Float_t dbuf;
+        br = tout->Branch(cname,&dbuf);                             
+        for(auto const& ch: chs)
+        { 
           auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::FloatType>>(ch);   
-          for (int jj=0; jj<ch->length(); jj++)                                            
-          {                                                                                
-            dbuf = p->Value(jj);                                                        
-            // the following if-clause is needed to have all branches filled properly      
-            if (ii==0) { tout->Fill(); } else { br->Fill(); }                                 
-          }                                                                                
-        }                                                                                  
-        tout->Write("", TObject::kOverwrite);                                                 
-        break;                                                                             
-      }                                                                                    
-                                                                                           
-    case arrow::Type::type::DOUBLE:                                                        
-      {                                                                                    
-        LOG(DEBUG) << "case DOUBLE" << std::endl;                                          
+          for (int jj=0; jj<ch->length(); jj++)
+          {
+            dbuf = p->Value(jj);
+            // the following if-clause is needed to have all branches filled properly
+            if (ii==0) { tout->Fill(); } else { br->Fill(); }
+          }
+        }
+        break;
+      }
+
+    case arrow::Type::type::DOUBLE:
+      {
+        LOG(DEBUG) << "case DOUBLE" << std::endl;
         Double_t dbuf;                                                   
-        TBranch *br = tout->Branch(col->name().c_str(),&dbuf);                             
-        for(auto const& ch: chs)                                                           
-        {                                                                                  
-          auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::DoubleType>>(ch);  
-          for (int jj=0; jj<ch->length(); jj++)                                            
-          {                                                                                
-            dbuf = p->Value(jj);                                                        
-            if (ii==0) { tout->Fill(); } else { br->Fill(); }                                 
-          }                                                                                
-        }                                                                                  
-        tout->Write("", TObject::kOverwrite);                                                 
-        break;                                                                             
-      }                                                                                    
-                                                                                           
-    case arrow::Type::type::UINT16:                                                        
-      {                                                                                    
-        LOG(DEBUG) << "case UINT" << std::endl;                                            
+        br = tout->Branch(cname,&dbuf);                             
+        for(auto const& ch: chs)
+        {
+          auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::DoubleType>>(ch);
+          for (int jj=0; jj<ch->length(); jj++)
+          {
+            dbuf = p->Value(jj);
+            if (ii==0) { tout->Fill(); } else { br->Fill(); }
+          }
+        }
+        break;
+      }
+
+    case arrow::Type::type::UINT16:
+      {
+        LOG(DEBUG) << "case UINT" << std::endl;
         UShort_t dbuf;                                                   
-        TBranch *br = tout->Branch(col->name().c_str(),&dbuf);                             
-        for(auto const& ch: chs)                                                           
+        br = tout->Branch(cname,&dbuf);                             
+        for(auto const& ch: chs)
+        {
+          auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt16Type>>(ch);
+          for (int jj=0; jj<ch->length(); jj++)
+          {
+            dbuf = p->Value(jj);
+            if (ii==0) { tout->Fill(); } else { br->Fill(); }
+          }
+        }
+        break;
+      }
+
+    case arrow::Type::type::UINT32:
+      {
+        LOG(DEBUG) << "case UINT" << std::endl;
+        UInt_t dbuf = UInt_t();
+        br = tout->Branch(cname,&dbuf);                             
+        for(auto const& ch: chs)
         {                                                                                  
-          auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt16Type>>(ch);  
-          for (int jj=0; jj<ch->length(); jj++)                                            
-          {                                                                                
-            dbuf = p->Value(jj);                                                        
-            if (ii==0) { tout->Fill(); } else { br->Fill(); }                                 
-          }                                                                                
-        }                                                                                  
-        tout->Write("", TObject::kOverwrite);                                                 
-        break;                                                                             
-      }                                                                                    
-                                                                                           
-    case arrow::Type::type::UINT32:                                                        
-      {                                                                                    
-        LOG(DEBUG) << "case UINT" << std::endl;                                            
-        UInt_t dbuf = UInt_t();                                                       
-        TBranch *br = tout->Branch(col->name().c_str(),&dbuf);                             
-        for(auto const& ch: chs)                                                           
-        {                                                                                  
-          auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt32Type>>(ch);  
-          for (int jj=0; jj<ch->length(); jj++)                                            
-          {                                                                                
-            dbuf = p->Value(jj);                                                        
-            if (ii==0) { tout->Fill(); } else { br->Fill(); }                                 
-          }                                                                                
-        }                                                                                  
-        tout->Write("", TObject::kOverwrite);                                                 
-        break;                                                                             
-      }                                                                                    
-                                                                                           
-    case arrow::Type::type::UINT64:                                                        
-      {                                                                                    
-        LOG(DEBUG) << "case UINT64" << std::endl;                                          
-        ULong64_t dbuf = ULong64_t();                                                 
-        TBranch *br = tout->Branch(col->name().c_str(),&dbuf);                             
-        for(auto const& ch: chs)                                                           
-        {                                                                                  
+auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt32Type>>(ch);
+          for (int jj=0; jj<ch->length(); jj++)
+          {
+            dbuf = p->Value(jj);
+            if (ii==0) { tout->Fill(); } else { br->Fill(); }
+          }
+        }
+        break;
+      }
+
+    case arrow::Type::type::UINT64:
+      {
+        LOG(DEBUG) << "case UINT64" << std::endl;
+        ULong64_t dbuf = ULong64_t();
+        br = tout->Branch(cname,&dbuf);                             
+        for(auto const& ch: chs)
+        {
           auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt64Type>>(ch);  
-          for (int jj=0; jj<ch->length(); jj++)                                            
-          {                                                                                
-            dbuf = p->Value(jj);                                                        
-            if (ii==0) { tout->Fill(); } else { br->Fill(); }                                 
-          }                                                                                
-        }                                                                                  
-        tout->Write("", TObject::kOverwrite);                                                 
-        break;                                                                             
-      }                                                                                    
-                                                                                           
-    case arrow::Type::type::INT16:                                                         
-      {                                                                                    
-        LOG(DEBUG) << "case INT16" << std::endl;                                           
-        Short_t dbuf = Short_t();                                                     
-        TBranch *br = tout->Branch(col->name().c_str(),&dbuf);                             
-        for(auto const& ch: chs)                                                           
-        {                                                                                  
-          auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int16Type>>(ch);   
-          for (int jj=0; jj<ch->length(); jj++)                                            
-          {                                                                                
-            dbuf = p->Value(jj);                                                        
-            if (ii==0) { tout->Fill(); } else { br->Fill(); }                                 
-          }                                                                                
-        }                                                                                  
-        tout->Write("", TObject::kOverwrite);                                                 
-        break;                                                                             
-      }                                                                                    
-                                                                                           
-    case arrow::Type::type::INT32:                                                         
-      {                                                                                    
-        LOG(DEBUG) << "case INT" << std::endl;                                             
-        Int_t dbuf = Int_t();                                                         
-        TBranch *br = tout->Branch(col->name().c_str(),&dbuf);                             
-        for(auto const& ch: chs)                                                           
-        {                                                                                  
-          auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(ch);   
-          for (int jj=0; jj<ch->length(); jj++)                                            
-          {                                                                                
-            dbuf = p->Value(jj);                                                        
-            if (ii==0) { tout->Fill(); } else { br->Fill(); }                                 
-          }                                                                                
-        }                                                                                  
-        tout->Write("", TObject::kOverwrite);                                                 
-        break;                                                                             
-      }                                                                                    
-                                                                                           
-    case arrow::Type::type::INT64:                                                         
-      {                                                                                    
-        LOG(DEBUG) << "case INT64" << std::endl;                                           
-        Long64_t dbuf =  Long64_t();                                                   
-        TBranch *br = tout->Branch(col->name().c_str(),&dbuf);                             
-        for(auto const& ch: chs)                                                           
-        {                                                                                  
-          auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int64Type>>(ch);   
-          for (int jj=0; jj<ch->length(); jj++)                                            
-          {                                                                                
-            dbuf = p->Value(jj);                                                        
-            if (ii==0) { tout->Fill(); } else { br->Fill(); }                                 
-          }                                                                                
-        }                                                                                  
-        tout->Write("", TObject::kOverwrite);                                                 
-        break;                                                                             
-      }                                                                                    
-                                                                                           
-    }                                                                                      
-                                                                                           
-  }                                                                                        
+          for (int jj=0; jj<ch->length(); jj++)
+          {
+            dbuf = p->Value(jj);
+            if (ii==0) { tout->Fill(); } else { br->Fill(); }
+          }
+        }
+        break;
+      }
+
+    case arrow::Type::type::INT16:
+      {
+        LOG(DEBUG) << "case INT16" << std::endl;
+        Short_t dbuf = Short_t();
+        br = tout->Branch(cname,&dbuf);                             
+        for(auto const& ch: chs)
+        {
+          auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int16Type>>(ch);
+          for (int jj=0; jj<ch->length(); jj++)
+          {
+            dbuf = p->Value(jj);
+            if (ii==0) { tout->Fill(); } else { br->Fill(); }
+          }
+        }
+        break;
+      }
+
+    case arrow::Type::type::INT32:
+      {
+        LOG(DEBUG) << "case INT" << std::endl;
+        Int_t dbuf = Int_t();
+        br = tout->Branch(cname,&dbuf);                             
+        for(auto const& ch: chs)
+        {
+          auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(ch);
+          for (int jj=0; jj<ch->length(); jj++)
+          {
+            dbuf = p->Value(jj);
+            if (ii==0) { tout->Fill(); } else { br->Fill(); }
+          }
+        }
+        break;
+      }
+
+    case arrow::Type::type::INT64:
+      {
+        LOG(DEBUG) << "case INT64" << std::endl;
+        Long64_t dbuf =  Long64_t();
+        br = tout->Branch(cname,&dbuf);                             
+        for(auto const& ch: chs)
+        {
+          auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int64Type>>(ch);
+          for (int jj=0; jj<ch->length(); jj++)
+          {
+            dbuf = p->Value(jj);
+            if (ii==0) { tout->Fill(); } else { br->Fill(); }
+          }
+        }
+        break;
+      }
+      
+    default:
+      std::string strerr = std::string("Unsupported data type ")+col->type()->name();
+      throw std::runtime_error(strerr.c_str());
+      break;
+      
+    }
+    tout->Write("", TObject::kOverwrite);
+  }
 
 }
 
