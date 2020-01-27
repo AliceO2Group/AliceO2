@@ -1,8 +1,9 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "DetectorsPassive/Cave.h"
 #include "DetectorsPassive/FrameStructure.h"
-#include "PHOSSimulation/Detector.h"
+#include "CPVSimulation/Detector.h"
 #include "FairRunSim.h"
+#include "PHOSSimulation/Detector.h"
 #include "CPVSimulation/Detector.h"
 #include "TGeoManager.h"
 #include "TROOT.h"
