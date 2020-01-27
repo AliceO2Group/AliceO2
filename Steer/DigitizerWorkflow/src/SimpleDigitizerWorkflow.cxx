@@ -12,6 +12,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicy.h"
+#include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DeviceSpec.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "SimReaderSpec.h"
@@ -36,9 +37,13 @@
 #include "TOFDigitizerSpec.h"
 #include "TOFDigitWriterSpec.h"
 
-// for FIT
+// for FT0
 #include "FT0DigitizerSpec.h"
 #include "FT0DigitWriterSpec.h"
+
+// for FV0
+#include "FV0DigitizerSpec.h"
+#include "FV0DigitWriterSpec.h"
 
 // for FDD
 #include "FDDDigitizerSpec.h"
@@ -93,19 +98,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   using o2::framework::CompletionPolicy;
   // we customize the completion policy for the writer since it should stream immediately
-  auto matcher = [](DeviceSpec const& device) {
-    bool matched = device.name == "TPCDigitWriter";
-    if (matched) {
-      LOG(INFO) << "DPL completion policy for " << device.name << " customized";
-    }
-    return matched;
-  };
-
-  auto policy = [](gsl::span<o2::framework::PartRef const> const& inputs) {
-    return CompletionPolicy::CompletionOp::Consume;
-  };
-
-  policies.push_back({CompletionPolicy{"process-any", matcher, policy}});
+  policies.push_back(CompletionPolicyHelpers::defineByName("TPCDigitWriter", CompletionPolicy::CompletionOp::Consume));
 }
 
 // ------------------------------------------------------------------
@@ -420,6 +413,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::ft0::getFT0DigitizerSpec(fanoutsize++));
     // connect the FIT digit writer
     specs.emplace_back(o2::ft0::getFT0DigitWriterSpec());
+  }
+
+  // the FV0 part
+  if (isEnabled(o2::detectors::DetID::FV0)) {
+    detList.emplace_back(o2::detectors::DetID::FV0);
+    // connect the FV0 digitization
+    specs.emplace_back(o2::fv0::getFV0DigitizerSpec(fanoutsize++));
+    // connect the FV0 digit writer
+    specs.emplace_back(o2::fv0::getFV0DigitWriterSpec());
   }
 
   // the EMCal part

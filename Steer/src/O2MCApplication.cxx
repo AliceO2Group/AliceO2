@@ -114,6 +114,26 @@ void O2MCApplicationBase::InitGeometry()
   }
 }
 
+bool O2MCApplicationBase::MisalignGeometry()
+{
+  for (auto det : listActiveDetectors) {
+    if (dynamic_cast<o2::base::Detector*>(det)) {
+      ((o2::base::Detector*)det)->addAlignableVolumes();
+    }
+  }
+
+  auto b = FairMCApplication::MisalignGeometry();
+  // we use this moment to stream our geometry (before other
+  // VMC engine dependent modifications are done)
+
+  std::stringstream geomss;
+  geomss << "O2geometry.root";
+  gGeoManager->Export(geomss.str().c_str());
+
+  // return original return value of misalignment procedure
+  return b;
+}
+
 void O2MCApplicationBase::finishEventCommon()
 {
   LOG(INFO) << "This event/chunk did " << mStepCounter << " steps";

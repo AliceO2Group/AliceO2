@@ -24,11 +24,14 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 GPUd() void ClusterAccumulator::toNative(const deprecated::Digit& d, deprecated::ClusterNative& cn) const
 {
-  uchar isEdgeCluster = CfUtils::isAtEdge(&d);
-  uchar wasSplitInTime = mSplitInTime >= MIN_SPLIT_NUM;
-  uchar wasSplitInPad = mSplitInPad >= MIN_SPLIT_NUM;
-  uchar flags =
-    (isEdgeCluster << deprecated::CN_FLAG_POS_IS_EDGE_CLUSTER) | (wasSplitInTime << deprecated::CN_FLAG_POS_SPLIT_IN_TIME) | (wasSplitInPad << deprecated::CN_FLAG_POS_SPLIT_IN_PAD);
+  bool isEdgeCluster = CfUtils::isAtEdge(&d);
+  bool wasSplitInTime = mSplitInTime >= MIN_SPLIT_NUM;
+  bool wasSplitInPad = mSplitInPad >= MIN_SPLIT_NUM;
+
+  uchar flags = 0;
+  flags |= (isEdgeCluster) ? deprecated::CN_FLAG_IS_EDGE_CLUSTER : 0;
+  flags |= (wasSplitInTime) ? deprecated::CN_FLAG_SPLIT_IN_TIME : 0;
+  flags |= (wasSplitInPad) ? deprecated::CN_FLAG_SPLIT_IN_PAD : 0;
 
   cn.qmax = d.charge;
   cn.qtot = mQtot;

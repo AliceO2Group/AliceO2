@@ -16,7 +16,8 @@ o2_add_executable(digitizer-workflow
                           src/EMCALDigitizerSpec.cxx
                           src/FT0DigitWriterSpec.cxx
                           src/FT0DigitizerSpec.cxx
-			  src/FDDDigitizerSpec.cxx
+                          src/FV0DigitizerSpec.cxx
+                          src/FDDDigitizerSpec.cxx
                           src/GRPUpdaterSpec.cxx
                           src/HMPIDDigitizerSpec.cxx
                           src/ITSMFTDigitWriterSpec.cxx
@@ -24,7 +25,6 @@ o2_add_executable(digitizer-workflow
                           src/MCHDigitizerSpec.cxx
                           src/MIDDigitizerSpec.cxx
                           src/PHOSDigitizerSpec.cxx
-                          src/PHOSDigitWriterSpec.cxx
                           src/SimReaderSpec.cxx
                           src/SimpleDigitizerWorkflow.cxx
                           src/TOFDigitWriterSpec.cxx
@@ -37,12 +37,13 @@ o2_add_executable(digitizer-workflow
                                         O2::Steer
                                         O2::EMCALSimulation
                                         O2::FT0Simulation
-					O2::FDDSimulation
+                                        O2::FV0Simulation
+                                        O2::FDDSimulation
                                         O2::HMPIDSimulation
                                         O2::ITSMFTSimulation
                                         O2::ITSSimulation
                                         O2::MCHSimulation
-					O2::MCHBase
+                                        O2::MCHBase
                                         O2::MFTSimulation
                                         O2::MIDSimulation
                                         O2::PHOSSimulation

@@ -25,6 +25,8 @@
 #include <Generators/GeneratorHepMC.h>
 #endif
 #include <Generators/BoxGunParam.h>
+#include <Generators/TriggerParticle.h>
+#include <Generators/TriggerParticleParam.h>
 #include "TROOT.h"
 #include "TSystem.h"
 #include "TGlobal.h"
@@ -43,6 +45,9 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     LOG(WARNING) << "No primary generator instance; Cannot setup";
     return;
   }
+
+  /** generators **/
+
   auto genconfig = conf.getGenerator();
   if (genconfig.compare("boxgen") == 0) {
     // a simple "box" generator configurable via BoxGunparam
@@ -232,6 +237,71 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     }
   } else {
     LOG(FATAL) << "Invalid generator";
+  }
+
+  /** triggers **/
+
+  o2::eventgen::Trigger* trigger = nullptr;
+
+  auto trgconfig = conf.getTrigger();
+  if (trgconfig.empty()) {
+    return;
+  } else if (trgconfig.compare("particle") == 0) {
+    auto& param = TriggerParticleParam::Instance();
+    LOG(INFO) << "Init trigger \'particle\' with following parameters";
+    LOG(INFO) << param;
+    auto trg = new TriggerParticle();
+    trg->setPDG(param.pdg);
+    trg->setPtRange(param.ptMin, param.ptMax);
+    trg->setEtaRange(param.etaMin, param.etaMax);
+    trg->setPhiRange(param.phiMin, param.phiMax);
+    trg->setYRange(param.yMin, param.yMax);
+    trigger = trg;
+  } else if (trgconfig.compare("external") == 0) {
+    // external trigger via configuration macro
+    auto external_trigger_filename = conf.getExtTriggerFileName();
+    auto external_trigger_func = conf.getExtTriggerFuncName();
+    if (external_trigger_func.empty()) {
+      auto size = external_trigger_filename.size();
+      auto firstindex = external_trigger_filename.find_last_of("/") + 1;
+      auto lastindex = external_trigger_filename.find_last_of(".");
+      external_trigger_func = external_trigger_filename.substr(firstindex < size ? firstindex : 0,
+                                                               lastindex < size ? lastindex - firstindex : size - firstindex) +
+                              "()";
+    }
+    if (gROOT->LoadMacro(external_trigger_filename.c_str()) != 0) {
+      LOG(FATAL) << "Cannot find " << external_trigger_filename;
+      return;
+    }
+    /** retrieve Trigger **/
+    auto external_trigger_gfunc = external_trigger_func.substr(0, external_trigger_func.find_first_of('('));
+    if (!gROOT->GetGlobalFunction(external_trigger_gfunc.c_str())) {
+      LOG(FATAL) << "Global function '"
+                 << external_trigger_gfunc
+                 << "' not defined";
+    }
+    if (strcmp(gROOT->GetGlobalFunction(external_trigger_gfunc.c_str())->GetReturnTypeName(), "o2::eventgen::Trigger*")) {
+      LOG(FATAL) << "Global function '"
+                 << external_trigger_gfunc
+                 << "' does not return a 'o2::eventgen::Trigger*' type";
+    }
+    gROOT->ProcessLine(Form("o2::eventgen::Trigger *__external_trigger__ = dynamic_cast<o2::eventgen::Trigger *>(%s);", external_trigger_func.c_str()));
+    auto external_trigger_ptr = (o2::eventgen::Trigger**)gROOT->GetGlobal("__external_trigger__")->GetAddress();
+    trigger = *external_trigger_ptr;
+  } else {
+    LOG(FATAL) << "Invalid trigger";
+  }
+
+  /** add trigger to generators **/
+  auto generators = primGen->GetListOfGenerators();
+  for (int igen = 0; igen < generators->GetEntries(); ++igen) {
+    auto generator = dynamic_cast<o2::eventgen::Generator*>(generators->At(igen));
+    if (!generator) {
+      LOG(FATAL) << "request to add a trigger to an unsupported generator";
+      return;
+    }
+    generator->setTriggerMode(o2::eventgen::Generator::kTriggerOR);
+    generator->addTrigger(trigger);
   }
 }
 

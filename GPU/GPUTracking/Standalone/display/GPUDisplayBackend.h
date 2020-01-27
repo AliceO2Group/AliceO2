@@ -31,6 +31,10 @@ class GPUDisplayBackend
   GPUDisplayBackend() = default;
   virtual ~GPUDisplayBackend() = default;
 
+  // Compile time minimum version defined in GPUDisplay.h, keep in sync!
+  static constexpr int GL_MIN_VERSION_MAJOR = 4;
+  static constexpr int GL_MIN_VERSION_MINOR = 5;
+
   virtual int StartDisplay() = 0;                                                                                            // Start the display. This function returns, and should spawn a thread that runs the display, and calls InitGL
   virtual void DisplayExit() = 0;                                                                                            // Stop the display. Display thread should call ExitGL and the function returns after the thread has terminated
   virtual void SwitchFullscreen(bool set) = 0;                                                                               // Toggle full-screen mode

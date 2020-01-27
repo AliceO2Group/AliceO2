@@ -7,8 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_WORKFLOWHELPERS_H
-#define FRAMEWORK_WORKFLOWHELPERS_H
+#ifndef O2_FRAMEWORK_WORKFLOWHELPERS_H_
+#define O2_FRAMEWORK_WORKFLOWHELPERS_H_
 
 #include "Framework/InputSpec.h"
 #include "Framework/OutputSpec.h"
@@ -20,11 +20,10 @@
 #include <vector>
 #include <iosfwd>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
+struct ConfigContext;
 // Structure to hold information which was derived
 // for output channels.
 struct LogicalOutputInfo {
@@ -146,7 +145,9 @@ struct WorkflowHelpers {
   // Depending on the workflow and the dangling inputs inside it, inject "fake"
   // devices to mark the fact we might need some extra action to make sure
   // dangling inputs are satisfied.
-  static void injectServiceDevices(WorkflowSpec& workflow);
+  // @a workflow the workflow to decorate
+  // @a ctx the context for the configuration phase
+  static void injectServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx);
 
   static void constructGraph(const WorkflowSpec& workflow,
                              std::vector<DeviceConnectionEdge>& logicalEdges,
@@ -173,7 +174,6 @@ struct WorkflowHelpers {
   static std::vector<InputSpec> computeDanglingOutputs(WorkflowSpec const& workflow);
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_WORKFLOWHELPERS_H
+#endif // O2_FRAMEWORK_WORKFLOWHELPERS_H_

@@ -78,8 +78,8 @@ HeatExchanger::HeatExchanger()
     mRadius4fifth()
 {
 
-  mRWater = 0.1 / 2.;
-  mDRPipe = 0.005;
+  mRWater = 0.1 / 2.; // water pipe diameter 1 mm
+  mDRPipe = 0.0025;   // water pipe thickness 25 microns
   // mHeatExchangerThickness = 1.398; // to get a 13.4 mm thickness for the rohacell... but the water pipes are not
   // inside it, then its density must be increased
   mHeatExchangerThickness =
@@ -256,6 +256,7 @@ void HeatExchanger::createManifold(Int_t disk)
   lengthMiddle1[0] = mSupportYDimensions[0][0];
   lengthMiddle1[1] = mSupportYDimensions[1][0];
   lengthMiddle1[2] = mSupportYDimensions[2][0];
+
   lengthMiddle1[3] = mSupportYDimensions[3][0];
   lengthMiddle1[4] = mSupportYDimensions[4][0];
 
@@ -899,23 +900,16 @@ void HeatExchanger::createHalfDisk0(Int_t half)
   else
     printf("No valid option for MFT heat exchanger on disk0\n");
 
-  // mCarbon   = gGeoManager->GetMedium("MFT_Carbon$");
   mCarbon = gGeoManager->GetMedium("MFT_CarbonFiber$");
-
   mWater = gGeoManager->GetMedium("MFT_Water$");
   mRohacell = gGeoManager->GetMedium("MFT_Rohacell");
   mPipe = gGeoManager->GetMedium("MFT_Polyimide");
 
   auto* cooling = new TGeoVolumeAssembly(Form("cooling_D0_H%d", half));
 
-  //Float_t lMiddle = mSupportXDimensions[disk][0] - 2. * mLWater; // length of central part
-
   TGeoTranslation* translation = nullptr;
   TGeoRotation* rotation = nullptr;
   TGeoCombiTrans* transformation = nullptr;
-
-  TGeoCombiTrans* transformation1 = nullptr;
-  TGeoCombiTrans* transformation2 = nullptr;
 
   // **************************************** Water part ****************************************
   // ********************** Four parameters mLwater0, mRadius0, mAngle0, mLpartial0 *************
@@ -965,7 +959,6 @@ void HeatExchanger::createHalfDisk0(Int_t half)
   // **************************************************** Tube part ************************************************
   // ****************************** Four parameters mLwater0, mRadius0, mAngle0, mLpartial0 ************************
   for (Int_t itube = 0; itube < 3; itube++) {
-
     TGeoVolume* pipeTube1 = gGeoManager->MakeTube(Form("pipeTube1%d_D0_H%d", itube, half), mPipe, mRWater, mRWater + mDRPipe, mLWater0[itube] / 2.);
     translation = new TGeoTranslation(mXPosition0[itube], 0., mSupportXDimensions[0][0] / 2. + mMoreLength - mLWater0[itube] / 2.);
     cooling->AddNode(pipeTube1, ivolume++, translation);
@@ -1005,34 +998,18 @@ void HeatExchanger::createHalfDisk0(Int_t half)
   }
   // ***********************************************************************************************
 
-  //Double_t deltaz = mHeatExchangerThickness - mCarbonThickness * 2; // distance between pair of carbon plates
   Double_t deltaz = mHeatExchangerThickness - Geometry::sKaptonOnCarbonThickness * 4 - Geometry::sKaptonGlueThickness * 4 - 2 * mCarbonThickness;
 
-  //  if (half == Top) {
-  //    rotation = new TGeoRotation ("rotation", 90., 90., 0.);
-  //    transformation = new TGeoCombiTrans(0., 0., mZPlan[disk] + deltaz/2. - mCarbonThickness - mRWater - mDRPipe,
-  //    rotation);
-  //    mHalfDisk->AddNode(cooling, 1, transformation);
-  //    transformation = new TGeoCombiTrans(0., 0., mZPlan[disk] - deltaz/2. + mCarbonThickness + mRWater + mDRPipe,
-  //    rotation);
-  //    mHalfDisk->AddNode(cooling, 2, transformation);
-  //  }
-  //  else if (half == Bottom) {
   rotation = new TGeoRotation("rotation", -90., 90., 0.);
   transformation =
-    //new TGeoCombiTrans(0., 0., mZPlan[disk] + deltaz / 2. - mCarbonThickness - mRWater - mDRPipe, rotation);
     new TGeoCombiTrans(0., 0., mZPlan[disk] + deltaz / 2. - mCarbonThickness - mRWater - mDRPipe - 2 * Geometry::sGlueRohacellCarbonThickness, rotation);
   mHalfDisk->AddNode(cooling, 3, transformation);
   transformation =
-    //new TGeoCombiTrans(0., 0., mZPlan[disk] - deltaz / 2. + mCarbonThickness + mRWater + mDRPipe, rotation);
     new TGeoCombiTrans(0., 0., mZPlan[disk] - deltaz / 2. + mCarbonThickness + mRWater + mDRPipe + 2 * Geometry::sGlueRohacellCarbonThickness, rotation);
   mHalfDisk->AddNode(cooling, 4, transformation);
-  //  }
 
   // **************************************** Carbon Plates ****************************************
-
   auto* carbonPlate = new TGeoVolumeAssembly(Form("carbonPlate_D0_H%d", half));
-
   auto* carbonBase0 = new TGeoBBox(Form("carbonBase0_D0_H%d", half), (mSupportXDimensions[disk][0] / 2. + mMoreLength),
                                    (mSupportYDimensions[disk][0]) / 2., mCarbonThickness);
   auto* t01 = new TGeoTranslation("t01", 0., (mSupportYDimensions[disk][0]) / 2. + mHalfDiskGap, 0.);
@@ -1043,8 +1020,6 @@ void HeatExchanger::createHalfDisk0(Int_t half)
   auto* t02 = new TGeoTranslation("t02", 0., -mHalfDiskGap, 0.);
   t02->RegisterYourself();
 
-  /// TGeoCompositeShape *cs0 = new TGeoCompositeShape(Form("cs0_D0_H%d",half),
-  /// Form("(carbonBase0_D0_H%d:t01)-(holeCarbon0_D0_H%d:t02)",half,half));
   auto* carbonhole0 = new TGeoSubtraction(carbonBase0, holeCarbon0, t01, t02);
   auto* ch0 = new TGeoCompositeShape(Form("Carbon0_D0_H%d", half), carbonhole0);
   auto* carbonBaseWithHole0 = new TGeoVolume(Form("carbonBaseWithHole_D0_H%d", half), ch0, mCarbon);
@@ -1067,27 +1042,15 @@ void HeatExchanger::createHalfDisk0(Int_t half)
     ty += mSupportYDimensions[disk][ipart] / 2.;
   }
 
-  //  if (half == Top) {
-  //    rotation = new TGeoRotation ("rotation", 0., 0., 0.);
-  //    transformation = new TGeoCombiTrans(0., 0., deltaz/2., rotation);
-  //    mHalfDisk->AddNode(carbonPlate, 1, transformation);
-  //    transformation = new TGeoCombiTrans(0., 0., -deltaz/2., rotation);
-  //    mHalfDisk->AddNode(carbonPlate, 2, transformation);
-  //  }
-  //  else if (half == Bottom) {
   rotation = new TGeoRotation("rotation", 180., 0., 0.);
   transformation = new TGeoCombiTrans(0., 0., deltaz / 2., rotation);
   mHalfDisk->AddNode(carbonPlate, 3, transformation);
   transformation = new TGeoCombiTrans(0., 0., -deltaz / 2., rotation);
   mHalfDisk->AddNode(carbonPlate, 4, transformation);
-  //  }
 
   // **************************************** Glue Bwtween Carbon Plate and Rohacell Plate ****************************************
-
   TGeoMedium* mGlueRohacellCarbon = gGeoManager->GetMedium("MFT_Epoxy$");
-
   auto* glueRohacellCarbon = new TGeoVolumeAssembly(Form("glueRohacellCarbon_D0_H%d", half));
-
   auto* glueRohacellCarbonBase0 = new TGeoBBox(Form("glueRohacellCarbonBase0_D0_H%d", half), (mSupportXDimensions[disk][0]) / 2.,
                                                (mSupportYDimensions[disk][0]) / 2., Geometry::sGlueRohacellCarbonThickness);
 
@@ -1128,9 +1091,7 @@ void HeatExchanger::createHalfDisk0(Int_t half)
   mHalfDisk->AddNode(glueRohacellCarbon, 4, transformation);
 
   // **************************************** Kapton on Carbon Plate ****************************************
-
   TGeoMedium* mKaptonOnCarbon = gGeoManager->GetMedium("MFT_Kapton$");
-
   auto* kaptonOnCarbon = new TGeoVolumeAssembly(Form("kaptonOnCarbon_D0_H%d", half));
   auto* kaptonOnCarbonBase0 = new TGeoBBox(Form("kaptonOnCarbonBase0_D0_H%d", half), (mSupportXDimensions[disk][0] / 2. + mMoreLength),
                                            (mSupportYDimensions[disk][0]) / 2., Geometry::sKaptonOnCarbonThickness);
@@ -1172,11 +1133,8 @@ void HeatExchanger::createHalfDisk0(Int_t half)
   mHalfDisk->AddNode(kaptonOnCarbon, 4, transformation);
 
   // **************************************** Kapton glue on the carbon plate ****************************************
-
   TGeoMedium* mGlueKaptonCarbon = gGeoManager->GetMedium("MFT_Epoxy$");
-
   auto* glueKaptonCarbon = new TGeoVolumeAssembly(Form("glueKaptonCarbon_D0_H%d", half));
-
   auto* glueKaptonCarbonBase0 = new TGeoBBox(Form("glueKaptonCarbonBase0_D0_H%d", half), (mSupportXDimensions[disk][0] / 2. + mMoreLength),
                                              (mSupportYDimensions[disk][0]) / 2., Geometry::sKaptonGlueThickness);
 
@@ -1217,26 +1175,17 @@ void HeatExchanger::createHalfDisk0(Int_t half)
   mHalfDisk->AddNode(glueKaptonCarbon, 4, transformation);
 
   // **************************************** Rohacell Plate ****************************************
-
   auto* rohacellPlate = new TGeoVolumeAssembly(Form("rohacellPlate_D0_H%d", half));
-
   auto* rohacellBase0 = new TGeoBBox(Form("rohacellBase0_D0_H%d", half), (mSupportXDimensions[disk][0]) / 2., (mSupportYDimensions[disk][0]) / 2.,
                                      mRohacellThickness);
-  //rohacellBase0->SetName("rB");
-  // TGeoTranslation *t3 = new TGeoTranslation ("t3",0., (fSupportYDimensions[disk][0])/2. + fHalfDiskGap , 0.);
-  // t3 -> RegisterYourself();
-
   auto* holeRohacell0 = new TGeoTubeSeg(Form("holeRohacell0_D0_H%d", half), 0., mRMin[disk], mRohacellThickness + 0.000001, 0, 180.);
-  // TGeoTranslation *t4= new TGeoTranslation ("t4", 0., - fHalfDiskGap , 0.);
-  // t4-> RegisterYourself();
-  //auto* cs0 = new TGeoCompositeShape("cs0", Form("(rohacellBase0_D0_H%d:t01)-(holeRohacell0_D0_H%d:t02)",half,half));
 
   // **************************************** GROOVES *************************************************
+  // Creating grooves or not according to sGrooves
   Double_t diameter = 0.21; // groove diameter
   Double_t epsilon = 0.06;  // outside shift of the goove
   Int_t iCount = 0;
   Double_t mPosition[4];
-
   TGeoCombiTrans* transfo[7][3];
   TGeoTube* grooveTube[7][3];
   TGeoTorus* grooveTorus[7][3];
@@ -1262,68 +1211,70 @@ void HeatExchanger::createHalfDisk0(Int_t half)
   TGeoRotation* rotationTiltedLinearL;
 
   // Creating grooves
-  for (Int_t iface = 1; iface > -2; iface -= 2) {     // front and rear
-    for (Int_t igroove = 0; igroove < 3; igroove++) { // 3 grooves
-      mPosition[igroove] = mXPosition0[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap;
-      for (Int_t ip = 0; ip < 7; ip++) { // each groove is made of 7 parts
+  if (Geometry::sGrooves == 1) {
+    for (Int_t iface = 1; iface > -2; iface -= 2) {     // front and rear
+      for (Int_t igroove = 0; igroove < 3; igroove++) { // 3 grooves
+        mPosition[igroove] = mXPosition0[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap;
+        for (Int_t ip = 0; ip < 7; ip++) { // each groove is made of 7 parts
 
-        switch (ip) {
-          case 0: // Linear
-            transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater0[igroove] / 2., mPosition[igroove],
-                                                      iface * (mRohacellThickness + epsilon), rotationLinear);
-            if (igroove == 0 && iface == 1) {
-              rohacellBaseGroove[0] = new TGeoSubtraction(rohacellBase0, grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
-              rohacellGroove[0] = new TGeoCompositeShape(Form("rohacell0Groove%d_G%d_F%d_H%d", ip, igroove, iface, half), rohacellBaseGroove[0]);
-            };
-            break;
-          case 1: // side torus
-            transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater0[igroove], mRadius0[igroove] + mXPosition0[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap, iface * (mRohacellThickness + epsilon), rotationSideTorusR);
-            break;
-          case 2: // Linear tilted
-            rotationTiltedLinearR = new TGeoRotation("rotationTiltedLinearRight", 90. - mAngle0[igroove], 90., 0.);
-            transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - xPos0[igroove], yPos0[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap, iface * (mRohacellThickness + epsilon), rotationTiltedLinearR);
-            break;
-          case 3: // Central Torus
-            transfo[ip][igroove] = new TGeoCombiTrans(0., yPos0[igroove] + mLpartial0[igroove] / 2 * TMath::Sin(mAngle0[igroove] * TMath::DegToRad()) - mRadiusCentralTore[igroove] * TMath::Cos(mAngle0[igroove] * TMath::DegToRad()) - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
-                                                      iface * (mRohacellThickness + epsilon), rotationCentralTorus);
-            break;
-          case 4: // Linear tilted
-            rotationTiltedLinearL = new TGeoRotation("rotationTiltedLinearLeft", 90. + mAngle0[igroove], 90., 0.);
-            transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - xPos0[igroove]), yPos0[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
-                                                      iface * (mRohacellThickness + epsilon), rotationTiltedLinearL);
-            break;
-          case 5: // side torus
-            transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater0[igroove]), mRadius0[igroove] + mPosition[igroove],
-                                                      iface * (mRohacellThickness + epsilon), rotationSideTorusL);
-            break;
-          case 6: // Linear
-            transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater0[igroove] / 2.), mPosition[igroove],
-                                                      iface * (mRohacellThickness + epsilon), rotationLinear);
-            break;
-        }
-
-        if (!(ip == 0 && igroove == 0 && iface == 1)) {
-          if (ip & 1) {
-            rohacellBaseGroove[iCount] = new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTorus[ip][igroove], nullptr, transfo[ip][igroove]);
-          } else {
-            rohacellBaseGroove[iCount] = new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+          switch (ip) {
+            case 0: // Linear
+              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater0[igroove] / 2., mPosition[igroove],
+                                                        iface * (mRohacellThickness + epsilon), rotationLinear);
+              if (igroove == 0 && iface == 1) {
+                rohacellBaseGroove[0] = new TGeoSubtraction(rohacellBase0, grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+                rohacellGroove[0] = new TGeoCompositeShape(Form("rohacell0Groove%d_G%d_F%d_H%d", ip, igroove, iface, half), rohacellBaseGroove[0]);
+              };
+              break;
+            case 1: // side torus
+              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater0[igroove], mRadius0[igroove] + mXPosition0[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap, iface * (mRohacellThickness + epsilon), rotationSideTorusR);
+              break;
+            case 2: // Linear tilted
+              rotationTiltedLinearR = new TGeoRotation("rotationTiltedLinearRight", 90. - mAngle0[igroove], 90., 0.);
+              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - xPos0[igroove], yPos0[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap, iface * (mRohacellThickness + epsilon), rotationTiltedLinearR);
+              break;
+            case 3: // Central Torus
+              transfo[ip][igroove] = new TGeoCombiTrans(0., yPos0[igroove] + mLpartial0[igroove] / 2 * TMath::Sin(mAngle0[igroove] * TMath::DegToRad()) - mRadiusCentralTore[igroove] * TMath::Cos(mAngle0[igroove] * TMath::DegToRad()) - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
+                                                        iface * (mRohacellThickness + epsilon), rotationCentralTorus);
+              break;
+            case 4: // Linear tilted
+              rotationTiltedLinearL = new TGeoRotation("rotationTiltedLinearLeft", 90. + mAngle0[igroove], 90., 0.);
+              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - xPos0[igroove]), yPos0[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
+                                                        iface * (mRohacellThickness + epsilon), rotationTiltedLinearL);
+              break;
+            case 5: // side torus
+              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater0[igroove]), mRadius0[igroove] + mPosition[igroove],
+                                                        iface * (mRohacellThickness + epsilon), rotationSideTorusL);
+              break;
+            case 6: // Linear
+              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater0[igroove] / 2.), mPosition[igroove],
+                                                        iface * (mRohacellThickness + epsilon), rotationLinear);
+              break;
           }
-          rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell0Groove%d_G%d_F%d_H%d", iCount, igroove, iface, half), rohacellBaseGroove[iCount]);
+
+          if (!(ip == 0 && igroove == 0 && iface == 1)) {
+            if (ip & 1) {
+              rohacellBaseGroove[iCount] = new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTorus[ip][igroove], nullptr, transfo[ip][igroove]);
+            } else {
+              rohacellBaseGroove[iCount] = new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+            }
+            rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell0Groove%d_G%d_F%d_H%d", iCount, igroove, iface, half), rohacellBaseGroove[iCount]);
+          }
+          iCount++;
         }
-        iCount++;
       }
     }
   }
   // **************************************************************************************************
 
   // Passage du beam pipe
-  //auto* rohacellBase = new TGeoSubtraction(rohacellBase0, holeRohacell0, t01, t02);
-  auto* rohacellBase = new TGeoSubtraction(rohacellGroove[iCount - 1], holeRohacell0, t01, t02);
+  TGeoBoolNode* rohacellBase;
+  if (Geometry::sGrooves == 0)
+    rohacellBase = new TGeoSubtraction(rohacellBase0, holeRohacell0, t01, t02);
+  if (Geometry::sGrooves == 1)
+    rohacellBase = new TGeoSubtraction(rohacellGroove[iCount - 1], holeRohacell0, t01, t02);
   auto* rh0 = new TGeoCompositeShape(Form("rohacellTore%d_D0_H%d", 0, half), rohacellBase);
-
-  //auto* rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D0_H%d", half), rh0test, mRohacell);
   auto* rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D0_H%d", half), rh0, mRohacell);
-  //auto* rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D0_H%d", half), cs0, mRohacell);
 
   TGeoVolume* partRohacell;
   rohacellBaseWithHole->SetLineColor(kGray);
@@ -1335,12 +1286,6 @@ void HeatExchanger::createHalfDisk0(Int_t half)
 
   for (Int_t ipart = 1; ipart < mNPart[disk]; ipart++) {
     ty += mSupportYDimensions[disk][ipart] / 2.;
-    /*
-      partRohacell = gGeoManager->MakeBox(Form("partRohacelli_D0_H%d_%d", half, ipart), mRohacell,
-      mSupportXDimensions[disk][ipart] / 2.,
-      mSupportYDimensions[disk][ipart] / 2., mRohacellThickness);
-      partRohacell->SetLineColor(kGray);
-    */
     auto* t = new TGeoTranslation("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
 
     //===========================================================================================================
@@ -1349,93 +1294,89 @@ void HeatExchanger::createHalfDisk0(Int_t half)
       new TGeoBBox(Form("rohacellBase0_D0_H%d_%d", half, ipart), mSupportXDimensions[disk][ipart] / 2.,
                    mSupportYDimensions[disk][ipart] / 2., mRohacellThickness);
 
-    // ************************ Creating grooves for the other parts of the rohacell plate **********************
-    Double_t mShift;
-    for (Int_t iface = 1; iface > -2; iface -= 2) {     // front and rear
-      for (Int_t igroove = 0; igroove < 3; igroove++) { // 3 grooves
-        if (ipart == 1) {
-          mPosition[ipart] = mXPosition0[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1];
-          mShift = -mSupportYDimensions[disk][ipart - 1];
-        };
-        if (ipart == 2) {
-          mPosition[ipart] = mXPosition0[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2];
-          mShift = -mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2];
-        };
-        if (ipart == 3) {
-          mPosition[ipart] = mXPosition0[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2] - mSupportYDimensions[disk][ipart - 3];
-          mShift = -mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2] - mSupportYDimensions[disk][ipart - 3];
-        };
+    if (Geometry::sGrooves == 1) {
+      // ************************ Creating grooves for the other parts of the rohacell plate **********************
+      Double_t mShift;
+      for (Int_t iface = 1; iface > -2; iface -= 2) {     // front and rear
+        for (Int_t igroove = 0; igroove < 3; igroove++) { // 3 grooves
+          if (ipart == 1) {
+            mPosition[ipart] = mXPosition0[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1];
+            mShift = -mSupportYDimensions[disk][ipart - 1];
+          };
+          if (ipart == 2) {
+            mPosition[ipart] = mXPosition0[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2];
+            mShift = -mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2];
+          };
+          if (ipart == 3) {
+            mPosition[ipart] = mXPosition0[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2] - mSupportYDimensions[disk][ipart - 3];
+            mShift = -mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2] - mSupportYDimensions[disk][ipart - 3];
+          };
 
-        for (Int_t ip = 0; ip < 7; ip++) { // each groove is made of 7 parts
+          for (Int_t ip = 0; ip < 7; ip++) { // each groove is made of 7 parts
 
-          switch (ip) {
-            case 0: // Linear
-              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[0][0] / 2. - mLWater0[igroove] / 2., mPosition[ipart], iface * (mRohacellThickness + epsilon), rotationLinear);
-              if (igroove == 0 && iface == 1) {
-                rohacellBaseGroove[iCount] = new TGeoSubtraction(partRohacell0, grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
-                rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell0Groove%d_G%d_F%d_H%d", ip, igroove, iface, half), rohacellBaseGroove[iCount]);
-              };
-              break;
-            case 1: // side torus
-              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[0][0] / 2. + mMoreLength - mLWater0[igroove], mPosition[ipart] + mRadius0[igroove],
-                                                        iface * (mRohacellThickness + epsilon), rotationSideTorusR);
-              break;
-            case 2: // Linear tilted
-              rotationTiltedLinearR = new TGeoRotation("rotationTiltedLinearRight", 90. - mAngle0[igroove], 90., 0.);
-              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[0][0] / 2. + mMoreLength - xPos0[igroove], yPos0[igroove] + mShift - mHalfDiskGap - mSupportYDimensions[disk][ipart] / 2., iface * (mRohacellThickness + epsilon), rotationTiltedLinearR);
-              break;
-            case 3: // Central Torus
-              transfo[ip][igroove] = new TGeoCombiTrans(0., mPosition[ipart] + yPos0[igroove] + mLpartial0[igroove] / 2 * TMath::Sin(mAngle0[igroove] * TMath::DegToRad()) - mRadiusCentralTore[igroove] * TMath::Cos(mAngle0[igroove] * TMath::DegToRad()) - mXPosition0[igroove],
-                                                        iface * (mRohacellThickness + epsilon), rotationCentralTorus);
-              break;
-            case 4: // Linear tilted
-              rotationTiltedLinearL = new TGeoRotation("rotationTiltedLinearLeft", 90. + mAngle0[igroove], 90., 0.);
-              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[0][0] / 2. + mMoreLength - xPos0[igroove]), yPos0[igroove] + mPosition[ipart] - mXPosition0[igroove],
-                                                        iface * (mRohacellThickness + epsilon), rotationTiltedLinearL);
-              break;
-            case 5: // side torus
-              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[0][0] / 2. + mMoreLength - mLWater0[igroove]), mRadius0[igroove] + mPosition[ipart],
-                                                        iface * (mRohacellThickness + epsilon), rotationSideTorusL);
-              break;
-            case 6: // Linear
-              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[0][0] / 2. + mMoreLength - mLWater0[igroove] / 2.), mPosition[ipart],
-                                                        iface * (mRohacellThickness + epsilon), rotationLinear);
-              break;
-          }
-          if (!(ip == 0 && igroove == 0 && iface == 1)) {
-            if (ip & 1) {
-              rohacellBaseGroove[iCount] = new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTorus[ip][igroove], nullptr, transfo[ip][igroove]);
-            } else {
-              rohacellBaseGroove[iCount] = new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+            switch (ip) {
+              case 0: // Linear
+                transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[0][0] / 2. - mLWater0[igroove] / 2., mPosition[ipart], iface * (mRohacellThickness + epsilon), rotationLinear);
+                if (igroove == 0 && iface == 1) {
+                  rohacellBaseGroove[iCount] = new TGeoSubtraction(partRohacell0, grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+                  rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell0Groove%d_G%d_F%d_H%d", ip, igroove, iface, half), rohacellBaseGroove[iCount]);
+                };
+                break;
+              case 1: // side torus
+                transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[0][0] / 2. + mMoreLength - mLWater0[igroove], mPosition[ipart] + mRadius0[igroove],
+                                                          iface * (mRohacellThickness + epsilon), rotationSideTorusR);
+                break;
+              case 2: // Linear tilted
+                rotationTiltedLinearR = new TGeoRotation("rotationTiltedLinearRight", 90. - mAngle0[igroove], 90., 0.);
+                transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[0][0] / 2. + mMoreLength - xPos0[igroove], yPos0[igroove] + mShift - mHalfDiskGap - mSupportYDimensions[disk][ipart] / 2., iface * (mRohacellThickness + epsilon), rotationTiltedLinearR);
+                break;
+              case 3: // Central Torus
+                transfo[ip][igroove] = new TGeoCombiTrans(0., mPosition[ipart] + yPos0[igroove] + mLpartial0[igroove] / 2 * TMath::Sin(mAngle0[igroove] * TMath::DegToRad()) - mRadiusCentralTore[igroove] * TMath::Cos(mAngle0[igroove] * TMath::DegToRad()) - mXPosition0[igroove],
+                                                          iface * (mRohacellThickness + epsilon), rotationCentralTorus);
+                break;
+              case 4: // Linear tilted
+                rotationTiltedLinearL = new TGeoRotation("rotationTiltedLinearLeft", 90. + mAngle0[igroove], 90., 0.);
+                transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[0][0] / 2. + mMoreLength - xPos0[igroove]), yPos0[igroove] + mPosition[ipart] - mXPosition0[igroove],
+                                                          iface * (mRohacellThickness + epsilon), rotationTiltedLinearL);
+                break;
+              case 5: // side torus
+                transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[0][0] / 2. + mMoreLength - mLWater0[igroove]), mRadius0[igroove] + mPosition[ipart],
+                                                          iface * (mRohacellThickness + epsilon), rotationSideTorusL);
+                break;
+              case 6: // Linear
+                transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[0][0] / 2. + mMoreLength - mLWater0[igroove] / 2.), mPosition[ipart],
+                                                          iface * (mRohacellThickness + epsilon), rotationLinear);
+                break;
             }
+            if (!(ip == 0 && igroove == 0 && iface == 1)) {
+              if (ip & 1) {
+                rohacellBaseGroove[iCount] = new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTorus[ip][igroove], nullptr, transfo[ip][igroove]);
+              } else {
+                rohacellBaseGroove[iCount] = new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+              }
 
-            rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell0Groove%d_G%d_F%d_H%d", iCount, igroove, iface, half), rohacellBaseGroove[iCount]);
+              rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell0Groove%d_G%d_F%d_H%d", iCount, igroove, iface, half), rohacellBaseGroove[iCount]);
+            }
+            iCount++;
           }
-          iCount++;
         }
       }
     }
 
-    partRohacell = new TGeoVolume(Form("partRohacelli_D0_H%d_%d", half, ipart), rohacellGroove[iCount - 1], mRohacell);
-    //partRohacell = new TGeoVolume(Form("partRohacelli_D0_H%d_%d", half, ipart), partRohacell0, mRohacell);
+    if (Geometry::sGrooves == 0)
+      partRohacell = new TGeoVolume(Form("partRohacelli_D0_H%d_%d", half, ipart), partRohacell0, mRohacell);
+    if (Geometry::sGrooves == 1)
+      partRohacell = new TGeoVolume(Form("partRohacelli_D0_H%d_%d", half, ipart), rohacellGroove[iCount - 1], mRohacell);
     //===========================================================================================================
     //===========================================================================================================
 
     rohacellPlate->AddNode(partRohacell, ipart, t);
-
     ty += mSupportYDimensions[disk][ipart] / 2.;
   }
 
-  //  if (half == Top) {
-  //    rotation = new TGeoRotation ("rotation", 0., 0., 0.);
-  //    transformation = new TGeoCombiTrans(0., 0., 0., rotation);
-  //    mHalfDisk->AddNode(rohacellPlate, 1, transformation);
-  //  }
-  //  if (half == Bottom) {
   rotation = new TGeoRotation("rotation", 180., 0., 0.);
   transformation = new TGeoCombiTrans(0., 0., 0., rotation);
   mHalfDisk->AddNode(rohacellPlate, 1, transformation);
-  //  }
 
   createManifold(disk);
 }
@@ -1474,6 +1415,7 @@ void HeatExchanger::createHalfDisk1(Int_t half)
   Double_t mRadiusCentralTore[4];
   Double_t xPos1[4];
   Double_t yPos1[4];
+
   for (Int_t itube = 0; itube < 3; itube++) {
     TGeoVolume* waterTube1 = gGeoManager->MakeTube(Form("waterTube1%d_D1_H%d", itube, half), mWater, 0., mRWater, mLWater1[itube] / 2.);
     translation = new TGeoTranslation(mXPosition1[itube], 0., mSupportXDimensions[1][0] / 2. + mMoreLength - mLWater1[itube] / 2.);
@@ -1516,7 +1458,6 @@ void HeatExchanger::createHalfDisk1(Int_t half)
   // **************************************************** Tube part ************************************************
   // ****************************** Four parameters mLwater1, mRadius1, mAngle1, mLpartial1 ************************
   for (Int_t itube = 0; itube < 3; itube++) {
-
     TGeoVolume* pipeTube1 = gGeoManager->MakeTube(Form("pipeTube1%d_D1_H%d", itube, half), mPipe, mRWater, mRWater + mDRPipe, mLWater1[itube] / 2.);
     translation = new TGeoTranslation(mXPosition1[itube], 0., mSupportXDimensions[1][0] / 2. + mMoreLength - mLWater1[itube] / 2.);
     cooling->AddNode(pipeTube1, ivolume++, translation);
@@ -1680,9 +1621,7 @@ void HeatExchanger::createHalfDisk1(Int_t half)
   mHalfDisk->AddNode(glueRohacellCarbon, 4, transformation);
 
   // **************************************** Kapton on Carbon Plate ****************************************
-
   TGeoMedium* mKaptonOnCarbon = gGeoManager->GetMedium("MFT_Kapton$");
-
   auto* kaptonOnCarbon = new TGeoVolumeAssembly(Form("kaptonOnCarbon_D0_H%d", half));
   auto* kaptonOnCarbonBase0 = new TGeoBBox(Form("kaptonOnCarbonBase0_D0_H%d", half), (mSupportXDimensions[disk][0]) / 2. + mMoreLength,
                                            (mSupportYDimensions[disk][0]) / 2., Geometry::sKaptonOnCarbonThickness);
@@ -1724,11 +1663,8 @@ void HeatExchanger::createHalfDisk1(Int_t half)
   mHalfDisk->AddNode(kaptonOnCarbon, 4, transformation);
 
   // **************************************** Kapton glue on the carbon plate ****************************************
-
   TGeoMedium* mGlueKaptonCarbon = gGeoManager->GetMedium("MFT_Epoxy$");
-
   auto* glueKaptonCarbon = new TGeoVolumeAssembly(Form("glueKaptonCarbon_D0_H%d", half));
-
   auto* glueKaptonCarbonBase0 = new TGeoBBox(Form("glueKaptonCarbonBase0_D0_H%d", half), (mSupportXDimensions[disk][0]) / 2.,
                                              (mSupportYDimensions[disk][0]) / 2., Geometry::sKaptonGlueThickness);
 
@@ -1769,26 +1705,16 @@ void HeatExchanger::createHalfDisk1(Int_t half)
   mHalfDisk->AddNode(glueKaptonCarbon, 4, transformation);
 
   // **************************************** Rohacell Plate ****************************************
-
   auto* rohacellPlate = new TGeoVolumeAssembly(Form("rohacellPlate_D1_H%d", half));
-
   auto* rohacellBase1 = new TGeoBBox("rohacellBase1", (mSupportXDimensions[disk][0]) / 2.,
                                      (mSupportYDimensions[disk][0]) / 2., mRohacellThickness);
-  // TGeoTranslation *t3 = new TGeoTranslation ("t3",0., (fSupportYDimensions[disk][0])/2. + fHalfDiskGap , 0.);
-  // t3 -> RegisterYourself();
-
   auto* holeRohacell1 = new TGeoTubeSeg("holeRohacell1", 0., mRMin[disk], mRohacellThickness + 0.000001, 0, 180.);
-  // TGeoTranslation *t4= new TGeoTranslation ("t4", 0., - fHalfDiskGap , 0.);
-  // t4-> RegisterYourself();
-
-  //////cs1 = new TGeoCompositeShape(Form("rohacell_D1_H%d",half), "(rohacellBase1:t11)-(holeRohacell1:t12)");
 
   // **************************************** GROOVES *************************************************
   Double_t diameter = 0.21; // groove diameter
   Double_t epsilon = 0.06;  // outside shift of the goove
   Int_t iCount = 0;
   Double_t mPosition[4];
-
   TGeoCombiTrans* transfo[7][3];
   TGeoTube* grooveTube[7][3];
   TGeoTorus* grooveTorus[7][3];
@@ -1796,6 +1722,7 @@ void HeatExchanger::createHalfDisk1(Int_t half)
   TGeoCompositeShape* rohacellGroove[300];
 
   for (Int_t igroove = 0; igroove < 3; igroove++) {
+    //for (Int_t igroove = 0; igroove < 3; igroove++) {
     grooveTube[0][igroove] = new TGeoTube("linear", 0., diameter, mLWater1[igroove] / 2.);
     grooveTorus[1][igroove] = new TGeoTorus("SideTorus", mRadius1[igroove], 0., diameter, 0., mAngle1[igroove]);
     grooveTube[2][igroove] = new TGeoTube("tiltedLinear", 0., diameter, mLpartial1[igroove] / 2.);
@@ -1814,66 +1741,70 @@ void HeatExchanger::createHalfDisk1(Int_t half)
   TGeoRotation* rotationTiltedLinearL;
 
   // Creating grooves
-  for (Int_t iface = 1; iface > -2; iface -= 2) {     // front and rear
-    for (Int_t igroove = 0; igroove < 3; igroove++) { // 3 grooves
-      mPosition[igroove] = mXPosition1[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap;
-      for (Int_t ip = 0; ip < 7; ip++) { // each groove is made of 7 parts
+  if (Geometry::sGrooves == 1) {
+    for (Int_t iface = 1; iface > -2; iface -= 2) {     // front and rear
+      for (Int_t igroove = 0; igroove < 3; igroove++) { // 3 grooves
+        mPosition[igroove] = mXPosition1[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap;
+        for (Int_t ip = 0; ip < 7; ip++) { // each groove is made of 7 parts
 
-        switch (ip) {
-          case 0: // Linear
-            transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[1][0] / 2. + mMoreLength - mLWater1[igroove] / 2., mPosition[igroove],
-                                                      iface * (mRohacellThickness + epsilon), rotationLinear);
-            if (igroove == 0 && iface == 1) {
-              rohacellBaseGroove[0] = new TGeoSubtraction(rohacellBase1, grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
-              rohacellGroove[0] = new TGeoCompositeShape(Form("rohacell1Groove%d_G%d_F%d_H%d", ip, igroove, iface, half), rohacellBaseGroove[0]);
-            };
-            break;
-          case 1: // side torus
-            transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[1][0] / 2. + mMoreLength - mLWater1[igroove], mRadius1[igroove] + mXPosition1[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap, iface * (mRohacellThickness + epsilon), rotationSideTorusR);
-            break;
-          case 2: // Linear tilted
-            rotationTiltedLinearR = new TGeoRotation("rotationTiltedLinearRight", 90. - mAngle1[igroove], 90., 0.);
-            transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[1][0] / 2. + mMoreLength - xPos1[igroove], yPos1[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
-                                                      iface * (mRohacellThickness + epsilon), rotationTiltedLinearR);
-            break;
-          case 3: // Central Torus
-            transfo[ip][igroove] = new TGeoCombiTrans(0., yPos1[igroove] + mLpartial1[igroove] / 2 * TMath::Sin(mAngle1[igroove] * TMath::DegToRad()) - mRadiusCentralTore[igroove] * TMath::Cos(mAngle1[igroove] * TMath::DegToRad()) - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
-                                                      iface * (mRohacellThickness + epsilon), rotationCentralTorus);
-            break;
-          case 4: // Linear tilted
-            rotationTiltedLinearL = new TGeoRotation("rotationTiltedLinearLeft", 90. + mAngle1[igroove], 90., 0.);
-            transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[1][0] / 2. + mMoreLength - xPos1[igroove]), yPos1[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
-                                                      iface * (mRohacellThickness + epsilon), rotationTiltedLinearL);
-            break;
-          case 5: // side torus
-            transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[1][0] / 2. + mMoreLength - mLWater1[igroove]), mRadius1[igroove] + mPosition[igroove],
-                                                      iface * (mRohacellThickness + epsilon), rotationSideTorusL);
-            break;
-          case 6: // Linear
-            transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[1][0] / 2. + mMoreLength - mLWater1[igroove] / 2.), mPosition[igroove],
-                                                      iface * (mRohacellThickness + epsilon), rotationLinear);
-            break;
-        }
-
-        if (!(ip == 0 && igroove == 0 && iface == 1)) {
-          if (ip & 1) {
-            rohacellBaseGroove[iCount] = new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTorus[ip][igroove], nullptr, transfo[ip][igroove]);
-          } else {
-            rohacellBaseGroove[iCount] = new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+          switch (ip) {
+            case 0: // Linear
+              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[1][0] / 2. + mMoreLength - mLWater1[igroove] / 2., mPosition[igroove],
+                                                        iface * (mRohacellThickness + epsilon), rotationLinear);
+              if (igroove == 0 && iface == 1) {
+                rohacellBaseGroove[0] = new TGeoSubtraction(rohacellBase1, grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+                rohacellGroove[0] = new TGeoCompositeShape(Form("rohacell1Groove%d_G%d_F%d_H%d", ip, igroove, iface, half), rohacellBaseGroove[0]);
+              };
+              break;
+            case 1: // side torus
+              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[1][0] / 2. + mMoreLength - mLWater1[igroove], mRadius1[igroove] + mXPosition1[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap, iface * (mRohacellThickness + epsilon), rotationSideTorusR);
+              break;
+            case 2: // Linear tilted
+              rotationTiltedLinearR = new TGeoRotation("rotationTiltedLinearRight", 90. - mAngle1[igroove], 90., 0.);
+              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[1][0] / 2. + mMoreLength - xPos1[igroove], yPos1[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
+                                                        iface * (mRohacellThickness + epsilon), rotationTiltedLinearR);
+              break;
+            case 3: // Central Torus
+              transfo[ip][igroove] = new TGeoCombiTrans(0., yPos1[igroove] + mLpartial1[igroove] / 2 * TMath::Sin(mAngle1[igroove] * TMath::DegToRad()) - mRadiusCentralTore[igroove] * TMath::Cos(mAngle1[igroove] * TMath::DegToRad()) - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
+                                                        iface * (mRohacellThickness + epsilon), rotationCentralTorus);
+              break;
+            case 4: // Linear tilted
+              rotationTiltedLinearL = new TGeoRotation("rotationTiltedLinearLeft", 90. + mAngle1[igroove], 90., 0.);
+              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[1][0] / 2. + mMoreLength - xPos1[igroove]), yPos1[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
+                                                        iface * (mRohacellThickness + epsilon), rotationTiltedLinearL);
+              break;
+            case 5: // side torus
+              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[1][0] / 2. + mMoreLength - mLWater1[igroove]), mRadius1[igroove] + mPosition[igroove],
+                                                        iface * (mRohacellThickness + epsilon), rotationSideTorusL);
+              break;
+            case 6: // Linear
+              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[1][0] / 2. + mMoreLength - mLWater1[igroove] / 2.), mPosition[igroove],
+                                                        iface * (mRohacellThickness + epsilon), rotationLinear);
+              break;
           }
-          rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell1Groove%d_G%d_F%d_H%d", iCount, igroove, iface, half), rohacellBaseGroove[iCount]);
+
+          if (!(ip == 0 && igroove == 0 && iface == 1)) {
+            if (ip & 1) {
+              rohacellBaseGroove[iCount] = new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTorus[ip][igroove], nullptr, transfo[ip][igroove]);
+            } else {
+              rohacellBaseGroove[iCount] = new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+            }
+            rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell1Groove%d_G%d_F%d_H%d", iCount, igroove, iface, half), rohacellBaseGroove[iCount]);
+          }
+          iCount++;
         }
-        iCount++;
       }
     }
   }
-
   // **************************************************************************************************
 
-  //auto* rohacellhole1 = new TGeoSubtraction(rohacellBase1, holeRohacell1, t11, t12);
-  auto* rohacellBase = new TGeoSubtraction(rohacellGroove[iCount - 1], holeRohacell1, t11, t12);
+  // Passage du beam pipe
+  TGeoBoolNode* rohacellBase;
+  if (Geometry::sGrooves == 0)
+    rohacellBase = new TGeoSubtraction(rohacellBase1, holeRohacell1, t11, t12);
+  if (Geometry::sGrooves == 1)
+    rohacellBase = new TGeoSubtraction(rohacellGroove[iCount - 1], holeRohacell1, t11, t12);
   auto* rh1 = new TGeoCompositeShape(Form("rohacellBase1_D1_H%d", half), rohacellBase);
-  //auto* rh1 = new TGeoCompositeShape(Form("rohacellBase1_D1_H%d", half), rohacellhole1);
   auto* rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D1_H%d", half), rh1, mRohacell);
 
   TGeoVolume* partRohacell;
@@ -1886,12 +1817,6 @@ void HeatExchanger::createHalfDisk1(Int_t half)
 
   for (Int_t ipart = 1; ipart < mNPart[disk]; ipart++) {
     ty += mSupportYDimensions[disk][ipart] / 2.;
-    /*
-    TGeoVolume* partRohacell = gGeoManager->MakeBox(Form("partRohacelli_D1_H%d_%d", half, ipart), mRohacell,
-                                                    mSupportXDimensions[disk][ipart] / 2.,
-                                                    mSupportYDimensions[disk][ipart] / 2., mRohacellThickness);
-    partRohacell->SetLineColor(kGray);
-    */
     auto* t = new TGeoTranslation("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
 
     //===========================================================================================================
@@ -1900,80 +1825,83 @@ void HeatExchanger::createHalfDisk1(Int_t half)
       new TGeoBBox(Form("rohacellBase0_D1_H%d_%d", half, ipart), mSupportXDimensions[disk][ipart] / 2.,
                    mSupportYDimensions[disk][ipart] / 2., mRohacellThickness);
 
-    // ***************** Creating grooves for the other parts of the rohacell plate **********************
-    Double_t mShift;
-    for (Int_t iface = 1; iface > -2; iface -= 2) {     // front and rear
-      for (Int_t igroove = 0; igroove < 3; igroove++) { // 3 grooves
-        if (ipart == 1) {
-          mPosition[ipart] = mXPosition1[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1];
-          mShift = -mSupportYDimensions[disk][ipart - 1];
-        };
-        if (ipart == 2) {
-          mPosition[ipart] = mXPosition1[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2];
-          mShift = -mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2];
-        };
-        if (ipart == 3) {
-          mPosition[ipart] = mXPosition1[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2] - mSupportYDimensions[disk][ipart - 3];
-          mShift = -mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2] - mSupportYDimensions[disk][ipart - 3];
-        };
+    if (Geometry::sGrooves == 1) {
+      // ***************** Creating grooves for the other parts of the rohacell plate **********************
+      Double_t mShift;
+      for (Int_t iface = 1; iface > -2; iface -= 2) {     // front and rear
+        for (Int_t igroove = 0; igroove < 3; igroove++) { // 3 grooves
+          if (ipart == 1) {
+            mPosition[ipart] = mXPosition1[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1];
+            mShift = -mSupportYDimensions[disk][ipart - 1];
+          };
+          if (ipart == 2) {
+            mPosition[ipart] = mXPosition1[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2];
+            mShift = -mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2];
+          };
+          if (ipart == 3) {
+            mPosition[ipart] = mXPosition1[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2] - mSupportYDimensions[disk][ipart - 3];
+            mShift = -mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2] - mSupportYDimensions[disk][ipart - 3];
+          };
 
-        for (Int_t ip = 0; ip < 7; ip++) { // each groove is made of 7 parts
+          for (Int_t ip = 0; ip < 7; ip++) { // each groove is made of 7 parts
 
-          switch (ip) {
-            case 0: // Linear
-              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater1[igroove] / 2., mPosition[ipart],
-                                                        iface * (mRohacellThickness + epsilon), rotationLinear);
-              if (igroove == 0 && iface == 1) {
-                rohacellBaseGroove[iCount] = new TGeoSubtraction(partRohacell0, grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
-                rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell1Groove%d_G%d_F%d_H%d", ip, igroove, iface, half), rohacellBaseGroove[iCount]);
-              };
-              break;
-            case 1: // side torus
-              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater1[igroove], mPosition[ipart] + mRadius1[igroove],
-                                                        iface * (mRohacellThickness + epsilon), rotationSideTorusR);
-              break;
-            case 2: // Linear tilted
-              rotationTiltedLinearR = new TGeoRotation("rotationTiltedLinearRight", 90. - mAngle1[igroove], 90., 0.);
-              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - xPos1[igroove], yPos1[igroove] + mShift - mHalfDiskGap - mSupportYDimensions[disk][ipart] / 2., iface * (mRohacellThickness + epsilon), rotationTiltedLinearR);
-              break;
-            case 3: // Central Torus
-              transfo[ip][igroove] = new TGeoCombiTrans(0., mPosition[ipart] + yPos1[igroove] + mLpartial1[igroove] / 2 * TMath::Sin(mAngle1[igroove] * TMath::DegToRad()) - mRadiusCentralTore[igroove] * TMath::Cos(mAngle1[igroove] * TMath::DegToRad()) - mXPosition1[igroove],
-                                                        iface * (mRohacellThickness + epsilon), rotationCentralTorus);
-              break;
-            case 4: // Linear tilted
-              rotationTiltedLinearL = new TGeoRotation("rotationTiltedLinearLeft", 90. + mAngle1[igroove], 90., 0.);
-              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - xPos1[igroove]), yPos1[igroove] + mPosition[ipart] - mXPosition1[igroove],
-                                                        iface * (mRohacellThickness + epsilon), rotationTiltedLinearL);
-              break;
-            case 5: // side torus
-              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater1[igroove]), mRadius1[igroove] + mPosition[ipart],
-                                                        iface * (mRohacellThickness + epsilon), rotationSideTorusL);
-              break;
-            case 6: // Linear
-              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater1[igroove] / 2.), mPosition[ipart],
-                                                        iface * (mRohacellThickness + epsilon), rotationLinear);
-              break;
-          }
-          if (!(ip == 0 && igroove == 0 && iface == 1)) {
-            if (ip & 1) {
-              rohacellBaseGroove[iCount] =
-                new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTorus[ip][igroove], nullptr, transfo[ip][igroove]);
-            } else {
-              rohacellBaseGroove[iCount] =
-                new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+            switch (ip) {
+              case 0: // Linear
+                transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater1[igroove] / 2., mPosition[ipart],
+                                                          iface * (mRohacellThickness + epsilon), rotationLinear);
+                if (igroove == 0 && iface == 1) {
+                  rohacellBaseGroove[iCount] = new TGeoSubtraction(partRohacell0, grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+                  rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell1Groove%d_G%d_F%d_H%d", ip, igroove, iface, half), rohacellBaseGroove[iCount]);
+                };
+                break;
+              case 1: // side torus
+                transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater1[igroove], mPosition[ipart] + mRadius1[igroove],
+                                                          iface * (mRohacellThickness + epsilon), rotationSideTorusR);
+                break;
+              case 2: // Linear tilted
+                rotationTiltedLinearR = new TGeoRotation("rotationTiltedLinearRight", 90. - mAngle1[igroove], 90., 0.);
+                transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - xPos1[igroove], yPos1[igroove] + mShift - mHalfDiskGap - mSupportYDimensions[disk][ipart] / 2., iface * (mRohacellThickness + epsilon), rotationTiltedLinearR);
+                break;
+              case 3: // Central Torus
+                transfo[ip][igroove] = new TGeoCombiTrans(0., mPosition[ipart] + yPos1[igroove] + mLpartial1[igroove] / 2 * TMath::Sin(mAngle1[igroove] * TMath::DegToRad()) - mRadiusCentralTore[igroove] * TMath::Cos(mAngle1[igroove] * TMath::DegToRad()) - mXPosition1[igroove],
+                                                          iface * (mRohacellThickness + epsilon), rotationCentralTorus);
+                break;
+              case 4: // Linear tilted
+                rotationTiltedLinearL = new TGeoRotation("rotationTiltedLinearLeft", 90. + mAngle1[igroove], 90., 0.);
+                transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - xPos1[igroove]), yPos1[igroove] + mPosition[ipart] - mXPosition1[igroove],
+                                                          iface * (mRohacellThickness + epsilon), rotationTiltedLinearL);
+                break;
+              case 5: // side torus
+                transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater1[igroove]), mRadius1[igroove] + mPosition[ipart],
+                                                          iface * (mRohacellThickness + epsilon), rotationSideTorusL);
+                break;
+              case 6: // Linear
+                transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater1[igroove] / 2.), mPosition[ipart],
+                                                          iface * (mRohacellThickness + epsilon), rotationLinear);
+                break;
             }
+            if (!(ip == 0 && igroove == 0 && iface == 1)) {
+              if (ip & 1) {
+                rohacellBaseGroove[iCount] =
+                  new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTorus[ip][igroove], nullptr, transfo[ip][igroove]);
+              } else {
+                rohacellBaseGroove[iCount] =
+                  new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+              }
 
-            rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell1Groove%d_G%d_F%d_H%d", iCount, igroove, iface, half), rohacellBaseGroove[iCount]);
+              rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell1Groove%d_G%d_F%d_H%d", iCount, igroove, iface, half), rohacellBaseGroove[iCount]);
+            }
+            iCount++;
           }
-          iCount++;
         }
       }
     }
-
     // **************************************************************************************************
 
-    partRohacell = new TGeoVolume(Form("partRohacelli_D1_H%d_%d", half, ipart), rohacellGroove[iCount - 1], mRohacell);
-    //partRohacell = new TGeoVolume(Form("partRohacelli_D1_H%d_%d", half, ipart), partRohacell0, mRohacell);
+    if (Geometry::sGrooves == 0)
+      partRohacell = new TGeoVolume(Form("partRohacelli_D1_H%d_%d", half, ipart), partRohacell0, mRohacell);
+    if (Geometry::sGrooves == 1)
+      partRohacell = new TGeoVolume(Form("partRohacelli_D1_H%d_%d", half, ipart), rohacellGroove[iCount - 1], mRohacell);
     //===========================================================================================================
     //===========================================================================================================
 
@@ -1981,16 +1909,9 @@ void HeatExchanger::createHalfDisk1(Int_t half)
     ty += mSupportYDimensions[disk][ipart] / 2.;
   }
 
-  //  if (half == Top) {
-  //    rotation = new TGeoRotation ("rotation", 0., 0., 0.);
-  //    transformation = new TGeoCombiTrans(0., 0., 0., rotation);
-  //    mHalfDisk->AddNode(rohacellPlate, 1, transformation);
-  //  }
-  //  if (half == Bottom) {
   rotation = new TGeoRotation("rotation", 180., 0., 0.);
   transformation = new TGeoCombiTrans(0., 0., 0., rotation);
   mHalfDisk->AddNode(rohacellPlate, 2, transformation);
-  //  }
 
   createManifold(disk);
 }
@@ -2008,7 +1929,6 @@ void HeatExchanger::createHalfDisk2(Int_t half)
   else
     printf("No valid option for MFT heat exchanger on disk2\n");
 
-  // mCarbon   = gGeoManager->GetMedium("MFT_Carbon$");
   mCarbon = gGeoManager->GetMedium("MFT_CarbonFiber$");
 
   mWater = gGeoManager->GetMedium("MFT_Water$");
@@ -2017,19 +1937,17 @@ void HeatExchanger::createHalfDisk2(Int_t half)
 
   auto* cooling = new TGeoVolumeAssembly(Form("cooling_D2_H%d", half));
 
-  //Float_t lMiddle = mSupportXDimensions[disk][0] - 2. * mLWater; // length of central part
-
   TGeoTranslation* translation = nullptr;
   TGeoRotation* rotation = nullptr;
   TGeoCombiTrans* transformation = nullptr;
 
   // **************************************** Water part ****************************************
-
   // ********************** Four parameters mLwater2, mRadius2, mAngle2, mLpartial2 *************
   Double_t ivolume = 200; // offset chamber 2
   Double_t mRadiusCentralTore[4];
   Double_t xPos2[4];
   Double_t yPos2[4];
+
   for (Int_t itube = 0; itube < 3; itube++) {
     TGeoVolume* waterTube1 = gGeoManager->MakeTube(Form("waterTube1%d_D2_H%d", itube, half), mWater, 0., mRWater, mLWater2[itube] / 2.);
     translation = new TGeoTranslation(mXPosition2[itube], 0., mSupportXDimensions[2][0] / 2. + mMoreLength - mLWater2[itube] / 2.);
@@ -2071,7 +1989,6 @@ void HeatExchanger::createHalfDisk2(Int_t half)
   // **************************************************** Tube part ************************************************
   // ****************************** Four parameters mLwater2, mRadius2, mAngle2, mLpartial2 ************************
   for (Int_t itube = 0; itube < 3; itube++) {
-
     TGeoVolume* pipeTube1 = gGeoManager->MakeTube(Form("pipeTube1%d_D2_H%d", itube, half), mPipe, mRWater, mRWater + mDRPipe, mLWater2[itube] / 2.);
     translation = new TGeoTranslation(mXPosition2[itube], 0., mSupportXDimensions[2][0] / 2. + mMoreLength - mLWater2[itube] / 2.);
     cooling->AddNode(pipeTube1, ivolume++, translation);
@@ -2111,34 +2028,19 @@ void HeatExchanger::createHalfDisk2(Int_t half)
   }
   // ***********************************************************************************************
 
-  //Double_t deltaz = mHeatExchangerThickness - mCarbonThickness * 2; // distance between pair of carbon plates
   Double_t deltaz = mHeatExchangerThickness - Geometry::sKaptonOnCarbonThickness * 4 - Geometry::sKaptonGlueThickness * 4 - 2 * mCarbonThickness;
 
-  //  if (half == Top) {
-  //    rotation = new TGeoRotation ("rotation", 90., 90., 0.);
-  //    transformation = new TGeoCombiTrans(0., 0., mZPlan[disk] + deltaz/2. - mCarbonThickness - mRWater - mDRPipe,
-  //    rotation);
-  //    mHalfDisk->AddNode(cooling, 1, transformation);
-  //    transformation = new TGeoCombiTrans(0., 0., mZPlan[disk] - deltaz/2. + mCarbonThickness + mRWater + mDRPipe,
-  //    rotation);
-  //    mHalfDisk->AddNode(cooling, 2, transformation);
-  //  }
-  //  else if (half == Bottom) {
   rotation = new TGeoRotation("rotation", -90., 90., 0.);
   transformation =
-    //new TGeoCombiTrans(0., 0., mZPlan[disk] + deltaz / 2. - mCarbonThickness - mRWater - mDRPipe, rotation);
     new TGeoCombiTrans(0., 0., mZPlan[disk] + deltaz / 2. - mCarbonThickness - mRWater - mDRPipe - 2 * Geometry::sGlueRohacellCarbonThickness, rotation);
   mHalfDisk->AddNode(cooling, 3, transformation);
   transformation =
-    //new TGeoCombiTrans(0., 0., mZPlan[disk] - deltaz / 2. + mCarbonThickness + mRWater + mDRPipe, rotation);
     new TGeoCombiTrans(0., 0., mZPlan[disk] - deltaz / 2. + mCarbonThickness + mRWater + mDRPipe + 2 * Geometry::sGlueRohacellCarbonThickness, rotation);
   mHalfDisk->AddNode(cooling, 4, transformation);
-  //  }
 
   // **************************************** Carbon Plates ****************************************
 
   auto* carbonPlate = new TGeoVolumeAssembly(Form("carbonPlate_D2_H%d", half));
-
   auto* carbonBase2 = new TGeoBBox(Form("carbonBase2_D2_H%d", half), (mSupportXDimensions[disk][0]) / 2. + mMoreLength,
                                    (mSupportYDimensions[disk][0]) / 2., mCarbonThickness);
   auto* t21 = new TGeoTranslation("t21", 0., (mSupportYDimensions[disk][0]) / 2. + mHalfDiskGap, 0.);
@@ -2173,27 +2075,15 @@ void HeatExchanger::createHalfDisk2(Int_t half)
     ty += mSupportYDimensions[disk][ipart] / 2.;
   }
 
-  //  if (half == Top) {
-  //    rotation = new TGeoRotation ("rotation", 0., 0., 0.);
-  //    transformation = new TGeoCombiTrans(0., 0., deltaz/2., rotation);
-  //    mHalfDisk->AddNode(carbonPlate, 1, transformation);
-  //    transformation = new TGeoCombiTrans(0., 0., -deltaz/2., rotation);
-  //    mHalfDisk->AddNode(carbonPlate, 2, transformation);
-  //  }
-  //  else if (half == Bottom) {
   rotation = new TGeoRotation("rotation", 180., 0., 0.);
   transformation = new TGeoCombiTrans(0., 0., deltaz / 2., rotation);
   mHalfDisk->AddNode(carbonPlate, 3, transformation);
   transformation = new TGeoCombiTrans(0., 0., -deltaz / 2., rotation);
   mHalfDisk->AddNode(carbonPlate, 4, transformation);
-  //  }
 
   // **************************************** Glue Bwtween Carbon Plate and Rohacell Plate ****************************************
-
   TGeoMedium* mGlueRohacellCarbon = gGeoManager->GetMedium("MFT_Epoxy$");
-
   auto* glueRohacellCarbon = new TGeoVolumeAssembly(Form("glueRohacellCarbon_D0_H%d", half));
-
   auto* glueRohacellCarbonBase0 = new TGeoBBox(Form("glueRohacellCarbonBase0_D0_H%d", half), (mSupportXDimensions[disk][0]) / 2.,
                                                (mSupportYDimensions[disk][0]) / 2., Geometry::sGlueRohacellCarbonThickness);
 
@@ -2234,7 +2124,6 @@ void HeatExchanger::createHalfDisk2(Int_t half)
   mHalfDisk->AddNode(glueRohacellCarbon, 4, transformation);
 
   // **************************************** Kapton on Carbon Plate ****************************************
-
   TGeoMedium* mKaptonOnCarbon = gGeoManager->GetMedium("MFT_Kapton$");
 
   auto* kaptonOnCarbon = new TGeoVolumeAssembly(Form("kaptonOnCarbon_D0_H%d", half));
@@ -2276,12 +2165,10 @@ void HeatExchanger::createHalfDisk2(Int_t half)
   mHalfDisk->AddNode(kaptonOnCarbon, 3, transformation);
   transformation = new TGeoCombiTrans(0., 0., -(deltaz / 2 + Geometry::sKaptonOnCarbonThickness + mCarbonThickness + Geometry::sKaptonGlueThickness * 2), rotation);
   mHalfDisk->AddNode(kaptonOnCarbon, 4, transformation);
+
   // **************************************** Kapton glue on the carbon plate ****************************************
-
   TGeoMedium* mGlueKaptonCarbon = gGeoManager->GetMedium("MFT_Epoxy$");
-
   auto* glueKaptonCarbon = new TGeoVolumeAssembly(Form("glueKaptonCarbon_D0_H%d", half));
-
   auto* glueKaptonCarbonBase0 = new TGeoBBox(Form("glueKaptonCarbonBase0_D0_H%d", half), (mSupportXDimensions[disk][0]) / 2.,
                                              (mSupportYDimensions[disk][0]) / 2., Geometry::sKaptonGlueThickness);
 
@@ -2322,28 +2209,17 @@ void HeatExchanger::createHalfDisk2(Int_t half)
   mHalfDisk->AddNode(glueKaptonCarbon, 4, transformation);
 
   // **************************************** Rohacell Plate ****************************************
-
   auto* rohacellPlate = new TGeoVolumeAssembly(Form("rohacellPlate_D2_H%d", half));
-
   auto* rohacellBase2 = new TGeoBBox(Form("rohacellBase2_D2_H%d", half), (mSupportXDimensions[disk][0]) / 2.,
                                      (mSupportYDimensions[disk][0]) / 2., mRohacellThickness);
-  // TGeoTranslation *t3 = new TGeoTranslation ("t3",0., (fSupportYDimensions[disk][0])/2. + fHalfDiskGap , 0.);
-  // t3 -> RegisterYourself();
-
   auto* holeRohacell2 =
     new TGeoTubeSeg(Form("holeRohacell2_D2_H%d", half), 0., mRMin[disk], mRohacellThickness + 0.000001, 0, 180.);
-  // TGeoTranslation *t4= new TGeoTranslation ("t4", 0., - fHalfDiskGap , 0.);
-  // t4-> RegisterYourself();
-
-  /// cs2 = new TGeoCompositeShape(Form("rohacell_D2_H%d",half),
-  /// Form("(rohacellBase2_D2_H%d:t21)-(holeRohacell2_D2_H%d:t22)",half,half));
 
   // **************************************** GROOVES *************************************************
   Double_t diameter = 0.21; // groove diameter
   Double_t epsilon = 0.06;  // outside shift of the goove
   Int_t iCount = 0;
   Double_t mPosition[4];
-
   TGeoCombiTrans* transfo[7][3];
   TGeoTube* grooveTube[7][3];
   TGeoTorus* grooveTorus[7][3];
@@ -2369,66 +2245,70 @@ void HeatExchanger::createHalfDisk2(Int_t half)
   TGeoRotation* rotationTiltedLinearL;
 
   // Creating grooves
-  for (Int_t iface = 1; iface > -2; iface -= 2) {     // front and rear
-    for (Int_t igroove = 0; igroove < 3; igroove++) { // 3 grooves
-      mPosition[igroove] = mXPosition2[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap;
-      for (Int_t ip = 0; ip < 7; ip++) { // each groove is made of 7 parts
+  if (Geometry::sGrooves == 1) {
+    for (Int_t iface = 1; iface > -2; iface -= 2) {     // front and rear
+      for (Int_t igroove = 0; igroove < 3; igroove++) { // 3 grooves
+        mPosition[igroove] = mXPosition2[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap;
+        for (Int_t ip = 0; ip < 7; ip++) { // each groove is made of 7 parts
 
-        switch (ip) {
-          case 0: // Linear
-            transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater2[igroove] / 2., mPosition[igroove],
-                                                      iface * (mRohacellThickness + epsilon), rotationLinear);
-            if (igroove == 0 && iface == 1) {
-              rohacellBaseGroove[0] = new TGeoSubtraction(rohacellBase2, grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
-              rohacellGroove[0] = new TGeoCompositeShape(Form("rohacell2Groove%d_G%d_F%d_H%d", ip, igroove, iface, half), rohacellBaseGroove[0]);
-            };
-            break;
-          case 1: // side torus
-            transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater2[igroove], mRadius2[igroove] + mXPosition2[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap, iface * (mRohacellThickness + epsilon), rotationSideTorusR);
-            break;
-          case 2: // Linear tilted
-            rotationTiltedLinearR = new TGeoRotation("rotationTiltedLinearRight", 90. - mAngle2[igroove], 90., 0.);
-            transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - xPos2[igroove], yPos2[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
-                                                      iface * (mRohacellThickness + epsilon), rotationTiltedLinearR);
-            break;
-          case 3: // Central Torus
-            transfo[ip][igroove] = new TGeoCombiTrans(0., yPos2[igroove] + mLpartial2[igroove] / 2 * TMath::Sin(mAngle2[igroove] * TMath::DegToRad()) - mRadiusCentralTore[igroove] * TMath::Cos(mAngle2[igroove] * TMath::DegToRad()) - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
-                                                      iface * (mRohacellThickness + epsilon), rotationCentralTorus);
-            break;
-          case 4: // Linear tilted
-            rotationTiltedLinearL = new TGeoRotation("rotationTiltedLinearLeft", 90. + mAngle2[igroove], 90., 0.);
-            transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - xPos2[igroove]), yPos2[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
-                                                      iface * (mRohacellThickness + epsilon), rotationTiltedLinearL);
-            break;
-          case 5: // side torus
-            transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater2[igroove]), mRadius2[igroove] + mPosition[igroove],
-                                                      iface * (mRohacellThickness + epsilon), rotationSideTorusL);
-            break;
-          case 6: // Linear
-            transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater2[igroove] / 2.), mPosition[igroove],
-                                                      iface * (mRohacellThickness + epsilon), rotationLinear);
-            break;
-        }
-
-        if (!(ip == 0 && igroove == 0 && iface == 1)) {
-          if (ip & 1) {
-            rohacellBaseGroove[iCount] = new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTorus[ip][igroove], nullptr, transfo[ip][igroove]);
-          } else {
-            rohacellBaseGroove[iCount] = new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+          switch (ip) {
+            case 0: // Linear
+              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater2[igroove] / 2., mPosition[igroove],
+                                                        iface * (mRohacellThickness + epsilon), rotationLinear);
+              if (igroove == 0 && iface == 1) {
+                rohacellBaseGroove[0] = new TGeoSubtraction(rohacellBase2, grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+                rohacellGroove[0] = new TGeoCompositeShape(Form("rohacell2Groove%d_G%d_F%d_H%d", ip, igroove, iface, half), rohacellBaseGroove[0]);
+              };
+              break;
+            case 1: // side torus
+              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater2[igroove], mRadius2[igroove] + mXPosition2[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap, iface * (mRohacellThickness + epsilon), rotationSideTorusR);
+              break;
+            case 2: // Linear tilted
+              rotationTiltedLinearR = new TGeoRotation("rotationTiltedLinearRight", 90. - mAngle2[igroove], 90., 0.);
+              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - xPos2[igroove], yPos2[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
+                                                        iface * (mRohacellThickness + epsilon), rotationTiltedLinearR);
+              break;
+            case 3: // Central Torus
+              transfo[ip][igroove] = new TGeoCombiTrans(0., yPos2[igroove] + mLpartial2[igroove] / 2 * TMath::Sin(mAngle2[igroove] * TMath::DegToRad()) - mRadiusCentralTore[igroove] * TMath::Cos(mAngle2[igroove] * TMath::DegToRad()) - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
+                                                        iface * (mRohacellThickness + epsilon), rotationCentralTorus);
+              break;
+            case 4: // Linear tilted
+              rotationTiltedLinearL = new TGeoRotation("rotationTiltedLinearLeft", 90. + mAngle2[igroove], 90., 0.);
+              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - xPos2[igroove]), yPos2[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
+                                                        iface * (mRohacellThickness + epsilon), rotationTiltedLinearL);
+              break;
+            case 5: // side torus
+              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater2[igroove]), mRadius2[igroove] + mPosition[igroove],
+                                                        iface * (mRohacellThickness + epsilon), rotationSideTorusL);
+              break;
+            case 6: // Linear
+              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater2[igroove] / 2.), mPosition[igroove],
+                                                        iface * (mRohacellThickness + epsilon), rotationLinear);
+              break;
           }
-          rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell2Groove%d_G%d_F%d_H%d", iCount, igroove, iface, half), rohacellBaseGroove[iCount]);
+
+          if (!(ip == 0 && igroove == 0 && iface == 1)) {
+            if (ip & 1) {
+              rohacellBaseGroove[iCount] = new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTorus[ip][igroove], nullptr, transfo[ip][igroove]);
+            } else {
+              rohacellBaseGroove[iCount] = new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+            }
+            rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell2Groove%d_G%d_F%d_H%d", iCount, igroove, iface, half), rohacellBaseGroove[iCount]);
+          }
+          iCount++;
         }
-        iCount++;
       }
     }
   }
-
   // **************************************************************************************************
 
-  //auto* rohacellhole2 = new TGeoSubtraction(rohacellBase2, holeRohacell2, t21, t22);
-  auto* rohacellBase = new TGeoSubtraction(rohacellGroove[iCount - 1], holeRohacell2, t21, t22);
-  auto* rh2 = new TGeoCompositeShape(Form("rohacellBase2_D2_H%d", half), rohacellBase);
-  //auto* rh2 = new TGeoCompositeShape(Form("rohacellBase2_D2_H%d", half), rohacellhole2);
+  // Passage du beam pipe
+  TGeoBoolNode* rohacellBase;
+  if (Geometry::sGrooves == 0)
+    rohacellBase = new TGeoSubtraction(rohacellBase2, holeRohacell2, t21, t22);
+  if (Geometry::sGrooves == 1)
+    rohacellBase = new TGeoSubtraction(rohacellGroove[iCount - 1], holeRohacell2, t21, t22);
+  auto* rh2 = new TGeoCompositeShape(Form("rohacellTore%d_D2_H%d", 0, half), rohacellBase);
   auto* rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D2_H%d", half), rh2, mRohacell);
 
   TGeoVolume* partRohacell;
@@ -2441,12 +2321,6 @@ void HeatExchanger::createHalfDisk2(Int_t half)
 
   for (Int_t ipart = 1; ipart < mNPart[disk]; ipart++) {
     ty += mSupportYDimensions[disk][ipart] / 2.;
-    /*
-    TGeoVolume* partRohacell = gGeoManager->MakeBox(Form("partRohacelli_D2_H%d_%d", half, ipart), mRohacell,
-                                                    mSupportXDimensions[disk][ipart] / 2.,
-                                                    mSupportYDimensions[disk][ipart] / 2., mRohacellThickness);
-    partRohacell->SetLineColor(kGray);
-    */
     auto* t = new TGeoTranslation("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
 
     //===========================================================================================================
@@ -2455,79 +2329,83 @@ void HeatExchanger::createHalfDisk2(Int_t half)
       new TGeoBBox(Form("rohacellBase0_D2_H%d_%d", half, ipart), mSupportXDimensions[disk][ipart] / 2.,
                    mSupportYDimensions[disk][ipart] / 2., mRohacellThickness);
 
-    // ***************** Creating grooves for the other parts of the rohacell plate **********************
-    Double_t mShift;
-    for (Int_t iface = 1; iface > -2; iface -= 2) {     // front and rear
-      for (Int_t igroove = 0; igroove < 3; igroove++) { // 3 grooves
-        if (ipart == 1) {
-          mPosition[ipart] = mXPosition2[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1];
-          mShift = -mSupportYDimensions[disk][ipart - 1];
-        };
-        if (ipart == 2) {
-          mPosition[ipart] = mXPosition2[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2];
-          mShift = -mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2];
-        };
-        if (ipart == 3) {
-          mPosition[ipart] = mXPosition2[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2] - mSupportYDimensions[disk][ipart - 3];
-          mShift = -mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2] - mSupportYDimensions[disk][ipart - 3];
-        };
+    if (Geometry::sGrooves == 1) {
+      // ***************** Creating grooves for the other parts of the rohacell plate **********************
+      Double_t mShift;
+      for (Int_t iface = 1; iface > -2; iface -= 2) {     // front and rear
+        for (Int_t igroove = 0; igroove < 3; igroove++) { // 3 grooves
+          if (ipart == 1) {
+            mPosition[ipart] = mXPosition2[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1];
+            mShift = -mSupportYDimensions[disk][ipart - 1];
+          };
+          if (ipart == 2) {
+            mPosition[ipart] = mXPosition2[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2];
+            mShift = -mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2];
+          };
+          if (ipart == 3) {
+            mPosition[ipart] = mXPosition2[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2] - mSupportYDimensions[disk][ipart - 3];
+            mShift = -mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2] - mSupportYDimensions[disk][ipart - 3];
+          };
 
-        for (Int_t ip = 0; ip < 7; ip++) { // each groove is made of 7 parts
+          for (Int_t ip = 0; ip < 7; ip++) { // each groove is made of 7 parts
 
-          switch (ip) {
-            case 0: // Linear
-              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater2[igroove] / 2., mPosition[ipart],
-                                                        iface * (mRohacellThickness + epsilon), rotationLinear);
-              if (igroove == 0 && iface == 1) {
-                rohacellBaseGroove[iCount] = new TGeoSubtraction(partRohacell0, grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
-                rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell2Groove%d_G%d_F%d_H%d", ip, igroove, iface, half), rohacellBaseGroove[iCount]);
-              };
-              break;
-            case 1: // side torus
-              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[2][0] / 2. + mMoreLength - mLWater2[igroove], mPosition[ipart] + mRadius2[igroove],
-                                                        iface * (mRohacellThickness + epsilon), rotationSideTorusR);
-              break;
-            case 2: // Linear tilted
-              rotationTiltedLinearR = new TGeoRotation("rotationTiltedLinearRight", 90. - mAngle2[igroove], 90., 0.);
-              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - xPos2[igroove], yPos2[igroove] + mShift - mHalfDiskGap - mSupportYDimensions[disk][ipart] / 2., iface * (mRohacellThickness + epsilon), rotationTiltedLinearR);
-              break;
-            case 3: // Central Torus
-              transfo[ip][igroove] = new TGeoCombiTrans(0., mPosition[ipart] + yPos2[igroove] + mLpartial2[igroove] / 2 * TMath::Sin(mAngle2[igroove] * TMath::DegToRad()) - mRadiusCentralTore[igroove] * TMath::Cos(mAngle2[igroove] * TMath::DegToRad()) - mXPosition2[igroove],
-                                                        iface * (mRohacellThickness + epsilon), rotationCentralTorus);
-              break;
-            case 4: // Linear tilted
-              rotationTiltedLinearL = new TGeoRotation("rotationTiltedLinearLeft", 90. + mAngle2[igroove], 90., 0.);
-              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - xPos2[igroove]), yPos2[igroove] + mPosition[ipart] - mXPosition2[igroove],
-                                                        iface * (mRohacellThickness + epsilon), rotationTiltedLinearL);
-              break;
-            case 5: // side torus
-              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater2[igroove]), mRadius2[igroove] + mPosition[ipart],
-                                                        iface * (mRohacellThickness + epsilon), rotationSideTorusL);
-              break;
-            case 6: // Linear
-              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater2[igroove] / 2.), mPosition[ipart],
-                                                        iface * (mRohacellThickness + epsilon), rotationLinear);
-              break;
-          }
-          if (!(ip == 0 && igroove == 0 && iface == 1)) {
-            if (ip & 1) {
-              rohacellBaseGroove[iCount] =
-                new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTorus[ip][igroove], nullptr, transfo[ip][igroove]);
-            } else {
-              rohacellBaseGroove[iCount] =
-                new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+            switch (ip) {
+              case 0: // Linear
+                transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater2[igroove] / 2., mPosition[ipart],
+                                                          iface * (mRohacellThickness + epsilon), rotationLinear);
+                if (igroove == 0 && iface == 1) {
+                  rohacellBaseGroove[iCount] = new TGeoSubtraction(partRohacell0, grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+                  rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell2Groove%d_G%d_F%d_H%d", ip, igroove, iface, half), rohacellBaseGroove[iCount]);
+                };
+                break;
+              case 1: // side torus
+                transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[2][0] / 2. + mMoreLength - mLWater2[igroove], mPosition[ipart] + mRadius2[igroove],
+                                                          iface * (mRohacellThickness + epsilon), rotationSideTorusR);
+                break;
+              case 2: // Linear tilted
+                rotationTiltedLinearR = new TGeoRotation("rotationTiltedLinearRight", 90. - mAngle2[igroove], 90., 0.);
+                transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2. + mMoreLength - xPos2[igroove], yPos2[igroove] + mShift - mHalfDiskGap - mSupportYDimensions[disk][ipart] / 2., iface * (mRohacellThickness + epsilon), rotationTiltedLinearR);
+                break;
+              case 3: // Central Torus
+                transfo[ip][igroove] = new TGeoCombiTrans(0., mPosition[ipart] + yPos2[igroove] + mLpartial2[igroove] / 2 * TMath::Sin(mAngle2[igroove] * TMath::DegToRad()) - mRadiusCentralTore[igroove] * TMath::Cos(mAngle2[igroove] * TMath::DegToRad()) - mXPosition2[igroove],
+                                                          iface * (mRohacellThickness + epsilon), rotationCentralTorus);
+                break;
+              case 4: // Linear tilted
+                rotationTiltedLinearL = new TGeoRotation("rotationTiltedLinearLeft", 90. + mAngle2[igroove], 90., 0.);
+                transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - xPos2[igroove]), yPos2[igroove] + mPosition[ipart] - mXPosition2[igroove],
+                                                          iface * (mRohacellThickness + epsilon), rotationTiltedLinearL);
+                break;
+              case 5: // side torus
+                transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater2[igroove]), mRadius2[igroove] + mPosition[ipart],
+                                                          iface * (mRohacellThickness + epsilon), rotationSideTorusL);
+                break;
+              case 6: // Linear
+                transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[disk][0] / 2. + mMoreLength - mLWater2[igroove] / 2.), mPosition[ipart],
+                                                          iface * (mRohacellThickness + epsilon), rotationLinear);
+                break;
             }
+            if (!(ip == 0 && igroove == 0 && iface == 1)) {
+              if (ip & 1) {
+                rohacellBaseGroove[iCount] =
+                  new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTorus[ip][igroove], nullptr, transfo[ip][igroove]);
+              } else {
+                rohacellBaseGroove[iCount] =
+                  new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+              }
 
-            rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell2Groove%d_G%d_F%d_H%d", iCount, igroove, iface, half), rohacellBaseGroove[iCount]);
+              rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell2Groove%d_G%d_F%d_H%d", iCount, igroove, iface, half), rohacellBaseGroove[iCount]);
+            }
+            iCount++;
           }
-          iCount++;
         }
       }
     }
     // **************************************************************************************************
 
-    partRohacell = new TGeoVolume(Form("partRohacelli_D2_H%d_%d", half, ipart), rohacellGroove[iCount - 1], mRohacell);
-    //partRohacell = new TGeoVolume(Form("partRohacelli_D2_H%d_%d", half, ipart), partRohacell0, mRohacell);
+    if (Geometry::sGrooves == 0)
+      partRohacell = new TGeoVolume(Form("partRohacelli_D1_H%d_%d", half, ipart), partRohacell0, mRohacell);
+    if (Geometry::sGrooves == 1)
+      partRohacell = new TGeoVolume(Form("partRohacelli_D1_H%d_%d", half, ipart), rohacellGroove[iCount - 1], mRohacell);
     //===========================================================================================================
     //===========================================================================================================
 
@@ -2535,16 +2413,9 @@ void HeatExchanger::createHalfDisk2(Int_t half)
     ty += mSupportYDimensions[disk][ipart] / 2.;
   }
 
-  //  if (half == Top) {
-  //    rotation = new TGeoRotation ("rotation", 0., 0., 0.);
-  //    transformation = new TGeoCombiTrans(0., 0., 0., rotation);
-  //    mHalfDisk->AddNode(rohacellPlate, 1, transformation);
-  //  }
-  //  if (half == Bottom) {
   rotation = new TGeoRotation("rotation", 180., 0., 0.);
   transformation = new TGeoCombiTrans(0., 0., 0., rotation);
   mHalfDisk->AddNode(rohacellPlate, 2, transformation);
-  //  }
 
   createManifold(disk);
 }
@@ -2562,28 +2433,24 @@ void HeatExchanger::createHalfDisk3(Int_t half)
   else
     printf("No valid option for MFT heat exchanger on disk3\n");
 
-  // mCarbon   = gGeoManager->GetMedium("MFT_Carbon$");
   mCarbon = gGeoManager->GetMedium("MFT_CarbonFiber$");
-
   mWater = gGeoManager->GetMedium("MFT_Water$");
   mRohacell = gGeoManager->GetMedium("MFT_Rohacell");
   mPipe = gGeoManager->GetMedium("MFT_Polyimide");
 
   auto* cooling = new TGeoVolumeAssembly(Form("cooling_D3_H%d", half));
-  //Double_t deltaz = mHeatExchangerThickness - mCarbonThickness * 2; // distance between pair of carbon plans
-  Double_t deltaz = mHeatExchangerThickness - Geometry::sKaptonOnCarbonThickness * 4 - Geometry::sKaptonGlueThickness * 4 - 2 * mCarbonThickness;
 
   TGeoTranslation* translation = nullptr;
   TGeoRotation* rotation = nullptr;
   TGeoCombiTrans* transformation = nullptr;
 
   // **************************************** Water part ****************************************
-
   // ********************** Four parameters mLwater3, mRadius3, mAngle3, mLpartial3 *************
   Double_t ivolume = 300; // offset chamber 3
   Double_t mRadiusCentralTore[4];
   Double_t xPos3[4];
   Double_t yPos3[4];
+
   for (Int_t itube = 0; itube < 4; itube++) {
     TGeoVolume* waterTube1 = gGeoManager->MakeTube(Form("waterTube1%d_D3_H%d", itube, half), mWater, 0., mRWater, mLWater3[itube] / 2.);
     translation = new TGeoTranslation(mXPosition3[itube], 0., mSupportXDimensions[3][0] / 2. + mMoreLength - mLWater3[itube] / 2.);
@@ -2626,7 +2493,6 @@ void HeatExchanger::createHalfDisk3(Int_t half)
   // **************************************************** Tube part ************************************************
   // ****************************** Four parameters mLwater3, mRadius3, mAngle3, mLpartial3 ************************
   for (Int_t itube = 0; itube < 4; itube++) {
-
     TGeoVolume* pipeTube1 = gGeoManager->MakeTube(Form("pipeTube1%d_D3_H%d", itube, half), mPipe, mRWater, mRWater + mDRPipe, mLWater3[itube] / 2.);
     translation = new TGeoTranslation(mXPosition3[itube], 0., mSupportXDimensions[3][0] / 2. + mMoreLength - mLWater3[itube] / 2.);
     cooling->AddNode(pipeTube1, ivolume++, translation);
@@ -2665,20 +2531,19 @@ void HeatExchanger::createHalfDisk3(Int_t half)
     cooling->AddNode(pipeTube4, ivolume++, translation);
   }
   // ***********************************************************************************************
+
+  Double_t deltaz = mHeatExchangerThickness - Geometry::sKaptonOnCarbonThickness * 4 - Geometry::sKaptonGlueThickness * 4 - 2 * mCarbonThickness;
+
   rotation = new TGeoRotation("rotation", -90., 90., 0.);
   transformation =
-    //new TGeoCombiTrans(0., 0., mZPlan[disk] + deltaz / 2. - mCarbonThickness - mRWater - mDRPipe, rotation);
     new TGeoCombiTrans(0., 0., mZPlan[disk] + deltaz / 2. - mCarbonThickness - mRWater - mDRPipe - 2 * Geometry::sGlueRohacellCarbonThickness, rotation);
   mHalfDisk->AddNode(cooling, 3, transformation);
   transformation =
-    //new TGeoCombiTrans(0., 0., mZPlan[disk] - deltaz / 2. + mCarbonThickness + mRWater + mDRPipe, rotation);
     new TGeoCombiTrans(0., 0., mZPlan[disk] - deltaz / 2. + mCarbonThickness + mRWater + mDRPipe + 2 * Geometry::sGlueRohacellCarbonThickness, rotation);
   mHalfDisk->AddNode(cooling, 4, transformation);
 
   // **************************************** Carbon Plates ****************************************
-
   auto* carbonPlate = new TGeoVolumeAssembly(Form("carbonPlate_D3_H%d", half));
-
   auto* carbonBase3 = new TGeoBBox(Form("carbonBase3_D3_H%d", half), (mSupportXDimensions[disk][0]) / 2. + mMoreLength,
                                    (mSupportYDimensions[disk][0]) / 2., mCarbonThickness);
   auto* t31 = new TGeoTranslation("t31", 0., (mSupportYDimensions[disk][0]) / 2. + mHalfDiskGap, 0.);
@@ -2689,9 +2554,6 @@ void HeatExchanger::createHalfDisk3(Int_t half)
   auto* t32 = new TGeoTranslation("t32", 0., -mHalfDiskGap, 0.);
   t32->RegisterYourself();
 
-  /// TGeoCompositeShape *cs3 = new
-  /// TGeoCompositeShape(Form("Carbon3_D3_H%d",half),Form("(carbonBase3_D3_H%d:t31)-(holeCarbon3_D3_H%d:t32)",half,half)
-  /// );
   auto* carbonhole3 = new TGeoSubtraction(carbonBase3, holeCarbon3, t31, t32);
   auto* cs3 = new TGeoCompositeShape(Form("Carbon3_D3_H%d", half), carbonhole3);
   auto* carbonBaseWithHole3 = new TGeoVolume(Form("carbonBaseWithHole_D3_H%d", half), cs3, mCarbon);
@@ -2714,27 +2576,15 @@ void HeatExchanger::createHalfDisk3(Int_t half)
     ty += mSupportYDimensions[disk][ipart] / 2.;
   }
 
-  //  if (half == Top) {
-  //    rotation = new TGeoRotation ("rotation", 0., 0., 0.);
-  //    transformation = new TGeoCombiTrans(0., 0., deltaz/2., rotation);
-  //    mHalfDisk->AddNode(carbonPlate, 1, transformation);
-  //    transformation = new TGeoCombiTrans(0., 0., -deltaz/2., rotation);
-  //    mHalfDisk->AddNode(carbonPlate, 2, transformation);
-  //  }
-  //  else if (half == Bottom) {
   rotation = new TGeoRotation("rotation", 180., 0., 0.);
   transformation = new TGeoCombiTrans(0., 0., deltaz / 2., rotation);
   mHalfDisk->AddNode(carbonPlate, 3, transformation);
   transformation = new TGeoCombiTrans(0., 0., -deltaz / 2., rotation);
   mHalfDisk->AddNode(carbonPlate, 4, transformation);
-  //  }
 
   // **************************************** Glue Bwtween Carbon Plate and Rohacell Plate ****************************************
-
   TGeoMedium* mGlueRohacellCarbon = gGeoManager->GetMedium("MFT_Epoxy$");
-
   auto* glueRohacellCarbon = new TGeoVolumeAssembly(Form("glueRohacellCarbon_D0_H%d", half));
-
   auto* glueRohacellCarbonBase0 = new TGeoBBox(Form("glueRohacellCarbonBase0_D0_H%d", half), (mSupportXDimensions[disk][0]) / 2.,
                                                (mSupportYDimensions[disk][0]) / 2., Geometry::sGlueRohacellCarbonThickness);
 
@@ -2775,9 +2625,7 @@ void HeatExchanger::createHalfDisk3(Int_t half)
   mHalfDisk->AddNode(glueRohacellCarbon, 4, transformation);
 
   // **************************************** Kapton on Carbon Plate ****************************************
-
   TGeoMedium* mKaptonOnCarbon = gGeoManager->GetMedium("MFT_Kapton$");
-
   auto* kaptonOnCarbon = new TGeoVolumeAssembly(Form("kaptonOnCarbon_D0_H%d", half));
   auto* kaptonOnCarbonBase0 = new TGeoBBox(Form("kaptonOnCarbonBase0_D0_H%d", half), (mSupportXDimensions[disk][0]) / 2. + mMoreLength,
                                            (mSupportYDimensions[disk][0]) / 2., Geometry::sKaptonOnCarbonThickness);
@@ -2819,11 +2667,8 @@ void HeatExchanger::createHalfDisk3(Int_t half)
   mHalfDisk->AddNode(kaptonOnCarbon, 4, transformation);
 
   // **************************************** Kapton glue on the carbon plate ****************************************
-
   TGeoMedium* mGlueKaptonCarbon = gGeoManager->GetMedium("MFT_Epoxy$");
-
   auto* glueKaptonCarbon = new TGeoVolumeAssembly(Form("glueKaptonCarbon_D0_H%d", half));
-
   auto* glueKaptonCarbonBase0 = new TGeoBBox(Form("glueKaptonCarbonBase0_D0_H%d", half), (mSupportXDimensions[disk][0]) / 2.,
                                              (mSupportYDimensions[disk][0]) / 2., Geometry::sKaptonGlueThickness);
 
@@ -2864,30 +2709,18 @@ void HeatExchanger::createHalfDisk3(Int_t half)
   mHalfDisk->AddNode(glueKaptonCarbon, 4, transformation);
 
   // **************************************** Rohacell Plate ****************************************
-
   auto* rohacellPlate = new TGeoVolumeAssembly(Form("rohacellPlate_D3_H%d", half));
-
   auto* rohacellBase3 = new TGeoBBox(Form("rohacellBase3_D3_H%d", half), (mSupportXDimensions[disk][0]) / 2., (mSupportYDimensions[disk][0]) / 2., mRohacellThickness);
-  // TGeoTranslation *t3 = new TGeoTranslation ("t3",0., (fSupportYDimensions[disk][0])/2. + fHalfDiskGap , 0.);
-  // t3 -> RegisterYourself();
 
   auto* holeRohacell3 =
     new TGeoTubeSeg(Form("holeRohacell3_D3_H%d", half), 0., mRMin[disk], mRohacellThickness + 0.000001, 0, 180.);
-  // TGeoTranslation *t4= new TGeoTranslation ("t4", 0., - fHalfDiskGap , 0.);
-  // t4-> RegisterYourself();
-
-  /// cs3 = new TGeoCompositeShape(Form("rohacell_D3_H%d",half),
-  /// Form("(rohacellBase3_D3_H%d:t31)-(holeRohacell3_D3_H%d:t32)",half,half));
-
-  //===========================================================================================================
-  //===========================================================================================================
 
   // **************************************** GROOVES *************************************************
+  // Creating grooves or not according to sGrooves
   Double_t diameter = 0.21; // groove diameter
   Double_t epsilon = 0.06;  // outside shift of the goove
   Int_t iCount = 0;
   Double_t mPosition[4];
-
   TGeoCombiTrans* transfo[7][4];
   TGeoTube* grooveTube[7][4];
   TGeoTorus* grooveTorus[7][4];
@@ -2913,63 +2746,68 @@ void HeatExchanger::createHalfDisk3(Int_t half)
   TGeoRotation* rotationTiltedLinearL;
 
   // Creating grooves
-  for (Int_t iface = 1; iface > -2; iface -= 2) {     // front and rear
-    for (Int_t igroove = 0; igroove < 4; igroove++) { // 4 grooves
-      mPosition[igroove] = mXPosition3[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap;
-      for (Int_t ip = 0; ip < 7; ip++) { // each groove is made of 7 parts
+  if (Geometry::sGrooves == 1) {
+    for (Int_t iface = 1; iface > -2; iface -= 2) {     // front and rear
+      for (Int_t igroove = 0; igroove < 4; igroove++) { // 4 grooves
+        mPosition[igroove] = mXPosition3[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap;
+        for (Int_t ip = 0; ip < 7; ip++) { // each groove is made of 7 parts
 
-        switch (ip) {
-          case 0: // Linear
-            transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[3][0] / 2. + mMoreLength - mLWater3[igroove] / 2., mPosition[igroove], iface * (mRohacellThickness + epsilon), rotationLinear);
-            if (igroove == 0 && iface == 1) {
-              rohacellBaseGroove[0] = new TGeoSubtraction(rohacellBase3, grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
-              rohacellGroove[0] = new TGeoCompositeShape(Form("rohacell3Groove%d_G%d_F%d_H%d", ip, igroove, iface, half), rohacellBaseGroove[0]);
-            };
-            break;
-          case 1: // side torus
-            transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[3][0] / 2. + mMoreLength - mLWater3[igroove], mRadius3[igroove] + mXPosition3[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap, iface * (mRohacellThickness + epsilon), rotationSideTorusR);
-            break;
-          case 2: // Linear tilted
-            rotationTiltedLinearR = new TGeoRotation("rotationTiltedLinearRight", 90. - mAngle3[igroove], 90., 0.);
-            transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[3][0] / 2. + mMoreLength - xPos3[igroove], yPos3[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
-                                                      iface * (mRohacellThickness + epsilon), rotationTiltedLinearR);
-            break;
-          case 3: // Central Torus
-            transfo[ip][igroove] = new TGeoCombiTrans(0., yPos3[igroove] + mLpartial3[igroove] / 2 * TMath::Sin(mAngle3[igroove] * TMath::DegToRad()) - mRadiusCentralTore[igroove] * TMath::Cos(mAngle3[igroove] * TMath::DegToRad()) - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
-                                                      iface * (mRohacellThickness + epsilon), rotationCentralTorus);
-            break;
-          case 4: // Linear tilted
-            rotationTiltedLinearL = new TGeoRotation("rotationTiltedLinearLeft", 90. + mAngle3[igroove], 90., 0.);
-            transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[3][0] / 2. + mMoreLength - xPos3[igroove]), yPos3[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
-                                                      iface * (mRohacellThickness + epsilon), rotationTiltedLinearL);
-            break;
-          case 5: // side torus
-            transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[3][0] / 2. + mMoreLength - mLWater3[igroove]), mRadius3[igroove] + mPosition[igroove],
-                                                      iface * (mRohacellThickness + epsilon), rotationSideTorusL);
-            break;
-          case 6: // Linear
-            transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[3][0] / 2. + mMoreLength - mLWater3[igroove] / 2.), mPosition[igroove],
-                                                      iface * (mRohacellThickness + epsilon), rotationLinear);
-            break;
-        }
-
-        if (!(ip == 0 && igroove == 0 && iface == 1)) {
-          if (ip & 1) {
-            rohacellBaseGroove[iCount] = new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTorus[ip][igroove], nullptr, transfo[ip][igroove]);
-          } else {
-            rohacellBaseGroove[iCount] = new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+          switch (ip) {
+            case 0: // Linear
+              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[3][0] / 2. + mMoreLength - mLWater3[igroove] / 2., mPosition[igroove], iface * (mRohacellThickness + epsilon), rotationLinear);
+              if (igroove == 0 && iface == 1) {
+                rohacellBaseGroove[0] = new TGeoSubtraction(rohacellBase3, grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+                rohacellGroove[0] = new TGeoCompositeShape(Form("rohacell3Groove%d_G%d_F%d_H%d", ip, igroove, iface, half), rohacellBaseGroove[0]);
+              };
+              break;
+            case 1: // side torus
+              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[3][0] / 2. + mMoreLength - mLWater3[igroove], mRadius3[igroove] + mXPosition3[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap, iface * (mRohacellThickness + epsilon), rotationSideTorusR);
+              break;
+            case 2: // Linear tilted
+              rotationTiltedLinearR = new TGeoRotation("rotationTiltedLinearRight", 90. - mAngle3[igroove], 90., 0.);
+              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[3][0] / 2. + mMoreLength - xPos3[igroove], yPos3[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
+                                                        iface * (mRohacellThickness + epsilon), rotationTiltedLinearR);
+              break;
+            case 3: // Central Torus
+              transfo[ip][igroove] = new TGeoCombiTrans(0., yPos3[igroove] + mLpartial3[igroove] / 2 * TMath::Sin(mAngle3[igroove] * TMath::DegToRad()) - mRadiusCentralTore[igroove] * TMath::Cos(mAngle3[igroove] * TMath::DegToRad()) - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
+                                                        iface * (mRohacellThickness + epsilon), rotationCentralTorus);
+              break;
+            case 4: // Linear tilted
+              rotationTiltedLinearL = new TGeoRotation("rotationTiltedLinearLeft", 90. + mAngle3[igroove], 90., 0.);
+              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[3][0] / 2. + mMoreLength - xPos3[igroove]), yPos3[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
+                                                        iface * (mRohacellThickness + epsilon), rotationTiltedLinearL);
+              break;
+            case 5: // side torus
+              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[3][0] / 2. + mMoreLength - mLWater3[igroove]), mRadius3[igroove] + mPosition[igroove],
+                                                        iface * (mRohacellThickness + epsilon), rotationSideTorusL);
+              break;
+            case 6: // Linear
+              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[3][0] / 2. + mMoreLength - mLWater3[igroove] / 2.), mPosition[igroove],
+                                                        iface * (mRohacellThickness + epsilon), rotationLinear);
+              break;
           }
-          rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell3Groove%d_G%d_F%d_H%d", iCount, igroove, iface, half), rohacellBaseGroove[iCount]);
+
+          if (!(ip == 0 && igroove == 0 && iface == 1)) {
+            if (ip & 1) {
+              rohacellBaseGroove[iCount] = new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTorus[ip][igroove], nullptr, transfo[ip][igroove]);
+            } else {
+              rohacellBaseGroove[iCount] = new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+            }
+            rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell3Groove%d_G%d_F%d_H%d", iCount, igroove, iface, half), rohacellBaseGroove[iCount]);
+          }
+          iCount++;
         }
-        iCount++;
       }
     }
   }
   // **********************************************************************************************************
-
-  auto* rohacellhole3 = new TGeoSubtraction(rohacellGroove[iCount - 1], holeRohacell3, t31, t32);
-  //auto* rohacellhole3 = new TGeoSubtraction(rohacellBase3, holeRohacell3, t31, t32);
-  auto* rh3 = new TGeoCompositeShape(Form("rohacellBase3_D3_H%d", half), rohacellhole3);
+  // Passage du beam pipe
+  TGeoBoolNode* rohacellBase;
+  if (Geometry::sGrooves == 0)
+    rohacellBase = new TGeoSubtraction(rohacellBase3, holeRohacell3, t31, t32);
+  if (Geometry::sGrooves == 1)
+    rohacellBase = new TGeoSubtraction(rohacellGroove[iCount - 1], holeRohacell3, t31, t32);
+  auto* rh3 = new TGeoCompositeShape(Form("rohacellTore%d_D0_H%d", 0, half), rohacellBase);
   auto* rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D3_H%d", half), rh3, mRohacell);
 
   rohacellBaseWithHole->SetLineColor(kGray);
@@ -2981,14 +2819,7 @@ void HeatExchanger::createHalfDisk3(Int_t half)
 
   TGeoVolume* partRohacell;
   for (Int_t ipart = 1; ipart < mNPart[disk]; ipart++) {
-    //for (Int_t ipart = 1; ipart < 4; ipart++) {
     ty += mSupportYDimensions[disk][ipart] / 2.;
-    /*
-    TGeoVolume* partRohacell = gGeoManager->MakeBox(Form("partRohacelli_D3_H%d_%d", half, ipart), mRohacell,
-                                                    mSupportXDimensions[disk][ipart] / 2.,
-                                                    mSupportYDimensions[disk][ipart] / 2., mRohacellThickness);
-    partRohacell->SetLineColor(kGray);
-    */
     auto* t = new TGeoTranslation("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
 
     //===========================================================================================================
@@ -2998,77 +2829,82 @@ void HeatExchanger::createHalfDisk3(Int_t half)
                    mSupportYDimensions[disk][ipart] / 2., mRohacellThickness);
     Double_t mShift;
 
-    // ****************  Creating grooves for the other parts of the rohacell plate **********************
-    for (Int_t iface = 1; iface > -2; iface -= 2) {     // front and rear
-      for (Int_t igroove = 0; igroove < 4; igroove++) { // 4 grooves
-        if (ipart == 1) {
-          mPosition[ipart] = mXPosition3[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1];
-          mShift = -mSupportYDimensions[disk][ipart - 1];
-        };
-        if (ipart == 2) {
-          mPosition[ipart] = mXPosition3[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2];
-          mShift = -mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2];
-        };
-        if (ipart == 3) {
-          mPosition[ipart] = mXPosition3[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2] - mSupportYDimensions[disk][ipart - 3];
-          mShift = -mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2] - mSupportYDimensions[disk][ipart - 3];
-        };
+    if (Geometry::sGrooves == 1) {
+      // ****************  Creating grooves for the other parts of the rohacell plate **********************
+      for (Int_t iface = 1; iface > -2; iface -= 2) {     // front and rear
+        for (Int_t igroove = 0; igroove < 4; igroove++) { // 4 grooves
+          if (ipart == 1) {
+            mPosition[ipart] = mXPosition3[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1];
+            mShift = -mSupportYDimensions[disk][ipart - 1];
+          };
+          if (ipart == 2) {
+            mPosition[ipart] = mXPosition3[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2];
+            mShift = -mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2];
+          };
+          if (ipart == 3) {
+            mPosition[ipart] = mXPosition3[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2] - mSupportYDimensions[disk][ipart - 3];
+            mShift = -mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2] - mSupportYDimensions[disk][ipart - 3];
+          };
 
-        for (Int_t ip = 0; ip < 7; ip++) { // each groove is made of 7 parts
+          for (Int_t ip = 0; ip < 7; ip++) { // each groove is made of 7 parts
 
-          switch (ip) {
-            case 0: // Linear
-              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[3][0] / 2. + mMoreLength - mLWater3[igroove] / 2., mPosition[ipart],
-                                                        iface * (mRohacellThickness + epsilon), rotationLinear);
-              if (igroove == 0 && iface == 1) {
-                rohacellBaseGroove[iCount] = new TGeoSubtraction(partRohacell0, grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
-                rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell3Groove%d_G%d_F%d_H%d", ip, igroove, iface, half), rohacellBaseGroove[iCount]);
-              };
-              break;
-            case 1: // side torus
-              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[3][0] / 2. + mMoreLength - mLWater3[igroove], mPosition[ipart] + mRadius3[igroove],
-                                                        iface * (mRohacellThickness + epsilon), rotationSideTorusR);
-              break;
-            case 2: // Linear tilted
-              rotationTiltedLinearR = new TGeoRotation("rotationTiltedLinearRight", 90. - mAngle3[igroove], 90., 0.);
-              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[3][0] / 2. + mMoreLength - xPos3[igroove], yPos3[igroove] + mShift - mHalfDiskGap - mSupportYDimensions[disk][ipart] / 2., iface * (mRohacellThickness + epsilon), rotationTiltedLinearR);
-              break;
-            case 3: // Central Torus
-              transfo[ip][igroove] = new TGeoCombiTrans(0., mPosition[ipart] + yPos3[igroove] + mLpartial3[igroove] / 2 * TMath::Sin(mAngle3[igroove] * TMath::DegToRad()) - mRadiusCentralTore[igroove] * TMath::Cos(mAngle3[igroove] * TMath::DegToRad()) - mXPosition3[igroove],
-                                                        iface * (mRohacellThickness + epsilon), rotationCentralTorus);
-              break;
-            case 4: // Linear tilted
-              rotationTiltedLinearL = new TGeoRotation("rotationTiltedLinearLeft", 90. + mAngle3[igroove], 90., 0.);
-              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[3][0] / 2. + mMoreLength - xPos3[igroove]), yPos3[igroove] + mPosition[ipart] - mXPosition3[igroove],
-                                                        iface * (mRohacellThickness + epsilon), rotationTiltedLinearL);
-              break;
-            case 5: // side torus
-              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[3][0] / 2. + mMoreLength - mLWater3[igroove]), mRadius3[igroove] + mPosition[ipart],
-                                                        iface * (mRohacellThickness + epsilon), rotationSideTorusL);
-              break;
-            case 6: // Linear
-              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[3][0] / 2. + mMoreLength - mLWater3[igroove] / 2.), mPosition[ipart],
-                                                        iface * (mRohacellThickness + epsilon), rotationLinear);
-              break;
-          }
-          if (!(ip == 0 && igroove == 0 && iface == 1)) {
-            if (ip & 1) {
-              rohacellBaseGroove[iCount] =
-                new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTorus[ip][igroove], nullptr, transfo[ip][igroove]);
-            } else {
-              rohacellBaseGroove[iCount] =
-                new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+            switch (ip) {
+              case 0: // Linear
+                transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[3][0] / 2. + mMoreLength - mLWater3[igroove] / 2., mPosition[ipart],
+                                                          iface * (mRohacellThickness + epsilon), rotationLinear);
+                if (igroove == 0 && iface == 1) {
+                  rohacellBaseGroove[iCount] = new TGeoSubtraction(partRohacell0, grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+                  rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell3Groove%d_G%d_F%d_H%d", ip, igroove, iface, half), rohacellBaseGroove[iCount]);
+                };
+                break;
+              case 1: // side torus
+                transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[3][0] / 2. + mMoreLength - mLWater3[igroove], mPosition[ipart] + mRadius3[igroove],
+                                                          iface * (mRohacellThickness + epsilon), rotationSideTorusR);
+                break;
+              case 2: // Linear tilted
+                rotationTiltedLinearR = new TGeoRotation("rotationTiltedLinearRight", 90. - mAngle3[igroove], 90., 0.);
+                transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[3][0] / 2. + mMoreLength - xPos3[igroove], yPos3[igroove] + mShift - mHalfDiskGap - mSupportYDimensions[disk][ipart] / 2., iface * (mRohacellThickness + epsilon), rotationTiltedLinearR);
+                break;
+              case 3: // Central Torus
+                transfo[ip][igroove] = new TGeoCombiTrans(0., mPosition[ipart] + yPos3[igroove] + mLpartial3[igroove] / 2 * TMath::Sin(mAngle3[igroove] * TMath::DegToRad()) - mRadiusCentralTore[igroove] * TMath::Cos(mAngle3[igroove] * TMath::DegToRad()) - mXPosition3[igroove],
+                                                          iface * (mRohacellThickness + epsilon), rotationCentralTorus);
+                break;
+              case 4: // Linear tilted
+                rotationTiltedLinearL = new TGeoRotation("rotationTiltedLinearLeft", 90. + mAngle3[igroove], 90., 0.);
+                transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[3][0] / 2. + mMoreLength - xPos3[igroove]), yPos3[igroove] + mPosition[ipart] - mXPosition3[igroove],
+                                                          iface * (mRohacellThickness + epsilon), rotationTiltedLinearL);
+                break;
+              case 5: // side torus
+                transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[3][0] / 2. + mMoreLength - mLWater3[igroove]), mRadius3[igroove] + mPosition[ipart],
+                                                          iface * (mRohacellThickness + epsilon), rotationSideTorusL);
+                break;
+              case 6: // Linear
+                transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[3][0] / 2. + mMoreLength - mLWater3[igroove] / 2.), mPosition[ipart],
+                                                          iface * (mRohacellThickness + epsilon), rotationLinear);
+                break;
             }
+            if (!(ip == 0 && igroove == 0 && iface == 1)) {
+              if (ip & 1) {
+                rohacellBaseGroove[iCount] =
+                  new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTorus[ip][igroove], nullptr, transfo[ip][igroove]);
+              } else {
+                rohacellBaseGroove[iCount] =
+                  new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+              }
 
-            rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell3Groove%d_G%d_F%d_H%d", iCount, igroove, iface, half), rohacellBaseGroove[iCount]);
+              rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell3Groove%d_G%d_F%d_H%d", iCount, igroove, iface, half), rohacellBaseGroove[iCount]);
+            }
+            iCount++;
           }
-          iCount++;
         }
       }
     }
 
-    partRohacell = new TGeoVolume(Form("partRohacelli_D3_H%d_%d", half, ipart), rohacellGroove[iCount - 1], mRohacell);
-    //partRohacell = new TGeoVolume(Form("partRohacelli_D3_H%d_%d", half, ipart), partRohacell0, mRohacell);
+    if (Geometry::sGrooves == 0)
+      partRohacell = new TGeoVolume(Form("partRohacelli_D3_H%d_%d", half, ipart), partRohacell0, mRohacell);
+    if (Geometry::sGrooves == 1)
+      partRohacell = new TGeoVolume(Form("partRohacelli_D3_H%d_%d", half, ipart), rohacellGroove[iCount - 1], mRohacell);
+
     //===========================================================================================================
     //===========================================================================================================
 
@@ -3076,16 +2912,9 @@ void HeatExchanger::createHalfDisk3(Int_t half)
     ty += mSupportYDimensions[disk][ipart] / 2.;
   }
 
-  //  if (half == Top) {
-  //    rotation = new TGeoRotation ("rotation", 0., 0., 0.);
-  //    transformation = new TGeoCombiTrans(0., 0., 0., rotation);
-  //    mHalfDisk->AddNode(rohacellPlate, 1, transformation);
-  //  }
-  //  if (half == Bottom) {
   rotation = new TGeoRotation("rotation", 180., 0., 0.);
   transformation = new TGeoCombiTrans(0., 0., 0., rotation);
   mHalfDisk->AddNode(rohacellPlate, 2, transformation);
-  //  }
 
   createManifold(disk);
 }
@@ -3103,16 +2932,12 @@ void HeatExchanger::createHalfDisk4(Int_t half)
   else
     printf("No valid option for MFT heat exchanger on disk4\n");
 
-  // mCarbon   = gGeoManager->GetMedium("MFT_Carbon$");
   mCarbon = gGeoManager->GetMedium("MFT_CarbonFiber$");
-
   mWater = gGeoManager->GetMedium("MFT_Water$");
   mRohacell = gGeoManager->GetMedium("MFT_Rohacell");
   mPipe = gGeoManager->GetMedium("MFT_Polyimide");
 
   auto* cooling = new TGeoVolumeAssembly(Form("cooling_D4_H%d", half));
-  //Double_t deltaz = mHeatExchangerThickness - mCarbonThickness * 2; // distance between pair of carbon plans
-  Double_t deltaz = mHeatExchangerThickness - Geometry::sKaptonOnCarbonThickness * 4 - Geometry::sKaptonGlueThickness * 4 - 2 * mCarbonThickness;
 
   TGeoTranslation* translation = nullptr;
   TGeoRotation* rotation = nullptr;
@@ -3124,6 +2949,7 @@ void HeatExchanger::createHalfDisk4(Int_t half)
   Double_t mRadiusCentralTore[4];
   Double_t xPos4[4];
   Double_t yPos4[4];
+
   for (Int_t itube = 0; itube < 4; itube++) {
     TGeoVolume* waterTube1 = gGeoManager->MakeTube(Form("waterTube1%d_D4_H%d", itube, half), mWater, 0., mRWater, mLWater4[itube] / 2.);
     translation = new TGeoTranslation(mXPosition4[itube], 0., mSupportXDimensions[4][0] / 2. + mMoreLength - mLWater4[itube] / 2.);
@@ -3168,7 +2994,6 @@ void HeatExchanger::createHalfDisk4(Int_t half)
   // **************************************** Tube part *******************************************
   // ********************* Four parameters mLwater4, mRadius4, mAngle4, mLpartial4 ****************
   for (Int_t itube = 0; itube < 4; itube++) {
-
     TGeoVolume* pipeTube1 = gGeoManager->MakeTube(Form("pipeTube1%d_D4_H%d", itube, half), mPipe, mRWater, mRWater + mDRPipe, mLWater4[itube] / 2.);
     translation = new TGeoTranslation(mXPosition4[itube], 0., mSupportXDimensions[4][0] / 2. + mMoreLength - mLWater4[itube] / 2.);
     cooling->AddNode(pipeTube1, ivolume++, translation);
@@ -3206,23 +3031,20 @@ void HeatExchanger::createHalfDisk4(Int_t half)
     translation = new TGeoTranslation(mXPosition4[itube], 0., -(mSupportXDimensions[4][0] / 2. + mMoreLength - mLWater4[itube] / 2.));
     cooling->AddNode(pipeTube4, ivolume++, translation);
   }
-  //------------------------------------------------------------------
-  //------------------------------------------------------------------
+  // ***********************************************************************************************
+
+  Double_t deltaz = mHeatExchangerThickness - Geometry::sKaptonOnCarbonThickness * 4 - Geometry::sKaptonGlueThickness * 4 - 2 * mCarbonThickness;
 
   rotation = new TGeoRotation("rotation", -90., 90., 0.);
   transformation =
-    //new TGeoCombiTrans(0., 0., mZPlan[disk] + deltaz / 2. - mCarbonThickness - mRWater - mDRPipe, rotation);
     new TGeoCombiTrans(0., 0., mZPlan[disk] + deltaz / 2. - mCarbonThickness - mRWater - mDRPipe - 2 * Geometry::sGlueRohacellCarbonThickness, rotation);
   mHalfDisk->AddNode(cooling, 3, transformation);
   transformation =
-    //new TGeoCombiTrans(0., 0., mZPlan[disk] - deltaz / 2. + mCarbonThickness + mRWater + mDRPipe, rotation);
     new TGeoCombiTrans(0., 0., mZPlan[disk] - deltaz / 2. + mCarbonThickness + mRWater + mDRPipe + 2 * Geometry::sGlueRohacellCarbonThickness, rotation);
   mHalfDisk->AddNode(cooling, 4, transformation);
 
   // **************************************** Carbon Plates ****************************************
-
   auto* carbonPlate = new TGeoVolumeAssembly(Form("carbonPlate_D4_H%d", half));
-
   auto* carbonBase4 = new TGeoBBox(Form("carbonBase4_D4_H%d", half), (mSupportXDimensions[disk][0]) / 2. + mMoreLength,
                                    (mSupportYDimensions[disk][0]) / 2., mCarbonThickness);
   auto* t41 = new TGeoTranslation("t41", 0., (mSupportYDimensions[disk][0]) / 2. + mHalfDiskGap, 0.);
@@ -3233,8 +3055,6 @@ void HeatExchanger::createHalfDisk4(Int_t half)
   auto* t42 = new TGeoTranslation("t42", 0., -mHalfDiskGap, 0.);
   t42->RegisterYourself();
 
-  /// TGeoCompositeShape *cs4 = new
-  /// TGeoCompositeShape(Form("Carbon4_D4_H%d",half),Form("(carbonBase4_D4_H%d:t41)-(holeCarbon4_D4_H%d:t42)",half,half));
   auto* carbonhole4 = new TGeoSubtraction(carbonBase4, holeCarbon4, t41, t42);
   auto* cs4 = new TGeoCompositeShape(Form("Carbon4_D4_H%d", half), carbonhole4);
   auto* carbonBaseWithHole4 = new TGeoVolume(Form("carbonBaseWithHole_D4_H%d", half), cs4, mCarbon);
@@ -3257,27 +3077,15 @@ void HeatExchanger::createHalfDisk4(Int_t half)
     ty += mSupportYDimensions[disk][ipart] / 2.;
   }
 
-  //  if (half == Top) {
-  //    rotation = new TGeoRotation ("rotation", 0., 0., 0.);
-  //    transformation = new TGeoCombiTrans(0., 0., deltaz/2., rotation);
-  //    mHalfDisk->AddNode(carbonPlate, 1, transformation);
-  //    transformation = new TGeoCombiTrans(0., 0., -deltaz/2., rotation);
-  //    mHalfDisk->AddNode(carbonPlate, 2, transformation);
-  //  }
-  //  else if (half == Bottom) {
   rotation = new TGeoRotation("rotation", 180., 0., 0.);
   transformation = new TGeoCombiTrans(0., 0., deltaz / 2., rotation);
   mHalfDisk->AddNode(carbonPlate, 3, transformation);
   transformation = new TGeoCombiTrans(0., 0., -deltaz / 2., rotation);
   mHalfDisk->AddNode(carbonPlate, 4, transformation);
-  //  }
 
   // **************************************** Glue Bwtween Carbon Plate and Rohacell Plate ****************************************
-
   TGeoMedium* mGlueRohacellCarbon = gGeoManager->GetMedium("MFT_Epoxy$");
-
   auto* glueRohacellCarbon = new TGeoVolumeAssembly(Form("glueRohacellCarbon_D0_H%d", half));
-
   auto* glueRohacellCarbonBase0 = new TGeoBBox(Form("glueRohacellCarbonBase0_D0_H%d", half), (mSupportXDimensions[disk][0]) / 2.,
                                                (mSupportYDimensions[disk][0]) / 2., Geometry::sGlueRohacellCarbonThickness);
 
@@ -3318,9 +3126,7 @@ void HeatExchanger::createHalfDisk4(Int_t half)
   mHalfDisk->AddNode(glueRohacellCarbon, 4, transformation);
 
   // **************************************** Kapton on Carbon Plate ****************************************
-
   TGeoMedium* mKaptonOnCarbon = gGeoManager->GetMedium("MFT_Kapton$");
-
   auto* kaptonOnCarbon = new TGeoVolumeAssembly(Form("kaptonOnCarbon_D0_H%d", half));
   auto* kaptonOnCarbonBase0 = new TGeoBBox(Form("kaptonOnCarbonBase0_D0_H%d", half), (mSupportXDimensions[disk][0]) / 2. + mMoreLength,
                                            (mSupportYDimensions[disk][0]) / 2., Geometry::sKaptonOnCarbonThickness);
@@ -3362,11 +3168,8 @@ void HeatExchanger::createHalfDisk4(Int_t half)
   mHalfDisk->AddNode(kaptonOnCarbon, 4, transformation);
 
   // **************************************** Kapton glue on the carbon plate ****************************************
-
   TGeoMedium* mGlueKaptonCarbon = gGeoManager->GetMedium("MFT_Epoxy$");
-
   auto* glueKaptonCarbon = new TGeoVolumeAssembly(Form("glueKaptonCarbon_D0_H%d", half));
-
   auto* glueKaptonCarbonBase0 = new TGeoBBox(Form("glueKaptonCarbonBase0_D0_H%d", half), (mSupportXDimensions[disk][0]) / 2., (mSupportYDimensions[disk][0]) / 2., Geometry::sKaptonGlueThickness);
 
   auto* translation_gluKC01 = new TGeoTranslation("translation_gluKC01", 0., (mSupportYDimensions[disk][0]) / 2. + mHalfDiskGap, 0.);
@@ -3406,21 +3209,11 @@ void HeatExchanger::createHalfDisk4(Int_t half)
   mHalfDisk->AddNode(glueKaptonCarbon, 4, transformation);
 
   // **************************************** Rohacell Plate ****************************************
-
   auto* rohacellPlate = new TGeoVolumeAssembly(Form("rohacellPlate_D4_H%d", half));
-
   auto* rohacellBase4 = new TGeoBBox(Form("rohacellBase4_D4_H%d", half), (mSupportXDimensions[disk][0]) / 2.,
                                      (mSupportYDimensions[disk][0]) / 2., mRohacellThickness);
-  // TGeoTranslation *t3 = new TGeoTranslation ("t3",0., (fSupportYDimensions[disk][0])/2. + fHalfDiskGap , 0.);
-  // t3 -> RegisterYourself();
-
   auto* holeRohacell4 =
     new TGeoTubeSeg(Form("holeRohacell4_D4_H%d", half), 0., mRMin[disk], mRohacellThickness + 0.000001, 0, 180.);
-  // TGeoTranslation *t4= new TGeoTranslation ("t4", 0., - fHalfDiskGap , 0.);
-  // t4-> RegisterYourself();
-
-  /// cs4 = new TGeoCompositeShape(Form("rohacell_D4_H%d",half),
-  /// Form("(rohacellBase4_D4_H%d:t41)-(holeRohacell4_D4_H%d:t42)",half,half));
 
   // *************************************** Grooves *************************************************
   Double_t diameter = 0.21; // groove diameter
@@ -3453,68 +3246,75 @@ void HeatExchanger::createHalfDisk4(Int_t half)
   TGeoRotation* rotationTiltedLinearL;
 
   // Creating grooves
-  for (Int_t iface = 1; iface > -2; iface -= 2) {     // front and rear
-    for (Int_t igroove = 0; igroove < 4; igroove++) { // 4 grooves
-      mPosition[igroove] = mXPosition4[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap;
-      for (Int_t ip = 0; ip < 7; ip++) { // each groove is made of 7 parts
+  if (Geometry::sGrooves == 1) {
+    for (Int_t iface = 1; iface > -2; iface -= 2) {     // front and rear
+      for (Int_t igroove = 0; igroove < 4; igroove++) { // 4 grooves
+        mPosition[igroove] = mXPosition4[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap;
+        for (Int_t ip = 0; ip < 7; ip++) { // each groove is made of 7 parts
 
-        switch (ip) {
-          case 0: // Linear
-            transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[4][0] / 2. + mMoreLength - mLWater4[igroove] / 2., mPosition[igroove],
-                                                      iface * (mRohacellThickness + epsilon), rotationLinear);
-            if (igroove == 0 && iface == 1) {
-              rohacellBaseGroove[0] = new TGeoSubtraction(rohacellBase4, grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
-              rohacellGroove[0] = new TGeoCompositeShape(Form("rohacell4Groove%d_G%d_F%d_H%d", ip, igroove, iface, half), rohacellBaseGroove[0]);
-            };
-            break;
-          case 1: // side torus
-            transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[4][0] / 2. + mMoreLength - mLWater4[igroove], mRadius4[igroove] + mXPosition4[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap, iface * (mRohacellThickness + epsilon), rotationSideTorusR);
-            break;
-          case 2: // Linear tilted
-            rotationTiltedLinearR = new TGeoRotation("rotationTiltedLinearRight", 90. - mAngle4[igroove], 90., 0.);
-            transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[4][0] / 2. + mMoreLength - xPos4[igroove], yPos4[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
-                                                      iface * (mRohacellThickness + epsilon), rotationTiltedLinearR);
-            break;
-          case 3: // Central Torus
-            transfo[ip][igroove] = new TGeoCombiTrans(0., yPos4[igroove] + mLpartial4[igroove] / 2 * TMath::Sin(mAngle4[igroove] * TMath::DegToRad()) - mRadiusCentralTore[igroove] * TMath::Cos(mAngle4[igroove] * TMath::DegToRad()) - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
-                                                      iface * (mRohacellThickness + epsilon), rotationCentralTorus);
-            break;
-          case 4: // Linear tilted
-            rotationTiltedLinearL = new TGeoRotation("rotationTiltedLinearLeft", 90. + mAngle4[igroove], 90., 0.);
-            transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[4][0] / 2. + mMoreLength - xPos4[igroove]), yPos4[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
-                                                      iface * (mRohacellThickness + epsilon), rotationTiltedLinearL);
-            break;
-          case 5: // side torus
-            transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[4][0] / 2. + mMoreLength - mLWater4[igroove]), mRadius4[igroove] + mPosition[igroove],
-                                                      iface * (mRohacellThickness + epsilon), rotationSideTorusL);
-            break;
-          case 6: // Linear
-            transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[4][0] / 2. + mMoreLength - mLWater4[igroove] / 2.), mPosition[igroove],
-                                                      iface * (mRohacellThickness + epsilon), rotationLinear);
-            break;
-        }
-
-        if (!(ip == 0 && igroove == 0 && iface == 1)) {
-          if (ip & 1) {
-            rohacellBaseGroove[iCount] =
-              new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTorus[ip][igroove], nullptr, transfo[ip][igroove]);
-          } else {
-            rohacellBaseGroove[iCount] =
-              new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+          switch (ip) {
+            case 0: // Linear
+              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[4][0] / 2. + mMoreLength - mLWater4[igroove] / 2., mPosition[igroove],
+                                                        iface * (mRohacellThickness + epsilon), rotationLinear);
+              if (igroove == 0 && iface == 1) {
+                rohacellBaseGroove[0] = new TGeoSubtraction(rohacellBase4, grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+                rohacellGroove[0] = new TGeoCompositeShape(Form("rohacell4Groove%d_G%d_F%d_H%d", ip, igroove, iface, half), rohacellBaseGroove[0]);
+              };
+              break;
+            case 1: // side torus
+              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[4][0] / 2. + mMoreLength - mLWater4[igroove], mRadius4[igroove] + mXPosition4[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap, iface * (mRohacellThickness + epsilon), rotationSideTorusR);
+              break;
+            case 2: // Linear tilted
+              rotationTiltedLinearR = new TGeoRotation("rotationTiltedLinearRight", 90. - mAngle4[igroove], 90., 0.);
+              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[4][0] / 2. + mMoreLength - xPos4[igroove], yPos4[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
+                                                        iface * (mRohacellThickness + epsilon), rotationTiltedLinearR);
+              break;
+            case 3: // Central Torus
+              transfo[ip][igroove] = new TGeoCombiTrans(0., yPos4[igroove] + mLpartial4[igroove] / 2 * TMath::Sin(mAngle4[igroove] * TMath::DegToRad()) - mRadiusCentralTore[igroove] * TMath::Cos(mAngle4[igroove] * TMath::DegToRad()) - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
+                                                        iface * (mRohacellThickness + epsilon), rotationCentralTorus);
+              break;
+            case 4: // Linear tilted
+              rotationTiltedLinearL = new TGeoRotation("rotationTiltedLinearLeft", 90. + mAngle4[igroove], 90., 0.);
+              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[4][0] / 2. + mMoreLength - xPos4[igroove]), yPos4[igroove] - mSupportYDimensions[disk][0] / 2. - mHalfDiskGap,
+                                                        iface * (mRohacellThickness + epsilon), rotationTiltedLinearL);
+              break;
+            case 5: // side torus
+              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[4][0] / 2. + mMoreLength - mLWater4[igroove]), mRadius4[igroove] + mPosition[igroove],
+                                                        iface * (mRohacellThickness + epsilon), rotationSideTorusL);
+              break;
+            case 6: // Linear
+              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[4][0] / 2. + mMoreLength - mLWater4[igroove] / 2.), mPosition[igroove],
+                                                        iface * (mRohacellThickness + epsilon), rotationLinear);
+              break;
           }
-          rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell4Groove%d_G%d_F%d_H%d", iCount, igroove, iface, half), rohacellBaseGroove[iCount]);
+
+          if (!(ip == 0 && igroove == 0 && iface == 1)) {
+            if (ip & 1) {
+              rohacellBaseGroove[iCount] =
+                new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTorus[ip][igroove], nullptr, transfo[ip][igroove]);
+            } else {
+              rohacellBaseGroove[iCount] =
+                new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+            }
+            rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell4Groove%d_G%d_F%d_H%d", iCount, igroove, iface, half), rohacellBaseGroove[iCount]);
+          }
+          iCount++;
         }
-        iCount++;
       }
     }
   }
   // **********************************************************************************************************
 
-  //auto* rohacellhole4 = new TGeoSubtraction(rohacellBase4, holeRohacell4, t41, t42);
-  auto* rohacellhole4 = new TGeoSubtraction(rohacellGroove[iCount - 1], holeRohacell4, t41, t42);
-  auto* rh4 = new TGeoCompositeShape(Form("rohacellBase4_D4_H%d", half), rohacellhole4);
+  // Passage du beam pipe
+  TGeoBoolNode* rohacellBase;
+  if (Geometry::sGrooves == 0)
+    rohacellBase = new TGeoSubtraction(rohacellBase4, holeRohacell4, t41, t42);
+  if (Geometry::sGrooves == 1)
+    rohacellBase = new TGeoSubtraction(rohacellGroove[iCount - 1], holeRohacell4, t41, t42);
+  auto* rh4 = new TGeoCompositeShape(Form("rohacellTore%d_D4_H%d", 0, half), rohacellBase);
   auto* rohacellBaseWithHole = new TGeoVolume(Form("rohacellBaseWithHole_D4_H%d", half), rh4, mRohacell);
 
+  TGeoVolume* partRohacell;
   rohacellBaseWithHole->SetLineColor(kGray);
   rotation = new TGeoRotation("rotation", 0., 0., 0.);
   transformation = new TGeoCombiTrans(0., 0., 0., rotation);
@@ -3522,16 +3322,8 @@ void HeatExchanger::createHalfDisk4(Int_t half)
 
   ty = mSupportYDimensions[disk][0];
 
-  TGeoVolume* partRohacell;
-
   for (Int_t ipart = 1; ipart < mNPart[disk]; ipart++) {
     ty += mSupportYDimensions[disk][ipart] / 2.;
-    /*
-    TGeoVolume* partRohacell = gGeoManager->MakeBox(Form("partRohacelli_D4_H%d_%d", half, ipart), mRohacell,
-                                                    mSupportXDimensions[disk][ipart] / 2.,
-                                                    mSupportYDimensions[disk][ipart] / 2., mRohacellThickness);
-    partRohacell->SetLineColor(kGray);
-    */
     auto* t = new TGeoTranslation("t", 0, ty + mHalfDiskGap, mZPlan[disk]);
 
     //===========================================================================================================
@@ -3541,95 +3333,91 @@ void HeatExchanger::createHalfDisk4(Int_t half)
                    mSupportYDimensions[disk][ipart] / 2., mRohacellThickness);
     Double_t mShift;
 
-    // ****************  Creating grooves for the other parts of the rohacell plate **********************
-    for (Int_t iface = 1; iface > -2; iface -= 2) {     // front and rear
-      for (Int_t igroove = 0; igroove < 4; igroove++) { // 4 grooves
-        if (ipart == 1) {
-          mPosition[ipart] = mXPosition4[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1];
-          mShift = -mSupportYDimensions[disk][ipart - 1];
-        };
-        if (ipart == 2) {
-          mPosition[ipart] = mXPosition4[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2];
-          mShift = -mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2];
-        };
-        if (ipart == 3) {
-          mPosition[ipart] = mXPosition4[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2] - mSupportYDimensions[disk][ipart - 3];
-          mShift = -mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2] - mSupportYDimensions[disk][ipart - 3];
-        };
+    if (Geometry::sGrooves == 1) {
+      // ****************  Creating grooves for the other parts of the rohacell plate **********************
+      for (Int_t iface = 1; iface > -2; iface -= 2) {     // front and rear
+        for (Int_t igroove = 0; igroove < 4; igroove++) { // 4 grooves
+          if (ipart == 1) {
+            mPosition[ipart] = mXPosition4[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1];
+            mShift = -mSupportYDimensions[disk][ipart - 1];
+          };
+          if (ipart == 2) {
+            mPosition[ipart] = mXPosition4[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2];
+            mShift = -mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2];
+          };
+          if (ipart == 3) {
+            mPosition[ipart] = mXPosition4[igroove] - mSupportYDimensions[disk][ipart] / 2. - mHalfDiskGap - mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2] - mSupportYDimensions[disk][ipart - 3];
+            mShift = -mSupportYDimensions[disk][ipart - 1] - mSupportYDimensions[disk][ipart - 2] - mSupportYDimensions[disk][ipart - 3];
+          };
 
-        for (Int_t ip = 0; ip < 7; ip++) { // each groove is made of 7 parts
+          for (Int_t ip = 0; ip < 7; ip++) { // each groove is made of 7 parts
 
-          switch (ip) {
-            case 0: // Linear
-              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[4][0] / 2. + mMoreLength - mLWater4[igroove] / 2., mPosition[ipart],
-                                                        iface * (mRohacellThickness + epsilon), rotationLinear);
-              if (igroove == 0 && iface == 1) {
-                rohacellBaseGroove[iCount] = new TGeoSubtraction(partRohacell0, grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
-                rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell4Groove%d_G%d_F%d_H%d", ip, igroove, iface, half), rohacellBaseGroove[iCount]);
-              };
-              break;
-            case 1: // side torus
-              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[4][0] / 2. + mMoreLength - mLWater4[igroove], mPosition[ipart] + mRadius4[igroove],
-                                                        iface * (mRohacellThickness + epsilon), rotationSideTorusR);
-              break;
-            case 2: // Linear tilted
-              rotationTiltedLinearR = new TGeoRotation("rotationTiltedLinearRight", 90. - mAngle4[igroove], 90., 0.);
-              transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[4][0] / 2. + mMoreLength - xPos4[igroove], yPos4[igroove] + mShift - mHalfDiskGap - mSupportYDimensions[disk][ipart] / 2., iface * (mRohacellThickness + epsilon), rotationTiltedLinearR);
-              break;
-            case 3: // Central Torus
-              transfo[ip][igroove] = new TGeoCombiTrans(0., mPosition[ipart] + yPos4[igroove] + mLpartial4[igroove] / 2 * TMath::Sin(mAngle4[igroove] * TMath::DegToRad()) - mRadiusCentralTore[igroove] * TMath::Cos(mAngle4[igroove] * TMath::DegToRad()) - mXPosition4[igroove],
-                                                        iface * (mRohacellThickness + epsilon), rotationCentralTorus);
-              break;
-            case 4: // Linear tilted
-              rotationTiltedLinearL = new TGeoRotation("rotationTiltedLinearLeft", 90. + mAngle4[igroove], 90., 0.);
-              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[4][0] / 2. + mMoreLength - xPos4[igroove]), yPos4[igroove] + mPosition[ipart] - mXPosition4[igroove],
-                                                        iface * (mRohacellThickness + epsilon), rotationTiltedLinearL);
-              break;
-            case 5: // side torus
-              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[4][0] / 2. + mMoreLength - mLWater4[igroove]), mRadius4[igroove] + mPosition[ipart],
-                                                        iface * (mRohacellThickness + epsilon), rotationSideTorusL);
-              break;
-            case 6: // Linear
-              transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[4][0] / 2. + mMoreLength - mLWater4[igroove] / 2.), mPosition[ipart],
-                                                        iface * (mRohacellThickness + epsilon), rotationLinear);
-              break;
-          }
-          if (!(ip == 0 && igroove == 0 && iface == 1)) {
-            if (ip & 1) {
-              rohacellBaseGroove[iCount] =
-                new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTorus[ip][igroove], nullptr, transfo[ip][igroove]);
-            } else {
-              rohacellBaseGroove[iCount] =
-                new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+            switch (ip) {
+              case 0: // Linear
+                transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[4][0] / 2. + mMoreLength - mLWater4[igroove] / 2., mPosition[ipart],
+                                                          iface * (mRohacellThickness + epsilon), rotationLinear);
+                if (igroove == 0 && iface == 1) {
+                  rohacellBaseGroove[iCount] = new TGeoSubtraction(partRohacell0, grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+                  rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell4Groove%d_G%d_F%d_H%d", ip, igroove, iface, half), rohacellBaseGroove[iCount]);
+                };
+                break;
+              case 1: // side torus
+                transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[4][0] / 2. + mMoreLength - mLWater4[igroove], mPosition[ipart] + mRadius4[igroove],
+                                                          iface * (mRohacellThickness + epsilon), rotationSideTorusR);
+                break;
+              case 2: // Linear tilted
+                rotationTiltedLinearR = new TGeoRotation("rotationTiltedLinearRight", 90. - mAngle4[igroove], 90., 0.);
+                transfo[ip][igroove] = new TGeoCombiTrans(mSupportXDimensions[4][0] / 2. + mMoreLength - xPos4[igroove], yPos4[igroove] + mShift - mHalfDiskGap - mSupportYDimensions[disk][ipart] / 2., iface * (mRohacellThickness + epsilon), rotationTiltedLinearR);
+                break;
+              case 3: // Central Torus
+                transfo[ip][igroove] = new TGeoCombiTrans(0., mPosition[ipart] + yPos4[igroove] + mLpartial4[igroove] / 2 * TMath::Sin(mAngle4[igroove] * TMath::DegToRad()) - mRadiusCentralTore[igroove] * TMath::Cos(mAngle4[igroove] * TMath::DegToRad()) - mXPosition4[igroove],
+                                                          iface * (mRohacellThickness + epsilon), rotationCentralTorus);
+                break;
+              case 4: // Linear tilted
+                rotationTiltedLinearL = new TGeoRotation("rotationTiltedLinearLeft", 90. + mAngle4[igroove], 90., 0.);
+                transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[4][0] / 2. + mMoreLength - xPos4[igroove]), yPos4[igroove] + mPosition[ipart] - mXPosition4[igroove],
+                                                          iface * (mRohacellThickness + epsilon), rotationTiltedLinearL);
+                break;
+              case 5: // side torus
+                transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[4][0] / 2. + mMoreLength - mLWater4[igroove]), mRadius4[igroove] + mPosition[ipart],
+                                                          iface * (mRohacellThickness + epsilon), rotationSideTorusL);
+                break;
+              case 6: // Linear
+                transfo[ip][igroove] = new TGeoCombiTrans(-(mSupportXDimensions[4][0] / 2. + mMoreLength - mLWater4[igroove] / 2.), mPosition[ipart],
+                                                          iface * (mRohacellThickness + epsilon), rotationLinear);
+                break;
             }
+            if (!(ip == 0 && igroove == 0 && iface == 1)) {
+              if (ip & 1) {
+                rohacellBaseGroove[iCount] =
+                  new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTorus[ip][igroove], nullptr, transfo[ip][igroove]);
+              } else {
+                rohacellBaseGroove[iCount] =
+                  new TGeoSubtraction(rohacellGroove[iCount - 1], grooveTube[ip][igroove], nullptr, transfo[ip][igroove]);
+              }
 
-            rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell4Groove%d_G%d_F%d_H%d", iCount, igroove, iface, half), rohacellBaseGroove[iCount]);
+              rohacellGroove[iCount] = new TGeoCompositeShape(Form("rohacell4Groove%d_G%d_F%d_H%d", iCount, igroove, iface, half), rohacellBaseGroove[iCount]);
+            }
+            iCount++;
           }
-          iCount++;
         }
       }
     }
 
-    partRohacell = new TGeoVolume(Form("partRohacelli_D4_H%d_%d", half, ipart), rohacellGroove[iCount - 1], mRohacell);
-    //partRohacell = new TGeoVolume(Form("partRohacelli_D4_H%d_%d", half, ipart), partRohacell0, mRohacell);
+    if (Geometry::sGrooves == 0)
+      partRohacell = new TGeoVolume(Form("partRohacelli_D4_H%d_%d", half, ipart), partRohacell0, mRohacell);
+    if (Geometry::sGrooves == 1)
+      partRohacell = new TGeoVolume(Form("partRohacelli_D4_H%d_%d", half, ipart), rohacellGroove[iCount - 1], mRohacell);
     //===========================================================================================================
     //===========================================================================================================
 
     rohacellPlate->AddNode(partRohacell, ipart, t);
-
     ty += mSupportYDimensions[disk][ipart] / 2.;
   }
 
-  //  if (half == Top) {
-  //    rotation = new TGeoRotation ("rotation", 0., 0., 0.);
-  //    transformation = new TGeoCombiTrans(0., 0., 0., rotation);
-  //    mHalfDisk->AddNode(rohacellPlate, 1, transformation);
-  //  }
-  //  if (half == Bottom) {
   rotation = new TGeoRotation("rotation", 180., 0., 0.);
   transformation = new TGeoCombiTrans(0., 0., 0., rotation);
   mHalfDisk->AddNode(rohacellPlate, 2, transformation);
-  //  }
 
   createManifold(disk);
 }
@@ -3650,9 +3438,12 @@ void HeatExchanger::initParameters()
     }
   }
 
-  //mRohacellThickness = mHeatExchangerThickness / 2. - 2. * mCarbonThickness - 2 * (mRWater + mDRPipe);
-  //mRohacellThickness = mHeatExchangerThickness / 2. - 2. * mCarbonThickness;
-  mRohacellThickness = mHeatExchangerThickness / 2. - 2. * mCarbonThickness - 2 * Geometry::sGlueRohacellCarbonThickness - 2 * Geometry::sKaptonOnCarbonThickness - 2 * Geometry::sKaptonGlueThickness;
+  if (Geometry::sGrooves == 0)
+    mRohacellThickness = mHeatExchangerThickness / 2. - 2. * mCarbonThickness - 2 * Geometry::sGlueRohacellCarbonThickness - 2 * Geometry::sKaptonOnCarbonThickness - 2 * Geometry::sKaptonGlueThickness - 2 * (mRWater + mDRPipe); // smaller rohacell thickness, no grooves
+  if (Geometry::sGrooves == 1)
+    mRohacellThickness = mHeatExchangerThickness / 2. - 2. * mCarbonThickness - 2 * Geometry::sGlueRohacellCarbonThickness - 2 * Geometry::sKaptonOnCarbonThickness - 2 * Geometry::sKaptonGlueThickness; // with grooves
+
+  printf(" rohacell thickness %f \n", mRohacellThickness);
 
   mHalfDiskGap = 0.2;
 
@@ -3702,13 +3493,13 @@ void HeatExchanger::initParameters()
   mSupportXDimensions[2][2] = 12.4;  // 5.1
 
   // disk 3
-  mSupportXDimensions[3][0] = 28.4; //28.4
+  mSupportXDimensions[3][0] = 29.6; //28.4; //28.4
   mSupportXDimensions[3][1] = 19.2; //21.9;
   mSupportXDimensions[3][2] = 9.0;  //18.5;
   mSupportXDimensions[3][3] = 7.3;  //8.3;
 
   // disk 4
-  mSupportXDimensions[4][0] = 29.39; //28.4;
+  mSupportXDimensions[4][0] = 30.06; //29.39; //28.4;
   mSupportXDimensions[4][1] = 22.60; //24.204;
   mSupportXDimensions[4][2] = 15.80; //21.9;
   mSupportXDimensions[4][3] = 5.60;  //15.1;
@@ -3731,7 +3522,7 @@ void HeatExchanger::initParameters()
   mSupportYDimensions[3][3] = 1.2; //1.8;
 
   // disk 4
-  mSupportYDimensions[4][0] = 9.20; //6.61;
+  mSupportYDimensions[4][0] = 9.3;  //9.20; //6.61;
   mSupportYDimensions[4][1] = 3.00; //3.01;
   mSupportYDimensions[4][2] = 3.00; //3.01;
   mSupportYDimensions[4][3] = 0.90; //2.42;

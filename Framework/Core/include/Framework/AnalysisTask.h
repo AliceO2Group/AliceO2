@@ -412,12 +412,10 @@ struct AnalysisDataProcessorBuilder {
               ++const_cast<std::decay_t<Grouping>&>(groupingElement);
             }
           } else if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Join>::value || is_specialization<std::decay_t<AssociatedType>, o2::soa::Concat>::value) {
-            std::vector<std::shared_ptr<arrow::Table>> tables;
             for (auto& groupedDatum : groupsCollection) {
               auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
-              tables.push_back(groupedElementsTable);
+              task.process(groupingElement, AssociatedType{{groupedElementsTable}});
             }
-            task.process(groupingElement, AssociatedType{tables});
             ++const_cast<std::decay_t<Grouping>&>(groupingElement);
           }
         } else {
@@ -609,7 +607,6 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
 
   std::vector<OutputSpec> outputs;
   auto tupledTask = o2::framework::to_tuple_refs(*task.get());
-  std::apply([&outputs](auto&... x) { return (OutputManager<std::decay_t<decltype(x)>>::appendOutput(outputs, x), ...); }, tupledTask);
   static_assert(has_process<T>::value || has_run<T>::value || has_init<T>::value,
                 "At least one of process(...), T::run(...), init(...) must be defined");
 

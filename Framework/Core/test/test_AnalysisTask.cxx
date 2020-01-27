@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
 {
   auto task1 = adaptAnalysisTask<ATask>("test1");
   BOOST_CHECK_EQUAL(task1.inputs.size(), 1);
-  BOOST_CHECK_EQUAL(task1.outputs.size(), 2);
+  BOOST_CHECK_EQUAL(task1.outputs.size(), 1);
   BOOST_CHECK_EQUAL(task1.inputs[0].binding, std::string("Tracks"));
   BOOST_CHECK_EQUAL(task1.outputs[0].binding.value, std::string("FooBars"));
 

@@ -11,7 +11,7 @@
 /// \file Digitizer.cxx
 /// \brief Implementation of the ITS/MFT digitizer
 
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSMFTSimulation/Digitizer.h"
 #include "MathUtils/Cartesian3D.h"
@@ -134,7 +134,7 @@ void Digitizer::fillOutputContainer(UInt_t frameLast)
   // we have to write chips in RO increasing order, therefore have to loop over the frames here
   for (; mROFrameMin <= frameLast; mROFrameMin++) {
     rcROF.setROFrame(mROFrameMin);
-    rcROF.getROFEntry().setIndex(mDigits->size()); // start of current ROF in digits
+    rcROF.setFirstEntry(mDigits->size()); // start of current ROF in digits
 
     auto& extra = *(mExtraBuff.front().get());
     for (auto& chip : mChips) {
@@ -165,7 +165,7 @@ void Digitizer::fillOutputContainer(UInt_t frameLast)
       buffer.erase(itBeg, iter);
     }
     // finalize ROF record
-    rcROF.setNROFEntries(mDigits->size() - rcROF.getROFEntry().getIndex()); // number of digits
+    rcROF.setNEntries(mDigits->size() - rcROF.getFirstEntry()); // number of digits
     rcROF.getBCData().setFromNS(mROFrameMin * mParams.getROFrameLength() + mParams.getTimeOffset());
     if (mROFRecords) {
       mROFRecords->push_back(rcROF);
@@ -271,9 +271,9 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, UInt_t& maxFr, int evID, 
 
   // take into account that the AlpideSimResponse depth defintion has different min/max boundaries
   // although the max should coincide with the surface of the epitaxial layer, which in the chip
-  // local coordinates has Y = +SensorLayerThicknessEff/2
+  // local coordinates has Y = +SensorLayerThickness/2
 
-  xyzLocS.SetY(xyzLocS.Y() + resp->getDepthMax() - Segmentation::SensorLayerThicknessEff / 2.);
+  xyzLocS.SetY(xyzLocS.Y() + resp->getDepthMax() - Segmentation::SensorLayerThickness / 2.);
 
   // collect charge in evey pixel which might be affected by the hit
   for (int iStep = nSteps; iStep--;) {

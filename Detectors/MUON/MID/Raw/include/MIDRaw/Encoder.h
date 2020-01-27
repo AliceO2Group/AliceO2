@@ -19,7 +19,7 @@
 #include <gsl/gsl>
 #include <map>
 #include "CommonDataFormat/InteractionRecord.h"
-#include "CommonUtils/HBFUtils.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDRaw/CrateMapper.h"
@@ -51,7 +51,7 @@ class Encoder
   std::map<uint16_t, LocalBoardRO> mROData{};                                   /// Map of data per board
   std::vector<raw::RawUnit> mBytes{};                                           /// Vector with encoded information
   CrateMapper mCrateMapper{};                                                   /// Crate mapper
-  utils::HBFUtils mHBFUtils{};                                                  /// Utility for HBF
+  o2::raw::HBFUtils mHBFUtils{};                                                /// Utility for HBF
   InteractionRecord mLastIR{};                                                  /// Last interaction record
 };
 } // namespace mid

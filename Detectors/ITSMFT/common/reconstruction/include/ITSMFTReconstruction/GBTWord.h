@@ -45,35 +45,35 @@ struct GBTWord {
   /// GBT word of 80 bits, bits 72:79 are reserver for GBT Header flag, the rest depends on specifications
   union {
     struct {
-      uint32_t packetIdx : 16;   ///  0:15  Index of Data Packet within trigger
-      uint32_t activeLanes : 28; /// 16:43  Bit map of lanes active and eligible for readout
-      uint32_t na0h : 20;        /// 44:71  reserved
-      uint32_t na1h : 8;         /// 44:71  reserved
-      uint32_t id : 8;           /// 72:79  0xe0; Header Status Word (HSW) identifier
+      uint64_t packetIdx : 16;   ///  0:15  Index of Data Packet within trigger
+      uint64_t activeLanes : 28; /// 16:43  Bit map of lanes active and eligible for readout
+      uint64_t na0h : 20;        /// 44:71  reserved
+      uint64_t na1h : 8;         /// 44:71  reserved
+      uint64_t id : 8;           /// 72:79  0xe0; Header Status Word (HSW) identifier
     };                           // HEADER
     struct {
-      uint32_t lanesStops : 28;     ///  0:27  Bit map of “Valid Lane stops received”, 1 bit per lane
-      uint32_t na0t : 4;            /// 28:32  reserved
-      uint32_t lanesTimeout : 28;   /// 32:59  Bit map of “Lane timeouts received”, 1 bit per lane
-      uint32_t na1t : 4;            /// 60:63  reserved
-      bool packetDone : 1;          /// 64     = 1 when current trigger packets transmission done
-      bool transmissionTimeout : 1; /// 65     = 1 if timeout while waiting for data on lanes
-      bool packetOverflow : 1;      /// 66     = 1 if max number of packets reached
-      bool laneStartsViolation : 1; /// 67     = 1 if at least 1 lane (eligible for readout) had a “start violation”
-      bool laneTimeouts : 1;        /// 68     = 1 if at least 1 lane (eligible for readout) had a “start violation”
-      uint32_t na2t : 3;            /// 69:71  reserved
+      uint64_t lanesStops : 28;         ///  0:27  Bit map of “Valid Lane stops received”, 1 bit per lane
+      uint64_t na0t : 4;                /// 28:32  reserved
+      uint64_t lanesTimeout : 28;       /// 32:59  Bit map of “Lane timeouts received”, 1 bit per lane
+      uint64_t na1t : 4;                /// 60:63  reserved
+      uint64_t packetDone : 1;          /// 64     = 1 when current trigger packets transmission done
+      uint64_t transmissionTimeout : 1; /// 65     = 1 if timeout while waiting for data on lanes
+      uint64_t packetOverflow : 1;      /// 66     = 1 if max number of packets reached
+      uint64_t laneStartsViolation : 1; /// 67     = 1 if at least 1 lane (eligible for readout) had a “start violation”
+      uint64_t laneTimeouts : 1;        /// 68     = 1 if at least 1 lane (eligible for readout) had a “start violation”
+      uint64_t na2t : 3;                /// 69:71  reserved
       //  uint8_t  id : 8;                /// = 0xf0; Trailer Status Word (TSW) identifier
     }; // TRAILER
     struct {
-      uint32_t triggerType : 12; /// 0:11   12 lowest bits of trigger type received from CTP
-      bool internal : 1;         /// 12     Used in Continuous Mode for internally generated trigger
-      bool noData : 1;           /// 13     No data expected (too close to previous trigger or error)
-      bool na0tr : 1;            /// 14     reserved
-      bool na1tr : 1;            /// 15     reserved
-      uint32_t bc : 12;          /// 16:27  HB or internal trigger BC count or trigger BC from CTP
-      uint32_t na2tr : 4;        /// 28:31  reserved
-      uint32_t orbit : 32;       /// 32:63  Last received HB Orbit or trigger orbit count/ Orbit as received from CTP
-      uint32_t na3tr : 6;        /// 64:71  reserved
+      uint64_t triggerType : 12; /// 0:11   12 lowest bits of trigger type received from CTP
+      uint64_t internal : 1;     /// 12     Used in Continuous Mode for internally generated trigger
+      uint64_t noData : 1;       /// 13     No data expected (too close to previous trigger or error)
+      uint64_t na0tr : 1;        /// 14     reserved
+      uint64_t na1tr : 1;        /// 15     reserved
+      uint64_t bc : 12;          /// 16:27  HB or internal trigger BC count or trigger BC from CTP
+      uint64_t na2tr : 4;        /// 28:31  reserved
+      uint64_t orbit : 32;       /// 32:63  Last received HB Orbit or trigger orbit count/ Orbit as received from CTP
+      uint64_t na3tr : 6;        /// 64:71  reserved
       //  uint8_t  id : 8;                /// = 0xc0; Trigger Status Word (TSW) identifier
     }; // TRIGGER
 

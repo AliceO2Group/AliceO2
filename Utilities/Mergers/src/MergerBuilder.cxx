@@ -15,6 +15,7 @@
 
 #include <Framework/DeviceSpec.h>
 #include "Framework/DataSpecUtils.h"
+#include <Framework/CompletionPolicyHelpers.h>
 
 #include "Mergers/MergerBuilder.h"
 #include "Mergers/Merger.h"
@@ -94,14 +95,8 @@ framework::DataProcessorSpec MergerBuilder::buildSpec()
 
 void MergerBuilder::customizeInfrastructure(std::vector<framework::CompletionPolicy>& policies)
 {
-  auto matcher = [](framework::DeviceSpec const& device) {
-    return device.name.find(MergerBuilder::mergerIdString()) != std::string::npos;
-  };
-  auto callback = [](gsl::span<framework::PartRef const> const& inputs) {
-    return framework::CompletionPolicy::CompletionOp::Consume;
-  };
-  framework::CompletionPolicy mergerConsumes{"mergerConsumes", matcher, callback};
-  policies.push_back(mergerConsumes);
+  // merger is identified by the ID string and should always consume
+  policies.push_back(CompletionPolicyHelpers::defineByName(MergerBuilder::mergerIdString(), CompletionPolicy::CompletionOp::Consume));
 }
 
 } // namespace experimental::mergers

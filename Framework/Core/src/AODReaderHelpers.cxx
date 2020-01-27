@@ -282,14 +282,19 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
     auto counter = std::make_shared<int>(0);
     return adaptStateless([readMask,
                            counter,
-                           filenames](DataAllocator& outputs, ControlService& control) {
-      if (*counter >= filenames.size()) {
+                           filenames](DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {
+      // Each parallel reader reads the files whose index is associated to
+      // their inputTimesliceId
+      assert(device.inputTimesliceId < device.maxInputTimeslices);
+      size_t fi = (*counter * device.maxInputTimeslices) + device.inputTimesliceId;
+      if (fi >= filenames.size()) {
         LOG(info) << "All input files processed";
         control.endOfStream();
         control.readyToQuit(QuitRequest::Me);
         return;
       }
-      auto f = filenames[*counter];
+      auto f = filenames[fi];
+      LOG(INFO) << "Processing " << f;
       auto infile = std::make_unique<TFile>(f.c_str());
       *counter += 1;
       if (infile.get() == nullptr || infile->IsOpen() == false) {

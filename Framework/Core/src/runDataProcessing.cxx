@@ -34,6 +34,7 @@
 #include "Framework/ParallelContext.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/SimpleRawDeviceService.h"
+#define O2_SIGNPOST_DEFINE_CONTEXT
 #include "Framework/Signpost.h"
 #include "Framework/TextControlService.h"
 #include "Framework/CallbackService.h"
@@ -1223,6 +1224,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
            std::vector<ConfigParamSpec> const& currentWorkflowOptions,
            o2::framework::ConfigContext& configContext)
 {
+  O2_SIGNPOST_INIT();
   std::vector<std::string> currentArgs;
   for (size_t ai = 1; ai < argc; ++ai) {
     currentArgs.push_back(argv[ai]);
@@ -1309,10 +1311,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     }
   }
 
-  WorkflowHelpers::injectServiceDevices(physicalWorkflow);
-  std::stable_sort(physicalWorkflow.begin(), physicalWorkflow.end(), [&rankIndex](DataProcessorSpec const& a, DataProcessorSpec const& b) {
-    return rankIndex[a.name] < rankIndex[b.name];
-  });
+  WorkflowHelpers::injectServiceDevices(physicalWorkflow, configContext);
 
   // Use the hidden options as veto, all config specs matching a definition
   // in the hidden options are skipped in order to avoid duplicate definitions

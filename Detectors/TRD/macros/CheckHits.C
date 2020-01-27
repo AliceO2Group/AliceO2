@@ -42,7 +42,7 @@ void CheckHits(const int detector = 50, // 354, 14, 242, 50
   TH1F* hlocC = new TH1F("hlocC", ";locC (cm);Counts", 100, -60, 60);
   TH1F* hlocR = new TH1F("hlocR", ";locR (cm);Counts", 100, -80, 80);
   TH1F* hlocT = new TH1F("hlocT", ";locT (cm);Counts", 100, -3.5, 0.5);
-  TH1F* hnEl = new TH1F("hnEl", ";locT (cm);Counts", 100, 0, 5000);
+  TH1F* hnEl = new TH1F("hnEl", ";Number of Electrons;Counts", 100, 0, 5000);
   TH1F* hnElPhoton = new TH1F("hnElPhoton", ";Number of Electrons;Counts", 100, 0, 1000);
 
   TH2F* h2locClocT = new TH2F("h2locClocT", ";locC (cm);locT(cm)", 100, -60, 60, 100, -3.5, 0.5);
@@ -67,9 +67,6 @@ void CheckHits(const int detector = 50, // 354, 14, 242, 50
       double locR = hit.getLocalR(); // row direction in amplification or drift volume
       double locT = hit.getLocalT(); // time direction in amplification or drift volume
       int nEl = hit.GetHitValue();
-      if (hit.isFromDriftRegion()) {
-        locT = locT - 0.5 * (o2::trd::TRDGeometry::drThick() + o2::trd::TRDGeometry::amThick());
-      }
       hlocC->Fill(locC);
       hlocR->Fill(locR);
       hlocT->Fill(locT);
@@ -99,10 +96,10 @@ void CheckHits(const int detector = 50, // 354, 14, 242, 50
   c->SaveAs("testCheckHits_1D.pdf");
 
   TCanvas* c2 = new TCanvas("c2", "trd hits analysis", 800, 800);
-  h2locClocT->Draw("*");
+  h2locClocT->Draw("COL");
   c2->SaveAs("testCheckHits_2D.pdf");
 
   TCanvas* c3 = new TCanvas("c3", "trd hits analysis", 800, 800);
   h2locClocTnEl->Draw("COL");
-  c2->SaveAs("testCheckHits_2D_nEl.pdf");
+  c3->SaveAs("testCheckHits_2D_nEl.pdf");
 }

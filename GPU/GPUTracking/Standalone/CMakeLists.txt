@@ -35,9 +35,11 @@ if(BUILD_DEBUG)
   set(CMAKE_CXX_FLAGS "-O0 -ggdb")
   set(CMAKE_BUILD_TYPE DEBUG)
 else()
-  set(CMAKE_CXX_FLAGS "-O3 -march=native -ggdb -minline-all-stringops -ftracer -funroll-loops -fprefetch-loop-arrays -ffast-math -fno-stack-protector -Wno-error -Wall -Wextra -Wshadow -Wno-unused-function -Wno-unused-parameter -Wno-unused-local-typedefs -Wno-unknown-pragmas -Wno-write-strings")
+  set(CMAKE_CXX_FLAGS "-O3 -march=native -ggdb -minline-all-stringops -ftracer -funroll-loops -fprefetch-loop-arrays -ffast-math -fno-stack-protector")
+  set(CMAKE_RELEASE_TYPE RELEASE)
   add_definitions(-DNDEBUG)
 endif()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error -Wall -Wextra -Wshadow -Wno-unused-function -Wno-unused-parameter -Wno-unused-local-typedefs -Wno-unknown-pragmas -Wno-write-strings")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -rdynamic -Wl,--no-undefined")
 
 # Check and set settings for optional packages
@@ -123,6 +125,7 @@ include_directories(${CMAKE_SOURCE_DIR}/TPCClusterFinder
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/Common/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/ITSMFT/ITS/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/TPC/include
+                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/Headers/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Reconstruction/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/simulation/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/Base/include
@@ -188,6 +191,10 @@ if(BUILD_EVENT_DISPLAY)
                              glut)
   target_sources(GPUTracking PRIVATE display/GPUDisplayBackendX11.cxx
                              display/GPUDisplayBackendGlut.cxx)
+  if(CONFIG_GL3W)
+    target_sources(GPUTracking PRIVATE display/gl3w/gl3w.c)
+    target_compile_definitions(GPUTracking PUBLIC GPUCA_DISPLAY_GL3W)
+  endif()
 endif()
 
 if(CONFIG_ROOT)

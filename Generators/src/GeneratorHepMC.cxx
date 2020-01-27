@@ -17,6 +17,8 @@
 #include "HepMC/GenParticle.h"
 #include "HepMC/GenVertex.h"
 #include "HepMC/FourVector.h"
+#include "TClonesArray.h"
+#include "TParticle.h"
 
 /** 
     HepMC/Errors.h of HepMC3 defines DEBUG as a logging macro, and this interferes with FairLogger.
@@ -80,7 +82,7 @@ Bool_t GeneratorHepMC::generateEvent()
   if (mReader->failed())
     return kFALSE;
   /** set units to desired output **/
-  mEvent->set_units(HepMC::Units::GEV, HepMC::Units::CM);
+  mEvent->set_units(HepMC::Units::GEV, HepMC::Units::MM);
 
   /** success **/
   return kTRUE;
@@ -88,15 +90,19 @@ Bool_t GeneratorHepMC::generateEvent()
 
 /*****************************************************************/
 
-Bool_t GeneratorHepMC::addTracks(FairPrimaryGenerator* primGen) const
+Bool_t GeneratorHepMC::importParticles()
 {
-  /** add tracks **/
+  /** import particles **/
+
+  TClonesArray& clonesParticles = *mParticles;
+  clonesParticles.Clear();
 
   /** loop over particles **/
   auto particles = mEvent->particles();
-  for (auto const& particle : particles) {
+  for (int i = 0; i < particles.size(); ++i) {
 
     /** get particle information **/
+    auto particle = particles.at(i);
     auto pdg = particle->pid();
     auto st = particle->status();
     auto momentum = particle->momentum();
@@ -114,21 +120,17 @@ Bool_t GeneratorHepMC::addTracks(FairPrimaryGenerator* primGen) const
     auto vx = vertex.x();
     auto vy = vertex.y();
     auto vz = vertex.z();
-    auto vt = vertex.t() * 3.33564095198152022e-11; // [cm -> s]
+    auto vt = vertex.t();
 
     /** get mother information **/
-    auto mm = parents.empty() ? -1 : parents.front()->id() - 1;
+    auto m1 = parents.empty() ? -1 : parents.front()->id() - 1;
+    auto m2 = parents.empty() ? -1 : parents.back()->id() - 1;
 
-    /** get weight information [WIP] **/
-    auto ww = 1.;
+    /** get daughter information **/
+    auto d1 = children.empty() ? -1 : children.front()->id() - 1;
+    auto d2 = children.empty() ? -1 : children.back()->id() - 1;
 
-    /** set want tracking [WIP] **/
-    auto wt = children.empty() && st == 1;
-
-    /* add track */
-    if (wt) {
-      primGen->AddTrack(pdg, px, py, pz, vx, vy, vz, mm, wt, et, vt, ww);
-    }
+    new (clonesParticles[i]) TParticle(pdg, st, m1, m2, d1, d2, px, py, pz, et, vx, vy, vz, vt);
 
   } /** end of loop over particles **/
 
@@ -138,49 +140,12 @@ Bool_t GeneratorHepMC::addTracks(FairPrimaryGenerator* primGen) const
 
 /*****************************************************************/
 
-Bool_t GeneratorHepMC::boostEvent(Double_t boost)
-{
-  /** boost **/
-
-  /** loop over particles **/
-  if (std::abs(boost) < 1.e-6)
-    return kTRUE;
-  auto particles = mEvent->particles();
-  for (auto& particle : particles) {
-    auto momentum = getBoostedVector(particle->momentum(), boost);
-    particle->set_momentum(momentum);
-    auto position = getBoostedVector(particle->production_vertex()->position(), boost);
-    particle->production_vertex()->set_position(position);
-  }
-
-  /** success **/
-  return kTRUE;
-}
-
-/*****************************************************************/
-
-const HepMC::FourVector GeneratorHepMC::getBoostedVector(const HepMC::FourVector& vector, Double_t boost)
-{
-  /** boost **/
-
-  auto x = vector.x();
-  auto y = vector.y();
-  auto z = vector.z();
-  auto t = vector.t();
-  auto coshb = std::cosh(boost);
-  auto sinhb = std::sinh(boost);
-  auto xx = x;
-  auto yy = y;
-  auto zz = z * coshb - t * sinhb;
-  auto tt = t * coshb - z * sinhb;
-  return HepMC::FourVector(xx, yy, zz, tt);
-}
-
-/*****************************************************************/
-
 Bool_t GeneratorHepMC::Init()
 {
   /** init **/
+
+  /** init base class **/
+  Generator::Init();
 
   /** open file **/
   mStream.open(mFileName);
