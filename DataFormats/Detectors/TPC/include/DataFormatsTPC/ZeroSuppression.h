@@ -34,6 +34,7 @@ struct TPCZSHDR {
   unsigned char nTimeBins;
   unsigned short cruID;
   unsigned short timeOffset;
+  unsigned short nADCsamples;
 };
 struct TPCZSTBHDR {
   unsigned short rowMask;
