@@ -7,45 +7,27 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
 #include "FairLogger.h"
 
-#include "CPVBase/Digit.h"
+#include "DataFormatsCPV/Digit.h"
+#include "CPVBase/Hit.h"
 #include <iostream>
 
 using namespace o2::cpv;
 
 ClassImp(Digit);
 
-Digit::Digit(int absId, float amplitude, float time, int label)
-  : DigitBase(time), mAbsId(absId), mAmplitude(amplitude), mLabel(label)
+Digit::Digit(short absId, float amplitude, int label)
+  : DigitBase(0), mAmplitude(amplitude), mAbsId(absId), mLabel(label)
 {
 }
-Digit::Digit(Hit hit, int label) : mAbsId(hit.GetDetectorID()), mAmplitude(hit.GetEnergyLoss()), mLabel(label)
+Digit::Digit(const Hit& hit, int label) : mAbsId(hit.GetDetectorID()), mAmplitude(hit.GetEnergyLoss()), mLabel(label)
 {
 }
-void Digit::FillFromHit(Hit hit)
+void Digit::fillFromHit(const Hit& hit)
 {
   mAbsId = hit.GetDetectorID();
   mAmplitude = hit.GetEnergyLoss();
-}
-
-bool Digit::operator<(const Digit& other) const
-{
-  if (fabs(getTimeStamp() - other.getTimeStamp()) <= kTimeGate) {
-    return getAbsId() < other.getAbsId();
-  } else {
-    return getTimeStamp() < other.getTimeStamp();
-  }
-}
-
-bool Digit::operator>(const Digit& other) const
-{
-  if (fabs(getTimeStamp() - other.getTimeStamp()) <= kTimeGate) {
-    return getAbsId() > other.getAbsId();
-  } else {
-    return getTimeStamp() > other.getTimeStamp();
-  }
 }
 
 bool Digit::canAdd(const Digit other) const
@@ -55,6 +37,8 @@ bool Digit::canAdd(const Digit other) const
 
 Digit& Digit::operator+=(const Digit& other)
 {
+
+  // Adds the amplitude of digits
   if (mLabel == -1) {
     mLabel = other.mLabel;
   } else {
@@ -71,7 +55,7 @@ Digit& Digit::operator+=(const Digit& other)
 
 void Digit::PrintStream(std::ostream& stream) const
 {
-  stream << "CPV Digit: pad absId " << mAbsId << ",  with amplitude " << mAmplitude;
+  stream << "CPV Digit: cell absId " << mAbsId << ", Time " << getTimeStamp() << " with amplitude " << mAmplitude;
 }
 
 std::ostream& operator<<(std::ostream& stream, const Digit& digi)

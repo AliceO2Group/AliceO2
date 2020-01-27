@@ -14,9 +14,12 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::cpv::Detector + ;
-#pragma link C++ class o2::cpv::GeometryParams + ;
-#pragma link C++ class o2::base::DetImpl < o2::cpv::Detector> + ;
-#pragma link C++ class o2::cpv::Digitizer + ;
+#pragma link C++ class o2::cpv::Digit + ;
+#pragma link C++ class o2::cpv::Cluster + ;
+#pragma link C++ class o2::cpv::TriggerRecord + ;
+
+#pragma link C++ class std::vector < o2::cpv::Digit> + ;
+#pragma link C++ class std::vector < o2::cpv::Cluster> + ;
+#pragma link C++ class std::vector < o2::cpv::TriggerRecord> + ;
 
 #endif

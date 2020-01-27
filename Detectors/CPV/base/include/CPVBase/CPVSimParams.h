@@ -21,6 +21,9 @@ namespace cpv
 // parameters used in responce calculation and digitization
 // (mostly used in GEANT stepping and Digitizer)
 struct CPVSimParams : public o2::conf::ConfigurableParamHelper<CPVSimParams> {
+
+  std::string mCCDBPath = "localtest"; ///< use "localtest" to avoid connecting ccdb server, otherwise use ccdb-test.cern.ch
+
   //Parameters used in conversion of deposited energy to APD response
   int mnCellZ = 128;
   int mnCellX = 60;
@@ -40,6 +43,18 @@ struct CPVSimParams : public o2::conf::ConfigurableParamHelper<CPVSimParams> {
   float mADCWidth = 0.005;          ///< Widht of ADC channel used for energy digitization
   float mNoise = 0.03;              ///<  charge noise in one pad
   float mCoeffToNanoSecond = 1.e+9; ///< Conversion for time units
+  float mSortingDelta = 10.;        ///< used in sorting clusters
+
+  //Parameters used in clusterization
+  float mDigitMinEnergy = 0.005;      ///< Minimal amplitude of a digit to be used in cluster
+  float mClusteringThreshold = 0.050; ///< Seed digit minimal amplitude
+  float mUnfogingEAccuracy = 1.e-3;   ///< Accuracy of energy calculation in unfoding prosedure (GeV)
+  float mUnfogingXZAccuracy = 1.e-1;  ///< Accuracy of position calculation in unfolding procedure (cm)
+  float mLocalMaximumCut = 0.030;     ///< Threshold to separate local maxima
+  float mLogWeight = 4.5;             ///< weight in cluster center of gravity calculation
+  int mNMaxIterations = 10;           ///< Maximal number of iterations in unfolding procedure
+  int mNLMMax = 10;                   ///< maximal number of local maxima per cluster
+  bool mUnfoldClusters = false;       ///< Perform cluster unfolding?
 
   inline float CellWr() const { return mPadSizeX / 2.; } ///<  Distance between wires (2 wires above 1 pad)
 

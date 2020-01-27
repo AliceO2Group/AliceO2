@@ -8,15 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "DataFormatsCPV/CPVBlockHeader.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#pragma link C++ class o2::cpv::Detector + ;
-#pragma link C++ class o2::cpv::GeometryParams + ;
-#pragma link C++ class o2::base::DetImpl < o2::cpv::Detector> + ;
-#pragma link C++ class o2::cpv::Digitizer + ;
-
-#endif
+constexpr o2::header::HeaderType o2::cpv::CPVBlockHeader::sHeaderType;
