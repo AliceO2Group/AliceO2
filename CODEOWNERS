@@ -6,7 +6,8 @@
 # precedence.
 
 # These owners will be the default owners for everything in
-# the repo. Unless a later match takes precedence
+# the repo. Unless a later match takes precedence.
+# **DO NOT USE** @AliceO2Group/core for anything else. 
 * @AliceO2Group/core
 
 /Algorithm  @matthiasrichter
@@ -37,20 +38,20 @@
 
 /Detectors/Base                    @AliceO2Group/framework-admins
 /Detectors/Geometry                @AliceO2Group/framework-admins
-/Detectors/CPV                     @peressounko @kharlov @AliceO2Group/core
+/Detectors/CPV                     @peressounko @kharlov
 /Detectors/EMCAL                   @mfasDa @AliceO2Group/core
-/Detectors/FIT                     @AllaMaevskaya @jotwinow @mslupeck @AliceO2Group/core
+/Detectors/FIT                     @AllaMaevskaya @jotwinow @mslupeck
 /Detectors/GlobalTracking          @shahor02
 /Detectors/GlobalTrackingWorkflow  @shahor02
-/Detectors/HMPID                   @gvolpe79 @AliceO2Group/core
-/Detectors/ITSMFT                  @iouribelikov @bovulpes @AliceO2Group/core
-/Detectors/MUON                    @aphecetche @AliceO2Group/core
-/Detectors/PHOS                    @peressounko @kharlov @AliceO2Group/core
+/Detectors/HMPID                   @gvolpe79
+/Detectors/ITSMFT                  @iouribelikov @bovulpes
+/Detectors/MUON                    @aphecetche
+/Detectors/PHOS                    @peressounko @kharlov
 /Detectors/Passive                 @sawenzel
-/Detectors/TOF                     @noferini @AliceO2Group/core
-/Detectors/TPC                     @davidrohr @wiechula @shahor02 @AliceO2Group/core
-/Detectors/TRD                     @jolopezl @bazinski @AliceO2Group/core
-/Detectors/ZDC                     @coppedis @AliceO2Group/core
+/Detectors/TOF                     @noferini 
+/Detectors/TPC                     @davidrohr @wiechula @shahor02
+/Detectors/TRD                     @jolopezl @bazinski 
+/Detectors/ZDC                     @coppedis
 
 /EventVisualisation  @jmyrcha @AliceO2Group/framework-admins
 #/EventVisualisation/Base
