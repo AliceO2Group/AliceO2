@@ -95,7 +95,8 @@ struct VertexerHFTask {
           hvtx_x_out->Fill(vtx.x);
           hvtx_y_out->Fill(vtx.y);
           hvtx_z_out->Fill(vtx.z);
-          secvtx(vtx.x, vtx.y, -1, -1, -1.);
+          secvtx(vtx.x, vtx.y, track1.index(), track2.index(), -1.);
+	  LOGF(info, "Track labels: %d, %d", track1.index(), track2.index());
         }
       }
     }
