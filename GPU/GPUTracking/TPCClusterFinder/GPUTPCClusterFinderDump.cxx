@@ -20,8 +20,8 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 void GPUTPCClusterFinder::DumpDigits(std::ostream& out)
 {
-  out << "Clusterer - Digits - Slice " << mISlice << ": " << mPmemory->nDigits << "\n";
-  for (size_t i = 0; i < mPmemory->nDigits; i++) {
+  out << "Clusterer - Digits - Slice " << mISlice << ": " << mPmemory->counters.nDigits << "\n";
+  for (size_t i = 0; i < mPmemory->counters.nDigits; i++) {
     out << i << ": " << mPdigits[i].charge << ", " << mPdigits[i].time << ", " << (int)mPdigits[i].pad << ", " << (int)mPdigits[i].row << "\n";
   }
 }
@@ -43,7 +43,7 @@ void GPUTPCClusterFinder::DumpChargeMap(std::ostream& out, std::string_view titl
 void GPUTPCClusterFinder::DumpPeaks(std::ostream& out)
 {
   out << "Clusterer - Peaks - Slice " << mISlice << "\n";
-  for (unsigned int i = 0; i < mPmemory->nDigits; i++) {
+  for (unsigned int i = 0; i < mPmemory->counters.nDigits; i++) {
     out << (int)mPisPeak[i] << " ";
     if ((i + 1) % 100 == 0) {
       out << "\n";
@@ -54,8 +54,8 @@ void GPUTPCClusterFinder::DumpPeaks(std::ostream& out)
 
 void GPUTPCClusterFinder::DumpPeaksCompacted(std::ostream& out)
 {
-  out << "Clusterer - Compacted Peaks - Slice " << mISlice << ": " << mPmemory->nPeaks << "\n";
-  for (size_t i = 0; i < mPmemory->nPeaks; i++) {
+  out << "Clusterer - Compacted Peaks - Slice " << mISlice << ": " << mPmemory->counters.nPeaks << "\n";
+  for (size_t i = 0; i < mPmemory->counters.nPeaks; i++) {
     out << i << ": " << mPpeaks[i].charge << ", " << mPpeaks[i].time << ", " << (int)mPpeaks[i].pad << ", " << (int)mPpeaks[i].row << "\n";
   }
 }
@@ -63,7 +63,7 @@ void GPUTPCClusterFinder::DumpPeaksCompacted(std::ostream& out)
 void GPUTPCClusterFinder::DumpSuppressedPeaks(std::ostream& out)
 {
   out << "Clusterer - NoiseSuppression - Slice " << mISlice << "\n";
-  for (unsigned int i = 0; i < mPmemory->nPeaks; i++) {
+  for (unsigned int i = 0; i < mPmemory->counters.nPeaks; i++) {
     out << (int)mPisPeak[i] << " ";
     if ((i + 1) % 100 == 0) {
       out << "\n";
@@ -74,8 +74,8 @@ void GPUTPCClusterFinder::DumpSuppressedPeaks(std::ostream& out)
 
 void GPUTPCClusterFinder::DumpSuppressedPeaksCompacted(std::ostream& out)
 {
-  out << "Clusterer - Noise Suppression Peaks Compacted - Slice " << mISlice << ": " << mPmemory->nClusters << "\n";
-  for (size_t i = 0; i < mPmemory->nClusters; i++) {
+  out << "Clusterer - Noise Suppression Peaks Compacted - Slice " << mISlice << ": " << mPmemory->counters.nClusters << "\n";
+  for (size_t i = 0; i < mPmemory->counters.nClusters; i++) {
     out << i << ": " << mPfilteredPeaks[i].charge << ", " << mPfilteredPeaks[i].time << ", " << (int)mPfilteredPeaks[i].pad << ", " << (int)mPfilteredPeaks[i].row << "\n";
   }
 }

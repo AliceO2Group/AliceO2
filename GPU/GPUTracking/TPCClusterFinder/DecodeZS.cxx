@@ -42,7 +42,7 @@ GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, int nBlocks, int nT
   const unsigned int slice = clusterer.mISlice;
   const unsigned int endpoint = iBlock;
   deprecated::PackedDigit* digits = clusterer.mPdigits;
-  size_t& nDigits = clusterer.mPmemory->nDigits;
+  size_t nDigits = clusterer.mPmemory->nDigitsOffset[endpoint];
   GPUTrackingInOutZS::GPUTrackingInOutZSSlice& zs = clusterer.GetConstantMem()->ioPtrs.tpcZS->slice[slice];
   unsigned short streamBuffer[TPCZSHDR::TPC_MAX_SEQ_LEN];
   for (unsigned int i = 0; i < zs.count[endpoint]; i++) {
