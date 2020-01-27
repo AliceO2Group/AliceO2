@@ -25,8 +25,6 @@ void PostBadMapCCDB()
 
   auto o2cpvBM = new o2::cpv::BadChannelMap();
 
-  o2::cpv::Geometry* geom = o2::cpv::Geometry::GetInstance("Run3"); // Needed for tranforming 2D histograms to channel ID
-
   int nBad = 50;
 
   for (int i = 0; i < nBad; i++) {

@@ -27,30 +27,11 @@ void PostCalibCCDB()
 
   auto o2cpvCalib = new o2::cpv::CalibParams();
 
-  o2::cpv::Geometry* geom = o2::cpv::Geometry::GetInstance("Run3"); // Needed for tranforming 2D histograms to channel ID
-
   TFile* fHGLGratio = new TFile("Run2_HGLH.root");
   // TFile * fTimeCalib = new TFile("Run2_TimeCalib.root") ;
   TFile* fGains = new TFile("Run2_CPVCalib.root");
-  TH2F *hHGLG[5], *hTimeHG[5], *hTimeLG[5], *hGains[5];
-  for (Int_t mod = 1; mod < 5; mod++) {
-    hHGLG[mod] = (TH2F*)fHGLGratio->Get(Form("LGHGm%d", mod));
-
-    if (!o2cpvCalib->setHGLGRatio(hHGLG[mod], mod)) {
-      cout << " Can not set LG/HG ratio for module " << mod << endl;
-      return;
-    }
-
-    hTimeHG[mod] = (TH2F*)fGains->Get(Form("Tmod%d", mod));
-    hTimeLG[mod] = (TH2F*)fGains->Get(Form("Tlmod%d", mod));
-    if (!o2cpvCalib->setHGTimeCalib(hTimeHG[mod], mod)) {
-      cout << " Can not set HG time for module " << mod << endl;
-      return;
-    }
-    if (!o2cpvCalib->setLGTimeCalib(hTimeLG[mod], mod)) {
-      cout << " Can not set LG time for module " << mod << endl;
-      return;
-    }
+  TH2F *hGains[5];
+  for (Int_t mod = 2; mod < 5; mod++) {
 
     hGains[mod] = (TH2F*)fGains->Get(Form("mod%d", mod));
     if (!o2cpvCalib->setGain(hGains[mod], mod)) {
