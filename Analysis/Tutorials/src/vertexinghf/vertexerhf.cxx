@@ -30,9 +30,9 @@ namespace secvtx
 {
 DECLARE_SOA_COLUMN(Posx, posx, float, "fPosx");
 DECLARE_SOA_COLUMN(Posy, posy, float, "fPosy");
-DECLARE_SOA_COLUMN(Label0, label0, float, "fLabel0");
-DECLARE_SOA_COLUMN(Label1, label1, float, "fLabel1");
-DECLARE_SOA_COLUMN(Label2, label2, float, "fLabel2");
+DECLARE_SOA_COLUMN(Label0, label0, int, "fLabel0");
+DECLARE_SOA_COLUMN(Label1, label1, int, "fLabel1");
+DECLARE_SOA_COLUMN(Label2, label2, int, "fLabel2");
 } // namespace secvtx
 
 DECLARE_SOA_TABLE(EtaPhi, "RN2", "ETAPHI",
@@ -72,16 +72,15 @@ struct VertexerHFTask {
   {
     LOGF(info, "Tracks for collision: %d", tracks.size());
     o2::base::DCAFitter df(5.0, 10.);
-    auto hvtx_x = new TH1F("hvtx_x", "2-track vtx", 100, -10., 10.);
 
     for (auto it1 = tracks.begin(); it1 != tracks.end(); ++it1) {
       auto& track1 = *it1;
       float x1_ = track1.x();
       float alpha1_ = track1.alpha();
       std::array<float, 5> arraypar1 = {track1.y(), track1.z(), track1.snp(), track1.tgl(), track1.signed1Pt()};
-      std::array<float, 15> covpar1 = {track1.cYY(), track1.cZY(), track1.cZZ(), track1.cSnpY(), track1.cSnpZ(), \
-	                               track1.cSnpSnp(), track1.cTglY(), track1.cTglZ(), track1.cTglSnp(), track1.cTglTgl(), \
-	                               track1.c1PtY(), track1.c1PtZ(), track1.c1PtSnp(), track1.c1PtTgl(), track1.c1Pt21Pt2()};
+      std::array<float, 15> covpar1 = {track1.cYY(), track1.cZY(), track1.cZZ(), track1.cSnpY(), track1.cSnpZ(),
+                                       track1.cSnpSnp(), track1.cTglY(), track1.cTglZ(), track1.cTglSnp(), track1.cTglTgl(),
+                                       track1.c1PtY(), track1.c1PtZ(), track1.c1PtSnp(), track1.c1PtTgl(), track1.c1Pt21Pt2()};
       o2::track::TrackParCov trackparvar1(x1_, alpha1_, arraypar1, covpar1);
 
       for (auto it2 = it1 + 1; it2 != tracks.end(); ++it2) {
@@ -89,9 +88,9 @@ struct VertexerHFTask {
         float x2_ = track2.x();
         float alpha2_ = track2.alpha();
         std::array<float, 5> arraypar2 = {track2.y(), track2.z(), track2.snp(), track2.tgl(), track2.signed1Pt()};
-        std::array<float, 15> covpar2 = {track2.cYY(), track2.cZY(), track2.cZZ(), track2.cSnpY(), track2.cSnpZ(), \
-	                                 track2.cSnpSnp(), track2.cTglY(), track2.cTglZ(), track2.cTglSnp(), track2.cTglTgl(), \
-	                                 track2.c1PtY(), track2.c1PtZ(), track2.c1PtSnp(), track2.c1PtTgl(), track2.c1Pt21Pt2()};
+        std::array<float, 15> covpar2 = {track2.cYY(), track2.cZY(), track2.cZZ(), track2.cSnpY(), track2.cSnpZ(),
+                                         track2.cSnpSnp(), track2.cTglY(), track2.cTglZ(), track2.cTglSnp(), track2.cTglTgl(),
+                                         track2.c1PtY(), track2.c1PtZ(), track2.c1PtSnp(), track2.c1PtTgl(), track2.c1Pt21Pt2()};
         o2::track::TrackParCov trackparvar2(x2_, alpha2_, arraypar2, covpar2);
         //LOGF(info, "track2 %f", trackparvar2.getSigmaY2());
 
