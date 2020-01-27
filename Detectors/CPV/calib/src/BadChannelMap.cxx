@@ -61,9 +61,9 @@ void BadChannelMap::getHistogramRepresentation(char module, TH2* h) const
 
   short relid[3] = {module, 1, 1};
   short absId;
-  for (char ix = 1; ix <= MAXX; ix++) {
+  for (short ix = 1; ix <= MAXX; ix++) {
     relid[1] = ix;
-    for (char iz = 1; iz <= MAXZ; iz++) {
+    for (short iz = 1; iz <= MAXZ; iz++) {
       relid[2] = iz;
       if (Geometry::relToAbsNumbering(relid, absId)) {
         if (!isChannelGood(absId)) {
