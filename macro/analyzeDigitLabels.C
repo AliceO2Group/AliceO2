@@ -7,6 +7,7 @@
 #include "DataFormatsPHOS/MCLabel.h"
 #include "DataFormatsFT0/MCLabel.h"
 #include "DataFormatsFDD/MCLabel.h"
+#include "FV0Simulation/MCLabel.h"
 #include "ZDCSimulation/MCLabel.h"
 #include "MIDSimulation/MCLabel.h"
 #include "TRDBase/MCLabel.h"
@@ -186,6 +187,15 @@ void analyzeFDD(TTree* reftree)
   result.print();
 }
 
+// do comparison for FV0
+void analyzeFV0(TTree* reftree)
+{
+  LabelStats result;
+  analyse<o2::fv0::MCLabel>(reftree, "FV0DigitLabels", result);
+  std::cout << gPrefix << " FV0 ";
+  result.print();
+}
+
 // do comparison for HMP
 void analyzeHMP(TTree* reftree)
 {
@@ -279,7 +289,9 @@ void analyzeDigitLabels(const char* filename, const char* detname = nullptr, con
   if (strcmp(detname, "FT0") == 0) {
     analyzeFT0(reftree);
   }
-  // analyzeFV0(reftree);
+  if (strcmp(detname, "FV0") == 0) {
+    analyzeFV0(reftree);
+  }
   if (strcmp(detname, "FDD") == 0) {
     analyzeFDD(reftree);
   }
