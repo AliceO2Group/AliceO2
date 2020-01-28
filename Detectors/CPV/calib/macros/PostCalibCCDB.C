@@ -30,7 +30,7 @@ void PostCalibCCDB()
   TFile* fHGLGratio = new TFile("Run2_HGLH.root");
   // TFile * fTimeCalib = new TFile("Run2_TimeCalib.root") ;
   TFile* fGains = new TFile("Run2_CPVCalib.root");
-  TH2F *hGains[5];
+  TH2F* hGains[5];
   for (Int_t mod = 2; mod < 5; mod++) {
 
     hGains[mod] = (TH2F*)fGains->Get(Form("mod%d", mod));
