@@ -28,15 +28,21 @@ namespace secvtx
 {
 DECLARE_SOA_COLUMN(Posx, posx, float, "fPosx");
 DECLARE_SOA_COLUMN(Posy, posy, float, "fPosy");
-DECLARE_SOA_COLUMN(Label0, label0, int, "fLabel0");
-DECLARE_SOA_COLUMN(Label1, label1, int, "fLabel1");
-DECLARE_SOA_COLUMN(Label2, label2, int, "fLabel2");
+DECLARE_SOA_COLUMN(Index0, index0, int, "fIndex0");
+DECLARE_SOA_COLUMN(Index1, index1, int, "fIndex1");
+DECLARE_SOA_COLUMN(Index2, index2, int, "fIndex2");
 } // namespace secvtx
+namespace cand2prong
+{
+DECLARE_SOA_COLUMN(Mass, mass, float, "fMass");
+} // namespace cand2prong
 
 DECLARE_SOA_TABLE(EtaPhi, "RN2", "ETAPHI",
                   etaphi::Eta, etaphi::Phi);
 DECLARE_SOA_TABLE(SecVtx, "AOD", "SECVTX",
-                  secvtx::Posx, secvtx::Posy, secvtx::Label0, secvtx::Label1, secvtx::Label2);
+                  secvtx::Posx, secvtx::Posy, secvtx::Index0, secvtx::Index1, secvtx::Index2);
+DECLARE_SOA_TABLE(Cand2Prong, "AOD", "CAND2PRONG",
+                  cand2prong::Mass);
 } // namespace o2::aod
 
 using namespace o2;
@@ -68,6 +74,8 @@ struct VertexerHFTask {
 
     for (auto it1 = tracks.begin(); it1 != tracks.end(); ++it1) {
       auto& track1 = *it1;
+      if (track1.pt() < 10.)
+        continue;
       float x1_ = track1.x();
       float alpha1_ = track1.alpha();
       std::array<float, 5> arraypar1 = {track1.y(), track1.z(), track1.snp(), track1.tgl(), track1.signed1Pt()};
@@ -78,6 +86,8 @@ struct VertexerHFTask {
 
       for (auto it2 = it1 + 1; it2 != tracks.end(); ++it2) {
         auto& track2 = *it2;
+        if (track2.pt() < 10.)
+          continue;
         float x2_ = track2.x();
         float alpha2_ = track2.alpha();
         std::array<float, 5> arraypar2 = {track2.y(), track2.z(), track2.snp(), track2.tgl(), track2.signed1Pt()};
@@ -88,27 +98,29 @@ struct VertexerHFTask {
 
         df.setUseAbsDCA(true);
         int nCand = df.process(trackparvar1, trackparvar2);
-        printf("\n\nTesting with abs DCA minimization: %d candidates found\n", nCand);
+        //        printf("\n\nTesting with abs DCA minimization: %d candidates found\n", nCand);
         for (int ic = 0; ic < nCand; ic++) {
           const o2::base::DCAFitter::Triplet& vtx = df.getPCACandidate(ic);
-          LOGF(info, "print %f", vtx.x);
+          //	  LOGF(info, "print %f", vtx.x);
           hvtx_x_out->Fill(vtx.x);
           hvtx_y_out->Fill(vtx.y);
           hvtx_z_out->Fill(vtx.z);
           secvtx(vtx.x, vtx.y, track1.index(), track2.index(), -1.);
-	  LOGF(info, "Track labels: %d, %d", track1.index(), track2.index());
+          //	  LOGF(info, "Track labels: %d, %d", track1.index(), track2.index());
         }
       }
     }
   }
 };
 
-struct SkimVtxTable {
+struct CandidateBuilder2Prong {
+  Produces<aod::Cand2Prong> cand2prong;
   void process(aod::SecVtx const& secVtxs)
   {
+    LOGF(info, "NEW EVENT");
     for (auto& secVtx : secVtxs) {
       LOGF(INFO, "Consume the table (%f, %f)", secVtx.posx(), secVtx.posy());
-      LOGF(INFO, "Labels tracks (%f, %f, %f)", secVtx.label0(), secVtx.label1(), secVtx.label2());
+      LOGF(INFO, "Index tracks (%d, %d, %d)", secVtx.index0(), secVtx.index1(), secVtx.index2());
     }
   }
 };
@@ -118,5 +130,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   return WorkflowSpec{
     adaptAnalysisTask<ATask>("produce-etaphi"),
     adaptAnalysisTask<VertexerHFTask>("vertexerhf-task"),
-    adaptAnalysisTask<SkimVtxTable>("skimvtxtable-task")};
+    adaptAnalysisTask<CandidateBuilder2Prong>("skimvtxtable-task")};
 }
