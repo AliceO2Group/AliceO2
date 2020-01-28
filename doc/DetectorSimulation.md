@@ -43,7 +43,7 @@ control of verbosity
 
 ## Help on available generators
 
-The full list of generators can be found here. Bellow a summary of possible generators along with an example of a command using them.
+Below some notes on example generators along with some usage info.
 
 * **Fwmugen**
 
