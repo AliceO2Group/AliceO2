@@ -83,9 +83,13 @@ void GPUTPCClusterFinder::SetNMaxDigits(size_t nDigits, size_t nPages)
 
 size_t GPUTPCClusterFinder::getNSteps(size_t items) const
 {
-  size_t c = 0;
-  while (items > 0) {
-    items /= mScanWorkGroupSize;
+  if (items == 0) {
+    return 0;
+  }
+  size_t c = 1;
+  size_t capacity = mScanWorkGroupSize;
+  while (items > capacity) {
+    capacity *= mScanWorkGroupSize;
     c++;
   }
   return c;
