@@ -124,6 +124,7 @@ o2_target_root_dictionary(Framework
 foreach(t
         AlgorithmSpec
         AnalysisTask
+        AnalysisDataModel
         ASoA
         BoostOptionsRetriever
         CallbackRegistry
