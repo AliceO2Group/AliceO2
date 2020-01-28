@@ -52,6 +52,7 @@ class GPUReconstructionConvert
   static void RunZSFilter(std::unique_ptr<deprecated::PackedDigit[]>* buffers, const deprecated::PackedDigit** ptrs, size_t* ns, const GPUParam& param, bool zs12bit);
   static int GetMaxTimeBin(const o2::tpc::ClusterNativeAccess& native);
   static int GetMaxTimeBin(const GPUTrackingInOutDigits& digits);
+  static int GetMaxTimeBin(const GPUTrackingInOutZS& zspages);
 
  private:
   static void ZSstreamOut(unsigned short* bufIn, unsigned int& lenIn, unsigned char* bufOut, unsigned int& lenOut, unsigned int nBits);

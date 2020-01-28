@@ -137,6 +137,30 @@ int GPUReconstructionConvert::GetMaxTimeBin(const GPUTrackingInOutDigits& digits
 #endif
 }
 
+int GPUReconstructionConvert::GetMaxTimeBin(const GPUTrackingInOutZS& zspages)
+{
+#ifdef HAVE_O2HEADERS
+  float retVal = 0;
+  for (unsigned int i = 0; i < NSLICES; i++) {
+    for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
+      for (unsigned int k = 0; k < zspages.slice[i].count[j]; k++) {
+        const char* page = (const char*)zspages.slice[i].zsPtr[j][k];
+        for (unsigned int l = 0; l < zspages.slice[i].nZSPtr[j][k]; l++) {
+          TPCZSHDR* hdr = (TPCZSHDR*)(page + l * TPCZSHDR::TPC_ZS_PAGE_SIZE + sizeof(o2::header::RAWDataHeader));
+          unsigned int timeBin = (unsigned int)hdr->timeOffset + hdr->nTimeBins;
+          if (timeBin > retVal) {
+            retVal = timeBin;
+          }
+        }
+      }
+    }
+  }
+  return ceil(retVal);
+#else
+  return 0;
+#endif
+}
+
 void GPUReconstructionConvert::ZSstreamOut(unsigned short* bufIn, unsigned int& lenIn, unsigned char* bufOut, unsigned int& lenOut, unsigned int nBits)
 {
   unsigned int byte = 0, bits = 0;
