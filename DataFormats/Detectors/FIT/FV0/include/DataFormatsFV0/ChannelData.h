@@ -24,11 +24,11 @@ namespace fv0
 
 struct ChannelData {
   Short_t pmtNumber = -1; // PhotoMultiplier number (0 to 47)
-  Short_t time = -1;      // Time associated with rising edge of the singal in a given channel
+  Float_t time = -1;      // [ns] Time associated with rising edge of the singal in a given channel
   Short_t chargeAdc = -1; // ADC sample as present in raw data
 
   ChannelData() = default;
-  ChannelData(Short_t iPmt, Short_t t, Short_t charge)
+  ChannelData(Short_t iPmt, Float_t t, Short_t charge)
   {
     pmtNumber = iPmt;
     time = t;

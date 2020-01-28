@@ -14,5 +14,5 @@ using namespace o2::fv0;
 
 void ChannelData::print() const
 {
-  printf("  Pmt=%2d  |  time =%5d  |  charge =%6d\n", pmtNumber, time, chargeAdc);
+  printf("  Pmt=%2d  |  time =%8.3f  |  charge =%6d\n", pmtNumber, time, chargeAdc);
 }
