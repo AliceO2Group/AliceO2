@@ -31,6 +31,9 @@ DECLARE_SOA_COLUMN(Posy, posy, float, "fPosy");
 DECLARE_SOA_COLUMN(Index0, index0, int, "fIndex0");
 DECLARE_SOA_COLUMN(Index1, index1, int, "fIndex1");
 DECLARE_SOA_COLUMN(Index2, index2, int, "fIndex2");
+DECLARE_SOA_COLUMN(Tracky1, tracky1, float, "fTracky1");
+DECLARE_SOA_COLUMN(Tracky2, tracky2, float, "fTracky2");
+
 } // namespace secvtx
 namespace cand2prong
 {
@@ -40,7 +43,7 @@ DECLARE_SOA_COLUMN(Mass, mass, float, "fMass");
 DECLARE_SOA_TABLE(EtaPhi, "RN2", "ETAPHI",
                   etaphi::Eta, etaphi::Phi);
 DECLARE_SOA_TABLE(SecVtx, "AOD", "SECVTX",
-                  secvtx::Posx, secvtx::Posy, secvtx::Index0, secvtx::Index1, secvtx::Index2);
+                  secvtx::Posx, secvtx::Posy, secvtx::Index0, secvtx::Index1, secvtx::Index2, secvtx::Tracky1, secvtx::Tracky2);
 DECLARE_SOA_TABLE(Cand2Prong, "AOD", "CAND2PRONG",
                   cand2prong::Mass);
 } // namespace o2::aod
@@ -105,7 +108,7 @@ struct VertexerHFTask {
           hvtx_x_out->Fill(vtx.x);
           hvtx_y_out->Fill(vtx.y);
           hvtx_z_out->Fill(vtx.z);
-          secvtx(vtx.x, vtx.y, track1.index(), track2.index(), -1.);
+          secvtx(vtx.x, vtx.y, track1.index(), track2.index(), -1., track1.y(), track2.y());
           //	  LOGF(info, "Track labels: %d, %d", track1.index(), track2.index());
         }
       }
@@ -119,8 +122,7 @@ struct CandidateBuilder2Prong {
   {
     LOGF(info, "NEW EVENT");
     for (auto& secVtx : secVtxs) {
-      LOGF(INFO, "Consume the table (%f, %f)", secVtx.posx(), secVtx.posy());
-      LOGF(INFO, "Index tracks (%d, %d, %d)", secVtx.index0(), secVtx.index1(), secVtx.index2());
+      LOGF(INFO, "Consume the table (%f, %f, %f)", secVtx.posx(), secVtx.posy(), secVtx.tracky1());
     }
   }
 };
