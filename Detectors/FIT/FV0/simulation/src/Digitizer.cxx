@@ -115,9 +115,8 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
     const Double_t hitEdep = hit.GetHitValue() * 1e3; //convert to MeV
 
     // TODO: check how big is inaccuracy if more than 1 'below-threshold' particles hit the same detector cell
-    if (hitEdep < DigitizationParameters::singleMipThreshold) {
+    if (hitEdep < DigitizationParameters::singleMipThreshold)
       continue;
-    }
 
     Double_t const nPhotons = hitEdep * DigitizationParameters::N_PHOTONS_PER_MEV;
     Int_t const nPhE = SimulateLightYield(detId, nPhotons);
@@ -237,7 +236,7 @@ Double_t Digitizer::PmtResponse(Double_t x)
     return 0.0f;
   x += DigitizationParameters::mPmtTransitTime;
   Double_t const x2 = x * x;
-  return x2 * expf(-x2 * DigitizationParameters::mOneOverPmtTransitTime2);
+  return x2 * std::exp(-x2 * DigitizationParameters::mOneOverPmtTransitTime2);
 }
 
 //_______________________________________________________________________
