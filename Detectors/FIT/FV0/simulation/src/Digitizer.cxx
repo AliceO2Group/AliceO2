@@ -10,84 +10,72 @@
 
 #include "FV0Simulation/Digitizer.h"
 
-#include <TMath.h>
 #include <TRandom.h>
-#include <TH1F.h>
 #include <algorithm>
-#include <cassert>
-#include <iostream>
-#include <optional>
-#include <MathUtils/CachingTF1.h>
-#include <boost/format.hpp>
 
 using namespace o2::math_utils;
 using namespace o2::fv0;
-using boost::format;
 
 ClassImp(Digitizer);
 
 void Digitizer::clear()
 {
+  LOG(INFO) << "V0Digitizer::clear ";
   mEventId = -1;
   mSrcId = -1;
+  mTimeStamp = 0;
   mMCLabels.clear();
-  for (auto analogSignalPulse : mPmtChargeVsTime) {
-    analogSignalPulse.clear();
-  }
+
+  for (auto& analogSignal : mPmtChargeVsTime)
+    std::fill_n(std::begin(analogSignal), analogSignal.size(), 0);
 }
 
 //_______________________________________________________________________
 void Digitizer::init()
 {
   LOG(INFO) << "V0Digitizer::init -> start = ";
-
-  // Zero iterators for random rings
-  mIteratorScintDelay = 0;
-  mIteratorGainVar = 0;
-  mIteratorSignalShape = 0;
+  mTimeStamp = 0;
 
   const float y = DigitizationParameters::mPmtTransitTime;
-  format pmresponse("(x+%1%)*(x+%2%)*TMath::Exp(-(x+%3%)*(x+%4%)/(%5% * %6%))");
-  pmresponse % y % y % y % y % y % y;
-  std::string pmtResponseFormula = pmresponse.str();
 
   mNBins = 2000;           //Will be computed using detector set-up from CDB
   mBinSize = 25.0 / 256.0; //Will be set-up from CDB
 
-  for (Int_t i = 0; i < DigitizationParameters::NCHANNELS; i++) {
+  for (Int_t i = 0; i < DigitizationParameters::NCHANNELS; i++)
     mPmtChargeVsTime[i].resize(mNBins);
-  }
 
   // Initialize function describing the PMT time response
-  std::unique_ptr<o2::base::CachingTF1> mPmtResponse = std::make_unique<o2::base::CachingTF1>("mPmtResponse", pmtResponseFormula.c_str(), -y, 2 * y);
-  mPmtResponse->SetNpx(100);
-  mPmtTimeIntegral = mPmtResponse->Integral(-DigitizationParameters::mPmtTransitTime,
-                                            2. * DigitizationParameters::mPmtTransitTime);
+  TF1 pmtResponseFn("mPmtResponse",
+                    &Digitizer::PmtResponse,
+                    -y, 2 * y, 0);
+  pmtResponseFn.SetNpx(100);
+  mPmtTimeIntegral = pmtResponseFn.Integral(-y, 2. * y);
 
-  // Prefill random ring with time delay from scintillator
-  for (int i = 0; i < DigitizationParameters::HIT_RANDOM_RING_SIZE; i++) {
-    mScintillatorDelay.at(i) = gRandom->Gaus(0, DigitizationParameters::mIntrinsicTimeRes);
-  }
+  mRndScintDelay.initialize([&]() {
+    return gRandom->Gaus(0, DigitizationParameters::mIntrinsicTimeRes);
+  });
 
   // Initialize function describing PMT response to the single photoelectron
-  std::unique_ptr<o2::base::CachingTF1> mSinglePhESpectrum = std::make_unique<o2::base::CachingTF1>("mSinglePhESpectrum", this, &Digitizer::SinglePhESpectrum, DigitizationParameters::photoelMin, DigitizationParameters::photoelMax, 0);
-  Float_t meansPhE = mSinglePhESpectrum->Mean(DigitizationParameters::photoelMin, DigitizationParameters::photoelMax);
-  // Prefill random ring with variation of gain with respect to its mean value
-  for (int i = 0; i < DigitizationParameters::PHE_RANDOM_RING_SIZE; i++) {
-    mGainVar.at(i) = mSinglePhESpectrum->GetRandom(DigitizationParameters::photoelMin, DigitizationParameters::photoelMax) / meansPhE;
-  }
+  TF1 singlePhESpectrumFn("mSinglePhESpectrum", this,
+                          &Digitizer::SinglePhESpectrum,
+                          DigitizationParameters::photoelMin,
+                          DigitizationParameters::photoelMax, 0);
+  Float_t const meansPhE = singlePhESpectrumFn.Mean(DigitizationParameters::photoelMin, DigitizationParameters::photoelMax);
+  mRndGainVar.initialize([&]() {
+    return singlePhESpectrumFn.GetRandom(DigitizationParameters::photoelMin,
+                                         DigitizationParameters::photoelMax) /
+           meansPhE;
+  });
 
-  std::unique_ptr<o2::base::CachingTF1> signalShape;
-  signalShape = std::make_unique<o2::base::CachingTF1>("signalShape", "crystalball", 0, 300);
-  signalShape->SetParameters(1,
-                             DigitizationParameters::mShapeSigma,
-                             DigitizationParameters::mShapeSigma,
-                             DigitizationParameters::mShapeAlpha,
-                             DigitizationParameters::mShapeN);
-  // Prefill random ring with time delay of photoelectron hit coming from measured signal shape
-  for (int i = 0; i < DigitizationParameters::PHE_RANDOM_RING_SIZE; i++) {
-    mSignalShape.at(i) = signalShape->GetRandom(0, mBinSize * Float_t(mNBins));
-  }
+  TF1 signalShapeFn("signalShape", "crystalball", 0, 300);
+  signalShapeFn.SetParameters(1,
+                              DigitizationParameters::mShapeSigma,
+                              DigitizationParameters::mShapeSigma,
+                              DigitizationParameters::mShapeAlpha,
+                              DigitizationParameters::mShapeN);
+  mRndSignalShape.initialize([&]() {
+    return signalShapeFn.GetRandom(0, mBinSize * Float_t(mNBins));
+  });
 
   LOG(INFO) << "V0Digitizer::init -> finished";
 }
@@ -99,15 +87,32 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
 {
   LOG(INFO) << "[FV0] Digitizer::process(): begin with " << hits.size() << " hits";
 
-  auto sorted_hits{hits};
-  std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::fv0::Hit const& a, o2::fv0::Hit const& b) {
-    return a.GetTrackID() < b.GetTrackID();
-  });
+  std::vector<int> hitIdx(hits.size());
+  std::iota(hitIdx.begin(), hitIdx.end(), 0);
+  std::sort(hitIdx.begin(), hitIdx.end(), [&](int a, int b) { return hits[a].GetTrackID() < hits[b].GetTrackID(); });
 
+  auto const PmtResponseVc = [&](Vc::float_v x) -> Vc::float_v {
+    if (x[0] > 2 * DigitizationParameters::mPmtTransitTime) {
+      return Vc::float_v(0);
+    }
+    if (x[Vc::float_v::Size - 1] < -DigitizationParameters::mPmtTransitTime) {
+      return Vc::float_v(0);
+    }
+    x += Vc::float_v(DigitizationParameters::mPmtTransitTime);
+    Vc::float_v const x2 = x * x;
+    Vc::float_v const c = Vc::float_v(-1.0f * DigitizationParameters::mOneOverPmtTransitTime2);
+    return x2 * Vc::exp(x2 * c);
+  };
+
+  auto const roundVc = [&](int i) -> int {
+    return (i / Vc::float_v::Size) * Vc::float_v::Size;
+  };
   Int_t parentIdPrev = -10;
-  for (auto& hit : sorted_hits) {
-    int detId = hit.GetDetectorID();
-    const double hitEdep = hit.GetHitValue() * 1e3; //convert to MeV
+  // use ordered hits
+  for (auto ids : hitIdx) {
+    const auto& hit = hits[ids];
+    Int_t const detId = hit.GetDetectorID();
+    const Double_t hitEdep = hit.GetHitValue() * 1e3; //convert to MeV
 
     // TODO: check how big is inaccuracy if more than 1 'below-threshold' particles hit the same detector cell
     if (hitEdep < DigitizationParameters::singleMipThreshold) {
@@ -116,34 +121,42 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
 
     Double_t const nPhotons = hitEdep * DigitizationParameters::N_PHOTONS_PER_MEV;
     Int_t const nPhE = SimulateLightYield(detId, nPhotons);
-    Float_t const t = mScintillatorDelay.at(mIteratorScintDelay) + hit.GetTime() * 1e9;
-    Float_t charge = TMath::Qe() * DigitizationParameters::mPmtGain * mBinSize / mPmtTimeIntegral;
-    for (Int_t iPhE = 0; iPhE < nPhE; ++iPhE) {
-      Float_t const tPhE = t + mSignalShape.at(mIteratorSignalShape);
-      Int_t const firstBin = TMath::Max((Int_t)0, (Int_t)((tPhE - DigitizationParameters::mPmtTransitTime) / mBinSize));
-      Int_t const lastBin = TMath::Min((Int_t)mNBins - 1, (Int_t)((tPhE + 2. * DigitizationParameters::mPmtTransitTime) / mBinSize));
-      for (Int_t iBin = firstBin; iBin <= lastBin; ++iBin) {
-        Float_t const tempT = mBinSize * (0.5 + iBin) - tPhE;
-        mPmtChargeVsTime.at(detId).at(iBin) += mGainVar.at(mIteratorGainVar) * charge * PmtResponse(tempT);
-      } // time-bin loop
+    Float_t const t = mRndScintDelay.getNextValue() + hit.GetTime() * 1e9;
+    Float_t const charge = TMath::Qe() * DigitizationParameters::mPmtGain * mBinSize / mPmtTimeIntegral;
 
-      // RandomRing servicing (perhaps a separate class could do better)
-      mIteratorGainVar++;
-      if (mIteratorGainVar >= mGainVar.size()) {
-        mIteratorGainVar = 0;
+    auto& analogSignal = mPmtChargeVsTime[detId];
+
+    for (Int_t iPhE = 0; iPhE < nPhE; ++iPhE) {
+      Float_t const tPhE = t + mRndSignalShape.getNextValue();
+      Int_t const firstBin = roundVc(TMath::Max((Int_t)0, (Int_t)((tPhE - DigitizationParameters::mPmtTransitTime) / mBinSize)));
+      Int_t const lastBin = TMath::Min((Int_t)mNBins - 1, (Int_t)((tPhE + 2. * DigitizationParameters::mPmtTransitTime) / mBinSize));
+      Float_t tempT = mBinSize * (0.5f + firstBin) - tPhE;
+      Float_t* p = analogSignal.data() + firstBin;
+      Vc::float_v binVc(tempT);
+      binVc += mBinSize * Vc::float_v::IndexesFromZero();
+      Vc::float_v binIncVc(mBinSize * Vc::float_v::Size);
+
+      Vc::float_v workVc;
+      Int_t iBin = firstBin;
+      for (Int_t const lastBinRounded = roundVc(lastBin); iBin < lastBinRounded;) {
+        workVc.load(p);
+        workVc += mRndGainVar.getNextValueVc() * charge * PmtResponseVc(binVc);
+        workVc.store(p);
+        Vc::prefetchForOneRead(p);
+        binVc += binIncVc;
+        p += Vc::float_v::Size;
+        iBin += Vc::float_v::Size;
       }
-      mIteratorSignalShape++;
-      if (mIteratorSignalShape >= mSignalShape.size()) {
-        mIteratorSignalShape = 0;
+      tempT += binVc[0] + mBinSize;
+      // loop over the SIMD leftovers
+      for (Float_t const* pEnd = analogSignal.data() + lastBin; p < pEnd; ++p) {
+        *p += mRndGainVar.getNextValue() * charge * PmtResponse(tempT);
+        tempT += mBinSize;
       }
-    }   //photo electron loop
-    mIteratorScintDelay++;
-    if (mIteratorScintDelay >= mScintillatorDelay.size()) {
-      mIteratorScintDelay = 0;
-    }
+    } //photo electron loop
 
     // Charged particles in MCLabel
-    Int_t parentId = hit.GetTrackID();
+    Int_t const parentId = hit.GetTrackID();
     if (parentId != parentIdPrev) {
       mMCLabels.emplace_back(parentId, mEventId, mSrcId, detId);
       parentIdPrev = parentId;
@@ -151,21 +164,22 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
   } //hit loop
 
   // Sum charge of all time bins to get total charge collected for a given channel
-  int first = digitsCh.size(), nStored = 0;
+  Int_t first = digitsCh.size(), nStored = 0;
   for (Int_t ipmt = 0; ipmt < DigitizationParameters::NCHANNELS; ++ipmt) {
-    Float_t totalCharge = 0;
+    Float_t totalCharge = 0.0f;
     for (Int_t iTimeBin = 0; iTimeBin < mNBins; ++iTimeBin) {
-      Float_t timeBinCharge = mPmtChargeVsTime[ipmt][iTimeBin] / DigitizationParameters::CHARGE_PER_ADC;
+      Float_t const timeBinCharge = mPmtChargeVsTime[ipmt][iTimeBin];
       totalCharge += timeBinCharge;
     }
-    digitsCh.emplace_back(ipmt, SimulateTimeCfd(ipmt), totalCharge);
+    totalCharge *= DigitizationParameters::INV_CHARGE_PER_ADC;
+    digitsCh.emplace_back(ipmt, SimulateTimeCfd(ipmt), std::lround(totalCharge));
     nStored++;
   }
 
   // Send MClabels and digitsBC to storage
-  int nBC = digitsBC.size();
+  Int_t nBC = digitsBC.size();
   digitsBC.emplace_back(first, nStored, mIntRecord);
-  for (const auto& lbl : mMCLabels) {
+  for (auto const& lbl : mMCLabels) {
     labels.addElement(nBC, lbl);
   }
 }
@@ -176,7 +190,7 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
 // -------------------------------------------------------------------------------
 Int_t Digitizer::SimulateLightYield(Int_t pmt, Int_t nPhot)
 {
-  const Float_t epsilon = 0.0001;
+  const Float_t epsilon = 0.0001f;
   const Float_t p = DigitizationParameters::mLightYield * DigitizationParameters::mPhotoCathodeEfficiency;
   if ((fabs(1.0f - p) < epsilon) || nPhot == 0) {
     return nPhot;
@@ -209,13 +223,21 @@ Float_t Digitizer::SimulateTimeCfd(Int_t channel)
   return timeCfd;
 }
 
+Double_t Digitizer::PmtResponse(Double_t* x, Double_t*)
+{
+  return Digitizer::PmtResponse(x[0]);
+}
 //_______________________________________________________________________
-Float_t Digitizer::PmtResponse(Float_t x)
+Double_t Digitizer::PmtResponse(Double_t x)
 {
   // this function describes the PMT time response to a single photoelectron
+  if (x > 2 * DigitizationParameters::mPmtTransitTime)
+    return 0.0f;
+  if (x < -DigitizationParameters::mPmtTransitTime)
+    return 0.0f;
   x += DigitizationParameters::mPmtTransitTime;
-  Float_t x2 = x * x;
-  return x2 * TMath::Exp(-x2 / DigitizationParameters::mPmtTransitTime2);
+  Double_t const x2 = x * x;
+  return x2 * expf(-x2 * DigitizationParameters::mOneOverPmtTransitTime2);
 }
 
 //_______________________________________________________________________
