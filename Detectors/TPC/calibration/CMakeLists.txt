@@ -18,6 +18,7 @@ o2_add_library(TPCCalibration
                        src/CalibPulserParam.cxx
                        src/CalibTreeDump.cxx
                        src/DigitDump.cxx
+                       src/DigitDumpParam.cxx
                        src/CalibPadGainTracks.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC O2::TPCBase
                                      O2::TPCReconstruction ROOT::Minuit
@@ -31,6 +32,7 @@ o2_target_root_dictionary(TPCCalibration
                                   include/TPCCalibration/CalibPulserParam.h
                                   include/TPCCalibration/CalibTreeDump.h
                                   include/TPCCalibration/DigitDump.h
+                                  include/TPCCalibration/DigitDumpParam.h
                                   include/TPCCalibration/CalibPadGainTracks.h
                                   include/TPCCalibration/FastHisto.h)
 

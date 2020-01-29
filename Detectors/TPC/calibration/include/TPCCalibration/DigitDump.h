@@ -58,6 +58,9 @@ class DigitDump : public CalibRawBase
   /// default destructor
   ~DigitDump() override;
 
+  /// initialize DigitDump from DigitDumpParam
+  void init();
+
   /// update function called once per digit
   ///
   /// \param roc readout chamber
@@ -128,7 +131,7 @@ class DigitDump : public CalibRawBase
   void loadNoiseAndPedestal();
 
   /// initialize
-  void init();
+  void initInputOutput();
 
   /// End event function
   void endEvent() final;
