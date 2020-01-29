@@ -173,6 +173,7 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
   std::vector<int> indices(digits.size());
   std::iota(begin(indices), end(indices), 0);
   std::sort(indices.begin(), indices.end(), [&digits, this](int a, int b) {
+
     return (getGlobalDigit(digits[a].getDetID(), digits[a].getPadID()) < getGlobalDigit(digits[b].getDetID(), digits[b].getPadID()));
   });
 
@@ -288,4 +289,11 @@ void Digitizer::provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mc
   }
 
   mMCTruthOutputContainer.clear();
+}
+//______________________________________________________________________
+int Digitizer::getGlobalDigit(int detID, int padID)
+{
+  //calculate global index
+  return detID * 100000 + padID;
+  
 }
