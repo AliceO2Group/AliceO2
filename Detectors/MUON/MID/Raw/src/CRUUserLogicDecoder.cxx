@@ -60,9 +60,9 @@ bool CRUUserLogicDecoder::processBlock()
   int nFiredBoards = mBuffer.next(sNBitsNFiredBoards);
 
   EventType eventType = EventType::Standard;
-  if (crateparams::isCalibration(eventWord)) {
+  if (raw::isCalibration(eventWord)) {
     eventType = EventType::Noise;
-  } else if (crateparams::isFET(eventWord)) {
+  } else if (raw::isFET(eventWord)) {
     eventType = EventType::Dead;
   }
   InteractionRecord intRec(localClock, mBuffer.getRDH()->triggerOrbit);
