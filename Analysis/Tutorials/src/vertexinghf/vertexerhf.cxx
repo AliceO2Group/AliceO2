@@ -102,15 +102,12 @@ struct VertexerHFTask {
 
         df.setUseAbsDCA(true);
         int nCand = df.process(trackparvar0, trackparvar1);
-        //        printf("\n\nTesting with abs DCA minimization: %d candidates found\n", nCand);
         for (int ic = 0; ic < nCand; ic++) {
           const o2::base::DCAFitter::Triplet& vtx = df.getPCACandidate(ic);
-          //	  LOGF(info, "print %f", vtx.x);
           hvtx_x_out->Fill(vtx.x);
           hvtx_y_out->Fill(vtx.y);
           hvtx_z_out->Fill(vtx.z);
           secvtx(vtx.x, vtx.y, track_0.index(), track_1.index(), -1., track_0.y(), track_1.y(), -1.);
-          //	  LOGF(info, "Track labels: %d, %d", track_0.index(), track_1.index());
         }
       }
     }
