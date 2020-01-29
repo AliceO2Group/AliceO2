@@ -166,7 +166,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   //
   //
   if (runClusterer) {
-    parallelProcessors.push_back(o2::tpc::getClustererSpec(propagateMC, inputType == InputType::Digitizer));
+    parallelProcessors.push_back(o2::tpc::getClustererSpec(propagateMC));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////
