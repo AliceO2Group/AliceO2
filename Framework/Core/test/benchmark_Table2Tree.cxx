@@ -57,7 +57,6 @@ static void BM_Table2Tree(benchmark::State& state)
   auto table = builder.finalize();
     
   
-
   // loop over elements of state
   for (auto _ : state) {
 
@@ -66,13 +65,11 @@ static void BM_Table2Tree(benchmark::State& state)
     TTree *tout = new TTree("table2tree","table2tree");
 
     // benchmark the CommonDataProcessors::table2tree function
-    CommonDataProcessors::table2tree(tout,table);
+    CommonDataProcessors::table2tree(tout,table,false);
     
     // clean up
     fout->Close();
     delete fout;
-    //delete tout;
-    
   
   }
 

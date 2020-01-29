@@ -69,178 +69,10 @@ const static std::unordered_map<OutputObjHandlingPolicy, std::string> ROOTfileNa
                                                                                        {OutputObjHandlingPolicy::QAObject, "QAResults.root"}};
 
 
-void CommonDataProcessors::table2tree(TTree* tout, std::shared_ptr<arrow::Table> table)
-{
-  
-  // loop over the columns
-  for (int ii=0; ii<table->num_columns(); ii++)
-  {                                                                              
-    // get column information
-    TBranch *br = nullptr;
-    auto col = table->column(ii);
-    const char *cname = col->name().c_str();
-    auto chs = col->data()->chunks();
-    LOG(DEBUG) << "number of chunks " << chs.size();
-    LOG(DEBUG) << " column type " << col->type()->ToString();
-
-    // what follows is an ugly switch
-    // the cases cover the different data types of the branches
-    auto cdt = col->type()->id();
-    switch (cdt) {
-    
-    case arrow::Type::type::FLOAT:
-      {
-        LOG(DEBUG) << "case FLOAT";
-        Float_t dbuf;
-        br = tout->Branch(cname,&dbuf);                             
-        for(auto const& ch: chs)
-        { 
-          auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::FloatType>>(ch);   
-          for (int jj=0; jj<ch->length(); jj++)
-          {
-            dbuf = p->Value(jj);
-            // the following if-clause is needed to have all branches filled properly
-            if (ii==0) { tout->Fill(); } else { br->Fill(); }
-          }
-        }
-        break;
-      }
-
-    case arrow::Type::type::DOUBLE:
-      {
-        LOG(DEBUG) << "case DOUBLE";
-        Double_t dbuf;                                                   
-        br = tout->Branch(cname,&dbuf);                             
-        for(auto const& ch: chs)
-        {
-          auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::DoubleType>>(ch);
-          for (int jj=0; jj<ch->length(); jj++)
-          {
-            dbuf = p->Value(jj);
-            if (ii==0) { tout->Fill(); } else { br->Fill(); }
-          }
-        }
-        break;
-      }
-
-    case arrow::Type::type::UINT16:
-      {
-        LOG(DEBUG) << "case UINT";
-        UShort_t dbuf;                                                   
-        br = tout->Branch(cname,&dbuf);                             
-        for(auto const& ch: chs)
-        {
-          auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt16Type>>(ch);
-          for (int jj=0; jj<ch->length(); jj++)
-          {
-            dbuf = p->Value(jj);
-            if (ii==0) { tout->Fill(); } else { br->Fill(); }
-          }
-        }
-        break;
-      }
-
-    case arrow::Type::type::UINT32:
-      {
-        LOG(DEBUG) << "case UINT";
-        UInt_t dbuf = UInt_t();
-        br = tout->Branch(cname,&dbuf);                             
-        for(auto const& ch: chs)
-        {                                                                                  
-auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt32Type>>(ch);
-          for (int jj=0; jj<ch->length(); jj++)
-          {
-            dbuf = p->Value(jj);
-            if (ii==0) { tout->Fill(); } else { br->Fill(); }
-          }
-        }
-        break;
-      }
-
-    case arrow::Type::type::UINT64:
-      {
-        LOG(DEBUG) << "case UINT64";
-        ULong64_t dbuf = ULong64_t();
-        br = tout->Branch(cname,&dbuf);                             
-        for(auto const& ch: chs)
-        {
-          auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt64Type>>(ch);  
-          for (int jj=0; jj<ch->length(); jj++)
-          {
-            dbuf = p->Value(jj);
-            if (ii==0) { tout->Fill(); } else { br->Fill(); }
-          }
-        }
-        break;
-      }
-
-    case arrow::Type::type::INT16:
-      {
-        LOG(DEBUG) << "case INT16";
-        Short_t dbuf = Short_t();
-        br = tout->Branch(cname,&dbuf);                             
-        for(auto const& ch: chs)
-        {
-          auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int16Type>>(ch);
-          for (int jj=0; jj<ch->length(); jj++)
-          {
-            dbuf = p->Value(jj);
-            if (ii==0) { tout->Fill(); } else { br->Fill(); }
-          }
-        }
-        break;
-      }
-
-    case arrow::Type::type::INT32:
-      {
-        LOG(DEBUG) << "case INT";
-        Int_t dbuf = Int_t();
-        br = tout->Branch(cname,&dbuf);                             
-        for(auto const& ch: chs)
-        {
-          auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(ch);
-          for (int jj=0; jj<ch->length(); jj++)
-          {
-            dbuf = p->Value(jj);
-            if (ii==0) { tout->Fill(); } else { br->Fill(); }
-          }
-        }
-        break;
-      }
-
-    case arrow::Type::type::INT64:
-      {
-        LOG(DEBUG) << "case INT64";
-        Long64_t dbuf =  Long64_t();
-        br = tout->Branch(cname,&dbuf);                             
-        for(auto const& ch: chs)
-        {
-          auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int64Type>>(ch);
-          for (int jj=0; jj<ch->length(); jj++)
-          {
-            dbuf = p->Value(jj);
-            if (ii==0) { tout->Fill(); } else { br->Fill(); }
-          }
-        }
-        break;
-      }
-      
-    default:
-      std::string strerr = std::string("Unsupported data type ")+col->type()->name();
-      throw std::runtime_error(strerr.c_str());
-      break;
-      
-    }
-    tout->Write("", TObject::kOverwrite);
-  }
-
-}
-
-
 // =============================================================================
 // class datait is a data iterator
 // it basically allows to iterate over the elements of an arrow::table::Column using datait::next()
-// and is used in CommonDataProcessors::table2treeC
+// and is used in CommonDataProcessors::table2tree
 class datait
 {
 
@@ -388,9 +220,9 @@ class datait
 };
 
 // .............................................................................
-void CommonDataProcessors::table2treeC(TTree* tout,
-                                       std::shared_ptr<arrow::Table> table,
-                                       bool tupdate)
+void CommonDataProcessors::table2tree(TTree* tout,
+                                      std::shared_ptr<arrow::Table> table,
+                                      bool tupdate)
 {
 
   // first create a vector of pairs to hold the column definitions
@@ -401,7 +233,7 @@ void CommonDataProcessors::table2treeC(TTree* tout,
   char *dbuf;
   std::string leaflist;
 
-  LOG(DEBUG) << "table2treeC: " << table->num_columns();
+  LOG(DEBUG) << "table2tree: " << table->num_columns();
   for (int ii=0; ii<table->num_columns(); ii++)
   {
 
@@ -458,7 +290,7 @@ void CommonDataProcessors::table2treeC(TTree* tout,
     specbuf.push_back(std::pair<TBranch*, datait*>(br, dit));
   
   }
-  LOG(INFO) << "table2treeC: size of specbuf " << specbuf.size();
+  LOG(DEBUG) << "table2tree: size of specbuf " << specbuf.size();
   
   
   // with this loop over the columns again as long as togo is true.
@@ -498,7 +330,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& out
     auto outputObjects = std::make_shared<std::map<InputObjectRoute, InputObject>>();
 
     auto endofdatacb = [outputObjects](EndOfStreamContext& context) {
-      LOG(INFO) << "Writing merged objects to file";
+      LOG(DEBUG) << "Writing merged objects to file";
       std::string currentDirectory = "";
       std::string currentFile = "";
       TFile* f[OutputObjHandlingPolicy::numPolicies];
@@ -528,7 +360,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& out
           f[i]->Close();
         }
       }
-      LOG(INFO) << "All outputs merged in their respective target files";
+      LOG(DEBUG) << "All outputs merged in their respective target files";
       context.services().get<ControlService>().readyToQuit(QuitRequest::All);
     };
 
@@ -692,10 +524,10 @@ DataProcessorSpec
       // loop over the rows of the column
       // fill the values into the corresponding branches
       // write the table
-      // see table2treeC
+      // see table2tree
       
       // open new file if ntfmerge time frames is reached
-      LOG(INFO) << "This is time frame number "<< ntf;
+      LOG(DEBUG) << "This is time frame number "<< ntf;
       bool tupdate = true;
       std::string fname;
       if ((ntf%ntfmerge)==0)
@@ -750,7 +582,7 @@ DataProcessorSpec
         }
     
         // write the table to the TTree
-        table2treeC(tout,table,tupdate);
+        table2tree(tout,table,tupdate);
         tout->Print();
 
       }
@@ -821,7 +653,7 @@ DataProcessorSpec
         output->write(reinterpret_cast<char const*>(header), sizeof(header::DataHeader));
         output->write(reinterpret_cast<char const*>(dataProcessingHeader), sizeof(DataProcessingHeader));
         output->write(entry.payload, o2::framework::DataRefUtils::getPayloadSize(entry));
-        LOG(INFO) << "wrote data, size " << o2::framework::DataRefUtils::getPayloadSize(entry);
+        LOG(DEBUG) << "wrote data, size " << o2::framework::DataRefUtils::getPayloadSize(entry);
       }
     });
   };
