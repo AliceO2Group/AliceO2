@@ -15,7 +15,7 @@
 
 #include "MIDRaw/ELinkDecoder.h"
 
-#include "MIDRaw/CrateParameters.h"
+#include "MIDRaw/LocalBoardRO.h"
 
 namespace o2
 {
@@ -30,7 +30,7 @@ bool ELinkDecoder::add(uint8_t byte, uint8_t expectedStart)
   }
   mBytes.emplace_back(byte);
   if (mBytes.size() == sMinimumSize) {
-    if (crateparams::isLoc(mBytes[0])) {
+    if (raw::isLoc(mBytes[0])) {
       // This is a local card
       uint8_t mask = getInputs();
       for (int ich = 0; ich < 4; ++ich) {

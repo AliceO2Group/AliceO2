@@ -32,6 +32,35 @@ struct LocalBoardRO {
 };
 
 std::ostream& operator<<(std::ostream& os, const LocalBoardRO& loc);
+
+namespace raw
+{
+static constexpr uint32_t sSTARTBIT = 1 << 7;
+static constexpr uint32_t sCARDTYPE = 1 << 6;
+static constexpr uint32_t sLOCALBUSY = 1 << 5;
+static constexpr uint32_t sLOCALDECISION = 1 << 4;
+static constexpr uint32_t sACTIVE = 1 << 3;
+static constexpr uint32_t sREJECTING = 1 << 2;
+static constexpr uint32_t sMASKED = 1 << 1;
+static constexpr uint32_t sOVERWRITTEN = 1;
+
+static constexpr uint32_t sSOX = 1 << 7;
+static constexpr uint32_t sEOX = 1 << 6;
+static constexpr uint32_t sPAUSE = 1 << 5;
+static constexpr uint32_t sRESUME = 1 << 4;
+static constexpr uint32_t sCALIBRATE = 1 << 3;
+static constexpr uint32_t sPHY = 1 << 2;
+static constexpr uint32_t sRESET = 1 << 1;
+static constexpr uint32_t sORB = 1;
+
+/// Tests the local card bit
+inline bool isLoc(uint8_t statusWord) { return (statusWord >> 6) & 0x1; }
+/// Tests the calibration bit of the card
+inline bool isCalibration(uint8_t eventWord) { return ((eventWord & 0xc) == 0x8); }
+/// Tests if this is a Front End Test event
+inline bool isFET(uint8_t eventWord) { return ((eventWord & 0xc) == 0xc); }
+} // namespace raw
+
 } // namespace mid
 } // namespace o2
 

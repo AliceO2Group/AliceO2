@@ -17,7 +17,6 @@
 
 #include <array>
 #include <sstream>
-#include "MIDRaw/CrateParameters.h"
 
 namespace o2
 {
@@ -65,14 +64,14 @@ bool CRUBareDataChecker::checkConsistency(const LocalBoardRO& board) const
   /// Checks that the event information is consistent
 
   bool isSoxOrReset = board.eventWord & 0xc2;
-  bool isCalib = crateparams::isCalibration(board.eventWord);
+  bool isCalib = raw::isCalibration(board.eventWord);
   bool isPhysOrHC = board.eventWord & 0x5;
 
   if (isPhysOrHC) {
     if (isCalib) {
       return false;
     }
-    if (crateparams::isLoc(board.statusWord)) {
+    if (raw::isLoc(board.statusWord)) {
       if (board.firedChambers) {
         return false;
       }
@@ -161,7 +160,7 @@ bool CRUBareDataChecker::process(gsl::span<const LocalBoardRO> localBoards, gsl:
     for (auto& idx : item.second) {
       // In principle all of these ROF records have the same timestamp
       for (size_t iloc = rofRecords[idx].firstEntry; iloc < rofRecords[idx].firstEntry + rofRecords[idx].nEntries; ++iloc) {
-        if (crateparams::isLoc(localBoards[iloc].statusWord)) {
+        if (raw::isLoc(localBoards[iloc].statusWord)) {
           // This is a local card
           locs.push_back(localBoards[iloc]);
         } else {
