@@ -56,6 +56,7 @@ class GPUQA;
 class GPUTPCClusterStatistics;
 class GPUTRDGeometry;
 class TPCFastTransform;
+class GPUTrackingInputProvider;
 
 class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelegateBase
 {
@@ -109,6 +110,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int ConvertNativeToClusterData();
   void ConvertNativeToClusterDataLegacy();
   void ConvertRun2RawToNative();
+  void ConvertZSEncoder(bool zs12bit);
+  void ConvertZSFilter(bool zs12bit);
 
   // Getters for external usage of tracker classes
   GPUTRDTracker* GetTRDTracker() { return &processors()->trdTracker; }
@@ -183,6 +186,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   // Pointers to tracker classes
   GPUTrackingFlatObjects mFlatObjectsShadow; // Host copy of flat objects that will be used on the GPU
   GPUTrackingFlatObjects mFlatObjectsDevice; // flat objects that will be used on the GPU
+  std::unique_ptr<GPUTrackingInputProvider> mInputsShadow;
+  std::unique_ptr<GPUTrackingInputProvider> mInputsDevice;
 
   // Display / QA
   std::unique_ptr<GPUDisplay> mEventDisplay;

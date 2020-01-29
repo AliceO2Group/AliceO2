@@ -30,18 +30,20 @@ BOOST_AUTO_TEST_CASE(TestJoinedTables)
   TableBuilder trackBuilder;
   auto trackWriter = trackBuilder.cursor<Tracks>();
   trackWriter(0, 0, 0, 0, 0, 0, 0, 0, 0);
-  auto tracks= trackBuilder.finalize();
+
+  auto tracks = trackBuilder.finalize();
 
   TableBuilder trackParCovBuilder;
   auto trackParCovWriter = trackParCovBuilder.cursor<TracksCov>();
-  trackParCovWriter(0, 7,1,2,3,4,5,6,7,8,9,0,1,2,3,4);
+  trackParCovWriter(0, 7, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4);
+
   auto covs = trackParCovBuilder.finalize();
 
   using Test = Join<Tracks, TracksCov>;
 
   Test tests{tracks, covs};
   BOOST_REQUIRE(tests.asArrowTable()->num_columns() != 0);
-  BOOST_REQUIRE_EQUAL(tests.asArrowTable()->num_columns(), 
+  BOOST_REQUIRE_EQUAL(tests.asArrowTable()->num_columns(),
                       tracks->num_columns() + covs->num_columns());
   auto tests2 = join(Tracks{tracks}, TracksCov{covs});
   static_assert(std::is_same_v<Test::table_t, decltype(tests2)>,

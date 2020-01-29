@@ -41,6 +41,8 @@ namespace o2
 namespace its
 {
 
+using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
+
 void CookedTrackerDPL::init(InitContext& ic)
 {
   auto nthreads = ic.options().get<int>("nthreads");
@@ -99,16 +101,27 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   o2::its::Vertexer vertexer(&vertexerTraits);
   o2::its::ROframe event(0);
 
+  std::vector<o2::itsmft::ROFRecord> vertROFvec;
+  std::vector<Vertex> vertices;
   std::vector<o2::its::TrackITS> tracks;
   std::vector<int> clusIdx;
   for (auto& rof : rofs) {
     o2::its::ioutils::loadROFrameData(rof, event, clusters, labels.get());
     vertexer.clustersToVertices(event);
-    auto vertices = vertexer.exportVertices();
-    if (vertices.empty()) {
-      vertices.emplace_back();
+    auto vtxVecLoc = vertexer.exportVertices();
+
+    // for vertices output
+    auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
+    vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
+    vtxROF.setNEntries(vtxVecLoc.size());
+    for (const auto& vtx : vtxVecLoc) {
+      vertices.push_back(vtx);
     }
-    mTracker.setVertices(vertices);
+
+    if (vtxVecLoc.empty()) {
+      vtxVecLoc.emplace_back();
+    }
+    mTracker.setVertices(vtxVecLoc);
     mTracker.process(clusters, tracks, clusIdx, rof);
   }
 
@@ -116,6 +129,8 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{"ITS", "TRACKS", 0, Lifetime::Timeframe}, tracks);
   pc.outputs().snapshot(Output{"ITS", "TRACKCLSID", 0, Lifetime::Timeframe}, clusIdx);
   pc.outputs().snapshot(Output{"ITS", "ITSTrackROF", 0, Lifetime::Timeframe}, rofs);
+  pc.outputs().snapshot(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe}, vertices);
+  pc.outputs().snapshot(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe}, vertROFvec);
 
   if (mUseMC) {
     pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, trackLabels);
@@ -123,6 +138,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   }
 
   mState = 2;
+  pc.services().get<ControlService>().endOfStream();
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
@@ -137,6 +153,8 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC)
   outputs.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "VERTICESROF", 0, Lifetime::Timeframe);
 
   if (useMC) {
     inputs.emplace_back("labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);

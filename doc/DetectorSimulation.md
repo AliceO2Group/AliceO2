@@ -43,6 +43,30 @@ control of verbosity
 
 ## Help on available generators
 
+Below some notes on example generators along with some usage info.
+
+* **Fwmugen**
+
+fwmugen is a lightweight and simple “box” generator for forward muons (1 muon / event)
+
+```
+o2-sim -m MFT -e TGeant3 -g fwmugen -n 10
+```
+
+* **BoxGen**
+
+```
+o2-sim -m PIPE ITS MFT -e TGeant3 -g boxgen -n 10 --configKeyValues 'BoxGun.pdg=13 ; BoxGun.eta[0]=-3.6 ; BoxGun.eta[1]=-2.45; BoxGun.number=100'
+```
+
+* **PYTHIA 8**
+
+Configures pythia8 for min.bias pp collisions at 14 TeV
+
+```
+o2-sim -m PIPE ITS MFT -g pythia8 -n 50
+```
+
 ## Control via environment variables
 `o2-sim` is sensitive to the following environment variables:
 

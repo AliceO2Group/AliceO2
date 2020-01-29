@@ -71,10 +71,10 @@ void TPCFastTransformGeo::setTPCzLength(float tpcZlengthSideA, float tpcZlengthS
 
   mTPCzLengthA = tpcZlengthSideA;
   mTPCzLengthC = tpcZlengthSideC;
-  mScaleVtoSVsideA = 1. / tpcZlengthSideA;
-  mScaleVtoSVsideC = 1. / tpcZlengthSideC;
-  mScaleSVtoVsideA = tpcZlengthSideA;
-  mScaleSVtoVsideC = tpcZlengthSideC;
+  mScaleSVtoVsideA = tpcZlengthSideA + 3.; // add some extra possible drift length due to the space charge distortions
+  mScaleSVtoVsideC = tpcZlengthSideC + 3.;
+  mScaleVtoSVsideA = 1. / mScaleSVtoVsideA;
+  mScaleVtoSVsideC = 1. / mScaleSVtoVsideC;
 
   mConstructionMask |= ConstructionState::GeometryIsSet;
 }
@@ -132,7 +132,7 @@ void TPCFastTransformGeo::finishConstruction()
 
 void TPCFastTransformGeo::print() const
 {
-  /// Prints the geometry
+/// Prints the geometry
 #if !defined(GPUCA_GPUCODE)
   std::cout << "TPC Fast Transformation Geometry: " << std::endl;
   std::cout << "mNumberOfRows = " << mNumberOfRows << std::endl;

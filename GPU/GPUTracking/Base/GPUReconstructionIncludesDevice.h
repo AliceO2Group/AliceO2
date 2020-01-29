@@ -74,6 +74,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "NoiseSuppression.cxx"
 #include "Clusterizer.cxx"
 #include "Deconvolution.cxx"
+#include "DecodeZS.cxx"
 
 // Files for TRD Tracking
 #include "GPUTRDTrackerGPU.cxx"

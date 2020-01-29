@@ -1,11 +1,14 @@
 <!-- doxy
-\page refMUONMCHRaw MCH Raw
+\page refDetectorsMUONMCHRaw Raw CoDec
 /doxy -->
 
 # MCH Raw Data CoDec
 
-This is the top page for the documentation relative to MCH Raw Data Encoding and Decoding.
+This is the top page for the documentation relative to MCH Raw Data Encoding
+and Decoding.
 
 <!-- doxy
-* \subpage refMUONMCHRawElecMap
+* \subpage refDetectorsMUONMCHRawElecMap
+* \subpage refDetectorsMUONMCHRawDecoder
+* \subpage refDetectorsMUONMCHRawTools
 /doxy -->

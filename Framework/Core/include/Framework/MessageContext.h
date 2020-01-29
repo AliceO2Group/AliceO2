@@ -10,21 +10,23 @@
 #ifndef FRAMEWORK_MESSAGECONTEXT_H
 #define FRAMEWORK_MESSAGECONTEXT_H
 
+#include "Framework/DispatchControl.h"
 #include "Framework/FairMQDeviceProxy.h"
-#include "Framework/TypeTraits.h"
 #include "Framework/TMessageSerializer.h"
-#include "MemoryResources/MemoryResources.h"
+#include "Framework/TypeTraits.h"
 #include "Headers/DataHeader.h"
+#include "MemoryResources/MemoryResources.h"
 
 #include <fairmq/FairMQMessage.h>
 #include <fairmq/FairMQParts.h>
 
-#include <vector>
 #include <cassert>
+#include <functional>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
-#include <stdexcept>
-#include <functional>
+#include <unordered_map>
+#include <vector>
 
 class FairMQDevice;
 
@@ -36,7 +38,6 @@ namespace framework
 class MessageContext
 {
  public:
-  using DispatchCallback = std::function<void(FairMQParts&& message, std::string const&, int)>;
   // so far we are only using one instance per named channel
   static constexpr int DefaultChannelIndex = 0;
 
@@ -45,14 +46,14 @@ class MessageContext
   {
   }
 
-  MessageContext(FairMQDeviceProxy proxy, DispatchCallback&& dispatcher)
-    : mProxy{proxy}, mDispatchCallback{dispatcher}
+  MessageContext(FairMQDeviceProxy proxy, DispatchControl&& dispatcher)
+    : mProxy{proxy}, mDispatchControl{dispatcher}
   {
   }
 
-  void init(DispatchCallback&& dispatcher)
+  void init(DispatchControl&& dispatcher)
   {
-    mDispatchCallback = dispatcher;
+    mDispatchControl = dispatcher;
   }
 
   // this is the virtual interface for context objects
@@ -100,6 +101,15 @@ class MessageContext
     bool empty() const
     {
       return mParts.Size() == 0;
+    }
+
+    o2::header::DataHeader const* header()
+    {
+      // we would expect this function to be const but the FairMQParts API does not allow this
+      if (empty() || mParts.At(0) == nullptr) {
+        return nullptr;
+      }
+      return o2::header::get<o2::header::DataHeader*>(mParts.At(0)->GetData());
     }
 
    protected:
@@ -387,24 +397,42 @@ class MessageContext
 
   /// Schedule a context object for sending.
   /// The object is considered complete at this point and is sent directly through the dispatcher callback
-  /// of the context if initialized. It is added to the list of messages otherwise.
+  /// of the context if initialized.
   void schedule(Messages::value_type&& message)
   {
-    if (mDispatchCallback) {
-      mDispatchCallback(std::move(message->finalize()), message->channel(), DefaultChannelIndex);
-      return;
+    auto const* header = message->header();
+    if (header == nullptr) {
+      throw std::logic_error("No valid header message found");
     }
-    mMessages.push_back(std::move(message));
+    mScheduledMessages.emplace_back(std::move(message));
+    if (mDispatchControl.dispatch != nullptr) {
+      // send all scheduled messages if there is no trigger callback or its result is true
+      if (mDispatchControl.trigger == nullptr || mDispatchControl.trigger(*header)) {
+        std::unordered_map<std::string, FairMQParts> outputs;
+        for (auto& message : mScheduledMessages) {
+          FairMQParts parts = std::move(message->finalize());
+          assert(message->empty());
+          assert(parts.Size() == 2);
+          for (auto& part : parts) {
+            outputs[message->channel()].AddPart(std::move(part));
+          }
+        }
+        for (auto& [channel, parts] : outputs) {
+          mDispatchControl.dispatch(std::move(parts), channel, DefaultChannelIndex);
+        }
+        mScheduledMessages.clear();
+      }
+    }
   }
 
-  Messages::iterator begin()
+  Messages getMessagesForSending()
   {
-    return mMessages.begin();
-  }
-
-  Messages::iterator end()
-  {
-    return mMessages.end();
+    // before starting iteration, message lists are merged
+    for (auto& message : mScheduledMessages) {
+      mMessages.emplace_back(std::move(message));
+    }
+    mScheduledMessages.clear();
+    return std::move(mMessages);
   }
 
   size_t size()
@@ -439,7 +467,8 @@ class MessageContext
  private:
   FairMQDeviceProxy mProxy;
   Messages mMessages;
-  DispatchCallback mDispatchCallback;
+  Messages mScheduledMessages;
+  DispatchControl mDispatchControl;
 };
 } // namespace framework
 } // namespace o2

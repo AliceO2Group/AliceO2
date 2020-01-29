@@ -24,8 +24,8 @@ namespace gpu
 
 namespace deprecated
 {
-class PackedDigit;
-class ClusterNative;
+struct PackedDigit;
+struct ClusterNative;
 } // namespace deprecated
 
 class GPUTPCClusterFinder : public GPUProcessor
@@ -48,9 +48,10 @@ class GPUTPCClusterFinder : public GPUProcessor
   void* SetPointersMemory(void* mem);
 
   size_t getNSteps(size_t items) const;
-  void SetNMaxDigits(size_t n);
+  void SetNMaxDigits(size_t nDigits, size_t nPages);
 #endif
 
+  unsigned char* mPzs = nullptr;
   deprecated::PackedDigit* mPdigits = nullptr;
   deprecated::PackedDigit* mPpeaks = nullptr;
   deprecated::PackedDigit* mPfilteredPeaks = nullptr;
@@ -65,6 +66,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   int mISlice = 0;
   constexpr static int mScanWorkGroupSize = GPUCA_THREAD_COUNT_SCAN;
   size_t mNMaxClusterPerRow = 0;
+  size_t mNMaxPages = 0;
   size_t mNMaxDigits = 0;
   size_t mNMaxPeaks = 0;
   size_t mNMaxClusters = 0;

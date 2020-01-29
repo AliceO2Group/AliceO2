@@ -72,6 +72,7 @@ set(SRCS_NO_CINT
     Base/GPUKernelDebugOutput.cxx
     Global/GPUChain.cxx
     Global/GPUChainTracking.cxx
+    Global/GPUTrackingInputProvider.cxx
     Standalone/utils/timer.cxx)
 
 set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
@@ -152,13 +153,24 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         TPCClusterFinder/PeakFinder.cxx
         TPCClusterFinder/NoiseSuppression.cxx
         TPCClusterFinder/Clusterizer.cxx
-        TPCClusterFinder/Deconvolution.cxx)
+        TPCClusterFinder/Deconvolution.cxx
+        TPCClusterFinder/DecodeZS.cxx)
 
     set(SRCS_NO_H ${SRCS_NO_H}
         TPCClusterFinder/GPUTPCClusterFinderDump.cxx)
 
-    set(HDRS_INSTALL ${HDRS_INSTALL} Interface/GPUO2InterfaceConfiguration.h
-                     ITS/GPUITSTrack.h dEdx/GPUdEdxInfo.h)
+    set(HDRS_INSTALL ${HDRS_INSTALL}
+                     Interface/GPUO2InterfaceConfiguration.h
+                     ITS/GPUITSTrack.h
+                     dEdx/GPUdEdxInfo.h
+                     TPCClusterFinder/Array2D.h
+                     TPCClusterFinder/CfConsts.h
+                     TPCClusterFinder/CfUtils.h
+                     TPCClusterFinder/clusterFinderDefs.h
+                     TPCClusterFinder/ClusterNative.h
+                     TPCClusterFinder/Digit.h
+                     TPCClusterFinder/GPUTPCSharedMemoryData.h
+                     TPCClusterFinder/PackedCharge.h)
 endif()
 
 # Sources only for AliRoot
@@ -190,6 +202,7 @@ if(GPUCA_EVENT_DISPLAY)
   set(SRCS_NO_H ${SRCS_NO_H} Standalone/display/GPUDisplayQuaternion.cxx
                 Standalone/display/GPUDisplayInterpolation.cxx
                 Standalone/display/GPUDisplayKeys.cxx)
+  set(HDRS_INSTALL ${HDRS_INSTALL} Standalone/display/GPUDisplayExt.h)
 else()
   set(HDRS_INSTALL ${HDRS_INSTALL} Standalone/display/GPUDisplay.h)
 endif()

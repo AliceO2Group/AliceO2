@@ -11,16 +11,37 @@
 #ifndef STEER_DIGITIZERWORKFLOW_PHOSDIGITWRITER_H_
 #define STEER_DIGITIZERWORKFLOW_PHOSDIGITWRITER_H_
 
+#include <vector>
 #include "Framework/DataProcessorSpec.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
+#include "Framework/InputSpec.h"
+#include "DataFormatsPHOS/Digit.h"
+#include "DataFormatsPHOS/TriggerRecord.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "DataFormatsPHOS/MCLabel.h"
 
 namespace o2
 {
 namespace phos
 {
 
-o2::framework::DataProcessorSpec getPHOSDigitWriterSpec();
+template <typename T>
+using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-} // end namespace phos
-} // end namespace o2
+o2::framework::DataProcessorSpec getPHOSDigitWriterSpec()
+{
+  using InputSpec = framework::InputSpec;
+  using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
+  return MakeRootTreeWriterSpec("PHOSDigitWriter",
+                                "phosdigits.root",
+                                "o2sim",
+                                1,
+                                BranchDefinition<std::vector<o2::phos::Digit>>{InputSpec{"phosdigits", "PHS", "DIGITS"}, "PHOSDigit"},
+                                BranchDefinition<std::vector<o2::phos::TriggerRecord>>{InputSpec{"phosdigitstrigrec", "PHS", "DIGITTRIGREC"}, "PHOSDigitTrigRecords"},
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>>{InputSpec{"phosdigitsmc", "PHS", "DIGITSMCTR"}, "PHOSDigitMCTruth"})();
+}
 
-#endif /* STEER_DIGITIZERWORKFLOW_PHOSDIGITWRITER_H_ */
+} // namespace phos
+} // namespace o2
+
+#endif /* STEER_DIGITIZERWORKFLOW_PHOSDIGITWRITERSPEC_H */

@@ -49,6 +49,8 @@ void TrackReader::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{mOrigin, "ITSTrackROF", 0, Lifetime::Timeframe}, mROFRec);
   pc.outputs().snapshot(Output{mOrigin, "TRACKS", 0, Lifetime::Timeframe}, mTracks);
   pc.outputs().snapshot(Output{mOrigin, "TRACKCLSID", 0, Lifetime::Timeframe}, mClusInd);
+  pc.outputs().snapshot(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe}, mVertices);
+  pc.outputs().snapshot(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe}, mVerticesROFRec);
   if (mUseMC) {
     pc.outputs().snapshot(Output{mOrigin, "TRACKSMCTR", 0, Lifetime::Timeframe}, mMCTruth);
   }
@@ -77,6 +79,18 @@ void TrackReader::accumulate()
   trTree->SetBranchAddress(mROFBranchName.c_str(), &mROFRecInp);
   trTree->SetBranchAddress(mTrackBranchName.c_str(), &mTracksInp);
   trTree->SetBranchAddress(mClusIdxBranchName.c_str(), &mClusIndInp);
+  if (!trTree->GetBranch(mVertexBranchName.c_str())) {
+    LOG(WARNING) << "No " << mVertexBranchName << " branch in " << mTrackTreeName << " -> vertices will be empty";
+  } else {
+    trTree->SetBranchAddress(mVertexBranchName.c_str(), &mVerticesInp);
+  }
+  if (!trTree->GetBranch(mVertexROFBranchName.c_str())) {
+    LOG(WARNING) << "No " << mVertexROFBranchName << " branch in " << mTrackTreeName
+                 << " -> vertices ROFrecords will be empty";
+  } else {
+    trTree->SetBranchAddress(mVertexROFBranchName.c_str(), &mVerticesROFRecInp);
+  }
+
   if (mUseMC) {
     if (trTree->GetBranch(mTrackMCTruthBranchName.c_str())) {
       trTree->SetBranchAddress(mTrackMCTruthBranchName.c_str(), &mMCTruthInp);
@@ -97,6 +111,8 @@ DataProcessorSpec getITSTrackReaderSpec(bool useMC)
   outputSpec.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
   outputSpec.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
   outputSpec.emplace_back("ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back("ITS", "VERTICESROF", 0, Lifetime::Timeframe);
   if (useMC) {
     outputSpec.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
   }

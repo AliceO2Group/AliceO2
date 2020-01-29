@@ -19,7 +19,7 @@
 #include "ITSMFTReconstruction/AlpideCoder.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
-#include "CommonUtils/HBFUtils.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 namespace o2
 {
@@ -105,7 +105,7 @@ class MC2RawEncoder
   enum RoMode_t { NotSet,
                   Continuous,
                   Triggered };
-  o2::utils::HBFUtils mHBFUtils;
+  o2::raw::HBFUtils mHBFUtils;
   std::vector<o2::InteractionRecord> mHBIRVec; // workspace for HB IR generation
   o2::InteractionRecord mLastIR;               // last IR processed (or 1st in TF if none)
   o2::InteractionRecord mCurrIR;               // currently processed int record

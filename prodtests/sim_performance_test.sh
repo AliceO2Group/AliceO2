@@ -18,6 +18,8 @@ REPS=5
 
 # TIMESTAMP TO USE FOR INJECTION INTO DATABASE
 TIMEST=`date +%s`
+# convert to nanoseconds needed by InfluxDB
+TIMEST="${TIMEST}000000000"
 
 METRICFILE=metrics.dat
 for ENGINE in TGeant3 TGeant4; do

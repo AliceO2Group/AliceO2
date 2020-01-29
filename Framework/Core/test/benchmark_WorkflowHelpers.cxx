@@ -8,13 +8,26 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/WorkflowSpec.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "Framework/ConfigContext.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/OutputSpec.h"
+#include "Framework/SimpleOptionsRetriever.h"
 #include "../src/WorkflowHelpers.h"
 #include <benchmark/benchmark.h>
 #include <algorithm>
 
 using namespace o2::framework;
+
+std::unique_ptr<ConfigContext> makeEmptyConfigContext()
+{
+  // FIXME: Ugly... We need to fix ownership and make sure the ConfigContext
+  //        either owns or shares ownership of the registry.
+  static std::unique_ptr<ParamRetriever> retriever(new SimpleOptionsRetriever);
+  static ConfigParamRegistry registry{std::move(retriever)};
+  auto context = std::make_unique<ConfigContext>(registry);
+  return context;
+}
 
 static void BM_CreateGraphOverhead(benchmark::State& state)
 {
@@ -40,7 +53,8 @@ static void BM_CreateGraphOverhead(benchmark::State& state)
     std::vector<LogicalForwardInfo> availableForwardsInfo;
 
     WorkflowHelpers::verifyWorkflow(workflow);
-    WorkflowHelpers::injectServiceDevices(workflow);
+    auto context = makeEmptyConfigContext();
+    WorkflowHelpers::injectServiceDevices(workflow, *context);
     WorkflowHelpers::constructGraph(workflow,
                                     logicalEdges,
                                     outputs,
@@ -75,7 +89,8 @@ static void BM_CreateGraphReverseOverhead(benchmark::State& state)
     std::vector<LogicalForwardInfo> availableForwardsInfo;
 
     WorkflowHelpers::verifyWorkflow(workflow);
-    WorkflowHelpers::injectServiceDevices(workflow);
+    auto context = makeEmptyConfigContext();
+    WorkflowHelpers::injectServiceDevices(workflow, *context);
     WorkflowHelpers::constructGraph(workflow, logicalEdges,
                                     outputs,
                                     availableForwardsInfo);

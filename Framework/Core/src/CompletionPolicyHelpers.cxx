@@ -18,6 +18,7 @@
 #include <gsl/span>
 
 #include <cassert>
+#include <regex>
 
 namespace o2
 {
@@ -27,7 +28,7 @@ namespace framework
 CompletionPolicy CompletionPolicyHelpers::defineByName(std::string const& name, CompletionPolicy::CompletionOp op)
 {
   auto matcher = [name](DeviceSpec const& device) -> bool {
-    return device.name == name;
+    return std::regex_match(device.name.begin(), device.name.end(), std::regex(name));
   };
   auto callback = [op](gsl::span<PartRef const> const& inputs) -> CompletionPolicy::CompletionOp {
     return op;

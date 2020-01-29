@@ -119,7 +119,7 @@ void displayDeviceInspector(DeviceSpec const& spec,
   ImGui::Text("Name: %s", spec.name.c_str());
   ImGui::Text("Executable: %s", metadata.executable.c_str());
   ImGui::Text("Pid: %d", info.pid);
-  ImGui::Text("Rank: %zu/%zu%%%zu", spec.rank, spec.nSlots, spec.inputTimesliceId);
+  ImGui::Text("Rank: %zu/%zu%%%zu/%zu", spec.rank, spec.nSlots, spec.inputTimesliceId, spec.maxInputTimeslices);
 
   if (ImGui::Button("Attach debugger")) {
     std::string pid = std::to_string(info.pid);

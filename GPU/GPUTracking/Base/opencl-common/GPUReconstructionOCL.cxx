@@ -156,7 +156,7 @@ int GPUReconstructionOCL::InitDevice_Runtime()
       bestDevice = i;
       bestDeviceSpeed = deviceSpeed;
     } else {
-      if (mDeviceProcessingSettings.debugLevel >= 0) {
+      if (mDeviceProcessingSettings.debugLevel >= 2) {
         GPUInfo("Skipping: Speed %f < %f", deviceSpeed, bestDeviceSpeed);
       }
     }
