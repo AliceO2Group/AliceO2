@@ -80,8 +80,8 @@ void CommonDataProcessors::table2tree(TTree* tout, std::shared_ptr<arrow::Table>
     auto col = table->column(ii);
     const char *cname = col->name().c_str();
     auto chs = col->data()->chunks();
-    LOG(DEBUG) << "number of chunks " << chs.size() << std::endl;
-    LOG(DEBUG) << " column type " << col->type()->ToString() << std::endl;
+    LOG(DEBUG) << "number of chunks " << chs.size();
+    LOG(DEBUG) << " column type " << col->type()->ToString();
 
     // what follows is an ugly switch
     // the cases cover the different data types of the branches
@@ -90,7 +90,7 @@ void CommonDataProcessors::table2tree(TTree* tout, std::shared_ptr<arrow::Table>
     
     case arrow::Type::type::FLOAT:
       {
-        LOG(DEBUG) << "case FLOAT" << std::endl;
+        LOG(DEBUG) << "case FLOAT";
         Float_t dbuf;
         br = tout->Branch(cname,&dbuf);                             
         for(auto const& ch: chs)
@@ -108,7 +108,7 @@ void CommonDataProcessors::table2tree(TTree* tout, std::shared_ptr<arrow::Table>
 
     case arrow::Type::type::DOUBLE:
       {
-        LOG(DEBUG) << "case DOUBLE" << std::endl;
+        LOG(DEBUG) << "case DOUBLE";
         Double_t dbuf;                                                   
         br = tout->Branch(cname,&dbuf);                             
         for(auto const& ch: chs)
@@ -125,7 +125,7 @@ void CommonDataProcessors::table2tree(TTree* tout, std::shared_ptr<arrow::Table>
 
     case arrow::Type::type::UINT16:
       {
-        LOG(DEBUG) << "case UINT" << std::endl;
+        LOG(DEBUG) << "case UINT";
         UShort_t dbuf;                                                   
         br = tout->Branch(cname,&dbuf);                             
         for(auto const& ch: chs)
@@ -142,7 +142,7 @@ void CommonDataProcessors::table2tree(TTree* tout, std::shared_ptr<arrow::Table>
 
     case arrow::Type::type::UINT32:
       {
-        LOG(DEBUG) << "case UINT" << std::endl;
+        LOG(DEBUG) << "case UINT";
         UInt_t dbuf = UInt_t();
         br = tout->Branch(cname,&dbuf);                             
         for(auto const& ch: chs)
@@ -159,7 +159,7 @@ auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt32Type>>(ch);
 
     case arrow::Type::type::UINT64:
       {
-        LOG(DEBUG) << "case UINT64" << std::endl;
+        LOG(DEBUG) << "case UINT64";
         ULong64_t dbuf = ULong64_t();
         br = tout->Branch(cname,&dbuf);                             
         for(auto const& ch: chs)
@@ -176,7 +176,7 @@ auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt32Type>>(ch);
 
     case arrow::Type::type::INT16:
       {
-        LOG(DEBUG) << "case INT16" << std::endl;
+        LOG(DEBUG) << "case INT16";
         Short_t dbuf = Short_t();
         br = tout->Branch(cname,&dbuf);                             
         for(auto const& ch: chs)
@@ -193,7 +193,7 @@ auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt32Type>>(ch);
 
     case arrow::Type::type::INT32:
       {
-        LOG(DEBUG) << "case INT" << std::endl;
+        LOG(DEBUG) << "case INT";
         Int_t dbuf = Int_t();
         br = tout->Branch(cname,&dbuf);                             
         for(auto const& ch: chs)
@@ -210,7 +210,7 @@ auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt32Type>>(ch);
 
     case arrow::Type::type::INT64:
       {
-        LOG(DEBUG) << "case INT64" << std::endl;
+        LOG(DEBUG) << "case INT64";
         Long64_t dbuf =  Long64_t();
         br = tout->Branch(cname,&dbuf);                             
         for(auto const& ch: chs)
@@ -237,6 +237,260 @@ auto p = std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt32Type>>(ch);
 }
 
 
+// =============================================================================
+// class datait is a data iterator
+// it basically allows to iterate over the elements of an arrow::table::Column using datait::next()
+// and is used in CommonDataProcessors::table2treeC
+class datait
+{
+
+  private:
+  arrow::ArrayVector chs;   // chunks
+  Int_t nchs;               // number of chunks
+  Int_t ich;                // chunk counter
+  Int_t nr;                 // number of rows
+  Int_t ir;                 // row counter
+
+  // data buffers for each data type
+  arrow::Type::type dt;
+  void *v       = nullptr;
+  Float_t  *vF  = nullptr;
+  Double_t *vD  = nullptr;
+  UShort_t *vs  = nullptr;
+  UInt_t *vi    = nullptr;
+  ULong64_t *vl = nullptr;
+  Short_t *vS   = nullptr;
+  Int_t *vI     = nullptr;
+  Long64_t *vL  = nullptr;
+
+
+  // initialize chunk ib
+  void dbufini(Int_t ib)
+  {
+    // get next chunk of given data type dt
+    switch (dt)
+    {
+      case arrow::Type::type::FLOAT:
+        vF = (Float_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::FloatType>>(chs.at(ib))->raw_values();
+        break;
+      case arrow::Type::type::DOUBLE:
+        vD = (Double_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::DoubleType>>(chs.at(ib))->raw_values();
+        break;
+      case arrow::Type::type::UINT16:
+        vs = (UShort_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt16Type>>(chs.at(ib))->raw_values();
+        break;
+      case arrow::Type::type::UINT32:
+        vi = (UInt_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt32Type>>(chs.at(ib))->raw_values();
+        break;
+      case arrow::Type::type::UINT64:
+        vl = (ULong64_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt64Type>>(chs.at(ib))->raw_values();
+        break;
+      case arrow::Type::type::INT16:
+        vS = (Short_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int16Type>>(chs.at(ib))->raw_values();
+        break;
+      case arrow::Type::type::INT32:
+        vI = (Int_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(chs.at(ib))->raw_values();
+        break;
+      case arrow::Type::type::INT64:
+        vL = (Long64_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int64Type>>(chs.at(ib))->raw_values();
+        break;
+    }
+    // reset number of rows nr and row counter ir
+    nr = chs.at(ib)->length();
+    ir = 0;
+  };
+    
+  
+  public:  
+  datait()
+  {
+    nchs = 0;
+    ich  = 0;
+    nr   = 0;
+    ir   = 0;
+
+  };
+  datait(std::shared_ptr<arrow::Column> col)
+  {
+    dt   = col->type()->id();
+    chs  = col->data()->chunks();
+    nchs = chs.size();
+    
+    ich  = 0;
+    dbufini(ich);
+    LOG(DEBUG) << "datait: " << col->type()->ToString() << " with " << nchs << " chunks";
+
+  };
+  ~datait();
+
+  // allows to reinitialize the datait with new column
+  void Init(std::shared_ptr<arrow::Column> col)
+  {
+    dt   = col->type()->id();
+    chs  = col->data()->chunks();
+    nchs = chs.size();
+    
+    ich  = 0;
+    dbufini(ich);
+  }
+  
+  // increments data buffer pointer or ...
+  // returns nullptr if end of data buffer is reached
+  void* next()
+  {
+
+    // ich and ir contain the current chunk and row
+    // return the next element if available
+    if (ir>=nr)
+    {
+      ich++;
+      if (ich<nchs)
+      {
+        dbufini(ich);
+      } else {
+        // end of data buffer reached
+        return (void*) nullptr;
+      }
+    }
+    switch (dt)
+    {
+      case arrow::Type::type::FLOAT:
+        v = (void*)vF++;
+        break;
+      case arrow::Type::type::DOUBLE:
+        v = (void*)vD++;
+        break;
+      case arrow::Type::type::UINT16:
+        v = (void*)vs++;
+        break;
+      case arrow::Type::type::UINT32:
+        v = (void*)vi++;
+        break;
+      case arrow::Type::type::UINT64:
+        v = (void*)vl++;
+        break;
+      case arrow::Type::type::INT16:
+        v = (void*)vS++;
+        break;
+      case arrow::Type::type::INT32:
+        v = (void*)vI++;
+        break;
+      case arrow::Type::type::INT64:
+        v = (void*)vL++;
+        break;
+    }
+    ir++;
+    
+    return v;
+    
+  };
+    
+};
+
+// .............................................................................
+void CommonDataProcessors::table2treeC(TTree* tout,
+                                       std::shared_ptr<arrow::Table> table,
+                                       bool tupdate)
+{
+
+  // first create a vector of pairs to hold the column definitions
+  // consisting of a TBranch and the respective data iterator
+  std::vector<std::pair<TBranch*, datait*>> specbuf;
+
+  // loop over columns
+  char *dbuf;
+  std::string leaflist;
+
+  LOG(DEBUG) << "table2treeC: " << table->num_columns();
+  for (int ii=0; ii<table->num_columns(); ii++)
+  {
+
+    auto col = table->column(ii);
+    const char *cname = col->name().c_str();
+  
+    // for each column get a pair of {branch, data iterator}
+    // fill the pairs into a std::vector
+
+    auto cdt = col->type()->id();
+    switch (cdt) {
+      case arrow::Type::type::FLOAT:
+        leaflist = col->name()+"/F";
+        break;
+      case arrow::Type::type::DOUBLE:
+        leaflist = col->name()+"/D";
+        break;
+      case arrow::Type::type::UINT16:
+        leaflist = col->name()+"/s";
+        break;
+      case arrow::Type::type::UINT32:
+        leaflist = col->name()+"/i";
+        break;
+      case arrow::Type::type::UINT64:
+        leaflist = col->name()+"/l";
+        break;
+      case arrow::Type::type::INT16:
+        leaflist = col->name()+"/S";
+        break;
+      case arrow::Type::type::INT32:
+        leaflist = col->name()+"/I";
+        break;
+      case arrow::Type::type::INT64:
+        leaflist = col->name()+"/L";
+        break;
+    }
+    
+    // two cases
+    // tupdate==true:
+    //    tree is updated and it is exptected that the branches exists
+    // tupdate==false:
+    //    the branches are created
+    TBranch *br = nullptr;
+    if (tupdate)
+    {
+      br = tout->GetBranch(cname);
+    } else {
+      br = tout->Branch(cname,dbuf,leaflist.c_str());
+    }
+    if (!br)
+      throw std::runtime_error("Branch does not exist!");
+
+    datait *dit = new datait(col);
+    specbuf.push_back(std::pair<TBranch*, datait*>(br, dit));
+  
+  }
+  LOG(INFO) << "table2treeC: size of specbuf " << specbuf.size();
+  
+  
+  // with this loop over the columns again as long as togo is true.
+  // togo is set false when any of the data iterators returns nullptr
+  void *add = nullptr;
+  bool togo = true;
+  while (togo)
+  {
+    for (int ii=0; ii<table->num_columns(); ii++)
+    {
+      //  SetBufferAddress using data iterator
+      if (add = (void*)std::get<1>(specbuf.at(ii))->next())
+      {
+        // LOG(DEBUG) << "filling branch " << std::get<0>(specbuf.at(ii))->GetName();
+        tout->SetBranchAddress(std::get<0>(specbuf.at(ii))->GetName(),add);
+      } else {
+        togo = false;
+        break;
+      };
+    }
+
+    //  update the tree
+    if (togo) tout->Fill();
+   
+  }
+  // write the tree
+  tout->Write("", TObject::kOverwrite);
+
+}
+
+
+// =============================================================================
 DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& outMap)
 {
   auto writerFunction = [outMap](InitContext& ic) -> std::function<void(ProcessingContext&)> {
@@ -358,24 +612,74 @@ DataProcessorSpec
   auto writerFunction = [danglingOutputInputs](InitContext& ic) -> std::function<void(ProcessingContext&)>
   {
     
-    LOG(DEBUG) << "======== getGlobalAODSink::Inint ==========" << std::endl;
-    LOG(DEBUG) << "starting the getGlobalAODSink init function" << std::endl;
+    LOG(DEBUG) << "======== getGlobalAODSink::Inint ==========";
     
     // analyze ic and take actions accordingly
-    auto filename = ic.options().get<std::string>("res-file");
-    auto filemode = ic.options().get<std::string>("res-mode");
-    LOG(DEBUG) <<"Result file name " << filename << std::endl;
+    auto fnbase     = ic.options().get<std::string>("res-file");
+    auto filemode   = ic.options().get<std::string>("res-mode");
+    auto keepString = ic.options().get<std::string>("keep");
+    auto ntfmerge   = ic.options().get<Int_t>("ntfmerge");
+    
+    // find out if any tables need to be saved
+    bool hasOutputsToWrite = true;
+    bool usematch          = false;
+    
+    
+    // use the parameter keep to create a matcher
+    std::shared_ptr<data_matcher::DataDescriptorMatcher> matcher;
+    if (!keepString.empty())
+    {
+      usematch = true;
+      
+      auto [variables, outputMatcher] = DataDescriptorQueryBuilder::buildFromKeepConfig(keepString);
+      matcher = outputMatcher;
+      VariableContext context;
+      for (auto& spec : danglingOutputInputs) {
+        auto concrete = DataSpecUtils::asConcreteDataMatcher(spec);
+        if (outputMatcher->match(concrete, context)) {
+          hasOutputsToWrite = true;
+        }
+      }
+    }
+
+    // if nothing needs to be saved then return a trivial functor
+    if (!hasOutputsToWrite) {
+      return std::move([](ProcessingContext& pc) mutable -> void {
+        static bool once = false;
+        if (!once) {
+          LOG(DEBUG) << "No dangling output to be saved.";
+          once = true;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+      });
+    }
+    
+    // end of data functor is called at the end of the data stream
+    auto fout = std::make_shared<TFile>();
+    auto endofdatacb = [fout](EndOfStreamContext& context) {
+      
+      if (fout)
+        fout->Close();
+      
+      context.services().get<ControlService>().readyToQuit(QuitRequest::All);
+    
+    };
+
+    auto& callbacks = ic.services().get<CallbackService>();
+    callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
  
 
-     // this functor is called once per file
-    return std::move([filename, filemode](ProcessingContext& pc) mutable -> void {
-      LOG(DEBUG) << "======== getGlobalAODSink::processing ==========" << std::endl;
-      LOG(DEBUG) << "processing data set with " << pc.inputs().size() << " entries" << std::endl;
+    // this functor is called once per time frame
+    Int_t ntf = 0;
+    return std::move([fout,fnbase,filemode,ntf,ntfmerge,usematch,matcher](ProcessingContext& pc) mutable -> void {
+      LOG(DEBUG) << "======== getGlobalAODSink::processing ==========";
+      LOG(DEBUG) << " processing data set with " << pc.inputs().size() << " entries";
+      LOG(DEBUG) << " result are saved to " << fnbase << "_*.root";
       
       // return immediately if pc.inputs() is empty
       auto ninputs = pc.inputs().size();
       if (ninputs==0) {
-        LOG(DEBUG) << "no inputs available!" << std::endl;
+        LOG(DEBUG) << "no inputs available!";
         return;
       }
       
@@ -386,61 +690,71 @@ DataProcessorSpec
       // loop over the columns of a table
       // for each column create a branch
       // loop over the rows of the column
-      // write the values to the corresponding branch 
+      // fill the values into the corresponding branches
+      // write the table
+      // see table2treeC
       
-      // open the file
-      TFile *f = new TFile(filename.c_str(),filemode.c_str());
+      // open new file if ntfmerge time frames is reached
+      LOG(INFO) << "This is time frame number "<< ntf;
+      bool tupdate = true;
+      std::string fname;
+      if ((ntf%ntfmerge)==0)
+      {
+        if (fout) fout->Close();
+        
+        fname = fnbase+"_"+std::to_string((Int_t)(ntf/ntfmerge))+".root";
+        fout =
+          std::make_shared<TFile>(fname.c_str(),filemode.c_str());
+        tupdate = false;
+      }
+      ntf++;
       
       // loop over the DataRefs which are contained in pc.inputs()
+      TTree *tout = nullptr;
+      VariableContext matchingContext;
       for (const auto& ref : pc.inputs()) {
         
-        // check healt of DataRef
-        if (!ref.header) {
-          LOG(ERROR) << "Header not found";
-          return;
-        }
-
-        if (!ref.payload) {
-          LOG(ERROR) << "Payload not found";
-          return;
-        }
-
-        auto datah = o2::header::get<o2::header::DataHeader*>(ref.header);
-        if (!datah) {
-          LOG(ERROR) << "No data header in stack";
-          return;
-        }
+        // is this table to be saved?
+        auto dh = DataRefUtils::getHeader<header::DataHeader*>(ref);
         // only arrow tables are processed here
-        if (datah->payloadSerializationMethod != o2::header::gSerializationMethodArrow)
+        if (dh->payloadSerializationMethod != o2::header::gSerializationMethodArrow)
           continue;
 
+        // does it match the keep parameter
+        if (usematch && !matcher->match(*dh, matchingContext))
+          continue;
+
+
         // get the table name
-        auto treename = datah->dataDescription.as<std::string>();
-        LOG(DEBUG) << "The tree name is " << treename << std::endl; 
+        auto treename = dh->dataDescription.as<std::string>();
     
         // get the TableConsumer and convert it into an arrow table
         auto s = pc.inputs().get<TableConsumer>(ref.spec->binding);
         auto table = s->asArrowTable();
-        LOG(DEBUG) << "Number of columns " << table->num_columns() << std::endl; 
-        LOG(DEBUG) << "Number of rows     " << table->num_rows() << std::endl;
+        LOG(DEBUG) << "The tree name is " << treename; 
+        LOG(DEBUG) << "Number of columns " << table->num_columns(); 
+        LOG(DEBUG) << "Number of rows     " << table->num_rows();
+        
+        // we need finite number of rows and columns
         if (table->num_columns()==0 || table->num_rows()==0)
-          return;
+          continue;
 
+        
+        // this table needs to be saved to file
         // create the corresponding tree
-        TTree *tout = new TTree(treename.c_str(),treename.c_str());
+        if (tupdate)
+        {
+          tout = (TTree*)fout->Get(treename.c_str());
+        } else {
+          tout = new TTree(treename.c_str(),treename.c_str());
+        }
     
         // write the table to the TTree
-        table2tree(tout,table);
+        table2treeC(tout,table,tupdate);
+        tout->Print();
 
       }
       
-      // clean up, close the file
-      if (f)
-      {
-        f->Close();
-        delete f;
-      }
-
     });  
   };      // end of writerFunction
 
@@ -450,9 +764,10 @@ DataProcessorSpec
     danglingOutputInputs,
     Outputs{},
     AlgorithmSpec(writerFunction),
-    {{"res-file", VariantType::String, "AnalysisResults.root", {"Name of the output file"}},
-     {"res-mode", VariantType::String, "RECREATE",             {"Creation mode of the result file: NEW, CREATE, RECREATE, UPDATE"}}
-    }
+    {{"res-file", VariantType::String, "AnalysisResults", {"Name of the output file"}},
+     {"res-mode", VariantType::String, "RECREATE",        {"Creation mode of the result file: NEW, CREATE, RECREATE, UPDATE"}},
+     {"ntfmerge", VariantType::Int,     10,               {"number of time frames to merge into one file"}},
+     {"keep",     VariantType::String,  "",               {"Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION to save in outfile"}}}
   };
 
   return spec;
