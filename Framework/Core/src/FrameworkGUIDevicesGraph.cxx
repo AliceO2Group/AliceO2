@@ -508,7 +508,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
   draw_list->ChannelsMerge();
 
   // Open context menu
-  if (!ImGui::IsAnyItemHovered() && ImGui::IsMouseHoveringWindow() && ImGui::IsMouseClicked(1)) {
+  if (!ImGui::IsAnyItemHovered() && ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) && ImGui::IsMouseClicked(1)) {
     node_selected = node_hovered_in_list = node_hovered_in_scene = -1;
     open_context_menu = true;
   }
