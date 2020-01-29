@@ -365,7 +365,7 @@ struct AnalysisDataProcessorBuilder {
       //
       // Will iterate on all the tracks for the provided collision.
       if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::Table>::value) {
-        static_assert((is_specialization<Associated, o2::soa::Table>::value && ...),
+        static_assert((is_specialization<std::decay_t<Associated>, o2::soa::Table>::value && ...),
                       "You cannot have a soa::RowView iterator as an argument after the "
                       " first argument of type soa::Table which is found as in the "
                       " prototype of the task process method.");
