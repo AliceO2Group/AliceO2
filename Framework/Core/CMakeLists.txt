@@ -126,6 +126,7 @@ foreach(t
         AnalysisTask
         AnalysisDataModel
         ASoA
+        ASoAHelpers
         BoostOptionsRetriever
         CallbackRegistry
         ChannelSpecHelpers
