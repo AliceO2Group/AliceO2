@@ -14,11 +14,12 @@ background.color:                       1
 camera.3D.rotation.horizontal:          -0.4
 camera.3D.rotation.vertical:            1.0
 camera.3D.zoom:                         1.0
-camera.R-Phi.zoom:                      1.0
-camera.Rho-Z.zoom:                      1.0
+camera.R-Phi.zoom:                      4.0
+camera.Rho-Z.zoom:                      4.0
 
-#simple.geom.path:                       /data1/belikov/alice/ali-master/O2/Detectors/ITSMFT/ITS/macros/EVE
-simple.geom.path:                       ~/
+simple.geom.default:                      R3 
+simple.geom.R3.path:                       ./
+simple.geom.R2.path:                       ./
 
 tracks.width:                           2
 
