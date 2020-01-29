@@ -70,13 +70,15 @@ const static std::unordered_map<OutputObjHandlingPolicy, std::string> ROOTfileNa
 
 
 // =============================================================================
-// class datait is a data iterator
-// it basically allows to iterate over the elements of an arrow::table::Column using datait::next()
-// and is used in CommonDataProcessors::table2tree
-class datait
+// class branchIterator is a data iterator
+// it basically allows to iterate over the elements of an arrow::table::Column and
+// successively fill the branches with branchIterator::fillnext()
+// it is used in CommonDataProcessors::table2tree
+class branchIterator
 {
 
   private:
+  const char *brn;          // branch name
   arrow::ArrayVector chs;   // chunks
   Int_t nchs;               // number of chunks
   Int_t ich;                // chunk counter
@@ -85,7 +87,13 @@ class datait
 
   // data buffers for each data type
   arrow::Type::type dt;
+  std::string leaflist;
+
+  TBranch *br   = nullptr;
+  
+  char *dbuf    = nullptr;
   void *v       = nullptr;
+  
   Float_t  *vF  = nullptr;
   Double_t *vD  = nullptr;
   UShort_t *vs  = nullptr;
@@ -96,6 +104,53 @@ class datait
   Long64_t *vL  = nullptr;
 
 
+  // initialize a branch
+  void branchini(TTree *tree, std::shared_ptr<arrow::Column> col, bool tupdate)
+  {
+        
+    if (tupdate)
+    {
+      br = tree->GetBranch(brn);
+
+    } else {
+      
+      // create new branch of given data type
+      switch (dt) {
+        case arrow::Type::type::FLOAT:
+          leaflist = col->name()+"/F";
+          break;
+        case arrow::Type::type::DOUBLE:
+          leaflist = col->name()+"/D";
+          break;
+        case arrow::Type::type::UINT16:
+          leaflist = col->name()+"/s";
+          break;
+        case arrow::Type::type::UINT32:
+          leaflist = col->name()+"/i";
+          break;
+        case arrow::Type::type::UINT64:
+          leaflist = col->name()+"/l";
+          break;
+        case arrow::Type::type::INT16:
+          leaflist = col->name()+"/S";
+          break;
+        case arrow::Type::type::INT32:
+          leaflist = col->name()+"/I";
+          break;
+        case arrow::Type::type::INT64:
+          leaflist = col->name()+"/L";
+          break;
+      }
+
+      br = tree->Branch(brn,dbuf,leaflist.c_str());
+
+    }
+    if (!br)
+      throw std::runtime_error("Branch does not exist!");
+
+  };
+    
+  
   // initialize chunk ib
   void dbufini(Int_t ib)
   {
@@ -104,29 +159,39 @@ class datait
     {
       case arrow::Type::type::FLOAT:
         vF = (Float_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::FloatType>>(chs.at(ib))->raw_values();
+        v = (void*) vF;
         break;
       case arrow::Type::type::DOUBLE:
         vD = (Double_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::DoubleType>>(chs.at(ib))->raw_values();
+        v = (void*) vD;
         break;
       case arrow::Type::type::UINT16:
         vs = (UShort_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt16Type>>(chs.at(ib))->raw_values();
+        v = (void*) vs;
         break;
       case arrow::Type::type::UINT32:
         vi = (UInt_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt32Type>>(chs.at(ib))->raw_values();
+        v = (void*) vi;
         break;
       case arrow::Type::type::UINT64:
         vl = (ULong64_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt64Type>>(chs.at(ib))->raw_values();
+        v = (void*) vl;
         break;
       case arrow::Type::type::INT16:
         vS = (Short_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int16Type>>(chs.at(ib))->raw_values();
+        v = (void*) vS;
         break;
       case arrow::Type::type::INT32:
         vI = (Int_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(chs.at(ib))->raw_values();
+        v = (void*) vI;
         break;
       case arrow::Type::type::INT64:
         vL = (Long64_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int64Type>>(chs.at(ib))->raw_values();
+        v = (void*) vL;
         break;
     }
+    br->SetAddress(v);
+    
     // reset number of rows nr and row counter ir
     nr = chs.at(ib)->length();
     ir = 0;
@@ -134,41 +199,41 @@ class datait
     
   
   public:  
-  datait()
+  branchIterator()
   {
+    dt = arrow::Type::type::NA;
     nchs = 0;
     ich  = 0;
     nr   = 0;
     ir   = 0;
 
   };
-  datait(std::shared_ptr<arrow::Column> col)
+  branchIterator(TTree* tree, std::shared_ptr<arrow::Column> col, bool tupdate)
   {
+    brn  = col->name().c_str();
     dt   = col->type()->id();
     chs  = col->data()->chunks();
     nchs = chs.size();
     
+    // initialize the branch
+    branchini(tree,col,tupdate);
+    
     ich  = 0;
     dbufini(ich);
-    LOG(DEBUG) << "datait: " << col->type()->ToString() << " with " << nchs << " chunks";
+    LOG(DEBUG) << "datait: " << col->type()->ToString() << " with " << nchs << " chunks" << std::endl;
 
   };
-  ~datait();
+  ~branchIterator();
 
-  // allows to reinitialize the datait with new column
-  void Init(std::shared_ptr<arrow::Column> col)
-  {
-    dt   = col->type()->id();
-    chs  = col->data()->chunks();
-    nchs = chs.size();
-    
-    ich  = 0;
-    dbufini(ich);
-  }
+  // return branch
+  TBranch* branch() { return br; };
   
-  // increments data buffer pointer or ...
-  // returns nullptr if end of data buffer is reached
-  void* next()
+  // return the data type
+  arrow::Type::type type() { return dt; };
+  
+  // fills buffer with next value
+  // returns fals if end of buffer reached
+  bool fillnext()
   {
 
     // ich and ir contain the current chunk and row
@@ -181,39 +246,41 @@ class datait
         dbufini(ich);
       } else {
         // end of data buffer reached
-        return (void*) nullptr;
+        return false;
+      }
+    } else {
+      switch (dt)
+      {
+        case arrow::Type::type::FLOAT:
+          v = (void*)vF++;
+          break;
+        case arrow::Type::type::DOUBLE:
+          v = (void*)vD++;
+          break;
+        case arrow::Type::type::UINT16:
+          v = (void*)vs++;
+          break;
+        case arrow::Type::type::UINT32:
+          v = (void*)vi++;
+          break;
+        case arrow::Type::type::UINT64:
+          v = (void*)vl++;
+          break;
+        case arrow::Type::type::INT16:
+          v = (void*)vS++;
+          break;
+        case arrow::Type::type::INT32:
+          v = (void*)vI++;
+          break;
+        case arrow::Type::type::INT64:
+          v = (void*)vL++;
+          break;
       }
     }
-    switch (dt)
-    {
-      case arrow::Type::type::FLOAT:
-        v = (void*)vF++;
-        break;
-      case arrow::Type::type::DOUBLE:
-        v = (void*)vD++;
-        break;
-      case arrow::Type::type::UINT16:
-        v = (void*)vs++;
-        break;
-      case arrow::Type::type::UINT32:
-        v = (void*)vi++;
-        break;
-      case arrow::Type::type::UINT64:
-        v = (void*)vl++;
-        break;
-      case arrow::Type::type::INT16:
-        v = (void*)vS++;
-        break;
-      case arrow::Type::type::INT32:
-        v = (void*)vI++;
-        break;
-      case arrow::Type::type::INT64:
-        v = (void*)vL++;
-        break;
-    }
+    br->SetAddress(v);
     ir++;
     
-    return v;
+    return true;
     
   };
     
@@ -225,102 +292,44 @@ void CommonDataProcessors::table2tree(TTree* tout,
                                       bool tupdate)
 {
 
-  // first create a vector of pairs to hold the column definitions
-  // consisting of a TBranch and the respective data iterator
-  std::vector<std::pair<TBranch*, datait*>> specbuf;
-
-  // loop over columns
-  char *dbuf;
-  std::string leaflist;
-
   LOG(DEBUG) << "table2tree: " << table->num_columns();
+  
+  // first create a vector of branchIterators
+  std::vector<branchIterator*> itbuf;
+
   for (int ii=0; ii<table->num_columns(); ii++)
   {
 
     auto col = table->column(ii);
     const char *cname = col->name().c_str();
   
-    // for each column get a pair of {branch, data iterator}
-    // fill the pairs into a std::vector
-
-    auto cdt = col->type()->id();
-    switch (cdt) {
-      case arrow::Type::type::FLOAT:
-        leaflist = col->name()+"/F";
-        break;
-      case arrow::Type::type::DOUBLE:
-        leaflist = col->name()+"/D";
-        break;
-      case arrow::Type::type::UINT16:
-        leaflist = col->name()+"/s";
-        break;
-      case arrow::Type::type::UINT32:
-        leaflist = col->name()+"/i";
-        break;
-      case arrow::Type::type::UINT64:
-        leaflist = col->name()+"/l";
-        break;
-      case arrow::Type::type::INT16:
-        leaflist = col->name()+"/S";
-        break;
-      case arrow::Type::type::INT32:
-        leaflist = col->name()+"/I";
-        break;
-      case arrow::Type::type::INT64:
-        leaflist = col->name()+"/L";
-        break;
-    }
-    
-    // two cases
-    // tupdate==true:
-    //    tree is updated and it is exptected that the branches exists
-    // tupdate==false:
-    //    the branches are created
-    TBranch *br = nullptr;
-    if (tupdate)
-    {
-      br = tout->GetBranch(cname);
-    } else {
-      br = tout->Branch(cname,dbuf,leaflist.c_str());
-    }
-    if (!br)
-      throw std::runtime_error("Branch does not exist!");
-
-    datait *dit = new datait(col);
-    specbuf.push_back(std::pair<TBranch*, datait*>(br, dit));
+    // for each column get a branchIterator
+    // fill the branchIterator into a std::vector
+    branchIterator *brit = new branchIterator(tout,col,tupdate);
+    itbuf.push_back(brit);
   
   }
-  LOG(DEBUG) << "table2tree: size of specbuf " << specbuf.size();
+  LOG(DEBUG) << "table2tree: size of itbuf " << itbuf.size();
   
   
   // with this loop over the columns again as long as togo is true.
-  // togo is set false when any of the data iterators returns nullptr
-  void *add = nullptr;
+  // togo is set false when any of the data iterators returns false
   bool togo = true;
   while (togo)
   {
+    // fill the tree
+    tout->Fill();
+  
+    // update the branches
     for (int ii=0; ii<table->num_columns(); ii++)
-    {
-      //  SetBufferAddress using data iterator
-      if (add = (void*)std::get<1>(specbuf.at(ii))->next())
-      {
-        // LOG(DEBUG) << "filling branch " << std::get<0>(specbuf.at(ii))->GetName();
-        tout->SetBranchAddress(std::get<0>(specbuf.at(ii))->GetName(),add);
-      } else {
-        togo = false;
-        break;
-      };
-    }
+      togo = togo && itbuf.at(ii)->fillnext();
 
-    //  update the tree
-    if (togo) tout->Fill();
-   
   }
+  
   // write the tree
   tout->Write("", TObject::kOverwrite);
 
 }
-
 
 // =============================================================================
 DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& outMap)
