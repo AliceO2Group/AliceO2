@@ -33,6 +33,38 @@ class RawFileReader
  public:
   using RDH = o2::header::RAWDataHeaderV4;
   using LinkSpec_t = uint32_t;
+  //================================================================================
+  enum ErrTypes { ErrWrongPacketCounterIncrement,
+                  ErrWrongPageCounterIncrement,
+                  ErrHBFStopOnFirstPage,
+                  ErrHBFNoStop,
+                  ErrWrongFirstPage,
+                  ErrWrongHBFsPerTF,
+                  ErrHBFJump,
+                  ErrNoSuperPageForTF,
+                  NErrorsDefined
+  };
+  static constexpr std::string_view ErrNames[] = {
+    // long names for error codes
+    "Wrong RDH.packetCounter increment",     // ErrWrongPacketCounterIncrement
+    "Wrong RDH.pageCnt increment",           // ErrWrongPageCounterIncrement
+    "RDH.stop set of 1st HBF page",          // ErrHBFStopOnFirstPage
+    "New HBF starts w/o closing old one",    // ErrHBFNoStop
+    "Data does not start with TF/HBF",       // ErrWrongFirstPage
+    "Number of HBFs per TF not as expected", // ErrWrongHBFsPerTF
+    "Wrong HBF orbit increment",             // ErrHBFJump
+    "TF does not start by new superpage"     // ErrNoSuperPageForTF
+  };
+  static constexpr std::string_view ErrNamesShort[] = { // short names for error codes
+    "packet-increment",
+    "page-increment",
+    "stop-on-page0",
+    "missing-stop",
+    "starts-with-tf",
+    "hbf-per-tf",
+    "hbf-jump",
+    "no-spage-for-tf"};
+  //================================================================================
 
   //=====================================================================================
   struct LinkBlock {
@@ -93,9 +125,9 @@ class RawFileReader
   void printStat(bool verbose = false) const;
 
   void setVerbosity(int v = 1) { mVerbosity = v; }
-  void setCheckErrors(bool v = true) { mCheckErrors = v; }
+  void setCheckErrors(uint32_t m = 0xffffffff) { mCheckErrors = m & ((0x1 << NErrorsDefined) - 1); }
   int getVerbosity() const { return mVerbosity; }
-  bool getCheckErrors() const { return mCheckErrors; }
+  uint32_t getCheckErrors() const { return mCheckErrors; }
 
   void setNominalSPageSize(int n = 0x1 << 20) { mNominalSPageSize = n > (0x1 << 15) ? n : (0x1 << 15); }
   int getNominalSPageSize() const { return mNominalSPageSize; }
@@ -121,7 +153,7 @@ class RawFileReader
   int mCurrentFileID = 0;                           // current file being processed
   long int mPosInFile = 0;                          // current position in the file
   bool mMultiLinkFile = false;                      // was > than 1 link seen in the file?
-  bool mCheckErrors = false;
+  uint32_t mCheckErrors = 0;                        // mask for errors to check
   int mVerbosity = 0;
 
   ClassDefNV(RawFileReader, 1);
@@ -141,7 +173,8 @@ inline bool RawFileReader::LinkData::checkIRIncrement(const o2::header::RAWDataH
 {
   // check orbit/bc increment
   if ((rdhNew.heartbeatBC != rdhOld.heartbeatBC) || (rdhNew.heartbeatOrbit != rdhOld.heartbeatOrbit + 1)) {
-    LOG(ERROR) << "New HB orbit/bc=" << int(rdhNew.heartbeatOrbit) << '/' << int(rdhNew.heartbeatBC)
+    LOG(ERROR) << ErrNames[ErrHBFJump] << ": new HB orbit/bc="
+               << int(rdhNew.heartbeatOrbit) << '/' << int(rdhNew.heartbeatBC)
                << " is not incremented by 1 orbit wrt Old HB orbit/bc="
                << int(rdhOld.heartbeatOrbit) << '/' << int(rdhOld.heartbeatBC);
     return false;

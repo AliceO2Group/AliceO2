@@ -43,24 +43,33 @@ Usage:   o2-raw-filecheck [options] file0 [... fileN]
 Options:
   -h [ --help ]                     print this help message.
   -v [ --verbosity ] arg (=0)       1: print RDH on error, 2: print all RDH
-  -s [ --spsize    ] arg (=1048576) nominal super-page size in bytes
-  -t [ --hbfpertf  ] arg (=256)     nominal number of HBFs per TF
+  -s [ --spsize ]    arg (=1048576) nominal super-page size in bytes
+  -t [ --hbfpertf ]  arg (=256)     nominal number of HBFs per TF
+  --nocheck-packet-increment        ignore /Wrong RDH.packetCounter increment/
+  --nocheck-page-increment          ignore /Wrong RDH.pageCnt increment/
+  --nocheck-stop-on-page0           ignore /RDH.stop set of 1st HBF page/
+  --nocheck-missing-stop            ignore /New HBF starts w/o closing old one/
+  --nocheck-starts-with-tf          ignore /Data does not start with TF/HBF/
+  --nocheck-hbf-per-tf              ignore /Number of HBFs per TF not as expected/
+  --nocheck-hbf-jump                ignore /Wrong HBF orbit increment/
+  --nocheck-no-spage-for-tf         ignore /TF does not start by new superpage/
 ```
 
 Allows to check the correctness of CRU data (real or simulated) stored in the binary file.
 Multiple files can be checked, with each file containing data for the same or distinct group of links.
 
 Apart from the eventual `FATAL` produced for unrecognizable RDH or 2 links with the same cruID, linkID and PCIe EndPoint but different feeId (see `RawFileReader`),
-the following errors are reported (as `ERROR`) for every GBT link while scanning each file (the error counter of each link is incremented for any of this errors):
+the following errors (check can be disabled by corresponding option) are reported (as `ERROR`) for every GBT link while scanning each file
+(the error counter of each link is incremented for any of this errors):
 
-*   RawDataHeader packet counter (`RDH.packetCounter`) is not incremented by 1
-*   RawDataHeader page counter (`RDH.pageCnt`) is not incremented by 1
-*   New HBF starts with `RDH.pageCnt > 0`
-*   `RDH.stop` is set at the very 1st page of the HBF
-*   New HBF starts while the previous one was not yet closed (no page `RDH.stop = 1` received)
-*   Number of HBFs in TF differs from the nominal (D=256, can be imposed by user)
-*   The orbit/BC of the new HBF does not differ from previous one by 1 orbit exactly
-*   New TF starts not from the beginning of the CRU SuperPage (not reported for single-link files since in that case there is no way delimit a superpage)
+*   RawDataHeader packet counter (`RDH.packetCounter`) is not incremented by 1 (`--nocheck-packet-increment` to disable check)
+*   RawDataHeader page counter (`RDH.pageCnt`) is not incremented by 1 (`--nocheck-page-increment` to disable)
+*   `RDH.stop` is set at the very 1st page of the HBF (`--nocheck-stop-on-page0` to disable)
+*   New HBF starts while the previous one was not yet closed, i.e. no page `RDH.stop = 1` received (`--nocheck-missing-stop` to disable)
+*   Data of every link starts with TF (`--nocheck-starts-with-tf` to disable)
+*   Number of HBFs in TF differs from the nominal /D=256, can be imposed by user/ (`--nocheck-hbf-per-tf` to disable)
+*   The orbit/BC of the new HBF does not differ from previous one by 1 orbit exactly (`--nocheck-hbf-jump` to disable)
+*   New TF starts not from the beginning of the CRU SuperPage; not reported for single-link files since in that case there is no way delimit a superpage (`--nocheck-no-spage-for-tf` to disable)
 
 After scanning each file, for every link the largest SuperPage size (as the size of the largest contiguos block containing data of this link).
 A warning is printed if this size exceeds the nominal SuperPage size (D=1MB, can be imposed by user).

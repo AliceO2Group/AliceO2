@@ -114,10 +114,11 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
   if (rdh.pageCnt == 0) {
     newTF = (rdh.triggerType & o2::trigger::TF);
     newHB = (rdh.triggerType & (o2::trigger::ORBIT | o2::trigger::HB)) == (o2::trigger::ORBIT | o2::trigger::HB);
-  } else if (reader->mCheckErrors) {
+  } else if (reader->mCheckErrors & (0x1 << ErrWrongPageCounterIncrement)) {
     // check increasing pageCnt
     if (nCRUPages && (rdh.pageCnt != ((rdhl.pageCnt + 1) & 0xffff))) { // skip for very 1st page
-      LOG(ERROR) << "RDH.pageCnt=" << int(rdh.pageCnt) << " is not +1 wrt previous RDH.pageCnt=" << int(rdhl.pageCnt);
+      LOG(ERROR) << ErrNames[ErrWrongPageCounterIncrement]
+                 << " old=" << int(rdh.pageCnt) << " new=" << int(rdhl.pageCnt);
       ok = false;
       nErrors++;
     }
@@ -126,16 +127,19 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
   if (reader->mCheckErrors) {
     if (nCRUPages) {
       // check increasing (or wrapping) packetCounter
-      if ((rdh.packetCounter != ((rdhl.packetCounter + 1) & 0xff))) { // skip for very 1st page
-        LOG(ERROR) << "RDH.packetCounter=" << int(rdh.packetCounter)
-                   << " is not + 1 wrt previous RDH.packetCounter=" << int(rdhl.packetCounter);
+      if ((rdh.packetCounter != ((rdhl.packetCounter + 1) & 0xff)) &&
+          (reader->mCheckErrors & (0x1 << ErrWrongPacketCounterIncrement))) { // skip for very 1st page
+        LOG(ERROR) << ErrNames[ErrWrongPacketCounterIncrement]
+                   << " new=" << int(rdh.packetCounter) << " old=" << int(rdhl.packetCounter);
         ok = false;
         nErrors++;
       }
       // check if number of HBFs in the TF is as expected
       if (newTF) {
-        if (nHBFinTF != reader->mNominalHBFperTF) {
-          LOG(ERROR) << "Number of HBFs in TF " << nHBFinTF << " differs from expected " << reader->mNominalHBFperTF;
+        if (nHBFinTF != reader->mNominalHBFperTF &&
+            (reader->mCheckErrors & (0x1 << ErrWrongHBFsPerTF))) {
+          LOG(ERROR) << ErrNames[ErrWrongHBFsPerTF] << ": "
+                     << nHBFinTF << " instead of " << reader->mNominalHBFperTF;
           ok = false;
           nErrors++;
         }
@@ -143,8 +147,9 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
       }
 
     } else { // make sure data starts with TF and HBF
-      if (!newTF || !newHB || rdh.pageCnt != 0) {
-        LOG(ERROR) << "Very 1st RDH of the data does not start with TF or new HBF";
+      if ((!newTF || !newHB || rdh.pageCnt != 0) &&
+          (reader->mCheckErrors & (0x1 << ErrWrongFirstPage))) {
+        LOG(ERROR) << ErrNames[ErrWrongFirstPage];
         ok = false;
         nErrors++;
       }
@@ -154,17 +159,18 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
   if (newHB) {
     if (reader->mCheckErrors) {
       nHBFinTF++;
-      if (rdh.stop) {
-        LOG(ERROR) << "Stop of HBF #" << nHBFrames << " is found at 1st page";
+      if (rdh.stop && (reader->mCheckErrors & (0x1 << ErrHBFStopOnFirstPage))) {
+        LOG(ERROR) << ErrNames[ErrHBFStopOnFirstPage] << " @ HBF#" << nHBFrames;
         ok = false;
         nErrors++;
       }
-      if (openHB) {
-        LOG(ERROR) << "New HBF#" << nHBFrames << " starts while previous HBF was not closed";
+      if (openHB && (reader->mCheckErrors & (0x1 << ErrHBFNoStop))) {
+        LOG(ERROR) << ErrNames[ErrHBFNoStop] << " @ HBF#" << nHBFrames;
         ok = false;
         nErrors++;
       }
-      if (nCRUPages && !checkIRIncrement(rdh, rdhl)) { // skip check for the very 1st RDH
+      if ((reader->mCheckErrors & (0x1 << ErrHBFJump)) && (nCRUPages && !checkIRIncrement(rdh, rdhl))) {
+        // skip this check for the very 1st RDH
         ok = false;
         nErrors++;
       }
@@ -181,19 +187,12 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
     if (newTF) {
       nTimeFrames++;
       bl.startTF = true;
-      if (reader->mCheckErrors) {
+      if (reader->mCheckErrors & ErrNoSuperPageForTF) {
         if (reader->mMultiLinkFile && !newSPage) {
-          LOG(ERROR) << "New TF#" << nTimeFrames << " does not start new from new superpage";
+          LOG(ERROR) << ErrNames[ErrNoSuperPageForTF] << " @ TF#" << nTimeFrames;
           ok = false;
           nErrors++;
         }
-        /* // this test seems to be meaningless
-        if (!newHB) {
-          LOG(ERROR) << "New TF#" << nTimeFrames << " does not start with new HBF";
-          ok = false;
-          nErrors++;
-        }
-	*/
       } // end of check errors
     }
     if (newSPage) {
@@ -401,6 +400,12 @@ bool RawFileReader::addFile(const std::string& sname)
 //_____________________________________________________________________
 bool RawFileReader::init()
 {
+
+  for (int i = 0; i < NErrorsDefined; i++) {
+    if (mCheckErrors & (0x1 << i))
+      printf("perform check for /%s/\n", ErrNames[i].data());
+  }
+
   int nf = mFiles.size();
   bool ok = true;
   for (int i = 0; i < nf; i++) {
