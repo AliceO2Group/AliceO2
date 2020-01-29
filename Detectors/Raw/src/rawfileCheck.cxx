@@ -21,13 +21,39 @@
 
 namespace bpo = boost::program_options;
 
+using namespace o2::raw;
+
+std::string nochk_expl(RawFileReader::ErrTypes e)
+{
+  std::string ignore = "ignore /";
+  return ignore + RawFileReader::ErrNames[e].data() + '/';
+}
+
+std::string nochk_opt(RawFileReader::ErrTypes e)
+{
+  std::string ignore = "nocheck-";
+  return ignore + RawFileReader::ErrNamesShort[e].data();
+}
+
 int main(int argc, char* argv[])
 {
-  o2::raw::RawFileReader reader;
+  RawFileReader reader;
   std::vector<std::string> fnames;
   bpo::variables_map vm;
   bpo::options_description descOpt("Options");
-  descOpt.add_options()("help,h", "print this help message.")("verbosity,v", bpo::value<int>()->default_value(reader.getVerbosity()), "1: print RDH on error, 2: print all RDH")("spsize,s", bpo::value<int>()->default_value(reader.getNominalSPageSize()), "nominal super-page size in bytes")("hbfpertf,t", bpo::value<int>()->default_value(reader.getNominalHBFperTF()), "nominal number of HBFs per TF");
+  descOpt.add_options()(
+    "help,h", "print this help message.")(
+    "verbosity,v", bpo::value<int>()->default_value(reader.getVerbosity()), "1: print RDH on error, 2: print all RDH")(
+    "spsize,s", bpo::value<int>()->default_value(reader.getNominalSPageSize()), "nominal super-page size in bytes")(
+    "hbfpertf,t", bpo::value<int>()->default_value(reader.getNominalHBFperTF()), "nominal number of HBFs per TF")(
+    nochk_opt(RawFileReader::ErrWrongPacketCounterIncrement).c_str(), nochk_expl(RawFileReader::ErrWrongPacketCounterIncrement).c_str())(
+    nochk_opt(RawFileReader::ErrWrongPageCounterIncrement).c_str(), nochk_expl(RawFileReader::ErrWrongPageCounterIncrement).c_str())(
+    nochk_opt(RawFileReader::ErrHBFStopOnFirstPage).c_str(), nochk_expl(RawFileReader::ErrHBFStopOnFirstPage).c_str())(
+    nochk_opt(RawFileReader::ErrHBFNoStop).c_str(), nochk_expl(RawFileReader::ErrHBFNoStop).c_str())(
+    nochk_opt(RawFileReader::ErrWrongFirstPage).c_str(), nochk_expl(RawFileReader::ErrWrongFirstPage).c_str())(
+    nochk_opt(RawFileReader::ErrWrongHBFsPerTF).c_str(), nochk_expl(RawFileReader::ErrWrongHBFsPerTF).c_str())(
+    nochk_opt(RawFileReader::ErrHBFJump).c_str(), nochk_expl(RawFileReader::ErrHBFJump).c_str())(
+    nochk_opt(RawFileReader::ErrNoSuperPageForTF).c_str(), nochk_expl(RawFileReader::ErrNoSuperPageForTF).c_str());
 
   bpo::options_description hiddenOpt("hidden");
   hiddenOpt.add_options()("input", bpo::value(&fnames)->composing(), "");
@@ -37,6 +63,7 @@ int main(int argc, char* argv[])
 
   bpo::positional_options_description posOpt;
   posOpt.add("input", -1);
+
   try {
     bpo::store(bpo::command_line_parser(argc, argv)
                  .options(fullOpt)
@@ -59,9 +86,20 @@ int main(int argc, char* argv[])
     return -1;
   }
 
+  RawFileReader::RDH rdh;
+  LOG(INFO) << "RawDataHeader v" << int(rdh.version) << " is assumed";
+
   reader.setVerbosity(vm["verbosity"].as<int>());
   reader.setNominalSPageSize(vm["spsize"].as<int>());
   reader.setNominalHBFperTF(vm["hbfpertf"].as<int>());
+
+  uint32_t errmap = 0xffffffff;
+  for (int i = RawFileReader::NErrorsDefined; i--;) {
+    if (vm.count(nochk_opt(RawFileReader::ErrTypes(i)).c_str())) {
+      errmap ^= 0x1 << i;
+      printf("ignore  check for /%s/\n", RawFileReader::ErrNames[i].data());
+    }
+  }
 
   for (int i = 0; i < fnames.size(); i++) {
     reader.addFile(fnames[i]);
@@ -69,10 +107,8 @@ int main(int argc, char* argv[])
 
   TStopwatch sw;
   sw.Start();
-  reader.setCheckErrors(true);
 
-  o2::raw::RawFileReader::RDH rdh;
-  LOG(INFO) << "RawDataHeader v" << int(rdh.version) << " is assumed";
+  reader.setCheckErrors(errmap);
   reader.init();
 
   sw.Print();
