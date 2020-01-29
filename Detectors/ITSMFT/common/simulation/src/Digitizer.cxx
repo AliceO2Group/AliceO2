@@ -181,8 +181,17 @@ void Digitizer::fillOutputContainer(UInt_t frameLast)
 void Digitizer::processHit(const o2::itsmft::Hit& hit, UInt_t& maxFr, int evID, int srcID)
 {
   // convert single hit to digits
-
-  double hTime0 = hit.GetTime() * sec2ns + mEventTime; // time from the RO start, in ns
+  double hTime0 = hit.GetTime() * sec2ns;
+  if (hTime0 > 20e3) {
+    const int maxWarn = 10;
+    static int warnNo = 0;
+    if (warnNo < maxWarn) {
+      LOG(WARNING) << "Ignoring hit with time_in_event = " << hTime0 << " ns"
+                   << ((++warnNo < maxWarn) ? "" : " (suppressing further warnings)");
+    }
+    return;
+  }
+  hTime0 += mEventTime; // time from the RO start, in ns
 
   // calculate RO Frame for this hit
   if (hTime0 < 0) {
