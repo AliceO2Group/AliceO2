@@ -80,7 +80,7 @@ unlink o2sim.root
 unlink o2sim_grp.root
 ln -s ${HITFILE}.root o2sim.root
 ln -s ${HITFILE}_grp.root o2sim_grp.root
-for d in TRD ITS EMC TPC MFT MCH MID; do
+for d in TRD ITS EMC TPC MFT MCH MID FDD FV0 FT0 PHS TOF HMP; do
   DIGILOGFILE=logdigi_${SIMCONFIG}_${d}
 
   TIME="#walltime %e" ${O2_ROOT}/share/scripts/monitor-mem.sh time o2-sim-digitizer-workflow -b --onlyDet ${d} --tpc-lanes 1 --configKeyValues "TRDSimParams.digithreads=1" > ${DIGILOGFILE} 2>&1
