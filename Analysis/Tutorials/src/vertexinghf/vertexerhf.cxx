@@ -31,6 +31,7 @@ DECLARE_SOA_COLUMN(Posy, posy, float, "fPosy");
 DECLARE_SOA_COLUMN(Index0, index0, int, "fIndex0");
 DECLARE_SOA_COLUMN(Index1, index1, int, "fIndex1");
 DECLARE_SOA_COLUMN(Index2, index2, int, "fIndex2");
+DECLARE_SOA_COLUMN(Tracky0, tracky0, float, "fTracky0");
 DECLARE_SOA_COLUMN(Tracky1, tracky1, float, "fTracky1");
 DECLARE_SOA_COLUMN(Tracky2, tracky2, float, "fTracky2");
 
@@ -43,7 +44,7 @@ DECLARE_SOA_COLUMN(Mass, mass, float, "fMass");
 DECLARE_SOA_TABLE(EtaPhi, "RN2", "ETAPHI",
                   etaphi::Eta, etaphi::Phi);
 DECLARE_SOA_TABLE(SecVtx, "AOD", "SECVTX",
-                  secvtx::Posx, secvtx::Posy, secvtx::Index0, secvtx::Index1, secvtx::Index2, secvtx::Tracky1, secvtx::Tracky2);
+                  secvtx::Posx, secvtx::Posy, secvtx::Index0, secvtx::Index1, secvtx::Index2, secvtx::Tracky0, secvtx::Tracky1, secvtx::Tracky2);
 DECLARE_SOA_TABLE(Cand2Prong, "AOD", "CAND2PRONG",
                   cand2prong::Mass);
 } // namespace o2::aod
@@ -75,32 +76,32 @@ struct VertexerHFTask {
     LOGF(info, "Tracks for collision: %d", tracks.size());
     o2::base::DCAFitter df(5.0, 10.);
 
-    for (auto it1 = tracks.begin(); it1 != tracks.end(); ++it1) {
-      auto& track1 = *it1;
-      if (track1.pt() < 10.)
+    for (auto it_0 = tracks.begin(); it_0 != tracks.end(); ++it_0) {
+      auto& track_0 = *it_0;
+      if (track_0.pt() < 10.)
         continue;
-      float x1_ = track1.x();
-      float alpha1_ = track1.alpha();
-      std::array<float, 5> arraypar1 = {track1.y(), track1.z(), track1.snp(), track1.tgl(), track1.signed1Pt()};
-      std::array<float, 15> covpar1 = {track1.cYY(), track1.cZY(), track1.cZZ(), track1.cSnpY(), track1.cSnpZ(),
-                                       track1.cSnpSnp(), track1.cTglY(), track1.cTglZ(), track1.cTglSnp(), track1.cTglTgl(),
-                                       track1.c1PtY(), track1.c1PtZ(), track1.c1PtSnp(), track1.c1PtTgl(), track1.c1Pt21Pt2()};
-      o2::track::TrackParCov trackparvar1(x1_, alpha1_, arraypar1, covpar1);
+      float x0_ = track_0.x();
+      float alpha0_ = track_0.alpha();
+      std::array<float, 5> arraypar0 = {track_0.y(), track_0.z(), track_0.snp(), track_0.tgl(), track_0.signed1Pt()};
+      std::array<float, 15> covpar0 = {track_0.cYY(), track_0.cZY(), track_0.cZZ(), track_0.cSnpY(), track_0.cSnpZ(),
+                                       track_0.cSnpSnp(), track_0.cTglY(), track_0.cTglZ(), track_0.cTglSnp(), track_0.cTglTgl(),
+                                       track_0.c1PtY(), track_0.c1PtZ(), track_0.c1PtSnp(), track_0.c1PtTgl(), track_0.c1Pt21Pt2()};
+      o2::track::TrackParCov trackparvar0(x0_, alpha0_, arraypar0, covpar0);
 
-      for (auto it2 = it1 + 1; it2 != tracks.end(); ++it2) {
-        auto& track2 = *it2;
-        if (track2.pt() < 10.)
+      for (auto it_1 = it_0 + 1; it_1 != tracks.end(); ++it_1) {
+        auto& track_1 = *it_1;
+        if (track_1.pt() < 10.)
           continue;
-        float x2_ = track2.x();
-        float alpha2_ = track2.alpha();
-        std::array<float, 5> arraypar2 = {track2.y(), track2.z(), track2.snp(), track2.tgl(), track2.signed1Pt()};
-        std::array<float, 15> covpar2 = {track2.cYY(), track2.cZY(), track2.cZZ(), track2.cSnpY(), track2.cSnpZ(),
-                                         track2.cSnpSnp(), track2.cTglY(), track2.cTglZ(), track2.cTglSnp(), track2.cTglTgl(),
-                                         track2.c1PtY(), track2.c1PtZ(), track2.c1PtSnp(), track2.c1PtTgl(), track2.c1Pt21Pt2()};
-        o2::track::TrackParCov trackparvar2(x2_, alpha2_, arraypar2, covpar2);
+        float x1_ = track_1.x();
+        float alpha1_ = track_1.alpha();
+        std::array<float, 5> arraypar1 = {track_1.y(), track_1.z(), track_1.snp(), track_1.tgl(), track_1.signed1Pt()};
+        std::array<float, 15> covpar1 = {track_1.cYY(), track_1.cZY(), track_1.cZZ(), track_1.cSnpY(), track_1.cSnpZ(),
+                                         track_1.cSnpSnp(), track_1.cTglY(), track_1.cTglZ(), track_1.cTglSnp(), track_1.cTglTgl(),
+                                         track_1.c1PtY(), track_1.c1PtZ(), track_1.c1PtSnp(), track_1.c1PtTgl(), track_1.c1Pt21Pt2()};
+        o2::track::TrackParCov trackparvar1(x1_, alpha1_, arraypar1, covpar1);
 
         df.setUseAbsDCA(true);
-        int nCand = df.process(trackparvar1, trackparvar2);
+        int nCand = df.process(trackparvar0, trackparvar1);
         //        printf("\n\nTesting with abs DCA minimization: %d candidates found\n", nCand);
         for (int ic = 0; ic < nCand; ic++) {
           const o2::base::DCAFitter::Triplet& vtx = df.getPCACandidate(ic);
@@ -108,8 +109,8 @@ struct VertexerHFTask {
           hvtx_x_out->Fill(vtx.x);
           hvtx_y_out->Fill(vtx.y);
           hvtx_z_out->Fill(vtx.z);
-          secvtx(vtx.x, vtx.y, track1.index(), track2.index(), -1., track1.y(), track2.y());
-          //	  LOGF(info, "Track labels: %d, %d", track1.index(), track2.index());
+          secvtx(vtx.x, vtx.y, track_0.index(), track_1.index(), -1., track_0.y(), track_1.y(), -1.);
+          //	  LOGF(info, "Track labels: %d, %d", track_0.index(), track_1.index());
         }
       }
     }
@@ -118,11 +119,11 @@ struct VertexerHFTask {
 
 struct CandidateBuilder2Prong {
   Produces<aod::Cand2Prong> cand2prong;
-  void process(aod::SecVtx const& secVtxs)
+  void process(aod::SecVtx const& secVtxs, aod::Tracks const& tracks)
   {
     LOGF(info, "NEW EVENT");
     for (auto& secVtx : secVtxs) {
-      LOGF(INFO, "Consume the table (%f, %f, %f)", secVtx.posx(), secVtx.posy(), secVtx.tracky1());
+      LOGF(INFO, "Consume the table (%f, %f, %f, %f)", secVtx.posx(), secVtx.posy(), secVtx.tracky0(), (tracks.begin() + secVtx.index0()).y());
     }
   }
 };
