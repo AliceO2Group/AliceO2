@@ -19,7 +19,3 @@ add_subdirectory(Utils)
 add_subdirectory(TestWorkflows) 
 
 add_subdirectory(AnalysisTutorial)
-
-if(arrow_FOUND)
-  add_subdirectory(ArrowTests)
-endif()
