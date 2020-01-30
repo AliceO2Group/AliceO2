@@ -96,7 +96,8 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<int>& tpcse
         }
         tpc_end_messagesent = true;
       }
-      // now mark the reader as ready to finish
+      // send endOfData control event and mark the reader as ready to finish
+      pc.services().get<ControlService>().endOfStream();
       pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
       return;
     }
