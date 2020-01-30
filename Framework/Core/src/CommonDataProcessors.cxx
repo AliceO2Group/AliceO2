@@ -322,7 +322,7 @@ void CommonDataProcessors::table2tree(TTree* tout,
   
     // update the branches
     for (int ii=0; ii<table->num_columns(); ii++)
-      togo = togo && itbuf.at(ii)->fillnext();
+      togo &= itbuf.at(ii)->fillnext();
 
   }
   
@@ -330,6 +330,7 @@ void CommonDataProcessors::table2tree(TTree* tout,
   tout->Write("", TObject::kOverwrite);
 
 }
+
 
 // =============================================================================
 DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& outMap)
@@ -471,9 +472,9 @@ DataProcessorSpec
     if (!keepString.empty())
     {
       usematch = true;
-      
       auto [variables, outputMatcher] = DataDescriptorQueryBuilder::buildFromKeepConfig(keepString);
       matcher = outputMatcher;
+      
       VariableContext context;
       for (auto& spec : danglingOutputInputs) {
         auto concrete = DataSpecUtils::asConcreteDataMatcher(spec);
@@ -592,7 +593,6 @@ DataProcessorSpec
     
         // write the table to the TTree
         table2tree(tout,table,tupdate);
-        tout->Print();
 
       }
       
