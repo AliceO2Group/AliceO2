@@ -54,13 +54,15 @@ using namespace o2::framework;
 
 struct ATask {
   Produces<aod::EtaPhi> etaphi;
+  OutputObj<TH1F> hindex_0{TH1F("hindex_0", "track 0 index", 1000000, -0.5, 999999.5)};
 
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
       auto phi = asin(track.snp()) + track.alpha() + M_PI;
       auto eta = log(tan(0.25 * M_PI - 0.5 * atan(track.tgl())));
-
+      //LOGF(info, "track index %d", track.index());
+      hindex_0->Fill(track.index());
       etaphi(phi, eta);
     }
   }
@@ -69,6 +71,7 @@ struct VertexerHFTask {
   OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 100, -0.1, 0.1)};
   OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 100, -0.1, 0.1)};
   OutputObj<TH1F> hvtx_z_out{TH1F("hvtx_z", "2-track vtx", 100, -0.1, 0.1)};
+  OutputObj<TH1F> hindex_0_coll{TH1F("hindex_0_coll", "track 0 index coll", 1000000, -0.5, 999999.5)};
   Produces<aod::SecVtx> secvtx;
 
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksCov> const& tracks)
@@ -78,6 +81,8 @@ struct VertexerHFTask {
 
     for (auto it_0 = tracks.begin(); it_0 != tracks.end(); ++it_0) {
       auto& track_0 = *it_0;
+      //LOGF(info, "track index %d", track_0.index());
+      hindex_0_coll->Fill(track_0.index());
       if (track_0.pt() < 10.)
         continue;
       float x0_ = track_0.x();
@@ -90,7 +95,7 @@ struct VertexerHFTask {
 
       for (auto it_1 = it_0 + 1; it_1 != tracks.end(); ++it_1) {
         auto& track_1 = *it_1;
-        if (track_1.pt() < 10.)
+	if (track_1.pt() < 10.)
           continue;
         float x1_ = track_1.x();
         float alpha1_ = track_1.alpha();
@@ -107,7 +112,7 @@ struct VertexerHFTask {
           hvtx_x_out->Fill(vtx.x);
           hvtx_y_out->Fill(vtx.y);
           hvtx_z_out->Fill(vtx.z);
-          secvtx(vtx.x, vtx.y, track_0.index(), track_1.index(), -1., track_0.y(), track_1.y(), -1.);
+	  secvtx(vtx.x, vtx.y, track_0.index(), track_1.index(), -1., track_0.y(), track_1.y(), -1.);
         }
       }
     }
