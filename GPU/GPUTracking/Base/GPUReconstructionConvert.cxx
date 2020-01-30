@@ -346,6 +346,9 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
           throw std::runtime_error("invalid TPC sector");
         }
         region = cruid % 10;
+        if ((unsigned int)region != j / 2) {
+          throw std::runtime_error("CRU ID / endpoint mismatch");
+        }
         int nRowsRegion = param.tpcGeometry.GetRegionRows(region);
 
         int timeBin = hdr->timeOffset;
@@ -359,7 +362,7 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
             throw std::runtime_error("invalid endpoint");
           }
           const int rowOffset = param.tpcGeometry.GetRegionStart(region) + (upperRows ? (nRowsRegion / 2) : 0);
-          const int nRows = upperRows ? (nRowsRegion - nRowsRegion / 2) : nRowsRegion;
+          const int nRows = upperRows ? (nRowsRegion - nRowsRegion / 2) : (nRowsRegion / 2);
           const int nRowsUsed = __builtin_popcount((unsigned int)(tbHdr->rowMask & 0x7FFF));
           pagePtr += nRowsUsed ? (2 * nRowsUsed) : 2;
           int rowPos = 0;
