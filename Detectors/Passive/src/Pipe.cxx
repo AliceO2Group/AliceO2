@@ -540,7 +540,7 @@ void Pipe::ConstructGeometry()
   Float_t zPos;
 
   // The Aluminum Section till Flange
-  TGeoPcon* aluSideA = new TGeoPcon(0., 360., 12);
+  TGeoPcon* aluSideA = new TGeoPcon(0., 360., 14);
   rMax = kAluminum1stSectionOuterRadius;
   rMin = rMax - kAluminumSectionThickness;
   aluSideA->DefineSection(0, kZ26, rMin, rMax);
@@ -564,9 +564,12 @@ void Pipe::ConstructGeometry()
   aluSideA->DefineSection(9, kZ35, rMin, rMax);
 
   rMax = kFlangeAExternalRadius;
-  rMin = rMax - kAluminumSectionThickness;
   aluSideA->DefineSection(10, kZ35, rMin, rMax);
-  aluSideA->DefineSection(11, kZ36, rMin, rMax);
+  aluSideA->DefineSection(11, kZ35 + kAluminumSectionThickness, rMin, rMax);
+
+  rMin = rMax - kAluminumSectionThickness;
+  aluSideA->DefineSection(12, kZ35 + kAluminumSectionThickness, rMin, rMax);
+  aluSideA->DefineSection(13, kZ36, rMin, rMax);
 
   TGeoVolume* voaluSideA = new TGeoVolume("aluSideA", aluSideA, kMedAlu2219);
   voaluSideA->SetLineColor(kBlue);
@@ -579,7 +582,7 @@ void Pipe::ConstructGeometry()
 
   TGeoVolume* voflangeASteelRing = new TGeoVolume("steelFlangeSideA", flangeASteelRing, kMedSteel);
   voflangeASteelRing->SetLineColor(kRed);
-  zPos = aluSideA->GetZ(11) + flangeASteelRing->GetDz();
+  zPos = aluSideA->GetZ(13) + flangeASteelRing->GetDz();
   top->AddNode(voflangeASteelRing, 1, new TGeoTranslation(0., 0., zPos));
 
   // The vacuum inside aluSideA and flangeASteelRing
@@ -589,9 +592,9 @@ void Pipe::ConstructGeometry()
   aluSideAVac->DefineSection(2, aluSideA->GetZ(2), 0., aluSideA->GetRmin(2));
   aluSideAVac->DefineSection(3, aluSideA->GetZ(7), 0., aluSideA->GetRmin(7));
   aluSideAVac->DefineSection(4, aluSideA->GetZ(8), 0., aluSideA->GetRmin(8));
-  aluSideAVac->DefineSection(5, aluSideA->GetZ(9), 0., aluSideA->GetRmin(9));
-  aluSideAVac->DefineSection(6, aluSideA->GetZ(10), 0., aluSideA->GetRmin(10));
-  aluSideAVac->DefineSection(7, aluSideA->GetZ(11), 0., aluSideA->GetRmin(11));
+  aluSideAVac->DefineSection(5, aluSideA->GetZ(11), 0., aluSideA->GetRmin(11));
+  aluSideAVac->DefineSection(6, aluSideA->GetZ(12), 0., aluSideA->GetRmin(12));
+  aluSideAVac->DefineSection(7, aluSideA->GetZ(13), 0., aluSideA->GetRmin(13));
 
   TGeoVolume* voaluSideAVac = new TGeoVolume("aluSideAVac", aluSideAVac, kMedVac);
   voaluSideAVac->SetLineColor(kGreen);
@@ -603,7 +606,7 @@ void Pipe::ConstructGeometry()
 
   TGeoVolume* vosideASuppRing = new TGeoVolume("sideASuppRing", sideASuppRing, kMedAlu2219);
   vosideASuppRing->SetLineColor(kBlue);
-  zPos = aluSideA->GetZ(11) + 2 * flangeASteelRing->GetDz() - kSupportRingZpos - sideASuppRing->GetDz();
+  zPos = aluSideA->GetZ(13) + 2 * flangeASteelRing->GetDz() - kSupportRingZpos - sideASuppRing->GetDz();
   top->AddNode(vosideASuppRing, 1, new TGeoTranslation(0., 0., zPos));
 
   //-------------------------------------------------
