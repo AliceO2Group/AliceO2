@@ -118,6 +118,13 @@ class HBFUtils
 
   void print() const;
 
+  // some fields of the same meaning have different names in the RDH of different versions
+  static uint32_t getHBOrbit(const o2::header::RAWDataHeaderV4& rdh) { return rdh.heartbeatOrbit; }
+  static uint32_t getOrbit(const o2::header::RAWDataHeaderV5& rdh) { return rdh.orbit; }
+
+  static uint32_t getHBBC(const o2::header::RAWDataHeaderV4& rdh) { return rdh.heartbeatBC; }
+  static uint32_t getHBBC(const o2::header::RAWDataHeaderV5& rdh) { return rdh.bunchCrossing; }
+
   static void printRDH(const o2::header::RAWDataHeaderV5& rdh);
   static void printRDH(const o2::header::RAWDataHeaderV4& rdh);
   static void dumpRDH(const o2::header::RAWDataHeaderV5& rdh);
