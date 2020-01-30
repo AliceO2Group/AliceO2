@@ -29,6 +29,9 @@ for ENGINE in TGeant3 TGeant4; do
 SIMCONFIG="${GEN}_N${NEVENTS}_${ENGINE}"
 HOST=`hostname`
 
+# include header information such as tested alidist tag and O2 tag
+echo "versions,conf=$SIMCONFIG,host=${HOST} alidist=${ALIDISTCOMMIT},O2=${O2COMMIT} ${TIMEST}" >> metrics.dat
+
 # we count some simple indicators for problems
 WARNCOUNT=0
 ERRORCOUNT=0
