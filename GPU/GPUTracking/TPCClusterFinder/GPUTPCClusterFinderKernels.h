@@ -35,6 +35,7 @@ class GPUTPCClusterFinderKernels : public GPUKernelTemplate
       GPUTPCSharedMemoryData::noise_t noise;
       GPUTPCSharedMemoryData::count_t count;
       GPUTPCSharedMemoryData::build_t build;
+      GPUTPCSharedMemoryData::zs_t zs;
     };
   };
 

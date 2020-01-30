@@ -26,7 +26,7 @@ class GPUTPCClusterFinder;
 class DecodeZS
 {
  public:
-  static GPUd() void decode(GPUTPCClusterFinder& clusterer, int nBlocks, int nThreads, int iBlock, int iThread);
+  static GPUd() void decode(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& s, int nBlocks, int nThreads, int iBlock, int iThread);
 };
 
 } // namespace gpu
