@@ -25,6 +25,7 @@ namespace reco_workflow
 
 /// \class CellConverterSpec
 /// \brief Coverter task for EMCAL digits to EMCAL cells
+/// \ingroup EMCALworkflow
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 /// \since Sept 24, 2019
 ///
@@ -69,6 +70,7 @@ class CellConverterSpec : public framework::Task
 };
 
 /// \brief Creating DataProcessorSpec for the EMCAL Cell Converter Spec
+/// \ingroup EMCALworkflow
 /// \param propagateMC If true the MC truth container is propagated to the output
 ///
 /// Refer to CellConverterSpec::run for input and output specs

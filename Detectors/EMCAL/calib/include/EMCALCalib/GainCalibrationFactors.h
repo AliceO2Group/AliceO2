@@ -10,6 +10,7 @@
 
 /// \class GainCalibrationFactors
 /// \brief CCDB container for the gain calibration factors
+/// \ingroup EMCALcalib
 /// \author Hadi Hassan <hadi.hassan@cern.ch>, Oak Ridge National Laboratory
 /// \since August 5th, 2019
 ///

@@ -31,15 +31,13 @@ constexpr unsigned int NCOLS = 48 * 2 + 1;         // 2x  supermodule columns + 
 
 using ClusterIndex = Short_t;
 
-//_________________________________________________________________________
 /// \class Clusterizer
 /// \brief Meta class for recursive clusterizer
+/// \ingroup EMCALreconstruction
+/// \author Rudiger Haake (Yale)
 ///
 ///  Implementation of same algorithm version as in AliEMCALClusterizerv2,
 ///  but optimized.
-///
-/// \author Rudiger Haake (Yale)
-//_________________________________________________________________________
 class Clusterizer
 {
   struct cellWithE {

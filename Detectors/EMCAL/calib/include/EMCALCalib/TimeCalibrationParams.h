@@ -10,6 +10,7 @@
 
 /// \class TimeCalibrationParams
 /// \brief CCDB container for the time calibration coefficients
+/// \ingroup EMCALcalib
 /// \author Hadi Hassan <hadi.hassan@cern.ch>, Oak Ridge National Laboratory
 /// \since July 16th, 2019
 ///

@@ -22,6 +22,7 @@ namespace emcal
 {
 /// \class Bunch
 /// \brief ALTRO bunch information
+/// \ingroup EMCALreconstruction
 ///
 /// The bunch contains the ADC values of a given
 /// data bunch for a channel in the ALTRO stream.

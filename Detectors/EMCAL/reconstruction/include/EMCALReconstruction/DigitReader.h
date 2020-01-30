@@ -23,7 +23,8 @@ namespace emcal
 {
 /// \class DigitReader
 /// \brief DigitReader class for EMCAL. Loads digits and feeds them to clusterizer
-///
+/// \ingroup EMCALreconstruction
+/// \author Rudiger Haake (Yale)
 class DigitReader
 {
  public:

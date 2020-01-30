@@ -29,6 +29,7 @@ namespace emcal
 
 /// \class DMAOutputStream
 /// \brief Output stream of a payload to DMA raw files
+/// \ingroup EMCALsimulation
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 /// \since Nov 6, 2019
 ///

@@ -24,6 +24,7 @@ namespace emcal
 
 /// \class RCUTrailer
 /// \brief Information stored in the RCU trailer
+/// \ingroup EMCALreconstruction
 ///
 /// The RCU trailer can be found at the end of
 /// the payload and contains general information

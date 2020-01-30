@@ -19,9 +19,11 @@ namespace emcal
 
 /// \class TriggerSTUErrorCounter
 /// \brief CCDB container for STU error counts
-/// based on AliEMCALTriggerSTUConfig class authored by R. GUERNANE
+/// \ingroup EMCALcalib
 /// \author Hadi Hassan <hadi.hassan@cern.ch>, Oak Ridge National Laboratory
 /// \since December 4th, 2019
+///
+/// based on AliEMCALTriggerSTUConfig class authored by R. GUERNANE
 
 class TriggerSTUErrorCounter
 {

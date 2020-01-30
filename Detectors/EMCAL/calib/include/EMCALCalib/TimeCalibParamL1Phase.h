@@ -10,6 +10,7 @@
 
 /// \class TimeCalibParamL1Phase
 /// \brief CCDB container for the L1 phase shifts
+/// \ingroup EMCALcalib
 /// \author Hadi Hassan <hadi.hassan@cern.ch>, Oak Ridge National Laboratory
 /// \since Aug 12th, 2019
 ///

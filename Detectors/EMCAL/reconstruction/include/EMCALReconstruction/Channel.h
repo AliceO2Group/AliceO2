@@ -24,6 +24,7 @@ namespace emcal
 
 /// \class Channel
 /// \brief ALTRO channel representation
+/// \ingroup EMCALreconstruction
 ///
 /// The channel contains information about
 /// a hardware channel in the raw stream. Those

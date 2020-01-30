@@ -34,6 +34,7 @@ const std::string DEFAULT_GEOMETRY = "EMCAL_COMPLETE12SMV1_DCAL_8SM";
 
 /// \class InvalidModuleException
 /// \brief Error Handling when an invalid module ID (outside the limits) is called
+/// \ingroup EMCALbase
 class InvalidModuleException : public std::exception
 {
  public:
@@ -70,6 +71,7 @@ class InvalidModuleException : public std::exception
 
 /// \class InvalidPositionException
 /// \brief Exception handling errors due to positions not in the EMCAL area
+/// \ingroup EMCALbase
 class InvalidPositionException : public std::exception
 {
  public:
@@ -106,6 +108,7 @@ class InvalidPositionException : public std::exception
 
 /// \class InvalidCellIDException
 /// \brief Exception handling non-existing cell IDs
+/// \ingroup EMCALbase
 class InvalidCellIDException : public std::exception
 {
  public:
@@ -135,6 +138,7 @@ class InvalidCellIDException : public std::exception
 
 /// \class InvalidSupermoduleTypeException
 /// \brief Exception handling improper or uninitialized supermodule types
+/// \ingroup EMCALbase
 class InvalidSupermoduleTypeException : public std::exception
 {
  public:
@@ -150,6 +154,7 @@ class InvalidSupermoduleTypeException : public std::exception
 
 /// \class SupermoduleIndexException
 /// \brief Handling error due to invalid supermodule
+/// \ingroup EMCALbase
 class SupermoduleIndexException : public std::exception
 {
  public:

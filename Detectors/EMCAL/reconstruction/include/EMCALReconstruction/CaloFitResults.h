@@ -8,21 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \class CaloFitResults
-/// \brief  Container class to hold results from fitting
-///
-/// Container class to hold results from fitting
-/// as well as other methods for
-/// raw data signals extraction. The class memebers
-/// mChi2Sig, mNdfSig is only relevant if a fitting procedure is
-/// Applied. mStatus holds information on wether or not
-/// The signal was fitted sucessfully. mStatus might have a different meaning If other
-/// procedures than A different meaning Fitting is applied
-///
-/// \author Hadi Hassan <hadi.hassan@cern.ch>, Oak Ridge National Laboratory
-/// \since November 4th, 2019
-///
-
 #ifndef CALOFITRESULTS_H_
 #define CALOFITRESULTS_H_
 
@@ -36,6 +21,19 @@ namespace o2
 namespace emcal
 {
 
+/// \class CaloFitResults
+/// \brief  Container class to hold results from fitting
+/// \ingroup EMCALreconstruction
+/// \author Hadi Hassan <hadi.hassan@cern.ch>, Oak Ridge National Laboratory
+/// \since November 4th, 2019
+///
+/// Container class to hold results from fitting
+/// as well as other methods for
+/// raw data signals extraction. The class memebers
+/// mChi2Sig, mNdfSig is only relevant if a fitting procedure is
+/// Applied. mStatus holds information on wether or not
+/// The signal was fitted sucessfully. mStatus might have a different meaning If other
+/// procedures than A different meaning Fitting is applied
 class CaloFitResults
 {
 

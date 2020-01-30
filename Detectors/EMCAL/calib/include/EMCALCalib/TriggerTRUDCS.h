@@ -22,9 +22,11 @@ namespace emcal
 
 /// \class TriggerTRUDCS
 /// \brief CCDB container for TRU DCS data in EMCAL
-/// based on AliEMCALTriggerTRUDCSConfig class authored by R. GUERNANE
+/// \ingroup EMCALcalib
 /// \author Hadi Hassan <hadi.hassan@cern.ch>, Oak Ridge National Laboratory
 /// \since December 4th, 2019
+///
+/// based on AliEMCALTriggerTRUDCSConfig class authored by R. GUERNANE
 
 class TriggerTRUDCS
 {

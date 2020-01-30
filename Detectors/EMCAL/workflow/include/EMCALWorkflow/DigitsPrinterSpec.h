@@ -22,6 +22,7 @@ namespace reco_workflow
 
 /// \class DigitsPrinterSpec
 /// \brief Example task for EMCAL digits monitoring
+/// \ingroup EMCALworkflow
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 /// \since July 11, 2019
 ///
@@ -51,6 +52,7 @@ class DigitsPrinterSpec : public framework::Task
 };
 
 /// \brief Creating digits printer spec
+/// \ingroup EMCALworkflow
 ///
 /// Refer to DigitsPrinterSpec::run for a list of input
 /// specs

@@ -28,6 +28,7 @@ namespace emcal
 {
 /// \class LabeledDigit
 /// \brief EMCAL labeled digit implementation
+/// \ingroup EMCALsimulation
 
 class LabeledDigit
 {

@@ -21,6 +21,7 @@ namespace emcal
 
 /// \class BadChannelMap
 /// \brief CCDB container for masked cells in EMCAL
+/// \ingroup EMCALcalib
 /// \author Markus Fasel <>, Oak Ridge National Laboratory
 /// \since June 25th, 2019
 ///

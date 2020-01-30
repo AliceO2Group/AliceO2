@@ -30,6 +30,7 @@ class TriggerDCS;
 
 /// \class CalibDB
 /// \brief Interface to calibration data from CCDB for EMCAL
+/// \ingroup EMCALcalib
 /// \author Markus Fasel <> Oak Ridge National Laboratory
 /// \since July 12, 2019
 ///

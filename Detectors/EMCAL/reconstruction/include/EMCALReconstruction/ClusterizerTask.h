@@ -27,6 +27,10 @@ namespace o2
 namespace emcal
 {
 
+/// \class ClusterizerTask
+/// \brief Stand-alone task running EMCAL clusterization
+/// \ingroup EMCALreconstruction
+/// \author Rudiger Haake (Yale)
 class ClusterizerTask
 {
 
