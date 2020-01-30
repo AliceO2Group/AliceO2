@@ -14,17 +14,22 @@
 
 #include <algorithm>
 #include <cstring>
+#include <iostream>
+#include <iomanip>
+#include <sstream>
 #include "DetectorsRaw/RawFileReader.h"
 #include "CommonConstants/Triggers.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "Framework/Logger.h"
 
 using namespace o2::raw;
 
 //====================== methods of LinkBlock ========================
 //____________________________________________
-void RawFileReader::LinkBlock::print() const
+void RawFileReader::LinkBlock::print(const std::string pref) const
 {
-  printf("file:%3d offs:%10zu size:%8d newSP:%d newTF:%d newHB:%d\n", fileID, offset, size, startSP, startTF, startHB);
+  LOGF(INFO, "%sfile:%3d offs:%10zu size:%8d newSP:%d newTF:%d newHB:%d endHB:%d | Orbit %u",
+       pref, fileID, offset, size, startSP, startTF, startHB, endHB, orbit);
 }
 
 //====================== methods of LinkData ========================
@@ -42,19 +47,16 @@ RawFileReader::LinkData::LinkData(const o2::header::RAWDataHeaderV5& rdh, const 
 }
 
 //____________________________________________
-void RawFileReader::LinkData::print(bool verbose) const
+void RawFileReader::LinkData::print(bool verbose, const std::string pref) const
 {
-  printf("SSpec:0x%-8d FEE:0x%4x CRU:%4d Lnk:%3d EP:%d | SPages:%4d Pages:%6d TFs:%6d with %6d HBF in %4d blocks",
-         subspec, int(rdhl.feeId), int(rdhl.cruID), int(rdhl.linkID), int(rdhl.endPointID), nSPages, nCRUPages,
-         nTimeFrames, nHBFrames, int(blocks.size()));
-  if (reader && reader->mCheckErrors) {
-    printf(" (%d err)", nErrors);
-  }
-  printf("\n");
+  LOGF(INFO, "%sSSpec:0x%-8d FEE:0x%4x CRU:%4d Lnk:%3d EP:%d | SPages:%4d Pages:%6d TFs:%6d with %6d HBF in %4d blocks (%d err)",
+       pref, subspec, int(rdhl.feeId), int(rdhl.cruID), int(rdhl.linkID), int(rdhl.endPointID), nSPages, nCRUPages,
+       nTimeFrames, nHBFrames, int(blocks.size()), nErrors);
   if (verbose) {
     for (int i = 0; i < int(blocks.size()); i++) {
-      printf("#%5d | ", i);
-      blocks[i].print();
+      std::stringstream counts;
+      counts << '#' << std::setw(5) << i << " | ";
+      blocks[i].print(counts.str());
     }
   }
 }
@@ -101,10 +103,10 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
   bool newTF = false, newHB = false;
 
   if (rdh.feeId != rdhl.feeId) { // make sure links with different FEEID were not assigned same subspec
-    LOG(ERROR) << "Same SubSpec is found for Links with different RDH.feeId";
-    printf("old RDH assigned SubSpec=0x%-8d:\n", subspec);
+    LOGF(ERROR, "Same SubSpec is found for Links with different RDH.feeId");
+    LOGF(ERROR, "old RDH assigned SubSpec=0x%-8d:", subspec);
     o2::raw::HBFUtils::dumpRDH(rdhl);
-    printf("new RDH assigned SubSpec=0x%-8d:\n", subspec);
+    LOGF(ERROR, "new RDH assigned SubSpec=0x%-8d:", subspec);
     o2::raw::HBFUtils::dumpRDH(rdh);
     LOG(FATAL) << "Critical error, aborting";
     ok = false;
@@ -169,8 +171,14 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
         ok = false;
         nErrors++;
       }
-      if ((reader->mCheckErrors & (0x1 << ErrHBFJump)) && (nCRUPages && !checkIRIncrement(rdh, rdhl))) {
-        // skip this check for the very 1st RDH
+      if ((reader->mCheckErrors & (0x1 << ErrHBFJump)) &&
+          (nCRUPages && // skip this check for the very 1st RDH
+           !(o2::raw::HBFUtils::getHBBC(rdh) == o2::raw::HBFUtils::getHBBC(rdhl) &&
+             o2::raw::HBFUtils::getHBOrbit(rdh) == o2::raw::HBFUtils::getHBOrbit(rdhl) + 1))) {
+        LOG(ERROR) << ErrNames[ErrHBFJump] << " @ HBF#" << nHBFrames << " New HB orbit/bc="
+                   << o2::raw::HBFUtils::getHBOrbit(rdh) << '/' << int(o2::raw::HBFUtils::getHBBC(rdh))
+                   << " is not incremented by 1 orbit wrt Old HB orbit/bc="
+                   << o2::raw::HBFUtils::getHBOrbit(rdhl) << '/' << int(o2::raw::HBFUtils::getHBBC(rdhl));
         ok = false;
         nErrors++;
       }
@@ -182,8 +190,9 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
     openHB = false;
   }
 
-  if (newTF || newSPage) {
+  if (newTF || newSPage || newHB) {
     auto& bl = blocks.emplace_back(reader->mCurrentFileID, reader->mPosInFile);
+    bl.orbit = o2::raw::HBFUtils::getHBOrbit(rdh);
     if (newTF) {
       nTimeFrames++;
       bl.startTF = true;
@@ -198,18 +207,20 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
     if (newSPage) {
       nSPages++;
       bl.startSP = true;
-      bl.startHB = true;
     }
+    bl.startHB = true;
   }
+  blocks.back().endHB = rdh.stop;         // last processed RDH defines this flag
+  blocks.back().size += rdh.offsetToNext; // last processed RDH defines this flag
   rdhl = rdh;
   nCRUPages++;
   if (!ok) {
     LOG(ERROR) << " ^^^Problem(s) was encountered at offset " << reader->mPosInFile << " of file " << reader->mCurrentFileID;
-    if (reader->mVerbosity > 0) {
-      o2::raw::HBFUtils::printRDH(rdh);
-    }
-  } else {
-    if (reader->mVerbosity > 1) {
+    o2::raw::HBFUtils::printRDH(rdh);
+  } else if (reader->mVerbosity > 1) {
+    if (reader->mVerbosity > 2) {
+      o2::raw::HBFUtils::dumpRDH(rdh);
+    } else {
       o2::raw::HBFUtils::printRDH(rdh);
     }
   }
@@ -330,10 +341,6 @@ bool RawFileReader::preprocessFile(int ifl)
     }
     bool newSPage = lID != lIDPrev;
     mLinksData[lID].preprocessCRUPage(rdh, newSPage);
-    if (newSPage && lIDPrev != -1) { // flag the end of the block of previosly processed link
-      auto& prevBlock = mLinksData[lIDPrev].blocks.back();
-      prevBlock.size = mPosInFile - prevBlock.offset;
-    }
     //
     mPosInFile += rdh.offsetToNext;
     if (fseek(fl, mPosInFile, SEEK_SET)) {
@@ -347,8 +354,8 @@ bool RawFileReader::preprocessFile(int ifl)
     lastBlock.size = mPosInFile - lastBlock.offset;
   }
 
-  LOG(INFO) << "#" << mCurrentFileID << ": " << mPosInFile << " bytes scanned, " << nRDHread << " RDH read for "
-            << mLinkEntries.size() << " links from " << mFileNames[mCurrentFileID];
+  LOGF(INFO, "File %3d : %9li bytes scanned, %6d RDH read for %4d links from %s",
+       mCurrentFileID, mPosInFile, nRDHread, int(mLinkEntries.size()), mFileNames[mCurrentFileID]);
   return ok;
 }
 
@@ -358,8 +365,9 @@ void RawFileReader::printStat(bool verbose) const
   int n = getNLinks();
   for (int i = 0; i < n; i++) {
     const auto& link = getLink(i);
-    printf("#%-4d| ", i);
-    link.print(verbose);
+    std::stringstream counts;
+    counts << "Lnk" << std::left << std::setw(4) << i << "| ";
+    link.print(verbose, counts.str());
   }
 }
 
@@ -403,7 +411,7 @@ bool RawFileReader::init()
 
   for (int i = 0; i < NErrorsDefined; i++) {
     if (mCheckErrors & (0x1 << i))
-      printf("perform check for /%s/\n", ErrNames[i].data());
+      LOGF(INFO, "perform check for /%s/", ErrNames[i].data());
   }
 
   int nf = mFiles.size();
@@ -419,7 +427,7 @@ bool RawFileReader::init()
             [& links = mLinksData](int a, int b) { return links[a].subspec < links[b].subspec; });
 
   size_t maxSP = 0, maxTF = 0;
-  printf("\nSummary of preprocessing:\n");
+  LOGF(INFO, "Summary of preprocessing:");
   for (int i = 0; i < int(mLinksData.size()); i++) {
     const auto& link = getLink(i);
     auto msp = link.getLargestSuperPage();
@@ -430,16 +438,17 @@ bool RawFileReader::init()
     if (maxTF < mtf) {
       maxTF = mtf;
     }
-    printf("L%-4d| ", i);
-    link.print(mVerbosity);
+    std::stringstream counts;
+    counts << "Lnk" << std::setw(4) << std::left << i << "| ";
+    link.print(mVerbosity, counts.str());
     if (msp > mNominalSPageSize) {
-      printf("       Attention: largest superpage %zu B exceeds expected %d B\n",
-             msp, mNominalSPageSize);
+      LOGF(WARNING, "       Attention: largest superpage %zu B exceeds expected %d B",
+           msp, mNominalSPageSize);
     }
   }
-  printf("Largest super-page: %zu B, largest TF: %zu B\n", maxSP, maxTF);
+  LOGF(INFO, "Largest super-page: %zu B, largest TF: %zu B", maxSP, maxTF);
   if (!mCheckErrors) {
-    printf("Detailed data format check was disabled\n");
+    LOGF(INFO, "Detailed data format check was disabled");
   }
   mInitDone = true;
 

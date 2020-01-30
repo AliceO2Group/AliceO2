@@ -13,6 +13,7 @@
 /// @brief  Checker for raw data conformity with CRU format
 
 #include "DetectorsRaw/RawFileReader.h"
+#include "Framework/Logger.h"
 #include <TStopwatch.h>
 #include <boost/program_options.hpp>
 #include <iostream>
@@ -43,7 +44,7 @@ int main(int argc, char* argv[])
   bpo::options_description descOpt("Options");
   descOpt.add_options()(
     "help,h", "print this help message.")(
-    "verbosity,v", bpo::value<int>()->default_value(reader.getVerbosity()), "1: print RDH on error, 2: print all RDH")(
+    "verbosity,v", bpo::value<int>()->default_value(reader.getVerbosity()), "1: long report, 2 or 3: print or dump all RDH")(
     "spsize,s", bpo::value<int>()->default_value(reader.getNominalSPageSize()), "nominal super-page size in bytes")(
     "hbfpertf,t", bpo::value<int>()->default_value(reader.getNominalHBFperTF()), "nominal number of HBFs per TF")(
     nochk_opt(RawFileReader::ErrWrongPacketCounterIncrement).c_str(), nochk_expl(RawFileReader::ErrWrongPacketCounterIncrement).c_str())(
@@ -97,7 +98,7 @@ int main(int argc, char* argv[])
   for (int i = RawFileReader::NErrorsDefined; i--;) {
     if (vm.count(nochk_opt(RawFileReader::ErrTypes(i)).c_str())) {
       errmap ^= 0x1 << i;
-      printf("ignore  check for /%s/\n", RawFileReader::ErrNames[i].data());
+      LOGF(INFO, "ignore  check for /%s/", RawFileReader::ErrNames[i].data());
     }
   }
 

@@ -19,8 +19,8 @@
 #include <unordered_map>
 #include <vector>
 #include <string>
+#include <Rtypes.h>
 #include "Headers/RAWDataHeader.h"
-#include "FairLogger.h"
 
 namespace o2
 {
@@ -70,13 +70,15 @@ class RawFileReader
   struct LinkBlock {
     size_t offset = 0;    // where data of the block starts
     uint32_t size = 0;    // block size
+    uint32_t orbit = 0;   // orbit starting the block
     uint16_t fileID = 0;  // file id where the file is located
     bool startTF = false; // does this block starts a new TF ?
     bool startHB = false; // does this block starts a new HBF ?
     bool startSP = false; // does the block correspond to new superpage?
+    bool endHB = false;   // ends by RDH with stop (HBF close)
     LinkBlock() = default;
     LinkBlock(int fid, size_t offs) : offset(offs), fileID(fid) {}
-    void print() const;
+    void print(const std::string pref = "") const;
   };
 
   //=====================================================================================
@@ -100,11 +102,9 @@ class RawFileReader
     bool preprocessCRUPage(const RDH& rdh, bool newSPage);
     size_t getLargestSuperPage() const;
     size_t getLargestTF() const;
-    void print(bool verbose = false) const;
+    void print(bool verbose = false, const std::string pref = "") const;
 
    private:
-    bool checkIRIncrement(const o2::header::RAWDataHeaderV5& rdhNew, const o2::header::RAWDataHeaderV5& rdhOld) const;
-    bool checkIRIncrement(const o2::header::RAWDataHeaderV4& rdhNew, const o2::header::RAWDataHeaderV4& rdhOld) const;
     const RawFileReader* reader = nullptr;
   };
 
@@ -165,35 +165,6 @@ inline RawFileReader::LinkSpec_t RawFileReader::getSubSpec(uint16_t cru, uint8_t
   // define subspecification as in DataDistribution
   int linkValue = (RawFileReader::LinkSpec_t(link) + 1) << (endpoint == 1 ? 8 : 0);
   return (RawFileReader::LinkSpec_t(cru) << 16) | linkValue;
-}
-
-//_____________________________________________________________________
-inline bool RawFileReader::LinkData::checkIRIncrement(const o2::header::RAWDataHeaderV4& rdhNew,
-                                                      const o2::header::RAWDataHeaderV4& rdhOld) const
-{
-  // check orbit/bc increment
-  if ((rdhNew.heartbeatBC != rdhOld.heartbeatBC) || (rdhNew.heartbeatOrbit != rdhOld.heartbeatOrbit + 1)) {
-    LOG(ERROR) << ErrNames[ErrHBFJump] << ": new HB orbit/bc="
-               << int(rdhNew.heartbeatOrbit) << '/' << int(rdhNew.heartbeatBC)
-               << " is not incremented by 1 orbit wrt Old HB orbit/bc="
-               << int(rdhOld.heartbeatOrbit) << '/' << int(rdhOld.heartbeatBC);
-    return false;
-  }
-  return true;
-}
-
-//_____________________________________________________________________
-inline bool RawFileReader::LinkData::checkIRIncrement(const o2::header::RAWDataHeaderV5& rdhNew,
-                                                      const o2::header::RAWDataHeaderV5& rdhOld) const
-{
-  // check orbit/bc increment
-  if ((rdhNew.bunchCrossing != rdhOld.bunchCrossing) || (rdhNew.orbit != rdhOld.orbit + 1)) {
-    LOG(ERROR) << "New HB orbit/bc=" << int(rdhNew.orbit) << '/' << int(rdhNew.bunchCrossing)
-               << " is not incremented by 1 orbit wrt Old HB orbit/bc=" << int(rdhOld.orbit)
-               << '/' << int(rdhOld.bunchCrossing);
-    return false;
-  }
-  return true;
 }
 
 } // namespace raw
