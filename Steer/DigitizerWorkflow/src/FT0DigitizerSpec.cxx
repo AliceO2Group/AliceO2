@@ -136,7 +136,7 @@ class FT0DPLDigitizerTask
     // send out to next stage
     pc.outputs().snapshot(Output{"FT0", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
     pc.outputs().snapshot(Output{"FT0", "DIGITSCH", 0, Lifetime::Timeframe}, mDigitsCh);
-    pc.outputs().snapshot(Output{"FT0", "DIGITLBL", 0, Lifetime::Timeframe}, mLabels);
+    pc.outputs().snapshot(Output{"FT0", "DIGITSMCTR", 0, Lifetime::Timeframe}, mLabels);
 
     LOG(INFO) << "FT0: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"FT0", "ROMode", 0, Lifetime::Timeframe}, mROMode);
@@ -190,7 +190,8 @@ o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel)
   return DataProcessorSpec{
     "FT0Digitizer",
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
-    Outputs{OutputSpec{"FT0", "DIGITS", 0, Lifetime::Timeframe},
+    Outputs{OutputSpec{"FT0", "DIGITSBC", 0, Lifetime::Timeframe},
+            OutputSpec{"FT0", "DIGITSCH", 0, Lifetime::Timeframe},
             OutputSpec{"FT0", "DIGITSMCTR", 0, Lifetime::Timeframe},
             OutputSpec{"FT0", "ROMode", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<FT0DPLDigitizerTask>()},

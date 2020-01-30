@@ -43,7 +43,7 @@ Continueous mode  :   for only bunches with data at least in 1 channel.
 #include "DataFormatsFT0/RawEventData.h"
 #include "FT0Simulation/Digits2Raw.h"
 #include "CommonConstants/Triggers.h"
-#include "CommonUtils/HBFUtils.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include <Framework/Logger.h>
 #include <TStopwatch.h>
 #include <cassert>

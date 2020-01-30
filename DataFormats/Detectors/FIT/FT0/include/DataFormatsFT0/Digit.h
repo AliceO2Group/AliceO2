@@ -52,7 +52,7 @@ struct Triggers {
 
 struct Digit
 {
-  o2::dataformats::RangeRefComp<8> ref;
+  o2::dataformats::RangeRefComp<5> ref;
 
   Triggers mTriggers;               // pattern of triggers  in this BC
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)

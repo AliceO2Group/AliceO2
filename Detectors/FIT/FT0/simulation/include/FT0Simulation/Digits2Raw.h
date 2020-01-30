@@ -21,7 +21,7 @@
 #include "DataFormatsFT0/LookUpTable.h"
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFT0/ChannelData.h"
-#include "CommonUtils/HBFUtils.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include <TStopwatch.h>
 #include <cassert>
 #include <fstream>
@@ -87,7 +87,7 @@ class Digits2Raw
   std::ofstream mFileDest;
   std::array<o2::ft0::DataPageWriter, NPMs> mPages;
   o2::ft0::RawEventData mRawEventData;
-  o2::utils::HBFUtils mSampler;
+  o2::raw::HBFUtils mSampler;
   o2::ft0::Triggers mTriggers;
   /////////////////////////////////////////////////
 
