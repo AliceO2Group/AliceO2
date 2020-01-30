@@ -1,5 +1,5 @@
 <!-- doxy
-\page DetectorsRaw Library
+\page refDetectorsRaw Raw Data 
 /doxy -->
 
 # Raw data tools
@@ -42,7 +42,7 @@ The parsing to STF is in development</em>.
 Usage:   o2-raw-filecheck [options] file0 [... fileN]
 Options:
   -h [ --help ]                     print this help message.
-  -v [ --verbosity ] arg (=0)       1: print RDH on error, 2: print all RDH
+  -v [ --verbosity ] arg (=0)    1: long report, 2 or 3: print or dump all RDH
   -s [ --spsize ]    arg (=1048576) nominal super-page size in bytes
   -t [ --hbfpertf ]  arg (=256)     nominal number of HBFs per TF
   --nocheck-packet-increment        ignore /Wrong RDH.packetCounter increment/
