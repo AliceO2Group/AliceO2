@@ -16,6 +16,7 @@
 
 #include "clusterFinderDefs.h"
 #include "PackedCharge.h"
+#include "DataFormatsTPC/ZeroSuppression.h"
 
 #ifndef SCRATCH_PAD_WORK_GROUP_SIZE
 #error "Work group size not defined"
@@ -50,6 +51,15 @@ class GPUTPCSharedMemoryData
     ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
     PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_BUILD_N];
     uchar innerAboveThreshold[SCRATCH_PAD_WORK_GROUP_SIZE];
+  };
+
+  struct zs_t {
+    //unsigned char ZSPage[o2::tpc::TPCZSHDR::TPC_ZS_PAGE_SIZE];
+    unsigned int RowClusterOffset[o2::tpc::TPCZSHDR::TPC_MAX_ZS_ROW_IN_ENDPOINT];
+    int nRowsRegion;
+    int regionStartRow;
+    int nThreadsPerRow;
+    int rowStride;
   };
 };
 

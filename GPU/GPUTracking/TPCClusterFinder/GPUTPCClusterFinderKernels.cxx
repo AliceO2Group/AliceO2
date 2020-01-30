@@ -121,5 +121,5 @@ GPUd() int GPUTPCClusterFinderKernels::compactionElems(processorType& clusterer,
 template <>
 GPUd() void GPUTPCClusterFinderKernels::Thread<GPUTPCClusterFinderKernels::decodeZS>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& clusterer)
 {
-  DecodeZS::decode(clusterer, nBlocks, nThreads, iBlock, iThread);
+  DecodeZS::decode(clusterer, smem, nBlocks, nThreads, iBlock, iThread);
 }

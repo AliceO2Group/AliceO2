@@ -26,6 +26,7 @@ namespace tpc
 struct TPCZSHDR {
   static constexpr size_t TPC_ZS_PAGE_SIZE = 8192;
   static constexpr size_t TPC_MAX_SEQ_LEN = 138;
+  static constexpr size_t TPC_MAX_ZS_ROW_IN_ENDPOINT = 9;
   static constexpr unsigned int MAX_DIGITS_IN_PAGE = (TPC_ZS_PAGE_SIZE - 64 - 6 - 4 - 3) * 8 / 10;
   static constexpr unsigned int TPC_ZS_NBITS_V1 = 10;
   static constexpr unsigned int TPC_ZS_NBITS_V2 = 12;
