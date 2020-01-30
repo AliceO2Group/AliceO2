@@ -32,6 +32,7 @@ namespace emcal
 
 /// \class Mapper
 /// \brief ALTRO mapping for calorimeters
+/// \ingroup EMCALbase
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 /// \since Aug 19, 2019
 ///

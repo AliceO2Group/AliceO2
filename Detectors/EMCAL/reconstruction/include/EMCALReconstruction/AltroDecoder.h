@@ -31,6 +31,7 @@ namespace emcal
 
 /// \class AltroDecoderError
 /// \brief Error handling of the ALTRO Decoder
+/// \ingroup EMCALreconstruction
 class AltroDecoderError : public std::exception
 {
  public:
@@ -71,6 +72,7 @@ class AltroDecoderError : public std::exception
 
 /// \class AltroDecoder
 /// \brief Decoder of the ALTRO data in the raw page
+/// \ingroup EMCALreconstruction
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 /// \since Aug. 12, 2019
 ///

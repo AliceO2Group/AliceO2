@@ -24,6 +24,7 @@ namespace emcal
 
 /// \class RawPayload
 /// \brief Class for raw payload excluding raw data headers from one or multiple DMA pages
+/// \ingroup EMCALreconstruction
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 /// \since Nov 14, 2019
 ///
