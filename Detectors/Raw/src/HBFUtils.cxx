@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "Framework/Logger.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include <FairLogger.h>
 #include <bitset>
@@ -46,7 +47,7 @@ int HBFUtils::fillHBIRvector(std::vector<IR>& dst, const IR& fromIR, const IR& t
 //_________________________________________________
 void HBFUtils::print() const
 {
-  printf("%d HBF per TF, starting from ", mNHBFPerTF);
+  LOGF(INFO, "%d HBF per TF, starting from ", mNHBFPerTF);
   mFirstIR.print();
 }
 
@@ -54,38 +55,24 @@ void HBFUtils::print() const
 void HBFUtils::printRDH(const o2::header::RAWDataHeaderV4& rdh)
 {
   std::bitset<32> trb(rdh.triggerType);
-  printf(
-    "EP:%d CRU:0x%04x Packet:%-3d Link:%-3d MemSize:%-5d OffsNext:%-5d  prio.:%d FEEID:0x%04x BL:%-5d HS:%-2d HV:%d\n"
-    "HBOrb:%-9u TrOrb:%-9u "
-    "Trg:%32s HBBC:%-4d TrBC:%-4d "
-    "Page:%-5d Stop:%d Par:%-5d DetFld:0x%04x\n",
-    int(rdh.endPointID), int(rdh.cruID), int(rdh.packetCounter), int(rdh.linkID), int(rdh.memorySize),
-    int(rdh.offsetToNext), int(rdh.priority), int(rdh.feeId), int(rdh.blockLength), int(rdh.headerSize), int(rdh.version),
-    //
-    rdh.heartbeatOrbit, rdh.triggerOrbit,
-    //
-    trb.to_string().c_str(), int(rdh.heartbeatBC), int(rdh.triggerBC),
-    //
-    int(rdh.pageCnt), int(rdh.stop), int(rdh.par), int(rdh.detectorField));
+  LOGF(INFO, "EP:%d CRU:0x%04x Packet:%-3d Link:%-3d MemSize:%-4d OffsNext:%-4d prio.:%d FEEID:0x%04x BL:%-5d HS:%-2d HV:%d",
+       int(rdh.endPointID), int(rdh.cruID), int(rdh.packetCounter), int(rdh.linkID), int(rdh.memorySize),
+       int(rdh.offsetToNext), int(rdh.priority), int(rdh.feeId), int(rdh.blockLength), int(rdh.headerSize), int(rdh.version));
+  LOGF(INFO, "HBOrb:%-9u TrOrb:%-9u Trg:%32s HBBC:%-4d TrBC:%-4d Page:%-5d Stop:%d Par:%-5d DetFld:0x%04x", //
+       rdh.heartbeatOrbit, rdh.triggerOrbit, trb.to_string().c_str(), int(rdh.heartbeatBC), int(rdh.triggerBC),
+       int(rdh.pageCnt), int(rdh.stop), int(rdh.par), int(rdh.detectorField));
 }
 
 //_________________________________________________
 void HBFUtils::printRDH(const o2::header::RAWDataHeaderV5& rdh)
 {
   std::bitset<32> trb(rdh.triggerType);
-  printf(
-    "EP:%d CRU:0x%04x Packet:%-3d Link:%-3d MemSize:%-5d OffsNext:%-5d  prio.:%d FEEID:0x%04x HS:%-2d HV:%d\n"
-    "Orbit:%-9u BC:%-4d "
-    "Stop:%d Page:%-5d Trg:%32s "
-    "Par:%-5d DetFld:0x%04x\n",
-    int(rdh.endPointID), int(rdh.cruID), int(rdh.packetCounter), int(rdh.linkID), int(rdh.memorySize),
-    int(rdh.offsetToNext), int(rdh.priority), int(rdh.feeId), int(rdh.headerSize), int(rdh.version),
-    //
-    rdh.orbit, int(rdh.bunchCrossing),
-    //
-    int(rdh.stop), int(rdh.pageCnt), trb.to_string().c_str(),
-    //
-    int(rdh.detectorPAR), int(rdh.detectorField));
+  LOGF(INFO, "EP:%d CRU:0x%04x Packet:%-3d Link:%-3d MemSize:%-5d OffsNext:%-5d  prio.:%d FEEID:0x%04x HS:%-2d HV:%d",
+       int(rdh.endPointID), int(rdh.cruID), int(rdh.packetCounter), int(rdh.linkID), int(rdh.memorySize),
+       int(rdh.offsetToNext), int(rdh.priority), int(rdh.feeId), int(rdh.headerSize), int(rdh.version));
+  LOGF(INFO, "Orbit:%-9u BC:%-4d Stop:%d Page:%-5d Trg:%32s Par:%-5d DetFld:0x%04x",
+       rdh.orbit, int(rdh.bunchCrossing), int(rdh.stop), int(rdh.pageCnt), trb.to_string().c_str(),
+       int(rdh.detectorPAR), int(rdh.detectorField));
 }
 
 //_________________________________________________
