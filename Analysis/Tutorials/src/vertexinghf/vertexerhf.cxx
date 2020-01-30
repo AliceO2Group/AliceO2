@@ -95,7 +95,7 @@ struct VertexerHFTask {
 
       for (auto it_1 = it_0 + 1; it_1 != tracks.end(); ++it_1) {
         auto& track_1 = *it_1;
-	if (track_1.pt() < 10.)
+        if (track_1.pt() < 10.)
           continue;
         float x1_ = track_1.x();
         float alpha1_ = track_1.alpha();
@@ -112,7 +112,7 @@ struct VertexerHFTask {
           hvtx_x_out->Fill(vtx.x);
           hvtx_y_out->Fill(vtx.y);
           hvtx_z_out->Fill(vtx.z);
-	  secvtx(vtx.x, vtx.y, track_0.index(), track_1.index(), -1., track_0.y(), track_1.y(), -1.);
+          secvtx(vtx.x, vtx.y, track_0.index(), track_1.index(), -1., track_0.y(), track_1.y(), -1.);
         }
       }
     }
