@@ -33,6 +33,11 @@ namespace o2
 {
 namespace emcal
 {
+
+/// \class Digitizer
+/// \brief EMCAL FEE digitizer
+/// \ingroup EMCALsimulation
+/// \author Anders Knospe, University of Houston
 class Digitizer : public TObject
 {
  public:

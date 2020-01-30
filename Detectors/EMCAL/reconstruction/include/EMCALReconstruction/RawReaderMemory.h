@@ -26,10 +26,11 @@ namespace emcal
 
 /// \class RawReaderMemory
 /// \brief Reader for raw data produced by the Readout application in in-memory format
+/// \ingroup EMCALreconstruction
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 /// \since Nov. 14, 2019
 ///
-//
+///
 template <class RawHeader>
 class RawReaderMemory
 {

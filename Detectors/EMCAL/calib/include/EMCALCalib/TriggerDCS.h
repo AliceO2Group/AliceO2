@@ -22,9 +22,11 @@ namespace emcal
 
 /// \class TriggerDCS
 /// \brief CCDB container for the DCS data in EMCAL
-/// based on AliEMCALTriggerDCSConfig class authored by R. GUERNANE
+/// \ingroup EMCALcalib
 /// \author Hadi Hassan <hadi.hassan@cern.ch>, Oak Ridge National Laboratory
 /// \since December 4th, 2019
+///
+/// based on AliEMCALTriggerDCSConfig class authored by R. GUERNANE
 
 class TriggerDCS
 {

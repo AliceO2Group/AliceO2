@@ -21,6 +21,7 @@ namespace emcal
 {
 /// \class SimParam
 /// \brief EMCal simulation parameters
+/// \ingroup EMCALsimulation
 
 class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
 {
