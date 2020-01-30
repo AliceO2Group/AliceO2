@@ -150,14 +150,9 @@ struct OutputObj {
   {
     static_assert(std::is_base_of_v<TNamed, T>, "You need a TNamed derived class to use OutputObj");
     header::DataDescription desc{};
-    if (object == nullptr) {
-      strncpy(desc.str, "__OUTPUTOBJECT__", 16);
-    } else {
-      // FIXME: for the moment we use GetTitle(), in the future
-      //        we should probably use a unique hash to allow
-      //        names longer than 16 bytes.
-      strncpy(desc.str, object->GetTitle(), 16);
-    }
+    memset(desc.str, '_', 16);
+    //FIXME: we should probably use hash here
+    std::memcpy(desc.str, label.c_str(), label.length() > 16 ? 16 : label.length());
 
     return OutputSpec{OutputLabel{label}, "ATSK", desc, 0};
   }
