@@ -59,12 +59,6 @@ class CfUtils
     return pos;
   }
 
-  // Maps the position of a pad given as row and index in that row to a unique
-  // index between 0 and TPC_NUM_OF_PADS.
-  static GPUdi() GlobalPad tpcGlobalPadIdx(Row row, Pad pad)
-  {
-    return TPC_PADS_PER_ROW_PADDED * row + pad + PADDING_PAD;
-  }
 
   template <typename T>
   static GPUdi() void blockLoad(

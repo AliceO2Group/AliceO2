@@ -15,6 +15,7 @@
 #include "Array2D.h"
 #include "CfConsts.h"
 #include "CfUtils.h"
+#include "ChargePos.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::deprecated;
@@ -30,13 +31,11 @@ GPUd() void NoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, in
 
   Digit myDigit = peaks[CAMath::Min(idx, (size_t)(peaknum - 1))];
 
-  GlobalPad gpad = CfUtils::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+  ChargePos pos(myDigit);
 
   ulong minimas, bigger, peaksAround;
 
   bool debug = false;
-
-  ChargePos pos(gpad, myDigit.time);
 
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
   findMinimaAndPeaksScratchpad(
@@ -86,9 +85,8 @@ GPUd() void NoiseSuppression::updatePeaksImpl(int nBlocks, int nThreads, int iBl
   size_t idx = get_global_id(0);
 
   Digit myDigit = peaks[idx];
-  GlobalPad gpad = CfUtils::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
-  ChargePos pos(gpad, myDigit.time);
+  ChargePos pos(myDigit);
 
   uchar peak = isPeak[idx];
 

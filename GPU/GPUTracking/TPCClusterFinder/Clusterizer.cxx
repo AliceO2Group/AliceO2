@@ -34,9 +34,7 @@ GPUd() void Clusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlo
   // These dummy items also compute the last cluster but discard the result.
   deprecated::Digit myDigit = digits[CAMath::Min(idx, clusternum - 1)];
 
-  GlobalPad gpad = CfUtils::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
-
-  ChargePos pos(gpad, myDigit.time);
+  ChargePos pos(myDigit);
 
   ClusterAccumulator pc;
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
@@ -106,9 +104,9 @@ GPUd() void Clusterizer::addCorner(
   Charge q = addInnerCharge(chargeMap, myCluster, pos, d);
 
   if (q > CHARGE_THRESHOLD) {
-    addOuterCharge(chargeMap, myCluster, pos, {2 * d.x, d.y});
-    addOuterCharge(chargeMap, myCluster, pos, {d.x, 2 * d.y});
-    addOuterCharge(chargeMap, myCluster, pos, {2 * d.x, 2 * d.y});
+    addOuterCharge(chargeMap, myCluster, pos, {GlobalPad(2 * d.x), d.y});
+    addOuterCharge(chargeMap, myCluster, pos, {d.x, Timestamp(2 * d.y)});
+    addOuterCharge(chargeMap, myCluster, pos, {GlobalPad(2 * d.x), Timestamp(2 * d.y)});
   }
 }
 
@@ -121,7 +119,7 @@ GPUd() void Clusterizer::addLine(
   Charge q = addInnerCharge(chargeMap, myCluster, pos, d);
 
   if (q > CHARGE_THRESHOLD) {
-    addOuterCharge(chargeMap, myCluster, pos, {2 * d.x, 2 * d.y});
+    addOuterCharge(chargeMap, myCluster, pos, {GlobalPad(2 * d.x), Timestamp(2 * d.y)});
   }
 }
 
@@ -203,9 +201,6 @@ GPUd() void Clusterizer::buildClusterScratchPad(
   bool inGroup1 = ll < wgSizeHalf;
 
   ushort llhalf = (inGroup1) ? ll : (ll - wgSizeHalf);
-
-  /* ClusterAccumulator otherCluster; */
-  /* reset(&otherCluster); */
 
   CfUtils::condBlockLoad(
     chargeMap,

@@ -147,9 +147,7 @@ GPUd() void PeakFinder::findPeaksImpl(int nBlocks, int nThreads, int iBlock, int
   // These dummy items also compute the last digit but discard the result.
   Digit myDigit = digits[CAMath::Min(idx, (size_t)(digitnum - 1))];
 
-  const GlobalPad gpad = CfUtils::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
-
-  ChargePos pos(gpad, myDigit.time);
+  ChargePos pos(myDigit);
 
   uchar peak;
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)

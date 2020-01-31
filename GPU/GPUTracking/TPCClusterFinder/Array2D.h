@@ -15,6 +15,7 @@
 #define O2_GPU_ARRAY2D_H
 
 #include "clusterFinderDefs.h"
+#include "ChargePos.h"
 
 namespace GPUCA_NAMESPACE
 {

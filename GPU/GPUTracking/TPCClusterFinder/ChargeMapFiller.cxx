@@ -12,7 +12,7 @@
 /// \author Felix Weiglhofer
 
 #include "ChargeMapFiller.h"
-#include "CfUtils.h"
+#include "ChargePos.h"
 #include "Array2D.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -29,9 +29,7 @@ GPUd() void ChargeMapFiller::fillChargeMapImpl(int nBlocks, int nThreads, int iB
   }
   Digit myDigit = digits[idx];
 
-  GlobalPad gpad = CfUtils::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
-
-  chargeMap[{gpad, myDigit.time}] = PackedCharge(myDigit.charge);
+  chargeMap[ChargePos(myDigit)] = PackedCharge(myDigit.charge);
 }
 
 GPUd() void ChargeMapFiller::resetMapsImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
@@ -42,9 +40,7 @@ GPUd() void ChargeMapFiller::resetMapsImpl(int nBlocks, int nThreads, int iBlock
   size_t idx = get_global_id(0);
   Digit myDigit = digits[idx];
 
-  GlobalPad gpad = CfUtils::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
-
-  ChargePos pos(gpad, myDigit.time);
+  ChargePos pos(myDigit);
 
   chargeMap[pos] = PackedCharge(0);
   isPeakMap[pos] = 0;
