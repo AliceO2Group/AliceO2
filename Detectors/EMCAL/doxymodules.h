@@ -45,8 +45,8 @@
  * EMCAL reconstruction package. See \subpage refEMCALreconstruction
  * for more information
  */
- 
- /**
+
+/**
   * @defgroup EMCALworkflow
   * @brief EMCAL reconstruction workflow
   * @ingroup DetectorEMCAL
