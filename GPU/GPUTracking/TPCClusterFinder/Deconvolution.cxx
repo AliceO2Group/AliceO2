@@ -32,7 +32,9 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
   Digit myDigit = digits[idx];
 
   GlobalPad gpad = CfUtils::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
-  bool iamPeak = GET_IS_PEAK(IS_PEAK(peakMap, gpad, myDigit.time));
+  ChargePos pos(gpad, myDigit.time);
+
+  bool iamPeak = GET_IS_PEAK(peakMap[pos]);
 
   char peakCount = (iamPeak) ? 1 : 0;
 
@@ -46,7 +48,7 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
   partId = CfUtils::partition(smem, ll, iamPeak, SCRATCH_PAD_WORK_GROUP_SIZE, &in3x3);
 
   if (partId < in3x3) {
-    smem.count.posBcast1[partId] = (ChargePos){gpad, myDigit.time};
+    smem.count.posBcast1[partId] = pos;
   }
   GPUbarrier();
 
@@ -70,7 +72,7 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
   partId = CfUtils::partition(smem, partId, peakCount > 0 && !iamPeak, in3x3, &in5x5);
 
   if (partId < in5x5) {
-    smem.count.posBcast1[partId] = (ChargePos){gpad, myDigit.time};
+    smem.count.posBcast1[partId] = pos;
     smem.count.aboveThresholdBcast[partId] = aboveThreshold;
   }
   GPUbarrier();
@@ -94,7 +96,7 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
   }
 
 #else
-  peakCount = countPeaksAroundDigit(gpad, myDigit.time, peakMap);
+  peakCount = countPeaksAroundDigit(pos, peakMap);
   peakCount = iamPeak ? 1 : peakCount;
 #endif
 
@@ -110,12 +112,11 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
 
   PackedCharge p(myDigit.charge / peakCount, has3x3, split);
 
-  CHARGE(chargeMap, gpad, myDigit.time) = p;
+  chargeMap[pos] = p;
 }
 
 GPUd() char Deconvolution::countPeaksAroundDigit(
-  const GlobalPad gpad,
-  const Timestamp time,
+  const ChargePos& pos,
   const Array2D<uchar>& peakMap)
 {
   char peakCount = 0;
@@ -123,10 +124,8 @@ GPUd() char Deconvolution::countPeaksAroundDigit(
   uchar aboveThreshold = 0;
   for (uchar i = 0; i < 8; i++) {
     Delta2 d = CfConsts::InnerNeighbors[i];
-    Delta dp = d.x;
-    Delta dt = d.y;
 
-    uchar p = IS_PEAK(peakMap, gpad + dp, time + dt);
+    uchar p = peakMap[pos.delta(d)];
     peakCount += GET_IS_PEAK(p);
     aboveThreshold |= GET_IS_ABOVE_THRESHOLD(p) << i;
   }
@@ -137,11 +136,9 @@ GPUd() char Deconvolution::countPeaksAroundDigit(
 
   for (uchar i = 0; i < 16; i++) {
     Delta2 d = CfConsts::OuterNeighbors[i];
-    Delta dp = d.x;
-    Delta dt = d.y;
 
     if (CfUtils::innerAboveThresholdInv(aboveThreshold, i)) {
-      peakCount -= GET_IS_PEAK(IS_PEAK(peakMap, gpad + dp, time + dt));
+      peakCount -= GET_IS_PEAK(peakMap[pos.delta(d)]);
     }
   }
 

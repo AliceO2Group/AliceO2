@@ -39,13 +39,13 @@ class NoiseSuppression
 
   static GPUd() void findPeaksScratchPad(GPUsharedref() const uchar*, const ushort, const int, int, ulong*);
 
-  static GPUd() void findMinima(const Array2D<PackedCharge>&, const GlobalPad, const Timestamp, const float, const float, ulong*, ulong*);
+  static GPUd() void findMinima(const Array2D<PackedCharge>&, const ChargePos&, const float, const float, ulong*, ulong*);
 
-  static GPUd() ulong findPeaks(const Array2D<uchar>&, const GlobalPad, const Timestamp, bool);
+  static GPUd() ulong findPeaks(const Array2D<uchar>&, const ChargePos&, bool);
 
   static GPUd() bool keepPeak(ulong, ulong);
 
-  static GPUd() void findMinimaAndPeaksScratchpad(const Array2D<PackedCharge>&, const Array2D<uchar>&, float, GlobalPad, Timestamp, GPUsharedref() ChargePos*, GPUsharedref() PackedCharge*, ulong*, ulong*, ulong*);
+  static GPUd() void findMinimaAndPeaksScratchpad(const Array2D<PackedCharge>&, const Array2D<uchar>&, float, const ChargePos&, GPUsharedref() ChargePos*, GPUsharedref() PackedCharge*, ulong*, ulong*, ulong*);
 };
 
 } // namespace gpu

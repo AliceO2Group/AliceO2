@@ -36,19 +36,21 @@ GPUd() void Clusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlo
 
   GlobalPad gpad = CfUtils::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
+  ChargePos pos(gpad, myDigit.time);
+
   ClusterAccumulator pc;
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
   /* #if defined(BUILD_CLUSTER_SCRATCH_PAD) && defined(GPUCA_GPUCODE) */
   /* #if 0 */
   buildClusterScratchPad(
     chargeMap,
-    (ChargePos){gpad, myDigit.time},
+    pos,
     smem.build.posBcast,
     smem.build.buf,
     smem.build.innerAboveThreshold,
     &pc);
 #else
-  buildClusterNaive(chargeMap, &pc, gpad, myDigit.time);
+  buildClusterNaive(chargeMap, &pc, pos);
 #endif
 
   if (idx >= clusternum) {
@@ -78,56 +80,48 @@ GPUd() void Clusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlo
 GPUd() void Clusterizer::addOuterCharge(
   const Array2D<PackedCharge>& chargeMap,
   ClusterAccumulator* cluster,
-  GlobalPad gpad,
-  Timestamp time,
-  Delta dp,
-  Delta dt)
+  const ChargePos& pos,
+  Delta2 d)
 {
-  PackedCharge p = CHARGE(chargeMap, gpad + dp, time + dt);
-  cluster->updateOuter(p, dp, dt);
+  PackedCharge p = chargeMap[pos.delta(d)];
+  cluster->updateOuter(p, d);
 }
 
 GPUd() Charge Clusterizer::addInnerCharge(
   const Array2D<PackedCharge>& chargeMap,
   ClusterAccumulator* cluster,
-  GlobalPad gpad,
-  Timestamp time,
-  Delta dp,
-  Delta dt)
+  const ChargePos& pos,
+  Delta2 d)
 {
-  PackedCharge p = CHARGE(chargeMap, gpad + dp, time + dt);
-  return cluster->updateInner(p, dp, dt);
+  PackedCharge p = chargeMap[pos.delta(d)];
+  return cluster->updateInner(p, d);
 }
 
 GPUd() void Clusterizer::addCorner(
   const Array2D<PackedCharge>& chargeMap,
   ClusterAccumulator* myCluster,
-  GlobalPad gpad,
-  Timestamp time,
-  Delta dp,
-  Delta dt)
+  const ChargePos& pos,
+  Delta2 d)
 {
-  Charge q = addInnerCharge(chargeMap, myCluster, gpad, time, dp, dt);
+  Charge q = addInnerCharge(chargeMap, myCluster, pos, d);
 
   if (q > CHARGE_THRESHOLD) {
-    addOuterCharge(chargeMap, myCluster, gpad, time, 2 * dp, dt);
-    addOuterCharge(chargeMap, myCluster, gpad, time, dp, 2 * dt);
-    addOuterCharge(chargeMap, myCluster, gpad, time, 2 * dp, 2 * dt);
+    addOuterCharge(chargeMap, myCluster, pos, {2 * d.x, d.y});
+    addOuterCharge(chargeMap, myCluster, pos, {d.x, 2 * d.y});
+    addOuterCharge(chargeMap, myCluster, pos, {2 * d.x, 2 * d.y});
   }
 }
 
 GPUd() void Clusterizer::addLine(
   const Array2D<PackedCharge>& chargeMap,
   ClusterAccumulator* myCluster,
-  GlobalPad gpad,
-  Timestamp time,
-  Delta dp,
-  Delta dt)
+  const ChargePos& pos,
+  Delta2 d)
 {
-  Charge q = addInnerCharge(chargeMap, myCluster, gpad, time, dp, dt);
+  Charge q = addInnerCharge(chargeMap, myCluster, pos, d);
 
   if (q > CHARGE_THRESHOLD) {
-    addOuterCharge(chargeMap, myCluster, gpad, time, 2 * dp, 2 * dt);
+    addOuterCharge(chargeMap, myCluster, pos, {2 * d.x, 2 * d.y});
   }
 }
 
@@ -144,12 +138,9 @@ GPUd() void Clusterizer::updateClusterScratchpadInner(
   {
     Delta2 d = CfConsts::InnerNeighbors[i];
 
-    Delta dp = d.x;
-    Delta dt = d.y;
-
     PackedCharge p = buf[N * lid + i];
 
-    Charge q = cluster->updateInner(p, dp, dt);
+    Charge q = cluster->updateInner(p, d);
 
     aboveThreshold |= (uchar(q > CHARGE_THRESHOLD) << i);
   }
@@ -172,10 +163,8 @@ GPUd() void Clusterizer::updateClusterScratchpadOuter(
     PackedCharge p = buf[N * lid + i];
 
     Delta2 d = CfConsts::OuterNeighbors[i];
-    Delta dp = d.x;
-    Delta dt = d.y;
 
-    cluster->updateOuter(p, dp, dt);
+    cluster->updateOuter(p, d);
   }
 }
 
@@ -268,8 +257,7 @@ GPUd() void Clusterizer::buildClusterScratchPad(
 GPUd() void Clusterizer::buildClusterNaive(
   const Array2D<PackedCharge>& chargeMap,
   ClusterAccumulator* myCluster,
-  GlobalPad gpad,
-  Timestamp time)
+  const ChargePos& pos)
 {
   // Add charges in top left corner:
   // O O o o o
@@ -277,7 +265,7 @@ GPUd() void Clusterizer::buildClusterNaive(
   // o i c i o
   // o i i i o
   // o o o o o
-  addCorner(chargeMap, myCluster, gpad, time, -1, -1);
+  addCorner(chargeMap, myCluster, pos, {-1, -1});
 
   // Add upper charges
   // o o O o o
@@ -285,7 +273,7 @@ GPUd() void Clusterizer::buildClusterNaive(
   // o i c i o
   // o i i i o
   // o o o o o
-  addLine(chargeMap, myCluster, gpad, time, 0, -1);
+  addLine(chargeMap, myCluster, pos, {0, -1});
 
   // Add charges in top right corner:
   // o o o O O
@@ -293,7 +281,7 @@ GPUd() void Clusterizer::buildClusterNaive(
   // o i c i o
   // o i i i o
   // o o o o o
-  addCorner(chargeMap, myCluster, gpad, time, 1, -1);
+  addCorner(chargeMap, myCluster, pos, {1, -1});
 
   // Add left charges
   // o o o o o
@@ -301,7 +289,7 @@ GPUd() void Clusterizer::buildClusterNaive(
   // O I c i o
   // o i i i o
   // o o o o o
-  addLine(chargeMap, myCluster, gpad, time, -1, 0);
+  addLine(chargeMap, myCluster, pos, {-1, 0});
 
   // Add right charges
   // o o o o o
@@ -309,7 +297,7 @@ GPUd() void Clusterizer::buildClusterNaive(
   // o i c I O
   // o i i i o
   // o o o o o
-  addLine(chargeMap, myCluster, gpad, time, 1, 0);
+  addLine(chargeMap, myCluster, pos, {1, 0});
 
   // Add charges in bottom left corner:
   // o o o o o
@@ -317,7 +305,7 @@ GPUd() void Clusterizer::buildClusterNaive(
   // o i c i o
   // O I i i o
   // O O o o o
-  addCorner(chargeMap, myCluster, gpad, time, -1, 1);
+  addCorner(chargeMap, myCluster, pos, {-1, 1});
 
   // Add bottom charges
   // o o o o o
@@ -325,7 +313,7 @@ GPUd() void Clusterizer::buildClusterNaive(
   // o i c i o
   // o i I i o
   // o o O o o
-  addLine(chargeMap, myCluster, gpad, time, 0, 1);
+  addLine(chargeMap, myCluster, pos, {0, 1});
 
   // Add charges in bottom right corner:
   // o o o o o
@@ -333,7 +321,7 @@ GPUd() void Clusterizer::buildClusterNaive(
   // o i c i o
   // o i i I O
   // o o o O O
-  addCorner(chargeMap, myCluster, gpad, time, 1, 1);
+  addCorner(chargeMap, myCluster, pos, {1, 1});
 }
 
 GPUd() void Clusterizer::sortIntoBuckets(const tpc::ClusterNative& cluster, const uint bucket, const uint maxElemsPerBucket, GPUglobalref() uint* elemsInBucket, GPUglobalref() tpc::ClusterNative* buckets)
