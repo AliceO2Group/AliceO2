@@ -38,7 +38,6 @@ class ShishKebabTrd1Module;
 class Geometry
 {
  public:
-
   /// \brief Default constructor.
   /// It must be kept public for root persistency purposes,
   /// but should never be called by the outside world
@@ -74,7 +73,7 @@ class Geometry
   static Geometry* GetInstance();
 
   /// \brief Get instance of the EMCAL geometry
-  /// \param name Geometry name (see constructor for definition) 
+  /// \param name Geometry name (see constructor for definition)
   /// \param title Geometry title
   /// \param mcname Geant3/4, Fluka, needed for settings of transport
   /// \param mctitle: Geant4 physics list
