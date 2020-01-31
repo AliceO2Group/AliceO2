@@ -68,16 +68,22 @@ class RawFileReader
 
   //=====================================================================================
   struct LinkBlock {
+    enum {StartTF=0x1, StartHB=0x1<<1, StartSP=0x1<<2, EndHB=0x1<<3};
     size_t offset = 0;    // where data of the block starts
     uint32_t size = 0;    // block size
+    uint32_t tfID = 0;    // tf counter (from 0)
     uint32_t orbit = 0;   // orbit starting the block
-    uint16_t fileID = 0;  // file id where the file is located
-    bool startTF = false; // does this block starts a new TF ?
-    bool startHB = false; // does this block starts a new HBF ?
-    bool startSP = false; // does the block correspond to new superpage?
-    bool endHB = false;   // ends by RDH with stop (HBF close)
+    uint16_t fileID = 0;  // file id where the block is located
+    uint8_t  flags = 0;   // different flags
     LinkBlock() = default;
     LinkBlock(int fid, size_t offs) : offset(offs), fileID(fid) {}
+    void setFlag(uint8_t fl, bool v=true) {
+      if (v)
+	flags |= fl;
+      else 
+	flags &= ~fl;
+    }
+    bool testFlag(uint8_t fl) const { return (flags&fl)==fl; }
     void print(const std::string pref = "") const;
   };
 
@@ -90,18 +96,26 @@ class RawFileReader
     uint32_t nCRUPages = 0;
     uint32_t nSPages = 0;
     int nErrors = 0;
+    char* dataPtr = nullptr; // pointer on currently fetched (TF) data (buffer not owned by the link) //RSTODO used?
+    int dataSize = 0; // size of link's data attached to dataPtr. //RSTODO used?
+    std::vector<LinkBlock> blocks;
     //
-    // transient info during pre-processing
+    // transient info during processing
     bool openHB = false;
     int nHBFinTF = 0;
-    std::vector<LinkBlock> blocks;
-
+    int nextBlock2Read = 0;  // next block which should be read
+    
     LinkData() = default;
     LinkData(const o2::header::RAWDataHeaderV4& rdh, const RawFileReader* r);
     LinkData(const o2::header::RAWDataHeaderV5& rdh, const RawFileReader* r);
     bool preprocessCRUPage(const RDH& rdh, bool newSPage);
     size_t getLargestSuperPage() const;
     size_t getLargestTF() const;
+
+    size_t getNextHBFSize() const;
+    size_t getNextTFSize() const;
+    size_t readNextHBF(char* buff) const;
+    
     void print(bool verbose = false, const std::string pref = "") const;
 
    private:
@@ -135,6 +149,9 @@ class RawFileReader
   void setNominalHBFperTF(int n = 256) { mNominalHBFperTF = n > 1 ? n : 1; }
   int getNominalHBFperTF() const { return mNominalHBFperTF; }
 
+  uint32_t getOrbitMin() const {return mOrbitMin;}
+  uint32_t getOrbitMax() const {return mOrbitMax;}  
+  
  private:
   bool checkRDH(const o2::header::RAWDataHeaderV4& rdh) const;
   bool checkRDH(const o2::header::RAWDataHeaderV5& rdh) const;
@@ -148,6 +165,9 @@ class RawFileReader
   std::unordered_map<LinkSpec_t, int> mLinkEntries; // mapping between RDH specs and link entry in the mLinksData
   std::vector<LinkData> mLinksData;                 // info on links data in the files
   std::vector<int> mOrderedIDs;                     // links entries ordered in Specs
+  uint32_t mNextTF2Read = 0;                        // next TF to read
+  uint32_t mOrbitMin = 0xffffffff;                  // lowest orbit seen by any link
+  uint32_t mOrbitMax = 0;                           // highest orbit seen by any link  
   int mNominalSPageSize = 0x1 << 20;                // expected super-page size in B
   int mNominalHBFperTF = 256;                       // expected N HBF per TF
   int mCurrentFileID = 0;                           // current file being processed

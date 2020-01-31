@@ -17,10 +17,12 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+#include <pair>
 #include "DetectorsRaw/RawFileReader.h"
 #include "CommonConstants/Triggers.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "Framework/Logger.h"
+#include "Headers/DataHeader.h"
 
 using namespace o2::raw;
 
@@ -28,8 +30,9 @@ using namespace o2::raw;
 //____________________________________________
 void RawFileReader::LinkBlock::print(const std::string pref) const
 {
-  LOGF(INFO, "%sfile:%3d offs:%10zu size:%8d newSP:%d newTF:%d newHB:%d endHB:%d | Orbit %u",
-       pref, fileID, offset, size, startSP, startTF, startHB, endHB, orbit);
+  LOGF(INFO, "%sfile:%3d offs:%10zu size:%8d newSP:%d newTF:%d newHB:%d endHB:%d | Orbit %u TF %u",
+       pref, fileID, offset, size, testFlag(StartSP), testFlag(StartTF), testFlag(StartHB),
+       testFlag(EndHB), orbit, tfID);
 }
 
 //====================== methods of LinkData ========================
@@ -62,12 +65,64 @@ void RawFileReader::LinkData::print(bool verbose, const std::string pref) const
 }
 
 //____________________________________________
+size_t RawFileReader::LinkData::getNextHBFSize() const
+{
+  // estimate the memory size of the next HBF to read
+  // The blocks are guaranteed to not cover more than 1 HB
+  size_t sz = 0;
+  int ibl = nextBlock2Read, nbl = blocks.size();
+  while(ibl<nbl && (blocks[ibl].orbit == blocks[nextBlock2Read].orbit)) {
+    sz += blocks[ibl].size;
+    ibl++;
+  }
+  return sz;
+}
+
+//____________________________________________
+size_t RawFileReader::LinkData::readNextHBF(char* buff)
+{
+  // read data of the next complete HB
+  size_t sz = 0;
+  int ibl = nextBlock2Read, nbl = blocks.size();
+  bool error = false;
+  while(ibl<nbl) {
+    const auto& blc = blocks[ibl++];
+    if (blc.orbit != blocks[nextBlock2Read].orbit) {
+      break;
+    }
+    auto fl = reader->mFiles[blc.fileID];
+    if (fseek(fl, blc.offset, SEED_SET) || fread(fuff, 1, blc.size, fl)!=blc.size) {
+      LOGF(ERROR,"Failed to read for the link with subspec %x a bloc:", subspec);
+      blc.print();
+      error = true;
+    }
+    sz += blc.size;
+  }
+  nextBlock2Read = ibl;
+  return error ? 0 : sz; // in case of the error we ignore the data
+}
+
+//____________________________________________
+size_t RawFileReader::LinkData::getNextTFSize() const
+{
+  // estimate the memory size of the next TF to read
+  // (assuming nextBlock2Read is at the start of the TF)
+  size_t sz = 0;
+  int ibl = nextBlock2Read, nbl = blocks.size();  
+  while(ibl<nbl && (blocks[ibl].tfID==blocks[nextBlock2Read].tfID)) {
+    sz += blocks[ibl].size;
+    ibl++;
+  }
+  return sz;
+}
+
+//____________________________________________
 size_t RawFileReader::LinkData::getLargestSuperPage() const
 {
   // estimate largest super page size
   size_t szMax = 0, szLast = 0;
   for (const auto& bl : blocks) {
-    if (bl.startSP) { // account previous SPage and start accumulation of the next one
+    if (bl.testFlag(LinkBlock::StartSP)) { // account previous SPage and start accumulation of the next one
       if (szLast > szMax) {
         szMax = szLast;
       }
@@ -84,7 +139,7 @@ size_t RawFileReader::LinkData::getLargestTF() const
   // estimate largest TF
   size_t szMax = 0, szLast = 0;
   for (const auto& bl : blocks) {
-    if (bl.startTF) { // account previous TF and start accumulation of the next one
+    if (bl.testFlag(LinkBlock::StartTF)) { // account previous TF and start accumulation of the next one
       if (szLast > szMax) {
         szMax = szLast;
       }
@@ -192,10 +247,9 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
 
   if (newTF || newSPage || newHB) {
     auto& bl = blocks.emplace_back(reader->mCurrentFileID, reader->mPosInFile);
-    bl.orbit = o2::raw::HBFUtils::getHBOrbit(rdh);
-    if (newTF) {
+    if (newTF) {      
       nTimeFrames++;
-      bl.startTF = true;
+      bl.setFlag(LinkBlock::StartTF);
       if (reader->mCheckErrors & ErrNoSuperPageForTF) {
         if (reader->mMultiLinkFile && !newSPage) {
           LOG(ERROR) << ErrNames[ErrNoSuperPageForTF] << " @ TF#" << nTimeFrames;
@@ -204,14 +258,19 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
         }
       } // end of check errors
     }
+    bl.orbit = o2::raw::HBFUtils::getHBOrbit(rdh);
+    bl.tfID = nTimeFrames-1;
+    
     if (newSPage) {
       nSPages++;
-      bl.startSP = true;
+      bl.setFlag(LinkBlock::StartSP);
     }
-    bl.startHB = true;
+    if (newHB) {
+      bl.setFlag(LinkBlock::StartHB);
+    }
   }
-  blocks.back().endHB = rdh.stop;         // last processed RDH defines this flag
-  blocks.back().size += rdh.offsetToNext; // last processed RDH defines this flag
+  blocks.back().setFlag(LinkBlock::EndHB, rdh.stop);  // last processed RDH defines this flag
+  blocks.back().size += rdh.offsetToNext; 
   rdhl = rdh;
   nCRUPages++;
   if (!ok) {
@@ -408,7 +467,8 @@ bool RawFileReader::addFile(const std::string& sname)
 //_____________________________________________________________________
 bool RawFileReader::init()
 {
-
+  // make initialization, preprocess files and chack for errors if asked
+  
   for (int i = 0; i < NErrorsDefined; i++) {
     if (mCheckErrors & (0x1 << i))
       LOGF(INFO, "perform check for /%s/", ErrNames[i].data());
@@ -427,6 +487,7 @@ bool RawFileReader::init()
             [& links = mLinksData](int a, int b) { return links[a].subspec < links[b].subspec; });
 
   size_t maxSP = 0, maxTF = 0;
+  
   LOGF(INFO, "Summary of preprocessing:");
   for (int i = 0; i < int(mLinksData.size()); i++) {
     const auto& link = getLink(i);
@@ -445,7 +506,15 @@ bool RawFileReader::init()
       LOGF(WARNING, "       Attention: largest superpage %zu B exceeds expected %d B",
            msp, mNominalSPageSize);
     }
+    // min max orbits
+    if (link.blocks.front().orbit < mOrbitMin) {
+      mOrbitMin = link.blocks.front().orbit;      
+    }
+    if (link.blocks.back().orbit > mOrbitMax) {
+      mOrbitMax = link.blocks.back().orbit;      
+    }    
   }
+  LOGF(INFO, "First orbit: %d, Last orbit: %d",mOrbitMin, mOrbitMax);
   LOGF(INFO, "Largest super-page: %zu B, largest TF: %zu B", maxSP, maxTF);
   if (!mCheckErrors) {
     LOGF(INFO, "Detailed data format check was disabled");
@@ -453,4 +522,29 @@ bool RawFileReader::init()
   mInitDone = true;
 
   return ok;
+}
+
+//_____________________________________________________________________
+bool RawFileReader::readNextTF()
+{
+  size_t sz = 0;
+  for (int i = 0; i < int(mLinksData.size()); i++) {
+    const auto& link = getLink(i);
+    sz += link.getNextTFSize(); // size of TF and number of HBFs (don't trust to expected value?)
+  }
+  // create a buffer for new TF
+  std::unique<char[]> buff = std::make_unique<char[]>(sz);
+  char* buffPtr = buff.get();
+  
+  for (int i = 0; i < int(mLinksData.size()); i++) {
+    auto& link = getLink(i);
+    if (link.nextBlock2Read<int(link.blocks.size()) && link.blocks[link.nextBlock2Read].tfID == mNextTF2Read) {
+      auto szHBF = link->readNextHBF(buffPtr);
+      //
+      // RSTODO: create a DataHeader, add to multipart
+      //
+    }
+  }
+  mNextTF2Read++;
+  return true;
 }
