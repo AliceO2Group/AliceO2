@@ -33,7 +33,7 @@ HOST=`hostname`
 TAG="conf=${SIMCONFIG},host=${HOST}${ALIDISTCOMMIT:+,alidist=$ALIDISTCOMMIT}${O2COMMIT:+,o2=$O2COMMIT}"
 echo "TAG = $TAG"
 
-echo "versions,${TAG} alidist=\"${ALIDISTCOMMIT}\",O2=\"${O2COMMIT}\" ${TIMEST}" >> metrics.dat
+echo "versions,${TAG} alidist=\"${ALIDISTCOMMIT}\",O2=\"${O2COMMIT}\" " >> metrics.dat
 
 # we count some simple indicators for problems
 WARNCOUNT=0
@@ -68,8 +68,8 @@ WARNCOUNT=`bc <<< "${WARNCOUNT} + ${WARN}"`
 ERRORCOUNT=`bc <<< "${ERRORCOUNT} + ${ERR}"`
 EXCEPTIONCOUNT=`bc <<< "${EXCEPTIONCOUNT} + ${EXC}"`
 
-echo "time_sim,${TAG} init=$INITTIME,run=${RUNTIME} ${TIMEST}" >> metrics.dat
-echo "mem_sim,${TAG} init=$INITMEM,run=${TOTALMEM} ${TIMEST}" >> metrics.dat
+echo "time_sim,${TAG} init=$INITTIME,run=${RUNTIME} " >> metrics.dat
+echo "mem_sim,${TAG} init=$INITMEM,run=${TOTALMEM} " >> metrics.dat
 
 ### ------ we run the digitization steps
 
@@ -116,14 +116,14 @@ for d in TRD ITS EMC TPC MFT MCH MID FDD FV0 FT0 PHS TOF HMP; do
 done
 DIGITTIME=$SECONDS  # with this we can calculate fractional contribution
 # add value for this detector
-digi_time_metrics="${digi_time_metrics}total=${digi_total_time} ${TIMEST}"
-digi_mem_metrics="${digi_mem_metrics}total=${digi_total_mem} ${TIMEST}"
+digi_time_metrics="${digi_time_metrics}total=${digi_total_time} "
+digi_mem_metrics="${digi_mem_metrics}total=${digi_total_mem} "
 
 echo ${digi_time_metrics} >> metrics.dat
 echo ${digi_mem_metrics} >> metrics.dat
-echo "warncount,${TAG} value=${WARNCOUNT} ${TIMEST}" >> metrics.dat
-echo "errorcount,${TAG} value=${ERRORCOUNT} ${TIMEST}" >> metrics.dat
-echo "exceptioncount,${TAG} value=${EXCEPTIONCOUNT} ${TIMEST}" >> metrics.dat
+echo "warncount,${TAG} value=${WARNCOUNT} " >> metrics.dat
+echo "errorcount,${TAG} value=${ERRORCOUNT} " >> metrics.dat
+echo "exceptioncount,${TAG} value=${EXCEPTIONCOUNT} " >> metrics.dat
 
 
 done # end loop over configurations engines
