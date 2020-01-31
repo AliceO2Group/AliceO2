@@ -14,6 +14,7 @@
 #include "Deconvolution.h"
 #include "CfConsts.h"
 #include "CfUtils.h"
+#include "ChargePos.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::deprecated;
@@ -31,8 +32,7 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
 
   Digit myDigit = digits[idx];
 
-  GlobalPad gpad = CfUtils::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
-  ChargePos pos(gpad, myDigit.time);
+  ChargePos pos(myDigit);
 
   bool iamPeak = GET_IS_PEAK(peakMap[pos]);
 

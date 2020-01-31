@@ -16,6 +16,7 @@
 
 #include "GPUDef.h"
 #include "clusterFinderDefs.h"
+#include "ChargePos.h"
 #include "PackedCharge.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 

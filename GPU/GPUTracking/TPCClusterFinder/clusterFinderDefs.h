@@ -98,18 +98,6 @@ using Charge = float;
 using Delta = short;
 using Delta2 = short2;
 
-struct ChargePos {
-  GlobalPad gpad;
-  Timestamp time;
-
-  GPUdDefault() ChargePos() CON_DEFAULT;
-  GPUdi() ChargePos(const GlobalPad& p, const Timestamp& t) : gpad(p), time(t) {}
-
-  GPUdi() ChargePos delta(const Delta2& d) const
-  {
-    return {GlobalPad(gpad + d.x), Timestamp(time + d.y)};
-  }
-};
 
 using local_id = short2;
 
