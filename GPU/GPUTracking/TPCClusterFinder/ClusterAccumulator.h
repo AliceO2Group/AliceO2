@@ -32,8 +32,8 @@ class ClusterAccumulator
 {
 
  public:
-  GPUd() Charge updateInner(PackedCharge, Delta, Delta);
-  GPUd() Charge updateOuter(PackedCharge, Delta, Delta);
+  GPUd() Charge updateInner(PackedCharge, Delta2);
+  GPUd() Charge updateOuter(PackedCharge, Delta2);
 
   GPUd() void finalize(const deprecated::Digit&);
   GPUd() void toNative(const deprecated::Digit&, tpc::ClusterNative&) const;
@@ -47,7 +47,7 @@ class ClusterAccumulator
   uchar mSplitInTime = 0;
   uchar mSplitInPad = 0;
 
-  GPUd() void update(Charge, Delta, Delta);
+  GPUd() void update(Charge, Delta2);
 };
 
 } // namespace gpu

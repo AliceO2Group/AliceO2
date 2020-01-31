@@ -31,7 +31,7 @@ GPUd() void ChargeMapFiller::fillChargeMapImpl(int nBlocks, int nThreads, int iB
 
   GlobalPad gpad = CfUtils::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
-  CHARGE(chargeMap, gpad, myDigit.time) = PackedCharge(myDigit.charge, false, false);
+  chargeMap[{gpad, myDigit.time}] = PackedCharge(myDigit.charge);
 }
 
 GPUd() void ChargeMapFiller::resetMapsImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
@@ -44,6 +44,8 @@ GPUd() void ChargeMapFiller::resetMapsImpl(int nBlocks, int nThreads, int iBlock
 
   GlobalPad gpad = CfUtils::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
-  CHARGE(chargeMap, gpad, myDigit.time) = PackedCharge(0);
-  IS_PEAK(isPeakMap, gpad, myDigit.time) = 0;
+  ChargePos pos(gpad, myDigit.time);
+
+  chargeMap[pos] = PackedCharge(0);
+  isPeakMap[pos] = 0;
 }

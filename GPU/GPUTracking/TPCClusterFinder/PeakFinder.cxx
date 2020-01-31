@@ -23,7 +23,8 @@ using namespace GPUCA_NAMESPACE::gpu::deprecated;
 
 GPUd() bool PeakFinder::isPeakScratchPad(
   GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
-  const Digit* digit,
+  Charge q,
+  const ChargePos& pos,
   ushort N,
   const Array2D<o2::gpu::PackedCharge>& chargeMap,
   GPUsharedref() ChargePos* posBcast,
@@ -31,14 +32,7 @@ GPUd() bool PeakFinder::isPeakScratchPad(
 {
   ushort ll = get_local_id(0);
 
-  const Timestamp time = digit->time;
-  const Row row = digit->row;
-  const Pad pad = digit->pad;
-
-  const GlobalPad gpad = CfUtils::tpcGlobalPadIdx(row, pad);
-  ChargePos pos = {gpad, time};
-
-  bool belowThreshold = (digit->charge <= QMAX_CUTOFF);
+  bool belowThreshold = (q <= QMAX_CUTOFF);
 
   ushort lookForPeaks;
   ushort partId = CfUtils::partition(
@@ -70,35 +64,29 @@ GPUd() bool PeakFinder::isPeakScratchPad(
 
   bool peak = true;
   for (ushort i = 0; i < N; i++) {
-    Charge q = buf[N * partId + i].unpack();
-    peak &= (digit->charge > q) || (CfConsts::InnerTestEq[i] && digit->charge == q);
+    Charge other = buf[N * partId + i].unpack();
+    peak &= (q > other) || (CfConsts::InnerTestEq[i] && q == other);
   }
 
   return peak;
 }
 
 GPUd() bool PeakFinder::isPeak(
-  const Digit* digit,
+  Charge myCharge,
+  const ChargePos& pos,
   const Array2D<PackedCharge>& chargeMap)
 {
-  if (digit->charge <= QMAX_CUTOFF) {
+  if (myCharge <= QMAX_CUTOFF) {
     return false;
   }
 
-  const Charge myCharge = digit->charge;
-  const Timestamp time = digit->time;
-  const Row row = digit->row;
-  const Pad pad = digit->pad;
-
-  const GlobalPad gpad = CfUtils::tpcGlobalPadIdx(row, pad);
-
   bool peak = true;
 
-#define CMP_NEIGHBOR(dp, dt, cmpOp)                           \
-  do {                                                        \
-    PackedCharge p = CHARGE(chargeMap, gpad + dp, time + dt); \
-    const Charge otherCharge = p.unpack();                    \
-    peak &= (otherCharge cmpOp myCharge);                     \
+#define CMP_NEIGHBOR(dp, dt, cmpOp)                  \
+  do {                                               \
+    PackedCharge p = chargeMap[pos.delta({dp, dt})]; \
+    const Charge otherCharge = p.unpack();           \
+    peak &= (otherCharge cmpOp myCharge);            \
   } while (false)
 
 #define CMP_LT CMP_NEIGHBOR(-1, -1, <=)
@@ -159,11 +147,15 @@ GPUd() void PeakFinder::findPeaksImpl(int nBlocks, int nThreads, int iBlock, int
   // These dummy items also compute the last digit but discard the result.
   Digit myDigit = digits[CAMath::Min(idx, (size_t)(digitnum - 1))];
 
+  const GlobalPad gpad = CfUtils::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+
+  ChargePos pos(gpad, myDigit.time);
+
   uchar peak;
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
-  peak = isPeakScratchPad(smem, &myDigit, SCRATCH_PAD_SEARCH_N, chargeMap, smem.search.posBcast, smem.search.buf);
+  peak = isPeakScratchPad(smem, myDigit.charge, pos, SCRATCH_PAD_SEARCH_N, chargeMap, smem.search.posBcast, smem.search.buf);
 #else
-  peak = isPeak(&myDigit, chargeMap);
+  peak = isPeak(myDigit.charge, pos, chargeMap);
 #endif
 
   // Exit early if dummy. See comment above.
@@ -174,8 +166,5 @@ GPUd() void PeakFinder::findPeaksImpl(int nBlocks, int nThreads, int iBlock, int
 
   isPeakPredicate[idx] = peak;
 
-  const GlobalPad gpad = CfUtils::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
-
-  IS_PEAK(peakMap, gpad, myDigit.time) =
-    (uchar(myDigit.charge > CHARGE_THRESHOLD) << 1) | peak;
+  peakMap[pos] = (uchar(myDigit.charge > CHARGE_THRESHOLD) << 1) | peak;
 }

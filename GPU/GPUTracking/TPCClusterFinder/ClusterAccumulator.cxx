@@ -36,39 +36,39 @@ GPUd() void ClusterAccumulator::toNative(const deprecated::Digit& d, tpc::Cluste
   cn.setSigmaPad(mPadSigma);
 }
 
-GPUd() void ClusterAccumulator::update(Charge splitCharge, Delta dp, Delta dt)
+GPUd() void ClusterAccumulator::update(Charge splitCharge, Delta2 d)
 {
   mQtot += splitCharge;
-  mPadMean += splitCharge * dp;
-  mTimeMean += splitCharge * dt;
-  mPadSigma += splitCharge * dp * dp;
-  mTimeSigma += splitCharge * dt * dt;
+  mPadMean += splitCharge * d.x;
+  mTimeMean += splitCharge * d.y;
+  mPadSigma += splitCharge * d.x * d.x;
+  mTimeSigma += splitCharge * d.y * d.y;
 }
 
-GPUd() Charge ClusterAccumulator::updateInner(PackedCharge charge, Delta dp, Delta dt)
+GPUd() Charge ClusterAccumulator::updateInner(PackedCharge charge, Delta2 d)
 {
   Charge q = charge.unpack();
 
-  update(q, dp, dt);
+  update(q, d);
 
   bool split = charge.isSplit();
-  mSplitInTime += (dt != 0 && split);
-  mSplitInPad += (dp != 0 && split);
+  mSplitInTime += (d.y != 0 && split);
+  mSplitInPad += (d.x != 0 && split);
 
   return q;
 }
 
-GPUd() Charge ClusterAccumulator::updateOuter(PackedCharge charge, Delta dp, Delta dt)
+GPUd() Charge ClusterAccumulator::updateOuter(PackedCharge charge, Delta2 d)
 {
   Charge q = charge.unpack();
 
   bool split = charge.isSplit();
   bool has3x3 = charge.has3x3Peak();
 
-  update((has3x3) ? 0.f : q, dp, dt);
+  update((has3x3) ? 0.f : q, d);
 
-  mSplitInTime += (dt != 0 && split && !has3x3);
-  mSplitInPad += (dp != 0 && split && !has3x3);
+  mSplitInTime += (d.y != 0 && split && !has3x3);
+  mSplitInPad += (d.x != 0 && split && !has3x3);
 
   return q;
 }

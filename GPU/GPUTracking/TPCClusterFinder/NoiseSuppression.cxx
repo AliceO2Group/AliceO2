@@ -36,13 +36,14 @@ GPUd() void NoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, in
 
   bool debug = false;
 
+  ChargePos pos(gpad, myDigit.time);
+
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
   findMinimaAndPeaksScratchpad(
     chargeMap,
     peakMap,
     myDigit.charge,
-    gpad,
-    myDigit.time,
+    pos,
     smem.noise.posBcast,
     smem.noise.buf,
     &minimas,
@@ -51,14 +52,13 @@ GPUd() void NoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, in
 #else
   findMinima(
     chargeMap,
-    gpad,
-    myDigit.time,
+    pos,
     myDigit.charge,
     NOISE_SUPPRESSION_MINIMA_EPSILON,
     &minimas,
     &bigger);
 
-  peaksAround = findPeaks(peakMap, gpad, myDigit.time, debug);
+  peaksAround = findPeaks(peakMap, pos, debug);
 #endif
 
   ulong peaksAroundBack = peaksAround;
@@ -88,10 +88,11 @@ GPUd() void NoiseSuppression::updatePeaksImpl(int nBlocks, int nThreads, int iBl
   Digit myDigit = peaks[idx];
   GlobalPad gpad = CfUtils::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
 
+  ChargePos pos(gpad, myDigit.time);
+
   uchar peak = isPeak[idx];
 
-  IS_PEAK(peakMap, gpad, myDigit.time) =
-    (uchar(myDigit.charge > CHARGE_THRESHOLD) << 1) | peak;
+  peakMap[pos] = (uchar(myDigit.charge > CHARGE_THRESHOLD) << 1) | peak;
 }
 
 GPUd() void NoiseSuppression::checkForMinima(
@@ -144,8 +145,7 @@ GPUd() void NoiseSuppression::findPeaksScratchPad(
 
 GPUd() void NoiseSuppression::findMinima(
   const Array2D<PackedCharge>& chargeMap,
-  const GlobalPad gpad,
-  const Timestamp time,
+  const ChargePos& pos,
   const float q,
   const float epsilon,
   ulong* minimas,
@@ -156,10 +156,8 @@ GPUd() void NoiseSuppression::findMinima(
 
   for (int i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++) {
     Delta2 d = CfConsts::NoiseSuppressionNeighbors[i];
-    Delta dp = d.x;
-    Delta dt = d.y;
 
-    PackedCharge other = CHARGE(chargeMap, gpad + dp, time + dt);
+    PackedCharge other = chargeMap[pos.delta(d)];
 
     checkForMinima(q, epsilon, other, i, minimas, bigger);
   }
@@ -167,23 +165,20 @@ GPUd() void NoiseSuppression::findMinima(
 
 GPUd() ulong NoiseSuppression::findPeaks(
   const Array2D<uchar>& peakMap,
-  const GlobalPad gpad,
-  const Timestamp time,
+  const ChargePos& pos,
   bool debug)
 {
   ulong peaks = 0;
   if (debug) {
-    printf("Looking around %d, %d\n", gpad, time);
+    printf("Looking around %d, %d\n", pos.gpad, pos.time);
   }
   for (int i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++) {
     Delta2 d = CfConsts::NoiseSuppressionNeighbors[i];
-    Delta dp = d.x;
-    Delta dt = d.y;
 
-    uchar p = IS_PEAK(peakMap, gpad + dp, time + dt);
+    uchar p = peakMap[pos.delta(d)];
 
     if (debug) {
-      printf("%d, %d: %d\n", dp, dt, p);
+      printf("%d, %d: %d\n", d.x, d.y, p);
     }
 
     peaks |= (ulong(GET_IS_PEAK(p)) << i);
@@ -212,8 +207,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
   const Array2D<PackedCharge>& chargeMap,
   const Array2D<uchar>& peakMap,
   float q,
-  GlobalPad gpad,
-  Timestamp time,
+  const ChargePos& pos,
   GPUsharedref() ChargePos* posBcast,
   GPUsharedref() PackedCharge* buf,
   ulong* minimas,
@@ -222,14 +216,11 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
 {
   ushort ll = get_local_id(0);
 
-  posBcast[ll] = (ChargePos){gpad, time};
+  posBcast[ll] = pos;
   GPUbarrier();
 
-#if defined(GPUCA_GPUCODE)
-  ushort wgSizeHalf = SCRATCH_PAD_WORK_GROUP_SIZE / 2;
-#else
-  ushort wgSizeHalf = 1;
-#endif
+  ushort wgSizeHalf = (SCRATCH_PAD_WORK_GROUP_SIZE + 1) / 2;
+
   bool inGroup1 = ll < wgSizeHalf;
   ushort llhalf = (inGroup1) ? ll : (ll - wgSizeHalf);
 
