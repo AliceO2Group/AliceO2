@@ -30,7 +30,10 @@ SIMCONFIG="${GEN}_N${NEVENTS}_${ENGINE}"
 HOST=`hostname`
 
 # include header information such as tested alidist tag and O2 tag
-echo "versions,conf=$SIMCONFIG,host=${HOST} alidist=${ALIDISTCOMMIT},O2=${O2COMMIT} ${TIMEST}" >> metrics.dat
+TAG="conf=${SIMCONFIG},host=${HOST}${ALIDISTCOMMIT:+,alidist=$ALIDISTCOMMIT}${O2COMMIT:+,o2=$O2COMMIT}"
+echo "TAG = $TAG"
+
+echo "versions,${TAG} alidist=\"${ALIDISTCOMMIT}\",O2=\"${O2COMMIT}\" ${TIMEST}" >> metrics.dat
 
 # we count some simple indicators for problems
 WARNCOUNT=0
@@ -65,16 +68,16 @@ WARNCOUNT=`bc <<< "${WARNCOUNT} + ${WARN}"`
 ERRORCOUNT=`bc <<< "${ERRORCOUNT} + ${ERR}"`
 EXCEPTIONCOUNT=`bc <<< "${EXCEPTIONCOUNT} + ${EXC}"`
 
-echo "time_sim,conf=$SIMCONFIG,host=${HOST} init=$INITTIME,run=${RUNTIME} ${TIMEST}" >> metrics.dat
-echo "mem_sim,conf=$SIMCONFIG,host=${HOST} init=$INITMEM,run=${TOTALMEM} ${TIMEST}" >> metrics.dat
+echo "time_sim,${TAG} init=$INITTIME,run=${RUNTIME} ${TIMEST}" >> metrics.dat
+echo "mem_sim,${TAG} init=$INITMEM,run=${TOTALMEM} ${TIMEST}" >> metrics.dat
 
 ### ------ we run the digitization steps
 
 ## we record simple walltime and maximal memory used for each detector
 SECONDS=0
 
-digi_time_metrics="walltime_digitizer,conf=$SIMCONFIG,host=${HOST} ";
-digi_mem_metrics="maxmem_digitizer,conf=$SIMCONFIG,host=${HOST} ";
+digi_time_metrics="walltime_digitizer,${TAG} ";
+digi_mem_metrics="maxmem_digitizer,${TAG} ";
 
 digi_total_time=0.
 digi_total_mem=0.
@@ -118,9 +121,9 @@ digi_mem_metrics="${digi_mem_metrics}total=${digi_total_mem} ${TIMEST}"
 
 echo ${digi_time_metrics} >> metrics.dat
 echo ${digi_mem_metrics} >> metrics.dat
-echo "warncount,conf=$SIMCONFIG,host=${HOST} value=${WARNCOUNT} ${TIMEST}" >> metrics.dat
-echo "errorcount,conf=$SIMCONFIG,host=${HOST} value=${ERRORCOUNT} ${TIMEST}" >> metrics.dat
-echo "exceptioncount,conf=$SIMCONFIG,host=${HOST} value=${EXCEPTIONCOUNT} ${TIMEST}" >> metrics.dat
+echo "warncount,${TAG} value=${WARNCOUNT} ${TIMEST}" >> metrics.dat
+echo "errorcount,${TAG} value=${ERRORCOUNT} ${TIMEST}" >> metrics.dat
+echo "exceptioncount,${TAG} value=${EXCEPTIONCOUNT} ${TIMEST}" >> metrics.dat
 
 
 done # end loop over configurations engines
