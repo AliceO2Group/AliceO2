@@ -8,7 +8,11 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(Core)
-#add_subdirectory(Tools)
-add_subdirectory(Tasks)
-add_subdirectory(Tutorials)
+o2_add_library(AnalysisCore
+               SOURCES src/StepTHn.cxx src/CorrelationContainer.cxx
+               PUBLIC_LINK_LIBRARIES O2::Framework)                  
+
+o2_target_root_dictionary(AnalysisCore
+              HEADERS include/Analysis/StepTHn.h include/Analysis/CorrelationContainer.h
+              LINKDEF src/AnalysisCoreLinkDef.h)
+
