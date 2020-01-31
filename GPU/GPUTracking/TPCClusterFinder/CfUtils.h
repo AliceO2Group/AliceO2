@@ -83,13 +83,11 @@ class CfUtils
     ushort x = ll % N;
     ushort y = ll / N;
     Delta2 d = neighbors[x + offset];
-    Delta dp = d.x;
-    Delta dt = d.y;
     LOOP_UNROLL_ATTR for (unsigned int i = y; i < wgSize; i += (elems / N))
     {
       ChargePos readFrom = posBcast[i];
       uint writeTo = N * i + x;
-      buf[writeTo] = map[{readFrom.gpad + dp, readFrom.time + dt}];
+      buf[writeTo] = map[readFrom.delta(d)];
     }
     GPUbarrier();
 #else
@@ -103,11 +101,9 @@ class CfUtils
 
     for (unsigned int i = 0; i < N; i++) {
       Delta2 d = neighbors[i + offset];
-      Delta dp = d.x;
-      Delta dt = d.y;
 
       uint writeTo = N * ll + i;
-      buf[writeTo] = map[{readFrom.gpad + dp, readFrom.time + dt}];
+      buf[writeTo] = map[readFrom.delta(d)];
     }
 
     GPUbarrier();
@@ -133,8 +129,6 @@ class CfUtils
     ushort y = ll / N;
     ushort x = ll % N;
     Delta2 d = neighbors[x + offset];
-    Delta dp = d.x;
-    Delta dt = d.y;
     LOOP_UNROLL_ATTR for (unsigned int i = y; i < wgSize; i += (elems / N))
     {
       ChargePos readFrom = posBcast[i];
@@ -142,7 +136,7 @@ class CfUtils
       uint writeTo = N * i + x;
       T v(0);
       if (pred(above, x + offset)) {
-        v = map[{readFrom.gpad + dp, readFrom.time + dt}];
+        v = map[readFrom.delta(d)];
       }
       buf[writeTo] = v;
     }
@@ -159,13 +153,11 @@ class CfUtils
 
     for (unsigned int i = 0; i < N; i++) {
       Delta2 d = neighbors[i + offset];
-      Delta dp = d.x;
-      Delta dt = d.y;
 
       uint writeTo = N * ll + i;
       T v(0);
       if (pred(above, i + offset)) {
-        v = map[{readFrom.gpad + dp, readFrom.time + dt}];
+        v = map[readFrom.delta(d)];
       }
       buf[writeTo] = v;
     }

@@ -39,13 +39,13 @@ class Clusterizer
   static GPUd() void computeClustersImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, const Array2D<PackedCharge>&, GPUglobalref() const deprecated::Digit*, uint, uint, GPUglobalref() uint*, GPUglobalref() tpc::ClusterNative*);
 
  private:
-  static GPUd() void addOuterCharge(const Array2D<PackedCharge>&, ClusterAccumulator*, GlobalPad, Timestamp, Delta, Delta);
+  static GPUd() void addOuterCharge(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&, Delta2);
 
-  static GPUd() Charge addInnerCharge(const Array2D<PackedCharge>&, ClusterAccumulator*, GlobalPad, Timestamp, Delta, Delta);
+  static GPUd() Charge addInnerCharge(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&, Delta2);
 
-  static GPUd() void addCorner(const Array2D<PackedCharge>&, ClusterAccumulator*, GlobalPad, Timestamp, Delta, Delta);
+  static GPUd() void addCorner(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&, Delta2);
 
-  static GPUd() void addLine(const Array2D<PackedCharge>&, ClusterAccumulator*, GlobalPad, Timestamp, Delta, Delta);
+  static GPUd() void addLine(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&, Delta2);
 
   static GPUd() void updateClusterScratchpadInner(ushort, ushort, GPUsharedref() const PackedCharge*, ClusterAccumulator*, GPUsharedref() uchar*);
 
@@ -53,7 +53,7 @@ class Clusterizer
 
   static GPUd() void buildClusterScratchPad(const Array2D<PackedCharge>&, ChargePos, GPUsharedref() ChargePos*, GPUsharedref() PackedCharge*, GPUsharedref() uchar*, ClusterAccumulator*);
 
-  static GPUd() void buildClusterNaive(const Array2D<PackedCharge>&, ClusterAccumulator*, GlobalPad, Timestamp);
+  static GPUd() void buildClusterNaive(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&);
 
   static GPUd() void sortIntoBuckets(const tpc::ClusterNative&, const uint, const uint, GPUglobalref() uint*, GPUglobalref() tpc::ClusterNative*);
 };

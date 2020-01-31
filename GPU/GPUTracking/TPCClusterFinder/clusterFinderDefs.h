@@ -32,8 +32,8 @@ typedef unsigned long ulong;
 #define SCRATCH_PAD_WORK_GROUP_SIZE 1
 #endif
 #ifdef GPUCA_GPUCODE
-#define BUILD_CLUSTER_NAIVE
-/* #define BUILD_CLUSTER_SCRATCH_PAD */
+/* #define BUILD_CLUSTER_NAIVE */
+#define BUILD_CLUSTER_SCRATCH_PAD
 #else
 /* #define BUILD_CLUSTER_NAIVE */
 #define BUILD_CLUSTER_SCRATCH_PAD
@@ -83,9 +83,9 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
-using Timestamp = ushort;
+using Timestamp = short;
 using Pad = unsigned char;
-using GlobalPad = ushort;
+using GlobalPad = short;
 using Row = unsigned char;
 using Cru = unsigned char;
 
@@ -101,6 +101,14 @@ using Delta2 = short2;
 struct ChargePos {
   GlobalPad gpad;
   Timestamp time;
+
+  GPUdDefault() ChargePos() CON_DEFAULT;
+  GPUdi() ChargePos(const GlobalPad& p, const Timestamp& t) : gpad(p), time(t) {}
+
+  GPUdi() ChargePos delta(const Delta2& d) const
+  {
+    return {GlobalPad(gpad + d.x), Timestamp(time + d.y)};
+  }
 };
 
 using local_id = short2;

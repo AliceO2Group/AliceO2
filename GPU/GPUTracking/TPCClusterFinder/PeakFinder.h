@@ -30,9 +30,9 @@ class PeakFinder
   static GPUd() void findPeaksImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, const Array2D<gpu::PackedCharge>&, GPUglobalref() const deprecated::Digit*, uint, GPUglobalref() uchar*, Array2D<uchar>&);
 
  private:
-  static GPUd() bool isPeakScratchPad(GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, const deprecated::Digit*, ushort, const Array2D<o2::gpu::PackedCharge>&, GPUsharedref() ChargePos*, GPUsharedref() PackedCharge*);
+  static GPUd() bool isPeakScratchPad(GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, Charge, const ChargePos&, ushort, const Array2D<o2::gpu::PackedCharge>&, GPUsharedref() ChargePos*, GPUsharedref() PackedCharge*);
 
-  static GPUd() bool isPeak(const deprecated::Digit*, const Array2D<PackedCharge>&);
+  static GPUd() bool isPeak(Charge, const ChargePos&, const Array2D<PackedCharge>&);
 };
 
 } // namespace gpu

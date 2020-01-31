@@ -21,10 +21,15 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
-template <typename T, size_t Width, size_t Height>
+template <typename T, typename Grid>
 class TilingLayoutArray2D
 {
  public:
+  enum {
+    Height = Grid::Height,
+    Width = Grid::Width,
+  };
+
   GPUdi() explicit TilingLayoutArray2D(GPUglobalref() T* d) : data(d) {}
 
   GPUdi() T& operator[](const ChargePos& p) { return data[idx(p)]; }
@@ -68,39 +73,34 @@ class LinearLayoutArray2D
   }
 };
 
-template <typename T>
-class Array2DMapper;
+template <size_t S>
+class GridSize;
+
+template <>
+struct GridSize<1> {
+  enum {
+    Width = 8,
+    Height = 8,
+  };
+};
+
+template <>
+struct GridSize<2> {
+  enum {
+    Width = 4,
+    Height = 4,
+  };
+};
 
 #if defined(CHARGEMAP_TILING_LAYOUT)
-template <>
-class Array2DMapper<PackedCharge>
-{
- public:
-  using Type = TilingLayoutArray2D<PackedCharge, 4, 4>;
-};
-
-template <>
-class Array2DMapper<uchar>
-{
- public:
-  using Type = TilingLayoutArray2D<uchar, 8, 8>;
-};
+template <typename T>
+using Array2D = TilingLayoutArray2D<T, GridSize<sizeof(T)>>;
 #else
 template <typename T>
-class Array2DMapper
-{
- public:
-  using Type = LinearLayoutArray2D<T>;
-};
+using Array2D = LinearLayoutArray2D<T>;
 #endif
-
-template <typename T>
-using Array2D = typename Array2DMapper<T>::Type;
 
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
-
-#define CHARGE(map, gpad, time) map[{gpad, time}]
-#define IS_PEAK(map, gpad, time) map[{gpad, time}]
 
 #endif
