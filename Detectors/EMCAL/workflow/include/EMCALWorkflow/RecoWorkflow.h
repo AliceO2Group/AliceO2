@@ -37,15 +37,15 @@ enum struct InputType { Digitizer, ///< directly read digits from channel {TPC:D
 /// \enum OutputType
 /// \brief Output types of the workflow
 /// \ingroup EMCALworkflow
-enum struct OutputType { Digits,        ///< EMCAL digits
-                         Cells,         ///< EMCAL cells
-                         Raw,           ///< EMCAL raw data
-                         Clusters       ///< EMCAL clusters
+enum struct OutputType { Digits,  ///< EMCAL digits
+                         Cells,   ///< EMCAL cells
+                         Raw,     ///< EMCAL raw data
+                         Clusters ///< EMCAL clusters
 };
 
 /// \brief create the workflow for EMCAL reconstruction
 /// \param propagateMC If true MC labels are propagated to the output files
-/// \param enableDigitsPrinter If true 
+/// \param enableDigitsPrinter If true
 /// \param cfgInput Input objects processed in the workflow
 /// \param cfgOutput Output objects created in the workflow
 /// \return EMCAL reconstruction workflow for the configuration provided
