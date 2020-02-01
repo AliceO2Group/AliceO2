@@ -263,13 +263,14 @@ class InputRecord
       // implementation (f)
     } else if constexpr (is_span<T>::value) {
       // substitution for span of messageable objects
-      // Note: there is no check for serialization type for the moment, which means that the method
-      // can be used to get the raw buffer by simply querying gsl::span<unsigned char>.
       // FIXME: there will be std::span in C++20
-      static_assert(has_messageable_value_type<T>::value, "span can only be created for messageable types");
+      static_assert(is_messageable<typename T::value_type>::value, "span can only be created for messageable types");
       DataRef ref = get<DataRef>(binding);
       auto header = header::get<const header::DataHeader*>(ref.header);
       assert(header);
+      if (sizeof(typename T::value_type) > 1 && header->payloadSerializationMethod != o2::header::gSerializationMethodNone) {
+        throw std::runtime_error("Inconsistent serialization method for extracting span");
+      }
       using ValueT = typename T::value_type;
       if (header->payloadSize % sizeof(ValueT)) {
         throw std::runtime_error("Inconsistent type and payload size at " + std::string(binding) +
@@ -421,14 +422,14 @@ class InputRecord
   }
 
   /// Helper method to be used to check if a given part of the InputRecord is present.
-  bool isValid(std::string const& s)
+  bool isValid(std::string const& s) const
   {
     return isValid(s.c_str());
   }
 
   /// Helper method to be used to check if a given part of the InputRecord is present.
-  bool isValid(char const* s);
-  bool isValid(int pos);
+  bool isValid(char const* s) const;
+  bool isValid(int pos) const;
 
   size_t size() const
   {
@@ -455,7 +456,11 @@ class InputRecord
       : mParent(parent), mPosition(position), mSize(size > position ? size : position), mElement{nullptr, nullptr, nullptr}
     {
       if (mPosition < mSize) {
-        mElement = mParent->getByPos(mPosition);
+        if (mParent->isValid(mPosition)) {
+          mElement = mParent->getByPos(mPosition);
+        } else {
+          (*this)++;
+        }
       }
     }
 
@@ -464,8 +469,16 @@ class InputRecord
     // prefix increment
     SelfType& operator++()
     {
-      if (mPosition < mSize && ++mPosition < mSize) {
+      while (mPosition < mSize && ++mPosition < mSize) {
+        if (!mParent->isValid(mPosition)) {
+          continue;
+        }
         mElement = mParent->getByPos(mPosition);
+        break;
+      }
+      if (mPosition >= mSize) {
+        // reset the element to the default value of the type
+        mElement = ElementType{};
       }
       return *this;
     }
@@ -490,6 +503,33 @@ class InputRecord
     bool operator!=(const SelfType& rh)
     {
       return mPosition != rh.mPosition;
+    }
+
+    bool matches(o2::header::DataHeader matcher) const
+    {
+      if (mPosition >= mSize || mElement.header == nullptr) {
+        return false;
+      }
+      // at this point there must be a DataHeader, this has been checked by the DPL
+      // input cache
+      const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(mElement);
+      return *dh == matcher;
+    }
+
+    bool matches(o2::header::DataOrigin origin, o2::header::DataDescription description = o2::header::gDataDescriptionInvalid) const
+    {
+      if (mPosition >= mSize || mElement.header == nullptr) {
+        return false;
+      }
+      // at this point there must be a DataHeader, this has been checked by the DPL
+      // input cache
+      const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(mElement);
+      return dh->dataOrigin == origin && (description == o2::header::gDataDescriptionInvalid || dh->dataDescription == description);
+    }
+
+    bool matches(o2::header::DataOrigin origin, o2::header::DataDescription description, o2::header::DataHeader::SubSpecificationType subspec) const
+    {
+      return matches(o2::header::DataHeader{description, origin, subspec});
     }
 
    private:

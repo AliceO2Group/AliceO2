@@ -15,6 +15,7 @@
 #include "Framework/ParallelContext.h"
 
 #include <chrono>
+#include <thread>
 #include <vector>
 
 using namespace o2::framework;
@@ -41,7 +42,7 @@ DataProcessorSpec templateProducer()
                                // Create a single output.
                                size_t index = ctx.services().get<ParallelContext>().index1D();
                                std::this_thread::sleep_for(std::chrono::seconds(1));
-                               auto aData = ctx.outputs().make<int>(
+                               auto& aData = ctx.outputs().make<int>(
                                  Output{"TST", "A", static_cast<o2::header::DataHeader::SubSpecificationType>(index)}, 1);
                                ctx.services().get<ControlService>().readyToQuit(QuitRequest::All);
                              };

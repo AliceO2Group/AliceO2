@@ -79,7 +79,7 @@ GPUd() MEM_CLASS_PRE2() inline GPUTPCTrackLinearisation::GPUTPCTrackLinearisatio
   }
 }
 
-GPUd() inline void GPUTPCTrackLinearisation::Set(float SinPhi1, float CosPhi1, float DzDs1, float QPt1)
+GPUdi() void GPUTPCTrackLinearisation::Set(float SinPhi1, float CosPhi1, float DzDs1, float QPt1)
 {
   SetSinPhi(SinPhi1);
   SetCosPhi(CosPhi1);

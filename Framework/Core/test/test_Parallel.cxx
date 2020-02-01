@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/InputSpec.h"
+#include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/ParallelContext.h"
@@ -110,7 +111,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     LOG(DEBUG) << "DataSampler sends data from subSpec: " << matcher.subSpec;
 
     const auto* inputHeader = o2::header::get<o2::header::DataHeader*>(input.header);
-    auto output = ctx.outputs().make<char>(description, inputHeader->size());
+    auto& output = ctx.outputs().make<char>(description, inputHeader->size());
 
     //todo: use some std function or adopt(), when it is available for POD data
     const char* input_ptr = input.payload;
@@ -176,7 +177,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
   size_t index = ctx.services().get<ParallelContext>().index1D();
   // Creates a new message of size collectionChunkSize which
   // has "TPC" as data origin and "CLUSTERS" as data description.
-  auto tpcClusters = ctx.outputs().make<FakeCluster>(
+  auto& tpcClusters = ctx.outputs().make<FakeCluster>(
     Output{"TPC", "CLUSTERS", static_cast<o2::header::DataHeader::SubSpecificationType>(index)}, collectionChunkSize);
   int i = 0;
 
@@ -188,6 +189,7 @@ void someDataProducerAlgorithm(ProcessingContext& ctx)
     cluster.q = rand() % 1000;
     i++;
   }
+  ctx.services().get<ControlService>().endOfStream();
 }
 
 void someProcessingStageAlgorithm(ProcessingContext& ctx)
@@ -196,7 +198,7 @@ void someProcessingStageAlgorithm(ProcessingContext& ctx)
 
   const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC").payload);
 
-  auto processedTpcClusters = ctx.outputs().make<FakeCluster>(
+  auto& processedTpcClusters = ctx.outputs().make<FakeCluster>(
     Output{"TPC", "CLUSTERS_P", static_cast<o2::header::DataHeader::SubSpecificationType>(index)},
     collectionChunkSize);
 

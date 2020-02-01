@@ -10,6 +10,7 @@
 
 #include "DataFormatsEMCAL/EMCALBlockHeader.h"
 #include "EMCALWorkflow/PublisherSpec.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Headers/DataHeader.h"
 #include "DPLUtils/RootTreeReader.h"

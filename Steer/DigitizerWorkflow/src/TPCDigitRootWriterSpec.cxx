@@ -17,6 +17,7 @@
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "Framework/CallbackService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "TPCBase/Sector.h"
 #include "TPCBase/Digit.h"
@@ -113,9 +114,8 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
         if (entries == -1) {
           entries = brentries;
         } else {
-          if (brentries != entries) {
-            LOG(WARNING) << "INCONSISTENT NUMBER OF ENTRIES IN BRANCHES " << entries << " vs " << brentries;
-            entries = brentries;
+          if (brentries != entries && !TString(br->GetName()).Contains("CommonMode")) {
+            LOG(WARNING) << "INCONSISTENT NUMBER OF ENTRIES IN BRANCH " << br->GetName() << ": " << entries << " vs " << brentries;
           }
         }
       }
@@ -306,25 +306,10 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
               LOG(FATAL) << "CommonMode for sector " << sector << " are received w/o info on grouping in triggers";
             }
             {
-              if (trigS.size() == 1) { // just 1 entry (continous mode?), use digits directly
-                // connect this to a particular branch
-                auto digC = &commonModeData;
-                auto br = getOrMakeBranch(*outputtree.get(), "TPCCommonMode", sector, digC);
-                br->Fill();
-                br->ResetAddress();
-              } else {                                     // triggered mode (>1 entrie will be written)
-                std::vector<o2::tpc::CommonMode> comGroup; // group of digits related to single trigger
-                auto comGroupPtr = &comGroup;
-                auto br = getOrMakeBranch(*outputtree.get(), "TPCCommonMode", sector, comGroupPtr);
-                for (auto grp : trigS) {
-                  comGroup.clear();
-                  for (int i = 0; i < grp.getEntries(); i++) {
-                    comGroup.emplace_back(commonModeData[grp.getFirstEntry() + i]); // fetch digits of given trigger
-                  }
-                  br->Fill();
-                }
-                br->ResetAddress();
-              }
+              auto digC = &commonModeData;
+              auto br = getOrMakeBranch(*outputtree.get(), "TPCCommonMode", sector, digC);
+              br->Fill();
+              br->ResetAddress();
             }
           }
         } // end common mode case

@@ -49,6 +49,9 @@ class CalibPulser : public CalibRawBase
   /// default destructor
   ~CalibPulser() override = default;
 
+  /// initialize the clusterer from CalibPedestalParam
+  void init();
+
   /// update function called once per digit
   ///
   /// \param roc readout chamber

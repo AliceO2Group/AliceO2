@@ -86,10 +86,9 @@ void TrackInterpolation::process()
         continue;
       }
       mTrackData.emplace_back();
-      const auto& trkIdTPC = trk.getRefTPC().getIndex();
-      const auto& trkTPC = mTPCTrackVecInput->at(trkIdTPC);
-      const auto& trkITS = mITSTrackVecInput->at(trk.getRefITS().getIndex());
-      if (!extrapolateTrackITS(trkITS, trkTPC, trk.getTimeMUS().getTimeStamp(), trkIdTPC)) {
+      const auto& trkTPC = mTPCTrackVecInput->at(trk.getRefTPC());
+      const auto& trkITS = mITSTrackVecInput->at(trk.getRefITS());
+      if (!extrapolateTrackITS(trkITS, trkTPC, trk.getTimeMUS().getTimeStamp(), trk.getRefTPC())) {
         mTrackData.pop_back();
         continue;
       }
@@ -111,8 +110,8 @@ void TrackInterpolation::process()
 bool TrackInterpolation::trackPassesQualityCuts(const o2::dataformats::TrackTPCITS& matchITSTPC, bool hasOuterPoint) const
 {
   // apply track quality cuts (assume different settings for track with and without points in TRD or TOF)
-  const auto& trkTPC = mTPCTrackVecInput->at(matchITSTPC.getRefTPC().getIndex());
-  const auto& trkITS = mITSTrackVecInput->at(matchITSTPC.getRefITS().getIndex());
+  const auto& trkTPC = mTPCTrackVecInput->at(matchITSTPC.getRefTPC());
+  const auto& trkITS = mITSTrackVecInput->at(matchITSTPC.getRefITS());
   if (hasOuterPoint) {
     // track has a match in TRD or TOF
     if (trkTPC.getNClusterReferences() < param::MinTPCNCls ||
@@ -147,8 +146,8 @@ bool TrackInterpolation::interpolateTrackITSTOF(const std::pair<o2::dataformats:
   //const int clTOFSec = (TMath::ATan2(-clTOF.getY(), -clTOF.getX()) + o2::constants::math::PI) * o2::constants::math::Rad2Deg * 0.05; // taken from TOF cluster class as there is no const getter for the sector
   const int clTOFSec = clTOF.getCount();
   const float clTOFAlpha = o2::utils::Sector2Angle(clTOFSec);
-  const auto& trkTPC = mTPCTrackVecInput->at(matchITSTPC.getRefTPC().getIndex());
-  const auto& trkITS = mITSTrackVecInput->at(matchITSTPC.getRefITS().getIndex());
+  const auto& trkTPC = mTPCTrackVecInput->at(matchITSTPC.getRefTPC());
+  const auto& trkITS = mITSTrackVecInput->at(matchITSTPC.getRefITS());
   auto trkWork = trkITS.getParamOut();
   // reset the cache array (sufficient to set )
   for (auto& elem : mCache) {
@@ -162,8 +161,8 @@ bool TrackInterpolation::interpolateTrackITSTOF(const std::pair<o2::dataformats:
   for (int iCl = trkTPC.getNClusterReferences(); iCl--;) {
     uint8_t sector, row;
     uint32_t clusterIndexInRow;
-    trkTPC.getClusterReference(iCl, sector, row, clusterIndexInRow);
-    const auto& clTPC = trkTPC.getCluster(iCl, *mTPCClusterIdxStruct, sector, row);
+    trkTPC.getClusterReference(*mTPCTrackClIdxVecInput, iCl, sector, row, clusterIndexInRow);
+    const auto& clTPC = trkTPC.getCluster(*mTPCTrackClIdxVecInput, iCl, *mTPCClusterIdxStruct, sector, row);
     float clTPCX;
     std::array<float, 2> clTPCYZ;
     mFastTransform->TransformIdeal(sector, row, clTPC.getPad(), clTPC.getTime(), clTPCX, clTPCYZ[0], clTPCYZ[1], clusterTimeBinOffset);
@@ -273,7 +272,7 @@ bool TrackInterpolation::interpolateTrackITSTOF(const std::pair<o2::dataformats:
     deltaRow = 1;
   }
 
-  mTrackData[trkIdx].trkId = matchITSTPC.getRefTPC().getIndex();
+  mTrackData[trkIdx].trkId = matchITSTPC.getRefTPC();
   mTrackData[trkIdx].eta = trkTPC.getEta();
   mTrackData[trkIdx].phi = trkTPC.getSnp();
   mTrackData[trkIdx].qPt = trkTPC.getQ2Pt();
@@ -299,8 +298,8 @@ bool TrackInterpolation::extrapolateTrackITS(const o2::its::TrackITS& trkITS, co
   for (int iCl = trkTPC.getNClusterReferences(); iCl--;) {
     uint8_t sector, row;
     uint32_t clusterIndexInRow;
-    trkTPC.getClusterReference(iCl, sector, row, clusterIndexInRow);
-    const auto& cl = trkTPC.getCluster(iCl, *mTPCClusterIdxStruct, sector, row);
+    trkTPC.getClusterReference(*mTPCTrackClIdxVecInput, iCl, sector, row, clusterIndexInRow);
+    const auto& cl = trkTPC.getCluster(*mTPCTrackClIdxVecInput, iCl, *mTPCClusterIdxStruct, sector, row);
     float x = 0, y = 0, z = 0;
     mFastTransform->TransformIdeal(sector, row, cl.getPad(), cl.getTime(), x, y, z, clusterTimeBinOffset);
     if (!trk.rotate(o2::utils::Sector2Angle(sector))) {
@@ -371,6 +370,10 @@ void TrackInterpolation::attachInputTrees()
   mTreeTPCTracks->SetBranchAddress(mTPCTrackBranchName.data(), &mTPCTrackVecInput);
   LOG(info) << "Attached TPC tracks " << mTPCTrackBranchName << " branch with "
             << mTreeTPCTracks->GetEntries() << " entries";
+  mTreeTPCTracks->SetBranchAddress(mTPCTrackClIdxBranchName.data(), &mTPCTrackClIdxVecInput);
+  LOG(info) << "Attached TPC tracks cluster indices " << mTPCTrackClIdxBranchName << " branch with "
+            << mTreeTPCTracks->GetBranch(mTPCTrackClIdxBranchName.data())->GetEntries() << " entries";
+
   // access input for TPC clusters
   if (!mTPCClusterReader) {
     LOG(fatal) << "TPC clusters reader is not set";

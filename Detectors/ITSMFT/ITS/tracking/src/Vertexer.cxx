@@ -51,5 +51,10 @@ void Vertexer::findVertices()
   mTraits->computeVertices();
 }
 
+void Vertexer::findHistVertices()
+{
+  mTraits->computeHistVertices();
+}
+
 } // namespace its
 } // namespace o2

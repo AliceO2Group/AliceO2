@@ -12,6 +12,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicy.h"
+#include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DeviceSpec.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "SimReaderSpec.h"
@@ -36,9 +37,13 @@
 #include "TOFDigitizerSpec.h"
 #include "TOFDigitWriterSpec.h"
 
-// for FIT
-#include "FITDigitizerSpec.h"
-#include "FITDigitWriterSpec.h"
+// for FT0
+#include "FT0DigitizerSpec.h"
+#include "FT0DigitWriterSpec.h"
+
+// for FV0
+#include "FV0DigitizerSpec.h"
+#include "FV0DigitWriterSpec.h"
 
 // for FDD
 #include "FDDDigitizerSpec.h"
@@ -93,19 +98,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   using o2::framework::CompletionPolicy;
   // we customize the completion policy for the writer since it should stream immediately
-  auto matcher = [](DeviceSpec const& device) {
-    bool matched = device.name == "TPCDigitWriter";
-    if (matched) {
-      LOG(INFO) << "DPL completion policy for " << device.name << " customized";
-    }
-    return matched;
-  };
-
-  auto policy = [](gsl::span<o2::framework::PartRef const> const& inputs) {
-    return CompletionPolicy::CompletionOp::Consume;
-  };
-
-  policies.push_back({CompletionPolicy{"process-any", matcher, policy}});
+  policies.push_back(CompletionPolicyHelpers::defineByName("TPCDigitWriter", CompletionPolicy::CompletionOp::Consume));
 }
 
 // ------------------------------------------------------------------
@@ -143,6 +136,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
   workflowOptions.push_back(
     ConfigParamSpec{"configFile", VariantType::String, "", {"configuration file for configurable parameters"}});
+
+  // option to use/not use CCDB for TOF
+  workflowOptions.push_back(ConfigParamSpec{"use-ccdb-tof", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
 }
 
 // ------------------------------------------------------------------
@@ -402,9 +398,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // the TOF part
   if (isEnabled(o2::detectors::DetID::TOF)) {
+    auto useCCDB = configcontext.options().get<bool>("use-ccdb-tof");
     detList.emplace_back(o2::detectors::DetID::TOF);
     // connect the TOF digitization
-    specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB));
     // add TOF digit writer
     specs.emplace_back(o2::tof::getTOFDigitWriterSpec());
   }
@@ -413,9 +410,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (isEnabled(o2::detectors::DetID::FT0)) {
     detList.emplace_back(o2::detectors::DetID::FT0);
     // connect the FIT digitization
-    specs.emplace_back(o2::fit::getFT0DigitizerSpec(fanoutsize++));
+    specs.emplace_back(o2::ft0::getFT0DigitizerSpec(fanoutsize++));
     // connect the FIT digit writer
-    specs.emplace_back(o2::fit::getFT0DigitWriterSpec());
+    specs.emplace_back(o2::ft0::getFT0DigitWriterSpec());
+  }
+
+  // the FV0 part
+  if (isEnabled(o2::detectors::DetID::FV0)) {
+    detList.emplace_back(o2::detectors::DetID::FV0);
+    // connect the FV0 digitization
+    specs.emplace_back(o2::fv0::getFV0DigitizerSpec(fanoutsize++));
+    // connect the FV0 digit writer
+    specs.emplace_back(o2::fv0::getFV0DigitWriterSpec());
   }
 
   // the EMCal part

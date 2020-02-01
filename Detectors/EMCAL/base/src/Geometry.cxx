@@ -937,6 +937,30 @@ std::tuple<int, int> Geometry::GetCellPhiEtaIndexInSModule(Int_t nSupMod, Int_t 
   return std::make_tuple(iphi, ieta);
 }
 
+std::tuple<int, int> Geometry::ShiftOnlineToOfflineCellIndexes(Int_t supermoduleID, Int_t iphi, Int_t ieta) const
+{
+  if (supermoduleID == 13 || supermoduleID == 15 || supermoduleID == 17) {
+    // DCal odd SMs
+    ieta -= 16; // Same cabling mapping as for EMCal, not considered offline.
+  } else if (supermoduleID == 18 || supermoduleID == 19) {
+    // DCal 1/3 SMs
+    iphi -= 16; // Needed due to cabling mistake.
+  }
+  return std::tuple<int, int>(iphi, ieta);
+}
+
+std::tuple<int, int> Geometry::ShiftOfflineToOnlineCellIndexes(Int_t supermoduleID, Int_t iphi, Int_t ieta) const
+{
+  if (supermoduleID == 13 || supermoduleID == 15 || supermoduleID == 17) {
+    // DCal odd SMs
+    ieta += 16; // Same cabling mapping as for EMCal, not considered offline.
+  } else if (supermoduleID == 18 || supermoduleID == 19) {
+    // DCal 1/3 SMs
+    iphi += 16; // Needed due to cabling mistake.
+  }
+  return std::tuple<int, int>(iphi, ieta);
+}
+
 Point3D<double> Geometry::RelPosCellInSModule(Int_t absId) const
 {
   // Shift index taking into account the difference between standard SM

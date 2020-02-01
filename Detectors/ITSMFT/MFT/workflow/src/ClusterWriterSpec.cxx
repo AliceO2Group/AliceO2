@@ -15,6 +15,7 @@
 #include "TTree.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "MFTWorkflow/ClusterWriterSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h"
@@ -49,9 +50,11 @@ void ClusterWriter::run(ProcessingContext& pc)
   auto compClusters = pc.inputs().get<const std::vector<o2::itsmft::CompClusterExt>>("compClusters");
   auto clusters = pc.inputs().get<const std::vector<o2::itsmft::Cluster>>("clusters");
   auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
+  auto* rofsPtr = &rofs;
 
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* plabels = nullptr;
+  std::vector<o2::itsmft::MC2ROFRecord> mc2rofs, *mc2rofsPtr = &mc2rofs;
 
   LOG(INFO) << "MFTClusterWriter pulled " << clusters.size() << " clusters, in "
             << rofs.size() << " RO frames";
@@ -59,31 +62,25 @@ void ClusterWriter::run(ProcessingContext& pc)
   TTree tree("o2sim", "Tree with MFT clusters");
   tree.Branch("MFTClusterComp", &compClusters);
   tree.Branch("MFTCluster", &clusters);
+  tree.Branch("MFTClustersROF", &rofsPtr);
   if (mUseMC) {
     labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
     plabels = labels.get();
     tree.Branch("MFTClusterMCTruth", &plabels);
   }
-  tree.Fill();
-  tree.Write();
-
-  // write ROFrecords vector to a tree
-  TTree treeROF("MFTClustersROF", "ROF records tree");
-  auto* rofsPtr = &rofs;
-  treeROF.Branch("MFTClustersROF", &rofsPtr);
-  treeROF.Fill();
-  treeROF.Write();
 
   if (mUseMC) {
     // write MC2ROFrecord vector (directly inherited from digits input) to a tree
-    TTree treeMC2ROF("MFTClustersMC2ROF", "MC -> ROF records tree");
-    auto mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
-    auto* mc2rofsPtr = &mc2rofs;
-    treeMC2ROF.Branch("MFTClustersMC2ROF", &mc2rofsPtr);
-    treeMC2ROF.Fill();
-    treeMC2ROF.Write();
+    const auto m2rvec = pc.inputs().get<gsl::span<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
+    mc2rofs.reserve(m2rvec.size());
+    for (const auto& m2rv : m2rvec) {
+      mc2rofs.push_back(m2rv);
+    }
+    tree.Branch("MFTClustersMC2ROF", &mc2rofsPtr);
   }
 
+  tree.Fill();
+  tree.Write();
   mFile->Close();
 
   mState = 2;

@@ -17,6 +17,10 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 #include "TRDBase/TRDCommonParam.h"
+#include "TRDBase/TRDDiffAndTimeStructEstimator.h"
+#include "TRDBase/Calibrations.h"
+
+#include "MathUtils/RandomRing.h"
 
 namespace o2
 {
@@ -29,21 +33,45 @@ class TRDPadPlane;
 class TRDArraySignal;
 class PadResponse;
 
+struct SignalArray {
+  std::array<float, kTimeBins> signals{};
+  size_t labelIndex{0};
+};
+
+using DigitContainer = std::vector<Digit>;
+using SignalContainer = std::unordered_map<int, SignalArray>;
+
 class Digitizer
 {
  public:
   Digitizer();
   ~Digitizer() = default;
-  void process(std::vector<HitType> const&, DigitContainer_t&, o2::dataformats::MCTruthContainer<MCLabel>&);
+  void process(std::vector<HitType> const&, DigitContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
   void setEventTime(double timeNS) { mTime = timeNS; }
   void setEventID(int entryID) { mEventID = entryID; }
   void setSrcID(int sourceID) { mSrcID = sourceID; }
+  void setCalibrations(Calibrations* calibrations) { mCalib = calibrations; }
+
+  int getEventTime() const { return mTime; }
+  int getEventID() const { return mEventID; }
+  int getSrcID() const { return mSrcID; }
 
  private:
   TRDGeometry* mGeo = nullptr;            // access to TRDGeometry
   PadResponse* mPRF = nullptr;            // access to PadResponse
   TRDSimParam* mSimParam = nullptr;       // access to TRDSimParam instance
   TRDCommonParam* mCommonParam = nullptr; // access to TRDCommonParam instance
+  Calibrations* mCalib = nullptr;         // access to Calibrations in CCDB
+
+  // number of digitizer threads
+  int mNumThreads = 1;
+
+  // we create one such service structure per thread
+  std::vector<math_utils::RandomRing<>> mGausRandomRings; // pre-generated normal distributed random numbers
+  std::vector<math_utils::RandomRing<>> mFlatRandomRings; // pre-generated flat distributed random numbers
+  std::vector<math_utils::RandomRing<>> mLogRandomRings;  // pre-generated exp distributed random number
+
+  std::vector<TRDDiffusionAndTimeStructEstimator> mDriftEstimators;
 
   double mTime = 0.;
   int mEventID = 0;
@@ -54,12 +82,18 @@ class Digitizer
 
   void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, kNdet>&);
   // Digitization chaing methods
-  bool convertHits(const int, const std::vector<HitType>&, SignalContainer_t&, o2::dataformats::MCTruthContainer<MCLabel>&); // True if hit-to-signal conversion is successful
-  bool convertSignalsToDigits(const int, SignalContainer_t&);                                                                // True if signal-to-digit conversion is successful
-  bool convertSignalsToSDigits(const int, SignalContainer_t&);                                                               // True if signal-to-sdigit conversion is successful
-  bool convertSignalsToADC(const int, SignalContainer_t&);                                                                   // True if signal-to-ADC conversion is successful
+  bool convertHits(const int, const std::vector<HitType>&, SignalContainer&, o2::dataformats::MCTruthContainer<MCLabel>&, int thread = 0); // True if hit-to-signal conversion is successful
+  bool convertSignalsToADC(const int, SignalContainer&, DigitContainer&, int thread = 0);                                                  // True if signal-to-ADC conversion is successful
 
-  bool diffusion(float, double, double, double, double, double, double&, double&, double&); // True if diffusion is applied successfully
+  bool diffusion(float, float, float, float, float, float, double&, double&, double&, int thread = 0); // True if diffusion is applied successfully
+
+  // Helpers for signal handling
+  static constexpr int KEY_MIN = 0;
+  static constexpr int KEY_MAX = 2211727;
+  int calculateKey(const int det, const int row, const int col) { return ((det << 12) | (row << 8) | col); }
+  int getDetectorFromKey(const int key) { return (key >> 12) & 0xFFF; }
+  int getRowFromKey(const int key) { return (key >> 8) & 0xF; }
+  int getColFromKey(const int key) { return key & 0xFF; }
 };
 } // namespace trd
 } // namespace o2

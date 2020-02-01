@@ -78,7 +78,7 @@ class TPCFastTransformHelperO2
 
   static TPCFastTransformHelperO2* sInstance;                                                  ///< singleton instance
   bool mIsInitialized = 0;                                                                     ///< initialization flag
-  std::function<void(const double XYZ[3], double dXdYdZ[3])> mSpaceChargeCorrection = nullptr; ///< pointer to an external correction method
+  std::function<void(int roc, const double XYZ[3], double dXdYdZ[3])> mSpaceChargeCorrection = nullptr; ///< pointer to an external correction method
   TPCFastTransformGeo mGeo;                                                                    ///< geometry parameters
 
   ClassDefNV(TPCFastTransformHelperO2, 2);

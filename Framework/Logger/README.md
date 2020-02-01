@@ -1,4 +1,6 @@
+<!-- doxy
 \page refFrameworkLogger Logger
+/doxy -->
 
 ## O2 Framework Logger
 

@@ -18,12 +18,15 @@ endif()
 
 o2_add_library(Generators
                SOURCES src/Generator.cxx
+	       	       src/Trigger.cxx
+	       	       src/TriggerParticle.cxx
                        src/GeneratorTGenerator.cxx
                        src/GeneratorFromFile.cxx
                        src/Pythia6Generator.cxx
                        src/PDG.cxx
                        src/PrimaryGenerator.cxx
                        src/InteractionDiamondParam.cxx
+                       src/TriggerParticleParam.cxx
                        src/BoxGunParam.cxx
 		       src/QEDGenParam.cxx
                        src/GeneratorFactory.cxx
@@ -44,12 +47,15 @@ endif()
 
 set(headers
     include/Generators/Generator.h
+    include/Generators/Trigger.h
+    include/Generators/TriggerParticle.h
     include/Generators/GeneratorTGenerator.h
     include/Generators/GeneratorFromFile.h
     include/Generators/Pythia6Generator.h
     include/Generators/PDG.h
     include/Generators/PrimaryGenerator.h
     include/Generators/InteractionDiamondParam.h
+    include/Generators/TriggerParticleParam.h
     include/Generators/BoxGunParam.h
     include/Generators/QEDGenParam.h)
 
@@ -85,7 +91,12 @@ o2_add_test_root_macro(share/external/tgenerator.C
                        PUBLIC_LINK_LIBRARIES O2::Generators
                        LABELS generators)
 
+o2_add_test_root_macro(share/external/multiphi_trigger.C
+                       PUBLIC_LINK_LIBRARIES O2::Generators
+                       LABELS generators)
+
 		     
 install(FILES share/external/extgen.C share/external/pythia6.C
               share/external/tgenerator.C share/external/QEDLoader.C share/external/QEDepem.C
+	      share/external/multiphi_trigger.C
         DESTINATION share/Generators/external/)

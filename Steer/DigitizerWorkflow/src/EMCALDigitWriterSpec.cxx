@@ -12,8 +12,9 @@
 
 #include "EMCALDigitWriterSpec.h"
 #include "Framework/CallbackService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
-#include <SimulationDataFormat/MCCompLabel.h>
+#include <DataFormatsEMCAL/MCLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "TBranch.h"
 
@@ -44,6 +45,7 @@ void DigitsWriterSpec::init(framework::InitContext& ctx)
   mOutputFile = std::make_shared<TFile>(filename.c_str(), "RECREATE");
   mOutputTree = std::make_shared<TTree>(treename.c_str(), treename.c_str());
   mDigits = std::make_shared<std::vector<o2::emcal::Digit>>();
+  mTriggerRecords = std::make_shared<std::vector<o2::emcal::TriggerRecord>>();
   mFinished = false;
 
   // the callback to be set as hook at stop of processing for the framework
@@ -66,13 +68,23 @@ void DigitsWriterSpec::run(framework::ProcessingContext& ctx)
   auto indata = ctx.inputs().get<std::vector<o2::emcal::Digit>>("emcaldigits");
   LOG(INFO) << "RECEIVED DIGITS SIZE " << indata.size();
   *mDigits.get() = std::move(indata);
+  auto trgrecords = ctx.inputs().get<std::vector<o2::emcal::TriggerRecord>>("trgrecorddigits");
+  LOG(INFO) << "GOT " << trgrecords.size() << " TRIGGER RECORDS" << std::endl;
+  *mTriggerRecords.get() = std::move(trgrecords);
+  std::cout << "Before tree writing" << std::endl;
 
   // connect this to a particular branch
   auto br = getOrMakeBranch(*mOutputTree.get(), "EMCALDigit", mDigits.get());
   br->Fill();
 
+  // connect trigger records branch
+  std::cout << "Before trigger record writing" << std::endl;
+  auto trgbranch = getOrMakeBranch(*mOutputTree.get(), "EMCALDigitTRGR", mTriggerRecords.get());
+  trgbranch->Fill();
+  std::cout << "After trigger digit tree writing" << std::endl;
+
   // retrieve labels from the input
-  auto labeldata = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("emcaldigitlabels");
+  auto labeldata = ctx.inputs().get<o2::dataformats::MCTruthContainer<MCLabel>*>("emcaldigitlabels");
   LOG(INFO) << "EMCAL GOT " << labeldata->getNElements() << " LABELS ";
   auto labeldataraw = labeldata.get();
   // connect this to a particular branch
@@ -90,6 +102,7 @@ DataProcessorSpec getEMCALDigitWriterSpec()
   return DataProcessorSpec{
     "EMCALDigitWriter",
     Inputs{InputSpec{"emcaldigits", "EMC", "DIGITS", 0, Lifetime::Timeframe},
+           InputSpec{"trgrecorddigits", "EMC", "TRGRDIG", 0, Lifetime::Timeframe},
            InputSpec{"emcaldigitlabels", "EMC", "DIGITSMCTR", 0, Lifetime::Timeframe}},
     {}, // no output
     AlgorithmSpec(framework::adaptFromTask<DigitsWriterSpec>()),

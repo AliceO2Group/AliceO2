@@ -13,11 +13,12 @@
 #include "MFTWorkflow/ClustererSpec.h"
 #include "MFTBase/GeometryTGeo.h"
 
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 #include "ITSMFTReconstruction/DigitPixelReader.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -81,24 +82,24 @@ void ClustererDPL::run(ProcessingContext& pc)
   if (mState > 1)
     return;
 
-  auto digits = pc.inputs().get<const std::vector<o2::itsmft::Digit>>("digits");
-  auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
+  auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
+  auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
 
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
-  std::vector<o2::itsmft::MC2ROFRecord> mc2rofs;
+  gsl::span<const o2::itsmft::MC2ROFRecord> mc2rofs;
   if (mUseMC) {
-    labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
-    mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
+    labels = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
+    mc2rofs = pc.inputs().get<gsl::span<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
   }
 
   LOG(INFO) << "MFTClusterer pulled " << digits.size() << " digits, in "
             << rofs.size() << " RO frames";
 
   o2::itsmft::DigitPixelReader reader;
-  reader.setDigits(&digits);
-  reader.setROFRecords(&rofs);
+  reader.setDigits(digits);
+  reader.setROFRecords(rofs);
   if (mUseMC) {
-    reader.setMC2ROFRecords(&mc2rofs);
+    reader.setMC2ROFRecords(mc2rofs);
     reader.setDigitsMCTruth(labels.get());
   }
   reader.init();
@@ -125,7 +126,10 @@ void ClustererDPL::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{"MFT", "MFTClusterROF", 0, Lifetime::Timeframe}, clusterROframes);
   if (mUseMC) {
     pc.outputs().snapshot(Output{"MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe}, *clusterLabels.get());
-    std::vector<o2::itsmft::MC2ROFRecord>& clusterMC2ROframes = mc2rofs; // Simply, replicate it from digits ?
+    std::vector<o2::itsmft::MC2ROFRecord> clusterMC2ROframes(mc2rofs.size());
+    for (int i = mc2rofs.size(); i--;) {
+      clusterMC2ROframes[i] = mc2rofs[i]; // Simply, replicate it from digits ?
+    }
     pc.outputs().snapshot(Output{"MFT", "MFTClusterMC2ROF", 0, Lifetime::Timeframe}, clusterMC2ROframes);
   }
 

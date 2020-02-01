@@ -15,6 +15,7 @@
 #include "TTree.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
 
 using namespace o2::framework;
@@ -46,32 +47,34 @@ void ClusterReader::run(ProcessingContext& pc)
   if (mFinished) {
     return;
   }
-  accumulate();
 
-  LOG(INFO) << mDetName << "ClusterReader pushes " << mClusROFRecOut.size() << " ROFRecords,"
-            << mClusterArrayOut.size() << " full clusters, " << mClusterCompArrayOut.size()
+  read();
+
+  LOG(INFO) << mDetName << "ClusterReader pushes " << mClusROFRec.size() << " ROFRecords,"
+            << mClusterArray.size() << " full clusters, " << mClusterCompArray.size()
             << " compact clusters";
 
   // This is a very ugly way of providing DataDescription, which anyway does not need to contain detector name.
   // To be fixed once the names-definition class is ready
   pc.outputs().snapshot(Output{mOrigin, mOrigin == o2::header::gDataOriginITS ? "ITSClusterROF" : "MFTClusterROF",
                                0, Lifetime::Timeframe},
-                        mClusROFRecOut);
+                        mClusROFRec);
   if (mUseClFull) {
-    pc.outputs().snapshot(Output{mOrigin, "CLUSTERS", 0, Lifetime::Timeframe}, mClusterArrayOut);
+    pc.outputs().snapshot(Output{mOrigin, "CLUSTERS", 0, Lifetime::Timeframe}, mClusterArray);
   }
   if (mUseClComp) {
-    pc.outputs().snapshot(Output{mOrigin, "COMPCLUSTERS", 0, Lifetime::Timeframe}, mClusterCompArrayOut);
+    pc.outputs().snapshot(Output{mOrigin, "COMPCLUSTERS", 0, Lifetime::Timeframe}, mClusterCompArray);
   }
   if (mUseMC) {
-    pc.outputs().snapshot(Output{mOrigin, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, mClusterMCTruthOut);
+    pc.outputs().snapshot(Output{mOrigin, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, mClusterMCTruth);
   }
 
   mFinished = true;
+  pc.services().get<ControlService>().endOfStream();
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
-void ClusterReader::accumulate()
+void ClusterReader::read()
 {
   // load data from files
   TFile clFile(mInputFileName.c_str(), "read");
@@ -82,77 +85,29 @@ void ClusterReader::accumulate()
   if (!clTree) {
     LOG(FATAL) << "Failed to load clusters tree " << mClusTreeName << " from " << mInputFileName;
   }
-  TTree* rofTree = (TTree*)clFile.Get((mDetName + mClusROFTreeName).c_str());
-  if (!rofTree) {
-    LOG(FATAL) << "Failed to load clusters ROF tree " << rofTree << " from " << mInputFileName;
+  if (!clTree->GetBranch((mDetName + mClusROFBranchName).c_str())) {
+    LOG(FATAL) << "Failed to load clusters ROFrecords branch "
+               << " from " << mInputFileName;
   }
-  LOG(INFO) << "Loaded cluter tree " << mClusTreeName << " and ROFRecords " << mClusROFTreeName << " from " << mInputFileName;
 
-  rofTree->SetBranchAddress((mDetName + mClusROFTreeName).c_str(), &mClusROFRecInp);
+  clTree->SetBranchAddress((mDetName + mClusROFBranchName).c_str(), &mClusROFRecPtr);
 
   if (mUseClFull) {
-    clTree->SetBranchAddress((mDetName + mClusterBranchName).c_str(), &mClusterArrayInp);
+    clTree->SetBranchAddress((mDetName + mClusterBranchName).c_str(), &mClusterArrayPtr);
   }
   if (mUseClComp) {
-    clTree->SetBranchAddress((mDetName + mClusterCompBranchName).c_str(), &mClusterCompArrayInp);
+    clTree->SetBranchAddress((mDetName + mClusterCompBranchName).c_str(), &mClusterCompArrayPtr);
   }
   if (mUseMC) {
     if (clTree->GetBranch((mDetName + mClustMCTruthBranchName).c_str())) {
-      clTree->SetBranchAddress((mDetName + mClustMCTruthBranchName).c_str(), &mClusterMCTruthInp);
+      clTree->SetBranchAddress((mDetName + mClustMCTruthBranchName).c_str(), &mClusterMCTruthPtr);
       LOG(INFO) << "Will use MC-truth from " << mDetName + mClustMCTruthBranchName;
     } else {
       LOG(INFO) << "MC-truth is missing";
       mUseMC = false;
     }
   }
-  // it is possible that the cluster data is stored in multiple entries, in this case we need to refill to 1 single vector
-  if (rofTree->GetEntries() > 1) {
-    LOG(FATAL) << "Clusters ROFRecords tree has " << rofTree->GetEntries() << " entries instead of 1";
-  }
-  rofTree->GetEntry(0);
-  int nROFs = mClusROFRecInp->size();
-  mClusROFRecOut.swap(*mClusROFRecInp);
-  int nEnt = clTree->GetEntries();
-  if (nEnt == 1) {
-    clTree->GetEntry(0);
-    if (mUseClFull) {
-      mClusterArrayOut.swap(*mClusterArrayInp);
-    }
-    if (mUseClComp) {
-      mClusterCompArrayOut.swap(*mClusterCompArrayInp);
-    }
-    if (mUseMC) {
-      mClusterMCTruthOut.mergeAtBack(*mClusterMCTruthInp);
-    }
-  } else {
-    int lastEntry = -1;
-    int nclAcc = 0;
-    for (auto& rof : mClusROFRecOut) {
-      auto rEntry = rof.getROFEntry().getEvent();
-      if (lastEntry != rEntry) {
-        clTree->GetEntry((lastEntry = rEntry));
-      }
-      // full clusters
-      if (mUseClFull) {
-        auto cl0 = mClusterArrayInp->begin() + rof.getROFEntry().getIndex();
-        auto cl1 = cl0 + rof.getNROFEntries();
-        std::copy(cl0, cl1, std::back_inserter(mClusterArrayOut));
-      }
-      // compact clusters
-      if (mUseClComp) {
-        auto cl0 = mClusterCompArrayInp->begin() + rof.getROFEntry().getIndex();
-        auto cl1 = cl0 + rof.getNROFEntries();
-        std::copy(cl0, cl1, std::back_inserter(mClusterCompArrayOut));
-      }
-      // MC
-      if (mUseMC) {
-        mClusterMCTruthOut.mergeAtBack(*mClusterMCTruthInp);
-      }
-      rof.getROFEntry().setEvent(0);
-      rof.getROFEntry().setIndex(nclAcc);
-      nclAcc += rof.getNROFEntries();
-    }
-  }
+  clTree->GetEntry(0);
 }
 
 DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool useClFull, bool useClComp)

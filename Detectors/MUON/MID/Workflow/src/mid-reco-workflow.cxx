@@ -10,7 +10,7 @@
 
 /// \file   mid-reco-workflow.cxx
 /// \brief  MID reconstruction workflow
-/// \author Diego Stocco <diego.stocco at cern.ch>
+/// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   12 June 2019
 
 #include <string>
@@ -26,10 +26,6 @@ using namespace o2::framework;
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  // option allowing to set parameters
-  workflowOptions.push_back(ConfigParamSpec{
-    "disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}});
-
   std::string keyvaluehelp("Semicolon separated key=value strings ...");
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
 }
@@ -46,7 +42,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // write the configuration used for the digitizer workflow
   o2::conf::ConfigurableParam::writeINI("o2mid-recoflow_configuration.ini");
 
-  auto useMC = !configcontext.options().get<bool>("disable-mc");
-
-  return std::move(o2::mid::getRecoWorkflow(useMC));
+  return std::move(o2::mid::getRecoWorkflow());
 }

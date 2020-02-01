@@ -39,7 +39,7 @@
 
 #include "AliTPCSpaceCharge3DCalc.h"
 #include "DataFormatsTPC/Defs.h"
-#include "TPCBase/RandomRing.h"
+#include "MathUtils/RandomRing.h"
 
 class TH3;
 
@@ -170,6 +170,8 @@ class SpaceCharge
   void setUseIrregularLUTs(int useIrrLUTs);
   void setUseFastDistIntegration(int useFastInt);
 
+  void setDistortionLookupTables(TMatrixD** matrixIntDistDrA, TMatrixD** matrixIntDistDrphiA, TMatrixD** matrixIntDistDzA, TMatrixD** matrixIntDistDrC, TMatrixD** matrixIntDistDrphiC, TMatrixD** matrixIntDistDzC);
+
  private:
   /// Allocate memory for data members
   void allocateMemory();
@@ -231,7 +233,7 @@ class SpaceCharge
   std::unique_ptr<AliTPCLookUpTable3DInterpolatorD> mLookUpIonDriftC; ///< lookup table for ion drift along E field on C side in cm
   bool mMemoryAllocated;
 
-  RandomRing<> mRandomFlat; //!<! Circular random buffer containing flat random values to convert the charge density to a flat ion distribution inside the voxel
+  math_utils::RandomRing<> mRandomFlat; //!<! Circular random buffer containing flat random values to convert the charge density to a flat ion distribution inside the voxel
 
   ClassDefNV(SpaceCharge, 1);
 };

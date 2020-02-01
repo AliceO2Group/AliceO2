@@ -24,6 +24,8 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             Detectors/Passive/macro/PutFrameInTop.C
             Detectors/TPC/reconstruction/macro/addInclude.C
             Detectors/TPC/reconstruction/macro/getTPCTransformationExample.C
+            Detectors/TRD/base/macros/OCDB2CCDB.C
+            Detectors/TRD/base/macros/OCDB2CCDBTrapConfig.C
             Detectors/EMCAL/calib/macros/ReadTestBadChannelMap_CCDBApi.C
             GPU/GPUTracking/Merger/macros/checkPropagation.C # Needs AliRoot AliExternalTrackParam
             GPU/GPUTracking/Merger/macros/fitPolynomialFieldIts.C # Needs AliRoot AliMagF
@@ -36,6 +38,7 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             GPU/TPCFastTransformation/macro/initTPCcalibration.C # Needs AliTPCCalibDB
             GPU/TPCFastTransformation/macro/loadlibs.C # Special macro
             GPU/TPCFastTransformation/macro/moveTPCFastTransform.C # Relies on initTPCcalibration.C
+	    Detectors/TOF/prototyping/ConvertRun2CalibrationToO2.C
             Generators/share/external/hijing.C
 	    Generators/share/external/QEDepem.C
             macro/SetIncludePath.C

@@ -18,6 +18,7 @@
 #include "ITStracking/Cluster.h"
 #include <iostream>
 #include "GPUCommonMath.h"
+#include "GPUCommonDef.h"
 
 namespace o2
 {
@@ -26,7 +27,7 @@ namespace its
 
 struct Tracklet final {
   Tracklet();
-  GPU_DEVICE Tracklet(const int, const int, const Cluster&, const Cluster&);
+  GPUdi() Tracklet(const int, const int, const Cluster&, const Cluster&);
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   unsigned char isEmpty() const;
   void dump();
@@ -44,8 +45,8 @@ inline Tracklet::Tracklet() : firstClusterIndex{0}, secondClusterIndex{0}, tanLa
   // Nothing to do
 }
 
-inline GPU_DEVICE Tracklet::Tracklet(const int firstClusterOrderingIndex, const int secondClusterOrderingIndex,
-                                     const Cluster& firstCluster, const Cluster& secondCluster)
+GPUdi() Tracklet::Tracklet(const int firstClusterOrderingIndex, const int secondClusterOrderingIndex,
+                           const Cluster& firstCluster, const Cluster& secondCluster)
   : firstClusterIndex{firstClusterOrderingIndex},
     secondClusterIndex{secondClusterOrderingIndex},
     tanLambda{(firstCluster.zCoordinate - secondCluster.zCoordinate) /

@@ -18,18 +18,12 @@
 /// \author  Julian Myrcha
 
 #include "EventVisualisationDetectors/DataInterpreterVSD.h"
-
 #include "EventVisualisationBase/ConfigurationManager.h"
-#include "EventVisualisationBase/Track.h"
-
-#include "EventVisualisationDataConverter/MinimalisticEvent.h"
-#include <EventVisualisationBase/EventRegistration.h>
+#include "EventVisualisationDataConverter/VisualisationEvent.h"
 
 #include <TEveManager.h>
 #include <TEveTrackPropagator.h>
 #include <TGListTree.h>
-
-#include <iostream>
 
 using namespace std;
 
@@ -47,7 +41,7 @@ DataInterpreterVSD::~DataInterpreterVSD()
   }
 }
 
-TEveElement* DataInterpreterVSD::interpretDataForType(TObject* data, EVisualisationDataType /*type*/)
+std::unique_ptr<VisualisationEvent> DataInterpreterVSD::interpretDataForType(TObject* data, EVisualisationDataType type)
 {
   if (mVSD == nullptr)
     mVSD = new TEveVSD;
@@ -59,6 +53,7 @@ TEveElement* DataInterpreterVSD::interpretDataForType(TObject* data, EVisualisat
 
   this->AttachEvent();
 
+  auto ret_event = std::make_unique<VisualisationEvent>(0, 0, 0, 0, "", 0);
   // Load event data into visualization structures.
 
   //        this->LoadClusters(this->fITSClusters, "ITS", 0);
@@ -66,8 +61,11 @@ TEveElement* DataInterpreterVSD::interpretDataForType(TObject* data, EVisualisat
   //        this->LoadClusters(this->fTRDClusters, "TRD", 2);
   //        this->LoadClusters(this->fTOFClusters, "TOF", 3);
 
-  this->LoadEsdTracks();
-  return this->mTrackList;
+  if (type == ESD) {
+    LoadEsdTracks(*ret_event);
+  }
+
+  return ret_event;
 }
 
 void DataInterpreterVSD::LoadClusters(TEvePointSet*& ps, const TString& det_name, Int_t det_id)
@@ -116,7 +114,7 @@ void DataInterpreterVSD::DropEvent()
   mDirectory = nullptr;
 }
 
-void DataInterpreterVSD::LoadEsdTracks()
+void DataInterpreterVSD::LoadEsdTracks(VisualisationEvent& /*event*/)
 {
   // Read reconstructed tracks from current event.
 

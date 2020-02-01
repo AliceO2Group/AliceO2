@@ -12,9 +12,7 @@ o2_add_library(EventVisualisationBase
                SOURCES src/ConfigurationManager.cxx
                        src/DataInterpreter.cxx
                        src/DataSourceOffline.cxx
-                       src/EventRegistration.cxx
                        src/GeometryManager.cxx
-                       src/Track.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Eve
                                      O2::CCDB 
                                      O2::EventVisualisationDataConverter

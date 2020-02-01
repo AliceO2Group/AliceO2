@@ -26,6 +26,7 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
+struct GPUTrackingInOutPointers;
 class GPUReconstruction;
 MEM_CLASS_PRE()
 struct GPUParam;
@@ -54,9 +55,7 @@ class GPUProcessor
   {
     return mConstantMem;
   }
-
   GPUd() GPUconstantref() const MEM_CONSTANT(GPUParam) & Param() const;
-
   const GPUReconstruction& GetRec() const { return *mRec; }
 
 #ifndef __OPENCL__

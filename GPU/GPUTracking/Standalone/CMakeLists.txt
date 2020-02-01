@@ -35,9 +35,11 @@ if(BUILD_DEBUG)
   set(CMAKE_CXX_FLAGS "-O0 -ggdb")
   set(CMAKE_BUILD_TYPE DEBUG)
 else()
-  set(CMAKE_CXX_FLAGS "-O3 -march=native -ggdb -minline-all-stringops -ftracer -funroll-loops -fprefetch-loop-arrays -ffast-math -fno-stack-protector -Wno-error -Wall -Wextra -Wshadow -Wno-unused-function -Wno-unused-parameter -Wno-unused-local-typedefs -Wno-unknown-pragmas -Wno-write-strings")
+  set(CMAKE_CXX_FLAGS "-O3 -march=native -ggdb -minline-all-stringops -ftracer -funroll-loops -fprefetch-loop-arrays -ffast-math -fno-stack-protector")
+  set(CMAKE_RELEASE_TYPE RELEASE)
   add_definitions(-DNDEBUG)
 endif()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error -Wall -Wextra -Wshadow -Wno-unused-function -Wno-unused-parameter -Wno-unused-local-typedefs -Wno-unknown-pragmas -Wno-write-strings")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -rdynamic -Wl,--no-undefined")
 
 # Check and set settings for optional packages
@@ -69,15 +71,23 @@ if(CONFIG_O2)
   add_definitions(-DGPUCA_TPC_GEOMETRY_O2)
 endif()
 
-if(CONFIG_ROOT_AND_O2_EXTENSIONS)
+if(CONFIG_ROOT)
   find_package(ROOT CONFIG REQUIRED)
+endif()
+if(CONFIG_O2_EXTENSIONS)
   add_definitions(-DHAVE_O2HEADERS)
   if(NOT DEFINED MS_GSL_INCLUDE_DIR AND DEFINED ENV{MS_GSL_ROOT})
     set(MS_GSL_INCLUDE_DIR $ENV{MS_GSL_ROOT}/include)
   endif()
   find_package(ms_gsl REQUIRED)
-else()
-  set(ROOT_FOUND OFF)
+  if(CONFIG_O2_ITS_TRAITS)
+    if(NOT CONFIG_ROOT)
+      message(FATAL_ERROR "Can not build ITS traits without ROOT")
+    endif()
+    find_package(Boost REQUIRED)
+  else()
+    add_definitions(-DGPUCA_NO_ITS_TRAITS)
+  endif()
 endif()
 
 if(CONFIG_FMT)
@@ -94,24 +104,28 @@ include_directories(${CMAKE_SOURCE_DIR}
                     ${CMAKE_SOURCE_DIR}/Base
                     ${CMAKE_SOURCE_DIR}/Base/opencl-common
                     ${CMAKE_SOURCE_DIR}/Common
-                    ${CMAKE_SOURCE_DIR}/DataCompression
                     ${CMAKE_SOURCE_DIR}/dEdx
+                    ${CMAKE_SOURCE_DIR}/TPCConvert
+                    ${CMAKE_SOURCE_DIR}/TPCFastTransformation
                     ${CMAKE_SOURCE_DIR}/display
                     ${CMAKE_SOURCE_DIR}/Global
                     ${CMAKE_SOURCE_DIR}/HLTHeaders
-                    ${CMAKE_SOURCE_DIR}/ITS
                     ${CMAKE_SOURCE_DIR}/Merger
                     ${CMAKE_SOURCE_DIR}/qa
                     ${CMAKE_SOURCE_DIR}/SliceTracker
-                    ${CMAKE_SOURCE_DIR}/TPCConvert
-                    ${CMAKE_SOURCE_DIR}/TPCFastTransformation
-                    ${CMAKE_SOURCE_DIR}/TRDTracking
+                    ${CMAKE_SOURCE_DIR}/TRDTracking)
+
+if(CONFIG_O2_EXTENSIONS)
+include_directories(${CMAKE_SOURCE_DIR}/TPCClusterFinder
+                    ${CMAKE_SOURCE_DIR}/ITS
+                    ${CMAKE_SOURCE_DIR}/DataCompression
                     ${CMAKE_SOURCE_DIR}/../../../Common/Constants/include
                     ${CMAKE_SOURCE_DIR}/../../../Common/MathUtils/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/common/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/Common/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/ITSMFT/ITS/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/TPC/include
+                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/Headers/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Reconstruction/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/simulation/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/Base/include
@@ -119,9 +133,12 @@ include_directories(${CMAKE_SOURCE_DIR}
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/cuda/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/cuda/src
+                    ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/hip/include
+                    ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/hip/src
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TPC/base/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TRD/base/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/TRD/base/src)
+endif()
 
 # Create main targets
 add_executable(ca standalone.cxx
@@ -136,20 +153,26 @@ target_compile_definitions(ca PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_D
 target_compile_definitions(standalone_support PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
 
 # Add all sources and dependencies to to support based on Config File
-if(CONFIG_ROOT_AND_O2_EXTENSIONS)
+if(CONFIG_O2_EXTENSIONS)
   target_sources(standalone_support PRIVATE
                ../../..//DataFormats/simulation/src/MCCompLabel.cxx
-               ../../..//Detectors/ITSMFT/ITS/tracking/src/PrimaryVertexContext.cxx
-               ../../..//Detectors/ITSMFT/ITS/tracking/src/Cluster.cxx
-               ../../..//Detectors/ITSMFT/ITS/tracking/src/ClusterLines.cxx
-               ../../..//Detectors/ITSMFT/ITS/tracking/src/TrackerTraitsCPU.cxx
-               ../../..//Detectors/ITSMFT/ITS/tracking/src/VertexerTraits.cxx
-               ../../..//Detectors/ITSMFT/ITS/tracking/src/ROframe.cxx
-               ../../..//Detectors/ITSMFT/ITS/tracking/src/Road.cxx
                ../../..//Detectors/TRD/base/src/TRDGeometryBase.cxx
                ../../..//Detectors/Base/src/MatLayerCylSet.cxx
                ../../..//Detectors/Base/src/MatLayerCyl.cxx
-               ../../..//Detectors/Base/src/Ray.cxx)
+               ../../..//Detectors/Base/src/Ray.cxx
+               ../../..//Detectors/ITSMFT/ITS/tracking/src/Road.cxx)
+  if(CONFIG_O2_ITS_TRAITS)
+    target_sources(standalone_support PRIVATE
+        ../../..//Detectors/ITSMFT/ITS/tracking/src/PrimaryVertexContext.cxx
+        ../../..//Detectors/ITSMFT/ITS/tracking/src/Cluster.cxx
+        ../../..//Detectors/ITSMFT/ITS/tracking/src/ClusterLines.cxx
+        ../../..//Detectors/ITSMFT/ITS/tracking/src/TrackerTraitsCPU.cxx
+        ../../..//Detectors/ITSMFT/ITS/tracking/src/VertexerTraits.cxx
+        ../../..//Detectors/ITSMFT/ITS/tracking/src/ROframe.cxx)
+    target_link_libraries(standalone_support PUBLIC Boost::boost)
+  endif()
+endif()
+if(CONFIG_ROOT)
   target_sources(ca PRIVATE qa/genEvents.cxx)
 endif()
 
@@ -168,15 +191,21 @@ if(BUILD_EVENT_DISPLAY)
                              glut)
   target_sources(GPUTracking PRIVATE display/GPUDisplayBackendX11.cxx
                              display/GPUDisplayBackendGlut.cxx)
+  if(CONFIG_GL3W)
+    target_sources(GPUTracking PRIVATE display/gl3w/gl3w.c)
+    target_compile_definitions(GPUTracking PUBLIC GPUCA_DISPLAY_GL3W)
+  endif()
 endif()
 
-if(CONFIG_ROOT_AND_O2_EXTENSIONS)
+if(CONFIG_ROOT)
   target_link_libraries(standalone_support PUBLIC
                              ROOT::Core
                              ROOT::RIO
                              ROOT::Hist
-                             ROOT::Gui
-                             ms_gsl::ms_gsl)
+                             ROOT::Gui)
+endif()
+if(CONFIG_O2_EXTENSIONS)
+  target_link_libraries(standalone_support PUBLIC ms_gsl::ms_gsl)
 endif()
 
 if(CONFIG_VC)

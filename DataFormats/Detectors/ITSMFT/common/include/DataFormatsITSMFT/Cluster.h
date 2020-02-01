@@ -18,7 +18,7 @@
 // uncomment this to have cluster topology stored
 #define _ClusterTopology_
 
-#define CLUSTER_VERSION 3
+#define CLUSTER_VERSION 4
 
 namespace o2
 {
@@ -63,8 +63,6 @@ class Cluster : public o2::BaseCluster<float>
 
   ~Cluster() = default;
 
-  Cluster& operator=(const Cluster& cluster) = delete; // RS why?
-
   //****** Basic methods ******************
   void setUsed() { setBit(kUsed); }
   void setShared() { setBit(kShared); }
@@ -90,9 +88,6 @@ class Cluster : public o2::BaseCluster<float>
   int getNPix() const { return (mNxNzN >> kOffsNPix) & kMaskNPix; }
   int getClusterUsage() const { return (mNxNzN >> kOffsClUse) & kMaskClUse; }
   //
-  UInt_t getROFrame() const { return mROFrame; }
-  void setROFrame(UInt_t v) { mROFrame = v; }
-
   // bool hasCommonTrack(const Cluster* cl) const;
   //
   void print() const;
@@ -149,8 +144,6 @@ class Cluster : public o2::BaseCluster<float>
   //
  protected:
   //
-  UInt_t mROFrame; ///< RO Frame
-
   Int_t mNxNzN = 0; ///< effective cluster size in X (1st byte) and Z (2nd byte) directions
                     ///< and total Npix(next 9 bits).
                     ///> The last 7 bits are used for clusters usage counter
@@ -189,6 +182,28 @@ inline void Cluster::setClusterUsage(Int_t n)
     resetBit(kUsed);
 }
 } // namespace itsmft
+
+/// Defining o2::itsmft::Cluster explicitly as messageable
+///
+/// o2::itsmft::Cluster does not fulfill is_messageable because the underlying ROOT
+/// classes of Point3D are note trivially copyable.
+/// std::is_trivially_copyable<ROOT::Math::Cartesian3D<float>> fails because the class
+/// implements a copy constructor, although it does not much more than the default copy
+/// constructor. Have been trying to specialize std::is_trivially_copyable for Point3D
+/// alias in MathUtils/Cartesian3D.h, but structures with a member of Point3D are
+/// still not fulfilling the condition. Need to understand how the type trait checks
+/// the condition for members.
+/// We believe that o2::itsmft::Cluster is messageable and explicitly specialize the
+/// type trait, adding a corresponding unit test to go beyond make-believe
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::itsmft::Cluster> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
 
 #endif /* ALICEO2_ITSMFT_CLUSTER_H */

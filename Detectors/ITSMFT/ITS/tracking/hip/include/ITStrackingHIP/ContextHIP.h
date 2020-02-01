@@ -8,18 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file Context.h
+/// \file ContextHIP.h
 /// \brief
 ///
 
-#ifndef TRAKINGITSU_INCLUDE_GPU_CONTEXT_H_
-#define TRAKINGITSU_INCLUDE_GPU_CONTEXT_H_
+#ifndef O2_ITS_TRACKING_INCLUDE_CONTEXT_HIP_H_
+#define O2_ITS_TRACKING_INCLUDE_CONTEXT_HIP_H_
 
 #include <string>
 #include <vector>
-#include "ITStracking/Definitions.h"
-
+// #include "ITStracking/Definitions.h"
 #include <hip/hip_runtime_api.h>
+#include "GPUCommonDef.h"
 
 namespace o2
 {
@@ -31,7 +31,7 @@ namespace GPU
 struct DeviceProperties final {
   std::string name;
   int gpuProcessors;
-  // int hipCores;
+  int streamProcessors;
   long globalMemorySize;
   long constantMemorySize;
   long sharedMemorySize;
@@ -41,25 +41,25 @@ struct DeviceProperties final {
   long registersPerBlock;
   int warpSize;
   int maxThreadsPerBlock;
-  // int maxBlocksPerSM;
+  int maxBlocksPerSM;
   dim3 maxThreadsDim;
   dim3 maxGridDim;
 };
 
-class Context final
+class ContextHIP final
 {
  public:
-  static Context& getInstance();
+  static ContextHIP& getInstance();
 
-  Context(const Context&);
-  Context& operator=(const Context&);
+  ContextHIP(const ContextHIP&);
+  ContextHIP& operator=(const ContextHIP&);
 
   const DeviceProperties& getDeviceProperties();
   const DeviceProperties& getDeviceProperties(const int);
 
  private:
-  Context(bool dumpDevices = true);
-  ~Context() = default;
+  ContextHIP(bool dumpDevices = true);
+  ~ContextHIP() = default;
 
   int mDevicesNum;
   std::vector<DeviceProperties> mDeviceProperties;
@@ -68,4 +68,4 @@ class Context final
 } // namespace its
 } // namespace o2
 
-#endif /* TRAKINGITSU_INCLUDE_GPU_CONTEXT_H_ */
+#endif /* O2_ITS_TRACKING_INCLUDE_CONTEXT_HIP_H_ */

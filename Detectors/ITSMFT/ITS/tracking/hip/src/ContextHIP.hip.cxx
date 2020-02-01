@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file Context.cu
+/// \file ContextHIP.hip.cxx
 /// \brief
 ///
 
@@ -23,47 +23,13 @@
 namespace
 {
 
-inline int getHIPCores(const int major, const int minor)
+inline int getStreamProcessors(const int major, const int minor)
 {
-  // Defines for GPU Architecture types (using the SM version to determine the # of cores per SM
-  typedef struct
-  {
-    int SM; // 0xMm (hexidecimal notation), M = SM Major version, and m = SM minor version
-    int Cores;
-  } sSMtoCores;
-
-  sSMtoCores nGpuArchCoresPerSM[] =
-    {
-      {0x20, 32},  // Fermi Generation (SM 2.0) GF100 class
-      {0x21, 48},  // Fermi Generation (SM 2.1) GF10x class
-      {0x30, 192}, // Kepler Generation (SM 3.0) GK10x class
-      {0x32, 192}, // Kepler Generation (SM 3.2) GK10x class
-      {0x35, 192}, // Kepler Generation (SM 3.5) GK11x class
-      {0x37, 192}, // Kepler Generation (SM 3.7) GK21x class
-      {0x50, 128}, // Maxwell Generation (SM 5.0) GM10x class
-      {0x52, 128}, // Maxwell Generation (SM 5.2) GM20x class
-      {0x53, 128}, // Maxwell Generation (SM 5.3) GM20x class
-      {0x60, 64},  // Pascal Generation (SM 6.0) GP100 class
-      {0x61, 128}, // Pascal Generation (SM 6.1) GP10x class
-      {0x62, 128}, // Pascal Generation (SM 6.2) GP10x class
-      {-1, -1}};
-
-  int index = 0;
-
-  while (nGpuArchCoresPerSM[index].SM != -1) {
-    if (nGpuArchCoresPerSM[index].SM == ((major << 4) + minor)) {
-      return nGpuArchCoresPerSM[index].Cores;
-    }
-
-    index++;
-  }
-
-  // If we don't find the values, we default use the previous one to run properly
-  printf("MapSMtoCores for SM %d.%d is undefined.  Default to use %d Cores/SM\n", major, minor, nGpuArchCoresPerSM[index - 1].Cores);
-  return nGpuArchCoresPerSM[index - 1].Cores;
+  // Hardcoded result for AMD RADEON WX 9100, to be decided if and how determine this paramter
+  return 4096;
 }
 
-inline int getMaxThreadsPerSM(const int major, const int minor)
+inline int getMaxThreadsPerComputingUnit(const int major, const int minor)
 {
   return 8;
 }
@@ -77,15 +43,13 @@ namespace its
 namespace GPU
 {
 
-using Utils::Host::checkHIPError;
+using Utils::HostHIP::checkHIPError;
 
-Context::Context(bool dumpDevices)
+ContextHIP::ContextHIP(bool dumpDevices)
 {
   checkHIPError(hipGetDeviceCount(&mDevicesNum), __FILE__, __LINE__);
-
   if (mDevicesNum == 0) {
-
-    throw std::runtime_error{"There are no available device(s) that support CUDA\n"};
+    throw std::runtime_error{"There are no available device(s) that support HIP\n"};
   }
 
   mDeviceProperties.resize(mDevicesNum, DeviceProperties{});
@@ -100,12 +64,12 @@ Context::Context(bool dumpDevices)
     checkHIPError(hipSetDevice(iDevice), __FILE__, __LINE__);
     checkHIPError(hipGetDeviceProperties(&deviceProperties, iDevice), __FILE__, __LINE__);
 
-    // int major = deviceProperties.major; // Codacy warning
-    // int minor = deviceProperties.minor; // Codacy warning
+    int major = deviceProperties.major; // Codacy warning
+    int minor = deviceProperties.minor; // Codacy warning
 
     mDeviceProperties[iDevice].name = deviceProperties.name;
     mDeviceProperties[iDevice].gpuProcessors = deviceProperties.multiProcessorCount;
-    // mDeviceProperties[iDevice].hipCores = getHIPCores(major, minor) * deviceProperties.multiProcessorCount; // >>>> alarm
+    mDeviceProperties[iDevice].streamProcessors = getStreamProcessors(major, minor) * deviceProperties.multiProcessorCount; // >>>> alarm
     mDeviceProperties[iDevice].globalMemorySize = deviceProperties.totalGlobalMem;
     mDeviceProperties[iDevice].constantMemorySize = deviceProperties.totalConstMem;
     mDeviceProperties[iDevice].sharedMemorySize = deviceProperties.sharedMemPerBlock;
@@ -115,7 +79,7 @@ Context::Context(bool dumpDevices)
     mDeviceProperties[iDevice].registersPerBlock = deviceProperties.regsPerBlock;
     mDeviceProperties[iDevice].warpSize = deviceProperties.warpSize;
     mDeviceProperties[iDevice].maxThreadsPerBlock = deviceProperties.maxThreadsPerBlock;
-    // mDeviceProperties[iDevice].maxBlocksPerSM = getMaxThreadsPerSM(major, minor);
+    mDeviceProperties[iDevice].maxBlocksPerSM = getMaxThreadsPerComputingUnit(major, minor);
     mDeviceProperties[iDevice].maxThreadsDim = dim3{static_cast<unsigned int>(deviceProperties.maxThreadsDim[0]),
                                                     static_cast<unsigned int>(deviceProperties.maxThreadsDim[1]),
                                                     static_cast<unsigned int>(deviceProperties.maxThreadsDim[2])};
@@ -125,8 +89,8 @@ Context::Context(bool dumpDevices)
     if (dumpDevices) {
       std::cout << "################ HIP DEVICE " << iDevice << " ################" << std::endl;
       std::cout << "Name " << mDeviceProperties[iDevice].name << std::endl;
-      std::cout << "gpuProcessors " << mDeviceProperties[iDevice].gpuProcessors << std::endl; // >>>>> ALLARME
-      // std::cout << "hipCores " << mDeviceProperties[iDevice].hipCores << std::endl;
+      std::cout << "gpuProcessors " << mDeviceProperties[iDevice].gpuProcessors << std::endl;
+      std::cout << "minor " << minor << " major " << major << std::endl;
       std::cout << "globalMemorySize " << mDeviceProperties[iDevice].globalMemorySize << std::endl;
       std::cout << "constantMemorySize " << mDeviceProperties[iDevice].constantMemorySize << std::endl;
       std::cout << "sharedMemorySize " << mDeviceProperties[iDevice].sharedMemorySize << std::endl;
@@ -136,7 +100,7 @@ Context::Context(bool dumpDevices)
       std::cout << "registersPerBlock " << mDeviceProperties[iDevice].registersPerBlock << std::endl;
       std::cout << "warpSize " << mDeviceProperties[iDevice].warpSize << std::endl;
       std::cout << "maxThreadsPerBlock " << mDeviceProperties[iDevice].maxThreadsPerBlock << std::endl;
-      // std::cout << "maxBlocksPerSM " << mDeviceProperties[iDevice].maxBlocksPerSM << std::endl;
+      std::cout << "maxBlocksPerSM " << mDeviceProperties[iDevice].maxBlocksPerSM << std::endl;
       std::cout << "maxThreadsDim " << mDeviceProperties[iDevice].maxThreadsDim.x << ", " << mDeviceProperties[iDevice].maxThreadsDim.y << ", " << mDeviceProperties[iDevice].maxThreadsDim.z << std::endl;
       std::cout << "maxGridDim " << mDeviceProperties[iDevice].maxGridDim.x << ", " << mDeviceProperties[iDevice].maxGridDim.y << ", " << mDeviceProperties[iDevice].maxGridDim.z << std::endl;
       std::cout << std::endl;
@@ -146,13 +110,13 @@ Context::Context(bool dumpDevices)
   checkHIPError(hipSetDevice(currentDeviceIndex), __FILE__, __LINE__);
 }
 
-Context& Context::getInstance()
+ContextHIP& ContextHIP::getInstance()
 {
-  static Context gpuContext;
-  return gpuContext;
+  static ContextHIP gpuContextHIP;
+  return gpuContextHIP;
 }
 
-const DeviceProperties& Context::getDeviceProperties()
+const DeviceProperties& ContextHIP::getDeviceProperties()
 {
   int currentDeviceIndex;
   checkHIPError(hipGetDevice(&currentDeviceIndex), __FILE__, __LINE__);
@@ -160,7 +124,7 @@ const DeviceProperties& Context::getDeviceProperties()
   return getDeviceProperties(currentDeviceIndex);
 }
 
-const DeviceProperties& Context::getDeviceProperties(const int deviceIndex)
+const DeviceProperties& ContextHIP::getDeviceProperties(const int deviceIndex)
 {
   return mDeviceProperties[deviceIndex];
 }

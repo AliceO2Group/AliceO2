@@ -21,6 +21,7 @@
 #include <stdexcept>
 
 #include "Framework/CallbackService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Lifetime.h"

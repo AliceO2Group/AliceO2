@@ -536,11 +536,9 @@ void Tracker::runBackwardInRoad(ROframe& event)
       // add cells to new track
       addCellToNewTrack = kTRUE;
       while (addCellToNewTrack) {
-        Int_t layerRC = event.getCurrentTrackCA().getCellsLayer().back();
-        Int_t cellIdRC = event.getCurrentTrackCA().getCellsId().back();
-
+        Int_t layerRC = event.getCurrentTrackCA().getCellsLayer()[event.getCurrentTrackCA().getNCells() - 1];
+        Int_t cellIdRC = event.getCurrentTrackCA().getCellsId()[event.getCurrentTrackCA().getNCells() - 1];
         const Cell& cellRC = road.getCellsInLayer(layerRC)[cellIdRC];
-
         addCellToNewTrack = kFALSE;
 
         // find the left neighbor giving the smalles chisquare
@@ -556,6 +554,7 @@ void Tracker::runBackwardInRoad(ROframe& event)
         // loop over left neighbours
         deviationPrev = o2::constants::math::TwoPI;
         chisquarePrev = 1.E5;
+
         for (Int_t iLN = 0; iLN < cellRC.getNLeftNeighbours(); ++iLN) {
           auto leftNeighbour = cellRC.getLeftNeighbours()[iLN];
           Int_t layerL = leftNeighbour.first;
@@ -669,6 +668,7 @@ const Float_t Tracker::getCellChisquare(ROframe& event, const Cell& cell) const
 
   Float_t x[constants::mft::MaxTrackPoints], y[constants::mft::MaxTrackPoints], z[constants::mft::MaxTrackPoints], err[constants::mft::MaxTrackPoints];
   Int_t point;
+
   for (point = 0; point < trackCA.getNPoints(); ++point) {
     x[point] = trackCA.getXCoordinates()[point];
     y[point] = trackCA.getYCoordinates()[point];
@@ -694,7 +694,6 @@ const Float_t Tracker::getCellChisquare(ROframe& event, const Cell& cell) const
   }
 
   Int_t nDegFree = 2 * (trackCA.getNPoints() + 1) - 4;
-
   return (chisqZX + chisqZY) / (Float_t)nDegFree;
 }
 
@@ -738,6 +737,7 @@ const Bool_t Tracker::addCellToCurrentTrackCA(const Int_t layer1, const Int_t ce
 
   // update the chisquare
   if (trackCA.getNPoints() == 2) {
+
     trackCA.setChiSquareZX(0.0);
     trackCA.setChiSquareZY(0.0);
     return kTRUE;

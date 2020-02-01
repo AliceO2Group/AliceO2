@@ -17,6 +17,7 @@
 #include "Headers/Stack.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DataRelayer.h"
+#include "../src/DataRelayerHelpers.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/WorkflowSpec.h"
 #include <Monitoring/Monitoring.h>
@@ -42,7 +43,7 @@ BOOST_AUTO_TEST_CASE(TestNoWait)
   TimesliceIndex index;
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -81,7 +82,7 @@ BOOST_AUTO_TEST_CASE(TestNoWaitMatcher)
   TimesliceIndex index;
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   relayer.setPipelineLength(4);
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -132,7 +133,7 @@ BOOST_AUTO_TEST_CASE(TestRelay)
   TimesliceIndex index;
 
   auto policy = CompletionPolicyHelpers::consumeWhenAll();
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   relayer.setPipelineLength(4);
 
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
@@ -199,7 +200,7 @@ BOOST_AUTO_TEST_CASE(TestRelayBug)
   TimesliceIndex index;
 
   auto policy = CompletionPolicyHelpers::consumeWhenAll();
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   relayer.setPipelineLength(3);
 
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
@@ -266,7 +267,7 @@ BOOST_AUTO_TEST_CASE(TestCache)
 
   auto policy = CompletionPolicyHelpers::consumeWhenAll();
   TimesliceIndex index;
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   // Only two messages to fill the cache.
   relayer.setPipelineLength(2);
 
@@ -333,7 +334,7 @@ BOOST_AUTO_TEST_CASE(TestPolicies)
   TimesliceIndex index;
 
   auto policy = CompletionPolicyHelpers::processWhenAny();
-  DataRelayer relayer(policy, inputs, forwards, metrics, index);
+  DataRelayer relayer(policy, inputs, metrics, index);
   // Only two messages to fill the cache.
   relayer.setPipelineLength(2);
 
@@ -376,4 +377,54 @@ BOOST_AUTO_TEST_CASE(TestPolicies)
   BOOST_REQUIRE_EQUAL(ready3.size(), 1);
   BOOST_CHECK_EQUAL(ready3[0].slot.index, 1);
   BOOST_CHECK_EQUAL(ready3[0].op, CompletionPolicy::CompletionOp::Consume);
+}
+
+/// Test that the clear method actually works.
+BOOST_AUTO_TEST_CASE(TestClear)
+{
+  Monitoring metrics;
+  InputSpec spec1{"clusters", "TPC", "CLUSTERS"};
+  InputSpec spec2{"tracks", "TPC", "TRACKS"};
+
+  std::vector<InputRoute> inputs = {
+    InputRoute{spec1, 0, "Fake1", 0},
+    InputRoute{spec2, 1, "Fake2", 0},
+  };
+
+  std::vector<ForwardRoute> forwards;
+  TimesliceIndex index;
+
+  auto policy = CompletionPolicyHelpers::processWhenAny();
+  DataRelayer relayer(policy, inputs, metrics, index);
+  // Only two messages to fill the cache.
+  relayer.setPipelineLength(3);
+
+  // Let's create a dummy O2 Message with two headers in the stack:
+  // - DataHeader matching the one provided in the input
+  DataHeader dh1;
+  dh1.dataDescription = "CLUSTERS";
+  dh1.dataOrigin = "TPC";
+  dh1.subSpecification = 0;
+
+  DataHeader dh2;
+  dh2.dataDescription = "TRACKS";
+  dh2.dataOrigin = "TPC";
+  dh2.subSpecification = 0;
+
+  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto createMessage = [&transport, &relayer](DataHeader const& dh, DataProcessingHeader const& h) {
+    Stack stack{dh, h};
+    FairMQMessagePtr header = transport->CreateMessage(stack.size());
+    FairMQMessagePtr payload = transport->CreateMessage(1000);
+    memcpy(header->GetData(), stack.data(), stack.size());
+    return relayer.relay(std::move(header), std::move(payload));
+  };
+
+  // This fills the cache, and then empties it.
+  auto actions1 = createMessage(dh1, DataProcessingHeader{0, 1});
+  auto actions2 = createMessage(dh1, DataProcessingHeader{1, 1});
+  auto actions3 = createMessage(dh2, DataProcessingHeader{1, 1});
+  relayer.clear();
+  auto ready3 = relayer.getReadyToProcess();
+  BOOST_REQUIRE_EQUAL(ready3.size(), 0);
 }

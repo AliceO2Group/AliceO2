@@ -18,11 +18,9 @@
 #include "GPUParam.h"
 #include "GPUDataTypes.h"
 
+// Dummies for stuff not supported in legacy code (ROOT 5 / OPENCL1.2)
 #if defined(GPUCA_NOCOMPAT_ALLCINT) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB))
-#include "GPUTPCConvert.h"
-#include "GPUTPCCompression.h"
 #include "GPUTPCGMMerger.h"
-#include "GPUITSFitter.h"
 #include "GPUTRDTracker.h"
 #else
 namespace GPUCA_NAMESPACE
@@ -32,21 +30,26 @@ namespace gpu
 class GPUTPCGMMerger
 {
 };
-class GPUITSFitter
-{
-};
 class GPUTRDTracker
 {
-  void SetMaxData() {}
-};
-class GPUTPCConvert
-{
-};
-class GPUTPCCompression
-{
+  void SetMaxData(const GPUTrackingInOutPointers& io) {}
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
+#endif
+
+// Dummies for stuff not suppored in legacy code, or for what requires O2 headers while not available
+#if defined(GPUCA_NOCOMPAT_ALLCINT) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB)) && defined(HAVE_O2HEADERS)
+#include "GPUTPCConvert.h"
+#include "GPUTPCCompression.h"
+#include "GPUITSFitter.h"
+#include "GPUTPCClusterFinder.h"
+#else
+#include "GPUO2FakeClasses.h"
+#endif
+
+#ifdef GPUCA_KERNEL_DEBUGGER_OUTPUT
+#include "GPUKernelDebugOutput.h"
 #endif
 
 namespace GPUCA_NAMESPACE
@@ -63,9 +66,13 @@ struct GPUConstantMem {
   GPUTPCCompression tpcCompressor;
   GPUTPCGMMerger tpcMerger;
   GPUTRDTracker trdTracker;
+  GPUTPCClusterFinder tpcClusterer[GPUCA_NSLICES];
   GPUITSFitter itsFitter;
   GPUTrackingInOutPointers ioPtrs;
   GPUCalibObjectsConst calibObjects;
+#ifdef GPUCA_KERNEL_DEBUGGER_OUTPUT
+  GPUKernelDebugOutput debugOutput;
+#endif
 };
 
 // Must be placed here, to avoid circular header dependency

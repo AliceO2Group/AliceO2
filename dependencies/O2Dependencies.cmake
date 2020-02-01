@@ -48,7 +48,7 @@ set_package_properties(ROOT PROPERTIES TYPE REQUIRED)
 find_package(fmt)
 set_package_properties(fmt PROPERTIES TYPE REQUIRED)
 
-find_package(Boost 1.59
+find_package(Boost 1.70
              COMPONENTS container
                         thread
                         system
@@ -116,6 +116,11 @@ find_package(benchmark CONFIG NAMES benchmark googlebenchmark)
 set_package_properties(benchmark PROPERTIES TYPE OPTIONAL)
 find_package(OpenMP)
 set_package_properties(OpenMP PROPERTIES TYPE OPTIONAL)
+if (NOT OpenMP_CXX_FOUND AND CMAKE_SYSTEM_NAME MATCHES Darwin)
+  message(STATUS "MacOS OpenMP not found, attempting workaround")
+  find_package(OpenMPMacOS)
+endif()
+
 find_package(GLFW MODULE)
 set_package_properties(GLFW PROPERTIES TYPE RECOMMENDED)
 find_package(DebugGUI CONFIG)
@@ -144,4 +149,3 @@ endif()
 find_package(O2GPU)
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
-

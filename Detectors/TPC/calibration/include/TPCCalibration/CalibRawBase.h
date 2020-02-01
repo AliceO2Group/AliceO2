@@ -18,12 +18,15 @@
 #include <vector>
 #include <memory>
 #include <algorithm>
+#include <gsl/span>
 
 #include "TString.h"
 #include "Rtypes.h"
+#include "TChain.h"
 
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/Mapper.h"
+#include "TPCBase/PadROCPos.h"
 
 #include "TPCReconstruction/GBTFrameContainer.h"
 #include "TPCReconstruction/RawReader.h"
@@ -80,6 +83,8 @@ class CalibRawBase
   virtual Int_t updateCRU(const CRU& cru, const Int_t row, const Int_t pad,
                           const Int_t timeBin, const Float_t signal) = 0;
 
+  Int_t update(const PadROCPos& padROCPos, const CRU& cru, const gsl::span<const uint32_t> data);
+
   /// add GBT frame container to process
   void addGBTFrameContainer(GBTFrameContainer* cont) { mGBTFrameContainers.push_back(std::unique_ptr<GBTFrameContainer>(cont)); }
 
@@ -130,6 +135,12 @@ class CalibRawBase
   /// Debug level
   int getDebugLevel() const { return mDebugLevel; }
 
+  /// set skipping of incomplete events
+  void setSkipIncompleteEvents(bool skip) { mSkipIncomplete = skip; }
+
+  /// get skipping of incomplete events
+  bool getSkipIncompleteEvents() const { return mSkipIncomplete; }
+
  protected:
   const Mapper& mMapper; //!< TPC mapper
   int mDebugLevel;       //!< debug level
@@ -139,11 +150,15 @@ class CalibRawBase
   int mTimeBinsPerCall;       //!< number of time bins to process in processEvent
   size_t mProcessedTimeBins;  //!< number of processed time bins in last event
   size_t mPresentEventNumber; //!< present event number
+  bool mSkipIncomplete{true}; //!< skip incomplete events
 
   PadSubset mPadSubset;                                                //!< pad subset type used
   std::vector<std::unique_ptr<GBTFrameContainer>> mGBTFrameContainers; //!< raw reader pointer
   std::vector<std::unique_ptr<RawReader>> mRawReaders;                 //!< raw reader pointer
-  RawReaderCRUManager mRawReaderCRUManager{};                          //!< cru type raw readers
+  rawreader::RawReaderCRUManager mRawReaderCRUManager{};               //!< cru type raw readers
+
+  std::unique_ptr<TChain> mDigitTree{}; //!< Chain of digit inputs
+  //TChain* mDigitTree{};
 
   virtual void resetEvent() = 0;
   virtual void endEvent() = 0;
@@ -157,6 +172,9 @@ class CalibRawBase
 
   /// Process one event using RawReaderCRU
   ProcessStatus processEventRawReaderCRU(int eventNumber = -1);
+
+  /// Process one event using the tree of digits as input
+  ProcessStatus processEventDigitTree(int eventNumber = -1);
 };
 
 //----------------------------------------------------------------
@@ -170,6 +188,8 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEvent(int eventNumber)
     return processEventRawReader(eventNumber);
   } else if (mRawReaderCRUManager.getNumberOfReaders()) {
     return processEventRawReaderCRU(eventNumber);
+  } else if (mDigitTree) {
+    return processEventDigitTree(eventNumber);
   } else {
     return ProcessStatus::NoReaders;
   }
@@ -212,7 +232,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventGBT()
           switch (mPadSubset) {
             case PadSubset::ROC: {
               rowOffset = regionInfo.getGlobalRowOffset();
-              rowOffset -= (cru.rocType() == RocType::OROC) * nRowIROC;
+              rowOffset -= (cru.isOROC()) * nRowIROC;
               break;
             }
             case PadSubset::Region: {
@@ -375,64 +395,83 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int ev
   size_t processedReaders = 0;
   bool hasData = false;
 
-  int64_t lastEvent = mRawReaderCRUManager.getNumberOfEvents() - 1;
-  for (auto& reader_ptr : mRawReaderCRUManager.getReaders()) {
-    auto reader = reader_ptr.get();
+  const int64_t numberOfEvents = mRawReaderCRUManager.getNumberOfEvents();
+  const int64_t lastEvent = numberOfEvents - 1;
 
-    LOG(INFO) << "Processing event number " << eventNumber << " (" << mNevents << ") - RawReader#: " << processedReaders << " ptr: " << reader;
-
-    if (eventNumber >= 0) {
-      reader->setEventNumber(eventNumber);
-      mPresentEventNumber = eventNumber;
-    } else if (eventNumber == -1) {
-      if (mPresentEventNumber == std::numeric_limits<size_t>::max()) {
-        mPresentEventNumber = 0;
-      } else {
-        mPresentEventNumber = (reader->getEventNumber() + 1) % reader->getNumberOfEvents();
-      }
-    } else if (eventNumber == -2) {
-      auto readerNumber = reader->getEventNumber();
-      if (readerNumber > 0) {
-        mPresentEventNumber = readerNumber - 1;
-      } else {
-        mPresentEventNumber = reader->getNumberOfEvents() - 1;
-      }
+  if (eventNumber >= 0) {
+    mPresentEventNumber = eventNumber;
+  } else if (eventNumber == -1) {
+    if (mPresentEventNumber == std::numeric_limits<size_t>::max()) {
+      mPresentEventNumber = 0;
+    } else {
+      mPresentEventNumber = (mPresentEventNumber + 1) % numberOfEvents;
     }
-    reader->setEventNumber(mPresentEventNumber);
+  } else if (eventNumber == -2) {
+    if (mPresentEventNumber > 0) {
+      mPresentEventNumber -= 1;
+    } else {
+      mPresentEventNumber = numberOfEvents - 1;
+    }
+  }
 
-    // process data
-    reader->processLinks();
+  const bool skipEvent = mSkipIncomplete && !isPresentEventComplete();
+  if (!skipEvent) {
+    for (auto& reader_ptr : mRawReaderCRUManager.getReaders()) {
+      auto reader = reader_ptr.get();
 
-    const auto& cru = reader->getCRU();
+      LOG(INFO) << "Processing event number " << eventNumber << " (" << mNevents << ") - RawReader#: " << processedReaders << " ptr: " << reader;
 
-    LOG(INFO) << "  Found ADC values: " << reader->getADCMap().size();
-    // loop over pads
-    for (const auto& pair : reader->getADCMap()) {
-      const auto& padPos = pair.first;
-      const auto& dataVector = pair.second;
+      if (eventNumber >= 0) {
+        mPresentEventNumber = eventNumber;
+      } else if (eventNumber == -1) {
+        if (mPresentEventNumber == std::numeric_limits<size_t>::max()) {
+          mPresentEventNumber = 0;
+        } else {
+          mPresentEventNumber = (reader->getEventNumber() + 1) % reader->getNumberOfEvents();
+        }
+      } else if (eventNumber == -2) {
+        auto readerNumber = reader->getEventNumber();
+        if (readerNumber > 0) {
+          mPresentEventNumber = readerNumber - 1;
+        } else {
+          mPresentEventNumber = reader->getNumberOfEvents() - 1;
+        }
+      }
+      reader->setEventNumber(mPresentEventNumber);
 
-      // TODO: fix this?
-      mProcessedTimeBins = std::max(mProcessedTimeBins, dataVector.size());
+      // process data
+      reader->processLinks();
+      hasData = true;
 
+      const auto& cru = reader->getCRU();
       const int roc = cru.roc();
+
       // TODO: OROC case needs subtraction of number of pad rows in IROC
       const PadRegionInfo& regionInfo = mMapper.getPadRegionInfo(cru.region());
       const PartitionInfo& partInfo = mMapper.getPartitionInfo(cru.partition());
 
-      // row is local in region (CRU)
-      const int row = padPos.getRow();
-      const int pad = padPos.getPad();
-      if (row == 255 || pad == 255)
-        continue;
+      //LOG(INFO) << "  Found ADC values: " << reader->getADCMap().size();
+      // loop over pads
+      for (const auto& pair : reader->getADCMap()) {
+        const auto& padPos = pair.first;
+        const auto& dataVector = pair.second;
 
-      int timeBin = 0;
-      for (const auto& signalI : dataVector) {
+        // TODO: fix this?
+        mProcessedTimeBins = std::max(mProcessedTimeBins, dataVector.size());
+
+        // row is local in region (CRU)
+        const int row = padPos.getRow();
+        const int pad = padPos.getPad();
+        if (row == 255 || pad == 255)
+          continue;
+
+        int timeBin = 0;
 
         int rowOffset = 0;
         switch (mPadSubset) {
           case PadSubset::ROC: {
             rowOffset = regionInfo.getGlobalRowOffset();
-            rowOffset -= (cru.rocType() == RocType::OROC) * nRowIROC;
+            rowOffset -= (cru.isOROC()) * nRowIROC;
             break;
           }
           case PadSubset::Region: {
@@ -445,42 +484,202 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int ev
           }
         }
 
-        // modify row depending on the calibration type used
-        const float signal = float(signalI);
-        const FECInfo& fecInfo = mMapper.getFECInfo(PadROCPos(roc, row, pad));
-        //printf("Call update: %d, %d (%d), %d, %d, %.3f -- cru: %03d, reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", roc, row, rowOffset, pad, timeBin, signal, cru.number(), cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
-        updateCRU(cru, row, pad, timeBin, signal);
-        updateROC(roc, row + rowOffset, pad, timeBin, signal);
-        ++timeBin;
-        hasData = true;
+        //const FECInfo& fecInfo = mMapper.getFECInfo(PadROCPos(roc, row, pad));
+
+        for (const auto& signalI : dataVector) {
+          // modify row depending on the calibration type used
+          const float signal = float(signalI);
+          //printf("Call update: %d, %d (%d), %d, %d, %.3f -- cru: %03d, reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", roc, row, rowOffset, pad, timeBin, signal, cru.number(), cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
+          updateCRU(cru, row, pad, timeBin, signal);
+          updateROC(roc, row + rowOffset, pad, timeBin, signal);
+          ++timeBin;
+          hasData = true;
+        }
       }
+      LOG(INFO) << "Found time bins: " << mProcessedTimeBins << "\n";
+
+      reader->clearMap();
+
+      // notify that one raw reader processing finalized for this event
+      endReader();
+      ++processedReaders;
     }
-    LOG(INFO) << "Found time bins: " << mProcessedTimeBins << "\n";
+    // set status, don't overwrite decision
+    if (!hasData) {
+      return ProcessStatus::NoMoreData;
+    } else if (processedReaders < mRawReaderCRUManager.getNumberOfReaders()) {
+      status = ProcessStatus::Truncated;
+    } else if (!isPresentEventComplete()) {
+      status = ProcessStatus::IncompleteEvent;
+    } else if (mPresentEventNumber == size_t(lastEvent)) {
+      status = ProcessStatus::LastEvent;
+    }
 
-    reader->clearMap();
-
-    // notify that one raw reader processing finalized for this event
-    endReader();
-    ++processedReaders;
+    endEvent();
+    ++mNevents;
+  } else {
+    status = ProcessStatus::IncompleteEvent;
+    if (mPresentEventNumber == size_t(lastEvent)) {
+      status = ProcessStatus::LastEvent;
+    }
   }
+
+  LOG(INFO) << "Present event number : " << mPresentEventNumber << (skipEvent ? " (skipped, incomplete)" : "");
+  LOG(INFO) << "Last event           : " << lastEvent;
+  LOG(INFO) << "Status               : " << int(status);
+
+  return status;
+}
+
+//______________________________________________________________________________
+inline CalibRawBase::ProcessStatus CalibRawBase::processEventDigitTree(int eventNumber)
+{
+
+  if (!mDigitTree) {
+    return ProcessStatus::NoReaders;
+  }
+  resetEvent();
+
+  const int nRowIROC = mMapper.getNumberOfRowsROC(0);
+
+  ProcessStatus status = ProcessStatus::Ok;
+
+  mProcessedTimeBins = 0;
+  bool hasData = false;
+
+  const int64_t numberOfEvents = mDigitTree->GetEntries();
+  const int64_t lastEvent = numberOfEvents - 1;
+
+  if (eventNumber >= 0) {
+    mPresentEventNumber = eventNumber;
+  } else if (eventNumber == -1) {
+    if (mPresentEventNumber == std::numeric_limits<size_t>::max()) {
+      mPresentEventNumber = 0;
+    } else {
+      mPresentEventNumber = (mPresentEventNumber + 1) % numberOfEvents;
+    }
+  } else if (eventNumber == -2) {
+    if (mPresentEventNumber > 0) {
+      mPresentEventNumber -= 1;
+    } else {
+      mPresentEventNumber = numberOfEvents - 1;
+    }
+  }
+  LOG(INFO) << "Processing event number " << eventNumber << " (" << mNevents << ")";
+
+  // set up branches
+  static bool initialized = false;
+  static std::array<std::vector<Digit>*, Sector::MAXSECTOR> digits{};
+  if (!initialized) {
+    for (int iSec = 0; iSec < Sector::MAXSECTOR; ++iSec) {
+      mDigitTree->SetBranchAddress(Form("TPCDigit_%d", iSec), &digits[iSec]);
+    }
+    initialized = true;
+  }
+
+  // loop over digits for selected event
+  mDigitTree->GetEntry(mPresentEventNumber);
+  for (const auto vecSector : digits) {
+    for (const auto& digit : *vecSector) {
+      // cluster information
+      const CRU cru(digit.getCRU());
+      const int roc = cru.roc();
+      const int row = digit.getRow(); // row is global in sector
+      const int pad = digit.getPad();
+      const size_t timeBin = digit.getTimeStamp();
+      //
+      mProcessedTimeBins = std::max(mProcessedTimeBins, timeBin);
+
+      // TODO: OROC case needs subtraction of number of pad rows in IROC
+      const PadRegionInfo& regionInfo = mMapper.getPadRegionInfo(cru.region());
+      const PartitionInfo& partInfo = mMapper.getPartitionInfo(cru.partition());
+
+      if (row == 255 || pad == 255)
+        continue;
+
+      int rowOffset = 0;
+      switch (mPadSubset) {
+        case PadSubset::ROC: {
+          rowOffset -= (cru.rocType() == RocType::OROC) * nRowIROC;
+          break;
+        }
+        case PadSubset::Region: {
+          break;
+        }
+        case PadSubset::Partition: {
+          rowOffset -= partInfo.getGlobalRowOffset();
+          break;
+        }
+      }
+
+      // modify row depending on the calibration type used
+      const float signal = digit.getChargeFloat();
+      //const FECInfo& fecInfo = mMapper.getFECInfo(PadROCPos(roc, row, pad));
+      //printf("Call update: %d, %d (%d), %d, %d, %.3f -- cru: %03d, reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", roc, row, rowOffset, pad, timeBin, signal, cru.number(), cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
+      updateCRU(cru, row, pad, timeBin, signal);
+      updateROC(roc, row + rowOffset, pad, timeBin, signal);
+      hasData = true;
+    }
+  }
+  LOG(INFO) << "Found time bins: " << mProcessedTimeBins << "\n";
   // set status, don't overwrite decision
   if (!hasData) {
     return ProcessStatus::NoMoreData;
-  } else if (processedReaders < mRawReaderCRUManager.getNumberOfReaders()) {
-    status = ProcessStatus::Truncated;
-  } else if (!isPresentEventComplete()) {
-    status = ProcessStatus::IncompleteEvent;
   } else if (mPresentEventNumber == size_t(lastEvent)) {
     status = ProcessStatus::LastEvent;
   }
+
+  endEvent();
+  ++mNevents;
 
   LOG(INFO) << "Present event number : " << mPresentEventNumber;
   LOG(INFO) << "Last event           : " << lastEvent;
   LOG(INFO) << "Status               : " << int(status);
 
-  endEvent();
-  ++mNevents;
   return status;
+}
+
+//______________________________________________________________________________
+inline Int_t CalibRawBase::update(const PadROCPos& padROCPos, const CRU& cru, const gsl::span<const uint32_t> data)
+{
+  //LOG(INFO) << "  Found ADC values: " << data.size();
+  const int row = padROCPos.getRow();
+  const int pad = padROCPos.getPad();
+  if (row == 255 || pad == 255) {
+    return 1;
+  }
+
+  int rowOffset = 0;
+  switch (mPadSubset) {
+    case PadSubset::ROC: {
+      break;
+    }
+    case PadSubset::Region: {
+      break;
+    }
+    case PadSubset::Partition: {
+      const PartitionInfo& partInfo = mMapper.getPartitionInfo(cru.partition());
+      const int nRowIROC = mMapper.getNumberOfRowsROC(0);
+      rowOffset = (cru.isOROC()) * nRowIROC;
+      rowOffset -= partInfo.getGlobalRowOffset();
+      break;
+    }
+  }
+
+  //const FECInfo& fecInfo = mMapper.getFECInfo(padROCPos);
+  const int roc = padROCPos.getROC();
+  int timeBin = 0;
+  //for (const auto& signalI : data) {
+  //for the moment data of all 16 channels are passed, starting with the present channel
+  for (int i = 0; i < data.size(); i += 16) {
+    const float signal = float(data[i]);
+    //printf("Call update: %d, %d (%d), %d, %d, %.3f -- cru: %03d, reg: %02d -- FEC: %02d, Chip: %02d, Chn: %02d\n", roc, row, rowOffset, pad, timeBin, signal, cru.number(), cru.region(), fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel());
+    // TODO: To be implemented
+    //updateCRU(cru, row, pad, timeBin, signal);
+    updateROC(roc, row + rowOffset, pad, timeBin, signal);
+    ++timeBin;
+  }
+  return timeBin;
 }
 
 } // namespace tpc

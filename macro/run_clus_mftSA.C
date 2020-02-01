@@ -33,7 +33,6 @@ void run_clus_mftSA(std::string outputfile, // output file name
 
   // Setup clusterizer
   Bool_t useMCTruth = kTRUE;  // kFALSE if no comparison with MC needed
-  Bool_t entryPerROF = kTRUE; // write single tree entry for every ROF. If false, just 1 entry will be saved
   o2::mft::ClustererTask* clus = new o2::mft::ClustererTask(useMCTruth, raw);
 
   // Mask fired pixels separated by <= this number of BCs (for overflow pixels).
@@ -42,7 +41,7 @@ void run_clus_mftSA(std::string outputfile, // output file name
   clus->getClusterer().setWantFullClusters(true);    // require clusters with coordinates and full pattern
   clus->getClusterer().setWantCompactClusters(true); // require compact clusters with patternID
 
-  clus->run(inputfile, outputfile, entryPerROF);
+  clus->run(inputfile, outputfile);
 
   timer.Stop();
   timer.Print();

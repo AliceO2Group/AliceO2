@@ -15,9 +15,3 @@
 #include "DataFormatsTPC/TrackTPC.h"
 
 using namespace o2::tpc;
-
-void TrackTPC::resetClusterReferences(int nClusters)
-{
-  mNClusters = short(nClusters);
-  mClusterReferences.resize(nClusters + (nClusters + 1) / 2);
-}

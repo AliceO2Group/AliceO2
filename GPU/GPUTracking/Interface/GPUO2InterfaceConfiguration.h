@@ -25,16 +25,20 @@
 #endif
 
 #include <memory>
+#include <array>
+#include <vector>
 #include "GPUSettings.h"
 #include "GPUDisplayConfig.h"
 #include "GPUQAConfig.h"
 #include "GPUDataTypes.h"
+#include "DataFormatsTPC/Constants.h"
 
 namespace o2
 {
 namespace tpc
 {
 class TrackTPC;
+class Digit;
 }
 namespace gpu
 {
@@ -75,11 +79,13 @@ struct GPUO2InterfaceConfiguration {
 // value of the pointer is overridden. GPUCATracking will try to place the output in the "void* outputBuffer"
 // location if it is not a nullptr.
 struct GPUO2InterfaceIOPtrs {
-  // TPC clusters in cluster native format, const as it can only be input
+  // Input: TPC clusters in cluster native format, or digits, const as it can only be input
   const o2::tpc::ClusterNativeAccess* clusters = nullptr;
+  const std::array<std::vector<o2::tpc::Digit>, o2::tpc::Constants::MAXSECTOR>* o2Digits = nullptr;
 
   // Input / Output for Merged TPC tracks, two ptrs, for the tracks themselves, and for the MC labels.
   std::vector<o2::tpc::TrackTPC>* outputTracks = nullptr;
+  std::vector<uint32_t>* outputClusRefs = nullptr;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* outputTracksMCTruth = nullptr;
 
   // Output for entropy-reduced clusters of TPC compression

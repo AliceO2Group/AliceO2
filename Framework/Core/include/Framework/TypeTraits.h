@@ -7,33 +7,20 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_TYPETRAITS_H
-#define FRAMEWORK_TYPETRAITS_H
+#ifndef O2_FRAMEWORK_TYPETRAITS_H_
+#define O2_FRAMEWORK_TYPETRAITS_H_
 
 #include <type_traits>
 #include <vector>
 #include <memory>
+#include "Framework/Traits.h"
 
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <gsl/gsl>
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
-{
-/// Helper trait to determine if a given type T
-/// is a specialization of a given reference type Ref.
-/// See Framework/Core/test_TypeTraits.cxx for an example
-
-template <typename T, template <typename...> class Ref>
-struct is_specialization : std::false_type {
-};
-
-template <template <typename...> class Ref, typename... Args>
-struct is_specialization<Ref<Args...>, Ref> : std::true_type {
-};
-
 // helper struct to mark a type as non-messageable by defining a type alias
 // with name 'non-messageable'
 struct MarkAsNonMessageable {
@@ -215,6 +202,5 @@ template <class Type>
 struct is_boost_serializable<Type, boost::archive::binary_oarchive, std::void_t<typename Type::value_type>>
   : is_boost_serializable<typename Type::value_type, boost::archive::binary_oarchive> {
 };
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 #endif // FRAMEWORK_TYPETRAITS_H

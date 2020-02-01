@@ -1,3 +1,7 @@
+<!-- doxy
+\page refDetectorsBasetest Detectors Base test
+/doxy -->
+
 # WORK IN PROGRESS: Mat.Budget LUT classes
 
 

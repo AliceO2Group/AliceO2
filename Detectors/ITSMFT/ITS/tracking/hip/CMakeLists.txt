@@ -15,11 +15,16 @@ if(DEFINED HIP_AMDGPUTARGET)
   set(TMP_TARGET "(GPU Target ${HIP_AMDGPUTARGET})")
 endif()
 
-message(STATUS "Building ITS HIP tracker")
-
+message(STATUS "Building ITS HIP vertexer")
 o2_add_library(ITStrackingHIP
-               SOURCES src/UtilsHIP.hip.cxx
+               SOURCES src/ClusterLinesHIP.hip.cxx
                        src/ContextHIP.hip.cxx
+                       # src/DeviceStoreHIP.hip.cxx
+                       src/DeviceStoreVertexerHIP.hip.cxx
+                       src/StreamHIP.hip.cxx
+                       # src/TrackerTraitsHIP.hip.cxx
+                       src/VertexerTraitsHIP.hip.cxx
+                       src/UtilsHIP.hip.cxx                   
                PUBLIC_LINK_LIBRARIES O2::ITStracking hip::host hip::device hip::hipcub
                TARGETVARNAME targetName)
 
@@ -37,4 +42,3 @@ target_compile_options(${targetName}
                               -Wno-invalid-constexpr
                               -Wno-ignored-optimization-argument
                               -Wno-unused-private-field)
-

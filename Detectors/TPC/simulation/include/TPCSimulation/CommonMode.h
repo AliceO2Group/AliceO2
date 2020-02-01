@@ -56,8 +56,8 @@ class CommonMode
 
  private:
   float mCommonMode = 0.f;      ///< Common mode value
-  TimeBin mTimebin = -1;        ///< Time bin
-  unsigned char mGEMstack = -1; ///< GEM stack
+  TimeBin mTimebin = 0;         ///< Time bin
+  unsigned char mGEMstack = 0;  ///< GEM stack
 
   ClassDefNV(CommonMode, 1);
 };

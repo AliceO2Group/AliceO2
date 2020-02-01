@@ -9,10 +9,13 @@
 // or submit itself to any jurisdiction.
 #include "Framework/DataProcessingDevice.h"
 #include "Framework/ChannelMatching.h"
+#include "Framework/ControlService.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/DataProcessor.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DeviceState.h"
+#include "Framework/DispatchPolicy.h"
+#include "Framework/DispatchControl.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/FairOptionsRetriever.h"
 #include "Framework/FairMQDeviceProxy.h"
@@ -24,6 +27,7 @@
 #include "Framework/Logger.h"
 #include "DataProcessingStatus.h"
 #include "DataProcessingHelpers.h"
+#include "DataRelayerHelpers.h"
 
 #include "ScopedExit.h"
 
@@ -47,9 +51,7 @@ using DataHeader = o2::header::DataHeader;
 constexpr unsigned int MONITORING_QUEUE_SIZE = 100;
 constexpr unsigned int MIN_RATE_LOGGING = 60;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegistry& registry, DeviceState& state)
@@ -67,7 +69,10 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
     mRawBufferContext{FairMQDeviceProxy{this}},
     mContextRegistry{&mFairMQContext, &mRootContext, &mStringContext, &mDataFrameContext, &mRawBufferContext},
     mAllocator{&mTimingInfo, &mContextRegistry, spec.outputs},
-    mRelayer{spec.completionPolicy, spec.inputs, spec.forwards, registry.get<Monitoring>(), registry.get<TimesliceIndex>()},
+    mRelayer{spec.completionPolicy,
+             spec.inputs,
+             registry.get<Monitoring>(),
+             registry.get<TimesliceIndex>()},
     mServiceRegistry{registry},
     mErrorCount{0},
     mProcessingCount{0}
@@ -76,9 +81,15 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
   auto dispatcher = [this](FairMQParts&& parts, std::string const& channel, unsigned int index) {
     DataProcessor::doSend(*this, std::move(parts), channel.c_str(), index);
   };
+  auto matcher = [policy = spec.dispatchPolicy](o2::header::DataHeader const& header) {
+    if (policy.triggerMatcher == nullptr) {
+      return true;
+    }
+    return policy.triggerMatcher(Output{header});
+  };
 
   if (spec.dispatchPolicy.action == DispatchPolicy::DispatchOp::WhenReady) {
-    mFairMQContext.init(dispatcher);
+    mFairMQContext.init(DispatchControl{dispatcher, matcher});
   }
 }
 
@@ -104,12 +115,21 @@ void DataProcessingDevice::Init()
   mConfigRegistry = std::move(std::make_unique<ConfigParamRegistry>(std::move(optionsRetriever)));
 
   mExpirationHandlers.clear();
-  for (auto& route : mSpec.inputs) {
+
+  auto distinct = DataRelayerHelpers::createDistinctRouteIndex(mSpec.inputs);
+  int i = 0;
+  for (auto& di : distinct) {
+    auto& route = mSpec.inputs[di];
+    if (route.configurator.has_value() == false) {
+      i++;
+      continue;
+    }
     ExpirationHandler handler{
+      RouteIndex{i++},
       route.matcher.lifetime,
-      route.creatorConfigurator(*mConfigRegistry),
-      route.danglingConfigurator(*mConfigRegistry),
-      route.expirationConfigurator(*mConfigRegistry)};
+      route.configurator->creatorConfigurator(*mConfigRegistry),
+      route.configurator->danglingConfigurator(*mConfigRegistry),
+      route.configurator->expirationConfigurator(*mConfigRegistry)};
     mExpirationHandlers.emplace_back(std::move(handler));
   }
 
@@ -211,6 +231,12 @@ bool DataProcessingDevice::ConditionalRun()
     O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
   };
 
+  auto switchState = [& control = mServiceRegistry.get<ControlService>(),
+                      &state = mState.streaming](StreamingState newState) {
+    state = newState;
+    control.notifyStreamingState(state);
+  };
+
   auto now = std::chrono::high_resolution_clock::now();
   mBeginIterationTimestamp = (uint64_t)std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
 
@@ -252,11 +278,11 @@ bool DataProcessingDevice::ConditionalRun()
   // callback and return false. Notice that what happens next is actually
   // dependent on the callback, not something which is controlled by the
   // framework itself.
-  if (allDone == true && mState.streaming == DeviceState::StreamingState::Streaming) {
-    mState.streaming = DeviceState::StreamingState::EndOfStreaming;
+  if (allDone == true && mState.streaming == StreamingState::Streaming) {
+    switchState(StreamingState::EndOfStreaming);
   }
 
-  if (mState.streaming == DeviceState::StreamingState::EndOfStreaming) {
+  if (mState.streaming == StreamingState::EndOfStreaming) {
     // We keep processing data until we are Idle.
     // FIXME: not sure this is the correct way to drain the queues, but
     // I guess we will see.
@@ -280,10 +306,17 @@ bool DataProcessingDevice::ConditionalRun()
     for (auto& channel : mSpec.outputChannels) {
       DataProcessingHelpers::sendEndOfStream(*this, channel);
     }
-    mState.streaming = DeviceState::StreamingState::Idle;
+    // This is needed because the transport is deleted before the device.
+    mRelayer.clear();
+    switchState(StreamingState::Idle);
     return true;
   }
   return true;
+}
+
+void DataProcessingDevice::ResetTask()
+{
+  mRelayer.clear();
 }
 
 /// This is the inner loop of our framework. The actual implementation
@@ -588,7 +621,9 @@ bool DataProcessingDevice::tryDispatchComputation()
         if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification) && (dph->startTime % forward.maxTimeslices) == forward.timeslice) {
 
           if (header.get() == nullptr) {
-            LOG(ERROR) << "Missing header!";
+            // FIXME: this should not happen, however it's actually harmless and
+            //        we can simply discard it for the moment.
+            // LOG(ERROR) << "Missing header! " << dh->dataDescription.as<std::string>();
             continue;
           }
           auto fdph = o2::header::get<DataProcessingHeader*>(header.get()->GetData());
@@ -639,6 +674,12 @@ bool DataProcessingDevice::tryDispatchComputation()
       totalInputSize += header->payloadSize;
     }
     return totalInputSize;
+  };
+
+  auto switchState = [& control = mServiceRegistry.get<ControlService>(),
+                      &state = mState.streaming](StreamingState newState) {
+    state = newState;
+    control.notifyStreamingState(state);
   };
 
   if (canDispatchSomeComputation() == false) {
@@ -693,11 +734,11 @@ bool DataProcessingDevice::tryDispatchComputation()
     }
   }
   // We now broadcast the end of stream if it was requested
-  if (mState.streaming == DeviceState::StreamingState::EndOfStreaming) {
+  if (mState.streaming == StreamingState::EndOfStreaming) {
     for (auto& channel : mSpec.outputChannels) {
       DataProcessingHelpers::sendEndOfStream(*this, channel);
     }
-    mState.streaming = DeviceState::StreamingState::Idle;
+    switchState(StreamingState::Idle);
   }
 
   return true;
@@ -710,5 +751,4 @@ void DataProcessingDevice::error(const char* msg)
   mServiceRegistry.get<Monitoring>().send(Metric{mErrorCount, "errors"}.addTag(Key::Subsystem, Value::DPL));
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

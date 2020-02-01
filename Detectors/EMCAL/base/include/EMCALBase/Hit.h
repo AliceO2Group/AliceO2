@@ -20,6 +20,7 @@ namespace emcal
 {
 /// \class Hit
 /// \brief EMCAL simulation hit information
+/// \ingroup EMCALbase
 class Hit : public o2::BasicXYZEHit<float>
 {
  public:

@@ -16,6 +16,8 @@
 #ifndef GPUTRDTRACKER_H
 #define GPUTRDTRACKER_H
 
+#define POSITIVE_B_FIELD_5KG
+
 #include "GPUCommonDef.h"
 #include "GPUProcessor.h"
 #include "GPUTRDDef.h"
@@ -56,7 +58,7 @@ class GPUTRDTracker : public GPUProcessor
   GPUTRDTracker& operator=(const GPUTRDTracker& tracker) CON_DELETE;
   ~GPUTRDTracker();
 
-  void SetMaxData();
+  void SetMaxData(const GPUTrackingInOutPointers& io);
   void RegisterMemoryAllocation();
   void InitializeProcessor();
   void* SetPointersBase(void* base);
@@ -80,7 +82,7 @@ class GPUTRDTracker : public GPUProcessor
 
   // struct to hold the information on the space points
   struct GPUTRDSpacePointInternal {
-    float mR;                 // x position (7mm above anode wires)
+    float mR;                 // x position (3.5 mm above anode wires) - radial offset due to t0 mis-calibration, measured -1 mm for run 245353
     float mX[2];              // y and z position (sector coordinates)
     My_Float mCov[3];         // sigma_y^2, sigma_yz, sigma_z^2
     float mDy;                // deflection over drift length
@@ -90,14 +92,15 @@ class GPUTRDTracker : public GPUProcessor
   };
 
   struct Hypothesis {
-    int mLayers;
-    int mCandidateId;
-    int mTrackletId;
-    float mChi2;
+    int mLayers;      // number of layers with TRD space point
+    int mCandidateId; // to which track candidate the hypothesis belongs
+    int mTrackletId;  // tracklet index to be used for update
+    float mChi2;      // predicted chi2 for given space point
+    float mChi2YZPhi; // not yet ready (see GetPredictedChi2 method in cxx file)
 
     GPUd() float GetReducedChi2() { return mLayers > 0 ? mChi2 / mLayers : mChi2; }
     GPUd() Hypothesis() : mLayers(0), mCandidateId(-1), mTrackletId(-1), mChi2(9999.f) {}
-    GPUd() Hypothesis(int layers, int candidateId, int trackletId, float chi2) : mLayers(layers), mCandidateId(candidateId), mTrackletId(trackletId), mChi2(chi2) {}
+    GPUd() Hypothesis(int layers, int candidateId, int trackletId, float chi2, float chi2YZPhi = -1.f) : mLayers(layers), mCandidateId(candidateId), mTrackletId(trackletId), mChi2(chi2), mChi2YZPhi(chi2YZPhi) {}
   };
 
   short MemoryPermanent() const { return mMemoryPermanent; }
@@ -116,32 +119,53 @@ class GPUTRDTracker : public GPUProcessor
 #endif
       return (1);
     }
+    if (!trk.CheckNumericalQuality()) {
+      return (0);
+    }
+    if (CAMath::Abs(trk.getEta()) > mMaxEta) {
+      return (0);
+    }
+    if (trk.getPt() < mMinPt) {
+      return (0);
+    }
 #ifdef GPUCA_ALIROOT_LIB
-    new (&mTracks[mNTracks++]) GPUTRDTrack(trk); // We need placement new, since the class is virtual
+    new (&mTracks[mNTracks]) GPUTRDTrack(trk); // We need placement new, since the class is virtual
 #else
-    mTracks[mNTracks++] = trk;
+    mTracks[mNTracks] = trk;
 #endif
+    mTracks[mNTracks].SetTPCtrackId(mNTracks);
     if (label >= 0) {
-      mTracks[mNTracks - 1].SetLabel(label);
+      mTracks[mNTracks].SetLabel(label);
     }
     if (nTrkltsOffline) {
       for (int i = 0; i < 4; ++i) {
-        mTracks[mNTracks - 1].SetNtrackletsOffline(i, nTrkltsOffline[i]); // see GPUTRDTrack.h for information on the index
+        mTracks[mNTracks].SetNtrackletsOffline(i, nTrkltsOffline[i]); // see GPUTRDTrack.h for information on the index
       }
     }
-    mTracks[mNTracks - 1].SetLabelOffline(labelOffline);
+    mTracks[mNTracks].SetLabelOffline(labelOffline);
+    mNTracks++;
     return (0);
   }
   GPUd() void DoTrackingThread(int iTrk, int threadId = 0);
   GPUd() bool CalculateSpacePoints();
   GPUd() bool FollowProlongation(GPUTRDPropagator* prop, GPUTRDTrack* t, int threadId);
+  GPUd() float GetPredictedChi2(const My_Float* pTRD, const My_Float* covTRD, const My_Float* pTrk, const My_Float* covTrk) const;
   GPUd() int GetDetectorNumber(const float zPos, const float alpha, const int layer) const;
   GPUd() bool AdjustSector(GPUTRDPropagator* prop, GPUTRDTrack* t, const int layer) const;
   GPUd() int GetSector(float alpha) const;
   GPUd() float GetAlphaOfSector(const int sec) const;
-  GPUd() float GetRPhiRes(float snp) const { return (0.04f * 0.04f + 0.33f * 0.33f * (snp - 0.126f) * (snp - 0.126f)); } // parametrization obtained from track-tracklet residuals
-  GPUd() float GetAngularResolution(float snp) const { return 0.0415f * 0.0415f + 0.43f * 0.43f * (snp - 0.147f) * (snp - 0.147f); }
-  GPUd() float ConvertAngleToDy(float snp) const { return 0.132f + 2.379f * snp - 0.517f * snp * snp; } // more accurate than sin(phi) = (dy / xDrift) / sqrt(1+(dy/xDrift)^2)
+  // TODO all parametrizations depend on B-field -> need to find correct description.. To be put in CCDB in the future?
+#ifdef POSITIVE_B_FIELD_5KG
+  // B = +5kG for Run 244340 and 245353
+  GPUd() float GetRPhiRes(float snp) const { return (0.04f * 0.04f + 0.31f * 0.31f * (snp - 0.125f) * (snp - 0.125f)); } // parametrization obtained from track-tracklet residuals
+  GPUd() float GetAngularResolution(float snp) const { return 0.041f * 0.041f + 0.43f * 0.43f * (snp - 0.15f) * (snp - 0.15f); }
+  GPUd() float ConvertAngleToDy(float snp) const { return 0.13f + 2.43f * snp - 0.58f * snp * snp; } // more accurate than sin(phi) = (dy / xDrift) / sqrt(1+(dy/xDrift)^2)
+#else
+  // B = -5kG for Run 246390
+  GPUd() float GetRPhiRes(float snp) const { return (0.04f * 0.04f + 0.34f * 0.34f * (snp + 0.14f) * (snp + 0.14f)); }
+  GPUd() float GetAngularResolution(float snp) const { return 0.047f * 0.047f + 0.45f * 0.45f * (snp + 0.15f) * (snp + 0.15f); }
+  GPUd() float ConvertAngleToDy(float snp) const { return -0.15f + 2.34f * snp + 0.56f * snp * snp; } // more accurate than sin(phi) = (dy / xDrift) / sqrt(1+(dy/xDrift)^2)
+#endif
   GPUd() float GetAngularPull(float dYtracklet, float snp) const;
   GPUd() void RecalcTrkltCov(const float tilt, const float snp, const float rowSize, My_Float (&cov)[3]);
   GPUd() void CheckTrackRefs(const int trackID, bool* findableMC) const;
@@ -160,6 +184,8 @@ class GPUTRDTracker : public GPUProcessor
   GPUd() void SetChi2Threshold(float chi2) { mMaxChi2 = chi2; }
   GPUd() void SetChi2Penalty(float chi2) { mChi2Penalty = chi2; }
   GPUd() void SetMaxMissingLayers(int ly) { mMaxMissingLy = ly; }
+  GPUd() void SetExtraRoadY(float extraRoadY) { mExtraRoadY = extraRoadY; }
+  GPUd() void SetRoadZ(float roadZ) { mRoadZ = roadZ; }
 
   GPUd() AliMCEvent* GetMCEvent() const { return mMCEvent; }
   GPUd() bool GetIsDebugOutputOn() const { return mDebugOutput; }
@@ -169,6 +195,8 @@ class GPUTRDTracker : public GPUProcessor
   GPUd() float GetChi2Penalty() const { return mChi2Penalty; }
   GPUd() int GetMaxMissingLayers() const { return mMaxMissingLy; }
   GPUd() int GetNCandidates() const { return mNCandidates; }
+  GPUd() float GetExtraRoadY() const { return mExtraRoadY; }
+  GPUd() float GetRoadZ() const { return mRoadZ; }
 
   // output
   GPUd() int NTracks() const { return mNTracks; }
@@ -179,7 +207,7 @@ class GPUTRDTracker : public GPUProcessor
   GPUd() void DumpTracks();
 
  protected:
-  float* mR;                               // rough radial position of each TRD layer
+  float* mR;                               // radial position of each TRD chamber, alignment taken into account, radial spread within chambers < 7mm
   bool mIsInitialized;                     // flag is set upon initialization
   short mMemoryPermanent;                  // size of permanent memory for the tracker
   short mMemoryTracklets;                  // size of memory for TRD tracklets
@@ -201,8 +229,11 @@ class GPUTRDTracker : public GPUProcessor
   int* mTrackletLabels;                    // array with MC tracklet labels
   TRD_GEOMETRY_CONST GPUTRDGeometry* mGeo; // TRD geometry
   bool mDebugOutput;                       // store debug output
+  float mRadialOffset;                     // due to mis-calibration of t0
   float mMinPt;                            // min pt of TPC tracks for tracking
   float mMaxEta;                           // TPC tracks with higher eta are ignored
+  float mExtraRoadY;                       // addition to search road in r-phi to account for not exact radial match of tracklets and tracks in first iteration
+  float mRoadZ;                            // in z, a constant search road is used
   float mMaxChi2;                          // max chi2 for tracklets
   int mMaxMissingLy;                       // max number of missing layers per track
   float mChi2Penalty;                      // chi2 added to the track for no update

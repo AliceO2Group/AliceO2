@@ -56,6 +56,7 @@ class GPUQA;
 class GPUTPCClusterStatistics;
 class GPUTRDGeometry;
 class TPCFastTransform;
+class GPUTrackingInputProvider;
 
 class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelegateBase
 {
@@ -80,6 +81,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     InOutMemory(InOutMemory&&);
     InOutMemory& operator=(InOutMemory&&);
 
+    std::unique_ptr<deprecated::PackedDigit[]> tpcDigits[NSLICES];
     std::unique_ptr<GPUTPCClusterData[]> clusterData[NSLICES];
     std::unique_ptr<AliHLTTPCRawCluster[]> rawClusters[NSLICES];
     std::unique_ptr<o2::tpc::ClusterNative[]> clustersNative;
@@ -108,6 +110,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int ConvertNativeToClusterData();
   void ConvertNativeToClusterDataLegacy();
   void ConvertRun2RawToNative();
+  void ConvertZSEncoder(bool zs12bit);
+  void ConvertZSFilter(bool zs12bit);
 
   // Getters for external usage of tracker classes
   GPUTRDTracker* GetTRDTracker() { return &processors()->trdTracker; }
@@ -121,6 +125,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int ForceInitQA();
 
   // Processing functions
+  int RunTPCClusterizer();
+  void ForwardTPCDigits();
   int RunTPCTrackingSlices();
   int RunTPCTrackingMerger();
   int RunTRDTracking();
@@ -166,17 +172,22 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int ReadEvent(int iSlice, int threadId);
   void WriteOutput(int iSlice, int threadId);
   int GlobalTracking(int iSlice, int threadId);
+  void PrepareEventFromNative();
 
   int PrepareProfile();
   int DoProfile();
   void PrintMemoryRelations();
   void PrintMemoryStatistics() override;
+  void PrepareDebugOutput();
+  void PrintDebugOutput();
 
   bool ValidateSteps();
 
   // Pointers to tracker classes
   GPUTrackingFlatObjects mFlatObjectsShadow; // Host copy of flat objects that will be used on the GPU
   GPUTrackingFlatObjects mFlatObjectsDevice; // flat objects that will be used on the GPU
+  std::unique_ptr<GPUTrackingInputProvider> mInputsHost;
+  std::unique_ptr<GPUTrackingInputProvider> mInputsShadow;
 
   // Display / QA
   std::unique_ptr<GPUDisplay> mEventDisplay;
@@ -186,6 +197,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   // Ptr to reconstruction detector objects
   std::unique_ptr<o2::tpc::ClusterNativeAccess> mClusterNativeAccess; // Internal memory for clusterNativeAccess
+  std::unique_ptr<GPUTrackingInOutDigits> mDigitMap;                  // Internal memory for digit-map, if needed
   std::unique_ptr<TPCFastTransform> mTPCFastTransformU;               // Global TPC fast transformation object
   std::unique_ptr<o2::base::MatLayerCylSet> mMatLUTU;                 // Material Lookup Table
   std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometryU;            // TRD Geometry
@@ -194,8 +206,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   unsigned int mMaxTPCHits;
   unsigned int mMaxTRDTracklets;
 
-  // Timers and debug
-  HighResTimer timerTPCtracking[NSLICES][10];
+  // Debug
   std::ofstream mDebugFile;
 
   // Synchronization and Locks
@@ -214,6 +225,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
  private:
   int RunTPCTrackingSlices_internal();
+  void RunTPCClusterizer_compactPeaks(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder& clustererShadow, int stage, bool doGPU, int lane);
   std::atomic_flag mLockAtomic = ATOMIC_FLAG_INIT;
 
   int HelperReadEvent(int iSlice, int threadId, GPUReconstructionHelpers::helperParam* par);

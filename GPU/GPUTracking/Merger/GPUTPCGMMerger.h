@@ -60,7 +60,7 @@ class GPUTPCGMMerger : public GPUProcessor
 
   void InitializeProcessor();
   void RegisterMemoryAllocation();
-  void SetMaxData();
+  void SetMaxData(const GPUTrackingInOutPointers& io);
   void* SetPointersHostOnly(void* mem);
   void* SetPointersGPURefit(void* mem);
 

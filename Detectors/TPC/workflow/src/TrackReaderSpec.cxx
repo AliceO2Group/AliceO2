@@ -15,6 +15,7 @@
 #include "TTree.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "TPCWorkflow/TrackReaderSpec.h"
 
 using namespace o2::framework;
@@ -44,6 +45,7 @@ void TrackReader::run(ProcessingContext& pc)
 
   LOG(INFO) << "TPCTrackReader pushes " << mTracksOut.size() << " tracks";
   pc.outputs().snapshot(Output{"TPC", "TRACKS", 0, Lifetime::Timeframe}, mTracksOut);
+  pc.outputs().snapshot(Output{"TPC", "CLUSREFS", 0, Lifetime::Timeframe}, mCluRefVecOut);
   if (mUseMC) {
     pc.outputs().snapshot(Output{"TPC", "TRACKSMCLBL", 0, Lifetime::Timeframe}, mMCTruthOut);
   }
@@ -66,6 +68,7 @@ void TrackReader::accumulate()
   LOG(INFO) << "Loaded tracks tree " << mTrackTreeName << " from " << mInputFileName;
 
   trTree->SetBranchAddress(mTrackBranchName.c_str(), &mTracksInp);
+  trTree->SetBranchAddress(mClusRefBranchName.c_str(), &mCluRefVecInp);
   if (mUseMC) {
     if (trTree->GetBranch(mTrackMCTruthBranchName.c_str())) {
       trTree->SetBranchAddress(mTrackMCTruthBranchName.c_str(), &mMCTruthInp);
@@ -79,6 +82,7 @@ void TrackReader::accumulate()
   if (nEnt == 1) {
     trTree->GetEntry(0);
     mTracksOut.swap(*mTracksInp);
+    mCluRefVecOut.swap(*mCluRefVecInp);
     if (mUseMC) {
       mMCTruthOut.mergeAtBack(*mMCTruthInp);
     }
@@ -86,9 +90,22 @@ void TrackReader::accumulate()
     int lastEntry = -1;
     int ntrAcc = 0;
     for (int iev = 0; iev < nEnt; iev++) {
-      trTree->GetEntry(0);
+      trTree->GetEntry(iev);
+      //
+      uint32_t shift = mCluRefVecOut.size(); // during accumulation clusters refs need to be shifted
+
+      auto cl0 = mCluRefVecInp->begin();
+      auto cl1 = mCluRefVecInp->end();
+      std::copy(cl0, cl1, std::back_inserter(mCluRefVecOut));
+
       auto tr0 = mTracksInp->begin();
       auto tr1 = mTracksInp->end();
+      // fix cluster references
+      if (shift) {
+        for (auto tr = tr0; tr != tr1; tr++) {
+          tr->shiftFirstClusterRef(shift);
+        }
+      }
       std::copy(tr0, tr1, std::back_inserter(mTracksOut));
       // MC
       if (mUseMC) {
@@ -102,6 +119,7 @@ DataProcessorSpec getTPCTrackReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputSpec;
   outputSpec.emplace_back("TPC", "TRACKS", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back("TPC", "CLUSREFS", 0, Lifetime::Timeframe);
   if (useMC) {
     outputSpec.emplace_back("TPC", "TRACKSMCLBL", 0, Lifetime::Timeframe);
   }

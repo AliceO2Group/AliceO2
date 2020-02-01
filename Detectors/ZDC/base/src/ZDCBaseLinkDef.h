@@ -16,4 +16,8 @@
 
 #pragma link C++ class o2::zdc::Geometry + ;
 
+#pragma link C++ class o2::zdc::Module + ;
+#pragma link C++ class o2::zdc::ModuleConfig + ;
+#pragma link C++ class o2::zdc::TriggerChannelConfig + ;
+
 #endif

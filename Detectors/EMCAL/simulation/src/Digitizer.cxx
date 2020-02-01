@@ -34,22 +34,36 @@ using namespace o2::emcal;
 //_______________________________________________________________________
 void Digitizer::init()
 {
-  mSimParam = SimParam::getInstance();
+  mSimParam = &(o2::emcal::SimParam::Instance());
+  mLiveTime = mSimParam->getLiveTime();
+  mBusyTime = mSimParam->getBusyTime();
   mRandomGenerator = new TRandom3(std::chrono::high_resolution_clock::now().time_since_epoch().count());
 
   float tau = mSimParam->getTimeResponseTau();
   float N = mSimParam->getTimeResponsePower();
-  mTimeBinOffset = ((int)tau + 0.5);
+  float delay = std::fmod(mSimParam->getSignalDelay() / constants::EMCAL_TIMESAMPLE, 1);
+  mDelay = ((int)(std::floor(mSimParam->getSignalDelay() / constants::EMCAL_TIMESAMPLE)));
+
+  mTimeBinOffset.clear();
   mSignalFractionInTimeBins.clear();
+
   TF1 RawResponse("RawResponse", rawResponseFunction, 0, 256, 5);
   RawResponse.SetParameters(1., 0., tau, N, 0.);
-  double RawResponseTotalIntegral = (N > 0) ? pow(N, -N) * exp(N) * std::tgamma(N) : 1.;
-  for (int j = 0; j < constants::EMCAL_MAXTIMEBINS; j++) {
-    double val = RawResponse.Integral(-mTimeBinOffset - 0.5 + j, -mTimeBinOffset + 0.5 + j) / RawResponseTotalIntegral;
-    if (val < 1e-10) {
-      break;
+
+  for (int i = 0; i < 4; i++) {
+    int offset = ((int)(std::ceil(tau - delay - 0.25 * i)));
+    mTimeBinOffset.push_back(offset);
+
+    double RawResponseTotalIntegral = (N > 0) ? pow(N / tau, -N) * exp(N) * std::tgamma(N) * std::pow(1 / tau, N - 1) : 1.;
+    std::vector<double> sf;
+    RawResponse.SetParameter(1, 0.25 * i + delay);
+
+    for (int j = 0; j < constants::EMCAL_MAXTIMEBINS; j++) {
+      double val = RawResponse.Integral(j - offset, j + 1 - offset) / RawResponseTotalIntegral;
+      sf.push_back(val);
     }
-    mSignalFractionInTimeBins.push_back(val);
+
+    mSignalFractionInTimeBins.push_back(sf);
   }
 }
 
@@ -75,16 +89,26 @@ double Digitizer::rawResponseFunction(double* x, double* par)
 void Digitizer::finish() {}
 
 //_______________________________________________________________________
-void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits)
+void Digitizer::initCycle()
 {
-  digits.clear();
-  mDigits.clear();
-  mMCTruthContainer.clear();
-
   if (mSimulateNoiseDigits) {
     addNoiseDigits();
   }
 
+  mEmpty = false;
+}
+
+//_______________________________________________________________________
+void Digitizer::clear()
+{
+  mTriggerTime = -1e20;
+  mDigits.clear();
+  mEmpty = true;
+}
+
+//_______________________________________________________________________
+void Digitizer::process(const std::vector<Hit>& hits)
+{
   for (auto hit : hits) {
     try {
       hitToDigits(hit);
@@ -106,7 +130,7 @@ void Digitizer::process(const std::vector<Hit>& hits, std::vector<Digit>& digits
     }
   }
 
-  fillOutputContainer(digits);
+  mEmpty = false;
 }
 
 //_______________________________________________________________________
@@ -117,12 +141,12 @@ void Digitizer::hitToDigits(const Hit& hit)
   Double_t energy = hit.GetEnergyLoss();
 
   if (mSimulateTimeResponse) {
-    for (int j = 0; j < mSignalFractionInTimeBins.size(); j++) {
-      double val = energy * mSignalFractionInTimeBins.at(j);
-      if ((val < mSimParam->getTimeResponseThreshold()) && (j > mTimeBinOffset)) {
+    for (int j = 0; j < mSignalFractionInTimeBins.at(mPhase).size(); j++) {
+      double val = energy * (mSignalFractionInTimeBins.at(mPhase).at(j));
+      if ((val < mSimParam->getTimeResponseThreshold()) && (j > mTimeBinOffset.at(mPhase))) {
         break;
       }
-      Digit digit(tower, val, mEventTime + (j - mTimeBinOffset) * constants::EMCAL_TIMESAMPLE);
+      Digit digit(tower, val, mEventTime + (j - mTimeBinOffset.at(mPhase) + mDelay + 0.5) * constants::EMCAL_TIMESAMPLE);
       mTempDigitVector.push_back(digit);
     }
   } else {
@@ -141,7 +165,17 @@ void Digitizer::setEventTime(double t)
   if (t < mEventTime && mContinuous) {
     LOG(FATAL) << "New event time (" << t << ") is < previous event time (" << mEventTime << ")";
   }
-  mEventTime = t;
+
+  if (t - mTriggerTime >= mLiveTime + mBusyTime) {
+    mTriggerTime = t;
+  }
+
+  mEventTime = t - mTriggerTime;
+
+  mPhase = ((int)((std::fmod(t, 100) + 12.5) / 25));
+  if (mPhase == 4) {
+    mPhase = 0;
+  }
 }
 
 //_______________________________________________________________________
@@ -158,7 +192,7 @@ void Digitizer::addNoiseDigits()
 }
 
 //_______________________________________________________________________
-void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
+void Digitizer::fillOutputContainer(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>& labelsout)
 {
   std::list<LabeledDigit> l;
 
@@ -170,13 +204,16 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
       LabeledDigit ld1 = tower.front();
       tower.pop_front();
 
-      for (auto ld2 : tower) {
-        if (ld1.canAdd(ld2)) {
-          ld1 += ld2;
-          tower.pop_front();
-        } else {
-          break;
+      // loop over all other entries in the container, check if we can add the digits
+      std::vector<decltype(tower.begin())> toDelete;
+      for (auto ld2 = tower.begin(); ld2 != tower.end(); ++ld2) { // must be iterator in order to know the position in the container for erasing
+        if (ld1.canAdd(*ld2)) {
+          ld1 += *ld2;
+          toDelete.push_back(ld2);
         }
+      }
+      for (auto del : toDelete) {
+        tower.erase(del);
       }
 
       if (mSmearEnergy) {
@@ -196,11 +233,14 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
     std::vector<MCLabel> labels = d.getLabels();
     digits.push_back(digit);
 
-    Int_t LabelIndex = mMCTruthContainer.getIndexedSize();
+    Int_t LabelIndex = labelsout.getIndexedSize();
     for (auto label : labels) {
-      mMCTruthContainer.addElementRandomAccess(LabelIndex, label);
+      labelsout.addElementRandomAccess(LabelIndex, label);
     }
   }
+
+  mDigits.clear();
+  mEmpty = true;
 }
 
 //_______________________________________________________________________

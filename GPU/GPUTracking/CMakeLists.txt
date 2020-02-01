@@ -69,8 +69,10 @@ set(SRCS_NO_CINT
     Base/GPUGeneralKernels.cxx
     Base/GPUReconstructionDeviceBase.cxx
     Base/GPUReconstructionConvert.cxx
+    Base/GPUKernelDebugOutput.cxx
     Global/GPUChain.cxx
     Global/GPUChainTracking.cxx
+    Global/GPUTrackingInputProvider.cxx
     Standalone/utils/timer.cxx)
 
 set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
@@ -114,6 +116,9 @@ set(HDRS_INSTALL
     Base/GPUMemorySizeScalers.h
     dEdx/GPUdEdxInfo.h
     TPCConvert/GPUTPCConvertImpl.h
+    Base/GPUReconstructionKernelMacros.h
+    Base/GPUO2FakeClasses.h
+    Base/GPUParam.inc
 )
 
 # Sources only for O2
@@ -126,7 +131,7 @@ endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   set(SRCS_NO_CINT ${SRCS_NO_CINT} Standalone/display/GPUDisplayBackend.cxx)
 endif()
-if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_ROOT_AND_O2_EXTENSIONS)
+if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
     set(SRCS_NO_CINT
         ${SRCS_NO_CINT}
         Global/GPUChainITS.cxx
@@ -139,22 +144,33 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_ROOT_AND_O2_EXTENSIONS)
         DataCompression/GPUTPCCompressionTrackModel.cxx
         DataCompression/GPUTPCCompressionKernels.cxx
         DataCompression/TPCClusterDecompressor.cxx
-        DataCompression/GPUTPCClusterStatistics.cxx)
-    set(HDRS_INSTALL ${HDRS_INSTALL} Interface/GPUO2InterfaceConfiguration.h
-                     ITS/GPUITSTrack.h dEdx/GPUdEdxInfo.h)
-else()
-  set(HDRS_INSTALL
-      ${HDRS_INSTALL}
-      ITS/GPUITSFitter.h
-      ITS/GPUITSFitterKernels.h
-      ITS/GPUITSTrack.h
-      TPCConvert/GPUTPCConvert.h
-      TPCConvert/GPUTPCConvertKernel.h
-      DataCompression/GPUTPCCompression.h
-      DataCompression/GPUTPCCompressionTrackModel.h
-      DataCompression/GPUTPCCompressionKernels.h
-      DataCompression/TPCClusterDecompressor.h
-      DataCompression/GPUTPCClusterStatistics.h)
+        DataCompression/GPUTPCClusterStatistics.cxx
+        TPCClusterFinder/GPUTPCClusterFinderKernels.cxx
+        TPCClusterFinder/GPUTPCClusterFinder.cxx
+        TPCClusterFinder/ClusterAccumulator.cxx
+        TPCClusterFinder/StreamCompaction.cxx
+        TPCClusterFinder/ChargeMapFiller.cxx
+        TPCClusterFinder/PeakFinder.cxx
+        TPCClusterFinder/NoiseSuppression.cxx
+        TPCClusterFinder/Clusterizer.cxx
+        TPCClusterFinder/Deconvolution.cxx
+        TPCClusterFinder/DecodeZS.cxx)
+
+    set(SRCS_NO_H ${SRCS_NO_H}
+        TPCClusterFinder/GPUTPCClusterFinderDump.cxx)
+
+    set(HDRS_INSTALL ${HDRS_INSTALL}
+                     Interface/GPUO2InterfaceConfiguration.h
+                     ITS/GPUITSTrack.h
+                     dEdx/GPUdEdxInfo.h
+                     TPCClusterFinder/Array2D.h
+                     TPCClusterFinder/CfConsts.h
+                     TPCClusterFinder/CfUtils.h
+                     TPCClusterFinder/clusterFinderDefs.h
+                     TPCClusterFinder/ClusterNative.h
+                     TPCClusterFinder/Digit.h
+                     TPCClusterFinder/GPUTPCSharedMemoryData.h
+                     TPCClusterFinder/PackedCharge.h)
 endif()
 
 # Sources only for AliRoot
@@ -186,6 +202,7 @@ if(GPUCA_EVENT_DISPLAY)
   set(SRCS_NO_H ${SRCS_NO_H} Standalone/display/GPUDisplayQuaternion.cxx
                 Standalone/display/GPUDisplayInterpolation.cxx
                 Standalone/display/GPUDisplayKeys.cxx)
+  set(HDRS_INSTALL ${HDRS_INSTALL} Standalone/display/GPUDisplayExt.h)
 else()
   set(HDRS_INSTALL ${HDRS_INSTALL} Standalone/display/GPUDisplay.h)
 endif()
@@ -235,6 +252,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                             Interface
                                             Merger
                                             DataCompression
+                                            TPCClusterFinder
                  TARGETVARNAME targetName
                  SOURCES ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H})
 
@@ -296,9 +314,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/SliceTracker
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Global
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/dEdx
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/ITS
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TPCConvert
+                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/dEdx
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TRDTracking
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Standalone
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/cuda
@@ -384,7 +401,7 @@ endif()
 
 if(OpenMP_CXX_FOUND)
   message(STATUS "GPU: Using OpenMP: ${OpenMP_CXX_SPEC_DATE}")
-  target_compile_definitions(${targetName} PRIVATE GPUCA_HAVE_OPENMP)
+  target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
   # Must be private, depending libraries might be compiled by compiler not understanding -fopenmp
   target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
 endif()

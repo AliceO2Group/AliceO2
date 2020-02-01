@@ -1,3 +1,9 @@
+<!-- doxy
+\page refFrameworkCoreANALYSIS Core ANALYSIS
+/doxy -->
+
+##  Core ANALYSIS
+
 This document is WIP and provides an idea of what kind of API to expect from the DPL enabled analysis framework. APIs are neither final nor fully implemented in O2.
 
 # Analysis Task infrastructure on top of DPL
@@ -295,8 +301,8 @@ struct MyTask : AnalysisTask {
   Partition<Tracks> rightTracks = track::eta >= 0;
 
   void process(Tracks const &tracks) {
-    for (auto& left : leftTracks(filteredTracks)) {
-      for (auto& right : rightTracks(filteredTracks)) {
+    for (auto& left : leftTracks(tracks)) {
+      for (auto& right : rightTracks(tracks)) {
         ...
       }
     }

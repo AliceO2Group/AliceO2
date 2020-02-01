@@ -12,9 +12,10 @@
 
 #include "ITSMFTDigitWriterSpec.h"
 #include "Framework/CallbackService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/Task.h"
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "Headers/DataHeader.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -44,19 +45,15 @@ class ITSMFTDPLDigitWriter
  public:
   void init(framework::InitContext& ic)
   {
-    std::string detStr = mID.getName();
+    //    std::string detStr = mID.getName();
     std::string detStrL = mID.getName();
     std::transform(detStrL.begin(), detStrL.end(), detStrL.begin(), ::tolower);
 
     mFileName = ic.options().get<std::string>((detStrL + "-digit-outfile").c_str());
     mTreeNameDig = ic.options().get<std::string>("treename");
-    mTreeNameROF = detStr + "DigitROF";
-    mTreeNameMC2ROF = detStr + "DigitMC2ROF";
 
     LOG(INFO) << "Will store in " << mFileName << ":";
     LOG(INFO) << "Tree " << mTreeNameDig << " with " << mID.getName() << " digits";
-    LOG(INFO) << "Tree " << mTreeNameROF << " with " << mID.getName() << " ReadOutFrame records";
-    LOG(INFO) << "Tree " << mTreeNameMC2ROF << " with " << mID.getName() << " MC->ROF references";
 
     mOutFile = std::make_unique<TFile>(mFileName.c_str(), "RECREATE");
     if (!mOutFile || mOutFile->IsZombie()) {
@@ -65,8 +62,6 @@ class ITSMFTDPLDigitWriter
       LOG(INFO) << "Opened " << mFileName << " output file";
     }
     mOutTreeDig = std::make_unique<TTree>(mTreeNameDig.c_str(), "Digits tree");
-    mOutTreeROF = std::make_unique<TTree>(mTreeNameROF.c_str(), "ROF records tree");
-    mOutTreeMC2ROF = std::make_unique<TTree>(mTreeNameMC2ROF.c_str(), "MC Event to ROF references");
   }
 
   void run(framework::ProcessingContext& pc)
@@ -87,28 +82,18 @@ class ITSMFTDPLDigitWriter
 
     auto digitsP = &inDigits;
     auto labelsRaw = inLabels.get();
-    // connect this to a particular branch
+    auto rofP = &inROFs;
+    auto mc2rofP = &inMC2ROFs;
 
-    auto brDig = getOrMakeBranch(*mOutTreeDig.get(), (detStr + "Digit").c_str(), &digitsP);
-    auto brLbl = getOrMakeBranch(*mOutTreeDig.get(), (detStr + "DigitMCTruth").c_str(), &labelsRaw);
+    getOrMakeBranch(*mOutTreeDig.get(), (detStr + "Digit").c_str(), &digitsP);
+    getOrMakeBranch(*mOutTreeDig.get(), (detStr + "DigitMCTruth").c_str(), &labelsRaw);
+    getOrMakeBranch(*mOutTreeDig.get(), (detStr + "DigitROF").c_str(), &rofP);
+    getOrMakeBranch(*mOutTreeDig.get(), (detStr + "DigitMC2ROF").c_str(), &mc2rofP);
+
     mOutTreeDig->Fill();
 
-    auto rofP = &inROFs;
-    auto brROF = getOrMakeBranch(*mOutTreeROF.get(), (detStr + "DigitROF").c_str(), &rofP);
-    mOutTreeROF->Fill();
-
-    auto mc2rofP = &inMC2ROFs;
-    auto brMC2ROF = getOrMakeBranch(*mOutTreeMC2ROF.get(), (detStr + "DigitMC2ROF").c_str(), &mc2rofP);
-    mOutTreeMC2ROF->Fill();
-
-    //    mOutFile->WriteObjectAny(&inROFs, "std::vector<o2::itsmft::ROFRecord>", (detStr + "DigitROF").c_str());
-    //    mOutFile->WriteObjectAny(&inMC2ROFs, "std::vector<o2::itsmft::MC2ROFRecord>", (detStr + "DigitMC2ROF").c_str());
     mOutTreeDig->Write();
-    mOutTreeROF->Write();
-    mOutTreeMC2ROF->Write();
     mOutTreeDig.reset(); // delete the trees before closing the file
-    mOutTreeROF.reset();
-    mOutTreeMC2ROF.reset();
 
     mOutFile->Close();
     mFinished = true;
@@ -130,8 +115,6 @@ class ITSMFTDPLDigitWriter
 
   std::string mFileName = "ditigs.root";  // output file name
   std::string mTreeNameDig = "o2sim";     // tree name for digits
-  std::string mTreeNameROF = "ROF";       // tree name for ROFs
-  std::string mTreeNameMC2ROF = "MC2ROF"; // tree name for ROFs
 
   bool mFinished = false;
   o2::detectors::DetID mID;
@@ -139,8 +122,6 @@ class ITSMFTDPLDigitWriter
   std::vector<o2::itsmft::Digit> mDigits; // input digits
   std::unique_ptr<TFile> mOutFile;
   std::unique_ptr<TTree> mOutTreeDig;    // output tree with digits
-  std::unique_ptr<TTree> mOutTreeROF;    // output tree with ROF records
-  std::unique_ptr<TTree> mOutTreeMC2ROF; // output tree with MCevent -> ROF references
 };
 
 //_______________________________________________

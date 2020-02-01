@@ -27,6 +27,18 @@ namespace mch
 using namespace std;
 
 //__________________________________________________________________________
+Track::Track(const Track& track)
+  : mParamAtVertex(track.mParamAtVertex),
+    mParamAtClusters(track.mParamAtClusters),
+    mCurrentParam(nullptr),
+    mCurrentChamber(-1),
+    mConnected(track.mConnected),
+    mRemovable(track.mRemovable)
+{
+  /// Copy the track, except the current parameters and chamber, which are reset
+}
+
+//__________________________________________________________________________
 TrackParam& Track::createParamAtCluster(const Cluster& cluster)
 {
   /// Create the object to hold the track parameters at the given cluster
@@ -52,18 +64,16 @@ TrackParam& Track::createParamAtCluster(const Cluster& cluster)
 }
 
 //__________________________________________________________________________
-TrackParam& Track::addParamAtCluster(TrackParam& param)
+void Track::addParamAtCluster(const TrackParam& param)
 {
   /// Add a copy of the given track parameters in the internal list
   /// The parameters must be associated with a cluster
   /// Keep the internal list of track parameters sorted in clusters z
-  /// Return a reference to the newly created parameters
-  /// or to the original ones in case of error
 
   const Cluster* cluster = param.getClusterPtr();
   if (cluster == nullptr) {
     LOG(ERROR) << "The TrackParam must be associated with a cluster --> not added";
-    return param;
+    return;
   }
 
   // find the iterator before which the new element will be constructed
@@ -75,9 +85,7 @@ TrackParam& Track::addParamAtCluster(TrackParam& param)
   }
 
   // add the new track parameters
-  itParam = mParamAtClusters.emplace(itParam, param);
-
-  return *itParam;
+  mParamAtClusters.emplace(itParam, param);
 }
 
 //__________________________________________________________________________
@@ -186,13 +194,36 @@ void Track::tagRemovableClusters(uint8_t requestedStationMask)
 }
 
 //__________________________________________________________________________
+void Track::setCurrentParam(const TrackParam& param, int chamber)
+{
+  /// set the current track parameters and the associated chamber
+  if (mCurrentParam) {
+    *mCurrentParam = param;
+  } else {
+    mCurrentParam = std::make_unique<TrackParam>(param);
+  }
+  mCurrentParam->setClusterPtr(nullptr);
+  mCurrentChamber = chamber;
+}
+
+//__________________________________________________________________________
+TrackParam& Track::getCurrentParam()
+{
+  /// get a reference to the current track parameters. Create dummy parameters if needed
+  if (!mCurrentParam) {
+    mCurrentParam = std::make_unique<TrackParam>();
+  }
+  return *mCurrentParam;
+}
+
+//__________________________________________________________________________
 void Track::print() const
 {
   /// Print the track parameters at first cluster and the Id of all associated clusters
   mParamAtClusters.front().print();
-  cout << "\tclusters = {";
+  cout << "\tcurrent chamber = " << mCurrentChamber + 1 << " ; clusters = {";
   for (const auto& param : *this) {
-    cout << param.getClusterPtr()->getUniqueId() << ", ";
+    cout << param.getClusterPtr()->getIdAsString() << ", ";
   }
   cout << "}" << endl;
 }

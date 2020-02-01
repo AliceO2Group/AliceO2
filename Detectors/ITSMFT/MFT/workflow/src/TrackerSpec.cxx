@@ -23,6 +23,7 @@
 #include "TGeoGlobalMagField.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsMFT/TrackMFT.h"
@@ -129,9 +130,9 @@ void TrackerDPL::run(ProcessingContext& pc)
         trackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
         int first = allTracks.size();
         int number = tracks.size();
-        int shiftIdx = -rof.getROFEntry().getIndex();
-        rofs[roFrame].getROFEntry().setIndex(first);
-        rofs[roFrame].setNROFEntries(number);
+        int shiftIdx = -rof.getFirstEntry();
+        rofs[roFrame].setFirstEntry(first);
+        rofs[roFrame].setNEntries(number);
         std::copy(tracksLTF.begin(), tracksLTF.end(), std::back_inserter(allTracksLTF));
         std::copy(tracksCA.begin(), tracksCA.end(), std::back_inserter(allTracksCA));
         copyTracks(tracks, allTracks, allClusIdx, shiftIdx);

@@ -25,7 +25,8 @@ set(HDRS_INSTALL
     GPUDefConstantsAndSettings.h
     GPUDefGPUParameters.h
     GPUDefOpenCL12Templates.h
-    GPULogging.h)
+    GPULogging.h
+    GPUDefMacros.h)
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(${MODULE}
@@ -43,7 +44,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                              GPUCA_TPC_GEOMETRY_O2 HAVE_O2HEADERS)
   
   # cuda test, only compile if CUDA
-  if(CUDA_ENABLED AND NOT $ENV{ALIBUILT_O2_TESTS})                           
+  if(CUDA_ENABLED AND NOT $ENV{ALIBUILT_O2_TESTS})
     o2_add_test(${MODULE}
                 PUBLIC_LINK_LIBRARIES O2::${MODULE}
                 SOURCES ctest/testGPUsortCUDA.cu

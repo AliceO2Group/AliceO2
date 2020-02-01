@@ -21,6 +21,7 @@
 #include "DataFormatsMFT/TrackMFT.h"
 #include "MFTBase/GeometryTGeo.h"
 #include "MFTReconstruction/Tracker.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 
 namespace o2
 {
@@ -55,6 +56,8 @@ class TrackerTask : public FairTask
 
   std::vector<TrackMFT>* mTracksArray = nullptr;                            ///< Array of tracks
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTrkLabels = nullptr; ///< Track MC labels
+
+  const std::vector<o2::itsmft::ROFRecord>* mROFRecVecPtr = nullptr; //!< vector of ROFRecord references pointer
 
   ClassDefOverride(TrackerTask, 1);
 };

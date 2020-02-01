@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "MCHDigitizerSpec.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"
@@ -21,7 +22,7 @@
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "MCHSimulation/Digit.h"
+#include "MCHBase/Digit.h"
 #include "MCHSimulation/Digitizer.h"
 #include "MCHSimulation/Detector.h"
 #include "DetectorsBase/GeometryManager.h"

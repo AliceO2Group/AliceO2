@@ -37,6 +37,10 @@ struct ConcreteDataTypeMatcher {
   {
     return origin == that.origin && description == that.description;
   }
+  bool operator!=(ConcreteDataTypeMatcher const& that) const
+  {
+    return not operator==(that);
+  }
 };
 
 /// This fully qualifies data geometry.
@@ -69,6 +73,10 @@ struct ConcreteDataMatcher {
   bool operator==(ConcreteDataMatcher const& that) const
   {
     return origin == that.origin && description == that.description && subSpec == that.subSpec;
+  }
+  bool operator!=(ConcreteDataMatcher const& that) const
+  {
+    return not operator==(that);
   }
 };
 

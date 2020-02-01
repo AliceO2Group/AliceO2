@@ -18,6 +18,7 @@
 #include "MFTTracking/TrackCA.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -70,26 +71,23 @@ void TrackWriter::run(ProcessingContext& pc)
     plabels = labels.get();
     tree.Branch("MFTTrackMCTruth", &plabels);
   }
-  tree.Fill();
-  tree.Write();
-
   // write ROFrecords vector to a tree
-  TTree treeROF("MFTTracksROF", "ROF records tree");
   auto* rofsPtr = &rofs;
-  treeROF.Branch("MFTTracksROF", &rofsPtr);
-  treeROF.Fill();
-  treeROF.Write();
+  tree.Branch("MFTTracksROF", &rofsPtr);
 
+  std::vector<o2::itsmft::MC2ROFRecord> mc2rofs, *mc2rofsPtr = &mc2rofs;
   if (mUseMC) {
     // write MC2ROFrecord vector (directly inherited from digits input) to a tree
-    TTree treeMC2ROF("MFTTracksMC2ROF", "MC -> ROF records tree");
-    auto mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
-    auto* mc2rofsPtr = &mc2rofs;
-    treeMC2ROF.Branch("MFTTracksMC2ROF", &mc2rofsPtr);
-    treeMC2ROF.Fill();
-    treeMC2ROF.Write();
+    const auto m2rvec = pc.inputs().get<gsl::span<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
+    mc2rofs.reserve(m2rvec.size());
+    for (const auto& m2rv : m2rvec) {
+      mc2rofs.push_back(m2rv);
+    }
+    tree.Branch("MFTTracksMC2ROF", &mc2rofsPtr);
   }
 
+  tree.Fill();
+  tree.Write();
   mFile->Close();
 
   mState = 2;

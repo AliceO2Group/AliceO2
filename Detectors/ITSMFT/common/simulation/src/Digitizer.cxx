@@ -11,7 +11,7 @@
 /// \file Digitizer.cxx
 /// \brief Implementation of the ITS/MFT digitizer
 
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSMFTSimulation/Digitizer.h"
 #include "MathUtils/Cartesian3D.h"
@@ -134,7 +134,7 @@ void Digitizer::fillOutputContainer(UInt_t frameLast)
   // we have to write chips in RO increasing order, therefore have to loop over the frames here
   for (; mROFrameMin <= frameLast; mROFrameMin++) {
     rcROF.setROFrame(mROFrameMin);
-    rcROF.getROFEntry().setIndex(mDigits->size()); // start of current ROF in digits
+    rcROF.setFirstEntry(mDigits->size()); // start of current ROF in digits
 
     auto& extra = *(mExtraBuff.front().get());
     for (auto& chip : mChips) {
@@ -153,7 +153,7 @@ void Digitizer::fillOutputContainer(UInt_t frameLast)
         auto& preDig = iter->second; // preDigit
         if (preDig.charge >= mParams.getChargeThreshold()) {
           int digID = mDigits->size();
-          mDigits->emplace_back(chip.getChipIndex(), mROFrameMin, preDig.row, preDig.col, preDig.charge);
+          mDigits->emplace_back(chip.getChipIndex(), preDig.row, preDig.col, preDig.charge);
           mMCLabels->addElement(digID, preDig.labelRef.label);
           auto& nextRef = preDig.labelRef; // extra contributors are in extra array
           while (nextRef.next >= 0) {
@@ -165,7 +165,7 @@ void Digitizer::fillOutputContainer(UInt_t frameLast)
       buffer.erase(itBeg, iter);
     }
     // finalize ROF record
-    rcROF.setNROFEntries(mDigits->size() - rcROF.getROFEntry().getIndex()); // number of digits
+    rcROF.setNEntries(mDigits->size() - rcROF.getFirstEntry()); // number of digits
     rcROF.getBCData().setFromNS(mROFrameMin * mParams.getROFrameLength() + mParams.getTimeOffset());
     if (mROFRecords) {
       mROFRecords->push_back(rcROF);
@@ -181,8 +181,17 @@ void Digitizer::fillOutputContainer(UInt_t frameLast)
 void Digitizer::processHit(const o2::itsmft::Hit& hit, UInt_t& maxFr, int evID, int srcID)
 {
   // convert single hit to digits
-
-  double hTime0 = hit.GetTime() * sec2ns + mEventTime; // time from the RO start, in ns
+  double hTime0 = hit.GetTime() * sec2ns;
+  if (hTime0 > 20e3) {
+    const int maxWarn = 10;
+    static int warnNo = 0;
+    if (warnNo < maxWarn) {
+      LOG(WARNING) << "Ignoring hit with time_in_event = " << hTime0 << " ns"
+                   << ((++warnNo < maxWarn) ? "" : " (suppressing further warnings)");
+    }
+    return;
+  }
+  hTime0 += mEventTime; // time from the RO start, in ns
 
   // calculate RO Frame for this hit
   if (hTime0 < 0) {
@@ -271,9 +280,9 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, UInt_t& maxFr, int evID, 
 
   // take into account that the AlpideSimResponse depth defintion has different min/max boundaries
   // although the max should coincide with the surface of the epitaxial layer, which in the chip
-  // local coordinates has Y = +SensorLayerThicknessEff/2
+  // local coordinates has Y = +SensorLayerThickness/2
 
-  xyzLocS.SetY(xyzLocS.Y() + resp->getDepthMax() - Segmentation::SensorLayerThicknessEff / 2.);
+  xyzLocS.SetY(xyzLocS.Y() + resp->getDepthMax() - Segmentation::SensorLayerThickness / 2.);
 
   // collect charge in evey pixel which might be affected by the hit
   for (int iStep = nSteps; iStep--;) {

@@ -125,9 +125,8 @@ inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataforma
 {
   static Mapper& mapper = Mapper::instance();
   GlobalPadNumber globalPad = 0;
-  float cm;
   for (size_t i = 0; i < mCommonMode.size(); ++i) {
-    cm = getCommonMode(GEMstack(i));
+    const float cm = getCommonMode(GEMstack(i));
     if (cm > 0.) {
       commonModeOutput.push_back({cm, timeBin, static_cast<unsigned char>(i)});
     }

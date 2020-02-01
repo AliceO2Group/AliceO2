@@ -65,6 +65,7 @@ class Vertexer
 
   void findTrivialMCTracklets();
   void findVertices();
+  void findHistVertices();
 
   template <typename... T>
   void initialiseVertexer(T&&... args);

@@ -27,13 +27,17 @@
 #include "EMCALSimulation/SimParam.h"
 #include "EMCALSimulation/LabeledDigit.h"
 
-#include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 namespace o2
 {
 namespace emcal
 {
+
+/// \class Digitizer
+/// \brief EMCAL FEE digitizer
+/// \ingroup EMCALsimulation
+/// \author Anders Knospe, University of Houston
 class Digitizer : public TObject
 {
  public:
@@ -43,18 +47,25 @@ class Digitizer : public TObject
   Digitizer& operator=(const Digitizer&) = delete;
 
   void init();
+  void initCycle();
+  void clear();
   void finish();
 
   /// Steer conversion of hits to digits
-  void process(const std::vector<Hit>& hits, std::vector<Digit>& digits);
+  void process(const std::vector<Hit>& hits);
 
   void setEventTime(double t);
+  double getTriggerTime() const { return mTriggerTime; }
   double getEventTime() const { return mEventTime; }
+  bool isLive() const { return (mEventTime <= mLiveTime); }
 
   void setContinuous(bool v) { mContinuous = v; }
   bool isContinuous() const { return mContinuous; }
 
-  void fillOutputContainer(std::vector<Digit>& digits);
+  bool isEmpty() const { return mEmpty; }
+  bool readyToFlush(double t) const { return ((t > mLiveTime) && !isEmpty()); }
+
+  void fillOutputContainer(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>& labels);
 
   void setSmearEnergy(bool v) { mSmearEnergy = v; }
   bool doSmearEnergy() const { return mSmearEnergy; }
@@ -85,7 +96,9 @@ class Digitizer : public TObject
 
  private:
   const Geometry* mGeometry = nullptr;     ///< EMCAL geometry
+  double mTriggerTime = -1e20;             ///< global trigger time
   double mEventTime = 0;                   ///< global event time
+  short mPhase = 0;                        ///< event phase
   double mCoeffToNanoSecond = 1.0;         ///< coefficient to convert event time (Fair) to ns
   bool mContinuous = false;                ///< flag for continuous simulation
   UInt_t mROFrameMin = 0;                  ///< lowest RO frame of current digits
@@ -97,14 +110,18 @@ class Digitizer : public TObject
   bool mRemoveDigitsBelowThreshold = true; ///< remove digits below threshold
   bool mSimulateNoiseDigits = true;        ///< simulate noise digits
   const SimParam* mSimParam = nullptr;     ///< SimParam object
+  bool mEmpty = true;                      ///< Digitizer contains no digits/labels
 
   std::vector<Digit> mTempDigitVector;                          ///< temporary digit storage
   std::unordered_map<Int_t, std::list<LabeledDigit>> mDigits;   ///< used to sort digits and labels by tower
-  o2::dataformats::MCTruthContainer<MCLabel> mMCTruthContainer; ///< contains MC truth information
 
-  TRandom3* mRandomGenerator = nullptr; // random number generator
-  Int_t mTimeBinOffset = 0;             // offset of first time bin
-  std::vector<double> mSignalFractionInTimeBins; // fraction of signal for each time bin
+  TRandom3* mRandomGenerator = nullptr;                       // random number generator
+  std::vector<int> mTimeBinOffset;                            // offset of first time bin
+  std::vector<std::vector<double>> mSignalFractionInTimeBins; // fraction of signal for each time bin
+
+  float mLiveTime = 1500; // EMCal live time (ns)
+  float mBusyTime = 0;    // EMCal busy time (ns)
+  int mDelay = 0;         // number of (full) time bins corresponding to the signal time delay
 
   ClassDefOverride(Digitizer, 1);
 };

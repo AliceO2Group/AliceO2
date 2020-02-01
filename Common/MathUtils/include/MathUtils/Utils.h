@@ -74,6 +74,32 @@ inline void sincosf(float ang, float& s, float& c)
   c = o2::gpu::CAMath::Cos(ang);
 }
 
+inline void rotateZ(float xL, float yL, float& xG, float& yG, float snAlp, float csAlp)
+{
+  // 2D rotation of the point by angle alpha (local to global)
+  xG = xL * csAlp - yL * snAlp;
+  yG = xL * snAlp + yL * csAlp;
+}
+
+inline void rotateZInv(float xG, float yG, float& xL, float& yL, float snAlp, float csAlp)
+{
+  // inverse 2D rotation of the point by angle alpha (global to local)
+  rotateZ(xG, yG, xL, yL, -snAlp, csAlp);
+}
+
+inline void rotateZ(double xL, double yL, double& xG, double& yG, double snAlp, double csAlp)
+{
+  // 2D rotation of the point by angle alpha (local to global)
+  xG = xL * csAlp - yL * snAlp;
+  yG = xL * snAlp + yL * csAlp;
+}
+
+inline void rotateZInv(double xG, double yG, double& xL, double& yL, double snAlp, double csAlp)
+{
+  // inverse 2D rotation of the point by angle alpha (global to local)
+  rotateZ(xG, yG, xL, yL, -snAlp, csAlp);
+}
+
 #ifndef __OPENCL__
 inline void RotateZ(std::array<float, 3>& xy, float alpha)
 {
@@ -110,6 +136,15 @@ inline float Angle2Alpha(float phi)
 }
 
 //-------------------------------------->>>
+// fast bit count
+inline int numberOfBitsSet(uint32_t x)
+{
+  // count number of non-0 bits in 32bit word
+  x = x - ((x >> 1) & 0x55555555);
+  x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+  return (((x + (x >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
+}
+
 // recursive creation of bitmask
 template <typename T>
 constexpr int bit2Mask(T v)
@@ -162,7 +197,7 @@ GPUhdi() float FastATan2(float y, float x)
   };
 
   // fast atan2(y,x) for any angle [-Pi,Pi]
-  return copysignf(atan2P(o2::gpu::CAMath::Abs(y), x), y);
+  return o2::gpu::GPUCommonMath::Copysign(atan2P(o2::gpu::CAMath::Abs(y), x), y);
 }
 
 } // namespace utils

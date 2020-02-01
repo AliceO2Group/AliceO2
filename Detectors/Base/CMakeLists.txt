@@ -16,6 +16,7 @@ o2_add_library(DetectorsBase
                        src/MatLayerCyl.cxx
                        src/MatLayerCylSet.cxx
                        src/Ray.cxx
+		       src/DCAFitter.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::CommonUtils
                                      O2::DetectorsCommonDataFormats
@@ -32,7 +33,6 @@ o2_target_root_dictionary(DetectorsBase
                                   include/DetectorsBase/GeometryManager.h
                                   include/DetectorsBase/MaterialManager.h
                                   include/DetectorsBase/Propagator.h
-                                  include/DetectorsBase/Triggers.h
                                   include/DetectorsBase/Ray.h
                                   include/DetectorsBase/MatCell.h
                                   include/DetectorsBase/MatLayerCyl.h

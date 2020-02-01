@@ -31,10 +31,10 @@ ChipPixelData* DigitPixelReader::getNextChipData(std::vector<ChipPixelData>& chi
 {
   // decode data of single chip to corresponding slot of chipDataVec
   if (!mLastDigit) {                 // new ROF record should be started
-    if (mIdDig >= mDigits->size()) { // nothing left
+    if (mIdDig >= mDigits.size()) {  // nothing left
       return nullptr;
     }
-    mLastDigit = &((*mDigits)[mIdDig++]);
+    mLastDigit = &mDigits[mIdDig++];
   }
   auto chipID = mLastDigit->getChipIndex();
   return getNextChipData(chipDataVec[chipID]) ? &chipDataVec[chipID] : nullptr;
@@ -45,33 +45,33 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
 {
   // decode data of single chip to chipData
   if (!mLastDigit) {                 // new ROF record should be started
-    if (mIdDig >= mDigits->size()) { // nothing left
+    if (mIdDig >= mDigits.size()) {  // nothing left
       return false;
     }
-    mLastDigit = &((*mDigits)[mIdDig++]);
+    mLastDigit = &mDigits[mIdDig++];
   }
   // get corresponding ROF record
   int lim = -1;
   if (mIdROF >= 0) {
-    const auto& rofRec = (*mROFRecVec)[mIdROF];
-    lim = rofRec.getROFEntry().getIndex() + rofRec.getNROFEntries();
+    const auto& rofRec = mROFRecVec[mIdROF];
+    lim = rofRec.getFirstEntry() + rofRec.getNEntries();
   }
   while (mIdDig > lim) {
-    const auto& rofRec = (*mROFRecVec)[++mIdROF];
-    lim = rofRec.getROFEntry().getIndex() + rofRec.getNROFEntries();
+    const auto& rofRec = mROFRecVec[++mIdROF];
+    lim = rofRec.getFirstEntry() + rofRec.getNEntries();
     mInteractionRecord = rofRec.getBCData(); // update interaction record
   }
   chipData.clear();
   chipData.setStartID(mIdDig - 1); // for the MC references
   chipData.setChipID(mLastDigit->getChipIndex());
-  chipData.setROFrame(mLastDigit->getROFrame());
+  chipData.setROFrame(mROFRecVec[mIdROF].getROFrame());
   chipData.setInteractionRecord(mInteractionRecord);
   chipData.setTrigger(mTrigger);
   chipData.getData().emplace_back(mLastDigit);
   mLastDigit = nullptr;
 
   for (; mIdDig < lim;) {
-    mLastDigit = &((*mDigits)[mIdDig++]);
+    mLastDigit = &mDigits[mIdDig++];
     if (mLastDigit->getChipIndex() != chipData.getChipID()) { // new chip starts
       return true;
     }
@@ -98,30 +98,21 @@ void DigitPixelReader::openInput(const std::string inpName, o2::detectors::DetID
     LOG(FATAL) << "Failed to find " << (detName + "Digit").c_str() << " branch in the " << mInputTree->GetName()
                << " from file " << inpName;
   }
-  setDigits(mDigitsSelf);
 
-  if (!(mInputTreeROF = o2::utils::RootChain::load((detName + "DigitROF").c_str(), inpName))) {
-    LOG(FATAL) << "Failed to load ROF records tree from " << inpName;
-  }
-  mInputTreeROF->SetBranchAddress((detName + "DigitROF").c_str(), &mROFRecVecSelf);
+  mInputTree->SetBranchAddress((detName + "DigitROF").c_str(), &mROFRecVecSelf);
   if (!mROFRecVecSelf) {
     LOG(FATAL) << "Failed to find " << (detName + "DigitROF").c_str() << " branch in the " << mInputTree->GetName()
                << " from file " << inpName;
   }
-  setROFRecords(mROFRecVecSelf);
 
-  if (!(mInputTreeMC2ROF = o2::utils::RootChain::load((detName + "DigitMC2ROF").c_str(), inpName))) {
-    LOG(FATAL) << "Failed to load MC2ROF records tree from " << inpName;
-  }
-  mInputTreeMC2ROF->SetBranchAddress((detName + "DigitMC2ROF").c_str(), &mMC2ROFRecVecSelf);
+  mInputTree->SetBranchAddress((detName + "DigitMC2ROF").c_str(), &mMC2ROFRecVecSelf);
   if (!mMC2ROFRecVecSelf) {
     LOG(FATAL) << "Failed to find " << (detName + "DigitMC2ROF").c_str() << " branch in the " << mInputTree->GetName()
                << " from file " << inpName;
   }
-  setMC2ROFRecords(mMC2ROFRecVecSelf);
 
   mInputTree->SetBranchAddress((detName + "DigitMCTruth").data(), &mDigitsMCTruthSelf);
-  setDigitsMCTruth(mDigitsMCTruthSelf);
+  setDigitsMCTruth(mDigitsMCTruthSelf); // it will be assigned again at the reading, this is just to signal that the MCtruth is there
 }
 
 //______________________________________________________________________________
@@ -129,19 +120,16 @@ bool DigitPixelReader::readNextEntry()
 {
   // load next entry from the self-managed input
   auto nev = mInputTree->GetEntries();
-  if (mInputTreeROF->GetEntries() != nev || nev != 1) {
-    LOG(FATAL) << "In the self-managed mode the Digits and ROFRecords trees must have 1 entry only";
-  }
   auto evID = mInputTree->GetReadEntry();
   if (evID < -1)
     evID = -1;
   if (++evID < nev) {
     init();
     mInputTree->GetEntry(evID);
-    mInputTreeROF->GetEntry(evID);
-    if (evID == 0) {
-      mInputTreeMC2ROF->GetEntry(0); // onle one entry is expected
-    }
+    setDigits(gsl::span(mDigitsSelf->data(), mDigitsSelf->size()));
+    setROFRecords(gsl::span(mROFRecVecSelf->data(), mROFRecVecSelf->size()));
+    setMC2ROFRecords(gsl::span(mMC2ROFRecVecSelf->data(), mMC2ROFRecVecSelf->size()));
+    setDigitsMCTruth(mDigitsMCTruthSelf);
     return true;
   } else {
     return false;
@@ -157,4 +145,8 @@ void DigitPixelReader::clear()
   delete mDigitsMCTruthSelf;
   mDigitsMCTruthSelf = nullptr;
   mDigitsSelf = nullptr;
+  //
+  mDigits = gsl::span<const o2::itsmft::Digit>();
+  mROFRecVec = gsl::span<const o2::itsmft::ROFRecord>();
+  mMC2ROFRecVec = gsl::span<const o2::itsmft::MC2ROFRecord>();
 }

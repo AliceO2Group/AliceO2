@@ -95,6 +95,8 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   std::vector<TrackTPC> tracks;
   ptrs.clusters = clusters.get();
   ptrs.outputTracks = &tracks;
+  std::vector<TPCClRefElem> trackClusRefs;
+  ptrs.outputClusRefs = &trackClusRefs;
 
   int retVal = tracker.runTracking(&ptrs);
   BOOST_CHECK_EQUAL(retVal, 0);

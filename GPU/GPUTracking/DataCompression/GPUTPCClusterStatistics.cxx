@@ -107,6 +107,7 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
   bool decodingError = false;
   o2::tpc::ClusterNativeAccess clustersNativeDecoded;
   std::vector<o2::tpc::ClusterNative> clusterBuffer;
+  GPUInfo("Compression statistics, decoding: %d attached (%d tracks), %d unattached", clustersCompressed->nAttachedClusters, clustersCompressed->nTracks, clustersCompressed->nUnattachedClusters);
   mDecoder.decompress(clustersCompressed, clustersNativeDecoded, clusterBuffer, param);
   std::vector<o2::tpc::ClusterNative> tmpClusters;
   if (param.rec.tpcRejectionMode == GPUSettings::RejectionNone) { // verification does not make sense if we reject clusters during compression
@@ -121,7 +122,7 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
         for (unsigned int k = 0; k < clustersNative->nClusters[i][j]; k++) {
           tmpClusters[k] = clustersNative->clusters[i][j][k];
           if (param.rec.tpcCompressionModes & GPUSettings::CompressionTruncate) {
-            GPUTPCCompression::truncateSignificantBitsCharge(tmpClusters[k].qMax, param);
+            GPUTPCCompression::truncateSignificantBitsChargeMax(tmpClusters[k].qMax, param);
             GPUTPCCompression::truncateSignificantBitsCharge(tmpClusters[k].qTot, param);
             GPUTPCCompression::truncateSignificantBitsWidth(tmpClusters[k].sigmaPadPacked, param);
             GPUTPCCompression::truncateSignificantBitsWidth(tmpClusters[k].sigmaTimePacked, param);
@@ -258,7 +259,7 @@ float GPUTPCClusterStatistics::Analyze(std::vector<int>& p, const char* name, bo
     mEntropy += entropy * total;
     mHuffman += huffmanSize * total;
   }
-  GPUInfo("Size: %30s: Entropy %7.4f Huffman %7.4f", name, entropy, huffmanSize);
+  GPUInfo("Size: %30s: Entropy %7.4f Huffman %7.4f (Count) %9lld", name, entropy, huffmanSize, (long long int)total);
   return entropy;
 }
 
@@ -267,8 +268,13 @@ void GPUTPCClusterStatistics::FillStatistic(std::vector<int>& p, const T* ptr, s
 {
   for (size_t i = 0; i < n; i++) {
     unsigned int val = ptr[i];
-    if (I && p.size() <= val + 1) {
-      p.resize(val + 1);
+    if (val >= p.size()) {
+      if (I) {
+        p.resize(val + 1);
+      } else {
+        GPUError("Invalid Value: %d >= %d", val, (int)p.size());
+        continue;
+      }
     }
     p[val]++;
   }
@@ -279,8 +285,13 @@ void GPUTPCClusterStatistics::FillStatisticCombined(std::vector<int>& p, const T
 {
   for (size_t i = 0; i < n; i++) {
     unsigned int val = ptr1[i] + ptr2[i] * max1;
-    if (I && p.size() < val + 1) {
-      p.resize(val + 1);
+    if (val >= p.size()) {
+      if (I) {
+        p.resize(val + 1);
+      } else {
+        GPUError("Invalid Value: %d >= %d", val, (int)p.size());
+        continue;
+      }
     }
     p[val]++;
   }

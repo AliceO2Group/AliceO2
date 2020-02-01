@@ -36,7 +36,7 @@ class GPUReconstructionDeviceBase : public GPUReconstructionCPU
   int GetMaxThreads() override;
 
  protected:
-  GPUReconstructionDeviceBase(const GPUSettingsProcessing& cfg);
+  GPUReconstructionDeviceBase(const GPUSettingsProcessing& cfg, size_t sizeCheck);
 
   int InitDevice() override;
   virtual int InitDevice_Runtime() = 0;
@@ -46,10 +46,10 @@ class GPUReconstructionDeviceBase : public GPUReconstructionCPU
   virtual const GPUTPCTracker* CPUTracker(int iSlice) { return &processors()->tpcTrackers[iSlice]; }
 
   int GPUDebug(const char* state = "UNKNOWN", int stream = -1) override = 0;
-  void TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) override = 0;
-  void GPUMemCpy(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override = 0;
-  void GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override;
-  void WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override = 0;
+  size_t TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) override = 0;
+  size_t GPUMemCpy(void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override = 0;
+  size_t GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override;
+  size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override = 0;
 
   int StartHelperThreads() override;
   int StopHelperThreads() override;
@@ -71,12 +71,12 @@ class GPUReconstructionDeviceBase : public GPUReconstructionCPU
   int mNSlaveThreads = 0;                                         // Number of slave threads currently active
 };
 
-inline void GPUReconstructionDeviceBase::GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
+inline size_t GPUReconstructionDeviceBase::GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, bool toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
 {
   if (onGpu) {
-    GPUMemCpy(dst, src, size, stream, toGPU, ev, evList, nEvents);
+    return GPUMemCpy(dst, src, size, stream, toGPU, ev, evList, nEvents);
   } else {
-    GPUReconstructionCPU::GPUMemCpyAlways(false, dst, src, size, stream, toGPU, ev, evList, nEvents);
+    return GPUReconstructionCPU::GPUMemCpyAlways(false, dst, src, size, stream, toGPU, ev, evList, nEvents);
   }
 }
 } // namespace gpu

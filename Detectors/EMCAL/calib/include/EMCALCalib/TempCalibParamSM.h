@@ -10,6 +10,7 @@
 
 /// \class TempCalibParamSM
 /// \brief CCDB container for the temperature calibration coefficients per SM
+/// \ingroup EMCALcalib
 /// \author Hadi Hassan <hadi.hassan@cern.ch>, Oak Ridge National Laboratory
 /// \since August 13th, 2019
 ///

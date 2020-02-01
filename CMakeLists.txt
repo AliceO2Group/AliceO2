@@ -44,6 +44,11 @@ o2_define_rpath()
 # External dependencies
 include(dependencies/CMakeLists.txt)
 
+# This is needed because CI might not have X11 or Cocoa available
+if (DPL_TESTS_BATCH_MODE)
+  set(DPL_WORKFLOW_TESTS_EXTRA_OPTIONS -b)
+endif()
+
 # include macros and functions that are used in the following subdirectories'
 # CMakeLists.txt
 include(O2AddExecutable)
@@ -67,6 +72,8 @@ add_subdirectory(Detectors)
 add_subdirectory(EventVisualisation)
 add_subdirectory(Generators)
 add_subdirectory(Steer) # consider building this only for simulation ?
+add_subdirectory(prodtests)
+add_subdirectory(Analysis)
 
 if(BUILD_EXAMPLES)
   add_subdirectory(Examples)

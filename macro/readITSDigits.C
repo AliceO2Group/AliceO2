@@ -7,7 +7,7 @@
 #include <iostream>
 #include "FairLogger.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "SimulationDataFormat/RunContext.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -39,16 +39,6 @@ void readITSDigits(std::string path = "./",
     LOG(ERROR) << "Failed to get digits tree";
     return;
   }
-  TTree* rofTree = (TTree*)digiFile->Get("ROF");
-  if (!rofTree) {
-    LOG(ERROR) << "Failed to get ROF tree";
-    return;
-  }
-  TTree* mc2rofTree = (TTree*)digiFile->Get("MC2ROF");
-  if (!mc2rofTree) {
-    LOG(ERROR) << "Failed to get MC->ROF tree";
-    return;
-  }
 
   std::vector<o2::itsmft::Digit>* dv = nullptr;
   digiTree->SetBranchAddress("ITSDigit", &dv);
@@ -57,13 +47,13 @@ void readITSDigits(std::string path = "./",
 
   // ROF record entries in the digit tree
   std::vector<o2::itsmft::ROFRecord>* rofRecVec = nullptr;
-  rofTree->SetBranchAddress("ITSDigitROF", &rofRecVec);
-  rofTree->GetEntry(0);
+  digiTree->SetBranchAddress("ITSDigitROF", &rofRecVec);
 
   // MCEvID -> ROFrecord references
   std::vector<o2::itsmft::MC2ROFRecord>* mc2rofVec = nullptr;
-  mc2rofTree->SetBranchAddress("ITSDigitMC2ROF", &mc2rofVec);
-  mc2rofTree->GetEntry(0);
+  digiTree->SetBranchAddress("ITSDigitMC2ROF", &mc2rofVec);
+
+  digiTree->GetEntry(0);
 
   // MC collisions record
   auto runContext = reinterpret_cast<o2::steer::RunContext*>(rcFile->GetObjectChecked("RunContext", "o2::steer::RunContext"));
@@ -98,9 +88,7 @@ void readITSDigits(std::string path = "./",
       const auto& rofrec = (*rofRecVec)[rofEntry];
       rofrec.print();
 
-      // read 1st and last digit of concerned rof
-      digiTree->GetEntry(rofrec.getROFEntry().getEvent());
-      int dgid = rofrec.getROFEntry().getIndex();
+      int dgid = rofrec.getFirstEntry();
       const auto& digit0 = (*dv)[dgid];
       const auto& labs0 = labels->getLabels(dgid);
       printf("1st digit of this ROF (Entry: %6d) :", dgid);
@@ -108,7 +96,7 @@ void readITSDigits(std::string path = "./",
       printf(" MCinfo: ");
       labs0[0].print();
 
-      dgid = rofrec.getROFEntry().getIndex() + rofrec.getNROFEntries() - 1;
+      dgid = rofrec.getFirstEntry() + rofrec.getNEntries() - 1;
       const auto& digit1 = (*dv)[dgid];
       const auto& labs1 = labels->getLabels(dgid);
       printf("1st digit of this ROF (Entry: %6d) :", dgid);

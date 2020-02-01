@@ -28,6 +28,7 @@ BOOST_AUTO_TEST_CASE(TrivialBoostOptionsRetrieverTest)
 
   auto specs = std::vector<ConfigParamSpec>{
     {"someInt", VariantType::Int, 2, {"some int option"}},
+    {"someInt64", VariantType::Int64, 4ll, {"some int64 option"}},
     {"someBool", VariantType::Bool, false, {"some bool option"}},
     {"someFloat", VariantType::Float, 2.0f, {"some float option"}},
     {"someDouble", VariantType::Double, 2.0, {"some double option"}},
@@ -36,6 +37,7 @@ BOOST_AUTO_TEST_CASE(TrivialBoostOptionsRetrieverTest)
     "test",
     "--someBool",
     "--someInt", "1",
+    "--someInt64", "50000000000000",
     "--someFloat", "0.5",
     "--someDouble", "0.5",
     "--someString", "foobar"};
@@ -47,6 +49,7 @@ BOOST_AUTO_TEST_CASE(TrivialBoostOptionsRetrieverTest)
   bpo::store(parse_command_line(sizeof(args) / sizeof(char*), args, opts), vm);
   bpo::notify(vm);
   BOOST_CHECK(vm["someInt"].as<int>() == 1);
+  BOOST_CHECK(vm["someInt64"].as<int64_t>() == 50000000000000ll);
   BOOST_CHECK(vm["someBool"].as<bool>() == true);
   BOOST_CHECK(vm["someString"].as<std::string>() == "foobar");
   BOOST_CHECK(vm["someFloat"].as<float>() == 0.5);

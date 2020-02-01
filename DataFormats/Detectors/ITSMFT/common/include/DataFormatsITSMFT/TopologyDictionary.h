@@ -97,7 +97,9 @@ class TopologyDictionary
   inline bool IsGroup(int n) const
   {
     if (n >= (int)mVectorOfGroupIDs.size()) {
-      LOG(ERROR) << "Index out of bounds";
+      if (mVectorOfGroupIDs.size()) { // produce error only if there is a real overflow
+        LOG(ERROR) << "Index out of bounds";
+      }
       return false;
     } else
       return mVectorOfGroupIDs[n].mIsGroup;
@@ -119,7 +121,7 @@ class TopologyDictionary
 
  private:
   std::unordered_map<unsigned long, int> mFinalMap; ///< Map of pair <hash, position in mVectorOfGroupIDs>
-  int mSmallTopologiesLUT[8 * 255];                 ///< Look-Up Table for the topologies with 1-byte linearised matrix
+  int mSmallTopologiesLUT[8 * 255 + 1];             ///< Look-Up Table for the topologies with 1-byte linearised matrix
   std::vector<GroupStruct> mVectorOfGroupIDs;       ///< Vector of topologies and groups
 
   ClassDefNV(TopologyDictionary, 3);

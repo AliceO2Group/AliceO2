@@ -1,7 +1,8 @@
+<!-- doxy
 \page refUtilitieshough Hough Transform
+/doxy -->
 
-Hough Transform
-===============
+# Hough Transform
 
 This is the groundwork for the Hough Transform algorithm implementation. The runHough executable takes as an argument an event number (i.e. runHough 032) and for the given event it loads all clusters from the corresponding data files.
 

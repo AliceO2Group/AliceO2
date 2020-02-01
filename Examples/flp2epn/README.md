@@ -1,4 +1,8 @@
+<!-- doxy
 \page refExamplesflp2epn Example flp2epn
+/doxy -->
+
+## Example flp2epn
 
 #### Example devices - testFLP and testEPN
 

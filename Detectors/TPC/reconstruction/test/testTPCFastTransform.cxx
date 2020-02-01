@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE(FastTransform_test1)
 
 BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
 {
-  auto correctionFunction = [](const double XYZ[3], double dXdYdZ[3]) {
+  auto correctionFunction = [](int /*roc*/, const double XYZ[3], double dXdYdZ[3]) {
     dXdYdZ[0] = 1.;
     dXdYdZ[1] = 2.;
     dXdYdZ[2] = 3.;
@@ -150,7 +150,7 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
 
           double xyz[3] = {gx0, gy0, gz0};
           double d[3] = {0, 0, 0};
-          correctionFunction(xyz, d);
+          correctionFunction(0, xyz, d);
           statDiff += fabs((gx1 - gx0) - d[0]) + fabs((gy1 - gy0) - d[1]) + fabs((gz1 - gz0) - d[2]);
           statN += 3;
           //std::cout << (x1g-x0g) - d[0]<<" "<< (y1g-y0g) - d[1]<<" "<< (z1g-z0g) - d[2]<<std::endl;

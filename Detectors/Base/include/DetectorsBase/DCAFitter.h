@@ -109,9 +109,9 @@ class DCAFitter
   //----------------------------------------------------
   //< precalculated track radius, center, alpha sin,cos and their combinations
   struct TrcAuxPar {
-    ftype_t c, s;          // cos ans sin of track alpha
-    ftype_t cc, cs, ss;    // products
-    ftype_t r, xCen, yCen; // helix radius and center in lab
+    dtype_t c, s;          // cos ans sin of track alpha
+    dtype_t cc, cs, ss;    // products
+    dtype_t r, xCen, yCen; // helix radius and center in lab
 
     TrcAuxPar() CONSTRDEF;
     TrcAuxPar(const Track& trc, ftype_t bz) { set(trc, bz); }
@@ -136,6 +136,19 @@ class DCAFitter
     }
 
     void loc2glo(ftype_t vXL, ftype_t vYL, ftype_t& vX, ftype_t& vY) const
+    {
+      // rotate XY in local alpha frame to global frame
+      vX = vXL * c - vYL * s;
+      vY = vXL * s + vYL * c;
+    }
+    void glo2loc(dtype_t vX, dtype_t vY, dtype_t& vXL, dtype_t& vYL) const
+    {
+      // rotate XY in global frame to the frame of track with angle A
+      vXL = vX * c + vY * s;
+      vYL = -vX * s + vY * c;
+    }
+
+    void loc2glo(dtype_t vXL, dtype_t vYL, dtype_t& vX, dtype_t& vY) const
     {
       // rotate XY in local alpha frame to global frame
       vX = vXL * c - vYL * s;
@@ -178,11 +191,25 @@ class DCAFitter
     CrossInfo() CONSTRDEF;
     CrossInfo(const TrcAuxPar& trc0, const TrcAuxPar& trc1) { set(trc0, trc1); }
     void set(const TrcAuxPar& trc0, const TrcAuxPar& trc1);
+
+    void notTouchingXY(ftype_t dist, ftype_t xDist, ftype_t yDist, const TrcAuxPar& trcA, ftype_t rBSign)
+    {
+      // fast method to calculate DCA between 2 circles, assuming that they don't touch each outer:
+      // the parametric equation of lines connecting the centers is x = xA + t/dist * xDist, y = yA + t/dist * yDist
+      // with xA,yY being the center of the circle A ( = trcA.xCen, trcA.yCen ), xDist = trcB.xCen = trcA.xCen ...
+      // There are 2 special cases:
+      // (a) small circle is inside the large one: provide rBSign as -trcB.r
+      // (b) circle are side by side: provide rBSign as trcB.r
+      nDCA = 1;
+      auto t2d = (dist + trcA.r - rBSign) / dist;
+      xDCA[0] = trcA.xCen + 0.5 * (xDist * t2d);
+      yDCA[0] = trcA.yCen + 0.5 * (yDist * t2d);
+    }
   };
 
   struct Derivatives {
-    ftype_t dChidx0, dChidx1;                   // 1st derivatives of chi2 vs tracks local parameters X
-    ftype_t dChidx0dx0, dChidx1dx1, dChidx0dx1; // 2nd derivatives of chi2 vs tracks local parameters X
+    dtype_t dChidx0, dChidx1;                   // 1st derivatives of chi2 vs tracks local parameters X
+    dtype_t dChidx0dx0, dChidx1dx1, dChidx0dx1; // 2nd derivatives of chi2 vs tracks local parameters X
   };
 
   // <--- Auxiliary structs used by DCA finder
@@ -262,6 +289,12 @@ class DCAFitter
 
   ///< minimize w/o preliminary propagation to XY crossing points
   int processAsIs(const Track& trc0, const Track& trc1);
+
+  ///< calculate squared distance between 2 tracks
+  static ftype_t getDistance2(const Track& trc0, const Track& trc1);
+
+  ///< calculate half sum of squared distances between 2 tracks and vertex
+  static ftype_t getDistance2(ftype_t x, ftype_t y, ftype_t z, const Track& trc0, const Track& trc1);
 
  protected:
   void calcPCACoefs(const TrcAuxPar& trc0Aux, const TrackCovI& trcEI0,

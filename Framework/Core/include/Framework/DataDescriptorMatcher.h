@@ -84,7 +84,7 @@ class VariableContext
   void reset();
 
  private:
-  /* We make this class fixed size to avoid memory churning while 
+  /* We make this class fixed size to avoid memory churning while
      matching as much as posible when doing the matching, as that might become
      performance critical. Given we will have only a few of these (one per
      cacheline of the input messages) it should not be critical memory wise.
@@ -127,6 +127,8 @@ class OriginValueMatcher : public ValueHolder<std::string>
  public:
   inline OriginValueMatcher(std::string const& s);
   inline OriginValueMatcher(ContextRef variableId);
+  template <std::size_t L>
+  inline constexpr OriginValueMatcher(const char (&s)[L]);
 
   bool match(header::DataHeader const& header, VariableContext& context) const;
 };
@@ -136,8 +138,9 @@ class DescriptionValueMatcher : public ValueHolder<std::string>
 {
  public:
   inline DescriptionValueMatcher(std::string const& s);
-
   inline DescriptionValueMatcher(ContextRef variableId);
+  template <std::size_t L>
+  inline constexpr DescriptionValueMatcher(const char (&s)[L]);
 
   bool match(header::DataHeader const& header, VariableContext& context) const;
 };

@@ -13,6 +13,7 @@
 /// @since  2018-12-06
 /// @brief  Processor spec for a reader of TPC data from ROOT file
 
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataSpecUtils.h"
 #include "TPCWorkflow/PublisherSpec.h"
@@ -109,10 +110,10 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
                                                              sectorfile.c_str(), // input file name
                                                              nofEvents,          // number of entries to publish
                                                              publishingMode,
-                                                             Output{dto.origin, dto.description, subSpec, persistency},
-                                                             clusterbranchname.c_str(), // name of cluster branch
                                                              Output{mco.origin, mco.description, subSpec, persistency},
-                                                             mcbranchname.c_str() // name of mc label branch
+                                                             mcbranchname.c_str(), // name of mc label branch
+                                                             Output{dto.origin, dto.description, subSpec, persistency},
+                                                             clusterbranchname.c_str() // name of cluster branch
           );
         } else {
           readers[sector] = std::make_shared<RootTreeReader>(treename.c_str(),   // tree name
@@ -135,7 +136,7 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
     // function gets out of scope
     // FIXME: wanted to use it = sectors.begin() in the variable capture but the iterator
     // is const and can not be incremented
-    auto processingFct = [processAttributes, index = std::make_shared<int>(0), propagateMC](ProcessingContext& pc) {
+    auto processingFct = [processAttributes, index = std::make_shared<unsigned>(0), propagateMC](ProcessingContext& pc) {
       if (processAttributes->finished) {
         return;
       }
@@ -193,6 +194,7 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
       }
 
       if ((processAttributes->finished = (operation == -1)) && processAttributes->terminateOnEod) {
+        pc.services().get<ControlService>().endOfStream();
         pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
       }
     };

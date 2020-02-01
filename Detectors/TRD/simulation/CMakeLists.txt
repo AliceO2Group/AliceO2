@@ -9,13 +9,22 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(TRDSimulation
-               SOURCES src/Detector.cxx src/TRsim.cxx src/Digitizer.cxx
-               PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::SimulationDataFormat
-                                     O2::TRDBase)
+               TARGETVARNAME targetName
+               SOURCES src/Detector.cxx
+                       src/TRsim.cxx
+                       src/Digitizer.cxx
+                       src/TRDSimParams.cxx
+               PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::SimulationDataFormat O2::TRDBase)
 
 o2_target_root_dictionary(TRDSimulation
                           HEADERS include/TRDSimulation/Detector.h
                                   include/TRDSimulation/TRsim.h
-                                  include/TRDSimulation/Digitizer.h)
+                                  include/TRDSimulation/Digitizer.h
+                                  include/TRDSimulation/TRDSimParams.h)
+
+if (OpenMP_CXX_FOUND)
+    target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+    target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+endif()
 
 o2_data_file(COPY data DESTINATION Detectors/TRD/simulation)

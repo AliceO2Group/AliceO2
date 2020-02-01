@@ -57,6 +57,8 @@ class O2PrimaryServerDevice : public FairMQDevice
  protected:
   void initGenerator()
   {
+    TStopwatch timer;
+    timer.Start();
     auto& conf = o2::conf::SimConfig::Instance();
     o2::conf::ConfigurableParam::updateFromString(conf.getKeyValueString());
     o2::eventgen::GeneratorFactory::setPrimaryGenerator(conf, &mPrimGen);
@@ -67,6 +69,7 @@ class O2PrimaryServerDevice : public FairMQDevice
       mPrimGen.embedInto(embedinto_filename);
     }
     mPrimGen.Init();
+    LOG(INFO) << "Generator initialization took " << timer.CpuTime() << "s";
     generateEvent(); // generate a first event
   }
 
@@ -220,8 +223,8 @@ class O2PrimaryServerDevice : public FairMQDevice
       m.mParticles.emplace_back(prims[index]);
     }
 
-    LOG(INFO) << "Sending " << m.mParticles.size() << " particles\n";
-    LOG(INFO) << "treating ev " << counter << " part " << i.part << " out of " << i.nparts << "\n";
+    LOG(INFO) << "Sending " << m.mParticles.size() << " particles";
+    LOG(INFO) << "treating ev " << counter << " part " << i.part << " out of " << i.nparts;
 
     // feedback to driver if new event started
     if (mPipeToDriver != -1 && i.part == 1) {
@@ -245,9 +248,16 @@ class O2PrimaryServerDevice : public FairMQDevice
       fTransportFactory->CreateMessage(tmsg->Buffer(), tmsg->BufferSize(), free_tmessage, tmsg));
 
     // send answer
-    if (Send(message, "primary-get", 0) > 0) {
-      LOG(INFO) << "reply send";
+    TStopwatch timer;
+    timer.Start();
+    auto code = Send(message, "primary-get", 0, 5000); // we introduce timeout in order not to block other requests
+    timer.Stop();
+    auto time = timer.CpuTime();
+    if (code > 0) {
+      LOG(INFO) << "Reply send in " << time << "s";
       return true;
+    } else {
+      LOG(WARN) << "Sending process had problems. Return code : " << code << " time " << time << "s";
     }
     return true;
   }

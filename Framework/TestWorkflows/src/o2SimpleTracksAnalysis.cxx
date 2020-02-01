@@ -50,14 +50,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
       // The name of my analysis
       "tracks-analysis",
       Inputs{
-        // Dangling inputs of type RN2 will be automatically picked up by DPL
-        // and an extra reader device will be instanciated to convert them from
-        // RUN2 ESDs. In this particular case the signature RN2/TRACKPAR is
+        // Dangling inputs of type AOD will be automatically picked up by DPL
+        // and an extra reader device will be instanciated to read them from
+        // file. In this particular case the signature AOD/TRACKPAR is
         // associated to the basic trajectory parameters for a track described
         // in Ruben's table. The first string is just a label so that the
         // algorithm can be in principle be reused for different kind of
         // tracks.
-        InputSpec{"tracks", "RN2", "TRACKPAR"},
+        InputSpec{"tracks", "AOD", "TRACKPAR"},
       },
       // No outputs for the time being.
       Outputs{

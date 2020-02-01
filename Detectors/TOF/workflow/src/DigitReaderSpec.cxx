@@ -15,6 +15,7 @@
 #include "TTree.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "TOFWorkflow/DigitReaderSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
 
@@ -71,7 +72,8 @@ void DigitReader::run(ProcessingContext& pc)
   }
 
   mState = 2;
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  //pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  pc.services().get<ControlService>().endOfStream();
 }
 
 DataProcessorSpec getDigitReaderSpec(bool useMC)

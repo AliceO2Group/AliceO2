@@ -188,7 +188,7 @@ TH1D* SimpleEventDisplay::makePadSignals(Int_t roc, Int_t row, Int_t pad)
   //attention change for if event has changed
   if (mSelectedSector % 36 != mLastSelSector % 36) {
     mSectorLoop = kTRUE;
-    processEvent();
+    processEvent(getPresentEventNumber());
     mLastSelSector = mSelectedSector;
     mSectorLoop = kFALSE;
   }

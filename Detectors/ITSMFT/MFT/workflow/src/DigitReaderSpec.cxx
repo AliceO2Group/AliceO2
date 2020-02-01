@@ -16,7 +16,8 @@
 
 #include "TTree.h"
 #include "Framework/ControlService.h"
-#include "ITSMFTBase/Digit.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -47,60 +48,30 @@ void DigitReader::run(ProcessingContext& pc)
     return;
 
   std::unique_ptr<TTree> treeDig((TTree*)mFile->Get("o2sim"));
-  std::unique_ptr<TTree> treeROF((TTree*)mFile->Get("MFTDigitROF"));
 
-  if (treeDig && treeROF) {
+  if (treeDig) {
 
-    std::vector<o2::itsmft::Digit> allDigits;
     std::vector<o2::itsmft::Digit> digits, *pdigits = &digits;
     treeDig->SetBranchAddress("MFTDigit", &pdigits);
 
     std::vector<ROFRecord> rofs, *profs = &rofs;
-    treeROF->SetBranchAddress("MFTDigitROF", &profs);
-    treeROF->GetEntry(0);
+    treeDig->SetBranchAddress("MFTDigitROF", &profs);
 
-    o2::dataformats::MCTruthContainer<o2::MCCompLabel> allLabels;
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels, *plabels = &labels;
-    std::unique_ptr<TTree> treeMC2ROF;
     std::vector<MC2ROFRecord> mc2rofs, *pmc2rofs = &mc2rofs;
     if (mUseMC) {
       treeDig->SetBranchAddress("MFTDigitMCTruth", &plabels);
-      treeMC2ROF.reset((TTree*)mFile->Get("MFTDigitMC2ROF"));
-      if (treeMC2ROF) {
-        treeMC2ROF->SetBranchAddress("MFTDigitMC2ROF", &pmc2rofs);
-        treeMC2ROF->GetEntry(0);
-      }
+      treeDig->SetBranchAddress("MFTDigitMC2ROF", &pmc2rofs);
     }
+    treeDig->GetEntry(0);
 
-    int prevEntry = -1;
-    int offset = 0;
-    for (auto& rof : rofs) {
-      int entry = rof.getROFEntry().getEvent();
-      if (entry > prevEntry) { // In principal, there should be just one entry...
-        if (treeDig->GetEntry(entry) <= 0) {
-          LOG(ERROR) << "ITSDigitReader: empty digit entry, or read error !";
-          return;
-        }
-        prevEntry = entry;
-        offset = allDigits.size();
-
-        //Accumulate digits and MC labels
-        std::copy(digits.begin(), digits.end(), std::back_inserter(allDigits));
-        allLabels.mergeAtBack(labels);
-      }
-      //Once in memory, the RO frame boundaries should be "straightened"
-      rof.getROFEntry().setEvent(0);
-      int index = rof.getROFEntry().getIndex();
-      rof.getROFEntry().setIndex(index + offset);
-    }
-
-    LOG(INFO) << "MFTDigitReader pushed " << allDigits.size() << " digits, in "
+    LOG(INFO) << "MFTDigitReader pushed " << digits.size() << " digits, in "
               << profs->size() << " RO frames";
 
-    pc.outputs().snapshot(Output{"MFT", "DIGITS", 0, Lifetime::Timeframe}, allDigits);
+    pc.outputs().snapshot(Output{"MFT", "DIGITS", 0, Lifetime::Timeframe}, digits);
     pc.outputs().snapshot(Output{"MFT", "MFTDigitROF", 0, Lifetime::Timeframe}, *profs);
     if (mUseMC) {
-      pc.outputs().snapshot(Output{"MFT", "DIGITSMCTR", 0, Lifetime::Timeframe}, allLabels);
+      pc.outputs().snapshot(Output{"MFT", "DIGITSMCTR", 0, Lifetime::Timeframe}, labels);
       pc.outputs().snapshot(Output{"MFT", "MFTDigitMC2ROF", 0, Lifetime::Timeframe}, *pmc2rofs);
     }
   } else {
@@ -108,6 +79,7 @@ void DigitReader::run(ProcessingContext& pc)
     return;
   }
   mState = 2;
+  pc.services().get<ControlService>().endOfStream();
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 

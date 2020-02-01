@@ -65,6 +65,17 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCCompressionKernels.cxx"
 #include "GPUTPCCompressionTrackModel.cxx"
 
+// Files for TPC Cluster Finder
+#include "GPUTPCClusterFinderKernels.cxx"
+#include "ClusterAccumulator.cxx"
+#include "StreamCompaction.cxx"
+#include "ChargeMapFiller.cxx"
+#include "PeakFinder.cxx"
+#include "NoiseSuppression.cxx"
+#include "Clusterizer.cxx"
+#include "Deconvolution.cxx"
+#include "DecodeZS.cxx"
+
 // Files for TRD Tracking
 #include "GPUTRDTrackerGPU.cxx"
 #include "GPUTRDTrack.cxx"
@@ -74,7 +85,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 // Files for ITS Track Fit
 #include "GPUITSFitterKernels.cxx"
-#if !defined(GPUCA_O2_LIB) && defined(__CUDACC__)
+#if !defined(GPUCA_O2_LIB) && defined(__CUDACC__) && !defined(GPUCA_NO_ITS_TRAITS)
 #include "TrackerTraitsNV.cu"
 #include "VertexerTraitsGPU.cu"
 #include "Context.cu"
@@ -83,7 +94,16 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "DeviceStoreVertexerGPU.cu"
 #include "ClusterLinesGPU.cu"
 #include "Utils.cu"
-#endif // !defined(GPUCA_O2_LIB) && defined(__CUDACC__)
+#endif // !defined(GPUCA_O2_LIB) && defined(__CUDACC__) && !defined(GPUCA_NO_ITS_TRAITS)
+
+#if !defined(GPUCA_O2_LIB) && defined(__HIPCC__) && !defined(GPUCA_NO_ITS_TRAITS)
+#include "VertexerTraitsHIP.hip.cxx"
+#include "ContextHIP.hip.cxx"
+#include "DeviceStoreVertexerHIP.hip.cxx"
+#include "ClusterLinesHIP.hip.cxx"
+#include "UtilsHIP.hip.cxx"
+#endif // !defined(GPUCA_O2_LIB) && defined(__HIPCC__) && !defined(GPUCA_NO_ITS_TRAITS)
+
 #endif // HAVE_O2HEADERS
 #endif // (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !defined(GPUCA_ALIROOT_LIB)
 

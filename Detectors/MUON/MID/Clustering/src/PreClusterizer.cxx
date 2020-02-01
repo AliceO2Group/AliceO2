@@ -15,7 +15,7 @@
 #include "MIDClustering/PreClusterizer.h"
 
 #include <cassert>
-#include <fairlogger/Logger.h>
+#include "MIDBase/DetectorParameters.h"
 
 namespace o2
 {
@@ -23,14 +23,18 @@ namespace mid
 {
 
 //______________________________________________________________________________
-bool PreClusterizer::process(gsl::span<const ColumnData> stripPatterns)
+void PreClusterizer::process(gsl::span<const ColumnData> stripPatterns, bool accumulate)
 {
-  /// Main function: runs on a data containing the strip patterns
+  /// Main function: runs on a data containing the strip patterns in an event
   /// and builds the clusters
-  /// @param stripPatterns Vector of strip patterns per column
+  /// \param stripPatterns Vector of strip patterns per column
+  /// \param accumulate Flag to decide if one needs to reset the output preclusters at each event
 
   // Reset fired DEs and pre-cluster information
-  reset();
+  mActiveDEs.clear();
+  if (!accumulate) {
+    mPreClusters.clear();
+  }
 
   // Load the stripPatterns to get the fired strips
   if (loadPatterns(stripPatterns)) {
@@ -45,8 +49,22 @@ bool PreClusterizer::process(gsl::span<const ColumnData> stripPatterns)
       de.firedColumns = 0; // Reset fired columns
     }
   }
+}
 
-  return true;
+void PreClusterizer::process(gsl::span<const ColumnData> stripPatterns, gsl::span<const ROFRecord> rofRecords)
+{
+  /// Main function: runs on a data containing the strip patterns of a timeframe
+  /// and builds the clusters
+  /// \param stripPatterns Vector of strip patterns per column
+  /// \param rofRecords RO frame records
+  mPreClusters.clear();
+  mROFRecords.clear();
+  for (auto& rofRecord : rofRecords) {
+    auto firstEntry = mPreClusters.size();
+    process(stripPatterns.subspan(rofRecord.firstEntry, rofRecord.nEntries), true);
+    auto nEntries = mPreClusters.size() - firstEntry;
+    mROFRecords.emplace_back(rofRecord, firstEntry, nEntries);
+  }
 }
 
 //______________________________________________________________________________
@@ -54,8 +72,8 @@ bool PreClusterizer::init()
 {
   /// Initializes the class
 
-  // Initialize pre-clusters
-  mPreClusters.reserve(100);
+  mMpDEs.reserve(detparams::NDetectionElements);
+  mActiveDEs.reserve(detparams::NDetectionElements);
   return true;
 }
 
@@ -67,7 +85,7 @@ bool PreClusterizer::loadPatterns(gsl::span<const ColumnData>& stripPatterns)
   // Loop on stripPatterns
   for (auto& col : stripPatterns) {
     int deIndex = col.deId;
-    assert(deIndex < 72);
+    assert(deIndex < detparams::NDetectionElements);
 
     auto search = mMpDEs.find(deIndex);
     PatternStruct* de = nullptr;
@@ -100,7 +118,6 @@ void PreClusterizer::preClusterizeNBP(PatternStruct& de)
     for (int istrip = 0; istrip < nStripsNBP; ++istrip) {
       if (de.columns[icolumn].isNBPStripFired(istrip)) {
         if (!pc) {
-          LOG(DEBUG) << "New precluster NBP: DE  " << de.deId;
           mPreClusters.push_back({static_cast<uint8_t>(de.deId), 1, static_cast<uint8_t>(icolumn), static_cast<uint8_t>(icolumn), 0, 0, static_cast<uint8_t>(istrip), static_cast<uint8_t>(istrip)});
           pc = &mPreClusters.back();
         }
@@ -132,7 +149,6 @@ void PreClusterizer::preClusterizeBP(PatternStruct& de)
       for (int istrip = 0; istrip < 16; ++istrip) {
         if (de.columns[icolumn].isBPStripFired(istrip, iline)) {
           if (!pc) {
-            LOG(DEBUG) << "New precluster BP: DE  " << de.deId;
             mPreClusters.push_back({static_cast<uint8_t>(de.deId), 0, static_cast<uint8_t>(icolumn), static_cast<uint8_t>(icolumn), static_cast<uint8_t>(iline), static_cast<uint8_t>(iline), static_cast<uint8_t>(istrip), static_cast<uint8_t>(istrip)});
             pc = &mPreClusters.back();
           }
@@ -146,17 +162,6 @@ void PreClusterizer::preClusterizeBP(PatternStruct& de)
 
     } // loop on lines
   }   // loop on columns
-}
-
-//______________________________________________________________________________
-void PreClusterizer::reset()
-{
-  /// Resets fired DEs
-
-  // No need to reset the strip patterns here:
-  // it is done while the patterns are processed to spare a loop
-  mActiveDEs.clear();
-  mPreClusters.clear();
 }
 
 } // namespace mid

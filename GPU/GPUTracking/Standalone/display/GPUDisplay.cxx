@@ -28,7 +28,7 @@
 #include "bitmapfile.h"
 #include "../utils/linux_helpers.h"
 #endif
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #include <omp.h>
 #endif
 
@@ -46,6 +46,7 @@
 #include "GPUTRDTrackletWord.h"
 #include "GPUTRDGeometry.h"
 #include "GPUO2DataTypes.h"
+#include "GPUParam.inc"
 #include "GPUTPCConvertImpl.h"
 #include "utils/qconfig.h"
 
@@ -586,8 +587,8 @@ int GPUDisplay::InitGL_internal()
   int glVersion[2] = {0, 0};
   glGetIntegerv(GL_MAJOR_VERSION, &glVersion[0]);
   glGetIntegerv(GL_MINOR_VERSION, &glVersion[1]);
-  if (glVersion[0] < 4 || (glVersion[0] == 4 && glVersion[1] < 5)) {
-    GPUError("Unsupported OpenGL runtime %d.%d < 4.5", glVersion[0], glVersion[1]);
+  if (glVersion[0] < GPUDisplayBackend::GL_MIN_VERSION_MAJOR || (glVersion[0] == GPUDisplayBackend::GL_MIN_VERSION_MAJOR && glVersion[1] < GPUDisplayBackend::GL_MIN_VERSION_MINOR)) {
+    GPUError("Unsupported OpenGL runtime %d.%d < %d.%d", glVersion[0], glVersion[1], GPUDisplayBackend::GL_MIN_VERSION_MAJOR, GPUDisplayBackend::GL_MIN_VERSION_MINOR);
     return (1);
   }
 
@@ -600,7 +601,7 @@ int GPUDisplay::InitGL_internal()
   setDepthBuffer();
   setQuality();
   ReSizeGLScene(GPUDisplayBackend::INIT_WIDTH, GPUDisplayBackend::INIT_HEIGHT, true);
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
   int maxThreads = mChain->GetDeviceProcessingSettings().nThreads > 1 ? mChain->GetDeviceProcessingSettings().nThreads : 1;
   omp_set_num_threads(maxThreads);
 #else
@@ -1086,7 +1087,6 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
   if (!mixAnimation && mOffscreenBuffer.created) {
     setFrameBuffer(1, mOffscreenBuffer.fb_id);
   }
-
   // Initialize
   if (!mixAnimation) {
     if (mInvertColors) {
@@ -1221,7 +1221,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
       glTranslatef(-vals[0], -vals[1], -vals[2]);
     }
   } else if (mResetScene) {
-    glTranslatef(0, 0, -8);
+    glTranslatef(0, 0, param().ContinuousTracking ? (-param().continuousMaxTimeBin / 500 * 250 / GL_SCALE_FACTOR - 8) : -8);
 
     mCfg.pointSize = 2.0;
     mCfg.drawSlice = -1;
@@ -1353,7 +1353,6 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
     mBackend->mMouseDnX = mBackend->mouseMvX;
     mBackend->mMouseDnY = mBackend->mouseMvY;
   }
-
   // Open GL Default Values
   if (mCfg.smoothPoints) {
     CHKERR(glEnable(GL_POINT_SMOOTH));
@@ -1496,7 +1495,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         mGlDLFinal[iSlice].resize(mNCollissions);
       }
     }
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp parallel num_threads(mChain->GetDeviceProcessingSettings().nThreads)
     {
       int numThread = omp_get_thread_num();
@@ -1520,7 +1519,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
       prop.SetPolynomialField(&mMerger.Param().polynomialField);
       prop.SetToyMCEventsFlag(mMerger.Param().ToyMCEventsFlag);
 
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp barrier
 #pragma omp for
 #endif
@@ -1534,7 +1533,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         mGlDLGrid[iSlice] = DrawGrid(tracker);
       }
 
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp barrier
 #pragma omp for
 #endif
@@ -1543,7 +1542,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         mGlDLLines[iSlice][tGLOBALTRACK] = DrawTracks(tracker, 1);
       }
 
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp barrier
 #endif
       mThreadTracks[numThread].resize(mNCollissions);
@@ -1554,7 +1553,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
           }
         }
       }
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp for
 #endif
       for (int i = 0; i < mMerger.NOutputTracks(); i++) {
@@ -1575,7 +1574,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         }
         mThreadTracks[numThread][col][slice][0].emplace_back(i);
       }
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp for
 #endif
       for (unsigned int i = 0; i < ioptrs().nMCInfosTPC; i++) {
@@ -1603,7 +1602,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         }
         mThreadTracks[numThread][col][slice][1].emplace_back(i);
       }
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp barrier
 #pragma omp for
 #endif
@@ -1625,7 +1624,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         }
       }
 
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp barrier
 #pragma omp for
 #endif

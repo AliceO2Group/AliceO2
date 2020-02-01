@@ -12,8 +12,8 @@
 /// \brief VSD specific reading from file(s) (Visualisation Summary Data)
 /// \author julian.myrcha@cern.ch
 
-#ifndef ALICE_O2_EVENTVISUALISATION_BASE_DATASOURCEOFFLINEVSD_H
-#define ALICE_O2_EVENTVISUALISATION_BASE_DATASOURCEOFFLINEVSD_H
+#ifndef O2EVE_EVENTVISUALISATION_DETECTORS_DATAREADERVSD_H
+#define O2EVE_EVENTVISUALISATION_DETECTORS_DATAREADERVSD_H
 
 #include <EventVisualisationBase/DataReader.h>
 #include <EventVisualisationBase/VisualisationConstants.h>
@@ -37,7 +37,7 @@ class DataReaderVSD : public DataReader
 
  public:
   //Int_t GetEventCount() override { return mEvDirKeys->GetEntriesFast(); };
-  int GetEventCount() override { return mEvDirKeys.size(); };
+  int GetEventCount() const override { return mEvDirKeys.size(); };
   DataReaderVSD();
   ~DataReaderVSD() override;
   void open() override;
@@ -46,4 +46,4 @@ class DataReaderVSD : public DataReader
 
 } // namespace event_visualisation
 } // namespace o2
-#endif
+#endif // O2EVE_EVENTVISUALISATION_DETECTORS_DATAREADERVSD_H

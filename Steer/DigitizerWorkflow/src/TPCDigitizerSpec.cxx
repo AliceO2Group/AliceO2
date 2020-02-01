@@ -10,6 +10,7 @@
 
 #include "TPCDigitizerSpec.h"
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
@@ -176,10 +177,6 @@ class TPCDPLDigitizerTask
     static int callcounter = 0;
     callcounter++;
 
-    static bool finished = false;
-    if (finished) {
-      return;
-    }
     LOG(INFO) << "Processing TPC digitization";
 
     /// For the time being use the defaults for the CDB
@@ -272,11 +269,6 @@ class TPCDPLDigitizerTask
       snapshotCommonMode(commonModeAccum);
       snapshotLabels(labelAccum);
 
-      if (sector == -1) {
-        LOG(INFO) << "TPC: Processing done - exit through the gift shop...";
-        pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-        finished = true;
-      }
       return;
     }
 

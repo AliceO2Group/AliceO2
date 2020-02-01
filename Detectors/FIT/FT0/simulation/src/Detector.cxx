@@ -192,6 +192,7 @@ void Detector::ConstructGeometry()
 
     //   com[itr-Geometry::NCellsA] = new TGeoCombiTrans(tr[itr],rot[itr-Geometry::NCellsA]);
     com[ic] = new TGeoCombiTrans(xc2[ic], yc2[ic], (zc2[ic] - 80), rot[ic]);
+    std::cout << ic << " " << xc2[ic] << " " << yc2[ic] << std::endl;
     TGeoHMatrix hm = *com[ic];
     TGeoHMatrix* ph = new TGeoHMatrix(hm);
     stlinC->AddNode(ins, itr, ph);

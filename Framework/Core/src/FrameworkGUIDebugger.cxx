@@ -731,9 +731,9 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
 
       pushWindowColorDueToStatus(info);
       if (control.logVisible) {
-        ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x / 3 * 2, i * windowPosStepping), ImGuiSetCond_Once);
+        ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x / 3 * 2, i * windowPosStepping), ImGuiCond_Once);
         ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x / 3, ImGui::GetIO().DisplaySize.y - 300),
-                                 ImGuiSetCond_Once);
+                                 ImGuiCond_Once);
         ImGui::Begin(state.label.c_str(), &control.logVisible);
 
         ImGui::InputText("Log filter", control.logFilter, sizeof(control.logFilter));

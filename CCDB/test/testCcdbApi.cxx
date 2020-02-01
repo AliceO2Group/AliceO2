@@ -94,6 +94,7 @@ struct test_fixture {
   test_fixture()
   {
     api.init(ccdbUrl);
+    metadata["Hello"] = "World";
     std::cout << "*** " << boost::unit_test::framework::current_test_case().p_name << " ***" << std::endl;
   }
   ~test_fixture() = default;
@@ -146,6 +147,12 @@ BOOST_AUTO_TEST_CASE(store_retrieve_TMemFile_templated_test, *utf::precondition(
 
   // try to query with different type and verify that we get nullptr
   BOOST_CHECK(f.api.retrieveFromTFileAny<o2::utils::RootChain>(basePath + "CCDBPath", f.metadata) == nullptr);
+
+  // try to get the headers back and to find the metadata
+  map<string, string> md;
+  path2 = f.api.retrieveFromTFileAny<o2::ccdb::IdPath>(basePath + "CCDBPath", f.metadata, -1, &md);
+  BOOST_CHECK_EQUAL(md.count("Hello"), 1);
+  BOOST_CHECK_EQUAL(md["Hello"], "World");
 
   //-----------------------------------------------------------------------------------------------
   // test if writing/reading complicated objects like TTree works (because of particular ownership)
@@ -251,13 +258,17 @@ BOOST_AUTO_TEST_CASE(retrieveTMemFile_test, *utf::precondition(if_reachable()))
   BOOST_CHECK_EQUAL(graph->GetN(), 10);
   delete graph;
 
-  obj = f.api.retrieveFromTFile(basePath + "tree", f.metadata);
+  std::map<std::string, std::string> headers;
+  obj = f.api.retrieveFromTFile(basePath + "tree", f.metadata, -1, &headers);
   BOOST_CHECK_NE(obj, nullptr);
   BOOST_CHECK_EQUAL(obj->ClassName(), "TTree");
   auto tree = dynamic_cast<TTree*>(obj);
   BOOST_CHECK_NE(tree, nullptr);
   BOOST_CHECK_EQUAL(tree->GetName(), "mytree");
   delete obj;
+  // make sure we got the correct metadata
+  BOOST_CHECK(headers.count("Hello") == 1);
+  BOOST_CHECK_EQUAL(headers["Hello"], "World");
 
   // wrong url
   obj = f.api.retrieveFromTFile("Wrong/wrong", f.metadata);
@@ -409,4 +420,39 @@ BOOST_AUTO_TEST_CASE(TestFetchingHeaders, *utf::precondition(if_reachable()))
   BOOST_REQUIRE(pfns.size());
   updated = CcdbApi::getCCDBEntryHeaders("http://ccdb-test.cern.ch:8080/TOF/LHCphase/1567080816927", etag, headers);
   BOOST_CHECK_EQUAL(updated, false);
+}
+
+BOOST_AUTO_TEST_CASE(TestRetrieveHeaders, *utf::precondition(if_reachable()))
+{
+  test_fixture f;
+
+  TH1F h1("object1", "object1", 100, 0, 99);
+  cout << "storing object 1 in " << basePath << "Test" << endl;
+  map<string, string> metadata;
+  metadata["custom"] = "whatever";
+  f.api.storeAsTFile(&h1, basePath + "Test", metadata);
+
+  std::map<std::string, std::string> headers = f.api.retrieveHeaders(basePath + "Test", metadata);
+  BOOST_CHECK_NE(headers.size(), 0);
+  std::string h = headers["custom"];
+  BOOST_CHECK_EQUAL(h, "whatever");
+
+  int i = 0;
+  for (auto h : headers) {
+    cout << i++ << " : " << h.first << " -> " << h.second << endl;
+  }
+
+  headers = f.api.retrieveHeaders(basePath + "Test", metadata);
+  BOOST_CHECK_NE(headers.size(), 0);
+  h = headers["custom"];
+  BOOST_CHECK_EQUAL(h, "whatever");
+
+  metadata["custom"] = "something";
+  headers = f.api.retrieveHeaders(basePath + "Test", metadata);
+
+  i = 0;
+  for (auto h : headers) {
+    cout << i++ << " : " << h.first << " -> " << h.second << endl;
+  }
+  BOOST_CHECK_EQUAL(headers.size(), 0);
 }

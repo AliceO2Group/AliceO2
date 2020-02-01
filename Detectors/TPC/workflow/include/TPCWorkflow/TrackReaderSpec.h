@@ -42,6 +42,7 @@ class TrackReader : public Task
   void accumulate();
 
   std::vector<o2::tpc::TrackTPC>*mTracksInp = nullptr, mTracksOut;
+  std::vector<o2::tpc::TPCClRefElem>*mCluRefVecInp = nullptr, mCluRefVecOut;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>*mMCTruthInp = nullptr, mMCTruthOut;
 
   bool mFinished = false;
@@ -50,6 +51,7 @@ class TrackReader : public Task
   std::string mInputFileName = "tpctracks.root";
   std::string mTrackTreeName = "events";
   std::string mTrackBranchName = "Tracks";
+  std::string mClusRefBranchName = "ClusRefs";
   std::string mTrackMCTruthBranchName = "TracksMCTruth";
 };
 

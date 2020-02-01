@@ -15,6 +15,7 @@
 #include <boost/test/data/test_case.hpp>
 #include <sstream>
 #include "MathUtils/Cartesian3D.h"
+#include "CommonConstants/LHCConstants.h"
 #include "DataFormatsMID/Cluster2D.h"
 #include "DataFormatsMID/Cluster3D.h"
 #include "DataFormatsMID/ColumnData.h"
@@ -26,7 +27,6 @@
 #include "MIDSimulation/ColumnDataMC.h"
 #include "MIDSimulation/Digitizer.h"
 #include "MIDSimulation/DigitsMerger.h"
-#include "MIDSimulation/DigitsPacker.h"
 #include "MIDSimulation/Hit.h"
 #include "MIDSimulation/PreClusterLabeler.h"
 #include "MIDSimulation/TrackLabeler.h"
@@ -66,8 +66,7 @@ struct SimDigitizer {
   Digitizer digitizer;
   Digitizer digitizerNoClusterSize;
   DigitsMerger digitsMerger;
-  DigitsPacker digitsPacker;
-  SimDigitizer() : params(createDefaultChamberResponseParams()), digitizer(createDefaultDigitizer()), digitizerNoClusterSize(createDigitizerNoClusterSize()), digitsMerger(), digitsPacker() {}
+  SimDigitizer() : params(createDefaultChamberResponseParams()), digitizer(createDefaultDigitizer()), digitizerNoClusterSize(createDigitizerNoClusterSize()), digitsMerger() {}
 };
 
 static SimDigitizer simDigitizer;
@@ -190,10 +189,10 @@ bool checkLabel(const ColumnData& digit, MCLabel& label, std::string& errorMessa
   return isOk;
 }
 
-std::vector<PreCluster> getRelatedPreClusters(const Hit& hit, int cathode, const std::vector<PreCluster>& preClusters, const o2::dataformats::MCTruthContainer<MCCompLabel>& labels)
+std::vector<PreCluster> getRelatedPreClusters(const Hit& hit, int cathode, const std::vector<PreCluster>& preClusters, const o2::dataformats::MCTruthContainer<MCCompLabel>& labels, const ROFRecord& rofRecord)
 {
   std::vector<PreCluster> sortedPC;
-  for (size_t ipc = 0; ipc < preClusters.size(); ++ipc) {
+  for (size_t ipc = rofRecord.firstEntry; ipc < rofRecord.firstEntry + rofRecord.nEntries; ++ipc) {
     for (auto& label : labels.getLabels(ipc)) {
       if (label.getTrackID() == hit.GetTrackID() && preClusters[ipc].cathode == cathode) {
         sortedPC.emplace_back(preClusters[ipc]);
@@ -201,7 +200,7 @@ std::vector<PreCluster> getRelatedPreClusters(const Hit& hit, int cathode, const
     }
   }
   std::sort(sortedPC.begin(), sortedPC.end(), [](const PreCluster& pc1, const PreCluster& pc2) { return (pc1.firstColumn <= pc2.firstColumn); });
-  return std::move(sortedPC);
+  return sortedPC;
 }
 
 bool isContiguous(const std::vector<PreCluster>& sortedPC)
@@ -233,7 +232,7 @@ bool isInside(double localX, double localY, const std::vector<PreCluster>& sorte
   return false;
 }
 
-std::string getDebugInfo(const std::vector<GenTrack>& genTracks, Tracker& tracker, TrackLabeler& trackLabeler)
+std::string getDebugInfo(const std::vector<GenTrack>& genTracks, Tracker& tracker, TrackLabeler& trackLabeler, const ROFRecord& rofTrack, const ROFRecord& rofCluster)
 {
   std::stringstream debug;
   for (size_t igen = 0; igen < genTracks.size(); ++igen) {
@@ -242,7 +241,7 @@ std::string getDebugInfo(const std::vector<GenTrack>& genTracks, Tracker& tracke
       debug << "    " << hit << "\n";
     }
     debug << "  clusters:\n";
-    for (size_t icl = 0; icl < tracker.getClusters().size(); ++icl) {
+    for (size_t icl = rofCluster.firstEntry; icl < rofCluster.firstEntry + rofCluster.nEntries; ++icl) {
       bool matches = false;
       for (auto& label : trackLabeler.getTrackClustersLabels().getLabels(icl)) {
         if (label.getTrackID() == igen) {
@@ -256,7 +255,7 @@ std::string getDebugInfo(const std::vector<GenTrack>& genTracks, Tracker& tracke
     }
   }
 
-  for (size_t itrack = 0; itrack < tracker.getTracks().size(); ++itrack) {
+  for (size_t itrack = rofTrack.firstEntry; itrack < rofTrack.firstEntry + rofTrack.nEntries; ++itrack) {
     debug << "reco: " << tracker.getTracks()[itrack] << "  matches:";
     for (auto& label : trackLabeler.getTracksLabels().getLabels(itrack)) {
       debug << "  " << label.getTrackID();
@@ -290,13 +289,49 @@ std::vector<int> getDEList()
 
 BOOST_AUTO_TEST_SUITE(o2_mid_simulation)
 
+BOOST_DATA_TEST_CASE(MID_DigitMerger, boost::unit_test::data::make(getDEList()), deId)
+{
+  // Test the merging of the MC digits
+  size_t nEvents = 20;
+  std::vector<std::vector<ColumnDataMC>> digitsCollection;
+  std::vector<o2::dataformats::MCTruthContainer<MCLabel>> mcContainerCollection;
+  std::vector<ColumnDataMC> digits;
+  o2::dataformats::MCTruthContainer<MCLabel> mcContainer;
+  std::vector<ROFRecord> rofRecords;
+  for (size_t ievent = 0; ievent < nEvents; ++ievent) {
+    // Generate digits per event. Each event has a different timestamp
+    auto hits = generateHits(1, deId, simBase.mapping, simBase.geoTrans);
+    digitsCollection.push_back({});
+    mcContainerCollection.push_back({});
+    simDigitizer.digitizer.process(hits, digitsCollection.back(), mcContainerCollection.back());
+    rofRecords.emplace_back(o2::constants::lhc::LHCBunchSpacingNS * ievent, EventType::Standard, digits.size(), digitsCollection.back().size());
+    std::copy(digitsCollection.back().begin(), digitsCollection.back().end(), std::back_inserter(digits));
+    mcContainer.mergeAtBack(mcContainerCollection.back());
+  }
+  simDigitizer.digitsMerger.process(digits, mcContainer, rofRecords);
+
+  BOOST_TEST(simDigitizer.digitsMerger.getROFRecords().size() == rofRecords.size());
+  auto rofMCIt = rofRecords.begin();
+  auto rofIt = simDigitizer.digitsMerger.getROFRecords().begin();
+  for (; rofIt != simDigitizer.digitsMerger.getROFRecords().end(); ++rofIt) {
+    // Check that input and output event information are the same
+    BOOST_TEST(rofIt->interactionRecord == rofMCIt->interactionRecord);
+    BOOST_TEST(static_cast<int>(rofIt->eventType) == static_cast<int>(rofMCIt->eventType));
+    // Check that the merged digits are less than the input ones
+    BOOST_TEST(rofIt->nEntries <= rofMCIt->nEntries);
+    ++rofMCIt;
+  }
+}
+
 BOOST_DATA_TEST_CASE(MID_Digitizer, boost::unit_test::data::make(getDEList()), deId)
 {
   // In this test we generate hits, digitize them and test that the MC labels are correctly assigned
   auto hits = generateHits(10, deId, simBase.mapping, simBase.geoTrans);
   std::vector<ColumnDataMC> digitStoreMC;
   o2::dataformats::MCTruthContainer<MCLabel> digitLabelsMC;
+  std::vector<ROFRecord> rofRecords;
   simDigitizer.digitizer.process(hits, digitStoreMC, digitLabelsMC);
+  rofRecords.emplace_back(1, EventType::Standard, 0, digitStoreMC.size());
   // We check that we have as many sets of labels as digits
   BOOST_TEST(digitStoreMC.size() == digitLabelsMC.getIndexedSize());
   for (size_t idig = 0; idig < digitLabelsMC.getIndexedSize(); ++idig) {
@@ -310,18 +345,17 @@ BOOST_DATA_TEST_CASE(MID_Digitizer, boost::unit_test::data::make(getDEList()), d
   }
 
   // We then test the merging of the hits
-  std::vector<ColumnData> digitStore;
-  o2::dataformats::MCTruthContainer<MCLabel> digitLabels;
-  simDigitizer.digitsMerger.process(digitStoreMC, digitLabelsMC, digitStore, digitLabels);
+
+  simDigitizer.digitsMerger.process(digitStoreMC, digitLabelsMC, rofRecords);
   // The number of merged digits should be smaller than the number of input digits
-  BOOST_TEST(digitStore.size() <= digitStoreMC.size());
+  BOOST_TEST(simDigitizer.digitsMerger.getColumnData().size() <= digitStoreMC.size());
   // We check that we have as many sets of labels as digits
-  BOOST_TEST(digitStore.size() == digitLabels.getIndexedSize());
+  BOOST_TEST(simDigitizer.digitsMerger.getColumnData().size() == simDigitizer.digitsMerger.getMCContainer().getIndexedSize());
   // We check that we do not discard any label in the merging
-  BOOST_TEST(digitLabels.getNElements() == digitLabelsMC.getNElements());
+  BOOST_TEST(simDigitizer.digitsMerger.getMCContainer().getNElements() == digitLabelsMC.getNElements());
   for (auto digit : digitStoreMC) {
     bool isMergedDigit = false;
-    for (auto col : digitStore) {
+    for (auto col : simDigitizer.digitsMerger.getColumnData()) {
       if (digit.deId == col.deId && digit.columnId == col.columnId) {
         /// Checks the merged pattern
         isMergedDigit = true;
@@ -334,45 +368,6 @@ BOOST_DATA_TEST_CASE(MID_Digitizer, boost::unit_test::data::make(getDEList()), d
     }
     // Check that all digits get merged
     BOOST_TEST(isMergedDigit);
-  }
-}
-
-BOOST_DATA_TEST_CASE(MID_DigitReader, boost::unit_test::data::make(getDEList()), deId)
-{
-  // Testing of the packing of digits
-
-  size_t nEvents = 20;
-  std::vector<std::vector<ColumnDataMC>> digitsCollection;
-  std::vector<ColumnDataMC> digits, packedDigits;
-  std::vector<o2::dataformats::MCTruthContainer<MCLabel>> mcContainerCollection;
-  o2::dataformats::MCTruthContainer<MCLabel> mcContainer, packedMCContainer;
-  for (size_t ievent = 0; ievent < nEvents; ++ievent) {
-    // Generate digits per event. Each event has a different timestamp
-    auto hits = generateHits(5, deId, simBase.mapping, simBase.geoTrans);
-    digitsCollection.push_back({});
-    mcContainerCollection.push_back({});
-    simDigitizer.digitizer.setEventTime(10 * ievent);
-    simDigitizer.digitizer.process(hits, digitsCollection.back(), mcContainerCollection.back());
-    std::copy(digitsCollection.back().begin(), digitsCollection.back().end(), std::back_inserter(digits));
-    mcContainer.mergeAtBack(mcContainerCollection.back());
-  }
-  // This should pack again the digits per event
-  simDigitizer.digitsPacker.process(digits, mcContainer, 0);
-  BOOST_TEST(simDigitizer.digitsPacker.getNGroups() == nEvents);
-  for (size_t igroup = 0; igroup < simDigitizer.digitsPacker.getNGroups(); ++igroup) {
-    simDigitizer.digitsPacker.getGroup(igroup, packedDigits, packedMCContainer);
-    // Check that the number of digits per event is equal to the input one
-    BOOST_TEST(packedDigits.size() == digitsCollection[igroup].size());
-    for (size_t idigit = 0; idigit < packedDigits.size(); ++idigit) {
-      // Check that we have the same digits as the input ones
-      BOOST_TEST(packedDigits[idigit].getNonBendPattern() == digitsCollection[igroup][idigit].getNonBendPattern());
-      // Check that we have the same labels as the input ones
-      size_t nLabels = packedMCContainer.getLabels(idigit).size();
-      BOOST_TEST(nLabels == mcContainerCollection[igroup].getLabels(idigit).size());
-      for (size_t ilabel = 0; ilabel < nLabels; ++ilabel) {
-        BOOST_TEST(packedMCContainer.getLabels(idigit)[ilabel] == mcContainerCollection[igroup].getLabels(idigit)[ilabel]);
-      }
-    }
   }
 }
 
@@ -390,21 +385,21 @@ BOOST_DATA_TEST_CASE(MID_SingleCluster, boost::unit_test::data::make(getDEList()
 
   std::vector<ColumnDataMC> digitStoreMC;
   o2::dataformats::MCTruthContainer<MCLabel> digitLabelsMC;
-  std::vector<ColumnData> digitStore;
-  o2::dataformats::MCTruthContainer<MCLabel> digitLabels;
+  std::vector<ROFRecord> rofRecords;
 
   for (int ievent = 0; ievent < 100; ++ievent) {
     auto hits = generateHits(1, deId, simBase.mapping, simBase.geoTrans);
     std::stringstream ss;
     int nGenClusters = 1, nRecoClusters = 0;
     simDigitizer.digitizer.process(hits, digitStoreMC, digitLabelsMC);
-    simDigitizer.digitsMerger.process(digitStoreMC, digitLabelsMC, digitStore, digitLabels);
-    simClustering.preClusterizer.process(digitStore);
-    gsl::span<const PreCluster> preClusters(simClustering.preClusterizer.getPreClusters().data(), simClustering.preClusterizer.getPreClusters().size());
-    simClustering.clusterizer.process(preClusters);
+    rofRecords.clear();
+    rofRecords.emplace_back(o2::constants::lhc::LHCBunchSpacingNS * ievent, EventType::Standard, 0, digitStoreMC.size());
+    simDigitizer.digitsMerger.process(digitStoreMC, digitLabelsMC, rofRecords);
+    simClustering.preClusterizer.process(simDigitizer.digitsMerger.getColumnData(), simDigitizer.digitsMerger.getROFRecords());
+    simClustering.clusterizer.process(simClustering.preClusterizer.getPreClusters(), simClustering.preClusterizer.getROFRecords());
     nRecoClusters = simClustering.clusterizer.getClusters().size();
     ss << "nRecoClusters: " << nRecoClusters << "  nGenClusters: " << nGenClusters << "\n";
-    for (auto& col : digitStore) {
+    for (auto& col : simDigitizer.digitsMerger.getColumnData()) {
       ss << col << "\n";
     }
     ss << "\n  Clusters:\n";
@@ -412,7 +407,9 @@ BOOST_DATA_TEST_CASE(MID_SingleCluster, boost::unit_test::data::make(getDEList()
       ss << cl << "\n";
     }
 
-    int nColumns = digitStore.size();
+    BOOST_TEST(simClustering.clusterizer.getROFRecords().size() == rofRecords.size());
+
+    int nColumns = simDigitizer.digitsMerger.getColumnData().size();
 
     if (simDigitizer.params.getParB(0, deId) == simDigitizer.params.getParB(1, deId) && nColumns <= 2) {
       BOOST_TEST((nRecoClusters == nGenClusters), ss.str());
@@ -427,65 +424,63 @@ BOOST_DATA_TEST_CASE(MID_SimClusters, boost::unit_test::data::make(getDEList()),
   // In this test, we generate few hits, reconstruct the clusters
   // and verify that the MC labels are correctly assigned to the clusters
 
-  std::vector<ColumnDataMC> digitStoreMC;
-  o2::dataformats::MCTruthContainer<MCLabel> digitLabelsMC;
-  std::vector<ColumnData> digitStore;
-  o2::dataformats::MCTruthContainer<MCLabel> digitLabels;
+  std::vector<ColumnDataMC> digitStoreMC, digitsAccum;
+  o2::dataformats::MCTruthContainer<MCLabel> digitLabelsMC, digitLabelsAccum;
+  std::vector<ROFRecord> digitsROF;
+  std::vector<std::vector<Hit>> hitsCollection;
 
   for (int ievent = 0; ievent < 100; ++ievent) {
     auto hits = generateHits(10, deId, simBase.mapping, simBase.geoTrans);
-    std::stringstream ss;
-    int nGenClusters = 1, nRecoClusters = 0;
+    hitsCollection.emplace_back(hits);
     simDigitizer.digitizer.process(hits, digitStoreMC, digitLabelsMC);
-    simDigitizer.digitsMerger.process(digitStoreMC, digitLabelsMC, digitStore, digitLabels);
-    simClustering.preClusterizer.process(digitStore);
-    gsl::span<const PreCluster> preClusters(simClustering.preClusterizer.getPreClusters().data(), simClustering.preClusterizer.getPreClusters().size());
-    simClustering.correlation.clear();
-    simClustering.clusterizer.process(preClusters);
-    simClustering.preClusterLabeler.process(preClusters, digitLabels);
-    // Check that all pre-clusters have a label
-    BOOST_TEST(preClusters.size() == simClustering.preClusterLabeler.getContainer().getIndexedSize());
-    // Check that the pre-clusters contain the hits from which they were generated
-    for (auto& hit : hits) {
+    digitsROF.emplace_back(o2::constants::lhc::LHCBunchSpacingNS * ievent, EventType::Standard, digitsAccum.size(), digitStoreMC.size());
+    std::copy(digitStoreMC.begin(), digitStoreMC.end(), std::back_inserter(digitsAccum));
+    digitLabelsAccum.mergeAtBack(digitLabelsMC);
+  }
+  simDigitizer.digitsMerger.process(digitsAccum, digitLabelsAccum, digitsROF);
+  simClustering.preClusterizer.process(simDigitizer.digitsMerger.getColumnData(), simDigitizer.digitsMerger.getROFRecords());
+  simClustering.correlation.clear();
+  simClustering.clusterizer.process(simClustering.preClusterizer.getPreClusters(), simClustering.preClusterizer.getROFRecords());
+  simClustering.preClusterLabeler.process(simClustering.preClusterizer.getPreClusters(), simDigitizer.digitsMerger.getMCContainer(), simClustering.preClusterizer.getROFRecords(), simDigitizer.digitsMerger.getROFRecords());
+  // Check that all pre-clusters have a label
+  BOOST_TEST(simClustering.preClusterizer.getPreClusters().size() == simClustering.preClusterLabeler.getContainer().getIndexedSize());
+  // Check that the pre-clusters contain the hits from which they were generated
+  for (size_t ievent = 0; ievent < hitsCollection.size(); ++ievent) {
+    for (auto& hit : hitsCollection[ievent]) {
       auto pt = simBase.geoTrans.globalToLocal(hit.GetDetectorID(), hit.middlePoint());
-      for (int icath = 0; icath < 2; ++icath) {
-        auto sortedPC = getRelatedPreClusters(hit, 1, simClustering.preClusterizer.getPreClusters(), simClustering.preClusterLabeler.getContainer());
-        if (icath == 1) {
-          // Check that there is only 1 pre-cluster in the NBP
-          // CAVEAT: this is valid as far as we do not have masked strips
-          BOOST_TEST(sortedPC.size() == 1);
-        }
-        std::string errorMsg;
-        BOOST_TEST(isInside(pt.x(), pt.y(), sortedPC, errorMsg), errorMsg.c_str());
-      }
+      // Check only the NBP, since in the BP we can have 1 pre-cluster per column
+      auto sortedPC = getRelatedPreClusters(hit, 1, simClustering.preClusterizer.getPreClusters(), simClustering.preClusterLabeler.getContainer(), simClustering.preClusterizer.getROFRecords()[ievent]);
+      // Check that there is only 1 pre-cluster in the NBP
+      // CAVEAT: this is valid as far as we do not have masked strips
+      BOOST_TEST(sortedPC.size() == 1);
+      std::string errorMsg;
+      BOOST_TEST(isInside(pt.x(), pt.y(), sortedPC, errorMsg), errorMsg.c_str());
     }
+  }
 
-    gsl::span<const Cluster2D> clusters(simClustering.clusterizer.getClusters().data(), simClustering.clusterizer.getClusters().size());
-    gsl::span<const std::array<size_t, 2>> correlation(simClustering.correlation.data(), simClustering.correlation.size());
-    simClustering.clusterLabeler.process(preClusters, simClustering.preClusterLabeler.getContainer(), clusters, correlation);
-    // Check that all clusters have a label
-    BOOST_TEST(clusters.size() == simClustering.clusterLabeler.getContainer().getIndexedSize());
+  simClustering.clusterLabeler.process(simClustering.preClusterizer.getPreClusters(), simClustering.preClusterLabeler.getContainer(), simClustering.clusterizer.getClusters(), simClustering.correlation);
+  // Check that all clusters have a label
+  BOOST_TEST(simClustering.clusterizer.getClusters().size() == simClustering.clusterLabeler.getContainer().getIndexedSize());
 
-    for (auto pair : simClustering.correlation) {
-      // std::string errorMsg;
-      // const auto& cl(clusters[pair.first]);
-      // std::vector<PreCluster> sortedPC{ preClusters[pair.second] };
-      // Test that the cluster is inside the associated pre-cluster
-      // BOOST_TEST(isInside(cl.xCoor, cl.yCoor, sortedPC, errorMsg), errorMsg.c_str());
-      // Test that the cluster has all pre-clusters labels
-      for (auto& pcLabel : simClustering.preClusterLabeler.getContainer().getLabels(pair[1])) {
-        bool isInLabels = false;
-        for (auto& label : simClustering.clusterLabeler.getContainer().getLabels(pair[0])) {
-          if (label.compare(pcLabel) == 1) {
-            isInLabels = true;
-            bool isFired = (preClusters[pair[1]].cathode == 0) ? label.isFiredBP() : label.isFiredNBP();
-            // Test that the fired flag is correctly set
-            BOOST_TEST(isFired);
-            break;
-          }
+  for (auto pair : simClustering.correlation) {
+    // std::string errorMsg;
+    // const auto& cl(clusters[pair.first]);
+    // std::vector<PreCluster> sortedPC{ preClusters[pair.second] };
+    // Test that the cluster is inside the associated pre-cluster
+    // BOOST_TEST(isInside(cl.xCoor, cl.yCoor, sortedPC, errorMsg), errorMsg.c_str());
+    // Test that the cluster has all pre-clusters labels
+    for (auto& pcLabel : simClustering.preClusterLabeler.getContainer().getLabels(pair[1])) {
+      bool isInLabels = false;
+      for (auto& label : simClustering.clusterLabeler.getContainer().getLabels(pair[0])) {
+        if (label.compare(pcLabel) == 1) {
+          isInLabels = true;
+          bool isFired = (simClustering.preClusterizer.getPreClusters()[pair[1]].cathode == 0) ? label.isFiredBP() : label.isFiredNBP();
+          // Test that the fired flag is correctly set
+          BOOST_TEST(isFired);
+          break;
         }
-        BOOST_TEST(isInLabels);
       }
+      BOOST_TEST(isInLabels);
     }
   }
 }
@@ -503,23 +498,23 @@ BOOST_DATA_TEST_CASE(MID_SimTracks, boost::unit_test::data::make({1, 2, 3, 4, 5,
   // The aim of this test is to check that the algorithms work.
   // The tracking performance and tuning of the MC will be done in the future via dedicated studies.
 
-  std::vector<ColumnDataMC> digitStoreMC;
-  o2::dataformats::MCTruthContainer<MCLabel> digitLabelsMC;
-  std::vector<ColumnData> digitStore;
-  o2::dataformats::MCTruthContainer<MCLabel> digitLabels;
+  std::vector<ColumnDataMC> digitStoreMC, digitsAccum;
+  o2::dataformats::MCTruthContainer<MCLabel> digitLabelsMC, digitLabelsAccum;
+  std::vector<ROFRecord> digitsROF;
+  std::vector<std::vector<GenTrack>> genTrackCollection;
 
   // In the tracking algorithm, if we have two tracks that are compatible within uncertainties
   // we keep only one of the two. This is done to avoid duplicated tracks.
   // In this test we can have many tracks in the same event.
-  // If two tracks are close, they can give two reconstucted tracks compatible among each others,
+  // If two tracks are close, they can give two reconstructed tracks compatible among each others,
   // within their uncertainties. One of the two is therefore rejected.
   // However, the track might not be compatible with the (rejected) generated track that has no uncertainty.
   // To avoid this, compare adding a factor 2 in the sigma cut.
   float chi2Cut = simTracking.tracker.getSigmaCut() * simTracking.tracker.getSigmaCut();
 
-  unsigned long int nReco = 0, nGood = 0, nUntagged = 0, nTaggedNonCompatible = 0, nReconstructible = 0;
+  unsigned long int nGood = 0, nUntagged = 0, nTaggedNonCompatible = 0, nReconstructible = 0;
 
-  for (int ievent = 0; ievent < 100; ++ievent) {
+  for (size_t ievent = 0; ievent < 100; ++ievent) {
     auto genTracks = generateTracks(nTracks);
     std::vector<Hit> hits;
     for (auto& genTrack : genTracks) {
@@ -528,66 +523,75 @@ BOOST_DATA_TEST_CASE(MID_SimTracks, boost::unit_test::data::make({1, 2, 3, 4, 5,
         ++nReconstructible;
       }
     }
+    genTrackCollection.emplace_back(genTracks);
 
     simDigitizer.digitizerNoClusterSize.process(hits, digitStoreMC, digitLabelsMC);
-    simDigitizer.digitsMerger.process(digitStoreMC, digitLabelsMC, digitStore, digitLabels);
-    simClustering.preClusterizer.process(digitStore);
-    gsl::span<const PreCluster> preClusters(simClustering.preClusterizer.getPreClusters().data(), simClustering.preClusterizer.getPreClusters().size());
-    simClustering.correlation.clear();
-    simClustering.clusterizer.process(preClusters);
-    simClustering.preClusterLabeler.process(preClusters, digitLabels);
-    gsl::span<const Cluster2D> clusters(simClustering.clusterizer.getClusters().data(), simClustering.clusterizer.getClusters().size());
-    gsl::span<const std::array<size_t, 2>> correlation(simClustering.correlation.data(), simClustering.correlation.size());
-    simClustering.clusterLabeler.process(preClusters, simClustering.preClusterLabeler.getContainer(), clusters, correlation);
-    simTracking.tracker.process(clusters);
-    gsl::span<const Track> tracks(simTracking.tracker.getTracks().data(), simTracking.tracker.getTracks().size());
-    gsl::span<const Cluster3D> trClusters(simTracking.tracker.getClusters().data(), simTracking.tracker.getClusters().size());
-    simTracking.trackLabeler.process(trClusters, tracks, simClustering.clusterLabeler.getContainer());
+    digitsROF.emplace_back(o2::constants::lhc::LHCBunchSpacingNS * ievent, EventType::Standard, digitsAccum.size(), digitStoreMC.size());
+    std::copy(digitStoreMC.begin(), digitStoreMC.end(), std::back_inserter(digitsAccum));
+    digitLabelsAccum.mergeAtBack(digitLabelsMC);
+  }
 
-    // For the moment we save all clusters
-    BOOST_TEST(trClusters.size() == clusters.size());
-    BOOST_TEST(tracks.size() == simTracking.trackLabeler.getTracksLabels().getIndexedSize());
-    BOOST_TEST(trClusters.size() == simTracking.trackLabeler.getTrackClustersLabels().getIndexedSize());
+  simDigitizer.digitsMerger.process(digitsAccum, digitLabelsAccum, digitsROF);
+  simClustering.preClusterizer.process(simDigitizer.digitsMerger.getColumnData(), simDigitizer.digitsMerger.getROFRecords());
+  simClustering.correlation.clear();
+  simClustering.clusterizer.process(simClustering.preClusterizer.getPreClusters(), simClustering.preClusterizer.getROFRecords());
+  simClustering.preClusterLabeler.process(simClustering.preClusterizer.getPreClusters(), simDigitizer.digitsMerger.getMCContainer(), simClustering.preClusterizer.getROFRecords(), simDigitizer.digitsMerger.getROFRecords());
+  simClustering.clusterLabeler.process(simClustering.preClusterizer.getPreClusters(), simClustering.preClusterLabeler.getContainer(), simClustering.clusterizer.getClusters(), simClustering.correlation);
+  simTracking.tracker.process(simClustering.clusterizer.getClusters(), simClustering.clusterizer.getROFRecords());
+  simTracking.trackLabeler.process(simTracking.tracker.getClusters(), simTracking.tracker.getTracks(), simClustering.clusterLabeler.getContainer());
 
-    std::string debugInfo = "";
-    // Test that all reconstructible tracks are reconstructed
-    for (size_t igen = 0; igen < genTracks.size(); ++igen) {
+  // For the moment we save all clusters
+  BOOST_TEST(simTracking.tracker.getClusters().size() == simClustering.clusterizer.getClusters().size());
+  BOOST_TEST(simTracking.tracker.getTracks().size() == simTracking.trackLabeler.getTracksLabels().getIndexedSize());
+  BOOST_TEST(simTracking.tracker.getClusters().size() == simTracking.trackLabeler.getTrackClustersLabels().getIndexedSize());
+  BOOST_TEST(simTracking.tracker.getTrackROFRecords().size() == digitsROF.size());
+
+  std::string debugInfo = "";
+  // Test that all reconstructible tracks are reconstructed
+  for (size_t ievent = 0; ievent < genTrackCollection.size(); ++ievent) {
+    auto firstTrack = simTracking.tracker.getTrackROFRecords()[ievent].firstEntry;
+    auto nTracks = simTracking.tracker.getTrackROFRecords()[ievent].nEntries;
+    for (size_t igen = 0; igen < genTrackCollection[ievent].size(); ++igen) {
       bool isReco = false;
-      for (size_t itrack = 0; itrack < tracks.size(); ++itrack) {
+      for (size_t itrack = firstTrack; itrack < firstTrack + nTracks; ++itrack) {
         for (auto& label : simTracking.trackLabeler.getTracksLabels().getLabels(itrack)) {
           if (label.getTrackID() == igen) {
-            if (tracks[itrack].isCompatible(genTracks[igen].track, chi2Cut)) {
+            if (simTracking.tracker.getTracks()[itrack].isCompatible(genTrackCollection[ievent][igen].track, chi2Cut)) {
               isReco = true;
+              break;
             }
           }
         }
+        if (isReco) {
+          break;
+        }
       }
       std::stringstream ss;
-      ss << "Gen ID: " << igen << "  isReconstructible: " << genTracks[igen].isReconstructible() << " != isReco " << isReco;
+      ss << "Gen ID: " << igen << "  isReconstructible: " << genTrackCollection[ievent][igen].isReconstructible() << " != isReco " << isReco;
       if (debugInfo.empty()) {
-        debugInfo = getDebugInfo(genTracks, simTracking.tracker, simTracking.trackLabeler);
+        debugInfo = getDebugInfo(genTrackCollection[ievent], simTracking.tracker, simTracking.trackLabeler, simTracking.tracker.getTrackROFRecords()[ievent], simTracking.tracker.getClusterROFRecords()[ievent]);
       }
       ss << "\n"
          << debugInfo;
-      BOOST_TEST(isReco == genTracks[igen].isReconstructible(), ss.str().c_str());
-    }
+      BOOST_TEST(isReco == genTrackCollection[ievent][igen].isReconstructible(), ss.str().c_str());
+    } // loop on generated tracks
 
     // Perform some statistics
-    for (size_t itrack = 0; itrack < tracks.size(); ++itrack) {
+    for (size_t itrack = firstTrack; itrack < firstTrack + nTracks; ++itrack) {
       for (auto& label : simTracking.trackLabeler.getTracksLabels().getLabels(itrack)) {
         if (label.isEmpty()) {
           ++nUntagged;
           continue;
         }
-        const Track& matchedGenTrack(genTracks[label.getTrackID()].track);
-        if (tracks[itrack].isCompatible(matchedGenTrack, chi2Cut)) {
+        const Track& matchedGenTrack(genTrackCollection[ievent][label.getTrackID()].track);
+        if (simTracking.tracker.getTracks()[itrack].isCompatible(matchedGenTrack, chi2Cut)) {
           ++nGood;
         } else {
           ++nTaggedNonCompatible;
         }
         int nMatched = 0;
         for (int ich = 0; ich < 4; ++ich) {
-          int trClusIdx = tracks[itrack].getClusterMatched(ich);
+          int trClusIdx = simTracking.tracker.getTracks()[itrack].getClusterMatched(ich);
           if (trClusIdx < 0) {
             continue;
           }
@@ -598,9 +602,9 @@ BOOST_DATA_TEST_CASE(MID_SimTracks, boost::unit_test::data::make({1, 2, 3, 4, 5,
           }
         }
         BOOST_TEST(nMatched >= 3);
-      }
-    }
-  }
+      } // lop on track labels
+    }   // loop on reconstructed tracks
+  }     // loop on event
   std::stringstream outMsg;
   outMsg << "Tracks per event: " << nTracks << "  fraction of good: " << static_cast<double>(nGood) / static_cast<double>(nReconstructible) << "  untagged: " << static_cast<double>(nUntagged) / static_cast<double>(nReconstructible) << "  tagged but not compatible: " << static_cast<double>(nTaggedNonCompatible) / static_cast<double>(nReconstructible);
 

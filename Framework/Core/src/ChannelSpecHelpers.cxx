@@ -8,13 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "ChannelSpecHelpers.h"
+#include <fmt/format.h>
 #include <ostream>
 #include <cassert>
 #include <stdexcept>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 char const* ChannelSpecHelpers::typeAsString(enum ChannelType type)
@@ -43,9 +42,26 @@ char const* ChannelSpecHelpers::methodAsString(enum ChannelMethod method)
   throw std::runtime_error("Unknown ChannelMethod");
 }
 
-char const* ChannelSpecHelpers::methodAsUrl(enum ChannelMethod method)
+std::string ChannelSpecHelpers::channelUrl(OutputChannelSpec const& channel)
 {
-  return (method == ChannelMethod::Bind ? "tcp://*:%d" : "tcp://127.0.0.1:%d");
+  switch (channel.protocol) {
+    case ChannelProtocol::IPC:
+      return fmt::format("ipc://{}_{}", channel.hostname, channel.port);
+    default:
+      return channel.method == ChannelMethod::Bind ? fmt::format("tcp://*:{}", channel.port)
+                                                   : fmt::format("tcp://{}:{}", channel.hostname, channel.port);
+  }
+}
+
+std::string ChannelSpecHelpers::channelUrl(InputChannelSpec const& channel)
+{
+  switch (channel.protocol) {
+    case ChannelProtocol::IPC:
+      return fmt::format("ipc://{}_{}", channel.hostname, channel.port);
+    default:
+      return channel.method == ChannelMethod::Bind ? fmt::format("tcp://*:{}", channel.port)
+                                                   : fmt::format("tcp://{}:{}", channel.hostname, channel.port);
+  }
 }
 
 /// Stream operators so that we can use ChannelType with Boost.Test
@@ -62,5 +78,4 @@ std::ostream& operator<<(std::ostream& s, ChannelMethod const& method)
   return s;
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

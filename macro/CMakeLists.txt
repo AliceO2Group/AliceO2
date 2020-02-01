@@ -16,6 +16,9 @@ install(FILES CheckClusters_mft.C
               CheckDigits_mft.C
               SetIncludePath.C
               analyzeHits.C
+		      duplicateHits.C
+              analyzeDigitLabels.C
+              analyzeOriginHits.C
               build_geometry.C
               checkTOFMatching.C
               compareTopologyDistributions.C
@@ -35,6 +38,7 @@ install(FILES CheckClusters_mft.C
               run_clus_mftSA.C
               run_clus_tof.C
               run_clus_tpc.C
+              run_clus_emcal.C
               run_collect_calib_tof.C
               run_digi.C
               run_digi2raw_its.C
@@ -57,6 +61,7 @@ install(FILES CheckClusters_mft.C
               run_trac_ca_its.C
               run_trac_its.C
               run_trac_mft.C
+	      CreateBCPattern.C
         DESTINATION share/macro/)
 
 # FIXME: a lot of macros that are here should really be elsewhere. Those which
@@ -89,7 +94,31 @@ o2_add_test_root_macro(analyzeHits.C
                                              O2::HMPIDBase
                                              O2::TPCSimulation
                                              O2::PHOSBase
-                                             O2::FDDSimulation)
+                                             O2::FDDSimulation
+                                             O2::MCHSimulation
+                                             O2::MIDSimulation
+					     O2::ZDCSimulation
+					     O2::CPVBase)
+
+o2_add_test_root_macro(duplicateHits.C
+		PUBLIC_LINK_LIBRARIES O2::ITSMFTSimulation
+		O2::TOFSimulation
+		O2::EMCALBase
+		O2::TRDSimulation
+		O2::FT0Simulation
+		O2::DataFormatsFV0
+		O2::HMPIDBase
+		O2::TPCSimulation
+		O2::PHOSBase
+		O2::FDDSimulation
+		O2::MCHSimulation
+		O2::MIDSimulation
+		O2::ZDCSimulation
+		O2::CPVBase)
+
+o2_add_test_root_macro(analyzeOriginHits.C
+                       PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
+                                             O2::DetectorsCommonDataFormats)
 
 o2_add_test_root_macro(build_geometry.C
                        PUBLIC_LINK_LIBRARIES O2::DetectorsPassive
@@ -126,6 +155,27 @@ o2_add_test_root_macro(eventDisplay.C PUBLIC_LINK_LIBRARIES FairRoot::Base)
 o2_add_test_root_macro(
   initSimGeomAndField.C
   PUBLIC_LINK_LIBRARIES O2::DataFormatsParameters O2::Field)
+
+o2_add_test_root_macro(
+        analyzeDigitLabels.C
+        PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::ITSMFTSimulation
+                                             O2::TOFSimulation
+                                             O2::EMCALBase
+                                             O2::TRDSimulation
+                                             O2::FV0Simulation
+                                             O2::FT0Simulation
+                                             O2::DataFormatsFV0
+                                             O2::HMPIDBase
+                                             O2::TPCSimulation
+                                             O2::PHOSBase
+                                             O2::PHOSSimulation
+                                             O2::FDDSimulation
+                                             O2::MCHSimulation
+                                             O2::MIDSimulation
+					     O2::ZDCSimulation
+					     O2::CPVBase 
+                                             O2::CPVSimulation
+                                             O2::ZDCSimulation)
 
 if(Geant4_FOUND)
 o2_add_test_root_macro(o2sim.C
@@ -216,6 +266,11 @@ o2_add_test_root_macro(run_clus_tpc.C
                        LABELS tpc)
 
 # FIXME: move to subsystem dir
+o2_add_test_root_macro(run_clus_emcal.C
+                       PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction
+                       LABELS emcal)
+
+# FIXME: move to subsystem dir
 o2_add_test_root_macro(run_collect_calib_tof.C
                        PUBLIC_LINK_LIBRARIES O2::GlobalTracking)
 
@@ -300,6 +355,9 @@ o2_add_test_root_macro(run_rawdecoding_tof.C
                       PUBLIC_LINK_LIBRARIES O2::TOFSimulation
                                             O2::TOFReconstruction
                        LABELS tof)
+
+o2_add_test_root_macro(CreateBCPattern.C
+                      PUBLIC_LINK_LIBRARIES O2::CommonDataFormat)
 
 # FIXME: move to subsystem dir + check compilation o2_add_test_root_macro(
 # run_rec_ca.C PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats

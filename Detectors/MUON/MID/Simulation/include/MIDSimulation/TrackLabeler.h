@@ -30,7 +30,7 @@ namespace mid
 class TrackLabeler
 {
  public:
-  void process(gsl::span<const Cluster3D>& clusters, gsl::span<const Track>& tracks, const o2::dataformats::MCTruthContainer<MCClusterLabel>& inMCContainer);
+  void process(gsl::span<const Cluster3D> clusters, gsl::span<const Track> tracks, const o2::dataformats::MCTruthContainer<MCClusterLabel>& inMCContainer);
 
   /// Returns the tracks labels
   const o2::dataformats::MCTruthContainer<MCCompLabel>& getTracksLabels() { return mMCTracksLabels; }

@@ -62,9 +62,6 @@ class VertexerTraitsGPU : public VertexerTraits
   GPUhd() GPU::DeviceStoreVertexerGPU& getDeviceContext();
 
  protected:
-  // #ifdef _ALLOW_DEBUG_TREES_ITS_
-  //   StandaloneDebugger* mDebugger;
-  // #endif
   GPU::DeviceStoreVertexerGPU mStoreVertexerGPU;
   GPU::UniquePointer<GPU::DeviceStoreVertexerGPU> mStoreVertexerGPUPtr;
 };
