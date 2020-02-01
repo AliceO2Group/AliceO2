@@ -58,6 +58,9 @@
 #undef assert
 #endif
 #define assert(param)
+#ifndef __OPENCLCPP__
+#define static_assert(...)
+#endif
 
 #include "GPUReconstructionIncludesDevice.h"
 #include "GPUConstantMem.h"

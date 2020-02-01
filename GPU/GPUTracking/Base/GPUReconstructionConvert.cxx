@@ -17,12 +17,12 @@
 #include "GPUO2DataTypes.h"
 #include "GPUDataTypes.h"
 #include "AliHLTTPCRawCluster.h"
-#include "Digit.h"
 #include "GPUParam.h"
 #include <algorithm>
 #include <vector>
 
 #ifdef HAVE_O2HEADERS
+#include "Digit.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "Headers/RAWDataHeader.h"
 #endif
