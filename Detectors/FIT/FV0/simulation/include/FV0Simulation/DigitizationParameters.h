@@ -22,6 +22,7 @@ struct DigitizationParameters {
   //TODO: optimize random ring sizes to balance between sim quality and execution time
   static constexpr int PHE_RANDOM_RING_SIZE = 1e5; // size of random ring to be used inside photoelectron loop
   static constexpr int HIT_RANDOM_RING_SIZE = 1e4; // size of random ring to be used inside hit loop
+  static constexpr int NUM_PMT_RESPONSE_TABLES = 9; // number of PMT response tables
 
   //TODO: move all params below to configurable params
   static constexpr float mIntrinsicTimeRes = 0.91;       // time resolution
