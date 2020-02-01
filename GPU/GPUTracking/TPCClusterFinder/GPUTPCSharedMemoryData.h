@@ -14,6 +14,7 @@
 #ifndef O2_GPU_GPU_TPC_SHARED_MEMORY_DATA_H
 #define O2_GPU_GPU_TPC_SHARED_MEMORY_DATA_H
 
+#include "GPUDef.h"
 #include "clusterFinderDefs.h"
 #include "PackedCharge.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
@@ -54,7 +55,7 @@ class GPUTPCSharedMemoryData
   };
 
   struct zs_t {
-    //unsigned char ZSPage[o2::tpc::TPCZSHDR::TPC_ZS_PAGE_SIZE];
+    CA_SHARED_STORAGE(unsigned char ZSPage[o2::tpc::TPCZSHDR::TPC_ZS_PAGE_SIZE]);
     unsigned int RowClusterOffset[o2::tpc::TPCZSHDR::TPC_MAX_ZS_ROW_IN_ENDPOINT];
     int nRowsRegion;
     int regionStartRow;
