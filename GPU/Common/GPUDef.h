@@ -42,16 +42,16 @@
   #define CA_SHARED_CACHE(target, src, size) \
     static_assert((size) % sizeof(int) == 0, "Invalid shared cache size"); \
     for (unsigned int i_shared_cache = get_local_id(0); i_shared_cache < (size) / sizeof(int); i_shared_cache += get_local_size(0)) { \
-      reinterpret_cast<GPUsharedref() int*>(target)[i_shared_cache] = reinterpret_cast<GPUglobalref() int*>(src)[i_shared_cache]; \
+      reinterpret_cast<GPUsharedref() int*>(target)[i_shared_cache] = reinterpret_cast<GPUglobalref() const int*>(src)[i_shared_cache]; \
     }
   #define CA_SHARED_CACHE_REF(target, src, size, reftype, ref) \
     CA_SHARED_CACHE(target, src, size) \
-    GPUsharedref() reftype* ref = (target)
+    GPUsharedref() const reftype* ref = (target)
 #else
   #define CA_MAKE_SHARED_REF(vartype, varname, varglobal, varshared) const GPUglobalref() MEM_GLOBAL(vartype) &varname = varglobal;
   #define CA_SHARED_STORAGE(storage)
   #define CA_SHARED_CACHE(target, src, size)
-  #define CA_SHARED_CACHE_REF(target, src, size, reftype, ref) GPUglobalref() reftype* ref = src
+  #define CA_SHARED_CACHE_REF(target, src, size, reftype, ref) GPUglobalref() const reftype* ref = src
 #endif
 
 #ifdef GPUCA_TEXTURE_FETCH_CONSTRUCTOR
