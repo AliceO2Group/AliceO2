@@ -55,7 +55,11 @@ GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder
   const int mySequence = iThread % s.zs.nThreadsPerRow;
   for (unsigned int i = 0; i < zs.count[endpoint]; i++) {
     for (unsigned int j = 0; j < zs.nZSPtr[endpoint][i]; j++) {
-      unsigned char* page = ((unsigned char*)zs.zsPtr[endpoint][i]) + j * TPCZSHDR::TPC_ZS_PAGE_SIZE;
+      unsigned int* pageSrc = (unsigned int*)(((unsigned char*)zs.zsPtr[endpoint][i]) + j * TPCZSHDR::TPC_ZS_PAGE_SIZE);
+      GPUbarrier();
+      CA_SHARED_CACHE_REF(&s.zs.ZSPage[0], pageSrc, TPCZSHDR::TPC_ZS_PAGE_SIZE, unsigned int, pageCache);
+      GPUbarrier();
+      unsigned char* page = (unsigned char*)pageCache;
       unsigned char* pagePtr = page;
       pagePtr += sizeof(o2::header::RAWDataHeader);
       TPCZSHDR* hdr = reinterpret_cast<TPCZSHDR*>(pagePtr);
@@ -85,37 +89,36 @@ GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder
           }
         }
         GPUbarrier();
-        if (myRow >= s.zs.rowStride) {
-          continue;
-        }
-        for (int m = myRow; m < nRows; m += s.zs.rowStride) {
-          if ((tbHdr->rowMask & (1 << m)) == 0) {
-            continue;
-          }
-          const int rowPos = CAMath::Popcount((unsigned int)(tbHdr->rowMask & ((1 << m) - 1)));
-          size_t nDigitsTmp = nDigits + s.zs.RowClusterOffset[rowPos];
-          unsigned char* rowData = rowPos == 0 ? pagePtr : (page + tbHdr->rowAddr1[rowPos - 1]);
-          const int nSeqRead = *rowData;
-          if (mySequence) {
-            continue;
-          }
-          unsigned char* adcData = rowData + 2 * nSeqRead + 1;
-          int nADC = (rowData[2 * nSeqRead] * decodeBits + 7) / 8;
-          unsigned int byte = 0, bits = 0, pos10 = 0;
-          for (int n = 0; n < nADC; n++) {
-            byte |= *(adcData++) << bits;
-            bits += 8;
-            while (bits >= decodeBits) {
-              streamBuffer[pos10++] = byte & mask;
-              byte = byte >> decodeBits;
-              bits -= decodeBits;
+        if (myRow < s.zs.rowStride) {
+          for (int m = myRow; m < nRows; m += s.zs.rowStride) {
+            if ((tbHdr->rowMask & (1 << m)) == 0) {
+              continue;
             }
-          }
-          pos10 = 0;
-          for (int n = 0; n < nSeqRead; n++) {
-            const int seqLen = rowData[(n + 1) * 2] - (n ? rowData[n * 2] : 0);
-            for (int o = 0; o < seqLen; o++) {
-              digits[nDigitsTmp++] = deprecated::PackedDigit{(float)streamBuffer[pos10++] * decodeBitsFactor, (Timestamp)(timeBin + l), (Pad)(rowData[n * 2 + 1] + o), (Row)(rowOffset + m)};
+            const int rowPos = CAMath::Popcount((unsigned int)(tbHdr->rowMask & ((1 << m) - 1)));
+            size_t nDigitsTmp = nDigits + s.zs.RowClusterOffset[rowPos];
+            unsigned char* rowData = rowPos == 0 ? pagePtr : (page + tbHdr->rowAddr1[rowPos - 1]);
+            const int nSeqRead = *rowData;
+            if (mySequence) {
+              continue;
+            }
+            unsigned char* adcData = rowData + 2 * nSeqRead + 1;
+            int nADC = (rowData[2 * nSeqRead] * decodeBits + 7) / 8;
+            unsigned int byte = 0, bits = 0, pos10 = 0;
+            for (int n = 0; n < nADC; n++) {
+              byte |= *(adcData++) << bits;
+              bits += 8;
+              while (bits >= decodeBits) {
+                streamBuffer[pos10++] = byte & mask;
+                byte = byte >> decodeBits;
+                bits -= decodeBits;
+              }
+            }
+            pos10 = 0;
+            for (int n = 0; n < nSeqRead; n++) {
+              const int seqLen = rowData[(n + 1) * 2] - (n ? rowData[n * 2] : 0);
+              for (int o = 0; o < seqLen; o++) {
+                digits[nDigitsTmp++] = deprecated::PackedDigit{(float)streamBuffer[pos10++] * decodeBitsFactor, (Timestamp)(timeBin + l), (Pad)(rowData[n * 2 + 1] + o), (Row)(rowOffset + m)};
+              }
             }
           }
         }
