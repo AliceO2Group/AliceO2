@@ -34,7 +34,8 @@ void FT0ReconstructorDPL::run(ProcessingContext& pc)
     return;
   }
   mRecPoints.clear();
-  auto digits = pc.inputs().get<const std::vector<o2::ft0::Digit>>("digits");
+  auto digits = pc.inputs().get<const std::vector<o2::ft0::Digit>>("digitsBC");
+  auto digch = pc.inputs().get<const std::vector<o2::ft0::ChannelData>>("digitsCh");
   // RS: if we need to process MC truth, uncomment lines below
   //std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>> labels;
   //const o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* lblPtr = nullptr;
@@ -44,16 +45,23 @@ void FT0ReconstructorDPL::run(ProcessingContext& pc)
     LOG(INFO) << "Ignoring MC info";
   }
   int nDig = digits.size();
-  mRecPoints.resize(nDig);
+  mRecPoints.reserve(nDig);
+  size_t nChannels = 0;
+  for (auto const& digit : digits)
+    nChannels += digit.ref.getEntries();
+  mRecChData.resize(nChannels);
   for (int id = 0; id < nDig; id++) {
     const auto& digit = digits[id];
-    auto& rp = mRecPoints[id];
-    mReco.Process(digit, rp);
+    auto channels = digit.getBunchChannelData(digch);
+    gsl::span<ChannelDataFloat> outChannels{mRecChData};
+    outChannels = outChannels.subspan(digit.ref.getFirstEntry(), digit.ref.getEntries());
+    mRecPoints.emplace_back( mReco.process(digit, channels, outChannels) );
   }
   // do we ignore MC in this task?
 
   LOG(INFO) << "FT0 reconstruction pushes " << mRecPoints.size() << " RecPoints";
   pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, mRecPoints);
+  pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, mRecChData);
 
   mFinished = true;
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);

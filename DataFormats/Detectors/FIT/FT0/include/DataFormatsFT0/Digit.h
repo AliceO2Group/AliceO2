@@ -14,9 +14,10 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "CommonDataFormat/TimeStamp.h"
-#include "CommonDataFormat/InteractionRecord.h"
+#include "DataFormatsFT0/ChannelData.h"
 #include <Rtypes.h>
 #include <gsl/span>
+#include <bitset>
 
 /// \file Digit.h
 /// \brief Class to describe fired triggered and/or stored channels for the BC and to refer to channel data
@@ -30,7 +31,7 @@ class ChannelData;
 
 struct Triggers {
   union {
-    int64_t word =0;
+    int64_t word = 0;
     struct {
       int64_t orC : 1,
         orA : 1,
@@ -49,13 +50,13 @@ struct Triggers {
   ClassDefNV(Triggers, 1);
 };
 
-  //using DigitBase = o2::dataformats::TimeStamp<double>;
-  //class Digit : public DigitBase
-
-struct Digit 
+struct Digit
 {
-  o2::dataformats::RangeRefComp<5> ref;
+  o2::dataformats::RangeRefComp<8> ref;
+
+  Triggers mTriggers;               // pattern of triggers  in this BC
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
+
 
   Digit() = default;
   Digit(int first, int ne, o2::InteractionRecord iRec, int64_t chTrig)
@@ -65,13 +66,20 @@ struct Digit
     mIntRecord = iRec;
     mTriggers.word = chTrig;
   }
+  Digit(int first, int ne, o2::InteractionRecord iRec, Triggers chTrig)
+  {
+    ref.setFirstEntry(first);
+    ref.setEntries(ne);
+    mIntRecord = iRec;
+    mTriggers = chTrig;
+  }
 
+  // ~Digit() = default;
 
-  Triggers mTriggers; // pattern of triggers  in this BC
 
   //  uint32_t getOrbit() const { return o2::InteractionRecord::orbit; }
   uint16_t getBC() const { return mIntRecord.bc; }
-
+  o2::InteractionRecord getIntRecord() { return  mIntRecord;};
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
   void print() const;
 

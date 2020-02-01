@@ -79,8 +79,8 @@ void RecPoints::fillFromDigits(std::vector<o2::ft0::BCData>& digitsBC,
   LOG(INFO) << " coll time " << mCollisionTime[TimeMean];
 }
 */
-gsl::span<const ChannelData> RecPoints::getBunchChannelData(const gsl::span<const ChannelData> tfdata) const
+gsl::span<const ChannelDataFloat> RecPoints::getBunchChannelData(const gsl::span<const ChannelDataFloat> tfdata) const
 {
   // extract the span of channel data for this bunch from the whole TF data
-  return gsl::span<const ChannelData>(&tfdata[ref.getFirstEntry()], ref.getEntries());
+  return gsl::span<const ChannelDataFloat>(tfdata).subspan(ref.getFirstEntry(), ref.getEntries());
 }

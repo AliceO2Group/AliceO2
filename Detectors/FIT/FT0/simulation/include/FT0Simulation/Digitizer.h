@@ -20,6 +20,8 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "FT0Simulation/DigitizationParameters.h"
 #include <TH1F.h>
+#include <bitset>
+#include <vector>
 
 namespace o2
 {
@@ -28,7 +30,7 @@ namespace ft0
 class Digitizer
 {
  public:
-  Digitizer(const DigitizationParameters& params, Int_t mode = 0) : mMode(mode), parameters(params) { initParameters();  mChannel_times (0)};
+  Digitizer(const DigitizationParameters& params, Int_t mode = 0) : mMode(mode), parameters(params) { initParameters(); };
   ~Digitizer() = default;
 
   void process(const std::vector<o2::ft0::HitType>* hits,
@@ -54,7 +56,10 @@ class Digitizer
 
   void setMCLabels(o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mclb) { mMCLabels = mclb; }
   double get_time(const std::vector<double>& times);
-  std::vector<std::vector<double>> const& mChannel_times = nullptr;
+  std::vector<std::vector<double>>  mChannel_times;
+
+  void setContinuous(bool v = true) { mIsContinuous = v; }
+  bool isContinuous() const { return mIsContinuous; }
 
  private:
   // digit info
@@ -66,12 +71,14 @@ class Digitizer
   Double_t mEventTime; // timestamp
   int mNoisePeriod;    //low frequency noise period
   int mBinshift;       // number of bin to shift positive part of CFD signal
-
+  bool mIsContinuous = true; // continuous (self-triggered) or externally-triggered readout
   int mNumParticles[208];
 
   DigitizationParameters parameters;
 
   o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mMCLabels = nullptr;
+
+  o2::ft0::Triggers mTriggers;
 
   TH1F* mHist;      // ("time_histogram", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
   TH1F* mHistsum;   //("time_sum", "", 1000, -0.5 * signal_width, 0.5 * signal_width);

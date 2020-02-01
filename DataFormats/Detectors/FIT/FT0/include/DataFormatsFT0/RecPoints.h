@@ -27,6 +27,28 @@ namespace o2
 {
 namespace ft0
 {
+struct ChannelDataFloat {
+
+  //public:
+
+  int ChId = -1;     //channel Id
+  double CFDTime = -1;  //time in #CFD channels, 0 at the LHC clk center
+  double QTCAmpl = -1;  // Amplitude #channels
+  int ChainQTC = -1; //QTC chain
+
+  ChannelDataFloat() = default;
+  ChannelDataFloat(int iPmt, double time, double charge, int chainQTC)
+  {
+    ChId = iPmt;
+    CFDTime = time;
+    QTCAmpl = charge;
+    ChainQTC = chainQTC;
+  }
+
+  void print() const;
+
+  ClassDefNV(ChannelDataFloat, 1);
+};
 
 class RecPoints
 {
@@ -34,31 +56,29 @@ class RecPoints
  public:
   enum : int { TimeMean,
                TimeA,
-               TimeC };
+               TimeC,
+               Vertex };
 
   o2::dataformats::RangeRefComp<5> ref;
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
   RecPoints() = default;
-  RecPoints(const std::array<Float_t, 3>& collisiontime,
-            Float_t vertex, int first, int ne, o2::InteractionRecord iRec, int64_t chTrig)
-    : mCollisionTime(collisiontime),
-      mVertex(vertex)
-   {
-     o2::dataformats::RangeRefComp<5> ref;
-     o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
-     ref.setFirstEntry(first);
-     ref.setEntries(ne);
-     mIntRecord = iRec;
-     int64_t triggers = chTrig;
-   }
+  RecPoints(const std::array<Float_t, 4>& collisiontime,
+            int first, int ne, o2::InteractionRecord iRec, int64_t chTrig)
+    : mCollisionTime(collisiontime)
+  {
+    ref.setFirstEntry(first);
+    ref.setEntries(ne);
+    mIntRecord = iRec;
+    mTriggers.word = chTrig;
+  }
   ~RecPoints() = default;
- 
+
   void print() const;
 
-  Triggers triggers; // pattern of triggers  in this BC
+  o2::ft0::Triggers mTriggers; // pattern of triggers  in this BC
 
-  void fillFromDigits(const std::vector<o2::ft0::Digit>& digitsBC,
-                      std::vector<o2::ft0::ChannelData>& digitsCh);
+  //  void fillFromDigits(const std::vector<o2::ft0::Digit>& digitsBC,
+  //                  std::vector<o2::ft0::ChannelData>& digitsCh);
 
   float getCollisionTime(int side) const { return mCollisionTime[side]; }
   float getCollisionTimeMean() const { return getCollisionTime(TimeMean); }
@@ -67,21 +87,22 @@ class RecPoints
   bool isValidTime(int side) const { return getCollisionTime(side) < o2::InteractionRecord::DummyTime; }
   void setCollisionTime(Float_t time, int side) { mCollisionTime[side] = time; }
 
-  Float_t getVertex(Float_t vertex) const { return mVertex; }
-  void setVertex(Float_t vertex) { mVertex = vertex; }
+  Float_t getVertex(Float_t vertex) const { return getCollisionTime(Vertex); }
+  void setVertex(Float_t vertex) {  mCollisionTime[3] = vertex; }
+
+  o2::InteractionRecord getInteractionRecord() const { return  mIntRecord;};
 
   void SetMgrEventTime(Double_t time) { mTimeStamp = time; }
-   
-  gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
+
+  gsl::span<const ChannelDataFloat> getBunchChannelData(const gsl::span<const ChannelDataFloat> tfdata) const;
 
  private:
-  std::array<Float_t, 3> mCollisionTime = {2 * o2::InteractionRecord::DummyTime,
+  std::array<Float_t, 4> mCollisionTime = {2 * o2::InteractionRecord::DummyTime,
+                                           2 * o2::InteractionRecord::DummyTime,
                                            2 * o2::InteractionRecord::DummyTime,
                                            2 * o2::InteractionRecord::DummyTime};
-  Float_t mVertex = 0;
   Double_t mTimeStamp = 2 * o2::InteractionRecord::DummyTime; //event time from Fair for continuous
 
- 
   ClassDefNV(RecPoints, 1);
 };
 } // namespace ft0

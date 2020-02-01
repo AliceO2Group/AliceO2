@@ -121,16 +121,15 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits,
 
 //------------------------------------------------------------------------
 void Digitizer::setDigits(std::vector<o2::ft0::Digit>& digitsBC,
-                          std::vector<o2::ft0::ChannelData>& digitsCh,
-                          std::vector<std::vector<double>> const& channel_times)
+                          std::vector<o2::ft0::ChannelData>& digitsCh)
 {
-  //smeared CFD time for 50ps
+
   int n_hit_A = 0, n_hit_C = 0, mean_time_A = 0, mean_time_C = 0;
   int summ_ampl_A = 0, summ_ampl_C = 0;
   int vertex_time;
 
   int first = digitsCh.size(), nStored = 0;
-  for (Int_t ipmt = 0; ipmt < parameter.mMCPs; ++ipmt) {
+  for (Int_t ipmt = 0; ipmt < parameters.mMCPs; ++ipmt) {
     if (mNumParticles[ipmt] < 1)
       continue;
     Float_t amp = (parameters.mMip_in_V * mNumParticles[ipmt] / parameters.mPe_in_mip);
@@ -156,34 +155,35 @@ void Digitizer::setDigits(std::vector<o2::ft0::Digit>& digitsBC,
       }
     }
   }
-  auto& bctriggers = digitsBC.Triggers;
+  
   Bool_t is_A = n_hit_A > 0;
   Bool_t is_C = n_hit_C > 0;
   Bool_t is_Central = summ_ampl_A + summ_ampl_C >= parameters.mtrg_central_trh;
   Bool_t is_SemiCentral = summ_ampl_A + summ_ampl_C >= parameters.mtrg_semicentral_trh;
-  bctriggers.orA = isA ? 1 : 0;
-  bctriggers.orC = isC ? 1 : 0;
-  bctriggers.timeA = is_A ? mean_time_A / n_hit_A : 0;
-  bctriggers.timeC = is_C ? mean_time_C / n_hit_C : 0;
-  bctriggers.amplA = is_A ? summ_ampl_A : 0;
-  bctriggers.amplC = is_C ? summ_ampl_C : 0;
-  bctriggers.cen = is_Central ? 1 : 0;
-  bctriggers.sCen = is_SemiCentral ? 1 : 0;
+  mTriggers.orA = is_A ? 1 : 0;
+  mTriggers.orC = is_C ? 1 : 0;
+  mTriggers.timeA = is_A ? mean_time_A / n_hit_A : 0;
+  mTriggers.timeC = is_C ? mean_time_C / n_hit_C : 0;
+  mTriggers.amplA = is_A ? summ_ampl_A : 0;
+  mTriggers.amplC = is_C ? summ_ampl_C : 0;
+  mTriggers.cen = is_Central ? 1 : 0;
+  mTriggers.sCen = is_SemiCentral ? 1 : 0;
   vertex_time = (mean_time_A - mean_time_C) * 0.5;
-  bctriggers.vertex = is_A && is_C && (std::abs(vertex_time) < parameters.mtrg_vertex);
+  mTriggers.vertex = is_A && is_C && (std::abs(vertex_time) < parameters.mtrg_vertex);
 
-  digitsBC.emplace_back(first, nStored, mIntRecord, uint64_t (bctriggers) );
+  digitsBC.emplace_back(first, nStored, mIntRecord, mTriggers.word);
+
 
   // Debug output -------------------------------------------------------------
   LOG(DEBUG) << "\n\nTest digizing data ===================";
 
-  LOG(INFO) << "Event ID: " << mEventID ;
+  LOG(INFO) << "Event ID: " << mEventID;
   LOG(INFO) << "N hit A: " << n_hit_A << " N hit C: " << n_hit_C << " summ ampl A: " << summ_ampl_A
             << " summ ampl C: " << summ_ampl_C << " mean time A: " << mean_time_A
             << " mean time C: " << mean_time_C;
 
   LOG(INFO) << "IS A " << is_A << " IS C " << is_C << " is Central " << is_Central
-            << " is SemiCentral " << is_SemiCentral << " is Vertex " << is_Vertex;
+            << " is SemiCentral " << is_SemiCentral;
 
   LOG(DEBUG) << "======================================\n\n";
 }

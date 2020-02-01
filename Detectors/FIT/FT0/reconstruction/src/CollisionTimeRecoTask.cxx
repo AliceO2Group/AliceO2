@@ -25,83 +25,61 @@
 
 using namespace o2::ft0;
 
-/*
-//_____________________________________________________________________
-CollisionTimeRecoTask::CollisionTimeRecoTask()
+o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
+                                                  gsl::span<const o2::ft0::ChannelData> inChData,
+                                                  gsl::span<o2::ft0::ChannelDataFloat> outChData)
 {
-  // at the moment nothing.
-}
-
-*/
-
-//_____________________________________________________________________
-void CollisionTimeRecoTask::Process(const std::vector<o2::ft0::Digit>& digitsBC,
-                                    const std::vector<o2::ft0::ChannelData>& digitsCh,
-                                    RecPoints& recPoints) const
-{
-
   LOG(INFO) << "Running reconstruction on new event";
 
-  std::vector<o2::ft0::ChannelData> recCh;
-  int first = recCh.size(), nStored = 0;
-
   Int_t ndigitsC = 0, ndigitsA = 0;
+
   constexpr Int_t nMCPsA = 4 * Geometry::NCellsA;
   constexpr Int_t nMCPsC = 4 * Geometry::NCellsC;
   constexpr Int_t nMCPs = nMCPsA + nMCPsC;
   Float_t sideAtime = 0, sideCtime = 0;
 
-  auto timeStamp = o2::InteractionRecord::bc2ns(mIntRecord.bc, mIntRecord.orbit);
+  auto timeStamp = o2::InteractionRecord::bc2ns(bcd.mIntRecord.bc, bcd.mIntRecord.orbit);
 
-  LOG(INFO) << " event time " << timeStamp << " orbit " << mIntRecord.orbit << " bc " << mIntRecord.bc;
+  LOG(INFO) << " event time " << timeStamp << " orbit " << bcd.mIntRecord.orbit << " bc " << bcd.mIntRecord.bc;
 
-  int nbc =digitsBC.size();
   int itrig = 0;
 
-  for (int ibc = 0; ibc < nbc; ibc++) {
-    const auto& bcd = digitsBC[ibc];
-    /*    if (bcd.Triggers > 0) {
-      LOG(INFO) << "Triggered BC " << itrig++;
-    }
-    */
-    bcd.print();
-    //
-    auto& channels = bcd.getBunchChannelData(digitsCh);
-    int nch = channels.size();
-    for (int ich = 0; ich < nch; ich++) {
-      channels[ich].CFDTime *= 13;
-      channels[ich].QTCAmpl /= Geometry::MV_2_Nchannels;
-      LOG(DEBUG) << " mcp " << channels[ich].ChId << " cfd " << channels[ich].CFDTime << " amp " << channels[ich].QTCAmpl;
-      recCh.emplace_back(channels[ich].ChId, int(channels[ich].CFDTime), int(channels[ich].QTCAmpl), channels[ich].numberOfParticles);
-      nStored++;
+  bcd.print();
+  int nch = inChData.size();
+  for (int ich = 0; ich < nch; ich++) {
+    LOG(DEBUG) << " mcp " << inChData[ich].ChId << " cfd " << inChData[ich].CFDTime << " amp " << inChData[ich].QTCAmpl;
+    outChData[ich] = o2::ft0::ChannelDataFloat{inChData[ich].ChId,
+                                               inChData[ich].CFDTime * 13.,
+                                               (double)inChData[ich].QTCAmpl / Geometry::MV_2_Nchannels,
+                                               inChData[ich].ChainQTC};
 
-      if (std::fabs(channels[ich].CFDTime) < 2000) {
-        if (channels[ich].ChId < nMCPsA) {
-          sideAtime += channels[ich].CFDTime;
-          ndigitsA++;
-        } else {
-          sideCtime += channels[ich].CFDTime;
-          ndigitsC++;
-        }
+    if (std::fabs(outChData[ich].CFDTime) < 2000) {
+      if (outChData[ich].ChId < nMCPsA) {
+        sideAtime += outChData[ich].CFDTime;
+        ndigitsA++;
+      } else {
+        sideCtime += outChData[ich].CFDTime;
+        ndigitsC++;
       }
     }
-
-    mCollisionTime[TimeA] = (ndigitsA > 0) ? sideAtime / Float_t(ndigitsA) : 2 * o2::InteractionRecord::DummyTime;
-    mCollisionTime[TimeC] = (ndigitsC > 0) ? sideCtime / Float_t(ndigitsC) : 2 * o2::InteractionRecord::DummyTime;
-
-    if (ndigitsA > 0 && ndigitsC > 0) {
-      mVertex = (mCollisionTime[TimeA] - mCollisionTime[TimeC]) / 2.;
-      mCollisionTime[TimeMean] = (mCollisionTime[TimeA] + mCollisionTime[TimeC]) / 2.;
-    } else {
-      mVertex = 0.;
-      mCollisionTime[TimeMean] = std::min(mCollisionTime[TimeA], mCollisionTime[TimeC]);
-    }
-    LOG(INFO) << " coll time " << mCollisionTime[TimeMean];
-    recPoints.emplace_back(const mCollisiontime,
-                           vertex, first, nStored, iRec, chTrig);
   }
+  std::array<Float_t, 4> mCollisionTime = {2 * o2::InteractionRecord::DummyTime,
+                                           2 * o2::InteractionRecord::DummyTime,
+                                           2 * o2::InteractionRecord::DummyTime,
+                                           2 * o2::InteractionRecord::DummyTime};
+  mCollisionTime[TimeA] = (ndigitsA > 0) ? sideAtime / Float_t(ndigitsA) : 2 * o2::InteractionRecord::DummyTime;
+  mCollisionTime[TimeC] = (ndigitsC > 0) ? sideCtime / Float_t(ndigitsC) : 2 * o2::InteractionRecord::DummyTime;
+
+  if (ndigitsA > 0 && ndigitsC > 0) {
+    mCollisionTime[Vertex] = (mCollisionTime[TimeA] - mCollisionTime[TimeC]) / 2.;
+    mCollisionTime[TimeMean] = (mCollisionTime[TimeA] + mCollisionTime[TimeC]) / 2.;
+  } else {
+    mCollisionTime[TimeMean] = std::min(mCollisionTime[TimeA], mCollisionTime[TimeC]);
+  }
+  return RecPoints{
+    mCollisionTime, bcd.ref.getFirstEntry(), bcd.ref.getEntries(), bcd.mIntRecord, bcd.mTriggers.word};
 }
-//________________________________________________________
+//______________________________________________________
 void CollisionTimeRecoTask::FinishTask()
 {
   // finalize digitization, if needed, flash remaining digits

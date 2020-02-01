@@ -10,6 +10,7 @@
 
 o2_add_library(DataFormatsFT0
   SOURCES src/Digit.cxx
+  SOURCES src/DigitsTemp.cxx
   SOURCES src/ChannelData.cxx
   SOURCES src/RecPoints.cxx
   SOURCES src/RawEventData.cxx
@@ -19,6 +20,7 @@ o2_add_library(DataFormatsFT0
 
 o2_target_root_dictionary(DataFormatsFT0
                           HEADERS include/DataFormatsFT0/Digit.h
+                                  include/DataFormatsFT0/DigitsTemp.h
                                   include/DataFormatsFT0/ChannelData.h
                                   include/DataFormatsFT0/RecPoints.h
                                   include/DataFormatsFT0/MCLabel.h

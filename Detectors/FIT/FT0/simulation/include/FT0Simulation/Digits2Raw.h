@@ -49,7 +49,10 @@ class Digits2Raw
   Digits2Raw() = default;
   Digits2Raw(const std::string fileRaw, std::string fileDigitsName);
   void readDigits(const std::string fileDigitsName);
-  void convertDigits(const o2::ft0::ChannelData& digit, const o2::ft0::LookUpTable& lut, o2::InteractionRecord const& mIntRecord);
+  void convertDigits(std::vector<o2::ft0::Digit> digitsBC,
+                     std::vector<o2::ft0::ChannelData> digitsCh,
+                     const o2::ft0::LookUpTable& lut,
+                     o2::InteractionRecord const& mIntRecord);
   void close();
   static o2::ft0::LookUpTable linear()
   {
@@ -85,7 +88,7 @@ class Digits2Raw
   std::array<o2::ft0::DataPageWriter, NPMs> mPages;
   o2::ft0::RawEventData mRawEventData;
   o2::utils::HBFUtils mSampler;
-
+  o2::ft0::Triggers mTriggers;
   /////////////////////////////////////////////////
 
   ClassDefNV(Digits2Raw, 1);

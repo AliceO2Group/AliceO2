@@ -40,7 +40,7 @@ struct ChannelData {
   }
 
   void print() const;
-  
+
   ClassDefNV(ChannelData, 1);
 };
 } // namespace ft0

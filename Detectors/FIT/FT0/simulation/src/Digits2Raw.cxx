@@ -80,8 +80,8 @@ void Digits2Raw::readDigits(const std::string fileDigitsName)
   LOG(INFO) << " Open digits file " << fileDigitsName.data();
   TTree* digTree = (TTree*)fdig->Get("o2sim");
 
-  std::vector<o2::ft0::Digit> ft0BCData, *ft0BCDataPtr = &ft0BCData;
-  std::vector<o2::ft0::ChannelData> ft0ChData, *ft0ChDataPtr = &ft0ChData;
+  std::vector<o2::ft0::Digit> digitsBC, *ft0BCDataPtr = &digitsBC;
+  std::vector<o2::ft0::ChannelData> digitsCh, *ft0ChDataPtr = &digitsCh;
 
   digTree->SetBranchAddress("FT0DigitBC", &ft0BCDataPtr);
   digTree->SetBranchAddress("FT0DigitCh", &ft0ChDataPtr);
@@ -94,15 +94,13 @@ void Digits2Raw::readDigits(const std::string fileDigitsName)
   for (int ient = 0; ient < digTree->GetEntries(); ient++) {
     digTree->GetEntry(ient);
 
-    int nbc = ft0BCData.size();
+    int nbc = digitsBC.size();
     LOG(INFO) << "Entry " << ient << " : " << nbc << " BCs stored";
-    int itrig = 0;
-
     for (int ibc = 0; ibc < nbc; ibc++) {
-      const auto& bcd = ft0BCData[ibc];
+      auto& bcd = digitsBC[ibc];
       bcd.print();
-      intRecord = bcd.getInteractionRecord();
-   
+      intRecord = bcd.getIntRecord();
+
       int nHBF = mSampler.fillHBIRvector(HBIRVec, lastIR, intRecord);
       lastIR = intRecord + 1;
 
@@ -114,106 +112,109 @@ void Digits2Raw::readDigits(const std::string fileDigitsName)
             mPages[link].flush(mFileDest);
           }
         }
-      
 
-      uint32_t current_orbit = intRecord.orbit;
-      LOG(DEBUG) << "old orbit " << old_orbit << " new orbit " << current_orbit;
-      if (old_orbit != current_orbit) {
-        for (DataPageWriter& writer : mPages)
-          writer.flush(mFileDest);
-        for (int nlink = 0; nlink < NPMs; ++nlink)
-          setRDH(mPages[nlink].mRDH, nlink, intRecord);
-        old_orbit = current_orbit;
-      }
-      auto channels = bcd.getBunchChannelData(ft0ChData);
-      int nch = channels.size();
-      if (nch) {
+        uint32_t current_orbit = intRecord.orbit;
+        LOG(DEBUG) << "old orbit " << old_orbit << " new orbit " << current_orbit;
+        if (old_orbit != current_orbit) {
+          for (DataPageWriter& writer : mPages)
+            writer.flush(mFileDest);
+          for (int nlink = 0; nlink < NPMs; ++nlink)
+            setRDH(mPages[nlink].mRDH, nlink, intRecord);
+          old_orbit = current_orbit;
+        }
+        auto channels = bcd.getBunchChannelData(digitsCh);
+        int nch = channels.size();
+        if (nch) {
 
-        convertDigits(channels, lut, intRecord);
+          convertDigits(digitsBC, digitsCh, lut, intRecord);
+        }
       }
     }
-  }
-  for (DataPageWriter& writer : mPages)
-    writer.flush(mFileDest);
-  for (int nlink = 0; nlink < NPMs; ++nlink)
-    setRDH(mPages[nlink].mRDH, nlink, intRecord);
-  
+    for (DataPageWriter& writer : mPages)
+      writer.flush(mFileDest);
+    for (int nlink = 0; nlink < NPMs; ++nlink)
+      setRDH(mPages[nlink].mRDH, nlink, intRecord);
   }
 }
 /*******************************************************************************************************************/
-void Digits2Raw::convertDigits(const o2::ft0::ChannelData& channels, const o2::ft0::LookUpTable& lut, o2::InteractionRecord const& intRecord)
+void Digits2Raw::convertDigits(std::vector<o2::ft0::Digit> digitsBC,
+                               std::vector<o2::ft0::ChannelData> digitsCh,
+                               const o2::ft0::LookUpTable& lut,
+                               o2::InteractionRecord const& intRecord)
 {
 
   // check empty event
-  int nch = channels.size();
+  int oldlink = -1;
+  int nchannels = 0;
+  int nch = digitsCh.size();
   for (int ich = 0; ich < nch; ich++) {
-    channels[ich].print();
-    int oldlink = -1;
-    int nchannels = 0;
-    for (auto& d : mTimeAmp) {
-      int nlink = lut.getLink(d.ChId);
-      if (nlink != oldlink) {
-        if (oldlink >= 0) {
-          uint nGBTWords = uint((nchannels + 1) / 2);
-          if ((nchannels % 2) == 1)
-            mRawEventData.mEventData[nchannels] = {};
-          mRawEventData.mEventHeader.nGBTWords = nGBTWords;
-          mPages[oldlink].write(mRawEventData.to_vector(0));
-        }
-        oldlink = nlink;
-        mRawEventData.mEventHeader = makeGBTHeader(nlink, intRecord);
-        nchannels = 0;
+    digitsCh[ich].print();
+    nchannels = 0;
+    oldlink = -1;
+    //    for (auto& d : mTimeAmp) {
+    int nlink = lut.getLink(digitsCh[ich].ChId);
+    if (nlink != oldlink) {
+      if (oldlink >= 0) {
+        uint nGBTWords = uint((nchannels + 1) / 2);
+        if ((nchannels % 2) == 1)
+          mRawEventData.mEventData[nchannels] = {};
+        mRawEventData.mEventHeader.nGBTWords = nGBTWords;
+        mPages[oldlink].write(mRawEventData.to_vector(0));
       }
-      auto& newData = mRawEventData.mEventData[nchannels];
-      bool isAside = (channels.ChId < 96);
-      newData.charge = channels.QTCAmpl;
-      newData.time = channels.CFDTime;
-      newData.is1TimeLostEvent = 0;
-      newData.is2TimeLostEvent = 0;
-      newData.isADCinGate = 1;
-      newData.isAmpHigh = 0;
-      newData.isDoubleEvent = 0;
-      newData.isEventInTVDC = digit.getisVrtx() ? 1 : 0;
-      newData.isTimeInfoLate = 0;
-      newData.isTimeInfoLost = 0;
-      int chain = std::rand() % 2;
-      newData.numberADC = chain ? 1 : 0;
-      newData.channelID = lut.getMCP(d.ChId);
-      LOG(DEBUG) << "packed GBT " << nlink << " channelID   " << (int)newData.channelID << " charge " << newData.charge << " time " << newData.time << " chain " << int(newData.numberADC) << " size " << sizeof(newData);
-      nchannels++;
+      oldlink = nlink;
+      mRawEventData.mEventHeader = makeGBTHeader(nlink, intRecord);
+      nchannels = 0;
     }
-    // fill mEventData[nchannels] with 0s to flag that this is a dummy data
-    uint nGBTWords = uint((nchannels + 1) / 2);
-    if ((nchannels % 2) == 1)
-      mRawEventData.mEventData[nchannels] = {};
-    mRawEventData.mEventHeader.nGBTWords = nGBTWords;
-    mPages[oldlink].write(mRawEventData.to_vector(0));
-    LOG(DEBUG) << " last " << oldlink;
-       //TCM
-     mRawEventData.mEventHeader = makeGBTHeader(LinkTCM, intRecord); //TCM
-    mRawEventData.mEventHeader.nGBTWords = 1;
-        auto& tcmdata = mRawEventData.mTCMdata;
-        tcmdata.vertex = mTriggers.vertex();
-        tcmdata.orA = mTriggers.orA();
-        tcmdata.orC = mTriggers.orC();
-        tcmdata.sCen = mTrigger.sCnt();
-        tcmdata.cen = mTriggers.cen();
-        tcmdata.nChanA = mTriggers.nChanA();
-        tcmdata.nChanC = mTriggers.nChanC();
-        tcmdata.amplA = mTriggers.amplA();
-        tcmdata.amplC = mTriggers.amplC();
-        tcmdata.timeA = mTriggers.timeA();
-        tcmdata.timeC = mTriggers.timeC();
-     LOG(DEBUG) << "TCMdata"
-               << " time A " << int(tcmdata.timeA) << " time C " << int(tcmdata.timeC)
-               << " amp A " << int(tcmdata.amplA) << " amp C " << int(tcmdata.amplC)
-               << " N A " << int(tcmdata.nChanA) << " N C " << int(tcmdata.nChanC)
-               << " trig "
-               << " ver " << tcmdata.vertex << " A " << tcmdata.orA << " C " << tcmdata.orC
-               << " size " << sizeof(tcmdata);
-    mPages.at(LinkTCM).write(mRawEventData.to_vector(1));
-    LOG(DEBUG) << " write TCM " << LinkTCM;
+    auto& newData = mRawEventData.mEventData[nchannels];
+    bool isAside = (digitsCh[ich].ChId < 96);
+    newData.charge = digitsCh[ich].QTCAmpl;
+    newData.time = digitsCh[ich].CFDTime;
+    newData.is1TimeLostEvent = 0;
+    newData.is2TimeLostEvent = 0;
+    newData.isADCinGate = 1;
+    newData.isAmpHigh = 0;
+    newData.isDoubleEvent = 0;
+    newData.isEventInTVDC = mTriggers.vertex ? 1 : 0;
+    newData.isTimeInfoLate = 0;
+    newData.isTimeInfoLost = 0;
+    int chain = std::rand() % 2;
+    newData.numberADC = chain ? 1 : 0;
+    newData.channelID = lut.getMCP(digitsCh[ich].ChId);
+    LOG(DEBUG) << "packed GBT " << nlink << " channelID   " << (int)newData.channelID << " charge " << newData.charge << " time " << newData.time << " chain " << int(newData.numberADC) << " size " << sizeof(newData);
+    nchannels++;
   }
+  // fill mEventData[nchannels] with 0s to flag that this is a dummy data
+  uint nGBTWords = uint((nchannels + 1) / 2);
+  if ((nchannels % 2) == 1)
+    mRawEventData.mEventData[nchannels] = {};
+  mRawEventData.mEventHeader.nGBTWords = nGBTWords;
+  mPages[oldlink].write(mRawEventData.to_vector(0));
+  LOG(DEBUG) << " last " << oldlink;
+  //TCM
+  mRawEventData.mEventHeader = makeGBTHeader(LinkTCM, intRecord); //TCM
+  mRawEventData.mEventHeader.nGBTWords = 1;
+  auto& tcmdata = mRawEventData.mTCMdata;
+  //  tcmdata = mTriggers;
+  tcmdata.vertex = mTriggers.vertex;
+  tcmdata.orA = mTriggers.orA;
+  tcmdata.orC = mTriggers.orC;
+  tcmdata.sCen = mTriggers.sCen;
+  tcmdata.cen = mTriggers.cen;
+  tcmdata.nChanA = mTriggers.nChanA;
+  tcmdata.nChanC = mTriggers.nChanC;
+  tcmdata.amplA = mTriggers.amplA;
+  tcmdata.amplC = mTriggers.amplC;
+  tcmdata.timeA = mTriggers.timeA;
+  tcmdata.timeC = mTriggers.timeC;
+  LOG(DEBUG) << "TCMdata"
+             << " time A " << int(tcmdata.timeA) << " time C " << int(tcmdata.timeC)
+             << " amp A " << int(tcmdata.amplA) << " amp C " << int(tcmdata.amplC)
+             << " N A " << int(tcmdata.nChanA) << " N C " << int(tcmdata.nChanC)
+             << " trig "
+             << " ver " << tcmdata.vertex << " A " << tcmdata.orA << " C " << tcmdata.orC
+             << " size " << sizeof(tcmdata);
+  mPages.at(LinkTCM).write(mRawEventData.to_vector(1));
+  LOG(DEBUG) << " write TCM " << LinkTCM;
 }
 
 //_____________________________________________________________________________________
