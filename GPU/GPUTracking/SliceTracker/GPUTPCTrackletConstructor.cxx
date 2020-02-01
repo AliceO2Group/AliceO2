@@ -392,13 +392,7 @@ GPUd() void GPUTPCTrackletConstructor::Thread<GPUTPCTrackletConstructor::singleS
   if (get_local_id(0) == 0) {
     sMem.mNTracklets = *tracker.NTracklets();
   }
-
-#ifdef GPUCA_GPUCODE
-  for (unsigned int i = get_local_id(0); i < GPUCA_ROW_COUNT * sizeof(MEM_PLAIN(GPUTPCRow)) / sizeof(int); i += get_local_size(0)) {
-    reinterpret_cast<GPUsharedref() int*>(&sMem.mRows)[i] = reinterpret_cast<GPUglobalref() int*>(tracker.SliceDataRows())[i];
-  }
-
-#endif
+  CA_SHARED_CACHE(&sMem.mRows[0], tracker.SliceDataRows(), GPUCA_ROW_COUNT * sizeof(MEM_PLAIN(GPUTPCRow)));
   GPUbarrier();
 
   GPUTPCThreadMemory rMem;
@@ -437,10 +431,7 @@ GPUd() void GPUTPCTrackletConstructor::Thread<GPUTPCTrackletConstructor::allSlic
         if (get_local_id(0) == 0) {
           sMem.mNTracklets = *tracker.NTracklets();
         }
-
-        for (unsigned int i = get_local_id(0); i < GPUCA_ROW_COUNT * sizeof(MEM_PLAIN(GPUTPCRow)) / sizeof(int); i += get_local_size(0)) {
-          reinterpret_cast<GPUsharedref() int*>(&sMem.mRows)[i] = reinterpret_cast<GPUglobalref() int*>(tracker.SliceDataRows())[i];
-        }
+        CA_SHARED_CACHE(&sMem.mRows[0], tracker.SliceDataRows(), GPUCA_ROW_COUNT * sizeof(MEM_PLAIN(GPUTPCRow)));
         GPUbarrier();
         currentSlice = mySlice;
       }
