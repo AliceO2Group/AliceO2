@@ -42,7 +42,6 @@ GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder
   const size_t nDigits = clusterer.mPmemory->nDigitsOffset[endpoint];
   unsigned int rowOffsetCounter = 0;
   GPUTrackingInOutZS::GPUTrackingInOutZSSlice& zs = clusterer.GetConstantMem()->ioPtrs.tpcZS->slice[slice];
-  unsigned short streamBuffer[TPCZSHDR::TPC_MAX_SEQ_LEN];
   if (iThread == 0) {
     const int region = endpoint / 2;
     s.zs.nRowsRegion = clusterer.Param().tpcGeometry.GetRegionRows(region);
@@ -103,21 +102,22 @@ GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder
             }
             unsigned char* adcData = rowData + 2 * nSeqRead + 1;
             int nADC = (rowData[2 * nSeqRead] * decodeBits + 7) / 8;
-            unsigned int byte = 0, bits = 0, pos10 = 0;
+            unsigned int byte = 0, bits = 0;
+            int seqLen = rowData[2];
+            Pad pad = rowData[1];
+            int nSeq = 1;
             for (int n = 0; n < nADC; n++) {
               byte |= *(adcData++) << bits;
               bits += 8;
               while (bits >= decodeBits) {
-                streamBuffer[pos10++] = byte & mask;
+                if (seqLen == 0) {
+                  seqLen = rowData[(nSeq + 1) * 2] - rowData[nSeq * 2];
+                  pad = rowData[nSeq++ * 2 + 1];
+                }
+                digits[nDigitsTmp++] = deprecated::PackedDigit{(float)(byte & mask) * decodeBitsFactor, (Timestamp)(timeBin + l), pad++, (Row)(rowOffset + m)};
                 byte = byte >> decodeBits;
                 bits -= decodeBits;
-              }
-            }
-            pos10 = 0;
-            for (int n = 0; n < nSeqRead; n++) {
-              const int seqLen = rowData[(n + 1) * 2] - (n ? rowData[n * 2] : 0);
-              for (int o = 0; o < seqLen; o++) {
-                digits[nDigitsTmp++] = deprecated::PackedDigit{(float)streamBuffer[pos10++] * decodeBitsFactor, (Timestamp)(timeBin + l), (Pad)(rowData[n * 2 + 1] + o), (Row)(rowOffset + m)};
+                seqLen--;
               }
             }
           }
