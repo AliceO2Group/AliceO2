@@ -20,14 +20,15 @@ struct DigitizationParameters {
   static constexpr float N_PHOTONS_PER_MEV = 10400;         // average #photons generated per 1 MeV of deposited energy
 
   //TODO: optimize random ring sizes to balance between sim quality and execution time
-  static constexpr int PHE_RANDOM_RING_SIZE = 1e5; // size of random ring to be used inside photoelectron loop
-  static constexpr int HIT_RANDOM_RING_SIZE = 1e4; // size of random ring to be used inside hit loop
+  static constexpr int PHE_RANDOM_RING_SIZE = 1e5;  // size of random ring to be used inside photoelectron loop
+  static constexpr int HIT_RANDOM_RING_SIZE = 1e4;  // size of random ring to be used inside hit loop
+  static constexpr int NUM_PMT_RESPONSE_TABLES = 9; // number of PMT response tables
 
   //TODO: move all params below to configurable params
   static constexpr float mIntrinsicTimeRes = 0.91;       // time resolution
   static constexpr float mPhotoCathodeEfficiency = 0.23; // quantum efficiency = nOfPhotoE_emitted_by_photocathode / nIncidentPhotons
   static constexpr float mLightYield = 0.1;              // light collection efficiency to be tuned using collision data
-  static constexpr float mPmtGain = 4.21e6;              // value for PMT R5924-70 at 0.5T -> should be adjusted to the actually used gain
+  static constexpr float mPmtGain = 5e4;                 // value for PMT R5924-70 at default FV0 gain
   static constexpr float mPmtTransitTime = 9.5;          // PMT response time (corresponds to 1.9 ns rise time)
   static constexpr float mPmtTransparency = 0.25;        // Transparency of the first dynode of the PMT
   static constexpr float mPmtNbOfSecElec = 9.0;          // Number of secondary electrons emitted from first dynode (per ph.e.)
