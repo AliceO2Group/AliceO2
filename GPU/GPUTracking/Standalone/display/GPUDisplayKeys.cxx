@@ -216,7 +216,7 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     mUpdateDLList = true;
   } else if (key == 'b') {
     mHideUnmatchedClusters ^= 1;
-    SetInfo("Unmatched clusters are %s", mHideRejectedClusters ? "hidden" : "shown");
+    SetInfo("Unmatched clusters are %s", mHideUnmatchedClusters ? "hidden" : "shown");
     mUpdateDLList = true;
   } else if (key == 'i') {
     mProjectXY ^= 1;
