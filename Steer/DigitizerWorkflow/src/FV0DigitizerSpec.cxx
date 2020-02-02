@@ -58,6 +58,10 @@ class FV0DPLDigitizerTask
   using GRP = o2::parameters::GRPObject;
 
  public:
+  FV0DPLDigitizerTask()
+    : mDigitizer(), mSimChains(), mDigitsCh(), mDigitsBC(), mLabels() {}
+  ~FV0DPLDigitizerTask() = default;
+
   void init(framework::InitContext& ic)
   {
     LOG(INFO) << "FV0DPLDigitizerTask:init";
