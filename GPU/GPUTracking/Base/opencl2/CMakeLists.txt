@@ -51,7 +51,7 @@ if(OPENCL2_ENABLED_AMD) # BUILD OpenCL2 binaries for AMD target
             -mcpu=${OCL2_GPUTARGET}
             -o ${CL_BIN}.amd ${CL_SRC}
     MAIN_DEPENDENCY ${CL_SRC}
-    IMPLICIT_DEPENDS cxx ${CL_SRC}
+    IMPLICIT_DEPENDS CXX ${CL_SRC}
     COMMAND_EXPAND_LISTS)
 
   # cmake-format: off
@@ -85,7 +85,7 @@ if(OPENCL2_ENABLED_SPIRV) # BUILD OpenCL2 intermediate code for SPIR-V target
               ${OCL_DEFINCL}
               -o ${CL_BIN}.bc -c ${CL_SRC}
       MAIN_DEPENDENCY ${CL_SRC}
-      IMPLICIT_DEPENDS cxx ${CL_SRC}
+      IMPLICIT_DEPENDS CXX ${CL_SRC}
       COMMAND_EXPAND_LISTS)
 
   # executes converter to create spirv IL code
@@ -123,7 +123,7 @@ if(OPENCL2_ENABLED) # BUILD OpenCL2 source code for runtime compilation target
               ${OCL_DEFINCL}
               -E ${CL_SRC} > ${CL_BIN}.src
       MAIN_DEPENDENCY ${CL_SRC}
-      IMPLICIT_DEPENDS cxx ${CL_SRC}
+      IMPLICIT_DEPENDS CXX ${CL_SRC}
       COMMAND_EXPAND_LISTS)
 
   # cmake-format: off
