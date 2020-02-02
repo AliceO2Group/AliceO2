@@ -283,12 +283,15 @@ void GPUChainTracking::PrepareEventFromNative()
   ClusterNativeAccess* tmp = mClusterNativeAccess.get();
   if (tmp != mIOPtrs.clustersNative) {
     *tmp = *mIOPtrs.clustersNative;
+    mIOPtrs.clustersNative = tmp;
   }
-  mIOPtrs.clustersNative = tmp;
-  processors()->tpcConverter.mClustersNative = mClusterNativeAccess.get();
+  processors()->tpcConverter.mClustersNative = tmp;
 
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
     processors()->tpcTrackers[iSlice].Data().SetClusterData(nullptr, mIOPtrs.clustersNative->nClustersSector[iSlice], mIOPtrs.clustersNative->clusterOffset[iSlice][0]);
+    if (GetRecoStepsGPU() & RecoStep::TPCSliceTracking) {
+      processorsShadow()->tpcTrackers[iSlice].Data().SetClusterData(nullptr, mIOPtrs.clustersNative->nClustersSector[iSlice], mIOPtrs.clustersNative->clusterOffset[iSlice][0]); // TODO: A bit of a hack, but we have to make sure this stays in sync
+    }
   }
   processors()->tpcCompressor.mMaxClusters = mIOPtrs.clustersNative->nClustersTotal;
   mRec->MemoryScalers()->nTPCHits = mIOPtrs.clustersNative->nClustersTotal;
@@ -906,7 +909,7 @@ int GPUChainTracking::RunTPCClusterizer()
   }
   SynchronizeGPU();
 
-  static std::vector<o2::tpc::ClusterNative> clsMemory;
+  static std::vector<o2::tpc::ClusterNative> clsMemory; // TODO: remove static temporary, data should remain on the GPU anyway
   size_t nClsTotal = 0;
   ClusterNativeAccess* tmp = mClusterNativeAccess.get();
   size_t pos = 0;

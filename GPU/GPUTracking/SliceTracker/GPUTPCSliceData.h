@@ -138,7 +138,7 @@ class GPUTPCSliceData
   GPUhdi() char* GPUTextureBaseConst() const { return ((char*)mGPUTextureBase); }
 
 #if !defined(__OPENCL__)
-  GPUhi() const GPUTPCClusterData* ClusterData() const
+  GPUhdi() const GPUTPCClusterData* ClusterData() const
   {
     return mClusterData;
   }
