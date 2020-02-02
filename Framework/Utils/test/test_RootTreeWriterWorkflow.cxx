@@ -132,6 +132,10 @@ DataProcessorSpec getSourceSpec()
       int& metadata = pc.outputs().make<int>(Output{"TST", "METADATA", 0, Lifetime::Timeframe});
       metadata = *counter;
       *counter = *counter + 1;
+      if (*counter >= sTreeSize) {
+        pc.services().get<ControlService>().endOfStream();
+        pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+      }
     };
 
     return processingFct;

@@ -14,16 +14,13 @@
 #include <boost/test/unit_test.hpp>
 #include "MemoryResources/MemoryResources.h"
 #include "FairMQTransportFactory.h"
+#include <fairmq/Tools.h>
+#include <fairmq/ProgOptions.h>
 #include <vector>
 #include <cstring>
 
-namespace o2
+namespace o2::pmr
 {
-namespace pmr
-{
-auto factoryZMQ = FairMQTransportFactory::CreateTransportFactory("zeromq");
-auto factorySHM = FairMQTransportFactory::CreateTransportFactory("shmem");
-
 struct testData {
   int i{1};
   static int nconstructions;
@@ -47,11 +44,16 @@ struct testData {
 
 int testData::nconstructions = 0;
 
-auto allocZMQ = getTransportAllocator(factoryZMQ.get());
-auto allocSHM = getTransportAllocator(factorySHM.get());
-
 BOOST_AUTO_TEST_CASE(transportallocatormap_test)
 {
+  size_t session{fair::mq::tools::UuidHash()};
+  fair::mq::ProgOptions config;
+  config.SetProperty<std::string>("session", std::to_string(session));
+
+  auto factoryZMQ = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto factorySHM = FairMQTransportFactory::CreateTransportFactory("shmem");
+  auto allocZMQ = getTransportAllocator(factoryZMQ.get());
+  auto allocSHM = getTransportAllocator(factorySHM.get());
   BOOST_CHECK(allocZMQ != nullptr && allocSHM != allocZMQ);
   auto _tmp = getTransportAllocator(factoryZMQ.get());
   BOOST_CHECK(_tmp == allocZMQ);
@@ -61,6 +63,15 @@ using namespace boost::container::pmr;
 
 BOOST_AUTO_TEST_CASE(allocator_test)
 {
+  size_t session{fair::mq::tools::UuidHash()};
+  fair::mq::ProgOptions config;
+  config.SetProperty<std::string>("session", std::to_string(session));
+
+  auto factoryZMQ = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto factorySHM = FairMQTransportFactory::CreateTransportFactory("shmem");
+  auto allocZMQ = getTransportAllocator(factoryZMQ.get());
+  auto allocSHM = getTransportAllocator(factorySHM.get());
+
   testData::nconstructions = 0;
 
   {
@@ -90,6 +101,15 @@ BOOST_AUTO_TEST_CASE(allocator_test)
 
 BOOST_AUTO_TEST_CASE(getMessage_test)
 {
+  size_t session{fair::mq::tools::UuidHash()};
+  fair::mq::ProgOptions config;
+  config.SetProperty<std::string>("session", std::to_string(session));
+
+  auto factoryZMQ = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto factorySHM = FairMQTransportFactory::CreateTransportFactory("shmem");
+  auto allocZMQ = getTransportAllocator(factoryZMQ.get());
+  auto allocSHM = getTransportAllocator(factorySHM.get());
+
   testData::nconstructions = 0;
 
   FairMQMessagePtr message{nullptr};
@@ -133,6 +153,15 @@ BOOST_AUTO_TEST_CASE(getMessage_test)
 
 BOOST_AUTO_TEST_CASE(adoptVector_test)
 {
+  size_t session{fair::mq::tools::UuidHash()};
+  fair::mq::ProgOptions config;
+  config.SetProperty<std::string>("session", std::to_string(session));
+
+  auto factoryZMQ = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto factorySHM = FairMQTransportFactory::CreateTransportFactory("shmem");
+  auto allocZMQ = getTransportAllocator(factoryZMQ.get());
+  auto allocSHM = getTransportAllocator(factorySHM.get());
+
   testData::nconstructions = 0;
 
   //Create a bogus message
@@ -159,5 +188,25 @@ BOOST_AUTO_TEST_CASE(adoptVector_test)
   BOOST_CHECK(modifiedMessage != nullptr);
   BOOST_CHECK(modifiedMessage.get() != messageAddr);
 }
-}; // namespace pmr
-}; // namespace o2
+
+BOOST_AUTO_TEST_CASE(test_SpectatorMemoryResource)
+{
+  constexpr int size = 5;
+  auto buffer = std::make_unique<int[]>(size);
+  auto const* bufferdata = buffer.get();
+  SpectatorMemoryResource<decltype(buffer)> resource(std::move(buffer), size * sizeof(int));
+  std::vector<int, o2::pmr::SpectatorAllocator<int>> bufferclone(size, o2::pmr::SpectatorAllocator<int>(&resource));
+  BOOST_CHECK(bufferclone.data() == bufferdata);
+  BOOST_CHECK(bufferclone.size() == size);
+  BOOST_CHECK_THROW(bufferclone.resize(2 * size), std::runtime_error);
+
+  auto vecbuf = std::make_unique<std::vector<int>>(size);
+  auto const* vectordata = vecbuf->data();
+  SpectatorMemoryResource<decltype(vecbuf)> vecresource(std::move(vecbuf));
+  std::vector<int, o2::pmr::SpectatorAllocator<int>> vecclone(size, o2::pmr::SpectatorAllocator<int>(&vecresource));
+  BOOST_CHECK(vecclone.data() == vectordata);
+  BOOST_CHECK(vecclone.size() == size);
+  BOOST_CHECK_THROW(vecclone.resize(2 * size), std::runtime_error);
+}
+
+}; // namespace o2::pmr

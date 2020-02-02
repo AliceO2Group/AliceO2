@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE(testTimeCalibration)
   std::string inputDir = " ";
   if (aliceO2env)
     inputDir = aliceO2env;
-  inputDir += "/share/Detectors/EMCAL/files/";
+  inputDir += "/share/Detectors/EMC/files/";
 
   std::string fileHG = inputDir + "TimeCalibCoeffHG.txt";
   std::ifstream allTimeAvHG(fileHG, std::ifstream::in);

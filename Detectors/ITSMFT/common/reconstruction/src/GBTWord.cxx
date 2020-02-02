@@ -21,7 +21,7 @@ void GBTWord::printX(bool padded) const
   int nw = padded ? 16 : 10;
   printf("0x:");
   for (int i = nw; i--;) {
-    printf(" %02x", getByte(i));
+    printf(" %02x", mData8[i]);
   }
   printf("\n");
 }
@@ -32,7 +32,7 @@ void GBTWord::printB(bool padded) const
   int nw = padded ? 16 : 8;
   printf("0b:");
   for (int i = nw; i--;) {
-    uint8_t v = getByte(i);
+    uint8_t v = mData8[i];
     printf(" ");
     for (int j = 8; j--;) {
       printf("%d", (v & (0x1 << j)) ? 1 : 0);

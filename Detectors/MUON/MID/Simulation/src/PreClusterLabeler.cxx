@@ -19,33 +19,37 @@ namespace o2
 namespace mid
 {
 
-void PreClusterLabeler::process(gsl::span<const PreCluster> preClusters, const o2::dataformats::MCTruthContainer<MCLabel>& inMCContainer)
+void PreClusterLabeler::process(gsl::span<const PreCluster> preClusters, const o2::dataformats::MCTruthContainer<MCLabel>& inMCContainer, gsl::span<const ROFRecord> rofRecordsPC, gsl::span<const ROFRecord> rofRecordsData)
 {
   /// Applies labels to the pre-clusters
   mMCContainer.clear();
+  auto dataROFIt = rofRecordsData.begin();
+  for (auto pcROFIt = rofRecordsPC.begin(); pcROFIt != rofRecordsPC.end(); ++pcROFIt) {
+    for (size_t ipc = pcROFIt->firstEntry; ipc < pcROFIt->firstEntry + pcROFIt->nEntries; ++ipc) {
+      for (size_t idata = dataROFIt->firstEntry; idata < dataROFIt->firstEntry + dataROFIt->nEntries; ++idata) {
+        auto labels = inMCContainer.getLabels(idata);
+        for (auto& label : labels) {
+          if (label.getCathode() != preClusters[ipc].cathode) {
+            continue;
+          }
+          if (label.getDEId() != preClusters[ipc].deId) {
+            continue;
+          }
+          int columnId = label.getColumnId();
+          if (columnId < preClusters[ipc].firstColumn || columnId > preClusters[ipc].lastColumn) {
+            continue;
+          }
+          int firstStrip = MCLabel::getStrip(preClusters[ipc].firstStrip, preClusters[ipc].firstLine);
+          int lastStrip = MCLabel::getStrip(preClusters[ipc].lastStrip, preClusters[ipc].lastLine);
+          if ((columnId == preClusters[ipc].firstColumn && label.getLastStrip() < firstStrip) || (columnId == preClusters[ipc].lastColumn && label.getFirstStrip() > lastStrip)) {
+            continue;
+          }
 
-  for (auto& pc : preClusters) {
-    auto idx = &pc - &preClusters[0];
-    for (size_t iel = 0; iel < inMCContainer.getNElements(); ++iel) {
-      auto label = inMCContainer.getElement(iel);
-      if (label.getCathode() != pc.cathode) {
-        continue;
+          addLabel(ipc, label);
+        }
       }
-      if (label.getDEId() != pc.deId) {
-        continue;
-      }
-      int columnId = label.getColumnId();
-      if (columnId < pc.firstColumn || columnId > pc.lastColumn) {
-        continue;
-      }
-      int firstStrip = MCLabel::getStrip(pc.firstStrip, pc.firstLine);
-      int lastStrip = MCLabel::getStrip(pc.lastStrip, pc.lastLine);
-      if ((columnId == pc.firstColumn && label.getLastStrip() < firstStrip) || (columnId == pc.lastColumn && label.getFirstStrip() > lastStrip)) {
-        continue;
-      }
-
-      addLabel(idx, label);
     }
+    ++dataROFIt;
   }
 }
 

@@ -15,6 +15,7 @@
 #include <FairLogger.h>
 
 #include "DetectorsBase/GeometryManager.h"
+#include "MathUtils/Utils.h" // utils::bit2Mask
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/TRDPadPlane.h"
 

@@ -65,6 +65,7 @@ class Vertexer
 
   void findTrivialMCTracklets();
   void findVertices();
+  void findHistVertices();
 
   template <typename... T>
   void initialiseVertexer(T&&... args);
@@ -79,6 +80,7 @@ class Vertexer
   void setDebugTrackletSelection();
   void setDebugLines();
   void setDebugSummaryLines();
+  void setDebugCentroidsHistograms();
   // \debug
 
  private:
@@ -86,10 +88,12 @@ class Vertexer
   VertexerTraits* mTraits = nullptr;
 };
 
+#ifdef _ALLOW_DEBUG_TREES_ITS_
 inline void Vertexer::filterMCTracklets()
 {
   mTraits->computeMCFiltering();
 }
+#endif
 
 template <typename... T>
 void Vertexer::initialiseVertexer(T&&... args)
@@ -183,6 +187,11 @@ inline void Vertexer::setDebugLines()
 inline void Vertexer::setDebugSummaryLines()
 {
   mTraits->setDebugFlag(VertexerDebug::LineSummaryAll);
+}
+
+inline void Vertexer::setDebugCentroidsHistograms()
+{
+  mTraits->setDebugFlag(VertexerDebug::HistCentroids);
 }
 
 } // namespace its

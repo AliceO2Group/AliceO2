@@ -14,7 +14,7 @@
 /// \date   24 October 2016
 #include "MIDClustering/Clusterizer.h"
 
-#include <fairlogger/Logger.h>
+#include "MIDBase/DetectorParameters.h"
 
 namespace o2
 {
@@ -50,22 +50,40 @@ bool Clusterizer::loadPreClusters(gsl::span<const PreCluster>& preClusters)
 }
 
 //______________________________________________________________________________
-bool Clusterizer::process(gsl::span<const PreCluster> preClusters)
+void Clusterizer::process(gsl::span<const PreCluster> preClusters, bool accumulate)
 {
-  /// Main function: runs on the preclusters and builds the clusters
-  /// \param preClusters gsl::span of PreClusters objects in the
+  /// Main function: runs on the preclusters of one event and builds the clusters
+  /// \param preClusters gsl::span of PreClusters objects in the same event
+  /// \param accumulate Flag to decide if one needs to reset the output clusters at each event
 
   // Reset cluster information
-  reset();
+  mActiveDEs.clear();
+  if (!accumulate) {
+    mClusters.clear();
+  }
   if (loadPreClusters(preClusters)) {
     // Loop only on fired detection elements
     for (auto& deIndex : mActiveDEs) {
       makeClusters(mPreClustersDE[deIndex.first]);
     }
-    return true;
   }
+}
 
-  return false;
+void Clusterizer::process(gsl::span<const PreCluster> preClusters, gsl::span<const ROFRecord> rofRecords)
+{
+  /// Main function: runs on the preclusters of a timeframe
+  /// and builds the clusters
+  /// \param preClusters gsl::span of PreClusters objects in the timeframe
+  /// \param rofRecords RO frame records
+  mClusters.clear();
+  mROFRecords.clear();
+  for (auto& rofRecord : rofRecords) {
+    mPreClusterOffset = rofRecord.firstEntry;
+    auto firstEntry = mClusters.size();
+    process(preClusters.subspan(rofRecord.firstEntry, rofRecord.nEntries), true);
+    auto nEntries = mClusters.size() - firstEntry;
+    mROFRecords.emplace_back(rofRecord, firstEntry, nEntries);
+  }
 }
 
 //______________________________________________________________________________
@@ -73,8 +91,6 @@ bool Clusterizer::makeClusters(PreClustersDE& pcs)
 {
   /// Makes the clusters and stores it
   int deIndex = pcs.getDEId();
-
-  LOG(DEBUG) << "Clusterizing " << deIndex;
 
   // loop over pre-clusters in the non-bending plane
   for (int inb = 0; inb < pcs.getNPreClustersNBP(); ++inb) {
@@ -91,10 +107,8 @@ bool Clusterizer::makeClusters(PreClustersDE& pcs)
         makeCluster(pcB.area, pcNB.area[icolumn], icolumn, deIndex);
         pcB.paired = 1;
         pcNB.paired = 1;
-        mFunction(mClusters.size() - 1, pcB.index);
-        mFunction(mClusters.size() - 1, pcNB.index);
-        // isNBPpaired = true;
-        // setPairedFlag(icolumn, ib);
+        mFunction(mClusters.size() - 1, pcB.index + mPreClusterOffset);
+        mFunction(mClusters.size() - 1, pcNB.index + mPreClusterOffset);
       }
     } else {
       // The NBP pre-cluster spans different columns.
@@ -111,7 +125,6 @@ bool Clusterizer::makeClusters(PreClustersDE& pcs)
       // two clusters centered at the border between two columns.
       // This leads to a redundancy. Still, the sigma of the resulting cluster will be so large
       // to have no impact whatsoever in the track reconstruction.
-      LOG(DEBUG) << "Spanning non-bend: " << icolumn << " -> " << (*mPreClusters)[pcNB.index].lastColumn;
       int pairId = 10 + inb;
       for (; icolumn <= (*mPreClusters)[pcNB.index].lastColumn; ++icolumn) {
         int neighColumn = icolumn + 1;
@@ -125,8 +138,8 @@ bool Clusterizer::makeClusters(PreClustersDE& pcs)
           // with the pre-cluster in the previous column.
           if (neighbours.empty() && pcB.paired != pairId) {
             makeCluster(pcB.area, pcNB.area[icolumn], icolumn, deIndex);
-            mFunction(mClusters.size() - 1, pcB.index);
-            mFunction(mClusters.size() - 1, pcNB.index);
+            mFunction(mClusters.size() - 1, pcB.index + mPreClusterOffset);
+            mFunction(mClusters.size() - 1, pcNB.index + mPreClusterOffset);
           } else {
             for (auto& jb : neighbours) {
               PreClustersDE::BP& pcBneigh = pcs.getPreClusterBP(neighColumn, jb);
@@ -135,15 +148,13 @@ bool Clusterizer::makeClusters(PreClustersDE& pcs)
               // So that, when we move to the next column, we do not add it twice.
               pcBneigh.paired = pairId;
               // setPairedFlag(neighColumn, jb, pairId);
-              mFunction(mClusters.size() - 1, pcB.index);
-              mFunction(mClusters.size() - 1, pcBneigh.index);
-              mFunction(mClusters.size() - 1, pcNB.index);
+              mFunction(mClusters.size() - 1, pcB.index + mPreClusterOffset);
+              mFunction(mClusters.size() - 1, pcBneigh.index + mPreClusterOffset);
+              mFunction(mClusters.size() - 1, pcNB.index + mPreClusterOffset);
             }
           }
           pcB.paired = 1;
           pcNB.paired = 1;
-          // isNBPpaired = true;
-          // setPairedFlag(icolumn, ib);
         } // loop on pre-clusters in the BP
       }   // loop on columns
     }
@@ -153,7 +164,7 @@ bool Clusterizer::makeClusters(PreClustersDE& pcs)
       // a monocathodic cluster in the NBP
       for (int icolumn = (*mPreClusters)[pcNB.index].firstColumn; icolumn <= (*mPreClusters)[pcNB.index].lastColumn; ++icolumn) {
         makeCluster(pcNB.area[icolumn], pcNB.area[icolumn], icolumn, deIndex);
-        mFunction(mClusters.size() - 1, pcNB.index);
+        mFunction(mClusters.size() - 1, pcNB.index + mPreClusterOffset);
       }
     }
   } // loop on pre-clusters in the NBP
@@ -164,10 +175,8 @@ bool Clusterizer::makeClusters(PreClustersDE& pcs)
       PreClustersDE::BP& pcB = pcs.getPreClusterBP(icolumn, ib);
       if (pcB.paired == 0) {
         makeCluster(pcB.area, pcB.area, icolumn, deIndex);
-        mFunction(mClusters.size() - 1, pcB.index);
+        mFunction(mClusters.size() - 1, pcB.index + mPreClusterOffset);
       }
-      // Reset the value
-      // mPairedFlag[icolumn][ib] = 0;
     }
   }
 
@@ -183,12 +192,8 @@ bool Clusterizer::init(std::function<void(size_t, size_t)> func)
   /// Initializes the class
 
   // prepare storage of clusters and PreClusters
-  mClusters.reserve(100);
-  mPreClustersDE.reserve(72);
+  mPreClustersDE.reserve(detparams::NDetectionElements);
   mFunction = func;
-  // for (auto& paired : mPairedFlag) {
-  //   paired.reserve(10);
-  // }
 
   return true;
 }
@@ -204,8 +209,6 @@ void Clusterizer::makeCluster(const MpArea& areaBP, const MpArea& areaNBP, const
   float sigmaX2 = deltaX * deltaX / 12;
   float sigmaY2 = deltaY * deltaY / 12;
   mClusters.push_back({static_cast<uint8_t>(deIndex), xCoor, yCoor, sigmaX2, sigmaY2});
-
-  LOG(DEBUG) << "pos: (" << xCoor << ", " << yCoor << ") err2: (" << sigmaX2 << ", " << sigmaY2 << ")";
 }
 
 //______________________________________________________________________________
@@ -234,7 +237,6 @@ void Clusterizer::makeCluster(const PreClustersDE::BP& pcBP, const PreClustersDE
     }
     // area = dx * dy
     sumArea += delta[0] * delta[1];
-    LOG(DEBUG) << "Area += " << delta[0] * delta[1] << " => " << sumArea;
     for (int iplane = 0; iplane < 2; ++iplane) {
       for (int ip = 0; ip < 2; ++ip) {
         // second momentum = x_i * x_i * dy
@@ -242,8 +244,6 @@ void Clusterizer::makeCluster(const PreClustersDE::BP& pcBP, const PreClustersDE
         x2[iplane][ip] += currX2;
         // third momentum = x_i * x_i * x_i * dy
         x3[iplane][ip] += currX2 * dim[iplane][ip];
-        LOG(DEBUG) << "x[" << iplane << "][" << ip << "] => val " << dim[iplane][ip] << " delta " << delta[1 - iplane]
-                   << " => x2 " << x2[iplane][ip] << " x3 " << x3[iplane][ip];
       }
     }
   } // loop on column
@@ -255,8 +255,6 @@ void Clusterizer::makeCluster(const PreClustersDE::BP& pcBP, const PreClustersDE
   }
 
   mClusters.push_back({static_cast<uint8_t>(deIndex), static_cast<float>(coor[0]), static_cast<float>(coor[1]), static_cast<float>(sigma2[0]), static_cast<float>(sigma2[1])});
-
-  LOG(DEBUG) << "pos: (" << coor[0] << ", " << coor[1] << ") err2: (" << sigma2[0] << ", " << sigma2[1] << ")";
 }
 
 //______________________________________________________________________________

@@ -76,28 +76,26 @@ class Mapping
   };
 
   void init();
-  void setupSegmentation(int rpcType, int column, int nStripsNBP, int stripPitchNBP, int nBoardsBP, int firstBoardId,
+  void setupSegmentation(int rpcLine, int column, int nStripsNBP, int stripPitchNBP, int nBoardsBP, int firstBoardId,
                          bool isBelowBeamPipe = false);
-  void setupSegmentationLastColumn(int rpcType, int boardId);
-  void buildDETypeLarge(int rpcType, std::array<int, 7> boards);
-  void buildDETypeMedium(int rpcType, std::array<int, 7> boards, bool largeNonBend);
-  void buildDETypeCut(int rpcType, std::array<int, 7> boards, bool isBelowBeamPipe);
-  void buildDETypeShort(int rpcType, std::array<int, 7> boards);
-  /// Gets the RPC type of detection element deId
-  inline int getRPCType(int deId) const { return deId % 9; }
+  void setupSegmentationLastColumn(int rpcLine, int boardId);
+  void buildDETypeLarge(int rpcLine, std::array<int, 7> boards);
+  void buildDETypeMedium(int rpcLine, std::array<int, 7> boards, bool largeNonBend);
+  void buildDETypeCut(int rpcLine, std::array<int, 7> boards, bool isBelowBeamPipe);
+  void buildDETypeShort(int rpcLine, std::array<int, 7> boards);
   double getStripSize(int chamber, int stripPitch, int strip = 0) const;
-  double getColumnLeftPosition(int column, int chamber, int rpcType) const;
-  double getColumnBottomPosition(int column, int chamber, int rpcType) const;
-  double getColumnHeight(int column, int chamber, int rpcType) const;
-  double getColumnWidth(int column, int chamber, int rpcType) const;
+  double getColumnLeftPosition(int column, int chamber, int rpcLine) const;
+  double getColumnBottomPosition(int column, int chamber, int rpcLine) const;
+  double getColumnHeight(int column, int chamber, int rpcLine) const;
+  double getColumnWidth(int column, int chamber, int rpcLine) const;
   double getStripLowEdge(int strip, int stripPitch, int line, int chamber) const;
-  double getStripLeftEdge(int strip, int stripPitch, int column, int chamber, int rpcType) const;
-  int getColumn(double xPos, int chamber, int rpcType) const;
+  double getStripLeftEdge(int strip, int stripPitch, int column, int chamber, int rpcLine) const;
+  int getColumn(double xPos, int chamber, int rpcLine) const;
   int getLine(double yPos, const MpColumn& column, int chamber) const;
-  bool isValidColumn(int column, int rpcType) const;
-  bool isValidLine(int line, int column, int rpcType) const;
-  std::vector<MpStripIndex> getNeighboursBP(const MpStripIndex& stripIndex, int rpcType) const;
-  std::vector<MpStripIndex> getNeighboursNBP(const MpStripIndex& stripIndex, int rpcType) const;
+  bool isValidColumn(int column, int rpcLine) const;
+  bool isValidLine(int line, int column, int rpcLine) const;
+  std::vector<MpStripIndex> getNeighboursBP(const MpStripIndex& stripIndex, int rpcLine) const;
+  std::vector<MpStripIndex> getNeighboursNBP(const MpStripIndex& stripIndex, int rpcLine) const;
 
   std::array<MpDE, 9> mDetectionElements;      ///< Array of detection element
   std::array<MpBoardIndex, 118> mBoardIndexes; ///< Array of board indexes

@@ -103,7 +103,7 @@
   } // namespace
   } // namespace gpu
   } // namespace AliGPU
-#elif defined(GPUCA_O2_LIB)
+#elif defined(GPUCA_O2_LIB) || defined(GPUCA_O2_INTERFACE)
   // Forward to O2 LOGF logginf for O2
   #include "GPUCommonLogger.h"
   #define GPUInfo(...) LOGF(info, __VA_ARGS__)

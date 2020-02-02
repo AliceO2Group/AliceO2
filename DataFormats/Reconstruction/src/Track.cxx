@@ -12,6 +12,8 @@
 #include <FairLogger.h>
 #include <iostream>
 #include "Math/SMatrix.h"
+#include <fmt/printf.h>
+#include "Framework/Logger.h"
 
 using o2::track::TrackPar;
 using o2::track::TrackParCov;
@@ -130,7 +132,7 @@ bool TrackPar::rotateParam(float alpha)
 {
   // rotate to alpha frame
   if (fabs(getSnp()) > Almost1) {
-    printf("Precondition is not satisfied: |sin(phi)|>1 ! %f\n", getSnp());
+    LOGF(WARNING, "Precondition is not satisfied: |sin(phi)|>1 ! {:f}", getSnp());
     return false;
   }
   //
@@ -142,13 +144,13 @@ bool TrackPar::rotateParam(float alpha)
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
   if ((csp * ca + snp * sa) < 0) {
-    //printf("Rotation failed: local cos(phi) would become %.2f\n", csp * ca + snp * sa);
+    //LOGF(WARNING,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
     return false;
   }
   //
   float tmp = snp * ca - csp * sa;
   if (fabs(tmp) > Almost1) {
-    printf("Rotation failed: new snp %.2f\n", tmp);
+    LOGF(WARNING, "Rotation failed: new snp {:.2f}", tmp);
     return false;
   }
   float xold = getX(), yold = getY();
@@ -175,7 +177,7 @@ bool TrackPar::propagateParamTo(float xk, const array<float, 3>& b)
   }
   // Do not propagate tracks outside the ALICE detector
   if (fabs(dx) > 1e5 || fabs(getY()) > 1e5 || fabs(getZ()) > 1e5) {
-    printf("Anomalous track, target X:%f\n", xk);
+    LOGF(WARNING, "Anomalous track, target X:{:f}", xk);
     //    print();
     return false;
   }
@@ -413,11 +415,196 @@ float TrackPar::getYAt(float xk, float b) const
   return getYZAt(xk, b, y, z) ? y : -9999.;
 }
 
+#ifndef GPUCA_ALIGPUCODE
+//______________________________________________________________
+std::string TrackPar::asString() const
+{
+  // print parameters as string
+  return fmt::format("X:{:+.4e} Alp:{:+.3e} Par: {:+.4e} {:+.4e} {:+.4e} {:+.4e} {:+.4e}", getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt());
+}
+
 //______________________________________________________________
 void TrackPar::printParam() const
 {
   // print parameters
-  printf("X:%+e Alp:%+e Par: %+e %+e %+e %+e %+e\n", getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt());
+  printf("%s\n", asString().c_str());
+}
+#endif
+
+//______________________________________________________________
+bool TrackPar::getXatLabR(float r, float& x, float bz, o2::track::DirType dir) const
+{
+  // Get local X of the track position estimated at the radius lab radius r.
+  // The track curvature is accounted exactly
+  //
+  // The flag "dir" can be used to remove the ambiguity of which intersection to take (out of 2 possible)
+  // DirAuto (==0)  - take the intersection closest to the current track position
+  // DirOutward (==1) - go along the track (increasing mX)
+  // DirInward (==-1) - go backward (decreasing mX)
+  //
+  const auto fy = mP[0], sn = mP[2];
+  const float kEps = 1.e-6;
+  //
+  auto crv = getCurvature(bz);
+  if (fabs(crv) > o2::constants::math::Almost0) { // helix
+    // get center of the track circle
+    o2::utils::CircleXY circle;
+    getCircleParamsLoc(bz, circle);
+    auto r0 = sqrtf(circle.getCenterD2());
+    if (r0 <= o2::constants::math::Almost0) {
+      return false; // the track is concentric to circle
+    }
+    float tR2r0 = 1., g = 0., tmp = 0.;
+    if (fabs(circle.rC - r0) > kEps) {
+      tR2r0 = circle.rC / r0;
+      g = 0.5 * (r * r / (r0 * circle.rC) - tR2r0 - 1. / tR2r0);
+      tmp = 1. + g * tR2r0;
+    } else {
+      tR2r0 = 1.0;
+      g = 0.5 * r * r / (r0 * circle.rC) - 1.;
+      tmp = 0.5 * r * r / (r0 * r0);
+    }
+    auto det = (1. - g) * (1. + g);
+    if (det < 0.) {
+      return false; // does not reach raduis r
+    }
+    det = sqrtf(det);
+    //
+    // the intersection happens in 2 points: {circle.xC+tR*C,circle.yC+tR*S}
+    // with C=f*c0+-|s0|*det and S=f*s0-+c0 sign(s0)*det
+    // where s0 and c0 make direction for the circle center (=circle.xC/r0 and circle.yC/r0)
+    //
+    x = circle.xC * tmp;
+    auto y = circle.yC * tmp;
+    if (fabs(circle.yC) > o2::constants::math::Almost0) { // when circle.yC==0 the x,y is unique
+      auto dfx = tR2r0 * fabs(circle.yC) * det;
+      auto dfy = tR2r0 * circle.xC * (circle.yC > 0. ? det : -det);
+      if (dir == DirAuto) {                           // chose the one which corresponds to smallest step
+        auto delta = (x - mX) * dfx - (y - fy) * dfy; // the choice of + in C will lead to smaller step if delta<0
+        x += delta < 0. ? dfx : -dfx;
+      } else if (dir == DirOutward) { // along track direction: x must be > mX
+        x -= dfx;                     // try the smallest step (dfx is positive)
+        auto dfeps = mX - x;          // handle special case of very small step
+        if (dfeps < -kEps) {
+          return true;
+        }
+        if (fabs(dfeps) < kEps && fabs(mX * mX + fy * fy - r * r) < kEps) { // are we already in right r?
+          return mX;
+        }
+        x += dfx + dfx;
+        auto dxm = x - mX;
+        if (dxm > 0.) {
+          return true;
+        } else if (dxm < -kEps) {
+          return false;
+        }
+        x = mX;              // don't move
+      } else {               // backward: x must be < mX
+        x += dfx;            // try the smallest step (dfx is positive)
+        auto dfeps = x - mX; // handle special case of very small step
+        if (dfeps < -kEps) {
+          return true;
+        }
+        if (fabs(dfeps) < kEps && fabs(mX * mX + fy * fy - r * r) < kEps) { // are we already in right r?
+          return mX;
+        }
+        x -= dfx + dfx;
+        auto dxm = x - mX;
+        if (dxm < 0.) {
+          return true;
+        }
+        if (dxm > kEps) {
+          return false;
+        }
+        x = mX; // don't move
+      }
+    } else { // special case: track touching the circle just in 1 point
+      if ((dir == DirOutward && x < mX) || (dir == DirInward && x > mX)) {
+        return false;
+      }
+    }
+  } else {                                          // this is a straight track
+    if (fabs(sn) >= o2::constants::math::Almost1) { // || to Y axis
+      auto det = (r - mX) * (r + mX);
+      if (det < 0.) {
+        return false; // does not reach raduis r
+      }
+      x = mX;
+      if (dir == DirAuto) {
+        return true;
+      }
+      det = sqrtf(det);
+      if (dir == DirOutward) { // along the track direction
+        if (sn > 0.) {
+          if (fy > det) {
+            return false; // track is along Y axis and above the circle
+          }
+        } else {
+          if (fy < -det) {
+            return false; // track is against Y axis amd belo the circle
+          }
+        }
+      } else if (dir == DirInward) { // against track direction
+        if (sn > 0.) {
+          if (fy < -det) {
+            return false; // track is along Y axis
+          }
+        } else if (fy > det) {
+          return false; // track is against Y axis
+        }
+      }
+    } else if (fabs(sn) <= o2::constants::math::Almost0) { // || to X axis
+      auto det = (r - fy) * (r + fy);
+      if (det < 0.) {
+        return false; // does not reach raduis r
+      }
+      det = sqrtf(det);
+      if (dir == DirAuto) {
+        x = mX > 0. ? det : -det; // choose the solution requiring the smalest step
+        return true;
+      } else if (dir == DirOutward) { // along the track direction
+        if (mX > det) {
+          return false; // current point is in on the right from the circle
+        } else {
+          x = (mX < -det) ? -det : det; // on the left : within the circle
+        }
+      } else { // against the track direction
+        if (mX < -det) {
+          return false;
+        } else {
+          x = mX > det ? det : -det;
+        }
+      }
+    } else { // general case of straight line
+      auto cs = sqrtf((1 - sn) * (1 + sn));
+      auto xsyc = mX * sn - fy * cs;
+      auto det = (r - xsyc) * (r + xsyc);
+      if (det < 0.) {
+        return false; // does not reach raduis r
+      }
+      det = sqrtf(det);
+      auto xcys = mX * cs + fy * sn;
+      auto t = -xcys;
+      if (dir == DirAuto) {
+        t += t > 0. ? -det : det; // chose the solution requiring the smalest step
+      } else if (dir > 0) {       // go in increasing mX direction. ( t+-det > 0)
+        if (t >= -det) {
+          t += -det; // take minimal step giving t>0
+        } else {
+          return false; // both solutions have negative t
+        }
+      } else { // go in increasing mX direction. (t+-det < 0)
+        if (t < det) {
+          t -= det; // take minimal step giving t<0
+        } else {
+          return false; // both solutions have positive t
+        }
+      }
+      x = mX + cs * t;
+    }
+  }
+  //
+  return true;
 }
 
 //______________________________________________________________
@@ -543,7 +730,7 @@ bool TrackParCov::rotate(float alpha)
 {
   // rotate to alpha frame
   if (fabs(getSnp()) > Almost1) {
-    printf("Precondition is not satisfied: |sin(phi)|>1 ! %f\n", getSnp());
+    LOGF(ERROR, "Precondition is not satisfied: |sin(phi)|>1 ! {:f}", getSnp());
     return false;
   }
   //
@@ -555,14 +742,14 @@ bool TrackParCov::rotate(float alpha)
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
   if ((csp * ca + snp * sa) < 0) {
-    //printf("Rotation failed: local cos(phi) would become %.2f\n", csp * ca + snp * sa);
+    //LOGF(WARNING,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
     return false;
   }
   //
 
   float updSnp = snp * ca - csp * sa;
   if (fabs(updSnp) > Almost1) {
-    printf("Rotation failed: new snp %.2f\n", updSnp);
+    LOGF(WARNING, "Rotation failed: new snp {:.2f}", updSnp);
     return false;
   }
   float xold = getX(), yold = getY();
@@ -572,7 +759,7 @@ bool TrackParCov::rotate(float alpha)
   setSnp(updSnp);
 
   if (fabs(csp) < Almost0) {
-    printf("Too small cosine value %f\n", csp);
+    LOGF(WARNING, "Too small cosine value {:f}", csp);
     csp = Almost0;
   }
 
@@ -759,7 +946,7 @@ bool TrackParCov::propagateTo(float xk, const array<float, 3>& b)
   }
   // Do not propagate tracks outside the ALICE detector
   if (fabs(dx) > 1e5 || fabs(getY()) > 1e5 || fabs(getZ()) > 1e5) {
-    printf("Anomalous track, target X:%f\n", xk);
+    LOGF(WARNING, "Anomalous track, target X:{:f}", xk);
     //    print();
     return false;
   }
@@ -1325,21 +1512,29 @@ bool TrackParCov::correctForMaterial(float x2x0, float xrho, float mass, bool an
   return true;
 }
 
+#ifndef GPUCA_ALIGPUCODE
+//______________________________________________________________
+std::string TrackParCov::asString() const
+{
+  return TrackPar::asString() +
+         fmt::format(
+           "\n{:7s} {:+.3e}\n"
+           "{:7s} {:+.3e} {:+.3e}\n"
+           "{:7s} {:+.3e} {:+.3e} {:+.3e}\n"
+           "{:7s} {:+.3e} {:+.3e} {:+.3e} {:+.3e}\n"
+           "{:7s} {:+.3e} {:+.3e} {:+.3e} {:+.3e} {:+.3e}",
+           "CovMat:", mC[kSigY2], "", mC[kSigZY], mC[kSigZ2], "", mC[kSigSnpY], mC[kSigSnpZ], mC[kSigSnp2], "", mC[kSigTglY],
+           mC[kSigTglZ], mC[kSigTglSnp], mC[kSigTgl2], "", mC[kSigQ2PtY], mC[kSigQ2PtZ], mC[kSigQ2PtSnp], mC[kSigQ2PtTgl],
+           mC[kSigQ2Pt2]);
+}
+
 //______________________________________________________________
 void TrackParCov::print() const
 {
   // print parameters
-  printParam();
-  printf(
-    "%7s %+.3e\n"
-    "%7s %+.3e %+.3e\n"
-    "%7s %+.3e %+.3e %+.3e\n"
-    "%7s %+.3e %+.3e %+.3e %+.3e\n"
-    "%7s %+.3e %+.3e %+.3e %+.3e %+.3e\n",
-    "CovMat:", mC[kSigY2], "", mC[kSigZY], mC[kSigZ2], "", mC[kSigSnpY], mC[kSigSnpZ], mC[kSigSnp2], "", mC[kSigTglY],
-    mC[kSigTglZ], mC[kSigTglSnp], mC[kSigTgl2], "", mC[kSigQ2PtY], mC[kSigQ2PtZ], mC[kSigQ2PtSnp], mC[kSigQ2PtTgl],
-    mC[kSigQ2Pt2]);
+  printf("%s\n", asString().c_str());
 }
+#endif
 
 //=================================================
 //

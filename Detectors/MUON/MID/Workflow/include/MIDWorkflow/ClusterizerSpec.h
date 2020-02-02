@@ -22,7 +22,7 @@ namespace o2
 {
 namespace mid
 {
-framework::DataProcessorSpec getClusterizerSpec(bool isMC = false);
+framework::DataProcessorSpec getClusterizerSpec();
 }
 } // namespace o2
 

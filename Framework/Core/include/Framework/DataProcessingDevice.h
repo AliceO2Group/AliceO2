@@ -33,28 +33,35 @@
 
 #include <memory>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
+struct InputChannelInfo;
+struct DeviceState;
+
+/// A device actually carrying out all the DPL
+/// Data Processing needs.
 class DataProcessingDevice : public FairMQDevice
 {
  public:
-  DataProcessingDevice(const DeviceSpec& spec, ServiceRegistry&);
+  DataProcessingDevice(DeviceSpec const& spec, ServiceRegistry&, DeviceState& state);
   void Init() final;
   void PreRun() final;
   void PostRun() final;
   void Reset() final;
+  void ResetTask() final;
   bool ConditionalRun() final;
 
  protected:
-  bool handleData(FairMQParts&);
+  bool handleData(FairMQParts&, InputChannelInfo&);
   bool tryDispatchComputation();
   void error(const char* msg);
 
  private:
+  /// The specification used to create the initial state of this device
   DeviceSpec const& mSpec;
+  /// The current internal state of this device.
+  DeviceState& mState;
   AlgorithmSpec::InitCallback mInit;
   AlgorithmSpec::ProcessCallback mStatefulProcess;
   AlgorithmSpec::ProcessCallback mStatelessProcess;
@@ -80,6 +87,5 @@ class DataProcessingDevice : public FairMQDevice
   DataProcessingStats mStats;                /// Stats about the actual data processing.
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 #endif

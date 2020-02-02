@@ -27,6 +27,12 @@ DECLARE_SOA_COLUMN(Z, z, float, "z");
 DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](float x, float y) { return x + y; });
 } // namespace test
 
+#ifdef __APPLE__
+constexpr unsigned int maxrange = 10;
+#else
+constexpr unsigned int maxrange = 15;
+#endif
+
 static void BM_SimpleForLoop(benchmark::State& state)
 {
   struct XYZ {
@@ -54,7 +60,7 @@ static void BM_SimpleForLoop(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_SimpleForLoop)->Range(8, 8 << 17);
+BENCHMARK(BM_SimpleForLoop)->Range(8, 8 << maxrange);
 
 static void BM_TrackForLoop(benchmark::State& state)
 {
@@ -89,7 +95,7 @@ static void BM_TrackForLoop(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_TrackForLoop)->Range(8, 8 << 17);
+BENCHMARK(BM_TrackForLoop)->Range(8, 8 << maxrange);
 
 static void BM_WholeTrackForLoop(benchmark::State& state)
 {
@@ -108,7 +114,7 @@ static void BM_WholeTrackForLoop(benchmark::State& state)
   std::default_random_engine e1(1234567891);
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
-  for (size_t i = 0; i < state.range(0); ++i) {
+  for (auto i = 0u; i < state.range(0); ++i) {
     foo[i] = TestTrack{
       uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
       uniform_dist(e1), uniform_dist(e1), uniform_dist(e1)};
@@ -124,7 +130,7 @@ static void BM_WholeTrackForLoop(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 6);
 }
 
-BENCHMARK(BM_WholeTrackForLoop)->Range(8, 8 << 17);
+BENCHMARK(BM_WholeTrackForLoop)->Range(8, 8 << maxrange);
 
 static void BM_TrackForPhi(benchmark::State& state)
 {
@@ -143,7 +149,7 @@ static void BM_TrackForPhi(benchmark::State& state)
   std::default_random_engine e1(1234567891);
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
-  for (size_t i = 0; i < state.range(0); ++i) {
+  for (auto i = 0u; i < state.range(0); ++i) {
     foo[i] = TestTrack{
       uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
       uniform_dist(e1), uniform_dist(e1), uniform_dist(e1)};
@@ -161,7 +167,7 @@ static void BM_TrackForPhi(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_TrackForPhi)->Range(8, 8 << 17);
+BENCHMARK(BM_TrackForPhi)->Range(8, 8 << maxrange);
 
 static void BM_SimpleForLoopWithOp(benchmark::State& state)
 {
@@ -177,7 +183,7 @@ static void BM_SimpleForLoopWithOp(benchmark::State& state)
   std::default_random_engine e1(1234567891);
   std::uniform_real_distribution<float> uniform_dist(0, 1);
 
-  for (size_t i = 0; i < state.range(0); ++i) {
+  for (auto i = 0u; i < state.range(0); ++i) {
     foo[i] = XYZ{uniform_dist(e1), uniform_dist(e1), uniform_dist(e1)};
   }
 
@@ -191,7 +197,7 @@ static void BM_SimpleForLoopWithOp(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_SimpleForLoopWithOp)->Range(8, 8 << 17);
+BENCHMARK(BM_SimpleForLoopWithOp)->Range(8, 8 << maxrange);
 
 static void BM_ASoASimpleForLoop(benchmark::State& state)
 {
@@ -201,7 +207,7 @@ static void BM_ASoASimpleForLoop(benchmark::State& state)
 
   TableBuilder builder;
   auto rowWriter = builder.persist<float, float, float>({"x", "y", "z"});
-  for (size_t i = 0; i < state.range(0); ++i) {
+  for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto table = builder.finalize();
@@ -211,7 +217,7 @@ static void BM_ASoASimpleForLoop(benchmark::State& state)
   for (auto _ : state) {
     float sum = 0;
     Test tests{table};
-    for (auto& test : tests) {
+    for (auto& _ : tests) {
       sum++;
     }
     benchmark::DoNotOptimize(sum++);
@@ -219,7 +225,7 @@ static void BM_ASoASimpleForLoop(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_ASoASimpleForLoop)->Range(8, 8 << 17);
+BENCHMARK(BM_ASoASimpleForLoop)->Range(8, 8 << maxrange);
 
 static void BM_ASoASimpleForLoopWithOp(benchmark::State& state)
 {
@@ -229,7 +235,7 @@ static void BM_ASoASimpleForLoopWithOp(benchmark::State& state)
 
   TableBuilder builder;
   auto rowWriter = builder.persist<float, float, float>({"x", "y", "z"});
-  for (size_t i = 0; i < state.range(0); ++i) {
+  for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto table = builder.finalize();
@@ -247,7 +253,7 @@ static void BM_ASoASimpleForLoopWithOp(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_ASoASimpleForLoopWithOp)->Range(8, 8 << 17);
+BENCHMARK(BM_ASoASimpleForLoopWithOp)->Range(8, 8 << maxrange);
 
 static void BM_ASoADynamicColumnPresent(benchmark::State& state)
 {
@@ -257,7 +263,7 @@ static void BM_ASoADynamicColumnPresent(benchmark::State& state)
 
   TableBuilder builder;
   auto rowWriter = builder.persist<float, float, float>({"x", "y", "z"});
-  for (size_t i = 0; i < state.range(0); ++i) {
+  for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto table = builder.finalize();
@@ -275,7 +281,7 @@ static void BM_ASoADynamicColumnPresent(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_ASoADynamicColumnPresent)->Range(8, 8 << 17);
+BENCHMARK(BM_ASoADynamicColumnPresent)->Range(8, 8 << maxrange);
 
 static void BM_ASoADynamicColumnCall(benchmark::State& state)
 {
@@ -285,7 +291,7 @@ static void BM_ASoADynamicColumnCall(benchmark::State& state)
 
   TableBuilder builder;
   auto rowWriter = builder.persist<float, float, float>({"x", "y", "z"});
-  for (size_t i = 0; i < state.range(0); ++i) {
+  for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
   }
   auto table = builder.finalize();
@@ -303,7 +309,7 @@ static void BM_ASoADynamicColumnCall(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_ASoADynamicColumnCall)->Range(8, 8 << 17);
+BENCHMARK(BM_ASoADynamicColumnCall)->Range(8, 8 << maxrange);
 
 static void BM_ASoAGettersPhi(benchmark::State& state)
 {
@@ -313,7 +319,7 @@ static void BM_ASoAGettersPhi(benchmark::State& state)
 
   TableBuilder builder;
   auto rowWriter = builder.cursor<o2::aod::Tracks>();
-  for (size_t i = 0; i < state.range(0); ++i) {
+  for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1));
@@ -322,7 +328,6 @@ static void BM_ASoAGettersPhi(benchmark::State& state)
 
   o2::aod::Tracks tracks{table};
   for (auto _ : state) {
-    int i = 0;
     state.PauseTiming();
     std::vector<float> out;
     out.resize(state.range(0));
@@ -336,7 +341,7 @@ static void BM_ASoAGettersPhi(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 
-BENCHMARK(BM_ASoAGettersPhi)->Range(8, 8 << 17);
+BENCHMARK(BM_ASoAGettersPhi)->Range(8, 8 << maxrange);
 
 static void BM_ASoAWholeTrackForLoop(benchmark::State& state)
 {
@@ -346,7 +351,7 @@ static void BM_ASoAWholeTrackForLoop(benchmark::State& state)
 
   TableBuilder builder;
   auto rowWriter = builder.cursor<o2::aod::Tracks>();
-  for (size_t i = 0; i < state.range(0); ++i) {
+  for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1));
@@ -364,7 +369,7 @@ static void BM_ASoAWholeTrackForLoop(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 6);
 }
 
-BENCHMARK(BM_ASoAWholeTrackForLoop)->Range(8, 8 << 17);
+BENCHMARK(BM_ASoAWholeTrackForLoop)->Range(8, 8 << maxrange);
 
 static void BM_ASoADynamicColumnPhi(benchmark::State& state)
 {
@@ -374,7 +379,7 @@ static void BM_ASoADynamicColumnPhi(benchmark::State& state)
 
   TableBuilder builder;
   auto rowWriter = builder.cursor<o2::aod::Tracks>();
-  for (size_t i = 0; i < state.range(0); ++i) {
+  for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
               uniform_dist(e1), uniform_dist(e1));
@@ -395,6 +400,6 @@ static void BM_ASoADynamicColumnPhi(benchmark::State& state)
   }
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
-BENCHMARK(BM_ASoADynamicColumnPhi)->Range(8, 8 << 17);
+BENCHMARK(BM_ASoADynamicColumnPhi)->Range(8, 8 << maxrange);
 
 BENCHMARK_MAIN();

@@ -42,8 +42,10 @@ BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> const&
     // FIXME: propagate default value?
     switch (spec.type) {
       case VariantType::Int:
-      case VariantType::Int64:
         options = options(name, bpo::value<int>()->default_value(spec.defaultValue.get<int>()), help);
+        break;
+      case VariantType::Int64:
+        options = options(name, bpo::value<int64_t>()->default_value(spec.defaultValue.get<int64_t>()), help);
         break;
       case VariantType::Float:
         options = options(name, bpo::value<float>()->default_value(spec.defaultValue.get<float>()), help);
@@ -73,6 +75,11 @@ BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> const&
 int BoostOptionsRetriever::getInt(const char* key) const
 {
   return mStore.get<int>(key);
+}
+
+int64_t BoostOptionsRetriever::getInt64(const char* key) const
+{
+  return mStore.get<int64_t>(key);
 }
 
 float BoostOptionsRetriever::getFloat(const char* key) const

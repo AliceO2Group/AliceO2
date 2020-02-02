@@ -7,17 +7,16 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_PROCESSING_CONTEXT_H
-#define FRAMEWORK_PROCESSING_CONTEXT_H
+#ifndef O2_FRAMEWORK_PROCESSINGCONTEXT_H_
+#define O2_FRAMEWORK_PROCESSINGCONTEXT_H_
 
 #include "Framework/InputRecord.h"
-#include "Framework/ServiceRegistry.h"
 #include "Framework/DataAllocator.h"
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
-{
+
+class ServiceRegistry;
 
 // This is a utility class to reduce the amount of boilerplate when defining
 // an algorithm.
@@ -40,7 +39,6 @@ class ProcessingContext
   DataAllocator& mAllocator;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif
+#endif // O2_FRAMEWORK_PROCESSINGCONTEXT_H_

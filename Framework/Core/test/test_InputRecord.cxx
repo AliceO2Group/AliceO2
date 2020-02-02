@@ -31,12 +31,15 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
   InputSpec spec2{"y", "ITS", "CLUSTERS", 0, Lifetime::Timeframe};
   InputSpec spec3{"z", "TST", "EMPTY", 0, Lifetime::Timeframe};
 
-  auto createRoute = [](const char* source, InputSpec& spec) {
+  size_t i = 0;
+  auto createRoute = [&i](const char* source, InputSpec& spec) {
     return InputRoute{
       spec,
+      i++,
       source};
   };
 
+  /// FIXME: keep it simple and simply use the constructor...
   std::vector<InputRoute> schema = {
     createRoute("x_source", spec1),
     createRoute("y_source", spec2),
@@ -124,6 +127,23 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
   // A few more time just to make sure we are not stateful..
   BOOST_CHECK_EQUAL(record.get<int>("x"), 1);
   BOOST_CHECK_EQUAL(record.get<int>("x"), 1);
+
+  // test the iterator
+  int position = 0;
+  for (auto input = record.begin(), end = record.end(); input != end; input++, position++) {
+    if (position == 0) {
+      BOOST_CHECK(input.matches("TPC") == true);
+      BOOST_CHECK(input.matches("TPC", "CLUSTERS") == true);
+      BOOST_CHECK(input.matches("ITS", "CLUSTERS") == false);
+    }
+    if (position == 1) {
+      BOOST_CHECK(input.matches("ITS") == true);
+      BOOST_CHECK(input.matches("ITS", "CLUSTERS") == true);
+      BOOST_CHECK(input.matches("TPC", "CLUSTERS") == false);
+    }
+    // check if invalid slots are filtered out by the iterator
+    BOOST_CHECK(position != 2);
+  }
 }
 
 // TODO:

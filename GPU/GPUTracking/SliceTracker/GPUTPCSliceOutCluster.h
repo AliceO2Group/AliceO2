@@ -32,8 +32,8 @@ class GPUTPCSliceOutCluster
   {
     mRow = row;
     mFlags = flags;
-    mAmp = amp;
     mId = id;
+    mAmp = amp;
     mX = x;
     mY = y;
     mZ = z;
@@ -42,13 +42,13 @@ class GPUTPCSliceOutCluster
   GPUhd() float GetX() const { return mX; }
   GPUhd() float GetY() const { return mY; }
   GPUhd() float GetZ() const { return mZ; }
+  GPUhd() unsigned short GetAmp() const { return mAmp; }
   GPUhd() unsigned int GetId() const { return mId; }
   GPUhd() unsigned char GetRow() const { return mRow; }
   GPUhd() unsigned char GetFlags() const { return mFlags; }
-  GPUhd() unsigned short GetAmp() const { return mAmp; }
 
  private:
-  unsigned int mId;     // Id ( slice, patch, cluster )
+  unsigned int mId;     // Id
   unsigned char mRow;   // row
   unsigned char mFlags; // flags
   unsigned short mAmp;  // amplitude

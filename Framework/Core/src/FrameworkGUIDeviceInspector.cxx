@@ -54,6 +54,11 @@ void deviceInfoTable(DeviceInfo const& info, DeviceMetricsInfo const& metrics)
     for (size_t i = 0; i < info.queriesViewIndex.indexes.size(); ++i) {
       auto& metric = metrics.metrics[info.queriesViewIndex.indexes[i]];
       ImGui::Text("%zu: %s", i, metrics.stringMetrics[metric.storeIdx][0].data);
+      if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::Text("%zu: %s", i, metrics.stringMetrics[metric.storeIdx][0].data);
+        ImGui::EndTooltip();
+      }
     }
   }
 }
@@ -114,7 +119,7 @@ void displayDeviceInspector(DeviceSpec const& spec,
   ImGui::Text("Name: %s", spec.name.c_str());
   ImGui::Text("Executable: %s", metadata.executable.c_str());
   ImGui::Text("Pid: %d", info.pid);
-  ImGui::Text("Rank: %zu/%zu%%%zu", spec.rank, spec.nSlots, spec.inputTimesliceId);
+  ImGui::Text("Rank: %zu/%zu%%%zu/%zu", spec.rank, spec.nSlots, spec.inputTimesliceId, spec.maxInputTimeslices);
 
   if (ImGui::Button("Attach debugger")) {
     std::string pid = std::to_string(info.pid);

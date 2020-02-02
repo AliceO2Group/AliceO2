@@ -13,7 +13,8 @@ usage() {
   echo
   echo "optional arguments:"
   echo "    -o, --outputFile=    : set output file name (default: pedestals.root)"
-  echo "    -t, --timeBins=      : number of time bins to process (default: 1000)"
+  echo "    -f, --fistTimeBin=   : first time bin for pulser search"
+  echo "    -l, --lastTimeBin=   : last time bin for pulser search"
   echo "    -n, --nevents=       : number of events to process (default: 1000)"
   echo "    -m, --adcMin=        : minimal ADC values accepted (default: 0)"
   echo "    -x, --adcMax=        : maximal ADC values accepted (default: 1100)"
@@ -36,7 +37,8 @@ usageAndExit() {
 fileInfo=
 outputFile=pedestals.root
 nevents=1000
-timeBins=1000
+firstTimeBin=0
+lastTimeBin=450
 statisticsType=0
 verbosity=0
 debugLevel=0
@@ -45,7 +47,7 @@ adcMin=0
 adcMax=1100
 
 # ===| parse command line options |=============================================
-OPTIONS=$(getopt -l "fileInfo:,outputFile:,timeBins:,nevents:,adcMax:,adcMax:,statType:,verbosity:,debugLevel:,help" -o "i:o:t:n:m:x:s:v:d:h" -n "runPedestal.sh" -- "$@")
+OPTIONS=$(getopt -l "fileInfo:,outputFile:,firstTimeBin:,lastTimeBin:,nevents:,adcMin:,adcMax:,statType:,verbosity:,debugLevel:,help" -o "i:o:t:f:l:n:m:x:s:v:d:h" -n "runPedestal.sh" -- "$@")
 
 if [ $? != 0 ] ; then
   usageAndExit
@@ -58,10 +60,11 @@ while true; do
     --) shift; break;;
     -i|--fileInfo) fileInfo=$2; shift 2;;
     -o|--outputFile) outputFile=$2; shift 2;;
-    -t|--timeBins) timeBins=$2; shift 2;;
+    -f|--firstTimeBin) firstTimeBin=$2; shift 2;;
+    -l|--lastTimeBin) lastTimeBin=$2; shift 2;;
     -n|--nevents) nevents=$2; shift 2;;
-    -m|--adcMax) adcMin=$2; shift 2;;
-    -x|--adcMin) adcMin=$2; shift 2;;
+    -m|--adcMin) adcMin=$2; shift 2;;
+    -x|--adcMax) adcMax=$2; shift 2;;
     -s|--statType) statisticsType=$2; shift 2;;
     -v|--verbosity) verbosity=$2; shift 2;;
     -d|--debugLevel) debugLevel=$2; shift 2;;
@@ -77,13 +80,18 @@ fi
 
 # ===| check time bin info |====================================================
 if [[ $fileInfo =~ : ]]; then
-  timeBins=${fileInfo#*:}
-  timeBins=${timeBins%%:*}
+  lastTimeBin=${fileInfo#*:}
+  lastTimeBin=${lastTimeBin%%:*}
 else
-  fileInfo=${fileInfo}:${timeBins}
+  fileInfo=${fileInfo}:${lastTimeBin}
 fi
 
+# ===| properly format fileInfo |===============================================
+fileInfo=$(echo $fileInfo | sed "s|^|{\"|;s|,|:$lastTimeBin\",\"|g;s|$|\"}|")
+
 # ===| command building and execution |=========================================
-cmd="root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/runPedestal.C'(\"$fileInfo\",\"$outputFile\", $nevents, $adcMin, $adcMax, $timeBins, $statisticsType, $verbosity, $debugLevel)'"
+cmd="root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/runPedestal.C'($fileInfo,\"$outputFile\", $nevents, $adcMin, $adcMax, $firstTimeBin, $lastTimeBin, $statisticsType, $verbosity, $debugLevel)'"
+#cmd="perf record -g -o perf.log root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/runPedestal.C'($fileInfo,\"$outputFile\", $nevents, $adcMin, $adcMax, $firstTimeBin, $lastTimeBin, $statisticsType, $verbosity, $debugLevel)'"
+#cmd="valgrind --tool=callgrind --dump-instr=yes --dump-instr=yes root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/runPedestal.C'($fileInfo,\"$outputFile\", $nevents, $adcMin, $adcMax, $firstTimeBin, $lastTimeBin, $statisticsType, $verbosity, $debugLevel)'"
 echo "running: $cmd"
 eval $cmd

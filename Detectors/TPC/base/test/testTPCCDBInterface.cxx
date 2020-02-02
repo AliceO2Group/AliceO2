@@ -20,7 +20,6 @@
 #include "TFile.h"
 
 // o2 includes
-#include "CCDB/Manager.h"
 #include "TPCBase/CDBInterface.h"
 #include "TPCBase/CDBInterface.h"
 #include "TPCBase/CalArray.h"
@@ -36,18 +35,20 @@ namespace o2
 {
 namespace tpc
 {
-template <class T>
-void writeObject(T& obj, const std::string_view type, const std::string_view name, const int run)
-{
-  auto cdb = o2::ccdb::Manager::Instance();
+//template <class T>
+//void writeObject(T& obj, const std::string_view type, const std::string_view name, const int run)
+//{
+//  auto cdb = o2::ccdb::Manager::Instance();
+//
+//  auto id = new o2::ccdb::ConditionId(
+//    "TPC/" + type +
+//      "/" + name,
+//    run, run, 1, 0);
+//  auto md = new o2::ccdb::ConditionMetaData();
+//  cdb->putObjectAny(&obj, *id, md);
+//}
 
-  auto id = new o2::ccdb::ConditionId(
-    "TPC/" + type +
-      "/" + name,
-    run, run, 1, 0);
-  auto md = new o2::ccdb::ConditionMetaData();
-  cdb->putObjectAny(&obj, *id, md);
-}
+const std::string ccdbUrl = "file:///tmp/CCDBSnapshot";
 
 /// \brief write a CalPad object to the CCDB
 CalPad writeCalPadObject(const std::string_view name, const int run, const int dataOffset = 0)
@@ -62,6 +63,11 @@ CalPad writeCalPadObject(const std::string_view name, const int run, const int d
       value = iter++;
     }
   }
+
+  o2::ccdb::CcdbApi ccdbApi;
+  ccdbApi.init(ccdbUrl);
+  std::map<std::string, std::string> metadata;
+  ccdbApi.storeAsTFileAny<CalPad>(data, "Calib", metadata);
 
   writeObject(data, "Calib", name, run);
 

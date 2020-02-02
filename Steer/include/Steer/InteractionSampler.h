@@ -29,8 +29,8 @@ class InteractionSampler
 {
  public:
   static constexpr float Sec2NanoSec = 1.e9; // s->ns conversion
-
-  o2::InteractionTimeRecord generateCollisionTime();
+  static constexpr int FirstOrbit = 1;       // start from orbit > 0 to avoid problems with negative BCs
+  const o2::InteractionTimeRecord& generateCollisionTime();
   void generateCollisionTimes(std::vector<o2::InteractionTimeRecord>& dest);
 
   void init();
@@ -43,6 +43,8 @@ class InteractionSampler
   float getBCTimeRMS() const { return mBCTimeRMS; }
   const BunchFilling& getBunchFilling() const { return mBCFilling; }
   BunchFilling& getBunchFilling() { return mBCFilling; }
+  void setBunchFilling(const BunchFilling& bc) { mBCFilling = bc; }
+  void setBunchFilling(const std::string& bcFillingFile);
   int getBCMin() const { return mBCMin; }
   int getBCMax() const { return mBCMax; }
 
@@ -54,9 +56,8 @@ class InteractionSampler
   void nextCollidingBC();
   void warnOrbitWrapped() const;
 
+  o2::InteractionTimeRecord mIR{{0, FirstOrbit}, 0.};
   int mIntBCCache = 0;         ///< N interactions left for current BC
-  int mBCCurrent = 0;          ///< current BC
-  unsigned int mOrbit = 0;     ///< current orbit
   int mBCMin = 0;              ///< 1st filled BCID
   int mBCMax = -1;             ///< last filled BCID
   float mIntRate = -1.;        ///< total interaction rate in Hz
@@ -88,14 +89,16 @@ inline void InteractionSampler::nextCollidingBC()
 {
   // increment bunch ID till next colliding bunch
   do {
-    if (++mBCCurrent > mBCMax) { // did we exhaust full orbit?
-      mBCCurrent = mBCMin;
-      if (++mOrbit >= o2::constants::lhc::MaxNOrbits) { // wrap orbit (should not happen in run3)
+    if (mIR.bc >= mBCMax) { // did we exhaust full orbit?
+      mIR.bc = mBCMin;
+      if (mIR.orbit == o2::constants::lhc::MaxNOrbits) { // wrap orbit (should not happen in run3)
         warnOrbitWrapped();
-        mOrbit = 0;
       }
+      mIR.orbit++;
+    } else {
+      mIR.bc++;
     }
-  } while (!mBCFilling.testBC(mBCCurrent));
+  } while (!mBCFilling.testBC(mIR.bc));
 }
 
 //_________________________________________________
@@ -104,9 +107,14 @@ inline int InteractionSampler::genPoissonZT()
   // generate 0-truncated poisson number
   // https://en.wikipedia.org/wiki/Zero-truncated_Poisson_distribution
   int k = 1;
-  double t = mMuBCZTRed, u = gRandom->Rndm(), s = t;
-  while (s < u) {
-    s += t *= mMuBC / (++k);
+  if (mMuBCZTRed > 0) {
+    double t = mMuBCZTRed, u = gRandom->Rndm(), s = t;
+    while (s < u) {
+      s += t *= mMuBC / (++k);
+    }
+  } else { // need to generate explicitly since the prob of
+    while (!(k = gRandom->Poisson(mMuBC))) {
+    };
   }
   return k;
 }

@@ -32,8 +32,8 @@ namespace globaltracking
 class TPCITSMatchingDPL : public Task
 {
  public:
-  TPCITSMatchingDPL(bool useMC, bool useFIT, const std::vector<int>& tpcClusLanes)
-    : mUseMC(useMC), mUseFIT(useFIT), mTPCClusLanes(tpcClusLanes) {}
+  TPCITSMatchingDPL(bool useMC, const std::vector<int>& tpcClusLanes)
+    : mUseMC(useMC), mTPCClusLanes(tpcClusLanes) {}
   ~TPCITSMatchingDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -44,15 +44,12 @@ class TPCITSMatchingDPL : public Task
   std::vector<int> mTPCClusLanes;
   std::array<std::vector<char>, o2::tpc::Constants::MAXSECTOR> mBufferedTPCClusters; // at the moment not used
 
-  bool mUseFIT = false;
-
   bool mFinished = false;
   bool mUseMC = true;
 };
 
 /// create a processor spec
-/// write ITS tracks a root file
-framework::DataProcessorSpec getTPCITSMatchingSpec(bool useMC, bool useFIT, const std::vector<int>& tpcClusLanes);
+framework::DataProcessorSpec getTPCITSMatchingSpec(bool useMC, const std::vector<int>& tpcClusLanes);
 
 } // namespace globaltracking
 } // namespace o2

@@ -27,20 +27,21 @@ namespace mft
 class TrackerDPL : public o2::framework::Task
 {
  public:
-  TrackerDPL() = default;
+  TrackerDPL(bool useMC) : mUseMC(useMC) {}
   ~TrackerDPL() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
 
  private:
   int mState = 0;
+  bool mUseMC = false;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
   std::unique_ptr<o2::mft::Tracker> mTracker = nullptr;
 };
 
 /// create a processor spec
 /// run MFT CA tracker
-o2::framework::DataProcessorSpec getTrackerSpec();
+o2::framework::DataProcessorSpec getTrackerSpec(bool useMC);
 
 } // namespace mft
 } // namespace o2

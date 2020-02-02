@@ -102,6 +102,7 @@ class Geo
   static constexpr Float_t TDCBIN = o2::constants::lhc::LHCBunchSpacingNS * 1E3 / 1024; ///< TDC bin width [ps]
   static constexpr Float_t NTDCBIN_PER_PS = 1. / TDCBIN;     ///< number of TDC bins in 1 ns
   static constexpr Float_t TOTBIN = TDCBIN * 2;              // time-over-threshold bin width [ps]
+  static constexpr Float_t TOTBIN_NS = TOTBIN * 1E-3;        // time-over-threshold bin width [ns]
   static constexpr Float_t NTOTBIN_PER_NS = 1000. / TOTBIN;  // number of time-over-threshold bin in 1 ns
   static constexpr Float_t BUNCHCROSSINGBIN = TDCBIN * 1024; // bunch-crossing bin width [ps]
 
@@ -110,11 +111,16 @@ class Geo
 
   static constexpr Float_t DEADTIME = 25E+03;               // Single channel dead time (ps)
   static constexpr Float_t DEADTIMETDC = DEADTIME / TDCBIN; ///< Single channel TDC dead time (ps)
-  static constexpr Float_t MATCHINGWINDOW = TDCBIN * 8192;  // Matching window  (ps) 2^13=8192
   static constexpr int NWINDOW_IN_ORBIT = 3;                //< Number of tof window in 1 orbit
-  static constexpr Float_t READOUTWINDOW = o2::constants::lhc::LHCOrbitNS / NWINDOW_IN_ORBIT; // Readout window (ns)
+  static constexpr Double_t READOUTWINDOW = o2::constants::lhc::LHCOrbitNS / NWINDOW_IN_ORBIT; // Readout window (ns) - time between two consecutive triggers = 1/3 orbit
   static constexpr int BC_IN_WINDOW = BC_IN_ORBIT / NWINDOW_IN_ORBIT;                         // N. bunch crossing in 1 tof window
-  static constexpr Float_t READOUTWINDOW_INV = 1. / READOUTWINDOW; // Readout window (ns)
+  static constexpr Double_t READOUTWINDOW_INV = 1. / READOUTWINDOW;                           // Readout window (ns)
+
+  static constexpr Int_t LATENCYWINDOW_IN_BC = 1400;                                                       // Latency window  in BC (larger than 1/3 orbit 1188 BC)
+  static constexpr Int_t MATCHINGWINDOW_IN_BC = 1200;                                                      // Latency window  in BC (larger than 1/3 orbit 1188 BC)
+  static constexpr Double_t LATENCYWINDOW = LATENCYWINDOW_IN_BC * o2::constants::lhc::LHCBunchSpacingNS;   // Latency window  in ns
+  static constexpr Double_t MATCHINGWINDOW = MATCHINGWINDOW_IN_BC * o2::constants::lhc::LHCBunchSpacingNS; // Matching window  in ns
+  static constexpr Double_t WINDOWOVERLAP = MATCHINGWINDOW - READOUTWINDOW;                                // overlap between two consecutive matchingwindow
 
   static constexpr Float_t ANGLES[NPLATES][NMAXNSTRIP] = { // Strip Tilt Angles
     {43.99, 43.20, 42.40, 41.59, 40.77, 39.94, 39.11, 38.25, 37.40, 36.53,

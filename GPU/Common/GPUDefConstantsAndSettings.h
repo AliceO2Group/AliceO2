@@ -20,8 +20,8 @@
   #error Please include GPUDef.h
 #endif
 
-#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB) && !defined(GPUCA_O2_LIB)
-  #error You are using the CA GPU tracking without defining the build type (O2/AliRoot/Standalone). If you are running a ROOT macro, please include GPUO2Interface.h first!
+#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB) && !defined(GPUCA_O2_LIB) && !defined(GPUCA_O2_INTERFACE)
+  #error You are using the CA GPU tracking without defining the build type (O2/AliRoot/Standalone). If you are running an O2 ROOT macro, please include GPUO2Interface.h first!
 #endif
 
 #if (defined(GPUCA_ALIROOT_LIB) && defined(GPUCA_O2_LIB)) || (defined(GPUCA_ALIROOT_LIB) && defined(GPUCA_STANDALONE)) || (defined(GPUCA_O2_LIB) && defined(GPUCA_STANDALONE))
@@ -52,16 +52,14 @@
 
 #define GPUCA_MAX_SLICE_NTRACK (2 << 24)              // Maximum number of tracks per slice (limited by track id format)
 
-#define GPUCA_TIMING_SUM 1
-
 #define GPUCA_MAX_SIN_PHI_LOW 0.99f                   // Must be preprocessor define because c++ pre 11 cannot use static constexpr for initializes
 #define GPUCA_MAX_SIN_PHI 0.999f
 
 #if defined(HAVE_O2HEADERS) && (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !(defined(ROOT_VERSION_CODE) && ROOT_VERSION_CODE < 393216)
   //Use definitions from the O2 headers if available for nicer code and type safety
   #include "DataFormatsTPC/Constants.h"
-  #define GPUCA_NSLICES GPUCA_NAMESPACE::tpc::Constants::MAXSECTOR
-  #define GPUCA_ROW_COUNT GPUCA_NAMESPACE::tpc::Constants::MAXGLOBALPADROW
+  #define GPUCA_NSLICES o2::tpc::Constants::MAXSECTOR
+  #define GPUCA_ROW_COUNT o2::tpc::Constants::MAXGLOBALPADROW
 #else
   //Define it manually, if O2 headers not available, ROOT5, and OpenCL 1.2, which do not know C++11.
   #define GPUCA_NSLICES 36

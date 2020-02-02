@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file RangeReference.h
-/// \brief Class to refered to the 1st entry and N elements of some group in the continuous container
+/// \brief Class to refer to the 1st entry and N elements of some group in the continuous container
 /// \author ruben.shahoyan@cern.ch
 
 #ifndef ALICEO2_RANGEREFERENCE_H
@@ -36,6 +36,7 @@ class RangeReference
     mFirstEntry = ent;
     mEntries = n;
   }
+  void clear() { set(0, 0); }
   FirstEntry getFirstEntry() const { return mFirstEntry; }
   NElem getEntries() const { return mEntries; }
   void setFirstEntry(FirstEntry ent) { mFirstEntry = ent; }

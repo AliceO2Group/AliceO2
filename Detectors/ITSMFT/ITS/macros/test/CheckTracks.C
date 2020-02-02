@@ -254,12 +254,13 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
 
         const Cluster& c = (*clusArr)[i];
 
+        /* FIXME
         if (clusRofMap[mcid] < 0) {
           clusRofMap[mcid] = c.getROFrame();
         }
         if (filterMultiROFTracks && (clusRofMap[mcid] != (int)c.getROFrame()))
           continue;
-
+*/
         nClusters++;
 
         int& ok = clusMap[mcid];

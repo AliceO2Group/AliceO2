@@ -53,7 +53,7 @@ class GPUTPCCompression : public GPUProcessor
 #ifndef GPUCA_GPUCODE
   void InitializeProcessor();
   void RegisterMemoryAllocation();
-  void SetMaxData();
+  void SetMaxData(const GPUTrackingInOutPointers& io);
 
   void* SetPointersOutputHost(void* mem);
   void* SetPointersOutput(void* mem);
@@ -61,11 +61,17 @@ class GPUTPCCompression : public GPUProcessor
   void* SetPointersMemory(void* mem);
 #endif
 
-  GPUd() static void truncateSignificantBitsCharge(unsigned short& charge, const GPUParam& param)
-  {
-    truncateSignificantBits(charge, param.rec.tpcSigBitsCharge);
-  }
-  GPUd() static void truncateSignificantBitsWidth(unsigned char& width, const GPUParam& param) { truncateSignificantBits(width, param.rec.tpcSigBitsWidth); }
+  static constexpr unsigned int P_MAX_QMAX = 1 << 10;
+  static constexpr unsigned int P_MAX_QTOT = 5 * 5 * P_MAX_QMAX;
+  static constexpr unsigned int P_MAX_TIME = 1 << 24;
+  static constexpr unsigned int P_MAX_PAD = 1 << 16;
+  static constexpr unsigned int P_MAX_SIGMA = 1 << 8;
+  static constexpr unsigned int P_MAX_FLAGS = 1 << 8;
+  static constexpr unsigned int P_MAX_QPT = 1 << 8;
+
+  GPUd() static void truncateSignificantBitsCharge(unsigned short& charge, const GPUParam& param) { truncateSignificantBits(charge, param.rec.tpcSigBitsCharge, P_MAX_QTOT); }
+  GPUd() static void truncateSignificantBitsChargeMax(unsigned short& charge, const GPUParam& param) { truncateSignificantBits(charge, param.rec.tpcSigBitsCharge, P_MAX_QMAX); }
+  GPUd() static void truncateSignificantBitsWidth(unsigned char& width, const GPUParam& param) { truncateSignificantBits(width, param.rec.tpcSigBitsWidth, P_MAX_SIGMA); }
 
  protected:
   struct memory {
@@ -94,7 +100,7 @@ class GPUTPCCompression : public GPUProcessor
   template <class T>
   void SetPointersCompressedClusters(void*& mem, T& c, unsigned int nClA, unsigned int nTr, unsigned int nClU, bool reducedClA);
   template <class T>
-  GPUd() static void truncateSignificantBits(T& val, unsigned int nBits);
+  GPUd() static void truncateSignificantBits(T& val, unsigned int nBits, unsigned int max);
 
   short mMemoryResOutput = -1;
   short mMemoryResOutputHost = -1;
@@ -103,7 +109,7 @@ class GPUTPCCompression : public GPUProcessor
 };
 
 template <class T>
-GPUdi() void GPUTPCCompression::truncateSignificantBits(T& v, unsigned int nBits)
+GPUdi() void GPUTPCCompression::truncateSignificantBits(T& v, unsigned int nBits, unsigned int max)
 {
   if (nBits == 0) {
     return;
@@ -117,6 +123,9 @@ GPUdi() void GPUTPCCompression::truncateSignificantBits(T& v, unsigned int nBits
       ldz = sizeof(unsigned int) * 8 - CAMath::Clz(val);
     }
     val &= ((1 << ldz) - 1) ^ ((1 << (ldz - nBits)) - 1);
+    if (val >= max) {
+      val = max - 1;
+    }
     // GPUInfo("CHANGING X %x --> %x", (unsigned int) v, val);
     v = val;
   }

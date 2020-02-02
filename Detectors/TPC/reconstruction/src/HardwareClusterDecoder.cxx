@@ -140,16 +140,11 @@ void HardwareClusterDecoder::sortClustersAndMC(ClusterNative* clusters, size_t n
   std::sort(indizes.begin(), indizes.end(), [&clusters](const auto a, const auto b) {
     return clusters[a] < clusters[b];
   });
-  std::vector<unsigned int> actual = indizes;
+  std::vector<ClusterNative> buffer(clusters, clusters + nClusters);
   MCLabelContainer tmpMC = std::move(mcTruth);
   assert(mcTruth.getIndexedSize() == 0);
   for (int i = 0; i < nClusters; i++) {
-    ClusterNative backup = clusters[i];
-    clusters[i] = clusters[actual[indizes[i]]];
-    clusters[actual[indizes[i]]] = backup;
-    auto tmp = actual[i];
-    actual[i] = actual[indizes[i]];
-    actual[indizes[i]] = tmp;
+    clusters[i] = buffer[indizes[i]];
     for (auto const& label : tmpMC.getLabels(indizes[i])) {
       mcTruth.addElement(i, label);
     }

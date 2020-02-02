@@ -36,6 +36,12 @@ void CalibRawBase::setupContainers(TString fileInfo, uint32_t verbosity, uint32_
   for (auto o : *arrData) {
     const TString& data = static_cast<TObjString*>(o)->String();
 
+    std::cout << " data: " << data << "\n";
+    if (data.Contains(".root")) {
+      rorcType = "digits";
+      std::cout << "Setting digits\n";
+    }
+
     // get file info: file name, cru, link
     auto arrDataInfo = data.Tokenize(":");
     if (arrDataInfo->GetEntriesFast() == 1) {
@@ -60,19 +66,36 @@ void CalibRawBase::setupContainers(TString fileInfo, uint32_t verbosity, uint32_
       TString files = gSystem->GetFromPipe(TString::Format("ls %s", arrDataInfo->At(0)->GetName()));
       const int timeBins = static_cast<TObjString*>(arrDataInfo->At(1))->String().Atoi();
       std::unique_ptr<TObjArray> arr(files.Tokenize("\n"));
+      mRawReaderCRUManager.reset();
+      mPresentEventNumber = 0; // reset event number for readers
+      mRawReaderCRUManager.setDebugLevel(debugLevel);
+      mRawReaderCRUManager.setADCDataCallback([this](const PadROCPos& padROCPos, const CRU& cru, const gsl::span<const uint32_t> data) -> Int_t {
+        Int_t timeBins = update(padROCPos, cru, data);
+        mProcessedTimeBins = std::max(mProcessedTimeBins, size_t(timeBins));
+        return timeBins;
+      });
       for (auto file : *arr) {
         // fix the number of time bins
-        mRawReadersCRU.emplace_back(std::make_unique<RawReaderCRU>(file->GetName(), timeBins));
-        mRawReadersCRU.back()->setVerbosity(verbosity);
-        mRawReadersCRU.back()->setDebugLevel(debugLevel);
+        auto& reader = mRawReaderCRUManager.createReader(file->GetName(), timeBins);
+        reader.setVerbosity(verbosity);
+        reader.setDebugLevel(debugLevel);
+        reader.setFillADCdataMap(false); // switch off filling and use callback above
         printf("Adding file: %s\n", file->GetName());
         if (arrDataInfo->GetEntriesFast() == 3) {
           const int cru = static_cast<TObjString*>(arrDataInfo->At(2))->String().Atoi();
-          mRawReadersCRU.back()->forceCRU(cru);
+          reader.forceCRU(cru);
           printf("Forcing CRU %03d\n", cru);
         }
       }
-
+    } else if (rorcType == "digits") {
+      TString files = gSystem->GetFromPipe(TString::Format("ls %s", arrDataInfo->At(0)->GetName()));
+      //const int timeBins = static_cast<TObjString*>(arrDataInfo->At(1))->String().Atoi();
+      std::unique_ptr<TObjArray> arr(files.Tokenize("\n"));
+      mDigitTree = std::make_unique<TChain>("o2sim", "Digit chain");
+      //mDigitTree = new TChain("Digits","Digit chain");
+      for (auto file : *arr) {
+        mDigitTree->AddFile(file->GetName());
+      }
     } else if (arrDataInfo->GetEntriesFast() < 3) {
       printf("Error, badly formatte input data string: %s, expected format is <filename:cru:link[:sampaVersion]>\n",
              data.Data());
@@ -86,7 +109,7 @@ void CalibRawBase::setupContainers(TString fileInfo, uint32_t verbosity, uint32_
       rawReader->addInputFile(data.Data());
 
       addRawReader(rawReader);
-    } else if (rorcType != "cru") {
+    } else if ((rorcType != "cru") && (rorcType != "digits")) {
       TString& filename = static_cast<TObjString*>(arrDataInfo->At(0))->String();
       iCRU = static_cast<TObjString*>(arrDataInfo->At(1))->String().Atoi();
       iLink = static_cast<TObjString*>(arrDataInfo->At(2))->String().Atoi();

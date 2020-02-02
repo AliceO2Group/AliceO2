@@ -49,7 +49,7 @@ void FT0RecPointWriter::run(ProcessingContext& pc)
   tree.Write();
 
   mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(false);
+  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 DataProcessorSpec getFT0RecPointWriterSpec(bool useMC)

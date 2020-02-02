@@ -39,7 +39,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           } else {
             LOG(INFO) << "Everything OK";
           }
-          ctx.services().get<ControlService>().readyToQuit(true);
+          ctx.services().get<ControlService>().readyToQuit(QuitRequest::All);
         } //
       }   //
     }     //

@@ -10,54 +10,47 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <iostream>
+#include <vector>
+#include <string_view>
+#include "TFile.h"
 #include "TPCCalibration/CalibPedestal.h"
 #include "TPCCalibration/CalibRawBase.h"
 #endif
 
-void runPedestal(TString fileInfo, TString outputFileName = "", Int_t nevents = 100, Int_t adcMin = 0, Int_t adcMax = 1100, Int_t numberTimeBins = 500, Int_t statisticsType = 0, uint32_t verbosity = 0, uint32_t debugLevel = 0)
+void runPedestal(std::vector<std::string_view> fileInfos, TString outputFileName = "", Int_t nevents = 100, Int_t adcMin = 0, Int_t adcMax = 1100, Int_t firstTimeBin = 0, Int_t lastTimeBin = 450, Int_t statisticsType = 0, uint32_t verbosity = 0, uint32_t debugLevel = 0, Int_t firstEvent = 0)
 {
   using namespace o2::tpc;
   CalibPedestal ped; //(PadSubset::Region);
   ped.setADCRange(adcMin, adcMax);
-  ped.setupContainers(fileInfo, verbosity, debugLevel);
-  ped.setStatisticsType(CalibPedestal::StatisticsType(statisticsType));
-  ped.setTimeBinRange(0, numberTimeBins);
+  ped.setStatisticsType(StatisticsType(statisticsType));
+  ped.setTimeBinRange(firstTimeBin, lastTimeBin);
 
   //ped.processEvent();
   //ped.resetData();
 
   CalibRawBase::ProcessStatus status = CalibRawBase::ProcessStatus::Ok;
-  //while (ped.processEvent());
-  for (Int_t i = 0; i < nevents; ++i) {
-    status = ped.processEvent();
-    cout << "Processing event " << i << " with status " << int(status) << '\n';
-    if (status != CalibRawBase::ProcessStatus::Ok) {
-      break;
+
+  for (const auto& fileInfo : fileInfos) {
+    ped.setupContainers(fileInfo.data(), verbosity, debugLevel);
+
+    for (Int_t i = firstEvent; i < firstEvent + nevents; ++i) {
+      status = ped.processEvent(i);
+      cout << "Processing event " << i << " with status " << int(status) << '\n';
+      if (status == CalibRawBase::ProcessStatus::IncompleteEvent) {
+        continue;
+      } else if (status != CalibRawBase::ProcessStatus::Ok) {
+        break;
+      }
     }
   }
   ped.analyse();
 
-  cout << "Number of processed events: " << ped.getNumberOfProcessedEvents() << '\n';
-  cout << "Status: " << int(status) << '\n';
-  if (outputFileName.IsNull())
+  std::cout << "Number of processed events: " << ped.getNumberOfProcessedEvents() << '\n';
+  std::cout << "Status: " << int(status) << '\n';
+  if (outputFileName.IsNull()) {
     outputFileName = "Pedestals.root";
+  }
   ped.dumpToFile(outputFileName.Data());
 
-  //const CalDet<float>& calPedestal = ped.getPedestal();
-  //const CalDet<float>& calNoise    = ped.getNoise();
-
-  //painter::Draw(calPedestal);
-  //painter::Draw(calNoise);
-
-  //TCanvas *cPedestal = new TCanvas("cPedestal","Pedestal");
-  //auto hPedestal = painter::getHistogram2D(calPedestal.getCalArray(0));
-  //hPedestal->SetTitle("Pedestals");
-  //hPedestal->Draw("colz");
-
-  //TCanvas *cNoise = new TCanvas("cNoise","Noise");
-  //auto hNoise = painter::getHistogram2D(calNoise.getCalArray(0));
-  //hNoise->SetTitle("Noise");
-  //hNoise->Draw("colz");
-
-  cout << "To display the pedestals run: root.exe $calibMacroDir/drawNoiseAndPedestal.C'(\"" << outputFileName << "\")'\n";
+  std::cout << "To display the pedestals run: root.exe $calibMacroDir/drawNoiseAndPedestal.C'(\"" << outputFileName << "\")'\n";
 }

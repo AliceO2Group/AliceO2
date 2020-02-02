@@ -32,7 +32,8 @@ class GPUSettings
   enum CompressionSort { SortTime = 0,
                          SortPad = 1,
                          SortZTimePad = 2,
-                         SortZPadTime = 3 };
+                         SortZPadTime = 3,
+                         SortNoSort = 4 };
   enum CompressionRejection { RejectionNone = 0,
                               RejectionStrategyA = 1,
                               RejectionStrategyB = 2 };
@@ -63,6 +64,7 @@ struct GPUSettingsRec {
   float SearchWindowDZDR;                // Use DZDR window for seeding instead of vertex window
   float TrackReferenceX;                 // Transport all tracks to this X after tracking (disabled if > 500)
   char NonConsecutiveIDs;                // Non-consecutive cluster IDs as in HLT, disables features that need access to slice data in TPC merger
+  char ForceEarlyTPCTransform;           // Force early TPC transformation also for continuous data (-1 = auto)
   unsigned char DisableRefitAttachment;  // Bitmask to disable cluster attachment steps in refit: 1: attachment, 2: propagation, 4: loop following, 8: mirroring
   unsigned char dEdxTruncLow;            // Low truncation threshold, fraction of 128
   unsigned char dEdxTruncHigh;           // High truncation threshold, fraction of 128
@@ -72,6 +74,9 @@ struct GPUSettingsRec {
   unsigned char tpcCompressionSortOrder; // Sort order for clusters storred as differences (0 = time, 1 = pad, 2 = Z-curve-time-pad, 3 = Z-curve-pad-time)
   unsigned char tpcSigBitsCharge;        // Number of significant bits for TPC cluster charge in compression mode 1
   unsigned char tpcSigBitsWidth;         // Number of significant bits for TPC cluster width in compression mode 1
+  unsigned char tpcZSthreshold;          // TPC Zero Suppression Threshold (for loading digits / forwarging digits as clusters)
+  unsigned char fwdTPCDigitsAsClusters;  // Simply forward TPC digits as clusters
+  unsigned char bz0Pt;                   // Nominal Pt to set when bz = 0 (in 10 MeV)
 };
 
 // Settings describing the events / time frames
@@ -89,6 +94,7 @@ struct GPUSettingsEvent {
   int constBz;              // for test-MC events with constant Bz
   int homemadeEvents;       // Toy-MC events
   int continuousMaxTimeBin; // 0 for triggered events, -1 for default of 23ms
+  int needsClusterer;       // Set to true if the data requires the clusterizer
 };
 
 // Settings defining the setup of the GPUReconstruction processing (basically selecting the device / class instance)
@@ -135,6 +141,8 @@ struct GPUSettingsDeviceProcessing {
   bool trackletConstructorInPipeline; // Run tracklet constructor in pileline like the preceeding tasks instead of as one big block
   bool trackletSelectorInPipeline;    // Run tracklet selector in pipeline, requres also tracklet constructor in pipeline
   size_t forceMemoryPoolSize;         // Override size of memory pool to be allocated on GPU / Host
+  int nTPCClustererLanes;             // Number of TPC clusterers that can run in parallel
+  bool deviceTimers;                  // Use device timers instead of host-based timers
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

@@ -34,8 +34,6 @@ void createGeometry(TGeoVolume& topVolume);
 /// get a list of MID sensitive volumes
 std::vector<TGeoVolume*> getSensitiveVolumes();
 
-GeometryTransformer createTransformationFromManager(const TGeoManager* geoManager);
-
 } // namespace mid
 } // namespace o2
 

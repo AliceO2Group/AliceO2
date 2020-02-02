@@ -17,6 +17,7 @@
 #define ALICEO2_MCH_CLUSTER_H_
 
 #include <iostream>
+#include <string>
 
 #include "MCHBase/ClusterBlock.h"
 
@@ -63,6 +64,8 @@ class Cluster
   int getDEId() const { return ClusterStruct::getDEId(mUid); }
   /// Return the index of this cluster (0..), part of the unique ID
   int getClusterIndex() const { return ClusterStruct::getClusterIndex(mUid); }
+  /// Return the unique ID of this cluster in human readable form
+  std::string getIdAsString() const { return "DE" + std::to_string(getDEId()) + "#" + std::to_string(getClusterIndex()); }
 
  private:
   double mX;     ///< cluster position along x

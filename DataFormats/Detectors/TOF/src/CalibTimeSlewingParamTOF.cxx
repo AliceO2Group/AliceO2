@@ -50,7 +50,21 @@ CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF()
   }
 }
 //______________________________________________
+CalibTimeSlewingParamTOF& CalibTimeSlewingParamTOF::operator=(const CalibTimeSlewingParamTOF& source)
+{
+  for (int i = 0; i < NSECTORS; i++) {
+    mTimeSlewing[i]->clear();
+    *(mTimeSlewing[i]) = *(source.mTimeSlewing[i]);
 
+    for (int j = 0; j < NCHANNELXSECTOR; j++) {
+      mChannelStart[i][j] = source.mChannelStart[i][j];
+      mFractionUnderPeak[i][j] = source.mFractionUnderPeak[i][j];
+      mSigmaPeak[i][j] = source.mSigmaPeak[i][j];
+    }
+  }
+  return *this;
+}
+//______________________________________________
 float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float tot) const
 {
   int sector = channel / NCHANNELXSECTOR;
@@ -70,7 +84,7 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float tot) const
   if (n >= nstop)
     return 0.; // something went wrong!
 
-  while (n < nstop && tot < (*(mTimeSlewing[sector]))[n].first)
+  while (n < nstop && tot > (*(mTimeSlewing[sector]))[n].first)
     n++;
   n--;
 

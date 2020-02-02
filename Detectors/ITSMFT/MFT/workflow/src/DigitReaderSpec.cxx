@@ -16,7 +16,8 @@
 
 #include "TTree.h"
 #include "Framework/ControlService.h"
-#include "ITSMFTBase/Digit.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -47,59 +48,55 @@ void DigitReader::run(ProcessingContext& pc)
     return;
 
   std::unique_ptr<TTree> treeDig((TTree*)mFile->Get("o2sim"));
-  std::unique_ptr<TTree> treeROF((TTree*)mFile->Get("MFTDigitROF"));
-  std::unique_ptr<TTree> treeMC2ROF((TTree*)mFile->Get("MFTDigitMC2ROF"));
 
-  if (treeDig && treeROF && treeMC2ROF) {
+  if (treeDig) {
 
-    std::vector<o2::itsmft::Digit> allDigits;
     std::vector<o2::itsmft::Digit> digits, *pdigits = &digits;
     treeDig->SetBranchAddress("MFTDigit", &pdigits);
 
-    o2::dataformats::MCTruthContainer<o2::MCCompLabel> allLabels;
-    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels, *plabels = &labels;
-    treeDig->SetBranchAddress("MFTDigitMCTruth", &plabels);
-
     std::vector<ROFRecord> rofs, *profs = &rofs;
-    treeROF->SetBranchAddress("MFTDigitROF", &profs);
-    treeROF->GetEntry(0);
+    treeDig->SetBranchAddress("MFTDigitROF", &profs);
 
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels, *plabels = &labels;
     std::vector<MC2ROFRecord> mc2rofs, *pmc2rofs = &mc2rofs;
-    treeMC2ROF->SetBranchAddress("MFTDigitMC2ROF", &pmc2rofs);
-    treeMC2ROF->GetEntry(0);
-
-    Int_t ne = treeDig->GetEntries();
-    for (Int_t e = 0; e < ne; e++) {
-      treeDig->GetEntry(e);
-      std::copy(digits.begin(), digits.end(), std::back_inserter(allDigits));
-      allLabels.mergeAtBack(labels);
+    if (mUseMC) {
+      treeDig->SetBranchAddress("MFTDigitMCTruth", &plabels);
+      treeDig->SetBranchAddress("MFTDigitMC2ROF", &pmc2rofs);
     }
-    LOG(INFO) << "MFTDigitReader pushed " << allDigits.size() << " digits, in "
-              << profs->size() << " RO frames and "
-              << pmc2rofs->size() << " MC events";
-    pc.outputs().snapshot(Output{"MFT", "DIGITS", 0, Lifetime::Timeframe}, allDigits);
-    pc.outputs().snapshot(Output{"MFT", "DIGITSMCTR", 0, Lifetime::Timeframe}, allLabels);
+    treeDig->GetEntry(0);
+
+    LOG(INFO) << "MFTDigitReader pushed " << digits.size() << " digits, in "
+              << profs->size() << " RO frames";
+
+    pc.outputs().snapshot(Output{"MFT", "DIGITS", 0, Lifetime::Timeframe}, digits);
     pc.outputs().snapshot(Output{"MFT", "MFTDigitROF", 0, Lifetime::Timeframe}, *profs);
-    pc.outputs().snapshot(Output{"MFT", "MFTDigitMC2ROF", 0, Lifetime::Timeframe}, *pmc2rofs);
+    if (mUseMC) {
+      pc.outputs().snapshot(Output{"MFT", "DIGITSMCTR", 0, Lifetime::Timeframe}, labels);
+      pc.outputs().snapshot(Output{"MFT", "MFTDigitMC2ROF", 0, Lifetime::Timeframe}, *pmc2rofs);
+    }
   } else {
     LOG(ERROR) << "Cannot read the MFT digits !";
     return;
   }
   mState = 2;
-  //pc.services().get<ControlService>().readyToQuit(true);
+  pc.services().get<ControlService>().endOfStream();
+  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
-DataProcessorSpec getDigitReaderSpec()
+DataProcessorSpec getDigitReaderSpec(bool useMC)
 {
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("MFT", "DIGITS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("MFT", "MFTDigitROF", 0, Lifetime::Timeframe);
+  if (useMC) {
+    outputs.emplace_back("MFT", "DIGITSMCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back("MFT", "MFTDigitMC2ROF", 0, Lifetime::Timeframe);
+  }
   return DataProcessorSpec{
     "mft-digit-reader",
     Inputs{},
-    Outputs{
-      OutputSpec{"MFT", "DIGITS", 0, Lifetime::Timeframe},
-      OutputSpec{"MFT", "DIGITSMCTR", 0, Lifetime::Timeframe},
-      OutputSpec{"MFT", "MFTDigitROF", 0, Lifetime::Timeframe},
-      OutputSpec{"MFT", "MFTDigitMC2ROF", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<DigitReader>()},
+    outputs,
+    AlgorithmSpec{adaptFromTask<DigitReader>(useMC)},
     Options{
       {"mft-digit-infile", VariantType::String, "mftdigits.root", {"Name of the input file"}}}};
 }

@@ -26,24 +26,24 @@ namespace o2
 namespace mft
 {
 
-namespace IndexTableUtils
+namespace index_table_utils
 {
 Int_t getRBinIndex(const Int_t, const Float_t);
 Int_t getPhiBinIndex(const Float_t);
 Int_t getBinIndex(const Int_t, const Int_t);
 } // namespace IndexTableUtils
 
-inline Int_t IndexTableUtils::getRBinIndex(const Int_t layerIndex, const Float_t rCoordinate)
+inline Int_t index_table_utils::getRBinIndex(const Int_t layerIndex, const Float_t rCoordinate)
 {
   return -1;
 }
 
-inline Int_t IndexTableUtils::getPhiBinIndex(const Float_t currentPhi)
+inline Int_t index_table_utils::getPhiBinIndex(const Float_t currentPhi)
 {
   return -1;
 }
 
-inline Int_t IndexTableUtils::getBinIndex(const Int_t rIndex, const Int_t phiIndex)
+inline Int_t index_table_utils::getBinIndex(const Int_t rIndex, const Int_t phiIndex)
 {
   return -1;
 }

@@ -16,7 +16,7 @@
 #ifndef ALICE_O2_EVENTVISUALISATION_EVENTMANAGERFRAME_H
 #define ALICE_O2_EVENTVISUALISATION_EVENTMANAGERFRAME_H
 
-#include "EventVisualisationBase/EventManager.h"
+#include "EventVisualisationView/EventManager.h"
 #include <TGMdiMainFrame.h>
 
 class TGTextButton;

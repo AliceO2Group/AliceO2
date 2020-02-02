@@ -28,6 +28,8 @@
 #include <TRandom.h>
 #include <cassert>
 #include <fstream>
+#include "ZDCSimulation/ZDCSimParam.h"
+#include "ZDCBase/Constants.h"
 
 using namespace o2::zdc;
 
@@ -38,9 +40,26 @@ ClassImp(o2::zdc::Detector);
 Detector::Detector(Bool_t active)
   : o2::base::DetImpl<Detector>("ZDC", active),
     mHits(new std::vector<o2::zdc::Hit>),
-    mXImpact(-999, -999, -999)
+    mXImpact(-999, -999, -999),
+    mNeutronResponseImage(Geometry::ZNDIVISION[0] * Geometry::ZNSECTORS[0] * 2,
+                          Geometry::ZNDIVISION[1] * Geometry::ZNSECTORS[1] * 2,
+                          Geometry::ZNAPOSITION[0] - Geometry::ZNDIMENSION[0],
+                          Geometry::ZNAPOSITION[1] - Geometry::ZNDIMENSION[1],
+                          Geometry::ZNDIMENSION[0] * 2,
+                          Geometry::ZNDIMENSION[1] * 2),
+    mProtonResponseImage(Geometry::ZPDIVISION[0] * Geometry::ZPSECTORS[0] * 2,
+                         Geometry::ZPDIVISION[1] * Geometry::ZPSECTORS[1] * 2,
+                         Geometry::ZPAPOSITION[0] - Geometry::ZPDIMENSION[0],
+                         Geometry::ZPAPOSITION[1] - Geometry::ZPDIMENSION[1],
+                         Geometry::ZPDIMENSION[0] * 2,
+                         Geometry::ZPDIMENSION[1] * 2)
 {
   mTrackEta = 999;
+  // REsetting summed variables
+  mTotLightPMC = 0;
+  mTotLightPMQ = 0;
+  mMediumPMCid = 0;
+  mMediumPMQid = 0;
   resetHitIndices();
 }
 
@@ -58,6 +77,7 @@ int loadLightTable(T& table, int beta, int NRADBINS, std::string filename)
   // Retrieve the light yield table
   std::string data;
   std::ifstream input(filename);
+  //std::cout << " *********  Reading data from light table " << filename << std::endl;
   int radiusbin = 0;
   int anglebin = 0;
   int counter = 0;
@@ -65,11 +85,13 @@ int loadLightTable(T& table, int beta, int NRADBINS, std::string filename)
   if (input.is_open()) {
     while (input >> value) {
       counter++;
-      table[beta][radiusbin][anglebin] = value;
+      table[beta][anglebin][radiusbin] = value;
+      //printf(" %f ", value);
       radiusbin++;
       if (radiusbin % NRADBINS == 0) {
         radiusbin = 0;
         anglebin++;
+        //printf("\n");
       }
     }
     LOG(DEBUG) << "Read " << counter << " values from ZDC data file " << filename;
@@ -99,10 +121,11 @@ void Detector::InitializeO2Detector()
   auto elements = loadLightTable(mLightTableZN, 3, ZNRADIUSBINS, inputDir + "light22620362210s");
   assert(elements == ZNRADIUSBINS * ANGLEBINS);
   // check a few values to test correctness of reading from file light22620362207s
-  assert(std::abs(mLightTableZN[0][ZNRADIUSBINS - 1][0] - 1.39742) < 1.E-4); // beta=0; radius = ZNRADIUSBINS - 1; anglebin = 2;
+  /*assert(std::abs(mLightTableZN[0][ZNRADIUSBINS - 1][0] - 1.39742) < 1.E-4); // beta=0; radius = ZNRADIUSBINS - 1; anglebin = 2;
   assert(std::abs(mLightTableZN[0][ZNRADIUSBINS - 1][1] - .45017) < 1.E-4);  // beta=1; radius = ZNRADIUSBINS - 1; anglebin = 2;
   assert(std::abs(mLightTableZN[0][0][2] - .47985) < 1.E-4);                 // beta=0; radius = 0; anglebin = 2;
   assert(std::abs(mLightTableZN[0][0][11] - .01358) < 1.E-4);                // beta=0; radius = 0; anglebin = 11;
+  */
 
   //ZP case
   loadLightTable(mLightTableZP, 0, ZPRADIUSBINS, inputDir + "light22620552207s");
@@ -172,24 +195,24 @@ void Detector::getDetIDandSecID(TString const& volname, Vector3D<float> const& x
     // for the neutron calorimeter
 
     if (x.Z() > 0) {
-      detector = 1; //ZNA
+      detector = ZNA;
       xDet = x - Vector3D<float>(Geometry::ZNAPOSITION[0], Geometry::ZNAPOSITION[1], Geometry::ZNAPOSITION[2]);
 
     } else if (x.Z() < 0) {
-      detector = 4; //ZNC
+      detector = ZNC;
       xDet = x - Vector3D<float>(Geometry::ZNCPOSITION[0], Geometry::ZNCPOSITION[1], Geometry::ZNCPOSITION[2]);
     }
     // now determine sector/tower
     if (xDet.X() <= 0.) {
       if (xDet.Y() <= 0.) {
-        sector = 1;
+        sector = Ch1;
       } else
-        sector = 3;
+        sector = Ch3;
     } else {
       if (xDet.Y() <= 0.) {
-        sector = 2;
+        sector = Ch2;
       } else {
-        sector = 4;
+        sector = Ch4;
       }
     }
     return;
@@ -197,10 +220,10 @@ void Detector::getDetIDandSecID(TString const& volname, Vector3D<float> const& x
   } else if (volname.BeginsWith("ZP")) {
     // proton calorimeter
     if (x.Z() > 0) {
-      detector = 2; //ZPA (NB -> DIFFERENT FROM AliRoot!!!)
+      detector = ZPA; // (NB -> DIFFERENT FROM AliRoot!!!)
       xDet = x - Vector3D<float>(Geometry::ZPAPOSITION[0], Geometry::ZPAPOSITION[1], Geometry::ZPAPOSITION[2]);
     } else if (x.Z() < 0) {
-      detector = 5; //ZPC (NB -> DIFFERENT FROM AliRoot!!!)
+      detector = ZPC; // (NB -> DIFFERENT FROM AliRoot!!!)
       xDet = x - Vector3D<float>(Geometry::ZPCPOSITION[0], Geometry::ZPCPOSITION[1], Geometry::ZPCPOSITION[2]);
     }
 
@@ -222,15 +245,16 @@ void Detector::getDetIDandSecID(TString const& volname, Vector3D<float> const& x
 
   } else if (volname.BeginsWith("ZE")) {
     // electromagnetic calorimeter
-    detector = 3;
+    detector = ZEM;
     xDet = x - Vector3D<float>(Geometry::ZEMPOSITION[0], Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2]);
-    sector = (x.X() > 0.) ? 1 : 2;
+    sector = (x.X() > 0.) ? Ch1 : Ch2;
     return;
   }
 
   assert(false);
 }
 
+//_____________________________________________________________________________
 void Detector::resetHitIndices()
 {
   // reinit hit buffer to null (because we make new hits for each principal track)
@@ -238,6 +262,22 @@ void Detector::resetHitIndices()
     for (int sec = 0; sec < NUMSECS; ++sec) {
       mCurrentHitsIndices[det][sec] = -1;
     }
+  }
+  // Summed variables are set to 0
+  mTotLightPMC = 0;
+  mTotLightPMQ = 0;
+}
+
+void Detector::flushSpatialResponse()
+{
+  if (o2::zdc::ZDCSimParam::Instance().recordSpatialResponse) {
+    // only write non-trivial image pairs
+    if (mNeutronResponseImage.getPhotonSum() > 0 || mProtonResponseImage.getPhotonSum() > 0) {
+      mResponses.push_back(std::make_pair(mCurrentPrincipalParticle,
+                                          std::make_pair(mNeutronResponseImage, mProtonResponseImage)));
+    }
+    mNeutronResponseImage.reset();
+    mProtonResponseImage.reset();
   }
 }
 
@@ -253,10 +293,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   int detector = -1;
   int sector = -1;
   Vector3D<float> xImp;
-  getDetIDandSecID(volname, Vector3D<float>(x[0], x[1], x[2]),
-                   xImp, detector, sector);
-  //printf("ProcessHits:  x=(%f, %f, %f)  DET %d  SEC %d\n",x[0], x[1], x[2],detector,sector);
-  //printf("                  XImpact=(%f, %f, %f)\n",xImp.X(), xImp.Y(), xImp.Z());
+  getDetIDandSecID(volname, Vector3D<float>(x[0], x[1], x[2]), xImp, detector, sector);
 
   auto stack = (o2::data::Stack*)fMC->GetStack();
   int trackn = stack->GetCurrentTrackNumber();
@@ -264,29 +301,20 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   // find out if we are entering into the detector NEU or PRO for the first time
   int volID, copy;
   volID = fMC->CurrentVolID(copy);
-  //printf("--- track %d in vol. %d %d  trackMother %d \n",trackn, detector, sector, stack->GetCurrentTrack()->GetMother(0));
+  //printf("\t ---> track %d in vol. %d %d (volID %d) mother %d \n",
+    //trackn, detector, sector, volID, stack->GetCurrentTrack()->GetMother(0));
 
-  // a new principal track is a track which previously was not seen by any ZDC detector
-  // we will account all detector response associated to principal tracks only
-  if ((volID == mZNENVVolID || volID == mZPENVVolID || volID == mZEMVolID) && fMC->IsTrackEntering()) {
-    if ((mLastPrincipalTrackEntered == -1) || !(stack->isTrackDaughterOf(trackn, mLastPrincipalTrackEntered))) {
-      mLastPrincipalTrackEntered = trackn;
-      resetHitIndices();
+  // If the particle is in a ZN or ZP fiber connected to the common PMT
+  // then the assigned sector is 0 (PMC) NB-> does not work for ZEM
+  if ((fMC->CurrentMedium() == mMediumPMCid) && (detector != ZEM))
+    sector = 0;
+  //printf("ProcessHits:  x=(%f, %f, %f)  \n",x[0], x[1], x[2]);
+  //printf("\tDET %d  SEC %d  -> XImpact=(%f, %f, %f)\n",detector,sector, xImp.X(), xImp.Y(), xImp.Z());
 
-      // there is nothing more to do here as we are not
-      // in the fiber volumes
-      return false;
-    }
-  }
-
-  // it could be that the entering track was not noticed
-  // (tracking precision problems); warn about it for the moment until we have
-  // a better solution (like checking the origin coordinates of the track)
-  if (mLastPrincipalTrackEntered == -1) {
-    LOG(WARN) << "Problem with principal track detection ; now in " << volname;
-    // if we come here we are definitely in a sensitive volume !!
-    mLastPrincipalTrackEntered = trackn;
-    resetHitIndices();
+  if ((volID == mZNENVVolID || volID == mZPENVVolID || volID == mZEMVolID)) {
+    // there is nothing more to do here as we are not
+    // in the fiber volumes
+    return false;
   }
 
   Float_t p[3] = {0., 0., 0.};
@@ -299,6 +327,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   auto currentMediumid = fMC->CurrentMedium();
   int nphe = 0;
   if (((currentMediumid == mMediumPMCid) || (currentMediumid == mMediumPMQid))) {
+   if(eDep){
     int ibeta = 0, iangle = 0, iradius = 0;
     Bool_t isLightProduced = calculateTableIndexes(ibeta, iangle, iradius);
     if (isLightProduced) {
@@ -313,27 +342,40 @@ Bool_t Detector::ProcessHits(FairVolume* v)
       if (TMath::Abs(charge) > 0) {
         if (detector == 1 || detector == 4) {
           iradius = std::min((int)Geometry::ZNFIBREDIAMETER, iradius);
-          lightoutput = charge * charge * mLightTableZN[ibeta][iradius][iangle];
+          lightoutput = charge * charge * mLightTableZN[ibeta][iangle][iradius];
+          //printf("  \t ZNtableEntry[%d %d %d] = %1.5f -> lightoutput %f\n", ibeta, iangle, iradius, mLightTableZN[ibeta][iangle][iradius], lightoutput);
         } else {
           iradius = std::min((int)Geometry::ZPFIBREDIAMETER, iradius);
-          lightoutput = charge * charge * mLightTableZP[ibeta][iradius][iangle];
+          lightoutput = charge * charge * mLightTableZP[ibeta][iangle][iradius];
+          //printf("  \t ZPtableEntry[%d %d %d] = %1.5f -> lightoutput %f\n", ibeta, iangle, iradius, mLightTableZP[ibeta][iangle][iradius], lightoutput);
         }
-        //printf(".....beta %d  alpha %d radius %d  light output %f\n", ibeta, iangle, iradius, lightoutput);
         if (lightoutput > 0) {
           nphe = gRandom->Poisson(lightoutput);
-          //printf(".. nphe %d  \n", nphe);
+          //printf("  \t\t-> nphe %d  \n", nphe);
         }
       }
+    }
+   }
+  }
+
+  if (o2::zdc::ZDCSimParam::Instance().recordSpatialResponse) {
+    // some diagnostic; trying to really get the pixel fired
+    if (nphe > 0 && (detector == 1 || detector == 4)) {
+      mNeutronResponseImage.addPhoton(x[0], x[1], nphe);
+    }
+    if (nphe > 0 && (detector == 2 || detector == 5)) {
+      mProtonResponseImage.addPhoton(x[0], x[1], nphe);
     }
   }
 
   // A new hit is created when there is nothing yet for this det + sector
-  if (mCurrentHitsIndices[detector - 1][sector - 1] == -1) {
+  if (mCurrentHitsIndices[detector - 1][sector] == -1) {
 
     auto tof = 1.e09 * fMC->TrackTime(); //TOF in ns
     bool issecondary = trackn != stack->getCurrentPrimaryIndex();
-    //if(!issecondary) printf("!!! primary track (index %d)\n",stack->getCurrentPrimaryIndex());
+    //if(!issecondary) printf("     !!! primary track (index %d)\n",stack->getCurrentPrimaryIndex());
 
+    mTotLightPMC = mTotLightPMQ = 0;
     if (currentMediumid == mMediumPMCid) {
       mTotLightPMC = nphe;
     } else if (currentMediumid == mMediumPMQid) {
@@ -345,27 +387,32 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     addHit(trackn, mLastPrincipalTrackEntered, issecondary, trackenergy, detector, sector,
            pos, mom, tof, xImp, eDep, mTotLightPMC, mTotLightPMQ);
     stack->addHit(GetDetId());
-    mCurrentHitsIndices[detector - 1][sector - 1] = mHits->size() - 1;
+    mCurrentHitsIndices[detector - 1][sector] = mHits->size() - 1;
 
     mXImpact = xImp;
-    //printf("### NEW HITS CREATED in vol %d %d for track %d daughter of track %d\n", detector, sector, trackn, stack->GetCurrentTrack()->GetMother(0));
+    //printf("### NEW HIT CREATED in vol %d %d for track %d (mother: %d) \t light %1.0f %1.0f\n",
+    //detector, sector, trackn, stack->GetCurrentTrack()->GetFirstMother(), mTotLightPMC, mTotLightPMQ);
     return true;
 
   } else {
-    auto& curHit = (*mHits)[mCurrentHitsIndices[detector - 1][sector - 1]];
+    auto& curHit = (*mHits)[mCurrentHitsIndices[detector - 1][sector]];
     // summing variables that needs to be updated (Eloss and light yield)
     curHit.setNoNumContributingSteps(curHit.getNumContributingSteps() + 1);
+    int nPMC{0}, nPMQ{0};
     if (currentMediumid == mMediumPMCid) {
       mTotLightPMC += nphe;
+      nPMC = nphe;
     } else if (currentMediumid == mMediumPMQid) {
       mTotLightPMQ += nphe;
+      nPMQ = nphe;
     }
     float incenloss = curHit.GetEnergyLoss() + eDep;
-    if (incenloss > 0 || nphe > 0) {
+    if (nphe > 0) {
       curHit.SetEnergyLoss(incenloss);
-      curHit.setPMCLightYield(mTotLightPMC);
-      curHit.setPMQLightYield(mTotLightPMQ);
-      //printf("   >>> Hit updated in vol %d %d  for track %d (%d)    E %f  light %1.0f %1.0f \n",detector, sector, trackn, stack->GetCurrentTrack()->GetMother(0),curHit.GetEnergyLoss()+ eDep,mTotLightPMC,mTotLightPMQ);
+      curHit.setPMCLightYield(curHit.getPMCLightYield() + nPMC);
+      curHit.setPMQLightYield(curHit.getPMQLightYield() + nPMQ);
+      //printf("  >>> Hit updated in vol %d %d  for track %d (mother: %d) \t light %1.0f %1.0f \n",
+      //detector, sector, trackn, stack->GetCurrentTrack()->GetFirstMother(), curHit.getPMCLightYield(), curHit.getPMQLightYield());
     }
     return true;
   }
@@ -374,7 +421,8 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
 //_____________________________________________________________________________
 o2::zdc::Hit* Detector::addHit(Int_t trackID, Int_t parentID, Int_t sFlag, Float_t primaryEnergy, Int_t detID,
-                               Int_t secID, Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Vector3D<float> xImpact, Double_t energyloss, Int_t nphePMC, Int_t nphePMQ)
+                               Int_t secID, Vector3D<float> pos, Vector3D<float> mom, Float_t tof, Vector3D<float> xImpact,
+                               Double_t energyloss, Int_t nphePMC, Int_t nphePMQ)
 {
   LOG(DEBUG4) << "Adding hit for track " << trackID << " X (" << pos.X() << ", " << pos.Y() << ", "
               << pos.Z() << ") P (" << mom.X() << ", " << mom.Y() << ", " << mom.Z() << ")  Ekin "
@@ -1874,8 +1922,8 @@ void Detector::createDetectors()
   TVirtualMC::GetMC()->Gsdvn("ZN1 ", "ZNTX", Geometry::ZNSECTORS[1], 2); // y-tower
 
   //-- Divide ZN1 in minitowers (4 fibres per minitower)
-  //  ZNDIVISION[0]= NUMBER OF FIBERS PER TOWER ALONG X-AXIS,
-  //  ZNDIVISION[1]= NUMBER OF FIBERS PER TOWER ALONG Y-AXIS
+  //  ZNDIVISION[0]= NUMBER OF FIBERS PER TOWER ALONG X-AXIS =11,
+  //  ZNDIVISION[1]= NUMBER OF FIBERS PER TOWER ALONG Y-AXIS =11
   TVirtualMC::GetMC()->Gsdvn("ZNSL", "ZN1 ", Geometry::ZNDIVISION[1], 2); // Slices
   TVirtualMC::GetMC()->Gsdvn("ZNST", "ZNSL", Geometry::ZNDIVISION[0], 1); // Sticks
 
@@ -2237,6 +2285,7 @@ Bool_t Detector::calculateTableIndexes(int& ibeta, int& iangle, int& iradius)
   } else
     radius = TMath::Abs(udet[0]);
   iradius = int(radius * 1000. + 1.);
+  //printf("\t beta %f  angle %f  radius %f\n",beta, angleDeg, radius);
   return kTRUE;
 }
 
@@ -2251,7 +2300,18 @@ void Detector::FinishPrimary()
 {
   // after each primary we should definitely reset
   mLastPrincipalTrackEntered = -1;
+  flushSpatialResponse();
+}
+
+void Detector::BeginPrimary()
+{
+  // set current principal track
+  auto stack = (o2::data::Stack*)fMC->GetStack();
+
+  mLastPrincipalTrackEntered = stack->GetCurrentTrackNumber();
   resetHitIndices();
+
+  mCurrentPrincipalParticle = *stack->GetCurrentTrack();
 }
 
 //_____________________________________________________________________________
@@ -2263,13 +2323,20 @@ void Detector::Register()
 
   if (FairRootManager::Instance()) {
     FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
+
+    if (o2::zdc::ZDCSimParam::Instance().recordSpatialResponse) {
+      FairRootManager::Instance()->RegisterAny(addNameTo("ResponseImage").data(), mResponsesPtr, kTRUE);
+    }
   }
 }
 
 //_____________________________________________________________________________
 void Detector::Reset()
 {
-  mHits->clear();
+  if (!o2::utils::ShmManager::Instance().isOperational()) {
+    mHits->clear();
+  }
+  mResponses.clear();
   mLastPrincipalTrackEntered = -1;
   resetHitIndices();
 }

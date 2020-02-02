@@ -216,20 +216,14 @@ inline Float_t Chebyshev3DCalc::chebyshevEvaluation1D(Float_t x, const Float_t* 
 /// VERY IMPORTANT: par must contain the function arguments ALREADY MAPPED to [-1:1] interval
 inline Float_t Chebyshev3DCalc::Eval(const Float_t* par) const
 {
-  if (!mNumberOfRows) {
-    return 0.;
-  }
-  int ncfRC;
   for (int id0 = mNumberOfRows; id0--;) {
     int nCLoc = mNumberOfColumnsAtRow[id0]; // number of significant coefs on this row
     int col0 = mColumnAtRowBeginning[id0];  // beginning of local column in the 2D boundary matrix
     for (int id1 = nCLoc; id1--;) {
       int id = id1 + col0;
-      mTemporaryCoefficients2D[id1] = (ncfRC = mCoefficientBound2D0[id])
-                                        ? chebyshevEvaluation1D(par[2], mCoefficients + mCoefficientBound2D1[id], ncfRC)
-                                        : 0.0;
+      mTemporaryCoefficients2D[id1] = chebyshevEvaluation1D(par[2], mCoefficients + mCoefficientBound2D1[id], mCoefficientBound2D0[id]);
     }
-    mTemporaryCoefficients1D[id0] = nCLoc > 0 ? chebyshevEvaluation1D(par[1], mTemporaryCoefficients2D, nCLoc) : 0.0;
+    mTemporaryCoefficients1D[id0] = chebyshevEvaluation1D(par[1], mTemporaryCoefficients2D, nCLoc);
   }
   return chebyshevEvaluation1D(par[0], mTemporaryCoefficients1D, mNumberOfRows);
 }
@@ -238,20 +232,14 @@ inline Float_t Chebyshev3DCalc::Eval(const Float_t* par) const
 /// VERY IMPORTANT: par must contain the function arguments ALREADY MAPPED to [-1:1] interval
 inline Double_t Chebyshev3DCalc::Eval(const Double_t* par) const
 {
-  if (!mNumberOfRows) {
-    return 0.;
-  }
-  int ncfRC;
   for (int id0 = mNumberOfRows; id0--;) {
     int nCLoc = mNumberOfColumnsAtRow[id0]; // number of significant coefs on this row
     int col0 = mColumnAtRowBeginning[id0];  // beginning of local column in the 2D boundary matrix
     for (int id1 = nCLoc; id1--;) {
       int id = id1 + col0;
-      mTemporaryCoefficients2D[id1] = (ncfRC = mCoefficientBound2D0[id])
-                                        ? chebyshevEvaluation1D(par[2], mCoefficients + mCoefficientBound2D1[id], ncfRC)
-                                        : 0.0;
+      mTemporaryCoefficients2D[id1] = chebyshevEvaluation1D(par[2], mCoefficients + mCoefficientBound2D1[id], mCoefficientBound2D0[id]);
     }
-    mTemporaryCoefficients1D[id0] = nCLoc > 0 ? chebyshevEvaluation1D(par[1], mTemporaryCoefficients2D, nCLoc) : 0.0;
+    mTemporaryCoefficients1D[id0] = chebyshevEvaluation1D(par[1], mTemporaryCoefficients2D, nCLoc);
   }
   return chebyshevEvaluation1D(par[0], mTemporaryCoefficients1D, mNumberOfRows);
 }

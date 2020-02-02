@@ -9,6 +9,7 @@
 #include <TString.h>
 #include <TTree.h>
 
+#include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "ITSMFTSimulation/Hit.h"
@@ -26,6 +27,7 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
   using namespace o2::base;
   using namespace o2::its;
 
+  using Segmentation = o2::itsmft::SegmentationAlpide;
   using o2::itsmft::Cluster;
   using o2::itsmft::Hit;
   using ROFRec = o2::itsmft::ROFRecord;
@@ -37,7 +39,7 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
   std::vector<MC2HITS_map> mc2hitVec;
 
   TFile fout("CheckClusters.root", "recreate");
-  TNtuple nt("ntc", "cluster ntuple", "x:y:z:dx:dz:lab:ev:rof:hlx:hlz:clx:clz:n:id");
+  TNtuple nt("ntc", "cluster ntuple", "ev:lab:hlx:hlz:tx:tz:cgx:cgy:cgz:dx:dy:dz:rof:npx:id");
 
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeom, "FAIRGeom");
@@ -61,45 +63,39 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
 
   // ROFrecords
   std::vector<ROFRec> rofRecVec, *rofRecVecP = &rofRecVec;
-  TTree* ROFRecTree = (TTree*)fileC.Get("ITSClustersROF");
-  ROFRecTree->SetBranchAddress("ITSClustersROF", &rofRecVecP);
+  clusTree->SetBranchAddress("ITSClustersROF", &rofRecVecP);
 
   // Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clusLabArr = nullptr;
   std::vector<MC2ROF> mc2rofVec, *mc2rofVecP = &mc2rofVec;
-  TTree* MC2ROFRecTree = nullptr;
   if (hitTree && clusTree->GetBranch("ITSClusterMCTruth")) {
     clusTree->SetBranchAddress("ITSClusterMCTruth", &clusLabArr);
-    MC2ROFRecTree = (TTree*)fileC.Get("ITSClustersMC2ROF");
-    MC2ROFRecTree->SetBranchAddress("ITSClustersMC2ROF", &mc2rofVecP);
+    clusTree->SetBranchAddress("ITSClustersMC2ROF", &mc2rofVecP);
   }
 
-  ROFRecTree->GetEntry(0);
+  clusTree->GetEntry(0);
   int nROFRec = (int)rofRecVec.size();
   std::vector<int> mcEvMin(nROFRec, hitTree->GetEntries());
   std::vector<int> mcEvMax(nROFRec, -1);
 
   // >> build min and max MC events used by each ROF
-  for (int ent = 0; ent < MC2ROFRecTree->GetEntries(); ent++) {
-    MC2ROFRecTree->GetEntry(ent);
-    for (int imc = mc2rofVec.size(); imc--;) {
-      const auto& mc2rof = mc2rofVec[imc];
-      printf("MCRecord: ");
-      mc2rof.print();
-      if (mc2rof.rofRecordID < 0) {
-        continue; // this MC event did not contribute to any ROF
+  for (int imc = mc2rofVec.size(); imc--;) {
+    const auto& mc2rof = mc2rofVec[imc];
+    printf("MCRecord: ");
+    mc2rof.print();
+    if (mc2rof.rofRecordID < 0) {
+      continue; // this MC event did not contribute to any ROF
+    }
+    for (int irfd = mc2rof.maxROF - mc2rof.minROF + 1; irfd--;) {
+      int irof = mc2rof.rofRecordID + irfd;
+      if (irof >= nROFRec) {
+        LOG(ERROR) << "ROF=" << irof << " from MC2ROF record is >= N ROFs=" << nROFRec;
       }
-      for (int irfd = mc2rof.maxROF - mc2rof.minROF + 1; irfd--;) {
-        int irof = mc2rof.rofRecordID + irfd;
-        if (irof >= nROFRec) {
-          LOG(ERROR) << "ROF=" << irof << " from MC2ROF record is >= N ROFs=" << nROFRec;
-        }
-        if (mcEvMin[irof] > imc) {
-          mcEvMin[irof] = imc;
-        }
-        if (mcEvMax[irof] < imc) {
-          mcEvMax[irof] = imc;
-        }
+      if (mcEvMin[irof] > imc) {
+        mcEvMin[irof] = imc;
+      }
+      if (mcEvMax[irof] < imc) {
+        mcEvMax[irof] = imc;
       }
     }
   }
@@ -109,9 +105,7 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
     const auto& rofRec = rofRecVec[irof];
 
     rofRec.print();
-    if (clusTree->GetReadEntry() != rofRec.getROFEntry().getEvent()) { // read the entry containing clusters of given ROF
-      clusTree->GetEntry(rofRec.getROFEntry().getEvent());             // all clusters of the same ROF are in a single entry
-    }
+
     // >> read and map MC events contributing to this ROF
     for (int im = mcEvMin[irof]; im <= mcEvMax[irof]; im++) {
       if (!hitVecPool[im]) {
@@ -127,8 +121,8 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
       }
     }
     // << cache MC events contributing to this ROF
-    for (int icl = 0; icl < rofRec.getNROFEntries(); icl++) {
-      int clEntry = rofRec.getROFEntry().getIndex() + icl; // entry of icl-th cluster of this ROF in the vector of clusters
+    for (int icl = 0; icl < rofRec.getNEntries(); icl++) {
+      int clEntry = rofRec.getFirstEntry() + icl; // entry of icl-th cluster of this ROF in the vector of clusters
 
       const auto& cluster = (*clusArr)[clEntry];
 
@@ -160,20 +154,26 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
       // mean local position of the hit
       locH = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
       locHsta = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
-      locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
-      //std::cout << "chip "<< hit.GetDetectorID() << "  PposGlo " << hit.GetPos() << std::endl;
-      //std::cout << "chip "<< chipID << "  PposLoc " << locH << std::endl;
-      dx = locH.X() - locC.X();
-      dz = locH.Z() - locC.Z();
-      nt.Fill(gloC.X(), gloC.Y(), gloC.Z(), dx, dz, trID, lab.getEventID(), cluster.getROFrame(),
-              locH.X(), locH.Z(), locC.X(), locC.Z(), npix, chipID);
+      auto x0 = locHsta.X(), dltx = locH.X() - x0;
+      auto y0 = locHsta.Y(), dlty = locH.Y() - y0;
+      auto z0 = locHsta.Z(), dltz = locH.Z() - z0;
+      auto r = (0.5 * (Segmentation::SensorLayerThickness - Segmentation::SensorLayerThicknessEff) - y0) / dlty;
+      locH.SetXYZ(x0 + r * dltx, y0 + r * dlty, z0 + r * dltz);
+      //locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
+      nt.Fill(lab.getEventID(), trID,
+              locH.X(), locH.Z(), dltx / dlty, dltz / dlty,
+              gloC.X(), gloC.Y(), gloC.Z(),
+              locC.X() - locH.X(), locC.Y() - locH.Y(), locC.Z() - locH.Z(),
+              rofRec.getROFrame(), cluster.getNPix(), chipID);
     }
   }
 
   new TCanvas;
-  nt.Draw("y:x");
+  nt.Draw("cgy:cgx");
   new TCanvas;
-  nt.Draw("dx:dz");
+  nt.Draw("dz:dx", "abs(dz)<0.01 && abs(dx)<0.01");
+  new TCanvas;
+  nt.Draw("dz:tz", "abs(dz)<0.005 && abs(tz)<2");
   fout.cd();
   nt.Write();
 }

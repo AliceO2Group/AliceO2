@@ -10,6 +10,7 @@
 
 #include "DataFormatsEMCAL/EMCALBlockHeader.h"
 #include "EMCALWorkflow/PublisherSpec.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Headers/DataHeader.h"
 #include "DPLUtils/RootTreeReader.h"
@@ -98,7 +99,7 @@ o2::framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, b
         }
       }
       if ((processAttributes->finished = (active == false)) && processAttributes->terminateOnEod) {
-        pc.services().get<o2::framework::ControlService>().readyToQuit(false);
+        pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
       }
     };
 

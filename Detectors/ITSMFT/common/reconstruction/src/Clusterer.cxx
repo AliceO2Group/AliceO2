@@ -50,27 +50,27 @@ void Clusterer::process(PixelReader& reader, std::vector<Cluster>* fullClus,
   mClustersCount = compClus ? compClus->size() : (fullClus ? fullClus->size() : 0);
 
   auto& currROFIR = mROFRef.getBCData();
-  auto& currROFEntry = mROFRef.getROFEntry();
+  auto& currROFEntry = mROFRef.getEntry();
 
   while ((mChipData = reader.getNextChipData(mChips))) { // read next chip data to corresponding
     // vector in the mChips and return the pointer on it
 
     if (!(mChipData->getInteractionRecord() == currROFIR)) { // new ROF starts
 
-      mROFRef.setNROFEntries(mClustersCount - currROFEntry.getIndex()); // number of entries in this ROF
+      mROFRef.setNEntries(mClustersCount - currROFEntry.getFirstEntry()); // number of entries in this ROF
 
       if (!currROFIR.isDummy()) {
         if (mClusTree) { // if necessary, flush existing data
           LOG(INFO) << "ITS: clusterizing new ROFrame, Orbit :" << mChipData->getInteractionRecord().orbit
                     << " BC: " << mChipData->getInteractionRecord().bc;
-          mROFRef.getROFEntry().setEvent(mClusTree->GetEntries());
+          mROFRef.setFirstEntry(mClusTree->GetEntries());
           flushClusters(fullClus, compClus, labelsCl);
         }
         if (vecROFRec) {
           vecROFRec->emplace_back(mROFRef);
         }
       }
-      currROFEntry.setIndex(mClustersCount);
+      currROFEntry.setFirstEntry(mClustersCount);
       currROFIR = mChipData->getInteractionRecord();
       mROFRef.setROFrame(mChipData->getROFrame()); // TODO: outphase this
     }
@@ -102,12 +102,12 @@ void Clusterer::process(PixelReader& reader, std::vector<Cluster>* fullClus,
       mChipsOld[chipID].swap(*mChipData);
     }
   }
-  mROFRef.setNROFEntries(mClustersCount - currROFEntry.getIndex()); // number of entries in this ROF
+  mROFRef.setNEntries(mClustersCount - currROFEntry.getFirstEntry()); // number of entries in this ROF
 
   // flush last ROF
   if (!currROFIR.isDummy()) {
     if (mClusTree) { // if necessary, flush existing data
-      mROFRef.getROFEntry().setEvent(mClusTree->GetEntries());
+      mROFRef.setFirstEntry(mClusTree->GetEntries());
       flushClusters(fullClus, compClus, labelsCl);
     }
     if (vecROFRec) {
@@ -251,7 +251,6 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
     }
     UShort_t rowSpan = rowMax - rowMin + 1, colSpan = colMax - colMin + 1;
     Cluster clus;
-    clus.setROFrame(mChipData->getROFrame());
     clus.setSensorID(mChipData->getChipID());
     clus.setNxNzN(rowSpan, colSpan, npix);
 #ifdef _ClusterTopology_
@@ -307,7 +306,7 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
         rowMin += rowShift;
         colMin += colShift;
       }
-      compClus->emplace_back(rowMin, colMin, pattID, mChipData->getChipID(), mChipData->getROFrame());
+      compClus->emplace_back(rowMin, colMin, pattID, mChipData->getChipID());
     }
 
     if (labelsClus) { // MC labels were requested

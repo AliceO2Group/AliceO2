@@ -14,6 +14,7 @@
 /// \author Luca Barioglio, University and INFN of Torino
 
 #include "DataFormatsITSMFT/ClusterTopology.h"
+#include "Framework/Logger.h"
 #include <iostream>
 #include <TMath.h>
 

@@ -16,16 +16,9 @@ else()
   set(GUI_SOURCES src/FrameworkDummyDebugger.cxx)
 endif()
 
-# Use the external DebugGUI package, if found
-if (TARGET AliceO2::DebugGUI)
-  set(DEBUGGUI_TARGET AliceO2::DebugGUI)
-else()
-  message(WARNING "Old version of DebugGUI. Please update alidist")
-  set(DEBUGGUI_TARGET O2::DebugGUI)
-endif()
-
 o2_add_library(Framework
                SOURCES src/AODReaderHelpers.cxx
+                       src/ASoA.cxx
                        ${GUI_SOURCES}
                        src/AnalysisHelpers.cxx
                        src/BoostOptionsRetriever.cxx
@@ -36,6 +29,7 @@ o2_add_library(Framework
                        src/CommonDataProcessors.cxx
                        src/CompletionPolicy.cxx
                        src/CompletionPolicyHelpers.cxx
+                       src/ComputingResourceHelpers.cxx
                        src/DispatchPolicy.cxx
                        src/ConfigParamsHelper.cxx
                        src/DDSConfigHelpers.cxx
@@ -44,8 +38,11 @@ o2_add_library(Framework
                        src/DataDescriptorQueryBuilder.cxx
                        src/DataProcessingDevice.cxx
                        src/DataProcessingHeader.cxx
+                       src/DataProcessingHelpers.cxx
+                       src/SourceInfoHeader.cxx
                        src/DataProcessor.cxx
                        src/DataRelayer.cxx
+                       src/DataRelayerHelpers.cxx
                        src/DataSampling.cxx
                        src/DataSamplingConditionFactory.cxx
                        src/DataSamplingHeader.cxx
@@ -63,6 +60,7 @@ o2_add_library(Framework
                        src/Dispatcher.cxx
                        src/DriverControl.cxx
                        src/DriverInfo.cxx
+                       src/Expressions.cxx
                        src/FairMQDeviceProxy.cxx
                        src/FairMQResizableBuffer.cxx
                        src/FairOptionsRetriever.cxx
@@ -110,45 +108,30 @@ o2_add_library(Framework
                                      O2::MemoryResources
                                      O2::PCG
                                      RapidJSON::RapidJSON
-                                     arrow_shared
+                                     arrow::arrow_shared
                                      ms_gsl::ms_gsl
                                      ROOT::ROOTDataFrame
-                                     ${DEBUGGUI_TARGET}
+                                     AliceO2::DebugGUI
                                      O2::FrameworkLogger
-                                     Boost::serialization)
+                                     Boost::serialization
+                                     arrow::gandiva_shared
+                                     )
 
 o2_target_root_dictionary(Framework
                           HEADERS test/TestClasses.h
                           LINKDEF test/FrameworkCoreTestLinkDef.h)
 
-# We build the OpenGL tests only if we use the old, internal, to be removed
-# O2::DebugGUI target These tests have been moved to the
-# AliceO2Group/DebugGUI package.
-if (NOT TARGET AliceO2::DebugGUI)
-if(GLFW_FOUND)
-  foreach(t DebugGUISokol DebugGUIGL GUITests)
-    o2_add_test(${t}
-                SOURCES test/test_${t}.cxx
-                COMPONENT_NAME Framework
-                LABELS framework
-                PUBLIC_LINK_LIBRARIES O2::Framework)
-  endforeach()
-  # FIXME: investigate those two failures at some point
-  set_property(TEST Framework/Core/test/test_DebugGUISokol.cxx
-               PROPERTY DISABLED True)
-  set_property(TEST Framework/Core/test/test_DebugGUIGL.cxx
-               PROPERTY DISABLED True)
-endif()
-endif()
-
 foreach(t
         AlgorithmSpec
         AnalysisTask
+        AnalysisDataModel
         ASoA
+        ASoAHelpers
         BoostOptionsRetriever
         CallbackRegistry
         ChannelSpecHelpers
         CompletionPolicy
+        ComputingResourceHelpers
         ConfigParamRegistry
         ContextRegistry
         DataDescriptorMatcher
@@ -161,6 +144,7 @@ foreach(t
         DeviceMetricsInfo
         DeviceSpec
         DeviceSpecHelpers
+        Expressions
         ExternalFairMQDeviceProxy
         FairMQOptionsRetriever
         FairMQResizableBuffer
@@ -171,10 +155,10 @@ foreach(t
         InputRecord
         Kernels
         LogParsingHelpers
-        Parallel
         PtrHelpers
         Root2ArrowTable
         Services
+        StringHelpers
         SuppressionGenerator
         TMessageSerializer
         TableBuilder
@@ -194,6 +178,11 @@ foreach(t
               LABELS framework
               PUBLIC_LINK_LIBRARIES O2::Framework)
 endforeach()
+
+o2_add_executable(verify-aod-file
+                  SOURCES src/verifyAODFile.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME Framework)
 
 # tests with input data
 
@@ -230,6 +219,7 @@ foreach(b
         DeviceMetricsInfo
         InputRecord
         TableBuilder
+        WorkflowHelpers
         ASoA
         HistogramRegistry
         )
@@ -248,6 +238,7 @@ foreach(w
         CustomGUIGL
         CustomGUISokol
         CCDBFetcher
+        SimpleTracksED
         DanglingInputs
         DanglingOutputs
         DataAllocator
@@ -260,7 +251,10 @@ foreach(w
         SimpleStatefulProcessing01
         SimpleStringProcessing
         SimpleTimer
-        SingleDataSource)
+        SimpleWildcard
+        SingleDataSource
+        Task
+        )
   o2_add_test(${w} NAME test_Framework_test_${w}
               SOURCES test/test_${w}.cxx
               COMPONENT_NAME Framework
@@ -268,28 +262,24 @@ foreach(w
               PUBLIC_LINK_LIBRARIES O2::Framework
               TIMEOUT 30
               NO_BOOST_TEST
-              COMMAND_LINE_ARGS --run)
+              COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run --shm-segment-size 20000000)
 endforeach()
 
-# TODO: DanglingInput test not working for the moment
-#    [ERROR] Unable to relay part.
-#    [WARN] Incoming data is already obsolete, not relaying.
-set_property(TEST test_Framework_test_DanglingInputs
-             PROPERTY DISABLED TRUE)
+# TODO: DanglingInput test not working for the moment [ERROR] Unable to relay
+# part. [WARN] Incoming data is already obsolete, not relaying.
+set_property(TEST test_Framework_test_DanglingInputs PROPERTY DISABLED TRUE)
 
-# TODO: investigate the problem with the two unit tests, maybe setup of the CI environment
-# assertion fired
-#     X11: The DISPLAY environment variable is missing
-#     glfw-3.2.1/src/window.c:579: glfwGetFramebufferSize: Assertion `window != ((void *)0)' failed.
-set_property(TEST test_Framework_test_CustomGUIGL
-             PROPERTY DISABLED TRUE)
-set_property(TEST test_Framework_test_CustomGUISokol
-             PROPERTY DISABLED TRUE)
+# TODO: investigate the problem with the two unit tests, maybe setup of the CI
+# environment assertion fired X11: The DISPLAY environment variable is missing
+# glfw-3.2.1/src/window.c:579: glfwGetFramebufferSize: Assertion `window !=
+# ((void *)0)' failed.
+set_property(TEST test_Framework_test_SimpleTracksED PROPERTY DISABLED TRUE)
+set_property(TEST test_Framework_test_CustomGUIGL PROPERTY DISABLED TRUE)
+set_property(TEST test_Framework_test_CustomGUISokol PROPERTY DISABLED TRUE)
 
 # TODO: investigate the problem and re-enable
 set_property(TEST test_Framework_test_BoostSerializedProcessing
              PROPERTY DISABLED TRUE)
-
 
 # specific tests which needs command line options
 o2_add_test(
@@ -301,8 +291,8 @@ o2_add_test(
   PUBLIC_LINK_LIBRARIES O2::Framework
   NO_BOOST_TEST
   COMMAND_LINE_ARGS
-    --global-config require-me --run
+    --global-config require-me --run ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS}
     # Note: the group switch makes process consumer parse only the group
     arguments --consumer
-    "--global-config consumer-config --local-option hello-aliceo2 --a-boolean3 --an-int2 20 --a-double2 22."
+    "--global-config consumer-config --local-option hello-aliceo2 --a-boolean3 --an-int2 20 --a-double2 22. --an-int64-2 50000000000000"
   )

@@ -54,7 +54,7 @@ void GPUITSFitter::RegisterMemoryAllocation()
   mMemoryResMemory = mRec->RegisterMemoryAllocation(this, &GPUITSFitter::SetPointersMemory, GPUMemoryResource::MEMORY_PERMANENT, "ITSMemory");
 }
 
-void GPUITSFitter::SetMaxData() { mNMaxTracks = mNumberOfRoads; }
+void GPUITSFitter::SetMaxData(const GPUTrackingInOutPointers& io) { mNMaxTracks = mNumberOfRoads; }
 #endif
 
 void GPUITSFitter::clearMemory()

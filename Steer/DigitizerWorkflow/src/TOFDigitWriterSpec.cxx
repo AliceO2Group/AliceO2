@@ -12,6 +12,7 @@
 
 #include "TOFDigitWriterSpec.h"
 #include "Framework/CallbackService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
@@ -95,7 +96,7 @@ DataProcessorSpec getTOFDigitWriterSpec()
       labelbr->Fill();
 
       finished = true;
-      pc.services().get<ControlService>().readyToQuit(false);
+      pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     };
 
     // return the actual processing function as a lambda function using variables

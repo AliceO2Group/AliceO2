@@ -57,10 +57,6 @@
 #pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <short>);
 #pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <bool>);
 
-// for CDB
-#pragma link C++ class o2::TObjectWrapper < o2::tpc::CalArray < float>> + ;
-#pragma link C++ class o2::TObjectWrapper < o2::tpc::CalDet < float>> + ;
-
 #pragma link C++ class o2::tpc::ParameterDetector;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::ParameterDetector> + ;
 #pragma link C++ class o2::tpc::ParameterElectronics;

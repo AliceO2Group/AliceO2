@@ -10,7 +10,7 @@
 
 /// \file   MIDWorkflow/DigitReaderSpec.h
 /// \brief  Data processor specs for MID digits reader device
-/// \author Diego Stocco <dstocco at cern.ch>
+/// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   11 April 2019
 
 #ifndef O2_MID_DIGITREADERSPEC_H

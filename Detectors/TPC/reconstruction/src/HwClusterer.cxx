@@ -12,6 +12,7 @@
 /// \brief Hwclusterer for the TPC
 
 #include "TPCReconstruction/HwClusterer.h"
+#include "TPCReconstruction/HwClustererParam.h"
 #include "TPCBase/Digit.h"
 #include "TPCBase/CRU.h"
 #include "TPCBase/Mapper.h"
@@ -107,6 +108,20 @@ HwClusterer::HwClusterer(
     }
   }
   mMCtruth.resize(mTimebinsInBuffer, nullptr);
+}
+
+//______________________________________________________________________________
+void HwClusterer::init()
+{
+  const auto& param = HwClustererParam::Instance();
+
+  mPeakChargeThreshold = param.peakChargeThreshold;
+  mContributionChargeThreshold = param.contributionChargeThreshold;
+  mSplittingMode = param.splittingMode;
+  mIsContinuousReadout = param.isContinuousReadout;
+  mRejectSinglePadClusters = param.rejectSinglePadClusters;
+  mRejectSingleTimeClusters = param.rejectSingleTimeClusters;
+  mRejectLaterTimebin = param.rejectLaterTimebin;
 }
 
 //______________________________________________________________________________
@@ -215,24 +230,18 @@ void HwClusterer::process(std::vector<o2::tpc::Digit> const& digits, MCLabelCont
     index = mapTimeInRange(digit.getTimeStamp()) * mPadsPerRowSet[mGlobalRowToRowSet[digit.getRow()]] + (digit.getPad() + 2);
     // offset of digit pad because of 2 empty pads on both sides
 
+    float charge = digit.getChargeFloat();
+
     // TODO: fill noise here as well if necessary
     if (mPedestalObject) {
-      /*
-       * If a pedestal object was registered, check if charge of pad is greater
-       * than pedestal value. If so, assign difference of charge and pedestal
-       * to buffer, if not, set buffer to 0.
-       */
-      if (digit.getChargeFloat() < mPedestalObject->getValue(CRU(digit.getCRU()), digit.getRow(), digit.getPad())) {
-        mDataBuffer[mGlobalRowToRowSet[digit.getRow()]][index][mGlobalRowToVcIndex[digit.getRow()]] = 0;
-      } else {
-        mDataBuffer[mGlobalRowToRowSet[digit.getRow()]][index][mGlobalRowToVcIndex[digit.getRow()]] = static_cast<unsigned>(
-          (digit.getChargeFloat() - mPedestalObject->getValue(CRU(digit.getCRU()), digit.getRow(), digit.getPad())) * (1 << 4));
-      }
-    } else {
-      mDataBuffer[mGlobalRowToRowSet[digit.getRow()]][index][mGlobalRowToVcIndex[digit.getRow()]] = static_cast<unsigned>(digit.getChargeFloat() * (1 << 4));
+      charge -= mPedestalObject->getValue(CRU(digit.getCRU()), digit.getRow(), digit.getPad());
     }
-    if (mDataBuffer[mGlobalRowToRowSet[digit.getRow()]][index][mGlobalRowToVcIndex[digit.getRow()]] > 0x3FFF)
-      mDataBuffer[mGlobalRowToRowSet[digit.getRow()]][index][mGlobalRowToVcIndex[digit.getRow()]] = 0x3FFF; // set only 14 LSBs
+    /*
+     * charge could be smaller than 0 due to pedestal subtraction, if so set it to zero
+     * noise thresholds for zero suppression could also be done here ...
+     */
+    mDataBuffer[mGlobalRowToRowSet[digit.getRow()]][index][mGlobalRowToVcIndex[digit.getRow()]] =
+      charge < 0 ? 0 : ((charge < float(0x3FFF) / (1 << 4)) ? (charge * (1 << 4)) : 0x3FFF);
 
     mIndexBuffer[mGlobalRowToRowSet[digit.getRow()]][index][mGlobalRowToVcIndex[digit.getRow()]] = digitIndex++;
 

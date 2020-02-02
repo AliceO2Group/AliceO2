@@ -45,7 +45,7 @@ class AliTPCLookUpTable3DInterpolatorIrregularD
                                             TMatrixD** matricesZValue, TMatrixD** matricesZPoint, Int_t order,
                                             Int_t stepR, Int_t stepZ, Int_t stepPhi, Int_t type);
 
-  virtual ~AliTPCLookUpTable3DInterpolatorIrregularD();
+  ~AliTPCLookUpTable3DInterpolatorIrregularD();
 
   void GetValue(Double_t r, Double_t phi, Double_t z, Double_t& rValue, Double_t& phiValue, Double_t& zValue, Int_t rIndex,
                 Int_t phiIndex, Int_t zIndex, Int_t stepR, Int_t stepPhi, Int_t stepZ);
@@ -80,22 +80,22 @@ class AliTPCLookUpTable3DInterpolatorIrregularD
   Int_t fNPhi;              ///< Number of grid in Phi
   Int_t fNZ;                ///< Number of grid in Z
 
-  TMatrixD** fMatricesRValue = nullptr;   ///< Matrices to store r-component
-  TMatrixD** fMatricesPhiValue = nullptr; ///< Matrices to store phi-component
-  TMatrixD** fMatricesZValue = nullptr;   ///< Matrices to store z-component
+  TMatrixD** fMatricesRValue = nullptr;   //!<! Matrices to store r-component
+  TMatrixD** fMatricesPhiValue = nullptr; //!<! Matrices to store phi-component
+  TMatrixD** fMatricesZValue = nullptr;   //!<! Matrices to store z-component
 
-  AliTPC3DCylindricalInterpolatorIrregular* fInterpolatorR = nullptr;   ///-> Irregular interpolator for R-component
-  AliTPC3DCylindricalInterpolatorIrregular* fInterpolatorPhi = nullptr; ///-> Irregular interpolator for Phi-component
-  AliTPC3DCylindricalInterpolatorIrregular* fInterpolatorZ = nullptr;   ///-> Irregular interpolator for Z-component
+  AliTPC3DCylindricalInterpolatorIrregular* fInterpolatorR = nullptr;   //-> Irregular interpolator for R-component
+  AliTPC3DCylindricalInterpolatorIrregular* fInterpolatorPhi = nullptr; //-> Irregular interpolator for Phi-component
+  AliTPC3DCylindricalInterpolatorIrregular* fInterpolatorZ = nullptr;   //-> Irregular interpolator for Z-component
 
-  TMatrixD** fMatricesRPoint = nullptr;   ///< Matrices to store distorted point (r component)
-  TMatrixD** fMatricesPhiPoint = nullptr; ///< Matrices to store distorted point (phi component)
-  TMatrixD** fMatricesZPoint = nullptr;   ///< Matrices to store distorted point (z component)
+  TMatrixD** fMatricesRPoint = nullptr;   //!<! Matrices to store distorted point (r component)
+  TMatrixD** fMatricesPhiPoint = nullptr; //!<! Matrices to store distorted point (phi component)
+  TMatrixD** fMatricesZPoint = nullptr;   //!<! Matrices to store distorted point (z component)
 
   Bool_t fIsAllocatingLookUp;
 
   /// \cond CLASSIMP
-  ClassDef(AliTPCLookUpTable3DInterpolatorIrregularD, 1);
+  ClassDefNV(AliTPCLookUpTable3DInterpolatorIrregularD, 1);
   /// \endcond
 };
 

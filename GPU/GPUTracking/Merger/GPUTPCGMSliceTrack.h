@@ -17,7 +17,7 @@
 #include "GPUTPCSliceOutTrack.h"
 #include "GPUTPCGMTrackParam.h"
 #include "GPUCommonMath.h"
-//#include <algorithm>
+#include "GPUO2DataTypes.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -60,6 +60,8 @@ class GPUTPCGMSliceTrack
 
   float MaxClusterZ() { return CAMath::Max(mOrigTrack->Clusters()->GetZ(), (mOrigTrack->Clusters() + mOrigTrack->NClusters() - 1)->GetZ()); }
   float MinClusterZ() { return CAMath::Min(mOrigTrack->Clusters()->GetZ(), (mOrigTrack->Clusters() + mOrigTrack->NClusters() - 1)->GetZ()); }
+  GPUd() float MaxClusterT(const o2::tpc::ClusterNative* cls) { return CAMath::Max(cls[mOrigTrack->Clusters()->GetId()].getTime(), cls[(mOrigTrack->Clusters() + mOrigTrack->NClusters() - 1)->GetId()].getTime()); }
+  GPUd() float MinClusterT(const o2::tpc::ClusterNative* cls) { return CAMath::Min(cls[mOrigTrack->Clusters()->GetId()].getTime(), cls[(mOrigTrack->Clusters() + mOrigTrack->NClusters() - 1)->GetId()].getTime()); }
 
   void Set(const GPUTPCSliceOutTrack* sliceTr, float alpha, int slice)
   {
@@ -112,7 +114,7 @@ class GPUTPCGMSliceTrack
     mAlpha = t.mAlpha;
   }
 
-  bool FilterErrors(const GPUParam& param, float maxSinPhi = GPUCA_MAX_SIN_PHI, float sinPhiMargin = 0.f);
+  bool FilterErrors(const GPUTPCGMMerger* merger, int iSlice, float maxSinPhi = GPUCA_MAX_SIN_PHI, float sinPhiMargin = 0.f);
 
   bool TransportToX(float x, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi, bool doCov = true) const;
 

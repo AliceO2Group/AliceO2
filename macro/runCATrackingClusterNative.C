@@ -99,17 +99,20 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile)
     ClusterNativeHelper::createClusterNativeIndex(clusterBuffer, cont, doMC ? &clusterMCBuffer : nullptr, doMC ? &contMC : nullptr);
 
   vector<TrackTPC> tracks;
+  vector<TPCClRefElem> trackClusRefs;
   MCLabelContainer tracksMC;
 
   TFile fout(outputFile, "recreate");
   TTree tout("events", "events");
   tout.Branch("Tracks", &tracks);
+  tout.Branch("TracksClusRefs", &trackClusRefs);
   tout.Branch("TracksMCTruth", &tracksMC);
 
   printf("Processing time frame\n");
   GPUO2InterfaceIOPtrs ptrs;
   ptrs.clusters = clusters.get();
   ptrs.outputTracks = &tracks;
+  ptrs.outputClusRefs = &trackClusRefs;
   ptrs.outputTracksMCTruth = doMC ? &tracksMC : nullptr;
   if (tracker.runTracking(&ptrs) == 0) {
     printf("\tFound %d tracks\n", (int)tracks.size());
@@ -129,9 +132,9 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile)
       // Get cluster references
       uint8_t sector, row;
       uint32_t clusterIndexInRow;
-      tracks[i].getClusterReference(j, sector, row, clusterIndexInRow);
-      const ClusterNative& cl = tracks[i].getCluster(j, *clusters, sector, row);
-      const ClusterNative& clLast = tracks[i].getCluster(0, *clusters);
+      tracks[i].getClusterReference(trackClusRefs, j, sector, row, clusterIndexInRow);
+      const ClusterNative& cl = tracks[i].getCluster(trackClusRefs, j, *clusters, sector, row);
+      const ClusterNative& clLast = tracks[i].getCluster(trackClusRefs, 0, *clusters);
       // RS: TODO: account for possible A/C merged tracks
       float sideFactor = tracks[i].hasASideClustersOnly() ? -1.f : 1.f;
       printf(

@@ -20,6 +20,7 @@
 
 class TH1;
 class TH2;
+class TCanvas;
 
 namespace o2
 {
@@ -45,13 +46,15 @@ namespace painter
 //using T=float;
 /// Drawing of a CalDet object
 /// \param CalDet object to draw
+/// \return TCanvas containing CalDet content
 template <class T>
-void draw(const CalDet<T>& calDet);
+TCanvas* draw(const CalDet<T>& calDet);
 
 /// Drawing of a CalDet object
 /// \param CalArray object to draw
+/// \return TCanvas containing CalArray content
 template <class T>
-void draw(const CalArray<T>& calArray);
+TCanvas* draw(const CalArray<T>& calArray);
 
 /// get 2D histogram for CalDet object
 /// \param CalDet object with data

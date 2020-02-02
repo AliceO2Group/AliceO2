@@ -34,7 +34,7 @@ TH1* TimeCalibParamL1Phase::getHistogramRepresentation() const
   hist->SetDirectory(nullptr);
 
   for (std::size_t iSM{0}; iSM < mTimeCalibParamsL1Phase.size(); ++iSM)
-    hist->SetBinContent(iSM + 1, mTimeCalibParamsL1Phase[iSM]);
+    hist->SetBinContent(iSM + 1, mTimeCalibParamsL1Phase[iSM] - '0');
 
   return hist;
 }

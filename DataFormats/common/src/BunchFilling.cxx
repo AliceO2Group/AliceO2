@@ -10,6 +10,8 @@
 
 #include "FairLogger.h"
 #include "CommonDataFormat/BunchFilling.h"
+#include <TClass.h>
+#include <TFile.h>
 
 using namespace o2;
 
@@ -61,4 +63,22 @@ void BunchFilling::print(int bcPerLine) const
   if (!endlOK) {
     printf("\n");
   }
+}
+
+//_______________________________________________
+BunchFilling* BunchFilling::loadFrom(const std::string& fileName, const std::string& objName)
+{
+  // load object from file
+  TFile fl(fileName.data());
+  if (fl.IsZombie()) {
+    LOG(ERROR) << "Failed to open " << fileName;
+    return nullptr;
+  }
+  std::string nm = objName.empty() ? o2::BunchFilling::Class()->GetName() : objName;
+  auto bf = reinterpret_cast<o2::BunchFilling*>(fl.GetObjectChecked(nm.c_str(), o2::BunchFilling::Class()));
+  if (!bf) {
+    LOG(ERROR) << "Did not find object named " << nm;
+    return nullptr;
+  }
+  return bf;
 }

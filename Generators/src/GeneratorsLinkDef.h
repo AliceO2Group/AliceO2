@@ -38,9 +38,17 @@
 #pragma link C++ class o2::eventgen::GeneratorFromFile + ;
 #pragma link C++ class o2::PDG + ;
 #pragma link C++ class o2::eventgen::PrimaryGenerator + ;
+#pragma link C++ class o2::eventgen::Trigger + ;
+#pragma link C++ class o2::eventgen::TriggerParticle + ;
+
+#pragma link C++ enum o2::eventgen::EVertexDistribution;
 #pragma link C++ class o2::eventgen::InteractionDiamondParam + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::InteractionDiamondParam> + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::InteractionDiamondParam > +;
+#pragma link C++ class o2::eventgen::TriggerParticleParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::TriggerParticleParam > +;
 #pragma link C++ class o2::eventgen::BoxGunParam + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::BoxGunParam> + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::BoxGunParam > +;
+#pragma link C++ class o2::eventgen::QEDGenParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::QEDGenParam > +;
 
 #endif

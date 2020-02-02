@@ -86,9 +86,10 @@ void AliTPCSpaceCharge3DCalc::InitAllocateMemory()
   fListZC = new Double_t[fNZColumns];
 
   // allocate for boundary
-  Int_t len = 2 * fNPhiSlices * (fNZColumns + fNRRows) - (4 * fNPhiSlices);
-  fListPotentialBoundaryA = new Double_t[len];
-  fListPotentialBoundaryC = new Double_t[len];
+  /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+  // Int_t len = 2 * fNPhiSlices * (fNZColumns + fNRRows) - (4 * fNPhiSlices);
+  // fListPotentialBoundaryA = new Double_t[len];
+  // fListPotentialBoundaryC = new Double_t[len];
 
   Int_t phiSlicesPerSector = fNPhiSlices / kNumSector;
   const Float_t gridSizeR = (AliTPCPoissonSolver::fgkOFCRadius - AliTPCPoissonSolver::fgkIFCRadius) / (fNRRows - 1);
@@ -103,15 +104,54 @@ void AliTPCSpaceCharge3DCalc::InitAllocateMemory()
   }
   for (Int_t j = 0; j < fNZColumns; j++) {
     fListZ[j] = (j * gridSizeZ);
-  }
-
-  for (Int_t j = 0; j < fNZColumns; j++) {
     fListZA[j] = (j * gridSizeZ);
-  }
-
-  for (Int_t j = 0; j < fNZColumns; j++) {
     fListZC[j] = (j * gridSizeZ);
   }
+
+  fMatrixIntDistDrEzA = new TMatrixD*[fNPhiSlices];
+  fMatrixIntDistDPhiREzA = new TMatrixD*[fNPhiSlices];
+  fMatrixIntDistDzA = new TMatrixD*[fNPhiSlices];
+
+  fMatrixIntDistDrEzC = new TMatrixD*[fNPhiSlices];
+  fMatrixIntDistDPhiREzC = new TMatrixD*[fNPhiSlices];
+  fMatrixIntDistDzC = new TMatrixD*[fNPhiSlices];
+
+  fMatrixErOverEzA = new TMatrixD*[fNPhiSlices];
+  fMatrixEPhiOverEzA = new TMatrixD*[fNPhiSlices];
+  fMatrixDeltaEzA = new TMatrixD*[fNPhiSlices];
+
+  fMatrixErOverEzC = new TMatrixD*[fNPhiSlices];
+  fMatrixEPhiOverEzC = new TMatrixD*[fNPhiSlices];
+  fMatrixDeltaEzC = new TMatrixD*[fNPhiSlices];
+
+  fMatrixIntCorrDrEzA = new TMatrixD*[fNPhiSlices];
+  fMatrixIntCorrDPhiREzA = new TMatrixD*[fNPhiSlices];
+  fMatrixIntCorrDzA = new TMatrixD*[fNPhiSlices];
+
+  fMatrixIntCorrDrEzC = new TMatrixD*[fNPhiSlices];
+  fMatrixIntCorrDPhiREzC = new TMatrixD*[fNPhiSlices];
+  fMatrixIntCorrDzC = new TMatrixD*[fNPhiSlices];
+
+  fMatrixIntCorrDrEzIrregularA = new TMatrixD*[fNPhiSlices];
+  fMatrixIntCorrDPhiREzIrregularA = new TMatrixD*[fNPhiSlices];
+  fMatrixIntCorrDzIrregularA = new TMatrixD*[fNPhiSlices];
+  fMatrixRListIrregularA = new TMatrixD*[fNPhiSlices];
+  fMatrixPhiListIrregularA = new TMatrixD*[fNPhiSlices];
+  fMatrixZListIrregularA = new TMatrixD*[fNPhiSlices];
+
+  fMatrixIntCorrDrEzIrregularC = new TMatrixD*[fNPhiSlices];
+  fMatrixIntCorrDPhiREzIrregularC = new TMatrixD*[fNPhiSlices];
+  fMatrixIntCorrDzIrregularC = new TMatrixD*[fNPhiSlices];
+  fMatrixRListIrregularC = new TMatrixD*[fNPhiSlices];
+  fMatrixPhiListIrregularC = new TMatrixD*[fNPhiSlices];
+  fMatrixZListIrregularC = new TMatrixD*[fNPhiSlices];
+
+  fMatrixChargeA = new TMatrixD*[fNPhiSlices];
+  fMatrixChargeC = new TMatrixD*[fNPhiSlices];
+  fMatrixChargeInverseA = new TMatrixD*[fNPhiSlices];
+  fMatrixChargeInverseC = new TMatrixD*[fNPhiSlices];
+  fMatrixPotentialA = new TMatrixD*[fNPhiSlices];
+  fMatrixPotentialC = new TMatrixD*[fNPhiSlices];
 
   for (Int_t k = 0; k < fNPhiSlices; k++) {
 
@@ -210,6 +250,7 @@ void AliTPCSpaceCharge3DCalc::InitAllocateMemory()
   fInterpolatorChargeA->SetNR(fNRRows);
   fInterpolatorChargeA->SetNZ(fNZColumns);
   fInterpolatorChargeA->SetNPhi(fNPhiSlices);
+  fInterpolatorChargeA->SetNGridPoints();
   fInterpolatorChargeA->SetRList(fListR);
   fInterpolatorChargeA->SetZList(fListZA);
   fInterpolatorChargeA->SetPhiList(fListPhi);
@@ -218,6 +259,7 @@ void AliTPCSpaceCharge3DCalc::InitAllocateMemory()
   fInterpolatorChargeC->SetNR(fNRRows);
   fInterpolatorChargeC->SetNZ(fNZColumns);
   fInterpolatorChargeC->SetNPhi(fNPhiSlices);
+  fInterpolatorChargeC->SetNGridPoints();
   fInterpolatorChargeC->SetRList(fListR);
   fInterpolatorChargeC->SetZList(fListZC);
   fInterpolatorChargeC->SetPhiList(fListPhi);
@@ -226,6 +268,7 @@ void AliTPCSpaceCharge3DCalc::InitAllocateMemory()
   fInterpolatorPotentialA->SetNR(fNRRows);
   fInterpolatorPotentialA->SetNZ(fNZColumns);
   fInterpolatorPotentialA->SetNPhi(fNPhiSlices);
+  fInterpolatorPotentialA->SetNGridPoints();
   fInterpolatorPotentialA->SetRList(fListR);
   fInterpolatorPotentialA->SetZList(fListZA);
   fInterpolatorPotentialA->SetPhiList(fListPhi);
@@ -234,6 +277,7 @@ void AliTPCSpaceCharge3DCalc::InitAllocateMemory()
   fInterpolatorPotentialC->SetNR(fNRRows);
   fInterpolatorPotentialC->SetNZ(fNZColumns);
   fInterpolatorPotentialC->SetNPhi(fNPhiSlices);
+  fInterpolatorPotentialC->SetNGridPoints();
   fInterpolatorPotentialC->SetRList(fListR);
   fInterpolatorPotentialC->SetZList(fListZA);
   fInterpolatorPotentialC->SetPhiList(fListPhi);
@@ -242,6 +286,7 @@ void AliTPCSpaceCharge3DCalc::InitAllocateMemory()
   fInterpolatorInverseChargeA->SetNR(fNRRows);
   fInterpolatorInverseChargeA->SetNZ(fNZColumns);
   fInterpolatorInverseChargeA->SetNPhi(fNPhiSlices);
+  fInterpolatorInverseChargeA->SetNGridPoints();
   fInterpolatorInverseChargeA->SetRList(fListR);
   fInterpolatorInverseChargeA->SetZList(fListZA);
   fInterpolatorInverseChargeA->SetPhiList(fListPhi);
@@ -250,6 +295,7 @@ void AliTPCSpaceCharge3DCalc::InitAllocateMemory()
   fInterpolatorInverseChargeC->SetNR(fNRRows);
   fInterpolatorInverseChargeC->SetNZ(fNZColumns);
   fInterpolatorInverseChargeC->SetNPhi(fNPhiSlices);
+  fInterpolatorInverseChargeC->SetNGridPoints();
   fInterpolatorInverseChargeC->SetRList(fListR);
   fInterpolatorInverseChargeC->SetZList(fListZC);
   fInterpolatorInverseChargeC->SetPhiList(fListPhi);
@@ -287,22 +333,6 @@ void AliTPCSpaceCharge3DCalc::InitAllocateMemory()
 
   fLookupIntCorrIrregularA->SetKernelType(fRBFKernelType);
   fLookupIntCorrIrregularC->SetKernelType(fRBFKernelType);
-
-  fFormulaBoundaryIFCA = nullptr; //-> function define boundary values for IFC side A V(z) assuming symmetry in phi and r.
-  fFormulaBoundaryIFCC = nullptr; //-> function define boundary values for IFC side C V(z) assuming symmetry in phi and r.
-  fFormulaBoundaryOFCA = nullptr; //-> function define boundary values for OFC side A V(z) assuming symmetry in phi and r.
-  fFormulaBoundaryOFCC = nullptr; ///<- function define boundary values for IFC side C V(z) assuming symmetry in phi and r.
-  fFormulaBoundaryROCA = nullptr; ///<- function define boundary values for ROC side A V(r) assuming symmetry in phi and z.
-  fFormulaBoundaryROCC = nullptr; ///<- function define boundary values for ROC side V V(t) assuming symmetry in phi and z.
-  fFormulaBoundaryCE = nullptr;   ///<- function define boundary values for CE V(z) assuming symmetry in phi and z.
-
-  fFormulaPotentialV = nullptr; ///<- potential V(r,rho,z) function
-  fFormulaChargeRho = nullptr;  ///<- charge density Rho(r,rho,z) function
-
-  // analytic formula for E
-  fFormulaEPhi = nullptr; ///<- ePhi EPhi(r,rho,z) electric field (phi) function
-  fFormulaEr = nullptr;   ///<- er Er(r,rho,z) electric field (r) function
-  fFormulaEz = nullptr;   ///<- ez Ez(r,rho,z) electric field (z) function
 }
 /// Destruction for AliTPCSpaceCharge3DCalc
 /// Deallocate memory for lookup table and charge distribution
@@ -380,8 +410,28 @@ AliTPCSpaceCharge3DCalc::~AliTPCSpaceCharge3DCalc()
   delete fInterpolatorInverseChargeA;
   delete fInterpolatorInverseChargeC;
 
-  delete[] fListPotentialBoundaryA;
-  delete[] fListPotentialBoundaryC;
+  delete fHistogram3DSpaceCharge;
+  delete fHistogram3DSpaceChargeA;
+  delete fHistogram3DSpaceChargeC;
+
+  delete fFormulaBoundaryIFCA;
+  delete fFormulaBoundaryIFCC;
+  delete fFormulaBoundaryOFCA;
+  delete fFormulaBoundaryOFCC;
+  delete fFormulaBoundaryROCA;
+  delete fFormulaBoundaryROCC;
+  delete fFormulaBoundaryCE;
+
+  delete fFormulaPotentialV;
+  delete fFormulaChargeRho;
+
+  delete fFormulaEPhi;
+  delete fFormulaEr;
+  delete fFormulaEz;
+
+  /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+  // delete[] fListPotentialBoundaryA;
+  // delete[] fListPotentialBoundaryC;
 }
 
 /// Creating look-up tables of Correction/Distortion by integration following
@@ -532,7 +582,8 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
   TMatrixD** matricesLookUpCharge = nullptr;
   AliTPC3DCylindricalInterpolator* chargeInterpolator = nullptr;
   AliTPC3DCylindricalInterpolator* potentialInterpolator = nullptr;
-  Double_t* potentialBoundary = nullptr;
+  /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+  // Double_t* potentialBoundary = nullptr;
   TMatrixD* matrixV;
   TMatrixD* matrixCharge;
   // for potential
@@ -581,7 +632,8 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
         fLookupElectricFieldA->SetLookUpPhi(matricesEPhi);
         fLookupElectricFieldA->SetLookUpZ(matricesEz);
 
-        potentialBoundary = fListPotentialBoundaryA;
+        /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+        // potentialBoundary = fListPotentialBoundaryA;
         f1BoundaryIFC = fFormulaBoundaryIFCA;
         f1BoundaryOFC = fFormulaBoundaryOFCA;
         f1BoundaryROC = fFormulaBoundaryROCA;
@@ -603,7 +655,8 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
         fLookupElectricFieldC->SetLookUpPhi(matricesEPhi);
         fLookupElectricFieldC->SetLookUpZ(matricesEz);
 
-        potentialBoundary = fListPotentialBoundaryC;
+        /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+        // potentialBoundary = fListPotentialBoundaryC;
         f1BoundaryIFC = fFormulaBoundaryIFCC;
         f1BoundaryOFC = fFormulaBoundaryOFCC;
         f1BoundaryROC = fFormulaBoundaryROCC;
@@ -666,8 +719,7 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
       //(fPoissonSolver->fMgParameters).maxLoop = 6;
 
       w.Start();
-      fPoissonSolver->PoissonSolver3D(matricesV, matricesCharge, nRRow, nZColumn, phiSlice, maxIteration,
-                                      symmetry);
+      fPoissonSolver->PoissonSolver3D(matricesV, matricesCharge, nRRow, nZColumn, phiSlice, maxIteration, symmetry);
       w.Stop();
 
       potentialInterpolator->SetValue(matricesV);
@@ -961,7 +1013,8 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
   TMatrixD** matricesLookUpCharge = nullptr;
   AliTPC3DCylindricalInterpolator* chargeInterpolator = nullptr;
   AliTPC3DCylindricalInterpolator* potentialInterpolator = nullptr;
-  Double_t* potentialBoundary = nullptr;
+  /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+  // Double_t* potentialBoundary = nullptr;
   TMatrixD* matrixV;
   TMatrixD* matrixCharge;
   Int_t pIndex = 0;
@@ -1012,7 +1065,8 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
         fLookupElectricFieldA->SetLookUpPhi(matricesEPhiA);
         fLookupElectricFieldA->SetLookUpZ(matricesEzA);
 
-        potentialBoundary = fListPotentialBoundaryA;
+        /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+        // potentialBoundary = fListPotentialBoundaryA;
         f1BoundaryIFC = fFormulaBoundaryIFCA;
         f1BoundaryOFC = fFormulaBoundaryOFCA;
         f1BoundaryROC = fFormulaBoundaryROCA;
@@ -1041,7 +1095,8 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
         lookupLocalCorr->SetLookUpPhi(matricesCorrDPhiRDzC);
         lookupLocalCorr->SetLookUpZ(matricesCorrDzC);
 
-        potentialBoundary = fListPotentialBoundaryC;
+        /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+        // potentialBoundary = fListPotentialBoundaryC;
         f1BoundaryIFC = fFormulaBoundaryIFCC;
         f1BoundaryOFC = fFormulaBoundaryOFCC;
         f1BoundaryROC = fFormulaBoundaryROCC;
@@ -1338,7 +1393,8 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
   TMatrixD** matricesLookUpCharge = nullptr;
   AliTPC3DCylindricalInterpolator* chargeInterpolator = nullptr;
   AliTPC3DCylindricalInterpolator* potentialInterpolator = nullptr;
-  Double_t* potentialBoundary = nullptr;
+  /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+  // Double_t* potentialBoundary = nullptr;
   TMatrixD* matrixV;
   TMatrixD* matrixCharge;
   Int_t pIndex = 0;
@@ -1389,7 +1445,8 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
         fLookupElectricFieldA->SetLookUpPhi(matricesEPhiA);
         fLookupElectricFieldA->SetLookUpZ(matricesEzA);
 
-        potentialBoundary = fListPotentialBoundaryA;
+        /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+        // potentialBoundary = fListPotentialBoundaryA;
         f1BoundaryIFC = fFormulaBoundaryIFCA;
         f1BoundaryOFC = fFormulaBoundaryOFCA;
         f1BoundaryROC = fFormulaBoundaryROCA;
@@ -1418,7 +1475,8 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(
         lookupLocalCorr->SetLookUpPhi(matricesCorrDPhiRDzC);
         lookupLocalCorr->SetLookUpZ(matricesCorrDzC);
 
-        potentialBoundary = fListPotentialBoundaryC;
+        /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+        // potentialBoundary = fListPotentialBoundaryC;
         f1BoundaryIFC = fFormulaBoundaryIFCC;
         f1BoundaryOFC = fFormulaBoundaryOFCC;
         f1BoundaryROC = fFormulaBoundaryROCC;
@@ -1670,8 +1728,7 @@ void AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoisson(Int_t nRRow, Int_t nZColu
           fInterpolationOrder);
 
       Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz", "Step 1: Solving poisson solver");
-      fPoissonSolver->PoissonSolver3D(matricesV, matricesCharge, nRRow, nZColumn, phiSlice, maxIteration,
-                                      symmetry);
+      fPoissonSolver->PoissonSolver3D(matricesV, matricesCharge, nRRow, nZColumn, phiSlice, maxIteration, symmetry);
       Info("AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz", "Step 2: Calculate electric field");
       CalculateEField(
         matricesV,
@@ -2957,24 +3014,22 @@ void AliTPCSpaceCharge3DCalc::FillLookUpTable(AliTPCLookUpTable3DInterpolatorD* 
 /// \param x
 /// \param roc
 /// \param dx
-void AliTPCSpaceCharge3DCalc::GetDistortionCyl(const Float_t x[], Short_t roc, Float_t dx[])
+void AliTPCSpaceCharge3DCalc::GetDistortionCyl(const Float_t x[], Short_t roc, Float_t dx[]) const
 {
-  if (!fInitLookUp) {
-    Info("AliTPCSpaceCharge3DCalc::GetDistortionCyl", "Lookup table was not initialized! Performing the initialization now ...");
-    InitSpaceCharge3DPoissonIntegralDz(129, 129, 144, 100, 1e-8);
-  }
-
   GetDistortionCylAC(x, roc, dx);
 }
 ///
 /// \param x
 /// \param roc
 /// \param dx
-void AliTPCSpaceCharge3DCalc::GetDistortionCylAC(const Float_t x[], Short_t roc, Float_t dx[])
+void AliTPCSpaceCharge3DCalc::GetDistortionCylAC(const Float_t x[], Short_t roc, Float_t dx[]) const
 {
   if (!fInitLookUp) {
-    Info("AliTPCSpaceCharge3DCalc::GetDistortionCylAC", "Lookup table was not initialized! Performing the initialization now ...");
-    InitSpaceCharge3DPoissonIntegralDz(129, 129, 144, 100, 1e-8);
+    Info("AliTPCSpaceCharge3DCalc::GetDistortionCylAC", "Lookup table was not initialized! Please run AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(nRRows, nZColumns, nPhiSlices) to perform the initialization. Returning distortion vector (0, 0, 0).");
+    for (int i = 0; i < 3; ++i) {
+      dx[i] = 0.;
+    }
+    return;
   }
 
   Float_t dR, dRPhi, dZ;
@@ -3024,11 +3079,14 @@ void AliTPCSpaceCharge3DCalc::GetDistortionCylAC(const Float_t x[], Short_t roc,
 /// \param x
 /// \param roc
 /// \param dx
-void AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular(const Float_t x[], Short_t roc, Float_t dx[])
+void AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular(const Float_t x[], Short_t roc, Float_t dx[]) const
 {
   if (!fInitLookUp) {
-    Info("AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular", "Lookup table was not initialized! Performing the initialization now ...");
-    InitSpaceCharge3DPoissonIntegralDz(129, 129, 144, 100, 1e-8);
+    Info("AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular", "Lookup table was not initialized! Please run AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(nRRows, nZColumns, nPhiSlices) to perform the initialization. Returning correction vector (0, 0, 0).");
+    for (int i = 0; i < 3; ++i) {
+      dx[i] = 0.;
+    }
+    return;
   }
 
   Double_t dR, dRPhi, dZ;
@@ -3078,11 +3136,14 @@ void AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular(const Float_t x[], Sho
 /// \param x
 /// \param roc
 /// \param dx
-void AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular(const Float_t x[], Short_t roc, Float_t dx[], const Int_t side)
+void AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular(const Float_t x[], Short_t roc, Float_t dx[], const Int_t side) const
 {
   if (!fInitLookUp) {
-    Info("AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular", "Lookup table was not initialized! Performing the initialization now ...");
-    InitSpaceCharge3DPoissonIntegralDz(129, 129, 144, 100, 1e-8);
+    Info("AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular", "Lookup table was not initialized! Please run AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(nRRows, nZColumns, nPhiSlices) to perform the initialization. Returning correction vector (0, 0, 0).");
+    for (int i = 0; i < 3; ++i) {
+      dx[i] = 0.;
+    }
+    return;
   }
 
   Double_t dR, dRPhi, dZ;
@@ -3132,11 +3193,14 @@ void AliTPCSpaceCharge3DCalc::GetCorrectionCylACIrregular(const Float_t x[], Sho
 /// \param x
 /// \param roc
 /// \param dx
-void AliTPCSpaceCharge3DCalc::GetCorrectionCylAC(const Float_t x[], Short_t roc, Float_t dx[])
+void AliTPCSpaceCharge3DCalc::GetCorrectionCylAC(const Float_t x[], Short_t roc, Float_t dx[]) const
 {
   if (!fInitLookUp) {
-    Info("AliTPCSpaceCharge3DCalc::GetDistortionCylAC", "Lookup table was not initialized! Performing the initialization now ...");
-    InitSpaceCharge3DPoissonIntegralDz(129, 129, 144, 100, 1e-8);
+    Info("AliTPCSpaceCharge3DCalc::GetDistortionCylAC", "Lookup table was not initialized! Please run AliTPCSpaceCharge3DCalc::InitSpaceCharge3DPoissonIntegralDz(nRRows, nZColumns, nPhiSlices) to perform the initialization. Returning correction vector (0, 0, 0).");
+    for (int i = 0; i < 3; ++i) {
+      dx[i] = 0.;
+    }
+    return;
   }
 
   Float_t dR, dRPhi, dZ;
@@ -3180,13 +3244,8 @@ void AliTPCSpaceCharge3DCalc::GetCorrectionCylAC(const Float_t x[], Short_t roc,
   dx[2] = fCorrectionFactor *
           dZ; // z distortion - (scaled with drift velocity dependency on the Ez field and the overall scaling factor)
 }
-void AliTPCSpaceCharge3DCalc::GetDistortion(const Float_t x[], Short_t roc, Float_t dx[])
+void AliTPCSpaceCharge3DCalc::GetDistortion(const Float_t x[], Short_t roc, Float_t dx[]) const
 {
-  if (!fInitLookUp) {
-    Info("AliTPCSpaceCharge3DCalc::GetDistortion", "Lookup table was not initialized! Performing the initialization now ...");
-    InitSpaceCharge3DPoissonIntegralDz(129, 129, 144, 100, 1e-8);
-  }
-
   Float_t pCyl[3]; // a point in cylindrical coordinate
   Float_t dCyl[3]; // distortion
 
@@ -3223,12 +3282,8 @@ void AliTPCSpaceCharge3DCalc::GetDistortion(const Float_t x[], Short_t roc, Floa
 /// \param x
 /// \param roc
 /// \param dx
-void AliTPCSpaceCharge3DCalc::GetCorrectionCyl(const Float_t x[], Short_t roc, Float_t dx[])
+void AliTPCSpaceCharge3DCalc::GetCorrectionCyl(const Float_t x[], Short_t roc, Float_t dx[]) const
 {
-  if (!fInitLookUp) {
-    Info("AliTPCSpaceCharge3DCalc::GetCorrectionCyl", "Lookup table was not initialized! Performing the initialization now ...");
-    InitSpaceCharge3DPoissonIntegralDz(129, 129, 144, 100, 1e-8);
-  }
   if (fCorrectionType == kRegularInterpolator) {
     GetCorrectionCylAC(x, roc, dx);
   } else {
@@ -3239,13 +3294,8 @@ void AliTPCSpaceCharge3DCalc::GetCorrectionCyl(const Float_t x[], Short_t roc, F
 /// \param x
 /// \param roc
 /// \param dx
-void AliTPCSpaceCharge3DCalc::GetCorrection(const Float_t x[], Short_t roc, Float_t dx[])
+void AliTPCSpaceCharge3DCalc::GetCorrection(const Float_t x[], Short_t roc, Float_t dx[]) const
 {
-  if (!fInitLookUp) {
-    Info("AliTPCSpaceCharge3DCalc::GetCorrection", "Lookup table was not initialized! Performing the initialization now ...");
-    InitSpaceCharge3DPoissonIntegralDz(129, 129, 144, 100, 1e-8);
-  }
-
   Float_t pCyl[3]; // a point in cylindrical coordinate
   Float_t dCyl[3]; // distortion
 
@@ -3285,13 +3335,8 @@ void AliTPCSpaceCharge3DCalc::GetCorrection(const Float_t x[], Short_t roc, Floa
 /// \param x
 /// \param roc
 /// \param dx
-void AliTPCSpaceCharge3DCalc::GetCorrection(const Float_t x[], Short_t roc, Float_t dx[], const Int_t side)
+void AliTPCSpaceCharge3DCalc::GetCorrection(const Float_t x[], Short_t roc, Float_t dx[], const Int_t side) const
 {
-  if (!fInitLookUp) {
-    Info("AliTPCSpaceCharge3DCalc::GetCorrection", "Lookup table was not initialized! Performing the initialization now ...");
-    InitSpaceCharge3DPoissonIntegralDz(129, 129, 144, 100, 1e-8);
-  }
-
   Float_t pCyl[3]; // a point in cylindrical coordinate
   Float_t dCyl[3]; // distortion
 
@@ -3441,7 +3486,7 @@ void AliTPCSpaceCharge3DCalc::SetInputSpaceCharge(TH3* hisSpaceCharge3D, Double_
 /// \param r
 /// \param z
 /// \return
-Double_t AliTPCSpaceCharge3DCalc::InterpolatePhi(TH3* h3, const Double_t phi, const Double_t r, const Double_t z)
+Double_t AliTPCSpaceCharge3DCalc::InterpolatePhi(const TH3* h3, const Double_t phi, const Double_t r, const Double_t z)
 {
 
   Int_t ubx = h3->GetXaxis()->FindBin(phi);
@@ -4668,7 +4713,7 @@ void AliTPCSpaceCharge3DCalc::InverseDistortionMapsNoDrift(
 /// \param nZColumn
 /// \param phiSlice
 void AliTPCSpaceCharge3DCalc::GetChargeDensity(
-  TMatrixD** matricesChargeA, TMatrixD** matricesChargeC, TH3* spaceChargeHistogram3D,
+  TMatrixD** matricesChargeA, TMatrixD** matricesChargeC, const TH3* spaceChargeHistogram3D,
   const Int_t nRRow, const Int_t nZColumn, const Int_t phiSlice)
 {
   Int_t phiSlicesPerSector = phiSlice / kNumSector;
@@ -4720,7 +4765,7 @@ void AliTPCSpaceCharge3DCalc::GetChargeDensity(
 /// \param x
 /// \param roc
 /// \return
-Double_t AliTPCSpaceCharge3DCalc::GetChargeCylAC(const Float_t x[], Short_t roc)
+Double_t AliTPCSpaceCharge3DCalc::GetChargeCylAC(const Float_t x[], Short_t roc) const
 {
   Double_t r, phi, z;
   Int_t sign;
@@ -4761,7 +4806,7 @@ Double_t AliTPCSpaceCharge3DCalc::GetChargeCylAC(const Float_t x[], Short_t roc)
 /// \param x
 /// \param roc
 /// \return
-Double_t AliTPCSpaceCharge3DCalc::GetPotentialCylAC(const Float_t x[], Short_t roc)
+Double_t AliTPCSpaceCharge3DCalc::GetPotentialCylAC(const Float_t x[], Short_t roc) const
 {
   Double_t r, phi, z;
   Int_t sign;
@@ -4803,7 +4848,7 @@ Double_t AliTPCSpaceCharge3DCalc::GetPotentialCylAC(const Float_t x[], Short_t r
 /// \param x
 /// \param roc
 /// \return
-Double_t AliTPCSpaceCharge3DCalc::GetInverseChargeCylAC(const Float_t x[], Short_t roc)
+Double_t AliTPCSpaceCharge3DCalc::GetInverseChargeCylAC(const Float_t x[], Short_t roc) const
 {
   Double_t r, phi, z;
   Int_t sign;
@@ -5028,11 +5073,12 @@ void AliTPCSpaceCharge3DCalc::SetPotentialBoundaryAndChargeFormula(TFormula* vTe
         (*chargeA)(i, j) = -1.0 * rhoTestFunction->Eval(radius0, phi0, z0);
         (*chargeC)(i, j) = -1.0 * rhoTestFunction->Eval(radius0, phi0, z0neg);
 
-        if ((i == 0) || (i == fNRRows - 1) || (j == 0) || (j == fNZColumns - 1)) {
-          fListPotentialBoundaryA[indexB] = vTestFunction->Eval(radius0, phi0, z0);
-          fListPotentialBoundaryC[indexB] = vTestFunction->Eval(radius0, phi0, z0neg);
-          indexB++;
-        }
+        /// TODO: fListPotentialBoundary arrays are never used in the code. Remove?
+        // if ((i == 0) || (i == fNRRows - 1) || (j == 0) || (j == fNZColumns - 1)) {
+        //   fListPotentialBoundaryA[indexB] = vTestFunction->Eval(radius0, phi0, z0);
+        //   fListPotentialBoundaryC[indexB] = vTestFunction->Eval(radius0, phi0, z0neg);
+        //   indexB++;
+        // }
 
       } // end j
     }   // end i
@@ -5075,4 +5121,25 @@ void AliTPCSpaceCharge3DCalc::SetInterpolationOrder(Int_t order)
   fLookupIntCorrIrregularA->SetOrder(fInterpolationOrder);
 
   fLookupIntCorrIrregularC->SetOrder(fInterpolationOrder);
+}
+
+void AliTPCSpaceCharge3DCalc::SetDistortionLookupTables(TMatrixD** matrixIntDistDrA, TMatrixD** matrixIntDistDrphiA, TMatrixD** matrixIntDistDzA, TMatrixD** matrixIntDistDrC, TMatrixD** matrixIntDistDrphiC, TMatrixD** matrixIntDistDzC)
+{
+  fMatrixIntDistDrEzA = matrixIntDistDrA;
+  fMatrixIntDistDPhiREzA = matrixIntDistDrphiA;
+  fMatrixIntDistDzA = matrixIntDistDzA;
+  fLookupIntDistA->SetLookUpR(fMatrixIntDistDrEzA);
+  fLookupIntDistA->SetLookUpPhi(fMatrixIntDistDPhiREzA);
+  fLookupIntDistA->SetLookUpZ(fMatrixIntDistDzA);
+  fLookupIntDistA->CopyFromMatricesToInterpolator();
+
+  fMatrixIntDistDrEzC = matrixIntDistDrC;
+  fMatrixIntDistDPhiREzC = matrixIntDistDrphiC;
+  fMatrixIntDistDzC = matrixIntDistDzC;
+  fLookupIntDistC->SetLookUpR(fMatrixIntDistDrEzC);
+  fLookupIntDistC->SetLookUpPhi(fMatrixIntDistDPhiREzC);
+  fLookupIntDistC->SetLookUpZ(fMatrixIntDistDzC);
+  fLookupIntDistC->CopyFromMatricesToInterpolator();
+
+  fInitLookUp = kTRUE;
 }

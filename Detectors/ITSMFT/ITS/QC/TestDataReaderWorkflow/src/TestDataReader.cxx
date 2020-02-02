@@ -260,7 +260,7 @@ void TestDataReader::run(ProcessingContext& pc)
 
       if (mNewFileInj == 1) {
         cout << "New File Injected, Now Updating the Canvas and Light" << endl;
-        mDigitsTest.emplace_back(0, 0, 0, 0, 0);
+        mDigitsTest.emplace_back(0, 0, 0, 0);
         mMultiDigitsTest.push_back(mDigitsTest[0]);
         mErrorsVecTest.push_back(mErrors);
         mFileDone = 1;
@@ -379,7 +379,7 @@ void TestDataReader::run(ProcessingContext& pc)
             break;
           int col = pixel.getCol();
           int row = pixel.getRow();
-          mDigits.emplace_back(ChipID, NEvent, row, col, 0);
+          mDigits.emplace_back(ChipID, row, col, 0);
           Index = Index + 1;
         }
         NChip = NChip + 1;
@@ -448,7 +448,7 @@ void TestDataReader::run(ProcessingContext& pc)
 			pc.outputs().snapshot(Output{ "ITS", "DIGITS", 0, Lifetime::Timeframe }, mDigits[mIndexPush++]);
 			if(mIndexPush%100000==0) 	LOG(DEBUG) << "mIndexPush = " << mIndexPush << "    Chip ID Pushing " << mDigits[mIndexPush].getChipIndex();
 			}
-			//pc.services().get<ControlService>().readyToQuit(true);
+			//pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
 			LOG(DEBUG) << "After:  " << "mIndexPush = " << mIndexPush << "     mDigits.size() = " <<  mDigits.size(); 
 			*/
 

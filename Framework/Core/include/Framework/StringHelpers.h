@@ -59,20 +59,18 @@ constexpr uint32_t crc_table[256] = {0x0L, 0x77073096L, 0xee0e612cL,
                                      0xc4614ab8L, 0x5d681b02L, 0x2a6f2b94L, 0xb40bbe37L, 0xc30c8ea1L, 0x5a05df1bL,
                                      0x2d02ef8dL};
 
-template <std::size_t idx>
-constexpr uint32_t crc32(const char* str)
+constexpr uint32_t crc32(char const* str, int length)
 {
-  return (crc32<idx - 1>(str) >> 8) ^ crc_table[(crc32<idx - 1>(str) ^ str[idx]) & 0x000000FF];
+  uint32_t crc = 0xFFFFFFFF;
+  for (auto j = 0; j <= length; ++j) {
+    crc = (crc >> 8) ^ crc_table[(crc ^ static_cast<unsigned int>(str[j])) & 0x000000FF];
+  }
+  return crc;
 }
 
-// This is the stop-recursion function
-template <>
-constexpr uint32_t crc32<std::size_t(-1)>(const char*)
+constexpr uint32_t compile_time_hash(char const* str)
 {
-  return 0xFFFFFFFF;
+  return crc32(str, static_cast<int>(__builtin_strlen(str)) - 1) ^ 0xFFFFFFFF;
 }
-
-// This doesn't take into account the nul char
-#define compile_time_hash(x) (crc32<sizeof(x) - 2>(x) ^ 0xFFFFFFFF)
 
 #endif // O2_FRAMEWORK_STRINGHELPERS_H

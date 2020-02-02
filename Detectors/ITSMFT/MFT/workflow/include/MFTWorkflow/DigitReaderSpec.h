@@ -26,19 +26,20 @@ namespace mft
 class DigitReader : public o2::framework::Task
 {
  public:
-  DigitReader() = default;
+  DigitReader(bool useMC) : mUseMC(useMC) {}
   ~DigitReader() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
 
  private:
   int mState = 0;
+  bool mUseMC = true;
   std::unique_ptr<TFile> mFile = nullptr;
 };
 
 /// create a processor spec
 /// read simulated MFT digits from a root file
-o2::framework::DataProcessorSpec getDigitReaderSpec();
+o2::framework::DataProcessorSpec getDigitReaderSpec(bool useMC);
 
 } // namespace mft
 } // namespace o2

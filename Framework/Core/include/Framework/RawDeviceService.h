@@ -10,20 +10,17 @@
 #ifndef FRAMEWORK_RAWDEVICESERVICE_H
 #define FRAMEWORK_RAWDEVICESERVICE_H
 
-#include <map>
-#include <string>
-#include <vector>
-
 class FairMQDevice;
 
 namespace o2
 {
 namespace framework
 {
+class DeviceSpec;
 
 /// This service provides a hook into the actual fairmq device running the
-/// computation, and allows and advanced user to modify its behavior in
-/// from with a workflow class. This should be used to implement special
+/// computation, and allows an advanced user to modify its behavior
+/// from within a workflow class. This should be used to implement special
 /// `DataProcessors` like one that acts as a gateway to standard FairMQ
 /// devices.
 class RawDeviceService
@@ -31,6 +28,7 @@ class RawDeviceService
  public:
   virtual FairMQDevice* device() = 0;
   virtual void setDevice(FairMQDevice* device) = 0;
+  virtual DeviceSpec const& spec() = 0;
 };
 
 } // namespace framework

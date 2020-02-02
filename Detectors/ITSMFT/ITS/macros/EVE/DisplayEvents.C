@@ -29,7 +29,7 @@
 #include "ITSMFTReconstruction/DigitPixelReader.h"
 #include "ITSMFTReconstruction/RawPixelReader.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -80,11 +80,11 @@ class Data
   std::vector<Digit> mDigits;
   std::vector<Cluster>* mClusterBuffer = nullptr;
   gsl::span<Cluster> mClusters;
-  std::vector<o2::itsmft::ROFRecord> mClustersROF;
+  std::vector<o2::itsmft::ROFRecord>* mClustersROF = nullptr;
   std::vector<o2::its::TrackITS>* mTrackBuffer = nullptr;
   std::vector<int>* mClIdxBuffer = nullptr;
   gsl::span<o2::its::TrackITS> mTracks;
-  std::vector<o2::itsmft::ROFRecord> mTracksROF;
+  std::vector<o2::itsmft::ROFRecord>* mTracksROF = nullptr;
   void loadDigits();
   void loadDigits(int entry);
   void loadClusters(int entry);
@@ -152,47 +152,22 @@ void Data::setClusTree(TTree* tree)
     return;
   }
   tree->SetBranchAddress("ITSCluster", &mClusterBuffer);
+  tree->SetBranchAddress("ITSClustersROF", &mClustersROF);
+  tree->GetEntry(0);
   mClusTree = tree;
 
-  TTree* roft = (TTree*)gFile->Get("ITSClustersROF");
-  if (roft != nullptr) {
-    std::vector<o2::itsmft::ROFRecord>* roFrames = &mClustersROF;
-    roft->SetBranchAddress("ITSClustersROF", &roFrames);
-    roft->GetEntry(0);
-  }
 }
 
 void Data::loadClusters(int entry)
 {
-  static int lastLoaded = -1;
-
   if (mClusTree == nullptr)
     return;
 
-  auto event = entry; // If no RO frame informaton available, assume one entry per a RO frame.
-  if (!mClustersROF.empty()) {
-    if ((event < 0) || (event >= (int)mClustersROF.size())) {
-      std::cerr << "Clusters: Out of event range ! " << event << '\n';
-      return;
-    }
-    auto rof = mClustersROF[entry];
-    event = rof.getROFEntry().getEvent();
-  }
-  if ((event < 0) || (event >= mClusTree->GetEntries())) {
-    std::cerr << "Clusters: Out of event range ! " << event << '\n';
-    return;
-  }
-  if (event != lastLoaded) {
-    mClusterBuffer->clear();
-    mClusTree->GetEntry(event);
-    lastLoaded = event;
-  }
-
   int first = 0, last = mClusterBuffer->size();
-  if (!mClustersROF.empty()) {
-    auto rof = mClustersROF[entry];
-    first = rof.getROFEntry().getIndex();
-    last = first + rof.getNROFEntries();
+  if (!mClustersROF->empty()) {
+    auto rof = (*mClustersROF)[entry];
+    first = rof.getFirstEntry();
+    last = first + rof.getNEntries();
   }
   mClusters = gsl::make_span(&(*mClusterBuffer)[first], last - first);
 
@@ -207,14 +182,10 @@ void Data::setTracTree(TTree* tree)
   }
   tree->SetBranchAddress("ITSTrack", &mTrackBuffer);
   tree->SetBranchAddress("ITSTrackClusIdx", &mClIdxBuffer);
+  tree->SetBranchAddress("ITSTracksROF", &mTracksROF);
+  tree->GetEntry(0);
   mTracTree = tree;
 
-  TTree* roft = (TTree*)gFile->Get("ITSTracksROF");
-  if (roft != nullptr) {
-    std::vector<o2::itsmft::ROFRecord>* roFrames = &mTracksROF;
-    roft->SetBranchAddress("ITSTracksROF", &roFrames);
-    roft->GetEntry(0);
-  }
 }
 
 void Data::loadTracks(int entry)
@@ -224,30 +195,11 @@ void Data::loadTracks(int entry)
   if (mTracTree == nullptr)
     return;
 
-  auto event = entry; // If no RO frame informaton available, assume one entry per a RO frame.
-  if (!mTracksROF.empty()) {
-    if ((event < 0) || (event >= (int)mTracksROF.size())) {
-      std::cerr << "Clusters: Out of event range ! " << event << '\n';
-      return;
-    }
-    auto rof = mTracksROF[entry];
-    event = rof.getROFEntry().getEvent();
-  }
-  if ((event < 0) || (event >= mTracTree->GetEntries())) {
-    std::cerr << "Tracks: Out of event range ! " << event << '\n';
-    return;
-  }
-  if (event != lastLoaded) {
-    mTrackBuffer->clear();
-    mTracTree->GetEntry(event);
-    lastLoaded = event;
-  }
-
   int first = 0, last = mTrackBuffer->size();
-  if (!mTracksROF.empty()) {
-    auto rof = mTracksROF[entry];
-    first = rof.getROFEntry().getIndex();
-    last = first + rof.getNROFEntries();
+  if (!mTracksROF->empty()) {
+    auto rof = (*mTracksROF)[entry];
+    first = rof.getFirstEntry();
+    last = first + rof.getNEntries();
   }
   mTracks = gsl::make_span(&(*mTrackBuffer)[first], last - first);
 

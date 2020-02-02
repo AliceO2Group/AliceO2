@@ -15,6 +15,7 @@
 #include "TTree.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "FDDWorkflow/RecPointReaderSpec.h"
 
 using namespace o2::framework;
@@ -70,7 +71,7 @@ void RecPointReader::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, *mRecPoints);
 
   mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(false);
+  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 DataProcessorSpec getFDDRecPointReaderSpec(bool useMC)

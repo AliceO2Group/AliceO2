@@ -151,6 +151,7 @@ BOOST_AUTO_TEST_CASE(MatchingOutputs)
   InputSpec input4{
     "binding", {"TST", "A1"}, Lifetime::Timeframe};
 
+  // matching inputs to outputs
   BOOST_CHECK(DataSpecUtils::match(input1, output1) == true);
   BOOST_CHECK(DataSpecUtils::match(input1, output2) == false);
   BOOST_CHECK(DataSpecUtils::match(input1, output3) == false); // Wildcard on output!
@@ -163,6 +164,21 @@ BOOST_AUTO_TEST_CASE(MatchingOutputs)
   BOOST_CHECK(DataSpecUtils::match(input4, output1) == true);  // Wildcard in input!
   BOOST_CHECK(DataSpecUtils::match(input4, output2) == false);
   BOOST_CHECK(DataSpecUtils::match(input4, output3) == true); // Wildcard on both!
+
+  // matching outputs to output definitions
+  // ConcreteDataMatcher on both sides
+  BOOST_CHECK(DataSpecUtils::match(output1, OutputSpec{"TST", "A1", 0}) == true);
+  BOOST_CHECK(DataSpecUtils::match(output1, OutputSpec{"TST", "A1", 1}) == false);
+
+  // ConcreteDataMatcher left, ConcreteDataTypeMatcher right (subspec ignored)
+  BOOST_CHECK(DataSpecUtils::match(output1, OutputSpec{"TST", "A1"}) == true);
+
+  // ConcreteDataTypeMatcher left (subspec ignored), ConcreteDataMatcher right
+  BOOST_CHECK(DataSpecUtils::match(output3, OutputSpec{"TST", "A1", 0}) == true);
+  BOOST_CHECK(DataSpecUtils::match(output3, OutputSpec{"TST", "A1", 1}) == true);
+
+  // ConcreteDataTypeMatcher on both sides
+  BOOST_CHECK(DataSpecUtils::match(output3, OutputSpec{"TST", "A1"}) == true);
 }
 
 BOOST_AUTO_TEST_CASE(PartialMatching)
@@ -218,4 +234,26 @@ BOOST_AUTO_TEST_CASE(GetOptionalSubSpecWithMatcher)
   auto dataType2 = DataSpecUtils::asConcreteDataTypeMatcher(wildcardInputSpec);
   BOOST_CHECK_EQUAL(std::string(dataType2.origin.as<std::string>()), "TSET");
   BOOST_CHECK_EQUAL(std::string(dataType2.description.as<std::string>()), "FOOO");
+}
+
+BOOST_AUTO_TEST_CASE(FindOutputSpec)
+{
+  std::vector<OutputSpec> specs = {
+    {"TST", "DATA1", 0},
+    {"TST", "DATA2", 0}};
+
+  auto spec = DataSpecUtils::find(specs, {"TST"}, {"DATA1"}, 0);
+  BOOST_CHECK(spec == specs[0]);
+  BOOST_CHECK(DataSpecUtils::find(specs, {"TST"}, {"DATA3"}, 0) == std::nullopt);
+}
+
+BOOST_AUTO_TEST_CASE(FindInputSpec)
+{
+  std::vector<InputSpec> specs = {
+    {"x", "TST", "DATA1", 0},
+    {"y", "TST", "DATA2", 0}};
+
+  auto spec = DataSpecUtils::find(specs, {"TST"}, {"DATA1"}, 0);
+  BOOST_CHECK(spec == specs[0]);
+  BOOST_CHECK(DataSpecUtils::find(specs, {"TST"}, {"DATA3"}, 0) == std::nullopt);
 }

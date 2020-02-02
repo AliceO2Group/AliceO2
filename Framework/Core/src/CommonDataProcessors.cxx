@@ -10,16 +10,24 @@
 #include "Framework/CommonDataProcessors.h"
 
 #include "Framework/AlgorithmSpec.h"
+#include "Framework/CallbackService.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "Framework/ControlService.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/DataDescriptorQueryBuilder.h"
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSpecUtils.h"
-#include "Framework/InitContext.h"
+#include "Framework/EndOfStreamContext.h"
 #include "Framework/InitContext.h"
 #include "Framework/InputSpec.h"
+#include "Framework/Logger.h"
 #include "Framework/OutputSpec.h"
 #include "Framework/Variant.h"
+#include "../../../Algorithm/include/Algorithm/HeaderStack.h"
+#include "Framework/OutputObjHeader.h"
+
+#include "TFile.h"
 
 #include <chrono>
 #include <exception>
@@ -27,6 +35,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <thread>
 
 using namespace o2::framework::data_matcher;
 
@@ -35,8 +44,140 @@ namespace o2
 namespace framework
 {
 
-DataProcessorSpec CommonDataProcessors::getGlobalFileSink(std::vector<InputSpec> const& danglingOutputInputs,
-                                                          std::vector<InputSpec>& unmatched)
+struct InputObjectRoute {
+  std::string uniqueId;
+  std::string directory;
+  OutputObjHandlingPolicy policy;
+  bool operator<(InputObjectRoute const& other) const
+  {
+    return this->uniqueId < other.uniqueId;
+  }
+};
+
+struct InputObject {
+  TClass* kind = nullptr;
+  void* obj = nullptr;
+  std::string name;
+};
+
+const static std::unordered_map<OutputObjHandlingPolicy, std::string> ROOTfileNames = {{OutputObjHandlingPolicy::AnalysisObject, "AnalysisResults.root"},
+                                                                                       {OutputObjHandlingPolicy::QAObject, "QAResults.root"}};
+
+DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& outMap)
+{
+  auto writerFunction = [outMap](InitContext& ic) -> std::function<void(ProcessingContext&)> {
+    auto& callbacks = ic.services().get<CallbackService>();
+    auto outputObjects = std::make_shared<std::map<InputObjectRoute, InputObject>>();
+
+    auto endofdatacb = [outputObjects](EndOfStreamContext& context) {
+      LOG(INFO) << "Writing merged objects to file";
+      std::string currentDirectory = "";
+      std::string currentFile = "";
+      TFile* f[OutputObjHandlingPolicy::numPolicies];
+      for (auto i = 0u; i < OutputObjHandlingPolicy::numPolicies; ++i) {
+        f[i] = nullptr;
+      }
+      for (auto& [route, entry] : *outputObjects) {
+        auto file = ROOTfileNames.find(route.policy);
+        if (file != ROOTfileNames.end()) {
+          auto filename = file->second;
+          if (f[route.policy] == nullptr) {
+            f[route.policy] = TFile::Open(filename.c_str(), "RECREATE");
+          }
+          auto nextDirectory = route.directory;
+          if ((nextDirectory != currentDirectory) || (filename != currentFile)) {
+            if (!f[route.policy]->FindKey(nextDirectory.c_str())) {
+              f[route.policy]->mkdir(nextDirectory.c_str());
+            }
+            currentDirectory = nextDirectory;
+            currentFile = filename;
+          }
+          (f[route.policy]->GetDirectory(currentDirectory.c_str()))->WriteObjectAny(entry.obj, entry.kind, entry.name.c_str());
+        }
+      }
+      for (auto i = 0u; i < OutputObjHandlingPolicy::numPolicies; ++i) {
+        if (f[i] != nullptr) {
+          f[i]->Close();
+        }
+      }
+      LOG(INFO) << "All outputs merged in their respective target files";
+      context.services().get<ControlService>().readyToQuit(QuitRequest::All);
+    };
+
+    callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
+    return [outputObjects, outMap](ProcessingContext& pc) mutable -> void {
+      auto const& ref = pc.inputs().get("x");
+      if (!ref.header) {
+        LOG(ERROR) << "Header not found";
+        return;
+      }
+      if (!ref.payload) {
+        LOG(ERROR) << "Payload not found";
+        return;
+      }
+      auto datah = o2::header::get<o2::header::DataHeader*>(ref.header);
+      if (!datah) {
+        LOG(ERROR) << "No data header in stack";
+        return;
+      }
+
+      auto objh = o2::header::get<o2::framework::OutputObjHeader*>(ref.header);
+      if (!objh) {
+        LOG(ERROR) << "No output object header in stack";
+        return;
+      }
+
+      FairTMessage tm(const_cast<char*>(ref.payload), datah->payloadSize);
+      InputObject obj;
+      obj.kind = tm.GetClass();
+      if (obj.kind == nullptr) {
+        LOGP(error, "Cannot read class info from buffer.");
+        return;
+      }
+
+      OutputObjHandlingPolicy policy = OutputObjHandlingPolicy::AnalysisObject;
+      if (objh)
+        policy = objh->mPolicy;
+
+      obj.obj = tm.ReadObjectAny(obj.kind);
+      TNamed* named = static_cast<TNamed*>(obj.obj);
+      obj.name = named->GetName();
+      auto lookup = outMap.find(obj.name);
+      std::string directory{"VariousObjects"};
+      if (lookup != outMap.end()) {
+        directory = lookup->second;
+      }
+      InputObjectRoute key{obj.name, directory, policy};
+      auto existing = outputObjects->find(key);
+      if (existing == outputObjects->end()) {
+        outputObjects->insert(std::make_pair(key, obj));
+        return;
+      }
+      auto merger = existing->second.kind->GetMerge();
+      if (!merger) {
+        LOGP(error, "Already one object found for {}.", obj.name);
+        return;
+      }
+
+      TList coll;
+      coll.Add(static_cast<TObject*>(obj.obj));
+      merger(existing->second.obj, &coll, nullptr);
+    };
+  };
+
+  DataProcessorSpec spec{
+    "internal-dpl-global-analysis-file-sink",
+    {InputSpec("x", DataSpecUtils::dataDescriptorMatcherFrom(header::DataOrigin{"ATSK"}))},
+    Outputs{},
+    AlgorithmSpec(writerFunction),
+    {}};
+
+  return spec;
+}
+
+DataProcessorSpec
+  CommonDataProcessors::getGlobalFileSink(std::vector<InputSpec> const& danglingOutputInputs,
+                                          std::vector<InputSpec>& unmatched)
 {
   auto writerFunction = [danglingOutputInputs](InitContext& ic) -> std::function<void(ProcessingContext&)> {
     auto filename = ic.options().get<std::string>("outfile");

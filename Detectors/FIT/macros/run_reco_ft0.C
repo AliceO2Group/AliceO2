@@ -30,7 +30,6 @@ void run_reco_ft0(std::string inpudDig = "ft0digits.root",
   TFile* fdig = TFile::Open("ft0digits.root");
   std::cout << " Open digits file " << std::endl;
   TTree* digTree = (TTree*)fdig->Get("o2sim");
-  digTree->Print();
   std::vector<o2::ft0::Digit>* digits = new std::vector<o2::ft0::Digit>;
   digTree->SetBranchAddress("FT0Digit", &digits);
   Int_t nevD = digTree->GetEntries(); // digits in cont. readout may be grouped as few events per entry
@@ -52,8 +51,6 @@ void run_reco_ft0(std::string inpudDig = "ft0digits.root",
     outTree.Fill();
   }
 
-  outTree.Print();
-  outFile.ls();
   timer.Stop();
   outTree.Write();
   Double_t rtime = timer.RealTime();

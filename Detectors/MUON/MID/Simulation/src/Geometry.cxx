@@ -18,7 +18,8 @@
 #include <sstream>
 
 #include "Materials.h"
-#include "MIDBase/Constants.h"
+#include "MIDBase/DetectorParameters.h"
+#include "MIDBase/GeometryParameters.h"
 
 #include <TGeoVolume.h>
 #include <TGeoManager.h>
@@ -58,20 +59,15 @@ const float kVerticalSupportXPos[] = {61.45, 122.45, 192.95, 236.95};
 // horizontal support
 const float kHorizontalSupportHalfExtDim[] = {96.775, 2., 3.};
 const float kHorizontalSupportHalfIntDim[] = {96.775, 1.9, 2.8};
-const double kHorizontalSupportPos[] = {Constants::sRPCCenterPos + Constants::sRPCHalfLength - kHorizontalSupportHalfExtDim[0], 17., kVerticalSupportHalfExtDim[2] + kHorizontalSupportHalfExtDim[2]};
-
-enum class RPCtype { Long,
-                     BottomCut,
-                     TopCut,
-                     Short };
+const double kHorizontalSupportPos[] = {geoparams::RPCCenterPos + geoparams::RPCHalfLength - kHorizontalSupportHalfExtDim[0], 17., kVerticalSupportHalfExtDim[2] + kHorizontalSupportHalfExtDim[2]};
 
 TGeoVolume* createVerticalSupport(int iChamber)
 {
   /// Function creating a vertical support, an aluminium rod
 
-  auto supp = new TGeoVolume(Form("Vertical support chamber %d", iChamber), new TGeoBBox(Form("VertSuppBox%d", iChamber), kVerticalSupportHalfExtDim[0], kVerticalSupportHalfExtDim[1] * Constants::sScaleFactors[iChamber], kVerticalSupportHalfExtDim[2]), assertMedium(Medium::Aluminium));
+  auto supp = new TGeoVolume(Form("Vertical support chamber %d", iChamber), new TGeoBBox(Form("VertSuppBox%d", iChamber), kVerticalSupportHalfExtDim[0], kVerticalSupportHalfExtDim[1] * geoparams::ChamberScaleFactors[iChamber], kVerticalSupportHalfExtDim[2]), assertMedium(Medium::Aluminium));
 
-  new TGeoBBox(Form("VertSuppCut%d", iChamber), kVerticalSupportHalfIntDim[0], kVerticalSupportHalfIntDim[1] * Constants::sScaleFactors[iChamber], kVerticalSupportHalfIntDim[2]);
+  new TGeoBBox(Form("VertSuppCut%d", iChamber), kVerticalSupportHalfIntDim[0], kVerticalSupportHalfIntDim[1] * geoparams::ChamberScaleFactors[iChamber], kVerticalSupportHalfIntDim[2]);
 
   supp->SetShape(new TGeoCompositeShape(Form("VertSuppCut%d", iChamber), Form("VertSuppBox%d-VertSuppCut%d", iChamber, iChamber)));
 
@@ -82,38 +78,16 @@ TGeoVolume* createHorizontalSupport(int iChamber)
 {
   /// Function creating a horizontal support, an aluminium rod
 
-  auto supp = new TGeoVolume(Form("Horizontal support chamber %d", iChamber), new TGeoBBox(Form("HoriSuppBox%d", iChamber), kHorizontalSupportHalfExtDim[0] * Constants::sScaleFactors[iChamber], kHorizontalSupportHalfExtDim[1], kHorizontalSupportHalfExtDim[2]), assertMedium(Medium::Aluminium));
+  auto supp = new TGeoVolume(Form("Horizontal support chamber %d", iChamber), new TGeoBBox(Form("HoriSuppBox%d", iChamber), kHorizontalSupportHalfExtDim[0] * geoparams::ChamberScaleFactors[iChamber], kHorizontalSupportHalfExtDim[1], kHorizontalSupportHalfExtDim[2]), assertMedium(Medium::Aluminium));
 
-  new TGeoBBox(Form("HoriSuppCut%d", iChamber), kHorizontalSupportHalfIntDim[0] * Constants::sScaleFactors[iChamber], kHorizontalSupportHalfIntDim[1], kHorizontalSupportHalfIntDim[2]);
+  new TGeoBBox(Form("HoriSuppCut%d", iChamber), kHorizontalSupportHalfIntDim[0] * geoparams::ChamberScaleFactors[iChamber], kHorizontalSupportHalfIntDim[1], kHorizontalSupportHalfIntDim[2]);
 
   supp->SetShape(new TGeoCompositeShape(Form("HoriSuppCut%d", iChamber), Form("HoriSuppBox%d-HoriSuppCut%d", iChamber, iChamber)));
 
   return supp;
 }
 
-std::string getRPCVolumeName(RPCtype type, int iChamber)
-{
-  /// Gets the RPC volume name
-  std::string name = "";
-  switch (type) {
-    case RPCtype::Long:
-      name += "long";
-      break;
-    case RPCtype::BottomCut:
-      name += "bottomCut";
-      break;
-    case RPCtype::TopCut:
-      name += "topCut";
-      break;
-    case RPCtype::Short:
-      name += "short";
-      break;
-  }
-  name += "RPC_" + std::to_string(11 + iChamber);
-  return name;
-}
-
-TGeoVolume* createRPC(RPCtype type, int iChamber)
+TGeoVolume* createRPC(geoparams::RPCtype type, int iChamber)
 {
   /// Function building a resisitive plate chamber (RPC), the detection element of the MID, of a given type and for the given chamber number.
 
@@ -123,9 +97,9 @@ TGeoVolume* createRPC(RPCtype type, int iChamber)
   auto rpc = new TGeoVolumeAssembly(name);
 
   // get the dimensions from MIDBase/Constants
-  double halfLength = (type == RPCtype::Short) ? Constants::sRPCShortHalfLength : Constants::sRPCHalfLength;
-  halfLength *= Constants::sScaleFactors[iChamber];
-  double halfHeight = Constants::getRPCHalfHeight(iChamber);
+  double halfLength = (type == geoparams::RPCtype::Short) ? geoparams::RPCShortHalfLength : geoparams::RPCHalfLength;
+  halfLength *= geoparams::ChamberScaleFactors[iChamber];
+  double halfHeight = geoparams::getRPCHalfHeight(iChamber);
 
   /// create the volume of each material (a box by default)
 
@@ -173,12 +147,12 @@ TGeoVolume* createRPC(RPCtype type, int iChamber)
                               assertMedium(Medium::Nomex));
 
   // change the volume shape if we are creating a "cut" RPC
-  if (type == RPCtype::TopCut || type == RPCtype::BottomCut) {
+  if (type == geoparams::RPCtype::TopCut || type == geoparams::RPCtype::BottomCut) {
     // dimensions of the cut
-    double cutHalfLength = Constants::getLocalBoardWidth(iChamber) / 2.;
-    double cutHalfHeight = Constants::getLocalBoardHeight(iChamber) / 2.;
+    double cutHalfLength = geoparams::getLocalBoardWidth(iChamber) / 2.;
+    double cutHalfHeight = geoparams::getLocalBoardHeight(iChamber) / 2.;
 
-    bool isTopCut = (type == RPCtype::TopCut);
+    bool isTopCut = (type == geoparams::RPCtype::TopCut);
     const char* cutName = Form("%sCut%s", (isTopCut) ? "top" : "bottom", name);
 
     // position of the cut w.r.t the center of the RPC
@@ -291,45 +265,23 @@ TGeoMatrix* getTransformation(const ROOT::Math::Transform3D& matrix)
   return geoMatrix;
 }
 
-RPCtype getRPCType(int deId)
-{
-  /// Gets the RPC type
-  int irpc = deId % 9;
-  if (irpc == 4) {
-    return RPCtype::Short;
-  }
-  if (irpc == 3) {
-    return RPCtype::TopCut;
-  }
-  if (irpc == 5) {
-    return RPCtype::BottomCut;
-  }
-  return RPCtype::Long;
-}
-
-std::string getChamberVolumeName(int chamber)
-{
-  /// Returns the chamber name in the geometry
-  return "SC" + std::to_string(11 + chamber);
-}
-
 TGeoVolume* createChamber(int iChamber)
 {
   /// Function creating a trigger chamber, an assembly of RPCs (and services)
 
-  auto chamber = new TGeoVolumeAssembly(getChamberVolumeName(iChamber).c_str());
+  auto chamber = new TGeoVolumeAssembly(geoparams::getChamberVolumeName(iChamber).c_str());
 
-  double scale = Constants::sScaleFactors[iChamber];
+  double scale = geoparams::ChamberScaleFactors[iChamber];
 
   // create the service volumes
   auto vertSupp = createVerticalSupport(iChamber);
   auto horiSupp = createHorizontalSupport(iChamber);
 
   // create the 4 types of RPC
-  auto longRPC = createRPC(RPCtype::Long, iChamber);
-  auto bottomCutRPC = createRPC(RPCtype::BottomCut, iChamber);
-  auto topCutRPC = createRPC(RPCtype::TopCut, iChamber);
-  auto shortRPC = createRPC(RPCtype::Short, iChamber);
+  auto longRPC = createRPC(geoparams::RPCtype::Long, iChamber);
+  auto bottomCutRPC = createRPC(geoparams::RPCtype::BottomCut, iChamber);
+  auto topCutRPC = createRPC(geoparams::RPCtype::TopCut, iChamber);
+  auto shortRPC = createRPC(geoparams::RPCtype::Short, iChamber);
 
   // for node counting
   int iHoriSuppNode = 0, iVertSuppNode = 0;
@@ -346,16 +298,16 @@ TGeoVolume* createChamber(int iChamber)
     }
 
     // place the RPCs
-    for (int iRPC = 0; iRPC < Constants::sNRPCLines; iRPC++) {
+    for (int iRPC = 0; iRPC < detparams::NRPCLines; iRPC++) {
 
-      double x = xSign * Constants::getRPCCenterPosX(iChamber, iRPC);
+      double x = xSign * geoparams::getRPCCenterPosX(iChamber, iRPC);
       double zSign = (iRPC % 2 == 0) ? 1. : -1.;
 
       if (!isRight) {
         zSign *= -1.;
       }
-      double z = zSign * Constants::sRPCZShift;
-      double y = 2 * Constants::getRPCHalfHeight(iChamber) * (iRPC - 4) / (1 - (z / Constants::sDefaultChamberZ[0]));
+      double z = zSign * geoparams::RPCZShift;
+      double y = 2 * geoparams::getRPCHalfHeight(iChamber) * (iRPC - 4) / (1 - (z / geoparams::DefaultChamberZ[0]));
 
       // ID convention (from bottom to top of the chamber) : long, long, long, cut, short, cut, long, long, long
       TGeoVolume* rpc = nullptr;
@@ -374,7 +326,7 @@ TGeoVolume* createChamber(int iChamber)
           break;
       }
 
-      int deId = Constants::getDEId(isRight, iChamber, iRPC);
+      int deId = detparams::getDEId(isRight, iChamber, iRPC);
       chamber->AddNode(rpc, deId, getTransformation(getDefaultRPCTransform(isRight, iChamber, iRPC)));
 
       // place 3 horizontal supports behind the RPC (and the vertical rods)
@@ -396,7 +348,7 @@ void createGeometry(TGeoVolume& topVolume)
   createMaterials();
 
   // create and place the trigger chambers
-  for (int iCh = 0; iCh < Constants::sNChambers; iCh++) {
+  for (int iCh = 0; iCh < detparams::NChambers; iCh++) {
 
     topVolume.AddNode(createChamber(iCh), 1, getTransformation(getDefaultChamberTransform(iCh)));
   }
@@ -408,8 +360,8 @@ std::vector<TGeoVolume*> getSensitiveVolumes()
   /// Create a vector containing the sensitive volume's name of the RPCs for the Detector class
 
   std::vector<TGeoVolume*> sensitiveVolumeNames;
-  std::vector<RPCtype> types = {RPCtype::Long, RPCtype::BottomCut, RPCtype::TopCut, RPCtype::Short};
-  for (int ich = 0; ich < Constants::sNChambers; ++ich) {
+  std::vector<geoparams::RPCtype> types = {geoparams::RPCtype::Long, geoparams::RPCtype::BottomCut, geoparams::RPCtype::TopCut, geoparams::RPCtype::Short};
+  for (int ich = 0; ich < detparams::NChambers; ++ich) {
     for (auto& type : types) {
 
       auto name = Form("Gas %s", getRPCVolumeName(type, ich).c_str());
@@ -423,24 +375,6 @@ std::vector<TGeoVolume*> getSensitiveVolumes()
     }
   }
   return sensitiveVolumeNames;
-}
-
-//______________________________________________________________________________
-GeometryTransformer createTransformationFromManager(const TGeoManager* geoManager)
-{
-  /// Creates the transformations from the manager
-  GeometryTransformer geoTrans;
-  TGeoNavigator* navig = geoManager->GetCurrentNavigator();
-  for (int ide = 0; ide < Constants::sNDetectionElements; ++ide) {
-    int ichamber = Constants::getChamber(ide);
-    std::stringstream volPath;
-    volPath << geoManager->GetTopVolume()->GetName() << "/" << getChamberVolumeName(ichamber) << "_1/" << getRPCVolumeName(getRPCType(ide), ichamber) << "_" << std::to_string(ide);
-    if (!navig->cd(volPath.str().c_str())) {
-      throw std::runtime_error("Could not get to volPathName=" + volPath.str());
-    }
-    geoTrans.setMatrix(ide, o2::Transform3D{*(navig->GetCurrentMatrix())});
-  }
-  return std::move(geoTrans);
 }
 
 } // namespace mid

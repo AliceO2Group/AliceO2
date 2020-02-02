@@ -19,6 +19,7 @@ o2_add_library(ITStracking
                        src/Label.cxx
                        src/PrimaryVertexContext.cxx
                        src/Road.cxx
+                       src/StandaloneDebugger.cxx
                        src/Tracker.cxx
                        src/TrackerTraitsCPU.cxx
                        src/ClusterLines.cxx
@@ -41,4 +42,8 @@ o2_target_root_dictionary(ITStracking
 if(CUDA_ENABLED)
   add_subdirectory(cuda)
   target_compile_definitions(${targetName} PRIVATE CUDA_ENABLED)
+endif()
+if(HIP_ENABLED)
+  add_subdirectory(hip)
+  target_compile_definitions(${targetName} PRIVATE HIP_ENABLED)
 endif()

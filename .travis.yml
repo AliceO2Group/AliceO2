@@ -9,7 +9,7 @@ matrix:
   include:
     - os: linux
       dist: xenial
-      env: TOOL=clang-format
+      env: JOB=clang-format
       addons:
         apt:
           sources:
@@ -17,8 +17,45 @@ matrix:
           packages:
             - clang-format-8
       compiler: clang
+      script: |
+        if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
+          BASE_COMMIT=$(git rev-parse $TRAVIS_BRANCH)
+          echo "Running clang-format-8 against branch $TRAVIS_BRANCH, with hash $BASE_COMMIT"
+          COMMIT_FILES=$(git diff --name-only $BASE_COMMIT | grep -ivE 'LinkDef|Utilities/PCG/')
+          RESULT_OUTPUT="$(git-clang-format-8 --commit $BASE_COMMIT --diff --binary `which clang-format-8` $COMMIT_FILES)"
+
+          for x in $COMMIT_FILES; do
+            case $x in
+              *.h|*.cxx)
+                # We remove the header from the diff as it contains +++ then
+                # we only select the added lines to check for the long ones.
+                # We do not need to check for the lines which have been removed
+                # and we do not want to check for the lines which were not changed
+                # to avoid extra work.
+                # 120 characters are allowed, meaning the error should start with 122,
+                # to allow for the starting + at the end of the line.
+                git diff $x | tail -n +5 | grep -e '^+' | grep '.\{122,\}' && { echo "Line longer than 120 chars in $x." && exit 1; } || true ;;
+              *.hxx|*.cc|*.hpp) echo "$x uses non-allowed extension." && exit 1 ;;
+              *) ;;
+            esac
+          done
+
+          if [ "$RESULT_OUTPUT" == "no modified files to format" ] \
+            || [ "$RESULT_OUTPUT" == "clang-format did not modify any files" ] ; then
+            echo "clang-format passed."
+            exit 0
+          else
+            echo "clang-format failed."
+            echo "To reproduce it locally please run"
+            echo -e "\tgit checkout $TRAVIS_BRANCH"
+            echo -e "\tgit-clang-format --commit $BASE_COMMIT --diff --binary $(which clang-format)"
+            echo "$RESULT_OUTPUT"
+            exit 1
+          fi
+        fi
     - os: linux
-      env: TOOL=doxygen
+      dist: bionic
+      env: JOB=doxygen
       addons:
         apt:
           packages:
@@ -28,6 +65,12 @@ matrix:
             - doxygen-gui
             - graphviz
             - cmake
+      script: |
+        cat > CMakeLists.txt <<\EOF
+        add_subdirectory(doc)
+        EOF
+        cmake .
+        make doc
       deploy:
         provider: pages
         skip_cleanup: true
@@ -35,52 +78,3 @@ matrix:
         local_dir: doc/html
         on:
           branch: dev
-script: |
-    if [[ $TOOL == "doxygen" ]]; then
-      cat > CMakeLists.txt <<\EOF
-      add_subdirectory(doc)
-    EOF
-      # This is required because of differences between doxygen and github
-      # markdown syntax for code blocks. The committed code should use
-      # the github flavour and we generate the doxygen one on the fly.
-      git grep -l '^```[a-zA-Z]' | xargs sed -i .old -e 's|```\([a-zA-Z][a-zA-Z]*\)|\n```{.\1}\n|g;s|[.]bash|.sh|g;s|```|~~~~~~~|g'
-      find . -name "*.old" -delete
-      cmake .
-      make doc
-    elif [[ $TOOL == "clang-format" ]]; then
-      if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
-        BASE_COMMIT=$(git rev-parse $TRAVIS_BRANCH)
-        echo "Running clang-format-8 against branch $TRAVIS_BRANCH, with hash $BASE_COMMIT"
-        COMMIT_FILES=$(git diff --name-only $BASE_COMMIT | grep -ivE 'LinkDef|Utilities/PCG/')
-        RESULT_OUTPUT="$(git-clang-format-8 --commit $BASE_COMMIT --diff --binary `which clang-format-8` $COMMIT_FILES)"
-
-        for x in $COMMIT_FILES; do
-          case $x in
-            *.h|*.cxx)
-              # We remove the header from the diff as it contains +++ then
-              # we only select the added lines to check for the long ones.
-              # We do not need to check for the lines which have been removed
-              # and we do not want to check for the lines which were not changed
-              # to avoid extra work.
-              # 120 characters are allowed, meaning the error should start with 122,
-              # to allow for the starting + at the end of the line.
-              git diff $x | tail -n +5 | grep -e '^+' | grep '.\{122,\}' && { echo "Line longer than 120 chars in $x." && exit 1; } || true ;;
-            *.hxx|*.cc|*.hpp) echo "$x uses non-allowed extension." && exit 1 ;;
-            *) ;;
-          esac
-        done
-
-        if [ "$RESULT_OUTPUT" == "no modified files to format" ] \
-          || [ "$RESULT_OUTPUT" == "clang-format did not modify any files" ] ; then
-          echo "clang-format passed."
-          exit 0
-        else
-          echo "clang-format failed."
-          echo "To reproduce it locally please run"
-          echo -e "\tgit checkout $TRAVIS_BRANCH"
-          echo -e "\tgit-clang-format --commit $BASE_COMMIT --diff --binary $(which clang-format)"
-          echo "$RESULT_OUTPUT"
-          exit 1
-        fi
-      fi
-    fi

@@ -10,7 +10,11 @@
 
 o2_add_library(DetectorsCommonDataFormats
                SOURCES src/DetID.cxx src/AlignParam.cxx src/DetMatrixCache.cxx
-               PUBLIC_LINK_LIBRARIES ROOT::Core ROOT::Geom O2::MathUtils)
+               PUBLIC_LINK_LIBRARIES
+               ROOT::Core
+               ROOT::Geom
+               O2::GPUCommon
+               O2::MathUtils)
 
 o2_target_root_dictionary(
   DetectorsCommonDataFormats

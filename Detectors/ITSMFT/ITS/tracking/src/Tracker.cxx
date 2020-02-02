@@ -161,11 +161,16 @@ void Tracker::findRoads(int& iteration)
         Cell& currentCell{mPrimaryVertexContext->getCells()[iLayer][iCell]};
 
         if (currentCell.getLevel() != iLevel) {
-
           continue;
         }
 
         mPrimaryVertexContext->getRoads().emplace_back(iLayer, iCell);
+
+        /// For 3 clusters roads (useful for cascades and hypertriton) we just store the single cell
+        /// and we do not do the candidate tree traversal
+        if (iLevel == 1) {
+          continue;
+        }
 
         const int cellNeighboursNum{static_cast<int>(
           mPrimaryVertexContext->getCellsNeighbours()[iLayer - 1][iCell].size())};

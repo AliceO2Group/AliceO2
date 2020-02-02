@@ -42,7 +42,7 @@ class GPUTPCConvert : public GPUProcessor
 #ifndef GPUCA_GPUCODE
   void InitializeProcessor();
   void RegisterMemoryAllocation();
-  void SetMaxData();
+  void SetMaxData(const GPUTrackingInOutPointers& io);
 
   void* SetPointersInput(void* mem);
   void* SetPointersOutput(void* mem);
@@ -54,7 +54,7 @@ class GPUTPCConvert : public GPUProcessor
     mTransform = transform;
   }
 #endif
-  GPUd() const o2::tpc::ClusterNativeAccess* getClustersNative()
+  GPUd() const o2::tpc::ClusterNativeAccess* getClustersNative() const
   {
     return mClustersNative;
   }

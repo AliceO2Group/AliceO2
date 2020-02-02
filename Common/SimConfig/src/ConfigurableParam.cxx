@@ -191,10 +191,20 @@ int EnumLegalValues::getIntValue(const std::string& value) const
 
 // -----------------------------------------------------------------
 
-void ConfigurableParam::writeINI(std::string const& filename)
+void ConfigurableParam::writeINI(std::string const& filename, std::string const& keyOnly)
 {
   initPropertyTree(); // update the boost tree before writing
-  boost::property_tree::write_ini(filename, *sPtree);
+  if (!keyOnly.empty()) { // write ini for selected key only
+    try {
+      boost::property_tree::ptree kTree;
+      kTree.add_child(keyOnly, sPtree->get_child(keyOnly));
+      boost::property_tree::write_ini(filename, kTree);
+    } catch (const boost::property_tree::ptree_bad_path& err) {
+      LOG(FATAL) << "non-existing key " << keyOnly << " provided to writeINI";
+    }
+  } else {
+    boost::property_tree::write_ini(filename, *sPtree);
+  }
 }
 
 // ------------------------------------------------------------------
@@ -249,10 +259,20 @@ boost::property_tree::ptree ConfigurableParam::readJSON(std::string const& filep
 
 // ------------------------------------------------------------------
 
-void ConfigurableParam::writeJSON(std::string const& filename)
+void ConfigurableParam::writeJSON(std::string const& filename, std::string const& keyOnly)
 {
   initPropertyTree(); // update the boost tree before writing
-  boost::property_tree::write_json(filename, *sPtree);
+  if (!keyOnly.empty()) { // write ini for selected key only
+    try {
+      boost::property_tree::ptree kTree;
+      kTree.add_child(keyOnly, sPtree->get_child(keyOnly));
+      boost::property_tree::write_json(filename, kTree);
+    } catch (const boost::property_tree::ptree_bad_path& err) {
+      LOG(FATAL) << "non-existing key " << keyOnly << " provided to writeJSON";
+    }
+  } else {
+    boost::property_tree::write_json(filename, *sPtree);
+  }
 }
 
 // ------------------------------------------------------------------

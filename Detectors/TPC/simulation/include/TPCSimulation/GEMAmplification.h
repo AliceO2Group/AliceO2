@@ -15,7 +15,7 @@
 #ifndef ALICEO2_TPC_GEMAmplification_H_
 #define ALICEO2_TPC_GEMAmplification_H_
 
-#include "TPCBase/RandomRing.h"
+#include "MathUtils/RandomRing.h"
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/ParameterGEM.h"
 #include "TPCBase/CRU.h"
@@ -93,13 +93,13 @@ class GEMAmplification
 
   /// Circular random buffer containing random Gaus values for gain fluctuation if the number of electrons is larger
   /// (central limit theorem)
-  RandomRing<> mRandomGaus;
+  math_utils::RandomRing<> mRandomGaus;
   /// Circular random buffer containing flat random values for the collection/extraction
-  RandomRing<> mRandomFlat;
+  math_utils::RandomRing<> mRandomFlat;
   /// Container with random Polya distributions, one for each GEM in the stack
-  std::array<RandomRing<>, 4> mGain;
+  std::array<math_utils::RandomRing<>, 4> mGain;
   /// Container with random Polya distributions for the full stack amplification
-  RandomRing<> mGainFullStack;
+  math_utils::RandomRing<> mGainFullStack;
 
   const ParameterGEM* mGEMParam; ///< Caching of the parameter class to avoid multiple CDB calls
   const ParameterGas* mGasParam; ///< Caching of the parameter class to avoid multiple CDB calls

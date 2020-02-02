@@ -15,6 +15,7 @@
 #include "TTree.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "GlobalTrackingWorkflow/TrackWriterTPCITSSpec.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -62,7 +63,7 @@ void TrackWriterTPCITS::run(ProcessingContext& pc)
   tree.SetEntries(1);
   tree.Write();
   mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(false);
+  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 DataProcessorSpec getTrackWriterTPCITSSpec(bool useMC)

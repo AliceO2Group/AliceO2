@@ -38,6 +38,11 @@ int FairOptionsRetriever::getInt(const char* key) const
   return mStore.get<int>(key);
 }
 
+int64_t FairOptionsRetriever::getInt64(const char* key) const
+{
+  return mStore.get<int64_t>(key);
+}
+
 float FairOptionsRetriever::getFloat(const char* key) const
 {
   return mStore.get<float>(key);

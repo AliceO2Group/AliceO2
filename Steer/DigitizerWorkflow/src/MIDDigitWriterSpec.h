@@ -16,6 +16,7 @@
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DataFormatsMID/ROFRecord.h"
 #include "MIDSimulation/ColumnDataMC.h"
 #include "MIDSimulation/MCLabel.h"
 
@@ -35,10 +36,9 @@ o2::framework::DataProcessorSpec getMIDDigitWriterSpec()
                                 "middigits.root",
                                 "o2sim",
                                 1,
-                                BranchDefinition<std::vector<o2::mid::ColumnDataMC>>{InputSpec{"middigits", "MID", "DIGITS"}, "MIDDigit"},
-                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::mid::MCLabel>>{InputSpec{"middigitlabels", "MID", "DIGITSMC"}, "MIDDigitMCLabels"}
-                                // add more branch definitions (for example Monte Carlo labels here)
-                                )();
+                                BranchDefinition<std::vector<ColumnDataMC>>{InputSpec{"middigits", "MID", "DIGITS"}, "MIDDigit"},
+                                BranchDefinition<std::vector<ROFRecord>>{InputSpec{"midrofrecords", "MID", "DIGITSROF"}, "MIDROFRecords"},
+                                BranchDefinition<o2::dataformats::MCTruthContainer<MCLabel>>{InputSpec{"middigitlabels", "MID", "DIGITLABELS"}, "MIDDigitMCLabels"})();
 }
 
 } // namespace mid

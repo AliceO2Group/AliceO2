@@ -31,9 +31,11 @@ static void BM_InputRecordGenericGetters(benchmark::State& state)
   InputSpec spec2{"y", "ITS", "CLUSTERS", 0, Lifetime::Timeframe};
   InputSpec spec3{"z", "TST", "EMPTY", 0, Lifetime::Timeframe};
 
-  auto createRoute = [](const char* source, InputSpec& spec) {
+  size_t i = 0;
+  auto createRoute = [&i](const char* source, InputSpec& spec) {
     return InputRoute{
       spec,
+      i++,
       source};
   };
 

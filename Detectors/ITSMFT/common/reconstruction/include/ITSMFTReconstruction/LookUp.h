@@ -39,6 +39,7 @@ class LookUp
   int getTopologiesOverThreshold() { return mTopologiesOverThreshold; }
   void loadDictionary(std::string fileName);
   bool IsGroup(int id) const;
+  int size() const { return mDictionary.GetSize(); }
 
  private:
   TopologyDictionary mDictionary;

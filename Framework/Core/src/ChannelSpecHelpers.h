@@ -26,10 +26,10 @@ struct ChannelSpecHelpers {
   static char const* typeAsString(enum ChannelType type);
   /// return a ChannelMethod as a lowercase string
   static char const* methodAsString(enum ChannelMethod method);
-  /// return a ChannelMethod as a connection url
-  /// FIXME: currently it only supports tcp://127.0.0.1 and tcp://*, we should
-  ///        have the actual address customizable.
-  static char const* methodAsUrl(enum ChannelMethod method);
+  /// @return a url associated to an InputChannelSpec
+  static std::string channelUrl(InputChannelSpec const&);
+  /// @return a url associated to an OutputChannelSpec
+  static std::string channelUrl(OutputChannelSpec const&);
 };
 
 /// Stream operators so that we can use ChannelType with Boost.Test

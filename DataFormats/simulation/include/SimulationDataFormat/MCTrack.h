@@ -32,7 +32,7 @@ namespace o2
 /// secondary one produced by the transport through decay or interaction.
 /// This is a light weight particle class that is saved to disk
 /// instead of saving the TParticle class. It is also used for filtering the stack
-template <class T>
+template <class _T>
 class MCTrackT
 {
  public:
@@ -68,6 +68,15 @@ class MCTrackT
   Double_t GetMass() const;
 
   Double_t GetEnergy() const;
+
+  // Alternative accessors with TParticle like shorter names
+  Double_t Px() const { return mStartVertexMomentumX; }
+  Double_t Py() const { return mStartVertexMomentumY; }
+  Double_t Pz() const { return mStartVertexMomentumZ; }
+  Double_t Vx() const { return mStartVertexCoordinatesX; }
+  Double_t Vy() const { return mStartVertexCoordinatesY; }
+  Double_t Vz() const { return mStartVertexCoordinatesZ; }
+  Double_t T() const { return mStartVertexCoordinatesT; }
 
   Double_t GetPt() const
   {
@@ -147,10 +156,10 @@ class MCTrackT
 
  private:
   /// Momentum components at start vertex [GeV]
-  T mStartVertexMomentumX, mStartVertexMomentumY, mStartVertexMomentumZ;
+  _T mStartVertexMomentumX, mStartVertexMomentumY, mStartVertexMomentumZ;
 
   /// Coordinates of start vertex [cm, ns]
-  T mStartVertexCoordinatesX, mStartVertexCoordinatesY, mStartVertexCoordinatesZ, mStartVertexCoordinatesT;
+  _T mStartVertexCoordinatesX, mStartVertexCoordinatesY, mStartVertexCoordinatesZ, mStartVertexCoordinatesT;
 
   ///  PDG particle code
   Int_t mPdgCode;

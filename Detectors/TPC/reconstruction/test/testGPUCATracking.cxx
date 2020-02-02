@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   config.configWorkflow.outputs.set(GPUDataTypes::InOutType::TPCMergedTracks);
 
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
-  config.fastTransform = fastTransform.get();
+  config.configCalib.fastTransform = fastTransform.get();
 
   tracker.initialize(config);
   std::vector<ClusterNativeContainer> cont(Constants::MAXGLOBALPADROW);
@@ -95,6 +95,8 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   std::vector<TrackTPC> tracks;
   ptrs.clusters = clusters.get();
   ptrs.outputTracks = &tracks;
+  std::vector<TPCClRefElem> trackClusRefs;
+  ptrs.outputClusRefs = &trackClusRefs;
 
   int retVal = tracker.runTracking(&ptrs);
   BOOST_CHECK_EQUAL(retVal, 0);

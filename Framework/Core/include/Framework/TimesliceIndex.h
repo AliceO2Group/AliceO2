@@ -30,8 +30,11 @@ struct TimesliceId {
 
 struct TimesliceSlot {
   static constexpr uint64_t INVALID = -1;
+  static constexpr uint64_t ANY = -2;
   size_t index;
   static bool isValid(TimesliceSlot const& slot);
+  bool operator==(const TimesliceSlot that) const;
+  bool operator!=(const TimesliceSlot that) const;
 };
 
 /// This class keeps the information relative to a given slot in the cache, in

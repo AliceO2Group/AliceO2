@@ -7,21 +7,22 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef __O2_EMCAL_RAWREADERFILE_H__
-#define __O2_EMCAL_RAWREADERFILE_H__
+#ifndef ALICEO2_EMCAL_RAWREADERFILE_H
+#define ALICEO2_EMCAL_RAWREADERFILE_H
 
 #include <array>
 #include <bitset>
 #include <cstdint>
-#include <exception>
 #include <fstream>
 #include <string>
 
 #include "Rtypes.h"
 #include "RStringView.h"
 
-#include "EMCALReconstruction/RAWDataHeader.h"
+#include "Headers/RAWDataHeader.h"
 #include "EMCALReconstruction/RawBuffer.h"
+#include "EMCALReconstruction/RAWDataHeader.h"
+#include "EMCALReconstruction/RawPayload.h"
 
 namespace o2
 {
@@ -31,72 +32,15 @@ namespace emcal
 
 /// \class RawReaderFile
 /// \brief Reader for raw data produced by the ReadoutCard from a binary file
+/// \ingroup EMCALreconstruction
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 /// \since Aug. 12, 2019
 ///
 ///
+template <class RawHeader>
 class RawReaderFile
 {
  public:
-  /// \class Error
-  /// \brief Error handling of the raw reader
-  ///
-  /// The following error types are defined:
-  /// - Page not found
-  /// - Raw header decoding error
-  /// - Payload decoding error
-  class Error : public std::exception
-  {
-   public:
-    /// \enum ErrorType_t
-    /// \brief Codes for different error types
-    enum class ErrorType_t {
-      PAGE_NOTFOUND,    ///< Page was not found (page index outside range)
-      HEADER_DECODING,  ///< Header cannot be decoded (format incorrect)
-      PAYLOAD_DECODING, ///< Payload cannot be decoded (format incorrect)
-      HEADER_INVALID,   ///< Header in memory not belonging to requested superpage
-      PAYLOAD_INVALID,  ///< Payload in memory not belonging to requested superpage
-    };
-
-    /// \brief Constructor
-    /// \param errtype Identifier code of the error type
-    ///
-    /// Constructing the error with error code. To be called when the
-    /// exception is thrown.
-    Error(ErrorType_t errtype) : mErrorType(errtype)
-    {
-    }
-
-    /// \brief destructor
-    ~Error() noexcept override = default;
-
-    /// \brief Providing error message of the exception
-    /// \return Error message of the exception
-    const char* what() const noexcept override
-    {
-      switch (mErrorType) {
-        case ErrorType_t::PAGE_NOTFOUND:
-          return "Page with requested index not found";
-        case ErrorType_t::HEADER_DECODING:
-          return "RDH of page cannot be decoded";
-        case ErrorType_t::PAYLOAD_DECODING:
-          return "Payload of page cannot be decoded";
-        case ErrorType_t::HEADER_INVALID:
-          return "Access to header not belonging to requested superpage";
-        case ErrorType_t::PAYLOAD_INVALID:
-          return "Access to payload not belonging to requested superpage";
-      };
-      return "Undefined error";
-    }
-
-    /// \brief Get the type identifier of the error handled with this exception
-    /// \return Error code of the exception
-    ErrorType_t getErrorType() const { return mErrorType; }
-
-   private:
-    ErrorType_t mErrorType; ///< Type of the error
-  };
-
   /// \brief Constructor
   ///
   /// Opening the raw file and determining its size and the number
@@ -108,13 +52,24 @@ class RawReaderFile
   /// Closing the raw file
   ~RawReaderFile();
 
-  /// \brief Read the next page from the stream
+  /// \brief Read next payload from the stream
+  ///
+  /// Read the next pages until the stop bit is found.
+  void next();
+
+  /// \brief Read the next page from the stream (single DMA page)
+  /// \param resetPayload If true the raw payload is reset
   /// \throw Error if the page cannot be read or header or payload cannot be deocded
-  void nextPage();
+  ///
+  /// Function reading a single DMA page from the stream. It is called
+  /// inside the next() function for reading payload from multiple DMA
+  /// pages. As the function cannot handle payload from multiple pages
+  /// it should not be called directly by the user.
+  void nextPage(bool resetPayload = true);
 
   /// \brief Read page with a given index
   /// \param page Index of the page to be decoded
-  /// \throw Error if the page cannot be read or header or payload cannot be deocded
+  /// \throw RawDecodingError if the page cannot be read or header or payload cannot be deocded
   ///
   /// The reader will try to read the page with a certain index. In
   /// case the page cannot be decoded (page index outside range,
@@ -124,10 +79,20 @@ class RawReaderFile
   /// \brief access to the raw header of the current page
   /// \return Raw header of the current page
   /// \throw Error with HEADER_INVALID if the header was not decoded
-  const RAWDataHeader& getRawHeader() const;
+  const RawHeader& getRawHeader() const;
 
-  /// \brief access to the
+  /// \brief access to the raw buffer (single DMA page)
+  /// \return Raw buffer of the current page
+  /// \throw Error with PAYLOAD_INCALID if payload was not decoded
   const RawBuffer& getRawBuffer() const;
+
+  /// \brief access to the full raw payload (single or multiple DMA pages)
+  /// \return Raw Payload of the data until the stop bit is received.
+  const RawPayload& getPayload() const { return mRawPayload; }
+
+  /// \brief Return size of the payload
+  /// \return size of the payload
+  int getPayloadSize() const { return mRawPayload.getPayloadSize(); }
 
   /// \brief get the size of the file in bytes
   /// \return size of the file in byte
@@ -144,20 +109,20 @@ class RawReaderFile
   static void readFile(const std::string_view filename);
 
  protected:
-  /// \bried Init the raw reader
+  /// \brief Init the raw reader
   ///
   /// Opening the raw file and determining the number of superpages
   void init();
 
   /// \brief Decode the Raw Data Header
-  /// \throw Error with HEADER_DECODING in case the header decoding failed
+  /// \throw RawDecodingError with HEADER_DECODING in case the header decoding failed
   ///
   /// Decoding the raw header. Function assumes that the pointer
   /// is at the beginning of the raw header
   void readHeader();
 
   /// \brief Decode the payload
-  /// \throw Error with PAYLOAD_DECODING in case the payload decoding failed
+  /// \throw RawDecodingError with PAYLOAD_DECODING in case the payload decoding failed
   ///
   /// Decoding the payload. The function assumes that the pointer is at
   /// the beginning of the payload of the page. Needs the raw header of the
@@ -165,11 +130,15 @@ class RawReaderFile
   /// and offset.
   void readPayload();
 
+  bool isStop(const o2::emcal::RAWDataHeader& hdr) { return true; }
+  bool isStop(const o2::header::RAWDataHeaderV4& hdr) { return hdr.stop; }
+
  private:
   std::string mInputFileName;         ///< Name of the input file
   std::ifstream mDataFile;            ///< Stream of the inputfile
-  RAWDataHeader mRawHeader;           ///< Raw header
-  RawBuffer mRawBuffer;               ///< Raw bufffer
+  RawHeader mRawHeader;               ///< Raw header
+  RawBuffer mRawBuffer;               ///< Raw buffer
+  RawPayload mRawPayload;             ///< Raw payload (can consist of multiple pages)
   int mCurrentPosition = 0;           ///< Current page in file
   int mFileSize = 0;                  ///< Size of the file in bytes
   int mNumData = 0;                   ///< Number of pages
@@ -178,6 +147,10 @@ class RawReaderFile
 
   ClassDefNV(RawReaderFile, 1);
 };
+
+// template specifications
+using RawReaderFileRDHvE = RawReaderFile<o2::emcal::RAWDataHeader>;
+using RawReaderFileRDHv4 = RawReaderFile<o2::header::RAWDataHeaderV4>;
 
 } // namespace emcal
 

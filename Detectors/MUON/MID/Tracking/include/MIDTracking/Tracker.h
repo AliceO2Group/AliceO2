@@ -20,6 +20,7 @@
 #include <gsl/gsl>
 #include "DataFormatsMID/Cluster2D.h"
 #include "DataFormatsMID/Cluster3D.h"
+#include "DataFormatsMID/ROFRecord.h"
 #include "DataFormatsMID/Track.h"
 #include "MIDBase/GeometryTransformer.h"
 
@@ -42,7 +43,8 @@ class Tracker
   /// Gets number of sigmas for cuts
   inline float getSigmaCut() const { return mSigmaCut; }
 
-  bool process(gsl::span<const Cluster2D> clusters);
+  void process(gsl::span<const Cluster2D> clusters, bool accumulate = false);
+  void process(gsl::span<const Cluster2D> clusters, gsl::span<const ROFRecord> rofRecords);
   bool init(bool keepAll = false);
 
   /// Gets the array of reconstructes tracks
@@ -50,6 +52,12 @@ class Tracker
 
   /// Gets the array of associated clusters
   const std::vector<Cluster3D>& getClusters() { return mClusters; }
+
+  /// Gets the vector of tracks RO frame records
+  const std::vector<ROFRecord>& getTrackROFRecords() { return mTrackROFRecords; }
+
+  /// Gets the vector of cluster RO frame records
+  const std::vector<ROFRecord>& getClusterROFRecords() { return mClusterROFRecords; }
 
  private:
   bool processSide(bool isRight, bool isInward);
@@ -62,7 +70,6 @@ class Tracker
   int getLastNeighbourRPC(int rpc) const;
   bool loadClusters(gsl::span<const Cluster2D>& clusters);
   bool makeTrackSeed(Track& track, const Cluster3D& cl1, const Cluster3D& cl2) const;
-  void reset();
   double runKalmanFilter(Track& track, const Cluster3D& cluster) const;
   double tryOneCluster(const Track& track, const Cluster3D& cluster, Track& newTrack) const;
   void finalizeTrack(Track& track);
@@ -72,11 +79,14 @@ class Tracker
   float mMaxChi2 = 1.e6;        ///< Maximum cut on chi2
 
   std::vector<std::pair<int, bool>> mClusterIndexes[72]; ///< Ordered arrays of clusters indexes
-  std::vector<Cluster3D> mClusters;                      ///< 3D clusters
+  std::vector<Cluster3D> mClusters{};                    ///< 3D clusters
 
-  std::vector<Track> mTracks; ///< Array of tracks
+  std::vector<Track> mTracks{};                ///< Vector of tracks
+  std::vector<ROFRecord> mTrackROFRecords{};   ///< List of track RO frame records
+  std::vector<ROFRecord> mClusterROFRecords{}; ///< List of cluster RO frame records
+  size_t mTrackOffset{0};                      ///! Offset for the track in the current event
 
-  GeometryTransformer mTransformer; ///< Geometry transformer
+  GeometryTransformer mTransformer{}; ///< Geometry transformer
 
   typedef bool (Tracker::*TrackerMemFn)(const Track&, bool, bool);
   TrackerMemFn mFollowTrack{nullptr}; ///! Choice of the function to follow the track

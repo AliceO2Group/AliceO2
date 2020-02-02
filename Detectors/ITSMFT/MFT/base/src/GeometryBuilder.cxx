@@ -19,7 +19,7 @@
 #include "MFTBase/HalfSegmentation.h"
 #include "MFTBase/HalfDetector.h"
 #include "MFTBase/HalfCone.h"
-
+#include "MFTBase/Barrel.h"
 #include "TGeoVolume.h"
 #include "TGeoManager.h"
 
@@ -64,6 +64,19 @@ void GeometryBuilder::buildGeometry()
   TGeoVolumeAssembly* halfCone2 = halfCone->createHalfCone(1);
   volMFT->AddNode(halfCone1, 1);
   volMFT->AddNode(halfCone2, 1);
+  //barrel services
+  auto* t_barrel0 = new TGeoTranslation("translation_barrel", 0.0, 0.7, -80.17);
+  auto* r_barrel0 = new TGeoRotation("rotation_barrel", 0.0, 0.0, 0.0);
+  auto* p_barrel0 = new TGeoCombiTrans(*t_barrel0, *r_barrel0);
+  auto* t_barrel1 = new TGeoTranslation("translation_barrel", 0.0, 0.7, -80.17);
+  auto* r_barrel1 = new TGeoRotation("rotation_barrel", 0.0, 0.0, 180.0);
+  auto* p_barrel1 = new TGeoCombiTrans(*t_barrel1, *r_barrel1);
+
+  auto* halfBarrel = new Barrel();
+  TGeoVolumeAssembly* halfBarrel0 = halfBarrel->createBarrel();
+  volMFT->AddNode(halfBarrel0, 1, p_barrel0);
+  TGeoVolumeAssembly* halfBarrel1 = halfBarrel->createBarrel();
+  volMFT->AddNode(halfBarrel1, 1, p_barrel1);
 
   vALIC->AddNode(volMFT, 0);
 }

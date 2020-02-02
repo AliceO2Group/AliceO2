@@ -27,6 +27,11 @@ Detector::Detector(bool active) : o2::base::DetImpl<Detector>("MID", active),
 {
 }
 
+Detector::Detector(const Detector& rhs)
+  : o2::base::DetImpl<Detector>(rhs), mStepper()
+{
+}
+
 void Detector::defineSensitiveVolumes()
 {
   for (auto* vol : getSensitiveVolumes()) {

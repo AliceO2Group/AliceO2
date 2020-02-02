@@ -21,6 +21,7 @@
 #include <stdexcept>
 
 #include "Framework/CallbackService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Lifetime.h"
@@ -68,6 +69,7 @@ class ClusterSamplerTask
     int event(0);
     mInputFile.read(reinterpret_cast<char*>(&event), SSizeOfInt);
     if (mInputFile.fail()) {
+      pc.services().get<ControlService>().endOfStream();
       return; // probably reached eof
     }
 

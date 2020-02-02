@@ -8,7 +8,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(MCHMappingSegContour3
+o2_add_library(MCHMappingSegContour
                SOURCES src/CathodeSegmentationContours.cxx
                        src/CathodeSegmentationSVGWriter.cxx
                        src/SegmentationContours.cxx
@@ -18,5 +18,5 @@ o2_add_library(MCHMappingSegContour3
 o2_add_executable(mapping-svg-segmentation3
                   COMPONENT_NAME mch
                   SOURCES src/SVGSegmentation.cxx
-                  PUBLIC_LINK_LIBRARIES O2::MCHMappingSegContour3
+                  PUBLIC_LINK_LIBRARIES O2::MCHMappingSegContour
                                         Boost::program_options)

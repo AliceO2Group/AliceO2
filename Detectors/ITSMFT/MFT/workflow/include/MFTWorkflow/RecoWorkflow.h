@@ -20,7 +20,7 @@ namespace o2
 namespace mft
 {
 
-namespace RecoWorkflow
+namespace reco_workflow
 {
 framework::WorkflowSpec getWorkflow(bool useMC);
 }

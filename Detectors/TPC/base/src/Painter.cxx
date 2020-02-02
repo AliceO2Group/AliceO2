@@ -11,11 +11,11 @@
 #include <string>
 #include <algorithm>
 
-#include "TCanvas.h"
 #include "TString.h"
 #include "TAxis.h"
 #include "TH1.h"
 #include "TH2.h"
+#include "TCanvas.h"
 
 #include "TPCBase/ROC.h"
 #include "TPCBase/Sector.h"
@@ -27,7 +27,7 @@
 using namespace o2::tpc;
 
 template <class T>
-void painter::draw(const CalDet<T>& calDet)
+TCanvas* painter::draw(const CalDet<T>& calDet)
 {
   using DetType = CalDet<T>;
   using CalType = CalArray<T>;
@@ -100,11 +100,13 @@ void painter::draw(const CalDet<T>& calDet)
 
   // reset the buffer size
   TH1::SetDefaultBufferSize(bufferSize);
+
+  return c;
 }
 
 //______________________________________________________________________________
 template <class T>
-void painter::draw(const CalArray<T>& calArray)
+TCanvas* painter::draw(const CalArray<T>& calArray)
 {
   const auto title = calArray.getName().c_str();
   std::string name = calArray.getName();
@@ -113,6 +115,8 @@ void painter::draw(const CalArray<T>& calArray)
 
   auto hist = getHistogram2D(calArray);
   hist->Draw("colz");
+
+  return c;
 }
 
 //______________________________________________________________________________
@@ -188,27 +192,27 @@ TH2* painter::getHistogram2D(const CalArray<T>& calArray)
 // ===| explicit instantiations |===============================================
 // this is required to force the compiler to create instances with the types
 // we usually would like to deal with
-template void painter::draw<float>(const CalDet<float>& calDet);
-template void painter::draw<float>(const CalArray<float>& calArray);
+template TCanvas* painter::draw<float>(const CalDet<float>& calDet);
+template TCanvas* painter::draw<float>(const CalArray<float>& calArray);
 template TH2* painter::getHistogram2D<float>(const CalDet<float>& calDet, Side side);
 template TH2* painter::getHistogram2D<float>(const CalArray<float>& calArray);
 
-template void painter::draw<double>(const CalDet<double>& calDet);
-template void painter::draw<double>(const CalArray<double>& calArray);
+template TCanvas* painter::draw<double>(const CalDet<double>& calDet);
+template TCanvas* painter::draw<double>(const CalArray<double>& calArray);
 template TH2* painter::getHistogram2D<double>(const CalDet<double>& calDet, Side side);
 template TH2* painter::getHistogram2D<double>(const CalArray<double>& calArray);
 
-template void painter::draw<int>(const CalDet<int>& calDet);
-template void painter::draw<int>(const CalArray<int>& calArray);
+template TCanvas* painter::draw<int>(const CalDet<int>& calDet);
+template TCanvas* painter::draw<int>(const CalArray<int>& calArray);
 template TH2* painter::getHistogram2D<int>(const CalDet<int>& calDet, Side side);
 template TH2* painter::getHistogram2D<int>(const CalArray<int>& calArray);
 
-template void painter::draw<short>(const CalDet<short>& calDet);
-template void painter::draw<short>(const CalArray<short>& calArray);
+template TCanvas* painter::draw<short>(const CalDet<short>& calDet);
+template TCanvas* painter::draw<short>(const CalArray<short>& calArray);
 template TH2* painter::getHistogram2D<short>(const CalDet<short>& calDet, Side side);
 template TH2* painter::getHistogram2D<short>(const CalArray<short>& calArray);
 
-template void painter::draw<bool>(const CalDet<bool>& calDet);
-template void painter::draw<bool>(const CalArray<bool>& calArray);
+template TCanvas* painter::draw<bool>(const CalDet<bool>& calDet);
+template TCanvas* painter::draw<bool>(const CalArray<bool>& calArray);
 template TH2* painter::getHistogram2D<bool>(const CalDet<bool>& calDet, Side side);
 template TH2* painter::getHistogram2D<bool>(const CalArray<bool>& calArray);

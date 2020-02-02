@@ -48,17 +48,27 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>* hits, o2::fdd::Digit* d
   assert(digit->GetChannelData().size() == parameters.mNchannels);
   //Conversion of hits to the analogue pulse shape
   for (auto& hit : sorted_hits) {
+    if (hit.GetTime() > 20e3) {
+      const int maxWarn = 10;
+      static int warnNo = 0;
+      if (warnNo < maxWarn) {
+        LOG(WARNING) << "Ignoring hit with time_in_event = " << hit.GetTime() << " ns"
+                     << ((++warnNo < maxWarn) ? "" : " (suppressing further warnings)");
+      }
+      continue;
+    }
     Int_t pmt = hit.GetDetectorID();
     Int_t nPhE = SimulateLightYield(pmt, hit.GetNphot());
 
     Float_t dt_scintillator = gRandom->Gaus(0, parameters.mIntTimeRes);
     Float_t t = dt_scintillator + hit.GetTime();
 
-    //LOG(INFO) << "Nphot = "<<hit.GetNphot()<<FairLogger::endl;
+    //LOG(INFO) << "Nphot = "<<hit.GetNphot()<<" time ="<<hit.GetTime()<<FairLogger::endl;
     //LOG(INFO) << "NphE = " << nPhE << FairLogger::endl;
     Float_t charge = TMath::Qe() * parameters.mPmGain * mBinSize / integral;
     for (Int_t iPhE = 0; iPhE < nPhE; ++iPhE) {
       Float_t tPhE = t + mSignalShape->GetRandom(0, mBinSize * Float_t(mNBins));
+      //LOG(INFO) <<"t = "<<t<<"tPhE = "<<tPhE;
       Float_t gainVar = mSinglePhESpectrum->GetRandom(0, 20) / meansPhE;
       Int_t firstBin = TMath::Max((UInt_t)0, (UInt_t)((tPhE - parameters.mPMTransitTime) / mBinSize));
       Int_t lastBin = TMath::Min(mNBins - 1, (UInt_t)((tPhE + 2. * parameters.mPMTransitTime) / mBinSize));

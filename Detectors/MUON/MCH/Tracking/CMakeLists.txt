@@ -9,13 +9,22 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(MCHTracking
-        SOURCES src/Cluster.cxx src/TrackParam.cxx src/Track.cxx
-        src/TrackExtrap.cxx src/TrackFitter.cxx src/TrackFinderOriginal.cxx
+        SOURCES
+        src/Cluster.cxx
+        src/TrackParam.cxx
+        src/Track.cxx
+        src/TrackExtrap.cxx
+        src/TrackFitter.cxx
+        src/TrackFinderOriginal.cxx
+        src/TrackFinder.cxx
         PUBLIC_LINK_LIBRARIES O2::Framework O2::Field O2::MCHBase)
 
 o2_add_executable(trackfitter-workflow
-        SOURCES src/TrackFitterWorkflow.cxx src/TrackSamplerSpec.cxx
-        src/TrackFitterSpec.cxx src/TrackSinkSpec.cxx
+        SOURCES
+        src/TrackFitterWorkflow.cxx
+        src/TrackSamplerSpec.cxx
+        src/TrackFitterSpec.cxx
+        src/TrackSinkSpec.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::MCHTracking)
 
@@ -27,3 +36,14 @@ o2_add_executable(trackfinderoriginal-workflow
         src/TrackSinkSpec.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::MCHTracking)
+
+        o2_add_executable(trackfinder-workflow
+        SOURCES
+        src/TrackFinderWorkflow.cxx
+        src/ClusterSamplerSpec.cxx
+        src/VertexSamplerSpec.cxx
+        src/TrackFinderSpec.cxx
+        src/TrackAtVertexSpec.cxx
+        src/TrackSinkSpec.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::MCHTracking)

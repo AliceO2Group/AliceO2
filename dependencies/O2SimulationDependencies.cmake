@@ -66,7 +66,6 @@ set_package_properties(HepMC
 		       PROPERTIES
 		       TYPE ${mcPackageRequirement} DESCRIPTION
 		       	    "the HepMC3 event record package")
-
 set(doBuildSimulation OFF)
 
 if(pythia_FOUND

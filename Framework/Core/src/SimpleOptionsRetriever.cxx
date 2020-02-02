@@ -31,6 +31,11 @@ int SimpleOptionsRetriever::getInt(char const* key) const
   return mStore.get<int>(key);
 }
 
+int64_t SimpleOptionsRetriever::getInt64(char const* key) const
+{
+  return mStore.get<int64_t>(key);
+}
+
 float SimpleOptionsRetriever::getFloat(char const* key) const
 {
   return mStore.get<float>(key);
@@ -59,6 +64,11 @@ boost::property_tree::ptree SimpleOptionsRetriever::getPTree(char const* key) co
 void SimpleOptionsRetriever::setInt(char const* key, int value)
 {
   mStore.put<int>(key, value);
+}
+
+void SimpleOptionsRetriever::setInt64(char const* key, int64_t value)
+{
+  mStore.put<int64_t>(key, value);
 }
 
 void SimpleOptionsRetriever::setFloat(char const* key, float value)

@@ -18,14 +18,14 @@
 #ifndef __OPENCL__
 #include <array>
 #include <cmath>
+#include <cassert>
+#include <iostream>
 #endif
 
 #include "MathUtils/Utils.h"
 #include "ITStracking/Constants.h"
 #include "GPUCommonMath.h"
 #include "GPUCommonDef.h"
-#include <cassert>
-#include <iostream>
 
 namespace o2
 {

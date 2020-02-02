@@ -40,7 +40,7 @@ using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
 /// create a processor spec
 /// runs the TPC HwClusterer in a DPL process with digits and mc as input
-DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
+DataProcessorSpec getClustererSpec(bool sendMC)
 {
   std::string processorName = "tpc-clusterer";
 
@@ -102,6 +102,7 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
         // as they are not invoked in parallel
         // the cost of creating the clusterer should be small so we do it in the processing
         clusterers[sector] = std::make_shared<o2::tpc::HwClusterer>(&clusterArray, sector, &mctruthArray);
+        clusterers[sector]->init();
       }
       auto& clusterer = clusterers[sector];
 
@@ -179,25 +180,19 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
       if (finished) {
         // got EOD on all inputs
         processAttributes->finished = true;
-        pc.services().get<ControlService>().readyToQuit(false);
+        pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
       }
     };
     return processingFct;
   };
 
-  auto createInputSpecs = [](bool makeMcInput, bool makeTriggersInput = false) {
+  auto createInputSpecs = [](bool makeMcInput) {
     std::vector<InputSpec> inputSpecs{
       InputSpec{"digits", gDataOriginTPC, "DIGITS", 0, Lifetime::Timeframe},
     };
     if (makeMcInput) {
       constexpr o2::header::DataDescription datadesc("DIGITSMCTR");
       inputSpecs.emplace_back("mclabels", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
-    }
-    if (makeTriggersInput) {
-      // this is an additional output by the TPC digitizer, need to check if that
-      // has to go into the clusterer as well
-      constexpr o2::header::DataDescription datadesc("DIGTRIGGERS");
-      inputSpecs.emplace_back("digtriggers", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
     }
     return std::move(inputSpecs);
   };
@@ -216,7 +211,7 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
   };
 
   return DataProcessorSpec{processorName,
-                           {createInputSpecs(sendMC, haveDigTriggers)},
+                           {createInputSpecs(sendMC)},
                            {createOutputSpecs(sendMC)},
                            AlgorithmSpec(initFunction)};
 }

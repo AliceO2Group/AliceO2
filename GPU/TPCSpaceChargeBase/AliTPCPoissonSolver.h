@@ -89,7 +89,7 @@ class AliTPCPoissonSolver : public TNamed
   AliTPCPoissonSolver();
   AliTPCPoissonSolver(const char* name, const char* title);
 #if (defined(__CINT__) || defined(__ROOTCINT__)) && !defined(__CLING__)
-  virtual ~AliTPCPoissonSolver();
+  ~AliTPCPoissonSolver();
 #else
   ~AliTPCPoissonSolver() override;
 #endif
@@ -122,7 +122,7 @@ class AliTPCPoissonSolver : public TNamed
   AliTPCPoissonSolver(const AliTPCPoissonSolver&);            // not implemented
   AliTPCPoissonSolver& operator=(const AliTPCPoissonSolver&); // not implemented
   StrategyType fStrategy = kMultiGrid;                        ///< strategy used default multiGrid
-  TMatrixD** fExactSolution = nullptr;                        ///< Pointer to exact solution
+  TMatrixD** fExactSolution = nullptr;                        //!<! Pointer to exact solution
   /// TODO: remove pointers?
   TVectorD* fErrorConvergenceNorm2;   ///< for storing convergence error  norm2
   TVectorD* fErrorConvergenceNormInf; ///< for storing convergence error normInf
@@ -211,7 +211,7 @@ class AliTPCPoissonSolver : public TNamed
 #if defined(ROOT_VERSION_CODE) && ROOT_VERSION_CODE >= ROOT_VERSION(6, 0, 0)
   ClassDefOverride(AliTPCPoissonSolver, 5);
 #else
-  ClassDef(AliTPCPoissonSolver, 5);
+  ClassDefNV(AliTPCPoissonSolver, 5);
 #endif
   /// \endcond
 };

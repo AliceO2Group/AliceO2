@@ -19,6 +19,7 @@ template class std::shared_ptr<arrow::Column>;
 template class std::shared_ptr<arrow::Field>;
 template class std::shared_ptr<arrow::Schema>;
 template class std::shared_ptr<arrow::Table>;
+template class std::vector<std::shared_ptr<arrow::Table>>;
 template class std::vector<std::shared_ptr<arrow::Column>>;
 template class std::vector<std::shared_ptr<arrow::Field>>;
 #endif

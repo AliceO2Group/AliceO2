@@ -1,4 +1,6 @@
+<!-- doxy
 \page refMUONMIDClustering MID Clustering
+/doxy -->
 
 # Running MID clustering
 

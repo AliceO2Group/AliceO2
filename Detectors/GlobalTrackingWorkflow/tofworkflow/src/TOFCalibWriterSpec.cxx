@@ -11,6 +11,7 @@
 /// @file   TOFCalibWriterSpec.cxx
 
 #include "TOFWorkflow/TOFCalibWriterSpec.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Headers/DataHeader.h"
 #include <SimulationDataFormat/MCCompLabel.h>
@@ -69,7 +70,7 @@ void TOFCalibWriter::run(ProcessingContext& pc)
   tree.SetEntries(1);
   tree.Write();
   mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(false);
+  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 DataProcessorSpec getTOFCalibWriterSpec()

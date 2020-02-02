@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "TRDDigitizerSpec.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"
@@ -25,6 +26,8 @@
 #include "TRDSimulation/Digitizer.h"
 #include "TRDSimulation/Detector.h" // for the Hit type
 #include "DetectorsBase/GeometryManager.h"
+#include "TRDBase/Calibrations.h"
+#include "DataFormatsTRD/TriggerRecord.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -83,6 +86,10 @@ class TRDDPLDigitizerTask
     }
     LOG(INFO) << "Doing TRD digitization";
 
+    Calibrations simcal;
+    simcal.setCCDBForSimulation(297595);
+    mDigitizer.setCalibrations(&simcal);
+
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
     auto& irecords = context->getEventRecords();
@@ -94,6 +101,7 @@ class TRDDPLDigitizerTask
     auto& eventParts = context->getEventParts();
     std::vector<o2::trd::Digit> digitsAccum; // accumulator for digits
     o2::dataformats::MCTruthContainer<o2::trd::MCLabel> labelsAccum;
+    std::vector<TriggerRecord> triggers;
 
     TStopwatch timer;
     timer.Start();
@@ -117,13 +125,16 @@ class TRDDPLDigitizerTask
         std::vector<o2::trd::Digit> digits;                         // digits which get filled
         o2::dataformats::MCTruthContainer<o2::trd::MCLabel> labels; // labels which get filled
         mDigitizer.process(hits, digits, labels);
+        // Add trigger record
+        triggers.emplace_back(irecords[collID], digitsAccum.size(), digits.size());
+
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
         labelsAccum.mergeAtBack(labels);
       }
     }
 
     timer.Stop();
-    LOG(INFO) << "TRD: Digitization took " << timer.CpuTime() << "s";
+    LOG(INFO) << "TRD: Digitization took " << timer.RealTime() << "s";
 
     LOG(INFO) << "TRD: Sending " << digitsAccum.size() << " digits";
     pc.outputs().snapshot(Output{"TRD", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
@@ -131,9 +142,11 @@ class TRDDPLDigitizerTask
     pc.outputs().snapshot(Output{"TRD", "LABELS", 0, Lifetime::Timeframe}, labelsAccum);
     LOG(INFO) << "TRD: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"TRD", "ROMode", 0, Lifetime::Timeframe}, mROMode);
+    LOG(INFO) << "TRD: Sending trigger records";
+    pc.outputs().snapshot(Output{"TRD", "TRGRDIG", 0, Lifetime::Timeframe}, triggers);
 
     // we should be only called once; tell DPL that this process is ready to exit
-    pc.services().get<ControlService>().readyToQuit(false);
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     finished = true;
   }
 
@@ -156,6 +169,7 @@ o2::framework::DataProcessorSpec getTRDDigitizerSpec(int channel)
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
 
     Outputs{OutputSpec{"TRD", "DIGITS", 0, Lifetime::Timeframe},
+            OutputSpec{"TRD", "TRGRDIG", 0, Lifetime::Timeframe},
             OutputSpec{"TRD", "LABELS", 0, Lifetime::Timeframe},
             OutputSpec{"TRD", "ROMode", 0, Lifetime::Timeframe}},
 

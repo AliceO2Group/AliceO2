@@ -10,36 +10,47 @@
 
 ///
 /// @file   PID.h
-/// @author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
+/// @author Thomas Klemenz, thomas.klemenz@tum.de
 ///
 
-#ifndef AliceO2_TPC_ROC_H
-#define AliceO2_TPC_ROC_H
+#ifndef AliceO2_TPC_QC_PID_H
+#define AliceO2_TPC_QC_PID_H
+
+#include <vector>
 
 //root includes
 #include "TH1F.h"
+#include "TH2F.h"
+
 //o2 includes
 #include "DataFormatsTPC/Defs.h"
-#include "DataFormatsTPC/TrackTPC.h"
-#include "TPCBase/Sector.h"
 
 namespace o2
 {
 namespace tpc
 {
+
+class TrackTPC;
+
 namespace qc
 {
 
-/// Keep QC information for PID related observables
+/// @brief  PID quality control class
 ///
-/// This is just a dummy implementation to get started with QC
-/// @author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
+/// This class is used to extract PID related variables
+/// from TrackTPC objects and store it in histograms.
+///
+/// origin: TPC
+/// @author Thomas Klemenz, thomas.klemenz@tum.de
 class PID
 {
  public:
-  PID();
+  /// default constructor
+  PID() = default;
 
-  bool processTrack(o2::tpc::TrackTPC const& track);
+  /// bool extracts intormation from track and fills it to histograms
+  /// @return true if information can be extracted and filled to histograms
+  bool processTrack(const o2::tpc::TrackTPC& track);
 
   /// Initialize all histograms
   void initializeHistograms();
@@ -47,11 +58,20 @@ class PID
   /// Reset all histograms
   void resetHistograms();
 
+  /// Dump results to a file
+  void dumpToFile(std::string filename);
+
+  /// get 1D histograms
   std::vector<TH1F>& getHistograms1D() { return mHist1D; }
   const std::vector<TH1F>& getHistograms1D() const { return mHist1D; }
 
+  /// get 2D histograms
+  std::vector<TH2F>& getHistograms2D() { return mHist2D; }
+  const std::vector<TH2F>& getHistograms2D() const { return mHist2D; }
+
  private:
-  std::vector<TH1F> mHist1D;
+  std::vector<TH1F> mHist1D{};
+  std::vector<TH2F> mHist2D{};
 
   ClassDefNV(PID, 1)
 };

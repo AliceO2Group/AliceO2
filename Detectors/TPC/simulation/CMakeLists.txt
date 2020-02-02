@@ -9,7 +9,8 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(TPCSimulation
-               SOURCES src/Detector.cxx
+               SOURCES src/CommonMode.cxx
+                       src/Detector.cxx
                        src/DigitMCMetaData.cxx
                        src/DigitContainer.cxx
                        src/DigitGlobalPad.cxx
@@ -26,7 +27,8 @@ o2_add_library(TPCSimulation
                                      ROOT::Physics)
 
 o2_target_root_dictionary(TPCSimulation
-                          HEADERS include/TPCSimulation/Detector.h
+                          HEADERS include/TPCSimulation/CommonMode.h
+                                  include/TPCSimulation/Detector.h
                                   include/TPCSimulation/DigitMCMetaData.h
                                   include/TPCSimulation/DigitContainer.h
                                   include/TPCSimulation/DigitGlobalPad.h
@@ -47,5 +49,17 @@ if(BUILD_TESTING)
   o2_add_test_root_macro(macro/readMCtruth.C
                          PUBLIC_LINK_LIBRARIES O2::TPCBase
                                                O2::SimulationDataFormat
+                         LABELS tpc)
+
+  o2_add_test_root_macro(macro/createResidualDistortionObject.C
+          PUBLIC_LINK_LIBRARIES O2::TPCSpaceChargeBase
+                                O2::CommonUtils
+                                O2::CommonConstants
+                                O2::TPCSimulation
+          LABELS tpc)
+
+  o2_add_test_root_macro(macro/laserTrackGenerator.C
+                         PUBLIC_LINK_LIBRARIES FairRoot::Base
+                                               O2::DataFormatsTPC
                          LABELS tpc)
 endif()

@@ -1,4 +1,6 @@
+<!-- doxy
 \page refdocDetectorSimulation Detector Simulation
+/doxy -->
 
 # Detector simulation documentation
 
@@ -41,6 +43,30 @@ control of verbosity
 
 ## Help on available generators
 
+Below some notes on example generators along with some usage info.
+
+* **Fwmugen**
+
+fwmugen is a lightweight and simple “box” generator for forward muons (1 muon / event)
+
+```
+o2-sim -m MFT -e TGeant3 -g fwmugen -n 10
+```
+
+* **BoxGen**
+
+```
+o2-sim -m PIPE ITS MFT -e TGeant3 -g boxgen -n 10 --configKeyValues 'BoxGun.pdg=13 ; BoxGun.eta[0]=-3.6 ; BoxGun.eta[1]=-2.45; BoxGun.number=100'
+```
+
+* **PYTHIA 8**
+
+Configures pythia8 for min.bias pp collisions at 14 TeV
+
+```
+o2-sim -m PIPE ITS MFT -g pythia8 -n 50
+```
+
 ## Control via environment variables
 `o2-sim` is sensitive to the following environment variables:
 
@@ -59,7 +85,7 @@ You may contribute to the documentation by asking a question
 In order to access event generators from ALIROOT, such as `THijing` or `TPyhtia6`, you may use the `-g extgen` command line option followed by a ROOT macro setting up the event 
 generator. Examples thereof are available in the installation directory `$O2_ROOT/share/Generators/external`.
 
-For example, in order to simulate with 10 Hijing events, the following command can be run:
+For example, in order to simulate with 10 Pythia6 events, the following command can be run:
 ```
 o2-sim -n 10 -g extgen --extGenFile $O2_ROOT/share/Generators/external/pythia6.C
 ```

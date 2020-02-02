@@ -25,6 +25,42 @@ using namespace o2::tof;
 
 ClassImp(Digitizer);
 
+// How data acquisition works in real data
+/*
+           |<----------- 1 orbit ------------->|
+     ------|-----------|-----------|-----------|------
+             ^           ^           ^           ^ when triggers happen
+        |<--- latency ---|
+        |<- matching1->|
+                    |<- matching2->|
+                                |<- matching3->|
+                                |<>| = overlap between two consecutive matching
+
+Norbit = number of orbits elapsed
+Nbunch = bunch in the current orbit (0:3563)
+Ntdc = number of tdc counts within the matching window --> for 1/3 orbit (0:3649535)
+
+raw time = trigger time (Norbit and Nbunch) - latency window + TDC(Ntdc)
+ */
+
+// What we implemented here (so far)
+/*
+           |<----------- 1 orbit ------------->|
+     ------|-----------|-----------|-----------|------
+           |<- matching1->|
+                       |<- matching2->|
+                                   |<- matching3->|
+                                   |<>| = overlap between two consecutive matching windows
+
+- NO OVERLAP between two consecutive windows at the moment (to be implemented)
+- NO LATENCY WINDOW (we manage it during raw encoding/decoding) then digits already corrected
+
+NBC = Number of bunch since timeframe beginning = Norbit*3564 + Nbunch
+Ntdc = here within the current BC -> (0:1023)
+
+digit time = NBC*1024 + Ntdc
+ */
+
 void Digitizer::init()
 {
 
@@ -228,6 +264,9 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Float_t time, Float_t x, 
       time += mTimeDelay * border * border * border;
   }
   time += TMath::Sqrt(timewalkX * timewalkX + timewalkZ * timewalkZ) - mTimeDelayCorr - mTimeWalkeSlope * 2;
+
+  // Decalibrate
+  time -= mCalibApi->getTimeDecalibration(channel, tot); //TODO:  to be checked that "-" is correct, and we did not need "+" instead :-)
 
   Int_t nbc = Int_t(time * Geo::BC_TIME_INPS_INV); // time elapsed in number of bunch crossing
   //Digit newdigit(time, channel, (time - Geo::BC_TIME_INPS * nbc) * Geo::NTDCBIN_PER_PS, tot * Geo::NTOTBIN_PER_NS, nbc);
