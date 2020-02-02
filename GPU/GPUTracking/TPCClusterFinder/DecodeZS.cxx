@@ -38,20 +38,28 @@ GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder
 {
   const unsigned int slice = clusterer.mISlice;
   const unsigned int endpoint = iBlock;
+  GPUTrackingInOutZS::GPUTrackingInOutZSSlice& zs = clusterer.GetConstantMem()->ioPtrs.tpcZS->slice[slice];
+  if (zs.count[endpoint] == 0) {
+    return;
+  }
   deprecated::PackedDigit* digits = clusterer.mPdigits;
   const size_t nDigits = clusterer.mPmemory->nDigitsOffset[endpoint];
   unsigned int rowOffsetCounter = 0;
-  GPUTrackingInOutZS::GPUTrackingInOutZSSlice& zs = clusterer.GetConstantMem()->ioPtrs.tpcZS->slice[slice];
   if (iThread == 0) {
     const int region = endpoint / 2;
     s.zs.nRowsRegion = clusterer.Param().tpcGeometry.GetRegionRows(region);
     s.zs.regionStartRow = clusterer.Param().tpcGeometry.GetRegionStart(region);
     s.zs.nThreadsPerRow = CAMath::Max(1u, nThreads / ((s.zs.nRowsRegion + (endpoint & 1)) / 2));
     s.zs.rowStride = nThreads / s.zs.nThreadsPerRow;
+    const unsigned char* page = (const unsigned char*)zs.zsPtr[endpoint][0];
+    const TPCZSHDR* hdr = reinterpret_cast<const TPCZSHDR*>(page + sizeof(o2::header::RAWDataHeader));
+    const bool decode12bit = hdr->version == 2;
+    s.zs.decodeBits = decode12bit ? TPCZSHDR::TPC_ZS_NBITS_V2 : TPCZSHDR::TPC_ZS_NBITS_V1;
+    s.zs.decodeBitsFactor = 1.f / (1 << (s.zs.decodeBits - 10));
   }
   GPUbarrier();
-  const int myRow = iThread / s.zs.nThreadsPerRow;
-  const int mySequence = iThread % s.zs.nThreadsPerRow;
+  const unsigned int myRow = iThread / s.zs.nThreadsPerRow;
+  const unsigned int mySequence = iThread % s.zs.nThreadsPerRow;
   for (unsigned int i = 0; i < zs.count[endpoint]; i++) {
     for (unsigned int j = 0; j < zs.nZSPtr[endpoint][i]; j++) {
       const unsigned int* pageSrc = (const unsigned int*)(((const unsigned char*)zs.zsPtr[endpoint][i]) + j * TPCZSHDR::TPC_ZS_PAGE_SIZE);
@@ -59,14 +67,10 @@ GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder
       CA_SHARED_CACHE_REF(&s.zs.ZSPage[0], pageSrc, TPCZSHDR::TPC_ZS_PAGE_SIZE, unsigned int, pageCache);
       GPUbarrier();
       const unsigned char* page = (const unsigned char*)pageCache;
-      const unsigned char* pagePtr = page;
-      pagePtr += sizeof(o2::header::RAWDataHeader);
+      const unsigned char* pagePtr = page + sizeof(o2::header::RAWDataHeader);
       const TPCZSHDR* hdr = reinterpret_cast<const TPCZSHDR*>(pagePtr);
       pagePtr += sizeof(*hdr);
-      bool decode12bit = hdr->version == 2;
-      unsigned int decodeBits = decode12bit ? TPCZSHDR::TPC_ZS_NBITS_V2 : TPCZSHDR::TPC_ZS_NBITS_V1;
-      const float decodeBitsFactor = 1.f / (1 << (decodeBits - 10));
-      unsigned int mask = (1 << decodeBits) - 1;
+      unsigned int mask = (1 << s.zs.decodeBits) - 1;
       int timeBin = hdr->timeOffset;
       for (int l = 0; l < hdr->nTimeBins; l++) {
         pagePtr += (pagePtr - page) & 1; //Ensure 16 bit alignment
@@ -104,9 +108,9 @@ GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder
               const unsigned char* adcData = rowData + 2 * nSeqRead + 1;
               const unsigned int nSamplesStart = mySequenceStart ? rowData[2 * mySequenceStart] : 0;
               nDigitsTmp += nSamplesStart;
-              unsigned int nADCStartBits = nSamplesStart * decodeBits;
+              unsigned int nADCStartBits = nSamplesStart * s.zs.decodeBits;
               const unsigned int nADCStart = (nADCStartBits + 7) / 8;
-              const int nADC = (rowData[2 * mySequenceEnd] * decodeBits + 7) / 8;
+              const int nADC = (rowData[2 * mySequenceEnd] * s.zs.decodeBits + 7) / 8;
               adcData += nADCStart;
               nADCStartBits &= 0x7;
               unsigned int byte = 0, bits = 0;
@@ -120,14 +124,14 @@ GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder
               for (int n = nADCStart; n < nADC; n++) {
                 byte |= *(adcData++) << bits;
                 bits += 8;
-                while (bits >= decodeBits) {
+                while (bits >= s.zs.decodeBits) {
                   if (seqLen == 0) {
                     seqLen = rowData[(nSeq + 1) * 2] - rowData[nSeq * 2];
                     pad = rowData[nSeq++ * 2 + 1];
                   }
-                  digits[nDigitsTmp++] = deprecated::PackedDigit{(float)(byte & mask) * decodeBitsFactor, (Timestamp)(timeBin + l), pad++, (Row)(rowOffset + m)};
-                  byte = byte >> decodeBits;
-                  bits -= decodeBits;
+                  digits[nDigitsTmp++] = deprecated::PackedDigit{(float)(byte & mask) * s.zs.decodeBitsFactor, (Timestamp)(timeBin + l), pad++, (Row)(rowOffset + m)};
+                  byte = byte >> s.zs.decodeBits;
+                  bits -= s.zs.decodeBits;
                   seqLen--;
                 }
               }
@@ -138,7 +142,7 @@ GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder
           pagePtr = page + tbHdr->rowAddr1[nRowsUsed - 2];
         }
         pagePtr += 2 * *pagePtr;                        // Go to entry for last sequence length
-        pagePtr += 1 + (*pagePtr * decodeBits + 7) / 8; // Go to beginning of next time bin
+        pagePtr += 1 + (*pagePtr * s.zs.decodeBits + 7) / 8; // Go to beginning of next time bin
       }
     }
   }
