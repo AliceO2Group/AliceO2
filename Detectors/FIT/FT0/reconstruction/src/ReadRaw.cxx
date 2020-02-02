@@ -115,11 +115,12 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
     while (pos < mRDH.memorySize) {
       mFileDest.read(reinterpret_cast<char*>(&mEventHeader), sizeof(mEventHeader));
       pos += sizeof(mEventHeader);
-      LOG(INFO) << "read  header for " << link << "word " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
+      LOG(DEBUG) << "read  header for " << link << "word " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
       o2::InteractionRecord intrec{uint16_t(mEventHeader.bc), uint32_t(mEventHeader.orbit)};
       auto [digitIter, isNew] = mDigitAccum.try_emplace(intrec);
       if (isNew) {
         double eventTime = intrec.bc2ns();
+        LOG(DEBUG) << "new intrec " << intrec.orbit << " " << intrec.bc << " link " << link;
         o2::ft0::DigitsTemp& digit = digitIter->second;
         digit.setTime(eventTime);
         digit.setInteractionRecord(intrec);
@@ -131,7 +132,7 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
         pos += sizeof(mTCMdata);
         digitIter->second.setTriggers(mTCMdata.word[0]);
 
-        LOG(INFO) << "read TCM  " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
+        LOG(DEBUG) << "read TCM  " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
       } else {
         if (mIsPadded) {
           pos += CRUWordSize - o2::ft0::EventHeader::PayloadSize;

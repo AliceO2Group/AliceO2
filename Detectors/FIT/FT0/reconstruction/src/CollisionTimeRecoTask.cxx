@@ -34,25 +34,21 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
   Int_t ndigitsC = 0, ndigitsA = 0;
 
   constexpr Int_t nMCPsA = 4 * Geometry::NCellsA;
-  constexpr Int_t nMCPsC = 4 * Geometry::NCellsC;
-  constexpr Int_t nMCPs = nMCPsA + nMCPsC;
+  //  constexpr Int_t nMCPsC = 4 * Geometry::NCellsC;
+  //  constexpr Int_t nMCPs = nMCPsA + nMCPsC;
+
   Float_t sideAtime = 0, sideCtime = 0;
 
   auto timeStamp = o2::InteractionRecord::bc2ns(bcd.mIntRecord.bc, bcd.mIntRecord.orbit);
 
   LOG(INFO) << " event time " << timeStamp << " orbit " << bcd.mIntRecord.orbit << " bc " << bcd.mIntRecord.bc;
 
-  int itrig = 0;
-
-  bcd.print();
   int nch = inChData.size();
   for (int ich = 0; ich < nch; ich++) {
-    LOG(DEBUG) << " mcp " << inChData[ich].ChId << " cfd " << inChData[ich].CFDTime << " amp " << inChData[ich].QTCAmpl;
     outChData[ich] = o2::ft0::ChannelDataFloat{inChData[ich].ChId,
                                                inChData[ich].CFDTime * 13.,
                                                (double)inChData[ich].QTCAmpl / Geometry::MV_2_Nchannels,
                                                inChData[ich].ChainQTC};
-
     if (std::fabs(outChData[ich].CFDTime) < 2000) {
       if (outChData[ich].ChId < nMCPsA) {
         sideAtime += outChData[ich].CFDTime;
@@ -76,6 +72,7 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
   } else {
     mCollisionTime[TimeMean] = std::min(mCollisionTime[TimeA], mCollisionTime[TimeC]);
   }
+  LOG(INFO) << " Collision time " << mCollisionTime[TimeA] << " " << mCollisionTime[TimeC] << " " << mCollisionTime[TimeMean] << " " << mCollisionTime[Vertex];
   return RecPoints{
     mCollisionTime, bcd.ref.getFirstEntry(), bcd.ref.getEntries(), bcd.mIntRecord, bcd.mTriggers.word};
 }

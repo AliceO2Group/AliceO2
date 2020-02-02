@@ -108,7 +108,7 @@ class FT0DPLDigitizerTask
     for (int collID = 0; collID < timesview.size(); ++collID) {
       mDigitizer.setTimeStamp(timesview[collID].timeNS);
       mDigitizer.setInteractionRecord(timesview[collID]);
-      //    digit.cleardigits();
+      mDigitizer.clearDigits();
       std::vector<std::vector<double>> channel_times;
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
@@ -120,23 +120,20 @@ class FT0DPLDigitizerTask
 
         // call actual digitization procedure
         labels.clear();
+        mDigitizer.cleanChannelData();
         mDigitizer.setEventID(collID);
         mDigitizer.setSrcID(part.sourceID);
-
-        mDigitizer.process(&hits, mDigitsBC, mDigitsCh, mLabels);
+        mDigitizer.process(&hits);
         // copy labels into accumulator
-        labelAccum.mergeAtBack(mLabels);
+        labelAccum.mergeAtBack(labels);
       }
       mDigitizer.setDigits(mDigitsBC, mDigitsCh);
-      //     digitAccum.push_back(digit); // we should move it there actually
-      //   LOG(INFO) << "Have " << digitAccum.back().getChDgData().size() << " fired channels ";
-      //    mDigitsBC.print();
     }
 
     // send out to next stage
     pc.outputs().snapshot(Output{"FT0", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
     pc.outputs().snapshot(Output{"FT0", "DIGITSCH", 0, Lifetime::Timeframe}, mDigitsCh);
-    pc.outputs().snapshot(Output{"FT0", "DIGITSMCTR", 0, Lifetime::Timeframe}, mLabels);
+    pc.outputs().snapshot(Output{"FT0", "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
 
     LOG(INFO) << "FT0: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"FT0", "ROMode", 0, Lifetime::Timeframe}, mROMode);
@@ -153,7 +150,6 @@ class FT0DPLDigitizerTask
   bool mFinished = false;
   std::vector<o2::ft0::ChannelData> mDigitsCh;
   std::vector<o2::ft0::Digit> mDigitsBC;
-  o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> mLabels; // labels which get filled
 
   Bool_t mContinuous = kFALSE;   ///< flag to do continuous simulation
   double mFairTimeUnitInNS = 1;  ///< Fair time unit in ns

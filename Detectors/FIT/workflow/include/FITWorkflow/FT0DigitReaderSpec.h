@@ -49,7 +49,7 @@ class DigitReader : public Task
   std::string mDigitTreeName = "o2sim";
   std::string mDigitBranchName = "FT0DigitBC";
   std::string mDigitChBranchName = "FT0DigitCH";
-  std::string mDigitMCTruthBranchName = "FT0DigitMCTruth";
+  std::string mDigitMCTruthBranchName = "FT0DIGITSMCTR";
 };
 
 /// create a processor spec

@@ -27,6 +27,7 @@ namespace ft0
 
 void FT0ReconstructorDPL::init(InitContext& ic)
 {
+  LOG(INFO) << "FT0ReconstructorDPL::init";
 }
 
 void FT0ReconstructorDPL::run(ProcessingContext& pc)
@@ -35,36 +36,31 @@ void FT0ReconstructorDPL::run(ProcessingContext& pc)
     return;
   }
   mRecPoints.clear();
-  auto digits = pc.inputs().get<const std::vector<o2::ft0::Digit>>("DigitsBC");
-  auto digch = pc.inputs().get<const std::vector<o2::ft0::ChannelData>>("DigitsCh");
-  LOG(INFO)<< " FT0ReconstructorDPL::run   auto digch";
+  auto digits = pc.inputs().get<const std::vector<o2::ft0::Digit>>("digits");
+  auto digch = pc.inputs().get<gsl::span<o2::ft0::ChannelData>>("digch");
   // RS: if we need to process MC truth, uncomment lines below
   //std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>> labels;
   //const o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* lblPtr = nullptr;
   if (mUseMC) {
-    //labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>*>("labels");
-    //lblPtr = labels.get();
+    //   labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>*>("labels");
+    // lblPtr = labels.get();
     LOG(INFO) << "Ignoring MC info";
   }
   int nDig = digits.size();
-  LOG(INFO)<<"digits.size() "<<nDig;
   mRecPoints.reserve(nDig);
-  size_t nChannels = 0;
-  for (auto const& digit : digits)
-    nChannels += digit.ref.getEntries();
-  mRecChData.resize(nChannels);
+  mRecChData.resize(digch.size());
   for (int id = 0; id < nDig; id++) {
     const auto& digit = digits[id];
     auto channels = digit.getBunchChannelData(digch);
-    gsl::span<ChannelDataFloat> outChannels{mRecChData};
-    outChannels = outChannels.subspan(digit.ref.getFirstEntry(), digit.ref.getEntries());
-    mRecPoints.emplace_back( mReco.process(digit, channels, outChannels) );
+    gsl::span<o2::ft0::ChannelDataFloat> out_ch(mRecChData);
+    out_ch = out_ch.subspan(digit.ref.getFirstEntry(), digit.ref.getEntries());
+    mRecPoints.emplace_back(mReco.process(digit, channels, out_ch));
   }
   // do we ignore MC in this task?
 
-  LOG(INFO) << "FT0 reconstruction pushes " << mRecPoints.size() << " RecPoints";
-  pc.outputs().snapshot(Output{mOrigin, "RECPOINTSBC", 0, Lifetime::Timeframe}, mRecPoints);
-  pc.outputs().snapshot(Output{mOrigin, "RECPOINTSCH", 0, Lifetime::Timeframe}, mRecChData);
+  LOG(DEBUG) << "FT0 reconstruction pushes " << mRecPoints.size() << " RecPoints";
+  pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, mRecPoints);
+  pc.outputs().snapshot(Output{mOrigin, "RECCHDATA", 0, Lifetime::Timeframe}, mRecChData);
 
   mFinished = true;
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
@@ -78,9 +74,10 @@ DataProcessorSpec getFT0ReconstructorSpec(bool useMC)
   inputSpec.emplace_back("digch", o2::header::gDataOriginFT0, "DIGITSCH", 0, Lifetime::Timeframe);
   if (useMC) {
     LOG(INFO) << "Currently FT0Reconstructor does not consume and provide MC truth";
-    // inputSpec.emplace_back("labels", o2::header::gDataOriginFT0, "DIGITSMCTR", 0, Lifetime::Timeframe);
+    inputSpec.emplace_back("labels", o2::header::gDataOriginFT0, "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECCHDATA", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "ft0-reconstructor",

@@ -31,10 +31,10 @@ struct ChannelDataFloat {
 
   //public:
 
-  int ChId = -1;     //channel Id
-  double CFDTime = -1;  //time in #CFD channels, 0 at the LHC clk center
-  double QTCAmpl = -1;  // Amplitude #channels
-  int ChainQTC = -1; //QTC chain
+  int ChId = -1;       //channel Id
+  double CFDTime = -1; //time in #CFD channels, 0 at the LHC clk center
+  double QTCAmpl = -1; // Amplitude #channels
+  int ChainQTC = -1;   //QTC chain
 
   ChannelDataFloat() = default;
   ChannelDataFloat(int iPmt, double time, double charge, int chainQTC)
@@ -88,9 +88,11 @@ class RecPoints
   void setCollisionTime(Float_t time, int side) { mCollisionTime[side] = time; }
 
   Float_t getVertex(Float_t vertex) const { return getCollisionTime(Vertex); }
-  void setVertex(Float_t vertex) {  mCollisionTime[3] = vertex; }
+  void setVertex(Float_t vertex) { mCollisionTime[Vertex] = vertex; }
 
-  o2::InteractionRecord getInteractionRecord() const { return  mIntRecord;};
+  Float_t getTrigger(uint64_t) const { return mTriggers.word; }
+
+  o2::InteractionRecord getInteractionRecord() const { return mIntRecord; };
 
   void SetMgrEventTime(Double_t time) { mTimeStamp = time; }
 
@@ -103,7 +105,7 @@ class RecPoints
                                            2 * o2::InteractionRecord::DummyTime};
   Double_t mTimeStamp = 2 * o2::InteractionRecord::DummyTime; //event time from Fair for continuous
 
-  ClassDefNV(RecPoints, 1);
+  ClassDefNV(RecPoints, 2);
 };
 } // namespace ft0
 } // namespace o2

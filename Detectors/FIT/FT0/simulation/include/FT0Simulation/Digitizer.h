@@ -33,10 +33,10 @@ class Digitizer
   Digitizer(const DigitizationParameters& params, Int_t mode = 0) : mMode(mode), parameters(params) { initParameters(); };
   ~Digitizer() = default;
 
-  void process(const std::vector<o2::ft0::HitType>* hits,
-               std::vector<o2::ft0::Digit>& digitsBC,
-               std::vector<o2::ft0::ChannelData>& digitsCh,
-               o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels);
+  void process(const std::vector<o2::ft0::HitType>* hits);
+  //           std::vector<o2::ft0::Digit>& digitsBC,
+  //    std::vector<o2::ft0::ChannelData>& digitsCh,
+  // o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels);
 
   void setDigits(std::vector<o2::ft0::Digit>& digitsBC,
                  std::vector<o2::ft0::ChannelData>& digitsCh);
@@ -56,10 +56,21 @@ class Digitizer
 
   void setMCLabels(o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mclb) { mMCLabels = mclb; }
   double get_time(const std::vector<double>& times);
-  std::vector<std::vector<double>>  mChannel_times;
+  std::vector<std::vector<double>> mChannel_times;
 
   void setContinuous(bool v = true) { mIsContinuous = v; }
   bool isContinuous() const { return mIsContinuous; }
+  void cleanChannelData()
+  {
+    for (Int_t ipmt = 0; ipmt < parameters.mMCPs; ++ipmt)
+      mNumParticles[ipmt] = 0;
+  }
+  void clearDigits()
+  {
+    for (int i = 0; i < parameters.mMCPs; ++i) {
+      mNumParticles[i] = 0;
+    }
+  }
 
  private:
   // digit info

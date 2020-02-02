@@ -49,7 +49,7 @@ struct EventHeader {
 };
 struct EventData {
   union {
-    uint64_t word[2] = {0};
+    uint64_t word = {0};
     struct {
       int64_t time : 12;
       int64_t charge : 13;

@@ -97,7 +97,7 @@ class ReadRaw
   std::vector<char> mBufferLocal;
   long mSize;
   std::map<o2::InteractionRecord, o2::ft0::DigitsTemp> mDigitAccum; // digit accumulator
-   template <typename T>
+  template <typename T>
   TBranch* getOrMakeBranch(TTree& tree, std::string brname, T* ptr)
   {
     if (auto br = tree.GetBranch(brname.c_str())) {

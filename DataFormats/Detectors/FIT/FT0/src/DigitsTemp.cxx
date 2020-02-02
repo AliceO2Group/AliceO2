@@ -16,7 +16,7 @@ void DigitsTemp::printStream(std::ostream& stream) const
 {
   stream << "FT0 Digit: event time " << mTime << " BC " << mIntRecord.bc << " orbit " << mIntRecord.orbit << std::endl;
   stream << "IS A " << mTrigger.orA << " IS C " << mTrigger.orC << " is Central " << mTrigger.cen
-         << " is SemiCentral " <<  mTrigger.sCen << " is Vertex " <<  mTrigger.vertex << std::endl;
+         << " is SemiCentral " << mTrigger.sCen << " is Vertex " << mTrigger.vertex << std::endl;
 
   for (auto& chdata : mChDgDataArr)
     stream << "CH " << chdata.ChId << " TIME " << chdata.CFDTime << " ns " << chdata.QTCAmpl << " mV "

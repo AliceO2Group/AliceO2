@@ -23,20 +23,21 @@ struct DigitizationParameters {
   float channelWidth = Geometry::ChannelWidth;
   float mMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4; //number of MCPs
   float mCFD_trsh = 3.;                                      // [mV]
+  float mAmp_trsh = 100.;                                    // [mV]
   int mTime_trg_gate = 307;                                  //4000/13;   #channels
   float mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
   float C_side_cable_cmps = 2.86;   //ns
   float A_side_cable_cmps = 11.020; //ns
-  int mSignalWidth = 5;
-  int mtrg_central_trh = 200.;     // channels
-  int mtrg_semicentral_trh = 100.; // channels
-  int mtrg_vertex = 230;           //3000./13.  #channels
-  float mCfdShift = 1.66;       //ns
-  float mMip_in_V = 7;          //MIP to mV
-  float mPe_in_mip = 250;       // Np.e. in MIP
-  float mCFDShiftPos = 1.47;    //// shift positive part of CFD signal; distance between 0.3 of max amplitude  to max
-  float mNoiseVar = 0.1;        //noise level
-  float mNoisePeriod = 1 / 0.9; // GHz low frequency noise period;
+  int mSignalWidth = 5;             //ps
+  int mtrg_central_trh = 200.;      // channels
+  int mtrg_semicentral_trh = 100.;  // channels
+  int mtrg_vertex = 230;            //3000./13.  #channels
+  float mCfdShift = 1.66;           //ns
+  float mMip_in_V = 7;              //MIP to mV
+  float mPe_in_mip = 250;           // Np.e. in MIP
+  float mCFDShiftPos = 1.47;        //// shift positive part of CFD signal; distance between 0.3 of max amplitude  to max
+  float mNoiseVar = 0.1;            //noise level
+  float mNoisePeriod = 1 / 0.9;     // GHz low frequency noise period;
   float mV_2_Nchannels = 2.2857143; //7 mV ->16channels
 };
 } // namespace o2::ft0

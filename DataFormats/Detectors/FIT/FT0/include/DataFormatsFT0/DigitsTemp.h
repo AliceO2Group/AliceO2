@@ -61,10 +61,8 @@ class DigitsTemp : public DigitBase
   uint32_t getOrbit() const { return mIntRecord.orbit; }
   uint16_t getBC() const { return mIntRecord.bc; }
 
-
   o2::ft0::Triggers mTrigger; //online triggers processed on TCM
-  void setTriggers (uint64_t trig) {mTrigger.word = trig;}
-
+  void setTriggers(uint64_t trig) { mTrigger.word = trig; }
 
   const std::vector<ChannelData>& getChDgData() const { return mChDgDataArr; }
   std::vector<ChannelData>& getChDgData() { return mChDgDataArr; }

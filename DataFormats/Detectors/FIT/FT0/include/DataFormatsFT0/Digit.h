@@ -1,4 +1,4 @@
-// Copyright CERN and copyright holders of ALICE O2.This software is
+// Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
 //
@@ -7,6 +7,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
+// \file Digit.h
+/// \brief Class to describe fired triggered and/or stored channels for the BC and to refer to channel data
+/// \author Alla.Maevskaya@cern.ch
 
 #ifndef _FT0_DIGIT_H_
 #define _FT0_DIGIT_H_
@@ -18,10 +22,6 @@
 #include <Rtypes.h>
 #include <gsl/span>
 #include <bitset>
-
-/// \file Digit.h
-/// \brief Class to describe fired triggered and/or stored channels for the BC and to refer to channel data
-/// \author ruben.shahoyan@cern.ch
 
 namespace o2
 {
@@ -50,13 +50,11 @@ struct Triggers {
   ClassDefNV(Triggers, 1);
 };
 
-struct Digit
-{
+struct Digit {
   o2::dataformats::RangeRefComp<5> ref;
 
   Triggers mTriggers;               // pattern of triggers  in this BC
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
-
 
   Digit() = default;
   Digit(int first, int ne, o2::InteractionRecord iRec, int64_t chTrig)
@@ -76,14 +74,12 @@ struct Digit
 
   // ~Digit() = default;
 
-
   //  uint32_t getOrbit() const { return o2::InteractionRecord::orbit; }
   uint16_t getBC() const { return mIntRecord.bc; }
-  o2::InteractionRecord getIntRecord() { return  mIntRecord;};
+  o2::InteractionRecord getIntRecord() { return mIntRecord; };
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
-  void print() const;
 
-  ClassDefNV(Digit, 1);
+  ClassDefNV(Digit, 2);
 };
 } // namespace ft0
 } // namespace o2

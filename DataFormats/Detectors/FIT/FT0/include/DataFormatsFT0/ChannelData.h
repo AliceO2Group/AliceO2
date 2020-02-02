@@ -1,4 +1,4 @@
-// Copyright CERN and copyright holders of ALICE O2.This software is
+// Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
 //
@@ -8,14 +8,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file ChannelData.h
+/// \brief Class to describe fired and  stored channels for the BC and to refer to channel data
+/// \author Alla.Maevskaya@cern.ch
+
 #ifndef _FT0_CHANNELDATA_H_
 #define _FT0_CHANNELDATA_H_
 
 #include <Rtypes.h>
-
-/// \file ChannelData.h
-/// \brief Class to describe fired triggered and/or stored channels for the BC and to refer to channel data
-/// \author Alla.Maevskaya@cern.ch
 
 namespace o2
 {

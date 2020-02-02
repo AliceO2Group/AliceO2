@@ -57,7 +57,6 @@ double Digitizer::get_time(const std::vector<double>& times)
     if (mHistsum->GetBinContent(bin - 1) < 0 && mHistsum->GetBinContent(bin) >= 0) {
       /// ... and voltage is above 3 mV
       if (std::abs(mHist->GetBinContent(bin)) > 3) {
-        //std::cout << "Amp high enough: " << mHist->GetBinContent(bin) << " mV of " << maxBin << " mV at " << mHist->GetBinCenter(bin) << " ns\n";
         return mHistsum->GetBinCenter(bin);
       }
     }
@@ -66,11 +65,7 @@ double Digitizer::get_time(const std::vector<double>& times)
   return 1e10;
 }
 
-void Digitizer::process(const std::vector<o2::ft0::HitType>* hits,
-                        std::vector<o2::ft0::Digit>& digitsBC,
-                        std::vector<o2::ft0::ChannelData>& digitsCh,
-                        o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels)
-
+void Digitizer::process(const std::vector<o2::ft0::HitType>* hits)
 {
 
   auto sorted_hits{*hits};
@@ -79,17 +74,9 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits,
   });
 
   //Calculating signal time, amplitude in mean_time +- time_gate --------------
-  if (digitsCh.size() == 0) {
-    digitsCh.reserve(parameters.mMCPs);
-    for (int i = 0; i < parameters.mMCPs; ++i) {
-      digitsCh.emplace_back(o2::ft0::ChannelData{i, 0, 0, 0});
-      mNumParticles[i] = 0;
-    }
-  }
   if (mChannel_times.size() == 0)
     mChannel_times.resize(parameters.mMCPs);
   Int_t parent = -10;
-  assert(digit->getChDgData().size() == parameters.mMCPs);
   for (auto& hit : sorted_hits) {
     if (hit.GetEnergyLoss() > 0)
       continue;
@@ -130,7 +117,7 @@ void Digitizer::setDigits(std::vector<o2::ft0::Digit>& digitsBC,
 
   int first = digitsCh.size(), nStored = 0;
   for (Int_t ipmt = 0; ipmt < parameters.mMCPs; ++ipmt) {
-    if (mNumParticles[ipmt] < 1)
+    if (mNumParticles[ipmt] < parameters.mAmp_trsh)
       continue;
     Float_t amp = (parameters.mMip_in_V * mNumParticles[ipmt] / parameters.mPe_in_mip);
     int chain = (std::rand() % 2) ? 1 : 0;
@@ -155,7 +142,7 @@ void Digitizer::setDigits(std::vector<o2::ft0::Digit>& digitsBC,
       }
     }
   }
-  
+
   Bool_t is_A = n_hit_A > 0;
   Bool_t is_C = n_hit_C > 0;
   Bool_t is_Central = summ_ampl_A + summ_ampl_C >= parameters.mtrg_central_trh;
@@ -173,9 +160,7 @@ void Digitizer::setDigits(std::vector<o2::ft0::Digit>& digitsBC,
 
   digitsBC.emplace_back(first, nStored, mIntRecord, mTriggers.word);
 
-
   // Debug output -------------------------------------------------------------
-  LOG(DEBUG) << "\n\nTest digizing data ===================";
 
   LOG(INFO) << "Event ID: " << mEventID;
   LOG(INFO) << "N hit A: " << n_hit_A << " N hit C: " << n_hit_C << " summ ampl A: " << summ_ampl_A
@@ -184,8 +169,6 @@ void Digitizer::setDigits(std::vector<o2::ft0::Digit>& digitsBC,
 
   LOG(INFO) << "IS A " << is_A << " IS C " << is_C << " is Central " << is_Central
             << " is SemiCentral " << is_SemiCentral;
-
-  LOG(DEBUG) << "======================================\n\n";
 }
 
 void Digitizer::initParameters()

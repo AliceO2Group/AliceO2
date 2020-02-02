@@ -24,10 +24,9 @@ namespace fit
 framework::WorkflowSpec getRecoWorkflow(bool useMC)
 {
   framework::WorkflowSpec specs;
-
-  specs.emplace_back(o2::ft0::getFT0RecPointWriterSpec(useMC));
-  specs.emplace_back(o2::ft0::getFT0ReconstructorSpec(useMC));
   specs.emplace_back(o2::ft0::getFT0DigitReaderSpec(useMC));
+  specs.emplace_back(o2::ft0::getFT0ReconstructorSpec(useMC));
+  specs.emplace_back(o2::ft0::getFT0RecPointWriterSpec(useMC));
 
   return specs;
 }

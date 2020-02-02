@@ -47,16 +47,20 @@ void DigitReader::run(ProcessingContext& pc)
     if (digFile.IsZombie()) {
       LOG(FATAL) << "Failed to open FT0 digits file " << mInputFileName;
     }
-    LOG(INFO)<<" file read "<< mInputFileName;
+    LOG(INFO) << " file read " << mInputFileName;
     TTree* digTree = (TTree*)digFile.Get(mDigitTreeName.c_str());
-    digTree->Print();
+    // digTree->Print();
+    if (!digTree) {
+      LOG(FATAL) << "Failed to load FT0 digits tree " << mDigitTreeName << " from " << mInputFileName;
+    }
     if (!digTree) {
       LOG(FATAL) << "Failed to load FT0 digits tree " << mDigitTreeName << " from " << mInputFileName;
     }
     LOG(INFO) << "Loaded FT0 digits tree " << mDigitTreeName << " from " << mInputFileName;
- 
-    digTree->SetBranchAddress(mDigitBranchName.c_str(), &mDigitsBC);
-    digTree->SetBranchAddress(mDigitChBranchName.c_str(), &mDigitsCH);
+
+    digTree->SetBranchAddress("FT0DIGITSBC", &mDigitsBC);
+    digTree->SetBranchAddress("FT0DIGITSCH", &mDigitsCH);
+
     if (mUseMC) {
       if (digTree->GetBranch(mDigitMCTruthBranchName.c_str())) {
         digTree->SetBranchAddress(mDigitMCTruthBranchName.c_str(), &mMCTruth);
@@ -66,12 +70,12 @@ void DigitReader::run(ProcessingContext& pc)
         mUseMC = false;
       }
     }
+
     digTree->GetEntry(0);
     delete digTree;
     digFile.Close();
   }
 
-  LOG(INFO) << "FT0 DigitReader pushes " << mDigitsBC->size() << " digits";
   pc.outputs().snapshot(Output{mOrigin, "DIGITSBC", 0, Lifetime::Timeframe}, *mDigitsBC);
   pc.outputs().snapshot(Output{mOrigin, "DIGITSCH", 0, Lifetime::Timeframe}, *mDigitsCH);
   if (mUseMC) {
@@ -86,7 +90,8 @@ void DigitReader::run(ProcessingContext& pc)
 DataProcessorSpec getFT0DigitReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputSpec;
-  outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITS", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSBC", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSCH", 0, Lifetime::Timeframe);
   if (useMC) {
     outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSMCTR", 0, Lifetime::Timeframe);
   }

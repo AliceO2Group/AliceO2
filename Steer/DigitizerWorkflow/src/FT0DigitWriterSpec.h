@@ -37,9 +37,9 @@ o2::framework::DataProcessorSpec getFT0DigitWriterSpec()
                                 "ft0digits.root",
                                 "o2sim",
                                 1,
-                                BranchDefinition<std::vector<o2::ft0::Digit>>{InputSpec{"digitBCinput", "FT0", "DIGITSBC"}, "FT0DigitBC"},
-                                BranchDefinition<std::vector<o2::ft0::ChannelData>>{InputSpec{"digitChinput", "FT0", "DIGITSCH"}, "FT0DigitCh"},
-                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>>{InputSpec{"labelinput", "FT0", "DIGITSMCTR"}, "FT0DigitLabels"})();
+                                BranchDefinition<std::vector<o2::ft0::Digit>>{InputSpec{"digitBCinput", "FT0", "DIGITSBC"}, "FT0DIGITSBC"},
+                                BranchDefinition<std::vector<o2::ft0::ChannelData>>{InputSpec{"digitChinput", "FT0", "DIGITSCH"}, "FT0DIGITSCH"},
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>>{InputSpec{"labelinput", "FT0", "DIGITSMCTR"}, "FT0DIGITSMCTR"})();
 }
 
 } // namespace ft0

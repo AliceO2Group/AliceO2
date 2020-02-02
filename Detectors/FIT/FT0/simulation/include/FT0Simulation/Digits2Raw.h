@@ -30,6 +30,7 @@
 #include <string>
 #include <bitset>
 #include <vector>
+#include <gsl/span>
 
 namespace o2
 {
@@ -49,8 +50,8 @@ class Digits2Raw
   Digits2Raw() = default;
   Digits2Raw(const std::string fileRaw, std::string fileDigitsName);
   void readDigits(const std::string fileDigitsName);
-  void convertDigits(std::vector<o2::ft0::Digit> digitsBC,
-                     std::vector<o2::ft0::ChannelData> digitsCh,
+  void convertDigits(o2::ft0::Digit bcdigits,
+                     gsl::span<const ChannelData> pmchannels,
                      const o2::ft0::LookUpTable& lut,
                      o2::InteractionRecord const& mIntRecord);
   void close();

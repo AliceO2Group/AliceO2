@@ -84,3 +84,9 @@ gsl::span<const ChannelDataFloat> RecPoints::getBunchChannelData(const gsl::span
   // extract the span of channel data for this bunch from the whole TF data
   return gsl::span<const ChannelDataFloat>(tfdata).subspan(ref.getFirstEntry(), ref.getEntries());
 }
+
+void ChannelDataFloat::print() const
+{
+
+  printf("  ChID% d | CFDtime=%f | QTCampl=%f QTC chain %d\n", ChId, CFDTime, QTCAmpl, ChainQTC);
+}
