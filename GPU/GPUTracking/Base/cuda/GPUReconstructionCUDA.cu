@@ -142,6 +142,10 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
 
   int count, bestDevice = -1;
   double bestDeviceSpeed = -1, deviceSpeed;
+  if (GPUFailedMsgI(cuInit(0))) {
+    GPUError("Error initializing CUDA!");
+    return (1);
+  }
   if (GPUFailedMsgI(cudaGetDeviceCount(&count))) {
     GPUError("Error getting CUDA Device Count");
     return (1);
@@ -152,20 +156,33 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
   const int reqVerMaj = 2;
   const int reqVerMin = 0;
   std::vector<bool> devicesOK(count, false);
+  bool contextCreated = false;
   for (int i = 0; i < count; i++) {
     if (mDeviceProcessingSettings.debugLevel >= 4) {
       GPUInfo("Examining device %d", i);
     }
     size_t free, total;
-    cuInit(0);
     CUdevice tmpDevice;
-    cuDeviceGet(&tmpDevice, i);
-    CUcontext tmpContext;
-    cuCtxCreate(&tmpContext, 0, tmpDevice);
-    if (cuMemGetInfo(&free, &total)) {
-      std::cout << "Error\n";
+    if (GPUFailedMsgI(cuDeviceGet(&tmpDevice, i))) {
+      GPUError("Could not set CUDA device!");
+      return (1);
     }
-    cuCtxDestroy(tmpContext);
+    if (GPUFailedMsgI(cuCtxCreate(&mInternals->CudaContext, 0, tmpDevice))) {
+      GPUError("Could not create CUDA Context!");
+      return (1);
+    }
+    contextCreated = true;
+    if (GPUFailedMsgI(cuMemGetInfo(&free, &total))) {
+      GPUError("Error obtaining CUDA memory info!");
+      return (1);
+    }
+    if (count > 1) {
+      if (GPUFailedMsgI(cuCtxDestroy(mInternals->CudaContext))) {
+        GPUError("Error releasing CUDA context!");
+        return (1);
+      }
+      contextCreated = false;
+    }
     if (mDeviceProcessingSettings.debugLevel >= 4) {
       GPUInfo("Obtained current memory usage for device %d", i);
     }
@@ -205,22 +222,28 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
       }
     }
   }
+
+  bool noDevice = false;
   if (bestDevice == -1) {
     GPUWarning("No %sCUDA Device available, aborting CUDA Initialisation", count ? "appropriate " : "");
     GPUImportant("Requiring Revision %d.%d, Mem: %lld", reqVerMaj, reqVerMin, (long long int)mDeviceMemorySize);
-    return (1);
-  }
-
-  if (mDeviceProcessingSettings.deviceNum > -1) {
+    noDevice = true;
+  } else if (mDeviceProcessingSettings.deviceNum > -1) {
     if (mDeviceProcessingSettings.deviceNum >= (signed)count) {
-      GPUWarning("Requested device ID %d does not exist", mDeviceProcessingSettings.deviceNum);
-      return (1);
+      GPUError("Requested device ID %d does not exist", mDeviceProcessingSettings.deviceNum);
+      noDevice = true;
     } else if (!devicesOK[mDeviceProcessingSettings.deviceNum]) {
-      GPUWarning("Unsupported device requested (%d)", mDeviceProcessingSettings.deviceNum);
-      return (1);
+      GPUError("Unsupported device requested (%d)", mDeviceProcessingSettings.deviceNum);
+      noDevice = true;
     } else {
       bestDevice = mDeviceProcessingSettings.deviceNum;
     }
+  }
+  if (noDevice) {
+    if (contextCreated) {
+      GPUFailedMsgI(cuCtxDestroy(mInternals->CudaContext));
+    }
+    return (1);
   }
   mDeviceId = bestDevice;
 
@@ -269,7 +292,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
 
   mNStreams = std::max(mDeviceProcessingSettings.nStreams, 3);
 
-  if (cuCtxCreate(&mInternals->CudaContext, CU_CTX_SCHED_AUTO, mDeviceId) != CUDA_SUCCESS) {
+  if (contextCreated == 0 && GPUFailedMsgI(cuCtxCreate(&mInternals->CudaContext, CU_CTX_SCHED_AUTO, mDeviceId))) {
     GPUError("Could not set CUDA Device!");
     return (1);
   }
@@ -341,7 +364,11 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     }
   }
 
-  cuCtxPopCurrent(&mInternals->CudaContext);
+  if (GPUFailedMsgI(cuCtxPopCurrent(&mInternals->CudaContext))) {
+    GPUError("Error popping CUDA context!");
+    return (1);
+  }
+
   GPUInfo("CUDA Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %lld / %lld bytes host / global memory, Stack frame %d, Constant memory %lld)", mDeviceId, cudaDeviceProp.name, cudaDeviceProp.clockRate, cudaDeviceProp.multiProcessorCount, (long long int)mHostMemorySize,
           (long long int)mDeviceMemorySize, (int)GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
 
@@ -351,7 +378,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
 int GPUReconstructionCUDABackend::ExitDevice_Runtime()
 {
   // Uninitialize CUDA
-  cuCtxPushCurrent(mInternals->CudaContext);
+  GPUFailedMsgI(cuCtxPushCurrent(mInternals->CudaContext));
 
   SynchronizeGPU();
 
@@ -380,7 +407,7 @@ int GPUReconstructionCUDABackend::ExitDevice_Runtime()
     return (1);
   }
 
-  cuCtxDestroy(mInternals->CudaContext);
+  GPUFailedMsgI(cuCtxDestroy(mInternals->CudaContext));
 
   GPUInfo("CUDA Uninitialized");
   return (0);
