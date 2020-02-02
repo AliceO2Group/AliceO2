@@ -76,6 +76,7 @@ set(SRCS_NO_CINT
     Standalone/utils/timer.cxx)
 
 set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
+              Merger/GPUTPCGMMergerDump.cxx
               Global/GPUChainTrackingDebugAndProfiling.cxx)
 
 set(HDRS_INSTALL
