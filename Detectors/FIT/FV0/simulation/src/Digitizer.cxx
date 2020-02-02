@@ -50,7 +50,7 @@ void Digitizer::init()
   Int_t const nBins = roundVc(std::lround(4.0f * DP::mPmtTransitTime / mBinSize));
   for (auto& table : mPmtResponseTables) {
     table.resize(nBins);
-    Float_t t = -2.0f * DP::mPmtTransitTime + offset; // t \in offset + [-2 2] * DP::mPmtTransitTime 
+    Float_t t = -2.0f * DP::mPmtTransitTime + offset; // t \in offset + [-2 2] * DP::mPmtTransitTime
     for (Int_t j = 0; j < nBins; ++j) {
       table[j] = Digitizer::PmtResponse(t);
       t += mBinSize;
@@ -215,8 +215,8 @@ Float_t Digitizer::SimulateTimeCfd(Int_t channel) const
   Float_t sigPrev = -mPmtChargeVsTime[channel][0];
   for (Int_t iTimeBin = 1; iTimeBin < mNBins; ++iTimeBin) {
     Float_t const sigCurrent = (iTimeBin >= binShift
-                                ? 5.0f * mPmtChargeVsTime[channel][iTimeBin - binShift] - mPmtChargeVsTime[channel][iTimeBin]
-                                : -mPmtChargeVsTime[channel][iTimeBin]);
+                                  ? 5.0f * mPmtChargeVsTime[channel][iTimeBin - binShift] - mPmtChargeVsTime[channel][iTimeBin]
+                                  : -mPmtChargeVsTime[channel][iTimeBin]);
     if (sigPrev < 0.0f && sigCurrent >= 0.0f) {
       timeCfd = Float_t(iTimeBin) * mBinSize;
       break;

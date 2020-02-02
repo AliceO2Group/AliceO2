@@ -59,11 +59,7 @@ class FV0DPLDigitizerTask
 
  public:
   FV0DPLDigitizerTask()
-    : mDigitizer()
-    , mSimChains()
-    , mDigitsCh()
-    , mDigitsBC()
-    , mLabels() {}
+    : mDigitizer(), mSimChains(), mDigitsCh(), mDigitsBC(), mLabels() {}
   ~FV0DPLDigitizerTask() = default;
 
   void init(framework::InitContext& ic)
