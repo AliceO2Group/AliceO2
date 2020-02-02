@@ -115,6 +115,17 @@ class GPUTPCGMMerger : public GPUProcessor
   void CollectMergedTracks();
   void Finalize();
 
+#ifndef GPUCA_GPUCODE
+  void DumpSliceTracks(std::ostream& out);
+  void DumpMergedWithinSlices(std::ostream& out);
+  void DumpMergedBetweenSlices(std::ostream& out);
+  void DumpCollected(std::ostream& out);
+  void DumpMergeCE(std::ostream& out);
+  void DumpFitPrepare(std::ostream& out);
+  void DumpRefit(std::ostream& out);
+  void DumpFinal(std::ostream& out);
+#endif
+
  private:
   void MakeBorderTracks(int iSlice, int iBorder, GPUTPCGMBorderTrack B[], int& nB, bool useOrigTrackParam = false);
   void MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], int N1, int iSlice2, GPUTPCGMBorderTrack B2[], int N2, int mergeMode = 0);
@@ -124,9 +135,11 @@ class GPUTPCGMMerger : public GPUProcessor
   void MergeSlicesStep(int border0, int border1, bool useOrigTrackParam);
   void ClearTrackLinks(int n);
 
-  void PrintMergeGraph(GPUTPCGMSliceTrack* trk);
   void CheckMergedTracks();
-  int GetTrackLabel(GPUTPCGMBorderTrack& trk);
+#ifndef GPUCA_GPUCODE
+  void PrintMergeGraph(const GPUTPCGMSliceTrack* trk, std::ostream& out);
+  int GetTrackLabel(const GPUTPCGMBorderTrack& trk);
+#endif
 
   int SliceTrackInfoFirst(int iSlice) { return mSliceTrackInfoIndex[iSlice]; }
   int SliceTrackInfoLast(int iSlice) { return mSliceTrackInfoIndex[iSlice + 1]; }

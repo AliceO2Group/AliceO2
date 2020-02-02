@@ -1571,24 +1571,42 @@ int GPUChainTracking::RunTPCTrackingMerger()
 
   timerUnpack.Start();
   Merger.UnpackSlices();
+  if (GetDeviceProcessingSettings().debugLevel >= 6) {
+    Merger.DumpSliceTracks(mDebugFile);
+  }
   timerUnpack.StopAndStart(timerMergeWithin);
 
   Merger.MergeWithingSlices();
+  if (GetDeviceProcessingSettings().debugLevel >= 6) {
+    Merger.DumpMergedWithinSlices(mDebugFile);
+  }
   timerMergeWithin.StopAndStart(timerMergeSlices);
 
   Merger.MergeSlices();
+  if (GetDeviceProcessingSettings().debugLevel >= 6) {
+    Merger.DumpMergedBetweenSlices(mDebugFile);
+  }
   timerMergeSlices.StopAndStart(timerMergeCE);
 
   Merger.MergeCEInit();
   timerMergeCE.StopAndStart(timerCollect);
 
   Merger.CollectMergedTracks();
+  if (GetDeviceProcessingSettings().debugLevel >= 6) {
+    Merger.DumpCollected(mDebugFile);
+  }
   timerCollect.StopAndStart(timerMergeCE);
 
   Merger.MergeCE();
+  if (GetDeviceProcessingSettings().debugLevel >= 6) {
+    Merger.DumpMergeCE(mDebugFile);
+  }
   timerMergeCE.StopAndStart(timerClusters);
 
   Merger.PrepareClustersForFit();
+  if (GetDeviceProcessingSettings().debugLevel >= 6) {
+    Merger.DumpFitPrepare(mDebugFile);
+  }
   timerClusters.StopAndStart(timerCopyToGPU);
 
   if (doGPU) {
@@ -1607,9 +1625,15 @@ int GPUChainTracking::RunTPCTrackingMerger()
   timerCopyToHost.Start();
   TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResRefit());
   SynchronizeGPU();
+  if (GetDeviceProcessingSettings().debugLevel >= 6) {
+    Merger.DumpRefit(mDebugFile);
+  }
   timerCopyToHost.StopAndStart(timerFinalize);
 
   Merger.Finalize();
+  if (GetDeviceProcessingSettings().debugLevel >= 6) {
+    Merger.DumpFinal(mDebugFile);
+  }
   timerFinalize.StopAndStart(timerCopyToGPU);
   TransferMemoryResourceLinkToGPU(RecoStep::TPCMerging, Merger.MemoryResRefit()); // For compression
   timerCopyToGPU.Stop();
