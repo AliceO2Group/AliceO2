@@ -58,7 +58,7 @@ add_custom_command(
           -DGPUCA_GPULIBRARY=OCL1
           -x clc++
   MAIN_DEPENDENCY ${CL_SRC}
-  IMPLICIT_DEPENDS cxx ${CL_SRC}
+  IMPLICIT_DEPENDS CXX ${CL_SRC}
   COMMAND_EXPAND_LISTS)
 
 # cmake-format: off
