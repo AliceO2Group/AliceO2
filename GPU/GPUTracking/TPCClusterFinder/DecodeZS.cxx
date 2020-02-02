@@ -97,27 +97,39 @@ GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder
             size_t nDigitsTmp = nDigits + s.zs.RowClusterOffset[rowPos];
             const unsigned char* rowData = rowPos == 0 ? pagePtr : (page + tbHdr->rowAddr1[rowPos - 1]);
             const int nSeqRead = *rowData;
-            if (mySequence) {
-              continue;
-            }
-            const unsigned char* adcData = rowData + 2 * nSeqRead + 1;
-            int nADC = (rowData[2 * nSeqRead] * decodeBits + 7) / 8;
-            unsigned int byte = 0, bits = 0;
-            int seqLen = rowData[2];
-            Pad pad = rowData[1];
-            int nSeq = 1;
-            for (int n = 0; n < nADC; n++) {
-              byte |= *(adcData++) << bits;
-              bits += 8;
-              while (bits >= decodeBits) {
-                if (seqLen == 0) {
-                  seqLen = rowData[(nSeq + 1) * 2] - rowData[nSeq * 2];
-                  pad = rowData[nSeq++ * 2 + 1];
+            const int nSeqPerThread = (nSeqRead + s.zs.nThreadsPerRow - 1) / s.zs.nThreadsPerRow;
+            const int mySequenceStart = mySequence * nSeqPerThread;
+            const int mySequenceEnd = CAMath::Min(mySequenceStart + nSeqPerThread, nSeqRead);
+            if (mySequenceEnd > mySequenceStart) {
+              const unsigned char* adcData = rowData + 2 * nSeqRead + 1;
+              const unsigned int nSamplesStart = mySequenceStart ? rowData[2 * mySequenceStart] : 0;
+              nDigitsTmp += nSamplesStart;
+              unsigned int nADCStartBits = nSamplesStart * decodeBits;
+              const unsigned int nADCStart = (nADCStartBits + 7) / 8;
+              const int nADC = (rowData[2 * mySequenceEnd] * decodeBits + 7) / 8;
+              adcData += nADCStart;
+              nADCStartBits &= 0x7;
+              unsigned int byte = 0, bits = 0;
+              if (nADCStartBits) { // % 8 != 0
+                bits = 8 - nADCStartBits;
+                byte = ((*(adcData - 1) & (0xFF ^ ((1 << nADCStartBits) - 1)))) >> nADCStartBits;
+              }
+              int nSeq = mySequenceStart;
+              int seqLen = nSeq ? (rowData[(nSeq + 1) * 2] - rowData[nSeq * 2]) : rowData[2];
+              Pad pad = rowData[nSeq++ * 2 + 1];
+              for (int n = nADCStart; n < nADC; n++) {
+                byte |= *(adcData++) << bits;
+                bits += 8;
+                while (bits >= decodeBits) {
+                  if (seqLen == 0) {
+                    seqLen = rowData[(nSeq + 1) * 2] - rowData[nSeq * 2];
+                    pad = rowData[nSeq++ * 2 + 1];
+                  }
+                  digits[nDigitsTmp++] = deprecated::PackedDigit{(float)(byte & mask) * decodeBitsFactor, (Timestamp)(timeBin + l), pad++, (Row)(rowOffset + m)};
+                  byte = byte >> decodeBits;
+                  bits -= decodeBits;
+                  seqLen--;
                 }
-                digits[nDigitsTmp++] = deprecated::PackedDigit{(float)(byte & mask) * decodeBitsFactor, (Timestamp)(timeBin + l), pad++, (Row)(rowOffset + m)};
-                byte = byte >> decodeBits;
-                bits -= decodeBits;
-                seqLen--;
               }
             }
           }
