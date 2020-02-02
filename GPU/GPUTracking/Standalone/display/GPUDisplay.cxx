@@ -1084,6 +1084,115 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
     mSemLockDisplay.Lock();
   }
 
+  // Extract global cluster information
+  if (mUpdateDLList || mResetScene) {
+    showTimer = true;
+    mTimerDraw.ResetStart();
+    mCurrentClusters = 0;
+    for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
+      mCurrentClusters += sliceTracker(iSlice).NHitsTotal();
+    }
+    if (mNMaxClusters < mCurrentClusters) {
+      mNMaxClusters = mCurrentClusters;
+      mGlobalPosPtr.reset(new float4[mNMaxClusters]);
+      mGlobalPos = mGlobalPosPtr.get();
+    }
+
+    mCurrentSpacePointsTRD = trdTracker().NTracklets();
+    if (mCurrentSpacePointsTRD > mNMaxSpacePointsTRD) {
+      mNMaxSpacePointsTRD = mCurrentSpacePointsTRD;
+      mGlobalPosPtrTRD.reset(new float4[mNMaxSpacePointsTRD]);
+      mGlobalPosPtrTRD2.reset(new float4[mNMaxSpacePointsTRD]);
+      mGlobalPosTRD = mGlobalPosPtrTRD.get();
+      mGlobalPosTRD2 = mGlobalPosPtrTRD2.get();
+    }
+    if ((size_t)mMerger.NOutputTracks() > mTRDTrackIds.size()) {
+      mTRDTrackIds.resize(mMerger.NOutputTracks());
+    }
+    memset(mTRDTrackIds.data(), 0, sizeof(mTRDTrackIds[0]) * mMerger.NOutputTracks());
+    for (int i = 0; i < trdTracker().NTracks(); i++) {
+      if (trdTracker().Tracks()[i].GetNtracklets()) {
+        mTRDTrackIds[trdTracker().Tracks()[i].GetTPCtrackId()] = i;
+      }
+    }
+
+    mMaxClusterZ = 0;
+    for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
+      int row = 0;
+      for (unsigned int i = 0; i < ioptrs().nClusterData[iSlice]; i++) {
+        int cid;
+        if (mMerger.Param().earlyTpcTransform) {
+          const auto& cl = ioptrs().clusterData[iSlice][i];
+          cid = cl.id;
+        } else {
+          cid = ioptrs().clustersNative->clusterOffset[iSlice][0] + i;
+          while (row < GPUCA_ROW_COUNT && ioptrs().clustersNative->clusterOffset[iSlice][row + 1] <= (unsigned int)cid) {
+            row++;
+          }
+        }
+        if (cid >= mNMaxClusters) {
+          GPUError("Cluster Buffer Size exceeded (id %d max %d)", cid, mNMaxClusters);
+          return (1);
+        }
+        float4* ptr = &mGlobalPos[cid];
+        if (mMerger.Param().earlyTpcTransform) {
+          const auto& cl = ioptrs().clusterData[iSlice][i];
+          mChain->GetParam().Slice2Global(iSlice, cl.x + mXadd, cl.y, cl.z, &ptr->x, &ptr->y, &ptr->z);
+        } else {
+          float x, y, z;
+          const auto& cln = ioptrs().clustersNative->clusters[iSlice][0][i];
+          GPUTPCConvertImpl::convert(*mMerger.GetConstantMem(), iSlice, row, cln.getPad(), cln.getTime(), x, y, z);
+          mChain->GetParam().Slice2Global(iSlice, x + mXadd, y, z, &ptr->x, &ptr->y, &ptr->z);
+        }
+
+        if (fabsf(ptr->z) > mMaxClusterZ) {
+          mMaxClusterZ = fabsf(ptr->z);
+        }
+        if (iSlice < 18) {
+          ptr->z += mZadd;
+          ptr->z += mZadd;
+        } else {
+          ptr->z -= mZadd;
+          ptr->z -= mZadd;
+        }
+
+        ptr->x /= GL_SCALE_FACTOR;
+        ptr->y /= GL_SCALE_FACTOR;
+        ptr->z /= GL_SCALE_FACTOR;
+        ptr->w = tCLUSTER;
+      }
+    }
+
+    for (int i = 0; i < mCurrentSpacePointsTRD; i++) {
+      const auto& sp = trdTracker().SpacePoints()[i];
+      int iSec = mChain->GetTRDGeometry()->GetSector(trdTracker().Tracklets()[i].GetDetector());
+      float4* ptr = &mGlobalPosTRD[i];
+      mChain->GetParam().Slice2Global(iSec, sp.mR + mXadd, sp.mX[0], sp.mX[1], &ptr->x, &ptr->y, &ptr->z);
+      ptr->x /= GL_SCALE_FACTOR;
+      ptr->y /= GL_SCALE_FACTOR;
+      ptr->z /= GL_SCALE_FACTOR;
+      if (fabsf(ptr->z) > mMaxClusterZ) {
+        mMaxClusterZ = fabsf(ptr->z);
+      }
+      ptr->w = tTRDCLUSTER;
+      ptr = &mGlobalPosTRD2[i];
+      mChain->GetParam().Slice2Global(iSec, sp.mR + mXadd + 4.5f, sp.mX[0] + 1.5f * sp.mDy, sp.mX[1], &ptr->x, &ptr->y, &ptr->z);
+      ptr->x /= GL_SCALE_FACTOR;
+      ptr->y /= GL_SCALE_FACTOR;
+      ptr->z /= GL_SCALE_FACTOR;
+      if (fabsf(ptr->z) > mMaxClusterZ) {
+        mMaxClusterZ = fabsf(ptr->z);
+      }
+      ptr->w = tTRDCLUSTER;
+    }
+
+    mTimerFPS.ResetStart();
+    mFramesDoneFPS = 0;
+    mFPSScaleadjust = 0;
+    mGlDLrecent = 0;
+    mUpdateDLList = 0;
+  }
+
   if (!mixAnimation && mOffscreenBuffer.created) {
     setFrameBuffer(1, mOffscreenBuffer.fb_id);
   }
@@ -1221,7 +1330,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
       glTranslatef(-vals[0], -vals[1], -vals[2]);
     }
   } else if (mResetScene) {
-    glTranslatef(0, 0, param().ContinuousTracking ? (-param().continuousMaxTimeBin / 500 * 250 / GL_SCALE_FACTOR - 8) : -8);
+    glTranslatef(0, 0, param().ContinuousTracking ? (-mMaxClusterZ / GL_SCALE_FACTOR - 8) : -8);
 
     mCfg.pointSize = 2.0;
     mCfg.drawSlice = -1;
@@ -1230,7 +1339,6 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
     mAngleRollOrigin = -1e9;
 
     mResetScene = 0;
-    mUpdateDLList = true;
   } else {
     float moveZ = scalefactor * ((float)mMouseWheelTmp / 150 + (float)(mBackend->mKeys['W'] - mBackend->mKeys['S']) * (!mBackend->mKeys[mBackend->KEY_SHIFT]) * 0.2 * mFPSScale);
     float moveY = scalefactor * ((float)(mBackend->mKeys[mBackend->KEY_PAGEDOWN] - mBackend->mKeys[mBackend->KEY_PAGEUP]) * 0.2 * mFPSScale);
@@ -1368,109 +1476,6 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
   CHKERR(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
   CHKERR(glPointSize(mCfg.pointSize * (mDrawQualityDownsampleFSAA > 1 ? mDrawQualityDownsampleFSAA : 1)));
   CHKERR(glLineWidth(mCfg.lineWidth * (mDrawQualityDownsampleFSAA > 1 ? mDrawQualityDownsampleFSAA : 1)));
-
-  // Extract global cluster information
-  if (mUpdateDLList) {
-    showTimer = true;
-    mTimerDraw.ResetStart();
-    mCurrentClusters = 0;
-    for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      mCurrentClusters += sliceTracker(iSlice).NHitsTotal();
-    }
-    if (mNMaxClusters < mCurrentClusters) {
-      mNMaxClusters = mCurrentClusters;
-      mGlobalPosPtr.reset(new float4[mNMaxClusters]);
-      mGlobalPos = mGlobalPosPtr.get();
-    }
-
-    mCurrentSpacePointsTRD = trdTracker().NTracklets();
-    if (mCurrentSpacePointsTRD > mNMaxSpacePointsTRD) {
-      mNMaxSpacePointsTRD = mCurrentSpacePointsTRD;
-      mGlobalPosPtrTRD.reset(new float4[mNMaxSpacePointsTRD]);
-      mGlobalPosPtrTRD2.reset(new float4[mNMaxSpacePointsTRD]);
-      mGlobalPosTRD = mGlobalPosPtrTRD.get();
-      mGlobalPosTRD2 = mGlobalPosPtrTRD2.get();
-    }
-    if ((size_t)mMerger.NOutputTracks() > mTRDTrackIds.size()) {
-      mTRDTrackIds.resize(mMerger.NOutputTracks());
-    }
-    memset(mTRDTrackIds.data(), 0, sizeof(mTRDTrackIds[0]) * mMerger.NOutputTracks());
-    for (int i = 0; i < trdTracker().NTracks(); i++) {
-      if (trdTracker().Tracks()[i].GetNtracklets()) {
-        mTRDTrackIds[trdTracker().Tracks()[i].GetTPCtrackId()] = i;
-      }
-    }
-
-    mMaxClusterZ = 0;
-    for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      int row = 0;
-      for (unsigned int i = 0; i < ioptrs().nClusterData[iSlice]; i++) {
-        int cid;
-        if (mMerger.Param().earlyTpcTransform) {
-          const auto& cl = ioptrs().clusterData[iSlice][i];
-          cid = cl.id;
-        } else {
-          cid = ioptrs().clustersNative->clusterOffset[iSlice][0] + i;
-          while (row < GPUCA_ROW_COUNT && ioptrs().clustersNative->clusterOffset[iSlice][row + 1] <= (unsigned int)cid) {
-            row++;
-          }
-        }
-        if (cid >= mNMaxClusters) {
-          GPUError("Cluster Buffer Size exceeded (id %d max %d)", cid, mNMaxClusters);
-          return (1);
-        }
-        float4* ptr = &mGlobalPos[cid];
-        if (mMerger.Param().earlyTpcTransform) {
-          const auto& cl = ioptrs().clusterData[iSlice][i];
-          mChain->GetParam().Slice2Global(iSlice, cl.x + mXadd, cl.y, cl.z, &ptr->x, &ptr->y, &ptr->z);
-        } else {
-          float x, y, z;
-          const auto& cln = ioptrs().clustersNative->clusters[iSlice][0][i];
-          GPUTPCConvertImpl::convert(*mMerger.GetConstantMem(), iSlice, row, cln.getPad(), cln.getTime(), x, y, z);
-          mChain->GetParam().Slice2Global(iSlice, x + mXadd, y, z, &ptr->x, &ptr->y, &ptr->z);
-        }
-
-        if (fabsf(ptr->z) > mMaxClusterZ) {
-          mMaxClusterZ = fabsf(ptr->z);
-        }
-        if (iSlice < 18) {
-          ptr->z += mZadd;
-          ptr->z += mZadd;
-        } else {
-          ptr->z -= mZadd;
-          ptr->z -= mZadd;
-        }
-
-        ptr->x /= GL_SCALE_FACTOR;
-        ptr->y /= GL_SCALE_FACTOR;
-        ptr->z /= GL_SCALE_FACTOR;
-        ptr->w = tCLUSTER;
-      }
-    }
-
-    for (int i = 0; i < mCurrentSpacePointsTRD; i++) {
-      const auto& sp = trdTracker().SpacePoints()[i];
-      int iSec = mChain->GetTRDGeometry()->GetSector(trdTracker().Tracklets()[i].GetDetector());
-      float4* ptr = &mGlobalPosTRD[i];
-      mChain->GetParam().Slice2Global(iSec, sp.mR + mXadd, sp.mX[0], sp.mX[1], &ptr->x, &ptr->y, &ptr->z);
-      ptr->x /= GL_SCALE_FACTOR;
-      ptr->y /= GL_SCALE_FACTOR;
-      ptr->z /= GL_SCALE_FACTOR;
-      ptr->w = tTRDCLUSTER;
-      ptr = &mGlobalPosTRD2[i];
-      mChain->GetParam().Slice2Global(iSec, sp.mR + mXadd + 4.5f, sp.mX[0] + 1.5f * sp.mDy, sp.mX[1], &ptr->x, &ptr->y, &ptr->z);
-      ptr->x /= GL_SCALE_FACTOR;
-      ptr->y /= GL_SCALE_FACTOR;
-      ptr->z /= GL_SCALE_FACTOR;
-      ptr->w = tTRDCLUSTER;
-    }
-
-    mTimerFPS.ResetStart();
-    mFramesDoneFPS = 0;
-    mFPSScaleadjust = 0;
-    mGlDLrecent = 0;
-    mUpdateDLList = 0;
-  }
 
   // Prepare Event
   if (!mGlDLrecent) {
