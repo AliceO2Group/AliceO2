@@ -30,7 +30,8 @@ o2_add_library(Generators
                        src/BoxGunParam.cxx
 		       src/QEDGenParam.cxx
                        src/GeneratorFactory.cxx
-                       $<$<BOOL:${pythia_FOUND}>:src/Pythia8Generator.cxx>
+                       $<$<BOOL:${pythia_FOUND}>:src/GeneratorPythia8.cxx>
+                       $<$<BOOL:${pythia_FOUND}>:src/GeneratorPythia8Param.cxx>
                        $<$<BOOL:${HepMC_FOUND}>:src/GeneratorHepMC.cxx>
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimConfig
                                      O2::SimulationDataFormat ${pythiaTarget} ${hepmcTarget}
@@ -60,7 +61,8 @@ set(headers
     include/Generators/QEDGenParam.h)
 
 if(pythia_FOUND)
-  list(APPEND headers include/Generators/Pythia8Generator.h
+  list(APPEND headers include/Generators/GeneratorPythia8.h
+              include/Generators/GeneratorPythia8Param.h
               include/Generators/GeneratorFactory.h)
 endif()
 
@@ -100,3 +102,8 @@ install(FILES share/external/extgen.C share/external/pythia6.C
               share/external/tgenerator.C share/external/QEDLoader.C share/external/QEDepem.C
 	      share/external/multiphi_trigger.C
         DESTINATION share/Generators/external/)
+
+install(FILES share/egconfig/pythia8_inel.cfg
+              share/egconfig/pythia8_hf.cfg
+	      share/egconfig/pythia8_hi.cfg
+        DESTINATION share/Generators/egconfig/)
