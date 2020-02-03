@@ -156,6 +156,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
   const int reqVerMaj = 2;
   const int reqVerMin = 0;
   std::vector<bool> devicesOK(count, false);
+  std::vector<size_t> devMemory(count, 0);
   bool contextCreated = false;
   for (int i = 0; i < count; i++) {
     if (mDeviceProcessingSettings.debugLevel >= 4) {
@@ -200,7 +201,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     } else if (cudaDeviceProp.major < reqVerMaj || (cudaDeviceProp.major == reqVerMaj && cudaDeviceProp.minor < reqVerMin)) {
       deviceOK = false;
       deviceFailure = "Too low device revision";
-    } else if (free < mDeviceMemorySize) {
+    } else if (free < std::max(mDeviceMemorySize, (size_t)512 * 1024 * 1024)) {
       deviceOK = false;
       deviceFailure = "Insufficient GPU memory";
     }
@@ -213,6 +214,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
       continue;
     }
     devicesOK[i] = true;
+    devMemory[i] = free;
     if (deviceSpeed > bestDeviceSpeed) {
       bestDevice = i;
       bestDeviceSpeed = deviceSpeed;
@@ -226,7 +228,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
   bool noDevice = false;
   if (bestDevice == -1) {
     GPUWarning("No %sCUDA Device available, aborting CUDA Initialisation", count ? "appropriate " : "");
-    GPUImportant("Requiring Revision %d.%d, Mem: %lld", reqVerMaj, reqVerMin, (long long int)mDeviceMemorySize);
+    GPUImportant("Requiring Revision %d.%d, Mem: %lld", reqVerMaj, reqVerMin, (long long int)std::max(mDeviceMemorySize, (size_t)512 * 1024 * 1024));
     noDevice = true;
   } else if (mDeviceProcessingSettings.deviceNum > -1) {
     if (mDeviceProcessingSettings.deviceNum >= (signed)count) {
@@ -301,6 +303,12 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     GPUError("Error setting CUDA stack size");
     GPUFailedMsgI(cudaDeviceReset());
     return (1);
+  }
+
+  if (mDeviceMemorySize == 2) {
+    mDeviceMemorySize = devMemory[mDeviceId] * 2 / 3; // Leave 1/3 of GPU memory for event display
+  } else if (mDeviceMemorySize == 1) {
+    mDeviceMemorySize = devMemory[mDeviceId] - 512 * 1024 * 1024; // Take all GPU memory but 1/2 GB
   }
 
   if (mDeviceMemorySize > cudaDeviceProp.totalGlobalMem || GPUFailedMsgI(cudaMalloc(&mDeviceMemoryBase, mDeviceMemorySize))) {
