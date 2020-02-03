@@ -293,7 +293,7 @@ int SetupReconstruction()
     devProc.nThreads = configStandalone.OMPThreads;
   }
   devProc.deviceNum = configStandalone.cudaDevice;
-  devProc.forceMemoryPoolSize = configStandalone.forceMemorySize;
+  devProc.forceMemoryPoolSize = (configStandalone.forceMemorySize == 1 && configStandalone.eventDisplay) ? 2 : configStandalone.forceMemorySize;
   devProc.debugLevel = configStandalone.DebugLevel;
   devProc.deviceTimers = configStandalone.DeviceTiming;
   devProc.runQA = configStandalone.qa;

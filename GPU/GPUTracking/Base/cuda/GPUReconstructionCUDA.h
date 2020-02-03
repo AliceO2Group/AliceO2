@@ -50,7 +50,8 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
     GPUReconstructionCUDAInternals* mContext = nullptr;
   };
 
-  virtual std::unique_ptr<GPUThreadContext> GetThreadContext() override;
+  std::unique_ptr<GPUThreadContext> GetThreadContext() override;
+  bool CanQueryMaxMemory() { return true; }
   void SynchronizeGPU() override;
   int GPUDebug(const char* state = "UNKNOWN", int stream = -1) override;
   void SynchronizeStream(int stream) override;
