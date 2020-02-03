@@ -244,13 +244,10 @@ DataRelayer::RelayChoice
     auto cacheIdx = numInputTypes * slot.index + input;
     std::vector<PartRef>& parts = cache[cacheIdx].parts;
     cachedStateMetrics[cacheIdx] = 1;
-    // TODO: here we have to change the logic if we want to allow more than one
-    // message pair
-    if (parts.size() == 0) {
-      parts.resize(1);
-    }
-    parts[0].header = std::move(header);
-    parts[0].payload = std::move(payload);
+    // TODO: make sure that multiple parts can only be added within the same call of
+    // DataRelayer::relay
+    PartRef entry{std::move(header), std::move(payload)};
+    parts.emplace_back(std::move(entry));
     assert(header.get() == nullptr && payload.get() == nullptr);
   };
 
