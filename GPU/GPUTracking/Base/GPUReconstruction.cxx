@@ -141,7 +141,9 @@ int GPUReconstruction::Init()
     mDeviceMemorySize += memGpu;
     mHostMemorySize += memHost;
   }
-  if (mDeviceProcessingSettings.forceMemoryPoolSize) {
+  if (mDeviceProcessingSettings.forceMemoryPoolSize && mDeviceProcessingSettings.forceMemoryPoolSize <= 2 && CanQueryMaxMemory()) {
+    mDeviceMemorySize = mDeviceProcessingSettings.forceMemoryPoolSize;
+  } else if (mDeviceProcessingSettings.forceMemoryPoolSize > 2) {
     mDeviceMemorySize = mHostMemorySize = mDeviceProcessingSettings.forceMemoryPoolSize;
   }
 

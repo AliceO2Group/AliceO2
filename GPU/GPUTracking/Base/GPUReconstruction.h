@@ -257,6 +257,7 @@ class GPUReconstruction
 
   // Others
   virtual RecoStepField AvailableRecoSteps() { return RecoStep::AllRecoSteps; }
+  virtual bool CanQueryMaxMemory() { return false; }
 
   // Pointers to tracker classes
   GPUConstantMem* processors() { return mHostConstantMem.get(); }
