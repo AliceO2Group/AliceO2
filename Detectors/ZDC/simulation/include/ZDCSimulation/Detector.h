@@ -58,6 +58,8 @@ class Detector : public o2::base::DetImpl<Detector>
 
   Bool_t ProcessHits(FairVolume* v = nullptr) final;
 
+  bool createHitsFromImage(SpatialPhotonResponse const& image, int detector);
+
   void Register() override;
 
   /// Gets the produced collections
@@ -105,7 +107,59 @@ class Detector : public o2::base::DetImpl<Detector>
 
   void resetHitIndices();
 
-  // helper function taking care of writing the photon response pattern at cern moments
+  // common function for hit creation (can be called from multiple interfaces)
+  bool createOrAddHit(int detector,
+                      int sector,
+                      int currentMediumid,
+                      bool issecondary,
+                      int nphe,
+                      int trackn,
+                      int parent,
+                      float tof,
+                      float trackenergy,
+                      Vector3D<float> const& xImp,
+                      float eDep, float x, float y, float z, float px, float py, float pz)
+  {
+    // A new hit is created when there is nothing yet for this det + sector
+    if (mCurrentHitsIndices[detector - 1][sector] == -1) {
+      mTotLightPMC = mTotLightPMQ = 0;
+      if (currentMediumid == mMediumPMCid) {
+        mTotLightPMC = nphe;
+      } else if (currentMediumid == mMediumPMQid) {
+        mTotLightPMQ = nphe;
+      }
+
+      Vector3D<float> pos(x, y, z);
+      Vector3D<float> mom(px, py, pz);
+      addHit(trackn, parent, issecondary, trackenergy, detector, sector,
+             pos, mom, tof, xImp, eDep, mTotLightPMC, mTotLightPMQ);
+      // stack->addHit(GetDetId());
+      mCurrentHitsIndices[detector - 1][sector] = mHits->size() - 1;
+
+      mXImpact = xImp;
+      return true;
+    } else {
+      auto& curHit = (*mHits)[mCurrentHitsIndices[detector - 1][sector]];
+      // summing variables that needs to be updated (Eloss and light yield)
+      curHit.setNoNumContributingSteps(curHit.getNumContributingSteps() + 1);
+      int nPMC{0}, nPMQ{0};
+      if (currentMediumid == mMediumPMCid) {
+        mTotLightPMC += nphe;
+        nPMC = nphe;
+      } else if (currentMediumid == mMediumPMQid) {
+        mTotLightPMQ += nphe;
+        nPMQ = nphe;
+      }
+      if (nphe > 0) {
+        curHit.SetEnergyLoss(curHit.GetEnergyLoss() + eDep);
+        curHit.setPMCLightYield(curHit.getPMCLightYield() + nPMC);
+        curHit.setPMQLightYield(curHit.getPMQLightYield() + nPMQ);
+      }
+      return true;
+    }
+  }
+
+  // helper function taking care of writing the photon response pattern at certain moments
   void flushSpatialResponse();
 
   Float_t mTrackEta;
@@ -113,8 +167,8 @@ class Detector : public o2::base::DetImpl<Detector>
   Vector3D<float> mXImpact;
   Float_t mTotLightPMC;
   Float_t mTotLightPMQ;
-  Int_t mMediumPMCid;
-  Int_t mMediumPMQid;
+  Int_t mMediumPMCid = -1;
+  Int_t mMediumPMQid = -2;
 
   //
   /// Container for hit data
