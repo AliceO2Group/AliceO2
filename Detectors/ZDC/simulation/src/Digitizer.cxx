@@ -292,7 +292,7 @@ void Digitizer::storeBC(const BCCache& bc, uint32_t chan2Store,
   }
 }
 
-void Digitizer::phe2Sample(int nphe, int parID, double timeHit, std::array<o2::InteractionRecord, NBC2Cache> cachedIR, int nCachedIR, int channel)
+void Digitizer::phe2Sample(int nphe, int parID, double timeHit, std::array<o2::InteractionRecord, NBC2Cache> const& cachedIR, int nCachedIR, int channel)
 {
   //function to simulate the waveform from no. of photoelectrons seen in a given sample
   // for electrons at timeInSample wrt beginning of the sample
