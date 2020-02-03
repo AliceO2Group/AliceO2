@@ -515,15 +515,17 @@ int main(int argc, char** argv)
             break;
           }
         }
-        if (configStandalone.encodeZS || configStandalone.zsFilter) {
+        bool encodeZS = configStandalone.encodeZS == -1 ? (chainTracking->mIOPtrs.tpcPackedDigits && !chainTracking->mIOPtrs.tpcZS) : (bool)configStandalone.encodeZS;
+        bool zsFilter = configStandalone.zsFilter == -1 ? (!encodeZS && chainTracking->mIOPtrs.tpcPackedDigits) : (bool)configStandalone.zsFilter;
+        if (encodeZS || zsFilter) {
           if (!chainTracking->mIOPtrs.tpcPackedDigits) {
             printf("Need digit input to run ZS\n");
             goto breakrun;
           }
-          if (configStandalone.zsFilter) {
+          if (zsFilter) {
             chainTracking->ConvertZSFilter(configStandalone.zs12bit);
           }
-          if (configStandalone.encodeZS) {
+          if (encodeZS) {
             chainTracking->ConvertZSEncoder(configStandalone.zs12bit);
           }
         }
