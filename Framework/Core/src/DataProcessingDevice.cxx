@@ -439,7 +439,7 @@ bool DataProcessingDevice::tryDispatchComputation()
   // move these to some thread local store and the rest of the lambdas
   // should work just fine.
   std::vector<DataRelayer::RecordAction> completed;
-  std::vector<std::unique_ptr<FairMQMessage>> currentSetOfInputs;
+  std::vector<MessageSet> currentSetOfInputs;
 
   auto& allocator = mAllocator;
   auto& context = *mContextRegistry.get<MessageContext>();
@@ -497,15 +497,18 @@ bool DataProcessingDevice::tryDispatchComputation()
   // the execution.
   auto fillInputs = [&relayer, &inputsSchema, &currentSetOfInputs](TimesliceSlot slot) -> InputRecord {
     currentSetOfInputs = std::move(relayer.getInputsForTimeslice(slot));
-    auto getter = [&currentSetOfInputs](size_t i) -> DataRef {
-      if (currentSetOfInputs.at(2 * i) && currentSetOfInputs.at(2 * i + 1)) {
+    auto getter = [&currentSetOfInputs](size_t i, size_t partindex) -> DataRef {
+      if (currentSetOfInputs[i].size() > partindex) {
         return DataRef{nullptr,
-                       static_cast<char const*>(currentSetOfInputs.at(2 * i)->GetData()),
-                       static_cast<char const*>(currentSetOfInputs.at(2 * i + 1)->GetData())};
+                       static_cast<char const*>(currentSetOfInputs[i].at(partindex).header->GetData()),
+                       static_cast<char const*>(currentSetOfInputs[i].at(partindex).payload->GetData())};
       }
       return DataRef{nullptr, nullptr, nullptr};
     };
-    InputSpan span{getter, currentSetOfInputs.size() / 2};
+    auto nofPartsGetter = [&currentSetOfInputs](size_t i) -> size_t {
+      return currentSetOfInputs[i].size();
+    };
+    InputSpan span{getter, nofPartsGetter, currentSetOfInputs.size()};
     return InputRecord{inputsSchema, std::move(span)};
   };
 
@@ -566,7 +569,7 @@ bool DataProcessingDevice::tryDispatchComputation()
   // This was actually the easiest solution we could find for
   // O2-646.
   auto cleanTimers = [&currentSetOfInputs](TimesliceSlot slot, InputRecord& record) {
-    assert(record.size() * 2 == currentSetOfInputs.size());
+    assert(record.size() == currentSetOfInputs.size());
     for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
       DataRef input = record.getByPos(ii);
       if (input.spec->lifetime != Lifetime::Timer) {
@@ -576,8 +579,7 @@ bool DataProcessingDevice::tryDispatchComputation()
         continue;
       }
       // This will hopefully delete the message.
-      std::unique_ptr<FairMQMessage> header = std::move(currentSetOfInputs[ii * 2]);
-      std::unique_ptr<FairMQMessage> payload = std::move(currentSetOfInputs[ii * 2 + 1]);
+      currentSetOfInputs[ii].clear();
     }
   };
 
@@ -586,7 +588,7 @@ bool DataProcessingDevice::tryDispatchComputation()
   // to the next one in the daisy chain.
   // FIXME: do it in a smarter way than O(N^2)
   auto forwardInputs = [&reportError, &forwards, &device, &currentSetOfInputs](TimesliceSlot slot, InputRecord& record) {
-    assert(record.size() * 2 == currentSetOfInputs.size());
+    assert(record.size() == currentSetOfInputs.size());
     for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
       DataRef input = record.getByPos(ii);
 
@@ -613,11 +615,13 @@ bool DataProcessingDevice::tryDispatchComputation()
         continue;
       }
 
-      auto& header = currentSetOfInputs[ii * 2];
-      auto& payload = currentSetOfInputs[ii * 2 + 1];
-
-      for (auto forward : forwards) {
-        if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification) && (dph->startTime % forward.maxTimeslices) == forward.timeslice) {
+      for (auto& part : currentSetOfInputs[ii]) {
+        for (auto const& forward : forwards) {
+          if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification) == false || (dph->startTime % forward.maxTimeslices) != forward.timeslice) {
+            continue;
+          }
+          auto& header = part.header;
+          auto& payload = part.payload;
 
           if (header.get() == nullptr) {
             // FIXME: this should not happen, however it's actually harmless and
