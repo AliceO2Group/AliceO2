@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <cstddef> // for size_t
 #endif
+#include "GPUCommonDef.h"
 
 namespace o2
 {
@@ -39,7 +40,8 @@ struct TPCZSHDR {
 };
 struct TPCZSTBHDR {
   unsigned short rowMask;
-  unsigned short rowAddr1[0];
+  GPUd() unsigned short* rowAddr1() { return (unsigned short*)((unsigned char*)this + sizeof(*this)); }
+  GPUd() const unsigned short* rowAddr1() const { return (unsigned short*)((unsigned char*)this + sizeof(*this)); }
 };
 
 } // namespace tpc

@@ -95,7 +95,7 @@ int GPUReconstructionOCL2Backend::GetOCLPrograms()
     return 1;
   }
 
-  if (GPUFailedMsgI(clBuildProgram(mInternals->program, 1, &mInternals->device, GPUCA_M_STR(OCL_FLAGS), NULL, NULL))) {
+  if (GPUFailedMsgI(clBuildProgram(mInternals->program, 1, &mInternals->device, GPUCA_M_STR(OCL_FLAGS), nullptr, nullptr))) {
     cl_build_status status;
     if (GPUFailedMsgI(clGetProgramBuildInfo(mInternals->program, mInternals->device, CL_PROGRAM_BUILD_STATUS, sizeof(status), &status, nullptr)) == 0 && status == CL_BUILD_ERROR) {
       size_t log_size;
