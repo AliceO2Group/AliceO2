@@ -69,7 +69,7 @@ DECLARE_SOA_COLUMN(Length, length, float, "fLength");
 } // namespace track
 
 DECLARE_SOA_TABLE(Tracks, "AOD", "TRACKPAR",
-                  track::CollisionId, track::X, track::Alpha,
+                  o2::soa::Index<>, track::CollisionId, track::X, track::Alpha,
                   track::Y, track::Z, track::Snp, track::Tgl,
                   track::Signed1Pt,
                   track::Phi<track::Snp, track::Alpha>,
