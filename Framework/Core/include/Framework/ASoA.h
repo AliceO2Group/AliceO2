@@ -629,6 +629,8 @@ class Table
  public:
   using iterator = RowView<C...>;
   using const_iterator = RowView<C...>;
+  using unfiltered_iterator = RowView<C...>;
+  using unfiltered_const_iterator = RowView<C...>;
   using filtered_iterator = RowViewFiltered<C...>;
   using filtered_const_iterator = RowViewFiltered<C...>;
   using table_t = Table<C...>;
@@ -646,14 +648,14 @@ class Table
     mEnd.moveToEnd();
   }
 
-  iterator begin()
+  unfiltered_iterator begin()
   {
-    return iterator(mBegin);
+    return unfiltered_iterator(mBegin);
   }
 
-  iterator end()
+  unfiltered_iterator end()
   {
-    return iterator{mEnd};
+    return unfiltered_iterator{mEnd};
   }
 
   filtered_iterator filtered_begin(framework::expressions::Selection selection)
@@ -672,14 +674,14 @@ class Table
     return end;
   }
 
-  const_iterator begin() const
+  unfiltered_const_iterator begin() const
   {
-    return const_iterator(mBegin);
+    return unfiltered_const_iterator(mBegin);
   }
 
-  const_iterator end() const
+  unfiltered_const_iterator end() const
   {
-    return const_iterator{mEnd};
+    return unfiltered_const_iterator{mEnd};
   }
 
   std::shared_ptr<arrow::Table> asArrowTable() const
@@ -711,9 +713,9 @@ class Table
   /// This is a cached lookup of the column index in a given
   std::tuple<std::pair<C*, arrow::Column*>...> mColumnIndex;
   /// Cached begin iterator for this table.
-  iterator mBegin;
+  unfiltered_iterator mBegin;
   /// Cached end iterator for this table.
-  iterator mEnd;
+  unfiltered_iterator mEnd;
 };
 
 template <typename T>
@@ -866,7 +868,7 @@ class TableMetadata
   };                                                                   \
                                                                        \
   template <>                                                          \
-  struct MetadataTrait<_Name_::iterator> {                             \
+  struct MetadataTrait<_Name_::unfiltered_iterator> {                  \
     using metadata = _Name_##Metadata;                                 \
   };                                                                   \
                                                                        \
