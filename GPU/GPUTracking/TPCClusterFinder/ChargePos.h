@@ -30,7 +30,7 @@ struct ChargePos {
   GPUdi() explicit ChargePos(const deprecated::Digit& d)
   {
     gpad = tpcGlobalPadIdx(d.row, d.pad);
-    time = d.time;
+    time = d.time + PADDING_TIME;
   }
 
   GPUdi() ChargePos(const GlobalPad& p, const Timestamp& t) : gpad(p), time(t) {}
