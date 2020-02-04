@@ -41,15 +41,13 @@ class TilingLayoutArray2D
 
   GPUdi() size_t idx(const ChargePos& p) const
   {
-    size_t time = p.time + PADDING_TIME;
-
     const size_t widthInTiles = (TPC_NUM_OF_PADS + Width - 1) / Width;
 
     const size_t tilePad = p.gpad / Width;
-    const size_t tileTime = time / Height;
+    const size_t tileTime = p.time / Height;
 
     const size_t inTilePad = p.gpad % Width;
-    const size_t inTileTime = time % Height;
+    const size_t inTileTime = p.time % Height;
 
     return (tileTime * widthInTiles + tilePad) * (Width * Height) + inTileTime * Width + inTilePad;
   }
