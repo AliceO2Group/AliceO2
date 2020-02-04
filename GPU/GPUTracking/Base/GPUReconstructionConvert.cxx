@@ -265,7 +265,7 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
           pagePtr = std::copy(streamBuffer8.data(), streamBuffer8.data() + streamSize8, pagePtr);
           streamSize8 = 0;
           for (int l = 1; l < nRowsInTB; l++) {
-            tbHdr->rowAddr1[l - 1] += 2 * nRowsInTB;
+            tbHdr->rowAddr1()[l - 1] += 2 * nRowsInTB;
           }
         }
         if (k >= tmpBuffer.size()) {
@@ -307,7 +307,7 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
         lastRow = tmpBuffer[k].row;
         ZSstreamOut(streamBuffer.data(), streamSize, streamBuffer8.data(), streamSize8, encodeBits);
         if (nRowsInTB) {
-          tbHdr->rowAddr1[nRowsInTB - 1] = (pagePtr - reinterpret_cast<unsigned char*>(page)) + streamSize8;
+          tbHdr->rowAddr1()[nRowsInTB - 1] = (pagePtr - reinterpret_cast<unsigned char*>(page)) + streamSize8;
         }
         nRowsInTB++;
         nSeq = streamBuffer8.data() + streamSize8++;
@@ -370,7 +370,7 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
             if ((tbHdr->rowMask & (1 << m)) == 0) {
               continue;
             }
-            unsigned char* rowData = rowPos == 0 ? pagePtr : (reinterpret_cast<unsigned char*>(page) + tbHdr->rowAddr1[rowPos - 1]);
+            unsigned char* rowData = rowPos == 0 ? pagePtr : (reinterpret_cast<unsigned char*>(page) + tbHdr->rowAddr1()[rowPos - 1]);
             const int nSeqRead = *rowData;
             unsigned char* adcData = rowData + 2 * nSeqRead + 1;
             int nADC = (rowData[2 * nSeqRead] * decodeBits + 7) / 8;

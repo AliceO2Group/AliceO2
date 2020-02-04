@@ -87,7 +87,7 @@ GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder
         if (iThread == 0) {
           for (int n = 0; n < nRowsUsed; n++) {
             s.zs.RowClusterOffset[n] = rowOffsetCounter;
-            const unsigned char* rowData = n == 0 ? pagePtr : (page + tbHdr->rowAddr1[n - 1]);
+            const unsigned char* rowData = n == 0 ? pagePtr : (page + tbHdr->rowAddr1()[n - 1]);
             rowOffsetCounter += rowData[2 * *rowData]; // Sum up number of ADC samples per row to compute offset in target buffer
           }
         }
@@ -99,7 +99,7 @@ GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder
             }
             const int rowPos = CAMath::Popcount((unsigned int)(tbHdr->rowMask & ((1 << m) - 1)));
             size_t nDigitsTmp = nDigits + s.zs.RowClusterOffset[rowPos];
-            const unsigned char* rowData = rowPos == 0 ? pagePtr : (page + tbHdr->rowAddr1[rowPos - 1]);
+            const unsigned char* rowData = rowPos == 0 ? pagePtr : (page + tbHdr->rowAddr1()[rowPos - 1]);
             const int nSeqRead = *rowData;
             const int nSeqPerThread = (nSeqRead + s.zs.nThreadsPerRow - 1) / s.zs.nThreadsPerRow;
             const int mySequenceStart = mySequence * nSeqPerThread;
@@ -139,7 +139,7 @@ GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder
           }
         }
         if (nRowsUsed > 1) {
-          pagePtr = page + tbHdr->rowAddr1[nRowsUsed - 2];
+          pagePtr = page + tbHdr->rowAddr1()[nRowsUsed - 2];
         }
         pagePtr += 2 * *pagePtr;                        // Go to entry for last sequence length
         pagePtr += 1 + (*pagePtr * s.zs.decodeBits + 7) / 8; // Go to beginning of next time bin

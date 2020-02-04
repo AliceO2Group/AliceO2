@@ -59,7 +59,7 @@ struct TestEnvironment {
     std::sort(sorted.begin(), sorted.end());
   }
 
-  ~TestEnvironment()
+  ~TestEnvironment() // NOLINT: clang-tidy doesn't understand hip macro magic, and thinks this is trivial
   {
     hipCheckErrorFatal(hipFree(data));
   };
