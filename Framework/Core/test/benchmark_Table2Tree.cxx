@@ -38,14 +38,13 @@ constexpr unsigned int maxrange = 20;
 
 static void BM_Table2Tree(benchmark::State& state)
 {
- 
+
   // initialize a random generator
   std::default_random_engine e1(1234567891);
   std::uniform_real_distribution<double> rd(0, 1);
-  std::normal_distribution<float>        rf(5.,2.);
-  std::discrete_distribution<long>       rl({10,20,30,30,5,5});
-  std::discrete_distribution<int>        ri({10,20,30,30,5,5});
-
+  std::normal_distribution<float> rf(5., 2.);
+  std::discrete_distribution<long> rl({10, 20, 30, 30, 5, 5});
+  std::discrete_distribution<int> ri({10, 20, 30, 30, 5, 5});
 
   // create a table and fill the columns with random numbers
   TableBuilder builder;
@@ -55,29 +54,25 @@ static void BM_Table2Tree(benchmark::State& state)
     rowWriter(0, rd(e1), rf(e1), rl(e1), ri(e1));
   }
   auto table = builder.finalize();
-    
-  
+
   // loop over elements of state
   for (auto _ : state) {
 
     // Open file and create tree
-    TFile *fout = new TFile("table2tree.root","RECREATE");
-    TTree *tout = new TTree("table2tree","table2tree");
+    TFile* fout = new TFile("table2tree.root", "RECREATE");
+    TTree* tout = new TTree("table2tree", "table2tree");
 
     // benchmark the CommonDataProcessors::table2tree function
-    CommonDataProcessors::table2tree(tout,table,false);
-    
+    CommonDataProcessors::table2tree(tout, table, false);
+
     // clean up
     fout->Close();
     delete fout;
-  
   }
 
-  state.SetBytesProcessed(state.iterations()*state.range(0)*24);
+  state.SetBytesProcessed(state.iterations() * state.range(0) * 24);
 }
 
 BENCHMARK(BM_Table2Tree)->Range(8, 8 << maxrange);
-
-
 
 BENCHMARK_MAIN();
