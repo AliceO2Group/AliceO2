@@ -17,10 +17,10 @@
 #include "GPUDef.h"
 
 #ifndef __OPENCL__
-typedef unsigned char uchar;
+using uchar = unsigned char;
 #endif
 #ifdef __APPLE__
-typedef unsigned long ulong;
+using ulong = unsigned long;
 #endif
 
 #define QMAX_CUTOFF 3
