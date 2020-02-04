@@ -78,7 +78,6 @@ void GeometryBuilder::buildGeometry()
   volMFT->AddNode(halfBarrel0, 1, p_barrel0);
   TGeoVolumeAssembly* halfBarrel1 = halfBarrel->createBarrel();
   volMFT->AddNode(halfBarrel1, 1, p_barrel1);
-<<<<<<< HEAD
 
   auto* t_patchpanel0 = new TGeoTranslation("translation_patchpanel", 0.0, 0., -81.5); //z (0,0.7, -81.5 -1.3; 0..81.7 --1.5
   auto* r_patchpanel0 = new TGeoRotation("rotation_patchpanel", 0.0, 0.0, 0.0);
@@ -92,8 +91,6 @@ void GeometryBuilder::buildGeometry()
   TGeoVolumeAssembly* halfpatchpanel1 = halfpatchpanel->createPatchPanel();
   volMFT->AddNode(halfpatchpanel0, 1, p_patchpanel0);
   volMFT->AddNode(halfpatchpanel1, 1, p_patchpanel1);
-=======
->>>>>>> update design of the barrel services, change in the pipes, thicker fixation services
 
   vALIC->AddNode(volMFT, 0);
 }
