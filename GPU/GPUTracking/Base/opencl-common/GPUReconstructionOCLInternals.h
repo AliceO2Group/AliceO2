@@ -211,8 +211,8 @@ int GPUReconstructionOCL::runKernelBackendCommon(krnlSetup& _xyz, K& k, const Ar
   if (mDeviceProcessingSettings.deviceTimers) {
     cl_ulong time_start, time_end;
     GPUFailedMsg(clWaitForEvents(1, evr));
-    GPUFailedMsg(clGetEventProfilingInfo(*evr, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL));
-    GPUFailedMsg(clGetEventProfilingInfo(*evr, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL));
+    GPUFailedMsg(clGetEventProfilingInfo(*evr, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, nullptr));
+    GPUFailedMsg(clGetEventProfilingInfo(*evr, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, nullptr));
     _xyz.t = (time_end - time_start) * 1.e-9;
     if (tmpEvent) {
       GPUFailedMsg(clReleaseEvent(ev));
