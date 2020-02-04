@@ -80,7 +80,6 @@ struct VertexerHFTask {
 
     for (auto it_0 = tracks.begin(); it_0 != tracks.end(); ++it_0) {
       auto& track_0 = *it_0;
-      //LOGF(info, "track index %d", track_0.index());
       hindex_0_coll->Fill(track_0.index());
       float x0_ = track_0.x();
       float alpha0_ = track_0.alpha();
