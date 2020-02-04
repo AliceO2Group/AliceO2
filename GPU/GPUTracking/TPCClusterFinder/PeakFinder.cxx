@@ -62,11 +62,20 @@ GPUd() bool PeakFinder::isPeakScratchPad(
     return false;
   }
 
+  // Ensure q has the same float->int->float conversion error
+  // as values in chargeMap, so identical charges are actually identical
+  q = PackedCharge(q).unpack();
+
+  int idx = N * partId;
   bool peak = true;
-  for (ushort i = 0; i < N; i++) {
-    Charge other = buf[N * partId + i].unpack();
-    peak &= (q > other) || (CfConsts::InnerTestEq[i] && q == other);
-  }
+  peak = peak && buf[idx + 0].unpack() <= q;
+  peak = peak && buf[idx + 1].unpack() <= q;
+  peak = peak && buf[idx + 2].unpack() <= q;
+  peak = peak && buf[idx + 3].unpack() <= q;
+  peak = peak && buf[idx + 4].unpack() < q;
+  peak = peak && buf[idx + 5].unpack() < q;
+  peak = peak && buf[idx + 6].unpack() < q;
+  peak = peak && buf[idx + 7].unpack() < q;
 
   return peak;
 }
