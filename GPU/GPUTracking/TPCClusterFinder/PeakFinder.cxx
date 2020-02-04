@@ -26,9 +26,9 @@ GPUd() bool PeakFinder::isPeakScratchPad(
   Charge q,
   const ChargePos& pos,
   ushort N,
-  const Array2D<o2::gpu::PackedCharge>& chargeMap,
-  GPUsharedref() ChargePos* posBcast,
-  GPUsharedref() PackedCharge* buf)
+  const Array2D<PackedCharge>& chargeMap,
+  ChargePos* posBcast,
+  PackedCharge* buf)
 {
   ushort ll = get_local_id(0);
 
@@ -144,9 +144,9 @@ GPUd() bool PeakFinder::isPeak(
 
 GPUd() void PeakFinder::findPeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
                                       const Array2D<PackedCharge>& chargeMap,
-                                      GPUglobalref() const Digit* digits,
+                                      const Digit* digits,
                                       uint digitnum,
-                                      GPUglobalref() uchar* isPeakPredicate,
+                                      uchar* isPeakPredicate,
                                       Array2D<uchar>& peakMap)
 {
   size_t idx = get_global_id(0);

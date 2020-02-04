@@ -22,7 +22,7 @@ namespace GPUCA_NAMESPACE
 
 namespace tpc
 {
-class ClusterNative;
+struct ClusterNative;
 }
 
 namespace gpu

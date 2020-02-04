@@ -78,6 +78,12 @@ using ulong = unsigned long;
 #define TPC_MAX_TIME 4000
 #define TPC_MAX_TIME_PADDED (TPC_MAX_TIME + 2 * PADDING_TIME)
 
+#if 0
+#define DBG_PRINT(msg, ...) printf(msg "\n", __VA_ARGS__)
+#else
+#define DBG_PRINT(msg, ...) static_cast<void>(0)
+#endif
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -97,7 +103,6 @@ using Charge = float;
 
 using Delta = short;
 using Delta2 = short2;
-
 
 using local_id = short2;
 

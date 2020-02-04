@@ -167,6 +167,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
                      TPCClusterFinder/Array2D.h
                      TPCClusterFinder/CfConsts.h
                      TPCClusterFinder/CfUtils.h
+                     TPCClusterFinder/ChargePos.h
                      TPCClusterFinder/clusterFinderDefs.h
                      TPCClusterFinder/Digit.h
                      TPCClusterFinder/GPUTPCSharedMemoryData.h

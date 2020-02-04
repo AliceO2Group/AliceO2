@@ -27,10 +27,10 @@ class PeakFinder
 {
 
  public:
-  static GPUd() void findPeaksImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, const Array2D<gpu::PackedCharge>&, GPUglobalref() const deprecated::Digit*, uint, GPUglobalref() uchar*, Array2D<uchar>&);
+  static GPUd() void findPeaksImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, const Array2D<gpu::PackedCharge>&, const deprecated::Digit*, uint, uchar*, Array2D<uchar>&);
 
  private:
-  static GPUd() bool isPeakScratchPad(GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, Charge, const ChargePos&, ushort, const Array2D<o2::gpu::PackedCharge>&, GPUsharedref() ChargePos*, GPUsharedref() PackedCharge*);
+  static GPUd() bool isPeakScratchPad(GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, Charge, const ChargePos&, ushort, const Array2D<o2::gpu::PackedCharge>&, ChargePos*, PackedCharge*);
 
   static GPUd() bool isPeak(Charge, const ChargePos&, const Array2D<PackedCharge>&);
 };

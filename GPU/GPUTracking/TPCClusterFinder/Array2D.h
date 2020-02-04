@@ -31,13 +31,13 @@ class TilingLayoutArray2D
     Width = Grid::Width,
   };
 
-  GPUdi() explicit TilingLayoutArray2D(GPUglobalref() T* d) : data(d) {}
+  GPUdi() explicit TilingLayoutArray2D(T* d) : data(d) {}
 
   GPUdi() T& operator[](const ChargePos& p) { return data[idx(p)]; }
   GPUdi() const T& operator[](const ChargePos& p) const { return data[idx(p)]; }
 
  private:
-  GPUglobalref() T* data;
+  T* data;
 
   GPUdi() size_t idx(const ChargePos& p) const
   {
@@ -57,13 +57,13 @@ template <typename T>
 class LinearLayoutArray2D
 {
  public:
-  GPUdi() explicit LinearLayoutArray2D(GPUglobalref() T* d) : data(d) {}
+  GPUdi() explicit LinearLayoutArray2D(T* d) : data(d) {}
 
   GPUdi() T& operator[](const ChargePos& p) { return data[idx(p)]; }
   GPUdi() const T& operator[](const ChargePos& p) const { return data[idx(p)]; }
 
  private:
-  GPUglobalref() T* data;
+  T* data;
 
   GPUdi() size_t idx(const ChargePos& p) const
   {
@@ -73,7 +73,7 @@ class LinearLayoutArray2D
 };
 
 template <size_t S>
-class GridSize;
+struct GridSize;
 
 template <>
 struct GridSize<1> {

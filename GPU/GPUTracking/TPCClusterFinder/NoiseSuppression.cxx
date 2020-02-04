@@ -23,9 +23,9 @@ using namespace GPUCA_NAMESPACE::gpu::deprecated;
 GPUd() void NoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
                                                    const Array2D<PackedCharge>& chargeMap,
                                                    const Array2D<uchar>& peakMap,
-                                                   GPUglobalref() const Digit* peaks,
+                                                   const Digit* peaks,
                                                    const uint peaknum,
-                                                   GPUglobalref() uchar* isPeakPredicate)
+                                                   uchar* isPeakPredicate)
 {
   size_t idx = get_global_id(0);
 
@@ -34,8 +34,6 @@ GPUd() void NoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, in
   ChargePos pos(myDigit);
 
   ulong minimas, bigger, peaksAround;
-
-  bool debug = false;
 
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
   findMinimaAndPeaksScratchpad(
@@ -57,10 +55,9 @@ GPUd() void NoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, in
     &minimas,
     &bigger);
 
-  peaksAround = findPeaks(peakMap, pos, debug);
+  peaksAround = findPeaks(peakMap, pos);
 #endif
 
-  ulong peaksAroundBack = peaksAround;
   peaksAround &= bigger;
 
   bool keepMe = keepPeak(minimas, peaksAround);
@@ -70,16 +67,14 @@ GPUd() void NoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, in
     return;
   }
 
-  if (debug) {
-    printf("%d: p:%lx, m:%lx, b:%lx.\n", int(idx), peaksAroundBack, minimas, bigger);
-  }
+  DBG_PRINT("%d: p:%lx, m:%lx, b:%lx.", int(idx), peaksAroundBack, minimas, bigger);
 
   isPeakPredicate[idx] = keepMe;
 }
 
 GPUd() void NoiseSuppression::updatePeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
-                                              GPUglobalref() const Digit* peaks,
-                                              GPUglobalref() const uchar* isPeak,
+                                              const Digit* peaks,
+                                              const uchar* isPeak,
                                               Array2D<uchar>& peakMap)
 {
   size_t idx = get_global_id(0);
@@ -111,7 +106,7 @@ GPUd() void NoiseSuppression::checkForMinima(
 }
 
 GPUd() void NoiseSuppression::findMinimaScratchPad(
-  GPUsharedref() const PackedCharge* buf,
+  const PackedCharge* buf,
   const ushort ll,
   const int N,
   int pos,
@@ -128,7 +123,7 @@ GPUd() void NoiseSuppression::findMinimaScratchPad(
 }
 
 GPUd() void NoiseSuppression::findPeaksScratchPad(
-  GPUsharedref() const uchar* buf,
+  const uchar* buf,
   const ushort ll,
   const int N,
   int pos,
@@ -163,21 +158,18 @@ GPUd() void NoiseSuppression::findMinima(
 
 GPUd() ulong NoiseSuppression::findPeaks(
   const Array2D<uchar>& peakMap,
-  const ChargePos& pos,
-  bool debug)
+  const ChargePos& pos)
 {
   ulong peaks = 0;
-  if (debug) {
-    printf("Looking around %d, %d\n", pos.gpad, pos.time);
-  }
+
+  DBG_PRINT("Looking around %d, %d", pos.gpad, pos.time);
+
   for (int i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++) {
     Delta2 d = CfConsts::NoiseSuppressionNeighbors[i];
 
     uchar p = peakMap[pos.delta(d)];
 
-    if (debug) {
-      printf("%d, %d: %d\n", d.x, d.y, p);
-    }
+    DBG_PRINT("%d, %d: %d", d.x, d.y, p);
 
     peaks |= (ulong(GET_IS_PEAK(p)) << i);
   }
@@ -206,8 +198,8 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
   const Array2D<uchar>& peakMap,
   float q,
   const ChargePos& pos,
-  GPUsharedref() ChargePos* posBcast,
-  GPUsharedref() PackedCharge* buf,
+  ChargePos* posBcast,
+  PackedCharge* buf,
   ulong* minimas,
   ulong* bigger,
   ulong* peaks)
@@ -345,7 +337,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
   }
 #endif
 
-  GPUsharedref() uchar* bufp = (GPUsharedref() uchar*)buf;
+  uchar* bufp = (uchar*)buf;
 
   /**************************************
      * Look for peaks

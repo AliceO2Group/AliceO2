@@ -59,7 +59,6 @@ class CfUtils
     return pos;
   }
 
-
   template <typename T>
   static GPUdi() void blockLoad(
     const Array2D<T>& map,
@@ -69,8 +68,8 @@ class CfUtils
     uint offset,
     uint N,
     GPUconstexprref() const Delta2* neighbors,
-    GPUsharedref() const ChargePos* posBcast,
-    GPUsharedref() T* buf)
+    const ChargePos* posBcast,
+    GPUgeneric() T* buf)
   {
 #if defined(GPUCA_GPUCODE)
     GPUbarrier();
@@ -104,7 +103,7 @@ class CfUtils
 #endif
   }
 
-  template <typename T, typename Pred>
+  template <typename T, bool Inv = false>
   static GPUdi() void condBlockLoad(
     const Array2D<T>& map,
     ushort wgSize,
@@ -113,10 +112,9 @@ class CfUtils
     ushort offset,
     ushort N,
     GPUconstexprref() const Delta2* neighbors,
-    GPUsharedref() const ChargePos* posBcast,
-    GPUsharedref() const uchar* aboveThreshold,
-    GPUsharedref() T* buf,
-    Pred&& pred)
+    const ChargePos* posBcast,
+    const uchar* aboveThreshold,
+    GPUgeneric() T* buf)
   {
 #if defined(GPUCA_GPUCODE)
     GPUbarrier();
@@ -129,7 +127,9 @@ class CfUtils
       uchar above = aboveThreshold[i];
       uint writeTo = N * i + x;
       T v(0);
-      if (pred(above, x + offset)) {
+      bool cond = (Inv) ? innerAboveThresholdInv(above, x + offset)
+                        : innerAboveThreshold(above, x + offset);
+      if (cond) {
         v = map[readFrom.delta(d)];
       }
       buf[writeTo] = v;
@@ -150,7 +150,9 @@ class CfUtils
 
       uint writeTo = N * ll + i;
       T v(0);
-      if (pred(above, i + offset)) {
+      bool cond = (Inv) ? innerAboveThresholdInv(above, i + offset)
+                        : innerAboveThreshold(above, i + offset);
+      if (cond) {
         v = map[readFrom.delta(d)];
       }
       buf[writeTo] = v;

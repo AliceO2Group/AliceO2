@@ -24,7 +24,7 @@ namespace GPUCA_NAMESPACE
 
 namespace tpc
 {
-class ClusterNative;
+struct ClusterNative;
 }
 
 namespace gpu
@@ -36,7 +36,7 @@ class Clusterizer
 {
 
  public:
-  static GPUd() void computeClustersImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, const Array2D<PackedCharge>&, GPUglobalref() const deprecated::Digit*, uint, uint, GPUglobalref() uint*, GPUglobalref() tpc::ClusterNative*);
+  static GPUd() void computeClustersImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, const Array2D<PackedCharge>&, const deprecated::Digit*, uint, uint, uint*, tpc::ClusterNative*);
 
  private:
   static GPUd() void addOuterCharge(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&, Delta2);
@@ -47,15 +47,15 @@ class Clusterizer
 
   static GPUd() void addLine(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&, Delta2);
 
-  static GPUd() void updateClusterScratchpadInner(ushort, ushort, GPUsharedref() const PackedCharge*, ClusterAccumulator*, GPUsharedref() uchar*);
+  static GPUd() void updateClusterScratchpadInner(ushort, ushort, const PackedCharge*, ClusterAccumulator*, uchar*);
 
-  static GPUd() void updateClusterScratchpadOuter(ushort, ushort, ushort, ushort, GPUsharedref() const PackedCharge*, ClusterAccumulator*);
+  static GPUd() void updateClusterScratchpadOuter(ushort, ushort, ushort, ushort, const PackedCharge*, ClusterAccumulator*);
 
-  static GPUd() void buildClusterScratchPad(const Array2D<PackedCharge>&, ChargePos, GPUsharedref() ChargePos*, GPUsharedref() PackedCharge*, GPUsharedref() uchar*, ClusterAccumulator*);
+  static GPUd() void buildClusterScratchPad(const Array2D<PackedCharge>&, ChargePos, ChargePos*, PackedCharge*, uchar*, ClusterAccumulator*);
 
   static GPUd() void buildClusterNaive(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&);
 
-  static GPUd() void sortIntoBuckets(const tpc::ClusterNative&, const uint, const uint, GPUglobalref() uint*, GPUglobalref() tpc::ClusterNative*);
+  static GPUd() void sortIntoBuckets(const tpc::ClusterNative&, const uint, const uint, uint*, tpc::ClusterNative*);
 };
 
 } // namespace gpu

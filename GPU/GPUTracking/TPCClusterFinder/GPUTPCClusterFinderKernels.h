@@ -68,7 +68,7 @@ class GPUTPCClusterFinderKernels : public GPUKernelTemplate
     return GPUDataTypes::RecoStep::TPCClusterFinding;
   }
   template <int iKernel = 0, typename... Args>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& clusterer, Args... args);
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, Args... args);
 
  private:
   GPUd() static int compactionElems(processorType& clusterer, int stage);

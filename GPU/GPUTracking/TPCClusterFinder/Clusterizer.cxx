@@ -21,11 +21,11 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 GPUd() void Clusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
                                              const Array2D<PackedCharge>& chargeMap,
-                                             GPUglobalref() const deprecated::Digit* digits,
+                                             const deprecated::Digit* digits,
                                              uint clusternum,
                                              uint maxClusterPerRow,
-                                             GPUglobalref() uint* clusterInRow,
-                                             GPUglobalref() tpc::ClusterNative* clusterByRow)
+                                             uint* clusterInRow,
+                                             tpc::ClusterNative* clusterByRow)
 {
   uint idx = get_global_id(0);
 
@@ -126,9 +126,9 @@ GPUd() void Clusterizer::addLine(
 GPUd() void Clusterizer::updateClusterScratchpadInner(
   ushort lid,
   ushort N,
-  GPUsharedref() const PackedCharge* buf,
+  const PackedCharge* buf,
   ClusterAccumulator* cluster,
-  GPUsharedref() uchar* innerAboveThreshold)
+  uchar* innerAboveThreshold)
 {
   uchar aboveThreshold = 0;
 
@@ -153,7 +153,7 @@ GPUd() void Clusterizer::updateClusterScratchpadOuter(
   ushort N,
   ushort M,
   ushort offset,
-  GPUsharedref() const PackedCharge* buf,
+  const PackedCharge* buf,
   ClusterAccumulator* cluster)
 {
   LOOP_UNROLL_ATTR for (ushort i = offset; i < M + offset; i++)
@@ -169,9 +169,9 @@ GPUd() void Clusterizer::updateClusterScratchpadOuter(
 GPUd() void Clusterizer::buildClusterScratchPad(
   const Array2D<PackedCharge>& chargeMap,
   ChargePos pos,
-  GPUsharedref() ChargePos* posBcast,
-  GPUsharedref() PackedCharge* buf,
-  GPUsharedref() uchar* innerAboveThreshold,
+  ChargePos* posBcast,
+  PackedCharge* buf,
+  uchar* innerAboveThreshold,
   ClusterAccumulator* myCluster)
 {
   ushort ll = get_local_id(0);
@@ -212,8 +212,8 @@ GPUd() void Clusterizer::buildClusterScratchPad(
     CfConsts::OuterNeighbors,
     posBcast,
     innerAboveThreshold,
-    buf,
-    CfUtils::innerAboveThreshold);
+    buf);
+
   if (inGroup1) {
     updateClusterScratchpadOuter(
       llhalf,
@@ -235,8 +235,7 @@ GPUd() void Clusterizer::buildClusterScratchPad(
     CfConsts::OuterNeighbors,
     posBcast + wgSizeHalf,
     innerAboveThreshold + wgSizeHalf,
-    buf,
-    CfUtils::innerAboveThreshold);
+    buf);
   if (!inGroup1) {
     updateClusterScratchpadOuter(
       llhalf,
@@ -319,7 +318,7 @@ GPUd() void Clusterizer::buildClusterNaive(
   addCorner(chargeMap, myCluster, pos, {1, 1});
 }
 
-GPUd() void Clusterizer::sortIntoBuckets(const tpc::ClusterNative& cluster, const uint bucket, const uint maxElemsPerBucket, GPUglobalref() uint* elemsInBucket, GPUglobalref() tpc::ClusterNative* buckets)
+GPUd() void Clusterizer::sortIntoBuckets(const tpc::ClusterNative& cluster, const uint bucket, const uint maxElemsPerBucket, uint* elemsInBucket, tpc::ClusterNative* buckets)
 {
   uint posInBucket = CAMath::AtomicAdd(&elemsInBucket[bucket], 1);
 

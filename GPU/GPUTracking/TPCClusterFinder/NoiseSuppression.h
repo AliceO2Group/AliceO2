@@ -28,24 +28,24 @@ class NoiseSuppression
 {
 
  public:
-  static GPUd() void noiseSuppressionImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, const Array2D<PackedCharge>&, const Array2D<uchar>&, GPUglobalref() const deprecated::Digit*, const uint, GPUglobalref() uchar*);
+  static GPUd() void noiseSuppressionImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, const Array2D<PackedCharge>&, const Array2D<uchar>&, const deprecated::Digit*, const uint, uchar*);
 
-  static GPUd() void updatePeaksImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, GPUglobalref() const deprecated::Digit*, GPUglobalref() const uchar*, Array2D<uchar>&);
+  static GPUd() void updatePeaksImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, const deprecated::Digit*, const uchar*, Array2D<uchar>&);
 
  private:
   static GPUd() void checkForMinima(float, float, PackedCharge, int, ulong*, ulong*);
 
-  static GPUd() void findMinimaScratchPad(GPUsharedref() const PackedCharge*, const ushort, const int, int, const float, const float, ulong*, ulong*);
+  static GPUd() void findMinimaScratchPad(const PackedCharge*, const ushort, const int, int, const float, const float, ulong*, ulong*);
 
-  static GPUd() void findPeaksScratchPad(GPUsharedref() const uchar*, const ushort, const int, int, ulong*);
+  static GPUd() void findPeaksScratchPad(const uchar*, const ushort, const int, int, ulong*);
 
   static GPUd() void findMinima(const Array2D<PackedCharge>&, const ChargePos&, const float, const float, ulong*, ulong*);
 
-  static GPUd() ulong findPeaks(const Array2D<uchar>&, const ChargePos&, bool);
+  static GPUd() ulong findPeaks(const Array2D<uchar>&, const ChargePos&);
 
   static GPUd() bool keepPeak(ulong, ulong);
 
-  static GPUd() void findMinimaAndPeaksScratchpad(const Array2D<PackedCharge>&, const Array2D<uchar>&, float, const ChargePos&, GPUsharedref() ChargePos*, GPUsharedref() PackedCharge*, ulong*, ulong*, ulong*);
+  static GPUd() void findMinimaAndPeaksScratchpad(const Array2D<PackedCharge>&, const Array2D<uchar>&, float, const ChargePos&, ChargePos*, PackedCharge*, ulong*, ulong*, ulong*);
 };
 
 } // namespace gpu
