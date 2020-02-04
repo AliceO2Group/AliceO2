@@ -52,9 +52,15 @@ template <typename T, typename ARRAY>
 Status doGrouping(std::shared_ptr<ChunkedArray> chunkedArray, Datum* outputRanges)
 {
   TableBuilder builder;
-  auto writer = builder.persist<uint64_t, uint64_t>({"start", "count"});
-  T currentIndex = std::static_pointer_cast<ARRAY>(chunkedArray->chunk(0))->raw_values()[0];
+  auto writer = builder.persist<uint64_t, uint64_t, uint64_t>({"start", "count", "index"});
+  auto chunk = std::static_pointer_cast<ARRAY>(chunkedArray->chunk(0));
+  if (chunk->length() == 0) {
+    *outputRanges = std::move(builder.finalize());
+    return arrow::Status::OK();
+  }
+  T currentIndex = chunk->raw_values()[0];
   T currentCount = 0;
+  T currentOffset = 0;
   for (size_t ci = 0; ci < chunkedArray->num_chunks(); ++ci) {
     auto chunk = chunkedArray->chunk(ci);
     T const* data = std::static_pointer_cast<ARRAY>(chunk)->raw_values();
@@ -62,13 +68,14 @@ Status doGrouping(std::shared_ptr<ChunkedArray> chunkedArray, Datum* outputRange
       if (currentIndex == data[ai]) {
         currentCount++;
       } else if (currentIndex != -1) {
-        writer(0, currentIndex, currentCount);
+        writer(0, currentOffset, currentCount, currentIndex);
         currentIndex = data[ai];
+        currentOffset += currentCount;
         currentCount = 1;
       }
     }
   }
-  writer(0, currentIndex, currentCount);
+  writer(0, currentOffset, currentCount, currentIndex);
   *outputRanges = std::move(builder.finalize());
   return arrow::Status::OK();
 }
@@ -96,7 +103,8 @@ Status SortedGroupByKernel::Call(FunctionContext* ctx, Datum const& inputTable, 
 
 /// Slice a given table is a vector of tables each containing a slice.
 arrow::Status sliceByColumn(FunctionContext* context, std::string const& key,
-                            Datum const& inputTable, std::vector<Datum>* outputSlices)
+                            Datum const& inputTable, std::vector<Datum>* outputSlices,
+                            std::vector<uint64_t>* offsets)
 {
   if (inputTable.kind() != Datum::TABLE) {
     return Status::Invalid("Input Datum was not a table");
@@ -108,6 +116,9 @@ arrow::Status sliceByColumn(FunctionContext* context, std::string const& key,
   ARROW_RETURN_NOT_OK(groupBy.Call(context, inputTable, &outRanges));
   auto ranges = util::get<std::shared_ptr<arrow::Table>>(outRanges.value);
   outputSlices->reserve(ranges->num_rows());
+  if (offsets) {
+    offsets->reserve(ranges->num_rows());
+  }
 
   auto startChunks = ranges->column(0)->data();
   assert(startChunks->num_chunks() == 1);
@@ -127,6 +138,9 @@ arrow::Status sliceByColumn(FunctionContext* context, std::string const& key,
       slicedColumns.emplace_back(table->column(ci)->Slice(start, count));
     }
     outputSlices->emplace_back(Datum(arrow::Table::Make(table->schema(), slicedColumns)));
+    if (offsets) {
+      offsets->emplace_back(start);
+    }
   }
   return arrow::Status::OK();
 }
