@@ -50,9 +50,7 @@ class Detector : public o2::base::DetImpl<Detector>
     kGraphite = 14
   };
 
-  Detector() = default;
-
-  Detector(Bool_t active);
+  Detector(Bool_t active = true);
 
   ~Detector() override = default;
 
