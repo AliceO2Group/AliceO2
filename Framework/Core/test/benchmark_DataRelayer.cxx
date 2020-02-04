@@ -107,7 +107,8 @@ static void BM_RelaySingleSlot(benchmark::State& state)
     assert(ready[0].slot.index == 0);
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
     auto result = relayer.getInputsForTimeslice(ready[0].slot);
-    assert(result.size() == 2);
+    assert(result.size() == 1);
+    assert(result.at(0).size() == 1);
   }
   // One for the header, one for the payload
 }
@@ -157,7 +158,8 @@ static void BM_RelayMultipleSlots(benchmark::State& state)
     assert(ready.size() == 1);
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
     auto result = relayer.getInputsForTimeslice(ready[0].slot);
-    assert(result.size() == 2);
+    assert(result.size() == 1);
+    assert(result.at(0).size() == 1);
   }
   // One for the header, one for the payload
 }
@@ -228,7 +230,9 @@ static void BM_RelayMultipleRoutes(benchmark::State& state)
     assert(ready.size() == 1);
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
     auto result = relayer.getInputsForTimeslice(ready[0].slot);
-    assert(result.size() == 4);
+    assert(result.size() == 2);
+    assert(result.at(0).size() == 1);
+    assert(result.at(1).size() == 1);
   }
   // One for the header, one for the payload
 }

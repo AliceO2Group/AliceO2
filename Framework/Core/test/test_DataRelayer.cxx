@@ -65,8 +65,9 @@ BOOST_AUTO_TEST_CASE(TestNoWait)
   BOOST_CHECK_EQUAL(ready[0].slot.index, 0);
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
   auto result = relayer.getInputsForTimeslice(ready[0].slot);
-  // One for the header, one for the payload
-  BOOST_REQUIRE_EQUAL(result.size(), 2);
+  // one MessageSet with one PartRef with header and payload
+  BOOST_REQUIRE_EQUAL(result.size(), 1);
+  BOOST_REQUIRE_EQUAL(result.at(0).size(), 1);
 }
 
 //
@@ -104,8 +105,9 @@ BOOST_AUTO_TEST_CASE(TestNoWaitMatcher)
   BOOST_CHECK_EQUAL(ready[0].slot.index, 0);
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
   auto result = relayer.getInputsForTimeslice(ready[0].slot);
-  // One for the header, one for the payload
-  BOOST_REQUIRE_EQUAL(result.size(), 2);
+  // one MessageSet with one PartRef with header and payload
+  BOOST_REQUIRE_EQUAL(result.size(), 1);
+  BOOST_REQUIRE_EQUAL(result.at(0).size(), 1);
 }
 
 // This test a more complicated set of inputs, and verifies that data is
@@ -171,8 +173,10 @@ BOOST_AUTO_TEST_CASE(TestRelay)
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
 
   auto result = relayer.getInputsForTimeslice(ready[0].slot);
-  // One for the header, one for the payload, for two inputs.
-  BOOST_REQUIRE_EQUAL(result.size(), 4);
+  // two MessageSets, each with one PartRef
+  BOOST_REQUIRE_EQUAL(result.size(), 2);
+  BOOST_REQUIRE_EQUAL(result.at(0).size(), 1);
+  BOOST_REQUIRE_EQUAL(result.at(1).size(), 1);
 }
 
 // This test a more complicated set of inputs, and verifies that data is
@@ -313,8 +317,8 @@ BOOST_AUTO_TEST_CASE(TestCache)
   auto result1 = relayer.getInputsForTimeslice(ready[0].slot);
   auto result2 = relayer.getInputsForTimeslice(ready[1].slot);
   // One for the header, one for the payload
-  BOOST_REQUIRE_EQUAL(result1.size(), 2);
-  BOOST_REQUIRE_EQUAL(result2.size(), 2);
+  BOOST_REQUIRE_EQUAL(result1.size(), 1);
+  BOOST_REQUIRE_EQUAL(result2.size(), 1);
 }
 
 // This the any policy. Even when there are two inputs, given the any policy

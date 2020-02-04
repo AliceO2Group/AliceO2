@@ -76,8 +76,7 @@ class DataRelayer
   /// Returns an input registry associated to the given timeslice and gives
   /// ownership to the caller. This is because once the inputs are out of the
   /// DataRelayer they need to be deleted once the processing is concluded.
-  std::vector<std::unique_ptr<FairMQMessage>>
-    getInputsForTimeslice(TimesliceSlot id);
+  std::vector<MessageSet> getInputsForTimeslice(TimesliceSlot id);
 
   /// Returns the index of the arguments which have to be forwarded to
   /// the next processor
