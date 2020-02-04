@@ -18,3 +18,7 @@ o2_add_executable(correlations-collection
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore
                   COMPONENT_NAME Analysis)
                   
+o2_add_executable(vertexing-hf
+	  	  SOURCES vertexerhf.cxx
+		  PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase 
+	          COMPONENT_NAME Analysis)
