@@ -14,7 +14,7 @@ o2_add_library(Device
                                      O2::Headers ms_gsl::ms_gsl
                                      AliceO2::Monitoring)
 
-o2_add_test(O2Device
-            SOURCES test/test_O2Device.cxx
-            PUBLIC_LINK_LIBRARIES O2::Device
-            COMPONENT_NAME Device)
+#o2_add_test(O2Device
+#            SOURCES test/test_O2Device.cxx
+#            PUBLIC_LINK_LIBRARIES O2::Device
+#            COMPONENT_NAME Device)
