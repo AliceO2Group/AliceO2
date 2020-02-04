@@ -137,6 +137,9 @@ class branchIterator
         case arrow::Type::type::INT64:
           leaflist = col->name() + "/L";
           break;
+        default:
+          LOG(FATAL) << "Type not handled: " << dt << std::endl;
+          break;
       }
 
       br = tree->Branch(brn, dbuf, leaflist.c_str());
@@ -181,6 +184,9 @@ class branchIterator
       case arrow::Type::type::INT64:
         vL = (Long64_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int64Type>>(chs.at(ib))->raw_values();
         v = (void*)vL;
+        break;
+      default:
+        LOG(FATAL) << "Type not handled: " << dt << std::endl;
         break;
     }
     br->SetAddress(v);
@@ -264,6 +270,10 @@ class branchIterator
           break;
         case arrow::Type::type::INT64:
           v = (void*)vL++;
+          break;
+        default:
+          LOG(FATAL) << "Type not handled: " << dt << std::endl;
+          v = 0;
           break;
       }
     }
