@@ -51,4 +51,4 @@ o2_target_root_dictionary(MFTBase
                                   include/MFTBase/HalfCone.h
                                   include/MFTBase/PowerSupplyUnit.h
                                   include/MFTBase/Barrel.h
-                                  include/MFTBase/Barrel.h )
+                                  include/MFTBase/PatchPanel.h )
