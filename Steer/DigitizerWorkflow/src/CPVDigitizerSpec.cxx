@@ -164,6 +164,7 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
   timer.Stop();
   LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
 
+  pc.services().get<o2::framework::ControlService>().endOfStream();
   // we should be only called once; tell DPL that this process is ready to exit
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   mFinished = true;

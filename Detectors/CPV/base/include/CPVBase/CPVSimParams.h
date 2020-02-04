@@ -43,7 +43,7 @@ struct CPVSimParams : public o2::conf::ConfigurableParamHelper<CPVSimParams> {
   float mADCWidth = 0.005;          ///< Widht of ADC channel used for energy digitization
   float mNoise = 0.03;              ///<  charge noise in one pad
   float mCoeffToNanoSecond = 1.e+9; ///< Conversion for time units
-  float mSortingDelta = 10.;        ///< used in sorting clusters
+  float mSortingDelta = 0.1;        ///< used in sorting clusters inverse sorting band in cm
 
   //Parameters used in clusterization
   float mDigitMinEnergy = 0.005;      ///< Minimal amplitude of a digit to be used in cluster
@@ -53,10 +53,9 @@ struct CPVSimParams : public o2::conf::ConfigurableParamHelper<CPVSimParams> {
   float mLocalMaximumCut = 0.030;     ///< Threshold to separate local maxima
   float mLogWeight = 4.5;             ///< weight in cluster center of gravity calculation
   int mNMaxIterations = 10;           ///< Maximal number of iterations in unfolding procedure
-  int mNLMMax = 10;                   ///< maximal number of local maxima per cluster
   bool mUnfoldClusters = false;       ///< Perform cluster unfolding?
 
-  inline float CellWr() const { return mPadSizeX / 2.; } ///<  Distance between wires (2 wires above 1 pad)
+  inline float CellWr() const { return 0.5 * mPadSizeX; } ///<  Distance between wires (2 wires above 1 pad)
 
   O2ParamDef(CPVSimParams, "CPVSimParams");
 };

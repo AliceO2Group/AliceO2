@@ -47,20 +47,14 @@ bool Cluster::operator>(const Cluster& other) const
 {
   // Compares two Clusters according to their position in the CPV modules
 
-  char cpvmod1 = getModule();
-  char cpvmod2 = other.getModule();
-  if (cpvmod1 != cpvmod2) {
-    return cpvmod1 > cpvmod2;
+  if (mModule != other.mModule) {
+    return mModule > other.mModule;
   }
 
-  float posX, posZ;
-  getLocalPosition(posX, posZ);
-  float posOtherX, posOtherZ;
-  other.getLocalPosition(posOtherX, posOtherZ);
-  int rowdifX = (int)std::ceil(posX / o2::cpv::CPVSimParams::Instance().mSortingDelta) -
-                (int)std::ceil(posOtherX / o2::cpv::CPVSimParams::Instance().mSortingDelta);
+  int rowdifX = (int)std::ceil(mLocalPosX * o2::cpv::CPVSimParams::Instance().mSortingDelta) -
+                (int)std::ceil(other.mLocalPosX * o2::cpv::CPVSimParams::Instance().mSortingDelta);
   if (rowdifX == 0) {
-    return posZ < posOtherZ;
+    return mLocalPosZ < other.mLocalPosZ;
   } else {
     return rowdifX < 0;
   }

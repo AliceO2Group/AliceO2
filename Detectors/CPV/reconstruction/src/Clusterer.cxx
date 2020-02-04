@@ -14,11 +14,11 @@
 
 #include "CPVReconstruction/Clusterer.h" // for LOG
 #include "CPVBase/Geometry.h"
-#include "CPVBase/CPVSimParams.h"
 #include "DataFormatsCPV/Cluster.h"
 #include "CPVReconstruction/FullCluster.h"
 #include "DataFormatsCPV/Digit.h"
 #include "CCDB/CcdbApi.h"
+#include "CPVBase/CPVSimParams.h"
 
 #include "FairLogger.h" // for LOG
 
@@ -40,7 +40,8 @@ void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRe
 {
   clusters->clear(); //final out list of clusters
   trigRec->clear();
-  cluMC->clear();
+  if (cluMC)
+    cluMC->clear();
 
   for (const auto& tr : dtr) {
     mFirstDigitInEvent = tr.getFirstEntry();
@@ -170,7 +171,7 @@ void Clusterer::makeUnfoldings(gsl::span<const Digit> digits)
 {
   //Split cluster if several local maxima are found
 
-  std::vector<int> maxAt(o2::cpv::CPVSimParams::Instance().mNLMMax); // NLMMax:Maximal number of local maxima
+  std::array<int, mNLMMax> maxAt; // NLMMax:Maximal number of local maxima
 
   int numberOfNotUnfolded = mClusters.size();
 
@@ -201,21 +202,23 @@ void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> 
   // Take initial cluster and calculate local coordinates of digits
   // To avoid multiple re-calculation of same parameters
   char mult = iniClu.getMultiplicity();
-  std::vector<std::vector<float>> eInClusters(mult, std::vector<float>(nMax));
-  std::vector<std::vector<float>> fij(mult, std::vector<float>(nMax));
+  if (meInClusters.capacity() < mult) {
+    meInClusters.reserve(mult);
+    mfij.reserve(mult);
+  }
 
   const std::vector<FullCluster::CluElement>* cluElist = iniClu.getElementList();
 
   // Coordinates of centers of clusters
-  std::vector<float> xMax(nMax);
-  std::vector<float> zMax(nMax);
-  std::vector<float> eMax(nMax);
-  std::vector<float> deNew(nMax);
+  std::array<float, mNLMMax> xMax;
+  std::array<float, mNLMMax> zMax;
+  std::array<float, mNLMMax> eMax;
+  std::array<float, mNLMMax> deNew;
 
   //transient variables
-  std::vector<float> a(nMax);
-  std::vector<float> b(nMax);
-  std::vector<float> c(nMax);
+  std::array<float, mNLMMax> a;
+  std::array<float, mNLMMax> b;
+  std::array<float, mNLMMax> c;
 
   for (int iclu = 0; iclu < nMax; iclu++) {
     xMax[iclu] = (*cluElist)[digitId[iclu]].localX;
@@ -223,21 +226,21 @@ void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> 
     eMax[iclu] = 2. * (*cluElist)[digitId[iclu]].energy;
   }
 
-  std::vector<float> prop(nMax); // proportion of clusters in the current digit
+  std::array<float, mNLMMax> prop; // proportion of clusters in the current digit
 
   // Try to decompose cluster to contributions
   int nIterations = 0;
   bool insuficientAccuracy = true;
   while (insuficientAccuracy && nIterations < o2::cpv::CPVSimParams::Instance().mNMaxIterations) {
     insuficientAccuracy = false; // will be true if at least one parameter changed too much
-    a.clear();
-    b.clear();
-    c.clear();
+    std::memset(&a, 0, sizeof a);
+    std::memset(&b, 0, sizeof b);
+    std::memset(&c, 0, sizeof c);
     //First calculate shower shapes
     for (int idig = 0; idig < mult; idig++) {
       auto it = (*cluElist)[idig];
       for (int iclu = 0; iclu < nMax; iclu++) {
-        fij[idig][iclu] = responseShape(it.localX - xMax[iclu], it.localZ - zMax[iclu]);
+        mfij[idig][iclu] = responseShape(it.localX - xMax[iclu], it.localZ - zMax[iclu]);
       }
     }
 
@@ -245,12 +248,12 @@ void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> 
     for (int idig = 0; idig < mult; idig++) {
       auto it = (*cluElist)[idig];
       for (int iclu = 0; iclu < nMax; iclu++) {
-        a[iclu] += fij[idig][iclu] * fij[idig][iclu];
-        b[iclu] += it.energy * fij[idig][iclu];
+        a[iclu] += mfij[idig][iclu] * mfij[idig][iclu];
+        b[iclu] += it.energy * mfij[idig][iclu];
         for (int kclu = 0; kclu < nMax; kclu++) {
           if (iclu == kclu)
             continue;
-          c[iclu] += eMax[kclu] * fij[idig][iclu] * fij[idig][kclu];
+          c[iclu] += eMax[kclu] * mfij[idig][iclu] * mfij[idig][kclu];
         }
       }
     }
@@ -269,7 +272,7 @@ void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> 
     for (int idig = 0; idig < mult; idig++) {
       float eEstimated = 0;
       for (int iclu = 0; iclu < nMax; iclu++) {
-        prop[iclu] = eMax[iclu] * fij[idig][iclu];
+        prop[iclu] = eMax[iclu] * mfij[idig][iclu];
         eEstimated += prop[iclu];
       }
       if (eEstimated == 0.) { // numerical accuracy
@@ -277,7 +280,7 @@ void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> 
       }
       // Split energy of digit according to contributions
       for (int iclu = 0; iclu < nMax; iclu++) {
-        eInClusters[idig][iclu] = (*cluElist)[idig].energy * prop[iclu] / eEstimated;
+        meInClusters[idig][iclu] = (*cluElist)[idig].energy * prop[iclu] / eEstimated;
       }
     }
 
@@ -288,15 +291,15 @@ void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> 
       // full energy, need for weight
       float eTotNew = 0;
       for (int idig = 0; idig < mult; idig++) {
-        eTotNew += eInClusters[idig][iclu];
+        eTotNew += meInClusters[idig][iclu];
       }
       xMax[iclu] = 0;
       zMax[iclu] = 0.;
       float wtot = 0.;
       for (int idig = 0; idig < mult; idig++) {
-        if (eInClusters[idig][iclu] > 0) {
+        if (meInClusters[idig][iclu] > 0) {
           // In unfolding it is better to use linear weight to reduce contribution of unfolded tails
-          float w = eInClusters[idig][iclu] / eTotNew;
+          float w = meInClusters[idig][iclu] / eTotNew;
           // float w = std::max(std::log(eInClusters[idig][iclu] / eTotNew) + o2::cpv::CPVSimParams::Instance().mLogWeight, float(0.));
           xMax[iclu] += (*cluElist)[idig].localX * w;
           zMax[iclu] += (*cluElist)[idig].localZ * w;
@@ -321,7 +324,7 @@ void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> 
     clu.setNExMax(nMax);
     int idig = 0;
     for (int idig = 0; idig < mult; idig++) {
-      float eDigit = eInClusters[idig][iclu];
+      float eDigit = meInClusters[idig][iclu];
       idig++;
       if (eDigit < o2::cpv::CPVSimParams::Instance().mDigitMinEnergy) {
         continue;

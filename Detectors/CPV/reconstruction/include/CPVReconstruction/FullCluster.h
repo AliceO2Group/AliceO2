@@ -61,8 +61,6 @@ class FullCluster : public Cluster
 
  protected:
   void evalLocalPosition(); // computes the position in the CPV module
-                            // Binary search implementation
-  std::vector<Digit>::const_iterator BinarySearch(const std::vector<Digit>* container, Digit& element);
 
  private:
   std::vector<CluElement> mElementList; //!  Transient Array of digits

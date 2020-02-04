@@ -88,7 +88,7 @@ void Geometry::absIdToRelPosInModule(short absId, float& x, float& z)
   absToRelNumbering(absId, relid);
 
   x = (relid[1] - kNumberOfCPVPadsPhi / 2 - 0.5) * kCPVPadSizePhi;
-  z = (relid[2] - kNumberOfCPVPadsPhi / 2 - 0.5) * kCPVPadSizeZ;
+  z = (relid[2] - kNumberOfCPVPadsZ / 2 - 0.5) * kCPVPadSizeZ;
 }
 bool Geometry::relToAbsNumbering(const short* relId, short& absId)
 {

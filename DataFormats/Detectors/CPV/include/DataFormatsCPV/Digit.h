@@ -111,7 +111,7 @@ class Digit : public DigitBase
   int mLabel = -1;      ///< Index of the corresponding entry/entries in the MC label array
   float mAmplitude = 0; ///< Amplitude
 
-  ClassDefNV(Digit, 1);
+  ClassDefNV(Digit, 2);
 };
 
 std::ostream& operator<<(std::ostream& stream, const Digit& dig);

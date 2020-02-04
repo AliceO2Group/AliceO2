@@ -128,34 +128,6 @@ void FullCluster::evalLocalPosition()
 }
 
 //____________________________________________________________________________
-std::vector<Digit>::const_iterator FullCluster::BinarySearch(const std::vector<Digit>* container, Digit& element)
-{
-  const std::vector<Digit>::const_iterator endIt = container->end();
-
-  std::vector<Digit>::const_iterator left = container->begin();
-  std::vector<Digit>::const_iterator right = endIt;
-
-  if (container->size() == 0 || container->front() > element || container->back() < element) {
-    return endIt;
-  }
-
-  while (distance(left, right) > 0) {
-    const std::vector<Digit>::const_iterator mid = left + distance(left, right) / 2;
-
-    if (element > *mid) {
-      left = mid + 1;
-    } else {
-      right = mid;
-    }
-  }
-
-  if (*right == element) {
-    return right;
-  }
-
-  return endIt;
-}
-//____________________________________________________________________________
 char FullCluster::getNumberOfLocalMax(gsl::span<int> maxAt) const
 {
   // Calculates the number of local maxima in the cluster using LocalMaxCut as the minimum
@@ -172,9 +144,9 @@ char FullCluster::getNumberOfLocalMax(gsl::span<int> maxAt) const
       isLocalMax[i] = false;
     }
   }
-  for (int i = 0; i < mMulDigit; i++) {
+  for (int i = mMulDigit; i--;) {
 
-    for (int j = i + 1; j < mMulDigit; j++) {
+    for (int j = i; j--;) {
 
       if (Geometry::areNeighbours(mElementList[i].absId, mElementList[j].absId) == 1) {
         if (mElementList[i].energy > mElementList[j].energy) {
@@ -195,11 +167,11 @@ char FullCluster::getNumberOfLocalMax(gsl::span<int> maxAt) const
   }     // digit i
 
   int iDigitN = 0;
-  for (int i = 0; i < mMulDigit; i++) {
+  for (int i = mMulDigit; i--;) {
     if (isLocalMax[i]) {
       maxAt[iDigitN] = i;
       iDigitN++;
-      if (iDigitN >= o2::cpv::CPVSimParams::Instance().mNLMMax) { // Note that size of output arrays is limited:
+      if (iDigitN >= maxAt.size()) { // Note that size of output arrays is limited:
         LOG(ERROR) << "Too many local maxima, cluster multiplicity " << mMulDigit;
         return 0;
       }

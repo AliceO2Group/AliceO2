@@ -44,7 +44,7 @@ class CalibParams
   /// \brief Get High Gain energy calibration coefficients
   /// \param cellID Absolute ID of cell
   /// \return high gain energy calibration coefficient of the cell
-  float getGain(short cellID) const { return mGainCalib.at(cellID); }
+  float getGain(short cellID) const { return mGainCalib[cellID]; }
 
   /// \brief Set High Gain energy calibration coefficient
   /// \param cellID Absolute ID of cell

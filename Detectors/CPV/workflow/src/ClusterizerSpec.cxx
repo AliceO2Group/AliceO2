@@ -54,6 +54,7 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
     ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERTRUEMC", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
   }
   LOG(INFO) << "Finished ";
+  ctx.services().get<o2::framework::ControlService>().endOfStream();
   ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
 }
 
