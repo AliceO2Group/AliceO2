@@ -25,6 +25,7 @@
 #include <Monitoring/Monitoring.h>
 
 #include <gsl/span>
+#include <numeric>
 #include <string>
 
 using namespace o2::framework::data_matcher;
@@ -464,13 +465,12 @@ std::vector<DataRelayer::RecordAction> DataRelayer::getReadyToProcess()
   return completionResults();
 }
 
-std::vector<std::unique_ptr<FairMQMessage>>
-  DataRelayer::getInputsForTimeslice(TimesliceSlot slot)
+std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(TimesliceSlot slot)
 {
   const auto numInputTypes = mDistinctRoutesIndex.size();
   // State of the computation
-  std::vector<std::unique_ptr<FairMQMessage>> messages;
-  messages.reserve(numInputTypes * 2);
+  std::vector<MessageSet> messages;
+  messages.reserve(numInputTypes);
   auto& cache = mCache;
   auto& index = mTimesliceIndex;
   auto& metrics = mMetrics;
@@ -492,8 +492,7 @@ std::vector<std::unique_ptr<FairMQMessage>>
     // TODO: in the original implementation of the cache, there have been only two messages per entry,
     // check if the 2 above corresponds to the number of messages.
     if (cache[cacheId].size() > 0) {
-      messages.emplace_back(std::move(cache[cacheId].at(0).header));
-      messages.emplace_back(std::move(cache[cacheId].at(0).payload));
+      messages.emplace_back(std::move(cache[cacheId]));
     }
     index.markAsInvalid(s);
   };
@@ -504,8 +503,7 @@ std::vector<std::unique_ptr<FairMQMessage>>
   // FIXME: what happens when we have enough timeslices to hit the invalid one?
   auto invalidateCacheFor = [&numInputTypes, &index, &cache](TimesliceSlot s) {
     for (size_t ai = s.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
-      assert(cache[ai].size() == 0 || cache[ai].at(0).header.get() == nullptr);
-      assert(cache[ai].size() == 0 || cache[ai].at(0).payload.get() == nullptr);
+      assert(std::accumulate(cache[ai].begin(), cache[ai].end(), true, [](bool result, auto const& element) { return result && element.header.get() == nullptr && element.payload.get() == nullptr; }));
       cache[ai].clear();
     }
     index.markAsInvalid(s);
