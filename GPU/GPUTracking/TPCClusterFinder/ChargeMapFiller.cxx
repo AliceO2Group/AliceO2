@@ -19,7 +19,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::deprecated;
 
 GPUd() void ChargeMapFiller::fillChargeMapImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
-                                               GPUglobalref() const Digit* digits,
+                                               const Digit* digits,
                                                Array2D<PackedCharge>& chargeMap,
                                                size_t maxDigit)
 {
@@ -33,7 +33,7 @@ GPUd() void ChargeMapFiller::fillChargeMapImpl(int nBlocks, int nThreads, int iB
 }
 
 GPUd() void ChargeMapFiller::resetMapsImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
-                                           GPUglobalref() const Digit* digits,
+                                           const Digit* digits,
                                            Array2D<PackedCharge>& chargeMap,
                                            Array2D<uchar>& isPeakMap)
 {

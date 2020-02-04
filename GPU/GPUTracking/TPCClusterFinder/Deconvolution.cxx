@@ -22,7 +22,7 @@ using namespace GPUCA_NAMESPACE::gpu::deprecated;
 GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
                                           const Array2D<uchar>& peakMap,
                                           Array2D<PackedCharge>& chargeMap,
-                                          GPUglobalref() const Digit* digits,
+                                          const Digit* digits,
                                           const uint digitnum)
 {
   size_t idx = get_global_id(0);
@@ -77,7 +77,7 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
   }
   GPUbarrier();
 
-  CfUtils::condBlockLoad(
+  CfUtils::condBlockLoad<uchar, true>(
     peakMap,
     in5x5,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -87,8 +87,7 @@ GPUd() void Deconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock,
     CfConsts::OuterNeighbors,
     smem.count.posBcast1,
     smem.count.aboveThresholdBcast,
-    smem.count.buf,
-    CfUtils::innerAboveThresholdInv);
+    smem.count.buf);
 
   if (partId < in5x5) {
     peakCount = countPeaksScratchpadOuter(partId, 0, aboveThreshold, smem.count.buf);
@@ -147,7 +146,7 @@ GPUd() char Deconvolution::countPeaksAroundDigit(
 
 GPUd() char Deconvolution::countPeaksScratchpadInner(
   ushort ll,
-  GPUsharedref() const uchar* isPeak,
+  const uchar* isPeak,
   uchar* aboveThreshold)
 {
   char peaks = 0;
@@ -164,7 +163,7 @@ GPUd() char Deconvolution::countPeaksScratchpadOuter(
   ushort ll,
   ushort offset,
   uchar aboveThreshold,
-  GPUsharedref() const uchar* isPeak)
+  const uchar* isPeak)
 {
   char peaks = 0;
   for (uchar i = 0; i < 16; i++) {
