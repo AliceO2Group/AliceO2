@@ -44,10 +44,10 @@ class VertexerTraitsHIP : public VertexerTraits
  public:
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   VertexerTraitsHIP();
-  virtual ~VertexerTraitsHIP();
+  ~VertexerTraitsHIP();
 #else
   VertexerTraitsHIP();
-  virtual ~VertexerTraitsHIP() = default;
+  ~VertexerTraitsHIP() = default;
 #endif
   void initialise(ROframe*) override;
   void computeTracklets() override;

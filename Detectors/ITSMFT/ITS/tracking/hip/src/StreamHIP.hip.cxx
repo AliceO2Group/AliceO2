@@ -26,7 +26,7 @@ StreamHIP::StreamHIP()
   (void)hipStreamCreateWithFlags(&mStream, hipStreamNonBlocking);
 }
 
-StreamHIP::~StreamHIP()
+StreamHIP::~StreamHIP() // NOLINT: clang-tidy doesn't understand hip macro magic, and thinks this is trivial
 {
   (void)hipStreamDestroy(mStream);
 }
