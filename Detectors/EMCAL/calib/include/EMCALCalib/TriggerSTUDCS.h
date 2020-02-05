@@ -117,7 +117,7 @@ class TriggerSTUDCS
 
 /// \brief Streaming operator
 /// \param in Stream where the STU parameters are printed on
-/// \param tru STU to be printed
+/// \param stu STU to be printed
 /// \return Stream after printing the STU parameters
 std::ostream& operator<<(std::ostream& in, const TriggerSTUDCS& stu);
 

@@ -48,7 +48,7 @@ class RCUTrailer
 
     /// \brief Constructor
     /// \param errtype Code of the error type
-    /// \param Message corresponding error message
+    /// \param message corresponding error message
     ///
     /// Initializing the error with error code and message.
     /// To be called when the exception is raised.

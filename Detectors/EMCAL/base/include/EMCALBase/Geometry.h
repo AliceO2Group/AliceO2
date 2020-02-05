@@ -45,7 +45,6 @@ class Geometry
 
   /// \brief Constructor for normal use.
   /// \param name Name of the geometry (see table for options)
-  /// \param title Geometry title
   /// \param mcname Geant3/4, Flukla, needed for settings of transport
   /// \param mctitle Geant4 physics list
   ///
@@ -74,9 +73,8 @@ class Geometry
 
   /// \brief Get instance of the EMCAL geometry
   /// \param name Geometry name (see constructor for definition)
-  /// \param title Geometry title
   /// \param mcname Geant3/4, Fluka, needed for settings of transport
-  /// \param mctitle: Geant4 physics list
+  /// \param mctitle Geant4 physics list
   /// \return the pointer of the unique instance of the geometry
   ///
   /// Also initializes the geometry if
@@ -88,8 +86,8 @@ class Geometry
   /// \brief Instanciate geometry depending on the run number. Mostly used in analysis and MC anchors.
   /// \param runNumber as indicated
   /// \param geoName Geometry name, see constructor for options
-  /// \param mcname: Geant3/4, Fluka, needed for settings of transport (check). Not really needed to be specified.
-  /// \param mctitle:  Geant4 physics list (check). Not really needed to be specified.
+  /// \param mcname Geant3/4, Fluka, needed for settings of transport (check). Not really needed to be specified.
+  /// \param mctitle Geant4 physics list (check). Not really needed to be specified.
   /// \return the pointer of the unique instance
   static Geometry* GetInstanceFromRunNumber(Int_t runNumber, const std::string_view = "",
                                             const std::string_view mcname = "TGeant3",
@@ -133,11 +131,11 @@ class Geometry
   Bool_t Impact(const TParticle* particle) const;
 
   /// \brief Get the impact coordinates on EMCAL
-  /// \param vtx[in] TVector3 with vertex
-  /// \param theta[in] theta location
-  /// \param phi[in] azimuthal angle
-  /// \param absId[out] absolute ID number
-  /// \param vimpact[out] TVector3 of impact coordinates?
+  /// \param[in] vtx TVector3 with vertex
+  /// \param[in] theta theta location
+  /// \param[in] phi azimuthal angle
+  /// \param[out] absId absolute ID number
+  /// \param[out] vimpact TVector3 of impact coordinates?
   ///
   /// Calculates the impact coordinates on EMCAL (centre of a tower/not on EMCAL surface)
   /// of a neutral particle emitted in the vertex vtx[3] with direction theta and phi in
@@ -267,27 +265,26 @@ class Geometry
   //
 
   /// \brief  Figure out the global coordinates from local coordinates on a supermodule.
-  /// \param loc[in] local coordinates (double[3])
-  /// \param glob[out] global coordinates (double[2])
-  /// \param iSM super module number
+  /// \param[in] loc local coordinates (double[3])
+  /// \param[out] glob global coordinates (double[2])
+  /// \param[in] ind super module number
   ///
   /// Use the supermodule alignment.
   void GetGlobal(const Double_t* loc, Double_t* glob, int ind) const;
 
   /// \brief Figure out the global coordinates from local coordinates on a supermodule.
-  /// \param vloc[in] local coordinates
-  /// \param vglob[out] global coordinates
-  /// \param iSM: super module number
+  /// \param[in] vloc local coordinates
+  /// \param[out] vglob global coordinates
+  /// \param[in] ind super module number
   ///
   /// Use the supermodule alignment.
   void GetGlobal(const TVector3& vloc, TVector3& vglob, int ind) const;
 
-  ///
-  /// Figure out the global coordinates of a cell.
+  /// \brief Figure out the global coordinates of a cell.
   /// Use the supermodule alignment. Use double[3].
   ///
-  /// \param absId: cell absolute id. number.
-  /// \param glob: 3-double coordinates, output
+  /// \param absId cell absolute id. number.
+  /// \param glob 3-double coordinates, output
   ///
   void GetGlobal(Int_t absId, Double_t glob[3]) const;
 
@@ -373,23 +370,21 @@ class Geometry
 
   /// \brief Get cell SM, module numbers from absolute ID number
   /// \param absId cell absolute id. number
-  /// \param nSupMod super module number
-  /// \param nModule module number
   /// \return tuple(supermodule ID, module number, index of cell in module in phi, index of cell in module in eta)
   /// \throw InvalidCellIDException
   std::tuple<int, int, int, int> GetCellIndex(Int_t absId) const;
 
   /// \brief Get eta-phi indexes of module in SM
-  /// \param[in] nSupMod: super module number, input
-  /// \param[in] nModule: module number, input
+  /// \param nSupMod super module number, input
+  /// \param nModule module number, input
   /// \return tuple (index in phi direction of module, index in eta direction of module)
   std::tuple<int, int> GetModulePhiEtaIndexInSModule(Int_t nSupMod, Int_t nModule) const;
 
   /// \brief Get eta-phi indexes of cell in SM
-  /// \param nSupMod[in] super module number
-  /// \param nModule[in] module number
-  /// \param nIphi[in] index in phi direction in module
-  /// \param nIeta[in] index in phi direction in module
+  /// \param nSupMod super module number
+  /// \param nModule module number
+  /// \param nIphi index in phi direction in module
+  /// \param nIeta index in phi direction in module
   std::tuple<int, int> GetCellPhiEtaIndexInSModule(Int_t nSupMod, Int_t nModule, Int_t nIphi, Int_t nIeta) const;
 
   /// \brief Adapt cell indices in supermodule to online indexing
@@ -455,8 +450,8 @@ class Geometry
   Int_t GetAbsCellIdFromCellIndexes(Int_t nSupMod, Int_t iphi, Int_t ieta) const;
 
   /// \brief Look to see what the relative position inside a given cell is for a recpoint.
-  /// \param absId[in] cell absolute id. number, input
-  /// \param distEff[in] shower max position? check call in RecPoint!
+  /// \param absId cell absolute id. number, input
+  /// \param distEf shower max position? check call in RecPoint!
   /// \return Point3D with x,y,z coordinates of cell with absId inside SM
   /// \throw InvalidCellIDException if cell ID does not exist
   ///

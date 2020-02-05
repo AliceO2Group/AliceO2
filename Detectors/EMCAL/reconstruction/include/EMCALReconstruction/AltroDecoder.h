@@ -111,12 +111,12 @@ class AltroDecoder
   /// \throw AltroDecoderError with type RCU_TRAILER_ERROR if the RCU trailer was not initialized
   const RCUTrailer& getRCUTrailer() const;
 
-  /// \Get the reference to the channel container
+  /// \brief Get the reference to the channel container
   /// \return Reference to the channel container
   /// \throw AltroDecoderError with CHANNEL_ERROR if the channel container was not initialized for the current event
   const std::vector<Channel>& getChannels() const;
 
-  /// \read RCU trailer for the current event in the raw buffer
+  /// \brief Read RCU trailer for the current event in the raw buffer
   void readRCUTrailer();
 
   /// \brief Read channels for the current event in the raw buffer

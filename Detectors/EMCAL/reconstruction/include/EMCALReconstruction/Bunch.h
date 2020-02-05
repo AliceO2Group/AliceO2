@@ -49,7 +49,7 @@ class Bunch
   /// \brief
   ~Bunch() = default;
 
-  /// \add ADC value to the bunch
+  /// \brief Add ADC value to the bunch
   /// \param adc Next ADC value
   ///
   /// ADC values are stored in reversed order. The next ADC value
@@ -57,7 +57,7 @@ class Bunch
   void addADC(uint16_t adc) { mADC.emplace_back(adc); }
 
   /// \brief Initialize the ADC values in the bunch from a range
-  /// \param ranage Range of ADC values
+  /// \param range Range of ADC values
   ///
   /// The ADC values are stored in reversed order in time. Therefore
   /// the last entry is the one earliest in time.
