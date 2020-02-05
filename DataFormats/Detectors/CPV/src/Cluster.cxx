@@ -31,8 +31,8 @@ bool Cluster::operator<(const Cluster& other) const
   getLocalPosition(posX, posZ);
   float posOtherX, posOtherZ;
   other.getLocalPosition(posOtherX, posOtherZ);
-  int rowdifX = (int)std::ceil(posX / o2::cpv::CPVSimParams::Instance().mSortingDelta) -
-                (int)std::ceil(posOtherX / o2::cpv::CPVSimParams::Instance().mSortingDelta);
+  int rowdifX = (int)std::ceil(posX * o2::cpv::CPVSimParams::Instance().mSortingDelta) -
+                (int)std::ceil(posOtherX * o2::cpv::CPVSimParams::Instance().mSortingDelta);
   if (rowdifX == 0) {
     return posZ > posOtherZ;
   } else {
