@@ -389,8 +389,9 @@ struct AnalysisDataProcessorBuilder {
           arrow::compute::FunctionContext ctx;
           std::vector<arrow::compute::Datum> groupsCollection;
           auto indexColumnName = std::string("f") + groupingMetadata::label() + "ID";
+          std::vector<uint64_t> offsets;
           auto result = o2::framework::sliceByColumn(&ctx, indexColumnName,
-                                                     allGroupedTable.asArrowTable(), &groupsCollection);
+                                                     allGroupedTable.asArrowTable(), &groupsCollection, &offsets);
           if (result.ok() == false) {
             LOGF(ERROR, "Error while splitting second collection");
             return;
@@ -400,18 +401,21 @@ struct AnalysisDataProcessorBuilder {
 
           // FIXME: this assumes every groupingElement has a group associated,
           // which migh not be the case.
+          size_t oi = 0;
           if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Table>::value || is_specialization<std::decay_t<AssociatedType>, o2::soa::Filtered>::value) {
             for (auto& groupedDatum : groupsCollection) {
               auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
-              task.process(groupingElement, AssociatedType{groupedElementsTable});
+              task.process(groupingElement, AssociatedType{groupedElementsTable, offsets[oi]});
               ++const_cast<std::decay_t<Grouping>&>(groupingElement);
+              ++oi;
             }
           } else if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Join>::value || is_specialization<std::decay_t<AssociatedType>, o2::soa::Concat>::value) {
             for (auto& groupedDatum : groupsCollection) {
               auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
-              task.process(groupingElement, AssociatedType{{groupedElementsTable}});
+              task.process(groupingElement, AssociatedType{{groupedElementsTable}, offsets[oi]});
+              ++const_cast<std::decay_t<Grouping>&>(groupingElement);
+              ++oi;
             }
-            ++const_cast<std::decay_t<Grouping>&>(groupingElement);
           }
         } else {
           static_assert(always_static_assert_v<AssociatedType>, "I do not know how to iterate on this");
