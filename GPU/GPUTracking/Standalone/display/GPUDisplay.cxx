@@ -50,6 +50,9 @@
 #include "GPUTPCConvertImpl.h"
 #include "utils/qconfig.h"
 
+constexpr hmm_mat4 MY_HMM_IDENTITY = {{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}}};
+constexpr hmm_mat4 MY_HMM_FROM(float (&v)[16]) { return {{{v[0], v[1], v[2], v[3]}, {v[4], v[5], v[6], v[7]}, {v[8], v[9], v[10], v[11]}, {v[12], v[13], v[14], v[15]}}}; }
+
 using namespace GPUCA_NAMESPACE::gpu;
 
 //#define CHKERR(cmd) {cmd;}
@@ -132,39 +135,39 @@ inline void GPUDisplay::insertVertexList(int iSlice, size_t first, size_t last)
   insertVertexList(vBuf, first, last);
 }
 
-void GPUDisplay::calcXYZ()
+void GPUDisplay::calcXYZ(const float* matrix)
 {
-  mXYZ[0] = -(mCurrentMatrix[0] * mCurrentMatrix[12] + mCurrentMatrix[1] * mCurrentMatrix[13] + mCurrentMatrix[2] * mCurrentMatrix[14]);
-  mXYZ[1] = -(mCurrentMatrix[4] * mCurrentMatrix[12] + mCurrentMatrix[5] * mCurrentMatrix[13] + mCurrentMatrix[6] * mCurrentMatrix[14]);
-  mXYZ[2] = -(mCurrentMatrix[8] * mCurrentMatrix[12] + mCurrentMatrix[9] * mCurrentMatrix[13] + mCurrentMatrix[10] * mCurrentMatrix[14]);
+  mXYZ[0] = -(matrix[0] * matrix[12] + matrix[1] * matrix[13] + matrix[2] * matrix[14]);
+  mXYZ[1] = -(matrix[4] * matrix[12] + matrix[5] * matrix[13] + matrix[6] * matrix[14]);
+  mXYZ[2] = -(matrix[8] * matrix[12] + matrix[9] * matrix[13] + matrix[10] * matrix[14]);
 
-  mAngle[0] = -asinf(mCurrentMatrix[6]); // Invert rotY*rotX*rotZ
+  mAngle[0] = -asinf(matrix[6]); // Invert rotY*rotX*rotZ
   float A = cosf(mAngle[0]);
   if (fabsf(A) > 0.005) {
-    mAngle[1] = atan2f(-mCurrentMatrix[2] / A, mCurrentMatrix[10] / A);
-    mAngle[2] = atan2f(mCurrentMatrix[4] / A, mCurrentMatrix[5] / A);
+    mAngle[1] = atan2f(-matrix[2] / A, matrix[10] / A);
+    mAngle[2] = atan2f(matrix[4] / A, matrix[5] / A);
   } else {
     mAngle[1] = 0;
-    mAngle[2] = atan2f(-mCurrentMatrix[1], -mCurrentMatrix[0]);
+    mAngle[2] = atan2f(-matrix[1], -matrix[0]);
   }
 
   mRPhiTheta[0] = sqrtf(mXYZ[0] * mXYZ[0] + mXYZ[1] * mXYZ[1] + mXYZ[2] * mXYZ[2]);
   mRPhiTheta[1] = atan2f(mXYZ[0], mXYZ[2]);
   mRPhiTheta[2] = atan2f(mXYZ[1], sqrtf(mXYZ[0] * mXYZ[0] + mXYZ[2] * mXYZ[2]));
 
-  createQuaternionFromMatrix(mQuat, mCurrentMatrix);
+  createQuaternionFromMatrix(mQuat, matrix);
 
-  /*float mAngle[1] = -asinf(mCurrentMatrix[2]); //Calculate Y-axis angle - for rotX*rotY*rotZ
+  /*float mAngle[1] = -asinf(matrix[2]); //Calculate Y-axis angle - for rotX*rotY*rotZ
   float C = cosf( angle_y );
   if (fabsf(C) > 0.005) //Gimball lock?
   {
-      mAngle[0]  = atan2f(-mCurrentMatrix[6] / C, mCurrentMatrix[10] / C);
-      mAngle[2]  = atan2f(-mCurrentMatrix[1] / C, mCurrentMatrix[0] / C);
+      mAngle[0]  = atan2f(-matrix[6] / C, matrix[10] / C);
+      mAngle[2]  = atan2f(-matrix[1] / C, matrix[0] / C);
   }
   else
   {
       mAngle[0]  = 0; //set x-angle
-      mAngle[2]  = atan2f(mCurrentMatrix[4], mCurrentMatrix[5]);
+      mAngle[2]  = atan2f(matrix[4], matrix[5]);
   }*/
 }
 
@@ -228,7 +231,7 @@ void GPUDisplay::setAnimationPoint()
     mAnimateVectors[8].emplace_back(0);
   } else { // Quaternions
     float v[4];
-    createQuaternionFromMatrix(v, mCurrentMatrix);
+    createQuaternionFromMatrix(v, mViewMatrixP);
     if (mAnimateVectors[0].size()) {
       mAnimateCloseQuaternion(v, mAnimateVectors[5].back(), mAnimateVectors[6].back(), mAnimateVectors[7].back(), mAnimateVectors[8].back());
     }
@@ -534,11 +537,11 @@ void GPUDisplay::UpdateOffscreenBuffers(bool clean)
     }
   }
   createFB(mMixBuffer, true, true, false);
-  glViewport(0, 0, mRenderwidth, mRenderheight); // Reset The Current Viewport
+  glViewport(0, 0, mRenderwidth, mRenderheight);
   setQuality();
 }
 
-void GPUDisplay::ReSizeGLScene(int width, int height, bool init) // Resize And Initialize The GL Window
+void GPUDisplay::ReSizeGLScene(int width, int height, bool init)
 {
   if (height == 0) { // Prevent A Divide By Zero By
     height = 1;      // Making Height Equal One
@@ -547,19 +550,10 @@ void GPUDisplay::ReSizeGLScene(int width, int height, bool init) // Resize And I
   mScreenheight = height;
   UpdateOffscreenBuffers();
 
-  glMatrixMode(GL_PROJECTION); // Select The Projection Matrix
-  glLoadIdentity();
-  gluPerspective(45.0f, (GLfloat)width / (GLfloat)height, 0.1f, 1000.0f);
-
-  glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
   if (init) {
     mResetScene = 1;
-    glLoadIdentity();
-  } else {
-    glLoadMatrixf(mCurrentMatrix);
+    mViewMatrix = MY_HMM_IDENTITY;
   }
-
-  glGetFloatv(GL_MODELVIEW_MATRIX, mCurrentMatrix);
 }
 
 void GPUDisplay::updateConfig()
@@ -1075,7 +1069,7 @@ int GPUDisplay::DrawGLScene(bool mixAnimation, float mAnimateTime)
   return (0);
 }
 
-int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // Here's Where We Do All The Drawing
+int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
 {
   bool showTimer = false;
 
@@ -1085,7 +1079,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
   }
 
   // Extract global cluster information
-  if (mUpdateDLList || mResetScene) {
+  if (!mixAnimation && (mUpdateDLList || mResetScene)) {
     showTimer = true;
     mTimerDraw.ResetStart();
     mCurrentClusters = 0;
@@ -1204,10 +1198,9 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
       CHKERR(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
     }
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear Screen And Depth Buffer
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity(); // Reset The Current Modelview Matrix
   }
 
+  hmm_mat4 nextViewMatrix = MY_HMM_IDENTITY;
   int mMouseWheelTmp = mBackend->mMouseWheel;
   mBackend->mMouseWheel = 0;
   bool lookOrigin = mCamLookOrigin ^ mBackend->mKeys[mBackend->KEY_ALT];
@@ -1219,7 +1212,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
   if (mCfg.drawSlice != -1) {
     scalefactor *= 0.2f;
   }
-  float sqrdist = sqrtf(sqrtf(mCurrentMatrix[12] * mCurrentMatrix[12] + mCurrentMatrix[13] * mCurrentMatrix[13] + mCurrentMatrix[14] * mCurrentMatrix[14]) / GL_SCALE_FACTOR) * 0.8;
+  float sqrdist = sqrtf(sqrtf(mViewMatrixP[12] * mViewMatrixP[12] + mViewMatrixP[13] * mViewMatrixP[13] + mViewMatrixP[14] * mViewMatrixP[14]) / GL_SCALE_FACTOR) * 0.8;
   if (sqrdist < 0.2) {
     sqrdist = 0.2;
   }
@@ -1276,8 +1269,6 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
           CHKERR(glBlitNamedFramebuffer(mMainBufferStack.back(), mMixBuffer.fb_id, 0, 0, mRenderwidth, mRenderheight, 0, 0, mRenderwidth, mRenderheight, GL_COLOR_BUFFER_BIT, GL_NEAREST));
           glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear Screen And Depth Buffer
         }
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity(); // Reset The Current Modelview Matrix
         mixSlaveImage = 1.f - (time - mAnimateVectors[0][mAnimationLastBase]) / (mAnimateVectors[0][base] - mAnimateVectors[0][mAnimationLastBase]);
       }
 
@@ -1290,9 +1281,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
     if (mCfg.animationMode != 6) {
       if (mCfg.animationMode & 1) // Rotation from euler angles
       {
-        glRotatef(-vals[4] * 180.f / M_PI, 1, 0, 0);
-        glRotatef(vals[5] * 180.f / M_PI, 0, 1, 0);
-        glRotatef(-vals[6] * 180.f / M_PI, 0, 0, 1);
+        nextViewMatrix = nextViewMatrix * HMM_Rotate(-vals[4] * 180.f / M_PI, {1, 0, 0}) * HMM_Rotate(vals[5] * 180.f / M_PI, {0, 1, 0}) * HMM_Rotate(-vals[6] * 180.f / M_PI, {0, 0, 1});
       } else { // Rotation from quaternion
         const float mag = sqrtf(vals[4] * vals[4] + vals[5] * vals[5] + vals[6] * vals[6] + vals[7] * vals[7]);
         if (mag < 0.0001) {
@@ -1305,7 +1294,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
 
         float xx = vals[4] * vals[4], xy = vals[4] * vals[5], xz = vals[4] * vals[6], xw = vals[4] * vals[7], yy = vals[5] * vals[5], yz = vals[5] * vals[6], yw = vals[5] * vals[7], zz = vals[6] * vals[6], zw = vals[6] * vals[7];
         float mat[16] = {1 - 2 * (yy + zz), 2 * (xy - zw), 2 * (xz + yw), 0, 2 * (xy + zw), 1 - 2 * (xx + zz), 2 * (yz - xw), 0, 2 * (xz - yw), 2 * (yz + xw), 1 - 2 * (xx + yy), 0, 0, 0, 0, 1};
-        glMultMatrixf(mat);
+        nextViewMatrix = nextViewMatrix * MY_HMM_FROM(mat);
       }
     }
     if (mCfg.animationMode & 4) // Compute cartesian translation from sperical coordinates (euler angles)
@@ -1325,12 +1314,12 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
       }
     }
     if (mCfg.animationMode == 6) {
-      gluLookAt(vals[0], vals[1], vals[2], 0, 0, 0, 0, 1, 0);
+      nextViewMatrix = HMM_LookAt({vals[0], vals[1], vals[2]}, {0, 0, 0}, {0, 1, 0});
     } else {
-      glTranslatef(-vals[0], -vals[1], -vals[2]);
+      nextViewMatrix = nextViewMatrix * HMM_Translate({-vals[0], -vals[1], -vals[2]});
     }
   } else if (mResetScene) {
-    glTranslatef(0, 0, param().ContinuousTracking ? (-mMaxClusterZ / GL_SCALE_FACTOR - 8) : -8);
+    nextViewMatrix = nextViewMatrix * HMM_Translate({0, 0, param().ContinuousTracking ? (-mMaxClusterZ / GL_SCALE_FACTOR - 8) : -8});
 
     mCfg.pointSize = 2.0;
     mCfg.drawSlice = -1;
@@ -1379,7 +1368,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
           mAngleRollOrigin = yUp ? 0. : -mAngle[2];
         }
         mAngleRollOrigin += rotRoll;
-        glRotatef(mAngleRollOrigin, 0, 0, 1);
+        nextViewMatrix = nextViewMatrix * HMM_Rotate(mAngleRollOrigin, {0, 0, 1});
         float tmpX = moveX, tmpY = moveY;
         moveX = tmpX * cosf(mAngle[2]) - tmpY * sinf(mAngle[2]);
         moveY = tmpX * sinf(mAngle[2]) + tmpY * cosf(mAngle[2]);
@@ -1407,26 +1396,24 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
       mXYZ[2] = r2 * sinf(phi);
       mXYZ[1] = r * sinf(theta);
 
-      gluLookAt(mXYZ[0], mXYZ[1], mXYZ[2], 0, 0, 0, 0, 1, 0);
+      nextViewMatrix = HMM_LookAt({mXYZ[0], mXYZ[1], mXYZ[2]}, {0, 0, 0}, {0, 1, 0});
     } else {
-      glTranslatef(moveX, moveY, moveZ);
+      nextViewMatrix = nextViewMatrix * HMM_Translate({moveX, moveY, moveZ});
       if (rotYaw != 0.f) {
-        glRotatef(rotYaw, 0, 1, 0);
+        nextViewMatrix = nextViewMatrix * HMM_Rotate(rotYaw, {0, 1, 0});
       }
       if (rotPitch != 0.f) {
-        glRotatef(rotPitch, 1, 0, 0);
+        nextViewMatrix = nextViewMatrix * HMM_Rotate(rotPitch, {1, 0, 0});
       }
       if (!yUp && rotRoll != 0.f) {
-        glRotatef(rotRoll, 0, 0, 1);
+        nextViewMatrix = nextViewMatrix * HMM_Rotate(rotRoll, {0, 0, 1});
       }
-      glMultMatrixf(mCurrentMatrix); // Apply previous translation / rotation
+
+      nextViewMatrix = nextViewMatrix * mViewMatrix; // Apply previous translation / rotation
 
       if (yUp) {
-        glGetFloatv(GL_MODELVIEW_MATRIX, mCurrentMatrix);
-        calcXYZ();
-        glLoadIdentity();
-        glRotatef(mAngle[2] * 180.f / M_PI, 0, 0, 1);
-        glMultMatrixf(mCurrentMatrix);
+        calcXYZ(&nextViewMatrix.Elements[0][0]);
+        nextViewMatrix = HMM_Rotate(mAngle[2] * 180.f / M_PI, {0, 0, 1}) * nextViewMatrix;
       }
     }
 
@@ -1453,8 +1440,15 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
 
   // Store position
   if (mAnimateTime < 0) {
-    glGetFloatv(GL_MODELVIEW_MATRIX, mCurrentMatrix);
-    calcXYZ();
+    mViewMatrix = nextViewMatrix;
+    calcXYZ(mViewMatrixP);
+  }
+  {
+    glMatrixMode(GL_PROJECTION);
+    hmm_mat4 proj = HMM_Perspective(45.0f, (GLfloat)mScreenwidth / (GLfloat)mScreenheight, 0.1f, 1000.0f);
+    glLoadMatrixf(&proj.Elements[0][0]);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadMatrixf(&nextViewMatrix.Elements[0][0]);
   }
 
   if (mBackend->mMouseDn || mBackend->mMouseDnR) {
@@ -1877,9 +1871,8 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    gluOrtho2D(0.f, mRenderwidth, 0.f, mRenderheight);
+    hmm_mat4 proj = HMM_Orthographic(0.f, mRenderwidth, 0.f, mRenderheight, -1.f, 1.f);
+    glLoadMatrixf(&proj.Elements[0][0]);
     CHKERR(glEnable(GL_TEXTURE_2D));
     glDisable(GL_DEPTH_TEST);
     CHKERR(glBindTexture(GL_TEXTURE_2D, mMixBuffer.fbCol_id));
@@ -1897,7 +1890,6 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
     glColor4f(1, 1, 1, 0);
     CHKERR(glDisable(GL_TEXTURE_2D));
     setDepthBuffer();
-    glPopMatrix();
   }
 
   if (mixAnimation) {
@@ -2035,9 +2027,8 @@ void GPUDisplay::showInfo(const char* info)
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
   glMatrixMode(GL_PROJECTION);
-  glPushMatrix();
-  glLoadIdentity();
-  gluOrtho2D(0.f, mScreenwidth, 0.f, mScreenheight);
+  hmm_mat4 proj = HMM_Orthographic(0.f, mScreenwidth, 0.f, mScreenheight, -1, 1);
+  glLoadMatrixf(&proj.Elements[0][0]);
   glViewport(0, 0, mScreenwidth, mScreenheight);
   float colorValue = mInvertColors ? 0.f : 1.f;
   mBackend->OpenGLPrint(info, 40.f, 40.f, colorValue, colorValue, colorValue, 1);
@@ -2057,7 +2048,6 @@ void GPUDisplay::showInfo(const char* info)
   }
   glColor4f(colorValue, colorValue, colorValue, 0);
   glViewport(0, 0, mRenderwidth, mRenderheight);
-  glPopMatrix();
 }
 
 void GPUDisplay::ShowNextEvent()
