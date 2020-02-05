@@ -84,6 +84,7 @@ class GPUDisplay
 #ifdef GPUCA_DISPLAY_GL3W
 #include <GL/glext.h>
 #endif
+#include "HandMadeMath.h"
 
 #include "utils/timer.h"
 
@@ -242,7 +243,7 @@ class GPUDisplay
     mInfoText2Timer.ResetStart();
   }
   void PrintGLHelpText(float colorValue);
-  void calcXYZ();
+  void calcXYZ(const float*);
   void mAnimationCloseAngle(float& newangle, float lastAngle);
   void mAnimateCloseQuaternion(float* v, float lastx, float lasty, float lastz, float lastw);
   void setAnimationPoint();
@@ -331,7 +332,8 @@ class GPUDisplay
   bool mSeparateGlobalTracks = 0;
   bool mPropagateLoopers = 0;
 
-  GLfloat mCurrentMatrix[16];
+  hmm_mat4 mViewMatrix;
+  float* const mViewMatrixP = &mViewMatrix.Elements[0][0];
   float mXYZ[3];
   float mAngle[3];
   float mRPhiTheta[3];
