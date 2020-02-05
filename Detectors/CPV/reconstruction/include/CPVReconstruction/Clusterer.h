@@ -54,7 +54,7 @@ class Clusterer
   inline bool isBadChannel(short absId) { return (!mBadMap->isChannelGood(absId)); }
 
  protected:
-  static constexpr short mNLMMax = 10; ///< maximal number of local maxima in cluster
+  static constexpr short NLMMax = 10; ///< maximal number of local maxima in cluster
 
   const CalibParams* mCalibParams = nullptr; //! Calibration coefficients
   const BadChannelMap* mBadMap = nullptr;    //! Calibration coefficients
@@ -64,8 +64,8 @@ class Clusterer
   int mLastDigitInEvent;              ///< Range of digits from one event
   std::vector<Digit> mDigits;         ///< vector of trancient digits for cell processing
 
-  std::vector<std::vector<float>> meInClusters = std::vector<std::vector<float>>(10, std::vector<float>(mNLMMax));
-  std::vector<std::vector<float>> mfij = std::vector<std::vector<float>>(10, std::vector<float>(mNLMMax));
+  std::vector<std::vector<float>> meInClusters = std::vector<std::vector<float>>(10, std::vector<float>(NLMMax));
+  std::vector<std::vector<float>> mfij = std::vector<std::vector<float>>(10, std::vector<float>(NLMMax));
 };
 } // namespace cpv
 } // namespace o2

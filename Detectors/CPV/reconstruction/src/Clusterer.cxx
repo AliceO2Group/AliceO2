@@ -171,7 +171,7 @@ void Clusterer::makeUnfoldings(gsl::span<const Digit> digits)
 {
   //Split cluster if several local maxima are found
 
-  std::array<int, mNLMMax> maxAt; // NLMMax:Maximal number of local maxima
+  std::array<int, NLMMax> maxAt; // NLMMax:Maximal number of local maxima
 
   int numberOfNotUnfolded = mClusters.size();
 
@@ -210,15 +210,15 @@ void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> 
   const std::vector<FullCluster::CluElement>* cluElist = iniClu.getElementList();
 
   // Coordinates of centers of clusters
-  std::array<float, mNLMMax> xMax;
-  std::array<float, mNLMMax> zMax;
-  std::array<float, mNLMMax> eMax;
-  std::array<float, mNLMMax> deNew;
+  std::array<float, NLMMax> xMax;
+  std::array<float, NLMMax> zMax;
+  std::array<float, NLMMax> eMax;
+  std::array<float, NLMMax> deNew;
 
   //transient variables
-  std::array<float, mNLMMax> a;
-  std::array<float, mNLMMax> b;
-  std::array<float, mNLMMax> c;
+  std::array<float, NLMMax> a;
+  std::array<float, NLMMax> b;
+  std::array<float, NLMMax> c;
 
   for (int iclu = 0; iclu < nMax; iclu++) {
     xMax[iclu] = (*cluElist)[digitId[iclu]].localX;
@@ -226,7 +226,7 @@ void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> 
     eMax[iclu] = 2. * (*cluElist)[digitId[iclu]].energy;
   }
 
-  std::array<float, mNLMMax> prop; // proportion of clusters in the current digit
+  std::array<float, NLMMax> prop; // proportion of clusters in the current digit
 
   // Try to decompose cluster to contributions
   int nIterations = 0;
