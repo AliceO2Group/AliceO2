@@ -195,6 +195,8 @@ if(BUILD_EVENT_DISPLAY)
     target_sources(GPUTracking PRIVATE display/gl3w/gl3w.c)
     target_compile_definitions(GPUTracking PUBLIC GPUCA_DISPLAY_GL3W)
   endif()
+  target_sources(GPUTracking PRIVATE display/HandMadeMath/HandMadeMathImpl.cxx)
+  target_include_directories(GPUTracking SYSTEM PUBLIC display/HandMadeMath)
 endif()
 
 if(CONFIG_ROOT)

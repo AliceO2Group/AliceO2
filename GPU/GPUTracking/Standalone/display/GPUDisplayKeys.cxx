@@ -356,7 +356,7 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
   } else if (key == 'o') {
     FILE* ftmp = fopen("glpos.tmp", "w+b");
     if (ftmp) {
-      int retval = fwrite(&mCurrentMatrix[0], sizeof(mCurrentMatrix[0]), 16, ftmp);
+      int retval = fwrite(&mViewMatrix, sizeof(mViewMatrix), 1, ftmp);
       if (retval != 16) {
         GPUError("Error writing position to file");
       } else {
@@ -368,14 +368,10 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     }
     SetInfo("Camera position stored to file", 1);
   } else if (key == 'p') {
-    GLfloat tmp[16];
     FILE* ftmp = fopen("glpos.tmp", "rb");
     if (ftmp) {
-      int retval = fread(&tmp[0], sizeof(tmp[0]), 16, ftmp);
-      if (retval == 16) {
-        glMatrixMode(GL_MODELVIEW);
-        glLoadMatrixf(tmp);
-        glGetFloatv(GL_MODELVIEW_MATRIX, mCurrentMatrix);
+      int retval = fread(&mViewMatrix, 1, sizeof(mViewMatrix), ftmp);
+      if (retval == sizeof(mViewMatrix)) {
         GPUInfo("Position read from file");
       } else {
         GPUError("Error reading position from file");
