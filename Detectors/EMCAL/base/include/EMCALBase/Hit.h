@@ -34,13 +34,12 @@ class Hit : public o2::BasicXYZEHit<float>
   ///
   /// \param primary Number of primary particle
   /// \param trackID Index of the track, defined as parent track entering teh EMCAL
-  /// \param parentID ID of the parent primary entering the EMCAL
   /// \param detID ID of the detector segment
   /// \param initialEnergy Energy of the primary particle enering the EMCAL
   /// \param pos Position vector of the point
   /// \param mom Momentum vector for the particle at the point
   /// \param tof Time of the hit
-  /// \param length Length of the segment
+  /// \param eLoss Energy loss
   Hit(Int_t primary, Int_t trackID, Int_t detID, Double_t initialEnergy, const Point3D<float>& pos,
       const Vector3D<float>& mom, Double_t tof, Double_t eLoss)
     : o2::BasicXYZEHit<float>(pos.X(), pos.Y(), pos.Z(), tof, eLoss, trackID, detID),
@@ -64,7 +63,7 @@ class Hit : public o2::BasicXYZEHit<float>
   Hit& operator+=(const Hit& rhs);
 
   /// \brief Creates a new point base on this point but adding the energy loss of the right hand side
-  /// \param
+  /// \param rhs Hit to add to
   /// \return New EMAL point base on this point
   Hit operator+(const Hit& rhs) const;
 

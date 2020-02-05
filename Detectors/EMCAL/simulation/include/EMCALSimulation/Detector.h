@@ -62,8 +62,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   /// \brief Main constructor
   ///
-  /// \param[in] name Name of the detector (EMC)
-  /// \param[in] isActive Switch whether detector is active in simulation
+  /// \param isActive Switch whether detector is active in simulation
   Detector(Bool_t isActive);
 
   /// \brief Destructor
@@ -73,18 +72,18 @@ class Detector : public o2::base::DetImpl<Detector>
   void InitializeO2Detector() override;
 
   /// \brief Processing hit creation in the EMCAL scintillator volume
-  /// \param[in] v Current sensitive volume
+  /// \param v Current sensitive volume
   Bool_t ProcessHits(FairVolume* v = nullptr) final;
 
   /// \brief Add EMCAL hit
-  /// \param trackID[in] Index of the track in the MC stack
-  /// \param primary[in] Index of the primary particle in the MC stack
-  /// \param initialEnergy[in] Energy of the particle entering the EMCAL
-  /// \param detID[in] Index of the detector (cell) for which the hit is created
-  /// \param pos[in] Position vector of the particle at the hit
-  /// \param mom[in] Momentum vector of the particle at the hit
-  /// \param time[in] Time of the hit
-  /// \param energyloss[in] Energy deposit in EMCAL
+  /// \param trackID Index of the track in the MC stack
+  /// \param primary Index of the primary particle in the MC stack
+  /// \param initialEnergy Energy of the particle entering the EMCAL
+  /// \param detID Index of the detector (cell) for which the hit is created
+  /// \param pos Position vector of the particle at the hit
+  /// \param mom Momentum vector of the particle at the hit
+  /// \param time Time of the hit
+  /// \param energyloss Energy deposit in EMCAL
   /// \return Pointer to the current hit
   ///
   /// Internally adding hits coming from the same track
