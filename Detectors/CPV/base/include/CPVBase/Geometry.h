@@ -23,17 +23,14 @@ namespace cpv
 class Geometry
 {
  public:
-  ///
-  /// Default constructor.
-  /// It must be kept public for root persistency purposes,
-  /// but should never be called by the outside world
-  Geometry() = default;
+  static constexpr short kNumberOfCPVPadsPhi = 128;
+  static constexpr short kNumberOfCPVPadsZ = 60;
+  static constexpr float kCPVPadSizePhi = 1.13;
+  static constexpr float kCPVPadSizeZ = 2.1093;
 
   ///
-  /// Constructor for normal use.
-  ///
-  /// \param name: geometry name: CPV (see main class description for definition)
-  Geometry(const std::string_view name);
+  /// Default constructor.
+  Geometry() = default;
 
   ///
   /// Copy constructor.
@@ -50,41 +47,14 @@ class Geometry
   ///
   Geometry& operator=(const Geometry& rvalue);
 
-  ///
-  /// \return the pointer of the _existing_ unique instance of the geometry
-  /// It should have been set before with GetInstance(name) method
-  ///
-  static Geometry* GetInstance()
-  {
-    if (sGeom) {
-      return sGeom;
-    } else {
-      return GetInstance("Run3CPV");
-    }
-  }
-
-  ///
-  /// \return (newly created) pointer of the unique instance of the geometry. Previous instance is destroied.
-  ///
-  /// \param name: geometry name: CPV (see main class description for definition)
-  /// \param title
-  //  \param mcname: Geant3/4, Fluka, needed for settings of transport (check) \param mctitle: Geant4 physics list
-  //  (check)
-  ///
-  static Geometry* GetInstance(const std::string_view name)
-  {
-    if (sGeom) {
-      if (sGeom->GetName() == name) {
-        return sGeom;
-      } else {
-        delete sGeom;
-      }
-    }
-    sGeom = new Geometry(name);
-    return sGeom;
-  }
-
-  int AreNeighbours(int absId1, int absId2) const;
+  /// \breif Checks if two channels have common side
+  /// \param absId1: absId of first channel, order important!
+  /// \param absId2: absId of secont channel, order important!
+  /// \return  0 are not neighbour but continue searching
+  //         = 1 are neighbour
+  //         = 2 are not neighbour but do not continue searching
+  //         =-1 are not neighbour, continue searching, but do not look before d2 next time
+  static int areNeighbours(short absId1, short absId2);
 
   ///
   /// \return AbsId index of the CPV cell
@@ -93,30 +63,17 @@ class Geometry
   /// \param strip: strip number
   //  \param cell: cell in strip number
   ///
-  int RelToAbsId(int moduleNumber, int iphi, int iz) const;
-  bool AbsToRelNumbering(int absId, int* relid) const;
-  int AbsIdToModule(int absId);
-  void AbsIdToRelPosInModule(int absId, double& x, double& z) const;
-  bool RelToAbsNumbering(const int* RelId, int& AbsId) const;
-  // converts the absolute CPV numbering to a relative
+  static short relToAbsId(char moduleNumber, int iphi, int iz);
+  static bool absToRelNumbering(short absId, short* relid);
+  static char absIdToModule(short absId);
+  static void absIdToRelPosInModule(short absId, float& x, float& z);
+  static bool relToAbsNumbering(const short* relId, short& absId);
 
-  int GetTotalNPads() const { return mNumberOfCPVPadsPhi * mNumberOfCPVPadsZ * 3; } // TODO: evaluate from real geometry
-  int IsPadExists(int absId) const
+  static int getTotalNPads() { return kNumberOfCPVPadsPhi * kNumberOfCPVPadsZ * 3; }
+  static bool IsPadExists(short absId)
   {
-    return absId > 0 && absId <= GetTotalNPads();
+    return absId > 0 && absId <= getTotalNPads();
   } // TODO: evaluate from real geometry
-
-  const std::string& GetName() const { return mGeoName; }
-
- private:
-  static Geometry* sGeom; // Pointer to the unique instance of the singleton
-
-  int mNumberOfCPVPadsPhi; // Number of pads in phi direction
-  int mNumberOfCPVPadsZ;   // Number of pads in z direction
-  double mCPVPadSizePhi;   // pad size in phi direction (in cm)
-  double mCPVPadSizeZ;     // pad size in z direction (in cm)
-
-  std::string mGeoName; ///< Geometry name string
 };
 } // namespace cpv
 } // namespace o2
