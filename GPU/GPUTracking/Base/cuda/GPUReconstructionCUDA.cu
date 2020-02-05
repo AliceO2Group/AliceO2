@@ -201,7 +201,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     } else if (cudaDeviceProp.major < reqVerMaj || (cudaDeviceProp.major == reqVerMaj && cudaDeviceProp.minor < reqVerMin)) {
       deviceOK = false;
       deviceFailure = "Too low device revision";
-    } else if (free < std::max(mDeviceMemorySize, (size_t)512 * 1024 * 1024)) {
+    } else if (free < std::max(mDeviceMemorySize, (size_t)1024 * 1024 * 1024)) {
       deviceOK = false;
       deviceFailure = "Insufficient GPU memory";
     }
@@ -214,7 +214,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
       continue;
     }
     devicesOK[i] = true;
-    devMemory[i] = free;
+    devMemory[i] = std::min(free, total - 512 * 1024 * 1024);
     if (deviceSpeed > bestDeviceSpeed) {
       bestDevice = i;
       bestDeviceSpeed = deviceSpeed;
@@ -228,7 +228,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
   bool noDevice = false;
   if (bestDevice == -1) {
     GPUWarning("No %sCUDA Device available, aborting CUDA Initialisation", count ? "appropriate " : "");
-    GPUImportant("Requiring Revision %d.%d, Mem: %lld", reqVerMaj, reqVerMin, (long long int)std::max(mDeviceMemorySize, (size_t)512 * 1024 * 1024));
+    GPUImportant("Requiring Revision %d.%d, Mem: %lld", reqVerMaj, reqVerMin, (long long int)std::max(mDeviceMemorySize, (size_t)1024 * 1024 * 1024));
     noDevice = true;
   } else if (mDeviceProcessingSettings.deviceNum > -1) {
     if (mDeviceProcessingSettings.deviceNum >= (signed)count) {
@@ -308,27 +308,21 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
   if (mDeviceMemorySize == 2) {
     mDeviceMemorySize = devMemory[mDeviceId] * 2 / 3; // Leave 1/3 of GPU memory for event display
   } else if (mDeviceMemorySize == 1) {
-    mDeviceMemorySize = devMemory[mDeviceId] - 512 * 1024 * 1024; // Take all GPU memory but 1/2 GB
+    mDeviceMemorySize = devMemory[mDeviceId] - 1024 * 1024 * 1024; // Take all GPU memory but 1/2 GB
   }
 
   if (mDeviceMemorySize > cudaDeviceProp.totalGlobalMem || GPUFailedMsgI(cudaMalloc(&mDeviceMemoryBase, mDeviceMemorySize))) {
-    GPUError("CUDA Memory Allocation Error");
+    GPUError("CUDA Memory Allocation Error (trying %lld bytes)", (long long int)mDeviceMemorySize);
     GPUFailedMsgI(cudaDeviceReset());
     return (1);
-  }
-  if (mDeviceProcessingSettings.debugLevel >= 1) {
-    GPUInfo("GPU Memory used: %lld (Ptr 0x%p)", (long long int)mDeviceMemorySize, mDeviceMemoryBase);
   }
   if (GPUFailedMsgI(cudaMallocHost(&mHostMemoryBase, mHostMemorySize))) {
-    GPUError("Error allocating Page Locked Host Memory");
+    GPUError("Error allocating Page Locked Host Memory (trying %lld bytes)", (long long int)mHostMemorySize);
     GPUFailedMsgI(cudaDeviceReset());
     return (1);
   }
   if (mDeviceProcessingSettings.debugLevel >= 1) {
-    GPUInfo("Host Memory used: %lld (Ptr 0x%p)", (long long int)mHostMemorySize, mHostMemoryBase);
-  }
-
-  if (mDeviceProcessingSettings.debugLevel >= 1) {
+    GPUInfo("Memory ptrs: GPU (%lld bytes): 0x%p - Host (%lld bytes): 0x%p", (long long int)mDeviceMemorySize, mDeviceMemoryBase, (long long int)mHostMemorySize, mHostMemoryBase);
     memset(mHostMemoryBase, 0xDD, mHostMemorySize);
     if (GPUFailedMsgI(cudaMemset(mDeviceMemoryBase, 0xDD, mDeviceMemorySize))) {
       GPUError("Error during CUDA memset");
