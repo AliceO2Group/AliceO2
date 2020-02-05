@@ -9,14 +9,14 @@
 // or submit itself to any jurisdiction
 
 /**
- * @defgroup DetectorEMCAL
+ * @defgroup DetectorEMCAL EMCAL
  * @brief EMCAL simulation and reconstruction 
  * 
  * See \ref refDetectorsEMCAL for more information
  */
 
 /**
- * @defgroup EMCALbase
+ * @defgroup EMCALbase EMCAL base
  * @brief Main EMCAL components
  * @ingroup DetectorEMCAL
  * 
@@ -27,7 +27,7 @@
  */
 
 /**
- * @defgroup EMCALcalibration
+ * @defgroup EMCALcalibration EMCAL calibration
  * @brief EMCAL calibration objects
  * @ingroup DetectorEMCAL
  * 
@@ -39,28 +39,28 @@
  */
 
 /**
- * @defgroup EMCALsimulation
+ * @defgroup EMCALsimulation EMCAL simulation
  * @brief EMCAL simulation code
  * @ingroup DetectorEMCAL
  * 
- * EMCAL simulation package. See \subpage refEMCALsimulation
+ * EMCAL simulation package. See \ref refEMCALsimulation
  * for more information
  */
 
 /**
- * @defgroup EMCALreconstruction
+ * @defgroup EMCALreconstruction EMCAL reconstruction
  * @brief EMCAL reconstruction code
  * @ingroup DetectorEMCAL
  * 
- * EMCAL reconstruction package. See \subpage refEMCALreconstruction
+ * EMCAL reconstruction package. See \ref refEMCALreconstruction
  * for more information
  */
 
 /**
-  * @defgroup EMCALworkflow
+  * @defgroup EMCALworkflow EMCAL workflow
   * @brief EMCAL reconstruction workflow
   * @ingroup DetectorEMCAL
   * 
-  * EMCAL reconstruction workflow package. See \subpage refEMCALworkflow
+  * EMCAL reconstruction workflow package. See \ref refEMCALworkflow
   * for more information.
   */
