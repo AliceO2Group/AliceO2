@@ -39,7 +39,7 @@ GeometryParams::GeometryParams(const std::string_view name)
   // center of module in x,z on the upper surface of support beam
 
   // Distance from IP to front surface of CPV
-  mIPtoCPVSurface = 449.310 - 5.2; //Distance to PHOS fron sutface - CPV size
+  mIPtoCPVSurface = 449.310 - 5.2 - 2.61; //Distance to PHOS fron sutface - CPV size
 
   // Calculate distance from IP to upper cover
   // mIPtoOuterCoverDistance = mIPtoCrystalSurface - mAirGapLed - mInnerThermoWidthY - mAirGapWidthY - mCoolerWidthY -

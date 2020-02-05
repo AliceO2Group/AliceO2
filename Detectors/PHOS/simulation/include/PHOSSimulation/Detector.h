@@ -183,13 +183,12 @@ class Detector : public o2::base::DetImpl<Detector>
   Bool_t mActiveModule[6]; // list of modules to create
 
   // Simulation
-  Geometry* mGeom;                  //!
-  std::map<int, int> mSuperParents; //! map of current tracks to SuperParents: entered PHOS active volumes particles
-  std::vector<Hit>* mHits;          //! Collection of PHOS hits
-  Int_t mCurrentTrackID;            //! current track Id
-  Int_t mCurrentCellID;             //! current cell Id
-  Int_t mCurentSuperParent;         //! current SuperParent ID: particle entered PHOS
-  Hit* mCurrentHit;                 //! current Hit
+  std::map<int, int> mSuperParents;  //! map of current tracks to SuperParents: entered PHOS active volumes particles
+  std::vector<Hit>* mHits = nullptr; //! Collection of PHOS hits
+  Int_t mCurrentTrackID = 0;         //! current track Id
+  Int_t mCurrentCellID = 0;          //! current cell Id
+  Int_t mCurentSuperParent = 0;      //! current SuperParent ID: particle entered PHOS
+  Hit* mCurrentHit = nullptr;        //! current Hit
 
   template <typename Det>
   friend class o2::base::DetImpl;

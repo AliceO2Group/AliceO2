@@ -33,7 +33,7 @@ Geometry::Geometry(const std::string_view name) : mGeoName(name) {}
 //     return sGeom;
 // }
 
-short Geometry::relToAbsId(char moduleNumber, int strip, int cell) const
+short Geometry::relToAbsId(char moduleNumber, int strip, int cell)
 {
   // calculates absolute cell Id from moduleNumber, strip (number) and cell (number)
   // PHOS layout parameters:
@@ -49,7 +49,7 @@ short Geometry::relToAbsId(char moduleNumber, int strip, int cell) const
          (cell & 1 ? 1 : 0);
 }
 
-bool Geometry::absToRelNumbering(short absId, char* relid) const
+bool Geometry::absToRelNumbering(short absId, char* relid)
 {
   // Converts the absolute numbering into the following array
   //  relid[0] = PHOS Module number 1:fNModules
@@ -75,7 +75,7 @@ char Geometry::absIdToModule(short absId)
   return 1 + (absId - 1) / (nZ * nPhi);
 }
 
-int Geometry::areNeighbours(short absId1, short absId2) const
+int Geometry::areNeighbours(short absId1, short absId2)
 {
 
   // Gives the neighbourness of two digits = 0 are not neighbour but continue searching
@@ -112,7 +112,7 @@ int Geometry::areNeighbours(short absId1, short absId2) const
   }
   return 0;
 }
-void Geometry::absIdToRelPosInModule(short absId, float& x, float& z) const
+void Geometry::absIdToRelPosInModule(short absId, float& x, float& z)
 {
 
   const float cellStep = 2.25;
@@ -123,7 +123,7 @@ void Geometry::absIdToRelPosInModule(short absId, float& x, float& z) const
   x = (relid[1] - 28 - 0.5) * cellStep;
   z = (relid[2] - 32 - 0.5) * cellStep;
 }
-bool Geometry::relToAbsNumbering(const char* relId, short& absId) const
+bool Geometry::relToAbsNumbering(const char* relId, short& absId)
 {
   const short nZ = 56;   // nStripZ * nCellsZInStrip
   const short nPhi = 64; // nStripZ * nCellsZInStrip

@@ -18,9 +18,5 @@
 #pragma link C++ class o2::cpv::GeometryParams + ;
 #pragma link C++ class o2::base::DetImpl < o2::cpv::Detector> + ;
 #pragma link C++ class o2::cpv::Digitizer + ;
-#pragma link C++ class o2::cpv::DigitizerTask + ;
-#pragma link C++ class o2::cpv::CPVSimParams +;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::cpv::CPVSimParams > + ;
-
 
 #endif

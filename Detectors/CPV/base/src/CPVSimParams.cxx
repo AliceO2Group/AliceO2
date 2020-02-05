@@ -15,5 +15,5 @@
  *      Author: Dmitri
  */
 
-#include "CPVSimulation/CPVSimParams.h"
+#include "CPVBase/CPVSimParams.h"
 O2ParamImpl(o2::cpv::CPVSimParams);
