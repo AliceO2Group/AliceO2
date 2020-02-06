@@ -50,10 +50,24 @@ class SpatialPhotonResponse
 
   bool hasSignal() const { return mPhotonSum > 0; }
   int getPhotonSum() const { return mPhotonSum; }
+  void setDetectorID(int det)
+  {
+    if (mDetectorID != -1 && det != mDetectorID) {
+      printErrMsg("trying to change detector ID");
+    }
+    mDetectorID = det;
+  }
+  int getDetectorID() const { return mDetectorID; }
+  void setHitTime(float t) { mTime = t; }
+  float getHitTime() const { return mTime; }
+
+  std::array<int, 5> getPhotonsPerChannel() const;
 
   std::vector<std::vector<int>> const& getImageData() const { return mImageData; }
 
  private:
+  void printErrMsg(const char* mgs) const;
+
   double mLxOfCell = 1.; // x length of cell corresponding to one pixel
   double mLyOfCell = 1.; // y length of cell corresponding to one pixel
 
@@ -66,6 +80,10 @@ class SpatialPhotonResponse
   int mNx = 1;        // number of "towers" in x direction
   int mNy = 1;        // number of "towers" in y direction
   int mPhotonSum = 0; // accumulated photon number (for quick filtering)
+
+  int mDetectorID = -1; // the detectorID (ZNA, ZNC, ZPA, ZPC) to which this image corresponds (if available)
+
+  float mTime = -1.; // the time (time difference between creation of response and the collission time); negative is unitialized
 
   std::vector<std::vector<int>> mImageData;
 };
