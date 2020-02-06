@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "ZDCSimulation/SpatialPhotonResponse.h"
+#include "ZDCBase/Constants.h"
 #include <cmath>
 #include <iostream>
 
@@ -81,4 +82,66 @@ void SpatialPhotonResponse::reset()
       }
     }
   }
+  mTime = 0;
+  mDetectorID = -1;
+}
+
+std::array<int, 5> SpatialPhotonResponse::getPhotonsPerChannel() const
+{
+  std::array<int, 5> photonsum = {0, 0, 0, 0, 0};
+  if (mPhotonSum == 0) {
+    return photonsum;
+  }
+
+  if (mDetectorID == -1) {
+    std::cerr << "SpatialPhotonResponse has no detectorID ";
+    return photonsum;
+  }
+
+  auto determineChannel = [](int detector, int x, int y, int Nx, int Ny) {
+    if ((x + y) % 2 == 0) {
+      return (int)ChannelTypeZNP::Common;
+    }
+
+    if (detector == DetectorID::ZNA || detector == DetectorID::ZNC) {
+      if (x < Nx / 2) {
+        if (y < Ny / 2) {
+          return (int)ChannelTypeZNP::Ch1;
+        } else {
+          return (int)ChannelTypeZNP::Ch3;
+        }
+      } else {
+        if (y >= Ny / 2) {
+          return (int)ChannelTypeZNP::Ch4;
+        } else {
+          return (int)ChannelTypeZNP::Ch2;
+        }
+      }
+    }
+
+    if (detector == DetectorID::ZPA || detector == DetectorID::ZPC) {
+      auto i = (int)(4.f * x / Nx);
+      return (int)(i + 1);
+    }
+    return -1;
+  };
+
+  int sum = 0;
+  for (int x = 0; x < mNx; ++x) {
+    // loop over y = rows
+    for (int y = 0; y < mNy; ++y) {
+      // get channel
+      int channel = determineChannel(mDetectorID, x, y, mNx, mNy);
+      photonsum[channel] += mImageData[x][y];
+      sum += 0;
+    }
+  }
+  // assert (mPhotonSum == photonsum[0] + photonsum[1] + photonsum[2] + photonsum[3] + photonsum[4]);
+
+  return photonsum;
+}
+
+void SpatialPhotonResponse::printErrMsg(const char* str) const
+{
+  std::cerr << str << "\n";
 }

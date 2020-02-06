@@ -358,20 +358,26 @@ Bool_t Detector::ProcessHits(FairVolume* v)
    }
   }
 
+  auto tof = 1.e09 * fMC->TrackTime(); //TOF in ns
+
   if (o2::zdc::ZDCSimParam::Instance().recordSpatialResponse) {
     // some diagnostic; trying to really get the pixel fired
-    if (nphe > 0 && (detector == 1 || detector == 4)) {
-      mNeutronResponseImage.addPhoton(x[0], x[1], nphe);
-    }
-    if (nphe > 0 && (detector == 2 || detector == 5)) {
-      mProtonResponseImage.addPhoton(x[0], x[1], nphe);
+    if (nphe > 0) {
+      if (detector == ZNA || detector == ZNC) {
+        mNeutronResponseImage.setDetectorID(detector);
+        mNeutronResponseImage.addPhoton(x[0], x[1], nphe);
+        mNeutronResponseImage.setHitTime(tof);
+      }
+      if (detector == ZPA || detector == ZPC) {
+        mProtonResponseImage.setDetectorID(detector);
+        mProtonResponseImage.addPhoton(x[0], x[1], nphe);
+        mProtonResponseImage.setHitTime(tof);
+      }
     }
   }
 
   // A new hit is created when there is nothing yet for this det + sector
   if (mCurrentHitsIndices[detector - 1][sector] == -1) {
-
-    auto tof = 1.e09 * fMC->TrackTime(); //TOF in ns
     bool issecondary = trackn != stack->getCurrentPrimaryIndex();
     //if(!issecondary) printf("     !!! primary track (index %d)\n",stack->getCurrentPrimaryIndex());
 
