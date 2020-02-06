@@ -14,6 +14,8 @@
 #ifndef O2_GPU_GPUO2DATATYPES_H
 #define O2_GPU_GPUO2DATATYPES_H
 
+// Pull in several O2 headers with basic data types, or load a header with empty fake classes if O2 headers not available
+
 #if defined(HAVE_O2HEADERS) && (!defined(__OPENCL__) || defined(__OPENCLCPP__))
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DetectorsBase/MatLayerCylSet.h"

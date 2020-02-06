@@ -267,6 +267,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector
       auto& validMcInputs = processAttributes->validMcInputs;
       auto& mcInputs = processAttributes->mcInputs;
       std::array<std::vector<o2::tpc::Digit>, NSectors> inputDigits;
+      std::array<std::unique_ptr<const MCLabelContainer>, NSectors> inputDigitsMC;
       if (processMC) {
         // we can later extend this to multiple inputs
         for (auto const& inputId : processAttributes->inputIds) {
@@ -288,7 +289,11 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector
             // multiple buffers need to be handled
             throw std::runtime_error("can only have one MC data set per sector");
           }
-          mcInputs[sector] = std::move(pc.inputs().get<std::vector<MCLabelContainer>>(inputLabel.c_str()));
+          if (caClusterer) {
+            inputDigitsMC[sector] = std::move(pc.inputs().get<const MCLabelContainer*>(inputLabel.c_str()));
+          } else {
+            mcInputs[sector] = std::move(pc.inputs().get<std::vector<MCLabelContainer>>(inputLabel.c_str()));
+          }
           validMcInputs.set(sector);
           activeSectors |= sectorHeader->activeSectors;
           if (verbosity > 1) {
@@ -338,7 +343,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector
         validInputs.set(sector);
         datarefs[sector] = ref;
         if (caClusterer) {
-          inputDigits[sector] = pc.inputs().get<const std::vector<o2::tpc::Digit>>(inputLabel);
+          inputDigits[sector] = std::move(pc.inputs().get<const std::vector<o2::tpc::Digit>>(inputLabel));
         }
       }
 
@@ -456,6 +461,9 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector
       if (caClusterer) {
         // Todo: If we have zero-suppressed input, we have to fill this pointer instead: ptrs.tpcZS
         ptrs.o2Digits = &inputDigits; // TODO: We will also create ClusterNative as output stored in ptrs. Should be added to the output
+        if (processMC) {
+          ptrs.o2DigitsMC = &inputDigitsMC;
+        }
       } else {
         memset(&clusterIndex, 0, sizeof(clusterIndex));
         ClusterNativeHelper::Reader::fillIndex(clusterIndex, clusterBuffer, clustersMCBuffer, inputs, mcInputs, [&validInputs](auto& index) { return validInputs.test(index); });
@@ -506,7 +514,12 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector
       inputs.emplace_back(InputSpec{"input", gDataOriginTPC, "CLUSTERNATIVE", 0, Lifetime::Timeframe});
     }
     if (makeMcInput) {
-      inputs.emplace_back(InputSpec{"mclblin", gDataOriginTPC, "CLNATIVEMCLBL", 0, Lifetime::Timeframe});
+      if (caClusterer) {
+        constexpr o2::header::DataDescription datadesc("DIGITSMCTR");
+        inputs.emplace_back(InputSpec{"mclblin", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe});
+      } else {
+        inputs.emplace_back(InputSpec{"mclblin", gDataOriginTPC, "CLNATIVEMCLBL", 0, Lifetime::Timeframe});
+      }
     }
 
     return std::move(mergeInputs(inputs, inputIds.size(),
