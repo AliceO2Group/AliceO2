@@ -98,9 +98,8 @@ std::array<int, 5> SpatialPhotonResponse::getPhotonsPerChannel() const
     return photonsum;
   }
 
-  // could be put inside the image class
   auto determineChannel = [](int detector, int x, int y, int Nx, int Ny) {
-    if ((x + y) % 2 == 1) {
+    if ((x + y) % 2 == 0) {
       return (int)ChannelTypeZNP::Common;
     }
 
