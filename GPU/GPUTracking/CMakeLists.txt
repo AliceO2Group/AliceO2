@@ -114,6 +114,7 @@ set(HDRS_INSTALL
     Base/GPUOutputControl.h
     Base/GPUOutputControl.h
     Base/GPUO2DataTypes.h
+    Base/GPUHostDataTypes.h
     Base/GPUMemorySizeScalers.h
     dEdx/GPUdEdxInfo.h
     TPCConvert/GPUTPCConvertImpl.h
