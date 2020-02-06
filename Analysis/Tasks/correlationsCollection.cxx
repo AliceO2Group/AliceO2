@@ -21,13 +21,15 @@ namespace etaphi
 {
 DECLARE_SOA_COLUMN(Eta2, eta2, float, "fEta2");
 DECLARE_SOA_COLUMN(Phi2, phi2, float, "fPhi2");
+DECLARE_SOA_COLUMN(Pt2, pt2, float, "fPt2");
 } // namespace etaphi
 DECLARE_SOA_TABLE(EtaPhi, "AOD", "ETAPHI",
-                  etaphi::Eta2, etaphi::Phi2);
+                  etaphi::Eta2, etaphi::Phi2, etaphi::Pt2);
 } // namespace o2::aod
 
 using namespace o2;
 using namespace o2::framework;
+using namespace o2::framework::expressions;
 
 struct ATask {
   Produces<aod::EtaPhi> etaphi;
@@ -37,8 +39,9 @@ struct ATask {
     for (auto& track : tracks) {
       float phi = asin(track.snp()) + track.alpha() + static_cast<float>(M_PI);
       float eta = log(tan(0.25f * static_cast<float>(M_PI) - 0.5f * atan(track.tgl())));
+      float pt = fabs(1.0 / track.signed1Pt());
 
-      etaphi(phi, eta);
+      etaphi(phi, eta, pt);
     }
   }
 };
@@ -46,6 +49,9 @@ struct ATask {
 struct CorrelationTask {
   OutputObj<CorrelationContainer> same{"sameEvent"};
   //OutputObj<CorrelationContainer> mixed{"mixedEvent"};
+  
+  //Filter trackFilter = (fabs(aod::etaphi::eta2) < 0.8) && (aod::etaphi::pt2 > 0.5);
+  Filter trackFilter = (aod::etaphi::eta2 > -0.8) && (aod::etaphi::eta2 < 0.8) && (aod::etaphi::pt2 > 0.5);
 
   void init(o2::framework::InitContext&)
   {
@@ -65,18 +71,23 @@ struct CorrelationTask {
     same.setObject(new CorrelationContainer("sameEvent", "sameEvent", "NumberDensityPhiCentrality", binning));
     //mixed.setObject(new CorrelationContainer("mixedEvent", "mixedEvent", "NumberDensityPhiCentrality", binning));
   }
+  
+//   void process(soa::Filtered<aod::EtaPhi> const& etaPhis)
+//   {
+//   }
 
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::EtaPhi> const& tracks)
+  //void process(aod::Collision const& collision, soa::Filtered<aod::EtaPhi> const& tracks)
   {
     LOGF(info, "Tracks for collision: %d", tracks.size());
 
     for (auto it1 = tracks.begin(); it1 != tracks.end(); ++it1) {
       auto& track1 = *it1;
-      if (track1.pt() < 0.5)
-        continue;
+      //if (track1.pt() < 0.5)
+      //  continue;
 
       double eventValues[3];
-      eventValues[0] = track1.pt();
+      eventValues[0] = track1.pt2();
       eventValues[1] = 0; // collision.v0mult();;
       eventValues[2] = collision.posZ();
 
@@ -85,16 +96,16 @@ struct CorrelationTask {
 
       for (auto it2 = it1 + 1; it2 != tracks.end(); ++it2) {
         auto& track2 = *it2;
-        if (track1 == track2)
-          continue;
-        if (track2.pt() < 0.5)
-          continue;
+        //if (track1 == track2)
+        //  continue;
+        //if (track2.pt() < 0.5)
+        //  continue;
 
         double values[6] = {0};
 
         values[0] = track1.eta2() - track2.eta2();
-        values[1] = track1.pt();
-        values[2] = track2.pt();
+        values[1] = track1.pt2();
+        values[2] = track2.pt2();
         values[3] = 0; // collision.v0mult();
 
         values[4] = track1.phi2() - track2.phi2();

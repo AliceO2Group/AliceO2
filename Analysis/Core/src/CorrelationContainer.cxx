@@ -34,9 +34,9 @@ ClassImp(CorrelationContainer)
   const Int_t CorrelationContainer::fgkCFSteps = 11;
 
 CorrelationContainer::CorrelationContainer() : TNamed(),
-                                               mTrackHist(0),
-                                               mEventHist(0),
-                                               mTrackHistEfficiency(0),
+                                               mTrackHist(nullptr),
+                                               mEventHist(nullptr),
+                                               mTrackHistEfficiency(nullptr),
                                                mEtaMin(0),
                                                mEtaMax(0),
                                                mPtMin(0),
@@ -51,18 +51,18 @@ CorrelationContainer::CorrelationContainer() : TNamed(),
                                                mTrackEtaCut(0),
                                                mWeightPerEvent(0),
                                                mSkipScaleMixedEvent(kFALSE),
-                                               mCache(0),
+                                               mCache(nullptr),
                                                mGetMultCacheOn(kFALSE),
-                                               mGetMultCache(0),
+                                               mGetMultCache(nullptr),
                                                mHistogramType()
 {
   // Default constructor
 }
 
 CorrelationContainer::CorrelationContainer(const char* name, const char* objTitle, const char* reqHist, const char* binning) : TNamed(name, objTitle),
-                                                                                                                               mTrackHist(0),
-                                                                                                                               mEventHist(0),
-                                                                                                                               mTrackHistEfficiency(0),
+                                                                                                                               mTrackHist(nullptr),
+                                                                                                                               mEventHist(nullptr),
+                                                                                                                               mTrackHistEfficiency(nullptr),
                                                                                                                                mEtaMin(0),
                                                                                                                                mEtaMax(0),
                                                                                                                                mPtMin(0),
@@ -77,9 +77,9 @@ CorrelationContainer::CorrelationContainer(const char* name, const char* objTitl
                                                                                                                                mTrackEtaCut(0),
                                                                                                                                mWeightPerEvent(0),
                                                                                                                                mSkipScaleMixedEvent(kFALSE),
-                                                                                                                               mCache(0),
+                                                                                                                               mCache(nullptr),
                                                                                                                                mGetMultCacheOn(kFALSE),
-                                                                                                                               mGetMultCache(0),
+                                                                                                                               mGetMultCache(nullptr),
                                                                                                                                mHistogramType(reqHist)
 {
   // Constructor
@@ -365,14 +365,14 @@ Double_t* CorrelationContainer::getBinning(const char* configuration, const char
 
   delete lines;
   LOGF(fatal, "Tag %s not found in %s", tag, configuration);
-  return 0;
+  return nullptr;
 }
 
 //_____________________________________________________________________________
 CorrelationContainer::CorrelationContainer(const CorrelationContainer& c) : TNamed(c),
-                                                                            mTrackHist(0),
-                                                                            mEventHist(0),
-                                                                            mTrackHistEfficiency(0),
+                                                                            mTrackHist(nullptr),
+                                                                            mEventHist(nullptr),
+                                                                            mTrackHistEfficiency(nullptr),
                                                                             mEtaMin(0),
                                                                             mEtaMax(0),
                                                                             mPtMin(0),
@@ -387,9 +387,9 @@ CorrelationContainer::CorrelationContainer(const CorrelationContainer& c) : TNam
                                                                             mTrackEtaCut(0),
                                                                             mWeightPerEvent(0),
                                                                             mSkipScaleMixedEvent(kFALSE),
-                                                                            mCache(0),
+                                                                            mCache(nullptr),
                                                                             mGetMultCacheOn(kFALSE),
-                                                                            mGetMultCache(0),
+                                                                            mGetMultCache(nullptr),
                                                                             mHistogramType()
 {
   //
@@ -406,22 +406,22 @@ CorrelationContainer::~CorrelationContainer()
 
   if (mTrackHist) {
     delete mTrackHist;
-    mTrackHist = 0;
+    mTrackHist = nullptr;
   }
 
   if (mEventHist) {
     delete mEventHist;
-    mEventHist = 0;
+    mEventHist = nullptr;
   }
 
   if (mTrackHistEfficiency) {
     delete mTrackHistEfficiency;
-    mTrackHistEfficiency = 0;
+    mTrackHistEfficiency = nullptr;
   }
 
   if (mCache) {
     delete mCache;
-    mCache = 0;
+    mCache = nullptr;
   }
 }
 
@@ -483,7 +483,7 @@ Long64_t CorrelationContainer::Merge(TCollection* list)
     return 1;
 
   TIterator* iter = list->MakeIterator();
-  TObject* obj;
+  TObject* obj = nullptr;
 
   // collections of objects
   const UInt_t kMaxLists = 3;
@@ -496,7 +496,7 @@ Long64_t CorrelationContainer::Merge(TCollection* list)
   while ((obj = iter->Next())) {
 
     CorrelationContainer* entry = dynamic_cast<CorrelationContainer*>(obj);
-    if (entry == 0)
+    if (entry == nullptr)
       continue;
 
     if (entry->mTrackHist)
@@ -668,7 +668,7 @@ void CorrelationContainer::getHistsZVtxMult(CorrelationContainer::CFStep step, F
     Int_t nBins[] = {tmpTrackHist->GetAxis(0)->GetNbins(), tmpTrackHist->GetAxis(1)->GetNbins(), 1, tmpTrackHist->GetAxis(2)->GetNbins()};
     Double_t vtxAxis[] = {-100, 100};
 
-    *trackHist = new THnF(Form("%s_thn", tmpTrackHist->GetName()), tmpTrackHist->GetTitle(), 4, nBins, 0, 0);
+    *trackHist = new THnF(Form("%s_thn", tmpTrackHist->GetName()), tmpTrackHist->GetTitle(), 4, nBins, nullptr, nullptr);
 
     for (int i = 0; i < 3; i++) {
       int j = i;
@@ -731,14 +731,14 @@ TH2* CorrelationContainer::getSumOfRatios(CorrelationContainer* mixed, Correlati
   Bool_t oldStatus = TH1::AddDirectoryStatus();
   TH1::AddDirectory(kFALSE);
 
-  TH2* totalTracks = 0;
+  TH2* totalTracks = nullptr;
 
-  THnBase* trackSameAll = 0;
-  THnBase* trackMixedAll = 0;
-  THnBase* trackMixedAllStep6 = 0;
-  TH2* eventSameAll = 0;
-  TH2* eventMixedAll = 0;
-  TH2* eventMixedAllStep6 = 0;
+  THnBase* trackSameAll = nullptr;
+  THnBase* trackMixedAll = nullptr;
+  THnBase* trackMixedAllStep6 = nullptr;
+  TH2* eventSameAll = nullptr;
+  TH2* eventMixedAll = nullptr;
+  TH2* eventMixedAllStep6 = nullptr;
 
   Long64_t totalEvents = 0;
   Int_t nCorrelationFunctions = 0;
@@ -779,7 +779,7 @@ TH2* CorrelationContainer::getSumOfRatios(CorrelationContainer* mixed, Correlati
 
     if (!mSkipScaleMixedEvent) {
       // get mixed normalization correction factor: is independent of vertex bin if scaled with number of triggers
-      TH2* tracksMixed = 0;
+      TH2* tracksMixed = nullptr;
       if (trackMixedAllStep6) {
         trackMixedAllStep6->GetAxis(2)->SetRange(0, -1);
         tracksMixed = trackMixedAllStep6->Projection(1, 0, "E");
@@ -970,7 +970,7 @@ TH2* CorrelationContainer::getSumOfRatios(CorrelationContainer* mixed, Correlati
       if (totalEvents > 0)
         totalTracks->Scale(1.0 / totalEvents);
     }
-    if (trigger != NULL)
+    if (trigger != nullptr)
       *trigger = (Int_t)totalEvents;
 
     // normalizate to dphi width
@@ -1063,7 +1063,7 @@ TH1* CorrelationContainer::getTrackEfficiency(CFStep step1, CFStep step2, Int_t 
 
   // cache it for efficiency (usually more than one efficiency is requested)
 
-  StepTHnBase* sourceContainer = 0;
+  StepTHnBase* sourceContainer = nullptr;
 
   if (source == 0) {
     return nullptr;
@@ -1073,7 +1073,7 @@ TH1* CorrelationContainer::getTrackEfficiency(CFStep step1, CFStep step2, Int_t 
     step1 = (CFStep)((Int_t)step1 - (Int_t)kCFStepAnaTopology);
     step2 = (CFStep)((Int_t)step2 - (Int_t)kCFStepAnaTopology);
   } else
-    return 0;
+    return nullptr;
 
   // reset all limits and set the right ones except those in axis1, axis2 and axis3
   resetBinLimits(sourceContainer->getTHn(step1));
@@ -1104,8 +1104,8 @@ TH1* CorrelationContainer::getTrackEfficiency(CFStep step1, CFStep step2, Int_t 
     sourceContainer->getTHn(step2)->GetAxis(4)->SetRangeUser(mZVtxMin, mZVtxMax);
   }
 
-  TH1* measured = 0;
-  TH1* generated = 0;
+  TH1* measured = nullptr;
+  TH1* generated = nullptr;
 
   if (axis3 >= 0) {
     generated = sourceContainer->getTHn(step1)->Projection(axis1, axis2, axis3);
@@ -1305,8 +1305,8 @@ TH1* CorrelationContainer::getEventEfficiency(CFStep step1, CFStep step2, Int_t 
     mEventHist->getTHn(step2)->GetAxis(0)->SetRangeUser(ptLeadMin, ptLeadMax);
   }
 
-  TH1* measured = 0;
-  TH1* generated = 0;
+  TH1* measured = nullptr;
+  TH1* generated = nullptr;
 
   if (axis2 >= 0) {
     generated = mEventHist->getTHn(step1)->Projection(axis1, axis2);
@@ -1737,8 +1737,8 @@ void CorrelationContainer::extendTrackingEfficiency(Bool_t verbose)
         }
   } else if (mTrackHistEfficiency->getNVar() == 4) {
     // fit in centrality intervals of 20% for efficiency, one bin for contamination
-    Float_t* trackingEff = 0;
-    Float_t* trackingCont = 0;
+    Float_t* trackingEff = nullptr;
+    Float_t* trackingCont = nullptr;
     Float_t centralityBins[] = {0, 10, 20, 40, 60, 100};
     Int_t nCentralityBins = 5;
 
@@ -1746,7 +1746,7 @@ void CorrelationContainer::extendTrackingEfficiency(Bool_t verbose)
 
     // 0 = eff; 1 = cont
     for (Int_t caseNo = 0; caseNo < 2; caseNo++) {
-      Float_t* target = 0;
+      Float_t* target = nullptr;
       Int_t centralityBinsLocal = nCentralityBins;
 
       if (caseNo == 0) {
@@ -1850,7 +1850,7 @@ THnBase* CorrelationContainer::changeToThn(THnBase* sparse)
   Int_t nBins[10];
   for (Int_t i = 0; i < sparse->GetNdimensions(); i++)
     nBins[i] = sparse->GetAxis(i)->GetNbins();
-  THn* tmpTHn = new THnF(Form("%s_thn", sparse->GetName()), sparse->GetTitle(), sparse->GetNdimensions(), nBins, 0, 0);
+  THn* tmpTHn = new THnF(Form("%s_thn", sparse->GetName()), sparse->GetTitle(), sparse->GetNdimensions(), nBins, nullptr, nullptr);
   for (Int_t i = 0; i < sparse->GetNdimensions(); i++) {
     tmpTHn->SetBinEdges(i, sparse->GetAxis(i)->GetXbins()->GetArray());
     tmpTHn->GetAxis(i)->SetTitle(sparse->GetAxis(i)->GetTitle());
