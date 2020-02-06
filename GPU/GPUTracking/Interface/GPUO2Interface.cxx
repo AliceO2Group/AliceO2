@@ -79,6 +79,7 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data)
     mChain->ClearIOPointers();
     mChain->mIOPtrs.clustersNative = data->clustersNative;
     mChain->mIOPtrs.tpcPackedDigits = data->tpcPackedDigits;
+    mChain->mIOPtrs.tpcZS = data->tpcZS;
 
     char fname[1024];
     sprintf(fname, "event.%d.dump", nEvent);

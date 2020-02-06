@@ -454,6 +454,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector
       ptrs.outputClusRefs = &clusRefs;
       ptrs.outputTracksMCTruth = (processMC ? &tracksMCTruth : nullptr);
       if (caClusterer) {
+        // Todo: If we have zero-suppressed input, we have to fill this pointer instead: ptrs.tpcZS
         ptrs.o2Digits = &inputDigits; // TODO: We will also create ClusterNative as output stored in ptrs. Should be added to the output
       } else {
         memset(&clusterIndex, 0, sizeof(clusterIndex));

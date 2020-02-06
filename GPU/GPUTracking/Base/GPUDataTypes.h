@@ -194,8 +194,8 @@ struct GPUTrackingInOutPointers {
   GPUTrackingInOutPointers(const GPUTrackingInOutPointers&) = default;
   static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
 
-  GPUTrackingInOutZS* tpcZS = nullptr;
-  GPUTrackingInOutDigits* tpcPackedDigits = nullptr;
+  const GPUTrackingInOutZS* tpcZS = nullptr;
+  const GPUTrackingInOutDigits* tpcPackedDigits = nullptr;
   const GPUTPCClusterData* clusterData[NSLICES] = {nullptr};
   unsigned int nClusterData[NSLICES] = {0};
   const AliHLTTPCRawCluster* rawClusters[NSLICES] = {nullptr};
