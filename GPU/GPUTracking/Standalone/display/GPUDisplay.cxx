@@ -291,6 +291,8 @@ inline void GPUDisplay::ActivateColor()
 {
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
   glColor3f(mDrawColor[0], mDrawColor[1], mDrawColor[2]);
+#else
+  glUniform3fv(mColorId, 1, &mDrawColor[0]);
 #endif
 }
 
@@ -647,6 +649,8 @@ int GPUDisplay::InitGL_internal()
   CHKERR(glAttachShader(mShaderProgram, mFragmentShader));
   CHKERR(glLinkProgram(mShaderProgram));
   CHKERR(glGenVertexArrays(1, &mVertexArray));
+  CHKERR(mModelViewProjId = glGetUniformLocation(mShaderProgram, "ModelViewProj"));
+  CHKERR(mColorId = glGetUniformLocation(mShaderProgram, "color"));
 #endif
   return (0); // Initialization Went OK
 }
@@ -1754,10 +1758,8 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     CHKERR(glMatrixMode(GL_MODELVIEW));
     CHKERR(glLoadMatrixf(&nextViewMatrix.Elements[0][0]));
 #else
-    int matId;
     const hmm_mat4 modelViewProj = proj * nextViewMatrix;
-    CHKERR(matId = glGetUniformLocation(mShaderProgram, "ModelViewProj"));
-    CHKERR(glUniformMatrix4fv(matId, 1, GL_FALSE, &modelViewProj.Elements[0][0]));
+    CHKERR(glUniformMatrix4fv(mModelViewProjId, 1, GL_FALSE, &modelViewProj.Elements[0][0]));
 #endif
   }
 

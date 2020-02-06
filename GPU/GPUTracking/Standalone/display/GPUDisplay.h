@@ -289,6 +289,8 @@ class GPUDisplay
   unsigned int mFragmentShader;
   unsigned int mShaderProgram;
   unsigned int mVertexArray;
+  int mModelViewProjId;
+  int mColorId;
 
   GPUDisplayBackend* mBackend;
   GPUChainTracking* mChain;

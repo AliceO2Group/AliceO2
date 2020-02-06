@@ -35,10 +35,11 @@ void main()
   static constexpr const char* fragmentShader = R"(
 #version 450 core
 out vec4 fragColor;
+uniform vec3 color;
 
 void main()
 {
-    fragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+    fragColor = vec4(color.x, color.y, color.z, 1.f);
 }
 )";
 };
