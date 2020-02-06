@@ -635,6 +635,14 @@ int GPUChainTracking::ConvertNativeToClusterData()
   GPUTPCConvert& convertShadow = doGPU ? processorsShadow()->tpcConverter : convert;
 
   ClusterNativeAccess* tmpExt = mClusterNativeAccess.get();
+  if (tmpExt->nClustersTotal > convert.mNClustersTotal) {
+    GPUError("Too many input clusters in conversion\n");
+    for (unsigned int i = 0; i < NSLICES; i++) {
+      mIOPtrs.nClusterData[i] = 0;
+      processors()->tpcTrackers[i].Data().SetClusterData(nullptr, 0, 0);
+    }
+    return 1;
+  }
   convert.set(tmpExt, processors()->calibObjects.fastTransform);
   SetupGPUProcessor(&convert, false);
   if (doGPU) {
