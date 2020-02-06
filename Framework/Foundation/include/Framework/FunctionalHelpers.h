@@ -70,8 +70,14 @@ constexpr auto concatenate_pack(pack<Args1...>, pack<Args2...>)
   return pack<Args1..., Args2...>{};
 }
 
-template <typename P1, typename P2>
-using concatenated_pack_t = decltype(concatenate_pack(P1{}, P2{}));
+template <typename P1, typename P2, typename... Ps>
+constexpr auto concatenate_pack(P1 p1, P2 p2, Ps... ps)
+{
+  return concatenate_pack(p1, concatenate_pack(p2, ps...));
+};
+
+template <typename... Ps>
+using concatenated_pack_t = decltype(concatenate_pack(Ps{}...));
 
 /// Selects from the pack types that satisfy the Condition
 template <template <typename> typename Condition, typename Result>
