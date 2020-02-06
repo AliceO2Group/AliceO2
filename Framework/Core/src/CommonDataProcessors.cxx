@@ -197,13 +197,13 @@ class branchIterator
   };
 
  public:
-  branchIterator() : brn(0x0),
+  branchIterator() : brn(nullptr),
                      nchs(0),
                      ich(0),
                      nr(0),
                      ir(0),
                      dt(arrow::Type::type::NA){};
-  branchIterator(TTree* tree, std::shared_ptr<arrow::Column> col, bool tupdate) : brn(0x0),
+  branchIterator(TTree* tree, std::shared_ptr<arrow::Column> col, bool tupdate) : brn(nullptr),
                                                                                   nchs(0),
                                                                                   ich(0),
                                                                                   nr(0),
@@ -273,7 +273,7 @@ class branchIterator
           break;
         default:
           LOG(FATAL) << "Type not handled: " << dt << std::endl;
-          v = 0;
+          v = nullptr;
           break;
       }
     }
