@@ -22,7 +22,7 @@
 #endif
 
 #ifdef GPUCA_DISPLAY_GL3W
-#include "gl3w/gl3w.h"
+#include "GL/gl3w.h"
 #else
 #include <GL/glew.h>
 #endif
