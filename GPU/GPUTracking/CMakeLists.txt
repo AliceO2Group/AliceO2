@@ -19,7 +19,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 else()
   if(OPENGL_FOUND
      AND GLFW_FOUND
-     AND GLEW_FOUND
+     AND (ALIGPU_BUILD_TYPE STREQUAL "O2" OR GLEW_FOUND)
      AND OPENGL_GLU_FOUND
      AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(GPUCA_EVENT_DISPLAY ON)
@@ -391,9 +391,12 @@ endif()
 if(GPUCA_EVENT_DISPLAY)
   message(STATUS "Building GPU Event Display")
   target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY)
-  target_link_libraries(${targetName}
-                        PUBLIC ${GLEW_LIBRARIES} ${GLFW_LIBRARIES} OpenGL::GL
-                               OpenGL::GLU)
+  target_link_libraries(${targetName} PUBLIC ${GLFW_LIBRARIES} OpenGL::GL OpenGL::GLU)
+  if(ALIGPU_BUILD_TYPE STREQUAL "O2")
+    target_compile_definitions(${targetName} PRIVATE GPUCA_DISPLAY_GL3W GPUCA_DISPLAY_OPENGL_CORE)
+  else()
+    target_link_libraries(${targetName} PUBLIC ${GLEW_LIBRARIES})
+  endif()
 endif()
 
 # Add compile definitions and libraries depending on available optional dependencies
