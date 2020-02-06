@@ -93,14 +93,14 @@ class branchIterator
   char* dbuf = nullptr;
   void* v = nullptr;
 
-  Float_t* vF = nullptr;
-  Double_t* vD = nullptr;
+  Float_t* var_f = nullptr;
+  Double_t* var_d = nullptr;
   UShort_t* vs = nullptr;
   UInt_t* vi = nullptr;
   ULong64_t* vl = nullptr;
-  Short_t* vS = nullptr;
-  Int_t* vI = nullptr;
-  Long64_t* vL = nullptr;
+  Short_t* var_s = nullptr;
+  Int_t* var_i = nullptr;
+  Long64_t* var_l = nullptr;
 
   // initialize a branch
   void branchini(TTree* tree, std::shared_ptr<arrow::Column> col, bool tupdate)
@@ -154,12 +154,12 @@ class branchIterator
     // get next chunk of given data type dt
     switch (dt) {
       case arrow::Type::type::FLOAT:
-        vF = (Float_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::FloatType>>(chs.at(ib))->raw_values();
-        v = (void*)vF;
+        var_f = (Float_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::FloatType>>(chs.at(ib))->raw_values();
+        v = (void*)var_f;
         break;
       case arrow::Type::type::DOUBLE:
-        vD = (Double_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::DoubleType>>(chs.at(ib))->raw_values();
-        v = (void*)vD;
+        var_d = (Double_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::DoubleType>>(chs.at(ib))->raw_values();
+        v = (void*)var_d;
         break;
       case arrow::Type::type::UINT16:
         vs = (UShort_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt16Type>>(chs.at(ib))->raw_values();
@@ -174,16 +174,16 @@ class branchIterator
         v = (void*)vl;
         break;
       case arrow::Type::type::INT16:
-        vS = (Short_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int16Type>>(chs.at(ib))->raw_values();
-        v = (void*)vS;
+        var_s = (Short_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int16Type>>(chs.at(ib))->raw_values();
+        v = (void*)var_s;
         break;
       case arrow::Type::type::INT32:
-        vI = (Int_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(chs.at(ib))->raw_values();
-        v = (void*)vI;
+        var_i = (Int_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(chs.at(ib))->raw_values();
+        v = (void*)var_i;
         break;
       case arrow::Type::type::INT64:
-        vL = (Long64_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int64Type>>(chs.at(ib))->raw_values();
-        v = (void*)vL;
+        var_l = (Long64_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int64Type>>(chs.at(ib))->raw_values();
+        v = (void*)var_l;
         break;
       default:
         LOG(FATAL) << "Type not handled: " << dt << std::endl;
@@ -248,10 +248,10 @@ class branchIterator
     } else {
       switch (dt) {
         case arrow::Type::type::FLOAT:
-          v = (void*)vF++;
+          v = (void*)var_f++;
           break;
         case arrow::Type::type::DOUBLE:
-          v = (void*)vD++;
+          v = (void*)var_d++;
           break;
         case arrow::Type::type::UINT16:
           v = (void*)vs++;
@@ -263,13 +263,13 @@ class branchIterator
           v = (void*)vl++;
           break;
         case arrow::Type::type::INT16:
-          v = (void*)vS++;
+          v = (void*)var_s++;
           break;
         case arrow::Type::type::INT32:
-          v = (void*)vI++;
+          v = (void*)var_i++;
           break;
         case arrow::Type::type::INT64:
-          v = (void*)vL++;
+          v = (void*)var_l++;
           break;
         default:
           LOG(FATAL) << "Type not handled: " << dt << std::endl;
