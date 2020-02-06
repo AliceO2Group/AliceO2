@@ -19,11 +19,6 @@
 #include <array>
 namespace o2::aod
 {
-namespace etaphi
-{
-DECLARE_SOA_COLUMN(Eta, etas, float, "fEta");
-DECLARE_SOA_COLUMN(Phi, phis, float, "fPhi");
-} // namespace etaphi
 namespace secvtx
 {
 DECLARE_SOA_COLUMN(Posx, posx, float, "fPosx");
@@ -41,8 +36,6 @@ namespace cand2prong
 DECLARE_SOA_COLUMN(Mass, mass, float, "fMass");
 } // namespace cand2prong
 
-DECLARE_SOA_TABLE(EtaPhi, "RN2", "ETAPHI",
-                  etaphi::Eta, etaphi::Phi);
 DECLARE_SOA_TABLE(SecVtx, "AOD", "SECVTX",
                   secvtx::Posx, secvtx::Posy, secvtx::Index0, secvtx::Index1, secvtx::Index2, secvtx::Tracky0, secvtx::Tracky1, secvtx::Tracky2);
 DECLARE_SOA_TABLE(Cand2Prong, "AOD", "CAND2PRONG",
@@ -53,15 +46,15 @@ using namespace o2;
 using namespace o2::framework;
 
 struct TrackQA {
-  OutputObj<TH1F> hpt_nocuts{TH1F("hpt_nocuts", "pt tracks (#GeV)", 100, 0., 10.)};
-  OutputObj<TH1F> htgl_nocuts{TH1F("htgl_nocuts", "tgl tracks (#GeV)", 100, 0., 10.)};
+  OutputObj<TH1F> hpt_cuts{TH1F("hpt_cuts", "pt tracks (#GeV)", 100, 0., 10.)};
+  OutputObj<TH1F> htgl_cuts{TH1F("htgl_cuts", "tgl tracks (#GeV)", 100, 0., 10.)};
 
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksCov> const& tracks)
   {
     LOGF(info, "Tracks for collision: %d", tracks.size());
     for (auto& track : tracks) {
-      hpt_nocuts->Fill(track.pt());
-      htgl_nocuts->Fill(track.tgl());
+      hpt_cuts->Fill(track.pt());
+      htgl_cuts->Fill(track.tgl());
       LOGF(info, "track tgl %f", track.tgl());
     }
   }
@@ -80,7 +73,8 @@ struct VertexerHFTask {
 
     for (auto it_0 = tracks.begin(); it_0 != tracks.end(); ++it_0) {
       auto& track_0 = *it_0;
-      hindex_0_coll->Fill(track_0.index());
+      LOGF(info, "globalindex %llu", track_0.globalIndex());
+      hindex_0_coll->Fill(track_0.globalIndex());
       float x0_ = track_0.x();
       float alpha0_ = track_0.alpha();
       std::array<float, 5> arraypar0 = {track_0.y(), track_0.z(), track_0.snp(), track_0.tgl(), track_0.signed1Pt()};
@@ -107,7 +101,7 @@ struct VertexerHFTask {
           hvtx_x_out->Fill(vtx.x);
           hvtx_y_out->Fill(vtx.y);
           hvtx_z_out->Fill(vtx.z);
-          secvtx(vtx.x, vtx.y, track_0.index(), track_1.index(), -1., track_0.y(), track_1.y(), -1.);
+          secvtx(vtx.x, vtx.y, track_0.globalIndex(), track_1.globalIndex(), -1., track_0.y(), track_1.y(), -1.);
         }
       }
     }
@@ -120,7 +114,7 @@ struct CandidateBuilder2Prong {
   {
     LOGF(info, "NEW EVENT");
     for (auto& secVtx : secVtxs) {
-      LOGF(INFO, "Consume the table (%f, %f, %f, %f)", secVtx.posx(), secVtx.posy(), secVtx.tracky0(), (tracks.begin() + secVtx.index0()).y());
+      LOGF(INFO, "Consume the table (%f, %f, %f, %f) with track 0 global index %llu", secVtx.posx(), secVtx.posy(), secVtx.tracky0(), (tracks.begin() + secVtx.index0()).y(), secVtx.index0());
     }
   }
 };
