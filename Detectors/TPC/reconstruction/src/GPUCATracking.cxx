@@ -61,7 +61,7 @@ void GPUCATracking::deinitialize()
 
 int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
 {
-  if (data->o2Digits == nullptr && data->clusters == nullptr) {
+  if ((int)(data->tpcZS != nullptr) + (int)(data->o2Digits != nullptr) + (int)(data->clusters != nullptr) != 1) {
     return 0;
   }
 
@@ -85,7 +85,9 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
   GPUTrackingInOutDigits gpuDigitsMap;
   GPUTrackingInOutPointers ptrs;
 
-  if (data->o2Digits) {
+  if (data->tpcZS) {
+    ptrs.tpcZS = data->tpcZS;
+  } else if (data->o2Digits) {
     ptrs.clustersNative = nullptr;
     const float zsThreshold = mTrackingCAO2Interface->getConfig().configReconstruction.tpcZSthreshold;
     for (int i = 0; i < Sector::MAXSECTOR; i++) {
@@ -106,7 +108,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
     ptrs.tpcPackedDigits = nullptr;
   }
   int retVal = mTrackingCAO2Interface->RunTracking(&ptrs);
-  if (data->o2Digits) {
+  if (data->o2Digits || data->tpcZS) {
     clusters = ptrs.clustersNative;
   }
   const GPUTPCGMMergedTrack* tracks = ptrs.mergedTracks;

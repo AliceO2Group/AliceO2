@@ -38,7 +38,7 @@ GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder
 {
   const unsigned int slice = clusterer.mISlice;
   const unsigned int endpoint = iBlock;
-  GPUTrackingInOutZS::GPUTrackingInOutZSSlice& zs = clusterer.GetConstantMem()->ioPtrs.tpcZS->slice[slice];
+  const GPUTrackingInOutZS::GPUTrackingInOutZSSlice& zs = clusterer.GetConstantMem()->ioPtrs.tpcZS->slice[slice];
   if (zs.count[endpoint] == 0) {
     return;
   }

@@ -718,7 +718,7 @@ void GPUChainTracking::ConvertZSEncoder(bool zs12bit)
 
 void GPUChainTracking::ConvertZSFilter(bool zs12bit)
 {
-  GPUReconstructionConvert::RunZSFilter(mIOMem.tpcDigits, mIOPtrs.tpcPackedDigits->tpcDigits, mIOPtrs.tpcPackedDigits->nTPCDigits, param(), zs12bit);
+  GPUReconstructionConvert::RunZSFilter(mIOMem.tpcDigits, mIOPtrs.tpcPackedDigits->tpcDigits, mDigitMap->nTPCDigits, mIOPtrs.tpcPackedDigits->nTPCDigits, param(), zs12bit);
 }
 
 void GPUChainTracking::LoadClusterErrors() { param().LoadClusterErrors(); }

@@ -79,9 +79,10 @@ struct GPUO2InterfaceConfiguration {
 // value of the pointer is overridden. GPUCATracking will try to place the output in the "void* outputBuffer"
 // location if it is not a nullptr.
 struct GPUO2InterfaceIOPtrs {
-  // Input: TPC clusters in cluster native format, or digits, const as it can only be input
+  // Input: TPC clusters in cluster native format, or digits, or list of ZS pages -  const as it can only be input
   const o2::tpc::ClusterNativeAccess* clusters = nullptr;
   const std::array<std::vector<o2::tpc::Digit>, o2::tpc::Constants::MAXSECTOR>* o2Digits = nullptr;
+  const o2::gpu::GPUTrackingInOutZS* tpcZS = nullptr;
 
   // Input / Output for Merged TPC tracks, two ptrs, for the tracks themselves, and for the MC labels.
   std::vector<o2::tpc::TrackTPC>* outputTracks = nullptr;
