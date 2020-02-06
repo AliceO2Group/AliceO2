@@ -16,6 +16,8 @@
 
 #include "GPUCommonDef.h"
 
+// These are basic and non-comprex data types, which will also be visible on the GPU.
+// Please add complex data types required on the host but not GPU to GPUHostDataTypes.h and forward-declare!
 #ifndef __OPENCL__
 #include <cstddef>
 #endif
@@ -103,6 +105,7 @@ class GPUTRDTrackletWord;
 class GPUTPCMCInfo;
 struct GPUTPCClusterData;
 struct GPUTRDTrackletLabels;
+struct GPUTPCDigitsMCInput;
 
 class GPUDataTypes
 {
@@ -187,6 +190,7 @@ struct GPUTrackingInOutDigits {
   static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
   const deprecated::PackedDigit* tpcDigits[NSLICES] = {nullptr};
   size_t nTPCDigits[NSLICES] = {0};
+  GPUTPCDigitsMCInput* tpcDigitsMC;
 };
 
 struct GPUTrackingInOutPointers {

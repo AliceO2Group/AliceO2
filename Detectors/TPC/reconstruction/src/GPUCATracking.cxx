@@ -31,6 +31,7 @@
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUTPCGMMergedTrackHit.h"
+#include "GPUHostDataTypes.h"
 
 #include "Digit.h"
 
@@ -83,6 +84,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
   const ClusterNativeAccess* clusters;
   std::vector<deprecated::PackedDigit> gpuDigits[Sector::MAXSECTOR];
   GPUTrackingInOutDigits gpuDigitsMap;
+  GPUTPCDigitsMCInput gpuDigitsMC;
   GPUTrackingInOutPointers ptrs;
 
   if (data->tpcZS) {
@@ -100,6 +102,12 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
         }
       }
       gpuDigitsMap.nTPCDigits[i] = gpuDigits[i].size();
+    }
+    if (data->o2DigitsMC) {
+      for (int i = 0; i < Sector::MAXSECTOR; i++) {
+        gpuDigitsMC.v[i] = (*data->o2DigitsMC)[i].get();
+      }
+      gpuDigitsMap.tpcDigitsMC = &gpuDigitsMC;
     }
     ptrs.tpcPackedDigits = &gpuDigitsMap;
   } else {
@@ -237,6 +245,9 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
       rowIndexArr[nOutCl] = globalRow;
       nOutCl++;
       if (outputTracksMCTruth) {
+        if (!clusters->clustersMCTruth) {
+          throw std::runtime_error("Cluster MC information missing");
+        }
         for (const auto& element : clusters->clustersMCTruth->getLabels(clusters->clusterOffset[sector][globalRow] + clusterId)) {
           bool found = false;
           for (int l = 0; l < labels.size(); l++) {
