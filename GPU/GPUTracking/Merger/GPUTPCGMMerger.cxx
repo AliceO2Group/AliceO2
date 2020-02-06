@@ -232,7 +232,9 @@ void GPUTPCGMMerger::SetMaxData(const GPUTrackingInOutPointers& io)
   mNMaxOutputTrackClusters = mNClusters * 1.1f + 1000;
   mNMaxTracks = mNMaxSliceTracks;
   mNMaxClusters = 0;
-  if (mSliceTrackers) {
+  if (io.clustersNative) {
+    mNMaxClusters = io.clustersNative->nClustersTotal;
+  } else if (mSliceTrackers) {
     for (int i = 0; i < NSLICES; i++) {
       mNMaxClusters += mSliceTrackers[i].NHitsTotal();
     }
