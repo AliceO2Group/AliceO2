@@ -32,8 +32,8 @@ class CorrelationContainer : public TNamed
 {
  public:
   CorrelationContainer();
-  CorrelationContainer(const char* name, const char* objTitle, const char* reqHist = "", const char* binning = 0);
-  virtual ~CorrelationContainer();
+  CorrelationContainer(const char* name, const char* objTitle, const char* reqHist = "", const char* binning = nullptr);
+  virtual ~CorrelationContainer(); // NOLINT: Making this override breaks compilation for unknown reason
 
   static const Int_t fgkCFSteps;
   enum CFStep { kCFStepAll = 0,
@@ -61,7 +61,7 @@ class CorrelationContainer : public TNamed
   void deepCopy(CorrelationContainer* from);
 
   void getHistsZVtxMult(CorrelationContainer::CFStep step, Float_t ptLeadMin, Float_t ptLeadMax, THnBase** trackHist, TH2** eventHist);
-  TH2* getSumOfRatios(CorrelationContainer* mixed, CorrelationContainer::CFStep step, Float_t ptLeadMin, Float_t ptLeadMax, Int_t multBinBegin, Int_t multBinEnd, Bool_t normalizePerTrigger = kTRUE, Int_t stepForMixed = -1, Int_t* trigger = NULL);
+  TH2* getSumOfRatios(CorrelationContainer* mixed, CorrelationContainer::CFStep step, Float_t ptLeadMin, Float_t ptLeadMax, Int_t multBinBegin, Int_t multBinEnd, Bool_t normalizePerTrigger = kTRUE, Int_t stepForMixed = -1, Int_t* trigger = nullptr);
   TH1* getTriggersAsFunctionOfMultiplicity(CorrelationContainer::CFStep step, Float_t ptLeadMin, Float_t ptLeadMax);
 
   TH1* getTrackEfficiency(CFStep step1, CFStep step2, Int_t axis1, Int_t axis2 = -1, Int_t source = 1, Int_t axis3 = -1);
@@ -130,7 +130,7 @@ class CorrelationContainer : public TNamed
 
   CorrelationContainer(const CorrelationContainer& c);
   CorrelationContainer& operator=(const CorrelationContainer& corr);
-  virtual void Copy(TObject& c) const;
+  virtual void Copy(TObject& c) const; // NOLINT: Making this override breaks compilation for unknown reason
 
   virtual Long64_t Merge(TCollection* list);
   //void Scale(Double_t factor);

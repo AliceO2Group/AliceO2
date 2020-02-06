@@ -41,7 +41,7 @@ class StepTHnBase : public TNamed
 
   virtual Long64_t Merge(TCollection* list) = 0;
 
-  ClassDef(StepTHnBase, 1) // AliTHn base class
+  ClassDef(StepTHnBase, 1) // StepTHn base class
 };
 
 // TODO equidistant binning for THn
@@ -52,32 +52,32 @@ class StepTHn : public StepTHnBase
  public:
   StepTHn();
   StepTHn(const Char_t* name, const Char_t* title, const Int_t nSteps, const Int_t nAxis, Int_t* nBins, Double_t** binLimits, const char** axisTitles);
-  virtual ~StepTHn();
+  ~StepTHn() override;
 
-  virtual void Fill(const Double_t* var, Int_t istep, Double_t weight = 1.);
+  void Fill(const Double_t* var, Int_t istep, Double_t weight = 1.) override;
 
-  virtual THnBase* getTHn(Int_t step, Bool_t sparse = kFALSE)
+  THnBase* getTHn(Int_t step, Bool_t sparse = kFALSE) override
   {
     if (!mTarget || !mTarget[step])
       createTarget(step, sparse);
     return mTarget[step];
   }
-  virtual Int_t getNSteps() { return mNSteps; }
-  virtual Int_t getNVar() { return mNVars; }
+  Int_t getNSteps() override { return mNSteps; }
+  Int_t getNVar() override { return mNVars; }
 
-  virtual TArray* getValues(Int_t step) { return mValues[step]; }
-  virtual TArray* getSumw2(Int_t step) { return mSumw2[step]; }
+  TArray* getValues(Int_t step) override { return mValues[step]; }
+  TArray* getSumw2(Int_t step) override { return mSumw2[step]; }
 
   StepTHn(const StepTHn& c);
   StepTHn& operator=(const StepTHn& corr);
-  virtual void Copy(TObject& c) const;
+  void Copy(TObject& c) const override;
 
-  virtual Long64_t Merge(TCollection* list);
+  Long64_t Merge(TCollection* list) override;
 
  protected:
   void init();
   void createTarget(Int_t step, Bool_t sparse);
-  virtual void deleteContainers();
+  void deleteContainers() override;
 
   Long64_t getGlobalBinIndex(const Int_t* binIdx);
 
