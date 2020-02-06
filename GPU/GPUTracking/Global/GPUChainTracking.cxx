@@ -128,8 +128,10 @@ void GPUChainTracking::RegisterGPUProcessors()
   if (GetRecoStepsGPU() & RecoStep::TPCCompression) {
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcCompressor, &processors()->tpcCompressor);
   }
-  for (unsigned int i = 0; i < NSLICES; i++) {
-    mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcClusterer[i], &processors()->tpcClusterer[i]);
+  if (GetRecoStepsGPU() & RecoStep::TPCClusterFinding) {
+    for (unsigned int i = 0; i < NSLICES; i++) {
+      mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcClusterer[i], &processors()->tpcClusterer[i]);
+    }
   }
 #endif
 #ifdef GPUCA_KERNEL_DEBUGGER_OUTPUT
@@ -911,7 +913,7 @@ int GPUChainTracking::RunTPCClusterizer()
   if (doGPU) {
     if (mIOPtrs.tpcZS) {
       processorsShadow()->ioPtrs.tpcZS = mInputsShadow->mPzsMeta;
-      WriteToConstantMemory(RecoStep::TPCConversion, (char*)&processors()->ioPtrs - (char*)processors(), &processorsShadow()->ioPtrs, sizeof(processorsShadow()->ioPtrs), 0);
+      WriteToConstantMemory(RecoStep::TPCClusterFinding, (char*)&processors()->ioPtrs - (char*)processors(), &processorsShadow()->ioPtrs, sizeof(processorsShadow()->ioPtrs), 0);
     }
     WriteToConstantMemory(RecoStep::TPCClusterFinding, (char*)processors()->tpcClusterer - (char*)processors(), processorsShadow()->tpcClusterer, sizeof(GPUTPCClusterFinder) * NSLICES, mRec->NStreams() - 1, &mEvents->init);
   }
