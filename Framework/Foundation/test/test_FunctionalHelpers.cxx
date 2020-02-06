@@ -37,4 +37,5 @@ BOOST_AUTO_TEST_CASE(TestOverride)
   print_pack<intersected_pack_t<pack<TestStruct<0, -1>, int>, pack<TestStruct<0, -1>, float>>>();
   static_assert(std::is_same_v<intersected_pack_t<pack<TestStruct<0, -1>, int>, pack<TestStruct<0, -1>, float>>, pack<TestStruct<0, -1>>>, "filter intersect two packs");
   static_assert(std::is_same_v<concatenated_pack_t<pack<int, float, char>, pack<float, double>>, pack<int, float, char, float, double>>, "pack should be concatenated");
+  static_assert(std::is_same_v<concatenated_pack_t<pack<int, float, char>, pack<float, double>, pack<char, short>>, pack<int, float, char, float, double, char, short>>, "pack should be concatenated");
 }
