@@ -230,7 +230,7 @@ int GPUDisplayBackendGlfw::OpenGLMain()
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, GL_MIN_VERSION_MAJOR);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, GL_MIN_VERSION_MINOR);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 0);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GPUCA_DISPLAY_OPENGL_CORE_FLAGS ? GLFW_OPENGL_CORE_PROFILE : GLFW_OPENGL_COMPAT_PROFILE);
   mWindow = glfwCreateWindow(INIT_WIDTH, INIT_HEIGHT, GL_WINDOW_NAME, nullptr, nullptr);
   if (!mWindow) {
     fprintf(stderr, "Error creating glfw window\n");

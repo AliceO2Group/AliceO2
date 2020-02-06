@@ -230,8 +230,10 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     SetInfo("Smoothing of lines %s", mCfg.smoothLines ? "enabled" : "disabled");
   } else if (key == 'D') {
     mCfg.depthBuffer ^= true;
-    GLint depthBits;
+    GLint depthBits = 0;
+#ifndef GPUCA_DISPLAY_OPENGL_CORE
     glGetIntegerv(GL_DEPTH_BITS, &depthBits);
+#endif
     SetInfo("Depth buffer (z-buffer, %d bits) %s", depthBits, mCfg.depthBuffer ? "enabled" : "disabled");
     setDepthBuffer();
   } else if (key == 'W') {
