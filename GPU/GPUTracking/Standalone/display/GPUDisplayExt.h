@@ -17,10 +17,6 @@
 
 #include "GPUCommonDef.h"
 
-#ifdef GPUCA_O2_LIB
-//#define GPUCA_DISPLAY_GL3W
-#endif
-
 #if defined(GPUCA_DISPLAY_GL3W) && !defined(GPUCA_DISPLAY_OPENGL_CORE)
 #define GPUCA_DISPLAY_OPENGL_CORE
 #endif
