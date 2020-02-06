@@ -1127,15 +1127,16 @@ TGeoShape* Geometry::createScrewShape(const std::string& shapeName, const int sc
   const std::string thickPartName = shapeName + "Thick";
   const std::string thickPartTransName = thickPartName + "Trans";
 
-  new TGeoTube(thinPartName.c_str(), 0, sDrMinScrewTypes[screwTypeID] + xyEpsilon, dzMax);
-  new TGeoTube(thickPartName.c_str(), 0, sDrMaxScrewTypes[screwTypeID] + xyEpsilon, dzMin);
-  createAndRegisterTrans(thickPartTransName, 0, 0, -dzMax - sZShiftScrew + sDzScintillator + sDzPlastic + dzMin);
-
-  std::string boolFormula = thinPartName;
-  boolFormula += "+" + thickPartName + ":" + thickPartTransName;
-
-  TGeoCompositeShape* screwShape = new TGeoCompositeShape(shapeName.c_str(), boolFormula.c_str());
-  return screwShape;
+  if ((screwTypeID == 0) || (screwTypeID == 5)) { // for screw types 0 and 5 there is no thick part
+    return new TGeoTube(shapeName.c_str(), 0, sDrMinScrewTypes[screwTypeID] + xyEpsilon, dzMax);
+  } else {
+    new TGeoTube(thinPartName.c_str(), 0, sDrMinScrewTypes[screwTypeID] + xyEpsilon, dzMax);
+    new TGeoTube(thickPartName.c_str(), 0, sDrMaxScrewTypes[screwTypeID] + xyEpsilon, dzMin);
+    createAndRegisterTrans(thickPartTransName, 0, 0, -dzMax - sZShiftScrew + sDzScintillator + sDzPlastic + dzMin);
+    std::string boolFormula = thinPartName;
+    boolFormula += "+" + thickPartName + ":" + thickPartTransName;
+    return new TGeoCompositeShape(shapeName.c_str(), boolFormula.c_str());
+  }
 }
 
 TGeoShape* Geometry::createRodShape(const std::string& shapeName, const int rodTypeID, const float xEpsilon,
