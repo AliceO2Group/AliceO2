@@ -35,14 +35,14 @@ templateClassImp(StepTHn)
                                                     mNBins(0),
                                                     mNVars(0),
                                                     mNSteps(0),
-                                                    mValues(0),
-                                                    mSumw2(0),
-                                                    mTarget(0),
-                                                    mAxisCache(0),
-                                                    mNbinsCache(0),
-                                                    mLastVars(0),
-                                                    mLastBins(0),
-                                                    mPrototype(0)
+                                                    mValues(nullptr),
+                                                    mSumw2(nullptr),
+                                                    mTarget(nullptr),
+                                                    mAxisCache(nullptr),
+                                                    mNbinsCache(nullptr),
+                                                    mLastVars(nullptr),
+                                                    mLastBins(nullptr),
+                                                    mPrototype(nullptr)
 {
   // Constructor
 }
@@ -52,14 +52,14 @@ StepTHn<TemplateArray, TemplateType>::StepTHn(const Char_t* name, const Char_t* 
                                                                                                                                                                                             mNBins(0),
                                                                                                                                                                                             mNVars(nAxis),
                                                                                                                                                                                             mNSteps(nSteps),
-                                                                                                                                                                                            mValues(0),
-                                                                                                                                                                                            mSumw2(0),
-                                                                                                                                                                                            mTarget(0),
-                                                                                                                                                                                            mAxisCache(0),
-                                                                                                                                                                                            mNbinsCache(0),
-                                                                                                                                                                                            mLastVars(0),
-                                                                                                                                                                                            mLastBins(0),
-                                                                                                                                                                                            mPrototype(0)
+                                                                                                                                                                                            mValues(nullptr),
+                                                                                                                                                                                            mSumw2(nullptr),
+                                                                                                                                                                                            mTarget(nullptr),
+                                                                                                                                                                                            mAxisCache(nullptr),
+                                                                                                                                                                                            mNbinsCache(nullptr),
+                                                                                                                                                                                            mLastVars(nullptr),
+                                                                                                                                                                                            mLastBins(nullptr),
+                                                                                                                                                                                            mPrototype(nullptr)
 {
   // Constructor
 
@@ -69,7 +69,7 @@ StepTHn<TemplateArray, TemplateType>::StepTHn(const Char_t* name, const Char_t* 
 
   // TODO this should be double for StepTHnD
 
-  mPrototype = new THnSparseF(Form("%s_sparse", name), title, nAxis, nBins, 0, 0);
+  mPrototype = new THnSparseF(Form("%s_sparse", name), title, nAxis, nBins);
   for (Int_t i = 0; i < mNVars; i++) {
     mPrototype->SetBinEdges(i, binEdges[i]);
     mPrototype->GetAxis(i)->SetTitle(axisTitles[i]);
@@ -87,8 +87,8 @@ void StepTHn<TemplateArray, TemplateType>::StepTHn::init()
   mSumw2 = new TemplateArray*[mNSteps];
 
   for (Int_t i = 0; i < mNSteps; i++) {
-    mValues[i] = 0;
-    mSumw2[i] = 0;
+    mValues[i] = nullptr;
+    mSumw2[i] = nullptr;
   }
 }
 
@@ -99,12 +99,12 @@ StepTHn<TemplateArray, TemplateType>::StepTHn(const StepTHn<TemplateArray, Templ
                                                                                                mNSteps(c.mNSteps),
                                                                                                mValues(new TemplateArray*[c.mNSteps]),
                                                                                                mSumw2(new TemplateArray*[c.mNSteps]),
-                                                                                               mTarget(0),
-                                                                                               mAxisCache(0),
-                                                                                               mNbinsCache(0),
-                                                                                               mLastVars(0),
-                                                                                               mLastBins(0),
-                                                                                               mPrototype(0)
+                                                                                               mTarget(nullptr),
+                                                                                               mAxisCache(nullptr),
+                                                                                               mNbinsCache(nullptr),
+                                                                                               mLastVars(nullptr),
+                                                                                               mLastBins(nullptr),
+                                                                                               mPrototype(nullptr)
 {
   //
   // StepTHn copy constructor
@@ -138,17 +138,17 @@ void StepTHn<TemplateArray, TemplateType>::deleteContainers()
   for (Int_t i = 0; i < mNSteps; i++) {
     if (mValues && mValues[i]) {
       delete mValues[i];
-      mValues[i] = 0;
+      mValues[i] = nullptr;
     }
 
     if (mSumw2 && mSumw2[i]) {
       delete mSumw2[i];
-      mSumw2[i] = 0;
+      mSumw2[i] = nullptr;
     }
 
     if (mTarget && mTarget[i]) {
       delete mTarget[i];
-      mTarget[i] = 0;
+      mTarget[i] = nullptr;
     }
   }
 }
@@ -185,12 +185,12 @@ void StepTHn<TemplateArray, TemplateType>::Copy(TObject& c) const
     if (mValues[i])
       target.mValues[i] = new TemplateArray(*(mValues[i]));
     else
-      target.mValues[i] = 0;
+      target.mValues[i] = nullptr;
 
     if (mSumw2[i])
       target.mSumw2[i] = new TemplateArray(*(mSumw2[i]));
     else
-      target.mSumw2[i] = 0;
+      target.mSumw2[i] = nullptr;
   }
 
   if (mPrototype)
@@ -218,7 +218,7 @@ Long64_t StepTHn<TemplateArray, TemplateType>::Merge(TCollection* list)
   while ((obj = iter->Next())) {
 
     StepTHn* entry = dynamic_cast<StepTHn*>(obj);
-    if (entry == 0)
+    if (entry == nullptr)
       continue;
 
     for (Int_t i = 0; i < mNSteps; i++) {
@@ -345,7 +345,7 @@ void StepTHn<TemplateArray, TemplateType>::createTarget(Int_t step, Bool_t spars
   if (!mTarget) {
     mTarget = new THnBase*[mNSteps];
     for (Int_t i = 0; i < mNSteps; i++)
-      mTarget[i] = 0;
+      mTarget[i] = nullptr;
   }
 
   if (mTarget[step])
@@ -406,7 +406,7 @@ void StepTHn<TemplateArray, TemplateType>::createTarget(Int_t step, Bool_t spars
   delete[] nBins;
 
   delete mValues[step];
-  mValues[step] = 0;
+  mValues[step] = nullptr;
 }
 
 /*
