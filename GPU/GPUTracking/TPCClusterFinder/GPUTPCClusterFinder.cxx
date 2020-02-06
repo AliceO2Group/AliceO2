@@ -68,7 +68,7 @@ void GPUTPCClusterFinder::RegisterMemoryAllocation()
 void GPUTPCClusterFinder::SetMaxData(const GPUTrackingInOutPointers& io)
 {
   mNMaxPeaks = 0.5f * mNMaxDigits;
-  mNMaxClusters = 0.2f * mNMaxPeaks;
+  mNMaxClusters = mNMaxPeaks;
   mNMaxClusterPerRow = 0.01f * mNMaxDigits;
   mBufSize = nextMultipleOf<std::max<int>(GPUCA_MEMALIGN, mScanWorkGroupSize)>(mNMaxDigits);
   mNBufs = getNSteps(mBufSize);
