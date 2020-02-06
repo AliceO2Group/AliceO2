@@ -76,6 +76,7 @@ set(SRCS_NO_CINT
     Standalone/utils/timer.cxx)
 
 set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
+              Merger/GPUTPCGMMergerDump.cxx
               Global/GPUChainTrackingDebugAndProfiling.cxx)
 
 set(HDRS_INSTALL
@@ -166,8 +167,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
                      TPCClusterFinder/Array2D.h
                      TPCClusterFinder/CfConsts.h
                      TPCClusterFinder/CfUtils.h
+                     TPCClusterFinder/ChargePos.h
                      TPCClusterFinder/clusterFinderDefs.h
-                     TPCClusterFinder/ClusterNative.h
                      TPCClusterFinder/Digit.h
                      TPCClusterFinder/GPUTPCSharedMemoryData.h
                      TPCClusterFinder/PackedCharge.h)

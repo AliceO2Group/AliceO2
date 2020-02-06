@@ -7,6 +7,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
+/// \file digit.h
+/// \author Felix Weiglhofer
+//
 #if !defined(SHARED_DIGIT_H)
 #define SHARED_DIGIT_H
 
@@ -31,8 +35,6 @@ using Digit = PackedDigit;
 } // namespace deprecated
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
-
-#define PACKED_DIGIT_SIZE 8 // TODO: why not constexpr sizeof(..)?
 
 #endif //!defined(SHARED_DIGIT_H)
 

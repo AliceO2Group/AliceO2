@@ -23,9 +23,9 @@
 
 #include "CPVBase/Geometry.h"
 #include "CPVBase/Hit.h"
+#include "CPVBase/CPVSimParams.h"
 #include "CPVSimulation/Detector.h"
 #include "CPVSimulation/GeometryParams.h"
-#include "CPVSimulation/CPVSimParams.h"
 
 #include "DetectorsBase/GeometryManager.h"
 #include "SimulationDataFormat/Stack.h"
@@ -39,7 +39,6 @@ ClassImp(Detector);
 
 Detector::Detector(Bool_t active)
   : o2::base::DetImpl<Detector>("CPV", active),
-    mGeom(nullptr),
     mHits(o2::utils::createSimVector<o2::cpv::Hit>())
 {
 }
@@ -71,7 +70,7 @@ void Detector::FinishEvent()
 {
   // Sort Hits
   // Add duplicates if any and remove them
-  // TODO:
+
   if (!mHits || mHits->size() == 0) {
     return;
   }
@@ -115,7 +114,6 @@ void Detector::Register() { FairRootManager::Instance()->RegisterAny(addNameTo("
 
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
-
   // ------------------------------------------------------------------------
   // Digitize one CPV hit:
   // use exact 4-momentum p and position zxhit of the hit,
@@ -135,10 +133,6 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
   if (!fMC->IsTrackEntering()) { //simulate once per track
     return false;
-  }
-
-  if (!mGeom) {
-    mGeom = Geometry::GetInstance();
   }
 
   int moduleNumber;
@@ -269,15 +263,15 @@ Bool_t Detector::ProcessHits(FairVolume* v)
         float xg = (float)(ix - nx3) - xc;
 
         // Now calculate pad response
-        float qpad = PadResponseFunction(qhit, zg, xg);
+        float qpad = padResponseFunction(qhit, zg, xg);
         qpad += cpvparam.mNoise * rnor2;
         if (qpad < 0) {
           continue;
         }
         // Fill hit with pad response ID and amplitude
         // hist will be sorted and merged later if necessary
-        int detID = mGeom->RelToAbsId(moduleNumber, kxg, kzg);
-        AddHit(partID, detID, Point3D<float>(xyzm[0], xyzm[1], xyzm[2]), time, qpad);
+        short detID = Geometry::relToAbsId(moduleNumber, kxg, kzg);
+        addHit(partID, detID, Point3D<float>(xyzm[0], xyzm[1], xyzm[2]), time, qpad);
       }
     }
   }
@@ -285,7 +279,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   return true;
 }
 
-double Detector::PadResponseFunction(float qhit, float zhit, float xhit)
+float Detector::padResponseFunction(float qhit, float zhit, float xhit)
 {
   // ------------------------------------------------------------------------
   // Calculate the amplitude in one CPV pad using the
@@ -295,17 +289,17 @@ double Detector::PadResponseFunction(float qhit, float zhit, float xhit)
   // ------------------------------------------------------------------------
 
   auto& cpvparam = o2::cpv::CPVSimParams::Instance();
-  double dz = cpvparam.mPadSizeZ / 2;
-  double dx = cpvparam.mPadSizeX / 2;
-  double z = zhit * cpvparam.mPadSizeZ;
-  double x = xhit * cpvparam.mPadSizeX;
-  double amplitude = qhit *
-                     (CPVCumulPadResponse(z + dz, x + dx) - CPVCumulPadResponse(z + dz, x - dx) -
-                      CPVCumulPadResponse(z - dz, x + dx) + CPVCumulPadResponse(z - dz, x - dx));
+  float dz = cpvparam.mPadSizeZ / 2;
+  float dx = cpvparam.mPadSizeX / 2;
+  float z = zhit * cpvparam.mPadSizeZ;
+  float x = xhit * cpvparam.mPadSizeX;
+  float amplitude = qhit *
+                    (CPVCumulPadResponse(z + dz, x + dx) - CPVCumulPadResponse(z + dz, x - dx) -
+                     CPVCumulPadResponse(z - dz, x + dx) + CPVCumulPadResponse(z - dz, x - dx));
   return amplitude;
 }
 
-double Detector::CPVCumulPadResponse(double x, double y)
+float Detector::CPVCumulPadResponse(float x, float y)
 {
   // ------------------------------------------------------------------------
   // Cumulative pad response function
@@ -318,21 +312,21 @@ double Detector::CPVCumulPadResponse(double x, double y)
   // ------------------------------------------------------------------------
 
   auto& cpvparam = o2::cpv::CPVSimParams::Instance();
-  double r2 = x * x + y * y;
-  double xy = x * y;
-  double cumulPRF = 0;
+  float r2 = x * x + y * y;
+  float xy = x * y;
+  float cumulPRF = 0;
   for (Int_t i = 0; i <= 4; i++) {
-    double b1 = (2 * i + 1) * cpvparam.mB;
+    float b1 = (2 * i + 1) * cpvparam.mB;
     cumulPRF += TMath::Power(-1, i) * TMath::ATan(xy / (b1 * TMath::Sqrt(b1 * b1 + r2)));
   }
   cumulPRF *= cpvparam.mA / (2 * TMath::Pi());
   return cumulPRF;
 }
 
-void Detector::AddHit(int trackID, int detID, const Point3D<float>& pos, double time, double qdep)
+void Detector::addHit(int trackID, short detID, const Point3D<float>& pos, double time, float qdep)
 {
-  LOG(DEBUG4) << "Adding hit for track " << trackID << " in a pad " << detID << " with position (" << pos.X() << ", "
-              << pos.Y() << ", " << pos.Z() << "), time" << time << ", qdep =" << qdep << std::endl;
+  LOG(DEBUG) << "Adding hit for track " << trackID << " in a pad " << detID << " with position (" << pos.X() << ", "
+             << pos.Y() << ", " << pos.Z() << "), time" << time << ", qdep =" << qdep << std::endl;
   mHits->emplace_back(trackID, detID, pos, time, qdep);
   // register hit creation with MCStack
   static_cast<o2::data::Stack*>(fMC->GetStack())->addHit(GetDetId());
@@ -343,7 +337,6 @@ void Detector::ConstructGeometry()
   // Create geometry description of CPV depector for Geant simulations.
 
   using boost::algorithm::contains;
-  LOG(DEBUG) << "Creating CPV geometry\n";
 
   cpv::GeometryParams* geomParams = cpv::GeometryParams::GetInstance("CPVRun3Params");
 

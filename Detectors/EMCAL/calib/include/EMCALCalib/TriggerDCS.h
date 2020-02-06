@@ -22,9 +22,11 @@ namespace emcal
 
 /// \class TriggerDCS
 /// \brief CCDB container for the DCS data in EMCAL
-/// based on AliEMCALTriggerDCSConfig class authored by R. GUERNANE
+/// \ingroup EMCALcalib
 /// \author Hadi Hassan <hadi.hassan@cern.ch>, Oak Ridge National Laboratory
 /// \since December 4th, 2019
+///
+/// based on AliEMCALTriggerDCSConfig class authored by R. GUERNANE
 
 class TriggerDCS
 {
@@ -59,6 +61,7 @@ class TriggerDCS
   TriggerTRUDCS getTRUDCS(Int_t iTRU) const { return mTRUArr.at(iTRU); }
 
   /// \brief Check whether TRU is enabled
+  /// \param iTRU Index of the TRU
   /// Enabled-status defined via presence of the TRU in the STU region: TRU
   /// is enabled if the corresponding bit is set in the STU region
   bool isTRUEnabled(int iTRU) const;
@@ -73,7 +76,7 @@ class TriggerDCS
 
 /// \brief Streaming operator
 /// \param in Stream where the TRU parameters are printed on
-/// \param tru TRU to be printed
+/// \param dcs TRU to be printed
 /// \return Stream after printing the TRU parameters
 std::ostream& operator<<(std::ostream& in, const TriggerDCS& dcs);
 

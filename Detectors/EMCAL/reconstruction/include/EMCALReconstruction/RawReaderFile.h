@@ -32,6 +32,7 @@ namespace emcal
 
 /// \class RawReaderFile
 /// \brief Reader for raw data produced by the ReadoutCard from a binary file
+/// \ingroup EMCALreconstruction
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 /// \since Aug. 12, 2019
 ///

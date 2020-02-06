@@ -7,20 +7,6 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
-/// \class EMCalRawFitter
-///
-/// \brief  Base class for extraction of signal amplitude and peak position
-/// Base class for extraction
-/// of signal amplitude and peak position
-/// from CALO Calorimeter RAW data.
-/// It contains some utilities for preparing / selecting
-/// signals suitable for signal extraction
-///
-/// \author Hadi Hassan <hadi.hassan@cern.ch>, Oak Ridge National Laboratory
-/// \since November 4th, 2019
-///
-
 #ifndef EMCALRAWFITTER_H_
 #define EMCALRAWFITTER_H_
 
@@ -39,6 +25,16 @@ namespace o2
 namespace emcal
 {
 
+/// \class EMCalRawFitter
+/// \brief  Base class for extraction of signal amplitude and peak position
+/// \author Hadi Hassan <hadi.hassan@cern.ch>, Oak Ridge National Laboratory
+/// \since November 4th, 2019
+///
+/// Base class for extraction
+/// of signal amplitude and peak position
+/// from CALO Calorimeter RAW data.
+/// It contains some utilities for preparing / selecting
+/// signals suitable for signal extraction
 class CaloRawFitter
 {
 

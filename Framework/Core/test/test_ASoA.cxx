@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   auto rowIndex = std::make_tuple(
     std::pair<test::X*, arrow::Column*>{nullptr, table->column(0).get()},
     std::pair<test::Y*, arrow::Column*>{nullptr, table->column(1).get()});
-  RowView<test::X, test::Y> tests(rowIndex, table->num_rows());
+  RowView<test::X, test::Y> tests(rowIndex, {table->num_rows(), 0});
   BOOST_CHECK_EQUAL(tests.x(), 0);
   BOOST_CHECK_EQUAL(tests.y(), 0);
   ++tests;
@@ -369,4 +369,31 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
     i++;
   }
   BOOST_CHECK_EQUAL(i, 3);
+}
+
+BOOST_AUTO_TEST_CASE(TestTableSlicing)
+{
+  TableBuilder builderA;
+  auto rowWriterA = builderA.persist<int32_t, int32_t>({"x", "y"});
+  rowWriterA(0, 0, 0);
+  rowWriterA(0, 1, 0);
+  rowWriterA(0, 2, 0);
+  rowWriterA(0, 3, 1);
+  rowWriterA(0, 4, 1);
+  rowWriterA(0, 5, 1);
+  rowWriterA(0, 6, 1);
+  rowWriterA(0, 7, 2);
+  auto tableA = builderA.finalize();
+  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 8);
+  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
+
+  TestA t = TestA{tableA};
+  auto s = slice(t, "y");
+  BOOST_CHECK_EQUAL(s.size(), 3);
+
+  for (auto r : s[1]) {
+    BOOST_CHECK_EQUAL(r.x(), r.index() + 3);
+    BOOST_CHECK_EQUAL(r.y(), 1);
+    BOOST_CHECK_EQUAL(r.globalIndex(), r.index() + 3);
+  }
 }

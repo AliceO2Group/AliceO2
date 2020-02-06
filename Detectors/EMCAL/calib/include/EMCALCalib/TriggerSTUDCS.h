@@ -22,9 +22,11 @@ namespace emcal
 
 /// \class TriggerSTUDCS
 /// \brief CCDB container for STU DCS data in EMCAL
-/// based on AliEMCALTriggerSTUDCSConfig class authored by R. GUERNANE
+/// \ingroup EMCALcalib
 /// \author Hadi Hassan <hadi.hassan@cern.ch>, Oak Ridge National Laboratory
 /// \since December 4th, 2019
+///
+/// based on AliEMCALTriggerSTUDCSConfig class authored by R. GUERNANE
 
 class TriggerSTUDCS
 {
@@ -115,7 +117,7 @@ class TriggerSTUDCS
 
 /// \brief Streaming operator
 /// \param in Stream where the STU parameters are printed on
-/// \param tru STU to be printed
+/// \param stu STU to be printed
 /// \return Stream after printing the STU parameters
 std::ostream& operator<<(std::ostream& in, const TriggerSTUDCS& stu);
 

@@ -20,6 +20,7 @@ namespace emcal
 
 /// \class RawDecodingError
 /// \brief Error handling of the raw reader
+/// \ingroup EMCALreconstruction
 ///
 /// The following error types are defined:
 /// - Page not found

@@ -114,7 +114,7 @@ class Digitizer
   {
     return std::bitset<NChannels>(v);
   }
-  void phe2Sample(int nphe, int parID, double timeHit, std::array<o2::InteractionRecord, NBC2Cache> cachedIR, int nCachedIR, int channel);
+  void phe2Sample(int nphe, int parID, double timeHit, std::array<o2::InteractionRecord, NBC2Cache> const& cachedIR, int nCachedIR, int channel);
 
   BCCache& getCreateBCCache(const o2::InteractionRecord& ir);
   BCCache* getBCCache(const o2::InteractionRecord& ir);

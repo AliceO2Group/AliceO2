@@ -12,14 +12,15 @@
 /// \author Felix Weiglhofer
 
 #include "ChargeMapFiller.h"
+#include "ChargePos.h"
 #include "Array2D.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::deprecated;
 
 GPUd() void ChargeMapFiller::fillChargeMapImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
-                                               GPUglobalref() const Digit* digits,
-                                               GPUglobalref() PackedCharge* chargeMap,
+                                               const Digit* digits,
+                                               Array2D<PackedCharge>& chargeMap,
                                                size_t maxDigit)
 {
   size_t idx = get_global_id(0);
@@ -28,21 +29,19 @@ GPUd() void ChargeMapFiller::fillChargeMapImpl(int nBlocks, int nThreads, int iB
   }
   Digit myDigit = digits[idx];
 
-  GlobalPad gpad = Array2D::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
-
-  CHARGE(chargeMap, gpad, myDigit.time) = PackedCharge(myDigit.charge, false, false);
+  chargeMap[ChargePos(myDigit)] = PackedCharge(myDigit.charge);
 }
 
 GPUd() void ChargeMapFiller::resetMapsImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
-                                           GPUglobalref() const Digit* digits,
-                                           GPUglobalref() PackedCharge* chargeMap,
-                                           GPUglobalref() uchar* isPeakMap)
+                                           const Digit* digits,
+                                           Array2D<PackedCharge>& chargeMap,
+                                           Array2D<uchar>& isPeakMap)
 {
   size_t idx = get_global_id(0);
   Digit myDigit = digits[idx];
 
-  GlobalPad gpad = Array2D::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+  ChargePos pos(myDigit);
 
-  CHARGE(chargeMap, gpad, myDigit.time) = PackedCharge(0);
-  IS_PEAK(isPeakMap, gpad, myDigit.time) = 0;
+  chargeMap[pos] = PackedCharge(0);
+  isPeakMap[pos] = 0;
 }

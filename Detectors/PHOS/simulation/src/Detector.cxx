@@ -164,9 +164,6 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   if (lostenergy < DBL_EPSILON && !isNewPartile)
     return false; // do not create hits with zero energy deposition
 
-  if (!mGeom)
-    mGeom = Geometry::GetInstance();
-
   //  if(strcmp(mc->CurrentVolName(),"PXTL")!=0) //Non need to check, alwais there...
   //    return false ; //  We are not inside a PBWO crystal
 
@@ -177,7 +174,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   fMC->CurrentVolOffID(3, strip); // 3: number of geom levels between PXTL and strip: get strip number in PHOS module
   Int_t cell;
   fMC->CurrentVolOffID(2, cell); // 2: number of geom levels between PXTL and cell: get sell in strip number.
-  Int_t detID = mGeom->relToAbsId(moduleNumber, strip, cell);
+  Int_t detID = Geometry::relToAbsId(moduleNumber, strip, cell);
 
   if (superParent == mCurentSuperParent && detID == mCurrentCellID && mCurrentHit) {
     // continue with current hit
@@ -942,6 +939,9 @@ void Detector::addAlignableVolumes() const
   TString symbModuleName = "PHOS/Module";
 
   for (Int_t iModule = 1; iModule <= geom->getNModules(); iModule++) {
+    if (!mActiveModule[iModule - 1]) {
+      continue;
+    }
 
     TString volPath(physModulePath);
     volPath += iModule;
@@ -949,7 +949,7 @@ void Detector::addAlignableVolumes() const
     TString symName(symbModuleName);
     symName += iModule;
 
-    int modUID = o2::base::GeometryManager::getSensID(idPHOS, iModule - 1);
+    int modUID = o2::base::GeometryManager::getSensID(idPHOS, iModule);
 
     LOG(DEBUG) << "--------------------------------------------"
                << "\n";

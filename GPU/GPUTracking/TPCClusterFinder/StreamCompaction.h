@@ -27,21 +27,21 @@ class StreamCompaction
 
  public:
   static GPUd() void nativeScanUpStartImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&,
-                                           GPUglobalref() const uchar*, GPUglobalref() int*, GPUglobalref() int*,
+                                           const uchar*, int*, int*,
                                            int);
 
   static GPUd() void nativeScanUpImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&,
-                                      GPUglobalref() int*, GPUglobalref() int*, int);
+                                      int*, int*, int);
 
   static GPUd() void nativeScanTopImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&,
-                                       GPUglobalref() int*, int);
+                                       int*, int);
 
   static GPUd() void nativeScanDownImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&,
-                                        GPUglobalref() int*, GPUglobalref() const int*, unsigned int, int);
+                                        int*, const int*, unsigned int, int);
 
   static GPUd() void compactDigitImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&,
-                                      GPUglobalref() const deprecated::Digit*, GPUglobalref() deprecated::Digit*,
-                                      GPUglobalref() const uchar*, GPUglobalref() int*, const GPUglobalref() int*,
+                                      const deprecated::Digit*, deprecated::Digit*,
+                                      const uchar*, int*, const int*,
                                       int);
 };
 
