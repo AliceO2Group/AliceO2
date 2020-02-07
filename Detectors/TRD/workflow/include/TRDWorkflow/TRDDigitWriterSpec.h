@@ -27,7 +27,7 @@ namespace trd
 template <typename T>
 using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-inline o2::framework::DataProcessorSpec getTRDDigitWriterSpec()
+o2::framework::DataProcessorSpec getTRDDigitWriterSpec()
 {
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
