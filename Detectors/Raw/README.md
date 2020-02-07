@@ -22,6 +22,101 @@ generated and flushed to raw data **before** filling the payload of `payLoadIR`.
 
 See `Detectors/Raw/test/testHBFUtils.cxx` for details of usage of this class (also check the jira ticket about the [MC->Raw conversion](https://alice.its.cern.ch/jira/browse/O2-972)).
 
+## RawFileWriter
+
+A class to facilitate writing to files the MC data converted to raw data payload. Payload will be formatted according to CRU data
+specifications and should be simular to produced by the readout.exe (and can be pumped into the DPL workflows)
+
+The detector code for MC to raw conversion should instatiate the RawFileWriter object and:
+
+*   register all GBT links for which it wants to write data, providing either `cruID`, `linkID`, `CRU endPointID` and `feeID`
+or an RDH containing similar infomation. It also can provide a file name to write the data of this link. Multiple links may
+write their data to the same file:
+```cpp
+using namespace o2::raw;
+RawFileWriter writer;
+writer.registerLink(fee_0, cru_0, link_0, endpoint_0, "outfile_0.raw");
+writer.registerLink(fee_1, cru_0, link_1, endpoint_0, "outfile_0.raw");
+..
+// or
+o2::header::RawDataHeader rdh; // by default, v4 is used currently.
+rdh.feeId = feeX;
+rdh.cruID = cruY;
+rdh.linkID = linkZ;
+rdh.endPointID = endpointQ;
+writer.registerLink( rdh, "outfile_f.raw");
+```
+*   add raw data payload to the `RawFileWriter`, providing the link information and the `o2::InteractionRecord` corresponding to payload.
+The data must be provided as a `gsl::span<char>`` and contain only detector GBT (16 bytes words) payload. The annotation by RDH,
+formatting to CRU pages and eventual splitting of the large payload to multiple pages will be done by the `RawFileWriter`.
+```cpp
+writer.addData(cru_0, link_0, endpoint_0, {bc, orbit}, gsl::span( (char*)payload_0, payload_0_size ) );
+...
+o2::InteractionRecord ir{bc, orbit};
+writer.addData(rdh, ir, gsl::span( (char*)payload_f, payload_f_size ) );
+```
+
+The `RawFileWriter` will take care of writing created CRU data to file in `super-pages` whose size can be set using
+`writer.setSuperPageSize(size_in_bytes)` (default in 1 MB).
+
+The link buffers will be flushed and the files will be closed by the destor of the `RawFileWriter`, but this action can be
+also triggered by `write.close()`.
+
+In case detector link payload for given HBF exceeds the maximum CRU page size of 8KB (including the RDH added by the writer;
+this may happen even if it the payload size is less than 8KB, since it might be added to already partially populated CRU page of
+the same HBF) it will write on the page only part of the payload and carry over the rest on the extra page(s).
+By default the RawFileWriter will simply chunk payload as it considers necessary, but some 
+detectors want their CRU pages to be self-consistent: they add to their payload detector-specific trailer and header in the
+beginning and in the end of the CRU page. In case part of the data is carried over to another page, this extra information
+need to be repeated (possibly, with some modifications).
+In orger to customize payload splitting, detector code may provide implement and provide to the `RawFileWriter` a
+callback function with the signature:
+```cpp
+int carryOverMethod(const RDH& rdh, const gsl::span<char> data, const char* ptr, int maxSize, int splitID, std::vector<char>& trailer, std::vector<char>& header) const
+```
+
+The role of this method is to suggest to the writer how to split the payload: if it was provided to the RawFileWriter using
+`writer.setCarryOverCallBack(pointer_on_the_converter_class);` then the `RawFileWriter` will call it before splitting.
+
+It provides to the converter carryOverMethod method the following info:
+```cpp
+rdh     : RDH of the CRU page being written
+data    : original payload received by the RawFileWriter
+ptr     : pointer on the data in the payload which was not yet added to the link CRU pages
+maxSize : maximum size (multiple of 16 bytes) of the bloc starting at ptr which it can 
+          accomodate at the current CRU page (i.e. what it would write by default)
+splitID : number of times this payload was already split, 0 at 1st call
+trailer : what it wants to add in the end of the CRU page where the data starting from ptr
+          will be added. The trailer is supplied as an empy vector, which carryOverMethod
+          may populate, but its size must be multiple of 16 bytes.
+header  : what it wants to add right after the RDH of the new CRU page before the rest of
+          the payload (starting at ptr+actualSize) will be written
+```
+
+The method mast return actual size of the bloc which can be written (`<=maxSize`).
+If this method populates the trailer, it must ensure that it returns the actual size such that
+`actualSize + trailer.size() <= maxSize`.
+In case returned `actualSize` is 0, current CRU page will be closed w/o adding anything, and new
+query of this method will be done on the new CRU page.
+
+Additionally, in case detector wants to add some information between `empty` HBF packet's opening and
+closing RDHs (they will be added automatically using the HBFUtils functionality for all HBFs w/o data
+between the orbit 0 and last orbit of the TF seen in the simulations), it may implement a callback method
+```cpp
+void emptyHBFMethod(const RDH& rdh, std::vector<char>& toAdd) const
+```
+If such method was registered using `writer.setEmptyPageCallBack(pointer_on_the_converter_class)`, then for every
+empty HBF the writer will call it with
+```cpp
+rdh     : RDH of the CRU page opening empty RDH
+toAdd   : a vector (supplied empty) to be filled to a size multipe of 16 bytes
+```
+
+The data `toAdd` will be inserted between the star/stop RDHs of the empty HBF.
+
+For further details see  ``ITSMFT/common/simulation/MC2RawEncoder`` class and the macro
+`Detectors/ITSMFT/ITS/macros/test/run_digi2rawVarPage_its.C` to steed the MC to raw data conversion.
+
 ## RawFileReader
 
 A class for parsing raw data file(s) with "variable-size" CRU format.

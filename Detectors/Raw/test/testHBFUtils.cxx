@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test InteractionSampler class
+#define BOOST_TEST_MODULE Test HBFUtils class
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <algorithm>

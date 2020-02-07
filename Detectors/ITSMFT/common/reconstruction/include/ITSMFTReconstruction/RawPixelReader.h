@@ -187,6 +187,7 @@ struct GBTLink {
   uint16_t id = 0;      // link ID within the CRU
   uint16_t cruID = 0;   // CRU ID
   uint16_t feeID = 0;   // FEE ID
+  uint8_t endPointID = 0; // endpoint ID of the CRU
   PayLoadCont data;     // data buffer per link
   int lastPageSize = 0; // size of last added page = offset from the end to get to the RDH
   int nTriggers = 0;    // number of triggers loaded (the last one might be incomplete)
@@ -199,6 +200,15 @@ struct GBTLink {
   int32_t packetCounter = -1; // current packet counter from RDH (RDH.packetCounter)
   o2::header::RAWDataHeader* lastRDH = nullptr;
   GBTLinkDecodingStat statistics; // decoding statistics
+
+  std::string describe() const
+  {
+    std::stringstream ss;
+    ss << "Link cruID=0x" << std::hex << std::setw(4) << std::setfill('0') << cruID << std::dec
+       << "/lID=" << int(id) << "/feeID=0x" << std::hex << std::setw(4) << std::setfill('0') << feeID << std::dec
+       << " lanes: " << std::bitset<28>(lanes).to_string();
+    return ss.str();
+  }
 
   void clear(bool resetStat = true)
   {
