@@ -199,11 +199,24 @@ BOOST_AUTO_TEST_CASE(TestJoinedTables)
   rowWriterY(0, 0);
   auto tableY = builderY.finalize();
 
+  TableBuilder builderZ;
+  auto rowWriterZ = builderZ.persist<int32_t>({"z"});
+  rowWriterZ(0, 8);
+  rowWriterZ(0, 8);
+  rowWriterZ(0, 8);
+  rowWriterZ(0, 8);
+  rowWriterZ(0, 8);
+  rowWriterZ(0, 8);
+  rowWriterZ(0, 8);
+  rowWriterZ(0, 8);
+  auto tableZ = builderZ.finalize();
+
   using TestX = o2::soa::Table<test::X>;
   using TestY = o2::soa::Table<test::Y>;
+  using TestZ = o2::soa::Table<test::Z>;
   using Test = Join<TestX, TestY>;
 
-  Test tests{tableX, tableY};
+  Test tests{0, tableX, tableY};
   for (auto& test : tests) {
     BOOST_CHECK_EQUAL(7, test.x() + test.y());
   }
@@ -213,6 +226,17 @@ BOOST_AUTO_TEST_CASE(TestJoinedTables)
                 "Joined tables should have the same type, regardless how we construct them");
   for (auto& test : tests2) {
     BOOST_CHECK_EQUAL(7, test.x() + test.y());
+  }
+
+  auto tests3 = join(TestX{tableX}, TestY{tableY}, TestZ{tableZ});
+
+  for (auto& test : tests3) {
+    BOOST_CHECK_EQUAL(15, test.x() + test.y() + test.z());
+  }
+  using TestMoreThanTwo = Join<TestX, TestY, TestZ>;
+  TestMoreThanTwo tests4{0, tableX, tableY, tableZ};
+  for (auto& test : tests4) {
+    BOOST_CHECK_EQUAL(15, test.x() + test.y() + test.z());
   }
 }
 
@@ -358,7 +382,7 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   selectionJoin->SetIndex(1, 2);
   selectionJoin->SetIndex(2, 4);
   selectionJoin->SetNumSlots(3);
-  JoinedTest testJoin{tableA, tableC};
+  JoinedTest testJoin{0, tableA, tableC};
   FilteredJoinTest filteredJoin{testJoin.asArrowTable(), selectionJoin};
 
   i = 0;
