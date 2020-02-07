@@ -52,7 +52,7 @@ float energy(float px, float py, float pz, float mass)
 };
 
 float invmass2prongs(float px0, float py0, float pz0, float mass0,
-                      float px1, float py1, float pz1, float mass1)
+                     float px1, float py1, float pz1, float mass1)
 {
 
   float energy0_ = energy(px0, py0, pz0, mass0);
