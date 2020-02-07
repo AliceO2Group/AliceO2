@@ -44,9 +44,9 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                              GPUCA_TPC_GEOMETRY_O2 HAVE_O2HEADERS)
   
   # cuda test, only compile if CUDA
-  if(CUDA_ENABLED AND NOT $ENV{ALIBUILT_O2_TESTS})
+  if(CUDA_ENABLED)
     o2_add_test(GPUsortCUDA NAME test_GPUsortCUDA
-                SOURCES ctest/testGPUsortCUDA.cu
+                SOURCES test/testGPUsortCUDA.cu
                 PUBLIC_LINK_LIBRARIES O2::${MODULE} cub::cub
                 COMPONENT_NAME GPU
                 LABELS gpu)
