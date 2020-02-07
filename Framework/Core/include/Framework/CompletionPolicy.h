@@ -50,7 +50,9 @@ struct CompletionPolicy {
   };
 
   using Matcher = std::function<bool(DeviceSpec const& device)>;
-  using Callback = std::function<CompletionOp(gsl::span<PartRef const> const&)>;
+  using InputSetElement = PartRef;
+  using InputSet = gsl::span<InputSetElement const> const&;
+  using Callback = std::function<CompletionOp(InputSet)>;
 
   /// Name of the policy itself.
   std::string name;
