@@ -309,7 +309,7 @@ DataProcessorSpec getSinkSpec()
     auto header = o2::header::get<const o2::header::DataHeader*>(dataref.header);
     ASSERT_ERROR((header->payloadSize == sizeof(o2::test::TriviallyCopyable)));
 
-    pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   };
 
   return DataProcessorSpec{"sink", // name of the processor
@@ -334,9 +334,46 @@ DataProcessorSpec getSinkSpec()
                            AlgorithmSpec(processingFct)};
 }
 
+// a second spec subscribing to some of the same data to test forwarding of messages
+DataProcessorSpec getSpectatorSinkSpec()
+{
+  auto processingFct = [](ProcessingContext& pc) {
+    using DataHeader = o2::header::DataHeader;
+    for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
+      auto const& input = *iit;
+      LOG(INFO) << (*iit).spec->binding << " " << (iit.isValid() ? "is valid" : "is not valid");
+      if (iit.isValid() == false) {
+        continue;
+      }
+      auto* dh = o2::header::get<const DataHeader*>(input.header);
+      LOG(INFO) << "{" << dh->dataOrigin.str << ":" << dh->dataDescription.str << ":" << dh->subSpecification << "}"
+                << " payload size " << dh->payloadSize;
+
+      if ((*iit).spec->binding == "inputMP") {
+        LOG(INFO) << "inputMP with " << iit.size() << " part(s)";
+        int nPart = 0;
+        for (auto const& ref : iit) {
+          LOG(INFO) << "accessing part " << nPart++ << " of input slot 'inputMP':"
+                    << pc.inputs().get<int>(ref);
+          ASSERT_ERROR(pc.inputs().get<int>(ref) == nPart * 10);
+        }
+        ASSERT_ERROR(nPart == 3);
+      }
+    }
+
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  };
+
+  return DataProcessorSpec{"spectator-sink", // name of the processor
+                           {InputSpec{"inputMP", ConcreteDataTypeMatcher{"TST", "MULTIPARTS"}, Lifetime::Timeframe}},
+                           Outputs{},
+                           AlgorithmSpec(processingFct)};
+}
+
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
     getSourceSpec(),
-    getSinkSpec()};
+    getSinkSpec(),
+    getSpectatorSinkSpec()};
 }
