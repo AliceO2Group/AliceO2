@@ -45,6 +45,25 @@ DECLARE_SOA_TABLE(Cand2Prong, "AOD", "CAND2PRONG",
 using namespace o2;
 using namespace o2::framework;
 
+float energy(float px, float py, float pz, float mass)
+{
+  float en_ = sqrtf(mass * mass + px * px + py * py + pz * pz);
+  return en_;
+};
+
+float invmass2prongs(float px0, float py0, float pz0, float mass0,
+                     float px1, float py1, float pz1, float mass1)
+{
+
+  float energy0_ = energy(px0, py0, pz0, mass0);
+  float energy1_ = energy(px1, py1, pz1, mass1);
+  float energytot = energy0_ + energy1_;
+
+  float psum2 = (px0 + px1) * (px0 + px1) + (py0 + py1) * (py0 + py1) + (pz0 + pz1) * (pz0 + pz1);
+  float mass = sqrtf(energytot * energytot - psum2);
+  return mass;
+};
+
 struct TrackQA {
   OutputObj<TH1F> hpt_cuts{TH1F("hpt_cuts", "pt tracks (#GeV)", 100, 0., 10.)};
   OutputObj<TH1F> htgl_cuts{TH1F("htgl_cuts", "tgl tracks (#GeV)", 100, 0., 10.)};
@@ -63,6 +82,7 @@ struct VertexerHFTask {
   OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 100, -0.1, 0.1)};
   OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 100, -0.1, 0.1)};
   OutputObj<TH1F> hvtx_z_out{TH1F("hvtx_z", "2-track vtx", 100, -0.1, 0.1)};
+  OutputObj<TH1F> hmass_out{TH1F("hmass", "2-track inv mass", 500, 0, 5.0)};
   OutputObj<TH1F> hindex_0_coll{TH1F("hindex_0_coll", "track 0 index coll", 1000000, -0.5, 999999.5)};
   Produces<aod::SecVtx> secvtx;
 
@@ -101,7 +121,21 @@ struct VertexerHFTask {
           hvtx_x_out->Fill(vtx.x);
           hvtx_y_out->Fill(vtx.y);
           hvtx_z_out->Fill(vtx.z);
+          o2::track::TrackParCov trackdec0 = df.getTrack0(ic);
+          o2::track::TrackParCov trackdec1 = df.getTrack1(ic);
+          std::array<float, 3> pvec0;
+          std::array<float, 3> pvec1;
+          trackdec0.getPxPyPzGlo(pvec0);
+          trackdec1.getPxPyPzGlo(pvec1);
+          float masspion = 0.140;
+          float masskaon = 0.494;
+          float mass_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masspion, pvec1[0], pvec1[1], pvec1[2], masskaon);
+          float masssw_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masskaon, pvec1[0], pvec1[1], pvec1[2], masspion);
+          LOGF(info, "mass_ = %f", mass_);
+          LOGF(info, "masssw_ = %f", masssw_);
           secvtx(vtx.x, vtx.y, track_0.globalIndex(), track_1.globalIndex(), -1., track_0.y(), track_1.y(), -1.);
+          hmass_out->Fill(mass_);
+          hmass_out->Fill(masssw_);
         }
       }
     }
