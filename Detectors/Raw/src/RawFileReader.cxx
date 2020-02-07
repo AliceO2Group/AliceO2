@@ -63,7 +63,7 @@ std::string RawFileReader::LinkData::describe() const
 //____________________________________________
 void RawFileReader::LinkData::print(bool verbose, const std::string& pref) const
 {
-  LOGF(INFO, "%s %s FEE:0x%4x CRU:%4d Lnk:%3d EP:%d | SPages:%4d Pages:%6d TFs:%6d with %6d HBF in %4d blocks (%d err)",
+  LOGF(INFO, "%s %s FEE:0x%04x CRU:%4d Lnk:%3d EP:%d | SPages:%4d Pages:%6d TFs:%6d with %6d HBF in %4d blocks (%d err)",
        pref, describe(), int(rdhl.feeId), int(rdhl.cruID), int(rdhl.linkID), int(rdhl.endPointID), nSPages, nCRUPages,
        nTimeFrames, nHBFrames, int(blocks.size()), nErrors);
   if (verbose) {
@@ -103,7 +103,7 @@ size_t RawFileReader::LinkData::readNextHBF(char* buff)
     }
     ibl++;
     auto fl = reader->mFiles[blc.fileID];
-    if (fseek(fl, blc.offset, SEEK_SET) || fread(buff, 1, blc.size, fl) != blc.size) {
+    if (fseek(fl, blc.offset, SEEK_SET) || fread(buff + sz, 1, blc.size, fl) != blc.size) {
       LOGF(ERROR, "Failed to read for the %s a bloc:", describe());
       blc.print();
       error = true;
@@ -293,7 +293,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
     if (newTF) {
       nTimeFrames++;
       bl.setFlag(LinkBlock::StartTF);
-      if (reader->mCheckErrors & ErrNoSuperPageForTF) {
+      if (reader->mCheckErrors & (0x1 << ErrNoSuperPageForTF)) {
         if (reader->mMultiLinkFile && !newSPage) {
           LOG(ERROR) << ErrNames[ErrNoSuperPageForTF] << " @ TF#" << nTimeFrames;
           ok = false;
@@ -469,6 +469,7 @@ bool RawFileReader::addFile(const std::string& sname, o2::header::DataOrigin ori
   if (!ok) {
     fclose(inFile);
   }
+
   mFileNames.push_back(sname);
   mFiles.push_back(inFile);
   mDataSpecs.emplace_back(origin, desc);
