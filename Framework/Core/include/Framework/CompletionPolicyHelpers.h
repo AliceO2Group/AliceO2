@@ -13,9 +13,11 @@
 #include "Framework/ChannelSpec.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/CompletionPolicy.h"
+#include "Headers/DataHeader.h"
 
 #include <functional>
 #include <string>
+#include <type_traits>
 
 namespace o2
 {
@@ -34,6 +36,12 @@ struct CompletionPolicyHelpers {
   static CompletionPolicy processWhenAny();
   /// Attach a given @a op to a device matching @name.
   static CompletionPolicy defineByName(std::string const& name, CompletionPolicy::CompletionOp op);
+  /// Get a specific header from the input
+  template <typename T, typename U>
+  static auto getHeader(U const& input)
+  {
+    return o2::header::get<typename std::add_pointer<T>::type>(input.header ? input.header->GetData() : nullptr);
+  }
 };
 
 } // namespace framework
