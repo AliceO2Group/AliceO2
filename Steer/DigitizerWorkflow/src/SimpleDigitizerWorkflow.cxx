@@ -58,8 +58,8 @@
 #include "HMPIDDigitWriterSpec.h"
 
 // for TRD
-#include "TRDDigitizerSpec.h"
-#include "TRDDigitWriterSpec.h"
+#include "TRDWorkflow/TRDDigitizerSpec.h"
+#include "TRDWorkflow/TRDDigitWriterSpec.h"
 
 //for MUON MCH
 #include "MCHDigitizerSpec.h"
