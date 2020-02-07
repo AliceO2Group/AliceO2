@@ -20,6 +20,8 @@
 #include "MFTBase/HalfDetector.h"
 #include "MFTBase/HalfCone.h"
 #include "MFTBase/Barrel.h"
+#include "MFTBase/PatchPanel.h"
+
 #include "TGeoVolume.h"
 #include "TGeoManager.h"
 
@@ -77,6 +79,19 @@ void GeometryBuilder::buildGeometry()
   volMFT->AddNode(halfBarrel0, 1, p_barrel0);
   TGeoVolumeAssembly* halfBarrel1 = halfBarrel->createBarrel();
   volMFT->AddNode(halfBarrel1, 1, p_barrel1);
+
+  auto* t_patchpanel0 = new TGeoTranslation("translation_patchpanel", 0.0, 0., -81.5); //z (0,0.7, -81.5 -1.3; 0..81.7 --1.5
+  auto* r_patchpanel0 = new TGeoRotation("rotation_patchpanel", 0.0, 0.0, 0.0);
+  auto* p_patchpanel0 = new TGeoCombiTrans(*t_patchpanel0, *r_patchpanel0);
+  auto* t_patchpanel1 = new TGeoTranslation("translation_patchpanel", 0.0, 0., -81.5); //z( 0, 0.7, -81.5-1.3; 0.. 81.7 --1.5
+  auto* r_patchpanel1 = new TGeoRotation("rotation_patchpanel", 0.0, 0.0, 180.0);
+  auto* p_patchpanel1 = new TGeoCombiTrans(*t_patchpanel1, *r_patchpanel1);
+
+  auto* halfpatchpanel = new PatchPanel();
+  TGeoVolumeAssembly* halfpatchpanel0 = halfpatchpanel->createPatchPanel();
+  TGeoVolumeAssembly* halfpatchpanel1 = halfpatchpanel->createPatchPanel();
+  volMFT->AddNode(halfpatchpanel0, 1, p_patchpanel0);
+  volMFT->AddNode(halfpatchpanel1, 1, p_patchpanel1);
 
   vALIC->AddNode(volMFT, 0);
 }
