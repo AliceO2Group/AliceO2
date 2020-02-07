@@ -17,18 +17,20 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
-#include <pair>
+#include <iostream>
 #include "DetectorsRaw/RawFileReader.h"
 #include "CommonConstants/Triggers.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "Framework/Logger.h"
-#include "Headers/DataHeader.h"
+
+#include <Common/Configuration.h>
 
 using namespace o2::raw;
+namespace o2h = o2::header;
 
 //====================== methods of LinkBlock ========================
 //____________________________________________
-void RawFileReader::LinkBlock::print(const std::string pref) const
+void RawFileReader::LinkBlock::print(const std::string& pref) const
 {
   LOGF(INFO, "%sfile:%3d offs:%10zu size:%8d newSP:%d newTF:%d newHB:%d endHB:%d | Orbit %u TF %u",
        pref, fileID, offset, size, testFlag(StartSP), testFlag(StartTF), testFlag(StartHB),
@@ -38,22 +40,31 @@ void RawFileReader::LinkBlock::print(const std::string pref) const
 //====================== methods of LinkData ========================
 
 //____________________________________________
-RawFileReader::LinkData::LinkData(const o2::header::RAWDataHeaderV4& rdh, const RawFileReader* r) : reader(r)
+RawFileReader::LinkData::LinkData(const o2h::RAWDataHeaderV4& rdh, const RawFileReader* r) : reader(r)
 {
   std::memcpy(&rdhl, &rdh, sizeof(rdh));
 }
 
 //____________________________________________
-RawFileReader::LinkData::LinkData(const o2::header::RAWDataHeaderV5& rdh, const RawFileReader* r) : reader(r)
+RawFileReader::LinkData::LinkData(const o2h::RAWDataHeaderV5& rdh, const RawFileReader* r) : reader(r)
 {
   std::memcpy(&rdhl, &rdh, sizeof(rdh));
 }
 
 //____________________________________________
-void RawFileReader::LinkData::print(bool verbose, const std::string pref) const
+std::string RawFileReader::LinkData::describe() const
 {
-  LOGF(INFO, "%sSSpec:0x%-8d FEE:0x%4x CRU:%4d Lnk:%3d EP:%d | SPages:%4d Pages:%6d TFs:%6d with %6d HBF in %4d blocks (%d err)",
-       pref, subspec, int(rdhl.feeId), int(rdhl.cruID), int(rdhl.linkID), int(rdhl.endPointID), nSPages, nCRUPages,
+  std::stringstream ss;
+  ss << "Link " << origin.as<std::string>() << '/' << description.as<std::string>() << "/0x"
+     << std::hex << std::setw(8) << std::setfill('0') << subspec;
+  return ss.str();
+}
+
+//____________________________________________
+void RawFileReader::LinkData::print(bool verbose, const std::string& pref) const
+{
+  LOGF(INFO, "%s %s FEE:0x%4x CRU:%4d Lnk:%3d EP:%d | SPages:%4d Pages:%6d TFs:%6d with %6d HBF in %4d blocks (%d err)",
+       pref, describe(), int(rdhl.feeId), int(rdhl.cruID), int(rdhl.linkID), int(rdhl.endPointID), nSPages, nCRUPages,
        nTimeFrames, nHBFrames, int(blocks.size()), nErrors);
   if (verbose) {
     for (int i = 0; i < int(blocks.size()); i++) {
@@ -71,7 +82,7 @@ size_t RawFileReader::LinkData::getNextHBFSize() const
   // The blocks are guaranteed to not cover more than 1 HB
   size_t sz = 0;
   int ibl = nextBlock2Read, nbl = blocks.size();
-  while(ibl<nbl && (blocks[ibl].orbit == blocks[nextBlock2Read].orbit)) {
+  while (ibl < nbl && (blocks[ibl].orbit == blocks[nextBlock2Read].orbit)) {
     sz += blocks[ibl].size;
     ibl++;
   }
@@ -81,18 +92,19 @@ size_t RawFileReader::LinkData::getNextHBFSize() const
 //____________________________________________
 size_t RawFileReader::LinkData::readNextHBF(char* buff)
 {
-  // read data of the next complete HB
+  // read data of the next complete HB, buffer of getNextHBFSize() must be allocated in advance
   size_t sz = 0;
   int ibl = nextBlock2Read, nbl = blocks.size();
   bool error = false;
-  while(ibl<nbl) {
-    const auto& blc = blocks[ibl++];
+  while (ibl < nbl) {
+    const auto& blc = blocks[ibl];
     if (blc.orbit != blocks[nextBlock2Read].orbit) {
       break;
     }
+    ibl++;
     auto fl = reader->mFiles[blc.fileID];
-    if (fseek(fl, blc.offset, SEED_SET) || fread(fuff, 1, blc.size, fl)!=blc.size) {
-      LOGF(ERROR,"Failed to read for the link with subspec %x a bloc:", subspec);
+    if (fseek(fl, blc.offset, SEEK_SET) || fread(buff, 1, blc.size, fl) != blc.size) {
+      LOGF(ERROR, "Failed to read for the %s a bloc:", describe());
       blc.print();
       error = true;
     }
@@ -108,12 +120,43 @@ size_t RawFileReader::LinkData::getNextTFSize() const
   // estimate the memory size of the next TF to read
   // (assuming nextBlock2Read is at the start of the TF)
   size_t sz = 0;
-  int ibl = nextBlock2Read, nbl = blocks.size();  
-  while(ibl<nbl && (blocks[ibl].tfID==blocks[nextBlock2Read].tfID)) {
+  int ibl = nextBlock2Read, nbl = blocks.size();
+  while (ibl < nbl && (blocks[ibl].tfID == blocks[nextBlock2Read].tfID)) {
     sz += blocks[ibl].size;
     ibl++;
   }
   return sz;
+}
+
+//_____________________________________________________________________
+size_t RawFileReader::LinkData::readNextTF(char* buff)
+{
+  // read next complete TF, buffer of getNextTFSize() must be allocated in advance
+  size_t sz = 0;
+  int ibl0 = nextBlock2Read, nbl = blocks.size();
+  bool error = false;
+  while (nextBlock2Read < nbl && (blocks[nextBlock2Read].tfID == blocks[ibl0].tfID)) { // nextBlock2Read is incremented by the readNextHBF!
+    auto szb = readNextHBF(buff + sz);
+    if (!szb) {
+      error = true;
+    }
+    sz += szb;
+  }
+  return error ? 0 : sz; // in case of the error we ignore the data
+}
+
+//____________________________________________
+int RawFileReader::LinkData::getNHBFinTF() const
+{
+  // estimate number of HBFs left in the TF
+  int ibl = nextBlock2Read, nbl = blocks.size(), nHB = 0;
+  while (ibl < nbl && (blocks[ibl].tfID == blocks[nextBlock2Read].tfID)) {
+    if (blocks[ibl].testFlag(LinkBlock::StartHB)) {
+      nHB++;
+    }
+    ibl++;
+  }
+  return nHB;
 }
 
 //____________________________________________
@@ -158,12 +201,12 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
   bool newTF = false, newHB = false;
 
   if (rdh.feeId != rdhl.feeId) { // make sure links with different FEEID were not assigned same subspec
-    LOGF(ERROR, "Same SubSpec is found for Links with different RDH.feeId");
+    LOGF(ERROR, "Same SubSpec is found for %s with different RDH.feeId", describe());
     LOGF(ERROR, "old RDH assigned SubSpec=0x%-8d:", subspec);
-    o2::raw::HBFUtils::dumpRDH(rdhl);
+    HBFUtils::dumpRDH(rdhl);
     LOGF(ERROR, "new RDH assigned SubSpec=0x%-8d:", subspec);
-    o2::raw::HBFUtils::dumpRDH(rdh);
-    LOG(FATAL) << "Critical error, aborting";
+    HBFUtils::dumpRDH(rdh);
+    throw std::runtime_error("Confliting SubSpecs are provided");
     ok = false;
     nErrors++;
   }
@@ -228,12 +271,12 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
       }
       if ((reader->mCheckErrors & (0x1 << ErrHBFJump)) &&
           (nCRUPages && // skip this check for the very 1st RDH
-           !(o2::raw::HBFUtils::getHBBC(rdh) == o2::raw::HBFUtils::getHBBC(rdhl) &&
-             o2::raw::HBFUtils::getHBOrbit(rdh) == o2::raw::HBFUtils::getHBOrbit(rdhl) + 1))) {
+           !(HBFUtils::getHBBC(rdh) == HBFUtils::getHBBC(rdhl) &&
+             HBFUtils::getHBOrbit(rdh) == HBFUtils::getHBOrbit(rdhl) + 1))) {
         LOG(ERROR) << ErrNames[ErrHBFJump] << " @ HBF#" << nHBFrames << " New HB orbit/bc="
-                   << o2::raw::HBFUtils::getHBOrbit(rdh) << '/' << int(o2::raw::HBFUtils::getHBBC(rdh))
+                   << HBFUtils::getHBOrbit(rdh) << '/' << int(HBFUtils::getHBBC(rdh))
                    << " is not incremented by 1 orbit wrt Old HB orbit/bc="
-                   << o2::raw::HBFUtils::getHBOrbit(rdhl) << '/' << int(o2::raw::HBFUtils::getHBBC(rdhl));
+                   << HBFUtils::getHBOrbit(rdhl) << '/' << int(HBFUtils::getHBBC(rdhl));
         ok = false;
         nErrors++;
       }
@@ -247,7 +290,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
 
   if (newTF || newSPage || newHB) {
     auto& bl = blocks.emplace_back(reader->mCurrentFileID, reader->mPosInFile);
-    if (newTF) {      
+    if (newTF) {
       nTimeFrames++;
       bl.setFlag(LinkBlock::StartTF);
       if (reader->mCheckErrors & ErrNoSuperPageForTF) {
@@ -258,9 +301,9 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
         }
       } // end of check errors
     }
-    bl.orbit = o2::raw::HBFUtils::getHBOrbit(rdh);
-    bl.tfID = nTimeFrames-1;
-    
+    bl.orbit = HBFUtils::getHBOrbit(rdh);
+    bl.tfID = nTimeFrames - 1;
+
     if (newSPage) {
       nSPages++;
       bl.setFlag(LinkBlock::StartSP);
@@ -269,18 +312,18 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
       bl.setFlag(LinkBlock::StartHB);
     }
   }
-  blocks.back().setFlag(LinkBlock::EndHB, rdh.stop);  // last processed RDH defines this flag
-  blocks.back().size += rdh.offsetToNext; 
+  blocks.back().setFlag(LinkBlock::EndHB, rdh.stop); // last processed RDH defines this flag
+  blocks.back().size += rdh.offsetToNext;
   rdhl = rdh;
   nCRUPages++;
   if (!ok) {
     LOG(ERROR) << " ^^^Problem(s) was encountered at offset " << reader->mPosInFile << " of file " << reader->mCurrentFileID;
-    o2::raw::HBFUtils::printRDH(rdh);
+    HBFUtils::printRDH(rdh);
   } else if (reader->mVerbosity > 1) {
     if (reader->mVerbosity > 2) {
-      o2::raw::HBFUtils::dumpRDH(rdh);
+      HBFUtils::dumpRDH(rdh);
     } else {
-      o2::raw::HBFUtils::printRDH(rdh);
+      HBFUtils::printRDH(rdh);
     }
   }
   return true;
@@ -289,74 +332,29 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDH& rdh, bool newSPage)
 //====================== methods of RawFileReader ========================
 
 //_____________________________________________________________________
-
-//_____________________________________________________________________
-bool RawFileReader::checkRDH(const o2::header::RAWDataHeaderV4& rdh) const
+RawFileReader::RawFileReader(const std::string& config, int verbosity) : mVerbosity(verbosity)
 {
-  // check if rdh conforms with RDH4 fields
-  bool ok = true;
-  if (rdh.version != 4) {
-    LOG(ERROR) << "RDH version 4 is expected instead of " << int(rdh.version);
-    ok = false;
+  if (!config.empty()) {
+    auto inp = parseInput(config);
+    loadFromInputsMap(inp);
   }
-  if (rdh.headerSize != 64) {
-    LOG(ERROR) << "RDH with header size of 64 B is expected instead of " << int(rdh.headerSize);
-    ok = false;
-  }
-  if (rdh.memorySize < 64 || rdh.offsetToNext < 64) {
-    LOG(ERROR) << "RDH expected to have memory size/offset to next >= 64 B instead of "
-               << int(rdh.memorySize) << '/' << int(rdh.offsetToNext);
-    ok = false;
-  }
-  if (rdh.zero0 || rdh.word3 || rdh.zero41 || rdh.zero42 || rdh.word5 || rdh.zero6 || rdh.word7) {
-    LOG(ERROR) << "Some reserved fields of RDH v4 are not empty";
-    ok = false;
-  }
-  if (!ok) {
-    o2::raw::HBFUtils::dumpRDH(rdh);
-  }
-  return ok;
 }
 
 //_____________________________________________________________________
-bool RawFileReader::checkRDH(const o2::header::RAWDataHeaderV5& rdh) const
-{
-  // check if rdh conforms with RDH5 fields
-  bool ok = true;
-  if (rdh.version != 5) {
-    LOG(ERROR) << "RDH version 5 is expected instead of " << int(rdh.version);
-    ok = false;
-  }
-  if (rdh.headerSize != 64) {
-    LOG(ERROR) << "RDH with header size of 64 B is expected instead of " << int(rdh.headerSize);
-    ok = false;
-  }
-  if (rdh.memorySize < 64 || rdh.offsetToNext < 64) {
-    LOG(ERROR) << "RDH expected to have memory size and offset to next >= 64 B instead of "
-               << int(rdh.memorySize) << '/' << int(rdh.offsetToNext);
-    ok = false;
-  }
-  if (rdh.zero0 || rdh.word3 || rdh.zero4 || rdh.word5 || rdh.zero6 || rdh.word7) {
-    LOG(ERROR) << "Some reserved fields of RDH v5 are not empty";
-    ok = false;
-  }
-  if (!ok) {
-    o2::raw::HBFUtils::dumpRDH(rdh);
-  }
-  return ok;
-}
-
-//_____________________________________________________________________
-int RawFileReader::getLinkLocalID(const RDH& rdh)
+int RawFileReader::getLinkLocalID(const RDH& rdh, const o2::header::DataOrigin orig)
 {
   // get id of the link subspec. in the parser (create entry if new)
-  LinkSpec_t subspec = getSubSpec(rdh.cruID, rdh.linkID, rdh.endPointID);
-  auto entryMap = mLinkEntries.find(subspec);
+  LinkSubSpec_t subspec = HBFUtils::getSubSpec(rdh);
+  LinkSpec_t spec = createSpec(orig, subspec);
+  auto entryMap = mLinkEntries.find(spec);
   if (entryMap == mLinkEntries.end()) { // need to register a new link
     int n = mLinkEntries.size();
-    mLinkEntries[subspec] = n;
+    mLinkEntries[spec] = n;
     auto& lnk = mLinksData.emplace_back(rdh, this);
     lnk.subspec = subspec;
+    lnk.origin = mDataSpecs[mCurrentFileID].first;
+    lnk.description = mDataSpecs[mCurrentFileID].second;
+    lnk.spec = spec;
     return n;
   }
   return entryMap->second;
@@ -370,7 +368,7 @@ bool RawFileReader::preprocessFile(int ifl)
   mCurrentFileID = ifl;
   RDH rdh;
 
-  LinkSpec_t subspecPrev = 0xffffffff;
+  LinkSpec_t specPrev = 0xffffffffffffffff;
   int lIDPrev = -1;
   mMultiLinkFile = false;
   rewind(fl);
@@ -385,18 +383,18 @@ bool RawFileReader::preprocessFile(int ifl)
       ok = false;
       break;
     }
-    if (!(ok = checkRDH(rdh))) {
+    if (!(ok = HBFUtils::checkRDH(rdh))) {
       break;
     }
     nRDHread++;
-    LinkSpec_t subspec = getSubSpec(rdh.cruID, rdh.linkID, rdh.endPointID);
+    LinkSpec_t spec = createSpec(mDataSpecs[mCurrentFileID].first, HBFUtils::getSubSpec(rdh));
     int lID = lIDPrev;
-    if (subspec != subspecPrev) { // link has changed
-      subspecPrev = subspec;
+    if (spec != specPrev) { // link has changed
+      specPrev = spec;
       if (lIDPrev != -1) {
         mMultiLinkFile = true;
       }
-      lID = getLinkLocalID(rdh);
+      lID = getLinkLocalID(rdh, mDataSpecs[mCurrentFileID].first);
     }
     bool newSPage = lID != lIDPrev;
     mLinksData[lID].preprocessCRUPage(rdh, newSPage);
@@ -448,19 +446,32 @@ void RawFileReader::clear()
 }
 
 //_____________________________________________________________________
-bool RawFileReader::addFile(const std::string& sname)
+bool RawFileReader::addFile(const std::string& sname, o2::header::DataOrigin origin, o2::header::DataDescription desc)
 {
   if (mInitDone) {
     LOG(ERROR) << "Cannot add new files after initialization";
     return false;
   }
   auto inFile = fopen(sname.c_str(), "rb");
+  bool ok = true;
   if (!inFile) {
     LOG(ERROR) << "Failed to open input file " << sname;
-    return false;
+    ok = false;
+  }
+  if (origin == o2h::gDataOriginInvalid) {
+    LOG(ERROR) << "Invalid data origin " << origin.as<std::string>() << " for file " << sname;
+    ok = false;
+  }
+  if (desc == o2h::gDataDescriptionInvalid) {
+    LOG(ERROR) << "Invalid data description " << desc.as<std::string>() << " for file " << sname;
+    ok = false;
+  }
+  if (!ok) {
+    fclose(inFile);
   }
   mFileNames.push_back(sname);
   mFiles.push_back(inFile);
+  mDataSpecs.emplace_back(origin, desc);
   return true;
 }
 
@@ -468,7 +479,7 @@ bool RawFileReader::addFile(const std::string& sname)
 bool RawFileReader::init()
 {
   // make initialization, preprocess files and chack for errors if asked
-  
+
   for (int i = 0; i < NErrorsDefined; i++) {
     if (mCheckErrors & (0x1 << i))
       LOGF(INFO, "perform check for /%s/", ErrNames[i].data());
@@ -482,12 +493,15 @@ bool RawFileReader::init()
   mOrderedIDs.resize(mLinksData.size());
   for (int i = mLinksData.size(); i--;) {
     mOrderedIDs[i] = i;
+    if (mNTimeFrames < mLinksData[i].nTimeFrames) {
+      mNTimeFrames = mLinksData[i].nTimeFrames;
+    }
   }
   std::sort(mOrderedIDs.begin(), mOrderedIDs.end(),
-            [& links = mLinksData](int a, int b) { return links[a].subspec < links[b].subspec; });
+            [& links = mLinksData](int a, int b) { return links[a].spec < links[b].spec; });
 
   size_t maxSP = 0, maxTF = 0;
-  
+
   LOGF(INFO, "Summary of preprocessing:");
   for (int i = 0; i < int(mLinksData.size()); i++) {
     const auto& link = getLink(i);
@@ -508,13 +522,17 @@ bool RawFileReader::init()
     }
     // min max orbits
     if (link.blocks.front().orbit < mOrbitMin) {
-      mOrbitMin = link.blocks.front().orbit;      
+      mOrbitMin = link.blocks.front().orbit;
     }
     if (link.blocks.back().orbit > mOrbitMax) {
-      mOrbitMax = link.blocks.back().orbit;      
-    }    
+      mOrbitMax = link.blocks.back().orbit;
+    }
+    if ((mCheckErrors & (0x1 << ErrWrongNumberOfTF)) && (mNTimeFrames != link.nTimeFrames)) {
+      LOGF(ERROR, "%s for %s: %u TFs while %u were seen for other links", ErrNames[ErrWrongNumberOfTF],
+           link.describe(), link.nTimeFrames, mNTimeFrames);
+    }
   }
-  LOGF(INFO, "First orbit: %d, Last orbit: %d",mOrbitMin, mOrbitMax);
+  LOGF(INFO, "First orbit: %d, Last orbit: %d", mOrbitMin, mOrbitMax);
   LOGF(INFO, "Largest super-page: %zu B, largest TF: %zu B", maxSP, maxTF);
   if (!mCheckErrors) {
     LOGF(INFO, "Detailed data format check was disabled");
@@ -525,26 +543,115 @@ bool RawFileReader::init()
 }
 
 //_____________________________________________________________________
-bool RawFileReader::readNextTF()
+o2h::DataOrigin RawFileReader::getDataOrigin(const std::string& ors)
 {
-  size_t sz = 0;
-  for (int i = 0; i < int(mLinksData.size()); i++) {
-    const auto& link = getLink(i);
-    sz += link.getNextTFSize(); // size of TF and number of HBFs (don't trust to expected value?)
-  }
-  // create a buffer for new TF
-  std::unique<char[]> buff = std::make_unique<char[]>(sz);
-  char* buffPtr = buff.get();
-  
-  for (int i = 0; i < int(mLinksData.size()); i++) {
-    auto& link = getLink(i);
-    if (link.nextBlock2Read<int(link.blocks.size()) && link.blocks[link.nextBlock2Read].tfID == mNextTF2Read) {
-      auto szHBF = link->readNextHBF(buffPtr);
-      //
-      // RSTODO: create a DataHeader, add to multipart
-      //
+  constexpr int NGoodOrigins = 18;
+  constexpr std::array<o2h::DataOrigin, NGoodOrigins> goodOrigins{
+    o2h::gDataOriginFLP, o2h::gDataOriginACO, o2h::gDataOriginCPV, o2h::gDataOriginCTP, o2h::gDataOriginEMC,
+    o2h::gDataOriginFT0, o2h::gDataOriginFV0, o2h::gDataOriginFDD, o2h::gDataOriginHMP, o2h::gDataOriginITS,
+    o2h::gDataOriginMCH, o2h::gDataOriginMFT, o2h::gDataOriginMID, o2h::gDataOriginPHS, o2h::gDataOriginTOF,
+    o2h::gDataOriginTPC, o2h::gDataOriginTRD, o2h::gDataOriginZDC};
+  for (auto orgood : goodOrigins) {
+    if (ors == orgood.as<std::string>()) {
+      return orgood;
     }
   }
-  mNextTF2Read++;
-  return true;
+  return o2h::gDataOriginInvalid;
+}
+
+//_____________________________________________________________________
+o2h::DataDescription RawFileReader::getDataDescription(const std::string& ors)
+{
+  constexpr int NGoodDesc = 5;
+  constexpr std::array<o2h::DataDescription, NGoodDesc> goodDesc{
+    o2h::gDataDescriptionRawData, o2h::gDataDescriptionClusters, o2h::gDataDescriptionTracks,
+    o2h::gDataDescriptionConfig, o2h::gDataDescriptionInfo};
+
+  for (auto dgood : goodDesc) {
+    if (ors == dgood.as<std::string>()) {
+      return dgood;
+    }
+  }
+  return o2h::gDataDescriptionInvalid;
+}
+
+//_____________________________________________________________________
+void RawFileReader::loadFromInputsMap(const RawFileReader::InputsMap& inp)
+{
+  // load from already parsed input
+  for (const auto& entry : inp) {
+    const auto& ordesc = entry.first;
+    const auto& files = entry.second;
+    if (files.empty()) { // these are default origin and decription
+      setDefaultDataOrigin(ordesc.first);
+      setDefaultDataDescription(ordesc.second);
+      continue;
+    }
+    for (const auto& fnm : files) { // specific file names
+      addFile(fnm, ordesc.first, ordesc.second);
+    }
+  }
+}
+
+//_____________________________________________________________________
+RawFileReader::InputsMap RawFileReader::parseInput(const std::string& confUri)
+{
+  // read input files from configuration
+  std::map<std::pair<o2h::DataOrigin, o2h::DataDescription>, std::vector<std::string>> entries;
+
+  if (confUri.empty()) {
+    throw std::runtime_error("Input configuration file is not provided");
+  }
+  std::string confFile = confUri;
+  ConfigFile cfg;
+  // ConfigFile file requires input as file:///absolute_path or file:local
+  if (confFile.rfind("file:", 0) != 0) {
+    confFile.insert(0, "file:");
+  }
+  try {
+    cfg.load(confFile);
+  } catch (std::string& e) { // unfortunately, the ConfigFile::load throws a string rather than the std::exception
+    throw std::runtime_error(std::string("Failed to parse configuration ") + confFile + " : " + e);
+  }
+  //
+  try {
+    std::string origStr, descStr, defstr = "defaults";
+    cfg.getOptionalValue<std::string>(defstr + ".dataOrigin", origStr, DEFDataOrigin.as<std::string>());
+    auto defDataOrigin = getDataOrigin(origStr);
+    if (defDataOrigin == o2h::gDataOriginInvalid) {
+      throw std::runtime_error(std::string("Invalid default data origin ") + origStr);
+    }
+    cfg.getOptionalValue<std::string>(defstr + ".dataDescription", descStr, DEFDataDescription.as<std::string>());
+    auto defDataDescription = getDataDescription(descStr);
+    if (defDataDescription == o2h::gDataDescriptionInvalid) {
+      throw std::runtime_error(std::string("Invalid default data description ") + descStr);
+    }
+    entries[{defDataOrigin, defDataDescription}]; // insert
+    LOG(DEBUG) << "Setting default dataOrigin/Description " << defDataOrigin.as<std::string>() << '/' << defDataDescription.as<std::string>();
+
+    for (auto flsect : ConfigFileBrowser(&cfg, "input-")) {
+      std::string flNameStr, defs{""};
+      cfg.getOptionalValue<std::string>(flsect + ".dataOrigin", origStr, defDataOrigin.as<std::string>());
+      cfg.getOptionalValue<std::string>(flsect + ".dataDescription", descStr, defDataDescription.as<std::string>());
+      cfg.getOptionalValue<std::string>(flsect + ".filePath", flNameStr, defs);
+      if (flNameStr.empty()) {
+        LOG(DEBUG) << "Skipping incomplete input " << flsect;
+        continue;
+      }
+      auto dataOrigin = getDataOrigin(origStr);
+      if (dataOrigin == o2h::gDataOriginInvalid) {
+        throw std::runtime_error(std::string("Invalid data origin ") + origStr + " for " + flsect);
+      }
+      auto dataDescription = getDataDescription(descStr);
+      if (dataDescription == o2h::gDataDescriptionInvalid) {
+        throw std::runtime_error(std::string("Invalid data description ") + descStr + " for " + flsect);
+      }
+      entries[{dataOrigin, dataDescription}].push_back(flNameStr);
+      LOG(DEBUG) << "adding file " << flNameStr << " to dataOrigin/Description " << dataOrigin.as<std::string>() << '/' << dataDescription.as<std::string>();
+    }
+  } catch (std::string& e) { // to catch exceptions from the parser
+    throw std::runtime_error(std::string("Aborting due to the exception: ") + e);
+  }
+
+  return entries;
 }

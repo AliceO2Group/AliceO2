@@ -30,18 +30,141 @@ For very encountered link the DPL `SubSpecification` is assigned according to th
 SubSpec = (RDH.cruID<<16) | ((RDH.linkID + 1)<<(RDH.endPointID == 1 ? 8 : 0)); 
 ```
 This `SubSpecification` is used to define the DPL InputSpecs (and match the OutputSpecs).
-A `FATAL` will be produced if 2 different link (i.e. with different RDH.feeId) will be found to have the same SubSpec (i.e. the same cruID, linkID and PCIe EndPoint).
-Also, a `FATAL` is produced if the block expected to be a RDH fails to be recognized as RDH.
+An `exception` will be thrown if 2 different link (i.e. with different RDH.feeId) of the same detector will be found to have the same SubSpec (i.e. the same cruID, linkID and PCIe EndPoint).
+Also, an `exception` is thrown if the block expected to be a RDH fails to be recognized as RDH.
 
-TODO <em>At the moment only preprocissing part of input files (used in the o2-raw-filecheck descibed below) is operational.
-The parsing to STF is in development</em>.
+Since the raw data (RDH) does not contain any explicit information equivalent to `o2::header::DataOrigin` and `o2::header::DataDescription` needed to create a valid DPL `OutputSpec`,
+for every raw data file provided to the `RawFileReader` the user can attach either explicitly needed origin and/or description, or to use default ones (which also can be modified by the user).
+By default, `RawFileReader` assumes `o2::header::gDataOriginFLP` and `o2::header::gDataDescriptionRawData` (leading to `FLP/RAWDATA` OutputSpec).
+
+The typical initialization of the `RawFileReader` is:
+```cpp
+using namespace o2::raw;
+RawFileReader reader;
+// optionaly override the default data origin by valid entry from `DataHeader.h`
+reader.setDefaultDataOrigin("ITS");
+// optionaly override the default data description by valid entry from `DataHeader.h`
+reader.setDefaultDataDescription("RAWDATA");
+// provide input file with explicit origin and description
+reader.addFile("raw_data_file0.raw", o2::header::gDataOriginTPC, o2::header::gDataDescriptionRawData);
+// provide raw dat file name only, default origin and description will be used
+reader.addFile("raw_data_file1.raw");
+
+// make reader to preprocess all input files, build the statistics for every GBT link encountered
+and optionally check their conformity with expected CRU data format (see o2-raw-file-check below)
+reader.init();
+```
+
+Note, that alternatively the input to the reader may be provided via text configuration file as:
+```cpp
+std::string inputConfig; // name should be assigned, empty string will be ignored
+RawFileReader reader(inputConfig);
+// if needed, add extra files as above
+reader.init();
+```
+
+The input configuration must have following format (parsed using `Common-O2::ConfigFile`):
+```cpp
+# comments lines start with #
+
+# optional, will override defaults set by RawFileReader
+[defaults]
+# optional, initial default is FLP 
+dataOrigin = ITS
+# optional, initial default is RAWDATA
+dataDescription = RAWRDATA    
+
+[input-0]
+#optional, if missing then default is used
+dataOrigin = ITS
+#optional, if missing then default is used
+dataDescription = RAWDATA     
+filePath = path_and_name_of_the_data_file0
+
+[input-1]
+dataOrigin = TPC              
+filePath = path_and_name_of_the_data_file1
+
+[input-2]
+filePath = path_and_name_of_the_data_file2
+
+#...
+# [input-XXX] blocks w/o filePath will be ignoder, XXX is irrelevant
+
+```
+
+The typical loop to read the data from already initialized reader is: 
+```cpp
+int nlinks = reader.getNLinks();
+bool readPerTF = true; // data can be read per TF or per HBF
+
+while(1) {
+  int tfID = reader.getNextTFToRead();
+  if (tfID >= reader.getNTimeFrames()) {
+    LOG(INFO) << "nothing left to read after " << tfID << " TFs read";
+    break;
+  }
+  std::vector<char> dataBuffer; // where to put extracted data  
+  for (int il = 0; il < reader.getNLinks(); il++) {
+    auto& link = reader.getLink(il);
+
+    if (readPerTF) {       // read data per TF
+      auto sz = link.getNextTFSize(); // size in bytes needed for the next TF of this link
+      dataBuffer.resize(sz);
+      link.readNextTF(dataTF.data());
+      // use data ...
+    }    
+    else {                // read data per HBF 
+      int nHBF = link.getNHBFinTF(); // number of HBFs in the TF
+      for (int ihb=0;ihb<nHBF;ihb++) {
+        auto sz = link.getNextHBSize(); // size in bytes needed for the next HBF of this link
+	dataBuffer.resize(sz);
+	link.readNextHBF(dataTF.data());
+	// use data ...
+      }
+    }
+  }
+  reader.setNextTFToRead(++tfID);
+}
+```
+
+Note: every input file may contain data from different CRUs or GBT links, but mixing of different detectors specifications (defined by
+`o2::header::DataOrigin` and  `o2::header::DataDescription`) is not allowed.
+Data from the same detector may be split to multiple files link-wise and/or time-wise. In the latter case the input files must be provided ordered in time (HBF orbit in the RDH).
+
+## Raw data file reader workflow 
+
+```cpp
+o2-raw-file-reader-workflow
+  ...
+  --conf arg                            configuration file to init from (obligatory)
+  --loop arg (=0)                       loop N times (infinite for N<0)
+  --message-per-tf                      send TF of each link as a single FMQ 
+
+```
+
+The workflow takes an input from the configuration file (as described in `RawFileReader` section), reads the data and sends them as DPL messages
+with the `OutputSpec`s indicated in the configuration file (or defaults). Each link data gets `SubSpecification` according to DataDistribution
+scheme.
+
+If `--loop` argument is provided, data will be re-played in loop.
+
+At every invocation of the device `processing` callback a full TimeFrame for every link will be messaged as a multipart of N-HBFs messages (one for each HBF in the TF)
+in a single `FairMQPart` per link (as the StfBuilder ships the data).
+In case the `--message-per-tf` option is asked, the whole TF is sent as the only part of the `FairMQPart`.
+
+The standard use case of this workflow is to provide the input for other worfklows using the piping, e.g.
+```cpp
+o2-raw-file-reader-workflow --conf myConf.cfg | o2-dpl-raw-parser
+```
 
 ## Raw data file checker (standalone executable)
 
 ```cpp
-Usage:   o2-raw-filecheck [options] file0 [... fileN]
+Usage:   o2-raw-file-check [options] file0 [... fileN]
 Options:
   -h [ --help ]                     print this help message.
+  -c [ --conf ] arg                 read input from configuration file
   -v [ --verbosity ] arg (=0)    1: long report, 2 or 3: print or dump all RDH
   -s [ --spsize ]    arg (=1048576) nominal super-page size in bytes
   -t [ --hbfpertf ]  arg (=256)     nominal number of HBFs per TF
@@ -51,14 +174,16 @@ Options:
   --nocheck-missing-stop            ignore /New HBF starts w/o closing old one/
   --nocheck-starts-with-tf          ignore /Data does not start with TF/HBF/
   --nocheck-hbf-per-tf              ignore /Number of HBFs per TF not as expected/
+  --nocheck-tf-per-link             ignore /Number of TFs is less than expected/
   --nocheck-hbf-jump                ignore /Wrong HBF orbit increment/
   --nocheck-no-spage-for-tf         ignore /TF does not start by new superpage/
+  (input files are optional if config file was provided)
 ```
 
 Allows to check the correctness of CRU data (real or simulated) stored in the binary file.
 Multiple files can be checked, with each file containing data for the same or distinct group of links.
 
-Apart from the eventual `FATAL` produced for unrecognizable RDH or 2 links with the same cruID, linkID and PCIe EndPoint but different feeId (see `RawFileReader`),
+Apart from the eventual `exception` produced for unrecognizable RDH or 2 links with the same cruID, linkID and PCIe EndPoint but different feeId (see `RawFileReader`),
 the following errors (check can be disabled by corresponding option) are reported (as `ERROR`) for every GBT link while scanning each file
 (the error counter of each link is incremented for any of this errors):
 
