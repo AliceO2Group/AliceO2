@@ -8,10 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/ASoA.h"
-#include "Framework/TableBuilder.h"
-#include "Framework/AnalysisDataModel.h"
 #include "Framework/CommonDataProcessors.h"
+#include "Framework/TableTreeHelpers.h"
 #include <benchmark/benchmark.h>
 #include <random>
 #include <vector>
@@ -33,10 +31,10 @@ DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](float x, float y) { return x + y; });
 #ifdef __APPLE__
 constexpr unsigned int maxrange = 15;
 #else
-constexpr unsigned int maxrange = 20;
+constexpr unsigned int maxrange = 24;
 #endif
 
-static void BM_Table2Tree(benchmark::State& state)
+static void BM_TreeToTable(benchmark::State& state)
 {
  
   // initialize a random generator
@@ -45,7 +43,6 @@ static void BM_Table2Tree(benchmark::State& state)
   std::normal_distribution<float>        rf(5.,2.);
   std::discrete_distribution<long>       rl({10,20,30,30,5,5});
   std::discrete_distribution<int>        ri({10,20,30,30,5,5});
-
 
   // create a table and fill the columns with random numbers
   TableBuilder builder;
@@ -56,28 +53,45 @@ static void BM_Table2Tree(benchmark::State& state)
   }
   auto table = builder.finalize();
     
+  // now convert the table to a tree
+  TFile fout("tree2table.root","RECREATE");
+  TableToTree ta2tr(table,&fout,"tree2table");
+  ta2tr.AddAllBranches();
+  ta2tr.Process();
+  fout.Close();
   
-  // loop over elements of state
+  // read tree and convert to table again
+  TFile *f = nullptr;
+  TreeToTable *tr2ta = nullptr;
   for (auto _ : state) {
 
     // Open file and create tree
-    TFile *fout = new TFile("table2tree.root","RECREATE");
-    TTree *tout = new TTree("table2tree","table2tree");
+    f  = new TFile("tree2table.root","READ");
+    auto tr = (TTree*)f->Get("tree2table");
 
-    // benchmark the CommonDataProcessors::table2tree function
-    CommonDataProcessors::table2tree(tout,table,false);
+    // benchmark TreeToTable
+    if (tr)
+    {
+      tr2ta = new TreeToTable(tr);
+      if (tr2ta->AddAllColumns())
+      {
+        auto ta = tr2ta->Process();
+      }
+
+    } else {
+      LOG(INFO) << "tree is empty!";
+    }
     
     // clean up
-    fout->Close();
-    delete fout;
+    if (tr2ta) delete tr2ta;
+    f->Close();
+    if (f)     delete f;
   
   }
 
   state.SetBytesProcessed(state.iterations()*state.range(0)*24);
 }
 
-BENCHMARK(BM_Table2Tree)->Range(8, 8 << maxrange);
-
-
+BENCHMARK(BM_TreeToTable)->Range(8, 8 << maxrange);
 
 BENCHMARK_MAIN();
