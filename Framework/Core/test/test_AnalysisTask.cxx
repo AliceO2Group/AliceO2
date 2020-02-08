@@ -150,5 +150,5 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
   BOOST_CHECK_EQUAL(task6.inputs[0].binding, "FooBars");
 
   auto task7 = adaptAnalysisTask<GTask>("test7");
-  BOOST_CHECK_EQUAL(task7.inputs.size(), 1);
+  BOOST_CHECK_EQUAL(task7.inputs.size(), 3);
 }
