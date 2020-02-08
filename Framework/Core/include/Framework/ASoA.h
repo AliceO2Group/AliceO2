@@ -926,9 +926,15 @@ namespace o2::soa
 {
 
 template <typename... C1, typename... C2>
-constexpr auto join(o2::soa::Table<C1...>&& t1, o2::soa::Table<C2...>&& t2)
+constexpr auto join(o2::soa::Table<C1...> const& t1, o2::soa::Table<C2...> const& t2)
 {
   return o2::soa::Table<C1..., C2...>(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
+}
+
+template <typename T1, typename T2, typename... Ts>
+constexpr auto join(T1 const& t1, T2 const& t2, Ts const&... ts)
+{
+  return join(t1, join(t2, ts...));
 }
 
 template <typename T1, typename T2>
@@ -938,22 +944,25 @@ constexpr auto concat(T1&& t1, T2&& t2)
   return table_t(ArrowHelpers::concatTables({t1.asArrowTable(), t2.asArrowTable()}));
 }
 
-template <typename T1, typename T2>
-using JoinBase = decltype(join(std::declval<T1>(), std::declval<T2>()));
+template <typename... Ts>
+using JoinBase = decltype(join(std::declval<Ts>()...));
 
 template <typename T1, typename T2>
 using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
 
-template <typename T1, typename T2>
-struct Join : JoinBase<T1, T2> {
-  Join(std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2, uint64_t offset = 0)
-    : JoinBase<T1, T2>{ArrowHelpers::joinTables({t1, t2}), offset} {}
-  Join(std::vector<std::shared_ptr<arrow::Table>> tables, uint64_t offset = 0)
-    : JoinBase<T1, T2>{ArrowHelpers::joinTables(std::move(tables)), offset} {}
+template <typename... Ts>
+struct Join : JoinBase<Ts...> {
+  Join(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0)
+    : JoinBase<Ts...>{ArrowHelpers::joinTables(std::move(tables)), offset} {}
 
-  using left_t = T1;
-  using right_t = T2;
-  using table_t = JoinBase<T1, T2>;
+  template <typename... ATs>
+  Join(uint64_t offset, std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2, ATs... ts)
+    : Join<Ts...>(std::vector<std::shared_ptr<arrow::Table>>{t1, t2, ts...}, offset)
+  {
+  }
+
+  using originals = framework::pack<Ts...>;
+  using table_t = JoinBase<Ts...>;
 };
 
 template <typename T1, typename T2>
@@ -963,6 +972,8 @@ struct Concat : ConcatBase<T1, T2> {
   Concat(std::vector<std::shared_ptr<arrow::Table>> tables, uint64_t offset = 0)
     : ConcatBase<T1, T2>{ArrowHelpers::concatTables(std::move(tables)), offset} {}
 
+  using originals = framework::pack<T1, T2>;
+  // FIXME: can be remove when we do the same treatment we did for Join to Concatenate
   using left_t = T1;
   using right_t = T2;
   using table_t = ConcatBase<T1, T2>;

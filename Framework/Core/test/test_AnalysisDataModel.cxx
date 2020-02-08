@@ -39,7 +39,7 @@ BOOST_AUTO_TEST_CASE(TestJoinedTables)
 
   using Test = Join<Tracks, TracksCov>;
 
-  Test tests{tracks, covs};
+  Test tests{0, tracks, covs};
   BOOST_REQUIRE(tests.asArrowTable()->num_columns() != 0);
   BOOST_REQUIRE_EQUAL(tests.asArrowTable()->num_columns(),
                       tracks->num_columns() + covs->num_columns());
