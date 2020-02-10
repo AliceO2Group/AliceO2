@@ -212,6 +212,10 @@ int GPUReconstructionCPU::RunChains()
           timer.Reset();
         }
       }
+      unsigned int count = mTimers[i]->count;
+      if (mDeviceProcessingSettings.resetTimers) {
+        mTimers[i]->count = 0;
+      }
 
       char type = mTimers[i]->type;
       if (type == 0) {
@@ -220,18 +224,18 @@ int GPUReconstructionCPU::RunChains()
         kernelStepTimes[stepNum] += time;
       }
       type = type == 0 ? 'K' : 'C';
-      printf("Execution Time: Task (%c): %50s Time: %'10d us\n", type, mTimers[i]->name.c_str(), (int)(time * 1000000 / mStatNEvents));
+      printf("Execution Time: Task (%c %8ux): %50s Time: %'10d us\n", type, count, mTimers[i]->name.c_str(), (int)(time * 1000000 / mStatNEvents));
     }
     for (int i = 0; i < N_RECO_STEPS; i++) {
       if (kernelStepTimes[i] != 0.) {
-        printf("Execution Time: Step    : %50s Time: %'10d us\n", GPUDataTypes::RECO_STEP_NAMES[i], (int)(kernelStepTimes[i] * 1000000 / mStatNEvents));
+        printf("Execution Time: Step              : %50s Time: %'10d us\n", GPUDataTypes::RECO_STEP_NAMES[i], (int)(kernelStepTimes[i] * 1000000 / mStatNEvents));
       }
       if (mTimersRecoSteps[i].bytesToGPU) {
-        printf("Execution Time: Step (D): %11s %38s Time: %'10d us (%6.3f GB/s - %'14lu bytes)\n", "DMA to GPU", GPUDataTypes::RECO_STEP_NAMES[i], (int)(mTimersRecoSteps[i].timerToGPU.GetElapsedTime() * 1000000 / mStatNEvents),
+        printf("Execution Time: Step (D %8ux): %11s %38s Time: %'10d us (%6.3f GB/s - %'14lu bytes)\n", mTimersRecoSteps[i].countToGPU, "DMA to GPU", GPUDataTypes::RECO_STEP_NAMES[i], (int)(mTimersRecoSteps[i].timerToGPU.GetElapsedTime() * 1000000 / mStatNEvents),
                mTimersRecoSteps[i].bytesToGPU / mTimersRecoSteps[i].timerToGPU.GetElapsedTime() * 1e-9, mTimersRecoSteps[i].bytesToGPU / mStatNEvents);
       }
       if (mTimersRecoSteps[i].bytesToHost) {
-        printf("Execution Time: Step (D): %11s %38s Time: %'10d us (%6.3f GB/s - %'14lu bytes)\n", "DMA to Host", GPUDataTypes::RECO_STEP_NAMES[i], (int)(mTimersRecoSteps[i].timerToHost.GetElapsedTime() * 1000000 / mStatNEvents),
+        printf("Execution Time: Step (D %8ux): %11s %38s Time: %'10d us (%6.3f GB/s - %'14lu bytes)\n", mTimersRecoSteps[i].countToHost, "DMA to Host", GPUDataTypes::RECO_STEP_NAMES[i], (int)(mTimersRecoSteps[i].timerToHost.GetElapsedTime() * 1000000 / mStatNEvents),
                mTimersRecoSteps[i].bytesToHost / mTimersRecoSteps[i].timerToHost.GetElapsedTime() * 1e-9, mTimersRecoSteps[i].bytesToHost / mStatNEvents);
       }
       if (mDeviceProcessingSettings.resetTimers) {
@@ -239,6 +243,8 @@ int GPUReconstructionCPU::RunChains()
         mTimersRecoSteps[i].timerToGPU.Reset();
         mTimersRecoSteps[i].timerToHost.Reset();
         mTimersRecoSteps[i].timer.Reset();
+        mTimersRecoSteps[i].countToGPU = 0;
+        mTimersRecoSteps[i].countToHost = 0;
       }
     }
     printf("Execution Time: Total   : %50s Time: %'10d us\n", "Total kernel time", (int)(kernelTotal * 1000000 / mStatNEvents));
@@ -283,7 +289,7 @@ GPUReconstructionCPU::timerMeta* GPUReconstructionCPU::insertTimer(unsigned int 
     if (J >= 0) {
       name += std::to_string(J);
     }
-    mTimers[id].reset(new timerMeta{std::unique_ptr<HighResTimer[]>{new HighResTimer[num]}, name, num, type, step});
+    mTimers[id].reset(new timerMeta{std::unique_ptr<HighResTimer[]>{new HighResTimer[num]}, name, num, type, 1u, step});
   }
   timerMeta* retVal = mTimers[id].get();
   timerFlag.clear();
@@ -297,6 +303,7 @@ GPUReconstructionCPU::timerMeta* GPUReconstructionCPU::getTimerById(unsigned int
     ;
   if (mTimers.size() > id && mTimers[id]) {
     retVal = mTimers[id].get();
+    retVal->count++;
   }
   timerFlag.clear();
   return retVal;

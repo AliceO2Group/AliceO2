@@ -192,9 +192,10 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   struct timerMeta {
     std::unique_ptr<HighResTimer[]> timer;
     std::string name;
-    int num;       // How many parallel instances to sum up (CPU threads / GPU streams)
-    int type;      // 0 = kernel, 1 = CPU step, 2 = DMA transfer
-    RecoStep step; // Which RecoStep is this
+    int num;            // How many parallel instances to sum up (CPU threads / GPU streams)
+    int type;           // 0 = kernel, 1 = CPU step, 2 = DMA transfer
+    unsigned int count; // How often was the timer queried
+    RecoStep step;      // Which RecoStep is this
   };
 
   struct RecoStepTimerMeta {
@@ -203,6 +204,8 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
     HighResTimer timerToHost;
     size_t bytesToGPU = 0;
     size_t bytesToHost = 0;
+    unsigned int countToGPU = 0;
+    unsigned int countToHost = 0;
   };
 
   constexpr static int N_RECO_STEPS = sizeof(GPUDataTypes::RECO_STEP_NAMES) / sizeof(GPUDataTypes::RECO_STEP_NAMES[0]);

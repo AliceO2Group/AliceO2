@@ -215,6 +215,7 @@ inline void GPUChain::timeCpy(RecoStep step, bool toGPU, S T::*func, Args... arg
       auto& tmp = mRec->mTimersRecoSteps[id];
       timer = toGPU ? &tmp.timerToGPU : &tmp.timerToHost;
       bytes = toGPU ? &tmp.bytesToGPU : &tmp.bytesToHost;
+      (toGPU ? tmp.countToGPU : tmp.countToHost)++;
       timer->Start();
     }
   }
