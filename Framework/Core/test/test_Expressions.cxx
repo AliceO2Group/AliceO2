@@ -85,4 +85,30 @@ BOOST_AUTO_TEST_CASE(TestTreeParsing)
   BOOST_REQUIRE_EQUAL(hspecs[2].left, (DatumSpec{std::string{"phi"}, atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(hspecs[2].right, (DatumSpec{LiteralNode::var_t{0}, atype::INT32}));
   BOOST_REQUIRE_EQUAL(hspecs[2].result, (DatumSpec{1u, atype::BOOL}));
+
+  expressions::Filter u = nabs(nodes::eta) < 1.0 && nexp(nodes::phi + 2.0 * M_PI) > 3.0;
+  auto uspecs = createOperations(u);
+  BOOST_REQUIRE_EQUAL(uspecs[0].left, (DatumSpec{1u, atype::BOOL}));
+  BOOST_REQUIRE_EQUAL(uspecs[0].right, (DatumSpec{2u, atype::BOOL}));
+  BOOST_REQUIRE_EQUAL(uspecs[0].result, (DatumSpec{0u, atype::BOOL}));
+
+  BOOST_REQUIRE_EQUAL(uspecs[1].left, (DatumSpec{3u, atype::DOUBLE}));
+  BOOST_REQUIRE_EQUAL(uspecs[1].right, (DatumSpec{LiteralNode::var_t{3.0}, atype::DOUBLE}));
+  BOOST_REQUIRE_EQUAL(uspecs[1].result, (DatumSpec{2u, atype::BOOL}));
+
+  BOOST_REQUIRE_EQUAL(uspecs[2].left, (DatumSpec{4u, atype::DOUBLE}));
+  BOOST_REQUIRE_EQUAL(uspecs[2].right, (DatumSpec{}));
+  BOOST_REQUIRE_EQUAL(uspecs[2].result, (DatumSpec{3u, atype::DOUBLE}));
+
+  BOOST_REQUIRE_EQUAL(uspecs[3].left, (DatumSpec{std::string{"phi"}, atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(uspecs[3].right, (DatumSpec{LiteralNode::var_t{2.0 * M_PI}, atype::DOUBLE}));
+  BOOST_REQUIRE_EQUAL(uspecs[3].result, (DatumSpec{4u, atype::DOUBLE}));
+
+  BOOST_REQUIRE_EQUAL(uspecs[4].left, (DatumSpec{5u, atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(uspecs[4].right, (DatumSpec{LiteralNode::var_t{1.0}, atype::DOUBLE}));
+  BOOST_REQUIRE_EQUAL(uspecs[4].result, (DatumSpec{1u, atype::BOOL}));
+
+  BOOST_REQUIRE_EQUAL(uspecs[5].left, (DatumSpec{std::string{"eta"}, atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(uspecs[5].right, (DatumSpec{}));
+  BOOST_REQUIRE_EQUAL(uspecs[5].result, (DatumSpec{5u, atype::FLOAT}));
 }
