@@ -32,11 +32,37 @@ namespace gpu
 
 class ClusterAccumulator;
 
-class Clusterizer
+class Clusterizer : public GPUKernelTemplate
 {
 
  public:
-  static GPUd() void computeClustersImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, const Array2D<PackedCharge>&, const deprecated::Digit*, uint, uint, uint*, tpc::ClusterNative*);
+  class GPUTPCSharedMemory
+  {
+   public:
+    GPUTPCSharedMemoryData::build_t build;
+  };
+
+  enum K : int {
+    computeClusters = 6,
+  };
+
+  static GPUd() void computeClustersImpl(int, int, int, int, GPUTPCSharedMemory&, const Array2D<PackedCharge>&, const deprecated::Digit*, uint, uint, uint*, tpc::ClusterNative*);
+
+#ifdef HAVE_O2HEADERS
+  typedef GPUTPCClusterFinder processorType;
+  GPUhdi() static processorType* Processor(GPUConstantMem& processors)
+  {
+    return processors.tpcClusterer;
+  }
+#endif
+
+  GPUhdi() CONSTEXPR static GPUDataTypes::RecoStep GetRecoStep()
+  {
+    return GPUDataTypes::RecoStep::TPCClusterFinding;
+  }
+
+  template <int iKernel = 0, typename... Args>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, Args... args);
 
  private:
   static GPUd() void addOuterCharge(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&, Delta2);

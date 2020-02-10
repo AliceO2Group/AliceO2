@@ -21,8 +21,16 @@
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::deprecated;
 
+template <>
+GPUd() void PeakFinder::Thread<PeakFinder::findPeaks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer)
+{
+  Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
+  Array2D<uchar> isPeakMap(clusterer.mPpeakMap);
+  PeakFinder::findPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, clusterer.mPdigits, clusterer.mPmemory->counters.nDigits, clusterer.mPisPeak, isPeakMap);
+}
+
 GPUd() bool PeakFinder::isPeakScratchPad(
-  GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+  GPUTPCSharedMemory& smem,
   Charge q,
   const ChargePos& pos,
   ushort N,
@@ -142,7 +150,7 @@ GPUd() bool PeakFinder::isPeak(
   return peak;
 }
 
-GPUd() void PeakFinder::findPeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+GPUd() void PeakFinder::findPeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem,
                                       const Array2D<PackedCharge>& chargeMap,
                                       const Digit* digits,
                                       uint digitnum,
