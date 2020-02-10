@@ -24,11 +24,37 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
-class Deconvolution
+class Deconvolution : public GPUKernelTemplate
 {
 
  public:
-  static GPUd() void countPeaksImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, const Array2D<uchar>&, Array2D<PackedCharge>&, const deprecated::Digit*, const uint);
+  class GPUTPCSharedMemory : public GPUKernelTemplate::GPUTPCSharedMemoryScan64<int, GPUCA_THREAD_COUNT_CLUSTERER>
+  {
+   public:
+    GPUTPCSharedMemoryData::count_t count;
+  };
+
+  enum K : int {
+    countPeaks = 5,
+  };
+
+  static GPUd() void countPeaksImpl(int, int, int, int, GPUTPCSharedMemory&, const Array2D<uchar>&, Array2D<PackedCharge>&, const deprecated::Digit*, const uint);
+
+#ifdef HAVE_O2HEADERS
+  typedef GPUTPCClusterFinder processorType;
+  GPUhdi() static processorType* Processor(GPUConstantMem& processors)
+  {
+    return processors.tpcClusterer;
+  }
+#endif
+
+  GPUhdi() CONSTEXPR static GPUDataTypes::RecoStep GetRecoStep()
+  {
+    return GPUDataTypes::RecoStep::TPCClusterFinding;
+  }
+
+  template <int iKernel = 0, typename... Args>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, Args... args);
 
  private:
   static GPUd() char countPeaksAroundDigit(const ChargePos&, const Array2D<uchar>&);

@@ -26,23 +26,54 @@ class StreamCompaction
 {
 
  public:
-  static GPUd() void nativeScanUpStartImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&,
+  class GPUTPCSharedMemory : public GPUKernelTemplate::GPUTPCSharedMemoryScan64<int, GPUCA_THREAD_COUNT_SCAN>
+  {
+  };
+
+  enum K {
+    nativeScanUpStart = 7,
+    nativeScanUp = 8,
+    nativeScanTop = 9,
+    nativeScanDown = 10,
+    compactDigit = 11,
+  };
+
+  static GPUd() void nativeScanUpStartImpl(int, int, int, int, GPUTPCSharedMemory&,
                                            const uchar*, int*, int*,
                                            int);
 
-  static GPUd() void nativeScanUpImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&,
+  static GPUd() void nativeScanUpImpl(int, int, int, int, GPUTPCSharedMemory&,
                                       int*, int*, int);
 
-  static GPUd() void nativeScanTopImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&,
+  static GPUd() void nativeScanTopImpl(int, int, int, int, GPUTPCSharedMemory&,
                                        int*, int);
 
-  static GPUd() void nativeScanDownImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&,
+  static GPUd() void nativeScanDownImpl(int, int, int, int, GPUTPCSharedMemory&,
                                         int*, const int*, unsigned int, int);
 
-  static GPUd() void compactDigitImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&,
+  static GPUd() void compactDigitImpl(int, int, int, int, GPUTPCSharedMemory&,
                                       const deprecated::Digit*, deprecated::Digit*,
                                       const uchar*, int*, const int*,
                                       int);
+
+#ifdef HAVE_O2HEADERS
+  typedef GPUTPCClusterFinder processorType;
+  GPUhdi() static processorType* Processor(GPUConstantMem& processors)
+  {
+    return processors.tpcClusterer;
+  }
+#endif
+
+  GPUhdi() CONSTEXPR static GPUDataTypes::RecoStep GetRecoStep()
+  {
+    return GPUDataTypes::RecoStep::TPCClusterFinding;
+  }
+
+  template <int iKernel = 0, typename... Args>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, Args... args);
+
+ private:
+  GPUd() static int compactionElems(processorType& clusterer, int stage);
 };
 
 } // namespace gpu

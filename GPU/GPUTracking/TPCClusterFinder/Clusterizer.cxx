@@ -19,7 +19,14 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-GPUd() void Clusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+template <>
+GPUd() void Clusterizer::Thread<Clusterizer::computeClusters>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer)
+{
+  Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
+  Clusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, clusterer.mPfilteredPeaks, clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterer.mPclusterByRow);
+}
+
+GPUd() void Clusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem,
                                              const Array2D<PackedCharge>& chargeMap,
                                              const deprecated::Digit* digits,
                                              uint clusternum,
