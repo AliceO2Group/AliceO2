@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef STEER_DIGITIZERWORKFLOW_SRC_TRDDIGITWRITERSPEC_H_
-#define STEER_DIGITIZERWORKFLOW_SRC_TRDDIGITWRITERSPEC_H_
+#ifndef TRDWORKFLOW_SRC_TRDDIGITWRITERSPEC_H_
+#define TRDWORKFLOW_SRC_TRDDIGITWRITERSPEC_H_
 
 #include "Framework/DataProcessorSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
@@ -27,7 +27,7 @@ namespace trd
 template <typename T>
 using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-o2::framework::DataProcessorSpec getTRDDigitWriterSpec()
+inline o2::framework::DataProcessorSpec getTRDDigitWriterSpec()
 {
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
@@ -43,4 +43,4 @@ o2::framework::DataProcessorSpec getTRDDigitWriterSpec()
 } // end namespace trd
 } // end namespace o2
 
-#endif /* STEER_DIGITIZERWORKFLOW_SRC_TRDDIGITWRITERSPEC_H_ */
+#endif /* TRDWORKFLOW_SRC_TRDDIGITWRITERSPEC_H_ */
