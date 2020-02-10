@@ -49,7 +49,7 @@ class CfUtils
   {
     bool participates = ll < partSize;
 
-    ushort lpos = work_group_scan_inclusive_add(int(!pred && participates));
+    ushort lpos = work_group_scan_inclusive_add(short(!pred && participates));
 
     ushort part = work_group_broadcast(lpos, SCRATCH_PAD_WORK_GROUP_SIZE - 1);
 

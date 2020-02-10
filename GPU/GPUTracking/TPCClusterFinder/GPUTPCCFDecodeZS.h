@@ -8,40 +8,43 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file PeakFinder.h
-/// \author Felix Weiglhofer
+/// \file DecodeZS.h
+/// \author David Rohr
 
-#ifndef O2_GPU_PEAK_FINDER_H
-#define O2_GPU_PEAK_FINDER_H
-
-#include "GPUGeneralKernels.h"
-#include "GPUConstantMem.h"
-#include "GPUTPCSharedMemoryData.h"
+#ifndef O2_GPU_DECODE_ZS_H
+#define O2_GPU_DECODE_ZS_H
 
 #include "clusterFinderDefs.h"
-#include "GPUTPCClusterFinderKernels.h"
-#include "Array2D.h"
+#include "GPUGeneralKernels.h"
+#include "GPUConstantMem.h"
+#include "DataFormatsTPC/ZeroSuppression.h"
 
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 
-class PeakFinder : public GPUKernelTemplate
-{
+class GPUTPCClusterFinder;
 
+class GPUTPCCFDecodeZS : public GPUKernelTemplate
+{
  public:
-  class GPUTPCSharedMemory : public GPUKernelTemplate::GPUTPCSharedMemoryScan64<int, GPUCA_THREAD_COUNT_CLUSTERER>
-  {
-   public:
-    GPUTPCSharedMemoryData::search_t search;
+  struct GPUTPCSharedMemory {
+    CA_SHARED_STORAGE(unsigned int ZSPage[o2::tpc::TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(unsigned int)]);
+    unsigned int RowClusterOffset[o2::tpc::TPCZSHDR::TPC_MAX_ZS_ROW_IN_ENDPOINT];
+    unsigned int nRowsRegion;
+    unsigned int regionStartRow;
+    unsigned int nThreadsPerRow;
+    unsigned int rowStride;
+    unsigned int decodeBits;
+    float decodeBitsFactor;
   };
 
   enum K : int {
-    findPeaks,
+    decodeZS,
   };
 
-  static GPUd() void findPeaksImpl(int, int, int, int, GPUTPCSharedMemory&, const Array2D<gpu::PackedCharge>&, const deprecated::Digit*, uint, uchar*, Array2D<uchar>&);
+  static GPUd() void decode(GPUTPCClusterFinder& clusterer, GPUTPCSharedMemory& s, int nBlocks, int nThreads, int iBlock, int iThread);
 
 #ifdef HAVE_O2HEADERS
   typedef GPUTPCClusterFinder processorType;
@@ -58,11 +61,6 @@ class PeakFinder : public GPUKernelTemplate
 
   template <int iKernel = 0, typename... Args>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, Args... args);
-
- private:
-  static GPUd() bool isPeakScratchPad(GPUTPCSharedMemory&, Charge, const ChargePos&, ushort, const Array2D<o2::gpu::PackedCharge>&, ChargePos*, PackedCharge*);
-
-  static GPUd() bool isPeak(Charge, const ChargePos&, const Array2D<PackedCharge>&);
 };
 
 } // namespace gpu

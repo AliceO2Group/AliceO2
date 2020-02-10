@@ -147,16 +147,15 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         DataCompression/GPUTPCCompressionKernels.cxx
         DataCompression/TPCClusterDecompressor.cxx
         DataCompression/GPUTPCClusterStatistics.cxx
-        TPCClusterFinder/GPUTPCClusterFinderKernels.cxx
         TPCClusterFinder/GPUTPCClusterFinder.cxx
         TPCClusterFinder/ClusterAccumulator.cxx
-        TPCClusterFinder/StreamCompaction.cxx
-        TPCClusterFinder/ChargeMapFiller.cxx
-        TPCClusterFinder/PeakFinder.cxx
-        TPCClusterFinder/NoiseSuppression.cxx
-        TPCClusterFinder/Clusterizer.cxx
-        TPCClusterFinder/Deconvolution.cxx
-        TPCClusterFinder/DecodeZS.cxx)
+        TPCClusterFinder/GPUTPCCFStreamCompaction.cxx
+        TPCClusterFinder/GPUTPCCFChargeMapFiller.cxx
+        TPCClusterFinder/GPUTPCCFPeakFinder.cxx
+        TPCClusterFinder/GPUTPCCFNoiseSuppression.cxx
+        TPCClusterFinder/GPUTPCCFClusterizer.cxx
+        TPCClusterFinder/GPUTPCCFDeconvolution.cxx
+        TPCClusterFinder/GPUTPCCFDecodeZS.cxx)
 
     set(SRCS_NO_H ${SRCS_NO_H}
         TPCClusterFinder/GPUTPCClusterFinderDump.cxx)
@@ -171,7 +170,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
                      TPCClusterFinder/ChargePos.h
                      TPCClusterFinder/clusterFinderDefs.h
                      TPCClusterFinder/Digit.h
-                     TPCClusterFinder/GPUTPCSharedMemoryData.h
+                     TPCClusterFinder/GPUTPCClusterFinderKernels.h
                      TPCClusterFinder/PackedCharge.h)
 endif()
 
