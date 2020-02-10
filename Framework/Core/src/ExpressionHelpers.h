@@ -18,7 +18,7 @@ namespace o2::framework::expressions
 {
 /// a map between BasicOp and gandiva node definitions
 /// note that logical 'and' and 'or' are created separately
-static std::array<std::string, BasicOp::NotEqual + 1> binaryOperationsMap = {
+static std::array<std::string, BasicOp::Abs + 1> binaryOperationsMap = {
   "and",
   "or",
   "add",
@@ -30,7 +30,11 @@ static std::array<std::string, BasicOp::NotEqual + 1> binaryOperationsMap = {
   "greater_than",
   "greater_than_or_equal_to",
   "equal",
-  "not_equal"};
+  "not_equal",
+  "exp",
+  "log",
+  "log10",
+  "abs"};
 
 struct DatumSpec {
   /// datum spec either contains an index, a value of a literal or a binding label
@@ -58,6 +62,7 @@ struct ColumnOperationSpec {
   DatumSpec result;
   atype::type type = atype::NA;
   ColumnOperationSpec() = default;
+  // TODO: extend this to support unary ops seamlessly
   explicit ColumnOperationSpec(BasicOp op_) : op{op_},
                                               left{},
                                               right{},
