@@ -27,6 +27,7 @@
 #include "FV0Simulation/DigitizationParameters.h"
 #include "FV0Simulation/MCLabel.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include <TFile.h>
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
