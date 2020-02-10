@@ -8,10 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file DecodeZS.cxx
+/// \file GPUTPCCFDecodeZS.cxx
 /// \author David Rohr
 
-#include "DecodeZS.h"
+#include "GPUTPCCFDecodeZS.h"
 #include "GPUCommonMath.h"
 #include "GPUTPCClusterFinder.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
@@ -34,7 +34,13 @@ struct RAWDataHeader {
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
-GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& s, int nBlocks, int nThreads, int iBlock, int iThread)
+template <>
+GPUd() void GPUTPCCFDecodeZS::Thread<GPUTPCCFDecodeZS::decodeZS>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer)
+{
+  GPUTPCCFDecodeZS::decode(clusterer, smem, nBlocks, nThreads, iBlock, iThread);
+}
+
+GPUd() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUTPCSharedMemory& s, int nBlocks, int nThreads, int iBlock, int iThread)
 {
   const unsigned int slice = clusterer.mISlice;
   const unsigned int endpoint = iBlock;
@@ -47,30 +53,30 @@ GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder
   unsigned int rowOffsetCounter = 0;
   if (iThread == 0) {
     const int region = endpoint / 2;
-    s.zs.nRowsRegion = clusterer.Param().tpcGeometry.GetRegionRows(region);
-    s.zs.regionStartRow = clusterer.Param().tpcGeometry.GetRegionStart(region);
-    s.zs.nThreadsPerRow = CAMath::Max(1u, nThreads / ((s.zs.nRowsRegion + (endpoint & 1)) / 2));
-    s.zs.rowStride = nThreads / s.zs.nThreadsPerRow;
+    s.nRowsRegion = clusterer.Param().tpcGeometry.GetRegionRows(region);
+    s.regionStartRow = clusterer.Param().tpcGeometry.GetRegionStart(region);
+    s.nThreadsPerRow = CAMath::Max(1u, nThreads / ((s.nRowsRegion + (endpoint & 1)) / 2));
+    s.rowStride = nThreads / s.nThreadsPerRow;
     const unsigned char* page = (const unsigned char*)zs.zsPtr[endpoint][0];
     const TPCZSHDR* hdr = reinterpret_cast<const TPCZSHDR*>(page + sizeof(o2::header::RAWDataHeader));
     const bool decode12bit = hdr->version == 2;
-    s.zs.decodeBits = decode12bit ? TPCZSHDR::TPC_ZS_NBITS_V2 : TPCZSHDR::TPC_ZS_NBITS_V1;
-    s.zs.decodeBitsFactor = 1.f / (1 << (s.zs.decodeBits - 10));
+    s.decodeBits = decode12bit ? TPCZSHDR::TPC_ZS_NBITS_V2 : TPCZSHDR::TPC_ZS_NBITS_V1;
+    s.decodeBitsFactor = 1.f / (1 << (s.decodeBits - 10));
   }
   GPUbarrier();
-  const unsigned int myRow = iThread / s.zs.nThreadsPerRow;
-  const unsigned int mySequence = iThread % s.zs.nThreadsPerRow;
+  const unsigned int myRow = iThread / s.nThreadsPerRow;
+  const unsigned int mySequence = iThread % s.nThreadsPerRow;
   for (unsigned int i = 0; i < zs.count[endpoint]; i++) {
     for (unsigned int j = 0; j < zs.nZSPtr[endpoint][i]; j++) {
       const unsigned int* pageSrc = (const unsigned int*)(((const unsigned char*)zs.zsPtr[endpoint][i]) + j * TPCZSHDR::TPC_ZS_PAGE_SIZE);
       GPUbarrier();
-      CA_SHARED_CACHE_REF(&s.zs.ZSPage[0], pageSrc, TPCZSHDR::TPC_ZS_PAGE_SIZE, unsigned int, pageCache);
+      CA_SHARED_CACHE_REF(&s.ZSPage[0], pageSrc, TPCZSHDR::TPC_ZS_PAGE_SIZE, unsigned int, pageCache);
       GPUbarrier();
       const unsigned char* page = (const unsigned char*)pageCache;
       const unsigned char* pagePtr = page + sizeof(o2::header::RAWDataHeader);
       const TPCZSHDR* hdr = reinterpret_cast<const TPCZSHDR*>(pagePtr);
       pagePtr += sizeof(*hdr);
-      unsigned int mask = (1 << s.zs.decodeBits) - 1;
+      unsigned int mask = (1 << s.decodeBits) - 1;
       int timeBin = hdr->timeOffset;
       for (int l = 0; l < hdr->nTimeBins; l++) {
         pagePtr += (pagePtr - page) & 1; //Ensure 16 bit alignment
@@ -79,38 +85,38 @@ GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder
           pagePtr += 2;
           continue;
         }
-        const int rowOffset = s.zs.regionStartRow + ((endpoint & 1) ? (s.zs.nRowsRegion / 2) : 0);
-        const int nRows = (endpoint & 1) ? (s.zs.nRowsRegion - s.zs.nRowsRegion / 2) : (s.zs.nRowsRegion / 2);
+        const int rowOffset = s.regionStartRow + ((endpoint & 1) ? (s.nRowsRegion / 2) : 0);
+        const int nRows = (endpoint & 1) ? (s.nRowsRegion - s.nRowsRegion / 2) : (s.nRowsRegion / 2);
         const int nRowsUsed = CAMath::Popcount((unsigned int)(tbHdr->rowMask & 0x7FFF));
         pagePtr += 2 * nRowsUsed;
         GPUbarrier();
         if (iThread == 0) {
           for (int n = 0; n < nRowsUsed; n++) {
-            s.zs.RowClusterOffset[n] = rowOffsetCounter;
+            s.RowClusterOffset[n] = rowOffsetCounter;
             const unsigned char* rowData = n == 0 ? pagePtr : (page + tbHdr->rowAddr1()[n - 1]);
             rowOffsetCounter += rowData[2 * *rowData]; // Sum up number of ADC samples per row to compute offset in target buffer
           }
         }
         GPUbarrier();
-        if (myRow < s.zs.rowStride) {
-          for (int m = myRow; m < nRows; m += s.zs.rowStride) {
+        if (myRow < s.rowStride) {
+          for (int m = myRow; m < nRows; m += s.rowStride) {
             if ((tbHdr->rowMask & (1 << m)) == 0) {
               continue;
             }
             const int rowPos = CAMath::Popcount((unsigned int)(tbHdr->rowMask & ((1 << m) - 1)));
-            size_t nDigitsTmp = nDigits + s.zs.RowClusterOffset[rowPos];
+            size_t nDigitsTmp = nDigits + s.RowClusterOffset[rowPos];
             const unsigned char* rowData = rowPos == 0 ? pagePtr : (page + tbHdr->rowAddr1()[rowPos - 1]);
             const int nSeqRead = *rowData;
-            const int nSeqPerThread = (nSeqRead + s.zs.nThreadsPerRow - 1) / s.zs.nThreadsPerRow;
+            const int nSeqPerThread = (nSeqRead + s.nThreadsPerRow - 1) / s.nThreadsPerRow;
             const int mySequenceStart = mySequence * nSeqPerThread;
             const int mySequenceEnd = CAMath::Min(mySequenceStart + nSeqPerThread, nSeqRead);
             if (mySequenceEnd > mySequenceStart) {
               const unsigned char* adcData = rowData + 2 * nSeqRead + 1;
               const unsigned int nSamplesStart = mySequenceStart ? rowData[2 * mySequenceStart] : 0;
               nDigitsTmp += nSamplesStart;
-              unsigned int nADCStartBits = nSamplesStart * s.zs.decodeBits;
+              unsigned int nADCStartBits = nSamplesStart * s.decodeBits;
               const unsigned int nADCStart = (nADCStartBits + 7) / 8;
-              const int nADC = (rowData[2 * mySequenceEnd] * s.zs.decodeBits + 7) / 8;
+              const int nADC = (rowData[2 * mySequenceEnd] * s.decodeBits + 7) / 8;
               adcData += nADCStart;
               nADCStartBits &= 0x7;
               unsigned int byte = 0, bits = 0;
@@ -124,14 +130,14 @@ GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder
               for (int n = nADCStart; n < nADC; n++) {
                 byte |= *(adcData++) << bits;
                 bits += 8;
-                while (bits >= s.zs.decodeBits) {
+                while (bits >= s.decodeBits) {
                   if (seqLen == 0) {
                     seqLen = rowData[(nSeq + 1) * 2] - rowData[nSeq * 2];
                     pad = rowData[nSeq++ * 2 + 1];
                   }
-                  digits[nDigitsTmp++] = deprecated::PackedDigit{(float)(byte & mask) * s.zs.decodeBitsFactor, (Timestamp)(timeBin + l), pad++, (Row)(rowOffset + m)};
-                  byte = byte >> s.zs.decodeBits;
-                  bits -= s.zs.decodeBits;
+                  digits[nDigitsTmp++] = deprecated::PackedDigit{(float)(byte & mask) * s.decodeBitsFactor, (Timestamp)(timeBin + l), pad++, (Row)(rowOffset + m)};
+                  byte = byte >> s.decodeBits;
+                  bits -= s.decodeBits;
                   seqLen--;
                 }
               }
@@ -141,8 +147,8 @@ GPUd() void DecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinder
         if (nRowsUsed > 1) {
           pagePtr = page + tbHdr->rowAddr1()[nRowsUsed - 2];
         }
-        pagePtr += 2 * *pagePtr;                        // Go to entry for last sequence length
-        pagePtr += 1 + (*pagePtr * s.zs.decodeBits + 7) / 8; // Go to beginning of next time bin
+        pagePtr += 2 * *pagePtr;                          // Go to entry for last sequence length
+        pagePtr += 1 + (*pagePtr * s.decodeBits + 7) / 8; // Go to beginning of next time bin
       }
     }
   }

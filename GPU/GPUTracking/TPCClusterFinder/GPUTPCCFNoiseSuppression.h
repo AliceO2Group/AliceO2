@@ -15,7 +15,9 @@
 #define O2_GPU_NOISE_SUPPRESSION_H
 
 #include "clusterFinderDefs.h"
-#include "GPUTPCClusterFinderKernels.h"
+#include "GPUGeneralKernels.h"
+#include "GPUConstantMem.h"
+#include "GPUTPCClusterFinder.h"
 #include "Array2D.h"
 #include "PackedCharge.h"
 
@@ -24,14 +26,15 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
-class NoiseSuppression : GPUKernelTemplate
+class GPUTPCCFNoiseSuppression : GPUKernelTemplate
 {
 
  public:
   class GPUTPCSharedMemory
   {
    public:
-    GPUTPCSharedMemoryData::noise_t noise;
+    ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
+    PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_NOISE_N];
   };
 
   enum K : int {

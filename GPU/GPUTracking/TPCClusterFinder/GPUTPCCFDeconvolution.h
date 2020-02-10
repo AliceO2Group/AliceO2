@@ -15,7 +15,9 @@
 #define O2_GPU_DECONVOLUTION_H
 
 #include "clusterFinderDefs.h"
-#include "GPUTPCClusterFinderKernels.h"
+#include "GPUGeneralKernels.h"
+#include "GPUConstantMem.h"
+#include "GPUTPCClusterFinder.h"
 #include "Array2D.h"
 #include "PackedCharge.h"
 
@@ -24,18 +26,20 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
-class Deconvolution : public GPUKernelTemplate
+class GPUTPCCFDeconvolution : public GPUKernelTemplate
 {
 
  public:
-  class GPUTPCSharedMemory : public GPUKernelTemplate::GPUTPCSharedMemoryScan64<int, GPUCA_THREAD_COUNT_CLUSTERER>
+  class GPUTPCSharedMemory : public GPUKernelTemplate::GPUTPCSharedMemoryScan64<short, GPUCA_THREAD_COUNT_CLUSTERER>
   {
    public:
-    GPUTPCSharedMemoryData::count_t count;
+    ChargePos posBcast1[SCRATCH_PAD_WORK_GROUP_SIZE];
+    uchar aboveThresholdBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
+    uchar buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_COUNT_N];
   };
 
   enum K : int {
-    countPeaks = 5,
+    countPeaks,
   };
 
   static GPUd() void countPeaksImpl(int, int, int, int, GPUTPCSharedMemory&, const Array2D<uchar>&, Array2D<PackedCharge>&, const deprecated::Digit*, const uint);
