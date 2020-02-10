@@ -24,7 +24,11 @@ enum BasicOp : unsigned int {
   GreaterThan,
   GreaterThanOrEqual,
   Equal,
-  NotEqual
+  NotEqual,
+  Exp,
+  Log,
+  Log10,
+  Abs
 };
 } // namespace o2::framework
 

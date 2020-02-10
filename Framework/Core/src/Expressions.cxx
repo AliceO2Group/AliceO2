@@ -40,8 +40,8 @@ struct BindingNodeHelper {
   }
 };
 
-struct BinaryOpNodeHelper {
-  ColumnOperationSpec operator()(BinaryOpNode node) const
+struct OpNodeHelper {
+  ColumnOperationSpec operator()(OpNode node) const
   {
     return ColumnOperationSpec{node.op};
   }
@@ -118,25 +118,20 @@ Operations createOperations(Filter const& expression)
   while (path.empty() == false) {
     auto& top = path.top();
 
-    auto left = top.node_ptr->left.get();
-    auto right = top.node_ptr->right.get();
-    bool leftLeaf = isLeaf(left);
-    bool rightLeaf = isLeaf(right);
-
     // create operation spec, pop the node and add its children
     auto operationSpec =
       std::visit(
         overloaded{
-          [bh = BinaryOpNodeHelper{}](BinaryOpNode node) { return bh(node); },
+          [](OpNode node) { return ColumnOperationSpec{node.op}; },
           [](auto&&) { return ColumnOperationSpec{}; }},
         top.node_ptr->self);
 
     operationSpec.result = DatumSpec{top.index, operationSpec.type};
     path.pop();
 
+    auto left = top.node_ptr->left.get();
+    bool leftLeaf = isLeaf(left);
     size_t li = 0;
-    size_t ri = 0;
-
     if (leftLeaf) {
       operationSpec.left = processLeaf(left);
     } else {
@@ -144,17 +139,30 @@ Operations createOperations(Filter const& expression)
       operationSpec.left = DatumSpec{index++, atype::NA};
     }
 
-    if (rightLeaf) {
-      operationSpec.right = processLeaf(right);
+    decltype(left) right = nullptr;
+    if (top.node_ptr->right != nullptr)
+      right = top.node_ptr->right.get();
+    bool rightLeaf = true;
+    if (right != nullptr)
+      rightLeaf = isLeaf(right);
+    size_t ri = 0;
+    auto isUnary = false;
+    if (top.node_ptr->right == nullptr) {
+      operationSpec.right = DatumSpec{};
+      isUnary = true;
     } else {
-      ri = index;
-      operationSpec.right = DatumSpec{index++, atype::NA};
+      if (rightLeaf) {
+        operationSpec.right = processLeaf(right);
+      } else {
+        ri = index;
+        operationSpec.right = DatumSpec{index++, atype::NA};
+      }
     }
 
     OperationSpecs.push_back(std::move(operationSpec));
     if (!leftLeaf)
       path.emplace(left, li);
-    if (!rightLeaf)
+    if (!isUnary && !rightLeaf)
       path.emplace(right, ri);
   }
   // at this stage the operations vector is created, but the field types are
@@ -163,6 +171,12 @@ Operations createOperations(Filter const& expression)
   resultTypes.resize(OperationSpecs.size());
 
   auto inferResultType = [&resultTypes](DatumSpec& left, DatumSpec& right) {
+    // if the left datum is monostate (error)
+    if (left.datum.index() == 0) {
+      throw std::runtime_error("Malformed operation spec: empty left datum");
+    }
+
+    // check if the datums are references
     if (left.datum.index() == 1)
       left.type = resultTypes[std::get<size_t>(left.datum)];
 
@@ -171,6 +185,12 @@ Operations createOperations(Filter const& expression)
 
     auto t1 = left.type;
     auto t2 = right.type;
+    // if the right datum is monostate (unary op)
+    if (right.datum.index() == 0) {
+      if (t1 == atype::DOUBLE)
+        return atype::DOUBLE;
+      return atype::FLOAT;
+    }
 
     if (t1 == t2)
       return t1;
@@ -316,7 +336,11 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
         tree = gandiva::TreeExprBuilder::MakeAnd({leftNode, rightNode});
         break;
       default:
-        tree = gandiva::TreeExprBuilder::MakeFunction(binaryOperationsMap[it->op], {leftNode, rightNode}, concreteArrowType(it->type));
+        if (it->op <= BasicOp::Exp) {
+          tree = gandiva::TreeExprBuilder::MakeFunction(binaryOperationsMap[it->op], {leftNode, rightNode}, concreteArrowType(it->type));
+        } else {
+          tree = gandiva::TreeExprBuilder::MakeFunction(binaryOperationsMap[it->op], {leftNode}, concreteArrowType(it->type));
+        }
         break;
     }
     opNodes[std::get<size_t>(it->result.datum)] = tree;
