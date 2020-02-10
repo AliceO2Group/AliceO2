@@ -15,7 +15,9 @@
 #define O2_GPU_CLUSTERIZER_H
 
 #include "clusterFinderDefs.h"
-#include "GPUTPCClusterFinderKernels.h"
+#include "GPUGeneralKernels.h"
+#include "GPUConstantMem.h"
+#include "GPUTPCClusterFinder.h"
 #include "Array2D.h"
 #include "PackedCharge.h"
 
@@ -32,18 +34,20 @@ namespace gpu
 
 class ClusterAccumulator;
 
-class Clusterizer : public GPUKernelTemplate
+class GPUTPCCFClusterizer : public GPUKernelTemplate
 {
 
  public:
   class GPUTPCSharedMemory
   {
    public:
-    GPUTPCSharedMemoryData::build_t build;
+    ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
+    PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_BUILD_N];
+    uchar innerAboveThreshold[SCRATCH_PAD_WORK_GROUP_SIZE];
   };
 
   enum K : int {
-    computeClusters = 6,
+    computeClusters,
   };
 
   static GPUd() void computeClustersImpl(int, int, int, int, GPUTPCSharedMemory&, const Array2D<PackedCharge>&, const deprecated::Digit*, uint, uint, uint*, tpc::ClusterNative*);

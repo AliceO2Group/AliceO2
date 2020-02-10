@@ -15,14 +15,16 @@
 #define O2_GPU_STREAM_COMPACTION_H
 
 #include "clusterFinderDefs.h"
-#include "GPUTPCClusterFinderKernels.h"
+#include "GPUGeneralKernels.h"
+#include "GPUConstantMem.h"
+#include "GPUTPCClusterFinder.h"
 
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 
-class StreamCompaction
+class GPUTPCCFStreamCompaction
 {
 
  public:
@@ -31,11 +33,11 @@ class StreamCompaction
   };
 
   enum K {
-    nativeScanUpStart = 7,
-    nativeScanUp = 8,
-    nativeScanTop = 9,
-    nativeScanDown = 10,
-    compactDigit = 11,
+    nativeScanUpStart,
+    nativeScanUp,
+    nativeScanTop,
+    nativeScanDown,
+    compactDigit,
   };
 
   static GPUd() void nativeScanUpStartImpl(int, int, int, int, GPUTPCSharedMemory&,

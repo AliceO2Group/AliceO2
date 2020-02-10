@@ -8,10 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Clusterizer.cxx
+/// \file GPUTPCCFClusterizer.cxx
 /// \author Felix Weiglhofer
 
-#include "Clusterizer.h"
+#include "GPUTPCCFClusterizer.h"
 
 #include "CfConsts.h"
 #include "CfUtils.h"
@@ -20,19 +20,19 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
-GPUd() void Clusterizer::Thread<Clusterizer::computeClusters>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer)
+GPUd() void GPUTPCCFClusterizer::Thread<GPUTPCCFClusterizer::computeClusters>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
-  Clusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, clusterer.mPfilteredPeaks, clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterer.mPclusterByRow);
+  GPUTPCCFClusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, clusterer.mPfilteredPeaks, clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterer.mPclusterByRow);
 }
 
-GPUd() void Clusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem,
-                                             const Array2D<PackedCharge>& chargeMap,
-                                             const deprecated::Digit* digits,
-                                             uint clusternum,
-                                             uint maxClusterPerRow,
-                                             uint* clusterInRow,
-                                             tpc::ClusterNative* clusterByRow)
+GPUd() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem,
+                                                     const Array2D<PackedCharge>& chargeMap,
+                                                     const deprecated::Digit* digits,
+                                                     uint clusternum,
+                                                     uint maxClusterPerRow,
+                                                     uint* clusterInRow,
+                                                     tpc::ClusterNative* clusterByRow)
 {
   uint idx = get_global_id(0);
 
@@ -50,9 +50,9 @@ GPUd() void Clusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlo
   buildClusterScratchPad(
     chargeMap,
     pos,
-    smem.build.posBcast,
-    smem.build.buf,
-    smem.build.innerAboveThreshold,
+    smem.posBcast,
+    smem.buf,
+    smem.innerAboveThreshold,
     &pc);
 #else
   buildClusterNaive(chargeMap, &pc, pos);
@@ -82,7 +82,7 @@ GPUd() void Clusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlo
   }
 }
 
-GPUd() void Clusterizer::addOuterCharge(
+GPUd() void GPUTPCCFClusterizer::addOuterCharge(
   const Array2D<PackedCharge>& chargeMap,
   ClusterAccumulator* cluster,
   const ChargePos& pos,
@@ -92,7 +92,7 @@ GPUd() void Clusterizer::addOuterCharge(
   cluster->updateOuter(p, d);
 }
 
-GPUd() Charge Clusterizer::addInnerCharge(
+GPUd() Charge GPUTPCCFClusterizer::addInnerCharge(
   const Array2D<PackedCharge>& chargeMap,
   ClusterAccumulator* cluster,
   const ChargePos& pos,
@@ -102,7 +102,7 @@ GPUd() Charge Clusterizer::addInnerCharge(
   return cluster->updateInner(p, d);
 }
 
-GPUd() void Clusterizer::addCorner(
+GPUd() void GPUTPCCFClusterizer::addCorner(
   const Array2D<PackedCharge>& chargeMap,
   ClusterAccumulator* myCluster,
   const ChargePos& pos,
@@ -117,7 +117,7 @@ GPUd() void Clusterizer::addCorner(
   }
 }
 
-GPUd() void Clusterizer::addLine(
+GPUd() void GPUTPCCFClusterizer::addLine(
   const Array2D<PackedCharge>& chargeMap,
   ClusterAccumulator* myCluster,
   const ChargePos& pos,
@@ -130,7 +130,7 @@ GPUd() void Clusterizer::addLine(
   }
 }
 
-GPUd() void Clusterizer::updateClusterScratchpadInner(
+GPUd() void GPUTPCCFClusterizer::updateClusterScratchpadInner(
   ushort lid,
   ushort N,
   const PackedCharge* buf,
@@ -155,7 +155,7 @@ GPUd() void Clusterizer::updateClusterScratchpadInner(
   GPUbarrier();
 }
 
-GPUd() void Clusterizer::updateClusterScratchpadOuter(
+GPUd() void GPUTPCCFClusterizer::updateClusterScratchpadOuter(
   ushort lid,
   ushort N,
   ushort M,
@@ -173,7 +173,7 @@ GPUd() void Clusterizer::updateClusterScratchpadOuter(
   }
 }
 
-GPUd() void Clusterizer::buildClusterScratchPad(
+GPUd() void GPUTPCCFClusterizer::buildClusterScratchPad(
   const Array2D<PackedCharge>& chargeMap,
   ChargePos pos,
   ChargePos* posBcast,
@@ -255,7 +255,7 @@ GPUd() void Clusterizer::buildClusterScratchPad(
 #endif
 }
 
-GPUd() void Clusterizer::buildClusterNaive(
+GPUd() void GPUTPCCFClusterizer::buildClusterNaive(
   const Array2D<PackedCharge>& chargeMap,
   ClusterAccumulator* myCluster,
   const ChargePos& pos)
@@ -325,7 +325,7 @@ GPUd() void Clusterizer::buildClusterNaive(
   addCorner(chargeMap, myCluster, pos, {1, 1});
 }
 
-GPUd() void Clusterizer::sortIntoBuckets(const tpc::ClusterNative& cluster, const uint bucket, const uint maxElemsPerBucket, uint* elemsInBucket, tpc::ClusterNative* buckets)
+GPUd() void GPUTPCCFClusterizer::sortIntoBuckets(const tpc::ClusterNative& cluster, const uint bucket, const uint maxElemsPerBucket, uint* elemsInBucket, tpc::ClusterNative* buckets)
 {
   uint posInBucket = CAMath::AtomicAdd(&elemsInBucket[bucket], 1);
 
