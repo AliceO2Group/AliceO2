@@ -42,12 +42,15 @@ class CRUUserLogicEncoder
  private:
   void add(int value, unsigned int nBits);
   void completePage(bool stop);
+  void addPage();
+  void closePage();
   header::RAWDataHeader* getRDH() { return reinterpret_cast<header::RAWDataHeader*>(&(mBytes[mHeaderIndex])); }
 
   std::vector<raw::RawUnit> mBytes{}; /// Vector with encoded information
   size_t mBitIndex{0};                /// Index of the current bit
   size_t mHeaderIndex{0};             /// Index in the the current header
   bool mHeaderOffset{false};          /// Header offset
+  uint8_t mPacketCounter{0};          /// Packet counter
 };
 } // namespace mid
 } // namespace o2
