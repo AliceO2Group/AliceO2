@@ -44,11 +44,12 @@ class CfUtils
     return aboveThreshold & (1 << CfConsts::OuterToInnerInv[outerIdx]);
   }
 
-  static GPUdi() ushort partition(GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem, ushort ll, bool pred, ushort partSize, ushort* newPartSize)
+  template <typename SharedMemory>
+  static GPUdi() ushort partition(SharedMemory& smem, ushort ll, bool pred, ushort partSize, ushort* newPartSize)
   {
     bool participates = ll < partSize;
 
-    ushort lpos = work_group_scan_inclusive_add((int)(!pred && participates));
+    ushort lpos = work_group_scan_inclusive_add(int(!pred && participates));
 
     ushort part = work_group_broadcast(lpos, SCRATCH_PAD_WORK_GROUP_SIZE - 1);
 

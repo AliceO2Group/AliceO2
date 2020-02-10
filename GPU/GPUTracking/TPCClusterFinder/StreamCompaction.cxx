@@ -21,7 +21,14 @@ namespace gpu
 
 using namespace deprecated;
 
-GPUd() void StreamCompaction::nativeScanUpStartImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+template <>
+GPUd() void StreamCompaction::Thread<StreamCompaction::nativeScanUpStart>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, int iBuf, int stage)
+{
+  int nElems = compactionElems(clusterer, stage);
+  StreamCompaction::nativeScanUpStartImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPisPeak, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, clusterer.mPbuf + iBuf * clusterer.mBufSize, nElems);
+}
+
+GPUd() void StreamCompaction::nativeScanUpStartImpl(int nBlocks, int nThreads, int iBlock, int iThread, StreamCompaction::GPUTPCSharedMemory& smem,
                                                     const uchar* predicate,
                                                     int* sums,
                                                     int* incr, int nElems)
@@ -46,7 +53,13 @@ GPUd() void StreamCompaction::nativeScanUpStartImpl(int nBlocks, int nThreads, i
   }
 }
 
-GPUd() void StreamCompaction::nativeScanUpImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+template <>
+GPUd() void StreamCompaction::Thread<StreamCompaction::nativeScanUp>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, int iBuf, int nElems)
+{
+  StreamCompaction::nativeScanUpImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, clusterer.mPbuf + iBuf * clusterer.mBufSize, nElems);
+}
+
+GPUd() void StreamCompaction::nativeScanUpImpl(int nBlocks, int nThreads, int iBlock, int iThread, StreamCompaction::GPUTPCSharedMemory& smem,
                                                int* sums,
                                                int* incr, int nElems)
 {
@@ -68,7 +81,13 @@ GPUd() void StreamCompaction::nativeScanUpImpl(int nBlocks, int nThreads, int iB
   }
 }
 
-GPUd() void StreamCompaction::nativeScanTopImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem, int* incr, int nElems)
+template <>
+GPUd() void StreamCompaction::Thread<StreamCompaction::nativeScanTop>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, int iBuf, int nElems)
+{
+  StreamCompaction::nativeScanTopImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, nElems);
+}
+
+GPUd() void StreamCompaction::nativeScanTopImpl(int nBlocks, int nThreads, int iBlock, int iThread, StreamCompaction::GPUTPCSharedMemory& smem, int* incr, int nElems)
 {
   int idx = get_global_id(0);
 
@@ -78,7 +97,13 @@ GPUd() void StreamCompaction::nativeScanTopImpl(int nBlocks, int nThreads, int i
   incr[idx] = scanRes;
 }
 
-GPUd() void StreamCompaction::nativeScanDownImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+template <>
+GPUd() void StreamCompaction::Thread<StreamCompaction::nativeScanDown>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, int iBuf, unsigned int offset, int nElems)
+{
+  StreamCompaction::nativeScanDownImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, clusterer.mPbuf + iBuf * clusterer.mBufSize, offset, nElems);
+}
+
+GPUd() void StreamCompaction::nativeScanDownImpl(int nBlocks, int nThreads, int iBlock, int iThread, StreamCompaction::GPUTPCSharedMemory& smem,
                                                  int* sums,
                                                  const int* incr,
                                                  unsigned int offset, int nElems)
@@ -93,7 +118,22 @@ GPUd() void StreamCompaction::nativeScanDownImpl(int nBlocks, int nThreads, int 
   }
 }
 
-GPUd() void StreamCompaction::compactDigitImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+template <>
+GPUd() void StreamCompaction::Thread<StreamCompaction::compactDigit>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, int iBuf, int stage, deprecated::PackedDigit* in, deprecated::PackedDigit* out)
+{
+  unsigned int nElems = compactionElems(clusterer, stage);
+  StreamCompaction::compactDigitImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, in, out, clusterer.mPisPeak, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, clusterer.mPbuf + iBuf * clusterer.mBufSize, nElems);
+  unsigned int lastId = get_global_size(0) - 1;
+  if ((unsigned int)get_global_id(0) == lastId) {
+    if (stage) {
+      clusterer.mPmemory->counters.nClusters = clusterer.mPbuf[lastId];
+    } else {
+      clusterer.mPmemory->counters.nPeaks = clusterer.mPbuf[lastId];
+    }
+  }
+}
+
+GPUd() void StreamCompaction::compactDigitImpl(int nBlocks, int nThreads, int iBlock, int iThread, StreamCompaction::GPUTPCSharedMemory& smem,
                                                const Digit* in,
                                                Digit* out,
                                                const uchar* predicate,
@@ -123,6 +163,11 @@ GPUd() void StreamCompaction::compactDigitImpl(int nBlocks, int nThreads, int iB
   if (idx == lastItem) {
     newIdx[idx] = compIdx; // TODO: Eventually, we can just return the last value, no need to store to memory
   }
+}
+
+GPUd() int StreamCompaction::compactionElems(processorType& clusterer, int stage)
+{
+  return (stage) ? clusterer.mPmemory->counters.nPeaks : clusterer.mPmemory->counters.nDigits;
 }
 
 } // namespace gpu

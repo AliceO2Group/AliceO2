@@ -20,7 +20,22 @@
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::deprecated;
 
-GPUd() void NoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+template <>
+GPUd() void NoiseSuppression::Thread<NoiseSuppression::noiseSuppression>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer)
+{
+  Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
+  Array2D<uchar> isPeakMap(clusterer.mPpeakMap);
+  NoiseSuppression::noiseSuppressionImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, isPeakMap, clusterer.mPpeaks, clusterer.mPmemory->counters.nPeaks, clusterer.mPisPeak);
+}
+
+template <>
+GPUd() void NoiseSuppression::Thread<NoiseSuppression::updatePeaks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer)
+{
+  Array2D<uchar> isPeakMap(clusterer.mPpeakMap);
+  NoiseSuppression::updatePeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPpeaks, clusterer.mPisPeak, isPeakMap);
+}
+
+GPUd() void NoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem,
                                                    const Array2D<PackedCharge>& chargeMap,
                                                    const Array2D<uchar>& peakMap,
                                                    const Digit* peaks,
@@ -72,7 +87,7 @@ GPUd() void NoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, in
   isPeakPredicate[idx] = keepMe;
 }
 
-GPUd() void NoiseSuppression::updatePeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
+GPUd() void NoiseSuppression::updatePeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread,
                                               const Digit* peaks,
                                               const uchar* isPeak,
                                               Array2D<uchar>& peakMap)
