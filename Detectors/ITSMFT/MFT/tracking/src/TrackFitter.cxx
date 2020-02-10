@@ -14,6 +14,10 @@
 /// \author Philippe Pillot, Subatech
 
 #include "MFTTracking/TrackFitter.h"
+#include "MFTTracking/TrackCA.h"
+#include "DataFormatsMFT/TrackMFT.h"
+
+
 
 #include <stdexcept>
 
@@ -26,37 +30,75 @@ namespace mft
 
 using namespace std;
 using Track = o2::mft::TrackCA;
+using o2::mft::TrackCA;
+
 
 //_________________________________________________________________________________________________
 void TrackFitter::initField(float l3Current)
 {
-  /// Create the magnetic field map if not
+  /// Set the magnetic field for the MFT
 }
 
 //_________________________________________________________________________________________________
-void TrackFitter::fit(Track& track, bool smooth, bool finalize,
-                      std::list<TrackParam>::reverse_iterator* itStartingParam)
+template <typename T, typename C>
+TrackMFTExt TrackFitter::fit(T&& track, C&& clusters)
 {
-  /// Fit a track to its attached clusters
-  /// Smooth the track if requested and the smoother enabled
-  /// If finalize = true: copy the smoothed parameters, if any, into the regular ones
-  /// Fit the entire track or only the part upstream itStartingParam
-  /// Throw an exception in case of failure
+  TrackMFTExt fittedTrack;
+  TMatrixD covariances(5,5);
+  auto xpos = track.getXCoordinates();
+  auto ypos = track.getYCoordinates();
+  auto zpos = track.getZCoordinates();
+  auto clusterIDs = track.getClustersId();
+  auto nClusters = track.getNPoints();
+  auto clusOffset = clusters.size();
+  static int ntrack = 0;
+
+  std::cout << "** Fitting new track at clusOffset =  " << clusOffset << std::endl;
+  // Add clusters to Tracker's cluster vector & set fittedTrack cluster range
+  for (auto cls = 0 ; cls < nClusters; cls++) {
+    clusters.emplace_back(Cluster(xpos[cls], ypos[cls], zpos[cls], clusterIDs[cls]));
+    std::cout << "Adding cluster " << cls << " to track " << ntrack << " with clusterID " << clusterIDs[cls] << " at z = " <<  zpos[cls] << std::endl;
+  }
+  auto lastTrackCluster = (clusters.end())--; lastTrackCluster--;
+  //auto firstTrackCluster = lastTrackCluster;
+  //std::advance(firstTrackCluster,-nClusters);
+
+  fittedTrack.setFirstClusterEntry(clusOffset);
+  fittedTrack.setNumberOfClusters(nClusters);
+
+  // Initialize track parameters
+  initTrack(*lastTrackCluster,covariances);
+  std::cout << "Initializing track with first (last) cluster -> clusterId =  " << (*lastTrackCluster).clusterId << " at z = " <<  (*lastTrackCluster).zCoordinate << std::endl;
+
+  // Add remaining clusters
+  int nclu = nClusters-1;
+  auto currCluster = lastTrackCluster;
+  while (nclu > 0 ) {
+   currCluster--;
+   addCluster(*currCluster, covariances);
+   std::cout << nclu << " -> clusterId =  " << (*currCluster).clusterId << " at z = " <<  (*currCluster).zCoordinate << std::endl;
+   nclu--;
+  }
+  // Smooth track
+  ntrack++;
+  return fittedTrack;
 }
 
+
+
 //_________________________________________________________________________________________________
-void TrackFitter::initTrack(const Cluster& cl1, const Cluster& cl2, TrackParam& param)
+void TrackFitter::initTrack(const Cluster& cl, TMatrixD& covariances)
 {
-  /// Compute the initial track parameters at the z position of the last cluster (cl2)
+  /// Compute the initial track parameters at the z position of the last cluster (cl)
   /// The covariance matrix is computed such that the last cluster is the only constraint
-  /// (by assigning an infinite dispersion to the other cluster)
   /// These parameters are the seed for the Kalman filter
 
-  // compute the track parameters at the last cluster
+
+
 }
 
 //_________________________________________________________________________________________________
-void TrackFitter::addCluster(const TrackParam& startingParam, const Cluster& cl, TrackParam& param)
+void TrackFitter::addCluster(const Cluster& newcl, TMatrixD& covariances)
 {
   /// Extrapolate the starting track parameters to the z position of the new cluster
   /// accounting for MCS dispersion in the current chamber and the other(s) crossed
@@ -89,6 +131,10 @@ void TrackFitter::runSmoother(const TrackParam& previousParam, TrackParam& param
   /// Recompute the track parameters starting from the previous ones
   /// Throw an exception in case of failure
 }
+
+// Define template specializations
+template TrackMFTExt TrackFitter::fit<TrackCA&, std::vector<Cluster>&>(TrackCA&, std::vector<Cluster>&);
+template TrackMFTExt TrackFitter::fit<TrackLTF&, std::vector<Cluster>&>(TrackLTF&, std::vector<Cluster>&);
 
 } // namespace mft
 } // namespace o2

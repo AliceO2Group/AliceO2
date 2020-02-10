@@ -19,6 +19,8 @@
 #include "MFTTracking/Cluster.h"
 #include "MFTTracking/TrackCA.h"
 #include "MFTTracking/TrackParam.h"
+#include "DataFormatsMFT/TrackMFT.h"
+
 #include <list>
 
 namespace o2
@@ -46,20 +48,24 @@ class TrackFitter
   /// Return the smoother enable/disable flag
   bool isSmootherEnabled() { return mSmooth; }
 
-  void fit(Track& track, bool smooth = true, bool finalize = true,
-           std::list<TrackParam>::reverse_iterator* itStartingParam = nullptr);
+  //void fit(Track& track, bool smooth = true, bool finalize = true,
+  //         std::list<TrackParam>::reverse_iterator* itStartingParam = nullptr);
 
   void runKalmanFilter(TrackParam& trackParam);
+
+  template <typename T, typename C>
+  TrackMFTExt fit(T&& track, C&& clusters);
+
 
   /// Return the maximum chi2 above which the track can be considered as abnormal
   static constexpr double getMaxChi2() { return SMaxChi2; }
 
  private:
-  void initTrack(const Cluster& cl1, const Cluster& cl2, TrackParam& param);
-  void addCluster(const TrackParam& startingParam, const Cluster& cl, TrackParam& param);
+  void initTrack(const Cluster& cl, TMatrixD& covariances);
+  void addCluster(const Cluster& newcl, TMatrixD& covariances);
   void smoothTrack(Track& track, bool finalize);
   void runSmoother(const TrackParam& previousParam, TrackParam& param);
-
+  Float_t bField = 0.5; // Tesla. TODO: calculate value according to the solenoid current
   static constexpr double SMaxChi2 = 2.e10; ///< maximum chi2 above which the track can be considered as abnormal
 
   bool mSmooth = false; ///< switch ON/OFF the smoother

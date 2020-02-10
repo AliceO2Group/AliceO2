@@ -15,6 +15,9 @@
 #include "MFTTracking/Cluster.h"
 #include "MFTTracking/Cell.h"
 #include "MFTTracking/TrackCA.h"
+#include "MFTTracking/TrackFitter.h"
+#include "DataFormatsMFT/TrackMFT.h"
+
 
 #include "ReconstructionDataFormats/Track.h"
 #include "Framework/Logger.h"
@@ -23,6 +26,7 @@ namespace o2
 {
 namespace mft
 {
+using o2::mft::TrackMFTExt;
 
 void Tracker::clustersToTracks(ROframe& event, std::ostream& timeBenchmarkOutputStream)
 {
@@ -30,15 +34,34 @@ void Tracker::clustersToTracks(ROframe& event, std::ostream& timeBenchmarkOutput
   mTrackLabels.clear();
 
   findTracks(event);
+  fitTracks(event);
+
+
 }
 
 void Tracker::findTracks(ROframe& event)
 {
   //computeCells(event);
-
   findTracksLTF(event);
   findTracksCA(event);
+
 }
+
+
+void Tracker::fitTracks(ROframe& event)
+{
+  for (auto track : event.getTracksCA())
+    {
+    mTracks.push_back(mMFTTrackFitter.fit(track, mClusters)); 
+    }
+
+  for (auto track : event.getTracksLTF())
+    {
+    mTracks.push_back(mMFTTrackFitter.fit(track, mClusters));
+    }
+
+}
+
 
 void Tracker::computeCells(ROframe& event)
 {

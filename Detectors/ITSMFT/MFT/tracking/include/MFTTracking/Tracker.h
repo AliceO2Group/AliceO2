@@ -16,6 +16,8 @@
 #define O2_MFT_TRACKER_H_
 
 #include "MFTTracking/ROframe.h"
+#include "MFTTracking/TrackFitter.h"
+#include "MFTTracking/Cluster.h"
 
 #include "MathUtils/Utils.h"
 #include "MathUtils/Cartesian2D.h"
@@ -54,6 +56,7 @@ class Tracker
 
  private:
   void findTracks(ROframe&);
+  void fitTracks(ROframe& event);
   void findTracksLTF(ROframe&);
   void findTracksCA(ROframe&);
   void computeCells(ROframe&);
@@ -61,6 +64,8 @@ class Tracker
   void runForwardInRoad(ROframe&);
   void runBackwardInRoad(ROframe&);
   void updateCellStatusInRoad(Road&);
+
+  o2::mft::TrackFitter mMFTTrackFitter;
 
   const Int_t isDiskFace(Int_t layer) const;
 
@@ -78,6 +83,7 @@ class Tracker
   std::uint32_t mROFrame = 0;
   std::vector<TrackMFTExt> mTracks;
   std::vector<TrackLTF> mTracksLTF;
+  std::vector<Cluster> mClusters;
   o2::dataformats::MCTruthContainer<MCCompLabel> mTrackLabels;
 
   Int_t mMaxCellLevel = 0;
