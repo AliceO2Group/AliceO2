@@ -1281,7 +1281,7 @@ void Shil::ConstructGeometry()
   z = shYOUT1->GetZ(7);
   Int_t izc = 8;
   for (Int_t iz = 9; iz < 17; iz++) {
-    if (iz == 11 || iz == 15) 
+    if (iz == 11 || iz == 15)
       continue;
     shYOUT1->DefineSection(izc, z + shFaSaa1->GetZ(iz - 9), shFaSaa1->GetRmax(iz - 9) + eps, 150.);
     izc++;
