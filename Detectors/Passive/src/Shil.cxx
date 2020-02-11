@@ -1268,7 +1268,7 @@ void Shil::ConstructGeometry()
   // Position of the dipole
   Float_t ziDipole = 741.;
 
-  TGeoPcon* shYOUT1 = new TGeoPcon(0., 360., 24);
+  TGeoPcon* shYOUT1 = new TGeoPcon(0., 360., 22);
   Float_t eps = 1.e-2;
   // FA Tail Section
   for (Int_t iz = 1; iz < 9; iz++) {
@@ -1279,19 +1279,22 @@ void Shil::ConstructGeometry()
   }
   // FA-SAA1 Joint
   z = shYOUT1->GetZ(7);
-
-  for (Int_t iz = 9; iz < 17; iz++)
-    shYOUT1->DefineSection(iz - 1, z + shFaSaa1->GetZ(iz - 9), shFaSaa1->GetRmax(iz - 9) + eps, 150.);
-
-  z = shYOUT1->GetZ(15) - ozSaa1;
+  Int_t izc = 8;
+  for (Int_t iz = 9; iz < 17; iz++) {
+    if (iz == 11 || iz == 15)
+      continue;
+    shYOUT1->DefineSection(izc, z + shFaSaa1->GetZ(iz - 9), shFaSaa1->GetRmax(iz - 9) + eps, 150.);
+    izc++;
+  }
+  z = shYOUT1->GetZ(13) - ozSaa1;
   // SAA1  - Dipole
-  for (Int_t iz = 17; iz < 24; iz++)
-    shYOUT1->DefineSection(iz - 1, z + shSaa1M->GetZ(iz - 13), shSaa1M->GetRmax(iz - 13) + eps, 150.);
+  for (Int_t iz = 15; iz < 22; iz++)
+    shYOUT1->DefineSection(iz - 1, z + shSaa1M->GetZ(iz - 11), shSaa1M->GetRmax(iz - 11) + eps, 150.);
   // Distance between dipole and start of SAA1 2deg opening cone
   dz = ziDipole - (zSaa1StEnv[0] - dSt + zSaa1StEnvS + ziSaa1);
   rOut = rOuSaa1StEnv2 + dz * TMath::Tan(2. * kDegRad);
 
-  shYOUT1->DefineSection(23, ziDipole, rOut + eps, 150.);
+  shYOUT1->DefineSection(21, ziDipole, rOut + eps, 150.);
 
   InvertPcon(shYOUT1);
   TGeoVolume* voYOUT1 = new TGeoVolume("YOUT1", shYOUT1, kMedAirMu);
@@ -1307,7 +1310,7 @@ void Shil::ConstructGeometry()
   //
   Float_t zoDipole = 1249.;
 
-  TGeoPcon* shYOUT21 = new TGeoPcon(0., 360., 14);
+  TGeoPcon* shYOUT21 = new TGeoPcon(0., 360., 12);
   z = zoDipole;
   shYOUT21->DefineSection(0, z, rOuSaa1String, 375.);
   //    Start of SAA1-SAA2
@@ -1318,23 +1321,21 @@ void Shil::ConstructGeometry()
   z = ziSaa2;
   shYOUT21->DefineSection(3, z, rOuSaa1Saa2Steel, 375.);
   //    SAA2
-  shYOUT21->DefineSection(4, z, rInSaa2StEnv1 + dSt, 375.);
   z = ziSaa2 + zSaa2PbRing;
-  shYOUT21->DefineSection(5, z, rInSaa2StEnv1 + dSt, 375.);
+  shYOUT21->DefineSection(4, z, rInSaa2StEnv1 + dSt, 375.);
   //    Pb Cone
-  shYOUT21->DefineSection(6, z, rOuSaa2PbRingF, 375.);
+  shYOUT21->DefineSection(5, z, rOuSaa2PbRingF, 375.);
   rmin = rOuSaa2PbRingF + (1380. - z) * TMath::Tan(1.6 * kDegRad);
-  shYOUT21->DefineSection(7, 1380., rmin, 375.);
-  shYOUT21->DefineSection(8, 1380., rmin, 375.);
+  shYOUT21->DefineSection(6, 1380., rmin, 375.);
   z = ziSaa2 + zSaa2PbRing + dzSaa2PbRing;
-  shYOUT21->DefineSection(9, z, rOuSaa2PbRingR, 375.);
+  shYOUT21->DefineSection(7, z, rOuSaa2PbRingR, 375.);
   //    Straight Sections
-  shYOUT21->DefineSection(10, z, rInSaa2StEnv1 + dSt, 460.);
+  shYOUT21->DefineSection(8, z, rInSaa2StEnv1 + dSt, 460.);
   z = ziSaa2 + dzSaa2StEnv1;
-  shYOUT21->DefineSection(11, z, rInSaa2StEnv1 + dSt, 460.);
-  shYOUT21->DefineSection(12, z, rInSaa2StEnv2 + dSt, 460.);
+  shYOUT21->DefineSection(9, z, rInSaa2StEnv1 + dSt, 460.);
+  shYOUT21->DefineSection(10, z, rInSaa2StEnv2 + dSt, 460.);
   z += dzSaa2StEnv2;
-  shYOUT21->DefineSection(13, z, rInSaa2StEnv2 + dSt, 460.);
+  shYOUT21->DefineSection(11, z, rInSaa2StEnv2 + dSt, 460.);
 
   InvertPcon(shYOUT21);
   shYOUT21->SetName("shYOUT21");
