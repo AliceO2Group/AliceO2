@@ -26,13 +26,16 @@ GPUdii() void GPUTPCCFClusterizer::Thread<GPUTPCCFClusterizer::computeClusters>(
   GPUTPCCFClusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, clusterer.mPfilteredPeaks, clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterer.mPclusterByRow);
 }
 
-GPUd() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
-                                                     const Array2D<PackedCharge>& chargeMap,
-                                                     const deprecated::Digit* digits,
-                                                     uint clusternum,
-                                                     uint maxClusterPerRow,
-                                                     uint* clusterInRow,
-                                                     tpc::ClusterNative* clusterByRow)
+GPUd() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlock, int iThread, 
+                                             GPUTPCSharedMemory& smem,
+                                             const Array2D<PackedCharge>& chargeMap,
+                                             const Array2D<ClusterID>& indexMap,
+                                             const deprecated::Digit* digits,
+                                             uint clusternum,
+                                             uint maxClusterPerRow,
+                                             uint* clusterInRow,
+                                             tpc::ClusterNative* clusterByRow,
+                                             CPU_PARAM(const LabelContainer *truth,))
 {
   uint idx = get_global_id(0);
 
@@ -71,6 +74,17 @@ GPUd() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, 
 #else
   bool aboveQTotCutoff = true;
 #endif
+
+  CPU_ONLY(
+    if (truth != nullptr) {
+        int i = indexMap[pos]; 
+        if (size_t(i) == idx) {
+            printf("Found matching index.\n");
+        } else {
+            printf("Index not matching!.\n");
+        }
+    }
+  );
 
   if (aboveQTotCutoff) {
     sortIntoBuckets(
