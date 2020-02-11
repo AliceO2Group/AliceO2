@@ -21,8 +21,8 @@ namespace o2::aod
 {
 namespace secvtx
 {
-DECLARE_SOA_COLUMN(Posx, posx, float, "fPosx");
-DECLARE_SOA_COLUMN(Posy, posy, float, "fPosy");
+DECLARE_SOA_COLUMN(dPosx, dposx, float, "fdPosx");
+DECLARE_SOA_COLUMN(dPosy, dposy, float, "fdPosy");
 DECLARE_SOA_COLUMN(Index0, index0, int, "fIndex0");
 DECLARE_SOA_COLUMN(Index1, index1, int, "fIndex1");
 DECLARE_SOA_COLUMN(Index2, index2, int, "fIndex2");
@@ -37,13 +37,19 @@ DECLARE_SOA_COLUMN(Mass, mass, float, "fMass");
 } // namespace cand2prong
 
 DECLARE_SOA_TABLE(SecVtx, "AOD", "SECVTX",
-                  secvtx::Posx, secvtx::Posy, secvtx::Index0, secvtx::Index1, secvtx::Index2, secvtx::Tracky0, secvtx::Tracky1, secvtx::Tracky2);
+                  secvtx::dPosx, secvtx::dPosy, secvtx::Index0, secvtx::Index1, secvtx::Index2, secvtx::Tracky0, secvtx::Tracky1, secvtx::Tracky2);
 DECLARE_SOA_TABLE(Cand2Prong, "AOD", "CAND2PRONG",
                   cand2prong::Mass);
 } // namespace o2::aod
 
 using namespace o2;
 using namespace o2::framework;
+
+float decaylengthXY(float xvtxp, float yvtxp, float xvtxd, float yvtxd)
+{
+  float decl_ = sqrtf((yvtxd - yvtxp) * (yvtxd - yvtxp) + (xvtxd - xvtxp) * (xvtxd - xvtxp));
+  return decl_;
+};
 
 float energy(float px, float py, float pz, float mass)
 {
@@ -64,37 +70,43 @@ float invmass2prongs(float px0, float py0, float pz0, float mass0,
   return mass;
 };
 
-struct TrackQA {
-  OutputObj<TH1F> hpt_cuts{TH1F("hpt_cuts", "pt tracks (#GeV)", 100, 0., 10.)};
-  OutputObj<TH1F> htgl_cuts{TH1F("htgl_cuts", "tgl tracks (#GeV)", 100, 0., 10.)};
-
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksCov> const& tracks)
-  {
-    LOGF(info, "Tracks for collision: %d", tracks.size());
-    for (auto& track : tracks) {
-      hpt_cuts->Fill(track.pt());
-      htgl_cuts->Fill(track.tgl());
-      LOGF(info, "track tgl %f", track.tgl());
-    }
-  }
-};
 struct VertexerHFTask {
   OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 100, -0.1, 0.1)};
   OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 100, -0.1, 0.1)};
   OutputObj<TH1F> hvtx_z_out{TH1F("hvtx_z", "2-track vtx", 100, -0.1, 0.1)};
+  OutputObj<TH1F> hvtxp_x_out{TH1F("hvtxp_x", "x primary vtx", 100, -0.1, 0.1)};
+  OutputObj<TH1F> hvtxp_y_out{TH1F("hvtxp_y", "y primary vtx", 100, -0.1, 0.1)};
+  OutputObj<TH1F> hvtxp_z_out{TH1F("hvtxp_z", "z primary vtx", 100, -0.1, 0.1)};
   OutputObj<TH1F> hmass_out{TH1F("hmass", "2-track inv mass", 500, 0, 5.0)};
   OutputObj<TH1F> hindex_0_coll{TH1F("hindex_0_coll", "track 0 index coll", 1000000, -0.5, 999999.5)};
+  OutputObj<TH1F> hpt_cuts{TH1F("hpt_cuts", "pt tracks (#GeV)", 100, 0., 10.)};
+  OutputObj<TH1F> htgl_cuts{TH1F("htgl_cuts", "tgl tracks (#GeV)", 100, 0., 10.)};
+  OutputObj<TH1F> hitsmap{TH1F("hitsmap", "hitsmap", 100, 0., 100.)};
+  OutputObj<TH1F> heta_cuts{TH1F("heta_cuts", "eta tracks (#GeV)", 100, -2., 2.)};
+  OutputObj<TH1F> hdeclenxy{TH1F("hdeclenxy", "decay length xy", 100, -0.5, 3.)};
+  OutputObj<TH1F> hchi2dca{TH1F("hchi2dca", "chi2 DCA decay", 1000, 0., 0.0002)};
   Produces<aod::SecVtx> secvtx;
 
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksCov> const& tracks)
+  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
   {
     LOGF(info, "Tracks for collision: %d", tracks.size());
     o2::base::DCAFitter df(5.0, 10.);
-
+    hvtxp_x_out->Fill(collision.posX());
+    hvtxp_y_out->Fill(collision.posY());
+    hvtxp_z_out->Fill(collision.posZ());
     for (auto it_0 = tracks.begin(); it_0 != tracks.end(); ++it_0) {
       auto& track_0 = *it_0;
+      UChar_t clustermap_0 = track_0.itsClusterMap();
+      hitsmap->Fill(clustermap_0);
+      bool isselected_0 = track_0.tpcNCls() > 70 && track_0.flags() & 0x4 && (TESTBIT(clustermap_0, 0) || TESTBIT(clustermap_0, 1));
+      if (!isselected_0)
+        continue;
+      hpt_cuts->Fill(track_0.pt());
+      htgl_cuts->Fill(track_0.tgl());
       LOGF(info, "globalindex %llu", track_0.globalIndex());
+      LOGF(info, "tofChi2 %f", track_0.tofChi2());
       hindex_0_coll->Fill(track_0.globalIndex());
+      heta_cuts->Fill(track_0.eta());
       float x0_ = track_0.x();
       float alpha0_ = track_0.alpha();
       std::array<float, 5> arraypar0 = {track_0.y(), track_0.z(), track_0.snp(), track_0.tgl(), track_0.signed1Pt()};
@@ -105,6 +117,10 @@ struct VertexerHFTask {
 
       for (auto it_1 = it_0 + 1; it_1 != tracks.end(); ++it_1) {
         auto& track_1 = *it_1;
+        UChar_t clustermap_1 = track_1.itsClusterMap();
+        bool isselected_1 = track_1.tpcNCls() > 70 && track_1.flags() & 0x4 && (TESTBIT(clustermap_1, 0) || TESTBIT(clustermap_1, 1));
+        if (!isselected_1)
+          continue;
         float x1_ = track_1.x();
         float alpha1_ = track_1.alpha();
         std::array<float, 5> arraypar1 = {track_1.y(), track_1.z(), track_1.snp(), track_1.tgl(), track_1.signed1Pt()};
@@ -136,6 +152,9 @@ struct VertexerHFTask {
           secvtx(vtx.x, vtx.y, track_0.globalIndex(), track_1.globalIndex(), -1., track_0.y(), track_1.y(), -1.);
           hmass_out->Fill(mass_);
           hmass_out->Fill(masssw_);
+          float decleng = decaylengthXY(collision.posX(), collision.posY(), vtx.x, vtx.y);
+          hdeclenxy->Fill(decleng);
+          hchi2dca->Fill(df.getChi2AtPCACandidate(ic));
         }
       }
     }
@@ -148,7 +167,7 @@ struct CandidateBuilder2Prong {
   {
     LOGF(info, "NEW EVENT");
     for (auto& secVtx : secVtxs) {
-      LOGF(INFO, "Consume the table (%f, %f, %f, %f) with track 0 global index %llu", secVtx.posx(), secVtx.posy(), secVtx.tracky0(), (tracks.begin() + secVtx.index0()).y(), secVtx.index0());
+      LOGF(INFO, "Consume the table (%f, %f, %f, %f) with track 0 global index %llu", secVtx.dposx(), secVtx.dposy(), secVtx.tracky0(), (tracks.begin() + secVtx.index0()).y(), secVtx.index0());
     }
   }
 };
@@ -156,7 +175,6 @@ struct CandidateBuilder2Prong {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<TrackQA>("track-qa"),
-    adaptAnalysisTask<VertexerHFTask>("vertexerhf-task"),
-    adaptAnalysisTask<CandidateBuilder2Prong>("skimvtxtable-task")};
+    adaptAnalysisTask<VertexerHFTask>("vertexerhf-task")};
+  //adaptAnalysisTask<CandidateBuilder2Prong>("skimvtxtable-task")};
 }
