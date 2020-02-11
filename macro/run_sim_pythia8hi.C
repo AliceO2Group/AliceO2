@@ -19,7 +19,7 @@
 
 #include "DetectorsPassive/Cave.h"
 #include "TPCSimulation/Detector.h"
-#include "Generators/Pythia8Generator.h"
+#include "Generators/GeneratorPythia8.h"
 #endif
 
 void run_sim_pythia8hi(Int_t nEvents = 10, TString mcEngine = "TGeant3")
@@ -76,13 +76,13 @@ void run_sim_pythia8hi(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   run->AddModule(tpc);
 
   // Create TGenerator interface
-  auto gen = new o2::eventgen::Pythia8Generator();
-  gen->SetParameters("Beams:idA 1000822080");                                      // Pb ion
-  gen->SetParameters("Beams:idB 1000822080");                                      // Pb ion
-  gen->SetParameters("Beams:eCM 5520.0");                                          // [GeV]
-  gen->SetParameters("HeavyIon:SigFitNGen 0");                                     // valid for Pb-Pb 5520 only
-  gen->SetParameters("HeavyIon:SigFitDefPar 14.82,1.82,0.25,0.0,0.0,0.0,0.0,0.0"); // valid for Pb-Pb 5520 only
-  gen->SetParameters("HeavyIon:bWidth 1");                                         // impact parameter from 0-x [fm]
+  auto gen = new o2::eventgen::GeneratorPythia8();
+  gen->readString("Beams:idA 1000822080");                                      // Pb ion
+  gen->readString("Beams:idB 1000822080");                                      // Pb ion
+  gen->readString("Beams:eCM 5520.0");                                          // [GeV]
+  gen->readString("HeavyIon:SigFitNGen 0");                                     // valid for Pb-Pb 5520 only
+  gen->readString("HeavyIon:SigFitDefPar 14.82,1.82,0.25,0.0,0.0,0.0,0.0,0.0"); // valid for Pb-Pb 5520 only
+  gen->readString("HeavyIon:bWidth 1");                                         // impact parameter from 0-x [fm]
 
   // Create PrimaryGenerator
   auto primGen = new FairPrimaryGenerator();

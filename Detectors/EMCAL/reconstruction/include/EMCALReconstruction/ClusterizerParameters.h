@@ -21,13 +21,10 @@ namespace o2
 namespace emcal
 {
 
-//_________________________________________________________________________
 /// \class ClusterizerParameters
 /// \brief Contains all parameters to set up the clusterizer
-///
-///
+/// \ingroup EMCALreconstruction
 /// \author Rudiger Haake (Yale)
-//_________________________________________________________________________
 class ClusterizerParameters
 {
  public:

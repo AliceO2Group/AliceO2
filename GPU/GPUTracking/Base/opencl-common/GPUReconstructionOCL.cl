@@ -52,13 +52,15 @@
 #define uint32_t unsigned int
 #define uint16_t unsigned short
 #define uint8_t unsigned char
-// clang-format on
 
 // Disable assertions since they produce errors in GPU Code
 #ifdef assert
 #undef assert
 #endif
 #define assert(param)
+#ifndef __OPENCLCPP__
+#define static_assert(...)
+#endif
 
 #include "GPUReconstructionIncludesDevice.h"
 #include "GPUConstantMem.h"
@@ -78,3 +80,5 @@
 #undef GPUCA_OPENCL1
 #undef GPUCA_KRNL_LOAD_single
 #undef GPUCA_KRNL_LOAD_multi
+
+// clang-format on

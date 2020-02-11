@@ -127,7 +127,8 @@ class TOFDPLRecoWorkflowTask
 
     // declare done
     finished = true;
-    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    //pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    pc.services().get<ControlService>().endOfStream();
   }
 
  private:

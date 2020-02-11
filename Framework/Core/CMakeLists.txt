@@ -124,7 +124,9 @@ o2_target_root_dictionary(Framework
 foreach(t
         AlgorithmSpec
         AnalysisTask
+        AnalysisDataModel
         ASoA
+        ASoAHelpers
         BoostOptionsRetriever
         CallbackRegistry
         ChannelSpecHelpers
@@ -176,6 +178,11 @@ foreach(t
               LABELS framework
               PUBLIC_LINK_LIBRARIES O2::Framework)
 endforeach()
+
+o2_add_executable(verify-aod-file
+                  SOURCES src/verifyAODFile.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME Framework)
 
 # tests with input data
 

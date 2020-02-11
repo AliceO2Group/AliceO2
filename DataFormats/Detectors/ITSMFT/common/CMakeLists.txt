@@ -10,16 +10,19 @@
 
 o2_add_library(DataFormatsITSMFT
                SOURCES src/ROFRecord.cxx
+                       src/Digit.cxx
                        src/Cluster.cxx
                        src/CompCluster.cxx
                        src/ClusterPattern.cxx
                        src/ClusterTopology.cxx
                        src/TopologyDictionary.cxx
                PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
-	                             O2::ReconstructionDataFormats)
+	                             O2::ReconstructionDataFormats
+				     ms_gsl::ms_gsl)
 
 o2_target_root_dictionary(DataFormatsITSMFT
                           HEADERS include/DataFormatsITSMFT/ROFRecord.h
+			          include/DataFormatsITSMFT/Digit.h
                                   include/DataFormatsITSMFT/Cluster.h
                                   include/DataFormatsITSMFT/CompCluster.h
                                   include/DataFormatsITSMFT/ClusterPattern.h

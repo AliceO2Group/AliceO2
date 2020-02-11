@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   auto rowIndex = std::make_tuple(
     std::pair<test::X*, arrow::Column*>{nullptr, table->column(0).get()},
     std::pair<test::Y*, arrow::Column*>{nullptr, table->column(1).get()});
-  RowView<test::X, test::Y> tests(rowIndex, table->num_rows());
+  RowView<test::X, test::Y> tests(rowIndex, {table->num_rows(), 0});
   BOOST_CHECK_EQUAL(tests.x(), 0);
   BOOST_CHECK_EQUAL(tests.y(), 0);
   ++tests;
@@ -199,11 +199,24 @@ BOOST_AUTO_TEST_CASE(TestJoinedTables)
   rowWriterY(0, 0);
   auto tableY = builderY.finalize();
 
+  TableBuilder builderZ;
+  auto rowWriterZ = builderZ.persist<int32_t>({"z"});
+  rowWriterZ(0, 8);
+  rowWriterZ(0, 8);
+  rowWriterZ(0, 8);
+  rowWriterZ(0, 8);
+  rowWriterZ(0, 8);
+  rowWriterZ(0, 8);
+  rowWriterZ(0, 8);
+  rowWriterZ(0, 8);
+  auto tableZ = builderZ.finalize();
+
   using TestX = o2::soa::Table<test::X>;
   using TestY = o2::soa::Table<test::Y>;
+  using TestZ = o2::soa::Table<test::Z>;
   using Test = Join<TestX, TestY>;
 
-  Test tests{tableX, tableY};
+  Test tests{0, tableX, tableY};
   for (auto& test : tests) {
     BOOST_CHECK_EQUAL(7, test.x() + test.y());
   }
@@ -213,6 +226,17 @@ BOOST_AUTO_TEST_CASE(TestJoinedTables)
                 "Joined tables should have the same type, regardless how we construct them");
   for (auto& test : tests2) {
     BOOST_CHECK_EQUAL(7, test.x() + test.y());
+  }
+
+  auto tests3 = join(TestX{tableX}, TestY{tableY}, TestZ{tableZ});
+
+  for (auto& test : tests3) {
+    BOOST_CHECK_EQUAL(15, test.x() + test.y() + test.z());
+  }
+  using TestMoreThanTwo = Join<TestX, TestY, TestZ>;
+  TestMoreThanTwo tests4{0, tableX, tableY, tableZ};
+  for (auto& test : tests4) {
+    BOOST_CHECK_EQUAL(15, test.x() + test.y() + test.z());
   }
 }
 
@@ -358,7 +382,7 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   selectionJoin->SetIndex(1, 2);
   selectionJoin->SetIndex(2, 4);
   selectionJoin->SetNumSlots(3);
-  JoinedTest testJoin{tableA, tableC};
+  JoinedTest testJoin{0, tableA, tableC};
   FilteredJoinTest filteredJoin{testJoin.asArrowTable(), selectionJoin};
 
   i = 0;
@@ -369,4 +393,31 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
     i++;
   }
   BOOST_CHECK_EQUAL(i, 3);
+}
+
+BOOST_AUTO_TEST_CASE(TestTableSlicing)
+{
+  TableBuilder builderA;
+  auto rowWriterA = builderA.persist<int32_t, int32_t>({"x", "y"});
+  rowWriterA(0, 0, 0);
+  rowWriterA(0, 1, 0);
+  rowWriterA(0, 2, 0);
+  rowWriterA(0, 3, 1);
+  rowWriterA(0, 4, 1);
+  rowWriterA(0, 5, 1);
+  rowWriterA(0, 6, 1);
+  rowWriterA(0, 7, 2);
+  auto tableA = builderA.finalize();
+  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 8);
+  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
+
+  TestA t = TestA{tableA};
+  auto s = slice(t, "y");
+  BOOST_CHECK_EQUAL(s.size(), 3);
+
+  for (auto r : s[1]) {
+    BOOST_CHECK_EQUAL(r.x(), r.index() + 3);
+    BOOST_CHECK_EQUAL(r.y(), 1);
+    BOOST_CHECK_EQUAL(r.globalIndex(), r.index() + 3);
+  }
 }

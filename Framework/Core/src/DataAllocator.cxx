@@ -43,7 +43,7 @@ DataAllocator::DataAllocator(TimingInfo* timingInfo,
 {
 }
 
-std::string DataAllocator::matchDataHeader(const Output& spec, size_t timeslice)
+std::string const& DataAllocator::matchDataHeader(const Output& spec, size_t timeslice)
 {
   // FIXME: we should take timeframeId into account as well.
   for (auto& output : mAllowedOutputRoutes) {
@@ -61,7 +61,7 @@ std::string DataAllocator::matchDataHeader(const Output& spec, size_t timeslice)
 
 DataChunk& DataAllocator::newChunk(const Output& spec, size_t size)
 {
-  std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
   auto context = mContextRegistry->get<MessageContext>();
 
   FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel,                        //
@@ -76,7 +76,7 @@ void DataAllocator::adoptChunk(const Output& spec, char* buffer, size_t size, fa
 {
   // Find a matching channel, create a new message for it and put it in the
   // queue to be sent at the end of the processing
-  std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
 
   FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel,                        //
                                                            o2::header::gSerializationMethodNone, //
@@ -110,7 +110,7 @@ FairMQMessagePtr DataAllocator::headerMessageFromOutput(Output const& spec,     
 void DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage, const Output& spec,
                                      o2::header::SerializationMethod serializationMethod)
 {
-  std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
   // the correct payload size is st later when sending the
   // RootObjectContext, see DataProcessor::doSend
   auto headerMessage = headerMessageFromOutput(spec, channel, serializationMethod, 0);
@@ -130,7 +130,7 @@ void DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage, const Ou
 void DataAllocator::adopt(const Output& spec, TObject* ptr)
 {
   std::unique_ptr<TObject> payload(ptr);
-  std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
   // the correct payload size is set later when sending the
   // RootObjectContext, see DataProcessor::doSend
   auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodROOT, 0);
@@ -141,7 +141,7 @@ void DataAllocator::adopt(const Output& spec, TObject* ptr)
 void DataAllocator::adopt(const Output& spec, std::string* ptr)
 {
   std::unique_ptr<std::string> payload(ptr);
-  std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
   // the correct payload size is set later when sending the
   // StringContext, see DataProcessor::doSend
   auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodNone, 0);
@@ -151,7 +151,7 @@ void DataAllocator::adopt(const Output& spec, std::string* ptr)
 
 void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
 {
-  std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
   auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodArrow, 0);
   auto context = mContextRegistry->get<ArrowContext>();
 
@@ -192,7 +192,7 @@ void DataAllocator::create(const Output& spec,
                            std::shared_ptr<arrow::ipc::RecordBatchWriter>* writer,
                            std::shared_ptr<arrow::Schema> schema)
 {
-  std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
   auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodArrow, 0);
   auto context = mContextRegistry->get<ArrowContext>();
 

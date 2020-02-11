@@ -9,13 +9,11 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(CPVSimulation
-               SOURCES src/Detector.cxx src/GeometryParams.cxx src/CPVSimParams.cxx 
-                       src/Digitizer.cxx src/DigitizerTask.cxx
-               PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::CPVBase)
+               SOURCES src/Detector.cxx src/GeometryParams.cxx 
+                       src/Digitizer.cxx 
+               PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::CPVBase O2::DataFormatsCPV O2::CPVCalib O2::CCDB)
 
 o2_target_root_dictionary(CPVSimulation
                           HEADERS include/CPVSimulation/Detector.h
                                   include/CPVSimulation/GeometryParams.h
-                                  include/CPVSimulation/CPVSimParams.h
-                                  include/CPVSimulation/Digitizer.h
-                                  include/CPVSimulation/DigitizerTask.h)
+                                  include/CPVSimulation/Digitizer.h)

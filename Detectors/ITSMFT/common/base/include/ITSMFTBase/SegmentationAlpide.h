@@ -43,7 +43,7 @@ class SegmentationAlpide
   static constexpr float ActiveMatrixSizeRows = PitchRow * NRows; // Active size along rows
 
   // effective thickness of sensitive layer, accounting for charge collection non-unifoemity, https://alice.its.cern.ch/jira/browse/AOC-46
-  static constexpr float SensorLayerThicknessEff = 22.e-4;
+  static constexpr float SensorLayerThicknessEff = 28.e-4;
   static constexpr float SensorLayerThickness = 30.e-4;                                               // physical thickness of sensitive part
   static constexpr float SensorSizeCols = ActiveMatrixSizeCols + PassiveEdgeSide + PassiveEdgeSide;   // SensorSize along columns
   static constexpr float SensorSizeRows = ActiveMatrixSizeRows + PassiveEdgeTop + PassiveEdgeReadOut; // SensorSize along rows

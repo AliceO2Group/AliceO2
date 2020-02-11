@@ -164,9 +164,6 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   if (lostenergy < DBL_EPSILON && !isNewPartile)
     return false; // do not create hits with zero energy deposition
 
-  if (!mGeom)
-    mGeom = Geometry::GetInstance();
-
   //  if(strcmp(mc->CurrentVolName(),"PXTL")!=0) //Non need to check, alwais there...
   //    return false ; //  We are not inside a PBWO crystal
 
@@ -177,11 +174,11 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   fMC->CurrentVolOffID(3, strip); // 3: number of geom levels between PXTL and strip: get strip number in PHOS module
   Int_t cell;
   fMC->CurrentVolOffID(2, cell); // 2: number of geom levels between PXTL and cell: get sell in strip number.
-  Int_t detID = mGeom->RelToAbsId(moduleNumber, strip, cell);
+  Int_t detID = Geometry::relToAbsId(moduleNumber, strip, cell);
 
   if (superParent == mCurentSuperParent && detID == mCurrentCellID && mCurrentHit) {
     // continue with current hit
-    mCurrentHit->AddEnergyLoss(lostenergy);
+    mCurrentHit->addEnergyLoss(lostenergy);
     return true;
   }
 
@@ -192,7 +189,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
       if (h->GetTrackID() != superParent) // switched to another SuperParent, do not search further
         break;
       if (h->GetDetectorID() == detID) { // found correct hit
-        h->AddEnergyLoss(lostenergy);
+        h->addEnergyLoss(lostenergy);
         mCurentSuperParent = superParent;
         mCurrentTrackID = partID;
         mCurrentCellID = detID;
@@ -208,7 +205,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   Double_t estart = fMC->Etot();
   Double_t time = fMC->TrackTime() * 1.e+9; // time in ns?? To be consistent with EMCAL
 
-  mCurrentHit = AddHit(superParent, detID, Point3D<float>(posX, posY, posZ), Vector3D<float>(momX, momY, momZ), estart,
+  mCurrentHit = addHit(superParent, detID, Point3D<float>(posX, posY, posZ), Vector3D<float>(momX, momY, momZ), estart,
                        time, lostenergy);
   mCurentSuperParent = superParent;
   mCurrentTrackID = partID;
@@ -217,7 +214,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   return true;
 }
 
-Hit* Detector::AddHit(Int_t trackID, Int_t detID, const Point3D<float>& pos, const Vector3D<float>& mom, Double_t totE,
+Hit* Detector::addHit(Int_t trackID, Int_t detID, const Point3D<float>& pos, const Vector3D<float>& mom, Double_t totE,
                       Double_t time, Double_t eLoss)
 {
   LOG(DEBUG4) << "Adding hit for track " << trackID << " with position (" << pos.X() << ", " << pos.Y() << ", "
@@ -262,9 +259,9 @@ void Detector::ConstructGeometry()
   // Depending on configuration we should prepare containers for normal PHOS module "PHOS"
   // and half-module "PHOH"
   // This is still air tight box around PHOS
-  fMC->Gsvolu("PHOS", "TRD1", getMediumID(ID_FE), geom->GetPHOSParams(), 4);
+  fMC->Gsvolu("PHOS", "TRD1", getMediumID(ID_FE), geom->getPHOSParams(), 4);
   if (mCreateHalfMod) {
-    fMC->Gsvolu("PHOH", "TRD1", getMediumID(ID_FE), geom->GetPHOSParams(), 4);
+    fMC->Gsvolu("PHOH", "TRD1", getMediumID(ID_FE), geom->getPHOSParams(), 4);
   }
 
   // Fill prepared containers PHOS,PHOH,PHOC
@@ -281,13 +278,13 @@ void Detector::ConstructGeometry()
       continue;
     }
     Float_t angle[3][2] = {0};
-    geom->GetModuleAngle(iModule, angle);
+    geom->getModuleAngle(iModule, angle);
     Matrix(idrotm[iModule], angle[0][0], angle[0][1], angle[1][0], angle[1][1], angle[2][0], angle[2][1]);
 
     Float_t pos[3] = {0};
-    geom->GetModuleCenter(iModule, pos);
+    geom->getModuleCenter(iModule, pos);
 
-    if (iModule == 3) { // special 1/2 module
+    if (iModule == 0) { // special 1/2 module
       fMC->Gspos("PHOH", iModule + 1, "cave", pos[0], pos[1], pos[2], idrotm[iModule], "ONLY");
     } else {
       fMC->Gspos("PHOS", iModule + 1, "cave", pos[0], pos[1], pos[2], idrotm[iModule], "ONLY");
@@ -457,30 +454,30 @@ void Detector::ConstructEMCGeometry()
 
   // ======= Define the strip ===============
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetStripHalfSize() + ipar);
+    par[ipar] = *(geom->getStripHalfSize() + ipar);
   }
   // --- define steel volume (cell of the strip unit)
   fMC->Gsvolu("PSTR", "BOX ", getMediumID(ID_FE), par, 3); // Made of steel
 
   // --- define air cell in the steel strip
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetAirCellHalfSize() + ipar);
+    par[ipar] = *(geom->getAirCellHalfSize() + ipar);
   }
   fMC->Gsvolu("PCEL", "BOX ", getMediumID(ID_AIR), par, 3);
 
   // --- define wrapped crystal and put it into steel cell
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetWrappedHalfSize() + ipar);
+    par[ipar] = *(geom->getWrappedHalfSize() + ipar);
   }
   fMC->Gsvolu("PWRA", "BOX ", getMediumID(ID_TYVEK), par, 3);
-  const Float_t* pin = geom->GetAPDHalfSize();
-  const Float_t* preamp = geom->GetPreampHalfSize();
-  Float_t y = (geom->GetAirGapLed() - 2 * pin[1] - 2 * preamp[1]) / 2;
+  const Float_t* pin = geom->getAPDHalfSize();
+  const Float_t* preamp = geom->getPreampHalfSize();
+  Float_t y = (geom->getAirGapLed() - 2 * pin[1] - 2 * preamp[1]) / 2;
   fMC->Gspos("PWRA", 1, "PCEL", 0.0, y, 0.0, 0, "ONLY");
 
   // --- Define crystal and put it into wrapped crystall ---
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetCrystalHalfSize() + ipar);
+    par[ipar] = *(geom->getCrystalHalfSize() + ipar);
   }
 
   fMC->Gsvolu("PXTL", "BOX ", getMediumID(ID_PWO), par, 3);
@@ -489,27 +486,27 @@ void Detector::ConstructEMCGeometry()
 
   // --- define APD/PIN preamp and put it into AirCell
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetAPDHalfSize() + ipar);
+    par[ipar] = *(geom->getAPDHalfSize() + ipar);
   }
   fMC->Gsvolu("PPIN", "BOX ", getMediumID(ID_APD), par, 3);
-  const Float_t* crystal = geom->GetCrystalHalfSize();
-  y = crystal[1] + geom->GetAirGapLed() / 2 - preamp[1];
+  const Float_t* crystal = geom->getCrystalHalfSize();
+  y = crystal[1] + geom->getAirGapLed() / 2 - preamp[1];
   fMC->Gspos("PPIN", 1, "PCEL", 0.0, y, 0.0, 0, "ONLY");
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetPreampHalfSize() + ipar);
+    par[ipar] = *(geom->getPreampHalfSize() + ipar);
   }
   fMC->Gsvolu("PREA", "BOX ", getMediumID(ID_PRINTCIRC), par, 3); // Here I assumed preamp as a printed Circuit
-  y = crystal[1] + geom->GetAirGapLed() / 2 + pin[1];             // May it should be changed
+  y = crystal[1] + geom->getAirGapLed() / 2 + pin[1];             // May it should be changed
   fMC->Gspos("PREA", 1, "PCEL", 0.0, y, 0.0, 0, "ONLY");          // to ceramics?
 
   // --- Fill strip with wrapped cristals in cells
 
-  const Float_t* splate = geom->GetSupportPlateHalfSize();
+  const Float_t* splate = geom->getSupportPlateHalfSize();
   y = -splate[1];
-  const Float_t* acel = geom->GetAirCellHalfSize();
+  const Float_t* acel = geom->getAirCellHalfSize();
 
-  for (Int_t lev = 2, icel = 1; icel <= geom->GetNCellsXInStrip() * geom->GetNCellsZInStrip(); icel += 2, lev += 2) {
-    Float_t x = (2 * (lev / 2) - 1 - geom->GetNCellsXInStrip()) * acel[0];
+  for (Int_t lev = 2, icel = 1; icel <= geom->getNCellsXInStrip() * geom->getNCellsZInStrip(); icel += 2, lev += 2) {
+    Float_t x = (2 * (lev / 2) - 1 - geom->getNCellsXInStrip()) * acel[0];
     Float_t z = acel[2];
 
     fMC->Gspos("PCEL", icel, "PSTR", x, y, +z, 0, "ONLY");
@@ -518,15 +515,15 @@ void Detector::ConstructEMCGeometry()
 
   // --- define the support plate, hole in it and position it in strip ----
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetSupportPlateHalfSize() + ipar);
+    par[ipar] = *(geom->getSupportPlateHalfSize() + ipar);
   }
   fMC->Gsvolu("PSUP", "BOX ", getMediumID(ID_AL), par, 3);
 
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetSupportPlateInHalfSize() + ipar);
+    par[ipar] = *(geom->getSupportPlateInHalfSize() + ipar);
   }
   fMC->Gsvolu("PSHO", "BOX ", getMediumID(ID_AIR), par, 3);
-  Float_t z = geom->GetSupportPlateThickness() / 2;
+  Float_t z = geom->getSupportPlateThickness() / 2;
   fMC->Gspos("PSHO", 1, "PSUP", 0.0, 0.0, z, 0, "ONLY");
 
   y = acel[1];
@@ -534,7 +531,7 @@ void Detector::ConstructEMCGeometry()
 
   // ========== Fill module with strips and put them into inner thermoinsulation=============
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetInnerThermoHalfSize() + ipar);
+    par[ipar] = *(geom->getInnerThermoHalfSize() + ipar);
   }
   fMC->Gsvolu("PTII", "BOX ", getMediumID(ID_THERMOINS), par, 3);
 
@@ -542,28 +539,28 @@ void Detector::ConstructEMCGeometry()
     fMC->Gsvolu("PTIH", "BOX ", getMediumID(ID_THERMOINS), par, 3);
   }
 
-  const Float_t* inthermo = geom->GetInnerThermoHalfSize();
-  const Float_t* strip = geom->GetStripHalfSize();
+  const Float_t* inthermo = geom->getInnerThermoHalfSize();
+  const Float_t* strip = geom->getStripHalfSize();
   y = inthermo[1] - strip[1];
   Int_t irow;
   Int_t nr = 1;
   Int_t icol;
 
-  for (irow = 0; irow < geom->GetNStripX(); irow++) {
-    Float_t x = (2 * irow + 1 - geom->GetNStripX()) * strip[0];
-    for (icol = 0; icol < geom->GetNStripZ(); icol++) {
-      z = (2 * icol + 1 - geom->GetNStripZ()) * strip[2];
+  for (irow = 0; irow < geom->getNStripX(); irow++) {
+    Float_t x = (2 * irow + 1 - geom->getNStripX()) * strip[0];
+    for (icol = 0; icol < geom->getNStripZ(); icol++) {
+      z = (2 * icol + 1 - geom->getNStripZ()) * strip[2];
       fMC->Gspos("PSTR", nr, "PTII", x, y, z, 0, "ONLY");
       nr++;
     }
   }
   if (mCreateHalfMod) {
     nr = 1;
-    for (irow = 0; irow < geom->GetNStripX(); irow++) {
-      Float_t x = (2 * irow + 1 - geom->GetNStripX()) * strip[0];
-      for (icol = 0; icol < geom->GetNStripZ(); icol++) {
-        z = (2 * icol + 1 - geom->GetNStripZ()) * strip[2];
-        if (irow >= geom->GetNStripX() / 2)
+    for (irow = 0; irow < geom->getNStripX(); irow++) {
+      Float_t x = (2 * irow + 1 - geom->getNStripX()) * strip[0];
+      for (icol = 0; icol < geom->getNStripZ(); icol++) {
+        z = (2 * icol + 1 - geom->getNStripZ()) * strip[2];
+        if (irow >= geom->getNStripX() / 2)
           fMC->Gspos("PSTR", nr, "PTIH", x, y, z, 0, "ONLY");
         nr++;
       }
@@ -572,13 +569,13 @@ void Detector::ConstructEMCGeometry()
 
   // ------- define the air gap between thermoinsulation and cooler
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetAirGapHalfSize() + ipar);
+    par[ipar] = *(geom->getAirGapHalfSize() + ipar);
   }
   fMC->Gsvolu("PAGA", "BOX ", getMediumID(ID_AIR), par, 3);
   if (mCreateHalfMod) {
     fMC->Gsvolu("PAGH", "BOX ", getMediumID(ID_AIR), par, 3);
   }
-  const Float_t* agap = geom->GetAirGapHalfSize();
+  const Float_t* agap = geom->getAirGapHalfSize();
   y = agap[1] - inthermo[1];
 
   fMC->Gspos("PTII", 1, "PAGA", 0.0, y, 0.0, 0, "ONLY");
@@ -588,14 +585,14 @@ void Detector::ConstructEMCGeometry()
 
   // ------- define the Al passive cooler
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetCoolerHalfSize() + ipar);
+    par[ipar] = *(geom->getCoolerHalfSize() + ipar);
   }
   fMC->Gsvolu("PCOR", "BOX ", getMediumID(ID_AL), par, 3);
   if (mCreateHalfMod) {
     fMC->Gsvolu("PCOH", "BOX ", getMediumID(ID_AL), par, 3);
   }
 
-  const Float_t* cooler = geom->GetCoolerHalfSize();
+  const Float_t* cooler = geom->getCoolerHalfSize();
   y = cooler[1] - agap[1];
 
   fMC->Gspos("PAGA", 1, "PCOR", 0.0, y, 0.0, 0, "ONLY");
@@ -605,13 +602,13 @@ void Detector::ConstructEMCGeometry()
 
   // ------- define the outer thermoinsulating cover
   for (ipar = 0; ipar < 4; ipar++) {
-    par[ipar] = *(geom->GetOuterThermoParams() + ipar);
+    par[ipar] = *(geom->getOuterThermoParams() + ipar);
   }
   fMC->Gsvolu("PTIO", "TRD1", getMediumID(ID_THERMOINS), par, 4);
   if (mCreateHalfMod) {
     fMC->Gsvolu("PIOH", "TRD1", getMediumID(ID_THERMOINS), par, 4);
   }
-  const Float_t* outparams = geom->GetOuterThermoParams();
+  const Float_t* outparams = geom->getOuterThermoParams();
 
   Int_t idrotm = -1;
   Matrix(idrotm, 90.0, 0.0, 0.0, 0.0, 90.0, 270.0);
@@ -625,14 +622,14 @@ void Detector::ConstructEMCGeometry()
 
   // -------- Define the outer Aluminium cover -----
   for (ipar = 0; ipar < 4; ipar++) {
-    par[ipar] = *(geom->GetAlCoverParams() + ipar);
+    par[ipar] = *(geom->getAlCoverParams() + ipar);
   }
   fMC->Gsvolu("PCOL", "TRD1", getMediumID(ID_AL), par, 4);
   if (mCreateHalfMod) {
     fMC->Gsvolu("PCLH", "TRD1", getMediumID(ID_AL), par, 4);
   }
 
-  const Float_t* covparams = geom->GetAlCoverParams();
+  const Float_t* covparams = geom->getAlCoverParams();
   z = covparams[3] - outparams[3];
   fMC->Gspos("PTIO", 1, "PCOL", 0., 0.0, z, 0, "ONLY");
   if (mCreateHalfMod) {
@@ -641,7 +638,7 @@ void Detector::ConstructEMCGeometry()
 
   // --------- Define front fiberglass cover -----------
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetFiberGlassHalfSize() + ipar);
+    par[ipar] = *(geom->getFiberGlassHalfSize() + ipar);
   }
   fMC->Gsvolu("PFGC", "BOX ", getMediumID(ID_FIBERGLASS), par, 3);
   z = -outparams[3];
@@ -654,36 +651,36 @@ void Detector::ConstructEMCGeometry()
 
   //------ Warm Section --------------
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetWarmAlCoverHalfSize() + ipar);
+    par[ipar] = *(geom->getWarmAlCoverHalfSize() + ipar);
   }
   fMC->Gsvolu("PWAR", "BOX ", getMediumID(ID_AL), par, 3);
-  const Float_t* warmcov = geom->GetWarmAlCoverHalfSize();
+  const Float_t* warmcov = geom->getWarmAlCoverHalfSize();
 
   // --- Define the outer thermoinsulation ---
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetWarmThermoHalfSize() + ipar);
+    par[ipar] = *(geom->getWarmThermoHalfSize() + ipar);
   }
   fMC->Gsvolu("PWTI", "BOX ", getMediumID(ID_THERMOINS), par, 3);
-  const Float_t* warmthermo = geom->GetWarmThermoHalfSize();
+  const Float_t* warmthermo = geom->getWarmThermoHalfSize();
   z = -warmcov[2] + warmthermo[2];
 
   fMC->Gspos("PWTI", 1, "PWAR", 0., 0.0, z, 0, "ONLY");
 
   // --- Define cables area and put in it T-supports ----
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetTCables1HalfSize() + ipar);
+    par[ipar] = *(geom->getTCables1HalfSize() + ipar);
   }
   fMC->Gsvolu("PCA1", "BOX ", getMediumID(ID_CABLES), par, 3);
-  const Float_t* cbox = geom->GetTCables1HalfSize();
+  const Float_t* cbox = geom->getTCables1HalfSize();
 
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetTSupport1HalfSize() + ipar);
+    par[ipar] = *(geom->getTSupport1HalfSize() + ipar);
   }
   fMC->Gsvolu("PBE1", "BOX ", getMediumID(ID_AL), par, 3);
-  const Float_t* beams = geom->GetTSupport1HalfSize();
+  const Float_t* beams = geom->getTSupport1HalfSize();
   Int_t isup;
-  for (isup = 0; isup < geom->GetNTSuppots(); isup++) {
-    Float_t x = -cbox[0] + beams[0] + (2 * beams[0] + geom->GetTSupportDist()) * isup;
+  for (isup = 0; isup < geom->getNTSuppots(); isup++) {
+    Float_t x = -cbox[0] + beams[0] + (2 * beams[0] + geom->getTSupportDist()) * isup;
     fMC->Gspos("PBE1", isup, "PCA1", x, 0.0, 0.0, 0, "ONLY");
   }
 
@@ -691,17 +688,17 @@ void Detector::ConstructEMCGeometry()
   fMC->Gspos("PCA1", 1, "PWTI", 0.0, 0.0, z, 0, "ONLY");
 
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetTCables2HalfSize() + ipar);
+    par[ipar] = *(geom->getTCables2HalfSize() + ipar);
   }
   fMC->Gsvolu("PCA2", "BOX ", getMediumID(ID_CABLES), par, 3);
-  const Float_t* cbox2 = geom->GetTCables2HalfSize();
+  const Float_t* cbox2 = geom->getTCables2HalfSize();
 
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetTSupport2HalfSize() + ipar);
+    par[ipar] = *(geom->getTSupport2HalfSize() + ipar);
   }
   fMC->Gsvolu("PBE2", "BOX ", getMediumID(ID_AL), par, 3);
-  for (isup = 0; isup < geom->GetNTSuppots(); isup++) {
-    Float_t x = -cbox[0] + beams[0] + (2 * beams[0] + geom->GetTSupportDist()) * isup;
+  for (isup = 0; isup < geom->getNTSuppots(); isup++) {
+    Float_t x = -cbox[0] + beams[0] + (2 * beams[0] + geom->getTSupportDist()) * isup;
     fMC->Gspos("PBE2", isup, "PCA2", x, 0.0, 0.0, 0, "ONLY");
   }
 
@@ -710,64 +707,64 @@ void Detector::ConstructEMCGeometry()
 
   // --- Define frame ---
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetFrameXHalfSize() + ipar);
+    par[ipar] = *(geom->getFrameXHalfSize() + ipar);
   }
   fMC->Gsvolu("PFRX", "BOX ", getMediumID(ID_FE), par, 3);
-  const Float_t* posit1 = geom->GetFrameXPosition();
+  const Float_t* posit1 = geom->getFrameXPosition();
   fMC->Gspos("PFRX", 1, "PWTI", posit1[0], posit1[1], posit1[2], 0, "ONLY");
   fMC->Gspos("PFRX", 2, "PWTI", posit1[0], -posit1[1], posit1[2], 0, "ONLY");
 
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetFrameZHalfSize() + ipar);
+    par[ipar] = *(geom->getFrameZHalfSize() + ipar);
   }
   fMC->Gsvolu("PFRZ", "BOX ", getMediumID(ID_FE), par, 3);
-  const Float_t* posit2 = geom->GetFrameZPosition();
+  const Float_t* posit2 = geom->getFrameZPosition();
   fMC->Gspos("PFRZ", 1, "PWTI", posit2[0], posit2[1], posit2[2], 0, "ONLY");
   fMC->Gspos("PFRZ", 2, "PWTI", -posit2[0], posit2[1], posit2[2], 0, "ONLY");
 
   // --- Define Fiber Glass support ---
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetFGupXHalfSize() + ipar);
+    par[ipar] = *(geom->getFGupXHalfSize() + ipar);
   }
   fMC->Gsvolu("PFG1", "BOX ", getMediumID(ID_FIBERGLASS), par, 3);
-  const Float_t* posit3 = geom->GetFGupXPosition();
+  const Float_t* posit3 = geom->getFGupXPosition();
   fMC->Gspos("PFG1", 1, "PWTI", posit3[0], posit3[1], posit3[2], 0, "ONLY");
   fMC->Gspos("PFG1", 2, "PWTI", posit3[0], -posit3[1], posit3[2], 0, "ONLY");
 
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetFGupZHalfSize() + ipar);
+    par[ipar] = *(geom->getFGupZHalfSize() + ipar);
   }
   fMC->Gsvolu("PFG2", "BOX ", getMediumID(ID_FIBERGLASS), par, 3);
-  const Float_t* posit4 = geom->GetFGupZPosition();
+  const Float_t* posit4 = geom->getFGupZPosition();
   fMC->Gspos("PFG2", 1, "PWTI", posit4[0], posit4[1], posit4[2], 0, "ONLY");
   fMC->Gspos("PFG2", 2, "PWTI", -posit4[0], posit4[1], posit4[2], 0, "ONLY");
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetFGlowXHalfSize() + ipar);
+    par[ipar] = *(geom->getFGlowXHalfSize() + ipar);
   }
   fMC->Gsvolu("PFG3", "BOX ", getMediumID(ID_FIBERGLASS), par, 3);
-  const Float_t* posit5 = geom->GetFGlowXPosition();
+  const Float_t* posit5 = geom->getFGlowXPosition();
   fMC->Gspos("PFG3", 1, "PWTI", posit5[0], posit5[1], posit5[2], 0, "ONLY");
   fMC->Gspos("PFG3", 2, "PWTI", posit5[0], -posit5[1], posit5[2], 0, "ONLY");
 
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetFGlowZHalfSize() + ipar);
+    par[ipar] = *(geom->getFGlowZHalfSize() + ipar);
   }
   fMC->Gsvolu("PFG4", "BOX ", getMediumID(ID_FIBERGLASS), par, 3);
-  const Float_t* posit6 = geom->GetFGlowZPosition();
+  const Float_t* posit6 = geom->getFGlowZPosition();
   fMC->Gspos("PFG4", 1, "PWTI", posit6[0], posit6[1], posit6[2], 0, "ONLY");
   fMC->Gspos("PFG4", 2, "PWTI", -posit6[0], posit6[1], posit6[2], 0, "ONLY");
 
   // --- Define Air Gap for FEE electronics -----
   for (ipar = 0; ipar < 3; ipar++) {
-    par[ipar] = *(geom->GetFEEAirHalfSize() + ipar);
+    par[ipar] = *(geom->getFEEAirHalfSize() + ipar);
   }
   fMC->Gsvolu("PAFE", "BOX ", getMediumID(ID_AIR), par, 3);
-  const Float_t* posit7 = geom->GetFEEAirPosition();
+  const Float_t* posit7 = geom->getFEEAirPosition();
   fMC->Gspos("PAFE", 1, "PWTI", posit7[0], posit7[1], posit7[2], 0, "ONLY");
 
   // Define the EMC module volume and combine Cool and Warm sections
   for (ipar = 0; ipar < 4; ipar++) {
-    par[ipar] = *(geom->GetEMCParams() + ipar);
+    par[ipar] = *(geom->getEMCParams() + ipar);
   }
   fMC->Gsvolu("PEMC", "TRD1", getMediumID(ID_AIR), par, 4);
   if (mCreateHalfMod) {
@@ -786,12 +783,12 @@ void Detector::ConstructEMCGeometry()
 
   // Put created EMC geometry into PHOS volume
 
-  z = geom->GetDistATBtoModule() - geom->GetPHOSATBParams()[3] + geom->GetEMCParams()[3];
+  z = geom->getDistATBtoModule() - geom->getPHOSATBParams()[3] + geom->getEMCParams()[3];
 
   // PHOS AirTightBox
-  fMC->Gsvolu("PATB", "TRD1", getMediumID(ID_AIR), geom->GetPHOSATBParams(), 4);
+  fMC->Gsvolu("PATB", "TRD1", getMediumID(ID_AIR), geom->getPHOSATBParams(), 4);
   if (mCreateHalfMod) { // half of PHOS module
-    fMC->Gsvolu("PATH", "TRD1", getMediumID(ID_AIR), geom->GetPHOSATBParams(), 4);
+    fMC->Gsvolu("PATH", "TRD1", getMediumID(ID_AIR), geom->getPHOSATBParams(), 4);
   }
 
   fMC->Gspos("PEMC", 1, "PATB", 0., 0., z, 0, "ONLY");
@@ -817,94 +814,94 @@ void Detector::ConstructSupportGeometry()
   // --- Dummy box containing two rails on which PHOS support moves
   // --- Put these rails to the bottom of the L3 magnet
 
-  par[0] = geom->GetRailRoadSize(0) / 2.0;
-  par[1] = geom->GetRailRoadSize(1) / 2.0;
-  par[2] = geom->GetRailRoadSize(2) / 2.0;
+  par[0] = geom->getRailRoadSize(0) / 2.0;
+  par[1] = geom->getRailRoadSize(1) / 2.0;
+  par[2] = geom->getRailRoadSize(2) / 2.0;
   fMC->Gsvolu("PRRD", "BOX ", getMediumID(ID_AIR), par, 3);
 
-  y0 = -(geom->GetRailsDistanceFromIP() - geom->GetRailRoadSize(1) / 2.0);
+  y0 = -(geom->getRailsDistanceFromIP() - geom->getRailRoadSize(1) / 2.0);
   fMC->Gspos("PRRD", 1, "cave", 0.0, y0, 0.0, 0, "ONLY");
 
   // --- Dummy box containing one rail
 
-  par[0] = geom->GetRailOuterSize(0) / 2.0;
-  par[1] = geom->GetRailOuterSize(1) / 2.0;
-  par[2] = geom->GetRailOuterSize(2) / 2.0;
+  par[0] = geom->getRailOuterSize(0) / 2.0;
+  par[1] = geom->getRailOuterSize(1) / 2.0;
+  par[2] = geom->getRailOuterSize(2) / 2.0;
   fMC->Gsvolu("PRAI", "BOX ", getMediumID(ID_AIR), par, 3);
 
   for (i = 0; i < 2; i++) {
-    x0 = (2 * i - 1) * geom->GetDistanceBetwRails() / 2.0;
+    x0 = (2 * i - 1) * geom->getDistanceBetwRails() / 2.0;
     fMC->Gspos("PRAI", i, "PRRD", x0, 0.0, 0.0, 0, "ONLY");
   }
 
   // --- Upper and bottom steel parts of the rail
 
-  par[0] = geom->GetRailPart1(0) / 2.0;
-  par[1] = geom->GetRailPart1(1) / 2.0;
-  par[2] = geom->GetRailPart1(2) / 2.0;
+  par[0] = geom->getRailPart1(0) / 2.0;
+  par[1] = geom->getRailPart1(1) / 2.0;
+  par[2] = geom->getRailPart1(2) / 2.0;
   fMC->Gsvolu("PRP1", "BOX ", getMediumID(ID_FE), par, 3);
 
-  y0 = -(geom->GetRailOuterSize(1) - geom->GetRailPart1(1)) / 2.0;
+  y0 = -(geom->getRailOuterSize(1) - geom->getRailPart1(1)) / 2.0;
   fMC->Gspos("PRP1", 1, "PRAI", 0.0, y0, 0.0, 0, "ONLY");
-  y0 = (geom->GetRailOuterSize(1) - geom->GetRailPart1(1)) / 2.0 - geom->GetRailPart3(1);
+  y0 = (geom->getRailOuterSize(1) - geom->getRailPart1(1)) / 2.0 - geom->getRailPart3(1);
   fMC->Gspos("PRP1", 2, "PRAI", 0.0, y0, 0.0, 0, "ONLY");
 
   // --- The middle vertical steel parts of the rail
 
-  par[0] = geom->GetRailPart2(0) / 2.0;
-  par[1] = geom->GetRailPart2(1) / 2.0;
-  par[2] = geom->GetRailPart2(2) / 2.0;
+  par[0] = geom->getRailPart2(0) / 2.0;
+  par[1] = geom->getRailPart2(1) / 2.0;
+  par[2] = geom->getRailPart2(2) / 2.0;
   fMC->Gsvolu("PRP2", "BOX ", getMediumID(ID_FE), par, 3);
 
-  y0 = -geom->GetRailPart3(1) / 2.0;
+  y0 = -geom->getRailPart3(1) / 2.0;
   fMC->Gspos("PRP2", 1, "PRAI", 0.0, y0, 0.0, 0, "ONLY");
 
   // --- The most upper steel parts of the rail
 
-  par[0] = geom->GetRailPart3(0) / 2.0;
-  par[1] = geom->GetRailPart3(1) / 2.0;
-  par[2] = geom->GetRailPart3(2) / 2.0;
+  par[0] = geom->getRailPart3(0) / 2.0;
+  par[1] = geom->getRailPart3(1) / 2.0;
+  par[2] = geom->getRailPart3(2) / 2.0;
   fMC->Gsvolu("PRP3", "BOX ", getMediumID(ID_FE), par, 3);
 
-  y0 = (geom->GetRailOuterSize(1) - geom->GetRailPart3(1)) / 2.0;
+  y0 = (geom->getRailOuterSize(1) - geom->getRailPart3(1)) / 2.0;
   fMC->Gspos("PRP3", 1, "PRAI", 0.0, y0, 0.0, 0, "ONLY");
 
   // --- The wall of the cradle
   // --- The wall is empty: steel thin walls and air inside
 
-  par[1] = TMath::Sqrt(TMath::Power((geom->GetIPtoOuterCoverDistance() + geom->GetOuterBoxSize(3)), 2) +
-                       TMath::Power((geom->GetOuterBoxSize(1) / 2), 2)) +
+  par[1] = TMath::Sqrt(TMath::Power((geom->getIPtoOuterCoverDistance() + geom->getOuterBoxSize(3)), 2) +
+                       TMath::Power((geom->getOuterBoxSize(1) / 2), 2)) +
            10.;
-  par[0] = par[1] - geom->GetCradleWall(1);
-  par[2] = geom->GetCradleWall(2) / 2.0;
-  par[3] = geom->GetCradleWall(3);
-  par[4] = geom->GetCradleWall(4);
+  par[0] = par[1] - geom->getCradleWall(1);
+  par[2] = geom->getCradleWall(2) / 2.0;
+  par[3] = geom->getCradleWall(3);
+  par[4] = geom->getCradleWall(4);
   fMC->Gsvolu("PCRA", "TUBS", getMediumID(ID_FE), par, 5);
 
-  par[0] += geom->GetCradleWallThickness();
-  par[1] -= geom->GetCradleWallThickness();
-  par[2] -= geom->GetCradleWallThickness();
+  par[0] += geom->getCradleWallThickness();
+  par[1] -= geom->getCradleWallThickness();
+  par[2] -= geom->getCradleWallThickness();
   fMC->Gsvolu("PCRE", "TUBS", getMediumID(ID_FE), par, 5);
   fMC->Gspos("PCRE", 1, "PCRA", 0.0, 0.0, 0.0, 0, "ONLY");
 
   for (i = 0; i < 2; i++) {
-    z0 = (2 * i - 1) * (geom->GetOuterBoxSize(2) + geom->GetCradleWall(2)) / 2.0;
+    z0 = (2 * i - 1) * (geom->getOuterBoxSize(2) + geom->getCradleWall(2)) / 2.0;
     fMC->Gspos("PCRA", i, "cave", 0.0, 0.0, z0, 0, "ONLY");
   }
 
   // --- The "wheels" of the cradle
 
-  par[0] = geom->GetCradleWheel(0) / 2;
-  par[1] = geom->GetCradleWheel(1) / 2;
-  par[2] = geom->GetCradleWheel(2) / 2;
+  par[0] = geom->getCradleWheel(0) / 2;
+  par[1] = geom->getCradleWheel(1) / 2;
+  par[2] = geom->getCradleWheel(2) / 2;
   fMC->Gsvolu("PWHE", "BOX ", getMediumID(ID_FE), par, 3);
 
-  y0 = -(geom->GetRailsDistanceFromIP() - geom->GetRailRoadSize(1) - geom->GetCradleWheel(1) / 2);
+  y0 = -(geom->getRailsDistanceFromIP() - geom->getRailRoadSize(1) - geom->getCradleWheel(1) / 2);
   for (i = 0; i < 2; i++) {
-    z0 = (2 * i - 1) * ((geom->GetOuterBoxSize(2) + geom->GetCradleWheel(2)) / 2.0 + geom->GetCradleWall(2));
+    z0 = (2 * i - 1) * ((geom->getOuterBoxSize(2) + geom->getCradleWheel(2)) / 2.0 + geom->getCradleWall(2));
     for (j = 0; j < 2; j++) {
       copy = 2 * i + j;
-      x0 = (2 * j - 1) * geom->GetDistanceBetwRails() / 2.0;
+      x0 = (2 * j - 1) * geom->getDistanceBetwRails() / 2.0;
       fMC->Gspos("PWHE", copy, "cave", x0, y0, z0, 0, "ONLY");
     }
   }
@@ -941,7 +938,10 @@ void Detector::addAlignableVolumes() const
 
   TString symbModuleName = "PHOS/Module";
 
-  for (Int_t iModule = 1; iModule <= geom->GetNModules(); iModule++) {
+  for (Int_t iModule = 1; iModule <= geom->getNModules(); iModule++) {
+    if (!mActiveModule[iModule - 1]) {
+      continue;
+    }
 
     TString volPath(physModulePath);
     volPath += iModule;
@@ -949,7 +949,7 @@ void Detector::addAlignableVolumes() const
     TString symName(symbModuleName);
     symName += iModule;
 
-    int modUID = o2::base::GeometryManager::getSensID(idPHOS, iModule - 1);
+    int modUID = o2::base::GeometryManager::getSensID(idPHOS, iModule);
 
     LOG(DEBUG) << "--------------------------------------------"
                << "\n";
@@ -971,7 +971,7 @@ void Detector::addAlignableVolumes() const
     LOG(DEBUG) << "Got TGeoPNEntry " << alignableEntry;
 
     if (alignableEntry) {
-      Float_t angle = geom->GetPHOSAngle(iModule);
+      Float_t angle = geom->getPHOSAngle(iModule);
       TGeoHMatrix* globMatrix = alignableEntry->GetGlobalOrig();
 
       TGeoHMatrix* matTtoL = new TGeoHMatrix;

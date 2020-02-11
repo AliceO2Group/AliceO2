@@ -27,7 +27,6 @@ namespace gpu
 class GPUTPCClusterFinderKernels : public GPUKernelTemplate
 {
  public:
-#ifdef GPUCA_ALIGPUCODE // TODO: Remove, once Clusterizer is cleaned up
   class GPUTPCSharedMemory : public GPUKernelTemplate::GPUTPCSharedMemoryScan64<int, GPUCA_THREAD_COUNT_SCAN>
   {
    public:
@@ -36,18 +35,9 @@ class GPUTPCClusterFinderKernels : public GPUKernelTemplate
       GPUTPCSharedMemoryData::noise_t noise;
       GPUTPCSharedMemoryData::count_t count;
       GPUTPCSharedMemoryData::build_t build;
+      GPUTPCSharedMemoryData::zs_t zs;
     };
   };
-#else
-  struct GPUTPCSharedMemory {
-    union {
-      GPUTPCSharedMemoryData::search_t search;
-      GPUTPCSharedMemoryData::noise_t noise;
-      GPUTPCSharedMemoryData::count_t count;
-      GPUTPCSharedMemoryData::build_t build;
-    };
-  };
-#endif
 
   enum K : int {
     fillChargeMap = 0,
@@ -61,7 +51,8 @@ class GPUTPCClusterFinderKernels : public GPUKernelTemplate
     nativeScanUp = 8,
     nativeScanTop = 9,
     nativeScanDown = 10,
-    compactDigit = 11
+    compactDigit = 11,
+    decodeZS = 12
   };
 
 #ifdef HAVE_O2HEADERS
@@ -77,7 +68,7 @@ class GPUTPCClusterFinderKernels : public GPUKernelTemplate
     return GPUDataTypes::RecoStep::TPCClusterFinding;
   }
   template <int iKernel = 0, typename... Args>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& clusterer, Args... args);
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, Args... args);
 
  private:
   GPUd() static int compactionElems(processorType& clusterer, int stage);

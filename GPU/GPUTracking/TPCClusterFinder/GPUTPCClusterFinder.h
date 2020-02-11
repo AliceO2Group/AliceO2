@@ -16,25 +16,34 @@
 
 #include "GPUDef.h"
 #include "GPUProcessor.h"
+#include "GPUDataTypes.h"
 
 namespace GPUCA_NAMESPACE
 {
+
+namespace tpc
+{
+struct ClusterNative;
+}
+
 namespace gpu
 {
 
 namespace deprecated
 {
-class PackedDigit;
-class ClusterNative;
+struct PackedDigit;
 } // namespace deprecated
 
 class GPUTPCClusterFinder : public GPUProcessor
 {
  public:
   struct Memory {
-    size_t nDigits = 0;
-    size_t nPeaks = 0;
-    size_t nClusters = 0;
+    struct counters_t {
+      size_t nDigits = 0;
+      size_t nPeaks = 0;
+      size_t nClusters = 0;
+    } counters;
+    unsigned int nDigitsOffset[GPUTrackingInOutZS::NENDPOINTS];
   };
 
 #ifndef GPUCA_GPUCODE
@@ -48,9 +57,10 @@ class GPUTPCClusterFinder : public GPUProcessor
   void* SetPointersMemory(void* mem);
 
   size_t getNSteps(size_t items) const;
-  void SetNMaxDigits(size_t n);
+  void SetNMaxDigits(size_t nDigits, size_t nPages);
 #endif
 
+  unsigned char* mPzs = nullptr;
   deprecated::PackedDigit* mPdigits = nullptr;
   deprecated::PackedDigit* mPpeaks = nullptr;
   deprecated::PackedDigit* mPfilteredPeaks = nullptr;
@@ -58,13 +68,14 @@ class GPUTPCClusterFinder : public GPUProcessor
   ushort* mPchargeMap = nullptr;
   unsigned char* mPpeakMap = nullptr;
   uint* mPclusterInRow = nullptr;
-  deprecated::ClusterNative* mPclusterByRow = nullptr;
+  tpc::ClusterNative* mPclusterByRow = nullptr;
   int* mPbuf = nullptr;
   Memory* mPmemory = nullptr;
 
   int mISlice = 0;
   constexpr static int mScanWorkGroupSize = GPUCA_THREAD_COUNT_SCAN;
   size_t mNMaxClusterPerRow = 0;
+  size_t mNMaxPages = 0;
   size_t mNMaxDigits = 0;
   size_t mNMaxPeaks = 0;
   size_t mNMaxClusters = 0;
@@ -75,7 +86,7 @@ class GPUTPCClusterFinder : public GPUProcessor
 
 #ifndef GPUCA_GPUCODE
   void DumpDigits(std::ostream& out);
-  void DumpChargeMap(std::ostream& out);
+  void DumpChargeMap(std::ostream& out, std::string_view);
   void DumpPeaks(std::ostream& out);
   void DumpPeaksCompacted(std::ostream& out);
   void DumpSuppressedPeaks(std::ostream& out);

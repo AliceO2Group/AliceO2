@@ -15,7 +15,7 @@
 #include <iostream>
 #include <sstream>
 #include <array>
-#include <assert.h>
+#include <cassert>
 #include <hipcub/hipcub.hpp>
 
 #include "ITStracking/MathUtils.h"

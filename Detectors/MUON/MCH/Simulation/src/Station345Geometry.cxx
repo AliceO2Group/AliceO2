@@ -110,16 +110,16 @@ const float kSt45RoundedSlatYPos = 38.2;
 const map<string, array<int, 4>> kPcbTypes = {{"B1N1", {10, 10, 7, 7}}, {"B2N2-", {5, 5, 4, 3}}, {"B2N2+", {5, 5, 3, 4}}, {"B3-N3", {3, 2, 2, 2}}, {"B3+N3", {2, 3, 2, 2}}, {"R1", {3, 4, 2, 3}}, {"R2", {13, 4, 9, 3}}, {"R3", {13, 1, 10, 0}}, {"S2-", {4, 5, 3, 3}}, {"S2+", {5, 4, 3, 3}}};
 
 // Slat types
-const map<string, vector<string>> kSlatTypes = {{"122000SR1", {"R1", "B1N1", "B2N2+", "S2-"}},
-                                                {"112200SR2", {"R2", "B1N1", "B2N2+", "S2-"}},
+const map<string, vector<string>> kSlatTypes = {{"122000SR1", {"S2-", "B2N2+", "B1N1", "R1"}},
+                                                {"112200SR2", {"S2-", "B2N2+", "B1N1", "R2"}},
                                                 {"122200S", {"B1N1", "B2N2-", "B2N2-", "S2+"}},
                                                 {"222000N", {"B2N2-", "B2N2-", "B2N2-"}},
                                                 {"220000N", {"B2N2-", "B2N2-"}},
-                                                {"122000NR1", {"R1", "B1N1", "B2N2+", "B2N2+"}},
-                                                {"112200NR2", {"R2", "B1N1", "B2N2+", "B2N2+"}},
+                                                {"122000NR1", {"B2N2+", "B2N2+", "B1N1", "R1"}},
+                                                {"112200NR2", {"B2N2+", "B2N2+", "B1N1", "R2"}},
                                                 {"122200N", {"B1N1", "B2N2-", "B2N2-", "B2N2-"}},
                                                 {"122330N", {"B1N1", "B2N2+", "B2N2-", "B3-N3", "B3-N3"}},
-                                                {"112233NR3", {"R3", "B1N1", "B2N2-", "B2N2+", "B3+N3", "B3+N3"}},
+                                                {"112233NR3", {"B3+N3", "B3+N3", "B2N2+", "B2N2-", "B1N1", "R3"}},
                                                 {"112230N", {"B1N1", "B1N1", "B2N2-", "B2N2-", "B3-N3"}},
                                                 {"222330N", {"B2N2+", "B2N2+", "B2N2-", "B3-N3", "B3-N3"}},
                                                 {"223300N", {"B2N2+", "B2N2-", "B3-N3", "B3-N3"}},
@@ -148,13 +148,9 @@ bool isShort(string name)
   return name.find('S') < name.size();
 }
 
-TGeoVolume* getRoundedVolume(const char* name, int mediumID, float halfLength, float halfHeight, float halfThickness, float xPos, float yPos, float radius)
+TGeoCompositeShape* getRoundedShape(const char* name, float halfThickness, float xPos, float yPos, float radius)
 {
-  /// Function creating a volume with a rounded shape by creating a hole in a box
-
-  // create the box
-  const char* boxName = Form("%sBox", name);
-  new TGeoBBox(boxName, halfLength, halfHeight, halfThickness);
+  /// Function creating a rounded shape by creating a hole in a box (previously created !)
 
   // create the position where the hole will be created
   const char* shiftName = Form("%sX%.1fY%.1fShift", name, TMath::Abs(xPos), TMath::Abs(yPos));
@@ -167,8 +163,8 @@ TGeoVolume* getRoundedVolume(const char* name, int mediumID, float halfLength, f
 
   const char* shapeName = Form("%sX%.1fY%.1fR%.1fShape", name, TMath::Abs(xPos), TMath::Abs(yPos), radius);
 
-  // create the hole in the box and return the volume built
-  return new TGeoVolume(name, new TGeoCompositeShape(shapeName, Form("%s-%s:%s", boxName, tubeName, shiftName)), assertMedium(mediumID));
+  // create the hole in the box and return the built shape
+  return new TGeoCompositeShape(shapeName, Form("%sBox-%s:%s", name, tubeName, shiftName));
 }
 
 //______________________________________________________________________________
@@ -178,8 +174,8 @@ void createCommonVolumes()
 
   const auto kSpacerMed = assertMedium(Medium::Noryl);
 
-  // the right vertical spacer (identical to any slat)
-  gGeoManager->MakeBox("Right spacer", kSpacerMed, kVertSpacerHalfLength, kSlatPanelHalfHeight, kSpacerHalfThickness);
+  // the left vertical spacer (identical to any slat)
+  gGeoManager->MakeBox("Left spacer", kSpacerMed, kVertSpacerHalfLength, kSlatPanelHalfHeight, kSpacerHalfThickness);
 
   // the top spacers and borders : 4 lengths possible according to the PCB shape
   for (const auto length : {kShortPCBLength, kPCBLength, kR1PCBLength, kRoundedPCBLength}) {
@@ -229,8 +225,8 @@ void createPCBs()
         numb = pcbName.back() - '0';
         gasLength = (numb == 1) ? kR1PCBLength : kGasLength;
         pcbLength = (numb == 1) ? kR1PCBLength : kRoundedPCBLength;
-        gasShift = -(gasLength - kGasLength);
-        pcbShift = -(pcbLength - kPCBLength);
+        gasShift = gasLength - kGasLength;
+        pcbShift = pcbLength - kPCBLength;
 
         bendName = Form("%sB", name);
         nonbendName = Form("%sN", name);
@@ -250,21 +246,22 @@ void createPCBs()
 
     // create the volume of each material (a box by default)
     // sensitive gas
-    auto gas = gGeoManager->MakeBox(Form("%s gas", name), assertMedium(Medium::Gas), gasLength / 2., kGasHalfHeight, kGasHalfThickness);
+    auto gas = new TGeoVolume(Form("%s gas", name), new TGeoBBox(Form("%sGasBox", name), gasLength / 2., kGasHalfHeight, kGasHalfThickness), assertMedium(Medium::Gas));
 
     float x = pcbLength / 2;
     float halfHeight = kPCBHalfHeight;
+
     // bending cathode
-    auto bend = gGeoManager->MakeBox(bendName.data(), assertMedium(Medium::Copper), x, halfHeight, kCathodeHalfThickness);
+    auto bend = new TGeoVolume(bendName.data(), new TGeoBBox(Form("%sBendBox", name), x, halfHeight, kCathodeHalfThickness), assertMedium(Medium::Copper));
 
     // non-bending cathode
-    auto nonbend = gGeoManager->MakeBox(nonbendName.data(), assertMedium(Medium::Copper), x, halfHeight, kCathodeHalfThickness);
+    auto nonbend = new TGeoVolume(nonbendName.data(), new TGeoBBox(Form("%sNonBendBox", name), x, halfHeight, kCathodeHalfThickness), assertMedium(Medium::Copper));
 
     // insulating material
-    auto insu = gGeoManager->MakeBox(Form("%s insulator", name), assertMedium(Medium::FR4), x, halfHeight, kInsuHalfThickness);
+    auto insu = new TGeoVolume(Form("%s insulator", name), new TGeoBBox(Form("%sInsuBox", name), x, halfHeight, kInsuHalfThickness), assertMedium(Medium::FR4));
 
     // bottom spacer (noryl)
-    auto spacer = gGeoManager->MakeBox(Form("%s bottom spacer", name), assertMedium(Medium::Noryl), x, kHoriSpacerHalfHeight, kSpacerHalfThickness);
+    auto spacer = new TGeoVolume(Form("%s bottom spacer", name), new TGeoBBox(Form("%sBottomSpacerBox", name), x, kHoriSpacerHalfHeight, kSpacerHalfThickness), assertMedium(Medium::Noryl));
 
     // change the volume shape if we are creating a rounded PCB
     if (isRounded(pcbName)) {
@@ -285,20 +282,20 @@ void createPCBs()
       // compute the radius of curvature of the PCB we want to create
       float curvRad = radius + 2 * kRoundedSpacerHalfLength;
 
-      x = -kRoundedPCBLength + gasLength / 2 + kVertSpacerHalfLength;
-      gas = getRoundedVolume(Form("%sGas", name), Medium::Gas, gasLength / 2, kGasHalfHeight, kGasHalfThickness, x, -y, curvRad);
+      x = kRoundedPCBLength - gasLength / 2 - kVertSpacerHalfLength;
+      gas->SetShape(getRoundedShape(Form("%sGas", name), kGasHalfThickness, x, -y, curvRad));
 
-      x = -kRoundedPCBLength + pcbLength / 2 + kVertSpacerHalfLength;
+      x = kRoundedPCBLength - pcbLength / 2 - kVertSpacerHalfLength;
 
-      bend = getRoundedVolume(Form("%sBending", name), Medium::Copper, pcbLength / 2, halfHeight, kCathodeHalfThickness, x, -y, curvRad);
+      bend->SetShape(getRoundedShape(Form("%sBend", name), kCathodeHalfThickness, x, -y, curvRad));
 
-      nonbend = getRoundedVolume(Form("%sNonBending", name), Medium::Copper, pcbLength / 2, halfHeight, kCathodeHalfThickness, x, -y, curvRad);
+      nonbend->SetShape(getRoundedShape(Form("%sNonBend", name), kCathodeHalfThickness, x, -y, curvRad));
 
-      insu = getRoundedVolume(Form("%sInsulator", name), Medium::FR4, pcbLength / 2, halfHeight, kInsuHalfThickness, x, -y, curvRad);
+      insu->SetShape(getRoundedShape(Form("%sInsu", name), kInsuHalfThickness, x, -y, curvRad));
 
       if (pcbName.back() != '1') { // change the bottom spacer and border shape for "R2" and "R3" PCBs
 
-        spacer = getRoundedVolume(Form("%sBottomSpacer", name), Medium::Noryl, pcbLength / 2, kHoriSpacerHalfHeight, kSpacerHalfThickness, x, -y + kGasHalfHeight + kHoriSpacerHalfHeight, radius);
+        spacer->SetShape(getRoundedShape(Form("%sBottomSpacer", name), kSpacerHalfThickness, x, -y + kGasHalfHeight + kHoriSpacerHalfHeight, radius));
 
         borderLength -= (pcbName.back() == '3') ? curvRad : curvRad + kRoundedSpacerHalfLength;
       }
@@ -330,7 +327,7 @@ void createPCBs()
     // the borders
     y = kPCBHalfHeight - kBorderHalfHeight;
     pcb->AddNode(gGeoManager->GetVolume(Form("Top border %.2f long", pcbLength)), 1, new TGeoTranslation(x, y, 0.));
-    x = (pcbShift + pcbLength - borderLength) / 2;
+    x = (pcbShift - pcbLength + borderLength) / 2;
     pcb->AddNode(gGeoManager->MakeBox(Form("%s bottom border", name), assertMedium(Medium::Rohacell),
                                       borderLength / 2, kBorderHalfHeight, kBorderHalfThickness),
                  1, new TGeoTranslation(x, -y, 0.));
@@ -342,7 +339,7 @@ void createPCBs()
 
       nDualSampas = dualSampas[i];
       length = (i % 2) ? borderLength : pcbLength;
-      shift = (i % 2) ? pcbLength - borderLength : 0.;
+      shift = (i % 2) ? TMath::Power(-1, isRounded(pcbName)) * (pcbLength - borderLength) : 0.;
       y = TMath::Power(-1, i % 2) * kDualSampaYPos;
       z = TMath::Power(-1, i / 2) * TMath::Abs(z);
 
@@ -363,7 +360,7 @@ void createSlats()
   /// The different PCB types must have been built before calling this function !!!
 
   const auto kSpacerMed = assertMedium(Medium::Noryl);
-  auto rightSpacer = gGeoManager->GetVolume("Right spacer");
+  auto leftSpacer = gGeoManager->GetVolume("Left spacer");
 
   // Mirror rotation for the slat panel on the non-bending side
   auto mirror = new TGeoRotation();
@@ -377,7 +374,8 @@ void createSlats()
     auto slat = new TGeoVolumeAssembly(name);
 
     // Reset slat variables
-    float length = 2 * 2 * kVertSpacerHalfLength; // vertical spacers
+    float direction = TMath::Power(-1, isRounded(typeName)); // rounded and "normal" slats are built in opposite x-axis direction (mapping convention)
+    float halfLength = 2 * 2 * kVertSpacerHalfLength;        // vertical spacers
     float center = (pcbVector.size() - 1) * kGasLength / 2;
     float panelShift = 0.;
     int iVol = 0;
@@ -391,59 +389,61 @@ void createSlats()
       switch (pcb.front()) {
         case 'R':
           pcbLength = (pcb.back() == '1') ? kR1PCBLength : kRoundedPCBLength;
-          panelShift -= pcbLength - kRoundedPCBLength;
+          panelShift += pcbLength - kRoundedPCBLength;
           break;
         case 'S':
           pcbLength = kShortPCBLength;
           gasLength = kShortPCBLength;
-          panelShift += pcbLength - kPCBLength;
+          panelShift += direction * (pcbLength - kPCBLength);
           break;
       }
 
-      length += pcbLength;
+      halfLength += pcbLength;
 
       // place the corresponding PCB volume in the slat and correct the origin of the slat
       slat->AddNode(gGeoManager->GetVolume(pcb.data()), iVol + 1,
-                    new TGeoTranslation(iVol * kPCBLength - (kPCBLength - gasLength) / 2 - center, 0, 0));
+                    new TGeoTranslation(iVol * kPCBLength - direction * (kPCBLength - gasLength) / 2 - center, 0, 0));
       iVol++;
 
     } // end of the PCBs loop
     panelShift /= 2;
+    halfLength /= 2;
 
     // compute the LV cable length
     float cableHalfLength = (typeName.find('3') < typeName.size()) ? kSt45SupportHalfLength : kCh5SupportHalfLength;
     if (typeName == "122200N")
       cableHalfLength = kCh6SupportHalfLength;
-    cableHalfLength -= length / 2;
+    cableHalfLength -= halfLength;
     if (typeName == "122330N")
       cableHalfLength -= kGasLength / 2;
 
-    float leftSpacerHalfHeight = kSlatPanelHalfHeight;
+    float rightSpacerHalfHeight = kSlatPanelHalfHeight;
     if (isRounded(typeName)) {
-      length -= 2 * kVertSpacerHalfLength;   // don't count the vertical spacer length twice in the case of rounded slat
-      leftSpacerHalfHeight = kGasHalfHeight; // to avoid overlaps with the horizontal spacers
+      halfLength -= kVertSpacerHalfLength;    // don't count the vertical spacer length twice in the case of rounded slat
+      rightSpacerHalfHeight = kGasHalfHeight; // to avoid overlaps with the horizontal spacers
     }
 
-    // left vertical spacer
-    auto leftSpacer = gGeoManager->MakeBox(Form("%s left spacer", name), kSpacerMed, kVertSpacerHalfLength, leftSpacerHalfHeight, kSpacerHalfThickness);
+    // right vertical spacer
+    auto rightSpacer = new TGeoVolume(Form("%s right spacer", name),
+                                      new TGeoBBox(Form("%sRightSpacerBox", name), kVertSpacerHalfLength, rightSpacerHalfHeight, kSpacerHalfThickness), kSpacerMed);
 
     // glue a slat panel on each side of the PCBs
     auto panel = new TGeoVolumeAssembly(Form("%s panel", name));
 
-    float x = length / 2;
+    float x = halfLength;
     float halfHeight = kSlatPanelHalfHeight;
 
     // glue
-    auto glue = gGeoManager->MakeBox(Form("%s panel glue", name), assertMedium(Medium::Glue), x, halfHeight, kGlueHalfThickness);
+    auto glue = new TGeoVolume(Form("%s panel glue", name), new TGeoBBox(Form("%sGlueBox", name), x, halfHeight, kGlueHalfThickness), assertMedium(Medium::Glue));
 
     // nomex (bulk)
-    auto nomexBulk = gGeoManager->MakeBox(Form("%s panel nomex (bulk)", name), assertMedium(Medium::BulkNomex), x, halfHeight, kNomexBulkHalfThickness);
+    auto nomexBulk = new TGeoVolume(Form("%s panel nomex (bulk)", name), new TGeoBBox(Form("%sNomexBulkBox", name), x, halfHeight, kNomexBulkHalfThickness), assertMedium(Medium::BulkNomex));
 
     // carbon fiber
-    auto carbon = gGeoManager->MakeBox(Form("%s panel carbon fiber", name), assertMedium(Medium::Carbon), x, halfHeight, kCarbonHalfThickness);
+    auto carbon = new TGeoVolume(Form("%s panel carbon fiber", name), new TGeoBBox(Form("%sCarbonBox", name), x, halfHeight, kCarbonHalfThickness), assertMedium(Medium::Carbon));
 
     // nomex (honeycomb)
-    auto nomex = gGeoManager->MakeBox(Form("%s panel nomex (honeycomb)", name), assertMedium(Medium::HoneyNomex), x, halfHeight, kNomexHalfThickness);
+    auto nomex = new TGeoVolume(Form("%s panel nomex (honeycomb)", name), new TGeoBBox(Form("%sNomexBox", name), x, halfHeight, kNomexHalfThickness), assertMedium(Medium::HoneyNomex));
 
     // change the volume shape if we are creating a rounded slat
     if (isRounded(typeName)) {
@@ -452,12 +452,12 @@ void createSlats()
       float radius = (typeName.back() == '3') ? kSt45Radius : kSt3Radius;
 
       // extreme angle values for the rounded spacer
-      float angMin = 0., angMax = 90.;
+      float angMin = 90., angMax = 180.;
 
       // position of the slat center w.r.t the beam pipe center
-      x = length / 2 - kVertSpacerHalfLength;
+      x = halfLength - kVertSpacerHalfLength;
       float y = 0.;
-      float xRoundedPos = x - panelShift / 2;
+      float xRoundedPos = x + panelShift;
 
       // change the LV cable length for st.3 slats
       cableHalfLength = (isShort(typeName)) ? kCh5SupportHalfLength : kCh6SupportHalfLength;
@@ -466,44 +466,42 @@ void createSlats()
       switch (typeName.back()) { // get the last character
         case '1':                // central for "S(N)R1"
           y = 0.;
-          x = 2 * kPCBLength + panelShift + kVertSpacerHalfLength;
+          x = 2 * kPCBLength - panelShift + kVertSpacerHalfLength;
           xRoundedPos = kRoundedPCBLength + kPCBLength - kRoundedSpacerHalfLength;
-          angMin =
-            -TMath::RadToDeg() * TMath::ACos((kRoundedPCBLength - kR1PCBLength - kRoundedSpacerHalfLength) / radius);
+          angMin = angMax - TMath::RadToDeg() * TMath::ACos((kRoundedPCBLength - kR1PCBLength - kRoundedSpacerHalfLength) / radius);
           angMax = -angMin;
           break;
         case '2': // "S(N)R2" -> station 3
           y = kSt3RoundedSlatYPos;
-          angMin = TMath::RadToDeg() * TMath::ASin((y - kSlatPanelHalfHeight) / (radius + kRoundedSpacerHalfLength));
+          angMax = angMax - TMath::RadToDeg() * TMath::ASin((y - kSlatPanelHalfHeight) / (radius + kRoundedSpacerHalfLength));
           break;
         default: // "NR3" -> station 4 or 5
           y = kSt45RoundedSlatYPos;
-          angMin = TMath::RadToDeg() * TMath::ASin((y - kSlatPanelHalfHeight) / (radius + kRoundedSpacerHalfLength));
+          angMax = angMax - TMath::RadToDeg() * TMath::ASin((y - kSlatPanelHalfHeight) / (radius + kRoundedSpacerHalfLength));
           cableHalfLength = kSt45SupportHalfLength;
           break;
       }
 
-      cableHalfLength -= (x + length / 2) / 2;
+      cableHalfLength -= (x + halfLength) / 2;
 
       // create and place the rounded spacer
       slat->AddNode(gGeoManager->MakeTubs(Form("%s rounded spacer", name), kSpacerMed, radius,
                                           radius + 2 * kRoundedSpacerHalfLength, kSpacerHalfThickness, angMin, angMax),
-                    1, new TGeoTranslation(-xRoundedPos, -y, 0.));
+                    1, new TGeoTranslation(xRoundedPos, -y, 0.));
 
-      glue = getRoundedVolume(Form("%sGlue", name), Medium::Glue, length / 2, halfHeight, kGlueHalfThickness, -x, -y, radius);
+      glue->SetShape(getRoundedShape(Form("%sGlue", name), kGlueHalfThickness, x, -y, radius));
 
-      nomexBulk = getRoundedVolume(Form("%sNomexBulk", name), Medium::BulkNomex, length / 2, halfHeight, kNomexBulkHalfThickness, -x, -y, radius);
+      nomexBulk->SetShape(getRoundedShape(Form("%sNomexBulk", name), kNomexBulkHalfThickness, x, -y, radius));
 
-      carbon = getRoundedVolume(Form("%sCarbon", name), Medium::Carbon, length / 2, halfHeight, kCarbonHalfThickness, -x, -y, radius);
+      carbon->SetShape(getRoundedShape(Form("%sCarbon", name), kCarbonHalfThickness, x, -y, radius));
 
-      nomex = getRoundedVolume(Form("%sNomex", name), Medium::HoneyNomex, length / 2, halfHeight, kNomexHalfThickness, -x, -y, radius);
+      nomex->SetShape(getRoundedShape(Form("%sNomex", name), kNomexHalfThickness, x, -y, radius));
 
-      leftSpacer = getRoundedVolume(Form("%sLeftSpacer", name), Medium::Noryl, kVertSpacerHalfLength, leftSpacerHalfHeight, kSpacerHalfThickness, 0., -y, radius);
+      rightSpacer->SetShape(getRoundedShape(Form("%sRightSpacer", name), kSpacerHalfThickness, 0., -y, radius));
 
     } // end of the "rounded" condition
 
-    // place all the layers in the slat panel volume assembly
-    // be careful : the panel origin is on the glue edge !
+    // place all the layers in the slat panel volume assembly (the panel origin is on the glue edge !)
 
     float halfThickness = kGlueHalfThickness;
     float z = halfThickness;
@@ -541,21 +539,19 @@ void createSlats()
     slat->AddNode(panel, 2, new TGeoCombiTrans(x, 0., -z, mirror));
 
     // place the vertical spacers
-    x = length / 2 - kVertSpacerHalfLength;
-    slat->AddNode(rightSpacer, 1, new TGeoTranslation(x + panelShift, 0., 0.));
-    // don't place a left spacer for S(N)R1 slat
+    x = halfLength - kVertSpacerHalfLength;
+    slat->AddNode(leftSpacer, 1, new TGeoTranslation(-(x - panelShift), 0., 0.));
+    // don't place a right spacer for S(N)R1 slat
     if (typeName.back() != '1')
-      slat->AddNode(leftSpacer, 1, new TGeoTranslation(-x + panelShift, 0., 0.));
+      slat->AddNode(rightSpacer, 1, new TGeoTranslation(x + panelShift, 0., 0.));
 
     // place the LV cables (top and bottom)
-    cableHalfLength += kVertSpacerHalfLength;
-    auto LVcable = gGeoManager->MakeBox(Form("%s LV cable", name), assertMedium(Medium::Copper), cableHalfLength,
-                                        kLVCableHalfHeight, kLVCableHalfThickness);
-    x = -2 * kVertSpacerHalfLength + panelShift + cableHalfLength + length / 2;
-    float y = kDualSampaYPos + kDualSampaHalfHeight + kLVCableHalfHeight;
-    z = -kPCBHalfThickness - kLVCableHalfThickness;
-    slat->AddNode(LVcable, 1, new TGeoTranslation(x, y, z));
-    slat->AddNode(LVcable, 2, new TGeoTranslation(x, -y, z));
+    auto LVcable = gGeoManager->MakeBox(Form("%s LV cable", name), assertMedium(Medium::Copper), cableHalfLength + kVertSpacerHalfLength, kLVCableHalfHeight, kLVCableHalfThickness);
+    x = direction * (x + cableHalfLength + direction * panelShift);
+
+    float y = kPCBHalfHeight - kLVCableHalfHeight;
+    slat->AddNode(LVcable, 1, new TGeoTranslation(x, y, 0));
+    slat->AddNode(LVcable, 2, new TGeoTranslation(x, -y, 0));
 
   } // end of the slat loop
 }
@@ -586,18 +582,24 @@ void createSupportPanels()
 
     float x = -halfLength + kVertSpacerHalfLength;
 
-    // create the nomex volume, change its shape by extracting the pipe shape and place it in the support panel
     float halfThickness = kNomexSupportHalfThickness;
     float z = 0.;
 
-    support->AddNode(getRoundedVolume(Form("NomexSupportPanelCh%d", i), Medium::HoneyNomex, halfLength, halfHeight, halfThickness, x, 0., radius), i, new TGeoTranslation(halfLength, 0., z));
+    // create a box for the nomex volume
+    const char* nomexName = Form("NomexSupportPanelCh%d", i);
+    new TGeoBBox(Form("%sBox", nomexName), halfLength, halfHeight, halfThickness);
+
+    support->AddNode(new TGeoVolume(nomexName, getRoundedShape(nomexName, halfThickness, x, 0., radius), assertMedium(Medium::HoneyNomex)),
+                     i, new TGeoTranslation(halfLength, 0., z));
 
     z += halfThickness; // increment this value when adding a new layer
 
-    // create the glue volume and change its shape by extracting the pipe shape
+    // create a box for the glue volume
     halfThickness = kGlueSupportHalfThickness;
+    const char* glueName = Form("GlueSupportPanelCh%d", i);
+    new TGeoBBox(Form("%sBox", glueName), halfLength, halfHeight, halfThickness);
 
-    auto glue = getRoundedVolume(Form("GlueSupportPanelCh%d", i), Medium::Glue, halfLength, halfHeight, halfThickness, x, 0., radius);
+    auto glue = new TGeoVolume(glueName, getRoundedShape(glueName, halfThickness, x, 0., radius), assertMedium(Medium::Glue));
 
     // place it on each side of the nomex volume
     z += halfThickness;
@@ -605,10 +607,12 @@ void createSupportPanels()
     support->AddNode(glue, 2, new TGeoTranslation(halfLength, 0., -z));
     z += halfThickness;
 
-    // create the carbon volume and change its shape by extracting the pipe shape
+    // create a box for the carbon volume
     halfThickness = kCarbonSupportHalfThickness;
+    const char* carbonName = Form("CarbonSupportPanelCh%d", i);
+    new TGeoBBox(Form("%sBox", carbonName), halfLength, halfHeight, halfThickness);
 
-    auto carbon = getRoundedVolume(Form("CarbonSupportPanelCh%d", i), Medium::Carbon, halfLength, halfHeight, halfThickness, x, 0., radius);
+    auto carbon = new TGeoVolume(carbonName, getRoundedShape(carbonName, halfThickness, x, 0., radius), assertMedium(Medium::Carbon));
 
     // place it on each side of the glue volume
     z += halfThickness;
@@ -748,55 +752,55 @@ const string jsonSlatDescription =
           "detID":500,
           "type":"122000SR1",
           "position":[81.25, 0.00, 4.00],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":501,
           "type":"112200SR2",
           "position":[81.25, 37.80, -4.00],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":502,
           "type":"122200S",
           "position":[81.25, 75.50, 4.00],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":503,
           "type":"222000N",
           "position":[61.25, 112.80, -4.00],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":504,
           "type":"220000N",
           "position":[41.25, 146.50, 4.00],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":514,
           "type":"220000N",
           "position":[41.25, -146.50, 4.00],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":515,
           "type":"222000N",
           "position":[61.25, -112.80, -4.00],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":516,
           "type":"122200S",
           "position":[81.25, -75.50, 4.00],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":517,
           "type":"112200SR2",
           "position":[81.25, -37.80, -4.00],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         }
       ]
     },
@@ -811,55 +815,55 @@ const string jsonSlatDescription =
           "detID":505,
           "type":"220000N",
           "position":[-41.25, 146.50, -4.00],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":506,
           "type":"222000N",
           "position":[-61.25, 112.80, 4.00],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":507,
           "type":"122200S",
           "position":[-81.25, 75.50, -4.00],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":508,
           "type":"112200SR2",
           "position":[-81.25, 37.80, 4.00],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":509,
           "type":"122000SR1",
           "position":[-81.25, 0.00, -4.00],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":510,
           "type":"112200SR2",
           "position":[-81.25, -37.80, 4.00],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":511,
           "type":"122200S",
           "position":[-81.25, -75.50, -4.00],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":512,
           "type":"222000N",
           "position":[-61.25, -112.80, 4.00],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":513,
           "type":"220000N",
           "position":[-41.25, -146.50, -4.00],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         }
       ]
     },
@@ -874,55 +878,55 @@ const string jsonSlatDescription =
           "detID":600,
           "type":"122000NR1",
           "position":[81.25, 0.00, 4.00],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":601,
           "type":"112200NR2",
           "position":[81.25, 37.80, -4.00],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":602,
           "type":"122200N",
           "position":[81.25, 75.50, 4.00],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":603,
           "type":"222000N",
           "position":[61.25, 112.80, -4.00],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":604,
           "type":"220000N",
           "position":[41.25, 146.50, 4.00],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":614,
           "type":"220000N",
           "position":[41.25, -146.50, 4.00],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":615,
           "type":"222000N",
           "position":[61.25, -112.80, -4.00],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":616,
           "type":"122200N",
           "position":[81.25, -75.50, 4.00],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":617,
           "type":"112200NR2",
           "position":[81.25, -37.80, -4.00],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         }
       ]
     },
@@ -937,55 +941,55 @@ const string jsonSlatDescription =
           "detID":605,
           "type":"220000N",
           "position":[-41.25, 146.50, -4.00],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":606,
           "type":"222000N",
           "position":[-61.25, 112.80, 4.00],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":607,
           "type":"122200N",
           "position":[-81.25, 75.50, -4.00],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":608,
           "type":"112200NR2",
           "position":[-81.25, 37.80, 4.00],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":609,
           "type":"122000NR1",
           "position":[-81.25, 0.00, -4.00],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":610,
           "type":"112200NR2",
           "position":[-81.25, -37.80, 4.00],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":611,
           "type":"122200N",
           "position":[-81.25, -75.5, -4.00],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":612,
           "type":"222000N",
           "position":[-61.25, -112.80, 4.00],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":613,
           "type":"220000N",
           "position":[-41.25, -146.50, -4.00],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         }
       ]
     },
@@ -1000,79 +1004,79 @@ const string jsonSlatDescription =
           "detID":700,
           "type":"122330N",
           "position":[140.00, 0.00, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":701,
           "type":"112233NR3",
           "position":[121.25, 38.20, -4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":702,
           "type":"112230N",
           "position":[101.25, 72.60, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":703,
           "type":"222330N",
           "position":[101.25, 109.20, -4.25],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":704,
           "type":"223300N",
           "position":[81.25, 138.50, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":705,
           "type":"333000N",
           "position":[61.25, 175.50, -4.25],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":706,
           "type":"330000N",
           "position":[41.25, 204.50, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":720,
           "type":"330000N",
           "position":[41.25, -204.50, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":721,
           "type":"333000N",
           "position":[61.25, -175.50, -4.25],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":722,
           "type":"223300N",
           "position":[81.25, -138.50, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":723,
           "type":"222330N",
           "position":[101.25, -109.20, -4.25],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":724,
           "type":"112230N",
           "position":[101.25, -72.60, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":725,
           "type":"112233NR3",
           "position":[121.25, -38.20, -4.25],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         }
       ]
     },
@@ -1087,79 +1091,79 @@ const string jsonSlatDescription =
           "detID":707,
           "type":"330000N",
           "position":[-41.25, 204.5, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":708,
           "type":"333000N",
           "position":[-61.25, 175.50, 4.25],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":709,
           "type":"223300N",
           "position":[-81.25, 138.50, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":710,
           "type":"222330N",
           "position":[-101.25, 109.20, 4.25],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":711,
           "type":"112230N",
           "position":[-101.25, 72.60, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":712,
           "type":"112233NR3",
           "position":[-121.25, 38.20, 4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":713,
           "type":"122330N",
           "position":[-140.00, 0.00, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":714,
           "type":"112233NR3",
           "position":[-121.25, -38.20, 4.25],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":715,
           "type":"112230N",
           "position":[-101.25, -72.60, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":716,
           "type":"222330N",
           "position":[-101.25, -109.20, 4.25],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":717,
           "type":"223300N",
           "position":[-81.25, -138.50, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":718,
           "type":"333000N",
           "position":[-61.25, -175.50, 4.25],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":719,
           "type":"330000N",
           "position":[-41.25, -204.50, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         }
       ]
     },
@@ -1174,79 +1178,79 @@ const string jsonSlatDescription =
           "detID":800,
           "type":"122330N",
           "position":[140.00, 0.00, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":801,
           "type":"112233NR3",
           "position":[121.25, 38.20, -4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":802,
           "type":"112230N",
           "position":[101.25, 76.05, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":803,
           "type":"222330N",
           "position":[101.25, 113.60, -4.25],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":804,
           "type":"223300N",
           "position":[81.25, 143.00, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":805,
           "type":"333000N",
           "position":[61.25, 180.00, -4.25],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":806,
           "type":"330000N",
           "position":[41.25, 208.60, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":820,
           "type":"330000N",
           "position":[41.25, -208.60, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":821,
           "type":"333000N",
           "position":[61.25, -180.00, -4.25],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":822,
           "type":"223300N",
           "position":[81.25, -143.00, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":823,
           "type":"222330N",
           "position":[101.25, -113.60, -4.25],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":824,
           "type":"112230N",
           "position":[101.25, -76.05, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":825,
           "type":"112233NR3",
           "position":[121.25, -38.20, -4.25],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 180, 90, 270, 180, 0]
         }
       ]
     },
@@ -1261,79 +1265,79 @@ const string jsonSlatDescription =
           "detID":807,
           "type":"330000N",
           "position":[-41.25, 208.60, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":808,
           "type":"333000N",
           "position":[-61.25, 180.00, 4.25],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":809,
           "type":"223300N",
           "position":[-81.25, 143.00, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":810,
           "type":"222330N",
           "position":[-101.25, 113.60, 4.25],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":811,
           "type":"112230N",
           "position":[-101.25, 76.05, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":812,
           "type":"112233NR3",
           "position":[-121.25, 38.20, 4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":813,
           "type":"122330N",
           "position":[-140.00, 0.00, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":814,
           "type":"112233NR3",
           "position":[-121.25, -38.20, 4.25],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":815,
           "type":"112230N",
           "position":[-101.25, -76.05, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":816,
           "type":"222330N",
           "position":[-101.25, -113.60, 4.25],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":817,
           "type":"223300N",
           "position":[-81.25, -143.00, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":818,
           "type":"333000N",
           "position":[-61.25, -180.00, 4.25],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":819,
           "type":"330000N",
           "position":[-41.25, -208.60, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         }
       ]
     },
@@ -1348,79 +1352,79 @@ const string jsonSlatDescription =
           "detID":900,
           "type":"122330N",
           "position":[140.00, 0.00, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":901,
           "type":"112233NR3",
           "position":[121.25, 38.20, -4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":902,
           "type":"112233N",
           "position":[121.25, 76.10, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":903,
           "type":"222333N",
           "position":[121.25, 113.70, -4.25],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":904,
           "type":"223330N",
           "position":[101.25, 151.00, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":905,
           "type":"333300N",
           "position":[81.25, 188.05, -4.25],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":906,
           "type":"333000N",
           "position":[61.25, 224.80, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":920,
           "type":"333000N",
           "position":[61.25, -224.80, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":921,
           "type":"333300N",
           "position":[81.25, -188.05, -4.25],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":922,
           "type":"223330N",
           "position":[101.25, -151.00, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":923,
           "type":"222333N",
           "position":[121.25, -113.70, -4.25],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":924,
           "type":"112233N",
           "position":[121.25, -76.10, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":925,
           "type":"112233NR3",
           "position":[121.25, -38.20, -4.25],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         }
       ]
     },
@@ -1435,79 +1439,79 @@ const string jsonSlatDescription =
           "detID":907,
           "type":"333000N",
           "position":[-61.25, 224.80, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":908,
           "type":"333300N",
           "position":[-81.25, 188.05, 4.25],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":909,
           "type":"223330N",
           "position":[-101.25, 151.00, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":910,
           "type":"222333N",
           "position":[-121.25, 113.70, 4.25],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":911,
           "type":"112233N",
           "position":[-121.25, 76.10, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":912,
           "type":"112233NR3",
           "position":[-121.25, 38.20, 4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":913,
           "type":"122330N",
           "position":[-140.00, 0.00, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":914,
           "type":"112233NR3",
           "position":[-121.25, -38.20, 4.25],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":915,
           "type":"112233N",
           "position":[-121.25, -76.10, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":916,
           "type":"222333N",
           "position":[-121.25, -113.70, 4.25],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":917,
           "type":"223330N",
           "position":[-101.25, -151, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":918,
           "type":"333300N",
           "position":[-81.25, -188.05, 4.25],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":919,
           "type":"333000N",
           "position":[-61.25, -224.80, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         }
       ]
     },
@@ -1522,79 +1526,79 @@ const string jsonSlatDescription =
           "detID":1000,
           "type":"122330N",
           "position":[140.00, 0.00, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":1001,
           "type":"112233NR3",
           "position":[121.25, 38.20, -4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":1002,
           "type":"112233N",
           "position":[121.25, 76.10, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":1003,
           "type":"222333N",
           "position":[121.25, 113.70, -4.25],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":1004,
           "type":"223330N",
           "position":[101.25, 151.00, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":1005,
           "type":"333300N",
           "position":[81.25, 188.05, -4.25],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":1006,
           "type":"333000N",
           "position":[61.25, 224.80, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":1020,
           "type":"333000N",
           "position":[61.25, -224.80, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":1021,
           "type":"333300N",
           "position":[81.25, -188.05, -4.25],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":1022,
           "type":"223330N",
           "position":[101.25, -151.00, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":1023,
           "type":"222333N",
           "position":[121.25, -113.70, -4.25],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":1024,
           "type":"112233N",
           "position":[121.25, -76.10, 4.25],
-          "rotation":[90, 0, 90, 90, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":1025,
           "type":"112233NR3",
           "position":[121.25, -38.20, -4.25],
-          "rotation":[90, 0, 90, 270, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         }
       ]
     },
@@ -1609,79 +1613,79 @@ const string jsonSlatDescription =
           "detID":1007,
           "type":"333000N",
           "position":[-61.25, 224.80, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":1008,
           "type":"333300N",
           "position":[-81.25, 188.05, 4.25],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":1009,
           "type":"223330N",
           "position":[-101.25, 151.00, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":1010,
           "type":"222333N",
           "position":[-121.25, 113.70, 4.25],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":1011,
           "type":"112233N",
           "position":[-121.25, 76.10, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":1012,
           "type":"112233NR3",
           "position":[-121.25, 38.20, 4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 0, 90, 90, 0, 0]
         },
         {
           "detID":1013,
           "type":"122330N",
           "position":[-140.00, 0.00, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":1014,
           "type":"112233NR3",
           "position":[-121.25, -38.20, 4.25],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 0, 90, 270, 180, 0]
         },
         {
           "detID":1015,
           "type":"112233N",
           "position":[-121.25, -76.10, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":1016,
           "type":"222333N",
           "position":[-121.25, -113.70, 4.25],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":1017,
           "type":"223330N",
           "position":[-101.25, -151.00, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         },
         {
           "detID":1018,
           "type":"333300N",
           "position":[-81.25, -188.05, 4.25],
-          "rotation":[90, 180, 90, 270, 0, 0]
+          "rotation":[90, 180, 90, 90, 180, 0]
         },
         {
           "detID":1019,
           "type":"333000N",
           "position":[-61.25, -224.80, -4.25],
-          "rotation":[90, 180, 90, 90, 180, 0]
+          "rotation":[90, 180, 90, 270, 0, 0]
         }
       ]
     }

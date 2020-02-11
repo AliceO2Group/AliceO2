@@ -8,19 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \class CaloRawFitterStandard
-/// \brief  Raw data fitting: standard TMinuit fit
-///
-/// Extraction of amplitude and peak position
-/// from CALO raw data using
-/// least square fit for the
-/// Moment assuming identical and
-/// independent errors (equivalent with chi square)
-///
-/// \author Hadi Hassan <hadi.hassan@cern.ch>, Oak Ridge National Laboratory
-/// \since November 4th, 2019
-///
-
 #ifndef EMCALRAWFITTERSTANDARD_H_
 #define EMCALRAWFITTERSTANDARD_H_
 
@@ -41,6 +28,17 @@ namespace o2
 namespace emcal
 {
 
+/// \class CaloRawFitterStandard
+/// \brief  Raw data fitting: standard TMinuit fit
+/// \ingroup EMCALreconstruction
+/// \author Hadi Hassan <hadi.hassan@cern.ch>, Oak Ridge National Laboratory
+/// \since November 4th, 2019
+///
+/// Extraction of amplitude and peak position
+/// from CALO raw data using
+/// least square fit for the
+/// Moment assuming identical and
+/// independent errors (equivalent with chi square)
 class CaloRawFitterStandard : public CaloRawFitter
 {
 

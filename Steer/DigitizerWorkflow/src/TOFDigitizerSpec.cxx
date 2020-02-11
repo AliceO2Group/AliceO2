@@ -24,6 +24,9 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
+#include "DataFormatsTOF/CalibLHCphaseTOF.h"
+#include "DataFormatsTOF/CalibTimeSlewingParamTOF.h"
+#include "TOFCalibration/CalibTOFapi.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -50,7 +53,7 @@ void retrieveHits(std::vector<TChain*> const& chains,
   br->GetEntry(entryID);
 }
 
-DataProcessorSpec getTOFDigitizerSpec(int channel)
+DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
 {
   // setup of some data structures shared between init and processing functions
   // (a shared pointer is used since then automatic cleanup is guaranteed with a lifetime beyond
@@ -66,7 +69,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
   auto labels = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
   // the actual processing function which get called whenever new data is incoming
-  auto process = [simChains, digitizer, digits, digitsAccum, labels, channel](ProcessingContext& pc) {
+  auto process = [simChains, digitizer, digits, digitsAccum, labels, channel, useCCDB](ProcessingContext& pc) {
     static bool finished = false;
     if (finished) {
       return;
@@ -88,6 +91,34 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
     timer.Start();
 
     LOG(INFO) << " CALLING TOF DIGITIZATION ";
+    o2::dataformats::CalibLHCphaseTOF lhcPhaseObj;
+    o2::dataformats::CalibTimeSlewingParamTOF channelCalibObj;
+
+    if (useCCDB) { // read calibration objects from ccdb
+      // check LHC phase
+      auto lhcPhase = pc.inputs().get<o2::dataformats::CalibLHCphaseTOF*>("tofccdbLHCphase");
+      auto channelCalib = pc.inputs().get<o2::dataformats::CalibTimeSlewingParamTOF*>("tofccdbChannelCalib");
+
+      o2::dataformats::CalibLHCphaseTOF lhcPhaseObjTmp = std::move(*lhcPhase);
+      o2::dataformats::CalibTimeSlewingParamTOF channelCalibObjTmp = std::move(*channelCalib);
+
+      // make a copy in global scope
+      lhcPhaseObj = lhcPhaseObjTmp;
+      channelCalibObj = channelCalibObjTmp;
+    } else { // calibration objects set to zero
+      lhcPhaseObj.addLHCphase(0, 0);
+      lhcPhaseObj.addLHCphase(2000000000, 0);
+
+      for (int ich = 0; ich < o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELS; ich++) {
+        channelCalibObj.addTimeSlewingInfo(ich, 0, 0);
+        int sector = ich / o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
+        int channelInSector = ich % o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
+        channelCalibObj.setFractionUnderPeak(sector, channelInSector, 1);
+      }
+    }
+
+    o2::tof::CalibTOFapi calibapi(long(0), &lhcPhaseObj, &channelCalibObj);
+    digitizer->setCalibApi(&calibapi);
 
     static std::vector<o2::tof::HitType> hits;
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum;
@@ -190,8 +221,15 @@ DataProcessorSpec getTOFDigitizerSpec(int channel)
   //  input description
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  if (useCCDB) {
+    inputs.emplace_back("tofccdbLHCphase", "TOF", "LHCphase");
+    inputs.emplace_back("tofccdbChannelCalib", "TOF", "ChannelCalib");
+  }
   return DataProcessorSpec{
-    "TOFDigitizer", Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
+    "TOFDigitizer",
+    inputs,
     Outputs{OutputSpec{"TOF", "DIGITS", 0, Lifetime::Timeframe},
             OutputSpec{"TOF", "DIGITSMCTR", 0, Lifetime::Timeframe},
             OutputSpec{"TOF", "ROMode", 0, Lifetime::Timeframe}},

@@ -17,6 +17,7 @@
 #pragma link C++ class o2::cpv::Geometry + ;
 #pragma link C++ class o2::cpv::Hit + ;
 #pragma link C++ class vector < o2::cpv::Hit> + ;
-#pragma link C++ class o2::cpv::Digit + ;
+#pragma link C++ class o2::cpv::CPVSimParams + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::cpv::CPVSimParams> + ;
 
 #endif

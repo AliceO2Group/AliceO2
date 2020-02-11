@@ -114,6 +114,19 @@ function(o2_add_test_wrapper)
 
   math(EXPR ctestTimeout "(20 + ${A_TIMEOUT}) * ${A_MAX_ATTEMPTS}")
 
+  if(NOT A_WORKING_DIRECTORY)
+    if(DEFINED DEFAULT_TEST_OUTPUT_DIRECTORY)
+      string(REPLACE "${CMAKE_BINARY_DIR}" "" reldir "${CMAKE_CURRENT_BINARY_DIR}")
+      get_filename_component(wdir ${DEFAULT_TEST_OUTPUT_DIRECTORY}/${reldir} REALPATH)
+      file(MAKE_DIRECTORY ${wdir})
+      message(
+        STATUS
+        "test ${testName} will output in ${wdir}"
+      )
+      set(A_WORKING_DIRECTORY ${wdir})
+    endif()
+  endif()
+
   add_test(NAME "${testName}"
            COMMAND "${CMAKE_BINARY_DIR}/tests-wrapper.sh"
                    "--name"

@@ -49,6 +49,7 @@ class GPUDisplayBackendX11 : public GPUDisplayBackend
   Window mWindow;
 
   PFNGLXSWAPINTERVALEXTPROC mGlXSwapIntervalEXT = nullptr;
+  bool vsync_supported = false;
 };
 } // namespace GPUCA_NAMESPACE::gpu
 

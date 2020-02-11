@@ -16,7 +16,6 @@
 #include "Mergers/Merger.h"
 #include "Mergers/MergerBuilder.h"
 
-#include <Framework/CompletionPolicyHelpers.h>
 #include <Framework/TimesliceIndex.h>
 #include <Framework/CallbackService.h>
 

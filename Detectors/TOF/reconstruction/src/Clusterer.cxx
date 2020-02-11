@@ -34,6 +34,7 @@ void Clusterer::process(DataReader& reader, std::vector<Cluster>& clusters, MCLa
                << mStripData.digits.size();
     totNumDigits += mStripData.digits.size();
 
+    calibrateStrip();
     processStrip(clusters, digitMCTruth);
   }
 
@@ -42,6 +43,22 @@ void Clusterer::process(DataReader& reader, std::vector<Cluster>& clusters, MCLa
   printf("Timing:\n");
   printf("Clusterer::process:        ");
   timerProcess.Print();
+}
+
+//__________________________________________________
+void Clusterer::calibrateStrip()
+{
+  // method to calibrate the times from the current strip
+
+  for (int idig = 0; idig < mStripData.digits.size(); idig++) {
+    //    LOG(DEBUG) << "Checking digit " << idig;
+    Digit* dig = &mStripData.digits[idig];
+    double calib = mCalibApi->getTimeCalibration(dig->getChannel(), dig->getTOT() * Geo::TOTBIN_NS);
+    //printf("channel %d) isProblematic = %d, fractionUnderPeak = %f\n",dig->getChannel(),mCalibApi->isProblematic(dig->getChannel()),mCalibApi->getFractionUnderPeak(dig->getChannel())); // toberem
+    dig->setIsProblematic(mCalibApi->isProblematic(dig->getChannel()));
+    dig->setCalibratedTime(dig->getTDC() * Geo::TDCBIN + dig->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3 - calib); //TODO:  to be checked that "-" is correct, and we did not need "+" instead :-)
+    //printf("calibration correction = %f\n",calib); // toberem
+  }
 }
 
 //__________________________________________________
@@ -58,8 +75,9 @@ void Clusterer::processStrip(std::vector<Cluster>& clusters, MCLabelContainer co
   for (int idig = 0; idig < mStripData.digits.size(); idig++) {
     //    LOG(DEBUG) << "Checking digit " << idig;
     Digit* dig = &mStripData.digits[idig];
-    if (dig->isUsedInCluster())
-      continue; // the digit was already used to build a cluster
+    //printf("checking digit %d - alreadyUsed=%d   -  problematic=%d\n",idig,dig->isUsedInCluster(),dig->isProblematic()); // toberem
+    if (dig->isUsedInCluster() || dig->isProblematic())
+      continue; // the digit was already used to build a cluster, or it was declared problematic
 
     mNumberOfContributingDigits = 0;
     dig->getPhiAndEtaIndex(iphi, ieta);
@@ -72,14 +90,14 @@ void Clusterer::processStrip(std::vector<Cluster>& clusters, MCLabelContainer co
     clusters.emplace_back();
     Cluster& c = clusters[noc];
     addContributingDigit(dig);
-    float timeDig = dig->getTDC() * Geo::TDCBIN;
+    double timeDig = dig->getCalibratedTime();
 
     for (int idigNext = idig + 1; idigNext < mStripData.digits.size(); idigNext++) {
       Digit* digNext = &mStripData.digits[idigNext];
-      if (digNext->isUsedInCluster())
-        continue; // the digit was already used to build a cluster
+      if (digNext->isUsedInCluster() || dig->isProblematic())
+        continue; // the digit was already used to build a cluster, or was problematic
       // check if the TOF time are close enough to be merged; if not, it means that nothing else will contribute to the cluster (since digits are ordered in time)
-      float timeDigNext = digNext->getTDC() * Geo::TDCBIN; // we assume it calibrated (for now); in ps
+      double timeDigNext = digNext->getCalibratedTime(); // in ps
       LOG(DEBUG) << "Time difference = " << timeDigNext - timeDig;
       if (timeDigNext - timeDig > 500 /*in ps*/)
         break;
@@ -96,7 +114,8 @@ void Clusterer::processStrip(std::vector<Cluster>& clusters, MCLabelContainer co
 
     } // loop on the second digit
 
-    buildCluster(c, digitMCTruth);
+    //printf("build cluster\n");
+    buildCluster(c, digitMCTruth); // toberem
 
   } // loop on the first digit
 }
@@ -112,12 +131,12 @@ void Clusterer::addContributingDigit(Digit* dig)
     int phi, eta;
     for (int i = 0; i < mNumberOfContributingDigits; i++) {
       mContributingDigit[i]->getPhiAndEtaIndex(phi, eta);
-      LOG(ERROR) << "digit already in " << i << ", channel = " << mContributingDigit[i]->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << mContributingDigit[i]->getTDC();
+      LOG(ERROR) << "digit already in " << i << ", channel = " << mContributingDigit[i]->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << mContributingDigit[i]->getTDC() << ", calibrated time = " << mContributingDigit[i]->getCalibratedTime();
     }
 
     dig->getPhiAndEtaIndex(phi, eta);
     LOG(ERROR) << "skipped digit"
-               << ", channel = " << dig->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << dig->getTDC();
+               << ", channel = " << dig->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << dig->getTDC() << ", calibrated time = " << dig->getCalibratedTime();
 
     dig->setIsUsedInCluster(); // flag is at used in any case
 
@@ -148,10 +167,10 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
   }
 
   c.setMainContributingChannel(mContributingDigit[0]->getChannel());
-  c.setTime(mContributingDigit[0]->getTDC() * Geo::TDCBIN + mContributingDigit[0]->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3);
-  c.setTimeRaw(mContributingDigit[0]->getTDC() * Geo::TDCBIN + mContributingDigit[0]->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3);
+  c.setTime(mContributingDigit[0]->getCalibratedTime());                                                                                      // time in ps (for now we assume it calibrated)
+  c.setTimeRaw(mContributingDigit[0]->getTDC() * Geo::TDCBIN + mContributingDigit[0]->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3); // time in ps (for now we assume it calibrated)
 
-  c.setTot(mContributingDigit[0]->getTOT() * Geo::TOTBIN * 1E-3); // TOT in ns (for now we assume it calibrated)
+  c.setTot(mContributingDigit[0]->getTOT() * Geo::TOTBIN_NS); // TOT in ns (for now we assume it calibrated)
   //setL0L1Latency(); // to be filled (maybe)
   //setDeltaBC(); // to be filled (maybe)
 

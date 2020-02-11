@@ -13,64 +13,62 @@
 
 #include "ClusterAccumulator.h"
 #include "CfUtils.h"
-#include "ClusterNative.h"
 
-#if !defined(__OPENCL__)
-#include <cmath>
-#endif
 
-using namespace std;
 using namespace GPUCA_NAMESPACE::gpu;
 
-GPUd() void ClusterAccumulator::toNative(const deprecated::Digit& d, deprecated::ClusterNative& cn) const
+GPUd() void ClusterAccumulator::toNative(const deprecated::Digit& d, tpc::ClusterNative& cn) const
 {
-  uchar isEdgeCluster = CfUtils::isAtEdge(&d);
-  uchar wasSplitInTime = mSplitInTime >= MIN_SPLIT_NUM;
-  uchar wasSplitInPad = mSplitInPad >= MIN_SPLIT_NUM;
-  uchar flags =
-    (isEdgeCluster << deprecated::CN_FLAG_POS_IS_EDGE_CLUSTER) | (wasSplitInTime << deprecated::CN_FLAG_POS_SPLIT_IN_TIME) | (wasSplitInPad << deprecated::CN_FLAG_POS_SPLIT_IN_PAD);
+  bool isEdgeCluster = CfUtils::isAtEdge(&d);
+  bool wasSplitInTime = mSplitInTime >= MIN_SPLIT_NUM;
+  bool wasSplitInPad = mSplitInPad >= MIN_SPLIT_NUM;
 
-  cn.qmax = d.charge;
-  cn.qtot = mQtot;
-  deprecated::cnSetTimeFlags(&cn, mTimeMean, flags);
-  deprecated::cnSetPad(&cn, mPadMean);
-  deprecated::cnSetSigmaTime(&cn, mTimeSigma);
-  deprecated::cnSetSigmaPad(&cn, mPadSigma);
+  uchar flags = 0;
+  flags |= (isEdgeCluster) ? tpc::ClusterNative::flagEdge : 0;
+  flags |= (wasSplitInTime) ? tpc::ClusterNative::flagSplitTime : 0;
+  flags |= (wasSplitInPad) ? tpc::ClusterNative::flagSplitPad : 0;
+
+  cn.qMax = d.charge;
+  cn.qTot = mQtot;
+  cn.setTimeFlags(mTimeMean, flags);
+  cn.setPad(mPadMean);
+  cn.setSigmaTime(mTimeSigma);
+  cn.setSigmaPad(mPadSigma);
 }
 
-GPUd() void ClusterAccumulator::update(Charge splitCharge, Delta dp, Delta dt)
+GPUd() void ClusterAccumulator::update(Charge splitCharge, Delta2 d)
 {
   mQtot += splitCharge;
-  mPadMean += splitCharge * dp;
-  mTimeMean += splitCharge * dt;
-  mPadSigma += splitCharge * dp * dp;
-  mTimeSigma += splitCharge * dt * dt;
+  mPadMean += splitCharge * d.x;
+  mTimeMean += splitCharge * d.y;
+  mPadSigma += splitCharge * d.x * d.x;
+  mTimeSigma += splitCharge * d.y * d.y;
 }
 
-GPUd() Charge ClusterAccumulator::updateInner(PackedCharge charge, Delta dp, Delta dt)
+GPUd() Charge ClusterAccumulator::updateInner(PackedCharge charge, Delta2 d)
 {
   Charge q = charge.unpack();
 
-  update(q, dp, dt);
+  update(q, d);
 
   bool split = charge.isSplit();
-  mSplitInTime += (dt != 0 && split);
-  mSplitInPad += (dp != 0 && split);
+  mSplitInTime += (d.y != 0 && split);
+  mSplitInPad += (d.x != 0 && split);
 
   return q;
 }
 
-GPUd() Charge ClusterAccumulator::updateOuter(PackedCharge charge, Delta dp, Delta dt)
+GPUd() Charge ClusterAccumulator::updateOuter(PackedCharge charge, Delta2 d)
 {
   Charge q = charge.unpack();
 
   bool split = charge.isSplit();
   bool has3x3 = charge.has3x3Peak();
 
-  update((has3x3) ? 0.f : q, dp, dt);
+  update((has3x3) ? 0.f : q, d);
 
-  mSplitInTime += (dt != 0 && split && !has3x3);
-  mSplitInPad += (dp != 0 && split && !has3x3);
+  mSplitInTime += (d.y != 0 && split && !has3x3);
+  mSplitInPad += (d.x != 0 && split && !has3x3);
 
   return q;
 }
@@ -87,8 +85,8 @@ GPUd() void ClusterAccumulator::finalize(const deprecated::Digit& myDigit)
   mPadSigma /= mQtot;
   mTimeSigma /= mQtot;
 
-  mPadSigma = sqrt(mPadSigma - mPadMean * mPadMean);
-  mTimeSigma = sqrt(mTimeSigma - mTimeMean * mTimeMean);
+  mPadSigma = CAMath::Sqrt(mPadSigma - mPadMean * mPadMean);
+  mTimeSigma = CAMath::Sqrt(mTimeSigma - mTimeMean * mTimeMean);
 
   mPadMean += myDigit.pad;
   mTimeMean += myDigit.time;

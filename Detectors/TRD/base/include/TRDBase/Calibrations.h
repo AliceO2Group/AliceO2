@@ -43,7 +43,7 @@
 #include "TRDBase/ChamberNoise.h"
 #include "TRDBase/PadNoise.h"
 #include "TRDBase/PadStatus.h"
-#include "TRDBase/TrapConfig.h"
+
 class TRDGeometry;
 
 namespace o2
@@ -90,6 +90,7 @@ class Calibrations
   bool isNoDataSideB(int det) const { return mChamberStatus->isNoDataSideB(det); }
   bool isChamberBadlyCalibrated(int det) const { return mChamberStatus->isBadCalibrated(det); }
   bool isChamberNotCalibrated(int det) const { return mChamberStatus->isNotCalibrated(det); }
+  char getChamberStatusRaw(int det) const { return mChamberStatus->getStatus(det); }
 
  protected:
   long mTimeStamp; //run number of related to the current calibration.
@@ -115,7 +116,6 @@ class Calibrations
   ChamberStatus* mChamberStatus;
   PadStatus* mPadStatus;
   ChamberNoise* mChamberNoise;
-  TrapConfig* mTrapConfig;
   //std::shared_ptr<OnlineGainFactors> mOnlineGainFactors;
   //
 };

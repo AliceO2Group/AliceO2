@@ -75,9 +75,9 @@ class Hit : public o2::BasicXYZEHit<float>
 
   /// \brief Get the initial energy of the primary particle entering PHOS
   /// \return Energy of the primary particle entering PHOS
-  Double_t GetInitialEnergy() const { return mInitialEnergy; }
+  Double_t getInitialEnergy() const { return mInitialEnergy; }
 
-  void AddEnergyLoss(Double_t eloss) { SetEnergyLoss(GetEnergyLoss() + eloss); }
+  void addEnergyLoss(Double_t eloss) { SetEnergyLoss(GetEnergyLoss() + eloss); }
 
   /// \brief Writing Hit information to an output stream;
   /// \param stream target output stream

@@ -15,8 +15,12 @@
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/Traits.h"
 #include "Framework/Expressions.h"
+#include "Framework/Kernels.h"
 #include <arrow/table.h>
 #include <arrow/array.h>
+#include <arrow/util/variant.h>
+#include <arrow/compute/context.h>
+#include <arrow/compute/kernel.h>
 #include <gandiva/selection_vector.h>
 #include <cassert>
 
@@ -253,7 +257,7 @@ struct Index : o2::soa::IndexColumn<Index<START, END>> {
   constexpr inline static int64_t end = END;
 
   Index() = default;
-  Index(arrow::Column const*)
+  Index(arrow::Column const* column)
   {
   }
 
@@ -277,15 +281,31 @@ struct Index : o2::soa::IndexColumn<Index<START, END>> {
     return index<1>();
   }
 
+  int64_t globalIndex() const
+  {
+    return index<0>() + offsets<0>();
+  }
+
   template <int N = 0>
   int64_t index() const
   {
     return *std::get<N>(rowIndices);
   }
 
+  template <int N = 0>
+  int64_t offsets() const
+  {
+    return *std::get<N>(rowOffsets);
+  }
+
   void setIndices(std::tuple<int64_t const*, int64_t const*> indices)
   {
     rowIndices = indices;
+  }
+
+  void setOffsets(std::tuple<uint64_t const*> offsets)
+  {
+    rowOffsets = offsets;
   }
 
   static constexpr const char* mLabel = "Index";
@@ -294,6 +314,9 @@ struct Index : o2::soa::IndexColumn<Index<START, END>> {
   using bindings_t = typename o2::framework::pack<>;
   std::tuple<> boundIterators;
   std::tuple<int64_t const*, int64_t const*> rowIndices;
+  /// The offsets within larger tables. Currently only
+  /// one level of nesting is supported.
+  std::tuple<uint64_t const*> rowOffsets;
 };
 
 template <typename T>
@@ -314,7 +337,10 @@ template <typename T>
 using is_index_t = is_index<T, Index>;
 
 struct IndexPolicyBase {
+  /// Position inside the current table
   int64_t mRowIndex = 0;
+  /// Offset within a larger table
+  uint64_t mOffset = 0;
 };
 
 struct DefaultIndexPolicy : IndexPolicyBase {
@@ -326,9 +352,11 @@ struct DefaultIndexPolicy : IndexPolicyBase {
   DefaultIndexPolicy& operator=(DefaultIndexPolicy&&) = default;
 
   /// mMaxRow is one behind the last row, so effectively equal to the number of
-  /// rows @a nRows.
-  DefaultIndexPolicy(int64_t nRows)
-    : mMaxRow(nRows)
+  /// rows @a nRows. Offset indicates that the index is actually part of
+  /// a larger
+  DefaultIndexPolicy(int64_t nRows, uint64_t offset)
+    : IndexPolicyBase{0, offset},
+      mMaxRow(nRows)
   {
   }
 
@@ -344,6 +372,12 @@ struct DefaultIndexPolicy : IndexPolicyBase {
     getIndices() const
   {
     return std::make_tuple(&mRowIndex, &mRowIndex);
+  }
+
+  std::tuple<uint64_t const*>
+    getOffsets() const
+  {
+    return std::make_tuple(&mOffset);
   }
 
   void setCursor(int64_t i)
@@ -373,14 +407,15 @@ struct DefaultIndexPolicy : IndexPolicyBase {
 };
 
 struct FilteredIndexPolicy : IndexPolicyBase {
-  FilteredIndexPolicy()
-    : mSelection(nullptr)
-  {
-  }
-
-  FilteredIndexPolicy(gandiva::SelectionVector* selection)
-    : mSelection(selection),
-      mMaxSelection(selection->GetNumSlots())
+  // We use -1 in the IndexPolicyBase to indicate that the index is
+  // invalid. What will validate the index is the this->setCursor()
+  // which happens below which will properly setup the first index
+  // by remapping the filtered index 0 to whatever unfiltered index
+  // it belongs to.
+  FilteredIndexPolicy(gandiva::SelectionVector* selection = nullptr, uint64_t offset = 0)
+    : IndexPolicyBase{-1, offset},
+      mSelection(selection),
+      mMaxSelection(selection ? selection->GetNumSlots() : 0)
   {
     this->setCursor(0);
   }
@@ -396,6 +431,12 @@ struct FilteredIndexPolicy : IndexPolicyBase {
     return std::make_tuple(&mRowIndex, &mSelectionRow);
   }
 
+  std::tuple<uint64_t const*>
+    getOffsets() const
+  {
+    return std::make_tuple(&mOffset);
+  }
+
   void limitRange(int64_t start, int64_t end)
   {
     this->setCursor(start);
@@ -407,13 +448,13 @@ struct FilteredIndexPolicy : IndexPolicyBase {
   void setCursor(int64_t i)
   {
     mSelectionRow = i;
-    this->mRowIndex = mSelection->GetIndex(mSelectionRow);
+    this->mRowIndex = mSelection ? mSelection->GetIndex(mSelectionRow) : mSelectionRow;
   }
 
   void moveByIndex(int64_t i)
   {
     mSelectionRow += i;
-    this->mRowIndex = mSelection->GetIndex(mSelectionRow);
+    this->mRowIndex = mSelection ? mSelection->GetIndex(mSelectionRow) : mSelectionRow;
   }
 
   bool operator!=(FilteredIndexPolicy const& other) const
@@ -588,6 +629,7 @@ struct RowViewBase : public IP, C... {
     (bindDynamicColumn<DC>(typename DC::bindings_t{}), ...);
     if constexpr (has_index_v) {
       this->setIndices(this->getIndices());
+      this->setOffsets(this->getOffsets());
     }
   }
 
@@ -602,18 +644,18 @@ template <typename... C>
 using RowView = RowViewBase<DefaultIndexPolicy, C...>;
 
 template <typename... C>
-auto&& makeRowView(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, int64_t numRows)
+auto&& makeRowView(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, int64_t numRows, uint64_t offset)
 {
-  return std::move(RowViewBase<DefaultIndexPolicy, C...>{columnIndex, DefaultIndexPolicy{numRows}});
+  return std::move(RowViewBase<DefaultIndexPolicy, C...>{columnIndex, DefaultIndexPolicy{numRows, offset}});
 }
 
 template <typename... C>
 using RowViewFiltered = RowViewBase<FilteredIndexPolicy, C...>;
 
 template <typename... C>
-auto&& makeRowViewFiltered(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, gandiva::SelectionVector* selection)
+auto&& makeRowViewFiltered(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, gandiva::SelectionVector* selection, uint64_t offset)
 {
-  return std::move(RowViewBase<FilteredIndexPolicy, C...>{columnIndex, FilteredIndexPolicy{selection}});
+  return std::move(RowViewBase<FilteredIndexPolicy, C...>{columnIndex, FilteredIndexPolicy{selection, offset}});
 }
 
 struct ArrowHelpers {
@@ -629,31 +671,34 @@ class Table
  public:
   using iterator = RowView<C...>;
   using const_iterator = RowView<C...>;
+  using unfiltered_iterator = RowView<C...>;
+  using unfiltered_const_iterator = RowView<C...>;
   using filtered_iterator = RowViewFiltered<C...>;
   using filtered_const_iterator = RowViewFiltered<C...>;
   using table_t = Table<C...>;
   using columns = framework::pack<C...>;
   using persistent_columns_t = framework::selected_pack<is_persistent_t, C...>;
 
-  Table(std::shared_ptr<arrow::Table> table)
+  Table(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
     : mTable(table),
       mColumnIndex{
         std::pair<C*, arrow::Column*>{nullptr,
                                       lookupColumn<C>()}...},
-      mBegin(mColumnIndex, table->num_rows()),
-      mEnd(mColumnIndex, table->num_rows())
+      mBegin(mColumnIndex, {table->num_rows(), offset}),
+      mEnd(mColumnIndex, {table->num_rows(), offset}),
+      mOffset(offset)
   {
     mEnd.moveToEnd();
   }
 
-  iterator begin()
+  unfiltered_iterator begin()
   {
-    return iterator(mBegin);
+    return unfiltered_iterator(mBegin);
   }
 
-  iterator end()
+  unfiltered_iterator end()
   {
-    return iterator{mEnd};
+    return unfiltered_iterator{mEnd};
   }
 
   filtered_iterator filtered_begin(framework::expressions::Selection selection)
@@ -662,24 +707,24 @@ class Table
     // is held by the table, so we are safe passing the bare pointer. If it does it
     // means that the iterator on a table is outliving the table itself, which is
     // a bad idea.
-    return filtered_iterator(mColumnIndex, selection.get());
+    return filtered_iterator(mColumnIndex, {selection.get(), mOffset});
   }
 
   filtered_iterator filtered_end(framework::expressions::Selection selection)
   {
-    auto end = filtered_iterator(mColumnIndex, selection.get());
+    auto end = filtered_iterator(mColumnIndex, {selection.get(), mOffset});
     end.moveToEnd();
     return end;
   }
 
-  const_iterator begin() const
+  unfiltered_const_iterator begin() const
   {
-    return const_iterator(mBegin);
+    return unfiltered_const_iterator(mBegin);
   }
 
-  const_iterator end() const
+  unfiltered_const_iterator end() const
   {
-    return const_iterator{mEnd};
+    return unfiltered_const_iterator{mEnd};
   }
 
   std::shared_ptr<arrow::Table> asArrowTable() const
@@ -711,9 +756,11 @@ class Table
   /// This is a cached lookup of the column index in a given
   std::tuple<std::pair<C*, arrow::Column*>...> mColumnIndex;
   /// Cached begin iterator for this table.
-  iterator mBegin;
+  unfiltered_iterator mBegin;
   /// Cached end iterator for this table.
-  iterator mEnd;
+  unfiltered_iterator mEnd;
+  /// Offset of the table within a larger table.
+  uint64_t mOffset;
 };
 
 template <typename T>
@@ -866,7 +913,7 @@ class TableMetadata
   };                                                                   \
                                                                        \
   template <>                                                          \
-  struct MetadataTrait<_Name_::iterator> {                             \
+  struct MetadataTrait<_Name_::unfiltered_iterator> {                  \
     using metadata = _Name_##Metadata;                                 \
   };                                                                   \
                                                                        \
@@ -879,9 +926,15 @@ namespace o2::soa
 {
 
 template <typename... C1, typename... C2>
-constexpr auto join(o2::soa::Table<C1...>&& t1, o2::soa::Table<C2...>&& t2)
+constexpr auto join(o2::soa::Table<C1...> const& t1, o2::soa::Table<C2...> const& t2)
 {
   return o2::soa::Table<C1..., C2...>(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
+}
+
+template <typename T1, typename T2, typename... Ts>
+constexpr auto join(T1 const& t1, T2 const& t2, Ts const&... ts)
+{
+  return join(t1, join(t2, ts...));
 }
 
 template <typename T1, typename T2>
@@ -891,31 +944,36 @@ constexpr auto concat(T1&& t1, T2&& t2)
   return table_t(ArrowHelpers::concatTables({t1.asArrowTable(), t2.asArrowTable()}));
 }
 
-template <typename T1, typename T2>
-using JoinBase = decltype(join(std::declval<T1>(), std::declval<T2>()));
+template <typename... Ts>
+using JoinBase = decltype(join(std::declval<Ts>()...));
 
 template <typename T1, typename T2>
 using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
 
-template <typename T1, typename T2>
-struct Join : JoinBase<T1, T2> {
-  Join(std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2)
-    : JoinBase<T1, T2>{ArrowHelpers::joinTables({t1, t2})} {}
-  Join(std::vector<std::shared_ptr<arrow::Table>> tables)
-    : JoinBase<T1, T2>{ArrowHelpers::joinTables(std::move(tables))} {}
+template <typename... Ts>
+struct Join : JoinBase<Ts...> {
+  Join(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0)
+    : JoinBase<Ts...>{ArrowHelpers::joinTables(std::move(tables)), offset} {}
 
-  using left_t = T1;
-  using right_t = T2;
-  using table_t = JoinBase<T1, T2>;
+  template <typename... ATs>
+  Join(uint64_t offset, std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2, ATs... ts)
+    : Join<Ts...>(std::vector<std::shared_ptr<arrow::Table>>{t1, t2, ts...}, offset)
+  {
+  }
+
+  using originals = framework::pack<Ts...>;
+  using table_t = JoinBase<Ts...>;
 };
 
 template <typename T1, typename T2>
 struct Concat : ConcatBase<T1, T2> {
-  Concat(std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2)
-    : ConcatBase<T1, T2>{ArrowHelpers::concatTables({t1, t2})} {}
-  Concat(std::vector<std::shared_ptr<arrow::Table>> tables)
-    : ConcatBase<T1, T2>{ArrowHelpers::concatTables(std::move(tables))} {}
+  Concat(std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2, uint64_t offset = 0)
+    : ConcatBase<T1, T2>{ArrowHelpers::concatTables({t1, t2}), offset} {}
+  Concat(std::vector<std::shared_ptr<arrow::Table>> tables, uint64_t offset = 0)
+    : ConcatBase<T1, T2>{ArrowHelpers::concatTables(std::move(tables)), offset} {}
 
+  using originals = framework::pack<T1, T2>;
+  // FIXME: can be remove when we do the same treatment we did for Join to Concatenate
   using left_t = T1;
   using right_t = T2;
   using table_t = ConcatBase<T1, T2>;
@@ -931,7 +989,7 @@ class Filtered : public T
   Filtered(std::shared_ptr<arrow::Table> table, framework::expressions::Selection selection)
     : T{table},
       mSelection{selection},
-      mFilteredBegin{T::filtered_begin(mSelection)},
+      mFilteredBegin{{T::filtered_begin(mSelection)}},
       mFilteredEnd{T::filtered_end(mSelection)}
   {
   }
@@ -982,6 +1040,27 @@ auto filter(T&& t, framework::expressions::Filter const& expr)
 {
   return Filtered<T>(t.asArrowTable(), expr);
 }
+
+template <typename T>
+std::vector<std::decay_t<T>> slice(T&& t, std::string const& columnName)
+{
+  arrow::compute::FunctionContext ctx;
+  std::vector<arrow::compute::Datum> splittedDatums;
+  std::vector<std::decay_t<T>> splittedTables;
+  std::vector<uint64_t> offsets;
+  auto status = framework::sliceByColumn(&ctx, columnName, arrow::compute::Datum(t.asArrowTable()), &splittedDatums, &offsets);
+  if (status.ok() == false) {
+    throw std::runtime_error("Unable to slice table");
+  }
+  splittedTables.reserve(splittedDatums.size());
+  for (size_t ti = 0; ti < splittedDatums.size(); ++ti) {
+    auto table = arrow::util::get<std::shared_ptr<arrow::Table>>(splittedDatums[ti].value);
+    auto offset = offsets[ti];
+    splittedTables.emplace_back(table, offset);
+  }
+  return splittedTables;
+}
+
 } // namespace o2::soa
 
 #endif // O2_FRAMEWORK_ASOA_H_

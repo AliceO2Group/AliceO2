@@ -15,34 +15,32 @@
 #include "Array2D.h"
 #include "CfConsts.h"
 #include "CfUtils.h"
+#include "ChargePos.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::deprecated;
 
 GPUd() void NoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
-                                                   GPUglobalref() const PackedCharge* chargeMap,
-                                                   GPUglobalref() const uchar* peakMap,
-                                                   GPUglobalref() const Digit* peaks,
+                                                   const Array2D<PackedCharge>& chargeMap,
+                                                   const Array2D<uchar>& peakMap,
+                                                   const Digit* peaks,
                                                    const uint peaknum,
-                                                   GPUglobalref() uchar* isPeakPredicate)
+                                                   uchar* isPeakPredicate)
 {
   size_t idx = get_global_id(0);
 
   Digit myDigit = peaks[CAMath::Min(idx, (size_t)(peaknum - 1))];
 
-  GlobalPad gpad = Array2D::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+  ChargePos pos(myDigit);
 
   ulong minimas, bigger, peaksAround;
-
-  bool debug = false;
 
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
   findMinimaAndPeaksScratchpad(
     chargeMap,
     peakMap,
     myDigit.charge,
-    gpad,
-    myDigit.time,
+    pos,
     smem.noise.posBcast,
     smem.noise.buf,
     &minimas,
@@ -51,17 +49,15 @@ GPUd() void NoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, in
 #else
   findMinima(
     chargeMap,
-    gpad,
-    myDigit.time,
+    pos,
     myDigit.charge,
     NOISE_SUPPRESSION_MINIMA_EPSILON,
     &minimas,
     &bigger);
 
-  peaksAround = findPeaks(peakMap, gpad, myDigit.time, debug);
+  peaksAround = findPeaks(peakMap, pos);
 #endif
 
-  ulong peaksAroundBack = peaksAround;
   peaksAround &= bigger;
 
   bool keepMe = keepPeak(minimas, peaksAround);
@@ -71,29 +67,25 @@ GPUd() void NoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, in
     return;
   }
 
-  if (debug) {
-    printf("%d: p:%lx, m:%lx, b:%lx.\n", int(idx), peaksAroundBack, minimas, bigger);
-  }
+  DBG_PRINT("%d: p:%lx, m:%lx, b:%lx.", int(idx), peaksAroundBack, minimas, bigger);
 
   isPeakPredicate[idx] = keepMe;
-  /* isPeakPredicate[idx] = keepMe && false; */
-  /* isPeakPredicate[idx] = keepMe || true; */
 }
 
 GPUd() void NoiseSuppression::updatePeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& smem,
-                                              GPUglobalref() const Digit* peaks,
-                                              GPUglobalref() const uchar* isPeak,
-                                              GPUglobalref() uchar* peakMap)
+                                              const Digit* peaks,
+                                              const uchar* isPeak,
+                                              Array2D<uchar>& peakMap)
 {
   size_t idx = get_global_id(0);
 
   Digit myDigit = peaks[idx];
-  GlobalPad gpad = Array2D::tpcGlobalPadIdx(myDigit.row, myDigit.pad);
+
+  ChargePos pos(myDigit);
 
   uchar peak = isPeak[idx];
 
-  IS_PEAK(peakMap, gpad, myDigit.time) =
-    ((myDigit.charge > CHARGE_THRESHOLD) << 1) | peak;
+  peakMap[pos] = (uchar(myDigit.charge > CHARGE_THRESHOLD) << 1) | peak;
 }
 
 GPUd() void NoiseSuppression::checkForMinima(
@@ -114,7 +106,7 @@ GPUd() void NoiseSuppression::checkForMinima(
 }
 
 GPUd() void NoiseSuppression::findMinimaScratchPad(
-  GPUsharedref() const PackedCharge* buf,
+  const PackedCharge* buf,
   const ushort ll,
   const int N,
   int pos,
@@ -131,7 +123,7 @@ GPUd() void NoiseSuppression::findMinimaScratchPad(
 }
 
 GPUd() void NoiseSuppression::findPeaksScratchPad(
-  GPUsharedref() const uchar* buf,
+  const uchar* buf,
   const ushort ll,
   const int N,
   int pos,
@@ -145,9 +137,8 @@ GPUd() void NoiseSuppression::findPeaksScratchPad(
 }
 
 GPUd() void NoiseSuppression::findMinima(
-  GPUglobalref() const PackedCharge* chargeMap,
-  const GlobalPad gpad,
-  const Timestamp time,
+  const Array2D<PackedCharge>& chargeMap,
+  const ChargePos& pos,
   const float q,
   const float epsilon,
   ulong* minimas,
@@ -158,35 +149,27 @@ GPUd() void NoiseSuppression::findMinima(
 
   for (int i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++) {
     Delta2 d = CfConsts::NoiseSuppressionNeighbors[i];
-    Delta dp = d.x;
-    Delta dt = d.y;
 
-    PackedCharge other = CHARGE(chargeMap, gpad + dp, time + dt);
+    PackedCharge other = chargeMap[pos.delta(d)];
 
     checkForMinima(q, epsilon, other, i, minimas, bigger);
   }
 }
 
 GPUd() ulong NoiseSuppression::findPeaks(
-  GPUglobalref() const uchar* peakMap,
-  const GlobalPad gpad,
-  const Timestamp time,
-  bool debug)
+  const Array2D<uchar>& peakMap,
+  const ChargePos& pos)
 {
   ulong peaks = 0;
-  if (debug) {
-    printf("Looking around %d, %d\n", gpad, time);
-  }
+
+  DBG_PRINT("Looking around %d, %d", pos.gpad, pos.time);
+
   for (int i = 0; i < NOISE_SUPPRESSION_NEIGHBOR_NUM; i++) {
     Delta2 d = CfConsts::NoiseSuppressionNeighbors[i];
-    Delta dp = d.x;
-    Delta dt = d.y;
 
-    uchar p = IS_PEAK(peakMap, gpad + dp, time + dt);
+    uchar p = peakMap[pos.delta(d)];
 
-    if (debug) {
-      printf("%d, %d: %d\n", dp, dt, p);
-    }
+    DBG_PRINT("%d, %d: %d", d.x, d.y, p);
 
     peaks |= (ulong(GET_IS_PEAK(p)) << i);
   }
@@ -211,27 +194,23 @@ GPUd() bool NoiseSuppression::keepPeak(
 }
 
 GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
-  GPUglobalref() const PackedCharge* chargeMap,
-  GPUglobalref() const uchar* peakMap,
+  const Array2D<PackedCharge>& chargeMap,
+  const Array2D<uchar>& peakMap,
   float q,
-  GlobalPad gpad,
-  Timestamp time,
-  GPUsharedref() ChargePos* posBcast,
-  GPUsharedref() PackedCharge* buf,
+  const ChargePos& pos,
+  ChargePos* posBcast,
+  PackedCharge* buf,
   ulong* minimas,
   ulong* bigger,
   ulong* peaks)
 {
   ushort ll = get_local_id(0);
 
-  posBcast[ll] = (ChargePos){gpad, time};
+  posBcast[ll] = pos;
   GPUbarrier();
 
-#if defined(GPUCA_GPUCODE)
-  ushort wgSizeHalf = SCRATCH_PAD_WORK_GROUP_SIZE / 2;
-#else
-  ushort wgSizeHalf = 1;
-#endif
+  ushort wgSizeHalf = (SCRATCH_PAD_WORK_GROUP_SIZE + 1) / 2;
+
   bool inGroup1 = ll < wgSizeHalf;
   ushort llhalf = (inGroup1) ? ll : (ll - wgSizeHalf);
 
@@ -243,14 +222,14 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
    * Look for minima
    **************************************/
 
-  CfUtils::fillScratchPad_PackedCharge(
+  CfUtils::blockLoad(
     chargeMap,
     SCRATCH_PAD_WORK_GROUP_SIZE,
     SCRATCH_PAD_WORK_GROUP_SIZE,
     ll,
-    0,
+    16,
     2,
-    CfConsts::NoiseSuppressionNeighbors + 16,
+    CfConsts::NoiseSuppressionNeighbors,
     posBcast,
     buf);
 
@@ -264,7 +243,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
     minimas,
     bigger);
 
-  CfUtils::fillScratchPad_PackedCharge(
+  CfUtils::blockLoad(
     chargeMap,
     wgSizeHalf,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -287,7 +266,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
       bigger);
   }
 
-  CfUtils::fillScratchPad_PackedCharge(
+  CfUtils::blockLoad(
     chargeMap,
     wgSizeHalf,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -311,7 +290,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
   }
 
 #if defined(GPUCA_GPUCODE)
-  CfUtils::fillScratchPad_PackedCharge(
+  CfUtils::blockLoad(
     chargeMap,
     wgSizeHalf,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -334,7 +313,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
       bigger);
   }
 
-  CfUtils::fillScratchPad_PackedCharge(
+  CfUtils::blockLoad(
     chargeMap,
     wgSizeHalf,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -358,13 +337,13 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
   }
 #endif
 
-  GPUsharedref() uchar* bufp = (GPUsharedref() uchar*)buf;
+  uchar* bufp = (uchar*)buf;
 
   /**************************************
      * Look for peaks
      **************************************/
 
-  CfUtils::fillScratchPad_uchar(
+  CfUtils::blockLoad(
     peakMap,
     SCRATCH_PAD_WORK_GROUP_SIZE,
     SCRATCH_PAD_WORK_GROUP_SIZE,
@@ -382,7 +361,7 @@ GPUd() void NoiseSuppression::findMinimaAndPeaksScratchpad(
     0,
     peaks);
 
-  CfUtils::fillScratchPad_uchar(
+  CfUtils::blockLoad(
     peakMap,
     SCRATCH_PAD_WORK_GROUP_SIZE,
     SCRATCH_PAD_WORK_GROUP_SIZE,

@@ -94,9 +94,9 @@ void CcdbApi::storeAsTFile_impl(void* obj, std::type_info const& tinfo, std::str
   }
 
   // Prepare file name (for now the name corresponds to the name stored by TClass)
-  string objectName = string(tcl->GetName());
-  utils::trim(objectName);
-  string tmpFileName = objectName + "_" + getTimestampString(getCurrentTimestamp()) + ".root";
+  string className = string(tcl->GetName());
+  utils::trim(className);
+  string tmpFileName = className + "_" + getTimestampString(getCurrentTimestamp()) + ".root";
 #if ROOT_VERSION_CODE < ROOT_VERSION(6, 18, 0)
   TMemFile memFile(tmpFileName.c_str(), "RECREATE");
 #else
@@ -105,11 +105,11 @@ void CcdbApi::storeAsTFile_impl(void* obj, std::type_info const& tinfo, std::str
                    memFileBlockSize);
 #endif
   if (memFile.IsZombie()) {
-    cerr << "Error opening file " << tmpFileName << ", we can't store object " << objectName << endl;
+    cerr << "Error opening file " << tmpFileName << ", we can't store object " << className << endl;
     memFile.Close();
     return;
   }
-  memFile.WriteObjectAny(obj, tcl, objectName.c_str());
+  memFile.WriteObjectAny(obj, tcl, className.c_str());
   memFile.Close();
 
   // Prepare Buffer
@@ -128,7 +128,7 @@ void CcdbApi::storeAsTFile_impl(void* obj, std::type_info const& tinfo, std::str
     sanitizedEndValidityTimestamp = getFutureTimestamp(60 * 60 * 24 * 365);
   }
   string fullUrl = getFullUrlForStorage(path, metadata, sanitizedStartValidityTimestamp, sanitizedEndValidityTimestamp);
-  std::cout << "FULL URL " << fullUrl << "\n";
+  LOG(DEBUG) << "Full URL " << fullUrl;
 
   // Curl preparation
   CURL* curl = nullptr;
@@ -420,12 +420,30 @@ TObject* CcdbApi::retrieve(std::string const& path, std::map<std::string, std::s
   return result;
 }
 
-TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp) const
+namespace
+{
+size_t header_map_callback(char* buffer, size_t size, size_t nitems, void* userdata)
+{
+  auto* headers = static_cast<std::map<std::string, std::string>*>(userdata);
+  auto header = std::string(buffer, size * nitems);
+  std::string::size_type index = header.find(':', 0);
+  if (index != std::string::npos) {
+    headers->insert(std::make_pair(
+      boost::algorithm::trim_copy(header.substr(0, index)),
+      boost::algorithm::trim_copy(header.substr(index + 1))));
+  }
+  return size * nitems;
+}
+} // namespace
+
+TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::string, std::string> const& metadata,
+                                    long timestamp, std::map<std::string, std::string>* headers) const
 {
   // Note : based on https://curl.haxx.se/libcurl/c/getinmemory.html
   // Thus it does not comply to our coding guidelines as it is a copy paste.
 
   string fullUrl = getFullUrlForRetrieval(path, metadata, timestamp);
+  //  std::map<std::string, std::string> headers2;
 
   // Prepare CURL
   CURL* curl_handle;
@@ -452,6 +470,15 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
 
   /* if redirected , we tell libcurl to follow redirection */
   curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
+
+  // setup curl for headers handling
+  if (headers != nullptr) {
+    struct curl_slist* list = nullptr;
+    list = curl_slist_append(list, ("If-None-Match: " + to_string(timestamp)).c_str());
+    curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, list);
+    curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback);
+    curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, headers);
+  }
 
   /* get it! */
   res = curl_easy_perform(curl_handle);
@@ -597,7 +624,7 @@ void* CcdbApi::extractFromLocalFile(std::string const& filename, std::string con
 }
 
 void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const& path,
-                                 std::map<std::string, std::string> const& metadata, long timestamp) const
+                                 std::map<std::string, std::string> const& metadata, long timestamp, std::map<std::string, std::string>* headers) const
 {
   // We need the TClass for this type; will verify if dictionary exists
   auto tcl = TClass::GetClass(tinfo);
@@ -643,6 +670,15 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
 
   /* if redirected , we tell libcurl to follow redirection */
   curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
+
+  // setup curl for headers handling
+  if (headers != nullptr) {
+    struct curl_slist* list = nullptr;
+    list = curl_slist_append(list, ("If-None-Match: " + to_string(timestamp)).c_str());
+    curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, list);
+    curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback);
+    curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, headers);
+  }
 
   /* get it! */
   res = curl_easy_perform(curl_handle);
@@ -834,20 +870,7 @@ size_t header_callback(char* buffer, size_t size, size_t nitems, void* userdata)
   headers->emplace_back(std::string(header.data()));
   return size * nitems;
 }
-
-size_t header_map_callback(char* buffer, size_t size, size_t nitems, void* userdata)
-{
-  std::map<std::string, std::string>* headers = static_cast<std::map<std::string, std::string>*>(userdata);
-  auto header = std::string(buffer, size * nitems);
-  std::string::size_type index = header.find(':', 0);
-  if (index != std::string::npos) {
-    headers->insert(std::make_pair(
-      boost::algorithm::trim_copy(header.substr(0, index)),
-      boost::algorithm::trim_copy(header.substr(index + 1))));
-  }
-  return size * nitems;
 }
-} // namespace
 
 std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp) const
 {

@@ -84,12 +84,11 @@ class GPUTPCTrackletConstructor
 #endif // GPUCA_GPUCODE
 
    protected:
-    MEM_LG(GPUTPCRow)
-    mRows[GPUCA_ROW_COUNT];    // rows
-    int mNextTrackletFirst;    // First tracklet to be processed by CUDA block during next iteration
-    int mNextTrackletCount;    // Number of Tracklets to be processed by CUDA block during next iteration
-    int mNextTrackletFirstRun; // First run for dynamic scheduler?
-    int mNTracklets;           // Total number of tracklets
+    CA_SHARED_STORAGE(MEM_LG(GPUTPCRow) mRows[GPUCA_ROW_COUNT]); // rows
+    int mNextTrackletFirst;                                      // First tracklet to be processed by CUDA block during next iteration
+    int mNextTrackletCount;                                      // Number of Tracklets to be processed by CUDA block during next iteration
+    int mNextTrackletFirstRun;                                   // First run for dynamic scheduler?
+    int mNTracklets;                                             // Total number of tracklets
 
 #ifdef GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE
     int fMaxSync; // temporary shared variable during profile creation

@@ -4,15 +4,10 @@
 
 # MUON
 
-This is a top page for the MUON detector documentation.
+The MUON subsystem is composed of three detectors : [MFT](../ITSMFT/MFT), [MCH](./MCH) and [MID](./MID).
 
 <!-- doxy
-* \subpage refMUONMIDClustering
-* \subpage refMUONMIDTracking
-* \subpage refMUONMIDWorkflow
-* \subpage refMUONMCHMappingSegContour
-* \subpage refMUONMCHMapping
-* \subpage refMUONMCHMappingtest
-* \subpage refMUONMCHMappingImpl3
-* \subpage refMUONMCHContour
+* \subpage refDetectorsITSMFT
+* \subpage refDetectorsMUONMID
+* \subpage refDetectorsMUONMCH
 /doxy -->

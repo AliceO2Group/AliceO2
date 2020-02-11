@@ -16,7 +16,8 @@ o2_add_executable(digitizer-workflow
                           src/EMCALDigitizerSpec.cxx
                           src/FT0DigitWriterSpec.cxx
                           src/FT0DigitizerSpec.cxx
-			  src/FDDDigitizerSpec.cxx
+                          src/FV0DigitizerSpec.cxx
+                          src/FDDDigitizerSpec.cxx
                           src/GRPUpdaterSpec.cxx
                           src/HMPIDDigitizerSpec.cxx
                           src/ITSMFTDigitWriterSpec.cxx
@@ -24,32 +25,35 @@ o2_add_executable(digitizer-workflow
                           src/MCHDigitizerSpec.cxx
                           src/MIDDigitizerSpec.cxx
                           src/PHOSDigitizerSpec.cxx
-                          src/PHOSDigitWriterSpec.cxx
+                          src/CPVDigitizerSpec.cxx
                           src/SimReaderSpec.cxx
                           src/SimpleDigitizerWorkflow.cxx
                           src/TOFDigitWriterSpec.cxx
                           src/TOFDigitizerSpec.cxx
                           src/TPCDigitRootWriterSpec.cxx
                           src/TPCDigitizerSpec.cxx
-                          src/TRDDigitizerSpec.cxx
                           src/ZDCDigitizerSpec.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                         O2::Steer
                                         O2::EMCALSimulation
                                         O2::FT0Simulation
-					O2::FDDSimulation
+                                        O2::FV0Simulation
+                                        O2::FDDSimulation
                                         O2::HMPIDSimulation
                                         O2::ITSMFTSimulation
                                         O2::ITSSimulation
                                         O2::MCHSimulation
-					O2::MCHBase
+                                        O2::MCHBase
                                         O2::MFTSimulation
                                         O2::MIDSimulation
                                         O2::PHOSSimulation
+                                        O2::CPVSimulation
                                         O2::TOFSimulation
+                    					O2::TOFCalibration
                                         O2::TOFReconstruction
                                         O2::TPCSimulation
                                         O2::TPCWorkflow
                                         O2::TRDSimulation
+                                        O2::TRDWorkflow
                                         O2::DataFormatsTRD
                                         O2::ZDCSimulation)

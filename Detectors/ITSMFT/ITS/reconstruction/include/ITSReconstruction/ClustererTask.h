@@ -26,6 +26,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <memory>
+#include <limits>
 
 namespace o2
 {
@@ -53,15 +54,17 @@ class ClustererTask
 
   void Init();
   Clusterer& getClusterer() { return mClusterer; }
-  void run(const std::string inpName, const std::string outName, bool entryPerROF = true);
-  void setSelfManagedMode(bool v) { mSelfManagedMode = v; }
-  bool isSelfManagedMode() const { return mSelfManagedMode; }
+  void run(const std::string inpName, const std::string outName);
   o2::itsmft::PixelReader* getReader() const { return (o2::itsmft::PixelReader*)mReader; }
 
   void loadDictionary(std::string fileName) { mClusterer.loadDictionary(fileName); }
 
+  void writeTree(std::string basename, int i);
+  void setMaxROframe(int max) { maxROframe = max; }
+  int getMaxROframe() const { return maxROframe; }
+
  private:
-  bool mSelfManagedMode = false;                                                      ///< manages itself input output
+  int maxROframe = std::numeric_limits<int>::max();                                   ///< maximal number of RO frames per a file
   bool mRawDataMode = false;                                                          ///< input from raw data or MC digits
   bool mUseMCTruth = true;                                                            ///< flag to use MCtruth if available
   o2::itsmft::PixelReader* mReader = nullptr;                                         ///< Pointer on the relevant Pixel reader
@@ -72,16 +75,12 @@ class ClustererTask
   Clusterer mClusterer;                                ///< Cluster finder
 
   std::vector<Cluster> mFullClus;               //!< vector of full clusters
-  std::vector<Cluster>* mFullClusPtr = nullptr; //!< vector of full clusters pointer
 
   std::vector<CompClusterExt> mCompClus;               //!< vector of compact clusters
-  std::vector<CompClusterExt>* mCompClusPtr = nullptr; //!< vector of compact clusters pointer
 
   std::vector<o2::itsmft::ROFRecord> mROFRecVec;               //!< vector of ROFRecord references
-  std::vector<o2::itsmft::ROFRecord>* mROFRecVecPtr = nullptr; //!< vector of ROFRecord references pointer
 
   MCTruth mClsLabels;               //! MC labels
-  MCTruth* mClsLabelsPtr = nullptr; //! MC labels pointer (optional)
 
   ClassDefNV(ClustererTask, 1);
 };
