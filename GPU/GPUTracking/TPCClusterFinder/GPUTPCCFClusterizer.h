@@ -20,6 +20,7 @@
 #include "GPUTPCClusterFinder.h"
 #include "Array2D.h"
 #include "PackedCharge.h"
+#include "GPUHostDataTypes.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -65,6 +66,10 @@ class GPUTPCCFClusterizer : public GPUKernelTemplate
 
   template <int iKernel = defaultKernel, typename... Args>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
+
+  using LabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+
+  static GPUd() void computeClustersImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, const Array2D<PackedCharge>&, const Array2D<DigitID> &, const deprecated::Digit*, uint, uint, uint*, tpc::ClusterNative*, CPU_PARAM(const LabelContainer*,) );
 
  private:
   static GPUd() void addOuterCharge(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&, Delta2);

@@ -91,6 +91,14 @@ struct GridSize<2> {
   };
 };
 
+template <>
+struct GridSize<4> {
+  enum {
+    Width = 4,
+    Height = 4,
+  };
+};
+
 #if defined(CHARGEMAP_TILING_LAYOUT)
 template <typename T>
 using Array2D = TilingLayoutArray2D<T, GridSize<sizeof(T)>>;
