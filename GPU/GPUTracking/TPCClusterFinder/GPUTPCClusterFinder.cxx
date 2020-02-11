@@ -62,6 +62,9 @@ void* GPUTPCClusterFinder::SetPointersScratch(void* mem)
   computePointerWithAlignment(mem, mPisPeak, mNMaxDigits);
   computePointerWithAlignment(mem, mPchargeMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED);
   computePointerWithAlignment(mem, mPpeakMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED);
+  if (not mRec->IsGPU()) {
+    computePointerWithAlignment(mem, mPindexMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED);
+  }
   computePointerWithAlignment(mem, mPbuf, mBufSize * mNBufs);
   return mem;
 }

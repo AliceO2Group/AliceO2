@@ -17,6 +17,7 @@
 #include "GPUDef.h"
 #include "GPUProcessor.h"
 #include "GPUDataTypes.h"
+#include "CPULabelContainer.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -66,7 +67,6 @@ class GPUTPCClusterFinder : public GPUProcessor
   size_t getNSteps(size_t items) const;
   void SetNMaxDigits(size_t nDigits, size_t nPages);
 #endif
-
   unsigned char* mPzs = nullptr;
   ZSOffset* mPzsOffsets = nullptr;
   deprecated::PackedDigit* mPdigits = nullptr;
@@ -75,6 +75,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   unsigned char* mPisPeak = nullptr;
   ushort* mPchargeMap = nullptr;
   unsigned char* mPpeakMap = nullptr;
+  DigitID *mPindexMap = nullptr;
   uint* mPclusterInRow = nullptr;
   tpc::ClusterNative* mPclusterByRow = nullptr;
   int* mPbuf = nullptr;
