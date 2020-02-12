@@ -10,7 +10,6 @@
 
 o2_add_library(DetectorsRaw
                SOURCES src/RawFileReader.cxx
-  	               src/RawFileReaderWorkflow.cxx
 	               src/HBFUtils.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
 		                     O2::Headers
@@ -21,7 +20,6 @@ o2_add_library(DetectorsRaw
 
 o2_target_root_dictionary(DetectorsRaw
                           HEADERS include/DetectorsRaw/RawFileReader.h
-                                  include/DetectorsRaw/RawFileReaderWorkflow.h
 				  include/DetectorsRaw/HBFUtils.h)
 
 
@@ -35,6 +33,7 @@ o2_add_executable(file-check
 o2_add_executable(file-reader-workflow
                   COMPONENT_NAME raw
                   SOURCES src/rawfile-reader-workflow.cxx
+     		          src/RawFileReaderWorkflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::DetectorsRaw)
 
 				      

@@ -12,7 +12,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/DeviceSpec.h"
-#include "Framework/DataSpecUtils.h" // RSTODO remove?
+#include "Framework/DataSpecUtils.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessingHeader.h"
@@ -20,11 +20,12 @@
 #include "Framework/Logger.h"
 
 #include "DetectorsRaw/RawFileReader.h"
-#include "DetectorsRaw/RawFileReaderWorkflow.h"
 #include "DetectorsRaw/HBFUtils.h"
 
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
+
+#include "RawFileReaderWorkflow.h" // not installed
 
 #include <fairmq/FairMQDevice.h>
 

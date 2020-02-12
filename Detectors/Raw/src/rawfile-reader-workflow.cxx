@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DetectorsRaw/RawFileReaderWorkflow.h"
+#include "RawFileReaderWorkflow.h"
 #include <string>
 
 using namespace o2::framework;
