@@ -29,7 +29,7 @@ class GPUTPCClusterFinder;
 class GPUTPCCFDecodeZS : public GPUKernelTemplate
 {
  public:
-  struct GPUTPCSharedMemory {
+  struct GPUSharedMemory {
     CA_SHARED_STORAGE(unsigned int ZSPage[o2::tpc::TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(unsigned int)]);
     unsigned int RowClusterOffset[o2::tpc::TPCZSHDR::TPC_MAX_ZS_ROW_IN_ENDPOINT];
     unsigned int nRowsRegion;
@@ -44,7 +44,7 @@ class GPUTPCCFDecodeZS : public GPUKernelTemplate
     decodeZS,
   };
 
-  static GPUd() void decode(GPUTPCClusterFinder& clusterer, GPUTPCSharedMemory& s, int nBlocks, int nThreads, int iBlock, int iThread);
+  static GPUd() void decode(GPUTPCClusterFinder& clusterer, GPUSharedMemory& s, int nBlocks, int nThreads, int iBlock, int iThread);
 
 #ifdef HAVE_O2HEADERS
   typedef GPUTPCClusterFinder processorType;
@@ -59,8 +59,8 @@ class GPUTPCCFDecodeZS : public GPUKernelTemplate
     return GPUDataTypes::RecoStep::TPCClusterFinding;
   }
 
-  template <int iKernel = 0, typename... Args>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, Args... args);
+  template <int iKernel = defaultKernel, typename... Args>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 };
 
 } // namespace gpu

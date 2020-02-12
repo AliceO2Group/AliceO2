@@ -20,14 +20,14 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::deprecated;
 
 template <>
-GPUd() void GPUTPCCFDeconvolution::Thread<GPUTPCCFDeconvolution::countPeaks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer)
+GPUd() void GPUTPCCFDeconvolution::Thread<GPUTPCCFDeconvolution::countPeaks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   Array2D<uchar> isPeakMap(clusterer.mPpeakMap);
   GPUTPCCFDeconvolution::countPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, isPeakMap, chargeMap, clusterer.mPdigits, clusterer.mPmemory->counters.nDigits);
 }
 
-GPUd() void GPUTPCCFDeconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem,
+GPUd() void GPUTPCCFDeconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
                                                   const Array2D<uchar>& peakMap,
                                                   Array2D<PackedCharge>& chargeMap,
                                                   const Digit* digits,
