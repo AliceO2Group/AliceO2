@@ -28,8 +28,7 @@ class GPUTPCCFStreamCompaction
 {
 
  public:
-  class GPUTPCSharedMemory : public GPUKernelTemplate::GPUTPCSharedMemoryScan64<int, GPUCA_THREAD_COUNT_SCAN>
-  {
+  struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int, GPUCA_THREAD_COUNT_SCAN> {
   };
 
   enum K {
@@ -40,20 +39,20 @@ class GPUTPCCFStreamCompaction
     compactDigit,
   };
 
-  static GPUd() void nativeScanUpStartImpl(int, int, int, int, GPUTPCSharedMemory&,
+  static GPUd() void nativeScanUpStartImpl(int, int, int, int, GPUSharedMemory&,
                                            const uchar*, int*, int*,
                                            int);
 
-  static GPUd() void nativeScanUpImpl(int, int, int, int, GPUTPCSharedMemory&,
+  static GPUd() void nativeScanUpImpl(int, int, int, int, GPUSharedMemory&,
                                       int*, int*, int);
 
-  static GPUd() void nativeScanTopImpl(int, int, int, int, GPUTPCSharedMemory&,
+  static GPUd() void nativeScanTopImpl(int, int, int, int, GPUSharedMemory&,
                                        int*, int);
 
-  static GPUd() void nativeScanDownImpl(int, int, int, int, GPUTPCSharedMemory&,
+  static GPUd() void nativeScanDownImpl(int, int, int, int, GPUSharedMemory&,
                                         int*, const int*, unsigned int, int);
 
-  static GPUd() void compactDigitImpl(int, int, int, int, GPUTPCSharedMemory&,
+  static GPUd() void compactDigitImpl(int, int, int, int, GPUSharedMemory&,
                                       const deprecated::Digit*, deprecated::Digit*,
                                       const uchar*, int*, const int*,
                                       int);
@@ -71,8 +70,8 @@ class GPUTPCCFStreamCompaction
     return GPUDataTypes::RecoStep::TPCClusterFinding;
   }
 
-  template <int iKernel = 0, typename... Args>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, Args... args);
+  template <int iKernel = GPUKernelTemplate::defaultKernel, typename... Args>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 
  private:
   GPUd() static int compactionElems(processorType& clusterer, int stage);
