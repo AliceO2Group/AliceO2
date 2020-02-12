@@ -71,6 +71,8 @@ GPUg() void runKernelHIP(GPUCA_CONSMEM_PTR int iSlice, Args... args)
 }
 */
 
+#undef GPUCA_KRNL_REG
+#define GPUCA_KRNL_REG(num) __attribute__((amdgpu_num_vgpr(num)))
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_, x_class, x_attributes, x_arguments, x_forward)
 #define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionHIPBackend
 #define GPUCA_KRNL_CALL_single(x_class, x_attributes, x_arguments, x_forward) \

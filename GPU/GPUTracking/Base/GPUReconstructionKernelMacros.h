@@ -31,6 +31,18 @@
 #define GPUCA_M_KRNL_NAME(...) GPUCA_M_KRNL_NAME_A(GPUCA_M_STRIP(__VA_ARGS__))
 
 #ifdef GPUCA_GPUCODE
+#ifndef GPUCA_KRNL_REG
+#define GPUCA_KRNL_REG(...)
+#endif
+#define GPUCA_ATTRRES_REG(reg, num, ...) GPUCA_KRNL_REG(num) GPUCA_ATTRRES2(__VA_ARGS__)
+#define GPUCA_ATTRRES2_REG(reg, num, ...) GPUCA_KRNL_REG(num) GPUCA_ATTRRES3(__VA_ARGS__)
+#define GPUCA_ATTRRES_NONE(...)
+#define GPUCA_ATTRRES2_NONE(...)
+#define GPUCA_ATTRRES_(...)
+#define GPUCA_ATTRRES2_(...)
+#define GPUCA_ATTRRES3() // 3 attributes not supported
+#define GPUCA_ATTRRES2(...) GPUCA_M_EXPAND(GPUCA_M_CAT(GPUCA_ATTRRES2_, GPUCA_M_FIRST(__VA_ARGS__)))(__VA_ARGS__)
+#define GPUCA_ATTRRES(...) GPUCA_M_EXPAND(GPUCA_M_CAT(GPUCA_ATTRRES_, GPUCA_M_FIRST(__VA_ARGS__)))(__VA_ARGS__)
 // GPU Kernel entry point for single sector
 #define GPUCA_KRNLGPU_SINGLE(x_class, x_attributes, x_arguments, x_forward) \
 GPUg() void GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))(GPUCA_CONSMEM_PTR int iSlice GPUCA_M_STRIP(x_arguments)) \
@@ -100,7 +112,7 @@ GPUg() void GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)(GPUCA_CONSME
   GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward)
 
 // Generate GPU kernel and host wrapper
-#define GPUCA_KRNL_WRAP(x_func, x_class, x_attributes, x_arguments, x_forward) GPUCA_M_CAT(x_func, GPUCA_M_STRIP(x_attributes))(x_class, x_attributes, x_arguments, x_forward)
+#define GPUCA_KRNL_WRAP(x_func, x_class, x_attributes, x_arguments, x_forward) GPUCA_M_CAT(x_func, GPUCA_M_STRIP_FIRST(x_attributes))(x_class, x_attributes, x_arguments, x_forward)
 #endif
 
 #endif
