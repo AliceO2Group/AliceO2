@@ -1707,7 +1707,7 @@ void AliTPCPoissonSolver::Restrict2D(TMatrixD& matricesCurrentCharge, TMatrixD& 
   }
 
   // for boundary
-  for (Int_t i = 0, ii = 0; i < tnZColumn; i++, ii += 2) {
+  for (Int_t i = 0, ii = 0; i < tnRRow; i++, ii += 2) {
     matricesCurrentCharge(i, 0) = residue(ii, 0);
     matricesCurrentCharge(i, tnZColumn - 1) = residue(ii, (tnZColumn - 1) * 2);
   }
@@ -1732,7 +1732,7 @@ void AliTPCPoissonSolver::RestrictBoundary2D(TMatrixD& matricesCurrentCharge, TM
   }
 
   // for boundary
-  for (Int_t i = 0, ii = 0; i < tnZColumn; i++, ii += 2) {
+  for (Int_t i = 0, ii = 0; i < tnRRow; i++, ii += 2) {
     matricesCurrentCharge(i, 0) = residue(ii, 0);
     matricesCurrentCharge(i, tnZColumn - 1) = residue(ii, (tnZColumn - 1) * 2);
   }
@@ -1815,7 +1815,7 @@ void AliTPCPoissonSolver::Restrict3D(TMatrixD** matricesCurrentCharge, TMatrixD*
       }
 
       // for boundary
-      for (Int_t i = 0, ii = 0; i < tnZColumn; i++, ii += 2) {
+      for (Int_t i = 0, ii = 0; i < tnRRow; i++, ii += 2) {
         arrayCharge(i, 0) = arrayResidue(ii, 0);
         arrayCharge(i, tnZColumn - 1) = arrayResidue(ii, (tnZColumn - 1) * 2);
       }
@@ -1858,7 +1858,7 @@ void AliTPCPoissonSolver::RestrictBoundary3D(TMatrixD** matricesCurrentCharge, T
       }
 
       // for boundary
-      for (Int_t i = 0, ii = 0; i < tnZColumn; i++, ii += 2) {
+      for (Int_t i = 0, ii = 0; i < tnRRow; i++, ii += 2) {
         arrayCharge(i, 0) = arrayResidue(ii, 0);
         arrayCharge(i, tnZColumn - 1) = arrayResidue(ii, (tnZColumn - 1) * 2);
       }
