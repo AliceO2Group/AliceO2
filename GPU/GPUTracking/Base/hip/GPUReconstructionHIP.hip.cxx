@@ -11,7 +11,7 @@
 /// \file GPUReconstructionHIP.hip.cxx
 /// \author David Rohr
 
-#define GPUCA_GPUTYPE_HIP
+#define GPUCA_GPUTYPE_VEGA
 #include <hip/hip_runtime.h>
 
 #ifdef __CUDACC__
