@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "GPUGeneralKernels.h"
+#include "GPUHostDataTypes.h"
 #include "GPUTPCNeighboursFinder.h"
 #include "GPUTPCNeighboursCleaner.h"
 #include "GPUTPCStartHitsFinder.h"

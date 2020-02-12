@@ -16,6 +16,7 @@
 
 #include "GPUReconstructionCPU.h"
 #include "GPUReconstructionHelpers.h"
+#include "GPUHostDataTypes.h"
 
 namespace GPUCA_NAMESPACE
 {

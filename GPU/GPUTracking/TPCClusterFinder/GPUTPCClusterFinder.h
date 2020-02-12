@@ -22,6 +22,13 @@
 namespace GPUCA_NAMESPACE
 {
 
+class MCCompLabel;
+namespace dataformats
+{
+template <typename TruthElement>
+class MCTruthContainer;
+} // namespace dataformats
+
 namespace tpc
 {
 struct ClusterNative;
@@ -29,6 +36,7 @@ struct ClusterNative;
 
 namespace gpu
 {
+struct GPUTPCClusterMCSector;
 
 namespace deprecated
 {
@@ -81,6 +89,9 @@ class GPUTPCClusterFinder : public GPUProcessor
   int* mPbuf = nullptr;
   Memory* mPmemory = nullptr;
 
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> const* mPinputLabels = nullptr;
+  GPUTPCClusterMCSector* mPclusterLabels = nullptr;
+
   int mISlice = 0;
   constexpr static int mScanWorkGroupSize = GPUCA_THREAD_COUNT_SCAN;
   size_t mNMaxClusterPerRow = 0;
@@ -103,6 +114,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   void DumpSuppressedPeaksCompacted(std::ostream& out);
   void DumpCountedPeaks(std::ostream& out);
   void DumpClusters(std::ostream& out);
+  void DumpMCLabels(std::ostream& out);
 #endif
 };
 
