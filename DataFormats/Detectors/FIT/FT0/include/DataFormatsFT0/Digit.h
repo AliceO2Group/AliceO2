@@ -30,23 +30,26 @@ namespace ft0
 class ChannelData;
 
 struct Triggers {
-  union {
-    int64_t word = 0;
-    struct {
-      int64_t orC : 1,
-        orA : 1,
-        sCen : 1,
-        cen : 1,
-        vertex : 1,
-        nChanA : 7,
-        nChanC : 7,
-        amplA : 12,
-        amplC : 12,
-        timeA : 9,
-        timeC : 9,
-        rest1 : 3;
-    };
-  };
+  uint8_t triggersignal; // real trigger signals
+  uint8_t nChanA;        // number of faired channels A side 
+  uint8_t nChanC; // number of faired channels A side 
+  uint16_t amplA; // sum amplitude A side 
+  uint16_t amplC;// sum amplitude C side
+  uint16_t timeA;// average time A side
+  uint16_t timeC;// average time C side
+  Triggers() = default;
+  Triggers(  uint8_t signals, uint8_t chanA, uint8_t chanC, uint16_t aamplA,  uint16_t aamplC, uint16_t atimeA,  uint16_t atimeC)
+  {
+    triggersignal = signals ;
+    nChanA = chanA;
+    nChanC =chanC;
+    aamplA = amplA;
+    aamplC = amplC;
+    timeA = atimeA;
+    timeC = atimeC;
+  }
+
+
   ClassDefNV(Triggers, 1);
 };
 
@@ -57,13 +60,6 @@ struct Digit {
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
 
   Digit() = default;
-  Digit(int first, int ne, o2::InteractionRecord iRec, int64_t chTrig)
-  {
-    ref.setFirstEntry(first);
-    ref.setEntries(ne);
-    mIntRecord = iRec;
-    mTriggers.word = chTrig;
-  }
   Digit(int first, int ne, o2::InteractionRecord iRec, Triggers chTrig)
   {
     ref.setFirstEntry(first);
