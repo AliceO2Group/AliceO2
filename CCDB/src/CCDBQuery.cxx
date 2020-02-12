@@ -8,14 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include <CCDB/CCDBQuery.h>
+#include <iostream>
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+using namespace o2::ccdb;
 
-#pragma link C++ class o2::ccdb::IdPath + ;
-#pragma link C++ class o2::ccdb::CcdbApi + ;
-#pragma link C++ class o2::ccdb::CCDBQuery + ;
-#pragma link C++ class o2::ccdb::BasicCCDBManager + ;
-#endif
+void CCDBQuery::print() const
+{
+  std::cout << "path : " << path << "\n";
+  std::cout << "timestamp : " << timestamp << "\n";
+  std::cout << "metafilter\n{ \n";
+  for (auto keyvalue : metafilter) {
+    std::cout << keyvalue.first << " : " << keyvalue.second << "\n";
+  }
+  std::cout << "}\n";
+}

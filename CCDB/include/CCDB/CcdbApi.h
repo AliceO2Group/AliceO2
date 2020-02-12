@@ -30,6 +30,8 @@ namespace o2
 namespace ccdb
 {
 
+class CCDBQuery;
+
 /**
  * Interface to the CCDB.
  * It uses Curl to talk to the REST api.
@@ -232,6 +234,20 @@ class CcdbApi //: public DatabaseInterface
    * @param etag the etag to be updated with the new value
    */
   static void parseCCDBHeaders(std::vector<std::string> const& headers, std::vector<std::string>& pfns, std::string& etag);
+
+  /**
+   * Extracts meta-information of the query from a TFile containing the CCDB blob.
+   */
+  static CCDBQuery* retrieveQueryInfo(TFile&);
+
+  /**
+   * Extracts meta-information associated to the CCDB blob sitting in given TFile.
+   */
+  static std::map<std::string, std::string>* retrieveMetaInfo(TFile&);
+
+  constexpr static const char* CCDBQUERY_ENTRY = "ccdb_query";
+  constexpr static const char* CCDBMETA_ENTRY = "ccdb_meta";
+  constexpr static const char* CCDBOBJECT_ENTRY = "ccdb_object";
 
  private:
   /**
