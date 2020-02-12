@@ -18,7 +18,6 @@
 
 #include <string>
 #include <memory>
-#include <iostream>
 #include <map>
 #include <curl/curl.h>
 #include <TObject.h>
