@@ -29,12 +29,10 @@ namespace ft0
 {
 struct ChannelDataFloat {
 
-  //public:
-
-  int ChId = -1;       //channel Id
+  uint8_t ChainQTC = -1; //QTC chain
+  uint8_t ChId = -1;     //channel Id
   double CFDTime = -1; //time in #CFD channels, 0 at the LHC clk center
   double QTCAmpl = -1; // Amplitude #channels
-  int ChainQTC = -1;   //QTC chain
 
   ChannelDataFloat() = default;
   ChannelDataFloat(int iPmt, double time, double charge, int chainQTC)
@@ -76,9 +74,6 @@ class RecPoints
   void print() const;
 
   o2::ft0::Triggers mTriggers; // pattern of triggers  in this BC
-
-  //  void fillFromDigits(const std::vector<o2::ft0::Digit>& digitsBC,
-  //                  std::vector<o2::ft0::ChannelData>& digitsCh);
 
   float getCollisionTime(int side) const { return mCollisionTime[side]; }
   float getCollisionTimeMean() const { return getCollisionTime(TimeMean); }

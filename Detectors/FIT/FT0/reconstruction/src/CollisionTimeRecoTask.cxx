@@ -47,7 +47,7 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
   for (int ich = 0; ich < nch; ich++) {
     outChData[ich] = o2::ft0::ChannelDataFloat{inChData[ich].ChId,
                                                inChData[ich].CFDTime * 13.,
-                                               (double)inChData[ich].QTCAmpl / Geometry::MV_2_Nchannels,
+                                               (double)inChData[ich].QTCAmpl * Geometry::MV_2_NchannelsInverse,
                                                inChData[ich].ChainQTC};
     if (std::fabs(outChData[ich].CFDTime) < 2000) {
       if (outChData[ich].ChId < nMCPsA) {

@@ -14,7 +14,6 @@
 #define ALICEO2_FIT_MCLABEL_H_
 
 #include "SimulationDataFormat/MCCompLabel.h"
-#include <iostream>
 
 namespace o2
 {

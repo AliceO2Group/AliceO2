@@ -24,7 +24,8 @@ namespace ft0
 {
 
 /// \class Digit
-/// \brief FIT digit implementation
+/// \brief FIT digit implementation for
+
 using DigitBase = o2::dataformats::TimeStamp<double>;
 class DigitsTemp : public DigitBase
 {

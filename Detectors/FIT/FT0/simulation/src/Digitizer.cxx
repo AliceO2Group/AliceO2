@@ -119,17 +119,17 @@ void Digitizer::setDigits(std::vector<o2::ft0::Digit>& digitsBC,
   for (Int_t ipmt = 0; ipmt < parameters.mMCPs; ++ipmt) {
     if (mNumParticles[ipmt] < parameters.mAmp_trsh)
       continue;
-    Float_t amp = (parameters.mMip_in_V * mNumParticles[ipmt] / parameters.mPe_in_mip);
+    Float_t amp = (parameters.mMip_in_V * mNumParticles[ipmt] * parameters.mPe_in_mip);
     int chain = (std::rand() % 2) ? 1 : 0;
     if (amp > parameters.mCFD_trsh) {
       int smeared_time = 1000. * (get_time(mChannel_times[ipmt]) - parameters.mCfdShift);
       if (smeared_time < 1e9) {
-        digitsCh.emplace_back(ipmt, smeared_time / parameters.channelWidth, int(parameters.mV_2_Nchannels * amp), chain);
+        digitsCh.emplace_back(ipmt, smeared_time * parameters.channelWidth, int(parameters.mV_2_Nchannels * amp), chain);
         nStored++;
       }
       // fill triggers
       Bool_t is_A_side = (ipmt <= 4 * parameters.nCellsA);
-      if (std::abs(smeared_time) > parameters.mTime_trg_gate / 2.)
+      if (std::abs(smeared_time) > 0.5 * parameters.mTime_trg_gate)
         continue;
       if (is_A_side) {
         n_hit_A++;
@@ -180,7 +180,7 @@ void Digitizer::initParameters()
   mHistshift = new TH1F("time_shift", "", 1000, -signal_width, signal_width);
 
   mNoisePeriod = parameters.mNoisePeriod / mHist->GetBinWidth(0);
-  mBinshift = int(parameters.mCFDShiftPos / (parameters.mSignalWidth / 1000.));
+  mBinshift = int(parameters.mCFDShiftPos / (0.001 * parameters.mSignalWidth));
 }
 //_______________________________________________________________________
 void Digitizer::init()

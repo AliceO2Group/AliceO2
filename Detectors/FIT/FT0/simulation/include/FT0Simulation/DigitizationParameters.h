@@ -34,7 +34,7 @@ struct DigitizationParameters {
   int mtrg_vertex = 230;            //3000./13.  #channels
   float mCfdShift = 1.66;           //ns
   float mMip_in_V = 7;              //MIP to mV
-  float mPe_in_mip = 250;           // Np.e. in MIP
+  float mPe_in_mip = 0.004;         // invserse Np.e. in MIP 1./250.
   float mCFDShiftPos = 1.47;        //// shift positive part of CFD signal; distance between 0.3 of max amplitude  to max
   float mNoiseVar = 0.1;            //noise level
   float mNoisePeriod = 1 / 0.9;     // GHz low frequency noise period;

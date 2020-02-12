@@ -23,12 +23,10 @@ namespace ft0
 {
 struct ChannelData {
 
-  //public:
-
-  int ChId = -1;     //channel Id
-  int CFDTime = -1;  //time in #CFD channels, 0 at the LHC clk center
-  int QTCAmpl = -1;  // Amplitude #channels
-  int ChainQTC = -1; //QTC chain
+  uint8_t ChId = -1;     //channel Id
+  uint8_t ChainQTC = -1; //QTC chain
+  int16_t CFDTime = -1;  //time in #CFD channels, 0 at the LHC clk center
+  int16_t QTCAmpl = -1;  // Amplitude #channels
 
   ChannelData() = default;
   ChannelData(int iPmt, int time, int charge, int chainQTC)

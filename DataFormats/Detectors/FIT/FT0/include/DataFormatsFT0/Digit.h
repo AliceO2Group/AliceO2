@@ -71,10 +71,7 @@ struct Digit {
     mIntRecord = iRec;
     mTriggers = chTrig;
   }
-
-  // ~Digit() = default;
-
-  //  uint32_t getOrbit() const { return o2::InteractionRecord::orbit; }
+  uint32_t getOrbit() const { return mIntRecord.orbit; }
   uint16_t getBC() const { return mIntRecord.bc; }
   o2::InteractionRecord getIntRecord() { return mIntRecord; };
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
