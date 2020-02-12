@@ -11,7 +11,7 @@
 /// \file GPUReconstructionOCL1.cxx
 /// \author David Rohr
 
-#define GPUCA_GPUTYPE_RADEON
+#define GPUCA_GPUTYPE_OPENCL
 #define __OPENCL_HOST__
 
 #include "GPUReconstructionOCL1.h"
