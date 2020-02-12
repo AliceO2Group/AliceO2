@@ -191,7 +191,7 @@ DataProcessorSpec
     auto [variables, outputMatcher] = DataDescriptorQueryBuilder::buildFromKeepConfig(keepString);
     VariableContext context;
     for (auto& spec : danglingOutputInputs) {
-      auto concrete = DataSpecUtils::asConcreteDataMatcher(spec);
+      auto concrete = DataSpecUtils::asConcreteDataTypeMatcher(spec);
       if (outputMatcher->match(concrete, context)) {
         hasOutputsToWrite = true;
       }
