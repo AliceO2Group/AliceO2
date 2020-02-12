@@ -16,6 +16,10 @@
 #include "CfConsts.h"
 #include "CfUtils.h"
 #include "ClusterAccumulator.h"
+#if !defined(GPUCA_GPUCODE)
+#include "GPUHostDataTypes.h"
+#include "MCLabelAccumulator.h"
+#endif
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -23,19 +27,22 @@ template <>
 GPUdii() void GPUTPCCFClusterizer::Thread<GPUTPCCFClusterizer::computeClusters>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
-  GPUTPCCFClusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, clusterer.mPfilteredPeaks, clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterer.mPclusterByRow);
+  CPU_ONLY(
+    MCLabelAccumulator labelAcc(clusterer));
+
+  GPUTPCCFClusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, clusterer.mPfilteredPeaks, clusterer.mPmemory->counters.nClusters, CPU_PTR(&labelAcc), clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterer.mPclusterByRow);
 }
 
-GPUd() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlock, int iThread, 
-                                             GPUTPCSharedMemory& smem,
-                                             const Array2D<PackedCharge>& chargeMap,
-                                             const Array2D<ClusterID>& indexMap,
-                                             const deprecated::Digit* digits,
-                                             uint clusternum,
-                                             uint maxClusterPerRow,
-                                             uint* clusterInRow,
-                                             tpc::ClusterNative* clusterByRow,
-                                             CPU_PARAM(const LabelContainer *truth,))
+GPUd() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlock, int iThread,
+                                                     GPUTPCSharedMemory& smem,
+                                                     const Array2D<PackedCharge>& chargeMap,
+                                                     const Array2D<ClusterID>& indexMap,
+                                                     const deprecated::Digit* digits,
+                                                     uint clusternum,
+                                                     MCLabelAccumulator* labelAcc,
+                                                     uint maxClusterPerRow,
+                                                     uint* clusterInRow,
+                                                     tpc::ClusterNative* clusterByRow)
 {
   uint idx = get_global_id(0);
 
@@ -50,14 +57,18 @@ GPUd() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, 
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
   /* #if defined(BUILD_CLUSTER_SCRATCH_PAD) && defined(GPUCA_GPUCODE) */
   /* #if 0 */
+  CPU_ONLY(labelAcc->collect(pos, myDigit.charge));
+
   buildClusterScratchPad(
     chargeMap,
     pos,
     smem.posBcast,
     smem.buf,
     smem.innerAboveThreshold,
-    &pc);
+    &pc,
+    labelAcc);
 #else
+#warning "Propagating monte carlo labels not implemented by cluster finder without shared memory."
   buildClusterNaive(chargeMap, &pc, pos);
 #endif
 
@@ -75,24 +86,21 @@ GPUd() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, 
   bool aboveQTotCutoff = true;
 #endif
 
-  CPU_ONLY(
-    if (truth != nullptr) {
-        int i = indexMap[pos]; 
-        if (size_t(i) == idx) {
-            printf("Found matching index.\n");
-        } else {
-            printf("Index not matching!.\n");
-        }
-    }
-  );
-
   if (aboveQTotCutoff) {
-    sortIntoBuckets(
+    // On cpu this mutex must be acquired before sorting cluster into buckets
+    // to ensure the bucket index is identical to the position inside the label container
+    CPU_ONLY(
+      std::scoped_lock lock(labelAcc->mtx(myDigit.row)));
+
+    ClusterID index = sortIntoBuckets(
       myCluster,
       myDigit.row,
       maxClusterPerRow,
       clusterInRow,
       clusterByRow);
+
+    CPU_ONLY(
+      labelAcc->commit(myDigit.row, index));
   }
 }
 
@@ -148,7 +156,9 @@ GPUd() void GPUTPCCFClusterizer::updateClusterScratchpadInner(
   ushort lid,
   ushort N,
   const PackedCharge* buf,
+  const ChargePos& pos,
   ClusterAccumulator* cluster,
+  MCLabelAccumulator* labelAcc,
   uchar* innerAboveThreshold)
 {
   uchar aboveThreshold = 0;
@@ -160,6 +170,9 @@ GPUd() void GPUTPCCFClusterizer::updateClusterScratchpadInner(
     PackedCharge p = buf[N * lid + i];
 
     Charge q = cluster->updateInner(p, d);
+
+    CPU_ONLY(
+      labelAcc->collect(pos.delta(d), q));
 
     aboveThreshold |= (uchar(q > CHARGE_THRESHOLD) << i);
   }
@@ -175,7 +188,9 @@ GPUd() void GPUTPCCFClusterizer::updateClusterScratchpadOuter(
   ushort M,
   ushort offset,
   const PackedCharge* buf,
-  ClusterAccumulator* cluster)
+  const ChargePos& pos,
+  ClusterAccumulator* cluster,
+  MCLabelAccumulator* labelAcc)
 {
   LOOP_UNROLL_ATTR for (ushort i = offset; i < M + offset; i++)
   {
@@ -183,7 +198,10 @@ GPUd() void GPUTPCCFClusterizer::updateClusterScratchpadOuter(
 
     Delta2 d = CfConsts::OuterNeighbors[i];
 
-    cluster->updateOuter(p, d);
+    Charge q = cluster->updateOuter(p, d);
+
+    CPU_ONLY(
+      labelAcc->collect(pos.delta(d), q));
   }
 }
 
@@ -193,7 +211,8 @@ GPUd() void GPUTPCCFClusterizer::buildClusterScratchPad(
   ChargePos* posBcast,
   PackedCharge* buf,
   uchar* innerAboveThreshold,
-  ClusterAccumulator* myCluster)
+  ClusterAccumulator* myCluster,
+  MCLabelAccumulator* labelAcc)
 {
   ushort ll = get_local_id(0);
 
@@ -214,7 +233,9 @@ GPUd() void GPUTPCCFClusterizer::buildClusterScratchPad(
     ll,
     8,
     buf,
+    pos,
     myCluster,
+    labelAcc,
     innerAboveThreshold);
 
   ushort wgSizeHalf = (SCRATCH_PAD_WORK_GROUP_SIZE + 1) / 2;
@@ -242,7 +263,9 @@ GPUd() void GPUTPCCFClusterizer::buildClusterScratchPad(
       16,
       0,
       buf,
-      myCluster);
+      pos,
+      myCluster,
+      labelAcc);
   }
 
 #if defined(GPUCA_GPUCODE)
@@ -264,7 +287,9 @@ GPUd() void GPUTPCCFClusterizer::buildClusterScratchPad(
       16,
       0,
       buf,
-      myCluster);
+      pos,
+      myCluster,
+      labelAcc);
   }
 #endif
 }
@@ -339,11 +364,13 @@ GPUd() void GPUTPCCFClusterizer::buildClusterNaive(
   addCorner(chargeMap, myCluster, pos, {1, 1});
 }
 
-GPUd() void GPUTPCCFClusterizer::sortIntoBuckets(const tpc::ClusterNative& cluster, const uint bucket, const uint maxElemsPerBucket, uint* elemsInBucket, tpc::ClusterNative* buckets)
+GPUd() uint GPUTPCCFClusterizer::sortIntoBuckets(const tpc::ClusterNative& cluster, const uint bucket, const uint maxElemsPerBucket, uint* elemsInBucket, tpc::ClusterNative* buckets)
 {
   uint posInBucket = CAMath::AtomicAdd(&elemsInBucket[bucket], 1);
 
   if (posInBucket < maxElemsPerBucket) {
     buckets[maxElemsPerBucket * bucket + posInBucket] = cluster;
   }
+
+  return posInBucket;
 }
