@@ -34,11 +34,7 @@ class GPUTPCTrackletSelector : public GPUKernelTemplate
 {
  public:
   MEM_CLASS_PRE()
-  class GPUTPCSharedMemory
-  {
-    friend class GPUTPCTrackletSelector;
-
-   protected:
+  struct GPUSharedMemory {
     int mItr0;          // index of the first track in the block
     int mNThreadsTotal; // total n threads
     int mNTracklets;    // n of tracklets
@@ -54,8 +50,8 @@ class GPUTPCTrackletSelector : public GPUKernelTemplate
   {
     return processors.tpcTrackers;
   }
-  template <int iKernel = 0>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & smem, processorType& tracker);
+  template <int iKernel = defaultKernel>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& tracker);
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

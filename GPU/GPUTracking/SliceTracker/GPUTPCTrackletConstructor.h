@@ -69,21 +69,7 @@ class GPUTPCTrackletConstructor
   };
 
   MEM_CLASS_PRE()
-  class GPUTPCSharedMemory
-  {
-    friend class GPUTPCTrackletConstructor; // friend class
-   public:
-#if !defined(GPUCA_GPUCODE)
-    GPUTPCSharedMemory() : mNextTrackletFirst(0), mNextTrackletCount(0), mNextTrackletFirstRun(0), mNTracklets(0)
-    {
-    }
-
-    GPUTPCSharedMemory(const GPUTPCSharedMemory& /*dummy*/) : mNextTrackletFirst(0), mNextTrackletCount(0), mNextTrackletFirstRun(0), mNTracklets(0) {}
-
-    GPUTPCSharedMemory& operator=(const GPUTPCSharedMemory& /*dummy*/) { return *this; }
-#endif // GPUCA_GPUCODE
-
-   protected:
+  struct GPUSharedMemory {
     CA_SHARED_STORAGE(MEM_LG(GPUTPCRow) mRows[GPUCA_ROW_COUNT]); // rows
     int mNextTrackletFirst;                                      // First tracklet to be processed by CUDA block during next iteration
     int mNextTrackletCount;                                      // Number of Tracklets to be processed by CUDA block during next iteration
@@ -99,18 +85,18 @@ class GPUTPCTrackletConstructor
   GPUd() static void InitTracklet(MEM_LG2(GPUTPCTrackParam) & tParam);
 
   MEM_CLASS_PRE2()
-  GPUd() static void UpdateTracklet(int nBlocks, int nThreads, int iBlock, int iThread, MEM_LOCAL(GPUsharedref() GPUTPCSharedMemory) & s, GPUTPCThreadMemory& r, GPUconstantref() MEM_GLOBAL(GPUTPCTracker) & tracker, MEM_LG2(GPUTPCTrackParam) & tParam, int iRow);
+  GPUd() static void UpdateTracklet(int nBlocks, int nThreads, int iBlock, int iThread, MEM_LOCAL(GPUsharedref() GPUSharedMemory) & s, GPUTPCThreadMemory& r, GPUconstantref() MEM_GLOBAL(GPUTPCTracker) & tracker, MEM_LG2(GPUTPCTrackParam) & tParam, int iRow);
 
   MEM_CLASS_PRE23()
-  GPUd() static void StoreTracklet(int nBlocks, int nThreads, int iBlock, int iThread, MEM_LOCAL(GPUsharedref() GPUTPCSharedMemory) & s, GPUTPCThreadMemory& r, GPUconstantref() MEM_LG2(GPUTPCTracker) & tracker, MEM_LG3(GPUTPCTrackParam) & tParam);
+  GPUd() static void StoreTracklet(int nBlocks, int nThreads, int iBlock, int iThread, MEM_LOCAL(GPUsharedref() GPUSharedMemory) & s, GPUTPCThreadMemory& r, GPUconstantref() MEM_LG2(GPUTPCTracker) & tracker, MEM_LG3(GPUTPCTrackParam) & tParam);
 
   MEM_CLASS_PRE2()
   GPUd() static bool CheckCov(MEM_LG2(GPUTPCTrackParam) & tParam);
 
-  GPUd() static void DoTracklet(GPUconstantref() MEM_GLOBAL(GPUTPCTracker) & tracker, GPUsharedref() GPUTPCTrackletConstructor::MEM_LOCAL(GPUTPCSharedMemory) & sMem, GPUTPCThreadMemory& rMem);
+  GPUd() static void DoTracklet(GPUconstantref() MEM_GLOBAL(GPUTPCTracker) & tracker, GPUsharedref() GPUTPCTrackletConstructor::MEM_LOCAL(GPUSharedMemory) & sMem, GPUTPCThreadMemory& rMem);
 
 #ifdef GPUCA_GPUCODE
-  GPUd() static int FetchTracklet(GPUconstantref() MEM_GLOBAL(GPUTPCTracker) & tracker, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & sMem);
+  GPUd() static int FetchTracklet(GPUconstantref() MEM_GLOBAL(GPUTPCTracker) & tracker, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & sMem);
 #else
   static int GPUTPCTrackletConstructorGlobalTracking(GPUTPCTracker& tracker, GPUTPCTrackParam& tParam, int startrow, int increment, int iTracklet);
 #endif // GPUCA_GPUCODE
@@ -122,8 +108,8 @@ class GPUTPCTrackletConstructor
   {
     return processors.tpcTrackers;
   }
-  template <int iKernel = 0>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & smem, processorType& tracker);
+  template <int iKernel = GPUKernelTemplate::defaultKernel>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& tracker);
 };
 
 class GPUTPCGlobalTracking

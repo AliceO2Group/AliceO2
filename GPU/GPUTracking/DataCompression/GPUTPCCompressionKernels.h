@@ -38,17 +38,12 @@ class GPUTPCCompressionKernels : public GPUKernelTemplate
     step1unattached = 1
   };
 
-  struct GPUTPCSharedMemory {
-#if !defined(GPUCA_GPUCODE)
-    GPUTPCSharedMemory() : nCount(0)
-    {
-    }
-#endif
+  struct GPUSharedMemory {
     GPUAtomic(unsigned int) nCount;
   };
 
-  template <int iKernel = 0>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& processors);
+  template <int iKernel = defaultKernel>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors);
 
  public:
   template <int I>

@@ -30,9 +30,7 @@ class GPUTPCCFDeconvolution : public GPUKernelTemplate
 {
 
  public:
-  class GPUTPCSharedMemory : public GPUKernelTemplate::GPUTPCSharedMemoryScan64<short, GPUCA_THREAD_COUNT_CLUSTERER>
-  {
-   public:
+  struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<short, GPUCA_THREAD_COUNT_CLUSTERER> {
     ChargePos posBcast1[SCRATCH_PAD_WORK_GROUP_SIZE];
     uchar aboveThresholdBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
     uchar buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_COUNT_N];
@@ -42,7 +40,7 @@ class GPUTPCCFDeconvolution : public GPUKernelTemplate
     countPeaks,
   };
 
-  static GPUd() void countPeaksImpl(int, int, int, int, GPUTPCSharedMemory&, const Array2D<uchar>&, Array2D<PackedCharge>&, const deprecated::Digit*, const uint);
+  static GPUd() void countPeaksImpl(int, int, int, int, GPUSharedMemory&, const Array2D<uchar>&, Array2D<PackedCharge>&, const deprecated::Digit*, const uint);
 
 #ifdef HAVE_O2HEADERS
   typedef GPUTPCClusterFinder processorType;
@@ -57,8 +55,8 @@ class GPUTPCCFDeconvolution : public GPUKernelTemplate
     return GPUDataTypes::RecoStep::TPCClusterFinding;
   }
 
-  template <int iKernel = 0, typename... Args>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, Args... args);
+  template <int iKernel = defaultKernel, typename... Args>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 
  private:
   static GPUd() char countPeaksAroundDigit(const ChargePos&, const Array2D<uchar>&);

@@ -30,9 +30,7 @@ class GPUTPCCFPeakFinder : public GPUKernelTemplate
 {
 
  public:
-  class GPUTPCSharedMemory : public GPUKernelTemplate::GPUTPCSharedMemoryScan64<short, GPUCA_THREAD_COUNT_CLUSTERER>
-  {
-   public:
+  struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<short, GPUCA_THREAD_COUNT_CLUSTERER> {
     ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
     PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_SEARCH_N];
   };
@@ -41,7 +39,7 @@ class GPUTPCCFPeakFinder : public GPUKernelTemplate
     findPeaks,
   };
 
-  static GPUd() void findPeaksImpl(int, int, int, int, GPUTPCSharedMemory&, const Array2D<gpu::PackedCharge>&, const deprecated::Digit*, uint, uchar*, Array2D<uchar>&);
+  static GPUd() void findPeaksImpl(int, int, int, int, GPUSharedMemory&, const Array2D<gpu::PackedCharge>&, const deprecated::Digit*, uint, uchar*, Array2D<uchar>&);
 
 #ifdef HAVE_O2HEADERS
   typedef GPUTPCClusterFinder processorType;
@@ -56,11 +54,11 @@ class GPUTPCCFPeakFinder : public GPUKernelTemplate
     return GPUDataTypes::RecoStep::TPCClusterFinding;
   }
 
-  template <int iKernel = 0, typename... Args>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, Args... args);
+  template <int iKernel = defaultKernel, typename... Args>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 
  private:
-  static GPUd() bool isPeakScratchPad(GPUTPCSharedMemory&, Charge, const ChargePos&, ushort, const Array2D<o2::gpu::PackedCharge>&, ChargePos*, PackedCharge*);
+  static GPUd() bool isPeakScratchPad(GPUSharedMemory&, Charge, const ChargePos&, ushort, const Array2D<o2::gpu::PackedCharge>&, ChargePos*, PackedCharge*);
 
   static GPUd() bool isPeak(Charge, const ChargePos&, const Array2D<PackedCharge>&);
 };

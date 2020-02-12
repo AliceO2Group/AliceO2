@@ -30,9 +30,7 @@ class GPUTPCCFNoiseSuppression : GPUKernelTemplate
 {
 
  public:
-  class GPUTPCSharedMemory
-  {
-   public:
+  struct GPUSharedMemory {
     ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
     PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_NOISE_N];
   };
@@ -55,10 +53,10 @@ class GPUTPCCFNoiseSuppression : GPUKernelTemplate
     return GPUDataTypes::RecoStep::TPCClusterFinding;
   }
 
-  template <int iKernel = 0, typename... Args>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, Args... args);
+  template <int iKernel = defaultKernel, typename... Args>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 
-  static GPUd() void noiseSuppressionImpl(int, int, int, int, GPUTPCSharedMemory&, const Array2D<PackedCharge>&, const Array2D<uchar>&, const deprecated::Digit*, const uint, uchar*);
+  static GPUd() void noiseSuppressionImpl(int, int, int, int, GPUSharedMemory&, const Array2D<PackedCharge>&, const Array2D<uchar>&, const deprecated::Digit*, const uint, uchar*);
 
   static GPUd() void updatePeaksImpl(int, int, int, int, const deprecated::Digit*, const uchar*, Array2D<uchar>&);
 

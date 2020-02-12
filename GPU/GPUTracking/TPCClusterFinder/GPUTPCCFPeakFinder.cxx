@@ -22,7 +22,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::deprecated;
 
 template <>
-GPUd() void GPUTPCCFPeakFinder::Thread<GPUTPCCFPeakFinder::findPeaks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer)
+GPUd() void GPUTPCCFPeakFinder::Thread<GPUTPCCFPeakFinder::findPeaks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   Array2D<uchar> isPeakMap(clusterer.mPpeakMap);
@@ -30,7 +30,7 @@ GPUd() void GPUTPCCFPeakFinder::Thread<GPUTPCCFPeakFinder::findPeaks>(int nBlock
 }
 
 GPUd() bool GPUTPCCFPeakFinder::isPeakScratchPad(
-  GPUTPCSharedMemory& smem,
+  GPUSharedMemory& smem,
   Charge q,
   const ChargePos& pos,
   ushort N,
@@ -150,7 +150,7 @@ GPUd() bool GPUTPCCFPeakFinder::isPeak(
   return peak;
 }
 
-GPUd() void GPUTPCCFPeakFinder::findPeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem,
+GPUd() void GPUTPCCFPeakFinder::findPeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
                                               const Array2D<PackedCharge>& chargeMap,
                                               const Digit* digits,
                                               uint digitnum,

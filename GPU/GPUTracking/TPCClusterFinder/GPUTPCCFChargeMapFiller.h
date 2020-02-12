@@ -34,10 +34,6 @@ class GPUTPCCFChargeMapFiller : public GPUKernelTemplate
     resetMaps = 1,
   };
 
-  class GPUTPCSharedMemory
-  {
-  };
-
 #ifdef HAVE_O2HEADERS
   typedef GPUTPCClusterFinder processorType;
   GPUhdi() static processorType* Processor(GPUConstantMem& processors)
@@ -51,8 +47,8 @@ class GPUTPCCFChargeMapFiller : public GPUKernelTemplate
     return GPUDataTypes::RecoStep::TPCClusterFinding;
   }
 
-  template <int iKernel = 0, typename... Args>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, Args... args);
+  template <int iKernel = defaultKernel, typename... Args>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 
   static GPUd() void fillChargeMapImpl(int, int, int, int, const deprecated::Digit*, Array2D<PackedCharge>&, size_t);
 

@@ -22,13 +22,13 @@ namespace gpu
 using namespace deprecated;
 
 template <>
-GPUd() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::nativeScanUpStart>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, int iBuf, int stage)
+GPUd() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::nativeScanUpStart>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, int iBuf, int stage)
 {
   int nElems = compactionElems(clusterer, stage);
   nativeScanUpStartImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPisPeak, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, clusterer.mPbuf + iBuf * clusterer.mBufSize, nElems);
 }
 
-GPUd() void GPUTPCCFStreamCompaction::nativeScanUpStartImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem,
+GPUd() void GPUTPCCFStreamCompaction::nativeScanUpStartImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
                                                             const uchar* predicate,
                                                             int* sums,
                                                             int* incr, int nElems)
@@ -54,12 +54,12 @@ GPUd() void GPUTPCCFStreamCompaction::nativeScanUpStartImpl(int nBlocks, int nTh
 }
 
 template <>
-GPUd() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::nativeScanUp>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, int iBuf, int nElems)
+GPUd() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::nativeScanUp>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, int iBuf, int nElems)
 {
   nativeScanUpImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, clusterer.mPbuf + iBuf * clusterer.mBufSize, nElems);
 }
 
-GPUd() void GPUTPCCFStreamCompaction::nativeScanUpImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem,
+GPUd() void GPUTPCCFStreamCompaction::nativeScanUpImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
                                                        int* sums,
                                                        int* incr, int nElems)
 {
@@ -82,12 +82,12 @@ GPUd() void GPUTPCCFStreamCompaction::nativeScanUpImpl(int nBlocks, int nThreads
 }
 
 template <>
-GPUd() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::nativeScanTop>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, int iBuf, int nElems)
+GPUd() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::nativeScanTop>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, int iBuf, int nElems)
 {
   nativeScanTopImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, nElems);
 }
 
-GPUd() void GPUTPCCFStreamCompaction::nativeScanTopImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, int* incr, int nElems)
+GPUd() void GPUTPCCFStreamCompaction::nativeScanTopImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, int* incr, int nElems)
 {
   int idx = get_global_id(0);
 
@@ -98,12 +98,12 @@ GPUd() void GPUTPCCFStreamCompaction::nativeScanTopImpl(int nBlocks, int nThread
 }
 
 template <>
-GPUd() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::nativeScanDown>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, int iBuf, unsigned int offset, int nElems)
+GPUd() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::nativeScanDown>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, int iBuf, unsigned int offset, int nElems)
 {
   nativeScanDownImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, clusterer.mPbuf + iBuf * clusterer.mBufSize, offset, nElems);
 }
 
-GPUd() void GPUTPCCFStreamCompaction::nativeScanDownImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem,
+GPUd() void GPUTPCCFStreamCompaction::nativeScanDownImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
                                                          int* sums,
                                                          const int* incr,
                                                          unsigned int offset, int nElems)
@@ -119,7 +119,7 @@ GPUd() void GPUTPCCFStreamCompaction::nativeScanDownImpl(int nBlocks, int nThrea
 }
 
 template <>
-GPUd() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::compactDigit>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer, int iBuf, int stage, deprecated::PackedDigit* in, deprecated::PackedDigit* out)
+GPUd() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::compactDigit>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, int iBuf, int stage, deprecated::PackedDigit* in, deprecated::PackedDigit* out)
 {
   unsigned int nElems = compactionElems(clusterer, stage);
   compactDigitImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, in, out, clusterer.mPisPeak, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, clusterer.mPbuf + iBuf * clusterer.mBufSize, nElems);
@@ -133,7 +133,7 @@ GPUd() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::compactDi
   }
 }
 
-GPUd() void GPUTPCCFStreamCompaction::compactDigitImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem,
+GPUd() void GPUTPCCFStreamCompaction::compactDigitImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
                                                        const Digit* in,
                                                        Digit* out,
                                                        const uchar* predicate,
