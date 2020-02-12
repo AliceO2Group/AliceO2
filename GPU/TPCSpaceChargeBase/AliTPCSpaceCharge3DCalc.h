@@ -192,6 +192,9 @@ class AliTPCSpaceCharge3DCalc
 
   void GetLocalDistortionCyl(const Float_t x[], Short_t roc, Float_t dx[]);
 
+  void GetLocalCorrectionCyl(const Float_t x[], Short_t roc, Float_t dx[]);
+
+
   void SetIrregularGridSize(Int_t size) { fIrregularGridSize = size; }
 
   Int_t GetIrregularGridSize() { return fIrregularGridSize; }
@@ -334,6 +337,8 @@ class AliTPCSpaceCharge3DCalc
   AliTPCLookUpTable3DInterpolatorD* fLookupIntENoDriftC = nullptr;               //!<! look-up table for no drift integration side C
   AliTPCLookUpTable3DInterpolatorD* fLookupDistA = nullptr;                      //!<! look-up table for local distortion side A
   AliTPCLookUpTable3DInterpolatorD* fLookupDistC = nullptr;                      //!<! look-up table for local distortion side C
+  AliTPCLookUpTable3DInterpolatorD* fLookupCorrA = nullptr;                      //!<! look-up table for local correction side A
+  AliTPCLookUpTable3DInterpolatorD* fLookupCorrC = nullptr;                      //!<! look-up table for local correction side C
   AliTPCLookUpTable3DInterpolatorD* fLookupInverseDistA = nullptr;               //!<! look-up table for local distortion (from inverse) side A
   AliTPCLookUpTable3DInterpolatorD* fLookupInverseDistC = nullptr;               //!<! look-up table for local distortion (from inverse) side C
 
