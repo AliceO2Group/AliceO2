@@ -15,7 +15,7 @@
 #include "GPUReconstructionKernelMacros.h"
 
 // clang-format off
-GPUCA_KRNL((GPUTPCNeighboursFinder                       ), (single), (), ())
+GPUCA_KRNL((GPUTPCNeighboursFinder                       ), (single,  GPUCA_NEIGHBORSFINDER_REGS), (), ())
 GPUCA_KRNL((GPUTPCNeighboursCleaner                      ), (single), (), ())
 GPUCA_KRNL((GPUTPCStartHitsFinder                        ), (single), (), ())
 GPUCA_KRNL((GPUTPCStartHitsSorter                        ), (single), (), ())
