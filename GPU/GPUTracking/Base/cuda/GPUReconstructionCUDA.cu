@@ -11,7 +11,7 @@
 /// \file GPUReconstructionCUDA.cu
 /// \author David Rohr
 
-#define GPUCA_GPUTYPE_PASCAL
+#define GPUCA_GPUTYPE_TURING
 
 #include <cuda.h>
 

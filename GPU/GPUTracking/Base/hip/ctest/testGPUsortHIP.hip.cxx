@@ -11,7 +11,7 @@
 /// \file testGPUsortHIP.hip.cxx
 /// \author Michael Lettrich
 
-#define GPUCA_GPUTYPE_HIP
+#define GPUCA_GPUTYPE_VEGA
 
 #define BOOST_TEST_MODULE Test GPUCommonAlgorithm Sorting HIP
 #define BOOST_TEST_MAIN
