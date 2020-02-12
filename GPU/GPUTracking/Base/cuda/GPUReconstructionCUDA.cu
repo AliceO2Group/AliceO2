@@ -68,6 +68,8 @@ GPUg() void runKernelCUDA(GPUCA_CONSMEM_PTR int iSlice, Args... args)
 }
 */
 
+#undef GPUCA_KRNL_REG
+#define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_STRIP(args))
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_, x_class, x_attributes, x_arguments, x_forward)
 #define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionCUDABackend
 #define GPUCA_KRNL_CALL_single(x_class, x_attributes, x_arguments, x_forward) \
