@@ -87,10 +87,10 @@ using ulong = unsigned long;
 
 #ifdef GPUCA_GPUCODE
 #define CPU_ONLY(x) static_cast<void>(0)
-#define CPU_PARAM(type, name) nullptr_t /* name */
+#define CPU_PTR(x) nullptr
 #else
 #define CPU_ONLY(x) x
-#define CPU_PARAM(type, name) type name
+#define CPU_PTR(x) x
 #endif
 
 namespace GPUCA_NAMESPACE

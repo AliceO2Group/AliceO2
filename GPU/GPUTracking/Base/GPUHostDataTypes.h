@@ -23,6 +23,7 @@
 #include <vector>
 #include <array>
 #include <memory>
+#include <mutex>
 #include "DataFormatsTPC/Constants.h"
 
 namespace GPUCA_NAMESPACE
@@ -39,6 +40,17 @@ namespace gpu
 
 struct GPUTPCDigitsMCInput {
   std::array<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*, o2::tpc::Constants::MAXSECTOR> v;
+};
+
+struct GPUTPCClusterMCSector {
+  std::array<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*, o2::tpc::Constants::MAXGLOBALPADROW> labels;
+  // Protect access to each row because multiple threads might attempt to
+  // add values in parallel
+  std::array<std::mutex, o2::tpc::Constants::MAXGLOBALPADROW> mtx;
+};
+
+struct GPUTPCClusterMCOutput {
+  std::array<GPUTPCClusterMCSector, o2::tpc::Constants::MAXSECTOR> v;
 };
 
 } // namespace gpu

@@ -50,7 +50,7 @@ class GPUTPCCFChargeMapFiller : public GPUKernelTemplate
   template <int iKernel = defaultKernel, typename... Args>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 
-  static GPUd() void fillChargeMapImpl(int, int, int, int, const deprecated::Digit*, Array2D<PackedCharge>&, size_t);
+  static GPUd() void fillChargeMapImpl(int, int, int, int, const deprecated::Digit*, Array2D<PackedCharge>&, Array2D<DigitID> &, size_t);
 
   static GPUd() void resetMapsImpl(int, int, int, int, const deprecated::Digit*, Array2D<PackedCharge>&, Array2D<uchar>&);
 };

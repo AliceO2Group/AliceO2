@@ -15,7 +15,7 @@
 #ifndef ALICEO2_DATAFORMATS_MCTRUTH_H_
 #define ALICEO2_DATAFORMATS_MCTRUTH_H_
 
-#include <TNamed.h> // to have the ClassDef macros
+#include "GPUCommonRtypes.h" // to have the ClassDef macros
 #include <cstdint>  // uint8_t etc
 #include <cassert>
 #include <stdexcept>

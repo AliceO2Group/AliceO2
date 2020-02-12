@@ -101,9 +101,6 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   if (caClusterer && (isEnabled(OutputType::Clusters) || isEnabled(OutputType::Raw))) {
     throw std::invalid_argument("ca-clusterer cannot produce Clusters or Raw output");
   }
-  if (caClusterer && propagateMC) {
-    throw std::invalid_argument("ca-clusterer cannot yet propagate MC information");
-  }
 
   WorkflowSpec specs;
 

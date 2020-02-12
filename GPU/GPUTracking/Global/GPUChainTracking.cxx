@@ -11,6 +11,11 @@
 /// \file GPUChainTracking.cxx
 /// \author David Rohr
 
+#ifdef HAVE_O2HEADERS
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#endif
+
 #include "GPUChainTracking.h"
 #include "GPUTPCClusterData.h"
 #include "GPUTPCSliceOutput.h"
@@ -38,6 +43,7 @@
 #include "GPUTPCClusterStatistics.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "Headers/RAWDataHeader.h"
+#include "GPUHostDataTypes.h"
 #else
 #include "GPUO2FakeClasses.h"
 #endif
@@ -971,11 +977,28 @@ int GPUChainTracking::RunTPCClusterizer()
   ClusterNativeAccess* tmp = mClusterNativeAccess.get();
   size_t pos = 0;
   clsMemory.reserve(mRec->MemoryScalers()->nTPCHits);
+
+  // Allocate memory for cluster mc labels
+  // TODO: this should be part of the TrackingIOPointers?
+  GPUTPCClusterMCOutput clusterLabels;
+  for (auto &container : clusterLabels.v) {
+    for (auto &rowcontainer : container.labels) {
+      rowcontainer = new dataformats::MCTruthContainer<o2::MCCompLabel>; // FIXME: Memleak. Use unique_ptr instead?
+    }
+  }
+
   for (unsigned int iSliceBase = 0; iSliceBase < NSLICES; iSliceBase += GetDeviceProcessingSettings().nTPCClustererLanes) {
     for (int lane = 0; lane < GetDeviceProcessingSettings().nTPCClustererLanes && iSliceBase + lane < NSLICES; lane++) {
       unsigned int iSlice = iSliceBase + lane;
       GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSlice];
       GPUTPCClusterFinder& clustererShadow = doGPU ? processorsShadow()->tpcClusterer[iSlice] : clusterer;
+
+      auto *digitsMC = processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC;
+      if (digitsMC != nullptr) {
+        clusterer.mPinputLabels = processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC->v[iSlice];
+      }
+      clusterer.mPclusterLabels = &clusterLabels.v[iSlice];
+
       SetupGPUProcessor(&clusterer, false);
       clusterer.mPmemory->counters.nPeaks = clusterer.mPmemory->counters.nClusters = 0;
       unsigned int nPagesTotal = 0;
@@ -1068,6 +1091,7 @@ int GPUChainTracking::RunTPCClusterizer()
       runKernel<GPUTPCCFDeconvolution, GPUTPCCFDeconvolution::countPeaks>(GetGrid(clusterer.mPmemory->counters.nDigits, ClustererThreadCount(), lane), {iSlice}, {});
       DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpChargeMap, mDebugFile, "Split Charges");
 
+
       runKernel<GPUTPCCFClusterizer, GPUTPCCFClusterizer::computeClusters>(GetGrid(clusterer.mPmemory->counters.nClusters, ClustererThreadCount(), lane), {iSlice}, {});
       if (GetDeviceProcessingSettings().debugLevel >= 3) {
         printf("Lane %d: Found clusters: digits %d peaks %d clusters %d\n", lane, (int)clusterer.mPmemory->counters.nDigits, (int)clusterer.mPmemory->counters.nPeaks, (int)clusterer.mPmemory->counters.nClusters);
@@ -1075,6 +1099,22 @@ int GPUChainTracking::RunTPCClusterizer()
       TransferMemoryResourcesToHost(RecoStep::TPCClusterFinding, &clusterer, lane);
       DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpCountedPeaks, mDebugFile);
       DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpClusters, mDebugFile);
+      if (lane > 0) {
+        continue;
+      }
+      for (const auto &rows : clusterer.mPclusterLabels->labels) {
+        for (uint i = 0; i < clusterer.mPclusterInRow[0]; i++) {
+          auto labels = rows[0].getLabels(i);
+          std::cout << i << ": ";
+          if (labels.empty()) {
+              std::cout << "no labels";
+          }
+          for (auto &label : labels) {
+            std::cout << label << " ";
+          }
+          std::cout << std::endl;
+        }
+      }
     }
     for (int lane = 0; lane < GetDeviceProcessingSettings().nTPCClustererLanes && iSliceBase + lane < NSLICES; lane++) {
       unsigned int iSlice = iSliceBase + lane;
