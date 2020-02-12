@@ -32,13 +32,6 @@ class DigitsTemp : public DigitBase
  public:
   DigitsTemp() = default;
 
-  DigitsTemp(std::vector<ChannelData> ChDgDataArr, Double_t time, uint16_t bc, uint32_t orbit, uint64_t triggerWord)
-    : mChDgDataArr(std::move(ChDgDataArr))
-  {
-    setTime(time);
-    setInteractionRecord(bc, orbit);
-    setTriggers(triggerWord);
-  }
   DigitsTemp(std::vector<ChannelData> ChDgDataArr, Double_t time, uint16_t bc, uint32_t orbit, o2::ft0::Triggers trigger)
     : mChDgDataArr(std::move(ChDgDataArr)),
       mTrigger(trigger)
@@ -63,7 +56,7 @@ class DigitsTemp : public DigitBase
   uint16_t getBC() const { return mIntRecord.bc; }
 
   o2::ft0::Triggers mTrigger; //online triggers processed on TCM
-  void setTriggers(uint64_t trig) { mTrigger.word = trig; }
+  void setTriggers( o2::ft0::Triggers trig) { mTrigger = trig; }
 
   const std::vector<ChannelData>& getChDgData() const { return mChDgDataArr; }
   std::vector<ChannelData>& getChDgData() { return mChDgDataArr; }

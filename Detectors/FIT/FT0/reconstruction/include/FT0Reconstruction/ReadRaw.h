@@ -92,7 +92,8 @@ class ReadRaw
   EventData mEventData[Nchannels_PM];
   bool mIsPadded = true;
   o2::ft0::EventHeader mEventHeader;
-  o2::ft0::TCMdata mTCMdata;
+  o2::ft0::TCMdata mTrigger;
+  o2::ft0::Triggers mTCMdata;
   char* mBuffer = nullptr;
   std::vector<char> mBufferLocal;
   long mSize;

@@ -168,7 +168,7 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
     newData.isADCinGate = 1;
     newData.isAmpHigh = 0;
     newData.isDoubleEvent = 0;
-    newData.isEventInTVDC = mTriggers.vertex ? 1 : 0;
+    newData.isEventInTVDC = mTriggers.GetFT0Triggers(2) ? 1 : 0;
     newData.isTimeInfoLate = 0;
     newData.isTimeInfoLost = 0;
     int chain = std::rand() % 2;
@@ -189,11 +189,11 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
   mRawEventData.mEventHeader.nGBTWords = 1;
   auto& tcmdata = mRawEventData.mTCMdata;
   //  tcmdata = mTriggers;
-  tcmdata.vertex = mTriggers.vertex;
-  tcmdata.orA = mTriggers.orA;
-  tcmdata.orC = mTriggers.orC;
-  tcmdata.sCen = mTriggers.sCen;
-  tcmdata.cen = mTriggers.cen;
+  tcmdata.vertex = mTriggers.GetFT0Triggers(2);
+  tcmdata.orA = mTriggers.GetFT0Triggers(0);
+  tcmdata.orC = mTriggers.GetFT0Triggers(1);
+  tcmdata.sCen = mTriggers.GetFT0Triggers(3);
+  tcmdata.cen = mTriggers.GetFT0Triggers(4);
   tcmdata.nChanA = mTriggers.nChanA;
   tcmdata.nChanC = mTriggers.nChanC;
   tcmdata.amplA = mTriggers.amplA;

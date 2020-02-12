@@ -48,8 +48,8 @@ class Digitizer
   const o2::InteractionRecord& getInteractionRecord() const { return mIntRecord; }
   o2::InteractionRecord& getInteractionRecord(o2::InteractionRecord& src) { return mIntRecord; }
   void setInteractionRecord(const o2::InteractionRecord& src) { mIntRecord = src; }
-  // uint32_t getOrbit() const { return mIntRecord.orbit; }
-  //  uint16_t getBC() const { return mIntRecord.bc; }
+  uint32_t getOrbit() const { return mIntRecord.orbit; }
+  uint16_t getBC() const { return mIntRecord.bc; }
 
   void init();
   void finish();
@@ -101,8 +101,11 @@ inline double sinc(const double x)
 {
   return (std::abs(x) < 1e-12) ? 1 : std::sin(x) / x;
 }
-inline double signalForm_i(double x)
+
+  template<typename Float>
+Float signalForm_i(Float x)
 {
+  using namespace std;
   return x > 0 ? -(exp(-0.83344945 * x) - exp(-0.45458 * x)) / 7.8446501 : 0.;
   //return -(exp(-0.83344945 * x) - exp(-0.45458 * x)) * (x >= 0) / 7.8446501; // Maximum should be 7.0/250 mV
 };

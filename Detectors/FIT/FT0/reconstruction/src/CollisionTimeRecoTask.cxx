@@ -18,6 +18,7 @@
 #include <DataFormatsFT0/ChannelData.h>
 #include <DataFormatsFT0/Digit.h>
 #include <cmath>
+#include <bitset>
 #include <cassert>
 #include <iostream>
 #include <CommonDataFormat/InteractionRecord.h>

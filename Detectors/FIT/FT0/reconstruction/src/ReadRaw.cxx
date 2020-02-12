@@ -87,7 +87,7 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
   std::vector<o2::ft0::DigitsTemp> digits;
   std::vector<o2::ft0::ChannelData>* chDgDataArr = nullptr;
   o2::ft0::ChannelData chData;
-  o2::ft0::Triggers mTriggers;
+  // o2::ft0::Triggers mTriggers;
   uint64_t bctrigger = 0;
   mFileDest.seekg(0, mFileDest.end);
   long sizeFile = mFileDest.tellg();
@@ -130,7 +130,12 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
       if (link == 18) {
         mFileDest.read(reinterpret_cast<char*>(&mTCMdata), sizeof(mTCMdata));
         pos += sizeof(mTCMdata);
-        digitIter->second.setTriggers(mTCMdata.word[0]);
+        bool tr[5] = {false};
+        tr[0] = bool( mTCMdata.orA);
+        tr[1] = bool( mTCMdata.orC);
+        tr[2] = bool( mTCMdata.vertex);
+
+        //   digitIter->second.setTriggers(mTCMdata.word[0]);
 
         LOG(DEBUG) << "read TCM  " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
       } else {
@@ -199,8 +204,9 @@ void ReadRaw::writeDigits(std::string fileDataOut)
     int first = gsl::narrow_cast<int>(chDataVec.size());
     auto& chDgData = digit.getChDgData();
     chDataVec.insert(chDataVec.end(), chDgData.begin(), chDgData.end());
-    o2::ft0::Digit newDigit{first, (int)chDgData.size(), intrec, digit.mTrigger};
+    o2::ft0::Digit newDigit{first, (int)chDgData.size(), intrec, mTrigger};
     digitVec.emplace_back(newDigit);
+    LOG(INFO)<<"@@@@ vertex trigger "<<newDigit.getVertex();
   }
   mDigitAccum.clear();
   mOutTree->Branch("FT0Digit", &digitVec);

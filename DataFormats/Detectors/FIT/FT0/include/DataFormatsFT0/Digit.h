@@ -30,7 +30,7 @@ namespace ft0
 class ChannelData;
 
 struct Triggers {
-  uint8_t triggersignal; // real trigger signals
+  uint8_t  triggersignals;    // T0 trigger signals
   uint8_t nChanA;        // number of faired channels A side 
   uint8_t nChanC; // number of faired channels A side 
   uint16_t amplA; // sum amplitude A side 
@@ -40,7 +40,7 @@ struct Triggers {
   Triggers() = default;
   Triggers(  uint8_t signals, uint8_t chanA, uint8_t chanC, uint16_t aamplA,  uint16_t aamplC, uint16_t atimeA,  uint16_t atimeC)
   {
-    triggersignal = signals ;
+    triggersignals = signals ;
     nChanA = chanA;
     nChanC =chanC;
     aamplA = amplA;
@@ -48,7 +48,33 @@ struct Triggers {
     timeA = atimeA;
     timeC = atimeC;
   }
+  bool GetFT0Triggers(int i) {return (triggersignals&(1<<i)) != 0;}
+  uint8_t GetFT0Triggers() {return triggersignals;}
+  void SetFT0Triggers(bool tr[5])
+  {
+    triggersignals = 0;
+    for (Int_t i = 0; i < 5; i++)
+      triggersignals = triggersignals | (tr[i] ? (1 << i) : 0);   
+  }
+  void setTriggers(Bool_t isA, Bool_t isC, Bool_t isCnt, Bool_t isSCnt, Bool_t isVrtx)
+  {
+    triggersignals = triggersignals| (isA  ? (1 << 0) : 0);
+    mIsC = isC;
+    mIsCentral = isCnt;
+    mIsSemiCentral = isSCnt;
+    mIsVertex = isVrtx;
+  }
 
+  
+  void SetTriggerWords(  uint8_t chanA, uint8_t chanC, uint16_t aamplA,  uint16_t aamplC, uint16_t atimeA,  uint16_t atimeC)
+  {
+    nChanA = chanA;
+    nChanC = chanC;
+    aamplA = amplA;
+    aamplC = amplC;
+    timeA = atimeA;
+    timeC = atimeC;
+  }
 
   ClassDefNV(Triggers, 1);
 };
