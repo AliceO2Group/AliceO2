@@ -20,7 +20,9 @@
 #include "GPUTPCClusterFinder.h"
 #include "Array2D.h"
 #include "PackedCharge.h"
+#if !defined(GPUCA_GPUCODE)
 #include "GPUHostDataTypes.h"
+#endif
 
 namespace GPUCA_NAMESPACE
 {
@@ -34,6 +36,7 @@ namespace gpu
 {
 
 class ClusterAccumulator;
+class MCLabelAccumulator;
 
 class GPUTPCCFClusterizer : public GPUKernelTemplate
 {
@@ -46,10 +49,10 @@ class GPUTPCCFClusterizer : public GPUKernelTemplate
   };
 
   enum K : int {
-    computeClusters,
+    computeClusters = 0,
   };
 
-  static GPUd() void computeClustersImpl(int, int, int, int, GPUSharedMemory&, const Array2D<PackedCharge>&, const deprecated::Digit*, uint, uint, uint*, tpc::ClusterNative*);
+  static GPUd() void computeClustersImpl(int, int, int, int, GPUTPCSharedMemory&, const Array2D<PackedCharge>&, const deprecated::Digit*, uint, MCLabelAccumulator*, uint, uint*, tpc::ClusterNative*);
 
 #ifdef HAVE_O2HEADERS
   typedef GPUTPCClusterFinder processorType;
@@ -69,7 +72,7 @@ class GPUTPCCFClusterizer : public GPUKernelTemplate
 
   using LabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
-  static GPUd() void computeClustersImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, const Array2D<PackedCharge>&, const Array2D<DigitID> &, const deprecated::Digit*, uint, uint, uint*, tpc::ClusterNative*, CPU_PARAM(const LabelContainer*,) );
+  static GPUd() void computeClustersImpl(int, int, int, int, GPUTPCSharedMemory&, const Array2D<PackedCharge>&, const Array2D<DigitID>&, const deprecated::Digit*, MCLabelAccumulator*, uint, uint, uint*, tpc::ClusterNative*);
 
  private:
   static GPUd() void addOuterCharge(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&, Delta2);
@@ -80,15 +83,15 @@ class GPUTPCCFClusterizer : public GPUKernelTemplate
 
   static GPUd() void addLine(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&, Delta2);
 
-  static GPUd() void updateClusterScratchpadInner(ushort, ushort, const PackedCharge*, ClusterAccumulator*, uchar*);
+  static GPUd() void updateClusterScratchpadInner(ushort, ushort, const PackedCharge*, const ChargePos&, ClusterAccumulator*, MCLabelAccumulator*, uchar*);
 
-  static GPUd() void updateClusterScratchpadOuter(ushort, ushort, ushort, ushort, const PackedCharge*, ClusterAccumulator*);
+  static GPUd() void updateClusterScratchpadOuter(ushort, ushort, ushort, ushort, const PackedCharge*, const ChargePos&, ClusterAccumulator*, MCLabelAccumulator*);
 
-  static GPUd() void buildClusterScratchPad(const Array2D<PackedCharge>&, ChargePos, ChargePos*, PackedCharge*, uchar*, ClusterAccumulator*);
+  static GPUd() void buildClusterScratchPad(const Array2D<PackedCharge>&, ChargePos, ChargePos*, PackedCharge*, uchar*, ClusterAccumulator*, MCLabelAccumulator*);
 
   static GPUd() void buildClusterNaive(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&);
 
-  static GPUd() void sortIntoBuckets(const tpc::ClusterNative&, const uint, const uint, uint*, tpc::ClusterNative*);
+  static GPUd() uint sortIntoBuckets(const tpc::ClusterNative&, const uint, const uint, uint*, tpc::ClusterNative*);
 };
 
 } // namespace gpu
