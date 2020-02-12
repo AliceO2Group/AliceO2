@@ -7,12 +7,11 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_DATAPROCESSORSPEC_H
-#define FRAMEWORK_DATAPROCESSORSPEC_H
+#ifndef O2_FRAMEWORK_DATAPROCESSORSPEC_H_
+#define O2_FRAMEWORK_DATAPROCESSORSPEC_H_
 
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ConfigParamSpec.h"
-#include "Framework/DataAllocator.h"
 #include "Framework/DataProcessorLabel.h"
 #include "Framework/DataRef.h"
 #include "Framework/InputSpec.h"
@@ -21,9 +20,7 @@
 #include <string>
 #include <vector>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 using Inputs = std::vector<InputSpec>;
@@ -66,7 +63,6 @@ struct DataProcessorSpec {
   size_t maxInputTimeslices = 1;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_DATAPROCESSORSPEC_H
+#endif // O2_FRAMEWORK_DATAPROCESSORSPEC_H_
