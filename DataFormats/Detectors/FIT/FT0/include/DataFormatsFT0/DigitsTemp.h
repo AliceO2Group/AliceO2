@@ -56,7 +56,21 @@ class DigitsTemp : public DigitBase
   uint16_t getBC() const { return mIntRecord.bc; }
 
   o2::ft0::Triggers mTrigger; //online triggers processed on TCM
-  void setTriggers( o2::ft0::Triggers trig) { mTrigger = trig; }
+  void setTriggers(Bool_t isA, Bool_t isC, Bool_t isCnt, Bool_t isSCnt, Bool_t isVrtx, uint8_t chanA, uint8_t chanC, uint16_t aamplA, uint16_t aamplC, uint16_t atimeA, uint16_t atimeC)
+  {
+    auto trig = mTrigger.triggersignals;
+    trig = trig | (isA ? (1 << 0) : 0);
+    trig = trig | (isC ? (1 << 1) : 0);
+    trig = trig | (isVrtx ? (1 << 2) : 0);
+    trig = trig | (isSCnt ? (1 << 3) : 0);
+    trig = trig | (isCnt ? (1 << 4) : 0);
+    mTrigger.nChanA = chanA;
+    mTrigger.nChanC = chanC;
+    mTrigger.amplA = aamplA;
+    mTrigger.amplC = aamplC;
+    mTrigger.timeA = atimeA;
+    mTrigger.timeC = atimeC;
+  }
 
   const std::vector<ChannelData>& getChDgData() const { return mChDgDataArr; }
   std::vector<ChannelData>& getChDgData() { return mChDgDataArr; }

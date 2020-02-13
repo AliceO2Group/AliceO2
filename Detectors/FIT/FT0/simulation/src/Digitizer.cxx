@@ -30,32 +30,6 @@ double Digitizer::get_time(const std::vector<double>& times)
   mHist->Reset();
   mHistsum->Reset();
   mHistshift->Reset();
-  /*
-  /// Fill MHistrogram `mHist` with photoelectron induced voltage
-  double min_time = *std::min_element(times.begin(), times.end());
-  bool was_positive = true;
-  std::vector<double> noise_amp(25. / parameters.mNoisePeriod);
-  for (double & amp : noise_amp)
-    amp = gRandom->Gaus(0, parameters.mNoiseVar);
-  for (double time = min_time; time < 12.5; time += 0.01) {
-    double val = 0;
-    for (double phe_time : times)
-      val += signalForm_i(time - phe_time);
-    for (size_t i=0; i<noise_amp.size(); ++i)
-      val += noise_amp[i] * sinc(TMath::Pi() * (time / parameters.mNoisePeriod - i));
-    double delayed_val = 0;
-    for (double phe_time : times)
-      delayed_val += signalForm_i(time - phe_time - parameters.mCfdShift);
-    for (size_t i = 0; i < noise_amp.size(); ++i)
-      delayed_val += noise_amp[i] * sinc(TMath::Pi() * ((time - parameters.mCfdShift) / parameters.mNoisePeriod - i));
-    bool is_positive = (5 * delayed_val - val) > 0;
-    if (std::abs(val) > 3) {
-      if (was_positive != is_positive)
-        return time;
-    }
-    was_positive = is_positive;
-  }
-  */
 
   for (auto time : times) {
     for (int bin = mHist->FindBin(time); bin < mHist->GetSize(); ++bin)
@@ -147,9 +121,9 @@ void Digitizer::setDigits(std::vector<o2::ft0::Digit>& digitsBC,
     Float_t amp = (parameters.mMip_in_V * mNumParticles[ipmt] * parameters.mPe_in_mip);
     int chain = (std::rand() % 2) ? 1 : 0;
     if (amp > parameters.mCFD_trsh) {
-      int smeared_time = 1000. * (get_time(mChannel_times[ipmt]) - parameters.mCfdShift);
+      int smeared_time = 1000. * (get_time(mChannel_times[ipmt]) - parameters.mCfdShift) * parameters.ChannelWidthInverse;
       if (smeared_time < 1e9) {
-        digitsCh.emplace_back(ipmt, smeared_time * parameters.channelWidth, int(parameters.mV_2_Nchannels * amp), chain);
+        digitsCh.emplace_back(ipmt, smeared_time, int(parameters.mV_2_Nchannels * amp), chain);
         nStored++;
       }
       // fill triggers
@@ -168,41 +142,31 @@ void Digitizer::setDigits(std::vector<o2::ft0::Digit>& digitsBC,
     }
   }
 
-  Bool_t triggerSignals[5];
-  for (Int_t i=0; i<5; i++) triggerSignals[i]=false; 
-  Bool_t is_A = n_hit_A > 0;
-  Bool_t is_C = n_hit_C > 0;
-  Bool_t is_Central = summ_ampl_A + summ_ampl_C >= parameters.mtrg_central_trh;
-  Bool_t is_SemiCentral = summ_ampl_A + summ_ampl_C >= parameters.mtrg_semicentral_trh;
-  
-  triggerSignals[0] = is_A ? 1 : 0;
-  triggerSignals[1] = is_C ? 1 : 0;
-
-  mTriggers.nChanA =  n_hit_A;
-  mTriggers.nChanC =  n_hit_C;
-  mTriggers.timeA = is_A ? mean_time_A / n_hit_A : 0;
-  mTriggers.timeC = is_C ? mean_time_C / n_hit_C : 0;
-  mTriggers.amplA = is_A ? summ_ampl_A : 0;
-  mTriggers.amplC = is_C ? summ_ampl_C : 0;
-  triggerSignals[4] = is_Central ? 1 : 0;
-  triggerSignals[3]= is_SemiCentral ? 1 : 0;
+  Bool_t is_A, is_C, isVertex, is_Central, is_SemiCentral = 0;
+  is_A = n_hit_A > 0;
+  is_C = n_hit_C > 0;
+  is_Central = summ_ampl_A + summ_ampl_C >= parameters.mtrg_central_trh;
+  is_SemiCentral = summ_ampl_A + summ_ampl_C >= parameters.mtrg_semicentral_trh;
   vertex_time = (mean_time_A - mean_time_C) * 0.5;
-  triggerSignals[2]= is_A && is_C && (std::abs(vertex_time) < parameters.mtrg_vertex);
-  mTriggers.SetFT0Triggers(triggerSignals);
+  isVertex = is_A && is_C && (std::abs(vertex_time) < parameters.mtrg_vertex);
+  uint16_t amplA = is_A ? summ_ampl_A : 0;           // sum amplitude A side
+  uint16_t amplC = is_C ? summ_ampl_C : 0;           // sum amplitude C side
+  uint16_t timeA = is_A ? mean_time_A / n_hit_A : 0; // average time A side
+  uint16_t timeC = is_C ? mean_time_C / n_hit_C : 0; // average time C side
+
+  mTriggers.setTriggers(is_A, is_C, isVertex, is_Central, is_SemiCentral, n_hit_A, n_hit_C,
+                        amplA, amplC, timeA, timeC);
 
   digitsBC.emplace_back(first, nStored, mIntRecord, mTriggers);
 
   // Debug output -------------------------------------------------------------
 
   LOG(INFO) << "Event ID: " << mEventID;
-  LOG(INFO) << "N hit A: " << mTriggers.nChanA << " N hit C: " << mTriggers.nChanC << " summ ampl A: " <<  mTriggers.amplA
-            << " summ ampl C: " << mTriggers.amplA << " mean time A: " << mTriggers.timeA
+  LOG(INFO) << "N hit A: " << int(mTriggers.nChanA) << " N hit C: " << int(mTriggers.nChanC) << " summ ampl A: " << int(mTriggers.amplA)
+            << " summ ampl C: " << int(mTriggers.amplC) << " mean time A: " << mTriggers.timeA
             << " mean time C: " << mTriggers.timeC;
 
-  LOG(INFO) << "IS A " << mTriggers.GetFT0Triggers(0) << " IsC " << mTriggers.GetFT0Triggers(1) <<
-    " vertex " <<mTriggers.GetFT0Triggers(2) <<
-    " is Central " << mTriggers.GetFT0Triggers(3) <<
-    " is SemiCentral " <<  mTriggers.GetFT0Triggers(4);
+  LOG(INFO) << "IS A " << mTriggers.getOrA() << " IsC " << mTriggers.getOrC() << " vertex " << mTriggers.getVertex() << " is Central " << mTriggers.getCen() << " is SemiCentral " << mTriggers.getSCen();
 }
 
 void Digitizer::initParameters()

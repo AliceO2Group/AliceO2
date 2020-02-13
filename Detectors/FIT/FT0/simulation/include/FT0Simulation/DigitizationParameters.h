@@ -21,6 +21,7 @@ struct DigitizationParameters {
   float zDetA = Geometry::ZdetA;
   float zDetC = Geometry::ZdetC;
   float channelWidth = Geometry::ChannelWidth;
+  float ChannelWidthInverse = 0.076804916;                   // channel width in ps inverse
   float mMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4; //number of MCPs
   float mCFD_trsh = 3.;                                      // [mV]
   float mAmp_trsh = 100.;                                    // [mV]

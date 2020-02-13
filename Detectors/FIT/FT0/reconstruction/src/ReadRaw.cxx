@@ -130,12 +130,7 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
       if (link == 18) {
         mFileDest.read(reinterpret_cast<char*>(&mTCMdata), sizeof(mTCMdata));
         pos += sizeof(mTCMdata);
-        bool tr[5] = {false};
-        tr[0] = bool( mTCMdata.orA);
-        tr[1] = bool( mTCMdata.orC);
-        tr[2] = bool( mTCMdata.vertex);
-
-        //   digitIter->second.setTriggers(mTCMdata.word[0]);
+        digitIter->second.setTriggers(mTCMdata.orA, mTCMdata.orC, mTCMdata.vertex, mTCMdata.sCen, mTCMdata.cen, mTCMdata.nChanA, mTCMdata.nChanC, mTCMdata.amplA, mTCMdata.amplC, mTCMdata.timeA, mTCMdata.timeC);
 
         LOG(DEBUG) << "read TCM  " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
       } else {
@@ -206,7 +201,7 @@ void ReadRaw::writeDigits(std::string fileDataOut)
     chDataVec.insert(chDataVec.end(), chDgData.begin(), chDgData.end());
     o2::ft0::Digit newDigit{first, (int)chDgData.size(), intrec, mTrigger};
     digitVec.emplace_back(newDigit);
-    LOG(INFO)<<"@@@@ vertex trigger "<<newDigit.getVertex();
+    LOG(INFO) << "@@@@ vertex trigger " << mTrigger.getVertex();
   }
   mDigitAccum.clear();
   mOutTree->Branch("FT0Digit", &digitVec);

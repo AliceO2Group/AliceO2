@@ -70,6 +70,7 @@ class Digitizer
     for (int i = 0; i < parameters.mMCPs; ++i) {
       mNumParticles[i] = 0;
     }
+    mTriggers.cleanTriggers();
   }
 
  private:
@@ -102,7 +103,7 @@ inline double sinc(const double x)
   return (std::abs(x) < 1e-12) ? 1 : std::sin(x) / x;
 }
 
-  template<typename Float>
+template <typename Float>
 Float signalForm_i(Float x)
 {
   using namespace std;

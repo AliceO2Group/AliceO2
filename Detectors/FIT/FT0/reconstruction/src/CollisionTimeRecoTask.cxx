@@ -47,9 +47,10 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
   int nch = inChData.size();
   for (int ich = 0; ich < nch; ich++) {
     outChData[ich] = o2::ft0::ChannelDataFloat{inChData[ich].ChId,
-                                               inChData[ich].CFDTime * 13.,
+                                               inChData[ich].CFDTime * Geometry::ChannelWidth,
                                                (double)inChData[ich].QTCAmpl * Geometry::MV_2_NchannelsInverse,
                                                inChData[ich].ChainQTC};
+    outChData[ich].print();
     if (std::fabs(outChData[ich].CFDTime) < 2000) {
       if (outChData[ich].ChId < nMCPsA) {
         sideAtime += outChData[ich].CFDTime;
@@ -75,7 +76,7 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
   }
   LOG(INFO) << " Collision time " << mCollisionTime[TimeA] << " " << mCollisionTime[TimeC] << " " << mCollisionTime[TimeMean] << " " << mCollisionTime[Vertex];
   return RecPoints{
-    mCollisionTime, bcd.ref.getFirstEntry(), bcd.ref.getEntries(), bcd.mIntRecord, bcd.mTriggers.word};
+    mCollisionTime, bcd.ref.getFirstEntry(), bcd.ref.getEntries(), bcd.mIntRecord, bcd.mTriggers};
 }
 //______________________________________________________
 void CollisionTimeRecoTask::FinishTask()

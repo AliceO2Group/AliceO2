@@ -29,10 +29,10 @@ namespace ft0
 {
 struct ChannelDataFloat {
 
-  uint8_t ChainQTC = -1; //QTC chain
-  uint8_t ChId = -1;     //channel Id
-  double CFDTime = -1; //time in #CFD channels, 0 at the LHC clk center
-  double QTCAmpl = -1; // Amplitude #channels
+  int8_t ChainQTC = -1; //QTC chain
+  int8_t ChId = -1;     //channel Id
+  double CFDTime = -1;  //time in #CFD channels, 0 at the LHC clk center
+  double QTCAmpl = -1;  // Amplitude #channels
 
   ChannelDataFloat() = default;
   ChannelDataFloat(int iPmt, double time, double charge, int chainQTC)
@@ -61,13 +61,13 @@ class RecPoints
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
   RecPoints() = default;
   RecPoints(const std::array<Float_t, 4>& collisiontime,
-            int first, int ne, o2::InteractionRecord iRec, int64_t chTrig)
+            int first, int ne, o2::InteractionRecord iRec, o2::ft0::Triggers chTrig)
     : mCollisionTime(collisiontime)
   {
     ref.setFirstEntry(first);
     ref.setEntries(ne);
     mIntRecord = iRec;
-    mTriggers.word = chTrig;
+    mTriggers = chTrig;
   }
   ~RecPoints() = default;
 
@@ -85,7 +85,7 @@ class RecPoints
   Float_t getVertex(Float_t vertex) const { return getCollisionTime(Vertex); }
   void setVertex(Float_t vertex) { mCollisionTime[Vertex] = vertex; }
 
-  Float_t getTrigger(uint64_t) const { return mTriggers.word; }
+  o2::ft0::Triggers getTrigger() const { return mTriggers; }
 
   o2::InteractionRecord getInteractionRecord() const { return mIntRecord; };
 

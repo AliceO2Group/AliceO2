@@ -1,17 +1,16 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFT0/ChannelData.h"
-#include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/HitType.h"
-#include "SimulationDataFormat/MCEventHeader.h"
-#include "DataFormatsParameters/GRPObject.h"
+//#include "SimulationDataFormat/MCEventHeader.h"
+//#include "DataFormatsParameters/GRPObject.h"
 #include <TH2F.h>
 #include <TTree.h>
 #include <TFile.h>
 #include <gsl/span>
 #include <vector>
 
-void readFT0Digits()
+void readFT0digits()
 {
 
   // Create histograms
@@ -20,8 +19,8 @@ void readFT0Digits()
 
   TH2F* hMultDig = new TH2F("hMultDig", "amplitude  ", 210, 0, 210, 200, 0, 1000);
   TH2F* hTimeDig = new TH2F("hTimeDig", "Time", 210, 0, 210, 100, -100, 100);
-  TH2F* hTimeDigMultA = new TH2F("hTimeDigMultA", "Time vs amplitude", 200, 0, 100, 250, -1000, 1000);
-  TH2F* hTimeDigMultC = new TH2F("hTimeDigMultC", "Time vs amplitude", 200, 0, 100, 250, -1000, 1000);
+  TH2F* hTimeDigMultA = new TH2F("hTimeDigMultA", "Time vs amplitude", 200, 0, 100, 100, -100, 100);
+  TH2F* hTimeDigMultC = new TH2F("hTimeDigMultC", "Time vs amplitude", 200, 0, 100, 100, -100, 100);
   TH1F* hNchA = new TH1F("hNchA", "FT0-A", 100, 0, 100);
   TH1F* hNchC = new TH1F("hNchC", "FT0-C", 100, 0, 100);
 
@@ -36,7 +35,7 @@ void readFT0Digits()
   digTree->SetBranchAddress("FT0DIGITSBC", &ft0BCDataPtr);
   digTree->SetBranchAddress("FT0DIGITSCH", &ft0ChDataPtr);
 
-  int cfd[208], amp[208];
+  float cfd[208], amp[208];
   for (int ient = 0; ient < digTree->GetEntries(); ient++) {
     digTree->GetEntry(ient);
 
@@ -56,8 +55,8 @@ void readFT0Digits()
         if (nch) {
           channels[ich].print();
           Int_t mcp = channels[ich].ChId;
-          cfd[mcp] = channels[ich].CFDTime;
-          amp[mcp] = channels[ich].QTCAmpl;
+          cfd[mcp] = float(channels[ich].CFDTime);
+          amp[mcp] = float(channels[ich].QTCAmpl);
           hMultDig->Fill(Float_t(mcp), amp[mcp]);
           hTimeDig->Fill(Float_t(mcp), cfd[mcp]);
           if (mcp < 96) {

@@ -30,51 +30,53 @@ namespace ft0
 class ChannelData;
 
 struct Triggers {
-  uint8_t  triggersignals;    // T0 trigger signals
-  uint8_t nChanA;        // number of faired channels A side 
-  uint8_t nChanC; // number of faired channels A side 
-  uint16_t amplA; // sum amplitude A side 
-  uint16_t amplC;// sum amplitude C side
-  uint16_t timeA;// average time A side
-  uint16_t timeC;// average time C side
+  uint8_t triggersignals; // T0 trigger signals
+  uint8_t nChanA;         // number of faired channels A side
+  uint8_t nChanC;         // number of faired channels A side
+  uint16_t amplA;         // sum amplitude A side
+  uint16_t amplC;         // sum amplitude C side
+  int16_t timeA;          // average time A side
+  int16_t timeC;          // average time C side
   Triggers() = default;
-  Triggers(  uint8_t signals, uint8_t chanA, uint8_t chanC, uint16_t aamplA,  uint16_t aamplC, uint16_t atimeA,  uint16_t atimeC)
+  Triggers(uint8_t signals, uint8_t chanA, uint8_t chanC, uint16_t aamplA, uint16_t aamplC, int16_t atimeA, int16_t atimeC)
   {
-    triggersignals = signals ;
-    nChanA = chanA;
-    nChanC =chanC;
-    aamplA = amplA;
-    aamplC = amplC;
-    timeA = atimeA;
-    timeC = atimeC;
-  }
-  bool GetFT0Triggers(int i) {return (triggersignals&(1<<i)) != 0;}
-  uint8_t GetFT0Triggers() {return triggersignals;}
-  void SetFT0Triggers(bool tr[5])
-  {
-    triggersignals = 0;
-    for (Int_t i = 0; i < 5; i++)
-      triggersignals = triggersignals | (tr[i] ? (1 << i) : 0);   
-  }
-  void setTriggers(Bool_t isA, Bool_t isC, Bool_t isCnt, Bool_t isSCnt, Bool_t isVrtx)
-  {
-    triggersignals = triggersignals| (isA  ? (1 << 0) : 0);
-    mIsC = isC;
-    mIsCentral = isCnt;
-    mIsSemiCentral = isSCnt;
-    mIsVertex = isVrtx;
-  }
-
-  
-  void SetTriggerWords(  uint8_t chanA, uint8_t chanC, uint16_t aamplA,  uint16_t aamplC, uint16_t atimeA,  uint16_t atimeC)
-  {
+    triggersignals = signals;
     nChanA = chanA;
     nChanC = chanC;
-    aamplA = amplA;
-    aamplC = amplC;
+    amplA = aamplA;
+    amplC = aamplC;
     timeA = atimeA;
     timeC = atimeC;
   }
+  bool getOrA() { return (triggersignals & (1 << 0)) != 0; }
+  bool getOrC() { return (triggersignals & (1 << 1)) != 0; }
+  bool getVertex() { return (triggersignals & (1 << 2)) != 0; }
+  bool getCen() { return (triggersignals & (1 << 3)) != 0; }
+  bool getSCen() { return (triggersignals & (1 << 4)) != 0; }
+
+  void setTriggers(Bool_t isA, Bool_t isC, Bool_t isCnt, Bool_t isSCnt, Bool_t isVrtx, uint8_t chanA, uint8_t chanC, uint16_t aamplA, uint16_t aamplC, int16_t atimeA, int16_t atimeC)
+  {
+    triggersignals = triggersignals | (isA ? (1 << 0) : 0);
+    triggersignals = triggersignals | (isC ? (1 << 1) : 0);
+    triggersignals = triggersignals | (isVrtx ? (1 << 2) : 0);
+    triggersignals = triggersignals | (isSCnt ? (1 << 3) : 0);
+    triggersignals = triggersignals | (isCnt ? (1 << 4) : 0);
+    nChanA = chanA;
+    nChanC = chanC;
+    amplA = aamplA;
+    amplC = aamplC;
+    timeA = atimeA;
+    timeC = atimeC;
+  }
+  void cleanTriggers()
+  {
+    triggersignals = 0;
+    nChanA = nChanC = -1;
+    amplA = amplC = -1000;
+    timeA = timeC = -1000;
+  }
+
+  Triggers getTriggers();
 
   ClassDefNV(Triggers, 1);
 };
@@ -97,6 +99,7 @@ struct Digit {
   uint16_t getBC() const { return mIntRecord.bc; }
   o2::InteractionRecord getIntRecord() { return mIntRecord; };
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
+  void printStream(std::ostream& stream) const;
 
   ClassDefNV(Digit, 2);
 };
