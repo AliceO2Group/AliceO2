@@ -14,6 +14,7 @@
 #include "CCDB/CcdbApi.h"
 #include "CPVCalib/CalibParams.h"
 #include "CPVBase/Geometry.h"
+#include <iostream>
 #endif
 void PostCalibCCDB()
 {
