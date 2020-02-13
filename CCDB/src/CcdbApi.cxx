@@ -562,15 +562,18 @@ void CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
   res = curl_easy_perform(curl_handle);
 
   void* result = nullptr;
+  bool success = true;
   if (res == CURLE_OK) {
     long response_code;
     res = curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
     if ((res == CURLE_OK) && (response_code != 404)) {
     } else {
       LOG(ERROR) << "Invalid URL : " << fullUrl;
+      success = false;
     }
   } else {
     fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+    success = false;
   }
 
   if (fp) {
@@ -578,17 +581,19 @@ void CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
   }
   curl_easy_cleanup(curl_handle);
 
-  // trying to append metadata to the file so that it can be inspected WHERE/HOW/WHAT IT corresponds to
-  // Just a demonstrator for the moment
-  TFile snapshotfile(targetpath.c_str(), "UPDATE");
-  CCDBQuery querysummary(path, metadata, timestamp);
-  snapshotfile.WriteObjectAny(&querysummary, TClass::GetClass(typeid(querysummary)), CCDBQUERY_ENTRY);
+  if (success) {
+    // trying to append metadata to the file so that it can be inspected WHERE/HOW/WHAT IT corresponds to
+    // Just a demonstrator for the moment
+    TFile snapshotfile(targetpath.c_str(), "UPDATE");
+    CCDBQuery querysummary(path, metadata, timestamp);
+    snapshotfile.WriteObjectAny(&querysummary, TClass::GetClass(typeid(querysummary)), CCDBQUERY_ENTRY);
 
-  // retrieveHeaders
-  auto headers = retrieveHeaders(path, metadata, timestamp);
-  snapshotfile.WriteObjectAny(&headers, TClass::GetClass(typeid(metadata)), CCDBMETA_ENTRY);
+    // retrieveHeaders
+    auto headers = retrieveHeaders(path, metadata, timestamp);
+    snapshotfile.WriteObjectAny(&headers, TClass::GetClass(typeid(metadata)), CCDBMETA_ENTRY);
 
-  snapshotfile.Close();
+    snapshotfile.Close();
+  }
 }
 
 void CcdbApi::snapshot(std::string const& ccdbrootpath, std::string const& localDir, long timestamp) const
