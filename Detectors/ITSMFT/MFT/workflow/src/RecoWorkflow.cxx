@@ -20,8 +20,6 @@
 #include "MFTWorkflow/TrackFitterSpec.h"
 #include "MFTWorkflow/TrackWriterSpec.h"
 
-
-
 namespace o2
 {
 namespace mft
@@ -37,7 +35,6 @@ framework::WorkflowSpec getWorkflow(bool useMC)
   specs.emplace_back(o2::mft::getDigitReaderSpec(useMC));
   specs.emplace_back(o2::mft::getClustererSpec(useMC));
   specs.emplace_back(o2::mft::getClusterWriterSpec(useMC));
-
 
   specs.emplace_back(o2::mft::getTrackerSpec(useMC));
   specs.emplace_back(o2::mft::getTrackFitterSpec());

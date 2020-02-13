@@ -17,14 +17,15 @@
 #define ALICEO2_MFT_TRACKPARAM_H_
 
 #include <TMatrixD.h>
+#include "DataFormatsITSMFT/Cluster.h"
 
 namespace o2
 {
 namespace mft
 {
 
-class Cluster;
-
+//class Cluster;
+//using o2::itsmft::Cluster;
 /// track parameters for internal use
 class TrackParam
 {
@@ -42,21 +43,21 @@ class TrackParam
   /// set Z coordinate (cm)
   void setZ(Double_t z) { mZ = z; }
   /// return non bending coordinate (cm)
-  Double_t getNonBendingCoor() const { return mParameters(0, 0); }
+  Double_t getX() const { return mParameters(0, 0); }
   /// set non bending coordinate (cm)
-  void setNonBendingCoor(Double_t nonBendingCoor) { mParameters(0, 0) = nonBendingCoor; }
+  void setX(Double_t nonBendingCoor) { mParameters(0, 0) = nonBendingCoor; }
   /// return non bending slope (cm ** -1)
-  Double_t getNonBendingSlope() const { return mParameters(1, 0); }
+  Double_t getXSlope() const { return mParameters(1, 0); }
   /// set non bending slope (cm ** -1)
-  void setNonBendingSlope(Double_t nonBendingSlope) { mParameters(1, 0) = nonBendingSlope; }
+  void setXSlope(Double_t nonBendingSlope) { mParameters(1, 0) = nonBendingSlope; }
   /// return bending coordinate (cm)
-  Double_t getBendingCoor() const { return mParameters(2, 0); }
+  Double_t getY() const { return mParameters(2, 0); }
   /// set bending coordinate (cm)
-  void setBendingCoor(Double_t bendingCoor) { mParameters(2, 0) = bendingCoor; }
+  void setY(Double_t bendingCoor) { mParameters(2, 0) = bendingCoor; }
   /// return bending slope (cm ** -1)
-  Double_t getBendingSlope() const { return mParameters(3, 0); }
+  Double_t getYSlope() const { return mParameters(3, 0); }
   /// set bending slope (cm ** -1)
-  void setBendingSlope(Double_t bendingSlope) { mParameters(3, 0) = bendingSlope; }
+  void setYSlope(Double_t bendingSlope) { mParameters(3, 0) = bendingSlope; }
   /// return inverse bending momentum (GeV/c ** -1) times the charge (assumed forward motion)
   Double_t getInverseBendingMomentum() const { return mParameters(4, 0); }
   /// set inverse bending momentum (GeV/c ** -1) times the charge (assumed forward motion)
@@ -108,9 +109,9 @@ class TrackParam
   void setSmoothCovariances(const TMatrixD& covariances);
 
   /// get pointer to associated cluster
-  const Cluster* getClusterPtr() const { return mClusterPtr; }
+  const o2::itsmft::Cluster* getClusterPtr() const { return mClusterPtr; }
   /// set pointer to associated cluster
-  void setClusterPtr(const Cluster* cluster) { mClusterPtr = cluster; }
+  void setClusterPtr(const o2::itsmft::Cluster* cluster) { mClusterPtr = cluster; }
 
   /// return true if the associated cluster can be removed from the track it belongs to
   Bool_t isRemovable() const { return mRemovable; }
@@ -161,7 +162,7 @@ class TrackParam
   mutable std::unique_ptr<TMatrixD> mSmoothParameters{};  ///< Track parameters obtained using smoother
   mutable std::unique_ptr<TMatrixD> mSmoothCovariances{}; ///< Covariance matrix obtained using smoother
 
-  const Cluster* mClusterPtr = nullptr; ///< Pointer to the associated cluster if any
+  const o2::itsmft::Cluster* mClusterPtr = nullptr; ///< Pointer to the associated cluster if any
 
   Bool_t mRemovable = false; ///< kTRUE if the associated cluster can be removed from the track it belongs to
 

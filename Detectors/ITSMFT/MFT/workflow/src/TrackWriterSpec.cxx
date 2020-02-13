@@ -24,7 +24,6 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-
 using namespace o2::framework;
 
 namespace o2
@@ -49,7 +48,7 @@ void TrackWriter::run(ProcessingContext& pc)
   if (mState != 1)
     return;
 
-  auto tracks = pc.inputs().get<const std::vector<o2::mft::TrackMFTExt>>("tracks");
+  auto tracks = pc.inputs().get<const std::vector<o2::mft::TrackMFT>>("tracks");
   auto tracksltf = pc.inputs().get<const std::vector<o2::mft::TrackLTF>>("tracksltf");
   auto tracksca = pc.inputs().get<const std::vector<o2::mft::TrackCA>>("tracksca");
   auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");

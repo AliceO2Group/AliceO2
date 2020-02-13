@@ -18,7 +18,6 @@
 #include "MFTTracking/TrackFitter.h"
 #include "DataFormatsMFT/TrackMFT.h"
 
-
 #include "ReconstructionDataFormats/Track.h"
 #include "Framework/Logger.h"
 
@@ -32,7 +31,6 @@ void Tracker::clustersToTracks(ROframe& event, std::ostream& timeBenchmarkOutput
   mTracks.clear();
   mTrackLabels.clear();
   findTracks(event);
-
 }
 
 void Tracker::findTracks(ROframe& event)
@@ -40,9 +38,7 @@ void Tracker::findTracks(ROframe& event)
   //computeCells(event);
   findTracksLTF(event);
   findTracksCA(event);
-
 }
-
 
 void Tracker::computeCells(ROframe& event)
 {

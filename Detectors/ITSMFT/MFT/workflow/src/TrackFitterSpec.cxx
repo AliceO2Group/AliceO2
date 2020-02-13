@@ -14,6 +14,7 @@
 /// \author Philippe Pillot, Subatech
 
 #include "MFTWorkflow/TrackFitterSpec.h"
+#include "DataFormatsITSMFT/Cluster.h"
 
 #include <stdexcept>
 #include <list>
@@ -26,8 +27,8 @@
 #include "Framework/Task.h"
 
 #include "MFTTracking/TrackParam.h"
-#include "MFTTracking/Cluster.h"
 #include "MFTTracking/TrackCA.h"
+#include "MFTTracking/FitterTrackMFT.h"
 #include "MFTTracking/TrackFitter.h"
 
 using namespace std;
@@ -39,58 +40,72 @@ namespace mft
 {
 
 void TrackFitterTask::init(InitContext& ic)
-  {
-    /// Prepare the track extrapolation tools
-    LOG(INFO) << "initializing track fitter";
-    mTrackFitter = std::make_unique<o2::mft::TrackFitter>();
-    mState = 1;
-  }
+{
+  /// Prepare the track extrapolation tools
+  LOG(INFO) << "initializing track fitter";
+  mTrackFitter = std::make_unique<o2::mft::TrackFitter>();
+  mState = 1;
+}
 
 //_________________________________________________________________________________________________
 void TrackFitterTask::run(ProcessingContext& pc)
-  {
+{
 
-    if (mState != 1)
-      return;
+  if (mState != 1)
+    return;
 
+  auto tracksLTF = pc.inputs().get<const std::vector<o2::mft::TrackLTF>>("tracksltf");
+  auto tracksCA = pc.inputs().get<const std::vector<o2::mft::TrackCA>>("tracksca");
+  int nTracksCA = 0;
+  int nTracksLTF = 0;
+  std::vector<o2::mft::FitterTrackMFT> fittertracks;
+  std::vector<o2::mft::TrackMFT> finalMFTtracks;
 
-    auto tracksLTF = pc.inputs().get<const std::vector<o2::mft::TrackLTF>>("tracksltf");
-    auto tracksCA = pc.inputs().get<const std::vector<o2::mft::TrackCA>>("tracksca");
-    std::vector<Cluster> clusters;
-    int nTracksCA = 0;
-    int nTracksLTF = 0;
-    std::vector<o2::mft::TrackMFTExt> tracks;
-
-    for (auto track : tracksLTF)
-      {
-      LOG(INFO) << "tracksLTF: nTracksLTF  = " << nTracksLTF << " tracks.size() = " << tracks.size() << std::endl;
-      tracks.push_back(mTrackFitter->fit(track, clusters));
-      nTracksLTF++;
-      }
-
-    for (auto track : tracksCA)
-      {
-      tracks.push_back(mTrackFitter->fit(track, clusters));
-      LOG(INFO) << "tracksCA: nTracksCA  = " << nTracksCA << " tracks.size() = " << tracks.size() << std::endl;
-      nTracksCA++;
-      }
-
-
-    LOG(INFO) << "MFTFitter loaded " << tracksLTF.size() << " LTF tracks";
-    LOG(INFO) << "MFTFitter loaded " << tracksCA.size() << " CA tracks";
-
-    LOG(INFO) << "MFTFitter pushed " << nTracksLTF << " LTF tracks";
-    LOG(INFO) << "MFTFitter pushed " << nTracksCA << " CA tracks";
-    LOG(INFO) << "MFTFitter pushed " << tracks.size() << " tracks";
-    pc.outputs().snapshot(Output{"MFT", "TRACKS", 0, Lifetime::Timeframe}, tracks);
-
-
-
-    mState = 2;
-    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  // Fit LTF tracks
+  for (auto track : tracksLTF) {
+    o2::mft::FitterTrackMFT& temptrack = fittertracks.emplace_back();
+    mTrackFitter->convertTrack(track, temptrack);
+    mTrackFitter->fit(temptrack, false);
+    LOG(INFO) << "tracksLTF: nTracksLTF  = " << nTracksLTF << " tracks.size() = " << fittertracks.size() << std::endl;
+    nTracksLTF++;
+  }
+  // Fit CA tracks
+  for (auto track : tracksCA) {
+    o2::mft::FitterTrackMFT& temptrack = fittertracks.emplace_back();
+    mTrackFitter->convertTrack(track, temptrack);
+    mTrackFitter->fit(temptrack, false);
+    LOG(INFO) << "tracksCA: nTracksCA  = " << nTracksCA << " tracks.size() = " << fittertracks.size() << std::endl;
+    nTracksCA++;
   }
 
+  // Convert fitter tracks to the final Standalone MFT Track
+  for (auto track : fittertracks) {
+    o2::mft::TrackMFT& temptrack = finalMFTtracks.emplace_back();
+    // TODO: Convert FitterTrackMFT to TrackMFTExt or TrackMFT
+    // Straight tracks considering only the first and last clusters
+    auto dz = track.last().getZ() - track.first().getZ();
+    auto slopeX = (track.last().getX() - track.first().getX()) / dz;
+    auto slopeY = (track.last().getY() - track.first().getY()) / dz;
+    auto tanl = -std::sqrt(1.f / (slopeX * slopeX + slopeY * +slopeY));
+    auto tanp = slopeY / slopeX;
+    auto sinp = tanp / std::sqrt(1.f + tanp * tanp);
+    //LOG(INFO) << "   TrackPars: Tgl = " << tanl << "  Snp = " << sinp << std::endl;
 
+    temptrack.setX(track.first().getX());
+    temptrack.setY(track.first().getY());
+    temptrack.setZ(track.first().getZ());
+    temptrack.setTgl(tanl);
+    temptrack.setSnp(sinp);
+  }
+
+  LOG(INFO) << "MFTFitter loaded " << tracksLTF.size() << " LTF tracks";
+  LOG(INFO) << "MFTFitter loaded " << tracksCA.size() << " CA tracks";
+  LOG(INFO) << "MFTFitter pushed " << fittertracks.size() << " tracks";
+  pc.outputs().snapshot(Output{"MFT", "TRACKS", 0, Lifetime::Timeframe}, finalMFTtracks);
+
+  mState = 2;
+  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+}
 
 //_________________________________________________________________________________________________
 o2::framework::DataProcessorSpec getTrackFitterSpec()

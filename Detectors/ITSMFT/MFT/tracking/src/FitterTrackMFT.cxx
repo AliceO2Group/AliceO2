@@ -15,7 +15,6 @@
 
 #include "MFTTracking/FitterTrackMFT.h"
 
-
 #include <iostream>
 
 #include <FairMQLogger.h>
@@ -40,7 +39,7 @@ FitterTrackMFT::FitterTrackMFT(const FitterTrackMFT& track)
 }
 
 //__________________________________________________________________________
-TrackParam& FitterTrackMFT::createParamAtCluster(const Cluster& cluster)
+TrackParam& FitterTrackMFT::createParamAtCluster(const o2::itsmft::Cluster& cluster)
 {
   /// Create the object to hold the track parameters at the given cluster
   /// Only the z position of the track is set to the cluster z position
@@ -50,7 +49,7 @@ TrackParam& FitterTrackMFT::createParamAtCluster(const Cluster& cluster)
   // find the iterator before which the new element will be constructed
   auto itParam = mParamAtClusters.begin();
   for (; itParam != mParamAtClusters.end(); ++itParam) {
-    if (cluster.zCoordinate >= itParam->getZ()) {
+    if (cluster.getZ() >= itParam->getZ()) {
       break;
     }
   }
@@ -58,7 +57,9 @@ TrackParam& FitterTrackMFT::createParamAtCluster(const Cluster& cluster)
   // add the new track parameters
   mParamAtClusters.emplace(itParam);
   --itParam;
-  itParam->setZ(cluster.zCoordinate);
+  itParam->setZ(cluster.getZ());
+  itParam->setX(cluster.getX());
+  itParam->setY(cluster.getY());
   itParam->setClusterPtr(&cluster);
 
   return *itParam;
@@ -71,7 +72,7 @@ void FitterTrackMFT::addParamAtCluster(const TrackParam& param)
   /// The parameters must be associated with a cluster
   /// Keep the internal list of track parameters sorted in clusters z
 
-  const Cluster* cluster = param.getClusterPtr();
+  const o2::itsmft::Cluster* cluster = param.getClusterPtr();
   if (cluster == nullptr) {
     LOG(ERROR) << "The TrackParam must be associated with a cluster --> not added";
     return;
@@ -80,7 +81,7 @@ void FitterTrackMFT::addParamAtCluster(const TrackParam& param)
   // find the iterator before which the new element will be constructed
   auto itParam = mParamAtClusters.begin();
   for (; itParam != mParamAtClusters.end(); ++itParam) {
-    if (cluster->zCoordinate >= itParam->getZ()) {
+    if (cluster->getZ() >= itParam->getZ()) {
       break;
     }
   }
@@ -98,7 +99,7 @@ int FitterTrackMFT::getNClustersInCommon(const FitterTrackMFT& track, int stMin,
   int chMin = 2 * stMin;
   int chMax = 2 * stMax + 1;
   int nClustersInCommon(0);
-/*
+  /*
   for (const auto& param1 : *this) {
 
     int ch1 = param1.getClusterPtr()->getChamberId();
@@ -139,8 +140,6 @@ void FitterTrackMFT::tagRemovableClusters(uint8_t requestedStationMask)
   /// Identify clusters that can be removed from the track,
   /// with the only requirements to have at least 1 cluster per requested station
   /// and at least 2 chambers over 4 in stations 4 & 5 that contain cluster(s)
-
-
 }
 
 //__________________________________________________________________________
@@ -169,13 +168,12 @@ TrackParam& FitterTrackMFT::getCurrentParam()
 //__________________________________________________________________________
 void FitterTrackMFT::print() const
 {
-  /// Print the track parameters at first cluster and the Id of all associated clusters
-  mParamAtClusters.front().print();
-  //cout << "\tcurrent chamber = " << mCurrentLayer + 1 << " ; clusters = {";
-  //for (const auto& param : *this) {
-  //  cout << param.getClusterPtr()->getIdAsString() << ", ";
-  //}
-  //cout << "}" << endl;
+  //  mParamAtClusters.front().print();
+  //  cout << "\tcurrent chamber = " << mCurrentChamber + 1 << " ; clusters = {";
+  //  for (const auto& param : *this) {
+  //    cout << param.getClusterPtr()->getIdAsString() << ", ";
+  //  }
+  //  cout << "}" << endl;
 }
 
 } // namespace mft

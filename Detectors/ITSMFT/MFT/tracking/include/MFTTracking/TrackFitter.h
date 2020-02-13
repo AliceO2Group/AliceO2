@@ -16,11 +16,12 @@
 #ifndef ALICEO2_MFT_TRACKFITTER_H_
 #define ALICEO2_MFT_TRACKFITTER_H_
 
-#include "MFTTracking/Cluster.h"
+//#include "MFTTracking/Cluster.h"
 #include "MFTTracking/TrackCA.h"
 #include "MFTTracking/FitterTrackMFT.h"
 #include "MFTTracking/TrackParam.h"
 #include "DataFormatsMFT/TrackMFT.h"
+#include "DataFormatsITSMFT/Cluster.h"
 
 #include <list>
 
@@ -28,7 +29,8 @@ namespace o2
 {
 namespace mft
 {
-using Track = o2::mft::FitterTrackMFT;
+//using Track = o2::mft::FitterTrackMFT;
+//using Cluster = o2::itsmft::Cluster;
 
 /// Class to fit a track to a set of clusters
 class TrackFitter
@@ -49,24 +51,23 @@ class TrackFitter
   /// Return the smoother enable/disable flag
   bool isSmootherEnabled() { return mSmooth; }
 
-  //void fit(Track& track, bool smooth = true, bool finalize = true,
-  //         std::list<TrackParam>::reverse_iterator* itStartingParam = nullptr);
+  void fit(FitterTrackMFT& track, bool smooth = true, bool finalize = true,
+           std::list<TrackParam>::reverse_iterator* itStartingParam = nullptr);
 
   void runKalmanFilter(TrackParam& trackParam);
 
-  template <typename T, typename C>
-  TrackMFTExt fit(T&& track, C&& clusters);
-
+  template <typename T, typename O>
+  void convertTrack(const T& inTrack, O& outTrack);
 
   /// Return the maximum chi2 above which the track can be considered as abnormal
   static constexpr double getMaxChi2() { return SMaxChi2; }
 
  private:
-  void initTrack(const Cluster& cl, TMatrixD& covariances);
-  void addCluster(const Cluster& newcl, TMatrixD& covariances);
-  void smoothTrack(Track& track, bool finalize);
+  void initTrack(const o2::itsmft::Cluster& cl, const o2::itsmft::Cluster& cl2, TrackParam& param);
+  void addCluster(const TrackParam& startingParam, const o2::itsmft::Cluster& cl, TrackParam& param);
+  void smoothTrack(FitterTrackMFT& track, bool finalize);
   void runSmoother(const TrackParam& previousParam, TrackParam& param);
-  Float_t bField = 0.5; // Tesla. TODO: calculate value according to the solenoid current
+  Float_t bField = 0.5;                     // Tesla. TODO: calculate value according to the solenoid current
   static constexpr double SMaxChi2 = 2.e10; ///< maximum chi2 above which the track can be considered as abnormal
 
   bool mSmooth = false; ///< switch ON/OFF the smoother

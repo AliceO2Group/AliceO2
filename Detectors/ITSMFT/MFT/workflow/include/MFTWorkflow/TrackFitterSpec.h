@@ -21,7 +21,6 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
-
 namespace o2
 {
 namespace mft
@@ -39,7 +38,6 @@ class TrackFitterTask : public o2::framework::Task
   int mState = 0;
   std::unique_ptr<o2::mft::TrackFitter> mTrackFitter = nullptr;
 };
-
 
 o2::framework::DataProcessorSpec getTrackFitterSpec();
 

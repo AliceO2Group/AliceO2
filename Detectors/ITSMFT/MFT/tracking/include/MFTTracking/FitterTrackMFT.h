@@ -19,7 +19,7 @@
 #include <list>
 #include <memory>
 
-#include "Cluster.h"
+#include "DataFormatsITSMFT/Cluster.h"
 #include "TrackParam.h"
 
 namespace o2
@@ -27,7 +27,7 @@ namespace o2
 namespace mft
 {
 
-/// track for internal use
+/// track for internal use byt the MFT Track Fitter
 class FitterTrackMFT
 {
  public:
@@ -36,7 +36,7 @@ class FitterTrackMFT
 
   FitterTrackMFT(const FitterTrackMFT& track);
   FitterTrackMFT& operator=(const FitterTrackMFT& track) = delete;
-  FitterTrackMFT(FitterTrackMFT&&) = delete;
+  //FitterTrackMFT(FitterTrackMFT&&) = delete;
   FitterTrackMFT& operator=(FitterTrackMFT&&) = delete;
 
   /// Return a reference to the track parameters at vertex
@@ -63,7 +63,7 @@ class FitterTrackMFT
   auto rend() { return mParamAtClusters.rend(); }
   auto rend() const { return mParamAtClusters.rend(); }
 
-  TrackParam& createParamAtCluster(const Cluster& cluster);
+  TrackParam& createParamAtCluster(const o2::itsmft::Cluster& cluster);
   void addParamAtCluster(const TrackParam& param);
   /// Remove the given track parameters from the internal list and return an iterator to the parameters that follow
   auto removeParamAtCluster(std::list<TrackParam>::iterator& itParam) { return mParamAtClusters.erase(itParam); }
@@ -101,7 +101,7 @@ class FitterTrackMFT
   TrackParam mParamAtVertex{};                 ///< track parameters at vertex
   std::list<TrackParam> mParamAtClusters{};    ///< list of track parameters at each cluster
   std::unique_ptr<TrackParam> mCurrentParam{}; ///< current track parameters used during tracking
-  int mCurrentLayer = -1;                    ///< current chamber on which the current parameters are given
+  int mCurrentLayer = -1;                      ///< current chamber on which the current parameters are given
   bool mConnected = false;                     ///< flag telling if this track shares cluster(s) with another
   bool mRemovable = false;                     ///< flag telling if this track should be deleted
 };
