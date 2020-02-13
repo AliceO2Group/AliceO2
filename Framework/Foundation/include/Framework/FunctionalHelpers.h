@@ -181,6 +181,24 @@ memfun_type<decltype(&F::operator())>
   return memfun_type<decltype(&F::operator())>();
 }
 
+/// Helper to understand if a given type is complete (declared fully) or not (forward declared).
+/// See also: https://devblogs.microsoft.com/oldnewthing/20190710-00/?p=102678
+template <typename, typename = void>
+constexpr bool is_type_complete_v = false;
+
+template <typename T>
+constexpr bool is_type_complete_v<T, std::void_t<decltype(sizeof(T))>> = true;
+
+/// Helper which will invoke lambda if the type T is actually available.
+/// Can be used to check for existence or not of a given type.
+template <typename T, typename TLambda>
+void call_if_defined(TLambda&& lambda)
+{
+  if constexpr (is_type_complete_v<T>) {
+    lambda(static_cast<T*>(nullptr));
+  }
+}
+
 } // namespace o2::framework
 
 #endif // o2_framework_FunctionalHelpers_H_INCLUDED
