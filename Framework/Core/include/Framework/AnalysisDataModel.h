@@ -35,6 +35,8 @@ DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float, "fSigned1Pt");
 DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, [](float snp, float alpha) -> float { return asin(snp) + alpha + M_PI; });
 DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, [](float tgl) -> float { return log(tan(0.25 * M_PI - 0.5 * atan(tgl))); });
 DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, [](float signed1Pt) -> float { return fabs(1.0 / signed1Pt); });
+DECLARE_SOA_DYNAMIC_COLUMN(Charge, charge, [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
+
 // TRACKPARCOV TABLE definition
 DECLARE_SOA_COLUMN(CYY, cYY, float, "fCYY");
 DECLARE_SOA_COLUMN(CZY, cZY, float, "fCZY");
@@ -74,7 +76,8 @@ DECLARE_SOA_TABLE(Tracks, "AOD", "TRACKPAR",
                   track::Signed1Pt,
                   track::Phi<track::Snp, track::Alpha>,
                   track::Eta<track::Tgl>,
-                  track::Pt<track::Signed1Pt>);
+                  track::Pt<track::Signed1Pt>,
+                  track::Charge<track::Signed1Pt>);
 
 DECLARE_SOA_TABLE(TracksCov, "AOD", "TRACKPARCOV",
                   track::CYY, track::CZY, track::CZZ, track::CSnpY,
