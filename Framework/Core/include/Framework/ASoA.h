@@ -24,8 +24,47 @@
 #include <gandiva/selection_vector.h>
 #include <cassert>
 
+
 namespace o2::soa
 {
+
+template<typename, typename = void>
+constexpr bool is_type_with_originals_v = false;
+
+template<typename T>
+constexpr bool is_type_with_originals_v
+    <T, std::void_t<decltype(sizeof(typename T::originals))>> = true;
+
+
+template<typename T, typename TLambda>
+void call_if_has_originals(TLambda&& lambda)
+{
+  if constexpr (is_type_with_originals_v<T>) {
+    lambda(static_cast<T*>(nullptr));
+  } 
+}
+
+template<typename T, typename TLambda>
+void call_if_has_not_originals(TLambda&& lambda)
+{
+  if constexpr (!is_type_with_originals_v<T>) {
+    lambda(static_cast<T*>(nullptr));
+  } 
+}
+
+template<typename T>
+constexpr auto make_originals_from_type()
+{
+  using decayed = std::decay_t<T>;
+  if constexpr (is_type_with_originals_v<decayed>) {
+    return typename decayed::originals{};
+  } else if constexpr (is_type_with_originals_v<typename decayed::table_t>) {
+    return typename decayed::table_t::originals{};
+  } else {
+    return framework::pack<decayed>{};
+  }
+//  return framework::pack<>{};
+}
 
 template <typename T>
 struct arrow_array_for {
@@ -950,6 +989,9 @@ using JoinBase = decltype(join(std::declval<Ts>()...));
 template <typename T1, typename T2>
 using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
 
+template <typename T>
+using originals_pack_t = decltype(make_originals_from_type<T>());
+
 template <typename... Ts>
 struct Join : JoinBase<Ts...> {
   Join(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0)
@@ -961,7 +1003,7 @@ struct Join : JoinBase<Ts...> {
   {
   }
 
-  using originals = framework::pack<Ts...>;
+  using originals = framework::concatenated_pack_t<originals_pack_t<Ts>...>;
   using table_t = JoinBase<Ts...>;
 };
 
@@ -972,7 +1014,7 @@ struct Concat : ConcatBase<T1, T2> {
   Concat(std::vector<std::shared_ptr<arrow::Table>> tables, uint64_t offset = 0)
     : ConcatBase<T1, T2>{ArrowHelpers::concatTables(std::move(tables)), offset} {}
 
-  using originals = framework::pack<T1, T2>;
+  using originals = framework::concatenated_pack_t<originals_pack_t<T1>, originals_pack_t<T2>>;
   // FIXME: can be remove when we do the same treatment we did for Join to Concatenate
   using left_t = T1;
   using right_t = T2;
@@ -983,6 +1025,7 @@ template <typename T>
 class Filtered : public T
 {
  public:
+  using originals = originals_pack_t<T>;
   using iterator = typename T::filtered_iterator;
   using const_iterator = typename T::filtered_const_iterator;
 
