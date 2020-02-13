@@ -291,12 +291,14 @@ class CcdbApi //: public DatabaseInterface
   std::string getFullUrlForRetrieval(const std::string& path, const std::map<std::string, std::string>& metadata,
                                      long timestamp = -1) const;
 
+ public:
   /**
    * A generic helper implementation to store an obj whose type is given by a std::type_info
    */
   void storeAsTFile_impl(void* obj, std::type_info const& info, std::string const& path, std::map<std::string, std::string> const& metadata,
                          long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
 
+ private:
   /**
    * A generic helper implementation to query obj whose type is given by a std::type_info
    */

@@ -34,6 +34,11 @@ o2_add_executable(inspectccdbfile
             SOURCES src/InspectCCDBFile.cxx
             PUBLIC_LINK_LIBRARIES O2::CCDB)
 
+o2_add_executable(upload
+            COMPONENT_NAME ccdb
+            SOURCES src/UploadTool.cxx
+            PUBLIC_LINK_LIBRARIES O2::CCDB)
+
 o2_add_executable(downloadccdbfile
             COMPONENT_NAME ccdb
             SOURCES src/DownloadCCDBFile.cxx
