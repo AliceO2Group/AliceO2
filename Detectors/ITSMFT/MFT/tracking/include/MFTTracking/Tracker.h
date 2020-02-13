@@ -56,7 +56,6 @@ class Tracker
 
  private:
   void findTracks(ROframe&);
-  void fitTracks(ROframe& event);
   void findTracksLTF(ROframe&);
   void findTracksCA(ROframe&);
   void computeCells(ROframe&);
@@ -64,8 +63,6 @@ class Tracker
   void runForwardInRoad(ROframe&);
   void runBackwardInRoad(ROframe&);
   void updateCellStatusInRoad(Road&);
-
-  o2::mft::TrackFitter mMFTTrackFitter;
 
   const Int_t isDiskFace(Int_t layer) const;
 

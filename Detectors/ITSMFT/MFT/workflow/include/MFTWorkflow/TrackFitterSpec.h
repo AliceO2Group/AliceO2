@@ -16,12 +16,30 @@
 #ifndef ALICEO2_MFT_TRACKFITTERSPEC_H_
 #define ALICEO2_MFT_TRACKFITTERSPEC_H_
 
+#include "MFTTracking/TrackFitter.h"
+
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/Task.h"
+
 
 namespace o2
 {
 namespace mft
 {
+
+class TrackFitterTask : public o2::framework::Task
+{
+ public:
+  TrackFitterTask() {}
+  ~TrackFitterTask() override = default;
+  void init(o2::framework::InitContext& ic) final;
+  void run(o2::framework::ProcessingContext& pc) final;
+
+ private:
+  int mState = 0;
+  std::unique_ptr<o2::mft::TrackFitter> mTrackFitter = nullptr;
+};
+
 
 o2::framework::DataProcessorSpec getTrackFitterSpec();
 

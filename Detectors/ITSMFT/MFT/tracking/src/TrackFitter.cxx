@@ -17,8 +17,6 @@
 #include "MFTTracking/TrackCA.h"
 #include "DataFormatsMFT/TrackMFT.h"
 
-
-
 #include <stdexcept>
 
 #include <TMatrixD.h>
@@ -27,11 +25,6 @@ namespace o2
 {
 namespace mft
 {
-
-using namespace std;
-using Track = o2::mft::TrackCA;
-using o2::mft::TrackCA;
-
 
 //_________________________________________________________________________________________________
 void TrackFitter::initField(float l3Current)
@@ -60,8 +53,6 @@ TrackMFTExt TrackFitter::fit(T&& track, C&& clusters)
     std::cout << "Adding cluster " << cls << " to track " << ntrack << " with clusterID " << clusterIDs[cls] << " at z = " <<  zpos[cls] << std::endl;
   }
   auto lastTrackCluster = (clusters.end())--; lastTrackCluster--;
-  //auto firstTrackCluster = lastTrackCluster;
-  //std::advance(firstTrackCluster,-nClusters);
 
   fittedTrack.setFirstClusterEntry(clusOffset);
   fittedTrack.setNumberOfClusters(nClusters);

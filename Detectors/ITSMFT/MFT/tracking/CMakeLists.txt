@@ -16,6 +16,7 @@ o2_add_library(MFTTracking
 	               src/IOUtils.cxx
                  src/TrackFitter.cxx
                  src/TrackParam.cxx
+                 src/FitterTrackMFT.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonConstants
                                      O2::DataFormatsITSMFT
                                      O2::SimulationDataFormat

@@ -26,16 +26,12 @@ namespace o2
 {
 namespace mft
 {
-using o2::mft::TrackMFTExt;
 
 void Tracker::clustersToTracks(ROframe& event, std::ostream& timeBenchmarkOutputStream)
 {
   mTracks.clear();
   mTrackLabels.clear();
-
   findTracks(event);
-  fitTracks(event);
-
 
 }
 
@@ -44,21 +40,6 @@ void Tracker::findTracks(ROframe& event)
   //computeCells(event);
   findTracksLTF(event);
   findTracksCA(event);
-
-}
-
-
-void Tracker::fitTracks(ROframe& event)
-{
-  for (auto track : event.getTracksCA())
-    {
-    mTracks.push_back(mMFTTrackFitter.fit(track, mClusters)); 
-    }
-
-  for (auto track : event.getTracksLTF())
-    {
-    mTracks.push_back(mMFTTrackFitter.fit(track, mClusters));
-    }
 
 }
 

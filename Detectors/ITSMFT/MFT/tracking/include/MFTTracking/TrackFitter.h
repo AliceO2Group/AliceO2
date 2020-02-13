@@ -18,6 +18,7 @@
 
 #include "MFTTracking/Cluster.h"
 #include "MFTTracking/TrackCA.h"
+#include "MFTTracking/FitterTrackMFT.h"
 #include "MFTTracking/TrackParam.h"
 #include "DataFormatsMFT/TrackMFT.h"
 
@@ -27,7 +28,7 @@ namespace o2
 {
 namespace mft
 {
-using Track = o2::mft::TrackCA;
+using Track = o2::mft::FitterTrackMFT;
 
 /// Class to fit a track to a set of clusters
 class TrackFitter
