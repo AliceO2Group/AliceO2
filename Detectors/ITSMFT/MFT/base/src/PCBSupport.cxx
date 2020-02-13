@@ -1,8 +1,8 @@
-//Info// Copyright CERN and copyright holders of ALICE O2. This software is
+// Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
 //
-// See https://alice-o2.web.cern.ch/ for full licensing information.
+// See http://alice-o2.web.cern.ch/license for full licensing information.
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -57,15 +57,15 @@ TGeoVolumeAssembly* PCBSupport::create(Int_t half, Int_t disk)
     mSomeTranslation = new TGeoTranslation(mBoxCuts[disk][cut][2], mBoxCuts[disk][cut][3], 0.);
     //The first subtraction needs a shape, the base tube
     if (cut == 0)
-      mSomeSubtraction = new TGeoSubtraction(PCBCu, mSomeBox, NULL, mSomeTranslation);
+      mSomeSubtraction = new TGeoSubtraction(PCBCu, mSomeBox, nullptr, mSomeTranslation);
     else
-      mSomeSubtraction = new TGeoSubtraction(mPCBCu, mSomeBox, NULL, mSomeTranslation);
+      mSomeSubtraction = new TGeoSubtraction(mPCBCu, mSomeBox, nullptr, mSomeTranslation);
     mPCBCu = new TGeoCompositeShape(boxCSName, mSomeSubtraction);
 
     if (cut == 0)
-      mSomeSubtraction = new TGeoSubtraction(PCBFR4, mSomeBox, NULL, mSomeTranslation);
+      mSomeSubtraction = new TGeoSubtraction(PCBFR4, mSomeBox, nullptr, mSomeTranslation);
     else
-      mSomeSubtraction = new TGeoSubtraction(mPCBFR4, mSomeBox, NULL, mSomeTranslation);
+      mSomeSubtraction = new TGeoSubtraction(mPCBFR4, mSomeBox, nullptr, mSomeTranslation);
     mPCBFR4 = new TGeoCompositeShape(boxCSName, mSomeSubtraction);
   }
 
@@ -76,10 +76,10 @@ TGeoVolumeAssembly* PCBSupport::create(Int_t half, Int_t disk)
       auto* boxCSName = Form("PCBBoxAddCS_%d_H%d_D%d", iBox, half, disk);
       mSomeBox = new TGeoBBox(boxName, mBoxAdd[disk][iBox][0] / 2., mBoxAdd[disk][iBox][1] / 2., mFR4Thickness / 2.);
       mSomeTranslation = new TGeoTranslation(mBoxAdd[disk][iBox][2], mBoxAdd[disk][iBox][3], 0.);
-      mSomeUnion = new TGeoUnion(mPCBFR4, mSomeBox, NULL, mSomeTranslation);
+      mSomeUnion = new TGeoUnion(mPCBFR4, mSomeBox, nullptr, mSomeTranslation);
       mPCBFR4 = new TGeoCompositeShape(boxCSName, mSomeUnion);
       mSomeBox = new TGeoBBox(boxName, mBoxAdd[disk][iBox][0] / 2., mBoxAdd[disk][iBox][1] / 2., mCuThickness / 2.);
-      mSomeUnion = new TGeoUnion(mPCBCu, mSomeBox, NULL, mSomeTranslation);
+      mSomeUnion = new TGeoUnion(mPCBCu, mSomeBox, nullptr, mSomeTranslation);
       mPCBCu = new TGeoCompositeShape(boxCSName, mSomeUnion);
     }
 
@@ -92,9 +92,9 @@ TGeoVolumeAssembly* PCBSupport::create(Int_t half, Int_t disk)
     auto* tubeCSName = Form("PCBHoleCS_%d_H%d_D%d", iHole, half, disk);
     mSomeTube = new TGeoTube(tubeName, 0, mHoles[disk][iHole][0] / 2.0, mFR4Thickness + 10 * mT_delta); // TODO: Adjust thickness
     mSomeTranslation = new TGeoTranslation(mHoles[disk][iHole][1], mHoles[disk][iHole][2], 0.);
-    mSomeSubtraction = new TGeoSubtraction(mPCBCu, mSomeTube, NULL, mSomeTranslation);
+    mSomeSubtraction = new TGeoSubtraction(mPCBCu, mSomeTube, nullptr, mSomeTranslation);
     mPCBCu = new TGeoCompositeShape(tubeCSName, mSomeSubtraction);
-    mSomeSubtraction = new TGeoSubtraction(mPCBFR4, mSomeTube, NULL, mSomeTranslation);
+    mSomeSubtraction = new TGeoSubtraction(mPCBFR4, mSomeTube, nullptr, mSomeTranslation);
     mPCBFR4 = new TGeoCompositeShape(tubeCSName, mSomeSubtraction);
   }
 
@@ -198,7 +198,7 @@ void PCBSupport::initParameters()
   // Add boxes {Width, Height, x_center, y_center}
   // ### PCB 00
   mNumberOfBoxAdd[0] = 0;
-  mBoxAdd[00] = NULL;
+  mBoxAdd[00] = nullptr;
 
   // ### PCB 01
   mNumberOfBoxAdd[1] = mNumberOfBoxAdd[0];
@@ -214,7 +214,7 @@ void PCBSupport::initParameters()
 
   // ### PCB 03
   mNumberOfBoxAdd[3] = 0;
-  mBoxAdd[03] = NULL;
+  mBoxAdd[03] = nullptr;
 
   // ### PCB 04
   mNumberOfBoxAdd[4] = 1;

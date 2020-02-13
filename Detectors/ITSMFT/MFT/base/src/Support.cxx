@@ -1,8 +1,8 @@
-//Info// Copyright CERN and copyright holders of ALICE O2. This software is
+// Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
 //
-// See https://alice-o2.web.cern.ch/ for full licensing information.
+// See http://alice-o2.web.cern.ch/license for full licensing information.
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -93,7 +93,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
       localArb->SetVertex(iVertex, vertex[0], mOuterCut[disk] - vertex[1]);
       localArb->SetVertex(iVertex + 4, vertex[0], mOuterCut[disk] - vertex[1]); //Vertexes 4..7 = 0..3
     }
-    localCS = new TGeoCompositeShape(NULL, compositeOperation(localCS, localArb, nullptr, TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(nullptr, compositeOperation(localCS, localArb, nullptr, TGeoSubtraction()));
   }
 
   // ==== M2 6mm deep holes)
@@ -103,13 +103,13 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     localTranslation = new TGeoTranslation(-mM2Holes[disk][iHole][0],
                                            mOuterCut[disk] - mM2Holes[disk][iHole][1],
                                            mRaisedBoxHeight + mSupThickness / 2. - mHeight_M2);
-    localCS = new TGeoCompositeShape(NULL, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(nullptr, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
 
     //For the backside
     localTranslation = new TGeoTranslation(mM2Holes[disk][iHole][0],
                                            mOuterCut[disk] - mM2Holes[disk][iHole][1],
                                            -(mRaisedBoxHeight + mSupThickness / 2. - mHeight_M2));
-    localCS = new TGeoCompositeShape(NULL, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(nullptr, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
   }
 
   // ==== D2 H7 - 4 mm deep (on raisedBoxes)
@@ -120,13 +120,13 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     localTranslation = new TGeoTranslation(-mD2_hHoles[disk][iHole][0],
                                            mOuterCut[disk] - mD2_hHoles[disk][iHole][1],
                                            mRaisedBoxHeight + mSupThickness / 2. - mHeight_D2_h);
-    localCS = new TGeoCompositeShape(NULL, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(nullptr, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
 
     //For the backside
     localTranslation = new TGeoTranslation(mD2_hHoles[disk][iHole][0],
                                            mOuterCut[disk] - mD2_hHoles[disk][iHole][1],
                                            -(mRaisedBoxHeight + mSupThickness / 2. - mHeight_D2_h));
-    localCS = new TGeoCompositeShape(NULL, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(nullptr, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
   }
 
   // ==== D6.5 H7 (6.5 mm diameter holes)
@@ -136,7 +136,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     localTranslation = new TGeoTranslation(-mD65Holes[disk][iHole][0],
                                            mOuterCut[disk] - mD65Holes[disk][iHole][1],
                                            0.);
-    localCS = new TGeoCompositeShape(NULL, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(nullptr, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
   }
 
   // ==== D6 H7 (6 mm diameter holes)
@@ -146,7 +146,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     localTranslation = new TGeoTranslation(-mD6Holes[disk][iHole][0],
                                            mOuterCut[disk] - mD6Holes[disk][iHole][1],
                                            0.);
-    localCS = new TGeoCompositeShape(NULL, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(nullptr, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
   }
 
   // ==== D8 H7 (8 mm diameter holes)
@@ -156,7 +156,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     localTranslation = new TGeoTranslation(-mD8Holes[disk][iHole][0],
                                            mOuterCut[disk] - mD8Holes[disk][iHole][1],
                                            0.);
-    localCS = new TGeoCompositeShape(NULL, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(nullptr, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
   }
 
   // ==== D3 H7 (3 mm diameter holes)
@@ -166,7 +166,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     localTranslation = new TGeoTranslation(-mD3Holes[disk][iHole][0],
                                            mOuterCut[disk] - mD3Holes[disk][iHole][1],
                                            0.);
-    localCS = new TGeoCompositeShape(NULL, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(nullptr, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
   }
 
   // ==== M3 H7 (?? mm diameter holes)
@@ -176,7 +176,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     localTranslation = new TGeoTranslation(-mM3Holes[disk][iHole][0],
                                            mOuterCut[disk] - mM3Holes[disk][iHole][1],
                                            0.);
-    localCS = new TGeoCompositeShape(NULL, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(nullptr, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
   }
 
   // ==== D4.5 H9
@@ -186,7 +186,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     localTranslation = new TGeoTranslation(-mD45Holes[disk][iHole][0],
                                            mOuterCut[disk] - mD45Holes[disk][iHole][1],
                                            0.);
-    localCS = new TGeoCompositeShape(NULL, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(nullptr, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
   }
 
   // ==== D2 H7 - 4 mm deep (on lower surface)
@@ -196,7 +196,7 @@ TGeoVolumeAssembly* Support::create(Int_t half, Int_t disk)
     localTranslation = new TGeoTranslation(-mD2Holes[disk][iHole][0],
                                            mOuterCut[disk] - mD2Holes[disk][iHole][1],
                                            mSupThickness / 2. - .4 / 2);
-    localCS = new TGeoCompositeShape(NULL, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
+    localCS = new TGeoCompositeShape(nullptr, compositeOperation(localCS, localTube, localTranslation, TGeoSubtraction()));
   }
 
   // ======= Prepare support volume and add to HalfDisk =========
@@ -344,14 +344,14 @@ void Support::initParameters()
   // ### halfDisk 04
   mDiskRaisedBoxes[4] =
     {
-      {(13.9 - 11.4) / 2., (11.82 - 9.4) / 2., rBT, -(13.9 + 11.4) / 2., (11.82 + 9.4) / 2., -rBS},        // RB0
-      {(10.55 - 8.0) / 2., (14.83 - 12.4) / 2., rBT, -(10.55 + 8.0) / 2., (14.83 + 12.4) / 2., -rBS},      // RB1
-      {(7.15 - 2.9) / 2., (17.84 - 15.35) / 2., rBT, -(7.15 + 2.9) / 2., (17.84 + 15.35) / 2., -rBS},      // RB2
-      {(2.05 + 2.55) / 2., (18.45 - 16.4) / 2., rBT, -(2.05 - 2.55) / 2., (18.45 + 16.4) / 2, -rBS},       // RB3
-      {-(-4.75 + 2.9) / 2., (17.26 - 15.35) / 2., rBT, -(-4.75 - 2.9) / 2., (17.26 + 15.35) / 2., -rBS},   // RB4
-      {-(-7.65 + 4.75) / 2., (17.85 - 15.35) / 2., rBT, -(-7.65 - 4.75) / 2., (17.85 + 15.35) / 2., -rBS}, // RB5
-      {-(-11.05 + 8.0) / 2., (14.83 - 12.4) / 2., rBT, -(-11.05 - 8.0) / 2., (14.83 + 12.4) / 2., -rBS},   // RB6
-      {-(-14.45 + 11.4) / 2., (11.82 - 9.4) / 2., rBT, -(-14.45 - 11.4) / 2., (11.82 + 9.4) / 2., -rBS},   // RB7
+      {(13.9 - 11.4) / 2., (11.82 - 9.4) / 2., rBT, -(13.9 + 11.4) / 2., (11.82 + 9.4) / 2., rBS},        // RB0
+      {(10.55 - 8.0) / 2., (14.83 - 12.4) / 2., rBT, -(10.55 + 8.0) / 2., (14.83 + 12.4) / 2., rBS},      // RB1
+      {(7.15 - 2.9) / 2., (17.84 - 15.35) / 2., rBT, -(7.15 + 2.9) / 2., (17.84 + 15.35) / 2., rBS},      // RB2
+      {(2.05 + 2.55) / 2., (18.45 - 16.4) / 2., rBT, -(2.05 - 2.55) / 2., (18.45 + 16.4) / 2, rBS},       // RB3
+      {-(-4.75 + 2.9) / 2., (17.26 - 15.35) / 2., rBT, -(-4.75 - 2.9) / 2., (17.26 + 15.35) / 2., rBS},   // RB4
+      {-(-7.65 + 4.75) / 2., (17.85 - 15.35) / 2., rBT, -(-7.65 - 4.75) / 2., (17.85 + 15.35) / 2., rBS}, // RB5
+      {-(-11.05 + 8.0) / 2., (14.83 - 12.4) / 2., rBT, -(-11.05 - 8.0) / 2., (14.83 + 12.4) / 2., rBS},   // RB6
+      {-(-14.45 + 11.4) / 2., (11.82 - 9.4) / 2., rBT, -(-14.45 - 11.4) / 2., (11.82 + 9.4) / 2., rBS},   // RB7
       //For backside:
       {(13.9 - 11.4) / 2., (11.82 - 9.4) / 2., rBT, (13.9 + 11.4) / 2., (11.82 + 9.4) / 2., -rBS},        // RB0
       {(10.55 - 8.0) / 2., (14.83 - 12.4) / 2., rBT, (10.55 + 8.0) / 2., (14.83 + 12.4) / 2., -rBS},      // RB1

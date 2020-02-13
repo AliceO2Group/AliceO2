@@ -117,7 +117,7 @@ class Support
 template <class L, class R, class T, class OP>
 auto compositeOperation(L&& left, R&& right, T&& translation, OP&& op)
 {
-  auto result = new OP(std::forward<L&&>(left), std::forward<R&&>(right), NULL, std::forward<T&&>(translation));
+  auto result = new OP(std::forward<L&&>(left), std::forward<R&&>(right), nullptr, std::forward<T&&>(translation));
   return result;
 }
 
@@ -132,14 +132,14 @@ auto serialBoolOperation(L&& base, SHAPE&& shape, EL&& elements, OP&& op)
   for (auto par : elements) {
     //Info("SerialBoolOperation", Form("params: %f %f %f %f %f %f,", par[0], par[1], par[2], par[3], par[4], par[5]), 0, 0);
 
-    localshape = new SHAPE(par[0], par[1], par[2], 0);
+    localshape = new SHAPE(par[0], par[1], par[2], nullptr);
     localTranslation = new TGeoTranslation(par[3], par[4], par[5]);
 
     //The first subtraction needs a shape, the base shape
     if (!localCS)
-      localCS = new TGeoCompositeShape(NULL, compositeOperation(base, localshape, localTranslation, std::forward<OP>(op)));
+      localCS = new TGeoCompositeShape(nullptr, compositeOperation(base, localshape, localTranslation, std::forward<OP>(op)));
     else
-      localCS = new TGeoCompositeShape(NULL, compositeOperation(localCS, localshape, localTranslation, std::forward<OP>(op)));
+      localCS = new TGeoCompositeShape(nullptr, compositeOperation(localCS, localshape, localTranslation, std::forward<OP>(op)));
   }
   return localCS;
 }
