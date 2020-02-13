@@ -39,8 +39,6 @@ class CompressedInspectorTask : public Task
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
-  static DataProcessorSpec getSpec();
-
  private:
   bool mStatus = false;
   TFile* mFile = nullptr;

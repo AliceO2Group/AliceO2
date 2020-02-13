@@ -21,11 +21,14 @@
 #include <iostream>
 
 #define DECODER_PARANOID
-//#define DECODER_VERBOSE
-//#define ENCODER_VERBOSE
-//#define CHECKER_VERBOSE
-//#define CHECKER_COUNTER
+#define DECODER_VERBOSE
+#define ENCODER_VERBOSE
+#define CHECKER_VERBOSE
+#define CHECKER_COUNTER
 
+#ifdef DECODER_PARANOID
+#warning "Building code with DecoderParanoid option. This may limit the speed."
+#endif
 #ifdef DECODER_VERBOSE
 #warning "Building code with DecoderVerbose option. This may limit the speed."
 #endif
@@ -95,208 +98,6 @@ namespace o2
 {
 namespace tof
 {
-
-Compressor::~Compressor()
-{
-  if (mDecoderBuffer && mOwnDecoderBuffer)
-    delete[] mDecoderBuffer;
-  if (mEncoderBuffer && mOwnDecoderBuffer)
-    delete[] mEncoderBuffer;
-}
-
-bool Compressor::init()
-{
-  if (decoderInit())
-    return true;
-  if (encoderInit())
-    return true;
-  return false;
-}
-
-bool Compressor::open(const std::string inFileName, const std::string outFileName)
-{
-  if (decoderOpen(inFileName))
-    return true;
-  if (encoderOpen(outFileName))
-    return true;
-  return false;
-}
-
-bool Compressor::close()
-{
-  if (decoderClose())
-    return true;
-  if (encoderClose())
-    return true;
-  return false;
-}
-
-bool Compressor::decoderInit()
-{
-#ifdef DECODER_VERBOSE
-  if (mDecoderVerbose) {
-    std::cout << colorBlue
-              << "--- INITIALISE DECODER BUFFER: " << mDecoderBufferSize << " bytes"
-              << colorReset
-              << std::endl;
-  }
-#endif
-  if (mDecoderBuffer && mOwnDecoderBuffer) {
-    std::cout << colorYellow
-              << "--- a buffer was already allocated, cleaning"
-              << colorReset
-              << std::endl;
-    delete[] mDecoderBuffer;
-  }
-  mDecoderBuffer = new char[mDecoderBufferSize];
-  mOwnDecoderBuffer = true;
-  return false;
-}
-
-bool Compressor::encoderInit()
-{
-#ifdef ENCODER_VERBOSE
-  if (mEncoderVerbose) {
-    std::cout << colorBlue
-              << "--- INITIALISE ENCODER BUFFER: " << mEncoderBufferSize << " bytes"
-              << colorReset
-              << std::endl;
-  }
-#endif
-  if (mEncoderBuffer && mOwnEncoderBuffer) {
-    std::cout << colorYellow
-              << "-W- a buffer was already allocated, cleaning"
-              << colorReset
-              << std::endl;
-    delete[] mEncoderBuffer;
-  }
-  mEncoderBuffer = new char[mEncoderBufferSize];
-  mOwnEncoderBuffer = true;
-  encoderRewind();
-  return false;
-}
-
-bool Compressor::decoderOpen(const std::string name)
-{
-  if (mDecoderFile.is_open()) {
-    std::cout << colorYellow
-              << "-W- a file was already open, closing"
-              << colorReset
-              << std::endl;
-    mDecoderFile.close();
-  }
-  mDecoderFile.open(name.c_str(), std::fstream::in | std::fstream::binary);
-  if (!mDecoderFile.is_open()) {
-    std::cerr << colorRed
-              << "-E- Cannot open input file: " << name
-              << colorReset
-              << std::endl;
-    return true;
-  }
-  return false;
-}
-
-bool Compressor::encoderOpen(const std::string name)
-{
-  if (mEncoderFile.is_open()) {
-    std::cout << colorYellow
-              << "-W- a file was already open, closing"
-              << colorReset
-              << std::endl;
-    mEncoderFile.close();
-  }
-  mEncoderFile.open(name.c_str(), std::fstream::out | std::fstream::binary);
-  if (!mEncoderFile.is_open()) {
-    std::cerr << colorRed << "-E- Cannot open output file: " << name
-              << colorReset
-              << std::endl;
-    return true;
-  }
-  return false;
-}
-
-bool Compressor::decoderClose()
-{
-  if (mDecoderFile.is_open()) {
-    mDecoderFile.close();
-    return false;
-  }
-  return true;
-}
-
-bool Compressor::encoderClose()
-{
-  if (mEncoderFile.is_open())
-    mEncoderFile.close();
-  return false;
-}
-
-bool Compressor::decoderRead()
-{
-  if (!mDecoderFile.is_open()) {
-    std::cout << colorRed << "--- no input file is open"
-              << colorReset
-              << std::endl;
-    return true;
-  }
-
-  char* inputPointer = mDecoderBuffer;
-  mDecoderFile.read(inputPointer, 64);
-  mDecoderBufferSize = 64;
-  auto rdh = reinterpret_cast<o2::header::RAWDataHeader*>(inputPointer);
-  while (!rdh->stop) {
-    mDecoderFile.read(inputPointer + rdh->headerSize, rdh->offsetToNext - rdh->headerSize);
-    mDecoderBufferSize += (rdh->offsetToNext - rdh->headerSize);
-    inputPointer += rdh->offsetToNext;
-    mDecoderFile.read(inputPointer, 64);
-    mDecoderBufferSize += 64;
-    rdh = reinterpret_cast<o2::header::RAWDataHeader*>(inputPointer);
-  }
-
-  /** check end of file **/
-  if (mDecoderFile.eof()) {
-    std::cout << colorRed << "--- Nothing else to read"
-              << colorReset
-              << std::endl;
-    return true;
-  }
-
-#ifdef DECODER_VERBOSE
-  if (mDecoderVerbose) {
-    std::cout << colorBlue
-              << "--- DECODER READ HBF: " << mDecoderBufferSize << " bytes"
-              << colorReset
-              << std::endl;
-  }
-#endif
-
-  return false;
-}
-
-bool Compressor::encoderWrite()
-{
-#ifdef ENCODER_VERBOSE
-  if (mEncoderVerbose) {
-    std::cout << colorBlue
-              << "--- ENCODER WRITE BUFFER: " << getEncoderByteCounter() << " bytes"
-              << colorReset
-              << std::endl;
-  }
-#endif
-  mEncoderFile.write(mEncoderBuffer, getEncoderByteCounter());
-  encoderRewind();
-  return false;
-}
-
-bool Compressor::decoderParanoid()
-{
-  if (mDecoderPointer >= mDecoderPointerMax) {
-    printf("%s %08x [ERROR] fatal error: beyond memory size %s \n", colorRed, *mDecoderPointer, colorReset);
-    mDecoderFatal = true;
-    return true;
-  }
-  return false;
-}
 
 bool Compressor::processHBF()
 {
@@ -997,6 +798,16 @@ bool Compressor::processDRM()
   }
 #endif
 
+  return false;
+}
+
+bool Compressor::decoderParanoid()
+{
+  if (mDecoderPointer >= mDecoderPointerMax) {
+    printf("%s %08x [ERROR] fatal error: beyond memory size %s \n", colorRed, *mDecoderPointer, colorReset);
+    mDecoderFatal = true;
+    return true;
+  }
   return false;
 }
 

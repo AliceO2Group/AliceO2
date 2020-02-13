@@ -13,10 +13,9 @@
 /// @since  2019-12-18
 /// @brief  Basic DPL workflow for TOF raw data compression
 
-#include "TOFCompression/CompressorTask.h"
+#include "TOFCompression/CompressedInspectorTask.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
-#include "Framework/ConcreteDataMatcher.h"
 #include "FairLogger.h"
 
 using namespace o2::framework;
@@ -25,11 +24,8 @@ using namespace o2::framework;
 // including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  auto inputDesc = ConfigParamSpec{"input-desc", VariantType::String, "RAWDATA", {"Input specs description string"}};
-  auto outputDesc = ConfigParamSpec{"output-desc", VariantType::String, "CRAWDATA", {"Output specs description string"}};
-
+  auto inputDesc = ConfigParamSpec{"input-desc", VariantType::String, "CRAWDATA", {"Input specs description string"}};
   workflowOptions.push_back(inputDesc);
-  workflowOptions.push_back(outputDesc);
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -37,22 +33,16 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 /// This function hooks up the the workflow specifications into the DPL driver.
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-
   auto inputDesc = cfgc.options().get<std::string>("input-desc");
-  auto outputDesc = cfgc.options().get<std::string>("output-desc");
-  std::vector<OutputSpec> outputs;
-  outputs.emplace_back(OutputSpec(ConcreteDataTypeMatcher{"TOF", "CRAWDATA"}));
 
   WorkflowSpec workflow;
   workflow.emplace_back(DataProcessorSpec{
-    "tof-compressor",
+    "tof-compressed-inspector",
     select(std::string("x:TOF/" + inputDesc).c_str()),
-    outputs,
-    AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask>()},
+    Outputs{},
+    AlgorithmSpec{adaptFromTask<o2::tof::CompressedInspectorTask>()},
     Options{
-      {"decoder-verbose", VariantType::Bool, false, {"Decoder verbose flag"}},
-      {"encoder-verbose", VariantType::Bool, false, {"Encoder verbose flag"}},
-      {"checker-verbose", VariantType::Bool, false, {"Checker verbose flag"}}}});
+      {"tof-inspector-filename", VariantType::String, "inspector.root", {"Name of the inspector output file"}}}});
 
   return workflow;
 }

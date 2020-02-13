@@ -16,7 +16,11 @@
 #include "TOFCompression/CompressorTask.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "Framework/WorkflowSpec.h"
+#include "Framework/RawDeviceService.h"
+#include "Framework/DeviceSpec.h"
+#include "Framework/DataSpecUtils.h"
+
+#include <fairmq/FairMQDevice.h>
 
 using namespace o2::framework;
 
@@ -29,12 +33,9 @@ void CompressorTask::init(InitContext& ic)
 {
   LOG(INFO) << "Compressor init";
 
-  /** link encoder output buffer **/
-  mCompressor.setEncoderBuffer(const_cast<char*>(mDataFrame.mBuffer));
-
-  auto decoderVerbose = ic.options().get<bool>("tof-compressor-decoder-verbose");
-  auto encoderVerbose = ic.options().get<bool>("tof-compressor-encoder-verbose");
-  auto checkerVerbose = ic.options().get<bool>("tof-compressor-checker-verbose");
+  auto decoderVerbose = ic.options().get<bool>("decoder-verbose");
+  auto encoderVerbose = ic.options().get<bool>("encoder-verbose");
+  auto checkerVerbose = ic.options().get<bool>("checker-verbose");
 
   mCompressor.setDecoderVerbose(decoderVerbose);
   mCompressor.setEncoderVerbose(encoderVerbose);
@@ -51,37 +52,47 @@ void CompressorTask::run(ProcessingContext& pc)
 {
   LOG(DEBUG) << "Compressor run";
 
+  /** set encoder output buffer **/
+  char bufferOut[1048576];
+  mCompressor.setEncoderBuffer(bufferOut);
+  mCompressor.setEncoderBufferSize(1048576);
+
+  auto device = pc.services().get<o2::framework::RawDeviceService>().device();
+  auto outputRoutes = pc.services().get<o2::framework::RawDeviceService>().spec().outputs;
+  auto fairMQChannel = outputRoutes.at(0).channel;
+
   /** receive input **/
   for (auto& input : pc.inputs()) {
-    const auto* header = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
-    auto payload = const_cast<char*>(input.payload);
-    auto payloadSize = header->payloadSize;
-    mCompressor.setDecoderBuffer(payload);
-    mCompressor.setDecoderBufferSize(payloadSize);
+
+    /** input **/
+    auto headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
+    auto dataProcessingHeaderIn = DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(input);
+    auto payloadIn = const_cast<char*>(input.payload);
+    auto payloadInSize = headerIn->payloadSize;
+    mCompressor.setDecoderBuffer(payloadIn);
+    mCompressor.setDecoderBufferSize(payloadInSize);
 
     /** run **/
     mCompressor.run();
+    auto payloadOutSize = mCompressor.getEncoderByteCounter();
+    auto payloadMessage = device->NewMessage(payloadOutSize);
+    std::memcpy(payloadMessage->GetData(), bufferOut, payloadOutSize);
 
-    /** push output **/
-    mDataFrame.mSize = mCompressor.getEncoderByteCounter();
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CMPDATAFRAME", 0, Lifetime::Timeframe}, mDataFrame);
+    /** output **/
+    auto headerOut = *headerIn;
+    auto dataProcessingHeaderOut = *dataProcessingHeaderIn;
+    headerOut.dataDescription = "CRAWDATA";
+    headerOut.payloadSize = payloadOutSize;
+    o2::header::Stack headerStack{headerOut, dataProcessingHeaderOut};
+    auto headerMessage = device->NewMessage(headerStack.size());
+    std::memcpy(headerMessage->GetData(), headerStack.data(), headerStack.size());
+
+    /** send **/
+    FairMQParts parts;
+    parts.AddPart(std::move(headerMessage));
+    parts.AddPart(std::move(payloadMessage));
+    device->Send(parts, fairMQChannel);
   }
-}
-
-DataProcessorSpec CompressorTask::getSpec()
-{
-  std::vector<InputSpec> inputs;
-  std::vector<OutputSpec> outputs;
-
-  return DataProcessorSpec{
-    "tof-compressor",
-    select("x:TOF/RAWDATA"),
-    Outputs{OutputSpec(o2::header::gDataOriginTOF, "CMPDATAFRAME", 0, Lifetime::Timeframe)},
-    AlgorithmSpec{adaptFromTask<CompressorTask>()},
-    Options{
-      {"tof-compressor-decoder-verbose", VariantType::Bool, false, {"Decoder verbose flag"}},
-      {"tof-compressor-encoder-verbose", VariantType::Bool, false, {"Encoder verbose flag"}},
-      {"tof-compressor-checker-verbose", VariantType::Bool, false, {"Checker verbose flag"}}}};
 }
 
 } // namespace tof

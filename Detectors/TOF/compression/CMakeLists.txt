@@ -10,20 +10,20 @@
 
 o2_add_library(TOFCompression
                SOURCES src/Compressor.cxx
-	       	       src/RawReaderTask.cxx
                	       src/CompressorTask.cxx
-	       	       src/CompressedWriterTask.cxx
-	       	       src/CompressedInspectorTask.cxx
+               	       src/CompressedInspectorTask.cxx
                PUBLIC_LINK_LIBRARIES O2::TOFBase O2::Framework O2::Headers O2::DataFormatsTOF
 	                             O2::DetectorsRaw
 	       )
 
-o2_target_root_dictionary(TOFCompression
-                          HEADERS include/TOFCompression/RawDataFrame.h
-			  )
-				  
 o2_add_executable(compressor
                   COMPONENT_NAME tof
                   SOURCES src/tof-compressor.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TOFCompression
+		  )
+
+o2_add_executable(compressed-inspector
+                  COMPONENT_NAME tof
+                  SOURCES src/tof-compressed-inspector.cxx
                   PUBLIC_LINK_LIBRARIES O2::TOFCompression
 		  )

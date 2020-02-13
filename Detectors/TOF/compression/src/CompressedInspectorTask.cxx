@@ -14,7 +14,6 @@
 /// @brief  TOF compressed data inspector task
 
 #include "TOFCompression/CompressedInspectorTask.h"
-#include "TOFCompression/RawDataFrame.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 
@@ -25,8 +24,6 @@
 #include "TFile.h"
 #include "TH1F.h"
 #include "TH2F.h"
-
-//#define VERBOSE
 
 using namespace o2::framework;
 
@@ -69,7 +66,6 @@ void CompressedInspectorTask::init(InitContext& ic)
     mFile->Close();
   };
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
-  //  ic.services().get<CallbackService>().set(CallbackService::Id::EndOfStream, finishFunction);
 }
 
 void CompressedInspectorTask::run(ProcessingContext& pc)
@@ -83,128 +79,117 @@ void CompressedInspectorTask::run(ProcessingContext& pc)
   }
 
   /** receive input **/
-  auto dataFrame = pc.inputs().get<RawDataFrame*>("dataframe");
-  auto pointer = dataFrame->mBuffer;
+  for (auto& input : pc.inputs()) {
 
-  /** process input **/
-  while (pointer < (dataFrame->mBuffer + dataFrame->mSize)) {
-    auto rdh = reinterpret_cast<o2::header::RAWDataHeader*>(pointer);
+    /** input **/
+    const auto* headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
+    auto payloadIn = const_cast<char*>(input.payload);
+    auto payloadInSize = headerIn->payloadSize;
 
-    /** RDH close detected **/
-    if (rdh->stop) {
+    /** process input **/
+    auto pointer = payloadIn;
+    while (pointer < (payloadIn + payloadInSize)) {
+      auto rdh = reinterpret_cast<o2::header::RAWDataHeader*>(pointer);
+
+      /** RDH close detected **/
+      if (rdh->stop) {
 #ifdef VERBOSE
-      std::cout << "--- RDH close detected" << std::endl;
+        std::cout << "--- RDH close detected" << std::endl;
+        o2::raw::HBFUtils::printRDH(*rdh);
+#endif
+        pointer += rdh->offsetToNext;
+        continue;
+      }
+
+#ifdef VERBOSE
+      std::cout << "--- RDH open detected" << std::endl;
       o2::raw::HBFUtils::printRDH(*rdh);
 #endif
-      pointer += rdh->offsetToNext;
-      continue;
-    }
 
-#ifdef VERBOSE
-    std::cout << "--- RDH open detected" << std::endl;
-    o2::raw::HBFUtils::printRDH(*rdh);
-#endif
+      pointer += rdh->headerSize;
 
-    pointer += rdh->headerSize;
+      while (pointer < (reinterpret_cast<char*>(rdh) + rdh->memorySize)) {
 
-    while (pointer < (reinterpret_cast<char*>(rdh) + rdh->memorySize)) {
-
-      auto word = reinterpret_cast<uint32_t*>(pointer);
-      if ((*word & 0x80000000) != 0x80000000) {
-        printf(" %08x [ERROR] \n ", *(uint32_t*)pointer);
-        return;
-      }
-
-      /** crate header detected **/
-      auto crateHeader = reinterpret_cast<compressed::CrateHeader_t*>(pointer);
-#ifdef VERBOSE
-      printf(" %08x CrateHeader          (drmID=%d) \n ", *(uint32_t*)pointer, crateHeader->drmID);
-#endif
-      for (int ibit = 0; ibit < 11; ++ibit)
-        if (crateHeader->slotEnableMask & (1 << ibit))
-          mHistos2D["slotEnableMask"]->Fill(crateHeader->drmID, ibit + 2);
-      pointer += 4;
-
-      /** crate orbit expected **/
-      auto crateOrbit = reinterpret_cast<compressed::CrateOrbit_t*>(pointer);
-#ifdef VERBOSE
-      printf(" %08x CrateOrbit           (orbit=0x%08x) \n ", *(uint32_t*)pointer, crateOrbit->orbitID);
-#endif
-      pointer += 4;
-
-      while (true) {
-        word = reinterpret_cast<uint32_t*>(pointer);
-
-        /** crate trailer detected **/
-        if (*word & 0x80000000) {
-          auto crateTrailer = reinterpret_cast<compressed::CrateTrailer_t*>(pointer);
-#ifdef VERBOSE
-          printf(" %08x CrateTrailer         (numberOfDiagnostics=%d) \n ", *(uint32_t*)pointer, crateTrailer->numberOfDiagnostics);
-#endif
-          pointer += 4;
-
-          /** loop over diagnostics **/
-          for (int i = 0; i < crateTrailer->numberOfDiagnostics; ++i) {
-            auto diagnostic = reinterpret_cast<compressed::Diagnostic_t*>(pointer);
-#ifdef VERBOSE
-            printf(" %08x Diagnostic           (slotId=%d) \n ", *(uint32_t*)pointer, diagnostic->slotID);
-#endif
-            mHistos2D["diagnostic"]->Fill(crateHeader->drmID, diagnostic->slotID);
-            pointer += 4;
-          }
-
-          break;
+        auto word = reinterpret_cast<uint32_t*>(pointer);
+        if ((*word & 0x80000000) != 0x80000000) {
+          printf(" %08x [ERROR] \n ", *(uint32_t*)pointer);
+          return;
         }
 
-        /** frame header detected **/
-        auto frameHeader = reinterpret_cast<compressed::FrameHeader_t*>(pointer);
+        /** crate header detected **/
+        auto crateHeader = reinterpret_cast<compressed::CrateHeader_t*>(pointer);
 #ifdef VERBOSE
-        printf(" %08x FrameHeader          (numberOfHits=%d) \n ", *(uint32_t*)pointer, frameHeader->numberOfHits);
+        printf(" %08x CrateHeader          (drmID=%d) \n ", *(uint32_t*)pointer, crateHeader->drmID);
 #endif
-        mHistos1D["hHisto"]->Fill(frameHeader->numberOfHits);
+        for (int ibit = 0; ibit < 11; ++ibit)
+          if (crateHeader->slotEnableMask & (1 << ibit))
+            mHistos2D["slotEnableMask"]->Fill(crateHeader->drmID, ibit + 2);
         pointer += 4;
 
-        /** loop over hits **/
-        for (int i = 0; i < frameHeader->numberOfHits; ++i) {
-          auto packedHit = reinterpret_cast<compressed::PackedHit_t*>(pointer);
+        /** crate orbit expected **/
+        auto crateOrbit = reinterpret_cast<compressed::CrateOrbit_t*>(pointer);
 #ifdef VERBOSE
-          printf(" %08x PackedHit            (tdcID=%d) \n ", *(uint32_t*)pointer, packedHit->tdcID);
+        printf(" %08x CrateOrbit           (orbit=0x%08x) \n ", *(uint32_t*)pointer, crateOrbit->orbitID);
 #endif
-          auto indexE = packedHit->channel +
-                        8 * packedHit->tdcID +
-                        120 * packedHit->chain +
-                        240 * (frameHeader->trmID - 3) +
-                        2400 * crateHeader->drmID;
-          int time = packedHit->time;
-          time += (frameHeader->frameID << 13);
+        pointer += 4;
 
-          mHistos1D["indexE"]->Fill(indexE);
-          mHistos1D["time"]->Fill(time);
-          mHistos1D["tot"]->Fill(packedHit->tot);
+        while (true) {
+          word = reinterpret_cast<uint32_t*>(pointer);
+
+          /** crate trailer detected **/
+          if (*word & 0x80000000) {
+            auto crateTrailer = reinterpret_cast<compressed::CrateTrailer_t*>(pointer);
+#ifdef VERBOSE
+            printf(" %08x CrateTrailer         (numberOfDiagnostics=%d) \n ", *(uint32_t*)pointer, crateTrailer->numberOfDiagnostics);
+#endif
+            pointer += 4;
+
+            /** loop over diagnostics **/
+            for (int i = 0; i < crateTrailer->numberOfDiagnostics; ++i) {
+              auto diagnostic = reinterpret_cast<compressed::Diagnostic_t*>(pointer);
+#ifdef VERBOSE
+              printf(" %08x Diagnostic           (slotId=%d) \n ", *(uint32_t*)pointer, diagnostic->slotID);
+#endif
+              mHistos2D["diagnostic"]->Fill(crateHeader->drmID, diagnostic->slotID);
+              pointer += 4;
+            }
+
+            break;
+          }
+
+          /** frame header detected **/
+          auto frameHeader = reinterpret_cast<compressed::FrameHeader_t*>(pointer);
+#ifdef VERBOSE
+          printf(" %08x FrameHeader          (numberOfHits=%d) \n ", *(uint32_t*)pointer, frameHeader->numberOfHits);
+#endif
+          mHistos1D["hHisto"]->Fill(frameHeader->numberOfHits);
           pointer += 4;
+
+          /** loop over hits **/
+          for (int i = 0; i < frameHeader->numberOfHits; ++i) {
+            auto packedHit = reinterpret_cast<compressed::PackedHit_t*>(pointer);
+#ifdef VERBOSE
+            printf(" %08x PackedHit            (tdcID=%d) \n ", *(uint32_t*)pointer, packedHit->tdcID);
+#endif
+            auto indexE = packedHit->channel +
+                          8 * packedHit->tdcID +
+                          120 * packedHit->chain +
+                          240 * (frameHeader->trmID - 3) +
+                          2400 * crateHeader->drmID;
+            int time = packedHit->time;
+            time += (frameHeader->frameID << 13);
+
+            mHistos1D["indexE"]->Fill(indexE);
+            mHistos1D["time"]->Fill(time);
+            mHistos1D["tot"]->Fill(packedHit->tot);
+            pointer += 4;
+          }
         }
       }
+
+      pointer = reinterpret_cast<char*>(rdh) + rdh->offsetToNext;
     }
-
-    pointer = reinterpret_cast<char*>(rdh) + rdh->offsetToNext;
   }
-
-  /** write to file **/
-  //  mFile.write(dataFrame->mBuffer, dataFrame->mSize);
-}
-
-DataProcessorSpec CompressedInspectorTask::getSpec()
-{
-  std::vector<InputSpec> inputs;
-  std::vector<OutputSpec> outputs;
-
-  return DataProcessorSpec{
-    "tof-compressed-inspector",
-    Inputs{InputSpec("dataframe", o2::header::gDataOriginTOF, "CMPDATAFRAME", 0, Lifetime::Timeframe)},
-    Outputs{},
-    AlgorithmSpec{adaptFromTask<CompressedInspectorTask>()},
-    Options{
-      {"tof-inspector-filename", VariantType::String, "inspector.root", {"Name of the inspector output file"}}}};
 }
 
 } // namespace tof
