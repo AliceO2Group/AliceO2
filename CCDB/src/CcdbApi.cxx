@@ -129,7 +129,7 @@ void CcdbApi::storeAsTFile_impl(void* obj, std::type_info const& tinfo, std::str
     cout << "End of Validity not set, start of validity plus 1 year used." << endl;
     sanitizedEndValidityTimestamp = getFutureTimestamp(60 * 60 * 24 * 365);
   }
-  string fullUrl = getFullUrlForStorage(path, metadata, sanitizedStartValidityTimestamp, sanitizedEndValidityTimestamp);
+  string fullUrl = getFullUrlForStorage(path, className, metadata, sanitizedStartValidityTimestamp, sanitizedEndValidityTimestamp);
   LOG(DEBUG) << "Full URL " << fullUrl;
 
   // Curl preparation
@@ -211,7 +211,7 @@ void CcdbApi::storeAsTFile(TObject* rootObject, std::string const& path, std::ma
     cout << "End of Validity not set, start of validity plus 1 year used." << endl;
     sanitizedEndValidityTimestamp = getFutureTimestamp(60 * 60 * 24 * 365);
   }
-  string fullUrl = getFullUrlForStorage(path, metadata, sanitizedStartValidityTimestamp, sanitizedEndValidityTimestamp);
+  string fullUrl = getFullUrlForStorage(path, "TObject", metadata, sanitizedStartValidityTimestamp, sanitizedEndValidityTimestamp);
 
   // Curl preparation
   CURL* curl;
@@ -255,7 +255,7 @@ void CcdbApi::storeAsTFile(TObject* rootObject, std::string const& path, std::ma
   }
 }
 
-string CcdbApi::getFullUrlForStorage(const string& path, const map<string, string>& metadata,
+string CcdbApi::getFullUrlForStorage(const string& path, const string& objtype, const map<string, string>& metadata,
                                      long startValidityTimestamp, long endValidityTimestamp) const
 {
   // Prepare timestamps
@@ -263,7 +263,9 @@ string CcdbApi::getFullUrlForStorage(const string& path, const map<string, strin
   string endValidityString = getTimestampString(endValidityTimestamp < 0 ? getFutureTimestamp(60 * 60 * 24 * 365) : endValidityTimestamp);
   // Build URL
   string fullUrl = mUrl + "/" + path + "/" + startValidityString + "/" + endValidityString + "/";
-  // Add metadata
+  // Add type as part of metadata
+  fullUrl += "ObjectType=" + objtype + "/";
+  // Add general metadata
   for (auto& kv : metadata) {
     fullUrl += kv.first + "=" + kv.second + "/";
   }
