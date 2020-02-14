@@ -251,10 +251,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         requestedAODs.emplace_back(input);
       }
     }
+
     for (size_t oi = 0; oi < processor.outputs.size(); ++oi) {
       auto& output = processor.outputs[oi];
       if (DataSpecUtils::partialMatch(output, header::DataOrigin{"AOD"})) {
         providedAODs.emplace_back(output);
+
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"ATSK"})) {
         providedOutputObj.emplace_back(output);
         outMap.insert({output.binding.value, processor.name});
@@ -298,10 +300,21 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
 
-  /// This will inject a file sink so that any dangling
-  /// output is actually written to it.
+  /// This will create file sinks for dangling outputs of origin ...
+  ///   . AOD         - getGlobalAODSink
+  ///   . not AOD     - getGlobalFileSink
+  ///
+  // First find all the dangling ouputs
   auto danglingOutputsInputs = computeDanglingOutputs(workflow);
 
+  // From that list select the ones of origin AOD ...
+  // .. and remove them also from the original list
+  LOG(DEBUG) << "1 danglingOutputsInputs.size() " << danglingOutputsInputs.size() << std::endl;
+  auto danglingOutputsInputsAOD = selectAODs(danglingOutputsInputs);
+  LOG(DEBUG) << "2 danglingOutputsInputsAOD.size() " << danglingOutputsInputsAOD.size() << std::endl;
+  LOG(DEBUG) << "2 danglingOutputsInputs.size() " << danglingOutputsInputs.size() << std::endl;
+
+  // file sink for notAOD dangling outputs
   extraSpecs.clear();
 
   std::vector<InputSpec> unmatched;
@@ -313,6 +326,15 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   }
   if (unmatched.size() > 0) {
     extraSpecs.push_back(CommonDataProcessors::getDummySink(unmatched));
+  }
+  workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
+
+  // file sink for AOD dangling outputs
+  extraSpecs.clear();
+
+  if (danglingOutputsInputsAOD.size() > 0) {
+    auto fileSink = CommonDataProcessors::getGlobalAODSink(danglingOutputsInputsAOD);
+    extraSpecs.push_back(fileSink);
   }
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
 }
@@ -621,6 +643,7 @@ struct DataMatcherId {
 
 std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec const& workflow)
 {
+
   std::vector<DataMatcherId> inputs;
   std::vector<DataMatcherId> outputs;
   std::vector<InputSpec> results;
@@ -665,12 +688,38 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
 
     if (matched == false) {
       auto& outputSpec = workflow[output.workflowId].outputs[output.id];
+
       auto input = DataSpecUtils::matchingInput(outputSpec);
       char buf[64];
       input.binding = (snprintf(buf, 63, "dangling_%zu_%zu", output.workflowId, output.id), buf);
       results.emplace_back(input);
     }
   }
+
+  return results;
+}
+
+std::vector<InputSpec> WorkflowHelpers::selectAODs(std::vector<InputSpec>& specs)
+{
+  LOG(DEBUG) << "Selecting dangling OutputSpecs of origin AOD - " << specs.size();
+
+  // create result list
+  std::vector<InputSpec> results;
+  for (auto specit = specs.begin(); specit != specs.end();) {
+
+    // only add if origin=="AOD"
+    if (DataSpecUtils::partialMatch(*specit, header::DataOrigin("AOD"))) {
+      // add it to the AOD list ...
+      results.emplace_back(*specit);
+
+      // ... and remove it from the original list
+      specit = specs.erase(specit);
+    } else {
+      ++specit;
+    }
+  }
+
+  LOG(DEBUG) << "Number of AODs " << results.size() << " - " << specs.size() << std::endl;
 
   return results;
 }
