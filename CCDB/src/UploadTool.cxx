@@ -24,10 +24,10 @@ bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv
 {
   options.add_options()(
     "host", bpo::value<std::string>()->default_value("ccdb-test.cern.ch:8080"), "CCDB server")(
-    "path,p", bpo::value<std::string>(), "CCDB path")(
-    "file,f", bpo::value<std::string>(), "ROOT file")(
-    "key,k", bpo::value<std::string>(), "Key of object to upload")(
-    "meta,m", bpo::value<std::string>(), "List of key=value pairs for meta-information (k1=v1;k2=v2;k3=v3)")(
+    "path,p", bpo::value<std::string>()->required(), "CCDB path")(
+    "file,f", bpo::value<std::string>()->required(), "ROOT file")(
+    "key,k", bpo::value<std::string>()->required(), "Key of object to upload")(
+    "meta,m", bpo::value<std::string>()->default_value(""), "List of key=value pairs for meta-information (k1=v1;k2=v2;k3=v3)")(
     "starttimestamp,st", bpo::value<long>()->default_value(-1), "timestamp - default -1 = now")(
     "endtimestamp,et", bpo::value<long>()->default_value(-1), "end of validity - default -1 = 1 year from now")(
     "help,h", "Produce help message.");
