@@ -24,6 +24,7 @@
 #include "MFTBase/Geometry.h"
 #include "MFTBase/HeatExchanger.h"
 #include "MFTBase/Support.h"
+#include "MFTBase/PCBSupport.h"
 
 using namespace o2::mft;
 
@@ -33,7 +34,7 @@ ClassImp(o2::mft::HalfDisk);
 
 //_____________________________________________________________________________
 HalfDisk::HalfDisk()
-  : TNamed(), mSupport(nullptr), mHeatExchanger(nullptr), mHalfDiskVolume(nullptr), mSegmentation(nullptr)
+  : TNamed(), mPCBSupport(nullptr), mSupport(nullptr), mHeatExchanger(nullptr), mHalfDiskVolume(nullptr), mSegmentation(nullptr)
 {
 }
 
@@ -42,6 +43,7 @@ HalfDisk::HalfDisk()
 //_____________________________________________________________________________
 HalfDisk::HalfDisk(HalfDiskSegmentation* segmentation)
   : TNamed(segmentation->GetName(), segmentation->GetName()),
+    mPCBSupport(nullptr),
     mSupport(nullptr),
     mHeatExchanger(nullptr),
     mSegmentation(segmentation)
@@ -62,6 +64,14 @@ HalfDisk::HalfDisk(HalfDiskSegmentation* segmentation)
   // Building Heat Exchanger Between faces
   TGeoVolumeAssembly* heatExchangerVol = createHeatExchanger();
   mHalfDiskVolume->AddNode(heatExchangerVol, 1);
+
+  // Building Support
+  TGeoVolumeAssembly* supportVol = createSupport();
+  mHalfDiskVolume->AddNode(supportVol, 1);
+
+  // Building PCB
+  TGeoVolumeAssembly* PCBVol = createPCBSupport();
+  mHalfDiskVolume->AddNode(PCBVol, 1);
 
   // Building Front Face of the Half Disk
   createLadders();
@@ -88,6 +98,34 @@ TGeoVolumeAssembly* HalfDisk::createHeatExchanger()
 
   TGeoVolumeAssembly* vol =
     mHeatExchanger->create(mftGeom->getHalfID(GetUniqueID()), mftGeom->getDiskID(GetUniqueID()));
+
+  return vol;
+}
+
+//_____________________________________________________________________________
+TGeoVolumeAssembly* HalfDisk::createSupport()
+{
+
+  Geometry* mftGeom = Geometry::instance();
+
+  mSupport = new Support();
+
+  TGeoVolumeAssembly* vol =
+    mSupport->create(mftGeom->getHalfID(GetUniqueID()), mftGeom->getDiskID(GetUniqueID()));
+
+  return vol;
+}
+
+//_____________________________________________________________________________
+TGeoVolumeAssembly* HalfDisk::createPCBSupport()
+{
+
+  Geometry* mftGeom = Geometry::instance();
+
+  mPCBSupport = new PCBSupport();
+
+  TGeoVolumeAssembly* vol =
+    mPCBSupport->create(mftGeom->getHalfID(GetUniqueID()), mftGeom->getDiskID(GetUniqueID()));
 
   return vol;
 }

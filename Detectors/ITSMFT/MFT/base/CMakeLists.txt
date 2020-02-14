@@ -22,6 +22,7 @@ o2_add_library(MFTBase
                        src/HalfDisk.cxx
                        src/Ladder.cxx
                        src/Flex.cxx
+                       src/PCBSupport.cxx
                        src/Support.cxx
                        src/HeatExchanger.cxx
                        src/HalfCone.cxx
@@ -47,6 +48,7 @@ o2_target_root_dictionary(MFTBase
                                   include/MFTBase/Ladder.h
                                   include/MFTBase/Flex.h
                                   include/MFTBase/Support.h
+                                  include/MFTBase/PCBSupport.h
                                   include/MFTBase/HeatExchanger.h
                                   include/MFTBase/HalfCone.h
                                   include/MFTBase/PowerSupplyUnit.h
