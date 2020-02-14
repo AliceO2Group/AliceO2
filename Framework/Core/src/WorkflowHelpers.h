@@ -172,6 +172,7 @@ struct WorkflowHelpers {
   /// a corresponding InputSpec. I.e. they are dangling.
   /// @return a vector of InputSpec which would have matched said dangling outputs.
   static std::vector<InputSpec> computeDanglingOutputs(WorkflowSpec const& workflow);
+  static std::vector<InputSpec> selectAODs(std::vector<InputSpec>& outputs);
 };
 
 } // namespace o2::framework
