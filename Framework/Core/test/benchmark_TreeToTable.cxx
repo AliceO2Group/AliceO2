@@ -31,7 +31,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](float x, float y) { return x + y; });
 #ifdef __APPLE__
 constexpr unsigned int maxrange = 15;
 #else
-constexpr unsigned int maxrange = 24;
+constexpr unsigned int maxrange = 16;
 #endif
 
 static void BM_TreeToTable(benchmark::State& state)

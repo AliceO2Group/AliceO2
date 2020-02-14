@@ -9,14 +9,22 @@ namespace framework
 {
 
 // -----------------------------------------------------------------------------
-// class branchIterator is a data iterator
-// it basically allows to iterate over the elements of an arrow::table::Column
-// and successively fill the branches with branchIterator::push()
-// it is used in CommonDataProcessors::table2treeE
+// TableToTree allows to save the contents of a given arrow::Table to a TTree
+//  branchIterator is used by TableToTree
+//
+// To write the contents of a table ta to a tree tr on file f do:
+//  . TableToTree t2t(ta,f,treename);
+//  . t2t.AddBranch(branchname1); t2t.AddBranch(branchname2); ...
+//    OR
+//    t2t.AddAllBranches();
+//  . t2t.Process();
+//
+// .............................................................................
 class branchIterator
 {
 
   private:
+  
   std::string brn;          // branch name
   arrow::ArrayVector chs;   // chunks
   Int_t nchs;               // number of chunks
@@ -29,23 +37,23 @@ class branchIterator
   arrow::Type::type dt;
   std::string leaflist;
 
-  TBranch *br   = nullptr;
+  TBranch* br = nullptr;
   
-  char *dbuf    = nullptr;
-  void *v       = nullptr;
+  char* dbuf = nullptr;
+  void* v = nullptr;
   
-  Float_t  *vF  = nullptr;
-  Double_t *vD  = nullptr;
-  UShort_t *vs  = nullptr;
-  UInt_t *vi    = nullptr;
-  ULong64_t *vl = nullptr;
-  Short_t *vS   = nullptr;
-  Int_t *vI     = nullptr;
-  Long64_t *vL  = nullptr;
+  Float_t* var_f = nullptr;
+  Double_t* var_d = nullptr;
+  UShort_t* vs = nullptr;
+  UInt_t* vi = nullptr;
+  ULong64_t* vl = nullptr;
+  Short_t* var_s = nullptr;
+  Int_t* var_i = nullptr;
+  Long64_t* var_l = nullptr;
 
 
   // initialize a branch
-  bool branchini(TTree *tree)
+  bool branchini(TTree* tree)
   {
         
     // try to find branch in tree
@@ -102,36 +110,36 @@ class branchIterator
     switch (dt)
     {
       case arrow::Type::type::FLOAT:
-        vF = (Float_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::FloatType>>(chs.at(ib))->raw_values();
-        v = (void*) vF;
+        var_f = (Float_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::FloatType>>(chs.at(ib))->raw_values();
+        v = (void*)var_f;
         break;
       case arrow::Type::type::DOUBLE:
-        vD = (Double_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::DoubleType>>(chs.at(ib))->raw_values();
-        v = (void*) vD;
+        var_d = (Double_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::DoubleType>>(chs.at(ib))->raw_values();
+        v = (void*)var_d;
         break;
       case arrow::Type::type::UINT16:
         vs = (UShort_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt16Type>>(chs.at(ib))->raw_values();
-        v = (void*) vs;
+        v = (void*)vs;
         break;
       case arrow::Type::type::UINT32:
         vi = (UInt_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt32Type>>(chs.at(ib))->raw_values();
-        v = (void*) vi;
+        v = (void*)vi;
         break;
       case arrow::Type::type::UINT64:
         vl = (ULong64_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::UInt64Type>>(chs.at(ib))->raw_values();
-        v = (void*) vl;
+        v = (void*)vl;
         break;
       case arrow::Type::type::INT16:
-        vS = (Short_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int16Type>>(chs.at(ib))->raw_values();
-        v = (void*) vS;
+        var_s = (Short_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int16Type>>(chs.at(ib))->raw_values();
+        v = (void*)var_s;
         break;
       case arrow::Type::type::INT32:
-        vI = (Int_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(chs.at(ib))->raw_values();
-        v = (void*) vI;
+        var_i = (Int_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int32Type>>(chs.at(ib))->raw_values();
+        v = (void*)var_i;
         break;
       case arrow::Type::type::INT64:
-        vL = (Long64_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int64Type>>(chs.at(ib))->raw_values();
-        v = (void*) vL;
+        var_l = (Long64_t*)std::dynamic_pointer_cast<arrow::NumericArray<arrow::Int64Type>>(chs.at(ib))->raw_values();
+        v = (void*)var_l;
         break;
       default:
         LOG(FATAL) << "Type not handled: " << dt << std::endl;
@@ -153,9 +161,9 @@ class branchIterator
 
   branchIterator(TTree* tree, std::shared_ptr<arrow::Column> col)
   {
-    brn  = col->name();
-    dt   = col->type()->id();
-    chs  = col->data()->chunks();
+    brn = col->name().c_str();
+    dt = col->type()->id();
+    chs = col->data()->chunks();
     nchs = chs.size();
     
     // initialize the branch
@@ -173,9 +181,9 @@ class branchIterator
 
   // has the iterator been properly initialized
   bool Status()
-  {
+  { 
     return status;
-  }
+  };
     
   // fills buffer with next value
   // returns false if end of buffer reached
@@ -198,10 +206,10 @@ class branchIterator
       switch (dt)
       {
         case arrow::Type::type::FLOAT:
-          v = (void*)vF++;
+          v = (void*)var_f++;
           break;
         case arrow::Type::type::DOUBLE:
-          v = (void*)vD++;
+          v = (void*)var_d++;
           break;
         case arrow::Type::type::UINT16:
           v = (void*)vs++;
@@ -213,13 +221,13 @@ class branchIterator
           v = (void*)vl++;
           break;
         case arrow::Type::type::INT16:
-          v = (void*)vS++;
+          v = (void*)var_s++;
           break;
         case arrow::Type::type::INT32:
-          v = (void*)vI++;
+          v = (void*)var_i++;
           break;
         case arrow::Type::type::INT64:
-          v = (void*)vL++;
+          v = (void*)var_l++;
           break;
         default:
           LOG(FATAL) << "Type not handled: " << dt << std::endl;
@@ -278,7 +286,7 @@ class TableToTree
     
     bool AddBranch(std::shared_ptr<arrow::Column> col)
     {
-      branchIterator *brit = new branchIterator(tr,col);
+      branchIterator* brit = new branchIterator(tr,col);
       if (brit->Status())
         brits.push_back(brit);
       
@@ -292,7 +300,7 @@ class TableToTree
       bool status = ta->num_columns()>0;
       for (auto ii=0; ii<ta->num_columns(); ii++)
       {
-        branchIterator *brit =
+        branchIterator* brit =
           new branchIterator(tr,ta->column(ii));
         if (brit->Status())
         {
@@ -330,33 +338,44 @@ class TableToTree
 
 
 // -----------------------------------------------------------------------------
+// TreeToTable allows to fill the contents of a given TTree to an arrow::Table
+//  columnIterator is used by TreeToTable 
+//
+// To copy the contents of a tree tr to a table ta do:
+//  . TreeToTable t2t(tr);
+//  . t2t.AddColumn(columnname1); t2t.AddColumn(columnname2); ...
+//    OR
+//    t2t.AddAllColumns();
+//  . auto ta = t2t.Process();
+//
+// .............................................................................
 class columnIterator
 {
 
   private:
   
     // all the possible TTreeReaderValue<T> types
-    TTreeReaderValue<Float_t>   *vF = nullptr;
-    TTreeReaderValue<Double_t>  *vD = nullptr;
-    TTreeReaderValue<UShort_t>  *vs = nullptr;
-    TTreeReaderValue<UInt_t>    *vi = nullptr;
-    TTreeReaderValue<ULong64_t> *vl = nullptr;
-    TTreeReaderValue<Short_t>   *vS = nullptr;
-    TTreeReaderValue<Int_t>     *vI = nullptr;
-    TTreeReaderValue<Long64_t>  *vL = nullptr;
+    TTreeReaderValue<Float_t>* var_f = nullptr;
+    TTreeReaderValue<Double_t>* var_d = nullptr;
+    TTreeReaderValue<UShort_t>* vs = nullptr;
+    TTreeReaderValue<UInt_t>* vi = nullptr;
+    TTreeReaderValue<ULong64_t>* vl = nullptr;
+    TTreeReaderValue<Short_t>* var_s = nullptr;
+    TTreeReaderValue<Int_t>* var_i = nullptr;
+    TTreeReaderValue<Long64_t>* var_l = nullptr;
   
     // all the possible arrow::TBuilder types
-    arrow::FloatBuilder  *bF = nullptr;
-    arrow::DoubleBuilder *bD = nullptr;
-    arrow::UInt16Builder *bs = nullptr;
-    arrow::UInt32Builder *bi = nullptr;
-    arrow::UInt64Builder *bl = nullptr;
-    arrow::Int16Builder  *bS = nullptr;
-    arrow::Int32Builder  *bI = nullptr;
-    arrow::Int64Builder  *bL = nullptr;
+    arrow::FloatBuilder* bui_f = nullptr;
+    arrow::DoubleBuilder* bui_d = nullptr;
+    arrow::UInt16Builder* bs = nullptr;
+    arrow::UInt32Builder* bi = nullptr;
+    arrow::UInt64Builder* bl = nullptr;
+    arrow::Int16Builder* bui_s = nullptr;
+    arrow::Int32Builder* bui_i = nullptr;
+    arrow::Int64Builder* bui_l = nullptr;
     
     bool status = false;
-    EDataType dt;             // data type
+    EDataType dt;
     const char* cname;
 
     arrow::MemoryPool* pool = arrow::default_memory_pool();
@@ -385,7 +404,7 @@ class columnIterator
       }
       cname = colname;
 
-      TClass *cl;
+      TClass* cl;
       br->GetExpectedType(cl,dt);
       //LOG(INFO) << "Initialisation of TTreeReaderValue";
       //LOG(INFO) << "The column " << cname << " is of type " << dt;
@@ -400,13 +419,13 @@ class columnIterator
       {
         case EDataType::kFloat_t:
           field = std::make_shared<arrow::Field>(cname,arrow::float32());
-          vF = new TTreeReaderValue<Float_t>(*reader,cname);
-          bF = new arrow::FloatBuilder(pool);
+          var_f = new TTreeReaderValue<Float_t>(*reader,cname);
+          bui_f = new arrow::FloatBuilder(pool);
           break;
         case EDataType::kDouble_t:
           field = std::make_shared<arrow::Field>(cname,arrow::float64());
-          vD = new TTreeReaderValue<Double_t>(*reader,cname);
-          bD = new arrow::DoubleBuilder(pool);
+          var_d = new TTreeReaderValue<Double_t>(*reader,cname);
+          bui_d = new arrow::DoubleBuilder(pool);
           break;
         case EDataType::kUShort_t:
           field = std::make_shared<arrow::Field>(cname,arrow::uint16());
@@ -425,18 +444,18 @@ class columnIterator
           break;
         case EDataType::kShort_t:
           field = std::make_shared<arrow::Field>(cname,arrow::int16());
-          vS = new TTreeReaderValue<Short_t>(*reader,cname);
-          bS = new arrow::Int16Builder(pool);
+          var_s = new TTreeReaderValue<Short_t>(*reader,cname);
+          bui_s = new arrow::Int16Builder(pool);
           break;
         case EDataType::kInt_t:
           field = std::make_shared<arrow::Field>(cname,arrow::int32());
-          vI = new TTreeReaderValue<Int_t>(*reader,cname);
-          bI = new arrow::Int32Builder(pool);
+          var_i = new TTreeReaderValue<Int_t>(*reader,cname);
+          bui_i = new arrow::Int32Builder(pool);
           break;
         case EDataType::kLong64_t:
           field = std::make_shared<arrow::Field>(cname,arrow::int64());
-          vL = new TTreeReaderValue<Long64_t>(*reader,cname);
-          bL = new arrow::Int64Builder(pool);
+          var_l = new TTreeReaderValue<Long64_t>(*reader,cname);
+          bui_l = new arrow::Int64Builder(pool);
           break;
         default:
           LOG(FATAL) << "Type not handled: " << dt << std::endl;
@@ -449,23 +468,23 @@ class columnIterator
     {
       
       // delete all pointers
-      if (vF) delete vF;
-      if (vD) delete vD;
+      if (var_f) delete var_f;
+      if (var_d) delete var_d;
       if (vs) delete vs;
       if (vi) delete vi;
       if (vl) delete vl;
-      if (vS) delete vS;
-      if (vI) delete vI;
-      if (vL) delete vL;
+      if (var_s) delete var_s;
+      if (var_i) delete var_i;
+      if (var_l) delete var_l;
 
-      if (bF) delete bF;
-      if (bD) delete bD;
+      if (bui_f) delete bui_f;
+      if (bui_d) delete bui_d;
       if (bs) delete bs;
       if (bi) delete bi;
       if (bl) delete bl;
-      if (bS) delete bS;
-      if (bI) delete bI;
-      if (bL) delete bL;
+      if (bui_s) delete bui_s;
+      if (bui_i) delete bui_i;
+      if (bui_l) delete bui_l;
 
     };
 
@@ -483,28 +502,28 @@ class columnIterator
       switch (dt)
       {
         case EDataType::kFloat_t:
-          bF->Append(**vF);
+          bui_f->Append(**var_f);
           break;
         case EDataType::kDouble_t:
-          bD->Append(*vD->Get());
+          bui_d->Append(**var_d);
           break;
         case EDataType::kUShort_t:
-          bs->Append(*vs->Get());
+          bs->Append(**vs);
           break;
         case EDataType::kUInt_t:
-          bi->Append(*vi->Get());
+          bi->Append(**vi);
           break;
         case EDataType::kULong64_t:
-          bl->Append(*vl->Get());
+          bl->Append(**vl);
           break;
         case EDataType::kShort_t:
-          bS->Append(*vS->Get());
+          bui_s->Append(**var_s);
           break;
         case EDataType::kInt_t:
-          bI->Append(*vI->Get());
+          bui_i->Append(**var_i);
           break;
         case EDataType::kLong64_t:
-          bL->Append(*vL->Get());
+          bui_l->Append(**var_l);
           break;
         default:
           LOG(FATAL) << "Type not handled: " << dt << std::endl;
@@ -533,10 +552,10 @@ class columnIterator
       switch (dt)
       {
         case EDataType::kFloat_t:
-          bF->Finish(&ar);
+          bui_f->Finish(&ar);
           break;
         case EDataType::kDouble_t:
-          bD->Finish(&ar);
+          bui_d->Finish(&ar);
           break;
         case EDataType::kUShort_t:
           bs->Finish(&ar);
@@ -548,13 +567,13 @@ class columnIterator
           bl->Finish(&ar);
           break;
         case EDataType::kShort_t:
-          bS->Finish(&ar);
+          bui_s->Finish(&ar);
           break;
         case EDataType::kInt_t:
-          bI->Finish(&ar);
+          bui_i->Finish(&ar);
           break;
         case EDataType::kLong64_t:
-          bL->Finish(&ar);
+          bui_l->Finish(&ar);
           break;
         default:
           LOG(FATAL) << "Type not handled: " << dt << std::endl;
@@ -572,7 +591,7 @@ class TreeToTable
   
     // the TTreeReader allows to efficiently loop over
     // the rows of a TTree
-    TTreeReader *reader;
+    TTreeReader* reader;
 
     // a list of columnIterator*
     std::vector<std::shared_ptr<columnIterator>> colits;
@@ -582,16 +601,15 @@ class TreeToTable
     void* push()
     {
       for (auto colit : colits)
-        colit.get()->push();
+        colit->push();
     }
     
 
   public:  
 
-    TreeToTable(TTree *tree)
+    TreeToTable(TTree* tree)
     {
       // initialize the TTreeReader
-      //LOG(INFO) << "Initialisation of TTreeReader";
       reader = new TTreeReader(tree);
     }
     
@@ -604,7 +622,7 @@ class TreeToTable
     bool AddColumn(const char* colname)
     {
       auto colit = std::make_shared<columnIterator>(reader,colname);
-      auto stat = colit.get()->Status();
+      auto stat = colit->Status();
       if (stat)
         colits.push_back(std::move(colit));
       
@@ -631,30 +649,21 @@ class TreeToTable
         
         // IMPROVE: make sure that a column is not added more than one time
         auto colit = std::make_shared<columnIterator>(reader,br->GetName());
-        if (colit.get()->Status())
+        if (colit->Status())
         {
           colits.push_back(std::move(colit));
         } else {
           status = false;
         }
       }
-      //LOG(INFO) << "Status " << status; 
-      //LOG(INFO) << "Number of columns " << colits.size(); 
       
       return status;
-    }
-    
-    int num_columns()
-    {
-      return colits.size();
     }
     
     // do the looping with the TTreeReader and fill the table
     std::shared_ptr<arrow::Table> Process()
     {
-      //LOG(INFO) << "TreeToTable::Processe";
-      //LOG(INFO) << "There are " << reader->GetEntries() << " entries.";
-      
+
       // copy all values from the tree to the table builders
       reader->Restart();
       while (reader->Next()) push();
@@ -664,19 +673,16 @@ class TreeToTable
       std::vector<std::shared_ptr<arrow::Field>> schema_vector; 
       for (auto colit : colits)
       {
-        colit.get()->finish();
-        array_vector.push_back(colit.get()->Array());
-        schema_vector.push_back(colit.get()->Schema());
+        colit->finish();
+        array_vector.push_back(colit->Array());
+        schema_vector.push_back(colit->Schema());
       }
       auto fields = std::make_shared<arrow::Schema>(schema_vector);
 
       // create the final table
+      // ta is of type std::shared_ptr<arrow::Table>
       auto ta = (arrow::Table::Make(fields,array_vector));
-      //LOG(INFO) << "Created table: " << ta.get()->Validate();
-      //LOG(INFO) << "  fields:  " << ta.get()->schema()->ToString();
-      //LOG(INFO) << "  columns: " << ta.get()->num_columns();
-      //LOG(INFO) << "  rows:    " << ta.get()->num_rows();
-
+      
       return ta;
 
     }

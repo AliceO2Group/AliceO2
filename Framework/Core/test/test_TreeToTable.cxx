@@ -27,6 +27,8 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
 {
   using namespace o2::framework;
   /// Create a simple TTree
+  Int_t ndp = 10000000;
+  
   TFile f1("tree2table.root","RECREATE");
   TTree t1("t1", "a simple Tree with simple variables");
   Float_t px, py, pz;
@@ -39,7 +41,7 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
   t1.Branch("ev", &ev, "ev/I");
 
   //fill the tree
-  for (Int_t i = 0; i < 1000; i++) {
+  for (Int_t i = 0; i < ndp; i++) {
     gRandom->Rannor(px, py);
     pz = px * px + py * py;
     random = gRandom->Rndm();
@@ -60,13 +62,13 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
 
   // test result  
   BOOST_REQUIRE_EQUAL(table.get()->Validate().ok(), true);
-  BOOST_REQUIRE_EQUAL(table.get()->num_rows(), 1000);
+  BOOST_REQUIRE_EQUAL(table.get()->num_rows(), ndp);
   BOOST_REQUIRE_EQUAL(table.get()->num_columns(), 5);
-  BOOST_REQUIRE_EQUAL(table->column(0)->type()->id(), arrow::float32()->id());
-  BOOST_REQUIRE_EQUAL(table->column(1)->type()->id(), arrow::float32()->id());
-  BOOST_REQUIRE_EQUAL(table->column(2)->type()->id(), arrow::float32()->id());
-  BOOST_REQUIRE_EQUAL(table->column(3)->type()->id(), arrow::float64()->id());
-  BOOST_REQUIRE_EQUAL(table->column(4)->type()->id(), arrow::int32()->id());
+  BOOST_REQUIRE_EQUAL(table.get()->column(0)->type()->id(), arrow::float32()->id());
+  BOOST_REQUIRE_EQUAL(table.get()->column(1)->type()->id(), arrow::float32()->id());
+  BOOST_REQUIRE_EQUAL(table.get()->column(2)->type()->id(), arrow::float32()->id());
+  BOOST_REQUIRE_EQUAL(table.get()->column(3)->type()->id(), arrow::float64()->id());
+  BOOST_REQUIRE_EQUAL(table.get()->column(4)->type()->id(), arrow::int32()->id());
 
   f1.Close();
 

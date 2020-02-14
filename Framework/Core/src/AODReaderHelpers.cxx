@@ -283,6 +283,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
     return adaptStateless([readMask,
                            counter,
                            filenames](DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {
+
       // Each parallel reader reads the files whose index is associated to
       // their inputTimesliceId
       assert(device.inputTimesliceId < device.maxInputTimeslices);
@@ -302,6 +303,19 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         return;
       }
 
+      
+      /* --------------------------------------------
+      // use the TreeToTable class
+      // first get the tree from infile
+      
+      
+      // then read the tree anf fill the table
+      TreeToTable t2t(tr);
+      t2t.AddAllColumns();
+      auto ta = t2t.Process();
+      
+      -------------------------------------------- */ 
+      
       /// FIXME: Substitute here the actual data you want to convert for the AODReader
       if (readMask & AODTypeMask::Collisions) {
         std::unique_ptr<TTreeReader> reader = std::make_unique<TTreeReader>("O2events", infile.get());
