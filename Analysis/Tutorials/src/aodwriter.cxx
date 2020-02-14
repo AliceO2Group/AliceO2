@@ -16,7 +16,7 @@ namespace o2::aod
 namespace etaphi
 {
 DECLARE_SOA_COLUMN(Eta, eta, float, "fEta1");
-DECLARE_SOA_COLUMN(Phi, phi, long, "fPhi1");
+DECLARE_SOA_COLUMN(Phi, phi, int, "fPhi1");
 DECLARE_SOA_COLUMN(Mom, mom, double, "fMom1");
 } // namespace etaphi
 

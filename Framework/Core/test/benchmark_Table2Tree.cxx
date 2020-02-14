@@ -43,13 +43,13 @@ static void BM_Table2Tree(benchmark::State& state)
   std::default_random_engine e1(1234567891);
   std::uniform_real_distribution<double> rd(0, 1);
   std::normal_distribution<float> rf(5., 2.);
-  std::discrete_distribution<long> rl({10, 20, 30, 30, 5, 5});
+  std::discrete_distribution<ULong64_t> rl({10, 20, 30, 30, 5, 5});
   std::discrete_distribution<int> ri({10, 20, 30, 30, 5, 5});
 
   // create a table and fill the columns with random numbers
   TableBuilder builder;
   auto rowWriter =
-    builder.persist<double, float, long, int>({"a", "b", "c", "d"});
+    builder.persist<double, float, ULong64_t, int>({"a", "b", "c", "d"});
   for (auto i = 0; i < state.range(0); ++i) {
     rowWriter(0, rd(e1), rf(e1), rl(e1), ri(e1));
   }
