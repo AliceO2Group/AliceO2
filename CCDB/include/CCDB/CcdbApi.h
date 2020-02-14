@@ -278,7 +278,8 @@ class CcdbApi //: public DatabaseInterface
    * @param endValidityTimestamp End of validity. If omitted or negative, current timestamp + 1 year is used.
    * @return The full url to store an object (url / startValidity / endValidity / [metadata &]* )
    */
-  std::string getFullUrlForStorage(const std::string& path, const std::map<std::string, std::string>& metadata,
+  std::string getFullUrlForStorage(const std::string& path, const std::string& objtype,
+                                   const std::map<std::string, std::string>& metadata,
                                    long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
 
   /**
