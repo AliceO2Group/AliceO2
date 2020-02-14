@@ -162,6 +162,7 @@ class InputRecord
     OwnershipProperty mProperty = OwnershipProperty::Unknown;
   };
 
+  // These will return a position between 0 and the number of distinct InputSpecs
   int getPos(const char* name) const;
   int getPos(const std::string& name) const;
 

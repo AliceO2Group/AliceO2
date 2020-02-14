@@ -43,8 +43,12 @@ int InputRecord::getPos(const char* binding) const
 {
   for (int i = 0; i < mInputsSchema.size(); ++i) {
     auto& route = mInputsSchema[i];
+
+    if (route.timeslice != 0) {
+      continue;
+    }
     if (route.matcher.binding == binding) {
-      return i;
+      return route.inputSpecIndex;
     }
   }
   return -1;
@@ -54,8 +58,12 @@ int InputRecord::getPos(std::string const& binding) const
 {
   for (size_t i = 0; i < mInputsSchema.size(); ++i) {
     auto& route = mInputsSchema[i];
+
+    if (route.timeslice != 0) {
+      continue;
+    }
     if (route.matcher.binding == binding) {
-      return i;
+      return route.inputSpecIndex;
     }
   }
   return -1;
