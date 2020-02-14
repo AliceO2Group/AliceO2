@@ -18,6 +18,7 @@
 #include "DataFormatsTRD/TriggerRecord.h"
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "TRDBase/MCLabel.h"
+#include "TRDWorkflow/TRDDigitWriterSpec.h"
 
 namespace o2
 {
