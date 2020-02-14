@@ -51,6 +51,12 @@ float decaylengthXY(float xvtxp, float yvtxp, float xvtxd, float yvtxd)
   return decl_;
 };
 
+float decaylength(float xvtxp, float yvtxp, float zvtxp, float xvtxd, float yvtxd, float zvtxd)
+{
+  float decl_ = sqrtf((yvtxd - yvtxp) * (yvtxd - yvtxp) + (xvtxd - xvtxp) * (xvtxd - xvtxp) + (zvtxd - zvtxp) * (zvtxd - zvtxp));
+  return decl_;
+};
+
 float energy(float px, float py, float pz, float mass)
 {
   float en_ = sqrtf(mass * mass + px * px + py * py + pz * pz);
@@ -74,17 +80,19 @@ struct VertexerHFTask {
   OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 100, -0.1, 0.1)};
   OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 100, -0.1, 0.1)};
   OutputObj<TH1F> hvtx_z_out{TH1F("hvtx_z", "2-track vtx", 100, -0.1, 0.1)};
-  OutputObj<TH1F> hvtxp_x_out{TH1F("hvtxp_x", "x primary vtx", 100, -0.1, 0.1)};
-  OutputObj<TH1F> hvtxp_y_out{TH1F("hvtxp_y", "y primary vtx", 100, -0.1, 0.1)};
-  OutputObj<TH1F> hvtxp_z_out{TH1F("hvtxp_z", "z primary vtx", 100, -0.1, 0.1)};
+  OutputObj<TH1F> hvtxp_x_out{TH1F("hvertexx", "x primary vtx", 100, -10., 10.)};
+  OutputObj<TH1F> hvtxp_y_out{TH1F("hvertexy", "y primary vtx", 100, -10., 10.)};
+  OutputObj<TH1F> hvtxp_z_out{TH1F("hvertexz", "z primary vtx", 100, -10., 10.)};
   OutputObj<TH1F> hmass_out{TH1F("hmass", "2-track inv mass", 500, 0, 5.0)};
   OutputObj<TH1F> hindex_0_coll{TH1F("hindex_0_coll", "track 0 index coll", 1000000, -0.5, 999999.5)};
   OutputObj<TH1F> hpt_cuts{TH1F("hpt_cuts", "pt tracks (#GeV)", 100, 0., 10.)};
   OutputObj<TH1F> htgl_cuts{TH1F("htgl_cuts", "tgl tracks (#GeV)", 100, 0., 10.)};
   OutputObj<TH1F> hitsmap{TH1F("hitsmap", "hitsmap", 100, 0., 100.)};
   OutputObj<TH1F> heta_cuts{TH1F("heta_cuts", "eta tracks (#GeV)", 100, -2., 2.)};
-  OutputObj<TH1F> hdeclenxy{TH1F("hdeclenxy", "decay length xy", 100, -0.5, 3.)};
+  OutputObj<TH1F> hdecayxy{TH1F("hdecayxy", "decay length xy", 100, 0., 1.0)};
+  OutputObj<TH1F> hdecayxyz{TH1F("hdecayxyz", "decay length", 100, 0., 1.0)};
   OutputObj<TH1F> hchi2dca{TH1F("hchi2dca", "chi2 DCA decay", 1000, 0., 0.0002)};
+
   Produces<aod::SecVtx> secvtx;
 
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
@@ -152,8 +160,10 @@ struct VertexerHFTask {
           secvtx(vtx.x, vtx.y, track_0.globalIndex(), track_1.globalIndex(), -1., track_0.y(), track_1.y(), -1.);
           hmass_out->Fill(mass_);
           hmass_out->Fill(masssw_);
-          float decleng = decaylengthXY(collision.posX(), collision.posY(), vtx.x, vtx.y);
-          hdeclenxy->Fill(decleng);
+          float declengxy = decaylengthXY(collision.posX(), collision.posY(), vtx.x, vtx.y);
+          float declengxyz = decaylength(collision.posX(), collision.posY(), collision.posZ(), vtx.x, vtx.y, vtx.z);
+          hdecayxy->Fill(declengxy);
+          hdecayxyz->Fill(declengxyz);
           hchi2dca->Fill(df.getChi2AtPCACandidate(ic));
         }
       }
