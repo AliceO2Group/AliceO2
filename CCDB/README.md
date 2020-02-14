@@ -122,7 +122,7 @@ and facilitate the following tasks:
      
      For full list of options see `o2-ccdb-downloadccdbfile --help`.
   
-  3. Inspect the content of a ROOT file and print summary about about type of contained (CCDB) objects and its meta information
+  3. Inspect the content of a ROOT file and print summary about type of contained (CCDB) objects and its meta information
   
      ```bash
      o2-ccdb-inspectccdbfile filename
