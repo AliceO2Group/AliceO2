@@ -34,6 +34,8 @@ DECLARE_SOA_COLUMN(Px1, px1, float, "fPx1");
 DECLARE_SOA_COLUMN(Py1, py1, float, "fPy1");
 DECLARE_SOA_COLUMN(Pz1, pz1, float, "fPz1");
 DECLARE_SOA_COLUMN(IndexDCApair, indexDCApair, int, "fIndexDCApair");
+DECLARE_SOA_COLUMN(Mass, mass, float, "fMass");
+DECLARE_SOA_COLUMN(Massbar, massbar, float, "fMassbar");
 DECLARE_SOA_DYNAMIC_COLUMN(DecaylengthXY, decaylengthXY, [](float xvtxd, float yvtxd, float xvtxp, float yvtxp) { return sqrtf((yvtxd - yvtxp) * (yvtxd - yvtxp) + (xvtxd - xvtxp) * (xvtxd - xvtxp)); });
 DECLARE_SOA_DYNAMIC_COLUMN(Decaylength, decaylength, [](float xvtxd, float yvtxd, float zvtxd, float xvtxp, float yvtxp, float zvtxp) { return sqrtf((yvtxd - yvtxp) * (yvtxd - yvtxp) + (xvtxd - xvtxp) * (xvtxd - xvtxp) + (zvtxd - zvtxp) * (zvtxd - zvtxp)); });
 
@@ -54,7 +56,7 @@ DECLARE_SOA_TABLE(SecVtx2Prong, "AOD", "CAND2PRONG",
                   secvtx2prong::Posdecayx, secvtx2prong::Posdecayy, secvtx2prong::Posdecayz,
                   secvtx2prong::Index0, secvtx2prong::Px0, secvtx2prong::Py0, secvtx2prong::Pz0,
                   secvtx2prong::Index1, secvtx2prong::Px1, secvtx2prong::Py1, secvtx2prong::Pz1,
-                  secvtx2prong::IndexDCApair,
+                  secvtx2prong::IndexDCApair, secvtx2prong::Mass, secvtx2prong::Massbar,
                   secvtx2prong::DecaylengthXY<secvtx2prong::Posdecayx, secvtx2prong::Posdecayy, collision::PosX, collision::PosY>,
                   secvtx2prong::Decaylength<secvtx2prong::Posdecayx, secvtx2prong::Posdecayy, secvtx2prong::Posdecayz, collision::PosX, collision::PosY, collision::PosZ>);
 
@@ -175,8 +177,12 @@ struct CandidateBuilding2Prong {
           std::array<float, 3> pvec1;
           trackdec0.getPxPyPzGlo(pvec0);
           trackdec1.getPxPyPzGlo(pvec1);
+          float masspion = 0.140;
+          float masskaon = 0.494;
+          float mass_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masspion, pvec1[0], pvec1[1], pvec1[2], masskaon);
+          float masssw_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masskaon, pvec1[0], pvec1[1], pvec1[2], masspion);
           secvtx2prong(track_0.collisionId(), collision.posX(), collision.posY(), collision.posZ(), vtx.x, vtx.y, vtx.z, track_0.globalIndex(),
-                       pvec0[0], pvec0[1], pvec0[2], track_1.globalIndex(), pvec1[0], pvec1[1], pvec1[2], ic);
+                       pvec0[0], pvec0[1], pvec0[2], track_1.globalIndex(), pvec1[0], pvec1[1], pvec1[2], ic, mass_, masssw_);
           hchi2dca->Fill(df.getChi2AtPCACandidate(ic));
 
           //float declengxy = decaylengthXY(secVtx2prong.posX(), secVtx2prong.posY(), secVtx2prong.posdecayx(), secVtx2prong.posdecayy());
@@ -213,7 +219,7 @@ struct CandidateBuildingDzero {
 };
 
 struct DzeroHistoTask {
-  OutputObj<TH1F> hmass_out{TH1F("hmass", "2-track inv mass", 500, 0, 5.0)};
+  OutputObj<TH1F> hmass_nocuts_out{TH1F("hmass_nocuts", "2-track inv mass", 500, 0, 5.0)};
   OutputObj<TH1F> hdecayxy{TH1F("hdecayxy", "decay length xy", 100, 0., 1.0)};
   OutputObj<TH1F> hdecayxyz{TH1F("hdecayxyz", "decay length", 100, 0., 1.0)};
 
@@ -221,15 +227,11 @@ struct DzeroHistoTask {
   {
     LOGF(info, "NEW EVENT");
 
-    for (auto& cand2prong : cand2Prongs) {
-      LOGF(info, "mass_ = %f", cand2prong.massD0());
-      LOGF(info, "masssw_ = %f", cand2prong.massD0bar());
-      hmass_out->Fill(cand2prong.massD0());
-      hmass_out->Fill(cand2prong.massD0bar());
-    }
     for (auto& secVtx2prong : secVtx2Prongs) {
       hdecayxy->Fill(secVtx2prong.decaylengthXY());
       hdecayxyz->Fill(secVtx2prong.decaylength());
+      hmass_nocuts_out->Fill(secVtx2prong.mass());
+      hmass_nocuts_out->Fill(secVtx2prong.massbar());
     }
   }
 };
