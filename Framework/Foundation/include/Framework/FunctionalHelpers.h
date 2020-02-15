@@ -31,7 +31,7 @@ struct pack {
 
 /// template function to determine number of types in a pack
 template <typename... Ts>
-constexpr std::size_t pack_size(pack<Ts...>&& p)
+constexpr std::size_t pack_size(pack<Ts...> const&)
 {
   return sizeof...(Ts);
 }
@@ -133,6 +133,22 @@ struct has_type<T, pack<Us...>> : std::disjunction<std::is_same<T, Us>...> {
 
 template <typename T, typename... Us>
 inline constexpr bool has_type_v = has_type<T, Us...>::value;
+
+template <typename T>
+constexpr size_t has_type_at(pack<> const&)
+{
+  return static_cast<size_t>(-1);
+}
+
+template <typename T, typename T1, typename... Ts>
+constexpr size_t has_type_at(pack<T1, Ts...> const&)
+{
+  if constexpr (std::is_same_v<T, T1>)
+    return 0;
+  if constexpr (has_type_v<T, pack<T1, Ts...>>)
+    return 1 + has_type_at<T>(pack<Ts...>{});
+  return sizeof...(Ts) + 2;
+}
 
 /// Intersect two packs
 template <typename S1, typename S2>
