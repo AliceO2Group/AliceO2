@@ -155,6 +155,8 @@ struct CandidateBuilding2Prong {
         bool isselected_1 = track_1.tpcNCls() > 70 && track_1.flags() & 0x4 && (TESTBIT(clustermap_1, 0) || TESTBIT(clustermap_1, 1));
         if (!isselected_1)
           continue;
+        if (track_0.signed1Pt() * track_1.signed1Pt() > 0)
+          continue;
         float x1_ = track_1.x();
         float alpha1_ = track_1.alpha();
         std::array<float, 5> arraypar1 = {track_1.y(), track_1.z(), track_1.snp(), track_1.tgl(), track_1.signed1Pt()};
