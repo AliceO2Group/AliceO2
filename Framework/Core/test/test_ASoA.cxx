@@ -23,6 +23,7 @@ using namespace o2::framework;
 using namespace arrow;
 using namespace o2::soa;
 
+DECLARE_SOA_STORE();
 namespace test
 {
 DECLARE_SOA_COLUMN(X, x, int32_t, "x");
@@ -30,6 +31,16 @@ DECLARE_SOA_COLUMN(Y, y, int32_t, "y");
 DECLARE_SOA_COLUMN(Z, z, int32_t, "z");
 DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](int32_t x, int32_t y) { return x + y; });
 } // namespace test
+
+DECLARE_SOA_TABLE(Points, "TST", "POINTS", test::X, test::Y);
+
+namespace test
+{
+DECLARE_SOA_INDEX_COLUMN_FULL(PointA, pointA, int, Points, "fPointAID");
+DECLARE_SOA_INDEX_COLUMN_FULL(PointB, pointB, int, Points, "fPointBID");
+} // namespace test
+
+DECLARE_SOA_TABLE(Segments, "TST", "SEGMENTS", test::PointAId, test::PointBId);
 
 BOOST_AUTO_TEST_CASE(TestTableIteration)
 {
@@ -420,4 +431,34 @@ BOOST_AUTO_TEST_CASE(TestTableSlicing)
     BOOST_CHECK_EQUAL(r.y(), 1);
     BOOST_CHECK_EQUAL(r.globalIndex(), r.index() + 3);
   }
+}
+
+BOOST_AUTO_TEST_CASE(TestDereference)
+{
+  TableBuilder builderA;
+  auto pointsWriter = builderA.cursor<Points>();
+  pointsWriter(0, 0, 0);
+  pointsWriter(0, 3, 4);
+  auto pointsT = builderA.finalize();
+  Points points{pointsT};
+  BOOST_REQUIRE_EQUAL(pointsT->num_rows(), 2);
+
+  TableBuilder builderB;
+  auto segmentsWriter = builderB.cursor<Segments>();
+  segmentsWriter(0, 0, 1);
+  auto segmentsT = builderB.finalize();
+  Segments segments{segmentsT};
+  BOOST_REQUIRE_EQUAL(segmentsT->num_rows(), 1);
+
+  BOOST_CHECK_EQUAL(segments.begin().pointAId(), 0);
+  BOOST_CHECK_EQUAL(segments.begin().pointBId(), 1);
+  static_assert(std::is_same_v<decltype(segments.begin().pointA()), Points::iterator>);
+  auto i = segments.begin();
+  using namespace o2::framework;
+  i.setCurrentIndex(pack<test::PointAId>{}, &points);
+  i.setCurrentIndex(pack<test::PointBId>{}, &points);
+  BOOST_CHECK_EQUAL(i.pointA().x(), 0);
+  BOOST_CHECK_EQUAL(i.pointA().y(), 0);
+  BOOST_CHECK_EQUAL(i.pointB().x(), 3);
+  BOOST_CHECK_EQUAL(i.pointB().y(), 4);
 }
