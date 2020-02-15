@@ -49,7 +49,7 @@ DECLARE_SOA_COLUMN(MassD0, massD0, float, "fMassD0");
 DECLARE_SOA_COLUMN(MassD0bar, massD0bar, float, "fMassD0bar");
 } // namespace cand2prong
 
-DECLARE_SOA_TABLE(SecVtx2Prong, "AOD", "SECVTX2PRONG",
+DECLARE_SOA_TABLE(SecVtx2Prong, "AOD", "CAND2PRONG",
                   secvtx2prong::CollisionId, collision::PosX, collision::PosY, collision::PosZ,
                   secvtx2prong::Posdecayx, secvtx2prong::Posdecayy, secvtx2prong::Posdecayz,
                   secvtx2prong::Index0, secvtx2prong::Px0, secvtx2prong::Py0, secvtx2prong::Pz0,
@@ -58,7 +58,7 @@ DECLARE_SOA_TABLE(SecVtx2Prong, "AOD", "SECVTX2PRONG",
                   secvtx2prong::DecaylengthXY<secvtx2prong::Posdecayx, secvtx2prong::Posdecayy, collision::PosX, collision::PosY>,
                   secvtx2prong::Decaylength<secvtx2prong::Posdecayx, secvtx2prong::Posdecayy, secvtx2prong::Posdecayz, collision::PosX, collision::PosY, collision::PosZ>);
 
-DECLARE_SOA_TABLE(Cand2Prong, "AOD", "CAND2PRONG",
+DECLARE_SOA_TABLE(Cand2Prong, "AOD", "CANDDZERO",
                   cand2prong::CollisionId, cand2prong::MassD0, cand2prong::MassD0bar);
 } // namespace o2::aod
 
@@ -96,7 +96,7 @@ float invmass2prongs(float px0, float py0, float pz0, float mass0,
   return mass;
 };
 
-struct VertexerHFTask {
+struct CandidateBuilding2Prong {
   // secondary vertex position
   OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 100, -0.1, 0.1)};
   OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 100, -0.1, 0.1)};
@@ -188,7 +188,7 @@ struct VertexerHFTask {
   }
 };
 
-struct CandidateBuilder2Prong {
+struct CandidateBuildingDzero {
   Produces<aod::Cand2Prong> cand2prong;
   void process(aod::SecVtx2Prong const& secVtx2Prongs, aod::Tracks const& tracks) // HERE IT WHAT WORKS
   //void process(aod::SecVtx2Prong const& secVtx2Prongs)  //THE SIMPLE LOOP WORKS AS WELL OF COURSE
@@ -212,7 +212,7 @@ struct CandidateBuilder2Prong {
   }
 };
 
-struct CandidateBuilder2ProngHisto {
+struct DzeroHistoTask {
   OutputObj<TH1F> hmass_out{TH1F("hmass", "2-track inv mass", 500, 0, 5.0)};
   OutputObj<TH1F> hdecayxy{TH1F("hdecayxy", "decay length xy", 100, 0., 1.0)};
   OutputObj<TH1F> hdecayxyz{TH1F("hdecayxyz", "decay length", 100, 0., 1.0)};
@@ -237,7 +237,7 @@ struct CandidateBuilder2ProngHisto {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<VertexerHFTask>("vertexerhf-task"),
-    adaptAnalysisTask<CandidateBuilder2Prong>("candidatebuilder2prong-task"),
-    adaptAnalysisTask<CandidateBuilder2ProngHisto>("histo2prong-task")};
+    adaptAnalysisTask<CandidateBuilding2Prong>("vertexerhf-candidatebuilding2prong"),
+    adaptAnalysisTask<CandidateBuildingDzero>("vertexerhf-candidatebuildingDzero"),
+    adaptAnalysisTask<DzeroHistoTask>("vertexerhf-Dzerotask")};
 }
