@@ -21,10 +21,35 @@ namespace aod
 // the o2::aod namespace.
 DECLARE_SOA_STORE();
 
+namespace collision
+{
+// DECLARE_SOA_COLUMN(TimeframeId, timeframeId, uint64_t, "timeframeID");
+DECLARE_SOA_COLUMN(RunNumber, runNumber, int, "fRunNumber");
+DECLARE_SOA_COLUMN(VtxId, vtxId, uint64_t, "fEventId");
+DECLARE_SOA_COLUMN(PosX, posX, float, "fX");
+DECLARE_SOA_COLUMN(PosY, posY, float, "fY");
+DECLARE_SOA_COLUMN(PosZ, posZ, float, "fZ");
+DECLARE_SOA_COLUMN(CovXX, covXX, float, "fCovXX");
+DECLARE_SOA_COLUMN(CovXY, covXY, float, "fCovXY");
+DECLARE_SOA_COLUMN(CovXZ, covXZ, float, "fCovXZ");
+DECLARE_SOA_COLUMN(CovYY, covYY, float, "fCovYY");
+DECLARE_SOA_COLUMN(CovYZ, covYZ, float, "fCovYZ");
+DECLARE_SOA_COLUMN(CovZZ, covZZ, float, "fCovZZ");
+DECLARE_SOA_COLUMN(Chi2, chi2, float, "fChi2");
+DECLARE_SOA_COLUMN(NumContrib, numContrib, uint32_t, "fN");
+DECLARE_SOA_COLUMN(EventTime, eventTime, float, "fEventTime");
+DECLARE_SOA_COLUMN(EventTimeRes, eventTimeRes, float, "fEventTimeRes");
+DECLARE_SOA_COLUMN(EventTimeMask, eventTimeMask, uint8_t, "fEventTimeMask");
+} // namespace collision
+
+DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", collision::RunNumber, collision::VtxId, collision::PosX, collision::PosY, collision::PosZ, collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYY, collision::CovYZ, collision::CovZZ, collision::Chi2, collision::NumContrib, collision::EventTime, collision::EventTimeRes, collision::EventTimeMask);
+
+using Collision = Collisions::iterator;
+
 namespace track
 {
 // TRACKPAR TABLE definition
-DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fCollisionsID");
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(X, x, float, "fX");
 DECLARE_SOA_COLUMN(Alpha, alpha, float, "fAlpha");
 DECLARE_SOA_COLUMN(Y, y, float, "fY");
@@ -97,7 +122,7 @@ using TrackExtra = TracksExtra::iterator;
 
 namespace calo
 {
-DECLARE_SOA_COLUMN(CollisionId, collisionId, int32_t, "fCollisionsID");
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(CellNumber, cellNumber, int16_t, "fCellNumber");
 DECLARE_SOA_COLUMN(Amplitude, amplitude, float, "fAmplitude");
 DECLARE_SOA_COLUMN(Time, time, float, "fTime");
@@ -111,7 +136,7 @@ using Calo = Calos::iterator;
 
 namespace calotrigger
 {
-DECLARE_SOA_COLUMN(CollisionId, collisionId, int32_t, "fCollisionsID");
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(FastorAbsId, fastorAbsId, int32_t, "fFastorAbsID");
 DECLARE_SOA_COLUMN(L0Amplitude, l0Amplitude, float, "fL0Amplitude");
 DECLARE_SOA_COLUMN(L0Time, l0Time, float, "fL0Time");
@@ -127,7 +152,7 @@ using CaloTrigger = CaloTriggers::iterator;
 
 namespace muon
 {
-DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fCollisionsID");
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(InverseBendingMomentum, inverseBendingMomentum, float, "fInverseBendingMomentum");
 DECLARE_SOA_COLUMN(ThetaX, thetaX, float, "fThetaX");
 DECLARE_SOA_COLUMN(ThetaY, thetaY, float, "fThetaY");
@@ -149,6 +174,7 @@ using Muon = Muons::iterator;
 
 namespace muoncluster
 {
+/// FIXME: where does this point to???? Tracks or Muons?
 DECLARE_SOA_COLUMN(TrackId, trackId, int, "fMuonsID");
 DECLARE_SOA_COLUMN(X, x, float, "fX");
 DECLARE_SOA_COLUMN(Y, y, float, "fY");
@@ -169,7 +195,7 @@ using MuonCluster = MuonClusters::iterator;
 
 namespace zdc
 {
-DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fCollisionsID");
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(ZEM1Energy, zem1Energy, float, "fZEM1Energy");
 DECLARE_SOA_COLUMN(ZEM2Energy, zem2Energy, float, "fZEM2Energy");
 // FIXME: arrays...
@@ -190,7 +216,7 @@ using Zdc = Zdcs::iterator;
 
 namespace vzero
 {
-DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fCollisionsID");
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 // FIXME: add missing arrays...
 // DECLARE_SOA_COLUMN(Adc, adc, float[64], "fAdc");
 // DECLARE_SOA_COLUMN(Time, time, float[64], "fTime");
@@ -204,9 +230,8 @@ using VZero = VZeros::iterator;
 
 namespace v0
 {
-// FIXME: This probably will become DECLARE_SOA_INDEX
-DECLARE_SOA_COLUMN(PosTrackId, posTrackId, int, "fPosTrackID");
-DECLARE_SOA_COLUMN(NegTrackId, negTrackId, int, "fNegTrackID");
+DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, Tracks, "fPosTrackID");
+DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, Tracks, "fNegTrackID");
 } // namespace v0
 
 DECLARE_SOA_TABLE(V0s, "AOD", "V0", v0::PosTrackId, v0::NegTrackId);
@@ -214,37 +239,12 @@ using V0 = V0s::iterator;
 
 namespace cascade
 {
-DECLARE_SOA_COLUMN(V0Id, v0Id, int, "fV0sID");
-DECLARE_SOA_COLUMN(BachelorId, bachelorId, int, "fTracksID");
+DECLARE_SOA_INDEX_COLUMN(V0, v0);
+DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, Tracks, "fTracksID");
 } // namespace cascade
 
 DECLARE_SOA_TABLE(Cascades, "AOD", "CASCADE", cascade::V0Id, cascade::BachelorId);
 using Casecade = Cascades::iterator;
-
-namespace collision
-{
-// DECLARE_SOA_COLUMN(TimeframeId, timeframeId, uint64_t, "timeframeID");
-DECLARE_SOA_COLUMN(RunNumber, runNumber, int, "fRunNumber");
-DECLARE_SOA_COLUMN(VtxId, vtxId, uint64_t, "fEventId");
-DECLARE_SOA_COLUMN(PosX, posX, float, "fX");
-DECLARE_SOA_COLUMN(PosY, posY, float, "fY");
-DECLARE_SOA_COLUMN(PosZ, posZ, float, "fZ");
-DECLARE_SOA_COLUMN(CovXX, covXX, float, "fCovXX");
-DECLARE_SOA_COLUMN(CovXY, covXY, float, "fCovXY");
-DECLARE_SOA_COLUMN(CovXZ, covXZ, float, "fCovXZ");
-DECLARE_SOA_COLUMN(CovYY, covYY, float, "fCovYY");
-DECLARE_SOA_COLUMN(CovYZ, covYZ, float, "fCovYZ");
-DECLARE_SOA_COLUMN(CovZZ, covZZ, float, "fCovZZ");
-DECLARE_SOA_COLUMN(Chi2, chi2, float, "fChi2");
-DECLARE_SOA_COLUMN(NumContrib, numContrib, uint32_t, "fN");
-DECLARE_SOA_COLUMN(EventTime, eventTime, float, "fEventTime");
-DECLARE_SOA_COLUMN(EventTimeRes, eventTimeRes, float, "fEventTimeRes");
-DECLARE_SOA_COLUMN(EventTimeMask, eventTimeMask, uint8_t, "fEventTimeMask");
-} // namespace collision
-
-DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", collision::RunNumber, collision::VtxId, collision::PosX, collision::PosY, collision::PosZ, collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYY, collision::CovYZ, collision::CovZZ, collision::Chi2, collision::NumContrib, collision::EventTime, collision::EventTimeRes, collision::EventTimeMask);
-
-using Collision = Collisions::iterator;
 
 namespace timeframe
 {
