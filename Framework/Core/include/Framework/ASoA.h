@@ -24,7 +24,6 @@
 #include <gandiva/selection_vector.h>
 #include <cassert>
 
-
 namespace o2::soa
 {
 
@@ -34,31 +33,35 @@ constexpr bool is_index_column_v = false;
 template <typename T>
 constexpr bool is_index_column_v<T, std::void_t<decltype(sizeof(typename T::binding_t))>> = true;
 
-template<typename, typename = void>
+template <typename, typename = void>
 constexpr bool is_type_with_originals_v = false;
 
-template<typename T>
-constexpr bool is_type_with_originals_v
-    <T, std::void_t<decltype(sizeof(typename T::originals))>> = true;
+template <typename T>
+constexpr bool is_type_with_originals_v<T, std::void_t<decltype(sizeof(typename T::originals))>> = true;
 
+template <typename, typename = void>
+constexpr bool is_type_with_metadata_v = false;
 
-template<typename T, typename TLambda>
+template <typename T>
+constexpr bool is_type_with_metadata_v<T, std::void_t<decltype(sizeof(typename T::metadata))>> = true;
+
+template <typename T, typename TLambda>
 void call_if_has_originals(TLambda&& lambda)
 {
   if constexpr (is_type_with_originals_v<T>) {
     lambda(static_cast<T*>(nullptr));
-  } 
+  }
 }
 
-template<typename T, typename TLambda>
+template <typename T, typename TLambda>
 void call_if_has_not_originals(TLambda&& lambda)
 {
   if constexpr (!is_type_with_originals_v<T>) {
     lambda(static_cast<T*>(nullptr));
-  } 
+  }
 }
 
-template<typename T>
+template <typename T>
 constexpr auto make_originals_from_type()
 {
   using decayed = std::decay_t<T>;
@@ -69,7 +72,6 @@ constexpr auto make_originals_from_type()
   } else {
     return framework::pack<decayed>{};
   }
-//  return framework::pack<>{};
 }
 
 template <typename T>
@@ -701,6 +703,12 @@ struct RowViewBase : public IP, C... {
   }
 };
 
+template <typename, typename = void>
+constexpr bool is_type_with_policy_v = false;
+
+template <typename T>
+constexpr bool is_type_with_policy_v<T, std::void_t<decltype(sizeof(typename T::policy_t))>> = true;
+
 template <typename... C>
 using RowView = RowViewBase<DefaultIndexPolicy, C...>;
 
@@ -750,6 +758,14 @@ class Table
       mOffset(offset)
   {
     mEnd.moveToEnd();
+  }
+
+  /// FIXME: this is to be able to construct a Filtered without explicit Join
+  ///        so that Filtered<Table1,Table2, ...> always means a Join which
+  ///        may or may not be a problem later
+  Table(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0)
+    : Table(ArrowHelpers::joinTables(std::move(tables)), offset)
+  {
   }
 
   unfiltered_iterator begin()
@@ -1104,19 +1120,25 @@ class Filtered : public T
 {
  public:
   using originals = originals_pack_t<T>;
-  using iterator = typename T::filtered_iterator;
-  using const_iterator = typename T::filtered_const_iterator;
+  using table_t = typename T::table_t;
+  using iterator = typename table_t::filtered_iterator;
+  using const_iterator = typename table_t::filtered_const_iterator;
 
-  Filtered(std::shared_ptr<arrow::Table> table, framework::expressions::Selection selection)
-    : T{table},
+  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, framework::expressions::Selection selection, uint64_t offset = 0)
+    : T{std::move(tables), offset},
       mSelection{selection},
-      mFilteredBegin{{T::filtered_begin(mSelection)}},
-      mFilteredEnd{T::filtered_end(mSelection)}
+      mFilteredBegin{table_t::filtered_begin(mSelection)},
+      mFilteredEnd{table_t::filtered_end(mSelection)}
   {
   }
 
-  Filtered(std::shared_ptr<arrow::Table> table, framework::expressions::Filter const& expression)
-    : Filtered(table, createSelection(table, expression))
+  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::NodePtr const& tree, uint64_t offset = 0)
+    : T{std::move(tables), offset},
+      mSelection{framework::expressions::createSelection(this->asArrowTable(),
+                                                         framework::expressions::createFilter(this->asArrowTable()->schema(),
+                                                                                              framework::expressions::createCondition(tree)))},
+      mFilteredBegin{table_t::filtered_begin(mSelection)},
+      mFilteredEnd{table_t::filtered_end(mSelection)}
   {
   }
 

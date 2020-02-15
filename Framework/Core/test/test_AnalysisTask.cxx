@@ -30,7 +30,7 @@ DECLARE_SOA_COLUMN(Foo, foo, float, "fBar");
 DECLARE_SOA_COLUMN(Bar, bar, float, "fFoo");
 DECLARE_SOA_COLUMN(EventProperty, eventProperty, float, "fEventProperty");
 DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](float x, float y) { return x + y; });
-} // namespace track
+} // namespace test
 DECLARE_SOA_TABLE(Foos, "AOD", "FOO",
                   test::Foo);
 DECLARE_SOA_TABLE(Bars, "AOD", "BAR",
@@ -121,7 +121,7 @@ struct GTask {
 //    foobar.bar();
 //  }
 //};
-//
+
 struct ITask {
   void process(o2::aod::Events::iterator const&, o2::soa::Filtered<o2::soa::Join<o2::aod::Foos, o2::aod::Bars, o2::aod::XYZ>> const& foobars)
   {
@@ -132,7 +132,6 @@ struct ITask {
     }
   }
 };
-
 
 BOOST_AUTO_TEST_CASE(AdaptorCompilation)
 {
@@ -167,9 +166,9 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
   auto task7 = adaptAnalysisTask<GTask>("test7");
   BOOST_CHECK_EQUAL(task7.inputs.size(), 3);
 
-//  auto task8 = adaptAnalysisTask<HTask>("test8");
-//  BOOST_CHECK_EQUAL(task8.inputs.size(), 3);
+  //  auto task8 = adaptAnalysisTask<HTask>("test8");
+  //  BOOST_CHECK_EQUAL(task8.inputs.size(), 3);
 
   auto task9 = adaptAnalysisTask<ITask>("test9");
-  BOOST_CHECK_EQUAL(task9.inputs.size(), 3);
+  BOOST_CHECK_EQUAL(task9.inputs.size(), 4);
 }
