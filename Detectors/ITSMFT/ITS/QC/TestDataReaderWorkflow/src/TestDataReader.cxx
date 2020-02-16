@@ -258,6 +258,7 @@ void TestDataReader::run(ProcessingContext& pc)
       if (mNewFileInj == 1) {
         cout << "New File Injected, Now Updating the Canvas and Light" << endl;
         mDigitsTest.emplace_back(0, 0, 0, 0);
+	mEventsTest.emplace_back(0);
         //mMultiDigitsTest.push_back(mDigitsTest[0]);
         mErrorsVecTest.push_back(mErrors);
         mFileDone = 1;
@@ -268,10 +269,12 @@ void TestDataReader::run(ProcessingContext& pc)
         pc.outputs().snapshot(Output{"ITS", "Error", 0, Lifetime::Timeframe}, mErrorsVecTest[0]);
         pc.outputs().snapshot(Output{"ITS", "Finish", 0, Lifetime::Timeframe}, mFileInfo);
         pc.outputs().snapshot(Output{"ITS", "DIGITS", 0, Lifetime::Timeframe}, mMultiDigitsTest);
+	pc.outputs().snapshot(Output{"ITS", "Events", 0, Lifetime::Timeframe}, mEventsTest);
         mNewFileInj = 0;
         mErrorsVecTest.clear();
         mDigitsTest.clear();
         mMultiDigitsTest.clear();
+	mEventsTest.clear();
         if (mFolderNames.size() < mNowFolderNames.size())
           mFileNames.push_back(NewNextFold);
         cout << "Done!!! You should see the Canvas Updated " << endl;
@@ -379,6 +382,11 @@ void TestDataReader::run(ProcessingContext& pc)
           int col = pixel.getCol();
           int row = pixel.getRow();
           mDigits.emplace_back(ChipID, row, col, 0);
+	  o2::itsmft::Digit tmp = {ChipID, row, col, 0};
+	  DigitEvent combine;
+          combine.Digits = tmp;
+          combine.NEvent = NEvent;
+	  mEvents.push_back(combine);
           Index = Index + 1;
         }
         NChip = NChip + 1;
@@ -414,6 +422,7 @@ void TestDataReader::run(ProcessingContext& pc)
 
     for (int i = 0; i < mNDigits[j]; i++) {
       mMultiDigits.push_back(mDigits[mIndexPush + i]);
+      mMultiEvents.push_back(mEvents[mIndexPush + i]);
     }
     LOG(DEBUG) << "j = " << j << "   NDgits = " << mNDigits[j] << "    mMultiDigits Pushed = " << mMultiDigits.size();
     LOG(DEBUG) << "i = " << 8 << "  ErrorShould = " << mErrors[8] << "  ErrorInjected = " << mErrorsVec[j][8];
@@ -443,7 +452,10 @@ void TestDataReader::run(ProcessingContext& pc)
 
     pc.outputs().snapshot(Output{"ITS", "DIGITS", 0, Lifetime::Timeframe}, mMultiDigits);
 
+    pc.outputs().snapshot(Output{"ITS", "Events", 0, Lifetime::Timeframe}, mMultiEvents);
+
     mMultiDigits.clear();
+    mMultiEvents.clear();
     mIndexPush = mIndexPush + mNDigits[j];
     j = j + 1;
   }
@@ -468,12 +480,14 @@ void TestDataReader::run(ProcessingContext& pc)
   if (mIndexPush > mDigits.size() - 5) {
     cout << "FileDone out of loop" << endl; 
     mDigits.clear();
+    mEvents.clear();
     mIndexPush = 0;
     j = 0;
     mNDigits.clear();
     mMultiDigits.clear();
+    mMultiEvents.clear();
     mFileDone = 1;
-    pc.outputs().snapshot(Output{"ITS", "Finish", 0, Lifetime::Timeframe}, mFileDone);
+//    pc.outputs().snapshot(Output{"ITS", "Finish", 0, Lifetime::Timeframe}, mFileDone);
     PercentDone = 0;
     mErrorsVec.clear();
   }
@@ -528,6 +542,7 @@ DataProcessorSpec getTestDataReaderSpec()
     Inputs{},
     Outputs{
       OutputSpec{"ITS", "DIGITS", 0, Lifetime::Timeframe},
+      OutputSpec{"ITS", "Events", 0, Lifetime::Timeframe},
       OutputSpec{"ITS", "TEST", 0, Lifetime::Timeframe},
       OutputSpec{"ITS", "Error", 0, Lifetime::Timeframe},
       OutputSpec{"ITS", "Run", 0, Lifetime::Timeframe},
