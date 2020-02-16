@@ -804,14 +804,25 @@ class Table
     return unfiltered_const_iterator{mEnd};
   }
 
+  /// Return a type erased arrow table backing store for / the type safe table.
   std::shared_ptr<arrow::Table> asArrowTable() const
   {
     return mTable;
   }
 
+  /// Size of the table, in rows.
   int64_t size() const
   {
     return mTable->num_rows();
+  }
+
+  /// Bind the columns which refer to other tables
+  /// to the associated tables.
+  template <typename... TA>
+  void bindExternalIndices(TA*... current)
+  {
+    mBegin.bindExternalIndices(current...);
+    mEnd.bindExternalIndices(current...);
   }
 
  private:
@@ -1098,6 +1109,13 @@ struct Join : JoinBase<Ts...> {
   }
 
   using originals = framework::concatenated_pack_t<originals_pack_t<Ts>...>;
+
+  template <typename... TA>
+  void bindExternalIndices(TA*... externals)
+  {
+    this->bindExternalIndices(externals...);
+  }
+
   using table_t = JoinBase<Ts...>;
 };
 
@@ -1109,6 +1127,13 @@ struct Concat : ConcatBase<T1, T2> {
     : ConcatBase<T1, T2>{ArrowHelpers::concatTables(std::move(tables)), offset} {}
 
   using originals = framework::concatenated_pack_t<originals_pack_t<T1>, originals_pack_t<T2>>;
+
+  template <typename... TA>
+  void bindExternalIndices(TA*... externals)
+  {
+    this->bindExternalIndices(externals...);
+  }
+
   // FIXME: can be remove when we do the same treatment we did for Join to Concatenate
   using left_t = T1;
   using right_t = T2;
