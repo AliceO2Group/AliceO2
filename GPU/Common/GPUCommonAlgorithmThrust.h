@@ -23,63 +23,25 @@
 
 #include "GPUCommonDef.h"
 
-using namespace std;
-
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 
-#if defined(__HIPCC__)
-/*template<typename I, typename Cmp>
-void shell_sort(I f, I l, Cmp cmp) {
-    if (f == l) return;
-    constexpr unsigned int gaps[]{701, 301, 132, 57, 23, 10, 4, 1};
-    const auto n{l - f};
-    for (auto &&gap : gaps) {
-        for (auto i = gap; i < n; ++i) {
-            auto tmp{f[i]};
-
-            auto j{i};
-            while (j >= gap && cmp(tmp, f[j - gap])) {
-                f[j] = f[j - gap];
-                j -= gap;
-            }
-
-            f[j] = tmp;
-        }
-    }
-}*/
-//using namespace std;
-
-#endif
-
 template <class T>
 GPUdi() void GPUCommonAlgorithm::sort(T* begin, T* end)
 {
-#if defined(__HIPCC__)
-  if (get_local_id(0) == 0) {
-    GPUCommonAlgorithm::QuickSort(begin, end);
-  }
-#else
   thrust::device_ptr<T> thrustBegin(begin);
   thrust::device_ptr<T> thrustEnd(end);
   thrust::sort(thrust::seq, thrustBegin, thrustEnd);
-#endif
 }
 
 template <class T, class S>
 GPUdi() void GPUCommonAlgorithm::sort(T* begin, T* end, const S& comp)
 {
-#if defined(__HIPCC__)
-  if (get_local_id(0) == 0) {
-    GPUCommonAlgorithm::QuickSort(begin, end, comp);
-  }
-#else
   thrust::device_ptr<T> thrustBegin(begin);
   thrust::device_ptr<T> thrustEnd(end);
   thrust::sort(thrust::seq, thrustBegin, thrustEnd, comp);
-#endif
 }
 
 template <class T>
@@ -91,7 +53,7 @@ GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end)
 #if defined(__CUDACC__)
     thrust::sort(thrust::cuda::par, thrustBegin, thrustEnd);
 #elif defined(__HIPCC__)
-    GPUCommonAlgorithm::QuickSort(begin, end);
+    thrust::sort(thrust::hip::par, thrustBegin, thrustEnd);
 #endif
   }
 }
@@ -105,7 +67,7 @@ GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end, const S& comp)
 #if defined(__CUDACC__)
     thrust::sort(thrust::cuda::par, thrustBegin, thrustEnd, comp);
 #elif defined(__HIPCC__)
-    GPUCommonAlgorithm::QuickSort(begin, end, comp);
+    thrust::sort(thrust::hip::par, thrustBegin, thrustEnd, comp);
 #endif
   }
 }
