@@ -11,7 +11,7 @@
 
 o2_add_library(TRDWorkflow
                TARGETVARNAME targetName
-               SOURCES src/TRDDigitizerSpec.cxx #src/TRDDigitWriterSpec.h
+               SOURCES src/TRDDigitizerSpec.cxx src/TRDDigitWriterSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::Steer O2::Algorithm O2::DataFormatsTRD O2::TRDSimulation O2::DetectorsBase O2::SimulationDataFormat O2::TRDBase)
 
            o2_target_root_dictionary(TRDWorkflow

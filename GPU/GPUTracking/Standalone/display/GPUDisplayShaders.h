@@ -8,25 +8,40 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file DecodeZS.h
+/// \file GPUDisplayShaders.h
 /// \author David Rohr
 
-#ifndef O2_GPU_DECODE_ZS_H
-#define O2_GPU_DECODE_ZS_H
+#ifndef GPUDISPLAYSHADERS_H
+#define GPUDISPLAYSHADERS_H
 
-#include "clusterFinderDefs.h"
-#include "GPUTPCClusterFinderKernels.h"
-
+#include "GPUCommonDef.h"
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 
-class GPUTPCClusterFinder;
-class DecodeZS
+struct GPUDisplayShaders {
+  static constexpr const char* vertexShader = R"(
+#version 450 core
+layout (location = 0) in vec3 pos;
+uniform mat4 ModelViewProj;
+
+void main()
 {
- public:
-  static GPUd() void decode(GPUTPCClusterFinder& clusterer, GPUTPCClusterFinderKernels::GPUTPCSharedMemory& s, int nBlocks, int nThreads, int iBlock, int iThread);
+  gl_Position = ModelViewProj * vec4(pos.x, pos.y, pos.z, 1.0);
+}
+)";
+
+  static constexpr const char* fragmentShader = R"(
+#version 450 core
+out vec4 fragColor;
+uniform vec3 color;
+
+void main()
+{
+    fragColor = vec4(color.x, color.y, color.z, 1.f);
+}
+)";
 };
 
 } // namespace gpu

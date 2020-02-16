@@ -15,7 +15,9 @@
 #define O2_GPU_CLUSTERIZER_H
 
 #include "clusterFinderDefs.h"
-#include "GPUTPCClusterFinderKernels.h"
+#include "GPUGeneralKernels.h"
+#include "GPUConstantMem.h"
+#include "GPUTPCClusterFinder.h"
 #include "Array2D.h"
 #include "PackedCharge.h"
 
@@ -32,11 +34,37 @@ namespace gpu
 
 class ClusterAccumulator;
 
-class Clusterizer
+class GPUTPCCFClusterizer : public GPUKernelTemplate
 {
 
  public:
-  static GPUd() void computeClustersImpl(int, int, int, int, GPUTPCClusterFinderKernels::GPUTPCSharedMemory&, const Array2D<PackedCharge>&, const deprecated::Digit*, uint, uint, uint*, tpc::ClusterNative*);
+  struct GPUSharedMemory {
+    ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
+    PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_BUILD_N];
+    uchar innerAboveThreshold[SCRATCH_PAD_WORK_GROUP_SIZE];
+  };
+
+  enum K : int {
+    computeClusters,
+  };
+
+  static GPUd() void computeClustersImpl(int, int, int, int, GPUSharedMemory&, const Array2D<PackedCharge>&, const deprecated::Digit*, uint, uint, uint*, tpc::ClusterNative*);
+
+#ifdef HAVE_O2HEADERS
+  typedef GPUTPCClusterFinder processorType;
+  GPUhdi() static processorType* Processor(GPUConstantMem& processors)
+  {
+    return processors.tpcClusterer;
+  }
+#endif
+
+  GPUhdi() CONSTEXPR static GPUDataTypes::RecoStep GetRecoStep()
+  {
+    return GPUDataTypes::RecoStep::TPCClusterFinding;
+  }
+
+  template <int iKernel = defaultKernel, typename... Args>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 
  private:
   static GPUd() void addOuterCharge(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&, Delta2);

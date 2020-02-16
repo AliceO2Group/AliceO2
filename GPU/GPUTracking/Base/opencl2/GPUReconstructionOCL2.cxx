@@ -11,7 +11,7 @@
 /// \file GPUReconstructionOCL2.cxx
 /// \author David Rohr
 
-#define GPUCA_GPUTYPE_RADEON
+#define GPUCA_GPUTYPE_OPENCL
 #define __OPENCL_HOST__
 
 #include "GPUReconstructionOCL2.h"
@@ -107,6 +107,21 @@ int GPUReconstructionOCL2Backend::GetOCLPrograms()
     }
     return 1;
   }
+
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
+#define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward) \
+  if (AddKernel<GPUCA_M_KRNL_TEMPLATE(x_class)>(false)) {                     \
+    return 1;                                                                 \
+  }
+#define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward) \
+  if (AddKernel<GPUCA_M_KRNL_TEMPLATE(x_class)>(true)) {                     \
+    return 1;                                                                \
+  }
+#include "GPUReconstructionKernels.h"
+#undef GPUCA_KRNL
+#undef GPUCA_KRNL_LOAD_single
+#undef GPUCA_KRNL_LOAD_multi
+
   return 0;
 }
 
