@@ -36,11 +36,20 @@ DECLARE_SOA_TABLE(Points, "TST", "POINTS", test::X, test::Y);
 
 namespace test
 {
+DECLARE_SOA_COLUMN(Color, color, int32_t, "color");
+} // namespace test
+
+DECLARE_SOA_TABLE(Infos, "TST", "INFOS", test::Color);
+
+namespace test
+{
+DECLARE_SOA_COLUMN(N, n, int, "fN");
+DECLARE_SOA_INDEX_COLUMN_FULL(Info, info, int, Infos, "fInfosID");
 DECLARE_SOA_INDEX_COLUMN_FULL(PointA, pointA, int, Points, "fPointAID");
 DECLARE_SOA_INDEX_COLUMN_FULL(PointB, pointB, int, Points, "fPointBID");
 } // namespace test
 
-DECLARE_SOA_TABLE(Segments, "TST", "SEGMENTS", test::PointAId, test::PointBId);
+DECLARE_SOA_TABLE(Segments, "TST", "SEGMENTS", test::N, test::PointAId, test::PointBId, test::InfoId);
 
 BOOST_AUTO_TEST_CASE(TestTableIteration)
 {
@@ -443,9 +452,18 @@ BOOST_AUTO_TEST_CASE(TestDereference)
   Points points{pointsT};
   BOOST_REQUIRE_EQUAL(pointsT->num_rows(), 2);
 
+  TableBuilder builderA2;
+  auto infoWriter = builderA2.cursor<Infos>();
+  infoWriter(0, 0);
+  infoWriter(0, 1);
+  infoWriter(0, 2);
+  auto infosT = builderA2.finalize();
+  Infos infos{infosT};
+  BOOST_REQUIRE_EQUAL(infosT->num_rows(), 3);
+
   TableBuilder builderB;
   auto segmentsWriter = builderB.cursor<Segments>();
-  segmentsWriter(0, 0, 1);
+  segmentsWriter(0, 10, 0, 1, 2);
   auto segmentsT = builderB.finalize();
   Segments segments{segmentsT};
   BOOST_REQUIRE_EQUAL(segmentsT->num_rows(), 1);
@@ -455,8 +473,9 @@ BOOST_AUTO_TEST_CASE(TestDereference)
   static_assert(std::is_same_v<decltype(segments.begin().pointA()), Points::iterator>);
   auto i = segments.begin();
   using namespace o2::framework;
-  i.setCurrentIndex(pack<test::PointAId>{}, &points);
-  i.setCurrentIndex(pack<test::PointBId>{}, &points);
+  i.bindExternalIndices(&points, &infos);
+  BOOST_CHECK_EQUAL(i.n(), 10);
+  BOOST_CHECK_EQUAL(i.info().color(), 2);
   BOOST_CHECK_EQUAL(i.pointA().x(), 0);
   BOOST_CHECK_EQUAL(i.pointA().y(), 0);
   BOOST_CHECK_EQUAL(i.pointB().x(), 3);
