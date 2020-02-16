@@ -426,8 +426,6 @@ void TestDataReader::run(ProcessingContext& pc)
     }
     LOG(DEBUG) << "j = " << j << "   NDgits = " << mNDigits[j] << "    mMultiDigits Pushed = " << mMultiDigits.size();
     LOG(DEBUG) << "i = " << 8 << "  ErrorShould = " << mErrors[8] << "  ErrorInjected = " << mErrorsVec[j][8];
-   
-    cout << "RunIDS = " << mRunNumber << "   FileIDS = " << mFileID << endl;
 
     pc.outputs().snapshot(Output{"ITS", "Run", 0, Lifetime::Timeframe}, mRunNumber);
     pc.outputs().snapshot(Output{"ITS", "File", 0, Lifetime::Timeframe}, mFileID);
