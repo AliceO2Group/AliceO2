@@ -19,6 +19,9 @@
 #include <cassert>
 #include <fairlogger/Logger.h>
 
+#include <iostream>
+using namespace std;
+
 using namespace o2::mch;
 
 namespace
@@ -81,12 +84,12 @@ void Digitizer::init()
 }
 
 //______________________________________________________________________
-void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
+void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer)
 {
   digits.clear();
   mDigits.clear();
   mTrackLabels.clear();
-
+  mcContainer.clear();
   //array of MCH hits for a given simulated event
   for (auto& hit : hits) {
     int detID = hit.GetDetectorID();
@@ -97,10 +100,17 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits)
       mTrackLabels.emplace(mTrackLabels.begin() + digitIndex, label);
     } //loop over digits to generate MCdigits
   }   //loop over hits
-
   //merge Digits
-  mergeDigits(mDigits, mTrackLabels);
-  fillOutputContainer(digits, mTrackLabels);
+  //why not filling digits with mDigits?
+  //no need to pass mDigits and mTrackLabels at this point
+  //because the input mDigits and mTrackLabels is a copy inside mergeDigits
+  // and mDigits gets over-writen
+  // should this not be done more explicitly?
+  //should this not be fine by the generation of sortedDigits and sortedLabels?
+  mergeDigits();
+  //for fillOutput mTrackLabels doesn't need to be passed
+  fillOutputContainer(digits);
+  provideMC(mcContainer);
 }
 //______________________________________________________________________
 int Digitizer::processHit(const Hit& hit, int detID, double event_time)
@@ -166,26 +176,28 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
   return ndigits;
 }
 //______________________________________________________________________
-void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o2::MCCompLabel> labels)
+void Digitizer::mergeDigits()
 {
-  std::vector<int> indices(digits.size());
+  std::vector<int> indices(mDigits.size());
   std::iota(begin(indices), end(indices), 0);
-  std::sort(indices.begin(), indices.end(), [&digits, this](int a, int b) {
+  std::sort(indices.begin(), indices.end(), [&digits = this->mDigits, this](int a, int b) {
     return (getGlobalDigit(digits[a].getDetID(), digits[a].getPadID()) < getGlobalDigit(digits[b].getDetID(), digits[b].getPadID()));
   });
 
-  auto sortedDigits = [&digits, &indices](int i) {
+  auto sortedDigits = [digits = this->mDigits, &indices](int i) {
     return digits[indices[i]];
   };
 
-  auto sortedLabels = [&labels, &indices](int i) {
+  auto sortedLabels = [labels = this->mTrackLabels, &indices](int i) {
     return labels[indices[i]];
   };
 
   mDigits.clear();
-  mDigits.reserve(digits.size());
-  mTrackLabels.clear();
-  mTrackLabels.reserve(labels.size());
+  //mDigits.reserve(sortedDigits.size());//does not work
+  //  mTrackLabels.clear();
+  //mTrackLabels.reserve(sortedLabels.size());//does not work
+  mMCTruthOutputContainer.clear();
+  
   int count = 0;
 
   int i = 0;
@@ -195,19 +207,25 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
       j++;
     }
     float adc{0};
+    std::vector<o2::MCCompLabel> element;
+    element.resize(j-i); 
     for (int k = i; k < j; k++) {
       adc += sortedDigits(k).getADC();
       if (k == i) {
-        mTrackLabels.emplace_back(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID(), false);
+	element.emplace_back(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID(), false);
+	  //	mTrackLabels.emplace_back(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID(), false);
+	
       } else {
         if ((sortedLabels(k).getTrackID() != sortedLabels(k - 1).getTrackID()) || (sortedLabels(k).getSourceID() != sortedLabels(k - 1).getSourceID())) {
-          mTrackLabels.emplace_back(sortedLabels(k).getTrackID(), sortedLabels(k).getEventID(), sortedLabels(k).getSourceID(), false);
+	  element.emplace_back(sortedLabels(k).getTrackID(), sortedLabels(k).getEventID(), sortedLabels(k).getSourceID(), false);
+	  //          mTrackLabels.emplace_back(sortedLabels(k).getTrackID(), sortedLabels(k).getEventID(), sortedLabels(k).getSourceID(), false);
         }
       }
     }
     mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc);
     i = j;
     ++count;
+    mMCTruthOutputContainer.addElements(count, element);
   }
   mDigits.resize(mDigits.size());
   mTrackLabels.resize(mTrackLabels.size());
@@ -215,7 +233,6 @@ void Digitizer::mergeDigits(const std::vector<Digit> digits, const std::vector<o
 //______________________________________________________________________
 void Digitizer::mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer)
 {
-
   mDigits.clear();
   mDigits.reserve(digits.size());
   mTrackLabels.clear();
@@ -224,18 +241,17 @@ void Digitizer::mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruth
     auto digit = digits.at(index);
     mDigits.emplace_back(digit.getTimeStamp(), digit.getDetID(), digit.getPadID(), digit.getADC());
   }
-
-  for (int index = 0; index < mcContainer.getNElements(); ++index) {
+  /*  for (int index = 0; index < mcContainer.getNElements(); ++index) {
     auto label = mcContainer.getElement(index);
     mTrackLabels.emplace_back(label.getTrackID(), label.getEventID(), label.getSourceID(), false);
   }
-
-  mergeDigits(mDigits, mTrackLabels);
-  fillOutputContainer(digits, mTrackLabels);
+  */
+  mergeDigits();
+  fillOutputContainer(digits);
   provideMC(mcContainer);
 }
 //______________________________________________________________________
-void Digitizer::fillOutputContainer(std::vector<Digit>& digits, std::vector<o2::MCCompLabel>& trackLabels)
+void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
 {
   // filling the digit container
   if (mDigits.empty())
@@ -250,10 +266,10 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits, std::vector<o2::
     digits.emplace_back(*iter);
   }
   mDigits.erase(itBeg, iter);
-  mMCTruthOutputContainer.clear();
-  for (int index = 0; index < trackLabels.size(); ++index) {
-    mMCTruthOutputContainer.addElement(index, trackLabels.at(index));
-  }
+  // mMCTruthOutputContainer.clear();
+  //  for (int index = 0; index < mTrackLabels.size(); ++index) {
+  //    mMCTruthOutputContainer.addElement(index, mTrackLabels.at(index));
+  //  }
 }
 //______________________________________________________________________
 void Digitizer::setSrcID(int v)
@@ -281,6 +297,9 @@ void Digitizer::provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mc
   if (mMCTruthOutputContainer.getNElements() == 0)
     return;
 
+  //need to fill groups of labels not only  single labels, since index in addElements
+  // is the data index
+  //write a map that fixes? 
   for (int index = 0; index < mMCTruthOutputContainer.getIndexedSize(); ++index) {
     mcContainer.addElements(index, mMCTruthOutputContainer.getLabels(index));
   }

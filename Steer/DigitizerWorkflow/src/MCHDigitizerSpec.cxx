@@ -27,6 +27,9 @@
 #include "MCHSimulation/Detector.h"
 #include "DetectorsBase/GeometryManager.h"
 
+#include <iostream>
+using namespace std;
+
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
@@ -114,8 +117,7 @@ class MCHDPLDigitizerTask
         std::vector<o2::mch::Digit> digits; // digits which get filled
         o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;
 
-        mDigitizer.process(hits, digits);
-        mDigitizer.provideMC(labels);
+        mDigitizer.process(hits, digits, labels);
         LOG(DEBUG) << "MCH obtained " << digits.size() << " digits ";
         for (auto& d : digits) {
           LOG(DEBUG) << "ADC " << d.getADC();
@@ -124,14 +126,18 @@ class MCHDPLDigitizerTask
           LOG(DEBUG) << "DetID " << d.getDetID();
         }
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
-        labelAccum.mergeAtBack(labels);
+        labelAccum.mergeAtBack(labels); //is this ok? check inside MCtruthContainer if this is what one wants to do.
         LOG(DEBUG) << "labelAccum.getIndexedSize()  " << labelAccum.getIndexedSize();
+	cout << "labelAccum.getIndexedSize()  " << labelAccum.getIndexedSize() << endl;
         LOG(DEBUG) << "labelAccum.getNElements() " << labelAccum.getNElements();
+	cout << "labelAccum.getNElements() " << labelAccum.getNElements() << endl;
         LOG(DEBUG) << "Have " << digits.size() << " digits ";
+	cout << "Have " << digits.size() << " digits " << endl;
+	cout <<"Have digitsaccum " << digitsAccum.size() << endl;
       }
     }
-    mDigitizer.mergeDigits(digitsAccum, labelAccum);
-
+    mDigitizer.mergeDigits(digitsAccum, labelAccum);//print-out inside alos works fine
+    cout << "after merge Have " << digitsAccum.size() << " digits " << endl;
     LOG(DEBUG) << "Have " << labelAccum.getNElements() << " MCH labels "; //does not work out!
     pc.outputs().snapshot(Output{"MCH", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
     pc.outputs().snapshot(Output{"MCH", "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);

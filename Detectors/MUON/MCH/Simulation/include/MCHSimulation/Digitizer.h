@@ -37,13 +37,13 @@ class Digitizer
   void init();
 
   //process hits: fill digit vector with digits
-  void process(const std::vector<Hit> hits, std::vector<Digit>& digits);
+  void process(const std::vector<Hit> hits, std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
   void provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
-  void mergeDigits(const std::vector<Digit> digits, const std::vector<o2::MCCompLabel> trackLabels);
+  void mergeDigits();
   //external pile-up adding up
   void mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
 
-  void fillOutputContainer(std::vector<Digit>& digits, std::vector<o2::MCCompLabel>& trackLabels);
+  void fillOutputContainer(std::vector<Digit>& digits);
 
   void setEventTime(double timeNS) { mEventTime = timeNS; }
 
