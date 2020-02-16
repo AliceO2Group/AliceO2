@@ -185,6 +185,12 @@ o2_add_executable(verify-aod-file
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME Framework)
 
+o2_add_executable(dump-aod-data-model
+                  SOURCES src/dumpDataModel.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME Framework
+                  )
+
 # tests with input data
 
 o2_data_file(COPY test/test_DataSampling.json DESTINATION tests)
