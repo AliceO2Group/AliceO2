@@ -19,27 +19,49 @@
 #include <array>
 namespace o2::aod
 {
-namespace secvtx
+namespace secvtx2prong
 {
-DECLARE_SOA_COLUMN(dPosx, dposx, float, "fdPosx");
-DECLARE_SOA_COLUMN(dPosy, dposy, float, "fdPosy");
+DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fCollisionsID");
+DECLARE_SOA_COLUMN(Posdecayx, posdecayx, float, "fPosdecayx");
+DECLARE_SOA_COLUMN(Posdecayy, posdecayy, float, "fPosdecayy");
+DECLARE_SOA_COLUMN(Posdecayz, posdecayz, float, "fPosdecayz");
 DECLARE_SOA_COLUMN(Index0, index0, int, "fIndex0");
+DECLARE_SOA_COLUMN(Px0, px0, float, "fPx0");
+DECLARE_SOA_COLUMN(Py0, py0, float, "fPy0");
+DECLARE_SOA_COLUMN(Pz0, pz0, float, "fPz0");
 DECLARE_SOA_COLUMN(Index1, index1, int, "fIndex1");
-DECLARE_SOA_COLUMN(Index2, index2, int, "fIndex2");
-DECLARE_SOA_COLUMN(Tracky0, tracky0, float, "fTracky0");
-DECLARE_SOA_COLUMN(Tracky1, tracky1, float, "fTracky1");
-DECLARE_SOA_COLUMN(Tracky2, tracky2, float, "fTracky2");
+DECLARE_SOA_COLUMN(Px1, px1, float, "fPx1");
+DECLARE_SOA_COLUMN(Py1, py1, float, "fPy1");
+DECLARE_SOA_COLUMN(Pz1, pz1, float, "fPz1");
+DECLARE_SOA_COLUMN(IndexDCApair, indexDCApair, int, "fIndexDCApair");
+DECLARE_SOA_COLUMN(Mass, mass, float, "fMass");
+DECLARE_SOA_COLUMN(Massbar, massbar, float, "fMassbar");
+DECLARE_SOA_DYNAMIC_COLUMN(DecaylengthXY, decaylengthXY, [](float xvtxd, float yvtxd, float xvtxp, float yvtxp) { return sqrtf((yvtxd - yvtxp) * (yvtxd - yvtxp) + (xvtxd - xvtxp) * (xvtxd - xvtxp)); });
+DECLARE_SOA_DYNAMIC_COLUMN(Decaylength, decaylength, [](float xvtxd, float yvtxd, float zvtxd, float xvtxp, float yvtxp, float zvtxp) { return sqrtf((yvtxd - yvtxp) * (yvtxd - yvtxp) + (xvtxd - xvtxp) * (xvtxd - xvtxp) + (zvtxd - zvtxp) * (zvtxd - zvtxp)); });
 
-} // namespace secvtx
+//old way of doing it
+//DECLARE_SOA_COLUMN(Decaylength, decaylength, float, "fDecaylength");
+//DECLARE_SOA_COLUMN(DecaylengthXY, decaylengthXY, float, "fDecaylengthXY");
+
+} // namespace secvtx2prong
 namespace cand2prong
 {
-DECLARE_SOA_COLUMN(Mass, mass, float, "fMass");
+DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fCollisionsID");
+DECLARE_SOA_COLUMN(MassD0, massD0, float, "fMassD0");
+DECLARE_SOA_COLUMN(MassD0bar, massD0bar, float, "fMassD0bar");
 } // namespace cand2prong
 
-DECLARE_SOA_TABLE(SecVtx, "AOD", "SECVTX",
-                  secvtx::dPosx, secvtx::dPosy, secvtx::Index0, secvtx::Index1, secvtx::Index2, secvtx::Tracky0, secvtx::Tracky1, secvtx::Tracky2);
-DECLARE_SOA_TABLE(Cand2Prong, "AOD", "CAND2PRONG",
-                  cand2prong::Mass);
+DECLARE_SOA_TABLE(SecVtx2Prong, "AOD", "CAND2PRONG",
+                  secvtx2prong::CollisionId, collision::PosX, collision::PosY, collision::PosZ,
+                  secvtx2prong::Posdecayx, secvtx2prong::Posdecayy, secvtx2prong::Posdecayz,
+                  secvtx2prong::Index0, secvtx2prong::Px0, secvtx2prong::Py0, secvtx2prong::Pz0,
+                  secvtx2prong::Index1, secvtx2prong::Px1, secvtx2prong::Py1, secvtx2prong::Pz1,
+                  secvtx2prong::IndexDCApair, secvtx2prong::Mass, secvtx2prong::Massbar,
+                  secvtx2prong::DecaylengthXY<secvtx2prong::Posdecayx, secvtx2prong::Posdecayy, collision::PosX, collision::PosY>,
+                  secvtx2prong::Decaylength<secvtx2prong::Posdecayx, secvtx2prong::Posdecayy, secvtx2prong::Posdecayz, collision::PosX, collision::PosY, collision::PosZ>);
+
+DECLARE_SOA_TABLE(Cand2Prong, "AOD", "CANDDZERO",
+                  cand2prong::CollisionId, cand2prong::MassD0, cand2prong::MassD0bar);
 } // namespace o2::aod
 
 using namespace o2;
@@ -76,24 +98,26 @@ float invmass2prongs(float px0, float py0, float pz0, float mass0,
   return mass;
 };
 
-struct VertexerHFTask {
+struct CandidateBuilding2Prong {
+  // secondary vertex position
   OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 100, -0.1, 0.1)};
   OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 100, -0.1, 0.1)};
   OutputObj<TH1F> hvtx_z_out{TH1F("hvtx_z", "2-track vtx", 100, -0.1, 0.1)};
+  OutputObj<TH1F> hchi2dca{TH1F("hchi2dca", "chi2 DCA decay", 1000, 0., 0.0002)};
+  // primary vertex position
   OutputObj<TH1F> hvtxp_x_out{TH1F("hvertexx", "x primary vtx", 100, -10., 10.)};
   OutputObj<TH1F> hvtxp_y_out{TH1F("hvertexy", "y primary vtx", 100, -10., 10.)};
   OutputObj<TH1F> hvtxp_z_out{TH1F("hvertexz", "z primary vtx", 100, -10., 10.)};
-  OutputObj<TH1F> hmass_out{TH1F("hmass", "2-track inv mass", 500, 0, 5.0)};
-  OutputObj<TH1F> hindex_0_coll{TH1F("hindex_0_coll", "track 0 index coll", 1000000, -0.5, 999999.5)};
+  // track distributions before cuts
+  OutputObj<TH1F> hpt_nocuts{TH1F("hpt_nocuts", "pt tracks (#GeV)", 100, 0., 10.)};
+  OutputObj<TH1F> htgl_nocuts{TH1F("htgl_nocuts", "tgl tracks (#GeV)", 100, 0., 10.)};
+  OutputObj<TH1F> hitsmap_nocuts{TH1F("hitsmap_nocuts", "hitsmap", 100, 0., 100.)};
+  // track distributions after cuts
   OutputObj<TH1F> hpt_cuts{TH1F("hpt_cuts", "pt tracks (#GeV)", 100, 0., 10.)};
   OutputObj<TH1F> htgl_cuts{TH1F("htgl_cuts", "tgl tracks (#GeV)", 100, 0., 10.)};
-  OutputObj<TH1F> hitsmap{TH1F("hitsmap", "hitsmap", 100, 0., 100.)};
-  OutputObj<TH1F> heta_cuts{TH1F("heta_cuts", "eta tracks (#GeV)", 100, -2., 2.)};
-  OutputObj<TH1F> hdecayxy{TH1F("hdecayxy", "decay length xy", 100, 0., 1.0)};
-  OutputObj<TH1F> hdecayxyz{TH1F("hdecayxyz", "decay length", 100, 0., 1.0)};
-  OutputObj<TH1F> hchi2dca{TH1F("hchi2dca", "chi2 DCA decay", 1000, 0., 0.0002)};
+  OutputObj<TH1F> hitsmap_cuts{TH1F("hitsmap_cuts", "hitsmap", 100, 0., 100.)};
 
-  Produces<aod::SecVtx> secvtx;
+  Produces<aod::SecVtx2Prong> secvtx2prong;
 
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
   {
@@ -105,16 +129,18 @@ struct VertexerHFTask {
     for (auto it_0 = tracks.begin(); it_0 != tracks.end(); ++it_0) {
       auto& track_0 = *it_0;
       UChar_t clustermap_0 = track_0.itsClusterMap();
-      hitsmap->Fill(clustermap_0);
+      //fill track distribution before selection
+      hitsmap_nocuts->Fill(clustermap_0);
+      hpt_nocuts->Fill(track_0.pt());
+      htgl_nocuts->Fill(track_0.tgl());
       bool isselected_0 = track_0.tpcNCls() > 70 && track_0.flags() & 0x4 && (TESTBIT(clustermap_0, 0) || TESTBIT(clustermap_0, 1));
       if (!isselected_0)
         continue;
+      //fill track distribution after selection
+      hitsmap_cuts->Fill(clustermap_0);
       hpt_cuts->Fill(track_0.pt());
       htgl_cuts->Fill(track_0.tgl());
-      LOGF(info, "globalindex %llu", track_0.globalIndex());
-      LOGF(info, "tofChi2 %f", track_0.tofChi2());
-      hindex_0_coll->Fill(track_0.globalIndex());
-      heta_cuts->Fill(track_0.eta());
+
       float x0_ = track_0.x();
       float alpha0_ = track_0.alpha();
       std::array<float, 5> arraypar0 = {track_0.y(), track_0.z(), track_0.snp(), track_0.tgl(), track_0.signed1Pt()};
@@ -128,6 +154,8 @@ struct VertexerHFTask {
         UChar_t clustermap_1 = track_1.itsClusterMap();
         bool isselected_1 = track_1.tpcNCls() > 70 && track_1.flags() & 0x4 && (TESTBIT(clustermap_1, 0) || TESTBIT(clustermap_1, 1));
         if (!isselected_1)
+          continue;
+        if (track_0.signed1Pt() * track_1.signed1Pt() > 0)
           continue;
         float x1_ = track_1.x();
         float alpha1_ = track_1.alpha();
@@ -155,29 +183,57 @@ struct VertexerHFTask {
           float masskaon = 0.494;
           float mass_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masspion, pvec1[0], pvec1[1], pvec1[2], masskaon);
           float masssw_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masskaon, pvec1[0], pvec1[1], pvec1[2], masspion);
-          LOGF(info, "mass_ = %f", mass_);
-          LOGF(info, "masssw_ = %f", masssw_);
-          secvtx(vtx.x, vtx.y, track_0.globalIndex(), track_1.globalIndex(), -1., track_0.y(), track_1.y(), -1.);
-          hmass_out->Fill(mass_);
-          hmass_out->Fill(masssw_);
-          float declengxy = decaylengthXY(collision.posX(), collision.posY(), vtx.x, vtx.y);
-          float declengxyz = decaylength(collision.posX(), collision.posY(), collision.posZ(), vtx.x, vtx.y, vtx.z);
-          hdecayxy->Fill(declengxy);
-          hdecayxyz->Fill(declengxyz);
+          secvtx2prong(track_0.collisionId(), collision.posX(), collision.posY(), collision.posZ(), vtx.x, vtx.y, vtx.z, track_0.globalIndex(),
+                       pvec0[0], pvec0[1], pvec0[2], track_1.globalIndex(), pvec1[0], pvec1[1], pvec1[2], ic, mass_, masssw_);
           hchi2dca->Fill(df.getChi2AtPCACandidate(ic));
+
+          //float declengxy = decaylengthXY(secVtx2prong.posX(), secVtx2prong.posY(), secVtx2prong.posdecayx(), secVtx2prong.posdecayy());
+          //float declengxyz = decaylength(secVtx2prong.posX(), secVtx2prong.posY(), secVtx2prong.posZ(),
+          //                           secVtx2prong.posdecayx(), secVtx2prong.posdecayy(), secVtx2prong.posdecayz());
         }
       }
     }
   }
 };
 
-struct CandidateBuilder2Prong {
+struct CandidateBuildingDzero {
   Produces<aod::Cand2Prong> cand2prong;
-  void process(aod::SecVtx const& secVtxs, aod::Tracks const& tracks)
+  void process(aod::SecVtx2Prong const& secVtx2Prongs, aod::Tracks const& tracks) // HERE IT WHAT WORKS
+  //void process(aod::SecVtx2Prong const& secVtx2Prongs)  //THE SIMPLE LOOP WORKS AS WELL OF COURSE
+
+  //BELOW IS WHAT I WOULD LIKE TO BE ABLE TO DO AND THAT IS STILL NOT WORKING
+  //void process(aod::SecVtx2Prong const& secVtx2Prongs, soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
   {
     LOGF(info, "NEW EVENT");
-    for (auto& secVtx : secVtxs) {
-      LOGF(INFO, "Consume the table (%f, %f, %f, %f) with track 0 global index %llu", secVtx.dposx(), secVtx.dposy(), secVtx.tracky0(), (tracks.begin() + secVtx.index0()).y(), secVtx.index0());
+
+    for (auto& secVtx2prong : secVtx2Prongs) {
+      //example to access the track at the index saved in the secVtx2Prongs
+      LOGF(INFO, " I am now accessing track information looping over secondary vertices  %f", (tracks.begin() + secVtx2prong.index0()).y());
+      float masspion = 0.140;
+      float masskaon = 0.494;
+      float mass_ = invmass2prongs(secVtx2prong.px0(), secVtx2prong.py0(), secVtx2prong.pz0(), masspion,
+                                   secVtx2prong.px1(), secVtx2prong.py1(), secVtx2prong.pz1(), masskaon);
+      float masssw_ = invmass2prongs(secVtx2prong.px0(), secVtx2prong.py0(), secVtx2prong.pz0(), masskaon,
+                                     secVtx2prong.px1(), secVtx2prong.py1(), secVtx2prong.pz1(), masspion);
+      cand2prong(secVtx2prong.collisionId(), mass_, masssw_);
+    }
+  }
+};
+
+struct DzeroHistoTask {
+  OutputObj<TH1F> hmass_nocuts_out{TH1F("hmass_nocuts", "2-track inv mass", 500, 0, 5.0)};
+  OutputObj<TH1F> hdecayxy{TH1F("hdecayxy", "decay length xy", 100, 0., 1.0)};
+  OutputObj<TH1F> hdecayxyz{TH1F("hdecayxyz", "decay length", 100, 0., 1.0)};
+
+  void process(aod::Cand2Prong const& cand2Prongs, aod::SecVtx2Prong const& secVtx2Prongs)
+  {
+    LOGF(info, "NEW EVENT");
+
+    for (auto& secVtx2prong : secVtx2Prongs) {
+      hdecayxy->Fill(secVtx2prong.decaylengthXY());
+      hdecayxyz->Fill(secVtx2prong.decaylength());
+      hmass_nocuts_out->Fill(secVtx2prong.mass());
+      hmass_nocuts_out->Fill(secVtx2prong.massbar());
     }
   }
 };
@@ -185,6 +241,7 @@ struct CandidateBuilder2Prong {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<VertexerHFTask>("vertexerhf-task")};
-  //adaptAnalysisTask<CandidateBuilder2Prong>("skimvtxtable-task")};
+    adaptAnalysisTask<CandidateBuilding2Prong>("vertexerhf-candidatebuilding2prong"),
+    adaptAnalysisTask<CandidateBuildingDzero>("vertexerhf-candidatebuildingDzero"),
+    adaptAnalysisTask<DzeroHistoTask>("vertexerhf-Dzerotask")};
 }
