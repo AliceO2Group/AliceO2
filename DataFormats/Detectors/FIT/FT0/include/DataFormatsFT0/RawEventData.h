@@ -84,14 +84,13 @@ struct TCMdata {
         cen : 1,
         vertex : 1,
         nChanA : 7,
-        nChanC : 7,
-        amplA : 12,
-        amplC : 12;
-      int64_t timeA : 9,
-        timeC : 9;
-      uint64_t rest1 : 3,
-        rest2 : 16,
-        reservedField : 48;
+        nChanC : 7;
+      int64_t amplA : 18,
+        amplC : 18,
+        reservedField1 : 1, //56B,  PayloadSize1stWord 6
+        timeA : 9,
+        timeC : 9,
+        reservedField2 : 46;
     };
   };
   // ClassDefNV(TCMdata, 1);

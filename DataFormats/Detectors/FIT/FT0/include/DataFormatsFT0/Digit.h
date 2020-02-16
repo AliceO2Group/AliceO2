@@ -31,14 +31,14 @@ class ChannelData;
 
 struct Triggers {
   uint8_t triggersignals; // T0 trigger signals
-  uint8_t nChanA;         // number of faired channels A side
-  uint8_t nChanC;         // number of faired channels A side
-  uint16_t amplA;         // sum amplitude A side
-  uint16_t amplC;         // sum amplitude C side
+  int8_t nChanA;          // number of faired channels A side
+  int8_t nChanC;          // number of faired channels A side
+  int32_t amplA;          // sum amplitude A side
+  int32_t amplC;          // sum amplitude C side
   int16_t timeA;          // average time A side
   int16_t timeC;          // average time C side
   Triggers() = default;
-  Triggers(uint8_t signals, uint8_t chanA, uint8_t chanC, uint16_t aamplA, uint16_t aamplC, int16_t atimeA, int16_t atimeC)
+  Triggers(uint8_t signals, int8_t chanA, int8_t chanC, int32_t aamplA, int32_t aamplC, int16_t atimeA, int16_t atimeC)
   {
     triggersignals = signals;
     nChanA = chanA;
@@ -54,7 +54,8 @@ struct Triggers {
   bool getCen() { return (triggersignals & (1 << 3)) != 0; }
   bool getSCen() { return (triggersignals & (1 << 4)) != 0; }
 
-  void setTriggers(Bool_t isA, Bool_t isC, Bool_t isCnt, Bool_t isSCnt, Bool_t isVrtx, uint8_t chanA, uint8_t chanC, uint16_t aamplA, uint16_t aamplC, int16_t atimeA, int16_t atimeC)
+  void setTriggers(Bool_t isA, Bool_t isC, Bool_t isCnt, Bool_t isSCnt, Bool_t isVrtx, int8_t chanA, int8_t chanC, int32_t aamplA,
+                   int32_t aamplC, int16_t atimeA, int16_t atimeC)
   {
     triggersignals = triggersignals | (isA ? (1 << 0) : 0);
     triggersignals = triggersignals | (isC ? (1 << 1) : 0);

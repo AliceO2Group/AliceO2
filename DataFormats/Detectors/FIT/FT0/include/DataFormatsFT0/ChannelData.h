@@ -29,7 +29,7 @@ struct ChannelData {
   int16_t QTCAmpl = -1000; // Amplitude #channels
 
   ChannelData() = default;
-  ChannelData(int iPmt, int time, int charge, int chainQTC)
+  ChannelData(uint8_t iPmt, int time, int charge, uint8_t chainQTC)
   {
     ChId = iPmt;
     CFDTime = time;

@@ -29,10 +29,10 @@ namespace ft0
 {
 struct ChannelDataFloat {
 
-  int8_t ChainQTC = -1; //QTC chain
-  int8_t ChId = -1;     //channel Id
-  double CFDTime = -1;  //time in #CFD channels, 0 at the LHC clk center
-  double QTCAmpl = -1;  // Amplitude #channels
+  int ChId = -1;           //channel Id
+  int ChainQTC = -1;       //QTC chain
+  double CFDTime = -20000; //time in #CFD channels, 0 at the LHC clk center
+  double QTCAmpl = -20000; // Amplitude #channels
 
   ChannelDataFloat() = default;
   ChannelDataFloat(int iPmt, double time, double charge, int chainQTC)
