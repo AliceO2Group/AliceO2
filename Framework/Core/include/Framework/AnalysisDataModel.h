@@ -175,7 +175,7 @@ using Muon = Muons::iterator;
 namespace muoncluster
 {
 /// FIXME: where does this point to???? Tracks or Muons?
-DECLARE_SOA_COLUMN(TrackId, trackId, int, "fMuonsID");
+DECLARE_SOA_INDEX_COLUMN_FULL(Track, track, int, Muons, "fMuonsID");
 DECLARE_SOA_COLUMN(X, x, float, "fX");
 DECLARE_SOA_COLUMN(Y, y, float, "fY");
 DECLARE_SOA_COLUMN(Z, z, float, "fZ");
