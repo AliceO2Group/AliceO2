@@ -27,6 +27,12 @@
 namespace o2::soa
 {
 
+template <typename, typename = void>
+constexpr bool is_index_column_v = false;
+
+template <typename T>
+constexpr bool is_index_column_v<T, std::void_t<decltype(sizeof(typename T::binding_t))>> = true;
+
 template <typename T>
 struct arrow_array_for {
 };
@@ -325,6 +331,9 @@ using is_dynamic_t = framework::is_specialization<typename T::base, DynamicColum
 template <typename T>
 using is_persistent_t = typename std::decay_t<T>::persistent::type;
 
+template <typename T>
+using is_external_index_t = typename std::conditional<is_index_column_v<T>, std::true_type, std::false_type>::type;
+
 template <typename T, template <auto...> class Ref>
 struct is_index : std::false_type {
 };
@@ -499,6 +508,7 @@ struct RowViewBase : public IP, C... {
   using dynamic_columns_t = framework::selected_pack<is_dynamic_t, C...>;
   using index_columns_t = framework::selected_pack<is_index_t, C...>;
   constexpr inline static bool has_index_v = !std::is_same_v<index_columns_t, framework::pack<>>;
+  using external_index_columns_t = framework::selected_pack<is_external_index_t, C...>;
 
   RowViewBase(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, IP&& policy)
     : IP{policy},
@@ -597,10 +607,16 @@ struct RowViewBase : public IP, C... {
     return IP::operator==(static_cast<IP>(other));
   }
 
-  template <typename CL, typename TA>
-  void setCurrentIndex(framework::pack<CL> p, TA* current)
+  template <typename... CL, typename TA>
+  void doSetCurrentIndex(framework::pack<CL...>, TA* current)
   {
-    CL::setCurrent(current);
+    (CL::setCurrent(current), ...);
+  }
+
+  template <typename... TA>
+  void bindExternalIndices(TA*... current)
+  {
+    (doSetCurrentIndex(external_index_columns_t{}, current), ...);
   }
 
  private:
@@ -872,10 +888,15 @@ class TableMetadata
       assert(mBinding != 0);                                                       \
       return mBinding->begin() + *mColumnIterator;                                 \
     }                                                                              \
-    void setCurrent(binding_t* current)                                            \
+    template <typename T>                                                          \
+    bool setCurrent(T* current)                                                    \
     {                                                                              \
-      assert(current != 0);                                                        \
-      this->mBinding = current;                                                    \
+      if constexpr (std::is_same_v<T, binding_t>) {                                \
+        assert(current != 0);                                                      \
+        this->mBinding = current;                                                  \
+        return true;                                                               \
+      }                                                                            \
+      return false;                                                                \
     }                                                                              \
     binding_t* getCurrent() { return mBinding; }                                   \
     binding_t* mBinding = nullptr;                                                 \
