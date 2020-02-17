@@ -58,8 +58,8 @@
 #include "HMPIDDigitWriterSpec.h"
 
 // for TRD
-#include "TRDDigitizerSpec.h"
-#include "TRDDigitWriterSpec.h"
+#include "TRDWorkflow/TRDDigitizerSpec.h"
+#include "TRDWorkflow/TRDDigitWriterSpec.h"
 
 //for MUON MCH
 #include "MCHDigitizerSpec.h"
@@ -72,6 +72,10 @@
 // for PHOS
 #include "PHOSDigitizerSpec.h"
 #include "PHOSDigitWriterSpec.h"
+
+// for CPV
+#include "CPVDigitizerSpec.h"
+#include "CPVDigitWriterSpec.h"
 
 // for ZDC
 #include "ZDCDigitizerSpec.h"
@@ -491,8 +495,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     detList.emplace_back(o2::detectors::DetID::PHS);
     // connect the PHOS digitization
     specs.emplace_back(o2::phos::getPHOSDigitizerSpec(fanoutsize++));
-    // add TOF PHOS writer
+    // add PHOS writer
     specs.emplace_back(o2::phos::getPHOSDigitWriterSpec());
+  }
+
+  // the PHOS part
+  if (isEnabled(o2::detectors::DetID::CPV)) {
+    detList.emplace_back(o2::detectors::DetID::CPV);
+    // connect the PHOS digitization
+    specs.emplace_back(o2::cpv::getCPVDigitizerSpec(fanoutsize++));
+    // add PHOS writer
+    specs.emplace_back(o2::cpv::getCPVDigitWriterSpec());
   }
 
   // GRP updater: must come after all detectors since requires their list

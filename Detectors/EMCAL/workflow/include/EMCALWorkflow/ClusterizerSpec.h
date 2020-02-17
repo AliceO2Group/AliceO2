@@ -27,6 +27,7 @@ namespace reco_workflow
 
 /// \class ClusterizerSpec
 /// \brief Clusterizer task for EMCAL digits
+/// \ingroup EMCALworkflow
 /// \author Ruediger Haake  <ruediger.haake@cern.ch>, Yale University
 /// \since Oct 23, 2019
 ///
@@ -66,6 +67,7 @@ class ClusterizerSpec : public framework::Task
 };
 
 /// \brief Creating DataProcessorSpec for the EMCAL Clusterizer Spec
+/// \ingroup EMCALworkflow
 ///
 /// Refer to ClusterizerSpec::run for input and output specs
 framework::DataProcessorSpec getClusterizerSpec();

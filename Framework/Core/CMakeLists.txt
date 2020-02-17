@@ -126,6 +126,7 @@ foreach(t
         AnalysisTask
         AnalysisDataModel
         ASoA
+        ASoAHelpers
         BoostOptionsRetriever
         CallbackRegistry
         ChannelSpecHelpers
@@ -221,6 +222,7 @@ foreach(b
         WorkflowHelpers
         ASoA
         HistogramRegistry
+        Table2Tree
         )
   o2_add_test(benchmark_${b} NAME test_Framework_benchmark_${b}
               SOURCES test/benchmark_${b}.cxx

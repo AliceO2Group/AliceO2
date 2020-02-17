@@ -13,7 +13,7 @@
 
 // clang-format off
 #define __OPENCL__
-#define GPUCA_GPUTYPE_RADEON
+#define GPUCA_GPUTYPE_OPENCL
 
 #ifdef __OPENCLCPP__
   #pragma OPENCL EXTENSION cl_khr_fp64 : enable
@@ -58,6 +58,9 @@
 #undef assert
 #endif
 #define assert(param)
+#ifndef __OPENCLCPP__
+#define static_assert(...)
+#endif
 
 #include "GPUReconstructionIncludesDevice.h"
 #include "GPUConstantMem.h"

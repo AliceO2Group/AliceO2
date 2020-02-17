@@ -1830,7 +1830,7 @@ void V3Services::obEndWheelSideC(const Int_t iLay, TGeoVolume* mother, const TGe
   TGeoPcon* lowerRingSh;
 
   if (iLay == 0) {
-    nsect = 12;
+    nsect = 14;
     lowerRingSh = new TGeoPcon(0, 360, nsect);
     lowerRingSh->DefineSection(0, 0., sOBWheelSuppRmin, sOBWheelExtFlangeR);
     lowerRingSh->DefineSection(1, sOBWheelThickness, sOBWheelSuppRmin, sOBWheelExtFlangeR);
@@ -1844,11 +1844,14 @@ void V3Services::obEndWheelSideC(const Int_t iLay, TGeoVolume* mother, const TGe
     zpos += sOBWheelIntFlangeZ;
     lowerRingSh->DefineSection(7, zpos, sOBWheelSuppRmin, rmax);
     rmax = sOBWheelShelfRpos[iLay] + sOBWheelThickness;
-    lowerRingSh->DefineSection(8, zpos, sOBWheelShelfRpos[iLay], rmax);
+    lowerRingSh->DefineSection(8, zpos, sOBWheelSuppRmin, rmax);
+    zpos += sOBWheelThickness;
+    lowerRingSh->DefineSection(9, zpos, sOBWheelSuppRmin, rmax);
+    lowerRingSh->DefineSection(10, zpos, sOBWheelShelfRpos[iLay], rmax);
     zpos = sOBWheelTotZlen[iLay] - sOBWheelThickness;
-    lowerRingSh->DefineSection(9, zpos, sOBWheelShelfRpos[iLay], rmax);
-    lowerRingSh->DefineSection(10, zpos, sOBWheelShelfRpos[iLay], sOBWheelSuppRmax[iLay]);
-    lowerRingSh->DefineSection(11, sOBWheelTotZlen[iLay], sOBWheelShelfRpos[iLay], sOBWheelSuppRmax[iLay]);
+    lowerRingSh->DefineSection(11, zpos, sOBWheelShelfRpos[iLay], rmax);
+    lowerRingSh->DefineSection(12, zpos, sOBWheelShelfRpos[iLay], sOBWheelSuppRmax[iLay]);
+    lowerRingSh->DefineSection(13, sOBWheelTotZlen[iLay], sOBWheelShelfRpos[iLay], sOBWheelSuppRmax[iLay]);
   } else {
     nsect = 10;
     lowerRingSh = new TGeoPcon(0, 360, nsect);

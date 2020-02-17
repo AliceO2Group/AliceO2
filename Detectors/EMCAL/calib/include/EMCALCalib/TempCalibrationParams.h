@@ -10,6 +10,7 @@
 
 /// \class TempCalibrationParams
 /// \brief CCDB container for the temperature calibration coefficients
+/// \ingroup EMCALcalib
 /// \author Hadi Hassan <hadi.hassan@cern.ch>, Oak Ridge National Laboratory
 /// \since July 16th, 2019
 ///

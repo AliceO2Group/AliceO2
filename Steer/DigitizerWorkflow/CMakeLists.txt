@@ -25,13 +25,13 @@ o2_add_executable(digitizer-workflow
                           src/MCHDigitizerSpec.cxx
                           src/MIDDigitizerSpec.cxx
                           src/PHOSDigitizerSpec.cxx
+                          src/CPVDigitizerSpec.cxx
                           src/SimReaderSpec.cxx
                           src/SimpleDigitizerWorkflow.cxx
                           src/TOFDigitWriterSpec.cxx
                           src/TOFDigitizerSpec.cxx
                           src/TPCDigitRootWriterSpec.cxx
                           src/TPCDigitizerSpec.cxx
-                          src/TRDDigitizerSpec.cxx
                           src/ZDCDigitizerSpec.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                         O2::Steer
@@ -47,11 +47,13 @@ o2_add_executable(digitizer-workflow
                                         O2::MFTSimulation
                                         O2::MIDSimulation
                                         O2::PHOSSimulation
+                                        O2::CPVSimulation
                                         O2::TOFSimulation
-					O2::TOFCalibration
+                    					O2::TOFCalibration
                                         O2::TOFReconstruction
                                         O2::TPCSimulation
                                         O2::TPCWorkflow
                                         O2::TRDSimulation
+                                        O2::TRDWorkflow
                                         O2::DataFormatsTRD
                                         O2::ZDCSimulation)

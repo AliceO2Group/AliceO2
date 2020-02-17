@@ -25,10 +25,9 @@ namespace o2
 namespace emcal
 {
 
-//_________________________________________________________________________
 /// \class ShishKebabTrd1Module
-/// \ingroup EMCALUtils
 /// \brief Main class for TRD1 geometry of Shish-Kebab case.
+/// \ingroup EMCALbase
 ///
 /// Sep 20004 - Nov 2006; Apr 2010
 /// See web page with description of Shish-Kebab geometries:
@@ -40,29 +39,19 @@ namespace emcal
 class ShishKebabTrd1Module
 {
  public:
-  ///
-  /// Constructor.
-  ///
+  /// \brief Constructor.
   ShishKebabTrd1Module(Double_t theta = 0.0, Geometry* g = nullptr);
 
-  ///
-  /// Constructor.
-  ///
+  /// \brief Constructor.
   ShishKebabTrd1Module(ShishKebabTrd1Module& leftNeighbor);
 
-  ///
-  /// Init (add explanation)
-  ///
+  /// \brief Init (add explanation)
   void Init(Double_t A, Double_t B);
 
-  ///
-  /// Define more things (add explanation)
-  ///
+  /// \brief Define more things (add explanation)
   void DefineAllStuff();
 
-  ///
-  /// Copy Constructor.
-  ///
+  /// \brief Copy Constructor.
   ShishKebabTrd1Module(const ShishKebabTrd1Module& mod);
 
   ShishKebabTrd1Module& operator=(const ShishKebabTrd1Module& /*rvalue*/)
@@ -73,9 +62,7 @@ class ShishKebabTrd1Module
 
   ~ShishKebabTrd1Module() = default;
 
-  ///
-  /// Recover module parameters stored in geometry
-  ///
+  /// \brief Recover module parameters stored in geometry
   Bool_t SetParameters();
 
   ///

@@ -24,6 +24,7 @@ namespace emcal
 
 /// \class RCUTrailer
 /// \brief Information stored in the RCU trailer
+/// \ingroup EMCALreconstruction
 ///
 /// The RCU trailer can be found at the end of
 /// the payload and contains general information
@@ -47,7 +48,7 @@ class RCUTrailer
 
     /// \brief Constructor
     /// \param errtype Code of the error type
-    /// \param Message corresponding error message
+    /// \param message corresponding error message
     ///
     /// Initializing the error with error code and message.
     /// To be called when the exception is raised.

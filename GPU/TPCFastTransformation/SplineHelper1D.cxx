@@ -13,7 +13,7 @@
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 
 #include "SplineHelper1D.h"
 #include "TMath.h"
@@ -42,7 +42,7 @@ std::unique_ptr<float[]> SplineHelper1D::constructParametersClassic(int Ndim, st
 
   /*
     const Spline1D::Knot& knot0 = mSpline.getKnot(i);
-    double x = (u - knot0.u) * knot0.Li; // scaled u    
+    double x = (u - knot0.u) * knot0.Li; // scaled u
     double cS1 = (6 - 12*x)*knot0.Li*knot0.Li;
     double cZ0 = (6*x-4)*knot0.Li;
     double cZ1 = (6*x-2)*knot0.Li;

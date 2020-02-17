@@ -29,6 +29,12 @@ for ENGINE in TGeant3 TGeant4; do
 SIMCONFIG="${GEN}_N${NEVENTS}_${ENGINE}"
 HOST=`hostname`
 
+# include header information such as tested alidist tag and O2 tag
+TAG="conf=${SIMCONFIG},host=${HOST}${ALIDISTCOMMIT:+,alidist=$ALIDISTCOMMIT}${O2COMMIT:+,o2=$O2COMMIT}"
+echo "TAG = $TAG"
+
+echo "versions,${TAG} alidist=\"${ALIDISTCOMMIT}\",O2=\"${O2COMMIT}\" " >> metrics.dat
+
 # we count some simple indicators for problems
 WARNCOUNT=0
 ERRORCOUNT=0
@@ -62,16 +68,16 @@ WARNCOUNT=`bc <<< "${WARNCOUNT} + ${WARN}"`
 ERRORCOUNT=`bc <<< "${ERRORCOUNT} + ${ERR}"`
 EXCEPTIONCOUNT=`bc <<< "${EXCEPTIONCOUNT} + ${EXC}"`
 
-echo "time_sim,conf=$SIMCONFIG,host=${HOST} init=$INITTIME,run=${RUNTIME} ${TIMEST}" >> metrics.dat
-echo "mem_sim,conf=$SIMCONFIG,host=${HOST} init=$INITMEM,run=${TOTALMEM} ${TIMEST}" >> metrics.dat
+echo "time_sim,${TAG} init=$INITTIME,run=${RUNTIME} " >> metrics.dat
+echo "mem_sim,${TAG} init=$INITMEM,run=${TOTALMEM} " >> metrics.dat
 
 ### ------ we run the digitization steps
 
 ## we record simple walltime and maximal memory used for each detector
 SECONDS=0
 
-digi_time_metrics="walltime_digitizer,conf=$SIMCONFIG,host=${HOST} ";
-digi_mem_metrics="maxmem_digitizer,conf=$SIMCONFIG,host=${HOST} ";
+digi_time_metrics="walltime_digitizer,${TAG} ";
+digi_mem_metrics="maxmem_digitizer,${TAG} ";
 
 digi_total_time=0.
 digi_total_mem=0.
@@ -80,7 +86,7 @@ unlink o2sim.root
 unlink o2sim_grp.root
 ln -s ${HITFILE}.root o2sim.root
 ln -s ${HITFILE}_grp.root o2sim_grp.root
-for d in TRD ITS EMC TPC MFT MCH MID; do
+for d in TRD ITS EMC TPC MFT MCH MID FDD FV0 FT0 PHS TOF HMP; do
   DIGILOGFILE=logdigi_${SIMCONFIG}_${d}
 
   TIME="#walltime %e" ${O2_ROOT}/share/scripts/monitor-mem.sh time o2-sim-digitizer-workflow -b --onlyDet ${d} --tpc-lanes 1 --configKeyValues "TRDSimParams.digithreads=1" > ${DIGILOGFILE} 2>&1
@@ -110,14 +116,14 @@ for d in TRD ITS EMC TPC MFT MCH MID; do
 done
 DIGITTIME=$SECONDS  # with this we can calculate fractional contribution
 # add value for this detector
-digi_time_metrics="${digi_time_metrics}total=${digi_total_time} ${TIMEST}"
-digi_mem_metrics="${digi_mem_metrics}total=${digi_total_mem} ${TIMEST}"
+digi_time_metrics="${digi_time_metrics}total=${digi_total_time} "
+digi_mem_metrics="${digi_mem_metrics}total=${digi_total_mem} "
 
 echo ${digi_time_metrics} >> metrics.dat
 echo ${digi_mem_metrics} >> metrics.dat
-echo "warncount,conf=$SIMCONFIG,host=${HOST} value=${WARNCOUNT} ${TIMEST}" >> metrics.dat
-echo "errorcount,conf=$SIMCONFIG,host=${HOST} value=${ERRORCOUNT} ${TIMEST}" >> metrics.dat
-echo "exceptioncount,conf=$SIMCONFIG,host=${HOST} value=${EXCEPTIONCOUNT} ${TIMEST}" >> metrics.dat
+echo "warncount,${TAG} value=${WARNCOUNT} " >> metrics.dat
+echo "errorcount,${TAG} value=${ERRORCOUNT} " >> metrics.dat
+echo "exceptioncount,${TAG} value=${EXCEPTIONCOUNT} " >> metrics.dat
 
 
 done # end loop over configurations engines

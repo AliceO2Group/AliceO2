@@ -23,6 +23,7 @@ using namespace o2::framework;
 using namespace arrow;
 using namespace o2::soa;
 
+DECLARE_SOA_STORE();
 namespace test
 {
 DECLARE_SOA_COLUMN(X, x, int32_t, "x");
@@ -30,6 +31,25 @@ DECLARE_SOA_COLUMN(Y, y, int32_t, "y");
 DECLARE_SOA_COLUMN(Z, z, int32_t, "z");
 DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](int32_t x, int32_t y) { return x + y; });
 } // namespace test
+
+DECLARE_SOA_TABLE(Points, "TST", "POINTS", test::X, test::Y);
+
+namespace test
+{
+DECLARE_SOA_COLUMN(Color, color, int32_t, "color");
+} // namespace test
+
+DECLARE_SOA_TABLE(Infos, "TST", "INFOS", test::Color);
+
+namespace test
+{
+DECLARE_SOA_COLUMN(N, n, int, "fN");
+DECLARE_SOA_INDEX_COLUMN_FULL(Info, info, int, Infos, "fInfosID");
+DECLARE_SOA_INDEX_COLUMN_FULL(PointA, pointA, int, Points, "fPointAID");
+DECLARE_SOA_INDEX_COLUMN_FULL(PointB, pointB, int, Points, "fPointBID");
+} // namespace test
+
+DECLARE_SOA_TABLE(Segments, "TST", "SEGMENTS", test::N, test::PointAId, test::PointBId, test::InfoId);
 
 BOOST_AUTO_TEST_CASE(TestTableIteration)
 {
@@ -67,7 +87,7 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   auto rowIndex = std::make_tuple(
     std::pair<test::X*, arrow::Column*>{nullptr, table->column(0).get()},
     std::pair<test::Y*, arrow::Column*>{nullptr, table->column(1).get()});
-  RowView<test::X, test::Y> tests(rowIndex, table->num_rows());
+  RowView<test::X, test::Y> tests(rowIndex, {table->num_rows(), 0});
   BOOST_CHECK_EQUAL(tests.x(), 0);
   BOOST_CHECK_EQUAL(tests.y(), 0);
   ++tests;
@@ -199,11 +219,24 @@ BOOST_AUTO_TEST_CASE(TestJoinedTables)
   rowWriterY(0, 0);
   auto tableY = builderY.finalize();
 
+  TableBuilder builderZ;
+  auto rowWriterZ = builderZ.persist<int32_t>({"z"});
+  rowWriterZ(0, 8);
+  rowWriterZ(0, 8);
+  rowWriterZ(0, 8);
+  rowWriterZ(0, 8);
+  rowWriterZ(0, 8);
+  rowWriterZ(0, 8);
+  rowWriterZ(0, 8);
+  rowWriterZ(0, 8);
+  auto tableZ = builderZ.finalize();
+
   using TestX = o2::soa::Table<test::X>;
   using TestY = o2::soa::Table<test::Y>;
+  using TestZ = o2::soa::Table<test::Z>;
   using Test = Join<TestX, TestY>;
 
-  Test tests{tableX, tableY};
+  Test tests{0, tableX, tableY};
   for (auto& test : tests) {
     BOOST_CHECK_EQUAL(7, test.x() + test.y());
   }
@@ -213,6 +246,17 @@ BOOST_AUTO_TEST_CASE(TestJoinedTables)
                 "Joined tables should have the same type, regardless how we construct them");
   for (auto& test : tests2) {
     BOOST_CHECK_EQUAL(7, test.x() + test.y());
+  }
+
+  auto tests3 = join(TestX{tableX}, TestY{tableY}, TestZ{tableZ});
+
+  for (auto& test : tests3) {
+    BOOST_CHECK_EQUAL(15, test.x() + test.y() + test.z());
+  }
+  using TestMoreThanTwo = Join<TestX, TestY, TestZ>;
+  TestMoreThanTwo tests4{0, tableX, tableY, tableZ};
+  for (auto& test : tests4) {
+    BOOST_CHECK_EQUAL(15, test.x() + test.y() + test.z());
   }
 }
 
@@ -358,7 +402,7 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   selectionJoin->SetIndex(1, 2);
   selectionJoin->SetIndex(2, 4);
   selectionJoin->SetNumSlots(3);
-  JoinedTest testJoin{tableA, tableC};
+  JoinedTest testJoin{0, tableA, tableC};
   FilteredJoinTest filteredJoin{testJoin.asArrowTable(), selectionJoin};
 
   i = 0;
@@ -369,4 +413,71 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
     i++;
   }
   BOOST_CHECK_EQUAL(i, 3);
+}
+
+BOOST_AUTO_TEST_CASE(TestTableSlicing)
+{
+  TableBuilder builderA;
+  auto rowWriterA = builderA.persist<int32_t, int32_t>({"x", "y"});
+  rowWriterA(0, 0, 0);
+  rowWriterA(0, 1, 0);
+  rowWriterA(0, 2, 0);
+  rowWriterA(0, 3, 1);
+  rowWriterA(0, 4, 1);
+  rowWriterA(0, 5, 1);
+  rowWriterA(0, 6, 1);
+  rowWriterA(0, 7, 2);
+  auto tableA = builderA.finalize();
+  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 8);
+  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
+
+  TestA t = TestA{tableA};
+  auto s = slice(t, "y");
+  BOOST_CHECK_EQUAL(s.size(), 3);
+
+  for (auto r : s[1]) {
+    BOOST_CHECK_EQUAL(r.x(), r.index() + 3);
+    BOOST_CHECK_EQUAL(r.y(), 1);
+    BOOST_CHECK_EQUAL(r.globalIndex(), r.index() + 3);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(TestDereference)
+{
+  TableBuilder builderA;
+  auto pointsWriter = builderA.cursor<Points>();
+  pointsWriter(0, 0, 0);
+  pointsWriter(0, 3, 4);
+  auto pointsT = builderA.finalize();
+  Points points{pointsT};
+  BOOST_REQUIRE_EQUAL(pointsT->num_rows(), 2);
+
+  TableBuilder builderA2;
+  auto infoWriter = builderA2.cursor<Infos>();
+  infoWriter(0, 0);
+  infoWriter(0, 1);
+  infoWriter(0, 2);
+  auto infosT = builderA2.finalize();
+  Infos infos{infosT};
+  BOOST_REQUIRE_EQUAL(infosT->num_rows(), 3);
+
+  TableBuilder builderB;
+  auto segmentsWriter = builderB.cursor<Segments>();
+  segmentsWriter(0, 10, 0, 1, 2);
+  auto segmentsT = builderB.finalize();
+  Segments segments{segmentsT};
+  BOOST_REQUIRE_EQUAL(segmentsT->num_rows(), 1);
+
+  BOOST_CHECK_EQUAL(segments.begin().pointAId(), 0);
+  BOOST_CHECK_EQUAL(segments.begin().pointBId(), 1);
+  static_assert(std::is_same_v<decltype(segments.begin().pointA()), Points::iterator>);
+  auto i = segments.begin();
+  using namespace o2::framework;
+  i.bindExternalIndices(&points, &infos);
+  BOOST_CHECK_EQUAL(i.n(), 10);
+  BOOST_CHECK_EQUAL(i.info().color(), 2);
+  BOOST_CHECK_EQUAL(i.pointA().x(), 0);
+  BOOST_CHECK_EQUAL(i.pointA().y(), 0);
+  BOOST_CHECK_EQUAL(i.pointB().x(), 3);
+  BOOST_CHECK_EQUAL(i.pointB().y(), 4);
 }

@@ -17,10 +17,10 @@
 #include "GPUDef.h"
 
 #ifndef __OPENCL__
-typedef unsigned char uchar;
+using uchar = unsigned char;
 #endif
 #ifdef __APPLE__
-typedef unsigned long ulong;
+using ulong = unsigned long;
 #endif
 
 #define QMAX_CUTOFF 3
@@ -39,7 +39,7 @@ typedef unsigned long ulong;
 #define BUILD_CLUSTER_SCRATCH_PAD
 #endif
 /* #define CHARGEMAP_TIME_MAJOR_LAYOUT */
-#define CHARGEMAP_4x4_TILING_LAYOUT
+#define CHARGEMAP_TILING_LAYOUT
 
 #ifdef __OPENCL__
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
@@ -78,14 +78,20 @@ typedef unsigned long ulong;
 #define TPC_MAX_TIME 4000
 #define TPC_MAX_TIME_PADDED (TPC_MAX_TIME + 2 * PADDING_TIME)
 
+#if 0
+#define DBG_PRINT(msg, ...) printf(msg "\n", __VA_ARGS__)
+#else
+#define DBG_PRINT(msg, ...) static_cast<void>(0)
+#endif
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 
-using Timestamp = ushort;
+using Timestamp = short;
 using Pad = unsigned char;
-using GlobalPad = ushort;
+using GlobalPad = short;
 using Row = unsigned char;
 using Cru = unsigned char;
 
@@ -98,11 +104,6 @@ using Charge = float;
 using Delta = short;
 using Delta2 = short2;
 
-struct ChargePos {
-  GlobalPad gpad;
-  Timestamp time;
-};
-
 using local_id = short2;
 
 GPUconstexpr() float CHARGE_THRESHOLD = 0.f;
@@ -114,6 +115,5 @@ GPUconstexpr() int MIN_SPLIT_NUM = 1;
 } // namespace GPUCA_NAMESPACE
 
 #include "Digit.h"
-#include "ClusterNative.h"
 
 #endif

@@ -17,12 +17,12 @@
 #include "GPUO2DataTypes.h"
 #include "GPUDataTypes.h"
 #include "AliHLTTPCRawCluster.h"
-#include "Digit.h"
 #include "GPUParam.h"
 #include <algorithm>
 #include <vector>
 
 #ifdef HAVE_O2HEADERS
+#include "Digit.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "Headers/RAWDataHeader.h"
 #endif
@@ -180,7 +180,7 @@ void GPUReconstructionConvert::ZSstreamOut(unsigned short* bufIn, unsigned int& 
   lenIn = 0;
 }
 
-void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GPUTrackingInOutZS*& out, const GPUParam& param, bool zs12bit)
+void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, const GPUTrackingInOutZS*& out, const GPUParam& param, bool zs12bit)
 {
 #ifdef GPUCA_TPC_GEOMETRY_O2
   static std::vector<std::array<long long int, TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(long long int)>> buffer[NSLICES][GPUTrackingInOutZS::NENDPOINTS];
@@ -265,7 +265,7 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
           pagePtr = std::copy(streamBuffer8.data(), streamBuffer8.data() + streamSize8, pagePtr);
           streamSize8 = 0;
           for (int l = 1; l < nRowsInTB; l++) {
-            tbHdr->rowAddr1[l - 1] += 2 * nRowsInTB;
+            tbHdr->rowAddr1()[l - 1] += 2 * nRowsInTB;
           }
         }
         if (k >= tmpBuffer.size()) {
@@ -307,7 +307,7 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
         lastRow = tmpBuffer[k].row;
         ZSstreamOut(streamBuffer.data(), streamSize, streamBuffer8.data(), streamSize8, encodeBits);
         if (nRowsInTB) {
-          tbHdr->rowAddr1[nRowsInTB - 1] = (pagePtr - reinterpret_cast<unsigned char*>(page)) + streamSize8;
+          tbHdr->rowAddr1()[nRowsInTB - 1] = (pagePtr - reinterpret_cast<unsigned char*>(page)) + streamSize8;
         }
         nRowsInTB++;
         nSeq = streamBuffer8.data() + streamSize8++;
@@ -346,6 +346,9 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
           throw std::runtime_error("invalid TPC sector");
         }
         region = cruid % 10;
+        if ((unsigned int)region != j / 2) {
+          throw std::runtime_error("CRU ID / endpoint mismatch");
+        }
         int nRowsRegion = param.tpcGeometry.GetRegionRows(region);
 
         int timeBin = hdr->timeOffset;
@@ -359,7 +362,7 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
             throw std::runtime_error("invalid endpoint");
           }
           const int rowOffset = param.tpcGeometry.GetRegionStart(region) + (upperRows ? (nRowsRegion / 2) : 0);
-          const int nRows = upperRows ? (nRowsRegion - nRowsRegion / 2) : nRowsRegion;
+          const int nRows = upperRows ? (nRowsRegion - nRowsRegion / 2) : (nRowsRegion / 2);
           const int nRowsUsed = __builtin_popcount((unsigned int)(tbHdr->rowMask & 0x7FFF));
           pagePtr += nRowsUsed ? (2 * nRowsUsed) : 2;
           int rowPos = 0;
@@ -367,7 +370,7 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
             if ((tbHdr->rowMask & (1 << m)) == 0) {
               continue;
             }
-            unsigned char* rowData = rowPos == 0 ? pagePtr : (reinterpret_cast<unsigned char*>(page) + tbHdr->rowAddr1[rowPos - 1]);
+            unsigned char* rowData = rowPos == 0 ? pagePtr : (reinterpret_cast<unsigned char*>(page) + tbHdr->rowAddr1()[rowPos - 1]);
             const int nSeqRead = *rowData;
             unsigned char* adcData = rowData + 2 * nSeqRead + 1;
             int nADC = (rowData[2 * nSeqRead] * decodeBits + 7) / 8;
@@ -424,11 +427,11 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
 #endif
 }
 
-void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<deprecated::PackedDigit[]>* buffers, const deprecated::PackedDigit** ptrs, size_t* ns, const GPUParam& param, bool zs12bit)
+void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<deprecated::PackedDigit[]>* buffers, const deprecated::PackedDigit* const* ptrs, size_t* nsb, const size_t* ns, const GPUParam& param, bool zs12bit)
 {
 #ifdef HAVE_O2HEADERS
   for (unsigned int i = 0; i < NSLICES; i++) {
-    if (buffers[i].get() != ptrs[i]) {
+    if (buffers[i].get() != ptrs[i] || nsb != ns) {
       throw std::runtime_error("Not owning digits");
     }
     unsigned int j = 0;
@@ -447,7 +450,7 @@ void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<deprecated::PackedDig
         j++;
       }
     }
-    ns[i] = j;
+    nsb[i] = j;
   }
 #endif
 }

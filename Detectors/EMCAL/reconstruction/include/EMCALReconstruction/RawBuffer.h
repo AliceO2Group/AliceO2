@@ -21,7 +21,8 @@ namespace emcal
 {
 
 /// \class RawBuffer
-/// \brief Buffer for
+/// \brief Buffer for EMCAL raw pages
+/// \ingroup EMCALreconstruction
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 /// \since Aug. 9, 2019
 class RawBuffer

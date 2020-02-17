@@ -31,6 +31,7 @@
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUTPCGMMergedTrackHit.h"
+#include "GPUHostDataTypes.h"
 
 #include "Digit.h"
 
@@ -61,7 +62,7 @@ void GPUCATracking::deinitialize()
 
 int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
 {
-  if (data->o2Digits == nullptr && data->clusters == nullptr) {
+  if ((int)(data->tpcZS != nullptr) + (int)(data->o2Digits != nullptr) + (int)(data->clusters != nullptr) != 1) {
     return 0;
   }
 
@@ -83,9 +84,12 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
   const ClusterNativeAccess* clusters;
   std::vector<deprecated::PackedDigit> gpuDigits[Sector::MAXSECTOR];
   GPUTrackingInOutDigits gpuDigitsMap;
+  GPUTPCDigitsMCInput gpuDigitsMC;
   GPUTrackingInOutPointers ptrs;
 
-  if (data->o2Digits) {
+  if (data->tpcZS) {
+    ptrs.tpcZS = data->tpcZS;
+  } else if (data->o2Digits) {
     ptrs.clustersNative = nullptr;
     const float zsThreshold = mTrackingCAO2Interface->getConfig().configReconstruction.tpcZSthreshold;
     for (int i = 0; i < Sector::MAXSECTOR; i++) {
@@ -99,6 +103,12 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
       }
       gpuDigitsMap.nTPCDigits[i] = gpuDigits[i].size();
     }
+    if (data->o2DigitsMC) {
+      for (int i = 0; i < Sector::MAXSECTOR; i++) {
+        gpuDigitsMC.v[i] = (*data->o2DigitsMC)[i].get();
+      }
+      gpuDigitsMap.tpcDigitsMC = &gpuDigitsMC;
+    }
     ptrs.tpcPackedDigits = &gpuDigitsMap;
   } else {
     clusters = data->clusters;
@@ -106,7 +116,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
     ptrs.tpcPackedDigits = nullptr;
   }
   int retVal = mTrackingCAO2Interface->RunTracking(&ptrs);
-  if (data->o2Digits) {
+  if (data->o2Digits || data->tpcZS) {
     clusters = ptrs.clustersNative;
   }
   const GPUTPCGMMergedTrack* tracks = ptrs.mergedTracks;
@@ -235,6 +245,9 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
       rowIndexArr[nOutCl] = globalRow;
       nOutCl++;
       if (outputTracksMCTruth) {
+        if (!clusters->clustersMCTruth) {
+          throw std::runtime_error("Cluster MC information missing");
+        }
         for (const auto& element : clusters->clustersMCTruth->getLabels(clusters->clusterOffset[sector][globalRow] + clusterId)) {
           bool found = false;
           for (int l = 0; l < labels.size(); l++) {

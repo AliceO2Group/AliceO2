@@ -14,6 +14,7 @@
 #include "CCDB/CcdbApi.h"
 #include "PHOSCalib/CalibParams.h"
 #include "PHOSBase/Geometry.h"
+#include <iostream>
 #endif
 void PostCalibCCDB()
 {
@@ -37,24 +38,24 @@ void PostCalibCCDB()
     hHGLG[mod] = (TH2F*)fHGLGratio->Get(Form("LGHGm%d", mod));
 
     if (!o2phosCalib->setHGLGRatio(hHGLG[mod], mod)) {
-      cout << " Can not set LG/HG ratio for module " << mod << endl;
+      std::cout << " Can not set LG/HG ratio for module " << mod << std::endl;
       return;
     }
 
     hTimeHG[mod] = (TH2F*)fGains->Get(Form("Tmod%d", mod));
     hTimeLG[mod] = (TH2F*)fGains->Get(Form("Tlmod%d", mod));
     if (!o2phosCalib->setHGTimeCalib(hTimeHG[mod], mod)) {
-      cout << " Can not set HG time for module " << mod << endl;
+      std::cout << " Can not set HG time for module " << mod << std::endl;
       return;
     }
     if (!o2phosCalib->setLGTimeCalib(hTimeLG[mod], mod)) {
-      cout << " Can not set LG time for module " << mod << endl;
+      std::cout << " Can not set LG time for module " << mod << std::endl;
       return;
     }
 
     hGains[mod] = (TH2F*)fGains->Get(Form("mod%d", mod));
     if (!o2phosCalib->setGain(hGains[mod], mod)) {
-      cout << " Can not set gain for module " << mod << endl;
+      std::cout << " Can not set gain for module " << mod << std::endl;
       return;
     }
   }
