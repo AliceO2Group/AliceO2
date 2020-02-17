@@ -46,3 +46,10 @@ o2_add_test(HBFUtils
             COMPONENT_NAME raw
             LABELS raw)
 	  
+o2_add_test(RawReaderWriter
+            PUBLIC_LINK_LIBRARIES O2::DetectorsRaw
+                                  O2::Steer
+            SOURCES test/testRawReaderWriter.cxx
+            COMPONENT_NAME raw
+            LABELS raw)
+	  
