@@ -32,20 +32,20 @@ GPUd() void GPUTPCConvertKernel::Thread<0>(int nBlocks, int nThreads, int iBlock
   const int indexOffset = native->clusterOffset[iSlice][iRow] - native->clusterOffset[iSlice][0];
 
   for (unsigned int k = get_local_id(0); k < native->nClusters[iSlice][iRow]; k += get_local_size(0)) {
-    const auto& cin = native->clusters[iSlice][iRow][k];
+    const auto& clin = native->clusters[iSlice][iRow][k];
     float x, y, z;
-    GPUTPCConvertImpl::convert(processors, iSlice, iRow, cin.getPad(), cin.getTime(), x, y, z);
-    auto& cout = clusters[indexOffset + k];
-    cout.x = x;
-    cout.y = y;
-    cout.z = z;
-    cout.row = iRow;
-    cout.amp = cin.qTot;
-    cout.flags = cin.getFlags();
-    cout.id = idOffset + k;
+    GPUTPCConvertImpl::convert(processors, iSlice, iRow, clin.getPad(), clin.getTime(), x, y, z);
+    auto& clout = clusters[indexOffset + k];
+    clout.x = x;
+    clout.y = y;
+    clout.z = z;
+    clout.row = iRow;
+    clout.amp = clin.qTot;
+    clout.flags = clin.getFlags();
+    clout.id = idOffset + k;
 #ifdef GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME
-    cout.pad = cin.getPad();
-    cout.time = cin.getTime();
+    clout.pad = clin.getPad();
+    clout.time = clin.getTime();
 #endif
   }
 }
