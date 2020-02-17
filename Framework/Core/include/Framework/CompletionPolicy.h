@@ -55,15 +55,22 @@ struct CompletionPolicy {
   using Callback = std::function<CompletionOp(InputSet)>;
 
   /// Name of the policy itself.
-  std::string name;
+  std::string name = "";
   /// Callback to be used to understand if the policy should apply
   /// to the given device.
-  Matcher matcher;
+  Matcher matcher = nullptr;
   /// Actual policy which decides what to do with a partial InputRecord.
-  Callback callback;
+  Callback callback = nullptr;
 
   /// Helper to create the default configuration.
   static std::vector<CompletionPolicy> createDefaultPolicies();
+
+  /// Constructor
+  CompletionPolicy()
+    : name(), matcher(), callback() {}
+  /// Constructor for emplace_back
+  CompletionPolicy(std::string _name, Matcher _matcher, Callback _callback)
+    : name(_name), matcher(_matcher), callback(_callback) {}
 };
 
 std::ostream& operator<<(std::ostream& oss, CompletionPolicy::CompletionOp const& val);
