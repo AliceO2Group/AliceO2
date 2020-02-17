@@ -51,13 +51,17 @@ BOOST_AUTO_TEST_CASE(TestCompletionPolicy_callback)
       auto const* header = CompletionPolicyHelpers::getHeader<o2::header::DataHeader>(ref);
       BOOST_CHECK_EQUAL(header, reinterpret_cast<o2::header::DataHeader*>(pointer));
       BOOST_CHECK(CompletionPolicyHelpers::getHeader<o2::header::NameHeader<9>>(ref) != nullptr);
+      BOOST_CHECK(CompletionPolicyHelpers::getHeader<o2::header::NameHeader<9>*>(ref) != nullptr);
     }
     return CompletionPolicy::CompletionOp::Consume;
   };
 
-  CompletionPolicy policy{"test", matcher, callback};
+  std::vector<CompletionPolicy> policies;
+  policies.emplace_back("test", matcher, callback);
 
   CompletionPolicy::InputSetElement ref{std::move(header), std::move(payload)};
   CompletionPolicy::InputSet inputs{&ref, 1};
-  policy.callback(inputs);
+  for (auto& policy : policies) {
+    policy.callback(inputs);
+  }
 }
