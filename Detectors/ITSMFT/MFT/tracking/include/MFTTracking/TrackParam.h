@@ -11,7 +11,7 @@
 /// \file TrackParam.h
 /// \brief Definition of the MFT track parameters for internal use
 ///
-/// \author Philippe Pillot, Subatech
+/// \author Philippe Pillot, Subatech; adapted by Rafael Pezzi, UFRGS
 
 #ifndef ALICEO2_MFT_TRACKPARAM_H_
 #define ALICEO2_MFT_TRACKPARAM_H_
@@ -45,23 +45,23 @@ class TrackParam
   /// return non bending coordinate (cm)
   Double_t getX() const { return mParameters(0, 0); }
   /// set non bending coordinate (cm)
-  void setX(Double_t nonBendingCoor) { mParameters(0, 0) = nonBendingCoor; }
+  void setX(Double_t x) { mParameters(0, 0) = x; }
   /// return non bending slope (cm ** -1)
   Double_t getXSlope() const { return mParameters(1, 0); }
   /// set non bending slope (cm ** -1)
-  void setXSlope(Double_t nonBendingSlope) { mParameters(1, 0) = nonBendingSlope; }
+  void setXSlope(Double_t xSlope) { mParameters(1, 0) = xSlope; }
   /// return bending coordinate (cm)
   Double_t getY() const { return mParameters(2, 0); }
   /// set bending coordinate (cm)
-  void setY(Double_t bendingCoor) { mParameters(2, 0) = bendingCoor; }
+  void setY(Double_t y) { mParameters(2, 0) = y; }
   /// return bending slope (cm ** -1)
   Double_t getYSlope() const { return mParameters(3, 0); }
   /// set bending slope (cm ** -1)
-  void setYSlope(Double_t bendingSlope) { mParameters(3, 0) = bendingSlope; }
+  void setYSlope(Double_t ySlope) { mParameters(3, 0) = ySlope; }
   /// return inverse bending momentum (GeV/c ** -1) times the charge (assumed forward motion)
-  Double_t getInverseBendingMomentum() const { return mParameters(4, 0); }
+  Double_t getInverseMomentum() const { return mParameters(4, 0); }
   /// set inverse bending momentum (GeV/c ** -1) times the charge (assumed forward motion)
-  void setInverseBendingMomentum(Double_t inverseBendingMomentum) { mParameters(4, 0) = inverseBendingMomentum; }
+  void setInverseMomentum(Double_t inverseMomentum) { mParameters(4, 0) = inverseMomentum; }
   /// return the charge (assumed forward motion)
   Double_t getCharge() const { return TMath::Sign(1., mParameters(4, 0)); }
   /// set the charge (assumed forward motion)
@@ -141,15 +141,15 @@ class TrackParam
   /// SlopeX  = Non bending slope        (cm ** -1)
   /// Y       = Bending coordinate       (cm)
   /// SlopeY  = Bending slope            (cm ** -1)
-  /// InvP_yz = Inverse bending momentum (GeV/c ** -1) times the charge (assumed forward motion)  </pre>
+  /// InvP = Inverse bending momentum (GeV/c ** -1) times the charge (assumed forward motion)  </pre>
   TMatrixD mParameters{5, 1}; ///< \brief Track parameters
 
   /// Covariance matrix of track parameters, ordered as follow:      <pre>
-  ///    <X,X>      <X,SlopeX>        <X,Y>      <X,SlopeY>       <X,InvP_yz>
-  /// <X,SlopeX>  <SlopeX,SlopeX>  <Y,SlopeX>  <SlopeX,SlopeY>  <SlopeX,InvP_yz>
-  ///    <X,Y>      <Y,SlopeX>        <Y,Y>      <Y,SlopeY>       <Y,InvP_yz>
-  /// <X,SlopeY>  <SlopeX,SlopeY>  <Y,SlopeY>  <SlopeY,SlopeY>  <SlopeY,InvP_yz>
-  /// <X,InvP_yz> <SlopeX,InvP_yz> <Y,InvP_yz> <SlopeY,InvP_yz> <InvP_yz,InvP_yz>  </pre>
+  ///    <X,X>      <X,SlopeX>        <X,Y>      <X,SlopeY>       <X,InvP>
+  /// <X,SlopeX>  <SlopeX,SlopeX>  <Y,SlopeX>  <SlopeX,SlopeY>  <SlopeX,InvP>
+  ///    <X,Y>      <Y,SlopeX>        <Y,Y>      <Y,SlopeY>       <Y,InvP>
+  /// <X,SlopeY>  <SlopeX,SlopeY>  <Y,SlopeY>  <SlopeY,SlopeY>  <SlopeY,InvP>
+  /// <X,InvP> <SlopeX,InvP> <Y,InvP> <SlopeY,InvP> <InvP,InvP>  </pre>
   mutable std::unique_ptr<TMatrixD> mCovariances{}; ///< \brief Covariance matrix of track parameters
 
   /// Jacobian used to extrapolate the track parameters and covariances to the actual z position

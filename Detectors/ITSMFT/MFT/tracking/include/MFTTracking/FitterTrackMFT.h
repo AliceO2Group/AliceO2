@@ -11,7 +11,7 @@
 /// \file FitterTrackMFT.h
 /// \brief Definition of the MFT track for internal use by the fitter
 ///
-/// \author Philippe Pillot, Subatech
+/// \author Philippe Pillot, Subatech; adapted by Rafael Pezzi, UFRGS
 
 #ifndef ALICEO2_MFT_FITTERTRACK_H_
 #define ALICEO2_MFT_FITTERTRACK_H_

@@ -11,7 +11,7 @@
 /// \file TrackFitterSpec.cxx
 /// \brief Implementation of a data processor to read, refit and send tracks with attached clusters
 ///
-/// \author Philippe Pillot, Subatech
+/// \author Philippe Pillot, Subatech; adapted by Rafael Pezzi, UFRGS
 
 #include "MFTWorkflow/TrackFitterSpec.h"
 #include "DataFormatsITSMFT/Cluster.h"
@@ -60,11 +60,12 @@ void TrackFitterTask::run(ProcessingContext& pc)
   int nTracksLTF = 0;
   std::vector<o2::mft::FitterTrackMFT> fittertracks;
   std::vector<o2::mft::TrackMFT> finalMFTtracks;
+  std::list<o2::itsmft::Cluster> clusters;
 
   // Fit LTF tracks
   for (auto track : tracksLTF) {
     o2::mft::FitterTrackMFT& temptrack = fittertracks.emplace_back();
-    mTrackFitter->convertTrack(track, temptrack);
+    convertTrack(track, temptrack, clusters);
     mTrackFitter->fit(temptrack, false);
     LOG(INFO) << "tracksLTF: nTracksLTF  = " << nTracksLTF << " tracks.size() = " << fittertracks.size() << std::endl;
     nTracksLTF++;
@@ -72,7 +73,8 @@ void TrackFitterTask::run(ProcessingContext& pc)
   // Fit CA tracks
   for (auto track : tracksCA) {
     o2::mft::FitterTrackMFT& temptrack = fittertracks.emplace_back();
-    mTrackFitter->convertTrack(track, temptrack);
+    //o2::itsmft::Cluster& tempcluster = clusters.emplace_back();
+    convertTrack(track, temptrack, clusters);
     mTrackFitter->fit(temptrack, false);
     LOG(INFO) << "tracksCA: nTracksCA  = " << nTracksCA << " tracks.size() = " << fittertracks.size() << std::endl;
     nTracksCA++;
@@ -81,21 +83,26 @@ void TrackFitterTask::run(ProcessingContext& pc)
   // Convert fitter tracks to the final Standalone MFT Track
   for (auto track : fittertracks) {
     o2::mft::TrackMFT& temptrack = finalMFTtracks.emplace_back();
-    // TODO: Convert FitterTrackMFT to TrackMFTExt or TrackMFT
+
     // Straight tracks considering only the first and last clusters
-    auto dz = track.last().getZ() - track.first().getZ();
-    auto slopeX = (track.last().getX() - track.first().getX()) / dz;
-    auto slopeY = (track.last().getY() - track.first().getY()) / dz;
+    //auto dz = track.last().getZ() - track.first().getZ();
+    //auto slopeX = (track.last().getX() - track.first().getX()) / dz;
+    //auto slopeY = (track.last().getY() - track.first().getY()) / dz;
+
+    // TODO: Convert FitterTrackMFT to TrackMFTExt or TrackMFT
+    auto slopeX = track.first().getXSlope();
+    auto slopeY = track.first().getYSlope();
     auto tanl = -std::sqrt(1.f / (slopeX * slopeX + slopeY * +slopeY));
     auto tanp = slopeY / slopeX;
     auto sinp = tanp / std::sqrt(1.f + tanp * tanp);
     //LOG(INFO) << "   TrackPars: Tgl = " << tanl << "  Snp = " << sinp << std::endl;
-
     temptrack.setX(track.first().getX());
     temptrack.setY(track.first().getY());
     temptrack.setZ(track.first().getZ());
     temptrack.setTgl(tanl);
     temptrack.setSnp(sinp);
+    auto Q2Pt = sqrt(1 + tanl * tanl) * track.first().getInverseMomentum();
+    temptrack.setQ2Pt(Q2Pt);
   }
 
   LOG(INFO) << "MFTFitter loaded " << tracksLTF.size() << " LTF tracks";
@@ -124,6 +131,41 @@ o2::framework::DataProcessorSpec getTrackFitterSpec()
     AlgorithmSpec{adaptFromTask<TrackFitterTask>()},
     Options{}};
 }
+
+//_________________________________________________________________________________________________
+template <typename T, typename O, typename C>
+void convertTrack(const T& inTrack, O& outTrack, C& clusters)
+{
+  //auto fittedTrack = FitterTrackMFT();
+  //TMatrixD covariances(5,5);
+  auto xpos = inTrack.getXCoordinates();
+  auto ypos = inTrack.getYCoordinates();
+  auto zpos = inTrack.getZCoordinates();
+  auto clusterIDs = inTrack.getClustersId();
+  auto nClusters = inTrack.getNPoints();
+  static int ntrack = 0;
+
+  std::cout << "** Converting MFT track with nClusters = " << nClusters << std::endl;
+  // Add clusters to Tracker's cluster vector & set fittedTrack cluster range
+  for (auto cls = 0; cls < nClusters; cls++) {
+    o2::itsmft::Cluster& tempcluster = clusters.emplace_back(clusterIDs[cls], xpos[cls], ypos[cls], zpos[cls]);
+    //auto cluster = o2::itsmft::Cluster();
+    tempcluster.setSigmaY2(0.001); // FIXME:
+    tempcluster.setSigmaZ2(0.001); // FIXME: Use clusters errors once available
+    outTrack.createParamAtCluster(tempcluster);
+    std::cout << "Adding cluster " << cls << " to track " << ntrack << " with clusterID " << tempcluster.getSensorID() << " at z = " << tempcluster.getZ() << std::endl;
+  }
+
+  std::cout << "  ** outTrack has getNClusters = " << outTrack.getNClusters() << std::endl;
+  for (auto par = outTrack.rbegin(); par != outTrack.rend(); par++)
+    std::cout << "     getZ() =  " << par->getZ() << std::endl;
+
+  //fit(outTrack, false);
+}
+
+// Define template specializations
+//template void TrackFitter::convertTrack<TrackCA, o2::mft::FitterTrackMFT>(const TrackCA&, o2::mft::FitterTrackMFT&);
+//template void TrackFitter::convertTrack<TrackLTF, o2::mft::FitterTrackMFT>(const TrackLTF&, o2::mft::FitterTrackMFT&);
 
 } // namespace mft
 } // namespace o2

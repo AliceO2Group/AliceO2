@@ -11,7 +11,7 @@
 /// \file TrackFitterSpec.h
 /// \brief Definition of a data processor to read, refit and send tracks with attached clusters
 ///
-/// \author Philippe Pillot, Subatech
+/// \author Philippe Pillot, Subatech; adapted by Rafael Pezzi, UFRGS
 
 #ifndef ALICEO2_MFT_TRACKFITTERSPEC_H_
 #define ALICEO2_MFT_TRACKFITTERSPEC_H_
@@ -38,6 +38,9 @@ class TrackFitterTask : public o2::framework::Task
   int mState = 0;
   std::unique_ptr<o2::mft::TrackFitter> mTrackFitter = nullptr;
 };
+
+template <typename T, typename O, typename C>
+void convertTrack(const T& inTrack, O& outTrack, C& clusters);
 
 o2::framework::DataProcessorSpec getTrackFitterSpec();
 

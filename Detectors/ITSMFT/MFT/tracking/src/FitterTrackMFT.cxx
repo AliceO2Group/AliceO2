@@ -11,7 +11,7 @@
 /// \file FitterTrackMFT.cxx
 /// \brief Implementation of the MFT track for internal use
 ///
-/// \author Philippe Pillot, Subatech
+/// \author Philippe Pillot, Subatech; adapted by Rafael Pezzi, UFRGS
 
 #include "MFTTracking/FitterTrackMFT.h"
 
