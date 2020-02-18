@@ -471,7 +471,7 @@ class columnIterator
   }
 
   // copy the TTreeReaderValue to the arrow::TBuilder
-  void* push()
+  void push()
   {
     arrow::Status stat;
 
@@ -519,7 +519,7 @@ class columnIterator
 
   // finish the arrow::TBuilder
   // with this ar is prepared to be used in arrow::Table::Make
-  void* finish()
+  void finish()
   {
 
     //LOG(INFO) << "columnIterator::finish " << dt;
@@ -573,7 +573,7 @@ class TreeToTable
 
   // Append next set of branch values to the
   // corresponding table columns
-  void* push()
+  void push()
   {
     for (auto colit : colits)
       colit->push();
