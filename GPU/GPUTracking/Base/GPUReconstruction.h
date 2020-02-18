@@ -157,6 +157,8 @@ class GPUReconstruction
   void PrepareEvent();
   virtual int RunChains() = 0;
   unsigned int getNEventsProcessed() { return mNEventsProcessed; }
+  virtual int registerMemoryForGPU(void* ptr, size_t size) = 0;
+  virtual int unregisterMemoryForGPU(void* ptr) = 0;
 
   // Helpers for memory allocation
   GPUMemoryResource& Res(short num) { return mMemoryResources[num]; }
