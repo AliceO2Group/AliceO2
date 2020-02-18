@@ -45,21 +45,21 @@ void GPUReconstructionConvert::ConvertNativeToClusterData(o2::tpc::ClusterNative
     nClSlice = 0;
     for (int j = 0; j < GPUCA_ROW_COUNT; j++) {
       for (unsigned int k = 0; k < native->nClusters[i][j]; k++) {
-        const auto& cin = native->clusters[i][j][k];
+        const auto& clin = native->clusters[i][j][k];
         float x = 0, y = 0, z = 0;
         if (continuousMaxTimeBin == 0) {
-          transform->Transform(i, j, cin.getPad(), cin.getTime(), x, y, z);
+          transform->Transform(i, j, clin.getPad(), clin.getTime(), x, y, z);
         } else {
-          transform->TransformInTimeFrame(i, j, cin.getPad(), cin.getTime(), x, y, z, continuousMaxTimeBin);
+          transform->TransformInTimeFrame(i, j, clin.getPad(), clin.getTime(), x, y, z, continuousMaxTimeBin);
         }
-        auto& cout = clusters[i].get()[nClSlice];
-        cout.x = x;
-        cout.y = y;
-        cout.z = z;
-        cout.row = j;
-        cout.amp = cin.qTot;
-        cout.flags = cin.getFlags();
-        cout.id = offset + k;
+        auto& clout = clusters[i].get()[nClSlice];
+        clout.x = x;
+        clout.y = y;
+        clout.z = z;
+        clout.row = j;
+        clout.amp = clin.qTot;
+        clout.flags = clin.getFlags();
+        clout.id = offset + k;
         nClSlice++;
       }
       native->clusterOffset[i][j] = offset;

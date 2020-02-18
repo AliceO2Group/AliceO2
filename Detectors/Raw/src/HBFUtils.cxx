@@ -13,6 +13,7 @@
 #include <FairLogger.h>
 #include <bitset>
 #include <cassert>
+#include <exception>
 
 using namespace o2::raw;
 
@@ -22,8 +23,9 @@ int HBFUtils::getHBF(const IR& rec) const
   ///< get HBF ID corresponding to this IR
   auto diff = rec.differenceInBC(mFirstIR);
   if (diff < 0) {
-    LOG(FATAL) << "IR " << rec.bc << '/' << rec.orbit << " is ahead of the reference IR "
+    LOG(ERROR) << "IR " << rec.bc << '/' << rec.orbit << " is ahead of the reference IR "
                << mFirstIR.bc << '/' << mFirstIR.orbit;
+    throw std::runtime_error("Requested IR is ahead of the reference IR");
   }
   return diff / o2::constants::lhc::LHCMaxBunches;
 }
@@ -35,7 +37,7 @@ int HBFUtils::fillHBIRvector(std::vector<IR>& dst, const IR& fromIR, const IR& t
   // BCs between interaction records "fromIR" and "toIR" (inclusive).
   dst.clear();
   int hb0 = getHBF(fromIR), hb1 = getHBF(toIR);
-  if (fromIR.bc != mFirstIR.bc) { // unless we just starting the HBF of fromIR, it was already counted
+  if (fromIR.bc != mFirstIR.bc) { // unless we are just starting the HBF of fromIR, it was already counted
     hb0++;
   }
   for (int ihb = hb0; ihb <= hb1; ihb++) {
@@ -89,6 +91,7 @@ void HBFUtils::printRDH(const void* rdhP)
     default:
       LOG(ERROR) << "Unexpected RDH version " << version << " from";
       dumpRDH(rdhP);
+      throw std::runtime_error("invalid RDH provided");
       break;
   };
 }
@@ -101,6 +104,20 @@ void HBFUtils::dumpRDH(const void* rdhP)
     int l = 4 * i;
     LOGF(INFO, "[rdh%d] 0x%08x 0x%08x 0x%08x 0x%08x", i, w32[l + 3], w32[l + 2], w32[l + 1], w32[l]);
   }
+}
+
+//_________________________________________________
+o2::InteractionRecord HBFUtils::getHBIR(const void* rdhP)
+{
+  int version = (reinterpret_cast<const char*>(rdhP))[0];
+  if (version == 4) {
+    return getHBIR(*reinterpret_cast<const o2::header::RAWDataHeaderV4*>(rdhP));
+  } else if (version == 5) {
+    return getHBIR(*reinterpret_cast<const o2::header::RAWDataHeaderV5*>(rdhP));
+  }
+  LOG(ERROR) << "Unexpected RDH version " << version << " from";
+  dumpRDH(rdhP);
+  throw std::runtime_error("invalid RDH provided");
 }
 
 //_________________________________________________
@@ -139,7 +156,7 @@ uint32_t HBFUtils::getHBOrbit(const void* rdhP)
   }
   LOG(ERROR) << "Unexpected RDH version " << version << " from";
   dumpRDH(rdhP);
-  return o2::InteractionRecord::DummyOrbit;
+  throw std::runtime_error("invalid RDH provided");
 }
 
 //_________________________________________________
@@ -153,7 +170,7 @@ uint32_t HBFUtils::getHBBC(const void* rdhP)
   }
   LOG(ERROR) << "Unexpected RDH version " << version << " from";
   dumpRDH(rdhP);
-  return o2::InteractionRecord::DummyBC;
+  throw std::runtime_error("invalid RDH provided");
 }
 
 //_____________________________________________________________________
@@ -173,9 +190,9 @@ bool HBFUtils::checkRDH(const o2::header::RAWDataHeaderV4& rdh, bool verbose)
     }
     ok = false;
   }
-  if (rdh.memorySize < 64 || rdh.offsetToNext < 64) {
+  if (rdh.memorySize < 64 || rdh.offsetToNext < 64 || rdh.memorySize > MAXCRUPage || rdh.offsetToNext > MAXCRUPage) {
     if (verbose) {
-      LOG(ERROR) << "RDH expected to have memory size/offset to next >= 64 B instead of "
+      LOG(ERROR) << "RDH expected to have memorySize/offsetToNext in 64 : 8192 bytes range instead of "
                  << int(rdh.memorySize) << '/' << int(rdh.offsetToNext);
     }
     ok = false;
