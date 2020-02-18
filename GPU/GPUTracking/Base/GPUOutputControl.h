@@ -25,14 +25,13 @@ namespace gpu
 {
 struct GPUOutputControl {
   enum OutputTypeStruct { AllocateInternal = 0,
-                          UseExternalBuffer = 1,
-                          ControlledExternal = 2 };
+                          UseExternalBuffer = 1 };
 #ifndef GPUCA_GPUCODE_DEVICE
   GPUOutputControl() = default;
 #endif
 
-  char* OutputPtr = nullptr;                      // Pointer to Output Space
-  volatile size_t Offset = 0;                     // Offset to write into output pointer
+  void* OutputBase = nullptr;                     // Base ptr to memory pool, occupied size is OutputPtr - OutputBase
+  void* OutputPtr = nullptr;                      // Pointer to Output Space
   size_t OutputMaxSize = 0;                       // Max Size of Output Data if Pointer to output space is given
   OutputTypeStruct OutputType = AllocateInternal; // How to perform the output
   char EndOfSpace = 0;                            // end of space flag

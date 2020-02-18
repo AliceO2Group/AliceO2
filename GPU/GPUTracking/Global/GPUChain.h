@@ -177,7 +177,7 @@ class GPUChain
   inline unsigned int ScanThreadCount() const { return mRec->mScanThreadCount; }
   inline unsigned int TRDThreadCount() const { return mRec->mTRDThreadCount; }
   inline size_t AllocateRegisteredMemory(GPUProcessor* proc) { return mRec->AllocateRegisteredMemory(proc); }
-  inline size_t AllocateRegisteredMemory(short res) { return mRec->AllocateRegisteredMemory(res); }
+  inline size_t AllocateRegisteredMemory(short res, GPUOutputControl* control = nullptr) { return mRec->AllocateRegisteredMemory(res, control); }
   template <class T>
   inline void SetupGPUProcessor(T* proc, bool allocate)
   {

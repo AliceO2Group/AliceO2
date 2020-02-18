@@ -281,12 +281,12 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
   return retVal;
 }
 
-size_t GPUReconstruction::AllocateRegisteredMemory(short ires)
+size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl* control)
 {
   GPUMemoryResource* res = &mMemoryResources[ires];
   if ((res->mType & GPUMemoryResource::MEMORY_PERMANENT) && res->mPtr != nullptr) {
     ResetRegisteredMemoryPointers(ires);
-  } else if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
+  } else if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL && (control == nullptr || control->OutputType == GPUOutputControl::AllocateInternal)) {
     if (!(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
       if (res->mPtrDevice && res->mReuse == -1) {
         operator delete(res->mPtrDevice);
@@ -313,7 +313,11 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires)
       throw std::bad_alloc();
     }
     if ((!IsGPU() || (res->mType & GPUMemoryResource::MEMORY_HOST) || mDeviceProcessingSettings.keepAllMemory) && !(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
-      res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, mHostMemoryPool, mHostMemoryBase, mHostMemorySize, &GPUMemoryResource::SetPointers);
+      if (control && control->OutputType == GPUOutputControl::UseExternalBuffer) {
+        res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, control->OutputPtr, control->OutputBase, control->OutputMaxSize, &GPUMemoryResource::SetPointers);
+      } else {
+        res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, mHostMemoryPool, mHostMemoryBase, mHostMemorySize, &GPUMemoryResource::SetPointers);
+      }
     }
     if (IsGPU() && (res->mType & GPUMemoryResource::MEMORY_GPU)) {
       if (res->mProcessor->mDeviceProcessor == nullptr) {
@@ -518,7 +522,7 @@ void GPUReconstruction::SetOutputControl(void* ptr, size_t size)
 {
   GPUOutputControl outputControl;
   outputControl.OutputType = GPUOutputControl::UseExternalBuffer;
-  outputControl.OutputPtr = (char*)ptr;
+  outputControl.OutputBase = outputControl.OutputPtr = (char*)ptr;
   outputControl.OutputMaxSize = size;
   SetOutputControl(outputControl);
 }
