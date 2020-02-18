@@ -272,7 +272,7 @@ int GPUChainTracking::Init()
     WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->calibObjects - (char*)processors(), &mFlatObjectsDevice.mCalibObjects, sizeof(mFlatObjectsDevice.mCalibObjects), -1);
   }
 
-  if (GetDeviceProcessingSettings().debugLevel >= 4) {
+  if (GetDeviceProcessingSettings().debugLevel >= 6) {
     mDebugFile.open(mRec->IsGPU() ? "GPU.out" : "CPU.out");
   }
 
@@ -389,7 +389,7 @@ int GPUChainTracking::Finalize()
   if (GetDeviceProcessingSettings().runQA && mQA->IsInitialized()) {
     mQA->DrawQAHistograms();
   }
-  if (GetDeviceProcessingSettings().debugLevel >= 4) {
+  if (GetDeviceProcessingSettings().debugLevel >= 6) {
     mDebugFile.close();
   }
   if (mCompressionStatistics) {
@@ -1161,16 +1161,12 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
         continue;
       }
     }
-    if (!doGPU && trk.CheckEmptySlice()) {
+    if (!doGPU && trk.CheckEmptySlice() && GetDeviceProcessingSettings().debugLevel == 0) {
       continue;
     }
 
-    if (GetDeviceProcessingSettings().debugLevel >= 4) {
-      if (!GetDeviceProcessingSettings().comparableDebutOutput) {
-        mDebugFile << std::endl
-                   << std::endl
-                   << "Reconstruction: Slice " << iSlice << "/" << NSLICES << std::endl;
-      }
+    if (GetDeviceProcessingSettings().debugLevel >= 6) {
+      mDebugFile << "\n\nReconstruction: Slice " << iSlice << "/" << NSLICES << std::endl;
       if (GetDeviceProcessingSettings().debugMask & 1) {
         trk.DumpSliceData(mDebugFile);
       }
@@ -1767,6 +1763,9 @@ int GPUChainTracking::RunChain()
   }
   static HighResTimer timerTracking, timerMerger, timerQA, timerTransform, timerCompression, timerClusterer;
   int nCount = mRec->getNEventsProcessed();
+  if (GetDeviceProcessingSettings().debugLevel >= 6) {
+    mDebugFile << "\n\nProcessing event " << nCount << std::endl;
+  }
 
 #ifdef GPUCA_STANDALONE
   mRec->PrepareEvent();

@@ -156,7 +156,7 @@ class GPUReconstruction
 
   void PrepareEvent();
   virtual int RunChains() = 0;
-  int getNEventsProcessed() { return mStatNEvents; }
+  unsigned int getNEventsProcessed() { return mNEventsProcessed; }
 
   // Helpers for memory allocation
   GPUMemoryResource& Res(short num) { return mMemoryResources[num]; }
@@ -292,7 +292,8 @@ class GPUReconstruction
 
   // Others
   bool mInitialized = false;
-  int mStatNEvents = 0;
+  unsigned int mStatNEvents = 0;
+  unsigned int mNEventsProcessed = 0;
 
   // Management for GPUProcessors
   struct ProcessorData {

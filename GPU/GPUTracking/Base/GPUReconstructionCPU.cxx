@@ -181,6 +181,7 @@ int GPUReconstructionCPU::getRecoStepNum(RecoStep step, bool validCheck)
 int GPUReconstructionCPU::RunChains()
 {
   mStatNEvents++;
+  mNEventsProcessed++;
 
   if (mThreadId != GetThread()) {
     if (mDeviceProcessingSettings.debugLevel >= 2) {
