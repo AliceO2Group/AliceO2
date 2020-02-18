@@ -164,7 +164,7 @@ class branchIterator
     LOG(DEBUG) << "branchIterator: " << col->type()->ToString() << " with " << nchs << " chunks" << std::endl;
   };
 
-  ~branchIterator(){};
+  ~branchIterator() = default;
 
   // has the iterator been properly initialized
   bool Status()
@@ -473,32 +473,33 @@ class columnIterator
   // copy the TTreeReaderValue to the arrow::TBuilder
   void* push()
   {
+    arrow::Status stat;
 
     // switch according to dt
     switch (dt) {
       case EDataType::kFloat_t:
-        bui_f->Append(**var_f);
+        stat = bui_f->Append(**var_f);
         break;
       case EDataType::kDouble_t:
-        bui_d->Append(**var_d);
+        stat = bui_d->Append(**var_d);
         break;
       case EDataType::kUShort_t:
-        bs->Append(**vs);
+        stat = bs->Append(**vs);
         break;
       case EDataType::kUInt_t:
-        bi->Append(**vi);
+        stat = bi->Append(**vi);
         break;
       case EDataType::kULong64_t:
-        bl->Append(**vl);
+        stat = bl->Append(**vl);
         break;
       case EDataType::kShort_t:
-        bui_s->Append(**var_s);
+        stat = bui_s->Append(**var_s);
         break;
       case EDataType::kInt_t:
-        bui_i->Append(**var_i);
+        stat = bui_i->Append(**var_i);
         break;
       case EDataType::kLong64_t:
-        bui_l->Append(**var_l);
+        stat = bui_l->Append(**var_l);
         break;
       default:
         LOG(FATAL) << "Type not handled: " << dt << std::endl;
@@ -523,31 +524,33 @@ class columnIterator
 
     //LOG(INFO) << "columnIterator::finish " << dt;
 
+    arrow::Status stat;
+
     // switch according to dt
     switch (dt) {
       case EDataType::kFloat_t:
-        bui_f->Finish(&ar);
+        stat = bui_f->Finish(&ar);
         break;
       case EDataType::kDouble_t:
-        bui_d->Finish(&ar);
+        stat = bui_d->Finish(&ar);
         break;
       case EDataType::kUShort_t:
-        bs->Finish(&ar);
+        stat = bs->Finish(&ar);
         break;
       case EDataType::kUInt_t:
-        bi->Finish(&ar);
+        stat = bi->Finish(&ar);
         break;
       case EDataType::kULong64_t:
-        bl->Finish(&ar);
+        stat = bl->Finish(&ar);
         break;
       case EDataType::kShort_t:
-        bui_s->Finish(&ar);
+        stat = bui_s->Finish(&ar);
         break;
       case EDataType::kInt_t:
-        bui_i->Finish(&ar);
+        stat = bui_i->Finish(&ar);
         break;
       case EDataType::kLong64_t:
-        bui_l->Finish(&ar);
+        stat = bui_l->Finish(&ar);
         break;
       default:
         LOG(FATAL) << "Type not handled: " << dt << std::endl;
