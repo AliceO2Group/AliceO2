@@ -102,61 +102,64 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
     mFileDest.seekg(posInFile);
     mFileDest.read(reinterpret_cast<char*>(&mRDH), sizeof(mRDH));
     printRDH(&mRDH);
-
     int nwords = mRDH.memorySize;
     int npackages = mRDH.packetCounter;
     int numPage = mRDH.pageCnt;
     int offset = mRDH.offsetToNext;
     int link = mRDH.linkID;
-    pos += int(sizeof(mRDH));
-    posInFile += nwords;
-    uint64_t trigword = 0;
+    if (nwords <= sizeof(mRDH)) {
+      posInFile += mRDH.offsetToNext;
+      LOG(INFO) << " next RDH";
+      pos = 0;
+    } else {
+      posInFile += offset;
+      pos = int(sizeof(mRDH));
 
-    while (pos < mRDH.memorySize) {
-      mFileDest.read(reinterpret_cast<char*>(&mEventHeader), sizeof(mEventHeader));
-      pos += sizeof(mEventHeader);
-      LOG(DEBUG) << "read  header for " << link << "word " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
-      o2::InteractionRecord intrec{uint16_t(mEventHeader.bc), uint32_t(mEventHeader.orbit)};
-      auto [digitIter, isNew] = mDigitAccum.try_emplace(intrec);
-      if (isNew) {
-        double eventTime = intrec.bc2ns();
-        LOG(DEBUG) << "new intrec " << intrec.orbit << " " << intrec.bc << " link " << link;
-        o2::ft0::DigitsTemp& digit = digitIter->second;
-        digit.setTime(eventTime);
-        digit.setInteractionRecord(intrec);
-        digit.printStream(std::cout);
-      }
-      chDgDataArr = &digitIter->second.getChDgData(); //&mDigitsTemp.getChDgData();
-      if (link == 18) {
-        mFileDest.read(reinterpret_cast<char*>(&mTCMdata), sizeof(mTCMdata));
-        pos += sizeof(mTCMdata);
-        digitIter->second.setTriggers(mTCMdata.orA, mTCMdata.orC, mTCMdata.vertex, mTCMdata.sCen, mTCMdata.cen, mTCMdata.nChanA, mTCMdata.nChanC, mTCMdata.amplA, mTCMdata.amplC, mTCMdata.timeA, mTCMdata.timeC);
-
-        LOG(DEBUG) << "read TCM  " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
-      } else {
-        if (mIsPadded) {
-          pos += CRUWordSize - o2::ft0::EventHeader::PayloadSize;
+      while (pos < nwords) {
+        mFileDest.read(reinterpret_cast<char*>(&mEventHeader), sizeof(mEventHeader));
+        pos += sizeof(mEventHeader);
+        LOG(DEBUG) << "read  header for " << link << "word " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
+        o2::InteractionRecord intrec{uint16_t(mEventHeader.bc), uint32_t(mEventHeader.orbit)};
+        auto [digitIter, isNew] = mDigitAccum.try_emplace(intrec);
+        if (isNew) {
+          double eventTime = intrec.bc2ns();
+          LOG(DEBUG) << "new intrec " << intrec.orbit << " " << intrec.bc << " link " << link;
+          o2::ft0::DigitsTemp& digit = digitIter->second;
+          digit.setTime(eventTime);
+          digit.setInteractionRecord(intrec);
         }
-        for (int i = 0; i < mEventHeader.nGBTWords; ++i) {
-          mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i]), o2::ft0::EventData::PayloadSizeFirstWord);
-          chDgDataArr->emplace_back(lut.getChannel(link, int(mEventData[2 * i].channelID)),
-                                    int(mEventData[2 * i].time),
-                                    int(mEventData[2 * i].charge),
-                                    int(mEventData[2 * i].numberADC));
+        chDgDataArr = &digitIter->second.getChDgData(); //&mDigitsTemp.getChDgData();
+        if (link == 18) {
+          mFileDest.read(reinterpret_cast<char*>(&mTCMdata), sizeof(mTCMdata));
+          pos += sizeof(mTCMdata);
+          digitIter->second.setTriggers(mTCMdata.orA, mTCMdata.orC, mTCMdata.vertex, mTCMdata.sCen, mTCMdata.cen, mTCMdata.nChanA, mTCMdata.nChanC, mTCMdata.amplA, mTCMdata.amplC, mTCMdata.timeA, mTCMdata.timeC);
 
-          pos += o2::ft0::EventData::PayloadSizeFirstWord;
-          LOG(DEBUG) << " read 1st word channelID " << int(mEventData[2 * i].channelID) << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID)) << " pos " << pos;
-
-          mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i + 1]), EventData::PayloadSizeSecondWord);
-          pos += o2::ft0::EventData::PayloadSizeSecondWord;
-          LOG(DEBUG) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID)) << " pos " << pos;
-          if (mEventData[2 * i + 1].charge <= 0 && mEventData[2 * i + 1].channelID <= 0 && mEventData[2 * i + 1].time <= 0) {
-            continue;
+          LOG(DEBUG) << "read TCM  " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
+        } else {
+          if (mIsPadded) {
+            pos += CRUWordSize - o2::ft0::EventHeader::PayloadSize;
           }
-          chDgDataArr->emplace_back(lut.getChannel(link, int(mEventData[2 * i + 1].channelID)),
-                                    int(mEventData[2 * i + 1].time),
-                                    int(mEventData[2 * i + 1].charge),
-                                    int(mEventData[2 * i + 1].numberADC));
+          for (int i = 0; i < mEventHeader.nGBTWords; ++i) {
+            mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i]), o2::ft0::EventData::PayloadSizeFirstWord);
+            chDgDataArr->emplace_back(lut.getChannel(link, int(mEventData[2 * i].channelID)),
+                                      int(mEventData[2 * i].time),
+                                      int(mEventData[2 * i].charge),
+                                      int(mEventData[2 * i].numberADC));
+
+            pos += o2::ft0::EventData::PayloadSizeFirstWord;
+            LOG(DEBUG) << " read 1st word channelID " << int(mEventData[2 * i].channelID) << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID)) << " pos " << pos;
+
+            mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i + 1]), EventData::PayloadSizeSecondWord);
+            pos += o2::ft0::EventData::PayloadSizeSecondWord;
+            LOG(DEBUG) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID)) << " pos " << pos;
+            if (mEventData[2 * i + 1].charge <= 0 && mEventData[2 * i + 1].channelID <= 0 && mEventData[2 * i + 1].time <= 0) {
+              continue;
+            }
+            chDgDataArr->emplace_back(lut.getChannel(link, int(mEventData[2 * i + 1].channelID)),
+                                      int(mEventData[2 * i + 1].time),
+                                      int(mEventData[2 * i + 1].charge),
+                                      int(mEventData[2 * i + 1].numberADC));
+          }
         }
       }
     }
@@ -201,7 +204,6 @@ void ReadRaw::writeDigits(std::string fileDataOut)
     chDataVec.insert(chDataVec.end(), chDgData.begin(), chDgData.end());
     o2::ft0::Digit newDigit{first, (int)chDgData.size(), intrec, mTrigger};
     digitVec.emplace_back(newDigit);
-    LOG(INFO) << "@@@@ vertex trigger " << mTrigger.getVertex();
   }
   mDigitAccum.clear();
   mOutTree->Branch("FT0Digit", &digitVec);
