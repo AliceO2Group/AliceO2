@@ -118,6 +118,8 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   constexpr static const char* GetKernelName();
 
   virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1);
+  int registerMemoryForGPU(void* ptr, size_t size) override { return 0; }
+  int unregisterMemoryForGPU(void* ptr) override { return 0; }
   int GPUStuck() { return mGPUStuck; }
   int NStreams() { return mNStreams; }
   void SetThreadCounts(RecoStep step);

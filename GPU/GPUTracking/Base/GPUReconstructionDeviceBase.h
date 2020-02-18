@@ -42,6 +42,8 @@ class GPUReconstructionDeviceBase : public GPUReconstructionCPU
   virtual int InitDevice_Runtime() = 0;
   int ExitDevice() override;
   virtual int ExitDevice_Runtime() = 0;
+  int registerMemoryForGPU(void* ptr, size_t size) override;
+  int unregisterMemoryForGPU(void* ptr) override;
 
   virtual const GPUTPCTracker* CPUTracker(int iSlice) { return &processors()->tpcTrackers[iSlice]; }
 

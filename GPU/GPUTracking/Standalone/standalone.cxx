@@ -394,6 +394,9 @@ int SetupReconstruction()
     printf("Error initializing GPUReconstruction!\n");
     return 1;
   }
+  if (configStandalone.outputcontrolmem && rec->IsGPU() && rec->registerMemoryForGPU(outputmemory.get(), configStandalone.outputcontrolmem)) {
+    printf("ERROR registering memory for the GPU!!!\n");
+  }
   return (0);
 }
 
@@ -631,6 +634,9 @@ breakrun:
 #endif
 
   rec->Finalize();
+  if (configStandalone.outputcontrolmem && rec->IsGPU()) {
+    rec->unregisterMemoryForGPU(outputmemory.get());
+  }
   rec->Exit();
 
   if (!configStandalone.noprompt) {

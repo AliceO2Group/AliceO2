@@ -553,3 +553,13 @@ void GPUReconstructionCUDABackend::SetThreadCounts()
   mClustererThreadCount = GPUCA_THREAD_COUNT_CLUSTERER;
   mScanThreadCount = GPUCA_THREAD_COUNT_SCAN;
 }
+
+int GPUReconstructionCUDABackend::registerMemoryForGPU(void* ptr, size_t size)
+{
+  return GPUFailedMsgI(cudaHostRegister(ptr, size, cudaHostRegisterDefault));
+}
+
+int GPUReconstructionCUDABackend::unregisterMemoryForGPU(void* ptr)
+{
+  return GPUFailedMsgI(cudaHostUnregister(ptr));
+}
