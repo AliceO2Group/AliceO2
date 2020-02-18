@@ -342,6 +342,9 @@ inline void GPUReconstruction::AllocateIOMemoryHelper(unsigned int n, const T*& 
   }
   u.reset(new T[n]);
   ptr = u.get();
+  if (mDeviceProcessingSettings.registerStandaloneInputMemory) {
+    registerMemoryForGPU(u.get(), n * sizeof(T));
+  }
 }
 
 template <class T, typename... Args>

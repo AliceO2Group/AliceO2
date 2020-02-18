@@ -691,6 +691,9 @@ void GPUChainTracking::ConvertNativeToClusterDataLegacy()
   GPUReconstructionConvert::ConvertNativeToClusterData(mClusterNativeAccess.get(), mIOMem.clusterData, mIOPtrs.nClusterData, processors()->calibObjects.fastTransform, param().continuousMaxTimeBin);
   for (unsigned int i = 0; i < NSLICES; i++) {
     mIOPtrs.clusterData[i] = mIOMem.clusterData[i].get();
+    if (GetDeviceProcessingSettings().registerStandaloneInputMemory) {
+      mRec->registerMemoryForGPU(mIOMem.clusterData[i].get(), mIOPtrs.nClusterData[i] * sizeof(*mIOPtrs.clusterData[i]));
+    }
   }
   mIOPtrs.clustersNative = nullptr;
   mIOMem.clustersNative.reset(nullptr);
@@ -709,11 +712,25 @@ void GPUChainTracking::ConvertRun2RawToNative()
     mIOMem.clusterData[i].reset(nullptr);
   }
   mIOPtrs.clustersNative = mClusterNativeAccess.get();
+  if (GetDeviceProcessingSettings().registerStandaloneInputMemory) {
+    mRec->registerMemoryForGPU(mIOMem.clustersNative.get(), mClusterNativeAccess->nClustersTotal * sizeof(*mClusterNativeAccess->clustersLinear));
+  }
 }
 
 void GPUChainTracking::ConvertZSEncoder(bool zs12bit)
 {
-  GPUReconstructionConvert::RunZSEncoder(mIOPtrs.tpcPackedDigits, mIOPtrs.tpcZS, param(), zs12bit);
+  GPUTrackingInOutZS* tmp;
+  GPUReconstructionConvert::RunZSEncoder(mIOPtrs.tpcPackedDigits, tmp, param(), zs12bit);
+  mIOPtrs.tpcZS = tmp;
+  if (GetDeviceProcessingSettings().registerStandaloneInputMemory) {
+    for (unsigned int i = 0; i < NSLICES; i++) {
+      for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
+        for (unsigned int k = 0; k < tmp->slice[i].count[j]; k++) {
+          mRec->registerMemoryForGPU(tmp->slice[i].zsPtr[j][k], tmp->slice[i].nZSPtr[j][k] * TPCZSHDR::TPC_ZS_PAGE_SIZE);
+        }
+      }
+    }
+  }
 }
 
 void GPUChainTracking::ConvertZSFilter(bool zs12bit)
