@@ -278,13 +278,13 @@ struct AnalysisDataProcessorBuilder {
     using decayed = std::decay_t<T>;
     if constexpr (is_specialization<decayed, soa::Filtered>::value) {
       for (auto& info : infos) {
-        if (info.I == At)
+        if (info.index == At)
           return extractFilteredFromRecord<decayed>(record, info, soa::make_originals_from_type<decayed>());
       }
     } else if constexpr (soa::is_type_with_policy_v<decayed>) {
       if constexpr (std::is_same_v<typename decayed::policy_t, soa::FilteredIndexPolicy>) {
         for (auto& info : infos) {
-          if (info.I == At)
+          if (info.index == At)
             return extractFilteredFromRecord<decayed>(record, info, soa::make_originals_from_type<decayed>());
         }
       } else {
@@ -401,6 +401,7 @@ struct AnalysisDataProcessorBuilder {
           }
           if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Filtered>::value) {
             // FIXME: we need to implement the case for the grouped filtered case.
+            static_assert(always_static_assert_v<std::decay_t<AssociatedType>>, "Grouping Filtered is not yet supported");
           } else if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Join>::value || is_specialization<std::decay_t<AssociatedType>, o2::soa::Concat>::value) {
             for (auto& groupedDatum : groupsCollection) {
               auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
@@ -602,7 +603,6 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
                 "At least one of process(...), T::run(...), init(...) must be defined");
 
   std::vector<InputSpec> inputs;
-  // vector of pairs (number of argument in process(), pointer to gandiva expression tree)
   std::vector<ExpressionInfo> expressionInfos;
 
   if constexpr (has_process<T>::value) {

@@ -24,7 +24,7 @@
 
 using atype = arrow::Type;
 struct ExpressionInfo {
-  size_t I;
+  size_t index;
   gandiva::SchemaPtr schema;
   gandiva::NodePtr tree;
 };
