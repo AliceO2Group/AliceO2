@@ -492,3 +492,13 @@ void GPUReconstructionHIPBackend::SetThreadCounts()
   mClustererThreadCount = GPUCA_THREAD_COUNT_CLUSTERER;
   mScanThreadCount = GPUCA_THREAD_COUNT_SCAN;
 }
+
+int GPUReconstructionHIPBackend::registerMemoryForGPU(void* ptr, size_t size)
+{
+  return GPUFailedMsgI(hipHostRegister(ptr, size, hipHostRegisterDefault));
+}
+
+int GPUReconstructionHIPBackend::unregisterMemoryForGPU(void* ptr)
+{
+  return GPUFailedMsgI(hipHostUnregister(ptr));
+}
