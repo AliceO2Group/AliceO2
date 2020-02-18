@@ -231,7 +231,7 @@ int GPUReconstructionOCL::AddKernel(bool multi)
   std::string kname("krnl_" + name);
 
   cl_int ocl_error;
-  cl_kernel krnl = clCreateKernel(mInternals->program, name.c_str(), &ocl_error);
+  cl_kernel krnl = clCreateKernel(mInternals->program, kname.c_str(), &ocl_error);
   if (GPUFailedMsgI(ocl_error)) {
     GPUError("Error creating OPENCL Kernel: %s", name.c_str());
     return 1;
