@@ -40,12 +40,13 @@
   #define GPUCA_NEIGHBORSFINDER_REGS REG, (GPUCA_THREAD_COUNT_FINDER, 1)
   #define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 6
   #define GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE 12
-  //#define GPUCA_USE_TEXTURES
+  // #define GPUCA_USE_TEXTURES
 #elif defined(GPUCA_GPUTYPE_OPENCL)
 #elif defined(GPUCA_GPUCODE)
   #error GPU TYPE NOT SET
 #endif
 
+// Default settings, if not already set for selected GPU type
 #ifndef GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER
 #define GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER 2
 #endif
@@ -91,14 +92,11 @@
 #define GPUCA_MAX_THREADS 1024
 #define GPUCA_MAX_STREAMS 32
 
+#define GPUCA_EXTERN_ROW_HITS                                          // Store row hits in separate array outside of tracklets
+#define GPUCA_SORT_STARTHITS_GPU                                       // Sort the start hits when running on GPU
 #define GPUCA_ROWALIGNMENT uint4                                       // Align Row Hits and Grid
 
-#ifdef GPUCA_USE_TEXTURES
-  #define GPUCA_TEXTURE_FETCH_CONSTRUCTOR                              // Fetch data through texture cache
-  #define GPUCA_TEXTURE_FETCH_NEIGHBORS                                // Fetch also in Neighbours Finder
-#endif
-
-// #define GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE                        // Output Profiling Data for Tracklet Constructor Tracklet Scheduling
+// #define GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE                       // Output Profiling Data for Tracklet Constructor Tracklet Scheduling
 
 #define GPUCA_TRACKLET_SELECTOR_SLICE_COUNT 8                          // Currently must be smaller than avaiable MultiProcessors on GPU or will result in wrong results
 
@@ -113,11 +111,22 @@
 #define GPUCA_HOST_MEMORY_SIZE       ((size_t) 6 * 1024 * 1024 * 1024) // Size of memory allocated on Host
 #define GPUCA_GPU_STACK_SIZE         ((size_t)               8 * 1024) // Stack size per GPU thread
 
+#define GPUCA_MAX_SLICE_NTRACK (2 << 24)                               // Maximum number of tracks per slice (limited by track id format)
+
 // #define GPUCA_KERNEL_DEBUGGER_OUTPUT
 
 // Some assertions to make sure out parameters are not invalid
 #ifdef GPUCA_NOCOMPAT
   static_assert(GPUCA_MAXN > GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP);
+#endif
+
+// Derived parameters
+#ifdef GPUCA_USE_TEXTURES
+  #define GPUCA_TEXTURE_FETCH_CONSTRUCTOR                              // Fetch data through texture cache
+  #define GPUCA_TEXTURE_FETCH_NEIGHBORS                                // Fetch also in Neighbours Finder
+#endif
+#if defined(GPUCA_SORT_STARTHITS_GPU) && defined(GPUCA_GPUCODE)
+  #define GPUCA_SORT_STARTHITS
 #endif
 
 // Error Codes for GPU Tracker
