@@ -56,6 +56,16 @@ void Tracks::resetHistograms()
 }
 
 //______________________________________________________________________________
+bool Tracks::processTracks(const gsl::span<const o2::tpc::TrackTPC>& tracks)
+{
+  for (auto const& track : tracks) {
+    processTrack(track);
+  }
+
+  return true;
+}
+
+//______________________________________________________________________________
 bool Tracks::processTrack(const o2::tpc::TrackTPC& track)
 {
   // ===| variables required for cutting and filling |===

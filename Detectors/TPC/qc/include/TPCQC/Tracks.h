@@ -18,6 +18,7 @@
 
 #include <vector>
 #include <string_view>
+#include <gsl/span>
 
 //root includes
 #include "TH1F.h"
@@ -49,15 +50,19 @@ class Tracks
   // default constructor
   Tracks() = default;
 
-  /// bool extracts intormation from track and fills it to histograms
-  /// @return true if information can be extracted and filled to histograms
-  bool processTrack(const o2::tpc::TrackTPC& track);
-
   /// Initialize all histograms
   void initializeHistograms();
 
   /// Reset all histograms
   void resetHistograms();
+
+  /// Loop over all tracks, calls processTrack for each track
+  /// @return true if loop over all tracks ended successfully
+  bool processTracks(const gsl::span<const o2::tpc::TrackTPC>& tracks);
+
+  /// bool extracts information from track and fills it to histograms
+  /// @return true if information can be extracted and filled to histograms
+  bool processTrack(const o2::tpc::TrackTPC& track);
 
   /// Dump results to a file
   void dumpToFile(std::string_view filename);
