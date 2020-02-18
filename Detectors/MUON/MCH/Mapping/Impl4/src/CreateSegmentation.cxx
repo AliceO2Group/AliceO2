@@ -8,10 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MCHMappingFactory/CreateSegmentation.h"
 #include <map>
 #include <fmt/format.h>
-
+#include "MCHMappingInterface/Segmentation.h"
+#include "o2mchmappingimpl4_export.h"
 namespace
 {
 const std::map<int, int> deId2SameType{
@@ -210,6 +210,7 @@ std::map<int, o2::mch::mapping::Segmentation*> createSegmentations()
 namespace o2::mch::mapping
 {
 
+O2MCHMAPPINGIMPL4_EXPORT
 const Segmentation& segmentation(int detElemId)
 {
   static auto segs = createSegmentations();

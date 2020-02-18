@@ -23,35 +23,18 @@
 #include <boost/test/data/test_case.hpp>
 #include <fstream>
 #include <iostream>
+#include "TestParameters.h"
 
 using namespace o2::mch::mapping;
 namespace bdata = boost::unit_test::data;
 
-// The SegCache is not stricly needed here
-// but it helps speeding up the tests.
-const Segmentation& SegCache(int detElemId)
-{
-  static std::map<int, Segmentation*> cache;
-  if (cache.empty()) {
-    std::vector<int> deids;
-    forEachDetectionElement([&deids](int deid) {
-      deids.push_back(deid);
-    });
-    for (auto deid : deids) {
-      cache.emplace(deid, new Segmentation(deid));
-    }
-  }
-  auto f = cache.find(detElemId);
-  return *(f->second);
-}
-
 BOOST_AUTO_TEST_SUITE(o2_mch_mapping)
-BOOST_AUTO_TEST_SUITE(segmentation)
+BOOST_AUTO_TEST_SUITE(segmentation_both_cathodes)
 
 BOOST_AUTO_TEST_CASE(GetSegmentationMustNotThrowIfDetElemIdIsValid)
 {
-  // do not use the SegCache here as we want to test the object
-  // construction (which is used also by the SegCache...)
+  // do not use the o2::mch::mapping::segmentation() cache here as we want to test the object
+  // construction (which is used also by the o2::mch::mapping::segmentation() function...)
   forOneDetectionElementOfEachSegmentationType([](int detElemId) {
     BOOST_CHECK_NO_THROW(Segmentation{detElemId});
   });
@@ -59,8 +42,8 @@ BOOST_AUTO_TEST_CASE(GetSegmentationMustNotThrowIfDetElemIdIsValid)
 
 BOOST_AUTO_TEST_CASE(GetSegmentationThrowsIfDetElemIdIsNotValid)
 {
-  // do not use the SegCache here as we want to test the object
-  // construction (which is used also by the SegCache...)
+  // do not use the o2::mch::mapping::segmentation() cache here as we want to test the object
+  // construction (which is used also by the o2::mch::mapping::segmentation() function...)
   BOOST_CHECK_THROW(Segmentation(-1), std::runtime_error);
   BOOST_CHECK_THROW(Segmentation(121), std::runtime_error);
 }
@@ -71,34 +54,34 @@ BOOST_AUTO_TEST_CASE(CheckNofPads)
   // per detection element.
   //
   // Sorted by decreasing number of pads.
-  BOOST_CHECK_EQUAL(SegCache(100).nofPads(), 28672);
-  BOOST_CHECK_EQUAL(SegCache(300).nofPads(), 27933);
-  BOOST_CHECK_EQUAL(SegCache(902).nofPads(), 7616);
-  BOOST_CHECK_EQUAL(SegCache(702).nofPads(), 7072);
-  BOOST_CHECK_EQUAL(SegCache(701).nofPads(), 6976);
-  BOOST_CHECK_EQUAL(SegCache(601).nofPads(), 6208);
-  BOOST_CHECK_EQUAL(SegCache(501).nofPads(), 6064);
-  BOOST_CHECK_EQUAL(SegCache(602).nofPads(), 5440);
-  BOOST_CHECK_EQUAL(SegCache(700).nofPads(), 5440);
-  BOOST_CHECK_EQUAL(SegCache(502).nofPads(), 5296);
-  BOOST_CHECK_EQUAL(SegCache(600).nofPads(), 5120);
-  BOOST_CHECK_EQUAL(SegCache(500).nofPads(), 4976);
-  BOOST_CHECK_EQUAL(SegCache(903).nofPads(), 4896);
-  BOOST_CHECK_EQUAL(SegCache(703).nofPads(), 4352);
-  BOOST_CHECK_EQUAL(SegCache(904).nofPads(), 3808);
-  BOOST_CHECK_EQUAL(SegCache(503).nofPads(), 3264);
-  BOOST_CHECK_EQUAL(SegCache(704).nofPads(), 3264);
-  BOOST_CHECK_EQUAL(SegCache(504).nofPads(), 2176);
-  BOOST_CHECK_EQUAL(SegCache(905).nofPads(), 2176);
-  BOOST_CHECK_EQUAL(SegCache(705).nofPads(), 1632);
-  BOOST_CHECK_EQUAL(SegCache(706).nofPads(), 1088);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(100).nofPads(), 28672);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(300).nofPads(), 27933);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(902).nofPads(), 7616);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(702).nofPads(), 7072);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(701).nofPads(), 6976);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(601).nofPads(), 6208);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(501).nofPads(), 6064);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(602).nofPads(), 5440);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(700).nofPads(), 5440);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(502).nofPads(), 5296);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(600).nofPads(), 5120);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(500).nofPads(), 4976);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(903).nofPads(), 4896);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(703).nofPads(), 4352);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(904).nofPads(), 3808);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(503).nofPads(), 3264);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(704).nofPads(), 3264);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(504).nofPads(), 2176);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(905).nofPads(), 2176);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(705).nofPads(), 1632);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(706).nofPads(), 1088);
 }
 
 BOOST_AUTO_TEST_CASE(TotalNofFECInSegTypesIs2265)
 {
   int n{0};
   forOneDetectionElementOfEachSegmentationType([&](int detElemId) {
-    n += SegCache(detElemId).nofDualSampas();
+    n += o2::mch::mapping::segmentation(detElemId).nofDualSampas();
   });
   BOOST_CHECK_EQUAL(n, 2265);
 }
@@ -107,56 +90,56 @@ BOOST_AUTO_TEST_CASE(CheckBoundingBoxesAreAsExpected)
 {
   // BOOST_CHECK_EQUAL(getBBox(Segmentation(300)), o2::mch::contour::BBox<double>(-1, -0.75, 116, 117.25));
   //   BOOST_CHECK_EQUAL(getBBox(Segmentation(500)), o2::mch::contour::BBox<double>(-75, -20, 57.5, 20));
-  BOOST_CHECK_EQUAL(getBBox(SegCache(501)), o2::mch::contour::BBox<double>(-75, -20, 80, 20));
-  BOOST_CHECK_EQUAL(getBBox(SegCache(502)), o2::mch::contour::BBox<double>(-80, -20, 75, 20));
-  BOOST_CHECK_EQUAL(getBBox(SegCache(503)), o2::mch::contour::BBox<double>(-60, -20, 60, 20));
-  BOOST_CHECK_EQUAL(getBBox(SegCache(504)), o2::mch::contour::BBox<double>(-40, -20, 40, 20));
+  BOOST_CHECK_EQUAL(getBBox(o2::mch::mapping::segmentation(501)), o2::mch::contour::BBox<double>(-75, -20, 80, 20));
+  BOOST_CHECK_EQUAL(getBBox(o2::mch::mapping::segmentation(502)), o2::mch::contour::BBox<double>(-80, -20, 75, 20));
+  BOOST_CHECK_EQUAL(getBBox(o2::mch::mapping::segmentation(503)), o2::mch::contour::BBox<double>(-60, -20, 60, 20));
+  BOOST_CHECK_EQUAL(getBBox(o2::mch::mapping::segmentation(504)), o2::mch::contour::BBox<double>(-40, -20, 40, 20));
   //   BOOST_CHECK_EQUAL(getBBox(Segmentation(600)), o2::mch::contour::BBox<double>(-80, -20, 57.5, 20));
-  BOOST_CHECK_EQUAL(getBBox(SegCache(601)), o2::mch::contour::BBox<double>(-80, -20, 80, 20));
-  BOOST_CHECK_EQUAL(getBBox(SegCache(602)), o2::mch::contour::BBox<double>(-80, -20, 80, 20));
-  BOOST_CHECK_EQUAL(getBBox(SegCache(700)), o2::mch::contour::BBox<double>(-100, -20, 100, 20));
-  BOOST_CHECK_EQUAL(getBBox(SegCache(701)), o2::mch::contour::BBox<double>(-120, -20, 120, 20));
-  BOOST_CHECK_EQUAL(getBBox(SegCache(702)), o2::mch::contour::BBox<double>(-100, -20, 100, 20));
-  BOOST_CHECK_EQUAL(getBBox(SegCache(703)), o2::mch::contour::BBox<double>(-100, -20, 100, 20));
-  BOOST_CHECK_EQUAL(getBBox(SegCache(704)), o2::mch::contour::BBox<double>(-80, -20, 80, 20));
-  BOOST_CHECK_EQUAL(getBBox(SegCache(705)), o2::mch::contour::BBox<double>(-60, -20, 60, 20));
-  BOOST_CHECK_EQUAL(getBBox(SegCache(706)), o2::mch::contour::BBox<double>(-40, -20, 40, 20));
-  BOOST_CHECK_EQUAL(getBBox(SegCache(902)), o2::mch::contour::BBox<double>(-120, -20, 120, 20));
-  BOOST_CHECK_EQUAL(getBBox(SegCache(903)), o2::mch::contour::BBox<double>(-120, -20, 120, 20));
-  BOOST_CHECK_EQUAL(getBBox(SegCache(904)), o2::mch::contour::BBox<double>(-100, -20, 100, 20));
-  BOOST_CHECK_EQUAL(getBBox(SegCache(905)), o2::mch::contour::BBox<double>(-80, -20, 80, 20));
+  BOOST_CHECK_EQUAL(getBBox(o2::mch::mapping::segmentation(601)), o2::mch::contour::BBox<double>(-80, -20, 80, 20));
+  BOOST_CHECK_EQUAL(getBBox(o2::mch::mapping::segmentation(602)), o2::mch::contour::BBox<double>(-80, -20, 80, 20));
+  BOOST_CHECK_EQUAL(getBBox(o2::mch::mapping::segmentation(700)), o2::mch::contour::BBox<double>(-100, -20, 100, 20));
+  BOOST_CHECK_EQUAL(getBBox(o2::mch::mapping::segmentation(701)), o2::mch::contour::BBox<double>(-120, -20, 120, 20));
+  BOOST_CHECK_EQUAL(getBBox(o2::mch::mapping::segmentation(702)), o2::mch::contour::BBox<double>(-100, -20, 100, 20));
+  BOOST_CHECK_EQUAL(getBBox(o2::mch::mapping::segmentation(703)), o2::mch::contour::BBox<double>(-100, -20, 100, 20));
+  BOOST_CHECK_EQUAL(getBBox(o2::mch::mapping::segmentation(704)), o2::mch::contour::BBox<double>(-80, -20, 80, 20));
+  BOOST_CHECK_EQUAL(getBBox(o2::mch::mapping::segmentation(705)), o2::mch::contour::BBox<double>(-60, -20, 60, 20));
+  BOOST_CHECK_EQUAL(getBBox(o2::mch::mapping::segmentation(706)), o2::mch::contour::BBox<double>(-40, -20, 40, 20));
+  BOOST_CHECK_EQUAL(getBBox(o2::mch::mapping::segmentation(902)), o2::mch::contour::BBox<double>(-120, -20, 120, 20));
+  BOOST_CHECK_EQUAL(getBBox(o2::mch::mapping::segmentation(903)), o2::mch::contour::BBox<double>(-120, -20, 120, 20));
+  BOOST_CHECK_EQUAL(getBBox(o2::mch::mapping::segmentation(904)), o2::mch::contour::BBox<double>(-100, -20, 100, 20));
+  BOOST_CHECK_EQUAL(getBBox(o2::mch::mapping::segmentation(905)), o2::mch::contour::BBox<double>(-80, -20, 80, 20));
 }
 
 BOOST_AUTO_TEST_CASE(CheckNofBendingFEC)
 {
-  BOOST_CHECK_EQUAL(SegCache(100).nofDualSampas(), 451);
-  BOOST_CHECK_EQUAL(SegCache(300).nofDualSampas(), 443);
-  BOOST_CHECK_EQUAL(SegCache(902).nofDualSampas(), 120);
-  BOOST_CHECK_EQUAL(SegCache(702).nofDualSampas(), 111);
-  BOOST_CHECK_EQUAL(SegCache(701).nofDualSampas(), 110);
-  BOOST_CHECK_EQUAL(SegCache(601).nofDualSampas(), 97);
-  BOOST_CHECK_EQUAL(SegCache(501).nofDualSampas(), 95);
-  BOOST_CHECK_EQUAL(SegCache(602).nofDualSampas(), 85);
-  BOOST_CHECK_EQUAL(SegCache(700).nofDualSampas(), 86);
-  BOOST_CHECK_EQUAL(SegCache(502).nofDualSampas(), 83);
-  BOOST_CHECK_EQUAL(SegCache(600).nofDualSampas(), 80);
-  BOOST_CHECK_EQUAL(SegCache(500).nofDualSampas(), 78);
-  BOOST_CHECK_EQUAL(SegCache(903).nofDualSampas(), 78);
-  BOOST_CHECK_EQUAL(SegCache(703).nofDualSampas(), 69);
-  BOOST_CHECK_EQUAL(SegCache(904).nofDualSampas(), 61);
-  BOOST_CHECK_EQUAL(SegCache(503).nofDualSampas(), 51);
-  BOOST_CHECK_EQUAL(SegCache(704).nofDualSampas(), 52);
-  BOOST_CHECK_EQUAL(SegCache(504).nofDualSampas(), 34);
-  BOOST_CHECK_EQUAL(SegCache(905).nofDualSampas(), 36);
-  BOOST_CHECK_EQUAL(SegCache(705).nofDualSampas(), 27);
-  BOOST_CHECK_EQUAL(SegCache(706).nofDualSampas(), 18);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(100).nofDualSampas(), 451);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(300).nofDualSampas(), 443);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(902).nofDualSampas(), 120);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(702).nofDualSampas(), 111);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(701).nofDualSampas(), 110);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(601).nofDualSampas(), 97);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(501).nofDualSampas(), 95);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(602).nofDualSampas(), 85);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(700).nofDualSampas(), 86);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(502).nofDualSampas(), 83);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(600).nofDualSampas(), 80);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(500).nofDualSampas(), 78);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(903).nofDualSampas(), 78);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(703).nofDualSampas(), 69);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(904).nofDualSampas(), 61);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(503).nofDualSampas(), 51);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(704).nofDualSampas(), 52);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(504).nofDualSampas(), 34);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(905).nofDualSampas(), 36);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(705).nofDualSampas(), 27);
+  BOOST_CHECK_EQUAL(o2::mch::mapping::segmentation(706).nofDualSampas(), 18);
 }
 
 BOOST_AUTO_TEST_CASE(PadCountInSegmentationTypesMustBe143469)
 {
   int n{0};
   forOneDetectionElementOfEachSegmentationType([&n](int detElemId) {
-    n += SegCache(detElemId).nofPads();
+    n += o2::mch::mapping::segmentation(detElemId).nofPads();
   });
   BOOST_CHECK_EQUAL(n, 143469);
 }
@@ -165,7 +148,7 @@ BOOST_AUTO_TEST_CASE(PadCountInAllSegmentationsMustBe1064008)
 {
   int n{0};
   forEachDetectionElement([&n](int detElemId) {
-    n += SegCache(detElemId).nofPads();
+    n += o2::mch::mapping::segmentation(detElemId).nofPads();
   });
   BOOST_CHECK_EQUAL(n, 1064008);
 }
@@ -183,7 +166,7 @@ BOOST_AUTO_TEST_CASE(CheckPadOffsetsAfterCopy)
 {
   forEachDetectionElement([](int detElemId) {
     bool ok{true};
-    auto s = SegCache(detElemId);
+    auto s = o2::mch::mapping::segmentation(detElemId);
     auto seg = s;
     for (auto padid = 0; padid < seg.bending().nofPads(); padid++) {
       if (seg.isBendingPad(padid) != true) {
@@ -339,6 +322,16 @@ BOOST_AUTO_TEST_CASE(CheckOnePadNeighbours)
     {1119, 30, 24.570, 23.520, 0.630, 0.420},
     {1119, 29, 23.940, 23.520, 0.630, 0.420}};
 
+  TestParameters params;
+  if (params.isSegmentationRun3) {
+    for (auto& p : bendingNeighbours) {
+      p.ch = manu2ds(100, p.ch);
+    }
+    for (auto& p : nonBendingNeighbours) {
+      p.ch = manu2ds(100, p.ch);
+    }
+  }
+
   int pb, pnb;
   bool ok = seg.findPadPairByPosition(24.0, 24.0, pb, pnb);
   BOOST_CHECK_EQUAL(ok, true);
@@ -372,7 +365,12 @@ BOOST_AUTO_TEST_CASE(ReturnsTrueIfPadIsConnected) { BOOST_CHECK_EQUAL(seg.isVali
 
 BOOST_AUTO_TEST_CASE(ReturnsFalseIfPadIsNotConnected)
 {
-  BOOST_CHECK_EQUAL(seg.isValid(seg.findPadByFEE(214, 14)), false);
+  TestParameters params;
+  int testChannel{14};
+  if (params.isSegmentationRun3) {
+    testChannel = 39;
+  }
+  BOOST_CHECK_EQUAL(seg.isValid(seg.findPadByFEE(214, testChannel)), false);
 }
 
 BOOST_AUTO_TEST_CASE(HasPadByPosition)
@@ -388,8 +386,13 @@ BOOST_AUTO_TEST_CASE(CheckOnePadPositionPresentOnOnlyBendingPlane)
   double y = 18.69;
   int b, nb;
   bool ok = seg.findPadPairByPosition(x, y, b, nb);
+  TestParameters params;
+  int testChannel{9};
+  if (params.isSegmentationRun3) {
+    testChannel = 47;
+  }
   BOOST_CHECK_EQUAL(ok, false);
-  BOOST_CHECK_EQUAL(seg.findPadByFEE(76, 9), b);
+  BOOST_CHECK_EQUAL(seg.findPadByFEE(76, testChannel), b);
   BOOST_CHECK_EQUAL(seg.isValid(nb), false);
 }
 

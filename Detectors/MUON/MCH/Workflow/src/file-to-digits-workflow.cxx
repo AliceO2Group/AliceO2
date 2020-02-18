@@ -42,8 +42,8 @@
 #include "MCHRawCommon/DataFormats.h"
 #include "MCHRawDecoder/PageDecoder.h"
 #include "MCHRawElecMap/Mapper.h"
-#include "MCHMappingFactory/CreateSegmentation.h"
 #include "MCHRawCommon/RDHManip.h"
+#include "MCHMappingInterface/Segmentation.h"
 
 using namespace o2;
 using namespace o2::framework;

@@ -8,18 +8,18 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(MCHMappingImpl3
+o2_add_library(MCHMappingImpl4
         SOURCES src/CreateSegmentation.cxx
         src/GenDetElemId2SegType.cxx
         src/GenDetElemId2SegType.h
         src/PadGroup.h
         src/PadGroupType.cxx
         src/PadGroupType.h
-        src/CathodeSegmentationCImpl3.cxx
+        src/CathodeSegmentationCImpl4.cxx
         src/CathodeSegmentationCreator.cxx
         src/CathodeSegmentationCreator.h
-        src/CathodeSegmentationImpl3.cxx
-        src/CathodeSegmentationImpl3.h
+        src/CathodeSegmentationImpl4.cxx
+        src/CathodeSegmentationImpl4.h
         PUBLIC_LINK_LIBRARIES Boost::boost O2::MCHMappingInterface
         ms_gsl::ms_gsl fmt::fmt
         TARGETVARNAME targetName)
@@ -33,7 +33,7 @@ foreach(segtype RANGE 20)
 endforeach()
 
 include(GenerateExportHeader)
-generate_export_header(${targetName} BASE_NAME o2mchmappingimpl3)
+generate_export_header(${targetName} BASE_NAME o2mchmappingimpl4)
 
 set_target_properties(${targetName} PROPERTIES CXX_VISIBILITY_PRESET hidden)
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")

@@ -9,6 +9,6 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(MCHPreClustering
-               SOURCES src/PreClusterFinder.cxx
-                       src/PreClusterFinderMapping.cxx
-               PUBLIC_LINK_LIBRARIES O2::MCHMappingFactory O2::MCHBase O2::Framework)
+        SOURCES src/PreClusterFinder.cxx
+        src/PreClusterFinderMapping.cxx
+        PUBLIC_LINK_LIBRARIES O2::MCHMappingImpl3 O2::MCHBase O2::Framework)
