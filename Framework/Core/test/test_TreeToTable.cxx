@@ -28,8 +28,8 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
   using namespace o2::framework;
   /// Create a simple TTree
   Int_t ndp = 10000000;
-  
-  TFile f1("tree2table.root","RECREATE");
+
+  TFile f1("tree2table.root", "RECREATE");
   TTree t1("t1", "a simple Tree with simple variables");
   Float_t px, py, pz;
   Double_t random;
@@ -48,19 +48,17 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
     ev = i + 1;
     t1.Fill();
   }
-  
 
   // Create an arrow table from this.
   TreeToTable tr2ta(&t1);
   auto stat = tr2ta.AddAllColumns();
-  if (!stat)
-  {
+  if (!stat) {
     LOG(INFO) << "Table was not created!";
     return;
   }
   auto table = tr2ta.Process();
 
-  // test result  
+  // test result
   BOOST_REQUIRE_EQUAL(table.get()->Validate().ok(), true);
   BOOST_REQUIRE_EQUAL(table.get()->num_rows(), ndp);
   BOOST_REQUIRE_EQUAL(table.get()->num_columns(), 5);
@@ -71,5 +69,4 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
   BOOST_REQUIRE_EQUAL(table.get()->column(4)->type()->id(), arrow::int32()->id());
 
   f1.Close();
-
 }

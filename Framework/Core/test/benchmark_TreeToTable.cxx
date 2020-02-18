@@ -36,13 +36,13 @@ constexpr unsigned int maxrange = 16;
 
 static void BM_TreeToTable(benchmark::State& state)
 {
- 
+
   // initialize a random generator
   std::default_random_engine e1(1234567891);
   std::uniform_real_distribution<double> rd(0, 1);
-  std::normal_distribution<float>        rf(5.,2.);
-  std::discrete_distribution<long>       rl({10,20,30,30,5,5});
-  std::discrete_distribution<int>        ri({10,20,30,30,5,5});
+  std::normal_distribution<float> rf(5., 2.);
+  std::discrete_distribution<long> rl({10, 20, 30, 30, 5, 5});
+  std::discrete_distribution<int> ri({10, 20, 30, 30, 5, 5});
 
   // create a table and fill the columns with random numbers
   TableBuilder builder;
@@ -52,44 +52,43 @@ static void BM_TreeToTable(benchmark::State& state)
     rowWriter(0, rd(e1), rf(e1), rl(e1), ri(e1));
   }
   auto table = builder.finalize();
-    
+
   // now convert the table to a tree
-  TFile fout("tree2table.root","RECREATE");
-  TableToTree ta2tr(table,&fout,"tree2table");
+  TFile fout("tree2table.root", "RECREATE");
+  TableToTree ta2tr(table, &fout, "tree2table");
   ta2tr.AddAllBranches();
   ta2tr.Process();
   fout.Close();
-  
+
   // read tree and convert to table again
-  TFile *f = nullptr;
-  TreeToTable *tr2ta = nullptr;
+  TFile* f = nullptr;
+  TreeToTable* tr2ta = nullptr;
   for (auto _ : state) {
 
     // Open file and create tree
-    f  = new TFile("tree2table.root","READ");
+    f = new TFile("tree2table.root", "READ");
     auto tr = (TTree*)f->Get("tree2table");
 
     // benchmark TreeToTable
-    if (tr)
-    {
+    if (tr) {
       tr2ta = new TreeToTable(tr);
-      if (tr2ta->AddAllColumns())
-      {
+      if (tr2ta->AddAllColumns()) {
         auto ta = tr2ta->Process();
       }
 
     } else {
       LOG(INFO) << "tree is empty!";
     }
-    
+
     // clean up
-    if (tr2ta) delete tr2ta;
+    if (tr2ta)
+      delete tr2ta;
     f->Close();
-    if (f)     delete f;
-  
+    if (f)
+      delete f;
   }
 
-  state.SetBytesProcessed(state.iterations()*state.range(0)*24);
+  state.SetBytesProcessed(state.iterations() * state.range(0) * 24);
 }
 
 BENCHMARK(BM_TreeToTable)->Range(8, 8 << maxrange);

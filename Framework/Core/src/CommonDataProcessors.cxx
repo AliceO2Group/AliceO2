@@ -69,7 +69,6 @@ struct InputObject {
 const static std::unordered_map<OutputObjHandlingPolicy, std::string> ROOTfileNames = {{OutputObjHandlingPolicy::AnalysisObject, "AnalysisResults.root"},
                                                                                        {OutputObjHandlingPolicy::QAObject, "QAResults.root"}};
 
-
 // =============================================================================
 DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& outMap)
 {
@@ -183,36 +182,31 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& out
   return spec;
 }
 
-
 // add sink for dangling AODs
 DataProcessorSpec
   CommonDataProcessors::getGlobalAODSink(std::vector<InputSpec> const& danglingOutputInputs)
 {
 
-  auto writerFunction = [danglingOutputInputs](InitContext& ic) -> std::function<void(ProcessingContext&)>
-  {
-    
+  auto writerFunction = [danglingOutputInputs](InitContext& ic) -> std::function<void(ProcessingContext&)> {
     LOG(DEBUG) << "======== getGlobalAODSink::Inint ==========";
-    
+
     // analyze ic and take actions accordingly
-    auto fnbase     = ic.options().get<std::string>("res-file");
-    auto filemode   = ic.options().get<std::string>("res-mode");
+    auto fnbase = ic.options().get<std::string>("res-file");
+    auto filemode = ic.options().get<std::string>("res-mode");
     auto keepString = ic.options().get<std::string>("keep");
-    auto ntfmerge   = ic.options().get<Int_t>("ntfmerge");
-    
+    auto ntfmerge = ic.options().get<Int_t>("ntfmerge");
+
     // find out if any tables need to be saved
     bool hasOutputsToWrite = true;
-    bool usematch          = false;
-    
-    
+    bool usematch = false;
+
     // use the parameter keep to create a matcher
     std::shared_ptr<data_matcher::DataDescriptorMatcher> matcher;
-    if (!keepString.empty())
-    {
+    if (!keepString.empty()) {
       usematch = true;
       auto [variables, outputMatcher] = DataDescriptorQueryBuilder::buildFromKeepConfig(keepString);
       matcher = outputMatcher;
-      
+
       VariableContext context;
       for (auto& spec : danglingOutputInputs) {
         auto concrete = DataSpecUtils::asConcreteDataMatcher(spec);
@@ -233,55 +227,51 @@ DataProcessorSpec
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       });
     }
-    
+
     // end of data functor is called at the end of the data stream
     auto fout = std::make_shared<TFile>();
     auto endofdatacb = [fout](EndOfStreamContext& context) {
-      
       if (fout)
         fout->Close();
-      
+
       context.services().get<ControlService>().readyToQuit(QuitRequest::All);
-    
     };
 
     auto& callbacks = ic.services().get<CallbackService>();
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
- 
 
     // this functor is called once per time frame
     Int_t ntf = 0;
-    return std::move([fout,fnbase,filemode,ntf,ntfmerge,usematch,matcher](ProcessingContext& pc) mutable -> void {
+    return std::move([fout, fnbase, filemode, ntf, ntfmerge, usematch, matcher](ProcessingContext& pc) mutable -> void {
       LOG(DEBUG) << "======== getGlobalAODSink::processing ==========";
       LOG(DEBUG) << " processing data set with " << pc.inputs().size() << " entries";
       LOG(DEBUG) << " result are saved to " << fnbase << "_*.root";
-      
+
       // return immediately if pc.inputs() is empty
       auto ninputs = pc.inputs().size();
-      if (ninputs==0) {
+      if (ninputs == 0) {
         LOG(DEBUG) << "no inputs available!";
         return;
       }
-      
 
       // open new file if ntfmerge time frames is reached
-      LOG(DEBUG) << "This is time frame number "<< ntf;
+      LOG(DEBUG) << "This is time frame number " << ntf;
       //bool tupdate = true;
       std::string fname;
-      if ((ntf%ntfmerge)==0)
-      {
-        if (fout) fout->Close();
-        
-        fname = fnbase+"_"+std::to_string((Int_t)(ntf/ntfmerge))+".root";
+      if ((ntf % ntfmerge) == 0) {
+        if (fout)
+          fout->Close();
+
+        fname = fnbase + "_" + std::to_string((Int_t)(ntf / ntfmerge)) + ".root";
         fout =
-          std::make_shared<TFile>(fname.c_str(),filemode.c_str());
+          std::make_shared<TFile>(fname.c_str(), filemode.c_str());
       }
       ntf++;
-      
+
       // loop over the DataRefs which are contained in pc.inputs()
       VariableContext matchingContext;
       for (const auto& ref : pc.inputs()) {
-        
+
         // is this table to be saved?
         auto dh = DataRefUtils::getHeader<header::DataHeader*>(ref);
         // only arrow tables are processed here
@@ -292,36 +282,32 @@ DataProcessorSpec
         if (usematch && !matcher->match(*dh, matchingContext))
           continue;
 
-
         // get the table name
         auto treename = dh->dataDescription.as<std::string>();
-    
+
         // get the TableConsumer and convert it into an arrow table
         auto s = pc.inputs().get<TableConsumer>(ref.spec->binding);
         auto table = s->asArrowTable();
-        LOG(DEBUG) << "The tree name is " << treename; 
-        LOG(DEBUG) << "Number of columns " << table->num_columns(); 
+        LOG(DEBUG) << "The tree name is " << treename;
+        LOG(DEBUG) << "Number of columns " << table->num_columns();
         LOG(DEBUG) << "Number of rows     " << table->num_rows();
-        
+
         // we need finite number of rows and columns
-        if (table->num_columns()==0 || table->num_rows()==0)
+        if (table->num_columns() == 0 || table->num_rows() == 0)
           continue;
 
         // this table needs to be saved to file
         // use TableToTree
-        TableToTree ta2tr(table,fout.get(),treename.c_str());
-        
+        TableToTree ta2tr(table, fout.get(), treename.c_str());
+
         // all columns of the table are saved
         ta2tr.AddAllBranches();
         // to select specific columns use ...
         // ta2tr.AddBranch(colname);
         ta2tr.Process();
-        
       }
-      
-    });  
-  };      // end of writerFunction
-
+    });
+  }; // end of writerFunction
 
   DataProcessorSpec spec{
     "internal-dpl-AOD-writter",
@@ -329,14 +315,12 @@ DataProcessorSpec
     Outputs{},
     AlgorithmSpec(writerFunction),
     {{"res-file", VariantType::String, "AnalysisResults", {"Name of the output file"}},
-     {"res-mode", VariantType::String, "RECREATE",        {"Creation mode of the result file: NEW, CREATE, RECREATE, UPDATE"}},
-     {"ntfmerge", VariantType::Int,     10,               {"number of time frames to merge into one file"}},
-     {"keep",     VariantType::String,  "",               {"Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION to save in outfile"}}}
-  };
+     {"res-mode", VariantType::String, "RECREATE", {"Creation mode of the result file: NEW, CREATE, RECREATE, UPDATE"}},
+     {"ntfmerge", VariantType::Int, 10, {"number of time frames to merge into one file"}},
+     {"keep", VariantType::String, "", {"Comma separated list of ORIGIN/DESCRIPTION/SUBSPECIFICATION to save in outfile"}}}};
 
   return spec;
 }
-
 
 DataProcessorSpec
   CommonDataProcessors::getGlobalFileSink(std::vector<InputSpec> const& danglingOutputInputs,

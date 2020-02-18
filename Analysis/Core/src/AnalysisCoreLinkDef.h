@@ -12,10 +12,10 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class StepTHnBase+;
-#pragma link C++ class StepTHn<TArrayF, Float_t>+;
-#pragma link C++ class StepTHn<TArrayD, Double_t>+;
+#pragma link C++ class StepTHnBase + ;
+#pragma link C++ class StepTHn < TArrayF, Float_t> + ;
+#pragma link C++ class StepTHn < TArrayD, Double_t> + ;
 #pragma link C++ typedef StepTHnF;
 #pragma link C++ typedef StepTHnD;
 
-#pragma link C++ class CorrelationContainer+;
+#pragma link C++ class CorrelationContainer + ;

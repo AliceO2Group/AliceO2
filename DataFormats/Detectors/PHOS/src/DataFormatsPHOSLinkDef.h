@@ -20,10 +20,10 @@
 #pragma link C++ class o2::phos::MCLabel + ;
 #pragma link C++ class o2::phos::TriggerRecord + ;
 
-#pragma link C++ class std::vector < o2::phos::Cell > +;
-#pragma link C++ class std::vector < o2::phos::Digit > +;
-#pragma link C++ class std::vector < o2::phos::Cluster > +;
-#pragma link C++ class std::vector < o2::phos::TriggerRecord > +;
+#pragma link C++ class std::vector < o2::phos::Cell> + ;
+#pragma link C++ class std::vector < o2::phos::Digit> + ;
+#pragma link C++ class std::vector < o2::phos::Cluster> + ;
+#pragma link C++ class std::vector < o2::phos::TriggerRecord> + ;
 #include "SimulationDataFormat/MCTruthContainer.h"
 #pragma link C++ class o2::dataformats::MCTruthContainer < o2::phos::MCLabel> + ;
 // For channel type in digits and cells

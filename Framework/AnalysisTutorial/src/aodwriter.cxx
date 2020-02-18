@@ -13,23 +13,23 @@
 
 namespace o2::aod
 {
-  namespace etaphi
-  {
-    DECLARE_SOA_COLUMN(Eta, eta, float, "fEta1");
-    DECLARE_SOA_COLUMN(Phi, phi, long, "fPhi1");
-    DECLARE_SOA_COLUMN(Mom, mom, double,"fMom1");
-  } // namespace etaphi
-  
-  DECLARE_SOA_TABLE(EtaPhi, "AOD", "ETAPHI",
+namespace etaphi
+{
+DECLARE_SOA_COLUMN(Eta, eta, float, "fEta1");
+DECLARE_SOA_COLUMN(Phi, phi, long, "fPhi1");
+DECLARE_SOA_COLUMN(Mom, mom, double, "fMom1");
+} // namespace etaphi
+
+DECLARE_SOA_TABLE(EtaPhi, "AOD", "ETAPHI",
                   etaphi::Eta, etaphi::Phi, etaphi::Mom);
 
-  namespace due
-  {
-    DECLARE_SOA_COLUMN(Eta, eta, short int,  "fEta2");
-    DECLARE_SOA_COLUMN(Phi, phi, double, "fPhi2");
-  } // namespace due
-  
-  DECLARE_SOA_TABLE(Due, "AOD", "DUE",
+namespace due
+{
+DECLARE_SOA_COLUMN(Eta, eta, short int, "fEta2");
+DECLARE_SOA_COLUMN(Phi, phi, double, "fPhi2");
+} // namespace due
+
+DECLARE_SOA_TABLE(Due, "AOD", "DUE",
                   due::Eta, due::Phi);
 } // namespace o2::aod
 
@@ -53,16 +53,16 @@ struct ATask {
       float phi = asin(track.snp()) + track.alpha() + static_cast<float>(M_PI);
       float eta = log(tan(0.25f * static_cast<float>(M_PI) - 0.5f * atan(track.tgl())));
       float mom = track.tgl();
-      
+
       etaphi(phi, eta, mom);
       due(phi, eta);
       count++;
     }
-    LOG(INFO) << "number of tracks: " << count << std::endl;;
+    LOG(INFO) << "number of tracks: " << count << std::endl;
+    ;
   }
 
   size_t count = 0;
-  
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)

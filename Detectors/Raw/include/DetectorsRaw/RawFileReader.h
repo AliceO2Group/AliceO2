@@ -81,12 +81,12 @@ class RawFileReader
            StartHB = 0x1 << 1,
            StartSP = 0x1 << 2,
            EndHB = 0x1 << 3 };
-    size_t offset = 0;    // where data of the block starts
-    uint32_t size = 0;    // block size
-    uint32_t tfID = 0;    // tf counter (from 0)
-    uint32_t orbit = 0;   // orbit starting the block
-    uint16_t fileID = 0;  // file id where the block is located
-    uint8_t flags = 0;    // different flags
+    size_t offset = 0;   // where data of the block starts
+    uint32_t size = 0;   // block size
+    uint32_t tfID = 0;   // tf counter (from 0)
+    uint32_t orbit = 0;  // orbit starting the block
+    uint16_t fileID = 0; // file id where the block is located
+    uint8_t flags = 0;   // different flags
     LinkBlock() = default;
     LinkBlock(int fid, size_t offs) : offset(offs), fileID(fid) {}
     void setFlag(uint8_t fl, bool v = true)
@@ -102,8 +102,8 @@ class RawFileReader
 
   //=====================================================================================
   struct LinkData {
-    RDH rdhl;             // RDH with the running info of the last RDH seen
-    LinkSpec_t spec = 0;  // Link subspec augmented by its origin
+    RDH rdhl;                  // RDH with the running info of the last RDH seen
+    LinkSpec_t spec = 0;       // Link subspec augmented by its origin
     LinkSubSpec_t subspec = 0; // subspec according to DataDistribution
     uint32_t nTimeFrames = 0;
     uint32_t nHBFrames = 0;
@@ -223,7 +223,6 @@ class RawFileReader
 
   ClassDefNV(RawFileReader, 1);
 };
-
 
 } // namespace raw
 } // namespace o2
