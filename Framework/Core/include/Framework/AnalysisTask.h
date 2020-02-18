@@ -201,15 +201,19 @@ struct AnalysisDataProcessorBuilder {
     inputs.push_back({metadata::label(), "AOD", metadata::description()});
   }
 
+  template <typename... Args>
+  static void doAppendInputWithMetadata(framework::pack<Args...>, std::vector<InputSpec>& inputs)
+  {
+    (doAppendInputWithMetadata<Args>(inputs), ...);
+  }
+
   template <typename T>
   static void appendSomethingWithMetadata(std::vector<InputSpec>& inputs,
                                           std::vector<SchemaInfo>& filteredSchemas)
   {
     if constexpr (is_specialization<std::decay_t<T>, soa::Join>::value || is_specialization<std::decay_t<T>, soa::Concat>::value) {
-      using left_t = typename std::decay_t<T>::left_t;
-      using right_t = typename std::decay_t<T>::right_t;
-      doAppendInputWithMetadata<left_t>(inputs);
-      doAppendInputWithMetadata<right_t>(inputs);
+      using tables = typename std::decay_t<T>::originals;
+      doAppendInputWithMetadata(tables{}, inputs);
     } else if constexpr (is_specialization<std::decay_t<T>, soa::Filtered>::value) {
       using table_t = typename std::decay_t<T>::table_t;
       doAppendInputWithMetadata<table_t>(inputs);
@@ -267,12 +271,12 @@ struct AnalysisDataProcessorBuilder {
     throw std::runtime_error("Failed to match filter with a table.");
   }
 
-  template <typename T1, typename T2>
-  static auto extractJoinFromRecord(InputRecord& record)
+  template <typename... Ts>
+  static auto extractJoinFromRecord(framework::pack<Ts...>, InputRecord& record)
   {
-    auto at1 = record.get<TableConsumer>(aod::MetadataTrait<std::decay_t<T1>>::metadata::label())->asArrowTable();
-    auto at2 = record.get<TableConsumer>(aod::MetadataTrait<std::decay_t<T2>>::metadata::label())->asArrowTable();
-    return typename soa::Join<T1, T2>(at1, at2);
+    std::vector<std::shared_ptr<arrow::Table>> tables = {
+      record.get<TableConsumer>(aod::MetadataTrait<std::decay_t<Ts>>::metadata::label())->asArrowTable()...};
+    return typename soa::Join<Ts...>(std::move(tables), 0);
   }
 
   template <typename T1, typename T2>
@@ -287,9 +291,8 @@ struct AnalysisDataProcessorBuilder {
   static auto extractSomethingFromRecord(InputRecord& record, std::vector<ExpressionInfo> const infos)
   {
     if constexpr (is_specialization<std::decay_t<T>, soa::Join>::value) {
-      using left_t = typename std::decay_t<T>::left_t;
-      using right_t = typename std::decay_t<T>::right_t;
-      return extractJoinFromRecord<left_t, right_t>(record);
+      using tables = typename std::decay_t<T>::originals;
+      return extractJoinFromRecord(tables{}, record);
     } else if constexpr (is_specialization<std::decay_t<T>, soa::Concat>::value) {
       using left_t = typename std::decay_t<T>::left_t;
       using right_t = typename std::decay_t<T>::right_t;

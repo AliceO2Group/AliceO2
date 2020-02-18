@@ -17,7 +17,7 @@
 #include "GPUCommonDef.h"
 
 #if !defined(GPUCA_GPUCODE_DEVICE)
-#include <algorithm>
+//#include <algorithm>
 #endif
 
 // ----------------------------- SORTING -----------------------------
@@ -40,26 +40,28 @@ class GPUCommonAlgorithm
 
  private:
   // Quicksort implementation
-  template <class T>
-  GPUd() static void SortSwap(GPUgeneric() T* v1, GPUgeneric() T* v2);
-  template <class T>
-  GPUd() static T* QuicksortPartition(T* left, T* right);
-  template <class T>
-  GPUd() static void Quicksort(T* left, T* right);
+  template <typename I>
+  GPUd() static void QuickSort(I f, I l) noexcept;
 
-  // Quicksort impkementation with comparison object
-  template <class T, class S>
-  GPUd() static T* QuicksortPartition(T* left, T* right, const S& comp);
-  template <class T, class S>
-  GPUd() static void Quicksort(T* left, T* right, const S& comp);
+  // Quicksort implementation
+  template <typename I, typename Cmp>
+  GPUd() static void QuickSort(I f, I l, Cmp cmp) noexcept;
 
   // Insertionsort implementation
-  template <class T>
-  GPUd() static void Insertionsort(T* left, T* right);
+  template <typename I, typename Cmp>
+  GPUd() static void InsertionSort(I f, I l, Cmp cmp) noexcept;
 
-  // Insertionsort implementation with comparison object
-  template <class T, class S>
-  GPUd() static void Insertionsort(T* left, T* right, const S& comp);
+  // Helper for Quicksort implementation
+  template <typename I, typename Cmp>
+  GPUd() static I MedianOf3Select(I f, I l, Cmp cmp) noexcept;
+
+  // Helper for Quicksort implementation
+  template <typename I, typename T, typename Cmp>
+  GPUd() static I UnguardedPartition(I f, I l, T piv, Cmp cmp) noexcept;
+
+  // Helper
+  template <typename I>
+  GPUd() static void IterSwap(I a, I b) noexcept;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
@@ -68,130 +70,131 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-template <class T>
-GPUdi() void GPUCommonAlgorithm::SortSwap(GPUgeneric() T* v1, GPUgeneric() T* v2)
+
+template <typename I>
+GPUdi() void GPUCommonAlgorithm::IterSwap(I a, I b) noexcept
 {
-  T tmp = *v1;
-  *v1 = *v2;
-  *v2 = tmp;
+  auto tmp = *a;
+  *a = *b;
+  *b = tmp;
 }
 
-template <class T>
-GPUdi() T* GPUCommonAlgorithm::QuicksortPartition(T* left, T* right)
+template <typename I, typename Cmp>
+GPUdi() void GPUCommonAlgorithm::InsertionSort(I f, I l, Cmp cmp) noexcept
 {
-  T* mid = left + ((right - left) / 2);
-  T pivot = *mid;
-  SortSwap(mid, left);
-  T* i = left + 1;
-  T* j = right;
-  while (i <= j) {
-    while (i <= j && *i <= pivot) {
-      i++;
-    }
-    while (i <= j && *j > pivot) {
-      j--;
-    }
-    if (i < j) {
-      SortSwap(i, j);
-    }
-  }
-  SortSwap(i - 1, left);
-  return i - 1;
-}
+  auto it0{f};
+  while (it0 != l) {
+    auto tmp{*it0};
 
-template <class T, class S>
-GPUdi() T* GPUCommonAlgorithm::QuicksortPartition(T* left, T* right, const S& comp)
-{
-  T* mid = left + ((right - left) / 2);
-  SortSwap(mid, right);
-  T* pivot = right;
-  T* i = left;
-  T* j = right - 1;
-  while (i <= j) {
-    while (i <= j && !comp(*j, *pivot)) {
-      j--;
+    auto it1{it0};
+    while (it1 != f && cmp(tmp, it1[-1])) {
+      it1[0] = it1[-1];
+      --it1;
     }
-    while (i <= j && comp(*i, *pivot)) {
-      i++;
-    }
-    if (i < j) {
-      SortSwap(i, j);
-    }
-  }
-  SortSwap(j + 1, right);
-  return j + 1;
-}
+    it1[0] = tmp;
 
-template <class T>
-GPUdi() void GPUCommonAlgorithm::Quicksort(T* left, T* right)
-{
-  if (left >= right) {
-    return;
-  }
-  if (right - left <= 4) {
-    Insertionsort(left, right);
-    return;
-  }
-  T* part = QuicksortPartition(left, right);
-
-  Quicksort(left, part - 1);
-  Quicksort(part + 1, right);
-}
-
-template <class T, class S>
-GPUdi() void GPUCommonAlgorithm::Quicksort(T* left, T* right, const S& comp)
-{
-  if (left >= right) {
-    return;
-  }
-  if (right - left <= 4) {
-    Insertionsort(left, right, comp);
-    return;
-  }
-  T* part = QuicksortPartition(left, right, comp);
-
-  Quicksort(left, part - 1, comp);
-  Quicksort(part + 1, right, comp);
-}
-
-template <class T>
-GPUdi() void GPUCommonAlgorithm::Insertionsort(T* left, T* right)
-{
-  if (left >= right) {
-    return;
-  }
-  while (left < right) {
-    T* min = left;
-    for (T* test = left + 1; test <= right; test++) {
-      if (*test < *min) {
-        min = test;
-      }
-    }
-    if (min != left) {
-      SortSwap(left, min);
-    }
-    left++;
+    ++it0;
   }
 }
 
-template <class T, class S>
-GPUdi() void GPUCommonAlgorithm::Insertionsort(T* left, T* right, const S& comp)
+template <typename I, typename Cmp>
+GPUdi() I GPUCommonAlgorithm::MedianOf3Select(I f, I l, Cmp cmp) noexcept
 {
-  if (left >= right) {
+  auto m = f + (l - f) / 2;
+
+  --l;
+
+  if (cmp(*f, *m)) {
+    if (cmp(*m, *l))
+      return m;
+    else if (cmp(*f, *l))
+      return l;
+    else
+      return f;
+  } else if (cmp(*f, *l))
+    return f;
+  else if (cmp(*m, *l))
+    return l;
+  else
+    return m;
+}
+
+template <typename I, typename T, typename Cmp>
+GPUdi() I GPUCommonAlgorithm::UnguardedPartition(I f, I l, T piv, Cmp cmp) noexcept
+{
+  do {
+    while (cmp(*f, piv))
+      ++f;
+    --l;
+    while (cmp(piv, *l))
+      --l;
+
+    if (l <= f)
+      return f;
+    IterSwap(f, l);
+    ++f;
+  } while (true);
+}
+
+template <typename I, typename Cmp>
+GPUdi() void GPUCommonAlgorithm::QuickSort(I f, I l, Cmp cmp) noexcept
+{
+  if (f == l)
+
     return;
-  }
-  while (left < right) {
-    T* min = left;
-    for (T* test = left + 1; test <= right; test++) {
-      if (comp(*test, *min)) {
-        min = test;
-      }
+
+  using IndexType = unsigned short;
+
+  struct pair {
+    IndexType first;
+    IndexType second;
+  };
+
+  struct Stack {
+    pair data[11];
+    unsigned char n{0};
+
+    GPUd() void emplace(IndexType x, IndexType y)
+    {
+      data[n++] = {x, y};
     }
-    if (min != left) {
-      SortSwap(left, min);
+    GPUd() bool empty() const { return n == 0; }
+    GPUd() pair& top() { return data[n - 1]; }
+    GPUd() void pop() { --n; }
+  };
+
+  Stack s;
+  s.emplace(0, l - f);
+  while (!s.empty()) {
+    const auto it0 = f + s.top().first;
+    const auto it1 = f + s.top().second;
+    s.pop();
+
+    const auto piv = *MedianOf3Select(it0, it1, cmp);
+    const auto pp = UnguardedPartition(it0, it1, piv, cmp);
+
+    constexpr auto cutoff = 50u;
+    const auto lsz = pp - it0;
+    const auto rsz = it1 - pp;
+    if (lsz < rsz) {
+      if (rsz > cutoff)
+        s.emplace(pp - f, it1 - f);
+      if (lsz > cutoff)
+        s.emplace(it0 - f, pp - f);
+    } else {
+      if (lsz > cutoff)
+        s.emplace(it0 - f, pp - f);
+      if (rsz > cutoff)
+        s.emplace(pp - f, it1 - f);
     }
-    left++;
   }
+  InsertionSort(f, l, cmp);
+}
+
+template <typename I>
+GPUdi() void GPUCommonAlgorithm::QuickSort(I f, I l) noexcept
+{
+  QuickSort(f, l, [](auto&& x, auto&& y) { return x < y; });
 }
 
 typedef GPUCommonAlgorithm CAAlgo;
@@ -199,7 +202,10 @@ typedef GPUCommonAlgorithm CAAlgo;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#if defined(__CUDACC__) || defined(__HIPCC__)
+#if defined(__CUDACC__) //|| defined(__HIPCC__)
+
+// currently disable Thrust for the AMD, since the GPUCommonAlgorithm::QuickSort is faster
+
 #include "GPUCommonAlgorithmThrust.h"
 
 #else
@@ -212,25 +218,13 @@ namespace gpu
 template <class T>
 GPUdi() void GPUCommonAlgorithm::sort(T* begin, T* end)
 {
-#ifndef GPUCA_GPUCODE_DEVICE
-  std::sort(begin, end);
-#elif defined(__CUDACC__)
-  Quicksort(begin, end - 1);
-#else
-  Insertionsort(begin, end - 1);
-#endif
+  QuickSort(begin, end, [](auto&& x, auto&& y) { return x < y; });
 }
 
 template <class T, class S>
 GPUdi() void GPUCommonAlgorithm::sort(T* begin, T* end, const S& comp)
 {
-#ifndef GPUCA_GPUCODE_DEVICE
-  std::sort(begin, end, comp);
-#elif defined(__CUDACC__)
-  Quicksort(begin, end - 1, comp);
-#else
-  Insertionsort(begin, end - 1, comp);
-#endif
+  QuickSort(begin, end, comp);
 }
 
 template <class T>

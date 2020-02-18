@@ -27,6 +27,12 @@
 namespace o2::soa
 {
 
+template <typename, typename = void>
+constexpr bool is_index_column_v = false;
+
+template <typename T>
+constexpr bool is_index_column_v<T, std::void_t<decltype(sizeof(typename T::binding_t))>> = true;
+
 template <typename T>
 struct arrow_array_for {
 };
@@ -325,6 +331,9 @@ using is_dynamic_t = framework::is_specialization<typename T::base, DynamicColum
 template <typename T>
 using is_persistent_t = typename std::decay_t<T>::persistent::type;
 
+template <typename T>
+using is_external_index_t = typename std::conditional<is_index_column_v<T>, std::true_type, std::false_type>::type;
+
 template <typename T, template <auto...> class Ref>
 struct is_index : std::false_type {
 };
@@ -499,6 +508,7 @@ struct RowViewBase : public IP, C... {
   using dynamic_columns_t = framework::selected_pack<is_dynamic_t, C...>;
   using index_columns_t = framework::selected_pack<is_index_t, C...>;
   constexpr inline static bool has_index_v = !std::is_same_v<index_columns_t, framework::pack<>>;
+  using external_index_columns_t = framework::selected_pack<is_external_index_t, C...>;
 
   RowViewBase(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, IP&& policy)
     : IP{policy},
@@ -595,6 +605,18 @@ struct RowViewBase : public IP, C... {
   bool operator==(RowViewBase<IP, C...> const& other) const
   {
     return IP::operator==(static_cast<IP>(other));
+  }
+
+  template <typename... CL, typename TA>
+  void doSetCurrentIndex(framework::pack<CL...>, TA* current)
+  {
+    (CL::setCurrent(current), ...);
+  }
+
+  template <typename... TA>
+  void bindExternalIndices(TA*... current)
+  {
+    (doSetCurrentIndex(external_index_columns_t{}, current), ...);
   }
 
  private:
@@ -827,6 +849,62 @@ class TableMetadata
   static const o2::framework::expressions::BindingNode _Getter_ { _Label_,     \
                                                                   o2::framework::expressions::selectArrowType<_Type_>() }
 
+/// An index column is a column of indices to elements / of another table named
+/// _Name_##s. The column name will be _Name_##Id and will always be stored in
+/// "f"#_Name__#Id . It will also have two special methods, setCurrent(...)
+/// and getCurrent(...) which allow you to set / retrieve associated table.
+/// It also exposes a getter _Getter_ which allows you to retrieve the pointed
+/// object.
+/// Notice how in order to define an index column, the table it points
+/// to **must** be already declared. This is therefore only
+/// useful to express child -> parent relationships. In case one
+/// needs to go from parent to child, the only way is to either have
+/// a separate "association" with the two indices, or to use the standard
+/// grouping mechanism of AnalysisTask.
+#define DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Table_, _Label_)  \
+  struct _Name_##Id : o2::soa::Column<_Type_, _Name_##Id> {                        \
+    static_assert(std::is_integral_v<_Type_>, "Index type must be integral");      \
+    static constexpr const char* mLabel = _Label_;                                 \
+    using base = o2::soa::Column<_Type_, _Name_##Id>;                              \
+    using type = _Type_;                                                           \
+    using column_t = _Name_##Id;                                                   \
+    using binding_t = _Table_;                                                     \
+    _Name_##Id(arrow::Column const* column)                                        \
+      : o2::soa::Column<_Type_, _Name_##Id>(o2::soa::ColumnIterator<type>(column)) \
+    {                                                                              \
+    }                                                                              \
+                                                                                   \
+    _Name_##Id() = default;                                                        \
+    _Name_##Id(_Name_##Id const& other) = default;                                 \
+    _Name_##Id& operator=(_Name_##Id const& other) = default;                      \
+                                                                                   \
+    type const _Getter_##Id() const                                                \
+    {                                                                              \
+      return *mColumnIterator;                                                     \
+    }                                                                              \
+                                                                                   \
+    binding_t::iterator _Getter_() const                                           \
+    {                                                                              \
+      assert(mBinding != 0);                                                       \
+      return mBinding->begin() + *mColumnIterator;                                 \
+    }                                                                              \
+    template <typename T>                                                          \
+    bool setCurrent(T* current)                                                    \
+    {                                                                              \
+      if constexpr (std::is_same_v<T, binding_t>) {                                \
+        assert(current != 0);                                                      \
+        this->mBinding = current;                                                  \
+        return true;                                                               \
+      }                                                                            \
+      return false;                                                                \
+    }                                                                              \
+    binding_t* getCurrent() { return mBinding; }                                   \
+    binding_t* mBinding = nullptr;                                                 \
+  };                                                                               \
+  static const o2::framework::expressions::BindingNode _Getter_##Id { _Label_,     \
+                                                                      o2::framework::expressions::selectArrowType<_Type_>() }
+
+#define DECLARE_SOA_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, _Name_##s, "f" #_Name_ "sID")
 /// A dynamic column is a column whose values are derived
 /// from those of other real columns. These can be used for
 /// example to provide different coordinate systems (e.g. polar,
@@ -926,9 +1004,15 @@ namespace o2::soa
 {
 
 template <typename... C1, typename... C2>
-constexpr auto join(o2::soa::Table<C1...>&& t1, o2::soa::Table<C2...>&& t2)
+constexpr auto join(o2::soa::Table<C1...> const& t1, o2::soa::Table<C2...> const& t2)
 {
   return o2::soa::Table<C1..., C2...>(ArrowHelpers::joinTables({t1.asArrowTable(), t2.asArrowTable()}));
+}
+
+template <typename T1, typename T2, typename... Ts>
+constexpr auto join(T1 const& t1, T2 const& t2, Ts const&... ts)
+{
+  return join(t1, join(t2, ts...));
 }
 
 template <typename T1, typename T2>
@@ -938,22 +1022,25 @@ constexpr auto concat(T1&& t1, T2&& t2)
   return table_t(ArrowHelpers::concatTables({t1.asArrowTable(), t2.asArrowTable()}));
 }
 
-template <typename T1, typename T2>
-using JoinBase = decltype(join(std::declval<T1>(), std::declval<T2>()));
+template <typename... Ts>
+using JoinBase = decltype(join(std::declval<Ts>()...));
 
 template <typename T1, typename T2>
 using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
 
-template <typename T1, typename T2>
-struct Join : JoinBase<T1, T2> {
-  Join(std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2, uint64_t offset = 0)
-    : JoinBase<T1, T2>{ArrowHelpers::joinTables({t1, t2}), offset} {}
-  Join(std::vector<std::shared_ptr<arrow::Table>> tables, uint64_t offset = 0)
-    : JoinBase<T1, T2>{ArrowHelpers::joinTables(std::move(tables)), offset} {}
+template <typename... Ts>
+struct Join : JoinBase<Ts...> {
+  Join(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0)
+    : JoinBase<Ts...>{ArrowHelpers::joinTables(std::move(tables)), offset} {}
 
-  using left_t = T1;
-  using right_t = T2;
-  using table_t = JoinBase<T1, T2>;
+  template <typename... ATs>
+  Join(uint64_t offset, std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2, ATs... ts)
+    : Join<Ts...>(std::vector<std::shared_ptr<arrow::Table>>{t1, t2, ts...}, offset)
+  {
+  }
+
+  using originals = framework::pack<Ts...>;
+  using table_t = JoinBase<Ts...>;
 };
 
 template <typename T1, typename T2>
@@ -963,6 +1050,8 @@ struct Concat : ConcatBase<T1, T2> {
   Concat(std::vector<std::shared_ptr<arrow::Table>> tables, uint64_t offset = 0)
     : ConcatBase<T1, T2>{ArrowHelpers::concatTables(std::move(tables)), offset} {}
 
+  using originals = framework::pack<T1, T2>;
+  // FIXME: can be remove when we do the same treatment we did for Join to Concatenate
   using left_t = T1;
   using right_t = T2;
   using table_t = ConcatBase<T1, T2>;

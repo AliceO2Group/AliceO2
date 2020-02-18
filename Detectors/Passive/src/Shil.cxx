@@ -1281,7 +1281,8 @@ void Shil::ConstructGeometry()
   z = shYOUT1->GetZ(7);
   Int_t izc = 8;
   for (Int_t iz = 9; iz < 17; iz++) {
-    if (iz == 11 || iz == 15) continue;
+    if (iz == 11 || iz == 15)
+      continue;
     shYOUT1->DefineSection(izc, z + shFaSaa1->GetZ(iz - 9), shFaSaa1->GetRmax(iz - 9) + eps, 150.);
     izc++;
   }
@@ -1326,7 +1327,7 @@ void Shil::ConstructGeometry()
   shYOUT21->DefineSection(5, z, rOuSaa2PbRingF, 375.);
   rmin = rOuSaa2PbRingF + (1380. - z) * TMath::Tan(1.6 * kDegRad);
   shYOUT21->DefineSection(6, 1380., rmin, 375.);
-    z = ziSaa2 + zSaa2PbRing + dzSaa2PbRing;
+  z = ziSaa2 + zSaa2PbRing + dzSaa2PbRing;
   shYOUT21->DefineSection(7, z, rOuSaa2PbRingR, 375.);
   //    Straight Sections
   shYOUT21->DefineSection(8, z, rInSaa2StEnv1 + dSt, 460.);

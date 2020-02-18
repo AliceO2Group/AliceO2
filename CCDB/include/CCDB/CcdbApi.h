@@ -18,7 +18,6 @@
 
 #include <string>
 #include <memory>
-#include <iostream>
 #include <map>
 #include <curl/curl.h>
 #include <TObject.h>
@@ -30,6 +29,8 @@ namespace o2
 {
 namespace ccdb
 {
+
+class CCDBQuery;
 
 /**
  * Interface to the CCDB.
@@ -234,6 +235,20 @@ class CcdbApi //: public DatabaseInterface
    */
   static void parseCCDBHeaders(std::vector<std::string> const& headers, std::vector<std::string>& pfns, std::string& etag);
 
+  /**
+   * Extracts meta-information of the query from a TFile containing the CCDB blob.
+   */
+  static CCDBQuery* retrieveQueryInfo(TFile&);
+
+  /**
+   * Extracts meta-information associated to the CCDB blob sitting in given TFile.
+   */
+  static std::map<std::string, std::string>* retrieveMetaInfo(TFile&);
+
+  constexpr static const char* CCDBQUERY_ENTRY = "ccdb_query";
+  constexpr static const char* CCDBMETA_ENTRY = "ccdb_meta";
+  constexpr static const char* CCDBOBJECT_ENTRY = "ccdb_object";
+
  private:
   /**
    * Initialize in local mode; Objects will be retrieved from snapshot
@@ -263,7 +278,8 @@ class CcdbApi //: public DatabaseInterface
    * @param endValidityTimestamp End of validity. If omitted or negative, current timestamp + 1 year is used.
    * @return The full url to store an object (url / startValidity / endValidity / [metadata &]* )
    */
-  std::string getFullUrlForStorage(const std::string& path, const std::map<std::string, std::string>& metadata,
+  std::string getFullUrlForStorage(const std::string& path, const std::string& objtype,
+                                   const std::map<std::string, std::string>& metadata,
                                    long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
 
   /**
@@ -276,12 +292,14 @@ class CcdbApi //: public DatabaseInterface
   std::string getFullUrlForRetrieval(const std::string& path, const std::map<std::string, std::string>& metadata,
                                      long timestamp = -1) const;
 
+ public:
   /**
    * A generic helper implementation to store an obj whose type is given by a std::type_info
    */
   void storeAsTFile_impl(void* obj, std::type_info const& info, std::string const& path, std::map<std::string, std::string> const& metadata,
                          long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
 
+ private:
   /**
    * A generic helper implementation to query obj whose type is given by a std::type_info
    */

@@ -45,21 +45,21 @@ void GPUReconstructionConvert::ConvertNativeToClusterData(o2::tpc::ClusterNative
     nClSlice = 0;
     for (int j = 0; j < GPUCA_ROW_COUNT; j++) {
       for (unsigned int k = 0; k < native->nClusters[i][j]; k++) {
-        const auto& cin = native->clusters[i][j][k];
+        const auto& clin = native->clusters[i][j][k];
         float x = 0, y = 0, z = 0;
         if (continuousMaxTimeBin == 0) {
-          transform->Transform(i, j, cin.getPad(), cin.getTime(), x, y, z);
+          transform->Transform(i, j, clin.getPad(), clin.getTime(), x, y, z);
         } else {
-          transform->TransformInTimeFrame(i, j, cin.getPad(), cin.getTime(), x, y, z, continuousMaxTimeBin);
+          transform->TransformInTimeFrame(i, j, clin.getPad(), clin.getTime(), x, y, z, continuousMaxTimeBin);
         }
-        auto& cout = clusters[i].get()[nClSlice];
-        cout.x = x;
-        cout.y = y;
-        cout.z = z;
-        cout.row = j;
-        cout.amp = cin.qTot;
-        cout.flags = cin.getFlags();
-        cout.id = offset + k;
+        auto& clout = clusters[i].get()[nClSlice];
+        clout.x = x;
+        clout.y = y;
+        clout.z = z;
+        clout.row = j;
+        clout.amp = clin.qTot;
+        clout.flags = clin.getFlags();
+        clout.id = offset + k;
         nClSlice++;
       }
       native->clusterOffset[i][j] = offset;
@@ -180,7 +180,7 @@ void GPUReconstructionConvert::ZSstreamOut(unsigned short* bufIn, unsigned int& 
   lenIn = 0;
 }
 
-void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GPUTrackingInOutZS*& out, const GPUParam& param, bool zs12bit)
+void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, const GPUTrackingInOutZS*& out, const GPUParam& param, bool zs12bit)
 {
 #ifdef GPUCA_TPC_GEOMETRY_O2
   static std::vector<std::array<long long int, TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(long long int)>> buffer[NSLICES][GPUTrackingInOutZS::NENDPOINTS];
@@ -427,11 +427,11 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GP
 #endif
 }
 
-void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<deprecated::PackedDigit[]>* buffers, const deprecated::PackedDigit** ptrs, size_t* ns, const GPUParam& param, bool zs12bit)
+void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<deprecated::PackedDigit[]>* buffers, const deprecated::PackedDigit* const* ptrs, size_t* nsb, const size_t* ns, const GPUParam& param, bool zs12bit)
 {
 #ifdef HAVE_O2HEADERS
   for (unsigned int i = 0; i < NSLICES; i++) {
-    if (buffers[i].get() != ptrs[i]) {
+    if (buffers[i].get() != ptrs[i] || nsb != ns) {
       throw std::runtime_error("Not owning digits");
     }
     unsigned int j = 0;
@@ -450,7 +450,7 @@ void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<deprecated::PackedDig
         j++;
       }
     }
-    ns[i] = j;
+    nsb[i] = j;
   }
 #endif
 }

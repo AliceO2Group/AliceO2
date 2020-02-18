@@ -19,7 +19,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 else()
   if(OPENGL_FOUND
      AND GLFW_FOUND
-     AND GLEW_FOUND
+     AND (ALIGPU_BUILD_TYPE STREQUAL "O2" OR GLEW_FOUND)
      AND OPENGL_GLU_FOUND
      AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(GPUCA_EVENT_DISPLAY ON)
@@ -114,6 +114,7 @@ set(HDRS_INSTALL
     Base/GPUOutputControl.h
     Base/GPUOutputControl.h
     Base/GPUO2DataTypes.h
+    Base/GPUHostDataTypes.h
     Base/GPUMemorySizeScalers.h
     dEdx/GPUdEdxInfo.h
     TPCConvert/GPUTPCConvertImpl.h
@@ -146,16 +147,15 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         DataCompression/GPUTPCCompressionKernels.cxx
         DataCompression/TPCClusterDecompressor.cxx
         DataCompression/GPUTPCClusterStatistics.cxx
-        TPCClusterFinder/GPUTPCClusterFinderKernels.cxx
         TPCClusterFinder/GPUTPCClusterFinder.cxx
         TPCClusterFinder/ClusterAccumulator.cxx
-        TPCClusterFinder/StreamCompaction.cxx
-        TPCClusterFinder/ChargeMapFiller.cxx
-        TPCClusterFinder/PeakFinder.cxx
-        TPCClusterFinder/NoiseSuppression.cxx
-        TPCClusterFinder/Clusterizer.cxx
-        TPCClusterFinder/Deconvolution.cxx
-        TPCClusterFinder/DecodeZS.cxx)
+        TPCClusterFinder/GPUTPCCFStreamCompaction.cxx
+        TPCClusterFinder/GPUTPCCFChargeMapFiller.cxx
+        TPCClusterFinder/GPUTPCCFPeakFinder.cxx
+        TPCClusterFinder/GPUTPCCFNoiseSuppression.cxx
+        TPCClusterFinder/GPUTPCCFClusterizer.cxx
+        TPCClusterFinder/GPUTPCCFDeconvolution.cxx
+        TPCClusterFinder/GPUTPCCFDecodeZS.cxx)
 
     set(SRCS_NO_H ${SRCS_NO_H}
         TPCClusterFinder/GPUTPCClusterFinderDump.cxx)
@@ -170,7 +170,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
                      TPCClusterFinder/ChargePos.h
                      TPCClusterFinder/clusterFinderDefs.h
                      TPCClusterFinder/Digit.h
-                     TPCClusterFinder/GPUTPCSharedMemoryData.h
+                     TPCClusterFinder/GPUTPCClusterFinderKernels.h
                      TPCClusterFinder/PackedCharge.h)
 endif()
 
@@ -203,7 +203,9 @@ if(GPUCA_EVENT_DISPLAY)
   set(SRCS_NO_H ${SRCS_NO_H} Standalone/display/GPUDisplayQuaternion.cxx
                 Standalone/display/GPUDisplayInterpolation.cxx
                 Standalone/display/GPUDisplayKeys.cxx)
-  set(HDRS_INSTALL ${HDRS_INSTALL} Standalone/display/GPUDisplayExt.h)
+  set(HDRS_INSTALL ${HDRS_INSTALL}
+                   Standalone/display/GPUDisplayExt.h
+                   Standalone/display/GPUDisplayShaders.h)
 else()
   set(HDRS_INSTALL ${HDRS_INSTALL} Standalone/display/GPUDisplay.h)
 endif()
@@ -389,9 +391,12 @@ endif()
 if(GPUCA_EVENT_DISPLAY)
   message(STATUS "Building GPU Event Display")
   target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY)
-  target_link_libraries(${targetName}
-                        PUBLIC ${GLEW_LIBRARIES} ${GLFW_LIBRARIES} OpenGL::GL
-                               OpenGL::GLU)
+  target_link_libraries(${targetName} PUBLIC ${GLFW_LIBRARIES} OpenGL::GL OpenGL::GLU)
+  if(ALIGPU_BUILD_TYPE STREQUAL "O2")
+    target_compile_definitions(${targetName} PRIVATE GPUCA_DISPLAY_GL3W GPUCA_DISPLAY_OPENGL_CORE)
+  else()
+    target_link_libraries(${targetName} PUBLIC ${GLEW_LIBRARIES})
+  endif()
 endif()
 
 # Add compile definitions and libraries depending on available optional dependencies
