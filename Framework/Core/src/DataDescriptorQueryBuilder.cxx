@@ -177,24 +177,27 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
         token(IN_STRING, "/;");
       } break;
       case IN_END_ORIGIN: {
-        assignLastStringMatch("origin", 4, currentOrigin, IN_BEGIN_DESCRIPTION);
-        nodes.push_back(OriginValueMatcher{*currentOrigin});
+        if (assignLastStringMatch("origin", 4, currentOrigin, IN_BEGIN_DESCRIPTION)) {
+          nodes.push_back(OriginValueMatcher{*currentOrigin});
+        }
       } break;
       case IN_BEGIN_DESCRIPTION: {
         pushState(IN_END_DESCRIPTION);
         token(IN_STRING, "/;");
       } break;
       case IN_END_DESCRIPTION: {
-        assignLastStringMatch("description", 16, currentDescription, IN_BEGIN_SUBSPEC);
-        nodes.push_back(DescriptionValueMatcher{*currentDescription});
+        if (assignLastStringMatch("description", 16, currentDescription, IN_BEGIN_SUBSPEC)) {
+          nodes.push_back(DescriptionValueMatcher{*currentDescription});
+        }
       } break;
       case IN_BEGIN_SUBSPEC: {
         pushState(IN_END_SUBSPEC);
         token(IN_NUMBER, ";%");
       } break;
       case IN_END_SUBSPEC: {
-        assignLastNumericMatch("subspec", currentSubSpec, IN_BEGIN_TIMEMODULO);
-        nodes.push_back(SubSpecificationTypeValueMatcher{*currentSubSpec});
+        if (assignLastNumericMatch("subspec", currentSubSpec, IN_BEGIN_TIMEMODULO)) {
+          nodes.push_back(SubSpecificationTypeValueMatcher{*currentSubSpec});
+        }
       } break;
       case IN_BEGIN_TIMEMODULO: {
         pushState(IN_END_TIMEMODULO);
