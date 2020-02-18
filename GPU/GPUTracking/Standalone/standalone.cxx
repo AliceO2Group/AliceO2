@@ -329,6 +329,7 @@ int SetupReconstruction()
   devProc.globalInitMutex = configStandalone.gpuInitMutex;
   devProc.gpuDeviceOnly = configStandalone.oclGPUonly;
   devProc.memoryAllocationStrategy = configStandalone.allocationStrategy;
+  devProc.registerStandaloneInputMemory = configStandalone.registerInputMemory;
   recSet.tpcRejectionMode = configStandalone.configRec.tpcReject;
   if (configStandalone.configRec.tpcRejectThreshold != 0.f) {
     recSet.tpcRejectQPt = 1.f / configStandalone.configRec.tpcRejectThreshold;
