@@ -29,14 +29,14 @@ void GPUTPCSliceOutput::Allocate(GPUTPCSliceOutput*& ptrOutput, int nTracks, int
   // Allocate All memory needed for slice output
   const size_t memsize = EstimateSize(nTracks, nTrackHits);
 
-  if (outputControl->OutputType != GPUOutputControl::AllocateInternal) {
-    if (outputControl->OutputMaxSize - outputControl->Offset < memsize) {
+  if (outputControl && outputControl->OutputType != GPUOutputControl::AllocateInternal) {
+    if (outputControl->OutputMaxSize - ((char*)outputControl->OutputPtr - (char*)outputControl->OutputBase) < memsize) {
       outputControl->EndOfSpace = 1;
       ptrOutput = nullptr;
       return;
     }
-    ptrOutput = reinterpret_cast<GPUTPCSliceOutput*>(outputControl->OutputPtr + outputControl->Offset);
-    outputControl->Offset += memsize;
+    ptrOutput = reinterpret_cast<GPUTPCSliceOutput*>(outputControl->OutputPtr);
+    outputControl->OutputPtr = (char*)outputControl->OutputPtr + memsize;
   } else {
     if (internalMemory) {
       free(internalMemory);
