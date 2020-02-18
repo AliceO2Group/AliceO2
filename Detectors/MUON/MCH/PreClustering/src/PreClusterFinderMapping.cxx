@@ -19,8 +19,7 @@
 
 #include <FairMQLogger.h>
 
-#include "MCHMappingFactory/CreateSegmentation.h"
-#include "MCHMappingInterface/CathodeSegmentation.h"
+#include "MCHMappingInterface/Segmentation.h"
 
 namespace o2
 {

@@ -10,8 +10,8 @@
 
 add_subdirectory(Interface)
 add_subdirectory(Impl3)
+add_subdirectory(Impl4)
 add_subdirectory(SegContour)
-add_subdirectory(Factory)
 if(BUILD_TESTING)
   add_subdirectory(test)
 endif()
