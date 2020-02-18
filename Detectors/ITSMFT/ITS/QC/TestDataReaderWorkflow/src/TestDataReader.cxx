@@ -379,8 +379,8 @@ void TestDataReader::run(ProcessingContext& pc)
         for (auto& pixel : pixels) {
           if (Index < IndexMax)
             break;
-          int col = pixel.getCol();
-          int row = pixel.getRow();
+          UShort_t col = pixel.getCol();
+          UShort_t row = pixel.getRow();
           mDigits.emplace_back(ChipID, row, col, 0);
 	  o2::itsmft::Digit tmp = {ChipID, row, col, 0};
 	  DigitEvent combine;
