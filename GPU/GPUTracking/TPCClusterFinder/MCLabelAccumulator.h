@@ -37,14 +37,9 @@ class MCLabelAccumulator
 
   void collect(const ChargePos&, Charge);
 
-  // Returns the mutex protecting this row
-  std::mutex& mtx(Row row) { return mOutput->mtx[row]; }
+  bool engaged() const { return mLabels != nullptr && mOutput != nullptr; }
 
-  bool engaged() const { return mLabels != nullptr; }
-
-  // Write collected labels to output container. May only be called if the
-  // corresponding mutex returned by mtx() was acquired.
-  void commit(Row, ClusterID);
+  uint commit(Row);
 
  private:
   Array2D<const DigitID> mIndexMap;

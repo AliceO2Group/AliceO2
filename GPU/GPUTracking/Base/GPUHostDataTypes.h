@@ -20,21 +20,20 @@
 // Structures used on the GPU can have pointers to these wrappers, when the wrappers are forward declared.
 // These wrapped complex types are not meant for usage on GPU
 
+#if defined(GPUCA_GPUCODE)
+#error "GPUHostDataTypes.h should never be included on GPU."
+#endif
+
 #include <vector>
 #include <array>
 #include <memory>
 #include <mutex>
 #include "DataFormatsTPC/Constants.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 namespace GPUCA_NAMESPACE
 {
-class MCCompLabel;
-namespace dataformats
-{
-template <typename TruthElement>
-class MCTruthContainer;
-} // namespace dataformats
-
 namespace gpu
 {
 
@@ -43,14 +42,10 @@ struct GPUTPCDigitsMCInput {
 };
 
 struct GPUTPCClusterMCSector {
-  std::array<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*, o2::tpc::Constants::MAXGLOBALPADROW> labels;
+  std::array<o2::dataformats::MCTruthContainer<o2::MCCompLabel>, o2::tpc::Constants::MAXGLOBALPADROW> labels;
   // Protect access to each row because multiple threads might attempt to
   // add values in parallel
   std::array<std::mutex, o2::tpc::Constants::MAXGLOBALPADROW> mtx;
-};
-
-struct GPUTPCClusterMCOutput {
-  std::array<GPUTPCClusterMCSector, o2::tpc::Constants::MAXSECTOR> v;
 };
 
 } // namespace gpu

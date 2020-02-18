@@ -30,16 +30,15 @@ GPUdii() void GPUTPCCFClusterizer::Thread<GPUTPCCFClusterizer::computeClusters>(
   CPU_ONLY(
     MCLabelAccumulator labelAcc(clusterer));
 
-  GPUTPCCFClusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, clusterer.mPfilteredPeaks, clusterer.mPmemory->counters.nClusters, CPU_PTR(&labelAcc), clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterer.mPclusterByRow);
+  GPUTPCCFClusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, clusterer.mPfilteredPeaks, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterer.mPclusterByRow);
 }
 
 GPUd() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlock, int iThread,
-                                                     GPUTPCSharedMemory& smem,
+                                                     GPUSharedMemory& smem,
                                                      const Array2D<PackedCharge>& chargeMap,
-                                                     const Array2D<ClusterID>& indexMap,
                                                      const deprecated::Digit* digits,
-                                                     uint clusternum,
                                                      MCLabelAccumulator* labelAcc,
+                                                     uint clusternum,
                                                      uint maxClusterPerRow,
                                                      uint* clusterInRow,
                                                      tpc::ClusterNative* clusterByRow)
@@ -86,22 +85,17 @@ GPUd() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, 
   bool aboveQTotCutoff = true;
 #endif
 
-  if (aboveQTotCutoff) {
-    // On cpu this mutex must be acquired before sorting cluster into buckets
-    // to ensure the bucket index is identical to the position inside the label container
-    CPU_ONLY(
-      std::scoped_lock lock(labelAcc->mtx(myDigit.row)));
-
-    ClusterID index = sortIntoBuckets(
-      myCluster,
-      myDigit.row,
-      maxClusterPerRow,
-      clusterInRow,
-      clusterByRow);
-
-    CPU_ONLY(
-      labelAcc->commit(myDigit.row, index));
+  if (!aboveQTotCutoff) {
+    return;
   }
+
+  sortIntoBuckets(
+    myCluster,
+    labelAcc,
+    myDigit.row,
+    maxClusterPerRow,
+    clusterInRow,
+    clusterByRow);
 }
 
 GPUd() void GPUTPCCFClusterizer::addOuterCharge(
@@ -364,13 +358,22 @@ GPUd() void GPUTPCCFClusterizer::buildClusterNaive(
   addCorner(chargeMap, myCluster, pos, {1, 1});
 }
 
-GPUd() uint GPUTPCCFClusterizer::sortIntoBuckets(const tpc::ClusterNative& cluster, const uint bucket, const uint maxElemsPerBucket, uint* elemsInBucket, tpc::ClusterNative* buckets)
+GPUd() void GPUTPCCFClusterizer::sortIntoBuckets(const tpc::ClusterNative& cluster, MCLabelAccumulator* labelAcc, uint row, uint maxElemsPerBucket, uint* elemsInBucket, tpc::ClusterNative* buckets)
 {
-  uint posInBucket = CAMath::AtomicAdd(&elemsInBucket[bucket], 1);
-
-  if (posInBucket < maxElemsPerBucket) {
-    buckets[maxElemsPerBucket * bucket + posInBucket] = cluster;
+  uint index;
+#if defined(GPUCA_GPUCODE)
+  index = CAMath::AtomicAdd(&elemsInBucket[row], 1);
+#else
+  if (labelAcc->engaged()) {
+    // On cpu if we have labels, let label accumulator determine the bucket
+    // index to ensure truth index and cluster index are identical
+    index = labelAcc->commit(row);
+    CAMath::AtomicMax(&elemsInBucket[row], index);
+  } else {
+    index = CAMath::AtomicAdd(&elemsInBucket[row], 1);
   }
-
-  return posInBucket;
+#endif
+  if (index < maxElemsPerBucket) {
+    buckets[maxElemsPerBucket * row + index] = cluster;
+  }
 }

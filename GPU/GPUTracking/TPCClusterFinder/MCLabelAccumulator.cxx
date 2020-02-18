@@ -36,13 +36,18 @@ void MCLabelAccumulator::collect(const ChargePos& pos, Charge q)
   mClusterLabels.insert(labels.begin(), labels.end());
 }
 
-void MCLabelAccumulator::commit(Row row, ClusterID index)
+uint MCLabelAccumulator::commit(Row row)
 {
   if (!engaged()) {
-    return;
+    return 0;
   }
 
+  std::scoped_lock lock(mOutput->mtx[row]);
+
+  uint index = mOutput->labels[row].getIndexedSize();
   for (const auto& label : mClusterLabels) {
-    mOutput->labels[row]->addElement(index, label);
+    mOutput->labels[row].addElement(index, label);
   }
+
+  return index;
 }

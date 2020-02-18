@@ -978,14 +978,15 @@ int GPUChainTracking::RunTPCClusterizer()
   size_t pos = 0;
   clsMemory.reserve(mRec->MemoryScalers()->nTPCHits);
 
-  // Allocate memory for cluster mc labels
-  // TODO: this should be part of the TrackingIOPointers?
-  GPUTPCClusterMCOutput clusterLabels;
-  for (auto &container : clusterLabels.v) {
-    for (auto &rowcontainer : container.labels) {
-      rowcontainer = new dataformats::MCTruthContainer<o2::MCCompLabel>; // FIXME: Memleak. Use unique_ptr instead?
-    }
-  }
+  // setup MC Labels
+  static o2::dataformats::MCTruthContainer<o2::MCCompLabel> clustersMCTruth;
+  auto* digitsMC = processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC;
+  bool propagateMCLabels = !doGPU && digitsMC != nullptr;
+
+  int nLanes = GetDeviceProcessingSettings().nTPCClustererLanes;
+  std::unique_ptr clusterLabels =
+    (propagateMCLabels) ? std::make_unique<std::vector<GPUTPCClusterMCSector>>(nLanes)
+                        : nullptr;
 
   for (unsigned int iSliceBase = 0; iSliceBase < NSLICES; iSliceBase += GetDeviceProcessingSettings().nTPCClustererLanes) {
     for (int lane = 0; lane < GetDeviceProcessingSettings().nTPCClustererLanes && iSliceBase + lane < NSLICES; lane++) {
@@ -993,11 +994,10 @@ int GPUChainTracking::RunTPCClusterizer()
       GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSlice];
       GPUTPCClusterFinder& clustererShadow = doGPU ? processorsShadow()->tpcClusterer[iSlice] : clusterer;
 
-      auto *digitsMC = processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC;
-      if (digitsMC != nullptr) {
-        clusterer.mPinputLabels = processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC->v[iSlice];
+      if (propagateMCLabels) {
+        clusterer.mPinputLabels = digitsMC->v[iSlice];
+        clusterer.mPclusterLabels = &(*clusterLabels)[lane];
       }
-      clusterer.mPclusterLabels = &clusterLabels.v[iSlice];
 
       SetupGPUProcessor(&clusterer, false);
       clusterer.mPmemory->counters.nPeaks = clusterer.mPmemory->counters.nClusters = 0;
@@ -1091,7 +1091,6 @@ int GPUChainTracking::RunTPCClusterizer()
       runKernel<GPUTPCCFDeconvolution, GPUTPCCFDeconvolution::countPeaks>(GetGrid(clusterer.mPmemory->counters.nDigits, ClustererThreadCount(), lane), {iSlice}, {});
       DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpChargeMap, mDebugFile, "Split Charges");
 
-
       runKernel<GPUTPCCFClusterizer, GPUTPCCFClusterizer::computeClusters>(GetGrid(clusterer.mPmemory->counters.nClusters, ClustererThreadCount(), lane), {iSlice}, {});
       if (GetDeviceProcessingSettings().debugLevel >= 3) {
         printf("Lane %d: Found clusters: digits %d peaks %d clusters %d\n", lane, (int)clusterer.mPmemory->counters.nDigits, (int)clusterer.mPmemory->counters.nPeaks, (int)clusterer.mPmemory->counters.nClusters);
@@ -1099,21 +1098,24 @@ int GPUChainTracking::RunTPCClusterizer()
       TransferMemoryResourcesToHost(RecoStep::TPCClusterFinding, &clusterer, lane);
       DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpCountedPeaks, mDebugFile);
       DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpClusters, mDebugFile);
-      if (lane > 0) {
+      if (iSlice != 0) {
         continue;
       }
-      for (const auto &rows : clusterer.mPclusterLabels->labels) {
+      for (const auto& row : clusterer.mPclusterLabels->labels) {
         for (uint i = 0; i < clusterer.mPclusterInRow[0]; i++) {
-          auto labels = rows[0].getLabels(i);
-          std::cout << i << ": ";
+          auto labels = row.getLabels(i);
+          auto& cls = clusterer.mPclusterByRow[i];
+          std::cout << i << "(" << cls.getTime() << "," << cls.getPad() << ")"
+                    << ": ";
           if (labels.empty()) {
-              std::cout << "no labels";
+            std::cout << "no labels";
           }
-          for (auto &label : labels) {
+          for (auto& label : labels) {
             std::cout << label << " ";
           }
           std::cout << std::endl;
         }
+        break; // only print data of first row
       }
     }
     for (int lane = 0; lane < GetDeviceProcessingSettings().nTPCClustererLanes && iSliceBase + lane < NSLICES; lane++) {
@@ -1135,11 +1137,15 @@ int GPUChainTracking::RunTPCClusterizer()
         memcpy((void*)&clsMemory[pos], (const void*)&clusterer.mPclusterByRow[j * clusterer.mNMaxClusterPerRow], clusterer.mPclusterInRow[j] * sizeof(clsMemory[0]));
         tmp->nClusters[iSlice][j] = clusterer.mPclusterInRow[j];
         pos += clusterer.mPclusterInRow[j];
+        if (propagateMCLabels) {
+          clustersMCTruth.mergeAtBack(clusterer.mPclusterLabels->labels[j]);
+        }
       }
     }
   }
 
   tmp->clustersLinear = clsMemory.data();
+  tmp->clustersMCTruth = &clustersMCTruth;
   tmp->setOffsetPtrs();
   mIOPtrs.clustersNative = tmp;
   PrepareEventFromNative();
