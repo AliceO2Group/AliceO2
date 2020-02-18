@@ -109,8 +109,8 @@ function(o2_add_test_wrapper)
 
   # For now, we enforce 3 max attempts for all tests.
   # No need to ignore time out, since we have 3 attempts
-  set(A_MAX_ATTEMPTS 3)
-  set(A_DONT_FAIL_ON_TIMEOUT "")
+  #set(A_MAX_ATTEMPTS 3)
+  #set(A_DONT_FAIL_ON_TIMEOUT "")
 
   math(EXPR ctestTimeout "(20 + ${A_TIMEOUT}) * ${A_MAX_ATTEMPTS}")
 
