@@ -36,7 +36,8 @@ void FT0ReconstructorDPL::run(ProcessingContext& pc)
     return;
   }
   mRecPoints.clear();
-  auto digits = pc.inputs().get<const std::vector<o2::ft0::Digit>>("digits");
+  auto digits = pc.inputs().get<gsl::span<o2::ft0::Digit>>("digits");
+//auto digits = pc.inputs().get<const std::vector<o2::ft0::Digit>>("digits");
   auto digch = pc.inputs().get<gsl::span<o2::ft0::ChannelData>>("digch");
   // RS: if we need to process MC truth, uncomment lines below
   //std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>> labels;
@@ -57,7 +58,7 @@ void FT0ReconstructorDPL::run(ProcessingContext& pc)
     mRecPoints.emplace_back(mReco.process(digit, channels, out_ch));
   }
   // do we ignore MC in this task?
-
+  
   LOG(DEBUG) << "FT0 reconstruction pushes " << mRecPoints.size() << " RecPoints";
   pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, mRecPoints);
   pc.outputs().snapshot(Output{mOrigin, "RECCHDATA", 0, Lifetime::Timeframe}, mRecChData);
