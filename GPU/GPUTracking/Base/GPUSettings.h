@@ -143,6 +143,7 @@ struct GPUSettingsDeviceProcessing {
   size_t forceMemoryPoolSize;         // Override size of memory pool to be allocated on GPU / Host (set =1 to force allocating all device memory, if supported)
   int nTPCClustererLanes;             // Number of TPC clusterers that can run in parallel
   bool deviceTimers;                  // Use device timers instead of host-based timers
+  bool registerStandaloneInputMemory; // Automatically register memory for the GPU which is used as input for the standalone benchmark
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

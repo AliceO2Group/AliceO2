@@ -180,7 +180,7 @@ void GPUReconstructionConvert::ZSstreamOut(unsigned short* bufIn, unsigned int& 
   lenIn = 0;
 }
 
-void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, const GPUTrackingInOutZS*& out, const GPUParam& param, bool zs12bit)
+void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, GPUTrackingInOutZS*& out, const GPUParam& param, bool zs12bit)
 {
 #ifdef GPUCA_TPC_GEOMETRY_O2
   static std::vector<std::array<long long int, TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(long long int)>> buffer[NSLICES][GPUTrackingInOutZS::NENDPOINTS];
