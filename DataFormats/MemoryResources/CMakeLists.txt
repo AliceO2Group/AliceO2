@@ -16,7 +16,7 @@ if(NOT APPLE)
               SOURCES test/testMemoryResources.cxx
               PUBLIC_LINK_LIBRARIES O2::MemoryResources
               COMPONENT_NAME MemoryResources)
-endif(APPLE)
+endif(NOT APPLE)
 
 o2_add_test(observer_ptr
             SOURCES test/test_observer_ptr.cxx
