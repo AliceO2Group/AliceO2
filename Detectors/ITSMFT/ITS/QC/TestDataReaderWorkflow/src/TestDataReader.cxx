@@ -89,7 +89,6 @@ void TestDataReader::init(InitContext& ic)
     mErrors[i] = 0;
   }
 
-
   mEventRegistered = 0;
   mTotalPixelSize = 0;
 
@@ -114,7 +113,7 @@ void TestDataReader::run(ProcessingContext& pc)
   int NEvent;
   double PercentDone = 0;
   int ErrorDetcted;
-  
+
   cout << "----------------------------------------------------------" << endl
        << endl;
 
@@ -200,7 +199,7 @@ void TestDataReader::run(ProcessingContext& pc)
   LOG(DEBUG) << "Start Loop";
 
   //Start Decoding New Files by loop through the new file vector
-  
+
   for (int i = 0; i < mNowFolderNames.size(); i++) {
 
     LOG(DEBUG) << "i = " << i << "    mDiffFileNames[i].size() = " << mDiffFileNames[i].size();
@@ -232,8 +231,8 @@ void TestDataReader::run(ProcessingContext& pc)
       pos = mDiffFileNames[i][0].find_last_of("/");
       if (pos != string::npos)
         FileIDS = mDiffFileNames[i][0].substr(pos + 1);
-      mEpNumber = stoi(mDiffFileNames[i][0].substr(pos+8, 1));
-     // cout << "Before FileIDS = " << FileIDS << endl;
+      mEpNumber = stoi(mDiffFileNames[i][0].substr(pos + 8, 1));
+      // cout << "Before FileIDS = " << FileIDS << endl;
 
       size_t last_index2 = FileIDS.find_last_not_of("0123456789");
       FileIDS = FileIDS.substr(last_index2 + 1);
@@ -250,15 +249,14 @@ void TestDataReader::run(ProcessingContext& pc)
 
       mEventRegistered = 0;
       LOG(DEBUG) << "mInputName = " << mInputName;
-      
-      
+
       //Inject fake thing digits for the QC to update immediately
       //mDigitsTest is the fake digit for updating the QC immediately on the QC GUI
 
       if (mNewFileInj == 1) {
         cout << "New File Injected, Now Updating the Canvas and Light" << endl;
         mDigitsTest.emplace_back(0, 0, 0, 0);
-	mEventsTest.emplace_back(0);
+        mEventsTest.emplace_back(0);
         //mMultiDigitsTest.push_back(mDigitsTest[0]);
         mErrorsVecTest.push_back(mErrors);
         mFileDone = 1;
@@ -269,12 +267,12 @@ void TestDataReader::run(ProcessingContext& pc)
         pc.outputs().snapshot(Output{"ITS", "Error", 0, Lifetime::Timeframe}, mErrorsVecTest[0]);
         pc.outputs().snapshot(Output{"ITS", "Finish", 0, Lifetime::Timeframe}, mFileInfo);
         pc.outputs().snapshot(Output{"ITS", "DIGITS", 0, Lifetime::Timeframe}, mMultiDigitsTest);
-	pc.outputs().snapshot(Output{"ITS", "Events", 0, Lifetime::Timeframe}, mEventsTest);
+        pc.outputs().snapshot(Output{"ITS", "Events", 0, Lifetime::Timeframe}, mEventsTest);
         mNewFileInj = 0;
         mErrorsVecTest.clear();
         mDigitsTest.clear();
         mMultiDigitsTest.clear();
-	mEventsTest.clear();
+        mEventsTest.clear();
         if (mFolderNames.size() < mNowFolderNames.size())
           mFileNames.push_back(NewNextFold);
         cout << "Done!!! You should see the Canvas Updated " << endl;
@@ -310,7 +308,7 @@ void TestDataReader::run(ProcessingContext& pc)
         int pixelSize = mChipData->getData().size();
 
         NEvent = statRU->nPackets;
-       // cout << "NEvent is " << NEvent <<endl;
+        // cout << "NEvent is " << NEvent <<endl;
         mTotalPixelSize = mTotalPixelSize + pixelSize;
 
         if (NEvent > (mEventRegistered + 1) * mEventPerPush) {
@@ -349,7 +347,6 @@ void TestDataReader::run(ProcessingContext& pc)
         for (int i = 0; i < o2::itsmft::GBTLinkDecodingStat::NErrorsDefined; i++) {
           if ((mErrors[i] + (unsigned int)statRU->errorCounts[i]) < 4294967295)
             mErrors[i] = mErrors[i] + (unsigned int)statRU->errorCounts[i];
-      
         }
 
         if (mTrackError == 1) {
@@ -375,30 +372,30 @@ void TestDataReader::run(ProcessingContext& pc)
         }
 
         auto ChipID = mChipData->getChipID();
-     
+
         for (auto& pixel : pixels) {
           if (Index < IndexMax)
             break;
           UShort_t col = pixel.getCol();
           UShort_t row = pixel.getRow();
           mDigits.emplace_back(ChipID, row, col, 0);
-	  o2::itsmft::Digit tmp = {ChipID, row, col, 0};
-	  DigitEvent combine;
+          o2::itsmft::Digit tmp = {ChipID, row, col, 0};
+          DigitEvent combine;
           combine.Digits = tmp;
           combine.NEvent = NEvent;
-	  mEvents.push_back(combine);
+          mEvents.push_back(combine);
           Index = Index + 1;
         }
         NChip = NChip + 1;
         NEventPre = NEvent;
-       // cout << "Chip loop done" << endl;
+        // cout << "Chip loop done" << endl;
       }
 
       cout << "Final TotalPixelSize = " << mTotalPixelSize << endl;
       mNDigits.push_back(mTotalPixelSize);
       mTotalPixelSize = 0;
       mErrorsVec.push_back(mErrors);
-        
+
       LOG(DEBUG) << "Run " << mNowFolderNames[i] << " File " << mInputName << "    Integrated Raw Pixel Pushed " << mDigits.size();
       if (mFolderNames.size() < mNowFolderNames.size())
         mFileNames.push_back(NewNextFold);
@@ -409,16 +406,16 @@ void TestDataReader::run(ProcessingContext& pc)
   }
 
   LOG(DEBUG) << "DONE Pushing";
- 
+
   LOG(DEBUG) << "mIndexPush Before = " << mIndexPush << "  mDigits.size() =  " << mDigits.size();
   LOG(DEBUG) << "MDSize: " << mNDigits.size();
- 
+
   if (mDigits.size() > 0)
     PercentDone = double(mIndexPush) / double(mDigits.size());
   cout << "Percentage Processed = " << Form("%.2f", 100. * PercentDone) << endl;
   cout << "mDigits = " << mDigits.size() << endl;
   if (mIndexPush < mDigits.size()) {
-    LOG(DEBUG) << "LOOP is " << j ;
+    LOG(DEBUG) << "LOOP is " << j;
 
     for (int i = 0; i < mNDigits[j]; i++) {
       mMultiDigits.push_back(mDigits[mIndexPush + i]);
@@ -431,13 +428,13 @@ void TestDataReader::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"ITS", "File", 0, Lifetime::Timeframe}, mFileID);
     pc.outputs().snapshot(Output{"ITS", "EP", 0, Lifetime::Timeframe}, mEpNumber);
     pc.outputs().snapshot(Output{"ITS", "Error", 0, Lifetime::Timeframe}, mErrorsVec[j]);
-   
+
     mIndexPushEx = mIndexPush + mNDigits[j];
-   
+
     LOG(DEBUG) << "IndexPushEx = " << mIndexPushEx << "  mDigits.size() " << mDigits.size();
-    if (mIndexPushEx > mDigits.size() - 5){
+    if (mIndexPushEx > mDigits.size() - 5) {
       mFileDone = 1;
-      cout << "FileDone in loop" <<endl;
+      cout << "FileDone in loop" << endl;
     }
     LOG(DEBUG) << "FileDone = " << mFileDone;
     LOG(DEBUG) << "FileRemain = " << mFileRemain;
@@ -460,7 +457,6 @@ void TestDataReader::run(ProcessingContext& pc)
 
   LOG(DEBUG) << "mIndexPush After = " << mIndexPush;
 
-
   mFolderNames.clear();
   NewNextFold.clear();
   mFolderNames = mNowFolderNames;
@@ -476,7 +472,7 @@ void TestDataReader::run(ProcessingContext& pc)
 
   //Resetting a New File //
   if (mIndexPush > mDigits.size() - 5) {
-    cout << "FileDone out of loop" << endl; 
+    cout << "FileDone out of loop" << endl;
     mDigits.clear();
     mEvents.clear();
     mIndexPush = 0;
@@ -485,11 +481,10 @@ void TestDataReader::run(ProcessingContext& pc)
     mMultiDigits.clear();
     mMultiEvents.clear();
     mFileDone = 1;
-//    pc.outputs().snapshot(Output{"ITS", "Finish", 0, Lifetime::Timeframe}, mFileDone);
+    //    pc.outputs().snapshot(Output{"ITS", "Finish", 0, Lifetime::Timeframe}, mFileDone);
     PercentDone = 0;
     mErrorsVec.clear();
   }
-
 
   cout << "Start Sleeping" << endl;
   cout << " " << endl;

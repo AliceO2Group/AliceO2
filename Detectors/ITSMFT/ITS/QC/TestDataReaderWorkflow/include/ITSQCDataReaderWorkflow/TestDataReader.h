@@ -50,10 +50,9 @@
 using namespace o2::framework;
 
 struct DigitEvent {
-      o2::itsmft::Digit Digits;
-      unsigned int NEvent;
+  o2::itsmft::Digit Digits;
+  unsigned int NEvent;
 };
-
 
 namespace o2
 {
