@@ -568,6 +568,34 @@ void Geo::translate(Float_t* xyz, Float_t translationVector[3])
 
   return;
 }
+void Geo::antiRotateToSector(Float_t* xyz, Int_t isector)
+{
+  if (mToBeIntit)
+    Init();
+
+  Float_t xyzDummy[3] = {0., 0., 0.};
+
+  float matAR[3][3];
+  matAR[0][0] = -mRotationMatrixSector[isector][0][0];
+  matAR[0][1] = mRotationMatrixSector[isector][0][1];
+  matAR[0][2] = mRotationMatrixSector[isector][0][2];
+  matAR[1][0] = mRotationMatrixSector[isector][1][0];
+  matAR[1][1] = mRotationMatrixSector[isector][1][1];
+  matAR[1][2] = mRotationMatrixSector[isector][1][2];
+  matAR[2][0] = mRotationMatrixSector[isector][2][0];
+  matAR[2][1] = -mRotationMatrixSector[isector][2][1];
+  matAR[2][2] = mRotationMatrixSector[isector][2][2];
+
+  for (Int_t ii = 0; ii < 3; ii++) {
+    xyzDummy[ii] = xyz[0] * matAR[ii][0] + xyz[1] * matAR[ii][1] +
+                   xyz[2] * matAR[ii][2];
+  }
+
+  for (Int_t ii = 0; ii < 3; ii++)
+    xyz[ii] = xyzDummy[ii];
+
+  return;
+}
 
 void Geo::rotateToSector(Float_t* xyz, Int_t isector)
 {

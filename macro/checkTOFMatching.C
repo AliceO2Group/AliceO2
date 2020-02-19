@@ -1,10 +1,17 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "TFile.h"
 #include "TTree.h"
+#include "TH1F.h"
+#include "TH2F.h"
+#include "TLine.h"
+#include "TProfile.h"
+#include "TMath.h"
+#include "TCanvas.h"
 #include "GlobalTracking/MatchTOF.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "DataFormatsTOF/Cluster.h"
 #endif
 
 void checkTOFMatching()
@@ -49,23 +56,50 @@ void checkTOFMatching()
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mcTOF = new o2::dataformats::MCTruthContainer<o2::MCCompLabel>();
   tofClTree->SetBranchAddress("TOFClusterMCTruth", &mcTOF);
 
-  tpcTree->GetEntry(0);
-  tofClTree->GetEntry(0);
-
   int nMatches = 0;
   int nGoodMatches = 0;
   int nBadMatches = 0;
 
-  itsTree->GetEntry(0);
+  TH1F* htrack = new TH1F("htrack", "tracks;p_{T} (GeV/c);N", 50, 0, 5);
+  TH1F* htof = new TH1F("htof", "tof matching |#eta|<0.9;p_{T} (GeV/c);#varepsilon", 50, 0, 5);
+  TH1F* htrack_t = new TH1F("htrack_t", "tracks p_{T} > 0.5 GeV/c;Timestamp (#mus);N", 100, 0, 20000);
+  TH1F* htof_t = new TH1F("htof_t", "tof matching p_{T} > 0.5 GeV/c, |#eta|<0.9;Timestamp (#mus);#varepsilon", 100, 0, 20000);
+  TH1F* htrack_eta = new TH1F("htrack_eta", "tracks p_{T} > 0.5 GeV/c;#eta;N", 18, -0.9, 0.9);
+  TH1F* htof_eta = new TH1F("htof_eta", "tof matching p_{T} > 0.5 GeV/c;#eta;#varepsilon", 18, -0.9, 0.9);
+
+  TH1F* hdeltatime = new TH1F("hdeltatime", "#Deltat TOF-Track;t_{TOF} - t_{track} (#mus);N", 100, -1, 1);
+  TH1F* hdeltatime_sigma = new TH1F("hdeltatime_sigma", ";#Deltat/#sigma;N", 100, -30, 30);
+
+  TH2F* hchi2 = new TH2F("hchi2", "#Sum of residuals distribution;p_{T} (GeV/c);residuals (cm)", 25, 0, 5, 100, 0, 10);
+  TH2F* hchi2sh = new TH2F("hchi2sh", "#Sum of residuals distribution, single hit;p_{T} (GeV/c);residuals (cm)", 25, 0, 5, 100, 0, 10);
+  TH2F* hchi2dh = new TH2F("hchi2dh", "#Sum of residuals distribution, double hits;p_{T} (GeV/c);residuals (cm)", 25, 0, 5, 100, 0, 10);
+  TH2F* hchi2th = new TH2F("hchi2th", "#Sum of residuals distribution, triple hits;p_{T} (GeV/c);residuals (cm)", 25, 0, 5, 100, 0, 10);
 
   // now looping over the entries in the matching tree
   for (int ientry = 0; ientry < matchTOF->GetEntries(); ientry++) {
     matchTOF->GetEvent(ientry);
     matchTPCITS->GetEntry(ientry);
+    tpcTree->GetEntry(ientry);
+    tofClTree->GetEntry(ientry);
+    itsTree->GetEntry(ientry);
+
+    // loop over tracks
+    for (int i = 0; i < mTracksArrayInp->size(); i++) {
+      o2::dataformats::TrackTPCITS trackITSTPC = mTracksArrayInp->at(i);
+      if (TMath::Abs(trackITSTPC.getEta()) < 0.9) {
+        htrack->Fill(trackITSTPC.getPt());
+        if (trackITSTPC.getPt() > 0.5) {
+          htrack_t->Fill(trackITSTPC.getTimeMUS().getTimeStamp());
+          htrack_eta->Fill(trackITSTPC.getEta());
+        }
+      }
+    }
     // now looping over the matched tracks
     nMatches += TOFMatchInfo->size();
     for (int imatch = 0; imatch < TOFMatchInfo->size(); imatch++) {
+      // get ITS-TPC track
       int indexITSTPCtrack = TOFMatchInfo->at(imatch).getTrackIndex();
+
       o2::dataformats::MatchInfoTOF infoTOF = TOFMatchInfo->at(imatch);
       int tofClIndex = infoTOF.getTOFClIndex();
       float chi2 = infoTOF.getChi2();
@@ -175,6 +209,25 @@ void checkTOFMatching()
       Printf("Total number of secondary channels= %d", numberOfSecondaryContributingChannels);
 
       o2::dataformats::TrackTPCITS trackITSTPC = mTracksArrayInp->at(indexITSTPCtrack);
+
+      float deltatime = tofCluster.getTime() * 1E-6 - trackITSTPC.getTimeMUS().getTimeStamp(); // in mus
+      hdeltatime->Fill(deltatime);
+      hdeltatime_sigma->Fill(deltatime / trackITSTPC.getTimeMUS().getTimeStampError());
+      hchi2->Fill(trackITSTPC.getPt(), TOFMatchInfo->at(imatch).getChi2());
+      if (nContributingChannels == 1)
+        hchi2sh->Fill(trackITSTPC.getPt(), TOFMatchInfo->at(imatch).getChi2());
+      else
+        hchi2dh->Fill(trackITSTPC.getPt(), TOFMatchInfo->at(imatch).getChi2());
+      if (tofCluster.getSigmaY2() < 0.2 && tofCluster.getSigmaZ2() < 0.2)
+        hchi2th->Fill(trackITSTPC.getPt(), TOFMatchInfo->at(imatch).getChi2());
+
+      if (TMath::Abs(trackITSTPC.getEta()) < 0.9) {
+        htof->Fill(trackITSTPC.getPt());
+        if (trackITSTPC.getPt() > 0.5) {
+          htof_t->Fill(trackITSTPC.getTimeMUS().getTimeStamp());
+          htof_eta->Fill(trackITSTPC.getEta());
+        }
+      }
       const auto evIdxTPC = trackITSTPC.getRefTPC();
       Printf("matched TPCtrack index = %d", evIdxTPC);
       const auto evIdxITS = trackITSTPC.getRefITS();
@@ -234,6 +287,65 @@ void checkTOFMatching()
   Printf("Number of      matches = %d", nMatches);
   Printf("Number of GOOD matches = %d (%.2f)", nGoodMatches, (float)nGoodMatches / nMatches);
   Printf("Number of BAD  matches = %d (%.2f)", nBadMatches, (float)nBadMatches / nMatches);
+
+  htof->Divide(htof, htrack, 1, 1, "B");
+  htof->SetMarkerStyle(20);
+  htof->Draw("P");
+
+  new TCanvas;
+  htof_eta->Divide(htof_eta, htrack_eta, 1, 1, "B");
+  htof_eta->SetMarkerStyle(20);
+  htof_eta->Draw("P");
+
+  new TCanvas;
+  htof_t->Divide(htof_t, htrack_t, 1, 1, "B");
+  htof_t->SetMarkerStyle(20);
+  htof_t->Draw("P");
+
+  new TCanvas;
+  hdeltatime->Draw();
+
+  new TCanvas;
+  hdeltatime_sigma->Draw();
+
+  TCanvas* cres = new TCanvas();
+  cres->Divide(2, 2);
+  cres->cd(1)->SetLogz();
+  hchi2->Draw("colz");
+  hchi2->ProfileX()->Draw("same");
+  TLine* l = new TLine(0, 0.983575, 5, 0.983575);
+  l->Draw("SAME");
+  l->SetLineStyle(2);
+  l->SetLineWidth(2);
+  l->SetLineColor(4);
+  cres->cd(2)->SetLogz();
+  hchi2sh->Draw("colz");
+  hchi2sh->ProfileX()->Draw("same");
+  TLine* l2 = new TLine(0, 1.044939, 5, 1.044939);
+  l2->Draw("SAME");
+  l2->SetLineStyle(2);
+  l2->SetLineWidth(2);
+  l2->SetLineColor(4);
+  cres->cd(3)->SetLogz();
+  hchi2dh->Draw("colz");
+  hchi2dh->ProfileX()->Draw("same");
+  TLine* l3 = new TLine(0, 0.73811975, 5, 0.73811975);
+  l3->Draw("SAME");
+  l3->SetLineStyle(2);
+  l3->SetLineWidth(2);
+  l3->SetLineColor(4);
+  cres->cd(4)->SetLogz();
+  hchi2th->Draw("colz");
+  hchi2th->ProfileX()->Draw("same");
+  TLine* l4 = new TLine(0, 0.3, 5, 0.3);
+  l4->Draw("SAME");
+  l4->SetLineStyle(2);
+  l4->SetLineWidth(2);
+  l4->SetLineColor(4);
+
+  float fraction = hchi2dh->GetEntries() * 1. / hchi2->GetEntries();
+  float fractionErr = TMath::Sqrt(fraction * (1 - fraction) / hchi2->GetEntries());
+  printf("Fraction of multiple hits = (%.1f +/- %.1f)\%\n", fraction * 100, fractionErr * 100);
 
   return;
 }
