@@ -187,7 +187,6 @@ class MCTruthContainer
       // add a new one
       mHeaderArray.emplace_back(mTruthArray.size());
     }
-    auto& header = mHeaderArray[dataindex];
     mTruthArray.emplace_back(element);
   }
 
