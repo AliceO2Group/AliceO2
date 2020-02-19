@@ -40,7 +40,9 @@ template <class RawReader>
 void AltroDecoder<RawReader>::readRCUTrailer()
 {
   try {
-    mRCUTrailer.constructFromRawPayload(mRawReader.getPayload());
+    auto payloadwordsOrig = mRawReader.getPayload().getPayloadWords();
+    gsl::span<const uint32_t> payloadwords(payloadwordsOrig.data(), payloadwordsOrig.size());
+    mRCUTrailer.constructFromRawPayload(payloadwords);
   } catch (RCUTrailer::Error& e) {
     AliceO2::InfoLogger::InfoLogger logger;
     logger << e.what();

@@ -10,6 +10,7 @@
 
 #include <sstream>
 #include <string>
+#include "EMCALBase/RCUTrailer.h"
 #include "EMCALReconstruction/RawHeaderStream.h"
 #include "EMCALReconstruction/RawReaderMemory.h"
 #include "EMCALReconstruction/RawDecodingError.h"
@@ -43,9 +44,18 @@ template <class RawHeader>
 void RawReaderMemory<RawHeader>::next()
 {
   mRawPayload.reset();
+  bool isDataTerminated = false;
   do {
     nextPage(false);
-  } while (!isStop(mRawHeader));
+    // check if we find a valid RCU trailer
+    // the payload must be at the end of the buffer
+    // if not present and error will be thrown
+    try {
+      RCUTrailer::constructFromPayloadWords(mRawBuffer.getDataWords());
+      isDataTerminated = true;
+    } catch (...) {
+    }
+  } while (!isDataTerminated);
 }
 
 template <class RawHeader>

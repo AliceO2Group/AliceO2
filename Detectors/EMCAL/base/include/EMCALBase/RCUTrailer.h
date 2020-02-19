@@ -13,8 +13,9 @@
 #include <exception>
 #include <iosfwd>
 #include <string>
+#include <cstdint>
+#include <gsl/span>
 #include "Rtypes.h"
-#include "EMCALReconstruction/RawPayload.h"
 
 namespace o2
 {
@@ -24,7 +25,7 @@ namespace emcal
 
 /// \class RCUTrailer
 /// \brief Information stored in the RCU trailer
-/// \ingroup EMCALreconstruction
+/// \ingroup EMCALbase
 ///
 /// The RCU trailer can be found at the end of
 /// the payload and contains general information
@@ -90,7 +91,7 @@ class RCUTrailer
   ///
   /// Read the RCU trailer according to the RCU formware version
   /// specified in CDH.
-  void constructFromRawPayload(const RawPayload& buffer);
+  void constructFromRawPayload(const gsl::span<const uint32_t> payloadwords);
 
   unsigned int getFECErrorsA() const { return mFECERRA; }
   unsigned int getFECErrorsB() const { return mFECERRB; }
@@ -142,6 +143,8 @@ class RCUTrailer
   /// \brief checlks whether the RCU trailer is initialzied
   /// \return True if the trailer is initialized, false otherwise
   bool isInitialized() const { return mIsInitialized; }
+
+  static RCUTrailer constructFromPayloadWords(const gsl::span<const uint32_t> payloadwords);
 
  private:
   int mRCUId = -1;                    ///< current RCU identifier

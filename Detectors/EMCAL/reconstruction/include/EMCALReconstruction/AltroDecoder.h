@@ -14,7 +14,7 @@
 #include <iosfwd>
 #include <gsl/span>
 #include <string>
-#include "EMCALReconstruction/RCUTrailer.h"
+#include "EMCALBase/RCUTrailer.h"
 #include "EMCALReconstruction/Bunch.h"
 #include "EMCALReconstruction/Channel.h"
 
