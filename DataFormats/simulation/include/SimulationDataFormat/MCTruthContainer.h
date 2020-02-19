@@ -16,7 +16,7 @@
 #define ALICEO2_DATAFORMATS_MCTRUTH_H_
 
 #include "GPUCommonRtypes.h" // to have the ClassDef macros
-#include <cstdint>  // uint8_t etc
+#include <cstdint>           // uint8_t etc
 #include <cassert>
 #include <stdexcept>
 #include <gsl/gsl> // for guideline support library; array_view
@@ -109,6 +109,11 @@ class MCTruthContainer
   MCTruthContainer(const MCTruthContainer& other) = default;
   // move constructor
   MCTruthContainer(MCTruthContainer&& other) = default;
+  // construct from raw data
+  MCTruthContainer(std::vector<MCTruthHeaderElement>& header, std::vector<TruthElement>& truthArray)
+  {
+    setFrom(header, truthArray);
+  }
   // assignment operator
   MCTruthContainer& operator=(const MCTruthContainer& other) = default;
   // move assignment operator
@@ -254,6 +259,13 @@ class MCTruthContainer
         mHeaderArray[i].index = (oldindex != -1) ? oldindex + 1 : oldindex;
       }
     }
+  }
+
+  // Set container directly from header + truthArray.
+  void setFrom(std::vector<MCTruthHeaderElement>& header, std::vector<TruthElement>& truthArray)
+  {
+    mHeaderArray = std::move(header);
+    mTruthArray = std::move(truthArray);
   }
 
   // merge another container to the back of this one
