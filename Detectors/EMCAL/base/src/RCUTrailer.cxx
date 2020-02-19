@@ -10,7 +10,7 @@
 #include <iostream>
 #include <boost/format.hpp>
 #include "CommonConstants/LHCConstants.h"
-#include "EMCALReconstruction/RCUTrailer.h"
+#include "EMCALBase/RCUTrailer.h"
 
 using namespace o2::emcal;
 
@@ -31,10 +31,9 @@ void RCUTrailer::reset()
   mIsInitialized = false;
 }
 
-void RCUTrailer::constructFromRawPayload(const RawPayload& buffer)
+void RCUTrailer::constructFromRawPayload(const gsl::span<const uint32_t> payloadwords)
 {
   reset();
-  auto payloadwords = buffer.getPayloadWords();
   int index = payloadwords.size() - 1;
   auto word = payloadwords[index];
   if ((word >> 30) != 3)
@@ -181,6 +180,13 @@ void RCUTrailer::printStream(std::ostream& stream) const
     }
   }
   stream << "==================================================\n";
+}
+
+RCUTrailer RCUTrailer::constructFromPayloadWords(const gsl::span<const uint32_t> payloadwords)
+{
+  RCUTrailer result;
+  result.constructFromRawPayload(payloadwords);
+  return result;
 }
 
 std::ostream& o2::emcal::operator<<(std::ostream& stream, const o2::emcal::RCUTrailer& trailer)
