@@ -126,6 +126,7 @@ bool HBFUtils::checkRDH(const void* rdhP, bool verbose)
   int version = (reinterpret_cast<const char*>(rdhP))[0];
   bool ok = true;
   switch (version) {
+    case 3:
     case 4:
       ok = checkRDH(*reinterpret_cast<const o2::header::RAWDataHeaderV4*>(rdhP), verbose);
       break;
@@ -178,7 +179,7 @@ bool HBFUtils::checkRDH(const o2::header::RAWDataHeaderV4& rdh, bool verbose)
 {
   // check if rdh conforms with RDH4 fields
   bool ok = true;
-  if (rdh.version != 4) {
+  if (rdh.version != 4 && rdh.version != 3) {
     if (verbose) {
       LOG(ERROR) << "RDH version 4 is expected instead of " << int(rdh.version);
     }
