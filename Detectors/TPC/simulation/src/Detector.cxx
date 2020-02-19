@@ -2849,8 +2849,8 @@ void Detector::ConstructTPCGeometry()
   pointstrap[1] = 0.75;
   pointstrap[2] = 0.375;
   pointstrap[3] = -0.35;
-  pointstrap[5] = -0.375;
-  pointstrap[4] = -0.35;
+  pointstrap[4] = -0.375;
+  pointstrap[5] = -0.35;
   pointstrap[6] = -0.375;
   pointstrap[7] = 0.35;
   //
