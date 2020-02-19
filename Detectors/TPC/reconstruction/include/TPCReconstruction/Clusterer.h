@@ -49,8 +49,8 @@ class Clusterer
   /// Processing all digits
   /// \param digits Container with TPC digits
   /// \param mcDigitTruth MC Digit Truth container
-  virtual void process(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth) = 0;
-  virtual void finishProcess(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth) = 0;
+  virtual void process(gsl::span<o2::tpc::Digit const> const& digits, MCLabelContainer const* mcDigitTruth) = 0;
+  virtual void finishProcess(gsl::span<o2::tpc::Digit const> const& digits, MCLabelContainer const* mcDigitTruth) = 0;
 
   /// Setter for noise object, noise will be added before cluster finding
   /// \param noiseObject CalDet object, containing noise simulation

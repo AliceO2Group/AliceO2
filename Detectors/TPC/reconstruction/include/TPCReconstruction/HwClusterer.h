@@ -71,15 +71,15 @@ class HwClusterer : public Clusterer
   /// \param digits Container with TPC digits
   /// \param mcDigitTruth MC Digit Truth container
   /// \param clearContainerFirst Clears the outpcontainer for clusters and MC labels first, before processing
-  void process(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth) override;
-  void process(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst);
+  void process(gsl::span<o2::tpc::Digit const> const& digits, MCLabelContainer const* mcDigitTruth) override;
+  void process(gsl::span<o2::tpc::Digit const> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst);
 
   /// Finish processing digits
   /// \param digits Container with TPC digits
   /// \param mcDigitTruth MC Digit Truth container
   /// \param clearContainerFirst Clears the outpcontainer for clusters and MC labels first, before processing
-  void finishProcess(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth) override;
-  void finishProcess(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst);
+  void finishProcess(gsl::span<o2::tpc::Digit const> const& digits, MCLabelContainer const* mcDigitTruth) override;
+  void finishProcess(gsl::span<o2::tpc::Digit const> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst);
 
   /// Switch for triggered / continuous readout
   /// \param isContinuous - false for triggered readout, true for continuous readout
@@ -216,12 +216,12 @@ class HwClusterer : public Clusterer
   MCLabelContainer* mClusterMcLabelArray;                  ///< Pointer to MC Label container
 };
 
-inline void HwClusterer::process(std::vector<o2::tpc::Digit> const& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel> const* mcDigitTruth)
+inline void HwClusterer::process(gsl::span<o2::tpc::Digit const> const& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel> const* mcDigitTruth)
 {
   process(digits, mcDigitTruth, true);
 }
 
-inline void HwClusterer::finishProcess(std::vector<o2::tpc::Digit> const& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel> const* mcDigitTruth)
+inline void HwClusterer::finishProcess(gsl::span<o2::tpc::Digit const> const& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel> const* mcDigitTruth)
 {
   finishProcess(digits, mcDigitTruth, true);
 }

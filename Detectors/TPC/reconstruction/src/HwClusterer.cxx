@@ -125,7 +125,7 @@ void HwClusterer::init()
 }
 
 //______________________________________________________________________________
-void HwClusterer::process(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst)
+void HwClusterer::process(gsl::span<o2::tpc::Digit const> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst)
 {
   if (clearContainerFirst) {
     if (mClusterArray)
@@ -252,11 +252,11 @@ void HwClusterer::process(std::vector<o2::tpc::Digit> const& digits, MCLabelCont
     finishFrame(true);
 
   if (digits.size() != 0)
-    LOG(DEBUG) << "Event ranged from time bin " << digits.front().getTimeStamp() << " to " << digits.back().getTimeStamp() << ".";
+    LOG(DEBUG) << "Event ranged from time bin " << digits[0].getTimeStamp() << " to " << digits[digits.size() - 1].getTimeStamp() << ".";
 }
 
 //______________________________________________________________________________
-void HwClusterer::finishProcess(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst)
+void HwClusterer::finishProcess(gsl::span<o2::tpc::Digit const> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst)
 {
   // Process the last digits (if there are any)
   process(digits, mcDigitTruth, clearContainerFirst);
