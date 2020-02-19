@@ -8,10 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/ASoA.h"
-#include "Framework/TableBuilder.h"
-#include "Framework/AnalysisDataModel.h"
 #include "Framework/CommonDataProcessors.h"
+#include "Framework/TableTreeHelpers.h"
 #include <benchmark/benchmark.h>
 #include <random>
 #include <vector>
@@ -33,10 +31,10 @@ DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](float x, float y) { return x + y; });
 #ifdef __APPLE__
 constexpr unsigned int maxrange = 15;
 #else
-constexpr unsigned int maxrange = 20;
+constexpr unsigned int maxrange = 16;
 #endif
 
-static void BM_Table2Tree(benchmark::State& state)
+static void BM_TableToTree(benchmark::State& state)
 {
 
   // initialize a random generator
@@ -59,20 +57,20 @@ static void BM_Table2Tree(benchmark::State& state)
   for (auto _ : state) {
 
     // Open file and create tree
-    TFile* fout = new TFile("table2tree.root", "RECREATE");
-    TTree* tout = new TTree("table2tree", "table2tree");
+    TFile fout("table2tree.root", "RECREATE");
 
-    // benchmark the CommonDataProcessors::table2tree function
-    CommonDataProcessors::table2tree(tout, table, false);
+    // benchmark TableToTree
+    TableToTree ta2tr(table, &fout, "table2tree");
+    if (ta2tr.AddAllBranches())
+      ta2tr.Process();
 
     // clean up
-    fout->Close();
-    delete fout;
+    fout.Close();
   }
 
   state.SetBytesProcessed(state.iterations() * state.range(0) * 24);
 }
 
-BENCHMARK(BM_Table2Tree)->Range(8, 8 << maxrange);
+BENCHMARK(BM_TableToTree)->Range(8, 8 << maxrange);
 
 BENCHMARK_MAIN();
