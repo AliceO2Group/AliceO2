@@ -644,7 +644,7 @@ int GPUChainTracking::ConvertNativeToClusterData()
 
   ClusterNativeAccess* tmpExt = mClusterNativeAccess.get();
   if (tmpExt->nClustersTotal > convert.mNClustersTotal) {
-    GPUError("Too many input clusters in conversion\n");
+    GPUError("Too many input clusters in conversion (expected <= %ld)\n", convert.mNClustersTotal);
     for (unsigned int i = 0; i < NSLICES; i++) {
       mIOPtrs.nClusterData[i] = 0;
       processors()->tpcTrackers[i].Data().SetClusterData(nullptr, 0, 0);
@@ -968,6 +968,11 @@ int GPUChainTracking::RunTPCClusterizer()
 
       if (propagateMCLabels) {
         clusterer.mPinputLabels = digitsMC->v[iSlice];
+        /* GPUInfo("digits: %ld\n", mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice]); */
+        /* GPUInfo("labels: %ld\n", clusterer.mPinputLabels->getIndexedSize()); */
+        // TODO: Why is the number of header entries in truth container
+        // sometimes larger than the number of digits?
+        assert(clusterer.mPinputLabels->getIndexedSize() >= mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice]);
         clusterer.mPclusterLabels = &(*clusterLabels)[lane];
       }
 
@@ -1069,7 +1074,7 @@ int GPUChainTracking::RunTPCClusterizer()
       TransferMemoryResourcesToHost(RecoStep::TPCClusterFinding, &clusterer, lane);
       DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpCountedPeaks, mDebugFile);
       DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpClusters, mDebugFile);
-      if (iSlice != 0) {
+      if (iSlice != 0 || !propagateMCLabels) {
         continue;
       }
       for (const auto& row : clusterer.mPclusterLabels->labels) {
