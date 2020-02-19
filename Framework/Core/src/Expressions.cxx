@@ -368,19 +368,16 @@ bool isSchemaCompatible(gandiva::SchemaPtr const& Schema, Operations const& opSp
                        opFieldNames.begin(), opFieldNames.end());
 }
 
-std::vector<ExpressionInfo> createExpressionInfos(std::vector<SchemaInfo> const& infos, expressions::Filter const& filter)
+void updateExpressionInfos(expressions::Filter const& filter, std::vector<ExpressionInfo>& eInfos)
 {
-  std::vector<ExpressionInfo> eInfos;
   Operations ops = createOperations(filter);
-  for (auto& info : infos) {
-    if (isSchemaCompatible(info.second, ops)) {
-      // FIXME: if there is already a tree for a given label, merge a new
-      //        one into it
-      eInfos.push_back({info.first, createExpressionTree(ops, info.second)});
+  for (auto& info : eInfos) {
+    if (isSchemaCompatible(info.schema, ops)) {
+      /// FIXME: check if there is already a tree assigned for an entry and
+      ///        and if so merge the new tree into it with 'and' node
+      info.tree = createExpressionTree(ops, info.schema);
     }
   }
-
-  return eInfos;
 }
 
 } // namespace o2::framework::expressions

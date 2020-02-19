@@ -207,26 +207,19 @@ struct AnalysisDataProcessorBuilder {
     (doAppendInputWithMetadata<Args>(inputs), ...);
   }
 
-  template <typename T>
-  static void appendSomethingWithMetadata(std::vector<InputSpec>& inputs,
-                                          std::vector<SchemaInfo>& filteredSchemas)
+  template <typename T, size_t At>
+  static void appendSomethingWithMetadata(std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos)
   {
-    if constexpr (is_specialization<std::decay_t<T>, soa::Join>::value || is_specialization<std::decay_t<T>, soa::Concat>::value) {
-      using tables = typename std::decay_t<T>::originals;
-      doAppendInputWithMetadata(tables{}, inputs);
-    } else if constexpr (is_specialization<std::decay_t<T>, soa::Filtered>::value) {
-      using table_t = typename std::decay_t<T>::table_t;
-      doAppendInputWithMetadata<table_t>(inputs);
-      filteredSchemas.push_back({aod::MetadataTrait<table_t>::metadata::label(), createSchemaFromColumns(typename table_t::persistent_columns_t())});
-    } else {
-      doAppendInputWithMetadata<T>(inputs);
+    if constexpr (framework::is_specialization<T, soa::Filtered>::value || framework::is_specialization<T, soa::RowViewFiltered>::value) {
+      eInfos.push_back({At, createSchemaFromColumns(typename T::table_t::persistent_columns_t{}), nullptr});
     }
+    doAppendInputWithMetadata(soa::make_originals_from_type<T>(), inputs);
   }
 
   template <typename R, typename C, typename... Args>
-  static void inputsFromArgs(R (C::*)(Args...), std::vector<InputSpec>& inputs, std::vector<SchemaInfo>& filteredSchemas)
+  static void inputsFromArgs(R (C::*)(Args...), std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos)
   {
-    (appendSomethingWithMetadata<Args>(inputs, filteredSchemas), ...);
+    (appendSomethingWithMetadata<Args, has_type_at<Args>(pack<Args...>{})>(inputs, eInfos), ...);
   }
 
   template <typename R, typename C, typename Grouping, typename... Args>
@@ -238,7 +231,7 @@ struct AnalysisDataProcessorBuilder {
   template <typename R, typename C, typename Grouping, typename... Args>
   static auto bindGroupingTable(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo> const& infos)
   {
-    return extractSomethingFromRecord<Grouping>(record, infos);
+    return extractSomethingFromRecord<Grouping, 0>(record, infos);
   }
 
   template <typename R, typename C>
@@ -251,69 +244,62 @@ struct AnalysisDataProcessorBuilder {
   template <typename T>
   static auto extractTableFromRecord(InputRecord& record)
   {
-    auto at = record.get<TableConsumer>(aod::MetadataTrait<T>::metadata::label())->asArrowTable();
-    return typename aod::MetadataTrait<T>::metadata::table_t(at);
-  }
-
-  template <typename T>
-  static auto extractFilteredTableFromRecord(InputRecord& record, std::vector<ExpressionInfo> const infos)
-  {
-    using metadata = typename aod::MetadataTrait<typename std::decay_t<T>::table_t>::metadata;
-    auto at = record.get<TableConsumer>(metadata::label())->asArrowTable();
-    /// this assumes one gandiva expression tree per table name:
-    /// filters should be &&-ed at the previous stage
-    for (auto& info : infos) {
-      if (std::string{metadata::label()} != info.first)
-        continue;
-      auto selection = expressions::createSelection(at, expressions::createFilter(at->schema(), expressions::createCondition(info.second)));
-      return soa::Filtered<typename metadata::table_t>(at, selection);
+    if constexpr (soa::is_type_with_metadata_v<aod::MetadataTrait<T>>) {
+      return record.get<TableConsumer>(aod::MetadataTrait<T>::metadata::label())->asArrowTable();
+    } else {
+      static_assert(always_static_assert_v<T>, "Iterators on Joins/Concats are not supported yet!");
     }
-    throw std::runtime_error("Failed to match filter with a table.");
+    O2_BUILTIN_UNREACHABLE();
   }
 
-  template <typename... Ts>
-  static auto extractJoinFromRecord(framework::pack<Ts...>, InputRecord& record)
+  template <typename T, typename... Os>
+  static auto extractFromRecord(InputRecord& record, pack<Os...> const&)
   {
-    std::vector<std::shared_ptr<arrow::Table>> tables = {
-      record.get<TableConsumer>(aod::MetadataTrait<std::decay_t<Ts>>::metadata::label())->asArrowTable()...};
-    return typename soa::Join<Ts...>(std::move(tables), 0);
+    if constexpr (soa::is_type_with_policy_v<T>) {
+      return typename T::table_t{extractTableFromRecord<Os>(record)...};
+    } else {
+      return T{{extractTableFromRecord<Os>(record)...}};
+    }
   }
 
-  template <typename T1, typename T2>
-  static auto extractConcatFromRecord(InputRecord& record)
+  template <typename T, typename... Os>
+  static auto extractFilteredFromRecord(InputRecord& record, ExpressionInfo const& info, pack<Os...> const&)
   {
-    auto at1 = record.get<TableConsumer>(aod::MetadataTrait<std::decay_t<T1>>::metadata::label())->asArrowTable();
-    auto at2 = record.get<TableConsumer>(aod::MetadataTrait<std::decay_t<T2>>::metadata::label())->asArrowTable();
-    return typename soa::Concat<T1, T2>(at1, at2);
+    if constexpr (soa::is_type_with_policy_v<T>) {
+      return soa::Filtered<typename T::table_t>(std::vector<std::shared_ptr<arrow::Table>>{extractTableFromRecord<Os>(record)...}, info.tree);
+    } else {
+      return T(std::vector<std::shared_ptr<arrow::Table>>{extractTableFromRecord<Os>(record)...}, info.tree);
+    }
   }
 
-  template <typename T>
+  template <typename T, size_t At>
   static auto extractSomethingFromRecord(InputRecord& record, std::vector<ExpressionInfo> const infos)
   {
-    if constexpr (is_specialization<std::decay_t<T>, soa::Join>::value) {
-      using tables = typename std::decay_t<T>::originals;
-      return extractJoinFromRecord(tables{}, record);
-    } else if constexpr (is_specialization<std::decay_t<T>, soa::Concat>::value) {
-      using left_t = typename std::decay_t<T>::left_t;
-      using right_t = typename std::decay_t<T>::right_t;
-      return extractConcatFromRecord<left_t, right_t>(record);
-    } else if constexpr (is_specialization<std::decay_t<T>, soa::Filtered>::value) {
-      return extractFilteredTableFromRecord<T>(record, infos);
-    } else if constexpr (is_specialization<std::decay_t<T>, soa::RowViewBase>::value) {
-      if constexpr (std::is_same_v<soa::DefaultIndexPolicy, typename std::decay_t<T>::policy_t>) {
-        return extractTableFromRecord<std::decay_t<T>>(record);
-      } else if constexpr (std::is_same_v<soa::FilteredIndexPolicy, typename std::decay_t<T>::policy_t>) {
-        return extractFilteredTableFromRecord<std::decay_t<T>>(record, infos);
+    using decayed = std::decay_t<T>;
+    if constexpr (is_specialization<decayed, soa::Filtered>::value) {
+      for (auto& info : infos) {
+        if (info.index == At)
+          return extractFilteredFromRecord<decayed>(record, info, soa::make_originals_from_type<decayed>());
+      }
+    } else if constexpr (soa::is_type_with_policy_v<decayed>) {
+      if constexpr (std::is_same_v<typename decayed::policy_t, soa::FilteredIndexPolicy>) {
+        for (auto& info : infos) {
+          if (info.index == At)
+            return extractFilteredFromRecord<decayed>(record, info, soa::make_originals_from_type<decayed>());
+        }
+      } else {
+        return extractFromRecord<decayed>(record, soa::make_originals_from_type<decayed>());
       }
     } else {
-      return extractTableFromRecord<std::decay_t<T>>(record);
+      return extractFromRecord<decayed>(record, soa::make_originals_from_type<decayed>());
     }
+    O2_BUILTIN_UNREACHABLE();
   }
 
   template <typename R, typename C, typename Grouping, typename... Args>
   static auto bindAssociatedTables(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo> const infos)
   {
-    return std::make_tuple(extractSomethingFromRecord<Args>(record, infos)...);
+    return std::make_tuple(extractSomethingFromRecord<Args, has_type_at<Args>(pack<Args...>{})>(record, infos)...);
   }
 
   template <typename R, typename C>
@@ -405,13 +391,17 @@ struct AnalysisDataProcessorBuilder {
           // FIXME: this assumes every groupingElement has a group associated,
           // which migh not be the case.
           size_t oi = 0;
-          if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Table>::value || is_specialization<std::decay_t<AssociatedType>, o2::soa::Filtered>::value) {
+          if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Table>::value) {
             for (auto& groupedDatum : groupsCollection) {
               auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
               task.process(groupingElement, AssociatedType{groupedElementsTable, offsets[oi]});
               ++const_cast<std::decay_t<Grouping>&>(groupingElement);
               ++oi;
             }
+          }
+          if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Filtered>::value) {
+            // FIXME: we need to implement the case for the grouped filtered case.
+            static_assert(always_static_assert_v<std::decay_t<AssociatedType>>, "Grouping Filtered is not yet supported");
           } else if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Join>::value || is_specialization<std::decay_t<AssociatedType>, o2::soa::Concat>::value) {
             for (auto& groupedDatum : groupsCollection) {
               auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
@@ -437,7 +427,7 @@ struct AnalysisDataProcessorBuilder {
 template <typename T>
 struct FilterManager {
   template <typename ANY>
-  static bool createExpressionTrees(std::vector<SchemaInfo> const&, ANY&, std::vector<ExpressionInfo>&)
+  static bool createExpressionTrees(ANY&, std::vector<ExpressionInfo>&)
   {
     return false;
   }
@@ -445,9 +435,9 @@ struct FilterManager {
 
 template <>
 struct FilterManager<expressions::Filter> {
-  static bool createExpressionTrees(std::vector<SchemaInfo> const& infos, expressions::Filter const& filter, std::vector<ExpressionInfo>& expressionInfos)
+  static bool createExpressionTrees(expressions::Filter const& filter, std::vector<ExpressionInfo>& expressionInfos)
   {
-    expressionInfos = createExpressionInfos(infos, filter);
+    updateExpressionInfos(filter, expressionInfos);
     return true;
   }
 };
@@ -613,13 +603,14 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
                 "At least one of process(...), T::run(...), init(...) must be defined");
 
   std::vector<InputSpec> inputs;
-  std::vector<SchemaInfo> filteredSchemas;
   std::vector<ExpressionInfo> expressionInfos;
 
   if constexpr (has_process<T>::value) {
-    AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, inputs, filteredSchemas);
-    std::apply([&filteredSchemas, &expressionInfos](auto&... x) {
-      return (FilterManager<std::decay_t<decltype(x)>>::createExpressionTrees(filteredSchemas, x, expressionInfos), ...);
+    // this pushes (I,schemaPtr,nullptr) into expressionInfos for arguments that are Filtered/filtered_iterators
+    AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, inputs, expressionInfos);
+    // here the FilterManager will prepare the gandiva trees matched to schemas and put the pointers into expressionInfos
+    std::apply([&expressionInfos](auto&... x) {
+      return (FilterManager<std::decay_t<decltype(x)>>::createExpressionTrees(x, expressionInfos), ...);
     },
                tupledTask);
   }
