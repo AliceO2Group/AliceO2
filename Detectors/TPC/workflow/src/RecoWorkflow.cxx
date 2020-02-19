@@ -112,17 +112,18 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   // needs to be done in accordance. This means, if a new input option is added
   // also the dispatch trigger needs to be updated.
   if (inputType == InputType::Digits) {
-    specs.emplace_back(o2::tpc::getPublisherSpec(PublisherConf{
-                                                   "tpc-digit-reader",
-                                                   "o2sim",
-                                                   {"digitbranch", "TPCDigit", "Digit branch"},
-                                                   {"mcbranch", "TPCDigitMCTruth", "MC label branch"},
-                                                   OutputSpec{"TPC", "DIGITS"},
-                                                   OutputSpec{"TPC", "DIGITSMCTR"},
-                                                   tpcSectors,
-                                                   laneConfiguration,
-                                                 },
-                                                 propagateMC));
+    using Type = std::vector<o2::tpc::Digit>;
+    specs.emplace_back(o2::tpc::getPublisherSpec<Type>(PublisherConf{
+                                                         "tpc-digit-reader",
+                                                         "o2sim",
+                                                         {"digitbranch", "TPCDigit", "Digit branch"},
+                                                         {"mcbranch", "TPCDigitMCTruth", "MC label branch"},
+                                                         OutputSpec{"TPC", "DIGITS"},
+                                                         OutputSpec{"TPC", "DIGITSMCTR"},
+                                                         tpcSectors,
+                                                         laneConfiguration,
+                                                       },
+                                                       propagateMC));
   } else if (inputType == InputType::Raw) {
     specs.emplace_back(o2::tpc::getPublisherSpec(PublisherConf{
                                                    "tpc-raw-cluster-reader",

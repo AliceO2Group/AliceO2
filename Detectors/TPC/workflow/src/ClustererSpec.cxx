@@ -91,7 +91,7 @@ DataProcessorSpec getClustererSpec(bool sendMC)
       if (!labelKey.empty()) {
         inMCLabels = std::move(pc.inputs().get<const MCLabelContainer*>(labelKey.c_str()));
       }
-      auto inDigits = pc.inputs().get<const std::vector<o2::tpc::Digit>>(inputKey.c_str());
+      auto inDigits = pc.inputs().get<gsl::span<o2::tpc::Digit>>(inputKey.c_str());
       if (verbosity > 0 && inMCLabels) {
         LOG(INFO) << "received " << inDigits.size() << " digits, "
                   << inMCLabels->getIndexedSize() << " MC label objects"

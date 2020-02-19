@@ -15,10 +15,8 @@
 
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
-#include "Framework/DataSpecUtils.h"
 #include "TPCWorkflow/PublisherSpec.h"
 #include "Headers/DataHeader.h"
-#include "DPLUtils/RootTreeReader.h"
 #include "TPCBase/Sector.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include <memory> // for make_shared, make_unique, unique_ptr
@@ -39,7 +37,7 @@ namespace tpc
 /// read data from multiple tree branches from ROOT file and publish
 /// data are expected to be stored in separated branches per sector, the default
 /// branch name is configurable, sector number is apended as extension '_n'
-DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC)
+DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagateMC, workflow_reader::Creator creator)
 {
   if (config.tpcSectors.size() == 0 || config.outputIds.size() == 0) {
     throw std::invalid_argument("need TPC sector and output id configuration");
@@ -54,7 +52,7 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
     bool finished = false;
   };
 
-  auto initFunction = [config, propagateMC](InitContext& ic) {
+  auto initFunction = [config, propagateMC, creator](InitContext& ic) {
     // get the option from the init context
     auto filename = ic.options().get<std::string>("infile");
     auto treename = ic.options().get<std::string>("treename");
@@ -88,7 +86,6 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
       // set up the tree interface
       // TODO: parallelism on sectors needs to be implemented as selector in the reader
       // the data is now in parallel branches, as first attempt use an array of readers
-      constexpr auto persistency = Lifetime::Timeframe;
       auto outputId = outputIds.begin();
       for (size_t sector = 0; sector < NSectors; ++sector) {
         if ((activeSectors & ((uint64_t)0x1 << sector)) == 0) {
@@ -103,27 +100,14 @@ DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC
         }
         std::string clusterbranchname = clbrName + "_" + std::to_string(sector);
         std::string mcbranchname = mcbrName + "_" + std::to_string(sector);
-        auto dto = DataSpecUtils::asConcreteDataTypeMatcher(config.dataoutput);
-        auto mco = DataSpecUtils::asConcreteDataTypeMatcher(config.mcoutput);
-        if (propagateMC) {
-          readers[sector] = std::make_shared<RootTreeReader>(treename.c_str(),   // tree name
-                                                             sectorfile.c_str(), // input file name
-                                                             nofEvents,          // number of entries to publish
-                                                             publishingMode,
-                                                             Output{mco.origin, mco.description, subSpec, persistency},
-                                                             mcbranchname.c_str(), // name of mc label branch
-                                                             Output{dto.origin, dto.description, subSpec, persistency},
-                                                             clusterbranchname.c_str() // name of cluster branch
-          );
-        } else {
-          readers[sector] = std::make_shared<RootTreeReader>(treename.c_str(),   // tree name
-                                                             sectorfile.c_str(), // input file name
-                                                             nofEvents,          // number of entries to publish
-                                                             publishingMode,
-                                                             Output{dto.origin, dto.description, subSpec, persistency},
-                                                             clusterbranchname.c_str() // name of cluster branch
-          );
-        }
+        readers[sector] = creator(treename.c_str(),   // tree name
+                                  sectorfile.c_str(), // input file name
+                                  nofEvents,          // number of entries to publish
+                                  publishingMode,
+                                  subSpec,
+                                  clusterbranchname.c_str(), // name of data branch
+                                  mcbranchname.c_str()       // name of mc label branch
+        );
         if (++outputId == outputIds.end()) {
           outputId = outputIds.begin();
         }
