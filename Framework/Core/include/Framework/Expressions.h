@@ -23,8 +23,11 @@
 #include <memory>
 
 using atype = arrow::Type;
-using SchemaInfo = std::pair<std::string, gandiva::SchemaPtr>;
-using ExpressionInfo = std::pair<std::string, gandiva::NodePtr>;
+struct ExpressionInfo {
+  size_t index;
+  gandiva::SchemaPtr schema;
+  gandiva::NodePtr tree;
+};
 
 namespace o2::framework::expressions
 {
@@ -268,7 +271,7 @@ std::shared_ptr<gandiva::Filter> createFilter(gandiva::SchemaPtr const& Schema,
                                               gandiva::ConditionPtr condition);
 std::shared_ptr<gandiva::Filter> createFilter(gandiva::SchemaPtr const& Schema,
                                               Operations const& opSpecs);
-std::vector<ExpressionInfo> createExpressionInfos(std::vector<SchemaInfo> const& infos, expressions::Filter const& filter);
+void updateExpressionInfos(expressions::Filter const& filter, std::vector<ExpressionInfo>& eInfos);
 gandiva::ConditionPtr createCondition(gandiva::NodePtr node);
 } // namespace o2::framework::expressions
 

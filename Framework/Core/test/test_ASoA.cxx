@@ -349,7 +349,7 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   expressions::Selection selection_f = expressions::createSelection(tableA, testf);
 
   TestA testA{tableA};
-  FilteredTest filtered{testA.asArrowTable(), selection_f};
+  FilteredTest filtered{{testA.asArrowTable()}, selection_f};
   BOOST_CHECK_EQUAL(2, filtered.size());
 
   auto i = 0;
@@ -372,7 +372,7 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   selectionConcat->SetIndex(2, 10);
   selectionConcat->SetNumSlots(3);
   ConcatTest concatTest{tableA, tableB};
-  FilteredConcatTest concatTestTable{concatTest.asArrowTable(), selectionConcat};
+  FilteredConcatTest concatTestTable{{concatTest.asArrowTable()}, selectionConcat};
   BOOST_CHECK_EQUAL(3, concatTestTable.size());
 
   i = 0;
@@ -403,7 +403,7 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   selectionJoin->SetIndex(2, 4);
   selectionJoin->SetNumSlots(3);
   JoinedTest testJoin{0, tableA, tableC};
-  FilteredJoinTest filteredJoin{testJoin.asArrowTable(), selectionJoin};
+  FilteredJoinTest filteredJoin{{testJoin.asArrowTable()}, selectionJoin};
 
   i = 0;
   BOOST_CHECK(filteredJoin.begin() != filteredJoin.end());
