@@ -99,11 +99,11 @@ GPUd() bool GPUTPCCFPeakFinder::isPeak(
 
   bool peak = true;
 
-#define CMP_NEIGHBOR(dp, dt, cmpOp)                  \
-  do {                                               \
-    PackedCharge p = chargeMap[pos.delta({dp, dt})]; \
-    const Charge otherCharge = p.unpack();           \
-    peak &= (otherCharge cmpOp myCharge);            \
+#define CMP_NEIGHBOR(dp, dt, cmpOp)                        \
+  do {                                                     \
+    PackedCharge p = chargeMap[pos.delta(Delta2{dp, dt})]; \
+    const Charge otherCharge = p.unpack();                 \
+    peak &= (otherCharge cmpOp myCharge);                  \
   } while (false)
 
 #define CMP_LT CMP_NEIGHBOR(-1, -1, <=)
