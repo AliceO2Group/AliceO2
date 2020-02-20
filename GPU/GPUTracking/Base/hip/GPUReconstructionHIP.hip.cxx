@@ -218,6 +218,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
   mDeviceId = bestDevice;
 
   GPUFailedMsgI(hipGetDeviceProperties(&hipDeviceProp_t, mDeviceId));
+  hipDeviceProp_t.totalConstMem = 65536; // TODO: Remove workaround, fixes incorrectly reported HIP constant memory
 
   if (mDeviceProcessingSettings.debugLevel >= 2) {
     GPUInfo("Using HIP Device %s with Properties:", hipDeviceProp_t.name);
