@@ -405,7 +405,11 @@ struct AnalysisDataProcessorBuilder {
           } else if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Join>::value || is_specialization<std::decay_t<AssociatedType>, o2::soa::Concat>::value) {
             for (auto& groupedDatum : groupsCollection) {
               auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
-              task.process(groupingElement, AssociatedType{{groupedElementsTable}, offsets[oi]});
+              // Set the refererred table.
+              // FIXME: we should be able to do this upfront for all the tables.
+              std::decay_t<AssociatedType> typedTable{{groupedElementsTable}, offsets[oi]};
+              typedTable.bindExternalIndices(&groupingTable);
+              task.process(groupingElement, typedTable);
               ++const_cast<std::decay_t<Grouping>&>(groupingElement);
               ++oi;
             }
