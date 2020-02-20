@@ -27,41 +27,41 @@ ClassImp(Digitizer);
 
 double Digitizer::get_time(const std::vector<double>& times)
 {
-  mHist->Reset();
-  mHistsum->Reset();
-  mHistshift->Reset();
-
-  for (auto time : times) {
-    for (int bin = mHist->FindBin(time); bin < mHist->GetSize(); ++bin)
-      if (mHist->GetBinCenter(bin) > time)
-        mHist->AddBinContent(bin, signalForm_i(mHist->GetBinCenter(bin) - time));
-  }
-  /// Add noise to `mHist`
-  for (int c = 0; c < mHist->GetSize(); c += mNoisePeriod) {
-    double val = gRandom->Gaus(0, parameters.mNoiseVar);
-    for (int bin = 0; bin < mHist->GetSize(); ++bin)
-      mHist->AddBinContent(bin, val * sinc(TMath::Pi() * (bin - c) / (double)mNoisePeriod));
-    for (int bin = 0; bin < mBinshift; ++bin)
-      mHistshift->AddBinContent(bin, val * sinc(TMath::Pi() * (bin - c) / (double)mNoisePeriod));
-  }
-  /// Shift `mHist` by 1.47 ns to `mHistshift`
-  for (int bin = 0; bin < mHist->GetSize() - mBinshift; ++bin)
-    mHistshift->SetBinContent(bin + mBinshift, mHist->GetBinContent(bin));
-
-  /// Add the signal and its shifted version to `mHistsum`
-  mHist->Scale(-1);
-  mHistsum->Add(mHistshift, mHist, 5, 1);
-  for (int bin = 1; bin < mHist->GetSize(); ++bin) {
-    /// Find the point where zero is crossed in `mHistsum` ...
-    if (mHistsum->GetBinContent(bin - 1) < 0 && mHistsum->GetBinContent(bin) >= 0) {
-      /// ... and voltage is above 3 mV
-      if (std::abs(mHist->GetBinContent(bin)) > 3) {
-        return mHistsum->GetBinCenter(bin);
-      }
-    }
+  double min_time = *std::min_element(begin(times), end(times));
+  assert(std::is_sorted(begin(times), end(times)));
+  std::vector<double> noise(std::ceil(25. / parameters.mNoisePeriod));
+  for (auto& n : noise)
+    n = gRandom->Gaus(0, parameters.mNoiseVar);
+  bool is_positive = false;
+  auto period = parameters.mNoisePeriod;
+  auto value_at = [&noise, &times, &period](double time) {
+    double val = 0;
+    for (double t : times)
+      val += signalForm_i(time - t);
+    for (size_t i = 0; i < noise.size(); ++i)
+      val += noise[i] * sinc(TMath::Pi() * ((time - 12.5) / period - i));
+    return val;
+  };
+  for (double time = min_time; time < 12.5; time += 13e-3) {
+    double val = value_at(time);
+    double cfd_val = 5*value_at(time - 1.47) - val;
+    if (std::abs(val) > 3 && !is_positive && cfd_val > 0)
+      return time;
+    is_positive = cfd_val > 0;
   }
   std::cout << "CFD failed to find peak\n";
   return 1e10;
+}
+
+double measure_amplitude(const std::vector<double>& times) {
+  double result = 0;
+  double from = -12.5 + 6;
+  double to = from + 19.2;
+  for (double time : times) {
+    result += signalForm_integral(to-time) - signalForm_integral(from-time);
+  }
+  LOG(INFO) << result / times.size();
+  return result;
 }
 
 void Digitizer::process(const std::vector<o2::ft0::HitType>* hits)
@@ -86,10 +86,10 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits)
 
     Bool_t is_hit_in_signal_gate = (abs(hit_time) < parameters.mSignalWidth * .5);
 
-    if (is_hit_in_signal_gate) {
+    //if (is_hit_in_signal_gate) {
       mNumParticles[hit_ch]++;
       mChannel_times[hit_ch].push_back(hit_time);
-    }
+      //}
 
     //charge particles in MCLabel
     Int_t parentID = hit.GetTrackID();
@@ -118,7 +118,9 @@ void Digitizer::setDigits(std::vector<o2::ft0::Digit>& digitsBC,
   for (Int_t ipmt = 0; ipmt < parameters.mMCPs; ++ipmt) {
     if (mNumParticles[ipmt] < parameters.mAmp_trsh)
       continue;
+    std::sort(begin(mChannel_times[ipmt]), end(mChannel_times[ipmt]));
     Float_t amp = (parameters.mMip_in_V * mNumParticles[ipmt] * parameters.mPe_in_mip);
+    LOG(INFO) << "number of paritcles: " << mNumParticles[ipmt] << ", integral: " << measure_amplitude(mChannel_times[ipmt]) << ", vector size: " << mChannel_times[ipmt].size();
     int chain = (std::rand() % 2) ? 1 : 0;
     if (amp > parameters.mCFD_trsh) {
       int smeared_time = 1000. * (get_time(mChannel_times[ipmt]) - parameters.mCfdShift) * parameters.ChannelWidthInverse;
@@ -173,12 +175,6 @@ void Digitizer::initParameters()
 {
   mEventTime = 0;
   float signal_width = 0.5 * parameters.mSignalWidth;
-  mHist = new TH1F("time_histogram", "", 1000, -signal_width, signal_width);
-  mHistsum = new TH1F("time_sum", "", 1000, -signal_width, signal_width);
-  mHistshift = new TH1F("time_shift", "", 1000, -signal_width, signal_width);
-
-  mNoisePeriod = parameters.mNoisePeriod / mHist->GetBinWidth(0);
-  mBinshift = int(parameters.mCFDShiftPos / (0.001 * parameters.mSignalWidth));
 }
 //_______________________________________________________________________
 void Digitizer::init()

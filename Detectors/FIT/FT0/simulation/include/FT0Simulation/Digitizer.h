@@ -62,14 +62,15 @@ class Digitizer
   bool isContinuous() const { return mIsContinuous; }
   void cleanChannelData()
   {
+    mChannel_times.assign(parameters.mMCPs, {});
     for (Int_t ipmt = 0; ipmt < parameters.mMCPs; ++ipmt)
       mNumParticles[ipmt] = 0;
   }
   void clearDigits()
   {
-    for (int i = 0; i < parameters.mMCPs; ++i) {
+    mChannel_times.assign(parameters.mMCPs, {});
+    for (int i = 0; i < parameters.mMCPs; ++i)
       mNumParticles[i] = 0;
-    }
     mTriggers.cleanTriggers();
   }
 
@@ -81,8 +82,6 @@ class Digitizer
   Int_t mEventID;
   Int_t mSrcID;        // signal, background or QED
   Double_t mEventTime; // timestamp
-  int mNoisePeriod;    //low frequency noise period
-  int mBinshift;       // number of bin to shift positive part of CFD signal
   bool mIsContinuous = true; // continuous (self-triggered) or externally-triggered readout
   int mNumParticles[208];
 
@@ -91,10 +90,6 @@ class Digitizer
   o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mMCLabels = nullptr;
 
   o2::ft0::Triggers mTriggers;
-
-  TH1F* mHist;      // ("time_histogram", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-  TH1F* mHistsum;   //("time_sum", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-  TH1F* mHistshift; //("time_shift", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
 
   ClassDefNV(Digitizer, 1);
 };
@@ -109,6 +104,14 @@ Float signalForm_i(Float x)
   using namespace std;
   return x > 0 ? -(exp(-0.83344945 * x) - exp(-0.45458 * x)) / 7.8446501 : 0.;
   //return -(exp(-0.83344945 * x) - exp(-0.45458 * x)) * (x >= 0) / 7.8446501; // Maximum should be 7.0/250 mV
+};
+
+inline float signalForm_integral(float x)
+{
+  using namespace std;
+  double a = -0.45458, b = -0.83344945;
+  if (x < 0) x = 0;
+  return -(exp(b * x) / b - exp(a * x) / a) / 7.8446501;
 };
 } // namespace ft0
 } // namespace o2
