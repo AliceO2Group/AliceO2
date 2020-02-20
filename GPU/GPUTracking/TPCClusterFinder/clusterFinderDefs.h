@@ -84,7 +84,6 @@ using ulong = unsigned long;
 #define DBG_PRINT(msg, ...) static_cast<void>(0)
 #endif
 
-
 #ifdef GPUCA_GPUCODE
 #define CPU_ONLY(x) static_cast<void>(0)
 #define CPU_PTR(x) nullptr

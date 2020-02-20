@@ -89,13 +89,14 @@ GPUd() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, 
     return;
   }
 
-  sortIntoBuckets(
+  uint rowIndex = sortIntoBuckets(
     myCluster,
-    labelAcc,
     myDigit.row,
     maxClusterPerRow,
     clusterInRow,
     clusterByRow);
+
+  CPU_ONLY(labelAcc->commit(myDigit.row, rowIndex, maxClusterPerRow));
 }
 
 GPUd() void GPUTPCCFClusterizer::addOuterCharge(
@@ -358,22 +359,11 @@ GPUd() void GPUTPCCFClusterizer::buildClusterNaive(
   addCorner(chargeMap, myCluster, pos, {1, 1});
 }
 
-GPUd() void GPUTPCCFClusterizer::sortIntoBuckets(const tpc::ClusterNative& cluster, MCLabelAccumulator* labelAcc, uint row, uint maxElemsPerBucket, uint* elemsInBucket, tpc::ClusterNative* buckets)
+GPUd() uint GPUTPCCFClusterizer::sortIntoBuckets(const tpc::ClusterNative& cluster, uint row, uint maxElemsPerBucket, uint* elemsInBucket, tpc::ClusterNative* buckets)
 {
-  uint index;
-#if defined(GPUCA_GPUCODE)
-  index = CAMath::AtomicAdd(&elemsInBucket[row], 1);
-#else
-  if (labelAcc->engaged()) {
-    // On cpu if we have labels, let label accumulator determine the bucket
-    // index to ensure truth index and cluster index are identical
-    index = labelAcc->commit(row);
-    CAMath::AtomicMax(&elemsInBucket[row], index);
-  } else {
-    index = CAMath::AtomicAdd(&elemsInBucket[row], 1);
-  }
-#endif
+  uint index = CAMath::AtomicAdd(&elemsInBucket[row], 1);
   if (index < maxElemsPerBucket) {
     buckets[maxElemsPerBucket * row + index] = cluster;
   }
+  return index;
 }

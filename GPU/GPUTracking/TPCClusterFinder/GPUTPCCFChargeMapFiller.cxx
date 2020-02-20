@@ -22,14 +22,14 @@ template <>
 GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::fillChargeMap>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
-  Array2D<DigitID> indexMap(clusterer.mPindexMap);
+  Array2D<uint> indexMap(clusterer.mPindexMap);
   fillChargeMapImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPdigits, chargeMap, indexMap, clusterer.mPmemory->counters.nDigits);
 }
 
 GPUd() void GPUTPCCFChargeMapFiller::fillChargeMapImpl(int nBlocks, int nThreads, int iBlock, int iThread,
                                                        const Digit* digits,
                                                        Array2D<PackedCharge>& chargeMap,
-                                                       Array2D<DigitID>& indexMap,
+                                                       Array2D<uint>& indexMap,
                                                        size_t maxDigit)
 {
   size_t idx = get_global_id(0);
