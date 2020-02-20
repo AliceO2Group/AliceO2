@@ -17,7 +17,6 @@
 #include "GPUDef.h"
 #include "GPUProcessor.h"
 #include "GPUDataTypes.h"
-#include "CPULabelContainer.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -36,7 +35,7 @@ struct ClusterNative;
 
 namespace gpu
 {
-struct GPUTPCClusterMCSector;
+struct GPUTPCClusterMCInterim;
 
 namespace deprecated
 {
@@ -83,14 +82,16 @@ class GPUTPCClusterFinder : public GPUProcessor
   unsigned char* mPisPeak = nullptr;
   ushort* mPchargeMap = nullptr;
   unsigned char* mPpeakMap = nullptr;
-  DigitID *mPindexMap = nullptr;
+  uint* mPindexMap = nullptr;
   uint* mPclusterInRow = nullptr;
   tpc::ClusterNative* mPclusterByRow = nullptr;
+  GPUTPCClusterMCInterim* mPlabelsByRow = nullptr;
   int* mPbuf = nullptr;
   Memory* mPmemory = nullptr;
 
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> const* mPinputLabels = nullptr;
-  GPUTPCClusterMCSector* mPclusterLabels = nullptr;
+  uint* mPlabelHeaderOffset = nullptr;
+  uint* mPlabelDataOffset = nullptr;
 
   int mISlice = 0;
   constexpr static int mScanWorkGroupSize = GPUCA_THREAD_COUNT_SCAN;
@@ -114,7 +115,6 @@ class GPUTPCClusterFinder : public GPUProcessor
   void DumpSuppressedPeaksCompacted(std::ostream& out);
   void DumpCountedPeaks(std::ostream& out);
   void DumpClusters(std::ostream& out);
-  void DumpMCLabels(std::ostream& out);
 #endif
 };
 
