@@ -35,6 +35,7 @@ namespace reco_workflow
 /// The resulting cluster objects contain a range of digits
 /// that can be found in output digit indices object
 ///
+template <class InputType>
 class ClusterizerSpec : public framework::Task
 {
  public:
@@ -60,17 +61,17 @@ class ClusterizerSpec : public framework::Task
   void run(framework::ProcessingContext& ctx) final;
 
  private:
-  o2::emcal::Clusterizer mClusterizer;                                       ///< Clusterizer object
-  o2::emcal::Geometry* mGeometry = nullptr;                                  ///< Pointer to geometry object
-  const std::vector<o2::emcal::Cluster>* mOutputClusters = nullptr;          ///< Container with output clusters (pointer)
-  const std::vector<o2::emcal::ClusterIndex>* mOutputDigitIndices = nullptr; ///< Container with indices of cluster digits (pointer)
+  o2::emcal::Clusterizer<InputType> mClusterizer;                                ///< Clusterizer object
+  o2::emcal::Geometry* mGeometry = nullptr;                                      ///< Pointer to geometry object
+  const std::vector<o2::emcal::Cluster>* mOutputClusters = nullptr;              ///< Container with output clusters (pointer)
+  const std::vector<o2::emcal::ClusterIndex>* mOutputCellDigitIndices = nullptr; ///< Container with indices of cluster digits (pointer)
 };
 
 /// \brief Creating DataProcessorSpec for the EMCAL Clusterizer Spec
 /// \ingroup EMCALworkflow
 ///
 /// Refer to ClusterizerSpec::run for input and output specs
-framework::DataProcessorSpec getClusterizerSpec();
+framework::DataProcessorSpec getClusterizerSpec(bool useDigits);
 
 } // namespace reco_workflow
 

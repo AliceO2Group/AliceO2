@@ -9,31 +9,43 @@
 // or submit itself to any jurisdiction.
 
 /// \file DigitReader.cxx
-/// \brief Implementation of EMCAL digit reader
+/// \brief Implementation of EMCAL cell/digit reader
 
 #include "CommonUtils/RootChain.h"
 #include "EMCALReconstruction/DigitReader.h"
 #include "FairLogger.h" // for LOG
 
 using namespace o2::emcal;
+using o2::emcal::Cell;
 using o2::emcal::Digit;
 
 //______________________________________________________________________________
-void DigitReader::openInput(const std::string fileName)
+template <class InputType>
+void DigitReader<InputType>::openInput(const std::string fileName)
 {
   clear();
   if (!(mInputTree = o2::utils::RootChain::load("o2sim", fileName))) {
-    LOG(FATAL) << "Failed to load digits tree from " << fileName;
+    LOG(FATAL) << "Failed to load cells/digits tree from " << fileName;
   }
-  mInputTree->SetBranchAddress("EMCALDigit", &mDigitArray);
-  if (!mDigitArray) {
-    LOG(FATAL) << "Failed to find EMCALDigit branch in the " << mInputTree->GetName()
-               << " from file " << fileName;
+
+  if constexpr (std::is_same<InputType, Digit>::value) {
+    mInputTree->SetBranchAddress("EMCALDigit", &mInputArray);
+    if (!mInputArray) {
+      LOG(FATAL) << "Failed to find EMCALDigit branch in the " << mInputTree->GetName()
+                 << " from file " << fileName;
+    }
+  } else if constexpr (std::is_same<InputType, Cell>::value) {
+    mInputTree->SetBranchAddress("EMCALCell", &mInputArray);
+    if (!mInputArray) {
+      LOG(FATAL) << "Failed to find EMCALCell branch in the " << mInputTree->GetName()
+                 << " from file " << fileName;
+    }
   }
 }
 
 //______________________________________________________________________________
-bool DigitReader::readNextEntry()
+template <class InputType>
+bool DigitReader<InputType>::readNextEntry()
 {
   // Load next entry from the self-managed input
 
@@ -49,7 +61,7 @@ bool DigitReader::readNextEntry()
   mCurrentEntry
   auto nev = mInputTree->GetEntries();
   if (nev != 1) {
-    LOG(FATAL) << "In the self-managed mode the digits trees must have 1 entry only";
+    LOG(FATAL) << "In the self-managed mode the cells/digits trees must have 1 entry only";
   }
   auto evID = mInputTree->GetReadEntry();
   if (evID < -1)
@@ -64,8 +76,12 @@ bool DigitReader::readNextEntry()
 }
 
 //______________________________________________________________________________
-void DigitReader::clear()
+template <class InputType>
+void DigitReader<InputType>::clear()
 {
   // clear data structures
   mInputTree.reset(); // here we reset the unique ptr, not the tree!
 }
+
+template class o2::emcal::DigitReader<o2::emcal::Cell>;
+template class o2::emcal::DigitReader<o2::emcal::Digit>;

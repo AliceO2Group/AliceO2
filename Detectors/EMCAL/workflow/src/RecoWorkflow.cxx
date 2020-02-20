@@ -98,7 +98,22 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
 
     if (isEnabled(OutputType::Clusters)) {
       // add clusterizer
-      specs.emplace_back(o2::emcal::reco_workflow::getClusterizerSpec());
+      specs.emplace_back(o2::emcal::reco_workflow::getClusterizerSpec(true));
+    }
+  } else if (inputType == InputType::Cells) {
+
+    specs.emplace_back(o2::emcal::getPublisherSpec(PublisherConf{
+                                                     "emcal-cell-reader",
+                                                     "o2sim",
+                                                     {"cellbranch", "EMCALCell", "Cell branch"},
+                                                     {"mcbranch", "EMCALCellMCTruth", "MC label branch"},
+                                                     o2::framework::OutputSpec{"EMC", "CELLS"},
+                                                     o2::framework::OutputSpec{"EMC", "CELLSMCTR"}},
+                                                   propagateMC));
+
+    if (isEnabled(OutputType::Clusters)) {
+      // add clusterizer from cells
+      specs.emplace_back(o2::emcal::reco_workflow::getClusterizerSpec(false));
     }
   }
 
@@ -160,7 +175,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                                                       "digitmc-branch-name"})());
   }
 
-  if (isEnabled(OutputType::Cells)) {
+  if (isEnabled(OutputType::Cells) && inputType == InputType::Digits) {
     using DigitOutputType = std::vector<o2::emcal::Cell>;
     using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
     specs.push_back(makeWriterSpec("emcal-cells-writer",
