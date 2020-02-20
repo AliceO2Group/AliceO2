@@ -19,6 +19,7 @@
 #include <cassert>
 #include <iostream>
 #include <optional>
+#include <Vc/Vc>
 
 using namespace o2::ft0;
 //using o2::ft0::Geometry;
@@ -30,6 +31,14 @@ double Digitizer::get_time(const std::vector<double>& times)
   double min_time = *std::min_element(begin(times), end(times));
   assert(std::is_sorted(begin(times), end(times)));
   std::vector<double> noise(std::ceil(25. / parameters.mNoisePeriod));
+  auto simd_size = Vc::float_v::Size;
+  std::vector<Vc::float_v>
+    times_simd((times.size() + simd_size - 1) / simd_size);
+  for (size_t i = 0; i < times_simd.size(); ++i)
+    for (size_t j=0; j<simd_size; ++j) {
+      size_t idx = i * simd_size + j;
+      times_simd[i][j] = idx < times.size() ? times[idx] : 1e10;
+    }
   for (auto& n : noise)
     n = gRandom->Gaus(0, parameters.mNoiseVar);
   bool is_positive = false;
@@ -44,7 +53,7 @@ double Digitizer::get_time(const std::vector<double>& times)
   };
   for (double time = min_time; time < 12.5; time += 13e-3) {
     double val = value_at(time);
-    double cfd_val = 5*value_at(time - 1.47) - val;
+    double cfd_val = 5 * value_at(time - 1.47) - val;
     if (std::abs(val) > 3 && !is_positive && cfd_val > 0)
       return time;
     is_positive = cfd_val > 0;
@@ -53,12 +62,13 @@ double Digitizer::get_time(const std::vector<double>& times)
   return 1e10;
 }
 
-double measure_amplitude(const std::vector<double>& times) {
+double measure_amplitude(const std::vector<double>& times)
+{
   double result = 0;
   double from = -12.5 + 6;
   double to = from + 19.2;
   for (double time : times) {
-    result += signalForm_integral(to-time) - signalForm_integral(from-time);
+    result += signalForm_integral(to - time) - signalForm_integral(from - time);
   }
   LOG(INFO) << result / times.size();
   return result;
@@ -87,9 +97,9 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits)
     Bool_t is_hit_in_signal_gate = (abs(hit_time) < parameters.mSignalWidth * .5);
 
     //if (is_hit_in_signal_gate) {
-      mNumParticles[hit_ch]++;
-      mChannel_times[hit_ch].push_back(hit_time);
-      //}
+    mNumParticles[hit_ch]++;
+    mChannel_times[hit_ch].push_back(hit_time);
+    //}
 
     //charge particles in MCLabel
     Int_t parentID = hit.GetTrackID();
