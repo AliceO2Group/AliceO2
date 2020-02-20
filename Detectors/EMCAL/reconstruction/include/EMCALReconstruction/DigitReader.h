@@ -9,22 +9,24 @@
 // or submit itself to any jurisdiction.
 
 /// \file DigitReader.h
-/// \brief Definition of EMCAL digit reader
+/// \brief Definition of EMCAL cell/digit reader
 
 #ifndef ALICEO2_EMCAL_DIGITREADER_H
 #define ALICEO2_EMCAL_DIGITREADER_H
 
 #include "TTree.h"
 #include "DataFormatsEMCAL/Digit.h"
+#include "DataFormatsEMCAL/Cell.h"
 
 namespace o2
 {
 namespace emcal
 {
 /// \class DigitReader
-/// \brief DigitReader class for EMCAL. Loads digits and feeds them to clusterizer
+/// \brief DigitReader class for EMCAL. Loads cells/digits and feeds them to clusterizer
 /// \ingroup EMCALreconstruction
 /// \author Rudiger Haake (Yale)
+template <class InputType>
 class DigitReader
 {
  public:
@@ -34,11 +36,11 @@ class DigitReader
   void openInput(const std::string fileName);
   bool readNextEntry();
   void clear();
-  const std::vector<o2::emcal::Digit>* getDigitArray() const { return mDigitArray; };
+  const std::vector<InputType>* getInputArray() const { return mInputArray; };
 
  private:
-  std::vector<o2::emcal::Digit>* mDigitArray = nullptr;
-  std::unique_ptr<TTree> mInputTree; // input tree for digits
+  std::vector<InputType>* mInputArray = nullptr;
+  std::unique_ptr<TTree> mInputTree; // input tree for cells/digits
   int mCurrentEntry;                 // current entry in input file
 
   ClassDefNV(DigitReader, 1);
