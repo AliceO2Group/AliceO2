@@ -14,6 +14,7 @@
 #include "GPUTPCClusterFinder.h"
 #include "GPUReconstruction.h"
 #include "GPUMemorySizeScalers.h"
+#include "GPUHostDataTypes.h"
 
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "Digit.h"
@@ -64,6 +65,9 @@ void* GPUTPCClusterFinder::SetPointersScratch(void* mem)
   computePointerWithAlignment(mem, mPpeakMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED);
   if (not mRec->IsGPU()) {
     computePointerWithAlignment(mem, mPindexMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED);
+    computePointerWithAlignment(mem, mPlabelsByRow, GPUCA_ROW_COUNT * mNMaxClusterPerRow);
+    computePointerWithAlignment(mem, mPlabelHeaderOffset, GPUCA_ROW_COUNT);
+    computePointerWithAlignment(mem, mPlabelDataOffset, GPUCA_ROW_COUNT);
   }
   computePointerWithAlignment(mem, mPbuf, mBufSize * mNBufs);
   return mem;
