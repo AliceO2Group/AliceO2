@@ -41,11 +41,14 @@ struct GPUTPCDigitsMCInput {
   std::array<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*, o2::tpc::Constants::MAXSECTOR> v;
 };
 
-struct GPUTPCClusterMCSector {
-  std::array<o2::dataformats::MCTruthContainer<o2::MCCompLabel>, o2::tpc::Constants::MAXGLOBALPADROW> labels;
-  // Protect access to each row because multiple threads might attempt to
-  // add values in parallel
-  std::array<std::mutex, o2::tpc::Constants::MAXGLOBALPADROW> mtx;
+struct GPUTPCClusterMCInterim {
+  std::vector<uint64_t> labels;
+  uint offset;
+};
+
+struct GPUTPCLinearLabels {
+  std::vector<o2::dataformats::MCTruthHeaderElement> header;
+  std::vector<o2::MCCompLabel> data;
 };
 
 } // namespace gpu

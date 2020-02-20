@@ -86,7 +86,7 @@ class GPUTPCCFClusterizer : public GPUKernelTemplate
 
   static GPUd() void buildClusterNaive(const Array2D<PackedCharge>&, ClusterAccumulator*, const ChargePos&);
 
-  static GPUd() void sortIntoBuckets(const tpc::ClusterNative&, MCLabelAccumulator*, uint, uint, uint*, tpc::ClusterNative*);
+  static GPUd() uint sortIntoBuckets(const tpc::ClusterNative&, uint, uint, uint*, tpc::ClusterNative*);
 };
 
 } // namespace gpu

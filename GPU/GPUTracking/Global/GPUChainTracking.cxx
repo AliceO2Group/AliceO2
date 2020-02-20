@@ -951,14 +951,12 @@ int GPUChainTracking::RunTPCClusterizer()
   clsMemory.reserve(mRec->MemoryScalers()->nTPCHits);
 
   // setup MC Labels
-  static o2::dataformats::MCTruthContainer<o2::MCCompLabel> clustersMCTruth;
   auto* digitsMC = processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC;
   bool propagateMCLabels = !doGPU && digitsMC != nullptr;
 
-  int nLanes = GetDeviceProcessingSettings().nTPCClustererLanes;
-  std::unique_ptr clusterLabels =
-    (propagateMCLabels) ? std::make_unique<std::vector<GPUTPCClusterMCSector>>(nLanes)
-                        : nullptr;
+  GPUTPCLinearLabels mcLinearLabels;
+  mcLinearLabels.header.reserve(mRec->MemoryScalers()->nTPCHits);
+  mcLinearLabels.data.reserve(mRec->MemoryScalers()->nTPCHits * 16); // Assumption: cluster will have less than 16 labels on average
 
   for (unsigned int iSliceBase = 0; iSliceBase < NSLICES; iSliceBase += GetDeviceProcessingSettings().nTPCClustererLanes) {
     for (int lane = 0; lane < GetDeviceProcessingSettings().nTPCClustererLanes && iSliceBase + lane < NSLICES; lane++) {
@@ -968,12 +966,9 @@ int GPUChainTracking::RunTPCClusterizer()
 
       if (propagateMCLabels) {
         clusterer.mPinputLabels = digitsMC->v[iSlice];
-        /* GPUInfo("digits: %ld\n", mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice]); */
-        /* GPUInfo("labels: %ld\n", clusterer.mPinputLabels->getIndexedSize()); */
         // TODO: Why is the number of header entries in truth container
         // sometimes larger than the number of digits?
         assert(clusterer.mPinputLabels->getIndexedSize() >= mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice]);
-        clusterer.mPclusterLabels = &(*clusterLabels)[lane];
       }
 
       SetupGPUProcessor(&clusterer, false);
@@ -1074,25 +1069,6 @@ int GPUChainTracking::RunTPCClusterizer()
       TransferMemoryResourcesToHost(RecoStep::TPCClusterFinding, &clusterer, lane);
       DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpCountedPeaks, mDebugFile);
       DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpClusters, mDebugFile);
-      if (iSlice != 0 || !propagateMCLabels) {
-        continue;
-      }
-      for (const auto& row : clusterer.mPclusterLabels->labels) {
-        for (uint i = 0; i < clusterer.mPclusterInRow[0]; i++) {
-          auto labels = row.getLabels(i);
-          auto& cls = clusterer.mPclusterByRow[i];
-          std::cout << i << "(" << cls.getTime() << "," << cls.getPad() << ")"
-                    << ": ";
-          if (labels.empty()) {
-            std::cout << "no labels";
-          }
-          for (auto& label : labels) {
-            std::cout << label << " ";
-          }
-          std::cout << std::endl;
-        }
-        break; // only print data of first row
-      }
     }
     for (int lane = 0; lane < GetDeviceProcessingSettings().nTPCClustererLanes && iSliceBase + lane < NSLICES; lane++) {
       unsigned int iSlice = iSliceBase + lane;
@@ -1113,15 +1089,28 @@ int GPUChainTracking::RunTPCClusterizer()
         memcpy((void*)&clsMemory[pos], (const void*)&clusterer.mPclusterByRow[j * clusterer.mNMaxClusterPerRow], clusterer.mPclusterInRow[j] * sizeof(clsMemory[0]));
         tmp->nClusters[iSlice][j] = clusterer.mPclusterInRow[j];
         pos += clusterer.mPclusterInRow[j];
-        if (propagateMCLabels) {
-          clustersMCTruth.mergeAtBack(clusterer.mPclusterLabels->labels[j]);
-        }
+      }
+
+      if (not propagateMCLabels) {
+        continue;
+      }
+
+      runKernel<GPUTPCCFMCLabelFlattener, GPUTPCCFMCLabelFlattener::setRowOffsets>(GetGrid(GPUCA_ROW_COUNT, ClustererThreadCount(), lane), {iSlice}, {});
+      GPUTPCCFMCLabelFlattener::setGlobalOffsetsAndAllocate(clusterer, mcLinearLabels);
+      for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
+        runKernel<GPUTPCCFMCLabelFlattener, GPUTPCCFMCLabelFlattener::flatten>(GetGrid(clusterer.mPclusterInRow[j], ClustererThreadCount(), lane), {iSlice}, {}, j, &mcLinearLabels);
       }
     }
   }
 
+  static o2::dataformats::MCTruthContainer<o2::MCCompLabel> mcLabels;
+
+  assert(mcLinearLabels.header.size() == nClsTotal);
+
+  mcLabels.setFrom(mcLinearLabels.header, mcLinearLabels.data);
+
   tmp->clustersLinear = clsMemory.data();
-  tmp->clustersMCTruth = &clustersMCTruth;
+  tmp->clustersMCTruth = &mcLabels;
   tmp->setOffsetPtrs();
   mIOPtrs.clustersNative = tmp;
   PrepareEventFromNative();

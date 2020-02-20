@@ -38,6 +38,8 @@ GPUCA_KRNL((GPUTPCCFNoiseSuppression,   noiseSuppression ), (single, REG, (GPUCA
 GPUCA_KRNL((GPUTPCCFNoiseSuppression,   updatePeaks      ), (single, REG, (GPUCA_THREAD_COUNT_CLUSTERER, 1)), (), ())
 GPUCA_KRNL((GPUTPCCFDeconvolution                        ), (single, REG, (GPUCA_THREAD_COUNT_CLUSTERER, 1)), (), ())
 GPUCA_KRNL((GPUTPCCFClusterizer                          ), (single, REG, (GPUCA_THREAD_COUNT_CLUSTERER, 1)), (), ())
+GPUCA_KRNL((GPUTPCCFMCLabelFlattener,   setRowOffsets    ), (single, REG, (GPUCA_THREAD_COUNT_CLUSTERER, 1)), (), ())
+GPUCA_KRNL((GPUTPCCFMCLabelFlattener,   flatten          ), (single, REG, (GPUCA_THREAD_COUNT_CLUSTERER, 1)), (, unsigned int row, GPUPtr1(GPUTPCLinearLabels*, out)), (, row, GPUPtr2(GPUTPCLinearLabels*, out)))
 GPUCA_KRNL((GPUTPCCFStreamCompaction,   nativeScanUpStart), (single, REG, (GPUCA_THREAD_COUNT_SCAN, 1)), (, int iBuf, int stage), (, iBuf, stage))
 GPUCA_KRNL((GPUTPCCFStreamCompaction,   nativeScanUp     ), (single, REG, (GPUCA_THREAD_COUNT_SCAN, 1)), (, int iBuf, int nElems), (, iBuf, nElems))
 GPUCA_KRNL((GPUTPCCFStreamCompaction,   nativeScanTop    ), (single, REG, (GPUCA_THREAD_COUNT_SCAN, 1)), (, int iBuf, int nElems), (, iBuf, nElems))
