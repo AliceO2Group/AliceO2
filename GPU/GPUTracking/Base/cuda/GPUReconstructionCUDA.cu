@@ -552,6 +552,12 @@ void GPUReconstructionCUDABackend::SetThreadCounts()
   mTRDThreadCount = GPUCA_THREAD_COUNT_TRD;
   mClustererThreadCount = GPUCA_THREAD_COUNT_CLUSTERER;
   mScanThreadCount = GPUCA_THREAD_COUNT_SCAN;
+  mConverterThreadCount = GPUCA_THREAD_COUNT_CONVERTER;
+  mCompression1ThreadCount = GPUCA_THREAD_COUNT_COMPRESSION1;
+  mCompression2ThreadCount = GPUCA_THREAD_COUNT_COMPRESSION2;
+  mCFDecodeThreadCount = GPUCA_THREAD_COUNT_CFDECODE;
+  mFitThreadCount = GPUCA_THREAD_COUNT_FIT;
+  mITSThreadCount = GPUCA_THREAD_COUNT_ITS;
 }
 
 int GPUReconstructionCUDABackend::registerMemoryForGPU(void* ptr, size_t size)

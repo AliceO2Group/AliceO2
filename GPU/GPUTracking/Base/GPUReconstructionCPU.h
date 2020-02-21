@@ -186,6 +186,12 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   unsigned int mTRDThreadCount = 0;
   unsigned int mClustererThreadCount = 0;
   unsigned int mScanThreadCount = 0;
+  unsigned int mConverterThreadCount = 0;
+  unsigned int mCompression1ThreadCount = 0;
+  unsigned int mCompression2ThreadCount = 0;
+  unsigned int mCFDecodeThreadCount = 0;
+  unsigned int mFitThreadCount = 0;
+  unsigned int mITSThreadCount = 0;
 
   int mThreadId = -1; // Thread ID that is valid for the local CUDA context
   int mGPUStuck = 0;  // Marks that the GPU is stuck, skip future events
