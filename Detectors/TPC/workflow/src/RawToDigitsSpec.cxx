@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <fmt/format.h>
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
@@ -22,6 +21,7 @@
 #include "TPCCalibration/DigitDump.h"
 #include "TPCReconstruction/RawReaderCRU.h"
 #include "TPCWorkflow/RawToDigitsSpec.h"
+#include "Framework/Logger.h"
 #include <vector>
 #include <string>
 
@@ -33,19 +33,23 @@ namespace o2
 namespace tpc
 {
 
-o2::framework::DataProcessorSpec getRawToDigitsSpec(int channel, const std::string_view inputDef)
+o2::framework::DataProcessorSpec getRawToDigitsSpec(int channel, const std::string_view inputDef, std::vector<int> const& tpcSectors)
 {
 
   struct ProcessAttributes {
-    DigitDump digitDump;
-    rawreader::RawReaderCRUManager rawReader;
-    uint32_t lastOrbit{0};
-    uint32_t maxEvents{100};
-    uint64_t activeSectors{0};
-    bool quit{false};
+    DigitDump digitDump;                      ///< digits creation class
+    rawreader::RawReaderCRUManager rawReader; ///< GBT frame decoder
+    uint32_t lastOrbit{0};                    ///< last processed orbit number
+    uint32_t maxEvents{100};                  ///< maximum number of events to process
+    uint64_t activeSectors{0};                ///< bit mask of active sectors
+    bool quit{false};                         ///< if workflow is ready to quit
+    std::vector<int> tpcSectors{};            ///< tpc sector configuration
   };
 
-  auto initFunction = [channel](InitContext& ic) {
+  // ===| stateful initialization |=============================================
+  //
+  auto initFunction = [channel, tpcSectors](InitContext& ic) {
+    // ===| create and set up processing attributes |===
     auto processAttributes = std::make_shared<ProcessAttributes>();
     // set up calibration
     {
@@ -53,7 +57,7 @@ o2::framework::DataProcessorSpec getRawToDigitsSpec(int channel, const std::stri
       digitDump.init();
       digitDump.setInMemoryOnly();
       const auto pedestalFile = ic.options().get<std::string>("pedestal-file");
-      LOG(INFO) << "Setting pedestal file: " << pedestalFile;
+      LOGP(info, "Setting pedestal file: {}", pedestalFile);
       digitDump.setPedestalAndNoiseFile(pedestalFile);
 
       processAttributes->rawReader.createReader("");
@@ -63,21 +67,27 @@ o2::framework::DataProcessorSpec getRawToDigitsSpec(int channel, const std::stri
         return timeBins;
       });
       processAttributes->maxEvents = static_cast<uint32_t>(ic.options().get<int>("max-events"));
+      processAttributes->tpcSectors = tpcSectors;
     }
 
+    // ===| data processor |====================================================
+    //
     auto processingFct = [processAttributes, channel](ProcessingContext& pc) {
       if (processAttributes->quit) {
         return;
       }
 
-      //uint64_t activeSectors = 0;
-
-      // lambda that snapshots digits to be sent out; prepares and attaches header with sector information
+      // ===| digit snapshot |===
+      //
+      // lambda that snapshots digits to be sent out;
+      // prepares and attaches header with sector information
+      //
       auto snapshotDigits = [&pc, processAttributes, channel](std::vector<o2::tpc::Digit> const& digits, int sector) {
         o2::tpc::TPCSectorHeader header{sector};
         header.activeSectors = processAttributes->activeSectors;
-        // note that snapshoting only works with non-const references (to be fixed?)
-        pc.outputs().snapshot(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe, header},
+        // digit for now are transported per sector, not per lane
+        // pc.outputs().snapshot(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe, header},
+        pc.outputs().snapshot(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(sector), Lifetime::Timeframe, header},
                               const_cast<std::vector<o2::tpc::Digit>&>(digits));
       };
 
@@ -90,27 +100,26 @@ o2::framework::DataProcessorSpec getRawToDigitsSpec(int channel, const std::stri
           continue;
         }
 
+        // ===| extract electronics mapping information |===
         const auto subSpecification = dh->subSpecification;
         const auto cruID = subSpecification >> 16;
         const auto linkID = ((subSpecification + (subSpecification >> 8)) & 0xFF) - 1;
         const auto dataWrapperID = ((subSpecification >> 8) & 0xFF) > 0;
         const auto globalLinkID = linkID + dataWrapperID * 12;
         const auto sector = cruID / 10;
+
+        // update active sectors
         processAttributes->activeSectors |= (0x1 << sector);
 
+        // set up mapping information for raw reader
         auto& reader = processAttributes->rawReader.getReaders()[0];
         reader->forceCRU(cruID);
         reader->setLink(globalLinkID);
 
-        //LOG(INFO) << dh->dataOrigin.as<std::string>() << "/" << dh->dataDescription.as<std::string>() << "/"
-        //<< dh->subSpecification << " payload size " << dh->payloadSize;
-        //LOG(INFO) << "CRU: " << cruID << " -- linkID: " << linkID << " -- dataWrapperID: " << dataWrapperID << " -- globalLinkID: " << globalLinkID;
+        LOGP(debug, "Specifier: {}/{}/{}", dh->dataOrigin.as<std::string>(), dh->dataDescription.as<std::string>(), dh->subSpecification);
+        LOGP(debug, "Payload size: {}", dh->payloadSize);
+        LOGP(debug, "CRU: {}; linkID: {}; dataWrapperID: {}; globalLinkID: {}", cruID, linkID, dataWrapperID, globalLinkID);
 
-        // there is a bug in InpuRecord::get for vectors of simple types, not catched in
-        // DataAllocator unit test
-        //auto data = inputs.get<std::vector<char>>(input.spec->binding.c_str());
-        //LOG(INFO) << "data size " << data.size();
-        //printHeader();
         try {
           o2::framework::RawParser parser(input.payload, dh->payloadSize);
 
@@ -124,30 +133,34 @@ o2::framework::DataProcessorSpec getRawToDigitsSpec(int channel, const std::stri
             }
             const auto& rdh = *rdhPtr;
             //printRDH(rdh);
-            // ugly event handling ...
+
+            // ===| event handling |===
+            //
+            // really ugly, better treatment requires extension in DPL
+            // events are are detected by close by orbit numbers
+            //
             const auto hbOrbit = rdh.heartbeatOrbit;
             const auto lastOrbit = processAttributes->lastOrbit;
 
             if ((lastOrbit > 0) && (hbOrbit > (lastOrbit + 3))) {
               auto& digitDump = processAttributes->digitDump;
               digitDump.incrementNEvents();
-              LOG(INFO) << fmt::format("Number of processed events: {} ({})", digitDump.getNumberOfProcessedEvents(), processAttributes->maxEvents);
+              LOGP(info, "Number of processed events: {} ({})", digitDump.getNumberOfProcessedEvents(), processAttributes->maxEvents);
               digitDump.sortDigits();
-              // add publish here
-              for (int isector = 0; isector < Sector::MAXSECTOR; ++isector) {
-                if (processAttributes->activeSectors & (0x1 << isector)) {
-                  snapshotDigits(digitDump.getDigits(isector), isector);
-                }
+
+              // publish digits of all configured sectors
+              for (auto isector : processAttributes->tpcSectors) {
+                snapshotDigits(digitDump.getDigits(isector), isector);
               }
               digitDump.clearDigits();
 
               processAttributes->activeSectors = 0;
               if (digitDump.getNumberOfProcessedEvents() >= processAttributes->maxEvents) {
-                LOG(INFO) << fmt::format("Maximm number of events reached ({}), no more processing will be done", processAttributes->maxEvents);
+                LOGP(info, "Maximum number of events reached ({}), no more processing will be done", processAttributes->maxEvents);
                 processAttributes->quit = true;
                 pc.services().get<ControlService>().endOfStream();
-                pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
-                //pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+                //pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
+                pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
                 break;
               }
             }
@@ -155,7 +168,7 @@ o2::framework::DataProcessorSpec getRawToDigitsSpec(int channel, const std::stri
             processAttributes->lastOrbit = hbOrbit;
             const auto size = it.size();
             auto data = it.data();
-            //LOG(INFO) << fmt::format("Data size: {}", size);
+            LOGP(debug, "Raw data block payload size: {}", size);
 
             int iFrame = 0;
             for (int i = 0; i < size; i += 16) {
@@ -194,7 +207,9 @@ o2::framework::DataProcessorSpec getRawToDigitsSpec(int channel, const std::stri
   id << "TPCDigitizer" << channel;
 
   std::vector<OutputSpec> outputs; // define channel by triple of (origin, type id of data to be sent on this channel, subspecification)
-  outputs.emplace_back("TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  for (auto isector : tpcSectors) {
+    outputs.emplace_back("TPC", "DIGITS", static_cast<SubSpecificationType>(isector), Lifetime::Timeframe);
+  }
 
   return DataProcessorSpec{
     id.str().c_str(),

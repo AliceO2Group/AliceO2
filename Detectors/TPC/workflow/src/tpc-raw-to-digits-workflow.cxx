@@ -31,9 +31,12 @@ using namespace o2::framework;
 // customize the completion policy
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
-  using o2::framework::CompletionPolicy;
   // we customize the completion policy for the writer since it should stream immediately
-  policies.push_back(CompletionPolicyHelpers::defineByName("TPCDigitWriter", CompletionPolicy::CompletionOp::Consume));
+  using CompletionPolicy = o2::framework::CompletionPolicy;
+  using CompletionPolicyHelpers = o2::framework::CompletionPolicyHelpers;
+  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-cluster-decoder.*", CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-clusterer.*", CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-tracker.*", CompletionPolicy::CompletionOp::Consume));
 }
 
 // we need to add workflow options before including Framework/runDataProcessing
@@ -49,7 +52,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
   std::vector<ConfigParamSpec> options{
     {"input-spec", VariantType::String, "A:TPC/RAWDATA", {"selection string input specs"}},
-    {"dump-digits", o2::framework::VariantType::Bool, false, {"attach digit file dump"}},
     {"tpc-lanes", VariantType::Int, defaultlanes, {laneshelp}},
     {"tpc-sectors", VariantType::String, sectorDefault.c_str(), {sectorshelp}},
     {"tpc-reco-output", VariantType::String, "", {tpcrthelp}},
@@ -85,12 +87,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   WorkflowSpec specs;
 
-  auto tpcsectors = o2::RangeTokenizer::tokenize<int>(configcontext.options().get<std::string>("tpc-sectors"));
-  auto lanes = 1; //getNumTPCLanes(tpcsectors, config);
+  // for the moment no parallel workflow, so just one lane hard coded
+  auto tpcSectors = o2::RangeTokenizer::tokenize<int>(configcontext.options().get<std::string>("tpc-sectors"));
+  auto lanes = 1; //getNumTPCLanes(tpcSectors, config);
 
   int fanoutsize = 0;
   for (int l = 0; l < lanes; ++l) {
-    specs.emplace_back(o2::tpc::getRawToDigitsSpec(fanoutsize, configcontext.options().get<std::string>("input-spec")));
+    specs.emplace_back(o2::tpc::getRawToDigitsSpec(fanoutsize, configcontext.options().get<std::string>("input-spec"), tpcSectors));
     fanoutsize++;
   }
 
@@ -102,7 +105,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     recoOuput = tpcRecoOutputType.c_str();
   }
 
-  auto tpcRecoWorkflow = o2::tpc::reco_workflow::getWorkflow(tpcsectors, false, lanes, "digitizer", recoOuput.data());
+  auto tpcRecoWorkflow = o2::tpc::reco_workflow::getWorkflow(tpcSectors, tpcSectors, false, lanes, "digitizer", recoOuput.data());
   specs.insert(specs.end(), tpcRecoWorkflow.begin(), tpcRecoWorkflow.end());
 
   return specs;
