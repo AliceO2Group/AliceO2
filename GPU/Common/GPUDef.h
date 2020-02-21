@@ -24,7 +24,7 @@
 // Macros for masking ptrs in OpenCL kernel calls as unsigned long (The API only allows us to pass buffer objects)
 #ifdef __OPENCL__
   #define GPUPtr1(a, b) unsigned long b
-  #define GPUPtr2(a, b) ((__global a) b)
+  #define GPUPtr2(a, b) ((__global a) (a) b)
 #else
   #define GPUPtr1(a, b) a b
   #define GPUPtr2(a, b) b
@@ -38,7 +38,7 @@
 
 #ifdef GPUCA_GPUCODE
   #define CA_MAKE_SHARED_REF(vartype, varname, varglobal, varshared) const GPUsharedref() MEM_LOCAL(vartype) &varname = varshared;
-  #define CA_SHARED_STORAGE(storage) storage;
+  #define CA_SHARED_STORAGE(storage) storage
   #define CA_SHARED_CACHE(target, src, size) \
     static_assert((size) % sizeof(int) == 0, "Invalid shared cache size"); \
     for (unsigned int i_shared_cache = get_local_id(0); i_shared_cache < (size) / sizeof(int); i_shared_cache += get_local_size(0)) { \
