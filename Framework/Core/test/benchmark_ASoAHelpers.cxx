@@ -211,7 +211,7 @@ static void BM_ASoAHelpersNaiveTracksPairs(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
 }
 
-BENCHMARK(BM_ASoAHelpersNaiveTracksPairs)->Range(8, 8 << (maxPairsRange - 1));
+BENCHMARK(BM_ASoAHelpersNaiveTracksPairs)->Range(8, 8 << (maxPairsRange - 3));
 
 static void BM_ASoAHelpersNaiveTracksFives(benchmark::State& state)
 {
@@ -387,7 +387,7 @@ static void BM_ASoAHelpersAddOneTracksPairs(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
 }
 
-BENCHMARK(BM_ASoAHelpersAddOneTracksPairs)->Range(8, 8 << (maxPairsRange - 1));
+BENCHMARK(BM_ASoAHelpersAddOneTracksPairs)->Range(8, 8 << (maxPairsRange - 3));
 
 static void BM_ASoAHelpersAddOneTracksFives(benchmark::State& state)
 {
@@ -532,7 +532,7 @@ static void BM_ASoAHelpersCombGenTracksPairs(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
 }
 
-BENCHMARK(BM_ASoAHelpersCombGenTracksPairs)->Range(8, 8 << (maxPairsRange - 1));
+BENCHMARK(BM_ASoAHelpersCombGenTracksPairs)->Range(8, 8 << (maxPairsRange - 3));
 
 static void BM_ASoAHelpersCombGenTracksFives(benchmark::State& state)
 {
@@ -609,7 +609,7 @@ static void BM_ASoAHelpersCombGenSimpleFivesMultipleChunks(benchmark::State& sta
   state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
 }
 
-BENCHMARK(BM_ASoAHelpersCombGenSimpleFivesMultipleChunks)->RangeMultiplier(2)->Range(8, 8 << maxFivesRange);
+BENCHMARK(BM_ASoAHelpersCombGenSimpleFivesMultipleChunks)->RangeMultiplier(2)->Range(8, 8 << (maxFivesRange - 1));
 
 static void BM_ASoAHelpersCombGenTracksFivesMultipleChunks(benchmark::State& state)
 {
@@ -654,6 +654,6 @@ static void BM_ASoAHelpersCombGenTracksFivesMultipleChunks(benchmark::State& sta
   state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
 }
 
-BENCHMARK(BM_ASoAHelpersCombGenTracksFivesMultipleChunks)->RangeMultiplier(2)->Range(8, 8 << maxFivesRange);
+BENCHMARK(BM_ASoAHelpersCombGenTracksFivesMultipleChunks)->RangeMultiplier(2)->Range(8, 8 << (maxFivesRange - 1));
 
 BENCHMARK_MAIN();
