@@ -12,7 +12,8 @@
 
 #include "Framework/BasicOps.h"
 #include "Framework/CompilerBuiltins.h"
-#include "Framework/FunctionalHelpers.h"
+#include "Framework/Pack.h"
+#include "Framework/CheckTypes.h"
 #include <arrow/type.h>
 #include <arrow/table.h>
 #include <gandiva/selection_vector.h>
