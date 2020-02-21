@@ -669,7 +669,7 @@ int GPUChainTracking::ConvertNativeToClusterData()
 
   WriteToConstantMemory(RecoStep::TPCConversion, (char*)&processors()->tpcConverter - (char*)processors(), &convertShadow, sizeof(convertShadow), 0);
   TransferMemoryResourcesToGPU(RecoStep::TPCConversion, &convert, 0);
-  runKernel<GPUTPCConvertKernel>({NSLICES * GPUCA_ROW_COUNT, ThreadCount(), 0}, krnlRunRangeNone, krnlEventNone);
+  runKernel<GPUTPCConvertKernel>({NSLICES * GPUCA_ROW_COUNT, ConverterThreadCount(), 0}, krnlRunRangeNone, krnlEventNone);
   TransferMemoryResourcesToHost(RecoStep::TPCConversion, &convert, 0);
   SynchronizeGPU();
 
@@ -982,7 +982,7 @@ int GPUChainTracking::RunTPCClusterizer()
         continue;
       }
       if (mIOPtrs.tpcZS) {
-        runKernel<GPUTPCCFDecodeZS, GPUTPCCFDecodeZS::decodeZS>({GPUTrackingInOutZS::NENDPOINTS, ClustererThreadCount(), lane}, {iSlice}, {});
+        runKernel<GPUTPCCFDecodeZS, GPUTPCCFDecodeZS::decodeZS>({GPUTrackingInOutZS::NENDPOINTS, CFDecodeThreadCount(), lane}, {iSlice}, {});
         TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mMemoryId, lane);
         SynchronizeStream(lane);
       }
@@ -1577,7 +1577,7 @@ int GPUChainTracking::RunTPCTrackingMerger()
   TransferMemoryResourceLinkToGPU(RecoStep::TPCMerging, Merger.MemoryResRefit());
   timerCopyToGPU.Stop();
 
-  runKernel<GPUTPCGMMergerTrackFit>({BlockCount(), ThreadCount(), 0}, krnlRunRangeNone);
+  runKernel<GPUTPCGMMergerTrackFit>({BlockCount(), FitThreadCount(), 0}, krnlRunRangeNone);
   SynchronizeGPU();
 
   timerCopyToHost.Start();
@@ -1631,8 +1631,8 @@ int GPUChainTracking::RunTPCCompression()
   WriteToConstantMemory(myStep, (char*)&processors()->tpcCompressor - (char*)processors(), &CompressorShadow, sizeof(CompressorShadow), 0);
   TransferMemoryResourcesToGPU(myStep, &Compressor, 0);
   runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), 0, RecoStep::TPCCompression}, krnlRunRangeNone, krnlEventNone, CompressorShadow.mClusterStatus, Compressor.mMaxClusters * sizeof(CompressorShadow.mClusterStatus[0]));
-  runKernel<GPUTPCCompressionKernels, GPUTPCCompressionKernels::step0attached>({BlockCount(), ThreadCount(), 0}, krnlRunRangeNone, krnlEventNone);
-  runKernel<GPUTPCCompressionKernels, GPUTPCCompressionKernels::step1unattached>({BlockCount(), ThreadCount(), 0}, krnlRunRangeNone, krnlEventNone);
+  runKernel<GPUTPCCompressionKernels, GPUTPCCompressionKernels::step0attached>({BlockCount(), Compression1ThreadCount(), 0}, krnlRunRangeNone, krnlEventNone);
+  runKernel<GPUTPCCompressionKernels, GPUTPCCompressionKernels::step1unattached>({BlockCount(), Compression2ThreadCount(), 0}, krnlRunRangeNone, krnlEventNone);
   TransferMemoryResourcesToHost(myStep, &Compressor, 0);
   SynchronizeGPU();
   memset((void*)&Compressor.mOutput, 0, sizeof(Compressor.mOutput));
