@@ -176,6 +176,12 @@ class GPUChain
   inline unsigned int ClustererThreadCount() const { return mRec->mClustererThreadCount; }
   inline unsigned int ScanThreadCount() const { return mRec->mScanThreadCount; }
   inline unsigned int TRDThreadCount() const { return mRec->mTRDThreadCount; }
+  inline unsigned int ConverterThreadCount() const { return mRec->mConverterThreadCount; }
+  inline unsigned int Compression1ThreadCount() const { return mRec->mCompression1ThreadCount; }
+  inline unsigned int Compression2ThreadCount() const { return mRec->mCompression2ThreadCount; }
+  inline unsigned int CFDecodeThreadCount() const { return mRec->mCFDecodeThreadCount; }
+  inline unsigned int FitThreadCount() const { return mRec->mFitThreadCount; }
+  inline unsigned int ITSThreadCount() const { return mRec->mITSThreadCount; }
   inline size_t AllocateRegisteredMemory(GPUProcessor* proc) { return mRec->AllocateRegisteredMemory(proc); }
   inline size_t AllocateRegisteredMemory(short res, GPUOutputControl* control = nullptr) { return mRec->AllocateRegisteredMemory(res, control); }
   template <class T>
