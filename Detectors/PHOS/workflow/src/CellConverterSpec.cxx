@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "FairLogger.h"
 
+#include "Framework/RootSerializationSupport.h"
 #include "DataFormatsPHOS/Digit.h"
 #include "DataFormatsPHOS/PHOSBlockHeader.h"
 #include "PHOSWorkflow/CellConverterSpec.h"

@@ -14,6 +14,7 @@
 ///
 /// \brief This is a DPL workflow to see Mergers in action
 
+#include "Framework/RootSerializationSupport.h"
 #include "Mergers/MergerBuilder.h"
 
 #include <Framework/CompletionPolicy.h>
