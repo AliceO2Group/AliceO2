@@ -26,6 +26,7 @@
   #define GPUd()
   #define GPUdDefault()
   #define GPUdi() inline
+  #define GPUdii()
   #define GPUh()
   #define GPUhi() inline
   #define GPUhd()
@@ -59,6 +60,7 @@
   #define GPUd()
   #define GPUdDefault()
   #define GPUdi() inline
+  #define GPUdii() inline
   #define GPUh() INVALID_TRIGGER_ERROR_NO_HOST_CODE
   #define GPUhi() INVALID_TRIGGER_ERROR_NO_HOST_CODE
   #define GPUhd() inline
@@ -100,6 +102,7 @@
   #define GPUd() __device__
   #define GPUdDefault()
   #define GPUdi() __device__ inline
+  #define GPUdii() __device__ inline
   #define GPUh() __host__ inline
   #define GPUhi() __host__ inline
   #define GPUhd() __host__ __device__ inline
@@ -118,6 +121,7 @@
   #define GPUd() __device__
   #define GPUdDefault() __device__
   #define GPUdi() __device__ inline
+  #define GPUdii() __device__ __forceinline__
   #define GPUh() __host__ inline
   #define GPUhi() __host__ inline
   #define GPUhd() __host__ __device__ inline
