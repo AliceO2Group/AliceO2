@@ -95,6 +95,7 @@ GPUg() void GPUCA_ATTRRES(GPUCA_M_SHIFT(GPUCA_M_STRIP(x_attributes))) GPUCA_M_CA
   GPUCA_KRNL_POST()
 
 #define GPUCA_KRNL_(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_single(x_class, x_attributes, x_arguments, x_forward)
+#define GPUCA_KRNL_simple(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_single(x_class, x_attributes, x_arguments, x_forward)
 #define GPUCA_KRNL_both(x_class, x_attributes, x_arguments, x_forward) \
   GPUCA_KRNLGPU_SINGLE(x_class, x_attributes, x_arguments, x_forward) \
   GPUCA_KRNLGPU_MULTI(x_class, x_attributes, x_arguments, x_forward) \
@@ -107,6 +108,7 @@ GPUg() void GPUCA_ATTRRES(GPUCA_M_SHIFT(GPUCA_M_STRIP(x_attributes))) GPUCA_M_CA
   GPUCA_KRNL_POST()
 
 #define GPUCA_KRNL_LOAD_(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward)
+#define GPUCA_KRNL_LOAD_simple(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward)
 #define GPUCA_KRNL_LOAD_both(x_class, x_attributes, x_arguments, x_forward) \
   GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward) \
   GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward)
