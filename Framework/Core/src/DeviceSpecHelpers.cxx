@@ -247,7 +247,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
     device.options = processor.options;
     device.rank = processor.rank;
     device.nSlots = processor.nSlots;
-    device.inputTimesliceId = edge.timeIndex;
+    device.inputTimesliceId = edge.producerTimeIndex;
     device.maxInputTimeslices = processor.maxInputTimeslices;
     device.resource = {acceptedOffer};
     devices.push_back(device);
