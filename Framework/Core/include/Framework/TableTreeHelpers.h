@@ -13,6 +13,7 @@
 #include "TFile.h"
 #include "TTreeReader.h"
 #include "TTreeReaderValue.h"
+#include "TableBuilder.h"
 
 // =============================================================================
 namespace o2

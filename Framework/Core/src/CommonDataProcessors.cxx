@@ -18,6 +18,7 @@
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/TableBuilder.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/InitContext.h"
 #include "Framework/InputSpec.h"
