@@ -11,6 +11,8 @@
 #ifndef O2_FRAMEWORK_ASOA_H_
 #define O2_FRAMEWORK_ASOA_H_
 
+#include "Framework/Pack.h"
+#include "Framework/CheckTypes.h"
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/Traits.h"
