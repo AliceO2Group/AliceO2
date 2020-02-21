@@ -127,8 +127,10 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
 #if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
       GPUsharedref() calink* neighUp = s.mB[iThread];
       GPUsharedref() float2* yzUp = s.mA[iThread];
+#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP < GPUCA_MAXN
       calink neighUp2[GPUCA_MAXN - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP];
       float2 yzUp2[GPUCA_MAXN - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP];
+#endif
 #else
       calink neighUp[GPUCA_MAXN];
       float2 yzUp[GPUCA_MAXN];
@@ -149,7 +151,7 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
           break;
         }
 
-#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
+#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0 && GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP < GPUCA_MAXN
         if (nNeighUp >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP) {
           neighUp2[nNeighUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] = (calink)i;
           yzUp2[nNeighUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] = CAMath::MakeFloat2(s.mDnDx * (h.Y() - y), s.mDnDx * (h.Z() - z));
@@ -181,7 +183,7 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
           float2 yzdn = CAMath::MakeFloat2(s.mUpDx * (h.Y() - y), s.mUpDx * (h.Z() - z));
 
           for (int iUp = 0; iUp < nNeighUp; iUp++) {
-#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
+#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0 && GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP < GPUCA_MAXN
             float2 yzup = iUp >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP ? yzUp2[iUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] : yzUp[iUp];
 #else
             float2 yzup = yzUp[iUp];
@@ -198,7 +200,7 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
         } while (1);
 
         if (bestD <= chi2Cut) {
-#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
+#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0 && GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP < GPUCA_MAXN
           linkUp = bestUp >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP ? neighUp2[bestUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] : neighUp[bestUp];
 #else
           linkUp = neighUp[bestUp];

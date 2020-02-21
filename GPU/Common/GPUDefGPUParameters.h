@@ -134,7 +134,8 @@
 
 // Some assertions to make sure out parameters are not invalid
 #ifdef GPUCA_NOCOMPAT
-  static_assert(GPUCA_MAXN > GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP);
+  static_assert(GPUCA_MAXN >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP);
+  static_assert(GPUCA_ROW_COUNT >= GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE);
 #endif
 
 // Derived parameters
