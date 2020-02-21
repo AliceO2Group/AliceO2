@@ -120,7 +120,6 @@ class FT0DPLDigitizerTask
 
         // call actual digitization procedure
         labels.clear();
-        // mDigitizer.cleanChannelData();
         mDigitizer.setEventID(collID);
         mDigitizer.setSrcID(part.sourceID);
         mDigitizer.process(&hits);

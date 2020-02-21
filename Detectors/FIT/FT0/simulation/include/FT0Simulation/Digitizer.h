@@ -34,10 +34,6 @@ class Digitizer
   ~Digitizer() = default;
 
   void process(const std::vector<o2::ft0::HitType>* hits);
-  //           std::vector<o2::ft0::Digit>& digitsBC,
-  //    std::vector<o2::ft0::ChannelData>& digitsCh,
-  // o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels);
-
   void setDigits(std::vector<o2::ft0::Digit>& digitsBC,
                  std::vector<o2::ft0::ChannelData>& digitsCh);
   void initParameters();
@@ -50,7 +46,7 @@ class Digitizer
   void setInteractionRecord(const o2::InteractionRecord& src) { mIntRecord = src; }
   uint32_t getOrbit() const { return mIntRecord.orbit; }
   uint16_t getBC() const { return mIntRecord.bc; }
-
+  double measure_amplitude(const std::vector<double>& times);
   void init();
   void finish();
 
@@ -110,7 +106,8 @@ inline float signalForm_integral(float x)
 {
   using namespace std;
   double a = -0.45458, b = -0.83344945;
-  if (x < 0) x = 0;
+  if (x < 0)
+    x = 0;
   return -(exp(b * x) / b - exp(a * x) / a) / 7.8446501;
 };
 } // namespace ft0

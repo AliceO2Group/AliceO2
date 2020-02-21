@@ -30,15 +30,7 @@ double Digitizer::get_time(const std::vector<double>& times)
 {
   double min_time = *std::min_element(begin(times), end(times));
   assert(std::is_sorted(begin(times), end(times)));
-  std::vector<double> noise(std::ceil(25. / parameters.mNoisePeriod));
-  auto simd_size = Vc::float_v::Size;
-  std::vector<Vc::float_v>
-    times_simd((times.size() + simd_size - 1) / simd_size);
-  for (size_t i = 0; i < times_simd.size(); ++i)
-    for (size_t j=0; j<simd_size; ++j) {
-      size_t idx = i * simd_size + j;
-      times_simd[i][j] = idx < times.size() ? times[idx] : 1e10;
-    }
+  std::vector<double> noise(std::ceil(parameters.bunchWidth / parameters.mNoisePeriod));
   for (auto& n : noise)
     n = gRandom->Gaus(0, parameters.mNoiseVar);
   bool is_positive = false;
@@ -51,26 +43,27 @@ double Digitizer::get_time(const std::vector<double>& times)
       val += noise[i] * sinc(TMath::Pi() * ((time - 12.5) / period - i));
     return val;
   };
-  for (double time = min_time; time < 12.5; time += 13e-3) {
+  //  for (double time = min_time; time < 0.5 * parameters.bunchWidth; time += 0.001 * parameters.channelWidth) {
+  for (double time = min_time; time < 0.5 * parameters.bunchWidth; time += 0.005) {
     double val = value_at(time);
-    double cfd_val = 5 * value_at(time - 1.47) - val;
-    if (std::abs(val) > 3 && !is_positive && cfd_val > 0)
+    double cfd_val = 5 * value_at(time - parameters.mCFDShiftPos) - val;
+    if (std::abs(val) > parameters.mCFD_trsh && !is_positive && cfd_val > 0)
       return time;
     is_positive = cfd_val > 0;
   }
-  std::cout << "CFD failed to find peak\n";
-  return 1e10;
+  LOG(INFO) << "CFD failed to find peak ";
+  return 1e9;
 }
 
-double measure_amplitude(const std::vector<double>& times)
+double Digitizer::measure_amplitude(const std::vector<double>& times)
 {
   double result = 0;
-  double from = -12.5 + 6;
-  double to = from + 19.2;
+  double from = -0.5 * parameters.bunchWidth + parameters.IntegWindowDelayA;
+  double to = from + parameters.AmpIntegrationTime;
   for (double time : times) {
     result += signalForm_integral(to - time) - signalForm_integral(from - time);
   }
-  LOG(INFO) << result / times.size();
+  //  LOG(INFO) << result / times.size();
   return result;
 }
 
@@ -94,12 +87,10 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits)
     Float_t time_compensate = is_A_side ? parameters.A_side_cable_cmps : parameters.C_side_cable_cmps;
     Double_t hit_time = hit.GetTime() - time_compensate;
 
-    Bool_t is_hit_in_signal_gate = (abs(hit_time) < parameters.mSignalWidth * .5);
+    //  bool is_hit_in_signal_gate = (abs(hit_time) < parameters.mSignalWidth * .5);
 
-    //if (is_hit_in_signal_gate) {
     mNumParticles[hit_ch]++;
     mChannel_times[hit_ch].push_back(hit_time);
-    //}
 
     //charge particles in MCLabel
     Int_t parentID = hit.GetTrackID();
@@ -129,23 +120,26 @@ void Digitizer::setDigits(std::vector<o2::ft0::Digit>& digitsBC,
     if (mNumParticles[ipmt] < parameters.mAmp_trsh)
       continue;
     std::sort(begin(mChannel_times[ipmt]), end(mChannel_times[ipmt]));
-    Float_t amp = (parameters.mMip_in_V * mNumParticles[ipmt] * parameters.mPe_in_mip);
-    LOG(INFO) << "number of paritcles: " << mNumParticles[ipmt] << ", integral: " << measure_amplitude(mChannel_times[ipmt]) << ", vector size: " << mChannel_times[ipmt].size();
+
     int chain = (std::rand() % 2) ? 1 : 0;
-    if (amp > parameters.mCFD_trsh) {
-      int smeared_time = 1000. * (get_time(mChannel_times[ipmt]) - parameters.mCfdShift) * parameters.ChannelWidthInverse;
-      if (smeared_time < 1e9) {
-        digitsCh.emplace_back(ipmt, smeared_time, int(parameters.mV_2_Nchannels * amp), chain);
-        nStored++;
-      }
+    int smeared_time = 1000. * (get_time(mChannel_times[ipmt]) - parameters.mCfdShift) * parameters.ChannelWidthInverse;
+    bool is_time_in_signal_gate = (abs(smeared_time) < parameters.mSignalWidth * 0.5);
+    Float_t charge = measure_amplitude(mChannel_times[ipmt]) * parameters.charge2amp;
+    float amp = is_time_in_signal_gate ? charge : 0;
+    if (smeared_time < 1e9) {
+      digitsCh.emplace_back(ipmt, smeared_time, int(parameters.mV_2_Nchannels * amp), chain);
+      nStored++;
+
       // fill triggers
       Bool_t is_A_side = (ipmt <= 4 * parameters.nCellsA);
-      if (std::abs(smeared_time) > 0.5 * parameters.mTime_trg_gate)
+      if (smeared_time > parameters.mTime_trg_gate || smeared_time < -parameters.mTime_trg_gate)
         continue;
+
       if (is_A_side) {
         n_hit_A++;
         summ_ampl_A += amp;
         mean_time_A += smeared_time;
+
       } else {
         n_hit_C++;
         summ_ampl_C += amp;
@@ -153,7 +147,6 @@ void Digitizer::setDigits(std::vector<o2::ft0::Digit>& digitsBC,
       }
     }
   }
-
   Bool_t is_A, is_C, isVertex, is_Central, is_SemiCentral = 0;
   is_A = n_hit_A > 0;
   is_C = n_hit_C > 0;
