@@ -56,16 +56,16 @@ struct ExpirationHandlerHelpers {
     };
   }
 
-  static RouteConfigurator::CreationConfigurator enumDrivenConfigurator(InputSpec const& matcher)
+  static RouteConfigurator::CreationConfigurator enumDrivenConfigurator(InputSpec const& matcher, size_t inputTimeslice, size_t maxInputTimeslices)
   {
-    return [matcher](ConfigParamRegistry const& options) {
+    return [matcher, inputTimeslice, maxInputTimeslices](ConfigParamRegistry const& options) {
       std::string startName = std::string{"start-value-"} + matcher.binding;
       std::string endName = std::string{"end-value-"} + matcher.binding;
       std::string stepName = std::string{"step-value-"} + matcher.binding;
       auto start = options.get<int64_t>(startName.c_str());
       auto stop = options.get<int64_t>(endName.c_str());
       auto step = options.get<int64_t>(stepName.c_str());
-      return LifetimeHelpers::enumDrivenCreation(start, stop, step);
+      return LifetimeHelpers::enumDrivenCreation(start, stop, step, inputTimeslice, maxInputTimeslices);
     };
   }
 
@@ -557,7 +557,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
         break;
       case Lifetime::Enumeration:
         route.configurator = {
-          ExpirationHandlerHelpers::enumDrivenConfigurator(inputSpec),
+          ExpirationHandlerHelpers::enumDrivenConfigurator(inputSpec, consumerDevice.inputTimesliceId, consumerDevice.maxInputTimeslices),
           ExpirationHandlerHelpers::danglingEnumerationConfigurator(inputSpec),
           ExpirationHandlerHelpers::expiringEnumerationConfigurator(inputSpec, sourceChannel)};
         break;
