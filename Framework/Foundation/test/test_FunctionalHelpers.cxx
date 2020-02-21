@@ -14,6 +14,8 @@
 
 #include <boost/test/unit_test.hpp>
 #include "Framework/FunctionalHelpers.h"
+#include "Framework/Pack.h"
+#include "Framework/CheckTypes.h"
 
 using namespace o2::framework;
 
