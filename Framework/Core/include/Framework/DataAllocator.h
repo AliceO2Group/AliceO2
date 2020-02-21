@@ -26,7 +26,7 @@
 #include "Framework/TypeTraits.h"
 #include "Framework/Traits.h"
 #include "Framework/SerializationMethods.h"
-#include "Framework/TableBuilder.h"
+#include "Framework/FunctionalHelpers.h"
 
 #include "Headers/DataHeader.h"
 #include <TClass.h>
@@ -130,9 +130,12 @@ class DataAllocator
       std::string* s = new std::string(args...);
       adopt(spec, s);
       return *s;
-    } else if constexpr (std::is_base_of_v<TableBuilder, T>) {
-      TableBuilder* tb = new TableBuilder(args...);
-      adopt(spec, tb);
+    } else if constexpr (std::is_base_of_v<struct TableBuilder, T>) {
+      TableBuilder* tb = nullptr;
+      call_if_defined<struct TableBuilder>([&](auto* p) {
+        tb = new std::decay_t<decltype(*p)>(args...);
+        adopt(spec, tb);
+      });
       return *tb;
     } else if constexpr (sizeof...(Args) == 0) {
       if constexpr (is_messageable<T>::value == true) {
@@ -189,7 +192,7 @@ class DataAllocator
   /// Adopt a TableBuilder in the framework and serialise / send
   /// it as an Arrow table to all consumers of @a spec once done
   void
-    adopt(const Output& spec, TableBuilder*);
+    adopt(const Output& spec, struct TableBuilder*);
 
   /// Adopt a raw buffer in the framework and serialize / send
   /// it to the consumers of @a spec once done.
