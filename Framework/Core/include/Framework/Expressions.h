@@ -14,7 +14,7 @@
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/Pack.h"
 #include "Framework/CheckTypes.h"
-#include <arrow/type.h>
+#include <arrow/type_fwd.h>
 #include <arrow/table.h>
 #include <gandiva/selection_vector.h>
 #include <gandiva/node.h>
