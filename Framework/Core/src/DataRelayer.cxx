@@ -68,18 +68,19 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   }
 }
 
-void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& expirationHandlers,
+bool DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& expirationHandlers,
                                         ServiceRegistry& services)
 {
   /// Nothing to do if nothing can expire.
   if (expirationHandlers.empty()) {
-    return;
+    return false;
   }
   // Create any slot for the time based fields
   std::vector<TimesliceSlot> slotsCreatedByHandlers;
   for (auto& handler : expirationHandlers) {
     slotsCreatedByHandlers.push_back(handler.creator(mTimesliceIndex));
   }
+  bool didWork = slotsCreatedByHandlers.empty() == false;
   // Outer loop, we process all the records because the fact that the record
   // expires is independent from having received data for it.
   for (size_t ti = 0; ti < mTimesliceIndex.size(); ++ti) {
@@ -114,11 +115,13 @@ void DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& ex
       assert(ti * mDistinctRoutesIndex.size() + expirator.routeIndex.value < mCache.size());
       assert(expirator.handler);
       expirator.handler(services, part, timestamp.value);
+      didWork = true;
       mTimesliceIndex.markAsDirty(slot, true);
       assert(part.header != nullptr);
       assert(part.payload != nullptr);
     }
   }
+  return didWork;
 }
 
 /// This does the mapping between a route and a InputSpec. The
