@@ -170,7 +170,7 @@ class InputRecord
     if (pos >= mSpan.size() || pos < 0) {
       throw std::runtime_error("Unknown message requested at position " + std::to_string(pos));
     }
-    if (part >= getNofParts(pos)) {
+    if (part > 0 && part >= getNofParts(pos)) {
       throw std::runtime_error("Invalid message part index at " + std::to_string(pos) + ":" + std::to_string(part));
     }
     if (pos >= mInputsSchema.size()) {
