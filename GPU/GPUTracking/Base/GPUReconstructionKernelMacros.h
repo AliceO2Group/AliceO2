@@ -34,6 +34,9 @@
 #ifndef GPUCA_KRNL_REG
 #define GPUCA_KRNL_REG(...)
 #endif
+#ifndef GPUCA_KRNL_BACKEND_XARGS
+#define GPUCA_KRNL_BACKEND_XARGS
+#endif
 #define GPUCA_ATTRRES_REG(reg, num, ...) GPUCA_KRNL_REG(num) GPUCA_ATTRRES2(__VA_ARGS__)
 #define GPUCA_ATTRRES2_REG(reg, num, ...) GPUCA_KRNL_REG(num) GPUCA_ATTRRES3(__VA_ARGS__)
 #define GPUCA_ATTRRES_NONE(...)
@@ -68,7 +71,7 @@ GPUg() void GPUCA_ATTRRES(GPUCA_M_SHIFT(GPUCA_M_STRIP(x_attributes))) GPUCA_M_CA
   template <> class GPUCA_KRNL_BACKEND_CLASS::backendInternal<GPUCA_M_KRNL_TEMPLATE(x_class)> { \
    public: \
     template <typename T, typename... Args> \
-    static inline void runKernelBackendInternal(krnlSetup& _xyz, T* me, const Args&... args) \
+    static inline void runKernelBackendInternal(krnlSetup& _xyz, T* me, GPUCA_KRNL_BACKEND_XARGS const Args&... args) \
     { \
       auto& x = _xyz.x; \
       auto& y = _xyz.y;
