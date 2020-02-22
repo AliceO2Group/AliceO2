@@ -124,16 +124,10 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
       const float z = z0 + tracker.HitDataZ(row, ih) * stepZ;
 #endif // GPUCA_TEXTURE_FETCH_NEIGHBORS
 
-#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
-      GPUsharedref() calink* neighUp = s.mB[iThread];
-      GPUsharedref() float2* yzUp = s.mA[iThread];
 #if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP < GPUCA_MAXN
-      calink neighUp2[GPUCA_MAXN - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP];
-      float2 yzUp2[GPUCA_MAXN - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP];
-#endif
-#else
-      calink neighUp[GPUCA_MAXN];
-      float2 yzUp[GPUCA_MAXN];
+      calink neighUp[GPUCA_MAXN - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP];
+      float yzUp[GPUCA_MAXN - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP];
+      float yzUp2[GPUCA_MAXN - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP];
 #endif // GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
 
       int nNeighUp = 0;
@@ -151,15 +145,23 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
           break;
         }
 
-#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0 && GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP < GPUCA_MAXN
-        if (nNeighUp >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP) {
-          neighUp2[nNeighUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] = (calink)i;
-          yzUp2[nNeighUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] = CAMath::MakeFloat2(s.mDnDx * (h.Y() - y), s.mDnDx * (h.Z() - z));
+#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP < GPUCA_MAXN
+#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP == 0
+        if (true) {
+#else
+        if ((unsigned int)nNeighUp >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP) {
+#endif
+          neighUp[nNeighUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] = (calink)i;
+          yzUp[nNeighUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] = s.mDnDx * (h.Y() - y);
+          yzUp2[nNeighUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] = s.mDnDx * (h.Z() - z);
         } else
 #endif
         {
-          neighUp[nNeighUp] = (calink)i;
-          yzUp[nNeighUp] = CAMath::MakeFloat2(s.mDnDx * (h.Y() - y), s.mDnDx * (h.Z() - z));
+#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
+          s.mB[nNeighUp][iThread] = (calink)i;
+          s.mA1[nNeighUp][iThread] = s.mDnDx * (h.Y() - y);
+          s.mA2[nNeighUp][iThread] = s.mDnDx * (h.Z() - z);
+#endif
         }
         if (++nNeighUp >= GPUCA_MAXN) {
           // GPUInfo("Neighbors buffer ran full...");
@@ -184,9 +186,11 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
 
           for (int iUp = 0; iUp < nNeighUp; iUp++) {
 #if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0 && GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP < GPUCA_MAXN
-            float2 yzup = iUp >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP ? yzUp2[iUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] : yzUp[iUp];
+            float2 yzup = iUp >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP ? CAMath::MakeFloat2(yzUp[iUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP], yzUp2[iUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP]) : CAMath::MakeFloat2(s.mA1[iUp][iThread], s.mA2[iUp][iThread]);
+#elif GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP == GPUCA_MAXN
+            float2 yzup = CAMath::MakeFloat2(s.mA1[iUp][iThread], s.mA2[iUp][iThread]);
 #else
-            float2 yzup = yzUp[iUp];
+            float2 yzup = CAMath::MakeFloat2(yzUp[iUp], yzUp2[iUp]);
 #endif
             float dy = yzdn.x - yzup.x;
             float dz = yzdn.y - yzup.y;
@@ -201,7 +205,9 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
 
         if (bestD <= chi2Cut) {
 #if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0 && GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP < GPUCA_MAXN
-          linkUp = bestUp >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP ? neighUp2[bestUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] : neighUp[bestUp];
+          linkUp = bestUp >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP ? neighUp[bestUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] : s.mB[bestUp][iThread];
+#elif GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP == GPUCA_MAXN
+          linkUp = s.mB[bestUp][iThread];
 #else
           linkUp = neighUp[bestUp];
 #endif
