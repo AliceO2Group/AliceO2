@@ -29,14 +29,17 @@ namespace o2
 namespace tof
 {
 
-void CompressorTask::init(InitContext& ic)
+template <typename RAWDataHeader>
+void CompressorTask<RAWDataHeader>::init(InitContext& ic)
 {
   LOG(INFO) << "Compressor init";
 
-  auto decoderVerbose = ic.options().get<bool>("decoder-verbose");
-  auto encoderVerbose = ic.options().get<bool>("encoder-verbose");
-  auto checkerVerbose = ic.options().get<bool>("checker-verbose");
+  auto decoderCONET = ic.options().get<bool>("tof-compressor-conet-mode");
+  auto decoderVerbose = ic.options().get<bool>("tof-compressor-decoder-verbose");
+  auto encoderVerbose = ic.options().get<bool>("tof-compressor-encoder-verbose");
+  auto checkerVerbose = ic.options().get<bool>("tof-compressor-checker-verbose");
 
+  mCompressor.setDecoderCONET(decoderCONET);
   mCompressor.setDecoderVerbose(decoderVerbose);
   mCompressor.setEncoderVerbose(encoderVerbose);
   mCompressor.setCheckerVerbose(checkerVerbose);
@@ -48,7 +51,8 @@ void CompressorTask::init(InitContext& ic)
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
 }
 
-void CompressorTask::run(ProcessingContext& pc)
+template <typename RAWDataHeader>
+void CompressorTask<RAWDataHeader>::run(ProcessingContext& pc)
 {
   LOG(DEBUG) << "Compressor run";
 
@@ -94,6 +98,9 @@ void CompressorTask::run(ProcessingContext& pc)
     device->Send(parts, fairMQChannel);
   }
 }
+
+template class CompressorTask<o2::header::RAWDataHeaderV4>;
+template class CompressorTask<o2::header::RAWDataHeaderV6>;
 
 } // namespace tof
 } // namespace o2
