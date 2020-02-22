@@ -15,22 +15,24 @@
 #ifndef ALICEO2_FT0_READRAW_H_
 #define ALICEO2_FT0_READRAW_H_
 
-#include "Headers/RAWDataHeader.h"
-#include "CommonDataFormat/InteractionRecord.h"
-#include "DataFormatsFT0/RawEventData.h"
-#include "DataFormatsFT0/LookUpTable.h"
-#include "DataFormatsFT0/Digit.h"
-#include "TBranch.h"
-#include "TTree.h"
 #include <TStopwatch.h>
+#include <array>
+#include <bitset>
 #include <cassert>
 #include <fstream>
 #include <iostream>
-#include <array>
-#include <string>
-#include <bitset>
-#include <vector>
 #include <map>
+#include <string>
+#include <vector>
+#include "CommonDataFormat/InteractionRecord.h"
+#include "DataFormatsFT0/Digit.h"
+#include "DataFormatsFT0/DigitsTemp.h"
+#include "DataFormatsFT0/ChannelData.h"
+#include "DataFormatsFT0/LookUpTable.h"
+#include "DataFormatsFT0/RawEventData.h"
+#include "Headers/RAWDataHeader.h"
+#include "TBranch.h"
+#include "TTree.h"
 
 namespace o2
 {
@@ -40,7 +42,8 @@ class ReadRaw
 {
   static constexpr int Nchannels_FT0 = 208;
   static constexpr int Nchannels_PM = 12;
-  static constexpr int NPMs = 18;
+  static constexpr int NPMs = 19;
+  static constexpr int LinkTCM = 18;
   static constexpr float MV_2_Nchannels = 2.2857143;     //7 mV ->16channels
   static constexpr float CFD_NS_2_Nchannels = 76.804916; //1000.(ps)/13.02(channel);
   //static constexpr int GBTWORDSIZE = 80;            //real size
@@ -89,10 +92,12 @@ class ReadRaw
   EventData mEventData[Nchannels_PM];
   bool mIsPadded = true;
   o2::ft0::EventHeader mEventHeader;
+  o2::ft0::TCMdata mTCMdata;
+  o2::ft0::Triggers mTrigger;
   char* mBuffer = nullptr;
   std::vector<char> mBufferLocal;
   long mSize;
-  std::map<o2::InteractionRecord, o2::ft0::Digit> mDigitAccum; // digit accumulator
+  std::map<o2::InteractionRecord, o2::ft0::DigitsTemp> mDigitAccum; // digit accumulator
   template <typename T>
   TBranch* getOrMakeBranch(TTree& tree, std::string brname, T* ptr)
   {

@@ -41,13 +41,15 @@ class DigitReader : public Task
   bool mUseMC = true; // use MC truth
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginFT0;
 
-  std::vector<o2::ft0::Digit>* mDigits = nullptr;
+  std::vector<o2::ft0::Digit>* mDigitsBC = nullptr;
+  std::vector<o2::ft0::ChannelData>* mDigitsCH = nullptr;
   o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mMCTruth = nullptr;
 
   std::string mInputFileName = "";
   std::string mDigitTreeName = "o2sim";
-  std::string mDigitBranchName = "FT0Digit";
-  std::string mDigitMCTruthBranchName = "FT0DigitMCTruth";
+  std::string mDigitBranchName = "FT0DigitBC";
+  std::string mDigitChBranchName = "FT0DigitCH";
+  std::string mDigitMCTruthBranchName = "FT0DIGITSMCTR";
 };
 
 /// create a processor spec

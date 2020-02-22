@@ -8,12 +8,14 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_test_root_macro(readHitsDigits.C
+o2_add_test_root_macro(readFT0hits.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsFT0
                        LABELS fit)
-
-o2_add_test_root_macro(run_reco_ft0.C
-                       PUBLIC_LINK_LIBRARIES FairRoot::Base
-                                             FairLogger::FairLogger
-                                             O2::FT0Reconstruction
+o2_add_test_root_macro(readFT0digits.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsFT0
                        LABELS fit)
+o2_add_test_root_macro(FT0digits2raw.C
+  PUBLIC_LINK_LIBRARIES O2::FT0Simulation
+  O2::DataFormatsFT0
+  LABELS fit)
+

@@ -20,6 +20,8 @@
 #include "DataFormatsFT0/RawEventData.h"
 #include "DataFormatsFT0/LookUpTable.h"
 #include "DataFormatsFT0/Digit.h"
+#include "DataFormatsFT0/ChannelData.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include <TStopwatch.h>
 #include <cassert>
 #include <fstream>
@@ -28,6 +30,7 @@
 #include <string>
 #include <bitset>
 #include <vector>
+#include <gsl/span>
 
 namespace o2
 {
@@ -38,8 +41,8 @@ class Digits2Raw
 
   static constexpr int Nchannels_FT0 = 208;
   static constexpr int Nchannels_PM = 12;
-  static constexpr int NPMs = 18;
-  //  static constexpr int GBTWORDSIZE = 80;            //real size
+  static constexpr int LinkTCM = 18;
+  static constexpr int NPMs = 19;
   static constexpr int GBTWordSize = 128; // with padding
   static constexpr int Max_Page_size = 8192;
 
@@ -47,17 +50,21 @@ class Digits2Raw
   Digits2Raw() = default;
   Digits2Raw(const std::string fileRaw, std::string fileDigitsName);
   void readDigits(const std::string fileDigitsName);
-  void convertDigits(const o2::ft0::Digit& digit, const o2::ft0::LookUpTable& lut);
+  void convertDigits(o2::ft0::Digit bcdigits,
+                     gsl::span<const ChannelData> pmchannels,
+                     const o2::ft0::LookUpTable& lut,
+                     o2::InteractionRecord const& mIntRecord);
   void close();
   static o2::ft0::LookUpTable linear()
   {
-    std::vector<o2::ft0::Topo> lut_data(Nchannels_PM * NPMs);
-    for (int link = 0; link < NPMs; ++link)
+    std::vector<o2::ft0::Topo> lut_data(Nchannels_PM * (NPMs - 1));
+    for (int link = 0; link < NPMs - 1; ++link)
       for (int mcp = 0; mcp < Nchannels_PM; ++mcp)
         lut_data[link * Nchannels_PM + mcp] = o2::ft0::Topo{link, mcp};
 
     return o2::ft0::LookUpTable{lut_data};
   }
+  void setRDH(o2::header::RAWDataHeader& rdh, int nlink, o2::InteractionRecord rdhIR);
   void printRDH(const o2::header::RAWDataHeader* h)
   {
     {
@@ -81,7 +88,8 @@ class Digits2Raw
   std::ofstream mFileDest;
   std::array<o2::ft0::DataPageWriter, NPMs> mPages;
   o2::ft0::RawEventData mRawEventData;
-
+  o2::raw::HBFUtils mSampler;
+  o2::ft0::Triggers mTriggers;
   /////////////////////////////////////////////////
 
   ClassDefNV(Digits2Raw, 1);

@@ -14,7 +14,6 @@ o2_add_executable(digitizer-workflow
                   SOURCES src/CollisionTimePrinter.cxx
                           src/EMCALDigitWriterSpec.cxx
                           src/EMCALDigitizerSpec.cxx
-                          src/FT0DigitWriterSpec.cxx
                           src/FT0DigitizerSpec.cxx
                           src/FV0DigitizerSpec.cxx
                           src/FDDDigitizerSpec.cxx

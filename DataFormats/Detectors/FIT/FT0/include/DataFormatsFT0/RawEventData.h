@@ -29,7 +29,7 @@ namespace ft0
 {
 constexpr int Nchannels_FT0 = 208;
 constexpr int Nchannels_PM = 12;
-constexpr int NPMs = 18;
+constexpr int NPMs = 19;
 
 struct EventHeader {
   static constexpr int PayloadSize = 16;
@@ -49,7 +49,7 @@ struct EventHeader {
 };
 struct EventData {
   union {
-    uint64_t word;
+    uint64_t word = {0};
     struct {
       int64_t time : 12;
       int64_t charge : 13;
@@ -73,18 +73,41 @@ struct EventData {
   ClassDefNV(EventData, 1);
 };
 
+struct TCMdata {
+  static constexpr int PayloadSize = 16;
+  union {
+    uint64_t word[2] = {0};
+    struct {
+      uint64_t orC : 1,
+        orA : 1,
+        sCen : 1,
+        cen : 1,
+        vertex : 1,
+        nChanA : 7,
+        nChanC : 7;
+      int64_t amplA : 18,
+        amplC : 18,
+        reservedField1 : 1, //56B,  PayloadSize1stWord 6
+        timeA : 9,
+        timeC : 9,
+        reservedField2 : 46;
+    };
+  };
+  // ClassDefNV(TCMdata, 1);
+};
+
 class RawEventData
 {
  public:
   RawEventData() = default;
-  void GenerateHeader(int nChannels);
-  void GenerateData();
-  void GenerateRandomHeader(int nChannels);
-  void GenerateRandomData();
-  void GenerateRandomEvent(int nChannels);
-  EventHeader* GetEventHeaderPtr() { return &mEventHeader; }
-  EventData* GetEventDataPtr() { return mEventData; }
-  void Print(bool doPrintData = false);
+  void generateHeader(int nChannels);
+  void generateData();
+  void generateRandomHeader(int nChannels);
+  void generateRandomData();
+  void generateRandomEvent(int nChannels);
+  EventHeader* getEventHeaderPtr() { return &mEventHeader; }
+  EventData* getEventDataPtr() { return mEventData; }
+  void print();
   enum EEventDataBit { kNumberADC,
                        kIsDoubleEvent,
                        kIs1TimeLostEvent,
@@ -120,30 +143,41 @@ class RawEventData
              uint32_t(h->detectorField), uint32_t(h->par), uint32_t(h->stop), uint32_t(h->pageCnt));
     }
   }
-  std::vector<char> to_vector()
+  std::vector<char> to_vector(bool tcm)
   {
     constexpr int CRUWordSize = 16;
     const char padding[CRUWordSize] = {0};
 
     std::vector<char> result(size() * CRUWordSize);
     char* out = result.data();
-    std::memcpy(out, &mEventHeader, EventHeader::PayloadSize);
-    out += EventHeader::PayloadSize;
-    LOG(DEBUG) << "write header words " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " bc " << int(mEventHeader.bc);
-    if (mIsPadded) {
-      out += CRUWordSize - EventHeader::PayloadSize;
-    }
-    for (int i = 0; i < mEventHeader.nGBTWords; ++i) {
-      std::memcpy(out, &mEventData[2 * i], EventData::PayloadSizeFirstWord);
-      LOG(DEBUG) << " 1st word " << mEventData[2 * i].channelID << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time;
-      out += EventData::PayloadSizeFirstWord;
-      std::memcpy(out, &mEventData[2 * i + 1], EventData::PayloadSizeSecondWord);
-      out += EventData::PayloadSizeSecondWord;
-      LOG(DEBUG) << " 2nd word " << mEventData[2 * i + 1].channelID << " charge " << mEventData[2 * i + 1].charge << " time " << mEventData[2 * i + 1].time;
+    if (!tcm) {
+      std::memcpy(out, &mEventHeader, EventHeader::PayloadSize);
+      out += EventHeader::PayloadSize;
+      LOG(DEBUG) << "write header words " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " bc " << int(mEventHeader.bc) << " out " << result.size();
       if (mIsPadded) {
-        out += CRUWordSize - EventData::PayloadSizeSecondWord - EventData::PayloadSizeFirstWord;
+        out += CRUWordSize - EventHeader::PayloadSize;
       }
+      for (int i = 0; i < mEventHeader.nGBTWords; ++i) {
+        std::memcpy(out, &mEventData[2 * i], EventData::PayloadSizeFirstWord);
+        LOG(DEBUG) << " 1st word " << mEventData[2 * i].channelID << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " out " << result.size();
+        out += EventData::PayloadSizeFirstWord;
+        std::memcpy(out, &mEventData[2 * i + 1], EventData::PayloadSizeSecondWord);
+        out += EventData::PayloadSizeSecondWord;
+        LOG(DEBUG) << " 2nd word " << mEventData[2 * i + 1].channelID << " charge " << mEventData[2 * i + 1].charge << " time " << mEventData[2 * i + 1].time << " out " << result.size();
+        if (mIsPadded) {
+          out += CRUWordSize - EventData::PayloadSizeSecondWord - EventData::PayloadSizeFirstWord;
+        }
+      }
+    } else {
+      // TCM data
+      std::memcpy(out, &mEventHeader, EventHeader::PayloadSize);
+      out += EventHeader::PayloadSize;
+      LOG(DEBUG) << "write TCM header words " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " bc " << int(mEventHeader.bc) << " out " << result.size();
+      std::memcpy(out, &mTCMdata, sizeof(TCMdata));
+      out += sizeof(TCMdata);
+      LOG(DEBUG) << "write TCM words " << sizeof(mTCMdata) << " orbit " << int(mEventHeader.orbit) << " bc " << int(mEventHeader.bc) << " out " << result.size() << " sum time A " << mTCMdata.timeA;
     }
+
     return result;
   }
   void setIsPadded(bool isPadding128)
@@ -154,6 +188,7 @@ class RawEventData
  public:
   EventHeader mEventHeader;
   EventData mEventData[Nchannels_PM];
+  TCMdata mTCMdata;
   bool mIsPadded = true;
   /////////////////////////////////////////////////
   ClassDefNV(RawEventData, 1);
@@ -200,6 +235,7 @@ class DataPageWriter
     if (mBuffer.size() == 0)
       return;
     mPages.emplace_back(std::move(mBuffer));
+    LOG(DEBUG) << " writePage " << mBuffer.size();
     mNpackets.push_back(mNpacketsInBuffer);
     mNpacketsInBuffer = 0;
     mBuffer.clear();
@@ -207,10 +243,14 @@ class DataPageWriter
 
   void write(std::vector<char> const& new_data)
   {
-    if (mBuffer.size() + new_data.size() + mRDH.headerSize > MAX_Page_size)
+    if (mBuffer.size() + new_data.size() + mRDH.headerSize > MAX_Page_size) {
+      LOG(DEBUG) << " write rest " << mBuffer.size() << " " << new_data.size() << " " << mRDH.headerSize;
       writePage();
+    }
+    LOG(DEBUG) << "  write vector " << new_data.size() << " buffer " << mBuffer.size() << " RDH " << mRDH.headerSize << " new data " << new_data.data();
     mBuffer.insert(mBuffer.end(), new_data.begin(), new_data.end());
     mNpacketsInBuffer++;
+    LOG(DEBUG) << "  write vector end mBuffer.size " << mBuffer.size() << " mNpacketsInBuffer " << mNpacketsInBuffer << " newdtata " << new_data.size();
   }
 };
 } // namespace ft0

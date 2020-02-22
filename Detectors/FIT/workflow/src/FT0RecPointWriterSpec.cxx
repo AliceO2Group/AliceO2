@@ -35,8 +35,10 @@ void FT0RecPointWriter::run(ProcessingContext& pc)
     return;
   }
   // no MC infor treatment at the moment
-  auto recPoints = pc.inputs().get<const std::vector<o2::ft0::RecPoints>>("recpoints");
+  auto recPoints = pc.inputs().get<const std::vector<o2::ft0::RecPoints>>("recPoints");
   auto recPointsPtr = &recPoints;
+  auto recChData = pc.inputs().get<const std::vector<o2::ft0::ChannelDataFloat>>("recChData");
+  auto recPointsChPtr = &recChData;
   LOG(INFO) << "FT0RecPointWriter pulled " << recPoints.size() << " RecPoints";
 
   TFile flOut(mOutputFileName.c_str(), "recreate");
@@ -45,6 +47,7 @@ void FT0RecPointWriter::run(ProcessingContext& pc)
   }
   TTree tree(mOutputTreeName.c_str(), "Tree with FT0 RecPoints");
   tree.Branch(mRPOutputBranchName.c_str(), &recPointsPtr);
+  tree.Branch(mRPOutputChBranchName.c_str(), &recPointsChPtr);
   tree.Fill();
   tree.Write();
 
@@ -55,7 +58,8 @@ void FT0RecPointWriter::run(ProcessingContext& pc)
 DataProcessorSpec getFT0RecPointWriterSpec(bool useMC)
 {
   std::vector<InputSpec> inputSpec;
-  inputSpec.emplace_back("recpoints", o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
+  inputSpec.emplace_back("recPoints", o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
+  inputSpec.emplace_back("recChData", o2::header::gDataOriginFT0, "RECCHDATA", 0, Lifetime::Timeframe);
   return DataProcessorSpec{
     "ft0-recpoint-writer",
     inputSpec,
@@ -65,7 +69,7 @@ DataProcessorSpec getFT0RecPointWriterSpec(bool useMC)
       {"ft0-recpoint-outfile", VariantType::String, "o2reco_ft0.root", {"Name of the output file"}},
       {"ft0-recpoint-tree-name", VariantType::String, "o2sim", {"Name of the FT0 recpoints tree"}},
       {"ft0-recpoint-branch-name", VariantType::String, "FT0Cluster", {"Name of the FT0 recpoints branch"}},
-    }};
+      {"ft0-rechhdata-branch-name", VariantType::String, "FT0RecChData", {"Name of the FT0 rec channel data branch"}}}};
 }
 
 } // namespace ft0

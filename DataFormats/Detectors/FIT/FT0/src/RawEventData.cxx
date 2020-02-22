@@ -19,7 +19,7 @@ using namespace std;
 
 ClassImp(RawEventData);
 
-void RawEventData::GenerateData()
+void RawEventData::generateData()
 {
   for (int iCh = 0; iCh < mEventHeader.nGBTWords * 2; iCh++) {
     mEventData[iCh].channelID = iCh;
@@ -36,8 +36,8 @@ void RawEventData::GenerateData()
     mEventData[iCh].numberADC = 1;
   }
 }
-/*******************************************************************************************************************/
-void RawEventData::GenerateHeader(int nChannels)
+
+void RawEventData::generateHeader(int nChannels)
 {
   mEventHeader.startDescriptor = 15;
   mEventHeader.nGBTWords = (nChannels + 1) / 2;
@@ -46,8 +46,8 @@ void RawEventData::GenerateHeader(int nChannels)
   mEventHeader.bc = 200;
   mEventHeader.orbit = 100;
 }
-/*******************************************************************************************************************/
-void RawEventData::GenerateRandomHeader(int nChannels)
+
+void RawEventData::generateRandomHeader(int nChannels)
 {
   mEventHeader.startDescriptor = 0x0000000f;
   if (nChannels > 0 && nChannels < 13)
@@ -57,8 +57,8 @@ void RawEventData::GenerateRandomHeader(int nChannels)
   mEventHeader.bc = std::rand() % 2000; // 1999-max bc
   mEventHeader.orbit = std::rand() % 100;
 }
-/*******************************************************************************************************************/
-void RawEventData::GenerateRandomData()
+
+void RawEventData::generateRandomData()
 {
   for (int iCh = 0; iCh < mEventHeader.nGBTWords * 2; iCh++) {
     mEventData[iCh].channelID = std::rand() % 208 + 1;
@@ -75,14 +75,14 @@ void RawEventData::GenerateRandomData()
     mEventData[iCh].numberADC = std::rand() % 2;
   }
 }
-/*******************************************************************************************************************/
-void RawEventData::GenerateRandomEvent(int nChannels)
+
+void RawEventData::generateRandomEvent(int nChannels)
 {
-  GenerateRandomHeader(nChannels);
-  GenerateRandomData();
+  generateRandomHeader(nChannels);
+  generateRandomData();
 }
-/*******************************************************************************************************************/
-void RawEventData::Print(bool doPrintData)
+
+void RawEventData::print()
 {
   std::cout << "==================Raw event data==================" << endl;
   std::cout << "##################Header##################" << endl;
@@ -91,8 +91,6 @@ void RawEventData::Print(bool doPrintData)
   std::cout << "BC: " << mEventHeader.bc << endl;
   std::cout << "Orbit: " << mEventHeader.orbit << endl;
   std::cout << "##########################################" << endl;
-  if (!doPrintData)
-    return;
   std::cout << "###################DATA###################" << endl;
   for (int iCh = 0; iCh < mEventHeader.nGBTWords * 2; iCh++) {
     std::cout << "------------Channel " << mEventData[iCh].channelID << "------------" << endl;
