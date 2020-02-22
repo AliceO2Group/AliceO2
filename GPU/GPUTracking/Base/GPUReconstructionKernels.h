@@ -15,7 +15,7 @@
 #include "GPUReconstructionKernelMacros.h"
 
 // clang-format off
-GPUCA_KRNL((GPUTPCNeighboursFinder                       ), (single, REG, (GPUCA_THREAD_COUNT_FINDER, 1)), (), ())
+GPUCA_KRNL((GPUTPCNeighboursFinder                       ), (single, REG, (GPUCA_THREAD_COUNT_FINDER, GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER_FINDER)), (), ())
 GPUCA_KRNL((GPUTPCNeighboursCleaner                      ), (single, REG, (GPUCA_THREAD_COUNT, 1)), (), ())
 GPUCA_KRNL((GPUTPCStartHitsFinder                        ), (single, REG, (GPUCA_THREAD_COUNT, 1)), (), ())
 GPUCA_KRNL((GPUTPCStartHitsSorter                        ), (single, REG, (GPUCA_THREAD_COUNT, 1)), (), ())
