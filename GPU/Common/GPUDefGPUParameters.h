@@ -111,7 +111,9 @@
 
 #define GPUCA_EXTERN_ROW_HITS                                          // Store row hits in separate array outside of tracklets
 #define GPUCA_SORT_STARTHITS_GPU                                       // Sort the start hits when running on GPU
-#define GPUCA_ROWALIGNMENT uint4                                       // Align Row Hits and Grid
+#define GPUCA_ROWALIGNMENT 16                                          // Align of Row Hits and Grid
+#define GPUCA_BUFFER_ALIGNMENT 64                                      // Alignment of buffers obtained from SetPointers
+#define GPUCA_MEMALIGN (64 * 1024)                                     // Alignment of allocated memory blocks
 
 // #define GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE                       // Output Profiling Data for Tracklet Constructor Tracklet Scheduling
 
@@ -122,8 +124,6 @@
 #define GPUCA_MAX_TRD_TRACKLETS      ((size_t)             128 * 1024) // Maximum number of TRD tracklets
 #define GPUCA_MAX_ITS_FIT_TRACKS     ((size_t)              96 * 1024) // Max number of tracks for ITS track fit
 #define GPUCA_TRACKER_CONSTANT_MEM   ((size_t)              63 * 1024) // Amount of Constant Memory to reserve
-#define GPUCA_MEMALIGN               ((size_t)              64 * 1024) // Alignment of memory blocks, all constants above must be multiple of this!!!
-#define GPUCA_MEMALIGN_SMALL         ((size_t)              64 * 1024) // Alignment of small blocks, GPUCA_MEMALIGN must be multiple of this!!!
 #define GPUCA_MEMORY_SIZE            ((size_t) 6 * 1024 * 1024 * 1024) // Size of memory allocated on Device
 #define GPUCA_HOST_MEMORY_SIZE       ((size_t) 6 * 1024 * 1024 * 1024) // Size of memory allocated on Host
 #define GPUCA_GPU_STACK_SIZE         ((size_t)               8 * 1024) // Stack size per GPU thread

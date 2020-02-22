@@ -137,14 +137,14 @@ void GPUTPCSliceData::SetClusterData(const GPUTPCClusterData* data, int nCluster
 
 void GPUTPCSliceData::SetMaxData()
 {
-  int hitMemCount = GPUCA_ROW_COUNT * sizeof(GPUCA_ROWALIGNMENT) + mNumberOfHits;
+  int hitMemCount = GPUCA_ROW_COUNT * GPUCA_ROWALIGNMENT + mNumberOfHits;
   const unsigned int kVectorAlignment = 256;
-  mNumberOfHitsPlusAlign = GPUProcessor::nextMultipleOf<(kVectorAlignment > sizeof(GPUCA_ROWALIGNMENT) ? kVectorAlignment : sizeof(GPUCA_ROWALIGNMENT)) / sizeof(int)>(hitMemCount);
+  mNumberOfHitsPlusAlign = GPUProcessor::nextMultipleOf<(kVectorAlignment > GPUCA_ROWALIGNMENT ? kVectorAlignment : GPUCA_ROWALIGNMENT) / sizeof(int)>(hitMemCount);
 }
 
 void* GPUTPCSliceData::SetPointersInput(void* mem, bool idsOnGPU)
 {
-  const int firstHitInBinSize = (23 + sizeof(GPUCA_ROWALIGNMENT) / sizeof(int)) * GPUCA_ROW_COUNT + 4 * mNumberOfHits + 3;
+  const int firstHitInBinSize = (23 + GPUCA_ROWALIGNMENT / sizeof(int)) * GPUCA_ROW_COUNT + 4 * mNumberOfHits + 3;
   GPUProcessor::computePointerWithAlignment(mem, mHitData, mNumberOfHitsPlusAlign);
   GPUProcessor::computePointerWithAlignment(mem, mFirstHitInBin, firstHitInBinSize);
   if (idsOnGPU) {
@@ -248,7 +248,7 @@ int GPUTPCSliceData::InitFromClusterData(GPUconstantref() const MEM_CONSTANT(GPU
   // 2. fill HitData and FirstHitInBin
   ////////////////////////////////////
 
-  vecpod<GPUTPCHit> binSortedHits(mNumberOfHits + sizeof(GPUCA_ROWALIGNMENT));
+  vecpod<GPUTPCHit> binSortedHits(mNumberOfHits + GPUCA_ROWALIGNMENT);
 
   int gridContentOffset = 0;
   int hitOffset = 0;
@@ -274,7 +274,7 @@ int GPUTPCSliceData::InitFromClusterData(GPUconstantref() const MEM_CONSTANT(GPU
     }
     row.mNHits = NumberOfClustersInRow[rowIndex];
     row.mHitNumberOffset = hitOffset;
-    hitOffset += GPUProcessor::nextMultipleOf<sizeof(GPUCA_ROWALIGNMENT) / sizeof(unsigned short)>(NumberOfClustersInRow[rowIndex]);
+    hitOffset += GPUProcessor::nextMultipleOf<GPUCA_ROWALIGNMENT / sizeof(unsigned short)>(NumberOfClustersInRow[rowIndex]);
 
     row.mFirstHitInBinOffset = gridContentOffset;
 
@@ -286,7 +286,7 @@ int GPUTPCSliceData::InitFromClusterData(GPUconstantref() const MEM_CONSTANT(GPU
       return (1);
     }
 
-    int binCreationMemorySizeNew = numberOfBins * 2 + 6 + row.mNHits + sizeof(GPUCA_ROWALIGNMENT) / sizeof(unsigned short) * (GPUCA_ROW_COUNT + 1) + 1;
+    int binCreationMemorySizeNew = numberOfBins * 2 + 6 + row.mNHits + GPUCA_ROWALIGNMENT / sizeof(unsigned short) * (GPUCA_ROW_COUNT + 1) + 1;
     if (binCreationMemorySizeNew > binCreationMemorySize) {
       binCreationMemorySize = binCreationMemorySizeNew;
       binCreationMemory.resize(binCreationMemorySize);
@@ -344,7 +344,7 @@ int GPUTPCSliceData::InitFromClusterData(GPUconstantref() const MEM_CONSTANT(GPU
     gridContentOffset += nn;
 
     // Make pointer aligned
-    gridContentOffset = GPUProcessor::nextMultipleOf<sizeof(GPUCA_ROWALIGNMENT) / sizeof(calink)>(gridContentOffset);
+    gridContentOffset = GPUProcessor::nextMultipleOf<GPUCA_ROWALIGNMENT / sizeof(calink)>(gridContentOffset);
   }
 
   return (0);

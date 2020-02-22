@@ -268,7 +268,7 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
   memorypool = (char*)((res->*setPtr)(memorypool));
   size_t retVal = (char*)memorypool - (char*)ptr;
   if (IsGPU() && retVal == 0) { // Transferring 0 bytes might break some GPU backends, but we cannot simply skip the transfer, or we will break event dependencies
-    GPUProcessor::getPointerWithAlignment<GPUProcessor::MIN_ALIGNMENT, char>(memorypool, retVal = GPUProcessor::MIN_ALIGNMENT);
+    GPUProcessor::getPointerWithAlignment<GPUCA_BUFFER_ALIGNMENT, char>(memorypool, retVal = GPUCA_BUFFER_ALIGNMENT);
   }
   if ((size_t)((char*)memorypool - (char*)memorybase) > memorysize) {
     std::cout << "Memory pool size exceeded (" << res->mName << ": " << (char*)memorypool - (char*)memorybase << " < " << memorysize << "\n";
@@ -299,9 +299,9 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl*
         }
         res->mPtrDevice = mMemoryResources[res->mReuse].mPtrDevice;
       } else {
-        res->mPtrDevice = operator new(res->mSize + GPUProcessor::MIN_ALIGNMENT);
+        res->mPtrDevice = operator new(res->mSize + GPUCA_BUFFER_ALIGNMENT);
       }
-      res->mPtr = GPUProcessor::alignPointer<GPUProcessor::MIN_ALIGNMENT>(res->mPtrDevice);
+      res->mPtr = GPUProcessor::alignPointer<GPUCA_BUFFER_ALIGNMENT>(res->mPtrDevice);
       res->SetPointers(res->mPtr);
       if (mDeviceProcessingSettings.debugLevel >= 5) {
         std::cout << (res->mReuse != -1 ? "Reused " : "Allocated ") << res->mName << ": " << res->mSize << "\n";
@@ -347,8 +347,8 @@ void* GPUReconstruction::AllocateUnmanagedMemory(size_t size, int type)
     throw std::bad_alloc();
   }
   if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
-    mUnmanagedChunks.emplace_back(new char[size + GPUProcessor::MIN_ALIGNMENT]);
-    return GPUProcessor::alignPointer<GPUProcessor::MIN_ALIGNMENT>(mUnmanagedChunks.back().get());
+    mUnmanagedChunks.emplace_back(new char[size + GPUCA_BUFFER_ALIGNMENT]);
+    return GPUProcessor::alignPointer<GPUCA_BUFFER_ALIGNMENT>(mUnmanagedChunks.back().get());
   } else {
     void* pool = type == GPUMemoryResource::MEMORY_GPU ? mDeviceMemoryPool : mHostMemoryPool;
     void* base = type == GPUMemoryResource::MEMORY_GPU ? mDeviceMemoryBase : mHostMemoryBase;

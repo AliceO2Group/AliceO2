@@ -70,13 +70,13 @@ void GPUTPCClusterFinder::SetMaxData(const GPUTrackingInOutPointers& io)
   mNMaxPeaks = 0.5f * mNMaxDigits;
   mNMaxClusters = 0.2f * mNMaxPeaks;
   mNMaxClusterPerRow = 0.01f * mNMaxDigits;
-  mBufSize = nextMultipleOf<std::max<int>(GPUCA_MEMALIGN_SMALL, mScanWorkGroupSize)>(mNMaxDigits);
+  mBufSize = nextMultipleOf<std::max<int>(GPUCA_MEMALIGN, mScanWorkGroupSize)>(mNMaxDigits);
   mNBufs = getNSteps(mBufSize);
 }
 
 void GPUTPCClusterFinder::SetNMaxDigits(size_t nDigits, size_t nPages)
 {
-  mNMaxDigits = nextMultipleOf<std::max<int>(GPUCA_MEMALIGN_SMALL, mScanWorkGroupSize)>(nDigits);
+  mNMaxDigits = nextMultipleOf<std::max<int>(GPUCA_MEMALIGN, mScanWorkGroupSize)>(nDigits);
   mNMaxPages = nPages;
 }
 
