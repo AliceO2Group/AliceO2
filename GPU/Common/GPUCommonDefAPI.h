@@ -162,20 +162,13 @@
 #endif
 
 // Macros for GRID dimension
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) || defined(__HIPCC__)
   #define get_global_id(dim) (blockIdx.x * blockDim.x + threadIdx.x)
   #define get_global_size(dim) (blockDim.x * gridDim.x)
   #define get_num_groups(dim) (gridDim.x)
   #define get_local_id(dim) (threadIdx.x)
   #define get_local_size(dim) (blockDim.x)
   #define get_group_id(dim) (blockIdx.x)
-#elif defined(__HIPCC__)
-  #define get_global_id(dim) (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x)
-  #define get_global_size(dim) (hipBlockDim_x * hipGridDim_x)
-  #define get_num_groups(dim) (hipGridDim_x)
-  #define get_local_id(dim) (hipThreadIdx_x)
-  #define get_local_size(dim) (hipBlockDim_x)
-  #define get_group_id(dim) (hipBlockIdx_x)
 #elif defined(__OPENCL__)
   // Using OpenCL defaults
 #else
