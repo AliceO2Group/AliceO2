@@ -73,6 +73,7 @@
   #define GPUconstexpr() __constant
   #define GPUprivate() __private
   #define GPUgeneric() __generic
+  #define GPUconstexprref() GPUconstexpr()
   #if defined(__OPENCLCPP__) && !defined(__clang__)
     #define GPUbarrier() work_group_barrier(mem_fence::global | mem_fence::local);
     #define GPUAtomic(type) atomic<type>
@@ -98,6 +99,15 @@
       #define CONSTEXPR const
     #endif
   #endif
+  #if !defined(__OPENCLCPP__) // Other special defines for OpenCL 1
+    #define GPUCA_USE_TEMPLATE_ADDRESS_SPACES // TODO: check if we can make this (partially, where it is already implemented) compatible with OpenCL CPP
+    #define GPUsharedref() GPUshared()
+    #define GPUglobalref() GPUglobal()
+  #endif
+  #if (!defined(__OPENCLCPP__) || !defined(GPUCA_OPENCLCPP_NO_CONSTANT_MEMORY))
+    #define GPUconstantref() GPUconstant()
+  #endif
+
 #elif defined(__CUDACC__) //Defines for CUDA
   #define GPUd() __device__
   #define GPUdDefault()
@@ -129,7 +139,15 @@
   #define GPUhdni() __host__ __device__
   #define GPUg() __global__
   #define GPUshared() __shared__
-  #define GPUglobal()
+  #if defined(GPUCA_GPUCODE_DEVICE) && 0 // TODO: Fix for HIP
+    #define GPUCA_USE_TEMPLATE_ADDRESS_SPACES
+    #define GPUglobal() __attribute__((address_space(1)))
+    #define GPUglobalref() GPUglobal()
+    #define GPUconstantref() __attribute__((address_space(4)))
+    #define GPUsharedref() __attribute__((address_space(3)))
+  #else
+    #define GPUglobal()
+  #endif
   #define GPUconstant()
   #define GPUconstexpr() __constant__
   #define GPUprivate()
@@ -143,22 +161,17 @@
   #define GPUconstant() GPUglobal()
 #endif
 
-#if defined(__OPENCL__) && !defined(__OPENCLCPP__) // Other special defines for OpenCL
-  #define GPUsharedref() GPUshared()
-  #define GPUglobalref() GPUglobal()
-#else //Other defines for the rest
-  #define GPUsharedref()
-  #define GPUglobalref()
+#ifndef GPUsharedref
+#define GPUsharedref()
 #endif
-#if defined(__OPENCL__) // OpenCL 2 cannot cast __constant to __generic
-  #define GPUconstexprref() GPUconstexpr()
-#else
-  #define GPUconstexprref()
+#ifndef GPUglobalref
+#define GPUglobalref()
 #endif
-#if defined(__OPENCL__) && (!defined(__OPENCLCPP__) || !defined(GPUCA_OPENCLCPP_NO_CONSTANT_MEMORY))
-  #define GPUconstantref() GPUconstant()
-#else
-  #define GPUconstantref()
+#ifndef GPUconstantref
+#define GPUconstantref()
+#endif
+#ifndef GPUconstexprref
+#define GPUconstexprref()
 #endif
 
 // Macros for GRID dimension

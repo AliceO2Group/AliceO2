@@ -25,12 +25,12 @@ namespace gpu
 #if defined(GPUCA_O2_LIB) || defined(GPUCA_O2_INTERFACE)
 typedef unsigned int calink;
 typedef unsigned int cahit;
+typedef uint2 cahit2;
 #else
 typedef unsigned int calink;
 typedef unsigned int cahit;
+typedef uint2 cahit2;
 #endif
-
-struct cahit2{cahit x, y;};
 }
 } // GPUCA_NAMESPACE::GPU
 
