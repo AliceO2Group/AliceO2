@@ -469,8 +469,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(Timesl
 {
   const auto numInputTypes = mDistinctRoutesIndex.size();
   // State of the computation
-  std::vector<MessageSet> messages;
-  messages.reserve(numInputTypes);
+  std::vector<MessageSet> messages(numInputTypes);
   auto& cache = mCache;
   auto& index = mTimesliceIndex;
   auto& metrics = mMetrics;
@@ -492,7 +491,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(Timesl
     // TODO: in the original implementation of the cache, there have been only two messages per entry,
     // check if the 2 above corresponds to the number of messages.
     if (cache[cacheId].size() > 0) {
-      messages.emplace_back(std::move(cache[cacheId]));
+      messages[arg] = std::move(cache[cacheId]);
     }
     index.markAsInvalid(s);
   };
