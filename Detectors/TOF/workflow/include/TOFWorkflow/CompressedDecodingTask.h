@@ -32,7 +32,7 @@ namespace tof
 
 using namespace compressed;
 
-class CompressedDecodingTask : public DecoderBase, public Task
+class CompressedDecodingTask : public DecoderBase<o2::header::RAWDataHeader>, public Task
 {
  public:
   CompressedDecodingTask() = default;
