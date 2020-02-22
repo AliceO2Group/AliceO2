@@ -73,7 +73,7 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int i
           gap = 0;
 #if GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
           if (nHits < GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE) {
-            s.mHits[iThread][nHits].Set(irow, ih);
+            s.mHits[nHits][iThread].Set(irow, ih);
           } else
 #endif // GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
           {
@@ -109,7 +109,7 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int i
           for (int jh = 0; jh < nHits; jh++) {
 #if GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
             if (jh < GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE) {
-              tracker.TrackHits()[nFirstTrackHit + jh] = s.mHits[iThread][jh];
+              tracker.TrackHits()[nFirstTrackHit + jh] = s.mHits[jh][iThread];
             } else
 #endif // GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
             {
