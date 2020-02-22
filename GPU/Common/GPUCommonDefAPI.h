@@ -23,24 +23,28 @@
 //All host-functions in GPU code are automatically inlined, to avoid duplicate symbols.
 //For non-inline host only functions, use no keyword at all!
 #if !defined(GPUCA_GPUCODE) || defined(__OPENCL_HOST__) // For host / ROOT dictionary
-  #define GPUd()
-  #define GPUdDefault()
-  #define GPUdi() inline
-  #define GPUdii()
-  #define GPUh()
-  #define GPUhi() inline
-  #define GPUhd()
-  #define GPUhdi() inline
-  #define GPUhdni()
-  #define GPUg() INVALID_TRIGGER_ERROR_NO_HOST_CODE
-  #define GPUshared()
-  #define GPUglobal()
-  #define GPUconstant()
-  #define GPUconstexpr() static constexpr
-  #define GPUprivate()
-  #define GPUgeneric()
-  #define GPUbarrier()
-  #define GPUAtomic(type) type
+  #define GPUd()                                    // device function
+  #define GPUdDefault()                             // default (constructor / operator) device function
+  #define GPUdi() inline                            // to-be-inlined device function
+  #define GPUdii()                                  // Only on GPU to-be-inlined device function
+  #define GPUh()                                    // Host-only function
+  #define GPUhi() inline                            // to-be-inlined host-only function
+  #define GPUhd()                                   // Host and device function, inlined during GPU compilation to avoid symbol clashes in host code
+  #define GPUhdi() inline                           // Host and device function, to-be-inlined on host and device
+  #define GPUhdni()                                 // Host and device function, not to-be-inlined automatically
+  #define GPUg() INVALID_TRIGGER_ERROR_NO_HOST_CODE // GPU kernel
+  #define GPUshared()                               // shared memory variable declaration
+  #define GPUglobal()                               // global memory variable declaration (only used for kernel input pointers)
+  #define GPUconstant()                             // constant memory variable declaraion
+  #define GPUconstexpr() static constexpr           // constexpr on GPU that needs to be instantiated for dynamic access (e.g. arrays), becomes __constant on GPU
+  #define GPUprivate()                              // private memory variable declaration
+  #define GPUgeneric()                              // reference / ptr to generic address space
+  #define GPUbarrier()                              // synchronize all GPU threads in block
+  #define GPUAtomic(type) type                      // atomic variable type
+  #define GPUsharedref()                            // reference / ptr to shared memory
+  #define GPUglobalref()                            // reference / ptr to global memory
+  #define GPUconstantref()                          // reference / ptr to constant memory
+  #define GPUconstexprref()                         // reference / ptr to variable declared as GPUconstexpr()
 
   struct float4 { float x, y, z, w; };
   struct float3 { float x, y, z; };
