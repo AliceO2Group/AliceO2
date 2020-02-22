@@ -319,7 +319,7 @@ void Decoder::printCrateInfo(int icru) const
   printf("___CRATE HEADER____\n");
   printf("DRM ID           = %d\n", mUnion[icru]->crateHeader.drmID);
   printf("Bunch ID         = %d\n", mUnion[icru]->crateHeader.bunchID);
-  printf("Slot enable mask = %d\n", mUnion[icru]->crateHeader.slotEnableMask);
+  printf("Slot part. mask  = %d\n", mUnion[icru]->crateHeader.slotPartMask);
   printf("Must be ONE      = %d\n", mUnion[icru]->crateHeader.mustBeOne);
   printf("___________________\n");
 }

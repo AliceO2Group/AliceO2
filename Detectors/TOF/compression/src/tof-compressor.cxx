@@ -25,11 +25,13 @@ using namespace o2::framework;
 // including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  auto inputDesc = ConfigParamSpec{"input-desc", VariantType::String, "RAWDATA", {"Input specs description string"}};
-  auto outputDesc = ConfigParamSpec{"output-desc", VariantType::String, "CRAWDATA", {"Output specs description string"}};
+  auto inputDesc = ConfigParamSpec{"tof-compressor-input-desc", VariantType::String, "RAWDATA", {"Input specs description string"}};
+  auto outputDesc = ConfigParamSpec{"tof-compressor-output-desc", VariantType::String, "CRAWDATA", {"Output specs description string"}};
+  auto rdhVersion = ConfigParamSpec{"tof-compressor-rdh-version", VariantType::Int, 4, {"Raw Data Header version"}};
 
   workflowOptions.push_back(inputDesc);
   workflowOptions.push_back(outputDesc);
+  workflowOptions.push_back(rdhVersion);
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -38,21 +40,29 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
 
-  auto inputDesc = cfgc.options().get<std::string>("input-desc");
+  auto inputDesc = cfgc.options().get<std::string>("tof-compressor-input-desc");
   //  auto outputDesc = cfgc.options().get<std::string>("output-desc");
+  auto rdhVersion = cfgc.options().get<int>("tof-compressor-rdh-version");
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(OutputSpec(ConcreteDataTypeMatcher{"TOF", "CRAWDATA"}));
+
+  AlgorithmSpec algoSpec;
+  if (rdhVersion == 4)
+    algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV4>>()};
+  else if (rdhVersion == 6)
+    algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV6>>()};
 
   WorkflowSpec workflow;
   workflow.emplace_back(DataProcessorSpec{
     "tof-compressor",
     select(std::string("x:TOF/" + inputDesc).c_str()),
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask>()},
+    algoSpec,
     Options{
-      {"decoder-verbose", VariantType::Bool, false, {"Decoder verbose flag"}},
-      {"encoder-verbose", VariantType::Bool, false, {"Encoder verbose flag"}},
-      {"checker-verbose", VariantType::Bool, false, {"Checker verbose flag"}}}});
+      {"tof-compressor-conet-mode", VariantType::Bool, false, {"Decoder CONET flag"}},
+      {"tof-compressor-decoder-verbose", VariantType::Bool, false, {"Decoder verbose flag"}},
+      {"tof-compressor-encoder-verbose", VariantType::Bool, false, {"Encoder verbose flag"}},
+      {"tof-compressor-checker-verbose", VariantType::Bool, false, {"Checker verbose flag"}}}});
 
   return workflow;
 }

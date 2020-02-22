@@ -30,6 +30,7 @@ namespace tof
 namespace compressed
 {
 
+template <typename RAWDataHeader>
 class DecoderBase
 {
 
@@ -57,14 +58,15 @@ class DecoderBase
  private:
   /** handlers **/
 
-  virtual void rdhHandler(const o2::header::RAWDataHeader* rdh){};
+  virtual void rdhHandler(const RAWDataHeader* rdh){};
   virtual void headerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit){};
 
   virtual void frameHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
                             const FrameHeader_t* frameHeader, const PackedHit_t* packedHits){};
 
   virtual void trailerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
-                              const CrateTrailer_t* crateTrailer, const Diagnostic_t* diagnostics){};
+                              const CrateTrailer_t* crateTrailer, const Diagnostic_t* diagnostics,
+                              const Error_t* errors){};
 
   bool processHBF();
   bool processDRM();
@@ -77,7 +79,7 @@ class DecoderBase
   const uint32_t* mDecoderPointer = nullptr;
   const uint32_t* mDecoderPointerMax = nullptr;
   const uint32_t* mDecoderPointerNext = nullptr;
-  const o2::header::RAWDataHeader* mDecoderRDH;
+  const RAWDataHeader* mDecoderRDH;
   bool mDecoderVerbose = false;
   bool mDecoderError = false;
   bool mDecoderFatal = false;

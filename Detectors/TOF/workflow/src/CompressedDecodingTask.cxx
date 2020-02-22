@@ -91,9 +91,9 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
     auto payloadIn = input.payload;
     auto payloadInSize = headerIn->payloadSize;
 
-    DecoderBase::setDecoderBuffer(payloadIn);
-    DecoderBase::setDecoderBufferSize(payloadInSize);
-    DecoderBase::run();
+    DecoderBase<o2::header::RAWDataHeader>::setDecoderBuffer(payloadIn);
+    DecoderBase<o2::header::RAWDataHeader>::setDecoderBufferSize(payloadInSize);
+    DecoderBase<o2::header::RAWDataHeader>::run();
   }
 
   if (mNCrateOpenTF == 72 && mNCrateOpenTF == mNCrateCloseTF)

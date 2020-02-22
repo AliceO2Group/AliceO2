@@ -20,11 +20,12 @@
 #include <cstring>
 #include <iostream>
 
-//#define DECODER_PARANOID
-//#define DECODER_VERBOSE
-//#define ENCODER_VERBOSE
-//#define CHECKER_VERBOSE
-//#define CHECKER_COUNTER
+#define DECODER_PARANOID
+#define DECODER_VERBOSE
+#define ENCODER_VERBOSE
+#define CHECKER_VERBOSE
+#define CHECKER_VERBOSE_MORE
+#define CHECKER_COUNTER
 
 #ifdef DECODER_PARANOID
 #warning "Building code with DecoderParanoid option. This may limit the speed."
@@ -60,46 +61,56 @@
 #define IS_TRM_CHAINA_TRAILER(x) ((x & 0xF0000000) == 0x10000000)
 #define IS_TRM_CHAINB_HEADER(x) ((x & 0xF0000000) == 0x20000000)
 #define IS_TRM_CHAINB_TRAILER(x) ((x & 0xF0000000) == 0x30000000)
+#define IS_TRM_CHAIN_TRAILER(x, c) ((x & 0xF0000000) == (c == 0 ? 0x10000000 : 0x30000000))
 #define IS_TDC_ERROR(x) ((x & 0xF0000000) == 0x60000000)
 #define IS_FILLER(x) ((x & 0xFFFFFFFF) == 0x70000000)
 #define IS_TDC_HIT(x) ((x & 0x80000000) == 0x80000000)
+#define IS_TDC_HIT_LEADING(x) ((x & 0xA0000000) == 0xA0000000)
+#define IS_TDC_HIT_TRAILING(x) ((x & 0xC0000000) == 0xC0000000)
+#define IS_DRM_TEST_WORD(x) ((x & 0xF000000F) == 0xE000000F)
 
 // DRM getters
-//#define GET_DRMDATAHEADER_DRMID(x) ((x & 0x0FE00000) >> 21)
-#define GET_DRMDATAHEADER_DRMID(x) ((x >> 21) & 0x7F)
-#define GET_DRMHEADW1_PARTSLOTMASK(x) ((x & 0x00007FF0) >> 4)
-#define GET_DRMHEADW1_CLOCKSTATUS(x) ((x & 0x00018000) >> 15)
-#define GET_DRMHEADW2_ENASLOTMASK(x) ((x & 0x00007FF0) >> 4)
-#define GET_DRMHEADW2_FAULTSLOTMASK(x) ((x & 0x07FF0000) >> 16)
-#define GET_DRMHEADW2_READOUTTIMEOUT(x) ((x & 0x08000000) >> 27)
-#define GET_DRMHEADW3_GBTBUNCHCNT(x) ((x & 0x0000FFF0) >> 4)
-#define GET_DRMDATATRAILER_LOCEVCNT(x) ((x & 0x0000FFF0) >> 4)
+#define GET_DRMDATAHEADER_DRMID(x) DRM_DRMID(x)
+#define GET_DRMDATAHEADER_EVENTWORDS(x) DRM_EVWORDS(x)
+#define GET_DRMHEADW1_PARTSLOTMASK(x) DRM_SLOTID(x)
+#define GET_DRMHEADW1_CLOCKSTATUS(x) DRM_CLKFLG(x)
+#define GET_DRMHEADW1_DRMHVERSION(x) DRM_VERSID(x)
+#define GET_DRMHEADW1_DRMHSIZE(x) DRM_HSIZE(x)
+#define GET_DRMHEADW2_ENASLOTMASK(x) DRM_ENABLEID(x)
+#define GET_DRMHEADW2_FAULTSLOTMASK(x) DRM_FAULTID(x)
+#define GET_DRMHEADW2_READOUTTIMEOUT(x) DRM_RTMO(x)
+#define GET_DRMHEADW3_GBTBUNCHCNT(x) DRM_BCGBT(x)
+#define GET_DRMHEADW3_LOCBUNCHCNT(x) DRM_BCLOC(x)
+#define GET_DRMHEADW5_EVENTCRC(x) DRM_EVCRC(x)
+#define GET_DRMDATATRAILER_LOCEVCNT(x) DRM_LOCEVCNT(x)
 
 // TRM getter
-#define GET_TRMDATAHEADER_SLOTID(x) ((x & 0x0000000F))
-#define GET_TRMDATAHEADER_EVENTCNT(x) ((x & 0x07FE0000) >> 17)
-#define GET_TRMDATAHEADER_EVENTWORDS(x) ((x & 0x0001FFF0) >> 4)
-#define GET_TRMDATAHEADER_EMPTYBIT(x) ((x & 0x08000000) >> 27)
+#define GET_TRMDATAHEADER_SLOTID(x) TOF_GETGEO(x)
+#define GET_TRMDATAHEADER_EVENTCNT(x) TRM_EVCNT_GH(x)
+#define GET_TRMDATAHEADER_EVENTWORDS(x) TRM_EVWORDS(x)
+#define GET_TRMDATAHEADER_EMPTYBIT(x) TRM_EMPTYBIT(x)
+#define GET_TRMDATATRAILER_LUTERRORBIT(x) TRM_LUTERRBIT(x)
+#define GET_TRMDATATRAILER_EVENTCRC(x) TRM_EVCRC2(x)
 
 // TRM Chain getters
-#define GET_TRMCHAINHEADER_SLOTID(x) ((x & 0x0000000F))
-#define GET_TRMCHAINHEADER_BUNCHCNT(x) ((x & 0x0000FFF0) >> 4)
-#define GET_TRMCHAINTRAILER_EVENTCNT(x) ((x & 0x0FFF0000) >> 16)
-#define GET_TRMCHAINTRAILER_STATUS(x) ((x & 0x0000000F))
+#define GET_TRMCHAINHEADER_SLOTID(x) TOF_GETGEO(x)
+#define GET_TRMCHAINHEADER_BUNCHCNT(x) TRM_BUNCHID(x)
+#define GET_TRMCHAINTRAILER_EVENTCNT(x) TRM_EVCNT_CT(x)
+#define GET_TRMCHAINTRAILER_STATUS(x) TRM_CHAINSTAT(x)
 
 // TDC getters
-#define GET_TRMDATAHIT_TIME(x) ((x & 0x001FFFFF))
-#define GET_TRMDATAHIT_CHANID(x) ((x & 0x00E00000) >> 21)
-#define GET_TRMDATAHIT_TDCID(x) ((x & 0x0F000000) >> 24)
+#define GET_TRMDATAHIT_TIME(x) TRM_TIME(x)
+#define GET_TRMDATAHIT_CHANID(x) TRM_CHANID(x)
+#define GET_TRMDATAHIT_TDCID(x) TRM_TDCID(x)
 #define GET_TRMDATAHIT_EBIT(x) ((x & 0x10000000) >> 28)
-#define GET_TRMDATAHIT_PSBITS(x) ((x & 0x60000000) >> 29)
 
 namespace o2
 {
 namespace tof
 {
 
-bool Compressor::processHBF()
+template <typename RAWDataHeader>
+bool Compressor<RAWDataHeader>::processHBF()
 {
 
 #ifdef DECODER_VERBOSE
@@ -111,8 +122,8 @@ bool Compressor::processHBF()
   }
 #endif
 
-  mDecoderRDH = reinterpret_cast<const o2::header::RAWDataHeader*>(mDecoderPointer);
-  mEncoderRDH = reinterpret_cast<o2::header::RAWDataHeader*>(mEncoderPointer);
+  mDecoderRDH = reinterpret_cast<const RAWDataHeader*>(mDecoderPointer);
+  mEncoderRDH = reinterpret_cast<RAWDataHeader*>(mEncoderPointer);
   auto rdh = mDecoderRDH;
 
   /** loop until RDH close **/
@@ -138,7 +149,7 @@ bool Compressor::processHBF()
     mDecoderSaveBufferDataSize += drmPayload;
 
     /** move to next RDH **/
-    rdh = reinterpret_cast<const o2::header::RAWDataHeader*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
+    rdh = reinterpret_cast<const RAWDataHeader*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
 
     /** check next RDH is within buffer **/
     if (reinterpret_cast<const char*>(rdh) < mDecoderBuffer + mDecoderBufferSize)
@@ -167,8 +178,10 @@ bool Compressor::processHBF()
   mDecoderPointerMax = reinterpret_cast<const uint32_t*>(mDecoderSaveBuffer + mDecoderSaveBufferDataSize);
   while (mDecoderPointer < mDecoderPointerMax) {
     mEventCounter++;
-    if (processDRM())
+    if (processDRM()) {      // if this breaks, we did not run the checker and the summary is not reset!
+      mDecoderSummary = {0}; // reset it like this, perhaps a better way can be found
       break;
+    }
   }
   mDecoderSaveBufferDataSize = 0;
 
@@ -187,7 +200,7 @@ bool Compressor::processHBF()
 
   /** copy RDH close to encoder buffer **/
   /** CAREFUL WITH THE PAGE COUNTER **/
-  mEncoderRDH = reinterpret_cast<o2::header::RAWDataHeader*>(mEncoderPointer);
+  mEncoderRDH = reinterpret_cast<RAWDataHeader*>(mEncoderPointer);
   std::memcpy(mEncoderRDH, rdh, rdh->headerSize);
   mEncoderRDH->memorySize = rdh->headerSize;
   mEncoderRDH->offsetToNext = mEncoderRDH->memorySize;
@@ -213,7 +226,8 @@ bool Compressor::processHBF()
   return true;
 }
 
-bool Compressor::processDRM()
+template <typename RAWDataHeader>
+bool Compressor<RAWDataHeader>::processDRM()
 {
 
 #ifdef DECODER_VERBOSE
@@ -238,7 +252,7 @@ bool Compressor::processDRM()
     mDecoderFatal = true;
     return true;
   }
-  mDecoderSummary.tofDataHeader = *mDecoderPointer;
+  mDecoderSummary.tofDataHeader = mDecoderPointer;
 #ifdef DECODER_VERBOSE
   if (mDecoderVerbose) {
     auto tofDataHeader = reinterpret_cast<const raw::TOFDataHeader_t*>(mDecoderPointer);
@@ -253,7 +267,7 @@ bool Compressor::processDRM()
   decoderNext();
 
   /** TOF Orbit **/
-  mDecoderSummary.tofOrbit = *mDecoderPointer;
+  mDecoderSummary.tofOrbit = mDecoderPointer;
 #ifdef DECODER_VERBOSE
   if (mDecoderVerbose) {
     auto tofOrbit = reinterpret_cast<const raw::TOFOrbit_t*>(mDecoderPointer);
@@ -275,12 +289,13 @@ bool Compressor::processDRM()
     mDecoderFatal = true;
     return true;
   }
-  mDecoderSummary.drmDataHeader = *mDecoderPointer;
+  mDecoderSummary.drmDataHeader = mDecoderPointer;
 #ifdef DECODER_VERBOSE
   if (mDecoderVerbose) {
     auto drmDataHeader = reinterpret_cast<const raw::DRMDataHeader_t*>(mDecoderPointer);
     auto drmId = drmDataHeader->drmId;
-    printf(" %08x DRM Data Header       (drmId=%d) \n", *mDecoderPointer, drmId);
+    auto eventWords = drmDataHeader->eventWords;
+    printf(" %08x DRM Data Header       (drmId=%d, eventWords=%d) \n", *mDecoderPointer, drmId, eventWords);
   }
 #endif
 #ifdef DECODER_PARANOID
@@ -290,7 +305,7 @@ bool Compressor::processDRM()
   decoderNext();
 
   /** DRM Header Word 1 **/
-  mDecoderSummary.drmHeadW1 = *mDecoderPointer;
+  mDecoderSummary.drmHeadW1 = mDecoderPointer;
 #ifdef DECODER_VERBOSE
   if (mDecoderVerbose) {
     auto drmHeadW1 = reinterpret_cast<const raw::DRMHeadW1_t*>(mDecoderPointer);
@@ -307,14 +322,14 @@ bool Compressor::processDRM()
   decoderNext();
 
   /** DRM Header Word 2 **/
-  mDecoderSummary.drmHeadW2 = *mDecoderPointer;
+  mDecoderSummary.drmHeadW2 = mDecoderPointer;
 #ifdef DECODER_VERBOSE
   if (mDecoderVerbose) {
     auto drmHeadW2 = reinterpret_cast<const raw::DRMHeadW2_t*>(mDecoderPointer);
     auto enaSlotMask = drmHeadW2->enaSlotMask;
     auto faultSlotMask = drmHeadW2->faultSlotMask;
     auto readoutTimeOut = drmHeadW2->readoutTimeOut;
-    printf(" %08x DRM Header Word 2     (enaSlotMask=0x%03x, faultSlotMask=%d, readoutTimeOut=%d) \n", *mDecoderPointer, enaSlotMask, faultSlotMask, readoutTimeOut);
+    printf(" %08x DRM Header Word 2     (enaSlotMask=0x%03x, faultSlotMask=0x%03x, readoutTimeOut=%d) \n", *mDecoderPointer, enaSlotMask, faultSlotMask, readoutTimeOut);
   }
 #endif
 #ifdef DECODER_PARANOID
@@ -324,7 +339,7 @@ bool Compressor::processDRM()
   decoderNext();
 
   /** DRM Header Word 3 **/
-  mDecoderSummary.drmHeadW3 = *mDecoderPointer;
+  mDecoderSummary.drmHeadW3 = mDecoderPointer;
 #ifdef DECODER_VERBOSE
   if (mDecoderVerbose) {
     auto drmHeadW3 = reinterpret_cast<const raw::DRMHeadW3_t*>(mDecoderPointer);
@@ -340,7 +355,7 @@ bool Compressor::processDRM()
   decoderNext();
 
   /** DRM Header Word 4 **/
-  mDecoderSummary.drmHeadW4 = *mDecoderPointer;
+  mDecoderSummary.drmHeadW4 = mDecoderPointer;
 #ifdef DECODER_VERBOSE
   if (mDecoderVerbose) {
     printf(" %08x DRM Header Word 4   \n", *mDecoderPointer);
@@ -353,7 +368,7 @@ bool Compressor::processDRM()
   decoderNext();
 
   /** DRM Header Word 5 **/
-  mDecoderSummary.drmHeadW5 = *mDecoderPointer;
+  mDecoderSummary.drmHeadW5 = mDecoderPointer;
 #ifdef DECODER_VERBOSE
   if (mDecoderVerbose) {
     printf(" %08x DRM Header Word 5   \n", *mDecoderPointer);
@@ -367,22 +382,22 @@ bool Compressor::processDRM()
 
   /** encode Crate Header **/
   *mEncoderPointer = 0x80000000;
-  *mEncoderPointer |= GET_DRMHEADW2_ENASLOTMASK(mDecoderSummary.drmHeadW2) << 12;
-  *mEncoderPointer |= GET_DRMDATAHEADER_DRMID(mDecoderSummary.drmDataHeader) << 24;
-  *mEncoderPointer |= GET_DRMHEADW3_GBTBUNCHCNT(mDecoderSummary.drmHeadW3);
+  *mEncoderPointer |= GET_DRMHEADW1_PARTSLOTMASK(*mDecoderSummary.drmHeadW1) << 12;
+  *mEncoderPointer |= GET_DRMDATAHEADER_DRMID(*mDecoderSummary.drmDataHeader) << 24;
+  *mEncoderPointer |= GET_DRMHEADW3_GBTBUNCHCNT(*mDecoderSummary.drmHeadW3);
 #ifdef ENCODER_VERBOSE
   if (mEncoderVerbose) {
     auto crateHeader = reinterpret_cast<compressed::CrateHeader_t*>(mEncoderPointer);
     auto bunchID = crateHeader->bunchID;
     auto drmID = crateHeader->drmID;
-    auto slotEnableMask = crateHeader->slotEnableMask;
-    printf("%s %08x Crate header          (drmID=%d, bunchID=%d, slotEnableMask=0x%x) %s \n", colorGreen, *mEncoderPointer, drmID, bunchID, slotEnableMask, colorReset);
+    auto slotPartMask = crateHeader->slotPartMask;
+    printf("%s %08x Crate header          (drmID=%d, bunchID=%d, slotPartMask=0x%x) %s \n", colorGreen, *mEncoderPointer, drmID, bunchID, slotPartMask, colorReset);
   }
 #endif
   encoderNext();
 
   /** encode Crate Orbit **/
-  *mEncoderPointer = mDecoderSummary.tofOrbit;
+  *mEncoderPointer = *mDecoderSummary.tofOrbit;
 #ifdef ENCODER_VERBOSE
   if (mEncoderVerbose) {
     auto crateOrbit = reinterpret_cast<compressed::CrateOrbit_t*>(mEncoderPointer);
@@ -394,322 +409,23 @@ bool Compressor::processDRM()
 
   /** loop over DRM payload **/
   while (true) {
+
     /** LTM global header detected **/
     if (IS_LTM_GLOBAL_HEADER(*mDecoderPointer)) {
-
-#ifdef DECODER_VERBOSE
-      if (mDecoderVerbose) {
-        printf(" %08x LTM Global Header \n", *mDecoderPointer);
-      }
-#endif
-#ifdef DECODER_PARANOID
-      if (decoderParanoid())
+      if (processLTM())
         return true;
-#endif
-      decoderNext();
-
-      /** loop over LTM payload **/
-      while (true) {
-        /** LTM global trailer detected **/
-        if (IS_LTM_GLOBAL_TRAILER(*mDecoderPointer)) {
-#ifdef DECODER_VERBOSE
-          if (mDecoderVerbose) {
-            printf(" %08x LTM Global Trailer \n", *mDecoderPointer);
-          }
-#endif
-#ifdef DECODER_PARANOID
-          if (decoderParanoid())
-            return true;
-#endif
-          decoderNext();
-          break;
-        }
-
-#ifdef DECODER_VERBOSE
-        if (mDecoderVerbose) {
-          printf(" %08x LTM data \n", *mDecoderPointer);
-        }
-#endif
-#ifdef DECODER_PARANOID
-        if (decoderParanoid())
-          return true;
-#endif
-        decoderNext();
-      }
     }
 
     /** TRM Data Header detected **/
     if (IS_TRM_GLOBAL_HEADER(*mDecoderPointer) && GET_TRMDATAHEADER_SLOTID(*mDecoderPointer) > 2) {
-      uint32_t slotId = GET_TRMDATAHEADER_SLOTID(*mDecoderPointer);
-      int itrm = slotId - 3;
-      mDecoderSummary.trmDataHeader[itrm] = *mDecoderPointer;
-#ifdef DECODER_VERBOSE
-      if (mDecoderVerbose) {
-        auto trmDataHeader = reinterpret_cast<const raw::TRMDataHeader_t*>(mDecoderPointer);
-        auto eventWords = trmDataHeader->eventWords;
-        auto eventCnt = trmDataHeader->eventCnt;
-        auto emptyBit = trmDataHeader->emptyBit;
-        printf(" %08x TRM Data Header       (slotId=%u, eventWords=%d, eventCnt=%d, emptyBit=%01x) \n", *mDecoderPointer, slotId, eventWords, eventCnt, emptyBit);
-      }
-#endif
-#ifdef DECODER_PARANOID
-      if (decoderParanoid())
+      if (processTRM())
         return true;
-#endif
-      decoderNext();
-
-      /** loop over TRM payload **/
-      while (true) {
-        /** TRM Chain-A Header detected **/
-        if (IS_TRM_CHAINA_HEADER(*mDecoderPointer) && GET_TRMCHAINHEADER_SLOTID(*mDecoderPointer) == slotId) {
-          mDecoderSummary.trmChainHeader[itrm][0] = *mDecoderPointer;
-          mDecoderSummary.hasHits[itrm][0] = false;
-          mDecoderSummary.hasErrors[itrm][0] = false;
-#ifdef DECODER_VERBOSE
-          if (mDecoderVerbose) {
-            auto trmChainHeader = reinterpret_cast<const raw::TRMChainHeader_t*>(mDecoderPointer);
-            auto bunchCnt = trmChainHeader->bunchCnt;
-            printf(" %08x TRM Chain-A Header    (slotId=%u, bunchCnt=%d) \n", *mDecoderPointer, slotId, bunchCnt);
-          }
-#endif
-#ifdef DECODER_PARANOID
-          if (decoderParanoid())
-            return true;
-#endif
-          decoderNext();
-
-          /** loop over TRM Chain-A payload **/
-          while (true) {
-            /** TDC hit detected **/
-            if (IS_TDC_HIT(*mDecoderPointer)) {
-              mDecoderSummary.hasHits[itrm][0] = true;
-              auto itdc = GET_TRMDATAHIT_TDCID(*mDecoderPointer);
-              auto ihit = mDecoderSummary.trmDataHits[0][itdc];
-              mDecoderSummary.trmDataHit[0][itdc][ihit] = *mDecoderPointer;
-              mDecoderSummary.trmDataHits[0][itdc]++;
-#ifdef DECODER_VERBOSE
-              if (mDecoderVerbose) {
-                auto trmDataHit = reinterpret_cast<const raw::TRMDataHit_t*>(mDecoderPointer);
-                auto time = trmDataHit->time;
-                auto chanId = trmDataHit->chanId;
-                auto tdcId = trmDataHit->tdcId;
-                auto dataId = trmDataHit->dataId;
-                printf(" %08x TRM Data Hit          (time=%d, chanId=%d, tdcId=%d, dataId=0x%x) \n", *mDecoderPointer, time, chanId, tdcId, dataId);
-              }
-#endif
-#ifdef DECODER_PARANOID
-              if (decoderParanoid())
-                return true;
-#endif
-              decoderNext();
-              continue;
-            }
-
-            /** TDC error detected **/
-            if (IS_TDC_ERROR(*mDecoderPointer)) {
-              mDecoderSummary.hasErrors[itrm][0] = true;
-#ifdef DECODER_VERBOSE
-              if (mDecoderVerbose) {
-                printf("%s %08x TDC error %s \n", colorRed, *mDecoderPointer, colorReset);
-              }
-#endif
-#ifdef DECODER_PARANOID
-              if (decoderParanoid())
-                return true;
-#endif
-              decoderNext();
-              continue;
-            }
-
-            /** TRM Chain-A Trailer detected **/
-            if (IS_TRM_CHAINA_TRAILER(*mDecoderPointer)) {
-              mDecoderSummary.trmChainTrailer[itrm][0] = *mDecoderPointer;
-#ifdef DECODER_VERBOSE
-              if (mDecoderVerbose) {
-                auto trmChainTrailer = reinterpret_cast<const raw::TRMChainTrailer_t*>(mDecoderPointer);
-                auto eventCnt = trmChainTrailer->eventCnt;
-                printf(" %08x TRM Chain-A Trailer   (slotId=%u, eventCnt=%d) \n", *mDecoderPointer, slotId, eventCnt);
-              }
-#endif
-#ifdef DECODER_PARANOID
-              if (decoderParanoid())
-                return true;
-#endif
-              decoderNext();
-              break;
-            }
-
-            /** decode error **/
-            mDecoderError = true;
-#ifdef DECODER_VERBOSE
-            if (mDecoderVerbose) {
-              printf("%s %08x [ERROR] breaking TRM Chain-A decode stream %s \n", colorRed, *mDecoderPointer, colorReset);
-            }
-#endif
-            /** decode error detected, be paranoid **/
-            if (decoderParanoid())
-              return true;
-
-            decoderNext();
-            break;
-          }
-        } /** end of loop over TRM chain-A payload **/
-
-        /** TRM Chain-B Header detected **/
-        if (IS_TRM_CHAINB_HEADER(*mDecoderPointer) && GET_TRMCHAINHEADER_SLOTID(*mDecoderPointer) == slotId) {
-          mDecoderSummary.hasHits[itrm][1] = false;
-          mDecoderSummary.hasErrors[itrm][1] = false;
-          mDecoderSummary.trmChainHeader[itrm][1] = *mDecoderPointer;
-#ifdef DECODER_VERBOSE
-          if (mDecoderVerbose) {
-            auto trmChainHeader = reinterpret_cast<const raw::TRMChainHeader_t*>(mDecoderPointer);
-            auto bunchCnt = trmChainHeader->bunchCnt;
-            printf(" %08x TRM Chain-B Header    (slotId=%u, bunchCnt=%d) \n", *mDecoderPointer, slotId, bunchCnt);
-          }
-#endif
-#ifdef DECODER_PARANOID
-          if (decoderParanoid())
-            return true;
-#endif
-          decoderNext();
-
-          /** loop over TRM Chain-B payload **/
-          while (true) {
-            /** TDC hit detected **/
-            if (IS_TDC_HIT(*mDecoderPointer)) {
-              mDecoderSummary.hasHits[itrm][1] = true;
-              auto itdc = GET_TRMDATAHIT_TDCID(*mDecoderPointer);
-              auto ihit = mDecoderSummary.trmDataHits[1][itdc];
-              mDecoderSummary.trmDataHit[1][itdc][ihit] = *mDecoderPointer;
-              mDecoderSummary.trmDataHits[1][itdc]++;
-#ifdef DECODER_VERBOSE
-              if (mDecoderVerbose) {
-                auto trmDataHit = reinterpret_cast<const raw::TRMDataHit_t*>(mDecoderPointer);
-                auto time = trmDataHit->time;
-                auto chanId = trmDataHit->chanId;
-                auto tdcId = trmDataHit->tdcId;
-                auto dataId = trmDataHit->dataId;
-                printf(" %08x TRM Data Hit          (time=%d, chanId=%d, tdcId=%d, dataId=0x%x \n", *mDecoderPointer, time, chanId, tdcId, dataId);
-              }
-#endif
-#ifdef DECODER_PARANOID
-              if (decoderParanoid())
-                return true;
-#endif
-              decoderNext();
-              continue;
-            }
-
-            /** TDC error detected **/
-            if (IS_TDC_ERROR(*mDecoderPointer)) {
-              mDecoderSummary.hasErrors[itrm][1] = true;
-#ifdef DECODER_VERBOSE
-              if (mDecoderVerbose) {
-                printf("%s %08x TDC error %s \n", colorRed, *mDecoderPointer, colorReset);
-              }
-#endif
-#ifdef DECODER_PARANOID
-              if (decoderParanoid())
-                return true;
-#endif
-              decoderNext();
-              continue;
-            }
-
-            /** TRM Chain-B trailer detected **/
-            if (IS_TRM_CHAINB_TRAILER(*mDecoderPointer)) {
-              mDecoderSummary.trmChainTrailer[itrm][1] = *mDecoderPointer;
-#ifdef DECODER_VERBOSE
-              if (mDecoderVerbose) {
-                auto trmChainTrailer = reinterpret_cast<const raw::TRMChainTrailer_t*>(mDecoderPointer);
-                auto eventCnt = trmChainTrailer->eventCnt;
-                printf(" %08x TRM Chain-B Trailer   (slotId=%u, eventCnt=%d) \n", *mDecoderPointer, slotId, eventCnt);
-              }
-#endif
-#ifdef DECODER_PARANOID
-              if (decoderParanoid())
-                return true;
-#endif
-              decoderNext();
-              break;
-            }
-
-            /** decode error **/
-            mDecoderError = true;
-#ifdef DECODER_VERBOSE
-            if (mDecoderVerbose) {
-              printf("%s %08x [ERROR] breaking TRM Chain-B decode stream %s \n", colorRed, *mDecoderPointer, colorReset);
-            }
-#endif
-            /** decode error detected, be paranoid **/
-            if (decoderParanoid())
-              return true;
-
-            decoderNext();
-            break;
-          }
-        } /** end of loop over TRM chain-A payload **/
-
-        /** TRM Data Trailer detected **/
-        if (IS_TRM_GLOBAL_TRAILER(*mDecoderPointer)) {
-          mDecoderSummary.trmDataTrailer[itrm] = *mDecoderPointer;
-#ifdef DECODER_VERBOSE
-          if (mDecoderVerbose) {
-            auto trmDataTrailer = reinterpret_cast<const raw::TRMDataTrailer_t*>(mDecoderPointer);
-            auto eventCRC = trmDataTrailer->eventCRC;
-            auto lutErrorBit = trmDataTrailer->lutErrorBit;
-            printf(" %08x TRM Data Trailer      (slotId=%u, eventCRC=%d, lutErrorBit=%d) \n", *mDecoderPointer, slotId, eventCRC, lutErrorBit);
-          }
-#endif
-#ifdef DECODER_PARANOID
-          if (decoderParanoid())
-            return true;
-#endif
-          decoderNext();
-
-          /** encoder Spider **/
-          if (mDecoderSummary.hasHits[itrm][0] || mDecoderSummary.hasHits[itrm][1])
-            encoderSpider(itrm);
-
-          /** filler detected **/
-          if (IS_FILLER(*mDecoderPointer)) {
-#ifdef DECODER_VERBOSE
-            if (mDecoderVerbose) {
-              printf(" %08x Filler \n", *mDecoderPointer);
-            }
-#endif
-#ifdef DECODER_PARANOID
-            if (decoderParanoid())
-              return true;
-#endif
-            decoderNext();
-          }
-
-          break;
-        }
-
-        /** decode error **/
-        mDecoderError = true;
-#ifdef DECODER_VERBOSE
-        if (mDecoderVerbose) {
-          printf("%s %08x [ERROR] breaking TRM decode stream %s \n", colorRed, *mDecoderPointer, colorReset);
-        }
-#endif
-        /** decode error detected, be paranoid **/
-        if (decoderParanoid())
-          return true;
-
-        decoderNext();
-        break;
-
-      } /** end of loop over TRM payload **/
-
       continue;
     }
 
     /** DRM Data Trailer detected **/
     if (IS_DRM_GLOBAL_TRAILER(*mDecoderPointer)) {
-      mDecoderSummary.drmDataTrailer = *mDecoderPointer;
+      mDecoderSummary.drmDataTrailer = mDecoderPointer;
 #ifdef DECODER_VERBOSE
       if (mDecoderVerbose) {
         auto drmDataTrailer = reinterpret_cast<const raw::DRMDataTrailer_t*>(mDecoderPointer);
@@ -737,41 +453,84 @@ bool Compressor::processDRM()
         decoderNext();
       }
 
-      /** check event **/
-      checkerCheck();
-
       /** encode Crate Trailer **/
       *mEncoderPointer = 0x80000000;
+      *mEncoderPointer |= GET_DRMDATATRAILER_LOCEVCNT(*mDecoderSummary.drmDataTrailer) << 4;
+
+      /** check event **/
+      checkerCheck();
       *mEncoderPointer |= mCheckerSummary.nDiagnosticWords;
-      *mEncoderPointer |= GET_DRMDATATRAILER_LOCEVCNT(mDecoderSummary.drmDataTrailer) << 4;
+      *mEncoderPointer |= (mCheckerSummary.nTDCErrors << 16);
+
 #ifdef ENCODER_VERBOSE
       if (mEncoderVerbose) {
         auto CrateTrailer = reinterpret_cast<compressed::CrateTrailer_t*>(mEncoderPointer);
         auto EventCounter = CrateTrailer->eventCounter;
         auto NumberOfDiagnostics = CrateTrailer->numberOfDiagnostics;
-        printf("%s %08x Crate trailer         (EventCounter=%d, NumberOfDiagnostics=%d) %s \n", colorGreen, *mEncoderPointer, EventCounter, NumberOfDiagnostics, colorReset);
+        auto NumberOfErrors = CrateTrailer->numberOfErrors;
+        printf("%s %08x Crate trailer         (EventCounter=%d, NumberOfDiagnostics=%d, NumberOfErrors=%d) %s \n", colorGreen, *mEncoderPointer, EventCounter, NumberOfDiagnostics, NumberOfErrors, colorReset);
       }
 #endif
       encoderNext();
 
       /** encode Diagnostic Words **/
       for (int iword = 0; iword < mCheckerSummary.nDiagnosticWords; ++iword) {
+        auto itrm = (mCheckerSummary.DiagnosticWord[iword] & 0xF) - 3;
         *mEncoderPointer = mCheckerSummary.DiagnosticWord[iword];
 #ifdef ENCODER_VERBOSE
         if (mEncoderVerbose) {
           auto Diagnostic = reinterpret_cast<compressed::Diagnostic_t*>(mEncoderPointer);
           auto slotId = Diagnostic->slotID;
-          auto FaultBits = Diagnostic->faultBits;
-          printf("%s %08x Diagnostic            (slotId=%d, FaultBits=0x%x) %s \n", colorGreen, *mEncoderPointer, slotId, FaultBits, colorReset);
+          auto faultBits = Diagnostic->faultBits;
+          printf("%s %08x Diagnostic            (slotId=%d, faultBits=0x%x) %s \n", colorGreen, *mEncoderPointer, slotId, faultBits, colorReset);
         }
 #endif
         encoderNext();
       }
 
+      /** encode TDC errors **/
+      for (int itrm = 0; itrm < 10; ++itrm) {
+        for (int ichain = 0; ichain < 2; ++ichain) {
+          for (int ierror = 0; ierror < mDecoderSummary.trmErrors[itrm][ichain]; ++ierror) {
+            *mEncoderPointer = *mDecoderSummary.trmError[itrm][ichain][ierror];
+            *mEncoderPointer &= 0xFF07FFFF;
+            *mEncoderPointer |= ((itrm + 3) << 19);
+            *mEncoderPointer |= (ichain << 23);
+#ifdef ENCODER_VERBOSE
+            if (mEncoderVerbose) {
+              auto Error = reinterpret_cast<compressed::Error_t*>(mEncoderPointer);
+              auto errorFlags = Error->errorFlags;
+              auto slotID = Error->slotID;
+              auto chain = Error->chain;
+              auto tdcID = Error->tdcID;
+              printf("%s %08x Error                 (slotId=%d, chain=%d, tdcId=%d, errorFlags=0x%x) %s \n", colorGreen, *mEncoderPointer, slotID, chain, tdcID, errorFlags, colorReset);
+            }
+#endif ENCODER_VERBOSE
+            encoderNext();
+          }
+          mDecoderSummary.trmErrors[itrm][ichain] = 0;
+        }
+      }
+
       mCheckerSummary.nDiagnosticWords = 0;
+      mCheckerSummary.nTDCErrors = 0;
 
       break;
     }
+
+    /** DRM Test Word detected **/
+    if (IS_DRM_TEST_WORD(*mDecoderPointer)) {
+#ifdef DECODER_VERBOSE
+      if (mDecoderVerbose) {
+        printf(" %08x DRM Test Word \n", *mDecoderPointer);
+      }
+#endif
+      decoderNext();
+      continue;
+    }
+
+    /** decode error **/
+    mDecoderError = true;
 
 #ifdef DECODER_VERBOSE
     if (mDecoderVerbose) {
@@ -801,8 +560,264 @@ bool Compressor::processDRM()
   return false;
 }
 
-bool Compressor::decoderParanoid()
+template <typename RAWDataHeader>
+bool Compressor<RAWDataHeader>::processLTM()
 {
+  /** process LTM **/
+
+#ifdef DECODER_VERBOSE
+  if (mDecoderVerbose) {
+    printf(" %08x LTM Global Header \n", *mDecoderPointer);
+  }
+#endif
+#ifdef DECODER_PARANOID
+  if (decoderParanoid())
+    return true;
+#endif
+  decoderNext();
+
+  /** loop over LTM payload **/
+  while (true) {
+    /** LTM global trailer detected **/
+    if (IS_LTM_GLOBAL_TRAILER(*mDecoderPointer)) {
+#ifdef DECODER_VERBOSE
+      if (mDecoderVerbose) {
+        printf(" %08x LTM Global Trailer \n", *mDecoderPointer);
+      }
+#endif
+#ifdef DECODER_PARANOID
+      if (decoderParanoid())
+        return true;
+#endif
+      decoderNext();
+      break;
+    }
+
+#ifdef DECODER_VERBOSE
+    if (mDecoderVerbose) {
+      printf(" %08x LTM data \n", *mDecoderPointer);
+    }
+#endif
+#ifdef DECODER_PARANOID
+    if (decoderParanoid())
+      return true;
+#endif
+    decoderNext();
+  }
+
+  /** success **/
+  return false;
+}
+
+template <typename RAWDataHeader>
+bool Compressor<RAWDataHeader>::processTRM()
+{
+  /** process TRM **/
+
+  uint32_t slotId = GET_TRMDATAHEADER_SLOTID(*mDecoderPointer);
+  int itrm = slotId - 3;
+  mDecoderSummary.trmDataHeader[itrm] = mDecoderPointer;
+#ifdef DECODER_VERBOSE
+  if (mDecoderVerbose) {
+    auto trmDataHeader = reinterpret_cast<const raw::TRMDataHeader_t*>(mDecoderPointer);
+    auto eventWords = trmDataHeader->eventWords;
+    auto eventCnt = trmDataHeader->eventCnt;
+    auto emptyBit = trmDataHeader->emptyBit;
+    printf(" %08x TRM Data Header       (slotId=%u, eventWords=%d, eventCnt=%d, emptyBit=%01x) \n", *mDecoderPointer, slotId, eventWords, eventCnt, emptyBit);
+  }
+#endif
+#ifdef DECODER_PARANOID
+  if (decoderParanoid())
+    return true;
+#endif
+  decoderNext();
+
+  /** loop over TRM payload **/
+  while (true) {
+
+    /** TRM Chain-A Header detected **/
+    if (IS_TRM_CHAINA_HEADER(*mDecoderPointer) && GET_TRMCHAINHEADER_SLOTID(*mDecoderPointer) == slotId) {
+      if (processTRMchain(itrm, 0))
+        return true;
+    }
+
+    /** TRM Chain-B Header detected **/
+    if (IS_TRM_CHAINB_HEADER(*mDecoderPointer) && GET_TRMCHAINHEADER_SLOTID(*mDecoderPointer) == slotId) {
+      if (processTRMchain(itrm, 1))
+        return true;
+    }
+
+    /** TRM Data Trailer detected **/
+    if (IS_TRM_GLOBAL_TRAILER(*mDecoderPointer)) {
+      mDecoderSummary.trmDataTrailer[itrm] = mDecoderPointer;
+#ifdef DECODER_VERBOSE
+      if (mDecoderVerbose) {
+        auto trmDataTrailer = reinterpret_cast<const raw::TRMDataTrailer_t*>(mDecoderPointer);
+        auto eventCRC = trmDataTrailer->eventCRC;
+        auto lutErrorBit = trmDataTrailer->lutErrorBit;
+        printf(" %08x TRM Data Trailer      (slotId=%u, eventCRC=%d, lutErrorBit=%d) \n", *mDecoderPointer, slotId, eventCRC, lutErrorBit);
+      }
+#endif
+#ifdef DECODER_PARANOID
+      if (decoderParanoid())
+        return true;
+#endif
+      decoderNext();
+
+      /** filler detected **/
+      if (IS_FILLER(*mDecoderPointer)) {
+#ifdef DECODER_VERBOSE
+        if (mDecoderVerbose) {
+          printf(" %08x Filler \n", *mDecoderPointer);
+        }
+#endif
+#ifdef DECODER_PARANOID
+        if (decoderParanoid())
+          return true;
+#endif
+        decoderNext();
+      }
+
+      /** encoder Spider **/
+      if (mDecoderSummary.hasHits[itrm][0] || mDecoderSummary.hasHits[itrm][1])
+        encoderSpider(itrm);
+
+      /** success **/
+      return false;
+    }
+
+    /** decode error **/
+    mDecoderError = true;
+#ifdef DECODER_VERBOSE
+    if (mDecoderVerbose) {
+      printf("%s %08x [ERROR] breaking TRM decode stream %s \n", colorRed, *mDecoderPointer, colorReset);
+    }
+#endif
+    /** decode error detected, be paranoid **/
+    if (decoderParanoid())
+      return true;
+
+    decoderNext();
+    return false;
+
+  } /** end of loop over TRM payload **/
+
+  /** never reached **/
+  return false;
+}
+
+template <typename RAWDataHeader>
+bool Compressor<RAWDataHeader>::processTRMchain(int itrm, int ichain)
+{
+  /** process TRM chain **/
+
+  int slotId = itrm + 3;
+
+  mDecoderSummary.trmChainHeader[itrm][ichain] = mDecoderPointer;
+  mDecoderSummary.hasHits[itrm][ichain] = false;
+  mDecoderSummary.hasErrors[itrm][ichain] = false;
+#ifdef DECODER_VERBOSE
+  if (mDecoderVerbose) {
+    auto trmChainHeader = reinterpret_cast<const raw::TRMChainHeader_t*>(mDecoderPointer);
+    auto bunchCnt = trmChainHeader->bunchCnt;
+    printf(" %08x TRM Chain-%c Header    (slotId=%u, bunchCnt=%d) \n", *mDecoderPointer, ichain == 0 ? 'A' : 'B', slotId, bunchCnt);
+  }
+#endif
+#ifdef DECODER_PARANOID
+  if (decoderParanoid())
+    return true;
+#endif
+  decoderNext();
+
+  /** loop over TRM Chain payload **/
+  while (true) {
+    /** TDC hit detected **/
+    if (IS_TDC_HIT(*mDecoderPointer)) {
+      mDecoderSummary.hasHits[itrm][ichain] = true;
+      auto itdc = GET_TRMDATAHIT_TDCID(*mDecoderPointer);
+      auto ihit = mDecoderSummary.trmDataHits[ichain][itdc];
+      mDecoderSummary.trmDataHit[ichain][itdc][ihit] = mDecoderPointer;
+      mDecoderSummary.trmDataHits[ichain][itdc]++;
+#ifdef DECODER_VERBOSE
+      if (mDecoderVerbose) {
+        auto trmDataHit = reinterpret_cast<const raw::TRMDataHit_t*>(mDecoderPointer);
+        auto time = trmDataHit->time;
+        auto chanId = trmDataHit->chanId;
+        auto tdcId = trmDataHit->tdcId;
+        auto dataId = trmDataHit->dataId;
+        printf(" %08x TRM Data Hit          (time=%d, chanId=%d, tdcId=%d, dataId=0x%x) \n", *mDecoderPointer, time, chanId, tdcId, dataId);
+      }
+#endif
+#ifdef DECODER_PARANOID
+      if (decoderParanoid())
+        return true;
+#endif
+      decoderNext();
+      continue;
+    }
+
+    /** TDC error detected **/
+    if (IS_TDC_ERROR(*mDecoderPointer)) {
+      mDecoderSummary.hasErrors[itrm][ichain] = true;
+      auto ierror = mDecoderSummary.trmErrors[itrm][ichain];
+      mDecoderSummary.trmError[itrm][ichain][ierror] = mDecoderPointer;
+      mDecoderSummary.trmErrors[itrm][ichain]++;
+#ifdef DECODER_VERBOSE
+      if (mDecoderVerbose) {
+        printf("%s %08x TDC error %s \n", colorRed, *mDecoderPointer, colorReset);
+      }
+#endif
+#ifdef DECODER_PARANOID
+      if (decoderParanoid())
+        return true;
+#endif
+      decoderNext();
+      continue;
+    }
+
+    /** TRM Chain Trailer detected **/
+    if (IS_TRM_CHAIN_TRAILER(*mDecoderPointer, ichain)) {
+      mDecoderSummary.trmChainTrailer[itrm][ichain] = mDecoderPointer;
+#ifdef DECODER_VERBOSE
+      if (mDecoderVerbose) {
+        auto trmChainTrailer = reinterpret_cast<const raw::TRMChainTrailer_t*>(mDecoderPointer);
+        auto eventCnt = trmChainTrailer->eventCnt;
+        printf(" %08x TRM Chain-A Trailer   (slotId=%u, eventCnt=%d) \n", *mDecoderPointer, slotId, eventCnt);
+      }
+#endif
+#ifdef DECODER_PARANOID
+      if (decoderParanoid())
+        return true;
+#endif
+      decoderNext();
+      break;
+    }
+
+    /** decode error **/
+    mDecoderError = true;
+#ifdef DECODER_VERBOSE
+    if (mDecoderVerbose) {
+      printf("%s %08x [ERROR] breaking TRM Chain-%c decode stream %s \n", colorRed, *mDecoderPointer, ichain == 0 ? 'A' : 'B', colorReset);
+    }
+#endif
+    /** decode error detected, be paranoid **/
+    if (decoderParanoid())
+      return true;
+
+    decoderNext();
+    break;
+
+  } /** end of loop over TRM chain payload **/
+
+  /** success **/
+  return false;
+}
+
+template <typename RAWDataHeader>
+bool Compressor<RAWDataHeader>::decoderParanoid()
+{
+  /** decoder paranoid **/
+
   if (mDecoderPointer >= mDecoderPointerMax) {
     printf("%s %08x [ERROR] fatal error: beyond memory size %s \n", colorRed, *mDecoderPointer, colorReset);
     mDecoderFatal = true;
@@ -811,8 +826,11 @@ bool Compressor::decoderParanoid()
   return false;
 }
 
-void Compressor::encoderSpider(int itrm)
+template <typename RAWDataHeader>
+void Compressor<RAWDataHeader>::encoderSpider(int itrm)
 {
+  /** encoder spider **/
+
   int slotId = itrm + 3;
 
   /** reset packed hits counter **/
@@ -835,8 +853,8 @@ void Compressor::encoderSpider(int itrm)
       /** loop over hits **/
       for (int ihit = 0; ihit < nhits; ++ihit) {
 
-        auto lhit = mDecoderSummary.trmDataHit[ichain][itdc][ihit];
-        if (GET_TRMDATAHIT_PSBITS(lhit) != 0x1) // must be a leading hit
+        auto lhit = *mDecoderSummary.trmDataHit[ichain][itdc][ihit];
+        if (!IS_TDC_HIT_LEADING(lhit)) // must be a leading hit
           continue;
 
         auto chan = GET_TRMDATAHIT_CHANID(lhit);
@@ -846,10 +864,10 @@ void Compressor::encoderSpider(int itrm)
 
         // check next hits for packing
         for (int jhit = ihit + 1; jhit < nhits; ++jhit) {
-          auto thit = mDecoderSummary.trmDataHit[ichain][itdc][jhit];
-          if (GET_TRMDATAHIT_PSBITS(thit) == 0x2 && GET_TRMDATAHIT_CHANID(thit) == chan) { // must be a trailing hit from same channel
-            totWidth = (GET_TRMDATAHIT_TIME(thit) - hitTime) / Geo::RATIO_TOT_TDC_BIN;     // compute TOT
-            lhit = 0x0;                                                                    // mark as used
+          auto thit = *mDecoderSummary.trmDataHit[ichain][itdc][jhit];
+          if (IS_TDC_HIT_TRAILING(thit) && GET_TRMDATAHIT_CHANID(thit) == chan) {      // must be a trailing hit from same channel
+            totWidth = (GET_TRMDATAHIT_TIME(thit) - hitTime) / Geo::RATIO_TOT_TDC_BIN; // compute TOT
+            lhit = 0x0;                                                                // mark as used
             break;
           }
         }
@@ -889,7 +907,7 @@ void Compressor::encoderSpider(int itrm)
     *mEncoderPointer |= mSpiderSummary.nFramePackedHits[iframe];
 #ifdef ENCODER_VERBOSE
     if (mEncoderVerbose) {
-      auto FrameHeader = reinterpret_cast<compressed::FrameHeader_t*>(mEncoderPointer);
+      auto FrameHeader = reinterpret_cast<const compressed::FrameHeader_t*>(mEncoderPointer);
       auto NumberOfHits = FrameHeader->numberOfHits;
       auto FrameID = FrameHeader->frameID;
       auto TRMID = FrameHeader->trmID;
@@ -903,7 +921,7 @@ void Compressor::encoderSpider(int itrm)
       *mEncoderPointer = mSpiderSummary.FramePackedHit[iframe][ihit];
 #ifdef ENCODER_VERBOSE
       if (mEncoderVerbose) {
-        auto PackedHit = reinterpret_cast<compressed::PackedHit_t*>(mEncoderPointer);
+        auto PackedHit = reinterpret_cast<const compressed::PackedHit_t*>(mEncoderPointer);
         auto Chain = PackedHit->chain;
         auto TDCID = PackedHit->tdcID;
         auto Channel = PackedHit->channel;
@@ -919,8 +937,11 @@ void Compressor::encoderSpider(int itrm)
   }
 }
 
-bool Compressor::checkerCheck()
+template <typename RAWDataHeader>
+bool Compressor<RAWDataHeader>::checkerCheck()
 {
+  /** checker check **/
+
   mCheckerSummary.nDiagnosticWords = 0;
   mCheckerSummary.DiagnosticWord[0] = 0x00000001;
 
@@ -939,8 +960,13 @@ bool Compressor::checkerCheck()
   /** check TOF Data Header **/
 
   /** check DRM Data Header **/
+#ifdef CHECKER_VERBOSE_MORE
+  if (mCheckerVerbose) {
+    printf(" --- Checking DRM Data Header: %p \n", mDecoderSummary.drmDataHeader);
+  }
+#endif
   if (!mDecoderSummary.drmDataHeader) {
-    mCheckerSummary.DiagnosticWord[0] |= DIAGNOSTIC_DRM_HEADER_MISSING;
+    mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_HEADER_MISSING;
 #ifdef CHECKER_COUNTER
     mCheckerSummary.nDiagnosticWords++;
 #endif
@@ -949,13 +975,18 @@ bool Compressor::checkerCheck()
       printf(" Missing DRM Data Header \n");
     }
 #endif
-    mDecoderSummary.tofDataHeader = 0x0;
+    mDecoderSummary.tofDataHeader = nullptr;
     return true;
   }
 
   /** check DRM Data Trailer **/
+#ifdef CHECKER_VERBOSE_MORE
+  if (mCheckerVerbose) {
+    printf(" --- Checking DRM Data Trailer: %p \n", mDecoderSummary.drmDataTrailer);
+  }
+#endif
   if (!mDecoderSummary.drmDataTrailer) {
-    mCheckerSummary.DiagnosticWord[0] |= DIAGNOSTIC_DRM_TRAILER_MISSING;
+    mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_TRAILER_MISSING;
 #ifdef CHECKER_COUNTER
     mCheckerSummary.nDiagnosticWords++;
 #endif
@@ -964,9 +995,8 @@ bool Compressor::checkerCheck()
       printf(" Missing DRM Data Trailer \n");
     }
 #endif
-    mDecoderSummary.tofDataHeader = 0x0;
-    mDecoderSummary.drmDataHeader = 0x0;
-    mDecoderSummary.drmDataTrailer = 0x0;
+    mDecoderSummary.tofDataHeader = nullptr;
+    mDecoderSummary.drmDataHeader = nullptr;
     return true;
   }
 
@@ -976,55 +1006,99 @@ bool Compressor::checkerCheck()
 #endif
 
   /** get DRM relevant data **/
-  uint32_t partSlotMask = GET_DRMHEADW1_PARTSLOTMASK(mDecoderSummary.drmHeadW1);
-  uint32_t enaSlotMask = GET_DRMHEADW2_ENASLOTMASK(mDecoderSummary.drmHeadW2);
-  uint32_t gbtBunchCnt = GET_DRMHEADW3_GBTBUNCHCNT(mDecoderSummary.drmHeadW3);
-  uint32_t locEvCnt = GET_DRMDATATRAILER_LOCEVCNT(mDecoderSummary.drmDataTrailer);
+  uint32_t partSlotMask = GET_DRMHEADW1_PARTSLOTMASK(*mDecoderSummary.drmHeadW1) & 0x7FE; // remove LTM bit
+  uint32_t enaSlotMask = GET_DRMHEADW2_ENASLOTMASK(*mDecoderSummary.drmHeadW2) & 0x7FE;   // remove LTM bit
+  uint32_t gbtBunchCnt = GET_DRMHEADW3_GBTBUNCHCNT(*mDecoderSummary.drmHeadW3);
+  uint32_t locEvCnt = GET_DRMDATATRAILER_LOCEVCNT(*mDecoderSummary.drmDataTrailer);
 
+  /** check RDH **/
+  if (!mDecoderCONET)
+    checkerCheckRDH();
+
+    /** check enable/participating mask **/
+#ifdef CHECKER_VERBOSE_MORE
+  if (mCheckerVerbose) {
+    printf(" --- Checking Enable/participating mask: %03x/%03x \n", enaSlotMask, partSlotMask);
+  }
+#endif
   if (partSlotMask != enaSlotMask) {
 #ifdef CHECKER_VERBOSE
     if (mCheckerVerbose) {
-      printf(" Warning: enable/participating mask differ: %03x/%03x \n", enaSlotMask, partSlotMask);
+      printf(" Enable/participating mask differ: %03x/%03x \n", enaSlotMask, partSlotMask);
     }
 #endif
-    mCheckerSummary.DiagnosticWord[0] |= DIAGNOSTIC_DRM_ENAPARTMASK_DIFFER;
+    mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_ENAPARTMASK_DIFFER;
   }
 
   /** check DRM clock status **/
-  if (GET_DRMHEADW1_CLOCKSTATUS(mDecoderSummary.drmHeadW1) != 2) {
-    mCheckerSummary.DiagnosticWord[0] |= DIAGNOSTIC_DRM_CLOCKSTATUS_WRONG;
+#ifdef CHECKER_VERBOSE_MORE
+  if (mCheckerVerbose) {
+    printf(" --- Checking DRM clock status: %d \n", GET_DRMHEADW1_CLOCKSTATUS(*mDecoderSummary.drmHeadW1));
+  }
+#endif
+  if (GET_DRMHEADW1_CLOCKSTATUS(*mDecoderSummary.drmHeadW1) != 2) {
+    mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_CLOCKSTATUS_WRONG;
 #ifdef CHECKER_COUNTER
     mDRMCounters.clockStatus++;
 #endif
 #ifdef CHECKER_VERBOSE
     if (mCheckerVerbose) {
-      printf("%s DRM wrong clock status: %d %s\n", colorRed, GET_DRMHEADW1_CLOCKSTATUS(mDecoderSummary.drmHeadW1), colorReset);
+      printf("%s DRM wrong clock status: %d %s\n", colorRed, GET_DRMHEADW1_CLOCKSTATUS(*mDecoderSummary.drmHeadW1), colorReset);
     }
 #endif
   }
 
   /** check DRM fault mask **/
-  if (GET_DRMHEADW2_FAULTSLOTMASK(mDecoderSummary.drmHeadW2)) {
-    mCheckerSummary.DiagnosticWord[0] |= DIAGNOSTIC_DRM_FAULTSLOTMASK_NOTZERO;
+#ifdef CHECKER_VERBOSE_MORE
+  if (mCheckerVerbose) {
+    printf(" --- Checking DRM fault slot mask: %x \n", GET_DRMHEADW2_FAULTSLOTMASK(*mDecoderSummary.drmHeadW2));
+  }
+#endif
+  if (GET_DRMHEADW2_FAULTSLOTMASK(*mDecoderSummary.drmHeadW2)) {
+    mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_FAULTSLOTMASK_NOTZERO;
 #ifdef CHECKER_COUNTER
     mDRMCounters.Fault++;
 #endif
 #ifdef CHECKER_VERBOSE
     if (mCheckerVerbose) {
-      printf(" DRM fault slot mask: %x \n", GET_DRMHEADW2_FAULTSLOTMASK(mDecoderSummary.drmHeadW2));
+      printf(" DRM fault slot mask: %x \n", GET_DRMHEADW2_FAULTSLOTMASK(*mDecoderSummary.drmHeadW2));
     }
 #endif
   }
 
   /** check DRM readout timeout **/
-  if (GET_DRMHEADW2_READOUTTIMEOUT(mDecoderSummary.drmHeadW2)) {
-    mCheckerSummary.DiagnosticWord[0] |= DIAGNOSTIC_DRM_READOUTTIMEOUT_NOTZERO;
+#ifdef CHECKER_VERBOSE_MORE
+  if (mCheckerVerbose) {
+    printf(" --- Checking DRM readout timeout: %d \n", GET_DRMHEADW2_READOUTTIMEOUT(*mDecoderSummary.drmHeadW2));
+  }
+#endif
+  if (GET_DRMHEADW2_READOUTTIMEOUT(*mDecoderSummary.drmHeadW2)) {
+    mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_READOUTTIMEOUT_NOTZERO;
 #ifdef CHECKER_COUNTER
     mDRMCounters.RTOBit++;
 #endif
 #ifdef CHECKER_VERBOSE
     if (mCheckerVerbose) {
       printf(" DRM readout timeout \n");
+    }
+#endif
+  }
+
+  /** check DRM event words (careful with pointers because we have 64 bits extra! only for CRU data! **/
+  auto drmEventWords = mDecoderSummary.drmDataTrailer - mDecoderSummary.drmDataHeader + 1;
+  if (!mDecoderCONET)
+    drmEventWords -= (drmEventWords / 4) * 2;
+  drmEventWords -= 6;
+#ifdef CHECKER_VERBOSE_MORE
+  if (mCheckerVerbose) {
+    printf(" --- Checking DRM declared/detected event words: %u/%ld \n", GET_DRMDATAHEADER_EVENTWORDS(*mDecoderSummary.drmDataHeader), drmEventWords);
+  }
+#endif
+  if (GET_DRMDATAHEADER_EVENTWORDS(*mDecoderSummary.drmDataHeader) != drmEventWords) {
+    mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_EVENTWORDS_MISMATCH;
+#ifdef CHECKER_VERBOSE
+    if (mCheckerVerbose) {
+      printf(" DRM declared/detected event words mismatch: %u/%ld \n", GET_DRMDATAHEADER_EVENTWORDS(*mDecoderSummary.drmDataHeader), drmEventWords);
     }
 #endif
   }
@@ -1045,8 +1119,8 @@ bool Compressor::checkerCheck()
 
     /** check participating TRM **/
     if (!(partSlotMask & 1 << (itrm + 1))) {
-      if (mDecoderSummary.trmDataHeader[itrm] != 0x0) {
-        mCheckerSummary.DiagnosticWord[iword] |= DIAGNOSTIC_TRM_HEADER_UNEXPECTED;
+      if (mDecoderSummary.trmDataHeader[itrm] != nullptr) {
+        mCheckerSummary.DiagnosticWord[iword] |= diagnostic::TRM_HEADER_UNEXPECTED;
 #ifdef CHECKER_VERBOSE
         if (mCheckerVerbose) {
           printf(" Non-participating header found (slotId=%u) \n", slotId);
@@ -1056,9 +1130,19 @@ bool Compressor::checkerCheck()
       continue;
     }
 
+    /** check TRM bit in DRM fault mask **/
+    if (GET_DRMHEADW2_FAULTSLOTMASK(*mDecoderSummary.drmHeadW2) & 1 << (itrm + 1)) {
+      mCheckerSummary.DiagnosticWord[iword] |= diagnostic::TRM_FAULTSLOTBIT_NOTZERO;
+#ifdef CHECKER_VERBOSE
+      if (mCheckerVerbose) {
+        printf(" Fault slot bit set (slotId=%u) \n", slotId);
+      }
+#endif
+    }
+
     /** check TRM Data Header **/
     if (!mDecoderSummary.trmDataHeader[itrm]) {
-      mCheckerSummary.DiagnosticWord[iword] |= DIAGNOSTIC_TRM_HEADER_MISSING;
+      mCheckerSummary.DiagnosticWord[iword] |= diagnostic::TRM_HEADER_MISSING;
 #ifdef CHECKER_VERBOSE
       if (mCheckerVerbose) {
         printf(" Missing TRM Data Header (slotId=%u) \n", slotId);
@@ -1069,13 +1153,13 @@ bool Compressor::checkerCheck()
 
     /** check TRM Data Trailer **/
     if (!mDecoderSummary.trmDataTrailer[itrm]) {
-      mCheckerSummary.DiagnosticWord[iword] |= DIAGNOSTIC_TRM_TRAILER_MISSING;
+      mCheckerSummary.DiagnosticWord[iword] |= diagnostic::TRM_TRAILER_MISSING;
 #ifdef CHECKER_VERBOSE
       if (mCheckerVerbose) {
         printf(" Missing TRM Trailer (slotId=%u) \n", slotId);
       }
 #endif
-      mDecoderSummary.trmDataHeader[itrm] = 0x0;
+      mDecoderSummary.trmDataHeader[itrm] = nullptr;
       continue;
     }
 
@@ -1091,9 +1175,9 @@ bool Compressor::checkerCheck()
 #endif
 
     /** check TRM EventCounter **/
-    uint32_t eventCnt = GET_TRMDATAHEADER_EVENTCNT(mDecoderSummary.trmDataHeader[itrm]);
+    uint32_t eventCnt = GET_TRMDATAHEADER_EVENTCNT(*mDecoderSummary.trmDataHeader[itrm]);
     if (eventCnt != locEvCnt % 1024) {
-      mCheckerSummary.DiagnosticWord[iword] |= DIAGNOSTIC_TRM_EVENTCNT_MISMATCH;
+      mCheckerSummary.DiagnosticWord[iword] |= diagnostic::TRM_EVENTCNT_MISMATCH;
 #ifdef CHECKER_COUNTER
       mTRMCounters[itrm].EventCounterMismatch++;
 #endif
@@ -1105,8 +1189,8 @@ bool Compressor::checkerCheck()
     }
 
     /** check TRM empty bit **/
-    if (GET_TRMDATAHEADER_EMPTYBIT(mDecoderSummary.trmDataHeader[itrm])) {
-      mCheckerSummary.DiagnosticWord[iword] |= DIAGNOSTIC_TRM_EMPTYBIT_NOTZERO;
+    if (GET_TRMDATAHEADER_EMPTYBIT(*mDecoderSummary.trmDataHeader[itrm])) {
+      mCheckerSummary.DiagnosticWord[iword] |= diagnostic::TRM_EMPTYBIT_NOTZERO;
 #ifdef CHECKER_COUNTER
       mTRMCounters[itrm].EBit++;
 #endif
@@ -1117,12 +1201,30 @@ bool Compressor::checkerCheck()
 #endif
     }
 
+    /** check TRM event words (careful with pointers because we have 64 bits extra! only for CRU data! **/
+    auto trmEventWords = mDecoderSummary.trmDataTrailer[itrm] - mDecoderSummary.trmDataHeader[itrm] + 1;
+    if (!mDecoderCONET)
+      trmEventWords -= (trmEventWords / 4) * 2;
+#ifdef CHECKER_VERBOSE_MORE
+    if (mCheckerVerbose) {
+      printf(" --- Checking TRM (slotId=%u) declared/detected event words: %d/%ld \n", slotId, GET_TRMDATAHEADER_EVENTWORDS(*mDecoderSummary.trmDataHeader[itrm]), trmEventWords);
+    }
+#endif
+    if (GET_TRMDATAHEADER_EVENTWORDS(*mDecoderSummary.trmDataHeader[itrm]) != trmEventWords) {
+      mCheckerSummary.DiagnosticWord[iword] |= diagnostic::TRM_EVENTWORDS_MISMATCH;
+#ifdef CHECKER_VERBOSE
+      if (mCheckerVerbose) {
+        printf(" TRM (slotId=%u) declared/detected event words mismatch: %d/%ld \n", slotId, GET_TRMDATAHEADER_EVENTWORDS(*mDecoderSummary.trmDataHeader[itrm]), trmEventWords);
+      }
+#endif
+    }
+
     /** loop over TRM chains **/
     for (int ichain = 0; ichain < 2; ichain++) {
 
       /** check TRM Chain Header **/
       if (!mDecoderSummary.trmChainHeader[itrm][ichain]) {
-        mCheckerSummary.DiagnosticWord[iword] |= DIAGNOSTIC_TRMCHAIN_HEADER_MISSING(ichain);
+        mCheckerSummary.DiagnosticWord[iword] |= (diagnostic::TRMCHAIN_HEADER_MISSING << (ichain * 8));
 #ifdef CHECKER_VERBOSE
         if (mCheckerVerbose) {
           printf(" Missing TRM Chain Header (slotId=%u, chain=%d) \n", slotId, ichain);
@@ -1133,13 +1235,13 @@ bool Compressor::checkerCheck()
 
       /** check TRM Chain Trailer **/
       if (!mDecoderSummary.trmChainTrailer[itrm][ichain]) {
-        mCheckerSummary.DiagnosticWord[iword] |= DIAGNOSTIC_TRMCHAIN_TRAILER_MISSING(ichain);
+        mCheckerSummary.DiagnosticWord[iword] |= (diagnostic::TRMCHAIN_TRAILER_MISSING << (ichain * 8));
 #ifdef CHECKER_VERBOSE
         if (mCheckerVerbose) {
           printf(" Missing TRM Chain Trailer (slotId=%u, chain=%d) \n", slotId, ichain);
         }
 #endif
-        mDecoderSummary.trmChainHeader[itrm][ichain] = 0x0;
+        mDecoderSummary.trmChainHeader[itrm][ichain] = nullptr;
         continue;
       }
 
@@ -1150,7 +1252,8 @@ bool Compressor::checkerCheck()
 
       /** check TDC errors **/
       if (mDecoderSummary.hasErrors[itrm][ichain]) {
-        mCheckerSummary.DiagnosticWord[iword] |= DIAGNOSTIC_TRMCHAIN_TDCERROR_DETECTED(ichain);
+        mCheckerSummary.DiagnosticWord[iword] |= (diagnostic::TRMCHAIN_TDCERROR_DETECTED << (ichain * 8));
+        mCheckerSummary.nTDCErrors += mDecoderSummary.trmErrors[itrm][ichain];
 #ifdef CHECKER_COUNTER
         mTRMChainCounters[itrm][ichain].TDCerror++;
 #endif
@@ -1162,9 +1265,9 @@ bool Compressor::checkerCheck()
       }
 
       /** check TRM Chain event counter **/
-      uint32_t eventCnt = GET_TRMCHAINTRAILER_EVENTCNT(mDecoderSummary.trmChainTrailer[itrm][ichain]);
+      uint32_t eventCnt = GET_TRMCHAINTRAILER_EVENTCNT(*mDecoderSummary.trmChainTrailer[itrm][ichain]);
       if (eventCnt != locEvCnt) {
-        mCheckerSummary.DiagnosticWord[iword] |= DIAGNOSTIC_TRMCHAIN_EVENTCNT_MISMATCH(ichain);
+        mCheckerSummary.DiagnosticWord[iword] |= (diagnostic::TRMCHAIN_EVENTCNT_MISMATCH << (ichain * 8));
 #ifdef CHECKER_COUNTER
         mTRMChainCounters[itrm][ichain].EventCounterMismatch++;
 #endif
@@ -1176,9 +1279,9 @@ bool Compressor::checkerCheck()
       }
 
       /** check TRM Chain Status **/
-      uint32_t status = GET_TRMCHAINTRAILER_STATUS(mDecoderSummary.trmChainTrailer[itrm][ichain]);
+      uint32_t status = GET_TRMCHAINTRAILER_STATUS(*mDecoderSummary.trmChainTrailer[itrm][ichain]);
       if (status != 0) {
-        mCheckerSummary.DiagnosticWord[iword] |= DIAGNOSTIC_TRMCHAIN_STATUS_NOTZERO(ichain);
+        mCheckerSummary.DiagnosticWord[iword] |= (diagnostic::TRMCHAIN_STATUS_NOTZERO << (ichain * 8));
 #ifdef CHECKER_COUNTER
         mTRMChainCounters[itrm][ichain].BadStatus++;
 #endif
@@ -1190,9 +1293,9 @@ bool Compressor::checkerCheck()
       }
 
       /** check TRM Chain BunchID **/
-      uint32_t bunchCnt = GET_TRMCHAINHEADER_BUNCHCNT(mDecoderSummary.trmChainHeader[itrm][ichain]);
+      uint32_t bunchCnt = GET_TRMCHAINHEADER_BUNCHCNT(*mDecoderSummary.trmChainHeader[itrm][ichain]);
       if (bunchCnt != gbtBunchCnt) {
-        mCheckerSummary.DiagnosticWord[iword] |= DIAGNOSTIC_TRMCHAIN_BUNCHCNT_MISMATCH(ichain);
+        mCheckerSummary.DiagnosticWord[iword] |= (diagnostic::TRMCHAIN_BUNCHCNT_MISMATCH << (ichain * 8));
 #ifdef CHECKER_COUNTER
         mTRMChainCounters[itrm][ichain].BunchIDMismatch++;
 #endif
@@ -1204,14 +1307,14 @@ bool Compressor::checkerCheck()
       }
 
       /** clear TRM chain summary data **/
-      mDecoderSummary.trmChainHeader[itrm][ichain] = 0x0;
-      mDecoderSummary.trmChainTrailer[itrm][ichain] = 0x0;
+      mDecoderSummary.trmChainHeader[itrm][ichain] = nullptr;
+      mDecoderSummary.trmChainTrailer[itrm][ichain] = nullptr;
 
     } /** end of loop over TRM chains **/
 
     /** clear TRM summary data **/
-    mDecoderSummary.trmDataHeader[itrm] = 0x0;
-    mDecoderSummary.trmDataTrailer[itrm] = 0x0;
+    mDecoderSummary.trmDataHeader[itrm] = nullptr;
+    mDecoderSummary.trmDataTrailer[itrm] = nullptr;
 
   } /** end of loop over TRMs **/
 
@@ -1230,14 +1333,95 @@ bool Compressor::checkerCheck()
 #endif
 
   /** clear DRM summary data **/
-  mDecoderSummary.tofDataHeader = 0x0;
-  mDecoderSummary.drmDataHeader = 0x0;
-  mDecoderSummary.drmDataTrailer = 0x0;
+  mDecoderSummary.tofDataHeader = nullptr;
+  mDecoderSummary.drmDataHeader = nullptr;
+  mDecoderSummary.drmDataTrailer = nullptr;
 
   return false;
 }
 
-void Compressor::resetCounters()
+template <typename RAWDataHeader>
+void Compressor<RAWDataHeader>::checkerCheckRDH()
+{
+}
+
+template <>
+void Compressor<o2::header::RAWDataHeaderV4>::checkerCheckRDH()
+{
+
+  uint32_t orbit = *mDecoderSummary.tofOrbit;
+  uint32_t drmId = GET_DRMDATAHEADER_DRMID(*mDecoderSummary.drmDataHeader);
+
+  /** check orbit **/
+#ifdef CHECKER_VERBOSE_MORE
+  if (mCheckerVerbose) {
+    printf(" --- Checking DRM/RDH orbit: %08x/%08x \n", orbit, mDecoderRDH->heartbeatOrbit);
+  }
+#endif
+  if (orbit != mDecoderRDH->heartbeatOrbit) {
+#ifdef CHECKER_VERBOSE
+    if (mCheckerVerbose) {
+      printf(" DRM/RDH orbit mismatch: %08x/%08x \n", orbit, mDecoderRDH->heartbeatOrbit);
+    }
+#endif
+    mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_ORBIT_MISMATCH;
+  }
+
+  /** check FEE id **/
+#ifdef CHECKER_VERBOSE_MORE
+  if (mCheckerVerbose) {
+    printf(" --- Checking DRM/RDH FEE id: %d/%d \n", drmId, mDecoderRDH->feeId & 0xFF);
+  }
+#endif
+  if (drmId != (mDecoderRDH->feeId & 0xFF)) {
+#ifdef CHECKER_VERBOSE
+    if (mCheckerVerbose) {
+      printf(" DRM/RDH FEE id mismatch: %d/%d \n", drmId, mDecoderRDH->feeId & 0xFF);
+    }
+#endif
+    mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_FEEID_MISMATCH;
+  }
+}
+
+template <>
+void Compressor<o2::header::RAWDataHeaderV6>::checkerCheckRDH()
+{
+  uint32_t orbit = *mDecoderSummary.tofOrbit;
+  uint32_t drmId = GET_DRMDATAHEADER_DRMID(*mDecoderSummary.drmDataHeader);
+
+  /** check orbit **/
+#ifdef CHECKER_VERBOSE_MORE
+  if (mCheckerVerbose) {
+    printf(" --- Checking DRM/RDH orbit: %08x/%08x \n", orbit, mDecoderRDH->orbit);
+  }
+#endif
+  if (orbit != mDecoderRDH->orbit) {
+#ifdef CHECKER_VERBOSE
+    if (mCheckerVerbose) {
+      printf(" DRM/RDH orbit mismatch: %08x/%08x \n", orbit, mDecoderRDH->orbit);
+    }
+#endif
+    mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_ORBIT_MISMATCH;
+  }
+
+  /** check FEE id **/
+#ifdef CHECKER_VERBOSE_MORE
+  if (mCheckerVerbose) {
+    printf(" --- Checking DRM/RDH FEE id: %d/%d \n", drmId, mDecoderRDH->feeId & 0xFF);
+  }
+#endif
+  if (drmId != (mDecoderRDH->feeId & 0xFF)) {
+#ifdef CHECKER_VERBOSE
+    if (mCheckerVerbose) {
+      printf(" DRM/RDH FEE id mismatch: %d/%d \n", drmId, mDecoderRDH->feeId & 0xFF);
+    }
+#endif
+    mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_FEEID_MISMATCH;
+  }
+}
+
+template <typename RAWDataHeader>
+void Compressor<RAWDataHeader>::resetCounters()
 {
   mEventCounter = 0;
   mFatalCounter = 0;
@@ -1251,7 +1435,8 @@ void Compressor::resetCounters()
   }
 }
 
-void Compressor::checkSummary()
+template <typename RAWDataHeader>
+void Compressor<RAWDataHeader>::checkSummary()
 {
   char chname[2] = {'a', 'b'};
 
@@ -1313,6 +1498,9 @@ void Compressor::checkSummary()
   }
   printf("\n");
 }
+
+template class Compressor<o2::header::RAWDataHeaderV4>;
+template class Compressor<o2::header::RAWDataHeaderV6>;
 
 } // namespace tof
 } // namespace o2
