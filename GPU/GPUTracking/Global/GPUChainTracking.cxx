@@ -719,6 +719,7 @@ void GPUChainTracking::ConvertRun2RawToNative()
 
 void GPUChainTracking::ConvertZSEncoder(bool zs12bit)
 {
+#ifdef HAVE_O2HEADERS
   GPUTrackingInOutZS* tmp;
   GPUReconstructionConvert::RunZSEncoder(mIOPtrs.tpcPackedDigits, tmp, param(), zs12bit);
   mIOPtrs.tpcZS = tmp;
@@ -731,6 +732,7 @@ void GPUChainTracking::ConvertZSEncoder(bool zs12bit)
       }
     }
   }
+#endif
 }
 
 void GPUChainTracking::ConvertZSFilter(bool zs12bit)

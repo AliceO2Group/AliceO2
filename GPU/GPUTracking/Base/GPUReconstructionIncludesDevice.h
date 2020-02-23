@@ -41,7 +41,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCStartHitsSorter.cxx"
 #include "GPUTPCTrackletConstructor.cxx"
 
-#if (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !defined(GPUCA_ALIROOT_LIB)
+#if !defined(GPUCA_OPENCL1) && !defined(GPUCA_ALIROOT_LIB)
 // Files for TPC Merger
 #include "GPUTPCGMMergerGPU.cxx"
 #include "GPUTPCGMMerger.h"
