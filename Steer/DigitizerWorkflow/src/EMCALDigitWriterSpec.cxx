@@ -17,6 +17,7 @@
 #include <DataFormatsEMCAL/MCLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "TBranch.h"
+#include <iostream>
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
