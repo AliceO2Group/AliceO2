@@ -97,6 +97,9 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
       gpuDigits[i].reserve(d.size());
       gpuDigitsMap.tpcDigits[i] = gpuDigits[i].data();
       for (int j = 0; j < d.size(); j++) {
+        if (d[j].getTimeStamp() >= 4000) {
+          throw std::runtime_error("Digits with time bin >= 4000 not yet supported in GPUCF");
+        }
         if (d[j].getChargeFloat() >= zsThreshold) {
           gpuDigits[i].emplace_back(deprecated::PackedDigit{d[j].getChargeFloat(), (Timestamp)d[j].getTimeStamp(), (Pad)d[j].getPad(), (Row)d[j].getRow()});
         }
