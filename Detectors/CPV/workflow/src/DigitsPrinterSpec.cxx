@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include <vector>
+#include <iostream>
 
 #include "FairLogger.h"
 
