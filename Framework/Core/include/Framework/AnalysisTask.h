@@ -406,12 +406,13 @@ struct AnalysisDataProcessorBuilder {
             uint64_t selectionIndex = 0;
             uint64_t sliceStart = 0;
             uint64_t sliceStop = 0;
+
             auto findSliceBounds = [&](int64_t l, int64_t h) {
               size_t s = 0;
               for (auto i = selectionIndex; i < selectionArray->length(); ++i) {
                 auto value = selectionArray->data()->template GetValues<uint64_t>(i);
                 if (*value == l) {
-                  sliceStart = *value;
+                  sliceStart = i;
                   s = i;
                   break;
                 }
@@ -419,12 +420,13 @@ struct AnalysisDataProcessorBuilder {
               for (auto i = s + 1; i < selectionArray->length(); ++i) {
                 auto value = selectionArray->data()->template GetValues<uint64_t>(i);
                 if (*value == h) {
-                  sliceStop = *value;
+                  sliceStop = i;
                   selectionIndex = i;
                   break;
                 }
               }
             };
+
             for (auto& groupedDatum : groupsCollection) {
               auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
               // for each grouping element we need to slice the selection vector

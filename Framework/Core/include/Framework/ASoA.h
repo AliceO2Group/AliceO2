@@ -844,7 +844,8 @@ class Table
   }
   std::shared_ptr<arrow::Table> mTable;
   /// This is a cached lookup of the column index in a given
-  std::tuple<std::pair<C*, arrow::Column*>...> mColumnIndex;
+  std::tuple<std::pair<C*, arrow::Column*>...>
+    mColumnIndex;
   /// Cached begin iterator for this table.
   unfiltered_iterator mBegin;
   /// Cached end iterator for this table.
@@ -1196,7 +1197,7 @@ class Filtered : public T
 
   int64_t tableSize() const
   {
-    return static_cast<table_t>(*this).size();
+    return table_t::asArrowTable()->num_rows();
   }
 
   framework::expressions::Selection getSelection() const
