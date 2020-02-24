@@ -1110,12 +1110,13 @@ struct Join : JoinBase<Ts...> {
   {
   }
 
+  using base = JoinBase<Ts...>;
   using originals = framework::concatenated_pack_t<originals_pack_t<Ts>...>;
 
   template <typename... TA>
   void bindExternalIndices(TA*... externals)
   {
-    this->bindExternalIndices(externals...);
+    base::bindExternalIndices(externals...);
   }
 
   using table_t = JoinBase<Ts...>;
@@ -1128,12 +1129,13 @@ struct Concat : ConcatBase<T1, T2> {
   Concat(std::vector<std::shared_ptr<arrow::Table>> tables, uint64_t offset = 0)
     : ConcatBase<T1, T2>{ArrowHelpers::concatTables(std::move(tables)), offset} {}
 
+  using base = ConcatBase<T1, T2>;
   using originals = framework::concatenated_pack_t<originals_pack_t<T1>, originals_pack_t<T2>>;
 
   template <typename... TA>
   void bindExternalIndices(TA*... externals)
   {
-    this->bindExternalIndices(externals...);
+    base::bindExternalIndices(externals...);
   }
 
   // FIXME: can be remove when we do the same treatment we did for Join to Concatenate
