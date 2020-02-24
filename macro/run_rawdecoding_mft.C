@@ -73,7 +73,7 @@ void run_rawdecoding_mft(std::string inpName = "06282019_1854_output.bin", // in
       }
       const auto& pixdata = chipData.getData();
       for (const auto& pix : pixdata) {
-        digits.emplace_back(chipData.getChipID(), roFrame, pix.getRowDirect(), pix.getCol());
+        digits.emplace_back(chipData.getChipID(), pix.getRowDirect(), pix.getCol());
         nrofdig++;
       }
 
