@@ -228,6 +228,7 @@ foreach(b
         TableBuilder
         WorkflowHelpers
         ASoA
+        ASoAHelpers
         HistogramRegistry
         TableToTree
         TreeToTable
