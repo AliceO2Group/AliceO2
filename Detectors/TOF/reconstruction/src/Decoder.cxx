@@ -323,9 +323,9 @@ void Decoder::printHitInfo(int icru) const
 void Decoder::printRDH() const
 {
   printf("______RDH_INFO_____\n");
-  printf("VERSION       = %d\n", mRDH->version);
-  printf("BLOCK LENGTH  = %d\n", mRDH->blockLength);
-  printf("HEADER SIZE   = %d\n", mRDH->headerSize);
+  printf("VERSION       = %d\n", int(mRDH->version));
+  printf("BLOCK LENGTH  = %d\n", int(mRDH->blockLength));
+  printf("HEADER SIZE   = %d\n", int(mRDH->headerSize));
   printf("MEMORY SIZE   = %d\n", mRDH->memorySize);
   printf("PACKET COUNTER= %d\n", mRDH->packetCounter);
   printf("CRU ID        = %d\n", mRDH->cruID);
