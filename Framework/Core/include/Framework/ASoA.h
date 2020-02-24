@@ -1194,6 +1194,11 @@ class Filtered : public T
     return mSelection->GetNumSlots();
   }
 
+  int64_t tableSize() const
+  {
+    return static_cast<table_t>(*this).size();
+  }
+
   framework::expressions::Selection getSelection() const
   {
     return mSelection;
