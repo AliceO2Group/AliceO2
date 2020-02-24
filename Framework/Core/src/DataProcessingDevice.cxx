@@ -38,6 +38,7 @@
 #include <TMessage.h>
 #include <TClonesArray.h>
 
+#include <algorithm>
 #include <vector>
 #include <memory>
 
@@ -50,6 +51,13 @@ using DataHeader = o2::header::DataHeader;
 
 constexpr unsigned int MONITORING_QUEUE_SIZE = 100;
 constexpr unsigned int MIN_RATE_LOGGING = 60;
+
+// This should result in a minimum of 10Hz which should guarantee we do not use
+// much time when idle. We do not sleep at all when we are at less then 100us,
+// because that's what the default rate enforces in any case.
+constexpr int MAX_BACKOFF = 10;
+constexpr int MIN_BACKOFF_DELAY = 100;
+constexpr int BACKOFF_DELAY_STEP = 100;
 
 namespace o2::framework
 {
@@ -172,6 +180,7 @@ bool DataProcessingDevice::ConditionalRun()
                              &stats = mStats,
                              &lastSent = mLastSlowMetricSentTimestamp,
                              &currentTime = mBeginIterationTimestamp,
+                             &currentBackoff = mCurrentBackoff,
                              &monitoring = mServiceRegistry.get<Monitoring>()]()
     -> void {
     if (currentTime - lastSent < 5000) {
@@ -200,6 +209,7 @@ bool DataProcessingDevice::ConditionalRun()
                       .addTag(Key::Subsystem, Value::DPL));
     monitoring.send(Metric{(stats.lastTotalProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "input_rate_mb_s"}
                       .addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{(int)currentBackoff, "current_backoff"}.addTag(Key::Subsystem, Value::DPL));
 
     lastSent = currentTime;
     O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
@@ -267,7 +277,7 @@ bool DataProcessingDevice::ConditionalRun()
   if (active == false) {
     mServiceRegistry.get<CallbackService>()(CallbackService::Id::Idle);
   }
-  mRelayer.processDanglingInputs(mExpirationHandlers, mServiceRegistry);
+  active |= mRelayer.processDanglingInputs(mExpirationHandlers, mServiceRegistry);
   this->tryDispatchComputation();
 
   sendRelayerMetrics();
@@ -307,6 +317,23 @@ bool DataProcessingDevice::ConditionalRun()
     mRelayer.clear();
     switchState(StreamingState::Idle);
     return true;
+  }
+  // Update the backoff factor
+  //
+  // In principle we should use 1/rate for MIN_BACKOFF_DELAY and (1/maxRate -
+  // 1/minRate)/ 2^MAX_BACKOFF for BACKOFF_DELAY_STEP. We hardcode the values
+  // for the moment to some sensible default.
+  if (active) {
+    mCurrentBackoff = std::max(0, mCurrentBackoff - 1);
+  } else {
+    mCurrentBackoff = std::min(MAX_BACKOFF, mCurrentBackoff + 1);
+  }
+
+  if (mCurrentBackoff != 0) {
+    auto delay = (rand() % ((1 << mCurrentBackoff) - 1)) * BACKOFF_DELAY_STEP;
+    if (delay > MIN_BACKOFF_DELAY) {
+      WaitFor(std::chrono::microseconds(delay - MIN_BACKOFF_DELAY));
+    }
   }
   return true;
 }
