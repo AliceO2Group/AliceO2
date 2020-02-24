@@ -171,13 +171,12 @@ BOOST_AUTO_TEST_CASE(mergingDigitizer)
     digits.emplace_back(digits.at(1).getTimeStamp(), digits.at(0).getDetID(), digits.at(1).getPadID(), digits.at(1).getADC());
     labels.emplace_back(labels.at(1).getTrackID(), labels.at(1).getEventID(), labels.at(1).getSourceID(), false);
   }
-  
+
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> container;
 
   for (int index = 0; index < labels.size(); ++index) {
     container.addElement(index, labels.at(index));
   }
-
 
   digitizer.mergeDigits(digits, container);
 
