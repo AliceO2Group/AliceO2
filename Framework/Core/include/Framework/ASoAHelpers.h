@@ -13,24 +13,142 @@
 
 #include "Framework/ASoA.h"
 
+#include <iterator>
+#include <tuple>
+#include <utility>
+
 namespace o2::soa
 {
 
-/// @return a vector of pairs with all the possible
-/// combinations of the rows of the table T.
-/// FIXME: move to coroutines once we have C++20
-template <typename T>
-std::vector<std::pair<typename T::iterator, typename T::iterator>>
-  combinations(T const& table)
+template <typename T2, std::size_t K2>
+void addOne(std::array<T2, K2>& array, const T2& maxOffset, bool& isEnd)
 {
-  std::vector<std::pair<typename T::iterator, typename T::iterator>> result;
-  result.reserve((table.size() + 1) * table.size() / 2);
-  for (auto t0 = table.begin(); t0 + 1 != table.end(); ++t0) {
-    for (auto t1 = t0 + 1; t1 != table.end(); ++t1) {
-      result.push_back(std::make_pair(t0, t1));
+  for (int i = 0; i < K2; i++) {
+    array[K2 - i - 1]++;
+    if (array[K2 - i - 1] != maxOffset + K2 - i - 1) { // no < operator for RowViewBase
+      for (int j = K2 - i; j < K2; j++) {
+        array[j].setCursor(array[j - 1].mRowIndex + 1);
+      }
+      isEnd = false;
+      return;
     }
   }
-  return result;
+  isEnd = true;
+}
+
+/// @return next K-combination of the rows of the table T.
+/// FIXME: move to coroutines once we have C++20
+template <typename T, int K>
+class CombinationsGenerator
+{
+ public:
+  using IteratorType = typename T::iterator;
+  using CombinationType = std::array<IteratorType, K>;
+  using FunctionType = std::function<bool(const CombinationType&)>;
+
+  class CombinationsIterator : public std::iterator<std::forward_iterator_tag, CombinationType>
+  {
+   public:
+    using reference = CombinationType&;
+    using value_type = CombinationType;
+    using pointer = CombinationType*;
+    using iterator_category = std::forward_iterator_tag;
+
+    CombinationsIterator() = delete;
+
+    CombinationsIterator(const IteratorType& begin, int n, const FunctionType& condition)
+      : mN(n), mIsEnd(false), mTableBegin(begin), mMaxOffset(begin + n - K + 1), mCondition(condition)
+    {
+      initIterators();
+    }
+
+    ~CombinationsIterator() = default;
+
+    // prefix increment
+    CombinationsIterator& operator++()
+    {
+      if (!mIsEnd) {
+        addOne(mCurrent, mMaxOffset, mIsEnd);
+      }
+      while (!mIsEnd && !mCondition(mCurrent)) {
+        addOne(mCurrent, mMaxOffset, mIsEnd);
+      }
+      return *this;
+    }
+    // postfix increment
+    CombinationsIterator operator++(int /*unused*/)
+    {
+      CombinationsIterator copy(*this);
+      operator++();
+      return copy;
+    }
+    // return reference
+    reference operator*()
+    {
+      return mCurrent;
+    }
+    bool operator==(const CombinationsIterator& rh)
+    {
+      return (mIsEnd && rh.mIsEnd) || (mCurrent == rh.mCurrent);
+    }
+    bool operator!=(const CombinationsIterator& rh)
+    {
+      return !(*this == rh);
+    }
+
+    void initIterators()
+    {
+      for (int i = 0; i < K; i++) {
+        mCurrent[i] = mTableBegin + i;
+      }
+      if (!mCondition(mCurrent)) {
+        operator++();
+      }
+    }
+
+    void goToEnd()
+    {
+      for (int i = 0; i < K; i++) {
+        mCurrent[i].setCursor(mN - K + i);
+      }
+      operator++();
+    }
+
+   private:
+    CombinationType mCurrent;
+    int mN;                   // number of elements
+    bool mIsEnd;              // whether there are any more tuples available
+    FunctionType mCondition;  // only tuples satisfying the condition will be outputed
+    IteratorType mTableBegin; // start of the table for which tuples are generated
+    IteratorType mMaxOffset;  // one position past maximum acceptable position for 0th element of combination
+  };
+
+  using iterator = CombinationsIterator;
+  using const_iterator = CombinationsIterator;
+
+  inline iterator begin()
+  {
+    return iterator(mTableBegin, mN, mCondition);
+  }
+  inline iterator end()
+  {
+    auto it = iterator(mTableBegin, mN, mCondition);
+    it.goToEnd();
+    return it;
+  }
+
+  CombinationsGenerator() = delete;
+  CombinationsGenerator(const T& table, const FunctionType& condition)
+    : mTableBegin(table.begin()), mN(table.size()), mCondition(condition)
+  {
+    static_assert(K > 0);
+  }
+  ~CombinationsGenerator() = default;
+
+ private:
+  IteratorType mTableBegin;
+  int mN;
+  FunctionType mCondition;
 };
 
 } // namespace o2::soa
