@@ -17,7 +17,7 @@
 #include "Framework/InputSpan.h"
 #include "Framework/TableConsumer.h"
 #include "Framework/Traits.h"
-#include "MemoryResources/MemoryResources.h"
+#include "MemoryResources/Types.h"
 #include "Headers/DataHeader.h"
 
 #include "CommonUtils/BoostSerializer.h"
