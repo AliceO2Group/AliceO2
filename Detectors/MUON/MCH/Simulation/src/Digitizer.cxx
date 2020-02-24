@@ -173,16 +173,21 @@ void Digitizer::mergeDigits()
     return (getGlobalDigit(digits[a].getDetID(), digits[a].getPadID()) < getGlobalDigit(digits[b].getDetID(), digits[b].getPadID()));
   });
 
-  std::vector<o2::mch::Digit> sortedDigits(mDigits.size());
-  
-  for(int i=0; i<mDigits.size(); i++) sortedDigits.emplace_back(mDigits[indices[i]]);
+
+  auto sortedDigits = [digits = this->mDigits, &indices](int i) {
+    return digits[indices[i]];
+  }; 
+  //  std::vector<o2::mch::Digit> sortedDigits(mDigits.size());
+  // for(int i=0; i<mDigits.size(); i++) sortedDigits.emplace_back(mDigits[indices[i]]);
 
   auto sortedLabels = [labels = this->mTrackLabels, &indices](int i) {
     return labels[indices[i]];
   };
 
+  auto sizedigits = mDigits.size();
+  
   mDigits.clear();
-  mDigits.reserve(sortedDigits.size());
+  mDigits.reserve(sizedigits);
   mMCTruthOutputContainer.clear();
   
   int count = 0;
@@ -191,7 +196,7 @@ void Digitizer::mergeDigits()
   int i = 0;
   while (i < indices.size()) {
     int j = i + 1;
-    while (j < indices.size() && (getGlobalDigit(sortedDigits[i].getDetID(), sortedDigits[i].getPadID())) == (getGlobalDigit(sortedDigits[j].getDetID(), sortedDigits[j].getPadID()))) {
+    while (j < indices.size() && (getGlobalDigit(sortedDigits(i).getDetID(), sortedDigits(i).getPadID())) == (getGlobalDigit(sortedDigits(j).getDetID(), sortedDigits(j).getPadID())) && (std::fabs(sortedDigits(i).getTimeStamp()-sortedDigits(j).getTimeStamp())< mDeltat)) {
       j++;
     }
     float adc{0};
@@ -199,7 +204,7 @@ void Digitizer::mergeDigits()
     element.resize(j-i);
     
     for (int k = i; k < j; k++) {
-      adc += sortedDigits[k].getADC();
+      adc += sortedDigits(k).getADC();
       if (k == i) {
 	element.emplace_back(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID(), false);
       } else {
@@ -208,7 +213,7 @@ void Digitizer::mergeDigits()
         }
       }
     }
-    mDigits.emplace_back(sortedDigits[i].getTimeStamp(), sortedDigits[i].getDetID(), sortedDigits[i].getPadID(), adc);
+    mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc);
     i = j;
     ++count;
     mMCTruthOutputContainer.addElements(count, element);
