@@ -20,7 +20,7 @@
 #include <gsl/span>
 #include <memory>
 #include <mutex>
-#include <MemoryResources/MemoryResources.h>
+#include <MemoryResources/Types.h>
 
 namespace o2
 {
