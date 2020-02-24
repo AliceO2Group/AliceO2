@@ -78,6 +78,28 @@ void WindowFiller::initObj()
   }
 }
 //______________________________________________________________________
+void WindowFiller::reset()
+{
+  mIcurrentReadoutWindow = 0;
+  mReadoutWindowCurrent = 0;
+
+  for (Int_t i = 0; i < MAXWINDOWS; i++) {
+    for (Int_t j = 0; j < Geo::NSTRIPS; j++) {
+      mStrips[i][j].clear();
+    }
+  }
+  mFutureDigits.clear();
+
+  mStripsCurrent = &(mStrips[0]);
+  mStripsNext[0] = &(mStrips[1]);
+
+  mDigitsPerTimeFrame.clear();
+  mReadoutWindowData.clear();
+
+  mFirstOrbit = 0;
+  mFirstBunch = 0;
+}
+//______________________________________________________________________
 void WindowFiller::fillDigitsInStrip(std::vector<Strip>* strips, int channel, int tdc, int tot, int nbc, UInt_t istrip, Int_t triggerorbit, Int_t triggerbunch)
 {
   (*strips)[istrip].addDigit(channel, tdc, tot * Geo::NTOTBIN_PER_NS, nbc, 0, triggerorbit, triggerbunch);

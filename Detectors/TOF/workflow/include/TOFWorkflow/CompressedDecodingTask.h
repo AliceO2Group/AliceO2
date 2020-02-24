@@ -8,19 +8,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   RawReaderSpec.h
+/// @file   CompressedDecodingTask.h
+/// @author Francesco Noferini
+/// @since  2020-02-25
+/// @brief  TOF compressed data decoding task
 
-#ifndef O2_TOF_RAWREADER
-#define O2_TOF_RAWREADER
+#ifndef O2_TOF_COMPRESSEDDECODINGTASK
+#define O2_TOF_COMPRESSEDDECODINGTASK
 
-#include "TFile.h"
-
-#include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+#include "Framework/DataProcessorSpec.h"
+#include <fstream>
 #include "TOFReconstruction/Decoder.h"
 #include "TOFBase/Digit.h"
-#include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 
 using namespace o2::framework;
 
@@ -29,25 +29,30 @@ namespace o2
 namespace tof
 {
 
-class RawReader : public Task
+class CompressedDecodingTask : public Task
 {
  public:
-  RawReader() = default;
-  ~RawReader() override = default;
+  CompressedDecodingTask() = default;
+  ~CompressedDecodingTask() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
+  void postData(ProcessingContext& pc);
+
  private:
-  int mState = 0;
-  std::string mFilename;
+  bool mStatus = false;
+  o2::tof::compressed::Decoder mDecoder;
   std::vector<std::vector<o2::tof::Digit>> mDigits;
+  int mNTF = 0;
+  int mNCrateOpenTF = 0;
+  int mNCrateCloseTF = 0;
+  bool mHasToBePosted = false;
+  int mInitOrbit = 0;
 };
 
-/// create a processor spec
-/// read simulated TOF raws from a root file
-framework::DataProcessorSpec getRawReaderSpec();
+framework::DataProcessorSpec getCompressedDecodingSpec(std::string inputDesc);
 
 } // namespace tof
 } // namespace o2
 
-#endif /* O2_TOF_RAWREADER */
+#endif /* O2_TOF_COMPRESSEDDECODINGTASK */

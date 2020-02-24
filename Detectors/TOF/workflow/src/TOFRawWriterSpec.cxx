@@ -50,6 +50,10 @@ void RawWriter::run(ProcessingContext& pc)
 
   int nwindowperorbit = Geo::NWINDOW_IN_ORBIT;
   int nwindowintimeframe = 256 * nwindowperorbit;
+  int nwindowFilled = nwindow;
+  if (nwindowFilled % nwindowintimeframe) {
+    nwindowFilled = (nwindowFilled / nwindowintimeframe + 1) * nwindowintimeframe;
+  }
 
   std::vector<o2::tof::Digit> emptyWindow;
 
@@ -57,7 +61,7 @@ void RawWriter::run(ProcessingContext& pc)
 
   std::vector<std::vector<o2::tof::Digit>> digitWindows;
 
-  for (int i = 0; i < nwindowintimeframe; i += nwindowperorbit) { // encode 3 tof windows (1 orbit)
+  for (int i = 0; i < nwindowFilled; i += nwindowperorbit) { // encode 3 tof windows (1 orbit)
     if (verbosity)
       printf("----------\nwindow = %d - %d\n----------\n", i, i + nwindowperorbit - 1);
 
