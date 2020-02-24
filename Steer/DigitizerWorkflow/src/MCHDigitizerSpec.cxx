@@ -27,7 +27,6 @@
 #include "MCHSimulation/Detector.h"
 #include "DetectorsBase/GeometryManager.h"
 
-
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
@@ -131,6 +130,7 @@ class MCHDPLDigitizerTask
       }
     }
     mDigitizer.mergeDigits(digitsAccum, labelAccum);//print-out inside alos works fine
+
     LOG(DEBUG) << "Have " << labelAccum.getNElements() << " MCH labels "; //does not work out!
     pc.outputs().snapshot(Output{"MCH", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
     pc.outputs().snapshot(Output{"MCH", "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);

@@ -67,6 +67,9 @@ class Digitizer
 
   bool mContinuous = false;
 
+  //time difference allowed for pileup (in ns (assuming that event time is in ns))
+  float mDeltat = 100.;
+  
   //number of detector elements
   const static int mNdE = 156;
   // digit per pad
