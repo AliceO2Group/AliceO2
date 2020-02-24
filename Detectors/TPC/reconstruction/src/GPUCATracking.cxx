@@ -93,7 +93,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
     ptrs.clustersNative = nullptr;
     const float zsThreshold = mTrackingCAO2Interface->getConfig().configReconstruction.tpcZSthreshold;
     for (int i = 0; i < Sector::MAXSECTOR; i++) {
-      const std::vector<o2::tpc::Digit>& d = (*(data->o2Digits))[i];
+      const auto& d = (*(data->o2Digits))[i];
       gpuDigits[i].reserve(d.size());
       gpuDigitsMap.tpcDigits[i] = gpuDigits[i].data();
       for (int j = 0; j < d.size(); j++) {

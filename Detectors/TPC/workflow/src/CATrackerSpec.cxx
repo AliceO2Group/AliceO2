@@ -266,7 +266,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector
       // FIXME cleanup almost duplicated code
       auto& validMcInputs = processAttributes->validMcInputs;
       auto& mcInputs = processAttributes->mcInputs;
-      std::array<std::vector<o2::tpc::Digit>, NSectors> inputDigits;
+      std::array<gsl::span<const o2::tpc::Digit>, NSectors> inputDigits;
       std::array<std::unique_ptr<const MCLabelContainer>, NSectors> inputDigitsMC;
       if (processMC) {
         // we can later extend this to multiple inputs
@@ -343,7 +343,8 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector
         validInputs.set(sector);
         datarefs[sector] = ref;
         if (caClusterer) {
-          inputDigits[sector] = std::move(pc.inputs().get<const std::vector<o2::tpc::Digit>>(inputLabel));
+          inputDigits[sector] = pc.inputs().get<gsl::span<o2::tpc::Digit>>(inputLabel);
+          LOG(INFO) << "GOT SPAN FOR SECTOR " << sector << " -> " << inputDigits[sector].size();
         }
       }
 
