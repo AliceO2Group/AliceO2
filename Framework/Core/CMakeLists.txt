@@ -262,6 +262,7 @@ foreach(w
         SimpleWildcard
         SingleDataSource
         Task
+        ExternalFairMQDeviceWorkflow
         )
   o2_add_test(${w} NAME test_Framework_test_${w}
               SOURCES test/test_${w}.cxx
@@ -284,6 +285,12 @@ set_property(TEST test_Framework_test_DanglingInputs PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_SimpleTracksED PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_CustomGUIGL PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_CustomGUISokol PROPERTY DISABLED TRUE)
+
+# there is a problem in the termination of the FairMQDevice by signals because
+# the pending input polling is aborted and this throws an error
+#    [ERROR] Failed receiving on socket input-proxy.input-proxy[0].pull, reason: Interrupted system call, nbytes = -1
+# this can either be fixed in FairMQ or in the DPL driver
+set_property(TEST test_Framework_test_ExternalFairMQDeviceWorkflow PROPERTY DISABLED TRUE)
 
 # TODO: investigate the problem and re-enable
 set_property(TEST test_Framework_test_BoostSerializedProcessing
