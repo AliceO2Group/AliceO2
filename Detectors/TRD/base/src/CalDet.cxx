@@ -321,7 +321,7 @@ TH2F* CalDet::makeHisto2DCh(int ch, float min, float max, int type)
     }
   }
 
-  TRDGeometry* trdGeo = new TRDGeometry();
+  TRDGeometry* trdGeo = TRDGeometry::instance();
 
   float poslocal[3] = {0, 0, 0};
   float posglobal[3] = {0, 0, 0};
@@ -354,7 +354,6 @@ TH2F* CalDet::makeHisto2DCh(int ch, float min, float max, int type)
   his->SetStats(0);
   his->SetMaximum(max);
   his->SetMinimum(min);
-  delete trdGeo;
   return his;
 }
 
@@ -395,7 +394,7 @@ TH2F* CalDet::makeHisto2DSmPl(int sm, int pl, float min, float max, int type)
     }
   }
 
-  TRDGeometry* trdGeo = new TRDGeometry();
+  TRDGeometry* trdGeo = TRDGeometry::instance();
   const TRDPadPlane* padPlane0 = trdGeo->getPadPlane(pl, 0);
   double row0 = padPlane0->getRow0();
   double col0 = padPlane0->getCol0();
@@ -418,7 +417,6 @@ TH2F* CalDet::makeHisto2DSmPl(int sm, int pl, float min, float max, int type)
   his->SetStats(0);
   his->SetMaximum(max);
   his->SetMinimum(min);
-  delete trdGeo;
   return his;
 }
 

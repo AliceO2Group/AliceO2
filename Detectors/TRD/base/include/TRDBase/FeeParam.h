@@ -51,24 +51,24 @@ class FeeParam
   static void terminate();
 
   // Translation from MCM to Pad and vice versa
-  virtual int getPadRowFromMCM(Int_t irob, Int_t imcm) const;
-  virtual int getPadColFromADC(Int_t irob, Int_t imcm, Int_t iadc) const;
-  virtual int getExtendedPadColFromADC(Int_t irob, Int_t imcm, Int_t iadc) const;
-  virtual int getMCMfromPad(Int_t irow, Int_t icol) const;
-  virtual int getMCMfromSharedPad(Int_t irow, Int_t icol) const;
-  virtual int getROBfromPad(Int_t irow, Int_t icol) const;
-  virtual int getROBfromSharedPad(Int_t irow, Int_t icol) const;
-  virtual int getRobSide(Int_t irob) const;
-  virtual int getColSide(Int_t icol) const;
+  virtual int getPadRowFromMCM(int irob, int imcm) const;
+  virtual int getPadColFromADC(int irob, int imcm, int iadc) const;
+  virtual int getExtendedPadColFromADC(int irob, int imcm, int iadc) const;
+  virtual int getMCMfromPad(int irow, int icol) const;
+  virtual int getMCMfromSharedPad(int irow, int icol) const;
+  virtual int getROBfromPad(int irow, int icol) const;
+  virtual int getROBfromSharedPad(int irow, int icol) const;
+  virtual int getRobSide(int irob) const;
+  virtual int getColSide(int icol) const;
 
   // SCSN-related
-  static unsigned int aliToExtAli(Int_t rob, Int_t aliid);                                               // Converts the MCM-ROB combination to the extended MCM ALICE ID (used to address MCMs on the SCSN Bus)
-  static int extAliToAli(UInt_t dest, UShort_t linkpair, UShort_t rocType, Int_t* list, Int_t listSize); // translates an extended MCM ALICE ID to a list of MCMs
-  static Short_t chipmaskToMCMlist(unsigned int cmA, UInt_t cmB, UShort_t linkpair, Int_t* mcmList, Int_t listSize);
-  static Short_t getRobAB(UShort_t robsel, UShort_t linkpair); // Returns the chamber side (A=0, B=0) of a ROB
+  static unsigned int aliToExtAli(int rob, int aliid);                                                                 // Converts the MCM-ROB combination to the extended MCM ALICE ID (used to address MCMs on the SCSN Bus)
+  static int extAliToAli(unsigned int dest, unsigned short linkpair, unsigned short rocType, int* list, int listSize); // translates an extended MCM ALICE ID to a list of MCMs
+  static short chipmaskToMCMlist(unsigned int cmA, unsigned int cmB, unsigned short linkpair, int* mcmList, int listSize);
+  static short getRobAB(unsigned short robsel, unsigned short linkpair); // Returns the chamber side (A=0, B=0) of a ROB
 
   // geometry
-  static Float_t getSamplingFrequency() { return (Float_t)mgkLHCfrequency / 4000000.0; } //TODO put the 40MHz into a static variable somewhere.
+  static float getSamplingFrequency() { return (float)mgkLHCfrequency / 4000000.0; } //TODO put the 40MHz into a static variable somewhere.
   static int getNmcmRob() { return mgkNmcmRob; }
   static int getNmcmRobInRow() { return mgkNmcmRobInRow; }
   static int getNmcmRobInCol() { return mgkNmcmRobInCol; }

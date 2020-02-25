@@ -69,3 +69,14 @@ o2_add_test(DiffusionCoefficient
             PUBLIC_LINK_LIBRARIES O2::TRDBase
             ENVIRONMENT VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/share
             LABELS trd)
+
+o2_add_test(Geometry
+            COMPONENT_NAME trd
+            PUBLIC_LINK_LIBRARIES O2::TRDBase
+            SOURCES test/testTRDGeometry.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+            LABELS trd
+            )
+
+
+

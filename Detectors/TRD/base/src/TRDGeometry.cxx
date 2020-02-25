@@ -2737,10 +2737,12 @@ void TRDGeometry::addAlignableVolumes() const
 //_____________________________________________________________________________
 bool TRDGeometry::createClusterMatrixArray()
 {
+
   if (!gGeoManager) {
     LOG(ERROR) << "Geometry is not loaded yet";
     return false;
   }
+
   if (isBuilt()) {
     LOG(WARNING) << "Already built";
     return true; // already initialized
