@@ -13,11 +13,10 @@
 
 #define GPUCA_GPUTYPE_VEGA
 #include <hip/hip_runtime.h>
-#include "hip/hip_ext.h"
-
 #ifdef __CUDACC__
-#define __HIPCC_CUDA__
-#undef __CUDACC__
+#define hipExtLaunchKernelGGL(...)
+#else
+#include <hip/hip_ext.h>
 #endif
 
 #include "GPUReconstructionHIP.h"
@@ -51,7 +50,9 @@ __global__ void dummyInitKernel(void* foo) {}
 #if defined(HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
 #include "ITStrackingHIP/VertexerTraitsHIP.h"
 #else
-namespace o2::its
+namespace o2
+{
+namespace its
 {
 class VertexerTraitsHIP : public VertexerTraits
 {
@@ -59,7 +60,8 @@ class VertexerTraitsHIP : public VertexerTraits
 class TrackerTraitsHIP : public TrackerTraits
 {
 };
-} // namespace o2::its
+} // namespace its
+} // namespace o2
 #endif
 
 #include "GPUReconstructionIncludesDevice.h"
@@ -109,7 +111,13 @@ int GPUReconstructionHIPBackend::runKernelBackend(krnlSetup& _xyz, Args... args)
   if (mDeviceProcessingSettings.deviceTimers) {
     GPUFailedMsg(hipEventCreate(&start));
     GPUFailedMsg(hipEventCreate(&stop));
+#ifdef __CUDACC__
+    GPUFailedMsg(hipEventRecord(start));
+#endif
     backendInternal<T, I>::runKernelBackendInternal(_xyz, this, &start, &stop, args...);
+#ifdef __CUDACC__
+    GPUFailedMsg(hipEventRecord(stop));
+#endif
     GPUFailedMsg(hipEventSynchronize(stop));
     float v;
     GPUFailedMsg(hipEventElapsedTime(&v, start, stop));
