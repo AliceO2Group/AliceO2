@@ -123,6 +123,7 @@ struct GTask {
 //};
 
 struct ITask {
+  expressions::Filter flt = aod::test::bar > 0.;
   void process(o2::aod::Collision const&, o2::soa::Filtered<o2::soa::Join<o2::aod::Foos, o2::aod::Bars, o2::aod::XYZ>> const& foobars)
   {
     for (auto foobar : foobars) {
