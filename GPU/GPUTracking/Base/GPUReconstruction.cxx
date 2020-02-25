@@ -268,7 +268,7 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
   memorypool = (char*)((res->*setPtr)(memorypool));
   size_t retVal = (char*)memorypool - (char*)ptr;
   if (IsGPU() && retVal == 0) { // Transferring 0 bytes might break some GPU backends, but we cannot simply skip the transfer, or we will break event dependencies
-    GPUProcessor::getPointerWithAlignment<GPUProcessor::MIN_ALIGNMENT, char>(memorypool, retVal = GPUProcessor::MIN_ALIGNMENT);
+    GPUProcessor::getPointerWithAlignment<GPUCA_BUFFER_ALIGNMENT, char>(memorypool, retVal = GPUCA_BUFFER_ALIGNMENT);
   }
   if ((size_t)((char*)memorypool - (char*)memorybase) > memorysize) {
     std::cout << "Memory pool size exceeded (" << res->mName << ": " << (char*)memorypool - (char*)memorybase << " < " << memorysize << "\n";
@@ -281,12 +281,12 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
   return retVal;
 }
 
-size_t GPUReconstruction::AllocateRegisteredMemory(short ires)
+size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl* control)
 {
   GPUMemoryResource* res = &mMemoryResources[ires];
   if ((res->mType & GPUMemoryResource::MEMORY_PERMANENT) && res->mPtr != nullptr) {
     ResetRegisteredMemoryPointers(ires);
-  } else if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
+  } else if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL && (control == nullptr || control->OutputType == GPUOutputControl::AllocateInternal)) {
     if (!(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
       if (res->mPtrDevice && res->mReuse == -1) {
         operator delete(res->mPtrDevice);
@@ -299,9 +299,9 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires)
         }
         res->mPtrDevice = mMemoryResources[res->mReuse].mPtrDevice;
       } else {
-        res->mPtrDevice = operator new(res->mSize + GPUProcessor::MIN_ALIGNMENT);
+        res->mPtrDevice = operator new(res->mSize + GPUCA_BUFFER_ALIGNMENT);
       }
-      res->mPtr = GPUProcessor::alignPointer<GPUProcessor::MIN_ALIGNMENT>(res->mPtrDevice);
+      res->mPtr = GPUProcessor::alignPointer<GPUCA_BUFFER_ALIGNMENT>(res->mPtrDevice);
       res->SetPointers(res->mPtr);
       if (mDeviceProcessingSettings.debugLevel >= 5) {
         std::cout << (res->mReuse != -1 ? "Reused " : "Allocated ") << res->mName << ": " << res->mSize << "\n";
@@ -313,7 +313,11 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires)
       throw std::bad_alloc();
     }
     if ((!IsGPU() || (res->mType & GPUMemoryResource::MEMORY_HOST) || mDeviceProcessingSettings.keepAllMemory) && !(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
-      res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, mHostMemoryPool, mHostMemoryBase, mHostMemorySize, &GPUMemoryResource::SetPointers);
+      if (control && control->OutputType == GPUOutputControl::UseExternalBuffer) {
+        res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, control->OutputPtr, control->OutputBase, control->OutputMaxSize, &GPUMemoryResource::SetPointers);
+      } else {
+        res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, mHostMemoryPool, mHostMemoryBase, mHostMemorySize, &GPUMemoryResource::SetPointers);
+      }
     }
     if (IsGPU() && (res->mType & GPUMemoryResource::MEMORY_GPU)) {
       if (res->mProcessor->mDeviceProcessor == nullptr) {
@@ -343,8 +347,8 @@ void* GPUReconstruction::AllocateUnmanagedMemory(size_t size, int type)
     throw std::bad_alloc();
   }
   if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
-    mUnmanagedChunks.emplace_back(new char[size + GPUProcessor::MIN_ALIGNMENT]);
-    return GPUProcessor::alignPointer<GPUProcessor::MIN_ALIGNMENT>(mUnmanagedChunks.back().get());
+    mUnmanagedChunks.emplace_back(new char[size + GPUCA_BUFFER_ALIGNMENT]);
+    return GPUProcessor::alignPointer<GPUCA_BUFFER_ALIGNMENT>(mUnmanagedChunks.back().get());
   } else {
     void* pool = type == GPUMemoryResource::MEMORY_GPU ? mDeviceMemoryPool : mHostMemoryPool;
     void* base = type == GPUMemoryResource::MEMORY_GPU ? mDeviceMemoryBase : mHostMemoryBase;
@@ -518,7 +522,7 @@ void GPUReconstruction::SetOutputControl(void* ptr, size_t size)
 {
   GPUOutputControl outputControl;
   outputControl.OutputType = GPUOutputControl::UseExternalBuffer;
-  outputControl.OutputPtr = (char*)ptr;
+  outputControl.OutputBase = outputControl.OutputPtr = (char*)ptr;
   outputControl.OutputMaxSize = size;
   SetOutputControl(outputControl);
 }

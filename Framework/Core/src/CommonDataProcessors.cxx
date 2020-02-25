@@ -18,6 +18,7 @@
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/TableBuilder.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/InitContext.h"
 #include "Framework/InputSpec.h"
@@ -478,7 +479,6 @@ DataProcessorSpec
           LOG(DEBUG) << "No dangling output to be saved.";
           once = true;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       });
     }
 
@@ -614,13 +614,10 @@ DataProcessorSpec
     if (hasOutputsToWrite == false) {
       return std::move([](ProcessingContext& pc) mutable -> void {
         static bool once = false;
-        /// We do it like this until we can use the interruptible sleep
-        /// provided by recent FairMQ releases.
         if (!once) {
           LOG(DEBUG) << "No dangling output to be dumped.";
           once = true;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       });
     }
     auto output = std::make_shared<std::ofstream>(filename.c_str(), std::ios_base::binary);

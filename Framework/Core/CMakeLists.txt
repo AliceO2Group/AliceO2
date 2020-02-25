@@ -167,7 +167,8 @@ foreach(t
         TypeTraits
         Variants
         WorkflowHelpers
-        WorkflowSerialization)
+        WorkflowSerialization
+        TreeToTable)
 
   # FIXME ? The NAME parameter of o2_add_test is only needed to help the current
   # o2.sh recipe. If the recipe is changed, those params can go away, if needed.
@@ -183,6 +184,12 @@ o2_add_executable(verify-aod-file
                   SOURCES src/verifyAODFile.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME Framework)
+
+o2_add_executable(dump-aod-data-model
+                  SOURCES src/dumpDataModel.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME Framework
+                  )
 
 # tests with input data
 
@@ -221,8 +228,10 @@ foreach(b
         TableBuilder
         WorkflowHelpers
         ASoA
+        ASoAHelpers
         HistogramRegistry
-        Table2Tree
+        TableToTree
+        TreeToTable
         )
   o2_add_test(benchmark_${b} NAME test_Framework_benchmark_${b}
               SOURCES test/benchmark_${b}.cxx

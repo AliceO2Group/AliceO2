@@ -48,7 +48,7 @@ class GPUReconstructionConvert
   constexpr static unsigned int NSLICES = GPUCA_NSLICES;
   static void ConvertNativeToClusterData(o2::tpc::ClusterNativeAccess* native, std::unique_ptr<GPUTPCClusterData[]>* clusters, unsigned int* nClusters, const TPCFastTransform* transform, int continuousMaxTimeBin = 0);
   static void ConvertRun2RawToNative(o2::tpc::ClusterNativeAccess& native, std::unique_ptr<o2::tpc::ClusterNative[]>& nativeBuffer, const AliHLTTPCRawCluster** rawClusters, unsigned int* nRawClusters);
-  static void RunZSEncoder(const GPUTrackingInOutDigits* in, const GPUTrackingInOutZS*& out, const GPUParam& param, bool zs12bit);
+  static void RunZSEncoder(const GPUTrackingInOutDigits* in, GPUTrackingInOutZS*& out, const GPUParam& param, bool zs12bit);
   static void RunZSFilter(std::unique_ptr<deprecated::PackedDigit[]>* buffers, const deprecated::PackedDigit* const* ptrs, size_t* nsb, const size_t* ns, const GPUParam& param, bool zs12bit);
   static int GetMaxTimeBin(const o2::tpc::ClusterNativeAccess& native);
   static int GetMaxTimeBin(const GPUTrackingInOutDigits& digits);

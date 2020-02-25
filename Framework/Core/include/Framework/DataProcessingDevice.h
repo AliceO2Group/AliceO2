@@ -83,6 +83,7 @@ class DataProcessingDevice : public FairMQDevice
   uint64_t mLastMetricFlushedTimestamp = 0;  /// The timestamp of the last time we actually flushed metrics
   uint64_t mBeginIterationTimestamp = 0;     /// The timestamp of when the current ConditionalRun was started
   DataProcessingStats mStats;                /// Stats about the actual data processing.
+  int mCurrentBackoff = 0;                   /// The current exponential backoff value.
 };
 
 } // namespace o2::framework

@@ -16,8 +16,9 @@
 
 #include "GPUCommonDef.h"
 
-#if !defined(GPUCA_GPUCODE_DEVICE)
-//#include <algorithm>
+#if !defined(GPUCA_GPUCODE_DEVICE) && (!defined __cplusplus || __cplusplus < 201402L)
+#include <algorithm>
+#define GPUCA_ALGORITHM_FALLBACK
 #endif
 
 // ----------------------------- SORTING -----------------------------
@@ -71,6 +72,7 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
+#ifndef GPUCA_ALGORITHM_FALLBACK
 template <typename I>
 GPUdi() void GPUCommonAlgorithm::IterSwap(I a, I b) noexcept
 {
@@ -196,6 +198,7 @@ GPUdi() void GPUCommonAlgorithm::QuickSort(I f, I l) noexcept
 {
   QuickSort(f, l, [](auto&& x, auto&& y) { return x < y; });
 }
+#endif
 
 typedef GPUCommonAlgorithm CAAlgo;
 
@@ -218,13 +221,21 @@ namespace gpu
 template <class T>
 GPUdi() void GPUCommonAlgorithm::sort(T* begin, T* end)
 {
+#ifdef GPUCA_ALGORITHM_FALLBACK
+  std::sort(begin, end);
+#else
   QuickSort(begin, end, [](auto&& x, auto&& y) { return x < y; });
+#endif
 }
 
 template <class T, class S>
 GPUdi() void GPUCommonAlgorithm::sort(T* begin, T* end, const S& comp)
 {
+#ifdef GPUCA_ALGORITHM_FALLBACK
+  std::sort(begin, end, comp);
+#else
   QuickSort(begin, end, comp);
+#endif
 }
 
 template <class T>

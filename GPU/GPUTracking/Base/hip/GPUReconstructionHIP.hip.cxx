@@ -13,6 +13,7 @@
 
 #define GPUCA_GPUTYPE_VEGA
 #include <hip/hip_runtime.h>
+#include "hip/hip_ext.h"
 
 #ifdef __CUDACC__
 #define __HIPCC_CUDA__
@@ -72,14 +73,23 @@ GPUg() void runKernelHIP(GPUCA_CONSMEM_PTR int iSlice, Args... args)
 */
 
 #undef GPUCA_KRNL_REG
-#define GPUCA_KRNL_REG(num) __attribute__((amdgpu_num_vgpr(num)))
+#define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_STRIP(args))
+#undef GPUCA_KRNL_BACKEND_XARGS
+#define GPUCA_KRNL_BACKEND_XARGS hipEvent_t *start, hipEvent_t *stop,
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_, x_class, x_attributes, x_arguments, x_forward)
 #define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionHIPBackend
-#define GPUCA_KRNL_CALL_single(x_class, x_attributes, x_arguments, x_forward) \
-  hipLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->HIPStreams[x.stream], GPUCA_CONSMEM_CALL y.start, args...);
-#define GPUCA_KRNL_CALL_multi(x_class, x_attributes, x_arguments, x_forward) \
-  hipLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->HIPStreams[x.stream], GPUCA_CONSMEM_CALL y.start, y.num, args...);
-
+#define GPUCA_KRNL_CALL_single(x_class, x_attributes, x_arguments, x_forward)                                                                                                                                                  \
+  if (start == nullptr) {                                                                                                                                                                                                      \
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->HIPStreams[x.stream], GPUCA_CONSMEM_CALL y.start, args...);                      \
+  } else {                                                                                                                                                                                                                     \
+    hipExtLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->HIPStreams[x.stream], *start, *stop, 0, GPUCA_CONSMEM_CALL y.start, args...); \
+  }
+#define GPUCA_KRNL_CALL_multi(x_class, x_attributes, x_arguments, x_forward)                                                                                                                                                                   \
+  if (start == nullptr) {                                                                                                                                                                                                                      \
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->HIPStreams[x.stream], GPUCA_CONSMEM_CALL y.start, y.num, args...);                      \
+  } else {                                                                                                                                                                                                                                     \
+    hipExtLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->HIPStreams[x.stream], *start, *stop, 0, GPUCA_CONSMEM_CALL y.start, y.num, args...); \
+  }
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
 
@@ -97,17 +107,15 @@ int GPUReconstructionHIPBackend::runKernelBackend(krnlSetup& _xyz, Args... args)
   if (mDeviceProcessingSettings.deviceTimers) {
     GPUFailedMsg(hipEventCreate(&start));
     GPUFailedMsg(hipEventCreate(&stop));
-    GPUFailedMsg(hipEventRecord(start, mInternals->HIPStreams[x.stream]));
-  }
-  backendInternal<T, I>::runKernelBackendInternal(_xyz, this, args...);
-  if (mDeviceProcessingSettings.deviceTimers) {
-    GPUFailedMsg(hipEventRecord(stop, mInternals->HIPStreams[x.stream]));
+    backendInternal<T, I>::runKernelBackendInternal(_xyz, this, &start, &stop, args...);
     GPUFailedMsg(hipEventSynchronize(stop));
     float v;
     GPUFailedMsg(hipEventElapsedTime(&v, start, stop));
     _xyz.t = v * 1.e-3;
     GPUFailedMsg(hipEventDestroy(start));
     GPUFailedMsg(hipEventDestroy(stop));
+  } else {
+    backendInternal<T, I>::runKernelBackendInternal(_xyz, this, nullptr, nullptr, args...);
   }
   GPUFailedMsg(hipGetLastError());
   if (z.ev) {
@@ -218,6 +226,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
   mDeviceId = bestDevice;
 
   GPUFailedMsgI(hipGetDeviceProperties(&hipDeviceProp_t, mDeviceId));
+  hipDeviceProp_t.totalConstMem = 65536; // TODO: Remove workaround, fixes incorrectly reported HIP constant memory
 
   if (mDeviceProcessingSettings.debugLevel >= 2) {
     GPUInfo("Using HIP Device %s with Properties:", hipDeviceProp_t.name);
@@ -411,9 +420,9 @@ size_t GPUReconstructionHIPBackend::WriteToConstantMemory(size_t offset, const v
 {
 #ifndef GPUCA_HIP_NO_CONSTANT_MEMORY
   if (stream == -1) {
-    GPUFailedMsg(hipMemcpyToSymbol(gGPUConstantMemBuffer, src, size, offset, hipMemcpyHostToDevice));
+    GPUFailedMsg(hipMemcpyToSymbol(HIP_SYMBOL(gGPUConstantMemBuffer), src, size, offset, hipMemcpyHostToDevice));
   } else {
-    GPUFailedMsg(hipMemcpyToSymbolAsync(gGPUConstantMemBuffer, src, size, offset, hipMemcpyHostToDevice, mInternals->HIPStreams[stream]));
+    GPUFailedMsg(hipMemcpyToSymbolAsync(HIP_SYMBOL(gGPUConstantMemBuffer), src, size, offset, hipMemcpyHostToDevice, mInternals->HIPStreams[stream]));
   }
   if (ev && stream != -1) {
     GPUFailedMsg(hipEventRecord(*(hipEvent_t*)ev, mInternals->HIPStreams[stream]));
@@ -491,4 +500,20 @@ void GPUReconstructionHIPBackend::SetThreadCounts()
   mTRDThreadCount = GPUCA_THREAD_COUNT_TRD;
   mClustererThreadCount = GPUCA_THREAD_COUNT_CLUSTERER;
   mScanThreadCount = GPUCA_THREAD_COUNT_SCAN;
+  mConverterThreadCount = GPUCA_THREAD_COUNT_CONVERTER;
+  mCompression1ThreadCount = GPUCA_THREAD_COUNT_COMPRESSION1;
+  mCompression2ThreadCount = GPUCA_THREAD_COUNT_COMPRESSION2;
+  mCFDecodeThreadCount = GPUCA_THREAD_COUNT_CFDECODE;
+  mFitThreadCount = GPUCA_THREAD_COUNT_FIT;
+  mITSThreadCount = GPUCA_THREAD_COUNT_ITS;
+}
+
+int GPUReconstructionHIPBackend::registerMemoryForGPU(void* ptr, size_t size)
+{
+  return GPUFailedMsgI(hipHostRegister(ptr, size, hipHostRegisterDefault));
+}
+
+int GPUReconstructionHIPBackend::unregisterMemoryForGPU(void* ptr)
+{
+  return GPUFailedMsgI(hipHostUnregister(ptr));
 }

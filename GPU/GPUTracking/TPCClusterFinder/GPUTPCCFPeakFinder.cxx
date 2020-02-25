@@ -22,7 +22,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::deprecated;
 
 template <>
-GPUd() void GPUTPCCFPeakFinder::Thread<GPUTPCCFPeakFinder::findPeaks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
+GPUdii() void GPUTPCCFPeakFinder::Thread<GPUTPCCFPeakFinder::findPeaks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   Array2D<uchar> isPeakMap(clusterer.mPpeakMap);
@@ -99,11 +99,11 @@ GPUd() bool GPUTPCCFPeakFinder::isPeak(
 
   bool peak = true;
 
-#define CMP_NEIGHBOR(dp, dt, cmpOp)                  \
-  do {                                               \
-    PackedCharge p = chargeMap[pos.delta({dp, dt})]; \
-    const Charge otherCharge = p.unpack();           \
-    peak &= (otherCharge cmpOp myCharge);            \
+#define CMP_NEIGHBOR(dp, dt, cmpOp)                        \
+  do {                                                     \
+    PackedCharge p = chargeMap[pos.delta(Delta2{dp, dt})]; \
+    const Charge otherCharge = p.unpack();                 \
+    peak &= (otherCharge cmpOp myCharge);                  \
   } while (false)
 
 #define CMP_LT CMP_NEIGHBOR(-1, -1, <=)

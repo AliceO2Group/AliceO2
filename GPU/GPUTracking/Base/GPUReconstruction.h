@@ -156,7 +156,9 @@ class GPUReconstruction
 
   void PrepareEvent();
   virtual int RunChains() = 0;
-  int getNEventsProcessed() { return mStatNEvents; }
+  unsigned int getNEventsProcessed() { return mNEventsProcessed; }
+  virtual int registerMemoryForGPU(void* ptr, size_t size) = 0;
+  virtual int unregisterMemoryForGPU(void* ptr) = 0;
 
   // Helpers for memory allocation
   GPUMemoryResource& Res(short num) { return mMemoryResources[num]; }
@@ -164,7 +166,7 @@ class GPUReconstruction
   short RegisterMemoryAllocation(T* proc, void* (T::*setPtr)(void*), int type, const char* name = "", const GPUMemoryReuse& re = GPUMemoryReuse());
   size_t AllocateMemoryResources();
   size_t AllocateRegisteredMemory(GPUProcessor* proc);
-  size_t AllocateRegisteredMemory(short res);
+  size_t AllocateRegisteredMemory(short res, GPUOutputControl* control = nullptr);
   void* AllocateUnmanagedMemory(size_t size, int type);
   void FreeRegisteredMemory(GPUProcessor* proc, bool freeCustom = false, bool freePermanent = false);
   void FreeRegisteredMemory(short res);
@@ -292,7 +294,8 @@ class GPUReconstruction
 
   // Others
   bool mInitialized = false;
-  int mStatNEvents = 0;
+  unsigned int mStatNEvents = 0;
+  unsigned int mNEventsProcessed = 0;
 
   // Management for GPUProcessors
   struct ProcessorData {
@@ -339,6 +342,9 @@ inline void GPUReconstruction::AllocateIOMemoryHelper(unsigned int n, const T*& 
   }
   u.reset(new T[n]);
   ptr = u.get();
+  if (mDeviceProcessingSettings.registerStandaloneInputMemory) {
+    registerMemoryForGPU(u.get(), n * sizeof(T));
+  }
 }
 
 template <class T, typename... Args>

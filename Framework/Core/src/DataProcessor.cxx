@@ -38,7 +38,7 @@ void DataProcessor::doSend(FairMQDevice& device, FairMQParts&& parts, const char
 
 void DataProcessor::doSend(FairMQDevice& device, MessageContext& context)
 {
-  std::unordered_map<std::string, FairMQParts> outputs;
+  std::unordered_map<std::string const*, FairMQParts> outputs;
   auto contextMessages = context.getMessagesForSending();
   for (auto& message : contextMessages) {
     //     monitoringService.send({ message->parts.Size(), "outputs/total" });
@@ -46,11 +46,11 @@ void DataProcessor::doSend(FairMQDevice& device, MessageContext& context)
     assert(message->empty());
     assert(parts.Size() == 2);
     for (auto& part : parts) {
-      outputs[message->channel()].AddPart(std::move(part));
+      outputs[&(message->channel())].AddPart(std::move(part));
     }
   }
   for (auto& [channel, parts] : outputs) {
-    device.Send(parts, channel, 0);
+    device.Send(parts, *channel, 0);
   }
 }
 

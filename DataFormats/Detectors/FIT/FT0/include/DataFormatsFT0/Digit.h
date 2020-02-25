@@ -8,105 +8,103 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_FIT_DIGIT_H
-#define ALICEO2_FIT_DIGIT_H
+// \file Digit.h
+/// \brief Class to describe fired triggered and/or stored channels for the BC and to refer to channel data
+/// \author Alla.Maevskaya@cern.ch
+
+#ifndef _FT0_DIGIT_H_
+#define _FT0_DIGIT_H_
 
 #include "CommonDataFormat/InteractionRecord.h"
+#include "CommonDataFormat/RangeReference.h"
 #include "CommonDataFormat/TimeStamp.h"
-#include <iosfwd>
-#include "Rtypes.h"
+#include "DataFormatsFT0/ChannelData.h"
+#include <Rtypes.h>
+#include <gsl/span>
+#include <bitset>
 
 namespace o2
 {
 namespace ft0
 {
+class ChannelData;
 
-struct ChannelData {
-  Int_t ChId;       //channel Id
-  //  Double_t CFDTime; //time in ns, 0 at lhc clk center
-  //  Double_t QTCAmpl; // Amplitude in mips
-  int CFDTime; //time in ns, 0 at lhc clk center
-  int QTCAmpl; // Amplitude in mips
-  int numberOfParticles;
-  ClassDefNV(ChannelData, 2);
+struct Triggers {
+  uint8_t triggersignals; // T0 trigger signals
+  int8_t nChanA;          // number of faired channels A side
+  int8_t nChanC;          // number of faired channels A side
+  int32_t amplA;          // sum amplitude A side
+  int32_t amplC;          // sum amplitude C side
+  int16_t timeA;          // average time A side
+  int16_t timeC;          // average time C side
+  Triggers() = default;
+  Triggers(uint8_t signals, int8_t chanA, int8_t chanC, int32_t aamplA, int32_t aamplC, int16_t atimeA, int16_t atimeC)
+  {
+    triggersignals = signals;
+    nChanA = chanA;
+    nChanC = chanC;
+    amplA = aamplA;
+    amplC = aamplC;
+    timeA = atimeA;
+    timeC = atimeC;
+  }
+  bool getOrA() { return (triggersignals & (1 << 0)) != 0; }
+  bool getOrC() { return (triggersignals & (1 << 1)) != 0; }
+  bool getVertex() { return (triggersignals & (1 << 2)) != 0; }
+  bool getCen() { return (triggersignals & (1 << 3)) != 0; }
+  bool getSCen() { return (triggersignals & (1 << 4)) != 0; }
+
+  void setTriggers(Bool_t isA, Bool_t isC, Bool_t isCnt, Bool_t isSCnt, Bool_t isVrtx, int8_t chanA, int8_t chanC, int32_t aamplA,
+                   int32_t aamplC, int16_t atimeA, int16_t atimeC)
+  {
+    triggersignals = triggersignals | (isA ? (1 << 0) : 0);
+    triggersignals = triggersignals | (isC ? (1 << 1) : 0);
+    triggersignals = triggersignals | (isVrtx ? (1 << 2) : 0);
+    triggersignals = triggersignals | (isSCnt ? (1 << 3) : 0);
+    triggersignals = triggersignals | (isCnt ? (1 << 4) : 0);
+    nChanA = chanA;
+    nChanC = chanC;
+    amplA = aamplA;
+    amplC = aamplC;
+    timeA = atimeA;
+    timeC = atimeC;
+  }
+  void cleanTriggers()
+  {
+    triggersignals = 0;
+    nChanA = nChanC = -1;
+    amplA = amplC = -1000;
+    timeA = timeC = -1000;
+  }
+
+  Triggers getTriggers();
+
+  ClassDefNV(Triggers, 1);
 };
 
-/// \class Digit
-/// \brief FIT digit implementation
-using DigitBase = o2::dataformats::TimeStamp<double>;
-class Digit : public DigitBase
-{
- public:
-  Digit() = default;
+struct Digit {
+  o2::dataformats::RangeRefComp<5> ref;
 
-  Digit(std::vector<ChannelData> ChDgDataArr, Double_t time, uint16_t bc, uint32_t orbit, Bool_t isA,
-        Bool_t isC, Bool_t isCnt, Bool_t isSCnt, Bool_t isVrtx)
-  {
-    setChDgData(std::move(ChDgDataArr));
-    setTime(time);
-    setInteractionRecord(bc, orbit);
-    setTriggers(isA, isC, isCnt, isSCnt, isVrtx);
-  }
-
-  ~Digit() = default;
-
-  Double_t getTime() const { return mTime; }
-  void setTime(Double_t time) { mTime = time; }
-
-  void setInteractionRecord(uint16_t bc, uint32_t orbit)
-  {
-    mIntRecord.bc = bc;
-    mIntRecord.orbit = orbit;
-  }
-  const o2::InteractionRecord& getInteractionRecord() const { return mIntRecord; }
-  o2::InteractionRecord& getInteractionRecord(o2::InteractionRecord& src) { return mIntRecord; }
-  void setInteractionRecord(const o2::InteractionRecord& src) { mIntRecord = src; }
-  uint32_t getOrbit() const { return mIntRecord.orbit; }
-  uint16_t getBC() const { return mIntRecord.bc; }
-
-  Bool_t getisA() const { return mIsA; }
-  Bool_t getisC() const { return mIsC; }
-  Bool_t getisCnt() const { return mIsCentral; }
-  Bool_t getisSCnt() const { return mIsSemiCentral; }
-  Bool_t getisVrtx() const { return mIsVertex; }
-
-  void setTriggers(Bool_t isA, Bool_t isC, Bool_t isCnt, Bool_t isSCnt, Bool_t isVrtx)
-  {
-    mIsA = isA;
-    mIsC = isC;
-    mIsCentral = isCnt;
-    mIsSemiCentral = isSCnt;
-    mIsVertex = isVrtx;
-  }
-
-  const std::vector<ChannelData>& getChDgData() const { return mChDgDataArr; }
-  std::vector<ChannelData>& getChDgData() { return mChDgDataArr; }
-  void setChDgData(const std::vector<ChannelData>& ChDgDataArr) { mChDgDataArr = ChDgDataArr; }
-  void setChDgData(std::vector<ChannelData>&& ChDgDataArr) { mChDgDataArr = std::move(ChDgDataArr); }
-
-  void printStream(std::ostream& stream) const;
-  void cleardigits()
-  {
-    mIsA = mIsC = mIsCentral = mIsSemiCentral = mIsVertex = 0;
-    mChDgDataArr.clear();
-  }
-
- private:
-  Double_t mTime;                   // time stamp
+  Triggers mTriggers;               // pattern of triggers  in this BC
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
 
-  //online triggers processed on TCM
-  Bool_t mIsA, mIsC;
-  Bool_t mIsCentral;
-  Bool_t mIsSemiCentral;
-  Bool_t mIsVertex;
+  Digit() = default;
+  Digit(int first, int ne, o2::InteractionRecord iRec, Triggers chTrig)
+  {
+    ref.setFirstEntry(first);
+    ref.setEntries(ne);
+    mIntRecord = iRec;
+    mTriggers = chTrig;
+  }
+  uint32_t getOrbit() const { return mIntRecord.orbit; }
+  uint16_t getBC() const { return mIntRecord.bc; }
+  o2::InteractionRecord getIntRecord() { return mIntRecord; };
+  gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
+  void printStream(std::ostream& stream) const;
 
-  std::vector<ChannelData> mChDgDataArr;
-
-  ClassDefNV(Digit, 1);
+  ClassDefNV(Digit, 2);
 };
-
-std::ostream& operator<<(std::ostream& stream, const Digit& digi);
 } // namespace ft0
 } // namespace o2
+
 #endif

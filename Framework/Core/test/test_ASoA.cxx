@@ -349,7 +349,7 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   expressions::Selection selection_f = expressions::createSelection(tableA, testf);
 
   TestA testA{tableA};
-  FilteredTest filtered{testA.asArrowTable(), selection_f};
+  FilteredTest filtered{{testA.asArrowTable()}, selection_f};
   BOOST_CHECK_EQUAL(2, filtered.size());
 
   auto i = 0;
@@ -372,7 +372,7 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   selectionConcat->SetIndex(2, 10);
   selectionConcat->SetNumSlots(3);
   ConcatTest concatTest{tableA, tableB};
-  FilteredConcatTest concatTestTable{concatTest.asArrowTable(), selectionConcat};
+  FilteredConcatTest concatTestTable{{concatTest.asArrowTable()}, selectionConcat};
   BOOST_CHECK_EQUAL(3, concatTestTable.size());
 
   i = 0;
@@ -403,7 +403,7 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   selectionJoin->SetIndex(2, 4);
   selectionJoin->SetNumSlots(3);
   JoinedTest testJoin{0, tableA, tableC};
-  FilteredJoinTest filteredJoin{testJoin.asArrowTable(), selectionJoin};
+  FilteredJoinTest filteredJoin{{testJoin.asArrowTable()}, selectionJoin};
 
   i = 0;
   BOOST_CHECK(filteredJoin.begin() != filteredJoin.end());
@@ -456,7 +456,7 @@ BOOST_AUTO_TEST_CASE(TestDereference)
   auto infoWriter = builderA2.cursor<Infos>();
   infoWriter(0, 0);
   infoWriter(0, 1);
-  infoWriter(0, 2);
+  infoWriter(0, 4);
   auto infosT = builderA2.finalize();
   Infos infos{infosT};
   BOOST_REQUIRE_EQUAL(infosT->num_rows(), 3);
@@ -475,9 +475,18 @@ BOOST_AUTO_TEST_CASE(TestDereference)
   using namespace o2::framework;
   i.bindExternalIndices(&points, &infos);
   BOOST_CHECK_EQUAL(i.n(), 10);
-  BOOST_CHECK_EQUAL(i.info().color(), 2);
+  BOOST_CHECK_EQUAL(i.info().color(), 4);
   BOOST_CHECK_EQUAL(i.pointA().x(), 0);
   BOOST_CHECK_EQUAL(i.pointA().y(), 0);
   BOOST_CHECK_EQUAL(i.pointB().x(), 3);
   BOOST_CHECK_EQUAL(i.pointB().y(), 4);
+
+  segments.bindExternalIndices(&points, &infos);
+  auto j = segments.begin();
+  BOOST_CHECK_EQUAL(j.n(), 10);
+  BOOST_CHECK_EQUAL(j.info().color(), 4);
+  BOOST_CHECK_EQUAL(j.pointA().x(), 0);
+  BOOST_CHECK_EQUAL(j.pointA().y(), 0);
+  BOOST_CHECK_EQUAL(j.pointB().x(), 3);
+  BOOST_CHECK_EQUAL(j.pointB().y(), 4);
 }
