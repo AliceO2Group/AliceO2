@@ -26,6 +26,8 @@ struct ChannelSpecHelpers {
   static char const* typeAsString(enum ChannelType type);
   /// return a ChannelMethod as a lowercase string
   static char const* methodAsString(enum ChannelMethod method);
+  /// @return transport configuration id as lowercase string
+  static char const* transportAsString(enum ChannelProtocol protocol);
   /// @return a url associated to an InputChannelSpec
   static std::string channelUrl(InputChannelSpec const&);
   /// @return a url associated to an OutputChannelSpec

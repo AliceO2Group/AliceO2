@@ -42,6 +42,17 @@ char const* ChannelSpecHelpers::methodAsString(enum ChannelMethod method)
   throw std::runtime_error("Unknown ChannelMethod");
 }
 
+char const* ChannelSpecHelpers::transportAsString(enum ChannelProtocol protocol)
+{
+  switch (protocol) {
+    case ChannelProtocol::Network:
+      return "zeromq";
+    case ChannelProtocol::IPC:
+      return "shmem";
+  }
+  throw std::runtime_error("Unknown ChannelProtocol");
+}
+
 std::string ChannelSpecHelpers::channelUrl(OutputChannelSpec const& channel)
 {
   switch (channel.protocol) {

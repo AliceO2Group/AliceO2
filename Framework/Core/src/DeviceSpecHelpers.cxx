@@ -164,27 +164,33 @@ struct ExpirationHandlerHelpers {
 
 /// This creates a string to configure channels of a FairMQDevice
 /// FIXME: support shared memory
-std::string inputChannel2String(const InputChannelSpec& channel)
+std::string DeviceSpecHelpers::inputChannel2String(const InputChannelSpec& channel)
 {
   std::string result;
 
-  result += "name=" + channel.name;
-  result += std::string(",type=") + ChannelSpecHelpers::typeAsString(channel.type);
+  if (!channel.name.empty()) {
+    result += "name=" + channel.name + ",";
+  }
+  result += std::string("type=") + ChannelSpecHelpers::typeAsString(channel.type);
   result += std::string(",method=") + ChannelSpecHelpers::methodAsString(channel.method);
   result += std::string(",address=") + ChannelSpecHelpers::channelUrl(channel);
+  result += std::string(",transport=") + ChannelSpecHelpers::transportAsString(channel.protocol);
   result += std::string(",rateLogging=60");
 
   return result;
 }
 
-std::string outputChannel2String(const OutputChannelSpec& channel)
+std::string DeviceSpecHelpers::outputChannel2String(const OutputChannelSpec& channel)
 {
   std::string result;
 
-  result += "name=" + channel.name;
-  result += std::string(",type=") + ChannelSpecHelpers::typeAsString(channel.type);
+  if (!channel.name.empty()) {
+    result += "name=" + channel.name + ",";
+  }
+  result += std::string("type=") + ChannelSpecHelpers::typeAsString(channel.type);
   result += std::string(",method=") + ChannelSpecHelpers::methodAsString(channel.method);
   result += std::string(",address=") + ChannelSpecHelpers::channelUrl(channel);
+  result += std::string(",transport=") + ChannelSpecHelpers::transportAsString(channel.protocol);
   result += std::string(",rateLogging=60");
 
   return result;
