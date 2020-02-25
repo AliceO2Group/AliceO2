@@ -45,12 +45,12 @@ using namespace o2::trd;
 //_____________________________________________________________________________
 
 FeeParam* FeeParam::mgInstance = nullptr;
-bool FeeParam::mgTerminated = kFALSE;
-bool FeeParam::mgTracklet = kTRUE;
-bool FeeParam::mgRejectMultipleTracklets = kFALSE;
-bool FeeParam::mgUseMisalignCorr = kFALSE;
-bool FeeParam::mgUseTimeOffset = kFALSE;
-bool FeeParam::mgLUTPadNumberingFilled = kFALSE;
+bool FeeParam::mgTerminated = false;
+bool FeeParam::mgTracklet = true;
+bool FeeParam::mgRejectMultipleTracklets = false;
+bool FeeParam::mgUseMisalignCorr = false;
+bool FeeParam::mgUseTimeOffset = false;
+bool FeeParam::mgLUTPadNumberingFilled = false;
 std::vector<short> FeeParam::mgLUTPadNumbering;
 
 // definition of geometry constants
@@ -85,7 +85,7 @@ FeeParam* FeeParam::instance()
   // Instance constructor
   //
 
-  if (mgTerminated != kFALSE) {
+  if (mgTerminated != false) {
     return nullptr;
   }
 
@@ -103,7 +103,7 @@ void FeeParam::terminate()
   // Terminate the class and release memory
   //
 
-  mgTerminated = kTRUE;
+  mgTerminated = true;
 
   if (mgInstance != nullptr) {
     delete mgInstance;
@@ -512,7 +512,7 @@ void FeeParam::createPad2MCMLookUpTable()
         FeeParam::instance()->mgLUTPadNumbering[index] = index + shiftposition;
       }
     }
-    mgLUTPadNumberingFilled = kTRUE;
+    mgLUTPadNumberingFilled = true;
   }
 }
 

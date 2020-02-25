@@ -54,6 +54,11 @@ class TRDGeometryBase
   GPUd() float getRow0(int layer, int stack, int /*sector*/) const { return getPadPlane(layer, stack)->getRow0(); }
   GPUd() float getCol0(int layer) const { return getPadPlane(layer, 0)->getCol0(); }
 
+  GPUd() float getRowPos(int layer, int stack, int row) { return mPadPlanes[getDetectorSec(layer, stack)].getRowPos(row); }
+  GPUd() float getRowSize(int layer, int stack, int row) { return mPadPlanes[getDetectorSec(layer, stack)].getRowSize(row); }
+  GPUd() float getRow0(int layer, int stack) { return mPadPlanes[getDetectorSec(layer, stack)].getRow0(); }
+  GPUd() float getRowEnd(int layer, int stack) { return mPadPlanes[getDetectorSec(layer, stack)].getRowEnd(); }
+
   static constexpr int getSector(int det) { return (det / (kNlayer * kNstack)); }
   static constexpr float getTime0(int layer) { return TIME0[layer]; }
   static constexpr float getXtrdBeg() { return XTRDBEG; }
