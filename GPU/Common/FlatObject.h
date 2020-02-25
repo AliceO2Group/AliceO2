@@ -386,7 +386,7 @@ inline char* FlatObject::releaseInternalBuffer()
 inline void FlatObject::adoptInternalBuffer(char* buf)
 {
   // buf becomes the new internal buffer, after it was already set as new setActualBufferAddress
-  assert(mFlatBufferPtr == buf);
+  assert((mFlatBufferPtr == buf));
   mFlatBufferContainer = buf;
 }
 

@@ -279,7 +279,7 @@ GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end, const S& comp)
 
 #if defined(__CUDACC__)
 #include <cub/cub.cuh>
-#else
+#elif defined(__HIPCC__)
 #include <hipcub/hipcub.hpp>
 #endif
 

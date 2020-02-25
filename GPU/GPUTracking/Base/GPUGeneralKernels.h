@@ -21,8 +21,7 @@
 #ifdef __CUDACC__
 #include <cub/cub.cuh>
 #define GPUCA_CUB cub
-#endif
-#ifdef __HIPCC__
+#elif defined(__HIPCC__)
 #include <hipcub/hipcub.hpp>
 #define GPUCA_CUB hipcub
 #endif
