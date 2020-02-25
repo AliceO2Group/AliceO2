@@ -175,6 +175,11 @@ struct DataRefUtils {
                   "pointer to BaseHeader-derived type required");
     return o2::header::get<T>(ref.header);
   }
+
+  static bool isValid(DataRef const& ref)
+  {
+    return ref.header != nullptr && ref.payload != nullptr;
+  }
 };
 
 } // namespace framework
