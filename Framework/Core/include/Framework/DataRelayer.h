@@ -60,7 +60,8 @@ class DataRelayer
   /// This invokes the appropriate `InputRoute::danglingChecker` on every
   /// entry in the cache and if it returns true, it creates a new
   /// cache entry by invoking the associated `InputRoute::expirationHandler`.
-  void processDanglingInputs(std::vector<ExpirationHandler> const&,
+  /// @return true if there were expirations, false if not.
+  bool processDanglingInputs(std::vector<ExpirationHandler> const&,
                              ServiceRegistry& context);
 
   /// This is used to ask for relaying a given (header,payload) pair.
