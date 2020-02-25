@@ -111,7 +111,7 @@ void CcdbApi::storeAsTFile_impl(void* obj, std::type_info const& tinfo, std::str
     memFile.Close();
     return;
   }
-  memFile.WriteObjectAny(obj, tcl, className.c_str());
+  memFile.WriteObjectAny(obj, tcl, CCDBOBJECT_ENTRY);
   memFile.Close();
 
   // Prepare Buffer
@@ -497,7 +497,7 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
       TMemFile memFile("name", chunk.memory, chunk.size, "READ");
       gErrorIgnoreLevel = previousErrorLevel;
       if (!memFile.IsZombie()) {
-        result = (TObject*)extractFromTFile(memFile, CCDBOBJECT_ENTRY, TClass::GetClass("TObject"));
+        result = (TObject*)extractFromTFile(memFile, TClass::GetClass("TObject"));
         if (result == nullptr) {
           LOG(ERROR) << "Couldn't retrieve the object " << path;
         }
@@ -608,14 +608,23 @@ void CcdbApi::snapshot(std::string const& ccdbrootpath, std::string const& local
   }
 }
 
-void* CcdbApi::extractFromTFile(TFile& file, std::string const& objname, TClass const* cl)
+void* CcdbApi::extractFromTFile(TFile& file, TClass const* cl)
 {
   if (!cl) {
     return nullptr;
   }
-  auto object = file.GetObjectChecked(objname.c_str(), cl);
+  auto object = file.GetObjectChecked(CCDBOBJECT_ENTRY, cl);
   if (!object) {
-    return nullptr;
+    // it could be that object was stored with previous convention
+    // where the classname was taken as key
+    std::string objectName(cl->GetName());
+    utils::trim(objectName);
+    object = file.GetObjectChecked(objectName.c_str(), cl);
+    LOG(WARN) << "Did not find object under expected name " << CCDBOBJECT_ENTRY;
+    if (!object) {
+      return nullptr;
+    }
+    LOG(WARN) << "Found object under deprecated name " << cl->GetName();
   }
   auto result = object;
   // We need to handle some specific cases as ROOT ties them deeply
@@ -634,14 +643,14 @@ void* CcdbApi::extractFromTFile(TFile& file, std::string const& objname, TClass 
   return result;
 }
 
-void* CcdbApi::extractFromLocalFile(std::string const& filename, std::string const& objname, TClass const* tcl) const
+void* CcdbApi::extractFromLocalFile(std::string const& filename, TClass const* tcl) const
 {
   if (!boost::filesystem::exists(filename)) {
     LOG(INFO) << "Local snapshot " << filename << " not found \n";
     return nullptr;
   }
   TFile f(filename.c_str(), "READ");
-  return extractFromTFile(f, objname, tcl);
+  return extractFromTFile(f, tcl);
 }
 
 void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const& path,
@@ -653,8 +662,6 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
     std::cerr << "Could not retrieve ROOT dictionary for type " << tinfo.name() << " aborting to read from CCDB";
     return nullptr;
   }
-  string objectName = string(tcl->GetName());
-  utils::trim(objectName);
 
   // Note : based on https://curl.haxx.se/libcurl/c/getinmemory.html
   // Thus it does not comply to our coding guidelines as it is a copy paste.
@@ -663,7 +670,7 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
 
   // if we are in snapshot mode we can simply open the file; extract the object and return
   if (mInSnapshotMode) {
-    return extractFromLocalFile(fullUrl, objectName, tcl);
+    return extractFromLocalFile(fullUrl, tcl);
   }
 
   // Prepare CURL
@@ -714,7 +721,7 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
       TMemFile memFile("name", chunk.memory, chunk.size, "READ");
       gErrorIgnoreLevel = previousErrorLevel;
       if (!memFile.IsZombie()) {
-        result = extractFromTFile(memFile, objectName.c_str(), tcl);
+        result = extractFromTFile(memFile, tcl);
         if (!result) {
           LOG(ERROR) << "Couldn't retrieve the object " << path;
         }
