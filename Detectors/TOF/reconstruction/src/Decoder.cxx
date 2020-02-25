@@ -103,6 +103,36 @@ bool Decoder::close()
   return false;
 }
 
+void Decoder::clear()
+{
+  reset();
+}
+
+void Decoder::InsertDigit(int icrate, int itrm, int itdc, int ichain, int channel, int orbit, int bunchid, int time_ext, int tdc, int tot)
+{
+  std::array<int, 6> digitInfo;
+
+  fromRawHit2Digit(icrate, itrm, itdc, ichain, channel, orbit, bunchid, time_ext + tdc, tot, digitInfo);
+
+  mHitDecoded++;
+
+  int isnext = digitInfo[3] * Geo::BC_IN_WINDOW_INV;
+
+  if (isnext >= MAXWINDOWS) { // accumulate all digits which are not in the first windows
+
+    insertDigitInFuture(digitInfo[0], digitInfo[1], digitInfo[2], digitInfo[3], 0, digitInfo[4], digitInfo[5]);
+  } else {
+    std::vector<Strip>* cstrip = mStripsCurrent; // first window
+    if (isnext)
+      cstrip = mStripsNext[isnext - 1]; // next window
+
+    UInt_t istrip = digitInfo[0] / Geo::NPADS;
+
+    // add digit
+    fillDigitsInStrip(cstrip, digitInfo[0], digitInfo[1], digitInfo[2], digitInfo[3], istrip);
+  }
+}
+
 void Decoder::readTRM(int icru, int icrate, int orbit, int bunchid)
 {
 
@@ -272,11 +302,16 @@ bool Decoder::decode() // return a vector of digits in a TOF readout window
 
   // since digits are not yet divided in tof readout window we need to do it
   // flushOutputContainer does the job
+  FillWindows();
+
+  return false;
+}
+
+void Decoder::FillWindows()
+{
   std::vector<Digit> digTemp;
   flushOutputContainer(digTemp);
   printf("hit decoded = %d (digits not filled = %lu)\n", mHitDecoded, mFutureDigits.size());
-
-  return false;
 }
 
 void Decoder::printCrateInfo(int icru) const

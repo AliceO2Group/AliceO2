@@ -29,9 +29,11 @@ class WindowFiller
 
   void initObj();
 
+  void reset();
+
   Int_t getCurrentReadoutWindow() const { return mReadoutWindowCurrent; }
   void setCurrentReadoutWindow(Double_t value) { mReadoutWindowCurrent = value; }
-  void setEventTime(double value) { mEventTime = value; }
+  void setEventTime(double value) { mEventTime = value - mTF * o2::constants::lhc::LHCOrbitNS * 256; }
 
   std::vector<Digit>* getDigitPerTimeFrame() { return &mDigitsPerTimeFrame; }
   std::vector<ReadoutWindowData>* getReadoutWindowData() { return &mReadoutWindowData; }
@@ -45,6 +47,7 @@ class WindowFiller
 
  protected:
   // info TOF timewindow
+  Int_t mTF = 0;
   Int_t mReadoutWindowCurrent = 0;
   Int_t mFirstOrbit = 0;
   Int_t mFirstBunch = 0;
