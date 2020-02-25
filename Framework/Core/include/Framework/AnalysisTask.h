@@ -398,10 +398,50 @@ struct AnalysisDataProcessorBuilder {
               ++const_cast<std::decay_t<Grouping>&>(groupingElement);
               ++oi;
             }
-          }
-          if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Filtered>::value) {
-            // FIXME: we need to implement the case for the grouped filtered case.
-            static_assert(always_static_assert_v<std::decay_t<AssociatedType>>, "Grouping Filtered is not yet supported");
+          } else if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Filtered>::value) {
+            auto& fullFiltered = std::get<0>(associatedTables);
+            auto selectionBuffer = std::shared_ptr<arrow::Buffer>(&(fullFiltered.getSelection()->GetBuffer()));
+            auto selectionArray = fullFiltered.getSelection()->ToArray();
+            offsets.push_back(fullFiltered.tableSize());
+            uint64_t selectionIndex = 0;
+            uint64_t sliceStart = 0;
+            uint64_t sliceStop = 0;
+
+            auto findSliceBounds = [&](int64_t l, int64_t h) {
+              size_t s = 0;
+              for (auto i = selectionIndex; i < selectionArray->length(); ++i) {
+                auto value = selectionArray->data()->template GetValues<uint64_t>(i);
+                if (*value == l) {
+                  sliceStart = i;
+                  s = i;
+                  break;
+                }
+              }
+              for (auto i = s + 1; i < selectionArray->length(); ++i) {
+                auto value = selectionArray->data()->template GetValues<uint64_t>(i);
+                if (*value == h) {
+                  sliceStop = i;
+                  selectionIndex = i;
+                  break;
+                }
+              }
+            };
+
+            for (auto& groupedDatum : groupsCollection) {
+              auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
+              // for each grouping element we need to slice the selection vector
+              findSliceBounds(offsets[oi], offsets[oi + 1]);
+              auto slicedBuffer = arrow::SliceBuffer(selectionBuffer, sliceStart, sliceStop - sliceStart + 1);
+              expressions::Selection slicedSelection;
+              if (!gandiva::SelectionVector::MakeInt64(sliceStop - sliceStart + 1, slicedBuffer, &slicedSelection).ok()) {
+                throw std::runtime_error("Cannot create sliced selection");
+              }
+              std::decay_t<AssociatedType> typedTable{{groupedElementsTable}, slicedSelection, offsets[oi]};
+              typedTable.bindExternalIndices(&groupingTable);
+              task.process(groupingElement, typedTable);
+              ++const_cast<std::decay_t<Grouping>&>(groupingElement);
+              ++oi;
+            }
           } else if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Join>::value || is_specialization<std::decay_t<AssociatedType>, o2::soa::Concat>::value) {
             for (auto& groupedDatum : groupsCollection) {
               auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
