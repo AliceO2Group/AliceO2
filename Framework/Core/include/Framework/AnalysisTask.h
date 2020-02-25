@@ -211,8 +211,12 @@ struct AnalysisDataProcessorBuilder {
   static void appendSomethingWithMetadata(std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos)
   {
     using dT = std::decay_t<T>;
-    if constexpr (framework::is_specialization<dT, soa::Filtered>::value || framework::is_specialization<dT, soa::RowViewFiltered>::value) {
+    if constexpr (framework::is_specialization<dT, soa::Filtered>::value) {
       eInfos.push_back({At, createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+    } else if constexpr (soa::is_type_with_policy_v<dT>) {
+      if (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
+        eInfos.push_back({At, createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+      }
     }
     doAppendInputWithMetadata(soa::make_originals_from_type<dT>(), inputs);
   }
