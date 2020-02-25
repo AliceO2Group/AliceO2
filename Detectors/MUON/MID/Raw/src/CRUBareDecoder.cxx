@@ -103,7 +103,7 @@ void CRUBareDecoder::addBoard(size_t ilink)
   /// Adds the local or regional board to the output data vector
   uint16_t localClock = mELinkDecoders[ilink].getCounter();
   EventType eventType = EventType::Standard;
-  if (mELinkDecoders[ilink].getEventWord() & (1 << 4)) {
+  if (mELinkDecoders[ilink].getTriggerWord() & (1 << 4)) {
     mCalibClocks[ilink] = localClock;
     eventType = EventType::Noise;
   } else if (localClock == mCalibClocks[ilink] + sDelayCalibToFET) {
@@ -111,7 +111,7 @@ void CRUBareDecoder::addBoard(size_t ilink)
   }
   auto firstEntry = mData.size();
   InteractionRecord intRec(localClock - sDelayBCToLocal, mBuffer.getRDH()->triggerOrbit);
-  mData.push_back({mELinkDecoders[ilink].getStatusWord(), mELinkDecoders[ilink].getEventWord(), crateparams::makeUniqueLocID(mCrateId, mELinkDecoders[ilink].getId()), mELinkDecoders[ilink].getInputs()});
+  mData.push_back({mELinkDecoders[ilink].getStatusWord(), mELinkDecoders[ilink].getTriggerWord(), crateparams::makeUniqueLocID(mCrateId, mELinkDecoders[ilink].getId()), mELinkDecoders[ilink].getInputs()});
   mROFRecords.emplace_back(intRec, eventType, firstEntry, 1);
 }
 

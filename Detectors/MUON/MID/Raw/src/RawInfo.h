@@ -36,7 +36,7 @@ static constexpr unsigned int sNBitsFiredChambers = 4;
 static constexpr unsigned int sNBitsLocalClock = 16;
 
 // Event info
-static constexpr unsigned int sNBitsEventWord = 8;
+static constexpr unsigned int sNBitsTriggerWord = 8;
 static constexpr uint16_t sDelayCalibToFET = 10;
 static constexpr uint16_t sDelayBCToLocal = 0;
 

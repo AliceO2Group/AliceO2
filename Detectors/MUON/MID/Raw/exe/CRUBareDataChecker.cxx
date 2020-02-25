@@ -27,7 +27,7 @@ bool CRUBareDataChecker::checkSameEventWord(const std::vector<LocalBoardRO>& boa
 {
   /// Checks the event word
   for (auto loc : boards) {
-    if (loc.eventWord != refEventWord) {
+    if (loc.triggerWord != refEventWord) {
       return false;
     }
   }
@@ -63,9 +63,9 @@ bool CRUBareDataChecker::checkConsistency(const LocalBoardRO& board) const
 {
   /// Checks that the event information is consistent
 
-  bool isSoxOrReset = board.eventWord & 0xc2;
-  bool isCalib = raw::isCalibration(board.eventWord);
-  bool isPhysOrHC = board.eventWord & 0x5;
+  bool isSoxOrReset = board.triggerWord & 0xc2;
+  bool isCalib = raw::isCalibration(board.triggerWord);
+  bool isPhysOrHC = board.triggerWord & 0x5;
 
   if (isPhysOrHC) {
     if (isCalib) {
@@ -109,14 +109,14 @@ bool CRUBareDataChecker::checkBC(const std::vector<LocalBoardRO>& regs, const st
 
   uint8_t refEventWord = 0;
   if (!regs.empty()) {
-    refEventWord = regs.front().eventWord;
+    refEventWord = regs.front().triggerWord;
   } else if (!locs.empty()) {
     // FIXME: in some files, a series of 0xeeee wrongly added before the new RDH
     // This is a known problem, so we do not check further in this case
-    // if (locs.front().statusWord == 0xee && locs.front().eventWord == 0xee && locs.front().firedChambers == 0xe) {
+    // if (locs.front().statusWord == 0xee && locs.front().triggerWord == 0xee && locs.front().firedChambers == 0xe) {
     //   return true;
     // }
-    refEventWord = locs.front().eventWord;
+    refEventWord = locs.front().triggerWord;
   }
 
   if (!checkSameEventWord(regs, refEventWord) || !checkSameEventWord(locs, refEventWord)) {
