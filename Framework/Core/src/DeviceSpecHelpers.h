@@ -35,6 +35,8 @@ namespace o2
 {
 namespace framework
 {
+struct InputChannelSpec;
+struct OutputChannelSpec;
 
 struct DeviceSpecHelpers {
   /// Helper to convert from an abstract dataflow specification, @a workflow,
@@ -59,6 +61,12 @@ struct DeviceSpecHelpers {
     std::vector<DispatchPolicy> dispatchPolicies = DispatchPolicy::createDefaultPolicies();
     dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, dispatchPolicies, devices, resourceManager, uniqueWorkflowId);
   }
+
+  /// Helper to provide the channel configuration string for an input channel
+  static std::string inputChannel2String(const InputChannelSpec& channel);
+
+  /// Helper to provide the channel configuration string for an output channel
+  static std::string outputChannel2String(const OutputChannelSpec& channel);
 
   /// Helper to prepare the arguments which will be used to
   /// start the various devices.
