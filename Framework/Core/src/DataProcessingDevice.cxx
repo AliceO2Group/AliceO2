@@ -316,6 +316,7 @@ bool DataProcessingDevice::ConditionalRun()
     // This is needed because the transport is deleted before the device.
     mRelayer.clear();
     switchState(StreamingState::Idle);
+    mCurrentBackoff = 10;
     return true;
   }
   // Update the backoff factor
@@ -323,7 +324,7 @@ bool DataProcessingDevice::ConditionalRun()
   // In principle we should use 1/rate for MIN_BACKOFF_DELAY and (1/maxRate -
   // 1/minRate)/ 2^MAX_BACKOFF for BACKOFF_DELAY_STEP. We hardcode the values
   // for the moment to some sensible default.
-  if (active) {
+  if (active && mState.streaming != StreamingState::Idle) {
     mCurrentBackoff = std::max(0, mCurrentBackoff - 1);
   } else {
     mCurrentBackoff = std::min(MAX_BACKOFF, mCurrentBackoff + 1);
