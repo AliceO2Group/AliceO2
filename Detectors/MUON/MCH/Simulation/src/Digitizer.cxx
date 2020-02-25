@@ -175,8 +175,6 @@ void Digitizer::mergeDigits()
   auto sortedDigits = [digits = this->mDigits, &indices](int i) {
     return digits[indices[i]];
   };
-  //  std::vector<o2::mch::Digit> sortedDigits(mDigits.size());
-  // for(int i=0; i<mDigits.size(); i++) sortedDigits.emplace_back(mDigits[indices[i]]);
 
   auto sortedLabels = [labels = this->mTrackLabels, &indices](int i) {
     return labels[indices[i]];
@@ -189,7 +187,6 @@ void Digitizer::mergeDigits()
   mMCTruthOutputContainer.clear();
 
   int count = 0;
-  std::vector<o2::MCCompLabel> element;
 
   int i = 0;
   while (i < indices.size()) {
@@ -198,23 +195,22 @@ void Digitizer::mergeDigits()
       j++;
     }
     float adc{0};
-    element.clear();
-    element.resize(j - i);
 
     for (int k = i; k < j; k++) {
       adc += sortedDigits(k).getADC();
       if (k == i) {
-        element.emplace_back(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID(), false);
+        MCCompLabel label(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID(), false);
+        mMCTruthOutputContainer.addElement(count, label);
       } else {
         if ((sortedLabels(k).getTrackID() != sortedLabels(k - 1).getTrackID()) || (sortedLabels(k).getSourceID() != sortedLabels(k - 1).getSourceID())) {
-          element.emplace_back(sortedLabels(k).getTrackID(), sortedLabels(k).getEventID(), sortedLabels(k).getSourceID(), false);
+          MCCompLabel label(sortedLabels(k).getTrackID(), sortedLabels(k).getEventID(), sortedLabels(k).getSourceID(), false);
+          mMCTruthOutputContainer.addElement(count, label);
         }
       }
     }
     mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc);
     i = j;
     ++count;
-    mMCTruthOutputContainer.addElements(count, element);
   }
   mDigits.resize(mDigits.size());
 }
@@ -236,7 +232,7 @@ void Digitizer::mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruth
 
   mergeDigits();
   fillOutputContainer(digits);
-  provideMC(mcContainer);
+  provideMC(mcContainer); //is ok
 }
 //______________________________________________________________________
 void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
