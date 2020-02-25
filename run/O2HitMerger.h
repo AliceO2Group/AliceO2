@@ -318,7 +318,7 @@ class O2HitMerger : public FairMQDevice
     to.mergeAtBack(from);
   }
   template <typename T>
-  void remapTrackIdsAndMerge(std::string brname, TTree& origin, TTree& target, std::vector<int> trackoffsets)
+  void remapTrackIdsAndMerge(std::string brname, TTree& origin, TTree& target, const std::vector<int> trackoffsets)
   {
     //
     // Remap the mother track IDs by adding an offset.
@@ -477,6 +477,7 @@ class O2HitMerger : public FairMQDevice
     // for MCTrack remap the motherIds and merge at the samee go
     remapTrackIdsAndMerge<std::vector<o2::MCTrack>>("MCTrack", *tree, *mOutTree, trackoffsets);
     remapTrackIdsAndMerge<std::vector<o2::TrackReference>>("TrackRefs", *tree, *mOutTree, trackoffsets);
+    merge<o2::dataformats::MCTruthContainer<o2::TrackReference>>("IndexedTrackRefs", *tree, *mOutTree);
 
     // c) do the merge procedure for all hits ... delegate this to detector specific functions
     // since they know about types; number of branches; etc.
