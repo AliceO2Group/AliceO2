@@ -22,12 +22,9 @@ namespace o2
 namespace mid
 {
 
-bool ELinkDecoder::add(uint8_t byte, uint8_t expectedStart)
+void ELinkDecoder::add(uint8_t byte)
 {
-  /// Add next byte
-  if (mBytes.empty() && (byte & 0xc0) != expectedStart) {
-    return false;
-  }
+  /// Adds next byte
   mBytes.emplace_back(byte);
   if (mBytes.size() == sMinimumSize) {
     if (raw::isLoc(mBytes[0])) {
@@ -41,6 +38,15 @@ bool ELinkDecoder::add(uint8_t byte, uint8_t expectedStart)
       }
     }
   }
+}
+
+bool ELinkDecoder::add(uint8_t byte, uint8_t expectedStart)
+{
+  /// Adds next byte, checking the first one
+  if (mBytes.empty() && (byte & 0xc0) != expectedStart) {
+    return false;
+  }
+  add(byte);
   return true;
 }
 

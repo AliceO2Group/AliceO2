@@ -25,6 +25,7 @@ namespace mid
 class ELinkDecoder
 {
  public:
+  void add(const uint8_t byte);
   bool add(const uint8_t byte, uint8_t expectedStart);
   /// Checks if we have all of the information needed for the decoding
   bool isComplete() const { return mBytes.size() == mTotalSize; };
