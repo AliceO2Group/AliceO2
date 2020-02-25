@@ -72,10 +72,10 @@ class TRDDPLDigitizerTask
       mSimChains.emplace_back(new TChain("o2sim"));
       mSimChains.back()->AddFile(signalfilename.c_str());
     }
-
     if (!gGeoManager) {
       o2::base::GeometryManager::loadGeometry();
     }
+    LOG(INFO) << "initialed TRD digitization";
   }
 
   void run(framework::ProcessingContext& pc)
