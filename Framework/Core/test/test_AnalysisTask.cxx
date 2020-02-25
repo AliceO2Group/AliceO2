@@ -123,7 +123,7 @@ struct GTask {
 //};
 
 struct ITask {
-  void process(o2::soa::Filtered<o2::soa::Join<o2::aod::Foos, o2::aod::Bars, o2::aod::XYZ>> const& foobars)
+  void process(o2::aod::Collision const&, o2::soa::Filtered<o2::soa::Join<o2::aod::Foos, o2::aod::Bars, o2::aod::XYZ>> const& foobars)
   {
     for (auto foobar : foobars) {
       foobar.x();
@@ -170,5 +170,5 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
   //  BOOST_CHECK_EQUAL(task8.inputs.size(), 3);
 
   auto task9 = adaptAnalysisTask<ITask>("test9");
-  BOOST_CHECK_EQUAL(task9.inputs.size(), 3);
+  BOOST_CHECK_EQUAL(task9.inputs.size(), 4);
 }
