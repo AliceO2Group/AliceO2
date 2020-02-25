@@ -370,6 +370,9 @@ bool isSchemaCompatible(gandiva::SchemaPtr const& Schema, Operations const& opSp
 
 void updateExpressionInfos(expressions::Filter const& filter, std::vector<ExpressionInfo>& eInfos)
 {
+  if (eInfos.empty()) {
+    throw std::runtime_error("Empty expression info vector.");
+  }
   Operations ops = createOperations(filter);
   for (auto& info : eInfos) {
     if (isSchemaCompatible(info.schema, ops)) {
