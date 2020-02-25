@@ -34,6 +34,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         auto& out1 = ctx.outputs().make<std::string>(Output{"TES", "STRING"}, "default");
         assert(out1 == "default");
         out1 = "Hello";
+        ctx.services().get<ControlService>().endOfStream();
+        ctx.services().get<ControlService>().readyToQuit(QuitRequest::Me);
       }} //
     },   //
     DataProcessorSpec{
@@ -51,7 +53,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           } else {
             LOG(INFO) << "Everything OK";
           }
-          ctx.services().get<ControlService>().readyToQuit(QuitRequest::All);
         } //
       }   //
     }     //
