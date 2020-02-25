@@ -24,7 +24,7 @@ namespace mid
 {
 struct LocalBoardRO {
   uint8_t statusWord{0};                 /// Status word
-  uint8_t eventWord{0};                  /// Event word
+  uint8_t triggerWord{0};                /// Trigger word
   uint8_t boardId{0};                    /// Board ID in crate
   uint8_t firedChambers{0};              /// Fired chambers
   std::array<uint16_t, 4> patternsBP{};  /// Bending plane pattern
@@ -56,9 +56,9 @@ static constexpr uint32_t sORB = 1;
 /// Tests the local card bit
 inline bool isLoc(uint8_t statusWord) { return (statusWord >> 6) & 0x1; }
 /// Tests the calibration bit of the card
-inline bool isCalibration(uint8_t eventWord) { return ((eventWord & 0xc) == 0x8); }
+inline bool isCalibration(uint8_t triggerWord) { return ((triggerWord & 0xc) == 0x8); }
 /// Tests if this is a Front End Test event
-inline bool isFET(uint8_t eventWord) { return ((eventWord & 0xc) == 0xc); }
+inline bool isFET(uint8_t triggerWord) { return ((triggerWord & 0xc) == 0xc); }
 } // namespace raw
 
 } // namespace mid

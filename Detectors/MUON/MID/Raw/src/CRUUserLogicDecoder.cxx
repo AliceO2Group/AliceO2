@@ -54,15 +54,15 @@ bool CRUUserLogicDecoder::processBlock()
   /// Processes the next block of data
   size_t firstEntry = mData.size();
 
-  uint8_t eventWord = mBuffer.next(sNBitsEventWord);
+  uint8_t triggerWord = mBuffer.next(sNBitsTriggerWord);
   uint16_t localClock = mBuffer.next(sNBitsLocalClock);
   uint8_t crateId = mBuffer.next(sNBitsCrateId);
   int nFiredBoards = mBuffer.next(sNBitsNFiredBoards);
 
   EventType eventType = EventType::Standard;
-  if (raw::isCalibration(eventWord)) {
+  if (raw::isCalibration(triggerWord)) {
     eventType = EventType::Noise;
-  } else if (raw::isFET(eventWord)) {
+  } else if (raw::isFET(triggerWord)) {
     eventType = EventType::Dead;
   }
   InteractionRecord intRec(localClock, mBuffer.getRDH()->triggerOrbit);

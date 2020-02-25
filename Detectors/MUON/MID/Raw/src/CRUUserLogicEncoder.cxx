@@ -102,14 +102,14 @@ void CRUUserLogicEncoder::process(gsl::span<const LocalBoardRO> sortedData, cons
 {
   /// Encode data
 
-  // FIXME: Finalize the final format of the event word together with the CRU + RO team
-  uint16_t eventWord = 0;
+  // FIXME: Finalize the final format of the trigger word together with the CRU + RO team
+  uint16_t triggerWord = 0;
   if (eventType == EventType::Noise) {
-    eventWord = 0x8;
+    triggerWord = 0x8;
   } else if (eventType == EventType::Dead) {
-    eventWord = 0xc;
+    triggerWord = 0xc;
   }
-  add(eventWord, sNBitsEventWord);
+  add(triggerWord, sNBitsTriggerWord);
   add(bc, sNBitsLocalClock);
   add(crateparams::getCrateIdFromROId(getRDH()->feeId), sNBitsCrateId);
   add(sortedData.size(), sNBitsNFiredBoards);
