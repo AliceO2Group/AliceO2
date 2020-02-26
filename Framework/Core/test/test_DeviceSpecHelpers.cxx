@@ -14,7 +14,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DeviceExecution.h"
-#include "../src/DeviceSpecHelpers.h"
+#include "Framework/DeviceSpecHelpers.h"
 #include <boost/test/unit_test.hpp>
 #include <boost/test/tools/detail/per_element_manip.hpp>
 #include <algorithm>
@@ -24,6 +24,7 @@
 #include <map>
 #include "../src/SimpleResourceManager.h"
 #include "../src/ComputingResourceHelpers.h"
+#include "../src/DataProcessorInfo.h"
 
 namespace o2
 {
