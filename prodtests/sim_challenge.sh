@@ -6,6 +6,10 @@
 nevPP=10
 nevPbPb=10
 
+# default interaction rates in kHz
+intRatePP=400
+intRatePbPb=50
+
 # default collision system
 collSyst="pp"
 
@@ -18,7 +22,7 @@ gloOpt=" -b --run "
 
 Usage() 
 {
-  echo "Usage: ${0##*/} [-s system /pp[Def] or pbpb/] [-n Number of events /Def = $nevPP(pp) or $nevPbPb(pbpb)/]"
+  echo "Usage: ${0##*/} [-s system /pp[Def] or pbpb/] [-r IR(kHz) /Def = $intRatePP(pp)/$intRatePbPb(pbpb)] [-n Number of events /Def = $nevPP(pp) or $nevPbPb(pbpb)/]"
   exit
 }
 
@@ -27,6 +31,7 @@ while [ $# -gt 0 ] ; do
     case $1 in
 	-n) nev=$2;  shift 2 ;;
 	-s) collSyst=$2; shift 2 ;;
+	-r) intRate=$2; shift 2 ;;
 	*) echo "Wrong input"; Usage;
     esac
 done
@@ -35,9 +40,11 @@ collSyst="${collSyst,,}" # convert to lower case
 if [ "$collSyst" == "pp" ]; then
     gener="$generPP"
     [[ "nev" -lt "1"  ]] && nev="$nevPP"
+    [[ "intRate" -lt "1"  ]] && intRate="$intRatePP"
 elif [ "$collSyst" == "pbpb" ]; then
     gener="$generPbPb"
     [[ "nev" -lt "1"  ]] && nev="$nevPbPb"
+    [[ "intRate" -lt "1"  ]] && intRate="$intRatePbPb"
 else
     echo "Wrong collision system $collSyst provided, should be pp or pbpb"
     Usage
@@ -47,8 +54,10 @@ fi
 echo "Running simulation for $nev $collSyst events with $gener generator"
 o2-sim -n"$nev" --configKeyValue "Diamond.width[2]=6." -g "$gener" &> sim.log
 
-echo "Running digitization"
-o2-sim-digitizer-workflow $gloOpt  &>  digi.log
+echo "Running digitization for $intRate kHz interaction rate"
+intRate=$((1000*(intRate)));
+echo o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate
+o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate  &>  digi.log
 # existing checks
 #root -b -q O2/Detectors/ITSMFT/ITS/macros/test/CheckDigits.C+
 
