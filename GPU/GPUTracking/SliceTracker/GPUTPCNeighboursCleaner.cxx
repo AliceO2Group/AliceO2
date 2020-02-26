@@ -17,7 +17,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
-GPUdii() void GPUTPCNeighboursCleaner::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & s, processorType& tracker)
+GPUdii() void GPUTPCNeighboursCleaner::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() s, processorType& GPUrestrict() tracker)
 {
   // *
   // * kill link to the neighbour if the neighbour is not pointed to the cluster
@@ -37,13 +37,13 @@ GPUdii() void GPUTPCNeighboursCleaner::Thread<0>(int /*nBlocks*/, int nThreads, 
 #ifdef GPUCA_GPUCODE
     int Up = s.mIRowUp;
     int Dn = s.mIRowDn;
-    GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(s.mIRow);
-    GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& rowUp = tracker.Row(Up);
-    GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& rowDn = tracker.Row(Dn);
+    GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() row = tracker.Row(s.mIRow);
+    GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() rowUp = tracker.Row(Up);
+    GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() rowDn = tracker.Row(Dn);
 #else
-    const GPUTPCRow& row = tracker.Row(s.mIRow);
-    const GPUTPCRow& rowUp = tracker.Row(s.mIRowUp);
-    const GPUTPCRow& rowDn = tracker.Row(s.mIRowDn);
+    const GPUTPCRow& GPUrestrict() row = tracker.Row(s.mIRow);
+    const GPUTPCRow& GPUrestrict() rowUp = tracker.Row(s.mIRowUp);
+    const GPUTPCRow& GPUrestrict() rowDn = tracker.Row(s.mIRowDn);
 #endif
 
     // - look at up link, if it's valid but the down link in the row above doesn't link to us remove

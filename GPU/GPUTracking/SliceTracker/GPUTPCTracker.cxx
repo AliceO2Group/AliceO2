@@ -302,7 +302,7 @@ GPUh() void GPUTPCTracker::WriteOutput()
   }
 }
 
-GPUh() int GPUTPCTracker::PerformGlobalTrackingRun(GPUTPCTracker& sliceSource, int iTrack, int rowIndex, float angle, int direction)
+GPUh() int GPUTPCTracker::PerformGlobalTrackingRun(GPUTPCTracker& GPUrestrict() sliceSource, int iTrack, int rowIndex, float angle, int direction)
 {
   /*for (int j = 0;j < mTracks[j].NHits();j++)
   {
@@ -389,7 +389,7 @@ GPUh() int GPUTPCTracker::PerformGlobalTrackingRun(GPUTPCTracker& sliceSource, i
         rowIndex--;
       }
     }
-    GPUTPCTrack& track = mTracks[trackId];
+    GPUTPCTrack& GPUrestrict() track = mTracks[trackId];
     track.SetAlive(1);
     track.SetParam(tParam.GetParam());
     track.SetNHits(nHits);
@@ -400,14 +400,14 @@ GPUh() int GPUTPCTracker::PerformGlobalTrackingRun(GPUTPCTracker& sliceSource, i
   return (nHits >= GPUCA_GLOBAL_TRACKING_MIN_HITS);
 }
 
-GPUh() void GPUTPCTracker::PerformGlobalTracking(GPUTPCTracker& sliceTarget, bool right)
+GPUh() void GPUTPCTracker::PerformGlobalTracking(GPUTPCTracker& GPUrestrict() sliceTarget, bool right)
 {
   for (int i = 0; i < mCommonMem->nLocalTracks; i++) {
     {
       const int tmpHit = mTracks[i].FirstHitID();
       if (mTrackHits[tmpHit].RowIndex() >= GPUCA_GLOBAL_TRACKING_MIN_ROWS && mTrackHits[tmpHit].RowIndex() < GPUCA_GLOBAL_TRACKING_RANGE) {
         int rowIndex = mTrackHits[tmpHit].RowIndex();
-        const GPUTPCRow& row = Row(rowIndex);
+        const GPUTPCRow& GPUrestrict() row = Row(rowIndex);
         float Y = (float)Data().HitDataY(row, mTrackHits[tmpHit].HitIndex()) * row.HstepY() + row.Grid().YMin();
         if (sliceTarget.mCommonMem->nTracks >= sliceTarget.mNMaxTracks) {
           sliceTarget.mCommonMem->kernelError = GPUCA_ERROR_GLOBAL_TRACKING_TRACK_OVERFLOW;
@@ -428,7 +428,7 @@ GPUh() void GPUTPCTracker::PerformGlobalTracking(GPUTPCTracker& sliceTarget, boo
       const int tmpHit = mTracks[i].FirstHitID() + mTracks[i].NHits() - 1;
       if (mTrackHits[tmpHit].RowIndex() < GPUCA_ROW_COUNT - GPUCA_GLOBAL_TRACKING_MIN_ROWS && mTrackHits[tmpHit].RowIndex() >= GPUCA_ROW_COUNT - GPUCA_GLOBAL_TRACKING_RANGE) {
         int rowIndex = mTrackHits[tmpHit].RowIndex();
-        const GPUTPCRow& row = Row(rowIndex);
+        const GPUTPCRow& GPUrestrict() row = Row(rowIndex);
         float Y = (float)Data().HitDataY(row, mTrackHits[tmpHit].HitIndex()) * row.HstepY() + row.Grid().YMin();
         if (sliceTarget.mCommonMem->nTracks >= sliceTarget.mNMaxTracks) {
           sliceTarget.mCommonMem->kernelError = GPUCA_ERROR_GLOBAL_TRACKING_TRACK_OVERFLOW;
@@ -447,7 +447,7 @@ GPUh() void GPUTPCTracker::PerformGlobalTracking(GPUTPCTracker& sliceTarget, boo
   }
 }
 
-GPUh() void GPUTPCTracker::PerformGlobalTracking(GPUTPCTracker& sliceLeft, GPUTPCTracker& sliceRight)
+GPUh() void GPUTPCTracker::PerformGlobalTracking(GPUTPCTracker& GPUrestrict() sliceLeft, GPUTPCTracker& GPUrestrict() sliceRight)
 {
   if (NHitsTotal() == 0) {
     return;
