@@ -16,7 +16,7 @@
 
 #include "GPUCommonDef.h"
 
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) && !defined(__clang__)
 #include <sm_20_atomic_functions.h>
 #endif
 

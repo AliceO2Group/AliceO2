@@ -14,6 +14,9 @@
 #define GPUCA_GPUTYPE_TURING
 
 #include <cuda.h>
+#ifdef __clang__
+#define assert(...)
+#endif
 
 #include "GPUReconstructionCUDA.h"
 #include "GPUReconstructionCUDAInternals.h"
