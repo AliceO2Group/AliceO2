@@ -35,10 +35,12 @@ template <typename T>
 TBranch* getOrMakeBranch(TTree& tree, std::string brname, T* ptr)
 {
   if (auto br = tree.GetBranch(brname.c_str())) {
-    br->SetAddress(static_cast<void*>(&ptr));
+    printf("Re-use output branch %s\n",brname.c_str());
+    br->SetAddress(static_cast<void*>(ptr));
     return br;
   }
   // otherwise make it
+  printf("Create output branch %s\n",brname.c_str());
   return tree.Branch(brname.c_str(), ptr);
 }
 
@@ -54,9 +56,13 @@ DataProcessorSpec getTOFDigitWriterSpec(bool useMC)
     auto outputfile = std::make_shared<TFile>(filename.c_str(), "RECREATE");
     auto outputtree = std::make_shared<TTree>(treename.c_str(), treename.c_str());
 
+    int *nCalls = new int;
+    *nCalls = 0;
+
     // the callback to be set as hook at stop of processing for the framework
-    auto finishWriting = [outputfile, outputtree]() {
-      outputtree->SetEntries(1);
+    auto finishWriting = [outputfile, outputtree, nCalls]() {
+      printf("finish writing with %d entries in the tree\n",*nCalls);
+      outputtree->SetEntries(*nCalls);
       outputtree->Write();
       outputfile->Close();
     };
@@ -66,15 +72,16 @@ DataProcessorSpec getTOFDigitWriterSpec(bool useMC)
     // using by-copy capture of the worker instance shared pointer
     // the shared pointer makes sure to clean up the instance when the processing
     // function gets out of scope
-    auto processingFct = [outputfile, outputtree, useMC](ProcessingContext& pc) {
+    auto processingFct = [outputfile, outputtree, useMC, nCalls](ProcessingContext& pc) {
       static bool finished = false;
       if (finished) {
         // avoid being executed again when marked as finished;
         return;
       }
-
+      (*nCalls)++;
       // retrieve the digits from the input
       auto indata = pc.inputs().get<std::vector<o2::tof::Digit>*>("tofdigits");
+      LOG(INFO) << "Call " << *nCalls;
       LOG(INFO) << "RECEIVED DIGITS SIZE " << indata->size();
       auto row = pc.inputs().get<std::vector<o2::tof::ReadoutWindowData>*>("readoutwin");
       LOG(INFO) << "RECEIVED READOUT WINDOWS " << row->size();
@@ -100,8 +107,8 @@ DataProcessorSpec getTOFDigitWriterSpec(bool useMC)
         labelbr->Fill();
       }
 
-      finished = true;
-      pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+//      finished = true;
+//      pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     };
 
     // return the actual processing function as a lambda function using variables

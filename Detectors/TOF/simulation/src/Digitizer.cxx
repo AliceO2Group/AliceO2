@@ -100,8 +100,8 @@ int Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* dig
     } // close loop readout window
   }   // close if continuous
 
-  if (mReadoutWindowCurrent >= 256 * Geo::NWINDOW_IN_ORBIT) // new TF
-    return 1;
+  // if (mReadoutWindowCurrent >= 256 * Geo::NWINDOW_IN_ORBIT) // new TF
+  //   return 1;
 
   for (auto& hit : *hits) {
     //TODO: put readout window counting/selection
