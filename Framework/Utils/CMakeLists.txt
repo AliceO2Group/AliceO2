@@ -29,6 +29,11 @@ o2_add_executable(raw-parser
                   SOURCES src/raw-parser.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils)
 
+o2_add_executable(output-proxy
+                  COMPONENT_NAME dpl
+                  SOURCES src/dpl-output-proxy.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils)
+
 # Converter can now be a separate workflow which we merge if needed
 o2_add_executable(esd-2-arrow-converter
                   COMPONENT_NAME dpl
