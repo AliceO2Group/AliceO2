@@ -127,8 +127,8 @@ uint64_t getMask(header::DataDescription description)
   } else if (description == header::DataDescription{"DZEROFLAGGED"}) {
     return AODTypeMask::DZeroFlagged;
   } else {
+    LOG(DEBUG) << "This is a tree of unknown type! " << description.str;
     return AODTypeMask::Unknown;
-    LOG(INFO) << "This is a tree of unknown type! " << description.str;
   }
 }
 
