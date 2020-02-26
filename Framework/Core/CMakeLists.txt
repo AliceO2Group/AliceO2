@@ -180,6 +180,11 @@ foreach(t
               PUBLIC_LINK_LIBRARIES O2::Framework)
 endforeach()
 
+o2_add_executable(dpl-run
+                  SOURCES src/dplRun.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  )
+
 o2_add_executable(verify-aod-file
                   SOURCES src/verifyAODFile.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
