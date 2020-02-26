@@ -191,7 +191,6 @@ int GPUReconstructionCPU::RunChains()
     mThreadId = GetThread();
   }
 
-  HighResTimer timerTotal;
   timerTotal.Start();
   for (unsigned int i = 0; i < mChains.size(); i++) {
     int retVal = mChains[i]->RunChain();
@@ -254,6 +253,7 @@ int GPUReconstructionCPU::RunChains()
   }
   if (mDeviceProcessingSettings.resetTimers) {
     mStatNEvents = 0;
+    timerTotal.Reset();
   }
 
   return 0;
