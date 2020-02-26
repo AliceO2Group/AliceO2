@@ -92,4 +92,5 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   registerStandaloneInputMemory = false;
   tpcCompressionGatherMode = 1;
   mergerSortTracks = 1;
+  runMC = false;
 }
