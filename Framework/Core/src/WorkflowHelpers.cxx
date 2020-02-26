@@ -309,10 +309,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   // From that list select the ones of origin AOD ...
   // .. and remove them also from the original list
-  LOG(DEBUG) << "1 danglingOutputsInputs.size() " << danglingOutputsInputs.size() << std::endl;
   auto danglingOutputsInputsAOD = selectAODs(danglingOutputsInputs);
-  LOG(DEBUG) << "2 danglingOutputsInputsAOD.size() " << danglingOutputsInputsAOD.size() << std::endl;
-  LOG(DEBUG) << "2 danglingOutputsInputs.size() " << danglingOutputsInputs.size() << std::endl;
 
   // file sink for notAOD dangling outputs
   extraSpecs.clear();
