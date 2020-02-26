@@ -37,7 +37,7 @@ constexpr unsigned int maxFivesRange = 3;
 
 // Helper to reset the iterators for each benchmark loop
 template <typename T, size_t K>
-void resetCombination(std::array<T, K>& array, const T& maxOffset, bool& isEnd,
+void resetCombination(std::array<T, K>& array, const std::array<T, K>& maxOffset, bool& isEnd,
                       const size_t n, const std::function<bool(const std::array<T, K>&)>& condition)
 {
   for (int i = 0; i < K; i++) {
@@ -276,7 +276,7 @@ static void BM_ASoAHelpersAddOneSimplePairs(benchmark::State& state)
   std::array<Test::iterator, 2> comb2{tests.begin(), tests.begin() + 1};
   bool isEnd = false;
   int64_t count = 0;
-  Test::iterator maxOffset = tests.begin() + tests.size() - 2 + 1;
+  std::array<Test::iterator, 2> maxOffset{tests.begin() + tests.size() - 2 + 1, tests.begin() + tests.size() - 2 + 1 + 1};
   std::function<bool(const std::array<Test::iterator, 2>&)> condition = [](const auto& testCombination) { return true; };
 
   for (auto _ : state) {
@@ -320,7 +320,7 @@ static void BM_ASoAHelpersAddOneSimpleFives(benchmark::State& state)
   std::array<Test::iterator, 5> comb5{tests.begin(), tests.begin() + 1, tests.begin() + 2, tests.begin() + 3, tests.begin() + 4};
   bool isEnd = false;
   int64_t count = 0;
-  auto maxOffset = tests.begin() + tests.size() - 5 + 1;
+  std::array<Test::iterator, 5> maxOffset{tests.begin() + tests.size() - 5 + 1, tests.begin() + tests.size() - 5 + 1 + 1, tests.begin() + tests.size() - 5 + 2 + 1, tests.begin() + tests.size() - 5 + 3 + 1, tests.begin() + tests.size() - 5 + 4 + 1};
   std::function<bool(const std::array<Test::iterator, 5>&)> condition = [](const auto& testCombination) { return true; };
 
   for (auto _ : state) {
@@ -365,7 +365,7 @@ static void BM_ASoAHelpersAddOneTracksPairs(benchmark::State& state)
   std::array<o2::aod::Tracks::iterator, 2> comb2{tracks.begin(), tracks.begin() + 1};
   bool isEnd = false;
   int64_t count = 0;
-  auto maxOffset = tracks.begin() + tracks.size() - 2 + 1;
+  std::array<o2::aod::Tracks::iterator, 2> maxOffset = {tracks.begin() + tracks.size() - 2 + 1, tracks.begin() + tracks.size() - 2 + 1 + 1};
   std::function<bool(const std::array<o2::aod::Tracks::iterator, 2>&)> condition = [](const auto& testCombination) { return true; };
 
   for (auto _ : state) {
@@ -410,7 +410,7 @@ static void BM_ASoAHelpersAddOneTracksFives(benchmark::State& state)
   std::array<o2::aod::Tracks::iterator, 5> comb5{tracks.begin(), tracks.begin() + 1, tracks.begin() + 2, tracks.begin() + 3, tracks.begin() + 4};
   bool isEnd = false;
   int64_t count = 0;
-  auto maxOffset = tracks.begin() + tracks.size() - 5 + 1;
+  std::array<o2::aod::Tracks::iterator, 5> maxOffset = {tracks.begin() + tracks.size() - 5 + 1, tracks.begin() + tracks.size() - 5 + 1 + 1, tracks.begin() + tracks.size() - 5 + 2 + 1, tracks.begin() + tracks.size() - 5 + 3 + 1, tracks.begin() + tracks.size() - 5 + 4 + 1};
   std::function<bool(const std::array<o2::aod::Tracks::iterator, 5>&)> condition = [](const auto& testCombination) { return true; };
 
   for (auto _ : state) {
@@ -449,14 +449,12 @@ static void BM_ASoAHelpersCombGenSimplePairs(benchmark::State& state)
 
   using Test = o2::soa::Table<test::X>;
   Test tests{table};
-  std::function<bool(const std::array<Test::iterator, 2>&)> condition = [](const auto& testCombination) { return true; };
 
-  auto comb2 = CombinationsGenerator<Test, 2>(tests, condition);
   int64_t count = 0;
 
   for (auto _ : state) {
     count = 0;
-    for (auto comb : comb2) {
+    for (auto comb : combinations(tests, tests)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -482,14 +480,12 @@ static void BM_ASoAHelpersCombGenSimpleFives(benchmark::State& state)
 
   using Test = o2::soa::Table<test::X>;
   Test tests{table};
-  std::function<bool(const std::array<Test::iterator, 5>&)> condition = [](const auto& testCombination) { return true; };
 
-  auto comb5 = CombinationsGenerator<Test, 5>(tests, condition);
   int64_t count = 0;
 
   for (auto _ : state) {
     count = 0;
-    for (auto comb : comb5) {
+    for (auto comb : combinations(tests, tests, tests, tests, tests)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -516,14 +512,12 @@ static void BM_ASoAHelpersCombGenTracksPairs(benchmark::State& state)
   auto table = builder.finalize();
 
   o2::aod::Tracks tracks{table};
-  std::function<bool(const std::array<o2::aod::Tracks::iterator, 2>&)> condition = [](const auto& testCombination) { return true; };
 
-  auto comb2 = CombinationsGenerator<o2::aod::Tracks, 2>(tracks, condition);
   int64_t count = 0;
 
   for (auto _ : state) {
     count = 0;
-    for (auto comb : comb2) {
+    for (auto comb : combinations(tracks, tracks)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -550,14 +544,12 @@ static void BM_ASoAHelpersCombGenTracksFives(benchmark::State& state)
   auto table = builder.finalize();
 
   o2::aod::Tracks tracks{table};
-  std::function<bool(const std::array<o2::aod::Tracks::iterator, 5>&)> condition = [](const auto& testCombination) { return true; };
 
-  auto comb5 = CombinationsGenerator<o2::aod::Tracks, 5>(tracks, condition);
   int64_t count = 0;
 
   for (auto _ : state) {
     count = 0;
-    for (auto comb : comb5) {
+    for (auto comb : combinations(tracks, tracks, tracks, tracks, tracks)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -593,14 +585,12 @@ static void BM_ASoAHelpersCombGenSimpleFivesMultipleChunks(benchmark::State& sta
   using ConcatTest = Concat<TestA, TestB>;
 
   ConcatTest tests{tableA, tableB};
-  std::function<bool(const std::array<ConcatTest::iterator, 5>&)> condition = [](const auto& testCombination) { return true; };
 
-  auto comb5 = CombinationsGenerator<ConcatTest, 5>(tests, condition);
   int64_t count = 0;
 
   for (auto _ : state) {
     count = 0;
-    for (auto comb : comb5) {
+    for (auto comb : combinations(tests, tests, tests, tests, tests)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -638,14 +628,12 @@ static void BM_ASoAHelpersCombGenTracksFivesMultipleChunks(benchmark::State& sta
   using ConcatTest = Concat<o2::aod::Tracks, o2::aod::Tracks>;
 
   ConcatTest tracks{tableA, tableB};
-  std::function<bool(const std::array<ConcatTest::iterator, 5>&)> condition = [](const auto& testCombination) { return true; };
 
-  auto comb5 = CombinationsGenerator<ConcatTest, 5>(tracks, condition);
   int64_t count = 0;
 
   for (auto _ : state) {
     count = 0;
-    for (auto comb : comb5) {
+    for (auto comb : combinations(tracks, tracks, tracks, tracks, tracks)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
