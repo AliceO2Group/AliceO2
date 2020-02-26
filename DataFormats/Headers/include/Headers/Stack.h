@@ -57,14 +57,27 @@ struct Stack {
   size_t size() const { return bufferSize; }
   allocator_type get_allocator() const { return allocator; }
   const BaseHeader* first() const { return reinterpret_cast<const BaseHeader*>(this->data()); }
-  static const BaseHeader* firstHeader(o2::byte* buf) { return BaseHeader::get(buf); }
-  static const BaseHeader* lastHeader(o2::byte* buf)
+  static const BaseHeader* firstHeader(o2::byte const* buf) { return BaseHeader::get(buf); }
+  static const BaseHeader* lastHeader(o2::byte const* buf)
   {
     const BaseHeader* last{firstHeader(buf)};
     while (last && last->flagsNextHeader) {
       last = last->next();
     }
     return last;
+  }
+  static size_t headerStackSize(o2::byte const* buf)
+  {
+    size_t result = 0;
+    const BaseHeader* last{firstHeader(buf)};
+    if (last) {
+      while (last->flagsNextHeader) {
+        result += last->size();
+        last = last->next();
+      }
+      result += last->size();
+    }
+    return result;
   }
 
   //______________________________________________________________________________________________
