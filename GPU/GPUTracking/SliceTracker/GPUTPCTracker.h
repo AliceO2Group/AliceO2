@@ -256,6 +256,8 @@ class GPUTPCTracker : public GPUProcessor
 #endif
 
  private:
+  friend class GPUTPCNeighboursFinder;
+
   char* mLinkTmpMemory; // tmp memory for hits after neighbours finder
 
   int mISlice; // Number of slice
