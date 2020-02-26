@@ -162,7 +162,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
 {
   // Find best HIP device, initialize and allocate memory
 
-  hipDeviceProp_t hipDeviceProp_t;
+  hipDeviceProp_t hipDeviceProp;
 
   int count, bestDevice = -1;
   double bestDeviceSpeed = -1, deviceSpeed;
@@ -183,7 +183,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
     if (mDeviceProcessingSettings.debugLevel >= 4) {
       GPUInfo("Obtained current memory usage for device %d", i);
     }
-    if (GPUFailedMsgI(hipGetDeviceProperties(&hipDeviceProp_t, i))) {
+    if (GPUFailedMsgI(hipGetDeviceProperties(&hipDeviceProp, i))) {
       continue;
     }
     if (mDeviceProcessingSettings.debugLevel >= 4) {
@@ -191,17 +191,17 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
     }
     int deviceOK = true;
     const char* deviceFailure = "";
-    if (hipDeviceProp_t.major >= 9) {
+    if (hipDeviceProp.major >= 9) {
       deviceOK = false;
       deviceFailure = "Invalid Revision";
-    } else if (hipDeviceProp_t.major < reqVerMaj || (hipDeviceProp_t.major == reqVerMaj && hipDeviceProp_t.minor < reqVerMin)) {
+    } else if (hipDeviceProp.major < reqVerMaj || (hipDeviceProp.major == reqVerMaj && hipDeviceProp.minor < reqVerMin)) {
       deviceOK = false;
       deviceFailure = "Too low device revision";
     }
 
-    deviceSpeed = (double)hipDeviceProp_t.multiProcessorCount * (double)hipDeviceProp_t.clockRate * (double)hipDeviceProp_t.warpSize * (double)hipDeviceProp_t.major * (double)hipDeviceProp_t.major;
+    deviceSpeed = (double)hipDeviceProp.multiProcessorCount * (double)hipDeviceProp.clockRate * (double)hipDeviceProp.warpSize * (double)hipDeviceProp.major * (double)hipDeviceProp.major;
     if (mDeviceProcessingSettings.debugLevel >= 2) {
-      GPUImportant("Device %s%2d: %s (Rev: %d.%d - Mem %lld)%s %s", deviceOK ? " " : "[", i, hipDeviceProp_t.name, hipDeviceProp_t.major, hipDeviceProp_t.minor, (long long int)hipDeviceProp_t.totalGlobalMem, deviceOK ? " " : " ]", deviceOK ? "" : deviceFailure);
+      GPUImportant("Device %s%2d: %s (Rev: %d.%d - Mem %lld)%s %s", deviceOK ? " " : "[", i, hipDeviceProp.name, hipDeviceProp.major, hipDeviceProp.minor, (long long int)hipDeviceProp.totalGlobalMem, deviceOK ? " " : " ]", deviceOK ? "" : deviceFailure);
     }
     if (!deviceOK) {
       continue;
@@ -235,37 +235,37 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
   }
   mDeviceId = bestDevice;
 
-  GPUFailedMsgI(hipGetDeviceProperties(&hipDeviceProp_t, mDeviceId));
-  hipDeviceProp_t.totalConstMem = 65536; // TODO: Remove workaround, fixes incorrectly reported HIP constant memory
+  GPUFailedMsgI(hipGetDeviceProperties(&hipDeviceProp, mDeviceId));
+  hipDeviceProp.totalConstMem = 65536; // TODO: Remove workaround, fixes incorrectly reported HIP constant memory
 
   if (mDeviceProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Using HIP Device %s with Properties:", hipDeviceProp_t.name);
-    GPUInfo("\ttotalGlobalMem = %lld", (unsigned long long int)hipDeviceProp_t.totalGlobalMem);
-    GPUInfo("\tsharedMemPerBlock = %lld", (unsigned long long int)hipDeviceProp_t.sharedMemPerBlock);
-    GPUInfo("\tregsPerBlock = %d", hipDeviceProp_t.regsPerBlock);
-    GPUInfo("\twarpSize = %d", hipDeviceProp_t.warpSize);
-    GPUInfo("\tmaxThreadsPerBlock = %d", hipDeviceProp_t.maxThreadsPerBlock);
-    GPUInfo("\tmaxThreadsDim = %d %d %d", hipDeviceProp_t.maxThreadsDim[0], hipDeviceProp_t.maxThreadsDim[1], hipDeviceProp_t.maxThreadsDim[2]);
-    GPUInfo("\tmaxGridSize = %d %d %d", hipDeviceProp_t.maxGridSize[0], hipDeviceProp_t.maxGridSize[1], hipDeviceProp_t.maxGridSize[2]);
-    GPUInfo("\ttotalConstMem = %lld", (unsigned long long int)hipDeviceProp_t.totalConstMem);
-    GPUInfo("\tmajor = %d", hipDeviceProp_t.major);
-    GPUInfo("\tminor = %d", hipDeviceProp_t.minor);
-    GPUInfo("\tclockRate = %d", hipDeviceProp_t.clockRate);
-    GPUInfo("\tmemoryClockRate = %d", hipDeviceProp_t.memoryClockRate);
-    GPUInfo("\tmultiProcessorCount = %d", hipDeviceProp_t.multiProcessorCount);
+    GPUInfo("Using HIP Device %s with Properties:", hipDeviceProp.name);
+    GPUInfo("\ttotalGlobalMem = %lld", (unsigned long long int)hipDeviceProp.totalGlobalMem);
+    GPUInfo("\tsharedMemPerBlock = %lld", (unsigned long long int)hipDeviceProp.sharedMemPerBlock);
+    GPUInfo("\tregsPerBlock = %d", hipDeviceProp.regsPerBlock);
+    GPUInfo("\twarpSize = %d", hipDeviceProp.warpSize);
+    GPUInfo("\tmaxThreadsPerBlock = %d", hipDeviceProp.maxThreadsPerBlock);
+    GPUInfo("\tmaxThreadsDim = %d %d %d", hipDeviceProp.maxThreadsDim[0], hipDeviceProp.maxThreadsDim[1], hipDeviceProp.maxThreadsDim[2]);
+    GPUInfo("\tmaxGridSize = %d %d %d", hipDeviceProp.maxGridSize[0], hipDeviceProp.maxGridSize[1], hipDeviceProp.maxGridSize[2]);
+    GPUInfo("\ttotalConstMem = %lld", (unsigned long long int)hipDeviceProp.totalConstMem);
+    GPUInfo("\tmajor = %d", hipDeviceProp.major);
+    GPUInfo("\tminor = %d", hipDeviceProp.minor);
+    GPUInfo("\tclockRate = %d", hipDeviceProp.clockRate);
+    GPUInfo("\tmemoryClockRate = %d", hipDeviceProp.memoryClockRate);
+    GPUInfo("\tmultiProcessorCount = %d", hipDeviceProp.multiProcessorCount);
     GPUInfo(" ");
   }
-  mCoreCount = hipDeviceProp_t.multiProcessorCount;
-  mDeviceName = hipDeviceProp_t.name;
+  mCoreCount = hipDeviceProp.multiProcessorCount;
+  mDeviceName = hipDeviceProp.name;
   mDeviceName += " (HIP GPU)";
 
-  if (hipDeviceProp_t.major < 3) {
+  if (hipDeviceProp.major < 3) {
     GPUError("Unsupported HIP Device");
     return (1);
   }
 #ifndef GPUCA_HIP_NO_CONSTANT_MEMORY
-  if (gGPUConstantMemBufferSize > hipDeviceProp_t.totalConstMem) {
-    GPUError("Insufficient constant memory available on GPU %d < %d!", (int)hipDeviceProp_t.totalConstMem, (int)gGPUConstantMemBufferSize);
+  if (gGPUConstantMemBufferSize > hipDeviceProp.totalConstMem) {
+    GPUError("Insufficient constant memory available on GPU %d < %d!", (int)hipDeviceProp.totalConstMem, (int)gGPUConstantMemBufferSize);
     return (1);
   }
 #endif
@@ -279,29 +279,18 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
     return(1);
   }*/
 
-  if (mDeviceMemorySize > hipDeviceProp_t.totalGlobalMem) {
-    GPUError("Insufficient GPU memory (%lld < %lld)", (long long int)hipDeviceProp_t.totalGlobalMem, (long long int)mDeviceMemorySize);
+  if (mDeviceMemorySize > hipDeviceProp.totalGlobalMem || GPUFailedMsgI(hipMalloc(&mDeviceMemoryBase, mDeviceMemorySize))) {
+    GPUError("HIP Memory Allocation Error (trying %lld bytes, %lld available)", (long long int)mDeviceMemorySize, (long long int)hipDeviceProp.totalGlobalMem);
     GPUFailedMsgI(hipDeviceReset());
     return (1);
-  }
-  if (GPUFailedMsgI(hipMalloc(&mDeviceMemoryBase, mDeviceMemorySize))) {
-    GPUError("HIP Memory Allocation Error");
-    GPUFailedMsgI(hipDeviceReset());
-    return (1);
-  }
-  if (mDeviceProcessingSettings.debugLevel >= 1) {
-    GPUInfo("GPU Memory used: %lld (Ptr 0x%p)", (long long int)mDeviceMemorySize, mDeviceMemoryBase);
   }
   if (GPUFailedMsgI(hipHostMalloc(&mHostMemoryBase, mHostMemorySize))) {
-    GPUError("Error allocating Page Locked Host Memory");
+    GPUError("Error allocating Page Locked Host Memory (trying %lld bytes)", (long long int)mHostMemorySize);
     GPUFailedMsgI(hipDeviceReset());
     return (1);
   }
   if (mDeviceProcessingSettings.debugLevel >= 1) {
-    GPUInfo("Host Memory used: %lld (Ptr 0x%p)", (long long int)mHostMemorySize, mHostMemoryBase);
-  }
-
-  if (mDeviceProcessingSettings.debugLevel >= 1) {
+    GPUInfo("Memory ptrs: GPU (%lld bytes): %p - Host (%lld bytes): %p", (long long int)mDeviceMemorySize, mDeviceMemoryBase, (long long int)mHostMemorySize, mHostMemoryBase);
     memset(mHostMemoryBase, 0, mHostMemorySize);
     if (GPUFailedMsgI(hipMemset(mDeviceMemoryBase, 0xDD, mDeviceMemorySize))) {
       GPUError("Error during HIP memset, trying workaround with kernel");
@@ -350,7 +339,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
   }
 
   hipLaunchKernelGGL(HIP_KERNEL_NAME(dummyInitKernel), dim3(mCoreCount), dim3(256), 0, 0, mDeviceMemoryBase);
-  GPUInfo("HIP Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %lld / %lld bytes host / global memory, Stack frame %d, Constant memory %lld)", mDeviceId, hipDeviceProp_t.name, hipDeviceProp_t.clockRate, hipDeviceProp_t.multiProcessorCount, (long long int)mHostMemorySize,
+  GPUInfo("HIP Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %lld / %lld bytes host / global memory, Stack frame %d, Constant memory %lld)", mDeviceId, hipDeviceProp.name, hipDeviceProp.clockRate, hipDeviceProp.multiProcessorCount, (long long int)mHostMemorySize,
           (long long int)mDeviceMemorySize, (int)GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
 
   return (0);
