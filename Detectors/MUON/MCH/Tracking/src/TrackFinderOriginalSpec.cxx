@@ -90,11 +90,7 @@ class TrackFinderTask
 
     // get the input clusters
     std::array<std::list<Cluster>, 10> clusters{};
-    try {
-      readClusters(bufferPtr, sizeLeft, clusters);
-    } catch (exception const& e) {
-      throw;
-    }
+    readClusters(bufferPtr, sizeLeft, clusters);
 
     // run the track finder
     auto tStart = std::chrono::high_resolution_clock::now();
