@@ -130,7 +130,6 @@ uint64_t getMask(header::DataDescription description)
     return AODTypeMask::Unknown;
     LOG(INFO) << "This is a tree of unknown type! " << description.str;
   }
-
 }
 
 uint64_t calculateReadMask(std::vector<OutputRoute> const& routes, header::DataOrigin const& origin)
@@ -139,9 +138,8 @@ uint64_t calculateReadMask(std::vector<OutputRoute> const& routes, header::DataO
   for (auto& route : routes) {
     auto concrete = DataSpecUtils::asConcreteDataTypeMatcher(route.matcher);
     auto description = concrete.description;
-    
+
     readMask |= getMask(description);
-    
   }
   return readMask;
 }
@@ -152,13 +150,11 @@ std::vector<OutputRoute> getListOfUnknown(std::vector<OutputRoute> const& routes
   std::vector<OutputRoute> unknows;
   for (auto& route : routes) {
     auto concrete = DataSpecUtils::asConcreteDataTypeMatcher(route.matcher);
-    
+
     if (getMask(concrete.description) == AODTypeMask::Unknown)
       unknows.push_back(route);
-    
   }
   return unknows;
-
 }
 
 AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
@@ -410,14 +406,14 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
                                               c8, c9, c10, c11, c12, c13, c14,
                                               c15, c16, c17, c18, c19, c20);
       }
-      
+
       // tables not included in the DataModel
       if (readMask & AODTypeMask::Unknown) {
-      
+
         // loop over unknowns
-        for (auto route: unknowns) {
+        for (auto route : unknowns) {
           auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
-      
+
           // get the tree from infile
           auto trname = concrete.description.str;
           auto tr = (TTree*)infile.get()->Get(trname);
@@ -425,18 +421,16 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
             LOG(ERROR) << "Tree " << trname << "is not contained in file " << f;
             return;
           }
-          
+
           // create a TreeToTable object
           auto h = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
           auto o = Output(h);
-          auto& t2t = outputs.make<TreeToTable>(o,tr);
-          
+          auto& t2t = outputs.make<TreeToTable>(o, tr);
+
           // fill the table
           t2t.Fill();
-      
         }
       }
-      
     });
   })};
 

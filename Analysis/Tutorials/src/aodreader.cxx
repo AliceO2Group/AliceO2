@@ -18,7 +18,7 @@ namespace uno
 DECLARE_SOA_COLUMN(Eta, eta, float, "fEta1");
 DECLARE_SOA_COLUMN(Phi, phi, int, "fPhi1");
 DECLARE_SOA_COLUMN(Mom, mom, double, "fMom1");
-} // namespace etaphi
+} // namespace uno
 
 DECLARE_SOA_TABLE(Uno, "AOD", "UNO",
                   uno::Eta, uno::Phi, uno::Mom);
@@ -58,7 +58,7 @@ struct ATask {
       cnt++;
     }
     LOGF(INFO, "ATask Processed %i data points from Uno", cnt);
-    
+
     cnt = 0;
     for (auto& due : dues) {
       auto eta = due.eta();
@@ -70,7 +70,6 @@ struct ATask {
     LOGF(INFO, "ATask Processed %i data points from Due", cnt);
   }
 };
-
 
 struct BTask {
   void process(aod::Due const& dues)
@@ -87,11 +86,9 @@ struct BTask {
   }
 };
 
-
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
     adaptAnalysisTask<ATask>("process-unodue"),
-    adaptAnalysisTask<BTask>("process-due")
-  };
+    adaptAnalysisTask<BTask>("process-due")};
 }

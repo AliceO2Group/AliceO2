@@ -79,6 +79,5 @@ struct ATask {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("produce-unodue")
-  };
+    adaptAnalysisTask<ATask>("produce-unodue")};
 }
