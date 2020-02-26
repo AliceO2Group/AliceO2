@@ -25,6 +25,7 @@ o2_add_library(
           src/GBTUserLogicEncoder.cxx
           src/LocalBoardRO.cxx
           src/RawBuffer.cxx
+          src/DecodedDataAggregator.cxx
           src/RawFileReader.cxx
   PUBLIC_LINK_LIBRARIES ms_gsl::ms_gsl O2::DataFormatsMID O2::Headers
                         O2::CommonConstants O2::DetectorsRaw O2::MIDBase)
