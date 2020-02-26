@@ -254,7 +254,6 @@ DataProcessorSpec
         return;
       }
 
-
       // open new file if ntfmerge time frames is reached
       LOG(DEBUG) << "This is time frame number " << ntf;
 
@@ -300,13 +299,12 @@ DataProcessorSpec
         // this table needs to be saved to file
         // use TableToTree
         TableToTree ta2tr(table, fout.get(), treename.c_str());
-        
+
         // all columns of the table are saved
         ta2tr.AddAllBranches();
         // to select specific columns use ...
         // ta2tr.AddBranch(colname);
         ta2tr.Process();
-        
       }
     });
   }; // end of writerFunction
