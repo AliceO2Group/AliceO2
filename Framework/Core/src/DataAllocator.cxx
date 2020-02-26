@@ -168,12 +168,11 @@ void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
 void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
 {
   std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
-  
   LOG(INFO) << "DataAllocator::adopt channel " << channel.c_str();
-  
+
   auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodArrow, 0);
   auto context = mContextRegistry->get<ArrowContext>();
-  
+
   auto creator = [device = context->proxy().getDevice()](size_t s) -> std::unique_ptr<FairMQMessage> {
     return device->NewMessage(s);
   };

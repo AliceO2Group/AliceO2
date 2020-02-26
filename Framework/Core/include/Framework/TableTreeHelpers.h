@@ -653,7 +653,7 @@ class TreeToTable
     // create the table
     return Finalize();
   }
-  
+
   // do the looping with the TTreeReader
   void Fill()
   {
@@ -683,7 +683,6 @@ class TreeToTable
 
     return ta;
   }
-
 };
 
 // -----------------------------------------------------------------------------

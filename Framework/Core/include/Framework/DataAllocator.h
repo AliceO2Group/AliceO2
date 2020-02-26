@@ -144,7 +144,7 @@ class DataAllocator
         t2t = new std::decay_t<decltype(*p)>(args...);
         t2t->AddAllColumns();
         adopt(spec, t2t);
-      });      
+      });
       return *t2t;
     } else if constexpr (sizeof...(Args) == 0) {
       if constexpr (is_messageable<T>::value == true) {

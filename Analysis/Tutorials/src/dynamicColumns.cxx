@@ -60,15 +60,15 @@ struct BTask {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   // create and use table
-  //  return WorkflowSpec{
-  //    adaptAnalysisTask<ATask>("produce-track-copy"),
-  //    adaptAnalysisTask<BTask>("check-eta-phi")};
+  return WorkflowSpec{
+    adaptAnalysisTask<ATask>("produce-track-copy"),
+    adaptAnalysisTask<BTask>("check-eta-phi")};
 
   //  only create table -> tabwle is written to file
   //return WorkflowSpec{
   //  adaptAnalysisTask<ATask>("produce-track-copy")};
 
   // only use table -> table is read from file
-  return WorkflowSpec{
-   adaptAnalysisTask<BTask>("check-eta-phi")};
+  //return WorkflowSpec{
+  // adaptAnalysisTask<BTask>("check-eta-phi")};
 }
