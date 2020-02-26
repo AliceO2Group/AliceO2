@@ -27,7 +27,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 //
 
 MEM_CLASS_PRE()
-GPUd() float MEM_LG(GPUTPCTrackParam)::GetDist2(const MEM_LG(GPUTPCTrackParam) & t) const
+GPUd() float MEM_LG(GPUTPCTrackParam)::GetDist2(const MEM_LG(GPUTPCTrackParam) & GPUrestrict() t) const
 {
   // get squared distance between tracks
 
@@ -38,7 +38,7 @@ GPUd() float MEM_LG(GPUTPCTrackParam)::GetDist2(const MEM_LG(GPUTPCTrackParam) &
 }
 
 MEM_CLASS_PRE()
-GPUd() float MEM_LG(GPUTPCTrackParam)::GetDistXZ2(const MEM_LG(GPUTPCTrackParam) & t) const
+GPUd() float MEM_LG(GPUTPCTrackParam)::GetDistXZ2(const MEM_LG(GPUTPCTrackParam) & GPUrestrict() t) const
 {
   // get squared distance between tracks in X&Z
 
@@ -65,7 +65,7 @@ GPUd() float MEM_LG(GPUTPCTrackParam)::GetS(float x, float y, float Bz) const
 }
 
 MEM_CLASS_PRE()
-GPUd() void MEM_LG(GPUTPCTrackParam)::GetDCAPoint(float x, float y, float z, float& xp, float& yp, float& zp, float Bz) const
+GPUd() void MEM_LG(GPUTPCTrackParam)::GetDCAPoint(float x, float y, float z, float& GPUrestrict() xp, float& GPUrestrict() yp, float& GPUrestrict() zp, float Bz) const
 {
   //* Get the track point closest to the (x,y,z)
 
@@ -96,7 +96,7 @@ GPUd() void MEM_LG(GPUTPCTrackParam)::GetDCAPoint(float x, float y, float z, flo
 //*
 
 MEM_CLASS_PRE()
-GPUd() bool MEM_LG(GPUTPCTrackParam)::TransportToX(float x, GPUTPCTrackLinearisation& t0, float Bz, float maxSinPhi, float* DL)
+GPUd() bool MEM_LG(GPUTPCTrackParam)::TransportToX(float x, GPUTPCTrackLinearisation& GPUrestrict() t0, float Bz, float maxSinPhi, float* GPUrestrict() DL)
 {
   //* Transport the track parameters to X=x, using linearization at t0, and the field value Bz
   //* maxSinPhi is the max. allowed value for |t0.SinPhi()|
@@ -306,7 +306,7 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::TransportToX(float x, float Bz, float maxS
 }
 
 MEM_CLASS_PRE()
-GPUd() bool MEM_LG(GPUTPCTrackParam)::TransportToXWithMaterial(float x, GPUTPCTrackLinearisation& t0, GPUTPCTrackFitParam& par, float Bz, float maxSinPhi)
+GPUd() bool MEM_LG(GPUTPCTrackParam)::TransportToXWithMaterial(float x, GPUTPCTrackLinearisation& GPUrestrict() t0, GPUTPCTrackFitParam& GPUrestrict() par, float Bz, float maxSinPhi)
 {
   //* Transport the track parameters to X=x  taking into account material budget
 
@@ -324,7 +324,7 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::TransportToXWithMaterial(float x, GPUTPCTr
 }
 
 MEM_CLASS_PRE()
-GPUd() bool MEM_LG(GPUTPCTrackParam)::TransportToXWithMaterial(float x, GPUTPCTrackFitParam& par, float Bz, float maxSinPhi)
+GPUd() bool MEM_LG(GPUTPCTrackParam)::TransportToXWithMaterial(float x, GPUTPCTrackFitParam& GPUrestrict() par, float Bz, float maxSinPhi)
 {
   //* Transport the track parameters to X=x  taking into account material budget
 

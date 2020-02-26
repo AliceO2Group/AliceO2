@@ -158,7 +158,7 @@ class GPUTPCGMTrackParam
 
   GPUd() int FollowCircle(const GPUTPCGMMerger* Merger, GPUTPCGMPropagator& prop, int slice, int iRow, int iTrack, bool goodLeg, float toAlpha, float toX, float toY, int toSlice, int toRow, bool inFlyDirection);
 
-  GPUd() void MarkClusters(GPUTPCGMMergedTrackHit* clusters, int ihitFirst, int ihitLast, int wayDirection, unsigned char state)
+  GPUd() void MarkClusters(GPUTPCGMMergedTrackHit* GPUrestrict() clusters, int ihitFirst, int ihitLast, int wayDirection, unsigned char state)
   {
     clusters[ihitFirst].state |= state;
     while (ihitFirst != ihitLast) {
@@ -166,7 +166,7 @@ class GPUTPCGMTrackParam
       clusters[ihitFirst].state |= state;
     }
   }
-  GPUd() void UnmarkClusters(GPUTPCGMMergedTrackHit* clusters, int ihitFirst, int ihitLast, int wayDirection, unsigned char state)
+  GPUd() void UnmarkClusters(GPUTPCGMMergedTrackHit* GPUrestrict() clusters, int ihitFirst, int ihitLast, int wayDirection, unsigned char state)
   {
     clusters[ihitFirst].state &= ~state;
     while (ihitFirst != ihitLast) {

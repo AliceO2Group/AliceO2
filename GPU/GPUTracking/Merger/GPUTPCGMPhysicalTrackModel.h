@@ -164,7 +164,7 @@ class GPUTPCGMPhysicalTrackModel
 
 GPUdi() GPUTPCGMPhysicalTrackModel::GPUTPCGMPhysicalTrackModel(const GPUTPCGMTrackParam& t) { Set(t); }
 
-GPUdi() void GPUTPCGMPhysicalTrackModel::Set(const GPUTPCGMTrackParam& t)
+GPUdi() void GPUTPCGMPhysicalTrackModel::Set(const GPUTPCGMTrackParam& GPUrestrict() t)
 {
   float pti = CAMath::Abs(t.GetQPt());
   if (pti < 1.e-4f) {

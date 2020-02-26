@@ -40,7 +40,7 @@ static inline float fastInvSqrt(float _x)
   return x.f;
 }
 
-inline void GPUTPCSliceData::CreateGrid(GPUTPCRow* row, const float2* data, int ClusterDataHitNumberOffset)
+inline void GPUTPCSliceData::CreateGrid(GPUTPCRow* GPUrestrict() row, const float2* GPUrestrict() data, int ClusterDataHitNumberOffset)
 {
   // grid creation
   if (row->NHits() <= 0) { // no hits or invalid data
@@ -80,7 +80,7 @@ inline void GPUTPCSliceData::CreateGrid(GPUTPCRow* row, const float2* data, int 
   row->mGrid.Create(yMin, yMax, zMin, zMax, CAMath::Max((yMax - yMin) * norm, 2.f), CAMath::Max(dz * norm, 2.f));
 }
 
-inline int GPUTPCSliceData::PackHitData(GPUTPCRow* const row, const GPUTPCHit* binSortedHits)
+inline int GPUTPCSliceData::PackHitData(GPUTPCRow* const GPUrestrict() row, const GPUTPCHit* GPUrestrict() binSortedHits)
 {
   // hit data packing
   static const float maxVal = (((long long int)1 << CAMath::Min((size_t)24, sizeof(cahit) * 8)) - 1); // Stay within float precision in any case!
@@ -175,7 +175,7 @@ void* GPUTPCSliceData::SetPointersRows(void* mem)
   return mem;
 }
 
-int GPUTPCSliceData::InitFromClusterData(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, int iSlice)
+int GPUTPCSliceData::InitFromClusterData(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * GPUrestrict() mem, int iSlice)
 {
   ////////////////////////////////////
   // 0. sort rows

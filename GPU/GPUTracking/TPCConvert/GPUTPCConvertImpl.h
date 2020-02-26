@@ -26,7 +26,7 @@ namespace gpu
 class GPUTPCConvertImpl
 {
  public:
-  GPUd() static void convert(const GPUConstantMem& cm, int slice, int row, float pad, float time, float& x, float& y, float& z)
+  GPUd() static void convert(const GPUConstantMem& GPUrestrict() cm, int slice, int row, float pad, float time, float& GPUrestrict() x, float& GPUrestrict() y, float& GPUrestrict() z)
   {
     if (cm.param.ContinuousTracking) {
       cm.calibObjects.fastTransform->TransformInTimeFrame(slice, row, pad, time, x, y, z, cm.param.continuousMaxTimeBin);

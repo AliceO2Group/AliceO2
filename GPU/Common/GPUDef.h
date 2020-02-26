@@ -37,7 +37,7 @@
 #endif
 
 #ifdef GPUCA_GPUCODE
-  #define CA_MAKE_SHARED_REF(vartype, varname, varglobal, varshared) const GPUsharedref() MEM_LOCAL(vartype) &varname = varshared;
+  #define CA_MAKE_SHARED_REF(vartype, varname, varglobal, varshared) const GPUsharedref() MEM_LOCAL(vartype) & __restrict__ varname = varshared;
   #define CA_SHARED_STORAGE(storage) storage
   #define CA_SHARED_CACHE(target, src, size) \
     static_assert((size) % sizeof(int) == 0, "Invalid shared cache size"); \
@@ -46,12 +46,12 @@
     }
   #define CA_SHARED_CACHE_REF(target, src, size, reftype, ref) \
     CA_SHARED_CACHE(target, src, size) \
-    GPUsharedref() const reftype* ref = (target)
+    GPUsharedref() const reftype* __restrict__ ref = (target)
 #else
-  #define CA_MAKE_SHARED_REF(vartype, varname, varglobal, varshared) const GPUglobalref() MEM_GLOBAL(vartype) &varname = varglobal;
+  #define CA_MAKE_SHARED_REF(vartype, varname, varglobal, varshared) const GPUglobalref() MEM_GLOBAL(vartype) & __restrict__ varname = varglobal;
   #define CA_SHARED_STORAGE(storage)
   #define CA_SHARED_CACHE(target, src, size)
-  #define CA_SHARED_CACHE_REF(target, src, size, reftype, ref) GPUglobalref() const reftype* ref = src
+  #define CA_SHARED_CACHE_REF(target, src, size, reftype, ref) GPUglobalref() const reftype* __restrict__ ref = src
 #endif
 
 #ifdef GPUCA_TEXTURE_FETCH_CONSTRUCTOR

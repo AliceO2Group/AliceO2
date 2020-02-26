@@ -177,6 +177,8 @@
 #define GPUconstexprref()
 #endif
 
+#define GPUrestrict() // We don't use restrict at the moment, could try at a later time
+
 // Macros for GRID dimension
 #if defined(__CUDACC__) || defined(__HIPCC__)
   #define get_global_id(dim) (blockIdx.x * blockDim.x + threadIdx.x)

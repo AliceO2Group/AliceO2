@@ -158,7 +158,7 @@ GPUdi() void GPUTPCGMPropagator::SetMaterial(float radLen, float rho)
   CalculateMaterialCorrection();
 }
 
-GPUdi() void GPUTPCGMPropagator::SetTrack(GPUTPCGMTrackParam* track, float Alpha)
+GPUdi() void GPUTPCGMPropagator::SetTrack(GPUTPCGMTrackParam* GPUrestrict() track, float Alpha)
 {
   mT = track;
   if (!mT) {

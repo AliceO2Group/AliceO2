@@ -82,7 +82,7 @@ GPUdi() void GPUdEdx::checkSubThresh(int roc)
   mLastROC = roc;
 }
 
-GPUdi() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, float trackSnp, float trackTgl, const GPUParam& param)
+GPUdi() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, float trackSnp, float trackTgl, const GPUParam& GPUrestrict() param)
 {
   if (mCount >= MAX_NCL) {
     return;
@@ -109,7 +109,7 @@ GPUdi() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, float trac
   }
 }
 
-GPUdi() void GPUdEdx::fillSubThreshold(int padRow, const GPUParam& param)
+GPUdi() void GPUdEdx::fillSubThreshold(int padRow, const GPUParam& GPUrestrict() param)
 {
   const int roc = param.tpcGeometry.GetROC(padRow);
   checkSubThresh(roc);

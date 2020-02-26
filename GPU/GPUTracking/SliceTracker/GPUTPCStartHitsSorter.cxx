@@ -17,7 +17,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
-GPUdii() void GPUTPCStartHitsSorter::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & s, processorType& tracker)
+GPUdii() void GPUTPCStartHitsSorter::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() s, processorType& GPUrestrict() tracker)
 {
   // Sorts the Start Hits by Row Index
   if (iThread == 0) {
@@ -39,8 +39,8 @@ GPUdii() void GPUTPCStartHitsSorter::Thread<0>(int nBlocks, int nThreads, int iB
 
   int startOffset = s.mStartOffset;
   for (int ir = 0; ir < s.mNRows; ir++) {
-    GPUglobalref() GPUTPCHitId* const startHits = tracker.TrackletStartHits();
-    GPUglobalref() GPUTPCHitId* const tmpStartHits = tracker.TrackletTmpStartHits() + (s.mStartRow + ir) * tracker.NMaxRowStartHits();
+    GPUglobalref() GPUTPCHitId* const GPUrestrict() startHits = tracker.TrackletStartHits();
+    GPUglobalref() GPUTPCHitId* const GPUrestrict() tmpStartHits = tracker.TrackletTmpStartHits() + (s.mStartRow + ir) * tracker.NMaxRowStartHits();
     const int tmpLen = tracker.RowStartHitCountOffset()[ir + s.mStartRow]; // Length of hits in row stored by StartHitsFinder
 
     for (int j = iThread; j < tmpLen; j += nThreads) {

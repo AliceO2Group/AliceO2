@@ -19,7 +19,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
-GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & s, processorType& tracker)
+GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() s, processorType& GPUrestrict() tracker)
 {
   //* find neighbours
 
@@ -37,9 +37,9 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
     s.mIRow = iBlock;
     if (s.mIRow < GPUCA_ROW_COUNT) {
 #ifdef GPUCA_GPUCODE
-      GPUsharedref() const MEM_LOCAL(GPUTPCRow)& row = s.mRow;
+      GPUsharedref() const MEM_LOCAL(GPUTPCRow) & GPUrestrict() row = s.mRow;
 #else
-      GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(s.mIRow);
+      GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() row = tracker.Row(s.mIRow);
 #endif
       s.mNHits = row.NHits();
 
@@ -50,11 +50,11 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
         // references to the rows above and below
 
 #ifdef GPUCA_GPUCODE
-        GPUsharedref() const MEM_LOCAL(GPUTPCRow)& rowUp = s.mRowUp;
-        GPUsharedref() const MEM_LOCAL(GPUTPCRow)& rowDn = s.mRowDown;
+        GPUsharedref() const MEM_LOCAL(GPUTPCRow) & GPUrestrict() rowUp = s.mRowUp;
+        GPUsharedref() const MEM_LOCAL(GPUTPCRow) & GPUrestrict() rowDn = s.mRowDown;
 #else
-        GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& rowUp = tracker.Row(s.mIRowUp);
-        GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& rowDn = tracker.Row(s.mIRowDn);
+        GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() rowUp = tracker.Row(s.mIRowUp);
+        GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() rowDn = tracker.Row(s.mIRowDn);
 #endif
         // the axis perpendicular to the rows
         const float xDn = rowDn.X();
@@ -82,9 +82,9 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
 
   if ((s.mIRow <= 1) || (s.mIRow >= GPUCA_ROW_COUNT - 2)) {
 #ifdef GPUCA_GPUCODE
-    GPUsharedref() const MEM_LOCAL(GPUTPCRow)& row = s.mRow;
+    GPUsharedref() const MEM_LOCAL(GPUTPCRow) & GPUrestrict() row = s.mRow;
 #else
-    GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(s.mIRow);
+    GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() row = tracker.Row(s.mIRow);
 #endif
     for (int ih = iThread; ih < s.mNHits; ih += nThreads) {
       tracker.SetHitLinkUpData(row, ih, CALINK_INVAL);
@@ -96,13 +96,13 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
   float chi2Cut = 3.f * 3.f * 4 * (s.mUpDx * s.mUpDx + s.mDnDx * s.mDnDx);
 // float chi2Cut = 3.*3.*(s.mUpDx*s.mUpDx + s.mDnDx*s.mDnDx ); //SG
 #ifdef GPUCA_GPUCODE
-  GPUsharedref() const MEM_LOCAL(GPUTPCRow)& row = s.mRow;
-  GPUsharedref() const MEM_LOCAL(GPUTPCRow)& rowUp = s.mRowUp;
-  GPUsharedref() const MEM_LOCAL(GPUTPCRow)& rowDn = s.mRowDown;
+  GPUsharedref() const MEM_LOCAL(GPUTPCRow) & GPUrestrict() row = s.mRow;
+  GPUsharedref() const MEM_LOCAL(GPUTPCRow) & GPUrestrict() rowUp = s.mRowUp;
+  GPUsharedref() const MEM_LOCAL(GPUTPCRow) & GPUrestrict() rowDn = s.mRowDown;
 #else
-  GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(s.mIRow);
-  GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& rowUp = tracker.Row(s.mIRowUp);
-  GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& rowDn = tracker.Row(s.mIRowDn);
+  GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() row = tracker.Row(s.mIRow);
+  GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() rowUp = tracker.Row(s.mIRowUp);
+  GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() rowDn = tracker.Row(s.mIRowDn);
 #endif
   const float y0 = row.Grid().YMin();
   const float z0 = row.Grid().ZMin();
