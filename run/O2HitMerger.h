@@ -318,7 +318,7 @@ class O2HitMerger : public FairMQDevice
     to.mergeAtBack(from);
   }
   template <typename T>
-  void remapTrackIdsAndMerge(std::string brname, TTree& origin, TTree& target, const std::vector<int> trackoffsets)
+  void remapTrackIdsAndMerge(std::string brname, TTree& origin, TTree& target, const std::vector<int>& trackoffsets)
   {
     //
     // Remap the mother track IDs by adding an offset.
