@@ -952,7 +952,7 @@ int GPUChainTracking::RunTPCClusterizer()
 
   // setup MC Labels
   auto* digitsMC = processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC;
-  bool propagateMCLabels = !doGPU && digitsMC != nullptr;
+  bool propagateMCLabels = !doGPU && digitsMC != nullptr && GetDeviceProcessingSettings().runMC;
 
   GPUTPCLinearLabels mcLinearLabels;
   mcLinearLabels.header.reserve(mRec->MemoryScalers()->nTPCHits);

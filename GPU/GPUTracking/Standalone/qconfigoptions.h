@@ -87,6 +87,7 @@ AddOption(constructorPipeline, int, -1, "constructorPipeline", 0, "Run tracklet 
 AddOption(selectorPipeline, int, -1, "selectorPipeline", 0, "Run tracklet selector in pipeline")
 AddOption(recoSteps, int, -1, "recoSteps", 0, "Bitmask for RecoSteps")
 AddOption(recoStepsGPU, int, -1, "recoStepsGPU", 0, "Bitmask for RecoSteps")
+AddOption(runMC, bool, false, "runMC", 0, "Process MC labels")
 AddHelp("help", 'h')
 EndConfig()
 
