@@ -205,7 +205,7 @@ typedef GPUCommonAlgorithm CAAlgo;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#if defined(__CUDACC__) //|| defined(__HIPCC__)
+#if (defined(__CUDACC__) && !defined(__clang__)) //|| defined(__HIPCC__)
 
 // currently disable Thrust for the AMD, since the GPUCommonAlgorithm::QuickSort is faster
 

@@ -54,7 +54,7 @@ class GPUTPCGMPropagator
   GPUdDefault() GPUTPCGMPropagator() CON_DEFAULT;
 
   struct MaterialCorrection {
-    GPUd() MaterialCorrection() : radLen(29.532f), rho(1.025e-3f), rhoOverRadLen(rho / radLen), DLMax(0.f), EP2(0.f), sigmadE2(0.f), k22(0.f), k33(0.f), k43(0.f), k44(0.f) {}
+    GPUhd() MaterialCorrection() : radLen(29.532f), rho(1.025e-3f), rhoOverRadLen(rho / radLen), DLMax(0.f), EP2(0.f), sigmadE2(0.f), k22(0.f), k33(0.f), k43(0.f), k44(0.f) {}
 
     float radLen, rho, rhoOverRadLen, DLMax, EP2, sigmadE2, k22, k33, k43, k44; // precalculated values for MS and EnergyLoss correction
   };
