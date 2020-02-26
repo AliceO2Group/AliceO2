@@ -13,7 +13,7 @@
 
 #include <boost/test/unit_test.hpp>
 #include "../src/ChannelSpecHelpers.h"
-#include "../src/DeviceSpecHelpers.h"
+#include "Framework/DeviceSpecHelpers.h"
 #include "../src/GraphvizHelpers.h"
 #include "../src/WorkflowHelpers.h"
 #include "Framework/DeviceSpec.h"
