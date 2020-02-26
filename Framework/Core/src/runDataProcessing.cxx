@@ -39,17 +39,18 @@
 #include "Framework/TextControlService.h"
 #include "Framework/CallbackService.h"
 #include "Framework/WorkflowSpec.h"
+#include "Framework/DeviceSpecHelpers.h"
 
 #include "ComputingResourceHelpers.h"
 #include "DataProcessingStatus.h"
 #include "DDSConfigHelpers.h"
 #include "O2ControlHelpers.h"
-#include "DeviceSpecHelpers.h"
 #include "DriverControl.h"
 #include "DriverInfo.h"
 #include "DataProcessorInfo.h"
 #include "GraphvizHelpers.h"
 #include "SimpleResourceManager.h"
+#include "WorkflowHelpers.h"
 #include "WorkflowSerializationHelpers.h"
 
 #include <Monitoring/MonitoringFactory.h>

@@ -22,9 +22,6 @@
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/OutputRoute.h"
-#include "ResourceManager.h"
-#include "DataProcessorInfo.h"
-#include "WorkflowHelpers.h"
 #include <boost/program_options.hpp>
 
 #include <vector>
@@ -37,6 +34,13 @@ namespace framework
 {
 struct InputChannelSpec;
 struct OutputChannelSpec;
+struct ResourceManager;
+struct DataProcessorInfo;
+struct DeviceId;
+struct DeviceConnectionId;
+struct DeviceConnectionEdge;
+struct EdgeAction;
+struct LogicalForwardInfo;
 
 struct DeviceSpecHelpers {
   /// Helper to convert from an abstract dataflow specification, @a workflow,

@@ -12,7 +12,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-#include "../src/DeviceSpecHelpers.h"
+#include "Framework/DeviceSpecHelpers.h"
 #include "../src/SimpleResourceManager.h"
 #include "../src/ComputingResourceHelpers.h"
 #include "Framework/DeviceControl.h"
