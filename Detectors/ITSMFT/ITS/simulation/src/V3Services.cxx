@@ -2086,7 +2086,6 @@ void V3Services::obConeSideA(TGeoVolume* mother, const TGeoManager* mgr)
 
   mother->AddNode(obConeRibVol, 3, new TGeoCombiTrans(-xpos, ypos, zpos, new TGeoRotation("", 0, -90, -180)));
   mother->AddNode(obConeRibVol, 4, new TGeoCombiTrans(xpos, -ypos, zpos, new TGeoRotation("", 0, 90, 0)));
-
 }
 
 void V3Services::obConeTraysSideA(TGeoVolume* mother, const TGeoManager* mgr)
@@ -2151,7 +2150,7 @@ void V3Services::obConeTraysSideA(TGeoVolume* mother, const TGeoManager* mgr)
   // We have all shapes: now create the real volumes
   TGeoMedium* medCarbon = mgr->GetMedium("ITS_M55J6K$"); // TO BE CHECKED
 
-  TGeoVolume* obTrayVol[2], *obTrayRibVol[2];
+  TGeoVolume *obTrayVol[2], *obTrayRibVol[2];
 
   for (Int_t j = 0; j < 2; j++) {
     obTrayVol[j] = new TGeoVolume(Form("OBConeTray%d", j), obTraySh[j], medCarbon);
@@ -2183,7 +2182,6 @@ void V3Services::obConeTraysSideA(TGeoVolume* mother, const TGeoManager* mgr)
     mother->AddNode(obTrayRibVol[j], 3, new TGeoTranslation(xpos, ypos, zpos));
     mother->AddNode(obTrayRibVol[j], 4, new TGeoTranslation(-xpos, ypos, zpos));
   }
-
 }
 
 void V3Services::obConeSideC(TGeoVolume* mother, const TGeoManager* mgr)
@@ -2339,5 +2337,4 @@ void V3Services::obConeSideC(TGeoVolume* mother, const TGeoManager* mgr)
 
   mother->AddNode(obConeRibVol, 3, new TGeoCombiTrans(xpos, ypos, -zpos, new TGeoRotation("", 0, -90, 0)));
   mother->AddNode(obConeRibVol, 4, new TGeoCombiTrans(-xpos, -ypos, -zpos, new TGeoRotation("", 0, 90, 180)));
-
 }

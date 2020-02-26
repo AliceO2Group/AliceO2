@@ -713,43 +713,40 @@ TGeoVolume* Detector::createWrapperVolume(Int_t id)
   TGeoShape* tube;
   Double_t zlen;
   switch (id) {
-    case 0:   // IB Layer 0,1,2: simple cylinder
-      {
-        TGeoTube* wrap = new TGeoTube(mWrapperMinRadius[id], mWrapperMaxRadius[id], mWrapperZSpan[id] / 2.);
-        tube = (TGeoShape*)wrap;
-      }
-      break;
-    case 1:   // MB Layer 3,4: complex Pcon to avoid MFT overlaps
-      {
-        TGeoPcon* wrap = new TGeoPcon(0, 360, 6);
-        zlen = mWrapperZSpan[id] / 2 + suppRingCZlen[0];
-        wrap->DefineSection(0, -zlen, suppRingsRmin[0], mWrapperMaxRadius[id]);
-        zlen = mWrapperZSpan[id] / 2 + suppRingCZlen[1];
-        wrap->DefineSection(1, -zlen, suppRingsRmin[0], mWrapperMaxRadius[id]);
-        wrap->DefineSection(2, -zlen, suppRingsRmin[1], mWrapperMaxRadius[id]);
-        wrap->DefineSection(3, -mWrapperZSpan[id] / 2., suppRingsRmin[1], mWrapperMaxRadius[id]);
-        wrap->DefineSection(4, -mWrapperZSpan[id] / 2., mWrapperMinRadius[id], mWrapperMaxRadius[id]);
-        zlen = mWrapperZSpan[id] / 2 + suppRingAZlen;
-        wrap->DefineSection(5, zlen, mWrapperMinRadius[id], mWrapperMaxRadius[id]);
-        tube = (TGeoShape*)wrap;
-      }
-      break;
-    case 2:   // OB Layer 5,6: simpler Pcon to avoid OB cones overlaps
-      {
-        TGeoPcon* wrap = new TGeoPcon(0, 360, 6);
-        zlen = mWrapperZSpan[id] / 2;
-        wrap->DefineSection(0, -zlen, suppRingsRmin[2], mWrapperMaxRadius[id]);
-        zlen -= suppRingCZlen[2];
-        wrap->DefineSection(1, -zlen, suppRingsRmin[2], mWrapperMaxRadius[id]);
-        wrap->DefineSection(2, -zlen, mWrapperMinRadius[id], mWrapperMaxRadius[id]);
-        zlen = mWrapperZSpan[id] / 2 - coneRingAZlen;
-        wrap->DefineSection(3, zlen, mWrapperMinRadius[id], mWrapperMaxRadius[id]);
-        wrap->DefineSection(4, zlen, coneRingARmax, mWrapperMaxRadius[id]);
-        wrap->DefineSection(5, mWrapperZSpan[id] / 2, coneRingARmax, mWrapperMaxRadius[id]);
-        tube = (TGeoShape*)wrap;
-      }
-      break;
-    default:   // Can never happen, keeps gcc quiet
+    case 0: // IB Layer 0,1,2: simple cylinder
+    {
+      TGeoTube* wrap = new TGeoTube(mWrapperMinRadius[id], mWrapperMaxRadius[id], mWrapperZSpan[id] / 2.);
+      tube = (TGeoShape*)wrap;
+    } break;
+    case 1: // MB Layer 3,4: complex Pcon to avoid MFT overlaps
+    {
+      TGeoPcon* wrap = new TGeoPcon(0, 360, 6);
+      zlen = mWrapperZSpan[id] / 2 + suppRingCZlen[0];
+      wrap->DefineSection(0, -zlen, suppRingsRmin[0], mWrapperMaxRadius[id]);
+      zlen = mWrapperZSpan[id] / 2 + suppRingCZlen[1];
+      wrap->DefineSection(1, -zlen, suppRingsRmin[0], mWrapperMaxRadius[id]);
+      wrap->DefineSection(2, -zlen, suppRingsRmin[1], mWrapperMaxRadius[id]);
+      wrap->DefineSection(3, -mWrapperZSpan[id] / 2., suppRingsRmin[1], mWrapperMaxRadius[id]);
+      wrap->DefineSection(4, -mWrapperZSpan[id] / 2., mWrapperMinRadius[id], mWrapperMaxRadius[id]);
+      zlen = mWrapperZSpan[id] / 2 + suppRingAZlen;
+      wrap->DefineSection(5, zlen, mWrapperMinRadius[id], mWrapperMaxRadius[id]);
+      tube = (TGeoShape*)wrap;
+    } break;
+    case 2: // OB Layer 5,6: simpler Pcon to avoid OB cones overlaps
+    {
+      TGeoPcon* wrap = new TGeoPcon(0, 360, 6);
+      zlen = mWrapperZSpan[id] / 2;
+      wrap->DefineSection(0, -zlen, suppRingsRmin[2], mWrapperMaxRadius[id]);
+      zlen -= suppRingCZlen[2];
+      wrap->DefineSection(1, -zlen, suppRingsRmin[2], mWrapperMaxRadius[id]);
+      wrap->DefineSection(2, -zlen, mWrapperMinRadius[id], mWrapperMaxRadius[id]);
+      zlen = mWrapperZSpan[id] / 2 - coneRingAZlen;
+      wrap->DefineSection(3, zlen, mWrapperMinRadius[id], mWrapperMaxRadius[id]);
+      wrap->DefineSection(4, zlen, coneRingARmax, mWrapperMaxRadius[id]);
+      wrap->DefineSection(5, mWrapperZSpan[id] / 2, coneRingARmax, mWrapperMaxRadius[id]);
+      tube = (TGeoShape*)wrap;
+    } break;
+    default: // Can never happen, keeps gcc quiet
       break;
   }
 
@@ -995,7 +992,6 @@ void Detector::createOuterBarrelSupports(TGeoVolume* motherVolume)
 
   // Create the Cone on Side C
   mServicesGeometry->createOBConeSideC(motherVolume);
-
 }
 
 // Service Barrel
