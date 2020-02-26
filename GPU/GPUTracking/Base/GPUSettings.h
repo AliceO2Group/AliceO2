@@ -148,6 +148,7 @@ struct GPUSettingsDeviceProcessing {
   bool registerStandaloneInputMemory; // Automatically register memory for the GPU which is used as input for the standalone benchmark
   int tpcCompressionGatherMode;       // Modes: 0 = gather by DMA, 1 = DMA + gather on host, ...
   bool mergerSortTracks;              // Sort track indices for GPU track fit
+  bool runMC;                         // Process MC labels
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
