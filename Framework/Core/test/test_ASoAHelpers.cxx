@@ -240,32 +240,31 @@ BOOST_AUTO_TEST_CASE(CombinationsGeneratorConstruction)
   BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(endCombination[1]).getIterator().mCurrentPos), 8);
   BOOST_REQUIRE_EQUAL(static_cast<test::X>(endCombination[1]).getIterator().mCurrentChunk, 0);
 
-  //expressions::Filter pairsFilter = test::x > 3;
-  //auto comb2Filter = combinations(pairsFilter, tests, tests);
+  expressions::Filter pairsFilter = test::x > 3;
+  auto comb2Filter = combinations(pairsFilter, tests, tests);
 
-  //isBeginCombinationsIterator = std::is_same_v<decltype(comb2Filter.begin()), CombinationsGenerator<Filtered<TestA>, 2>::CombinationsIterator>;
-  //BOOST_REQUIRE(isBeginCombinationsIterator == true);
-  //isBeginValueCombination = std::is_same_v<decltype(*(comb2Filter.begin())), CombinationsGenerator<Filtered<TestA>, 2>::CombinationType&>;
-  //BOOST_REQUIRE(isBeginValueCombination == true);
+  isBeginCombinationsIterator = std::is_same_v<decltype(comb2Filter.begin()), CombinationsGenerator<Filtered<TestA>, 2>::CombinationsIterator>;
+  BOOST_REQUIRE(isBeginCombinationsIterator == true);
+  isBeginValueCombination = std::is_same_v<decltype(*(comb2Filter.begin())), CombinationsGenerator<Filtered<TestA>, 2>::CombinationType&>;
+  BOOST_REQUIRE(isBeginValueCombination == true);
 
-  //auto beginFilterCombination = *(comb2Filter.begin());
-  //BOOST_REQUIRE_NE(static_cast<test::X>(beginFilterCombination[0]).getIterator().mCurrentPos, nullptr);
-  //BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(beginFilterCombination[0]).getIterator().mCurrentPos), 4);
-  //BOOST_REQUIRE_EQUAL(static_cast<test::X>(beginFilterCombination[0]).getIterator().mCurrentChunk, 0);
-  //BOOST_REQUIRE_NE(static_cast<test::X>(beginFilterCombination[1]).getIterator().mCurrentPos, nullptr);
-  //BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(beginFilterCombination[1]).getIterator().mCurrentPos), 5);
-  //BOOST_REQUIRE_EQUAL(static_cast<test::X>(beginFilterCombination[1]).getIterator().mCurrentChunk, 0);
+  auto beginFilterCombination = *(comb2Filter.begin());
+  BOOST_REQUIRE_NE(static_cast<test::X>(beginFilterCombination[0]).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(beginFilterCombination[0]).getIterator().mCurrentPos), 4);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(beginFilterCombination[0]).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(beginFilterCombination[1]).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(beginFilterCombination[1]).getIterator().mCurrentPos), 5);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(beginFilterCombination[1]).getIterator().mCurrentChunk, 0);
 
-  //BOOST_REQUIRE(comb2Filter.begin() != comb2Filter.end());
+  BOOST_REQUIRE(comb2Filter.begin() != comb2Filter.end());
 
-  //auto endFilterCombination = *(comb2Filter.end());
-  //BOOST_REQUIRE_NE(static_cast<test::X>(endFilterCombination[0]).getIterator().mCurrentPos, nullptr);
-  //BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(endFilterCombination[0]).getIterator().mCurrentPos), 7);
-  //BOOST_REQUIRE_EQUAL(static_cast<test::X>(endFilterCombination[0]).getIterator().mCurrentChunk, 0);
-  //BOOST_REQUIRE_NE(static_cast<test::X>(endFilterCombination[1]).getIterator().mCurrentPos, nullptr);
-  // FIXME: The check below fails, FilteredIndexPolicy sets spurious values instead of (max + 1)
-  //BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(endFilterCombination[1]).getIterator().mCurrentPos), 8);
-  //BOOST_REQUIRE_EQUAL(static_cast<test::X>(endFilterCombination[1]).getIterator().mCurrentChunk, 0);
+  auto endFilterCombination = *(comb2Filter.end());
+  BOOST_REQUIRE_NE(static_cast<test::X>(endFilterCombination[0]).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(endFilterCombination[0]).getIterator().mCurrentPos), 7);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(endFilterCombination[0]).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(endFilterCombination[1]).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(endFilterCombination[1]).getIterator().mCurrentPos), -1);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(endFilterCombination[1]).getIterator().mCurrentChunk, 0);
 
   auto comb2Concat = combinations(concatTests, concatTests);
 
@@ -345,23 +344,22 @@ BOOST_AUTO_TEST_CASE(Combinations)
   }
   BOOST_CHECK_EQUAL(count, 28);
 
-  // FIXME: Segmentation faults below as FilteredIndexPolicy sets spurious values instead of (max + 1) for end() combinations iterator
-  //expressions::Filter pairsFilter = test::x > 3;
+  expressions::Filter pairsFilter = test::x > 3;
 
-  //count = 0;
-  //i = 4;
-  //j = 5;
-  //for (auto comb : combinations(pairsFilter, tests, tests)) {
-  //  BOOST_CHECK_EQUAL(comb[0].x(), i);
-  //  BOOST_CHECK_EQUAL(comb[1].x(), j);
-  //  count++;
-  //  j++;
-  //  if (j == n) {
-  //    i++;
-  //    j = i + 1;
-  //  }
-  //}
-  //BOOST_CHECK_EQUAL(count, 6);
+  count = 0;
+  i = 4;
+  j = 5;
+  for (auto comb : combinations(pairsFilter, tests, tests)) {
+    BOOST_CHECK_EQUAL(comb[0].x(), i);
+    BOOST_CHECK_EQUAL(comb[1].x(), j);
+    count++;
+    j++;
+    if (j == n) {
+      i++;
+      j = i + 1;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 6);
 
   count = 0;
   i = 0;
@@ -384,29 +382,28 @@ BOOST_AUTO_TEST_CASE(Combinations)
   }
   BOOST_CHECK_EQUAL(count, 56);
 
-  // FIXME: Segmentation faults below as FilteredIndexPolicy sets spurious values instead of (max + 1) for end() combinations iterator
-  //expressions::Filter triplesFilter = test::x < 4;
+  expressions::Filter triplesFilter = test::x < 4;
 
-  //count = 0;
-  //i = 0;
-  //j = 1;
-  //k = 2;
-  //for (auto comb : combinations(triplesFilter, tests, tests, tests)) {
-  //  BOOST_CHECK_EQUAL(comb[0].x(), i);
-  //  BOOST_CHECK_EQUAL(comb[1].x(), j);
-  //  BOOST_CHECK_EQUAL(comb[2].x(), k);
-  //  count++;
-  //  k++;
-  //  if (k == n) {
-  //    if (j == n - 2) {
-  //      i++;
-  //      j = i;
-  //    }
-  //    j++;
-  //    k = j + 1;
-  //  }
-  //}
-  //BOOST_CHECK_EQUAL(count, 6);
+  count = 0;
+  i = 0;
+  j = 1;
+  k = 2;
+  for (auto comb : combinations(triplesFilter, tests, tests, tests)) {
+    BOOST_CHECK_EQUAL(comb[0].x(), i);
+    BOOST_CHECK_EQUAL(comb[1].x(), j);
+    BOOST_CHECK_EQUAL(comb[2].x(), k);
+    count++;
+    k++;
+    if (k == 4) {
+      if (j == 2) {
+        i++;
+        j = i;
+      }
+      j++;
+      k = j + 1;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 4);
 
   int nConcat = concatTests.size();
 

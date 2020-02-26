@@ -24,13 +24,10 @@ template <std::size_t K2, typename T2>
 void addOne(std::array<T2, K2>& array, const std::array<T2, K2>& maxOffset, bool& isEnd)
 {
   for (int i = 0; i < K2; i++) {
-    // FIXME: FilteredIndexPolicy does not check for too big index, gets spurious values from the selection
     array[K2 - i - 1]++;
-    // FIXME: End of Filtered is marked with mRowIndex = -1 but for DefaultIndexPolicy it is (max + 1).
-    // How to set maxOffset properly without the knowledge of the index policy being used?
     if (array[K2 - i - 1] != maxOffset[K2 - i - 1]) { // no < operator for RowViewBase
       for (int j = K2 - i; j < K2; j++) {
-        array[j].setCursor(array[j - 1].mRowIndex + 1);
+        array[j].setCursor(*std::get<1>(array[j - 1].getIndices()) + 1);
       }
       isEnd = false;
       return;
@@ -58,14 +55,16 @@ class CombinationsGenerator
 
     CombinationsIterator() = delete;
 
-    CombinationsIterator(const std::array<IteratorType, K>& begin, std::array<int64_t, K> n)
-      : mN(n), mTableBegin(begin)
+    CombinationsIterator(const std::array<T, K>& tables)
     {
+      mIsEnd = false;
       for (int i = 0; i < K; i++) {
-        mMaxOffset[i] = mTableBegin[i] + mN[i] - K + i + 1;
-        mCurrent[i] = mTableBegin[i] + i;
+        if (tables[i].size() <= K) {
+          mIsEnd = true;
+        }
+        mMaxOffset[i] = tables[i].end() - K + i + 1;
+        mCurrent[i] = tables[i].begin() + i;
       }
-      mIsEnd = std::any_of(mN.begin(), mN.end(), [](auto i) { return i <= K; });
     }
 
     ~CombinationsIterator() = default;
@@ -101,17 +100,16 @@ class CombinationsGenerator
 
     void goToEnd()
     {
-      for (int i = 0; i < K; i++) {
-        mCurrent[i].setCursor(mN[i] - K + i);
+      for (int i = 0; i < K - 1; i++) {
+        mCurrent[i].setCursor(*std::get<1>(mMaxOffset[i].getIndices()));
       }
-      operator++();
+      mCurrent[K - 1].moveToEnd();
+      mIsEnd = true;
     }
 
    private:
     CombinationType mCurrent;
-    std::array<int64_t, K> mN;               // numbers of elements in tables
     bool mIsEnd;                             // whether there are any more tuples available
-    std::array<IteratorType, K> mTableBegin; // start of the tables for which tuples are generated
     std::array<IteratorType, K> mMaxOffset;  // one position past maximum acceptable position for each element of combination
   };
 
@@ -120,25 +118,23 @@ class CombinationsGenerator
 
   inline iterator begin()
   {
-    return iterator(mTableBegin, mN);
+    return iterator(mTables);
   }
   inline iterator end()
   {
-    auto it = iterator(mTableBegin, mN);
+    auto it = iterator(mTables);
     it.goToEnd();
     return it;
   }
 
   CombinationsGenerator() = delete;
-  CombinationsGenerator(const std::array<T, K>& tables, const std::array<IteratorType, K>& tableBegin, const std::array<int64_t, K>& n) : mTables(tables), mTableBegin(tableBegin), mN(n)
+  CombinationsGenerator(const std::array<T, K>& tables) : mTables(tables)
   {
     static_assert(K > 0);
   }
   ~CombinationsGenerator() = default;
 
  private:
-  std::array<IteratorType, K> mTableBegin;
-  std::array<int64_t, K> mN;
   std::array<T, K> mTables; // the (filtered) tables need to be kept somewhere so as not to be destroyed on return from combinations()
 };
 
@@ -150,10 +146,8 @@ CombinationsGenerator<std::common_type_t<T2...>, sizeof...(T2)> combinations(con
 
   using commonType = std::common_type_t<T2...>;
 
-  std::array<typename commonType::iterator, sizeof...(T2)> beginArray{tables.begin()...};
-  std::array<int64_t, sizeof...(T2)> nArray{tables.size()...};
   std::array<commonType, sizeof...(T2)> tablesArray{tables...};
-  return CombinationsGenerator<commonType, sizeof...(T2)>(tablesArray, beginArray, nArray);
+  return CombinationsGenerator<commonType, sizeof...(T2)>(tablesArray);
 }
 
 template <typename... T2>
@@ -165,13 +159,7 @@ CombinationsGenerator<Filtered<std::common_type_t<T2...>>, sizeof...(T2)> combin
   using commonType = std::common_type_t<T2...>;
 
   std::array<Filtered<commonType>, sizeof...(T2)> filtered{Filtered<commonType>{{tables.asArrowTable()}, expressions::createSelection(tables.asArrowTable(), filter)}...};
-  std::array<typename Filtered<commonType>::iterator, sizeof...(T2)> beginArray;
-  std::array<int64_t, sizeof...(T2)> nArray;
-  for (int i = 0; i < sizeof...(T2); i++) {
-    beginArray[i] = filtered[i].begin();
-    nArray[i] = filtered[i].size();
-  }
-  return CombinationsGenerator<Filtered<commonType>, sizeof...(T2)>(filtered, beginArray, nArray);
+  return CombinationsGenerator<Filtered<commonType>, sizeof...(T2)>(filtered);
 }
 
 } // namespace o2::soa
