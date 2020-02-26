@@ -19,6 +19,7 @@
 #include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"
 #include <fstream>
+#include "TOFReconstruction/DecoderBase.h"
 #include "TOFReconstruction/Decoder.h"
 #include "TOFBase/Digit.h"
 
@@ -29,7 +30,9 @@ namespace o2
 namespace tof
 {
 
-class CompressedDecodingTask : public Task
+using namespace compressed;
+
+class CompressedDecodingTask : public DecoderBase, public Task
 {
  public:
   CompressedDecodingTask() = default;
@@ -40,6 +43,11 @@ class CompressedDecodingTask : public Task
   void postData(ProcessingContext& pc);
 
  private:
+  /** decoding handlers **/
+  void rdhHandler(const o2::header::RAWDataHeader* rdh);
+  void frameHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
+                    const FrameHeader_t* frameHeader, const PackedHit_t* packedHits);
+
   bool mStatus = false;
   o2::tof::compressed::Decoder mDecoder;
   std::vector<std::vector<o2::tof::Digit>> mDigits;

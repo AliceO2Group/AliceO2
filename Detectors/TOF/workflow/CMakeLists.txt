@@ -16,6 +16,6 @@ o2_add_library(TOFWorkflowUtils
                        src/TOFDigitWriterSpec.cxx
                        src/TOFRawWriterSpec.cxx
                        src/CompressedDecodingTask.cxx
+                       src/CompressedInspectorTask.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::TOFBase O2::DataFormatsTOF
                                      O2::TOFReconstruction)
-

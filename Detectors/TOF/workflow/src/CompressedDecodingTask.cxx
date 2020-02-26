@@ -91,114 +91,9 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
     auto payloadIn = const_cast<char*>(input.payload);
     auto payloadInSize = headerIn->payloadSize;
 
-    /** process input **/
-    auto pointer = payloadIn;
-    while (pointer < (payloadIn + payloadInSize)) {
-      auto rdh = reinterpret_cast<o2::header::RAWDataHeader*>(pointer);
-
-      /** RDH close detected **/
-      if (rdh->stop) {
-#ifdef VERBOSE
-        std::cout << "--- RDH close detected" << std::endl;
-        o2::raw::HBFUtils::printRDH(*rdh);
-#endif
-        if (rdh->heartbeatOrbit == 255 + mInitOrbit) {
-          mNCrateCloseTF++;
-          printf("New TF close RDH %d\n", rdh->feeId);
-        }
-        pointer += rdh->offsetToNext;
-        continue;
-      }
-
-#ifdef VERBOSE
-      std::cout << "--- RDH open detected" << std::endl;
-      o2::raw::HBFUtils::printRDH(*rdh);
-#endif
-
-      if ((rdh->pageCnt == 0) && (rdh->triggerType & o2::trigger::TF)) {
-        mNCrateOpenTF++;
-        mInitOrbit = rdh->heartbeatOrbit;
-        printf("New TF open RDH %d\n", rdh->feeId);
-      }
-
-      pointer += rdh->headerSize;
-
-      while (pointer < (reinterpret_cast<char*>(rdh) + rdh->memorySize)) {
-
-        auto word = reinterpret_cast<uint32_t*>(pointer);
-        if ((*word & 0x80000000) != 0x80000000) {
-          printf(" %08x [ERROR] \n ", *(uint32_t*)pointer);
-          return;
-        }
-
-        /** crate header detected **/
-        auto crateHeader = reinterpret_cast<compressed::CrateHeader_t*>(pointer);
-#ifdef VERBOSE
-        printf(" %08x CrateHeader          (drmID=%d) \n ", *(uint32_t*)pointer, crateHeader->drmID);
-#endif
-        pointer += 4;
-
-        /** crate orbit expected **/
-        auto crateOrbit = reinterpret_cast<compressed::CrateOrbit_t*>(pointer);
-#ifdef VERBOSE
-        printf(" %08x CrateOrbit           (orbit=0x%08x) \n ", *(uint32_t*)pointer, crateOrbit->orbitID);
-#endif
-        pointer += 4;
-
-        while (true) {
-          word = reinterpret_cast<uint32_t*>(pointer);
-
-          /** crate trailer detected **/
-          if (*word & 0x80000000) {
-            auto crateTrailer = reinterpret_cast<compressed::CrateTrailer_t*>(pointer);
-#ifdef VERBOSE
-            printf(" %08x CrateTrailer         (numberOfDiagnostics=%d) \n ", *(uint32_t*)pointer, crateTrailer->numberOfDiagnostics);
-#endif
-            pointer += 4;
-
-            /** loop over diagnostics **/
-            for (int i = 0; i < crateTrailer->numberOfDiagnostics; ++i) {
-              auto diagnostic = reinterpret_cast<compressed::Diagnostic_t*>(pointer);
-#ifdef VERBOSE
-              printf(" %08x Diagnostic           (slotId=%d) \n ", *(uint32_t*)pointer, diagnostic->slotID);
-#endif
-              pointer += 4;
-            }
-
-            break;
-          }
-
-          /** frame header detected **/
-          auto frameHeader = reinterpret_cast<compressed::FrameHeader_t*>(pointer);
-#ifdef VERBOSE
-          printf(" %08x FrameHeader          (numberOfHits=%d) \n ", *(uint32_t*)pointer, frameHeader->numberOfHits);
-#endif
-          pointer += 4;
-
-          /** loop over hits **/
-          for (int i = 0; i < frameHeader->numberOfHits; ++i) {
-            auto packedHit = reinterpret_cast<compressed::PackedHit_t*>(pointer);
-#ifdef VERBOSE
-            printf(" %08x PackedHit            (tdcID=%d) \n ", *(uint32_t*)pointer, packedHit->tdcID);
-#endif
-            auto indexE = packedHit->channel +
-                          8 * packedHit->tdcID +
-                          120 * packedHit->chain +
-                          240 * (frameHeader->trmID - 3) +
-                          2400 * crateHeader->drmID;
-            int time = packedHit->time;
-            time += (frameHeader->frameID << 13);
-
-            // fill hit
-            mDecoder.InsertDigit(crateHeader->drmID, frameHeader->trmID, packedHit->tdcID, packedHit->chain, packedHit->channel, crateOrbit->orbitID, crateHeader->bunchID, frameHeader->frameID << 13, packedHit->time, packedHit->tot);
-
-            pointer += 4;
-          }
-        }
-      }
-
-      pointer = reinterpret_cast<char*>(rdh) + rdh->offsetToNext;
-    }
+    DecoderBase::setDecoderBuffer(payloadIn);
+    DecoderBase::setDecoderBufferSize(payloadInSize);
+    DecoderBase::run();
   }
 
   if (mNCrateOpenTF == 72 && mNCrateOpenTF == mNCrateCloseTF)
@@ -208,6 +103,33 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
     postData(pc);
   }
 }
+
+void CompressedDecodingTask::rdhHandler(const o2::header::RAWDataHeader* rdh)
+{
+
+  // rdh close
+  if (rdh->stop && rdh->heartbeatOrbit == 255 + mInitOrbit) {
+    mNCrateCloseTF++;
+    printf("New TF close RDH %d\n", rdh->feeId);
+    return;
+  }
+
+  // rdh open
+  if ((rdh->pageCnt == 0) && (rdh->triggerType & o2::trigger::TF)) {
+    mNCrateOpenTF++;
+    mInitOrbit = rdh->heartbeatOrbit;
+    printf("New TF open RDH %d\n", rdh->feeId);
+  }
+};
+
+void CompressedDecodingTask::frameHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
+                                          const FrameHeader_t* frameHeader, const PackedHit_t* packedHits)
+{
+  for (int i = 0; i < frameHeader->numberOfHits; ++i) {
+    auto packedHit = packedHits + i;
+    mDecoder.InsertDigit(crateHeader->drmID, frameHeader->trmID, packedHit->tdcID, packedHit->chain, packedHit->channel, crateOrbit->orbitID, crateHeader->bunchID, frameHeader->frameID << 13, packedHit->time, packedHit->tot);
+  }
+};
 
 DataProcessorSpec getCompressedDecodingSpec(std::string inputDesc)
 {
