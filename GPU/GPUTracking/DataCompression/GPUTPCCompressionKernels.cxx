@@ -26,25 +26,25 @@ using namespace o2::tpc;
 template <>
 GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0attached>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors)
 {
-  GPUTPCGMMerger& merger = processors.tpcMerger;
-  const o2::tpc::ClusterNativeAccess* clusters = processors.tpcConverter.getClustersNative();
-  GPUTPCCompression& compressor = processors.tpcCompressor;
-  GPUParam& param = processors.param;
+  const GPUTPCGMMerger& GPUrestrict() merger = processors.tpcMerger;
+  const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = processors.tpcConverter.getClustersNative();
+  GPUTPCCompression& GPUrestrict() compressor = processors.tpcCompressor;
+  const GPUParam& GPUrestrict() param = processors.param;
 
   char lastLeg = 0;
   int myTrack = 0;
   for (unsigned int i = get_global_id(0); i < (unsigned int)merger.NOutputTracks(); i += get_global_size(0)) {
-    const GPUTPCGMMergedTrack& trk = merger.OutputTracks()[i];
+    const GPUTPCGMMergedTrack& GPUrestrict() trk = merger.OutputTracks()[i];
     if (!trk.OK()) {
       continue;
     }
     bool rejectTrk = CAMath::Abs(trk.GetParam().GetQPt()) > processors.param.rec.tpcRejectQPt;
     int nClustersStored = 0;
-    CompressedClustersPtrsOnly& c = compressor.mPtrs;
+    CompressedClustersPtrsOnly& GPUrestrict() c = compressor.mPtrs;
     unsigned int lastRow = 0, lastSlice = 0; // BUG: These should be unsigned char, but then CUDA breaks
     GPUTPCCompressionTrackModel track;
     for (int k = trk.NClusters() - 1; k >= 0; k--) {
-      const GPUTPCGMMergedTrackHit& hit = merger.Clusters()[trk.FirstClusterRef() + k];
+      const GPUTPCGMMergedTrackHit& GPUrestrict() hit = merger.Clusters()[trk.FirstClusterRef() + k];
       if (hit.state & GPUTPCGMMergedTrackHit::flagReject) {
         continue;
       }
@@ -63,7 +63,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
       if (!(param.rec.tpcCompressionModes & GPUSettings::CompressionTrackModel)) {
         continue; // No track model compression
       }
-      const ClusterNative& orgCl = clusters->clusters[hit.slice][hit.row][hit.num - clusters->clusterOffset[hit.slice][hit.row]];
+      const ClusterNative& GPUrestrict() orgCl = clusters->clusters[hit.slice][hit.row][hit.num - clusters->clusterOffset[hit.slice][hit.row]];
       float x = param.tpcGeometry.Row2X(hit.row);
       float y = param.tpcGeometry.LinearPad2Y(hit.slice, hit.row, orgCl.getPad());
       float z = param.tpcGeometry.LinearTime2Z(hit.slice, orgCl.getTime());
@@ -168,12 +168,12 @@ GPUd() bool GPUTPCCompressionKernels::GPUTPCCompressionKernels_Compare<3>::opera
 }
 
 template <>
-GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1unattached>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors)
+GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1unattached>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors)
 {
-  GPUTPCGMMerger& merger = processors.tpcMerger;
-  const o2::tpc::ClusterNativeAccess* clusters = processors.tpcConverter.getClustersNative();
-  GPUTPCCompression& compressor = processors.tpcCompressor;
-  GPUParam& param = processors.param;
+  const GPUTPCGMMerger& GPUrestrict() merger = processors.tpcMerger;
+  const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = processors.tpcConverter.getClustersNative();
+  GPUTPCCompression& GPUrestrict() compressor = processors.tpcCompressor;
+  GPUParam& GPUrestrict() param = processors.param;
   unsigned int* sortBuffer = compressor.mClusterSortBuffer + iBlock * compressor.mNMaxClusterSliceRow;
   for (int iSliceRow = iBlock; iSliceRow < GPUCA_NSLICES * GPUCA_ROW_COUNT; iSliceRow += nBlocks) {
     const int iSlice = iSliceRow / GPUCA_ROW_COUNT;
@@ -184,7 +184,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
     }
     GPUbarrier();
 
-    CompressedClustersPtrsOnly& c = compressor.mPtrs;
+    CompressedClustersPtrsOnly& GPUrestrict() c = compressor.mPtrs;
     for (unsigned int i = get_local_id(0); i < clusters->nClusters[iSlice][iRow]; i += get_local_size(0)) {
       const int idx = idOffset + i;
       if (compressor.mClusterStatus[idx]) {
@@ -231,7 +231,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
     unsigned short lastPad = 0;
     for (unsigned int i = 0; i < smem.nCount; i++) {
       int cidx = idOffset + i;
-      const ClusterNative& orgCl = clusters->clusters[iSlice][iRow][sortBuffer[i]];
+      const ClusterNative& GPUrestrict() orgCl = clusters->clusters[iSlice][iRow][sortBuffer[i]];
       c.padDiffU[cidx] = orgCl.padPacked - lastPad;
       c.timeDiffU[cidx] = (orgCl.getTimePacked() - lastTime) & 0xFFFFFF;
       if (param.rec.tpcCompressionModes & GPUSettings::CompressionDifferences) {

@@ -29,13 +29,13 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2;
 using namespace o2::its;
 
-GPUdii() bool GPUITSFitterKernel::fitTrack(GPUITSFitter& Fitter, GPUTPCGMPropagator& prop, GPUITSTrack& track, int start, int end, int step)
+GPUdii() bool GPUITSFitterKernel::fitTrack(GPUITSFitter& GPUrestrict() Fitter, GPUTPCGMPropagator& GPUrestrict() prop, GPUITSTrack& GPUrestrict() track, int start, int end, int step)
 {
   for (int iLayer{start}; iLayer != end; iLayer += step) {
     if (track.mClusters[iLayer] == o2::its::constants::its::UnusedIndex) {
       continue;
     }
-    const TrackingFrameInfo& trackingHit = Fitter.trackingFrame()[iLayer][track.mClusters[iLayer]];
+    const TrackingFrameInfo& GPUrestrict() trackingHit = Fitter.trackingFrame()[iLayer][track.mClusters[iLayer]];
 
     if (prop.PropagateToXAlpha(trackingHit.xTrackingFrame, trackingHit.alphaTrackingFrame, step > 0)) {
       return false;
@@ -55,7 +55,7 @@ GPUdii() bool GPUITSFitterKernel::fitTrack(GPUITSFitter& Fitter, GPUTPCGMPropaga
 }
 
 template <>
-GPUdii() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors)
+GPUdii() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors)
 {
   GPUITSFitter& Fitter = processors.itsFitter;
 
