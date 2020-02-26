@@ -53,6 +53,8 @@ class GPUTPCGrid
   GPUd() float StepZInv() const { return mStepZInv; }
 
  private:
+  friend class GPUTPCNeighboursFinder;
+
   unsigned int mNy; //* N bins in Y
   unsigned int mNz; //* N bins in Z
   unsigned int mN;  //* total N bins

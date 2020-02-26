@@ -58,6 +58,8 @@ class GPUTPCRow
   GPUhd() unsigned int FirstHitInBinOffset() const { return mFirstHitInBinOffset; }
 
  private:
+  friend class GPUTPCNeighboursFinder;
+
   int mNHits;       // number of hits
   float mX;         // X coordinate of the row
   float mMaxY;      // maximal Y coordinate of the row
