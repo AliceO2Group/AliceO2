@@ -144,34 +144,35 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
         // call actual digitization procedure
         labels->clear();
         digits->clear();
-        if (digitizer->process(&hits, digits.get())) {
-          // Post Data
-          if (digitizer->isContinuous()) {
-            digits->clear();
-            labels->clear();
-            digitizer->flushOutputContainer(*digits.get());
-          }
+	digitizer->process(&hits, digits.get());
+        // if (digitizer->process(&hits, digits.get())) {
+        //   // Post Data
+        //   if (digitizer->isContinuous()) {
+        //     digits->clear();
+        //     labels->clear();
+        //     digitizer->flushOutputContainer(*digits.get());
+        //   }
 
-          std::vector<Digit>* digitsVector = digitizer->getDigitPerTimeFrame();
-          std::vector<ReadoutWindowData>* readoutwindow = digitizer->getReadoutWindowData();
-          std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* mcLabVecOfVec = digitizer->getMCTruthPerTimeFrame();
+        //   std::vector<Digit>* digitsVector = digitizer->getDigitPerTimeFrame();
+        //   std::vector<ReadoutWindowData>* readoutwindow = digitizer->getReadoutWindowData();
+        //   std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* mcLabVecOfVec = digitizer->getMCTruthPerTimeFrame();
 
-          LOG(INFO) << "Post " << digitsVector->size() << " digits in " << readoutwindow->size() << " RO windows";
+        //   LOG(INFO) << "Post " << digitsVector->size() << " digits in " << readoutwindow->size() << " RO windows";
 
-          // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-          pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, *digitsVector);
-          pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe}, *mcLabVecOfVec);
-          pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, *readoutwindow);
-          LOG(INFO) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
-          pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}, roMode);
+        //   // here we have all digits and we can send them to consumer (aka snapshot it onto output)
+        //   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, *digitsVector);
+        //   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe}, *mcLabVecOfVec);
+        //   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, *readoutwindow);
+        //   LOG(INFO) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
+        //   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}, roMode);
 
-          // go to new TF
-          digitizer->newTF();
+        //   // go to new TF
+        //   digitizer->newTF();
 
-          digitizer->setEventTime(timesview[collID].timeNS);
+        //   digitizer->setEventTime(timesview[collID].timeNS);
 
-          digitizer->process(&hits, digits.get());
-        }
+        //   digitizer->process(&hits, digits.get());
+        // }
         // copy digits into accumulator
         //std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
         //labelAccum.mergeAtBack(*labels);
@@ -201,7 +202,8 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
 
     // we should be only called once; tell DPL that this process is ready to exit
-    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    pc.services().get<ControlService>().endOfStream();
+    //pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 
     finished = true;
   };
