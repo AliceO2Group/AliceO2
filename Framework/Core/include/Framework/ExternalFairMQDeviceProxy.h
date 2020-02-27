@@ -26,6 +26,15 @@ namespace framework
 using ChannelRetriever = std::function<std::string(OutputSpec const&)>;
 using InjectorFunction = std::function<void(FairMQDevice& device, FairMQParts& inputs, ChannelRetriever)>;
 
+struct InputChannelSpec;
+struct OutputChannelSpec;
+
+/// helper method to format a configuration string for an external channel
+std::string formatExternalChannelConfiguration(InputChannelSpec const&);
+
+/// helper method to format a configuration string for an external channel
+std::string formatExternalChannelConfiguration(OutputChannelSpec const&);
+
 /// send header/payload O2 message for an OutputSpec, a channel retriever callback is required to
 /// get the associated FairMQChannel
 /// FIXME: can in principle drop the OutputSpec parameter and take the DataHeader

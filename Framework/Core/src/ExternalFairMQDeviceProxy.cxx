@@ -16,8 +16,9 @@
 #include "Framework/InitContext.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/RawDeviceService.h"
-
 #include "Headers/DataHeader.h"
+
+#include "./DeviceSpecHelpers.h"
 
 #include <fairmq/FairMQParts.h>
 #include <fairmq/FairMQDevice.h>
@@ -34,6 +35,18 @@ namespace framework
 {
 
 using DataHeader = o2::header::DataHeader;
+
+std::string formatExternalChannelConfiguration(InputChannelSpec const& spec)
+{
+  return DeviceSpecHelpers::inputChannel2String(spec);
+}
+
+std::string formatExternalChannelConfiguration(OutputChannelSpec const& spec)
+{
+  return DeviceSpecHelpers::outputChannel2String(spec);
+}
+
+std::string formatExternalChannelConfiguration(OutputChannelSpec const&);
 
 void sendOnChannel(FairMQDevice& device, FairMQParts& messages, std::string const& channel)
 {
