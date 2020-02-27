@@ -36,8 +36,6 @@ class GPUTPCNeighboursFinder : public GPUKernelTemplate
   MEM_CLASS_PRE()
   struct GPUSharedMemory {
     int mNHits;   // n hits
-    int mUpNHits; // n hits in the next row
-    int mDnNHits; // n hits in the prev row
     float mUpDx;  // x distance to the next row
     float mDnDx;  // x distance to the previous row
     float mUpTx;  // normalized x distance to the next row
