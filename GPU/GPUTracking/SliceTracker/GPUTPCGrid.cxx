@@ -19,7 +19,8 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include <cassert>
 #endif
 
-void GPUTPCGrid::CreateEmpty()
+MEM_CLASS_PRE()
+void MEM_LG(GPUTPCGrid)::CreateEmpty()
 {
   // Create an empty grid
   mYMin = 0.f;
@@ -35,7 +36,8 @@ void GPUTPCGrid::CreateEmpty()
   mStepZInv = 1.f;
 }
 
-GPUd() void GPUTPCGrid::Create(float yMin, float yMax, float zMin, float zMax, float sy, float sz)
+MEM_CLASS_PRE()
+GPUd() void MEM_LG(GPUTPCGrid)::Create(float yMin, float yMax, float zMin, float zMax, float sy, float sz)
 {
   //* Create the grid
   mYMin = yMin;
@@ -53,7 +55,8 @@ GPUd() void GPUTPCGrid::Create(float yMin, float yMax, float zMin, float zMax, f
   mZMax = mZMin + mNz * sz;
 }
 
-GPUd() int GPUTPCGrid::GetBin(float Y, float Z) const
+MEM_CLASS_PRE()
+GPUd() int MEM_LG(GPUTPCGrid)::GetBin(float Y, float Z) const
 {
   //* get the bin pointer
   const int yBin = static_cast<int>((Y - mYMin) * mStepYInv);
@@ -66,7 +69,8 @@ GPUd() int GPUTPCGrid::GetBin(float Y, float Z) const
   return bin;
 }
 
-GPUd() int GPUTPCGrid::GetBinBounded(float Y, float Z) const
+MEM_CLASS_PRE()
+GPUd() int MEM_LG(GPUTPCGrid)::GetBinBounded(float Y, float Z) const
 {
   //* get the bin pointer
   const int yBin = static_cast<int>((Y - mYMin) * mStepYInv);
@@ -81,7 +85,8 @@ GPUd() int GPUTPCGrid::GetBinBounded(float Y, float Z) const
   return bin;
 }
 
-GPUd() void GPUTPCGrid::GetBin(float Y, float Z, int* const bY, int* const bZ) const
+MEM_CLASS_PRE()
+GPUd() void MEM_LG(GPUTPCGrid)::GetBin(float Y, float Z, int* const bY, int* const bZ) const
 {
   //* get the bin pointer
 
@@ -102,7 +107,8 @@ GPUd() void GPUTPCGrid::GetBin(float Y, float Z, int* const bY, int* const bZ) c
   *bZ = (unsigned int)bbZ;
 }
 
-GPUd() void GPUTPCGrid::GetBinArea(float Y, float Z, float dy, float dz, int& bin, int& ny, int& nz) const
+MEM_CLASS_PRE()
+GPUd() void MEM_LG(GPUTPCGrid)::GetBinArea(float Y, float Z, float dy, float dz, int& bin, int& ny, int& nz) const
 {
   Y -= mYMin;
   int by = (int)((Y - dy) * mStepYInv);
