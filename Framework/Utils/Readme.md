@@ -147,5 +147,55 @@ Note: the 'default-*' options are only for building the the default of the chann
 The default channel name is build from the name of the proxy device. Having a default channel
 configuration allows to skip the '--channel-config' option on the command line.
 
+### DPL raw parser class
+Utility class to transparently iterate over raw pages distributed over multiple messsages on
+multiple routes.
+
+A DPL processor might receive raw pages accumulated on three levels:
+  1) the DPL processor has one or more input route(s)
+  2) multiple parts per input route (split payloads or multiple input
+     specs matching the same route spec
+  3) variable number of raw pages in one payload
+
+Internally, class @ref RawParser is used to access raw pages withon one
+payload message and dynamically adopt to RAWDataHeader version.
+
+The parser provides an iterator interface to loop over raw pages,
+starting at the first raw page of the first payload at the first route
+and going to the next route when all payloads are processed. The iterator
+element is @ref RawDataHeaderInfo containing just the two least significant
+bytes of the RDH where we have the version and header size.
+
+The iterator object provides methods to access the concrete RDH, the raw
+buffer, the payload, etc.
+
+#### Usage
+The parser needs an object of DPL InputRecord provided by the ProcessingContext.
+
+```
+auto& inputs = context.inputs();
+DPLRawParser parser(inputs);
+for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
+  // retrieving RDH v4
+  auto const* rdh = it.get_if<o2::header::RAWDataHeaderV4>();
+  // retrieving the raw pointer of the page
+  auto const* raw = it.raw();
+  // retrieving payload pointer of the page
+  auto const* payload = it.data();
+  // size of payload
+  size_t payloadSize = it.size();
+  // offset of payload in the raw page
+  size_t offset = it.offset();
+}
+```
+
+A list of InputSpec definiions can be provided to filter the incoming messages
+by the DataHeader.
+```
+DPLRawParser parser(inputs, o2::framework::select("A:ITS/RAWDATA"));
+```
+Note: `select` is a helper function of WorkflowSpec.h which builds InputSpecs from
+a string.
+
 ### ROOT Tree reader and writer
 documentation to be filled
