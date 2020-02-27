@@ -59,6 +59,9 @@ fi
 echo "Running simulation for $nev $collSyst events with $gener generator and engine $engine"
 o2-sim -n"$nev" --configKeyValue "Diamond.width[2]=6." -g "$gener" -e "$engine" &> sim.log
 
+##------ extract number of hits
+root -q -b -l ${O2_ROOT}/share/macro/analyzeHits.C > hitstats.log
+
 echo "Running digitization for $intRate kHz interaction rate"
 intRate=$((1000*(intRate)));
 echo o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate
