@@ -7,6 +7,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include <gsl/span>
 #include "FairLogger.h"
 
 #include "DataFormatsEMCAL/Digit.h"
@@ -35,22 +36,37 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
   }
 
   mOutputCells.clear();
-  auto digits = ctx.inputs().get<std::vector<o2::emcal::Digit>>("digits");
-  LOG(DEBUG) << "[EMCALCellConverter - run]  Received " << digits.size() << " digits ...";
-  for (const auto& dig : digits) {
-    ChannelType_t chantype;
-    if (dig.getHighGain())
-      chantype = ChannelType_t::HIGH_GAIN;
-    else if (dig.getLowGain())
-      chantype = ChannelType_t::LOW_GAIN;
-    else if (dig.getTRU())
-      chantype = ChannelType_t::TRU;
-    else if (dig.getLEDMon())
-      chantype = ChannelType_t::LEDMON;
-    mOutputCells.emplace_back(dig.getTower(), dig.getEnergy(), dig.getTimeStamp(), chantype);
+  mOutputTriggers.clear();
+  auto digitsAll = ctx.inputs().get<gsl::span<o2::emcal::Digit>>("digits");
+  auto triggers = ctx.inputs().get<gsl::span<o2::emcal::TriggerRecord>>("triggers");
+  LOG(DEBUG) << "[EMCALCellConverter - run]  Received " << digitsAll.size() << " digits from " << triggers.size() << " trigger ...";
+  int currentstart = mOutputCells.size(), ncellsTrigger = 0;
+  for (const auto& trg : triggers) {
+    if (!trg.getNumberOfObjects()) {
+      mOutputTriggers.emplace_back(trg.getBCData(), currentstart, ncellsTrigger);
+      continue;
+    }
+    gsl::span<const o2::emcal::Digit> digits(digitsAll.data() + trg.getFirstEntry(), trg.getNumberOfObjects());
+    for (const auto& dig : digits) {
+      ChannelType_t chantype;
+      if (dig.getHighGain())
+        chantype = ChannelType_t::HIGH_GAIN;
+      else if (dig.getLowGain())
+        chantype = ChannelType_t::LOW_GAIN;
+      else if (dig.getTRU())
+        chantype = ChannelType_t::TRU;
+      else if (dig.getLEDMon())
+        chantype = ChannelType_t::LEDMON;
+      mOutputCells.emplace_back(dig.getTower(), dig.getEnergy(), dig.getTimeStamp(), chantype);
+      ncellsTrigger++;
+    }
+    mOutputTriggers.emplace_back(trg.getBCData(), currentstart, ncellsTrigger);
+    currentstart = mOutputCells.size();
+    ncellsTrigger = 0;
   }
   LOG(DEBUG) << "[EMCALCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
   ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
+  ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLSTRGR", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggers);
   if (mPropagateMC) {
     // copy mc truth container without modification
     // as indexing doesn't change
@@ -64,7 +80,9 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getCellConverterSpec(
   std::vector<o2::framework::InputSpec> inputs;
   std::vector<o2::framework::OutputSpec> outputs;
   inputs.emplace_back("digits", o2::header::gDataOriginEMC, "DIGITS", 0, o2::framework::Lifetime::Timeframe);
+  inputs.emplace_back("triggers", "EMC", "DIGITSTRGR", 0, o2::framework::Lifetime::Timeframe);
   outputs.emplace_back("EMC", "CELLS", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("EMC", "CELLSTRGR", 0, o2::framework::Lifetime::Timeframe);
   if (propagateMC) {
     inputs.emplace_back("digitsmctr", "EMC", "DIGITSMCTR", 0, o2::framework::Lifetime::Timeframe);
     outputs.emplace_back("EMC", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe);
