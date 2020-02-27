@@ -29,11 +29,7 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
   template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Global, L, G, C, P> { typedef G type; };
   template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Constant, L, G, C, P> { typedef C type; };
   template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Plain, L, G, C, P> { typedef P type; };
-  #ifdef __HIPCC__
-    #define MakeType(base_type) typename MakeTypeHelper<LG, GPUsharedref() base_type, GPUglobalref() base_type, GPUconstantref() base_type, base_type>::type
-  #else
-    #define MakeType(base_type) typename MakeTypeHelper<LG, GPUshared() base_type, GPUglobalref() base_type, GPUconstant() base_type, base_type>::type
-  #endif
+  #define MakeType(base_type) typename MakeTypeHelper<LG, GPUsharedref() base_type, GPUglobalref() base_type, GPUconstantref() base_type, base_type>::type
   #define MEM_CLASS_PRE() template<LocalOrGlobal LG>
   #define MEM_CLASS_PRE_TEMPLATE(t) template<LocalOrGlobal LG, t>
   #define MEM_LG(type) type<LG>
