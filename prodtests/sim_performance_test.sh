@@ -31,7 +31,6 @@ HOST=`hostname`
 
 # include header information such as tested alidist tag and O2 tag
 TAG="conf=${SIMCONFIG},host=${HOST}${ALIDISTCOMMIT:+,alidist=$ALIDISTCOMMIT}${O2COMMIT:+,o2=$O2COMMIT}"
-echo "TAG = $TAG"
 
 echo "versions,${TAG} alidist=\"${ALIDISTCOMMIT}\",O2=\"${O2COMMIT}\" " >> metrics.dat
 
@@ -45,7 +44,11 @@ SECONDS=0
 ### ------ we run the transport simulation
 LOGFILE=log_${SIMCONFIG}
 HITFILE=o2sim_${SIMCONFIG}
+HITSTATFILE=hitstats_${SIMCONFIG}
 taskset -c 1 o2-sim-serial -n ${NEVENTS} -e ${ENGINE} --skipModules ZDC -g ${GEN} --seed $SEED -o ${HITFILE} > $LOGFILE 2>&1
+
+### ------ extract number of hits
+root -q -b -l ${O2_ROOT}/share/macro/analyzeHits.C\(\"${HITFILE}.root\"\) > $HITSTATFILE
 
 TRANSPORTTIME=$SECONDS
 
@@ -78,22 +81,25 @@ SECONDS=0
 
 digi_time_metrics="walltime_digitizer,${TAG} ";
 digi_mem_metrics="maxmem_digitizer,${TAG} ";
+hit_metrics="hitnumber,${TAG} ";
 
 digi_total_time=0.
 digi_total_mem=0.
+hits_total=0
 # for the moment soft link files to what digitizer expect
-unlink o2sim.root
-unlink o2sim_grp.root
+[[ -f "o2sim.root" ]] && unlink o2sim.root
+[[ -f "o2sim_grp.root" ]] && unlink o2sim_grp.root
 ln -s ${HITFILE}.root o2sim.root
 ln -s ${HITFILE}_grp.root o2sim_grp.root
-for d in TRD ITS EMC TPC MFT MCH MID FDD FV0 FT0 PHS TOF HMP; do
+for d in TRD ITS EMC TPC MFT MCH MID FDD FV0 FT0 PHS TOF HMP CPV; do
   DIGILOGFILE=logdigi_${SIMCONFIG}_${d}
+  DIGITIMEFILE=timedigi_${SIMCONFIG}_${d}
 
-  TIME="#walltime %e" ${O2_ROOT}/share/scripts/monitor-mem.sh time o2-sim-digitizer-workflow -b --onlyDet ${d} --tpc-lanes 1 --configKeyValues "TRDSimParams.digithreads=1" > ${DIGILOGFILE} 2>&1
+  TIME="#walltime %e" ${O2_ROOT}/share/scripts/monitor-mem.sh /usr/bin/time --output=${DIGITIMEFILE} o2-sim-digitizer-workflow -b --onlyDet ${d} --tpc-lanes 1 --configKeyValues "TRDSimParams.digithreads=1" > ${DIGILOGFILE} 2>&1
 
   # parse metrics
   maxmem=`awk '/PROCESS MAX MEM/{print $5}' ${DIGILOGFILE}`  # in MB
-  walltime=`grep "#walltime" ${DIGILOGFILE} | awk '//{print $2}'`
+  walltime=`grep "#walltime" ${DIGITIMEFILE} | awk '//{print $2}'`
 
   # parse digitizer time which is more accurately representing the algorithmic component
 
@@ -105,7 +111,7 @@ for d in TRD ITS EMC TPC MFT MCH MID FDD FV0 FT0 PHS TOF HMP; do
   digi_total_time=`bc <<< "${digi_total_time} + ${walltime}"`
   digi_total_mem=`bc <<< "${digi_total_mem} + ${maxmem}"`
 
-  # analyse messages
+  # analyse messages in log files
   WARN=`grep "\[WARN\]" ${DIGILOGFILE} | wc | awk '//{print $1}'`
   ERR=`grep "\[ERROR\]" ${DIGILOGFILE} | wc | awk '//{print $1}'`
   EXC=`grep "Exce" ${DIGILOGFILE} | wc | awk '//{print $1}'`
@@ -113,17 +119,27 @@ for d in TRD ITS EMC TPC MFT MCH MID FDD FV0 FT0 PHS TOF HMP; do
   ERRORCOUNT=`bc <<< "${ERRORCOUNT} + ${ERR}"`
   EXCEPTIONCOUNT=`bc <<< "${EXCEPTIONCOUNT} + ${EXC}"`
 
+  # analyse number of hits
+  HITNUMBER=`grep "${d}" $HITSTATFILE | awk '//{print $2}'`
+  hit_metrics="${hit_metrics}$d=${HITNUMBER},"
+  hits_total=`bc <<< "${hits_total} + ${HITNUMBER}"`
 done
 DIGITTIME=$SECONDS  # with this we can calculate fractional contribution
-# add value for this detector
+
+# finish by adding a total field
 digi_time_metrics="${digi_time_metrics}total=${digi_total_time} "
 digi_mem_metrics="${digi_mem_metrics}total=${digi_total_mem} "
+hit_metrics="${hit_metrics}total=${hits_total} "
 
 echo ${digi_time_metrics} >> metrics.dat
 echo ${digi_mem_metrics} >> metrics.dat
+echo ${hit_metrics} >> metrics.dat
 echo "warncount,${TAG} value=${WARNCOUNT} " >> metrics.dat
 echo "errorcount,${TAG} value=${ERRORCOUNT} " >> metrics.dat
 echo "exceptioncount,${TAG} value=${EXCEPTIONCOUNT} " >> metrics.dat
 
 
 done # end loop over configurations engines
+
+# remove empty DPL files
+find ./ -size 0 -exec rm {} ';'
