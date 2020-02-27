@@ -843,7 +843,7 @@ void GPUTPCGMTrackParam::SetExtParam(const AliExternalTrackParam& T)
 }
 #endif
 
-GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() track, int iTrk, const GPUTPCGMMerger* GPUrestrict() merger, GPUTPCGMMergedTrackHit* GPUrestrict() clusters)
+GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() track, int iTrk, const GPUTPCGMMerger* GPUrestrict() merger, GPUTPCGMMergedTrackHit* GPUrestrict() clusters) // TODO: Inline me, once __forceinline__ is fixed by HIP
 {
   if (!track.OK()) {
     return;
