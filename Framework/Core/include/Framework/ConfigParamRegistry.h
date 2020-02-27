@@ -45,6 +45,8 @@ class ConfigParamRegistry
     try {
       if constexpr (std::is_same_v<T, int>) {
         return mRetriever->getInt(key);
+      } else if constexpr (std::is_same_v<T, int64_t>) {
+        return mRetriever->getInt64(key);
       } else if constexpr (std::is_same_v<T, float>) {
         return mRetriever->getFloat(key);
       } else if constexpr (std::is_same_v<T, double>) {

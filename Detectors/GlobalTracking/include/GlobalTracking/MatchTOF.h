@@ -33,6 +33,9 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "ReconstructionDataFormats/PID.h"
 
+// from FIT
+#include "DataFormatsFT0/RecPoints.h"
+
 #ifdef _ALLOW_DEBUG_TREES_
 //#define _ALLOW_TOF_DEBUG_
 #endif
@@ -54,13 +57,13 @@ namespace globaltracking
 ///< original track in the currently loaded TPC-ITS reco output
 struct TrackLocTPCITS : public o2::track::TrackParCov {
   o2::dataformats::EvIndex<int, int> source; ///< track origin id
-  TimeBracket timeBins;                      ///< bracketing time-bins
+  o2::utils::Bracket<float> timeBins;        ///< bracketing time-bins
   float zMin = 0;                            // min possible Z of this track
   float zMax = 0;                            // max possible Z of this track
   int matchID = MinusOne;                    ///< entry (none if MinusOne) of TOF matchTOF struct in the mMatchesTOF
   TrackLocTPCITS(const o2::track::TrackParCov& src, int tch, int tid) : o2::track::TrackParCov(src), source(tch, tid) {}
   TrackLocTPCITS() = default;
-  ClassDefNV(TrackLocTPCITS, 1);
+  ClassDefNV(TrackLocTPCITS, 1); // RS TODO: is this class needed?
 };
 
 class MatchTOF
@@ -175,6 +178,9 @@ class MatchTOF
   std::vector<o2::MCCompLabel>& getMatchedTPCLabelsVector() { return mOutTPCLabels; } ///< get vector of TPC label of matched tracks
   std::vector<o2::MCCompLabel>& getMatchedITSLabelsVector() { return mOutITSLabels; } ///< get vector of ITS label of matched tracks
 
+  void setFITRecPoints(const std::vector<o2::ft0::RecPoints>* recpoints) { mFITRecPoints = recpoints; }
+  int findFITIndex(int bc);
+
  private:
   void attachInputTrees();
   bool prepareTracks();
@@ -228,6 +234,8 @@ class MatchTOF
   const std::vector<o2::MCCompLabel>* mTPCLabels = nullptr; ///< TPC label of input tracks
   const std::vector<o2::MCCompLabel>* mITSLabels = nullptr; ///< ITS label of input tracks
 
+  const std::vector<o2::ft0::RecPoints>* mFITRecPoints = nullptr; ///< FIT recpoints
+
   /// <<<-----
 
   ///<working copy of the input tracks
@@ -280,7 +288,7 @@ class MatchTOF
 
   TStopwatch mTimerTot;
   TStopwatch mTimerDBG;
-  ClassDefNV(MatchTOF, 2);
+  ClassDefNV(MatchTOF, 3);
 };
 } // namespace globaltracking
 } // namespace o2

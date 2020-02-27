@@ -11,11 +11,12 @@
 ///
 /// \file    MultiView.h
 /// \author  Jeremi Niedziela
+/// \author julian.myrcha@cern.ch
+/// \author p.nowakowski@cern.ch
 
-#ifndef ALICE_O2_EVENTVISUALISATION_BASE_MULTIVIEW_H
-#define ALICE_O2_EVENTVISUALISATION_BASE_MULTIVIEW_H
+#ifndef ALICE_O2_EVENTVISUALISATION_VIEW_MULTIVIEW_H
+#define ALICE_O2_EVENTVISUALISATION_VIEW_MULTIVIEW_H
 
-#include <EventVisualisationBase/EventRegistration.h>
 #include <TGLViewer.h>
 #include <TEveGeoShape.h>
 #include <TEveScene.h>
@@ -35,7 +36,7 @@ namespace event_visualisation
 /// or remove simplified geometries. One can also register visualisation objects for
 /// drawing in the MultiView, which will be imported to 3D view and projections.
 
-class MultiView : public EventRegistration
+class MultiView
 {
  public:
   enum EViews {
@@ -82,14 +83,13 @@ class MultiView : public EventRegistration
   void destroyAllGeometries();
 
   /// Registers an element to be drawn
-  void registerElement(TEveElement* event) override;
+  void registerElement(TEveElement* event); //override;
 
   ///
   void registerEvent(TEveElement* event) { return registerElement(event); }
   /// Removes all shapes representing current event
-  void destroyAllEvents() override;
-
-  void drawRandomEvent();
+  void destroyAllEvents(); //override;
+  void redraw3D();
 
  private:
   /// Default constructor
@@ -110,15 +110,9 @@ class MultiView : public EventRegistration
   void setupMultiview();
   /// Returns geometry scene for given projection manager
   EScenes getSceneOfProjection(EProjections projection);
-
-  /// Vector keeping all geometries
-  ///
-  /// This is used just to know what to remove
-  /// when destroying of all geometries is requested
-  //std::vector<TEveGeoShape*> mGeomVector;
 };
 
 } // namespace event_visualisation
 } // namespace o2
 
-#endif
+#endif // ALICE_O2_EVENTVISUALISATION_VIEW_MULTIVIEW_H

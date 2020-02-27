@@ -24,3 +24,13 @@ o2_add_test(test_StructToTuple NAME test_FrameworkFoundation_StructToTuple
             COMPONENT_NAME FrameworkFoundation
             SOURCES test/test_StructToTuple.cxx
             PUBLIC_LINK_LIBRARIES O2::FrameworkFoundation)
+
+o2_add_test(test_CompilerBuiltins NAME test_FrameworkFoundation_CompilerBuiltins
+            COMPONENT_NAME FrameworkFoundation
+            SOURCES test/test_CompilerBuiltins.cxx
+            PUBLIC_LINK_LIBRARIES O2::FrameworkFoundation)
+
+o2_add_test(test_Signpost NAME test_FrameworkFoundation_Signpost
+            COMPONENT_NAME FrameworkFoundation
+            SOURCES test/test_Signpost.cxx
+            PUBLIC_LINK_LIBRARIES O2::FrameworkFoundation)

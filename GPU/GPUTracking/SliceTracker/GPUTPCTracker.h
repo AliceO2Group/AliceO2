@@ -96,11 +96,11 @@ class GPUTPCTracker : public GPUProcessor
 
   int ReadEvent();
 
-  GPUh() const GPUTPCClusterData* ClusterData() const { return mData.ClusterData(); }
+  GPUh() GPUglobalref() const GPUTPCClusterData* ClusterData() const { return mData.ClusterData(); }
 
   GPUh() MakeType(const MEM_LG(GPUTPCRow) &) Row(const GPUTPCHitId& HitId) const { return mData.Row(HitId.RowIndex()); }
 
-  GPUhd() GPUTPCSliceOutput* Output() const { return mOutput; }
+  GPUhd() GPUglobalref() GPUTPCSliceOutput* Output() const { return mOutput; }
 #endif
   GPUhdni() GPUglobalref() commonMemoryStruct* CommonMemory() const
   {
@@ -108,12 +108,12 @@ class GPUTPCTracker : public GPUProcessor
   }
 
   MEM_CLASS_PRE2()
-  GPUd() void GetErrors2(int iRow, const MEM_LG2(GPUTPCTrackParam) & t, float& ErrY2, float& ErrZ2) const
+  GPUd() void GetErrors2Seeding(int iRow, const MEM_LG2(GPUTPCTrackParam) & t, float& ErrY2, float& ErrZ2) const
   {
     // Param().GetClusterErrors2( iRow, Param().GetContinuousTracking() != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
     Param().GetClusterRMS2(iRow, Param().ContinuousTracking != 0.f ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2);
   }
-  GPUd() void GetErrors2(int iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
+  GPUd() void GetErrors2Seeding(int iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
   {
     // Param().GetClusterErrors2( iRow, Param().GetContinuousTracking() != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
     Param().GetClusterRMS2(iRow, Param().ContinuousTracking != 0.f ? 125.f : z, sinPhi, DzDs, ErrY2, ErrZ2);
@@ -214,11 +214,11 @@ class GPUTPCTracker : public GPUProcessor
 
   GPUhd() GPUglobalref() GPUAtomic(unsigned int) * NTracklets() const { return &mCommonMem->nTracklets; }
 
-  GPUhd() const GPUTPCHitId& TrackletStartHit(int i) const { return mTrackletStartHits[i]; }
+  GPUhd() GPUglobalref() const GPUTPCHitId& TrackletStartHit(int i) const { return mTrackletStartHits[i]; }
   GPUhd() GPUglobalref() GPUTPCHitId* TrackletStartHits() const { return mTrackletStartHits; }
   GPUhd() GPUglobalref() GPUTPCHitId* TrackletTmpStartHits() const { return mTrackletTmpStartHits; }
   MEM_CLASS_PRE2()
-  GPUhd() const MEM_LG2(GPUTPCTracklet) & Tracklet(int i) const { return mTracklets[i]; }
+  GPUhd() GPUglobalref() const MEM_LG2(GPUTPCTracklet) & Tracklet(int i) const { return mTracklets[i]; }
   GPUhd() GPUglobalref() MEM_GLOBAL(GPUTPCTracklet) * Tracklets() const { return mTracklets; }
   GPUhd() GPUglobalref() calink* TrackletRowHits() const { return mTrackletRowHits; }
 
@@ -236,7 +236,7 @@ class GPUTPCTracker : public GPUProcessor
     return (&mGPUParametersConst);
   }
   GPUhd() MakeType(MEM_LG(const StructGPUParametersConst) *) GetGPUParametersConst() const { return (&mGPUParametersConst); }
-  GPUhd() void SetGPUTextureBase(const void* val) { mData.SetGPUTextureBase(val); }
+  GPUhd() void SetGPUTextureBase(GPUglobalref() const void* val) { mData.SetGPUTextureBase(val); }
 
   struct trackSortData {
     int fTtrack;    // Track ID

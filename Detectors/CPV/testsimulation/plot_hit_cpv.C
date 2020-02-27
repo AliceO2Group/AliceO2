@@ -8,21 +8,19 @@
 #include "FairFileSource.h"
 #include "FairLogger.h"
 #include "FairRunAna.h"
-//#include "FairRuntimeDb.h"
 #include "FairParRootFileIo.h"
 #include "FairSystemInfo.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-
 #include "CPVBase/Geometry.h"
-#include "CPVSimulation/DigitizerTask.h"
+#include "CPVBase/Hit.h"
 #endif
 
-void plot_hit_cpv(int ievent = 0, std::string inputfile = "AliceO2_TGeant3.cpv.mc_10_event.root")
+void plot_hit_cpv(int ievent = 0, std::string inputfile = "o2sim.root")
 {
   // macros to plot CPV hits
 
   // Hits
-  TFile* file0 = TFile::Open("AliceO2_TGeant3.cpv.mc_10_event.root");
+  TFile* file0 = TFile::Open("o2sim.root");
   std::cout << " Open hits file " << inputfile << std::endl;
   TTree* hitTree = (TTree*)gFile->Get("o2sim");
   std::vector<o2::cpv::Hit>* mHitsArray = nullptr;
@@ -40,25 +38,16 @@ void plot_hit_cpv(int ievent = 0, std::string inputfile = "AliceO2_TGeant3.cpv.m
     for (int j = 0; j < 100; j++)
       primLabels[mod][j] = -1;
 
-  o2::cpv::Geometry* geom = new o2::cpv::Geometry("CPVRun3");
-
   std::vector<o2::cpv::Hit>::iterator it;
-  int relId[3];
+  short relId[3];
 
   //  for(it=mHitsArray->begin(); it!=mHitsArray->end(); it++){
 
-  std::ostream stream(nullptr);
-  stream.rdbuf(std::cout.rdbuf()); // uses cout's buffer
-                                   //      stream.rdbuf(LOG(DEBUG2));
-  for (uint i = 0; i < mHitsArray->size(); i++) {
-    mHitsArray->at(i).PrintStream(stream);
-  }
-
   for (auto& it : *mHitsArray) {
-    int absId = it.GetDetectorID();
-    double en = it.GetEnergyLoss();
+    short absId = it.GetDetectorID();
+    float en = it.GetEnergyLoss();
     int lab = it.GetTrackID();
-    geom->AbsToRelNumbering(absId, relId);
+    o2::cpv::Geometry::absToRelNumbering(absId, relId);
     printf("reldId=(%d,%d,%d) \n", relId[0], relId[1], relId[2]);
     // check, if this label already exist
     int j = 0;

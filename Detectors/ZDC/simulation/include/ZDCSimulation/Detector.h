@@ -19,6 +19,9 @@
 #include "DetectorsCommonDataFormats/DetID.h" // for Detector
 #include "ZDCBase/Geometry.h"
 #include "ZDCSimulation/Hit.h"
+#include "ZDCSimulation/SpatialPhotonResponse.h"
+#include "TParticle.h"
+#include <utility>
 
 class FairVolume;
 
@@ -47,15 +50,15 @@ class Detector : public o2::base::DetImpl<Detector>
     kGraphite = 14
   };
 
-  Detector() = default;
-
-  Detector(Bool_t active);
+  Detector(Bool_t active = true);
 
   ~Detector() override = default;
 
   void InitializeO2Detector() final;
 
   Bool_t ProcessHits(FairVolume* v = nullptr) final;
+
+  bool createHitsFromImage(SpatialPhotonResponse const& image, int detector);
 
   void Register() override;
 
@@ -71,6 +74,8 @@ class Detector : public o2::base::DetImpl<Detector>
   void Reset() final;
   void EndOfEvent() final;
   void FinishPrimary() final;
+
+  void BeginPrimary() final;
 
   void ConstructGeometry() final;
 
@@ -102,13 +107,68 @@ class Detector : public o2::base::DetImpl<Detector>
 
   void resetHitIndices();
 
+  // common function for hit creation (can be called from multiple interfaces)
+  bool createOrAddHit(int detector,
+                      int sector,
+                      int currentMediumid,
+                      bool issecondary,
+                      int nphe,
+                      int trackn,
+                      int parent,
+                      float tof,
+                      float trackenergy,
+                      Vector3D<float> const& xImp,
+                      float eDep, float x, float y, float z, float px, float py, float pz)
+  {
+    // A new hit is created when there is nothing yet for this det + sector
+    if (mCurrentHitsIndices[detector - 1][sector] == -1) {
+      mTotLightPMC = mTotLightPMQ = 0;
+      if (currentMediumid == mMediumPMCid) {
+        mTotLightPMC = nphe;
+      } else if (currentMediumid == mMediumPMQid) {
+        mTotLightPMQ = nphe;
+      }
+
+      Vector3D<float> pos(x, y, z);
+      Vector3D<float> mom(px, py, pz);
+      addHit(trackn, parent, issecondary, trackenergy, detector, sector,
+             pos, mom, tof, xImp, eDep, mTotLightPMC, mTotLightPMQ);
+      // stack->addHit(GetDetId());
+      mCurrentHitsIndices[detector - 1][sector] = mHits->size() - 1;
+
+      mXImpact = xImp;
+      return true;
+    } else {
+      auto& curHit = (*mHits)[mCurrentHitsIndices[detector - 1][sector]];
+      // summing variables that needs to be updated (Eloss and light yield)
+      curHit.setNoNumContributingSteps(curHit.getNumContributingSteps() + 1);
+      int nPMC{0}, nPMQ{0};
+      if (currentMediumid == mMediumPMCid) {
+        mTotLightPMC += nphe;
+        nPMC = nphe;
+      } else if (currentMediumid == mMediumPMQid) {
+        mTotLightPMQ += nphe;
+        nPMQ = nphe;
+      }
+      if (nphe > 0) {
+        curHit.SetEnergyLoss(curHit.GetEnergyLoss() + eDep);
+        curHit.setPMCLightYield(curHit.getPMCLightYield() + nPMC);
+        curHit.setPMQLightYield(curHit.getPMQLightYield() + nPMQ);
+      }
+      return true;
+    }
+  }
+
+  // helper function taking care of writing the photon response pattern at certain moments
+  void flushSpatialResponse();
+
   Float_t mTrackEta;
   Float_t mPrimaryEnergy;
   Vector3D<float> mXImpact;
   Float_t mTotLightPMC;
   Float_t mTotLightPMQ;
-  Int_t mMediumPMCid;
-  Int_t mMediumPMQid;
+  Int_t mMediumPMCid = -1;
+  Int_t mMediumPMQid = -2;
 
   //
   /// Container for hit data
@@ -128,7 +188,7 @@ class Detector : public o2::base::DetImpl<Detector>
   int mLastPrincipalTrackEntered = -1;
 
   static constexpr int NUMDETS = 5; // number of detectors
-  static constexpr int NUMSECS = 4; // number of (max) possible sectors
+  static constexpr int NUMSECS = 5; // number of (max) possible sectors (including COMMON one)
 
   // current hits per detector and per sector FOR THE CURRENT track first entering a detector
   // (as given by mLastPrincipalTrackEntered)
@@ -139,8 +199,21 @@ class Detector : public o2::base::DetImpl<Detector>
   static constexpr int ZPRADIUSBINS = 28;
   static constexpr int ANGLEBINS = 90;
 
-  float mLightTableZN[4][ZNRADIUSBINS][ANGLEBINS] = {1.}; //!
-  float mLightTableZP[4][ZPRADIUSBINS][ANGLEBINS] = {1.}; //!
+  float mLightTableZN[4][ANGLEBINS][ZNRADIUSBINS] = {1.}; //!
+  float mLightTableZP[4][ANGLEBINS][ZPRADIUSBINS] = {1.}; //!
+
+  SpatialPhotonResponse mNeutronResponseImage;
+  // there is only one proton detector per side
+  SpatialPhotonResponse mProtonResponseImage;
+
+  TParticle mCurrentPrincipalParticle{};
+
+  // collecting the responses for the current event
+  using ParticlePhotonResponse = std::vector<std::pair<TParticle,
+                                                       std::pair<SpatialPhotonResponse, SpatialPhotonResponse>>>;
+
+  ParticlePhotonResponse mResponses;
+  ParticlePhotonResponse* mResponsesPtr = &mResponses;
 
   template <typename Det>
   friend class o2::base::DetImpl;

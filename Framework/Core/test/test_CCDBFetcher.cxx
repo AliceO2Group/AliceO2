@@ -12,6 +12,7 @@
 #include "Framework/ControlService.h"
 
 #include <chrono>
+#include <thread>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -34,7 +35,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
             LOG(ERROR) << "Wrong size for condition payload (expected " << 1024 << ", found " << header->payloadSize;
           }
           header->payloadSize;
-          auto aData = outputs.make<int>(Output{"TST", "A1", 0}, 1);
+          auto& aData = outputs.make<int>(Output{"TST", "A1", 0}, 1);
           control.readyToQuit(QuitRequest::All);
         })},
       Options{

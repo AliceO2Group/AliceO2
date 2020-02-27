@@ -10,7 +10,6 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "CCDB/CcdbApi.h"
-#include "CCDB/TObjectWrapper.h"
 #include "EMCALCalib/GainCalibrationFactors.h"
 #include "RStringView.h"
 #include "TH1F.h"
@@ -19,6 +18,7 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <iostream>
 #endif
 
 /// \brief Converting time into numerical time stamp representation
@@ -53,7 +53,7 @@ void GainCalibrationFactors_CCDBApiTest(const std::string_view ccdbserver = "emc
   std::string inputDir = " ";
   if (aliceO2env)
     inputDir = aliceO2env;
-  inputDir += "/share/Detectors/EMCAL/files/";
+  inputDir += "/share/Detectors/EMC/files/";
 
   std::string fileNameGainCalib = inputDir + "GainCalibrationFactors_LHC18q.txt";
   std::ifstream fileGainCalib(fileNameGainCalib, std::ifstream::in);
@@ -85,25 +85,14 @@ void GainCalibrationFactors_CCDBApiTest(const std::string_view ccdbserver = "emc
 
   std::cout << "Using time stamps " << rangestart << " and " << rangeend << std::endl;
   std::map<std::string, std::string> metadata;
-  ccdbhandler.storeAsTFile(new o2::TObjectWrapper<o2::emcal::GainCalibrationFactors>(gcf), "EMC/GainCalibFactors", metadata, rangestart, rangeend);
+  ccdbhandler.storeAsTFileAny(gcf, "EMC/GainCalibFactors", metadata, rangestart, rangeend);
 
   // Read gain calibration factors from CCDB, check whether they are the same
   auto rangetest = create_timestamp(2018, 11, 16, 20, 55, 3); //LHC18q run 296273
   //auto rangetest = create_timestamp(2015, 12, 9, 23, 10, 3); //LHC15 run 246583
   std::cout << "Using read timestamp " << rangetest << std::endl;
   o2::emcal::GainCalibrationFactors* read(nullptr);
-  auto res = ccdbhandler.retrieveFromTFile("EMC/GainCalibFactors", metadata, rangetest);
-  if (!res) {
-    std::cerr << "Failed retrieving object from CCDB" << std::endl;
-    return;
-  }
-  std::cout << "Object found, type " << res->IsA()->GetName() << std::endl;
-  auto objw = dynamic_cast<o2::TObjectWrapper<o2::emcal::GainCalibrationFactors>*>(res);
-  if (!objw) {
-    std::cerr << "failed casting to TObjectWrapper" << std::endl;
-    return;
-  }
-  read = objw->getObj();
+  read = ccdbhandler.retrieveFromTFileAny<o2::emcal::GainCalibrationFactors>("EMC/GainCalibFactors", metadata, rangetest);
   if (!read) {
     std::cerr << "No object received from CCDB" << std::endl;
     return;

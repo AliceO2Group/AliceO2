@@ -28,7 +28,6 @@
   #error Invalid Compile Definitions, need to build for either AliRoot or O2 or Standalone
 #endif
 
-#define GPUCA_EXTERN_ROW_HITS
 #define GPUCA_TRACKLET_SELECTOR_MIN_HITS(QPT) (CAMath::Abs(QPT) > 10 ? 10 : (CAMath::Abs(QPT) > 5 ? 15 : 29)) // Minimum hits should depend on Pt, low Pt tracks can have few hits. 29 Hits default, 15 for < 200 mev, 10 for < 100 mev
 
 #define GPUCA_GLOBAL_TRACKING_RANGE 45                // Number of rows from the upped/lower limit to search for global track candidates in for
@@ -50,8 +49,6 @@
 #define GPUCA_MERGER_COV_LIMIT 1000                   // Abort fit when y/z cov exceed the limit
 #define GPUCA_MIN_TRACK_PT_DEFAULT 0.010              // Default setting for minimum track Pt at some places
 
-#define GPUCA_MAX_SLICE_NTRACK (2 << 24)              // Maximum number of tracks per slice (limited by track id format)
-
 #define GPUCA_MAX_SIN_PHI_LOW 0.99f                   // Must be preprocessor define because c++ pre 11 cannot use static constexpr for initializes
 #define GPUCA_MAX_SIN_PHI 0.999f
 
@@ -70,13 +67,11 @@
   #endif
 #endif
 
-//#define GPUCA_MERGER_BY_MC_LABEL
-#define GPUCA_REPRODUCIBLE_CLUSTER_SORTING
-
-//#define GPUCA_FULL_CLUSTERDATA                      //Store all cluster information in the cluster data, also those not needed for tracking.
-//#define GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME        //Propagate Pad, Row, Time cluster information to GM
-//#define GPUCA_GM_USE_FULL_FIELD                     //Use offline magnetic field during GMPropagator prolongation
-//#define GPUCA_TPC_USE_STAT_ERROR                    //Use statistical errors from offline in track fit
+//#define GPUCA_MERGER_BY_MC_LABEL                    // Use MC labels for TPC track merging - for performance studies
+//#define GPUCA_FULL_CLUSTERDATA                      // Store all cluster information in the cluster data, also those not needed for tracking.
+//#define GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME        // Propagate Pad, Row, Time cluster information to GM
+//#define GPUCA_GM_USE_FULL_FIELD                     // Use offline magnetic field during GMPropagator prolongation
+//#define GPUCA_TPC_USE_STAT_ERROR                    // Use statistical errors from offline in track fit
 
 // clang-format on
 

@@ -18,8 +18,10 @@
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsEMCAL/EMCALBlockHeader.h"
 #include "DataFormatsEMCAL/Digit.h"
+#include "DataFormatsEMCAL/Cluster.h"
 #include "EMCALWorkflow/RecoWorkflow.h"
 #include "EMCALWorkflow/CellConverterSpec.h"
+#include "EMCALWorkflow/ClusterizerSpec.h"
 #include "EMCALWorkflow/DigitsPrinterSpec.h"
 #include "EMCALWorkflow/PublisherSpec.h"
 #include "Framework/DataSpecUtils.h"
@@ -93,6 +95,26 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
       // add converter for cells
       specs.emplace_back(o2::emcal::reco_workflow::getCellConverterSpec(propagateMC));
     }
+
+    if (isEnabled(OutputType::Clusters)) {
+      // add clusterizer
+      specs.emplace_back(o2::emcal::reco_workflow::getClusterizerSpec(true));
+    }
+  } else if (inputType == InputType::Cells) {
+
+    specs.emplace_back(o2::emcal::getPublisherSpec(PublisherConf{
+                                                     "emcal-cell-reader",
+                                                     "o2sim",
+                                                     {"cellbranch", "EMCALCell", "Cell branch"},
+                                                     {"mcbranch", "EMCALCellMCTruth", "MC label branch"},
+                                                     o2::framework::OutputSpec{"EMC", "CELLS"},
+                                                     o2::framework::OutputSpec{"EMC", "CELLSMCTR"}},
+                                                   propagateMC));
+
+    if (isEnabled(OutputType::Clusters)) {
+      // add clusterizer from cells
+      specs.emplace_back(o2::emcal::reco_workflow::getClusterizerSpec(false));
+    }
   }
 
   // check if the process is ready to quit
@@ -129,6 +151,16 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                                            std::move(databranch)));
   };
 
+  // TODO: Write comment in push comment @matthiasrichter
+  auto makeWriterSpec_Cluster = [checkReady](const char* processName, const char* defaultFileName, const char* defaultTreeName,
+                                             auto&& clusterbranch, auto&& digitindicesbranch) {
+    // RootTreeWriter spec is created with one branch definition
+    return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
+                                                           o2::framework::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
+                                                           std::move(clusterbranch),
+                                                           std::move(digitindicesbranch)));
+  };
+
   if (isEnabled(OutputType::Digits)) {
     using DigitOutputType = std::vector<o2::emcal::Digit>;
     using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
@@ -143,8 +175,8 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                                                       "digitmc-branch-name"})());
   }
 
-  if (isEnabled(OutputType::Cells)) {
-    using DigitOutputType = std::vector<o2::emcal::Digit>;
+  if (isEnabled(OutputType::Cells) && inputType == InputType::Digits) {
+    using DigitOutputType = std::vector<o2::emcal::Cell>;
     using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
     specs.push_back(makeWriterSpec("emcal-cells-writer",
                                    inputType == InputType::Cells ? "emc-filtered-cells.root" : "emccells.root",
@@ -156,6 +188,21 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                                                       "EMCCellMCTruth",
                                                                       "cellmc-branch-name"})());
   }
+
+  if (isEnabled(OutputType::Clusters)) {
+    using ClusterOutputType = std::vector<o2::emcal::Cluster>;
+    using ClusterIndicesOutputType = std::vector<o2::emcal::ClusterIndex>;
+    specs.push_back(makeWriterSpec_Cluster("emcal-clusters-writer",
+                                           "emcclusters.root",
+                                           "o2sim",
+                                           BranchDefinition<ClusterOutputType>{o2::framework::InputSpec{"clusters", "EMC", "CLUSTERS", 0},
+                                                                               "EMCCluster",
+                                                                               "cluster-branch-name"},
+                                           BranchDefinition<ClusterIndicesOutputType>{o2::framework::InputSpec{"clusterindices", "EMC", "INDICES", 0},
+                                                                                      "EMCClusterDigitIndex",
+                                                                                      "clusterdigitindices-branch-name"})());
+  }
+
   return std::move(specs);
 }
 

@@ -40,9 +40,6 @@ namespace mid
 class ClusterizerDeviceDPL
 {
  public:
-  ClusterizerDeviceDPL(const char* inputBinding, const char* inputROFBinding) : mInputBinding(inputBinding), mInputROFBinding(inputROFBinding), mPreClusterizer(), mClusterizer(), mTimer(0), mTimerPreCluster(0), mTimerCluster(0){};
-  ~ClusterizerDeviceDPL() = default;
-
   void init(o2::framework::InitContext& ic)
   {
     if (!mPreClusterizer.init()) {
@@ -55,7 +52,8 @@ class ClusterizerDeviceDPL
 
     auto stop = [this]() {
       LOG(INFO) << "Capacities: ROFRecords: " << mClusterizer.getROFRecords().capacity() << "  preclusters: " << mPreClusterizer.getPreClusters().capacity() << "  clusters: " << mClusterizer.getClusters().capacity();
-      LOG(INFO) << "Processing times: full: " << mTimer.count() << " s  pre-clustering: " << mTimerPreCluster.count() << " s  clustering: " << mTimerCluster.count() << " s";
+      double scaleFactor = 1.e6 / mNROFs;
+      LOG(INFO) << "Processing time / " << mNROFs << " ROFs: full: " << mTimer.count() * scaleFactor << " us  pre-clustering: " << mTimerPreCluster.count() * scaleFactor << " us  clustering: " << mTimerCluster.count() * scaleFactor << " us";
     };
     ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);
   }
@@ -64,10 +62,10 @@ class ClusterizerDeviceDPL
   {
     auto tStart = std::chrono::high_resolution_clock::now();
 
-    auto msg = pc.inputs().get(mInputBinding.c_str());
+    auto msg = pc.inputs().get("mid_data");
     gsl::span<const ColumnData> patterns = of::DataRefUtils::as<const ColumnData>(msg);
 
-    auto msgROF = pc.inputs().get(mInputROFBinding.c_str());
+    auto msgROF = pc.inputs().get("mid_data_rof");
     gsl::span<const ROFRecord> inROFRecords = of::DataRefUtils::as<const ROFRecord>(msgROF);
 
     // Pre-clustering
@@ -87,32 +85,28 @@ class ClusterizerDeviceDPL
     LOG(DEBUG) << "Sent " << mClusterizer.getROFRecords().size() << " ROF";
 
     mTimer += std::chrono::high_resolution_clock::now() - tStart;
-
-    pc.services().get<of::ControlService>().readyToQuit(of::QuitRequest::Me);
+    mNROFs += inROFRecords.size();
   }
 
  private:
-  std::string mInputBinding;
-  std::string mInputROFBinding;
-  PreClusterizer mPreClusterizer;
-  Clusterizer mClusterizer;
+  PreClusterizer mPreClusterizer{};
+  Clusterizer mClusterizer{};
   std::chrono::duration<double> mTimer{0};           ///< full timer
   std::chrono::duration<double> mTimerPreCluster{0}; ///< pre-clustering timer
   std::chrono::duration<double> mTimerCluster{0};    ///< clustering timer
+  unsigned long mNROFs{0};                           ///< Total number of processed ROFs
 };
 
 framework::DataProcessorSpec getClusterizerSpec()
 {
-  std::string inputBinding = "mid_data";
-  std::string inputROFBinding = "mid_data_rof";
-  std::vector<of::InputSpec> inputSpecs{of::InputSpec{inputBinding, "MID", "DATA"}, of::InputSpec{inputROFBinding, "MID", "DATAROF"}};
+  std::vector<of::InputSpec> inputSpecs{of::InputSpec{"mid_data", "MID", "DATA"}, of::InputSpec{"mid_data_rof", "MID", "DATAROF"}};
   std::vector<of::OutputSpec> outputSpecs{of::OutputSpec{"MID", "CLUSTERS"}, of::OutputSpec{"MID", "CLUSTERSROF"}};
 
   return of::DataProcessorSpec{
     "MIDClusterizer",
     {inputSpecs},
     {outputSpecs},
-    of::AlgorithmSpec{of::adaptFromTask<o2::mid::ClusterizerDeviceDPL>(inputBinding.c_str(), inputROFBinding.c_str())}};
+    of::AlgorithmSpec{of::adaptFromTask<o2::mid::ClusterizerDeviceDPL>()}};
 }
 } // namespace mid
 } // namespace o2

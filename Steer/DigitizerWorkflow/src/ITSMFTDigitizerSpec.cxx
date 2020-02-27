@@ -17,7 +17,7 @@
 #include "Framework/Task.h"
 #include "Headers/DataHeader.h"
 #include "Steer/HitProcessingManager.h" // for RunContext
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -235,7 +235,7 @@ class ITSMFTDPLDigitizerTask
 
     for (int i = 0; i < mROFRecords.size(); i++) {
       auto& rof = mROFRecords[i];
-      rof.getROFEntry().shiftIndex(ndigAcc);
+      rof.setFirstEntry(ndigAcc + rof.getFirstEntry());
       rof.print();
 
       if (mFixMC2ROF < mMC2ROFRecordsAccum.size()) { // fix ROFRecord entry in MC2ROF records

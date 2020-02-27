@@ -40,6 +40,18 @@ CalibPedestal::CalibPedestal(PadSubset padSubset)
 {
   mADCdata.resize(ROC::MaxROC);
 }
+//______________________________________________________________________________
+void CalibPedestal::init()
+{
+  const auto& param = CalibPedestalParam::Instance();
+
+  mFirstTimeBin = param.FirstTimeBin;
+  mLastTimeBin = param.LastTimeBin;
+  mADCMin = param.ADCMin;
+  mADCMax = param.ADCMax;
+  mNumberOfADCs = mADCMax - mADCMin + 1;
+  mStatisticsType = param.StatType;
+}
 
 //______________________________________________________________________________
 Int_t CalibPedestal::updateROC(const Int_t roc, const Int_t row, const Int_t pad,
@@ -105,11 +117,11 @@ void CalibPedestal::analyse()
     for (Int_t ichannel = 0; ichannel < numberOfPads; ++ichannel) {
       size_t offset = ichannel * mNumberOfADCs;
       if (mStatisticsType == StatisticsType::GausFit) {
-        fitGaus(mNumberOfADCs, array + offset, float(mADCMin), float(mADCMax + 1), fitValues);
+        fitGaus(mNumberOfADCs, array + offset, float(mADCMin) - 0.5f, float(mADCMax + 1) - 0.5f, fitValues); // -0.5 since ADC values are discrete
         pedestal = fitValues[1];
         noise = fitValues[2];
       } else if (mStatisticsType == StatisticsType::MeanStdDev) {
-        StatisticsData data = getStatisticsData(array + offset, mNumberOfADCs, double(mADCMin), double(mADCMax));
+        StatisticsData data = getStatisticsData(array + offset, mNumberOfADCs, double(mADCMin) - 0.5, double(mADCMax) - 0.5); // -0.5 since ADC values are discrete
         pedestal = data.mCOG;
         noise = data.mStdDev;
       }

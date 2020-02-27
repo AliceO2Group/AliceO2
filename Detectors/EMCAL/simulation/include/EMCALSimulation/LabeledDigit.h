@@ -17,7 +17,7 @@
 #include "CommonDataFormat/TimeStamp.h"
 #include "DataFormatsEMCAL/Constants.h"
 #include "DataFormatsEMCAL/Digit.h"
-#include "EMCALSimulation/MCLabel.h"
+#include "DataFormatsEMCAL/MCLabel.h"
 
 #include <boost/serialization/base_object.hpp> // for base_object
 
@@ -28,6 +28,7 @@ namespace emcal
 {
 /// \class LabeledDigit
 /// \brief EMCAL labeled digit implementation
+/// \ingroup EMCALsimulation
 
 class LabeledDigit
 {

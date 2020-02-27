@@ -40,6 +40,7 @@
 #include "GPUTPCMCInfo.h"
 #include "GPUTPCClusterData.h"
 #include "GPUO2DataTypes.h"
+#include "GPUParam.inc"
 #ifdef GPUCA_O2_LIB
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -581,7 +582,7 @@ void GPUQA::RunQA(bool matchOnly)
     // Assign Track MC Labels
     timer.Start();
     bool ompError = false;
-#if defined(GPUCA_HAVE_OPENMP) && QA_DEBUG == 0
+#if defined(WITH_OPENMP) && QA_DEBUG == 0
 #pragma omp parallel for
 #endif
     for (int i = 0; i < merger.NOutputTracks(); i++) {
@@ -815,7 +816,7 @@ void GPUQA::RunQA(bool matchOnly)
     }
     timer.ResetStart();
 
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp parallel for
 #endif
     for (unsigned int iCol = 0; iCol < GetNMCCollissions(); iCol++) {

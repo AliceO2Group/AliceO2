@@ -1,4 +1,6 @@
+<!-- doxy
 \page refCommonSimConfig SimConfig
+/doxy -->
 
 # Configurable Parameters
 

@@ -13,7 +13,8 @@ o2_add_library(TOFReconstruction
                        src/ClustererTask.cxx src/Encoder.cxx
                        src/Decoder.cxx
                PUBLIC_LINK_LIBRARIES O2::TOFBase O2::DataFormatsTOF
-                                     O2::SimulationDataFormat)
+                                     O2::SimulationDataFormat
+				     O2::TOFCalibration O2::DetectorsRaw)
 
 o2_target_root_dictionary(TOFReconstruction
                           HEADERS include/TOFReconstruction/DataReader.h

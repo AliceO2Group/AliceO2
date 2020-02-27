@@ -27,7 +27,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       AlgorithmSpec{
         [](ProcessingContext& ctx) {
           std::this_thread::sleep_for(std::chrono::seconds(1));
-          auto aData = ctx.outputs().make<int>(Output{"TST", "A1", 0}, 1);
+          auto& aData = ctx.outputs().make<int>(Output{"TST", "A1", 0}, 1);
           ctx.services().get<ControlService>().readyToQuit(QuitRequest::All);
         }},
       Options{{"test-option", VariantType::String, "test", {"A test option"}}},

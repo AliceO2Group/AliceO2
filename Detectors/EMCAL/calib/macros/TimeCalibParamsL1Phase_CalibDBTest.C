@@ -18,6 +18,7 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <iostream>
 #endif
 
 /// \brief Converting time into numerical time stamp representation
@@ -51,7 +52,7 @@ void TimeCalibParamsL1Phase_CalibDBTest(const std::string_view ccdbserver = "emc
   std::string inputDir = " ";
   if (aliceO2env)
     inputDir = aliceO2env;
-  inputDir += "/share/Detectors/EMCAL/files/";
+  inputDir += "/share/Detectors/EMC/files/";
 
   std::string file = inputDir + "TimeL1Phase_LHC18q_295585.txt";
   std::ifstream fileL1Phase(file, std::ifstream::in);

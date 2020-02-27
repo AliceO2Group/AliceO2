@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
     createRoute("z_source", spec3)};
   // First of all we test if an empty registry behaves as expected, raising a
   // bunch of exceptions.
-  InputRecord emptyRecord(schema, {[](size_t) { return nullptr; }, 0});
+  InputRecord emptyRecord(schema, {[](size_t) { return DataRef{nullptr, nullptr, nullptr}; }, 0});
 
   BOOST_CHECK_EXCEPTION(emptyRecord.get("x"), std::exception, any_exception);
   BOOST_CHECK_EXCEPTION(emptyRecord.get("y"), std::exception, any_exception);
@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
   createMessage(dh1, 1);
   createMessage(dh2, 2);
   createEmpty();
-  InputSpan span{[&inputs](size_t i) { return static_cast<char const*>(inputs[i]); }, inputs.size()};
+  InputSpan span{[&inputs](size_t i) { return DataRef{nullptr, static_cast<char const*>(inputs[2 * i]), static_cast<char const*>(inputs[2 * i + 1])}; }, inputs.size() / 2};
   InputRecord record{schema, std::move(span)};
 
   // Checking we can get the whole ref by name
@@ -127,6 +127,23 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
   // A few more time just to make sure we are not stateful..
   BOOST_CHECK_EQUAL(record.get<int>("x"), 1);
   BOOST_CHECK_EQUAL(record.get<int>("x"), 1);
+
+  // test the iterator
+  int position = 0;
+  for (auto input = record.begin(), end = record.end(); input != end; input++, position++) {
+    if (position == 0) {
+      BOOST_CHECK(input.matches("TPC") == true);
+      BOOST_CHECK(input.matches("TPC", "CLUSTERS") == true);
+      BOOST_CHECK(input.matches("ITS", "CLUSTERS") == false);
+    }
+    if (position == 1) {
+      BOOST_CHECK(input.matches("ITS") == true);
+      BOOST_CHECK(input.matches("ITS", "CLUSTERS") == true);
+      BOOST_CHECK(input.matches("TPC", "CLUSTERS") == false);
+    }
+    // check if invalid slots are filtered out by the iterator
+    BOOST_CHECK(position != 2);
+  }
 }
 
 // TODO:

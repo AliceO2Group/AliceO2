@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/AODReaderHelpers.h"
+#include "Framework/AnalysisDataModel.h"
 #include "DataProcessingHelpers.h"
 #include "Framework/RootTableBuilderHelpers.h"
 #include "Framework/AlgorithmSpec.h"
@@ -99,8 +100,36 @@ enum AODTypeMask : uint64_t {
   VZero = 1 << 5,
   Collisions = 1 << 6,
   Timeframe = 1 << 7,
-  DZeroFlagged = 1 << 8
+  DZeroFlagged = 1 << 8,
+  Unknown = 1 << 9
 };
+
+uint64_t getMask(header::DataDescription description)
+{
+
+  if (description == header::DataDescription{"TRACKPAR"}) {
+    return AODTypeMask::Tracks;
+  } else if (description == header::DataDescription{"TRACKPARCOV"}) {
+    return AODTypeMask::TracksCov;
+  } else if (description == header::DataDescription{"TRACKEXTRA"}) {
+    return AODTypeMask::TracksExtra;
+  } else if (description == header::DataDescription{"CALO"}) {
+    return AODTypeMask::Calo;
+  } else if (description == header::DataDescription{"MUON"}) {
+    return AODTypeMask::Muon;
+  } else if (description == header::DataDescription{"VZERO"}) {
+    return AODTypeMask::VZero;
+  } else if (description == header::DataDescription{"COLLISION"}) {
+    return AODTypeMask::Collisions;
+  } else if (description == header::DataDescription{"TIMEFRAME"}) {
+    return AODTypeMask::Timeframe;
+  } else if (description == header::DataDescription{"DZEROFLAGGED"}) {
+    return AODTypeMask::DZeroFlagged;
+  } else {
+    LOG(DEBUG) << "This is a tree of unknown type! " << description.str;
+    return AODTypeMask::Unknown;
+  }
+}
 
 uint64_t calculateReadMask(std::vector<OutputRoute> const& routes, header::DataOrigin const& origin)
 {
@@ -108,29 +137,23 @@ uint64_t calculateReadMask(std::vector<OutputRoute> const& routes, header::DataO
   for (auto& route : routes) {
     auto concrete = DataSpecUtils::asConcreteDataTypeMatcher(route.matcher);
     auto description = concrete.description;
-    if (description == header::DataDescription{"TRACKPAR"}) {
-      readMask |= AODTypeMask::Tracks;
-    } else if (description == header::DataDescription{"TRACKPARCOV"}) {
-      readMask |= AODTypeMask::TracksCov;
-    } else if (description == header::DataDescription{"TRACKEXTRA"}) {
-      readMask |= AODTypeMask::TracksExtra;
-    } else if (description == header::DataDescription{"CALO"}) {
-      readMask |= AODTypeMask::Calo;
-    } else if (description == header::DataDescription{"MUON"}) {
-      readMask |= AODTypeMask::Muon;
-    } else if (description == header::DataDescription{"VZERO"}) {
-      readMask |= AODTypeMask::VZero;
-    } else if (description == header::DataDescription{"COLLISION"}) {
-      readMask |= AODTypeMask::Collisions;
-    } else if (description == header::DataDescription{"TIMEFRAME"}) {
-      readMask |= AODTypeMask::Timeframe;
-    } else if (description == header::DataDescription{"DZEROFLAGGED"}) {
-      readMask |= AODTypeMask::DZeroFlagged;
-    } else {
-      throw std::runtime_error(std::string("Unknown AOD type: ") + description.str);
-    }
+
+    readMask |= getMask(description);
   }
   return readMask;
+}
+
+std::vector<OutputRoute> getListOfUnknown(std::vector<OutputRoute> const& routes)
+{
+
+  std::vector<OutputRoute> unknows;
+  for (auto& route : routes) {
+    auto concrete = DataSpecUtils::asConcreteDataTypeMatcher(route.matcher);
+
+    if (getMask(concrete.description) == AODTypeMask::Unknown)
+      unknows.push_back(route);
+  }
+  return unknows;
 }
 
 AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
@@ -277,18 +300,29 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       filenames.push_back(filename);
     }
 
+    // analyze type of requested tables
     uint64_t readMask = calculateReadMask(spec.outputs, header::DataOrigin{"AOD"});
+    std::vector<OutputRoute> unknowns;
+    if (readMask & AODTypeMask::Unknown)
+      unknowns = getListOfUnknown(spec.outputs);
+
     auto counter = std::make_shared<int>(0);
     return adaptStateless([readMask,
+                           unknowns,
                            counter,
-                           filenames](DataAllocator& outputs, ControlService& control) {
-      if (*counter >= filenames.size()) {
+                           filenames](DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {
+      // Each parallel reader reads the files whose index is associated to
+      // their inputTimesliceId
+      assert(device.inputTimesliceId < device.maxInputTimeslices);
+      size_t fi = (*counter * device.maxInputTimeslices) + device.inputTimesliceId;
+      if (fi >= filenames.size()) {
         LOG(info) << "All input files processed";
+        control.endOfStream();
         control.readyToQuit(QuitRequest::Me);
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         return;
       }
-      auto f = filenames[*counter];
+      auto f = filenames[fi];
+      LOG(INFO) << "Processing " << f;
       auto infile = std::make_unique<TFile>(f.c_str());
       *counter += 1;
       if (infile.get() == nullptr || infile->IsOpen() == false) {
@@ -297,99 +331,46 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       }
 
       /// FIXME: Substitute here the actual data you want to convert for the AODReader
+      if (readMask & AODTypeMask::Collisions) {
+        std::unique_ptr<TTreeReader> reader = std::make_unique<TTreeReader>("O2events", infile.get());
+        auto& collisionBuilder = outputs.make<TableBuilder>(Output{"AOD", "COLLISION"});
+        RootTableBuilderHelpers::convertASoA<o2::aod::Collisions>(collisionBuilder, *reader);
+      }
+
       if (readMask & AODTypeMask::Tracks) {
         std::unique_ptr<TTreeReader> reader = std::make_unique<TTreeReader>("O2tracks", infile.get());
         auto& trackParBuilder = outputs.make<TableBuilder>(Output{"AOD", "TRACKPAR"});
-        TTreeReaderValue<int> c0(*reader, "fID4Tracks");
-        TTreeReaderValue<float> c1(*reader, "fX");
-        TTreeReaderValue<float> c2(*reader, "fAlpha");
-        TTreeReaderValue<float> c3(*reader, "fY");
-        TTreeReaderValue<float> c4(*reader, "fZ");
-        TTreeReaderValue<float> c5(*reader, "fSnp");
-        TTreeReaderValue<float> c6(*reader, "fTgl");
-        TTreeReaderValue<float> c7(*reader, "fSigned1Pt");
-        RootTableBuilderHelpers::convertTTree(trackParBuilder, *reader,
-                                              c0, c1, c2, c3, c4, c5, c6, c7);
+        RootTableBuilderHelpers::convertASoA<o2::aod::Tracks>(trackParBuilder, *reader);
       }
 
       if (readMask & AODTypeMask::TracksCov) {
         std::unique_ptr<TTreeReader> covReader = std::make_unique<TTreeReader>("O2tracks", infile.get());
-        TTreeReaderValue<float> c0(*covReader, "fCYY");
-        TTreeReaderValue<float> c1(*covReader, "fCZY");
-        TTreeReaderValue<float> c2(*covReader, "fCZZ");
-        TTreeReaderValue<float> c3(*covReader, "fCSnpY");
-        TTreeReaderValue<float> c4(*covReader, "fCSnpZ");
-        TTreeReaderValue<float> c5(*covReader, "fCSnpSnp");
-        TTreeReaderValue<float> c6(*covReader, "fCTglSnp");
-        TTreeReaderValue<float> c7(*covReader, "fCTglTgl");
-        TTreeReaderValue<float> c8(*covReader, "fC1PtY");
-        TTreeReaderValue<float> c9(*covReader, "fC1PtZ");
-        TTreeReaderValue<float> c10(*covReader, "fC1PtSnp");
-        TTreeReaderValue<float> c11(*covReader, "fC1PtTgl");
-        TTreeReaderValue<float> c12(*covReader, "fC1Pt21Pt2");
         auto& trackParCovBuilder = outputs.make<TableBuilder>(Output{"AOD", "TRACKPARCOV"});
-        RootTableBuilderHelpers::convertTTree(trackParCovBuilder, *covReader,
-                                              c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12);
+        RootTableBuilderHelpers::convertASoA<o2::aod::TracksCov>(trackParCovBuilder, *covReader);
       }
 
       if (readMask & AODTypeMask::TracksExtra) {
         std::unique_ptr<TTreeReader> extraReader = std::make_unique<TTreeReader>("O2tracks", infile.get());
-        TTreeReaderValue<float> c0(*extraReader, "fTPCinnerP");
-        TTreeReaderValue<uint64_t> c1(*extraReader, "fFlags");
-        TTreeReaderValue<unsigned char> c2(*extraReader, "fITSClusterMap");
-        TTreeReaderValue<unsigned short> c3(*extraReader, "fTPCncls");
-        TTreeReaderValue<unsigned char> c4(*extraReader, "fTRDntracklets");
-        TTreeReaderValue<float> c5(*extraReader, "fITSchi2Ncl");
-        TTreeReaderValue<float> c6(*extraReader, "fTPCchi2Ncl");
-        TTreeReaderValue<float> c7(*extraReader, "fTRDchi2");
-        TTreeReaderValue<float> c8(*extraReader, "fTOFchi2");
-        TTreeReaderValue<float> c9(*extraReader, "fTPCsignal");
-        TTreeReaderValue<float> c10(*extraReader, "fTRDsignal");
-        TTreeReaderValue<float> c11(*extraReader, "fTOFsignal");
-        TTreeReaderValue<float> c12(*extraReader, "fLength");
         auto& extraBuilder = outputs.make<TableBuilder>(Output{"AOD", "TRACKEXTRA"});
-        RootTableBuilderHelpers::convertTTree(extraBuilder, *extraReader,
-                                              c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11);
+        RootTableBuilderHelpers::convertASoA<o2::aod::TracksExtra>(extraBuilder, *extraReader);
       }
 
       if (readMask & AODTypeMask::Calo) {
         std::unique_ptr<TTreeReader> extraReader = std::make_unique<TTreeReader>("O2calo", infile.get());
-        TTreeReaderValue<int> c0(*extraReader, "fID4Calo");
-        TTreeReaderValue<short> c1(*extraReader, "fCellNumber");
-        TTreeReaderValue<float> c2(*extraReader, "fAmplitude");
-        TTreeReaderValue<float> c3(*extraReader, "fTime");
-        TTreeReaderValue<int8_t> c4(*extraReader, "fType");
         auto& extraBuilder = outputs.make<TableBuilder>(Output{"AOD", "CALO"});
-        RootTableBuilderHelpers::convertTTree(extraBuilder, *extraReader,
-                                              c0, c1, c2, c3, c4);
+        RootTableBuilderHelpers::convertASoA<o2::aod::Calos>(extraBuilder, *extraReader);
       }
 
       if (readMask & AODTypeMask::Muon) {
-        std::unique_ptr<TTreeReader> muReader = std::make_unique<TTreeReader>("O2mu", infile.get());
-        TTreeReaderValue<int> c0(*muReader, "fID4mu");
-        TTreeReaderValue<float> c1(*muReader, "fInverseBendingMomentum");
-        TTreeReaderValue<float> c2(*muReader, "fThetaX");
-        TTreeReaderValue<float> c3(*muReader, "fThetaY");
-        TTreeReaderValue<float> c4(*muReader, "fZmu");
-        TTreeReaderValue<float> c5(*muReader, "fBendingCoor");
-        TTreeReaderValue<float> c6(*muReader, "fNonBendingCoor");
-        TTreeReaderArray<float> c7(*muReader, "fCovariances");
-        TTreeReaderValue<float> c8(*muReader, "fChi2");
-        TTreeReaderValue<float> c9(*muReader, "fChi2MatchTrigger");
-        TTreeReaderValue<int> c10(*muReader, "fID4vz");
+        std::unique_ptr<TTreeReader> muReader = std::make_unique<TTreeReader>("O2muon", infile.get());
         auto& muBuilder = outputs.make<TableBuilder>(Output{"AOD", "MUON"});
-        RootTableBuilderHelpers::convertTTree(muBuilder, *muReader,
-                                              c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10);
+        RootTableBuilderHelpers::convertASoA<o2::aod::Muons>(muBuilder, *muReader);
       }
 
       if (readMask & AODTypeMask::VZero) {
-        std::unique_ptr<TTreeReader> vzReader = std::make_unique<TTreeReader>("O2vz", infile.get());
-        TTreeReaderArray<float> c0(*vzReader, "fAdcVZ"); // FIXME: we do not support arrays for now
-        TTreeReaderArray<float> c1(*vzReader, "fTimeVZ");
-        TTreeReaderArray<float> c2(*vzReader, "fWidthVZ");
+        std::unique_ptr<TTreeReader> vzReader = std::make_unique<TTreeReader>("O2vzero", infile.get());
         auto& vzBuilder = outputs.make<TableBuilder>(Output{"AOD", "VZERO"});
-        RootTableBuilderHelpers::convertTTree(vzBuilder, *vzReader,
-                                              c0, c1, c2);
+        RootTableBuilderHelpers::convertASoA<o2::aod::Muons>(vzBuilder, *vzReader);
       }
 
       // Candidates as described by Gianmichele example
@@ -423,6 +404,31 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
                                               c0, c1, c2, c3, c4, c5, c6, c7,
                                               c8, c9, c10, c11, c12, c13, c14,
                                               c15, c16, c17, c18, c19, c20);
+      }
+
+      // tables not included in the DataModel
+      if (readMask & AODTypeMask::Unknown) {
+
+        // loop over unknowns
+        for (auto route : unknowns) {
+          auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
+
+          // get the tree from infile
+          auto trname = concrete.description.str;
+          auto tr = (TTree*)infile.get()->Get(trname);
+          if (!tr) {
+            LOG(ERROR) << "Tree " << trname << "is not contained in file " << f;
+            return;
+          }
+
+          // create a TreeToTable object
+          auto h = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
+          auto o = Output(h);
+          auto& t2t = outputs.make<TreeToTable>(o, tr);
+
+          // fill the table
+          t2t.Fill();
+        }
       }
     });
   })};

@@ -415,7 +415,8 @@ int main(int argc, char* argv[])
   // make sure the rest shuts down
   for (auto p : childpids) {
     if (p != mergerpid) {
-      kill(p, SIGKILL);
+      LOG(DEBUG) << "SHUTTING DOWN CHILD PROCESS " << p;
+      kill(p, SIGTERM);
     }
   }
 

@@ -45,6 +45,7 @@ Detector::Detector(Bool_t active)
     mBirkC2(0.),
     mSensitive(),
     mSMVolumeID(),
+    mSMVolNames(),
     mVolumeIDScintillator(-1),
     mHits(o2::utils::createSimVector<Hit>()),
     mGeometry(nullptr),
@@ -82,6 +83,7 @@ Detector::Detector(const Detector& rhs)
     mBirkC2(rhs.mBirkC2),
     mSensitive(),
     mSMVolumeID(),
+    mSMVolNames(),
     mVolumeIDScintillator(-1),
     mHits(o2::utils::createSimVector<Hit>()),
     mGeometry(rhs.mGeometry),
@@ -112,12 +114,16 @@ void Detector::InitializeO2Detector()
   // All EMCAL volumes must be declared as sensitive, otherwise
   // the decay chains are broken by volumes not processed in ProceeHits
   for (const auto& child : mSensitive) {
-    auto vsense = gGeoManager->GetVolume(child.data());
-    if (vsense) {
-      LOG(DEBUG1) << "Adding sensitive volume " << child;
-      AddSensitiveVolume(vsense);
-    } else {
-      LOG(ERROR) << "EMCAL sensitive volume " << child << " not found ";
+    LOG(DEBUG1) << "Adding sensitive volume " << child;
+    auto svolID = registerSensitiveVolumeAndGetVolID(child);
+    if (child == "SCMX") {
+      LOG(DEBUG1) << "Adding SCMX volume as sensitive volume with ID " << svolID;
+      mVolumeIDScintillator = svolID;
+    }
+    auto smtype = mSMVolNames.find(child);
+    if (smtype != mSMVolNames.end()) {
+      std::cout << "Adding supermodule type " << smtype->second << " for SM " << smtype->first << " with volume ID " << svolID << std::endl;
+      mSMVolumeID[svolID] = smtype->second;
     }
   }
 
@@ -144,7 +150,7 @@ void Detector::ConstructGeometry()
   SpaceFrame emcalframe;
   emcalframe.CreateGeometry();
 
-  CreateEmcalEnvelope();
+  //CreateEmcalEnvelope();
 
   // COMPACT, TRD1
   LOG(DEBUG2) << "Shish-Kebab geometry : " << GetTitle();
@@ -442,8 +448,14 @@ void Detector::CreateShiskebabGeometry()
   //  idAL = 1602;
   Double_t par[10], xpos = 0., ypos = 0., zpos = 0.;
 
-  LOG(DEBUG2) << "Name of mother volume: " << g->GetNameOfEMCALEnvelope();
-  CreateSupermoduleGeometry(g->GetNameOfEMCALEnvelope());
+  std::string mothervolume;
+  if (contains(g->GetName(), "WSUC")) {
+    mothervolume = "WSUC";
+  } else {
+    mothervolume = "cave";
+  }
+  LOG(DEBUG2) << "Name of mother volume: " << mothervolume;
+  CreateSupermoduleGeometry(mothervolume);
 
   auto SMTypeList = g->GetEMCSystem();
   auto tmpType = NOT_EXISTENT;
@@ -802,8 +814,8 @@ void Detector::CreateSupermoduleGeometry(const std::string_view mother)
       };
 
       if (SMOrder == 1) { // first time, create the SM
-        auto volID = CreateEMCALVolume(smName, "BOX", ID_AIR, parC, 3);
-        mSMVolumeID[volID] = EMCALSMType(tmpType);
+        CreateEMCALVolume(smName, "BOX", ID_AIR, parC, 3);
+        mSMVolNames[smName] = EMCALSMType(tmpType);
 
         LOG(DEBUG2) << R"( Super module with name \")" << smName << R"(\" was created in \"box\" with: par[0] = )"
                     << parC[0] << ", par[1] = " << parC[1] << ", par[2] = " << parC[2];

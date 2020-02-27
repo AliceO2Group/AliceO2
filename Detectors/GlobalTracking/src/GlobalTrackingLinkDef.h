@@ -16,11 +16,13 @@
 
 #pragma link C++ class o2::globaltracking::MatchTPCITS + ;
 #pragma link C++ class o2::globaltracking::MatchTOF + ;
-#pragma link C++ class o2::globaltracking::CalibTOF + ;
-#pragma link C++ class o2::globaltracking::CollectCalibInfoTOF + ;
-#pragma link C++ class o2::globaltracking::TimeBracket + ;
 #pragma link C++ class o2::globaltracking::TrackLocTPC + ;
 #pragma link C++ class o2::globaltracking::TrackLocITS + ;
+#pragma link C++ class o2::globaltracking::MatchITSTPCParams + ;
+
+#pragma link C++ class o2::globaltracking::ABDebugLink + ;
+#pragma link C++ class o2::globaltracking::ABDebugTrack + ;
+
 #pragma link C++ class std::pair < o2::dataformats::EvIndex < int, int>, o2::dataformats::MatchInfoTOF> + ;
 #pragma link C++ class std::vector < std::pair < o2::dataformats::EvIndex < int, int>, o2::dataformats::MatchInfoTOF>> + ;
 #pragma link C++ class std::vector < o2::dataformats::TrackTPCITS> + ;

@@ -303,6 +303,60 @@ class RootTreeWriter
   template <typename T = char>
   using BinaryBranchStoreType = std::tuple<std::vector<T>, TBranch*, size_t>;
 
+  // type trait to determine the type of the storage
+  // the storage type is different depending on the type, because
+  // - binary branches are supported
+  // - the ROOT TTree API makes a difference between fundamental types where the pointer to variable is
+  //   passed and complex objects with dictionary where the pointer to a pointer variable needs to be
+  //   passed. The former case will allways include a copy of the value, the latter uses the deserialized
+  //   object by pointer
+  // It appears, that also vectors of fundamental and also messageable tyapes can be treated in the same
+  // way as fundamental types, as long as there is a corresponding TClass implementation. ROOT creates those
+  // for vectors of fundamental types, for all other types, ClassDefNV macro is needed in the class
+  // declaration together with entry in LinkDef.
+  template <typename T, typename _ = void>
+  struct StructureElementTypeTrait {
+  };
+
+  using BinaryBranchSpecialization = std::integral_constant<char, 0>;
+  using MessageableTypeSpecialization = std::integral_constant<char, 1>;
+  using MessageableVectorSpecialization = std::integral_constant<char, 2>;
+  using ROOTTypeSpecialization = std::integral_constant<char, 3>;
+
+  // the binary branch format is chosen for const char*
+  // using internally a vector<char>, this involves for the moment a copy, investigate if ROOT
+  // can write a simple array of chars and use a pointer
+  template <typename T>
+  struct StructureElementTypeTrait<T, std::enable_if_t<std::is_same<T, const char*>::value>> {
+    using store_type = BinaryBranchStoreType<char>;
+    using specialization_id = BinaryBranchSpecialization;
+  };
+
+  // all messageable types
+  // using an internal variable of the given type, involves a copy
+  template <typename T>
+  struct StructureElementTypeTrait<T, std::enable_if_t<is_messageable<T>::value>> {
+    using store_type = T;
+    using specialization_id = MessageableTypeSpecialization;
+  };
+
+  // vectors of messageable types
+  template <typename T>
+  struct StructureElementTypeTrait<T, std::enable_if_t<has_messageable_value_type<T>::value &&
+                                                       is_specialization<T, std::vector>::value>> {
+    using store_type = T*;
+    using specialization_id = MessageableVectorSpecialization;
+  };
+
+  // types with root dictionary but non-messageable and not vectors of messageable type
+  template <typename T>
+  struct StructureElementTypeTrait<T, std::enable_if_t<has_root_dictionary<T>::value &&
+                                                       is_messageable<T>::value == false &&
+                                                       has_messageable_value_type<T>::value == false>> {
+    using store_type = T*;
+    using specialization_id = ROOTTypeSpecialization;
+  };
+
   /// one element in the tree structure object
   /// it contains the previous element as base class and is bound to a data type.
   template <typename DataT, typename BASE>
@@ -311,11 +365,8 @@ class RootTreeWriter
    public:
     using PrevT = BASE;
     using value_type = DataT;
-    using store_type = typename std::conditional<std::is_same<DataT, const char*>::value,
-                                                 BinaryBranchStoreType<char>,
-                                                 typename std::conditional<has_root_dictionary<value_type>::value,
-                                                                           value_type*,
-                                                                           value_type>::type>::type;
+    using store_type = typename StructureElementTypeTrait<DataT>::store_type;
+    using specialization_id = typename StructureElementTypeTrait<DataT>::specialization_id;
     static const size_t STAGE = BASE::STAGE + 1;
     TreeStructureElement() = default;
     ~TreeStructureElement() override = default;
@@ -336,7 +387,8 @@ class RootTreeWriter
     // the default method creates branch using address to store variable
     // Note: the type of the store variable is pointer to object for objects with a ROOT TClass
     // interface, or plain type for all others
-    template <typename T, typename std::enable_if_t<!std::is_same<T, const char*>::value, int> = 0>
+    // specialized on specialization_id
+    template <typename S, typename std::enable_if_t<!std::is_same<S, BinaryBranchSpecialization>::value, int> = 0>
     TBranch* createBranch(TTree* tree, const char* name, size_t branchIdx)
     {
       return tree->Branch(name, &(mStore.at(branchIdx)));
@@ -344,7 +396,8 @@ class RootTreeWriter
 
     // specialization for binary buffers indicated by const char*
     // a variable binary data branch is written, the size of each entry is stored in a size branch
-    template <typename T, typename std::enable_if_t<std::is_same<T, const char*>::value, int> = 0>
+    // specialized on specialization_id
+    template <typename S, typename std::enable_if_t<std::is_same<S, BinaryBranchSpecialization>::value, int> = 0>
     TBranch* createBranch(TTree* tree, const char* name, size_t branchIdx)
     {
       // size variable to write the size of the data branch
@@ -378,7 +431,10 @@ class RootTreeWriter
       size_t branchIdx = 0;
       mStore.resize(specs[SpecIndex].names.size());
       for (auto const& name : specs[SpecIndex].names) {
-        specs[SpecIndex].branches.at(branchIdx) = createBranch<value_type>(tree, name.c_str(), branchIdx);
+        specs[SpecIndex].branches.at(branchIdx) = createBranch<specialization_id>(tree, name.c_str(), branchIdx);
+        if (specs[SpecIndex].branches.at(branchIdx) == nullptr) {
+          throw std::runtime_error(std::to_string(SpecIndex) + ": can not create branch " + name + " for type " + typeid(value_type).name() + " - LinkDef entry missing?");
+        }
         LOG(INFO) << SpecIndex << ": branch  " << name << " set up";
         branchIdx++;
       }
@@ -386,19 +442,19 @@ class RootTreeWriter
 
     // specialization for trivial structs or serialized objects without a TClass interface
     // the extracted object is copied to store variable
-    template <typename T, typename std::enable_if_t<std::is_same<T, value_type>::value, int> = 0>
+    template <typename S, typename std::enable_if_t<std::is_same<S, MessageableTypeSpecialization>::value, int> = 0>
     void fillData(InputContext& context, const char* key, TBranch* branch, size_t branchIdx)
     {
-      auto data = context.get<typename std::add_pointer<value_type>::type>(key);
-      mStore[branchIdx] = *data;
+      auto data = context.get<value_type>(key);
+      mStore[branchIdx] = data;
       branch->Fill();
     }
 
-    // specialization for objects with ROOT dictionary
+    // specialization for non-messageable types with ROOT dictionary
     // for non-trivial structs, the address of the pointer to the objects needs to be used
     // in order to directly use the pointer to extracted object
     // store is a pointer to object
-    template <typename T, typename std::enable_if_t<std::is_same<T, value_type*>::value, int> = 0>
+    template <typename S, typename std::enable_if_t<std::is_same<S, ROOTTypeSpecialization>::value, int> = 0>
     void fillData(InputContext& context, const char* key, TBranch* branch, size_t branchIdx)
     {
       auto data = context.get<typename std::add_pointer<value_type>::type>(key);
@@ -410,7 +466,7 @@ class RootTreeWriter
 
     // specialization for binary buffers using const char*
     // this writes both the data branch and a size branch
-    template <typename T, typename std::enable_if_t<std::is_same<T, BinaryBranchStoreType<char>>::value, int> = 0>
+    template <typename S, typename std::enable_if_t<std::is_same<S, BinaryBranchSpecialization>::value, int> = 0>
     void fillData(InputContext& context, const char* key, TBranch* branch, size_t branchIdx)
     {
       auto data = context.get<gsl::span<char>>(key);
@@ -419,6 +475,34 @@ class RootTreeWriter
       std::get<0>(mStore.at(branchIdx)).resize(data.size());
       memcpy(std::get<0>(mStore.at(branchIdx)).data(), data.data(), data.size());
       branch->Fill();
+    }
+
+    // specialization for vectors of messageable types
+    template <typename S, typename std::enable_if_t<std::is_same<S, MessageableVectorSpecialization>::value, int> = 0>
+    void fillData(InputContext& context, const char* key, TBranch* branch, size_t branchIdx)
+    {
+      using ValueType = typename value_type::value_type;
+      static_assert(is_messageable<ValueType>::value, "logical error: should be correctly selected by StructureElementTypeTrait");
+      // if the value type is messagable and has a ROOT dictionary, two serialization methods are possible
+      // for the moment, the InputRecord API can not handle both with the same call
+      try {
+        // try extracting from message with serialization method NONE, throw runtime error
+        // if message is serialized
+        auto data = context.get<gsl::span<ValueType>>(key);
+        value_type clone(data.begin(), data.end());
+        mStore[branchIdx] = &clone;
+        branch->Fill();
+      } catch (const std::runtime_error& e) {
+        if constexpr (has_root_dictionary<value_type>::value == true) {
+          // try extracting from message with serialization method ROOT
+          auto data = context.get<typename std::add_pointer<value_type>::type>(key);
+          mStore[branchIdx] = const_cast<value_type*>(data.get());
+          branch->Fill();
+        } else {
+          // the type has no ROOT dictionary, re-throw exception
+          throw e;
+        }
+      }
     }
 
     // process previous stage and this stage
@@ -440,7 +524,7 @@ class RootTreeWriter
             continue;
           }
         }
-        fillData<store_type>(context, key.c_str(), spec.branches.at(branchIdx), branchIdx);
+        fillData<specialization_id>(context, key.c_str(), spec.branches.at(branchIdx), branchIdx);
       }
     }
 

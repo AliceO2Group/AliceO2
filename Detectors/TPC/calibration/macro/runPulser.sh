@@ -63,7 +63,7 @@ while true; do
     -l|--lastTimeBin) lastTimeBin=$2; shift 2;;
     -n|--nevents) nevents=$2; shift 2;;
     -m|--adcMin) adcMin=$2; shift 2;;
-    -x|--adcMax) adcMin=$2; shift 2;;
+    -x|--adcMax) adcMax=$2; shift 2;;
     -p|--pedestalFile) pedestalFile=$2; shift 2;;
     -v|--verbosity) verbosity=$2; shift 2;;
     -d|--debugLevel) debugLevel=$2; shift 2;;
@@ -79,13 +79,16 @@ fi
 
 # ===| check time bin info |====================================================
 if [[ $fileInfo =~ : ]]; then
-  timeBins=${fileInfo#*:}
-  timeBins=${timeBins%%:*}
+  lastTimeBin=${fileInfo#*:}
+  lastTimeBin=${lastTimeBin%%:*}
 else
-  fileInfo=${fileInfo}:${timeBins}
+  fileInfo=${fileInfo}:${lastTimeBin}
 fi
 
+# ===| properly format fileInfo |===============================================
+fileInfo=$(echo $fileInfo | sed "s|^|{\"|;s|,|:$lastTimeBin\",\"|g;s|$|\"}|")
+
 # ===| command building and execution |=========================================
-cmd="root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/runPulser.C'(\"$fileInfo\",\"$outputFile\", $nevents, $adcMin, $adcMax, $firstTimeBin, $lastTimeBin, \"$pedestalFile\", $verbosity, $debugLevel)'"
+cmd="root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/runPulser.C'($fileInfo,\"$outputFile\", $nevents, $adcMin, $adcMax, $firstTimeBin, $lastTimeBin, \"$pedestalFile\", $verbosity, $debugLevel)'"
 echo "running: $cmd"
 eval $cmd

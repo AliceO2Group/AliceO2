@@ -47,7 +47,7 @@ adcMin=0
 adcMax=1100
 
 # ===| parse command line options |=============================================
-OPTIONS=$(getopt -l "fileInfo:,outputFile:,firstTimeBin:,lastTimeBin:,nevents:,adcMin:,adcMax:,statType:,verbosity:,debugLevel:,help" -o "i:o:t:f:l:m:x:s:v:d:h" -n "runPedestal.sh" -- "$@")
+OPTIONS=$(getopt -l "fileInfo:,outputFile:,firstTimeBin:,lastTimeBin:,nevents:,adcMin:,adcMax:,statType:,verbosity:,debugLevel:,help" -o "i:o:t:f:l:n:m:x:s:v:d:h" -n "runPedestal.sh" -- "$@")
 
 if [ $? != 0 ] ; then
   usageAndExit
@@ -80,13 +80,18 @@ fi
 
 # ===| check time bin info |====================================================
 if [[ $fileInfo =~ : ]]; then
-  timeBins=${fileInfo#*:}
-  timeBins=${timeBins%%:*}
+  lastTimeBin=${fileInfo#*:}
+  lastTimeBin=${lastTimeBin%%:*}
 else
-  fileInfo=${fileInfo}:${timeBins}
+  fileInfo=${fileInfo}:${lastTimeBin}
 fi
 
+# ===| properly format fileInfo |===============================================
+fileInfo=$(echo $fileInfo | sed "s|^|{\"|;s|,|:$lastTimeBin\",\"|g;s|$|\"}|")
+
 # ===| command building and execution |=========================================
-cmd="root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/runPedestal.C'(\"$fileInfo\",\"$outputFile\", $nevents, $adcMin, $adcMax, $firstTimeBin, $lastTimeBin, $statisticsType, $verbosity, $debugLevel)'"
+cmd="root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/runPedestal.C'($fileInfo,\"$outputFile\", $nevents, $adcMin, $adcMax, $firstTimeBin, $lastTimeBin, $statisticsType, $verbosity, $debugLevel)'"
+#cmd="perf record -g -o perf.log root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/runPedestal.C'($fileInfo,\"$outputFile\", $nevents, $adcMin, $adcMax, $firstTimeBin, $lastTimeBin, $statisticsType, $verbosity, $debugLevel)'"
+#cmd="valgrind --tool=callgrind --dump-instr=yes --dump-instr=yes root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/runPedestal.C'($fileInfo,\"$outputFile\", $nevents, $adcMin, $adcMax, $firstTimeBin, $lastTimeBin, $statisticsType, $verbosity, $debugLevel)'"
 echo "running: $cmd"
 eval $cmd

@@ -16,6 +16,7 @@
 #include "TCanvas.h"
 #include <ctime>
 #include <fstream>
+#include <iostream>
 #endif
 
 /// \brief Converting time into numerical time stamp representation
@@ -49,7 +50,7 @@ void TimeCalibrationParams_CalibDBTest(const std::string_view ccdbserver = "emcc
   std::string inputDir = " ";
   if (aliceO2env)
     inputDir = aliceO2env;
-  inputDir += "/share/Detectors/EMCAL/files/";
+  inputDir += "/share/Detectors/EMC/files/";
 
   std::string fileHG = inputDir + "TimeCalibCoeffHG.txt";
   std::ifstream allTimeAvHG(fileHG, std::ifstream::in);

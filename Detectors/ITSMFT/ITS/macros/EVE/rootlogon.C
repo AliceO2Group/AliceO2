@@ -1,6 +1,56 @@
 {
   std::cout << "\n *** This is ITS visualisation ! ***\n\n";
-  gROOT->LoadMacro("./DisplayEvents.C+");
-  init();
+  gROOT->LoadMacro("./DisplayEvents.C+g");
+  std::vector<std::string> digifiles{
+    "data-ep4-link0",
+    "data-ep4-link1",
+    "data-ep4-link2",
+    "data-ep4-link3",
+    "data-ep4-link4",
+    "data-ep4-link5",
+    "data-ep4-link6",
+    "data-ep4-link7",
+    "data-ep4-link8",
+    "data-ep4-link9",
+    "data-ep4-link10",
+    "data-ep4-link11",
+    "data-ep5-link0",
+    "data-ep5-link1",
+    "data-ep5-link2",
+    "data-ep5-link3",
+    "data-ep5-link4",
+    "data-ep5-link5",
+    "data-ep5-link6",
+    "data-ep5-link7",
+    "data-ep5-link8",
+    "data-ep5-link9",
+    "data-ep5-link10",
+    "data-ep5-link11"};
+  std::vector<std::string> clusfiles{
+    "data-ep4-link0.root",
+    "data-ep4-link1.root",
+    "data-ep4-link2.root",
+    "data-ep4-link3.root",
+    "data-ep4-link4.root",
+    "data-ep4-link5.root",
+    "data-ep4-link6.root",
+    "data-ep4-link7.root",
+    "data-ep4-link8.root",
+    "data-ep4-link9.root",
+    "data-ep4-link10.root",
+    "data-ep4-link11.root",
+    "data-ep5-link0.root",
+    "data-ep5-link1.root",
+    "data-ep5-link2.root",
+    "data-ep5-link3.root",
+    "data-ep5-link4.root",
+    "data-ep5-link5.root",
+    "data-ep5-link6.root",
+    "data-ep5-link7.root",
+    "data-ep5-link8.root",
+    "data-ep5-link9.root",
+    "data-ep5-link10.root",
+    "data-ep5-link11.root"};
+  init(0, 132, digifiles, true, clusfiles);
   gEve->GetBrowser()->GetTabRight()->SetTab(1);
 }

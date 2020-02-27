@@ -23,13 +23,33 @@
 #include <sys/wait.h>
 #include <pthread.h> // to set cpu affinity
 #include <cmath>
+#include <csignal>
+#include <unistd.h>
 
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/filereadstream.h"
-
 namespace bpo = boost::program_options;
+
+std::vector<int> gChildProcesses; // global vector of child pids
+int gMasterProcess = -1;
+
+// custom signal handler to ensure that we
+// distribute signals to all detached forks
+void sighandler(int signal)
+{
+  if (signal == SIGTERM || signal == SIGINT) {
+    auto pid = getpid();
+    if (pid == gMasterProcess) {
+      // the master
+      for (auto child : gChildProcesses) {
+        kill(child, signal);
+      }
+    }
+    _exit(0);
+  }
+}
 
 void addCustomOptions(bpo::options_description& options)
 {
@@ -157,6 +177,15 @@ void pinToCPU(unsigned int cpuid)
 
 int main(int argc, char* argv[])
 {
+  // enable signal handler for termination signals
+  if (signal(SIGTERM, sighandler) == SIG_IGN) {
+    signal(SIGTERM, SIG_IGN);
+  }
+  if (signal(SIGINT, sighandler) == SIG_IGN) {
+    signal(SIGINT, SIG_IGN);
+  }
+  signal(SIGCHLD, SIG_IGN); /* Silently reap children to avoid zombies. */
+
   // extract the path to FairMQ config
   bpo::options_description desc{"Options"};
   // clang-format off
@@ -252,6 +281,7 @@ int main(int argc, char* argv[])
     }
     LOG(INFO) << "Running with " << nworkers << " sim workers ";
 
+    gMasterProcess = getpid();
     // then we fork and create a device in each fork
     for (auto i = 0u; i < nworkers; ++i) {
       // we use the current process as one of the workers as it has nothing else to do
@@ -264,6 +294,8 @@ int main(int argc, char* argv[])
         runSim("zeromq", serveraddress, mergeraddress);
 
         _exit(0);
+      } else {
+        gChildProcesses.push_back(pid);
       }
     }
     int status;

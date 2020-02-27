@@ -26,10 +26,11 @@ namespace emcal
 
 /// \class RawReaderMemory
 /// \brief Reader for raw data produced by the Readout application in in-memory format
+/// \ingroup EMCALreconstruction
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 /// \since Nov. 14, 2019
 ///
-//
+///
 template <class RawHeader>
 class RawReaderMemory
 {
@@ -81,6 +82,10 @@ class RawReaderMemory
   /// \brief access to the full raw payload (single or multiple DMA pages)
   /// \return Raw Payload of the data until the stop bit is received.
   const RawPayload& getPayload() const { return mRawPayload; }
+
+  /// \brief Return size of the payload
+  /// \return size of the payload
+  int getPayloadSize() const { return mRawPayload.getPayloadSize(); }
 
   /// \brief get the size of the file in bytes
   /// \return size of the file in byte

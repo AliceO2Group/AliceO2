@@ -25,18 +25,7 @@ namespace tpc
 /// \class TrackTPC
 /// This is the definition of the TPC Track Object
 
-/* 
-   Currently the RootTreeWriter does not support vector<trivial_type> branches, 
-   see https://github.com/AliceO2Group/AliceO2/pull/2645
-   Therefore, at the moment we have to wrap trivial_type to struct and generate streamer 
-   for it.
-   Once the RootTreeWriter is fixed, this struct should be eliminated
-*/
-struct TPCClRefElem {
-  uint32_t v = 0;
-  operator uint32_t() const { return v; }
-  ClassDefNV(TPCClRefElem, 1);
-};
+using TPCClRefElem = uint32_t;
 
 class TrackTPC : public o2::track::TrackParCov
 {
@@ -86,7 +75,6 @@ class TrackTPC : public o2::track::TrackParCov
   int getNClusterReferences() const { return getNClusters(); }
   void setClusterRef(uint32_t entry, uint16_t ncl) { mClustersReference.set(entry, ncl); }
 
-  // TODO Temporary solution, see disclaimer about TPCClRefElem. Later will be changed to uint32_t
   void getClusterReference(gsl::span<const o2::tpc::TPCClRefElem> clinfo, int nCluster,
                            uint8_t& sectorIndex, uint8_t& rowIndex, uint32_t& clusterIndex) const
   {
@@ -102,7 +90,6 @@ class TrackTPC : public o2::track::TrackParCov
     rowIndex = srIndexArr[nCluster + mClustersReference.getEntries()];
   }
 
-  // TODO Temporary solution, see disclaimer about TPCClRefElem. Later will be changed to uint32_t
   const o2::tpc::ClusterNative& getCluster(gsl::span<const o2::tpc::TPCClRefElem> clinfo, int nCluster,
                                            const o2::tpc::ClusterNativeAccess& clusters, uint8_t& sectorIndex, uint8_t& rowIndex) const
   {
@@ -111,7 +98,6 @@ class TrackTPC : public o2::track::TrackParCov
     return (clusters.clusters[sectorIndex][rowIndex][clusterIndex]);
   }
 
-  // TODO Temporary solution, see disclaimer about TPCClRefElem. Later will be changed to uint32_t
   const o2::tpc::ClusterNative& getCluster(gsl::span<const o2::tpc::TPCClRefElem> clinfo, int nCluster,
                                            const o2::tpc::ClusterNativeAccess& clusters) const
   {

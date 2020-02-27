@@ -21,15 +21,27 @@ using namespace o2::framework;
 
 namespace o2::aod
 {
-namespace track
+namespace test
 {
+DECLARE_SOA_COLUMN(X, x, float, "fX");
+DECLARE_SOA_COLUMN(Y, y, float, "fY");
+DECLARE_SOA_COLUMN(Z, z, float, "fZ");
 DECLARE_SOA_COLUMN(Foo, foo, float, "fBar");
 DECLARE_SOA_COLUMN(Bar, bar, float, "fFoo");
+DECLARE_SOA_COLUMN(EventProperty, eventProperty, float, "fEventProperty");
 DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](float x, float y) { return x + y; });
-} // namespace track
+} // namespace test
+DECLARE_SOA_TABLE(Foos, "AOD", "FOO",
+                  test::Foo);
+DECLARE_SOA_TABLE(Bars, "AOD", "BAR",
+                  test::Bar);
 DECLARE_SOA_TABLE(FooBars, "AOD", "FOOBAR",
-                  track::Foo, track::Bar,
-                  track::Sum<track::Foo, track::Bar>);
+                  test::Foo, test::Bar,
+                  test::Sum<test::Foo, test::Bar>);
+DECLARE_SOA_TABLE(XYZ, "AOD", "XYZ",
+                  test::X, test::Y, test::Z);
+DECLARE_SOA_TABLE(Events, "AOD", "EVENTS",
+                  test::EventProperty);
 } // namespace o2::aod
 
 // FIXME: for the moment we do not derive from AnalysisTask as
@@ -76,6 +88,52 @@ struct ETask {
   }
 };
 
+// FIXME: for the moment we do not derive from AnalysisTask as
+// we need GCC 7.4+ to fix a bug.
+struct FTask {
+  expressions::Filter fooFilter = aod::test::foo > 1.;
+  void process(soa::Filtered<o2::aod::FooBars>::iterator const& foobar)
+  {
+    foobar.sum();
+  }
+};
+
+// FIXME: for the moment we do not derive from AnalysisTask as
+// we need GCC 7.4+ to fix a bug.
+struct GTask {
+  void process(o2::soa::Join<o2::aod::Foos, o2::aod::Bars, o2::aod::XYZ> const& foobars)
+  {
+    for (auto foobar : foobars) {
+      foobar.x();
+      foobar.foo();
+      foobar.bar();
+    }
+  }
+};
+
+// FIXME: for the moment we do not derive from AnalysisTask as
+// we need GCC 7.4+ to fix a bug.
+//struct HTask {
+//  void process(o2::soa::Join<o2::aod::Foos, o2::aod::Bars, o2::aod::XYZ>::iterator const& foobar)
+//  {
+//    foobar.x();
+//    foobar.foo();
+//    foobar.bar();
+//  }
+//};
+
+struct ITask {
+  expressions::Filter flt = aod::test::bar > 0.;
+  void process(o2::aod::Collision const&, o2::soa::Filtered<o2::soa::Join<o2::aod::Foos, o2::aod::Bars, o2::aod::XYZ>> const& foobars)
+  {
+    for (auto foobar : foobars) {
+      foobar.x();
+      foobar.foo();
+      foobar.bar();
+    }
+  }
+};
+
 BOOST_AUTO_TEST_CASE(AdaptorCompilation)
 {
   auto task1 = adaptAnalysisTask<ATask>("test1");
@@ -101,4 +159,17 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
   auto task5 = adaptAnalysisTask<ETask>("test5");
   BOOST_CHECK_EQUAL(task5.inputs.size(), 1);
   BOOST_CHECK_EQUAL(task5.inputs[0].binding, "FooBars");
+
+  auto task6 = adaptAnalysisTask<FTask>("test6");
+  BOOST_CHECK_EQUAL(task6.inputs.size(), 1);
+  BOOST_CHECK_EQUAL(task6.inputs[0].binding, "FooBars");
+
+  auto task7 = adaptAnalysisTask<GTask>("test7");
+  BOOST_CHECK_EQUAL(task7.inputs.size(), 3);
+
+  //  auto task8 = adaptAnalysisTask<HTask>("test8");
+  //  BOOST_CHECK_EQUAL(task8.inputs.size(), 3);
+
+  auto task9 = adaptAnalysisTask<ITask>("test9");
+  BOOST_CHECK_EQUAL(task9.inputs.size(), 4);
 }

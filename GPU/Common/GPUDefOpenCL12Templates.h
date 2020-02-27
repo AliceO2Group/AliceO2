@@ -23,14 +23,19 @@
 
 //Special macros for OpenCL rev. 1.2 (encode address space in template parameter)
 enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
-#if defined(__OPENCL__) && !defined(__OPENCLCPP__)
+#if defined(GPUCA_GPUCODE_DEVICE) && defined(GPUCA_USE_TEMPLATE_ADDRESS_SPACES)
   template<LocalOrGlobal, typename L, typename G, typename C, typename P> struct MakeTypeHelper;
   template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Local, L, G, C, P> { typedef L type; };
   template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Global, L, G, C, P> { typedef G type; };
   template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Constant, L, G, C, P> { typedef C type; };
   template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Plain, L, G, C, P> { typedef P type; };
-  #define MakeType(base_type) typename MakeTypeHelper<LG, GPUshared() base_type, GPUglobalref() base_type, GPUconstant() base_type, base_type>::type
+  #ifdef __HIPCC__
+    #define MakeType(base_type) typename MakeTypeHelper<LG, GPUsharedref() base_type, GPUglobalref() base_type, GPUconstantref() base_type, base_type>::type
+  #else
+    #define MakeType(base_type) typename MakeTypeHelper<LG, GPUshared() base_type, GPUglobalref() base_type, GPUconstant() base_type, base_type>::type
+  #endif
   #define MEM_CLASS_PRE() template<LocalOrGlobal LG>
+  #define MEM_CLASS_PRE_TEMPLATE(t) template<LocalOrGlobal LG, t>
   #define MEM_LG(type) type<LG>
   #define MEM_CLASS_PRE2() template<LocalOrGlobal LG2>
   #define MEM_LG2(type) type<LG2>
@@ -41,6 +46,7 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
   #define MEM_LG4(type) type<LG4>
   #define MEM_GLOBAL(type) type<Mem_Global>
   #define MEM_LOCAL(type) type<Mem_Local>
+  #define MEM_LOCAL_TEMPLATE(type, t) type<Mem_Local, t>
   #define MEM_CONSTANT(type) type<Mem_Constant>
   #define MEM_PLAIN(type) type<Mem_Plain>
   #define MEM_TEMPLATE() template <typename T>
@@ -54,6 +60,7 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
 #else
   #define MakeType(base_type) base_type
   #define MEM_CLASS_PRE()
+  #define MEM_CLASS_PRE_TEMPLATE(t) template<t>
   #define MEM_LG(type) type
   #define MEM_CLASS_PRE2()
   #define MEM_LG2(type) type
@@ -64,6 +71,7 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
   #define MEM_LG4(type) type
   #define MEM_GLOBAL(type) type
   #define MEM_LOCAL(type) type
+  #define MEM_LOCAL_TEMPLATE(type, t) type<t>
   #define MEM_CONSTANT(type) type
   #define MEM_PLAIN(type) type
   #define MEM_TEMPLATE()

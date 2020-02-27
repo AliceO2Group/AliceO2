@@ -67,13 +67,13 @@ void drawPulser(TString pulserFile)
     const float maxWidth = medianWidth + rangeWidth;
 
     const float rangeQtot = 150;
-    const float minQtot = medianQtot - rangeQtot;
+    const float minQtot = medianQtot - 50;
     const float maxQtot = medianQtot + rangeQtot;
 
     // ===| histograms for t0, width and qtot |===
-    auto hT0 = new TH1F(Form("hT0%02d", iroc), Form("T0 distribution ROC %02d;ADC value", iroc), 100, minT0, maxT0);
-    auto hWidth = new TH1F(Form("hWidth%02d", iroc), Form("Width distribution ROC %02d;ADC value", iroc), 100, minWidth, maxWidth);
-    auto hQtot = new TH1F(Form("hQtot%02d", iroc), Form("Qtot distribution ROC %02d;ADC value", iroc), 100, minQtot, maxQtot);
+    auto hT0 = new TH1F(Form("hT0%02d", iroc), Form("T0 distribution ROC %02d;time bins (0.2 #mus)", iroc), 100, minT0, maxT0);
+    auto hWidth = new TH1F(Form("hWidth%02d", iroc), Form("Width distribution ROC %02d;time bins (0.2 #mus)", iroc), 100, minWidth, maxWidth);
+    auto hQtot = new TH1F(Form("hQtot%02d", iroc), Form("Qtot distribution ROC %02d;ADC counts", iroc), 100, minQtot, maxQtot);
 
     auto hT02D = painter::getHistogram2D(rocT0);
     hT02D->SetStats(0);

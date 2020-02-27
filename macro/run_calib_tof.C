@@ -12,36 +12,28 @@
 #include <TFile.h>
 #include <TChain.h>
 #include <TTree.h>
-#include <TGeoGlobalMagField.h>
 #include <TParameter.h>
-#include <string>
-#include <FairLogger.h>
 #include <TStopwatch.h>
 
-#include "Field/MagneticField.h"
-#include "DataFormatsParameters/GRPObject.h"
-#include "DetectorsBase/GeometryManager.h"
-#include "DetectorsBase/Propagator.h"
-
-#include "GlobalTracking/CalibTOF.h"
-#endif
+#include "TOFCalibration/CalibTOF.h"
 
 #include <string>
-#include <iostream>
-#include <sys/types.h>
+#include <sys/wait.h>
+#endif
 #include <sys/wait.h>
 #include <unistd.h>
-#include "err.h"
 
 void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparams_tof.root",
-                   std::string inputfileCalib = "o2calibration_tof.root")
+                   std::string inputfileCalib = "o2calibration_tof.root", o2::globaltracking::CalibTOF::CalibType calibType = o2::globaltracking::CalibTOF::kLHCphase)
 {
   bool onlymerge = false; // set to true if you have already the outputs from forked processes and you want only merge
 
   TString namefile(outputfile);
   namefile.ReplaceAll(".root", "");
 
-  const int ninstance = 4;
+  int ninstance = 4;
+  if (calibType == o2::globaltracking::CalibTOF::kLHCphase)
+    ninstance = 1;
   o2::globaltracking::CalibTOF calib;
   calib.setDebugMode(1);
 
@@ -71,9 +63,9 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
   // to be generalized for more than 2 forks
   int counter = 0;
 
-  pid_t pids[ninstance];
+  pid_t* pids = new pid_t[ninstance];
   int n = ninstance;
-  /* Start children. */
+  // Start children.
   TStopwatch timerTot;
   timerTot.Start();
   if (!onlymerge) {
@@ -91,11 +83,14 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
         cout << "Child process: Value returned by fork() = " << pids[i] << endl;
 
         // only for the first child
-        if (i == 0)
+
+        if (i == 0 && calibType & o2::globaltracking::CalibTOF::kLHCphase)
           calib.run(o2::globaltracking::CalibTOF::kLHCphase);
-        for (int sect = i; sect < 18; sect += ninstance)
-          //calib.run(o2::globaltracking::CalibTOF::kChannelTimeSlewing, sect);
-          calib.run(o2::globaltracking::CalibTOF::kChannelOffset, sect);
+        if (calibType > o2::globaltracking::CalibTOF::kLHCphase) { // we do more than only the LHCphase
+          for (int sect = i; sect < 18; sect += ninstance)
+            calib.run((~o2::globaltracking::CalibTOF::kLHCphase) & calibType, sect); // we switch off the LHCphase, if it was enabled in the calibType
+        }
+
         calib.fillOutput();
         outFile.cd();
         outTree.Write();
@@ -116,6 +111,8 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
       --n; // TODO(pts): Remove pid from the pids array.
     }
   }
+
+  delete[] pids;
 
   timerTot.Stop();
   Printf("Time to run the calibration was:");
@@ -142,7 +139,7 @@ void run_calib_tof(std::string path = "./", std::string outputfile = "o2calparam
   timerTot.Print();
 
   outFile.cd();
-  calib.fillOutput();
+  calib.fillOutput(calibType);
   outTree.Write();
   outFile.Close();
 }

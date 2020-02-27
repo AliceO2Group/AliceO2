@@ -23,7 +23,7 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
   return AlgorithmSpec{[what, minDelay](InitContext& ic) {
     srand(getpid());
     return [what, minDelay](ProcessingContext& ctx) {
-      auto bData = ctx.outputs().make<int>(OutputRef{what}, 1);
+      auto& bData = ctx.outputs().make<int>(OutputRef{what}, 1);
     };
   }};
 }
@@ -39,8 +39,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
      AlgorithmSpec{
        [](ProcessingContext& ctx) {
          std::this_thread::sleep_for(std::chrono::milliseconds((rand() % 2 + 1) * 1000));
-         auto aData1 = ctx.outputs().make<int>(OutputRef{"a1"}, 1);
-         auto aData2 = ctx.outputs().make<int>(Output{"TST", "A2"}, 1);
+         auto& aData1 = ctx.outputs().make<int>(OutputRef{"a1"}, 1);
+         auto& aData2 = ctx.outputs().make<int>(Output{"TST", "A2"}, 1);
          ctx.services().get<ControlService>().endOfStream();
        }}},
     {"B",

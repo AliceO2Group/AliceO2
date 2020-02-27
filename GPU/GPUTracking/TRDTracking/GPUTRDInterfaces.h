@@ -78,6 +78,7 @@ class trackInterface<AliExternalTrackParam> : public AliExternalTrackParam
   float getSigmaY2() const { return GetSigmaY2(); }
   float getSigmaZ2() const { return GetSigmaZ2(); }
 
+  const My_Float* getPar() const { return GetParameter(); }
   const My_Float* getCov() const { return GetCovariance(); }
   bool CheckNumericalQuality() const { return true; }
 
@@ -100,9 +101,18 @@ class propagatorInterface<AliTrackerBase> : public AliTrackerBase
   propagatorInterface<AliTrackerBase>(const propagatorInterface<AliTrackerBase>&) CON_DELETE;
   propagatorInterface<AliTrackerBase>& operator=(const propagatorInterface<AliTrackerBase>&) CON_DELETE;
 
-  bool PropagateToX(float x, float maxSnp, float maxStep) { return PropagateTrackToBxByBz(mParam, x, 0.13957, maxStep, false, maxSnp); }
+  bool propagateToX(float x, float maxSnp, float maxStep) { return PropagateTrackToBxByBz(mParam, x, 0.13957, maxStep, false, maxSnp); }
+  int getPropagatedYZ(My_Float x, My_Float& projY, My_Float& projZ)
+  {
+    Double_t yz[2] = {0.};
+    mParam->GetYZAt(x, GetBz(), yz);
+    projY = yz[0];
+    projZ = yz[1];
+    return 0;
+  }
 
   void setTrack(trackInterface<AliExternalTrackParam>* trk) { mParam = trk; }
+  void setFitInProjections(bool flag) {}
 
   float getAlpha() { return (mParam) ? mParam->GetAlpha() : 99999.f; }
   bool update(const My_Float p[2], const My_Float cov[3]) { return (mParam) ? mParam->update(p, cov) : false; }
@@ -117,7 +127,32 @@ class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 #endif // GPUCA_ALIROOT_LIB
 
 #if defined(GPUCA_O2_LIB) || defined(GPUCA_O2_INTERFACE) // Interface for O2, build only with O2
-// TODO: Implement!
+/*
+#include "ReconstructionDataFormats/Track.h"
+#include "DetectorsBase/Propagator.h"
+
+namespace GPUCA_NAMESPACE
+{
+
+namespace gpu
+{
+// TODO namespace trd??
+
+template <>
+class trackInterface<o2::track::TrackParCov> : public o2::track::TrackParCov
+{
+  typedef o2::track::TrackParCov baseClass;
+};
+
+template <>
+class propagatorInterface<o2::base::Propagator> : public o2::base::Propagator
+{
+
+};
+
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
+*/
 #endif // GPUCA_O2_LIB || GPUCA_O2_INTERFACE
 
 #include "GPUTPCGMPropagator.h"
@@ -133,20 +168,9 @@ template <>
 class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
 {
  public:
-  GPUd() trackInterface<GPUTPCGMTrackParam>() : GPUTPCGMTrackParam(){};
+  GPUdDefault() trackInterface<GPUTPCGMTrackParam>() = default;
   GPUd() trackInterface<GPUTPCGMTrackParam>(const GPUTPCGMTrackParam& param) CON_DELETE;
-  GPUd() trackInterface<GPUTPCGMTrackParam>(const GPUTPCGMMergedTrack& trk) : GPUTPCGMTrackParam(), mAlpha(trk.GetAlpha())
-  {
-    SetX(trk.GetParam().GetX());
-    SetPar(0, trk.GetParam().GetY());
-    SetPar(1, trk.GetParam().GetZ());
-    SetPar(2, trk.GetParam().GetSinPhi());
-    SetPar(3, trk.GetParam().GetDzDs());
-    SetPar(4, trk.GetParam().GetQPt());
-    for (int i = 0; i < 15; i++) {
-      SetCov(i, trk.GetParam().GetCov(i));
-    }
-  };
+  GPUd() trackInterface<GPUTPCGMTrackParam>(const GPUTPCGMMergedTrack& trk) : GPUTPCGMTrackParam(trk.GetParam()), mAlpha(trk.GetAlpha()) {}
   GPUd() trackInterface<GPUTPCGMTrackParam>(const GPUTPCGMTrackParam::GPUTPCOuterParam& param) : GPUTPCGMTrackParam(), mAlpha(param.alpha)
   {
     SetX(param.X);
@@ -157,16 +181,10 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
       SetCov(i, param.C[i]);
     }
   };
-  GPUd() trackInterface<GPUTPCGMTrackParam>(const trackInterface<GPUTPCGMTrackParam>& param) : GPUTPCGMTrackParam(), mAlpha(param.mAlpha)
-  {
-    SetX(param.getX());
-    for (int i = 0; i < 5; i++) {
-      SetPar(i, param.GetPar(i));
-    }
-    for (int j = 0; j < 15; j++) {
-      SetCov(j, param.GetCov(j));
-    }
-  }
+#ifdef GPUCA_NOCOMPAT
+  GPUdDefault() trackInterface<GPUTPCGMTrackParam>(const trackInterface<GPUTPCGMTrackParam>& param) = default;
+  GPUdDefault() trackInterface<GPUTPCGMTrackParam>& operator=(const trackInterface<GPUTPCGMTrackParam>& param) = default;
+#endif
 #ifdef GPUCA_ALIROOT_LIB
   trackInterface<GPUTPCGMTrackParam>(const AliHLTExternalTrackParam& param) : GPUTPCGMTrackParam(), mAlpha(param.fAlpha)
   {
@@ -197,6 +215,7 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
   GPUd() float getSigmaY2() const { return GetErr2Y(); }
   GPUd() float getSigmaZ2() const { return GetErr2Z(); }
 
+  GPUd() const float* getPar() const { return GetPar(); }
   GPUd() const float* getCov() const { return GetCov(); }
 
   GPUd() void setAlpha(float alpha) { mAlpha = alpha; }
@@ -240,12 +259,14 @@ class propagatorInterface<GPUTPCGMPropagator> : public GPUTPCGMPropagator
     SetTrack(trk, trk->getAlpha());
     mTrack = trk;
   }
-  GPUd() bool PropagateToX(float x, float maxSnp, float maxStep)
+  GPUd() bool propagateToX(float x, float maxSnp, float maxStep)
   {
     bool ok = PropagateToXAlpha(x, GetAlpha(), true) == 0 ? true : false;
     ok = mTrack->CheckNumericalQuality();
     return ok;
   }
+  GPUd() int getPropagatedYZ(float x, float& projY, float& projZ) { return GetPropagatedYZ(x, projY, projZ); }
+  GPUd() void setFitInProjections(bool flag) { SetFitInProjections(flag); }
   GPUd() bool rotate(float alpha)
   {
     if (RotateToAlpha(alpha) == 0) {

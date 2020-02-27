@@ -1,13 +1,15 @@
-\page refMUONMCHMappingSegContour MCH Mapping SegContour
+<!-- doxy
+\page refDetectorsMUONMCHMappingSegContour Segmentation contours
+/doxy -->
 
-# Segmentation contours
+# MCH Segmentation Contours
 
 This module contains convenience functions that can compute the
  envelop (in the form of a polygon) of segmentations.
- 
+
 Also an executable is provided which can produce SVG representation
  of those segmentations.
- 
+
 ```c++
 > o2-mch-mapping-svg-segmentation3 --help
 Generic options:
@@ -29,5 +31,3 @@ Example usage :
 ```
 
 Will produce an HTML file showing the FEE boundaries of [one quadrant of Station 1](chamber1-100-B.html)
-
-

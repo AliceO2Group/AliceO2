@@ -39,12 +39,14 @@ o2_add_test(DPLBroadcasterMerger
             SOURCES test/test_DPLBroadcasterMerger.cxx src/Utils.cxx
                     test/DPLBroadcasterMerger.cxx src/DPLMerger.cxx
                     src/DPLBroadcaster.cxx
+            NO_BOOST_TEST
             PUBLIC_LINK_LIBRARIES O2::DPLUtils
             COMPONENT_NAME DPLUtils
             LABELS dplutils
             COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run)
 
 o2_add_test(DPLOutput
+            NO_BOOST_TEST
             SOURCES test/test_DPLOutputTest.cxx src/Utils.cxx
                     test/DPLOutputTest.cxx
             PUBLIC_LINK_LIBRARIES O2::DPLUtils
@@ -67,6 +69,7 @@ o2_add_test(RootTreeWriterWorkflow
             COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run)
 
 o2_add_test(RootTreeReader
+            NO_BOOST_TEST
             SOURCES test/test_RootTreeReader.cxx
             PUBLIC_LINK_LIBRARIES O2::DPLUtils
             COMPONENT_NAME DPLUtils

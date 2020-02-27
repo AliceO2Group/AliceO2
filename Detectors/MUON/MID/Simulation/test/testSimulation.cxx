@@ -15,6 +15,7 @@
 #include <boost/test/data/test_case.hpp>
 #include <sstream>
 #include "MathUtils/Cartesian3D.h"
+#include "CommonConstants/LHCConstants.h"
 #include "DataFormatsMID/Cluster2D.h"
 #include "DataFormatsMID/Cluster3D.h"
 #include "DataFormatsMID/ColumnData.h"
@@ -303,7 +304,7 @@ BOOST_DATA_TEST_CASE(MID_DigitMerger, boost::unit_test::data::make(getDEList()),
     digitsCollection.push_back({});
     mcContainerCollection.push_back({});
     simDigitizer.digitizer.process(hits, digitsCollection.back(), mcContainerCollection.back());
-    rofRecords.emplace_back(10 * ievent, EventType::Standard, digits.size(), digitsCollection.back().size());
+    rofRecords.emplace_back(o2::constants::lhc::LHCBunchSpacingNS * ievent, EventType::Standard, digits.size(), digitsCollection.back().size());
     std::copy(digitsCollection.back().begin(), digitsCollection.back().end(), std::back_inserter(digits));
     mcContainer.mergeAtBack(mcContainerCollection.back());
   }
@@ -392,7 +393,7 @@ BOOST_DATA_TEST_CASE(MID_SingleCluster, boost::unit_test::data::make(getDEList()
     int nGenClusters = 1, nRecoClusters = 0;
     simDigitizer.digitizer.process(hits, digitStoreMC, digitLabelsMC);
     rofRecords.clear();
-    rofRecords.emplace_back(10 * ievent, EventType::Standard, 0, digitStoreMC.size());
+    rofRecords.emplace_back(o2::constants::lhc::LHCBunchSpacingNS * ievent, EventType::Standard, 0, digitStoreMC.size());
     simDigitizer.digitsMerger.process(digitStoreMC, digitLabelsMC, rofRecords);
     simClustering.preClusterizer.process(simDigitizer.digitsMerger.getColumnData(), simDigitizer.digitsMerger.getROFRecords());
     simClustering.clusterizer.process(simClustering.preClusterizer.getPreClusters(), simClustering.preClusterizer.getROFRecords());
@@ -432,7 +433,7 @@ BOOST_DATA_TEST_CASE(MID_SimClusters, boost::unit_test::data::make(getDEList()),
     auto hits = generateHits(10, deId, simBase.mapping, simBase.geoTrans);
     hitsCollection.emplace_back(hits);
     simDigitizer.digitizer.process(hits, digitStoreMC, digitLabelsMC);
-    digitsROF.emplace_back(ievent, EventType::Standard, digitsAccum.size(), digitStoreMC.size());
+    digitsROF.emplace_back(o2::constants::lhc::LHCBunchSpacingNS * ievent, EventType::Standard, digitsAccum.size(), digitStoreMC.size());
     std::copy(digitStoreMC.begin(), digitStoreMC.end(), std::back_inserter(digitsAccum));
     digitLabelsAccum.mergeAtBack(digitLabelsMC);
   }
@@ -505,7 +506,7 @@ BOOST_DATA_TEST_CASE(MID_SimTracks, boost::unit_test::data::make({1, 2, 3, 4, 5,
   // In the tracking algorithm, if we have two tracks that are compatible within uncertainties
   // we keep only one of the two. This is done to avoid duplicated tracks.
   // In this test we can have many tracks in the same event.
-  // If two tracks are close, they can give two reconstucted tracks compatible among each others,
+  // If two tracks are close, they can give two reconstructed tracks compatible among each others,
   // within their uncertainties. One of the two is therefore rejected.
   // However, the track might not be compatible with the (rejected) generated track that has no uncertainty.
   // To avoid this, compare adding a factor 2 in the sigma cut.
@@ -525,7 +526,7 @@ BOOST_DATA_TEST_CASE(MID_SimTracks, boost::unit_test::data::make({1, 2, 3, 4, 5,
     genTrackCollection.emplace_back(genTracks);
 
     simDigitizer.digitizerNoClusterSize.process(hits, digitStoreMC, digitLabelsMC);
-    digitsROF.emplace_back(ievent, EventType::Standard, digitsAccum.size(), digitStoreMC.size());
+    digitsROF.emplace_back(o2::constants::lhc::LHCBunchSpacingNS * ievent, EventType::Standard, digitsAccum.size(), digitStoreMC.size());
     std::copy(digitStoreMC.begin(), digitStoreMC.end(), std::back_inserter(digitsAccum));
     digitLabelsAccum.mergeAtBack(digitLabelsMC);
   }

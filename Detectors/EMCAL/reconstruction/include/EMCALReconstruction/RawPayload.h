@@ -24,6 +24,7 @@ namespace emcal
 
 /// \class RawPayload
 /// \brief Class for raw payload excluding raw data headers from one or multiple DMA pages
+/// \ingroup EMCALreconstruction
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 /// \since Nov 14, 2019
 ///
@@ -70,6 +71,10 @@ class RawPayload
 
   /// \brief Resetting payload words and page counter
   void reset();
+
+  /// \brief Get the size of the payload
+  /// \return Size of the payload
+  int getPayloadSize() const { return mPayloadWords.size() * sizeof(uint32_t); }
 
  private:
   std::vector<uint32_t> mPayloadWords; ///< Payload words (excluding raw header)

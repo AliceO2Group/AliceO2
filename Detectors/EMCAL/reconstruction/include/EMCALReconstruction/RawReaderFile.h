@@ -32,6 +32,7 @@ namespace emcal
 
 /// \class RawReaderFile
 /// \brief Reader for raw data produced by the ReadoutCard from a binary file
+/// \ingroup EMCALreconstruction
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 /// \since Aug. 12, 2019
 ///
@@ -88,6 +89,10 @@ class RawReaderFile
   /// \brief access to the full raw payload (single or multiple DMA pages)
   /// \return Raw Payload of the data until the stop bit is received.
   const RawPayload& getPayload() const { return mRawPayload; }
+
+  /// \brief Return size of the payload
+  /// \return size of the payload
+  int getPayloadSize() const { return mRawPayload.getPayloadSize(); }
 
   /// \brief get the size of the file in bytes
   /// \return size of the file in byte

@@ -56,16 +56,16 @@ struct ExpirationHandlerHelpers {
     };
   }
 
-  static RouteConfigurator::CreationConfigurator enumDrivenConfigurator(InputSpec const& matcher)
+  static RouteConfigurator::CreationConfigurator enumDrivenConfigurator(InputSpec const& matcher, size_t inputTimeslice, size_t maxInputTimeslices)
   {
-    return [matcher](ConfigParamRegistry const& options) {
+    return [matcher, inputTimeslice, maxInputTimeslices](ConfigParamRegistry const& options) {
       std::string startName = std::string{"start-value-"} + matcher.binding;
       std::string endName = std::string{"end-value-"} + matcher.binding;
       std::string stepName = std::string{"step-value-"} + matcher.binding;
-      auto start = options.get<int>(startName.c_str());
-      auto stop = options.get<int>(endName.c_str());
-      auto step = options.get<int>(stepName.c_str());
-      return LifetimeHelpers::enumDrivenCreation(start, stop, step);
+      auto start = options.get<int64_t>(startName.c_str());
+      auto stop = options.get<int64_t>(endName.c_str());
+      auto step = options.get<int64_t>(stepName.c_str());
+      return LifetimeHelpers::enumDrivenCreation(start, stop, step, inputTimeslice, maxInputTimeslices);
     };
   }
 
@@ -164,12 +164,14 @@ struct ExpirationHandlerHelpers {
 
 /// This creates a string to configure channels of a FairMQDevice
 /// FIXME: support shared memory
-std::string inputChannel2String(const InputChannelSpec& channel)
+std::string DeviceSpecHelpers::inputChannel2String(const InputChannelSpec& channel)
 {
   std::string result;
 
-  result += "name=" + channel.name;
-  result += std::string(",type=") + ChannelSpecHelpers::typeAsString(channel.type);
+  if (!channel.name.empty()) {
+    result += "name=" + channel.name + ",";
+  }
+  result += std::string("type=") + ChannelSpecHelpers::typeAsString(channel.type);
   result += std::string(",method=") + ChannelSpecHelpers::methodAsString(channel.method);
   result += std::string(",address=") + ChannelSpecHelpers::channelUrl(channel);
   result += std::string(",rateLogging=60");
@@ -177,12 +179,14 @@ std::string inputChannel2String(const InputChannelSpec& channel)
   return result;
 }
 
-std::string outputChannel2String(const OutputChannelSpec& channel)
+std::string DeviceSpecHelpers::outputChannel2String(const OutputChannelSpec& channel)
 {
   std::string result;
 
-  result += "name=" + channel.name;
-  result += std::string(",type=") + ChannelSpecHelpers::typeAsString(channel.type);
+  if (!channel.name.empty()) {
+    result += "name=" + channel.name + ",";
+  }
+  result += std::string("type=") + ChannelSpecHelpers::typeAsString(channel.type);
   result += std::string(",method=") + ChannelSpecHelpers::methodAsString(channel.method);
   result += std::string(",address=") + ChannelSpecHelpers::channelUrl(channel);
   result += std::string(",rateLogging=60");
@@ -247,7 +251,8 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
     device.options = processor.options;
     device.rank = processor.rank;
     device.nSlots = processor.nSlots;
-    device.inputTimesliceId = edge.timeIndex;
+    device.inputTimesliceId = edge.producerTimeIndex;
+    device.maxInputTimeslices = processor.maxInputTimeslices;
     device.resource = {acceptedOffer};
     devices.push_back(device);
     return devices.size() - 1;
@@ -451,6 +456,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     device.rank = processor.rank;
     device.nSlots = processor.nSlots;
     device.inputTimesliceId = edge.timeIndex;
+    device.maxInputTimeslices = processor.maxInputTimeslices;
     device.resource = {acceptedOffer};
 
     // FIXME: maybe I should use an std::map in the end
@@ -555,7 +561,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
         break;
       case Lifetime::Enumeration:
         route.configurator = {
-          ExpirationHandlerHelpers::enumDrivenConfigurator(inputSpec),
+          ExpirationHandlerHelpers::enumDrivenConfigurator(inputSpec, consumerDevice.inputTimesliceId, consumerDevice.maxInputTimeslices),
           ExpirationHandlerHelpers::danglingEnumerationConfigurator(inputSpec),
           ExpirationHandlerHelpers::expiringEnumerationConfigurator(inputSpec, sourceChannel)};
         break;

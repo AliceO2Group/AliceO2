@@ -12,7 +12,6 @@
 
 #include "Framework/ContextRegistry.h"
 #include "Framework/MessageContext.h"
-#include "Framework/RootObjectContext.h"
 #include "Framework/StringContext.h"
 #include "Framework/ArrowContext.h"
 #include "Framework/RawBufferContext.h"
@@ -27,7 +26,8 @@
 #include "Framework/TypeTraits.h"
 #include "Framework/Traits.h"
 #include "Framework/SerializationMethods.h"
-#include "Framework/TableBuilder.h"
+#include "Framework/CheckTypes.h"
+#include "Framework/TableTreeHelpers.h"
 
 #include "Headers/DataHeader.h"
 #include <TClass.h>
@@ -112,7 +112,7 @@ class DataAllocator
       // this catches all std::vector objects with messageable value type before checking if is also
       // has a root dictionary, so non-serialized transmission is preferred
       using ValueType = typename T::value_type;
-      std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+      std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
       auto context = mContextRegistry->get<MessageContext>();
 
       // Note: initial payload size is 0 and will be set by the context before sending
@@ -121,7 +121,7 @@ class DataAllocator
     } else if constexpr (has_root_dictionary<T>::value == true && is_messageable<T>::value == false) {
       // Extended support for types implementing the Root ClassDef interface, both TObject
       // derived types and others
-      std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+      std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
       auto context = mContextRegistry->get<MessageContext>();
 
       // Note: initial payload size is 0 and will be set by the context before sending
@@ -131,10 +131,21 @@ class DataAllocator
       std::string* s = new std::string(args...);
       adopt(spec, s);
       return *s;
-    } else if constexpr (std::is_base_of_v<TableBuilder, T>) {
-      TableBuilder* tb = new TableBuilder(args...);
-      adopt(spec, tb);
+    } else if constexpr (std::is_base_of_v<struct TableBuilder, T>) {
+      TableBuilder* tb = nullptr;
+      call_if_defined<struct TableBuilder>([&](auto* p) {
+        tb = new std::decay_t<decltype(*p)>(args...);
+        adopt(spec, tb);
+      });
       return *tb;
+    } else if constexpr (std::is_base_of_v<struct TreeToTable, T>) {
+      TreeToTable* t2t = nullptr;
+      call_if_defined<struct TreeToTable>([&](auto* p) {
+        t2t = new std::decay_t<decltype(*p)>(args...);
+        t2t->AddAllColumns();
+        adopt(spec, t2t);
+      });
+      return *t2t;
     } else if constexpr (sizeof...(Args) == 0) {
       if constexpr (is_messageable<T>::value == true) {
         return *reinterpret_cast<T*>(newChunk(spec, sizeof(T)).data());
@@ -151,7 +162,7 @@ class DataAllocator
         if constexpr (is_messageable<T>::value == true) {
           auto [nElements] = std::make_tuple(args...);
           auto size = nElements * sizeof(T);
-          std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+          std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
           auto context = mContextRegistry->get<MessageContext>();
 
           FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodNone, size);
@@ -182,11 +193,6 @@ class DataAllocator
     return *buff;
   }
 
-  /// Adopt a TObject in the framework and serialize / send
-  /// it to the consumers of @a spec once done.
-  void
-    adopt(const Output& spec, TObject* obj);
-
   /// Adopt a string in the framework and serialize / send
   /// it to the consumers of @a spec once done.
   void
@@ -195,7 +201,12 @@ class DataAllocator
   /// Adopt a TableBuilder in the framework and serialise / send
   /// it as an Arrow table to all consumers of @a spec once done
   void
-    adopt(const Output& spec, TableBuilder*);
+    adopt(const Output& spec, struct TableBuilder*);
+
+  /// Adopt a Tree2Table in the framework and serialise / send
+  /// it as an Arrow table to all consumers of @a spec once done
+  void
+    adopt(const Output& spec, struct TreeToTable*);
 
   /// Adopt a raw buffer in the framework and serialize / send
   /// it to the consumers of @a spec once done.
@@ -213,7 +224,7 @@ class DataAllocator
     using type = T;
 
     char* payload = reinterpret_cast<char*>(ptr);
-    std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+    std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
     // the correct payload size is set later when sending the
     // RawBufferContext, see DataProcessor::doSend
     auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodNone, 0);
@@ -373,7 +384,7 @@ class DataAllocator
   //get the memory resource associated with an output
   o2::pmr::FairMQMemoryResource* getMemoryResource(const Output& spec)
   {
-    std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+    std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
     auto context = mContextRegistry->get<MessageContext>();
     return *context->proxy().getTransport(channel);
   }
@@ -394,7 +405,7 @@ class DataAllocator
   {
     // Find a matching channel, extract the message for it form the container
     // and put it in the queue to be sent at the end of the processing
-    std::string channel = matchDataHeader(spec, mTimingInfo->timeslice);
+    std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
 
     auto context = mContextRegistry->get<MessageContext>();
     FairMQMessagePtr payloadMessage = o2::pmr::getMessage(std::forward<ContainerT>(container), *context->proxy().getTransport(channel));
@@ -423,7 +434,7 @@ class DataAllocator
   TimingInfo* mTimingInfo;
   ContextRegistry* mContextRegistry;
 
-  std::string matchDataHeader(const Output& spec, size_t timeframeId);
+  std::string const& matchDataHeader(const Output& spec, size_t timeframeId);
   FairMQMessagePtr headerMessageFromOutput(Output const& spec,                                  //
                                            std::string const& channel,                          //
                                            o2::header::SerializationMethod serializationMethod, //

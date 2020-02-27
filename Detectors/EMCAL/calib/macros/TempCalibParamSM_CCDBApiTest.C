@@ -10,7 +10,6 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "CCDB/CcdbApi.h"
-#include "CCDB/TObjectWrapper.h"
 #include "EMCALCalib/TempCalibParamSM.h"
 #include "RStringView.h"
 #include "TH1F.h"
@@ -19,6 +18,7 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <iostream>
 #endif
 
 /// \brief Converting time into numerical time stamp representation
@@ -53,7 +53,7 @@ void TempCalibParamSM_CCDBApiTest(const std::string_view ccdbserver = "emcccdb-t
   std::string inputDir = " ";
   if (aliceO2env)
     inputDir = aliceO2env;
-  inputDir += "/share/Detectors/EMCAL/files/";
+  inputDir += "/share/Detectors/EMC/files/";
 
   std::string file = inputDir + "TempCalibSM_LHC18k_289166.txt";
   std::ifstream fileTempCalibSM(file, std::ifstream::in);
@@ -85,7 +85,7 @@ void TempCalibParamSM_CCDBApiTest(const std::string_view ccdbserver = "emcccdb-t
 
   std::cout << "Using time stamps " << rangestart << " and " << rangeend << std::endl;
   std::map<std::string, std::string> metadata;
-  ccdbhandler.storeAsTFile(new o2::TObjectWrapper<o2::emcal::TempCalibParamSM>(tcp), "EMC/TempCalibParamsSM", metadata, rangestart, rangeend);
+  ccdbhandler.storeAsTFileAny(tcp, "EMC/TempCalibParamsSM", metadata, rangestart, rangeend);
 
   // Read temperature calibration coefficients from CCDB, check whether they are the same
   auto rangetest = create_timestamp(2018, 7, 8, 7, 22, 0); //LHC18k 289166
@@ -93,18 +93,7 @@ void TempCalibParamSM_CCDBApiTest(const std::string_view ccdbserver = "emcccdb-t
 
   std::cout << "Using read timestamp " << rangetest << "(omitted untill function is implemented server side)" << std::endl;
   o2::emcal::TempCalibParamSM* read(nullptr);
-  auto res = ccdbhandler.retrieveFromTFile("EMC/TempCalibParamsSM", metadata, rangetest);
-  if (!res) {
-    std::cerr << "Failed retrieving object from CCDB" << std::endl;
-    return;
-  }
-  std::cout << "Object found, type " << res->IsA()->GetName() << std::endl;
-  auto objw = dynamic_cast<o2::TObjectWrapper<o2::emcal::TempCalibParamSM>*>(res);
-  if (!objw) {
-    std::cerr << "failed casting to TObjectWrapper" << std::endl;
-    return;
-  }
-  read = objw->getObj();
+  read = ccdbhandler.retrieveFromTFileAny<o2::emcal::TempCalibParamSM>("EMC/TempCalibParamsSM", metadata, rangetest);
   if (!read) {
     std::cerr << "No object received from CCDB" << std::endl;
     return;

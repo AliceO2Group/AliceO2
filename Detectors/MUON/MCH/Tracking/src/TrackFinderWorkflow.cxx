@@ -12,6 +12,8 @@
 
 #include "ClusterSamplerSpec.h"
 #include "TrackFinderSpec.h"
+#include "VertexSamplerSpec.h"
+#include "TrackAtVertexSpec.h"
 #include "TrackSinkSpec.h"
 
 using namespace o2::framework;
@@ -21,5 +23,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   return WorkflowSpec{
     o2::mch::getClusterSamplerSpec(),
     o2::mch::getTrackFinderSpec(),
-    o2::mch::getTrackSinkSpec("TRACKS")};
+    o2::mch::getVertexSamplerSpec(),
+    o2::mch::getTrackAtVertexSpec(),
+    o2::mch::getTrackSinkSpec("TRACKSATVERTEX")};
 }

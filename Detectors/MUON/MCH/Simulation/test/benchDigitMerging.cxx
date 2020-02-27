@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "benchmark/benchmark.h"
-#include "MCHSimulation/Digit.h"
+#include "MCHBase/Digit.h"
 #include "DigitMerging.h"
 #include <ctime>
 #include <cstdlib>

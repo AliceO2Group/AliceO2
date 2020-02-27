@@ -33,6 +33,7 @@ class Geometry;
 
 /// \struct Parent
 /// \brief Information about superparent (particle entering EMCAL)
+/// \ingroup EMCALsimulation
 struct Parent {
   int mPDG;                ///< PDG code
   double mEnergy;          ///< Total energy
@@ -41,6 +42,7 @@ struct Parent {
 
 /// \class Detector
 /// \brief Detector simulation class for the EMCAL detector
+/// \ingroup EMCALsimulation
 ///
 /// The detector class handles the implementation of the EMCAL detector
 /// within the virtual Monte-Carlo framework and the simulation of the
@@ -60,8 +62,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   /// \brief Main constructor
   ///
-  /// \param[in] name Name of the detector (EMC)
-  /// \param[in] isActive Switch whether detector is active in simulation
+  /// \param isActive Switch whether detector is active in simulation
   Detector(Bool_t isActive);
 
   /// \brief Destructor
@@ -71,18 +72,18 @@ class Detector : public o2::base::DetImpl<Detector>
   void InitializeO2Detector() override;
 
   /// \brief Processing hit creation in the EMCAL scintillator volume
-  /// \param[in] v Current sensitive volume
+  /// \param v Current sensitive volume
   Bool_t ProcessHits(FairVolume* v = nullptr) final;
 
   /// \brief Add EMCAL hit
-  /// \param[in] trackID Index of the track in the MC stack
-  /// \param[in] primary Index of the primary particle in the MC stack
-  /// \param[in] initialEnergy Energy of the particle entering the EMCAL
-  /// \param[in] detID Index of the detector (cell) for which the hit is created
-  /// \param[in] pos Position vector of the particle at the hit
-  /// \param[in] mom Momentum vector of the particle at the hit
-  /// \param[in] time Time of the hit
-  /// \param[in] energyloss Energy deposit in EMCAL
+  /// \param trackID Index of the track in the MC stack
+  /// \param primary Index of the primary particle in the MC stack
+  /// \param initialEnergy Energy of the particle entering the EMCAL
+  /// \param detID Index of the detector (cell) for which the hit is created
+  /// \param pos Position vector of the particle at the hit
+  /// \param mom Momentum vector of the particle at the hit
+  /// \param time Time of the hit
+  /// \param energyloss Energy deposit in EMCAL
   /// \return Pointer to the current hit
   ///
   /// Internally adding hits coming from the same track
@@ -185,14 +186,15 @@ class Detector : public o2::base::DetImpl<Detector>
   Double_t mBirkC1; ///< Birk parameter C1
   Double_t mBirkC2; ///< Birk parameter C2
 
-  std::vector<std::string> mSensitive;               //!<! List of sensitive volumes
-  std::unordered_map<int, EMCALSMType> mSMVolumeID;  //!<! map of EMCAL supermodule volume IDs
-  Int_t mVolumeIDScintillator;                       //!<! Volume ID of the scintillator volume
-  std::vector<Hit>* mHits;                           //!<! Collection of EMCAL hits
-  Geometry* mGeometry;                               //!<! Geometry pointer
-  std::unordered_map<int, int> mSuperParentsIndices; //!<! Super parent indices (track index - superparent index)
-  std::unordered_map<int, Parent> mSuperParents;     //!<! Super parent kine info (superparent index - superparent object)
-  Parent* mCurrentSuperparent;                       //!<! Pointer to the current superparent
+  std::vector<std::string> mSensitive;                      //!<! List of sensitive volumes
+  std::unordered_map<int, EMCALSMType> mSMVolumeID;         //!<! map of EMCAL supermodule volume IDs
+  std::unordered_map<std::string, EMCALSMType> mSMVolNames; //!<! map of EMCAL supermodule names
+  Int_t mVolumeIDScintillator;                              //!<! Volume ID of the scintillator volume
+  std::vector<Hit>* mHits;                                  //!<! Collection of EMCAL hits
+  Geometry* mGeometry;                                      //!<! Geometry pointer
+  std::unordered_map<int, int> mSuperParentsIndices;        //!<! Super parent indices (track index - superparent index)
+  std::unordered_map<int, Parent> mSuperParents;            //!<! Super parent kine info (superparent index - superparent object)
+  Parent* mCurrentSuperparent;                              //!<! Pointer to the current superparent
 
   // Worker variables during hit creation
   Int_t mCurrentTrack;     //!<! Current track

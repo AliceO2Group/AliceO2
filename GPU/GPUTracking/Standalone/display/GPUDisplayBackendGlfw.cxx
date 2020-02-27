@@ -11,16 +11,13 @@
 /// \file GPUDisplayBackendGlfw.cxx
 /// \author David Rohr
 
+// GL EXT must be the first header
+#include "GPUDisplayExt.h"
+
 #include "GPUDisplayBackendGlfw.h"
 #include "GPULogging.h"
 
-//#ifdef GPUCA_O2_LIB //Use GL3W for O2, GLEW otherwise
-//#include "../src/GL/gl3w.h"
-//#else
-#include <GL/glew.h>
-//#endif
-
-#ifdef GPUCA_O2_LIB // Hack: we have to define this in order to initialize gl3w, cannot include the header as it clashes with glew
+#if defined(GPUCA_O2_LIB) && !defined(GPUCA_DISPLAY_GL3W) // Hack: we have to define this in order to initialize gl3w, cannot include the header as it clashes with glew
 extern "C" int gl3wInit();
 #endif
 
@@ -224,17 +221,19 @@ int GPUDisplayBackendGlfw::OpenGLMain()
   me = this;
 
   if (!glfwInit()) {
+    fprintf(stderr, "Error initializing glfw\n");
     return (-1);
   }
   glfwSetErrorCallback(error_callback);
 
   glfwWindowHint(GLFW_MAXIMIZED, 1);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, GL_MIN_VERSION_MAJOR);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, GL_MIN_VERSION_MINOR);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 0);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GPUCA_DISPLAY_OPENGL_CORE_FLAGS ? GLFW_OPENGL_CORE_PROFILE : GLFW_OPENGL_COMPAT_PROFILE);
   mWindow = glfwCreateWindow(INIT_WIDTH, INIT_HEIGHT, GL_WINDOW_NAME, nullptr, nullptr);
   if (!mWindow) {
+    fprintf(stderr, "Error creating glfw window\n");
     glfwTerminate();
     return (-1);
   }
@@ -250,21 +249,20 @@ int GPUDisplayBackendGlfw::OpenGLMain()
   mGlfwRunning = true;
   pthread_mutex_unlock(&mSemLockExit);
 
-  //#ifdef GPUCA_O2_LIB //Use GL3W for O2, GLEW otherwise
-  //	if (gl3wInit()) return(-1);
-  //#else
-  if (glewInit()) {
+  if (GPUDisplayExtInit()) {
+    fprintf(stderr, "Error initializing GL extension wrapper\n");
     return (-1);
   }
-  //#endif
 
-#ifdef GPUCA_O2_LIB
+#if defined(GPUCA_O2_LIB) && !defined(GPUCA_DISPLAY_GL3W)
   if (gl3wInit()) {
+    fprintf(stderr, "Error initializing gl3w (2)\n");
     return (-1); // Hack: We have to initialize gl3w as well, as the DebugGUI uses it.
   }
 #endif
 
   if (InitGL()) {
+    fprintf(stderr, "Error in OpenGL initialization\n");
     return (1);
   }
 
@@ -279,6 +277,7 @@ int GPUDisplayBackendGlfw::OpenGLMain()
   while (!glfwWindowShouldClose(mWindow)) {
     HandleSendKey();
     if (DrawGLScene()) {
+      fprintf(stderr, "Error drawing GL scene\n");
       return (1);
     }
     glfwSwapBuffers(mWindow);

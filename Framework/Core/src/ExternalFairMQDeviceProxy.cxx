@@ -16,8 +16,9 @@
 #include "Framework/InitContext.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/RawDeviceService.h"
-
 #include "Headers/DataHeader.h"
+
+#include "./DeviceSpecHelpers.h"
 
 #include <fairmq/FairMQParts.h>
 #include <fairmq/FairMQDevice.h>
@@ -35,13 +36,52 @@ namespace framework
 
 using DataHeader = o2::header::DataHeader;
 
+std::string formatExternalChannelConfiguration(InputChannelSpec const& spec)
+{
+  return DeviceSpecHelpers::inputChannel2String(spec);
+}
+
+std::string formatExternalChannelConfiguration(OutputChannelSpec const& spec)
+{
+  return DeviceSpecHelpers::outputChannel2String(spec);
+}
+
+std::string formatExternalChannelConfiguration(OutputChannelSpec const&);
+
 void sendOnChannel(FairMQDevice& device, FairMQParts& messages, std::string const& channel)
 {
   // Note: DPL is only setting up one instance of a channel while FairMQ allows to have an
   // array of channels, the index is 0 in the call
   constexpr auto index = 0;
   LOG(DEBUG) << "sending " << messages.Size() << " messages on " << channel;
-  device.Send(messages, channel, index);
+  // TODO: we can make this configurable
+  const int maxTimeout = 10000;
+  int timeout = 0;
+  // try dispatch with increasing timeout in order to also drop a warning if the dispatching
+  // has been tried multiple times within max timeout
+  // since we do not want any messages to be dropped at this stage, we stay in the loop until
+  // the downstream congestion is resolved
+  // TODO: we might want to treat this error condition some levels higher up, but for
+  // the moment its an appropriate solution. The important thing is not to drop
+  // messages and to be informed about the congestion.
+  while (device.Send(messages, channel, index, timeout) < 0) {
+    if (timeout == 0) {
+      timeout = 1;
+    } else if (timeout < maxTimeout) {
+      timeout *= 10;
+    } else {
+      LOG(ERROR) << "failed to dispatch messages on channel " << channel << ", downstream queue might be full\n"
+                 << "or unconnected. No data is dropped, keep on trying, but this will hold the reading from\n"
+                 << "the input and expose back-pressure upstream. RESOLVE DOWNSTREAM CONGESTION to continue";
+      if (timeout == maxTimeout) {
+        // we add 1ms to disable the warning below
+        timeout += 1;
+      }
+    }
+  }
+  if (timeout > 0 && timeout <= maxTimeout) {
+    LOG(WARNING) << "dispatching on channel " << channel << "was delayed by " << timeout << " ms";
+  }
   // TODO: feeling this is a bit awkward, but the interface of FairMQParts does not provide a
   // method to clear the content.
   // Maybe the FairMQ API can be improved at some point. Actually the ownership of all messages should be passed
@@ -82,7 +122,7 @@ void sendOnChannel(FairMQDevice& device, o2::header::Stack&& headerStack, FairMQ
     FairMQParts out;
     out.AddPart(std::move(headerMessage));
     out.AddPart(std::move(payloadMessage));
-    device.Send(out, channelName, 0);
+    sendOnChannel(device, out, channelName);
     return;
   }
   LOG(ERROR) << "internal mismatch, can not find channel " << channelName << " in the list of channel infos of the device";
@@ -178,9 +218,42 @@ FairMQMessagePtr mergePayloads(FairMQDevice& device, FairMQParts& parts, std::ve
 
 InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, bool throwOnUnmatchedInputs)
 {
-  return [filterSpecs = std::move(filterSpecs), throwOnUnmatchedInputs](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
+  // structure to hald information on the unmatch ed data and print a warning at cleanup
+  class DroppedDataSpecs
+  {
+   public:
+    DroppedDataSpecs() = default;
+    ~DroppedDataSpecs()
+    {
+      warning();
+    }
+
+    bool find(std::string const& desc) const
+    {
+      return descriptions.find(desc) != std::string::npos;
+    }
+
+    void add(std::string const& desc)
+    {
+      descriptions += "\n   " + desc;
+    }
+
+    void warning() const
+    {
+      if (not descriptions.empty()) {
+        LOG(WARNING) << "Some input data are not matched by filter rules " << descriptions << "\n"
+                     << "DROPPING OF THESE MESSAGES HAS BEEN ENABLED BY CONFIGURATION";
+      }
+    }
+
+   private:
+    std::string descriptions;
+  };
+
+  return [filterSpecs = std::move(filterSpecs), throwOnUnmatchedInputs, droppedDataSpecs = std::make_shared<DroppedDataSpecs>()](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
     std::unordered_map<std::string, FairMQParts> outputs;
     std::vector<bool> indicesDone(parts.Size() / 2, false);
+    std::vector<std::string> unmatchedDescriptions;
     for (size_t msgidx = 0; msgidx < parts.Size() / 2; ++msgidx) {
       if (indicesDone[msgidx]) {
         continue;
@@ -236,9 +309,10 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
           sendOnChannel(device, outputs[channelName], channelName);
           indicesDone[msgidx] = true;
           break;
-        } else if (throwOnUnmatchedInputs) {
-          throw std::runtime_error("no matching filter rule for input data " + DataSpecUtils::describe(query));
         }
+      }
+      if (indicesDone[msgidx] == false) {
+        unmatchedDescriptions.emplace_back(DataSpecUtils::describe(query));
       }
     }
     for (auto& [channelName, channelParts] : outputs) {
@@ -246,6 +320,28 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
         continue;
       }
       sendOnChannel(device, channelParts, channelName);
+    }
+    if (not unmatchedDescriptions.empty()) {
+      if (throwOnUnmatchedInputs) {
+        std::string descriptions;
+        for (auto const& desc : unmatchedDescriptions) {
+          descriptions += "\n   " + desc;
+        }
+        throw std::runtime_error("No matching filter rule for input data " + descriptions +
+                                 "\n Add appropriate matcher(s) to dataspec definition or allow to drop unmatched data");
+      } else {
+        bool changed = false;
+        for (auto const& desc : unmatchedDescriptions) {
+          if (not droppedDataSpecs->find(desc)) {
+            // a new description
+            droppedDataSpecs->add(desc);
+            changed = true;
+          }
+        }
+        if (changed) {
+          droppedDataSpecs->warning();
+        }
+      }
     }
   };
 }

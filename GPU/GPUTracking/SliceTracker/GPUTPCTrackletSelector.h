@@ -34,28 +34,24 @@ class GPUTPCTrackletSelector : public GPUKernelTemplate
 {
  public:
   MEM_CLASS_PRE()
-  class GPUTPCSharedMemory
-  {
-    friend class GPUTPCTrackletSelector;
-
-   protected:
+  struct GPUSharedMemory {
     int mItr0;          // index of the first track in the block
     int mNThreadsTotal; // total n threads
     int mNTracklets;    // n of tracklets
 #if GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
-    GPUTPCHitId fHits[GPUCA_THREAD_COUNT_SELECTOR][GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE];
+    GPUTPCHitId mHits[GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE][GPUCA_THREAD_COUNT_SELECTOR];
 #endif // GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
   };
 
   typedef GPUconstantref() MEM_GLOBAL(GPUTPCTracker) processorType;
-  GPUhdi() CONSTEXPR static GPUDataTypes::RecoStep GetRecoStep() { return GPUCA_RECO_STEP::TPCSliceTracking; }
+  GPUhdi() CONSTEXPRRET static GPUDataTypes::RecoStep GetRecoStep() { return GPUCA_RECO_STEP::TPCSliceTracking; }
   MEM_TEMPLATE()
   GPUhdi() static processorType* Processor(MEM_TYPE(GPUConstantMem) & processors)
   {
     return processors.tpcTrackers;
   }
-  template <int iKernel = 0>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & smem, processorType& tracker);
+  template <int iKernel = defaultKernel>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& tracker);
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

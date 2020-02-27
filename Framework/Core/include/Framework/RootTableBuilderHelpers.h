@@ -12,6 +12,7 @@
 #define o2_framework_RootTableBuilderHelpers_H_INCLUDED
 
 #include "Framework/TableBuilder.h"
+#include "Framework/Logger.h"
 
 #include <arrow/stl.h>
 #include <arrow/type_traits.h>
@@ -66,6 +67,35 @@ struct ValueExtractor {
   }
 };
 
+// When reading from a ROOT file special care must happen
+// because uint64_t is platform specific while ULong64_t is
+// always long long unsigned int (same for the signed version).
+// By using this traits we make sure that any 64 bit quantity
+// read from a root file uses the ROOT datatype, not the platform one.
+template <typename T>
+struct Remap64Bit {
+  using type = T;
+};
+
+template <>
+struct Remap64Bit<int64_t> {
+  using type = Long64_t;
+};
+
+template <>
+struct Remap64Bit<uint64_t> {
+  using type = ULong64_t;
+};
+
+template <typename C>
+struct ColumnReaderTrait {
+  using Reader = TTreeReaderValue<typename Remap64Bit<typename C::type>::type>;
+  static std::unique_ptr<Reader> createReader(TTreeReader& reader)
+  {
+    return std::make_unique<Reader>(reader, C::base::label());
+  };
+};
+
 struct RootTableBuilderHelpers {
   template <typename... TTREEREADERVALUE>
   static void convertTTree(TableBuilder& builder,
@@ -73,11 +103,23 @@ struct RootTableBuilderHelpers {
                            TTREEREADERVALUE&... values)
   {
     std::vector<std::string> branchNames = {values.GetBranchName()...};
-    auto filler = builder.preallocatedPersist<typename TreeReaderValueTraits<TTREEREADERVALUE>::Type...>(branchNames, reader.GetEntries(true));
+    auto filler = builder.preallocatedPersist<typename TreeReaderValueTraits<std::decay_t<TTREEREADERVALUE>>::Type...>(branchNames, reader.GetEntries(true));
     reader.Restart();
     while (reader.Next()) {
       filler(0, ValueExtractor::deref(values)...);
     }
+  }
+
+  template <typename... C>
+  static void convertASoAColumns(TableBuilder& builder, TTreeReader& reader, pack<C...>)
+  {
+    return convertTTree(builder, reader, *ColumnReaderTrait<C>::createReader(reader)...);
+  }
+
+  template <typename T>
+  static void convertASoA(TableBuilder& builder, TTreeReader& reader)
+  {
+    return convertASoAColumns(builder, reader, typename T::persistent_columns_t{});
   }
 };
 

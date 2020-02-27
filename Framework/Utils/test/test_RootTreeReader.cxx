@@ -33,7 +33,7 @@ using namespace o2::framework;
     LOG(ERROR) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
-constexpr int kTreeSize = 10; // elements in the test tree
+const int gTreeSize = 10; // elements in the test tree
 DataProcessorSpec getSourceSpec()
 {
   auto initFct = [](InitContext& ic) {
@@ -45,12 +45,16 @@ DataProcessorSpec getSourceSpec()
       std::unique_ptr<TFile> testFile(TFile::Open(fileName.c_str(), "RECREATE"));
       std::unique_ptr<TTree> testTree = std::make_unique<TTree>("testtree", "testtree");
 
+      std::vector<o2::test::TriviallyCopyable> msgblarray;
       std::vector<o2::test::Polymorphic> valarray;
-      auto* branch = testTree->Branch("dataarray", &valarray);
+      auto* branch1 = testTree->Branch("msgblarray", &msgblarray);
+      auto* branch2 = testTree->Branch("dataarray", &valarray);
 
-      for (int entry = 0; entry < kTreeSize; entry++) {
+      for (int entry = 0; entry < gTreeSize; entry++) {
+        msgblarray.clear();
         valarray.clear();
         for (int idx = 0; idx < entry + 1; ++idx) {
+          msgblarray.emplace_back((entry * 10) + idx, 0, 0);
           valarray.emplace_back((entry * 10) + idx);
         }
         testTree->Fill();
@@ -63,11 +67,15 @@ DataProcessorSpec getSourceSpec()
     constexpr auto persistency = Lifetime::Transient;
     auto reader = std::make_shared<RootTreeReader>("testtree",       // tree name
                                                    fileName.c_str(), // input file name
+                                                   RootTreeReader::BranchDefinition<std::vector<o2::test::TriviallyCopyable>>{Output{"TST", "ARRAYOFMSGBL", 0, persistency}, "msgblarray"},
                                                    Output{"TST", "ARRAYOFDATA", 0, persistency},
-                                                   "dataarray", // name of cluster branch
+                                                   "dataarray",
                                                    RootTreeReader::PublishingMode::Single);
 
     auto processingFct = [reader](ProcessingContext& pc) {
+      if (reader->getCount() >= gTreeSize) {
+        return;
+      }
       if (reader->getCount() == 0) {
         // add two additional headers on the stack in the first entry
         o2::header::NameHeader<16> auxHeader("extended_info");
@@ -77,6 +85,10 @@ DataProcessorSpec getSourceSpec()
         // test signature without headers for the rest of the entries
         (++(*reader))(pc);
       }
+      if ((reader->getCount()) >= gTreeSize) {
+        pc.services().get<ControlService>().endOfStream();
+        pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+      }
     };
 
     return processingFct;
@@ -84,7 +96,8 @@ DataProcessorSpec getSourceSpec()
 
   return DataProcessorSpec{"source", // name of the processor
                            {},
-                           {OutputSpec{"TST", "ARRAYOFDATA"}},
+                           {OutputSpec{"TST", "ARRAYOFDATA"},
+                            OutputSpec{"TST", "ARRAYOFMSGBL"}},
                            AlgorithmSpec(initFct)};
 }
 
@@ -97,10 +110,10 @@ DataProcessorSpec getSinkSpec()
       auto dh = o2::header::get<const DataHeader*>(input.header);
       LOG(INFO) << dh->dataOrigin.str << " " << dh->dataDescription.str << " " << dh->payloadSize;
     }
-    auto data = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input");
+    auto data = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input1");
     if (counter == 0) {
       // the first entry comes together with additional headers on the stack, test those ...
-      auto auxHeader = DataRefUtils::getHeader<o2::header::NameHeader<16>*>(pc.inputs().get("input"));
+      auto auxHeader = DataRefUtils::getHeader<o2::header::NameHeader<16>*>(pc.inputs().get("input1"));
       ASSERT_ERROR(auxHeader != nullptr);
       if (auxHeader != nullptr) {
         ASSERT_ERROR(std::string("extended_info") == auxHeader->getName());
@@ -112,17 +125,29 @@ DataProcessorSpec getSinkSpec()
 
     LOG(INFO) << "count: " << counter << "  data elements:" << data.size();
     ASSERT_ERROR(counter + 1 == data.size());
-    for (int idx = 0; idx < data.size(); idx++) {
+
+    // retrieving the unserialized message as vector
+    auto msgblvec = pc.inputs().get<std::vector<o2::test::TriviallyCopyable>*>("input2");
+    ASSERT_ERROR(counter + 1 == msgblvec->size());
+
+    // retrieving the unserialized message as span
+    auto msgblspan = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("input2");
+    ASSERT_ERROR(counter + 1 == msgblspan.size());
+
+    for (unsigned int idx = 0; idx < data.size(); idx++) {
       LOG(INFO) << data[idx].get();
-      ASSERT_ERROR(data[idx].get() == 10 * counter + idx);
+      auto expected = 10 * counter + idx;
+      ASSERT_ERROR(data[idx].get() == expected);
+      ASSERT_ERROR(((*msgblvec)[idx] == o2::test::TriviallyCopyable{expected, 0, 0}));
+      ASSERT_ERROR((msgblspan[idx] == o2::test::TriviallyCopyable{expected, 0, 0}));
     }
-    if (++counter >= kTreeSize) {
-      pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
-    }
+
+    ++counter;
   };
 
   return DataProcessorSpec{"sink", // name of the processor
-                           {InputSpec{"input", "TST", "ARRAYOFDATA"}},
+                           {InputSpec{"input1", "TST", "ARRAYOFDATA"},
+                            InputSpec{"input2", "TST", "ARRAYOFMSGBL"}},
                            Outputs{},
                            AlgorithmSpec(processingFct)};
 }

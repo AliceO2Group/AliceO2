@@ -1,4 +1,6 @@
+<!-- doxy
 \page refFrameworkFoundation Foundation
+/doxy -->
 
 ## O2 Framework Foundation
 

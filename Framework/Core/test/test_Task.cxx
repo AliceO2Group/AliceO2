@@ -32,7 +32,7 @@ class ATask : public Task
   }
   void run(ProcessingContext& pc) final
   {
-    auto result = pc.outputs().make<int>({"dummy"}, 1);
+    auto& result = pc.outputs().make<int>({"dummy"}, 1);
     result[0] = mSomeState;
     pc.services().get<o2::monitoring::Monitoring>().send({result[0], "output"});
     pc.services().get<ControlService>().endOfStream();

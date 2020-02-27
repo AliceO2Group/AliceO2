@@ -26,9 +26,11 @@ class TempCalibParamSM;
 class TimeCalibrationParams;
 class TimeCalibParamL1Phase;
 class GainCalibrationFactors;
+class TriggerDCS;
 
 /// \class CalibDB
 /// \brief Interface to calibration data from CCDB for EMCAL
+/// \ingroup EMCALcalib
 /// \author Markus Fasel <> Oak Ridge National Laboratory
 /// \since July 12, 2019
 ///
@@ -94,12 +96,12 @@ class CalibDB
     /// \return meta data
     const std::map<std::string, std::string> getMetaData() const { return mMetaDat; }
 
-    /// \Accessor to URL of the CCDB server
+    /// \brief Accessor to URL of the CCDB server
     /// \return URL of the CCDB server
     const std::string& getServer() const { return mServ; }
 
-    /// \Accessor to the CCDB path in the query
-    /// return CCDB path in the query
+    /// \brief Accessor to the CCDB path in the query
+    /// \return CCDB path in the query
     const std::string& getPath() const { return mPath; }
 
     /// \brief Accessor to timestamp used in the query
@@ -170,10 +172,10 @@ class CalibDB
   ~CalibDB() = default;
 
   /// \brief Store bad channel map in the CCDB
-  /// \brief bcm Bad channel map to be stored
-  /// \brief metadata Additional metadata that can be used in the query
-  /// \timestart Start of the time range of the validity of the object
-  /// \timeend End of the time range of the validity of the object
+  /// \param bcm Bad channel map to be stored
+  /// \param metadata Additional metadata that can be used in the query
+  /// \param timestart Start of the time range of the validity of the object
+  /// \param timeend End of the time range of the validity of the object
   void storeBadChannelMap(BadChannelMap* bcm, const std::map<std::string, std::string>& metadata, ULong_t timestart, ULong_t timeend);
 
   /// \brief Find bad channel map in the CCDB for given timestamp
@@ -184,10 +186,10 @@ class CalibDB
   BadChannelMap* readBadChannelMap(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
 
   /// \brief Store time calibration coefficiencts in the CCDB
-  /// \brief tcp time calibration coefficiencts to be stored
-  /// \brief metadata Additional metadata that can be used in the query
-  /// \timestart Start of the time range of the validity of the object
-  /// \timeend End of the time range of the validity of the object
+  /// \param tcp time calibration coefficiencts to be stored
+  /// \param metadata Additional metadata that can be used in the query
+  /// \param timestart Start of the time range of the validity of the object
+  /// \param timeend End of the time range of the validity of the object
   void storeTimeCalibParam(TimeCalibrationParams* tcp, const std::map<std::string, std::string>& metadata, ULong_t timestart, ULong_t timeend);
 
   /// \brief Find time calibration coefficiencts in the CCDB for given timestamp
@@ -198,10 +200,10 @@ class CalibDB
   TimeCalibrationParams* readTimeCalibParam(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
 
   /// \brief Store L1 phase shifts in the CCDB
-  /// \brief tcp L1 phase shifts to be stored
-  /// \brief metadata Additional metadata that can be used in the query
-  /// \timestart Start of the time range of the validity of the object
-  /// \timeend End of the time range of the validity of the object
+  /// \param tcp L1 phase shifts to be stored
+  /// \param metadata Additional metadata that can be used in the query
+  /// \param timestart Start of the time range of the validity of the object
+  /// \param timeend End of the time range of the validity of the object
   void storeTimeCalibParamL1Phase(TimeCalibParamL1Phase* tcp, const std::map<std::string, std::string>& metadata, ULong_t timestart, ULong_t timeend);
 
   /// \brief Find L1 phase shifts in the CCDB for given timestamp
@@ -212,10 +214,10 @@ class CalibDB
   TimeCalibParamL1Phase* readTimeCalibParamL1Phase(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
 
   /// \brief Store temperature calibration coefficiencts in the CCDB
-  /// \brief tcp temperature calibration coefficiencts to be stored
-  /// \brief metadata Additional metadata that can be used in the query
-  /// \timestart Start of the time range of the validity of the object
-  /// \timeend End of the time range of the validity of the object
+  /// \param tcp temperature calibration coefficiencts to be stored
+  /// \param metadata Additional metadata that can be used in the query
+  /// \param timestart Start of the time range of the validity of the object
+  /// \param timeend End of the time range of the validity of the object
   void storeTempCalibParam(TempCalibrationParams* tcp, const std::map<std::string, std::string>& metadata, ULong_t timestart, ULong_t timeend);
 
   /// \brief Find temperature calibration coefficiencts in the CCDB for given timestamp
@@ -226,10 +228,10 @@ class CalibDB
   TempCalibrationParams* readTempCalibParam(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
 
   /// \brief Store temperature calibration coefficiencts per SM in the CCDB
-  /// \brief tcp temperature calibration coefficiencts per SM to be stored
-  /// \brief metadata Additional metadata that can be used in the query
-  /// \timestart Start of the time range of the validity of the object
-  /// \timeend End of the time range of the validity of the object
+  /// \param tcp temperature calibration coefficiencts per SM to be stored
+  /// \param metadata Additional metadata that can be used in the query
+  /// \param timestart Start of the time range of the validity of the object
+  /// \param timeend End of the time range of the validity of the object
   void storeTempCalibParamSM(TempCalibParamSM* tcp, const std::map<std::string, std::string>& metadata, ULong_t timestart, ULong_t timeend);
 
   /// \brief Find temperature calibration coefficiencts per SM in the CCDB for given timestamp
@@ -240,10 +242,10 @@ class CalibDB
   TempCalibParamSM* readTempCalibParamSM(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
 
   /// \brief Store gain calibration factors in the CCDB
-  /// \brief gcf temperature calibration coefficiencts to be stored
-  /// \brief metadata Additional metadata that can be used in the query
-  /// \timestart Start of the time range of the validity of the object
-  /// \timeend End of the time range of the validity of the object
+  /// \param gcf temperature calibration coefficiencts to be stored
+  /// \param metadata Additional metadata that can be used in the query
+  /// \param timestart Start of the time range of the validity of the object
+  /// \param timeend End of the time range of the validity of the object
   void storeGainCalibFactors(GainCalibrationFactors* gcf, const std::map<std::string, std::string>& metadata, ULong_t timestart, ULong_t timeend);
 
   /// \brief Find gain calibration factors in the CCDB for given timestamp
@@ -252,6 +254,20 @@ class CalibDB
   /// \throw ObjectNotFoundException if object is not found for the given timestamp
   /// \throw TypeMismatchException if object is present but type is different (CCDB corrupted)
   GainCalibrationFactors* readGainCalibFactors(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
+
+  /// \brief Store Trigger DCS data in the CCDB
+  /// \param dcs trigger DCS data to be stored
+  /// \param metadata Additional metadata that can be used in the query
+  /// \param timestart Start of the time range of the validity of the object
+  /// \param timeend End of the time range of the validity of the object
+  void storeTriggerDCSData(TriggerDCS* dcs, const std::map<std::string, std::string>& metadata, ULong_t timestart, ULong_t timeend);
+
+  /// \brief Find trigger DCS data in the CCDB for given timestamp
+  /// \param timestamp Timestamp used in query
+  /// \param metadata Additional metadata to be used in the query
+  /// \throw ObjectNotFoundException if object is not found for the given timestamp
+  /// \throw TypeMismatchException if object is present but type is different (CCDB corrupted)
+  TriggerDCS* readTriggerDCSData(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
 
   /// \brief Set new CCDB server URL
   /// \param server Name of the CCDB server to be used in queries

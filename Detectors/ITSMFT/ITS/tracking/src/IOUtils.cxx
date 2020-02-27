@@ -105,10 +105,10 @@ std::vector<ROframe> ioutils::loadEventData(const std::string& fileName)
   return events;
 }
 
-void ioutils::loadEventData(ROframe& event, const std::vector<itsmft::Cluster>* clusters,
-                            const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
+void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::Cluster> clusters,
+                            const dataformats::MCTruthContainer<MCCompLabel>* clsLabels)
 {
-  if (!clusters) {
+  if (clusters.empty()) {
     std::cerr << "Missing clusters." << std::endl;
     return;
   }
@@ -117,7 +117,7 @@ void ioutils::loadEventData(ROframe& event, const std::vector<itsmft::Cluster>* 
   geom->fillMatrixCache(utils::bit2Mask(TransformType::T2GRot));
   int clusterId{0};
 
-  for (auto& c : *clusters) {
+  for (auto& c : clusters) {
     int layer = geom->getLayer(c.getSensorID());
 
     /// Clusters are stored in the tracking frame
@@ -128,29 +128,24 @@ void ioutils::loadEventData(ROframe& event, const std::vector<itsmft::Cluster>* 
 
     /// Rotate to the global frame
     event.addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), event.getClustersOnLayer(layer).size());
-    if (mcLabels) {
-      event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(clusterId).begin()));
+    if (clsLabels) {
+      event.addClusterLabelToLayer(layer, *(clsLabels->getLabels(clusterId).begin()));
     }
     event.addClusterExternalIndexToLayer(layer, clusterId);
     clusterId++;
   }
 }
 
-int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, const std::vector<itsmft::Cluster>* clusters,
+int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<const itsmft::Cluster> clusters,
                              const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
-  if (!clusters) {
-    std::cerr << "Missing clusters." << std::endl;
-    return -1;
-  }
   event.clear();
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(utils::bit2Mask(TransformType::T2GRot));
   int clusterId{0};
 
-  auto first = rof.getROFEntry().getIndex();
-  auto number = rof.getNROFEntries();
-  auto clusters_in_frame = gsl::make_span(&(*clusters)[first], number);
+  auto first = rof.getFirstEntry();
+  auto clusters_in_frame = rof.getROFData(clusters);
   for (auto& c : clusters_in_frame) {
     int layer = geom->getLayer(c.getSensorID());
 
@@ -168,7 +163,7 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, c
     event.addClusterExternalIndexToLayer(layer, first + clusterId);
     clusterId++;
   }
-  return number;
+  return clusters_in_frame.size();
 }
 
 void ioutils::generateSimpleData(ROframe& event, const int phiDivs, const int zDivs = 1)

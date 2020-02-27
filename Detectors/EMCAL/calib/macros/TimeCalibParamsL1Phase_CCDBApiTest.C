@@ -10,7 +10,6 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "CCDB/CcdbApi.h"
-#include "CCDB/TObjectWrapper.h"
 #include "EMCALCalib/TimeCalibParamL1Phase.h"
 #include "RStringView.h"
 #include "TH1C.h"
@@ -19,6 +18,7 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <iostream>
 #endif
 
 /// \brief Converting time into numerical time stamp representation
@@ -53,7 +53,7 @@ void TimeCalibParamsL1Phase_CCDBApiTest(const std::string_view ccdbserver = "emc
   std::string inputDir = " ";
   if (aliceO2env)
     inputDir = aliceO2env;
-  inputDir += "/share/Detectors/EMCAL/files/";
+  inputDir += "/share/Detectors/EMC/files/";
 
   std::string file = inputDir + "TimeL1Phase_LHC18q_295585.txt";
   std::ifstream fileL1Phase(file, std::ifstream::in);
@@ -85,25 +85,14 @@ void TimeCalibParamsL1Phase_CCDBApiTest(const std::string_view ccdbserver = "emc
 
   std::cout << "Using time stamps " << rangestart << " and " << rangeend << std::endl;
   std::map<std::string, std::string> metadata;
-  ccdbhandler.storeAsTFile(new o2::TObjectWrapper<o2::emcal::TimeCalibParamL1Phase>(tcp), "EMC/TimeCalibParamsL1Phase", metadata, rangestart, rangeend);
+  ccdbhandler.storeAsTFileAny(tcp, "EMC/TimeCalibParamsL1Phase", metadata, rangestart, rangeend);
 
   // Read time calibration coefficients from CCDB, check whether they are the same
   auto rangetest = create_timestamp(2018, 11, 8, 21, 57, 7); //LHC18q 295585
   //auto rangetest = create_timestamp(2018, 11, 21, 6, 27, 28); //LHC18q 296623
   std::cout << "Using read timestamp " << rangetest << "(omitted untill function is implemented server side)" << std::endl;
   o2::emcal::TimeCalibParamL1Phase* read(nullptr);
-  auto res = ccdbhandler.retrieveFromTFile("EMC/TimeCalibParamsL1Phase", metadata, rangetest);
-  if (!res) {
-    std::cerr << "Failed retrieving object from CCDB" << std::endl;
-    return;
-  }
-  std::cout << "Object found, type " << res->IsA()->GetName() << std::endl;
-  auto objw = dynamic_cast<o2::TObjectWrapper<o2::emcal::TimeCalibParamL1Phase>*>(res);
-  if (!objw) {
-    std::cerr << "failed casting to TObjectWrapper" << std::endl;
-    return;
-  }
-  read = objw->getObj();
+  read = ccdbhandler.retrieveFromTFileAny<o2::emcal::TimeCalibParamL1Phase>("EMC/TimeCalibParamsL1Phase", metadata, rangetest);
   if (!read) {
     std::cerr << "No object received from CCDB" << std::endl;
     return;

@@ -15,7 +15,7 @@
 #include "MIDClustering/PreClusterizer.h"
 
 #include <cassert>
-#include <fairlogger/Logger.h>
+#include "MIDBase/DetectorParameters.h"
 
 namespace o2
 {
@@ -72,9 +72,8 @@ bool PreClusterizer::init()
 {
   /// Initializes the class
 
-  // Initialize pre-clusters
-  mPreClusters.reserve(100);
-  mROFRecords.reserve(100);
+  mMpDEs.reserve(detparams::NDetectionElements);
+  mActiveDEs.reserve(detparams::NDetectionElements);
   return true;
 }
 
@@ -86,7 +85,7 @@ bool PreClusterizer::loadPatterns(gsl::span<const ColumnData>& stripPatterns)
   // Loop on stripPatterns
   for (auto& col : stripPatterns) {
     int deIndex = col.deId;
-    assert(deIndex < 72);
+    assert(deIndex < detparams::NDetectionElements);
 
     auto search = mMpDEs.find(deIndex);
     PatternStruct* de = nullptr;
@@ -119,7 +118,6 @@ void PreClusterizer::preClusterizeNBP(PatternStruct& de)
     for (int istrip = 0; istrip < nStripsNBP; ++istrip) {
       if (de.columns[icolumn].isNBPStripFired(istrip)) {
         if (!pc) {
-          LOG(DEBUG) << "New precluster NBP: DE  " << de.deId;
           mPreClusters.push_back({static_cast<uint8_t>(de.deId), 1, static_cast<uint8_t>(icolumn), static_cast<uint8_t>(icolumn), 0, 0, static_cast<uint8_t>(istrip), static_cast<uint8_t>(istrip)});
           pc = &mPreClusters.back();
         }
@@ -151,7 +149,6 @@ void PreClusterizer::preClusterizeBP(PatternStruct& de)
       for (int istrip = 0; istrip < 16; ++istrip) {
         if (de.columns[icolumn].isBPStripFired(istrip, iline)) {
           if (!pc) {
-            LOG(DEBUG) << "New precluster BP: DE  " << de.deId;
             mPreClusters.push_back({static_cast<uint8_t>(de.deId), 0, static_cast<uint8_t>(icolumn), static_cast<uint8_t>(icolumn), static_cast<uint8_t>(iline), static_cast<uint8_t>(iline), static_cast<uint8_t>(istrip), static_cast<uint8_t>(istrip)});
             pc = &mPreClusters.back();
           }

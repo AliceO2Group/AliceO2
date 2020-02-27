@@ -815,7 +815,29 @@ void MatchTOF::doMatching(int sec)
   }
   return;
 }
+//______________________________________________
+int MatchTOF::findFITIndex(int bc)
+{
+  if (!mFITRecPoints)
+    return -1;
 
+  int index = -1;
+  int distMax = 5; // require bc distance below 5
+
+  for (int i = 0; i < mFITRecPoints->size(); i++) {
+    const o2::InteractionRecord ir = mFITRecPoints->at(i).getInteractionRecord();
+    int bct0 = ir.orbit * o2::constants::lhc::LHCMaxBunches + ir.bc;
+    int dist = bc - bct0;
+
+    if (dist < 0 || dist > distMax)
+      continue;
+
+    distMax = dist;
+    index = i;
+  }
+
+  return index;
+}
 //______________________________________________
 void MatchTOF::selectBestMatches()
 {
@@ -838,10 +860,22 @@ void MatchTOF::selectBestMatches()
     mMatchedClustersIndex[matchingPair.getTOFClIndex()] = mMatchedTracksIndex[matchingPair.getTrackIndex()]; // index of the track that was matched to this cluster
     mMatchedTracks.push_back(matchingPair);                                                                  // array of MatchInfoTOF
 
-    // add also calibration infos ciao
+    // get fit info
+    double t0info = 0;
+
+    if (mFITRecPoints) {
+      int index = findFITIndex(mTOFClusWork[matchingPair.getTOFClIndex()].getBC());
+
+      if (index > -1) {
+        o2::InteractionRecord ir = (*mFITRecPoints)[index].getInteractionRecord();
+        t0info = ir.bc2ns() * 1E3;
+      }
+    }
+
+    // add also calibration infos
     mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
                                int(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E12), // add time stamp
-                               mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - matchingPair.getLTIntegralOut().getTOF(o2::track::PID::Pion),
+                               mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - matchingPair.getLTIntegralOut().getTOF(o2::track::PID::Pion) - t0info,
                                mTOFClusWork[matchingPair.getTOFClIndex()].getTot());
     if (mMCTruthON) {
       const auto& labelsTOF = mTOFClusLabels->getLabels(matchingPair.getTOFClIndex());

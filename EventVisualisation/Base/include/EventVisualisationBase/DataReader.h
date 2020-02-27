@@ -25,7 +25,7 @@ namespace event_visualisation
 class DataReader
 {
  public:
-  virtual int GetEventCount() = 0;
+  virtual int GetEventCount() const = 0;
   virtual ~DataReader() = default;
   virtual void open() = 0;
   virtual TObject* getEventData(int no) = 0;

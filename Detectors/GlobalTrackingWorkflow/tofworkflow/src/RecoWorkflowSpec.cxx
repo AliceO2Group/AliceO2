@@ -21,6 +21,10 @@
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
+
+// from FIT
+#include "DataFormatsFT0/RecPoints.h"
+
 #include <memory> // for make_shared, make_unique, unique_ptr
 #include <vector>
 
@@ -39,9 +43,10 @@ class TOFDPLRecoWorkflowTask
   using MatchOutputType = std::vector<o2::dataformats::MatchInfoTOF>;
 
   bool mUseMC = true;
+  bool mUseFIT = false;
 
  public:
-  explicit TOFDPLRecoWorkflowTask(bool useMC) : mUseMC(useMC) {}
+  explicit TOFDPLRecoWorkflowTask(bool useMC, bool useFIT) : mUseMC(useMC), mUseFIT(useFIT) {}
 
   void init(framework::InitContext& ic)
   {
@@ -72,6 +77,14 @@ class TOFDPLRecoWorkflowTask
       toflab = std::move(*toflabel);
       *itslab.get() = std::move(*itslabel);
       *tpclab.get() = std::move(*tpclabel);
+    }
+
+    auto recPointsPtr = std::make_shared<std::vector<o2::ft0::RecPoints>>();
+    if (mUseFIT) {
+      auto recPoints = pc.inputs().get<const std::vector<o2::ft0::RecPoints>>("fitrecpoints");
+      *recPointsPtr.get() = std::move(recPoints);
+      mMatcher.setFITRecPoints(recPointsPtr.get());
+      LOG(INFO) << "TOF Reco Workflow pulled " << recPoints.size() << " FIT RecPoints";
     }
 
     //-------- init geometry and field --------//
@@ -117,48 +130,53 @@ class TOFDPLRecoWorkflowTask
     //           << " DIGITS TO " << mClustersArray.size() << " CLUSTERS";
 
     // send matching-info
-    pc.outputs().snapshot(Output{"TOF", "MATCHINFOS", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector());
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector());
     if (mUseMC) {
-      pc.outputs().snapshot(Output{"TOF", "MATCHTOFINFOSMC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector());
-      pc.outputs().snapshot(Output{"TOF", "MATCHTPCINFOSMC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTPCLabelsVector());
-      pc.outputs().snapshot(Output{"TOF", "MATCHITSINFOSMC", 0, Lifetime::Timeframe}, mMatcher.getMatchedITSLabelsVector());
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHTOFINFOSMC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector());
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHTPCINFOSMC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTPCLabelsVector());
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHITSINFOSMC", 0, Lifetime::Timeframe}, mMatcher.getMatchedITSLabelsVector());
     }
-    pc.outputs().snapshot(Output{"TOF", "CALIBINFOS", 0, Lifetime::Timeframe}, mMatcher.getCalibVector());
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBINFOS", 0, Lifetime::Timeframe}, mMatcher.getCalibVector());
 
     // declare done
     finished = true;
-    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    //pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    pc.services().get<ControlService>().endOfStream();
   }
 
  private:
   o2::globaltracking::MatchTOF mMatcher; ///< Cluster finder
 };
 
-o2::framework::DataProcessorSpec getTOFRecoWorkflowSpec(bool useMC)
+o2::framework::DataProcessorSpec getTOFRecoWorkflowSpec(bool useMC, bool useFIT)
 {
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
-  inputs.emplace_back("tofcluster", "TOF", "CLUSTERS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("tofcluster", o2::header::gDataOriginTOF, "CLUSTERS", 0, Lifetime::Timeframe);
   inputs.emplace_back("globaltrack", "GLO", "TPCITS", 0, Lifetime::Timeframe);
   if (useMC) {
-    inputs.emplace_back("tofclusterlabel", "TOF", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
+    inputs.emplace_back("tofclusterlabel", o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe);
     inputs.emplace_back("itstracklabel", "GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe);
     inputs.emplace_back("tpctracklabel", "GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe);
   }
 
-  outputs.emplace_back("TOF", "MATCHINFOS", 0, Lifetime::Timeframe);
-  if (useMC) {
-    outputs.emplace_back("TOF", "MATCHTOFINFOSMC", 0, Lifetime::Timeframe);
-    outputs.emplace_back("TOF", "MATCHTPCINFOSMC", 0, Lifetime::Timeframe);
-    outputs.emplace_back("TOF", "MATCHITSINFOSMC", 0, Lifetime::Timeframe);
+  if (useFIT) {
+    inputs.emplace_back("fitrecpoints", o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
   }
-  outputs.emplace_back("TOF", "CALIBINFOS", 0, Lifetime::Timeframe);
+
+  outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe);
+  if (useMC) {
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHTOFINFOSMC", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHTPCINFOSMC", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHITSINFOSMC", 0, Lifetime::Timeframe);
+  }
+  outputs.emplace_back(o2::header::gDataOriginTOF, "CALIBINFOS", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "TOFRecoWorkflow",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TOFDPLRecoWorkflowTask>(useMC)},
+    AlgorithmSpec{adaptFromTask<TOFDPLRecoWorkflowTask>(useMC, useFIT)},
     Options{/* for the moment no options */}};
 }
 

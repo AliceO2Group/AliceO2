@@ -11,7 +11,7 @@
 #include "ITSMFTReconstruction/GBTWord.h"
 #include "ITSMFTReconstruction/PayLoadCont.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #endif
 
 #include "ITSMFTReconstruction/RawPixelReader.h"
@@ -20,7 +20,7 @@ void run_digi2raw_mft(std::string outName = "rawmft.bin",                       
                       std::string inpName = "mftdigits.root",                    // name of the input MFT digits
                       std::string digTreeName = "o2sim",                         // name of the digits tree
                       std::string digBranchName = "MFTDigit",                    // name of the digits branch
-                      std::string rofRecName = "MFTDigitROF",                    // name of the ROF records tree and its branch
+                      std::string rofRecName = "MFTDigitROF",                    // name of the ROF records branch
                       uint8_t ruSWMin = 0, uint8_t ruSWMax = 0xff,               // seq.ID of 1st and last RU (stave) to convert
                       uint16_t superPageSize = o2::itsmft::NCRUPagesPerSuperpage // CRU superpage size, max = 256
 )
@@ -32,10 +32,8 @@ void run_digi2raw_mft(std::string outName = "rawmft.bin",                       
 
   ///-------> input
   TChain digTree(digTreeName.c_str());
-  TChain rofTree(rofRecName.c_str());
 
   digTree.AddFile(inpName.c_str());
-  rofTree.AddFile(inpName.c_str());
 
   std::vector<o2::itsmft::Digit> digiVec, *digiVecP = &digiVec;
   if (!digTree.GetBranch(digBranchName.c_str())) {
@@ -45,10 +43,10 @@ void run_digi2raw_mft(std::string outName = "rawmft.bin",                       
 
   // ROF record entries in the digit tree
   ROFRVEC rofRecVec, *rofRecVecP = &rofRecVec;
-  if (!rofTree.GetBranch(rofRecName.c_str())) {
-    LOG(FATAL) << "Failed to find the branch " << rofRecName << " in the tree " << rofRecName;
+  if (!digTree.GetBranch(rofRecName.c_str())) {
+    LOG(FATAL) << "Failed to find the branch " << rofRecName << " in the tree " << digTreeName;
   }
-  rofTree.SetBranchAddress(rofRecName.c_str(), &rofRecVecP);
+  digTree.SetBranchAddress(rofRecName.c_str(), &rofRecVecP);
   ///-------< input
 
   ///-------> output
@@ -89,35 +87,22 @@ void run_digi2raw_mft(std::string outName = "rawmft.bin",                       
   }
 
   //-------------------------------------------------------------------------------<<<<
-  int lastTreeID = -1;
-  long offs = 0, nEntProc = 0;
-  for (int i = 0; i < rofTree.GetEntries(); i++) {
-    rofTree.GetEntry(i);
-    if (rofTree.GetTreeNumber() > lastTreeID) { // this part is needed for chained input
-      if (lastTreeID > 0) {                     // new chunk, increase the offset
-        offs += digTree.GetTree()->GetEntries();
-      }
-      lastTreeID = rofTree.GetTreeNumber();
-    }
+  for (int i = 0; i < digTree.GetEntries(); i++) {
+    digTree.GetEntry(i);
 
     for (const auto& rofRec : rofRecVec) {
-      auto rofEntry = rofRec.getROFEntry();
-      int nDigROF = rofRec.getNROFEntries();
+      int rofEntry = rofRec.getFirstEntry();
+      int nDigROF = rofRec.getNEntries();
       LOG(INFO) << "Processing ROF:" << rofRec.getROFrame() << " with " << nDigROF << " entries";
       rofRec.print();
       if (!nDigROF) {
         LOG(INFO) << "Frame is empty"; // ??
         continue;
       }
-      if (rofEntry.getEvent() != digTree.GetReadEntry() + offs || !nEntProc) {
-        digTree.GetEntry(rofEntry.getEvent() + offs); // read tree entry containing needed ROF data
-        nEntProc++;
-      }
-      int digIndex = rofEntry.getIndex(); // needed ROF digits start from this one
-      int maxDigIndex = digIndex + nDigROF;
-      LOG(INFO) << "BV===== digIndex " << digIndex << " maxDigIndex " << maxDigIndex << "\n";
+      int maxDigIndex = rofEntry + nDigROF;
+      LOG(INFO) << "BV===== 1stEntry " << rofEntry << " maxDigIndex " << maxDigIndex << "\n";
 
-      int nPagesCached = rawReader.digits2raw(digiVec, rofEntry.getIndex(), nDigROF, rofRec.getBCData(),
+      int nPagesCached = rawReader.digits2raw(digiVec, rofEntry, nDigROF, rofRec.getBCData(),
                                               ruSWMin, ruSWMax);
       LOG(INFO) << "Pages chached " << nPagesCached << " superpage: " << int(superPageSize);
       if (nPagesCached >= superPageSize) {

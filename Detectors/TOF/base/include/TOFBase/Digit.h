@@ -14,6 +14,8 @@
 #include <iosfwd>
 #include "Rtypes.h"
 #include "TOFBase/Geo.h"
+#include "CommonDataFormat/RangeReference.h"
+#include <gsl/span>
 
 #include <boost/serialization/base_object.hpp> // for base_object
 
@@ -28,7 +30,7 @@ class Digit
  public:
   Digit() = default;
 
-  Digit(Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t label = -1);
+  Digit(Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t label = -1, Int_t triggerorbit = 0, Int_t triggerbunch = 0);
   ~Digit() = default;
 
   /// Get global ordering key made of
@@ -40,11 +42,11 @@ class Digit
   Int_t getChannel() const { return mChannel; }
   void setChannel(Int_t channel) { mChannel = channel; }
 
-  Int_t getTDC() const { return mTDC; }
-  void setTDC(Int_t tdc) { mTDC = tdc; }
+  uint16_t getTDC() const { return mTDC; }
+  void setTDC(uint16_t tdc) { mTDC = tdc; }
 
-  Int_t getTOT() const { return mTOT; }
-  void setTOT(Int_t tot) { mTOT = tot; }
+  uint16_t getTOT() const { return mTOT; }
+  void setTOT(uint16_t tot) { mTOT = tot; }
 
   Int_t getBC() const { return mBC; }
   void setBC(Int_t bc) { mBC = bc; }
@@ -70,21 +72,62 @@ class Digit
   Int_t getElTDCIndex() const { return Geo::getTDCFromECH(mElectronIndex); }     // to be derived from mElectronIndex
   Int_t getElChIndex() const { return Geo::getTDCChFromECH(mElectronIndex); }    // to be derived from mElectronIndex
 
+  void setCalibratedTime(Double_t time) { mCalibratedTime = time; }
+  double getCalibratedTime() const { return mCalibratedTime; }
+
+  void setIsProblematic(bool flag) { mIsProblematic = flag; }
+  bool isProblematic() const { return mIsProblematic; }
+
+  void setTriggerOrbit(int value) { mTriggerOrbit = value; }
+  int getTriggerOrbit() const { return mTriggerOrbit; }
+  void setTriggerBunch(int value) { mTriggerBunch = value; }
+  int getTriggerBunch() const { return mTriggerBunch; }
+
  private:
   friend class boost::serialization::access;
 
+  Double_t mCalibratedTime; //!< time of the digits after calibration (not persistent; it will be filled during clusterization)
   Int_t mChannel;          ///< TOF channel index
-  Int_t mTDC;              ///< TDC bin number
-  Int_t mTOT;              ///< TOT bin number
+  uint16_t mTDC;           ///< TDC bin number
+  uint16_t mTOT;           ///< TOT bin number
   Int_t mBC;               ///< Bunch Crossing
   Int_t mLabel;            ///< Index of the corresponding entry in the MC label array
-  Bool_t mIsUsedInCluster; //!/< flag to declare that the digit was used to build a cluster
   Int_t mElectronIndex;    //!/< index in electronic format
+  uint16_t mTriggerOrbit = 0;    //!< orbit id of trigger event
+  uint16_t mTriggerBunch = 0;    //!< bunch id of trigger event
+  Bool_t mIsUsedInCluster;       //!/< flag to declare that the digit was used to build a cluster
+  Bool_t mIsProblematic = false; //!< flag to tell whether the channel of the digit was problemati; not persistent; default = ok
 
-  ClassDefNV(Digit, 1);
+  ClassDefNV(Digit, 2);
 };
 
 std::ostream& operator<<(std::ostream& stream, const Digit& dig);
+
+struct ReadoutWindowData {
+  // 1st entry and number of entries in the full vector of digits
+  // for given trigger (or BC or RO frame)
+  o2::dataformats::RangeReference<int, int> ref;
+  gsl::span<const Digit> getBunchChannelData(const gsl::span<const Digit> tfdata) const
+  {
+    // extract the span of channel data for this readout window from the whole TF data
+    if (!ref.getEntries())
+      return gsl::span<const Digit>(nullptr, ref.getEntries());
+    return gsl::span<const Digit>(&tfdata[ref.getFirstEntry()], ref.getEntries());
+  }
+
+  ReadoutWindowData() = default;
+  ReadoutWindowData(int first, int ne)
+  {
+    ref.setFirstEntry(first);
+    ref.setEntries(ne);
+  }
+
+  int first() const { return ref.getFirstEntry(); }
+  int size() const { return ref.getEntries(); }
+
+  ClassDefNV(ReadoutWindowData, 1);
+};
+
 } // namespace tof
 } // namespace o2
 #endif

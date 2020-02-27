@@ -40,7 +40,7 @@ using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
 /// create a processor spec
 /// runs the TPC HwClusterer in a DPL process with digits and mc as input
-DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
+DataProcessorSpec getClustererSpec(bool sendMC)
 {
   std::string processorName = "tpc-clusterer";
 
@@ -91,7 +91,7 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
       if (!labelKey.empty()) {
         inMCLabels = std::move(pc.inputs().get<const MCLabelContainer*>(labelKey.c_str()));
       }
-      auto inDigits = pc.inputs().get<const std::vector<o2::tpc::Digit>>(inputKey.c_str());
+      auto inDigits = pc.inputs().get<gsl::span<o2::tpc::Digit>>(inputKey.c_str());
       if (verbosity > 0 && inMCLabels) {
         LOG(INFO) << "received " << inDigits.size() << " digits, "
                   << inMCLabels->getIndexedSize() << " MC label objects"
@@ -186,19 +186,13 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
     return processingFct;
   };
 
-  auto createInputSpecs = [](bool makeMcInput, bool makeTriggersInput = false) {
+  auto createInputSpecs = [](bool makeMcInput) {
     std::vector<InputSpec> inputSpecs{
       InputSpec{"digits", gDataOriginTPC, "DIGITS", 0, Lifetime::Timeframe},
     };
     if (makeMcInput) {
       constexpr o2::header::DataDescription datadesc("DIGITSMCTR");
       inputSpecs.emplace_back("mclabels", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
-    }
-    if (makeTriggersInput) {
-      // this is an additional output by the TPC digitizer, need to check if that
-      // has to go into the clusterer as well
-      constexpr o2::header::DataDescription datadesc("DIGTRIGGERS");
-      inputSpecs.emplace_back("digtriggers", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
     }
     return std::move(inputSpecs);
   };
@@ -217,7 +211,7 @@ DataProcessorSpec getClustererSpec(bool sendMC, bool haveDigTriggers)
   };
 
   return DataProcessorSpec{processorName,
-                           {createInputSpecs(sendMC, haveDigTriggers)},
+                           {createInputSpecs(sendMC)},
                            {createOutputSpecs(sendMC)},
                            AlgorithmSpec(initFunction)};
 }

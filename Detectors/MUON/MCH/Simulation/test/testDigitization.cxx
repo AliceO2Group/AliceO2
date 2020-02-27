@@ -16,7 +16,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "TGeoManager.h"
-#include "MCHSimulation/Digit.h"
+#include "MCHBase/Digit.h"
 #include "MCHSimulation/Digitizer.h"
 #include "MCHSimulation/Hit.h"
 #include "MCHSimulation/Geometry.h"
@@ -68,8 +68,7 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
   std::vector<o2::mch::Digit> digits;
   o2::mch::mapping::Segmentation seg1{detElemId1};
   o2::mch::mapping::Segmentation seg2{detElemId2};
-  digitizer.process(hits, digits);
-  digitizer.provideMC(mctruthcontainer);
+  digitizer.process(hits, digits, mctruthcontainer);
 
   int digitcounter1 = 0;
   int digitcounter2 = 0;
@@ -157,8 +156,7 @@ BOOST_AUTO_TEST_CASE(mergingDigitizer)
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mctruthcontainer;
   std::vector<o2::mch::Digit> digits;
 
-  digitizer.process(hits, digits);
-  digitizer.provideMC(mctruthcontainer);
+  digitizer.process(hits, digits, mctruthcontainer);
 
   std::vector<o2::MCCompLabel> labels = digitizer.getTrackLabels();
 
@@ -174,7 +172,13 @@ BOOST_AUTO_TEST_CASE(mergingDigitizer)
     labels.emplace_back(labels.at(1).getTrackID(), labels.at(1).getEventID(), labels.at(1).getSourceID(), false);
   }
 
-  digitizer.mergeDigits(digits, labels);
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> container;
+
+  for (int index = 0; index < labels.size(); ++index) {
+    container.addElement(index, labels.at(index));
+  }
+
+  digitizer.mergeDigits(digits, container);
 
   std::vector<o2::mch::Digit> mergeddigits = digitizer.getDigits();
   std::vector<o2::MCCompLabel> mergedlabels = digitizer.getTrackLabels();

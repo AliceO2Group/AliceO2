@@ -41,12 +41,12 @@ class ClusterReader : public Task
   void run(ProcessingContext& pc) final;
 
  protected:
-  void accumulate();
+  void read();
 
-  std::vector<o2::itsmft::ROFRecord>*mClusROFRecInp = nullptr, mClusROFRecOut;
-  std::vector<o2::itsmft::Cluster>*mClusterArrayInp = nullptr, mClusterArrayOut;
-  std::vector<o2::itsmft::CompClusterExt>*mClusterCompArrayInp = nullptr, mClusterCompArrayOut;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>*mClusterMCTruthInp = nullptr, mClusterMCTruthOut;
+  std::vector<o2::itsmft::ROFRecord> mClusROFRec, *mClusROFRecPtr = &mClusROFRec;
+  std::vector<o2::itsmft::Cluster> mClusterArray, *mClusterArrayPtr = &mClusterArray;
+  std::vector<o2::itsmft::CompClusterExt> mClusterCompArray, *mClusterCompArrayPtr = &mClusterCompArray;
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mClusterMCTruth, *mClusterMCTruthPtr = &mClusterMCTruth;
 
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
 
@@ -61,7 +61,7 @@ class ClusterReader : public Task
   std::string mInputFileName = "";
 
   std::string mClusTreeName = "o2sim";
-  std::string mClusROFTreeName = "ClustersROF";
+  std::string mClusROFBranchName = "ClustersROF";
   std::string mClusterBranchName = "Cluster";
   std::string mClusterCompBranchName = "ClusterComp";
   std::string mClustMCTruthBranchName = "ClusterMCTruth";

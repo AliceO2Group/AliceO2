@@ -16,7 +16,7 @@
 #ifndef O2_MCH_SIMULATION_MCHDIGITIZER_H_
 #define O2_MCH_SIMULATION_MCHDIGITIZER_H_
 
-#include "MCHSimulation/Digit.h"
+#include "MCHBase/Digit.h"
 #include "MCHSimulation/Hit.h"
 
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -37,13 +37,13 @@ class Digitizer
   void init();
 
   //process hits: fill digit vector with digits
-  void process(const std::vector<Hit> hits, std::vector<Digit>& digits);
+  void process(const std::vector<Hit> hits, std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
   void provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
-  void mergeDigits(const std::vector<Digit> digits, const std::vector<o2::MCCompLabel> trackLabels);
+  void mergeDigits();
   //external pile-up adding up
   void mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
 
-  void fillOutputContainer(std::vector<Digit>& digits, std::vector<o2::MCCompLabel>& trackLabels);
+  void fillOutputContainer(std::vector<Digit>& digits);
 
   void setEventTime(double timeNS) { mEventTime = timeNS; }
 
@@ -66,6 +66,9 @@ class Digitizer
   int mSrcID = 0;
 
   bool mContinuous = false;
+
+  //time difference allowed for pileup (in ns (assuming that event time is in ns))
+  float mDeltat = 100.;
 
   //number of detector elements
   const static int mNdE = 156;

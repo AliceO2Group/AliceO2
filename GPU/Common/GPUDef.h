@@ -21,36 +21,10 @@
 #include "GPUDefOpenCL12Templates.h"
 #include "GPUCommonRtypes.h"
 
-// Macros for GRID dimension
-#if defined(__CUDACC__)
-  #define get_global_id(dim) (blockIdx.x * blockDim.x + threadIdx.x)
-  #define get_global_size(dim) (blockDim.x * gridDim.x)
-  #define get_num_groups(dim) (gridDim.x)
-  #define get_local_id(dim) (threadIdx.x)
-  #define get_local_size(dim) (blockDim.x)
-  #define get_group_id(dim) (blockIdx.x)
-#elif defined(__HIPCC__)
-  #define get_global_id(dim) (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x)
-  #define get_global_size(dim) (hipBlockDim_x * hipGridDim_x)
-  #define get_num_groups(dim) (hipGridDim_x)
-  #define get_local_id(dim) (hipThreadIdx_x)
-  #define get_local_size(dim) (hipBlockDim_x)
-  #define get_group_id(dim) (hipBlockIdx_x)
-#elif defined(__OPENCL__)
-  // Using OpenCL defaults
-#else
-  #define get_global_id(dim) iBlock
-  #define get_global_size(dim) nBlocks
-  #define get_num_groups(dim) nBlocks
-  #define get_local_id(dim) 0
-  #define get_local_size(dim) 1
-  #define get_group_id(dim) iBlock
-#endif
-
 // Macros for masking ptrs in OpenCL kernel calls as unsigned long (The API only allows us to pass buffer objects)
 #ifdef __OPENCL__
   #define GPUPtr1(a, b) unsigned long b
-  #define GPUPtr2(a, b) ((__global a) b)
+  #define GPUPtr2(a, b) ((__global a) (a) b)
 #else
   #define GPUPtr1(a, b) a b
   #define GPUPtr2(a, b) b
@@ -64,8 +38,20 @@
 
 #ifdef GPUCA_GPUCODE
   #define CA_MAKE_SHARED_REF(vartype, varname, varglobal, varshared) const GPUsharedref() MEM_LOCAL(vartype) &varname = varshared;
+  #define CA_SHARED_STORAGE(storage) storage
+  #define CA_SHARED_CACHE(target, src, size) \
+    static_assert((size) % sizeof(int) == 0, "Invalid shared cache size"); \
+    for (unsigned int i_shared_cache = get_local_id(0); i_shared_cache < (size) / sizeof(int); i_shared_cache += get_local_size(0)) { \
+      reinterpret_cast<GPUsharedref() int*>(target)[i_shared_cache] = reinterpret_cast<GPUglobalref() const int*>(src)[i_shared_cache]; \
+    }
+  #define CA_SHARED_CACHE_REF(target, src, size, reftype, ref) \
+    CA_SHARED_CACHE(target, src, size) \
+    GPUsharedref() const reftype* ref = (target)
 #else
   #define CA_MAKE_SHARED_REF(vartype, varname, varglobal, varshared) const GPUglobalref() MEM_GLOBAL(vartype) &varname = varglobal;
+  #define CA_SHARED_STORAGE(storage)
+  #define CA_SHARED_CACHE(target, src, size)
+  #define CA_SHARED_CACHE_REF(target, src, size, reftype, ref) GPUglobalref() const reftype* ref = src
 #endif
 
 #ifdef GPUCA_TEXTURE_FETCH_CONSTRUCTOR

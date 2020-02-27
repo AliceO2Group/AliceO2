@@ -24,7 +24,6 @@
 
 void run_rawdecoding_its(std::string inpName = "rawits.bin", // input binary data file name
                          std::string outDigName = "",        // name for optinal digits tree
-                         bool outDigPerROF = false,          // in case digits are requested, create separate tree entry for each ROF
                          bool padding = true,                // payload in raw data comes in 128 bit CRU words
                          bool page8kb = true,                // full 8KB CRU pages are provided (no skimming applied)
                          int nTriggersToCache = 1025,        // number of triggers per link to cache (> N 8KB CRU pages per superpage)
@@ -48,14 +47,12 @@ void run_rawdecoding_its(std::string inpName = "rawits.bin", // input binary dat
   std::size_t rofEntry = 0, nrofdig = 0;
   std::unique_ptr<TFile> outFileDig;
   std::unique_ptr<TTree> outTreeDig; // output tree with digits
-  std::unique_ptr<TTree> outTreeROF; // output tree with ROF records
 
   if (!outDigName.empty()) { // output to digit is requested
     outFileDig = std::make_unique<TFile>(outDigName.c_str(), "recreate");
     outTreeDig = std::make_unique<TTree>("o2sim", "Digits tree");
     outTreeDig->Branch("ITSDigit", &digitsPtr);
-    outTreeROF = std::make_unique<TTree>("ITSDigitROF", "ROF records tree");
-    outTreeROF->Branch("ITSDigitROF", &rofRecVecPtr);
+    outTreeDig->Branch("ITSDigitROF", &rofRecVecPtr);
   }
 
   while (rawReader.getNextChipData(chipData)) {
@@ -66,12 +63,7 @@ void run_rawdecoding_its(std::string inpName = "rawits.bin", // input binary dat
     if (outTreeDig) { // >> store digits
       if (irHB != rawReader.getInteractionRecordHB() || irTrig != rawReader.getInteractionRecord()) {
         if (!irTrig.isDummy()) {
-          o2::dataformats::EvIndex<int, int> evId(outTreeDig->GetEntries(), rofEntry);
-          rofRecVec.emplace_back(irHB, roFrame, evId, nrofdig); // registed finished ROF
-          if (outDigPerROF) {
-            outTreeDig->Fill();
-            digits.clear();
-          }
+          rofRecVec.emplace_back(irHB, roFrame, rofEntry, nrofdig); // registed finished ROF
           roFrame++;
         }
         irHB = rawReader.getInteractionRecordHB();
@@ -81,7 +73,7 @@ void run_rawdecoding_its(std::string inpName = "rawits.bin", // input binary dat
       }
       const auto& pixdata = chipData.getData();
       for (const auto& pix : pixdata) {
-        digits.emplace_back(chipData.getChipID(), roFrame, pix.getRowDirect(), pix.getCol());
+        digits.emplace_back(chipData.getChipID(), pix.getRowDirect(), pix.getCol());
         nrofdig++;
       }
 
@@ -94,16 +86,13 @@ void run_rawdecoding_its(std::string inpName = "rawits.bin", // input binary dat
 
   if (outTreeDig) {
     // register last ROF
-    o2::dataformats::EvIndex<int, int> evId(outTreeDig->GetEntries(), rofEntry);
-    rofRecVec.emplace_back(irHB, roFrame, evId, nrofdig); // registed finished ROF
+    rofRecVec.emplace_back(irHB, roFrame, rofEntry, nrofdig); // registed finished ROF
 
     // fill last (and the only one?) entry
     outTreeDig->Fill();
-    outTreeROF->Fill();
 
-    // and store trees
+    // and store tree
     outTreeDig->Write();
-    outTreeROF->Write();
   }
 
   sw.Stop();

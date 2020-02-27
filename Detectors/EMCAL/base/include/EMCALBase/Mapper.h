@@ -32,6 +32,7 @@ namespace emcal
 
 /// \class Mapper
 /// \brief ALTRO mapping for calorimeters
+/// \ingroup EMCALbase
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 /// \since Aug 19, 2019
 ///
@@ -44,7 +45,7 @@ class Mapper
   struct ChannelID {
     uint8_t mRow;               ///< Row of the channel in module
     uint8_t mColumn;            ///< Column of the channel in module
-    ChannelType_t mChannelType; ///< Type of the channel (see \ref o2::emcal::ChannelType for channel type definitions)
+    ChannelType_t mChannelType; ///< Type of the channel (see o2::emcal::ChannelType for channel type definitions)
 
     bool operator==(const ChannelID& other) const
     {
@@ -182,7 +183,7 @@ class Mapper
     {
     }
 
-    /// \Destructor
+    /// \brief Destructor
     ~FileFormatException() noexcept override = default;
 
     /// \brief Access to error message of the exception

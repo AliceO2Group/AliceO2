@@ -28,7 +28,7 @@
 #include "bitmapfile.h"
 #include "../utils/linux_helpers.h"
 #endif
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #include <omp.h>
 #endif
 
@@ -46,8 +46,16 @@
 #include "GPUTRDTrackletWord.h"
 #include "GPUTRDGeometry.h"
 #include "GPUO2DataTypes.h"
+#include "GPUParam.inc"
 #include "GPUTPCConvertImpl.h"
 #include "utils/qconfig.h"
+
+#ifdef GPUCA_DISPLAY_OPENGL_CORE
+#include "GPUDisplayShaders.h"
+#endif
+
+constexpr hmm_mat4 MY_HMM_IDENTITY = {{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}}};
+constexpr hmm_mat4 MY_HMM_FROM(float (&v)[16]) { return {{{v[0], v[1], v[2], v[3]}, {v[4], v[5], v[6], v[7]}, {v[8], v[9], v[10], v[11]}, {v[12], v[13], v[14], v[15]}}}; }
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -103,8 +111,16 @@ inline void GPUDisplay::drawVertices(const vboList& v, const GLenum t)
   mNDrawCalls += count;
 
   if (mUseMultiVBO) {
+#ifdef GPUCA_DISPLAY_OPENGL_CORE
+    CHKERR(glBindVertexArray(mVertexArray));
+#endif
     CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mVBOId[iSlice]));
+#ifndef GPUCA_DISPLAY_OPENGL_CORE
     CHKERR(glVertexPointer(3, GL_FLOAT, 0, nullptr));
+#else
+    CHKERR(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr));
+    glEnableVertexAttribArray(0);
+#endif
   }
 
   if (mUseGLIndirectDraw) {
@@ -131,39 +147,39 @@ inline void GPUDisplay::insertVertexList(int iSlice, size_t first, size_t last)
   insertVertexList(vBuf, first, last);
 }
 
-void GPUDisplay::calcXYZ()
+void GPUDisplay::calcXYZ(const float* matrix)
 {
-  mXYZ[0] = -(mCurrentMatrix[0] * mCurrentMatrix[12] + mCurrentMatrix[1] * mCurrentMatrix[13] + mCurrentMatrix[2] * mCurrentMatrix[14]);
-  mXYZ[1] = -(mCurrentMatrix[4] * mCurrentMatrix[12] + mCurrentMatrix[5] * mCurrentMatrix[13] + mCurrentMatrix[6] * mCurrentMatrix[14]);
-  mXYZ[2] = -(mCurrentMatrix[8] * mCurrentMatrix[12] + mCurrentMatrix[9] * mCurrentMatrix[13] + mCurrentMatrix[10] * mCurrentMatrix[14]);
+  mXYZ[0] = -(matrix[0] * matrix[12] + matrix[1] * matrix[13] + matrix[2] * matrix[14]);
+  mXYZ[1] = -(matrix[4] * matrix[12] + matrix[5] * matrix[13] + matrix[6] * matrix[14]);
+  mXYZ[2] = -(matrix[8] * matrix[12] + matrix[9] * matrix[13] + matrix[10] * matrix[14]);
 
-  mAngle[0] = -asinf(mCurrentMatrix[6]); // Invert rotY*rotX*rotZ
+  mAngle[0] = -asinf(matrix[6]); // Invert rotY*rotX*rotZ
   float A = cosf(mAngle[0]);
   if (fabsf(A) > 0.005) {
-    mAngle[1] = atan2f(-mCurrentMatrix[2] / A, mCurrentMatrix[10] / A);
-    mAngle[2] = atan2f(mCurrentMatrix[4] / A, mCurrentMatrix[5] / A);
+    mAngle[1] = atan2f(-matrix[2] / A, matrix[10] / A);
+    mAngle[2] = atan2f(matrix[4] / A, matrix[5] / A);
   } else {
     mAngle[1] = 0;
-    mAngle[2] = atan2f(-mCurrentMatrix[1], -mCurrentMatrix[0]);
+    mAngle[2] = atan2f(-matrix[1], -matrix[0]);
   }
 
   mRPhiTheta[0] = sqrtf(mXYZ[0] * mXYZ[0] + mXYZ[1] * mXYZ[1] + mXYZ[2] * mXYZ[2]);
   mRPhiTheta[1] = atan2f(mXYZ[0], mXYZ[2]);
   mRPhiTheta[2] = atan2f(mXYZ[1], sqrtf(mXYZ[0] * mXYZ[0] + mXYZ[2] * mXYZ[2]));
 
-  createQuaternionFromMatrix(mQuat, mCurrentMatrix);
+  createQuaternionFromMatrix(mQuat, matrix);
 
-  /*float mAngle[1] = -asinf(mCurrentMatrix[2]); //Calculate Y-axis angle - for rotX*rotY*rotZ
+  /*float mAngle[1] = -asinf(matrix[2]); //Calculate Y-axis angle - for rotX*rotY*rotZ
   float C = cosf( angle_y );
   if (fabsf(C) > 0.005) //Gimball lock?
   {
-      mAngle[0]  = atan2f(-mCurrentMatrix[6] / C, mCurrentMatrix[10] / C);
-      mAngle[2]  = atan2f(-mCurrentMatrix[1] / C, mCurrentMatrix[0] / C);
+      mAngle[0]  = atan2f(-matrix[6] / C, matrix[10] / C);
+      mAngle[2]  = atan2f(-matrix[1] / C, matrix[0] / C);
   }
   else
   {
       mAngle[0]  = 0; //set x-angle
-      mAngle[2]  = atan2f(mCurrentMatrix[4], mCurrentMatrix[5]);
+      mAngle[2]  = atan2f(matrix[4], matrix[5]);
   }*/
 }
 
@@ -227,7 +243,7 @@ void GPUDisplay::setAnimationPoint()
     mAnimateVectors[8].emplace_back(0);
   } else { // Quaternions
     float v[4];
-    createQuaternionFromMatrix(v, mCurrentMatrix);
+    createQuaternionFromMatrix(v, mViewMatrixP);
     if (mAnimateVectors[0].size()) {
       mAnimateCloseQuaternion(v, mAnimateVectors[5].back(), mAnimateVectors[6].back(), mAnimateVectors[7].back(), mAnimateVectors[8].back());
     }
@@ -271,16 +287,26 @@ void GPUDisplay::startAnimation()
   mAnimationLastBase = 0;
 }
 
+inline void GPUDisplay::ActivateColor()
+{
+#ifndef GPUCA_DISPLAY_OPENGL_CORE
+  glColor3f(mDrawColor[0], mDrawColor[1], mDrawColor[2]);
+#else
+  glUniform3fv(mColorId, 1, &mDrawColor[0]);
+#endif
+}
+
 inline void GPUDisplay::SetColorClusters()
 {
   if (mCfg.colorCollisions) {
     return;
   }
   if (mInvertColors) {
-    glColor3f(0, 0.3, 0.7);
+    mDrawColor = {0, 0.3, 0.7};
   } else {
-    glColor3f(0, 0.7, 1.0);
+    mDrawColor = {0, 0.7, 1.0};
   }
+  ActivateColor();
 }
 inline void GPUDisplay::SetColorTRD()
 {
@@ -288,58 +314,65 @@ inline void GPUDisplay::SetColorTRD()
     return;
   }
   if (mInvertColors) {
-    glColor3f(0.7, 0.3, 0);
+    mDrawColor = {0.7, 0.3, 0};
   } else {
-    glColor3f(1.0, 0.7, 0);
+    mDrawColor = {1.0, 0.7, 0};
   }
+  ActivateColor();
 }
 inline void GPUDisplay::SetColorInitLinks()
 {
   if (mInvertColors) {
-    glColor3f(0.42, 0.4, 0.1);
+    mDrawColor = {0.42, 0.4, 0.1};
   } else {
-    glColor3f(0.42, 0.4, 0.1);
+    mDrawColor = {0.42, 0.4, 0.1};
   }
+  ActivateColor();
 }
 inline void GPUDisplay::SetColorLinks()
 {
   if (mInvertColors) {
-    glColor3f(0.6, 0.1, 0.1);
+    mDrawColor = {0.6, 0.1, 0.1};
   } else {
-    glColor3f(0.8, 0.2, 0.2);
+    mDrawColor = {0.8, 0.2, 0.2};
   }
+  ActivateColor();
 }
 inline void GPUDisplay::SetColorSeeds()
 {
   if (mInvertColors) {
-    glColor3f(0.6, 0.0, 0.65);
+    mDrawColor = {0.6, 0.0, 0.65};
   } else {
-    glColor3f(0.8, 0.1, 0.85);
+    mDrawColor = {0.8, 0.1, 0.85};
   }
+  ActivateColor();
 }
 inline void GPUDisplay::SetColorTracklets()
 {
   if (mInvertColors) {
-    glColor3f(0, 0, 0);
+    mDrawColor = {0, 0, 0};
   } else {
-    glColor3f(1, 1, 1);
+    mDrawColor = {1, 1, 1};
   }
+  ActivateColor();
 }
 inline void GPUDisplay::SetColorTracks()
 {
   if (mInvertColors) {
-    glColor3f(0.6, 0, 0.1);
+    mDrawColor = {0.6, 0, 0.1};
   } else {
-    glColor3f(0.8, 1., 0.15);
+    mDrawColor = {0.8, 1., 0.15};
   }
+  ActivateColor();
 }
 inline void GPUDisplay::SetColorGlobalTracks()
 {
   if (mInvertColors) {
-    glColor3f(0.8, 0.2, 0);
+    mDrawColor = {0.8, 0.2, 0};
   } else {
-    glColor3f(1.0, 0.4, 0);
+    mDrawColor = {1.0, 0.4, 0};
   }
+  ActivateColor();
 }
 inline void GPUDisplay::SetColorFinal()
 {
@@ -347,26 +380,29 @@ inline void GPUDisplay::SetColorFinal()
     return;
   }
   if (mInvertColors) {
-    glColor3f(0, 0.6, 0.1);
+    mDrawColor = {0, 0.6, 0.1};
   } else {
-    glColor3f(0, 0.7, 0.2);
+    mDrawColor = {0, 0.7, 0.2};
   }
+  ActivateColor();
 }
 inline void GPUDisplay::SetColorGrid()
 {
   if (mInvertColors) {
-    glColor3f(0.5, 0.5, 0);
+    mDrawColor = {0.5, 0.5, 0};
   } else {
-    glColor3f(0.7, 0.7, 0.0);
+    mDrawColor = {0.7, 0.7, 0.0};
   }
+  ActivateColor();
 }
 inline void GPUDisplay::SetColorMarked()
 {
   if (mInvertColors) {
-    glColor3f(0.8, 0, 0);
+    mDrawColor = {0.8, 0, 0};
   } else {
-    glColor3f(1.0, 0.0, 0.0);
+    mDrawColor = {1.0, 0.0, 0.0};
   }
+  ActivateColor();
 }
 inline void GPUDisplay::SetCollisionColor(int col)
 {
@@ -379,7 +415,8 @@ inline void GPUDisplay::SetCollisionColor(int col)
   if (!mInvertColors && red == 0 && blue == 0 && green == 0) {
     red = 4;
   }
-  glColor3f(red / 4., green / 5., blue / 6.);
+  mDrawColor = {red / 4.f, green / 5.f, blue / 6.f};
+  ActivateColor();
 }
 
 void GPUDisplay::setQuality()
@@ -533,11 +570,11 @@ void GPUDisplay::UpdateOffscreenBuffers(bool clean)
     }
   }
   createFB(mMixBuffer, true, true, false);
-  glViewport(0, 0, mRenderwidth, mRenderheight); // Reset The Current Viewport
+  glViewport(0, 0, mRenderwidth, mRenderheight);
   setQuality();
 }
 
-void GPUDisplay::ReSizeGLScene(int width, int height, bool init) // Resize And Initialize The GL Window
+void GPUDisplay::ReSizeGLScene(int width, int height, bool init)
 {
   if (height == 0) { // Prevent A Divide By Zero By
     height = 1;      // Making Height Equal One
@@ -546,19 +583,10 @@ void GPUDisplay::ReSizeGLScene(int width, int height, bool init) // Resize And I
   mScreenheight = height;
   UpdateOffscreenBuffers();
 
-  glMatrixMode(GL_PROJECTION); // Select The Projection Matrix
-  glLoadIdentity();
-  gluPerspective(45.0f, (GLfloat)width / (GLfloat)height, 0.1f, 1000.0f);
-
-  glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
   if (init) {
     mResetScene = 1;
-    glLoadIdentity();
-  } else {
-    glLoadMatrixf(mCurrentMatrix);
+    mViewMatrix = MY_HMM_IDENTITY;
   }
-
-  glGetFloatv(GL_MODELVIEW_MATRIX, mCurrentMatrix);
 }
 
 void GPUDisplay::updateConfig()
@@ -586,8 +614,8 @@ int GPUDisplay::InitGL_internal()
   int glVersion[2] = {0, 0};
   glGetIntegerv(GL_MAJOR_VERSION, &glVersion[0]);
   glGetIntegerv(GL_MINOR_VERSION, &glVersion[1]);
-  if (glVersion[0] < 4 || (glVersion[0] == 4 && glVersion[1] < 5)) {
-    GPUError("Unsupported OpenGL runtime %d.%d < 4.5", glVersion[0], glVersion[1]);
+  if (glVersion[0] < GPUDisplayBackend::GL_MIN_VERSION_MAJOR || (glVersion[0] == GPUDisplayBackend::GL_MIN_VERSION_MAJOR && glVersion[1] < GPUDisplayBackend::GL_MIN_VERSION_MINOR)) {
+    GPUError("Unsupported OpenGL runtime %d.%d < %d.%d", glVersion[0], glVersion[1], GPUDisplayBackend::GL_MIN_VERSION_MAJOR, GPUDisplayBackend::GL_MIN_VERSION_MINOR);
     return (1);
   }
 
@@ -595,12 +623,13 @@ int GPUDisplay::InitGL_internal()
   CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mVBOId[0]));
   CHKERR(glGenBuffers(1, &mIndirectId));
   CHKERR(glBindBuffer(GL_DRAW_INDIRECT_BUFFER, mIndirectId));
-
+#ifndef GPUCA_DISPLAY_OPENGL_CORE
   CHKERR(glShadeModel(GL_SMOOTH)); // Enable Smooth Shading
+#endif
   setDepthBuffer();
   setQuality();
   ReSizeGLScene(GPUDisplayBackend::INIT_WIDTH, GPUDisplayBackend::INIT_HEIGHT, true);
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
   int maxThreads = mChain->GetDeviceProcessingSettings().nThreads > 1 ? mChain->GetDeviceProcessingSettings().nThreads : 1;
   omp_set_num_threads(maxThreads);
 #else
@@ -608,6 +637,21 @@ int GPUDisplay::InitGL_internal()
 #endif
   mThreadBuffers.resize(maxThreads);
   mThreadTracks.resize(maxThreads);
+#ifdef GPUCA_DISPLAY_OPENGL_CORE
+  CHKERR(mVertexShader = glCreateShader(GL_VERTEX_SHADER));
+  CHKERR(glShaderSource(mVertexShader, 1, &GPUDisplayShaders::vertexShader, NULL));
+  CHKERR(glCompileShader(mVertexShader));
+  CHKERR(mFragmentShader = glCreateShader(GL_FRAGMENT_SHADER));
+  CHKERR(glShaderSource(mFragmentShader, 1, &GPUDisplayShaders::fragmentShader, NULL));
+  CHKERR(glCompileShader(mFragmentShader));
+  CHKERR(mShaderProgram = glCreateProgram());
+  CHKERR(glAttachShader(mShaderProgram, mVertexShader));
+  CHKERR(glAttachShader(mShaderProgram, mFragmentShader));
+  CHKERR(glLinkProgram(mShaderProgram));
+  CHKERR(glGenVertexArrays(1, &mVertexArray));
+  CHKERR(mModelViewProjId = glGetUniformLocation(mShaderProgram, "ModelViewProj"));
+  CHKERR(mColorId = glGetUniformLocation(mShaderProgram, "color"));
+#endif
   return (0); // Initialization Went OK
 }
 
@@ -616,6 +660,11 @@ void GPUDisplay::ExitGL()
   UpdateOffscreenBuffers(true);
   CHKERR(glDeleteBuffers(GPUChainTracking::NSLICES, mVBOId));
   CHKERR(glDeleteBuffers(1, &mIndirectId));
+#ifdef GPUCA_DISPLAY_OPENGL_CORE
+  CHKERR(glDeleteProgram(mShaderProgram));
+  CHKERR(glDeleteShader(mVertexShader));
+  CHKERR(glDeleteShader(mFragmentShader));
+#endif
 }
 
 inline void GPUDisplay::drawPointLinestrip(int iSlice, int cid, int id, int id_limit)
@@ -1074,7 +1123,7 @@ int GPUDisplay::DrawGLScene(bool mixAnimation, float mAnimateTime)
   return (0);
 }
 
-int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // Here's Where We Do All The Drawing
+int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
 {
   bool showTimer = false;
 
@@ -1083,295 +1132,8 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
     mSemLockDisplay.Lock();
   }
 
-  if (!mixAnimation && mOffscreenBuffer.created) {
-    setFrameBuffer(1, mOffscreenBuffer.fb_id);
-  }
-
-  // Initialize
-  if (!mixAnimation) {
-    if (mInvertColors) {
-      CHKERR(glClearColor(1.0f, 1.0f, 1.0f, 1.0f));
-    } else {
-      CHKERR(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
-    }
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear Screen And Depth Buffer
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity(); // Reset The Current Modelview Matrix
-  }
-
-  int mMouseWheelTmp = mBackend->mMouseWheel;
-  mBackend->mMouseWheel = 0;
-  bool lookOrigin = mCamLookOrigin ^ mBackend->mKeys[mBackend->KEY_ALT];
-  bool yUp = mCamYUp ^ mBackend->mKeys[mBackend->KEY_CTRL] ^ lookOrigin;
-
-  // Calculate rotation / translation scaling factors
-  float scalefactor = mBackend->mKeys[mBackend->KEY_SHIFT] ? 0.2 : 1.0;
-  float rotatescalefactor = scalefactor * 0.25f;
-  if (mCfg.drawSlice != -1) {
-    scalefactor *= 0.2f;
-  }
-  float sqrdist = sqrtf(sqrtf(mCurrentMatrix[12] * mCurrentMatrix[12] + mCurrentMatrix[13] * mCurrentMatrix[13] + mCurrentMatrix[14] * mCurrentMatrix[14]) / GL_SCALE_FACTOR) * 0.8;
-  if (sqrdist < 0.2) {
-    sqrdist = 0.2;
-  }
-  if (sqrdist > 5) {
-    sqrdist = 5;
-  }
-  scalefactor *= sqrdist;
-
-  float mixSlaveImage = 0.f;
-  float time = mAnimateTime;
-  if (mAnimate && time < 0) {
-    if (mAnimateScreenshot) {
-      time = mAnimationFrame / 30.f;
-    } else {
-      time = mAnimationTimer.GetCurrentElapsedTime();
-    }
-
-    float maxTime = mAnimateVectors[0].back();
-    mAnimationFrame++;
-    if (time >= maxTime) {
-      time = maxTime;
-      mAnimate = 0;
-      SetInfo("Animation finished. (%1.2f seconds, %d frames)", time, mAnimationFrame);
-    } else {
-      SetInfo("Running mAnimation: time %1.2f/%1.2f, frames %d", time, maxTime, mAnimationFrame);
-    }
-  }
-  // Perform new rotation / translation
-  if (mAnimate) {
-    float vals[8];
-    for (int i = 0; i < 8; i++) {
-      vals[i] = mAnimationSplines[i].evaluate(time);
-    }
-    if (mAnimationChangeConfig && mixAnimation == false) {
-      int base = 0;
-      int k = mAnimateVectors[0].size() - 1;
-      while (base < k && time > mAnimateVectors[0][base]) {
-        base++;
-      }
-      if (base > mAnimationLastBase + 1) {
-        mAnimationLastBase = base - 1;
-      }
-
-      if (base != mAnimationLastBase && mAnimateVectors[0][mAnimationLastBase] != mAnimateVectors[0][base] && memcmp(&mAnimateConfig[base], &mAnimateConfig[mAnimationLastBase], sizeof(mAnimateConfig[base]))) {
-        mCfg = mAnimateConfig[mAnimationLastBase];
-        updateConfig();
-        if (mDrawQualityRenderToTexture) {
-          setFrameBuffer(1, mMixBuffer.fb_id);
-          glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear Screen And Depth Buffer
-          DrawGLScene_internal(true, time);
-          setFrameBuffer();
-        } else {
-          DrawGLScene_internal(true, time);
-          CHKERR(glBlitNamedFramebuffer(mMainBufferStack.back(), mMixBuffer.fb_id, 0, 0, mRenderwidth, mRenderheight, 0, 0, mRenderwidth, mRenderheight, GL_COLOR_BUFFER_BIT, GL_NEAREST));
-          glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear Screen And Depth Buffer
-        }
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity(); // Reset The Current Modelview Matrix
-        mixSlaveImage = 1.f - (time - mAnimateVectors[0][mAnimationLastBase]) / (mAnimateVectors[0][base] - mAnimateVectors[0][mAnimationLastBase]);
-      }
-
-      if (memcmp(&mAnimateConfig[base], &mCfg, sizeof(mCfg))) {
-        mCfg = mAnimateConfig[base];
-        updateConfig();
-      }
-    }
-
-    if (mCfg.animationMode != 6) {
-      if (mCfg.animationMode & 1) // Rotation from euler angles
-      {
-        glRotatef(-vals[4] * 180.f / M_PI, 1, 0, 0);
-        glRotatef(vals[5] * 180.f / M_PI, 0, 1, 0);
-        glRotatef(-vals[6] * 180.f / M_PI, 0, 0, 1);
-      } else { // Rotation from quaternion
-        const float mag = sqrtf(vals[4] * vals[4] + vals[5] * vals[5] + vals[6] * vals[6] + vals[7] * vals[7]);
-        if (mag < 0.0001) {
-          vals[7] = 1;
-        } else {
-          for (int i = 0; i < 4; i++) {
-            vals[4 + i] /= mag;
-          }
-        }
-
-        float xx = vals[4] * vals[4], xy = vals[4] * vals[5], xz = vals[4] * vals[6], xw = vals[4] * vals[7], yy = vals[5] * vals[5], yz = vals[5] * vals[6], yw = vals[5] * vals[7], zz = vals[6] * vals[6], zw = vals[6] * vals[7];
-        float mat[16] = {1 - 2 * (yy + zz), 2 * (xy - zw), 2 * (xz + yw), 0, 2 * (xy + zw), 1 - 2 * (xx + zz), 2 * (yz - xw), 0, 2 * (xz - yw), 2 * (yz + xw), 1 - 2 * (xx + yy), 0, 0, 0, 0, 1};
-        glMultMatrixf(mat);
-      }
-    }
-    if (mCfg.animationMode & 4) // Compute cartesian translation from sperical coordinates (euler angles)
-    {
-      const float r = vals[3], phi = vals[1], theta = vals[2];
-      vals[2] = r * cosf(phi) * cosf(theta);
-      vals[0] = r * sinf(phi) * cosf(theta);
-      vals[1] = r * sinf(theta);
-    } else if (mCfg.animationMode & 2) { // Scale cartesion translation to interpolated radius
-      float r = sqrtf(vals[0] * vals[0] + vals[1] * vals[1] + vals[2] * vals[2]);
-      if (fabsf(r) < 0.0001) {
-        r = 1;
-      }
-      r = vals[3] / r;
-      for (int i = 0; i < 3; i++) {
-        vals[i] *= r;
-      }
-    }
-    if (mCfg.animationMode == 6) {
-      gluLookAt(vals[0], vals[1], vals[2], 0, 0, 0, 0, 1, 0);
-    } else {
-      glTranslatef(-vals[0], -vals[1], -vals[2]);
-    }
-  } else if (mResetScene) {
-    glTranslatef(0, 0, -8);
-
-    mCfg.pointSize = 2.0;
-    mCfg.drawSlice = -1;
-    mXadd = mZadd = 0;
-    mCamLookOrigin = mCamYUp = false;
-    mAngleRollOrigin = -1e9;
-
-    mResetScene = 0;
-    mUpdateDLList = true;
-  } else {
-    float moveZ = scalefactor * ((float)mMouseWheelTmp / 150 + (float)(mBackend->mKeys['W'] - mBackend->mKeys['S']) * (!mBackend->mKeys[mBackend->KEY_SHIFT]) * 0.2 * mFPSScale);
-    float moveY = scalefactor * ((float)(mBackend->mKeys[mBackend->KEY_PAGEDOWN] - mBackend->mKeys[mBackend->KEY_PAGEUP]) * 0.2 * mFPSScale);
-    float moveX = scalefactor * ((float)(mBackend->mKeys['A'] - mBackend->mKeys['D']) * (!mBackend->mKeys[mBackend->KEY_SHIFT]) * 0.2 * mFPSScale);
-    float rotRoll = rotatescalefactor * mFPSScale * 2 * (mBackend->mKeys['E'] - mBackend->mKeys['F']) * (!mBackend->mKeys[mBackend->KEY_SHIFT]);
-    float rotYaw = rotatescalefactor * mFPSScale * 2 * (mBackend->mKeys[mBackend->KEY_RIGHT] - mBackend->mKeys[mBackend->KEY_LEFT]);
-    float rotPitch = rotatescalefactor * mFPSScale * 2 * (mBackend->mKeys[mBackend->KEY_DOWN] - mBackend->mKeys[mBackend->KEY_UP]);
-
-    if (mBackend->mMouseDnR && mBackend->mMouseDn) {
-      moveZ += -scalefactor * ((float)mBackend->mouseMvY - (float)mBackend->mMouseDnY) / 4;
-      rotRoll += rotatescalefactor * ((float)mBackend->mouseMvX - (float)mBackend->mMouseDnX);
-    } else if (mBackend->mMouseDnR) {
-      moveX += -scalefactor * 0.5 * ((float)mBackend->mMouseDnX - (float)mBackend->mouseMvX) / 4;
-      moveY += -scalefactor * 0.5 * ((float)mBackend->mouseMvY - (float)mBackend->mMouseDnY) / 4;
-    } else if (mBackend->mMouseDn) {
-      rotYaw += rotatescalefactor * ((float)mBackend->mouseMvX - (float)mBackend->mMouseDnX);
-      rotPitch += rotatescalefactor * ((float)mBackend->mouseMvY - (float)mBackend->mMouseDnY);
-    }
-
-    if (mBackend->mKeys['<'] && !mBackend->mKeysShift['<']) {
-      mAnimationDelay += moveX;
-      if (mAnimationDelay < 0.05) {
-        mAnimationDelay = 0.05;
-      }
-      moveX = 0.f;
-      moveY = 0.f;
-      SetInfo("Animation delay set to %1.2f", mAnimationDelay);
-    }
-
-    if (yUp) {
-      mAngleRollOrigin = 0;
-    } else if (!lookOrigin) {
-      mAngleRollOrigin = -1e6;
-    }
-    if (lookOrigin) {
-      if (!yUp) {
-        if (mAngleRollOrigin < -1e6) {
-          mAngleRollOrigin = yUp ? 0. : -mAngle[2];
-        }
-        mAngleRollOrigin += rotRoll;
-        glRotatef(mAngleRollOrigin, 0, 0, 1);
-        float tmpX = moveX, tmpY = moveY;
-        moveX = tmpX * cosf(mAngle[2]) - tmpY * sinf(mAngle[2]);
-        moveY = tmpX * sinf(mAngle[2]) + tmpY * cosf(mAngle[2]);
-      }
-
-      const float x = mXYZ[0], y = mXYZ[1], z = mXYZ[2];
-      float r = sqrtf(x * x + +y * y + z * z);
-      float r2 = sqrtf(x * x + z * z);
-      float phi = atan2f(z, x);
-      phi += moveX * 0.1f;
-      float theta = atan2f(mXYZ[1], r2);
-      theta -= moveY * 0.1f;
-      const float max_theta = M_PI / 2 - 0.01;
-      if (theta >= max_theta) {
-        theta = max_theta;
-      } else if (theta <= -max_theta) {
-        theta = -max_theta;
-      }
-      if (moveZ >= r - 0.1) {
-        moveZ = r - 0.1;
-      }
-      r -= moveZ;
-      r2 = r * cosf(theta);
-      mXYZ[0] = r2 * cosf(phi);
-      mXYZ[2] = r2 * sinf(phi);
-      mXYZ[1] = r * sinf(theta);
-
-      gluLookAt(mXYZ[0], mXYZ[1], mXYZ[2], 0, 0, 0, 0, 1, 0);
-    } else {
-      glTranslatef(moveX, moveY, moveZ);
-      if (rotYaw != 0.f) {
-        glRotatef(rotYaw, 0, 1, 0);
-      }
-      if (rotPitch != 0.f) {
-        glRotatef(rotPitch, 1, 0, 0);
-      }
-      if (!yUp && rotRoll != 0.f) {
-        glRotatef(rotRoll, 0, 0, 1);
-      }
-      glMultMatrixf(mCurrentMatrix); // Apply previous translation / rotation
-
-      if (yUp) {
-        glGetFloatv(GL_MODELVIEW_MATRIX, mCurrentMatrix);
-        calcXYZ();
-        glLoadIdentity();
-        glRotatef(mAngle[2] * 180.f / M_PI, 0, 0, 1);
-        glMultMatrixf(mCurrentMatrix);
-      }
-    }
-
-    // Graphichs Options
-    float minSize = 0.4 / (mDrawQualityDownsampleFSAA > 1 ? mDrawQualityDownsampleFSAA : 1);
-    int deltaLine = mBackend->mKeys['+'] * mBackend->mKeysShift['+'] - mBackend->mKeys['-'] * mBackend->mKeysShift['-'];
-    mCfg.lineWidth += (float)deltaLine * mFPSScale * 0.02 * mCfg.lineWidth;
-    if (mCfg.lineWidth < minSize) {
-      mCfg.lineWidth = minSize;
-    }
-    if (deltaLine) {
-      SetInfo("%s line width: %f", deltaLine > 0 ? "Increasing" : "Decreasing", mCfg.lineWidth);
-    }
-    minSize *= 2;
-    int deltaPoint = mBackend->mKeys['+'] * (!mBackend->mKeysShift['+']) - mBackend->mKeys['-'] * (!mBackend->mKeysShift['-']);
-    mCfg.pointSize += (float)deltaPoint * mFPSScale * 0.02 * mCfg.pointSize;
-    if (mCfg.pointSize < minSize) {
-      mCfg.pointSize = minSize;
-    }
-    if (deltaPoint) {
-      SetInfo("%s point size: %f", deltaPoint > 0 ? "Increasing" : "Decreasing", mCfg.pointSize);
-    }
-  }
-
-  // Store position
-  if (mAnimateTime < 0) {
-    glGetFloatv(GL_MODELVIEW_MATRIX, mCurrentMatrix);
-    calcXYZ();
-  }
-
-  if (mBackend->mMouseDn || mBackend->mMouseDnR) {
-    mBackend->mMouseDnX = mBackend->mouseMvX;
-    mBackend->mMouseDnY = mBackend->mouseMvY;
-  }
-
-  // Open GL Default Values
-  if (mCfg.smoothPoints) {
-    CHKERR(glEnable(GL_POINT_SMOOTH));
-  } else {
-    CHKERR(glDisable(GL_POINT_SMOOTH));
-  }
-  if (mCfg.smoothLines) {
-    CHKERR(glEnable(GL_LINE_SMOOTH));
-  } else {
-    CHKERR(glDisable(GL_LINE_SMOOTH));
-  }
-  CHKERR(glEnable(GL_BLEND));
-  CHKERR(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-  CHKERR(glPointSize(mCfg.pointSize * (mDrawQualityDownsampleFSAA > 1 ? mDrawQualityDownsampleFSAA : 1)));
-  CHKERR(glLineWidth(mCfg.lineWidth * (mDrawQualityDownsampleFSAA > 1 ? mDrawQualityDownsampleFSAA : 1)));
-
   // Extract global cluster information
-  if (mUpdateDLList) {
+  if (!mixAnimation && (mUpdateDLList || mResetScene)) {
     showTimer = true;
     mTimerDraw.ResetStart();
     mCurrentClusters = 0;
@@ -1457,12 +1219,18 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
       ptr->x /= GL_SCALE_FACTOR;
       ptr->y /= GL_SCALE_FACTOR;
       ptr->z /= GL_SCALE_FACTOR;
+      if (fabsf(ptr->z) > mMaxClusterZ) {
+        mMaxClusterZ = fabsf(ptr->z);
+      }
       ptr->w = tTRDCLUSTER;
       ptr = &mGlobalPosTRD2[i];
       mChain->GetParam().Slice2Global(iSec, sp.mR + mXadd + 4.5f, sp.mX[0] + 1.5f * sp.mDy, sp.mX[1], &ptr->x, &ptr->y, &ptr->z);
       ptr->x /= GL_SCALE_FACTOR;
       ptr->y /= GL_SCALE_FACTOR;
       ptr->z /= GL_SCALE_FACTOR;
+      if (fabsf(ptr->z) > mMaxClusterZ) {
+        mMaxClusterZ = fabsf(ptr->z);
+      }
       ptr->w = tTRDCLUSTER;
     }
 
@@ -1472,6 +1240,284 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
     mGlDLrecent = 0;
     mUpdateDLList = 0;
   }
+
+  if (!mixAnimation && mOffscreenBuffer.created) {
+    setFrameBuffer(1, mOffscreenBuffer.fb_id);
+  }
+  // Initialize
+  if (!mixAnimation) {
+    if (mInvertColors) {
+      CHKERR(glClearColor(1.0f, 1.0f, 1.0f, 1.0f));
+    } else {
+      CHKERR(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
+    }
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear Screen And Depth Buffer
+  }
+
+  hmm_mat4 nextViewMatrix = MY_HMM_IDENTITY;
+  int mMouseWheelTmp = mBackend->mMouseWheel;
+  mBackend->mMouseWheel = 0;
+  bool lookOrigin = mCamLookOrigin ^ mBackend->mKeys[mBackend->KEY_ALT];
+  bool yUp = mCamYUp ^ mBackend->mKeys[mBackend->KEY_CTRL] ^ lookOrigin;
+
+  // Calculate rotation / translation scaling factors
+  float scalefactor = mBackend->mKeys[mBackend->KEY_SHIFT] ? 0.2 : 1.0;
+  float rotatescalefactor = scalefactor * 0.25f;
+  if (mCfg.drawSlice != -1) {
+    scalefactor *= 0.2f;
+  }
+  float sqrdist = sqrtf(sqrtf(mViewMatrixP[12] * mViewMatrixP[12] + mViewMatrixP[13] * mViewMatrixP[13] + mViewMatrixP[14] * mViewMatrixP[14]) / GL_SCALE_FACTOR) * 0.8;
+  if (sqrdist < 0.2) {
+    sqrdist = 0.2;
+  }
+  if (sqrdist > 5) {
+    sqrdist = 5;
+  }
+  scalefactor *= sqrdist;
+
+  float mixSlaveImage = 0.f;
+  float time = mAnimateTime;
+  if (mAnimate && time < 0) {
+    if (mAnimateScreenshot) {
+      time = mAnimationFrame / 30.f;
+    } else {
+      time = mAnimationTimer.GetCurrentElapsedTime();
+    }
+
+    float maxTime = mAnimateVectors[0].back();
+    mAnimationFrame++;
+    if (time >= maxTime) {
+      time = maxTime;
+      mAnimate = 0;
+      SetInfo("Animation finished. (%1.2f seconds, %d frames)", time, mAnimationFrame);
+    } else {
+      SetInfo("Running mAnimation: time %1.2f/%1.2f, frames %d", time, maxTime, mAnimationFrame);
+    }
+  }
+  // Perform new rotation / translation
+  if (mAnimate) {
+    float vals[8];
+    for (int i = 0; i < 8; i++) {
+      vals[i] = mAnimationSplines[i].evaluate(time);
+    }
+    if (mAnimationChangeConfig && mixAnimation == false) {
+      int base = 0;
+      int k = mAnimateVectors[0].size() - 1;
+      while (base < k && time > mAnimateVectors[0][base]) {
+        base++;
+      }
+      if (base > mAnimationLastBase + 1) {
+        mAnimationLastBase = base - 1;
+      }
+
+      if (base != mAnimationLastBase && mAnimateVectors[0][mAnimationLastBase] != mAnimateVectors[0][base] && memcmp(&mAnimateConfig[base], &mAnimateConfig[mAnimationLastBase], sizeof(mAnimateConfig[base]))) {
+        mCfg = mAnimateConfig[mAnimationLastBase];
+        updateConfig();
+        if (mDrawQualityRenderToTexture) {
+          setFrameBuffer(1, mMixBuffer.fb_id);
+          glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear Screen And Depth Buffer
+          DrawGLScene_internal(true, time);
+          setFrameBuffer();
+        } else {
+          DrawGLScene_internal(true, time);
+          CHKERR(glBlitNamedFramebuffer(mMainBufferStack.back(), mMixBuffer.fb_id, 0, 0, mRenderwidth, mRenderheight, 0, 0, mRenderwidth, mRenderheight, GL_COLOR_BUFFER_BIT, GL_NEAREST));
+          glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear Screen And Depth Buffer
+        }
+        mixSlaveImage = 1.f - (time - mAnimateVectors[0][mAnimationLastBase]) / (mAnimateVectors[0][base] - mAnimateVectors[0][mAnimationLastBase]);
+      }
+
+      if (memcmp(&mAnimateConfig[base], &mCfg, sizeof(mCfg))) {
+        mCfg = mAnimateConfig[base];
+        updateConfig();
+      }
+    }
+
+    if (mCfg.animationMode != 6) {
+      if (mCfg.animationMode & 1) // Rotation from euler angles
+      {
+        nextViewMatrix = nextViewMatrix * HMM_Rotate(-vals[4] * 180.f / M_PI, {1, 0, 0}) * HMM_Rotate(vals[5] * 180.f / M_PI, {0, 1, 0}) * HMM_Rotate(-vals[6] * 180.f / M_PI, {0, 0, 1});
+      } else { // Rotation from quaternion
+        const float mag = sqrtf(vals[4] * vals[4] + vals[5] * vals[5] + vals[6] * vals[6] + vals[7] * vals[7]);
+        if (mag < 0.0001) {
+          vals[7] = 1;
+        } else {
+          for (int i = 0; i < 4; i++) {
+            vals[4 + i] /= mag;
+          }
+        }
+
+        float xx = vals[4] * vals[4], xy = vals[4] * vals[5], xz = vals[4] * vals[6], xw = vals[4] * vals[7], yy = vals[5] * vals[5], yz = vals[5] * vals[6], yw = vals[5] * vals[7], zz = vals[6] * vals[6], zw = vals[6] * vals[7];
+        float mat[16] = {1 - 2 * (yy + zz), 2 * (xy - zw), 2 * (xz + yw), 0, 2 * (xy + zw), 1 - 2 * (xx + zz), 2 * (yz - xw), 0, 2 * (xz - yw), 2 * (yz + xw), 1 - 2 * (xx + yy), 0, 0, 0, 0, 1};
+        nextViewMatrix = nextViewMatrix * MY_HMM_FROM(mat);
+      }
+    }
+    if (mCfg.animationMode & 4) // Compute cartesian translation from sperical coordinates (euler angles)
+    {
+      const float r = vals[3], phi = vals[1], theta = vals[2];
+      vals[2] = r * cosf(phi) * cosf(theta);
+      vals[0] = r * sinf(phi) * cosf(theta);
+      vals[1] = r * sinf(theta);
+    } else if (mCfg.animationMode & 2) { // Scale cartesion translation to interpolated radius
+      float r = sqrtf(vals[0] * vals[0] + vals[1] * vals[1] + vals[2] * vals[2]);
+      if (fabsf(r) < 0.0001) {
+        r = 1;
+      }
+      r = vals[3] / r;
+      for (int i = 0; i < 3; i++) {
+        vals[i] *= r;
+      }
+    }
+    if (mCfg.animationMode == 6) {
+      nextViewMatrix = HMM_LookAt({vals[0], vals[1], vals[2]}, {0, 0, 0}, {0, 1, 0});
+    } else {
+      nextViewMatrix = nextViewMatrix * HMM_Translate({-vals[0], -vals[1], -vals[2]});
+    }
+  } else if (mResetScene) {
+    nextViewMatrix = nextViewMatrix * HMM_Translate({0, 0, param().ContinuousTracking ? (-mMaxClusterZ / GL_SCALE_FACTOR - 8) : -8});
+
+    mCfg.pointSize = 2.0;
+    mCfg.drawSlice = -1;
+    mXadd = mZadd = 0;
+    mCamLookOrigin = mCamYUp = false;
+    mAngleRollOrigin = -1e9;
+
+    mResetScene = 0;
+  } else {
+    float moveZ = scalefactor * ((float)mMouseWheelTmp / 150 + (float)(mBackend->mKeys['W'] - mBackend->mKeys['S']) * (!mBackend->mKeys[mBackend->KEY_SHIFT]) * 0.2 * mFPSScale);
+    float moveY = scalefactor * ((float)(mBackend->mKeys[mBackend->KEY_PAGEDOWN] - mBackend->mKeys[mBackend->KEY_PAGEUP]) * 0.2 * mFPSScale);
+    float moveX = scalefactor * ((float)(mBackend->mKeys['A'] - mBackend->mKeys['D']) * (!mBackend->mKeys[mBackend->KEY_SHIFT]) * 0.2 * mFPSScale);
+    float rotRoll = rotatescalefactor * mFPSScale * 2 * (mBackend->mKeys['E'] - mBackend->mKeys['F']) * (!mBackend->mKeys[mBackend->KEY_SHIFT]);
+    float rotYaw = rotatescalefactor * mFPSScale * 2 * (mBackend->mKeys[mBackend->KEY_RIGHT] - mBackend->mKeys[mBackend->KEY_LEFT]);
+    float rotPitch = rotatescalefactor * mFPSScale * 2 * (mBackend->mKeys[mBackend->KEY_DOWN] - mBackend->mKeys[mBackend->KEY_UP]);
+
+    if (mBackend->mMouseDnR && mBackend->mMouseDn) {
+      moveZ += -scalefactor * ((float)mBackend->mouseMvY - (float)mBackend->mMouseDnY) / 4;
+      rotRoll += rotatescalefactor * ((float)mBackend->mouseMvX - (float)mBackend->mMouseDnX);
+    } else if (mBackend->mMouseDnR) {
+      moveX += -scalefactor * 0.5 * ((float)mBackend->mMouseDnX - (float)mBackend->mouseMvX) / 4;
+      moveY += -scalefactor * 0.5 * ((float)mBackend->mouseMvY - (float)mBackend->mMouseDnY) / 4;
+    } else if (mBackend->mMouseDn) {
+      rotYaw += rotatescalefactor * ((float)mBackend->mouseMvX - (float)mBackend->mMouseDnX);
+      rotPitch += rotatescalefactor * ((float)mBackend->mouseMvY - (float)mBackend->mMouseDnY);
+    }
+
+    if (mBackend->mKeys['<'] && !mBackend->mKeysShift['<']) {
+      mAnimationDelay += moveX;
+      if (mAnimationDelay < 0.05) {
+        mAnimationDelay = 0.05;
+      }
+      moveX = 0.f;
+      moveY = 0.f;
+      SetInfo("Animation delay set to %1.2f", mAnimationDelay);
+    }
+
+    if (yUp) {
+      mAngleRollOrigin = 0;
+    } else if (!lookOrigin) {
+      mAngleRollOrigin = -1e6;
+    }
+    if (lookOrigin) {
+      if (!yUp) {
+        if (mAngleRollOrigin < -1e6) {
+          mAngleRollOrigin = yUp ? 0. : -mAngle[2];
+        }
+        mAngleRollOrigin += rotRoll;
+        nextViewMatrix = nextViewMatrix * HMM_Rotate(mAngleRollOrigin, {0, 0, 1});
+        float tmpX = moveX, tmpY = moveY;
+        moveX = tmpX * cosf(mAngle[2]) - tmpY * sinf(mAngle[2]);
+        moveY = tmpX * sinf(mAngle[2]) + tmpY * cosf(mAngle[2]);
+      }
+
+      const float x = mXYZ[0], y = mXYZ[1], z = mXYZ[2];
+      float r = sqrtf(x * x + +y * y + z * z);
+      float r2 = sqrtf(x * x + z * z);
+      float phi = atan2f(z, x);
+      phi += moveX * 0.1f;
+      float theta = atan2f(mXYZ[1], r2);
+      theta -= moveY * 0.1f;
+      const float max_theta = M_PI / 2 - 0.01;
+      if (theta >= max_theta) {
+        theta = max_theta;
+      } else if (theta <= -max_theta) {
+        theta = -max_theta;
+      }
+      if (moveZ >= r - 0.1) {
+        moveZ = r - 0.1;
+      }
+      r -= moveZ;
+      r2 = r * cosf(theta);
+      mXYZ[0] = r2 * cosf(phi);
+      mXYZ[2] = r2 * sinf(phi);
+      mXYZ[1] = r * sinf(theta);
+
+      nextViewMatrix = HMM_LookAt({mXYZ[0], mXYZ[1], mXYZ[2]}, {0, 0, 0}, {0, 1, 0});
+    } else {
+      nextViewMatrix = nextViewMatrix * HMM_Translate({moveX, moveY, moveZ});
+      if (rotYaw != 0.f) {
+        nextViewMatrix = nextViewMatrix * HMM_Rotate(rotYaw, {0, 1, 0});
+      }
+      if (rotPitch != 0.f) {
+        nextViewMatrix = nextViewMatrix * HMM_Rotate(rotPitch, {1, 0, 0});
+      }
+      if (!yUp && rotRoll != 0.f) {
+        nextViewMatrix = nextViewMatrix * HMM_Rotate(rotRoll, {0, 0, 1});
+      }
+
+      nextViewMatrix = nextViewMatrix * mViewMatrix; // Apply previous translation / rotation
+
+      if (yUp) {
+        calcXYZ(&nextViewMatrix.Elements[0][0]);
+        nextViewMatrix = HMM_Rotate(mAngle[2] * 180.f / M_PI, {0, 0, 1}) * nextViewMatrix;
+      }
+    }
+
+    // Graphichs Options
+    float minSize = 0.4 / (mDrawQualityDownsampleFSAA > 1 ? mDrawQualityDownsampleFSAA : 1);
+    int deltaLine = mBackend->mKeys['+'] * mBackend->mKeysShift['+'] - mBackend->mKeys['-'] * mBackend->mKeysShift['-'];
+    mCfg.lineWidth += (float)deltaLine * mFPSScale * 0.02 * mCfg.lineWidth;
+    if (mCfg.lineWidth < minSize) {
+      mCfg.lineWidth = minSize;
+    }
+    if (deltaLine) {
+      SetInfo("%s line width: %f", deltaLine > 0 ? "Increasing" : "Decreasing", mCfg.lineWidth);
+    }
+    minSize *= 2;
+    int deltaPoint = mBackend->mKeys['+'] * (!mBackend->mKeysShift['+']) - mBackend->mKeys['-'] * (!mBackend->mKeysShift['-']);
+    mCfg.pointSize += (float)deltaPoint * mFPSScale * 0.02 * mCfg.pointSize;
+    if (mCfg.pointSize < minSize) {
+      mCfg.pointSize = minSize;
+    }
+    if (deltaPoint) {
+      SetInfo("%s point size: %f", deltaPoint > 0 ? "Increasing" : "Decreasing", mCfg.pointSize);
+    }
+  }
+
+  // Store position
+  if (mAnimateTime < 0) {
+    mViewMatrix = nextViewMatrix;
+    calcXYZ(mViewMatrixP);
+  }
+
+  if (mBackend->mMouseDn || mBackend->mMouseDnR) {
+    mBackend->mMouseDnX = mBackend->mouseMvX;
+    mBackend->mMouseDnY = mBackend->mouseMvY;
+  }
+#ifndef GPUCA_DISPLAY_OPENGL_CORE
+  if (mCfg.smoothPoints) {
+    CHKERR(glEnable(GL_POINT_SMOOTH));
+  } else {
+    CHKERR(glDisable(GL_POINT_SMOOTH));
+  }
+  if (mCfg.smoothLines) {
+    CHKERR(glEnable(GL_LINE_SMOOTH));
+  } else {
+    CHKERR(glDisable(GL_LINE_SMOOTH));
+  }
+#endif
+  CHKERR(glEnable(GL_BLEND));
+  CHKERR(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+  CHKERR(glPointSize(mCfg.pointSize * (mDrawQualityDownsampleFSAA > 1 ? mDrawQualityDownsampleFSAA : 1)));
+  CHKERR(glLineWidth(mCfg.lineWidth * (mDrawQualityDownsampleFSAA > 1 ? mDrawQualityDownsampleFSAA : 1)));
 
   // Prepare Event
   if (!mGlDLrecent) {
@@ -1496,7 +1542,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         mGlDLFinal[iSlice].resize(mNCollissions);
       }
     }
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp parallel num_threads(mChain->GetDeviceProcessingSettings().nThreads)
     {
       int numThread = omp_get_thread_num();
@@ -1520,7 +1566,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
       prop.SetPolynomialField(&mMerger.Param().polynomialField);
       prop.SetToyMCEventsFlag(mMerger.Param().ToyMCEventsFlag);
 
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp barrier
 #pragma omp for
 #endif
@@ -1534,7 +1580,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         mGlDLGrid[iSlice] = DrawGrid(tracker);
       }
 
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp barrier
 #pragma omp for
 #endif
@@ -1543,7 +1589,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         mGlDLLines[iSlice][tGLOBALTRACK] = DrawTracks(tracker, 1);
       }
 
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp barrier
 #endif
       mThreadTracks[numThread].resize(mNCollissions);
@@ -1554,7 +1600,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
           }
         }
       }
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp for
 #endif
       for (int i = 0; i < mMerger.NOutputTracks(); i++) {
@@ -1575,7 +1621,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         }
         mThreadTracks[numThread][col][slice][0].emplace_back(i);
       }
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp for
 #endif
       for (unsigned int i = 0; i < ioptrs().nMCInfosTPC; i++) {
@@ -1603,7 +1649,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         }
         mThreadTracks[numThread][col][slice][1].emplace_back(i);
       }
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp barrier
 #pragma omp for
 #endif
@@ -1625,7 +1671,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
         }
       }
 
-#ifdef GPUCA_HAVE_OPENMP
+#ifdef WITH_OPENMP
 #pragma omp barrier
 #pragma omp for
 #endif
@@ -1688,14 +1734,34 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
     }
 
     if (showTimer) {
-      printf("Draw time: %'d us (vertices %'lld / %'lld bytes)\n", (int)(mTimerDraw.GetCurrentElapsedTime() * 1000000.), (long long int)totalVertizes, (long long int)(totalVertizes * sizeof(mVertexBuffer[0][0])));
+      printf("Event visualization time: %'d us (vertices %'lld / %'lld bytes)\n", (int)(mTimerDraw.GetCurrentElapsedTime() * 1000000.), (long long int)totalVertizes, (long long int)(totalVertizes * sizeof(mVertexBuffer[0][0])));
     }
   }
 
   // Draw Event
   mNDrawCalls = 0;
+#ifndef GPUCA_DISPLAY_OPENGL_CORE
   CHKERR(glEnableClientState(GL_VERTEX_ARRAY));
   CHKERR(glVertexPointer(3, GL_FLOAT, 0, nullptr));
+#else
+  CHKERR(glBindVertexArray(mVertexArray));
+  CHKERR(glUseProgram(mShaderProgram));
+  CHKERR(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr));
+  CHKERR(glEnableVertexAttribArray(0));
+#endif
+
+  {
+    const hmm_mat4 proj = HMM_Perspective(45.0f, (GLfloat)mScreenwidth / (GLfloat)mScreenheight, 0.1f, 1000.0f);
+#ifndef GPUCA_DISPLAY_OPENGL_CORE
+    CHKERR(glMatrixMode(GL_PROJECTION));
+    CHKERR(glLoadMatrixf(&proj.Elements[0][0]));
+    CHKERR(glMatrixMode(GL_MODELVIEW));
+    CHKERR(glLoadMatrixf(&nextViewMatrix.Elements[0][0]));
+#else
+    const hmm_mat4 modelViewProj = proj * nextViewMatrix;
+    CHKERR(glUniformMatrix4fv(mModelViewProjId, 1, GL_FALSE, &modelViewProj.Elements[0][0]));
+#endif
+  }
 
 #define LOOP_SLICE for (int iSlice = (mCfg.drawSlice == -1 ? 0 : mCfg.drawRelatedSlices ? (mCfg.drawSlice % 9) : mCfg.drawSlice); iSlice < NSLICES; iSlice += (mCfg.drawSlice == -1 ? 1 : mCfg.drawRelatedSlices ? 9 : NSLICES))
 #define LOOP_COLLISION for (int iCol = (mCfg.showCollision == -1 ? 0 : mCfg.showCollision); iCol < mNCollissions; iCol += (mCfg.showCollision == -1 ? 1 : mNCollissions))
@@ -1866,16 +1932,20 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
       LOOP_SLICE LOOP_COLLISION drawVertices(mGlDLPoints[iSlice][tMARKED][iCol], GL_POINTS);
     }
   }
-
+#ifndef GPUCA_DISPLAY_OPENGL_CORE
   CHKERR(glDisableClientState(GL_VERTEX_ARRAY));
+#else
+  CHKERR(glDisableVertexAttribArray(0));
+  CHKERR(glUseProgram(0));
+#endif
 
   if (mixSlaveImage > 0) {
+#ifndef GPUCA_DISPLAY_OPENGL_CORE
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    gluOrtho2D(0.f, mRenderwidth, 0.f, mRenderheight);
+    hmm_mat4 proj = HMM_Orthographic(0.f, mRenderwidth, 0.f, mRenderheight, -1.f, 1.f);
+    glLoadMatrixf(&proj.Elements[0][0]);
     CHKERR(glEnable(GL_TEXTURE_2D));
     glDisable(GL_DEPTH_TEST);
     CHKERR(glBindTexture(GL_TEXTURE_2D, mMixBuffer.fbCol_id));
@@ -1893,7 +1963,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime) // H
     glColor4f(1, 1, 1, 0);
     CHKERR(glDisable(GL_TEXTURE_2D));
     setDepthBuffer();
-    glPopMatrix();
+#endif
   }
 
   if (mixAnimation) {
@@ -2028,13 +2098,14 @@ void GPUDisplay::DoScreenshot(char* filename, float mAnimateTime)
 
 void GPUDisplay::showInfo(const char* info)
 {
+#ifndef GPUCA_DISPLAY_OPENGL_CORE
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
   glMatrixMode(GL_PROJECTION);
-  glPushMatrix();
-  glLoadIdentity();
-  gluOrtho2D(0.f, mScreenwidth, 0.f, mScreenheight);
+  hmm_mat4 proj = HMM_Orthographic(0.f, mScreenwidth, 0.f, mScreenheight, -1, 1);
+  glLoadMatrixf(&proj.Elements[0][0]);
   glViewport(0, 0, mScreenwidth, mScreenheight);
+#endif
   float colorValue = mInvertColors ? 0.f : 1.f;
   mBackend->OpenGLPrint(info, 40.f, 40.f, colorValue, colorValue, colorValue, 1);
   if (mInfoText2Timer.IsRunning()) {
@@ -2051,9 +2122,9 @@ void GPUDisplay::showInfo(const char* info)
       PrintGLHelpText(colorValue);
     }
   }
-  glColor4f(colorValue, colorValue, colorValue, 0);
+#ifndef GPUCA_DISPLAY_OPENGL_CORE
   glViewport(0, 0, mRenderwidth, mRenderheight);
-  glPopMatrix();
+#endif
 }
 
 void GPUDisplay::ShowNextEvent()

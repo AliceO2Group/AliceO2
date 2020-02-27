@@ -9,7 +9,18 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(EventVisualisationDetectors
-               SOURCES src/DataInterpreterRND.cxx
-                       src/DataInterpreterVSD.cxx
-                       src/DataReaderVSD.cxx
-               PUBLIC_LINK_LIBRARIES O2::EventVisualisationBase)
+               SOURCES
+                    src/DataInterpreterTPC.cxx
+                    src/DataReaderTPC.cxx
+                    src/DataInterpreterITS.cxx
+                    src/DataReaderITS.cxx
+                    src/DataInterpreterVSD.cxx
+                    src/DataReaderVSD.cxx
+               PUBLIC_LINK_LIBRARIES
+                       O2::EventVisualisationBase 
+                       O2::DataFormatsTPC
+                       O2::DataFormatsITSMFT
+                       O2::DataFormatsITS
+                       O2::ITSBase
+                       O2::TPCBase
+)

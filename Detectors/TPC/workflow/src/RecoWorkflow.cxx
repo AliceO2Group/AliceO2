@@ -107,18 +107,23 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
 
   WorkflowSpec specs;
 
+  // The OutputSpec of the PublisherSpec is configured depending on the input
+  // type. Note that the configuration of the dispatch trigger in the main file
+  // needs to be done in accordance. This means, if a new input option is added
+  // also the dispatch trigger needs to be updated.
   if (inputType == InputType::Digits) {
-    specs.emplace_back(o2::tpc::getPublisherSpec(PublisherConf{
-                                                   "tpc-digit-reader",
-                                                   "o2sim",
-                                                   {"digitbranch", "TPCDigit", "Digit branch"},
-                                                   {"mcbranch", "TPCDigitMCTruth", "MC label branch"},
-                                                   OutputSpec{"TPC", "DIGITS"},
-                                                   OutputSpec{"TPC", "DIGITSMCTR"},
-                                                   tpcSectors,
-                                                   laneConfiguration,
-                                                 },
-                                                 propagateMC));
+    using Type = std::vector<o2::tpc::Digit>;
+    specs.emplace_back(o2::tpc::getPublisherSpec<Type>(PublisherConf{
+                                                         "tpc-digit-reader",
+                                                         "o2sim",
+                                                         {"digitbranch", "TPCDigit", "Digit branch"},
+                                                         {"mcbranch", "TPCDigitMCTruth", "MC label branch"},
+                                                         OutputSpec{"TPC", "DIGITS"},
+                                                         OutputSpec{"TPC", "DIGITSMCTR"},
+                                                         tpcSectors,
+                                                         laneConfiguration,
+                                                       },
+                                                       propagateMC));
   } else if (inputType == InputType::Raw) {
     specs.emplace_back(o2::tpc::getPublisherSpec(PublisherConf{
                                                    "tpc-raw-cluster-reader",
@@ -162,7 +167,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   //
   //
   if (runClusterer) {
-    parallelProcessors.push_back(o2::tpc::getClustererSpec(propagateMC, inputType == InputType::Digitizer));
+    parallelProcessors.push_back(o2::tpc::getClustererSpec(propagateMC));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////
@@ -355,8 +360,6 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
     //branch definitions for RootTreeWriter spec
     using TrackOutputType = std::vector<o2::tpc::TrackTPC>;
 
-    // Temporary solution, see disclaimer about TPCClRefElem in the TrackTPC.h
-    //    using ClusRefsOutputType = std::vector<uint32_t>;
     using ClusRefsOutputType = std::vector<o2::tpc::TPCClRefElem>;
 
     using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;

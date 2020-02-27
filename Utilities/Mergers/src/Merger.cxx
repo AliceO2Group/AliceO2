@@ -16,7 +16,6 @@
 #include "Mergers/Merger.h"
 #include "Mergers/MergerBuilder.h"
 
-#include <Framework/CompletionPolicyHelpers.h>
 #include <Framework/TimesliceIndex.h>
 #include <Framework/CallbackService.h>
 
@@ -36,7 +35,7 @@ namespace o2
 namespace experimental::mergers
 {
 
-Merger::Merger(MergerConfig config, header::DataHeader::SubSpecificationType subSpec)
+Merger::Merger(const MergerConfig& config, const header::DataHeader::SubSpecificationType& subSpec)
   : mConfig(config),
     mSubSpec(subSpec),
     mCache(config.ownershipMode.value == OwnershipMode::Full)
@@ -222,10 +221,12 @@ void Merger::mergeCache()
 void Merger::publish(framework::DataAllocator& allocator)
 {
   if (mMergedObjects) {
-    if (mConfig.ownershipMode.value == OwnershipMode::Integral) {
-      allocator.snapshot(framework::OutputRef{MergerBuilder::mergerOutputBinding(), mSubSpec}, *mMergedObjects.get());
-    } else if (mConfig.ownershipMode.value == OwnershipMode::Full) {
-      allocator.adopt(framework::OutputRef{MergerBuilder::mergerOutputBinding(), mSubSpec}, mMergedObjects.release());
+    allocator.snapshot(framework::OutputRef{MergerBuilder::mergerOutputBinding(), mSubSpec}, *mMergedObjects);
+    if (mConfig.ownershipMode.value == OwnershipMode::Full) {
+      // in full mode the ownership is passed to the framework, the framework however is
+      // simply serializing and dispatching the object and will delete it after that,
+      // so we do here.
+      mMergedObjects.reset();
     }
   }
 }

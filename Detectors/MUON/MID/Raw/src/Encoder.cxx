@@ -9,136 +9,123 @@
 // or submit itself to any jurisdiction.
 
 /// \file   MID/Raw/src/Encoder.cxx
-/// \brief  MID raw data fdata encoder
+/// \brief  MID raw data encoder
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   30 September 2019
 
 #include "MIDRaw/Encoder.h"
 
-#include <map>
-#include "RawInfo.h"
+#include "MIDBase/DetectorParameters.h"
 
 namespace o2
 {
 namespace mid
 {
-void Encoder::add(int value, unsigned int nBits)
-{
-  /// Add information
-  for (int ibit = 0; ibit < nBits; ++ibit) {
-    if (mBitIndex == raw::sElementSizeInBits) {
-      mBitIndex = 0;
-      if (mBytes.size() == mHeaderIndex + mHeaderOffset) {
-        completePage(false);
-        // Copy previous header
-        std::vector<raw::RawUnit> oldHeader(mBytes.begin() + mHeaderIndex, mBytes.begin() + mHeaderIndex + raw::sHeaderSizeInElements);
-        mHeaderIndex = mBytes.size();
-        std::copy(oldHeader.begin(), oldHeader.end(), std::back_inserter(mBytes));
-        // And increase the page counter
-        ++getRDH()->pageCnt;
-      }
-      mBytes.push_back(0);
-    }
-    bool isOn = (value >> ibit) & 0x1;
-    if (isOn) {
-      mBytes.back() |= (1 << mBitIndex);
-    }
-    ++mBitIndex;
-  }
-}
 
 void Encoder::clear()
 {
   /// Reset bytes
-  mBytes.clear();
-  mBitIndex = 0;
-  mHeaderIndex = 0;
+  for (auto& linkEnc : mCRUUserLogicEncoders) {
+    linkEnc.clear();
+  }
 }
 
-void Encoder::newHeader(uint32_t bcId, uint32_t orbitId, uint32_t triggerType)
+void Encoder::newHeader(const InteractionRecord& ir)
 {
   /// Add new RDH
-  completePage(true);
-  mHeaderIndex = mBytes.size();
-  for (size_t iel = 0; iel < raw::sHeaderSizeInElements; ++iel) {
-    mBytes.emplace_back(0);
+  std::vector<InteractionRecord> HBIRVec;
+  InteractionRecord irFrom = mLastIR.isDummy() ? mHBFUtils.getFirstIR() : mLastIR + 1;
+  mHBFUtils.fillHBIRvector(HBIRVec, irFrom, ir);
+  mLastIR = ir;
+  for (auto& hbIr : HBIRVec) {
+    auto rdh = mHBFUtils.createRDH<header::RAWDataHeader>(hbIr);
+    for (auto linkEncIt = mCRUUserLogicEncoders.begin(); linkEncIt != mCRUUserLogicEncoders.end(); ++linkEncIt) {
+      // The link ID is sequential
+      uint16_t feeId = linkEncIt - mCRUUserLogicEncoders.begin();
+      linkEncIt->newHeader(feeId, rdh);
+    }
   }
-  auto rdh = getRDH();
-  *rdh = header::RAWDataHeader();
-  rdh->triggerOrbit = orbitId;
-  rdh->triggerBC = bcId;
-  rdh->triggerType = triggerType;
-  mBitIndex = raw::sElementSizeInBits;
 }
 
-void Encoder::completePage(bool stop)
+void Encoder::setHeaderOffset(bool headerOffset)
 {
-  /// Complete the information on the page
-  if (mBytes.empty()) {
+  for (auto& linkEnc : mCRUUserLogicEncoders) {
+    linkEnc.setHeaderOffset(headerOffset);
+  }
+}
+
+bool Encoder::convertData(gsl::span<const ColumnData> data)
+{
+  /// Convert incoming data to FEE format
+  mROData.clear();
+  for (auto& col : data) {
+    for (int iline = 0; iline < 4; ++iline) {
+      if (col.getBendPattern(iline) == 0) {
+        continue;
+      }
+      auto uniqueLocId = mCrateMapper.deLocalBoardToRO(col.deId, col.columnId, iline);
+      auto& roData = mROData[uniqueLocId];
+      roData.boardId = crateparams::getLocId(uniqueLocId);
+      int ich = detparams::getChamber(col.deId);
+      roData.firedChambers |= (1 << ich);
+      roData.patternsBP[ich] = col.getBendPattern(iline);
+      roData.patternsNBP[ich] = col.getNonBendPattern();
+    }
+  }
+  return mROData.empty();
+}
+
+void Encoder::process(gsl::span<const ColumnData> data, const InteractionRecord& ir, EventType eventType)
+{
+  /// Encode data
+  newHeader(ir);
+
+  if (convertData(data)) {
     return;
   }
-  auto pageSizeInElements = mBytes.size() - mHeaderIndex;
-  if (mHeaderOffset > pageSizeInElements) {
-    // Write zeros up to the end of the page
-    mBytes.resize(mHeaderIndex + mHeaderOffset, 0);
+
+  std::vector<LocalBoardRO> localBoardROs;
+  localBoardROs.reserve(8);
+  uint16_t lastROId = crateparams::sNGBTs + 1;
+  // The local board ID is defined as:
+  // board ID in crate [0-3]
+  // crate ID [4-7]
+  // With this definition, the local boards within the same crate have a sequential ID
+  // This is important since it means that the boards within the same crate are ordered in the mROData map.
+  // So, we can cumulate the strip pattern of one link, and process them when we switch to another link
+  for (auto& item : mROData) {
+    auto crateId = crateparams::getCrateId(item.first);
+    auto roId = crateparams::makeROId(crateId, crateparams::getGBTIdFromBoardInCrate(item.second.boardId));
+    if (roId != lastROId) {
+      // We are in a new link
+      // Let us check that this is not just the first board
+      if (lastROId < crateparams::sNGBTs) {
+        // We process the collected boards since they belong to the same link
+        mCRUUserLogicEncoders[lastROId].process(localBoardROs, ir.bc, eventType);
+        // And we clear the vector so that we can start collecting the board of a new link
+        localBoardROs.clear();
+      }
+      lastROId = roId;
+    }
+    localBoardROs.emplace_back(item.second);
   }
 
-  auto rdh = getRDH();
-  rdh->memorySize = pageSizeInElements * raw::sElementSizeInBytes;
-  rdh->offsetToNext = (mBytes.size() - mHeaderIndex) * raw::sElementSizeInBytes;
-  rdh->stop = stop;
+  // With the current logic, the last read link is not processed
+  // Let us process it here
+  if (!localBoardROs.empty()) {
+    mCRUUserLogicEncoders[lastROId].process(localBoardROs, ir.bc, eventType);
+  }
 }
 
 const std::vector<raw::RawUnit>& Encoder::getBuffer()
 {
   /// Gets the buffer
-  completePage(true);
+  mBytes.clear();
+  for (uint16_t roId = 0; roId < crateparams::sNGBTs; ++roId) {
+    auto& buffer = mCRUUserLogicEncoders[roId].getBuffer();
+    std::copy(buffer.begin(), buffer.end(), std::back_inserter(mBytes));
+  }
   return mBytes;
-}
-
-void Encoder::setHeaderOffset(uint16_t headerOffset)
-{
-  /// Sets the next header offset in bytes
-  if (headerOffset < raw::sHeaderSizeInBytes) {
-    // The offset must have at least the header size
-    headerOffset = raw::sHeaderSizeInBytes;
-  }
-  mHeaderOffset = headerOffset / raw::sElementSizeInBytes;
-}
-
-void Encoder::process(gsl::span<const ColumnData> data, const uint16_t localClock, EventType eventType)
-{
-  /// Encode data
-  std::map<int, std::vector<int>> dataIndexes;
-  std::vector<std::pair<int, uint16_t>> patterns(4);
-  for (size_t idx = 0; idx < data.size(); ++idx) {
-    dataIndexes[data[idx].deId].emplace_back(idx);
-  }
-  add(static_cast<int>(eventType), sNBitsEventType);
-  add(localClock, sNBitsLocalClock);
-  add(dataIndexes.size(), sNBitsNFiredRPCs);
-  for (auto& item : dataIndexes) {
-    add(item.first, sNBitsRPCId);
-    add(item.second.size(), sNBitsNFiredColumns);
-    for (auto& icol : item.second) {
-      patterns.clear();
-      for (int iline = 0; iline < 4; ++iline) {
-        if (data[icol].getBendPattern(iline) != 0) {
-          patterns.emplace_back(iline, data[icol].getBendPattern(iline));
-        }
-      }
-      if (patterns.empty()) {
-        patterns.emplace_back(0, 0);
-      }
-      add(data[icol].columnId, sNBitsColumnId);
-      add(patterns.size(), sNBitsNFiredBoards);
-      for (auto& pat : patterns) {
-        add(pat.first, sNBitsBoardId);
-        add(data[icol].getNonBendPattern(), sNBitsFiredStrips);
-        add(pat.second, sNBitsFiredStrips);
-      }
-    }
-  }
 }
 
 } // namespace mid

@@ -14,9 +14,10 @@
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
-#include <SimulationDataFormat/MCCompLabel.h>
+#include <DataFormatsEMCAL/MCLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "TBranch.h"
+#include <iostream>
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -84,7 +85,7 @@ void DigitsWriterSpec::run(framework::ProcessingContext& ctx)
   std::cout << "After trigger digit tree writing" << std::endl;
 
   // retrieve labels from the input
-  auto labeldata = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("emcaldigitlabels");
+  auto labeldata = ctx.inputs().get<o2::dataformats::MCTruthContainer<MCLabel>*>("emcaldigitlabels");
   LOG(INFO) << "EMCAL GOT " << labeldata->getNElements() << " LABELS ";
   auto labeldataraw = labeldata.get();
   // connect this to a particular branch

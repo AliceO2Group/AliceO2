@@ -1,3 +1,7 @@
+<!-- doxy
+\page refFrameworkUtils Utils
+/doxy -->
+
 ## DPL Utilities
 
 ### Raw proxy

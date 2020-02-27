@@ -55,6 +55,8 @@ class Geo
     kNCh = 8      // Number of channels per Tdc
   };
 
+  static constexpr Int_t RAW_PAGE_MAX_SIZE = 8192;
+
   static constexpr Float_t BC_TIME = o2::constants::lhc::LHCBunchSpacingNS; // bunch crossing in ns
   static constexpr Float_t BC_TIME_INV = 1. / BC_TIME;                      // inv bunch crossing in ns
   static constexpr Float_t BC_TIME_INPS = BC_TIME * 1000;                   // bunch crossing in ps
@@ -101,7 +103,9 @@ class Geo
 
   static constexpr Float_t TDCBIN = o2::constants::lhc::LHCBunchSpacingNS * 1E3 / 1024; ///< TDC bin width [ps]
   static constexpr Float_t NTDCBIN_PER_PS = 1. / TDCBIN;     ///< number of TDC bins in 1 ns
-  static constexpr Float_t TOTBIN = TDCBIN * 2;              // time-over-threshold bin width [ps]
+  static constexpr Int_t RATIO_TOT_TDC_BIN = 2;              // ratio between TDC and TOT bin sizes
+  static constexpr Float_t TOTBIN = TDCBIN * RATIO_TOT_TDC_BIN; // time-over-threshold bin width [ps]
+  static constexpr Float_t TOTBIN_NS = TOTBIN * 1E-3;        // time-over-threshold bin width [ns]
   static constexpr Float_t NTOTBIN_PER_NS = 1000. / TOTBIN;  // number of time-over-threshold bin in 1 ns
   static constexpr Float_t BUNCHCROSSINGBIN = TDCBIN * 1024; // bunch-crossing bin width [ps]
 
@@ -110,11 +114,19 @@ class Geo
 
   static constexpr Float_t DEADTIME = 25E+03;               // Single channel dead time (ps)
   static constexpr Float_t DEADTIMETDC = DEADTIME / TDCBIN; ///< Single channel TDC dead time (ps)
-  static constexpr Float_t MATCHINGWINDOW = TDCBIN * 8192;  // Matching window  (ps) 2^13=8192
   static constexpr int NWINDOW_IN_ORBIT = 3;                //< Number of tof window in 1 orbit
-  static constexpr Float_t READOUTWINDOW = o2::constants::lhc::LHCOrbitNS / NWINDOW_IN_ORBIT; // Readout window (ns)
+  static constexpr Double_t READOUTWINDOW = o2::constants::lhc::LHCOrbitNS / NWINDOW_IN_ORBIT; // Readout window (ns) - time between two consecutive triggers = 1/3 orbit
   static constexpr int BC_IN_WINDOW = BC_IN_ORBIT / NWINDOW_IN_ORBIT;                         // N. bunch crossing in 1 tof window
-  static constexpr Float_t READOUTWINDOW_INV = 1. / READOUTWINDOW; // Readout window (ns)
+  static constexpr double BC_IN_WINDOW_INV = 1. / BC_IN_WINDOW;
+  static constexpr Double_t READOUTWINDOW_INV = 1. / READOUTWINDOW;                           // Readout window (ns)
+
+  static constexpr Int_t READOUTWINDOW_IN_BC = BC_IN_ORBIT / NWINDOW_IN_ORBIT;                             // round down in case
+  static constexpr Int_t LATENCYWINDOW_IN_BC = 1400;                                                       // Latency window  in BC (larger than 1/3 orbit 1188 BC)
+  static constexpr Int_t MATCHINGWINDOW_IN_BC = 1200;                                                      // Latency window  in BC (larger than 1/3 orbit 1188 BC)
+  static constexpr Int_t OVERLAP_IN_BC = MATCHINGWINDOW_IN_BC - READOUTWINDOW_IN_BC;                       // overlap between two readout window in BC
+  static constexpr Double_t LATENCYWINDOW = LATENCYWINDOW_IN_BC * o2::constants::lhc::LHCBunchSpacingNS;   // Latency window  in ns
+  static constexpr Double_t MATCHINGWINDOW = MATCHINGWINDOW_IN_BC * o2::constants::lhc::LHCBunchSpacingNS; // Matching window  in ns
+  static constexpr Double_t WINDOWOVERLAP = MATCHINGWINDOW - READOUTWINDOW;                                // overlap between two consecutive matchingwindow
 
   static constexpr Float_t ANGLES[NPLATES][NMAXNSTRIP] = { // Strip Tilt Angles
     {43.99, 43.20, 42.40, 41.59, 40.77, 39.94, 39.11, 38.25, 37.40, 36.53,
@@ -257,10 +269,9 @@ class Geo
   static Int_t getChainFromECH(int ech) { return (ech % 256) >> 7; }
   static Int_t getTDCFromECH(int ech) { return (ech % 128) >> 3; }
   static Int_t getTDCChFromECH(int ech) { return (ech % 8); }
-  static Int_t getECHFromElIndexes(int crate, int trm, int chain, int tdc, int chan) { return (crate >> 12) + (trm >> 8) + (chain >> 7) + (tdc >> 3) + chan; }
+  static Int_t getECHFromIndexes(int crate, int trm, int chain, int tdc, int chan) { return (crate << 12) + ((trm - 3) << 8) + (chain << 7) + (tdc << 3) + chan; }
   static Int_t getECHFromCH(int chan) { return CHAN_TO_ELCHAN[chan]; }
   static Int_t getCHFromECH(int echan) { return ELCHAN_TO_CHAN[echan]; }
-  static Int_t getECHFromIndexes(int iddl, int itrm, int ichain, int itdc, int ich) { return iddl * 4096 + (itrm - 3) * 256 + ichain * 128 + itdc * 8 + ich; }
 
  private:
   static void Init();

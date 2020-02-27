@@ -14,7 +14,7 @@
 #include <iosfwd>
 #include <gsl/span>
 #include <string>
-#include "EMCALReconstruction/RCUTrailer.h"
+#include "EMCALBase/RCUTrailer.h"
 #include "EMCALReconstruction/Bunch.h"
 #include "EMCALReconstruction/Channel.h"
 
@@ -31,6 +31,7 @@ namespace emcal
 
 /// \class AltroDecoderError
 /// \brief Error handling of the ALTRO Decoder
+/// \ingroup EMCALreconstruction
 class AltroDecoderError : public std::exception
 {
  public:
@@ -71,6 +72,7 @@ class AltroDecoderError : public std::exception
 
 /// \class AltroDecoder
 /// \brief Decoder of the ALTRO data in the raw page
+/// \ingroup EMCALreconstruction
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 /// \since Aug. 12, 2019
 ///
@@ -109,12 +111,12 @@ class AltroDecoder
   /// \throw AltroDecoderError with type RCU_TRAILER_ERROR if the RCU trailer was not initialized
   const RCUTrailer& getRCUTrailer() const;
 
-  /// \Get the reference to the channel container
+  /// \brief Get the reference to the channel container
   /// \return Reference to the channel container
   /// \throw AltroDecoderError with CHANNEL_ERROR if the channel container was not initialized for the current event
   const std::vector<Channel>& getChannels() const;
 
-  /// \read RCU trailer for the current event in the raw buffer
+  /// \brief Read RCU trailer for the current event in the raw buffer
   void readRCUTrailer();
 
   /// \brief Read channels for the current event in the raw buffer

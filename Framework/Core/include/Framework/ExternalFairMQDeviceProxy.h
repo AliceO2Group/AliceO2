@@ -26,6 +26,15 @@ namespace framework
 using ChannelRetriever = std::function<std::string(OutputSpec const&)>;
 using InjectorFunction = std::function<void(FairMQDevice& device, FairMQParts& inputs, ChannelRetriever)>;
 
+struct InputChannelSpec;
+struct OutputChannelSpec;
+
+/// helper method to format a configuration string for an external channel
+std::string formatExternalChannelConfiguration(InputChannelSpec const&);
+
+/// helper method to format a configuration string for an external channel
+std::string formatExternalChannelConfiguration(OutputChannelSpec const&);
+
 /// send header/payload O2 message for an OutputSpec, a channel retriever callback is required to
 /// get the associated FairMQChannel
 /// FIXME: can in principle drop the OutputSpec parameter and take the DataHeader
@@ -54,7 +63,7 @@ InjectorFunction o2DataModelAdaptor(OutputSpec const& spec, uint64_t startTime, 
 /// The list of specs is used as a filter list, all incoming data matching an entry
 /// in the list will be send through the corresponding channel
 InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& specs = {{header::gDataOriginAny, header::gDataDescriptionAny}},
-                                 bool throwOnUnmatchedInputs = false);
+                                 bool throwOnUnmatchedInputs = true);
 
 /// The default connection method for the custom source
 static auto gDefaultConverter = incrementalConverter(OutputSpec{"TST", "TEST", 0}, 0, 1);

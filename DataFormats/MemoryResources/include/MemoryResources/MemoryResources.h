@@ -116,6 +116,74 @@ class MessageResource : public FairMQMemoryResource
 };
 
 //__________________________________________________________________________________________________
+// A spectator pmr memory resource which only watches the memory of the underlying buffer, does not
+// carry out real allocation. It owns the underlying buffer which is destroyed on deallocation.
+template <typename BufferType>
+class SpectatorMemoryResource : public boost::container::pmr::memory_resource
+{
+ public:
+  using buffer_type = BufferType;
+
+  SpectatorMemoryResource() noexcept = delete;
+  SpectatorMemoryResource(const SpectatorMemoryResource&) noexcept = delete;
+  SpectatorMemoryResource(SpectatorMemoryResource&&) noexcept = default;
+  SpectatorMemoryResource& operator=(const SpectatorMemoryResource&) = delete;
+  SpectatorMemoryResource& operator=(SpectatorMemoryResource&&) = default;
+  ~SpectatorMemoryResource() noexcept override = default;
+
+  // the resource is the pointer managed by unique_ptr
+  template <typename T>
+  SpectatorMemoryResource(std::unique_ptr<T, typename buffer_type::deleter_type>&& buffer, size_t size)
+    : mBuffer{std::move(buffer)}, mPointer{mBuffer.get()}, mSize{size}
+  {
+  }
+
+  // the resource is the data of the vector managed by unique ptr
+  template <typename T>
+  SpectatorMemoryResource(std::unique_ptr<std::vector<T>, typename buffer_type::deleter_type>&& buffer)
+    : mBuffer{std::move(buffer)}, mPointer{mBuffer->data()}, mSize{mBuffer->size() * sizeof(T)}
+  {
+  }
+
+  // TODO: the underlying resource can be directly the vector or the read only buffer
+ protected:
+  void* do_allocate(std::size_t bytes, std::size_t alignment) override
+  {
+    if (mSize > 0) {
+      if (bytes > mSize) {
+        throw std::bad_alloc();
+      }
+      mSize = 0;
+      return mPointer;
+    }
+    throw std::runtime_error("Can not allocate: this memory resource is only supposed to provide spectator access to external buffer");
+  }
+
+  void do_deallocate(void* p, std::size_t bytes, std::size_t alignment) override
+  {
+    if (p == mPointer) {
+      mBuffer.reset();
+      mPointer = nullptr;
+    } else if (mPointer == nullptr) {
+      // there is an error in the logic flow, this should never be called more than once
+      throw std::logic_error("underlying controlled resource has been released already");
+    } else {
+      throw std::logic_error("this resource can only deallocate the controlled resource pointer");
+    }
+  }
+  bool do_is_equal(const memory_resource& other) const noexcept override
+  {
+    // uniquely owns the underlying resource, can never be equal to any other instance
+    return false;
+  }
+
+ private:
+  buffer_type mBuffer;
+  void* mPointer = nullptr;
+  size_t mSize = 0;
+};
+
+//__________________________________________________________________________________________________
 // This in general (as in STL) is a bad idea, but here it is safe to inherit from an allocator since we
 // have no additional data and only override some methods so we don't get into slicing and other problems.
 template <typename T>

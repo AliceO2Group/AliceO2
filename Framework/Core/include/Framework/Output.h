@@ -50,13 +50,32 @@ struct Output {
   {
   }
 
-  Output(const Output&& rhs)
+  Output(header::DataHeader const& header)
+    : origin(header.dataOrigin), description(header.dataDescription), subSpec(header.subSpecification)
+  {
+  }
+
+  Output(const Output&) = delete;
+
+  Output(Output&& rhs)
     : origin(rhs.origin),
       description(rhs.description),
       subSpec(rhs.subSpec),
       lifetime(rhs.lifetime),
       metaHeader(std::move(rhs.metaHeader))
   {
+  }
+
+  Output& operator=(const Output&) = delete;
+
+  Output& operator=(Output&& rhs)
+  {
+    origin = rhs.origin;
+    description = rhs.description;
+    subSpec = rhs.subSpec;
+    lifetime = rhs.lifetime;
+    metaHeader = std::move(rhs.metaHeader);
+    return *this;
   }
 
   bool operator==(const Output& that) const

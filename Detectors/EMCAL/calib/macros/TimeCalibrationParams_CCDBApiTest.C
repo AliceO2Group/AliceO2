@@ -10,13 +10,13 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "CCDB/CcdbApi.h"
-#include "CCDB/TObjectWrapper.h"
 #include "EMCALCalib/TimeCalibrationParams.h"
 #include "RStringView.h"
 #include "TH1S.h"
 #include "TCanvas.h"
 #include <ctime>
 #include <fstream>
+#include <iostream>
 #endif
 
 /// \brief Converting time into numerical time stamp representation
@@ -51,7 +51,7 @@ void TimeCalibrationParams_CCDBApiTest(const std::string_view ccdbserver = "emcc
   std::string inputDir = " ";
   if (aliceO2env)
     inputDir = aliceO2env;
-  inputDir += "/share/Detectors/EMCAL/files/";
+  inputDir += "/share/Detectors/EMC/files/";
 
   std::string fileHG = inputDir + "TimeCalibCoeffHG.txt";
   std::ifstream allTimeAvHG(fileHG, std::ifstream::in);
@@ -95,25 +95,14 @@ void TimeCalibrationParams_CCDBApiTest(const std::string_view ccdbserver = "emcc
 
   std::cout << "Using time stamps " << rangestart << " and " << rangeend << std::endl;
   std::map<std::string, std::string> metadata;
-  ccdbhandler.storeAsTFile(new o2::TObjectWrapper<o2::emcal::TimeCalibrationParams>(tcp), "EMC/TimeCalibParams", metadata, rangestart, rangeend);
+  ccdbhandler.storeAsTFileAny(tcp, "EMC/TimeCalibParams", metadata, rangestart, rangeend);
 
   // Read time calibration coefficients from CCDB, check whether they are the same
   auto rangetest = create_timestamp(2018, 4, 21, 23, 18, 54); //LHC18b run 285165
   //auto rangetest = create_timestamp(2017, 6, 5, 5, 25, 28); //LHC17g run 271381
   std::cout << "Using read timestamp " << rangetest << std::endl;
   o2::emcal::TimeCalibrationParams* read(nullptr);
-  auto res = ccdbhandler.retrieveFromTFile("EMC/TimeCalibParams", metadata, rangetest);
-  if (!res) {
-    std::cerr << "Failed retrieving object from CCDB" << std::endl;
-    return;
-  }
-  std::cout << "Object found, type " << res->IsA()->GetName() << std::endl;
-  auto objw = dynamic_cast<o2::TObjectWrapper<o2::emcal::TimeCalibrationParams>*>(res);
-  if (!objw) {
-    std::cerr << "failed casting to TObjectWrapper" << std::endl;
-    return;
-  }
-  read = objw->getObj();
+  read = ccdbhandler.retrieveFromTFileAny<o2::emcal::TimeCalibrationParams>("EMC/TimeCalibParams", metadata, rangetest);
   if (!read) {
     std::cerr << "No object received from CCDB" << std::endl;
     return;

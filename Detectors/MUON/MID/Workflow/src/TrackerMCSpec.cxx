@@ -38,9 +38,6 @@ namespace mid
 class TrackerMCDeviceDPL
 {
  public:
-  explicit TrackerMCDeviceDPL(const char* inputBinding, const char* inputROFBinding, const char* inputLabelsBinding) : mInputBinding(inputBinding), mInputROFBinding(inputROFBinding), mInputLabelsBinding(inputLabelsBinding), mTracker(nullptr), mTrackLabeler(){};
-  ~TrackerMCDeviceDPL() = default;
-
   void init(o2::framework::InitContext& ic)
   {
     auto geoFilename = ic.options().get<std::string>("geometry-filename");
@@ -57,13 +54,13 @@ class TrackerMCDeviceDPL
 
   void run(o2::framework::ProcessingContext& pc)
   {
-    auto msg = pc.inputs().get(mInputBinding.c_str());
+    auto msg = pc.inputs().get("mid_clusters");
     gsl::span<const Cluster2D> clusters = of::DataRefUtils::as<const Cluster2D>(msg);
 
-    auto msgROF = pc.inputs().get(mInputROFBinding.c_str());
+    auto msgROF = pc.inputs().get("mid_clusters_rof");
     gsl::span<const ROFRecord> inROFRecords = of::DataRefUtils::as<const ROFRecord>(msgROF);
 
-    std::unique_ptr<const o2::dataformats::MCTruthContainer<MCClusterLabel>> labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<MCClusterLabel>*>(mInputLabelsBinding.c_str());
+    std::unique_ptr<const o2::dataformats::MCTruthContainer<MCClusterLabel>> labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<MCClusterLabel>*>("mid_clusterlabels");
 
     mTracker->process(clusters, inROFRecords);
     mTrackLabeler.process(mTracker->getClusters(), mTracker->getTracks(), *labels);
@@ -85,20 +82,14 @@ class TrackerMCDeviceDPL
   }
 
  private:
-  std::string mInputBinding;
-  std::string mInputROFBinding;
-  std::string mInputLabelsBinding;
   std::unique_ptr<Tracker> mTracker{nullptr};
-  TrackLabeler mTrackLabeler;
+  TrackLabeler mTrackLabeler{};
 };
 
 framework::DataProcessorSpec getTrackerMCSpec()
 {
-  std::string inputBinding = "mid_clusters";
-  std::string inputROFBinding = "mid_clusters_rof";
-  std::string inputLabelsBinding = "mid_clusterlabels";
 
-  std::vector<of::InputSpec> inputSpecs{of::InputSpec{inputBinding, "MID", "CLUSTERS"}, of::InputSpec{inputROFBinding, "MID", "CLUSTERSROF"}, of::InputSpec{inputLabelsBinding, "MID", "CLUSTERSLABELS"}};
+  std::vector<of::InputSpec> inputSpecs{of::InputSpec{"mid_clusters", "MID", "CLUSTERS"}, of::InputSpec{"mid_clusters_rof", "MID", "CLUSTERSROF"}, of::InputSpec{"mid_clusterlabels", "MID", "CLUSTERSLABELS"}};
 
   std::vector<of::OutputSpec> outputSpecs{
     of::OutputSpec{"MID", "TRACKS"},
@@ -112,7 +103,7 @@ framework::DataProcessorSpec getTrackerMCSpec()
     "TrackerMC",
     {inputSpecs},
     {outputSpecs},
-    of::adaptFromTask<o2::mid::TrackerMCDeviceDPL>(inputBinding.c_str(), inputROFBinding.c_str(), inputLabelsBinding.c_str()),
+    of::adaptFromTask<o2::mid::TrackerMCDeviceDPL>(),
     of::Options{
       {"geometry-filename", of::VariantType::String, "O2geometry.root", {"Name of the geometry file"}}}};
 }

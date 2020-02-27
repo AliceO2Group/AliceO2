@@ -42,7 +42,6 @@ class TrackReader : public Task
   void accumulate();
 
   std::vector<o2::tpc::TrackTPC>*mTracksInp = nullptr, mTracksOut;
-  // TODO Temporary solution, see disclaimer about TPCClRefElem in TrackTOC. Later will be changed to uint32_t
   std::vector<o2::tpc::TPCClRefElem>*mCluRefVecInp = nullptr, mCluRefVecOut;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>*mMCTruthInp = nullptr, mMCTruthOut;
 

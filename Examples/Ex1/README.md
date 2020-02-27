@@ -1,3 +1,7 @@
-\page refEx1 Ex1 A basic example with one library
+<!-- doxy
+\page refExamplesEx1 Ex1 A basic example with one library
+/doxy -->
 
-See [CMakeInstructions](../doc/CMakeInstructions.md) for an explanation about this directory.
+## Ex1 A basic example with one library
+
+See [CMakeInstructions](/doc/CMakeInstructions.md) for an explanation about this directory.

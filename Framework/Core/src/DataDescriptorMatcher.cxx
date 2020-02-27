@@ -182,6 +182,22 @@ bool DataDescriptorMatcher::match(ConcreteDataMatcher const& matcher, VariableCo
   return this->match(reinterpret_cast<char const*>(s.data()), context);
 }
 
+/// @return true if the (sub-)query associated to this matcher will                                        
+/// match the provided @a spec, false otherwise.                                                           
+bool DataDescriptorMatcher::match(ConcreteDataTypeMatcher const& matcher, VariableContext& context) const
+{
+  header::DataHeader dh;
+  dh.dataOrigin = matcher.origin;
+  dh.dataDescription = matcher.description;
+  dh.subSpecification = 0;
+  DataProcessingHeader dph;
+  dph.startTime = 0;
+  header::Stack s{dh, dph};
+
+  return this->match(reinterpret_cast<char const*>(s.data()), context);
+}                                                                                                          
+                                                                                                           
+
 bool DataDescriptorMatcher::match(header::DataHeader const& header, VariableContext& context) const
 {
   return this->match(reinterpret_cast<char const*>(&header), context);

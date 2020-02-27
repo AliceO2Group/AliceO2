@@ -15,6 +15,7 @@
 #include <vector>
 #include <string>
 
+#include "TOFBase/Geo.h"
 #include "TOFBase/Digit.h"
 #include "TOFReconstruction/Encoder.h"
 
@@ -25,30 +26,54 @@
 void run_digi2raw_tof(std::string outName = "rawtof.bin",     // name of the output binary file
                       std::string inpName = "tofdigits.root", // name of the input TOF digits
                       int verbosity = 0,                      // set verbosity
-                      int cache = 100000000)                  // memory caching in Byte
+                      int cache = 1024 * 1024)                // memory caching in Byte
 {
   TFile* f = new TFile(inpName.c_str());
   TTree* t = (TTree*)f->Get("o2sim");
 
-  std::vector<std::vector<o2::tof::Digit>> digits, *pDigits = &digits;
+  std::vector<o2::tof::Digit> digits, *pDigits = &digits;
+  std::vector<o2::tof::ReadoutWindowData> row, *pRow = &row;
 
   t->SetBranchAddress("TOFDigit", &pDigits);
+  t->SetBranchAddress("TOFReadoutWindow", &pRow);
   t->GetEvent(0);
 
-  int nwindow = digits.size();
+  int nwindow = row.size();
+  int ndigits = digits.size();
 
-  printf("Encoding %d tof window\n", nwindow);
+  printf("Encoding %d tof window with %d digits\n", nwindow, ndigits);
 
-  o2::tof::compressed::Encoder encoder;
+  int nwindowperorbit = o2::tof::Geo::NWINDOW_IN_ORBIT;
+  int nwindowintimeframe = 256 * nwindowperorbit;
+
+  o2::tof::raw::Encoder encoder;
   encoder.setVerbose(verbosity);
 
   encoder.open(outName.c_str());
   encoder.alloc(cache);
 
-  for (int i = 0; i < nwindow; i++) {
+  std::vector<o2::tof::Digit> digitRO;
+  std::vector<o2::tof::Digit> emptyWindow;
+  std::vector<std::vector<o2::tof::Digit>> digitWindows;
+
+  for (int i = 0; i < nwindow; i += nwindowperorbit) {
+    digitWindows.clear();
+
+    // push all windows in the current orbit in the structure
+    for (int j = i; j < i + nwindowperorbit; j++) {
+      if (j < nwindow) {
+        digitRO.clear();
+        for (int id = 0; id < row.at(j).size(); id++)
+          digitRO.push_back(digits[row.at(j).first() + id]);
+        digitWindows.push_back(digitRO);
+      } else {
+        digitWindows.push_back(emptyWindow);
+      }
+    }
+
     if (verbosity)
       printf("----------\nwindow = %d\n----------\n", i);
-    encoder.encode(digits.at(i), i);
+    encoder.encode(digitWindows, i);
   }
 
   encoder.flush();

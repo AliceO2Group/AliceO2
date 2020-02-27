@@ -185,6 +185,7 @@ void MonitorGui()
   mFrameMain->MapWindow();
   mFrameMain->SetWindowName("OM");
   mFrameMain->MoveResize(50, 50, (UInt_t)mainx, (UInt_t)mainy);
+  mFrameMain->Move(4 * 400 + 10, 10);
 }
 
 //__________________________________________________________________________

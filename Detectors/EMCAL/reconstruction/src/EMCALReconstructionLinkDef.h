@@ -30,5 +30,12 @@
 #pragma link C++ class o2::emcal::CaloRawFitter + ;
 #pragma link C++ class o2::emcal::CaloRawFitterStandard + ;
 
-
+//#pragma link C++ namespace o2::emcal+;
+#pragma link C++ class o2::emcal::ClusterizerParameters + ;
+#pragma link C++ class o2::emcal::Clusterizer < o2::emcal::Cell> + ;
+#pragma link C++ class o2::emcal::Clusterizer < o2::emcal::Digit> + ;
+#pragma link C++ class o2::emcal::ClusterizerTask < o2::emcal::Cell> + ;
+#pragma link C++ class o2::emcal::ClusterizerTask < o2::emcal::Digit> + ;
+#pragma link C++ class o2::emcal::DigitReader < o2::emcal::Cell> + ;
+#pragma link C++ class o2::emcal::DigitReader < o2::emcal::Digit> + ;
 #endif

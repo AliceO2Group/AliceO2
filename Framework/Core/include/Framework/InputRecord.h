@@ -17,7 +17,7 @@
 #include "Framework/InputSpan.h"
 #include "Framework/TableConsumer.h"
 #include "Framework/Traits.h"
-#include "MemoryResources/MemoryResources.h"
+#include "MemoryResources/Types.h"
 #include "Headers/DataHeader.h"
 
 #include "CommonUtils/BoostSerializer.h"
@@ -165,21 +165,28 @@ class InputRecord
   int getPos(const char* name) const;
   int getPos(const std::string& name) const;
 
-  DataRef getByPos(int pos) const
+  DataRef getByPos(int pos, int part = 0) const
   {
-    if (pos * 2 + 1 > mSpan.size() || pos < 0) {
+    if (pos >= mSpan.size() || pos < 0) {
       throw std::runtime_error("Unknown message requested at position " + std::to_string(pos));
     }
-    if (pos > mInputsSchema.size()) {
+    if (part > 0 && part >= getNofParts(pos)) {
+      throw std::runtime_error("Invalid message part index at " + std::to_string(pos) + ":" + std::to_string(part));
+    }
+    if (pos >= mInputsSchema.size()) {
       throw std::runtime_error("Unknown schema at position" + std::to_string(pos));
     }
-    if (mSpan.get(pos * 2) != nullptr && mSpan.get(pos * 2 + 1) != nullptr) {
-      return DataRef{&mInputsSchema[pos].matcher,
-                     mSpan.get(pos * 2),
-                     mSpan.get(pos * 2 + 1)};
-    } else {
-      return DataRef{&mInputsSchema[pos].matcher, nullptr, nullptr};
+    auto ref = mSpan.get(pos, part);
+    ref.spec = &mInputsSchema[pos].matcher;
+    return ref;
+  }
+
+  size_t getNofParts(int pos) const
+  {
+    if (pos < 0) {
+      return 0;
     }
+    return mSpan.getNofParts(pos);
   }
 
   template <typename T = DataRef, typename std::enable_if_t<std::is_same<T, DataRef>::value == true, int> = 0>
@@ -203,7 +210,7 @@ class InputRecord
   }
 
   /// get object of the specified type from input
-  /// The actual operation and cast dependd on the target data type and the serialization type of the
+  /// The actual operation and cast depends on the target data type and the serialization type of the
   /// incoming data. See @ref Inputrecord class description for supported types.
   /// @param binding   the input to extract the data from
   template <typename T, typename std::enable_if_t<std::is_same<T, DataRef>::value == false, int> = 0>
@@ -211,13 +218,22 @@ class InputRecord
   {
     // make sure the selection is working
     static_assert(std::is_same<T, DataRef>::value == false);
+    return get<T>(get<DataRef>(binding));
+  }
+
+  /// get object of specified type for input DataRef
+  /// The actual operation and cast depends on the target data type and the serialization type of the
+  /// incoming data. See @ref Inputrecord class description for supported types.
+  /// @param ref   DataRef with pointers to input spec, header, and payload
+  template <typename T>
+  decltype(auto) get(DataRef ref) const
+  {
     if constexpr (std::is_same<T, std::string>::value) {
       // substitution for std::string
       // If we ask for a string, we need to duplicate it because we do not want
       // the buffer to be deleted when it goes out of scope. The string is built
       // from the data and its lengh, null-termination is not necessary.
       // return std::string object
-      DataRef ref = get<DataRef>(binding);
       auto header = header::get<const header::DataHeader*>(ref.header);
       assert(header);
       return std::string(ref.payload, header->payloadSize);
@@ -230,14 +246,13 @@ class InputRecord
       // If you want to actually get hold of the buffer, use gsl::span<char> as that will
       // give you the size as well.
       // return pointer to payload content
-      return reinterpret_cast<char const*>(get<DataRef>(binding).payload);
+      return reinterpret_cast<char const*>(ref.payload);
 
       // implementation (d)
     } else if constexpr (std::is_same<T, TableConsumer>::value) {
       // substitution for TableConsumer
       // For the moment this is dummy, as it requires proper support to
       // create the RDataSource from the arrow buffer.
-      DataRef ref = get<DataRef>(binding);
       auto header = header::get<const header::DataHeader*>(ref.header);
       assert(header);
       auto data = reinterpret_cast<uint8_t const*>(ref.payload);
@@ -249,7 +264,6 @@ class InputRecord
       // We have to deserialize the ostringstream.
       // FIXME: check that the string is null terminated.
       // @return deserialized copy of payload
-      DataRef ref = get<DataRef>(binding);
       auto header = header::get<const header::DataHeader*>(ref.header);
       assert(header);
       auto str = std::string(ref.payload, header->payloadSize);
@@ -263,16 +277,16 @@ class InputRecord
       // implementation (f)
     } else if constexpr (is_span<T>::value) {
       // substitution for span of messageable objects
-      // Note: there is no check for serialization type for the moment, which means that the method
-      // can be used to get the raw buffer by simply querying gsl::span<unsigned char>.
       // FIXME: there will be std::span in C++20
-      static_assert(has_messageable_value_type<T>::value, "span can only be created for messageable types");
-      DataRef ref = get<DataRef>(binding);
+      static_assert(is_messageable<typename T::value_type>::value, "span can only be created for messageable types");
       auto header = header::get<const header::DataHeader*>(ref.header);
       assert(header);
+      if (sizeof(typename T::value_type) > 1 && header->payloadSerializationMethod != o2::header::gSerializationMethodNone) {
+        throw std::runtime_error("Inconsistent serialization method for extracting span");
+      }
       using ValueT = typename T::value_type;
       if (header->payloadSize % sizeof(ValueT)) {
-        throw std::runtime_error("Inconsistent type and payload size at " + std::string(binding) +
+        throw std::runtime_error("Inconsistent type and payload size at " + std::string(ref.spec->binding) +
                                  ": type size " + std::to_string(sizeof(ValueT)) +
                                  "  payload size " + std::to_string(header->payloadSize));
       }
@@ -282,7 +296,6 @@ class InputRecord
     } else if constexpr (is_container<T>::value) {
       // currently implemented only for vectors
       if constexpr (is_specialization<typename std::remove_const<T>::type, std::vector>::value) {
-        DataRef ref = get<DataRef>(binding);
         auto header = o2::header::get<const DataHeader*>(ref.header);
         auto method = header->payloadSerializationMethod;
         if (method == o2::header::gSerializationMethodNone) {
@@ -322,7 +335,6 @@ class InputRecord
       // unserialized objects
       using DataHeader = o2::header::DataHeader;
 
-      DataRef ref = get<DataRef>(binding);
       auto header = o2::header::get<const DataHeader*>(ref.header);
       auto method = header->payloadSerializationMethod;
       if (method != o2::header::gSerializationMethodNone) {
@@ -340,7 +352,6 @@ class InputRecord
       using DataHeader = o2::header::DataHeader;
       using ValueT = typename std::remove_pointer<T>::type;
 
-      DataRef ref = get<DataRef>(binding);
       auto header = o2::header::get<const DataHeader*>(ref.header);
       auto method = header->payloadSerializationMethod;
       if (method == o2::header::gSerializationMethodNone) {
@@ -383,7 +394,6 @@ class InputRecord
       // the operation depends on the transmitted serialization method
       using DataHeader = o2::header::DataHeader;
 
-      DataRef ref = get<DataRef>(binding);
       auto header = o2::header::get<const DataHeader*>(ref.header);
       auto method = header->payloadSerializationMethod;
       if (method == o2::header::gSerializationMethodNone) {
@@ -421,18 +431,18 @@ class InputRecord
   }
 
   /// Helper method to be used to check if a given part of the InputRecord is present.
-  bool isValid(std::string const& s)
+  bool isValid(std::string const& s) const
   {
     return isValid(s.c_str());
   }
 
   /// Helper method to be used to check if a given part of the InputRecord is present.
-  bool isValid(char const* s);
-  bool isValid(int pos);
+  bool isValid(char const* s) const;
+  bool isValid(int pos) const;
 
   size_t size() const
   {
-    return mSpan.size() / 2;
+    return mSpan.size();
   }
 
   template <typename T>
@@ -455,7 +465,11 @@ class InputRecord
       : mParent(parent), mPosition(position), mSize(size > position ? size : position), mElement{nullptr, nullptr, nullptr}
     {
       if (mPosition < mSize) {
-        mElement = mParent->getByPos(mPosition);
+        if (mParent->isValid(mPosition)) {
+          mElement = mParent->getByPos(mPosition);
+        } else {
+          (*this)++;
+        }
       }
     }
 
@@ -464,8 +478,16 @@ class InputRecord
     // prefix increment
     SelfType& operator++()
     {
-      if (mPosition < mSize && ++mPosition < mSize) {
+      while (mPosition < mSize && ++mPosition < mSize) {
+        if (!mParent->isValid(mPosition)) {
+          continue;
+        }
         mElement = mParent->getByPos(mPosition);
+        break;
+      }
+      if (mPosition >= mSize) {
+        // reset the element to the default value of the type
+        mElement = ElementType{};
       }
       return *this;
     }
@@ -492,6 +514,43 @@ class InputRecord
       return mPosition != rh.mPosition;
     }
 
+    bool matches(o2::header::DataHeader matcher) const
+    {
+      if (mPosition >= mSize || mElement.header == nullptr) {
+        return false;
+      }
+      // at this point there must be a DataHeader, this has been checked by the DPL
+      // input cache
+      const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(mElement);
+      return *dh == matcher;
+    }
+
+    bool matches(o2::header::DataOrigin origin, o2::header::DataDescription description = o2::header::gDataDescriptionInvalid) const
+    {
+      if (mPosition >= mSize || mElement.header == nullptr) {
+        return false;
+      }
+      // at this point there must be a DataHeader, this has been checked by the DPL
+      // input cache
+      const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(mElement);
+      return dh->dataOrigin == origin && (description == o2::header::gDataDescriptionInvalid || dh->dataDescription == description);
+    }
+
+    bool matches(o2::header::DataOrigin origin, o2::header::DataDescription description, o2::header::DataHeader::SubSpecificationType subspec) const
+    {
+      return matches(o2::header::DataHeader{description, origin, subspec});
+    }
+
+    ParentType const* parent() const
+    {
+      return mParent;
+    }
+
+    size_t position() const
+    {
+      return mPosition;
+    }
+
    private:
     size_t mPosition;
     size_t mSize;
@@ -499,8 +558,58 @@ class InputRecord
     ElementType mElement;
   };
 
-  using iterator = Iterator<InputRecord, DataRef>;
-  using const_iterator = Iterator<InputRecord, const DataRef>;
+  /// @class InputRecordIterator
+  /// An iterator over the input slots
+  /// It supports an iterator interface to access the parts in the slot
+  template <typename T>
+  class InputRecordIterator : public Iterator<InputRecord, T>
+  {
+   public:
+    using SelfType = InputRecordIterator;
+    using BaseType = Iterator<InputRecord, T>;
+    using value_type = typename BaseType::value_type;
+    using reference = typename BaseType::reference;
+    using pointer = typename BaseType::pointer;
+    using ElementType = typename std::remove_const<value_type>::type;
+    using iterator = Iterator<SelfType, T>;
+    using const_iterator = Iterator<SelfType, const T>;
+
+    InputRecordIterator(InputRecord const* parent, size_t position = 0, size_t size = 0)
+      : BaseType(parent, position, size)
+    {
+    }
+
+    /// Get element at {slotindex, partindex}
+    ElementType getByPos(size_t pos) const
+    {
+      return this->parent()->getByPos(this->position(), pos);
+    }
+
+    /// Check if slot is valid, index of part is not used
+    bool isValid(size_t = 0) const
+    {
+      return this->parent()->isValid(this->position());
+    }
+
+    /// Get number of parts in input slot
+    size_t size() const
+    {
+      return this->parent()->getNofParts(this->position());
+    }
+
+    const_iterator begin() const
+    {
+      return const_iterator(this, 0, size());
+    }
+
+    const_iterator end() const
+    {
+      return const_iterator(this, size());
+    }
+  };
+
+  using iterator = InputRecordIterator<DataRef>;
+  using const_iterator = InputRecordIterator<const DataRef>;
 
   const_iterator begin() const
   {

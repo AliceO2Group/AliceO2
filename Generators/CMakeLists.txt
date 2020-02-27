@@ -18,16 +18,20 @@ endif()
 
 o2_add_library(Generators
                SOURCES src/Generator.cxx
+	       	       src/Trigger.cxx
+	       	       src/TriggerParticle.cxx
                        src/GeneratorTGenerator.cxx
                        src/GeneratorFromFile.cxx
                        src/Pythia6Generator.cxx
                        src/PDG.cxx
                        src/PrimaryGenerator.cxx
                        src/InteractionDiamondParam.cxx
+                       src/TriggerParticleParam.cxx
                        src/BoxGunParam.cxx
 		       src/QEDGenParam.cxx
                        src/GeneratorFactory.cxx
-                       $<$<BOOL:${pythia_FOUND}>:src/Pythia8Generator.cxx>
+                       $<$<BOOL:${pythia_FOUND}>:src/GeneratorPythia8.cxx>
+                       $<$<BOOL:${pythia_FOUND}>:src/GeneratorPythia8Param.cxx>
                        $<$<BOOL:${HepMC_FOUND}>:src/GeneratorHepMC.cxx>
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimConfig
                                      O2::SimulationDataFormat ${pythiaTarget} ${hepmcTarget}
@@ -44,17 +48,21 @@ endif()
 
 set(headers
     include/Generators/Generator.h
+    include/Generators/Trigger.h
+    include/Generators/TriggerParticle.h
     include/Generators/GeneratorTGenerator.h
     include/Generators/GeneratorFromFile.h
     include/Generators/Pythia6Generator.h
     include/Generators/PDG.h
     include/Generators/PrimaryGenerator.h
     include/Generators/InteractionDiamondParam.h
+    include/Generators/TriggerParticleParam.h
     include/Generators/BoxGunParam.h
     include/Generators/QEDGenParam.h)
 
 if(pythia_FOUND)
-  list(APPEND headers include/Generators/Pythia8Generator.h
+  list(APPEND headers include/Generators/GeneratorPythia8.h
+              include/Generators/GeneratorPythia8Param.h
               include/Generators/GeneratorFactory.h)
 endif()
 
@@ -85,7 +93,17 @@ o2_add_test_root_macro(share/external/tgenerator.C
                        PUBLIC_LINK_LIBRARIES O2::Generators
                        LABELS generators)
 
+o2_add_test_root_macro(share/external/multiphi_trigger.C
+                       PUBLIC_LINK_LIBRARIES O2::Generators
+                       LABELS generators)
+
 		     
 install(FILES share/external/extgen.C share/external/pythia6.C
               share/external/tgenerator.C share/external/QEDLoader.C share/external/QEDepem.C
+	      share/external/multiphi_trigger.C
         DESTINATION share/Generators/external/)
+
+install(FILES share/egconfig/pythia8_inel.cfg
+              share/egconfig/pythia8_hf.cfg
+	      share/egconfig/pythia8_hi.cfg
+        DESTINATION share/Generators/egconfig/)
