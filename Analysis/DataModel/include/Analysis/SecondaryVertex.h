@@ -7,6 +7,9 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#ifndef O2_ANALYSIS_SECONDARYVERTEX_H_
+#define O2_ANALYSIS_SECONDARYVERTEX_H_
+
 #include "Framework/AnalysisDataModel.h"
 
 namespace o2::aod
@@ -89,3 +92,5 @@ float invmass2prongs(float px0, float py0, float pz0, float mass0,
   float mass = sqrtf(energytot * energytot - psum2);
   return mass;
 };
+
+#endif // O2_ANALYSIS_SECONDARYVERTEX_H_
