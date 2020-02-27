@@ -144,6 +144,14 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
     // check if invalid slots are filtered out by the iterator
     BOOST_CHECK(position != 2);
   }
+
+  // the 2-level iterator to access inputs and their parts
+  // all inputs have 1 part, we check the first input
+  BOOST_CHECK(record.begin().size() == 1);
+  // the end-instance of the inputs has no parts
+  BOOST_CHECK(record.end().size() == 0);
+  // thus there is no element and begin == end
+  BOOST_CHECK(record.end().begin() == record.end().end());
 }
 
 // TODO:
