@@ -164,7 +164,7 @@ void analyzePHS(TTree* reftree)
 void analyzeCPV(TTree* reftree)
 {
   LabelStats result;
-  analyse<o2::phos::MCLabel>(reftree, "CPVDigitMCTruth", result);
+  analyse<o2::MCCompLabel>(reftree, "CPVDigitMCTruth", result);
   std::cout << gPrefix << " CPV ";
   result.print();
 }
