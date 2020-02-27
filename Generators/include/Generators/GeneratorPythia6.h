@@ -10,11 +10,11 @@
 
 /// \author R+Preghenella - January 2020
 
-#ifndef ALICEO2_EVENTGEN_GENERATORPYTHIA8_H_
-#define ALICEO2_EVENTGEN_GENERATORPYTHIA8_H_
+#ifndef ALICEO2_EVENTGEN_GENERATORPYTHIA6_H_
+#define ALICEO2_EVENTGEN_GENERATORPYTHIA6_H_
 
-#include "Generators/Generator.h"
-#include "Pythia8/Pythia.h"
+#include "Generators/GeneratorTGenerator.h"
+#include "TPythia6.h"
 
 namespace o2
 {
@@ -24,50 +24,50 @@ namespace eventgen
 /*****************************************************************/
 /*****************************************************************/
 
-class GeneratorPythia8 : public Generator
+class GeneratorPythia6 : public GeneratorTGenerator
 {
 
  public:
   /** default constructor **/
-  GeneratorPythia8();
+  GeneratorPythia6();
   /** constructor **/
-  GeneratorPythia8(const Char_t* name, const Char_t* title = "ALICEo2 Pythia8 Generator");
+  GeneratorPythia6(const Char_t* name, const Char_t* title = "ALICEo2 Pythia6 Generator");
   /** destructor **/
-  virtual ~GeneratorPythia8() = default;
+  virtual ~GeneratorPythia6() = default;
 
   /** Initialize the generator if needed **/
   virtual Bool_t Init() override;
 
   /** setters **/
   void setConfig(std::string val) { mConfig = val; };
-  void setHooksFileName(std::string val) { mHooksFileName = val; };
-  void setHooksFuncName(std::string val) { mHooksFuncName = val; };
+  void setTune(int val) { mTune = val; };
+  void setFrame(std::string val) { mFrame = val; };
+  void setBeam(std::string val) { mBeam = val; };
+  void setTarget(std::string val) { mTarget = val; };
+  void setWin(double val) { mWin = val; };
 
   /** methods **/
-  bool readString(std::string val) { return mPythia.readString(val, true); };
-  bool readFile(std::string val) { return mPythia.readFile(val, true); };
+  void readString(std::string val) { TPythia6::Instance()->Pygive(val.c_str()); };
 
  protected:
   /** copy constructor **/
-  GeneratorPythia8(const GeneratorPythia8&);
+  GeneratorPythia6(const GeneratorPythia6&);
   /** operator= **/
-  GeneratorPythia8& operator=(const GeneratorPythia8&);
-
-  /** methods to override **/
-  Bool_t generateEvent() override;
-  Bool_t importParticles() override;
-
-  /** Pythia8 **/
-  Pythia8::Pythia mPythia; //!
+  GeneratorPythia6& operator=(const GeneratorPythia6&);
 
   /** configuration **/
   std::string mConfig;
-  std::string mHooksFileName;
-  std::string mHooksFuncName;
+  int mTune = 350;
 
-  ClassDefOverride(GeneratorPythia8, 1);
+  /** initialization members **/
+  std::string mFrame = "CMS";
+  std::string mBeam = "p";
+  std::string mTarget = "p";
+  double mWin = 14000.;
 
-}; /** class GeneratorPythia8 **/
+  ClassDefOverride(GeneratorPythia6, 1);
+
+}; /** class GeneratorPythia6 **/
 
 /*****************************************************************/
 /*****************************************************************/
