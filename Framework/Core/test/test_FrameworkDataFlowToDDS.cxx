@@ -13,10 +13,9 @@
 
 #include <boost/test/unit_test.hpp>
 #include "../src/DDSConfigHelpers.h"
-#include "Framework/DeviceSpecHelpers.h"
+#include "../src/DeviceSpecHelpers.h"
 #include "../src/SimpleResourceManager.h"
 #include "../src/ComputingResourceHelpers.h"
-#include "../src/DataProcessorInfo.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceSpec.h"
