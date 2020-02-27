@@ -69,7 +69,7 @@ struct WritingCursor<soa::Table<PC...>> {
 
   void operator()(typename PC::type... args)
   {
-    cursor(0, args...);
+    cursor(0, extract(args)...);
   }
 
   bool resetCursor(TableBuilder& builder)
@@ -79,6 +79,15 @@ struct WritingCursor<soa::Table<PC...>> {
   }
 
   decltype(FFL(std::declval<cursor_t>())) cursor;
+private:
+  template <typename T>
+  static decltype(auto) extract(T const& arg) {
+    if constexpr (is_specialization<T, soa::RowViewBase>::value) {
+      return arg.globalIndex();
+    } else {
+      return arg;
+    }
+  }
 };
 
 /// This helper class allow you to declare things which will be crated by a
