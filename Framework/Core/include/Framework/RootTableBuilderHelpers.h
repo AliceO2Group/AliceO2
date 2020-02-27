@@ -12,6 +12,7 @@
 #define o2_framework_RootTableBuilderHelpers_H_INCLUDED
 
 #include "Framework/TableBuilder.h"
+#include "Framework/Logger.h"
 
 #include <arrow/stl.h>
 #include <arrow/type_traits.h>

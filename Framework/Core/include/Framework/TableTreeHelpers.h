@@ -644,14 +644,28 @@ class TreeToTable
     return status;
   }
 
-  // do the looping with the TTreeReader and fill the table
+  // do the looping with the TTreeReader and create the table
   std::shared_ptr<arrow::Table> Process()
   {
+    // do the looping with the TTreeReader
+    Fill();
 
+    // create the table
+    return Finalize();
+  }
+
+  // do the looping with the TTreeReader
+  void Fill()
+  {
     // copy all values from the tree to the table builders
     reader->Restart();
     while (reader->Next())
       push();
+  }
+
+  // create the table
+  std::shared_ptr<arrow::Table> Finalize()
+  {
 
     // prepare the elements needed to create the final table
     std::vector<std::shared_ptr<arrow::Array>> array_vector;

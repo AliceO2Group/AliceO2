@@ -165,6 +165,42 @@ void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
   context->addBuffer(std::move(header), buffer, std::move(finalizer), channel);
 }
 
+void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
+{
+  std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  LOG(INFO) << "DataAllocator::adopt channel " << channel.c_str();
+
+  auto header = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodArrow, 0);
+  auto context = mContextRegistry->get<ArrowContext>();
+
+  auto creator = [device = context->proxy().getDevice()](size_t s) -> std::unique_ptr<FairMQMessage> {
+    return device->NewMessage(s);
+  };
+  auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
+
+  /// To finalise this we write the table to the buffer.
+  /// FIXME: most likely not a great idea. We should probably write to the buffer
+  ///        directly in the TableBuilder, incrementally.
+  std::shared_ptr<TreeToTable> p(t2t);
+  auto finalizer = [payload = p](std::shared_ptr<FairMQResizableBuffer> b) -> void {
+    auto table = payload->Finalize();
+    LOG(INFO) << "DataAllocator Table created!";
+    LOG(INFO) << "Number of columns " << table->num_columns();
+    LOG(INFO) << "Number of rows    " << table->num_rows();
+
+    auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
+    std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
+    auto outBatch = arrow::ipc::RecordBatchStreamWriter::Open(stream.get(), table->schema(), &writer);
+    auto outStatus = writer->WriteTable(*table);
+    if (outStatus.ok() == false) {
+      throw std::runtime_error("Unable to Write table");
+    }
+  };
+
+  assert(context);
+  context->addBuffer(std::move(header), buffer, std::move(finalizer), channel);
+}
+
 void DataAllocator::snapshot(const Output& spec, const char* payload, size_t payloadSize,
                              o2::header::SerializationMethod serializationMethod)
 {
