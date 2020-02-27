@@ -25,59 +25,70 @@ DECLARE_SOA_TABLE(Uno, "AOD", "UNO",
 
 namespace due
 {
-DECLARE_SOA_COLUMN(Eta, eta, short int, "fEta2");
+DECLARE_SOA_COLUMN(Eta, eta, double, "fEta2");
 DECLARE_SOA_COLUMN(Phi, phi, double, "fPhi2");
 } // namespace due
 
 DECLARE_SOA_TABLE(Due, "AOD", "DUE",
                   due::Eta, due::Phi);
+
 } // namespace o2::aod
 
 using namespace o2;
 using namespace o2::framework;
 
-// This is a very simple example to test the
-// CommonDataProcessors::getGlobalAODSink
-// In this case the two tables Uno and Due are produced
-// but not consumed -> they are saved into a root file
-//
-// e.g. the table Uno will be saved as TTree UNO with branches
-// fEta1, fPhi1, fMom1
-//
-// The tree can be used for further processing (see aodreader.cxx)
+// This task is related to the ATask in aodwriter.cxx
+// It reads and processes data which was created and saved by aodwriter
 //
 // To test use:
 //  o2-analysistutorial-aodwriter --aod-file AO2D.root --res-file tabletotree > log
 //  o2-analysistutorial-aodreader --aod-file tabletotree_0.root > log
+
 //
 struct ATask {
-  Produces<aod::Uno> uno;
-  Produces<aod::Due> due;
-
-  void init(InitContext&)
+  void process(aod::Uno const& unos, aod::Due const& dues)
   {
-    cnt = 0;
-  }
+    int cnt = 0;
+    for (auto& uno : unos) {
+      auto eta = uno.eta();
+      auto phi = uno.phi();
+      auto mom = uno.mom();
 
-  void process(aod::Tracks const& tracks)
-  {
-    for (auto& track : tracks) {
-      float phi = asin(track.snp()) + track.alpha() + static_cast<float>(M_PI);
-      float eta = log(tan(0.25f * static_cast<float>(M_PI) - 0.5f * atan(track.tgl())));
-      float mom = track.tgl();
-
-      uno(phi, eta, mom);
-      due(phi, eta);
+      //LOGF(INFO, "(%f, %f, %f)", eta, phi, mom);
       cnt++;
     }
-    LOGF(INFO, "ATask Processed %i data points from Tracks", cnt);
-  }
+    LOGF(INFO, "ATask Processed %i data points from Uno", cnt);
 
-  size_t cnt = 0;
+    cnt = 0;
+    for (auto& due : dues) {
+      auto eta = due.eta();
+      auto phi = due.phi();
+
+      //LOGF(INFO, "(%f, %f)", eta, phi);
+      cnt++;
+    }
+    LOGF(INFO, "ATask Processed %i data points from Due", cnt);
+  }
+};
+
+struct BTask {
+  void process(aod::Due const& dues)
+  {
+    int cnt = 0;
+    for (auto& etaPhi : dues) {
+      auto eta = etaPhi.eta();
+      auto phi = etaPhi.phi();
+
+      //LOGF(INFO, "(%f, %f)", eta, phi);
+      cnt++;
+    }
+    LOGF(INFO, "BTask Processed %i data points from Due", cnt);
+  }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("produce-unodue")};
+    adaptAnalysisTask<ATask>("process-unodue"),
+    adaptAnalysisTask<BTask>("process-due")};
 }
