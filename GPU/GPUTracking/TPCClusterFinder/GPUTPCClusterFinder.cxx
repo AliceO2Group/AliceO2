@@ -40,6 +40,14 @@ void* GPUTPCClusterFinder::SetPointersInput(void* mem)
   return mem;
 }
 
+void* GPUTPCClusterFinder::SetPointersZSOffset(void* mem)
+{
+  if (mNMaxPages) {
+    computePointerWithAlignment(mem, mPzsOffsets, (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding) ? mNMaxPages : GPUTrackingInOutZS::NENDPOINTS);
+  }
+  return mem;
+}
+
 void* GPUTPCClusterFinder::SetPointersOutput(void* mem)
 {
   computePointerWithAlignment(mem, mPclusterInRow, GPUCA_ROW_COUNT);
@@ -64,6 +72,7 @@ void GPUTPCClusterFinder::RegisterMemoryAllocation()
   mRec->RegisterMemoryAllocation(this, &GPUTPCClusterFinder::SetPointersScratch, GPUMemoryResource::MEMORY_SCRATCH, "TPCClustererScratch", GPUMemoryReuse{GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::ClustererScratch, (unsigned short)(mISlice % mRec->GetDeviceProcessingSettings().nTPCClustererLanes)});
   mMemoryId = mRec->RegisterMemoryAllocation(this, &GPUTPCClusterFinder::SetPointersMemory, GPUMemoryResource::MEMORY_PERMANENT, "TPCClustererMemory");
   mRec->RegisterMemoryAllocation(this, &GPUTPCClusterFinder::SetPointersOutput, GPUMemoryResource::MEMORY_OUTPUT, "TPCClustererOutput");
+  mZSOffsetId = mRec->RegisterMemoryAllocation(this, &GPUTPCClusterFinder::SetPointersZSOffset, GPUMemoryResource::MEMORY_CUSTOM | GPUMemoryResource::MEMORY_CUSTOM_TRANSFER | GPUMemoryResource::MEMORY_INPUT, "TPCClustererZSOffsets");
 }
 
 void GPUTPCClusterFinder::SetMaxData(const GPUTrackingInOutPointers& io)
