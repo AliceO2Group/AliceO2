@@ -3418,7 +3418,11 @@ void AliTPCSpaceCharge3DCalc::SetInputSpaceCharge(TH3* hisSpaceCharge3D, Double_
         radius0 = fListR[i];
 
         for (Int_t j = 0; j < fNZColumns; j++) {
-          z0 = fListZ[j];
+          if (iSide == 0) {
+            z0 = fListZ[j];
+          } else {
+            z0 = -fListZ[j];
+          }
 
           if (radius0 > rMin && radius0 < rMax && z0 > zMin && z0 < zMax) {
 
