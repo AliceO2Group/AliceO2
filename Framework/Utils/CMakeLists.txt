@@ -87,6 +87,12 @@ o2_add_test(RawParser
             COMPONENT_NAME DPLUtils
             LABELS dplutils)
 
+o2_add_test(DPLRawParser
+            SOURCES test/test_DPLRawParser.cxx
+            PUBLIC_LINK_LIBRARIES O2::DPLUtils
+            COMPONENT_NAME DPLUtils
+            LABELS dplutils)
+
 foreach(b
         RawParser
         )
