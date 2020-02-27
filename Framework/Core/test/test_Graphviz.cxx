@@ -12,7 +12,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include "../src/ComputingResourceHelpers.h"
-#include "Framework/DeviceSpecHelpers.h"
+#include "../src/DeviceSpecHelpers.h"
 #include "../src/GraphvizHelpers.h"
 #include "../src/SimpleResourceManager.h"
 #include "Framework/DeviceSpec.h"
