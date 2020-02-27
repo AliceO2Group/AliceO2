@@ -67,8 +67,10 @@ struct WritingCursor<soa::Table<PC...>> {
   using persistent_table_t = soa::Table<PC...>;
   using cursor_t = decltype(std::declval<TableBuilder>().cursor<persistent_table_t>());
 
-  void operator()(typename PC::type... args)
+  template <typename... T>
+  void operator()(T... args)
   {
+    static_assert(sizeof...(PC) == sizeof...(T), "Argument number mismatch");
     cursor(0, extract(args)...);
   }
 
@@ -79,12 +81,15 @@ struct WritingCursor<soa::Table<PC...>> {
   }
 
   decltype(FFL(std::declval<cursor_t>())) cursor;
-private:
+
+ private:
   template <typename T>
-  static decltype(auto) extract(T const& arg) {
+  static decltype(auto) extract(T const& arg)
+  {
     if constexpr (is_specialization<T, soa::RowViewBase>::value) {
       return arg.globalIndex();
     } else {
+      static_assert(!framework::has_type_v<T, framework::pack<PC...>>, "Argument type mismatch");
       return arg;
     }
   }
