@@ -7,7 +7,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "Framework/DeviceSpecHelpers.h"
+#include "DeviceSpecHelpers.h"
 #include "ChannelSpecHelpers.h"
 #include <wordexp.h>
 #include <algorithm>
@@ -29,8 +29,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ComputingResource.h"
 #include "Framework/Logger.h"
-#include "ResourceManager.h"
-#include "DataProcessorInfo.h"
+
 #include "WorkflowHelpers.h"
 
 namespace bpo = boost::program_options;

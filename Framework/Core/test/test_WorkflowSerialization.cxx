@@ -13,7 +13,6 @@
 
 #include "Framework/WorkflowSpec.h"
 #include "../src/WorkflowSerializationHelpers.h"
-#include "../src/DataProcessorInfo.h"
 #include <boost/test/unit_test.hpp>
 
 using namespace o2::framework;
