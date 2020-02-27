@@ -16,13 +16,16 @@ collSyst="pp"
 generPP="pythia8"
 generPbPb="pythia8hi"
 
+# default sim engine
+engine="TGeant3"
+
 # options to pass to every workflow
 gloOpt=" -b --run "
 
 
 Usage() 
 {
-  echo "Usage: ${0##*/} [-s system /pp[Def] or pbpb/] [-r IR(kHz) /Def = $intRatePP(pp)/$intRatePbPb(pbpb)] [-n Number of events /Def = $nevPP(pp) or $nevPbPb(pbpb)/]"
+  echo "Usage: ${0##*/} [-s system /pp[Def] or pbpb/] [-r IR(kHz) /Def = $intRatePP(pp)/$intRatePbPb(pbpb)] [-n Number of events /Def = $nevPP(pp) or $nevPbPb(pbpb)/] [-e TGeant3|TGeant4]"
   exit
 }
 
@@ -32,6 +35,8 @@ while [ $# -gt 0 ] ; do
 	-n) nev=$2;  shift 2 ;;
 	-s) collSyst=$2; shift 2 ;;
 	-r) intRate=$2; shift 2 ;;
+	-e) engine=$2; shift 2 ;;
+	-h) Usage ;;
 	*) echo "Wrong input"; Usage;
     esac
 done
@@ -51,8 +56,8 @@ else
 fi
 
 #---------------------------------------------------
-echo "Running simulation for $nev $collSyst events with $gener generator"
-o2-sim -n"$nev" --configKeyValue "Diamond.width[2]=6." -g "$gener" &> sim.log
+echo "Running simulation for $nev $collSyst events with $gener generator and engine $engine"
+o2-sim -n"$nev" --configKeyValue "Diamond.width[2]=6." -g "$gener" -e "$engine" &> sim.log
 
 echo "Running digitization for $intRate kHz interaction rate"
 intRate=$((1000*(intRate)));
