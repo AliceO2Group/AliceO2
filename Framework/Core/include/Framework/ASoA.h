@@ -499,14 +499,12 @@ struct FilteredIndexPolicy : IndexPolicyBase {
     }
   }
 
-  // FIXME: mSelectionRow should not grow too big, add some checks?
   void setCursor(int64_t i)
   {
     mSelectionRow = i;
     this->mRowIndex = !mSelectedRows.empty() ? mSelectedRows[mSelectionRow] : mSelectionRow;
   }
 
-  // FIXME: mSelectionRow should not grow too big, add some checks?
   void moveByIndex(int64_t i)
   {
     mSelectionRow += i;

@@ -15,8 +15,6 @@
 
 #include <iterator>
 
-using namespace o2::framework;
-
 namespace o2::soa
 {
 
@@ -109,8 +107,8 @@ class CombinationsGenerator
 
    private:
     CombinationType mCurrent;
-    bool mIsEnd;                             // whether there are any more tuples available
-    std::array<IteratorType, K> mMaxOffset;  // one position past maximum acceptable position for each element of combination
+    bool mIsEnd;                            // whether there are any more tuples available
+    std::array<IteratorType, K> mMaxOffset; // one position past maximum acceptable position for each element of combination
   };
 
   using iterator = CombinationsIterator;
@@ -151,14 +149,14 @@ CombinationsGenerator<std::common_type_t<T2...>, sizeof...(T2)> combinations(con
 }
 
 template <typename... T2>
-CombinationsGenerator<Filtered<std::common_type_t<T2...>>, sizeof...(T2)> combinations(const expressions::Filter& filter, const T2&... tables)
+CombinationsGenerator<Filtered<std::common_type_t<T2...>>, sizeof...(T2)> combinations(const o2::framework::expressions::Filter& filter, const T2&... tables)
 {
   static_assert(sizeof...(T2) > 0);
   static_assert(std::conjunction_v<std::is_same<T2, T2>...>);
 
   using commonType = std::common_type_t<T2...>;
 
-  std::array<Filtered<commonType>, sizeof...(T2)> filtered{Filtered<commonType>{{tables.asArrowTable()}, expressions::createSelection(tables.asArrowTable(), filter)}...};
+  std::array<Filtered<commonType>, sizeof...(T2)> filtered{Filtered<commonType>{{tables.asArrowTable()}, o2::framework::expressions::createSelection(tables.asArrowTable(), filter)}...};
   return CombinationsGenerator<Filtered<commonType>, sizeof...(T2)>(filtered);
 }
 
