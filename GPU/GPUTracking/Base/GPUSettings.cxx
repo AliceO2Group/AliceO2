@@ -85,6 +85,7 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   nStreams = 8;
   trackletConstructorInPipeline = -1;
   trackletSelectorInPipeline = -1;
+  trackletSelectorSlices = -1;
   forceMemoryPoolSize = 0;
   nTPCClustererLanes = 3;
   registerStandaloneInputMemory = false;

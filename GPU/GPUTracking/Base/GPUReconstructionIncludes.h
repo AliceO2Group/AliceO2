@@ -49,6 +49,9 @@
   }                                                                                          \
   if (mDeviceProcessingSettings.trackletSelectorInPipeline < 0) {                            \
     mDeviceProcessingSettings.trackletSelectorInPipeline = GPUCA_SELECTOR_IN_PIPELINE;       \
+  }                                                                                          \
+  if (mDeviceProcessingSettings.trackletSelectorSlices < 0) {                                \
+    mDeviceProcessingSettings.trackletSelectorSlices = GPUCA_TRACKLET_SELECTOR_SLICE_COUNT;  \
   }
 
 #endif
