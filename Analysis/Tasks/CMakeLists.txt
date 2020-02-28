@@ -9,21 +9,29 @@
 # submit itself to any jurisdiction.
 
 o2_add_executable(correlations
-                  SOURCES correlations.cxx 
+                  SOURCES correlations.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore
                   COMPONENT_NAME Analysis)
 
 o2_add_executable(correlations-collection
-                  SOURCES correlationsCollection.cxx 
+                  SOURCES correlationsCollection.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore
                   COMPONENT_NAME Analysis)
-                  
+
 o2_add_executable(vertexing-hf
 	  	  SOURCES vertexerhf.cxx
-		  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase 
+		  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase
 	          COMPONENT_NAME Analysis)
 
 o2_add_executable(validation
 	  	  SOURCES validation.cxx
-		  PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase 
+		  PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase
 	          COMPONENT_NAME Analysis)
+
+if(FastJet_FOUND)
+o2_add_executable(jetfinder
+  SOURCES jetfinder.cxx
+  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
+                        FastJet::FastJet
+  COMPONENT_NAME Analysis)
+endif()
