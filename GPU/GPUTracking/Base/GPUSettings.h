@@ -144,6 +144,7 @@ struct GPUSettingsDeviceProcessing {
   int nTPCClustererLanes;             // Number of TPC clusterers that can run in parallel
   bool deviceTimers;                  // Use device timers instead of host-based timers
   bool registerStandaloneInputMemory; // Automatically register memory for the GPU which is used as input for the standalone benchmark
+  int tpcCompressionGatherMode;       // Modes: 0 = gather by DMA, 1 = DMA + gather on host, ...
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
