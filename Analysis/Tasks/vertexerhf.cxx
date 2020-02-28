@@ -105,7 +105,7 @@ struct CandidateBuilding2Prong {
           float mass_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masspion, pvec1[0], pvec1[1], pvec1[2], masskaon);
           float masssw_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masskaon, pvec1[0], pvec1[1], pvec1[2], masspion);
           secvtx2prong(track_0.collisionId(), collision.posX(), collision.posY(), collision.posZ(), vtx.x, vtx.y, vtx.z, track_0.globalIndex(),
-                       pvec0[0], pvec0[1], pvec0[2], track_1.globalIndex(), pvec1[0], pvec1[1], pvec1[2], ic, mass_, masssw_);
+                       pvec0[0], pvec0[1], pvec0[2], track_0.y(), track_1.globalIndex(), pvec1[0], pvec1[1], pvec1[2], track_1.y(), ic, mass_, masssw_);
           hchi2dca->Fill(df.getChi2AtPCACandidate(ic));
 
           //float declengxy = decaylengthXY(secVtx2prong.posX(), secVtx2prong.posY(), secVtx2prong.posdecayx(), secVtx2prong.posdecayy());
@@ -119,18 +119,21 @@ struct CandidateBuilding2Prong {
 
 struct CandidateBuildingDzero {
   Produces<aod::Cand2Prong> cand2prong;
-  void process(aod::SecVtx2Prong const& secVtx2Prongs, aod::Tracks const& tracks) // HERE IT WHAT WORKS
+  //void process(aod::SecVtx2Prong const& secVtx2Prongs, aod::Tracks const& tracks) // HERE IT WHAT WORKS
   //void process(aod::SecVtx2Prong const& secVtx2Prongs)  //THE SIMPLE LOOP WORKS AS WELL OF COURSE
 
   //BELOW IS WHAT I WOULD LIKE TO BE ABLE TO DO AND THAT IS STILL NOT WORKING
-  //void process(aod::SecVtx2Prong const& secVtx2Prongs, soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
+  void process(aod::SecVtx2Prong const& secVtx2Prongs, soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
   {
     LOGF(info, "NEW EVENT");
 
     for (auto& secVtx2prong : secVtx2Prongs) {
       //example to access the track at the index saved in the secVtx2Prongs
-      LOGF(INFO, " I am now accessing track information looping over secondary vertices  %d", secVtx2prong.index0Id());
-      LOGF(INFO, " I am now accessing track information looping over secondary vertices  %f", secVtx2prong.index0().y());
+      LOGF(INFO, " ------- new event ---------");
+      LOGF(INFO, " I am now accessing track0 y from the secvtx table  %f", secVtx2prong.y0());
+      LOGF(INFO, " I am now accessing track0 y from the corresponding track  %f", secVtx2prong.index0().y());
+      LOGF(INFO, " I am now accessing track1 y from the secvtx table  %f", secVtx2prong.y1());
+      LOGF(INFO, " I am now accessing track1 y from the corresponding track  %f", secVtx2prong.index1().y());
       float masspion = 0.140;
       float masskaon = 0.494;
       float mass_ = invmass2prongs(secVtx2prong.px0(), secVtx2prong.py0(), secVtx2prong.pz0(), masspion,

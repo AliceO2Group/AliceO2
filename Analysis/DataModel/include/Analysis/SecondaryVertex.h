@@ -24,13 +24,16 @@ DECLARE_SOA_INDEX_COLUMN_FULL(Index0, index0, int, Tracks, "fIndex0");
 DECLARE_SOA_COLUMN(Px0, px0, float, "fPx0");
 DECLARE_SOA_COLUMN(Py0, py0, float, "fPy0");
 DECLARE_SOA_COLUMN(Pz0, pz0, float, "fPz0");
+DECLARE_SOA_COLUMN(Y0, y0, float, "fY0");
 DECLARE_SOA_INDEX_COLUMN_FULL(Index1, index1, int, Tracks, "fIndex1");
 DECLARE_SOA_COLUMN(Px1, px1, float, "fPx1");
 DECLARE_SOA_COLUMN(Py1, py1, float, "fPy1");
 DECLARE_SOA_COLUMN(Pz1, pz1, float, "fPz1");
+DECLARE_SOA_COLUMN(Y1, y1, float, "fY1");
 DECLARE_SOA_COLUMN(IndexDCApair, indexDCApair, int, "fIndexDCApair");
 DECLARE_SOA_COLUMN(Mass, mass, float, "fMass");
 DECLARE_SOA_COLUMN(Massbar, massbar, float, "fMassbar");
+
 DECLARE_SOA_DYNAMIC_COLUMN(DecaylengthXY, decaylengthXY, [](float xvtxd, float yvtxd, float xvtxp, float yvtxp) { return sqrtf((yvtxd - yvtxp) * (yvtxd - yvtxp) + (xvtxd - xvtxp) * (xvtxd - xvtxp)); });
 DECLARE_SOA_DYNAMIC_COLUMN(Decaylength, decaylength, [](float xvtxd, float yvtxd, float zvtxd, float xvtxp, float yvtxp, float zvtxp) { return sqrtf((yvtxd - yvtxp) * (yvtxd - yvtxp) + (xvtxd - xvtxp) * (xvtxd - xvtxp) + (zvtxd - zvtxp) * (zvtxd - zvtxp)); });
 
@@ -49,8 +52,8 @@ DECLARE_SOA_COLUMN(MassD0bar, massD0bar, float, "fMassD0bar");
 DECLARE_SOA_TABLE(SecVtx2Prong, "AOD", "CAND2PRONG",
                   secvtx2prong::CollisionId, collision::PosX, collision::PosY, collision::PosZ,
                   secvtx2prong::Posdecayx, secvtx2prong::Posdecayy, secvtx2prong::Posdecayz,
-                  secvtx2prong::Index0Id, secvtx2prong::Px0, secvtx2prong::Py0, secvtx2prong::Pz0,
-                  secvtx2prong::Index1Id, secvtx2prong::Px1, secvtx2prong::Py1, secvtx2prong::Pz1,
+                  secvtx2prong::Index0Id, secvtx2prong::Px0, secvtx2prong::Py0, secvtx2prong::Pz0, secvtx2prong::Y0,
+                  secvtx2prong::Index1Id, secvtx2prong::Px1, secvtx2prong::Py1, secvtx2prong::Pz1, secvtx2prong::Y1,
                   secvtx2prong::IndexDCApair, secvtx2prong::Mass, secvtx2prong::Massbar,
                   secvtx2prong::DecaylengthXY<secvtx2prong::Posdecayx, secvtx2prong::Posdecayy, collision::PosX, collision::PosY>,
                   secvtx2prong::Decaylength<secvtx2prong::Posdecayx, secvtx2prong::Posdecayy, secvtx2prong::Posdecayz, collision::PosX, collision::PosY, collision::PosZ>);
