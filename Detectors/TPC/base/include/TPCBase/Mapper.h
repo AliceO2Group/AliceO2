@@ -561,7 +561,7 @@ inline const DigitPos Mapper::findDigitPosFromLocalPosition(const LocalPosition3
   PadPos pad;
   CRU cru;
   for (const PadRegionInfo& padRegion : mMapPadRegionInfo) {
-    cru = CRU(sec, padRegion.getPartition());
+    cru = CRU(sec, padRegion.getRegion());
     pad = padRegion.findPad(pos);
     if (pad.isValid())
       break;
