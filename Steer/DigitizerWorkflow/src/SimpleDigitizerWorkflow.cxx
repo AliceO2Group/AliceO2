@@ -134,6 +134,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(
     ConfigParamSpec{"tpc-reco-type", VariantType::String, "", {tpcrthelp}});
 
+  std::string grphelp("GRP file describing the simulation");
+  workflowOptions.push_back(
+    ConfigParamSpec{"GRP", VariantType::String, "o2sim_grp.root", {grphelp}});
+
   // option allowing to set parameters
   std::string keyvaluehelp("Semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...')");
   workflowOptions.push_back(
@@ -314,7 +318,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // First, read the GRP to detect which components need instantiations
   // (for the moment this assumes the file o2sim_grp.root to be in the current directory)
-  const auto grp = readGRP();
+  const auto grp = readGRP(configcontext.options().get<std::string>("GRP"));
   if (!grp) {
     return WorkflowSpec{};
   }
@@ -509,7 +513,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   // GRP updater: must come after all detectors since requires their list
-  specs.emplace_back(o2::parameters::getGRPUpdaterSpec(detList));
+  specs.emplace_back(o2::parameters::getGRPUpdaterSpec(configcontext.options().get<std::string>("GRP"), detList));
 
   // The SIM Reader. NEEDS TO BE LAST
   specs[0] = o2::steer::getSimReaderSpec(fanoutsize, tpcsectors, tpclanes);
