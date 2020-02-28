@@ -148,4 +148,6 @@ endif()
 
 find_package(O2GPU)
 
+find_package(FastJet)
+
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
