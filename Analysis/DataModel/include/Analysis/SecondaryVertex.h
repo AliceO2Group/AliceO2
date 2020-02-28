@@ -20,7 +20,7 @@ DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fCollisionsID");
 DECLARE_SOA_COLUMN(Posdecayx, posdecayx, float, "fPosdecayx");
 DECLARE_SOA_COLUMN(Posdecayy, posdecayy, float, "fPosdecayy");
 DECLARE_SOA_COLUMN(Posdecayz, posdecayz, float, "fPosdecayz");
-DECLARE_SOA_COLUMN(Index0, index0, int, "fIndex0");
+DECLARE_SOA_INDEX_COLUMN_FULL(Index0, index0, int, Tracks, "fIndex0");
 DECLARE_SOA_COLUMN(Px0, px0, float, "fPx0");
 DECLARE_SOA_COLUMN(Py0, py0, float, "fPy0");
 DECLARE_SOA_COLUMN(Pz0, pz0, float, "fPz0");
@@ -49,7 +49,7 @@ DECLARE_SOA_COLUMN(MassD0bar, massD0bar, float, "fMassD0bar");
 DECLARE_SOA_TABLE(SecVtx2Prong, "AOD", "CAND2PRONG",
                   secvtx2prong::CollisionId, collision::PosX, collision::PosY, collision::PosZ,
                   secvtx2prong::Posdecayx, secvtx2prong::Posdecayy, secvtx2prong::Posdecayz,
-                  secvtx2prong::Index0, secvtx2prong::Px0, secvtx2prong::Py0, secvtx2prong::Pz0,
+                  secvtx2prong::Index0Id, secvtx2prong::Px0, secvtx2prong::Py0, secvtx2prong::Pz0,
                   secvtx2prong::Index1, secvtx2prong::Px1, secvtx2prong::Py1, secvtx2prong::Pz1,
                   secvtx2prong::IndexDCApair, secvtx2prong::Mass, secvtx2prong::Massbar,
                   secvtx2prong::DecaylengthXY<secvtx2prong::Posdecayx, secvtx2prong::Posdecayy, collision::PosX, collision::PosY>,

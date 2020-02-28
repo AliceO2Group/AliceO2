@@ -129,7 +129,8 @@ struct CandidateBuildingDzero {
 
     for (auto& secVtx2prong : secVtx2Prongs) {
       //example to access the track at the index saved in the secVtx2Prongs
-      LOGF(INFO, " I am now accessing track information looping over secondary vertices  %f", (tracks.begin() + secVtx2prong.index0()).y());
+      LOGF(INFO, " I am now accessing track information looping over secondary vertices  %d", secVtx2prong.index0Id());
+      LOGF(INFO, " I am now accessing track information looping over secondary vertices  %f", secVtx2prong.index0().y());
       float masspion = 0.140;
       float masskaon = 0.494;
       float mass_ = invmass2prongs(secVtx2prong.px0(), secVtx2prong.py0(), secVtx2prong.pz0(), masspion,
