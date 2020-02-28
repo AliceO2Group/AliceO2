@@ -108,7 +108,7 @@ void CompressedDecodingTask::rdhHandler(const o2::header::RAWDataHeader* rdh)
 {
 
   // rdh close
-  if (rdh->stop && rdh->heartbeatOrbit == 255 + mInitOrbit) {
+  if (rdh->stop && rdh->heartbeatOrbit == Geo::ORBIT_IN_TF - 1 + mInitOrbit) {
     mNCrateCloseTF++;
     printf("New TF close RDH %d\n", rdh->feeId);
     return;

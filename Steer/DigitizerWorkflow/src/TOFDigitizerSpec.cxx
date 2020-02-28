@@ -144,7 +144,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
         // call actual digitization procedure
         labels->clear();
         digits->clear();
-	digitizer->process(&hits, digits.get());
+        digitizer->process(&hits, digits.get());
         // if (digitizer->process(&hits, digits.get())) {
         //   // Post Data
         //   if (digitizer->isContinuous()) {

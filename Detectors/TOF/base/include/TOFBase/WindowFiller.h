@@ -31,9 +31,11 @@ class WindowFiller
 
   void reset();
 
+  void newTF();
+
   Int_t getCurrentReadoutWindow() const { return mReadoutWindowCurrent; }
   void setCurrentReadoutWindow(Double_t value) { mReadoutWindowCurrent = value; }
-  void setEventTime(double value) { mEventTime = value - mTF * o2::constants::lhc::LHCOrbitNS * 256; }
+  void setEventTime(double value) { mEventTime = value - mTF * Geo::NS_IN_TF; }
 
   std::vector<Digit>* getDigitPerTimeFrame() { return &mDigitsPerTimeFrame; }
   std::vector<ReadoutWindowData>* getReadoutWindowData() { return &mReadoutWindowData; }
