@@ -23,11 +23,9 @@ namespace tpc
 {
 namespace zerosupp_link_based
 {
-static constexpr uint32_t DataWordSize = 16;                                ///< size of header word and data words
-static constexpr uint32_t ChannelsPerWord = 10;                             ///< number of ADC values in one 128b word
-static constexpr uint32_t DataBitSize = 12;                                 ///< number of bits of the data representation
-static constexpr uint32_t SignificantBits = 2;                              ///< number of bits used for floating point precision
-static constexpr float FloatConversion = 1.f / float(1 << SignificantBits); ///< conversion factor from integer representation to float
+
+static constexpr uint32_t DataWordSizeBits = 128;                   ///< size of header word and data words in bits
+static constexpr uint32_t DataWordSizeBytes = DataWordSizeBits / 8; ///< size of header word and data words in bytes
 
 /// header definition of the zero suppressed link based data format
 struct Header {
@@ -54,69 +52,126 @@ struct Header {
   }
 };
 
+/// empty header for
+
+/// ADC data container
+///
+/// In case of zero suppressed data, the ADC values are stored with 12 bit
+/// 10bit + 2bit precision
+/// In case of decoded raw data, the pure 10 bit ADC values are stored
+///
+/// The data is packed in 128 bit words, or 2x64 bit. Each 64 bit word has 4 bit
+/// padding.
+/// So it is either 2 x ((5 x 12 bit) + 4 bit padding), or
+///                 2 x ((6 x 10 bit) + 4 bit padding)
+template <uint32_t DataBitSizeT = 12, uint32_t SignificantBitsT = 2>
 struct Data {
+  static constexpr uint32_t ChannelsPerHalfWord = DataWordSizeBits / DataBitSizeT / 2; ///< number of ADC values in one 128b word
+  static constexpr uint32_t DataBitSize = DataBitSizeT;                                ///< number of bits of the data representation
+  static constexpr uint32_t SignificantBits = SignificantBitsT;                        ///< number of bits used for floating point precision
+  static constexpr uint64_t BitMask = ((uint64_t(1) << DataBitSize) - 1);              ///< mask for bits
+  static constexpr float FloatConversion = 1.f / float(1 << SignificantBits);          ///< conversion factor from integer representation to float
+
   uint64_t adcValues[2]{}; ///< 128bit ADC values (max. 10x12bit)
 
   /// set ADC 'value' at position 'pos' (0-9)
   void setADCValue(uint32_t pos, uint64_t value)
   {
-    if (pos < 5) {
-      const uint64_t set = (value & uint64_t(0xFFF)) << (pos * 12);
-      const uint64_t mask = (0xFFFFFFFFFFFFFFFF ^ (uint64_t(0xFFF) << (pos * 12)));
-      adcValues[0] &= mask;
-      adcValues[0] |= set;
-    } else if (pos == 5) {
-      const uint64_t set1 = (value & uint64_t(0xF)) << (pos * 12);
-      const uint64_t set2 = (value >> 4) & uint64_t(0xFF);
-      const uint64_t mask1 = 0x0FFFFFFFFFFFFFFF;
-      const uint64_t mask2 = (0xFFFFFFFFFFFFFF00 ^ (uint64_t(0xFF) << (pos * 12)));
-      adcValues[0] &= mask1;
-      adcValues[0] |= set1;
-      adcValues[1] &= mask2;
-      adcValues[1] |= set2;
-    } else {
-      const uint64_t set = (value & uint64_t(0xFFF)) << ((pos * 12) + 8);
-      const uint64_t mask = (0xFFFFFFFFFFF000FF ^ (uint64_t(0xFFF) << ((pos * 12) + 8)));
-      adcValues[1] &= mask;
-      adcValues[1] |= set;
-    }
+    const uint32_t word = pos / ChannelsPerHalfWord;
+    const uint32_t posInWord = pos % ChannelsPerHalfWord;
+
+    const uint64_t set = (value & BitMask) << (posInWord * DataBitSize);
+    const uint64_t mask = (0xFFFFFFFFFFFFFFFF ^ (BitMask << (posInWord * DataBitSize)));
+
+    adcValues[word] &= mask;
+    adcValues[word] |= set;
   }
 
-  /// ADC value of channel at position 'pos' (0-9)
+  /// set ADC value from float
+  void setADCValueFloat(uint32_t pos, float value)
+  {
+    setADCValue(pos, uint64_t((value + 0.5f * FloatConversion) / FloatConversion));
+  }
+
+  /// get ADC value of channel at position 'pos' (0-9)
   uint32_t getADCValue(uint32_t pos)
   {
-    if (pos < 5) {
-      return (adcValues[0] >> (pos * 12)) & uint64_t(0xFFF);
-    } else if (pos == 5) {
-      return (adcValues[0] >> (pos * 12)) | ((adcValues[1] & uint64_t(0xFF)) << 4);
-    } else {
-      return (adcValues[1] >> (8 + pos * 12)) & uint64_t(0xFFF);
-    }
+    const uint32_t word = pos / ChannelsPerHalfWord;
+    const uint32_t posInWord = pos % ChannelsPerHalfWord;
+
+    return (adcValues[word] >> (posInWord * DataBitSize)) & BitMask;
+  }
+
+  /// get ADC value in float
+  float getADCValueFloat(uint32_t pos)
+  {
+    return float(getADCValue(pos)) * FloatConversion;
+  }
+
+  /// reset all ADC values
+  void reset()
+  {
+    adcValues[0] = 0;
+    adcValues[1] = 0;
   }
 };
 
+template <uint32_t DataBitSizeT, uint32_t SignificantBitsT, bool HasHeaderT>
+struct ContainerT;
+
+template <uint32_t DataBitSizeT, uint32_t SignificantBitsT>
+struct ContainerT<DataBitSizeT, SignificantBitsT, true> {
+  Header header;                                ///< header data
+  Data<DataBitSizeT, SignificantBitsT> data[0]; ///< 128 bit words with 12bit ADC values
+
+  uint32_t dataWords() { return header.numWordsPayload + 1; }
+};
+
+template <uint32_t DataBitSizeT, uint32_t SignificantBitsT>
+struct ContainerT<DataBitSizeT, SignificantBitsT, false> {
+  Data<DataBitSizeT, SignificantBitsT> data[0]; ///< 128 bit words with 12bit ADC values
+
+  uint32_t dataWords() { return 7; }
+};
+
+/// Container for decoded data, either zero suppressed or pure raw data
+///
+/// In case of pure raw data, no header is needed, since all 80 channels will be filled
+template <uint32_t DataBitSizeT = 12, uint32_t SignificantBitsT = 2, bool HasHeaderT = true>
 struct Container {
-  Header header; ///< header data
-  Data data[0];  ///< 128 bit words with 12bit ADC values
+  static constexpr uint32_t ChannelsPerWord = DataWordSizeBits / DataBitSizeT; ///< number of ADC values in one 128b word
+
+  ContainerT<DataBitSizeT, SignificantBitsT, HasHeaderT> cont; ///< Templated data container
 
   /// return 12bit ADC value for a specific word in the data stream
-  uint32_t getADCValue(uint32_t word) { return data[word / ChannelsPerWord].getADCValue(word % ChannelsPerWord); }
+  uint32_t getADCValue(uint32_t word) { return cont.data[word / ChannelsPerWord].getADCValue(word % ChannelsPerWord); }
 
   /// return 12bit ADC value for a specific word in the data stream converted to float
-  float getADCValueFloat(uint32_t word) { return float(getADCValue(word)) * FloatConversion; }
+  float getADCValueFloat(uint32_t word) { return cont.data[word / ChannelsPerWord].getADCValueFloat(word % ChannelsPerWord); }
 
   /// set 12bit ADC value for a specific word in the data stream
-  void setADCValue(uint32_t word, uint64_t value) { data[word / ChannelsPerWord].setADCValue(word % ChannelsPerWord, value); }
+  void setADCValue(uint32_t word, uint64_t value) { cont.data[word / ChannelsPerWord].setADCValue(word % ChannelsPerWord, value); }
 
   /// return 12bit ADC value for a specific word in the data stream converted to float
-  void setADCValueFloat(uint32_t word, float value) { data[word / ChannelsPerWord].setADCValue(word, uint64_t((value + FloatConversion / 2.f) / FloatConversion)); }
+  void setADCValueFloat(uint32_t word, float value) { cont.data[word / ChannelsPerWord].setADCValueFloat(word % ChannelsPerWord, value); }
+
+  /// reset all ADC values
+  void reset()
+  {
+    for (int i = 0; i < cont.dataWords(); ++i) {
+      cont.data[i].reset();
+    }
+  }
 
   /// get position of next container. Validity check to be done outside!
   Container* next()
   {
-    return (Container*)(this + (header.numWordsPayload + 1) * DataWordSize);
+    return (Container*)(this + cont.dataWords() * DataWordSizeBytes);
   }
 }; // namespace zerosupp_link_based
+
+using ContainerZS = Container<>;
+using ContainerDecoded = Container<10, 0, false>;
 
 } // namespace zerosupp_link_based
 } // namespace tpc
