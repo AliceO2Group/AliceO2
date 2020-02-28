@@ -16,15 +16,18 @@ namespace o2::aod
 {
 namespace secvtx2prong
 {
+// FIXME: this is a workaround until we get the index columns to work with joins.
+using BigTracks = soa::Join<Tracks, TracksExtra>;
+
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(Posdecayx, posdecayx, float, "fPosdecayx");
 DECLARE_SOA_COLUMN(Posdecayy, posdecayy, float, "fPosdecayy");
 DECLARE_SOA_COLUMN(Posdecayz, posdecayz, float, "fPosdecayz");
-DECLARE_SOA_INDEX_COLUMN_FULL(Index0, index0, int, Tracks, "fIndex0");
+DECLARE_SOA_INDEX_COLUMN_FULL(Index0, index0, int, BigTracks, "fIndex0");
 DECLARE_SOA_COLUMN(Px0, px0, float, "fPx0");
 DECLARE_SOA_COLUMN(Py0, py0, float, "fPy0");
 DECLARE_SOA_COLUMN(Pz0, pz0, float, "fPz0");
-DECLARE_SOA_INDEX_COLUMN_FULL(Index1, index1, int, Tracks, "fIndex1");
+DECLARE_SOA_INDEX_COLUMN_FULL(Index1, index1, int, BigTracks, "fIndex1");
 DECLARE_SOA_COLUMN(Px1, px1, float, "fPx1");
 DECLARE_SOA_COLUMN(Py1, py1, float, "fPy1");
 DECLARE_SOA_COLUMN(Pz1, pz1, float, "fPz1");
