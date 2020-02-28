@@ -161,9 +161,9 @@ void GPUReconstructionHIPBackend::GetITSTraits(std::unique_ptr<o2::its::TrackerT
 int GPUReconstructionHIPBackend::InitDevice_Runtime()
 {
   // Find best HIP device, initialize and allocate memory
+  GPUCA_GPUReconstructionUpdateDefailts();
 
   hipDeviceProp_t hipDeviceProp;
-
   int count, bestDevice = -1;
   double bestDeviceSpeed = -1, deviceSpeed;
   if (GPUFailedMsgI(hipGetDeviceCount(&count))) {
