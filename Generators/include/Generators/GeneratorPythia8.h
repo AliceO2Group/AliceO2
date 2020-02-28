@@ -33,10 +33,10 @@ class GeneratorPythia8 : public Generator
   /** constructor **/
   GeneratorPythia8(const Char_t* name, const Char_t* title = "ALICEo2 Pythia8 Generator");
   /** destructor **/
-  virtual ~GeneratorPythia8() = default;
+  ~GeneratorPythia8() override = default;
 
   /** Initialize the generator if needed **/
-  virtual Bool_t Init() override;
+  Bool_t Init() override;
 
   /** methods **/
   bool readString(std::string val) { return mPythia.readString(val, true); };
