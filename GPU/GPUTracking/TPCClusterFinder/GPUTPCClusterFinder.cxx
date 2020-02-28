@@ -54,7 +54,7 @@ void* GPUTPCClusterFinder::SetPointersScratch(void* mem)
   computePointerWithAlignment(mem, mPisPeak, mNMaxDigits);
   computePointerWithAlignment(mem, mPchargeMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED);
   computePointerWithAlignment(mem, mPpeakMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED);
-  if (not mRec->IsGPU()) {
+  if (not mRec->IsGPU() && mRec->GetDeviceProcessingSettings().runMC) {
     computePointerWithAlignment(mem, mPindexMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED);
     computePointerWithAlignment(mem, mPlabelsByRow, GPUCA_ROW_COUNT * mNMaxClusterPerRow);
     computePointerWithAlignment(mem, mPlabelHeaderOffset, GPUCA_ROW_COUNT);
