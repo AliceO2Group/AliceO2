@@ -53,6 +53,7 @@
   #define GPUCA_THREAD_COUNT_CLUSTERER 512
   #define GPUCA_CONSTRUCTOR_IN_PIPELINE 0
   #define GPUCA_SELECTOR_IN_PIPELINE 0
+  #define GPUCA_TRACKLET_SELECTOR_SLICE_COUNT 1
   // #define GPUCA_USE_TEXTURES
 #elif defined(GPUCA_GPUTYPE_OPENCL)
 #elif defined(GPUCA_GPUCODE)
@@ -153,7 +154,9 @@
 
 // #define GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE                       // Output Profiling Data for Tracklet Constructor Tracklet Scheduling
 
+#ifndef GPUCA_TRACKLET_SELECTOR_SLICE_COUNT
 #define GPUCA_TRACKLET_SELECTOR_SLICE_COUNT 8                          // Currently must be smaller than avaiable MultiProcessors on GPU or will result in wrong results
+#endif
 
 // Default maximum numbers
 #define GPUCA_MAX_CLUSTERS           ((size_t)     1024 * 1024 * 1024) // Maximum number of TPC clusters

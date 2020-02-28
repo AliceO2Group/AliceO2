@@ -140,6 +140,7 @@ struct GPUSettingsDeviceProcessing {
   int nStreams;                       // Number of parallel GPU streams
   char trackletConstructorInPipeline; // Run tracklet constructor in pileline like the preceeding tasks instead of as one big block
   char trackletSelectorInPipeline;    // Run tracklet selector in pipeline, requres also tracklet constructor in pipeline
+  char trackletSelectorSlices;        // Number of slices to processes in parallel at max
   size_t forceMemoryPoolSize;         // Override size of memory pool to be allocated on GPU / Host (set =1 to force allocating all device memory, if supported)
   int nTPCClustererLanes;             // Number of TPC clusterers that can run in parallel
   bool deviceTimers;                  // Use device timers instead of host-based timers
