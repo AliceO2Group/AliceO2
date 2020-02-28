@@ -1326,7 +1326,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       unsigned int runSlices = 0;
       int useStream = 0;
       for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice += runSlices) {
-        if (runSlices < GPUCA_TRACKLET_SELECTOR_SLICE_COUNT) {
+        if (runSlices < (unsigned int)GetDeviceProcessingSettings().trackletSelectorSlices) {
           runSlices++;
         }
         runSlices = CAMath::Min(runSlices, NSLICES - iSlice);
