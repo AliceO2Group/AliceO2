@@ -95,6 +95,7 @@ GPUd() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, 
     maxClusterPerRow,
     clusterInRow,
     clusterByRow);
+  static_cast<void>(rowIndex); // Avoid unused varible warning on GPU.
 
   CPU_ONLY(labelAcc->commit(myDigit.row, rowIndex, maxClusterPerRow));
 }
@@ -194,6 +195,7 @@ GPUd() void GPUTPCCFClusterizer::updateClusterScratchpadOuter(
     Delta2 d = CfConsts::OuterNeighbors[i];
 
     Charge q = cluster->updateOuter(p, d);
+    static_cast<void>(q); // Avoid unused varible warning on GPU.
 
     CPU_ONLY(
       labelAcc->collect(pos.delta(d), q));

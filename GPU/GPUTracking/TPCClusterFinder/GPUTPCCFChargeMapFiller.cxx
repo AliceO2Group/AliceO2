@@ -40,7 +40,7 @@ GPUd() void GPUTPCCFChargeMapFiller::fillChargeMapImpl(int nBlocks, int nThreads
 
   ChargePos pos(myDigit);
   chargeMap[pos] = PackedCharge(myDigit.charge);
-  CPU_ONLY(indexMap[pos] = idx);
+  CPU_ONLY(indexMap.safeWrite(pos, idx));
 }
 
 template <>

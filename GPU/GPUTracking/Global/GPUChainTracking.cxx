@@ -983,8 +983,10 @@ int GPUChainTracking::RunTPCClusterizer()
   bool propagateMCLabels = !doGPU && digitsMC != nullptr && GetDeviceProcessingSettings().runMC;
 
   GPUTPCLinearLabels mcLinearLabels;
-  mcLinearLabels.header.reserve(mRec->MemoryScalers()->nTPCHits);
-  mcLinearLabels.data.reserve(mRec->MemoryScalers()->nTPCHits * 16); // Assumption: cluster will have less than 16 labels on average
+  if (propagateMCLabels) {
+    mcLinearLabels.header.reserve(mRec->MemoryScalers()->nTPCHits);
+    mcLinearLabels.data.reserve(mRec->MemoryScalers()->nTPCHits * 16); // Assumption: cluster will have less than 16 labels on average
+  }
 
   for (unsigned int iSliceBase = 0; iSliceBase < NSLICES; iSliceBase += GetDeviceProcessingSettings().nTPCClustererLanes) {
     for (int lane = 0; lane < GetDeviceProcessingSettings().nTPCClustererLanes && iSliceBase + lane < NSLICES; lane++) {
@@ -1134,12 +1136,12 @@ int GPUChainTracking::RunTPCClusterizer()
 
   static o2::dataformats::MCTruthContainer<o2::MCCompLabel> mcLabels;
 
-  assert(mcLinearLabels.header.size() == nClsTotal);
+  assert(propagateMCLabels ? mcLinearLabels.header.size() == nClsTotal : true);
 
   mcLabels.setFrom(mcLinearLabels.header, mcLinearLabels.data);
 
   tmp->clustersLinear = clsMemory.data();
-  tmp->clustersMCTruth = &mcLabels;
+  tmp->clustersMCTruth = propagateMCLabels ? &mcLabels : nullptr;
   tmp->setOffsetPtrs();
   mIOPtrs.clustersNative = tmp;
   PrepareEventFromNative();
