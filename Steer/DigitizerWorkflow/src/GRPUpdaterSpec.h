@@ -21,7 +21,7 @@ namespace parameters
 {
 
 o2::framework::DataProcessorSpec
-  getGRPUpdaterSpec(const std::vector<o2::detectors::DetID>& detList);
+  getGRPUpdaterSpec(const std::string& grpfilename, const std::vector<o2::detectors::DetID>& detList);
 
 } // end namespace parameters
 } // end namespace o2
