@@ -16,7 +16,7 @@ namespace o2::aod
 {
 namespace secvtx2prong
 {
-DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fCollisionsID");
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(Posdecayx, posdecayx, float, "fPosdecayx");
 DECLARE_SOA_COLUMN(Posdecayy, posdecayy, float, "fPosdecayy");
 DECLARE_SOA_COLUMN(Posdecayz, posdecayz, float, "fPosdecayz");
@@ -24,7 +24,7 @@ DECLARE_SOA_INDEX_COLUMN_FULL(Index0, index0, int, Tracks, "fIndex0");
 DECLARE_SOA_COLUMN(Px0, px0, float, "fPx0");
 DECLARE_SOA_COLUMN(Py0, py0, float, "fPy0");
 DECLARE_SOA_COLUMN(Pz0, pz0, float, "fPz0");
-DECLARE_SOA_COLUMN(Index1, index1, int, "fIndex1");
+DECLARE_SOA_INDEX_COLUMN_FULL(Index1, index1, int, Tracks, "fIndex1");
 DECLARE_SOA_COLUMN(Px1, px1, float, "fPx1");
 DECLARE_SOA_COLUMN(Py1, py1, float, "fPy1");
 DECLARE_SOA_COLUMN(Pz1, pz1, float, "fPz1");
@@ -41,7 +41,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(Decaylength, decaylength, [](float xvtxd, float yvtxd
 } // namespace secvtx2prong
 namespace cand2prong
 {
-DECLARE_SOA_COLUMN(CollisionId, collisionId, int, "fCollisionsID");
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(MassD0, massD0, float, "fMassD0");
 DECLARE_SOA_COLUMN(MassD0bar, massD0bar, float, "fMassD0bar");
 } // namespace cand2prong
@@ -50,7 +50,7 @@ DECLARE_SOA_TABLE(SecVtx2Prong, "AOD", "CAND2PRONG",
                   secvtx2prong::CollisionId, collision::PosX, collision::PosY, collision::PosZ,
                   secvtx2prong::Posdecayx, secvtx2prong::Posdecayy, secvtx2prong::Posdecayz,
                   secvtx2prong::Index0Id, secvtx2prong::Px0, secvtx2prong::Py0, secvtx2prong::Pz0,
-                  secvtx2prong::Index1, secvtx2prong::Px1, secvtx2prong::Py1, secvtx2prong::Pz1,
+                  secvtx2prong::Index1Id, secvtx2prong::Px1, secvtx2prong::Py1, secvtx2prong::Pz1,
                   secvtx2prong::IndexDCApair, secvtx2prong::Mass, secvtx2prong::Massbar,
                   secvtx2prong::DecaylengthXY<secvtx2prong::Posdecayx, secvtx2prong::Posdecayy, collision::PosX, collision::PosY>,
                   secvtx2prong::Decaylength<secvtx2prong::Posdecayx, secvtx2prong::Posdecayy, secvtx2prong::Posdecayz, collision::PosX, collision::PosY, collision::PosZ>);
