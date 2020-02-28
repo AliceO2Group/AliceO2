@@ -119,7 +119,7 @@ struct CandidateBuilding2Prong {
 
 struct CandidateBuildingDzero {
   Produces<aod::Cand2Prong> cand2prong;
-  void process(aod::SecVtx2Prong const& secVtx2Prongs, aod::Tracks const& tracks) // HERE IT WHAT WORKS
+  void process(aod::SecVtx2Prong const& secVtx2Prongs, soa::Join<aod::Tracks, aod::TracksExtra> const& tracks) // HERE IT WHAT WORKS
   //void process(aod::SecVtx2Prong const& secVtx2Prongs)  //THE SIMPLE LOOP WORKS AS WELL OF COURSE
 
   //BELOW IS WHAT I WOULD LIKE TO BE ABLE TO DO AND THAT IS STILL NOT WORKING
