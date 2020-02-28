@@ -115,7 +115,7 @@ edge[dir=back, arrowtail=empty]
   dumpTable<V0s>();
   dumpTable<Cascades>();
   dumpTable<Timeframes>();
-  dumpTable<SecVtx2Prong>();
+  //  dumpTable<SecVtx2Prong>();
   dumpTable<Cand2Prong>();
   fmt::printf("%s\n", R"(})");
 }
