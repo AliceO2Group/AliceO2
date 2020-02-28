@@ -372,7 +372,10 @@ struct AnalysisDataProcessorBuilder {
                       "You cannot have a soa::RowView iterator as an argument after the "
                       " first argument of type soa::Table which is found as in the "
                       " prototype of the task process method.");
-        task.process(groupingTable, std::get<0>(associatedTables));
+        auto& associated = std::get<0>(associatedTables);
+        associated.bindExternalIndices(&groupingTable);
+        groupingTable.bindExternalIndices(&associated);
+        task.process(groupingTable, associated);
       } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::RowViewBase>::value) {
         using AssociatedType = std::tuple_element_t<0, std::tuple<Associated...>>;
         if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::RowViewBase>::value) {
