@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/AnalysisDataModel.h"
+#include "Analysis/SecondaryVertex.h"
 #include <fmt/printf.h>
 #include <map>
 
@@ -114,5 +115,7 @@ edge[dir=back, arrowtail=empty]
   dumpTable<V0s>();
   dumpTable<Cascades>();
   dumpTable<Timeframes>();
+  dumpTable<SecVtx2Prong>();
+  dumpTable<Cand2Prong>();
   fmt::printf("%s\n", R"(})");
 }

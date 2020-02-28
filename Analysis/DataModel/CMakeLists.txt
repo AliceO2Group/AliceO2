@@ -8,7 +8,14 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(Core)
-add_subdirectory(DataModel)
-add_subdirectory(Tasks)
-add_subdirectory(Tutorials)
+o2_add_library(AnalysisDataModel
+               SOURCES src/dummy.cxx
+               PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
+               PUBLIC_LINK_LIBRARIES 
+                                     O2::Framework
+                                     )
+
+o2_add_executable(dump-aod-data-model
+                  SOURCES src/dumpDataModel.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel
+                  )
