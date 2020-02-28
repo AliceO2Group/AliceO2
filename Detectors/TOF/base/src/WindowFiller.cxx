@@ -78,6 +78,16 @@ void WindowFiller::initObj()
   }
 }
 //______________________________________________________________________
+void WindowFiller::newTF()
+{
+  reset();
+
+  //  mMCTruthOutputContainerPerTimeFrame.clear();
+
+  mTF++;
+  //  printf("New TF = %d\n", mTF);
+}
+//______________________________________________________________________
 void WindowFiller::reset()
 {
   mIcurrentReadoutWindow = 0;

@@ -18,6 +18,10 @@ ClassImp(o2::tof::Geo);
 
 using namespace o2::tof;
 
+o2::raw::HBFUtils gHBFutilTOF; // (to be removed once the methods used will be static)
+int Geo::ORBIT_IN_TF = gHBFutilTOF.getNOrbitsPerTF();
+double Geo::NS_IN_TF = o2::constants::lhc::LHCOrbitNS * gHBFutilTOF.getNOrbitsPerTF();
+
 constexpr Float_t Geo::ANGLES[NPLATES][NMAXNSTRIP];
 constexpr Float_t Geo::HEIGHTS[NPLATES][NMAXNSTRIP];
 constexpr Float_t Geo::DISTANCES[NPLATES][NMAXNSTRIP];

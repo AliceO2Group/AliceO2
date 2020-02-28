@@ -35,12 +35,12 @@ template <typename T>
 TBranch* getOrMakeBranch(TTree& tree, std::string brname, T* ptr)
 {
   if (auto br = tree.GetBranch(brname.c_str())) {
-    printf("Re-use output branch %s\n",brname.c_str());
+    printf("Re-use output branch %s\n", brname.c_str());
     br->SetAddress(static_cast<void*>(ptr));
     return br;
   }
   // otherwise make it
-  printf("Create output branch %s\n",brname.c_str());
+  printf("Create output branch %s\n", brname.c_str());
   return tree.Branch(brname.c_str(), ptr);
 }
 
@@ -56,12 +56,12 @@ DataProcessorSpec getTOFDigitWriterSpec(bool useMC)
     auto outputfile = std::make_shared<TFile>(filename.c_str(), "RECREATE");
     auto outputtree = std::make_shared<TTree>(treename.c_str(), treename.c_str());
 
-    int *nCalls = new int;
+    int* nCalls = new int;
     *nCalls = 0;
 
     // the callback to be set as hook at stop of processing for the framework
     auto finishWriting = [outputfile, outputtree, nCalls]() {
-      printf("finish writing with %d entries in the tree\n",*nCalls);
+      printf("finish writing with %d entries in the tree\n", *nCalls);
       outputtree->SetEntries(*nCalls);
       outputtree->Write();
       outputfile->Close();
@@ -107,8 +107,8 @@ DataProcessorSpec getTOFDigitWriterSpec(bool useMC)
         labelbr->Fill();
       }
 
-//      finished = true;
-//      pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+      //      finished = true;
+      //      pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     };
 
     // return the actual processing function as a lambda function using variables

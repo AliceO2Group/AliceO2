@@ -49,7 +49,7 @@ void RawWriter::run(ProcessingContext& pc)
   encoder.alloc(cache);
 
   int nwindowperorbit = Geo::NWINDOW_IN_ORBIT;
-  int nwindowintimeframe = 256 * nwindowperorbit;
+  int nwindowintimeframe = Geo::ORBIT_IN_TF * nwindowperorbit;
   int nwindowFilled = nwindow;
   if (nwindowFilled % nwindowintimeframe) {
     nwindowFilled = (nwindowFilled / nwindowintimeframe + 1) * nwindowintimeframe;

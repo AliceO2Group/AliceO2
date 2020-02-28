@@ -100,7 +100,7 @@ int Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* dig
     } // close loop readout window
   }   // close if continuous
 
-  // if (mReadoutWindowCurrent >= 256 * Geo::NWINDOW_IN_ORBIT) // new TF
+  // if (mReadoutWindowCurrent >= Geo::ORBIT_IN_TF * Geo::NWINDOW_IN_ORBIT) // new TF
   //   return 1;
 
   for (auto& hit : *hits) {
@@ -498,16 +498,6 @@ Float_t Digitizer::getEffZ(Float_t z)
 //______________________________________________________________________
 Float_t Digitizer::getFractionOfCharge(Float_t x, Float_t z) { return 1; }
 //______________________________________________________________________
-void Digitizer::newTF()
-{
-  reset();
-
-  mMCTruthOutputContainerPerTimeFrame.clear();
-
-  mTF++;
-  printf("New TF = %d\n", mTF);
-}
-//______________________________________________________________________
 void Digitizer::initParameters()
 {
   // boundary references for interpolation of efficiency and resolution
@@ -800,7 +790,7 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
   for (auto& strip : *mStripsCurrent) {
     strip.fillOutputContainer(digits);
     if (strip.getNumberOfDigits())
-      printf("strip size = %d - digit size = %d\n", strip.getNumberOfDigits(), digits.size());
+      LOG(INFO) << "strip size = " << strip.getNumberOfDigits() << " - digit size = " << digits.size() << "\n";
   }
 
   if (mContinuous) {
