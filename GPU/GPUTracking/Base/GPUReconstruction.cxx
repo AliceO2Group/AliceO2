@@ -154,6 +154,7 @@ int GPUReconstruction::Init()
   if (InitDevice()) {
     return 1;
   }
+  GPUCA_GPUReconstructionUpdateDefailts();
   if (IsGPU()) {
     for (unsigned int i = 0; i < mChains.size(); i++) {
       mChains[i]->RegisterGPUProcessors();

@@ -147,8 +147,9 @@ void GPUReconstructionCUDABackend::GetITSTraits(std::unique_ptr<o2::its::Tracker
 int GPUReconstructionCUDABackend::InitDevice_Runtime()
 {
   // Find best CUDA device, initialize and allocate memory
-  cudaDeviceProp cudaDeviceProp;
+  GPUCA_GPUReconstructionUpdateDefailts();
 
+  cudaDeviceProp cudaDeviceProp;
   int count, bestDevice = -1;
   double bestDeviceSpeed = -1, deviceSpeed;
   if (GPUFailedMsgI(cuInit(0))) {
