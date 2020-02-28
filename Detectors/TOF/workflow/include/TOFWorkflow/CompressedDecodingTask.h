@@ -44,9 +44,9 @@ class CompressedDecodingTask : public DecoderBase, public Task
 
  private:
   /** decoding handlers **/
-  void rdhHandler(const o2::header::RAWDataHeader* rdh);
+  void rdhHandler(const o2::header::RAWDataHeader* rdh) override;
   void frameHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
-                    const FrameHeader_t* frameHeader, const PackedHit_t* packedHits);
+                    const FrameHeader_t* frameHeader, const PackedHit_t* packedHits) override;
 
   bool mStatus = false;
   o2::tof::compressed::Decoder mDecoder;
@@ -58,7 +58,7 @@ class CompressedDecodingTask : public DecoderBase, public Task
   int mInitOrbit = 0;
 };
 
-framework::DataProcessorSpec getCompressedDecodingSpec(std::string inputDesc);
+framework::DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc);
 
 } // namespace tof
 } // namespace o2

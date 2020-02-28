@@ -51,7 +51,7 @@ class DecoderBase
   };
 
   void setDecoderVerbose(bool val) { mDecoderVerbose = val; };
-  void setDecoderBuffer(char* val) { mDecoderBuffer = val; };
+  void setDecoderBuffer(const char* val) { mDecoderBuffer = val; };
   void setDecoderBufferSize(long val) { mDecoderBufferSize = val; };
 
  private:
@@ -70,14 +70,14 @@ class DecoderBase
   bool processDRM();
 
   /** decoder private functions and data members **/
-  inline void decoderRewind() { mDecoderPointer = reinterpret_cast<uint32_t*>(mDecoderBuffer); };
+  inline void decoderRewind() { mDecoderPointer = reinterpret_cast<const uint32_t*>(mDecoderBuffer); };
 
-  char* mDecoderBuffer = nullptr;
+  const char* mDecoderBuffer = nullptr;
   long mDecoderBufferSize;
-  uint32_t* mDecoderPointer = nullptr;
-  uint32_t* mDecoderPointerMax = nullptr;
-  uint32_t* mDecoderPointerNext = nullptr;
-  o2::header::RAWDataHeader* mDecoderRDH;
+  const uint32_t* mDecoderPointer = nullptr;
+  const uint32_t* mDecoderPointerMax = nullptr;
+  const uint32_t* mDecoderPointerNext = nullptr;
+  const o2::header::RAWDataHeader* mDecoderRDH;
   bool mDecoderVerbose = false;
   bool mDecoderError = false;
   bool mDecoderFatal = false;

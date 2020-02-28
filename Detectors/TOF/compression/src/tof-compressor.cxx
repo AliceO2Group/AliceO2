@@ -39,7 +39,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
 
   auto inputDesc = cfgc.options().get<std::string>("input-desc");
-  auto outputDesc = cfgc.options().get<std::string>("output-desc");
+  //  auto outputDesc = cfgc.options().get<std::string>("output-desc");
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(OutputSpec(ConcreteDataTypeMatcher{"TOF", "CRAWDATA"}));
 

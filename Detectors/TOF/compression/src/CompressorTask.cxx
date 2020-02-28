@@ -67,7 +67,7 @@ void CompressorTask::run(ProcessingContext& pc)
     /** input **/
     auto headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
     auto dataProcessingHeaderIn = DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(input);
-    auto payloadIn = const_cast<char*>(input.payload);
+    auto payloadIn = input.payload;
     auto payloadInSize = headerIn->payloadSize;
     mCompressor.setDecoderBuffer(payloadIn);
     mCompressor.setDecoderBufferSize(payloadInSize);

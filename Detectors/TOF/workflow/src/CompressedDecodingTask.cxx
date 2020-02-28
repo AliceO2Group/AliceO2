@@ -88,7 +88,7 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
 
     /** input **/
     const auto* headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
-    auto payloadIn = const_cast<char*>(input.payload);
+    auto payloadIn = input.payload;
     auto payloadInSize = headerIn->payloadSize;
 
     DecoderBase::setDecoderBuffer(payloadIn);
@@ -131,7 +131,7 @@ void CompressedDecodingTask::frameHandler(const CrateHeader_t* crateHeader, cons
   }
 };
 
-DataProcessorSpec getCompressedDecodingSpec(std::string inputDesc)
+DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);

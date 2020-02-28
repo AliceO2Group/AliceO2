@@ -54,7 +54,7 @@ bool DecoderBase::processHBF()
   }
 #endif
 
-  mDecoderRDH = reinterpret_cast<o2::header::RAWDataHeader*>(mDecoderPointer);
+  mDecoderRDH = reinterpret_cast<const o2::header::RAWDataHeader*>(mDecoderPointer);
   auto rdh = mDecoderRDH;
 
   /** loop until RDH close **/
@@ -79,14 +79,14 @@ bool DecoderBase::processHBF()
     auto drmPayload = memorySize - headerSize;
 
     /** copy DRM payload to save buffer **/
-    std::memcpy(mDecoderSaveBuffer + mDecoderSaveBufferDataSize, reinterpret_cast<char*>(rdh) + headerSize, drmPayload);
+    std::memcpy(mDecoderSaveBuffer + mDecoderSaveBufferDataSize, reinterpret_cast<const char*>(rdh) + headerSize, drmPayload);
     mDecoderSaveBufferDataSize += drmPayload;
 
     /** move to next RDH **/
-    rdh = reinterpret_cast<o2::header::RAWDataHeader*>(reinterpret_cast<char*>(rdh) + offsetToNext);
+    rdh = reinterpret_cast<const o2::header::RAWDataHeader*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
 
     /** check next RDH is within buffer **/
-    if (reinterpret_cast<char*>(rdh) < mDecoderBuffer + mDecoderBufferSize)
+    if (reinterpret_cast<const char*>(rdh) < mDecoderBuffer + mDecoderBufferSize)
       continue;
 
     /** otherwise return **/
@@ -104,8 +104,8 @@ bool DecoderBase::processHBF()
 #endif
 
   /** process DRM data **/
-  mDecoderPointer = reinterpret_cast<uint32_t*>(mDecoderSaveBuffer);
-  mDecoderPointerMax = reinterpret_cast<uint32_t*>(mDecoderSaveBuffer + mDecoderSaveBufferDataSize);
+  mDecoderPointer = reinterpret_cast<const uint32_t*>(mDecoderSaveBuffer);
+  mDecoderPointerMax = reinterpret_cast<const uint32_t*>(mDecoderSaveBuffer + mDecoderSaveBufferDataSize);
   while (mDecoderPointer < mDecoderPointerMax) {
     if (processDRM())
       break;
@@ -125,10 +125,10 @@ bool DecoderBase::processHBF()
 #endif
 
   /** move to next RDH **/
-  mDecoderPointer = reinterpret_cast<uint32_t*>(reinterpret_cast<char*>(rdh) + rdh->offsetToNext);
+  mDecoderPointer = reinterpret_cast<const uint32_t*>(reinterpret_cast<const char*>(rdh) + rdh->offsetToNext);
 
   /** check next RDH is within buffer **/
-  if (reinterpret_cast<char*>(mDecoderPointer) < mDecoderBuffer + mDecoderBufferSize)
+  if (reinterpret_cast<const char*>(mDecoderPointer) < mDecoderBuffer + mDecoderBufferSize)
     return false;
 
   /** otherwise return **/
@@ -156,7 +156,7 @@ bool DecoderBase::processDRM()
   }
 
   /** crate header detected **/
-  auto crateHeader = reinterpret_cast<CrateHeader_t*>(mDecoderPointer);
+  auto crateHeader = reinterpret_cast<const CrateHeader_t*>(mDecoderPointer);
 #ifdef DECODER_VERBOSE
   if (mDecoderVerbose) {
     printf(" %08x CrateHeader          (drmID=%d) \n ", *mDecoderPointer, crateHeader->drmID);
@@ -165,7 +165,7 @@ bool DecoderBase::processDRM()
   mDecoderPointer++;
 
   /** crate orbit expected **/
-  auto crateOrbit = reinterpret_cast<CrateOrbit_t*>(mDecoderPointer);
+  auto crateOrbit = reinterpret_cast<const CrateOrbit_t*>(mDecoderPointer);
 #ifdef DECODER_VERBOSE
   if (mDecoderVerbose) {
     printf(" %08x CrateOrbit           (orbit=0x%08x) \n ", *mDecoderPointer, crateOrbit->orbitID);
@@ -180,18 +180,18 @@ bool DecoderBase::processDRM()
 
     /** crate trailer detected **/
     if (*mDecoderPointer & 0x80000000) {
-      auto crateTrailer = reinterpret_cast<CrateTrailer_t*>(mDecoderPointer);
+      auto crateTrailer = reinterpret_cast<const CrateTrailer_t*>(mDecoderPointer);
 #ifdef DECODER_VERBOSE
       if (mDecoderVerbose) {
         printf(" %08x CrateTrailer         (numberOfDiagnostics=%d) \n ", *mDecoderPointer, crateTrailer->numberOfDiagnostics);
       }
 #endif
       mDecoderPointer++;
-      auto diagnostics = reinterpret_cast<Diagnostic_t*>(mDecoderPointer);
+      auto diagnostics = reinterpret_cast<const Diagnostic_t*>(mDecoderPointer);
 #ifdef DECODER_VERBOSE
       if (mDecoderVerbose) {
         for (int i = 0; i < crateTrailer->numberOfDiagnostics; ++i) {
-          auto diagnostic = reinterpret_cast<Diagnostic_t*>(mDecoderPointer + i);
+          auto diagnostic = reinterpret_cast<const Diagnostic_t*>(mDecoderPointer + i);
           printf(" %08x Diagnostic           (slotId=%d) \n ", *(mDecoderPointer + i), diagnostic->slotID);
         }
       }
@@ -205,18 +205,18 @@ bool DecoderBase::processDRM()
     }
 
     /** frame header detected **/
-    auto frameHeader = reinterpret_cast<FrameHeader_t*>(mDecoderPointer);
+    auto frameHeader = reinterpret_cast<const FrameHeader_t*>(mDecoderPointer);
 #ifdef DECODER_VERBOSE
     if (mDecoderVerbose) {
       printf(" %08x FrameHeader          (numberOfHits=%d) \n ", *mDecoderPointer, frameHeader->numberOfHits);
     }
 #endif
     mDecoderPointer++;
-    auto packedHits = reinterpret_cast<PackedHit_t*>(mDecoderPointer);
+    auto packedHits = reinterpret_cast<const PackedHit_t*>(mDecoderPointer);
 #ifdef DECODER_VERBOSE
     if (mDecoderVerbose) {
       for (int i = 0; i < frameHeader->numberOfHits; ++i) {
-        auto packedHit = reinterpret_cast<PackedHit_t*>(mDecoderPointer + 1);
+        auto packedHit = reinterpret_cast<const PackedHit_t*>(mDecoderPointer + 1);
         printf(" %08x PackedHit            (tdcID=%d) \n ", *(mDecoderPointer + 1), packedHit->tdcID);
         packedHits++;
       }

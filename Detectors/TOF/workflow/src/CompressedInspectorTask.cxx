@@ -83,7 +83,7 @@ void CompressedInspectorTask::run(ProcessingContext& pc)
 
     /** input **/
     const auto* headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
-    auto payloadIn = const_cast<char*>(input.payload);
+    auto payloadIn = input.payload;
     auto payloadInSize = headerIn->payloadSize;
 
     setDecoderBuffer(payloadIn);
