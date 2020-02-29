@@ -92,7 +92,8 @@ BOOST_AUTO_TEST_CASE(TestDDS)
     }};
   DeviceSpecHelpers::prepareArguments(false, false,
                                       dataProcessorInfos,
-                                      devices, executions, controls, "workflow-id");
+                                      devices, executions, controls,
+                                      "workflow-id");
   dumpDeviceSpec2DDS(ss, devices, executions);
   BOOST_CHECK_EQUAL(ss.str(), R"EXPECTED(<topology id="o2-dataflow">
    <decltask id="A">
