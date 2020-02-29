@@ -19,7 +19,7 @@
 #include <cmath>
 #include <array>
 
-struct CandidateBuilding2Prong {
+struct DecayVertexBuilder2Prong {
   // secondary vertex position
   OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 100, -0.1, 0.1)};
   OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 100, -0.1, 0.1)};
@@ -179,7 +179,7 @@ struct DzeroHistoTask {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<CandidateBuilding2Prong>("vertexerhf-candidatebuilding2prong"),
+    adaptAnalysisTask<DecayVertexBuilder2Prong>("decayvertexbuilder2prong"),
     adaptAnalysisTask<CandidateBuildingDzero>("vertexerhf-candidatebuildingDzero"),
     adaptAnalysisTask<DzeroHistoTask>("vertexerhf-Dzerotask")};
 }
