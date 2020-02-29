@@ -46,6 +46,7 @@ void GPUSettingsRec::SetDefaults()
   tpcZSthreshold = 2;
   fwdTPCDigitsAsClusters = 0;
   bz0Pt = 60;
+  dropLoopers = false;
 }
 
 void GPUSettingsEvent::SetDefaults()

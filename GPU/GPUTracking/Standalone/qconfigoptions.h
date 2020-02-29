@@ -78,6 +78,7 @@ AddOption(tpcCompression, int, 7, "tpcCompression", 0, "TPC Compression mode bit
 AddOption(tpcCompressionSort, int, 0, "tpcCompressionSort", 0, "Sort order of TPC compression (0 = time, 1 = pad, 2 = Z-time-pad, 3 = Z-pad-time, 4 = no sorting (use incoming order))")
 AddOption(ForceEarlyTPCTransform, int, -1, "ForceEarlyTPCTransform", 0, "Force early TPC transformation also for continuous data (-1 = auto)")
 AddOption(fwdTPCDigitsAsClusters, bool, false, "forwardTPCdigits", 0, "Forward TPC digits as clusters (if they pass the ZS threshold)")
+AddOption(dropLoopers, bool, false, "dropLoopers", 0, "Drop looping tracks starting from second loop")
 AddHelp("help", 'h')
 EndConfig()
 

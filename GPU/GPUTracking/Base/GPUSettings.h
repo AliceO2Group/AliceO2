@@ -77,6 +77,7 @@ struct GPUSettingsRec {
   unsigned char tpcZSthreshold;          // TPC Zero Suppression Threshold (for loading digits / forwarging digits as clusters)
   unsigned char fwdTPCDigitsAsClusters;  // Simply forward TPC digits as clusters
   unsigned char bz0Pt;                   // Nominal Pt to set when bz = 0 (in 10 MeV)
+  unsigned char dropLoopers;             // Drop all clusters after starting from the second loop from tracks
 };
 
 // Settings describing the events / time frames

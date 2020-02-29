@@ -1116,6 +1116,11 @@ void GPUTPCGMMerger::CollectMergedTracks()
       std::sort(trackParts, trackParts + nParts, GPUTPCGMMerger_CompareParts);
     }
 
+    if (Param().rec.dropLoopers && leg > 0) {
+      nParts = 1;
+      leg = 0;
+    }
+
     GPUTPCSliceOutCluster trackClusters[kMaxClusters];
     uchar2 clA[kMaxClusters];
     nHits = 0;
