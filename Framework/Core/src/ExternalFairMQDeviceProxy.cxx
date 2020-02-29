@@ -399,6 +399,19 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
     auto outputRoutes = ctx.services().get<RawDeviceService>().spec().outputs;
     assert(device);
 
+    // check that the name used for registering the OnData callback corresponds
+    // to the configured output channel, unfortunately we can not automatically
+    // deduce this from list of channels without knowing the name, because there
+    // will be multiple channels. At least we throw a more informative exception.
+    // FairMQDevice calls the custom init before the channels have been configured
+    // so we do the check before starting in a dedicated callback
+    auto channelConfigurationChecker = [channel, device]() {
+      if (device->fChannels.count(channel) == 0) {
+        throw std::runtime_error("the required out-of-band channel '" + channel + "' has not been configured, please check the name in the channel configuration");
+      }
+    };
+    ctx.services().get<CallbackService>().set(CallbackService::Id::Start, channelConfigurationChecker);
+
     // Converter should pump messages
     auto handler = [device, converter, outputRoutes = std::move(outputRoutes)](FairMQParts& inputs, int) {
       auto channelRetriever = [outputRoutes = std::move(outputRoutes)](OutputSpec const& query) -> std::string {
