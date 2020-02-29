@@ -76,6 +76,10 @@ DECLARE_SOA_TABLE(Cand2Prong, "AOD", "CANDDZERO",
 using namespace o2;
 using namespace o2::framework;
 
+//FIXME: this functions will need to become dynamic columns
+//once we will be able to build dynamic columns starting from
+//columns that belongs to different tables
+
 float energy(float px, float py, float pz, float mass)
 {
   float en_ = sqrtf(mass * mass + px * px + py * py + pz * pz);

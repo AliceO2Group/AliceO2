@@ -20,11 +20,6 @@
 #include <array>
 
 struct DecayVertexBuilder2Prong {
-  // secondary vertex position
-  OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 100, -0.1, 0.1)};
-  OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 100, -0.1, 0.1)};
-  OutputObj<TH1F> hvtx_z_out{TH1F("hvtx_z", "2-track vtx", 100, -0.1, 0.1)};
-  OutputObj<TH1F> hchi2dca{TH1F("hchi2dca", "chi2 DCA decay", 1000, 0., 0.0002)};
   // primary vertex position
   OutputObj<TH1F> hvtxp_x_out{TH1F("hvertexx", "x primary vtx", 100, -10., 10.)};
   OutputObj<TH1F> hvtxp_y_out{TH1F("hvertexy", "y primary vtx", 100, -10., 10.)};
@@ -37,6 +32,11 @@ struct DecayVertexBuilder2Prong {
   OutputObj<TH1F> hpt_cuts{TH1F("hpt_cuts", "pt tracks (#GeV)", 100, 0., 10.)};
   OutputObj<TH1F> htgl_cuts{TH1F("htgl_cuts", "tgl tracks (#GeV)", 100, 0., 10.)};
   OutputObj<TH1F> hitsmap_cuts{TH1F("hitsmap_cuts", "hitsmap", 100, 0., 100.)};
+  // secondary vertex position
+  OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 100, -0.1, 0.1)};
+  OutputObj<TH1F> hvtx_y_out{TH1F("hvtx_y", "2-track vtx", 100, -0.1, 0.1)};
+  OutputObj<TH1F> hvtx_z_out{TH1F("hvtx_z", "2-track vtx", 100, -0.1, 0.1)};
+  OutputObj<TH1F> hchi2dca{TH1F("hchi2dca", "chi2 DCA decay", 1000, 0., 0.0002)};
 
   Produces<aod::SecVtx2Prong> secvtx2prong;
 
@@ -99,7 +99,8 @@ struct DecayVertexBuilder2Prong {
 
         df.setUseAbsDCA(true);
         int nCand = df.process(trackparvar0, trackparvar1);
-        for (int ic = 0; ic < nCand; ic++) {
+        //FIXME: currently filling the table for all dca candidates.
+	for (int ic = 0; ic < nCand; ic++) {
           const o2::base::DCAFitter::Triplet& vtx = df.getPCACandidate(ic);
           LOGF(info, "vertex x %f", vtx.x);
           hvtx_x_out->Fill(vtx.x);
@@ -138,12 +139,51 @@ struct CandidateBuildingDzero {
   {
     LOGF(info, "NEW EVENT");
 
+    o2::base::DCAFitter df(5.0, 10.);
+
     for (auto& secVtx2prong : secVtx2Prongs) {
       LOGF(INFO, " ------- new event ---------");
       LOGF(INFO, " track0 y from secvtx tab.  %f", secVtx2prong.y0());
       LOGF(INFO, " track0 y from track  %f", secVtx2prong.index0().y());
       LOGF(INFO, " track1 y from secvtx table  %f", secVtx2prong.y1());
       LOGF(INFO, " track1 y from track  %f", secVtx2prong.index1().y());
+
+      float x0_ = secVtx2prong.index0().x();
+      float alpha0_ = secVtx2prong.index0().alpha();
+      std::array<float, 5> arraypar0 = {secVtx2prong.index0().y(), secVtx2prong.index0().z(),
+                                        secVtx2prong.index0().snp(), secVtx2prong.index0().tgl(),
+                                        secVtx2prong.index0().signed1Pt()};
+      std::array<float, 15> covpar0 = {secVtx2prong.index0().cYY(), secVtx2prong.index0().cZY(),
+                                       secVtx2prong.index0().cZZ(), secVtx2prong.index0().cSnpY(),
+                                       secVtx2prong.index0().cSnpZ(), secVtx2prong.index0().cSnpSnp(),
+                                       secVtx2prong.index0().cTglY(), secVtx2prong.index0().cTglZ(),
+                                       secVtx2prong.index0().cTglSnp(), secVtx2prong.index0().cTglTgl(),
+                                       secVtx2prong.index0().c1PtY(), secVtx2prong.index0().c1PtZ(),
+                                       secVtx2prong.index0().c1PtSnp(), secVtx2prong.index0().c1PtTgl(),
+                                       secVtx2prong.index0().c1Pt21Pt2()};
+      o2::track::TrackParCov trackparvar0(x0_, alpha0_, arraypar0, covpar0);
+
+      float x1_ = secVtx2prong.index1().x();
+      float alpha1_ = secVtx2prong.index1().alpha();
+      std::array<float, 5> arraypar1 = {secVtx2prong.index1().y(), secVtx2prong.index1().z(),
+                                        secVtx2prong.index1().snp(), secVtx2prong.index1().tgl(),
+                                        secVtx2prong.index1().signed1Pt()};
+      std::array<float, 15> covpar1 = {secVtx2prong.index1().cYY(), secVtx2prong.index1().cZY(),
+                                       secVtx2prong.index1().cZZ(), secVtx2prong.index1().cSnpY(),
+                                       secVtx2prong.index1().cSnpZ(), secVtx2prong.index1().cSnpSnp(),
+                                       secVtx2prong.index1().cTglY(), secVtx2prong.index1().cTglZ(),
+                                       secVtx2prong.index1().cTglSnp(), secVtx2prong.index1().cTglTgl(),
+                                       secVtx2prong.index1().c1PtY(), secVtx2prong.index1().c1PtZ(),
+                                       secVtx2prong.index1().c1PtSnp(), secVtx2prong.index1().c1PtTgl(),
+                                       secVtx2prong.index1().c1Pt21Pt2()};
+      o2::track::TrackParCov trackparvar1(x1_, alpha1_, arraypar1, covpar1);
+
+      df.setUseAbsDCA(true);
+      //FIXME: currently I rebuild the vertex for each track-track pair and
+      //select the candidate via its index. It is redundant cause the secondary
+      //vertex recostruction is performed more than once for each dca candidate
+      int nCand = df.process(trackparvar0, trackparvar1);
+      const o2::base::DCAFitter::Triplet& secvtx = df.getPCACandidate(secVtx2prong.indexDCApair());
       float masspion = 0.140;
       float masskaon = 0.494;
       float mass_ = invmass2prongs(secVtx2prong.px0(), secVtx2prong.py0(),
@@ -155,13 +195,24 @@ struct CandidateBuildingDzero {
                                      secVtx2prong.px1(), secVtx2prong.py1(),
                                      secVtx2prong.pz1(), masspion);
       cand2prong(mass_, masssw_);
-      //secVtx2prong.collisionId(),
-      //mass_, masssw_);
+      o2::track::TrackParCov trackdec0 = df.getTrack0(secVtx2prong.indexDCApair());
+      o2::track::TrackParCov trackdec1 = df.getTrack1(secVtx2prong.indexDCApair());
+      std::array<float, 3> pvec0;
+      std::array<float, 3> pvec1;
+      trackdec0.getPxPyPzGlo(pvec0);
+      trackdec1.getPxPyPzGlo(pvec1);
+      LOGF(info, "Pt track 0 from table %f and from calc %f", secVtx2prong.px0(), pvec0[0]);
+      if (abs(secVtx2prong.px0() - pvec0[0]) > 0.000000001)
+        LOGF(info, "BIG ERRROR");
     }
   }
 };
 
 struct DzeroHistoTask {
+  // secondary vertex position
+  OutputObj<TH1F> hvtx_x_outt{TH1F("hvtx_xt", "2-track vtx", 100, -0.1, 0.1)};
+  OutputObj<TH1F> hvtx_y_outt{TH1F("hvtx_yt", "2-track vtx", 100, -0.1, 0.1)};
+  OutputObj<TH1F> hvtx_z_outt{TH1F("hvtx_zt", "2-track vtx", 100, -0.1, 0.1)};
   OutputObj<TH1F> hmass_nocuts_out{TH1F("hmass_nocuts", "2-track inv mass", 500, 0, 5.0)};
   OutputObj<TH1F> hdecayxy{TH1F("hdecayxy", "decay length xy", 100, 0., 1.0)};
   OutputObj<TH1F> hdecayxyz{TH1F("hdecayxyz", "decay length", 100, 0., 1.0)};
@@ -171,6 +222,11 @@ struct DzeroHistoTask {
     LOGF(info, "NEW EVENT");
 
     for (auto& secVtx2prong : secVtx2Prongs) {
+      hvtx_y_outt->Fill(secVtx2prong.posdecayy());
+      hvtx_z_outt->Fill(secVtx2prong.posdecayz());
+      hvtx_x_outt->Fill(secVtx2prong.posdecayx());
+      hvtx_y_outt->Fill(secVtx2prong.posdecayy());
+      hvtx_z_outt->Fill(secVtx2prong.posdecayz());
       hdecayxy->Fill(secVtx2prong.decaylengthXY());
       hdecayxyz->Fill(secVtx2prong.decaylength());
       hmass_nocuts_out->Fill(secVtx2prong.mass());
