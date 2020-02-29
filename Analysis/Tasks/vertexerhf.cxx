@@ -100,7 +100,7 @@ struct DecayVertexBuilder2Prong {
         df.setUseAbsDCA(true);
         int nCand = df.process(trackparvar0, trackparvar1);
         //FIXME: currently filling the table for all dca candidates.
-	for (int ic = 0; ic < nCand; ic++) {
+        for (int ic = 0; ic < nCand; ic++) {
           const o2::base::DCAFitter::Triplet& vtx = df.getPCACandidate(ic);
           LOGF(info, "vertex x %f", vtx.x);
           hvtx_x_out->Fill(vtx.x);
