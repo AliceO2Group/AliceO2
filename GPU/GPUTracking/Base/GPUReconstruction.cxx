@@ -100,6 +100,9 @@ int GPUReconstruction::Init()
   if (GetDeviceProcessingSettings().debugLevel >= 6 && GetDeviceProcessingSettings().comparableDebutOutput) {
     mDeviceProcessingSettings.nTPCClustererLanes = 1;
   }
+  if (!(mRecoStepsGPU & GPUDataTypes::RecoStep::TPCMerging)) {
+    mDeviceProcessingSettings.mergerSortTracks = false;
+  }
 
 #ifndef HAVE_O2HEADERS
   mRecoSteps.setBits(RecoStep::ITSTracking, false);

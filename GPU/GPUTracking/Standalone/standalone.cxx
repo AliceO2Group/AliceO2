@@ -347,6 +347,7 @@ int SetupReconstruction()
   if (configStandalone.configProc.selectorPipeline >= 0) {
     devProc.trackletSelectorInPipeline = configStandalone.configProc.selectorPipeline;
   }
+  devProc.mergerSortTracks = configStandalone.configProc.mergerSortTracks;
 
   steps.steps = GPUReconstruction::RecoStep::AllRecoSteps;
   if (configStandalone.configRec.runTRD != -1) {

@@ -191,6 +191,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   unsigned int mCompression2ThreadCount = 0;
   unsigned int mCFDecodeThreadCount = 0;
   unsigned int mFitThreadCount = 0;
+  unsigned int mWarpSize = 0;
   unsigned int mITSThreadCount = 0;
 
   int mThreadId = -1; // Thread ID that is valid for the local CUDA context
