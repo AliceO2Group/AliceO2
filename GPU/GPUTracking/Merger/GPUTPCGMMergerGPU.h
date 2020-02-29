@@ -32,7 +32,7 @@ class GPUTPCGMMergerTrackFit : public GPUKernelTemplate
     return &processors.tpcMerger;
   }
   template <int iKernel = defaultKernel>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger);
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& merger, int mode);
 #endif
 };
 
