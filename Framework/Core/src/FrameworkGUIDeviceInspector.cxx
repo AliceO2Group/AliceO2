@@ -137,6 +137,26 @@ void displayDeviceInspector(DeviceSpec const& spec,
     (void)retVal;
   }
 
+  ImGui::SameLine();
+  if (ImGui::Button("Profile 30s")) {
+    std::string pid = std::to_string(info.pid);
+    setenv("O2PROFILEDPID", pid.c_str(), 1);
+#ifdef __APPLE__
+    std::string defaultAppleProfileCommand =
+      "osascript -e 'tell application \"Terminal\" to activate'"
+      " -e 'tell application \"Terminal\" to do script \"instruments -D dpl-profile-" +
+      pid +
+      ".trace -l 30000 -t Time\\\\ Profiler -p " +
+      pid + " && open dpl-profile-" + pid + ".trace && exit\"'";
+    setenv("O2DPLPROFILE", defaultAppleProfileCommand.c_str(), 0);
+#else
+    setenv("O2DPLPROFILE", "xterm -hold -e perf record -a -g -p $O2PROFILEDPID > perf-$O2PROFILEDPID.data &", 0);
+#endif
+    LOG(ERROR) << getenv("O2DPLPROFILE");
+    int retVal = system(getenv("O2DPLPROFILE"));
+    (void)retVal;
+  }
+
   deviceInfoTable(info, metrics);
   optionsTable("Options", spec.options, control);
   optionsTable("Workflow Options", metadata.workflowOptions, control);
