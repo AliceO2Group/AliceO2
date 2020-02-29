@@ -490,7 +490,7 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
       float dz = z - Z;
       if (dy * dy < sy2 && dz * dz < sz2) {
         // CADEBUG(printf("Found Y %f Z %f\n", y, z));
-        int myWeight = Merger->TrackOrder()[iTrack] | GPUTPCGMMerger::attachAttached | GPUTPCGMMerger::attachTube;
+        int myWeight = Merger->TrackOrderAttach()[iTrack] | GPUTPCGMMerger::attachAttached | GPUTPCGMMerger::attachTube;
         if (goodLeg) {
           myWeight |= GPUTPCGMMerger::attachGoodLeg;
         }

@@ -93,7 +93,9 @@ class GPUTPCGMMerger : public GPUProcessor
   }
   GPUhd() const GPUTPCTracker* SliceTrackers() const { return (mSliceTrackers); }
   GPUhd() GPUAtomic(unsigned int) * ClusterAttachment() const { return (mClusterAttachment); }
-  GPUhd() unsigned int* TrackOrder() const { return (mTrackOrder); }
+  GPUhd() unsigned int* TrackOrderAttach() const { return mTrackOrderAttach; }
+  GPUhd() unsigned int* TrackOrderProcess() const { return mTrackOrderProcess; }
+  GPUd() unsigned int NSlowTracks() const { return mNSlowTracks; }
 
   enum attachTypes { attachAttached = 0x40000000,
                      attachGood = 0x20000000,
@@ -176,7 +178,9 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUTPCGMMergedTrackHit* mClusters;
   int* mGlobalClusterIDs;
   GPUAtomic(unsigned int) * mClusterAttachment;
-  unsigned int* mTrackOrder;
+  unsigned int* mTrackOrderAttach;
+  unsigned int* mTrackOrderProcess;
+  unsigned int mNSlowTracks;
   char* mTmpMem;
   GPUTPCGMBorderTrack* mBorderMemory; // memory for border tracks
   GPUTPCGMBorderTrack* mBorder[NSLICES];

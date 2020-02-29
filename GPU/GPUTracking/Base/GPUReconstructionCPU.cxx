@@ -154,7 +154,7 @@ int GPUReconstructionCPU::ExitDevice()
 }
 
 void GPUReconstructionCPU::SetThreadCounts() { mThreadCount = mBlockCount = mConstructorBlockCount = mSelectorBlockCount = mConstructorThreadCount = mSelectorThreadCount = mFinderThreadCount = mTRDThreadCount = mClustererThreadCount = mScanThreadCount = mConverterThreadCount =
-                                                 mCompression1ThreadCount = mCompression2ThreadCount = mCFDecodeThreadCount = mFitThreadCount = mITSThreadCount = 1; }
+                                                 mCompression1ThreadCount = mCompression2ThreadCount = mCFDecodeThreadCount = mFitThreadCount = mITSThreadCount = mWarpSize = 1; }
 
 void GPUReconstructionCPU::SetThreadCounts(RecoStep step)
 {

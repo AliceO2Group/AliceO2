@@ -92,6 +92,8 @@ class GPUTPCGMMergedTrack
     }
   }
   GPUd() void SetFlags(unsigned char v) { mFlags = v; }
+  GPUd() void SetLegs(unsigned char v) { mLegs = v; }
+  GPUd() unsigned char Legs() const { return mLegs; }
 
   GPUd() const GPUTPCGMTrackParam::GPUTPCOuterParam& OuterParam() const { return mOuterParam; }
   GPUd() GPUTPCGMTrackParam::GPUTPCOuterParam& OuterParam()
@@ -117,6 +119,7 @@ class GPUTPCGMMergedTrack
   unsigned int mNClusters;       //* number of track clusters
   unsigned int mNClustersFitted; //* number of clusters used in fit
   unsigned char mFlags;
+  unsigned char mLegs;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

@@ -91,4 +91,5 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   nTPCClustererLanes = 3;
   registerStandaloneInputMemory = false;
   tpcCompressionGatherMode = 1;
+  mergerSortTracks = 1;
 }
