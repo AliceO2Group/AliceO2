@@ -608,6 +608,8 @@ int main(int argc, char** argv)
           }
           if (configStandalone.memoryStat) {
             rec->PrintMemoryStatistics();
+          } else if (configStandalone.DebugLevel >= 2) {
+            rec->PrintMemoryOverview();
           }
           rec->ClearAllocatedMemory();
 
