@@ -42,7 +42,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(DecaylengthXY, decaylengthXY,
 			       (xvtxd - xvtxp) * (xvtxd - xvtxp)); });
 DECLARE_SOA_DYNAMIC_COLUMN(Decaylength, decaylength,
 		[](float xvtxd, float yvtxd, float zvtxd, float xvtxp,
-			float yvtxp, float zvtxp)
+	           float yvtxp, float zvtxp)
 		{ return sqrtf((yvtxd - yvtxp) * (yvtxd - yvtxp) +
 			       (xvtxd - xvtxp) * (xvtxd - xvtxp) +
 			       (zvtxd - zvtxp) * (zvtxd - zvtxp)); });
@@ -59,12 +59,13 @@ DECLARE_SOA_COLUMN(MassD0bar, massD0bar, float, "fMassD0bar");
 } // namespace cand2prong
 
 DECLARE_SOA_TABLE(SecVtx2Prong, "AOD", "CAND2PRONG",
-    secvtx2prong::CollisionId, collision::PosX, collision::PosY, collision::PosZ,
+    secvtx2prong::CollisionId,
+    collision::PosX, collision::PosY, collision::PosZ,
     secvtx2prong::Posdecayx, secvtx2prong::Posdecayy, secvtx2prong::Posdecayz,
-    secvtx2prong::Index0Id, secvtx2prong::Px0, secvtx2prong::Py0,
-    secvtx2prong::Pz0, secvtx2prong::Y0,
-    secvtx2prong::Index1Id, secvtx2prong::Px1, secvtx2prong::Py1,
-    secvtx2prong::Pz1, secvtx2prong::Y1,
+    secvtx2prong::Index0Id,
+    secvtx2prong::Px0, secvtx2prong::Py0, secvtx2prong::Pz0, secvtx2prong::Y0,
+    secvtx2prong::Index1Id,
+    secvtx2prong::Px1, secvtx2prong::Py1, secvtx2prong::Pz1, secvtx2prong::Y1,
     secvtx2prong::IndexDCApair, secvtx2prong::Mass, secvtx2prong::Massbar,
     secvtx2prong::DecaylengthXY<secvtx2prong::Posdecayx, secvtx2prong::Posdecayy,
                                 collision::PosX, collision::PosY>,
