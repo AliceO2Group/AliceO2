@@ -15,6 +15,7 @@
 #include "GPUTPCNeighboursFinder.h"
 #include "GPUTPCTracker.h"
 #include "GPUCommonMath.h"
+#include "GPUDefMacros.h"
 using namespace GPUCA_NAMESPACE::gpu;
 
 #if defined(__HIPCC__) && defined(GPUCA_GPUCODE_DEVICE)
@@ -178,6 +179,7 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
       for (int k1 = binZmin; k1 <= binZmax; k1++) {
         int iMin = lFirstHitInBin[lFirstHitInBinOffsetUp + k1 * nY + binYmin];
         int iMax = lFirstHitInBin[lFirstHitInBinOffsetUp + k1 * nY + binYmax + 1];
+        GPUCA_UNROLL(U(4), )
         for (int i = iMin; i < iMax; i++) {
           HIPGPUglobalref() const cahit2& hitDataUp = pHitData[lHitNumberOffsetUp + i];
           GPUTPCHit h;
@@ -245,6 +247,7 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
             nNeighDn++;
             float2 yzdn = CAMath::MakeFloat2(s.mUpDx * (h.Y() - y), s.mUpDx * (h.Z() - z));
 
+            GPUCA_UNROLL(U(4), )
             for (int iUp = 0; iUp < nNeighUp; iUp++) {
 #if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0 && GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP < GPUCA_MAXN
               float2 yzup = iUp >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP ? CAMath::MakeFloat2(yzUp[iUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP], yzUp2[iUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP]) : CAMath::MakeFloat2(s.mA1[iUp][iThread], s.mA2[iUp][iThread]);
