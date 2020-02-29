@@ -261,10 +261,6 @@ int GPUReconstructionOCL::InitDevice_Runtime()
     quit("Error migrating buffer");
   }
 
-  if (mDeviceProcessingSettings.debugLevel >= 1) {
-    GPUInfo("GPU Memory used: %lld (Ptr 0x%p)", (long long int)mDeviceMemorySize, mDeviceMemoryBase);
-  }
-
   mInternals->mem_host = clCreateBuffer(mInternals->context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, mHostMemorySize, nullptr, &ocl_error);
   if (GPUFailedMsgI(ocl_error)) {
     quit("Error allocating pinned host memory");
@@ -301,17 +297,12 @@ int GPUReconstructionOCL::InitDevice_Runtime()
   if (GPUFailedMsgI(ocl_error)) {
     quit("Error allocating Page Locked Host Memory");
   }
-  if (mDeviceProcessingSettings.debugLevel >= 1) {
-    GPUInfo("Host Memory used: %lld (Ptr 0x%p)", (long long int)mHostMemorySize, mHostMemoryBase);
-  }
 
-  if (mDeviceProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Obtained Pointer to GPU Memory: %p", *((void**)mHostMemoryBase));
-  }
   mDeviceMemoryBase = ((void**)mHostMemoryBase)[0];
   mDeviceConstantMem = (GPUConstantMem*)((void**)mHostMemoryBase)[1];
 
   if (mDeviceProcessingSettings.debugLevel >= 1) {
+    GPUInfo("Memory ptrs: GPU (%lld bytes): %p - Host (%lld bytes): %p", (long long int)mDeviceMemorySize, mDeviceMemoryBase, (long long int)mHostMemorySize, mHostMemoryBase);
     memset(mHostMemoryBase, 0xDD, mHostMemorySize);
   }
 

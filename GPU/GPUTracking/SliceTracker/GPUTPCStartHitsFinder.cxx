@@ -18,7 +18,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
-GPUdii() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & s, processorType& tracker)
+GPUdii() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() s, processorType& GPUrestrict() tracker)
 {
   // find start hits for tracklets
 
@@ -32,17 +32,17 @@ GPUdii() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, in
     }
   }
   GPUbarrier();
-  GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(s.mIRow);
-  GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& rowUp = tracker.Row(s.mIRow + 2);
+  GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() row = tracker.Row(s.mIRow);
+  GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() rowUp = tracker.Row(s.mIRow + 2);
   for (int ih = iThread; ih < s.mNHits; ih += nThreads) {
     if (tracker.HitLinkDownData(row, ih) == CALINK_INVAL && tracker.HitLinkUpData(row, ih) != CALINK_INVAL && tracker.HitLinkUpData(rowUp, tracker.HitLinkUpData(row, ih)) != CALINK_INVAL) {
 #ifdef GPUCA_SORT_STARTHITS
-      GPUglobalref() GPUTPCHitId* const startHits = tracker.TrackletTmpStartHits() + s.mIRow * tracker.NMaxRowStartHits();
+      GPUglobalref() GPUTPCHitId* const GPUrestrict() startHits = tracker.TrackletTmpStartHits() + s.mIRow * tracker.NMaxRowStartHits();
       unsigned int nextRowStartHits = CAMath::AtomicAddShared(&s.mNRowStartHits, 1);
       CONSTEXPR int errCode = GPUCA_ERROR_ROWSTARTHIT_OVERFLOW;
       if (nextRowStartHits + 1 >= tracker.NMaxRowStartHits())
 #else
-      GPUglobalref() GPUTPCHitId* const startHits = tracker.TrackletStartHits();
+      GPUglobalref() GPUTPCHitId* const GPUrestrict() startHits = tracker.TrackletStartHits();
       unsigned int nextRowStartHits = CAMath::AtomicAdd(tracker.NTracklets(), 1);
       CONSTEXPR int errCode = GPUCA_ERROR_TRACKLET_OVERFLOW;
       if (nextRowStartHits + 1 >= tracker.NMaxStartHits())

@@ -212,11 +212,10 @@ class CcdbApi //: public DatabaseInterface
   /**
    * A helper function to extract an object from an existing in-memory TFile
    * @param file a TFile instance
-   * @param objname name of serialized object
    * @param cl The TClass object describing the serialized type
    * @return raw pointer to created object
    */
-  static void* extractFromTFile(TFile& file, std::string const& objname, TClass const* cl);
+  static void* extractFromTFile(TFile& file, TClass const* cl);
 
   /** Get headers associated to a given CCDBEntry on the server. 
    * @param url the url which refers to the objects
@@ -309,12 +308,10 @@ class CcdbApi //: public DatabaseInterface
   /**
    * A helper function to extract object from a local ROOT file
    * @param filename name of ROOT file
-   * @param objname name of serialized object
    * @param cl The TClass object describing the serialized type
    * @return raw pointer to created object
    */
-  void* extractFromLocalFile(std::string const& filename, std::string const& objname, TClass const* cl) const;
-
+  void* extractFromLocalFile(std::string const& filename, TClass const* cl) const;
 
   /**
    * Initialization of CURL

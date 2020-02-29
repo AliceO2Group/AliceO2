@@ -12,10 +12,10 @@ using namespace GPUCA_NAMESPACE::gpu;
 void createGeo()
 {
   o2::base::GeometryManager::loadGeometry();
-  o2::trd::TRDGeometry gm;
-  gm.createPadPlaneArray();
-  gm.createClusterMatrixArray();
-  o2::trd::TRDGeometryFlat gf(gm);
+  auto gm = o2::trd::TRDGeometry::instance();
+  gm->createPadPlaneArray();
+  gm->createClusterMatrixArray();
+  o2::trd::TRDGeometryFlat gf(*gm);
   gSystem->Load("libO2GPUTracking.so");
   GPUReconstruction* rec = GPUReconstruction::CreateInstance(GPUReconstruction::DeviceType::CPU);
   GPUChainTracking* chain = rec->AddChain<GPUChainTracking>();

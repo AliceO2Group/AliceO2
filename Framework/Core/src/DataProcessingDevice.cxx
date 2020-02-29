@@ -41,6 +41,7 @@
 #include <algorithm>
 #include <vector>
 #include <memory>
+#include <unordered_map>
 
 using namespace o2::framework;
 using Key = o2::monitoring::tags::Key;
@@ -316,6 +317,7 @@ bool DataProcessingDevice::ConditionalRun()
     // This is needed because the transport is deleted before the device.
     mRelayer.clear();
     switchState(StreamingState::Idle);
+    mCurrentBackoff = 10;
     return true;
   }
   // Update the backoff factor
@@ -323,7 +325,7 @@ bool DataProcessingDevice::ConditionalRun()
   // In principle we should use 1/rate for MIN_BACKOFF_DELAY and (1/maxRate -
   // 1/minRate)/ 2^MAX_BACKOFF for BACKOFF_DELAY_STEP. We hardcode the values
   // for the moment to some sensible default.
-  if (active) {
+  if (active && mState.streaming != StreamingState::Idle) {
     mCurrentBackoff = std::max(0, mCurrentBackoff - 1);
   } else {
     mCurrentBackoff = std::min(MAX_BACKOFF, mCurrentBackoff + 1);
@@ -466,7 +468,7 @@ bool DataProcessingDevice::tryDispatchComputation()
   // move these to some thread local store and the rest of the lambdas
   // should work just fine.
   std::vector<DataRelayer::RecordAction> completed;
-  std::vector<std::unique_ptr<FairMQMessage>> currentSetOfInputs;
+  std::vector<MessageSet> currentSetOfInputs;
 
   auto& allocator = mAllocator;
   auto& context = *mContextRegistry.get<MessageContext>();
@@ -524,10 +526,18 @@ bool DataProcessingDevice::tryDispatchComputation()
   // the execution.
   auto fillInputs = [&relayer, &inputsSchema, &currentSetOfInputs](TimesliceSlot slot) -> InputRecord {
     currentSetOfInputs = std::move(relayer.getInputsForTimeslice(slot));
-    InputSpan span{[&currentSetOfInputs](size_t i) -> char const* {
-                     return currentSetOfInputs.at(i) ? static_cast<char const*>(currentSetOfInputs.at(i)->GetData()) : nullptr;
-                   },
-                   currentSetOfInputs.size()};
+    auto getter = [&currentSetOfInputs](size_t i, size_t partindex) -> DataRef {
+      if (currentSetOfInputs[i].size() > partindex) {
+        return DataRef{nullptr,
+                       static_cast<char const*>(currentSetOfInputs[i].at(partindex).header->GetData()),
+                       static_cast<char const*>(currentSetOfInputs[i].at(partindex).payload->GetData())};
+      }
+      return DataRef{nullptr, nullptr, nullptr};
+    };
+    auto nofPartsGetter = [&currentSetOfInputs](size_t i) -> size_t {
+      return currentSetOfInputs[i].size();
+    };
+    InputSpan span{getter, nofPartsGetter, currentSetOfInputs.size()};
     return InputRecord{inputsSchema, std::move(span)};
   };
 
@@ -588,7 +598,7 @@ bool DataProcessingDevice::tryDispatchComputation()
   // This was actually the easiest solution we could find for
   // O2-646.
   auto cleanTimers = [&currentSetOfInputs](TimesliceSlot slot, InputRecord& record) {
-    assert(record.size() * 2 == currentSetOfInputs.size());
+    assert(record.size() == currentSetOfInputs.size());
     for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
       DataRef input = record.getByPos(ii);
       if (input.spec->lifetime != Lifetime::Timer) {
@@ -598,8 +608,7 @@ bool DataProcessingDevice::tryDispatchComputation()
         continue;
       }
       // This will hopefully delete the message.
-      std::unique_ptr<FairMQMessage> header = std::move(currentSetOfInputs[ii * 2]);
-      std::unique_ptr<FairMQMessage> payload = std::move(currentSetOfInputs[ii * 2 + 1]);
+      currentSetOfInputs[ii].clear();
     }
   };
 
@@ -608,7 +617,11 @@ bool DataProcessingDevice::tryDispatchComputation()
   // to the next one in the daisy chain.
   // FIXME: do it in a smarter way than O(N^2)
   auto forwardInputs = [&reportError, &forwards, &device, &currentSetOfInputs](TimesliceSlot slot, InputRecord& record) {
-    assert(record.size() * 2 == currentSetOfInputs.size());
+    assert(record.size() == currentSetOfInputs.size());
+    // we collect all messages per forward in a map and send them together
+    // because the forwards are stable during this function, we use the pointer
+    // to channel string as key to avoid string allocation in the map
+    std::unordered_map<const std::string*, FairMQParts> forwardedParts;
     for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
       DataRef input = record.getByPos(ii);
 
@@ -635,11 +648,13 @@ bool DataProcessingDevice::tryDispatchComputation()
         continue;
       }
 
-      auto& header = currentSetOfInputs[ii * 2];
-      auto& payload = currentSetOfInputs[ii * 2 + 1];
-
-      for (auto forward : forwards) {
-        if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification) && (dph->startTime % forward.maxTimeslices) == forward.timeslice) {
+      for (auto& part : currentSetOfInputs[ii]) {
+        for (auto const& forward : forwards) {
+          if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification) == false || (dph->startTime % forward.maxTimeslices) != forward.timeslice) {
+            continue;
+          }
+          auto& header = part.header;
+          auto& payload = part.payload;
 
           if (header.get() == nullptr) {
             // FIXME: this should not happen, however it's actually harmless and
@@ -657,15 +672,20 @@ bool DataProcessingDevice::tryDispatchComputation()
             LOG(ERROR) << "Forwarded data does not have a DataHeader";
             continue;
           }
-          FairMQParts forwardedParts;
-          forwardedParts.AddPart(std::move(header));
-          forwardedParts.AddPart(std::move(payload));
-          assert(forwardedParts.Size() == 2);
-          assert(o2::header::get<DataProcessingHeader*>(forwardedParts.At(0)->GetData()));
-          // FIXME: this should use a correct subchannel
-          device.Send(forwardedParts, forward.channel, 0);
+          const std::string* key = &(forward.channel);
+          forwardedParts[key].AddPart(std::move(header));
+          forwardedParts[key].AddPart(std::move(payload));
         }
       }
+    }
+    for (auto& [channelName, channelParts] : forwardedParts) {
+      if (channelParts.Size() == 0) {
+        continue;
+      }
+      assert(channelParts.Size() % 2 == 0);
+      assert(o2::header::get<DataProcessingHeader*>(channelParts.At(0)->GetData()));
+      // in DPL we are using subchannel 0 only
+      device.Send(channelParts, *channelName, 0);
     }
   };
 

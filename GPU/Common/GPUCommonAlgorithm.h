@@ -205,7 +205,7 @@ typedef GPUCommonAlgorithm CAAlgo;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#if defined(__CUDACC__) //|| defined(__HIPCC__)
+#if (defined(__CUDACC__) && !defined(__clang__)) //|| defined(__HIPCC__)
 
 // currently disable Thrust for the AMD, since the GPUCommonAlgorithm::QuickSort is faster
 
@@ -279,7 +279,7 @@ GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end, const S& comp)
 
 #if defined(__CUDACC__)
 #include <cub/cub.cuh>
-#else
+#elif defined(__HIPCC__)
 #include <hipcub/hipcub.hpp>
 #endif
 

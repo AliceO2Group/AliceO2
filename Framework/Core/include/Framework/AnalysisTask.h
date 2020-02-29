@@ -67,9 +67,11 @@ struct WritingCursor<soa::Table<PC...>> {
   using persistent_table_t = soa::Table<PC...>;
   using cursor_t = decltype(std::declval<TableBuilder>().cursor<persistent_table_t>());
 
-  void operator()(typename PC::type... args)
+  template <typename... T>
+  void operator()(T... args)
   {
-    cursor(0, args...);
+    static_assert(sizeof...(PC) == sizeof...(T), "Argument number mismatch");
+    cursor(0, extract(args)...);
   }
 
   bool resetCursor(TableBuilder& builder)
@@ -79,6 +81,18 @@ struct WritingCursor<soa::Table<PC...>> {
   }
 
   decltype(FFL(std::declval<cursor_t>())) cursor;
+
+ private:
+  template <typename T>
+  static decltype(auto) extract(T const& arg)
+  {
+    if constexpr (is_specialization<T, soa::RowViewBase>::value) {
+      return arg.globalIndex();
+    } else {
+      static_assert(!framework::has_type_v<T, framework::pack<PC...>>, "Argument type mismatch");
+      return arg;
+    }
+  }
 };
 
 /// This helper class allow you to declare things which will be crated by a
@@ -210,10 +224,15 @@ struct AnalysisDataProcessorBuilder {
   template <typename T, size_t At>
   static void appendSomethingWithMetadata(std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos)
   {
-    if constexpr (framework::is_specialization<T, soa::Filtered>::value || framework::is_specialization<T, soa::RowViewFiltered>::value) {
-      eInfos.push_back({At, createSchemaFromColumns(typename T::table_t::persistent_columns_t{}), nullptr});
+    using dT = std::decay_t<T>;
+    if constexpr (framework::is_specialization<dT, soa::Filtered>::value) {
+      eInfos.push_back({At, createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+    } else if constexpr (soa::is_type_with_policy_v<dT>) {
+      if (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
+        eInfos.push_back({At, createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+      }
     }
-    doAppendInputWithMetadata(soa::make_originals_from_type<T>(), inputs);
+    doAppendInputWithMetadata(soa::make_originals_from_type<dT>(), inputs);
   }
 
   template <typename R, typename C, typename... Args>
@@ -310,7 +329,7 @@ struct AnalysisDataProcessorBuilder {
   }
 
   template <typename Task, typename R, typename C, typename Grouping, typename... Associated>
-  static void invokeProcess(Task& task, InputRecord& inputs, R (C::*)(Grouping, Associated...), std::vector<ExpressionInfo> const infos)
+  static void invokeProcess(Task& task, InputRecord& inputs, R (C::*)(Grouping, Associated...), std::vector<ExpressionInfo> const& infos)
   {
     auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable(inputs, &C::process, infos);
     auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables(inputs, &C::process, infos);
@@ -353,7 +372,10 @@ struct AnalysisDataProcessorBuilder {
                       "You cannot have a soa::RowView iterator as an argument after the "
                       " first argument of type soa::Table which is found as in the "
                       " prototype of the task process method.");
-        task.process(groupingTable, std::get<0>(associatedTables));
+        auto& associated = std::get<0>(associatedTables);
+        associated.bindExternalIndices(&groupingTable);
+        groupingTable.bindExternalIndices(&associated);
+        task.process(groupingTable, associated);
       } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::RowViewBase>::value) {
         using AssociatedType = std::tuple_element_t<0, std::tuple<Associated...>>;
         if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::RowViewBase>::value) {
