@@ -213,7 +213,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
       bestDevice = i;
       bestDeviceSpeed = deviceSpeed;
     } else {
-      if (mDeviceProcessingSettings.debugLevel >= 2) {
+      if (mDeviceProcessingSettings.debugLevel >= 2 && mDeviceProcessingSettings.deviceNum < 0) {
         GPUInfo("Skipping: Speed %f < %f\n", deviceSpeed, bestDeviceSpeed);
       }
     }
@@ -273,6 +273,10 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
 #endif
 
   mNStreams = std::max(mDeviceProcessingSettings.nStreams, 3);
+  if (GPUFailedMsgI(hipSetDevice(mDeviceId))) {
+    GPUError("Could not set HIP Device!");
+    return (1);
+  }
 
   /*if (GPUFailedMsgI(hipDeviceSetLimit(hipLimitStackSize, GPUCA_GPU_STACK_SIZE)))
   {
