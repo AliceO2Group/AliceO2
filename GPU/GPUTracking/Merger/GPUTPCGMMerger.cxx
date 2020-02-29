@@ -59,7 +59,7 @@ static constexpr int kMaxClusters = 1000;
 #endif
 
 GPUTPCGMMerger::GPUTPCGMMerger()
-  : mTrackLinks(nullptr), mNMaxSliceTracks(0), mNMaxTracks(0), mNMaxSingleSliceTracks(0), mNMaxOutputTrackClusters(0), mNMaxClusters(0), mMemoryResMerger(-1), mMemoryResRefit(-1), mMaxID(0), mNClusters(0), mNOutputTracks(0), mNOutputTrackClusters(0), mOutputTracks(nullptr), mSliceTrackInfos(nullptr), mClusters(nullptr), mGlobalClusterIDs(nullptr), mClusterAttachment(nullptr), mTrackOrder(nullptr), mTmpMem(nullptr), mBorderMemory(nullptr), mBorderRangeMemory(nullptr), mSliceTrackers(nullptr), mChainTracking(nullptr)
+  : mTrackLinks(nullptr), mNMaxSliceTracks(0), mNMaxTracks(0), mNMaxSingleSliceTracks(0), mNMaxOutputTrackClusters(0), mNMaxClusters(0), mMemoryResMerger(-1), mMemoryResRefit(-1), mMaxID(0), mNClusters(0), mNOutputTracks(0), mNOutputTrackClusters(0), mOutputTracks(nullptr), mSliceTrackInfos(nullptr), mClusters(nullptr), mGlobalClusterIDs(nullptr), mClusterAttachment(nullptr), mTrackOrderAttach(nullptr), mTrackOrderProcess(nullptr), mTmpMem(nullptr), mBorderMemory(nullptr), mBorderRangeMemory(nullptr), mSliceTrackers(nullptr), mChainTracking(nullptr)
 {
   //* constructor
 
@@ -201,7 +201,10 @@ void* GPUTPCGMMerger::SetPointersGPURefit(void* mem)
 {
   computePointerWithAlignment(mem, mOutputTracks, mNMaxTracks);
   computePointerWithAlignment(mem, mClusters, mNMaxOutputTrackClusters);
-  computePointerWithAlignment(mem, mTrackOrder, mNMaxTracks);
+  computePointerWithAlignment(mem, mTrackOrderAttach, mNMaxTracks);
+  if (mRec->GetDeviceProcessingSettings().mergerSortTracks) {
+    computePointerWithAlignment(mem, mTrackOrderProcess, mNMaxTracks);
+  }
   computePointerWithAlignment(mem, mClusterAttachment, mNMaxClusters);
 
   return mem;
@@ -973,6 +976,7 @@ void GPUTPCGMMerger::MergeCE()
       if (looper) {
         trk[1]->SetLooper(true);
       }
+      trk[1]->SetLegs(trk[1]->Legs() + trk[0]->Legs());
       trk[0]->SetNClusters(0);
       trk[0]->SetOK(false);
     }
@@ -1021,14 +1025,31 @@ struct GPUTPCGMMerger_CompareClusterIds {
   }
 };
 
-struct GPUTPCGMMerger_CompareTracks {
+struct GPUTPCGMMerger_CompareTracksAttachWeight {
   const GPUTPCGMMergedTrack* const mCmp;
-  GPUTPCGMMerger_CompareTracks(GPUTPCGMMergedTrack* cmp) : mCmp(cmp) {}
+  GPUTPCGMMerger_CompareTracksAttachWeight(GPUTPCGMMergedTrack* cmp) : mCmp(cmp) {}
   bool operator()(const int aa, const int bb)
   {
-    const GPUTPCGMMergedTrack& a = mCmp[aa];
-    const GPUTPCGMMergedTrack& b = mCmp[bb];
+    const GPUTPCGMMergedTrack& GPUrestrict() a = mCmp[aa];
+    const GPUTPCGMMergedTrack& GPUrestrict() b = mCmp[bb];
     return (fabsf(a.GetParam().GetQPt()) > fabsf(b.GetParam().GetQPt()));
+  }
+};
+
+struct GPUTPCGMMerger_CompareTracksProcess {
+  const GPUTPCGMMergedTrack* const mCmp;
+  GPUTPCGMMerger_CompareTracksProcess(GPUTPCGMMergedTrack* cmp) : mCmp(cmp) {}
+  bool operator()(const int aa, const int bb)
+  {
+    const GPUTPCGMMergedTrack& GPUrestrict() a = mCmp[aa];
+    const GPUTPCGMMergedTrack& GPUrestrict() b = mCmp[bb];
+    if (a.CCE() != b.CCE()) {
+      return a.CCE() > b.CCE();
+    }
+    if (a.Legs() != b.Legs()) {
+      return a.Legs() > b.Legs();
+    }
+    return a.NClusters() > b.NClusters();
   }
 };
 
@@ -1271,6 +1292,7 @@ void GPUTPCGMMerger::CollectMergedTracks()
     mergedTrack.SetFlags(0);
     mergedTrack.SetOK(1);
     mergedTrack.SetLooper(leg > 0);
+    mergedTrack.SetLegs(leg);
     mergedTrack.SetNClusters(nHits);
     mergedTrack.SetFirstClusterRef(nOutTrackClusters);
     GPUTPCGMTrackParam& p1 = mergedTrack.Param();
@@ -1335,14 +1357,26 @@ void GPUTPCGMMerger::PrepareClustersForFit()
   unsigned int* trackSort = (unsigned int*)mTmpMem;
   unsigned char* sharedCount = (unsigned char*)(trackSort + mNOutputTracks);
 
+  if (mRec->GetDeviceProcessingSettings().mergerSortTracks) {
+    mNSlowTracks = 0;
+    for (int i = 0; i < mNOutputTracks; i++) {
+      const GPUTPCGMMergedTrack& trk = mOutputTracks[i];
+      if (trk.CCE() || trk.Legs()) {
+        mNSlowTracks++;
+      }
+      mTrackOrderProcess[i] = i;
+    }
+    std::sort(mTrackOrderProcess, mTrackOrderProcess + mNOutputTracks, GPUTPCGMMerger_CompareTracksProcess(mOutputTracks));
+  }
+
   if (!Param().rec.NonConsecutiveIDs) {
     for (int i = 0; i < mNOutputTracks; i++) {
       trackSort[i] = i;
     }
-    std::sort(trackSort, trackSort + mNOutputTracks, GPUTPCGMMerger_CompareTracks(mOutputTracks));
+    std::sort(trackSort, trackSort + mNOutputTracks, GPUTPCGMMerger_CompareTracksAttachWeight(mOutputTracks));
     memset(mClusterAttachment, 0, maxId * sizeof(mClusterAttachment[0]));
     for (int i = 0; i < mNOutputTracks; i++) {
-      mTrackOrder[trackSort[i]] = i;
+      mTrackOrderAttach[trackSort[i]] = i;
     }
     for (int i = 0; i < mNOutputTrackClusters; i++) {
       mClusterAttachment[mClusters[i].num] = attachAttached | attachGood;
@@ -1381,7 +1415,7 @@ void GPUTPCGMMerger::Finalize()
   } else {
     int* trkOrderReverse = (int*)mTmpMem;
     for (int i = 0; i < mNOutputTracks; i++) {
-      trkOrderReverse[mTrackOrder[i]] = i;
+      trkOrderReverse[mTrackOrderAttach[i]] = i;
     }
     for (int i = 0; i < mNOutputTrackClusters; i++) {
       mClusterAttachment[mClusters[i].num] = 0; // Reset adjacent attachment for attached clusters, set correctly below
@@ -1394,7 +1428,7 @@ void GPUTPCGMMerger::Finalize()
       char goodLeg = mClusters[trk.FirstClusterRef() + trk.NClusters() - 1].leg;
       for (unsigned int j = 0; j < trk.NClusters(); j++) {
         int id = mClusters[trk.FirstClusterRef() + j].num;
-        int weight = mTrackOrder[i] | attachAttached;
+        int weight = mTrackOrderAttach[i] | attachAttached;
         unsigned char clusterState = mClusters[trk.FirstClusterRef() + j].state;
         if (!(clusterState & GPUTPCGMMergedTrackHit::flagReject)) {
           weight |= attachGood;
@@ -1413,5 +1447,4 @@ void GPUTPCGMMerger::Finalize()
       }
     }
   }
-  mTrackOrder = nullptr;
 }

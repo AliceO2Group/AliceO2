@@ -174,6 +174,7 @@ class GPUChain
   }
   krnlExec GetGrid(unsigned int totalItems, unsigned int nThreads, int stream);
   inline unsigned int BlockCount() const { return mRec->mBlockCount; }
+  inline unsigned int WarpSize() const { return mRec->mWarpSize; }
   inline unsigned int ThreadCount() const { return mRec->mThreadCount; }
   inline unsigned int ConstructorBlockCount() const { return mRec->mConstructorBlockCount; }
   inline unsigned int SelectorBlockCount() const { return mRec->mSelectorBlockCount; }
