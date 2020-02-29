@@ -13,6 +13,7 @@
 
 #include "GPUTPCClusterFinder.h"
 #include "GPUReconstruction.h"
+#include "GPUMemorySizeScalers.h"
 
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "Digit.h"
@@ -67,8 +68,8 @@ void GPUTPCClusterFinder::RegisterMemoryAllocation()
 
 void GPUTPCClusterFinder::SetMaxData(const GPUTrackingInOutPointers& io)
 {
-  mNMaxPeaks = 0.5f * mNMaxDigits;
-  mNMaxClusters = mNMaxPeaks;
+  mNMaxPeaks = mRec->MemoryScalers()->NTPCClusters(mNMaxDigits);
+  mNMaxClusters = mNMaxPeaks; // Noise suppression doesn't remove that many peaks, so don't scale this
   mNMaxClusterPerRow = 0.01f * mNMaxDigits;
   mBufSize = nextMultipleOf<std::max<int>(GPUCA_MEMALIGN, mScanWorkGroupSize)>(mNMaxDigits);
   mNBufs = getNSteps(mBufSize);
