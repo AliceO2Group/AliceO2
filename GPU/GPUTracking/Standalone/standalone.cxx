@@ -284,6 +284,7 @@ int SetupReconstruction()
   recSet.DisableRefitAttachment = configStandalone.configRec.disableRefitAttachment;
   recSet.ForceEarlyTPCTransform = configStandalone.configRec.ForceEarlyTPCTransform;
   recSet.fwdTPCDigitsAsClusters = configStandalone.configRec.fwdTPCDigitsAsClusters;
+  recSet.dropLoopers = configStandalone.configRec.dropLoopers;
   if (configStandalone.referenceX < 500.) {
     recSet.TrackReferenceX = configStandalone.referenceX;
   }
