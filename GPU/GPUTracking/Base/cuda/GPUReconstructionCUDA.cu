@@ -12,6 +12,7 @@
 /// \author David Rohr
 
 #define GPUCA_GPUTYPE_TURING
+#define GPUCA_UNROLL(CUDA, HIP) GPUCA_M_UNROLL_##CUDA
 
 #include <cuda.h>
 #ifdef __clang__

@@ -12,6 +12,8 @@
 /// \author David Rohr
 
 #define GPUCA_GPUTYPE_VEGA
+#define GPUCA_UNROLL(CUDA, HIP) GPUCA_M_UNROLL_##HIP
+
 #include <hip/hip_runtime.h>
 #ifdef __CUDACC__
 #define hipExtLaunchKernelGGL(...)
