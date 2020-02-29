@@ -17,7 +17,7 @@ namespace o2::aod
 namespace secvtx2prong
 {
 // FIXME: this is a workaround until we get the index columns to work with joins.
-using BigTracks = soa::Join<Tracks, TracksExtra>;
+using BigTracks = soa::Join<Tracks, TracksCov, TracksExtra >;
 
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(Posdecayx, posdecayx, float, "fPosdecayx");
