@@ -16,7 +16,7 @@
 
 // clang-format off
 GPUCA_KRNL((GPUTPCNeighboursFinder                       ), (single, REG, (GPUCA_THREAD_COUNT_FINDER, GPUCA_BLOCK_COUNT_FINDER_MULTIPLIER)), (), ())
-GPUCA_KRNL((GPUTPCNeighboursCleaner                      ), (single, REG, (GPUCA_THREAD_COUNT, 1)), (), ())
+GPUCA_KRNL((GPUTPCNeighboursCleaner                      ), (single, REG, (GPUCA_THREAD_COUNT_CLEANER, 1)), (), ())
 GPUCA_KRNL((GPUTPCStartHitsFinder                        ), (single, REG, (GPUCA_THREAD_COUNT, 1)), (), ())
 GPUCA_KRNL((GPUTPCStartHitsSorter                        ), (single, REG, (GPUCA_THREAD_COUNT, 1)), (), ())
 GPUCA_KRNL((GPUTPCTrackletConstructor, singleSlice       ), (single, REG, (GPUCA_THREAD_COUNT_CONSTRUCTOR, GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER)), (), ())
