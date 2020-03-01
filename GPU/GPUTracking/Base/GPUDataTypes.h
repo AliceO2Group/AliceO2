@@ -183,6 +183,13 @@ struct GPUTrackingInOutZS {
     unsigned int* nZSPtr[NENDPOINTS];
     unsigned int count[NENDPOINTS];
   };
+  struct GPUTrackingInOutZSCounts {
+    unsigned int count[NSLICES][NENDPOINTS] = {};
+  };
+  struct GPUTrackingInOutZSMeta {
+    void* ptr[NSLICES][NENDPOINTS];
+    unsigned int n[NSLICES][NENDPOINTS];
+  };
   GPUTrackingInOutZSSlice slice[NSLICES];
 };
 
