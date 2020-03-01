@@ -15,6 +15,7 @@ o2_add_library(DataFormatsEMCAL
                        src/Cluster.cxx
                        src/Cell.cxx 
                        src/Digit.cxx
+                       src/EventHandler.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonDataFormat 
                                      O2::Headers 
                                      O2::MathUtils 
@@ -29,6 +30,7 @@ o2_target_root_dictionary(DataFormatsEMCAL
                                   include/DataFormatsEMCAL/Cell.h
                                   include/DataFormatsEMCAL/Digit.h
                                   include/DataFormatsEMCAL/Cluster.h
+                                  include/DataFormatsEMCAL/EventHandler.h
                                   include/DataFormatsEMCAL/MCLabel.h)
 
 o2_add_test(Cell

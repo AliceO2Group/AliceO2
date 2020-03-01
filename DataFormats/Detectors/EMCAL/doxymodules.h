@@ -8,16 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
-
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#pragma link C++ class o2::emcal::Hit + ;
-#pragma link C++ class o2::emcal::Geometry + ;
-#pragma link C++ class o2::emcal::Mapper + ;
-#pragma link C++ class o2::emcal::MappingHandler + ;
-
-#pragma link C++ class std::vector < o2::emcal::Hit > + ;
-#endif
+/**
+ * @defgroup EMCALDataFormat EMCAL data format
+ * @ingroup DetectorEMCAL
+ * @brief Data format for EMCAL
+ */
