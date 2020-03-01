@@ -367,7 +367,7 @@ int GPUChainTracking::PrepareEvent()
       if (nDigits > maxDigits) {
         maxDigits = nDigits;
       }
-      maxClusters[iSlice] = param().rec.fwdTPCDigitsAsClusters ? nDigits : mRec->MemoryScalers()->NTPCClusters(mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice]);
+      maxClusters[iSlice] = param().rec.fwdTPCDigitsAsClusters ? nDigits : mRec->MemoryScalers()->NTPCClusters(nDigits);
     }
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       processors()->tpcTrackers[iSlice].Data().SetClusterData(nullptr, maxClusters[iSlice], 0); // TODO: fixme
@@ -378,7 +378,7 @@ int GPUChainTracking::PrepareEvent()
     processors()->tpcCompressor.mMaxClusters = mRec->MemoryScalers()->nTPCHits;
     processors()->tpcConverter.mNClustersTotal = mRec->MemoryScalers()->nTPCHits;
     if (mIOPtrs.tpcZS) {
-      GPUInfo("Event has %lld 8kb TPC ZS pages", (long long int)nPagesTotal);
+      GPUInfo("Event has %lld 8kb TPC ZS pages, %lld digits", (long long int)nPagesTotal, (long long int)mRec->MemoryScalers()->nTPCdigits);
     } else {
       GPUInfo("Event has %lld TPC Digits", (long long int)mRec->MemoryScalers()->nTPCdigits);
     }
@@ -793,7 +793,7 @@ int GPUChainTracking::RunTPCClusterizer()
   clsMemory.reserve(mRec->MemoryScalers()->nTPCHits);
 
   // setup MC Labels
-  auto* digitsMC = processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC;
+  auto* digitsMC = processors()->ioPtrs.tpcPackedDigits ? processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC : nullptr;
   bool propagateMCLabels = !doGPU && digitsMC != nullptr && GetDeviceProcessingSettings().runMC;
 
   GPUTPCLinearLabels mcLinearLabels;
@@ -1699,19 +1699,23 @@ int GPUChainTracking::RunChain()
 
   PrepareDebugOutput();
 
-  if (GetRecoSteps().isSet(RecoStep::TPCClusterFinding) && mIOPtrs.tpcPackedDigits) {
+  if (GetRecoSteps().isSet(RecoStep::TPCClusterFinding) && (mIOPtrs.tpcPackedDigits || mIOPtrs.tpcZS)) {
     timerClusterer.Start();
     if (param().rec.fwdTPCDigitsAsClusters) {
       ForwardTPCDigits();
     } else {
-      RunTPCClusterizer();
+      if (RunTPCClusterizer()) {
+        return 1;
+      }
     }
     timerClusterer.Stop();
   }
 
   if (GetRecoSteps().isSet(RecoStep::TPCConversion) && mIOPtrs.clustersNative) {
     timerTransform.Start();
-    ConvertNativeToClusterData();
+    if (ConvertNativeToClusterData()) {
+      return 1;
+    }
     timerTransform.Stop();
   }
 
@@ -1733,7 +1737,9 @@ int GPUChainTracking::RunChain()
 
   if (GetRecoSteps().isSet(RecoStep::TPCCompression) && mIOPtrs.clustersNative) {
     timerCompression.Start();
-    RunTPCCompression();
+    if (RunTPCCompression()) {
+      return 1;
+    }
     if (GetDeviceProcessingSettings().runCompressionStatistics) {
       mCompressionStatistics->RunStatistics(mClusterNativeAccess.get(), &processors()->tpcCompressor.mOutput, param());
     }
