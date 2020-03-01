@@ -24,10 +24,11 @@ namespace o2
 
 namespace emcal
 {
+using DigitBase = o2::dataformats::TimeStamp<double>;
+
 /// \class Digit
 /// \brief EMCAL digit implementation
-
-using DigitBase = o2::dataformats::TimeStamp<double>;
+/// \ingroup EMCALDataFormat
 class Digit : public DigitBase
 {
  public:

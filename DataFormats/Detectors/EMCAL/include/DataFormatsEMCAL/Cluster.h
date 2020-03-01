@@ -25,6 +25,7 @@ namespace emcal
 
 /// \class Cluster
 /// \brief EMCAL Cluster
+/// \ingroup EMCALDataFormat
 ///
 class Cluster : public o2::dataformats::TimeStamp<Float16_t>
 {

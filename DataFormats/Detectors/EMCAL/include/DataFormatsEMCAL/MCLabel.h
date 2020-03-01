@@ -19,6 +19,10 @@ namespace o2
 {
 namespace emcal
 {
+
+/// \class MCLabel
+/// \brief Monte-Carlo label for EMCAL clusters / digits
+/// \ingroup EMCALDataFormat
 class MCLabel : public o2::MCCompLabel
 {
  private:
