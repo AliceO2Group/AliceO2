@@ -24,7 +24,7 @@
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "FV0Simulation/Digitizer.h"
-#include "FV0Simulation/DigitizationParameters.h"
+#include "FV0Simulation/DigitizationConstant.h"
 #include "FV0Simulation/MCLabel.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <TFile.h>
