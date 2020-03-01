@@ -102,7 +102,7 @@ enum AODTypeMask : uint64_t {
   Timeframe = 1 << 7,
   DZeroFlagged = 1 << 8,
   Unknown = 1 << 9,
-  TracksMCtruth = 1 << 10
+  TracksKine = 1 << 10
 };
 
 uint64_t getMask(header::DataDescription description)
@@ -110,8 +110,8 @@ uint64_t getMask(header::DataDescription description)
 
   if (description == header::DataDescription{"TRACKPAR"}) {
     return AODTypeMask::Tracks;
-  } else if (description == header::DataDescription{"TRACKMCTRUTH"}) {
-    return AODTypeMask::TracksMCtruth;
+  } else if (description == header::DataDescription{"TRACKKINE"}) {
+    return AODTypeMask::TracksKine;
   } else if (description == header::DataDescription{"TRACKPARCOV"}) {
     return AODTypeMask::TracksCov;
   } else if (description == header::DataDescription{"TRACKEXTRA"}) {
@@ -247,8 +247,8 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
           std::shared_ptr<arrow::ipc::RecordBatchWriter> writer;
           if (meta["description"] == "TRACKPAR" && (readMask & AODTypeMask::Tracks)) {
             writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "TRACKPAR"}, batch->schema());
-          } else if (meta["description"] == "TRACKMCTRUTH" && (readMask & AODTypeMask::TracksMCtruth)) {
-            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "TRACKMCTRUTH"}, batch->schema());
+          } else if (meta["description"] == "TRACKKINE" && (readMask & AODTypeMask::TracksKine)) {
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "TRACKKINE"}, batch->schema());
           } else if (meta["description"] == "TRACKPARCOV" && (readMask & AODTypeMask::TracksCov)) {
             writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "TRACKPARCOV"}, batch->schema());
           } else if (meta["description"] == "TRACKEXTRA" && (readMask & AODTypeMask::TracksExtra)) {
@@ -348,10 +348,10 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         RootTableBuilderHelpers::convertASoA<o2::aod::Tracks>(trackParBuilder, *reader);
       }
 
-      if (readMask & AODTypeMask::TracksMCtruth) {
-        std::unique_ptr<TTreeReader> readermctruth = std::make_unique<TTreeReader>("O2kine", infile.get());
-        auto& trackMCtruthBuilder = outputs.make<TableBuilder>(Output{"AOD", "TRACKMCTRUTH"});
-        RootTableBuilderHelpers::convertASoA<o2::aod::TracksMCtruth>(trackMCtruthBuilder, *readermctruth);
+      if (readMask & AODTypeMask::TracksKine) {
+        std::unique_ptr<TTreeReader> readerkine = std::make_unique<TTreeReader>("O2kine", infile.get());
+        auto& trackParKineBuilder = outputs.make<TableBuilder>(Output{"AOD", "TRACKKINE"});
+        RootTableBuilderHelpers::convertASoA<o2::aod::TracksKine>(trackParKineBuilder, *readerkine);
       }
 
       if (readMask & AODTypeMask::TracksCov) {

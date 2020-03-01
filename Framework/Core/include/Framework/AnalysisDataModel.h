@@ -120,18 +120,18 @@ using Track = Tracks::iterator;
 using TrackCov = TracksCov::iterator;
 using TrackExtra = TracksExtra::iterator;
 
-namespace trackmctruth
+namespace trackkine
 {
-// TRACKMCTRUTH TABLE definition
+// TRACKKINE TABLE definition
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(PdgCode, pdgCode, int, "fPdgCode");
-} // namespace trackmctruth
+} // namespace trackkine
 
-DECLARE_SOA_TABLE(TracksMCtruth, "AOD", "TRACKMCTRUTH",
-                  o2::soa::Index<>, trackmctruth::CollisionId,
-		  trackmctruth::PdgCode);
+DECLARE_SOA_TABLE(TracksKine, "AOD", "TRACKKINE",
+                  o2::soa::Index<>, trackkine::CollisionId,
+		  trackkine::PdgCode);
 
-using TrackMC = TracksMCtruth::iterator;
+using TrackKine = TracksKine::iterator;
 
 namespace calo
 {

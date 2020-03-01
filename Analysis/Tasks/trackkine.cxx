@@ -21,7 +21,7 @@
 
 struct TrackKineTask {
   OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 100, -0.1, 0.1)};
-  void process(aod::Collision const& collision, aod::TracksMCtruth const& trackskine)
+  void process(aod::Collision const& collision, aod::TracksKine const& trackskine)
   {
     LOGF(info, "Tracks for collision kine: %d", trackskine.size());
     for (auto it_0 = trackskine.begin(); it_0 != trackskine.end(); ++it_0) {
