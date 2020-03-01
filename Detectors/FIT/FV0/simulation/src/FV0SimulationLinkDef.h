@@ -19,6 +19,8 @@
 #pragma link C++ class o2::fv0::Digitizer + ;
 #pragma link C++ class o2::fv0::MCLabel + ;
 #pragma link C++ class o2::dataformats::MCTruthContainer < o2::fv0::MCLabel> + ;
-#pragma link C++ class o2::fv0::DigitizationParameters + ;
+#pragma link C++ class o2::fv0::DigitizationConstant + ;
+#pragma link C++ class o2::fv0::FV0DigParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::fv0::FV0DigParam> + ;
 
 #endif

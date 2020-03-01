@@ -47,10 +47,10 @@ void Digitizer::init()
   };
   // set up PMT response tables
   Float_t offset = -0.5f * mBinSize; // offset \in [-0.5..0.5] * mBinSize
-  Int_t const nBins = roundVc(std::lround(4.0f * DP::mPmtTransitTime / mBinSize));
+  Int_t const nBins = roundVc(std::lround(4.0f * FV0DigParam::Instance().mPmtTransitTime / mBinSize));
   for (auto& table : mPmtResponseTables) {
     table.resize(nBins);
-    Float_t t = -2.0f * DP::mPmtTransitTime + offset; // t \in offset + [-2 2] * DP::mPmtTransitTime
+    Float_t t = -2.0f * FV0DigParam::Instance().mPmtTransitTime + offset; // t \in offset + [-2 2] * FV0DigParam::Instance().mPmtTransitTime
     for (Int_t j = 0; j < nBins; ++j) {
       table[j] = Digitizer::PmtResponse(t);
       t += mBinSize;
@@ -59,36 +59,36 @@ void Digitizer::init()
   }
 
   TF1 scintDelayFn("fScintDelay", "gaus",
-                   -6.0f * DP::mIntrinsicTimeRes,
-                   +6.0f * DP::mIntrinsicTimeRes);
-  scintDelayFn.SetParameters(1, 0, DP::mIntrinsicTimeRes);
+                   -6.0f * FV0DigParam::Instance().mIntrinsicTimeRes,
+                   +6.0f * FV0DigParam::Instance().mIntrinsicTimeRes);
+  scintDelayFn.SetParameters(1, 0, FV0DigParam::Instance().mIntrinsicTimeRes);
   mRndScintDelay.initialize(scintDelayFn);
 
   // Initialize function describing the PMT time response
   TF1 pmtResponseFn("mPmtResponse",
                     &Digitizer::PmtResponse,
-                    -1.0f * DP::mPmtTransitTime,
-                    +2.0f * DP::mPmtTransitTime, 0);
+                    -1.0f * FV0DigParam::Instance().mPmtTransitTime,
+                    +2.0f * FV0DigParam::Instance().mPmtTransitTime, 0);
   pmtResponseFn.SetNpx(100);
-  mPmtTimeIntegral = pmtResponseFn.Integral(-1.0f * DP::mPmtTransitTime,
-                                            +2.0f * DP::mPmtTransitTime);
+  mPmtTimeIntegral = pmtResponseFn.Integral(-1.0f * FV0DigParam::Instance().mPmtTransitTime,
+                                            +2.0f * FV0DigParam::Instance().mPmtTransitTime);
 
   // Initialize function describing PMT response to the single photoelectron
   TF1 singlePhESpectrumFn("mSinglePhESpectrum",
                           &Digitizer::SinglePhESpectrum,
-                          DP::photoelMin,
-                          DP::photoelMax, 0);
-  Float_t const meansPhE = singlePhESpectrumFn.Mean(DP::photoelMin, DP::photoelMax);
+                          FV0DigParam::Instance().photoelMin,
+                          FV0DigParam::Instance().photoelMax, 0);
+  Float_t const meansPhE = singlePhESpectrumFn.Mean(FV0DigParam::Instance().photoelMin, FV0DigParam::Instance().photoelMax);
   mRndGainVar.initialize([&]() -> float {
-    return singlePhESpectrumFn.GetRandom(DP::photoelMin, DP::photoelMax) / meansPhE;
+    return singlePhESpectrumFn.GetRandom(FV0DigParam::Instance().photoelMin, FV0DigParam::Instance().photoelMax) / meansPhE;
   });
 
-  TF1 signalShapeFn("signalShape", "crystalball", 0, 300);
-  signalShapeFn.SetParameters(1,
-                              DP::mShapeSigma,
-                              DP::mShapeSigma,
-                              DP::mShapeAlpha,
-                              DP::mShapeN);
+  TF1 signalShapeFn("signalShape", "crystalball", 0, 200);
+  signalShapeFn.SetParameters(FV0DigParam::Instance().mShapeConst,
+                              FV0DigParam::Instance().mShapeMean,
+                              FV0DigParam::Instance().mShapeSigma,
+                              FV0DigParam::Instance().mShapeAlpha,
+                              FV0DigParam::Instance().mShapeN);
   mRndSignalShape.initialize([&]() -> float {
     return signalShapeFn.GetRandom(0, mBinSize * Float_t(mNBins));
   });
@@ -118,25 +118,26 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
     const Double_t hitEdep = hit.GetHitValue() * 1e3; //convert to MeV
 
     // TODO: check how big is inaccuracy if more than 1 'below-threshold' particles hit the same detector cell
-    if (hitEdep < DP::singleMipThreshold) {
+    if (hitEdep < FV0DigParam::Instance().singleMipThreshold) {
       continue;
     }
 
     Double_t const nPhotons = hitEdep * DP::N_PHOTONS_PER_MEV;
     Int_t const nPhE = SimulateLightYield(detId, nPhotons);
-    Float_t const t = mRndScintDelay.getNextValue() + hit.GetTime() * 1e9;
-    Float_t const charge = TMath::Qe() * DP::mPmtGain * mBinSize / mPmtTimeIntegral;
+    //Float_t const t = mRndScintDelay.getNextValue() + hit.GetTime() * 1e9;
+    Float_t const t = hit.GetTime() * 1e9 + FV0DigParam::Instance().mPmtTransitTime;
+    Float_t const charge = TMath::Qe() * FV0DigParam::Instance().mPmtGain * mBinSize / mPmtTimeIntegral;
 
     auto& analogSignal = mPmtChargeVsTime[detId];
 
     for (Int_t iPhE = 0; iPhE < nPhE; ++iPhE) {
       Float_t const tPhE = t + mRndSignalShape.getNextValue();
-      Int_t const firstBin = roundVc(TMath::Max((Int_t)0, (Int_t)((tPhE - DP::mPmtTransitTime) / mBinSize)));
-      Int_t const lastBin = TMath::Min((Int_t)mNBins - 1, (Int_t)((tPhE + 2. * DP::mPmtTransitTime) / mBinSize));
+      Int_t const firstBin = roundVc(TMath::Max((Int_t)0, (Int_t)((tPhE - FV0DigParam::Instance().mPmtTransitTime) / mBinSize)));
+      Int_t const lastBin = TMath::Min((Int_t)mNBins - 1, (Int_t)((tPhE + 2. * FV0DigParam::Instance().mPmtTransitTime) / mBinSize));
       Float_t const tempT = mBinSize * (0.5f + firstBin) - tPhE;
       Float_t* p = analogSignal.data() + firstBin;
-      long iStart = std::lround((tempT + 2.0f * DP::mPmtTransitTime) / mBinSize);
-      float const offset = tempT + 2.0f * DP::mPmtTransitTime - Float_t(iStart) * mBinSize;
+      long iStart = std::lround((tempT + 2.0f * FV0DigParam::Instance().mPmtTransitTime) / mBinSize);
+      float const offset = tempT + 2.0f * FV0DigParam::Instance().mPmtTransitTime - Float_t(iStart) * mBinSize;
       long const iOffset = std::lround(offset / mBinSize * Float_t(DP::NUM_PMT_RESPONSE_TABLES - 1));
       if (iStart < 0) { // this should not happen
         LOG(ERROR) << "V0Digitizer: table lookup failure";
@@ -197,7 +198,7 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
 Int_t Digitizer::SimulateLightYield(Int_t pmt, Int_t nPhot) const
 {
   const Float_t epsilon = 0.0001f;
-  const Float_t p = DP::mLightYield * DP::mPhotoCathodeEfficiency;
+  const Float_t p = FV0DigParam::Instance().mLightYield * FV0DigParam::Instance().mPhotoCathodeEfficiency;
   if ((fabs(1.0f - p) < epsilon) || nPhot == 0) {
     return nPhot;
   }
@@ -211,7 +212,7 @@ Int_t Digitizer::SimulateLightYield(Int_t pmt, Int_t nPhot) const
 Float_t Digitizer::SimulateTimeCfd(Int_t channel) const
 {
   Float_t timeCfd = -1024.0f;
-  Int_t const binShift = TMath::Nint(DP::mTimeShiftCfd / mBinSize);
+  Int_t const binShift = TMath::Nint(FV0DigParam::Instance().mTimeShiftCfd / mBinSize);
   Float_t sigPrev = -mPmtChargeVsTime[channel][0];
   for (Int_t iTimeBin = 1; iTimeBin < mNBins; ++iTimeBin) {
     Float_t const sigCurrent = (iTimeBin >= binShift
@@ -234,13 +235,13 @@ Double_t Digitizer::PmtResponse(Double_t* x, Double_t*)
 Double_t Digitizer::PmtResponse(Double_t x)
 {
   // this function describes the PMT time response to a single photoelectron
-  if (x > 2 * DP::mPmtTransitTime)
+  if (x > 2 * FV0DigParam::Instance().mPmtTransitTime)
     return 0.0;
-  if (x < -DP::mPmtTransitTime)
+  if (x < -FV0DigParam::Instance().mPmtTransitTime)
     return 0.0;
-  x += DP::mPmtTransitTime;
+  x += FV0DigParam::Instance().mPmtTransitTime;
   Double_t const x2 = x * x;
-  return x2 * std::exp(-x2 * DP::mOneOverPmtTransitTime2);
+  return x2 * std::exp(-x2 * FV0DigParam::Instance().mOneOverPmtTransitTime2);
 }
 
 //_______________________________________________________________________
@@ -250,6 +251,6 @@ Double_t Digitizer::SinglePhESpectrum(Double_t* x, Double_t*)
   // this function describes the PMT amplitude response to a single photoelectron
   if (x[0] < 0.0)
     return 0.0;
-  return (TMath::Poisson(x[0], DP::mPmtNbOfSecElec) +
-          DP::mPmtTransparency * TMath::Poisson(x[0], 1.0));
+  return (TMath::Poisson(x[0], FV0DigParam::Instance().mPmtNbOfSecElec) +
+          FV0DigParam::Instance().mPmtTransparency * TMath::Poisson(x[0], 1.0));
 }

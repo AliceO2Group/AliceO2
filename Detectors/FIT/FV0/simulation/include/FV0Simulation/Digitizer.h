@@ -12,7 +12,8 @@
 #define ALICEO2_FV0_DIGITIZER_H
 
 #include <FV0Simulation/MCLabel.h>
-#include <FV0Simulation/DigitizationParameters.h>
+#include <FV0Simulation/DigitizationConstant.h>
+#include <FV0Simulation/FV0DigParam.h>
 #include <DataFormatsFV0/ChannelData.h>
 #include <DataFormatsFV0/BCData.h>
 #include <FV0Simulation/Detector.h>
@@ -29,7 +30,7 @@ namespace fv0
 class Digitizer
 {
  private:
-  using DP = DigitizationParameters;
+  using DP = DigitizationConstant;
   typedef math_utils::RandomRing<float_v::size() * DP::HIT_RANDOM_RING_SIZE> HitRandomRingType;
   typedef math_utils::RandomRing<float_v::size() * DP::PHE_RANDOM_RING_SIZE> PheRandomRingType;
 
