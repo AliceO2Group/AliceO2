@@ -318,7 +318,7 @@ struct AnalysisDataProcessorBuilder {
   template <typename R, typename C, typename Grouping, typename... Args>
   static auto bindAssociatedTables(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo> const infos)
   {
-    return std::make_tuple(extractSomethingFromRecord<Args, has_type_at<Args>(pack<Args...>{})>(record, infos)...);
+    return std::make_tuple(extractSomethingFromRecord<Args, has_type_at<Args>(pack<Args...>{}) + 1u>(record, infos)...);
   }
 
   template <typename R, typename C>
@@ -416,49 +416,25 @@ struct AnalysisDataProcessorBuilder {
           if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Table>::value) {
             for (auto& groupedDatum : groupsCollection) {
               auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
-              task.process(groupingElement, AssociatedType{groupedElementsTable, offsets[oi]});
+              std::decay_t<AssociatedType> typedTable{groupedElementsTable, offsets[oi]};
+              typedTable.bindExternalIndices(&groupingTable);
+              task.process(groupingElement, typedTable);
               ++const_cast<std::decay_t<Grouping>&>(groupingElement);
               ++oi;
             }
           } else if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Filtered>::value) {
-            auto& fullFiltered = std::get<0>(associatedTables);
-            auto selectionBuffer = std::shared_ptr<arrow::Buffer>(&(fullFiltered.getSelection()->GetBuffer()));
-            auto selectionArray = fullFiltered.getSelection()->ToArray();
-            offsets.push_back(fullFiltered.tableSize());
-            uint64_t selectionIndex = 0;
-            uint64_t sliceStart = 0;
-            uint64_t sliceStop = 0;
-
-            auto findSliceBounds = [&](int64_t l, int64_t h) {
-              size_t s = 0;
-              for (auto i = selectionIndex; i < selectionArray->length(); ++i) {
-                auto value = selectionArray->data()->template GetValues<uint64_t>(i);
-                if (*value == l) {
-                  sliceStart = i;
-                  s = i;
-                  break;
-                }
-              }
-              for (auto i = s + 1; i < selectionArray->length(); ++i) {
-                auto value = selectionArray->data()->template GetValues<uint64_t>(i);
-                if (*value == h) {
-                  sliceStop = i;
-                  selectionIndex = i;
-                  break;
-                }
-              }
-            };
+            auto& fullSelection = allGroupedTable.getSelectedRows();
+            offsets.push_back(allGroupedTable.tableSize());
 
             for (auto& groupedDatum : groupsCollection) {
               auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
               // for each grouping element we need to slice the selection vector
-              findSliceBounds(offsets[oi], offsets[oi + 1]);
-              auto slicedBuffer = arrow::SliceBuffer(selectionBuffer, sliceStart, sliceStop - sliceStart + 1);
-              expressions::Selection slicedSelection;
-              if (!gandiva::SelectionVector::MakeInt64(sliceStop - sliceStart + 1, slicedBuffer, &slicedSelection).ok()) {
-                throw std::runtime_error("Cannot create sliced selection");
-              }
-              std::decay_t<AssociatedType> typedTable{{groupedElementsTable}, slicedSelection, offsets[oi]};
+              auto iterator_start = std::find(fullSelection.begin(), fullSelection.end(), offsets[oi]);
+              auto iterator_end = std::find(iterator_start, fullSelection.end(), offsets[oi + 1]);
+              soa::selectionVector slicedSelection{iterator_start, iterator_end};
+              std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(), [&](int64_t index) { return index - static_cast<int64_t>(offsets[oi]); });
+
+              std::decay_t<AssociatedType> typedTable{{groupedElementsTable}, std::move(slicedSelection), offsets[oi]};
               typedTable.bindExternalIndices(&groupingTable);
               task.process(groupingElement, typedTable);
               ++const_cast<std::decay_t<Grouping>&>(groupingElement);
