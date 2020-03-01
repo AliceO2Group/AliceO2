@@ -154,6 +154,7 @@ AddOption(zsFilter, int, -1, "zsFilter", 0, "Apply Zero-Suppression when loading
 AddOption(zsThreshold, float, 2.0f, "zsThreshold", 0, "Zero-Suppression threshold")
 AddOption(zs12bit, bool, false, "zs12bit", 0, "Perform 12 bit zero-suppression encoding / filter")
 AddOption(dumpEvents, bool, false, "dumpEvents", 0, "Dump events (after transformation such as encodeZS")
+AddOption(stripDumpedEvents, bool, false, "stripDumpedEvents", 0, "Remove redundant inputs (e.g. digits and ZS) before dumping")
 AddOption(referenceX, float, 500.f, "referenceX", 0, "Reference X position to transport track to after fit")
 AddOption(rejectMode, char, 5, "rejectMode", 0, "Merger Reject Mode")
 AddOption(allocationStrategy, int, 0, "allocationStrategy", 0, "Memory Allocation Stragegy (0 = auto, 1 = individual allocations, 2 = single global allocation)")

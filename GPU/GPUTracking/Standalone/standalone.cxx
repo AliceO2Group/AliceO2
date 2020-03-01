@@ -549,6 +549,11 @@ int main(int argc, char** argv)
           }
         }
 
+        if (configStandalone.stripDumpedEvents) {
+          if (chainTracking->mIOPtrs.tpcZS) {
+            chainTracking->mIOPtrs.tpcPackedDigits = nullptr;
+          }
+        }
         if (configStandalone.dumpEvents) {
           char fname[1024];
           sprintf(fname, "event.%d.dump", nEventsProcessed);
@@ -563,7 +568,7 @@ int main(int argc, char** argv)
           ev.continuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits) : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
           rec->UpdateEventSettings(&ev);
         }
-        if (!rec->GetParam().earlyTpcTransform && chainTracking->mIOPtrs.clustersNative == nullptr && chainTracking->mIOPtrs.tpcPackedDigits == nullptr) {
+        if (!rec->GetParam().earlyTpcTransform && chainTracking->mIOPtrs.clustersNative == nullptr && chainTracking->mIOPtrs.tpcPackedDigits == nullptr && chainTracking->mIOPtrs.tpcZS == nullptr) {
           printf("Need cluster native data for on-the-fly TPC transform\n");
           goto breakrun;
         }
