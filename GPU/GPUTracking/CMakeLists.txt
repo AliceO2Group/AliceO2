@@ -76,7 +76,8 @@ set(SRCS_NO_CINT
 
 set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
               Merger/GPUTPCGMMergerDump.cxx
-              Global/GPUChainTrackingDebugAndProfiling.cxx)
+              Global/GPUChainTrackingDebugAndProfiling.cxx
+              Global/GPUChainTrackingIO.cxx)
 
 set(HDRS_INSTALL
     SliceTracker/GPUTPCMCInfo.h
