@@ -549,6 +549,15 @@ int main(int argc, char** argv)
           }
         }
 
+        if (configStandalone.dumpEvents) {
+          char fname[1024];
+          sprintf(fname, "event.%d.dump", nEventsProcessed);
+          chainTracking->DumpData(fname);
+          if (nEventsProcessed == 0) {
+            rec->DumpSettings();
+          }
+        }
+
         if (configStandalone.overrideMaxTimebin && (chainTracking->mIOPtrs.clustersNative || chainTracking->mIOPtrs.tpcPackedDigits)) {
           GPUSettingsEvent ev = rec->GetEventSettings();
           ev.continuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits) : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
