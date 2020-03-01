@@ -120,6 +120,19 @@ using Track = Tracks::iterator;
 using TrackCov = TracksCov::iterator;
 using TrackExtra = TracksExtra::iterator;
 
+namespace trackmctruth
+{
+// TRACKMCTRUTH TABLE definition
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+DECLARE_SOA_COLUMN(PdgCode, pdgCode, int, "fPdgCode");
+} // namespace trackmctruth
+
+DECLARE_SOA_TABLE(TracksMCtruth, "AOD", "TRACKMCTRUTH",
+                  o2::soa::Index<>, trackmctruth::CollisionId,
+		  trackmctruth::PdgCode);
+
+using TrackMC = TracksMCtruth::iterator;
+
 namespace calo
 {
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
