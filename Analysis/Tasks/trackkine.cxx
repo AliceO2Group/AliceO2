@@ -23,12 +23,11 @@ struct TrackKineTask {
   OutputObj<TH1F> hvtx_x_out{TH1F("hvtx_x", "2-track vtx", 100, -0.1, 0.1)};
   void process(aod::Collision const& collision, aod::TracksMCtruth const& trackskine)
   {
-    //LOGF(info, "testing");
-    LOGF(info, "Tracks for collision: %d", trackskine.size());
-    //for (auto it_0 = trackskine.begin(); it_0 != trackskine.end(); ++it_0) {
-    //  auto& trackkine_0 = *it_0;
-      //LOGF(info, "look at PDG code here %d", trackkine_0.pdgCode());
-    //}
+    LOGF(info, "Tracks for collision kine: %d", trackskine.size());
+    for (auto it_0 = trackskine.begin(); it_0 != trackskine.end(); ++it_0) {
+      auto& trackkine_0 = *it_0;
+      LOGF(info, "look at PDG code here %d", trackkine_0.pdgCode());
+    }
   }
 };
 
