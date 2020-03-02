@@ -134,8 +134,7 @@ struct DecayVertexBuilder2Prong {
 struct CandidateBuildingDzero {
   Produces<aod::Cand2Prong> cand2prong;
   void process(aod::SecVtx2Prong const& secVtx2Prongs,
-               soa::Join<aod::Tracks, aod::TracksCov,
-                         aod::TracksExtra> const& tracks)
+               soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
   {
     LOGF(info, "NEW EVENT");
 
