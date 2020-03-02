@@ -405,9 +405,8 @@ GPUdii() void GPUTPCTrackletConstructor::Thread<GPUTPCTrackletConstructor::singl
 template <>
 GPUdii() void GPUTPCTrackletConstructor::Thread<GPUTPCTrackletConstructor::allSlices>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() sMem, processorType& GPUrestrict() tracker0)
 {
-#ifdef GPUCA_GPUCODE
   GPUconstantref() MEM_GLOBAL(GPUTPCTracker) * GPUrestrict() pTracker = &tracker0;
-
+#ifdef GPUCA_GPUCODE
   int mySlice = get_group_id(0) % GPUCA_NSLICES;
   int currentSlice = -1;
 
@@ -446,7 +445,9 @@ GPUdii() void GPUTPCTrackletConstructor::Thread<GPUTPCTrackletConstructor::allSl
     }
   }
 #else
-  throw std::logic_error("Not supported on CPU");
+  for (int iSlice = 0; iSlice < GPUCA_NSLICES; iSlice++) {
+    Thread<singleSlice>(nBlocks, nThreads, iBlock, iThread, sMem, pTracker[iSlice]);
+  }
 #endif
 }
 
