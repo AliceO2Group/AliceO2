@@ -15,11 +15,15 @@ namespace o2::aod
 {
 namespace etaphi
 {
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(Eta, eta, float, "fEta");
 DECLARE_SOA_COLUMN(Phi, phi, float, "fPhi");
 } // namespace etaphi
 DECLARE_SOA_TABLE(EtaPhi, "AOD", "ETAPHI",
                   etaphi::Eta, etaphi::Phi);
+
+DECLARE_SOA_TABLE(EtaPhiCol, "AOD", "ETAPHICOL",
+                  etaphi::CollisionId, etaphi::Eta, etaphi::Phi);
 } // namespace o2::aod
 
 using namespace o2;
@@ -36,7 +40,7 @@ struct ATask {
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
-      etaphi(track.phi(), track.eta());
+      etaphi(track.eta(), track.phi());
     }
   }
 };
@@ -52,9 +56,36 @@ struct BTask {
   }
 };
 
+struct CTask {
+  Produces<aod::EtaPhiCol> epc;
+
+  void process(aod::Collision const& collision, aod::Tracks const& tracks)
+  {
+    for (auto& track : tracks) {
+      epc(collision, track.eta(), track.phi());
+    }
+  }
+};
+
+struct DTask {
+  Filter flt = (aod::etaphi::eta < 1.0f) && (aod::etaphi::eta > -1.0f);
+
+  void process(aod::Collision const& collision, soa::Filtered<aod::EtaPhiCol> const& epc)
+  {
+    uint32_t count = 0;
+    LOG(INFO) << "===========================================================";
+    for (auto& entry : epc) {
+      LOG(INFO) << "[" << count++ << "] " << collision.globalIndex() << " = " << entry.collisionId() << "\n"
+                << "(-1 < " << entry.eta() << " < 1)";
+    }
+  }
+};
+
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
     adaptAnalysisTask<ATask>("produce-etaphi"),
-    adaptAnalysisTask<BTask>("consume-etaphi")};
+    adaptAnalysisTask<BTask>("consume-etaphi"),
+    adaptAnalysisTask<CTask>("produce-etaphi-col"),
+    adaptAnalysisTask<DTask>("consume-etaphi-col")};
 }
