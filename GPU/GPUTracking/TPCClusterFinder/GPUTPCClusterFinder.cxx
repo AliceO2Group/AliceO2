@@ -50,7 +50,7 @@ void* GPUTPCClusterFinder::SetPointersOutput(void* mem)
 void* GPUTPCClusterFinder::SetPointersScratch(void* mem)
 {
   computePointerWithAlignment(mem, mPpeaks, mNMaxPeaks);
-  computePointerWithAlignment(mem, mPfilteredPeaks, mNMaxPeaks);
+  computePointerWithAlignment(mem, mPfilteredPeaks, mNMaxClusters);
   computePointerWithAlignment(mem, mPisPeak, mNMaxDigits);
   computePointerWithAlignment(mem, mPchargeMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED);
   computePointerWithAlignment(mem, mPpeakMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED);
@@ -68,9 +68,9 @@ void GPUTPCClusterFinder::RegisterMemoryAllocation()
 
 void GPUTPCClusterFinder::SetMaxData(const GPUTrackingInOutPointers& io)
 {
-  mNMaxPeaks = mRec->MemoryScalers()->NTPCClusters(mNMaxDigits);
-  mNMaxClusters = mNMaxPeaks; // Noise suppression doesn't remove that many peaks, so don't scale this
-  mNMaxClusterPerRow = 0.01f * mNMaxDigits;
+  mNMaxPeaks = mRec->MemoryScalers()->NTPCPeaks(mNMaxDigits);
+  mNMaxClusters = mRec->MemoryScalers()->NTPCClusters(mNMaxDigits);
+  mNMaxClusterPerRow = 0.01f * mNMaxClusters;
   mBufSize = nextMultipleOf<std::max<int>(GPUCA_MEMALIGN, mScanWorkGroupSize)>(mNMaxDigits);
   mNBufs = getNSteps(mBufSize);
 }

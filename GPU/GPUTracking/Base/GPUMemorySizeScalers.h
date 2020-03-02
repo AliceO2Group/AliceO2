@@ -30,7 +30,8 @@ struct GPUMemorySizeScalers {
   static constexpr double offset = 1000.;
 
   // Scaling Factors
-  static constexpr double tpcClustersPerDigit = 0.2;
+  static constexpr double tpcPeaksPerDigit = 0.2;
+  static constexpr double tpcClustersPerPeak = 0.9;
   static constexpr double tpcClustersNoiseOffset = 20000;
   static constexpr double tpcTrackletsPerHit = 0.08;
   static constexpr double tpcSectorTracksPerHit = 0.02;
@@ -38,7 +39,8 @@ struct GPUMemorySizeScalers {
   static constexpr double tpcTracksPerHit = 0.012;
   static constexpr double tpcTrackHitsPerHit = 0.7;
 
-  double NTPCClusters(double tpcDigits) { return offset + tpcDigits * tpcClustersPerDigit + tpcClustersNoiseOffset; }
+  double NTPCPeaks(double tpcDigits) { return offset + tpcDigits * tpcPeaksPerDigit + tpcClustersNoiseOffset; }
+  double NTPCClusters(double tpcDigits) { return tpcClustersPerPeak * NTPCPeaks(tpcDigits); }
   double NTPCTracklets(double tpcHits) { return offset + tpcHits * tpcTrackletsPerHit; }
   double NTPCSectorTracks(double tpcHits) { return offset + tpcHits * tpcSectorTracksPerHit; }
   double NTPCSectorTrackHits(double tpcHits) { return offset + tpcHits * tpcSectorTrackHitsPerHit; }
