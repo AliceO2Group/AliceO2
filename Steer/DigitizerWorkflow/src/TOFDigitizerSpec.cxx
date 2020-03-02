@@ -65,11 +65,11 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
 
   // containers for digits and labels
   auto digits = std::make_shared<std::vector<o2::tof::Digit>>();
-  auto digitsAccum = std::make_shared<std::vector<o2::tof::Digit>>(); // accumulator for all digits
+  //  auto digitsAccum = std::make_shared<o2::tof::Digit>(); // accumulator for all digits
   auto labels = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
 
   // the actual processing function which get called whenever new data is incoming
-  auto process = [simChains, digitizer, digits, digitsAccum, labels, channel, useCCDB](ProcessingContext& pc) {
+  auto process = [simChains, digitizer, digits, /*digitsAccum,*/ labels, channel, useCCDB](ProcessingContext& pc) {
     static bool finished = false;
     if (finished) {
       return;
@@ -121,7 +121,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
     digitizer->setCalibApi(&calibapi);
 
     static std::vector<o2::tof::HitType> hits;
-    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum;
+    //    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum;
 
     auto& eventParts = context->getEventParts();
     // loop over all composite collisions given from context
@@ -139,7 +139,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
         hits.clear();
         retrieveHits(*simChains.get(), "TOFHit", part.sourceID, part.entryID, &hits);
 
-        LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
+        //        LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
 
         // call actual digitization procedure
         labels->clear();
@@ -148,7 +148,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
         // copy digits into accumulator
         //std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
         //labelAccum.mergeAtBack(*labels);
-        LOG(INFO) << "Have " << digits->size() << " digits ";
+        //        LOG(INFO) << "Have " << digits->size() << " digits ";
       }
     }
     if (digitizer->isContinuous()) {
@@ -156,26 +156,18 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
       labels->clear();
       digitizer->flushOutputContainer(*digits.get());
       LOG(INFO) << "FLUSHING LEFTOVER STUFF " << digits->size();
-      // copy digits into accumulator
-      //std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
-      //labelAccum.mergeAtBack(*labels);
     }
 
-    // temporary accumulate vector of vecotors of digits in a single vector
-    // to be replace once we will be able to write the vector of vectors as different TTree entries
-    std::vector<std::vector<Digit>>* digitsVectOfVect = digitizer->getDigitPerTimeFrame();
+    std::vector<Digit>* digitsVector = digitizer->getDigitPerTimeFrame();
+    std::vector<ReadoutWindowData>* readoutwindow = digitizer->getReadoutWindowData();
     std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* mcLabVecOfVec = digitizer->getMCTruthPerTimeFrame();
-    for (Int_t i = 0; i < digitsVectOfVect->size(); i++) {
-      std::copy(digitsVectOfVect->at(i).begin(), digitsVectOfVect->at(i).end(), std::back_inserter(*digitsAccum.get()));
-      labelAccum.mergeAtBack(mcLabVecOfVec->at(i));
-    }
 
-    LOG(INFO) << "Have " << labelAccum.getNElements() << " TOF labels ";
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-    pc.outputs().snapshot(Output{"TOF", "DIGITS", 0, Lifetime::Timeframe}, *digitsVectOfVect);
-    pc.outputs().snapshot(Output{"TOF", "DIGITSMCTR", 0, Lifetime::Timeframe}, *mcLabVecOfVec);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, *digitsVector);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe}, *mcLabVecOfVec);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, *readoutwindow);
     LOG(INFO) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{"TOF", "ROMode", 0, Lifetime::Timeframe}, roMode);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}, roMode);
 
     timer.Stop();
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
@@ -224,15 +216,16 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
   std::vector<InputSpec> inputs;
   inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   if (useCCDB) {
-    inputs.emplace_back("tofccdbLHCphase", "TOF", "LHCphase");
-    inputs.emplace_back("tofccdbChannelCalib", "TOF", "ChannelCalib");
+    inputs.emplace_back("tofccdbLHCphase", o2::header::gDataOriginTOF, "LHCphase");
+    inputs.emplace_back("tofccdbChannelCalib", o2::header::gDataOriginTOF, "ChannelCalib");
   }
   return DataProcessorSpec{
     "TOFDigitizer",
     inputs,
-    Outputs{OutputSpec{"TOF", "DIGITS", 0, Lifetime::Timeframe},
-            OutputSpec{"TOF", "DIGITSMCTR", 0, Lifetime::Timeframe},
-            OutputSpec{"TOF", "ROMode", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe},
+            OutputSpec{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe},
+            OutputSpec{o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe},
+            OutputSpec{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}},
     AlgorithmSpec{initIt},
     Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
             {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},

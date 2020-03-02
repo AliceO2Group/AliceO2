@@ -23,6 +23,7 @@
 #include <memory>     // std::unique_ptr
 #include <cstring>    // memcpy
 #include <string>     // std::string
+#include <iostream>   // std::cout
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;

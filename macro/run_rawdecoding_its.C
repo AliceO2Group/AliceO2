@@ -73,7 +73,7 @@ void run_rawdecoding_its(std::string inpName = "rawits.bin", // input binary dat
       }
       const auto& pixdata = chipData.getData();
       for (const auto& pix : pixdata) {
-        digits.emplace_back(chipData.getChipID(), roFrame, pix.getRowDirect(), pix.getCol());
+        digits.emplace_back(chipData.getChipID(), pix.getRowDirect(), pix.getCol());
         nrofdig++;
       }
 

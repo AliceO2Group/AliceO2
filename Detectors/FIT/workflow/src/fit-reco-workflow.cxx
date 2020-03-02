@@ -32,12 +32,13 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
+  LOG(INFO) << "WorkflowSpec defineDataProcessing";
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the digitizer workflow
   o2::conf::ConfigurableParam::writeINI("o2tpcits-match-recoflow_configuration.ini");
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
-
+  LOG(INFO) << "WorkflowSpec getRecoWorkflow useMC " << useMC;
   return std::move(o2::fit::getRecoWorkflow(useMC));
 }

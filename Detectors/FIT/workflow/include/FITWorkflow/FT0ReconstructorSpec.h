@@ -37,6 +37,7 @@ class FT0ReconstructorDPL : public Task
   bool mFinished = false;
   bool mUseMC = true;
   std::vector<o2::ft0::RecPoints> mRecPoints;
+  std::vector<o2::ft0::ChannelDataFloat> mRecChData;
   o2::ft0::CollisionTimeRecoTask mReco;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginFT0;
 };

@@ -19,7 +19,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::deprecated;
 
 template <>
-GPUd() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::fillChargeMap>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
+GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::fillChargeMap>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   fillChargeMapImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPdigits, chargeMap, clusterer.mPmemory->counters.nDigits);
@@ -40,7 +40,7 @@ GPUd() void GPUTPCCFChargeMapFiller::fillChargeMapImpl(int nBlocks, int nThreads
 }
 
 template <>
-GPUd() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::resetMaps>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
+GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::resetMaps>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   Array2D<uchar> isPeakMap(clusterer.mPpeakMap);

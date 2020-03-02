@@ -1315,12 +1315,8 @@ void TrackFinder::prepareForwardTracking(std::list<Track>::iterator& itTrack, bo
   /// Throw an exception in case of failure while running the smoother
 
   if (runSmoother) {
-    try {
-      auto itStartingParam = std::prev(itTrack->rend());
-      mTrackFitter.fit(*itTrack, true, false, &itStartingParam);
-    } catch (exception const&) {
-      throw;
-    }
+    auto itStartingParam = std::prev(itTrack->rend());
+    mTrackFitter.fit(*itTrack, true, false, &itStartingParam);
   }
 
   setCurrentParam(*itTrack, itTrack->last(), itTrack->last().getClusterPtr()->getChamberId(), runSmoother);
@@ -1334,11 +1330,7 @@ void TrackFinder::prepareBackwardTracking(std::list<Track>::iterator& itTrack, b
   /// Throw an exception in case of failure during the refit
 
   if (refit) {
-    try {
-      mTrackFitter.fit(*itTrack, false);
-    } catch (exception const&) {
-      throw;
-    }
+    mTrackFitter.fit(*itTrack, false);
   }
 
   setCurrentParam(*itTrack, itTrack->first(), itTrack->first().getClusterPtr()->getChamberId());

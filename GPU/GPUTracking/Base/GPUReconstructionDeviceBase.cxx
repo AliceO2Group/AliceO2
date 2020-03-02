@@ -300,3 +300,13 @@ int GPUReconstructionDeviceBase::GetMaxThreads()
   int retVal = mTRDThreadCount * mBlockCount;
   return std::max(retVal, GPUReconstruction::GetMaxThreads());
 }
+
+int GPUReconstructionDeviceBase::registerMemoryForGPU(void* ptr, size_t size)
+{
+  return IsGPU();
+}
+
+int GPUReconstructionDeviceBase::unregisterMemoryForGPU(void* ptr)
+{
+  return IsGPU();
+}

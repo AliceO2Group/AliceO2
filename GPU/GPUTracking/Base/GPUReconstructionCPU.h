@@ -118,6 +118,8 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   constexpr static const char* GetKernelName();
 
   virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1);
+  int registerMemoryForGPU(void* ptr, size_t size) override { return 0; }
+  int unregisterMemoryForGPU(void* ptr) override { return 0; }
   int GPUStuck() { return mGPUStuck; }
   int NStreams() { return mNStreams; }
   void SetThreadCounts(RecoStep step);
@@ -184,6 +186,12 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   unsigned int mTRDThreadCount = 0;
   unsigned int mClustererThreadCount = 0;
   unsigned int mScanThreadCount = 0;
+  unsigned int mConverterThreadCount = 0;
+  unsigned int mCompression1ThreadCount = 0;
+  unsigned int mCompression2ThreadCount = 0;
+  unsigned int mCFDecodeThreadCount = 0;
+  unsigned int mFitThreadCount = 0;
+  unsigned int mITSThreadCount = 0;
 
   int mThreadId = -1; // Thread ID that is valid for the local CUDA context
   int mGPUStuck = 0;  // Marks that the GPU is stuck, skip future events
@@ -211,6 +219,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   constexpr static int N_RECO_STEPS = sizeof(GPUDataTypes::RECO_STEP_NAMES) / sizeof(GPUDataTypes::RECO_STEP_NAMES[0]);
   std::vector<std::unique_ptr<timerMeta>> mTimers;
   RecoStepTimerMeta mTimersRecoSteps[N_RECO_STEPS];
+  HighResTimer timerTotal;
   template <class T, int I = 0, int J = -1>
   HighResTimer& getKernelTimer(RecoStep step, int num = 0);
   template <class T, int J = -1>

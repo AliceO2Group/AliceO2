@@ -36,7 +36,6 @@ InputRecord::InputRecord(std::vector<InputRoute> const& inputsSchema,
   : mInputsSchema{inputsSchema},
     mSpan{span}
 {
-  assert(mSpan.size() % 2 == 0);
 }
 
 int InputRecord::getPos(const char* binding) const

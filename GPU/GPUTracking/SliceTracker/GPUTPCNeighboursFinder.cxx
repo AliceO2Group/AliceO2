@@ -19,7 +19,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
-GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & s, processorType& tracker)
+GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() s, processorType& GPUrestrict() tracker)
 {
   //* find neighbours
 
@@ -37,9 +37,9 @@ GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int
     s.mIRow = iBlock;
     if (s.mIRow < GPUCA_ROW_COUNT) {
 #ifdef GPUCA_GPUCODE
-      GPUsharedref() const MEM_LOCAL(GPUTPCRow)& row = s.mRow;
+      GPUsharedref() const MEM_LOCAL(GPUTPCRow) & GPUrestrict() row = s.mRow;
 #else
-      GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(s.mIRow);
+      GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() row = tracker.Row(s.mIRow);
 #endif
       s.mNHits = row.NHits();
 
@@ -50,11 +50,11 @@ GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int
         // references to the rows above and below
 
 #ifdef GPUCA_GPUCODE
-        GPUsharedref() const MEM_LOCAL(GPUTPCRow)& rowUp = s.mRowUp;
-        GPUsharedref() const MEM_LOCAL(GPUTPCRow)& rowDn = s.mRowDown;
+        GPUsharedref() const MEM_LOCAL(GPUTPCRow) & GPUrestrict() rowUp = s.mRowUp;
+        GPUsharedref() const MEM_LOCAL(GPUTPCRow) & GPUrestrict() rowDn = s.mRowDown;
 #else
-        GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& rowUp = tracker.Row(s.mIRowUp);
-        GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& rowDn = tracker.Row(s.mIRowDn);
+        GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() rowUp = tracker.Row(s.mIRowUp);
+        GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() rowDn = tracker.Row(s.mIRowDn);
 #endif
         // the axis perpendicular to the rows
         const float xDn = rowDn.X();
@@ -82,9 +82,9 @@ GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int
 
   if ((s.mIRow <= 1) || (s.mIRow >= GPUCA_ROW_COUNT - 2)) {
 #ifdef GPUCA_GPUCODE
-    GPUsharedref() const MEM_LOCAL(GPUTPCRow)& row = s.mRow;
+    GPUsharedref() const MEM_LOCAL(GPUTPCRow) & GPUrestrict() row = s.mRow;
 #else
-    GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(s.mIRow);
+    GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() row = tracker.Row(s.mIRow);
 #endif
     for (int ih = iThread; ih < s.mNHits; ih += nThreads) {
       tracker.SetHitLinkUpData(row, ih, CALINK_INVAL);
@@ -96,13 +96,13 @@ GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int
   float chi2Cut = 3.f * 3.f * 4 * (s.mUpDx * s.mUpDx + s.mDnDx * s.mDnDx);
 // float chi2Cut = 3.*3.*(s.mUpDx*s.mUpDx + s.mDnDx*s.mDnDx ); //SG
 #ifdef GPUCA_GPUCODE
-  GPUsharedref() const MEM_LOCAL(GPUTPCRow)& row = s.mRow;
-  GPUsharedref() const MEM_LOCAL(GPUTPCRow)& rowUp = s.mRowUp;
-  GPUsharedref() const MEM_LOCAL(GPUTPCRow)& rowDn = s.mRowDown;
+  GPUsharedref() const MEM_LOCAL(GPUTPCRow) & GPUrestrict() row = s.mRow;
+  GPUsharedref() const MEM_LOCAL(GPUTPCRow) & GPUrestrict() rowUp = s.mRowUp;
+  GPUsharedref() const MEM_LOCAL(GPUTPCRow) & GPUrestrict() rowDn = s.mRowDown;
 #else
-  GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(s.mIRow);
-  GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& rowUp = tracker.Row(s.mIRowUp);
-  GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& rowDn = tracker.Row(s.mIRowDn);
+  GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() row = tracker.Row(s.mIRow);
+  GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() rowUp = tracker.Row(s.mIRowUp);
+  GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() rowDn = tracker.Row(s.mIRowDn);
 #endif
   const float y0 = row.Grid().YMin();
   const float z0 = row.Grid().ZMin();
@@ -124,14 +124,10 @@ GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int
       const float z = z0 + tracker.HitDataZ(row, ih) * stepZ;
 #endif // GPUCA_TEXTURE_FETCH_NEIGHBORS
 
-#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
-      GPUsharedref() calink* neighUp = s.mB[iThread];
-      GPUsharedref() float2* yzUp = s.mA[iThread];
-      calink neighUp2[GPUCA_MAXN - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP];
-      float2 yzUp2[GPUCA_MAXN - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP];
-#else
-      calink neighUp[GPUCA_MAXN];
-      float2 yzUp[GPUCA_MAXN];
+#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP < GPUCA_MAXN
+      calink neighUp[GPUCA_MAXN - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP];
+      float yzUp[GPUCA_MAXN - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP];
+      float yzUp2[GPUCA_MAXN - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP];
 #endif // GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
 
       int nNeighUp = 0;
@@ -149,15 +145,23 @@ GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int
           break;
         }
 
-#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
-        if (nNeighUp >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP) {
-          neighUp2[nNeighUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] = (calink)i;
-          yzUp2[nNeighUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] = CAMath::MakeFloat2(s.mDnDx * (h.Y() - y), s.mDnDx * (h.Z() - z));
+#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP < GPUCA_MAXN
+#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP == 0
+        if (true) {
+#else
+        if ((unsigned int)nNeighUp >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP) {
+#endif
+          neighUp[nNeighUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] = (calink)i;
+          yzUp[nNeighUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] = s.mDnDx * (h.Y() - y);
+          yzUp2[nNeighUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] = s.mDnDx * (h.Z() - z);
         } else
 #endif
         {
-          neighUp[nNeighUp] = (calink)i;
-          yzUp[nNeighUp] = CAMath::MakeFloat2(s.mDnDx * (h.Y() - y), s.mDnDx * (h.Z() - z));
+#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
+          s.mB[nNeighUp][iThread] = (calink)i;
+          s.mA1[nNeighUp][iThread] = s.mDnDx * (h.Y() - y);
+          s.mA2[nNeighUp][iThread] = s.mDnDx * (h.Z() - z);
+#endif
         }
         if (++nNeighUp >= GPUCA_MAXN) {
           // GPUInfo("Neighbors buffer ran full...");
@@ -181,10 +185,12 @@ GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int
           float2 yzdn = CAMath::MakeFloat2(s.mUpDx * (h.Y() - y), s.mUpDx * (h.Z() - z));
 
           for (int iUp = 0; iUp < nNeighUp; iUp++) {
-#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
-            float2 yzup = iUp >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP ? yzUp2[iUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] : yzUp[iUp];
+#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0 && GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP < GPUCA_MAXN
+            float2 yzup = iUp >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP ? CAMath::MakeFloat2(yzUp[iUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP], yzUp2[iUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP]) : CAMath::MakeFloat2(s.mA1[iUp][iThread], s.mA2[iUp][iThread]);
+#elif GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP == GPUCA_MAXN
+            float2 yzup = CAMath::MakeFloat2(s.mA1[iUp][iThread], s.mA2[iUp][iThread]);
 #else
-            float2 yzup = yzUp[iUp];
+            float2 yzup = CAMath::MakeFloat2(yzUp[iUp], yzUp2[iUp]);
 #endif
             float dy = yzdn.x - yzup.x;
             float dz = yzdn.y - yzup.y;
@@ -198,8 +204,10 @@ GPUd() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int
         } while (1);
 
         if (bestD <= chi2Cut) {
-#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
-          linkUp = bestUp >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP ? neighUp2[bestUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] : neighUp[bestUp];
+#if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0 && GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP < GPUCA_MAXN
+          linkUp = bestUp >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP ? neighUp[bestUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] : s.mB[bestUp][iThread];
+#elif GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP == GPUCA_MAXN
+          linkUp = s.mB[bestUp][iThread];
 #else
           linkUp = neighUp[bestUp];
 #endif

@@ -17,10 +17,13 @@
 #include <fstream>
 #include <string>
 #include <cstdint>
-#include "DataFormatsTOF/DataFormat.h"
+#include "DataFormatsTOF/CompressedDataFormat.h"
 #include "TOFBase/Geo.h"
 #include "TOFBase/Digit.h"
+#include "TOFBase/Strip.h"
+#include "TOFBase/WindowFiller.h"
 #include <array>
+#include "Headers/RAWDataHeader.h"
 
 namespace o2
 {
@@ -31,41 +34,51 @@ namespace compressed
 /// \class Decoder
 /// \brief Decoder class for TOF
 ///
-class Decoder
+class Decoder : public WindowFiller
 {
 
  public:
-  Decoder() = default;
+  Decoder();
   ~Decoder() = default;
 
   bool open(std::string name);
 
-  bool decode(std::vector<Digit>* digits);
-  void readTRM(std::vector<Digit>* digits, int iddl, int orbit, int bunchid);
+  bool decode();
+  void readTRM(int icru, int icrate, int orbit, int bunchid);
 
   bool close();
   void setVerbose(bool val) { mVerbose = val; };
 
-  void printCrateInfo() const;
-  void printTRMInfo() const;
-  void printCrateTrailerInfo() const;
-  void printHitInfo() const;
+  void printRDH() const;
+  void printCrateInfo(int icru) const;
+  void printTRMInfo(int icru) const;
+  void printCrateTrailerInfo(int icru) const;
+  void printHitInfo(int icru) const;
 
-  static void fromRawHit2Digit(int iddl, int itrm, int itdc, int ichain, int channel, int orbit, int bunchid, int tdc, int tot, std::array<int, 4>& digitInfo); // convert raw info in digit info (channel, tdc, tot, bc), tdc = packetHit.time + (frameHeader.frameID << 13)
+  static void fromRawHit2Digit(int icrate, int itrm, int itdc, int ichain, int channel, int orbit, int bunchid, int tdc, int tot, std::array<int, 6>& digitInfo); // convert raw info in digit info (channel, tdc, tot, bc), tdc = packetHit.time + (frameHeader.frameID << 13)
+
+  char* nextPage(void* current, int shift = 8192);
 
  protected:
+  static const int NCRU = 4;
+
   // benchmarks
-  double mIntegratedBytes = 0.;
+  int mIntegratedBytes[NCRU];
   double mIntegratedTime = 0.;
 
-  std::ifstream mFile;
+  std::ifstream mFile[NCRU];
   bool mVerbose = false;
+  bool mCruIn[NCRU];
 
-  char* mBuffer = nullptr;
+  char* mBuffer[NCRU];
   std::vector<char> mBufferLocal;
-  long mSize;
-  Union_t* mUnion;
-  Union_t* mUnionEnd;
+  long mSize[NCRU];
+  Union_t* mUnion[NCRU];
+  Union_t* mUnionEnd[NCRU];
+
+  int mHitDecoded = 0;
+
+  o2::header::RAWDataHeader* mRDH;
 };
 
 } // namespace compressed

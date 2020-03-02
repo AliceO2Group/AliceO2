@@ -10,6 +10,7 @@
 
 o2_add_library(DetectorsRaw
                SOURCES src/RawFileReader.cxx
+                       src/RawFileWriter.cxx
 	               src/HBFUtils.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
 		                     O2::Headers
@@ -20,6 +21,7 @@ o2_add_library(DetectorsRaw
 
 o2_target_root_dictionary(DetectorsRaw
                           HEADERS include/DetectorsRaw/RawFileReader.h
+                                  include/DetectorsRaw/RawFileWriter.h
 				  include/DetectorsRaw/HBFUtils.h)
 
 
@@ -41,6 +43,13 @@ o2_add_test(HBFUtils
             PUBLIC_LINK_LIBRARIES O2::DetectorsRaw
                                   O2::Steer
             SOURCES test/testHBFUtils.cxx
+            COMPONENT_NAME raw
+            LABELS raw)
+	  
+o2_add_test(RawReaderWriter
+            PUBLIC_LINK_LIBRARIES O2::DetectorsRaw
+                                  O2::Steer
+            SOURCES test/testRawReaderWriter.cxx
             COMPONENT_NAME raw
             LABELS raw)
 	  

@@ -10,6 +10,8 @@
 
 #include "ITSMFTSimulation/MC2RawEncoder.h"
 #include "CommonConstants/Triggers.h"
+#include "DetectorsRaw/HBFUtils.h"
+#include "Framework/Logger.h"
 
 using namespace o2::itsmft;
 
@@ -20,6 +22,8 @@ void MC2RawEncoder<Mapping>::init()
   if (mROMode == NotSet) {
     LOG(FATAL) << "Readout Mode must be set explicitly via setContinuousReadout(bool)";
   }
+  mWriter.setCarryOverCallBack(this);
+
   // limit RUs to convert to existing ones
   mRUSWMax = (mRUSWMax < uint8_t(mMAP.getNRUs())) ? mRUSWMax : mMAP.getNRUs() - 1;
   //
@@ -29,6 +33,13 @@ void MC2RawEncoder<Mapping>::init()
     int nLinks = 0;
     for (int il = 0; il < MaxLinksPerRU; il++) {
       if (ruData.links[il]) {
+        auto subspec = o2::raw::HBFUtils::getSubSpec(ruData.links[il]->cruID, ruData.links[il]->id, ruData.links[il]->endPointID);
+        if (!mWriter.isLinkRegistered(subspec)) {
+          LOGF(INFO, "RU%3d FEEId 0x%04x Link %02d of CRU=0x%94x will be writing to default sink %s",
+               int(ru), ruData.links[il]->feeID, ruData.links[il]->id, ruData.links[il]->cruID, mDefaultSinkName);
+          mWriter.registerLink(ruData.links[il]->feeID, ruData.links[il]->cruID, ruData.links[il]->id,
+                               ruData.links[il]->endPointID, mDefaultSinkName);
+        }
         nLinks++;
         if (ruData.links[il]->packetCounter < 0) {
           ruData.links[il]->packetCounter = 0; // reset only once
@@ -37,18 +48,21 @@ void MC2RawEncoder<Mapping>::init()
     }
     mNLinks += nLinks;
     if (!nLinks) {
-      LOG(INFO) << "Imposing single link readout for RU " << int(ru);
+      LOG(WARNING) << "No GBT links were defined for RU " << int(ru) << " defining automatically";
       ruData.links[0] = std::make_unique<GBTLink>();
       ruData.links[0]->lanes = mMAP.getCablesOnRUType(ruData.ruInfo->ruType);
       ruData.links[0]->id = 0;
       ruData.links[0]->cruID = ru;
       ruData.links[0]->feeID = mMAP.RUSW2FEEId(ruData.ruInfo->idSW, 0);
+      ruData.links[0]->endPointID = 0;
       ruData.links[0]->packetCounter = 0;
+      mWriter.registerLink(ruData.links[0]->feeID, ruData.links[0]->cruID, ruData.links[0]->id,
+                           ruData.links[0]->endPointID, mDefaultSinkName);
+      LOGF(INFO, "RU%3d FEEId 0x%04x Link %02d of CRU=0x%04x Lanes: %s -> %s", int(ru), ruData.links[0]->feeID,
+           ruData.links[0]->id, ruData.links[0]->cruID, std::bitset<28>(ruData.links[0]->lanes).to_string(), mDefaultSinkName);
       mNLinks++;
     }
   }
-
-  mLastIR = mHBFUtils.getFirstIR(); // TFs are counted from this IR
 
   assert(mNLinks > 0);
 }
@@ -57,19 +71,7 @@ void MC2RawEncoder<Mapping>::init()
 template <class Mapping>
 void MC2RawEncoder<Mapping>::finalize()
 {
-  // close open HBFs, write empty HBFs until the end of the TF and close all streams
-
-  int tf = mHBFUtils.getTF(mCurrIR);
-  mCurrIR = mHBFUtils.getIRTF(tf + 1) - 1; // last IR of the current TF
-  mHBFUtils.fillHBIRvector(mHBIRVec, mLastIR, mCurrIR);
-  for (const auto& ir : mHBIRVec) {
-    mLastIR = ir;
-    mRDH = mHBFUtils.createRDH<RDH>(mLastIR);
-    openHBF(); // open new HBF for all links
-  }
-  mLastIR++;       // next call to fillHBIRvector should start from yet non-processed IR
-  closeHBF();      // close all HBFs
-  flushAllLinks(); // write data remaining in the link
+  mWriter.close();
 }
 
 ///______________________________________________________________________
@@ -83,19 +85,8 @@ void MC2RawEncoder<Mapping>::digits2raw(gsl::span<const Digit> digits, const o2:
   if (!mNLinks) {
     init();
   }
-
   int nDigTot = digits.size();
   mCurrIR = bcData;
-
-  // get list of IR's for which HBF should be generated
-  mHBFUtils.fillHBIRvector(mHBIRVec, mLastIR, mCurrIR);
-  for (const auto& ir : mHBIRVec) {
-    mLastIR = ir;
-    mRDH = mHBFUtils.createRDH<RDH>(mLastIR);
-    openHBF(); // open new HBF for all links
-  }
-  mLastIR++; // next call to fillHBIRvector should start from yet non-processed IR
-
   // place digits into corresponding chip buffers
   ChipPixelData* curChipData = nullptr;
   ChipInfo chInfo;
@@ -146,38 +137,6 @@ void MC2RawEncoder<Mapping>::convertChip(ChipPixelData& chipData, RUDecodeData& 
   mCoder.encodeChip(ru.cableData[chip.cableSW], chipData, chip.chipOnModuleHW, mCurrIR.bc);
 }
 
-//___________________________________________________________________________________
-template <class Mapping>
-void MC2RawEncoder<Mapping>::openPageLinkHBF(GBTLink& link)
-{
-  /// create 1st page of the new HBF
-  if (mImposeROModeFlag) {
-    mRDH.triggerType |= (mROMode == Continuous) ? o2::trigger::SOC : o2::trigger::SOT;
-  }
-  if (mRDH.triggerType & o2::trigger::TF) {
-    if (mVerbose) {
-      LOG(INFO) << "Starting new TF for link FEEId 0x" << std::hex << std::setfill('0') << std::setw(6) << link.feeID;
-    }
-    if (mStartTFOnNewSPage && link.lastPageSize > 0) { // new TF being started, need to start new superpage
-      flushLinkSuperPage(link);
-    }
-  } else if (link.data.getSize() >= mSuperPageSize) {
-    flushLinkSuperPage(link);
-  }
-
-  link.data.ensureFreeCapacity(MaxGBTPacketBytes + sizeof(RDH));
-  RDH rdh = mRDH; // new RDH to open
-  rdh.detectorField = mMAP.getRUDetectorField();
-  rdh.feeId = link.feeID;
-  rdh.linkID = link.id;
-  rdh.cruID = link.cruID;
-  rdh.pageCnt = 0;
-  rdh.stop = 0;
-  rdh.packetCounter = link.packetCounter++;
-  link.lastRDH = reinterpret_cast<RDH*>(link.data.getEnd()); // pointer on last (to be written RDH for HBopen)
-  link.data.addFast(reinterpret_cast<uint8_t*>(&rdh), sizeof(RDH)); // write RDH for new packet
-}
-
 //______________________________________________________
 template <class Mapping>
 void MC2RawEncoder<Mapping>::convertEmptyChips(int fromChip, int uptoChip, RUDecodeData& ru)
@@ -189,140 +148,6 @@ void MC2RawEncoder<Mapping>::convertEmptyChips(int fromChip, int uptoChip, RUDec
     ru.cableData[chip.cableSW].ensureFreeCapacity(100);
     mCoder.addEmptyChip(ru.cableData[chip.cableSW], chip.chipOnModuleHW, mCurrIR.bc);
   }
-}
-
-//___________________________________________________________________________________
-template <class Mapping>
-void MC2RawEncoder<Mapping>::addPageLinkHBF(GBTLink& link, bool stop)
-{
-  /// Add new page (RDH) to existing one for the link (possibly stop page)
-  if (!link.lastRDH) {
-    return;
-  }
-  // check if the superpage reached the size where it hase to be flushed
-  if (link.data.getSize() >= mSuperPageSize) {
-    flushLinkSuperPage(link);
-  }
-  auto rdh = link.lastRDH;
-  rdh->memorySize = link.data.getEnd() - reinterpret_cast<uint8_t*>(rdh); // set the size for the previous header RDH
-  rdh->offsetToNext = rdh->memorySize;
-  link.lastPageSize = link.data.getSize(); // register current size of the superpage
-
-  // pointer on last (to be written) RDH for HBclose
-  rdh = reinterpret_cast<RDH*>(link.data.getEnd()); // fetch pointer on to-be-written new RDH
-
-  link.data.addFast(reinterpret_cast<uint8_t*>(link.lastRDH), sizeof(RDH)); // copy RDH for old packet as a prototope for the new one
-  rdh->packetCounter = link.packetCounter++;
-  if (mVerbose) {
-    LOG(INFO) << "Prev HBF for link FEEId 0x" << std::hex << std::setfill('0') << std::setw(6) << link.feeID;
-    if (mVerbose > 1) {
-      mHBFUtils.printRDH(*link.lastRDH);
-    }
-  }
-  rdh->offsetToNext = rdh->headerSize; // these settings will be correct only for the empty page, in case of payload the offset/size
-  rdh->memorySize = rdh->headerSize;   // will be set at the next call of this method
-  rdh->pageCnt++;
-  link.nTriggers++; // number of pages on this superpage
-  if (stop) {
-    rdh->stop = 0x1;
-    link.lastPageSize = link.data.getSize(); // register current size of the superpage
-    link.lastRDH = nullptr;                  // after closing, the previous RDH is not valid anymore
-  } else {
-    size_t offs = reinterpret_cast<uint8_t*>(rdh) - link.data.getPtr();
-    link.data.ensureFreeCapacity(MaxGBTPacketBytes + sizeof(RDH)); // make sure there is a room for next page
-    rdh = link.lastRDH = reinterpret_cast<RDH*>(&link.data[offs]); // fix link.lastRDH if the array was relocated
-  }
-  if (mVerbose) {
-    LOG(INFO) << (stop ? "Stop" : "Add") << " HBF for link FEEId 0x"
-              << std::hex << std::setfill('0') << std::setw(6) << link.feeID << " Pages: " << link.nTriggers;
-    if (mVerbose > 1 && stop) {
-      mHBFUtils.printRDH(*rdh);
-    }
-  }
-  //
-}
-
-//___________________________________________________________________________________
-template <class Mapping>
-void MC2RawEncoder<Mapping>::openHBF()
-{
-  // open new HBF with mRDH
-  for (int ruSW = mRUSWMin; ruSW <= mRUSWMax; ruSW++) {
-    auto* ru = getRUDecode(ruSW);
-    for (int il = 0; il < MaxLinksPerRU; il++) {
-      auto link = ru->links[il].get();
-      if (!link) {
-        continue;
-      }
-      closePageLinkHBF(*link);
-      openPageLinkHBF(*link);
-    }
-  }
-  if (mImposeROModeFlag) {
-    mRDH.triggerType &= ~(o2::trigger::SOT | o2::trigger::SOC);
-    mImposeROModeFlag = false;
-  }
-}
-
-//___________________________________________________________________________________
-template <class Mapping>
-void MC2RawEncoder<Mapping>::closeHBF()
-{
-  // close all open HBFs
-  for (int ruSW = mRUSWMin; ruSW <= mRUSWMax; ruSW++) {
-    auto* ru = getRUDecode(ruSW);
-    RDH rdh = mRDH; // new RDH to open
-    rdh.detectorField = mMAP.getRUDetectorField();
-    for (int il = 0; il < MaxLinksPerRU; il++) {
-      auto link = ru->links[il].get();
-      if (link) {
-        closePageLinkHBF(*link);
-      }
-    }
-  }
-}
-
-//___________________________________________________________________________________
-template <class Mapping>
-void MC2RawEncoder<Mapping>::flushAllLinks()
-{
-  // write data remaining in the link
-  for (int ruSW = mRUSWMin; ruSW <= mRUSWMax; ruSW++) {
-    auto* ru = getRUDecode(ruSW);
-    RDH rdh = mRDH; // new RDH to open
-    rdh.detectorField = mMAP.getRUDetectorField();
-    for (int il = 0; il < MaxLinksPerRU; il++) {
-      auto link = ru->links[il].get();
-      if (link) {
-        closePageLinkHBF(*link);
-        flushLinkSuperPage(*link);
-      }
-    }
-  }
-}
-
-//___________________________________________________________________________________
-template <class Mapping>
-void MC2RawEncoder<Mapping>::flushLinkSuperPage(GBTLink& link, FILE* outFl)
-{
-  // write link superpage data to file
-  if (!outFl) {
-    outFl = mOutFile; // by default use global file
-  }
-  if (mVerbose) {
-    LOG(INFO) << "Flushing super page for link FEEId 0x" << std::hex << std::setfill('0') << std::setw(6)
-              << link.feeID << std::dec << std::setfill(' ') << " | size= " << link.lastPageSize << " bytes";
-    LOG(INFO) << "ptr=0x" << (void*)link.data.getPtr() << " head=0x" << (void*)link.data.data() << " lastRDH = 0x" << (void*)link.lastRDH;
-  }
-  const auto ptr = link.data.getPtr();                     // beginning of the buffer
-  fwrite(link.data.getPtr(), 1, link.lastPageSize, outFl); //write to file
-  link.data.setPtr(ptr + link.lastPageSize);
-  if (link.lastRDH) {
-    link.lastRDH = reinterpret_cast<RDH*>(reinterpret_cast<uint8_t*>(link.lastRDH) - link.lastPageSize);
-  }
-  link.data.moveUnusedToHead(); // bring non-flushed data to top of the buffer
-  link.lastPageSize = 0;        // will be updated on following closePageLinkHBF
-  link.nTriggers = 0;
 }
 
 //___________________________________________________________________________________
@@ -345,34 +170,27 @@ void MC2RawEncoder<Mapping>::fillGBTLinks(RUDecodeData& ru)
     if (!link) {
       continue;
     }
-    // number of words written (RDH included) on current page
-    int nGBTWords = int(link->data.getEnd() - reinterpret_cast<const uint8_t*>(link->lastRDH)) / GBTPaddedWordLength;
     // estimate real payload size in GBT words
-    int nPayLoadWordsNeeded = 0;
+    int nPayLoadWordsNeeded = 0;           // number of payload words filled to link buffer (RDH not included) for current IR
     for (int icab = ru.nCables; icab--;) { // calculate number of GBT words per link
       if ((link->lanes & (0x1 << icab))) {
         int nb = ru.cableData[icab].getSize();
         nPayLoadWordsNeeded += nb ? 1 + (nb - 1) / 9 : 0; // single GBT word carries at most 9 payload bytes
       }
     }
-    if (nGBTWords >= MaxGBTWordsPerPacket - 3 - (nPayLoadWordsNeeded > 0)) {
-      // we write on same page if there is a room for trigger, header and trailer words + at least 1 payload word (if any)
-      addPageLinkHBF(*link);                                                                                        // open new page for the same trigger, repeating RDH of the same HBF
-      nGBTWords = int(link->data.getEnd() - reinterpret_cast<const uint8_t*>(link->lastRDH)) / GBTPaddedWordLength; // update counters
-    }
-    link->data.addFast(gbtTrigger.getW8(), GBTPaddedWordLength); // write GBT trigger
-    nGBTWords++;
+    // reserve space for payload + trigger + header + trailer
+    link->data.ensureFreeCapacity((3 + nPayLoadWordsNeeded) * GBTPaddedWordLength);
+    link->data.addFast(gbtTrigger.getW8(), GBTPaddedWordLength); // write GBT trigger in the beginning of the buffer
 
     GBTDataHeader gbtHeader;
     gbtHeader.packetIdx = 0;
     gbtHeader.activeLanes = link->lanes;
     link->data.addFast(gbtHeader.getW8(), GBTPaddedWordLength); // write GBT header
-    nGBTWords++;
-    //
-    GBTDataTrailer gbtTrailer; // lanes will be set on closing the trigger
 
     // now loop over the lanes served by this link, writing each time at most 9 bytes, untill all lanes are copied
-    do {
+    bool hasData = true;
+    while (hasData) {
+      hasData = false;
       for (int icab = 0; icab < ru.nCables; icab++) {
         if ((link->lanes & (0x1 << icab))) {
           auto& cableData = ru.cableData[icab];
@@ -388,28 +206,22 @@ void MC2RawEncoder<Mapping>::fillGBTLinks(RUDecodeData& ru)
           link->data.addFast(zero16, GBTPaddedWordLength - nb);                                          // fill the rest of the GBT word by 0
           link->data[gbtWordStart + 9] = mMAP.getGBTHeaderRUType(ru.ruInfo->ruType, ru.cableHWID[icab]); // set cable flag
           cableData.setPtr(cableData.getPtr() + nb);
-          nPayLoadWordsNeeded--;                                           // number of payload GBT words left
-          if (++nGBTWords == MaxGBTWordsPerPacket - 1) {                   // check if current GBT packet must be created (reserve 1 word for trailer)
-            if (nPayLoadWordsNeeded) {                                     // we need to write the rest of the data on the new page
-              link->data.add(gbtTrailer.getW8(), GBTPaddedWordLength);     // write empty GBT trailer for current packet
-              addPageLinkHBF(*link);                                       // open new page for the same trigger, repeating RDH of the same HBF
-              link->data.addFast(gbtTrigger.getW8(), GBTPaddedWordLength); // repeate GBT trigger word
-              gbtHeader.packetIdx++;
-              link->data.addFast(gbtHeader.getW8(), GBTPaddedWordLength); // repeate GBT header
-              // update counters
-              nGBTWords = int(link->data.getEnd() - reinterpret_cast<const uint8_t*>(link->lastRDH)) / GBTPaddedWordLength;
-            }
-          }
+          hasData = true;
         } // storing data of single cable
       }   // loop over cables of this link
-    } while (nPayLoadWordsNeeded);
-    //
-    // all payload was dumped, write final trailer
+    };    // loop until all links are w/o data
 
+    // all payload was dumped, write final trailer
+    GBTDataTrailer gbtTrailer; // lanes will be set on closing the trigger
     gbtTrailer.lanesStops = link->lanes;
     gbtTrailer.packetDone = true;
     link->data.addFast(gbtTrailer.getW8(), GBTPaddedWordLength); // write GBT trailer for the last packet
+    LOGF(DEBUG, "Filled %s with %d GBT words", link->describe(), nPayLoadWordsNeeded + 3);
 
+    // flush to writer
+    mWriter.addData(link->cruID, link->id, link->endPointID, mCurrIR, gsl::span((char*)link->data.data(), link->data.getSize()));
+    link->data.clear();
+    //
   } // loop over links of RU
   ru.clearTrigger();
   ru.nChipsFired = 0;
@@ -426,6 +238,77 @@ RUDecodeData& MC2RawEncoder<Mapping>::getCreateRUDecode(int ruSW)
     LOG(INFO) << "Defining container for RU " << ruSW << " at slot " << mRUEntry[ruSW];
   }
   return mRUDecodeVec[mRUEntry[ruSW]];
+}
+
+///______________________________________________________________________
+template <class Mapping>
+int MC2RawEncoder<Mapping>::carryOverMethod(const RDH& rdh, const gsl::span<char> data,
+                                            const char* ptr, int maxSize, int splitID,
+                                            std::vector<char>& trailer, std::vector<char>& header) const
+{
+  // The RawFileWriter receives from the encoder the payload to format according to the CRU format
+  // In case this payload size does not fit into the CRU page (this may happen even if it is
+  // less than 8KB, since it might be added to already partially populated CRU page of the HBF)
+  // it will write on the page only part of the payload and carry over the rest on extra page(s).
+  // By default the RawFileWriter will simply chunk payload as is considers necessary, but some
+  // detectors want their CRU pages to be self-consistent and in case of payload splitting they
+  // add in the end of page to be closed and beginning of the new page to be opened
+  // (right after the RDH) detector-specific trailer and header respectively.
+  //
+  // The role of this method is to suggest to writer how to split the payload:
+  // If this method was set to the RawFileWriter using
+  // RawFileWriter::setCarryOverCallBack(pointer_on_the_converter_class);
+  // then the RawFileWriter will call it before splitting.
+  //
+  // It provides to carryOverMethod method the following info:
+  // rdh     : RDH of the CRU page being written
+  // data    : original payload received by the RawFileWriter
+  // ptr     : pointer on the data in the payload which was not yet added to the link CRU pages
+  // maxSize : maximum size (multiple of 16 bytes) of the bloc starting at ptr which it can
+  //           accomodate at the current CRU page (i.e. what it would write by default)
+  // splitID : number of times this payload was already split, 0 at 1st call
+  // trailer : what it wants to add in the end of the CRU page where the data starting from ptr
+  //           will be added. The trailer is supplied as an empy vector, which carryOverMethod
+  //           may populate, but its size must be multiple of 16 bytes.
+  // header  : what it wants to add right after the RDH of the new CRU page before the rest of
+  //           the payload (starting at ptr+actualSize) will be written
+  //
+  // The method must return actual size of the bloc which can be written (<=maxSize).
+  // If this method populates the trailer, it must ensure that it returns the actual size such that
+  // actualSize + trailer.size() <= maxSize
+  // In case returned actualSize == 0, current CRU page will be closed w/o adding anything, and new
+  // query of this method will be done on the new CRU page
+
+  constexpr int TrigHeadSize = sizeof(GBTTrigger) + sizeof(GBTDataHeader);
+
+  int offs = ptr - &data[0]; // offset wrt the head of the payload
+  // make sure ptr and end of the suggested block are within the payload
+  assert(offs >= 0 && size_t(offs + maxSize) <= data.size());
+
+  if (offs && offs <= TrigHeadSize) { // we cannot split trigger+header
+    return 0;                         // suggest moving the whole payload to the new CRU page
+  }
+  // this is where we would usually split: account for the trailer to add
+  int actualSize = maxSize - sizeof(GBTDataTrailer);
+
+  char* trailPtr = &data[data.size() - sizeof(GBTDataTrailer)]; // pointer on the payload trailer
+  if (ptr + actualSize >= trailPtr) {                           // we need to split at least 1 GBT word before the trailer
+    actualSize = trailPtr - ptr - GBTPaddedWordLength;
+  }
+  // copy the GBTTrigger and GBTHeader from the head of the payload
+  header.resize(TrigHeadSize);
+  memcpy(header.data(), &data[0], TrigHeadSize);
+  GBTDataHeader& gbtHeader = *reinterpret_cast<GBTDataHeader*>(&header[sizeof(GBTTrigger)]); // 1st trigger then header are written
+  gbtHeader.packetIdx = splitID + 1;                                                         // update the ITS specific packets counter
+
+  // copy the GBTTrailer from the end of the payload
+  trailer.resize(sizeof(GBTDataTrailer));
+  memcpy(trailer.data(), trailPtr, sizeof(GBTDataTrailer));
+  GBTDataTrailer& gbtTrailer = *reinterpret_cast<GBTDataTrailer*>(&trailer[0]);
+  gbtTrailer.packetDone = false; // intermediate trailers should not have done=true
+  gbtTrailer.lanesStops = 0;     // intermediate trailers should not have lanes closed
+
+  return actualSize;
 }
 
 template class o2::itsmft::MC2RawEncoder<o2::itsmft::ChipMappingITS>;

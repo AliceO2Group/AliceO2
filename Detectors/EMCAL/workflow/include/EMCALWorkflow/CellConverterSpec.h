@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "DataFormatsEMCAL/Cell.h"
+#include "DataFormatsEMCAL/TriggerRecord.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
@@ -59,14 +60,17 @@ class CellConverterSpec : public framework::Task
   ///
   /// The following branches are linked:
   /// Input digits: {"EMC", "DIGITS", 0, Lifetime::Timeframe}
+  /// Input trigers: {"EMC", "DIGITSTRGR", 0, Lifetime::Timeframe}
   /// Input MC-truth: {"EMC", "DIGITSMCTR", 0, Lifetime::Timeframe}
   /// Output cells: {"EMC", "CELLS", 0, Lifetime::Timeframe}
+  /// Output trigers: {"EMC", "CELLSTRGR", 0, Lifetime::Timeframe}
   /// Output MC-truth: {"EMC", "CELLSMCTR", 0, Lifetime::Timeframe}
   void run(framework::ProcessingContext& ctx) final;
 
  private:
-  bool mPropagateMC = false;                 ///< Switch whether to process MC true labels
-  std::vector<o2::emcal::Cell> mOutputCells; ///< Container with output cells
+  bool mPropagateMC = false;                             ///< Switch whether to process MC true labels
+  std::vector<o2::emcal::Cell> mOutputCells;             ///< Container with output cells
+  std::vector<o2::emcal::TriggerRecord> mOutputTriggers; ///< Container with output trigger records
 };
 
 /// \brief Creating DataProcessorSpec for the EMCAL Cell Converter Spec

@@ -13,15 +13,15 @@
 
 namespace o2::aod
 {
-namespace etaphi
+namespace uno
 {
 DECLARE_SOA_COLUMN(Eta, eta, float, "fEta1");
 DECLARE_SOA_COLUMN(Phi, phi, int, "fPhi1");
 DECLARE_SOA_COLUMN(Mom, mom, double, "fMom1");
-} // namespace etaphi
+} // namespace uno
 
-DECLARE_SOA_TABLE(EtaPhi, "AOD", "ETAPHI",
-                  etaphi::Eta, etaphi::Phi, etaphi::Mom);
+DECLARE_SOA_TABLE(Uno, "AOD", "UNO",
+                  uno::Eta, uno::Phi, uno::Mom);
 
 namespace due
 {
@@ -38,13 +38,25 @@ using namespace o2::framework;
 
 // This is a very simple example to test the
 // CommonDataProcessors::getGlobalAODSink
+// In this case the two tables Uno and Due are produced
+// but not consumed -> they are saved into a root file
+//
+// e.g. the table Uno will be saved as TTree UNO with branches
+// fEta1, fPhi1, fMom1
+//
+// The tree can be used for further processing (see aodreader.cxx)
+//
+// To test use:
+//  o2-analysistutorial-aodwriter --aod-file AO2D.root --res-file tabletotree > log
+//  o2-analysistutorial-aodreader --aod-file tabletotree_0.root > log
+//
 struct ATask {
-  Produces<aod::EtaPhi> etaphi;
+  Produces<aod::Uno> uno;
   Produces<aod::Due> due;
 
   void init(InitContext&)
   {
-    count = 0;
+    cnt = 0;
   }
 
   void process(aod::Tracks const& tracks)
@@ -54,20 +66,18 @@ struct ATask {
       float eta = log(tan(0.25f * static_cast<float>(M_PI) - 0.5f * atan(track.tgl())));
       float mom = track.tgl();
 
-      etaphi(phi, eta, mom);
+      uno(phi, eta, mom);
       due(phi, eta);
-      count++;
+      cnt++;
     }
-    LOG(INFO) << "number of tracks: " << count << std::endl;
-    ;
+    LOGF(INFO, "ATask Processed %i data points from Tracks", cnt);
   }
 
-  size_t count = 0;
+  size_t cnt = 0;
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("produce-etaphi"),
-  };
+    adaptAnalysisTask<ATask>("produce-unodue")};
 }

@@ -153,7 +153,8 @@ int GPUReconstructionCPU::ExitDevice()
   return 0;
 }
 
-void GPUReconstructionCPU::SetThreadCounts() { mThreadCount = mBlockCount = mConstructorBlockCount = mSelectorBlockCount = mConstructorThreadCount = mSelectorThreadCount = mFinderThreadCount = mTRDThreadCount = mClustererThreadCount = mScanThreadCount = 1; }
+void GPUReconstructionCPU::SetThreadCounts() { mThreadCount = mBlockCount = mConstructorBlockCount = mSelectorBlockCount = mConstructorThreadCount = mSelectorThreadCount = mFinderThreadCount = mTRDThreadCount = mClustererThreadCount = mScanThreadCount = mConverterThreadCount =
+                                                 mCompression1ThreadCount = mCompression2ThreadCount = mCFDecodeThreadCount = mFitThreadCount = mITSThreadCount = 1; }
 
 void GPUReconstructionCPU::SetThreadCounts(RecoStep step)
 {
@@ -181,6 +182,7 @@ int GPUReconstructionCPU::getRecoStepNum(RecoStep step, bool validCheck)
 int GPUReconstructionCPU::RunChains()
 {
   mStatNEvents++;
+  mNEventsProcessed++;
 
   if (mThreadId != GetThread()) {
     if (mDeviceProcessingSettings.debugLevel >= 2) {
@@ -189,7 +191,6 @@ int GPUReconstructionCPU::RunChains()
     mThreadId = GetThread();
   }
 
-  HighResTimer timerTotal;
   timerTotal.Start();
   for (unsigned int i = 0; i < mChains.size(); i++) {
     int retVal = mChains[i]->RunChain();
@@ -252,6 +253,7 @@ int GPUReconstructionCPU::RunChains()
   }
   if (mDeviceProcessingSettings.resetTimers) {
     mStatNEvents = 0;
+    timerTotal.Reset();
   }
 
   return 0;

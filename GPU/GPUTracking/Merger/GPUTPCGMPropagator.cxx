@@ -325,7 +325,7 @@ GPUd() int GPUTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha, b
   return FollowLinearization(t0e, Bz, dLp, inFlyDirection);
 }
 
-GPUd() int GPUTPCGMPropagator::FollowLinearization(const GPUTPCGMPhysicalTrackModel& t0e, float Bz, float dLp, bool inFlyDirection)
+GPUd() int GPUTPCGMPropagator::FollowLinearization(const GPUTPCGMPhysicalTrackModel& GPUrestrict() t0e, float Bz, float dLp, bool inFlyDirection)
 {
   // t0e is alrerady extrapolated t0
 
@@ -533,7 +533,7 @@ GPUd() int GPUTPCGMPropagator::FollowLinearization(const GPUTPCGMPhysicalTrackMo
   return 0;
 }
 
-GPUd() int GPUTPCGMPropagator::GetPropagatedYZ(float x, float& projY, float& projZ)
+GPUd() int GPUTPCGMPropagator::GetPropagatedYZ(float x, float& GPUrestrict() projY, float& GPUrestrict() projZ)
 {
   float bz = GetBz(mAlpha, mT->X(), mT->Y(), mT->Z());
   float k = mT0.QPt() * bz;
@@ -566,8 +566,7 @@ GPUd() int GPUTPCGMPropagator::GetPropagatedYZ(float x, float& projY, float& pro
   return 0;
 }
 
-
-GPUd() void GPUTPCGMPropagator::GetErr2(float& err2Y, float& err2Z, const GPUParam& param, float posZ, int iRow, short clusterState) const
+GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float posZ, int iRow, short clusterState) const
 {
   if (!mSeedingErrors) {
     param.GetClusterErrors2(iRow, posZ, mT0.GetSinPhi(), mT0.DzDs(), err2Y, err2Z);
@@ -578,7 +577,7 @@ GPUd() void GPUTPCGMPropagator::GetErr2(float& err2Y, float& err2Z, const GPUPar
   mStatErrors.GetOfflineStatisticalErrors(err2Y, err2Z, mT0.SinPhi(), mT0.DzDs(), clusterState);
 }
 
-GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, int iRow, const GPUParam& param, short clusterState) const
+GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, int iRow, const GPUParam& GPUrestrict() param, short clusterState) const
 {
   float err2Y, err2Z;
   GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState);
@@ -612,7 +611,7 @@ GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, float err2Y
   }
 }
 
-GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const GPUParam& param, short clusterState, bool rejectChi2, bool refit)
+GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const GPUParam& GPUrestrict() param, short clusterState, bool rejectChi2, bool refit)
 {
   float err2Y, err2Z;
   GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState);

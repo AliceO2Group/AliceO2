@@ -47,9 +47,11 @@ DECLARE_SOA_COLUMN(N, n, int, "fN");
 DECLARE_SOA_INDEX_COLUMN_FULL(Info, info, int, Infos, "fInfosID");
 DECLARE_SOA_INDEX_COLUMN_FULL(PointA, pointA, int, Points, "fPointAID");
 DECLARE_SOA_INDEX_COLUMN_FULL(PointB, pointB, int, Points, "fPointBID");
+DECLARE_SOA_COLUMN(Thickness, thickness, int, "thickness");
 } // namespace test
 
 DECLARE_SOA_TABLE(Segments, "TST", "SEGMENTS", test::N, test::PointAId, test::PointBId, test::InfoId);
+DECLARE_SOA_TABLE(SegmentsExtras, "TST", "SEGMENTSEX", test::Thickness);
 
 BOOST_AUTO_TEST_CASE(TestTableIteration)
 {
@@ -349,7 +351,7 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   expressions::Selection selection_f = expressions::createSelection(tableA, testf);
 
   TestA testA{tableA};
-  FilteredTest filtered{testA.asArrowTable(), selection_f};
+  FilteredTest filtered{{testA.asArrowTable()}, selection_f};
   BOOST_CHECK_EQUAL(2, filtered.size());
 
   auto i = 0;
@@ -372,7 +374,7 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   selectionConcat->SetIndex(2, 10);
   selectionConcat->SetNumSlots(3);
   ConcatTest concatTest{tableA, tableB};
-  FilteredConcatTest concatTestTable{concatTest.asArrowTable(), selectionConcat};
+  FilteredConcatTest concatTestTable{{concatTest.asArrowTable()}, selectionConcat};
   BOOST_CHECK_EQUAL(3, concatTestTable.size());
 
   i = 0;
@@ -403,7 +405,7 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   selectionJoin->SetIndex(2, 4);
   selectionJoin->SetNumSlots(3);
   JoinedTest testJoin{0, tableA, tableC};
-  FilteredJoinTest filteredJoin{testJoin.asArrowTable(), selectionJoin};
+  FilteredJoinTest filteredJoin{{testJoin.asArrowTable()}, selectionJoin};
 
   i = 0;
   BOOST_CHECK(filteredJoin.begin() != filteredJoin.end());
@@ -456,7 +458,7 @@ BOOST_AUTO_TEST_CASE(TestDereference)
   auto infoWriter = builderA2.cursor<Infos>();
   infoWriter(0, 0);
   infoWriter(0, 1);
-  infoWriter(0, 2);
+  infoWriter(0, 4);
   auto infosT = builderA2.finalize();
   Infos infos{infosT};
   BOOST_REQUIRE_EQUAL(infosT->num_rows(), 3);
@@ -468,6 +470,13 @@ BOOST_AUTO_TEST_CASE(TestDereference)
   Segments segments{segmentsT};
   BOOST_REQUIRE_EQUAL(segmentsT->num_rows(), 1);
 
+  TableBuilder builderC;
+  auto segmentsExtraWriter = builderC.cursor<SegmentsExtras>();
+  segmentsExtraWriter(0, 1);
+  auto segmentsExtraT = builderC.finalize();
+  SegmentsExtras segmentsExtras{segmentsExtraT};
+  BOOST_REQUIRE_EQUAL(segmentsExtraT->num_rows(), 1);
+
   BOOST_CHECK_EQUAL(segments.begin().pointAId(), 0);
   BOOST_CHECK_EQUAL(segments.begin().pointBId(), 1);
   static_assert(std::is_same_v<decltype(segments.begin().pointA()), Points::iterator>);
@@ -475,9 +484,29 @@ BOOST_AUTO_TEST_CASE(TestDereference)
   using namespace o2::framework;
   i.bindExternalIndices(&points, &infos);
   BOOST_CHECK_EQUAL(i.n(), 10);
-  BOOST_CHECK_EQUAL(i.info().color(), 2);
+  BOOST_CHECK_EQUAL(i.info().color(), 4);
   BOOST_CHECK_EQUAL(i.pointA().x(), 0);
   BOOST_CHECK_EQUAL(i.pointA().y(), 0);
   BOOST_CHECK_EQUAL(i.pointB().x(), 3);
   BOOST_CHECK_EQUAL(i.pointB().y(), 4);
+
+  segments.bindExternalIndices(&points, &infos);
+  auto j = segments.begin();
+  BOOST_CHECK_EQUAL(j.n(), 10);
+  BOOST_CHECK_EQUAL(j.info().color(), 4);
+  BOOST_CHECK_EQUAL(j.pointA().x(), 0);
+  BOOST_CHECK_EQUAL(j.pointA().y(), 0);
+  BOOST_CHECK_EQUAL(j.pointB().x(), 3);
+  BOOST_CHECK_EQUAL(j.pointB().y(), 4);
+
+  auto joined = join(segments, segmentsExtras);
+  joined.bindExternalIndices(&points, &infos);
+  auto se = joined.begin();
+  BOOST_CHECK_EQUAL(se.n(), 10);
+  BOOST_CHECK_EQUAL(se.info().color(), 4);
+  BOOST_CHECK_EQUAL(se.pointA().x(), 0);
+  BOOST_CHECK_EQUAL(se.pointA().y(), 0);
+  BOOST_CHECK_EQUAL(se.pointB().x(), 3);
+  BOOST_CHECK_EQUAL(se.pointB().y(), 4);
+  BOOST_CHECK_EQUAL(se.thickness(), 1);
 }
