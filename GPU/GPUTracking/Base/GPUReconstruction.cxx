@@ -116,14 +116,8 @@ int GPUReconstruction::Init()
   if (!IsGPU()) {
     mRecoStepsGPU.set((unsigned char)0);
   }
-  if (!IsGPU()) {
-    mDeviceProcessingSettings.trackletConstructorInPipeline = mDeviceProcessingSettings.trackletSelectorInPipeline = false;
-  }
   if (param().rec.NonConsecutiveIDs) {
     param().rec.DisableRefitAttachment = 0xFF;
-  }
-  if (!mDeviceProcessingSettings.trackletConstructorInPipeline) {
-    mDeviceProcessingSettings.trackletSelectorInPipeline = false;
   }
 
 #ifdef WITH_OPENMP
@@ -158,6 +152,10 @@ int GPUReconstruction::Init()
     return 1;
   }
   GPUCA_GPUReconstructionUpdateDefailts();
+  if (!mDeviceProcessingSettings.trackletConstructorInPipeline) {
+    mDeviceProcessingSettings.trackletSelectorInPipeline = false;
+  }
+
   if (IsGPU()) {
     for (unsigned int i = 0; i < mChains.size(); i++) {
       mChains[i]->RegisterGPUProcessors();
