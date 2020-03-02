@@ -125,22 +125,27 @@
 #define GPUCA_NEIGHBORSFINDER_REGS NONE, 0
 #endif
 #ifdef GPUCA_GPUCODE
-#ifndef GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP
-#define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 6
-#endif
-#ifndef GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE
-#define GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE 12
-#endif
+  #ifndef GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP
+  #define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 6
+  #endif
+  #ifndef GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE
+  #define GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE 12
+  #endif
+  #ifndef GPUCA_CONSTRUCTOR_IN_PIPELINE
+  #define GPUCA_CONSTRUCTOR_IN_PIPELINE 1
+  #endif
+  #ifndef GPUCA_SELECTOR_IN_PIPELINE
+  #define GPUCA_SELECTOR_IN_PIPELINE 0
+  #endif
+  #ifndef GPUCA_TRACKLET_SELECTOR_SLICE_COUNT
+  #define GPUCA_TRACKLET_SELECTOR_SLICE_COUNT 8                          // Currently must be smaller than avaiable MultiProcessors on GPU or will result in wrong results
+  #endif
 #else
-#define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 0
-#define GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE 0
-#endif
-
-#ifndef GPUCA_CONSTRUCTOR_IN_PIPELINE
-#define GPUCA_CONSTRUCTOR_IN_PIPELINE 1
-#endif
-#ifndef GPUCA_SELECTOR_IN_PIPELINE
-#define GPUCA_SELECTOR_IN_PIPELINE 0
+  #define GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP 0
+  #define GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE 0
+  #define GPUCA_CONSTRUCTOR_IN_PIPELINE 1
+  #define GPUCA_SELECTOR_IN_PIPELINE 1
+  #define GPUCA_TRACKLET_SELECTOR_SLICE_COUNT 1
 #endif
 
 #ifndef GPUCA_WARP_SIZE
@@ -161,10 +166,6 @@
 #define GPUCA_MEMALIGN (64 * 1024)                                     // Alignment of allocated memory blocks
 
 // #define GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE                       // Output Profiling Data for Tracklet Constructor Tracklet Scheduling
-
-#ifndef GPUCA_TRACKLET_SELECTOR_SLICE_COUNT
-#define GPUCA_TRACKLET_SELECTOR_SLICE_COUNT 8                          // Currently must be smaller than avaiable MultiProcessors on GPU or will result in wrong results
-#endif
 
 // Default maximum numbers
 #define GPUCA_MAX_CLUSTERS           ((size_t)     1024 * 1024 * 1024) // Maximum number of TPC clusters
