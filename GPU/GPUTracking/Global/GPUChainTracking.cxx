@@ -1127,7 +1127,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       AllocateRegisteredMemory(trk.MemoryResOutput());
     }
 
-    if (!doGPU || GetDeviceProcessingSettings().trackletConstructorInPipeline) {
+    if (!(doGPU || GetDeviceProcessingSettings().debugLevel >= 1) || GetDeviceProcessingSettings().trackletConstructorInPipeline) {
       runKernel<GPUTPCTrackletConstructor>({ConstructorBlockCount(), ConstructorThreadCount(), useStream}, {iSlice});
       DoDebugAndDump(RecoStep::TPCSliceTracking, 128, trk, &GPUTPCTracker::DumpTrackletHits, mDebugFile);
       if (GetDeviceProcessingSettings().debugMask & 256 && !GetDeviceProcessingSettings().comparableDebutOutput) {
@@ -1135,7 +1135,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       }
     }
 
-    if (!doGPU || GetDeviceProcessingSettings().trackletSelectorInPipeline) {
+    if (!(doGPU || GetDeviceProcessingSettings().debugLevel >= 1) || GetDeviceProcessingSettings().trackletSelectorInPipeline) {
       runKernel<GPUTPCTrackletSelector>({SelectorBlockCount(), SelectorThreadCount(), useStream}, {iSlice});
       TransferMemoryResourceLinkToHost(RecoStep::TPCSliceTracking, trk.MemoryResCommon(), useStream, &mEvents->selector[iSlice]);
       streamMap[iSlice] = useStream;
@@ -1145,7 +1145,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       DoDebugAndDump(RecoStep::TPCSliceTracking, 512, trk, &GPUTPCTracker::DumpTrackHits, mDebugFile);
     }
 
-    if (!doGPU) {
+    if (!(doGPU || GetDeviceProcessingSettings().debugLevel >= 1)) {
       trk.CommonMemory()->nLocalTracks = trk.CommonMemory()->nTracks;
       trk.CommonMemory()->nLocalTrackHits = trk.CommonMemory()->nTrackHits;
       if (!param().rec.GlobalTracking) {
@@ -1157,7 +1157,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     return (3);
   }
 
-  if (doGPU) {
+  if (doGPU || GetDeviceProcessingSettings().debugLevel >= 1) {
     ReleaseEvent(&mEvents->init);
     WaitForHelperThreads();
 
