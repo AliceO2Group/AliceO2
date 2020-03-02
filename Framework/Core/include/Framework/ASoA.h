@@ -28,6 +28,7 @@
 
 namespace o2::soa
 {
+using SelectionVector = std::vector<int64_t>;
 
 template <typename, typename = void>
 constexpr bool is_index_column_v = false;
@@ -464,10 +465,10 @@ struct FilteredIndexPolicy : IndexPolicyBase {
   // which happens below which will properly setup the first index
   // by remapping the filtered index 0 to whatever unfiltered index
   // it belongs to.
-  FilteredIndexPolicy(gandiva::SelectionVector* selection = nullptr, uint64_t offset = 0)
+  FilteredIndexPolicy(SelectionVector* selection = nullptr, uint64_t offset = 0)
     : IndexPolicyBase{-1, offset},
-      mSelection(selection),
-      mMaxSelection(selection ? selection->GetNumSlots() : 0)
+      mSelectedRows(selection),
+      mMaxSelection(selection == nullptr ? 0 : selection->size())
   {
     this->setCursor(0);
   }
@@ -500,13 +501,13 @@ struct FilteredIndexPolicy : IndexPolicyBase {
   void setCursor(int64_t i)
   {
     mSelectionRow = i;
-    this->mRowIndex = mSelection ? mSelection->GetIndex(mSelectionRow) : mSelectionRow;
+    this->mRowIndex = mSelectedRows != nullptr ? (*mSelectedRows)[mSelectionRow] : mSelectionRow;
   }
 
   void moveByIndex(int64_t i)
   {
     mSelectionRow += i;
-    this->mRowIndex = mSelection ? mSelection->GetIndex(mSelectionRow) : mSelectionRow;
+    this->mRowIndex = mSelectedRows != nullptr ? (*mSelectedRows)[mSelectionRow] : mSelectionRow;
   }
 
   bool operator!=(FilteredIndexPolicy const& other) const
@@ -534,9 +535,9 @@ struct FilteredIndexPolicy : IndexPolicyBase {
   }
 
  private:
+  SelectionVector* mSelectedRows = nullptr;
   int64_t mSelectionRow = 0;
   int64_t mMaxSelection = 0;
-  gandiva::SelectionVector* mSelection = nullptr;
 };
 
 template <typename... C>
@@ -724,7 +725,7 @@ template <typename... C>
 using RowViewFiltered = RowViewBase<FilteredIndexPolicy, C...>;
 
 template <typename... C>
-auto&& makeRowViewFiltered(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, gandiva::SelectionVector* selection, uint64_t offset)
+auto&& makeRowViewFiltered(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, SelectionVector* selection, uint64_t offset)
 {
   return std::move(RowViewBase<FilteredIndexPolicy, C...>{columnIndex, FilteredIndexPolicy{selection, offset}});
 }
@@ -780,18 +781,18 @@ class Table
     return unfiltered_iterator{mEnd};
   }
 
-  filtered_iterator filtered_begin(framework::expressions::Selection selection)
+  filtered_iterator filtered_begin(SelectionVector* selection)
   {
     // Note that the FilteredIndexPolicy will never outlive the selection which
     // is held by the table, so we are safe passing the bare pointer. If it does it
     // means that the iterator on a table is outliving the table itself, which is
     // a bad idea.
-    return filtered_iterator(mColumnIndex, {selection.get(), mOffset});
+    return filtered_iterator(mColumnIndex, {selection, mOffset});
   }
 
-  filtered_iterator filtered_end(framework::expressions::Selection selection)
+  filtered_iterator filtered_end(SelectionVector* selection)
   {
-    auto end = filtered_iterator(mColumnIndex, {selection.get(), mOffset});
+    auto end = filtered_iterator(mColumnIndex, {selection, mOffset});
     end.moveToEnd();
     return end;
   }
@@ -1154,21 +1155,29 @@ class Filtered : public T
   using iterator = typename table_t::filtered_iterator;
   using const_iterator = typename table_t::filtered_const_iterator;
 
+  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
+    : T{std::move(tables), offset},
+      mSelectedRows{std::forward<SelectionVector>(selection)},
+      mFilteredBegin{table_t::filtered_begin(&mSelectedRows)},
+      mFilteredEnd{table_t::filtered_end(&mSelectedRows)}
+  {
+  }
+
   Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, framework::expressions::Selection selection, uint64_t offset = 0)
     : T{std::move(tables), offset},
-      mSelection{selection},
-      mFilteredBegin{table_t::filtered_begin(mSelection)},
-      mFilteredEnd{table_t::filtered_end(mSelection)}
+      mSelectedRows{copySelection(selection)},
+      mFilteredBegin{table_t::filtered_begin(&mSelectedRows)},
+      mFilteredEnd{table_t::filtered_end(&mSelectedRows)}
   {
   }
 
   Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::NodePtr const& tree, uint64_t offset = 0)
     : T{std::move(tables), offset},
-      mSelection{framework::expressions::createSelection(this->asArrowTable(),
-                                                         framework::expressions::createFilter(this->asArrowTable()->schema(),
-                                                                                              framework::expressions::createCondition(tree)))},
-      mFilteredBegin{table_t::filtered_begin(mSelection)},
-      mFilteredEnd{table_t::filtered_end(mSelection)}
+      mSelectedRows{copySelection(framework::expressions::createSelection(this->asArrowTable(),
+                                                                          framework::expressions::createFilter(this->asArrowTable()->schema(),
+                                                                                                               framework::expressions::createCondition(tree))))},
+      mFilteredBegin{table_t::filtered_begin(&mSelectedRows)},
+      mFilteredEnd{table_t::filtered_end(&mSelectedRows)}
   {
   }
 
@@ -1194,7 +1203,7 @@ class Filtered : public T
 
   int64_t size() const
   {
-    return mSelection->GetNumSlots();
+    return mSelectedRows.size();
   }
 
   int64_t tableSize() const
@@ -1202,13 +1211,32 @@ class Filtered : public T
     return table_t::asArrowTable()->num_rows();
   }
 
-  framework::expressions::Selection getSelection() const
+  SelectionVector const& getSelectedRows() const
   {
-    return mSelection;
+    return mSelectedRows;
+  }
+
+  static inline SelectionVector copySelection(framework::expressions::Selection const& sel)
+  {
+    SelectionVector rows;
+    for (auto i = 0; i < sel->GetNumSlots(); ++i) {
+      rows.push_back(sel->GetIndex(i));
+    }
+    return rows;
+  }
+
+  /// Bind the columns which refer to other tables
+  /// to the associated tables.
+  template <typename... TA>
+  void bindExternalIndices(TA*... current)
+  {
+    table_t::bindExternalIndices(current...);
+    mFilteredBegin.bindExternalIndices(current...);
+    mFilteredEnd.bindExternalIndices(current...);
   }
 
  private:
-  framework::expressions::Selection mSelection;
+  SelectionVector mSelectedRows;
   iterator mFilteredBegin;
   iterator mFilteredEnd;
 };
