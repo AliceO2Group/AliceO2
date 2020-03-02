@@ -3509,10 +3509,6 @@ void AliTPCSpaceCharge3DCalc::SetInputSpaceCharge(TH3* hisSpaceCharge3D, Double_
   fInitLookUp = kFALSE;
 
   Info("AliTPCSpaceCharge3DCalc:SetInputSpaceCharge", "Set Input Space Charge by 3D");
-  Double_t rMin = hisSpaceCharge3D->GetYaxis()->GetBinCenter(0);
-  Double_t rMax = hisSpaceCharge3D->GetYaxis()->GetBinUpEdge(hisSpaceCharge3D->GetYaxis()->GetNbins());
-  Double_t zMin = hisSpaceCharge3D->GetZaxis()->GetBinCenter(0);
-  Double_t zMax = hisSpaceCharge3D->GetZaxis()->GetBinCenter(hisSpaceCharge3D->GetZaxis()->GetNbins());
 
   Double_t radius0, z0, phi0;
   TMatrixD* charge;
@@ -3536,11 +3532,8 @@ void AliTPCSpaceCharge3DCalc::SetInputSpaceCharge(TH3* hisSpaceCharge3D, Double_
             z0 = -fListZ[j];
           }
 
-          if (radius0 > rMin && radius0 < rMax && z0 > zMin && z0 < zMax) {
+          (*charge)(i, j) = norm * InterpolatePhi(hisSpaceCharge3D, phi0, radius0, z0);
 
-            (*charge)(i, j) = norm * InterpolatePhi(hisSpaceCharge3D, phi0, radius0, z0);
-          }
-          //}
         } // end j
       }   // end i
     }     // end phi
