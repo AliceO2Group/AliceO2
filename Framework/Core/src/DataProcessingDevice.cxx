@@ -255,8 +255,8 @@ bool DataProcessingDevice::ConditionalRun()
   bool active = false;
 
   // Notice that fake input channels (InputChannelState::Pull) cannot possibly
-  // expect to receive an EndOfStream signal. Thus we do not wait until these
-  // are completed. In the case of data source devices, as they do not have real
+  // expect to receive an EndOfStream signal. Thus we do not wait for these
+  // to be completed. In the case of data source devices, as they do not have real
   // data input channels, they have to signal EndOfStream themselves.
   bool allDone = std::any_of(mState.inputChannelInfos.begin(), mState.inputChannelInfos.end(), [](const auto& info) {
     return info.state != InputChannelState::Pull;
@@ -265,7 +265,7 @@ bool DataProcessingDevice::ConditionalRun()
   for (size_t ci = 0; ci < mSpec.inputChannels.size(); ++ci) {
     auto& channel = mSpec.inputChannels[ci];
     auto& info = mState.inputChannelInfos[ci];
-
+    
     if (info.state != InputChannelState::Completed && info.state != InputChannelState::Pull) {
       allDone = false;
     }
