@@ -213,7 +213,6 @@ void Digitizer::mergeDigits()
     mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc);
     i = j;
     ++count;
-    mMCTruthOutputContainer.addElements(count, element);
   }
   mDigits.resize(mDigits.size());
 }
