@@ -265,7 +265,7 @@ bool DataProcessingDevice::ConditionalRun()
   for (size_t ci = 0; ci < mSpec.inputChannels.size(); ++ci) {
     auto& channel = mSpec.inputChannels[ci];
     auto& info = mState.inputChannelInfos[ci];
-    
+
     if (info.state != InputChannelState::Completed && info.state != InputChannelState::Pull) {
       allDone = false;
     }
