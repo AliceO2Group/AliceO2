@@ -64,8 +64,8 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>* hits, o2::fdd::Digit* d
 
     Float_t dt_scintillator = mRndScintDelay.getNextValue();
     Float_t t = dt_scintillator + hit.GetTime();
-    LOG(INFO) << "Nphot = " << hit.GetNphot() << " time =" << hit.GetTime();
-    LOG(INFO) << "NphE = " << nPhE;
+    // LOG(INFO) << "Nphot = " << hit.GetNphot() << " time =" << hit.GetTime();
+    // LOG(INFO) << "NphE = " << nPhE;
     Float_t charge = TMath::Qe() * parameters.mPmGain * mBinSize / mPmtTimeIntegral;
 
     auto& analogSignal = mTime[pmt];
@@ -116,7 +116,7 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>* hits, o2::fdd::Digit* d
     channel_data[ipmt].mTime = SimulateTimeCFD(ipmt);
     for (Int_t iBin = 0; iBin < mNBins; ++iBin)
       channel_data[ipmt].mChargeADC += mTime[ipmt][iBin] / parameters.mChargePerADC;
-    LOG(INFO) << "ADC " << channel_data[ipmt].mChargeADC << " Time " << channel_data[ipmt].mTime;
+    // LOG(INFO) << "ADC " << channel_data[ipmt].mChargeADC << " Time " << channel_data[ipmt].mTime;
   }
 }
 //_____________________________________________________________________________
