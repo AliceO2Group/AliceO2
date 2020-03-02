@@ -28,7 +28,7 @@
 
 namespace o2::soa
 {
-using selectionVector = std::vector<int64_t>;
+using SelectionVector = std::vector<int64_t>;
 
 template <typename, typename = void>
 constexpr bool is_index_column_v = false;
@@ -465,7 +465,7 @@ struct FilteredIndexPolicy : IndexPolicyBase {
   // which happens below which will properly setup the first index
   // by remapping the filtered index 0 to whatever unfiltered index
   // it belongs to.
-  FilteredIndexPolicy(selectionVector* selection = nullptr, uint64_t offset = 0)
+  FilteredIndexPolicy(SelectionVector* selection = nullptr, uint64_t offset = 0)
     : IndexPolicyBase{-1, offset},
       mSelectedRows(selection),
       mMaxSelection(selection == nullptr ? 0 : selection->size())
@@ -535,7 +535,7 @@ struct FilteredIndexPolicy : IndexPolicyBase {
   }
 
  private:
-  selectionVector* mSelectedRows = nullptr;
+  SelectionVector* mSelectedRows = nullptr;
   int64_t mSelectionRow = 0;
   int64_t mMaxSelection = 0;
 };
@@ -725,7 +725,7 @@ template <typename... C>
 using RowViewFiltered = RowViewBase<FilteredIndexPolicy, C...>;
 
 template <typename... C>
-auto&& makeRowViewFiltered(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, selectionVector* selection, uint64_t offset)
+auto&& makeRowViewFiltered(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, SelectionVector* selection, uint64_t offset)
 {
   return std::move(RowViewBase<FilteredIndexPolicy, C...>{columnIndex, FilteredIndexPolicy{selection, offset}});
 }
@@ -781,7 +781,7 @@ class Table
     return unfiltered_iterator{mEnd};
   }
 
-  filtered_iterator filtered_begin(selectionVector* selection)
+  filtered_iterator filtered_begin(SelectionVector* selection)
   {
     // Note that the FilteredIndexPolicy will never outlive the selection which
     // is held by the table, so we are safe passing the bare pointer. If it does it
@@ -790,7 +790,7 @@ class Table
     return filtered_iterator(mColumnIndex, {selection, mOffset});
   }
 
-  filtered_iterator filtered_end(selectionVector* selection)
+  filtered_iterator filtered_end(SelectionVector* selection)
   {
     auto end = filtered_iterator(mColumnIndex, {selection, mOffset});
     end.moveToEnd();
@@ -1155,9 +1155,9 @@ class Filtered : public T
   using iterator = typename table_t::filtered_iterator;
   using const_iterator = typename table_t::filtered_const_iterator;
 
-  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, selectionVector&& selection, uint64_t offset = 0)
+  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
     : T{std::move(tables), offset},
-      mSelectedRows{std::forward<selectionVector>(selection)},
+      mSelectedRows{std::forward<SelectionVector>(selection)},
       mFilteredBegin{table_t::filtered_begin(&mSelectedRows)},
       mFilteredEnd{table_t::filtered_end(&mSelectedRows)}
   {
@@ -1211,14 +1211,14 @@ class Filtered : public T
     return table_t::asArrowTable()->num_rows();
   }
 
-  selectionVector const& getSelectedRows() const
+  SelectionVector const& getSelectedRows() const
   {
     return mSelectedRows;
   }
 
-  static inline selectionVector copySelection(framework::expressions::Selection const& sel)
+  static inline SelectionVector copySelection(framework::expressions::Selection const& sel)
   {
-    selectionVector rows;
+    SelectionVector rows;
     for (auto i = 0; i < sel->GetNumSlots(); ++i) {
       rows.push_back(sel->GetIndex(i));
     }
@@ -1236,7 +1236,7 @@ class Filtered : public T
   }
 
  private:
-  selectionVector mSelectedRows;
+  SelectionVector mSelectedRows;
   iterator mFilteredBegin;
   iterator mFilteredEnd;
 };

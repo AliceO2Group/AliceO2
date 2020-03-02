@@ -431,7 +431,7 @@ struct AnalysisDataProcessorBuilder {
               // for each grouping element we need to slice the selection vector
               auto iterator_start = std::find(fullSelection.begin(), fullSelection.end(), offsets[oi]);
               auto iterator_end = std::find(iterator_start, fullSelection.end(), offsets[oi + 1]);
-              soa::selectionVector slicedSelection{iterator_start, iterator_end};
+              soa::SelectionVector slicedSelection{iterator_start, iterator_end};
               std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(), [&](int64_t index) { return index - static_cast<int64_t>(offsets[oi]); });
 
               std::decay_t<AssociatedType> typedTable{{groupedElementsTable}, std::move(slicedSelection), offsets[oi]};
