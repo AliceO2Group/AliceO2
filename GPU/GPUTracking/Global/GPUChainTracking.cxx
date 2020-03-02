@@ -933,6 +933,9 @@ int GPUChainTracking::RunTPCClusterizer()
       for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
         memcpy((void*)&clsMemory[pos], (const void*)&clusterer.mPclusterByRow[j * clusterer.mNMaxClusterPerRow], clusterer.mPclusterInRow[j] * sizeof(clsMemory[0]));
         tmp->nClusters[iSlice][j] = clusterer.mPclusterInRow[j];
+        if (GetDeviceProcessingSettings().debugLevel >= 4) {
+          std::sort(&clsMemory[pos], &clsMemory[pos + clusterer.mPclusterInRow[j]]);
+        }
         pos += clusterer.mPclusterInRow[j];
       }
 
