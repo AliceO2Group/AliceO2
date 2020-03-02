@@ -173,7 +173,7 @@ void analyzeCPV(TTree* reftree)
 void analyzeFT0(TTree* reftree)
 {
   LabelStats result;
-  analyse<o2::ft0::MCLabel>(reftree, "FT0DigitMCTruth", result);
+  analyse<o2::ft0::MCLabel>(reftree, "FT0DIGITSMCTR", result);
   std::cout << gPrefix << " FT0 ";
   result.print();
 }
