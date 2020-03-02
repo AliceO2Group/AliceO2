@@ -189,7 +189,6 @@ class AliTPCSpaceCharge3DCalc
 
   void GetLocalCorrectionCyl(const Float_t x[], Short_t roc, Float_t dx[]);
 
-
   void SetIrregularGridSize(Int_t size) { fIrregularGridSize = size; }
 
   Int_t GetIrregularGridSize() { return fIrregularGridSize; }
