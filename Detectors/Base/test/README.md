@@ -4,7 +4,7 @@
 
 # Tests
 
-## Mat.Budget LUT classes
+## Material Budget LUT classes
 
 To generate the LUT (at the moment for R<400, with layers above 270 cm not optimized) run
 ```
