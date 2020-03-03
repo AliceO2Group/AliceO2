@@ -245,7 +245,7 @@ void analyzeTOF(TTree* reftree)
 void analyzeTRD(TTree* reftree)
 {
   LabelStats result;
-  analyse<o2::trd::MCLabel>(reftree, "TRDMCLabels", result);
+  analyse<o2::MCCompLabel>(reftree, "TRDMCLabels", result);
   std::cout << gPrefix << " TRD ";
   result.print();
 }
