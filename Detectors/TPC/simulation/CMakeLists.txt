@@ -42,6 +42,7 @@ o2_target_root_dictionary(TPCSimulation
                                   include/TPCSimulation/SpaceCharge.h)
 
 o2_data_file(COPY files DESTINATION Detectors/TPC)
+o2_data_file(COPY data  DESTINATION Detectors/TPC/simulation)
 
 if(BUILD_TESTING)
   add_subdirectory(test)
