@@ -50,6 +50,11 @@ struct ClusterNativeAccess {
   unsigned int nClustersTotal;
   void setOffsetPtrs() {}
 };
+#ifndef __OPENCL__
+struct TPCZSHDR {
+  static const unsigned int TPC_ZS_PAGE_SIZE = 8192;
+};
+#endif
 } // namespace tpc
 namespace base
 {
