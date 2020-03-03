@@ -901,11 +901,10 @@ bool MatchTPCITS::prepareFITInfo()
     if (!mDPLIO) {
       mTimerIO.Start(false);
       mTreeFITInfo->GetEntry(0);
-      //    mFITInfo = gsl::span<const o2::ft0::RecPoints>(mFITInfoPtr->data(), mFITInfoPtr->size()); // FT0 not yet POD
-      mFITInfo = mFITInfoPtr; // temporary
+      mFITInfo = gsl::span<const o2::ft0::RecPoints>(mFITInfoPtr->data(), mFITInfoPtr->size()); // FT0 not yet POD
       mTimerIO.Stop();
     }
-    LOG(INFO) << "Loaded FIT Info with " << (*mFITInfo).size() << " entries";
+    LOG(INFO) << "Loaded FIT Info with " << mFITInfo.size() << " entries";
   }
 
   return true;
@@ -1933,8 +1932,8 @@ int MatchTPCITS::prepareInteractionTimes()
   // guess interaction times from various sources and relate with ITS rofs
   const float T0UncertaintyTB = 0.5 / (1e3 * mTPCTBinMUS); // assumed T0 time uncertainty (~0.5ns) in TPC timeBins
   mInteractions.clear();
-  if ((*mFITInfo).size()) {
-    for (const auto& ft : (*mFITInfo)) {
+  if (mFITInfo.size()) {
+    for (const auto& ft : mFITInfo) {
       if (!ft.isValidTime(o2::ft0::RecPoints::TimeMean)) {
         continue;
       }

@@ -79,11 +79,11 @@ class TOFDPLRecoWorkflowTask
       *tpclab.get() = std::move(*tpclabel);
     }
 
-    auto recPointsPtr = std::make_shared<std::vector<o2::ft0::RecPoints>>();
     if (mUseFIT) {
-      auto recPoints = pc.inputs().get<const std::vector<o2::ft0::RecPoints>>("fitrecpoints");
-      *recPointsPtr.get() = std::move(recPoints);
-      mMatcher.setFITRecPoints(recPointsPtr.get());
+      // Note: the particular variable will go out of scope, but the span is passed by copy to the
+      // worker and the underlying memory is valid throughout the whole computation
+      auto recPoints = std::move(pc.inputs().get<gsl::span<o2::ft0::RecPoints>>("fitrecpoints"));
+      mMatcher.setFITRecPoints(recPoints);
       LOG(INFO) << "TOF Reco Workflow pulled " << recPoints.size() << " FIT RecPoints";
     }
 

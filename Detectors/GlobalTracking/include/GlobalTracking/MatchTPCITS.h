@@ -408,8 +408,7 @@ class MatchTPCITS
   }
 
   ///< set input FIT info received via DPL
-  void setFITInfoInp(const std::vector<o2::ft0::RecPoints>* inp)
-  //  void setFITInfoInp(const gsl::span<const o2::ft0::RecPoints> inp) // FT0 recpoints are not yet
+  void setFITInfoInp(const gsl::span<const o2::ft0::RecPoints> inp)
   {
     assertDPLIO(true);
     mFITInfo = inp;
@@ -669,9 +668,7 @@ class MatchTPCITS
   gsl::span<const o2::itsmft::ROFRecord> mITSClusterROFRec;                 ///< input ITS clusters ROFRecord span from DPL
 
   const std::vector<o2::ft0::RecPoints>* mFITInfoPtr = nullptr; ///< optional input FIT info from the tree
-  // FT0 is not POD yet
-  const std::vector<o2::ft0::RecPoints>* mFITInfo = nullptr; ///<  optional input FIT info span from DPL
-  //gsl::span<const o2::ft0::RecPoints> mFITInfo;                           ///<  optional input FIT info span from DPL
+  gsl::span<const o2::ft0::RecPoints> mFITInfo;                 ///< optional input FIT info span from DPL
 
   const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr;     ///< struct holding the TPC cluster indices
 

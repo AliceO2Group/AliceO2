@@ -818,14 +818,15 @@ void MatchTOF::doMatching(int sec)
 //______________________________________________
 int MatchTOF::findFITIndex(int bc)
 {
-  if (!mFITRecPoints)
+  if (mFITRecPoints.size() == 0) {
     return -1;
+  }
 
   int index = -1;
   int distMax = 5; // require bc distance below 5
 
-  for (int i = 0; i < mFITRecPoints->size(); i++) {
-    const o2::InteractionRecord ir = mFITRecPoints->at(i).getInteractionRecord();
+  for (int i = 0; i < mFITRecPoints.size(); i++) {
+    const o2::InteractionRecord ir = mFITRecPoints[i].getInteractionRecord();
     int bct0 = ir.orbit * o2::constants::lhc::LHCMaxBunches + ir.bc;
     int dist = bc - bct0;
 
@@ -863,11 +864,11 @@ void MatchTOF::selectBestMatches()
     // get fit info
     double t0info = 0;
 
-    if (mFITRecPoints) {
+    if (mFITRecPoints.size() > 0) {
       int index = findFITIndex(mTOFClusWork[matchingPair.getTOFClIndex()].getBC());
 
       if (index > -1) {
-        o2::InteractionRecord ir = (*mFITRecPoints)[index].getInteractionRecord();
+        o2::InteractionRecord ir = mFITRecPoints[index].getInteractionRecord();
         t0info = ir.bc2ns() * 1E3;
       }
     }
