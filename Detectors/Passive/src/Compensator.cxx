@@ -29,8 +29,8 @@ using namespace o2::passive;
 
 Compensator::~Compensator() = default;
 
-Compensator::Compensator() : FairModule("Compensator", "") {}
-Compensator::Compensator(const char* name, const char* Title) : FairModule(name, Title) {}
+Compensator::Compensator() : PassiveBase("Compensator", "") {}
+Compensator::Compensator(const char* name, const char* Title) : PassiveBase(name, Title) {}
 Compensator::Compensator(const Compensator& rhs) = default;
 
 Compensator& Compensator::operator=(const Compensator& rhs)
@@ -40,7 +40,7 @@ Compensator& Compensator::operator=(const Compensator& rhs)
     return *this;
 
   // base class assignment
-  FairModule::operator=(rhs);
+  PassiveBase::operator=(rhs);
 
   return *this;
 }

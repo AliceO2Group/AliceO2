@@ -8,33 +8,26 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_PASSIVE_SHIL_H
-#define ALICEO2_PASSIVE_SHIL_H
+#ifndef ALICEO2_PASSIVE_BASE_H
+#define ALICEO2_PASSIVE_BASE_H
 
-#include "DetectorsPassive/PassiveBase.h"
+#include "FairModule.h" // for FairModule
 
 namespace o2
 {
 namespace passive
 {
-class Shil : public PassiveBase
+
+/// a common base class for passive modules - implementing generic functions
+class PassiveBase : public FairModule
 {
  public:
-  Shil(const char* name, const char* Title = "ALICE Shil");
-  Shil();
-  ~Shil() override;
-  void ConstructGeometry() override;
+  using FairModule::FairModule;
+  void SetSpecialPhysicsCuts() override;
 
-  /// Clone this object (used in MT mode only)
-  FairModule* CloneModule() const override;
-
- private:
-  Shil(const Shil& orig);
-  Shil& operator=(const Shil&);
-  void createMaterials();
-
-  ClassDefOverride(o2::passive::Shil, 1);
+  ClassDefOverride(o2::passive::PassiveBase, 1);
 };
+
 } // namespace passive
 } // namespace o2
 

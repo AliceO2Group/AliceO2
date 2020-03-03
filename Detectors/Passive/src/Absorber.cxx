@@ -33,8 +33,8 @@ using namespace o2::passive;
 
 Absorber::~Absorber() = default;
 
-Absorber::Absorber() : FairModule("Absorber", "") {}
-Absorber::Absorber(const char* name, const char* Title) : FairModule(name, Title) {}
+Absorber::Absorber() : PassiveBase("Absorber", "") {}
+Absorber::Absorber(const char* name, const char* Title) : PassiveBase(name, Title) {}
 Absorber::Absorber(const Absorber& rhs) = default;
 
 Absorber& Absorber::operator=(const Absorber& rhs)

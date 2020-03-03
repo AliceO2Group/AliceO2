@@ -40,9 +40,9 @@
 using namespace o2::passive;
 
 Pipe::~Pipe() = default;
-Pipe::Pipe() : FairModule() {}
+Pipe::Pipe() : PassiveBase() {}
 Pipe::Pipe(const char* name, const char* title, float rho, float thick)
-  : FairModule(name, title), mBePipeRmax(rho), mBePipeThick(thick)
+  : PassiveBase(name, title), mBePipeRmax(rho), mBePipeThick(thick)
 {
 }
 Pipe::Pipe(const Pipe& rhs) = default;
@@ -54,7 +54,7 @@ Pipe& Pipe::operator=(const Pipe& rhs)
     return *this;
 
   // base class assignment
-  FairModule::operator=(rhs);
+  PassiveBase::operator=(rhs);
 
   return *this;
 }

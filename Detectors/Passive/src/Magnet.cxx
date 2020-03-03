@@ -39,8 +39,8 @@ using namespace o2::passive;
 
 Magnet::~Magnet() = default;
 
-Magnet::Magnet() : FairModule("Magnet", "") {}
-Magnet::Magnet(const char* name, const char* Title) : FairModule(name, Title) {}
+Magnet::Magnet() : PassiveBase("Magnet", "") {}
+Magnet::Magnet(const char* name, const char* Title) : PassiveBase(name, Title) {}
 Magnet::Magnet(const Magnet& rhs) = default;
 
 Magnet& Magnet::operator=(const Magnet& rhs)
@@ -50,7 +50,7 @@ Magnet& Magnet::operator=(const Magnet& rhs)
     return *this;
 
   // base class assignment
-  FairModule::operator=(rhs);
+  PassiveBase::operator=(rhs);
 
   return *this;
 }
