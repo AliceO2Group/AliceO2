@@ -50,6 +50,8 @@ o2_target_root_dictionary(
 if(BUILD_TESTING)
   add_subdirectory(test)
 
+o2_data_file(COPY data DESTINATION Detectors/MID/simulation)
+
   o2_add_test_root_macro(macros/drawMIDGeometry.C
                          PUBLIC_LINK_LIBRARIES FairRoot::Base
                                                O2::DetectorsPassive
