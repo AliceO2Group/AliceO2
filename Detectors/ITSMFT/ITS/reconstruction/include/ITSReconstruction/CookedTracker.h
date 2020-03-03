@@ -21,8 +21,10 @@
 //-------------------------------------------------------------------------
 
 #include <vector>
+#include <tuple>
 #include "ITSBase/GeometryTGeo.h"
 #include "MathUtils/Cartesian3D.h"
+#include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ReconstructionDataFormats/Vertex.h"
@@ -34,11 +36,6 @@ namespace dataformats
 {
 template <typename T>
 class MCTruthContainer;
-}
-
-namespace itsmft
-{
-class Cluster;
 }
 
 namespace its
@@ -73,8 +70,27 @@ class CookedTracker
   void setNumberOfThreads(Int_t n) { mNumOfThreads = n; }
   Int_t getNumberOfThreads() const { return mNumOfThreads; }
 
+  using TrackInserter = std::function<int(const TrackITSExt& t)>;
   // These functions must be implemented
-  void process(gsl::span<const Cluster> clusters, std::vector<TrackITS>& tracks, std::vector<int>& clusIdx, o2::itsmft::ROFRecord& rof);
+  template <typename U, typename V>
+  void process(gsl::span<const Cluster> clusters, U& tracks, V& clusIdx, o2::itsmft::ROFRecord& rof)
+  {
+    TrackInserter inserter = [&tracks, &clusIdx, this](const TrackITSExt& t) -> int {
+      // convert internal track to output format
+      auto& trackNew = tracks.emplace_back(t);
+      int noc = t.getNumberOfClusters();
+      int clEntry = clusIdx.size();
+      for (int i = 0; i < noc; i++) {
+        const Cluster* c = this->getCluster(t.getClusterIndex(i));
+        Int_t idx = c - mFirstCluster - mFirstInFrame; // Index of this cluster in event
+        clusIdx.emplace_back(idx);
+      }
+      trackNew.setClusterRefs(clEntry, noc);
+      return tracks.size();
+    };
+    process(clusters, inserter, rof);
+  }
+  void process(gsl::span<const Cluster> const& clusters, TrackInserter& inserter, o2::itsmft::ROFRecord& rof);
   const Cluster* getCluster(Int_t index) const;
 
   void setGeometry(o2::its::GeometryTGeo* geom);
@@ -97,10 +113,9 @@ class CookedTracker
 
  protected:
   static constexpr int kNLayers = 7;
-  void addOutputTrack(const TrackITSExt& t, std::vector<TrackITS>& tracks, std::vector<int>& clusIdx);
   int loadClusters(gsl::span<const Cluster> clusters, const o2::itsmft::ROFRecord& rof);
   void unloadClusters();
-  void processLoadedClusters(std::vector<TrackITS>& tracks, std::vector<int>& clusIdx);
+  std::tuple<int, int> processLoadedClusters(TrackInserter& inserter);
 
   std::vector<TrackITSExt> trackInThread(Int_t first, Int_t last);
   void makeSeeds(std::vector<TrackITSExt>& seeds, Int_t first, Int_t last);
