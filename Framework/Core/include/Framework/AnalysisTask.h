@@ -76,7 +76,7 @@ struct WritingCursor<soa::Table<PC...>> {
   }
 
   /// Last index inserted in the table
-  size_t lastIndex()
+  int64_t lastIndex()
   {
     return mCount;
   }
@@ -84,7 +84,7 @@ struct WritingCursor<soa::Table<PC...>> {
   bool resetCursor(TableBuilder& builder)
   {
     cursor = std::move(FFL(builder.cursor<persistent_table_t>()));
-    mCount = 0;
+    mCount = -1;
     return true;
   }
 
@@ -102,7 +102,7 @@ struct WritingCursor<soa::Table<PC...>> {
     }
   }
 
-  size_t mCount = 0;
+  int64_t mCount = -1;
 };
 
 /// This helper class allow you to declare things which will be crated by a
