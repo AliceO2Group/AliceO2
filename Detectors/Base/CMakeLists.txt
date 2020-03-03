@@ -49,6 +49,15 @@ if(BUILD_SIMULATION)
                 VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
 endif()
 
+o2_add_test(
+  DCAFitter
+  SOURCES test/testDCAFitter.cxx
+  COMPONENT_NAME DetectorsBase
+  PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+  LABELS detectorsbase
+  ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+  VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
+
 o2_add_test_root_macro(test/buildMatBudLUT.C
                        PUBLIC_LINK_LIBRARIES O2::DetectorsBase
                        LABELS detectorsbase)

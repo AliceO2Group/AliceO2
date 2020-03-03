@@ -2,8 +2,9 @@
 \page refDetectorsBasetest Detectors Base test
 /doxy -->
 
-# WORK IN PROGRESS: Mat.Budget LUT classes
+# Tests
 
+## Material Budget LUT classes
 
 To generate the LUT (at the moment for R<400, with layers above 270 cm not optimized) run
 ```
