@@ -80,13 +80,20 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
 
   auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
   auto clusters = pc.inputs().get<gsl::span<o2::itsmft::Cluster>>("clusters");
-  auto rofs = pc.inputs().get<std::vector<o2::itsmft::ROFRecord>>("ROframes"); // since we use it also for output, use the vector instead of span
+
+  // code further down does assignment to the rofs and the altered object is used for output
+  // we therefore need a copy of the vector rather than an object created directly on the input data,
+  // the output vector however is created directly inside the message memory thus avoiding copy by
+  // snapshot
+  auto rofsinput = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
+  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
 
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
-  std::vector<o2::itsmft::MC2ROFRecord> mc2rofs; // use vector rather than span (since we use it for output)
+  gsl::span<itsmft::MC2ROFRecord const> mc2rofs;
   if (mUseMC) {
     labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
-    mc2rofs = pc.inputs().get<std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
+    // get the array as read-onlt span, a snapshot is send forward
+    mc2rofs = pc.inputs().get<gsl::span<itsmft::MC2ROFRecord>>("MC2ROframes");
   }
 
   LOG(INFO) << "ITSCookedTracker pulled " << clusters.size() << " clusters, in "
@@ -101,10 +108,10 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   o2::its::Vertexer vertexer(&vertexerTraits);
   o2::its::ROframe event(0);
 
-  std::vector<o2::itsmft::ROFRecord> vertROFvec;
-  std::vector<Vertex> vertices;
-  std::vector<o2::its::TrackITS> tracks;
-  std::vector<int> clusIdx;
+  auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe});
+  auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe});
+  auto& tracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"ITS", "TRACKS", 0, Lifetime::Timeframe});
+  auto& clusIdx = pc.outputs().make<std::vector<int>>(Output{"ITS", "TRACKCLSID", 0, Lifetime::Timeframe});
   for (auto& rof : rofs) {
     o2::its::ioutils::loadROFrameData(rof, event, clusters, labels.get());
     vertexer.clustersToVertices(event);
@@ -126,11 +133,6 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   }
 
   LOG(INFO) << "ITSCookedTracker pushed " << tracks.size() << " tracks";
-  pc.outputs().snapshot(Output{"ITS", "TRACKS", 0, Lifetime::Timeframe}, tracks);
-  pc.outputs().snapshot(Output{"ITS", "TRACKCLSID", 0, Lifetime::Timeframe}, clusIdx);
-  pc.outputs().snapshot(Output{"ITS", "ITSTrackROF", 0, Lifetime::Timeframe}, rofs);
-  pc.outputs().snapshot(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe}, vertices);
-  pc.outputs().snapshot(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe}, vertROFvec);
 
   if (mUseMC) {
     pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, trackLabels);

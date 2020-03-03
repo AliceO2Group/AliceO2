@@ -34,13 +34,9 @@ namespace o2
 namespace mft
 {
 
-Int_t ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, const std::vector<itsmft::Cluster>* clusters,
+Int_t ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<itsmft::Cluster const> const& clusters,
                                const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
-  if (!clusters) {
-    std::cerr << "Missing clusters." << std::endl;
-    return -1;
-  }
   event.clear();
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(utils::bit2Mask(TransformType::T2G));
@@ -48,7 +44,7 @@ Int_t ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event,
 
   auto first = rof.getFirstEntry();
   auto number = rof.getNEntries();
-  auto clusters_in_frame = gsl::make_span(&(*clusters)[first], number);
+  auto clusters_in_frame = gsl::make_span(&(clusters)[first], number);
   for (auto& c : clusters_in_frame) {
     Int_t layer = geom->getLayer(c.getSensorID());
 

@@ -19,6 +19,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <gsl/gsl>
 
 #include "MFTTracking/ROframe.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -44,7 +45,7 @@ namespace mft
 
 namespace ioutils
 {
-Int_t loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, const std::vector<itsmft::Cluster>* clusters, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
+Int_t loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<itsmft::Cluster const> const& clusters, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
 void loadEventData(ROframe& event, const std::vector<itsmft::Cluster>* clusters,
                    const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
 } // namespace IOUtils
