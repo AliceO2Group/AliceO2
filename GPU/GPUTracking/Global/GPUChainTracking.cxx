@@ -702,16 +702,12 @@ int GPUChainTracking::GlobalTracking(int iSlice, int threadId)
     sliceLeft += NSLICES / 2;
     sliceRight += NSLICES / 2;
   }
-  while (mSliceOutputReady < iSlice || mSliceOutputReady < sliceLeft || mSliceOutputReady < sliceRight) {
-  }
 
   HighResTimer& timer = getTimer<GPUTPCGlobalTracking>("GlobalTracking", threadId);
   timer.Start();
   processors()->tpcTrackers[iSlice].PerformGlobalTracking(processors()->tpcTrackers[sliceLeft], processors()->tpcTrackers[sliceRight]);
   timer.Stop();
 
-  mSliceLeftGlobalReady[sliceLeft] = 1;
-  mSliceRightGlobalReady[sliceRight] = 1;
   if (GetDeviceProcessingSettings().debugLevel >= 5) {
     GPUInfo("GPU Tracker finished Global Tracking for slice %d on thread %d\n", iSlice, threadId);
   }
@@ -1208,12 +1204,9 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       }
     }
 
-    mSliceOutputReady = 0;
+    mSliceSelectorReady = 0;
 
     if (param().rec.GlobalTracking) {
-      memset((void*)mSliceLeftGlobalReady, 0, sizeof(mSliceLeftGlobalReady));
-      memset((void*)mSliceRightGlobalReady, 0, sizeof(mSliceRightGlobalReady));
-      mGlobalTrackingDone.fill(0);
       mWriteOutputDone.fill(0);
     }
     RunHelperThreads(&GPUChainTracking::HelperOutput, this, NSLICES);
@@ -1266,41 +1259,22 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       if (GetDeviceProcessingSettings().debugLevel >= 3) {
         GPUInfo("Data ready for slice %d, helper thread %d", iSlice, iSlice % (GetDeviceProcessingSettings().nDeviceHelperThreads + 1));
       }
-      mSliceOutputReady = iSlice;
+      mSliceSelectorReady = iSlice;
 
       if (param().rec.GlobalTracking) {
-        if (iSlice % (NSLICES / 2) == 2) {
-          int tmpId = iSlice % (NSLICES / 2) - 1;
-          if (iSlice >= NSLICES / 2) {
-            tmpId += NSLICES / 2;
-          }
-          GlobalTracking(tmpId, 0);
-          mGlobalTrackingDone[tmpId] = 1;
-        }
-        for (unsigned int tmpSlice3a = 0; tmpSlice3a < iSlice; tmpSlice3a += GetDeviceProcessingSettings().nDeviceHelperThreads + 1) {
-          unsigned int tmpSlice3 = tmpSlice3a + 1;
-          if (tmpSlice3 % (NSLICES / 2) < 1) {
-            tmpSlice3 -= (NSLICES / 2);
-          }
-          if (tmpSlice3 >= iSlice) {
-            break;
-          }
-
-          unsigned int sliceLeft = (tmpSlice3 + (NSLICES / 2 - 1)) % (NSLICES / 2);
-          unsigned int sliceRight = (tmpSlice3 + 1) % (NSLICES / 2);
-          if (tmpSlice3 >= (int)NSLICES / 2) {
+        for (unsigned int tmpSlice2a = 0; tmpSlice2a <= iSlice; tmpSlice2a += GetDeviceProcessingSettings().nDeviceHelperThreads + 1) {
+          unsigned int tmpSlice2 = GPUTPCTracker::GlobalTrackingSliceOrder(tmpSlice2a);
+          unsigned int sliceLeft = (tmpSlice2 + (NSLICES / 2 - 1)) % (NSLICES / 2);
+          unsigned int sliceRight = (tmpSlice2 + 1) % (NSLICES / 2);
+          if (tmpSlice2 >= (int)NSLICES / 2) {
             sliceLeft += NSLICES / 2;
             sliceRight += NSLICES / 2;
           }
 
-          if (tmpSlice3 % (NSLICES / 2) != 1 && mGlobalTrackingDone[tmpSlice3] == 0 && sliceLeft < iSlice && sliceRight < iSlice) {
-            GlobalTracking(tmpSlice3, 0);
-            mGlobalTrackingDone[tmpSlice3] = 1;
-          }
-
-          if (mWriteOutputDone[tmpSlice3] == 0 && mSliceLeftGlobalReady[tmpSlice3] && mSliceRightGlobalReady[tmpSlice3]) {
-            WriteOutput(tmpSlice3, 0);
-            mWriteOutputDone[tmpSlice3] = 1;
+          if (tmpSlice2 <= iSlice && sliceLeft <= iSlice && sliceRight <= iSlice && mWriteOutputDone[tmpSlice2] == 0) {
+            GlobalTracking(tmpSlice2, 0);
+            WriteOutput(tmpSlice2, 0);
+            mWriteOutputDone[tmpSlice2] = 1;
           }
         }
       } else {
@@ -1315,32 +1289,9 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       }
     }
 
-    if (param().rec.GlobalTracking) {
-      for (unsigned int tmpSlice3a = 0; tmpSlice3a < NSLICES; tmpSlice3a += GetDeviceProcessingSettings().nDeviceHelperThreads + 1) {
-        unsigned int tmpSlice3 = (tmpSlice3a + 1);
-        if (tmpSlice3 % (NSLICES / 2) < 1) {
-          tmpSlice3 -= (NSLICES / 2);
-        }
-        if (mGlobalTrackingDone[tmpSlice3] == 0) {
-          GlobalTracking(tmpSlice3, 0);
-        }
-      }
-      for (unsigned int tmpSlice3a = 0; tmpSlice3a < NSLICES; tmpSlice3a += GetDeviceProcessingSettings().nDeviceHelperThreads + 1) {
-        unsigned int tmpSlice3 = (tmpSlice3a + 1);
-        if (tmpSlice3 % (NSLICES / 2) < 1) {
-          tmpSlice3 -= (NSLICES / 2);
-        }
-        if (mWriteOutputDone[tmpSlice3] == 0) {
-          while (mSliceLeftGlobalReady[tmpSlice3] == 0 || mSliceRightGlobalReady[tmpSlice3] == 0) {
-            ;
-          }
-          WriteOutput(tmpSlice3, 0);
-        }
-      }
-    }
     WaitForHelperThreads();
   } else {
-    mSliceOutputReady = NSLICES;
+    mSliceSelectorReady = NSLICES;
 #ifdef WITH_OPENMP
 #pragma omp parallel for num_threads(doGPU ? 1 : GetDeviceProcessingSettings().nThreads)
 #endif
@@ -1855,42 +1806,29 @@ int GPUChainTracking::HelperReadEvent(int iSlice, int threadId, GPUReconstructio
 
 int GPUChainTracking::HelperOutput(int iSlice, int threadId, GPUReconstructionHelpers::helperParam* par)
 {
-  int mustRunSlice19 = 0;
   if (param().rec.GlobalTracking) {
-    int realSlice = iSlice + 1;
-    if (realSlice % (NSLICES / 2) < 1) {
-      realSlice -= NSLICES / 2;
+    int tmpSlice = GPUTPCTracker::GlobalTrackingSliceOrder(iSlice);
+    int sliceLeft = (tmpSlice + (NSLICES / 2 - 1)) % (NSLICES / 2);
+    int sliceRight = (tmpSlice + 1) % (NSLICES / 2);
+    if (tmpSlice >= (int)NSLICES / 2) {
+      sliceLeft += NSLICES / 2;
+      sliceRight += NSLICES / 2;
     }
 
-    if (realSlice % (NSLICES / 2) != 1) {
-      GlobalTracking(realSlice, threadId);
-    }
-
-    if (realSlice == 19) {
-      mustRunSlice19 = 1;
-    } else {
-      while (mSliceLeftGlobalReady[realSlice] == 0 || mSliceRightGlobalReady[realSlice] == 0) {
-        if (par->reset) {
-          return 1;
-        }
+    while (mSliceSelectorReady < tmpSlice || mSliceSelectorReady < sliceLeft || mSliceSelectorReady < sliceRight) {
+      if (par->reset) {
+        return 1;
       }
-      WriteOutput(realSlice, threadId);
     }
+    GlobalTracking(tmpSlice, 0);
+    WriteOutput(tmpSlice, 0);
   } else {
-    while (mSliceOutputReady < iSlice) {
+    while (mSliceSelectorReady < iSlice) {
       if (par->reset) {
         return 1;
       }
     }
     WriteOutput(iSlice, threadId);
-  }
-  if (iSlice >= par->count - (GetDeviceProcessingSettings().nDeviceHelperThreads + 1) && mustRunSlice19) {
-    while (mSliceLeftGlobalReady[19] == 0 || mSliceRightGlobalReady[19] == 0) {
-      if (par->reset) {
-        return 1;
-      }
-    }
-    WriteOutput(19, threadId);
   }
   return 0;
 }
