@@ -473,4 +473,16 @@ GPUh() void GPUTPCTracker::PerformGlobalTracking(GPUTPCTracker& GPUrestrict() sl
 #endif
 }
 
+GPUh() int GPUTPCTracker::GlobalTrackingSliceOrder(int iSlice)
+{
+  iSlice++;
+  if (iSlice == GPUDataTypes::NSLICES / 2) {
+    iSlice = 0;
+  }
+  if (iSlice == GPUDataTypes::NSLICES) {
+    iSlice = GPUDataTypes::NSLICES / 2;
+  }
+  return iSlice;
+}
+
 #endif

@@ -215,16 +215,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   // Synchronization and Locks
   eventStruct* mEvents = nullptr;
-#ifdef __ROOT__ // ROOT5 BUG: cint doesn't do volatile
-#define volatile
-#endif
-  volatile int mSliceOutputReady = 0;
-  volatile char mSliceLeftGlobalReady[NSLICES] = {0};
-  volatile char mSliceRightGlobalReady[NSLICES] = {0};
-#ifdef __ROOT__
-#undef volatile
-#endif
-  std::array<char, NSLICES> mGlobalTrackingDone;
+  VOLATILE int mSliceSelectorReady = 0;
   std::array<char, NSLICES> mWriteOutputDone;
 
  private:

@@ -245,6 +245,7 @@ class GPUTPCTracker : public GPUProcessor
 
   void PerformGlobalTracking(GPUTPCTracker& sliceLeft, GPUTPCTracker& sliceRight);
   void PerformGlobalTracking(GPUTPCTracker& sliceTarget, bool right);
+  static int GlobalTrackingSliceOrder(int iSlice);
 
   void* LinkTmpMemory() { return mLinkTmpMemory; }
 

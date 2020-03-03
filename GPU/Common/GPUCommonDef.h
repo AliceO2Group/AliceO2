@@ -51,6 +51,11 @@
   #define CONSTEXPR const
   #define CONSTEXPRRET
 #endif
+#if defined(__ROOT__) && !defined(GPUCA_NOCOMPAT)
+  #define VOLATILE // ROOT5 has a problem with volatile in CINT
+#else
+  #define VOLATILE volatile
+#endif
 
 //Set AliRoot / O2 namespace
 #if defined(GPUCA_STANDALONE) || defined(GPUCA_O2_LIB) || defined(GPUCA_ALIROOT_LIB) || defined(GPUCA_GPULIBRARY)

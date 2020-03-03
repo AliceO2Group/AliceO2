@@ -103,6 +103,9 @@ int GPUReconstruction::Init()
   if (!(mRecoStepsGPU & GPUDataTypes::RecoStep::TPCMerging)) {
     mDeviceProcessingSettings.mergerSortTracks = false;
   }
+  if (!IsGPU()) {
+    mDeviceProcessingSettings.nDeviceHelperThreads = 0;
+  }
 
 #ifndef HAVE_O2HEADERS
   mRecoSteps.setBits(RecoStep::ITSTracking, false);
