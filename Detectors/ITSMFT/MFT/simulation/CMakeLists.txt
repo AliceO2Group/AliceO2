@@ -15,3 +15,6 @@ o2_add_library(MFTSimulation
 o2_target_root_dictionary(MFTSimulation
                           HEADERS include/MFTSimulation/Detector.h
                                   include/MFTSimulation/DigitizerTask.h)
+
+
+o2_data_file(COPY data  DESTINATION Detectors/MFT/simulation)

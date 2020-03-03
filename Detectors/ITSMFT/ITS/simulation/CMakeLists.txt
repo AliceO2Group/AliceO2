@@ -20,3 +20,6 @@ o2_target_root_dictionary(ITSSimulation
                                   include/ITSSimulation/V3Layer.h
                                   include/ITSSimulation/V11Geometry.h
                                   include/ITSSimulation/V3Services.h)
+
+o2_data_file(COPY data  DESTINATION Detectors/ITS/simulation)
+

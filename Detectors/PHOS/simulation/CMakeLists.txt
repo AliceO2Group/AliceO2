@@ -21,3 +21,5 @@ o2_target_root_dictionary(PHOSSimulation
                           HEADERS include/PHOSSimulation/Detector.h 
                                   include/PHOSSimulation/GeometryParams.h 
                                   include/PHOSSimulation/Digitizer.h)
+
+o2_data_file(COPY data  DESTINATION Detectors/PHOS/simulation)

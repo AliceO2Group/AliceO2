@@ -128,12 +128,6 @@ class Detector : public o2::base::DetImpl<Detector>
      *  any optional action in your detector during the transport.
     */
 
-  /// Special Geant3? limits and definitions
-  /// \todo Check how to deal with this in O2 compared to AliRoot
-  /// \todo Discuss in a wider scope
-  /// \todo Check correctness of the implementation
-  void SetSpecialPhysicsCuts() override;
-
   void EndOfEvent() override;
   void FinishPrimary() override { ; }
   void FinishRun() override { ; }
