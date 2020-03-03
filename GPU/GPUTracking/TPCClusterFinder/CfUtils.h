@@ -29,9 +29,9 @@ class CfUtils
 {
 
  public:
-  static GPUdi() bool isAtEdge(const deprecated::Digit* d)
+  static GPUdi() bool isAtEdge(const ChargePos& pos)
   {
-    return (d->pad < 2 || d->pad >= TPC_PADS_PER_ROW - 2);
+    return (pos.pad() < 2 || pos.pad() >= TPC_PADS_PER_ROW - 2);
   }
 
   static GPUdi() bool innerAboveThreshold(uchar aboveThreshold, ushort outerIdx)

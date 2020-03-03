@@ -57,10 +57,10 @@ class TilingLayout
     const size_t widthInTiles = (TPC_NUM_OF_PADS + Width - 1) / Width;
 
     const size_t tilePad = p.gpad / Width;
-    const size_t tileTime = p.time / Height;
+    const size_t tileTime = p.timePadded / Height;
 
     const size_t inTilePad = p.gpad % Width;
-    const size_t inTileTime = p.time % Height;
+    const size_t inTileTime = p.timePadded % Height;
 
     return (tileTime * widthInTiles + tilePad) * (Width * Height) + inTileTime * Width + inTilePad;
   }
@@ -71,7 +71,7 @@ class LinearLayout
 {
   GPUdi() static size_t idx(const ChargePos& p)
   {
-    return TPC_NUM_OF_PADS * p.time + p.gpad;
+    return TPC_NUM_OF_PADS * p.timePadded + p.gpad;
   }
 };
 

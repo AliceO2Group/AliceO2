@@ -17,20 +17,19 @@
 #include "ChargePos.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
-using namespace GPUCA_NAMESPACE::gpu::deprecated;
 
 template <>
 GPUdii() void GPUTPCCFDeconvolution::Thread<GPUTPCCFDeconvolution::countPeaks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   Array2D<uchar> isPeakMap(clusterer.mPpeakMap);
-  GPUTPCCFDeconvolution::countPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, isPeakMap, chargeMap, clusterer.mPdigits, clusterer.mPmemory->counters.nDigits);
+  GPUTPCCFDeconvolution::countPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, isPeakMap, chargeMap, clusterer.mPpositions, clusterer.mPmemory->counters.nDigits);
 }
 
 GPUd() void GPUTPCCFDeconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
                                                   const Array2D<uchar>& peakMap,
                                                   Array2D<PackedCharge>& chargeMap,
-                                                  const Digit* digits,
+                                                  const ChargePos* positions,
                                                   const uint digitnum)
 {
   size_t idx = get_global_id(0);
@@ -38,9 +37,7 @@ GPUd() void GPUTPCCFDeconvolution::countPeaksImpl(int nBlocks, int nThreads, int
   bool iamDummy = (idx >= digitnum);
   idx = iamDummy ? digitnum - 1 : idx;
 
-  Digit myDigit = digits[idx];
-
-  ChargePos pos(myDigit);
+  ChargePos pos = positions[idx];
 
   bool iamPeak = GET_IS_PEAK(peakMap[pos]);
 
@@ -117,7 +114,8 @@ GPUd() void GPUTPCCFDeconvolution::countPeaksImpl(int nBlocks, int nThreads, int
 
   peakCount = (peakCount == 0) ? 1 : peakCount;
 
-  PackedCharge p(myDigit.charge / peakCount, has3x3, split);
+  PackedCharge charge = chargeMap[pos];
+  PackedCharge p(charge.unpack() / peakCount, has3x3, split);
 
   chargeMap[pos] = p;
 }

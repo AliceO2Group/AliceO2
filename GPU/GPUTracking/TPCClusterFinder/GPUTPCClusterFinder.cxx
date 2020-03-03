@@ -17,7 +17,7 @@
 #include "GPUHostDataTypes.h"
 
 #include "DataFormatsTPC/ZeroSuppression.h"
-#include "Digit.h"
+#include "ChargePos.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
@@ -35,7 +35,7 @@ void* GPUTPCClusterFinder::SetPointersInput(void* mem)
   if (mNMaxPages && (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding)) {
     computePointerWithAlignment(mem, mPzs, mNMaxPages * TPCZSHDR::TPC_ZS_PAGE_SIZE);
   }
-  if (mNMaxPages || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding)) {
+  if (mNMaxPages == 0 && (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding)) {
     computePointerWithAlignment(mem, mPdigits, mNMaxDigits);
   }
   return mem;
@@ -58,8 +58,9 @@ void* GPUTPCClusterFinder::SetPointersOutput(void* mem)
 
 void* GPUTPCClusterFinder::SetPointersScratch(void* mem)
 {
-  computePointerWithAlignment(mem, mPpeaks, mNMaxPeaks);
-  computePointerWithAlignment(mem, mPfilteredPeaks, mNMaxClusters);
+  computePointerWithAlignment(mem, mPpositions, mNMaxDigits);
+  computePointerWithAlignment(mem, mPpeakPositions, mNMaxPeaks);
+  computePointerWithAlignment(mem, mPfilteredPeakPositions, mNMaxClusters);
   computePointerWithAlignment(mem, mPisPeak, mNMaxDigits);
   computePointerWithAlignment(mem, mPchargeMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED);
   computePointerWithAlignment(mem, mPpeakMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED);

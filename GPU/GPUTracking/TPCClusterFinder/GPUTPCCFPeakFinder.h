@@ -26,6 +26,8 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
+struct ChargePos;
+
 class GPUTPCCFPeakFinder : public GPUKernelTemplate
 {
 
@@ -39,7 +41,7 @@ class GPUTPCCFPeakFinder : public GPUKernelTemplate
     findPeaks,
   };
 
-  static GPUd() void findPeaksImpl(int, int, int, int, GPUSharedMemory&, const Array2D<gpu::PackedCharge>&, const deprecated::Digit*, uint, uchar*, Array2D<uchar>&);
+  static GPUd() void findPeaksImpl(int, int, int, int, GPUSharedMemory&, const Array2D<PackedCharge>&, const ChargePos*, uint, uchar*, Array2D<uchar>&);
 
 #ifdef HAVE_O2HEADERS
   typedef GPUTPCClusterFinder processorType;

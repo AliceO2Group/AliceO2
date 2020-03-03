@@ -26,6 +26,8 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
+struct ChargePos;
+
 class GPUTPCCFNoiseSuppression : GPUKernelTemplate
 {
 
@@ -56,9 +58,9 @@ class GPUTPCCFNoiseSuppression : GPUKernelTemplate
   template <int iKernel = defaultKernel, typename... Args>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 
-  static GPUd() void noiseSuppressionImpl(int, int, int, int, GPUSharedMemory&, const Array2D<PackedCharge>&, const Array2D<uchar>&, const deprecated::Digit*, const uint, uchar*);
+  static GPUd() void noiseSuppressionImpl(int, int, int, int, GPUSharedMemory&, const Array2D<PackedCharge>&, const Array2D<uchar>&, const ChargePos*, const uint, uchar*);
 
-  static GPUd() void updatePeaksImpl(int, int, int, int, const deprecated::Digit*, const uchar*, const uint, Array2D<uchar>&);
+  static GPUd() void updatePeaksImpl(int, int, int, int, const ChargePos*, const uchar*, const uint, Array2D<uchar>&);
 
  private:
   static GPUd() void checkForMinima(float, float, PackedCharge, int, ulong*, ulong*);

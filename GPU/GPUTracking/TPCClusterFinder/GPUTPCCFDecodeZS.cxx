@@ -14,6 +14,8 @@
 #include "GPUTPCCFDecodeZS.h"
 #include "GPUCommonMath.h"
 #include "GPUTPCClusterFinder.h"
+#include "Array2D.h"
+#include "PackedCharge.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 
 #ifndef __OPENCL__
@@ -52,7 +54,8 @@ GPUd() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUSharedMe
   if (zs.count[endpoint] == 0) {
     return;
   }
-  deprecated::PackedDigit* digits = clusterer.mPdigits;
+  ChargePos* positions = clusterer.mPpositions;
+  Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   const size_t nDigits = clusterer.mPzsOffsets[iBlock].offset;
   unsigned int rowOffsetCounter = 0;
   if (iThread == 0) {
@@ -146,7 +149,9 @@ GPUd() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUSharedMe
                     seqLen = rowData[(nSeq + 1) * 2] - rowData[nSeq * 2];
                     pad = rowData[nSeq++ * 2 + 1];
                   }
-                  digits[nDigitsTmp++] = deprecated::PackedDigit{(float)(byte & mask) * s.decodeBitsFactor, (Timestamp)(timeBin + l), pad++, (Row)(rowOffset + m)};
+                  ChargePos pos(Row(rowOffset + m), Pad(pad++), Timestamp(timeBin + l));
+                  chargeMap[pos] = PackedCharge(float(byte & mask) * s.decodeBitsFactor);
+                  positions[nDigitsTmp++] = pos;
                   byte = byte >> s.decodeBits;
                   bits -= s.decodeBits;
                   seqLen--;

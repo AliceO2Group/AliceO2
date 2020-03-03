@@ -30,13 +30,13 @@ GPUdii() void GPUTPCCFClusterizer::Thread<GPUTPCCFClusterizer::computeClusters>(
   CPU_ONLY(
     MCLabelAccumulator labelAcc(clusterer));
 
-  GPUTPCCFClusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, clusterer.mPfilteredPeaks, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterer.mPclusterByRow);
+  GPUTPCCFClusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, clusterer.mPfilteredPeakPositions, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterer.mPclusterByRow);
 }
 
 GPUd() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlock, int iThread,
                                                      GPUSharedMemory& smem,
                                                      const Array2D<PackedCharge>& chargeMap,
-                                                     const deprecated::Digit* digits,
+                                                     const ChargePos* filteredPeakPositions,
                                                      MCLabelAccumulator* labelAcc,
                                                      uint clusternum,
                                                      uint maxClusterPerRow,
@@ -48,15 +48,15 @@ GPUd() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, 
   // For certain configurations dummy work items are added, so the total
   // number of work items is dividable by 64.
   // These dummy items also compute the last cluster but discard the result.
-  deprecated::Digit myDigit = digits[CAMath::Min(idx, clusternum - 1)];
+  ChargePos pos = filteredPeakPositions[CAMath::Min(idx, clusternum - 1)];
 
-  ChargePos pos(myDigit);
+  Charge charge = chargeMap[pos].unpack();
 
   ClusterAccumulator pc;
 #if defined(BUILD_CLUSTER_SCRATCH_PAD)
   /* #if defined(BUILD_CLUSTER_SCRATCH_PAD) && defined(GPUCA_GPUCODE) */
   /* #if 0 */
-  CPU_ONLY(labelAcc->collect(pos, myDigit.charge));
+  CPU_ONLY(labelAcc->collect(pos, charge));
 
   buildClusterScratchPad(
     chargeMap,
@@ -74,10 +74,10 @@ GPUd() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, 
   if (idx >= clusternum) {
     return;
   }
-  pc.finalize(myDigit);
+  pc.finalize(pos, charge);
 
   tpc::ClusterNative myCluster;
-  pc.toNative(myDigit, myCluster);
+  pc.toNative(pos, charge, myCluster);
 
 #if defined(CUT_QTOT)
   bool aboveQTotCutoff = (pc.Q > QTOT_CUTOFF);
@@ -91,13 +91,13 @@ GPUd() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, 
 
   uint rowIndex = sortIntoBuckets(
     myCluster,
-    myDigit.row,
+    pos.row(),
     maxClusterPerRow,
     clusterInRow,
     clusterByRow);
   static_cast<void>(rowIndex); // Avoid unused varible warning on GPU.
 
-  CPU_ONLY(labelAcc->commit(myDigit.row, rowIndex, maxClusterPerRow));
+  CPU_ONLY(labelAcc->commit(pos.row(), rowIndex, maxClusterPerRow));
 }
 
 GPUd() void GPUTPCCFClusterizer::addOuterCharge(

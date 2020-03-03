@@ -17,6 +17,7 @@
 #include "GPUDef.h"
 #include "GPUProcessor.h"
 #include "GPUDataTypes.h"
+#include "Digit.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -37,10 +38,7 @@ namespace gpu
 {
 struct GPUTPCClusterMCInterim;
 
-namespace deprecated
-{
-struct PackedDigit;
-} // namespace deprecated
+struct ChargePos;
 
 class GPUTPCClusterFinder : public GPUProcessor
 {
@@ -76,9 +74,10 @@ class GPUTPCClusterFinder : public GPUProcessor
 #endif
   unsigned char* mPzs = nullptr;
   ZSOffset* mPzsOffsets = nullptr;
-  deprecated::PackedDigit* mPdigits = nullptr;
-  deprecated::PackedDigit* mPpeaks = nullptr;
-  deprecated::PackedDigit* mPfilteredPeaks = nullptr;
+  deprecated::Digit* mPdigits = nullptr; // input digits, only set if ZS is skipped
+  ChargePos* mPpositions = nullptr;
+  ChargePos* mPpeakPositions = nullptr;
+  ChargePos* mPfilteredPeakPositions = nullptr;
   unsigned char* mPisPeak = nullptr;
   ushort* mPchargeMap = nullptr;
   unsigned char* mPpeakMap = nullptr;
