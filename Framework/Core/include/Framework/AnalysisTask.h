@@ -71,12 +71,20 @@ struct WritingCursor<soa::Table<PC...>> {
   void operator()(T... args)
   {
     static_assert(sizeof...(PC) == sizeof...(T), "Argument number mismatch");
+    ++mCount;
     cursor(0, extract(args)...);
+  }
+
+  /// Last index inserted in the table
+  size_t lastIndex()
+  {
+    return mCount;
   }
 
   bool resetCursor(TableBuilder& builder)
   {
     cursor = std::move(FFL(builder.cursor<persistent_table_t>()));
+    mCount = 0;
     return true;
   }
 
@@ -93,6 +101,8 @@ struct WritingCursor<soa::Table<PC...>> {
       return arg;
     }
   }
+
+  size_t mCount = 0;
 };
 
 /// This helper class allow you to declare things which will be crated by a
