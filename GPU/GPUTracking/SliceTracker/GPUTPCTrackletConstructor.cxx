@@ -455,25 +455,20 @@ GPUdii() void GPUTPCTrackletConstructor::Thread<GPUTPCTrackletConstructor::allSl
 
 GPUdi() int GPUTPCTrackletConstructor::FetchTracklet(GPUconstantref() MEM_GLOBAL(GPUTPCTracker) & GPUrestrict() tracker, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() sMem)
 {
-  const int nativeslice = get_group_id(0) % GPUCA_NSLICES;
   const unsigned int nTracklets = *tracker.NTracklets();
   GPUbarrier();
   if (get_local_id(0) == 0) {
+    int firstTracklet = -2;
     if (sMem.mNextTrackletFirstRun == 1) {
-      sMem.mNextTrackletFirst = (get_group_id(0) - nativeslice) / GPUCA_NSLICES * GPUCA_THREAD_COUNT_CONSTRUCTOR;
+      const int nativeslice = get_group_id(0) % GPUCA_NSLICES;
+      firstTracklet = (get_group_id(0) - nativeslice) / GPUCA_NSLICES * GPUCA_THREAD_COUNT_CONSTRUCTOR;
       sMem.mNextTrackletFirstRun = 0;
     } else {
       if (tracker.GPUParameters()->nextTracklet < nTracklets) {
-        const unsigned int firstTracklet = CAMath::AtomicAdd(&tracker.GPUParameters()->nextTracklet, GPUCA_THREAD_COUNT_CONSTRUCTOR);
-        if (firstTracklet < nTracklets) {
-          sMem.mNextTrackletFirst = firstTracklet;
-        } else {
-          sMem.mNextTrackletFirst = -2;
-        }
-      } else {
-        sMem.mNextTrackletFirst = -2;
+        firstTracklet = CAMath::AtomicAdd(&tracker.GPUParameters()->nextTracklet, GPUCA_THREAD_COUNT_CONSTRUCTOR);
       }
     }
+    sMem.mNextTrackletFirst = (firstTracklet < (int)nTracklets) ? firstTracklet : -2;
   }
   GPUbarrier();
   return (sMem.mNextTrackletFirst);
