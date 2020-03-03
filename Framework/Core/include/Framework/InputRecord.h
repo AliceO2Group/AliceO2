@@ -183,7 +183,7 @@ class InputRecord
 
   size_t getNofParts(int pos) const
   {
-    if (pos < 0) {
+    if (pos < 0 || pos >= mSpan.size()) {
       return 0;
     }
     return mSpan.getNofParts(pos);
@@ -226,7 +226,7 @@ class InputRecord
   /// incoming data. See @ref Inputrecord class description for supported types.
   /// @param ref   DataRef with pointers to input spec, header, and payload
   template <typename T>
-  decltype(auto) get(DataRef ref) const
+  static decltype(auto) get(DataRef ref)
   {
     if constexpr (std::is_same<T, std::string>::value) {
       // substitution for std::string
@@ -468,7 +468,7 @@ class InputRecord
         if (mParent->isValid(mPosition)) {
           mElement = mParent->getByPos(mPosition);
         } else {
-          (*this)++;
+          ++(*this);
         }
       }
     }
@@ -499,17 +499,17 @@ class InputRecord
       return copy;
     }
     // return reference
-    reference operator*()
+    reference operator*() const
     {
       return mElement;
     }
     // comparison
-    bool operator==(const SelfType& rh)
+    bool operator==(const SelfType& rh) const
     {
       return mPosition == rh.mPosition;
     }
     // comparison
-    bool operator!=(const SelfType& rh)
+    bool operator!=(const SelfType& rh) const
     {
       return mPosition != rh.mPosition;
     }
@@ -588,7 +588,10 @@ class InputRecord
     /// Check if slot is valid, index of part is not used
     bool isValid(size_t = 0) const
     {
-      return this->parent()->isValid(this->position());
+      if (this->position() < this->parent()->size()) {
+        return this->parent()->isValid(this->position());
+      }
+      return false;
     }
 
     /// Get number of parts in input slot

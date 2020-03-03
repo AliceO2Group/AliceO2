@@ -23,6 +23,10 @@ namespace framework
 class InputSpan
 {
  public:
+  InputSpan() = delete;
+  InputSpan(InputSpan const&) = delete;
+  InputSpan(InputSpan&&) = default;
+
   /// @a getter is the mapping between an element of the span referred by
   /// index and the buffer associated.
   /// @a size is the number of elements in the span.
@@ -60,6 +64,9 @@ class InputSpan
   /// @a number of parts in the i-th element of the InputSpan
   size_t getNofParts(size_t i) const
   {
+    if (i >= mSize) {
+      return 0;
+    }
     if (!mNofPartsGetter) {
       return 1;
     }
