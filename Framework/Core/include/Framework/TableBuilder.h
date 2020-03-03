@@ -12,6 +12,7 @@
 #define O2_FRAMEWORK_TABLEBUILDER_H_
 
 #include "Framework/ASoA.h"
+#include "Framework/StructToTuple.h"
 #include "Framework/FunctionalHelpers.h"
 
 // Apparently needs to be on top of the arrow includes.
@@ -229,6 +230,12 @@ struct TableBuilderHelpers {
   }
 };
 
+template <typename... ARGS>
+auto tuple_to_pack(std::tuple<ARGS...>&&)
+{
+  return framework::pack<ARGS...>{};
+}
+
 /// Helper class which creates a lambda suitable for building
 /// an arrow table from a tuple. This can be used, for example
 /// to build an arrow::Table from a TDataFrame.
@@ -285,6 +292,27 @@ class TableBuilder
   template <typename... ARGS>
   auto persist(std::vector<std::string> const& columnNames)
   {
+    if constexpr (sizeof...(ARGS) == 1 && std::is_arithmetic_v<pack_element_t<0, framework::pack<ARGS...>>> == false) {
+      using objType_t = pack_element_t<0, framework::pack<ARGS...>>;
+      using argsPack_t = decltype(tuple_to_pack(framework::to_tuple(std::declval<objType_t>())));
+      auto persister = persistTuple(argsPack_t{}, columnNames);
+      return [persister = persister](unsigned int slot, objType_t const& obj) -> void {
+        auto t = to_tuple(obj);
+        persister(slot, t);
+      };
+    } else {
+      auto persister = persistTuple(framework::pack<ARGS...>{}, columnNames);
+      // Callback used to fill the builders
+      return [persister = persister](unsigned int slot, typename BuilderMaker<ARGS>::FillType... args) -> void {
+        persister(slot, std::forward_as_tuple(args...));
+      };
+    }
+  }
+
+  /// Same a the above, but use a tuple to persist stuff.
+  template <typename... ARGS>
+  auto persistTuple(framework::pack<ARGS...>, std::vector<std::string> const& columnNames)
+  {
     using BuildersTuple = typename std::tuple<std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>...>;
     constexpr int nColumns = sizeof...(ARGS);
     validate<ARGS...>(columnNames);
@@ -293,8 +321,8 @@ class TableBuilder
     makeFinalizer<ARGS...>();
 
     // Callback used to fill the builders
-    return [builders = (BuildersTuple*)mBuilders](unsigned int slot, typename BuilderMaker<ARGS>::FillType... args) -> void {
-      auto status = TableBuilderHelpers::append(*builders, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
+    return [builders = (BuildersTuple*)mBuilders](unsigned int slot, std::tuple<typename BuilderMaker<ARGS>::FillType...> const& t) -> void {
+      auto status = TableBuilderHelpers::append(*builders, std::index_sequence_for<ARGS...>{}, t);
       if (status == false) {
         throw std::runtime_error("Unable to append");
       }
@@ -310,6 +338,15 @@ class TableBuilder
     using persistent_columns_pack = typename persistent_filter::persistent_columns_pack;
     constexpr auto persistent_size = pack_size(persistent_columns_pack{});
     return cursorHelper<typename persistent_filter::persistent_table_t>(std::make_index_sequence<persistent_size>());
+  }
+
+  template <typename T, typename E>
+  auto cursor()
+  {
+    using persistent_filter = soa::FilterPersistentColumns<T>;
+    using persistent_columns_pack = typename persistent_filter::persistent_columns_pack;
+    constexpr auto persistent_size = pack_size(persistent_columns_pack{});
+    return cursorHelper<typename persistent_filter::persistent_table_t, E>(std::make_index_sequence<persistent_size>());
   }
 
   template <typename... ARGS>
@@ -355,6 +392,13 @@ class TableBuilder
   {
     std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::label()...};
     return this->template persist<typename pack_element_t<Is, typename T::columns>::type...>(columnNames);
+  }
+
+  template <typename T, typename E, size_t... Is>
+  auto cursorHelper(std::index_sequence<Is...> s)
+  {
+    std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::label()...};
+    return this->template persist<E>(columnNames);
   }
 
   std::function<void(void)> mFinalizer;
