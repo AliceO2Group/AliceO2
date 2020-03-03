@@ -121,7 +121,7 @@ void Clusterizer<InputType>::getTopologicalRowColumn(const InputType& input, int
 /// Return number of found clusters. Start clustering from highest energy cell.
 //____________________________________________________________________________
 template <class InputType>
-void Clusterizer<InputType>::findClusters(const std::vector<InputType>& inputArray)
+void Clusterizer<InputType>::findClusters(const gsl::span<InputType const>& inputArray)
 {
   mFoundClusters.clear();
   mInputIndices.clear();
