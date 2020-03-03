@@ -17,7 +17,7 @@
 #ifndef O2_PASSIVE_FRAMESTRUCTURE_H
 #define O2_PASSIVE_FRAMESTRUCTURE_H
 
-#include <FairModule.h>
+#include "DetectorsPassive/PassiveBase.h"
 
 class TGeoCompositeShape;
 
@@ -26,7 +26,7 @@ namespace o2
 namespace passive
 {
 // class supposed to provide the frame support structure common to TOF and TRD
-class FrameStructure : public FairModule
+class FrameStructure : public PassiveBase
 {
  public:
   FrameStructure(const char* name, const char* title = "FrameStruct");

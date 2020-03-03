@@ -30,8 +30,8 @@ using namespace o2::passive;
 
 Dipole::~Dipole() = default;
 
-Dipole::Dipole() : FairModule("Dipole", "") {}
-Dipole::Dipole(const char* name, const char* Title) : FairModule(name, Title) {}
+Dipole::Dipole() : PassiveBase("Dipole", "") {}
+Dipole::Dipole(const char* name, const char* Title) : PassiveBase(name, Title) {}
 Dipole::Dipole(const Dipole& rhs) = default;
 
 Dipole& Dipole::operator=(const Dipole& rhs)
@@ -41,7 +41,7 @@ Dipole& Dipole::operator=(const Dipole& rhs)
     return *this;
 
   // base class assignment
-  FairModule::operator=(rhs);
+  PassiveBase::operator=(rhs);
 
   return *this;
 }
