@@ -16,6 +16,8 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamSpec.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Expressions.h"
 #include "Framework/EndOfStreamContext.h"
@@ -208,6 +210,24 @@ struct OutputObj {
   std::string label;
   OutputObjHandlingPolicy policy;
   uint32_t mTaskHash;
+};
+
+/// This helper allows you to create a configurable option associated to a task.
+/// Internally it will be bound to a ConfigParamSpec.
+template <typename T>
+struct Configurable {
+  Configurable(std::string const& name, T defaultValue, std::string const& help)
+    : name(name), value(defaultValue), help(help)
+  {
+  }
+  using type = T;
+  std::string name;
+  T value;
+  std::string help;
+  operator T()
+  {
+    return value;
+  }
 };
 
 struct AnalysisTask {
@@ -599,6 +619,36 @@ struct OutputManager<OutputObj<T>> {
   }
 };
 
+template <typename T>
+struct OptionManager {
+  template <typename ANY>
+  static bool appendOption(std::vector<ConfigParamSpec>& options, ANY&)
+  {
+    return false;
+  }
+
+  template <typename ANY>
+  static bool prepare(InitContext& context, ANY&)
+  {
+    return false;
+  }
+};
+
+template <typename T>
+struct OptionManager<Configurable<T>> {
+  static bool appendOption(std::vector<ConfigParamSpec>& options, Configurable<T>& what)
+  {
+    options.emplace_back(ConfigParamSpec{what.name, variant_trait_v<typename std::decay<T>::type>, what.value, {what.help}});
+    return true;
+  }
+
+  static bool prepare(InitContext& context, Configurable<T>& what)
+  {
+    what.value = context.options().get<T>(what.name.c_str());
+    return true;
+  }
+};
+
 // SFINAE test
 template <typename T>
 class has_process
@@ -660,6 +710,8 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
   auto hash = compile_time_hash(name.c_str());
 
   std::vector<OutputSpec> outputs;
+  std::vector<ConfigParamSpec> options;
+
   auto tupledTask = o2::framework::to_tuple_refs(*task.get());
   static_assert(has_process<T>::value || has_run<T>::value || has_init<T>::value,
                 "At least one of process(...), T::run(...), init(...) must be defined");
@@ -678,8 +730,12 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
   }
 
   std::apply([&outputs, &hash](auto&... x) { return (OutputManager<std::decay_t<decltype(x)>>::appendOutput(outputs, x, hash), ...); }, tupledTask);
+  std::apply([&options, &hash](auto&... x) { return (OptionManager<std::decay_t<decltype(x)>>::appendOption(options, x), ...); }, tupledTask);
 
   auto algo = AlgorithmSpec::InitCallback{[task, expressionInfos](InitContext& ic) {
+    auto tupledTask = o2::framework::to_tuple_refs(*task.get());
+    std::apply([&ic](auto&&... x) { return (OptionManager<std::decay_t<decltype(x)>>::prepare(ic, x), ...); }, tupledTask);
+
     auto& callbacks = ic.services().get<CallbackService>();
     auto endofdatacb = [task](EndOfStreamContext& eosContext) {
       auto tupledTask = o2::framework::to_tuple_refs(*task.get());
@@ -711,7 +767,8 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
     // task itself.
     inputs,
     outputs,
-    algo};
+    algo,
+    options};
   return spec;
 }
 
