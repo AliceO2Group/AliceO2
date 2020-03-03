@@ -43,4 +43,15 @@
 #define RANDOM_ERROR
 //#define RANDOM_ERROR || rand() % 500 == 1
 
+#define GPUCA_GPUReconstructionUpdateDefailts()                                              \
+  if (mDeviceProcessingSettings.trackletConstructorInPipeline < 0) {                         \
+    mDeviceProcessingSettings.trackletConstructorInPipeline = GPUCA_CONSTRUCTOR_IN_PIPELINE; \
+  }                                                                                          \
+  if (mDeviceProcessingSettings.trackletSelectorInPipeline < 0) {                            \
+    mDeviceProcessingSettings.trackletSelectorInPipeline = GPUCA_SELECTOR_IN_PIPELINE;       \
+  }                                                                                          \
+  if (mDeviceProcessingSettings.trackletSelectorSlices < 0) {                                \
+    mDeviceProcessingSettings.trackletSelectorSlices = GPUCA_TRACKLET_SELECTOR_SLICE_COUNT;  \
+  }
+
 #endif

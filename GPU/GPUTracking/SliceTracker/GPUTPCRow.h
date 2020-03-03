@@ -45,7 +45,7 @@ class GPUTPCRow
   }
   GPUhd() float X() const { return mX; }
   GPUhd() float MaxY() const { return mMaxY; }
-  GPUhd() MakeType(const GPUTPCGrid&) Grid() const { return mGrid; }
+  GPUhd() MakeType(const MEM_LG(GPUTPCGrid) &) Grid() const { return mGrid; }
 
   GPUhd() float Hy0() const { return mHy0; }
   GPUhd() float Hz0() const { return mHz0; }
@@ -58,10 +58,13 @@ class GPUTPCRow
   GPUhd() unsigned int FirstHitInBinOffset() const { return mFirstHitInBinOffset; }
 
  private:
+  friend class GPUTPCNeighboursFinder;
+
   int mNHits;       // number of hits
   float mX;         // X coordinate of the row
   float mMaxY;      // maximal Y coordinate of the row
-  GPUTPCGrid mGrid; // grid of hits
+  MEM_LG(GPUTPCGrid)
+  mGrid; // grid of hits
 
   // hit packing:
   float mHy0;     // offset

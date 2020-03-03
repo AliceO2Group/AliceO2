@@ -12,6 +12,7 @@
 /// \author David Rohr
 
 #define GPUCA_GPUTYPE_TURING
+#define GPUCA_UNROLL(CUDA, HIP) GPUCA_M_UNROLL_##CUDA
 
 #include <cuda.h>
 #ifdef __clang__
@@ -147,8 +148,9 @@ void GPUReconstructionCUDABackend::GetITSTraits(std::unique_ptr<o2::its::Tracker
 int GPUReconstructionCUDABackend::InitDevice_Runtime()
 {
   // Find best CUDA device, initialize and allocate memory
-  cudaDeviceProp cudaDeviceProp;
+  GPUCA_GPUReconstructionUpdateDefailts();
 
+  cudaDeviceProp cudaDeviceProp;
   int count, bestDevice = -1;
   double bestDeviceSpeed = -1, deviceSpeed;
   if (GPUFailedMsgI(cuInit(0))) {
@@ -228,7 +230,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
       bestDevice = i;
       bestDeviceSpeed = deviceSpeed;
     } else {
-      if (mDeviceProcessingSettings.debugLevel >= 2) {
+      if (mDeviceProcessingSettings.debugLevel >= 2 && mDeviceProcessingSettings.deviceNum < 0) {
         GPUInfo("Skipping: Speed %f < %f\n", deviceSpeed, bestDeviceSpeed);
       }
     }
@@ -566,6 +568,7 @@ void GPUReconstructionCUDABackend::SetThreadCounts()
   mCFDecodeThreadCount = GPUCA_THREAD_COUNT_CFDECODE;
   mFitThreadCount = GPUCA_THREAD_COUNT_FIT;
   mITSThreadCount = GPUCA_THREAD_COUNT_ITS;
+  mWarpSize = GPUCA_WARP_SIZE;
 }
 
 int GPUReconstructionCUDABackend::registerMemoryForGPU(void* ptr, size_t size)

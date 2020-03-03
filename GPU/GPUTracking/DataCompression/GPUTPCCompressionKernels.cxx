@@ -227,17 +227,19 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
       GPUbarrier();
     }
 
-    unsigned int lastTime = 0;
-    unsigned short lastPad = 0;
-    for (unsigned int i = 0; i < smem.nCount; i++) {
+    for (unsigned int i = get_local_id(0); i < smem.nCount; i += get_local_size(0)) {
       int cidx = idOffset + i;
       const ClusterNative& GPUrestrict() orgCl = clusters->clusters[iSlice][iRow][sortBuffer[i]];
+      unsigned int lastTime = 0;
+      unsigned int lastPad = 0;
+      if (i != 0) {
+        const ClusterNative& GPUrestrict() orgClPre = clusters->clusters[iSlice][iRow][sortBuffer[i - 1]];
+        lastPad = orgClPre.padPacked;
+        lastTime = orgClPre.getTimePacked();
+      }
+
       c.padDiffU[cidx] = orgCl.padPacked - lastPad;
       c.timeDiffU[cidx] = (orgCl.getTimePacked() - lastTime) & 0xFFFFFF;
-      if (param.rec.tpcCompressionModes & GPUSettings::CompressionDifferences) {
-        lastPad = orgCl.padPacked;
-        lastTime = orgCl.getTimePacked();
-      }
 
       unsigned short qtot = orgCl.qTot, qmax = orgCl.qMax;
       unsigned char sigmapad = orgCl.sigmaPadPacked, sigmatime = orgCl.sigmaTimePacked;

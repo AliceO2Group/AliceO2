@@ -49,6 +49,7 @@ GPUReconstructionOCL::~GPUReconstructionOCL()
 int GPUReconstructionOCL::InitDevice_Runtime()
 {
   // Find best OPENCL device, initialize and allocate memory
+  GPUCA_GPUReconstructionUpdateDefailts();
 
   cl_int ocl_error;
   cl_uint num_platforms;
@@ -468,4 +469,5 @@ void GPUReconstructionOCL::SetThreadCounts()
   mCFDecodeThreadCount = GPUCA_THREAD_COUNT_CFDECODE;
   mFitThreadCount = GPUCA_THREAD_COUNT_FIT;
   mITSThreadCount = GPUCA_THREAD_COUNT_ITS;
+  mWarpSize = GPUCA_WARP_SIZE;
 }

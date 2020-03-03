@@ -102,7 +102,7 @@ void GPUTPCGMMerger::DumpFitPrepare(std::ostream& out)
   out << "\nTPC Merger Refit Prepare\n";
   out << "  Sort\n";
   for (int i = 0; i < mNOutputTracks; i++) {
-    out << "    " << i << ": " << mTrackOrder[i] << "\n";
+    out << "    " << i << ": " << mTrackOrderAttach[i] << "\n";
   }
   out << "  Clusters\n";
   for (int i = 0; i < mNOutputTrackClusters; i++) {

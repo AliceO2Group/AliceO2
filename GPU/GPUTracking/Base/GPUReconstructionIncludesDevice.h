@@ -26,7 +26,6 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #include "GPUTPCTrackParam.cxx"
 #include "GPUTPCTrack.cxx"
-#include "GPUTPCHitArea.cxx"
 #include "GPUTPCGrid.cxx"
 #include "GPUTPCRow.cxx"
 #include "GPUParam.cxx"
@@ -73,6 +72,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCCFNoiseSuppression.cxx"
 #include "GPUTPCCFClusterizer.cxx"
 #include "GPUTPCCFDeconvolution.cxx"
+#include "GPUTPCCFMCLabelFlattener.cxx"
 #include "GPUTPCCFDecodeZS.cxx"
 
 // Files for TRD Tracking

@@ -12,6 +12,8 @@
 /// \author David Rohr
 
 #define GPUCA_GPUTYPE_VEGA
+#define GPUCA_UNROLL(CUDA, HIP) GPUCA_M_UNROLL_##HIP
+
 #include <hip/hip_runtime.h>
 #ifdef __CUDACC__
 #define hipExtLaunchKernelGGL(...)
@@ -160,10 +162,14 @@ void GPUReconstructionHIPBackend::GetITSTraits(std::unique_ptr<o2::its::TrackerT
 
 int GPUReconstructionHIPBackend::InitDevice_Runtime()
 {
+  if (mDeviceProcessingSettings.mergerSortTracks) {
+    GPUFatal("sorting merger track indizes unsupported by HIP (compiler bug), please use --PROCmergerSortTracks option!"); // TODO: BUG: remove me, workaround for bug in hipcc compiler
+  }
+
   // Find best HIP device, initialize and allocate memory
+  GPUCA_GPUReconstructionUpdateDefailts();
 
   hipDeviceProp_t hipDeviceProp;
-
   int count, bestDevice = -1;
   double bestDeviceSpeed = -1, deviceSpeed;
   if (GPUFailedMsgI(hipGetDeviceCount(&count))) {
@@ -211,7 +217,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
       bestDevice = i;
       bestDeviceSpeed = deviceSpeed;
     } else {
-      if (mDeviceProcessingSettings.debugLevel >= 2) {
+      if (mDeviceProcessingSettings.debugLevel >= 2 && mDeviceProcessingSettings.deviceNum < 0) {
         GPUInfo("Skipping: Speed %f < %f\n", deviceSpeed, bestDeviceSpeed);
       }
     }
@@ -271,6 +277,10 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
 #endif
 
   mNStreams = std::max(mDeviceProcessingSettings.nStreams, 3);
+  if (GPUFailedMsgI(hipSetDevice(mDeviceId))) {
+    GPUError("Could not set HIP Device!");
+    return (1);
+  }
 
   /*if (GPUFailedMsgI(hipDeviceSetLimit(hipLimitStackSize, GPUCA_GPU_STACK_SIZE)))
   {
@@ -506,6 +516,7 @@ void GPUReconstructionHIPBackend::SetThreadCounts()
   mCFDecodeThreadCount = GPUCA_THREAD_COUNT_CFDECODE;
   mFitThreadCount = GPUCA_THREAD_COUNT_FIT;
   mITSThreadCount = GPUCA_THREAD_COUNT_ITS;
+  mWarpSize = GPUCA_WARP_SIZE;
 }
 
 int GPUReconstructionHIPBackend::registerMemoryForGPU(void* ptr, size_t size)

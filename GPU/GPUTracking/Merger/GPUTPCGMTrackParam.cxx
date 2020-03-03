@@ -490,7 +490,7 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
       float dz = z - Z;
       if (dy * dy < sy2 && dz * dz < sz2) {
         // CADEBUG(printf("Found Y %f Z %f\n", y, z));
-        int myWeight = Merger->TrackOrder()[iTrack] | GPUTPCGMMerger::attachAttached | GPUTPCGMMerger::attachTube;
+        int myWeight = Merger->TrackOrderAttach()[iTrack] | GPUTPCGMMerger::attachAttached | GPUTPCGMMerger::attachTube;
         if (goodLeg) {
           myWeight |= GPUTPCGMMerger::attachGoodLeg;
         }
@@ -843,7 +843,7 @@ void GPUTPCGMTrackParam::SetExtParam(const AliExternalTrackParam& T)
 }
 #endif
 
-GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() track, int iTrk, const GPUTPCGMMerger* GPUrestrict() merger, GPUTPCGMMergedTrackHit* GPUrestrict() clusters)
+GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() track, int iTrk, const GPUTPCGMMerger* GPUrestrict() merger, GPUTPCGMMergedTrackHit* GPUrestrict() clusters) // TODO: Inline me, once __forceinline__ is fixed by HIP
 {
   if (!track.OK()) {
     return;

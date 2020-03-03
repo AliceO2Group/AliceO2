@@ -284,6 +284,7 @@ int SetupReconstruction()
   recSet.DisableRefitAttachment = configStandalone.configRec.disableRefitAttachment;
   recSet.ForceEarlyTPCTransform = configStandalone.configRec.ForceEarlyTPCTransform;
   recSet.fwdTPCDigitsAsClusters = configStandalone.configRec.fwdTPCDigitsAsClusters;
+  recSet.dropLoopers = configStandalone.configRec.dropLoopers;
   if (configStandalone.referenceX < 500.) {
     recSet.TrackReferenceX = configStandalone.referenceX;
   }
@@ -346,6 +347,7 @@ int SetupReconstruction()
   if (configStandalone.configProc.selectorPipeline >= 0) {
     devProc.trackletSelectorInPipeline = configStandalone.configProc.selectorPipeline;
   }
+  devProc.mergerSortTracks = configStandalone.configProc.mergerSortTracks;
 
   steps.steps = GPUReconstruction::RecoStep::AllRecoSteps;
   if (configStandalone.configRec.runTRD != -1) {
@@ -547,12 +549,26 @@ int main(int argc, char** argv)
           }
         }
 
+        if (configStandalone.stripDumpedEvents) {
+          if (chainTracking->mIOPtrs.tpcZS) {
+            chainTracking->mIOPtrs.tpcPackedDigits = nullptr;
+          }
+        }
+        if (configStandalone.dumpEvents) {
+          char fname[1024];
+          sprintf(fname, "event.%d.dump", nEventsProcessed);
+          chainTracking->DumpData(fname);
+          if (nEventsProcessed == 0) {
+            rec->DumpSettings();
+          }
+        }
+
         if (configStandalone.overrideMaxTimebin && (chainTracking->mIOPtrs.clustersNative || chainTracking->mIOPtrs.tpcPackedDigits)) {
           GPUSettingsEvent ev = rec->GetEventSettings();
           ev.continuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits) : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
           rec->UpdateEventSettings(&ev);
         }
-        if (!rec->GetParam().earlyTpcTransform && chainTracking->mIOPtrs.clustersNative == nullptr && chainTracking->mIOPtrs.tpcPackedDigits == nullptr) {
+        if (!rec->GetParam().earlyTpcTransform && chainTracking->mIOPtrs.clustersNative == nullptr && chainTracking->mIOPtrs.tpcPackedDigits == nullptr && chainTracking->mIOPtrs.tpcZS == nullptr) {
           printf("Need cluster native data for on-the-fly TPC transform\n");
           goto breakrun;
         }
@@ -606,6 +622,8 @@ int main(int argc, char** argv)
           }
           if (configStandalone.memoryStat) {
             rec->PrintMemoryStatistics();
+          } else if (configStandalone.DebugLevel >= 2) {
+            rec->PrintMemoryOverview();
           }
           rec->ClearAllocatedMemory();
 
