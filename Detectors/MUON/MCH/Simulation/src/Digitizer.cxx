@@ -175,8 +175,6 @@ void Digitizer::mergeDigits()
   auto sortedDigits = [digits = this->mDigits, &indices](int i) {
     return digits[indices[i]];
   };
-  //  std::vector<o2::mch::Digit> sortedDigits(mDigits.size());
-  // for(int i=0; i<mDigits.size(); i++) sortedDigits.emplace_back(mDigits[indices[i]]);
 
   auto sortedLabels = [labels = this->mTrackLabels, &indices](int i) {
     return labels[indices[i]];
