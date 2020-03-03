@@ -17,6 +17,7 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/ControlService.h"
 #include "Framework/RawDeviceService.h"
+#include "Framework/StringHelpers.h"
 
 #include "fairmq/FairMQDevice.h"
 #include "Headers/DataHeader.h"
@@ -201,11 +202,16 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   std::vector<InputSpec> requestedCCDBs;
   std::vector<OutputSpec> providedCCDBs;
   std::vector<OutputSpec> providedOutputObj;
-  using outputObjMap = std::unordered_map<std::string, std::string>;
-  outputObjMap outMap;
+
+  outputTasks outTskMap;
+  outputObjects outObjMap;
 
   for (size_t wi = 0; wi < workflow.size(); ++wi) {
     auto& processor = workflow[wi];
+    auto name = processor.name;
+    auto hash = compile_time_hash(name.c_str());
+    outTskMap.push_back({hash, name});
+
     std::string prefix = "internal-dpl-";
     if (processor.inputs.empty() && processor.name.compare(0, prefix.size(), prefix) != 0) {
       processor.inputs.push_back(InputSpec{"enumeration", "DPL", "ENUM", static_cast<DataAllocator::SubSpecificationType>(separateEnumerations++), Lifetime::Enumeration});
@@ -259,7 +265,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"ATSK"})) {
         providedOutputObj.emplace_back(output);
-        outMap.insert({output.binding.value, processor.name});
+        auto it = std::find_if(outObjMap.begin(), outObjMap.end(), [&](auto&& x) { return x.first == hash; });
+        if (it == outObjMap.end()) {
+          outObjMap.push_back({hash, {output.binding.value}});
+        } else {
+          it->second.push_back(output.binding.value);
+        }
       }
       if (output.lifetime == Lifetime::Condition) {
         providedCCDBs.push_back(output);
@@ -294,7 +305,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // This is to inject a file sink so that any dangling ATSK object is written
   // to a ROOT file.
   if (providedOutputObj.size() != 0) {
-    auto rootSink = CommonDataProcessors::getOutputObjSink(outMap);
+    auto rootSink = CommonDataProcessors::getOutputObjSink(outObjMap, outTskMap);
     extraSpecs.push_back(rootSink);
   }
 
