@@ -19,6 +19,9 @@
 
 #pragma link C++ namespace o2::math_utils::math_base;
 
+#pragma link C++ function o2::math_utils::math_base::fit < float>;
+#pragma link C++ function o2::math_utils::math_base::fit < double>;
+
 #pragma link C++ function o2::math_utils::math_base::fitGaus < float>;
 #pragma link C++ function o2::math_utils::math_base::fitGaus < double>;
 
