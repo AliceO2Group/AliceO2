@@ -151,7 +151,7 @@ class DCAFitterN
   float getMinParamChange() const { return mMinParamChange; }
   float getBz() const { return mBz; }
   bool getUseAbsDCA() const { return mUseAbsDCA; }
-  bool getPropagateToPCA() const { mPropagateToPCA; }
+  bool getPropagateToPCA() const { return mPropagateToPCA; }
 
   template <class... Tr>
   int process(const Tr&... args);
