@@ -7,11 +7,14 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include <gsl/span>
+
 #include "FairLogger.h"
 
 #include "DataFormatsEMCAL/Digit.h"
 #include "DataFormatsEMCAL/Cluster.h"
 #include "DataFormatsEMCAL/EMCALBlockHeader.h"
+#include "DataFormatsEMCAL/TriggerRecord.h"
 #include "EMCALWorkflow/ClusterizerSpec.h"
 #include "Framework/ControlService.h"
 
@@ -36,6 +39,11 @@ void ClusterizerSpec<InputType>::init(framework::InitContext& ctx)
   // Initialize clusterizer and link geometry
   mClusterizer.initialize(timeCut, timeMin, timeMax, gradientCut, doEnergyGradientCut, thresholdSeedEnergy, thresholdCellEnergy);
   mClusterizer.setGeometry(mGeometry);
+
+  mOutputClusters = new std::vector<o2::emcal::Cluster>();
+  mOutputCellDigitIndices = new std::vector<o2::emcal::ClusterIndex>();
+  mOutputTriggerRecord = new std::vector<o2::emcal::TriggerRecord>();
+  mOutputTriggerRecordIndices = new std::vector<o2::emcal::TriggerRecord>();
 }
 
 template <class InputType>
@@ -44,11 +52,14 @@ void ClusterizerSpec<InputType>::run(framework::ProcessingContext& ctx)
   LOG(DEBUG) << "[EMCALClusterizer - run] called";
 
   std::string inputname;
+  std::string TrigName;
 
   if constexpr (std::is_same<InputType, o2::emcal::Digit>::value) {
     inputname = "digits";
+    TrigName = "digitstrgr";
   } else if constexpr (std::is_same<InputType, o2::emcal::Cell>::value) {
     inputname = "cells";
+    TrigName = "cellstrgr";
   }
 
   auto dataref = ctx.inputs().get(inputname.c_str());
@@ -59,20 +70,47 @@ void ClusterizerSpec<InputType>::run(framework::ProcessingContext& ctx)
     return;
   }
 
-  auto Inputs = ctx.inputs().get<std::vector<InputType>>(inputname.c_str());
+  auto Inputs = ctx.inputs().get<gsl::span<InputType>>(inputname.c_str());
   LOG(DEBUG) << "[EMCALClusterizer - run]  Received " << Inputs.size() << " Cells/digits, running clusterizer ...";
 
-  mClusterizer.findClusters(Inputs); // Find clusters on cells/digits (pass by ref)
+  auto InputTriggerRecord = ctx.inputs().get<gsl::span<TriggerRecord>>(TrigName.c_str());
+  LOG(DEBUG) << "[EMCALClusterizer - run]  Received " << InputTriggerRecord.size() << " Trigger Records, running clusterizer ...";
 
-  // Get found clusters + cell/digit indices for output
-  // * A cluster contains a range that correspond to the vector of cell/digit indices
-  // * The cell/digit index vector contains the indices of the clusterized cells/digits wrt to the original cell/digit array
-  mOutputClusters = mClusterizer.getFoundClusters();
-  mOutputCellDigitIndices = mClusterizer.getFoundClustersInputIndices();
+  mOutputClusters->clear();
+  mOutputCellDigitIndices->clear();
+  mOutputTriggerRecord->clear();
+  mOutputTriggerRecordIndices->clear();
+
+  int currentStartClusters = mOutputClusters->size();
+  int currentStartIndices = mOutputCellDigitIndices->size();
+
+  for (auto iTrgRcrd : InputTriggerRecord) {
+
+    mClusterizer.findClusters(gsl::span<const InputType>(&Inputs[iTrgRcrd.getFirstEntry()], iTrgRcrd.getNumberOfObjects())); // Find clusters on cells/digits (pass by ref)
+
+    // Get found clusters + cell/digit indices for output
+    // * A cluster contains a range that correspond to the vector of cell/digit indices
+    // * The cell/digit index vector contains the indices of the clusterized cells/digits wrt to the original cell/digit array
+
+    auto outputClustersTemp = mClusterizer.getFoundClusters();
+    auto outputCellDigitIndicesTemp = mClusterizer.getFoundClustersInputIndices();
+
+    std::copy(outputClustersTemp->begin(), outputClustersTemp->end(), std::back_inserter(*mOutputClusters));
+    std::copy(outputCellDigitIndicesTemp->begin(), outputCellDigitIndicesTemp->end(), std::back_inserter(*mOutputCellDigitIndices));
+
+    mOutputTriggerRecord->emplace_back(iTrgRcrd.getBCData(), currentStartClusters, outputClustersTemp->size());
+    mOutputTriggerRecordIndices->emplace_back(iTrgRcrd.getBCData(), currentStartIndices, outputCellDigitIndicesTemp->size());
+
+    currentStartClusters = mOutputClusters->size();
+    currentStartIndices = mOutputCellDigitIndices->size();
+  }
 
   LOG(DEBUG) << "[EMCALClusterizer - run] Writing " << mOutputClusters->size() << " clusters ...";
   ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "CLUSTERS", 0, o2::framework::Lifetime::Timeframe}, *mOutputClusters);
   ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "INDICES", 0, o2::framework::Lifetime::Timeframe}, *mOutputCellDigitIndices);
+
+  ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "CLUSTERSTRGR", 0, o2::framework::Lifetime::Timeframe}, *mOutputTriggerRecord);
+  ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "INDICESTRGR", 0, o2::framework::Lifetime::Timeframe}, *mOutputTriggerRecordIndices);
 }
 
 o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getClusterizerSpec(bool useDigits)
@@ -82,12 +120,17 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getClusterizerSpec(bo
 
   if (useDigits) {
     inputs.emplace_back("digits", o2::header::gDataOriginEMC, "DIGITS", 0, o2::framework::Lifetime::Timeframe);
+    inputs.emplace_back("digitstrgr", o2::header::gDataOriginEMC, "DIGITSTRGR", 0, o2::framework::Lifetime::Timeframe);
   } else {
     inputs.emplace_back("cells", o2::header::gDataOriginEMC, "CELLS", 0, o2::framework::Lifetime::Timeframe);
+    inputs.emplace_back("cellstrgr", o2::header::gDataOriginEMC, "CELLSTRGR", 0, o2::framework::Lifetime::Timeframe);
   }
 
   outputs.emplace_back(o2::header::gDataOriginEMC, "CLUSTERS", 0, o2::framework::Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginEMC, "INDICES", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginEMC, "CLUSTERSTRGR", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginEMC, "INDICESTRGR", 0, o2::framework::Lifetime::Timeframe);
+
   if (useDigits) {
     return o2::framework::DataProcessorSpec{"EMCALClusterizerSpec",
                                             inputs,

@@ -46,12 +46,13 @@ class ClusterizerTask
   Geometry* getGeometry() { return mGeometry; }
 
  private:
-  Clusterizer<InputType> mClusterizer;                              ///< Clusterizer
-  Geometry* mGeometry = nullptr;                                    ///< Pointer to geometry object
-  std::unique_ptr<DigitReader<InputType>> mInputReader;             ///< Pointer to cell/digit reader
-  const std::vector<InputType>* mInputArray = nullptr;              ///< Array of input cells/digits
-  const std::vector<Cluster>* mClustersArray = nullptr;             ///< Array of clusters
-  const std::vector<ClusterIndex>* mClustersInputIndices = nullptr; ///< Array of cell/digit indices
+  Clusterizer<InputType> mClusterizer;                                             ///< Clusterizer
+  Geometry* mGeometry = nullptr;                                                   ///< Pointer to geometry object
+  std::unique_ptr<DigitReader<InputType>> mInputReader;                            ///< Pointer to cell/digit reader
+  std::vector<Cluster>* mClustersArray = nullptr;                                  ///< Array of clusters
+  std::vector<ClusterIndex>* mClustersInputIndices = nullptr;                      ///< Array of cell/digit indices
+  std::vector<o2::emcal::TriggerRecord>* mClusterTriggerRecordsClusters = nullptr; ///< Array of Clusters trigger recirds
+  std::vector<o2::emcal::TriggerRecord>* mClusterTriggerRecordsIndices = nullptr;  ///< Array of cell/digit indices trigger records
   ClassDefNV(ClusterizerTask, 1)
 };
 } // namespace emcal

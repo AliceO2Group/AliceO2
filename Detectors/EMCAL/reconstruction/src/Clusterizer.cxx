@@ -11,6 +11,7 @@
 /// \file Clusterizer.cxx
 /// \brief Implementation of the EMCAL clusterizer
 #include <cstring>
+#include <gsl/span>
 #include "FairLogger.h" // for LOG
 #include "EMCALReconstruction/Clusterizer.h"
 
@@ -172,7 +173,6 @@ void Clusterizer<InputType>::findClusters(const gsl::span<InputType const>& inpu
 
   // Sort struct arrays with ascending energy
   std::sort(mSeedList.begin(), std::next(std::begin(mSeedList), nCells));
-  //std::sort(mSeedList, mSeedList+nCells);
 
   // Take next valid cell/digit in calorimeter as seed (in descending energy order)
   for (int i = nCells; i--;) {
