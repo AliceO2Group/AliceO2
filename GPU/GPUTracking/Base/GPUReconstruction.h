@@ -213,6 +213,9 @@ class GPUReconstruction
   void RegisterGPUDeviceProcessor(GPUProcessor* proc, GPUProcessor* slaveProcessor);
   void ConstructGPUProcessor(GPUProcessor* proc);
 
+  // Support / Debugging
+  virtual void PrintKernelOccupancies() {}
+
  protected:
   GPUReconstruction(const GPUSettingsProcessing& cfg); // Constructor
   virtual int InitDevice() = 0;
