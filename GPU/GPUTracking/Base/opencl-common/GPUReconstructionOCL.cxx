@@ -25,7 +25,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include <typeinfo>
 #include <cstdlib>
 
-constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + sizeof(uint4) - 1);
+constexpr size_t gGPUConstantMemBufferSize = sizeof(GPUConstantMem);
 
 #define quit(...)          \
   {                        \
