@@ -196,7 +196,7 @@ void Geo::getPos(Int_t* det, Float_t* pos)
   if (mToBeIntit)
     Init();
 
-  printf("TOFDBG: %d, %d, %d, %d, %d    ->    %f %f %f\n", det[0], det[1], det[2], det[3], det[4], mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][0], mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][1], mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][2]);
+  //  printf("TOFDBG: %d, %d, %d, %d, %d    ->    %f %f %f\n", det[0], det[1], det[2], det[3], det[4], mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][0], mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][1], mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][2]);
   pos[0] = mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][0];
   pos[1] = mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][1];
   pos[2] = mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][2];

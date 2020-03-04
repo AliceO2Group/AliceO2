@@ -508,7 +508,7 @@ void Detector::ConstructGeometry()
   // to the geometry creation
   getMediumIDMappingAsVector(medmapping);
 
-  mGeom = new TRDGeometry();
+  mGeom = TRDGeometry::instance();
   mGeom->createGeometry(medmapping);
 }
 

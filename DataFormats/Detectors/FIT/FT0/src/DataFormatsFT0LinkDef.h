@@ -15,12 +15,18 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::ft0::Digit + ;
+#pragma link C++ class o2::ft0::DigitsTemp + ;
 #pragma link C++ class o2::ft0::ChannelData + ;
+#pragma link C++ class o2::ft0::Triggers + ;
 #pragma link C++ class vector < o2::ft0::ChannelData> + ;
 #pragma link C++ class vector < o2::ft0::Digit> + ;
+#pragma link C++ class vector < o2::ft0::DigitsTemp> + ;
+#pragma link C++ class vector < o2::ft0::Triggers> + ;
 
 #pragma link C++ class o2::ft0::RecPoints + ;
 #pragma link C++ class vector < o2::ft0::RecPoints> + ;
+#pragma link C++ class o2::ft0::ChannelDataFloat + ;
+#pragma link C++ class vector < o2::ft0::ChannelDataFloat> + ;
 
 #pragma link C++ class o2::ft0::MCLabel + ;
 #pragma link C++ class o2::dataformats::MCTruthContainer < o2::ft0::MCLabel> + ;

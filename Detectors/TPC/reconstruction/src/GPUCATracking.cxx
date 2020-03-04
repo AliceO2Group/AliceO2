@@ -93,10 +93,13 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
     ptrs.clustersNative = nullptr;
     const float zsThreshold = mTrackingCAO2Interface->getConfig().configReconstruction.tpcZSthreshold;
     for (int i = 0; i < Sector::MAXSECTOR; i++) {
-      const std::vector<o2::tpc::Digit>& d = (*(data->o2Digits))[i];
+      const auto& d = (*(data->o2Digits))[i];
       gpuDigits[i].reserve(d.size());
       gpuDigitsMap.tpcDigits[i] = gpuDigits[i].data();
       for (int j = 0; j < d.size(); j++) {
+        if (d[j].getTimeStamp() >= 4000) {
+          throw std::runtime_error("Digits with time bin >= 4000 not yet supported in GPUCF");
+        }
         if (d[j].getChargeFloat() >= zsThreshold) {
           gpuDigits[i].emplace_back(deprecated::PackedDigit{d[j].getChargeFloat(), (Timestamp)d[j].getTimeStamp(), (Pad)d[j].getPad(), (Row)d[j].getRow()});
         }
@@ -244,10 +247,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
       sectorIndexArr[nOutCl] = sector;
       rowIndexArr[nOutCl] = globalRow;
       nOutCl++;
-      if (outputTracksMCTruth) {
-        if (!clusters->clustersMCTruth) {
-          throw std::runtime_error("Cluster MC information missing");
-        }
+      if (outputTracksMCTruth && clusters->clustersMCTruth) {
         for (const auto& element : clusters->clustersMCTruth->getLabels(clusters->clusterOffset[sector][globalRow] + clusterId)) {
           bool found = false;
           for (int l = 0; l < labels.size(); l++) {

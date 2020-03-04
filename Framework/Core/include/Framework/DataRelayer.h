@@ -14,7 +14,7 @@
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/ForwardRoute.h"
 #include "Framework/CompletionPolicy.h"
-#include "Framework/PartRef.h"
+#include "Framework/MessageSet.h"
 #include "Framework/TimesliceIndex.h"
 
 #include <cstddef>
@@ -60,7 +60,8 @@ class DataRelayer
   /// This invokes the appropriate `InputRoute::danglingChecker` on every
   /// entry in the cache and if it returns true, it creates a new
   /// cache entry by invoking the associated `InputRoute::expirationHandler`.
-  void processDanglingInputs(std::vector<ExpirationHandler> const&,
+  /// @return true if there were expirations, false if not.
+  bool processDanglingInputs(std::vector<ExpirationHandler> const&,
                              ServiceRegistry& context);
 
   /// This is used to ask for relaying a given (header,payload) pair.
@@ -75,8 +76,7 @@ class DataRelayer
   /// Returns an input registry associated to the given timeslice and gives
   /// ownership to the caller. This is because once the inputs are out of the
   /// DataRelayer they need to be deleted once the processing is concluded.
-  std::vector<std::unique_ptr<FairMQMessage>>
-    getInputsForTimeslice(TimesliceSlot id);
+  std::vector<MessageSet> getInputsForTimeslice(TimesliceSlot id);
 
   /// Returns the index of the arguments which have to be forwarded to
   /// the next processor
@@ -105,7 +105,7 @@ class DataRelayer
   /// Notice that we store them as a NxM sized vector, where
   /// N is the maximum number of inflight timeslices, while
   /// M is the number of inputs which are requested.
-  std::vector<PartRef> mCache;
+  std::vector<MessageSet> mCache;
 
   /// This is the index which maps a given timestamp to the associated
   /// cacheline.

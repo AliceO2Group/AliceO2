@@ -164,7 +164,7 @@ void analyzePHS(TTree* reftree)
 void analyzeCPV(TTree* reftree)
 {
   LabelStats result;
-  analyse<o2::phos::MCLabel>(reftree, "CPVDigitMCTruth", result);
+  analyse<o2::MCCompLabel>(reftree, "CPVDigitMCTruth", result);
   std::cout << gPrefix << " CPV ";
   result.print();
 }
@@ -173,7 +173,7 @@ void analyzeCPV(TTree* reftree)
 void analyzeFT0(TTree* reftree)
 {
   LabelStats result;
-  analyse<o2::ft0::MCLabel>(reftree, "FT0DigitMCTruth", result);
+  analyse<o2::ft0::MCLabel>(reftree, "FT0DIGITSMCTR", result);
   std::cout << gPrefix << " FT0 ";
   result.print();
 }
@@ -245,7 +245,7 @@ void analyzeTOF(TTree* reftree)
 void analyzeTRD(TTree* reftree)
 {
   LabelStats result;
-  analyse<o2::trd::MCLabel>(reftree, "TRDMCLabels", result);
+  analyse<o2::MCCompLabel>(reftree, "TRDMCLabels", result);
   std::cout << gPrefix << " TRD ";
   result.print();
 }

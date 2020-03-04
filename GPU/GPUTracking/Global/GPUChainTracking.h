@@ -81,6 +81,9 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     InOutMemory(InOutMemory&&);
     InOutMemory& operator=(InOutMemory&&);
 
+    std::unique_ptr<char[]> tpcZSpages;
+    std::unique_ptr<GPUTrackingInOutZS> tpcZSmeta;
+    std::unique_ptr<GPUTrackingInOutZS::GPUTrackingInOutZSMeta> tpcZSmeta2;
     std::unique_ptr<deprecated::PackedDigit[]> tpcDigits[NSLICES];
     std::unique_ptr<GPUTPCClusterData[]> clusterData[NSLICES];
     std::unique_ptr<AliHLTTPCRawCluster[]> rawClusters[NSLICES];
@@ -173,6 +176,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void WriteOutput(int iSlice, int threadId);
   int GlobalTracking(int iSlice, int threadId);
   void PrepareEventFromNative();
+  void UpdateShadowProcessors();
 
   int PrepareProfile();
   int DoProfile();

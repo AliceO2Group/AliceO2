@@ -176,7 +176,7 @@ BOOST_AUTO_TEST_CASE(store_retrieve_TMemFile_templated_test, *utf::precondition(
   // a) create a local snapshot of the Test folder
   auto ph = boost::filesystem::unique_path();
   boost::filesystem::create_directories(ph);
-  f.api.snapshot("Test", ph.string(), o2::ccdb::getCurrentTimestamp());
+  f.api.snapshot(basePath, ph.string(), o2::ccdb::getCurrentTimestamp());
   std::cout << "Creating snapshot at " << ph.string() << "\n";
 
   // b) init a new instance from the snapshot and query something from it

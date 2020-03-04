@@ -35,6 +35,8 @@ namespace o2
 {
 namespace framework
 {
+struct InputChannelSpec;
+struct OutputChannelSpec;
 
 struct DeviceSpecHelpers {
   /// Helper to convert from an abstract dataflow specification, @a workflow,
@@ -60,6 +62,12 @@ struct DeviceSpecHelpers {
     dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, dispatchPolicies, devices, resourceManager, uniqueWorkflowId);
   }
 
+  /// Helper to provide the channel configuration string for an input channel
+  static std::string inputChannel2String(const InputChannelSpec& channel);
+
+  /// Helper to provide the channel configuration string for an output channel
+  static std::string outputChannel2String(const OutputChannelSpec& channel);
+
   /// Helper to prepare the arguments which will be used to
   /// start the various devices.
   static void prepareArguments(
@@ -68,7 +76,8 @@ struct DeviceSpecHelpers {
     std::vector<DataProcessorInfo> const& processorInfos,
     std::vector<DeviceSpec> const& deviceSpecs,
     std::vector<DeviceExecution>& deviceExecutions,
-    std::vector<DeviceControl>& deviceControls);
+    std::vector<DeviceControl>& deviceControls,
+    std::string const& uniqueWorkflowId);
 
   /// This takes the list of preprocessed edges of a graph
   /// and creates Devices and Channels which are related

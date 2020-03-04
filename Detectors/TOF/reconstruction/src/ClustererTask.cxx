@@ -54,7 +54,7 @@ InitStatus ClustererTask::Init()
     return kERROR;
   }
 
-  const std::vector<o2::tof::Digit>* arr = mgr->InitObjectAs<const std::vector<o2::tof::Digit>*>("TOFDigit");
+  const gsl::span<const o2::tof::Digit>* arr = mgr->InitObjectAs<const gsl::span<const o2::tof::Digit>*>("TOFDigit");
   if (!arr) {
     LOG(ERROR) << "TOF digits not registered in the FairRootManager. Exiting ...";
     return kERROR;

@@ -16,6 +16,9 @@ namespace o2::soa
 
 std::shared_ptr<arrow::Table> ArrowHelpers::joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables)
 {
+  if (tables.size() == 1) {
+    return tables[0];
+  }
   std::vector<std::shared_ptr<arrow::Column>> columns;
   std::vector<std::shared_ptr<arrow::Field>> fields;
 
@@ -30,6 +33,9 @@ std::shared_ptr<arrow::Table> ArrowHelpers::joinTables(std::vector<std::shared_p
 
 std::shared_ptr<arrow::Table> ArrowHelpers::concatTables(std::vector<std::shared_ptr<arrow::Table>>&& tables)
 {
+  if (tables.size() == 1) {
+    return tables[0];
+  }
   std::vector<std::shared_ptr<arrow::Column>> columns;
   assert(tables.size() > 1);
   std::vector<std::shared_ptr<arrow::Field>> resultFields = tables[0]->schema()->fields();

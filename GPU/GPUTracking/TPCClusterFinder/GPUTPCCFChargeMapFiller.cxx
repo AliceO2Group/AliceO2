@@ -19,15 +19,17 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::deprecated;
 
 template <>
-GPUd() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::fillChargeMap>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer)
+GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::fillChargeMap>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
-  fillChargeMapImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPdigits, chargeMap, clusterer.mPmemory->counters.nDigits);
+  Array2D<uint> indexMap(clusterer.mPindexMap);
+  fillChargeMapImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPdigits, chargeMap, indexMap, clusterer.mPmemory->counters.nDigits);
 }
 
 GPUd() void GPUTPCCFChargeMapFiller::fillChargeMapImpl(int nBlocks, int nThreads, int iBlock, int iThread,
                                                        const Digit* digits,
                                                        Array2D<PackedCharge>& chargeMap,
+                                                       Array2D<uint>& indexMap,
                                                        size_t maxDigit)
 {
   size_t idx = get_global_id(0);
@@ -36,11 +38,13 @@ GPUd() void GPUTPCCFChargeMapFiller::fillChargeMapImpl(int nBlocks, int nThreads
   }
   Digit myDigit = digits[idx];
 
-  chargeMap[ChargePos(myDigit)] = PackedCharge(myDigit.charge);
+  ChargePos pos(myDigit);
+  chargeMap[pos] = PackedCharge(myDigit.charge);
+  CPU_ONLY(indexMap.safeWrite(pos, idx));
 }
 
 template <>
-GPUd() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::resetMaps>(int nBlocks, int nThreads, int iBlock, int iThread, GPUTPCSharedMemory& smem, processorType& clusterer)
+GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::resetMaps>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   Array2D<uchar> isPeakMap(clusterer.mPpeakMap);

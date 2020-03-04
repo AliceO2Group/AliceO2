@@ -19,7 +19,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 else()
   if(OPENGL_FOUND
      AND GLFW_FOUND
-     AND GLEW_FOUND
+     AND (ALIGPU_BUILD_TYPE STREQUAL "O2" OR GLEW_FOUND)
      AND OPENGL_GLU_FOUND
      AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(GPUCA_EVENT_DISPLAY ON)
@@ -43,7 +43,6 @@ set(SRCS
     SliceTracker/GPUTPCNeighboursFinder.cxx
     SliceTracker/GPUTPCGrid.cxx
     SliceTracker/GPUTPCTrackletSelector.cxx
-    SliceTracker/GPUTPCHitArea.cxx
     SliceTracker/GPUTPCRow.cxx
     Merger/GPUTPCGMMerger.cxx
     Merger/GPUTPCGMSliceTrack.cxx
@@ -77,7 +76,8 @@ set(SRCS_NO_CINT
 
 set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
               Merger/GPUTPCGMMergerDump.cxx
-              Global/GPUChainTrackingDebugAndProfiling.cxx)
+              Global/GPUChainTrackingDebugAndProfiling.cxx
+              Global/GPUChainTrackingIO.cxx)
 
 set(HDRS_INSTALL
     SliceTracker/GPUTPCMCInfo.h
@@ -149,12 +149,14 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         DataCompression/GPUTPCClusterStatistics.cxx
         TPCClusterFinder/GPUTPCClusterFinder.cxx
         TPCClusterFinder/ClusterAccumulator.cxx
+        TPCClusterFinder/MCLabelAccumulator.cxx
         TPCClusterFinder/GPUTPCCFStreamCompaction.cxx
         TPCClusterFinder/GPUTPCCFChargeMapFiller.cxx
         TPCClusterFinder/GPUTPCCFPeakFinder.cxx
         TPCClusterFinder/GPUTPCCFNoiseSuppression.cxx
         TPCClusterFinder/GPUTPCCFClusterizer.cxx
         TPCClusterFinder/GPUTPCCFDeconvolution.cxx
+        TPCClusterFinder/GPUTPCCFMCLabelFlattener.cxx
         TPCClusterFinder/GPUTPCCFDecodeZS.cxx)
 
     set(SRCS_NO_H ${SRCS_NO_H}
@@ -203,7 +205,9 @@ if(GPUCA_EVENT_DISPLAY)
   set(SRCS_NO_H ${SRCS_NO_H} Standalone/display/GPUDisplayQuaternion.cxx
                 Standalone/display/GPUDisplayInterpolation.cxx
                 Standalone/display/GPUDisplayKeys.cxx)
-  set(HDRS_INSTALL ${HDRS_INSTALL} Standalone/display/GPUDisplayExt.h)
+  set(HDRS_INSTALL ${HDRS_INSTALL}
+                   Standalone/display/GPUDisplayExt.h
+                   Standalone/display/GPUDisplayShaders.h)
 else()
   set(HDRS_INSTALL ${HDRS_INSTALL} Standalone/display/GPUDisplay.h)
 endif()
@@ -389,9 +393,12 @@ endif()
 if(GPUCA_EVENT_DISPLAY)
   message(STATUS "Building GPU Event Display")
   target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY)
-  target_link_libraries(${targetName}
-                        PUBLIC ${GLEW_LIBRARIES} ${GLFW_LIBRARIES} OpenGL::GL
-                               OpenGL::GLU)
+  target_link_libraries(${targetName} PUBLIC ${GLFW_LIBRARIES} OpenGL::GL OpenGL::GLU)
+  if(ALIGPU_BUILD_TYPE STREQUAL "O2")
+    target_compile_definitions(${targetName} PRIVATE GPUCA_DISPLAY_GL3W GPUCA_DISPLAY_OPENGL_CORE)
+  else()
+    target_link_libraries(${targetName} PUBLIC ${GLEW_LIBRARIES})
+  endif()
 endif()
 
 # Add compile definitions and libraries depending on available optional dependencies

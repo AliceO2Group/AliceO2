@@ -23,23 +23,28 @@
 //All host-functions in GPU code are automatically inlined, to avoid duplicate symbols.
 //For non-inline host only functions, use no keyword at all!
 #if !defined(GPUCA_GPUCODE) || defined(__OPENCL_HOST__) // For host / ROOT dictionary
-  #define GPUd()
-  #define GPUdDefault()
-  #define GPUdi() inline
-  #define GPUh()
-  #define GPUhi() inline
-  #define GPUhd()
-  #define GPUhdi() inline
-  #define GPUhdni()
-  #define GPUg() INVALID_TRIGGER_ERROR_NO_HOST_CODE
-  #define GPUshared()
-  #define GPUglobal()
-  #define GPUconstant()
-  #define GPUconstexpr() static constexpr
-  #define GPUprivate()
-  #define GPUgeneric()
-  #define GPUbarrier()
-  #define GPUAtomic(type) type
+  #define GPUd()                                    // device function
+  #define GPUdDefault()                             // default (constructor / operator) device function
+  #define GPUdi() inline                            // to-be-inlined device function
+  #define GPUdii()                                  // Only on GPU to-be-inlined device function
+  #define GPUh()                                    // Host-only function
+  #define GPUhi() inline                            // to-be-inlined host-only function
+  #define GPUhd()                                   // Host and device function, inlined during GPU compilation to avoid symbol clashes in host code
+  #define GPUhdi() inline                           // Host and device function, to-be-inlined on host and device
+  #define GPUhdni()                                 // Host and device function, not to-be-inlined automatically
+  #define GPUg() INVALID_TRIGGER_ERROR_NO_HOST_CODE // GPU kernel
+  #define GPUshared()                               // shared memory variable declaration
+  #define GPUglobal()                               // global memory variable declaration (only used for kernel input pointers)
+  #define GPUconstant()                             // constant memory variable declaraion
+  #define GPUconstexpr() static constexpr           // constexpr on GPU that needs to be instantiated for dynamic access (e.g. arrays), becomes __constant on GPU
+  #define GPUprivate()                              // private memory variable declaration
+  #define GPUgeneric()                              // reference / ptr to generic address space
+  #define GPUbarrier()                              // synchronize all GPU threads in block
+  #define GPUAtomic(type) type                      // atomic variable type
+  #define GPUsharedref()                            // reference / ptr to shared memory
+  #define GPUglobalref()                            // reference / ptr to global memory
+  #define GPUconstantref()                          // reference / ptr to constant memory
+  #define GPUconstexprref()                         // reference / ptr to variable declared as GPUconstexpr()
 
   struct float4 { float x, y, z, w; };
   struct float3 { float x, y, z; };
@@ -59,6 +64,7 @@
   #define GPUd()
   #define GPUdDefault()
   #define GPUdi() inline
+  #define GPUdii() inline
   #define GPUh() INVALID_TRIGGER_ERROR_NO_HOST_CODE
   #define GPUhi() INVALID_TRIGGER_ERROR_NO_HOST_CODE
   #define GPUhd() inline
@@ -71,6 +77,7 @@
   #define GPUconstexpr() __constant
   #define GPUprivate() __private
   #define GPUgeneric() __generic
+  #define GPUconstexprref() GPUconstexpr()
   #if defined(__OPENCLCPP__) && !defined(__clang__)
     #define GPUbarrier() work_group_barrier(mem_fence::global | mem_fence::local);
     #define GPUAtomic(type) atomic<type>
@@ -96,10 +103,46 @@
       #define CONSTEXPR const
     #endif
   #endif
+  #if !defined(__OPENCLCPP__) // Other special defines for OpenCL 1
+    #define GPUCA_USE_TEMPLATE_ADDRESS_SPACES // TODO: check if we can make this (partially, where it is already implemented) compatible with OpenCL CPP
+    #define GPUsharedref() GPUshared()
+    #define GPUglobalref() GPUglobal()
+  #endif
+  #if (!defined(__OPENCLCPP__) || !defined(GPUCA_OPENCLCPP_NO_CONSTANT_MEMORY))
+    #define GPUconstantref() GPUconstant()
+  #endif
+#elif defined(__HIPCC__) //Defines for HIP
+  #define GPUd() __device__
+  #define GPUdDefault() __device__
+  #define GPUdi() __device__ inline
+  #define GPUdii() __device__ __forceinline__
+  #define GPUh() __host__ inline
+  #define GPUhi() __host__ inline
+  #define GPUhd() __host__ __device__ inline
+  #define GPUhdi() __host__ __device__ inline
+  #define GPUhdni() __host__ __device__
+  #define GPUg() __global__
+  #define GPUshared() __shared__
+  #if defined(GPUCA_GPUCODE_DEVICE) && 0 // TODO: Fix for HIP
+    #define GPUCA_USE_TEMPLATE_ADDRESS_SPACES
+    #define GPUglobal() __attribute__((address_space(1)))
+    #define GPUglobalref() GPUglobal()
+    #define GPUconstantref() __attribute__((address_space(4)))
+    #define GPUsharedref() __attribute__((address_space(3)))
+  #else
+    #define GPUglobal()
+  #endif
+  #define GPUconstant()
+  #define GPUconstexpr() __constant__
+  #define GPUprivate()
+  #define GPUgeneric()
+  #define GPUbarrier() __syncthreads()
+  #define GPUAtomic(type) type
 #elif defined(__CUDACC__) //Defines for CUDA
   #define GPUd() __device__
   #define GPUdDefault()
   #define GPUdi() __device__ inline
+  #define GPUdii() __device__ inline
   #define GPUh() __host__ inline
   #define GPUhi() __host__ inline
   #define GPUhd() __host__ __device__ inline
@@ -114,24 +157,6 @@
   #define GPUgeneric()
   #define GPUbarrier() __syncthreads()
   #define GPUAtomic(type) type
-#elif defined(__HIPCC__) //Defines for HIP
-  #define GPUd() __device__
-  #define GPUdDefault() __device__
-  #define GPUdi() __device__ inline
-  #define GPUh() __host__ inline
-  #define GPUhi() __host__ inline
-  #define GPUhd() __host__ __device__ inline
-  #define GPUhdi() __host__ __device__ inline
-  #define GPUhdni() __host__ __device__
-  #define GPUg() __global__
-  #define GPUshared() __shared__
-  #define GPUglobal()
-  #define GPUconstant()
-  #define GPUconstexpr() __constant__
-  #define GPUprivate()
-  #define GPUgeneric()
-#define GPUbarrier() __syncthreads()
-  #define GPUAtomic(type) type
 #endif
 
 #if (defined(__CUDACC__) && defined(GPUCA_CUDA_NO_CONSTANT_MEMORY)) || (defined(__HIPCC__) && defined(GPUCA_HIP_NO_CONSTANT_MEMORY)) || (defined(__OPENCL__) && !defined(__OPENCLCPP__) && defined(GPUCA_OPENCL_NO_CONSTANT_MEMORY)) || (defined(__OPENCLCPP__) && defined(GPUCA_OPENCLCPP_NO_CONSTANT_MEMORY))
@@ -139,39 +164,29 @@
   #define GPUconstant() GPUglobal()
 #endif
 
-#if defined(__OPENCL__) && !defined(__OPENCLCPP__) // Other special defines for OpenCL
-  #define GPUsharedref() GPUshared()
-  #define GPUglobalref() GPUglobal()
-#else //Other defines for the rest
-  #define GPUsharedref()
-  #define GPUglobalref()
+#ifndef GPUsharedref
+#define GPUsharedref()
 #endif
-#if defined(__OPENCL__) // OpenCL 2 cannot cast __constant to __generic
-  #define GPUconstexprref() GPUconstexpr()
-#else
-  #define GPUconstexprref()
+#ifndef GPUglobalref
+#define GPUglobalref()
 #endif
-#if defined(__OPENCL__) && (!defined(__OPENCLCPP__) || !defined(GPUCA_OPENCLCPP_NO_CONSTANT_MEMORY))
-  #define GPUconstantref() GPUconstant()
-#else
-  #define GPUconstantref()
+#ifndef GPUconstantref
+#define GPUconstantref()
+#endif
+#ifndef GPUconstexprref
+#define GPUconstexprref()
 #endif
 
+#define GPUrestrict() // We don't use restrict at the moment, could try at a later time
+
 // Macros for GRID dimension
-#if defined(__CUDACC__)
+#if defined(__CUDACC__) || defined(__HIPCC__)
   #define get_global_id(dim) (blockIdx.x * blockDim.x + threadIdx.x)
   #define get_global_size(dim) (blockDim.x * gridDim.x)
   #define get_num_groups(dim) (gridDim.x)
   #define get_local_id(dim) (threadIdx.x)
   #define get_local_size(dim) (blockDim.x)
   #define get_group_id(dim) (blockIdx.x)
-#elif defined(__HIPCC__)
-  #define get_global_id(dim) (hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x)
-  #define get_global_size(dim) (hipBlockDim_x * hipGridDim_x)
-  #define get_num_groups(dim) (hipGridDim_x)
-  #define get_local_id(dim) (hipThreadIdx_x)
-  #define get_local_size(dim) (hipBlockDim_x)
-  #define get_group_id(dim) (hipBlockIdx_x)
 #elif defined(__OPENCL__)
   // Using OpenCL defaults
 #else

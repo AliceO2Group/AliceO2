@@ -11,9 +11,13 @@
 /// \file GPUReconstructionCUDA.cu
 /// \author David Rohr
 
-#define GPUCA_GPUTYPE_PASCAL
+#define GPUCA_GPUTYPE_TURING
+#define GPUCA_UNROLL(CUDA, HIP) GPUCA_M_UNROLL_##CUDA
 
 #include <cuda.h>
+#ifdef __clang__
+#define assert(...)
+#endif
 
 #include "GPUReconstructionCUDA.h"
 #include "GPUReconstructionCUDAInternals.h"
@@ -37,6 +41,10 @@ __constant__ uint4 gGPUConstantMemBuffer[gGPUConstantMemBufferSize / sizeof(uint
 texture<cahit2, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu2;
 texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
 #endif
+
+__global__ void dummyInitKernel(void* foo)
+{
+}
 
 #if defined(HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
 #include "ITStrackingCUDA/TrackerTraitsNV.h"
@@ -63,11 +71,13 @@ class VertexerTraitsGPU : public VertexerTraits
 template <class T, int I, typename... Args>
 GPUg() void runKernelCUDA(GPUCA_CONSMEM_PTR int iSlice, Args... args)
 {
-  GPUshared() typename T::GPUTPCSharedMemory smem;
+  GPUshared() typename T::GPUSharedMemory smem;
   T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Processor(GPUCA_CONSMEM)[iSlice], args...);
 }
 */
 
+#undef GPUCA_KRNL_REG
+#define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_STRIP(args))
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_, x_class, x_attributes, x_arguments, x_forward)
 #define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionCUDABackend
 #define GPUCA_KRNL_CALL_single(x_class, x_attributes, x_arguments, x_forward) \
@@ -138,8 +148,9 @@ void GPUReconstructionCUDABackend::GetITSTraits(std::unique_ptr<o2::its::Tracker
 int GPUReconstructionCUDABackend::InitDevice_Runtime()
 {
   // Find best CUDA device, initialize and allocate memory
-  cudaDeviceProp cudaDeviceProp;
+  GPUCA_GPUReconstructionUpdateDefailts();
 
+  cudaDeviceProp cudaDeviceProp;
   int count, bestDevice = -1;
   double bestDeviceSpeed = -1, deviceSpeed;
   if (GPUFailedMsgI(cuInit(0))) {
@@ -219,7 +230,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
       bestDevice = i;
       bestDeviceSpeed = deviceSpeed;
     } else {
-      if (mDeviceProcessingSettings.debugLevel >= 2) {
+      if (mDeviceProcessingSettings.debugLevel >= 2 && mDeviceProcessingSettings.deviceNum < 0) {
         GPUInfo("Skipping: Speed %f < %f\n", deviceSpeed, bestDeviceSpeed);
       }
     }
@@ -312,7 +323,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
   }
 
   if (mDeviceMemorySize > cudaDeviceProp.totalGlobalMem || GPUFailedMsgI(cudaMalloc(&mDeviceMemoryBase, mDeviceMemorySize))) {
-    GPUError("CUDA Memory Allocation Error (trying %lld bytes)", (long long int)mDeviceMemorySize);
+    GPUError("CUDA Memory Allocation Error (trying %lld bytes, %lld available)", (long long int)mDeviceMemorySize, (long long int)cudaDeviceProp.totalGlobalMem);
     GPUFailedMsgI(cudaDeviceReset());
     return (1);
   }
@@ -322,7 +333,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     return (1);
   }
   if (mDeviceProcessingSettings.debugLevel >= 1) {
-    GPUInfo("Memory ptrs: GPU (%lld bytes): 0x%p - Host (%lld bytes): 0x%p", (long long int)mDeviceMemorySize, mDeviceMemoryBase, (long long int)mHostMemorySize, mHostMemoryBase);
+    GPUInfo("Memory ptrs: GPU (%lld bytes): %p - Host (%lld bytes): %p", (long long int)mDeviceMemorySize, mDeviceMemoryBase, (long long int)mHostMemorySize, mHostMemoryBase);
     memset(mHostMemoryBase, 0xDD, mHostMemorySize);
     if (GPUFailedMsgI(cudaMemset(mDeviceMemoryBase, 0xDD, mDeviceMemorySize))) {
       GPUError("Error during CUDA memset");
@@ -371,6 +382,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     return (1);
   }
 
+  dummyInitKernel<<<mCoreCount, 256>>>(mDeviceMemoryBase);
   GPUInfo("CUDA Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %lld / %lld bytes host / global memory, Stack frame %d, Constant memory %lld)", mDeviceId, cudaDeviceProp.name, cudaDeviceProp.clockRate, cudaDeviceProp.multiProcessorCount, (long long int)mHostMemorySize,
           (long long int)mDeviceMemorySize, (int)GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
 
@@ -550,4 +562,21 @@ void GPUReconstructionCUDABackend::SetThreadCounts()
   mTRDThreadCount = GPUCA_THREAD_COUNT_TRD;
   mClustererThreadCount = GPUCA_THREAD_COUNT_CLUSTERER;
   mScanThreadCount = GPUCA_THREAD_COUNT_SCAN;
+  mConverterThreadCount = GPUCA_THREAD_COUNT_CONVERTER;
+  mCompression1ThreadCount = GPUCA_THREAD_COUNT_COMPRESSION1;
+  mCompression2ThreadCount = GPUCA_THREAD_COUNT_COMPRESSION2;
+  mCFDecodeThreadCount = GPUCA_THREAD_COUNT_CFDECODE;
+  mFitThreadCount = GPUCA_THREAD_COUNT_FIT;
+  mITSThreadCount = GPUCA_THREAD_COUNT_ITS;
+  mWarpSize = GPUCA_WARP_SIZE;
+}
+
+int GPUReconstructionCUDABackend::registerMemoryForGPU(void* ptr, size_t size)
+{
+  return GPUFailedMsgI(cudaHostRegister(ptr, size, cudaHostRegisterDefault));
+}
+
+int GPUReconstructionCUDABackend::unregisterMemoryForGPU(void* ptr)
+{
+  return GPUFailedMsgI(cudaHostUnregister(ptr));
 }

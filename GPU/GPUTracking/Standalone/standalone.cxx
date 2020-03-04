@@ -284,6 +284,7 @@ int SetupReconstruction()
   recSet.DisableRefitAttachment = configStandalone.configRec.disableRefitAttachment;
   recSet.ForceEarlyTPCTransform = configStandalone.configRec.ForceEarlyTPCTransform;
   recSet.fwdTPCDigitsAsClusters = configStandalone.configRec.fwdTPCDigitsAsClusters;
+  recSet.dropLoopers = configStandalone.configRec.dropLoopers;
   if (configStandalone.referenceX < 500.) {
     recSet.TrackReferenceX = configStandalone.referenceX;
   }
@@ -329,6 +330,7 @@ int SetupReconstruction()
   devProc.globalInitMutex = configStandalone.gpuInitMutex;
   devProc.gpuDeviceOnly = configStandalone.oclGPUonly;
   devProc.memoryAllocationStrategy = configStandalone.allocationStrategy;
+  devProc.registerStandaloneInputMemory = configStandalone.registerInputMemory;
   recSet.tpcRejectionMode = configStandalone.configRec.tpcReject;
   if (configStandalone.configRec.tpcRejectThreshold != 0.f) {
     recSet.tpcRejectQPt = 1.f / configStandalone.configRec.tpcRejectThreshold;
@@ -345,6 +347,7 @@ int SetupReconstruction()
   if (configStandalone.configProc.selectorPipeline >= 0) {
     devProc.trackletSelectorInPipeline = configStandalone.configProc.selectorPipeline;
   }
+  devProc.mergerSortTracks = configStandalone.configProc.mergerSortTracks;
 
   steps.steps = GPUReconstruction::RecoStep::AllRecoSteps;
   if (configStandalone.configRec.runTRD != -1) {
@@ -393,6 +396,9 @@ int SetupReconstruction()
   if (rec->Init()) {
     printf("Error initializing GPUReconstruction!\n");
     return 1;
+  }
+  if (configStandalone.outputcontrolmem && rec->IsGPU() && rec->registerMemoryForGPU(outputmemory.get(), configStandalone.outputcontrolmem)) {
+    printf("ERROR registering memory for the GPU!!!\n");
   }
   return (0);
 }
@@ -543,12 +549,26 @@ int main(int argc, char** argv)
           }
         }
 
+        if (configStandalone.stripDumpedEvents) {
+          if (chainTracking->mIOPtrs.tpcZS) {
+            chainTracking->mIOPtrs.tpcPackedDigits = nullptr;
+          }
+        }
+        if (configStandalone.dumpEvents) {
+          char fname[1024];
+          sprintf(fname, "event.%d.dump", nEventsProcessed);
+          chainTracking->DumpData(fname);
+          if (nEventsProcessed == 0) {
+            rec->DumpSettings();
+          }
+        }
+
         if (configStandalone.overrideMaxTimebin && (chainTracking->mIOPtrs.clustersNative || chainTracking->mIOPtrs.tpcPackedDigits)) {
           GPUSettingsEvent ev = rec->GetEventSettings();
           ev.continuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits) : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
           rec->UpdateEventSettings(&ev);
         }
-        if (!rec->GetParam().earlyTpcTransform && chainTracking->mIOPtrs.clustersNative == nullptr && chainTracking->mIOPtrs.tpcPackedDigits == nullptr) {
+        if (!rec->GetParam().earlyTpcTransform && chainTracking->mIOPtrs.clustersNative == nullptr && chainTracking->mIOPtrs.tpcPackedDigits == nullptr && chainTracking->mIOPtrs.tpcZS == nullptr) {
           printf("Need cluster native data for on-the-fly TPC transform\n");
           goto breakrun;
         }
@@ -602,6 +622,8 @@ int main(int argc, char** argv)
           }
           if (configStandalone.memoryStat) {
             rec->PrintMemoryStatistics();
+          } else if (configStandalone.DebugLevel >= 2) {
+            rec->PrintMemoryOverview();
           }
           rec->ClearAllocatedMemory();
 
@@ -631,6 +653,9 @@ breakrun:
 #endif
 
   rec->Finalize();
+  if (configStandalone.outputcontrolmem && rec->IsGPU()) {
+    rec->unregisterMemoryForGPU(outputmemory.get());
+  }
   rec->Exit();
 
   if (!configStandalone.noprompt) {

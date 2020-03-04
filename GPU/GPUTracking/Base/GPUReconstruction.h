@@ -96,9 +96,10 @@ class GPUReconstruction
                                          CLUSTERS_NATIVE = 10,
                                          TRD_TRACKLET_MC = 11,
                                          TPC_COMPRESSED_CL = 12,
-                                         TPC_DIGIT = 13 };
+                                         TPC_DIGIT = 13,
+                                         TPC_ZS = 14 };
   static constexpr const char* const IOTYPENAMES[] = {"TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets",
-                                                      "Raw Clusters", "ClusterNative", "TRD Tracklet MC Labels", "TPC Compressed Clusters", "TPC Digit"};
+                                                      "Raw Clusters", "ClusterNative", "TRD Tracklet MC Labels", "TPC Compressed Clusters", "TPC Digit", "TPC ZS Page"};
   static unsigned int getNIOTypeMultiplicity(InOutPointerType type) { return (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS || type == TPC_DIGIT) ? NSLICES : 1; }
 
   // Functionality to create an instance of GPUReconstruction for the desired device
@@ -156,7 +157,9 @@ class GPUReconstruction
 
   void PrepareEvent();
   virtual int RunChains() = 0;
-  int getNEventsProcessed() { return mStatNEvents; }
+  unsigned int getNEventsProcessed() { return mNEventsProcessed; }
+  virtual int registerMemoryForGPU(void* ptr, size_t size) = 0;
+  virtual int unregisterMemoryForGPU(void* ptr) = 0;
 
   // Helpers for memory allocation
   GPUMemoryResource& Res(short num) { return mMemoryResources[num]; }
@@ -164,7 +167,7 @@ class GPUReconstruction
   short RegisterMemoryAllocation(T* proc, void* (T::*setPtr)(void*), int type, const char* name = "", const GPUMemoryReuse& re = GPUMemoryReuse());
   size_t AllocateMemoryResources();
   size_t AllocateRegisteredMemory(GPUProcessor* proc);
-  size_t AllocateRegisteredMemory(short res);
+  size_t AllocateRegisteredMemory(short res, GPUOutputControl* control = nullptr);
   void* AllocateUnmanagedMemory(size_t size, int type);
   void FreeRegisteredMemory(GPUProcessor* proc, bool freeCustom = false, bool freePermanent = false);
   void FreeRegisteredMemory(short res);
@@ -172,6 +175,7 @@ class GPUReconstruction
   void ResetRegisteredMemoryPointers(GPUProcessor* proc);
   void ResetRegisteredMemoryPointers(short res);
   void PrintMemoryStatistics();
+  void PrintMemoryOverview();
   GPUMemorySizeScalers* MemoryScalers() { return mMemoryScalers.get(); }
 
   // Helpers to fetch processors from other shared libraries
@@ -292,7 +296,8 @@ class GPUReconstruction
 
   // Others
   bool mInitialized = false;
-  int mStatNEvents = 0;
+  unsigned int mStatNEvents = 0;
+  unsigned int mNEventsProcessed = 0;
 
   // Management for GPUProcessors
   struct ProcessorData {
@@ -339,6 +344,9 @@ inline void GPUReconstruction::AllocateIOMemoryHelper(unsigned int n, const T*& 
   }
   u.reset(new T[n]);
   ptr = u.get();
+  if (mDeviceProcessingSettings.registerStandaloneInputMemory) {
+    registerMemoryForGPU(u.get(), n * sizeof(T));
+  }
 }
 
 template <class T, typename... Args>

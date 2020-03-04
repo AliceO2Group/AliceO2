@@ -10,9 +10,12 @@
 
 o2_add_library(TOFWorkflowUtils
                SOURCES src/DigitReaderSpec.cxx
+                       src/RawReaderSpec.cxx
 	               src/ClusterReaderSpec.cxx
  		       src/TOFClusterizerSpec.cxx
   		       src/TOFClusterWriterSpec.cxx
+                       src/TOFDigitWriterSpec.cxx
+                       src/TOFRawWriterSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::TOFBase O2::DataFormatsTOF
                                      O2::TOFReconstruction)
 

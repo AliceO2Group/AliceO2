@@ -93,11 +93,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
               lastTime += microseconds(periodus);
 
-              TH1F* histo = new TH1F("gauss", "gauss", objectsBins, -3, 3);
-              histo->FillRandom("gaus", 1000);
-
-              processingContext.outputs().adopt(
-                Output{ "TST", "HISTO", static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1) }, histo);
+              auto subspec = static_cast<o2::header::DataHeader::SubSpecificationType>(p + 1);
+              TH1F& histo = processingContext.outputs().make<TH1F>(Output{ "TST", "HISTO", subspec }, "gauss", "gauss", objectsBins, -3, 3);
+              histo.FillRandom("gaus", 1000);
             }
           }
         }

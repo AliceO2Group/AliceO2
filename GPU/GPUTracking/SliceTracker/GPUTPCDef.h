@@ -29,8 +29,7 @@ typedef unsigned int cahit;
 typedef unsigned int calink;
 typedef unsigned int cahit;
 #endif
-
-struct cahit2{cahit x, y;};
+struct cahit2 { cahit x, y; };
 }
 } // GPUCA_NAMESPACE::GPU
 

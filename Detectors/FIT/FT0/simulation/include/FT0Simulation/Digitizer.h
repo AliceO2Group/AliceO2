@@ -13,12 +13,15 @@
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsFT0/Digit.h"
+#include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/MCLabel.h"
 #include "FT0Simulation/Detector.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "FT0Simulation/DigitizationParameters.h"
 #include <TH1F.h>
+#include <bitset>
+#include <vector>
 
 namespace o2
 {
@@ -30,34 +33,42 @@ class Digitizer
   Digitizer(const DigitizationParameters& params, Int_t mode = 0) : mMode(mode), parameters(params) { initParameters(); };
   ~Digitizer() = default;
 
-  //void process(const std::vector<HitType>* hits, std::vector<Digit>* digits);
-  void process(const std::vector<o2::ft0::HitType>* hits, o2::ft0::Digit* digit, std::vector<std::vector<double>>& channel_times);
-  void computeAverage(o2::ft0::Digit& digit);
-
+  void process(const std::vector<o2::ft0::HitType>* hits);
+  void setDigits(std::vector<o2::ft0::Digit>& digitsBC,
+                 std::vector<o2::ft0::ChannelData>& digitsCh);
   void initParameters();
   void printParameters();
-  void setEventTime(double value) { mEventTime = value; }
+  void setTimeStamp(double value) { mEventTime = value; }
   void setEventID(Int_t id) { mEventID = id; }
   void setSrcID(Int_t id) { mSrcID = id; }
-  void setInteractionRecord(uint16_t bc, uint32_t orbit)
-  {
-    mIntRecord.bc = bc;
-    mIntRecord.orbit = orbit;
-  }
   const o2::InteractionRecord& getInteractionRecord() const { return mIntRecord; }
   o2::InteractionRecord& getInteractionRecord(o2::InteractionRecord& src) { return mIntRecord; }
   void setInteractionRecord(const o2::InteractionRecord& src) { mIntRecord = src; }
   uint32_t getOrbit() const { return mIntRecord.orbit; }
   uint16_t getBC() const { return mIntRecord.bc; }
-
-  void setTriggers(o2::ft0::Digit* digit);
-  void smearCFDtime(o2::ft0::Digit* digit, std::vector<std::vector<double>> const& channel_times);
-
+  double measure_amplitude(const std::vector<double>& times);
   void init();
   void finish();
 
   void setMCLabels(o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mclb) { mMCLabels = mclb; }
   double get_time(const std::vector<double>& times);
+  std::vector<std::vector<double>> mChannel_times;
+
+  void setContinuous(bool v = true) { mIsContinuous = v; }
+  bool isContinuous() const { return mIsContinuous; }
+  void cleanChannelData()
+  {
+    mChannel_times.assign(parameters.mMCPs, {});
+    for (Int_t ipmt = 0; ipmt < parameters.mMCPs; ++ipmt)
+      mNumParticles[ipmt] = 0;
+  }
+  void clearDigits()
+  {
+    mChannel_times.assign(parameters.mMCPs, {});
+    for (int i = 0; i < parameters.mMCPs; ++i)
+      mNumParticles[i] = 0;
+    mTriggers.cleanTriggers();
+  }
 
  private:
   // digit info
@@ -67,21 +78,14 @@ class Digitizer
   Int_t mEventID;
   Int_t mSrcID;        // signal, background or QED
   Double_t mEventTime; // timestamp
-  int mNoisePeriod;    //low frequency noise period
-  int mBinshift;       // number of bin to shift positive part of CFD signal
+  bool mIsContinuous = true; // continuous (self-triggered) or externally-triggered readout
+  int mNumParticles[208];
 
   DigitizationParameters parameters;
 
   o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mMCLabels = nullptr;
 
-
-  TH1F* mHist;      // ("time_histogram", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-  TH1F* mHistsum;   //("time_sum", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-  TH1F* mHistshift; //("time_shift", "", 1000, -0.5 * signal_width, 0.5 * signal_width);
-
-  //static constexpr Float_t signal_width = 5.;         // time gate for signal, ns
-
-  //static std::vector<double> aggregate_channels(const std::vector<o2::ft0::HitType>& hits, DigitizationParameters const& parameters);
+  o2::ft0::Triggers mTriggers;
 
   ClassDefNV(Digitizer, 1);
 };
@@ -89,10 +93,22 @@ inline double sinc(const double x)
 {
   return (std::abs(x) < 1e-12) ? 1 : std::sin(x) / x;
 }
-inline double signalForm_i(double x)
+
+template <typename Float>
+Float signalForm_i(Float x)
 {
+  using namespace std;
   return x > 0 ? -(exp(-0.83344945 * x) - exp(-0.45458 * x)) / 7.8446501 : 0.;
   //return -(exp(-0.83344945 * x) - exp(-0.45458 * x)) * (x >= 0) / 7.8446501; // Maximum should be 7.0/250 mV
+};
+
+inline float signalForm_integral(float x)
+{
+  using namespace std;
+  double a = -0.45458, b = -0.83344945;
+  if (x < 0)
+    x = 0;
+  return -(exp(b * x) / b - exp(a * x) / a) / 7.8446501;
 };
 } // namespace ft0
 } // namespace o2

@@ -22,7 +22,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 // encoded with the old version!!!
 
 #ifdef GPUCA_COMPRESSION_TRACK_MODEL_MERGER
-GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float z, float alpha, unsigned char qPt, const GPUParam& param)
+GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float z, float alpha, unsigned char qPt, const GPUParam& GPUrestrict() param)
 {
   static constexpr float kRho = 1.025e-3f;  // 0.9e-3;
   static constexpr float kRadLen = 29.532f; // 28.94;

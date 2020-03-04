@@ -46,6 +46,7 @@ void GPUSettingsRec::SetDefaults()
   tpcZSthreshold = 2;
   fwdTPCDigitsAsClusters = 0;
   bz0Pt = 60;
+  dropLoopers = false;
 }
 
 void GPUSettingsEvent::SetDefaults()
@@ -83,8 +84,13 @@ void GPUSettingsDeviceProcessing::SetDefaults()
   memoryAllocationStrategy = 0;
   keepAllMemory = false;
   nStreams = 8;
-  trackletConstructorInPipeline = true;
-  trackletSelectorInPipeline = false;
+  trackletConstructorInPipeline = -1;
+  trackletSelectorInPipeline = -1;
+  trackletSelectorSlices = -1;
   forceMemoryPoolSize = 0;
   nTPCClustererLanes = 3;
+  registerStandaloneInputMemory = false;
+  tpcCompressionGatherMode = 1;
+  mergerSortTracks = 1;
+  runMC = false;
 }

@@ -33,19 +33,16 @@ using namespace o2::math_utils;
 Digitizer::Digitizer()
 {
   o2::base::GeometryManager::loadGeometry();
-  mGeo = new TRDGeometry();
+  mGeo = TRDGeometry::instance();
   mGeo->createClusterMatrixArray();          // Requiered for chamberInGeometry()
   mPRF = new PadResponse();                  // Pad response function initialization
   mSimParam = TRDSimParam::Instance();       // Instance for simulation parameters
   mCommonParam = TRDCommonParam::Instance(); // Instance for common parameters
   if (!mSimParam) {
-    LOG(FATAL) << "TRD Simulation Parameters not available";
   }
   if (!mCommonParam) {
-    LOG(FATAL) << "TRD Common Parameters not available";
   } else {
     if (!mCommonParam->cacheMagField()) {
-      LOG(FATAL) << "TRD Common Parameters does not have magnetic field available";
     }
   }
 

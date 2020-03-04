@@ -92,20 +92,21 @@ BOOST_AUTO_TEST_CASE(TestDDS)
     }};
   DeviceSpecHelpers::prepareArguments(false, false,
                                       dataProcessorInfos,
-                                      devices, executions, controls);
+                                      devices, executions, controls,
+                                      "workflow-id");
   dumpDeviceSpec2DDS(ss, devices, executions);
   BOOST_CHECK_EQUAL(ss.str(), R"EXPECTED(<topology id="o2-dataflow">
    <decltask id="A">
-       <exe reachable="true">foo --id A --control static --log-color false --color false --jobs 4 --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
+       <exe reachable="true">foo --id A --control static --session dpl_workflow-id --log-color false --color false --jobs 4 --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
    </decltask>
    <decltask id="B">
-       <exe reachable="true">foo --id B --control static --log-color false --color false --jobs 4 --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
+       <exe reachable="true">foo --id B --control static --session dpl_workflow-id --log-color false --color false --jobs 4 --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
    </decltask>
    <decltask id="C">
-       <exe reachable="true">foo --id C --control static --log-color false --color false --jobs 4 --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
+       <exe reachable="true">foo --id C --control static --session dpl_workflow-id --log-color false --color false --jobs 4 --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
    </decltask>
    <decltask id="D">
-       <exe reachable="true">foo --id D --control static --log-color false --color false --jobs 4 --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
+       <exe reachable="true">foo --id D --control static --session dpl_workflow-id --log-color false --color false --jobs 4 --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
    </decltask>
 </topology>
 )EXPECTED");

@@ -19,7 +19,7 @@ namespace o2
 namespace tof
 {
 
-o2::framework::DataProcessorSpec getTOFRecoWorkflowSpec(bool useMC);
+o2::framework::DataProcessorSpec getTOFRecoWorkflowSpec(bool useMC, bool useFIT);
 
 } // end namespace tof
 } // end namespace o2

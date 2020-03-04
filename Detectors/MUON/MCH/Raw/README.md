@@ -11,4 +11,5 @@ and Decoding.
 * \subpage refDetectorsMUONMCHRawElecMap
 * \subpage refDetectorsMUONMCHRawDecoder
 * \subpage refDetectorsMUONMCHRawTools
+* \subpage refDetectorsMUONMCHRawEncoder
 /doxy -->
