@@ -272,7 +272,8 @@ class DataAllocator
       memcpy(payloadMessage->GetData(), &object, sizeof(T));
 
       serializationType = o2::header::gSerializationMethodNone;
-    } else if constexpr (is_specialization<T, std::vector>::value == true) {
+    } else if constexpr (is_specialization<T, std::vector>::value == true ||
+                         (gsl::details::is_span<T>::value && has_messageable_value_type<T>::value)) {
       using ElementType = typename std::remove_pointer<typename T::value_type>::type;
       if constexpr (is_messageable<ElementType>::value) {
         // Serialize a snapshot of a std::vector of trivially copyable, non-polymorphic elements
