@@ -24,8 +24,16 @@
 #include "TLinearFitter.h"
 #include "TVectorD.h"
 #include "TMath.h"
+#include "TF1.h"
+#include "Foption.h"
+#include "HFitInterface.h"
+#include "TFitResultPtr.h"
+#include "TFitResult.h"
+#include "Fit/Fitter.h"
+#include "Fit/BinData.h"
+#include "Math/WrappedMultiTF1.h"
 
-#include <fairlogger/Logger.h>
+#include "Framework/Logger.h"
 
 namespace o2
 {
@@ -33,6 +41,85 @@ namespace math_utils
 {
 namespace math_base
 {
+/// fit 1D array of histogrammed data with generic root function
+///
+/// The code was extracted out of ROOT to be able to do fitting on an array with histogrammed data
+/// instead of root histograms.
+/// It is a stripped down version, so does not provide the same functionality.
+/// To be used with care.
+///
+/// \param[in]  nbins size of the array and number of histogram bins
+/// \param[in]  arr   array with elements
+/// \param[in]  xMin  minimum range of the array
+/// \param[in]  xMax  maximum range of the array
+/// \param[in] func fit function
+///
+///
+//template <typename T>
+//Double_t  fitGaus(const size_t nBins, const T *arr, const T xMin, const T xMax, std::vector<T>& param);
+template <typename T>
+TFitResultPtr fit(const size_t nBins, const T* arr, const T xMin, const T xMax, TF1& func, std::string_view option = "")
+{
+  Foption_t fitOption;
+  ROOT::Fit::FitOptionsMake(ROOT::Fit::kHistogram, option.data(), fitOption);
+
+  ROOT::Fit::DataRange range(xMin, xMax);
+  ROOT::Fit::DataOptions opt;
+  ROOT::Fit::BinData fitdata(opt, range);
+  fitdata.Initialize(nBins, 1);
+
+  // create an empty TFitResult
+  std::shared_ptr<TFitResult> tfr(new TFitResult());
+  // create the fitter from an empty fit result
+  //std::shared_ptr<ROOT::Fit::Fitter> fitter(new ROOT::Fit::Fitter(std::static_pointer_cast<ROOT::Fit::FitResult>(tfr) ) );
+  ROOT::Fit::Fitter fitter(tfr);
+  //ROOT::Fit::FitConfig & fitConfig = fitter->Config();
+
+  const double binWidth = double(xMax - xMin) / double(nBins);
+
+  for (Int_t ibin = 0; ibin < nBins; ibin++) {
+    const double x = double(xMin) + double(ibin + 0.5) * binWidth;
+    const double y = double(arr[ibin]);
+    const double ey = std::sqrt(y);
+    fitdata.Add(x, y, ey);
+  }
+
+  const int special = func.GetNumber();
+  const int npar = func.GetNpar();
+  bool linear = func.IsLinear();
+  if (special == 299 + npar) {
+    linear = kTRUE; // for polynomial functions
+  }
+  // do not use linear fitter in these case
+  if (fitOption.Bound || fitOption.Like || fitOption.Errors || fitOption.Gradient || fitOption.More || fitOption.User || fitOption.Integral || fitOption.Minuit) {
+    linear = kFALSE;
+  }
+
+  if (special != 0 && !fitOption.Bound && !linear) {
+    if (special == 100) {
+      ROOT::Fit::InitGaus(fitdata, &func); // gaussian
+    } else if (special == 400) {
+      ROOT::Fit::InitGaus(fitdata, &func); // landau (use the same)
+    } else if (special == 200) {
+      ROOT::Fit::InitExpo(fitdata, &func); // exponential
+    }
+  }
+
+  if ((linear || fitOption.Gradient)) {
+    fitter.SetFunction(ROOT::Math::WrappedMultiTF1(func));
+  } else {
+    fitter.SetFunction(static_cast<const ROOT::Math::IParamMultiFunction&>(ROOT::Math::WrappedMultiTF1(func)));
+  }
+
+  // standard least square fit
+  const bool fitok = fitter.Fit(fitdata, fitOption.ExecPolicy);
+  if (!fitok) {
+    LOGP(warning, "bad fit");
+  }
+
+  return TFitResultPtr(tfr);
+}
+
 /// fast fit of an array with ranges (histogram) with gaussian function
 ///
 /// Fitting procedure:
