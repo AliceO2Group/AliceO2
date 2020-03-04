@@ -23,6 +23,7 @@
 #include <SimulationDataFormat/Stack.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <DetectorsCommonDataFormats/DetID.h>
+#include <DetectorsCommonDataFormats/FileNameGenerator.h>
 #include <gsl/gsl>
 #include "TFile.h"
 #include "TMemFile.h"
@@ -40,7 +41,6 @@
 
 #include "O2HitMerger.h"
 #include "O2SimDevice.h"
-#include <DetectorsCommonDataFormats/DetID.h>
 #include <TPCSimulation/Detector.h>
 #include <ITSSimulation/Detector.h>
 #include <MFTSimulation/Detector.h>
@@ -90,11 +90,6 @@ class O2HitMerger : public FairMQDevice
   /// Default constructor
   O2HitMerger()
   {
-    initDetInstances();
-
-    // has to be after init of Detectors
-    o2::utils::ShmManager::Instance().attachToGlobalSegment();
-
     mTimer.Start();
   }
 
@@ -118,13 +113,17 @@ class O2HitMerger : public FairMQDevice
     std::string outfilename("o2sim_merged_hits.root"); // default name
     // query the sim config ... which is used to extract the filenames
     if (o2::devices::O2SimDevice::querySimConfig(fChannels.at("primary-get").at(0))) {
-      outfilename = o2::conf::SimConfig::Instance().getOutPrefix() + ".root";
+      outfilename = o2::filenames::SimFileNameGenerator::getKinematicsFileName(o2::conf::SimConfig::Instance().getOutPrefix().c_str());
       mNExpectedEvents = o2::conf::SimConfig::Instance().getNEvents();
     }
     mOutFileName = outfilename.c_str();
     mOutFile = new TFile(outfilename.c_str(), "RECREATE");
     mOutTree = new TTree("o2sim", "o2sim");
     mOutTree->SetDirectory(mOutFile);
+
+    initDetInstances();
+    // has to be after init of Detectors
+    o2::utils::ShmManager::Instance().attachToGlobalSegment();
 
     // init pipe
     auto pipeenv = getenv("ALICE_O2SIMMERGERTODRIVER_PIPE");
@@ -407,6 +406,19 @@ class O2HitMerger : public FairMQDevice
     delete targetdata;
   }
 
+  void initHitTreeAndOutFile(int detID)
+  {
+    using o2::detectors::DetID;
+    if (mDetectorOutFiles[detID]) {
+      LOG(WARN) << "Hit outfile for detID " << DetID::getName(detID) << " already initialized";
+      return;
+    }
+    std::string name(o2::filenames::SimFileNameGenerator::getHitFileName(detID, o2::conf::SimConfig::Instance().getOutPrefix().c_str()));
+    mDetectorOutFiles[detID] = new TFile(name.c_str(), "RECREATE");
+    mDetectorToTTreeMap[detID] = new TTree("o2sim", "o2sim");
+    mDetectorToTTreeMap[detID]->SetDirectory(mDetectorOutFiles[detID]);
+  }
+
   // This method goes over the tree containing data for a given event; potentially merges
   // it and flushes it into the actual output file.
   // The method can be called asynchronously to data collection
@@ -482,9 +494,14 @@ class O2HitMerger : public FairMQDevice
     // c) do the merge procedure for all hits ... delegate this to detector specific functions
     // since they know about types; number of branches; etc.
     // this will also fix the trackIDs inside the hits
-    for (auto& det : mDetectorInstances) {
+    for (int id = 0; id < mDetectorInstances.size(); ++id) {
+      auto& det = mDetectorInstances[id];
       if (det) {
-        det->mergeHitEntries(*tree, *mOutTree, trackoffsets);
+        auto hittree = mDetectorToTTreeMap[id];
+        det->mergeHitEntries(*tree, *hittree, trackoffsets);
+        hittree->SetEntries(hittree->GetEntries() + 1);
+        LOG(INFO) << "flushing tree to file " << hittree->GetDirectory()->GetFile()->GetName();
+        mDetectorOutFiles[id]->Write("", TObject::kOverwrite);
       }
     }
 
@@ -508,10 +525,15 @@ class O2HitMerger : public FairMQDevice
 
   std::string mOutFileName; //!
 
-  TFile* mOutFile;                                        //!
+  // structures for the final flush
+  TFile* mOutFile;                                     //! outfile for kinematics
+  TTree* mOutTree;                                     //! tree (kinematics) associated to mOutFile
+  std::unordered_map<int, TFile*> mDetectorOutFiles;   //! outfiles per detector for hits
+  std::unordered_map<int, TTree*> mDetectorToTTreeMap; //! the trees
+
+  // intermediate structures to collect data per event
   std::unordered_map<int, TTree*> mEventToTTreeMap;       //! in memory trees to collect / presort incoming data per event
   std::unordered_map<int, TMemFile*> mEventToTMemFileMap; //! files associated to the TTrees
-  TTree* mOutTree;                                        //!
   std::thread mMergerIOThread;                            //! a thread used to do hit merging and IO flushing asynchronously
 
   int mEntries = 0;         //! counts the number of entries in the branches
@@ -532,11 +554,22 @@ void O2HitMerger::initDetInstances()
 {
   using o2::detectors::DetID;
 
+  // a little helper lambda
+  auto isActivated = [](std::string s) -> bool {
+    // access user configuration for list of wanted modules
+    auto& modulelist = o2::conf::SimConfig::Instance().getActiveDetectors();
+    auto active = std::find(modulelist.begin(), modulelist.end(), s) != modulelist.end();
+    return active; };
+
   mDetectorInstances.resize(DetID::Last);
   // like a factory of detector objects
 
   int counter = 0;
   for (int i = DetID::First; i <= DetID::Last; ++i) {
+    if (!isActivated(DetID::getName(i))) {
+      continue;
+    }
+
     if (i == DetID::TPC) {
       mDetectorInstances[i] = std::move(std::make_unique<o2::tpc::Detector>(true));
       counter++;
@@ -597,6 +630,9 @@ void O2HitMerger::initDetInstances()
       mDetectorInstances[i] = std::move(std::make_unique<o2::zdc::Detector>(true));
       counter++;
     }
+
+    // init the detector specific output files
+    initHitTreeAndOutFile(i);
   }
   if (counter != DetID::Last) {
     LOG(WARNING) << " O2HitMerger: Some Detectors are potentially missing in this initialization ";

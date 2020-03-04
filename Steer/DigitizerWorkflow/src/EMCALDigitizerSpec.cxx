@@ -35,19 +35,6 @@ namespace emcal
 
 void DigitizerSpec::init(framework::InitContext& ctx)
 {
-  // setup the input chain for the hits
-  mSimChains.emplace_back(new TChain("o2sim"));
-
-  // add the main (background) file
-  mSimChains.back()->AddFile(ctx.options().get<std::string>("simFile").c_str());
-
-  // maybe add a particular signal file
-  auto signalfilename = ctx.options().get<std::string>("simFileS");
-  if (signalfilename.size() > 0) {
-    mSimChains.emplace_back(new TChain("o2sim"));
-    mSimChains.back()->AddFile(signalfilename.c_str());
-  }
-
   // make sure that the geometry is loaded (TODO will this be done centrally?)
   if (!gGeoManager) {
     o2::base::GeometryManager::loadGeometry();
@@ -69,6 +56,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
 
   // read collision context from input
   auto context = ctx.inputs().get<o2::steer::RunContext*>("collisioncontext");
+  context->initSimChains(o2::detectors::DetID::EMC, mSimChains);
   auto& timesview = context->getEventRecords();
   LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
 
@@ -123,7 +111,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
 
       // get the hits for this event and this source
       mHits.clear();
-      retrieveHits(mSimChains, "EMCHit", part.sourceID, part.entryID, &mHits);
+      context->retrieveHits(mSimChains, "EMCHit", part.sourceID, part.entryID, &mHits);
 
       LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
 
@@ -163,21 +151,6 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   mFinished = true;
 }
 
-void DigitizerSpec::retrieveHits(std::vector<TChain*> const& chains,
-                                 const char* brname,
-                                 int sourceID,
-                                 int entryID,
-                                 std::vector<Hit>* hits)
-{
-  auto br = chains[sourceID]->GetBranch(brname);
-  if (!br) {
-    LOG(ERROR) << "No branch found";
-    return;
-  }
-  br->SetAddress(&hits);
-  br->GetEntry(entryID);
-}
-
 DataProcessorSpec getEMCALDigitizerSpec(int channel)
 {
   // create the full data processor spec using
@@ -192,9 +165,7 @@ DataProcessorSpec getEMCALDigitizerSpec(int channel)
             OutputSpec{"EMC", "DIGITSMCTR", 0, Lifetime::Timeframe},
             OutputSpec{"EMC", "ROMode", 0, Lifetime::Timeframe}},
     AlgorithmSpec{o2::framework::adaptFromTask<DigitizerSpec>()},
-    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
-            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
-            {"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}
+    Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}
     // I can't use VariantType::Bool as it seems to have a problem
   };
 }

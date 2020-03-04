@@ -8,6 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <boost/program_options.hpp>
+
 #include "DetectorsBase/Propagator.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
@@ -139,6 +141,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::string grphelp("GRP file describing the simulation");
   workflowOptions.push_back(
     ConfigParamSpec{"GRP", VariantType::String, "o2sim_grp.root", {grphelp}});
+
+  std::string simhelp("Comma separated list of simulation prefixes (for background, signal productions)");
+  workflowOptions.push_back(
+    ConfigParamSpec{"sims", VariantType::String, "o2sim", {simhelp}});
 
   // option allowing to set parameters
   std::string keyvaluehelp("Semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...')");
@@ -320,6 +326,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // write the configuration used for the digitizer workflow
   o2::conf::ConfigurableParam::writeINI("o2digitizerworkflow_configuration.ini");
+
+  // which sim productions to overlay and digitize
+  auto simPrefixes = splitString(configcontext.options().get<std::string>("sims"), ',');
+  for (const auto& p : simPrefixes) {
+    LOG(INFO) << "PREFIX " << p;
+  }
 
   // First, read the GRP to detect which components need instantiations
   // (for the moment this assumes the file o2sim_grp.root to be in the current directory)
@@ -515,7 +527,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::phos::getPHOSDigitWriterSpec());
   }
 
-  // the PHOS part
+  // the CPV part
   if (isEnabled(o2::detectors::DetID::CPV)) {
     detList.emplace_back(o2::detectors::DetID::CPV);
     // connect the PHOS digitization
@@ -528,7 +540,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   specs.emplace_back(o2::parameters::getGRPUpdaterSpec(configcontext.options().get<std::string>("GRP"), detList));
 
   // The SIM Reader. NEEDS TO BE LAST
-  specs[0] = o2::steer::getSimReaderSpec(fanoutsize, tpcsectors, tpclanes);
+  specs[0] = o2::steer::getSimReaderSpec(fanoutsize, simPrefixes, tpcsectors, tpclanes);
 
   return specs;
 }

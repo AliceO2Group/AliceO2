@@ -31,22 +31,6 @@
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
-// helper function which will be offered as a service
-template <typename T>
-void retrieveHits(std::vector<TChain*> const& chains,
-                  const char* brname,
-                  int sourceID,
-                  int entryID,
-                  std::vector<T>* hits)
-{
-  auto br = chains[sourceID]->GetBranch(brname);
-  if (!br) {
-    LOG(ERROR) << "No branch found";
-    return;
-  }
-  br->SetAddress(&hits);
-  br->GetEntry(entryID);
-}
 
 namespace o2
 {
@@ -60,22 +44,7 @@ class FDDDPLDigitizerTask
  public:
   void init(framework::InitContext& ic)
   {
-    LOG(INFO) << "Initializing FDD digitization";
-
-    //auto& dopt = o2::conf::DigiParams::Instance();
-
-    // setup the input chain for the hits
-    mSimChains.emplace_back(new TChain("o2sim"));
-
-    // add the main (background) file
-    mSimChains.back()->AddFile(ic.options().get<std::string>("simFile").c_str());
-
-    // maybe add a particular signal file
-    auto signalfilename = ic.options().get<std::string>("simFileS");
-    if (signalfilename.size() > 0) {
-      mSimChains.emplace_back(new TChain("o2sim"));
-      mSimChains.back()->AddFile(signalfilename.c_str());
-    }
+    LOG(INFO) << "initializing FDD digitization";
 
     const std::string inputGRP = "o2sim_grp.root";
     const std::string grpName = "GRP";
@@ -102,6 +71,13 @@ class FDDDPLDigitizerTask
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
     auto& irecords = context->getEventRecords();
+
+    context->initSimChains(o2::detectors::DetID::FDD, mSimChains);
+
+    for (auto& record : irecords) {
+      LOG(INFO) << "FDD TIME RECEIVED " << record.timeNS;
+    }
+
     auto& eventParts = context->getEventParts();
 
     // loop over all composite collisions given from context
@@ -115,7 +91,8 @@ class FDDDPLDigitizerTask
 
       for (auto& part : eventParts[collID]) {
 
-        retrieveHits(mSimChains, "FDDHit", part.sourceID, part.entryID, &hits);
+        // get the hits for this event and this source
+        context->retrieveHits(mSimChains, "FDDHit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found FDD " << hits.size() << " hits ";
 
         mDigitizer.setEventID(part.entryID);
@@ -172,9 +149,7 @@ o2::framework::DataProcessorSpec getFDDDigitizerSpec(int channel)
             OutputSpec{"FDD", "ROMode", 0, Lifetime::Timeframe}},
 
     AlgorithmSpec{adaptFromTask<FDDDPLDigitizerTask>()},
-
-    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
-            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}}}};
+    Options{}};
 }
 } // namespace fdd
 } // namespace o2
