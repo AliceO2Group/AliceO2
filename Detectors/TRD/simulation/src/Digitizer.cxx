@@ -95,6 +95,9 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
 #else
     const int threadid = 0;
 #endif
+    if (signalsMapCollection[det].size() == 0) {
+      continue;
+    }
     bool status = convertSignalsToADC(det, signalsMapCollection[det], digitsCollection[det], threadid);
     if (!status) {
       LOG(WARN) << "TRD conversion of signals to digits failed for detector " << det;
