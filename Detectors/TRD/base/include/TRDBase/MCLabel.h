@@ -19,17 +19,7 @@ namespace o2
 {
 namespace trd
 {
-
-class MCLabel : public o2::MCCompLabel
-{
- public:
-  MCLabel() = default;
-  MCLabel(int trackID, int eventID, int srcID)
-    : o2::MCCompLabel(trackID, eventID, srcID, false) {}
-
-  ClassDefNV(MCLabel, 1);
-};
-
+using MCLabel = o2::MCCompLabel;
 } // namespace trd
 } // namespace o2
 
