@@ -298,6 +298,7 @@ int SetupReconstruction()
   devProc.debugLevel = configStandalone.DebugLevel;
   devProc.deviceTimers = configStandalone.DeviceTiming;
   devProc.runQA = configStandalone.qa;
+  devProc.runMC = configStandalone.configProc.runMC;
   devProc.runCompressionStatistics = configStandalone.compressionStat;
   if (configStandalone.eventDisplay) {
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
