@@ -47,17 +47,17 @@ void CheckDigits(std::string digifile = "trddigits.root",
     hADC[d] = new TH1F(Form("hADC_%d", d), Form("ADC distribution for chamber %d;ADC value;Counts", d), 1024, 0, 1023);
   }
 
-  TProfile *profADCperTimeBin[540];
-  TH2F *hADCperTimeBinAllDetectors = new TH2F("hADCperTimeBinAllDetectors",
+  TProfile* profADCperTimeBin[540];
+  TH2F* hADCperTimeBinAllDetectors = new TH2F("hADCperTimeBinAllDetectors",
                                               "ADC distribution for all chambers for each time bin;Time bin;ADC",
                                               31, -0.5, 30.5, 1014, 0, 1023);
-  TProfile *profADCperTimeBinAllDetectors = new TProfile("profADCperTimeBinAllDetectors",
-                                                      "ADC distribution for all chambers for each time bin;Time bin;ADC",
-                                                      31, -0.5, 30.5);
+  TProfile* profADCperTimeBinAllDetectors = new TProfile("profADCperTimeBinAllDetectors",
+                                                         "ADC distribution for all chambers for each time bin;Time bin;ADC",
+                                                         31, -0.5, 30.5);
   for (int d = 0; d < 540; ++d) {
     profADCperTimeBin[d] = new TProfile(Form("profADCperTimeBin_%d", d),
-                                     Form("ADC distribution for chamber %d for each time bin;Time bin;ADC", d),
-                                     31, -0.5, 30.5);
+                                        Form("ADC distribution for chamber %d for each time bin;Time bin;ADC", d),
+                                        31, -0.5, 30.5);
   }
 
   LOG(INFO) << nev << " entries found";
@@ -80,7 +80,7 @@ void CheckDigits(std::string digifile = "trddigits.root",
         }
         hADC[det]->Fill(adc);
         profADCperTimeBin[det]->Fill(tb, adc);
-        hADCperTimeBinAllDetectors->Fill(tb,adc);
+        hADCperTimeBinAllDetectors->Fill(tb, adc);
         profADCperTimeBinAllDetectors->Fill(tb, adc);
       }
     }
@@ -170,7 +170,7 @@ void CheckDigits(std::string digifile = "trddigits.root",
   c1->SetLogy();
   c1->SaveAs("testCheckDigits_ADCs.pdf");
 
-  TCanvas *c2 = new TCanvas("c2", "trd digits analysis", 600, 600);
+  TCanvas* c2 = new TCanvas("c2", "trd digits analysis", 600, 600);
   // profADCperTimeBinAllDetectors->Draw("HIST*");
   count = 0;
   for (const auto& det : dets) {
@@ -179,8 +179,7 @@ void CheckDigits(std::string digifile = "trddigits.root",
     if (count == 0) {
       profADCperTimeBin[det]->Draw("HIST");
       ++count;
-    }
-    else {
+    } else {
       profADCperTimeBin[det]->Draw("SAME HIST");
       ++count;
     }
