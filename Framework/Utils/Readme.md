@@ -109,5 +109,43 @@ Options:
 
 The workflow can be connected to the o2-dpl-raw-proxy workflow using pipe on command line.
 
+### DPL output proxy
+Executable:
+```
+o2-dpl-output-proxy
+```
+
+A proxy workflow to connect to workflow output and forward it to out-of-band channels,
+meaning channels outside DPL.
+
+#### Usage: `o2-dpl-output-proxy`
+```
+o2-dpl-output-proxy --dataspec "channelname:TPC/TRACKS" --channel-config name=channelname,...
+```
+
+Output channel(s): to be defined with the FairMQ device channel configuration option, e.g.
+```
+--channel-config name=downstream,type=push,method=bind,address=icp://localhost_4200,rateLogging=60,transport=shmem
+```
+
+Input to the proxy is defined by the DPL data spec syntax
+```
+binding1:origin1/description1/subspecification1;binding2:origin2/descritption2;...
+```
+The binding label can be used internally to access the input, here it is used to match to
+a configured output channel. That binding can be the same for multiple data specs.
+
+Options:
+```
+  --dataspec       specs           Data specs of data to be proxied
+  --channel-config config          FairMQ device channel configuration for the output channel
+  --proxy-name     name            name of the proxy processor, used also as default output channel name
+  --default-transport arg (=shmem) default transport: shmem, zeromq
+  --default-port arg (=4200)       default port number
+```
+Note: the 'default-*' options are only for building the the default of the channel configuration.
+The default channel name is build from the name of the proxy device. Having a default channel
+configuration allows to skip the '--channel-config' option on the command line.
+
 ### ROOT Tree reader and writer
 documentation to be filled

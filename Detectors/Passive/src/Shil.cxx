@@ -29,8 +29,8 @@ using namespace o2::passive;
 
 Shil::~Shil() = default;
 
-Shil::Shil() : FairModule("Shil", "") {}
-Shil::Shil(const char* name, const char* Title) : FairModule(name, Title) {}
+Shil::Shil() : PassiveBase("Shil", "") {}
+Shil::Shil(const char* name, const char* Title) : PassiveBase(name, Title) {}
 Shil::Shil(const Shil& rhs) = default;
 
 Shil& Shil::operator=(const Shil& rhs)
@@ -40,7 +40,7 @@ Shil& Shil::operator=(const Shil& rhs)
     return *this;
 
   // base class assignment
-  FairModule::operator=(rhs);
+  PassiveBase::operator=(rhs);
 
   return *this;
 }

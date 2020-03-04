@@ -8,20 +8,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef STEER_DIGITIZERWORKFLOW_EMCALDIGITWRITER_H_
-#define STEER_DIGITIZERWORKFLOW_EMCALDIGITWRITER_H_
+/// \file DCAFitterN.cxx
+/// \brief Defintions for N-prongs secondary vertex fit
+/// \author ruben.shahoyan@cern.ch
 
-#include "Framework/DataProcessorSpec.h"
+#include "DetectorsVertexing/DCAFitterN.h"
+
 namespace o2
 {
-namespace emcal
+namespace vertexing
 {
 
-/// \brief Create new digits writer spec
-/// \return digits writer spec
-o2::framework::DataProcessorSpec getEMCALDigitWriterSpec();
+void __dummy_instance__()
+{
+  DCAFitter2 ft2;
+  DCAFitter3 ft3;
+  o2::track::TrackParCov tr;
+  ft2.process(tr, tr);
+  ft3.process(tr, tr, tr);
+}
 
-} // end namespace emcal
-} // end namespace o2
-
-#endif /* STEER_DIGITIZERWORKFLOW_EMCALDIGITWRITER_H_ */
+} // namespace vertexing
+} // namespace o2

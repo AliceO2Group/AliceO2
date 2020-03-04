@@ -34,7 +34,7 @@ namespace framework
 InputRecord::InputRecord(std::vector<InputRoute> const& inputsSchema,
                          InputSpan&& span)
   : mInputsSchema{inputsSchema},
-    mSpan{span}
+    mSpan{std::move(span)}
 {
 }
 
@@ -71,6 +71,9 @@ bool InputRecord::isValid(char const* s) const
 
 bool InputRecord::isValid(int s) const
 {
+  if (s >= size()) {
+    return false;
+  }
   DataRef ref = getByPos(s);
   if (ref.header == nullptr || ref.payload == nullptr) {
     return false;
