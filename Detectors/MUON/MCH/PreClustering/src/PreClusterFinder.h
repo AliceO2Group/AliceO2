@@ -20,7 +20,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "MCHBase/DigitBlock.h"
+#include "MCHBase/Digit.h"
 #include "MCHBase/Mapping.h"
 
 namespace o2
@@ -51,7 +51,7 @@ class PreClusterFinder
   void deinit();
   void reset();
 
-  void loadDigits(const DigitStruct* digits, uint32_t nDigits);
+  void loadDigits(const Digit* digits, int nDigits);
 
   int run();
 
@@ -59,7 +59,7 @@ class PreClusterFinder
   bool hasPreClusters(int iDE);
   int getNPreClusters(int iDE, int iPlane);
   const PreCluster* getPreCluster(int iDE, int iPlane, int iCluster);
-  const DigitStruct* getDigit(int iDE, uint16_t iOrderedPad);
+  const Digit* getDigit(int iDE, uint16_t iOrderedPad);
 
   /// return the number of detection elements in the internal structure
   static constexpr int getNDEs() { return SNDEs; }
@@ -68,15 +68,12 @@ class PreClusterFinder
  private:
   struct DetectionElement {
     std::unique_ptr<Mapping::MpDE> mapping; // mapping of this DE including the list of pads
-    std::vector<const DigitStruct*> digits; // list of pointers to digits (not owner)
+    std::vector<const Digit*> digits;       // list of pointers to digits (not owner)
     uint16_t nFiredPads[2];                 // number of fired pads on each plane
     std::vector<uint16_t> firedPads[2];     // indices of fired pads on each plane
     uint16_t nOrderedPads[2];               // current number of fired pads in the following arrays
     std::vector<uint16_t> orderedPads[2];   // indices of fired pads ordered after preclustering and merging
   };
-
-  /// Return detection element ID part of the unique ID
-  int detectionElementId(uint32_t uid) { return uid & 0xFFF; }
 
   /// Return the cathode part of the unique ID
   int cathode(uint32_t uid) { return (uid & 0x40000000) >> 30; }
@@ -150,7 +147,7 @@ inline const PreClusterFinder::PreCluster* PreClusterFinder::getPreCluster(int i
 }
 
 //_________________________________________________________________________________________________
-inline const DigitStruct* PreClusterFinder::getDigit(int iDE, uint16_t iOrderedPad)
+inline const Digit* PreClusterFinder::getDigit(int iDE, uint16_t iOrderedPad)
 {
   /// return the digit associated to the pad registered at the index "iOrderedPad".
   /// This index must be in the range [firstPad, lastPad] associated to a precluster to be stored.
