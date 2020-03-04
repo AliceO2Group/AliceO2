@@ -104,30 +104,6 @@ void Hall::createMaterials()
   matmgr.Medium("HALL", kFE_C2, "FE_C2", kFE_C2, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 }
 
-void Hall::SetSpecialPhysicsCuts()
-{
-
-  using namespace o2::base;
-  // MaterialManager used to set physics cuts
-  auto& matmgr = MaterialManager::Instance();
-
-  // \note ported from AliRoot. People responsible for the HALL implementation must judge and modify cuts if required.
-  auto& hp = HallSimParam::Instance();
-  const auto cutgam = hp.mCUTGAM;
-  const auto cutele = hp.mCUTELE;
-  const auto cutneu = hp.mCUTNEU;
-  const auto cuthad = hp.mCUTHAD;
-
-  matmgr.SpecialCuts(
-    "HALL", kSTST_C2,
-    {{ECut::kCUTGAM, cutgam}, {ECut::kCUTELE, cutele}, {ECut::kCUTNEU, cutneu}, {ECut::kCUTHAD, cuthad}});
-  matmgr.SpecialCuts(
-    "HALL", kAIR_C2,
-    {{ECut::kCUTGAM, cutgam}, {ECut::kCUTELE, cutele}, {ECut::kCUTNEU, cutneu}, {ECut::kCUTHAD, cuthad}});
-  matmgr.SpecialCuts(
-    "HALL", kCC_C2,
-    {{ECut::kCUTGAM, cutgam}, {ECut::kCUTELE, cutele}, {ECut::kCUTNEU, cutneu}, {ECut::kCUTHAD, cuthad}});
-}
 
 void Hall::ConstructGeometry()
 {
