@@ -13,6 +13,7 @@ o2_add_library(DataFormatsEMCAL
                        src/TriggerRecord.cxx
                        src/Constants.cxx
                        src/Cluster.cxx
+                       src/AnalysisCluster.cxx
                        src/Cell.cxx 
                        src/Digit.cxx
                        src/EventHandler.cxx
@@ -30,6 +31,7 @@ o2_target_root_dictionary(DataFormatsEMCAL
                                   include/DataFormatsEMCAL/Cell.h
                                   include/DataFormatsEMCAL/Digit.h
                                   include/DataFormatsEMCAL/Cluster.h
+                                  include/DataFormatsEMCAL/AnalysisCluster.h
                                   include/DataFormatsEMCAL/EventHandler.h
                                   include/DataFormatsEMCAL/MCLabel.h)
 

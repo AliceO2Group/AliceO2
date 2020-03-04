@@ -14,7 +14,7 @@
 #define ALICEO2_EMCAL_CLUSTERIZER_H
 
 #include <array>
-#include <gsl/gsl>
+#include <gsl/span>
 #include "Rtypes.h"
 #include "DataFormatsEMCAL/Cluster.h"
 #include "DataFormatsEMCAL/Digit.h"
