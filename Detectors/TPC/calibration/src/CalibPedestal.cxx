@@ -21,6 +21,7 @@
 #include "TPCCalibration/CalibPedestal.h"
 
 using namespace o2::tpc;
+using o2::math_utils::math_base::fit;
 using o2::math_utils::math_base::fitGaus;
 using o2::math_utils::math_base::getStatisticsData;
 using o2::math_utils::math_base::StatisticsData;
@@ -29,10 +30,10 @@ CalibPedestal::CalibPedestal(PadSubset padSubset)
   : CalibRawBase(padSubset),
     mFirstTimeBin(0),
     mLastTimeBin(500),
-    mADCMin(0),
-    mADCMax(120),
+    mADCMin(20),
+    mADCMax(140),
     mNumberOfADCs(mADCMax - mADCMin + 1),
-    mStatisticsType(StatisticsType::GausFit),
+    mStatisticsType(StatisticsType::GausFitFast),
     mPedestal("Pedestals", padSubset),
     mNoise("Noise", padSubset),
     mADCdata()
@@ -114,9 +115,16 @@ void CalibPedestal::analyse()
     float pedestal{};
     float noise{};
 
+    TF1 fg("fg", "gaus");
+    fg.SetRange(mADCMin - 0.5f, mADCMax + 1.5f);
+
     for (Int_t ichannel = 0; ichannel < numberOfPads; ++ichannel) {
       size_t offset = ichannel * mNumberOfADCs;
       if (mStatisticsType == StatisticsType::GausFit) {
+        fit(mNumberOfADCs, array + offset, float(mADCMin) - 0.5f, float(mADCMax + 1) - 0.5f, fg); // -0.5 since ADC values are discrete
+        pedestal = fg.GetParameter(1);
+        noise = fg.GetParameter(2);
+      } else if (mStatisticsType == StatisticsType::GausFitFast) {
         fitGaus(mNumberOfADCs, array + offset, float(mADCMin) - 0.5f, float(mADCMax + 1) - 0.5f, fitValues); // -0.5 since ADC values are discrete
         pedestal = fitValues[1];
         noise = fitValues[2];
@@ -125,6 +133,7 @@ void CalibPedestal::analyse()
         pedestal = data.mCOG;
         noise = data.mStdDev;
       }
+      noise = std::abs(noise); // noise can be negative in gaus fit
 
       calROCPedestal.setValue(ichannel, pedestal);
       calROCNoise.setValue(ichannel, noise);
