@@ -28,7 +28,7 @@
 #include "Framework/Output.h"
 #include "Framework/Task.h"
 
-#include "MCHBase/DigitBlock.h"
+#include "MCHBase/Digit.h"
 
 namespace o2
 {
@@ -37,7 +37,6 @@ namespace mch
 
 using namespace std;
 using namespace o2::framework;
-using namespace o2::mch;
 
 class DigitSamplerTask
 {
@@ -60,8 +59,6 @@ class DigitSamplerTask
       this->mInputFile.close();
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
-
-    mPrint = ic.options().get<bool>("print");
   }
 
   //_________________________________________________________________________________________________
@@ -69,47 +66,39 @@ class DigitSamplerTask
   {
     /// send the digits of the current event
 
-    DigitBlock digitBlock{};
-    mInputFile.read(reinterpret_cast<char*>(&digitBlock), SSizeOfDigitBlock);
+    int nDigits(0);
+    mInputFile.read(reinterpret_cast<char*>(&nDigits), SSizeOfInt);
     if (mInputFile.fail()) {
+      pc.services().get<ControlService>().endOfStream();
       return; // probably reached eof
     }
 
-    if (digitBlock.header.fRecordWidth != SSizeOfDigitStruct) {
-      throw length_error("incorrect size of digits. Content changed?");
-    }
-
     // create the output message
-    auto size = digitBlock.header.fNrecords * SSizeOfDigitStruct;
-    auto msgOut = pc.outputs().make<char>(Output{"MCH", "DIGITS", 0, Lifetime::Timeframe}, SSizeOfDigitBlock + size);
-    if (msgOut.size() != SSizeOfDigitBlock + size) {
+    auto size = nDigits * SSizeOfDigit;
+    auto msgOut = pc.outputs().make<char>(Output{"MCH", "DIGITS", 0, Lifetime::Timeframe}, SSizeOfInt + size);
+    if (msgOut.size() != SSizeOfInt + size) {
       throw length_error("incorrect message payload");
     }
 
     auto bufferPtr = msgOut.data();
 
-    // fill header info
-    memcpy(bufferPtr, &digitBlock, SSizeOfDigitBlock);
-    bufferPtr += SSizeOfDigitBlock;
+    // fill number of digits
+    memcpy(bufferPtr, &nDigits, SSizeOfInt);
+    bufferPtr += SSizeOfInt;
 
-    // fill digits info
+    // fill digits if any
     if (size > 0) {
       mInputFile.read(bufferPtr, size);
     } else {
       LOG(INFO) << "event is empty";
     }
-
-    if (mPrint) {
-      LOG(INFO) << "block: " << *reinterpret_cast<const DigitBlock*>(msgOut.data());
-    }
   }
 
  private:
-  static constexpr uint32_t SSizeOfDigitBlock = sizeof(DigitBlock);
-  static constexpr uint32_t SSizeOfDigitStruct = sizeof(DigitStruct);
+  static constexpr uint32_t SSizeOfInt = sizeof(int);
+  static constexpr uint32_t SSizeOfDigit = sizeof(Digit);
 
   std::ifstream mInputFile{}; ///< input file
-  bool mPrint = false;        ///< print digits
 };
 
 //_________________________________________________________________________________________________
@@ -120,8 +109,7 @@ o2::framework::DataProcessorSpec getDigitSamplerSpec()
     Inputs{},
     Outputs{OutputSpec{"MCH", "DIGITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<DigitSamplerTask>()},
-    Options{{"infile", VariantType::String, "", {"input file name"}},
-            {"print", VariantType::Bool, false, {"print digits"}}}};
+    Options{{"infile", VariantType::String, "", {"input file name"}}}};
 }
 
 } // end namespace mch

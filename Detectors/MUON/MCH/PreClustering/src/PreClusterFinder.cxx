@@ -88,7 +88,7 @@ void PreClusterFinder::reset()
 }
 
 //_________________________________________________________________________________________________
-void PreClusterFinder::loadDigits(const DigitStruct* digits, uint32_t nDigits)
+void PreClusterFinder::loadDigits(const Digit* digits, int nDigits)
 {
   /// fill the Mapping::MpDE structure with fired pads
 
@@ -96,19 +96,19 @@ void PreClusterFinder::loadDigits(const DigitStruct* digits, uint32_t nDigits)
   uint16_t iPad(0);
 
   // loop over digits
-  for (uint32_t i = 0; i < nDigits; ++i) {
+  for (int i = 0; i < nDigits; ++i) {
 
-    const DigitStruct& digit(digits[i]);
+    const Digit& digit(digits[i]);
 
-    int deIndex = mDEIndices[detectionElementId(digit.uid)];
+    int deIndex = mDEIndices[digit.getDetID()];
     assert(deIndex >= 0 && deIndex < SNDEs);
 
     DetectionElement& de(mDEs[deIndex]);
 
-    iPlane = (cathode(digit.uid) == de.mapping->iCath[0]) ? 0 : 1;
-    iPad = de.mapping->padIndices[iPlane].GetValue(digit.uid);
+    iPlane = (cathode(digit.getPadID()) == de.mapping->iCath[0]) ? 0 : 1;
+    iPad = de.mapping->padIndices[iPlane].GetValue(digit.getPadID());
     if (iPad == 0) {
-      LOG(WARN) << "pad ID " << digit.uid << " does not exist in the mapping";
+      LOG(WARN) << "pad ID " << digit.getPadID() << " does not exist in the mapping";
       continue;
     }
     --iPad;

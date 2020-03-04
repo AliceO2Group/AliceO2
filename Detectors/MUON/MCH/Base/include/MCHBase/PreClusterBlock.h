@@ -19,7 +19,7 @@
 #include <ostream>
 #include <vector>
 
-#include "MCHBase/DigitBlock.h"
+#include "MCHBase/Digit.h"
 
 namespace o2
 {
@@ -31,8 +31,8 @@ namespace mch
  * hit reconstruction and correlated into a common cluster.
  */
 struct PreClusterStruct {
-  uint16_t nDigits;          // number of digits attached to this precluster
-  const DigitStruct* digits; // pointer to the 1st element of the array of digits
+  uint16_t nDigits;    // number of digits attached to this precluster
+  const Digit* digits; // pointer to the 1st element of the array of digits
 };
 
 /**
@@ -83,13 +83,13 @@ class PreClusterBlock
    * Method to fill the buffer with a new precluster and its first digit
    * @param digit  Reference to the first digit to add to the new precluster.
    */
-  int startPreCluster(const DigitStruct& digit);
+  int startPreCluster(const Digit& digit);
 
   /**
    * Method to add a new digit to the current precluster
    * @param digit  Reference to the digit to add to the current precluster.
    */
-  int addDigit(const DigitStruct& digit);
+  int addDigit(const Digit& digit);
 
   /**
    * Return the number of bytes currently used for the data block in the buffer.
@@ -124,7 +124,7 @@ class PreClusterBlock
   int readBuffer();
 
   static constexpr uint32_t SSizeOfUShort = sizeof(uint16_t);
-  static constexpr uint32_t SSizeOfDigit = sizeof(DigitStruct);
+  static constexpr uint32_t SSizeOfDigit = sizeof(Digit);
 
   /// running pointer on the buffer
   /**

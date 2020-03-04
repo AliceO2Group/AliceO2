@@ -29,7 +29,7 @@
 #include "Framework/Output.h"
 #include "Framework/Task.h"
 
-#include "MCHBase/DigitBlock.h"
+#include "MCHBase/Digit.h"
 #include "MCHBase/PreClusterBlock.h"
 #include "PreClusterFinder.h"
 
@@ -85,22 +85,19 @@ class PreClusterFinderTask
     auto sizeIn = msgIn.size();
 
     // get header info and check message consistency
-    if (sizeIn < SSizeOfDigitBlock) {
-      throw out_of_range("missing DigitBlock");
+    if (sizeIn < SSizeOfInt) {
+      throw out_of_range("missing number of digits");
     }
-    auto digitBlock(reinterpret_cast<const DigitBlock*>(bufferPtrIn));
-    bufferPtrIn += SSizeOfDigitBlock;
-    sizeIn -= SSizeOfDigitBlock;
-    if (digitBlock->header.fRecordWidth != SSizeOfDigitStruct) {
-      throw length_error("incorrect size of digits. Corrupted message?");
-    }
-    if (sizeIn != digitBlock->header.fNrecords * SSizeOfDigitStruct) {
+    auto& nDigits(*reinterpret_cast<const int*>(bufferPtrIn));
+    bufferPtrIn += SSizeOfInt;
+    sizeIn -= SSizeOfInt;
+    if (sizeIn != nDigits * SSizeOfDigit) {
       throw length_error("incorrect payload");
     }
 
     // load the digits to get the fired pads
-    auto digits(reinterpret_cast<const DigitStruct*>(bufferPtrIn));
-    mPreClusterFinder.loadDigits(digits, digitBlock->header.fNrecords);
+    auto digits(reinterpret_cast<const Digit*>(bufferPtrIn));
+    mPreClusterFinder.loadDigits(digits, nDigits);
 
     // preclusterize
     int nPreClusters = mPreClusterFinder.run();
@@ -138,7 +135,7 @@ class PreClusterFinderTask
     /// store the preclusters in the given buffer
 
     const PreClusterFinder::PreCluster* cluster(nullptr);
-    const DigitStruct* digit(nullptr);
+    const Digit* digit(nullptr);
     uint32_t* bytesUsed(nullptr);
     uint32_t totalBytesUsed(0);
 
@@ -210,8 +207,7 @@ class PreClusterFinderTask
   }
 
   static constexpr uint32_t SSizeOfInt = sizeof(int);
-  static constexpr uint32_t SSizeOfDigitBlock = sizeof(DigitBlock);
-  static constexpr uint32_t SSizeOfDigitStruct = sizeof(DigitStruct);
+  static constexpr uint32_t SSizeOfDigit = sizeof(Digit);
 
   bool mPrint = false;                  ///< print preclusters
   PreClusterFinder mPreClusterFinder{}; ///< preclusterizer
