@@ -203,7 +203,7 @@ int GPUReconstructionOCL::InitDevice_Runtime()
     GPUInfo("\tmaxThreadsDim = %lld %lld %lld", (long long int)maxWorkItems[0], (long long int)maxWorkItems[1], (long long int)maxWorkItems[2]);
     GPUInfo(" ");
   }
-#ifndef GPUCA_OPENCL_NO_CONSTANT_MEMORY
+#ifndef GPUCA_NO_CONSTANT_MEMORY
   if (gGPUConstantMemBufferSize > constantBuffer) {
     quit("Insufficient constant memory available on GPU %d < %d!", (int)constantBuffer, (int)gGPUConstantMemBufferSize);
   }
