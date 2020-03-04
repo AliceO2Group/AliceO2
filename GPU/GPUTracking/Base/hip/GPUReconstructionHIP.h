@@ -56,6 +56,8 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
 
   void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits) override;
 
+  void PrintKernelOccupancies() override;
+
   template <class T, int I = 0, typename... Args>
   int runKernelBackend(krnlSetup& _xyz, Args... args);
   template <class T, int I>
