@@ -22,6 +22,23 @@ set_target_properties(geant4
                       PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
                                  "${Geant4_INCLUDE_DIRS}")
 
+list(GET Geant4_INCLUDE_DIRS 0 Geant4_INCLUDE_DIR)
+set(Geant4_LIBRARY_DIRS)
+foreach(gl4lib IN LISTS Geant4_LIBRARIES)
+  find_library(gl4libpath NAMES ${gl4lib} PATHS "${Geant4_INCLUDE_DIR}/../.."
+               PATH_SUFFIXES lib lib64
+               NO_DEFAULT_PATH)
+  if(gl4libpath)
+    get_filename_component(gl4libdir ${gl4libpath} DIRECTORY)
+    list(APPEND Geant4_LIBRARY_DIRS ${gl4libdir})
+  endif()
+  unset(gl4libpath CACHE)
+endforeach()
+list(REMOVE_DUPLICATES Geant4_LIBRARY_DIRS)
+set_target_properties(geant4
+                      PROPERTIES INTERFACE_LINK_DIRECTORIES
+                      "${Geant4_LIBRARY_DIRS}")
+
 # Promote the imported target to global visibility
 # (so we can alias it)
 set_target_properties(geant4 PROPERTIES IMPORTED_GLOBAL TRUE)
