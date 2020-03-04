@@ -27,18 +27,29 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
+// clang-format off
 constexpr size_t gGPUConstantMemBufferSize = sizeof(GPUConstantMem);
-#ifndef GPUCA_HIP_NO_CONSTANT_MEMORY
-__constant__ GPUConstantMem gGPUConstantMemBuffer;
-__global__ void gGPUConstantMemBuffer_dummy(int* p) { *p = *(int*)&gGPUConstantMemBuffer; }
-#define GPUCA_CONSMEM_PTR
-#define GPUCA_CONSMEM_CALL
-#define GPUCA_CONSMEM gGPUConstantMemBuffer
+#ifndef GPUCA_NO_CONSTANT_MEMORY
+  // __constant__ GPUConstantMem gGPUConstantMemBuffer; // This compiles, but still doesn't work correctly at runtime
+  // #define GPUCA_CONSMEM gGPUConstantMemBuffer
+  __constant__ uint4 gGPUConstantMemBuffer[gGPUConstantMemBufferSize / sizeof(uint4)];
+  __global__ void gGPUConstantMemBuffer_dummy(int* p) { *p = *(int*)&gGPUConstantMemBuffer; }
+  #ifdef GPUCA_CONSTANT_AS_ARGUMENT
+    #define GPUCA_CONSMEM_PTR const GPUConstantMemCopyable gGPUConstantMemBufferByValue,
+    #define GPUCA_CONSMEM_CALL gGPUConstantMemBufferHost,
+    #define GPUCA_CONSMEM const_cast<GPUConstantMem&>(gGPUConstantMemBufferByValue.v)
+    static GPUConstantMemCopyable gGPUConstantMemBufferHost;
+  #else
+    #define GPUCA_CONSMEM_PTR
+    #define GPUCA_CONSMEM_CALL
+    #define GPUCA_CONSMEM (GPUConstantMem&)gGPUConstantMemBuffer
+  #endif
 #else
-#define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,
-#define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,
-#define GPUCA_CONSMEM (*gGPUConstantMemBuffer)
+  #define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,
+  #define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,
+  #define GPUCA_CONSMEM const_cast<GPUConstantMem&>(*gGPUConstantMemBuffer)
 #endif
+// clang-format on
 
 __global__ void gHIPMemSetWorkaround(char* ptr, char val, size_t size)
 {
@@ -269,7 +280,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
     GPUError("Unsupported HIP Device");
     return (1);
   }
-#ifndef GPUCA_HIP_NO_CONSTANT_MEMORY
+#ifndef GPUCA_NO_CONSTANT_MEMORY
   if (gGPUConstantMemBufferSize > hipDeviceProp.totalConstMem) {
     GPUError("Insufficient constant memory available on GPU %d < %d!", (int)hipDeviceProp.totalConstMem, (int)gGPUConstantMemBufferSize);
     return (1);
@@ -322,7 +333,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
   }
 
   void* devPtrConstantMem;
-#ifndef GPUCA_HIP_NO_CONSTANT_MEMORY
+#ifndef GPUCA_NO_CONSTANT_MEMORY
   if (GPUFailedMsgI(hipGetSymbolAddress(&devPtrConstantMem, HIP_SYMBOL(gGPUConstantMemBuffer)))) {
     GPUError("Error getting ptr to constant memory");
     GPUFailedMsgI(hipDeviceReset());
@@ -362,7 +373,7 @@ int GPUReconstructionHIPBackend::ExitDevice_Runtime()
 
   GPUFailedMsgI(hipFree(mDeviceMemoryBase));
   mDeviceMemoryBase = nullptr;
-#ifdef GPUCA_HIP_NO_CONSTANT_MEMORY
+#ifdef GPUCA_NO_CONSTANT_MEMORY
   GPUFailedMsgI(hipFree(mDeviceConstantMem));
 #endif
 
@@ -428,7 +439,10 @@ size_t GPUReconstructionHIPBackend::TransferMemoryInternal(GPUMemoryResource* re
 
 size_t GPUReconstructionHIPBackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
 {
-#ifndef GPUCA_HIP_NO_CONSTANT_MEMORY
+#ifdef GPUCA_CONSTANT_AS_ARGUMENT
+  memcpy(((char*)&gGPUConstantMemBufferHost) + offset, src, size);
+#endif
+#ifndef GPUCA_NO_CONSTANT_MEMORY
   if (stream == -1) {
     GPUFailedMsg(hipMemcpyToSymbol(HIP_SYMBOL(gGPUConstantMemBuffer), src, size, offset, hipMemcpyHostToDevice));
   } else {
@@ -437,14 +451,12 @@ size_t GPUReconstructionHIPBackend::WriteToConstantMemory(size_t offset, const v
   if (ev && stream != -1) {
     GPUFailedMsg(hipEventRecord(*(hipEvent_t*)ev, mInternals->HIPStreams[stream]));
   }
-
 #else
   if (stream == -1) {
     GPUFailedMsg(hipMemcpy(((char*)mDeviceConstantMem) + offset, src, size, hipMemcpyHostToDevice));
   } else {
     GPUFailedMsg(hipMemcpyAsync(((char*)mDeviceConstantMem) + offset, src, size, hipMemcpyHostToDevice, mInternals->HIPStreams[stream]));
   }
-
 #endif
   return size;
 }

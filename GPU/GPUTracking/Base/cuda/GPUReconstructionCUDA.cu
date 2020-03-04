@@ -26,14 +26,14 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + sizeof(uint4) - 1);
-#ifndef GPUCA_CUDA_NO_CONSTANT_MEMORY
+#ifndef GPUCA_NO_CONSTANT_MEMORY
 __constant__ uint4 gGPUConstantMemBuffer[gGPUConstantMemBufferSize / sizeof(uint4)];
 #define GPUCA_CONSMEM_PTR
 #define GPUCA_CONSMEM_CALL
 #define GPUCA_CONSMEM (GPUConstantMem&)gGPUConstantMemBuffer
 #else
-#define GPUCA_CONSMEM_PTR const uint4 *gGPUConstantMemBuffer,
-#define GPUCA_CONSMEM_CALL (const uint4*)me->mDeviceConstantMem,
+#define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,
+#define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,
 #define GPUCA_CONSMEM (GPUConstantMem&)(*gGPUConstantMemBuffer)
 #endif
 
@@ -296,7 +296,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     return (1);
   }
 #endif
-#ifndef GPUCA_CUDA_NO_CONSTANT_MEMORY
+#ifndef GPUCA_NO_CONSTANT_MEMORY
   if (gGPUConstantMemBufferSize > cudaDeviceProp.totalConstMem) {
     GPUError("Insufficient constant memory available on GPU %d < %d!", (int)cudaDeviceProp.totalConstMem, (int)gGPUConstantMemBufferSize);
     return (1);
@@ -351,7 +351,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
   }
 
   void* devPtrConstantMem;
-#ifndef GPUCA_CUDA_NO_CONSTANT_MEMORY
+#ifndef GPUCA_NO_CONSTANT_MEMORY
   if (GPUFailedMsgI(cudaGetSymbolAddress(&devPtrConstantMem, gGPUConstantMemBuffer))) {
     GPUError("Error getting ptr to constant memory");
     GPUFailedMsgI(cudaDeviceReset());
@@ -398,7 +398,7 @@ int GPUReconstructionCUDABackend::ExitDevice_Runtime()
 
   GPUFailedMsgI(cudaFree(mDeviceMemoryBase));
   mDeviceMemoryBase = nullptr;
-#ifdef GPUCA_CUDA_NO_CONSTANT_MEMORY
+#ifdef GPUCA_NO_CONSTANT_MEMORY
   GPUFailedMsgI(cudaFree(mDeviceConstantMem));
 #endif
 
@@ -466,7 +466,7 @@ size_t GPUReconstructionCUDABackend::TransferMemoryInternal(GPUMemoryResource* r
 
 size_t GPUReconstructionCUDABackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
 {
-#ifndef GPUCA_CUDA_NO_CONSTANT_MEMORY
+#ifndef GPUCA_NO_CONSTANT_MEMORY
   if (stream == -1) {
     GPUFailedMsg(cudaMemcpyToSymbol(gGPUConstantMemBuffer, src, size, offset, cudaMemcpyHostToDevice));
   } else {
