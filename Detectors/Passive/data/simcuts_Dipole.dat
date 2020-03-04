@@ -1,0 +1,56 @@
+* Dipole DIPO
+* =============
+* ALUMINUM
+* ^^^^^^^^
+* unshielded
+DIPO  9 1.e-4 1.e-4 1.e-3 1.e-4 1.e-3 1.e-3 1.e-3
+* shielded
+DIPO 29 1.e-3 1.e-2 1.e-3 1.e-3
+* very shielded
+DIPO 49 1.e-1 1.e-1 1.e-1 1.e-1
+
+* Iron
+* ^^^^^^^^
+* unshielded
+DIPO 10 1.e-4 1.e-4 1.e-3 1.e-4 1.e-3 1.e-3 1.e-3
+* shielded
+DIPO 30 1.e-3 1.e-2 1.e-3 1.e-3
+
+* Air
+* ^^^^^^^^
+* unshielded
+DIPO 15 1.e-4 1.e-4 1.e-3 1.e-4 1.e-3 1.e-3 1.e-3
+* shielded
+DIPO 35 1.e-3 1.e-2 1.e-3 1.e-3
+* very shielded
+DIPO 55 1.e-1 1.e-1 1.e-1 1.e-1
+* special muon
+DIPO 75 1.e-4 1.e-4 1.e-3 1.e-4
+
+* Steel
+* ^^^^^^^^
+* unshielded
+DIPO 19 1.e-4 1.e-4 1.e-3 1.e-4 1.e-3 1.e-3 1.e-3
+* shielded
+DIPO 39 1.e-3 1.e-2 1.e-3 1.e-3
+* very shielded
+DIPO 59 1.e-1 1.e-1 1.e-1 1.e-1
+
+* Coil
+* ^^^^^^^^
+* unshielded
+DIPO 14 1.e-4 1.e-4 1.e-3 1.e-4 1.e-3 1.e-3 1.e-3
+* shielded
+DIPO 34 1.e-3 1.e-2 1.e-3 1.e-3
+* very shielded
+DIPO 54 1.e-2 1.e-1 1.e-2 1.e-2
+
+* Copper
+* ^^^^^^^^
+* unshielded
+DIPO 17 1.e-4 1.e-4 1.e-3 1.e-4 1.e-3 1.e-3 1.e-3
+* shielded
+DIPO 37 1.e-3 1.e-2 1.e-3 1.e-3
+* very shielded
+DIPO 57 1.e-1 1.e-1 2.e-1 1.e-1
+
