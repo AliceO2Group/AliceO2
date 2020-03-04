@@ -465,14 +465,15 @@ struct FilteredIndexPolicy : IndexPolicyBase {
   // which happens below which will properly setup the first index
   // by remapping the filtered index 0 to whatever unfiltered index
   // it belongs to.
-  FilteredIndexPolicy(SelectionVector* selection = nullptr, uint64_t offset = 0)
+  FilteredIndexPolicy(SelectionVector selection, uint64_t offset = 0)
     : IndexPolicyBase{-1, offset},
       mSelectedRows(selection),
-      mMaxSelection(selection == nullptr ? 0 : selection->size())
+      mMaxSelection(selection.size())
   {
     this->setCursor(0);
   }
 
+  FilteredIndexPolicy() = default;
   FilteredIndexPolicy(FilteredIndexPolicy&&) = default;
   FilteredIndexPolicy(FilteredIndexPolicy const&) = default;
   FilteredIndexPolicy& operator=(FilteredIndexPolicy const&) = default;
@@ -501,13 +502,13 @@ struct FilteredIndexPolicy : IndexPolicyBase {
   void setCursor(int64_t i)
   {
     mSelectionRow = i;
-    this->mRowIndex = mSelectedRows != nullptr ? (*mSelectedRows)[mSelectionRow] : mSelectionRow;
+    this->mRowIndex = !mSelectedRows.empty() ? mSelectedRows[mSelectionRow] : mSelectionRow;
   }
 
   void moveByIndex(int64_t i)
   {
     mSelectionRow += i;
-    this->mRowIndex = mSelectedRows != nullptr ? (*mSelectedRows)[mSelectionRow] : mSelectionRow;
+    this->mRowIndex = !mSelectedRows.empty() ? mSelectedRows[mSelectionRow] : mSelectionRow;
   }
 
   bool operator!=(FilteredIndexPolicy const& other) const
@@ -535,7 +536,7 @@ struct FilteredIndexPolicy : IndexPolicyBase {
   }
 
  private:
-  SelectionVector* mSelectedRows = nullptr;
+  SelectionVector mSelectedRows;
   int64_t mSelectionRow = 0;
   int64_t mMaxSelection = 0;
 };
@@ -725,7 +726,7 @@ template <typename... C>
 using RowViewFiltered = RowViewBase<FilteredIndexPolicy, C...>;
 
 template <typename... C>
-auto&& makeRowViewFiltered(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, SelectionVector* selection, uint64_t offset)
+auto&& makeRowViewFiltered(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, SelectionVector selection, uint64_t offset)
 {
   return std::move(RowViewBase<FilteredIndexPolicy, C...>{columnIndex, FilteredIndexPolicy{selection, offset}});
 }
@@ -781,7 +782,7 @@ class Table
     return unfiltered_iterator{mEnd};
   }
 
-  filtered_iterator filtered_begin(SelectionVector* selection)
+  filtered_iterator filtered_begin(SelectionVector selection)
   {
     // Note that the FilteredIndexPolicy will never outlive the selection which
     // is held by the table, so we are safe passing the bare pointer. If it does it
@@ -790,7 +791,7 @@ class Table
     return filtered_iterator(mColumnIndex, {selection, mOffset});
   }
 
-  filtered_iterator filtered_end(SelectionVector* selection)
+  filtered_iterator filtered_end(SelectionVector selection)
   {
     auto end = filtered_iterator(mColumnIndex, {selection, mOffset});
     end.moveToEnd();
@@ -1158,16 +1159,16 @@ class Filtered : public T
   Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
     : T{std::move(tables), offset},
       mSelectedRows{std::forward<SelectionVector>(selection)},
-      mFilteredBegin{table_t::filtered_begin(&mSelectedRows)},
-      mFilteredEnd{table_t::filtered_end(&mSelectedRows)}
+      mFilteredBegin{table_t::filtered_begin(mSelectedRows)},
+      mFilteredEnd{table_t::filtered_end(mSelectedRows)}
   {
   }
 
   Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, framework::expressions::Selection selection, uint64_t offset = 0)
     : T{std::move(tables), offset},
       mSelectedRows{copySelection(selection)},
-      mFilteredBegin{table_t::filtered_begin(&mSelectedRows)},
-      mFilteredEnd{table_t::filtered_end(&mSelectedRows)}
+      mFilteredBegin{table_t::filtered_begin(mSelectedRows)},
+      mFilteredEnd{table_t::filtered_end(mSelectedRows)}
   {
   }
 
@@ -1176,8 +1177,8 @@ class Filtered : public T
       mSelectedRows{copySelection(framework::expressions::createSelection(this->asArrowTable(),
                                                                           framework::expressions::createFilter(this->asArrowTable()->schema(),
                                                                                                                framework::expressions::createCondition(tree))))},
-      mFilteredBegin{table_t::filtered_begin(&mSelectedRows)},
-      mFilteredEnd{table_t::filtered_end(&mSelectedRows)}
+      mFilteredBegin{table_t::filtered_begin(mSelectedRows)},
+      mFilteredEnd{table_t::filtered_end(mSelectedRows)}
   {
   }
 
