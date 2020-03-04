@@ -25,7 +25,6 @@
 #pragma link C++ class o2::trd::CalDet + ;
 #pragma link C++ class o2::trd::CalROC + ;
 #pragma link C++ class o2::trd::PadResponse + ;
-#pragma link C++ class o2::trd::MCLabel + ;
 #pragma link C++ class o2::trd::PadParameters < unsigned short > +;
 #pragma link C++ class o2::trd::PadParameters < float > +;
 #pragma link C++ class o2::trd::PadParameters < char > +;
@@ -45,7 +44,5 @@
 #pragma link C++ class o2::trd::PadNoise + ;
 
 #include "SimulationDataFormat/MCTruthContainer.h"
-
-#pragma link C++ class o2::dataformats::MCTruthContainer < o2::trd::MCLabel> + ;
 
 #endif
