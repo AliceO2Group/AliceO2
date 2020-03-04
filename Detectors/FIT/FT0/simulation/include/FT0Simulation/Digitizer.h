@@ -84,6 +84,7 @@ class Digitizer
   DigitizationParameters parameters;
 
   o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mMCLabels = nullptr;
+  std::vector<ft0::MCLabel> mVecLabels;
 
   o2::ft0::Triggers mTriggers;
 

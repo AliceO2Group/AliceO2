@@ -52,6 +52,8 @@ double Digitizer::get_time(const std::vector<double>& times)
     is_positive = cfd_val > 0;
   }
   LOG(INFO) << "CFD failed to find peak ";
+  for (double t : times)
+    LOG(INFO) << t;
   return 1e9;
 }
 
@@ -88,19 +90,15 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits)
     Double_t hit_time = hit.GetTime() - time_compensate;
 
     //  bool is_hit_in_signal_gate = (abs(hit_time) < parameters.mSignalWidth * .5);
-
+    if (hit_time < -12.5 || hit_time > 12.5)
+      continue;
     mNumParticles[hit_ch]++;
     mChannel_times[hit_ch].push_back(hit_time);
 
     //charge particles in MCLabel
     Int_t parentID = hit.GetTrackID();
     if (parentID != parent) {
-      o2::ft0::MCLabel label(hit.GetTrackID(), mEventID, mSrcID, hit_ch);
-      int lblCurrent;
-      if (mMCLabels) {
-        lblCurrent = mMCLabels->getIndexedSize(); // this is the size of mHeaderArray;
-        mMCLabels->addElement(lblCurrent, label);
-      }
+      mVecLabels.emplace_back(parentID, mEventID, mSrcID, hit_ch);
       parent = parentID;
     }
   }
@@ -163,6 +161,10 @@ void Digitizer::setDigits(std::vector<o2::ft0::Digit>& digitsBC,
                         amplA, amplC, timeA, timeC);
 
   digitsBC.emplace_back(first, nStored, mIntRecord, mTriggers);
+
+  size_t const nBC = digitsBC.size();
+  for (auto const& lbl : mVecLabels)
+    mMCLabels->addElement(nBC, lbl);
 
   // Debug output -------------------------------------------------------------
 

@@ -109,6 +109,7 @@ class FT0DPLDigitizerTask
       mDigitizer.setTimeStamp(timesview[collID].timeNS);
       mDigitizer.setInteractionRecord(timesview[collID]);
       mDigitizer.clearDigits();
+      labels.clear();
       std::vector<std::vector<double>> channel_times;
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
@@ -119,20 +120,19 @@ class FT0DPLDigitizerTask
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " source ID " << part.sourceID << " found " << hits.size() << " hits ";
 
         // call actual digitization procedure
-        labels.clear();
         mDigitizer.setEventID(collID);
         mDigitizer.setSrcID(part.sourceID);
         mDigitizer.process(&hits);
-        // copy labels into accumulator
-        labelAccum.mergeAtBack(labels);
       }
       mDigitizer.setDigits(mDigitsBC, mDigitsCh);
+      // copy labels into accumulator
+      //   labelAccum.mergeAtBack(labels);
     }
 
     // send out to next stage
     pc.outputs().snapshot(Output{"FT0", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
     pc.outputs().snapshot(Output{"FT0", "DIGITSCH", 0, Lifetime::Timeframe}, mDigitsCh);
-    pc.outputs().snapshot(Output{"FT0", "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
+    pc.outputs().snapshot(Output{"FT0", "DIGITSMCTR", 0, Lifetime::Timeframe}, labels);
 
     LOG(INFO) << "FT0: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"FT0", "ROMode", 0, Lifetime::Timeframe}, mROMode);
