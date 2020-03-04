@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "DataFormatsEMCAL/Cluster.h"
+#include "DataFormatsEMCAL/TriggerRecord.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALReconstruction/Clusterizer.h"
 #include "Framework/DataProcessorSpec.h"
@@ -61,10 +62,12 @@ class ClusterizerSpec : public framework::Task
   void run(framework::ProcessingContext& ctx) final;
 
  private:
-  o2::emcal::Clusterizer<InputType> mClusterizer;                                ///< Clusterizer object
-  o2::emcal::Geometry* mGeometry = nullptr;                                      ///< Pointer to geometry object
-  const std::vector<o2::emcal::Cluster>* mOutputClusters = nullptr;              ///< Container with output clusters (pointer)
-  const std::vector<o2::emcal::ClusterIndex>* mOutputCellDigitIndices = nullptr; ///< Container with indices of cluster digits (pointer)
+  o2::emcal::Clusterizer<InputType> mClusterizer;                               ///< Clusterizer object
+  o2::emcal::Geometry* mGeometry = nullptr;                                     ///< Pointer to geometry object
+  std::vector<o2::emcal::Cluster>* mOutputClusters = nullptr;                   ///< Container with output clusters (pointer)
+  std::vector<o2::emcal::ClusterIndex>* mOutputCellDigitIndices = nullptr;      ///< Container with indices of cluster digits (pointer)
+  std::vector<o2::emcal::TriggerRecord>* mOutputTriggerRecord = nullptr;        ///< Container with Trigger records for clusters
+  std::vector<o2::emcal::TriggerRecord>* mOutputTriggerRecordIndices = nullptr; ///< Container with Trigger records for indices
 };
 
 /// \brief Creating DataProcessorSpec for the EMCAL Clusterizer Spec
