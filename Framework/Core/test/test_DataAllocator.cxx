@@ -287,6 +287,8 @@ DataProcessorSpec getSinkSpec()
     ASSERT_ERROR(object12.size() == 2);
     ASSERT_ERROR((object12[0] == o2::test::TriviallyCopyable{42, 23, 0xdead}));
     ASSERT_ERROR((object12[1] == o2::test::TriviallyCopyable{10, 20, 0xacdc}));
+    // forward the read-only span on a different route
+    pc.outputs().snapshot(Output{"TST", "MSGABLVECTORCPY", 0, Lifetime::Timeframe}, object12);
 
     LOG(INFO) << "extracting TNamed object from input13";
     auto object13 = pc.inputs().get<TNamed*>("input13");
@@ -330,7 +332,7 @@ DataProcessorSpec getSinkSpec()
                             InputSpec{"input15", "TST", "ROOTSERLZBLVECT", 0, Lifetime::Timeframe},
                             InputSpec{"inputPMR", "TST", "PMRTESTVECTOR", 0, Lifetime::Timeframe},
                             InputSpec{"inputMP", ConcreteDataTypeMatcher{"TST", "MULTIPARTS"}, Lifetime::Timeframe}},
-                           Outputs{},
+                           Outputs{OutputSpec{"TST", "MSGABLVECTORCPY", 0, Lifetime::Timeframe}},
                            AlgorithmSpec(processingFct)};
 }
 
@@ -339,6 +341,7 @@ DataProcessorSpec getSpectatorSinkSpec()
 {
   auto processingFct = [](ProcessingContext& pc) {
     using DataHeader = o2::header::DataHeader;
+    int nPart = 0;
     for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
       auto const& input = *iit;
       LOG(INFO) << (*iit).spec->binding << " " << (iit.isValid() ? "is valid" : "is not valid");
@@ -351,21 +354,27 @@ DataProcessorSpec getSpectatorSinkSpec()
 
       if ((*iit).spec->binding == "inputMP") {
         LOG(INFO) << "inputMP with " << iit.size() << " part(s)";
-        int nPart = 0;
         for (auto const& ref : iit) {
-          LOG(INFO) << "accessing part " << nPart++ << " of input slot 'inputMP':"
+          LOG(INFO) << "accessing part " << nPart << " of input slot 'inputMP':"
                     << pc.inputs().get<int>(ref);
+          nPart++;
           ASSERT_ERROR(pc.inputs().get<int>(ref) == nPart * 10);
         }
-        ASSERT_ERROR(nPart == 3);
       }
     }
+    ASSERT_ERROR(nPart == 3);
+    LOG(INFO) << "extracting the forwarded gsl::span<o2::test::TriviallyCopyable> as span from input12";
+    auto object12 = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("input12");
+    ASSERT_ERROR(object12.size() == 2);
+    ASSERT_ERROR((object12[0] == o2::test::TriviallyCopyable{42, 23, 0xdead}));
+    ASSERT_ERROR((object12[1] == o2::test::TriviallyCopyable{10, 20, 0xacdc}));
 
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   };
 
   return DataProcessorSpec{"spectator-sink", // name of the processor
-                           {InputSpec{"inputMP", ConcreteDataTypeMatcher{"TST", "MULTIPARTS"}, Lifetime::Timeframe}},
+                           {InputSpec{"inputMP", ConcreteDataTypeMatcher{"TST", "MULTIPARTS"}, Lifetime::Timeframe},
+                            InputSpec{"input12", ConcreteDataTypeMatcher{"TST", "MSGABLVECTORCPY"}, Lifetime::Timeframe}},
                            Outputs{},
                            AlgorithmSpec(processingFct)};
 }
