@@ -32,23 +32,6 @@
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
-// helper function which will be offered as a service
-template <typename T>
-void retrieveHits(std::vector<TChain*> const& chains,
-                  const char* brname,
-                  int sourceID,
-                  int entryID,
-                  std::vector<T>* hits)
-{
-  auto br = chains[sourceID]->GetBranch(brname);
-  if (!br) {
-    LOG(ERROR) << "No branch found";
-    return;
-  }
-  br->SetAddress(&hits);
-  br->GetEntry(entryID);
-}
-
 namespace o2
 {
 namespace fv0
@@ -66,19 +49,6 @@ class FV0DPLDigitizerTask
   void init(framework::InitContext& ic)
   {
     LOG(INFO) << "FV0DPLDigitizerTask:init";
-
-    // setup the input chain for the hits
-    mSimChains.emplace_back(new TChain("o2sim"));
-
-    // add the main (background) file
-    mSimChains.back()->AddFile(ic.options().get<std::string>("simFile").c_str());
-
-    // maybe add a particular signal file
-    auto signalfilename = ic.options().get<std::string>("simFileS");
-    if (signalfilename.size() > 0) {
-      mSimChains.emplace_back(new TChain("o2sim"));
-      mSimChains.back()->AddFile(signalfilename.c_str());
-    }
 
     const std::string inputGRP = "o2sim_grp.root";
     const std::string grpName = "GRP";
@@ -100,6 +70,8 @@ class FV0DPLDigitizerTask
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
+    context->initSimChains(o2::detectors::DetID::FV0, mSimChains);
+
     auto& irecords = context->getEventRecords();
     auto& eventParts = context->getEventParts();
 
@@ -114,7 +86,7 @@ class FV0DPLDigitizerTask
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
         hits.clear();
-        retrieveHits(mSimChains, "FV0Hit", part.sourceID, part.entryID, &hits);
+        context->retrieveHits(mSimChains, "FV0Hit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "[FV0] For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
 
         // call actual digitization procedure
@@ -172,12 +144,7 @@ o2::framework::DataProcessorSpec getFV0DigitizerSpec(int channel)
 
     AlgorithmSpec{adaptFromTask<FV0DPLDigitizerTask>()},
 
-    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
-            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
-            {"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}
-
-    // I can't use VariantType::Bool as it seems to have a problem
-  };
+    Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}};
 }
 
 } // end namespace fv0

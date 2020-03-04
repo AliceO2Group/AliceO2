@@ -72,62 +72,120 @@ void duplicate<o2::dataformats::MCEventHeader>(TTree* tr, const char* brname, TT
   outtree->SetEntries(entries * factor);
 }
 
-template <typename T>
-void duplicateV(TTree* tr, const char* brname, TTree* outtree, int factor)
+TTree* getHitTree(o2::parameters::GRPObject const* grp, const char* filebase, o2::detectors::DetID detid, bool createnew = false)
 {
-  duplicate<std::vector<T>>(tr, brname, outtree, factor);
+  if (!grp->isDetReadOut(detid)) {
+    return nullptr;
+  }
+  std::string filename(o2::filenames::SimFileNameGenerator::getHitFileName(detid, filebase).c_str());
+
+  const char* mode = createnew ? "RECREATE" : "OPEN";
+
+  // shamefully leaking memory as the TTree cannot live without the file...
+  TFile* file = new TFile(o2::filenames::SimFileNameGenerator::getHitFileName(detid, filebase).c_str(), mode);
+  TTree* t = nullptr;
+  if (createnew) {
+    t = new TTree("o2sim", "o2sim");
+  } else {
+    t = (TTree*)file->Get("o2sim");
+  }
+  return t;
 }
 
-// need a special version for TPC since loop over sectors
-void duplicateTPC(TTree* tr, TTree* newtree, int factor)
-{
-  for (int sector = 0; sector < 35; ++sector) {
-    std::stringstream brnamestr;
-    brnamestr << "TPCHitsShiftedSector" << sector;
+template <typename T>
+struct HitContainer {
+  using type = std::vector<T>;
+};
+template <>
+struct HitContainer<o2::tpc::HitGroup> {
+  using type = o2::tpc::HitGroup;
+};
 
-    // call other duplicate function with correct type
-    duplicateV<o2::tpc::HitGroup>(tr, brnamestr.str().c_str(), newtree, factor);
+template <typename T>
+void duplicateV(o2::parameters::GRPObject const* grp,
+                const char* filebase, o2::detectors::DetID detid, const char* newfilebase, int factor)
+{
+  // open old file and extract tree
+  auto tr = getHitTree(grp, filebase, detid);
+  if (!tr) {
+    return;
   }
+  auto outtree = getHitTree(grp, newfilebase, detid, true);
+  if (!outtree) {
+    return;
+  }
+
+  // duplicate entries in all branches and copy
+  auto branches = o2::detectors::SimTraits::DETECTORBRANCHNAMES[(int)detid];
+  for (auto& br : branches) {
+    duplicate<std::vector<T>>(tr, br.c_str(), outtree, factor);
+  }
+  outtree->SetEntries(tr->GetEntries() * factor);
+  // write outtree
+  outtree->Write();
+}
+
+TTree* getKinematicsTree(const char* filebase, bool createnew = false)
+{
+  // shamefully leaking memory as the TTree cannot live without the file...
+  const char* mode = createnew ? "RECREATE" : "OPEN";
+  TFile* file = new TFile(o2::filenames::SimFileNameGenerator::getKinematicsFileName(filebase).c_str(), mode);
+  TTree* t = nullptr;
+  if (createnew) {
+    t = new TTree("o2sim", "o2sim");
+  } else {
+    t = (TTree*)file->Get("o2sim");
+  }
+  return t;
 }
 
 // Macro to duplicate hit output of a simulation
 // This might be useful to enlarge input for digitization or to engineer
 // sequences of identical hit structures in order test pileup
-void duplicateHits(const char* filename = "o2sim.root", const char* newfilename = "o2sim_duplicated.root", int factor = 2)
+void duplicateHits(const char* filebase = "o2sim", const char* newfilebase = "o2sim_duplicated", int factor = 2)
 {
-  TFile rf(filename, "OPEN");
-  auto reftree = (TTree*)rf.Get("o2sim");
-
-  TFile outfile(newfilename, "RECREATE");
-  auto newtree = new TTree("o2sim", "o2sim");
-
   // NOTE: There might be a way in which this can be achieved
   // without explicit iteration over branches and type ... just by using TClasses
 
-  // duplicate meta branches
-  duplicate<o2::MCTrack>(reftree, "MCTrack", newtree, factor);
-  duplicate<o2::dataformats::MCEventHeader>(reftree, "MCEventHeader.", newtree, factor);
-  // TODO: fix EventIDs in the newly created MCEventHeaders
+  // READ GRP AND ITERATE OVER DETECTED PARTS
+  auto oldgrpfilename = o2::filenames::SimFileNameGenerator::getGRPFileName(filebase);
+  auto grp = o2::parameters::GRPObject::loadFrom(o2::filenames::SimFileNameGenerator::getGRPFileName(filebase).c_str());
+  if (!grp) {
+    std::cerr << "No GRP found; exiting";
+  }
+  // cp GRP for new sim files
+  auto newgrpfilename = o2::filenames::SimFileNameGenerator::getGRPFileName(newfilebase);
+  std::stringstream command;
+  command << "cp " << oldgrpfilename << " " << newgrpfilename;
+  system(command.str().c_str());
 
-  duplicate<o2::TrackReference>(reftree, "TrackRefs", newtree, factor);
-  duplicate<o2::dataformats::MCTruthContainer<o2::TrackReference>>(reftree, "IndexedTrackRefs", newtree, factor);
+  // duplicate kinematics stuff
+  auto kintree = getKinematicsTree(filebase);
+  auto newkintree = getKinematicsTree(newfilebase, "RECREATE");
+  // duplicate meta branches
+  duplicate<o2::MCTrack>(kintree, "MCTrack", newkintree, factor);
+  duplicate<o2::dataformats::MCEventHeader>(kintree, "MCEventHeader.", newkintree, factor);
+  // TODO: fix EventIDs in the newly created MCEventHeaders
+  duplicate<o2::TrackReference>(kintree, "TrackRefs", newkintree, factor);
+  duplicate<o2::dataformats::MCTruthContainer<o2::TrackReference>>(kintree, "IndexedTrackRefs", newkintree, factor);
 
   // duplicating hits
-  duplicateV<o2::itsmft::Hit>(reftree, "ITSHit", newtree, factor);
-  duplicateV<o2::itsmft::Hit>(reftree, "MFTHit", newtree, factor);
-  duplicateV<o2::tof::HitType>(reftree, "TOFHit", newtree, factor);
-  duplicateV<o2::emcal::Hit>(reftree, "EMCHit", newtree, factor);
-  duplicateV<o2::trd::HitType>(reftree, "TRDHit", newtree, factor);
-  duplicateV<o2::phos::Hit>(reftree, "PHSHit", newtree, factor);
-  duplicateV<o2::cpv::Hit>(reftree, "CPVHit", newtree, factor);
-  duplicateV<o2::zdc::Hit>(reftree, "ZDCHit", newtree, factor);
-  duplicateV<o2::ft0::HitType>(reftree, "FT0Hit", newtree, factor);
-  duplicateV<o2::fv0::Hit>(reftree, "FV0Hit", newtree, factor);
-  duplicateV<o2::fdd::Hit>(reftree, "FDDHit", newtree, factor);
-  duplicateV<o2::hmpid::HitType>(reftree, "HMPHit", newtree, factor);
-  duplicateV<o2::mid::Hit>(reftree, "MIDHit", newtree, factor);
-  duplicateV<o2::mch::Hit>(reftree, "MCHHit", newtree, factor);
-  duplicateTPC(reftree, newtree, factor);
+  using namespace o2::detectors;
+  duplicateV<o2::itsmft::Hit>(grp, filebase, DetID::ITS, newfilebase, factor);
+  duplicateV<o2::itsmft::Hit>(grp, filebase, DetID::MFT, newfilebase, factor);
+  duplicateV<o2::tof::HitType>(grp, filebase, DetID::TOF, newfilebase, factor);
+  duplicateV<o2::emcal::Hit>(grp, filebase, DetID::EMC, newfilebase, factor);
+  duplicateV<o2::trd::HitType>(grp, filebase, DetID::TRD, newfilebase, factor);
+  duplicateV<o2::phos::Hit>(grp, filebase, DetID::PHS, newfilebase, factor);
+  duplicateV<o2::cpv::Hit>(grp, filebase, DetID::CPV, newfilebase, factor);
+  duplicateV<o2::zdc::Hit>(grp, filebase, DetID::ZDC, newfilebase, factor);
+  duplicateV<o2::ft0::HitType>(grp, filebase, DetID::FT0, newfilebase, factor);
+  duplicateV<o2::fv0::Hit>(grp, filebase, DetID::FV0, newfilebase, factor);
+  duplicateV<o2::fdd::Hit>(grp, filebase, DetID::FDD, newfilebase, factor);
+  duplicateV<o2::hmpid::HitType>(grp, filebase, DetID::HMP, newfilebase, factor);
+  duplicateV<o2::mid::Hit>(grp, filebase, DetID::MID, newfilebase, factor);
+  duplicateV<o2::mch::Hit>(grp, filebase, DetID::MCH, newfilebase, factor);
+  duplicateV<o2::tpc::HitGroup>(grp, filebase, DetID::TPC, newfilebase, factor);
   // duplicateACO(reftree);
-  outfile.Write();
+  // outfile.Write();
 }

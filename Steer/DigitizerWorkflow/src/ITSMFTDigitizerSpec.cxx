@@ -20,6 +20,8 @@
 #include "DataFormatsITSMFT/Digit.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "DetectorsCommonDataFormats/DetID.h"
+#include "DetectorsCommonDataFormats/SimTraits.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTSimulation/Digitizer.h"
@@ -46,16 +48,6 @@ class ITSMFTDPLDigitizerTask
  public:
   void init(framework::InitContext& ic)
   {
-    // setup the input chain for the hits
-    mSimChains.emplace_back(new TChain("o2sim"));
-    // add the main (background) file
-    mSimChains.back()->AddFile(ic.options().get<std::string>("simFile").c_str());
-    // maybe add a particular signal file
-    auto signalfilename = ic.options().get<std::string>("simFileS");
-    if (signalfilename.size() > 0) {
-      mSimChains.emplace_back(new TChain("o2sim"));
-      mSimChains.back()->AddFile(signalfilename.c_str());
-    }
     // init optional QED chain
     auto qedfilename = ic.options().get<std::string>("simFileQED");
     if (qedfilename.size() > 0) {
@@ -100,6 +92,7 @@ class ITSMFTDPLDigitizerTask
     std::string detStr = mID.getName();
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
+    context->initSimChains(mID, mSimChains);
     auto& timesview = context->getEventRecords();
     LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
     // if there is nothing to do ... return
@@ -134,7 +127,7 @@ class ITSMFTDPLDigitizerTask
 
         // get the hits for this event and this source
         mHits.clear();
-        retrieveHits(part.sourceID, part.entryID);
+        context->retrieveHits(mSimChains, o2::detectors::SimTraits::DETECTORBRANCHNAMES[mID][0].c_str(), part.sourceID, part.entryID, &mHits);
 
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID
                   << " found " << mHits.size() << " hits ";
@@ -204,19 +197,6 @@ class ITSMFTDPLDigitizerTask
     qedBranch->SetAddress(&mHitsP);
     LOG(INFO) << "Attaching QED ITS hits as sourceID=" << int(QEDSourceID) << ", entry integrates "
               << mQEDEntryTimeBinNS << " ns";
-  }
-
-  // helper function which will be offered as a service
-  void retrieveHits(int sourceID, int entryID)
-  {
-    std::string detStr = mID.getName();
-    auto br = mSimChains[sourceID]->GetBranch((detStr + "Hit").c_str());
-    if (!br) {
-      LOG(ERROR) << "No branch " << (detStr + "Hit").c_str() << " found for sourceID=" << sourceID;
-      return;
-    }
-    br->SetAddress(&mHitsP);
-    br->GetEntry(entryID);
   }
 
   void accumulate()
@@ -371,8 +351,6 @@ DataProcessorSpec getITSDigitizerSpec(int channel)
                              OutputSpec{detOrig, "ROMode", 0, Lifetime::Timeframe}},
                            AlgorithmSpec{adaptFromTask<ITSDPLDigitizerTask>()},
                            Options{
-                             {"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
-                             {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
                              {"simFileQED", VariantType::String, "", {"Sim (QED) input filename"}},
                              //  { "configKeyValues", VariantType::String, "", { parHelper.str().c_str() } }
                            }};
@@ -399,8 +377,6 @@ DataProcessorSpec getMFTDigitizerSpec(int channel)
                              OutputSpec{detOrig, "ROMode", 0, Lifetime::Timeframe}},
                            AlgorithmSpec{adaptFromTask<MFTDPLDigitizerTask>()},
                            Options{
-                             {"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
-                             {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
                              {"simFileQED", VariantType::String, "", {"Sim (QED) input filename"}}}};
 }
 

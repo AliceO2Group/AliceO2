@@ -36,23 +36,6 @@ using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 using DigiGroupRef = o2::dataformats::RangeReference<int, int>;
 
-// helper function which will be offered as a service
-template <typename T>
-void retrieveHits(std::vector<TChain*> const& chains,
-                  const char* brname,
-                  int sourceID,
-                  int entryID,
-                  std::vector<T>* hits)
-{
-  auto br = chains[sourceID]->GetBranch(brname);
-  if (!br) {
-    LOG(ERROR) << "TPC: No branch found";
-    return;
-  }
-  br->SetAddress(&hits);
-  br->GetEntry(entryID);
-}
-
 namespace o2
 {
 namespace tpc
@@ -154,19 +137,6 @@ class TPCDPLDigitizerTask
     }
     mDigitizer.setContinuousReadout(!triggeredMode);
 
-    // setup the input chain for the hits
-    mSimChains.emplace_back(new TChain("o2sim"));
-
-    // add the main (background) file
-    mSimChains.back()->AddFile(ic.options().get<std::string>("simFile").c_str());
-
-    // maybe add a particular signal file
-    auto signalfilename = ic.options().get<std::string>("simFileS");
-    if (signalfilename.size() > 0) {
-      mSimChains.emplace_back(new TChain("o2sim"));
-      mSimChains.back()->AddFile(signalfilename.c_str());
-    }
-
     if (!gGeoManager) {
       o2::base::GeometryManager::loadGeometry();
     }
@@ -189,6 +159,7 @@ class TPCDPLDigitizerTask
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
+    context->initSimChains(o2::detectors::DetID::TPC, mSimChains);
     auto& irecords = context->getEventRecords();
     LOG(INFO) << "TPC: Processing " << irecords.size() << " collisions";
     if (irecords.size() == 0) {
@@ -315,8 +286,8 @@ class TPCDPLDigitizerTask
         // get the hits for this event and this source
         std::vector<o2::tpc::HitGroup> hitsLeft;
         std::vector<o2::tpc::HitGroup> hitsRight;
-        retrieveHits(mSimChains, getBranchNameLeft(sector).c_str(), part.sourceID, part.entryID, &hitsLeft);
-        retrieveHits(mSimChains, getBranchNameRight(sector).c_str(), part.sourceID, part.entryID, &hitsRight);
+        context->retrieveHits(mSimChains, getBranchNameLeft(sector).c_str(), part.sourceID, part.entryID, &hitsLeft);
+        context->retrieveHits(mSimChains, getBranchNameRight(sector).c_str(), part.sourceID, part.entryID, &hitsRight);
         LOG(DEBUG) << "TPC: Found " << hitsLeft.size() << " hit groups left and " << hitsRight.size() << " hit groups right in collision " << collID << " eventID " << part.entryID;
 
         mDigitizer.process(hitsLeft, eventID, sourceID);
@@ -382,9 +353,7 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP)
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
     outputs,
     AlgorithmSpec{adaptFromTask<TPCDPLDigitizerTask>(channel, writeGRP)},
-    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
-            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
-            {"distortionType", VariantType::Int, 0, {"Distortion type to be used. 0 = no distortions (default), 1 = realistic distortions (not implemented yet), 2 = constant distortions"}},
+    Options{{"distortionType", VariantType::Int, 0, {"Distortion type to be used. 0 = no distortions (default), 1 = realistic distortions (not implemented yet), 2 = constant distortions"}},
             {"gridSize", VariantType::String, "129,144,129", {"Comma separated list of number of bins in (r,phi,z) for distortion lookup tables (r and z can only be 2**N + 1, N=1,2,3,...)"}},
             {"initialSpaceChargeDensity", VariantType::String, "", {"Path to root file containing TH3 with initial space-charge density and name of the TH3 (comma separated)"}},
             {"readSpaceCharge", VariantType::String, "", {"Path to root file containing pre-calculated space-charge object and name of the object (comma separated)"}},

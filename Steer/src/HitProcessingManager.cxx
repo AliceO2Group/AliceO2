@@ -54,7 +54,7 @@ bool HitProcessingManager::setupChain()
   auto& c = *mSimChains[0];
   c.Reset();
   for (auto& filename : mBackgroundFileNames) {
-    c.AddFile(filename.data());
+    c.AddFile(o2::filenames::SimFileNameGenerator::getKinematicsFileName(filename.data()).c_str());
   }
 
   for (auto& pair : mSignalFileNames) {
@@ -62,7 +62,7 @@ bool HitProcessingManager::setupChain()
     const auto& filenamevector = pair.second;
     auto& chain = *mSimChains[signalid];
     for (auto& filename : filenamevector) {
-      chain.AddFile(filename.data());
+      chain.AddFile(o2::filenames::SimFileNameGenerator::getKinematicsFileName(filename.data()).c_str());
     }
   }
 
@@ -92,6 +92,14 @@ void HitProcessingManager::setupRun(int ncollisions)
 
   // sample collision (background-signal) constituents
   sampleCollisionConstituents();
+
+  // store prefixes as part of Context
+  std::vector<std::string> prefixes;
+  prefixes.emplace_back(mBackgroundFileNames[0]);
+  for (auto k : mSignalFileNames) {
+    prefixes.emplace_back(k.second[0]);
+  }
+  mRunContext.setSimPrefixes(prefixes);
 }
 
 void HitProcessingManager::writeRunContext(const char* filename) const

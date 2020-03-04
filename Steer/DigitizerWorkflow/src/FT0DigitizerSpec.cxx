@@ -53,17 +53,6 @@ class FT0DPLDigitizerTask
 
   void init(framework::InitContext& ic)
   {
-    // setup the input chain for the hits
-    mSimChains.emplace_back(new TChain("o2sim"));
-
-    // add the main (background) file
-    mSimChains.back()->AddFile(ic.options().get<std::string>("simFile").c_str());
-    // maybe add a particular signal file
-    auto signalfilename = ic.options().get<std::string>("simFileS");
-    if (signalfilename.size() > 0) {
-      mSimChains.emplace_back(new TChain("o2sim"));
-      mSimChains.back()->AddFile(signalfilename.c_str());
-    }
     const std::string inputGRP = "o2sim_grp.root";
     const std::string grpName = "GRP";
     TFile flGRP(inputGRP.c_str());
@@ -85,6 +74,7 @@ class FT0DPLDigitizerTask
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
+    context->initSimChains(o2::detectors::DetID::FT0, mSimChains);
     auto& timesview = context->getEventRecords();
 
     // if there is nothing to do ... return
@@ -112,7 +102,7 @@ class FT0DPLDigitizerTask
       for (auto& part : eventParts[collID]) {
         // get the hits for this event and this source
         hits.clear();
-        retrieveHits(mSimChains, part.sourceID, part.entryID, &hits);
+        context->retrieveHits(mSimChains, "FT0Hit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " source ID " << part.sourceID << " found " << hits.size() << " hits ";
 
         // call actual digitization procedure
@@ -153,20 +143,6 @@ class FT0DPLDigitizerTask
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
 
   std::vector<TChain*> mSimChains;
-
-  void retrieveHits(std::vector<TChain*> const& chains,
-                    int sourceID,
-                    int entryID,
-                    std::vector<o2::ft0::HitType>* hits)
-  {
-    auto br = mSimChains[sourceID]->GetBranch("FT0Hit");
-    if (!br) {
-      LOG(ERROR) << "No branch found";
-      return;
-    }
-    br->SetAddress(&hits);
-    br->GetEntry(entryID);
-  }
 };
 
 o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel)
@@ -185,12 +161,7 @@ o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel)
             OutputSpec{"FT0", "DIGITSMCTR", 0, Lifetime::Timeframe},
             OutputSpec{"FT0", "ROMode", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<FT0DPLDigitizerTask>()},
-    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
-            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
-            {"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}
-
-    // I can't use VariantType::Bool as it seems to have a problem
-  };
+    Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}};
 }
 
 } // namespace ft0

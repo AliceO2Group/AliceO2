@@ -26,26 +26,11 @@
 #include "HMPIDSimulation/HMPIDDigitizer.h"
 #include "HMPIDSimulation/Detector.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
-// helper function which will be offered as a service
-template <typename T>
-void retrieveHits(std::vector<TChain*> const& chains,
-                  const char* brname,
-                  int sourceID,
-                  int entryID,
-                  std::vector<T>* hits)
-{
-  auto br = chains[sourceID]->GetBranch(brname);
-  if (!br) {
-    LOG(ERROR) << "No branch found";
-    return;
-  }
-  br->SetAddress(&hits);
-  br->GetEntry(entryID);
-}
 
 namespace o2
 {
@@ -58,19 +43,6 @@ class HMPIDDPLDigitizerTask
   void init(framework::InitContext& ic)
   {
     LOG(INFO) << "initializing HMPID digitization";
-    // setup the input chain for the hits
-    mSimChains.emplace_back(new TChain("o2sim"));
-
-    // add the main (background) file
-    mSimChains.back()->AddFile(ic.options().get<std::string>("simFile").c_str());
-
-    // maybe add a particular signal file
-    auto signalfilename = ic.options().get<std::string>("simFileS");
-    if (signalfilename.size() > 0) {
-      mSimChains.emplace_back(new TChain("o2sim"));
-      mSimChains.back()->AddFile(signalfilename.c_str());
-    }
-
     if (!gGeoManager) {
       o2::base::GeometryManager::loadGeometry();
     }
@@ -86,6 +58,9 @@ class HMPIDDPLDigitizerTask
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
+
+    context->initSimChains(o2::detectors::DetID::HMP, mSimChains);
+
     auto& irecords = context->getEventRecords();
 
     for (auto& record : irecords) {
@@ -127,7 +102,7 @@ class HMPIDDPLDigitizerTask
 
           // get the hits for this event and this source
           std::vector<o2::hmpid::HitType> hits;
-          retrieveHits(mSimChains, "HMPHit", part.sourceID, part.entryID, &hits);
+          context->retrieveHits(mSimChains, "HMPHit", part.sourceID, part.entryID, &hits);
           LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found HMP " << hits.size() << " hits ";
 
           mDigitizer.setLabelContainer(&mLabels);
@@ -179,11 +154,7 @@ o2::framework::DataProcessorSpec getHMPIDDigitizerSpec(int channel)
     Outputs{OutputSpec{"HMP", "DIGITS", 0, Lifetime::Timeframe},
             OutputSpec{"HMP", "DIGITLBL", 0, Lifetime::Timeframe},
             OutputSpec{"HMP", "ROMode", 0, Lifetime::Timeframe}},
-
-    AlgorithmSpec{adaptFromTask<HMPIDDPLDigitizerTask>()},
-
-    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
-            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}}}};
+    AlgorithmSpec{adaptFromTask<HMPIDDPLDigitizerTask>()}, Options{}};
 }
 
 } // end namespace hmpid

@@ -119,6 +119,8 @@ class DetID
 
   ClassDefNV(DetID, 1);
 };
+
 } // namespace detectors
 } // namespace o2
+
 #endif

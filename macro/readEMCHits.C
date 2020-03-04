@@ -18,7 +18,7 @@
 
 /// read and draw the hits for EMC obtained from simulation
 void readEMCHits(std::string path = "./",
-                 std::string mcfileName = "o2sim.root")
+                 std::string mcfileName = "o2sim_EMChits.root")
 {
   if (path.back() != '/') {
     path += '/';

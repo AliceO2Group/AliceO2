@@ -28,6 +28,7 @@
 #include "TTree.h"
 #include "Framework/FreePortFinder.h"
 #include <sys/types.h>
+#include "DetectorsCommonDataFormats/FileNameGenerator.h"
 
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
@@ -77,7 +78,7 @@ int checkresult()
   // here.
   auto& conf = o2::conf::SimConfig::Instance();
   // easy check: see if we have number of entries in output tree == number of events asked
-  std::string filename = std::string(conf.getOutPrefix()) + ".root";
+  std::string filename = o2::filenames::SimFileNameGenerator::getKinematicsFileName(conf.getOutPrefix().c_str());
   TFile f(filename.c_str(), "OPEN");
   auto tr = static_cast<TTree*>(f.Get("o2sim"));
   if (!tr) {

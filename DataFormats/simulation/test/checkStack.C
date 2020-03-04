@@ -15,7 +15,7 @@
 #include <cassert>
 #include "FairLogger.h"
 
-void checkStack(const char* name = "o2sim.root")
+void checkStack(const char* name = "o2sim_kine.root")
 {
   FairLogger::GetLogger()->SetLogScreenLevel("DEBUG");
   TFile f(name);

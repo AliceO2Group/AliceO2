@@ -115,7 +115,12 @@ o2_add_test_root_macro(duplicateHits.C
 		O2::MCHSimulation
 		O2::MIDSimulation
 		O2::ZDCSimulation
-		O2::CPVBase)
+		O2::CPVBase LOAD_ONLY)
+
+o2_add_test_root_macro(migrateSimFiles.C
+		PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats
+ LOAD_ONLY
+)
 
 o2_add_test_root_macro(analyzeOriginHits.C
                        PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
