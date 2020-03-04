@@ -21,4 +21,7 @@
 #pragma link C++ class o2::detectors::DetMatrixCache + ;
 #pragma link C++ class o2::detectors::DetMatrixCacheIndirect + ;
 
+#pragma link C++ class o2::filenames::SimFileNameGenerator;
+#pragma link C++ class o2::detectors::SimTraits + ;
+
 #endif

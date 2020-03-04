@@ -63,8 +63,7 @@ class DigitizerSpec : public framework::Task
 
   Bool_t mFinished = false;                                 ///< Flag for digitization finished
   Digitizer mDigitizer;                                     ///< Digitizer object
-  TChain* mSimChain = nullptr;                              ///< Chain of files with background events
-  TChain* mSimChainS = nullptr;                             ///< Chain of files with signal events
+  std::vector<TChain*> mSimChains;                          ///< Chain of files for background/signal events
   std::vector<Hit>* mHitsBg = nullptr;                      ///< Vector with input hits from Bg event
   std::vector<Hit>* mHitsS = nullptr;                       ///< Vector with input hits from Signal event
   std::vector<Digit> mDigits;                               ///< Vector with non-accumulated digits (per collision)

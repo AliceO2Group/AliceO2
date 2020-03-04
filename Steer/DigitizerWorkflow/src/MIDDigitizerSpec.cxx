@@ -33,23 +33,6 @@
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
-// helper function which will be offered as a service
-template <typename T>
-void retrieveHits(std::vector<TChain*> const& chains,
-                  const char* brname,
-                  int sourceID,
-                  int entryID,
-                  std::vector<T>* hits)
-{
-  auto br = chains[sourceID]->GetBranch(brname);
-  if (!br) {
-    LOG(ERROR) << "No branch found";
-    return;
-  }
-  br->SetAddress(&hits);
-  br->GetEntry(entryID);
-}
-
 namespace o2
 {
 namespace mid
@@ -66,18 +49,6 @@ class MIDDPLDigitizerTask
   void init(framework::InitContext& ic)
   {
     LOG(INFO) << "initializing MID digitization";
-    // setup the input chain for the hits
-    mSimChains.emplace_back(new TChain("o2sim"));
-
-    // add the main (background) file
-    mSimChains.back()->AddFile(ic.options().get<std::string>("simFile").c_str());
-
-    // maybe add a particular signal file
-    auto signalfilename = ic.options().get<std::string>("simFileS");
-    if (signalfilename.size() > 0) {
-      mSimChains.emplace_back(new TChain("o2sim"));
-      mSimChains.back()->AddFile(signalfilename.c_str());
-    }
 
     if (!gGeoManager) {
       o2::base::GeometryManager::loadGeometry();
@@ -96,6 +67,7 @@ class MIDDPLDigitizerTask
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
+    context->initSimChains(o2::detectors::DetID::MID, mSimChains);
     auto& irecords = context->getEventRecords();
 
     auto& eventParts = context->getEventParts();
@@ -115,7 +87,7 @@ class MIDDPLDigitizerTask
 
         // get the hits for this event and this source
         std::vector<o2::mid::Hit> hits;
-        retrieveHits(mSimChains, "MIDHit", part.sourceID, part.entryID, &hits);
+        context->retrieveHits(mSimChains, "MIDHit", part.sourceID, part.entryID, &hits);
         LOG(DEBUG) << "For collision " << collID << " eventID " << part.entryID << " found MID " << hits.size() << " hits ";
 
         mDigitizer->process(hits, digits, labels);
@@ -171,9 +143,7 @@ o2::framework::DataProcessorSpec getMIDDigitizerSpec(int channel)
             OutputSpec{"MID", "ROMode", 0, Lifetime::Timeframe}},
 
     AlgorithmSpec{adaptFromTask<MIDDPLDigitizerTask>()},
-
-    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
-            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}}}};
+    Options{}};
 }
 
 } // namespace mid

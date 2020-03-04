@@ -16,6 +16,8 @@
 #include <TBranch.h>
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/BunchFilling.h"
+#include "DetectorsCommonDataFormats/DetID.h"
+#include <FairLogger.h>
 
 namespace o2
 {
@@ -61,6 +63,24 @@ class RunContext
 
   void printCollisionSummary() const;
 
+  // we need a method to fill the file names
+  void setSimPrefixes(std::vector<std::string> const& p);
+  std::vector<std::string> const& getSimPrefixes() const { return mSimPrefixes; }
+
+  /// Common functions the setup input TChains for reading, given the state (prefixes) encapsulated
+  /// by this context. The input vector needs to be empty otherwise nothing will be done.
+  /// return boolean saying if input simchains was modified or not
+  bool initSimChains(o2::detectors::DetID detid, std::vector<TChain*>& simchains) const;
+
+  /// function reading the hits from a chain (previously initialized with initSimChains
+  /// The hits pointer will be initialized (what to we do about ownership??)
+  template <typename T>
+  void retrieveHits(std::vector<TChain*> const& chains,
+                    const char* brname,
+                    int sourceID,
+                    int entryID,
+                    std::vector<T>* hits) const;
+
  private:
   int mNofEntries = 0;
   int mMaxPartNumber = 0; // max number of parts in any given collision
@@ -72,11 +92,28 @@ class RunContext
 
   o2::BunchFilling mBCFilling; // patter of active BCs
 
-  // it would also be appropriate to record the filenames
-  // that went into the chain
+  std::vector<std::string> mSimPrefixes; // identifiers to the hit sim products; the index corresponds to the source ID of event record
 
   ClassDefNV(RunContext, 2);
 };
+
+/// function reading the hits from a chain (previously initialized with initSimChains
+template <typename T>
+inline void RunContext::retrieveHits(std::vector<TChain*> const& chains,
+                                     const char* brname,
+                                     int sourceID,
+                                     int entryID,
+                                     std::vector<T>* hits) const
+{
+  auto br = chains[sourceID]->GetBranch(brname);
+  if (!br) {
+    LOG(ERROR) << "No branch found";
+    return;
+  }
+  br->SetAddress(&hits);
+  br->GetEntry(entryID);
+}
+
 } // namespace steer
 } // namespace o2
 
