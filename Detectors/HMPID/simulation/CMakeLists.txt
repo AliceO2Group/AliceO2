@@ -17,4 +17,4 @@ o2_target_root_dictionary(HMPIDSimulation
                                   include/HMPIDSimulation/HMPIDDigitizer.h)
 
 
-o2_data_file(COPY data  DESTINATION Detectors/HMPID/simulation)
+o2_data_file(COPY data  DESTINATION Detectors/HMP/simulation)
