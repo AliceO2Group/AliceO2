@@ -72,17 +72,61 @@ void Digitizer::init()
   mSDigits = false;
 }
 
-void Digitizer::process(std::vector<HitType> const& hits, DigitContainer& digitCont, o2::dataformats::MCTruthContainer<MCLabel>& labels)
+void Digitizer::clearCollections()
+{
+  for (int det = 0; det < kNdet; ++det) {
+    signalsMapCollection[det].clear();
+    digitsCollection[det].clear();
+    labelsCollection[det].clear();
+  }
+}
+
+void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
+{
+  // Convert Signals to Digits
+#ifdef WITH_OPENMP
+  omp_set_num_threads(mNumThreads);
+// Loop over all TRD detectors (in a parallel fashion)
+#pragma omp parallel for schedule(dynamic)
+#endif
+  for (int det = 0; det < kNdet; ++det) {
+#ifdef WITH_OPENMP
+    const int threadid = omp_get_thread_num();
+#else
+    const int threadid = 0;
+#endif
+    bool status = convertSignalsToADC(det, signalsMapCollection[det], digitsCollection[det], threadid);
+    if (!status) {
+      LOG(WARN) << "TRD conversion of signals to digits failed for detector " << det;
+      continue; // go to the next chamber
+    }
+  }
+
+  // Finalize
+  for (int det = 0; det < kNdet; ++det) {
+    std::move(digitsCollection[det].begin(), digitsCollection[det].end(), std::back_inserter(digits));
+    labels.mergeAtBack(labelsCollection[det]);
+  }
+
+  clearCollections();
+}
+
+void Digitizer::process(std::vector<HitType> const& hits, DigitContainer& digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
   if (!mCalib) {
     LOG(FATAL) << "TRD Calibration database not available";
   }
 
-  // TODO: it might be worth making these member variables
-  // in order to have less memory allocations
-  std::array<SignalContainer, kNdet> signalsMapCollection;
-  std::array<DigitContainer, kNdet> digitCollection;
-  std::array<o2::dataformats::MCTruthContainer<MCLabel>, kNdet> labelsperdetector;
+  // if there are digits for longer than 3 microseconds, flush them
+  // todo: check for pileup
+  // constexpr double totalSamplingTime = kTimeBins / mCommonParam->GetSamplingFrequency();
+  if ((mTime - mLastTime) > 0) {
+    flush(digits, labels);
+    if (digits.size() == 0) {
+      LOG(WARN) << "Digit container is empty after flushing signals";
+    }
+  }
+  mLastTime = mTime; // always update the last time to the curret time for the next iteration
 
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
   std::array<std::vector<HitType>, kNdet> hitsPerDetector;
@@ -100,7 +144,6 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer& digitC
     const int threadid = 0;
 #endif
     auto& signalsMap = signalsMapCollection[det];
-    auto& digits = digitCollection[det];
     // Jump to the next detector if the detector is
     // switched off, not installed, etc
     if (mCalib->isChamberNoData(det)) {
@@ -115,29 +158,10 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer& digitC
       continue;
     }
 
-    if (!convertHits(det, hitsPerDetector[det], signalsMap, labelsperdetector[det], threadid)) {
+    if (!convertHits(det, hitsPerDetector[det], signalsMap, labelsCollection[det], threadid)) {
       LOG(WARN) << "TRD conversion of hits failed for detector " << det;
       continue; // go to the next chamber
     }
-
-    // O2-790
-    if (signalsMap.size() == 0) {
-      continue; // go to the next chamber
-    }
-
-    if (!convertSignalsToADC(det, signalsMap, digits, threadid)) {
-      LOG(WARN) << "TRD conversion of signals to digits failed for detector " << det;
-      continue; // go to the next chamber
-    }
-  }
-
-  // Finalize: Dump the digitCollection to the output digitCont
-  for (int det = 0; det < kNdet; ++det) {
-    auto& digits = digitCollection[det];
-    // digitCont.insert(digitCont.end(), digits.begin(), digits.end());
-    std::move(digits.begin(), digits.end(), std::back_inserter(digitCont));
-    // digitCont.insert(digitCont.end(), std::make_move_iterator(digits.begin()), std::make_move_iterator(digits.end()));
-    labels.mergeAtBack(labelsperdetector[det]);
   }
 }
 
@@ -288,7 +312,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
         driftTime = mDriftEstimators[thread].TimeStruct(driftVelocity, 0.5 * kAmWidth - 1.0 * locTd, zz) + hit.GetTime();
       } else {
         // Use constant drift velocity
-        driftTime = std::fabs(locTd) / driftVelocity + hit.GetTime();
+        driftTime = std::fabs(locTd) / driftVelocity + hit.GetTime(); // drift time in microseconds
       }
 
       // Apply the gas gain including fluctuations
@@ -449,8 +473,8 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer& signalMapCon
     } // loop over timebins
     // Convert the map to digits here, and push them to the container
     size_t labelIndex = signalData.labelIndex;
-    digits.emplace_back(det, row, col, adcs, labelIndex, getEventTime());
-  } // loop over digits
+    digits.emplace_back(det, row, col, adcs, labelIndex, getEventTime()); // what time goes here??????
+  }                                                                       // loop over digits
   return true;
 }
 

@@ -34,8 +34,9 @@ class TRDArraySignal;
 class PadResponse;
 
 struct SignalArray {
-  std::array<float, kTimeBins> signals{};
-  size_t labelIndex{0};
+  std::array<float, kTimeBins> signals{}; // signals
+  double firstTBtime;                     // first TB time
+  size_t labelIndex{0};                   // mc label index
 };
 
 using DigitContainer = std::vector<Digit>;
@@ -76,13 +77,21 @@ class Digitizer
   std::vector<TRDDiffusionAndTimeStructEstimator> mDriftEstimators;
 
   double mTime = 0.;
+  double mLastTime = -1.0;
   int mEventID = 0;
   int mSrcID = 0;
 
   bool mSDigits{false};               // true: convert signals to summable digits, false by defaults
   std::vector<HitType> mHitContainer; // the container of hits in a given detector
 
+  std::array<SignalContainer, kNdet> signalsMapCollection;                        // container for caching signals over a timeframe
+  std::array<DigitContainer, kNdet> digitsCollection;                             // container for caching digits for paralellization
+  std::array<o2::dataformats::MCTruthContainer<MCLabel>, kNdet> labelsCollection; // container for caching labels over a timeframe
+
   void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, kNdet>&);
+  void clearCollections();
+  void flush(DigitContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
+
   // Digitization chaing methods
   bool convertHits(const int, const std::vector<HitType>&, SignalContainer&, o2::dataformats::MCTruthContainer<MCLabel>&, int thread = 0); // True if hit-to-signal conversion is successful
   bool convertSignalsToADC(const int, SignalContainer&, DigitContainer&, int thread = 0);                                                  // True if signal-to-ADC conversion is successful
