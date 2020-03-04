@@ -75,6 +75,20 @@ struct GPUConstantMem {
 #endif
 };
 
+#ifdef GPUCA_NOCOMPAT
+union GPUConstantMemCopyable {
+  GPUConstantMemCopyable() {}  // NOLINT: We want an empty constructor, not a default one
+  ~GPUConstantMemCopyable() {} // NOLINT: We want an empty destructor, not a default one
+  GPUConstantMemCopyable(const GPUConstantMemCopyable& o)
+  {
+    for (unsigned int k = 0; k < sizeof(GPUConstantMem) / sizeof(int); k++) {
+      ((int*)&v)[k] = ((int*)&o.v)[k];
+    }
+  }
+  GPUConstantMem v;
+};
+#endif
+
 // Must be placed here, to avoid circular header dependency
 GPUdi() GPUconstantref() const MEM_CONSTANT(GPUParam) & GPUProcessor::Param() const { return mConstantMem->param; }
 
