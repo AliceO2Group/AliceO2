@@ -607,7 +607,7 @@ void GPUQA::RunQA(bool matchOnly)
         }
         for (int j = 0; j < GetMCLabelNID(hitId); j++) {
           if (GetMCLabelID(hitId, j) >= (int)GetNMCTracks(GetMCLabelCol(hitId, j))) {
-            GPUError("Invalid label %d > %d", GetMCLabelID(hitId, j), GetNMCTracks(GetMCLabelCol(hitId, j)));
+            GPUError("Invalid label %d > %d (hit %d, label %d, col %d)", GetMCLabelID(hitId, j), GetNMCTracks(GetMCLabelCol(hitId, j)), hitId, j, (int)GetMCLabelCol(hitId, j));
             ompError = true;
             break;
           }
