@@ -401,6 +401,9 @@ int SetupReconstruction()
   if (configStandalone.outputcontrolmem && rec->IsGPU() && rec->registerMemoryForGPU(outputmemory.get(), configStandalone.outputcontrolmem)) {
     printf("ERROR registering memory for the GPU!!!\n");
   }
+  if (configStandalone.DebugLevel >= 4) {
+    rec->PrintKernelOccupancies();
+  }
   return (0);
 }
 
