@@ -50,6 +50,7 @@ class Digitizer
   void init(); // setup everything
 
   void process(std::vector<HitType> const&, DigitContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
+  void flush(DigitContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
   void setEventTime(double timeNS) { mTime = timeNS; }
   void setEventID(int entryID) { mEventID = entryID; }
   void setSrcID(int sourceID) { mSrcID = sourceID; }
@@ -77,7 +78,7 @@ class Digitizer
   std::vector<TRDDiffusionAndTimeStructEstimator> mDriftEstimators;
 
   double mTime = 0.;
-  double mLastTime = -1.0;
+  double mLastTime = 1.0e10; // starts in the future
   int mEventID = 0;
   int mSrcID = 0;
 
@@ -90,7 +91,6 @@ class Digitizer
 
   void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, kNdet>&);
   void clearCollections();
-  void flush(DigitContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
 
   // Digitization chaing methods
   bool convertHits(const int, const std::vector<HitType>&, SignalContainer&, o2::dataformats::MCTruthContainer<MCLabel>&, int thread = 0); // True if hit-to-signal conversion is successful
