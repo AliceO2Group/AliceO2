@@ -80,8 +80,6 @@ GPUd() void GPUTPCCFNoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThr
     return;
   }
 
-  DBG_PRINT("%d: p:%lx, m:%lx, b:%lx.", int(idx), peaksAroundBack, minimas, bigger);
-
   isPeakPredicate[idx] = keepMe;
 }
 
