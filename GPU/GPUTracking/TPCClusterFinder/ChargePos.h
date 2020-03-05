@@ -44,6 +44,12 @@ struct ChargePos {
   GPUdi() Pad pad() const { return gpad % TPC_PADS_PER_ROW_PADDED - PADDING_PAD; }
   GPUdi() Timestamp time() const { return timePadded - PADDING_TIME; }
 
+  GPUdi() bool isPadding() const
+  {
+    Pad pad = gpad % TPC_PADS_PER_ROW_PADDED;
+    return timePadded < PADDING_TIME || timePadded >= TPC_MAX_TIME || pad < PADDING_PAD;
+  }
+
  private:
   // Maps the position of a pad given as row and index in that row to a unique
   // index between 0 and TPC_NUM_OF_PADS.

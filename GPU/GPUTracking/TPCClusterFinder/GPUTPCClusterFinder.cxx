@@ -17,7 +17,10 @@
 #include "GPUHostDataTypes.h"
 
 #include "DataFormatsTPC/ZeroSuppression.h"
+
 #include "ChargePos.h"
+#include "Array2D.h"
+#include "Digit.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
@@ -62,10 +65,10 @@ void* GPUTPCClusterFinder::SetPointersScratch(void* mem)
   computePointerWithAlignment(mem, mPpeakPositions, mNMaxPeaks);
   computePointerWithAlignment(mem, mPfilteredPeakPositions, mNMaxClusters);
   computePointerWithAlignment(mem, mPisPeak, mNMaxDigits);
-  computePointerWithAlignment(mem, mPchargeMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED);
-  computePointerWithAlignment(mem, mPpeakMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED);
+  computePointerWithAlignment(mem, mPchargeMap, TPCMapMemoryLayout<decltype(*mPchargeMap)>::items());
+  computePointerWithAlignment(mem, mPpeakMap, TPCMapMemoryLayout<decltype(*mPpeakMap)>::items());
   if (not mRec->IsGPU() && mRec->GetDeviceProcessingSettings().runMC) {
-    computePointerWithAlignment(mem, mPindexMap, TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED);
+    computePointerWithAlignment(mem, mPindexMap, TPCMapMemoryLayout<decltype(*mPindexMap)>::items());
     computePointerWithAlignment(mem, mPlabelsByRow, GPUCA_ROW_COUNT * mNMaxClusterPerRow);
     computePointerWithAlignment(mem, mPlabelHeaderOffset, GPUCA_ROW_COUNT);
     computePointerWithAlignment(mem, mPlabelDataOffset, GPUCA_ROW_COUNT);
