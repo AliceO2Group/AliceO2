@@ -161,8 +161,6 @@ void GPUTPCTracker::SetupCommonMemory() { new (mCommonMem) commonMemoryStruct; }
 
 int GPUTPCTracker::ReadEvent()
 {
-  SetupCommonMemory();
-
   //* Convert input hits, create grids, etc.
   if (mData.InitFromClusterData(mConstantMem, mISlice)) {
     GPUError("Error initializing from cluster data");

@@ -1011,10 +1011,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
 
   bool streamInit[GPUCA_MAX_STREAMS] = {false};
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-    *processors()->tpcTrackers[iSlice].NTracklets() = 0;
-    *processors()->tpcTrackers[iSlice].NTracks() = 0;
-    *processors()->tpcTrackers[iSlice].NTrackHits() = 0;
-    processors()->tpcTrackers[iSlice].CommonMemory()->kernelError = 0;
+    processors()->tpcTrackers[iSlice].SetupCommonMemory();
   }
   if (doGPU) {
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
