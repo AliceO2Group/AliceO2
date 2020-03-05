@@ -19,9 +19,7 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataDescriptorQueryBuilder.h"
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 using boost::property_tree::ptree;
@@ -39,7 +37,8 @@ void DataSamplingPolicy::configure(const ptree& config)
 {
   mName = config.get<std::string>("id");
   if (mName.size() > 14) {
-    LOG(WARNING) << "DataSamplingPolicy name '" << mName << "' is longer than 14 characters, trimming.";
+    LOG(WARNING) << "DataSamplingPolicy name '" << mName << "' is longer than 14 characters, we have to trim it. "
+                 << "Use a shorter policy name to avoid potential output name conflicts.";
     mName.resize(14);
   }
 
@@ -94,7 +93,7 @@ void DataSamplingPolicy::configure(const ptree& config)
     }
 
     if (outputId > 9) {
-      LOG(ERROR) << "Maximum 10 inputs in DataSamplingPolicy are supported";
+      LOG(ERROR) << "Maximum 10 inputs in DataSamplingPolicy are supported. Call the developers if you really need more.";
       break;
     }
   }
@@ -177,7 +176,8 @@ header::DataOrigin DataSamplingPolicy::createPolicyDataOrigin()
 header::DataDescription DataSamplingPolicy::createPolicyDataDescription(std::string policyName, size_t id)
 {
   if (policyName.size() > 14) {
-    LOG(WARNING) << "DataSamplingPolicy name '" << policyName << "' is longer than 14 characters, trimming in dataDescription.";
+    LOG(WARNING) << "DataSamplingPolicy name '" << policyName << "' is longer than 14 characters, we have to trim it. "
+                 << "Use a shorter policy name to avoid potential output name conflicts.";
     policyName.resize(14);
   }
 
@@ -186,5 +186,4 @@ header::DataDescription DataSamplingPolicy::createPolicyDataDescription(std::str
   return outputDescription;
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
