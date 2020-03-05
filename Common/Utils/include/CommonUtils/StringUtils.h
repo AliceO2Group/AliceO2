@@ -78,6 +78,15 @@ static inline std::string rtrim_copy(std::string s)
   return s;
 }
 
+// concatenate arbitrary number of strings
+template <typename... Ts>
+std::string concat_string(Ts const&... ts)
+{
+  std::stringstream s;
+  (s << ... << ts);
+  return s.str();
+}
+
 } // namespace utils
 } // namespace o2
 
