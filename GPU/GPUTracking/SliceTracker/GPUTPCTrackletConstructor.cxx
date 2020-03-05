@@ -460,15 +460,14 @@ GPUdi() int GPUTPCTrackletConstructor::FetchTracklet(GPUconstantref() MEM_GLOBAL
   if (get_local_id(0) == 0) {
     int firstTracklet = -2;
     if (sMem.mNextTrackletFirstRun == 1) {
-      const int nativeslice = get_group_id(0) % GPUCA_NSLICES;
-      firstTracklet = (get_group_id(0) - nativeslice) / GPUCA_NSLICES * GPUCA_THREAD_COUNT_CONSTRUCTOR;
+      firstTracklet = (get_group_id(0) - tracker.ISlice()) / GPUCA_NSLICES * GPUCA_THREAD_COUNT_CONSTRUCTOR;
       sMem.mNextTrackletFirstRun = 0;
     } else {
       if (tracker.GPUParameters()->nextTracklet < nTracklets) {
         firstTracklet = CAMath::AtomicAdd(&tracker.GPUParameters()->nextTracklet, GPUCA_THREAD_COUNT_CONSTRUCTOR);
       }
     }
-    sMem.mNextTrackletFirst = (firstTracklet < (int)nTracklets) ? firstTracklet : -2;
+    sMem.mNextTrackletFirst = firstTracklet < (int)nTracklets ? firstTracklet : -2;
   }
   GPUbarrier();
   return (sMem.mNextTrackletFirst);
