@@ -120,7 +120,7 @@ class FT0DPLDigitizerTask
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " source ID " << part.sourceID << " found " << hits.size() << " hits ";
 
         // call actual digitization procedure
-        mDigitizer.setEventID(collID);
+        mDigitizer.setEventID(part.entryID);
         mDigitizer.setSrcID(part.sourceID);
         mDigitizer.process(&hits);
       }

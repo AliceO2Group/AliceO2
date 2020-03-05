@@ -19,7 +19,6 @@
 #include <cassert>
 #include <iostream>
 #include <optional>
-#include <Vc/Vc>
 
 using namespace o2::ft0;
 //using o2::ft0::Geometry;
@@ -90,7 +89,7 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits)
     Double_t hit_time = hit.GetTime() - time_compensate;
 
     //  bool is_hit_in_signal_gate = (abs(hit_time) < parameters.mSignalWidth * .5);
-    if (hit_time < -12.5 || hit_time > 12.5)
+    if (hit_time < -0.5 * parameters.bunchWidth || hit_time > 0.5 * parameters.bunchWidth)
       continue;
     mNumParticles[hit_ch]++;
     mChannel_times[hit_ch].push_back(hit_time);
