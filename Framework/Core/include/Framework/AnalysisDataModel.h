@@ -115,13 +115,15 @@ DECLARE_SOA_TABLE(TracksCov, "AOD", "TRACKPARCOV",
                   track::CTglZ, track::CTglSnp, track::CTglTgl,
                   track::C1PtY, track::C1PtZ, track::C1PtSnp, track::C1PtTgl,
                   track::C1Pt21Pt2);
-                    
+
 DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA",
                   track::TPCInnerParam, track::Flags, track::ITSClusterMap,
-                  track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows, 
+                  track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows,
                   track::TPCNClsShared, track::TRDNTracklets, track::ITSChi2NCl,
                   track::TPCchi2Ncl, track::TRDchi2, track::TOFchi2,
-                  track::TPCsignal, track::TRDsignal, track::TOFsignal, track::Length);
+                  track::TPCsignal, track::TRDsignal, track::TOFsignal, track::Length,
+                  track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
+                  track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>);
 
 using Track = Tracks::iterator;
 using TrackCov = TracksCov::iterator;
