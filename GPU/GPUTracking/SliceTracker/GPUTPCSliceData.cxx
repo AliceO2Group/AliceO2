@@ -49,10 +49,10 @@ inline void GPUTPCSliceData::CreateGrid(GPUTPCRow* GPUrestrict() row, const floa
     return;
   }
 
-  float yMin = 1.e3f;
-  float yMax = -1.e3f;
-  float zMin = 1.e3f;
-  float zMax = -1.e3f;
+  float yMin = 1.e6f;
+  float yMax = -1.e6f;
+  float zMin = 1.e6f;
+  float zMax = -1.e6f;
   for (int i = ClusterDataHitNumberOffset; i < ClusterDataHitNumberOffset + row->mNHits; ++i) {
     const float y = data[i].x;
     const float z = data[i].y;
