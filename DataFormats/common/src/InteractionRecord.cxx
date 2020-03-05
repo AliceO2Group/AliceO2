@@ -17,7 +17,7 @@ namespace o2
 
 std::ostream& operator<<(std::ostream& stream, o2::InteractionRecord const& ir)
 {
-  stream << "BCid: " << ir.bc << " Orbit: " << ir.orbit;
+  stream << "BCid: " << ir.bc << " Orbit: " << ir.orbit << " UserWord: " << ir.user;
   return stream;
 }
 

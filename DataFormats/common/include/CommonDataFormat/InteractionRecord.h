@@ -27,8 +27,9 @@ struct InteractionRecord {
   static constexpr uint32_t DummyOrbit = 0xffffffff;
   static constexpr double DummyTime = DummyBC * o2::constants::lhc::LHCBunchSpacingNS + DummyOrbit * o2::constants::lhc::LHCOrbitNS;
 
-  uint16_t bc = DummyBC;       ///< bunch crossing ID of interaction
   uint32_t orbit = DummyOrbit; ///< LHC orbit
+  uint16_t bc = DummyBC;       ///< bunch crossing ID of interaction
+  uint16_t user = 0;           ///< extra member for used data (the space would be anyway lost due to the alignment)
 
   InteractionRecord() = default;
 
@@ -229,7 +230,7 @@ struct InteractionRecord {
 
   friend std::ostream& operator<<(std::ostream& stream, InteractionRecord const& ir);
 
-  ClassDefNV(InteractionRecord, 3);
+  ClassDefNV(InteractionRecord, 4);
 };
 
 struct InteractionTimeRecord : public InteractionRecord {
@@ -262,7 +263,7 @@ struct InteractionTimeRecord : public InteractionRecord {
 
   friend std::ostream& operator<<(std::ostream& stream, InteractionTimeRecord const& ir);
 
-  ClassDefNV(InteractionTimeRecord, 1);
+  ClassDefNV(InteractionTimeRecord, 2);
 };
 } // namespace o2
 
