@@ -19,18 +19,18 @@ using namespace o2::soa;
 static int count = 0;
 
 template <typename C>
-void printColumn()
+void printColumn(char const* fg, char const* bg)
 {
   if constexpr (!is_index_column_v<C>) {
-    fmt::printf("%s\\l", C::label());
+    fmt::printf("<TR><TD color='%s' bgcolor='%s'>%s</TD></TR>", fg, bg, C::label());
   }
 }
 
 template <typename C>
-void printIndexColumn()
+void printIndexColumn(char const* fg, char const* bg)
 {
   if constexpr (is_index_column_v<C>) {
-    fmt::printf("%s\\l", C::label());
+    fmt::printf("<TR><TD color='%s' bgcolor='%s'>%s</TD></TR>", fg, bg, C::label());
   }
 }
 
@@ -43,16 +43,16 @@ void printIndex()
 }
 
 template <typename... C>
-void dumpColumns(pack<C...>)
+void dumpColumns(pack<C...>, const char* fg, const char* bg)
 {
-  (printColumn<C>(), ...);
+  (printColumn<C>(fg, bg), ...);
   fmt::printf("%s", "\n");
 }
 
 template <typename... C>
-void dumpIndexColumns(pack<C...>)
+void dumpIndexColumns(pack<C...>, char const* fg, char const* bg)
 {
-  (printIndexColumn<C>(), ...);
+  (printIndexColumn<C>(fg, bg), ...);
   fmt::printf("%s", "\n");
 }
 
@@ -63,23 +63,52 @@ void dumpIndex(pack<C...>)
   fmt::printf("%s", "\n");
 }
 
-template <typename T>
-void dumpTable(bool index = true)
+struct Style {
+  const char* color;
+  const char* background;
+  const char* fontcolor;
+  const char* headerfontcolor;
+  const char* headerbgcolor;
+  const char* methodcolor;
+  const char* methodbgcolor;
+  const char* indexcolor;
+  const char* indexbgcolor;
+};
+
+static Style styles[] = {
+  {"black", "gray80", "black", "black", "gray70", "black", "gray60", "black", "gray50"},
+  {"/reds9/2", "/reds9/4", "white", "white", "/reds9/7", "black", "/reds9/6", "/reds9/1", "/reds9/5"}};
+
+Style const& getDefaultStyle()
 {
+  return styles[0];
+}
+
+enum struct StyleType : int {
+  DEFAULT = 0,
+  RED = 1,
+};
+
+template <typename T>
+void dumpTable(bool index = true, enum StyleType styleId = StyleType::DEFAULT)
+{
+  auto style = styles[static_cast<int>(styleId)];
   //  nodes.push_back({MetadataTrait<T>::metadata::label(), nodeCount});
   auto label = MetadataTrait<T>::metadata::label();
-  fmt::printf(R"(%s[label = "{%s|)", label, label);
+  fmt::printf(R"(%s[color="%s" cellpadding="0" fillcolor="%s" fontcolor="%s" label = <
+<TABLE cellpadding='2' cellspacing='0' cellborder='0' ><TH cellpadding='0' bgcolor="black"><TD bgcolor="%s"><font color="%s">%s</font></TD></TH>)",
+              label, style.color, style.background, style.fontcolor, style.headerbgcolor, style.headerfontcolor, label);
   if (pack_size(typename T::iterator::persistent_columns_t{}) -
       pack_size(typename T::iterator::external_index_columns_t{})) {
-    dumpColumns(typename T::iterator::persistent_columns_t{});
-    fmt::printf("%s", "|");
+    dumpColumns(typename T::iterator::persistent_columns_t{}, style.color, style.background);
+    fmt::printf("%s", "HR");
   }
   if (pack_size(typename T::iterator::dynamic_columns_t{})) {
-    dumpColumns(typename T::iterator::dynamic_columns_t{});
-    fmt::printf("%s", "|");
+    dumpColumns(typename T::iterator::dynamic_columns_t{}, style.methodcolor, style.methodbgcolor);
+    fmt::printf("%s", "HR");
   }
-  dumpIndexColumns(typename T::iterator::external_index_columns_t{});
-  fmt::printf("%s", "}\"]\n");
+  dumpIndexColumns(typename T::iterator::external_index_columns_t{}, style.indexcolor, style.indexbgcolor);
+  fmt::printf("%s", "</TABLE>\n>]\n");
   if (index)
     dumpIndex<T>(typename T::iterator::external_index_columns_t{});
 }
@@ -88,7 +117,7 @@ template <typename... Ts>
 void dumpCluster()
 {
   fmt::printf(R"(subgraph cluster_%d {
-node[shape=record,style=filled,fillcolor=gray95]
+node[shape=plain,style=filled,fillcolor=gray95]
 edge[dir=back, arrowtail=empty]
 )",
               count++);
@@ -101,7 +130,7 @@ int main(int argc, char** argv)
 {
   fmt::printf("%s", R"(digraph hierarchy {
 size="5,5"
-node[shape=record,style=filled,fillcolor=gray95]
+node[shape=plain,style=filled,fillcolor=gray95]
 edge[dir=back, arrowtail=empty]
 )");
   dumpCluster<Tracks, TracksCov, TracksExtra>();
@@ -115,7 +144,7 @@ edge[dir=back, arrowtail=empty]
   dumpTable<V0s>();
   dumpTable<Cascades>();
   dumpTable<Timeframes>();
-  //  dumpTable<SecVtx2Prong>();
-  dumpTable<Cand2Prong>();
+  //  dumpTable<SecVtx2Prong>(true, StyleType::RED);
+  dumpTable<Cand2Prong>(true, StyleType::RED);
   fmt::printf("%s\n", R"(})");
 }
