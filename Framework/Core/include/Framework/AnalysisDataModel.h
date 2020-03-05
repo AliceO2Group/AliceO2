@@ -79,10 +79,14 @@ DECLARE_SOA_COLUMN(C1PtSnp, c1PtSnp, float, "fC1PtSnp");
 DECLARE_SOA_COLUMN(C1PtTgl, c1PtTgl, float, "fC1PtTgl");
 DECLARE_SOA_COLUMN(C1Pt21Pt2, c1Pt21Pt2, float, "fC1Pt21Pt2");
 
+// TRACKEXTRA TABLE definition
 DECLARE_SOA_COLUMN(TPCInnerParam, tpcInnerParam, float, "fTPCinnerP");
 DECLARE_SOA_COLUMN(Flags, flags, uint64_t, "fFlags");
 DECLARE_SOA_COLUMN(ITSClusterMap, itsClusterMap, uint8_t, "fITSClusterMap");
-DECLARE_SOA_COLUMN(TPCNCls, tpcNCls, uint16_t, "fTPCncls");
+DECLARE_SOA_COLUMN(TPCNClsFindable, tpcNClsFindable, uint8_t, "fTPCnclsFindable");
+DECLARE_SOA_COLUMN(TPCNClsFindableMinusFound, tpcNClsFindableMinusFound, uint8_t, "fTPCnclsFindableMinusFound");
+DECLARE_SOA_COLUMN(TPCNClsFindableMinusCrossedRows, tpcNClsFindableMinusCrossedRows, uint8_t, "fTPCnclsFindableMinusCrossedRows");
+DECLARE_SOA_COLUMN(TPCNClsShared, tpcNClsShared, uint8_t, "fTPCnclsShared");
 DECLARE_SOA_COLUMN(TRDNTracklets, trdNTracklets, uint8_t, "fTRDntracklets");
 DECLARE_SOA_COLUMN(ITSChi2NCl, itsChi2NCl, float, "fITSchi2Ncl");
 DECLARE_SOA_COLUMN(TPCchi2Ncl, tpcChi2Ncl, float, "fTPCchi2Ncl");
@@ -92,7 +96,8 @@ DECLARE_SOA_COLUMN(TPCsignal, tpcSignal, float, "fTPCsignal");
 DECLARE_SOA_COLUMN(TRDsignal, trdSignal, float, "fTRDsignal");
 DECLARE_SOA_COLUMN(TOFsignal, tofSignal, float, "fTOFsignal");
 DECLARE_SOA_COLUMN(Length, length, float, "fLength");
-
+DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, [](uint8_t tpcNClsFindable, uint8_t tpcNClsFindableMinusFound) -> uint8_t { return tpcNClsFindable - tpcNClsFindableMinusFound; });
+DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, [](uint8_t tpcNClsFindable, uint8_t TPCNClsFindableMinusCrossedRows) -> uint8_t { return tpcNClsFindable - TPCNClsFindableMinusCrossedRows; });
 } // namespace track
 
 DECLARE_SOA_TABLE(Tracks, "AOD", "TRACKPAR",
@@ -110,9 +115,11 @@ DECLARE_SOA_TABLE(TracksCov, "AOD", "TRACKPARCOV",
                   track::CTglZ, track::CTglSnp, track::CTglTgl,
                   track::C1PtY, track::C1PtZ, track::C1PtSnp, track::C1PtTgl,
                   track::C1Pt21Pt2);
+                    
 DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA",
                   track::TPCInnerParam, track::Flags, track::ITSClusterMap,
-                  track::TPCNCls, track::TRDNTracklets, track::ITSChi2NCl,
+                  track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows, 
+                  track::TPCNClsShared, track::TRDNTracklets, track::ITSChi2NCl,
                   track::TPCchi2Ncl, track::TRDchi2, track::TOFchi2,
                   track::TPCsignal, track::TRDsignal, track::TOFsignal, track::Length);
 
