@@ -24,7 +24,6 @@
 #include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDSimulation/ColumnDataMC.h"
-#include "MIDSimulation/DigitsMerger.h"
 #include "MIDSimulation/MCLabel.h"
 #include "TFile.h"
 #include "TTree.h"
@@ -66,31 +65,28 @@ class DigitsReaderDeviceDPL
       return;
     }
 
-    std::vector<ColumnDataMC> digits;
+    std::vector<ColumnData> digits;
     o2::dataformats::MCTruthContainer<MCLabel> mcContainer;
     std::vector<ROFRecord> rofRecords;
 
     for (auto ientry = 0; ientry < mTree->GetEntries(); ++ientry) {
       mTree->GetEntry(ientry);
-      std::copy(mDigits->begin(), mDigits->end(), std::back_inserter(digits));
+      digits.insert(digits.end(), mDigits->begin(), mDigits->end());
       mcContainer.mergeAtBack(*mMCContainer);
-      std::copy(mROFRecords->begin(), mROFRecords->end(), std::back_inserter(rofRecords));
+      rofRecords.insert(rofRecords.end(), mROFRecords->begin(), mROFRecords->end());
     }
 
-    mDigitsMerger.process(digits, mcContainer, rofRecords);
-
-    LOG(DEBUG) << "MIDDigitsReader pushed " << mDigitsMerger.getColumnData().size() << " merged digits";
-    pc.outputs().snapshot(of::Output{"MID", "DATA", 0, of::Lifetime::Timeframe}, mDigitsMerger.getColumnData());
-    pc.outputs().snapshot(of::Output{"MID", "DATAROF", 0, of::Lifetime::Timeframe}, mDigitsMerger.getROFRecords());
-    LOG(DEBUG) << "MIDDigitsReader pushed " << mDigitsMerger.getMCContainer().getIndexedSize() << " indexed digits";
-    pc.outputs().snapshot(of::Output{"MID", "DATALABELS", 0, of::Lifetime::Timeframe}, mDigitsMerger.getMCContainer());
+    LOG(DEBUG) << "MIDDigitsReader pushed " << digits.size() << " merged digits";
+    pc.outputs().snapshot(of::Output{"MID", "DATA", 0, of::Lifetime::Timeframe}, digits);
+    pc.outputs().snapshot(of::Output{"MID", "DATAROF", 0, of::Lifetime::Timeframe}, rofRecords);
+    LOG(DEBUG) << "MIDDigitsReader pushed " << mcContainer.getIndexedSize() << " indexed digits";
+    pc.outputs().snapshot(of::Output{"MID", "DATALABELS", 0, of::Lifetime::Timeframe}, mcContainer);
 
     mState = 2;
     pc.services().get<of::ControlService>().endOfStream();
   }
 
  private:
-  DigitsMerger mDigitsMerger;
   std::unique_ptr<TFile> mFile{nullptr};
   TTree* mTree{nullptr};                                             // not owner
   std::vector<o2::mid::ColumnDataMC>* mDigits{nullptr};              // not owner

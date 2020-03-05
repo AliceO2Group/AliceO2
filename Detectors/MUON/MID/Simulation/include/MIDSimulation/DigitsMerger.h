@@ -17,7 +17,6 @@
 
 #include <vector>
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDSimulation/ColumnDataMC.h"
 #include "MIDSimulation/MCLabel.h"
@@ -32,7 +31,7 @@ class DigitsMerger
   void process(const std::vector<ColumnDataMC>& inDigitStore, const o2::dataformats::MCTruthContainer<MCLabel>& inMCContainer, const std::vector<ROFRecord>& inROFRecords, bool mergeInBunchPileup = true);
 
   /// Gets the merged column data
-  const std::vector<ColumnData>& getColumnData() const { return mDigitStore; }
+  const std::vector<ColumnDataMC>& getColumnData() const { return mDigitStore; }
   /// Gets the merged MC labels
   const o2::dataformats::MCTruthContainer<MCLabel>& getMCContainer() const { return mMCContainer; }
   /// Gets the merged RO frame records
@@ -41,7 +40,7 @@ class DigitsMerger
  private:
   void mergeDigit(size_t idigit, const std::vector<ColumnDataMC>& inDigitStore);
   std::vector<std::pair<ColumnDataMC, std::vector<size_t>>> mDigitsLabels{}; //! Temporary digits store
-  std::vector<ColumnData> mDigitStore{};                                     ///< Digit store
+  std::vector<ColumnDataMC> mDigitStore{};                                   ///< Digit store
   o2::dataformats::MCTruthContainer<MCLabel> mMCContainer{};                 ///< MC Container
   std::vector<ROFRecord> mROFRecords{};                                      ///< RO frame records
 };
