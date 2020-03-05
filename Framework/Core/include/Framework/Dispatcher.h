@@ -16,6 +16,7 @@
 #ifndef ALICEO2_DISPATCHER_H
 #define ALICEO2_DISPATCHER_H
 
+#include <Monitoring/Monitoring.h>
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DataSamplingPolicy.h"
@@ -50,6 +51,7 @@ class Dispatcher : public Task
  private:
   DataSamplingHeader prepareDataSamplingHeader(const DataSamplingPolicy& policy, const DeviceSpec& spec);
   header::Stack extractAdditionalHeaders(const char* inputHeaderStack) const;
+  void reportStats(monitoring::Monitoring& monitoring) const;
   void send(DataAllocator& dataAllocator, const DataRef& inputData, Output&& output) const;
   void sendFairMQ(FairMQDevice* device, const DataRef& inputData, const std::string& fairMQChannel,
                   header::Stack&& stack) const;

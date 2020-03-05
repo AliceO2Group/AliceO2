@@ -70,6 +70,7 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
       LOG(DEBUG) << " - registering output FairMQ channel '" << policy->getFairMQOutputChannel() << "'";
     }
   }
+  options.push_back({"period-timer-stats", framework::VariantType::Int, 10 * 1000000, {"Dispatcher's stats timer period"}});
 
   if (dispatcher.getInputSpecs().size() > 0) {
     DataProcessorSpec spec;
