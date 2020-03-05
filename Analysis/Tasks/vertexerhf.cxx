@@ -10,6 +10,7 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
+#include "Framework/ASoAHelpers.h"
 #include "Analysis/SecondaryVertex.h"
 #include "DetectorsBase/DCAFitter.h"
 #include "ReconstructionDataFormats/Track.h"
@@ -48,7 +49,7 @@ struct DecayVertexBuilder2Prong {
     hvtxp_x_out->Fill(collision.posX());
     hvtxp_y_out->Fill(collision.posY());
     hvtxp_z_out->Fill(collision.posZ());
-    auto comb = o2::soa::CombinationsGenerator<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra>, 2>(tracks,  { return true; });
+    auto comb = o2::soa::CombinationsGenerator<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra>, 2>(tracks, [](const auto elem) { return true; });
     for (auto trackPair : comb) {
       auto& track_0 = trackPair[0];
       auto& track_1 = trackPair[1];
@@ -77,6 +78,7 @@ struct DecayVertexBuilder2Prong {
                                        track_0.c1PtY(), track_0.c1PtZ(), track_0.c1PtSnp(),
                                        track_0.c1PtTgl(), track_0.c1Pt21Pt2()};
       o2::track::TrackParCov trackparvar0(x0_, alpha0_, arraypar0, covpar0);
+
       UChar_t clustermap_1 = track_1.itsClusterMap();
       bool isselected_1 = track_1.tpcNCls() > 70 && track_1.flags() & 0x4;
       isselected_1 = isselected_1 && (TESTBIT(clustermap_1, 0) || TESTBIT(clustermap_1, 1));
