@@ -52,7 +52,7 @@
 /Detectors/Passive                 @sawenzel
 /Detectors/TOF                     @noferini 
 /Detectors/TPC                     @davidrohr @wiechula @shahor02
-/Detectors/TRD                     @jolopezl @bazinski 
+/Detectors/TRD                     @jolopezl @bazinski @tdietel
 /Detectors/ZDC                     @coppedis
 
 /EventVisualisation  @jmyrcha @AliceO2Group/framework-admins
