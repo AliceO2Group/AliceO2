@@ -18,11 +18,17 @@
 
 #include "Framework/DataRef.h"
 
-#include <boost/property_tree/ptree.hpp>
+#include <string>
 
-namespace o2
+namespace boost::property_tree
 {
-namespace framework
+template <class Key, class Data, class KeyCompare>
+class basic_ptree;
+
+typedef basic_ptree<std::string, std::string, std::less<std::string>> ptree;
+} // namespace boost::property_tree
+
+namespace o2::framework
 {
 
 /// A standarised data sampling condition, to decide if given data sample should be passed forward.
@@ -40,7 +46,6 @@ class DataSamplingCondition
   virtual bool decide(const o2::framework::DataRef&) = 0;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif //ALICEO2_DATASAMPLINGCONDITION_H

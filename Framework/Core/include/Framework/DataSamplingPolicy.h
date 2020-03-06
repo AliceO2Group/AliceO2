@@ -23,11 +23,15 @@
 #include "Framework/DataSamplingCondition.h"
 #include "Framework/DataSpecUtils.h"
 
-#include <boost/property_tree/ptree.hpp>
-
-namespace o2
+namespace boost::property_tree
 {
-namespace framework
+template <class Key, class Data, class KeyCompare>
+class basic_ptree;
+
+typedef basic_ptree<std::string, std::string, std::less<std::string>> ptree;
+} // namespace boost::property_tree
+
+namespace o2::framework
 {
 
 /// A class representing certain policy of sampling data.
@@ -90,7 +94,6 @@ class DataSamplingPolicy
   uint32_t mTotalEvaluatedMessages = 0;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif // ALICEO2_DATASAMPLINGPOLICY_H
