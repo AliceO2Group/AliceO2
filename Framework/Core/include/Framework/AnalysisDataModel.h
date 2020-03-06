@@ -84,8 +84,8 @@ DECLARE_SOA_COLUMN(TPCInnerParam, tpcInnerParam, float, "fTPCinnerP");
 DECLARE_SOA_COLUMN(Flags, flags, uint64_t, "fFlags");
 DECLARE_SOA_COLUMN(ITSClusterMap, itsClusterMap, uint8_t, "fITSClusterMap");
 DECLARE_SOA_COLUMN(TPCNClsFindable, tpcNClsFindable, uint8_t, "fTPCnclsFindable");
-DECLARE_SOA_COLUMN(TPCNClsFindableMinusFound, tpcNClsFindableMinusFound, uint8_t, "fTPCnclsFindableMinusFound");
-DECLARE_SOA_COLUMN(TPCNClsFindableMinusCrossedRows, tpcNClsFindableMinusCrossedRows, uint8_t, "fTPCnclsFindableMinusCrossedRows");
+DECLARE_SOA_COLUMN(TPCNClsFindableMinusFound, tpcNClsFindableMinusFound, int8_t, "fTPCnclsFindableMinusFound");
+DECLARE_SOA_COLUMN(TPCNClsFindableMinusCrossedRows, tpcNClsFindableMinusCrossedRows, int8_t, "fTPCnclsFindableMinusCrossedRows");
 DECLARE_SOA_COLUMN(TPCNClsShared, tpcNClsShared, uint8_t, "fTPCnclsShared");
 DECLARE_SOA_COLUMN(TRDNTracklets, trdNTracklets, uint8_t, "fTRDntracklets");
 DECLARE_SOA_COLUMN(ITSChi2NCl, itsChi2NCl, float, "fITSchi2Ncl");
@@ -96,8 +96,8 @@ DECLARE_SOA_COLUMN(TPCsignal, tpcSignal, float, "fTPCsignal");
 DECLARE_SOA_COLUMN(TRDsignal, trdSignal, float, "fTRDsignal");
 DECLARE_SOA_COLUMN(TOFsignal, tofSignal, float, "fTOFsignal");
 DECLARE_SOA_COLUMN(Length, length, float, "fLength");
-DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, [](uint8_t tpcNClsFindable, uint8_t tpcNClsFindableMinusFound) -> uint8_t { return tpcNClsFindable - tpcNClsFindableMinusFound; });
-DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, [](uint8_t tpcNClsFindable, uint8_t TPCNClsFindableMinusCrossedRows) -> uint8_t { return tpcNClsFindable - TPCNClsFindableMinusCrossedRows; });
+DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, [](uint8_t tpcNClsFindable, uint8_t tpcNClsFindableMinusFound) -> int16_t { return tpcNClsFindable - tpcNClsFindableMinusFound; });
+DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, [](uint8_t tpcNClsFindable, uint8_t TPCNClsFindableMinusCrossedRows) -> int16_t { return tpcNClsFindable - TPCNClsFindableMinusCrossedRows; });
 } // namespace track
 
 DECLARE_SOA_TABLE(Tracks, "AOD", "TRACKPAR",
