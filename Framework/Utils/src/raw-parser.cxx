@@ -14,7 +14,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"
 #include "Framework/ConfigParamSpec.h"
-#include "DPLUtils/RawParser.h"
+#include "DPLUtils/DPLRawParser.h"
 #include "Headers/DataHeader.h"
 #include <vector>
 #include <sstream>
@@ -41,36 +41,53 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     AlgorithmSpec{[](InitContext& setup) {
         auto loglevel = setup.options().get<int>("log-level");
         return adaptStateless([loglevel](InputRecord& inputs, DataAllocator& outputs) {
-            for (auto& input : inputs) {
-              const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
-              if (loglevel > 0) {
-                // InputSpec implements operator<< so we could print (input.spec) but that is the
-                // matcher instead of the matched data
-                LOG(INFO) << dh->dataOrigin.as<std::string>() << "/"
-                          << dh->dataDescription.as<std::string>() << "/"
-                          << dh->subSpecification << " payload size " << dh->payloadSize;
-              }
+          DPLRawParser parser(inputs);
+          o2::header::DataHeader const* lastDataHeader = nullptr;
+          std::stringstream rdhprintout;
+          for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
+            // retrieving RDH v4
+            auto const* rdh = it.get_if<o2::header::RAWDataHeaderV4>();
+            // retrieving the raw pointer of the page
+            auto const* raw = it.raw();
+            // retrieving payload pointer of the page
+            auto const* payload = it.data();
+            // size of payload
+            size_t payloadSize = it.size();
+            // offset of payload in the raw page
+            size_t offset = it.offset();
 
-              auto raw = inputs.get<gsl::span<char>>(input.spec->binding.c_str());
-
-              try {
-                o2::framework::RawParser parser(raw.data(), raw.size());
-
-                std::stringstream rdhprintout;
-                rdhprintout << parser;
-                for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-                  rdhprintout << it << ": payload size " << it.size() << std::endl;
-                }
-                if (loglevel > 1) {
+            // Note: the following code is only for printing out raw page information
+            const auto* dh = it.o2DataHeader();
+            if (loglevel > 0) {
+              if (dh != lastDataHeader) {
+                if (!rdhprintout.str().empty()) {
                   LOG(INFO) << rdhprintout.str();
+                  rdhprintout.str().clear();
                 }
-              } catch (const std::runtime_error& e) {
-                LOG(ERROR) << "can not create raw parser form input data";
-                o2::header::hexDump("payload", input.payload, dh->payloadSize, 64);
-                LOG(ERROR) << e.what();
+                // print the DataHeader information only for the first part or if we have high verbosity
+                if (loglevel > 1 || dh->splitPayloadIndex == 0) {
+                  rdhprintout << dh->dataOrigin.as<std::string>() << "/"
+                              << dh->dataDescription.as<std::string>() << "/"
+                              << dh->subSpecification << "  ";
+                  // at high verbosity print part number, otherwise only the total number of parts
+                  if (loglevel > 1) {
+                    rdhprintout << "part " + std::to_string(dh->splitPayloadIndex) + " of " + std::to_string(dh->splitPayloadParts);
+                  } else {
+                    rdhprintout << " " + std::to_string(dh->splitPayloadParts) + " part(s)";
+                  }
+                  rdhprintout << " payload size " << dh->payloadSize
+                              << std::endl;
+                }
+                rdhprintout << DPLRawParser::RDHInfo(it) << std::endl;
               }
+              rdhprintout << it << "  payload size " << it.size() << std::endl;
             }
-          }); }},
+            lastDataHeader = dh;
+          }
+          if (loglevel > 0) {
+            LOG(INFO) << rdhprintout.str();
+          }
+        }); }},
     Options{
       {"log-level", VariantType::Int, 1, {"Logging level [0-2]"}}}});
   return workflow;
