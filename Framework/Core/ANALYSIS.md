@@ -333,28 +333,47 @@ struct MyTask : AnalysisTask {
 ```
 
 ### Getting combinations (pairs, triplets, ...)
-To get combinations of distinct tracks, CombinationsGenerator from `ASoAHelpers.h` can be used. It is possible to specify a predicate for a combination as a whole, and only matching combinations are then outputed. Example:
+To get combinations of distinct tracks, helper functions from `ASoAHelpers.h` can be used. The number of elements in a combination is deduced from the number of arguments pased to `combinations()` call. For example, to get pairs of tracks from the same source, one must specify `tracks` table twice:
 
 ```cpp
 struct MyTask : AnalysisTask {
 
   void process(Tracks const& tracks) {
-    auto condition = [](const auto& tracksCombination) {
-      return std::all_of(tracksCombination.begin(), tracksCombination.end(),
-                         [](const auto& t) { return track.eta() < 0; });
-    });
-    auto combGenerator = CombinationsGenerator<Tracks, 3>(tracks, condition);
-    for (auto& comb : combGenerator) {
-      // all tracks have eta < 0
-      Track t0 = comb[0];
-      Track t1 = comb[1];
-      Track t2 = comb[2];
+    for (auto [t0, t1] : combinations(tracks, tracks)) {
+      float pt = t0.pt();
       ...
     }
   }
 };
 ```
 
+The combination can consist of elements from different tables (of different kinds):
+
+```cpp
+struct MyTask : AnalysisTask {
+
+  void process(Tracks const& tracks, TracksCov const& covs) {
+    for (auto [t0, c1] : combinations(tracks, covs)) {
+      ...
+    }
+  }
+};
+```
+
+It will be possible to specify a filter for a combination as a whole, and only matching combinations will be then outputed. Currently, the filter is applied to each element separately.
+
+```cpp
+struct MyTask : AnalysisTask {
+
+  void process(Tracks const& tracks1, Tracks const& tracks2) {
+    Filter triplesFilter = track::eta < 0;
+    for (auto [t0, t1, t2] : combinations(triplesFilter, tracks1, tracks2, tracks2)) {
+      // Triples of tracks, each of them with eta < 0
+      ...
+    }
+  }
+};
+```
 
 ### Possible ideas
 

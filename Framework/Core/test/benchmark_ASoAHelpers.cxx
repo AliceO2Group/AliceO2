@@ -36,16 +36,18 @@ constexpr unsigned int maxFivesRange = 3;
 #endif
 
 // Helper to reset the iterators for each benchmark loop
-template <typename T, size_t K>
-void resetCombination(std::array<T, K>& array, const std::array<T, K>& maxOffset, bool& isEnd,
-                      const size_t n, const std::function<bool(const std::array<T, K>&)>& condition)
+template <typename... T2s>
+void resetCombination(std::tuple<T2s...>& tuple, const std::tuple<T2s...>& maxOffset, bool& isEnd, const std::array<int64_t, sizeof...(T2s)> sizes)
 {
-  for (int i = 0; i < K; i++) {
-    array[i].setCursor(i);
-  }
-  isEnd = n == K;
-  while (!isEnd && !condition(array)) {
-    addOne(array, maxOffset, isEnd);
+  for_<sizeof...(T2s)>([&](auto i) {
+    std::get<i.value>(tuple).setCursor(i.value);
+  });
+  isEnd = false;
+  for (int i = 0; i < sizeof...(T2s); i++) {
+    if (sizes[i] <= sizeof...(T2s)) {
+      isEnd = true;
+      break;
+    }
   }
 }
 
@@ -93,7 +95,7 @@ static void BM_ASoAHelpersEmptySimpleFives(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
 }
 
-BENCHMARK(BM_ASoAHelpersEmptySimpleFives)->Range(8, 8 << maxFivesRange);
+BENCHMARK(BM_ASoAHelpersEmptySimpleFives)->RangeMultiplier(2)->Range(8, 8 << maxFivesRange);
 
 static void BM_ASoAHelpersNaiveSimplePairs(benchmark::State& state)
 {
@@ -110,17 +112,14 @@ static void BM_ASoAHelpersNaiveSimplePairs(benchmark::State& state)
 
   using Test = o2::soa::Table<test::X>;
   Test tests{table};
-  std::function<bool(const std::array<Test::iterator, 2>&)> condition = [](const auto& testCombination) { return true; };
   int64_t count = 0;
 
   for (auto _ : state) {
     count = 0;
     for (auto t0 = tests.begin(); t0 + 1 != tests.end(); ++t0) {
       for (auto t1 = t0 + 1; t1 != tests.end(); ++t1) {
-        std::array<Test::iterator, 2> comb{t0, t1};
-        if (condition(comb)) {
-          count++;
-        }
+        auto comb = std::make_tuple(t0, t1);
+        count++;
         benchmark::DoNotOptimize(comb);
       }
     }
@@ -147,7 +146,6 @@ static void BM_ASoAHelpersNaiveSimpleFives(benchmark::State& state)
 
   using Test = o2::soa::Table<test::X>;
   Test tests{table};
-  std::function<bool(const std::array<Test::iterator, 5>&)> condition = [](const auto& testCombination) { return true; };
   int64_t count = 0;
 
   for (auto _ : state) {
@@ -157,10 +155,8 @@ static void BM_ASoAHelpersNaiveSimpleFives(benchmark::State& state)
         for (auto t2 = t1 + 1; t2 + 2 != tests.end(); ++t2) {
           for (auto t3 = t2 + 1; t3 + 1 != tests.end(); ++t3) {
             for (auto t4 = t3 + 1; t4 != tests.end(); ++t4) {
-              std::array<Test::iterator, 5> comb{t0, t1, t2, t3, t4};
-              if (condition(comb)) {
-                count++;
-              }
+              auto comb = std::make_tuple(t0, t1, t2, t3, t4);
+              count++;
               benchmark::DoNotOptimize(comb);
             }
           }
@@ -191,17 +187,14 @@ static void BM_ASoAHelpersNaiveTracksPairs(benchmark::State& state)
   auto table = builder.finalize();
 
   o2::aod::Tracks tracks{table};
-  std::function<bool(const std::array<o2::aod::Tracks::iterator, 2>&)> condition = [](const auto& testCombination) { return true; };
   int64_t count = 0;
 
   for (auto _ : state) {
     count = 0;
     for (auto t0 = tracks.begin(); t0 + 1 != tracks.end(); ++t0) {
       for (auto t1 = t0 + 1; t1 != tracks.end(); ++t1) {
-        std::array<o2::aod::Tracks::iterator, 2> comb{t0, t1};
-        if (condition(comb)) {
-          count++;
-        }
+        auto comb = std::make_tuple(t0, t1);
+        count++;
         benchmark::DoNotOptimize(comb);
       }
     }
@@ -229,7 +222,6 @@ static void BM_ASoAHelpersNaiveTracksFives(benchmark::State& state)
   auto table = builder.finalize();
 
   o2::aod::Tracks tracks{table};
-  std::function<bool(const std::array<o2::aod::Tracks::iterator, 5>&)> condition = [](const auto& testCombination) { return true; };
   int64_t count = 0;
 
   for (auto _ : state) {
@@ -239,10 +231,8 @@ static void BM_ASoAHelpersNaiveTracksFives(benchmark::State& state)
         for (auto t2 = t1 + 1; t2 + 2 != tracks.end(); ++t2) {
           for (auto t3 = t2 + 1; t3 + 1 != tracks.end(); ++t3) {
             for (auto t4 = t3 + 1; t4 != tracks.end(); ++t4) {
-              std::array<o2::aod::Tracks::iterator, 5> comb{t0, t1, t2, t3, t4};
-              if (condition(comb)) {
-                count++;
-              }
+              auto comb = std::make_tuple(t0, t1, t2, t3, t4);
+              count++;
               benchmark::DoNotOptimize(comb);
             }
           }
@@ -273,24 +263,18 @@ static void BM_ASoAHelpersAddOneSimplePairs(benchmark::State& state)
   using Test = o2::soa::Table<test::X>;
   Test tests{table};
 
-  std::array<Test::iterator, 2> comb2{tests.begin(), tests.begin() + 1};
+  auto comb2 = std::make_tuple(tests.begin(), tests.begin() + 1);
+  auto maxOffset = std::make_tuple(tests.begin() + tests.size() - 2 + 1, tests.begin() + tests.size() - 2 + 1 + 1);
+  std::array<int64_t, 2> sizes{tests.size(), tests.size()};
   bool isEnd = false;
   int64_t count = 0;
-  std::array<Test::iterator, 2> maxOffset{tests.begin() + tests.size() - 2 + 1, tests.begin() + tests.size() - 2 + 1 + 1};
-  std::function<bool(const std::array<Test::iterator, 2>&)> condition = [](const auto& testCombination) { return true; };
 
   for (auto _ : state) {
     count = 0;
-    resetCombination(comb2, maxOffset, isEnd, tests.size(), condition);
-    count++;
+    resetCombination(comb2, maxOffset, isEnd, sizes);
     while (!isEnd) {
+      count++;
       addOne(comb2, maxOffset, isEnd);
-      while (!isEnd && !condition(comb2)) {
-        addOne(comb2, maxOffset, isEnd);
-      }
-      if (!isEnd) {
-        count++;
-      }
     }
     benchmark::DoNotOptimize(count);
   }
@@ -316,25 +300,18 @@ static void BM_ASoAHelpersAddOneSimpleFives(benchmark::State& state)
   using Test = o2::soa::Table<test::X>;
   Test tests{table};
 
-  int k = 5;
-  std::array<Test::iterator, 5> comb5{tests.begin(), tests.begin() + 1, tests.begin() + 2, tests.begin() + 3, tests.begin() + 4};
+  auto comb5 = std::make_tuple(tests.begin(), tests.begin() + 1, tests.begin() + 2, tests.begin() + 3, tests.begin() + 4);
+  auto maxOffset = std::make_tuple(tests.begin() + tests.size() - 5 + 1, tests.begin() + tests.size() - 5 + 1 + 1, tests.begin() + tests.size() - 5 + 2 + 1, tests.begin() + tests.size() - 5 + 3 + 1, tests.begin() + tests.size() - 5 + 4 + 1);
+  std::array<int64_t, 5> sizes{tests.size(), tests.size(), tests.size(), tests.size(), tests.size()};
   bool isEnd = false;
   int64_t count = 0;
-  std::array<Test::iterator, 5> maxOffset{tests.begin() + tests.size() - 5 + 1, tests.begin() + tests.size() - 5 + 1 + 1, tests.begin() + tests.size() - 5 + 2 + 1, tests.begin() + tests.size() - 5 + 3 + 1, tests.begin() + tests.size() - 5 + 4 + 1};
-  std::function<bool(const std::array<Test::iterator, 5>&)> condition = [](const auto& testCombination) { return true; };
 
   for (auto _ : state) {
     count = 0;
-    resetCombination(comb5, maxOffset, isEnd, tests.size(), condition);
-    count++;
+    resetCombination(comb5, maxOffset, isEnd, sizes);
     while (!isEnd) {
+      count++;
       addOne(comb5, maxOffset, isEnd);
-      while (!isEnd && !condition(comb5)) {
-        addOne(comb5, maxOffset, isEnd);
-      }
-      if (!isEnd) {
-        count++;
-      }
     }
     benchmark::DoNotOptimize(count);
   }
@@ -361,25 +338,18 @@ static void BM_ASoAHelpersAddOneTracksPairs(benchmark::State& state)
 
   o2::aod::Tracks tracks{table};
 
-  int k = 2;
-  std::array<o2::aod::Tracks::iterator, 2> comb2{tracks.begin(), tracks.begin() + 1};
+  auto comb2 = std::tuple(tracks.begin(), tracks.begin() + 1);
+  auto maxOffset = std::make_tuple(tracks.begin() + tracks.size() - 2 + 1, tracks.begin() + tracks.size() - 2 + 1 + 1);
+  std::array<int64_t, 2> sizes{tracks.size(), tracks.size()};
   bool isEnd = false;
   int64_t count = 0;
-  std::array<o2::aod::Tracks::iterator, 2> maxOffset = {tracks.begin() + tracks.size() - 2 + 1, tracks.begin() + tracks.size() - 2 + 1 + 1};
-  std::function<bool(const std::array<o2::aod::Tracks::iterator, 2>&)> condition = [](const auto& testCombination) { return true; };
 
   for (auto _ : state) {
     count = 0;
-    resetCombination(comb2, maxOffset, isEnd, tracks.size(), condition);
-    count++;
+    resetCombination(comb2, maxOffset, isEnd, sizes);
     while (!isEnd) {
+      count++;
       addOne(comb2, maxOffset, isEnd);
-      while (!isEnd && !condition(comb2)) {
-        addOne(comb2, maxOffset, isEnd);
-      }
-      if (!isEnd) {
-        count++;
-      }
     }
     benchmark::DoNotOptimize(count);
   }
@@ -406,25 +376,18 @@ static void BM_ASoAHelpersAddOneTracksFives(benchmark::State& state)
 
   o2::aod::Tracks tracks{table};
 
-  int k = 5;
-  std::array<o2::aod::Tracks::iterator, 5> comb5{tracks.begin(), tracks.begin() + 1, tracks.begin() + 2, tracks.begin() + 3, tracks.begin() + 4};
+  auto comb5 = std::make_tuple(tracks.begin(), tracks.begin() + 1, tracks.begin() + 2, tracks.begin() + 3, tracks.begin() + 4);
+  auto maxOffset = std::make_tuple(tracks.begin() + tracks.size() - 5 + 1, tracks.begin() + tracks.size() - 5 + 1 + 1, tracks.begin() + tracks.size() - 5 + 2 + 1, tracks.begin() + tracks.size() - 5 + 3 + 1, tracks.begin() + tracks.size() - 5 + 4 + 1);
+  std::array<int64_t, 5> sizes{tracks.size(), tracks.size(), tracks.size(), tracks.size(), tracks.size()};
   bool isEnd = false;
   int64_t count = 0;
-  std::array<o2::aod::Tracks::iterator, 5> maxOffset = {tracks.begin() + tracks.size() - 5 + 1, tracks.begin() + tracks.size() - 5 + 1 + 1, tracks.begin() + tracks.size() - 5 + 2 + 1, tracks.begin() + tracks.size() - 5 + 3 + 1, tracks.begin() + tracks.size() - 5 + 4 + 1};
-  std::function<bool(const std::array<o2::aod::Tracks::iterator, 5>&)> condition = [](const auto& testCombination) { return true; };
 
   for (auto _ : state) {
     count = 0;
-    resetCombination(comb5, maxOffset, isEnd, tracks.size(), condition);
-    count++;
+    resetCombination(comb5, maxOffset, isEnd, sizes);
     while (!isEnd) {
+      count++;
       addOne(comb5, maxOffset, isEnd);
-      while (!isEnd && !condition(comb5)) {
-        addOne(comb5, maxOffset, isEnd);
-      }
-      if (!isEnd) {
-        count++;
-      }
     }
     benchmark::DoNotOptimize(count);
   }
