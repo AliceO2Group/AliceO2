@@ -20,12 +20,15 @@
 #include <cstring>
 #include <iostream>
 
-#define DECODER_PARANOID
+//#define DECODER_PARANOID
 //#define DECODER_VERBOSE
 //#define ENCODER_VERBOSE
 //#define CHECKER_VERBOSE
 //#define CHECKER_COUNTER
 
+#ifdef DECODER_PARANOID
+#warning "Building code with DecoderParanoid option. This may limit the speed."
+#endif
 #ifdef DECODER_VERBOSE
 #warning "Building code with DecoderVerbose option. This may limit the speed."
 #endif
@@ -96,208 +99,6 @@ namespace o2
 namespace tof
 {
 
-Compressor::~Compressor()
-{
-  if (mDecoderBuffer && mOwnDecoderBuffer)
-    delete[] mDecoderBuffer;
-  if (mEncoderBuffer && mOwnDecoderBuffer)
-    delete[] mEncoderBuffer;
-}
-
-bool Compressor::init()
-{
-  if (decoderInit())
-    return true;
-  if (encoderInit())
-    return true;
-  return false;
-}
-
-bool Compressor::open(const std::string inFileName, const std::string outFileName)
-{
-  if (decoderOpen(inFileName))
-    return true;
-  if (encoderOpen(outFileName))
-    return true;
-  return false;
-}
-
-bool Compressor::close()
-{
-  if (decoderClose())
-    return true;
-  if (encoderClose())
-    return true;
-  return false;
-}
-
-bool Compressor::decoderInit()
-{
-#ifdef DECODER_VERBOSE
-  if (mDecoderVerbose) {
-    std::cout << colorBlue
-              << "--- INITIALISE DECODER BUFFER: " << mDecoderBufferSize << " bytes"
-              << colorReset
-              << std::endl;
-  }
-#endif
-  if (mDecoderBuffer && mOwnDecoderBuffer) {
-    std::cout << colorYellow
-              << "--- a buffer was already allocated, cleaning"
-              << colorReset
-              << std::endl;
-    delete[] mDecoderBuffer;
-  }
-  mDecoderBuffer = new char[mDecoderBufferSize];
-  mOwnDecoderBuffer = true;
-  return false;
-}
-
-bool Compressor::encoderInit()
-{
-#ifdef ENCODER_VERBOSE
-  if (mEncoderVerbose) {
-    std::cout << colorBlue
-              << "--- INITIALISE ENCODER BUFFER: " << mEncoderBufferSize << " bytes"
-              << colorReset
-              << std::endl;
-  }
-#endif
-  if (mEncoderBuffer && mOwnEncoderBuffer) {
-    std::cout << colorYellow
-              << "-W- a buffer was already allocated, cleaning"
-              << colorReset
-              << std::endl;
-    delete[] mEncoderBuffer;
-  }
-  mEncoderBuffer = new char[mEncoderBufferSize];
-  mOwnEncoderBuffer = true;
-  encoderRewind();
-  return false;
-}
-
-bool Compressor::decoderOpen(const std::string name)
-{
-  if (mDecoderFile.is_open()) {
-    std::cout << colorYellow
-              << "-W- a file was already open, closing"
-              << colorReset
-              << std::endl;
-    mDecoderFile.close();
-  }
-  mDecoderFile.open(name.c_str(), std::fstream::in | std::fstream::binary);
-  if (!mDecoderFile.is_open()) {
-    std::cerr << colorRed
-              << "-E- Cannot open input file: " << name
-              << colorReset
-              << std::endl;
-    return true;
-  }
-  return false;
-}
-
-bool Compressor::encoderOpen(const std::string name)
-{
-  if (mEncoderFile.is_open()) {
-    std::cout << colorYellow
-              << "-W- a file was already open, closing"
-              << colorReset
-              << std::endl;
-    mEncoderFile.close();
-  }
-  mEncoderFile.open(name.c_str(), std::fstream::out | std::fstream::binary);
-  if (!mEncoderFile.is_open()) {
-    std::cerr << colorRed << "-E- Cannot open output file: " << name
-              << colorReset
-              << std::endl;
-    return true;
-  }
-  return false;
-}
-
-bool Compressor::decoderClose()
-{
-  if (mDecoderFile.is_open()) {
-    mDecoderFile.close();
-    return false;
-  }
-  return true;
-}
-
-bool Compressor::encoderClose()
-{
-  if (mEncoderFile.is_open())
-    mEncoderFile.close();
-  return false;
-}
-
-bool Compressor::decoderRead()
-{
-  if (!mDecoderFile.is_open()) {
-    std::cout << colorRed << "--- no input file is open"
-              << colorReset
-              << std::endl;
-    return true;
-  }
-
-  char* inputPointer = mDecoderBuffer;
-  mDecoderFile.read(inputPointer, 64);
-  mDecoderBufferSize = 64;
-  auto rdh = reinterpret_cast<o2::header::RAWDataHeader*>(inputPointer);
-  while (!rdh->stop) {
-    mDecoderFile.read(inputPointer + rdh->headerSize, rdh->offsetToNext - rdh->headerSize);
-    mDecoderBufferSize += (rdh->offsetToNext - rdh->headerSize);
-    inputPointer += rdh->offsetToNext;
-    mDecoderFile.read(inputPointer, 64);
-    mDecoderBufferSize += 64;
-    rdh = reinterpret_cast<o2::header::RAWDataHeader*>(inputPointer);
-  }
-
-  /** check end of file **/
-  if (mDecoderFile.eof()) {
-    std::cout << colorRed << "--- Nothing else to read"
-              << colorReset
-              << std::endl;
-    return true;
-  }
-
-#ifdef DECODER_VERBOSE
-  if (mDecoderVerbose) {
-    std::cout << colorBlue
-              << "--- DECODER READ HBF: " << mDecoderBufferSize << " bytes"
-              << colorReset
-              << std::endl;
-  }
-#endif
-
-  return false;
-}
-
-bool Compressor::encoderWrite()
-{
-#ifdef ENCODER_VERBOSE
-  if (mEncoderVerbose) {
-    std::cout << colorBlue
-              << "--- ENCODER WRITE BUFFER: " << getEncoderByteCounter() << " bytes"
-              << colorReset
-              << std::endl;
-  }
-#endif
-  mEncoderFile.write(mEncoderBuffer, getEncoderByteCounter());
-  encoderRewind();
-  return false;
-}
-
-bool Compressor::decoderParanoid()
-{
-  if (mDecoderPointer >= mDecoderPointerMax) {
-    printf("%s %08x [ERROR] fatal error: beyond memory size %s \n", colorRed, *mDecoderPointer, colorReset);
-    mDecoderFatal = true;
-    return true;
-  }
-  return false;
-}
-
 bool Compressor::processHBF()
 {
 
@@ -310,7 +111,7 @@ bool Compressor::processHBF()
   }
 #endif
 
-  mDecoderRDH = reinterpret_cast<o2::header::RAWDataHeader*>(mDecoderPointer);
+  mDecoderRDH = reinterpret_cast<const o2::header::RAWDataHeader*>(mDecoderPointer);
   mEncoderRDH = reinterpret_cast<o2::header::RAWDataHeader*>(mEncoderPointer);
   auto rdh = mDecoderRDH;
 
@@ -333,14 +134,14 @@ bool Compressor::processHBF()
     auto drmPayload = memorySize - headerSize;
 
     /** copy DRM payload to save buffer **/
-    std::memcpy(mDecoderSaveBuffer + mDecoderSaveBufferDataSize, reinterpret_cast<char*>(rdh) + headerSize, drmPayload);
+    std::memcpy(mDecoderSaveBuffer + mDecoderSaveBufferDataSize, reinterpret_cast<const char*>(rdh) + headerSize, drmPayload);
     mDecoderSaveBufferDataSize += drmPayload;
 
     /** move to next RDH **/
-    rdh = reinterpret_cast<o2::header::RAWDataHeader*>(reinterpret_cast<char*>(rdh) + offsetToNext);
+    rdh = reinterpret_cast<const o2::header::RAWDataHeader*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
 
     /** check next RDH is within buffer **/
-    if (reinterpret_cast<char*>(rdh) < mDecoderBuffer + mDecoderBufferSize)
+    if (reinterpret_cast<const char*>(rdh) < mDecoderBuffer + mDecoderBufferSize)
       continue;
 
     /** otherwise return **/
@@ -362,8 +163,8 @@ bool Compressor::processHBF()
   mEncoderPointer = reinterpret_cast<uint32_t*>(reinterpret_cast<char*>(mEncoderPointer) + rdh->headerSize);
 
   /** process DRM data **/
-  mDecoderPointer = reinterpret_cast<uint32_t*>(mDecoderSaveBuffer);
-  mDecoderPointerMax = reinterpret_cast<uint32_t*>(mDecoderSaveBuffer + mDecoderSaveBufferDataSize);
+  mDecoderPointer = reinterpret_cast<const uint32_t*>(mDecoderSaveBuffer);
+  mDecoderPointerMax = reinterpret_cast<const uint32_t*>(mDecoderSaveBuffer + mDecoderSaveBufferDataSize);
   while (mDecoderPointer < mDecoderPointerMax) {
     mEventCounter++;
     if (processDRM())
@@ -402,10 +203,10 @@ bool Compressor::processHBF()
 #endif
 
   /** move to next RDH **/
-  mDecoderPointer = reinterpret_cast<uint32_t*>(reinterpret_cast<char*>(rdh) + rdh->offsetToNext);
+  mDecoderPointer = reinterpret_cast<const uint32_t*>(reinterpret_cast<const char*>(rdh) + rdh->offsetToNext);
 
   /** check next RDH is within buffer **/
-  if (reinterpret_cast<char*>(mDecoderPointer) < mDecoderBuffer + mDecoderBufferSize)
+  if (reinterpret_cast<const char*>(mDecoderPointer) < mDecoderBuffer + mDecoderBufferSize)
     return false;
 
   /** otherwise return **/
@@ -440,7 +241,7 @@ bool Compressor::processDRM()
   mDecoderSummary.tofDataHeader = *mDecoderPointer;
 #ifdef DECODER_VERBOSE
   if (mDecoderVerbose) {
-    auto tofDataHeader = reinterpret_cast<raw::TOFDataHeader_t*>(mDecoderPointer);
+    auto tofDataHeader = reinterpret_cast<const raw::TOFDataHeader_t*>(mDecoderPointer);
     auto bytePayload = tofDataHeader->bytePayload;
     printf(" %08x TOF Data Header       (bytePayload=%d) \n", *mDecoderPointer, bytePayload);
   }
@@ -455,7 +256,7 @@ bool Compressor::processDRM()
   mDecoderSummary.tofOrbit = *mDecoderPointer;
 #ifdef DECODER_VERBOSE
   if (mDecoderVerbose) {
-    auto tofOrbit = reinterpret_cast<raw::TOFOrbit_t*>(mDecoderPointer);
+    auto tofOrbit = reinterpret_cast<const raw::TOFOrbit_t*>(mDecoderPointer);
     auto orbit = tofOrbit->orbit;
     printf(" %08x TOF Orbit             (orbit=%d) \n", *mDecoderPointer, orbit);
   }
@@ -477,7 +278,7 @@ bool Compressor::processDRM()
   mDecoderSummary.drmDataHeader = *mDecoderPointer;
 #ifdef DECODER_VERBOSE
   if (mDecoderVerbose) {
-    auto drmDataHeader = reinterpret_cast<raw::DRMDataHeader_t*>(mDecoderPointer);
+    auto drmDataHeader = reinterpret_cast<const raw::DRMDataHeader_t*>(mDecoderPointer);
     auto drmId = drmDataHeader->drmId;
     printf(" %08x DRM Data Header       (drmId=%d) \n", *mDecoderPointer, drmId);
   }
@@ -492,7 +293,7 @@ bool Compressor::processDRM()
   mDecoderSummary.drmHeadW1 = *mDecoderPointer;
 #ifdef DECODER_VERBOSE
   if (mDecoderVerbose) {
-    auto drmHeadW1 = reinterpret_cast<raw::DRMHeadW1_t*>(mDecoderPointer);
+    auto drmHeadW1 = reinterpret_cast<const raw::DRMHeadW1_t*>(mDecoderPointer);
     auto partSlotMask = drmHeadW1->partSlotMask;
     auto clockStatus = drmHeadW1->clockStatus;
     auto drmHSize = drmHeadW1->drmHSize;
@@ -509,7 +310,7 @@ bool Compressor::processDRM()
   mDecoderSummary.drmHeadW2 = *mDecoderPointer;
 #ifdef DECODER_VERBOSE
   if (mDecoderVerbose) {
-    auto drmHeadW2 = reinterpret_cast<raw::DRMHeadW2_t*>(mDecoderPointer);
+    auto drmHeadW2 = reinterpret_cast<const raw::DRMHeadW2_t*>(mDecoderPointer);
     auto enaSlotMask = drmHeadW2->enaSlotMask;
     auto faultSlotMask = drmHeadW2->faultSlotMask;
     auto readoutTimeOut = drmHeadW2->readoutTimeOut;
@@ -526,7 +327,7 @@ bool Compressor::processDRM()
   mDecoderSummary.drmHeadW3 = *mDecoderPointer;
 #ifdef DECODER_VERBOSE
   if (mDecoderVerbose) {
-    auto drmHeadW3 = reinterpret_cast<raw::DRMHeadW3_t*>(mDecoderPointer);
+    auto drmHeadW3 = reinterpret_cast<const raw::DRMHeadW3_t*>(mDecoderPointer);
     auto gbtBunchCnt = drmHeadW3->gbtBunchCnt;
     auto locBunchCnt = drmHeadW3->locBunchCnt;
     printf(" %08x DRM Header Word 3     (gbtBunchCnt=%d, locBunchCnt=%d) \n", *mDecoderPointer, gbtBunchCnt, locBunchCnt);
@@ -644,7 +445,7 @@ bool Compressor::processDRM()
       mDecoderSummary.trmDataHeader[itrm] = *mDecoderPointer;
 #ifdef DECODER_VERBOSE
       if (mDecoderVerbose) {
-        auto trmDataHeader = reinterpret_cast<raw::TRMDataHeader_t*>(mDecoderPointer);
+        auto trmDataHeader = reinterpret_cast<const raw::TRMDataHeader_t*>(mDecoderPointer);
         auto eventWords = trmDataHeader->eventWords;
         auto eventCnt = trmDataHeader->eventCnt;
         auto emptyBit = trmDataHeader->emptyBit;
@@ -666,7 +467,7 @@ bool Compressor::processDRM()
           mDecoderSummary.hasErrors[itrm][0] = false;
 #ifdef DECODER_VERBOSE
           if (mDecoderVerbose) {
-            auto trmChainHeader = reinterpret_cast<raw::TRMChainHeader_t*>(mDecoderPointer);
+            auto trmChainHeader = reinterpret_cast<const raw::TRMChainHeader_t*>(mDecoderPointer);
             auto bunchCnt = trmChainHeader->bunchCnt;
             printf(" %08x TRM Chain-A Header    (slotId=%u, bunchCnt=%d) \n", *mDecoderPointer, slotId, bunchCnt);
           }
@@ -688,7 +489,7 @@ bool Compressor::processDRM()
               mDecoderSummary.trmDataHits[0][itdc]++;
 #ifdef DECODER_VERBOSE
               if (mDecoderVerbose) {
-                auto trmDataHit = reinterpret_cast<raw::TRMDataHit_t*>(mDecoderPointer);
+                auto trmDataHit = reinterpret_cast<const raw::TRMDataHit_t*>(mDecoderPointer);
                 auto time = trmDataHit->time;
                 auto chanId = trmDataHit->chanId;
                 auto tdcId = trmDataHit->tdcId;
@@ -725,7 +526,7 @@ bool Compressor::processDRM()
               mDecoderSummary.trmChainTrailer[itrm][0] = *mDecoderPointer;
 #ifdef DECODER_VERBOSE
               if (mDecoderVerbose) {
-                auto trmChainTrailer = reinterpret_cast<raw::TRMChainTrailer_t*>(mDecoderPointer);
+                auto trmChainTrailer = reinterpret_cast<const raw::TRMChainTrailer_t*>(mDecoderPointer);
                 auto eventCnt = trmChainTrailer->eventCnt;
                 printf(" %08x TRM Chain-A Trailer   (slotId=%u, eventCnt=%d) \n", *mDecoderPointer, slotId, eventCnt);
               }
@@ -761,7 +562,7 @@ bool Compressor::processDRM()
           mDecoderSummary.trmChainHeader[itrm][1] = *mDecoderPointer;
 #ifdef DECODER_VERBOSE
           if (mDecoderVerbose) {
-            auto trmChainHeader = reinterpret_cast<raw::TRMChainHeader_t*>(mDecoderPointer);
+            auto trmChainHeader = reinterpret_cast<const raw::TRMChainHeader_t*>(mDecoderPointer);
             auto bunchCnt = trmChainHeader->bunchCnt;
             printf(" %08x TRM Chain-B Header    (slotId=%u, bunchCnt=%d) \n", *mDecoderPointer, slotId, bunchCnt);
           }
@@ -783,7 +584,7 @@ bool Compressor::processDRM()
               mDecoderSummary.trmDataHits[1][itdc]++;
 #ifdef DECODER_VERBOSE
               if (mDecoderVerbose) {
-                auto trmDataHit = reinterpret_cast<raw::TRMDataHit_t*>(mDecoderPointer);
+                auto trmDataHit = reinterpret_cast<const raw::TRMDataHit_t*>(mDecoderPointer);
                 auto time = trmDataHit->time;
                 auto chanId = trmDataHit->chanId;
                 auto tdcId = trmDataHit->tdcId;
@@ -820,7 +621,7 @@ bool Compressor::processDRM()
               mDecoderSummary.trmChainTrailer[itrm][1] = *mDecoderPointer;
 #ifdef DECODER_VERBOSE
               if (mDecoderVerbose) {
-                auto trmChainTrailer = reinterpret_cast<raw::TRMChainTrailer_t*>(mDecoderPointer);
+                auto trmChainTrailer = reinterpret_cast<const raw::TRMChainTrailer_t*>(mDecoderPointer);
                 auto eventCnt = trmChainTrailer->eventCnt;
                 printf(" %08x TRM Chain-B Trailer   (slotId=%u, eventCnt=%d) \n", *mDecoderPointer, slotId, eventCnt);
               }
@@ -854,7 +655,7 @@ bool Compressor::processDRM()
           mDecoderSummary.trmDataTrailer[itrm] = *mDecoderPointer;
 #ifdef DECODER_VERBOSE
           if (mDecoderVerbose) {
-            auto trmDataTrailer = reinterpret_cast<raw::TRMDataTrailer_t*>(mDecoderPointer);
+            auto trmDataTrailer = reinterpret_cast<const raw::TRMDataTrailer_t*>(mDecoderPointer);
             auto eventCRC = trmDataTrailer->eventCRC;
             auto lutErrorBit = trmDataTrailer->lutErrorBit;
             printf(" %08x TRM Data Trailer      (slotId=%u, eventCRC=%d, lutErrorBit=%d) \n", *mDecoderPointer, slotId, eventCRC, lutErrorBit);
@@ -911,7 +712,7 @@ bool Compressor::processDRM()
       mDecoderSummary.drmDataTrailer = *mDecoderPointer;
 #ifdef DECODER_VERBOSE
       if (mDecoderVerbose) {
-        auto drmDataTrailer = reinterpret_cast<raw::DRMDataTrailer_t*>(mDecoderPointer);
+        auto drmDataTrailer = reinterpret_cast<const raw::DRMDataTrailer_t*>(mDecoderPointer);
         auto locEvCnt = drmDataTrailer->locEvCnt;
         printf(" %08x DRM Data Trailer      (locEvCnt=%d) \n", *mDecoderPointer, locEvCnt);
       }
@@ -997,6 +798,16 @@ bool Compressor::processDRM()
   }
 #endif
 
+  return false;
+}
+
+bool Compressor::decoderParanoid()
+{
+  if (mDecoderPointer >= mDecoderPointerMax) {
+    printf("%s %08x [ERROR] fatal error: beyond memory size %s \n", colorRed, *mDecoderPointer, colorReset);
+    mDecoderFatal = true;
+    return true;
+  }
   return false;
 }
 
