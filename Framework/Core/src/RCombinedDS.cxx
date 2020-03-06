@@ -163,7 +163,9 @@ std::string RCombinedDS::GetTypeName(std::string_view colName) const
     colName.remove_prefix(fRightPrefix.size());
     return fRight->GetTypeName(colName);
   }
-  throw std::runtime_error("Column not found: " + colName);
+  std::string dummy("Column not found: ");
+  dummy += colName.data();
+  throw std::runtime_error(dummy);
 }
 
 bool RCombinedDS::HasColumn(std::string_view colName) const
