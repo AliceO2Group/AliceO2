@@ -251,18 +251,22 @@ bool DataProcessingDevice::ConditionalRun()
   mBeginIterationTimestamp = (uint64_t)std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
 
   mServiceRegistry.get<CallbackService>()(CallbackService::Id::ClockTick);
-  // Wether or not we had something to do.
+  // Whether or not we had something to do.
   bool active = false;
-  // Notice that in case there are no input channels we should the allDone
-  // state will have to be set explicitly in the code, like we do, for example
-  // for implicit data sources or timers.  This also implies that whatever is
-  // time driven will have to signal EndOfStream itself.
-  bool allDone = mSpec.inputChannels.empty() == false;
+
+  // Notice that fake input channels (InputChannelState::Pull) cannot possibly
+  // expect to receive an EndOfStream signal. Thus we do not wait for these
+  // to be completed. In the case of data source devices, as they do not have
+  // real data input channels, they have to signal EndOfStream themselves.
+  bool allDone = std::any_of(mState.inputChannelInfos.begin(), mState.inputChannelInfos.end(), [](const auto& info) {
+    return info.state != InputChannelState::Pull;
+  });
   // Whether or not all the channels are completed
   for (size_t ci = 0; ci < mSpec.inputChannels.size(); ++ci) {
     auto& channel = mSpec.inputChannels[ci];
     auto& info = mState.inputChannelInfos[ci];
-    if (info.state != InputChannelState::Completed) {
+
+    if (info.state != InputChannelState::Completed && info.state != InputChannelState::Pull) {
       allDone = false;
     }
     if (info.state != InputChannelState::Running) {
