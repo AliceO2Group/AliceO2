@@ -49,10 +49,10 @@ Ratio (cpu time) / (wall clock time) :  1.46
 ```
 and generate two plots each:
 
-![alt text](https://github.com/mslupeck/AliceO2/blob/benchmark/Detectors/FIT/benchmark/images/Figure_1.png)
-![alt text](https://github.com/mslupeck/AliceO2/blob/benchmark/Detectors/FIT/benchmark/images/Figure_2.png)
+![alt text](https://github.com/AliceO2Group/AliceO2/tree/dev/Detectors/FIT/benchmark/images/Figure_1.png)
+![alt text](https://github.com/AliceO2Group/AliceO2/tree/dev/Detectors/FIT/benchmark/images/Figure_2.png)
 
 if no logfiles where provided the plots would look like: 
 
-![alt text](https://github.com/mslupeck/AliceO2/blob/benchmark/Detectors/FIT/benchmark/images/Figure_1_nolog.png)
-![alt text](https://github.com/mslupeck/AliceO2/blob/benchmark/Detectors/FIT/benchmark/images/Figure_2_nolog.png)
+![alt text](https://github.com/AliceO2Group/AliceO2/tree/dev/Detectors/FIT/benchmark/images/Figure_1_nolog.png)
+![alt text](https://github.com/AliceO2Group/AliceO2/tree/dev/Detectors/FIT/benchmark/images/Figure_2_nolog.png)
