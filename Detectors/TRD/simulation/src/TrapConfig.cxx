@@ -18,7 +18,7 @@
 
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/FeeParam.h"
-#include "TRDBase/TrapConfig.h"
+#include "TRDSimulation/TrapConfig.h"
 #include <fairlogger/Logger.h>
 
 #include <fstream>
@@ -33,7 +33,7 @@ bool TrapConfig::mgRegAddressMapInitialized = false;
 
 const std::array<int, TrapConfig::mlastAlloc> o2::trd::TrapConfig::TrapValue::mgkSize = {0, 1, 540, 1080, 8 * 18 * 540, 4, 6, 8 * 18 * 30};
 
-TrapConfig::TrapConfig()
+TrapConfig::TrapConfig(std::string configname)
 {
   // default constructor
 
@@ -864,9 +864,10 @@ int TrapConfig::TrapValue::getIdx(int det, int rob, int mcm)
       LOG(error) << "Invalid allocation mode";
   }
   if (idx < mData.size()) {
+    // LOG(info) << "Index ok " << dec << idx << " (size " << mData.size() << ") for " << this->getName() << " getIdx : " << det <<"::"<< rob<< "::" << mcm << "::" << mAllocMode;
     return idx;
   } else {
-    LOG(error) << "Index too large " << dec << idx << " (size " << mData.size() << ") for " << this->getName();
+    LOG(fatal) << "Index too large " << dec << idx << " (size " << mData.size() << ") for " << this->getName() << " getIdx : " << det << "::" << rob << "::" << mcm << "::" << mAllocMode;
     return -1;
   }
 }
@@ -985,4 +986,48 @@ void TrapConfig::TrapRegister::initfromrun2(const char* name, int addr, int nBit
   mNbits = nBits;
   mResetValue = resetValue;
   //LOG(fatal) << "Re-initialising an existing TRAP register " << name << ":" << mName << " : " << addr << ":" << mAddr << " : " << nBits << ":" << mNbits <<  " : " << resetValue << ":" << mResetValue;
+  LOG(fatal) << "Re-initialising an existing TRAP register";
+}
+
+void TrapConfig::configureOnlineGains()
+{
+  // we dont want to do this anymore .... but here for future reference.
+  /* if (hasOnlineFilterGain()) {
+    const int nDets = kNdet;
+    const int nMcms = TRDGeometry::MCMmax();
+    const int nChs = TRDGeometry::ADCmax();
+
+    for (int ch = 0; ch < nChs; ++ch) {
+      TrapConfig::TrapReg_t regFGAN = (TrapConfig::TrapReg_t)(TrapConfig::kFGA0 + ch);
+      TrapConfig::TrapReg_t regFGFN = (TrapConfig::TrapReg_t)(TrapConfig::kFGF0 + ch);
+      mTrapConfig->setTrapRegAlloc(regFGAN, TrapConfig::kAllocByMCM);
+      mTrapConfig->setTrapRegAlloc(regFGFN, TrapConfig::kAllocByMCM);
+    }
+
+    for (int iDet = 0; iDet < nDets; ++iDet) {
+      //const int MaxRows = TRDGeometry::getStack(iDet) == 2 ? FeeParam::mgkNrowC0 : FeeParam::mgkNrowC1;
+      int MaxCols = FeeParam::mgkNcol;
+      //	CalOnlineGainTableROC gainTbl = mGainTable.getGainTableROC(iDet);
+      const int nRobs = TRDGeometry::getStack(iDet) == 2 ? TRDGeometry::ROBmaxC0() : TRDGeometry::ROBmaxC1();
+
+      for (int rob = 0; rob < nRobs; ++rob) {
+        for (int mcm = 0; mcm < nMcms; ++mcm) {
+          //          for (int row = 0; row < MaxRows; row++) {
+          //            for (int col = 0; col < MaxCols; col++) {
+          //TODO  set ADC reference voltage
+          mTrapConfig->setTrapReg(TrapConfig::kADCDAC, mTrapConfig.getAdcdacrm(iDet, rob, mcm), iDet, rob, mcm);
+
+          // set constants channel-wise
+          for (int ch = 0; ch < nChs; ++ch) {
+            TrapConfig::TrapReg_t regFGAN = (TrapConfig::TrapReg_t)(TrapConfig::kFGA0 + ch);
+            TrapConfig::TrapReg_t regFGFN = (TrapConfig::TrapReg_t)(TrapConfig::kFGF0 + ch);
+            mTrapConfig->setTrapReg(regFGAN, mTrapConfig.getFGANrm(iDet, rob, mcm, ch), iDet, rob, mcm); //TODO can put these internal to TrapConfig
+            mTrapConfig->setTrapReg(regFGFN, mTrapConfig.getFGFNrm(iDet, rob, mcm, ch), iDet, rob, mcm);
+          }
+        }
+        //        }
+        //    }
+      }
+    }
+        }*/
 }

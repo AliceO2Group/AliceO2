@@ -14,6 +14,8 @@
 #include "GPUTPCCFStreamCompaction.h"
 #include "GPUCommonAlgorithm.h"
 
+#include "ChargePos.h"
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -119,11 +121,11 @@ GPUd() void GPUTPCCFStreamCompaction::nativeScanDownImpl(int nBlocks, int nThrea
 }
 
 template <>
-GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::compactDigit>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, int iBuf, int stage, deprecated::PackedDigit* in, deprecated::PackedDigit* out)
+GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::compact>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, int iBuf, int stage, ChargePos* in, ChargePos* out)
 {
   unsigned int nElems = compactionElems(clusterer, stage);
   size_t bufferSize = (stage) ? clusterer.mNMaxClusters : clusterer.mNMaxPeaks;
-  compactDigitImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, in, out, clusterer.mPisPeak, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, clusterer.mPbuf + iBuf * clusterer.mBufSize, nElems, bufferSize);
+  compactImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, in, out, clusterer.mPisPeak, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, clusterer.mPbuf + iBuf * clusterer.mBufSize, nElems, bufferSize);
   unsigned int lastId = get_global_size(0) - 1;
   if ((unsigned int)get_global_id(0) == lastId) {
     if (stage) {
@@ -134,14 +136,14 @@ GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::compact
   }
 }
 
-GPUd() void GPUTPCCFStreamCompaction::compactDigitImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
-                                                       const Digit* in,
-                                                       Digit* out,
-                                                       const uchar* predicate,
-                                                       int* newIdx,
-                                                       const int* incr,
-                                                       int nElems,
-                                                       size_t bufferSize)
+GPUd() void GPUTPCCFStreamCompaction::compactImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
+                                                  const ChargePos* in,
+                                                  ChargePos* out,
+                                                  const uchar* predicate,
+                                                  int* newIdx,
+                                                  const int* incr,
+                                                  int nElems,
+                                                  size_t bufferSize)
 {
   int gid = get_group_id(0);
   int idx = get_global_id(0);

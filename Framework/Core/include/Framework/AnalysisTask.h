@@ -126,7 +126,7 @@ struct Produces<soa::Table<C...>> : WritingCursor<typename soa::FilterPersistent
   }
 };
 
-/// This helper class allow you to declare things which will be created by a
+/// This helper class allows you to declare things which will be created by a
 /// given analysis task. Currently wrapped objects are limited to be TNamed
 /// descendants. Objects will be written to a ROOT file at the end of the
 /// workflow, in directories, corresponding to the task they were declared in.
@@ -140,14 +140,16 @@ struct OutputObj {
   OutputObj(T const& t, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject)
     : object(std::make_shared<T>(t)),
       label(t.GetName()),
-      policy{policy_}
+      policy{policy_},
+      mTaskHash{0}
   {
   }
 
   OutputObj(std::string const& label_, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject)
     : object(nullptr),
       label(label_),
-      policy{policy_}
+      policy{policy_},
+      mTaskHash{0}
   {
   }
 
@@ -167,6 +169,11 @@ struct OutputObj {
   {
     object.reset(t);
     object->SetName(label.c_str());
+  }
+
+  void setHash(uint32_t hash)
+  {
+    mTaskHash = hash;
   }
 
   /// @return the associated OutputSpec
@@ -194,12 +201,13 @@ struct OutputObj {
   OutputRef ref()
   {
     return OutputRef{std::string{label}, 0,
-                     o2::header::Stack{OutputObjHeader{policy}}};
+                     o2::header::Stack{OutputObjHeader{policy, mTaskHash}}};
   }
 
   std::shared_ptr<T> object;
   std::string label;
   OutputObjHandlingPolicy policy;
+  uint32_t mTaskHash;
 };
 
 struct AnalysisTask {
@@ -497,7 +505,7 @@ struct FilterManager<expressions::Filter> {
 template <typename T>
 struct OutputManager {
   template <typename ANY>
-  static bool appendOutput(std::vector<OutputSpec>& outputs, ANY&)
+  static bool appendOutput(std::vector<OutputSpec>& outputs, ANY&, uint32_t hash)
   {
     return false;
   }
@@ -523,7 +531,7 @@ struct OutputManager {
 
 template <typename TABLE>
 struct OutputManager<Produces<TABLE>> {
-  static bool appendOutput(std::vector<OutputSpec>& outputs, Produces<TABLE>& what)
+  static bool appendOutput(std::vector<OutputSpec>& outputs, Produces<TABLE>& what, uint32_t hash)
   {
     outputs.emplace_back(what.spec());
     return true;
@@ -545,7 +553,7 @@ struct OutputManager<Produces<TABLE>> {
 
 template <>
 struct OutputManager<HistogramRegistry> {
-  static bool appendOutput(std::vector<OutputSpec>& outputs, HistogramRegistry& what)
+  static bool appendOutput(std::vector<OutputSpec>& outputs, HistogramRegistry& what, uint32_t hash)
   {
     outputs.emplace_back(what.spec());
     return true;
@@ -568,8 +576,9 @@ struct OutputManager<HistogramRegistry> {
 
 template <typename T>
 struct OutputManager<OutputObj<T>> {
-  static bool appendOutput(std::vector<OutputSpec>& outputs, OutputObj<T>& what)
+  static bool appendOutput(std::vector<OutputSpec>& outputs, OutputObj<T>& what, uint32_t hash)
   {
+    what.setHash(hash);
     outputs.emplace_back(what.spec());
     return true;
   }
@@ -648,6 +657,7 @@ template <typename T, typename... Args>
 DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
 {
   auto task = std::make_shared<T>(std::forward<Args>(args)...);
+  auto hash = compile_time_hash(name.c_str());
 
   std::vector<OutputSpec> outputs;
   auto tupledTask = o2::framework::to_tuple_refs(*task.get());
@@ -667,7 +677,7 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
                tupledTask);
   }
 
-  std::apply([&outputs](auto&... x) { return (OutputManager<std::decay_t<decltype(x)>>::appendOutput(outputs, x), ...); }, tupledTask);
+  std::apply([&outputs, &hash](auto&... x) { return (OutputManager<std::decay_t<decltype(x)>>::appendOutput(outputs, x, hash), ...); }, tupledTask);
 
   auto algo = AlgorithmSpec::InitCallback{[task, expressionInfos](InitContext& ic) {
     auto& callbacks = ic.services().get<CallbackService>();

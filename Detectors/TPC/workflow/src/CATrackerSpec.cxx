@@ -187,6 +187,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector
 
       config.configDeviceProcessing.nThreads = nThreads;
       config.configDeviceProcessing.runQA = qa;              // Run QA after tracking
+      config.configDeviceProcessing.runMC = processMC;       // Propagate MC labels
       config.configDeviceProcessing.eventDisplay = display;  // Ptr to event display backend, for running standalone OpenGL event display
       config.configDeviceProcessing.debugLevel = debugLevel; // Debug verbosity
 

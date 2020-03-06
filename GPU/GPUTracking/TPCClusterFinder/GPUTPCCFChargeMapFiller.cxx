@@ -13,34 +13,51 @@
 
 #include "GPUTPCCFChargeMapFiller.h"
 #include "ChargePos.h"
-#include "Array2D.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::deprecated;
 
 template <>
-GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::fillChargeMap>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
+GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::fillIndexMap>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
-  Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   Array2D<uint> indexMap(clusterer.mPindexMap);
-  fillChargeMapImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPdigits, chargeMap, indexMap, clusterer.mPmemory->counters.nDigits);
+  fillIndexMapImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPpositions, indexMap, clusterer.mPmemory->counters.nDigits);
 }
 
-GPUd() void GPUTPCCFChargeMapFiller::fillChargeMapImpl(int nBlocks, int nThreads, int iBlock, int iThread,
-                                                       const Digit* digits,
-                                                       Array2D<PackedCharge>& chargeMap,
-                                                       Array2D<uint>& indexMap,
-                                                       size_t maxDigit)
+GPUd() void GPUTPCCFChargeMapFiller::fillIndexMapImpl(int nBlocks, int nThreads, int iBlock, int iThread,
+                                                      const ChargePos* positions,
+                                                      Array2D<uint>& indexMap,
+                                                      size_t maxDigit)
 {
   size_t idx = get_global_id(0);
   if (idx >= maxDigit) {
     return;
   }
-  Digit myDigit = digits[idx];
-
-  ChargePos pos(myDigit);
-  chargeMap[pos] = PackedCharge(myDigit.charge);
+  CPU_ONLY(ChargePos pos = positions[idx]);
   CPU_ONLY(indexMap.safeWrite(pos, idx));
+}
+
+template <>
+GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::fillFromDigits>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
+{
+  Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
+  fillFromDigitsImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPdigits, clusterer.mPpositions, chargeMap, clusterer.mPmemory->counters.nDigits);
+}
+
+GPUd() void GPUTPCCFChargeMapFiller::fillFromDigitsImpl(int nBlocks, int nThreads, int iBlock, int iThread,
+                                                        const Digit* digits,
+                                                        ChargePos* positions,
+                                                        Array2D<PackedCharge>& chargeMap,
+                                                        size_t maxDigit)
+{
+  size_t idx = get_global_id(0);
+  if (idx >= maxDigit) {
+    return;
+  }
+  Digit digit = digits[idx];
+  ChargePos pos(digit.row, digit.pad, digit.time);
+  positions[idx] = pos;
+  chargeMap[pos] = PackedCharge(digit.charge);
 }
 
 template <>
@@ -48,18 +65,21 @@ GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::resetMaps
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
   Array2D<uchar> isPeakMap(clusterer.mPpeakMap);
-  resetMapsImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPdigits, chargeMap, isPeakMap);
+  resetMapsImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPpositions, chargeMap, isPeakMap, clusterer.mPmemory->counters.nDigits);
 }
 
 GPUd() void GPUTPCCFChargeMapFiller::resetMapsImpl(int nBlocks, int nThreads, int iBlock, int iThread,
-                                                   const Digit* digits,
+                                                   const ChargePos* positions,
                                                    Array2D<PackedCharge>& chargeMap,
-                                                   Array2D<uchar>& isPeakMap)
+                                                   Array2D<uchar>& isPeakMap,
+                                                   size_t maxDigit)
 {
   size_t idx = get_global_id(0);
-  Digit myDigit = digits[idx];
+  if (idx >= maxDigit) {
+    return;
+  }
 
-  ChargePos pos(myDigit);
+  ChargePos pos = positions[idx];
 
   chargeMap[pos] = PackedCharge(0);
   isPeakMap[pos] = 0;
