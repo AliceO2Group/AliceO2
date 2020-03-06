@@ -24,4 +24,5 @@ o2_target_root_dictionary(EMCALSimulation
                                   include/EMCALSimulation/SimParam.h
                                   include/EMCALSimulation/LabeledDigit.h)
 
+
 o2_data_file(COPY data DESTINATION Detectors/EMC/simulation)
