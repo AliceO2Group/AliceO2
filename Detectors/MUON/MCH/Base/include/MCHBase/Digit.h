@@ -40,6 +40,7 @@ class Digit
   int getDetID() const { return mDetID; }
 
   int getPadID() const { return mPadID; }
+  void setPadID(int padID) { mPadID = padID; }
 
   unsigned long getADC() const { return mADC; }
   void setADC(unsigned long adc) { mADC = adc; }

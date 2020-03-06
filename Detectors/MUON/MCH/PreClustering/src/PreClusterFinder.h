@@ -21,7 +21,8 @@
 #include <vector>
 
 #include "MCHBase/Digit.h"
-#include "MCHBase/Mapping.h"
+
+#include "PreClusterFinderMapping.h"
 
 namespace o2
 {
@@ -47,7 +48,7 @@ class PreClusterFinder
   PreClusterFinder(PreClusterFinder&&) = delete;
   PreClusterFinder& operator=(PreClusterFinder&&) = delete;
 
-  void init(std::string& fileName);
+  void init();
   void deinit();
   void reset();
 
@@ -75,9 +76,6 @@ class PreClusterFinder
     std::vector<uint16_t> orderedPads[2];   // indices of fired pads ordered after preclustering and merging
   };
 
-  /// Return the cathode part of the unique ID
-  int cathode(uint32_t uid) { return (uid & 0x40000000) >> 30; }
-
   void preClusterizeRecursive();
   void addPad(DetectionElement& de, uint16_t iPad, PreCluster& cluster);
 
@@ -89,7 +87,7 @@ class PreClusterFinder
 
   bool areOverlapping(PreCluster& cluster1, PreCluster& cluster2, DetectionElement& de, float precision);
 
-  void readMapping(const char* fileName);
+  void createMapping();
 
   static constexpr int SNDEs = 156; ///< number of DEs
 

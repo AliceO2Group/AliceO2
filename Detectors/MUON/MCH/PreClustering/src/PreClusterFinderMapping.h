@@ -17,7 +17,7 @@
 #include <memory>
 #include <vector>
 
-#include "TExMap.h"
+#include "MCHMappingInterface/Segmentation.h"
 
 namespace o2
 {
@@ -40,17 +40,18 @@ class Mapping
   // DE structure in the internal mapping
   struct MpDE {
     int uid;                       // unique ID
-    uint8_t iCath[2];              // cathode index corresponding to each plane
     uint16_t nPads[2];             // number of pads on each plane
     std::unique_ptr<MpPad[]> pads; // array of pads on both planes
-    TExMap padIndices[2];          // indices+1 of pads from their ID
   };
 
-  static std::vector<std::unique_ptr<MpDE>> readMapping(const char* mapfile);
+  static std::vector<std::unique_ptr<MpDE>> createMapping();
 
   static bool areOverlapping(float area1[2][2], float area2[2][2], float precision);
-
   static bool areOverlappingExcludeCorners(float area1[2][2], float area2[2][2]);
+
+ private:
+  static auto addPad(MpDE& de, const mapping::Segmentation& segmentation);
+  static auto addNeighbour(MpPad& pad);
 };
 
 } // namespace mch
