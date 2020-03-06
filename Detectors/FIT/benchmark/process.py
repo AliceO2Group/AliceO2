@@ -131,7 +131,7 @@ elif command==digitization: # True if you typed o2-sim-digitizer-workflow
         pid_names = []
 
         # loop through lines to find PIDs
-        for line_num,line in enumerate(loglines)
+        for line_num,line in enumerate(loglines):
             pid_line = re.findall('Starting (\\w.+) on pid (\\d+)',line)
             if pid_line: # True if the line contains 'Start <PID name> on pid <PID number>'
 
