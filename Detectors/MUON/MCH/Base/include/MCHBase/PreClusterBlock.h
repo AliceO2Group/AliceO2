@@ -31,8 +31,8 @@ namespace mch
  * hit reconstruction and correlated into a common cluster.
  */
 struct PreClusterStruct {
-  uint16_t nDigits;    // number of digits attached to this precluster
-  const Digit* digits; // pointer to the 1st element of the array of digits
+  uint16_t nDigits; // number of digits attached to this precluster
+  Digit* digits;    // pointer to the 1st element of the array of digits
 };
 
 /**
