@@ -63,7 +63,7 @@ class Digitizer : public TObject
   bool isContinuous() const { return mContinuous; }
 
   bool isEmpty() const { return mEmpty; }
-  bool readyToFlush(double t) const { return ((t > mLiveTime) && !isEmpty()); }
+  bool readyToFlush(double t) const { return ((t - mTriggerTime > mLiveTime) && !isEmpty()); }
 
   void fillOutputContainer(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>& labels);
 
