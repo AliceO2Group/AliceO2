@@ -45,6 +45,9 @@ class Decoder : public WindowFiller
 
   bool decode();
   void readTRM(int icru, int icrate, int orbit, int bunchid);
+  void InsertDigit(int icrate, int itrm, int itdc, int ichain, int channel, int orbit, int bunchid, int time_ext, int tdc, int tot);
+  void FillWindows();
+  void clear();
 
   bool close();
   void setVerbose(bool val) { mVerbose = val; };

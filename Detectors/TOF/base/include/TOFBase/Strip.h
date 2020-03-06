@@ -56,7 +56,7 @@ class Strip
 
   /// Empties the point container
   /// @param option unused
-  void clear();
+  void clear() { mDigits.clear(); }
 
   /// Change the chip index
   /// @param index New chip index

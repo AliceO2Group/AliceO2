@@ -19,7 +19,6 @@
 #include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"
 #include "TOFCompression/Compressor.h"
-#include "TOFCompression/RawDataFrame.h"
 #include <fstream>
 
 using namespace o2::framework;
@@ -37,12 +36,8 @@ class CompressorTask : public Task
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
-  static DataProcessorSpec getSpec();
-
  private:
   Compressor mCompressor;
-  int mTicks = 0;
-  RawDataFrame mDataFrame;
 };
 
 } // namespace tof

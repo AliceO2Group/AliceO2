@@ -17,13 +17,13 @@
 #include "GlobalTrackingWorkflow/TrackTPCITSReaderSpec.h"
 #include "TOFWorkflow/DigitReaderSpec.h"
 #include "TOFWorkflow/TOFDigitWriterSpec.h"
-#include "TOFWorkflow/RawReaderSpec.h"
 #include "TOFWorkflow/ClusterReaderSpec.h"
 #include "TOFWorkflow/TOFClusterizerSpec.h"
 #include "TOFWorkflow/TOFClusterWriterSpec.h"
 #include "TOFWorkflow/TOFMatchedWriterSpec.h"
 #include "TOFWorkflow/TOFCalibWriterSpec.h"
 #include "TOFWorkflow/TOFRawWriterSpec.h"
+#include "TOFWorkflow/CompressedDecodingTask.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "TOFWorkflow/RecoWorkflowSpec.h"
@@ -52,6 +52,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"tof-lanes", o2::framework::VariantType::Int, 1, {"number of parallel lanes up to the matcher, TBI"}});
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
   workflowOptions.push_back(ConfigParamSpec{"use-fit", o2::framework::VariantType::Bool, false, {"enable access to fit info for calibration"}});
+  workflowOptions.push_back(ConfigParamSpec{"input-desc", o2::framework::VariantType::String, "CRAWDATA", {"Input specs description string"}});
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -110,6 +111,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   if (outputType.rfind("raw") < outputType.size())
     writeraw = 1;
 
+  bool dgtinput = 0;
+  if (inputType == "digits") {
+    dgtinput = 1;
+  }
   bool clusterinput = 0;
   if (inputType == "clusters") {
     clusterinput = 1;
@@ -135,7 +140,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   if (clusterinput) {
     LOG(INFO) << "Insert TOF Cluster Reader";
     specs.emplace_back(o2::tof::getClusterReaderSpec(useMC));
-  } else if (!rawinput) {
+  } else if (dgtinput) {
     // TOF clusterizer
     LOG(INFO) << "Insert TOF Digit reader from file";
     specs.emplace_back(o2::tof::getDigitReaderSpec(useMC));
@@ -144,9 +149,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
       LOG(INFO) << "Insert TOF Raw writer";
       specs.emplace_back(o2::tof::getTOFRawWriterSpec());
     }
-  } else {
-    LOG(INFO) << "Insert TOF Raw Reader";
-    specs.emplace_back(o2::tof::getRawReaderSpec());
+  } else if (rawinput) {
+    LOG(INFO) << "Insert TOF Compressed Raw Decoder";
+    auto inputDesc = cfgc.options().get<std::string>("input-desc");
+    specs.emplace_back(o2::tof::getCompressedDecodingSpec(inputDesc));
     useMC = 0;
 
     if (writedigit) {
