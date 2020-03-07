@@ -65,6 +65,7 @@ const std::unordered_map<std::string, OutputType> OutputMap{
   {"raw", OutputType::Raw},
   {"clusters", OutputType::Clusters},
   {"tracks", OutputType::Tracks},
+  {"disable-writer", OutputType::DisableWriter},
 };
 
 framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vector<int> const& laneConfiguration,
@@ -282,7 +283,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   // a writer process for digits
   //
   // selected by output type 'difits'
-  if (isEnabled(OutputType::Digits)) {
+  if (isEnabled(OutputType::Digits) && !isEnabled(OutputType::DisableWriter)) {
     using DigitOutputType = std::vector<o2::tpc::Digit>;
     using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
     specs.push_back(makeWriterSpec("tpc-digits-writer",
@@ -301,7 +302,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   // a writer process for raw hardware clusters
   //
   // selected by output type 'raw'
-  if (isEnabled(OutputType::Raw)) {
+  if (isEnabled(OutputType::Raw) && !isEnabled(OutputType::DisableWriter)) {
     using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
     specs.push_back(makeWriterSpec("tpc-raw-cluster-writer",
                                    inputType == InputType::Raw ? "tpc-filtered-raw-clusters.root" : "tpc-raw-clusters.root",
@@ -319,7 +320,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   // a writer process for TPC native clusters
   //
   // selected by output type 'clusters'
-  if (isEnabled(OutputType::Clusters)) {
+  if (isEnabled(OutputType::Clusters) && !isEnabled(OutputType::DisableWriter)) {
     using MCLabelCollection = std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>;
     specs.push_back(makeWriterSpec("tpc-native-cluster-writer",
                                    inputType == InputType::Clusters ? "tpc-filtered-native-clusters.root" : "tpc-native-clusters.root",
@@ -346,7 +347,7 @@ framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors, std::vec
   // a writer process for tracks
   //
   // selected by output type 'tracks'
-  if (isEnabled(OutputType::Tracks)) {
+  if (isEnabled(OutputType::Tracks) && !isEnabled(OutputType::DisableWriter)) {
     // defining the track writer process using the generic RootTreeWriter and generator tool
     //
     // defaults
