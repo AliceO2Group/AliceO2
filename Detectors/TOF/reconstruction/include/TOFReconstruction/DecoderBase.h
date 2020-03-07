@@ -35,7 +35,7 @@ class DecoderBase
 
  public:
   DecoderBase() = default;
-  ~DecoderBase() = default;
+  virtual ~DecoderBase() = default;
 
   inline bool run()
   {
