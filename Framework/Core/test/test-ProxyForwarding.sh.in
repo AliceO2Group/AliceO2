@@ -1,0 +1,10 @@
+#!/bin/bash -e
+
+# Helper script for unit test 'test-ProxyForwarding', need a helper to combine
+# two executables on the command line.
+# Run a combined workflow with the DanglingOutputs tests and the o2-dpl-output-proxy.
+# The output proxy connects to the data spec which is not dangling, i.e. it is consumed
+# by both processor B and the output proxy.
+./o2-test-framework-DanglingOutputs | \
+  ../bin/o2-dpl-output-proxy --run --dataspec dpl-output-proxy:TST/A1/0 \
+  --channel-config name=dpl-output-proxy,type=pub,method=bind,address=ipc://localhost${PID}_4200,rateLogging=10,transport=zeromq

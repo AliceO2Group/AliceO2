@@ -330,3 +330,19 @@ o2_add_test(
     arguments --consumer
     "--global-config consumer-config --local-option hello-aliceo2 --a-boolean3 --an-int2 20 --a-double2 22. --an-int64-2 50000000000000"
   )
+
+# Helper script for unit test 'test-ProxyForwarding', need a helper to combine
+# two executables on the command line.
+# Test runs a combined workflow with the DanglingOutputs tests and the o2-dpl-output-proxy.
+# The output proxy connects to the data spec which is not dangling, i.e. it is consumed
+# by both processor B and the output proxy.
+configure_file(test/test-ProxyForwarding.sh.in ${CMAKE_BINARY_DIR}/stage/tests/o2-test-framework-ProxyForwarding.sh COPYONLY)
+add_test(
+  NAME
+  test-ProxyForwarding
+  COMMAND
+  o2-test-framework-ProxyForwarding.sh
+  WORKING_DIRECTORY
+  "${CMAKE_BINARY_DIR}/stage/tests"
+  )
+set_tests_properties(test-ProxyForwarding PROPERTIES TIMEOUT 5)
