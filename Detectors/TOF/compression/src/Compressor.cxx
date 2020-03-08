@@ -258,7 +258,7 @@ bool Compressor::processDRM()
   if (mDecoderVerbose) {
     auto tofOrbit = reinterpret_cast<const raw::TOFOrbit_t*>(mDecoderPointer);
     auto orbit = tofOrbit->orbit;
-    printf(" %08x TOF Orbit             (orbit=%d) \n", *mDecoderPointer, orbit);
+    printf(" %08x TOF Orbit             (orbit=%u) \n", *mDecoderPointer, orbit);
   }
 #endif
 #ifdef DECODER_PARANOID
@@ -387,7 +387,7 @@ bool Compressor::processDRM()
   if (mEncoderVerbose) {
     auto crateOrbit = reinterpret_cast<compressed::CrateOrbit_t*>(mEncoderPointer);
     auto orbitID = crateOrbit->orbitID;
-    printf("%s %08x Crate orbit           (orbitID=%d) %s \n", colorGreen, *mEncoderPointer, orbitID, colorReset);
+    printf("%s %08x Crate orbit           (orbitID=%u) %s \n", colorGreen, *mEncoderPointer, orbitID, colorReset);
   }
 #endif
   encoderNext();
