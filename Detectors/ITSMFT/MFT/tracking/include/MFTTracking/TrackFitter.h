@@ -20,6 +20,7 @@
 #include "MFTTracking/TrackCA.h"
 #include "MFTTracking/FitterTrackMFT.h"
 #include "MFTTracking/TrackParam.h"
+#include "MFTTracking/TrackExtrap.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsITSMFT/Cluster.h"
 
@@ -45,7 +46,7 @@ class TrackFitter
   TrackFitter(TrackFitter&&) = delete;
   TrackFitter& operator=(TrackFitter&&) = delete;
 
-  void initField(float l3Current);
+  void setBz(float bZ);
 
   /// Enable/disable the smoother (and the saving of related parameters)
   void smoothTracks(bool smooth) { mSmooth = smooth; }
@@ -65,7 +66,7 @@ class TrackFitter
   void addCluster(const TrackParam& startingParam, const o2::itsmft::Cluster& cl, TrackParam& param);
   void smoothTrack(FitterTrackMFT& track, bool finalize);
   void runSmoother(const TrackParam& previousParam, TrackParam& param);
-  Float_t bField = 0.5;                     // Tesla. TODO: calculate value according to the solenoid current
+  Float_t bFieldZ = 0.5;                    // Tesla.
   static constexpr double SMaxChi2 = 2.e10; ///< maximum chi2 above which the track can be considered as abnormal
   /// z position of the layers
   static constexpr float SDefaultLayerZ[10] = {-45.3, -46.7, -48.6, -50.0, -52.4, -53.8, -67.7, -69.1, -76.1, -77.5};
@@ -75,14 +76,8 @@ class TrackFitter
 
   bool mSmooth = false; ///< switch ON/OFF the smoother
   bool mFieldON = true;
+  o2::mft::TrackExtrap mTrackExtrap;
 };
-
-static bool extrapToZ(TrackParam* trackParam, double zEnd, bool isFieldON = true);
-static bool extrapToZCov(TrackParam* trackParam, double zEnd, bool updatePropagator = false, bool isFieldON = true);
-static void linearExtrapToZ(TrackParam* trackParam, double zEnd);
-static void linearExtrapToZCov(TrackParam* trackParam, double zEnd, bool updatePropagator);
-static void addMCSEffect(TrackParam* trackParam, double dZ, double x0, bool isFieldON = true);
-static Double_t momentumFromSagitta(FitterTrackMFT& track);
 
 } // namespace mft
 } // namespace o2

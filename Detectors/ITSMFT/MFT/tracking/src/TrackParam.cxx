@@ -137,57 +137,6 @@ void TrackParam::clear()
 }
 
 //__________________________________________________________________________
-Double_t TrackParam::px() const
-{
-  /// return p_x from track parameters
-  Double_t pZ;
-  if (TMath::Abs(mParameters(4, 0)) > 0) {
-    Double_t pYZ = (TMath::Abs(mParameters(4, 0)) > 0) ? TMath::Abs(1.0 / mParameters(4, 0)) : FLT_MAX;
-    pZ = -pYZ / (TMath::Sqrt(1.0 + mParameters(3, 0) * mParameters(3, 0))); // spectro. (z<0)
-  } else {
-    pZ = -FLT_MAX / TMath::Sqrt(1.0 + mParameters(3, 0) * mParameters(3, 0) + mParameters(1, 0) * mParameters(1, 0));
-  }
-  return pZ * mParameters(1, 0);
-}
-
-//__________________________________________________________________________
-Double_t TrackParam::py() const
-{
-  /// return p_y from track parameters
-  Double_t pZ;
-  if (TMath::Abs(mParameters(4, 0)) > 0) {
-    Double_t pYZ = (TMath::Abs(mParameters(4, 0)) > 0) ? TMath::Abs(1.0 / mParameters(4, 0)) : FLT_MAX;
-    pZ = -pYZ / (TMath::Sqrt(1.0 + mParameters(3, 0) * mParameters(3, 0))); // spectro. (z<0)
-  } else {
-    pZ = -FLT_MAX / TMath::Sqrt(1.0 + mParameters(3, 0) * mParameters(3, 0) + mParameters(1, 0) * mParameters(1, 0));
-  }
-  return pZ * mParameters(3, 0);
-}
-
-//__________________________________________________________________________
-Double_t TrackParam::pz() const
-{
-  /// return p_z from track parameters
-  if (TMath::Abs(mParameters(4, 0)) > 0) {
-    Double_t pYZ = TMath::Abs(1.0 / mParameters(4, 0));
-    return -pYZ / (TMath::Sqrt(1.0 + mParameters(3, 0) * mParameters(3, 0))); // spectro. (z<0)
-  } else
-    return -FLT_MAX / TMath::Sqrt(1.0 + mParameters(3, 0) * mParameters(3, 0) + mParameters(1, 0) * mParameters(1, 0));
-}
-
-//__________________________________________________________________________
-Double_t TrackParam::p() const
-{
-  /// return p from track parameters
-  if (TMath::Abs(mParameters(4, 0)) > 0) {
-    Double_t pYZ = TMath::Abs(1.0 / mParameters(4, 0));
-    Double_t pZ = -pYZ / (TMath::Sqrt(1.0 + mParameters(3, 0) * mParameters(3, 0))); // spectro. (z<0)
-    return -pZ * TMath::Sqrt(1.0 + mParameters(3, 0) * mParameters(3, 0) + mParameters(1, 0) * mParameters(1, 0));
-  } else
-    return FLT_MAX;
-}
-
-//__________________________________________________________________________
 const TMatrixD& TrackParam::getCovariances() const
 {
   /// Return the covariance matrix (create it before if needed)
@@ -412,8 +361,8 @@ void TrackParam::print() const
        << ", NonBendSlope=" << setw(5) << setprecision(3) << mParameters(1, 0) * 180. / TMath::Pi()
        << ", BendSlope=" << setw(5) << setprecision(3) << mParameters(3, 0) * 180. / TMath::Pi() << ", (x,y,z)_IP=("
        << setw(5) << setprecision(3) << mParameters(0, 0) << "," << setw(5) << setprecision(3) << mParameters(2, 0)
-       << "," << setw(5) << setprecision(3) << mZ << ") cm, (px,py,pz)=(" << setw(5) << setprecision(3) << px() << ","
-       << setw(5) << setprecision(3) << py() << "," << setw(5) << setprecision(3) << pz() << ") GeV/c, "
+       << "," << setw(5) << setprecision(3) << mZ << ") cm, (px,py,pz)=(" << setw(5) << setprecision(3) << getPx() << ","
+       << setw(5) << setprecision(3) << getPy() << "," << setw(5) << setprecision(3) << getP() << ") GeV/c, "
        << "local chi2=" << getLocalChi2() << endl;
 }
 

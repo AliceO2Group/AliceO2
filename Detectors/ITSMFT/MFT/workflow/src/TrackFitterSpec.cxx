@@ -15,6 +15,9 @@
 
 #include "MFTWorkflow/TrackFitterSpec.h"
 #include "DataFormatsITSMFT/Cluster.h"
+#include "Field/MagneticField.h"
+#include "TGeoGlobalMagField.h"
+#include "DetectorsBase/Propagator.h"
 
 #include <stdexcept>
 #include <list>
@@ -30,6 +33,7 @@
 #include "MFTTracking/TrackCA.h"
 #include "MFTTracking/FitterTrackMFT.h"
 #include "MFTTracking/TrackFitter.h"
+#include "MFTTracking/TrackExtrap.h"
 
 using namespace std;
 using namespace o2::framework;
@@ -44,6 +48,21 @@ void TrackFitterTask::init(InitContext& ic)
   /// Prepare the track extrapolation tools
   LOG(INFO) << "initializing track fitter";
   mTrackFitter = std::make_unique<o2::mft::TrackFitter>();
+
+  auto filename = ic.options().get<std::string>("grp-file");
+  const auto grp = o2::parameters::GRPObject::loadFrom(filename.c_str());
+  if (grp) {
+    mGRP.reset(grp);
+    o2::base::Propagator::initFieldFromGRP(grp);
+    auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+
+    double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
+    mTrackFitter->setBz(field->getBz(centerMFT));
+
+  } else {
+    LOG(ERROR) << "Cannot retrieve GRP from the " << filename.c_str() << " file !";
+    mState = 0;
+  }
   mState = 1;
 }
 
@@ -67,7 +86,7 @@ void TrackFitterTask::run(ProcessingContext& pc)
     o2::mft::FitterTrackMFT& temptrack = fittertracks.emplace_back();
     convertTrack(track, temptrack, clusters);
     mTrackFitter->fit(temptrack, false);
-    LOG(INFO) << "tracksLTF: nTracksLTF  = " << nTracksLTF << " tracks.size() = " << fittertracks.size() << std::endl;
+    //LOG(INFO) << "tracksLTF: nTracksLTF  = " << nTracksLTF << " tracks.size() = " << fittertracks.size() << std::endl;
     nTracksLTF++;
   }
   // Fit CA tracks
@@ -76,7 +95,7 @@ void TrackFitterTask::run(ProcessingContext& pc)
     //o2::itsmft::Cluster& tempcluster = clusters.emplace_back();
     convertTrack(track, temptrack, clusters);
     mTrackFitter->fit(temptrack, false);
-    LOG(INFO) << "tracksCA: nTracksCA  = " << nTracksCA << " tracks.size() = " << fittertracks.size() << std::endl;
+    //LOG(INFO) << "tracksCA: nTracksCA  = " << nTracksCA << " tracks.size() = " << fittertracks.size() << std::endl;
     nTracksCA++;
   }
 
@@ -90,19 +109,15 @@ void TrackFitterTask::run(ProcessingContext& pc)
     //auto slopeY = (track.last().getY() - track.first().getY()) / dz;
 
     // TODO: Convert FitterTrackMFT to TrackMFTExt or TrackMFT
-    auto slopeX = track.first().getXSlope();
-    auto slopeY = track.first().getYSlope();
-    auto tanl = -std::sqrt(1.f / (slopeX * slopeX + slopeY * +slopeY));
-    auto tanp = slopeY / slopeX;
-    auto sinp = tanp / std::sqrt(1.f + tanp * tanp);
-    //LOG(INFO) << "   TrackPars: Tgl = " << tanl << "  Snp = " << sinp << std::endl;
+    auto tanl = track.first().getTanl();
+    auto sinp = TMath::Sin(track.first().getPhi());
+    LOG(INFO) << "   TrackPars: Tgl = " << tanl << "  Snp = " << sinp << "  px = " << track.first().getPx() << "  py = " << track.first().getPy() << " pz = " << track.first().getPz() << " pt = " << track.first().getPt() << " p = " << track.first().getP() << " Chi2 = " << track.first().getTrackChi2() << std::endl;
     temptrack.setX(track.first().getX());
     temptrack.setY(track.first().getY());
     temptrack.setZ(track.first().getZ());
     temptrack.setTgl(tanl);
     temptrack.setSnp(sinp);
-    auto Q2Pt = sqrt(1 + tanl * tanl) * track.first().getInverseMomentum();
-    temptrack.setQ2Pt(Q2Pt);
+    temptrack.setQ2Pt(track.first().getCharge() / track.first().getPt());
   }
 
   LOG(INFO) << "MFTFitter loaded " << tracksLTF.size() << " LTF tracks";
@@ -115,7 +130,7 @@ void TrackFitterTask::run(ProcessingContext& pc)
 }
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getTrackFitterSpec()
+o2::framework::DataProcessorSpec getTrackFitterSpec(bool useMC)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("tracksltf", "MFT", "TRACKSLTF", 0, Lifetime::Timeframe);
@@ -129,7 +144,9 @@ o2::framework::DataProcessorSpec getTrackFitterSpec()
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TrackFitterTask>()},
-    Options{}};
+    Options{
+      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the output file"}},
+    }};
 }
 
 //_________________________________________________________________________________________________
@@ -145,20 +162,20 @@ void convertTrack(const T& inTrack, O& outTrack, C& clusters)
   auto nClusters = inTrack.getNPoints();
   static int ntrack = 0;
 
-  std::cout << "** Converting MFT track with nClusters = " << nClusters << std::endl;
+  //std::cout << "** Converting MFT track with nClusters = " << nClusters << std::endl;
   // Add clusters to Tracker's cluster vector & set fittedTrack cluster range
   for (auto cls = 0; cls < nClusters; cls++) {
     o2::itsmft::Cluster& tempcluster = clusters.emplace_back(clusterIDs[cls], xpos[cls], ypos[cls], zpos[cls]);
     //auto cluster = o2::itsmft::Cluster();
-    tempcluster.setSigmaY2(0.001); // FIXME:
-    tempcluster.setSigmaZ2(0.001); // FIXME: Use clusters errors once available
+    tempcluster.setSigmaY2(0.0001); // FIXME:
+    tempcluster.setSigmaZ2(0.0001); // FIXME: Use clusters errors once available
     outTrack.createParamAtCluster(tempcluster);
-    std::cout << "Adding cluster " << cls << " to track " << ntrack << " with clusterID " << tempcluster.getSensorID() << " at z = " << tempcluster.getZ() << std::endl;
+    //std::cout << "Adding cluster " << cls << " to track " << ntrack << " with clusterID " << tempcluster.getSensorID() << " at z = " << tempcluster.getZ() << std::endl;
   }
 
-  std::cout << "  ** outTrack has getNClusters = " << outTrack.getNClusters() << std::endl;
-  for (auto par = outTrack.rbegin(); par != outTrack.rend(); par++)
-    std::cout << "     getZ() =  " << par->getZ() << std::endl;
+  //std::cout << "  ** outTrack has getNClusters = " << outTrack.getNClusters() << std::endl;
+  //for (auto par = outTrack.rbegin(); par != outTrack.rend(); par++)
+  //  std::cout << "     getZ() =  " << par->getZ() << std::endl;
 
   //fit(outTrack, false);
 }

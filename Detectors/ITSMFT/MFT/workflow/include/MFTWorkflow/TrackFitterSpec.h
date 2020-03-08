@@ -17,7 +17,7 @@
 #define ALICEO2_MFT_TRACKFITTERSPEC_H_
 
 #include "MFTTracking/TrackFitter.h"
-
+#include "DataFormatsParameters/GRPObject.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
@@ -36,13 +36,14 @@ class TrackFitterTask : public o2::framework::Task
 
  private:
   int mState = 0;
+  std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
   std::unique_ptr<o2::mft::TrackFitter> mTrackFitter = nullptr;
 };
 
 template <typename T, typename O, typename C>
 void convertTrack(const T& inTrack, O& outTrack, C& clusters);
 
-o2::framework::DataProcessorSpec getTrackFitterSpec();
+o2::framework::DataProcessorSpec getTrackFitterSpec(bool useMC);
 
 } // end namespace mft
 } // end namespace o2
