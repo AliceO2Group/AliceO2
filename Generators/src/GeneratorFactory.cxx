@@ -76,7 +76,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
   } else if (genconfig.compare("fwmugen") == 0) {
     // a simple "box" generator for forward muons
     LOG(INFO) << "Init box forward muons generator";
-    auto boxGen = makeBoxGen(13, 100, -2.5, -4.0, 1000, 1000, 0., 360);
+    auto boxGen = makeBoxGen(13, 1, -4, -2.5, 50., 50., 0., 360);
     primGen->AddGenerator(boxGen);
   } else if (genconfig.compare("hmpidgun") == 0) {
     // a simple "box" generator for forward muons
@@ -85,13 +85,13 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     primGen->AddGenerator(boxGen);
   } else if (genconfig.compare("fwpigen") == 0) {
     // a simple "box" generator for forward pions
-    LOG(INFO) << "Init box forward muons generator";
-    auto boxGen = makeBoxGen(-211, 100, -2.5, -4.5, 7, 7, 0, 360);
+    LOG(INFO) << "Init box forward pions generator";
+    auto boxGen = makeBoxGen(-211, 10, -4, -2.5, 7, 7, 0, 360);
     primGen->AddGenerator(boxGen);
   } else if (genconfig.compare("fwrootino") == 0) {
     // a simple "box" generator for forward rootinos
     LOG(INFO) << "Init box forward rootinos generator";
-    auto boxGen = makeBoxGen(0, 1, -2.5, -4.0, 1, 5, 0, 360);
+    auto boxGen = makeBoxGen(0, 1, -4, -2.5, 1, 5, 0, 360);
     primGen->AddGenerator(boxGen);
   } else if (genconfig.compare("zdcgen") == 0) {
     // a simple "box" generator for forward neutrons
