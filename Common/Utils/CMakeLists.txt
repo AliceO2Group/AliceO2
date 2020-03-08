@@ -23,7 +23,8 @@ o2_target_root_dictionary(CommonUtils
                                   include/CommonUtils/ShmManager.h
                                   include/CommonUtils/RngHelper.h
                                   include/CommonUtils/StringUtils.h
-                                  include/CommonUtils/ValueMonitor.h)
+                                  include/CommonUtils/ValueMonitor.h
+				  include/CommonUtils/MemFileHelper.h)
 
 o2_add_test(TreeStream
             COMPONENT_NAME CommonUtils
@@ -47,4 +48,10 @@ o2_add_test(ValueMonitor
             COMPONENT_NAME CommonUtils
             LABELS utils
             SOURCES test/testValueMonitor.cxx
+            PUBLIC_LINK_LIBRARIES O2::CommonUtils)
+
+o2_add_test(MemFileHelper
+            COMPONENT_NAME CommonUtils
+            LABELS utils
+            SOURCES test/testMemFileHelper.cxx
             PUBLIC_LINK_LIBRARIES O2::CommonUtils)
