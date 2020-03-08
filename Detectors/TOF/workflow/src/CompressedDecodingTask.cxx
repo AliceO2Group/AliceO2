@@ -110,7 +110,7 @@ void CompressedDecodingTask::rdhHandler(const o2::header::RAWDataHeader* rdh)
   // rdh close
   if (rdh->stop && rdh->heartbeatOrbit == Geo::ORBIT_IN_TF - 1 + mInitOrbit) {
     mNCrateCloseTF++;
-    printf("New TF close RDH %d\n", rdh->feeId);
+    printf("New TF close RDH %d\n", int(rdh->feeId));
     return;
   }
 
@@ -118,7 +118,7 @@ void CompressedDecodingTask::rdhHandler(const o2::header::RAWDataHeader* rdh)
   if ((rdh->pageCnt == 0) && (rdh->triggerType & o2::trigger::TF)) {
     mNCrateOpenTF++;
     mInitOrbit = rdh->heartbeatOrbit;
-    printf("New TF open RDH %d\n", rdh->feeId);
+    printf("New TF open RDH %d\n", int(rdh->feeId));
   }
 };
 
