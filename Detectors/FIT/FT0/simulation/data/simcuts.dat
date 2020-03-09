@@ -1,0 +1,10 @@
+* FT0
+* ===
+*
+*    Med GAM   ELEC  NHAD  CHAD  MUON  EBREM MUHAB EDEL  MUDEL MUPA  ANNI  BREM  COMP  DCAY  DRAY  HADR  LOSS  MULS  PAIR  PHOT  RAYL STRA CKOV
+* Radiator optical glass
+FT0 16 5e-4 5e-4 5e-4 5e-4 5e-4 5e-4 5e-4 5e-4 5e-4  -1.   1     1     1     1     1     1     2     1     1     1     1    -1   1
+* PhotoCathode 
+FT0 19 5e-4 5e-4 5e-4 5e-4 5e-4 5e-4 5e-4 5e-4 5e-4  -1.   1     1     1     1     1     1     2     1     1     1     1    -1   1
+*
+
