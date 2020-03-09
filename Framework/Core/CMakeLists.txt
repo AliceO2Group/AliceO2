@@ -296,6 +296,21 @@ set_property(TEST test_Framework_test_ExternalFairMQDeviceWorkflow PROPERTY DISA
 set_property(TEST test_Framework_test_BoostSerializedProcessing
              PROPERTY DISABLED TRUE)
 
+# A unit test for external channels using different transports, not sure yet if that
+# should be possible at all, but at least we need a descriptive error, right now the
+# receiver has a segfault, needs to be handled at level of FairMQ
+add_test(
+  NAME
+  test_Framework_test_ExternalFairMQDeviceWorkflowDifferentTransports
+  COMMAND
+  ./o2-test-framework-ExternalFairMQDeviceWorkflow --run
+  --dpl-sink "--channel-config name=external,type=push,method=bind,address=ipc://ipc${PID},rateLogging=60,transport=zeromq"
+  --input-proxy "--channel-config name=input-proxy,type=pull,method=connect,address=ipc://ipc${PID},rateLogging=60,transport=shmem"
+  WORKING_DIRECTORY
+  "${CMAKE_BINARY_DIR}/stage/tests"
+  )
+set_tests_properties(test_Framework_test_ExternalFairMQDeviceWorkflowDifferentTransports PROPERTIES TIMEOUT 30)
+
 # specific tests which needs command line options
 o2_add_test(
   ProcessorOptions NAME test_Framework_test_ProcessorOptions
