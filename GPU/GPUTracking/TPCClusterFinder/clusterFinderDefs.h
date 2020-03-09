@@ -94,7 +94,8 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
-using Timestamp = short;
+using TPCTime = int32_t;
+using TPCFragmentTime = int16_t;
 using Pad = unsigned char;
 using GlobalPad = short;
 using Row = unsigned char;

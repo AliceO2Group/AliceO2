@@ -52,7 +52,7 @@ class TilingLayout
     Width = Grid::Width,
   };
 
-  GPUdi() static size_t idx(const ChargePos& p)
+  GPUhdi() static size_t idx(const ChargePos& p)
   {
     const size_t widthInTiles = (TPC_NUM_OF_PADS + Width - 1) / Width;
 

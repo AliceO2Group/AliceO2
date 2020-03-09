@@ -36,9 +36,9 @@ GPUdii() void GPUTPCCFStreamCompaction::nativeScanUpStartImpl(int nBlocks, int n
                                                               int* incr, int nElems)
 {
   int idx = get_global_id(0);
-  int pred = predicate[idx];
-  if (idx >= nElems) {
-    pred = 0;
+  int pred = 0;
+  if (idx < nElems) {
+    pred = predicate[idx];
   }
   int scanRes = work_group_scan_inclusive_add((int)pred); // TODO: Why don't we store scanRes and read it back in compactDigit?
 
@@ -172,7 +172,7 @@ GPUdii() void GPUTPCCFStreamCompaction::compactImpl(int nBlocks, int nThreads, i
 
 GPUdii() int GPUTPCCFStreamCompaction::compactionElems(processorType& clusterer, int stage)
 {
-  return (stage) ? clusterer.mPmemory->counters.nPeaks : clusterer.mPmemory->counters.nDigits;
+  return (stage) ? clusterer.mPmemory->counters.nPeaks : clusterer.mPmemory->counters.nPositions;
 }
 
 } // namespace gpu
