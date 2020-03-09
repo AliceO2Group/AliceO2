@@ -21,28 +21,32 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
+#define INVALID_TIME_BIN (-PADDING_TIME - 1)
+
 struct ChargePos {
   GlobalPad gpad;
-  Timestamp timePadded;
+  TPCFragmentTime timePadded;
 
   GPUdDefault() ChargePos() CON_DEFAULT;
 
-  GPUdi() ChargePos(Row row, Pad pad, Timestamp t)
+  GPUdi() ChargePos(Row row, Pad pad, TPCFragmentTime t)
   {
     gpad = tpcGlobalPadIdx(row, pad);
     timePadded = t + PADDING_TIME;
   }
 
-  GPUdi() ChargePos(const GlobalPad& p, const Timestamp& t) : gpad(p), timePadded(t) {}
+  GPUdi() ChargePos(const GlobalPad& p, const TPCFragmentTime& t) : gpad(p), timePadded(t) {}
 
   GPUdi() ChargePos delta(const Delta2& d) const
   {
-    return {GlobalPad(gpad + d.x), Timestamp(timePadded + d.y)};
+    return {GlobalPad(gpad + d.x), TPCFragmentTime(timePadded + d.y)};
   }
+
+  GPUdi() bool valid() const { return timePadded >= 0; }
 
   GPUdi() Row row() const { return gpad / TPC_PADS_PER_ROW_PADDED; }
   GPUdi() Pad pad() const { return gpad % TPC_PADS_PER_ROW_PADDED - PADDING_PAD; }
-  GPUdi() Timestamp time() const { return timePadded - PADDING_TIME; }
+  GPUdi() TPCFragmentTime time() const { return timePadded - PADDING_TIME; }
 
   GPUdi() bool isPadding() const
   {

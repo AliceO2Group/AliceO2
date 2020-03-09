@@ -17,6 +17,7 @@
 #include "GPUDef.h"
 #include "GPUProcessor.h"
 #include "GPUDataTypes.h"
+#include "CfFragment.h"
 #include "Digit.h"
 
 namespace GPUCA_NAMESPACE
@@ -46,11 +47,13 @@ class GPUTPCClusterFinder : public GPUProcessor
   struct Memory {
     struct counters_t {
       size_t nDigits = 0;
+      size_t nPositions = 0; // TODO use this instead of nDigits
       size_t nPeaks = 0;
       size_t nClusters = 0;
       unsigned int nPages = 0;
       unsigned int nPagesSubslice = 0;
     } counters;
+    CfFragment fragment;
   };
 
   struct ZSOffset {
@@ -111,6 +114,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   size_t mNMaxClusters = 0;
   size_t mBufSize = 0;
   size_t mNBufs = 0;
+
 
   unsigned short mMemoryId = 0;
   unsigned short mZSOffsetId = 0;
