@@ -125,9 +125,7 @@ class TRDDPLDigitizerTask
         std::vector<o2::trd::Digit> digits;                         // digits which get filled
         o2::dataformats::MCTruthContainer<o2::trd::MCLabel> labels; // labels which get filled
         mDigitizer.process(hits, digits, labels);
-        for (auto& digit : digits) {
-          digit.setTimeStamp(irecords[collID].timeNS);
-        }
+
         // Add trigger record
         triggers.emplace_back(irecords[collID], digitsAccum.size(), digits.size());
 

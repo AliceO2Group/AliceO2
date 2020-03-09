@@ -215,7 +215,6 @@ void TRDDPLTrapSimulatorTask::init(o2::framework::InitContext& ic)
   mDrawTrackletOptions = ic.options().get<int>("drawtracklets");
   mShowTrackletStats = ic.options().get<int>("show-trd-trackletstats");
   mTrapConfigName = ic.options().get<std::string>("trapconfig");
-  LOG(info) << "disable trap simualtor is : " << mDisableTrapSimulation;
   LOG(info) << "Trap Simulator Device initialising with trap config of : " << mTrapConfigName;
   //  if(mDisableTrapSimulation){
   //  //now get a trapconfig to work with.
@@ -230,10 +229,7 @@ void TRDDPLTrapSimulatorTask::init(o2::framework::InitContext& ic)
 void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
 {
   LOG(info) << "TRD Trap Simulator Device running over incoming message ...";
-  if (mDisableTrapSimulation) {
-    LOG(warn) << " you elected to not do a trap chip simulation";
-    return;
-  }
+
   // get the relevant inputs for the TrapSimulator
   auto digits = pc.inputs().get<std::vector<o2::trd::Digit>>("digitinput");
   //auto mMCLabels = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::trd::MCLabel>*>("labelinput");
@@ -409,13 +405,13 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   //pc.outputs().snapshot(Output{"TRD","TRGRRecords",0,Lifetime::Timeframe},mTriggerRecords);
 }
 
-o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec(int channelfan, bool disabletrapsim)
+o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec()
 {
   return DataProcessorSpec{"TRAP", Inputs{InputSpec{"digitinput", "TRD", "DIGITS", 0}, InputSpec{"triggerrecords", "TRD", "TRGRDIG", 0}, InputSpec{"labelinput", "TRD", "LABELS", 0}},
                            Outputs{OutputSpec{"TRD", "TRACKLETS", 0, Lifetime::Timeframe}},
                            //                                   OutputSpec{"TRD","TRGRRecords",0,Lifetime::Timeframe}},
                            //                               OutputSpec{"TRD","TRKLABELS",0, Lifetime::Timeframe},
-                           AlgorithmSpec{adaptFromTask<TRDDPLTrapSimulatorTask>(disabletrapsim)},
+                           AlgorithmSpec{adaptFromTask<TRDDPLTrapSimulatorTask>()},
                            Options{
                              {"show-trd-trackletstats", VariantType::Int, 25000, {"Display the accumulated size and capacity at number of track intervals"}},
                              {"trapconfig", VariantType::String, "default", {"Name of the trap config from the CCDB"}},
