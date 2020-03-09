@@ -58,7 +58,7 @@ struct DecayVertexBuilder2Prong {
       hitsmap_nocuts->Fill(clustermap_0);
       hpt_nocuts->Fill(track_0.pt());
       htgl_nocuts->Fill(track_0.tgl());
-      bool isselected_0 = track_0.tpcNCls() > 70 && track_0.flags() & 0x4;
+      bool isselected_0 = track_0.tpcNClsFound() > 70 && track_0.flags() & 0x4;
       isselected_0 = isselected_0 && (TESTBIT(clustermap_0, 0) || TESTBIT(clustermap_0, 1));
       if (!isselected_0)
         continue;
@@ -80,7 +80,7 @@ struct DecayVertexBuilder2Prong {
       o2::track::TrackParCov trackparvar0(x0_, alpha0_, arraypar0, covpar0);
 
       UChar_t clustermap_1 = track_1.itsClusterMap();
-      bool isselected_1 = track_1.tpcNCls() > 70 && track_1.flags() & 0x4;
+      bool isselected_1 = track_1.tpcNClsFound() > 70 && track_1.flags() & 0x4;
       isselected_1 = isselected_1 && (TESTBIT(clustermap_1, 0) || TESTBIT(clustermap_1, 1));
       if (!isselected_1)
         continue;
