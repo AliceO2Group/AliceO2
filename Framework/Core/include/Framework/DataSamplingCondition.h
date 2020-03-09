@@ -18,15 +18,8 @@
 
 #include "Framework/DataRef.h"
 
+#include <boost/property_tree/ptree_fwd.hpp>
 #include <string>
-
-namespace boost::property_tree
-{
-template <class Key, class Data, class KeyCompare>
-class basic_ptree;
-
-typedef basic_ptree<std::string, std::string, std::less<std::string>> ptree;
-} // namespace boost::property_tree
 
 namespace o2::framework
 {
