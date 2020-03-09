@@ -35,6 +35,7 @@ GPUCA_KRNL((GPUTPCCompressionKernels,   step1unattached  ), (simple, REG, (GPUCA
 GPUCA_KRNL((GPUTPCCFChargeMapFiller,    fillIndexMap     ), (single, REG, (GPUCA_LB_GPUTPCCFChargeMapFiller)), (), ())
 GPUCA_KRNL((GPUTPCCFChargeMapFiller,    fillFromDigits   ), (single, REG, (GPUCA_LB_GPUTPCCFChargeMapFiller)), (), ())
 GPUCA_KRNL((GPUTPCCFChargeMapFiller,    resetMaps        ), (single, REG, (GPUCA_LB_GPUTPCCFChargeMapFiller)), (), ())
+GPUCA_KRNL((GPUTPCCFChargeMapFiller,    findFragmentStart), (single, REG, (GPUCA_LB_GPUTPCCFChargeMapFiller)), (), ())
 GPUCA_KRNL((GPUTPCCFPeakFinder                           ), (single, REG, (GPUCA_LB_GPUTPCCFPeakFinder)), (), ())
 GPUCA_KRNL((GPUTPCCFNoiseSuppression,   noiseSuppression ), (single, REG, (GPUCA_LB_GPUTPCCFNoiseSuppression)), (), ())
 GPUCA_KRNL((GPUTPCCFNoiseSuppression,   updatePeaks      ), (single, REG, (GPUCA_LB_GPUTPCCFNoiseSuppression)), (), ())

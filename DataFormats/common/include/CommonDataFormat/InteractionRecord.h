@@ -13,7 +13,7 @@
 #ifndef ALICEO2_INTERACTIONRECORD_H
 #define ALICEO2_INTERACTIONRECORD_H
 
-#include <Rtypes.h>
+#include "GPUCommonRtypes.h"
 #include <iosfwd>
 #include <cmath>
 #include <cstdint>

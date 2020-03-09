@@ -25,7 +25,7 @@ namespace deprecated
 
 struct PackedDigit {
   float charge;
-  Timestamp time;
+  TPCFragmentTime time;
   Pad pad;
   Row row;
 };
