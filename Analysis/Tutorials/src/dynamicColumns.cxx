@@ -52,14 +52,23 @@ struct BTask {
       auto phi = asin(etaPhi.snp()) + etaPhi.alpha() + M_PI;
       auto eta = log(tan(0.25 * M_PI - 0.5 * atan(etaPhi.tgl())));
 
-      LOGF(ERROR, "(%f, %f, %f, %f)", etaPhi.eta(), etaPhi.phi(), eta - etaPhi.eta(), phi - etaPhi.phi());
+      //LOGF(INFO, "(%f, %f, %f, %f)", etaPhi.eta(), etaPhi.phi(), eta - etaPhi.eta(), phi - etaPhi.phi());
     }
   }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
+  // create and use table
   return WorkflowSpec{
     adaptAnalysisTask<ATask>("produce-track-copy"),
     adaptAnalysisTask<BTask>("check-eta-phi")};
+
+  //  only create table -> tabwle is written to file
+  //return WorkflowSpec{
+  //  adaptAnalysisTask<ATask>("produce-track-copy")};
+
+  // only use table -> table is read from file
+  //return WorkflowSpec{
+  // adaptAnalysisTask<BTask>("check-eta-phi")};
 }

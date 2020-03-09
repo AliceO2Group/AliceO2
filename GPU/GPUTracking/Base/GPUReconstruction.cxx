@@ -100,6 +100,12 @@ int GPUReconstruction::Init()
   if (GetDeviceProcessingSettings().debugLevel >= 6 && GetDeviceProcessingSettings().comparableDebutOutput) {
     mDeviceProcessingSettings.nTPCClustererLanes = 1;
   }
+  if (!(mRecoStepsGPU & GPUDataTypes::RecoStep::TPCMerging)) {
+    mDeviceProcessingSettings.mergerSortTracks = false;
+  }
+  if (!IsGPU()) {
+    mDeviceProcessingSettings.nDeviceHelperThreads = 0;
+  }
 
 #ifndef HAVE_O2HEADERS
   mRecoSteps.setBits(RecoStep::ITSTracking, false);
@@ -113,14 +119,8 @@ int GPUReconstruction::Init()
   if (!IsGPU()) {
     mRecoStepsGPU.set((unsigned char)0);
   }
-  if (!IsGPU()) {
-    mDeviceProcessingSettings.trackletConstructorInPipeline = mDeviceProcessingSettings.trackletSelectorInPipeline = false;
-  }
   if (param().rec.NonConsecutiveIDs) {
     param().rec.DisableRefitAttachment = 0xFF;
-  }
-  if (!mDeviceProcessingSettings.trackletConstructorInPipeline) {
-    mDeviceProcessingSettings.trackletSelectorInPipeline = false;
   }
 
 #ifdef WITH_OPENMP
@@ -141,7 +141,9 @@ int GPUReconstruction::Init()
     mDeviceMemorySize += memGpu;
     mHostMemorySize += memHost;
   }
-  if (mDeviceProcessingSettings.forceMemoryPoolSize) {
+  if (mDeviceProcessingSettings.forceMemoryPoolSize && mDeviceProcessingSettings.forceMemoryPoolSize <= 2 && CanQueryMaxMemory()) {
+    mDeviceMemorySize = mDeviceProcessingSettings.forceMemoryPoolSize;
+  } else if (mDeviceProcessingSettings.forceMemoryPoolSize > 2) {
     mDeviceMemorySize = mHostMemorySize = mDeviceProcessingSettings.forceMemoryPoolSize;
   }
 
@@ -152,6 +154,11 @@ int GPUReconstruction::Init()
   if (InitDevice()) {
     return 1;
   }
+  GPUCA_GPUReconstructionUpdateDefailts();
+  if (!mDeviceProcessingSettings.trackletConstructorInPipeline) {
+    mDeviceProcessingSettings.trackletSelectorInPipeline = false;
+  }
+
   if (IsGPU()) {
     for (unsigned int i = 0; i < mChains.size(); i++) {
       mChains[i]->RegisterGPUProcessors();
@@ -266,7 +273,7 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
   memorypool = (char*)((res->*setPtr)(memorypool));
   size_t retVal = (char*)memorypool - (char*)ptr;
   if (IsGPU() && retVal == 0) { // Transferring 0 bytes might break some GPU backends, but we cannot simply skip the transfer, or we will break event dependencies
-    GPUProcessor::getPointerWithAlignment<GPUProcessor::MIN_ALIGNMENT, char>(memorypool, retVal = GPUProcessor::MIN_ALIGNMENT);
+    GPUProcessor::getPointerWithAlignment<GPUCA_BUFFER_ALIGNMENT, char>(memorypool, retVal = GPUCA_BUFFER_ALIGNMENT);
   }
   if ((size_t)((char*)memorypool - (char*)memorybase) > memorysize) {
     std::cout << "Memory pool size exceeded (" << res->mName << ": " << (char*)memorypool - (char*)memorybase << " < " << memorysize << "\n";
@@ -279,12 +286,12 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
   return retVal;
 }
 
-size_t GPUReconstruction::AllocateRegisteredMemory(short ires)
+size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl* control)
 {
   GPUMemoryResource* res = &mMemoryResources[ires];
   if ((res->mType & GPUMemoryResource::MEMORY_PERMANENT) && res->mPtr != nullptr) {
     ResetRegisteredMemoryPointers(ires);
-  } else if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
+  } else if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL && (control == nullptr || control->OutputType == GPUOutputControl::AllocateInternal)) {
     if (!(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
       if (res->mPtrDevice && res->mReuse == -1) {
         operator delete(res->mPtrDevice);
@@ -297,9 +304,9 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires)
         }
         res->mPtrDevice = mMemoryResources[res->mReuse].mPtrDevice;
       } else {
-        res->mPtrDevice = operator new(res->mSize + GPUProcessor::MIN_ALIGNMENT);
+        res->mPtrDevice = operator new(res->mSize + GPUCA_BUFFER_ALIGNMENT);
       }
-      res->mPtr = GPUProcessor::alignPointer<GPUProcessor::MIN_ALIGNMENT>(res->mPtrDevice);
+      res->mPtr = GPUProcessor::alignPointer<GPUCA_BUFFER_ALIGNMENT>(res->mPtrDevice);
       res->SetPointers(res->mPtr);
       if (mDeviceProcessingSettings.debugLevel >= 5) {
         std::cout << (res->mReuse != -1 ? "Reused " : "Allocated ") << res->mName << ": " << res->mSize << "\n";
@@ -311,7 +318,11 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires)
       throw std::bad_alloc();
     }
     if ((!IsGPU() || (res->mType & GPUMemoryResource::MEMORY_HOST) || mDeviceProcessingSettings.keepAllMemory) && !(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
-      res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, mHostMemoryPool, mHostMemoryBase, mHostMemorySize, &GPUMemoryResource::SetPointers);
+      if (control && control->OutputType == GPUOutputControl::UseExternalBuffer) {
+        res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, control->OutputPtr, control->OutputBase, control->OutputMaxSize, &GPUMemoryResource::SetPointers);
+      } else {
+        res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, mHostMemoryPool, mHostMemoryBase, mHostMemorySize, &GPUMemoryResource::SetPointers);
+      }
     }
     if (IsGPU() && (res->mType & GPUMemoryResource::MEMORY_GPU)) {
       if (res->mProcessor->mDeviceProcessor == nullptr) {
@@ -341,8 +352,8 @@ void* GPUReconstruction::AllocateUnmanagedMemory(size_t size, int type)
     throw std::bad_alloc();
   }
   if (mDeviceProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
-    mUnmanagedChunks.emplace_back(new char[size + GPUProcessor::MIN_ALIGNMENT]);
-    return GPUProcessor::alignPointer<GPUProcessor::MIN_ALIGNMENT>(mUnmanagedChunks.back().get());
+    mUnmanagedChunks.emplace_back(new char[size + GPUCA_BUFFER_ALIGNMENT]);
+    return GPUProcessor::alignPointer<GPUCA_BUFFER_ALIGNMENT>(mUnmanagedChunks.back().get());
   } else {
     void* pool = type == GPUMemoryResource::MEMORY_GPU ? mDeviceMemoryPool : mHostMemoryPool;
     void* base = type == GPUMemoryResource::MEMORY_GPU ? mDeviceMemoryBase : mHostMemoryBase;
@@ -409,6 +420,15 @@ void GPUReconstruction::ClearAllocatedMemory(bool clearOutputs)
 
 static long long int ptrDiff(void* a, void* b) { return (long long int)((char*)a - (char*)b); }
 
+void GPUReconstruction::PrintMemoryOverview()
+{
+  if (GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
+    printf("Memory Allocation: Host %'lld / %'lld (Permanent %'lld), Device %'lld / %'lld, (Permanent %'lld) %d chunks\n",
+           ptrDiff(mHostMemoryPool, mHostMemoryBase), (long long int)mHostMemorySize, ptrDiff(mHostMemoryPermanent, mHostMemoryBase),
+           ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase), (long long int)mDeviceMemorySize, ptrDiff(mDeviceMemoryPermanent, mDeviceMemoryBase), (int)mMemoryResources.size());
+  }
+}
+
 void GPUReconstruction::PrintMemoryStatistics()
 {
   std::map<std::string, std::array<size_t, 3>> sizes;
@@ -428,11 +448,7 @@ void GPUReconstruction::PrintMemoryStatistics()
   for (auto it = sizes.begin(); it != sizes.end(); it++) {
     printf("Allocation %30s %s: Size %'13lld / %'13lld\n", it->first.c_str(), it->second[2] ? "P" : " ", (long long int)it->second[0], (long long int)it->second[1]);
   }
-  if (GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
-    printf("Memory Allocation: Host %'lld / %'lld (Permanent %'lld), Device %'lld / %'lld, (Permanent %'lld) %d chunks\n",
-           ptrDiff(mHostMemoryPool, mHostMemoryBase), (long long int)mHostMemorySize, ptrDiff(mHostMemoryPermanent, mHostMemoryBase),
-           ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase), (long long int)mDeviceMemorySize, ptrDiff(mDeviceMemoryPermanent, mDeviceMemoryBase), (int)mMemoryResources.size());
-  }
+  PrintMemoryOverview();
   for (unsigned int i = 0; i < mChains.size(); i++) {
     mChains[i]->PrintMemoryStatistics();
   }
@@ -516,7 +532,7 @@ void GPUReconstruction::SetOutputControl(void* ptr, size_t size)
 {
   GPUOutputControl outputControl;
   outputControl.OutputType = GPUOutputControl::UseExternalBuffer;
-  outputControl.OutputPtr = (char*)ptr;
+  outputControl.OutputBase = outputControl.OutputPtr = (char*)ptr;
   outputControl.OutputMaxSize = size;
   SetOutputControl(outputControl);
 }

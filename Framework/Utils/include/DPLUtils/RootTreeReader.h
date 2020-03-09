@@ -16,6 +16,7 @@
 /// @brief  A generic reader for ROOT TTrees
 
 #include "Framework/Output.h"
+#include "Framework/ProcessingContext.h"
 #include "Headers/DataHeader.h"
 #include <TChain.h>
 #include <TTree.h>
@@ -36,6 +37,10 @@ namespace framework
 
 namespace rtr
 {
+// The class 'Output' has a unique header stack member which makes the class not
+// usable as key, in particular there is no copy constructor. Thats why a dedicated
+// structure is used which can be transformed into Output. Moreover it also handles the
+// conversion from OutputStack to Output
 struct DefaultKey {
   header::DataOrigin origin;
   header::DataDescription description;
@@ -59,7 +64,11 @@ struct DefaultKey {
 ///
 /// The class uses a KeyType to define sinks for specific branches, the default
 /// key type is DPL \ref framework::Output. Branches are defined for processing
-/// by pairs of key type and branch name.
+/// by either pairs of key type and branch name, or by struct BranchDefinition.
+/// The latter allows strong typing, the type is specified as template parameter
+/// and the DPL IO decides upon serialization method.
+///
+/// Output data is always ROOT serialized if no type is specified.
 ///
 /// \par Usage, with some KeyType:
 /// The first argument is the tree name, the list of files is variable, all files
@@ -68,7 +77,7 @@ struct DefaultKey {
 ///     RootTreeReader(treename,
 ///                    filename1, filename2, ...,
 ///                    KeyType{...}, branchname1,
-///                    KeyType{...}, branchname2,
+///                    BranchDefinition<type>{KeyType{...}, branchname2},
 ///                   ) reader;
 ///     auto processSomething = [] (auto& key, auto& object) {
 ///       // do something
@@ -91,7 +100,7 @@ struct DefaultKey {
 ///     auto reader = std::make_shared<RootTreeReader>(treename,
 ///                                                    filename1, filename2, ...,
 ///                                                    Output{...}, branchname1,
-///                                                    Output{...}, branchname2,
+///                                                    BranchDefinition<type>{Output{...}, branchname2},
 ///                                                   );
 ///     // In the DPL AlgorithmSpec, the processing lambda can simply look like:
 ///     // (note that the shared pointer is propagated by copy)
@@ -147,6 +156,206 @@ class GenericRootTreeReader
   // list of the constructor can be parsed
   static_assert(std::is_same<KeyType, const char*>::value == false, "the key type must not be const char*");
 
+  /// helper structure to hold the constructor arguments for BranchConfigurationElement stages
+  struct ConstructorArg {
+    ConstructorArg(key_type _key, const char* _name)
+      : key(_key), name(_name) {}
+    ConstructorArg(key_type _key, std::string const& _name)
+      : key(_key), name(_name) {}
+    key_type key;
+    std::string name;
+  };
+
+  // the vector of arguments is filled during the build up of the branch configuration and
+  // passed to the construction of the constructed mixin class
+  using ConstructorArgs = std::vector<ConstructorArg>;
+
+  /// @class BranchConfigurationInterface
+  /// The interface for the branch configuration. The branch configuration is constructed at
+  /// compile time from the constructor argments of the tree reader. A mixin class is constructed
+  /// from nested instances of @class BranchConfigurationElement, each holding a type information
+  /// and the runtime configuration for the specific branch.
+  ///
+  /// The purpose of this interface is to provide the foundation of the mixin class and the virtual
+  /// interface for setup and exec to enter in the upper most stage of the mixin.
+  class BranchConfigurationInterface
+  {
+   public:
+    static const size_t STAGE = 0;
+    BranchConfigurationInterface() = default;
+    BranchConfigurationInterface(ConstructorArgs const&){};
+    virtual ~BranchConfigurationInterface() = default;
+
+    /// Setup the branch configuration, namely get the branch and class information from the tree
+    virtual void setup(TTree&) {}
+    /// Run the reader process
+    /// This will recursively run every level of the the branch configuration and fetch the object
+    /// at position \a entry. The object is published via the DPL ProcessingContext. A creator callback
+    /// for the header stack is provided to build the stack from the variadic list of header template
+    /// arguments.
+    virtual void exec(ProcessingContext& ctx, int entry, std::function<o2::header::Stack()> stackcreator) {}
+
+   private:
+  };
+
+  /// one element in the branch configuration structure
+  /// it contains the previous element as base class and is bound to a data type.
+  template <typename DataT, typename BASE>
+  class BranchConfigurationElement : public BASE
+  {
+   public:
+    using PrevT = BASE;
+    using value_type = DataT;
+    using publish_type = void;
+    static const size_t STAGE = BASE::STAGE + 1;
+    BranchConfigurationElement() = default;
+    BranchConfigurationElement(ConstructorArgs const& args)
+      : PrevT(args), mKey(args[STAGE - 1].key), mName(args[STAGE - 1].name)
+    {
+    }
+    ~BranchConfigurationElement() override = default;
+
+    /// Run the reader process
+    /// This is the virtal overload entry point to the upper most stage of the branch configuration
+    void exec(ProcessingContext& ctx, int entry, std::function<o2::header::Stack()> stackcreator) override
+    {
+      process(ctx, entry, stackcreator);
+    }
+
+    /// Setup branch configuration
+    /// This is the virtal overload entry point to the upper most stage of the branch configuration
+    void setup(TTree& tree) override
+    {
+      setupInstance(tree);
+    }
+
+    /// Run the setup, first recursively for all lower stages, and then the current stage
+    /// This fetches the branch corresponding to the configured name
+    void setupInstance(TTree& tree)
+    {
+      // recursing through the tree structure by simply using method of the previous type,
+      // i.e. the base class method.
+      if constexpr (STAGE > 1) {
+        PrevT::setupInstance(tree);
+      }
+
+      // right now we allow the same key to appear for multiple branches
+      mBranch = tree.GetBranch(mName.c_str());
+      if (mBranch) {
+        std::string sizebranchName = std::string(mName) + "Size";
+        auto sizebranch = tree.GetBranch(sizebranchName.c_str());
+        auto* classinfo = TClass::GetClass(mBranch->GetClassName());
+        if constexpr (not std::is_void<value_type>::value) {
+          // check if the configured type matches the stored type
+          auto* storedclass = TClass::GetClass(typeid(value_type));
+          if (classinfo != storedclass) {
+            throw std::runtime_error(std::string("Configured type ") +
+                                     (storedclass != nullptr ? storedclass->GetName() : typeid(value_type).name()) +
+                                     " does not match the stored data type " +
+                                     (classinfo != nullptr ? classinfo->GetName() : "") +
+                                     " in branch " + mName);
+          }
+        }
+        if (!sizebranch) {
+          if (classinfo == nullptr) {
+            throw std::runtime_error(std::string("can not find class description for branch ") + mName);
+          }
+          LOG(INFO) << "branch set up: " << mName;
+        } else {
+          if (classinfo == nullptr || classinfo != TClass::GetClass(typeid(BinaryDataStoreType))) {
+            throw std::runtime_error("mismatching class type, expecting std::vector<char> for binary branch");
+          }
+          mSizeBranch = sizebranch;
+          LOG(INFO) << "binary branch set up: " << mName;
+        }
+        mClassInfo = classinfo;
+      } else {
+        throw std::runtime_error(std::string("can not find branch ") + mName);
+      }
+    }
+
+    /// Run the reader, first recursively for all lower stages, and then the current stage
+    void process(ProcessingContext& context, int entry, std::function<o2::header::Stack()>& stackcreator)
+    {
+      // recursing through the tree structure by simply using method of the previous type,
+      // i.e. the base class method.
+      if constexpr (STAGE > 1) {
+        PrevT::process(context, entry, stackcreator);
+      }
+
+      auto snapshot = [&context, &stackcreator](const KeyType& key, const auto& object) {
+        context.outputs().snapshot(Output{key.origin, key.description, key.subSpec, key.lifetime, std::move(stackcreator())}, object);
+      };
+
+      char* data = nullptr;
+      mBranch->SetAddress(&data);
+      mBranch->GetEntry(entry);
+      if (mSizeBranch != nullptr) {
+        size_t datasize = 0;
+        mSizeBranch->SetAddress(&datasize);
+        mSizeBranch->GetEntry(entry);
+        auto* buffer = reinterpret_cast<BinaryDataStoreType*>(data);
+        if (buffer->size() == datasize) {
+          LOG(INFO) << "branch " << mName << ": publishing binary chunk of " << datasize << " bytes(s)";
+          snapshot(mKey, std::move(*buffer));
+        } else {
+          LOG(ERROR) << "branch " << mName << ": inconsitent size of binary chunk "
+                     << buffer->size() << " vs " << datasize;
+          BinaryDataStoreType empty;
+          snapshot(mKey, empty);
+        }
+      } else {
+        if constexpr (std::is_void<value_type>::value == true) {
+          // the default branch configuration publishes the object ROOT serialized
+          snapshot(mKey, std::move(ROOTSerializedByClass(*data, mClassInfo)));
+        } else {
+          // if type is specified in the branch configuration, the allocator API decides
+          // upon serialization
+          snapshot(mKey, *reinterpret_cast<value_type*>(data));
+        }
+      }
+      auto* delfunc = mClassInfo->GetDelete();
+      if (delfunc) {
+        (*delfunc)(data);
+      }
+      mBranch->DropBaskets("all");
+    }
+
+   private:
+    key_type mKey;
+    std::string mName;
+    TBranch* mBranch = nullptr;
+    TBranch* mSizeBranch = nullptr;
+    TClass* mClassInfo = nullptr;
+  };
+
+  /// branch definition structure
+  /// This is a helper class to pass a branch definition to the reader constructor. The branch definition
+  /// is bound to a concrete type which will be used to determin the serialization method at DPL output.
+  /// The key parameter describes the DPL output, the name parameter to branch name to publish.
+  template <typename T>
+  struct BranchDefinition {
+    using type = T;
+    template <typename U>
+    BranchDefinition(U _key, const char* _name)
+      : key(_key), name(_name)
+    {
+    }
+    template <typename U>
+    BranchDefinition(U _key, std::string const& _name)
+      : key(_key), name(_name)
+    {
+    }
+    template <typename U>
+    BranchDefinition(U _key, std::string&& _name)
+      : key(_key), name(std::move(_name))
+    {
+    }
+
+    key_type key;
+    std::string name;
+  };
+
   /// default constructor
   GenericRootTreeReader();
 
@@ -161,6 +370,7 @@ class GenericRootTreeReader
   {
     mInput.SetCacheSize(0);
     parseConstructorArgs<0>(std::forward<Args>(args)...);
+    mBranchConfiguration->setup(mInput);
   }
 
   /// add a file as source for the tree
@@ -220,48 +430,15 @@ class GenericRootTreeReader
   bool operator()(ContextType& context,
                   HeaderTypes&&... headers) const
   {
-    auto snapshot = [&context, &headers...](const KeyType& key, const auto& object) {
-      o2::header::Stack stack{std::forward<HeaderTypes>(headers)...};
-      context.outputs().snapshot(Output{key.origin, key.description, key.subSpec, key.lifetime, std::move(stack)}, object);
-    };
-
-    return process(snapshot);
-  }
-
-  template <typename F>
-  bool process(F&& snapshot) const
-  {
     if (mReadEntry >= mNEntries || mNEntries == 0 || (mMaxEntries > 0 && mNofPublished >= mMaxEntries)) {
       return false;
     }
 
-    for (auto& spec : mBranchSpecs) {
-      char* data = nullptr;
-      spec.second->branch->SetAddress(&data);
-      spec.second->branch->GetEntry(mReadEntry);
-      if (spec.second->sizebranch == nullptr) {
-        snapshot(spec.first, std::move(ROOTSerializedByClass(*data, spec.second->classinfo)));
-      } else {
-        size_t datasize = 0;
-        spec.second->sizebranch->SetAddress(&datasize);
-        spec.second->sizebranch->GetEntry(mReadEntry);
-        auto* buffer = reinterpret_cast<BinaryDataStoreType*>(data);
-        if (buffer->size() == datasize) {
-          LOG(INFO) << "branch " << spec.second->name << ": publishing binary chunk of " << datasize << " bytes(s)";
-          snapshot(spec.first, std::move(*buffer));
-        } else {
-          LOG(ERROR) << "branch " << spec.second->name << ": inconsitent size of binary chunk "
-                     << buffer->size() << " vs " << datasize;
-          BinaryDataStoreType empty;
-          snapshot(spec.first, empty);
-        }
-      }
-      auto* delfunc = spec.second->classinfo->GetDelete();
-      if (delfunc) {
-        (*delfunc)(data);
-      }
-      spec.second->branch->DropBaskets("all");
-    }
+    auto stackcreator = [&headers...]() {
+      return o2::header::Stack{std::forward<HeaderTypes>(headers)...};
+    };
+
+    mBranchConfiguration->exec(context, mReadEntry, stackcreator);
     return true;
   }
 
@@ -272,48 +449,6 @@ class GenericRootTreeReader
   }
 
  private:
-  struct BranchSpec {
-    std::string name;
-    TBranch* branch = nullptr;
-    TBranch* sizebranch = nullptr;
-    TClass* classinfo = nullptr;
-  };
-
-  // helper for the invalid code path of if constexpr statement
-  template <typename T>
-  struct type_dependent : std::false_type {
-  };
-
-  /// add a new branch definition
-  /// we allow for multiple branch definition for the same key
-  void addBranchSpec(KeyType key, const char* branchName)
-  {
-    // right now we allow the same key to appear for multiple branches
-    auto branch = mInput.GetBranch(branchName);
-    if (branch) {
-      mBranchSpecs.emplace_back(key, std::make_unique<BranchSpec>(BranchSpec{branchName}));
-      mBranchSpecs.back().second->branch = branch;
-      std::string sizebranchName = std::string(branchName) + "Size";
-      auto sizebranch = mInput.GetBranch(sizebranchName.c_str());
-      auto* classinfo = TClass::GetClass(branch->GetClassName());
-      if (!sizebranch) {
-        if (classinfo == nullptr) {
-          throw std::runtime_error(std::string("can not find class description for branch ") + branchName);
-        }
-        LOG(INFO) << "branch set up: " << branchName;
-      } else {
-        if (classinfo == nullptr || classinfo != TClass::GetClass(typeid(BinaryDataStoreType))) {
-          throw std::runtime_error("mismatching class type, expecting std::vector<char> for binary branch");
-        }
-        mBranchSpecs.back().second->sizebranch = sizebranch;
-        LOG(INFO) << "binary branch set up: " << branchName;
-      }
-      mBranchSpecs.back().second->classinfo = classinfo;
-    } else {
-      throw std::runtime_error(std::string("can not find branch ") + branchName);
-    }
-  }
-
   // special helper to get the char argument from the argument pack
   template <typename T, typename... Args>
   const char* getCharArg(T arg, Args&&...)
@@ -326,38 +461,55 @@ class GenericRootTreeReader
   template <size_t skip, typename U, typename... Args>
   void parseConstructorArgs(U key, Args&&... args)
   {
+    // all argument parsing is done in the creation of the branch configuration
+    mBranchConfiguration = createBranchConfiguration<0, BranchConfigurationInterface>({}, std::forward<U>(key), std::forward<Args>(args)...);
+  }
+
+  /// recursively step through all branch definitions from the command line arguments
+  /// and build all types nested into a mixin type. Each level of the mixin derives
+  /// from the previous level and by that one can later step through the list.
+  template <size_t skip, typename BASE, typename U, typename... Args>
+  std::unique_ptr<BranchConfigurationInterface> createBranchConfiguration(ConstructorArgs&& cargs, U def, Args&&... args)
+  {
     if constexpr (skip > 0) {
-      return parseConstructorArgs<skip - 1>(std::forward<Args>(args)...);
-    }
-    if constexpr (std::is_same<U, const char*>::value) {
-      addFile(key);
+      return createBranchConfiguration<skip - 1, BASE>(std::move(cargs), std::forward<Args>(args)...);
+    } else if constexpr (std::is_same<U, const char*>::value) {
+      addFile(def);
     } else if constexpr (std::is_same<U, int>::value) {
-      mMaxEntries = key;
+      mMaxEntries = def;
     } else if constexpr (std::is_same<U, PublishingMode>::value) {
-      mPublishingMode = key;
+      mPublishingMode = def;
+    } else if constexpr (is_specialization<U, BranchDefinition>::value) {
+      cargs.emplace_back(key_type(def.key), def.name);
+      using type = BranchConfigurationElement<typename U::type, BASE>;
+      return std::move(createBranchConfiguration<0, type>(std::move(cargs), std::forward<Args>(args)...));
     } else if constexpr (sizeof...(Args) > 0) {
       const char* arg = getCharArg(std::forward<Args>(args)...);
       if (arg != nullptr && *arg != 0) {
-        // add branch spec if the name is not empty
-        addBranchSpec(KeyType{key}, arg);
+        cargs.emplace_back(key_type(def), arg);
+        using type = BranchConfigurationElement<void, BASE>;
+        return std::move(createBranchConfiguration<1, type>(std::move(cargs), std::forward<Args>(args)...));
       }
-      return parseConstructorArgs<1>(std::forward<Args>(args)...);
+      throw std::runtime_error("expecting valid branch name string after key");
     } else {
-      static_assert(type_dependent<U>::value, "argument mismatch, allowed are: file names, int to specify number of events, publishing mode, and key-branchname pairs");
+      static_assert(always_static_assert<U>::value, "argument mismatch, define branches either as argument pairs of key and branchname or using the BranchDefinition helper struct");
     }
-    parseConstructorArgs<0>(std::forward<Args>(args)...);
+    return createBranchConfiguration<0, BASE>(std::move(cargs), std::forward<Args>(args)...);
   }
 
-  // this terminates the argument parsing
-  template <size_t skip>
-  void parseConstructorArgs()
+  /// the final method of the recursive argument parsing
+  /// the mixin type is now fully constructed and the configuration object is created
+  template <size_t skip, typename T>
+  std::unique_ptr<BranchConfigurationInterface> createBranchConfiguration(ConstructorArgs&& cargs)
   {
+    static_assert(skip == 0);
+    return std::move(std::make_unique<T>(cargs));
   }
 
   /// the input tree, using TChain to support multiple input files
   TChain mInput;
-  /// definitions of branch specs
-  std::vector<std::pair<KeyType, std::unique_ptr<BranchSpec>>> mBranchSpecs;
+  /// configuration of branches
+  std::unique_ptr<BranchConfigurationInterface> mBranchConfiguration;
   /// number of entries in the tree
   int mNEntries = 0;
   /// current read position

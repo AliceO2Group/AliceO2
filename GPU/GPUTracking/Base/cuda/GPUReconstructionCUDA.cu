@@ -11,9 +11,13 @@
 /// \file GPUReconstructionCUDA.cu
 /// \author David Rohr
 
-#define GPUCA_GPUTYPE_PASCAL
+#define GPUCA_GPUTYPE_TURING
+#define GPUCA_UNROLL(CUDA, HIP) GPUCA_M_UNROLL_##CUDA
 
 #include <cuda.h>
+#ifdef __clang__
+#define assert(...)
+#endif
 
 #include "GPUReconstructionCUDA.h"
 #include "GPUReconstructionCUDAInternals.h"
@@ -37,6 +41,10 @@ __constant__ uint4 gGPUConstantMemBuffer[gGPUConstantMemBufferSize / sizeof(uint
 texture<cahit2, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu2;
 texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
 #endif
+
+__global__ void dummyInitKernel(void* foo)
+{
+}
 
 #if defined(HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
 #include "ITStrackingCUDA/TrackerTraitsNV.h"
@@ -63,11 +71,13 @@ class VertexerTraitsGPU : public VertexerTraits
 template <class T, int I, typename... Args>
 GPUg() void runKernelCUDA(GPUCA_CONSMEM_PTR int iSlice, Args... args)
 {
-  GPUshared() typename T::GPUTPCSharedMemory smem;
+  GPUshared() typename T::GPUSharedMemory smem;
   T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Processor(GPUCA_CONSMEM)[iSlice], args...);
 }
 */
 
+#undef GPUCA_KRNL_REG
+#define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_STRIP(args))
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_, x_class, x_attributes, x_arguments, x_forward)
 #define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionCUDABackend
 #define GPUCA_KRNL_CALL_single(x_class, x_attributes, x_arguments, x_forward) \
@@ -138,10 +148,15 @@ void GPUReconstructionCUDABackend::GetITSTraits(std::unique_ptr<o2::its::Tracker
 int GPUReconstructionCUDABackend::InitDevice_Runtime()
 {
   // Find best CUDA device, initialize and allocate memory
-  cudaDeviceProp cudaDeviceProp;
+  GPUCA_GPUReconstructionUpdateDefailts();
 
+  cudaDeviceProp cudaDeviceProp;
   int count, bestDevice = -1;
   double bestDeviceSpeed = -1, deviceSpeed;
+  if (GPUFailedMsgI(cuInit(0))) {
+    GPUError("Error initializing CUDA!");
+    return (1);
+  }
   if (GPUFailedMsgI(cudaGetDeviceCount(&count))) {
     GPUError("Error getting CUDA Device Count");
     return (1);
@@ -152,20 +167,34 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
   const int reqVerMaj = 2;
   const int reqVerMin = 0;
   std::vector<bool> devicesOK(count, false);
+  std::vector<size_t> devMemory(count, 0);
+  bool contextCreated = false;
   for (int i = 0; i < count; i++) {
     if (mDeviceProcessingSettings.debugLevel >= 4) {
       GPUInfo("Examining device %d", i);
     }
     size_t free, total;
-    cuInit(0);
     CUdevice tmpDevice;
-    cuDeviceGet(&tmpDevice, i);
-    CUcontext tmpContext;
-    cuCtxCreate(&tmpContext, 0, tmpDevice);
-    if (cuMemGetInfo(&free, &total)) {
-      std::cout << "Error\n";
+    if (GPUFailedMsgI(cuDeviceGet(&tmpDevice, i))) {
+      GPUError("Could not set CUDA device!");
+      return (1);
     }
-    cuCtxDestroy(tmpContext);
+    if (GPUFailedMsgI(cuCtxCreate(&mInternals->CudaContext, 0, tmpDevice))) {
+      GPUError("Could not create CUDA Context!");
+      return (1);
+    }
+    contextCreated = true;
+    if (GPUFailedMsgI(cuMemGetInfo(&free, &total))) {
+      GPUError("Error obtaining CUDA memory info!");
+      return (1);
+    }
+    if (count > 1) {
+      if (GPUFailedMsgI(cuCtxDestroy(mInternals->CudaContext))) {
+        GPUError("Error releasing CUDA context!");
+        return (1);
+      }
+      contextCreated = false;
+    }
     if (mDeviceProcessingSettings.debugLevel >= 4) {
       GPUInfo("Obtained current memory usage for device %d", i);
     }
@@ -183,7 +212,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     } else if (cudaDeviceProp.major < reqVerMaj || (cudaDeviceProp.major == reqVerMaj && cudaDeviceProp.minor < reqVerMin)) {
       deviceOK = false;
       deviceFailure = "Too low device revision";
-    } else if (free < mDeviceMemorySize) {
+    } else if (free < std::max(mDeviceMemorySize, (size_t)1024 * 1024 * 1024)) {
       deviceOK = false;
       deviceFailure = "Insufficient GPU memory";
     }
@@ -196,31 +225,38 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
       continue;
     }
     devicesOK[i] = true;
+    devMemory[i] = std::min(free, total - 512 * 1024 * 1024);
     if (deviceSpeed > bestDeviceSpeed) {
       bestDevice = i;
       bestDeviceSpeed = deviceSpeed;
     } else {
-      if (mDeviceProcessingSettings.debugLevel >= 2) {
+      if (mDeviceProcessingSettings.debugLevel >= 2 && mDeviceProcessingSettings.deviceNum < 0) {
         GPUInfo("Skipping: Speed %f < %f\n", deviceSpeed, bestDeviceSpeed);
       }
     }
   }
+
+  bool noDevice = false;
   if (bestDevice == -1) {
     GPUWarning("No %sCUDA Device available, aborting CUDA Initialisation", count ? "appropriate " : "");
-    GPUImportant("Requiring Revision %d.%d, Mem: %lld", reqVerMaj, reqVerMin, (long long int)mDeviceMemorySize);
-    return (1);
-  }
-
-  if (mDeviceProcessingSettings.deviceNum > -1) {
+    GPUImportant("Requiring Revision %d.%d, Mem: %lld", reqVerMaj, reqVerMin, (long long int)std::max(mDeviceMemorySize, (size_t)1024 * 1024 * 1024));
+    noDevice = true;
+  } else if (mDeviceProcessingSettings.deviceNum > -1) {
     if (mDeviceProcessingSettings.deviceNum >= (signed)count) {
-      GPUWarning("Requested device ID %d does not exist", mDeviceProcessingSettings.deviceNum);
-      return (1);
+      GPUError("Requested device ID %d does not exist", mDeviceProcessingSettings.deviceNum);
+      noDevice = true;
     } else if (!devicesOK[mDeviceProcessingSettings.deviceNum]) {
-      GPUWarning("Unsupported device requested (%d)", mDeviceProcessingSettings.deviceNum);
-      return (1);
+      GPUError("Unsupported device requested (%d)", mDeviceProcessingSettings.deviceNum);
+      noDevice = true;
     } else {
       bestDevice = mDeviceProcessingSettings.deviceNum;
     }
+  }
+  if (noDevice) {
+    if (contextCreated) {
+      GPUFailedMsgI(cuCtxDestroy(mInternals->CudaContext));
+    }
+    return (1);
   }
   mDeviceId = bestDevice;
 
@@ -269,7 +305,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
 
   mNStreams = std::max(mDeviceProcessingSettings.nStreams, 3);
 
-  if (cuCtxCreate(&mInternals->CudaContext, CU_CTX_SCHED_AUTO, mDeviceId) != CUDA_SUCCESS) {
+  if (contextCreated == 0 && GPUFailedMsgI(cuCtxCreate(&mInternals->CudaContext, CU_CTX_SCHED_AUTO, mDeviceId))) {
     GPUError("Could not set CUDA Device!");
     return (1);
   }
@@ -280,24 +316,24 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     return (1);
   }
 
-  if (mDeviceMemorySize > cudaDeviceProp.totalGlobalMem || GPUFailedMsgI(cudaMalloc(&mDeviceMemoryBase, mDeviceMemorySize))) {
-    GPUError("CUDA Memory Allocation Error");
-    GPUFailedMsgI(cudaDeviceReset());
-    return (1);
-  }
-  if (mDeviceProcessingSettings.debugLevel >= 1) {
-    GPUInfo("GPU Memory used: %lld (Ptr 0x%p)", (long long int)mDeviceMemorySize, mDeviceMemoryBase);
-  }
-  if (GPUFailedMsgI(cudaMallocHost(&mHostMemoryBase, mHostMemorySize))) {
-    GPUError("Error allocating Page Locked Host Memory");
-    GPUFailedMsgI(cudaDeviceReset());
-    return (1);
-  }
-  if (mDeviceProcessingSettings.debugLevel >= 1) {
-    GPUInfo("Host Memory used: %lld (Ptr 0x%p)", (long long int)mHostMemorySize, mHostMemoryBase);
+  if (mDeviceMemorySize == 2) {
+    mDeviceMemorySize = devMemory[mDeviceId] * 2 / 3; // Leave 1/3 of GPU memory for event display
+  } else if (mDeviceMemorySize == 1) {
+    mDeviceMemorySize = devMemory[mDeviceId] - 1024 * 1024 * 1024; // Take all GPU memory but 1/2 GB
   }
 
+  if (mDeviceMemorySize > cudaDeviceProp.totalGlobalMem || GPUFailedMsgI(cudaMalloc(&mDeviceMemoryBase, mDeviceMemorySize))) {
+    GPUError("CUDA Memory Allocation Error (trying %lld bytes, %lld available)", (long long int)mDeviceMemorySize, (long long int)cudaDeviceProp.totalGlobalMem);
+    GPUFailedMsgI(cudaDeviceReset());
+    return (1);
+  }
+  if (GPUFailedMsgI(cudaMallocHost(&mHostMemoryBase, mHostMemorySize))) {
+    GPUError("Error allocating Page Locked Host Memory (trying %lld bytes)", (long long int)mHostMemorySize);
+    GPUFailedMsgI(cudaDeviceReset());
+    return (1);
+  }
   if (mDeviceProcessingSettings.debugLevel >= 1) {
+    GPUInfo("Memory ptrs: GPU (%lld bytes): %p - Host (%lld bytes): %p", (long long int)mDeviceMemorySize, mDeviceMemoryBase, (long long int)mHostMemorySize, mHostMemoryBase);
     memset(mHostMemoryBase, 0xDD, mHostMemorySize);
     if (GPUFailedMsgI(cudaMemset(mDeviceMemoryBase, 0xDD, mDeviceMemorySize))) {
       GPUError("Error during CUDA memset");
@@ -341,7 +377,12 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     }
   }
 
-  cuCtxPopCurrent(&mInternals->CudaContext);
+  if (GPUFailedMsgI(cuCtxPopCurrent(&mInternals->CudaContext))) {
+    GPUError("Error popping CUDA context!");
+    return (1);
+  }
+
+  dummyInitKernel<<<mCoreCount, 256>>>(mDeviceMemoryBase);
   GPUInfo("CUDA Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %lld / %lld bytes host / global memory, Stack frame %d, Constant memory %lld)", mDeviceId, cudaDeviceProp.name, cudaDeviceProp.clockRate, cudaDeviceProp.multiProcessorCount, (long long int)mHostMemorySize,
           (long long int)mDeviceMemorySize, (int)GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
 
@@ -351,7 +392,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
 int GPUReconstructionCUDABackend::ExitDevice_Runtime()
 {
   // Uninitialize CUDA
-  cuCtxPushCurrent(mInternals->CudaContext);
+  GPUFailedMsgI(cuCtxPushCurrent(mInternals->CudaContext));
 
   SynchronizeGPU();
 
@@ -380,7 +421,7 @@ int GPUReconstructionCUDABackend::ExitDevice_Runtime()
     return (1);
   }
 
-  cuCtxDestroy(mInternals->CudaContext);
+  GPUFailedMsgI(cuCtxDestroy(mInternals->CudaContext));
 
   GPUInfo("CUDA Uninitialized");
   return (0);
@@ -521,4 +562,21 @@ void GPUReconstructionCUDABackend::SetThreadCounts()
   mTRDThreadCount = GPUCA_THREAD_COUNT_TRD;
   mClustererThreadCount = GPUCA_THREAD_COUNT_CLUSTERER;
   mScanThreadCount = GPUCA_THREAD_COUNT_SCAN;
+  mConverterThreadCount = GPUCA_THREAD_COUNT_CONVERTER;
+  mCompression1ThreadCount = GPUCA_THREAD_COUNT_COMPRESSION1;
+  mCompression2ThreadCount = GPUCA_THREAD_COUNT_COMPRESSION2;
+  mCFDecodeThreadCount = GPUCA_THREAD_COUNT_CFDECODE;
+  mFitThreadCount = GPUCA_THREAD_COUNT_FIT;
+  mITSThreadCount = GPUCA_THREAD_COUNT_ITS;
+  mWarpSize = GPUCA_WARP_SIZE;
+}
+
+int GPUReconstructionCUDABackend::registerMemoryForGPU(void* ptr, size_t size)
+{
+  return GPUFailedMsgI(cudaHostRegister(ptr, size, cudaHostRegisterDefault));
+}
+
+int GPUReconstructionCUDABackend::unregisterMemoryForGPU(void* ptr)
+{
+  return GPUFailedMsgI(cudaHostUnregister(ptr));
 }

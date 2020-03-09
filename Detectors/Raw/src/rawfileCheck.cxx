@@ -40,10 +40,12 @@ int main(int argc, char* argv[])
 {
   RawFileReader reader;
   std::vector<std::string> fnames;
+  std::string config;
   bpo::variables_map vm;
   bpo::options_description descOpt("Options");
   descOpt.add_options()(
     "help,h", "print this help message.")(
+    "conf,c", bpo::value(&config)->default_value(""), "read input from configuration file")(
     "verbosity,v", bpo::value<int>()->default_value(reader.getVerbosity()), "1: long report, 2 or 3: print or dump all RDH")(
     "spsize,s", bpo::value<int>()->default_value(reader.getNominalSPageSize()), "nominal super-page size in bytes")(
     "hbfpertf,t", bpo::value<int>()->default_value(reader.getNominalHBFperTF()), "nominal number of HBFs per TF")(
@@ -53,17 +55,24 @@ int main(int argc, char* argv[])
     nochk_opt(RawFileReader::ErrHBFNoStop).c_str(), nochk_expl(RawFileReader::ErrHBFNoStop).c_str())(
     nochk_opt(RawFileReader::ErrWrongFirstPage).c_str(), nochk_expl(RawFileReader::ErrWrongFirstPage).c_str())(
     nochk_opt(RawFileReader::ErrWrongHBFsPerTF).c_str(), nochk_expl(RawFileReader::ErrWrongHBFsPerTF).c_str())(
+    nochk_opt(RawFileReader::ErrWrongNumberOfTF).c_str(), nochk_expl(RawFileReader::ErrWrongNumberOfTF).c_str())(
     nochk_opt(RawFileReader::ErrHBFJump).c_str(), nochk_expl(RawFileReader::ErrHBFJump).c_str())(
     nochk_opt(RawFileReader::ErrNoSuperPageForTF).c_str(), nochk_expl(RawFileReader::ErrNoSuperPageForTF).c_str());
 
   bpo::options_description hiddenOpt("hidden");
-  hiddenOpt.add_options()("input", bpo::value(&fnames)->composing(), "");
+  hiddenOpt.add_options()("files", bpo::value(&fnames)->composing(), "");
 
   bpo::options_description fullOpt("cmd");
   fullOpt.add(descOpt).add(hiddenOpt);
 
   bpo::positional_options_description posOpt;
-  posOpt.add("input", -1);
+  posOpt.add("files", -1);
+
+  auto printHelp = [&](std::ostream& stream) {
+    stream << "Usage:   " << argv[0] << " [options] file0 [... fileN]" << std::endl;
+    stream << descOpt << std::endl;
+    stream << "  (input files are optional if config file was provided)" << std::endl;
+  };
 
   try {
     bpo::store(bpo::command_line_parser(argc, argv)
@@ -73,17 +82,15 @@ int main(int argc, char* argv[])
                  .run(),
                vm);
     bpo::notify(vm);
-    if (argc == 1 || vm.count("help") || fnames.empty()) {
-      std::cout << "Usage:   " << argv[0] << " [options] file0 [... fileN]" << std::endl;
-      std::cout << descOpt << std::endl;
+    if (argc == 1 || vm.count("help") || (fnames.empty() && config.empty())) {
+      printHelp(std::cout);
       return 0;
     }
 
   } catch (const bpo::error& e) {
     std::cerr << e.what() << "\n\n";
     std::cerr << "Error parsing command line arguments\n";
-    std::cerr << "Usage:   " << argv[0] << " [options] file0 [... fileN]" << std::endl;
-    std::cerr << descOpt << std::endl;
+    printHelp(std::cerr);
     return -1;
   }
 
@@ -100,6 +107,11 @@ int main(int argc, char* argv[])
       errmap ^= 0x1 << i;
       LOGF(INFO, "ignore  check for /%s/", RawFileReader::ErrNames[i].data());
     }
+  }
+
+  if (!config.empty()) {
+    auto inp = o2::raw::RawFileReader::parseInput(config);
+    reader.loadFromInputsMap(inp);
   }
 
   for (int i = 0; i < fnames.size(); i++) {

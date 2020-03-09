@@ -95,10 +95,15 @@ class ARROW_EXPORT SortedGroupByKernel : public arrow::compute::UnaryKernel
 };
 
 /// Slice a given table is a vector of tables each containing a slice.
+/// @a outputSlices the arrow tables in which the original @a inputTable
+/// is split into.
+/// @a offset the offset in the original table at which the corresponding
+/// slice was split.
 arrow::Status sliceByColumn(arrow::compute::FunctionContext* context,
                             std::string const& key,
                             arrow::compute::Datum const& inputTable,
-                            std::vector<arrow::compute::Datum>* outputSlices);
+                            std::vector<arrow::compute::Datum>* outputSlices,
+                            std::vector<uint64_t>* offsets = nullptr);
 
 } // namespace o2::framework
 

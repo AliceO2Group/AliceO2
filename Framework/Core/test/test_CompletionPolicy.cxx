@@ -14,6 +14,10 @@
 
 #include <boost/test/unit_test.hpp>
 #include "Framework/CompletionPolicy.h"
+#include "Framework/CompletionPolicyHelpers.h"
+#include "Headers/DataHeader.h"
+#include "Headers/NameHeader.h"
+#include "Headers/Stack.h"
 
 using namespace o2::framework;
 
@@ -26,4 +30,32 @@ BOOST_AUTO_TEST_CASE(TestCompletionPolicy)
       << CompletionPolicy::CompletionOp::Discard;
 
   BOOST_REQUIRE_EQUAL(oss.str(), "consumeprocesswaitdiscard");
+}
+
+BOOST_AUTO_TEST_CASE(TestCompletionPolicy_callback)
+{
+  o2::header::Stack stack{o2::header::DataHeader{"SOMEDATA", "TST", 0, 0}, o2::header::NameHeader<9>{"somename"}};
+
+  auto matcher = [](auto const&) {
+    return true;
+  };
+
+  auto callback = [&stack](CompletionPolicy::InputSet inputRefs) {
+    for (auto const& ref : inputRefs) {
+      auto const* header = CompletionPolicyHelpers::getHeader<o2::header::DataHeader>(ref);
+      BOOST_CHECK_EQUAL(header, reinterpret_cast<o2::header::DataHeader*>(stack.data()));
+      BOOST_CHECK(CompletionPolicyHelpers::getHeader<o2::header::NameHeader<9>>(ref) != nullptr);
+      BOOST_CHECK(CompletionPolicyHelpers::getHeader<o2::header::NameHeader<9>*>(ref) != nullptr);
+    }
+    return CompletionPolicy::CompletionOp::Consume;
+  };
+
+  std::vector<CompletionPolicy> policies;
+  policies.emplace_back("test", matcher, callback);
+
+  CompletionPolicy::InputSetElement ref{nullptr, reinterpret_cast<const char*>(stack.data()), nullptr};
+  CompletionPolicy::InputSet inputs{&ref, 1};
+  for (auto& policy : policies) {
+    policy.callback(inputs);
+  }
 }

@@ -198,11 +198,13 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
     {InputSpec{"input8", "TST", "SRLZDVEC"}, 8, "input8", 0},  //
   };
 
-  auto getter = [&store](size_t i) -> char const* { return static_cast<char const*>(store[i]->GetData()); };
+  auto getter = [&store](size_t i) -> DataRef {
+    return DataRef{nullptr, static_cast<char const*>(store[2 * i]->GetData()), static_cast<char const*>(store[2 * i + 1]->GetData())};
+  };
 
   InputRecord inputs{
     schema,
-    InputSpan{getter, store.size()}};
+    InputSpan{getter, store.size() / 2}};
 
   writer(inputs);
   writer.close();

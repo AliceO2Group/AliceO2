@@ -40,8 +40,8 @@ class TrackExtrap
   TrackExtrap(TrackExtrap&&) = delete;
   TrackExtrap& operator=(TrackExtrap&&) = delete;
 
-  void setBz(float bZ) { bFieldZ = bZ; } /// Set the magnetic field for the MFT
-  float getBz() { return bFieldZ; }
+  void setBz(float bZ) { mBZField = bZ; } /// Set the magnetic field for the MFT
+  float getBz() { return mBZField; }
 
   /// Return true if the field is switched ON
   static bool isFieldON() { return sFieldON; }
@@ -55,8 +55,8 @@ class TrackExtrap
   static void addMCSEffect(TrackParam* trackParam, double dZ, double x0, bool isFieldON = true);
 
  private:
-  static Float_t bFieldZ; // Tesla.
-  static bool sFieldON;   ///< true if the field is switched ON
+  static Float_t mBZField; // Tesla.
+  static bool sFieldON;    ///< true if the field is switched ON
 };
 
 } // namespace mft

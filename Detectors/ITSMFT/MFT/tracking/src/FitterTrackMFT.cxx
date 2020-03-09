@@ -96,8 +96,6 @@ int FitterTrackMFT::getNClustersInCommon(const FitterTrackMFT& track, int stMin,
   /// Return the number of clusters in common on stations [stMin, stMax]
   /// between this track and the one given as parameter
 
-  int chMin = 2 * stMin;
-  int chMax = 2 * stMax + 1;
   int nClustersInCommon(0);
   /*
   for (const auto& param1 : *this) {

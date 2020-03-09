@@ -26,6 +26,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
+#pragma link C++ class o2::passive::PassiveBase + ;
 #pragma link C++ class o2::passive::Absorber + ;
 #pragma link C++ class o2::passive::Dipole + ;
 #pragma link C++ class o2::passive::Compensator + ;

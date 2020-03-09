@@ -32,7 +32,7 @@ struct LifetimeHelpers {
   static ExpirationHandler::Creator dataDrivenCreation();
   /// Callback which creates a new timeslice as soon as one is available and
   /// uses an incremental number as timestamp.
-  static ExpirationHandler::Creator enumDrivenCreation(size_t first, size_t last, size_t step);
+  static ExpirationHandler::Creator enumDrivenCreation(size_t first, size_t last, size_t step, size_t inputTimeslice, size_t maxTimeSliceId);
   /// Callback which creates a new timeslice when timer
   /// expires and there is not a compatible datadriven callback
   /// available.

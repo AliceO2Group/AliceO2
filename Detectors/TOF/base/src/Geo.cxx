@@ -18,6 +18,10 @@ ClassImp(o2::tof::Geo);
 
 using namespace o2::tof;
 
+o2::raw::HBFUtils gHBFutilTOF; // (to be removed once the methods used will be static)
+int Geo::ORBIT_IN_TF = gHBFutilTOF.getNOrbitsPerTF();
+double Geo::NS_IN_TF = o2::constants::lhc::LHCOrbitNS * gHBFutilTOF.getNOrbitsPerTF();
+
 constexpr Float_t Geo::ANGLES[NPLATES][NMAXNSTRIP];
 constexpr Float_t Geo::HEIGHTS[NPLATES][NMAXNSTRIP];
 constexpr Float_t Geo::DISTANCES[NPLATES][NMAXNSTRIP];
@@ -196,7 +200,7 @@ void Geo::getPos(Int_t* det, Float_t* pos)
   if (mToBeIntit)
     Init();
 
-  printf("TOFDBG: %d, %d, %d, %d, %d    ->    %f %f %f\n", det[0], det[1], det[2], det[3], det[4], mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][0], mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][1], mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][2]);
+  //  printf("TOFDBG: %d, %d, %d, %d, %d    ->    %f %f %f\n", det[0], det[1], det[2], det[3], det[4], mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][0], mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][1], mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][2]);
   pos[0] = mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][0];
   pos[1] = mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][1];
   pos[2] = mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][2];

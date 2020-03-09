@@ -16,7 +16,6 @@ o2_add_library(EMCALReconstruction
                        src/RAWDataHeader.cxx
                        src/RawPayload.cxx
                        src/AltroDecoder.cxx
-                       src/RCUTrailer.cxx
                        src/Bunch.cxx
                        src/Channel.cxx
                        src/CaloFitResults.cxx
@@ -37,7 +36,6 @@ o2_target_root_dictionary(
                           HEADERS include/EMCALReconstruction/RawReaderFile.h
                                   include/EMCALReconstruction/RawReaderMemory.h
                                   include/EMCALReconstruction/AltroDecoder.h
-                                  include/EMCALReconstruction/RCUTrailer.h
                                   include/EMCALReconstruction/RawPayload.h
                                   include/EMCALReconstruction/Bunch.h
                                   include/EMCALReconstruction/Channel.h

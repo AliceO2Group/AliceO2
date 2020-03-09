@@ -59,7 +59,7 @@ static constexpr int kMaxClusters = 1000;
 #endif
 
 GPUTPCGMMerger::GPUTPCGMMerger()
-  : mTrackLinks(nullptr), mNMaxSliceTracks(0), mNMaxTracks(0), mNMaxSingleSliceTracks(0), mNMaxOutputTrackClusters(0), mNMaxClusters(0), mMemoryResMerger(-1), mMemoryResRefit(-1), mMaxID(0), mNClusters(0), mNOutputTracks(0), mNOutputTrackClusters(0), mOutputTracks(nullptr), mSliceTrackInfos(nullptr), mClusters(nullptr), mGlobalClusterIDs(nullptr), mClusterAttachment(nullptr), mTrackOrder(nullptr), mTmpMem(nullptr), mBorderMemory(nullptr), mBorderRangeMemory(nullptr), mSliceTrackers(nullptr), mChainTracking(nullptr)
+  : mTrackLinks(nullptr), mNMaxSliceTracks(0), mNMaxTracks(0), mNMaxSingleSliceTracks(0), mNMaxOutputTrackClusters(0), mNMaxClusters(0), mMemoryResMerger(-1), mMemoryResRefit(-1), mMaxID(0), mNClusters(0), mNOutputTracks(0), mNOutputTrackClusters(0), mOutputTracks(nullptr), mSliceTrackInfos(nullptr), mClusters(nullptr), mGlobalClusterIDs(nullptr), mClusterAttachment(nullptr), mTrackOrderAttach(nullptr), mTrackOrderProcess(nullptr), mTmpMem(nullptr), mBorderMemory(nullptr), mBorderRangeMemory(nullptr), mSliceTrackers(nullptr), mChainTracking(nullptr)
 {
   //* constructor
 
@@ -136,7 +136,7 @@ void GPUTPCGMMerger::CheckMergedTracks()
   }
 }
 
-int GPUTPCGMMerger::GetTrackLabel(GPUTPCGMBorderTrack& trk)
+int GPUTPCGMMerger::GetTrackLabel(const GPUTPCGMBorderTrack& trk)
 {
   GPUTPCGMSliceTrack* track = &mSliceTrackInfos[trk.TrackID()];
   const GPUTPCSliceOutCluster* clusters = track->OrigTrack()->Clusters();
@@ -201,7 +201,10 @@ void* GPUTPCGMMerger::SetPointersGPURefit(void* mem)
 {
   computePointerWithAlignment(mem, mOutputTracks, mNMaxTracks);
   computePointerWithAlignment(mem, mClusters, mNMaxOutputTrackClusters);
-  computePointerWithAlignment(mem, mTrackOrder, mNMaxTracks);
+  computePointerWithAlignment(mem, mTrackOrderAttach, mNMaxTracks);
+  if (mRec->GetDeviceProcessingSettings().mergerSortTracks) {
+    computePointerWithAlignment(mem, mTrackOrderProcess, mNMaxTracks);
+  }
   computePointerWithAlignment(mem, mClusterAttachment, mNMaxClusters);
 
   return mem;
@@ -232,7 +235,9 @@ void GPUTPCGMMerger::SetMaxData(const GPUTrackingInOutPointers& io)
   mNMaxOutputTrackClusters = mNClusters * 1.1f + 1000;
   mNMaxTracks = mNMaxSliceTracks;
   mNMaxClusters = 0;
-  if (mSliceTrackers) {
+  if (io.clustersNative) {
+    mNMaxClusters = io.clustersNative->nClustersTotal;
+  } else if (mSliceTrackers) {
     for (int i = 0; i < NSLICES; i++) {
       mNMaxClusters += mSliceTrackers[i].NHitsTotal();
     }
@@ -603,34 +608,36 @@ void GPUTPCGMMerger::MergeSlicesStep(int border0, int border1, bool useOrigTrack
   ResolveMergeSlices(useOrigTrackParam, false);
 }
 
-void GPUTPCGMMerger::PrintMergeGraph(GPUTPCGMSliceTrack* trk)
+void GPUTPCGMMerger::PrintMergeGraph(const GPUTPCGMSliceTrack* trk, std::ostream& out)
 {
-  GPUTPCGMSliceTrack* orgTrack = trk;
+  const GPUTPCGMSliceTrack* orgTrack = trk;
   while (trk->PrevSegmentNeighbour() >= 0) {
     trk = &mSliceTrackInfos[trk->PrevSegmentNeighbour()];
   }
-  GPUTPCGMSliceTrack* orgTower = trk;
+  const GPUTPCGMSliceTrack* orgTower = trk;
   while (trk->PrevNeighbour() >= 0) {
     trk = &mSliceTrackInfos[trk->PrevNeighbour()];
   }
 
   int nextId = trk - mSliceTrackInfos;
-  GPUInfo("Graph of track %d", (int)(orgTrack - mSliceTrackInfos));
+  out << "Graph of track %d" << (orgTrack - mSliceTrackInfos) << "\n";
   while (nextId >= 0) {
     trk = &mSliceTrackInfos[nextId];
     if (trk->PrevSegmentNeighbour() >= 0) {
-      GPUError("TRACK TREE INVALID!!! %d --> %d", trk->PrevSegmentNeighbour(), nextId);
+      out << "TRACK TREE INVALID!!! " << trk->PrevSegmentNeighbour() << " --> " << nextId << "\n";
     }
-    printf(trk == orgTower ? "--" : "  ");
+    out << (trk == orgTower ? "--" : "  ");
     while (nextId >= 0) {
       GPUTPCGMSliceTrack* trk2 = &mSliceTrackInfos[nextId];
       if (trk != trk2 && (trk2->PrevNeighbour() >= 0 || trk2->NextNeighbour() >= 0)) {
-        printf("   (TRACK TREE INVALID!!! %d <-- %d --> %d)   ", trk2->PrevNeighbour(), nextId, trk2->NextNeighbour());
+        out << "   (TRACK TREE INVALID!!! " << trk2->PrevNeighbour() << " <-- " << nextId << " --> " << trk2->NextNeighbour() << ")   ";
       }
-      printf(" %s%5d(%5.2f)", trk2 == orgTrack ? "!" : " ", nextId, trk2->QPt());
+      char tmp[128];
+      snprintf(tmp, 128, " %s%5d(%5.2f)", trk2 == orgTrack ? "!" : " ", nextId, trk2->QPt());
+      out << tmp;
       nextId = trk2->NextSegmentNeighbour();
     }
-    printf("\n");
+    out << "\n";
     nextId = trk->NextNeighbour();
   }
 }
@@ -679,8 +686,8 @@ void GPUTPCGMMerger::ResolveMergeSlices(bool useOrigTrackParam, bool mergeAll)
 
     bool sameSegment = fabsf(track1->NClusters() > track2->NClusters() ? track1->QPt() : track2->QPt()) < 2 || track1->QPt() * track2->QPt() > 0;
     // GPUInfo("\nMerge %d with %d - same segment %d", itr, itr2, (int) sameSegment);
-    // PrintMergeGraph(track1);
-    // PrintMergeGraph(track2);
+    // PrintMergeGraph(track1, std::cout);
+    // PrintMergeGraph(track2, std::cout);
 
     while (track2->PrevSegmentNeighbour() >= 0) {
       track2 = &mSliceTrackInfos[track2->PrevSegmentNeighbour()];
@@ -765,7 +772,7 @@ void GPUTPCGMMerger::ResolveMergeSlices(bool useOrigTrackParam, bool mergeAll)
         track1->SetNeighbor(track2 - mSliceTrackInfos, goUp);
         track2->SetNeighbor(track1 - mSliceTrackInfos, !goUp);
         // GPUInfo("Result (simple neighbor)");
-        // PrintMergeGraph(track1);
+        // PrintMergeGraph(track1, std::cout);
         continue;
       } else if (track1->Neighbour(goUp) < 0) {
         track2 = &mSliceTrackInfos[track2->Neighbour(!goUp)];
@@ -812,7 +819,7 @@ void GPUTPCGMMerger::ResolveMergeSlices(bool useOrigTrackParam, bool mergeAll)
       }
     }
     // GPUInfo("Result");
-    // PrintMergeGraph(track1);
+    // PrintMergeGraph(track1, std::cout);
   NextTrack:;
   }
 }
@@ -969,6 +976,7 @@ void GPUTPCGMMerger::MergeCE()
       if (looper) {
         trk[1]->SetLooper(true);
       }
+      trk[1]->SetLegs(trk[1]->Legs() + trk[0]->Legs());
       trk[0]->SetNClusters(0);
       trk[0]->SetOK(false);
     }
@@ -1017,14 +1025,31 @@ struct GPUTPCGMMerger_CompareClusterIds {
   }
 };
 
-struct GPUTPCGMMerger_CompareTracks {
+struct GPUTPCGMMerger_CompareTracksAttachWeight {
   const GPUTPCGMMergedTrack* const mCmp;
-  GPUTPCGMMerger_CompareTracks(GPUTPCGMMergedTrack* cmp) : mCmp(cmp) {}
+  GPUTPCGMMerger_CompareTracksAttachWeight(GPUTPCGMMergedTrack* cmp) : mCmp(cmp) {}
   bool operator()(const int aa, const int bb)
   {
-    const GPUTPCGMMergedTrack& a = mCmp[aa];
-    const GPUTPCGMMergedTrack& b = mCmp[bb];
+    const GPUTPCGMMergedTrack& GPUrestrict() a = mCmp[aa];
+    const GPUTPCGMMergedTrack& GPUrestrict() b = mCmp[bb];
     return (fabsf(a.GetParam().GetQPt()) > fabsf(b.GetParam().GetQPt()));
+  }
+};
+
+struct GPUTPCGMMerger_CompareTracksProcess {
+  const GPUTPCGMMergedTrack* const mCmp;
+  GPUTPCGMMerger_CompareTracksProcess(GPUTPCGMMergedTrack* cmp) : mCmp(cmp) {}
+  bool operator()(const int aa, const int bb)
+  {
+    const GPUTPCGMMergedTrack& GPUrestrict() a = mCmp[aa];
+    const GPUTPCGMMergedTrack& GPUrestrict() b = mCmp[bb];
+    if (a.CCE() != b.CCE()) {
+      return a.CCE() > b.CCE();
+    }
+    if (a.Legs() != b.Legs()) {
+      return a.Legs() > b.Legs();
+    }
+    return a.NClusters() > b.NClusters();
   }
 };
 
@@ -1110,6 +1135,11 @@ void GPUTPCGMMerger::CollectMergedTracks()
     // unpack and sort clusters
     if (nParts > 1 && leg == 0) {
       std::sort(trackParts, trackParts + nParts, GPUTPCGMMerger_CompareParts);
+    }
+
+    if (Param().rec.dropLoopers && leg > 0) {
+      nParts = 1;
+      leg = 0;
     }
 
     GPUTPCSliceOutCluster trackClusters[kMaxClusters];
@@ -1262,6 +1292,7 @@ void GPUTPCGMMerger::CollectMergedTracks()
     mergedTrack.SetFlags(0);
     mergedTrack.SetOK(1);
     mergedTrack.SetLooper(leg > 0);
+    mergedTrack.SetLegs(leg);
     mergedTrack.SetNClusters(nHits);
     mergedTrack.SetFirstClusterRef(nOutTrackClusters);
     GPUTPCGMTrackParam& p1 = mergedTrack.Param();
@@ -1326,14 +1357,26 @@ void GPUTPCGMMerger::PrepareClustersForFit()
   unsigned int* trackSort = (unsigned int*)mTmpMem;
   unsigned char* sharedCount = (unsigned char*)(trackSort + mNOutputTracks);
 
+  if (mRec->GetDeviceProcessingSettings().mergerSortTracks) {
+    mNSlowTracks = 0;
+    for (int i = 0; i < mNOutputTracks; i++) {
+      const GPUTPCGMMergedTrack& trk = mOutputTracks[i];
+      if (trk.CCE() || trk.Legs()) {
+        mNSlowTracks++;
+      }
+      mTrackOrderProcess[i] = i;
+    }
+    std::sort(mTrackOrderProcess, mTrackOrderProcess + mNOutputTracks, GPUTPCGMMerger_CompareTracksProcess(mOutputTracks));
+  }
+
   if (!Param().rec.NonConsecutiveIDs) {
     for (int i = 0; i < mNOutputTracks; i++) {
       trackSort[i] = i;
     }
-    std::sort(trackSort, trackSort + mNOutputTracks, GPUTPCGMMerger_CompareTracks(mOutputTracks));
+    std::sort(trackSort, trackSort + mNOutputTracks, GPUTPCGMMerger_CompareTracksAttachWeight(mOutputTracks));
     memset(mClusterAttachment, 0, maxId * sizeof(mClusterAttachment[0]));
     for (int i = 0; i < mNOutputTracks; i++) {
-      mTrackOrder[trackSort[i]] = i;
+      mTrackOrderAttach[trackSort[i]] = i;
     }
     for (int i = 0; i < mNOutputTrackClusters; i++) {
       mClusterAttachment[mClusters[i].num] = attachAttached | attachGood;
@@ -1372,7 +1415,7 @@ void GPUTPCGMMerger::Finalize()
   } else {
     int* trkOrderReverse = (int*)mTmpMem;
     for (int i = 0; i < mNOutputTracks; i++) {
-      trkOrderReverse[mTrackOrder[i]] = i;
+      trkOrderReverse[mTrackOrderAttach[i]] = i;
     }
     for (int i = 0; i < mNOutputTrackClusters; i++) {
       mClusterAttachment[mClusters[i].num] = 0; // Reset adjacent attachment for attached clusters, set correctly below
@@ -1385,7 +1428,7 @@ void GPUTPCGMMerger::Finalize()
       char goodLeg = mClusters[trk.FirstClusterRef() + trk.NClusters() - 1].leg;
       for (unsigned int j = 0; j < trk.NClusters(); j++) {
         int id = mClusters[trk.FirstClusterRef() + j].num;
-        int weight = mTrackOrder[i] | attachAttached;
+        int weight = mTrackOrderAttach[i] | attachAttached;
         unsigned char clusterState = mClusters[trk.FirstClusterRef() + j].state;
         if (!(clusterState & GPUTPCGMMergedTrackHit::flagReject)) {
           weight |= attachGood;
@@ -1404,5 +1447,4 @@ void GPUTPCGMMerger::Finalize()
       }
     }
   }
-  mTrackOrder = nullptr;
 }

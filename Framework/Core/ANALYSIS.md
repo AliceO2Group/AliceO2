@@ -332,6 +332,30 @@ struct MyTask : AnalysisTask {
 };
 ```
 
+### Getting combinations (pairs, triplets, ...)
+To get combinations of distinct tracks, CombinationsGenerator from `ASoAHelpers.h` can be used. It is possible to specify a predicate for a combination as a whole, and only matching combinations are then outputed. Example:
+
+```cpp
+struct MyTask : AnalysisTask {
+
+  void process(Tracks const& tracks) {
+    auto condition = [](const auto& tracksCombination) {
+      return std::all_of(tracksCombination.begin(), tracksCombination.end(),
+                         [](const auto& t) { return track.eta() < 0; });
+    });
+    auto combGenerator = CombinationsGenerator<Tracks, 3>(tracks, condition);
+    for (auto& comb : combGenerator) {
+      // all tracks have eta < 0
+      Track t0 = comb[0];
+      Track t1 = comb[1];
+      Track t2 = comb[2];
+      ...
+    }
+  }
+};
+```
+
+
 ### Possible ideas
 
 We could add a template `<typename C...> reshuffle()` method to the Table class which allows you to reduce the number of columns or attach new dynamic columns. A template wrapper could

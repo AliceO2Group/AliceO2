@@ -14,45 +14,34 @@ using namespace o2::cpv;
 
 ClassImp(Geometry);
 
-// these initialisations are needed for a singleton
-Geometry* Geometry::sGeom = nullptr;
-
-Geometry::Geometry(const std::string_view name) : mGeoName(name),
-                                                  mNumberOfCPVPadsPhi(128),
-                                                  mNumberOfCPVPadsZ(60),
-                                                  mCPVPadSizePhi(1.13),
-                                                  mCPVPadSizeZ(2.1093)
-{
-}
-
-int Geometry::RelToAbsId(int moduleNumber, int iphi, int iz) const
+short Geometry::relToAbsId(char moduleNumber, int iphi, int iz)
 {
   //converts module number, phi and z coordunates to absId
-  return mNumberOfCPVPadsPhi * mNumberOfCPVPadsZ * (moduleNumber - 1) + mNumberOfCPVPadsZ * (iz - 1) + iphi;
+  return kNumberOfCPVPadsPhi * kNumberOfCPVPadsZ * (moduleNumber - 1) + kNumberOfCPVPadsZ * (iz - 1) + iphi;
 }
 
-bool Geometry::AbsToRelNumbering(int absId, int* relid) const
+bool Geometry::absToRelNumbering(short absId, short* relid)
 {
   // Converts the absolute numbering into the following array
   //  relid[0] = CPV Module number 1:fNModules
   //  relid[1] = Column number inside a CPV module (Phi coordinate)
   //  relid[2] = Row number inside a CPV module (Z coordinate)
 
-  double nCPV = mNumberOfCPVPadsPhi * mNumberOfCPVPadsZ;
+  short nCPV = kNumberOfCPVPadsPhi * kNumberOfCPVPadsZ;
   relid[0] = (absId - 1) / nCPV + 1;
   absId -= (relid[0] - 1) * nCPV;
-  relid[2] = absId / mNumberOfCPVPadsZ + 1;
-  relid[1] = absId - (relid[2] - 1) * mNumberOfCPVPadsZ;
+  relid[2] = absId / kNumberOfCPVPadsZ + 1;
+  relid[1] = absId - (relid[2] - 1) * kNumberOfCPVPadsZ;
 
   return true;
 }
-int Geometry::AbsIdToModule(int absId)
+char Geometry::absIdToModule(short absId)
 {
 
-  return (int)TMath::Ceil(absId / (mNumberOfCPVPadsPhi * mNumberOfCPVPadsZ));
+  return 1 + (absId - 1) / (kNumberOfCPVPadsPhi * kNumberOfCPVPadsZ);
 }
 
-int Geometry::AreNeighbours(int absId1, int absId2) const
+int Geometry::areNeighbours(short absId1, short absId2)
 {
 
   // Gives the neighbourness of two digits = 0 are not neighbour but continue searching
@@ -64,15 +53,15 @@ int Geometry::AreNeighbours(int absId1, int absId2) const
   // The order of d1 and d2 is important: first (d1) should be a digit already in a cluster
   //                                      which is compared to a digit (d2)  not yet in a cluster
 
-  int relid1[3];
-  AbsToRelNumbering(absId1, relid1);
+  short relid1[3];
+  absToRelNumbering(absId1, relid1);
 
-  int relid2[3];
-  AbsToRelNumbering(absId2, relid2);
+  short relid2[3];
+  absToRelNumbering(absId2, relid2);
 
   if (relid1[0] == relid2[0]) { // inside the same CPV module
-    int rowdiff = TMath::Abs(relid1[1] - relid2[1]);
-    int coldiff = TMath::Abs(relid1[2] - relid2[2]);
+    short rowdiff = TMath::Abs(relid1[1] - relid2[1]);
+    short coldiff = TMath::Abs(relid1[2] - relid2[2]);
 
     if ((coldiff <= 1) && (rowdiff <= 1)) { // At least common vertex
       return 1;
@@ -91,13 +80,23 @@ int Geometry::AreNeighbours(int absId1, int absId2) const
   }
   return 0;
 }
-void Geometry::AbsIdToRelPosInModule(int absId, double& x, double& z) const
+void Geometry::absIdToRelPosInModule(short absId, float& x, float& z)
 {
   //Calculate from absId of a cell its position in module
 
-  int relid[3];
-  AbsToRelNumbering(absId, relid);
+  short relid[3];
+  absToRelNumbering(absId, relid);
 
-  x = (relid[1] - mNumberOfCPVPadsPhi / 2 - 0.5) * mCPVPadSizePhi;
-  z = (relid[2] - mNumberOfCPVPadsPhi / 2 - 0.5) * mCPVPadSizeZ;
+  x = (relid[1] - kNumberOfCPVPadsPhi / 2 - 0.5) * kCPVPadSizePhi;
+  z = (relid[2] - kNumberOfCPVPadsZ / 2 - 0.5) * kCPVPadSizeZ;
+}
+bool Geometry::relToAbsNumbering(const short* relId, short& absId)
+{
+
+  absId =
+    (relId[0] - 1) * kNumberOfCPVPadsPhi * kNumberOfCPVPadsZ + // the offset of PHOS modules
+    (relId[2] - 1) * kNumberOfCPVPadsZ +                       // the offset along phi
+    relId[1];                                                  // the offset along z
+
+  return true;
 }

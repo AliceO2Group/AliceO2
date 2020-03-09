@@ -17,16 +17,19 @@
 #include <fstream>
 #include <string>
 #include <cstdint>
-#include "DataFormatsTOF/DataFormat.h"
+#include "DataFormatsTOF/RawDataFormat.h"
 #include "TOFBase/Geo.h"
 #include "TOFBase/Digit.h"
+#include "Headers/RAWDataHeader.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 namespace o2
 {
 namespace tof
 {
-namespace compressed
+namespace raw
 {
+
 /// \class Encoder
 /// \brief Encoder class for TOF
 ///
@@ -34,38 +37,65 @@ class Encoder
 {
 
  public:
-  Encoder() = default;
+  Encoder();
   ~Encoder() = default;
 
   bool open(std::string name);
   bool alloc(long size);
 
-  bool encode(std::vector<Digit> summary, int tofwindow = 0);
-  int encodeCrate(const std::vector<Digit>& summary, Int_t icrate, int& istart); // return next crate index
-  void encodeEmptyCrate(Int_t icrate);
-  int encodeTRM(const std::vector<Digit>& summary, Int_t icrate, Int_t itrm, int& istart); // return next trm index
+  bool encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int tofwindow = 0);
+  void encodeTRM(const std::vector<Digit>& summary, Int_t icrate, Int_t itrm, int& istart); // return next trm index
+
+  void openRDH(int icrate);
+  void addPage(int icrate);
+  void closeRDH(int icrate);
 
   bool flush();
+  bool flush(int icrate);
   bool close();
   void setVerbose(bool val) { mVerbose = val; };
 
+  char* nextPage(void* current, int step);
+  int getSize(void* first, void* last);
+
+  void nextWord(int icrate);
+  void nextWordNoEmpty(int icrate);
+
+  void setContinuous(bool value) { mIsContinuous = value; }
+  bool isContinuous() const { return mIsContinuous; }
+
  protected:
   // benchmarks
-  double mIntegratedBytes = 0.;
+  double mIntegratedBytes[72];
+  double mIntegratedAllBytes = 0;
   double mIntegratedTime = 0.;
 
-  std::ofstream mFile;
+  static constexpr int NCRU = 4;
+  static constexpr int NLINKSPERCRU = 72 / NCRU;
+  std::ofstream mFileCRU[NCRU];
+
   bool mVerbose = false;
 
-  char* mBuffer = nullptr;
+  char* mBuffer[72];
   std::vector<char> mBufferLocal;
   long mSize;
-  Union_t* mUnion = nullptr;
+  Union_t* mUnion[72];
+  Union_t* mStart[72];
+  TOFDataHeader_t* mTOFDataHeader[72];
+  DRMDataHeader_t* mDRMDataHeader[72];
+  bool mNextWordStatus[72];
+
+  bool mIsContinuous = true;
+
+  o2::header::RAWDataHeader* mRDH[72];
+  o2::raw::HBFUtils mHBFSampler;
+  int mNRDH[72];
+
+  bool mStartRun = true;
 
   // temporary variable for encoding
-  int mBunchID;      //!
-  int mOrbitID;      //!
-  int mEventCounter; //!
+  int mEventCounter;         //!
+  o2::InteractionRecord mIR; //!
 };
 
 } // namespace compressed

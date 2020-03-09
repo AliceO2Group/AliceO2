@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-// @brief Class to sample HBFrames for simulated interaction records
+// @brief Class to sample HBFrames for simulated interaction records + RDH utils
 // @author ruben.shahoyan@cern.ch
 
 #ifndef ALICEO2_HBFSAMPLER_H
@@ -36,11 +36,17 @@ namespace raw
     See testHBFUtils.cxx for the outline of generating HBF frames for simulated data.
   */
 
+using LinkSubSpec_t = uint32_t;
+
+//_____________________________________________________________________
 class HBFUtils
 {
   using IR = o2::InteractionRecord;
 
  public:
+  static constexpr int GBTWord = 16; // length of GBT word
+  static constexpr int MAXCRUPage = 512 * GBTWord;
+
   HBFUtils() = default;
   HBFUtils(const IR& ir0) : mFirstIR(ir0) {}
   const IR& getFirstIR() const { return mFirstIR; }
@@ -78,6 +84,10 @@ class HBFUtils
   ///< create RDH for given IR
   template <class H>
   H createRDH(const IR& rec) const;
+
+  ///< update RDH for with given IR info
+  template <class H>
+  void updateRDH(H& rdh, const IR& rec) const;
 
   /*//-------------------------------------------------------------------------------------
     Fill provided vector (cleaned) by interaction records (bc/orbit) for HBFs, considering 
@@ -119,19 +129,35 @@ class HBFUtils
   void print() const;
 
   // some fields of the same meaning have different names in the RDH of different versions
+  static uint32_t getHBOrbit(const void* rdhP);
+  static uint32_t getHBBC(const void* rdhP);
+  static IR getHBIR(const void* rdhP);
+
+  static void printRDH(const void* rdhP);
+  static void dumpRDH(const void* rdhP);
+
+  static bool checkRDH(const void* rdhP, bool verbose = true);
+
   static uint32_t getHBOrbit(const o2::header::RAWDataHeaderV4& rdh) { return rdh.heartbeatOrbit; }
-  static uint32_t getOrbit(const o2::header::RAWDataHeaderV5& rdh) { return rdh.orbit; }
+  static uint32_t getHBOrbit(const o2::header::RAWDataHeaderV5& rdh) { return rdh.orbit; }
 
   static uint32_t getHBBC(const o2::header::RAWDataHeaderV4& rdh) { return rdh.heartbeatBC; }
   static uint32_t getHBBC(const o2::header::RAWDataHeaderV5& rdh) { return rdh.bunchCrossing; }
 
+  static IR getHBIR(const o2::header::RAWDataHeaderV4& rdh) { return {uint16_t(rdh.heartbeatBC), uint32_t(rdh.heartbeatOrbit)}; }
+  static IR getHBIR(const o2::header::RAWDataHeaderV5& rdh) { return {uint16_t(rdh.bunchCrossing), uint32_t(rdh.orbit)}; }
+
   static void printRDH(const o2::header::RAWDataHeaderV5& rdh);
   static void printRDH(const o2::header::RAWDataHeaderV4& rdh);
-  static void dumpRDH(const o2::header::RAWDataHeaderV5& rdh);
-  static void dumpRDH(const o2::header::RAWDataHeaderV4& rdh)
-  {
-    dumpRDH(reinterpret_cast<const o2::header::RAWDataHeaderV5&>(rdh));
-  }
+  static void dumpRDH(const o2::header::RAWDataHeaderV5& rdh) { dumpRDH(&rdh); }
+  static void dumpRDH(const o2::header::RAWDataHeaderV4& rdh) { dumpRDH(&rdh); }
+
+  static bool checkRDH(const o2::header::RAWDataHeaderV4& rdh, bool verbose = true);
+  static bool checkRDH(const o2::header::RAWDataHeaderV5& rdh, bool verbose = true);
+
+  static LinkSubSpec_t getSubSpec(uint16_t cru, uint8_t link, uint8_t endpoint);
+  static LinkSubSpec_t getSubSpec(const o2::header::RAWDataHeaderV4& rdh) { return getSubSpec(rdh.cruID, rdh.linkID, rdh.endPointID); }
+  static LinkSubSpec_t getSubSpec(const o2::header::RAWDataHeaderV5& rdh) { return getSubSpec(rdh.cruID, rdh.linkID, rdh.endPointID); }
 
  protected:
   int mNHBFPerTF = 1 + 0xff; // number of orbits per BC
@@ -142,10 +168,25 @@ class HBFUtils
 
 //_________________________________________________
 template <>
-inline o2::header::RAWDataHeaderV4 HBFUtils::createRDH<o2::header::RAWDataHeaderV4>(const o2::InteractionRecord& rec) const
+inline void HBFUtils::updateRDH<o2::header::RAWDataHeaderV5>(o2::header::RAWDataHeaderV5& rdh, const o2::InteractionRecord& rec) const
 {
   auto tfhb = getTFandHBinTF(rec);
-  o2::header::RAWDataHeaderV4 rdh;
+  rdh.bunchCrossing = mFirstIR.bc;
+  rdh.orbit = rec.orbit;
+  //
+  if (rec.bc == mFirstIR.bc) { // if we are starting new HB, set the HB trigger flag
+    rdh.triggerType |= o2::trigger::ORBIT | o2::trigger::HB;
+    if (tfhb.second == 0) { // if we are starting new TF, set the TF trigger flag
+      rdh.triggerType |= o2::trigger::TF;
+    }
+  }
+}
+
+//_________________________________________________
+template <>
+inline void HBFUtils::updateRDH<o2::header::RAWDataHeaderV4>(o2::header::RAWDataHeaderV4& rdh, const o2::InteractionRecord& rec) const
+{
+  auto tfhb = getTFandHBinTF(rec);
   rdh.triggerBC = rec.bc;
   rdh.triggerOrbit = rec.orbit;
 
@@ -158,6 +199,14 @@ inline o2::header::RAWDataHeaderV4 HBFUtils::createRDH<o2::header::RAWDataHeader
       rdh.triggerType |= o2::trigger::TF;
     }
   }
+}
+
+//_________________________________________________
+template <>
+inline o2::header::RAWDataHeaderV4 HBFUtils::createRDH<o2::header::RAWDataHeaderV4>(const o2::InteractionRecord& rec) const
+{
+  o2::header::RAWDataHeaderV4 rdh;
+  updateRDH(rdh, rec);
   return rdh;
 }
 
@@ -165,19 +214,17 @@ inline o2::header::RAWDataHeaderV4 HBFUtils::createRDH<o2::header::RAWDataHeader
 template <>
 inline o2::header::RAWDataHeaderV5 HBFUtils::createRDH<o2::header::RAWDataHeaderV5>(const o2::InteractionRecord& rec) const
 {
-  auto tfhb = getTFandHBinTF(rec);
   o2::header::RAWDataHeaderV5 rdh;
-
-  rdh.bunchCrossing = mFirstIR.bc;
-  rdh.orbit = rec.orbit;
-  //
-  if (rec.bc == mFirstIR.bc) { // if we are starting new HB, set the HB trigger flag
-    rdh.triggerType |= o2::trigger::ORBIT | o2::trigger::HB;
-    if (tfhb.second == 0) { // if we are starting new TF, set the TF trigger flag
-      rdh.triggerType |= o2::trigger::TF;
-    }
-  }
+  updateRDH(rdh, rec);
   return rdh;
+}
+
+//_____________________________________________________________________
+inline LinkSubSpec_t HBFUtils::getSubSpec(uint16_t cru, uint8_t link, uint8_t endpoint)
+{
+  // define subspecification as in DataDistribution
+  int linkValue = (LinkSubSpec_t(link) + 1) << (endpoint == 1 ? 8 : 0);
+  return (LinkSubSpec_t(cru) << 16) | linkValue;
 }
 
 } // namespace raw

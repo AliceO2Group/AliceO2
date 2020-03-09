@@ -150,7 +150,7 @@ void Detector::ConstructGeometry()
   SpaceFrame emcalframe;
   emcalframe.CreateGeometry();
 
-  CreateEmcalEnvelope();
+  //CreateEmcalEnvelope();
 
   // COMPACT, TRD1
   LOG(DEBUG2) << "Shish-Kebab geometry : " << GetTitle();
@@ -448,8 +448,14 @@ void Detector::CreateShiskebabGeometry()
   //  idAL = 1602;
   Double_t par[10], xpos = 0., ypos = 0., zpos = 0.;
 
-  LOG(DEBUG2) << "Name of mother volume: " << g->GetNameOfEMCALEnvelope();
-  CreateSupermoduleGeometry(g->GetNameOfEMCALEnvelope());
+  std::string mothervolume;
+  if (contains(g->GetName(), "WSUC")) {
+    mothervolume = "WSUC";
+  } else {
+    mothervolume = "cave";
+  }
+  LOG(DEBUG2) << "Name of mother volume: " << mothervolume;
+  CreateSupermoduleGeometry(mothervolume);
 
   auto SMTypeList = g->GetEMCSystem();
   auto tmpType = NOT_EXISTENT;

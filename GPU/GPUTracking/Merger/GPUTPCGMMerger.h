@@ -93,7 +93,9 @@ class GPUTPCGMMerger : public GPUProcessor
   }
   GPUhd() const GPUTPCTracker* SliceTrackers() const { return (mSliceTrackers); }
   GPUhd() GPUAtomic(unsigned int) * ClusterAttachment() const { return (mClusterAttachment); }
-  GPUhd() unsigned int* TrackOrder() const { return (mTrackOrder); }
+  GPUhd() unsigned int* TrackOrderAttach() const { return mTrackOrderAttach; }
+  GPUhd() unsigned int* TrackOrderProcess() const { return mTrackOrderProcess; }
+  GPUd() unsigned int NSlowTracks() const { return mNSlowTracks; }
 
   enum attachTypes { attachAttached = 0x40000000,
                      attachGood = 0x20000000,
@@ -115,6 +117,17 @@ class GPUTPCGMMerger : public GPUProcessor
   void CollectMergedTracks();
   void Finalize();
 
+#ifndef GPUCA_GPUCODE
+  void DumpSliceTracks(std::ostream& out);
+  void DumpMergedWithinSlices(std::ostream& out);
+  void DumpMergedBetweenSlices(std::ostream& out);
+  void DumpCollected(std::ostream& out);
+  void DumpMergeCE(std::ostream& out);
+  void DumpFitPrepare(std::ostream& out);
+  void DumpRefit(std::ostream& out);
+  void DumpFinal(std::ostream& out);
+#endif
+
  private:
   void MakeBorderTracks(int iSlice, int iBorder, GPUTPCGMBorderTrack B[], int& nB, bool useOrigTrackParam = false);
   void MergeBorderTracks(int iSlice1, GPUTPCGMBorderTrack B1[], int N1, int iSlice2, GPUTPCGMBorderTrack B2[], int N2, int mergeMode = 0);
@@ -124,9 +137,11 @@ class GPUTPCGMMerger : public GPUProcessor
   void MergeSlicesStep(int border0, int border1, bool useOrigTrackParam);
   void ClearTrackLinks(int n);
 
-  void PrintMergeGraph(GPUTPCGMSliceTrack* trk);
   void CheckMergedTracks();
-  int GetTrackLabel(GPUTPCGMBorderTrack& trk);
+#ifndef GPUCA_GPUCODE
+  void PrintMergeGraph(const GPUTPCGMSliceTrack* trk, std::ostream& out);
+  int GetTrackLabel(const GPUTPCGMBorderTrack& trk);
+#endif
 
   int SliceTrackInfoFirst(int iSlice) { return mSliceTrackInfoIndex[iSlice]; }
   int SliceTrackInfoLast(int iSlice) { return mSliceTrackInfoIndex[iSlice + 1]; }
@@ -163,7 +178,9 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUTPCGMMergedTrackHit* mClusters;
   int* mGlobalClusterIDs;
   GPUAtomic(unsigned int) * mClusterAttachment;
-  unsigned int* mTrackOrder;
+  unsigned int* mTrackOrderAttach;
+  unsigned int* mTrackOrderProcess;
+  unsigned int mNSlowTracks;
   char* mTmpMem;
   GPUTPCGMBorderTrack* mBorderMemory; // memory for border tracks
   GPUTPCGMBorderTrack* mBorder[NSLICES];

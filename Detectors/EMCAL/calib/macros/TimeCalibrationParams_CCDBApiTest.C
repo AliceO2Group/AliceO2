@@ -16,6 +16,7 @@
 #include "TCanvas.h"
 #include <ctime>
 #include <fstream>
+#include <iostream>
 #endif
 
 /// \brief Converting time into numerical time stamp representation

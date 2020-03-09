@@ -72,14 +72,22 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   auto compClusters = pc.inputs().get<const std::vector<o2::itsmft::CompClusterExt>>("compClusters");
   auto clusters = pc.inputs().get<const std::vector<o2::itsmft::Cluster>>("clusters");
-  auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
+
+  // code further down does assignment to the rofs and the altered object is used for output
+  // we therefore need a copy of the vector rather than an object created directly on the input data,
+  // the output vector however is created directly inside the message memory thus avoiding copy by
+  // snapshot
+  auto rofsinput = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
+  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"MFT", "MFTTrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
 
   LOG(INFO) << "MFTTracker pulled " << clusters.size() << " clusters in "
             << rofs.size() << " RO frames";
 
   const dataformats::MCTruthContainer<MCCompLabel>* labels = mUseMC ? pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("labels").release() : nullptr;
-  std::vector<itsmft::MC2ROFRecord> mc2rofs = mUseMC ? pc.inputs().get<std::vector<itsmft::MC2ROFRecord>>("MC2ROframes") : std::vector<itsmft::MC2ROFRecord>();
+  gsl::span<itsmft::MC2ROFRecord const> mc2rofs;
   if (mUseMC) {
+    // get the array as read-only span, a snapshot of the object is sent forward
+    mc2rofs = pc.inputs().get<gsl::span<itsmft::MC2ROFRecord>>("MC2ROframes");
     LOG(INFO) << labels->getIndexedSize() << " MC label objects , in "
               << mc2rofs.size() << " MC events";
   }
@@ -90,9 +98,9 @@ void TrackerDPL::run(ProcessingContext& pc)
   std::vector<o2::mft::TrackMFT> allTracks;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> allTrackLabels;
   std::vector<o2::mft::TrackLTF> tracksLTF;
-  std::vector<o2::mft::TrackLTF> allTracksLTF;
+  auto& allTracksLTF = pc.outputs().make<std::vector<o2::mft::TrackLTF>>(Output{"MFT", "TRACKSLTF", 0, Lifetime::Timeframe});
   std::vector<o2::mft::TrackCA> tracksCA;
-  std::vector<o2::mft::TrackCA> allTracksCA;
+  auto& allTracksCA = pc.outputs().make<std::vector<o2::mft::TrackCA>>(Output{"MFT", "TRACKSCA", 0, Lifetime::Timeframe});
 
   std::uint32_t roFrame = 0;
   o2::mft::ROframe event(0);
@@ -114,7 +122,7 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   if (continuous) {
     for (const auto& rof : rofs) {
-      Int_t nclUsed = o2::mft::ioutils::loadROFrameData(rof, event, &clusters, labels);
+      Int_t nclUsed = o2::mft::ioutils::loadROFrameData(rof, event, gsl::span(clusters.data(), clusters.size()), labels);
       if (nclUsed) {
         event.setROFrameId(roFrame);
         event.initialise();
@@ -149,13 +157,9 @@ void TrackerDPL::run(ProcessingContext& pc)
     */
   }
 
-  LOG(INFO) << "MFTTracker pushed " << allTracks.size() << " tracks";
+  //LOG(INFO) << "MFTTracker pushed " << allTracks.size() << " tracks";
   LOG(INFO) << "MFTTracker pushed " << allTracksLTF.size() << " tracks LTF";
   LOG(INFO) << "MFTTracker pushed " << allTracksCA.size() << " tracks CA";
-  //pc.outputs().snapshot(Output{"MFT", "TRACKS", 0, Lifetime::Timeframe}, allTracks);
-  pc.outputs().snapshot(Output{"MFT", "TRACKSLTF", 0, Lifetime::Timeframe}, allTracksLTF);
-  pc.outputs().snapshot(Output{"MFT", "TRACKSCA", 0, Lifetime::Timeframe}, allTracksCA);
-  pc.outputs().snapshot(Output{"MFT", "MFTTrackROF", 0, Lifetime::Timeframe}, rofs);
   if (mUseMC) {
     pc.outputs().snapshot(Output{"MFT", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
     pc.outputs().snapshot(Output{"MFT", "MFTTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);

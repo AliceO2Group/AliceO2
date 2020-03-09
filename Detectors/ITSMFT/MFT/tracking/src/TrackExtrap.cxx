@@ -31,7 +31,7 @@ namespace mft
 {
 
 bool TrackExtrap::sFieldON = false;
-Float_t TrackExtrap::bFieldZ = 0.5; // Tesla.
+Float_t TrackExtrap::mBZField = 0.5; // Tesla.
 
 //__________________________________________________________________________
 void TrackExtrap::linearExtrapToZ(TrackParam* trackParam, double zEnd)
@@ -115,7 +115,7 @@ void TrackExtrap::helixExtrapToZ(TrackParam* trackParam, double zEnd)
   double tanl0 = trackParam->getTanl();
   double invqpt0 = trackParam->getInvQPt();
 
-  double k = -bFieldZ * 0.3;
+  double k = -mBZField * 0.3;
   double deltax = (dZ * cosphi0 / tanl0 - dZ * dZ * k * invqpt0 * sinphi0 / (2. * tanl0 * tanl0)) * 100;
   double deltay = (dZ * sinphi0 / tanl0 + dZ * dZ * k * invqpt0 * cosphi0 / (2. * tanl0 * tanl0)) * 100;
 
@@ -134,7 +134,7 @@ void TrackExtrap::helixExtrapToZ(TrackParam* trackParam, double zEnd)
   trackParam->setY(y);
   trackParam->setZ(zEnd);
   trackParam->setPhi(phi);
-  trackParam->setTanl(tanl0);
+  trackParam->setTanl(tanl);
   trackParam->setInvQPt(invqpt);
 }
 
@@ -154,7 +154,7 @@ void TrackExtrap::helixExtrapToZCov(TrackParam* trackParam, double zEnd, bool up
   double cosphi0 = TMath::Cos(phi0);
   double sinphi0 = TMath::Sin(phi0);
   double tanl0sq = tanl0 * tanl0;
-  double k = -bFieldZ * 0.3;
+  double k = -mBZField * 0.3;
 
   TMatrixD jacob(5, 5);
   jacob.UnitMatrix();

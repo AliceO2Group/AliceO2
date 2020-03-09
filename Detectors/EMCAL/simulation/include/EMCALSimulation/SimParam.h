@@ -81,7 +81,7 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
   // Timing
   Float_t mSignalDelay{700}; ///< Signal delay time (ns)
   Float_t mLiveTime{1500};   ///< EMCal live time (ns)
-  Float_t mBusyTime{0};      ///< EMCal busy time (ns)
+  Float_t mBusyTime{35000};  ///< EMCal busy time (ns)
 
   // DigitizerSpec
   Bool_t mDisablePileup{false}; ///< disable pileup simulation

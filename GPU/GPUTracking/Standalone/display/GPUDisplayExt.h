@@ -17,12 +17,12 @@
 
 #include "GPUCommonDef.h"
 
-#ifdef GPUCA_O2_LIB
-//#define GPUCA_DISPLAY_GL3W
+#if defined(GPUCA_DISPLAY_GL3W) && !defined(GPUCA_DISPLAY_OPENGL_CORE)
+#define GPUCA_DISPLAY_OPENGL_CORE
 #endif
 
 #ifdef GPUCA_DISPLAY_GL3W
-#include "gl3w/gl3w.h"
+#include "GL/gl3w.h"
 #else
 #include <GL/glew.h>
 #endif
@@ -41,6 +41,11 @@ static int GPUDisplayExtInit()
 {
   return glewInit();
 }
+#endif
+#ifdef GPUCA_DISPLAY_OPENGL_CORE
+static constexpr bool GPUCA_DISPLAY_OPENGL_CORE_FLAGS = true;
+#else
+static constexpr bool GPUCA_DISPLAY_OPENGL_CORE_FLAGS = false;
 #endif
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

@@ -14,6 +14,8 @@
 #define ALICEO2_DEVICES_HITMERGER_H_
 
 #include <memory>
+#include <string>
+#include <type_traits>
 #include "FairMQMessage.h"
 #include <FairMQDevice.h>
 #include <FairLogger.h>
@@ -315,7 +317,54 @@ class O2HitMerger : public FairMQDevice
   {
     to.mergeAtBack(from);
   }
-
+  template <typename T>
+  void remapTrackIdsAndMerge(std::string brname, TTree& origin, TTree& target, const std::vector<int>& trackoffsets)
+  {
+    //
+    // Remap the mother track IDs by adding an offset.
+    // The offset calculated as the sum of the number of entries in the particle list of the previous subevents.
+    // This method is called by O2HitMerger::mergeAndFlushData(int)
+    //
+    T* incomingdata = nullptr;
+    auto targetdata = new T;
+    auto originbr = origin.GetBranch(brname.c_str());
+    originbr->SetAddress(&incomingdata);
+    const auto entries = origin.GetEntries();
+    if (entries == 1) {
+      // nothing to do in case there is only one entry
+      originbr->GetEntry(0);
+      targetdata = incomingdata;
+    } else {
+      // loop over subevents
+      Int_t ioffset = 0;
+      for (auto entry = 0; entry < entries; ++entry) {
+        originbr->GetEntry(entry);
+        for (auto& data : *incomingdata) {
+          updateTrackIdWithOffset(data, ioffset);
+          targetdata->push_back(data);
+        }
+        ioffset += trackoffsets[entry];
+        incomingdata->clear();
+        delete incomingdata;
+        incomingdata = nullptr;
+      }
+    }
+    auto targetbr = o2::base::getOrMakeBranch(target, brname.c_str(), &targetdata);
+    targetbr->SetAddress(&targetdata);
+    targetbr->Fill();
+    targetbr->ResetAddress();
+    targetdata->clear();
+  }
+  void updateTrackIdWithOffset(MCTrack& track, Int_t ioffset)
+  {
+    Int_t cId = track.getMotherTrackId();
+    if (cId != -1)
+      track.SetMotherTrackId(cId + ioffset);
+  }
+  void updateTrackIdWithOffset(TrackReference& ref, Int_t ioffset)
+  {
+    ref.setTrackID(ref.getTrackID() + ioffset);
+  }
   // this merges all entries from the TBranch brname from the origin TTree (containing one event only)
   // into a single entry in a target TTree / same branch
   // (assuming T is typically a vector; merging is simply done by appending)
@@ -424,11 +473,11 @@ class O2HitMerger : public FairMQDevice
     // but iteration over keys of a standard map in C++ is ordered
 
     // b) merge the general data
-    merge<std::vector<o2::MCTrack>>("MCTrack", *tree, *mOutTree);
-    // TODO: fix track numbers in TrackRefs
-    merge<std::vector<o2::TrackReference>>("TrackRefs", *tree, *mOutTree);
-    merge<o2::dataformats::MCTruthContainer<o2::TrackReference>>("IndexedTrackRefs",
-                                                                 *tree, *mOutTree);
+    //
+    // for MCTrack remap the motherIds and merge at the samee go
+    remapTrackIdsAndMerge<std::vector<o2::MCTrack>>("MCTrack", *tree, *mOutTree, trackoffsets);
+    remapTrackIdsAndMerge<std::vector<o2::TrackReference>>("TrackRefs", *tree, *mOutTree, trackoffsets);
+    merge<o2::dataformats::MCTruthContainer<o2::TrackReference>>("IndexedTrackRefs", *tree, *mOutTree);
 
     // c) do the merge procedure for all hits ... delegate this to detector specific functions
     // since they know about types; number of branches; etc.
@@ -457,13 +506,13 @@ class O2HitMerger : public FairMQDevice
 
   std::map<uint32_t, uint32_t> mPartsCheckSum; //! mapping event id -> part checksum used to detect when all info
 
-  std::string mOutFileName;    //!
+  std::string mOutFileName; //!
 
-  TFile* mOutFile;    //!
+  TFile* mOutFile;                                        //!
   std::unordered_map<int, TTree*> mEventToTTreeMap;       //! in memory trees to collect / presort incoming data per event
   std::unordered_map<int, TMemFile*> mEventToTMemFileMap; //! files associated to the TTrees
-  TTree* mOutTree;    //!
-  std::thread mMergerIOThread; //! a thread used to do hit merging and IO flushing asynchronously
+  TTree* mOutTree;                                        //!
+  std::thread mMergerIOThread;                            //! a thread used to do hit merging and IO flushing asynchronously
 
   int mEntries = 0;         //! counts the number of entries in the branches
   int mEventChecksum = 0;   //! checksum for events

@@ -13,7 +13,7 @@
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 
 #include "SplineHelper2D.h"
 #include "TMath.h"

@@ -9,9 +9,10 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(TOFCalibration
-               SOURCES src/CalibTOFapi.cxx
-               PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF 
+               SOURCES src/CalibTOFapi.cxx src/CalibTOF.cxx src/CollectCalibInfoTOF.cxx
+               PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF O2::TOFBase
                                      O2::CCDB)
 
 o2_target_root_dictionary(TOFCalibration
-                          HEADERS include/TOFCalibration/CalibTOFapi.h)
+                          HEADERS include/TOFCalibration/CalibTOFapi.h include/TOFCalibration/CalibTOF.h
+                                  include/TOFCalibration/CollectCalibInfoTOF.h)

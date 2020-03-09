@@ -98,49 +98,6 @@ void Detector::InitializeO2Detector()
   defineSensitiveVolumes();
 }
 
-void Detector::SetSpecialPhysicsCuts()
-{
-  using namespace o2::base; // to have enum values of EProc and ECut available
-
-  FairRun* fRun = FairRun::Instance();
-  if (strcmp(fRun->GetName(), "TGeant3") == 0) {
-    const Float_t cut1 = 1e-5;
-    const Float_t cutTofmax = 1e10;
-
-    // Some cuts implemented in AliRoot
-    // \note
-    //    Cuts in TPC were set globally before and hence affected the default settings of all other media,
-    //    also outside of TPC. Also, settings were just done for G3.
-    //    Now cuts are set in both cases, for G3 and G4; Further cuts are only set for TPC medium DriftGas2.
-    // \todo discussion needed!!
-    // cut settings for DriftGas2
-    SpecialCuts(kDriftGas2, {{ECut::kCUTGAM, cut1},
-                             {ECut::kCUTELE, cut1},
-                             {ECut::kCUTNEU, cut1},
-                             {ECut::kCUTHAD, cut1},
-                             {ECut::kCUTMUO, cut1},
-                             {ECut::kBCUTE, cut1},
-                             {ECut::kBCUTM, cut1},
-                             {ECut::kDCUTE, cut1},
-                             {ECut::kDCUTM, cut1},
-                             {ECut::kPPCUTM, cut1},
-                             {ECut::kTOFMAX, cutTofmax}});
-    // process settings for DriftGas2
-    SpecialProcesses(kDriftGas2, {{EProc::kPAIR, 1},
-                                  {EProc::kCOMP, 1},
-                                  {EProc::kPHOT, 1},
-                                  {EProc::kPFIS, 0},
-                                  {EProc::kDRAY, 1},
-                                  {EProc::kANNI, 1},
-                                  {EProc::kBREM, 1},
-                                  {EProc::kHADR, 1},
-                                  {EProc::kMUNU, 1},
-                                  {EProc::kDCAY, 1},
-                                  {EProc::kLOSS, 1},
-                                  {EProc::kMULS, 1}});
-  }
-}
-
 Bool_t Detector::ProcessHits(FairVolume* vol)
 {
   mStepCounter++;
@@ -2849,8 +2806,8 @@ void Detector::ConstructTPCGeometry()
   pointstrap[1] = 0.75;
   pointstrap[2] = 0.375;
   pointstrap[3] = -0.35;
-  pointstrap[5] = -0.375;
-  pointstrap[4] = -0.35;
+  pointstrap[4] = -0.375;
+  pointstrap[5] = -0.35;
   pointstrap[6] = -0.375;
   pointstrap[7] = 0.35;
   //

@@ -31,7 +31,7 @@ class CRU
   CRU() = default;
   CRU(unsigned short cru) : mCRU(cru % MaxCRU) {}
   CRU(const CRU& cru) : mCRU(cru.mCRU) {}
-  CRU(const Sector& sec, const unsigned char partitionNum) : mCRU(sec.getSector() * CRUperSector + partitionNum) {}
+  CRU(const Sector& sec, const unsigned char regionNum) : mCRU(sec.getSector() * CRUperSector + regionNum) {}
   //       CRU(RocType t, Side s, unsigned char r):mCRU( (s==Side::A)*18 + (t==RocType::OCRU)*18 + r%18 ) {}
   //       CRU(Side t) {}
 

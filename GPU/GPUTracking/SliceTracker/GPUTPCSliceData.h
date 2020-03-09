@@ -133,21 +133,12 @@ class GPUTPCSliceData
 
   GPUhdi() GPUglobalref() GPUAtomic(unsigned int) * HitWeights() const { return (mHitWeights); }
 
-  GPUhdi() void SetGPUTextureBase(const void* val) { mGPUTextureBase = val; }
+  GPUhdi() void SetGPUTextureBase(GPUglobalref() const void* val) { mGPUTextureBase = val; }
   GPUhdi() char* GPUTextureBase() const { return ((char*)mGPUTextureBase); }
   GPUhdi() char* GPUTextureBaseConst() const { return ((char*)mGPUTextureBase); }
 
-#if !defined(__OPENCL__)
-  GPUhi() const GPUTPCClusterData* ClusterData() const
-  {
-    return mClusterData;
-  }
-#endif
-
-  float MaxZ() const
-  {
-    return mMaxZ;
-  }
+  GPUhdi() GPUglobalref() const GPUTPCClusterData* ClusterData() const { return mClusterData; }
+  float MaxZ() const { return mMaxZ; }
 
  private:
 #ifndef GPUCA_GPUCODE
@@ -156,6 +147,7 @@ class GPUTPCSliceData
   void CreateGrid(GPUTPCRow* row, const float2* data, int ClusterDataHitNumberOffset);
   int PackHitData(GPUTPCRow* row, const GPUTPCHit* binSortedHits);
 #endif
+  friend class GPUTPCNeighboursFinder;
 
   int mNumberOfHits; // the number of hits in this slice
   int mNumberOfHitsPlusAlign;

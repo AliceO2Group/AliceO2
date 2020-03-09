@@ -11,7 +11,7 @@
 /// \file GPUReconstructionOCL.cxx
 /// \author David Rohr
 
-#define GPUCA_GPUTYPE_RADEON
+#define GPUCA_GPUTYPE_OPENCL
 #define __OPENCL_HOST__
 
 #include "GPUReconstructionOCL.h"
@@ -49,6 +49,7 @@ GPUReconstructionOCL::~GPUReconstructionOCL()
 int GPUReconstructionOCL::InitDevice_Runtime()
 {
   // Find best OPENCL device, initialize and allocate memory
+  GPUCA_GPUReconstructionUpdateDefailts();
 
   cl_int ocl_error;
   cl_uint num_platforms;
@@ -261,10 +262,6 @@ int GPUReconstructionOCL::InitDevice_Runtime()
     quit("Error migrating buffer");
   }
 
-  if (mDeviceProcessingSettings.debugLevel >= 1) {
-    GPUInfo("GPU Memory used: %lld (Ptr 0x%p)", (long long int)mDeviceMemorySize, mDeviceMemoryBase);
-  }
-
   mInternals->mem_host = clCreateBuffer(mInternals->context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, mHostMemorySize, nullptr, &ocl_error);
   if (GPUFailedMsgI(ocl_error)) {
     quit("Error allocating pinned host memory");
@@ -301,17 +298,12 @@ int GPUReconstructionOCL::InitDevice_Runtime()
   if (GPUFailedMsgI(ocl_error)) {
     quit("Error allocating Page Locked Host Memory");
   }
-  if (mDeviceProcessingSettings.debugLevel >= 1) {
-    GPUInfo("Host Memory used: %lld (Ptr 0x%p)", (long long int)mHostMemorySize, mHostMemoryBase);
-  }
 
-  if (mDeviceProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Obtained Pointer to GPU Memory: %p", *((void**)mHostMemoryBase));
-  }
   mDeviceMemoryBase = ((void**)mHostMemoryBase)[0];
   mDeviceConstantMem = (GPUConstantMem*)((void**)mHostMemoryBase)[1];
 
   if (mDeviceProcessingSettings.debugLevel >= 1) {
+    GPUInfo("Memory ptrs: GPU (%lld bytes): %p - Host (%lld bytes): %p", (long long int)mDeviceMemorySize, mDeviceMemoryBase, (long long int)mHostMemorySize, mHostMemoryBase);
     memset(mHostMemoryBase, 0xDD, mHostMemorySize);
   }
 
@@ -471,4 +463,11 @@ void GPUReconstructionOCL::SetThreadCounts()
   mTRDThreadCount = GPUCA_THREAD_COUNT_TRD;
   mClustererThreadCount = GPUCA_THREAD_COUNT_CLUSTERER;
   mScanThreadCount = GPUCA_THREAD_COUNT_SCAN;
+  mConverterThreadCount = GPUCA_THREAD_COUNT_CONVERTER;
+  mCompression1ThreadCount = GPUCA_THREAD_COUNT_COMPRESSION1;
+  mCompression2ThreadCount = GPUCA_THREAD_COUNT_COMPRESSION2;
+  mCFDecodeThreadCount = GPUCA_THREAD_COUNT_CFDECODE;
+  mFitThreadCount = GPUCA_THREAD_COUNT_FIT;
+  mITSThreadCount = GPUCA_THREAD_COUNT_ITS;
+  mWarpSize = GPUCA_WARP_SIZE;
 }

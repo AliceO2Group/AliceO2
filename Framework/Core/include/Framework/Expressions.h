@@ -12,8 +12,9 @@
 
 #include "Framework/BasicOps.h"
 #include "Framework/CompilerBuiltins.h"
-#include "Framework/FunctionalHelpers.h"
-#include <arrow/type.h>
+#include "Framework/Pack.h"
+#include "Framework/CheckTypes.h"
+#include <arrow/type_fwd.h>
 #include <arrow/table.h>
 #include <gandiva/selection_vector.h>
 #include <gandiva/node.h>
@@ -23,8 +24,11 @@
 #include <memory>
 
 using atype = arrow::Type;
-using SchemaInfo = std::pair<std::string, gandiva::SchemaPtr>;
-using ExpressionInfo = std::pair<std::string, gandiva::NodePtr>;
+struct ExpressionInfo {
+  size_t index;
+  gandiva::SchemaPtr schema;
+  gandiva::NodePtr tree;
+};
 
 namespace o2::framework::expressions
 {
@@ -75,9 +79,9 @@ struct BindingNode {
   atype::type type;
 };
 
-/// An expression tree node corresponding to binary operation
-struct BinaryOpNode {
-  BinaryOpNode(BasicOp op_) : op{op_} {}
+/// An expression tree node corresponding to binary or unary operation
+struct OpNode {
+  OpNode(BasicOp op_) : op{op_} {}
   BasicOp op;
 };
 
@@ -95,13 +99,18 @@ struct Node {
   {
   }
 
-  Node(BinaryOpNode op, Node&& l, Node&& r)
+  Node(OpNode op, Node&& l, Node&& r)
     : self{op},
       left{std::make_unique<Node>(std::move(l))},
       right{std::make_unique<Node>(std::move(r))} {}
 
+  Node(OpNode op, Node&& l)
+    : self{op},
+      left{std::make_unique<Node>(std::move(l))},
+      right{nullptr} {}
+
   /// variant with possible nodes
-  using self_t = std::variant<LiteralNode, BindingNode, BinaryOpNode>;
+  using self_t = std::variant<LiteralNode, BindingNode, OpNode>;
   self_t self;
   /// pointers to children
   std::unique_ptr<Node> left;
@@ -114,110 +123,131 @@ struct Node {
 template <typename T>
 inline Node operator>(Node left, T rightValue)
 {
-  return Node{BinaryOpNode{BasicOp::GreaterThan}, std::move(left), LiteralNode{rightValue}};
+  return Node{OpNode{BasicOp::GreaterThan}, std::move(left), LiteralNode{rightValue}};
 }
 
 template <typename T>
 inline Node operator<(Node left, T rightValue)
 {
-  return Node{BinaryOpNode{BasicOp::LessThan}, std::move(left), LiteralNode{rightValue}};
+  return Node{OpNode{BasicOp::LessThan}, std::move(left), LiteralNode{rightValue}};
 }
 
 template <typename T>
 inline Node operator>=(Node left, T rightValue)
 {
-  return Node{BinaryOpNode{BasicOp::GreaterThanOrEqual}, std::move(left), LiteralNode{rightValue}};
+  return Node{OpNode{BasicOp::GreaterThanOrEqual}, std::move(left), LiteralNode{rightValue}};
 }
 
 template <typename T>
 inline Node operator<=(Node left, T rightValue)
 {
-  return Node{BinaryOpNode{BasicOp::LessThanOrEqual}, std::move(left), LiteralNode{rightValue}};
+  return Node{OpNode{BasicOp::LessThanOrEqual}, std::move(left), LiteralNode{rightValue}};
 }
 
 template <typename T>
 inline Node operator==(Node left, T rightValue)
 {
-  return Node{BinaryOpNode{BasicOp::Equal}, std::move(left), LiteralNode{rightValue}};
+  return Node{OpNode{BasicOp::Equal}, std::move(left), LiteralNode{rightValue}};
 }
 
 template <typename T>
 inline Node operator!=(Node left, T rightValue)
 {
-  return Node{BinaryOpNode{BasicOp::NotEqual}, std::move(left), LiteralNode{rightValue}};
+  return Node{OpNode{BasicOp::NotEqual}, std::move(left), LiteralNode{rightValue}};
 }
 
 /// node comparisons
 inline Node operator>(Node left, Node right)
 {
-  return Node{BinaryOpNode{BasicOp::GreaterThan}, std::move(left), std::move(right)};
+  return Node{OpNode{BasicOp::GreaterThan}, std::move(left), std::move(right)};
 }
 
 inline Node operator<(Node left, Node right)
 {
-  return Node{BinaryOpNode{BasicOp::LessThan}, std::move(left), std::move(right)};
+  return Node{OpNode{BasicOp::LessThan}, std::move(left), std::move(right)};
 }
 
 inline Node operator>=(Node left, Node right)
 {
-  return Node{BinaryOpNode{BasicOp::GreaterThanOrEqual}, std::move(left), std::move(right)};
+  return Node{OpNode{BasicOp::GreaterThanOrEqual}, std::move(left), std::move(right)};
 }
 
 inline Node operator<=(Node left, Node right)
 {
-  return Node{BinaryOpNode{BasicOp::LessThanOrEqual}, std::move(left), std::move(right)};
+  return Node{OpNode{BasicOp::LessThanOrEqual}, std::move(left), std::move(right)};
 }
 
 inline Node operator==(Node left, Node right)
 {
-  return Node{BinaryOpNode{BasicOp::Equal}, std::move(left), std::move(right)};
+  return Node{OpNode{BasicOp::Equal}, std::move(left), std::move(right)};
 }
 
 inline Node operator!=(Node left, Node right)
 {
-  return Node{BinaryOpNode{BasicOp::NotEqual}, std::move(left), std::move(right)};
+  return Node{OpNode{BasicOp::NotEqual}, std::move(left), std::move(right)};
 }
 
 /// logical operations
 inline Node operator&&(Node left, Node right)
 {
-  return Node{BinaryOpNode{BasicOp::LogicalAnd}, std::move(left), std::move(right)};
+  return Node{OpNode{BasicOp::LogicalAnd}, std::move(left), std::move(right)};
 }
 
 inline Node operator||(Node left, Node right)
 {
-  return Node{BinaryOpNode{BasicOp::LogicalOr}, std::move(left), std::move(right)};
+  return Node{OpNode{BasicOp::LogicalOr}, std::move(left), std::move(right)};
 }
 
 /// arithmetical operations between node and literal
 template <typename T>
 inline Node operator*(Node left, T right)
 {
-  return Node{BinaryOpNode{BasicOp::Multiplication}, std::move(left), LiteralNode{right}};
+  return Node{OpNode{BasicOp::Multiplication}, std::move(left), LiteralNode{right}};
 }
 
 template <typename T>
 inline Node operator/(Node left, T right)
 {
-  return Node{BinaryOpNode{BasicOp::Division}, std::move(left), LiteralNode{right}};
+  return Node{OpNode{BasicOp::Division}, std::move(left), LiteralNode{right}};
 }
 
 template <typename T>
 inline Node operator/(T left, Node right)
 {
-  return Node{BinaryOpNode{BasicOp::Division}, LiteralNode{left}, std::move(right)};
+  return Node{OpNode{BasicOp::Division}, LiteralNode{left}, std::move(right)};
 }
 
 template <typename T>
 inline Node operator+(Node left, T right)
 {
-  return Node{BinaryOpNode{BasicOp::Addition}, std::move(left), LiteralNode{right}};
+  return Node{OpNode{BasicOp::Addition}, std::move(left), LiteralNode{right}};
 }
 
 template <typename T>
 inline Node operator-(Node left, T right)
 {
-  return Node{BinaryOpNode{BasicOp::Subtraction}, std::move(left), LiteralNode{right}};
+  return Node{OpNode{BasicOp::Subtraction}, std::move(left), LiteralNode{right}};
+}
+
+/// unary operations on nodes
+inline Node nexp(Node left)
+{
+  return Node{OpNode{BasicOp::Exp}, std::move(left)};
+}
+
+inline Node nlog(Node left)
+{
+  return Node{OpNode{BasicOp::Log}, std::move(left)};
+}
+
+inline Node nlog10(Node left)
+{
+  return Node{OpNode{BasicOp::Log10}, std::move(left)};
+}
+
+inline Node nabs(Node left)
+{
+  return Node{OpNode{BasicOp::Abs}, std::move(left)};
 }
 
 /// A struct, containing the root of the expression tree
@@ -242,7 +272,7 @@ std::shared_ptr<gandiva::Filter> createFilter(gandiva::SchemaPtr const& Schema,
                                               gandiva::ConditionPtr condition);
 std::shared_ptr<gandiva::Filter> createFilter(gandiva::SchemaPtr const& Schema,
                                               Operations const& opSpecs);
-std::vector<ExpressionInfo> createExpressionInfos(std::vector<SchemaInfo> const& infos, expressions::Filter const& filter);
+void updateExpressionInfos(expressions::Filter const& filter, std::vector<ExpressionInfo>& eInfos);
 gandiva::ConditionPtr createCondition(gandiva::NodePtr node);
 } // namespace o2::framework::expressions
 

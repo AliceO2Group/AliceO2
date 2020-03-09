@@ -20,11 +20,13 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/Logger.h"
 
+#include <Monitoring/Monitoring.h>
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
 #include <fairmq/FairMQDevice.h>
 
 using namespace o2::configuration;
+using namespace o2::monitoring;
 
 namespace o2
 {
@@ -34,6 +36,9 @@ namespace framework
 Dispatcher::Dispatcher(std::string name, const std::string reconfigurationSource)
   : mName(name), mReconfigurationSource(reconfigurationSource)
 {
+  header::DataDescription timerDescription;
+  timerDescription.runtimeInit(("TIMER-" + name).substr(0, 16).c_str());
+  inputs.emplace_back(InputSpec{"timer-stats", "DS", timerDescription, 0, Lifetime::Timer});
 }
 
 Dispatcher::~Dispatcher() = default;
@@ -91,6 +96,24 @@ void Dispatcher::run(ProcessingContext& ctx)
       }
     }
   }
+
+  if (ctx.inputs().isValid("timer-stats")) {
+    reportStats(ctx.services().get<Monitoring>());
+  }
+}
+
+void Dispatcher::reportStats(Monitoring& monitoring) const
+{
+  uint64_t dispatcherTotalEvaluatedMessages = 0;
+  uint64_t dispatcherTotalAcceptedMessages = 0;
+
+  for (const auto& policy : mPolicies) {
+    dispatcherTotalEvaluatedMessages += policy->getTotalEvaluatedMessages();
+    dispatcherTotalAcceptedMessages += policy->getTotalAcceptedMessages();
+  }
+
+  monitoring.send({dispatcherTotalEvaluatedMessages, "Dispatcher_messages_evaluated"});
+  monitoring.send({dispatcherTotalAcceptedMessages, "Dispatcher_messages_passed"});
 }
 
 DataSamplingHeader Dispatcher::prepareDataSamplingHeader(const DataSamplingPolicy& policy, const DeviceSpec& spec)

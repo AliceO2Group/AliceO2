@@ -167,7 +167,8 @@ foreach(t
         TypeTraits
         Variants
         WorkflowHelpers
-        WorkflowSerialization)
+        WorkflowSerialization
+        TreeToTable)
 
   # FIXME ? The NAME parameter of o2_add_test is only needed to help the current
   # o2.sh recipe. If the recipe is changed, those params can go away, if needed.
@@ -178,6 +179,11 @@ foreach(t
               LABELS framework
               PUBLIC_LINK_LIBRARIES O2::Framework)
 endforeach()
+
+o2_add_executable(dpl-run
+                  SOURCES src/dplRun.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  )
 
 o2_add_executable(verify-aod-file
                   SOURCES src/verifyAODFile.cxx
@@ -221,7 +227,10 @@ foreach(b
         TableBuilder
         WorkflowHelpers
         ASoA
+        ASoAHelpers
         HistogramRegistry
+        TableToTree
+        TreeToTable
         )
   o2_add_test(benchmark_${b} NAME test_Framework_benchmark_${b}
               SOURCES test/benchmark_${b}.cxx
@@ -253,6 +262,7 @@ foreach(w
         SimpleWildcard
         SingleDataSource
         Task
+        ExternalFairMQDeviceWorkflow
         )
   o2_add_test(${w} NAME test_Framework_test_${w}
               SOURCES test/test_${w}.cxx
@@ -275,6 +285,12 @@ set_property(TEST test_Framework_test_DanglingInputs PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_SimpleTracksED PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_CustomGUIGL PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_CustomGUISokol PROPERTY DISABLED TRUE)
+
+# there is a problem in the termination of the FairMQDevice by signals because
+# the pending input polling is aborted and this throws an error
+#    [ERROR] Failed receiving on socket input-proxy.input-proxy[0].pull, reason: Interrupted system call, nbytes = -1
+# this can either be fixed in FairMQ or in the DPL driver
+set_property(TEST test_Framework_test_ExternalFairMQDeviceWorkflow PROPERTY DISABLED TRUE)
 
 # TODO: investigate the problem and re-enable
 set_property(TEST test_Framework_test_BoostSerializedProcessing

@@ -78,7 +78,7 @@ void TrackFitterTask::run(ProcessingContext& pc)
   int nTracksCA = 0;
   int nTracksLTF = 0;
   std::vector<o2::mft::FitterTrackMFT> fittertracks;
-  std::vector<o2::mft::TrackMFT> finalMFTtracks;
+  auto& finalMFTtracks = pc.outputs().make<std::vector<o2::mft::TrackMFT>>(Output{"MFT", "TRACKS", 0, Lifetime::Timeframe});
   std::list<o2::itsmft::Cluster> clusters;
 
   // Fit LTF tracks
@@ -123,7 +123,6 @@ void TrackFitterTask::run(ProcessingContext& pc)
   LOG(INFO) << "MFTFitter loaded " << tracksLTF.size() << " LTF tracks";
   LOG(INFO) << "MFTFitter loaded " << tracksCA.size() << " CA tracks";
   LOG(INFO) << "MFTFitter pushed " << fittertracks.size() << " tracks";
-  pc.outputs().snapshot(Output{"MFT", "TRACKS", 0, Lifetime::Timeframe}, finalMFTtracks);
 
   mState = 2;
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);

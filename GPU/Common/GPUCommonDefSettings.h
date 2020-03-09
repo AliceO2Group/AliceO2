@@ -21,12 +21,12 @@
   #error Please include GPUCommonDef.h!
 #endif
 
-//#define GPUCA_OPENCL_CPP_CLANG_C11_ATOMICS     //Use C11 atomic instead of old style atomics for OpenCL C++ in clang (OpenCL 2.2 C++ will use C++11 atomics irrespectively)
+//#define GPUCA_OPENCL_CPP_CLANG_C11_ATOMICS     // Use C11 atomic instead of old style atomics for OpenCL C++ in clang (OpenCL 2.2 C++ will use C++11 atomics irrespectively)
 
-//#define GPUCA_CUDA_NO_CONSTANT_MEMORY          //Do not use constant memory for CUDA
-#define GPUCA_HIP_NO_CONSTANT_MEMORY             //Do not use constant memory for HIP - MANDATORY for now since all AMD GPUs have insufficient constant memory with HIP
-//#define GPUCA_OPENCL_NO_CONSTANT_MEMORY        //Do not use constant memory for OpenCL 1.2
-#define GPUCA_OPENCLCPP_NO_CONSTANT_MEMORY       //Do not use constant memory for OpenCL C++ - MANDATORY as OpenCL cannot cast between __constant and __generic yet!
+//#define GPUCA_CUDA_NO_CONSTANT_MEMORY          // Do not use constant memory for CUDA
+//#define GPUCA_HIP_NO_CONSTANT_MEMORY           // Do not use constant memory for HIP - MANDATORY for now since all AMD GPUs have insufficient constant memory with HIP
+//#define GPUCA_OPENCL_NO_CONSTANT_MEMORY        // Do not use constant memory for OpenCL 1.2
+#define GPUCA_OPENCLCPP_NO_CONSTANT_MEMORY       // Do not use constant memory for OpenCL C++ - MANDATORY as OpenCL cannot cast between __constant and __generic yet!
 
 // clang-format on
 

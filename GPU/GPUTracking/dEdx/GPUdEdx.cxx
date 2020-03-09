@@ -21,7 +21,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 GPUd() void GPUdEdx::clear() { new (this) GPUdEdx; }
 
-GPUd() void GPUdEdx::computedEdx(GPUdEdxInfo& output, const GPUParam& param)
+GPUd() void GPUdEdx::computedEdx(GPUdEdxInfo& GPUrestrict() output, const GPUParam& GPUrestrict() param)
 {
   checkSubThresh(255);
   const int truncLow = param.rec.dEdxTruncLow;
@@ -50,7 +50,7 @@ GPUd() void GPUdEdx::computedEdx(GPUdEdxInfo& output, const GPUParam& param)
   output.NHitsSubThresholdOROC2 = countOROC3;
 }
 
-GPUd() float GPUdEdx::GetSortTruncMean(float* array, int count, int trunclow, int trunchigh)
+GPUd() float GPUdEdx::GetSortTruncMean(float* GPUrestrict() array, int count, int trunclow, int trunchigh)
 {
   trunclow = count * trunclow / 128;
   trunchigh = count * trunchigh / 128;

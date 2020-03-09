@@ -84,6 +84,8 @@ class GPUTPCGeometry
 
  public:
   GPUd() int GetRegion(int row) const { return (row < 63 ? 0 : row < 63 + 64 ? 1 : 2); }
+  GPUd() int GetRegionRows(int region) const { return 0; }  // dummy
+  GPUd() int GetRegionStart(int region) const { return 0; } // dummy
   GPUd() int GetROC(int row) const { return GetRegion(row); }
   GPUd() int EndIROC() const { return 63; }
   GPUd() int EndOROC1() const { return 63 + 64; }

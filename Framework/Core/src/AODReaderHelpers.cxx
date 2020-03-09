@@ -100,8 +100,36 @@ enum AODTypeMask : uint64_t {
   VZero = 1 << 5,
   Collisions = 1 << 6,
   Timeframe = 1 << 7,
-  DZeroFlagged = 1 << 8
+  DZeroFlagged = 1 << 8,
+  Unknown = 1 << 9
 };
+
+uint64_t getMask(header::DataDescription description)
+{
+
+  if (description == header::DataDescription{"TRACKPAR"}) {
+    return AODTypeMask::Tracks;
+  } else if (description == header::DataDescription{"TRACKPARCOV"}) {
+    return AODTypeMask::TracksCov;
+  } else if (description == header::DataDescription{"TRACKEXTRA"}) {
+    return AODTypeMask::TracksExtra;
+  } else if (description == header::DataDescription{"CALO"}) {
+    return AODTypeMask::Calo;
+  } else if (description == header::DataDescription{"MUON"}) {
+    return AODTypeMask::Muon;
+  } else if (description == header::DataDescription{"VZERO"}) {
+    return AODTypeMask::VZero;
+  } else if (description == header::DataDescription{"COLLISION"}) {
+    return AODTypeMask::Collisions;
+  } else if (description == header::DataDescription{"TIMEFRAME"}) {
+    return AODTypeMask::Timeframe;
+  } else if (description == header::DataDescription{"DZEROFLAGGED"}) {
+    return AODTypeMask::DZeroFlagged;
+  } else {
+    LOG(DEBUG) << "This is a tree of unknown type! " << description.str;
+    return AODTypeMask::Unknown;
+  }
+}
 
 uint64_t calculateReadMask(std::vector<OutputRoute> const& routes, header::DataOrigin const& origin)
 {
@@ -109,29 +137,23 @@ uint64_t calculateReadMask(std::vector<OutputRoute> const& routes, header::DataO
   for (auto& route : routes) {
     auto concrete = DataSpecUtils::asConcreteDataTypeMatcher(route.matcher);
     auto description = concrete.description;
-    if (description == header::DataDescription{"TRACKPAR"}) {
-      readMask |= AODTypeMask::Tracks;
-    } else if (description == header::DataDescription{"TRACKPARCOV"}) {
-      readMask |= AODTypeMask::TracksCov;
-    } else if (description == header::DataDescription{"TRACKEXTRA"}) {
-      readMask |= AODTypeMask::TracksExtra;
-    } else if (description == header::DataDescription{"CALO"}) {
-      readMask |= AODTypeMask::Calo;
-    } else if (description == header::DataDescription{"MUON"}) {
-      readMask |= AODTypeMask::Muon;
-    } else if (description == header::DataDescription{"VZERO"}) {
-      readMask |= AODTypeMask::VZero;
-    } else if (description == header::DataDescription{"COLLISION"}) {
-      readMask |= AODTypeMask::Collisions;
-    } else if (description == header::DataDescription{"TIMEFRAME"}) {
-      readMask |= AODTypeMask::Timeframe;
-    } else if (description == header::DataDescription{"DZEROFLAGGED"}) {
-      readMask |= AODTypeMask::DZeroFlagged;
-    } else {
-      throw std::runtime_error(std::string("Unknown AOD type: ") + description.str);
-    }
+
+    readMask |= getMask(description);
   }
   return readMask;
+}
+
+std::vector<OutputRoute> getListOfUnknown(std::vector<OutputRoute> const& routes)
+{
+
+  std::vector<OutputRoute> unknows;
+  for (auto& route : routes) {
+    auto concrete = DataSpecUtils::asConcreteDataTypeMatcher(route.matcher);
+
+    if (getMask(concrete.description) == AODTypeMask::Unknown)
+      unknows.push_back(route);
+  }
+  return unknows;
 }
 
 AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
@@ -278,9 +300,15 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       filenames.push_back(filename);
     }
 
+    // analyze type of requested tables
     uint64_t readMask = calculateReadMask(spec.outputs, header::DataOrigin{"AOD"});
+    std::vector<OutputRoute> unknowns;
+    if (readMask & AODTypeMask::Unknown)
+      unknowns = getListOfUnknown(spec.outputs);
+
     auto counter = std::make_shared<int>(0);
     return adaptStateless([readMask,
+                           unknowns,
                            counter,
                            filenames](DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {
       // Each parallel reader reads the files whose index is associated to
@@ -376,6 +404,31 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
                                               c0, c1, c2, c3, c4, c5, c6, c7,
                                               c8, c9, c10, c11, c12, c13, c14,
                                               c15, c16, c17, c18, c19, c20);
+      }
+
+      // tables not included in the DataModel
+      if (readMask & AODTypeMask::Unknown) {
+
+        // loop over unknowns
+        for (auto route : unknowns) {
+          auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
+
+          // get the tree from infile
+          auto trname = concrete.description.str;
+          auto tr = (TTree*)infile.get()->Get(trname);
+          if (!tr) {
+            LOG(ERROR) << "Tree " << trname << "is not contained in file " << f;
+            return;
+          }
+
+          // create a TreeToTable object
+          auto h = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
+          auto o = Output(h);
+          auto& t2t = outputs.make<TreeToTable>(o, tr);
+
+          // fill the table
+          t2t.Fill();
+        }
       }
     });
   })};

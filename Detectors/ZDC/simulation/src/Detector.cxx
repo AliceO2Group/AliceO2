@@ -58,8 +58,8 @@ Detector::Detector(Bool_t active)
   // REsetting summed variables
   mTotLightPMC = 0;
   mTotLightPMQ = 0;
-  mMediumPMCid = 0;
-  mMediumPMQid = 0;
+  mMediumPMCid = -1; // minus for unitialized
+  mMediumPMQid = -2; // different to PMC in any case
   resetHitIndices();
 }
 
@@ -358,20 +358,26 @@ Bool_t Detector::ProcessHits(FairVolume* v)
    }
   }
 
+  auto tof = 1.e09 * fMC->TrackTime(); //TOF in ns
+
   if (o2::zdc::ZDCSimParam::Instance().recordSpatialResponse) {
     // some diagnostic; trying to really get the pixel fired
-    if (nphe > 0 && (detector == 1 || detector == 4)) {
-      mNeutronResponseImage.addPhoton(x[0], x[1], nphe);
-    }
-    if (nphe > 0 && (detector == 2 || detector == 5)) {
-      mProtonResponseImage.addPhoton(x[0], x[1], nphe);
+    if (nphe > 0) {
+      if (detector == ZNA || detector == ZNC) {
+        mNeutronResponseImage.setDetectorID(detector);
+        mNeutronResponseImage.addPhoton(x[0], x[1], nphe);
+        mNeutronResponseImage.setHitTime(tof);
+      }
+      if (detector == ZPA || detector == ZPC) {
+        mProtonResponseImage.setDetectorID(detector);
+        mProtonResponseImage.addPhoton(x[0], x[1], nphe);
+        mProtonResponseImage.setHitTime(tof);
+      }
     }
   }
 
   // A new hit is created when there is nothing yet for this det + sector
   if (mCurrentHitsIndices[detector - 1][sector] == -1) {
-
-    auto tof = 1.e09 * fMC->TrackTime(); //TOF in ns
     bool issecondary = trackn != stack->getCurrentPrimaryIndex();
     //if(!issecondary) printf("     !!! primary track (index %d)\n",stack->getCurrentPrimaryIndex());
 
@@ -418,6 +424,75 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   }
   return false;
 }
+
+// function to create hit structure from a SpatialResponseImage
+// idea is to use this from a fast sim generating the response
+bool Detector::createHitsFromImage(SpatialPhotonResponse const& image, int detector)
+{
+  // one image will make one hit per sector
+  Vector3D<float> xImp(0., 0., 0.); // good value
+
+  const int Nx = image.getNx();
+  const int Ny = image.getNy();
+  const auto& pixels = image.getImageData();
+
+  // could be put inside the image class
+  auto determineSectorID = [Nx, Ny](int detector, int x, int y) {
+    if (detector == ZNA || detector == ZNC) {
+      if (x < Nx / 2) {
+        if (y < Ny / 2) {
+          return (int)Ch1;
+        } else {
+          return (int)Ch3;
+        }
+      } else {
+        if (y >= Ny / 2) {
+          return (int)Ch4;
+        } else {
+          return (int)Ch2;
+        }
+      }
+    }
+
+    if (detector == ZPA || detector == ZPC) {
+      auto i = (int)(4.f * x / Nx);
+      return (int)(i + 1);
+    }
+    return -1;
+  };
+
+  auto determineMediumID = [this](int detector, int x, int y) {
+    // it is a simple checkerboard pattern
+    return ((x + y) % 2 == 0) ? mMediumPMCid : mMediumPMQid;
+  };
+
+  // loop over x = columns
+  for (int x = 0; x < Nx; ++x) {
+    // loop over y = rows
+    for (int y = 0; y < Ny; ++y) {
+      // get sector
+      int sector = determineSectorID(detector, x, y);
+      // get medium PMQ and PMC
+      int currentMediumid = determineMediumID(detector, x, y);
+      // LOG(INFO) << " x " << x << " y " << y << " sec " << sector << " medium " << currentMediumid;
+      int nphe = pixels[x][y];
+      float tof = 0.;        // needs to be in nanoseconds ---> to be filled later on (should be meta-data of image or calculated otherwise)
+      float trackenergy = 0; // energy of the primary (need to fill good value)
+      createOrAddHit(detector,
+                     sector,
+                     currentMediumid,
+                     0 /*issecondary ---> don't know in fast sim */,
+                     nphe,
+                     0 /* trackn */,
+                     0 /* parent */,
+                     tof,
+                     trackenergy,
+                     xImp,
+                     0. /* eDep */, 0 /* x */, 0. /* y */, 0. /* z */, 0. /* px */, 0. /* py */, 0. /* pz */);
+    } // end loop over y
+  }   // end loop over x
+  return true;
+} // end function
 
 //_____________________________________________________________________________
 o2::zdc::Hit* Detector::addHit(Int_t trackID, Int_t parentID, Int_t sFlag, Float_t primaryEnergy, Int_t detID,

@@ -211,8 +211,8 @@ int GPUReconstructionOCL::runKernelBackendCommon(krnlSetup& _xyz, K& k, const Ar
   if (mDeviceProcessingSettings.deviceTimers) {
     cl_ulong time_start, time_end;
     GPUFailedMsg(clWaitForEvents(1, evr));
-    GPUFailedMsg(clGetEventProfilingInfo(*evr, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL));
-    GPUFailedMsg(clGetEventProfilingInfo(*evr, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL));
+    GPUFailedMsg(clGetEventProfilingInfo(*evr, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, nullptr));
+    GPUFailedMsg(clGetEventProfilingInfo(*evr, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, nullptr));
     _xyz.t = (time_end - time_start) * 1.e-9;
     if (tmpEvent) {
       GPUFailedMsg(clReleaseEvent(ev));
@@ -231,7 +231,7 @@ int GPUReconstructionOCL::AddKernel(bool multi)
   std::string kname("krnl_" + name);
 
   cl_int ocl_error;
-  cl_kernel krnl = clCreateKernel(mInternals->program, name.c_str(), &ocl_error);
+  cl_kernel krnl = clCreateKernel(mInternals->program, kname.c_str(), &ocl_error);
   if (GPUFailedMsgI(ocl_error)) {
     GPUError("Error creating OPENCL Kernel: %s", name.c_str());
     return 1;

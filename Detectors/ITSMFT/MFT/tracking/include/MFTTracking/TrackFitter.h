@@ -66,7 +66,7 @@ class TrackFitter
   void addCluster(const TrackParam& startingParam, const o2::itsmft::Cluster& cl, TrackParam& param);
   void smoothTrack(FitterTrackMFT& track, bool finalize);
   void runSmoother(const TrackParam& previousParam, TrackParam& param);
-  Float_t bFieldZ = 0.5;                    // Tesla.
+  Float_t mBZField = 0.5;                   // Tesla.
   static constexpr double SMaxChi2 = 2.e10; ///< maximum chi2 above which the track can be considered as abnormal
   /// z position of the layers
   static constexpr float SDefaultLayerZ[10] = {-45.3, -46.7, -48.6, -50.0, -52.4, -53.8, -67.7, -69.1, -76.1, -77.5};
