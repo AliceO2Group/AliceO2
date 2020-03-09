@@ -231,15 +231,24 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   LOG(info) << "TRD Trap Simulator Device running over incoming message ...";
 
   // get the relevant inputs for the TrapSimulator
-  auto digits = pc.inputs().get<std::vector<o2::trd::Digit>>("digitinput");
+  // the digits are going to be sorted, we therefore need a copy of the vector rather than an object created
+  // directly on the input data, the output vector however is created directly inside the message
+  // memory thus avoiding copy by snapshot
+  auto digitsinput = pc.inputs().get<std::vector<o2::trd::Digit>>("digitinput");
+  // TODO: not clear yet whether to send the digits because the snapshot method
+  // has been commented out below. Rather than using snapshot (thus a copy) on a vector
+  // object, this target object should be created directly in the message memory
+  //auto& digits = pc.outputs().make<std::vector<o2::trd::Digit>>(Output{"TRD", "DIGITS", 0, Lifetime::Timeframe}, digitsinput.begin(), digitsinput.end());
+  std::vector<o2::trd::Digit> digits(digitsinput.begin(), digitsinput.end());
   //auto mMCLabels = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::trd::MCLabel>*>("labelinput");
   //auto mTriggerRecords = pc.inputs().get<std::vector<o2::trd::TriggerRecord>>("triggerrecords");
 
   LOG(debug) << "Read in Digits with size of : " << digits.size();
 
   //set up structures to hold the returning tracklets.
+  // TODO: correct naming convention, wrong convention used for local variables
   std::vector<Tracklet> mMCMTracklets; //vector to store the retrieved tracklets from an mcm
-  std::vector<Tracklet> mMCMTrackletsAccum;
+  auto& mMCMTrackletsAccum = pc.outputs().make<std::vector<Tracklet>>(Output{"TRD", "TRACKLETS", 0, Lifetime::Timeframe});
   mMCMTracklets.reserve(30);
   mMCMTrackletsAccum.reserve(digits.size() / 3); //attempt to a. conserve mem, b. stop a vector resize
 
@@ -274,7 +283,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   // now to loop over the incoming digits.
   auto digitloopstart = std::chrono::high_resolution_clock::now();
 
-  for (std::vector<o2::trd::Digit>::iterator digititerator = digits.begin(); digititerator != digits.end(); ++digititerator) {
+  for (auto digititerator = digits.begin(); digititerator != digits.end(); ++digititerator) {
     //in here we have an entire padrow which corresponds to 8 TRAPs.
     //while on a single padrow, populate data structures in the 8 trapsimulator.
     //on change of padrow
@@ -399,8 +408,9 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     LOG(info) << "Trapsim took : " << trapsimaccumulatedtime.count();
     LOG(info) << "Traploop took : " << traplooptime.count();
   }
-  //pc.outputs().snapshot(Output{"TRD","DIGITS",0,Lifetime::Timeframe},mDigits);
-  pc.outputs().snapshot(Output{"TRD", "TRACKLETS", 0, Lifetime::Timeframe}, mMCMTrackletsAccum);
+  // Note: do not use snapshot for TRD/DIGITS and TRD/TRACKLETS, we can avoif the copy by allocating
+  // the vectors directly in the message memory, see above
+
   //  pc.outputs().snapshot(Output{"TRD","TRKLABELS",0,Lifetime::Timeframe},mMCLabels);
   //pc.outputs().snapshot(Output{"TRD","TRGRRecords",0,Lifetime::Timeframe},mTriggerRecords);
 }
