@@ -3,46 +3,46 @@
 *
 *    Med GAM   ELEC  NHAD  CHAD  MUON  EBREM MUHAB EDEL  MUDEL MUPA  ANNI  BREM  COMP  DCAY  DRAY  HADR  LOSS  MULS  PAIR  PHOT  RAYL 
 * Air 
-MUON  1  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
+*MCH  1  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
 * Aluminium
-MUON  4  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
+MCH  13  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
 * Aluminium bis
-MUON  5  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
+MCH  13  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
 * Gas mixture Ar+IsoC4H10 (not used)
-MUON  6  1e-5  1e-5  1e-3  1e-3  1e-5  1e-5  1e-5  1e-5  1e-5  -1.   1     1     1     1     1     1     1     1     1     1     1
+*MCH  0  1e-5  1e-5  1e-3  1e-3  1e-5  1e-5  1e-5  1e-5  1e-5  -1.   1     1     1     1     1     1     1     1     1     1     1
 * Gaz mixture of the active medium of the trigger chambers
-MUON  7  1e-5  1e-5  1e-3  1e-3  1e-5  1e-5  1e-5  1e-5  1e-5  -1.   1     1     1     1     1     1     1     1     1     1     1
+*MCH  7  1e-5  1e-5  1e-3  1e-3  1e-5  1e-5  1e-5  1e-5  1e-5  -1.   1     1     1     1     1     1     1     1     1     1     1
 * Bakelite of trigger chambers
-MUON  8  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
+*MCH  8  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
 * Gas mixture Ar+C02 active medium of the tracking chambers
-MUON  9  1e-5  1e-5  1e-3  1e-3  1e-5  1e-5  1e-5  1e-5  1e-5  -1.   1     1     1     1     1     1     1     1     1     1     1
+MCH  0  1e-5  1e-5  1e-3  1e-3  1e-5  1e-5  1e-5  1e-5  1e-5  -1.   1     1     1     1     1     1     1     1     1     1     1
 * Cooper in the PCBs 
-MUON 11  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
-* G10 material
-MUON 12  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
+MCH 5  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
+* G10 material (what is this?)
+*MCH 12  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
 * Carbon
-MUON 13  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
+MCH 1  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
 * Rohacell
-MUON 14  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
+MCH 7  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
 * Nomex
-MUON 15  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
+MCH 2  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
 * Noryl
-MUON 16  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
+MCH 4  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
 * Nomex bulk
-MUON 17  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
+MCH 3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
 * Copper bis
-MUON 22  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
-* FR4 of the chambers
-MUON 23  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1 
-* Frame of the chambers
-MUON 24  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1 
-* FOAM of St1
-MUON 26  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1 
-* Sn+Pb of St1
-MUON 27  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1 
+MCH 5  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
+* FR4 of the chambers (no equivalent)
+*MCH 6  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1 
+* Frame of the chambers (no equivalent)
+*MCH 24  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1 
+* FOAM of St1 (suppose that Rohacell)
+MCH 12  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1 
+* Sn+Pb of St1 (no equivalent)
+*MUON 27  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1 
 * Plastic
-MUON 28  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1 
-* Kapton
-MUON 29  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1 
+MUON 9  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1 
+* Kapton (no equivalent)
+*MUON 29  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1 
 * InoxBolts of St1
-MUON 30  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
+MUON 11  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
