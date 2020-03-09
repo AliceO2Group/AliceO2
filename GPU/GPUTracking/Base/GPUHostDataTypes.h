@@ -42,7 +42,7 @@ struct GPUTPCDigitsMCInput {
 };
 
 struct GPUTPCClusterMCInterim {
-  std::vector<uint64_t> labels;
+  std::vector<o2::MCCompLabel> labels;
   uint offset;
 };
 
