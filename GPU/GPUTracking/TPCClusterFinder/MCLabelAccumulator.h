@@ -54,7 +54,7 @@ class MCLabelAccumulator
   GPUTPCClusterMCInterim* mOutput = nullptr;
 
   std::bitset<64> mMaybeHasLabel;
-  std::vector<uint64_t> mClusterLabels;
+  std::vector<o2::MCCompLabel> mClusterLabels;
 };
 
 } // namespace gpu
