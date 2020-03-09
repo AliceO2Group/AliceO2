@@ -83,7 +83,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     o2::trd::getTRDDigitReaderSpec(1),
     //o2::trd::getTRDDigitReaderSpec(1),
     // connect the TRD digitization
-    o2::trd::getTRDTrapSimulatorSpec(0),
+    o2::trd::getTRDTrapSimulatorSpec(),
     // connect the TRD digit writer
     o2::trd::getTRDTrackletWriterSpec()};
 }

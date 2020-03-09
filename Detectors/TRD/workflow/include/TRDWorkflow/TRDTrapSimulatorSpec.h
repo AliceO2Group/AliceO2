@@ -36,7 +36,7 @@ class TRDDPLTrapSimulatorTask : public Task
 {
 
  public:
-  TRDDPLTrapSimulatorTask(bool disabletrapsim) : mDisableTrapSimulation(disabletrapsim) { cout << " TRAPDISABLE SET TO : " << disabletrapsim << endl; }
+  TRDDPLTrapSimulatorTask() = default;
   ~TRDDPLTrapSimulatorTask() override = default;
   void init(o2::framework::InitContext& ic) override;
   void run(o2::framework::ProcessingContext& pc) override;
@@ -51,7 +51,6 @@ class TRDDPLTrapSimulatorTask : public Task
   int mPrintTrackletOptions = 0;    // print the tracklets to the screen, ascii art
   int mDrawTrackletOptions = 0;     //draw the tracklets 1 per file
   int mShowTrackletStats = 0;       //the the accumulated total tracklets found
-  int mDisableTrapSimulation = 0;   // option to not do trapsimulation, mostly for the digitizer
   std::vector<Tracklet> mTracklets; // store of tracklets to then be inserted into a message.
   std::string mTrapConfigName;      // the name of the config to be used.
   std::string mTrapConfigBaseName = "TRD_test/TrapConfig/";
@@ -59,7 +58,7 @@ class TRDDPLTrapSimulatorTask : public Task
   void loadTrapConfig();
 };
 
-o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec(int channelfan, bool disabletrapsim = false);
+o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec();
 
 } // end namespace trd
 } // end namespace o2

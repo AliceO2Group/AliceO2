@@ -151,7 +151,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-tof", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
 
   // option to use or not use the Trap Simulator after digitisation (debate of digitization or reconstruction is for others)
-  workflowOptions.push_back(ConfigParamSpec{"enable-trd-trapsim", VariantType::Bool, false, {"disable the trap simulation of the TRD"}});
+  workflowOptions.push_back(ConfigParamSpec{"enable-trd-trapsim", VariantType::Bool, false, {"enable the trap simulation of the TRD"}});
 }
 
 // ------------------------------------------------------------------
@@ -471,12 +471,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::trd::getTRDDigitizerSpec(fanoutsize++));
     // connect the TRD digit writer
     specs.emplace_back(o2::trd::getTRDDigitWriterSpec());
-
-    auto disableTrapSim = configcontext.options().get<bool>("enable-trd-trapsim");
-    // connect the TRD Trap SimulatorA
-    specs.emplace_back(o2::trd::getTRDTrapSimulatorSpec(0, (bool)disableTrapSim));
-    // connect to the device to write out the tracklets.
-    specs.emplace_back(o2::trd::getTRDTrackletWriterSpec());
+    auto enableTrapSim = configcontext.options().get<bool>("enable-trd-trapsim");
+    if (enableTrapSim) {
+      // connect the TRD Trap SimulatorA
+      specs.emplace_back(o2::trd::getTRDTrapSimulatorSpec());
+      // connect to the device to write out the tracklets.
+      specs.emplace_back(o2::trd::getTRDTrackletWriterSpec());
+    }
   }
 
   //add MUON MCH
