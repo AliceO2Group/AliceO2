@@ -19,23 +19,23 @@
 #define assert(...)
 #endif
 
+#include "GPUDef.h"
+
+#ifndef GPUCA_NO_CONSTANT_MEMORY
+#define GPUCA_CONSMEM_PTR
+#define GPUCA_CONSMEM_CALL
+#define GPUCA_CONSMEM (gGPUConstantMemBuffer.v)
+#else
+#define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,
+#define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,
+#define GPUCA_CONSMEM ((GPUConstantMem&)(*gGPUConstantMemBuffer))
+#endif
+
 #include "GPUReconstructionCUDA.h"
 #include "GPUReconstructionCUDAInternals.h"
 #include "GPUReconstructionIncludes.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
-
-constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + sizeof(uint4) - 1);
-#ifndef GPUCA_NO_CONSTANT_MEMORY
-__constant__ GPUConstantMemCopyable gGPUConstantMemBuffer;
-#define GPUCA_CONSMEM_PTR
-#define GPUCA_CONSMEM_CALL
-#define GPUCA_CONSMEM gGPUConstantMemBuffer.v
-#else
-#define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,
-#define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,
-#define GPUCA_CONSMEM (GPUConstantMem&)(*gGPUConstantMemBuffer)
-#endif
 
 #ifdef GPUCA_USE_TEXTURES
 texture<cahit2, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu2;
