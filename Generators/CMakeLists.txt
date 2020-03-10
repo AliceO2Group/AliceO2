@@ -118,7 +118,8 @@ o2_add_test_root_macro(share/external/trigger_mpi.C
 
 o2_add_test_root_macro(share/egconfig/pythia8_userhooks_charm.C
                        PUBLIC_LINK_LIBRARIES O2::Generators
-                       LABELS generators)
+                       LABELS generators
+                       LOAD_ONLY)
 endif()		       
 		     
 install(FILES share/external/extgen.C share/external/pythia6.C
