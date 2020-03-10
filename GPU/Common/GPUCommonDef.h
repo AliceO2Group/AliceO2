@@ -45,10 +45,16 @@
   #define CON_DEFAULT = default
   #define CONSTEXPR constexpr
   #define CONSTEXPRRET CONSTEXPR
+  #if defined(__cplusplus) && __cplusplus >= 201703L
+    #define CONSTEXPRIF if constexpr
+  #else
+    #define CONSTEXPRIF if
+  #endif
 #else
   #define CON_DELETE
   #define CON_DEFAULT
   #define CONSTEXPR const
+  #define CONSTEXPRIF if
   #define CONSTEXPRRET
 #endif
 #if defined(__ROOT__) && !defined(GPUCA_NOCOMPAT)
