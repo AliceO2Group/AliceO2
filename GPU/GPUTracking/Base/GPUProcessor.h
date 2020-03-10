@@ -51,11 +51,8 @@ class GPUProcessor
   GPUProcessor& operator=(const GPUProcessor&) CON_DELETE;
 #endif
 
-  GPUd() GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * GetConstantMem() const
-  {
-    return mConstantMem;
-  }
-  GPUd() GPUconstantref() const MEM_CONSTANT(GPUParam) & Param() const; // Body in GPUConstantMem.h to avoid circular headers
+  GPUd() GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * GetConstantMem() const; // Body in GPUConstantMem.h to avoid circular headers
+  GPUd() GPUconstantref() const MEM_CONSTANT(GPUParam) & Param() const;                // ...
   const GPUReconstruction& GetRec() const { return *mRec; }
 
 #ifndef __OPENCL__

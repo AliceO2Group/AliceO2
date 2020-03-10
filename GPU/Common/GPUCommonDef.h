@@ -75,6 +75,8 @@
 
 #if (defined(__CUDACC__) && defined(GPUCA_CUDA_NO_CONSTANT_MEMORY)) || (defined(__HIPCC__) && defined(GPUCA_HIP_NO_CONSTANT_MEMORY)) || (defined(__OPENCL__) && !defined(__OPENCLCPP__) && defined(GPUCA_OPENCL_NO_CONSTANT_MEMORY)) || (defined(__OPENCLCPP__) && defined(GPUCA_OPENCLCPP_NO_CONSTANT_MEMORY))
   #define GPUCA_NO_CONSTANT_MEMORY
+#elif defined(__CUDACC__) || defined(__HIPCC__)
+  #define GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM
 #endif
 #if (defined(__HIPCC__) && defined(GPUCA_HIP_CONSTANT_AS_ARGUMENT))
   #define GPUCA_CONSTANT_AS_ARGUMENT

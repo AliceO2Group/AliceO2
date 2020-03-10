@@ -132,7 +132,7 @@
   #else
     #define GPUglobal()
   #endif
-  #define GPUconstant()
+  #define GPUconstant() __constant__
   #define GPUconstexpr() __constant__
   #define GPUprivate()
   #define GPUgeneric()
@@ -151,7 +151,7 @@
   #define GPUg() __global__
   #define GPUshared() __shared__
   #define GPUglobal()
-  #define GPUconstant()
+  #define GPUconstant() __constant__
   #define GPUconstexpr() __constant__
   #define GPUprivate()
   #define GPUgeneric()
