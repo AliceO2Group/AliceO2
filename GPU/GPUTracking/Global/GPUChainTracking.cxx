@@ -52,7 +52,6 @@
 #include "TPCFastTransform.h"
 
 #include "utils/linux_helpers.h"
-
 using namespace GPUCA_NAMESPACE::gpu;
 
 #include "GPUO2DataTypes.h"
@@ -1117,10 +1116,10 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     runKernel<GPUTPCNeighboursCleaner>({GPUCA_ROW_COUNT - 2, ThreadCount(), useStream}, {iSlice});
     DoDebugAndDump(RecoStep::TPCSliceTracking, 4, trk, &GPUTPCTracker::DumpLinks, mDebugFile);
 
-    runKernel<GPUTPCStartHitsFinder>({GPUCA_ROW_COUNT - 6, ThreadCount(), useStream}, {iSlice});
+    runKernel<GPUTPCStartHitsFinder>({GPUCA_ROW_COUNT - 6, HitsFinderThreadCount(), useStream}, {iSlice});
 #ifdef GPUCA_SORT_STARTHITS_GPU
     if (doGPU) {
-      runKernel<GPUTPCStartHitsSorter>({BlockCount(), ThreadCount(), useStream}, {iSlice});
+      runKernel<GPUTPCStartHitsSorter>({HitsSorterBlockCount(), HitsSorterThreadCount(), useStream}, {iSlice});
     }
 #endif
     DoDebugAndDump(RecoStep::TPCSliceTracking, 32, trk, &GPUTPCTracker::DumpStartHits, mDebugFile);

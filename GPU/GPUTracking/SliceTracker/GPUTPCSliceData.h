@@ -148,6 +148,7 @@ class GPUTPCSliceData
   int PackHitData(GPUTPCRow* row, const GPUTPCHit* binSortedHits);
 #endif
   friend class GPUTPCNeighboursFinder;
+  friend class GPUTPCStartHitsFinder;
 
   int mNumberOfHits; // the number of hits in this slice
   int mNumberOfHitsPlusAlign;
