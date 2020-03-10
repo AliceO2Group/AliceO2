@@ -4,7 +4,12 @@
 //
 /// \author R+Preghenella - February 2020
 
-R__LOAD_LIBRARY(libpythia8.so)
+#if defined(__CLING__)
+// clang-format off
+R__LOAD_LIBRARY(libpythia8)
+R__ADD_INCLUDE_PATH($PYTHIA8/include)
+// clang-format on
+#endif
 
 #include "Pythia8/Pythia.h"
 
