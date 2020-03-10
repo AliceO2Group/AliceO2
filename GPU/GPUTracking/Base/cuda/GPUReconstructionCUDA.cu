@@ -27,10 +27,10 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + sizeof(uint4) - 1);
 #ifndef GPUCA_NO_CONSTANT_MEMORY
-__constant__ uint4 gGPUConstantMemBuffer[gGPUConstantMemBufferSize / sizeof(uint4)];
+__constant__ GPUConstantMemCopyable gGPUConstantMemBuffer;
 #define GPUCA_CONSMEM_PTR
 #define GPUCA_CONSMEM_CALL
-#define GPUCA_CONSMEM (GPUConstantMem&)gGPUConstantMemBuffer
+#define GPUCA_CONSMEM gGPUConstantMemBuffer.v
 #else
 #define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,
 #define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,
