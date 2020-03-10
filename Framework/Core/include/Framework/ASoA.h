@@ -583,6 +583,8 @@ struct RowViewBase : public IP, C... {
   {
     IP::operator=(static_cast<IP>(other));
     (void(static_cast<C&>(*this) = static_cast<C const&>(other)), ...);
+    bindIterators(persistent_columns_t{});
+    bindAllDynamicColumns(dynamic_columns_t{});
   }
 
   RowViewBase<IP, C...>& operator=(RowViewBase<IP, C...> const& other)
