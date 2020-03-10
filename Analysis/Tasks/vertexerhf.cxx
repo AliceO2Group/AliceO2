@@ -49,10 +49,7 @@ struct DecayVertexBuilder2Prong {
     hvtxp_x_out->Fill(collision.posX());
     hvtxp_y_out->Fill(collision.posY());
     hvtxp_z_out->Fill(collision.posZ());
-    auto comb = o2::soa::CombinationsGenerator<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra>, 2>(tracks, [](const auto elem) { return true; });
-    for (auto trackPair : comb) {
-      auto& track_0 = trackPair[0];
-      auto& track_1 = trackPair[1];
+    for (auto& [track_0, track_1] : combinations(tracks, tracks)) {
       UChar_t clustermap_0 = track_0.itsClusterMap();
       //fill track distribution before selection
       hitsmap_nocuts->Fill(clustermap_0);

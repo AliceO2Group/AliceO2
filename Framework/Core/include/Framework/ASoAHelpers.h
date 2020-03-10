@@ -20,31 +20,50 @@
 namespace o2::soa
 {
 
-template <typename T2, std::size_t K2>
-void addOne(std::array<T2, K2>& array, const T2& maxOffset, bool& isEnd)
+template <std::size_t V>
+struct num {
+  static const constexpr auto value = V;
+};
+
+template <class F, std::size_t... Is>
+void for_(F func, std::index_sequence<Is...>)
 {
-  for (int i = 0; i < K2; i++) {
-    array[K2 - i - 1]++;
-    if (array[K2 - i - 1] != maxOffset + K2 - i - 1) { // no < operator for RowViewBase
-      for (int j = K2 - i; j < K2; j++) {
-        array[j].setCursor(array[j - 1].mRowIndex + 1);
-      }
-      isEnd = false;
-      return;
-    }
-  }
-  isEnd = true;
+  using expander = int[];
+  (void)expander{0, ((void)func(num<Is>{}), 0)...};
 }
 
-/// @return next K-combination of the rows of the table T.
+template <std::size_t N, typename F>
+void for_(F func)
+{
+  for_(func, std::make_index_sequence<N>());
+}
+
+template <typename... T2s>
+void addOne(std::tuple<T2s...>& tuple, const std::tuple<T2s...>& maxOffset, bool& isEnd)
+{
+  constexpr auto size = std::tuple_size_v<std::tuple<T2s...>>;
+  bool modify = true;
+  for_<size>([&](auto i) {
+    if (modify) {
+      std::get<size - i.value - 1>(tuple)++;
+      if (std::get<size - i.value - 1>(tuple) != std::get<size - i.value - 1>(maxOffset)) {
+        for_<i.value>([&](auto j) {
+          std::get<size - i.value + j.value>(tuple).setCursor(*std::get<1>(std::get<size - i.value + j.value - 1>(tuple).getIndices()) + 1);
+        });
+        modify = false;
+      }
+    }
+  });
+  isEnd = modify;
+}
+
+/// @return next combination of rows of tables.
 /// FIXME: move to coroutines once we have C++20
-template <typename T, int K>
+template <typename... Ts>
 class CombinationsGenerator
 {
  public:
-  using IteratorType = typename T::iterator;
-  using CombinationType = std::array<IteratorType, K>;
-  using FunctionType = std::function<bool(const CombinationType&)>;
+  using CombinationType = std::tuple<typename Ts::iterator...>;
 
   class CombinationsIterator : public std::iterator<std::forward_iterator_tag, CombinationType>
   {
@@ -56,21 +75,29 @@ class CombinationsGenerator
 
     CombinationsIterator() = delete;
 
-    CombinationsIterator(const IteratorType& begin, int n, const FunctionType& condition)
-      : mN(n), mIsEnd(false), mTableBegin(begin), mMaxOffset(begin + n - K + 1), mCondition(condition)
+    CombinationsIterator(const Ts&... tables) : mIsEnd(false),
+                                                mMaxOffset(tables.end()...),
+                                                mCurrent(tables.begin()...)
     {
-      initIterators();
+      if (((tables.size() <= sizeof...(Ts)) || ...)) {
+        mIsEnd = true;
+        return;
+      }
+      for_<sizeof...(Ts) - 1>([&](auto i) {
+        std::get<i.value>(mMaxOffset).moveByIndex(-sizeof...(Ts) + i.value + 1);
+        std::get<i.value>(mCurrent).moveByIndex(i.value);
+      });
+      std::get<sizeof...(Ts) - 1>(mCurrent).moveByIndex(sizeof...(Ts) - 1);
     }
 
+    CombinationsIterator(CombinationsIterator const&) = default;
+    CombinationsIterator& operator=(CombinationsIterator const&) = default;
     ~CombinationsIterator() = default;
 
     // prefix increment
     CombinationsIterator& operator++()
     {
       if (!mIsEnd) {
-        addOne(mCurrent, mMaxOffset, mIsEnd);
-      }
-      while (!mIsEnd && !mCondition(mCurrent)) {
         addOne(mCurrent, mMaxOffset, mIsEnd);
       }
       return *this;
@@ -96,31 +123,19 @@ class CombinationsGenerator
       return !(*this == rh);
     }
 
-    void initIterators()
+    void moveToEnd()
     {
-      for (int i = 0; i < K; i++) {
-        mCurrent[i] = mTableBegin + i;
-      }
-      if (!mCondition(mCurrent)) {
-        operator++();
-      }
-    }
-
-    void goToEnd()
-    {
-      for (int i = 0; i < K; i++) {
-        mCurrent[i].setCursor(mN - K + i);
-      }
-      operator++();
+      for_<sizeof...(Ts) - 1>([&](auto i) {
+        std::get<i.value>(mCurrent).setCursor(*std::get<1>(std::get<i.value>(mMaxOffset).getIndices()));
+      });
+      std::get<sizeof...(Ts) - 1>(mCurrent).moveToEnd();
+      mIsEnd = true;
     }
 
    private:
     CombinationType mCurrent;
-    int mN;                   // number of elements
-    bool mIsEnd;              // whether there are any more tuples available
-    FunctionType mCondition;  // only tuples satisfying the condition will be outputed
-    IteratorType mTableBegin; // start of the table for which tuples are generated
-    IteratorType mMaxOffset;  // one position past maximum acceptable position for 0th element of combination
+    CombinationType mMaxOffset; // one position past maximum acceptable position for each element of combination
+    bool mIsEnd;                // whether there are any more tuples available
   };
 
   using iterator = CombinationsIterator;
@@ -128,28 +143,45 @@ class CombinationsGenerator
 
   inline iterator begin()
   {
-    return iterator(mTableBegin, mN, mCondition);
+    return iterator(mBegin);
   }
   inline iterator end()
   {
-    auto it = iterator(mTableBegin, mN, mCondition);
-    it.goToEnd();
-    return it;
+    return iterator(mEnd);
+  }
+  inline const_iterator begin() const
+  {
+    return iterator(mBegin);
+  }
+  inline const_iterator end() const
+  {
+    return iterator(mEnd);
   }
 
   CombinationsGenerator() = delete;
-  CombinationsGenerator(const T& table, const FunctionType& condition)
-    : mTableBegin(table.begin()), mN(table.size()), mCondition(condition)
+  CombinationsGenerator(const Ts&... tables) : mBegin(tables...), mEnd(tables...)
   {
-    static_assert(K > 0);
+    static_assert(sizeof...(Ts) > 0);
+    mEnd.moveToEnd();
   }
   ~CombinationsGenerator() = default;
 
  private:
-  IteratorType mTableBegin;
-  int mN;
-  FunctionType mCondition;
+  iterator mBegin;
+  iterator mEnd;
 };
+
+template <typename... T2s>
+CombinationsGenerator<T2s...> combinations(const T2s&... tables)
+{
+  return CombinationsGenerator<T2s...>(tables...);
+}
+
+template <typename... T2s>
+CombinationsGenerator<Filtered<T2s>...> combinations(const o2::framework::expressions::Filter& filter, const T2s&... tables)
+{
+  return CombinationsGenerator<Filtered<T2s>...>({{tables.asArrowTable()}, o2::framework::expressions::createSelection(tables.asArrowTable(), filter)}...);
+}
 
 } // namespace o2::soa
 
