@@ -195,7 +195,7 @@ void CcdbApi::storeAsTFile(const TObject* rootObject, std::string const& path, s
 }
 
 string CcdbApi::getFullUrlForStorage(CURL* curl, const string& path, const string& objtype,
-				     const map<string, string>& metadata,
+                                     const map<string, string>& metadata,
                                      long startValidityTimestamp, long endValidityTimestamp) const
 {
   // Prepare timestamps
