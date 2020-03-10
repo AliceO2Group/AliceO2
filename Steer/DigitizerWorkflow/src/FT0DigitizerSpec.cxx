@@ -128,6 +128,11 @@ class FT0DPLDigitizerTask
       // copy labels into accumulator
       //   labelAccum.mergeAtBack(labels);
     }
+    while (mDigitizer.empty()) {
+      o2::InteractionRecord ir = mDigitizer.getInteractionRecord();
+      mDigitizer.setInteractionRecord(++ir);
+      mDigitizer.setDigits(mDigitsBC, mDigitsCh);
+    }
 
     // send out to next stage
     pc.outputs().snapshot(Output{"FT0", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);

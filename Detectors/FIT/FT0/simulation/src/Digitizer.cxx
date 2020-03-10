@@ -71,35 +71,41 @@ double Digitizer::measure_amplitude(const std::vector<double>& times)
 void Digitizer::process(const std::vector<o2::ft0::HitType>* hits)
 {
 
-  auto sorted_hits{*hits};
-  std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::ft0::HitType const& a, o2::ft0::HitType const& b) {
-    return a.GetTrackID() < b.GetTrackID();
-  });
+  //auto sorted_hits{*hits};
+  // std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::ft0::HitType const& a, o2::ft0::HitType const& b) {
+  //   return a.GetTrackID() < b.GetTrackID();
+  // });
 
   //Calculating signal time, amplitude in mean_time +- time_gate --------------
-  if (mChannel_times.size() == 0)
-    mChannel_times.resize(parameters.mMCPs);
-  Int_t parent = -10;
-  for (auto& hit : sorted_hits) {
+  // if (mChannel_times.size() == 0)
+  //   mChannel_times.resize(parameters.mMCPs);
+  // Int_t parent = -10;
+  for (auto const& hit : *hits) {
     if (hit.GetEnergyLoss() > 0)
       continue;
     Int_t hit_ch = hit.GetDetectorID();
     Bool_t is_A_side = (hit_ch < 4 * parameters.nCellsA);
     Float_t time_compensate = is_A_side ? parameters.A_side_cable_cmps : parameters.C_side_cable_cmps;
-    Double_t hit_time = hit.GetTime() - time_compensate;
+    Double_t hit_time = hit.GetTime() - time_compensate + (mIntRecord - firstBCinDeque).bc2ns();
 
     //  bool is_hit_in_signal_gate = (abs(hit_time) < parameters.mSignalWidth * .5);
-    if (hit_time < -0.5 * parameters.bunchWidth || hit_time > 0.5 * parameters.bunchWidth)
+    // if (hit_time < -0.5 * parameters.bunchWidth || hit_time > 0.5 * parameters.bunchWidth)
+    //   continue;
+    //    mNumParticles[hit_ch]++;
+    int relBC = std::lround(hit_time / parameters.bunchWidth);
+    if (relBC > 10)
       continue;
-    mNumParticles[hit_ch]++;
-    mChannel_times[hit_ch].push_back(hit_time);
+    assert(relBC >= 0);
+    if (mHitTimePerBC.size() <= relBC) {
+      mHitTimePerBC.resize(relBC + 1);
+      mVecLabelsPerBC.resize(relBC + 1);
+    }
+    mHitTimePerBC[relBC].emplace_back(hit_ch, hit_time - relBC * parameters.bunchWidth);
+    // mChannel_times[hit_ch].push_back(hit_time);
 
     //charge particles in MCLabel
     Int_t parentID = hit.GetTrackID();
-    if (parentID != parent) {
-      mVecLabels.emplace_back(parentID, mEventID, mSrcID, hit_ch);
-      parent = parentID;
-    }
+    mVecLabelsPerBC[relBC].try_emplace(parentID, parentID, mEventID, mSrcID, hit_ch);
   }
 }
 
@@ -107,72 +113,89 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits)
 void Digitizer::setDigits(std::vector<o2::ft0::Digit>& digitsBC,
                           std::vector<o2::ft0::ChannelData>& digitsCh)
 {
-
-  int n_hit_A = 0, n_hit_C = 0, mean_time_A = 0, mean_time_C = 0;
-  int summ_ampl_A = 0, summ_ampl_C = 0;
-  int vertex_time;
-
-  int first = digitsCh.size(), nStored = 0;
-  for (Int_t ipmt = 0; ipmt < parameters.mMCPs; ++ipmt) {
-    if (mNumParticles[ipmt] < parameters.mAmp_trsh)
+  auto next = [this]() {
+    ++firstBCinDeque;
+    if (!mHitTimePerBC.empty())
+      mHitTimePerBC.pop_front();
+    if (!mVecLabelsPerBC.empty())
+      mVecLabelsPerBC.pop_front();
+  };
+  for (; firstBCinDeque < mIntRecord; next()) {
+    if (mHitTimePerBC.empty())
       continue;
-    std::sort(begin(mChannel_times[ipmt]), end(mChannel_times[ipmt]));
+    int n_hit_A = 0, n_hit_C = 0, mean_time_A = 0, mean_time_C = 0;
+    int summ_ampl_A = 0, summ_ampl_C = 0;
+    int vertex_time;
 
-    int chain = (std::rand() % 2) ? 1 : 0;
-    int smeared_time = 1000. * (get_time(mChannel_times[ipmt]) - parameters.mCfdShift) * parameters.ChannelWidthInverse;
-    bool is_time_in_signal_gate = (abs(smeared_time) < parameters.mSignalWidth * 0.5);
-    Float_t charge = measure_amplitude(mChannel_times[ipmt]) * parameters.charge2amp;
-    float amp = is_time_in_signal_gate ? charge : 0;
-    if (smeared_time < 1e9) {
-      digitsCh.emplace_back(ipmt, smeared_time, int(parameters.mV_2_Nchannels * amp), chain);
-      nStored++;
-
-      // fill triggers
-      Bool_t is_A_side = (ipmt <= 4 * parameters.nCellsA);
-      if (smeared_time > parameters.mTime_trg_gate || smeared_time < -parameters.mTime_trg_gate)
+    int first = digitsCh.size(), nStored = 0;
+    auto& particles = mHitTimePerBC.front();
+    std::sort(particles.begin(), particles.end());
+    auto channel_begin = particles.begin();
+    std::vector<double> channel_times;
+    for (Int_t ipmt = 0; ipmt < parameters.mMCPs; ++ipmt) {
+      auto channel_end = std::find_if(channel_begin, particles.end(), [ipmt](particle const& p) { return p.second != ipmt; });
+      if (channel_end - channel_begin < parameters.mAmp_trsh)
         continue;
 
-      if (is_A_side) {
-        n_hit_A++;
-        summ_ampl_A += amp;
-        mean_time_A += smeared_time;
+      // std::sort(begin(mChannel_times[ipmt]), end(mChannel_times[ipmt]));
+      channel_times.resize(channel_end - channel_begin);
+      std::transform(channel_begin, channel_end, channel_times.begin(), [](particle const& p) { return p.second; });
+      int chain = (std::rand() % 2) ? 1 : 0;
+      int smeared_time = 1000. * (get_time(channel_times) - parameters.mCfdShift) * parameters.ChannelWidthInverse;
+      bool is_time_in_signal_gate = (abs(smeared_time) < parameters.mSignalWidth * 0.5);
+      Float_t charge = measure_amplitude(channel_times) * parameters.charge2amp;
+      float amp = is_time_in_signal_gate ? charge : 0;
+      if (smeared_time < 1e9) {
+        digitsCh.emplace_back(ipmt, smeared_time, int(parameters.mV_2_Nchannels * amp), chain);
+        nStored++;
 
-      } else {
-        n_hit_C++;
-        summ_ampl_C += amp;
-        mean_time_C += smeared_time;
+        // fill triggers
+        Bool_t is_A_side = (ipmt <= 4 * parameters.nCellsA);
+        if (smeared_time > parameters.mTime_trg_gate || smeared_time < -parameters.mTime_trg_gate)
+          continue;
+
+        if (is_A_side) {
+          n_hit_A++;
+          summ_ampl_A += amp;
+          mean_time_A += smeared_time;
+
+        } else {
+          n_hit_C++;
+          summ_ampl_C += amp;
+          mean_time_C += smeared_time;
+        }
       }
     }
+    Bool_t is_A, is_C, isVertex, is_Central, is_SemiCentral = 0;
+    is_A = n_hit_A > 0;
+    is_C = n_hit_C > 0;
+    is_Central = summ_ampl_A + summ_ampl_C >= parameters.mtrg_central_trh;
+    is_SemiCentral = summ_ampl_A + summ_ampl_C >= parameters.mtrg_semicentral_trh;
+    vertex_time = (mean_time_A - mean_time_C) * 0.5;
+    isVertex = is_A && is_C && (std::abs(vertex_time) < parameters.mtrg_vertex);
+    uint16_t amplA = is_A ? summ_ampl_A : 0;           // sum amplitude A side
+    uint16_t amplC = is_C ? summ_ampl_C : 0;           // sum amplitude C side
+    uint16_t timeA = is_A ? mean_time_A / n_hit_A : 0; // average time A side
+    uint16_t timeC = is_C ? mean_time_C / n_hit_C : 0; // average time C side
+
+    mTriggers.setTriggers(is_A, is_C, isVertex, is_Central, is_SemiCentral, n_hit_A, n_hit_C,
+                          amplA, amplC, timeA, timeC);
+
+    digitsBC.emplace_back(first, nStored, firstBCinDeque, mTriggers);
+
+    size_t const nBC = digitsBC.size();
+    for (auto [id, lbl] : mVecLabelsPerBC.front())
+      mMCLabels->addElement(nBC - 1, lbl);
+
+    // Debug output -------------------------------------------------------------
+
+    LOG(INFO) << "Event ID: " << mEventID;
+    LOG(INFO) << "N hit A: " << int(mTriggers.nChanA) << " N hit C: " << int(mTriggers.nChanC) << " summ ampl A: " << int(mTriggers.amplA)
+              << " summ ampl C: " << int(mTriggers.amplC) << " mean time A: " << mTriggers.timeA
+              << " mean time C: " << mTriggers.timeC;
+
+    LOG(INFO) << "IS A " << mTriggers.getOrA() << " IsC " << mTriggers.getOrC() << " vertex " << mTriggers.getVertex() << " is Central " << mTriggers.getCen() << " is SemiCentral " << mTriggers.getSCen();
   }
-  Bool_t is_A, is_C, isVertex, is_Central, is_SemiCentral = 0;
-  is_A = n_hit_A > 0;
-  is_C = n_hit_C > 0;
-  is_Central = summ_ampl_A + summ_ampl_C >= parameters.mtrg_central_trh;
-  is_SemiCentral = summ_ampl_A + summ_ampl_C >= parameters.mtrg_semicentral_trh;
-  vertex_time = (mean_time_A - mean_time_C) * 0.5;
-  isVertex = is_A && is_C && (std::abs(vertex_time) < parameters.mtrg_vertex);
-  uint16_t amplA = is_A ? summ_ampl_A : 0;           // sum amplitude A side
-  uint16_t amplC = is_C ? summ_ampl_C : 0;           // sum amplitude C side
-  uint16_t timeA = is_A ? mean_time_A / n_hit_A : 0; // average time A side
-  uint16_t timeC = is_C ? mean_time_C / n_hit_C : 0; // average time C side
-
-  mTriggers.setTriggers(is_A, is_C, isVertex, is_Central, is_SemiCentral, n_hit_A, n_hit_C,
-                        amplA, amplC, timeA, timeC);
-
-  digitsBC.emplace_back(first, nStored, mIntRecord, mTriggers);
-
-  size_t const nBC = digitsBC.size();
-  for (auto const& lbl : mVecLabels)
-    mMCLabels->addElement(nBC, lbl);
-
-  // Debug output -------------------------------------------------------------
-
-  LOG(INFO) << "Event ID: " << mEventID;
-  LOG(INFO) << "N hit A: " << int(mTriggers.nChanA) << " N hit C: " << int(mTriggers.nChanC) << " summ ampl A: " << int(mTriggers.amplA)
-            << " summ ampl C: " << int(mTriggers.amplC) << " mean time A: " << mTriggers.timeA
-            << " mean time C: " << mTriggers.timeC;
-
-  LOG(INFO) << "IS A " << mTriggers.getOrA() << " IsC " << mTriggers.getOrC() << " vertex " << mTriggers.getVertex() << " is Central " << mTriggers.getCen() << " is SemiCentral " << mTriggers.getSCen();
 }
 
 void Digitizer::initParameters()

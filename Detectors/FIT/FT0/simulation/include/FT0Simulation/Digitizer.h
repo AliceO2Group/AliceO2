@@ -22,6 +22,7 @@
 #include <TH1F.h>
 #include <bitset>
 #include <vector>
+#include <deque>
 
 namespace o2
 {
@@ -52,22 +53,26 @@ class Digitizer
 
   void setMCLabels(o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mclb) { mMCLabels = mclb; }
   double get_time(const std::vector<double>& times);
-  std::vector<std::vector<double>> mChannel_times;
+  // std::vector<std::vector<double>> mChannel_times;
 
   void setContinuous(bool v = true) { mIsContinuous = v; }
   bool isContinuous() const { return mIsContinuous; }
   void cleanChannelData()
   {
-    mChannel_times.assign(parameters.mMCPs, {});
-    for (Int_t ipmt = 0; ipmt < parameters.mMCPs; ++ipmt)
-      mNumParticles[ipmt] = 0;
+    // mChannel_times.assign(parameters.mMCPs, {});
+    // for (Int_t ipmt = 0; ipmt < parameters.mMCPs; ++ipmt)
+    //   mNumParticles[ipmt] = 0;
   }
   void clearDigits()
   {
-    mChannel_times.assign(parameters.mMCPs, {});
-    for (int i = 0; i < parameters.mMCPs; ++i)
-      mNumParticles[i] = 0;
+    // mChannel_times.assign(parameters.mMCPs, {});
+    // for (int i = 0; i < parameters.mMCPs; ++i)
+    //   mNumParticles[i] = 0;
     mTriggers.cleanTriggers();
+  }
+
+  bool empty() const {
+    return mVecLabelsPerBC.empty() && mHitTimePerBC.empty();
   }
 
  private:
@@ -79,12 +84,21 @@ class Digitizer
   Int_t mSrcID;        // signal, background or QED
   Double_t mEventTime; // timestamp
   bool mIsContinuous = true; // continuous (self-triggered) or externally-triggered readout
-  int mNumParticles[208];
+  // int mNumParticles[208];
+
+  // struct particle {
+  //   int hit_ch;
+  //   double hit_time;
+  // };
+  using particle = std::pair<int, double>;
+  o2::InteractionRecord firstBCinDeque = 0;
+  std::deque<std::vector<particle>> mHitTimePerBC;
+  std::deque<std::unordered_map<int, ft0::MCLabel>> mVecLabelsPerBC;
 
   DigitizationParameters parameters;
 
   o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mMCLabels = nullptr;
-  std::vector<ft0::MCLabel> mVecLabels;
+  // std::deque<std::vector<ft0::MCLabel>> mVecLabelsPerBC;
 
   o2::ft0::Triggers mTriggers;
 
