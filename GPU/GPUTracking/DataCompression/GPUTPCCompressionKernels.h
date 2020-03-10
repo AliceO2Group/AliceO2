@@ -38,7 +38,7 @@ class GPUTPCCompressionKernels : public GPUKernelTemplate
     step1unattached = 1
   };
 
-  struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int, GPUCA_THREAD_COUNT_SCAN> {
+  struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<int, GPUCA_THREAD_COUNT_COMPRESSION2> {
     GPUAtomic(unsigned int) nCount;
   };
 

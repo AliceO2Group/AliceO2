@@ -17,21 +17,6 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-#if defined(__HIPCC__) && defined(GPUCA_GPUCODE_DEVICE)
-#define HIPGPUsharedref() __attribute__((address_space(3)))
-#define HIPGPUglobalref() __attribute__((address_space(1)))
-#define HIPGPUconstantref() __attribute__((address_space(4)))
-#else
-#define HIPGPUsharedref() GPUsharedref()
-#define HIPGPUglobalref() GPUglobalref()
-#define HIPGPUconstantref()
-#endif
-#ifdef GPUCA_OPENCL1
-#define HIPTPCROW(x) GPUsharedref() MEM_LOCAL(x)
-#else
-#define HIPTPCROW(x) x
-#endif
-
 template <>
 GPUdii() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() s, processorType& GPUrestrict() trackerX)
 {

@@ -514,14 +514,14 @@ void GPUReconstructionHIPBackend::SetThreadCounts()
 {
   mThreadCount = GPUCA_THREAD_COUNT;
   mBlockCount = mCoreCount;
-  mConstructorBlockCount = mBlockCount * (mDeviceProcessingSettings.trackletConstructorInPipeline ? 1 : GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER);
-  mSelectorBlockCount = mBlockCount * GPUCA_BLOCK_COUNT_SELECTOR_MULTIPLIER;
-  mHitsSorterBlockCount = mBlockCount * GPUCA_BLOCK_COUNT_HITSSORTER_MULTIPLIER;
+  mConstructorBlockCount = mBlockCount * (mDeviceProcessingSettings.trackletConstructorInPipeline ? 1 : GPUCA_MINBLOCK_COUNT_CONSTRUCTOR);
+  mSelectorBlockCount = mBlockCount * GPUCA_MINBLOCK_COUNT_SELECTOR;
+  mHitsSorterBlockCount = mBlockCount * GPUCA_MINBLOCK_COUNT_HITSSORTER;
   mConstructorThreadCount = GPUCA_THREAD_COUNT_CONSTRUCTOR;
   mSelectorThreadCount = GPUCA_THREAD_COUNT_SELECTOR;
   mFinderThreadCount = GPUCA_THREAD_COUNT_FINDER;
   mHitsSorterThreadCount = GPUCA_THREAD_COUNT_HITSSORTER;
-  mHitsFinderCount = GPUCA_THREAD_COUNT_HITSFINDER;
+  mHitsFinderThreadCount = GPUCA_THREAD_COUNT_HITSFINDER;
   mTRDThreadCount = GPUCA_THREAD_COUNT_TRD;
   mClustererThreadCount = GPUCA_THREAD_COUNT_CLUSTERER;
   mScanThreadCount = GPUCA_THREAD_COUNT_SCAN;
