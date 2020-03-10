@@ -129,6 +129,17 @@ using Track = Tracks::iterator;
 using TrackCov = TracksCov::iterator;
 using TrackExtra = TracksExtra::iterator;
 
+namespace unassignedtracks
+{
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+DECLARE_SOA_INDEX_COLUMN(Track, track);
+} // namespace unassignedtracks
+
+DECLARE_SOA_TABLE(UnassignedTracks, "AOD", "UNASSIGNEDTRACK",
+                  unassignedtracks::CollisionId, unassignedtracks::TrackId);
+
+using UnassignedTrack = UnassignedTracks::iterator;
+
 namespace calo
 {
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
