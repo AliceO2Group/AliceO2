@@ -80,10 +80,12 @@ class Digitizer
   // parameters
   Int_t mMode;                      //triggered or continuos
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
+  o2::InteractionTimeRecord mIRtime; // Interaction record (orbit, bc)
   Int_t mEventID;
   Int_t mSrcID;        // signal, background or QED
   Double_t mEventTime; // timestamp
   bool mIsContinuous = true; // continuous (self-triggered) or externally-triggered readout
+
   // int mNumParticles[208];
 
   // struct particle {

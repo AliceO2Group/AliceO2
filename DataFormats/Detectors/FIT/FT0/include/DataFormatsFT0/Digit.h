@@ -19,9 +19,12 @@
 #include "CommonDataFormat/RangeReference.h"
 #include "CommonDataFormat/TimeStamp.h"
 #include "DataFormatsFT0/ChannelData.h"
+#include <FairLogger.h>
 #include <Rtypes.h>
 #include <gsl/span>
 #include <bitset>
+#include <iostream>
+#include "FairLogger.h"
 
 namespace o2
 {
@@ -54,12 +57,14 @@ struct Triggers {
   bool getCen() { return (triggersignals & (1 << 3)) != 0; }
   bool getSCen() { return (triggersignals & (1 << 4)) != 0; }
 
-  void setTriggers(Bool_t isA, Bool_t isC, Bool_t isCnt, Bool_t isSCnt, Bool_t isVrtx, int8_t chanA, int8_t chanC, int32_t aamplA,
+  void setTriggers(Bool_t isA, Bool_t isC, Bool_t isVrtx, Bool_t isCnt, Bool_t isSCnt,  int8_t chanA, int8_t chanC, int32_t aamplA,
                    int32_t aamplC, int16_t atimeA, int16_t atimeC)
   {
     triggersignals = triggersignals | (isA ? (1 << 0) : 0);
     triggersignals = triggersignals | (isC ? (1 << 1) : 0);
+    //  triggersignals = triggersignals | (isVrtx ? (1 << 2) : 0);
     triggersignals = triggersignals | (isVrtx ? (1 << 2) : 0);
+    LOG(INFO)<<" is A " << isA<<" isC "<<isC<<" 0tvx "<<isVrtx;
     triggersignals = triggersignals | (isSCnt ? (1 << 3) : 0);
     triggersignals = triggersignals | (isCnt ? (1 << 4) : 0);
     nChanA = chanA;
@@ -98,6 +103,7 @@ struct Digit {
   }
   uint32_t getOrbit() const { return mIntRecord.orbit; }
   uint16_t getBC() const { return mIntRecord.bc; }
+  Triggers getTriggers() { return mTriggers;}
   o2::InteractionRecord getIntRecord() { return mIntRecord; };
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
   void printStream(std::ostream& stream) const;

@@ -83,16 +83,18 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits)
   for (auto const& hit : *hits) {
     if (hit.GetEnergyLoss() > 0)
       continue;
+
     Int_t hit_ch = hit.GetDetectorID();
     Bool_t is_A_side = (hit_ch < 4 * parameters.nCellsA);
     Float_t time_compensate = is_A_side ? parameters.A_side_cable_cmps : parameters.C_side_cable_cmps;
-    Double_t hit_time = hit.GetTime() - time_compensate + (mIntRecord - firstBCinDeque).bc2ns();
-
+    Double_t hit_time = hit.GetTime() - time_compensate /* + (mIntRecord- firstBCinDeque).bc2ns() */;
+    //  LOG(INFO)<< " hit.GetTime() - time_compensate "<<hit.GetTime() - time_compensate <<"(mIntRecord - firstBCinDeque).bc2ns() "<<(mIntRecord - firstBCinDeque).bc2ns()<<" bc "<<mIntRecord<<" in deque "<<firstBCinDeque<<" in ns "<<mIRtime.timeNS;
     //  bool is_hit_in_signal_gate = (abs(hit_time) < parameters.mSignalWidth * .5);
     // if (hit_time < -0.5 * parameters.bunchWidth || hit_time > 0.5 * parameters.bunchWidth)
     //   continue;
     //    mNumParticles[hit_ch]++;
     int relBC = std::lround(hit_time / parameters.bunchWidth);
+    // LOG(INFO)<< " relBC "<<relBC<<" hit_time "<<hit_time <<" in ns "<<mIRtime.timeNS;
     if (relBC > 10)
       continue;
     assert(relBC >= 0);
@@ -101,6 +103,7 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits)
       mVecLabelsPerBC.resize(relBC + 1);
     }
     mHitTimePerBC[relBC].emplace_back(hit_ch, hit_time - relBC * parameters.bunchWidth);
+    //   LOG(INFO)<<"mHitTimePerBC[relBC] "<<" relBC "<<relBC<<" det "<<hit_ch<<" time "<<hit_time - relBC * parameters.bunchWidth<<" hit time "<<  hit.GetTime() - time_compensate;
     // mChannel_times[hit_ch].push_back(hit_time);
 
     //charge particles in MCLabel
@@ -120,9 +123,12 @@ void Digitizer::setDigits(std::vector<o2::ft0::Digit>& digitsBC,
     if (!mVecLabelsPerBC.empty())
       mVecLabelsPerBC.pop_front();
   };
+  LOG(INFO)<<"firstBCinDeque "<<firstBCinDeque<<" mIntRecord "<<mIntRecord;
   for (; firstBCinDeque < mIntRecord; next()) {
-    if (mHitTimePerBC.empty())
+    if (mHitTimePerBC.empty()) {
+      //  LOG(INFO)<<" empty ";  
       continue;
+    }
     int n_hit_A = 0, n_hit_C = 0, mean_time_A = 0, mean_time_C = 0;
     int summ_ampl_A = 0, summ_ampl_C = 0;
     int vertex_time;
@@ -136,10 +142,13 @@ void Digitizer::setDigits(std::vector<o2::ft0::Digit>& digitsBC,
       auto channel_end = std::find_if(channel_begin, particles.end(), [ipmt](particle const& p) { return p.second != ipmt; });
       if (channel_end - channel_begin < parameters.mAmp_trsh)
         continue;
+      //   LOG(INFO)<<" channel_end "<< int(channel_end) <<" begin "<<int(channel_begin);
 
       // std::sort(begin(mChannel_times[ipmt]), end(mChannel_times[ipmt]));
       channel_times.resize(channel_end - channel_begin);
       std::transform(channel_begin, channel_end, channel_times.begin(), [](particle const& p) { return p.second; });
+      for (double t : channel_times)
+        LOG(INFO) << ipmt << " " << t;
       int chain = (std::rand() % 2) ? 1 : 0;
       int smeared_time = 1000. * (get_time(channel_times) - parameters.mCfdShift) * parameters.ChannelWidthInverse;
       bool is_time_in_signal_gate = (abs(smeared_time) < parameters.mSignalWidth * 0.5);
