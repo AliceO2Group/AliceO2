@@ -185,32 +185,52 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
     GPUbarrier();
 
     CompressedClustersPtrsOnly& GPUrestrict() c = compressor.mPtrs;
-    for (unsigned int i = get_local_id(0); i < clusters->nClusters[iSlice][iRow]; i += get_local_size(0)) {
-      const int idx = idOffset + i;
-      if (compressor.mClusterStatus[idx]) {
-        continue;
-      }
-      int attach = merger.ClusterAttachment()[idx];
 
+    const unsigned int nn = clusters->nClusters[iSlice][iRow] + nThreads - clusters->nClusters[iSlice][iRow] % nThreads;
+    for (unsigned int i = iThread; i < nn; i += nThreads) {
+      const int idx = idOffset + i;
+      int cidx, tmp;
+      int attach = merger.ClusterAttachment()[idx];
       bool unattached = attach == 0;
+      cidx = 0;
+      if (i >= clusters->nClusters[iSlice][iRow]) {
+        goto BLOCKSTOP;
+      }
+      if (compressor.mClusterStatus[idx]) {
+        goto BLOCKSTOP;
+      }
+
       if (unattached) {
         if (processors.param.rec.tpcRejectionMode >= GPUSettings::RejectionStrategyB) {
-          continue;
+          goto BLOCKSTOP;
         }
       } else if (processors.param.rec.tpcRejectionMode >= GPUSettings::RejectionStrategyA) {
         if ((attach & GPUTPCGMMerger::attachGoodLeg) == 0) {
-          continue;
+          goto BLOCKSTOP;
         }
         if (attach & GPUTPCGMMerger::attachHighIncl) {
-          continue;
+          goto BLOCKSTOP;
         }
         int id = attach & GPUTPCGMMerger::attachTrackMask;
         if (CAMath::Abs(merger.OutputTracks()[id].GetParam().GetQPt()) > processors.param.rec.tpcRejectQPt) {
-          continue;
+          goto BLOCKSTOP;
         }
       }
-      int cidx = CAMath::AtomicAddShared(&smem.nCount, 1);
-      sortBuffer[cidx] = i;
+
+      cidx = 1;
+    BLOCKSTOP:
+      GPUbarrier();
+      tmp = cidx;
+      if (iThread == 0) {
+        tmp += smem.nCount;
+      }
+      tmp = work_group_scan_inclusive_add(tmp);
+      if (iThread == nThreads - 1) {
+        smem.nCount = tmp;
+      }
+      if (cidx == 1) {
+        sortBuffer[tmp - 1] = i;
+      }
     }
     GPUbarrier();
 
