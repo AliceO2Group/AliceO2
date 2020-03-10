@@ -258,7 +258,8 @@ class GPUTPCTracker : public GPUProcessor
 
  private:
   friend class GPUTPCNeighboursFinder;
-
+  friend class GPUTPCStartHitsSorter;
+  friend class GPUTPCStartHitsFinder;
   char* mLinkTmpMemory; // tmp memory for hits after neighbours finder
 
   int mISlice; // Number of slice

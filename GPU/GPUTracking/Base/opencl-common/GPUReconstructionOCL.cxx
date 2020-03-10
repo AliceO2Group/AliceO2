@@ -457,6 +457,7 @@ void GPUReconstructionOCL::SetThreadCounts()
   mBlockCount = mCoreCount;
   mConstructorBlockCount = mBlockCount * GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER;
   mSelectorBlockCount = mBlockCount * GPUCA_BLOCK_COUNT_SELECTOR_MULTIPLIER;
+  mHitsSorterBlockCount = mBlockCount * GPUCA_BLOCK_COUNT_HITSSORTER_MULTIPLIER;
   mConstructorThreadCount = GPUCA_THREAD_COUNT_CONSTRUCTOR;
   mSelectorThreadCount = GPUCA_THREAD_COUNT_SELECTOR;
   mFinderThreadCount = GPUCA_THREAD_COUNT_FINDER;
@@ -470,4 +471,6 @@ void GPUReconstructionOCL::SetThreadCounts()
   mFitThreadCount = GPUCA_THREAD_COUNT_FIT;
   mITSThreadCount = GPUCA_THREAD_COUNT_ITS;
   mWarpSize = GPUCA_WARP_SIZE;
+  mHitsSorterThreadCount = GPUCA_THREAD_COUNT_HITSSORTER;
+  mHitsFinderCount = GPUCA_THREAD_COUNT_HITSFINDER;
 }
