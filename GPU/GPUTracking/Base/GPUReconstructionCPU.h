@@ -253,6 +253,9 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
   if (mDeviceProcessingSettings.debugLevel >= 3) {
     GPUInfo("Running %s (Stream %d, Range %d/%d, Grid %d/%d) on %s", GetKernelName<S, I>(), x.stream, y.start, y.num, x.nBlocks, x.nThreads, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
   }
+  if (x.nThreads == 0 || x.nBlocks == 0) {
+    return 0;
+  }
   if (mDeviceProcessingSettings.debugLevel >= 0) {
     t = &getKernelTimer<S, I, J>(myStep, !IsGPU() || cpuFallback ? getOMPThreadNum() : x.stream);
     if (!mDeviceProcessingSettings.deviceTimers || cpuFallback) {
