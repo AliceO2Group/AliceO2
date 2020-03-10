@@ -325,7 +325,7 @@ class CcdbApi //: public DatabaseInterface
    * @param endValidityTimestamp End of validity. If omitted or negative, current timestamp + 1 year is used.
    * @return The full url to store an object (url / startValidity / endValidity / [metadata &]* )
    */
-  std::string getFullUrlForStorage(const std::string& path, const std::string& objtype,
+  std::string getFullUrlForStorage(CURL* curl, const std::string& path, const std::string& objtype,
                                    const std::map<std::string, std::string>& metadata,
                                    long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
 
@@ -336,7 +336,7 @@ class CcdbApi //: public DatabaseInterface
    * @param timestamp When the object we retrieve must be valid. If omitted or negative, the current timestamp is used.
    * @return The full url to store an object (url / startValidity / endValidity / [metadata &]* )
    */
-  std::string getFullUrlForRetrieval(const std::string& path, const std::map<std::string, std::string>& metadata,
+  std::string getFullUrlForRetrieval(CURL* curl, const std::string& path, const std::map<std::string, std::string>& metadata,
                                      long timestamp = -1) const;
 
  public:
