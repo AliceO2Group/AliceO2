@@ -26,7 +26,7 @@ RESULTS_FILE='data-sampling-benchmark-'$(date +"%y-%m-%d_%H%M")
 # \param 6 : test duration
 # \param 7 : warm up cycles - how many first metrics should be ignored (they are sent each 10s)
 # \param 8 : test name
-# \param 9 : free_memory_bytes
+# \param 9 : available memory for the benchmark (in MB)
 # \param 10: fill - (yes/no) should write zeroes to the produced messages (prevents memory overcommitting)
 function benchmark() {
 
@@ -44,7 +44,7 @@ function benchmark() {
   local test_duration=$6
   local warm_up_cycles=$7
   local test_name=$8
-  local free_memory_bytes=$9'000000'
+  local available_memory_bytes=$9'000000'
   local fill=${10}
 
   if [ ! -z $TESTS ] && [[ ! " ${TESTS[@]} " =~ " ${test_name} " ]]; then
@@ -60,7 +60,7 @@ function benchmark() {
   local repo_branch=$(git rev-parse --abbrev-ref HEAD)
   local results_filename='data-sampling-benchmark-'$(date +"%y-%m-%d_%H%M")'-'$test_name
   local test_date=$(date +"%y-%m-%d %H:%M:%S")
-  local memory_soft_limit_mbytes=$((free_memory_bytes / 5000000)) # we stop creating new messages at 4/5 of the maximum allowed usage
+  local memory_soft_limit_mbytes=$((available_memory_bytes / 5000000)) # we stop creating new messages at 4/5 of the maximum allowed usage
 
   printf "DATA SAMPLING BENCHMARK RESULTS\n" > $results_filename
   printf "Test date:              %s\n" "$test_date" >> $results_filename
@@ -69,11 +69,11 @@ function benchmark() {
   printf "Repetitions:            %s\n" "$repetitions" >> $results_filename
   printf "Test duration [s]:      %s\n" "$test_duration" >> $results_filename
   printf "Warm up cycles:         %s\n" "$warm_up_cycles" >> $results_filename
-  printf "Free memory [B]:        %s\n" "$free_memory_bytes" >> $results_filename
+  printf "Available memory [B]:   %s\n" "$available_memory_bytes" >> $results_filename
   printf "Memory soft limit [MB]: %s\n" "$memory_soft_limit_mbytes" >> $results_filename
   echo "fraction       , payload size   , nb producers   , nb dispatchers , messages per second" >> $results_filename
 
-  local common_args="--run -b --infologger-severity info --shm-segment-size "$free_memory_bytes" --test-duration "$test_duration" --throttling "$memory_soft_limit_mbytes
+  local common_args="--run -b --infologger-severity info --shm-segment-size "$available_memory_bytes" --test-duration "$test_duration" --throttling "$memory_soft_limit_mbytes
   if [[ $fill == "yes" ]]; then
     common_args=$common_args' --fill'
   fi
