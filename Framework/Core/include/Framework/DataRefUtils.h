@@ -13,6 +13,7 @@
 #include "Framework/DataRef.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/SerializationMethods.h"
+#include "Framework/DataSpecUtils.h"
 #include "Framework/TypeTraits.h"
 
 #include "Headers/DataHeader.h"
@@ -179,6 +180,26 @@ struct DataRefUtils {
   static bool isValid(DataRef const& ref)
   {
     return ref.header != nullptr && ref.payload != nullptr;
+  }
+
+  /// check if the DataRef object matches a partcular binding
+  /// Can be used to check if DataRef from the InputRecord iterator comes from
+  /// a particular input.
+  static bool match(DataRef const& ref, const char* binding)
+  {
+    return ref.spec != nullptr && ref.spec->binding == binding;
+  }
+
+  /// check if the O2 message referred by DataRef matches a particular
+  /// input spec. The DataHeader is retrieved from the header message and matched
+  /// against @ref spec parameter.
+  static bool match(DataRef const& ref, InputSpec const& spec)
+  {
+    auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    if (dh == nullptr) {
+      return false;
+    }
+    return DataSpecUtils::match(spec, dh->dataOrigin, dh->dataDescription, dh->subSpecification);
   }
 };
 
