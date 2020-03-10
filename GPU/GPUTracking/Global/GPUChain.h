@@ -183,7 +183,7 @@ class GPUChain
   inline unsigned int SelectorThreadCount() const { return mRec->mSelectorThreadCount; }
   inline unsigned int FinderThreadCount() const { return mRec->mFinderThreadCount; }
   inline unsigned int HitsSorterThreadCount() const { return mRec->mHitsSorterThreadCount; }
-  inline unsigned int HitsFinderThreadCount() const { return mRec->mHitsFinderCount; }
+  inline unsigned int HitsFinderThreadCount() const { return mRec->mHitsFinderThreadCount; }
   inline unsigned int ClustererThreadCount() const { return mRec->mClustererThreadCount; }
   inline unsigned int ScanThreadCount() const { return mRec->mScanThreadCount; }
   inline unsigned int TRDThreadCount() const { return mRec->mTRDThreadCount; }

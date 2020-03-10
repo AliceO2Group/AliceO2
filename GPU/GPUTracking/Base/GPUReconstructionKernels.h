@@ -15,13 +15,13 @@
 #include "GPUReconstructionKernelMacros.h"
 
 // clang-format off
-GPUCA_KRNL((GPUTPCNeighboursFinder                       ), (single, REG, (GPUCA_THREAD_COUNT_FINDER, GPUCA_BLOCK_COUNT_FINDER_MULTIPLIER)), (), ())
+GPUCA_KRNL((GPUTPCNeighboursFinder                       ), (single, REG, (GPUCA_THREAD_COUNT_FINDER, GPUCA_MINBLOCK_COUNT_FINDER)), (), ())
 GPUCA_KRNL((GPUTPCNeighboursCleaner                      ), (single, REG, (GPUCA_THREAD_COUNT_CLEANER, 1)), (), ())
 GPUCA_KRNL((GPUTPCStartHitsFinder                        ), (single, REG, (GPUCA_THREAD_COUNT_HITSFINDER , 1)), (), ())
-GPUCA_KRNL((GPUTPCStartHitsSorter                        ), (single, REG, (GPUCA_THREAD_COUNT_HITSSORTER, GPUCA_BLOCK_COUNT_HITSSORTER_MULTIPLIER)), (), ())
-GPUCA_KRNL((GPUTPCTrackletConstructor, singleSlice       ), (single, REG, (GPUCA_THREAD_COUNT_CONSTRUCTOR, GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER)), (), ())
-GPUCA_KRNL((GPUTPCTrackletConstructor, allSlices         ), (single, REG, (GPUCA_THREAD_COUNT_CONSTRUCTOR, GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER)), (), ())
-GPUCA_KRNL((GPUTPCTrackletSelector                       ), (both, REG, (GPUCA_THREAD_COUNT_SELECTOR, GPUCA_BLOCK_COUNT_SELECTOR_MULTIPLIER)), (), ())
+GPUCA_KRNL((GPUTPCStartHitsSorter                        ), (single, REG, (GPUCA_THREAD_COUNT_HITSSORTER, GPUCA_MINBLOCK_COUNT_HITSSORTER)), (), ())
+GPUCA_KRNL((GPUTPCTrackletConstructor, singleSlice       ), (single, REG, (GPUCA_THREAD_COUNT_CONSTRUCTOR, GPUCA_MINBLOCK_COUNT_CONSTRUCTOR)), (), ())
+GPUCA_KRNL((GPUTPCTrackletConstructor, allSlices         ), (single, REG, (GPUCA_THREAD_COUNT_CONSTRUCTOR, GPUCA_MINBLOCK_COUNT_CONSTRUCTOR)), (), ())
+GPUCA_KRNL((GPUTPCTrackletSelector                       ), (both, REG, (GPUCA_THREAD_COUNT_SELECTOR, GPUCA_MINBLOCK_COUNT_SELECTOR)), (), ())
 GPUCA_KRNL((GPUMemClean16                                ), (simple, REG, (GPUCA_THREAD_COUNT, 1)), (, GPUPtr1(void*, ptr), unsigned long size), (, GPUPtr2(void*, ptr), size))
 #if !defined(GPUCA_OPENCL1) && (!defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE))
 GPUCA_KRNL((GPUTPCGMMergerTrackFit                       ), (simple, REG, (GPUCA_THREAD_COUNT_FIT, 1)), (, int mode), (, mode))
@@ -46,7 +46,7 @@ GPUCA_KRNL((GPUTPCCFStreamCompaction,   nativeScanUp     ), (single, REG, (GPUCA
 GPUCA_KRNL((GPUTPCCFStreamCompaction,   nativeScanTop    ), (single, REG, (GPUCA_THREAD_COUNT_SCAN, 1)), (, int iBuf, int nElems), (, iBuf, nElems))
 GPUCA_KRNL((GPUTPCCFStreamCompaction,   nativeScanDown   ), (single, REG, (GPUCA_THREAD_COUNT_SCAN, 1)), (, int iBuf, unsigned int offset, int nElems), (, iBuf, offset, nElems))
 GPUCA_KRNL((GPUTPCCFStreamCompaction,   compact          ), (single, REG, (GPUCA_THREAD_COUNT_SCAN, 1)), (, int iBuf, int stage, GPUPtr1(ChargePos*, in), GPUPtr1(ChargePos*, out)), (, iBuf, stage, GPUPtr2(ChargePos*, in), GPUPtr2(ChargePos*, out)))
-GPUCA_KRNL((GPUTPCCFDecodeZS                             ), (single, REG, (GPUCA_THREAD_COUNT_CFDECODE, GPUCA_BLOCK_COUNT_DECODE_MULTIPLIER)), (), ())
+GPUCA_KRNL((GPUTPCCFDecodeZS                             ), (single, REG, (GPUCA_THREAD_COUNT_CFDECODE, GPUCA_MINBLOCK_COUNT_DECODE)), (), ())
 #endif
 #endif
 // clang-format on

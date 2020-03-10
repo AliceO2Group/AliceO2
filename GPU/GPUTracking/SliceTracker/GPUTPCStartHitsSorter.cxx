@@ -17,20 +17,6 @@
 #include "GPUTPCHit.h"
 #include "GPUCommonMath.h"
 #include "GPUDefMacros.h"
-#if defined(__HIPCC__) && defined(GPUCA_GPUCODE_DEVICE)
-#define HIPGPUsharedref() __attribute__((address_space(3)))
-#define HIPGPUglobalref() __attribute__((address_space(1)))
-#define HIPGPUconstantref() __attribute__((address_space(4)))
-#else
-#define HIPGPUsharedref() GPUsharedref()
-#define HIPGPUglobalref() GPUglobalref()
-#define HIPGPUconstantref()
-#endif
-#ifdef GPUCA_OPENCL1
-#define HIPTPCROW(x) GPUsharedref() MEM_LOCAL(x)
-#else
-#define HIPTPCROW(x) x
-#endif
 
 using namespace GPUCA_NAMESPACE::gpu;
 template <>
@@ -45,7 +31,7 @@ GPUdii() void GPUTPCStartHitsSorter::Thread<0>(int nBlocks, int nThreads, int iB
     const int nRows = iBlock == (nBlocks - 1) ? (tmpNRows - (tmpNRows / nBlocks) * (nBlocks - 1)) : (tmpNRows / nBlocks);
     const int nStartRow = (tmpNRows / nBlocks) * iBlock + 1;
     int startOffset2 = 0;
-#pragma unroll
+    GPUCA_UNROLL(, U())
     for (int ir = 1; ir < GPUCA_ROW_COUNT - 5; ir++) {
       if (ir < nStartRow) {
         startOffset2 += tracker.mRowStartHitCountOffset[ir];
@@ -58,7 +44,11 @@ GPUdii() void GPUTPCStartHitsSorter::Thread<0>(int nBlocks, int nThreads, int iB
   GPUbarrier();
 
   int startOffset = s.mStartOffset;
+#ifdef __HIPCC__ // TODO: Fixme
   for (int ir = -1; ++ir < s.mNRows;) {
+#else
+  for (int ir = 0; ir < s.mNRows; ir++) {
+#endif
     GPUglobalref() GPUTPCHitId* const GPUrestrict() startHits = tracker.mTrackletStartHits;
     GPUglobalref() GPUTPCHitId* const GPUrestrict() tmpStartHits = tracker.mTrackletTmpStartHits + (s.mStartRow + ir) * tracker.mNMaxRowStartHits;
 

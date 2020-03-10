@@ -176,16 +176,16 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   GPUProcessorProcessors mProcShadow; // Host copy of tracker objects that will be used on the GPU
   GPUConstantMem*& mProcessorsShadow = mProcShadow.mProcessorsProc;
 
-  unsigned int mBlockCount = 0;            // Default GPU block count
-  unsigned int mThreadCount = 0;           // Default GPU thread count
-  unsigned int mConstructorBlockCount = 0; // GPU blocks used in Tracklet Constructor
-  unsigned int mSelectorBlockCount = 0;    // GPU blocks used in Tracklet Selector
-  unsigned int mHitsSorterBlockCount = 0;  // GPU blocks used in Tracklet HitsSorter
-  unsigned int mConstructorThreadCount = 0;
+  unsigned int mBlockCount = 0;             // Default GPU block count
+  unsigned int mThreadCount = 0;            // Default GPU thread count
+  unsigned int mConstructorBlockCount = 0;  // GPU blocks used in Tracklet Constructor
+  unsigned int mSelectorBlockCount = 0;     // GPU blocks used in Tracklet Selector
+  unsigned int mHitsSorterBlockCount = 0;   // GPU blocks used in StartHitsSorter
+  unsigned int mConstructorThreadCount = 0; // ...
   unsigned int mSelectorThreadCount = 0;
   unsigned int mFinderThreadCount = 0;
   unsigned int mHitsSorterThreadCount = 0;
-  unsigned int mHitsFinderCount = 0;
+  unsigned int mHitsFinderThreadCount = 0;
   unsigned int mTRDThreadCount = 0;
   unsigned int mClustererThreadCount = 0;
   unsigned int mScanThreadCount = 0;
