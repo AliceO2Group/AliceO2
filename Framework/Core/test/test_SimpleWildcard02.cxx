@@ -26,7 +26,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
            Outputs{
              OutputSpec{{"out"}, {"TST", "OUT"}}},
            AlgorithmSpec{
-             [](InitContext &initCtx) {
+             [](InitContext& initCtx) {
              auto count = std::make_shared<unsigned int>(0);
              return [count](ProcessingContext& ctx) {
                TObjString s("abc");
