@@ -260,6 +260,7 @@ foreach(w
         SimpleStringProcessing
         SimpleTimer
         SimpleWildcard
+        SimpleWildcard02
         SingleDataSource
         Task
         ExternalFairMQDeviceWorkflow
