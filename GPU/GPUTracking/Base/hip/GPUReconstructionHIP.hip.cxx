@@ -125,11 +125,11 @@ int GPUReconstructionHIPBackend::runKernelBackend(krnlSetup& _xyz, Args... args)
     GPUFailedMsg(hipEventCreate(&start));
     GPUFailedMsg(hipEventCreate(&stop));
 #ifdef __CUDACC__
-    GPUFailedMsg(hipEventRecord(start));
+    GPUFailedMsg(hipEventRecord(start, mInternals->HIPStreams[x.stream]));
 #endif
     backendInternal<T, I>::runKernelBackendInternal(_xyz, this, &start, &stop, args...);
 #ifdef __CUDACC__
-    GPUFailedMsg(hipEventRecord(stop));
+    GPUFailedMsg(hipEventRecord(stop, mInternals->HIPStreams[x.stream]));
 #endif
     GPUFailedMsg(hipEventSynchronize(stop));
     float v;
