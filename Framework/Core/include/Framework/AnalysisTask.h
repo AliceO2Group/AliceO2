@@ -464,17 +464,16 @@ struct AnalysisDataProcessorBuilder {
             auto& fullSelection = allGroupedTable.getSelectedRows();
             offsets.push_back(allGroupedTable.tableSize());
 
+            auto current_start = fullSelection.begin();
+
             for (auto& groupedDatum : groupsCollection) {
               auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
 
               // for each grouping element we need to slice the selection vector
-              auto iterator_start = std::lower_bound(fullSelection.begin(), fullSelection.end(), offsets[oi]);
-              auto iterator_end = std::upper_bound(iterator_start + 1, fullSelection.end(), offsets[oi + 1]);
-
-              if (iterator_end != fullSelection.end()) {
-                iterator_end--;
-              }
-              soa::SelectionVector slicedSelection{iterator_start, iterator_end};
+              auto start_iterator = std::lower_bound(current_start, fullSelection.end(), offsets[oi]);
+              auto stop_iterator = std::lower_bound(start_iterator + 1, fullSelection.end(), offsets[oi + 1]);
+              current_start = stop_iterator;
+              soa::SelectionVector slicedSelection{start_iterator, stop_iterator};
               std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(), [&](int64_t index) { return index - static_cast<int64_t>(offsets[oi]); });
 
               std::decay_t<AssociatedType> typedTable{{groupedElementsTable}, std::move(slicedSelection), offsets[oi]};
