@@ -74,6 +74,9 @@ class GPUCommonMath
   GPUd() static int Mul24(int a, int b);
   GPUd() static float FMulRZ(float a, float b);
 
+  template <int I, class T>
+  GPUd() CONSTEXPR static T nextMultipleOf(T val);
+
  private:
   template <class S, class T>
   GPUd() static unsigned int AtomicExchInt(S* addr, T val);
@@ -94,6 +97,22 @@ typedef GPUCommonMath CAMath;
 #else
     #define CHOICE(c1, c2, c3) (c1) //Select first option for Host
 #endif // clang-format on
+
+template <int I, class T>
+GPUdi() CONSTEXPR T GPUCommonMath::nextMultipleOf(T val)
+{
+  CONSTEXPRIF(I & (I - 1))
+  {
+    T tmp = val % I;
+    if (tmp)
+      val += I - tmp;
+    return val;
+  }
+  else
+  {
+    return (val + I - 1) & ~(T)(I - 1);
+  }
+}
 
 GPUhdi() float2 GPUCommonMath::MakeFloat2(float x, float y)
 {
