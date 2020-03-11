@@ -2,21 +2,25 @@
 \page refDetectorsCalibration Module 'Detectors/Calibration'
 /doxy -->
 
-# Calibration flow for O2
+# Time-interval based calibration flow for O2
 
-The calibration flow of O2 foresees that every calibration device (expected to all run on the same EPN) will receive the TimeFrames from every EPN in an asynchronous way. The calibration device will have to process the TFs in time intervals (TimeSlots) which allow to create CCDB entries with the needed granularity and update frequency (defined by the calibration device itself).
+The calibration flow of O2 foresees that every calibration device (expected to all run on one single aggregation node) will receive the TimeFrames with calibration input from every EPN in an asynchronous way. The calibration device will have to process the TFs in time intervals (TimeSlots) which allow to create CCDB entries with the needed granularity and update frequency (defined by the calibration device itself).
 
 ## TimeSlotCalibration<Input, Container>
 Each calibration device (to be run in a workflow) has to derive from `o2::calibration::TimeSlotCalibration`, which is a templated class that takes as types the Input type (i.e. the object to be processed, coming from the upstream device) and the Container type (i.e. the object that will contain the calibration data per TimeSlot). Each calibration device has to be configured with the following parameters:
 
 ```cpp
 tf-per-slot : default length of a TiemSlot in TFs (will be widened in case of too little statistics)
-max-delay   : maximum arrival delay of a TF with respect to the most recent one processed; if beyond this, the TF will be considered too old, and discarded
+max-delay   : maximum arrival delay of a TF with respect to the most recent one processed; units in number of TimeSlots; if beyond this, the TF will be considered too old, and discarded.
 ```
+Example for the options above: 
+`tf-per-slot = 20`
+`max-delay = 3`
+Then if we are processing TF 61 and TF 0 comes, TF 0 will be discarded.
 
 Each calibration device has to implement the following methods:
 
-`void initOutput()`: initialization of the output object (typically a vector of calibration objects and another one with the associated CcdbObjectInfo;
+`void initOutput()`: initialization of the output object (typically a vector of calibration objects and another one with the associated CcdbObjectInfo);
 
 `bool hasEnoughData(const o2::calibration::TimeSlot<Container>& slot)` : method to determine whether a TimeSlot has enough data to be calibrated; if not, it will be merged to the following (in time) one;
 
@@ -37,7 +41,7 @@ The Container class needs to implement the following methods:
 
 ## detector-specific-calibrator-workflow
 
-Each calibration will need to be implemented in the form of a workflow, whose options should include those for teh calibration device itself (`tf-per-slot` and `max-delay`, see above).
+Each calibration will need to be implemented in the form of a workflow, whose options should include those for the calibration device itself (`tf-per-slot` and `max-delay`, see above).
 The output to be sent by the calibrator should include:
 
 - a vector of the snapshots of the object to be put in the CCDB;
@@ -47,10 +51,10 @@ information (metadata, startValidity...) associated to the objects themselves.
 E.g.:
 
 ```c++
-output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, i}, *image.get()); // vector<char>
-output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, i}, w);               // root-serialized
+output.snapshot(Output{clbUtils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBPayload, i}, *image.get()); // vector<char>
+output.snapshot(Output{clbUtils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBInfo, i}, w);               // root-serialized
 ```
-The origin of the output will always be `clbUtils::gDataOriginCLB`, while the description will be `clbUtils::gDataDescriptionCLBPayload` for the object itself, and `clbUtils::gDataDescriptionCLBInfo` for teh description.
+The origin of the output will always be `o2::calibration::Utils::gDataOriginCLB`, while the description will be `clbUtils::gDataDescriptionCLBPayload` for the object itself, and `o2::calibration::Utils::gDataDescriptionCLBInfo` for the description.
 
 ## cccd-populator-workflow
 
@@ -61,5 +65,5 @@ When adding a new calibration workflow, named e.g. "test-workflow", the followin
 policies.push_back(CompletionPolicyHelpers::defineByName("test-workflow.*", CompletionPolicy::CompletionOp::Consume));
 ```
 
-The `--ccdb-path` option of the ccdb-populator-workflow allows to define the CCDB destination (e.g. `--ccdb-path localhost:8080.
+The `--ccdb-path` option of the ccdb-populator-workflow allows to define the CCDB destination (e.g. `--ccdb-path localhost:8080`).
 
