@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/AnalysisDataModel.h"
 #include "Analysis/SecondaryVertex.h"
+#include "Analysis/Jet.h"
 #include <fmt/printf.h>
 #include <map>
 
@@ -146,5 +147,7 @@ edge[dir=back, arrowtail=empty]
   dumpTable<Timeframes>();
   //  dumpTable<SecVtx2Prong>(true, StyleType::RED);
   dumpTable<Cand2Prong>(true, StyleType::RED);
+  dumpTable<Jets>();
+  dumpTable<JetConstituents>();
   fmt::printf("%s\n", R"(})");
 }
