@@ -38,35 +38,153 @@ void for_(F func)
   for_(func, std::make_index_sequence<N>());
 }
 
-template <typename... T2s>
-void addOne(std::tuple<T2s...>& tuple, const std::tuple<T2s...>& maxOffset, bool& isEnd)
-{
-  constexpr auto size = std::tuple_size_v<std::tuple<T2s...>>;
-  bool modify = true;
-  for_<size>([&](auto i) {
-    if (modify) {
-      std::get<size - i.value - 1>(tuple)++;
-      if (std::get<size - i.value - 1>(tuple) != std::get<size - i.value - 1>(maxOffset)) {
-        for_<i.value>([&](auto j) {
-          std::get<size - i.value + j.value>(tuple).setCursor(*std::get<1>(std::get<size - i.value + j.value - 1>(tuple).getIndices()) + 1);
-        });
-        modify = false;
-      }
+template <typename... Ts>
+struct CombinationsIndexPolicyBase {
+  using CombinationType = std::tuple<typename Ts::iterator...>;
+
+  CombinationsIndexPolicyBase(const Ts&... tables) : mIsEnd(false),
+                                                     mMaxOffset(tables.end()...),
+                                                     mCurrent(tables.begin()...)
+  {
+    constexpr auto k = sizeof...(Ts);
+    if (((tables.size() <= k) || ...)) {
+      mIsEnd = true;
     }
-  });
-  isEnd = modify;
-}
+  }
+
+  void moveToEnd() {}
+  void addOne() {}
+
+  CombinationType mCurrent;
+  CombinationType mMaxOffset; // one position past maximum acceptable position for each element of combination
+  bool mIsEnd;                // whether there are any more tuples available
+};
+
+template <typename... Ts>
+struct CombinationsUpperIndexPolicy : public CombinationsIndexPolicyBase<Ts...> {
+  CombinationsUpperIndexPolicy(const Ts&... tables) : CombinationsIndexPolicyBase<Ts...>(tables...)
+  {
+    constexpr auto k = sizeof...(Ts);
+    for_<k>([&, this](auto i) {
+      std::get<i.value>(this->mMaxOffset).moveByIndex(-k + i.value + 1);
+    });
+  }
+
+  void moveToEnd()
+  {
+    constexpr auto k = sizeof...(Ts);
+    for_<k>([&, this](auto i) {
+      std::get<i.value>(this->mCurrent).setCursor(*std::get<1>(std::get<i.value>(this->mMaxOffset).getIndices()));
+    });
+    std::get<k - 1>(this->mCurrent).moveToEnd();
+    this->mIsEnd = true;
+  }
+
+  void addOne()
+  {
+    constexpr auto k = sizeof...(Ts);
+    bool modify = true;
+    for_<k>([&, this](auto i) {
+      if (modify) {
+        constexpr auto curInd = k - i.value - 1;
+        std::get<curInd>(this->mCurrent)++;
+        if (std::get<curInd>(this->mCurrent) != std::get<curInd>(this->mMaxOffset)) {
+          for_<i.value>([&, this](auto j) {
+            constexpr auto curJ = k - i.value + j.value;
+            std::get<curJ>(this->mCurrent).setCursor(*std::get<1>(std::get<curJ - 1>(this->mCurrent).getIndices()));
+          });
+          modify = false;
+        }
+      }
+    });
+    this->mIsEnd = modify;
+  }
+};
+
+template <typename... Ts>
+struct CombinationsStrictlyUpperIndexPolicy : public CombinationsIndexPolicyBase<Ts...> {
+  CombinationsStrictlyUpperIndexPolicy(const Ts&... tables) : CombinationsIndexPolicyBase<Ts...>(tables...)
+  {
+    constexpr auto k = sizeof...(Ts);
+    for_<k>([&, this](auto i) {
+      std::get<i.value>(this->mMaxOffset).moveByIndex(-k + i.value + 1);
+      std::get<i.value>(this->mCurrent).moveByIndex(i.value);
+    });
+  }
+
+  void moveToEnd()
+  {
+    constexpr auto k = sizeof...(Ts);
+    for_<k>([&, this](auto i) {
+      std::get<i.value>(this->mCurrent).setCursor(*std::get<1>(std::get<i.value>(this->mMaxOffset).getIndices()));
+    });
+    std::get<k - 1>(this->mCurrent).moveToEnd();
+    this->mIsEnd = true;
+  }
+
+  void addOne()
+  {
+    constexpr auto k = sizeof...(Ts);
+    bool modify = true;
+    for_<k>([&, this](auto i) {
+      if (modify) {
+        constexpr auto curInd = k - i.value - 1;
+        std::get<curInd>(this->mCurrent)++;
+        if (std::get<curInd>(this->mCurrent) != std::get<curInd>(this->mMaxOffset)) {
+          for_<i.value>([&, this](auto j) {
+            constexpr auto curJ = k - i.value + j.value;
+            std::get<curJ>(this->mCurrent).setCursor(*std::get<1>(std::get<curJ - 1>(this->mCurrent).getIndices()) + 1);
+          });
+          modify = false;
+        }
+      }
+    });
+    this->mIsEnd = modify;
+  }
+};
+
+template <typename... Ts>
+struct CombinationsFullIndexPolicy : public CombinationsIndexPolicyBase<Ts...> {
+  CombinationsFullIndexPolicy(const Ts&... tables) : CombinationsIndexPolicyBase<Ts...>(tables...) {}
+
+  void moveToEnd()
+  {
+    constexpr auto k = sizeof...(Ts);
+    for_<k>([&, this](auto i) {
+      std::get<i.value>(this->mCurrent).moveToEnd();
+    });
+    this->mIsEnd = true;
+  }
+
+  void addOne()
+  {
+    constexpr auto k = sizeof...(Ts);
+    bool modify = true;
+    for_<k>([&, this](auto i) {
+      if (modify) {
+        constexpr auto curInd = k - i.value - 1;
+        std::get<curInd>(this->mCurrent)++;
+        if (std::get<curInd>(this->mCurrent) != std::get<curInd>(this->mMaxOffset)) {
+          for_<i.value>([&, this](auto j) {
+            constexpr auto curJ = k - i.value + j.value;
+            std::get<curJ>(this->mCurrent).setCursor(0);
+          });
+          modify = false;
+        }
+      }
+    });
+    this->mIsEnd = modify;
+  }
+};
 
 /// @return next combination of rows of tables.
 /// FIXME: move to coroutines once we have C++20
-template <typename... Ts>
-class CombinationsGenerator
-{
+template <template <typename...> typename P, typename... Ts>
+struct CombinationsGenerator {
  public:
   using CombinationType = std::tuple<typename Ts::iterator...>;
 
-  class CombinationsIterator : public std::iterator<std::forward_iterator_tag, CombinationType>
-  {
+  struct CombinationsIterator : public std::iterator<std::forward_iterator_tag, CombinationType>, public P<Ts...> {
    public:
     using reference = CombinationType&;
     using value_type = CombinationType;
@@ -75,20 +193,7 @@ class CombinationsGenerator
 
     CombinationsIterator() = delete;
 
-    CombinationsIterator(const Ts&... tables) : mIsEnd(false),
-                                                mMaxOffset(tables.end()...),
-                                                mCurrent(tables.begin()...)
-    {
-      if (((tables.size() <= sizeof...(Ts)) || ...)) {
-        mIsEnd = true;
-        return;
-      }
-      for_<sizeof...(Ts) - 1>([&](auto i) {
-        std::get<i.value>(mMaxOffset).moveByIndex(-sizeof...(Ts) + i.value + 1);
-        std::get<i.value>(mCurrent).moveByIndex(i.value);
-      });
-      std::get<sizeof...(Ts) - 1>(mCurrent).moveByIndex(sizeof...(Ts) - 1);
-    }
+    CombinationsIterator(const P<Ts...>& policy) : P<Ts...>(policy) {}
 
     CombinationsIterator(CombinationsIterator const&) = default;
     CombinationsIterator& operator=(CombinationsIterator const&) = default;
@@ -97,8 +202,8 @@ class CombinationsGenerator
     // prefix increment
     CombinationsIterator& operator++()
     {
-      if (!mIsEnd) {
-        addOne(mCurrent, mMaxOffset, mIsEnd);
+      if (!this->mIsEnd) {
+        this->addOne();
       }
       return *this;
     }
@@ -112,30 +217,16 @@ class CombinationsGenerator
     // return reference
     reference operator*()
     {
-      return mCurrent;
+      return this->mCurrent;
     }
     bool operator==(const CombinationsIterator& rh)
     {
-      return (mIsEnd && rh.mIsEnd) || (mCurrent == rh.mCurrent);
+      return (this->mIsEnd && rh.mIsEnd) || (this->mCurrent == rh.mCurrent);
     }
     bool operator!=(const CombinationsIterator& rh)
     {
       return !(*this == rh);
     }
-
-    void moveToEnd()
-    {
-      for_<sizeof...(Ts) - 1>([&](auto i) {
-        std::get<i.value>(mCurrent).setCursor(*std::get<1>(std::get<i.value>(mMaxOffset).getIndices()));
-      });
-      std::get<sizeof...(Ts) - 1>(mCurrent).moveToEnd();
-      mIsEnd = true;
-    }
-
-   private:
-    CombinationType mCurrent;
-    CombinationType mMaxOffset; // one position past maximum acceptable position for each element of combination
-    bool mIsEnd;                // whether there are any more tuples available
   };
 
   using iterator = CombinationsIterator;
@@ -159,7 +250,7 @@ class CombinationsGenerator
   }
 
   CombinationsGenerator() = delete;
-  CombinationsGenerator(const Ts&... tables) : mBegin(tables...), mEnd(tables...)
+  CombinationsGenerator(const P<Ts...>& policy) : mBegin(policy), mEnd(policy)
   {
     static_assert(sizeof...(Ts) > 0);
     mEnd.moveToEnd();
@@ -171,16 +262,44 @@ class CombinationsGenerator
   iterator mEnd;
 };
 
-template <typename... T2s>
-CombinationsGenerator<T2s...> combinations(const T2s&... tables)
+template <typename T2, typename... T2s>
+auto combinations(const T2& table, const T2s&... tables)
 {
-  return CombinationsGenerator<T2s...>(tables...);
+  if constexpr (std::conjunction_v<std::is_same<T2, T2s>...>) {
+    return CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, T2, T2s...>(CombinationsStrictlyUpperIndexPolicy(table, tables...));
+  } else {
+    return CombinationsGenerator<CombinationsFullIndexPolicy, T2, T2s...>(CombinationsFullIndexPolicy(table, tables...));
+  }
 }
 
-template <typename... T2s>
-CombinationsGenerator<Filtered<T2s>...> combinations(const o2::framework::expressions::Filter& filter, const T2s&... tables)
+template <typename T2, typename... T2s>
+auto combinations(const o2::framework::expressions::Filter& filter, const T2& table, const T2s&... tables)
 {
-  return CombinationsGenerator<Filtered<T2s>...>({{tables.asArrowTable()}, o2::framework::expressions::createSelection(tables.asArrowTable(), filter)}...);
+  if constexpr (std::conjunction_v<std::is_same<T2, T2s>...>) {
+    return CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, Filtered<T2>, Filtered<T2s>...>(CombinationsStrictlyUpperIndexPolicy(Filtered<T2>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)}, Filtered<T2s>{{tables.asArrowTable()}, o2::framework::expressions::createSelection(tables.asArrowTable(), filter)}...));
+  } else {
+    return CombinationsGenerator<CombinationsFullIndexPolicy, Filtered<T2>, Filtered<T2s>...>(CombinationsFullIndexPolicy(Filtered<T2>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)}, Filtered<T2s>{{tables.asArrowTable()}, o2::framework::expressions::createSelection(tables.asArrowTable(), filter)}...));
+  }
+}
+
+template <template <typename...> typename P2, typename... T2s>
+CombinationsGenerator<P2, T2s...> combinations(const P2<T2s...>& policy, const T2s&... tables)
+{
+  return CombinationsGenerator<P2, T2s...>(P2<T2s...>(tables...));
+}
+
+template <template <typename...> typename P2, typename... T2s>
+CombinationsGenerator<P2, Filtered<T2s>...> combinations(const P2<T2s...>& policy, const o2::framework::expressions::Filter& filter, const T2s&... tables)
+{
+  return CombinationsGenerator<P2, Filtered<T2s>...>(P2<Filtered<T2s>...>({{tables.asArrowTable()}, o2::framework::expressions::createSelection(tables.asArrowTable(), filter)}...));
+}
+
+// This shortened version cannot be used for Filtered
+// (unless users create filtered tables themselves before policy creation)
+template <template <typename...> typename P2, typename... T2s>
+CombinationsGenerator<P2, T2s...> combinations(const P2<T2s...>& policy)
+{
+  return CombinationsGenerator<P2, T2s...>(policy);
 }
 
 } // namespace o2::soa
