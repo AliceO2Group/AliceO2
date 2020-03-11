@@ -90,6 +90,13 @@ struct UserCustomizationsHelper {
   }
 };
 
+namespace o2::framework
+{
+class ConfigContext;
+}
+/// Helper used to customize a workflow pipelining options
+void overridePipeline(o2::framework::ConfigContext& ctx, std::vector<o2::framework::DataProcessorSpec>& workflow);
+
 // This comes from the framework itself. This way we avoid code duplication.
 int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& specs,
            std::vector<o2::framework::ChannelConfigurationPolicy> const& channelPolicies,
@@ -111,6 +118,7 @@ int main(int argc, char** argv)
     // The default policy is a catch all pub/sub setup to be consistent with the past.
     std::vector<o2::framework::ConfigParamSpec> workflowOptions;
     workflowOptions.push_back(ConfigParamSpec{"readers", VariantType::Int64, 1ll, {"number of parallel readers to use"}});
+    workflowOptions.push_back(ConfigParamSpec{"pipeline", VariantType::String, "", {"override default pipeline size"}});
     UserCustomizationsHelper::userDefinedCustomization(workflowOptions, 0);
     std::vector<ChannelConfigurationPolicy> channelPolicies;
     UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
@@ -131,6 +139,7 @@ int main(int argc, char** argv)
     ConfigParamRegistry workflowOptionsRegistry(std::move(retriever));
     ConfigContext configContext{workflowOptionsRegistry};
     o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
+    overridePipeline(configContext, specs);
     result = doMain(argc, argv, specs, channelPolicies, completionPolicies, dispatchPolicies, workflowOptions, configContext);
   } catch (std::exception const& error) {
     LOG(ERROR) << "error while setting up workflow: " << error.what();
