@@ -28,6 +28,8 @@ Each calibration device has to implement the following methods:
 
 `o2::calibration::TimeSlot<Container>& slot emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend` : method to creata a new TimeSlot; this is specific to the calibration procedure as it instantiates the detector-calibration-specific object.
 
+See e.g. LHCClockCalibrator.h/cxx in AliceO2/Detectors/TOF/calibration/include/TOFCalibration/LHCClockCalibrator.h and  AliceO2/Detectors/TOF/calibration/srcLHCClockCalibrator.cxx
+
 ## TimeSlot<Container>
 The TimeSlot is a templated class which takes as input type the Container that will hold the calibration data needed to produce the calibration objects (histograms, vectors, array...). Each calibration device could implement its own Container, according to its needs.
 
@@ -38,6 +40,8 @@ The Container class needs to implement the following methods:
 `void merge(const Container* prev)` : method to allow merging of the content of a TimeSlot to the content of the following one, when stastics is limited.
 
 `void print()` : method to print the content of the Container
+
+See e.g. LHCClockCalibrator.h/cxx in AliceO2/Detectors/TOF/calibration/include/TOFCalibration/LHCClockCalibrator.h and  AliceO2/Detectors/TOF/calibration/srcLHCClockCalibrator.cxx
 
 ## detector-specific-calibrator-workflow
 
@@ -55,6 +59,8 @@ output.snapshot(Output{clbUtils::gDataOriginCLB, o2::calibration::Utils::gDataDe
 output.snapshot(Output{clbUtils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBInfo, i}, w);               // root-serialized
 ```
 The origin of the output will always be `o2::calibration::Utils::gDataOriginCLB`, while the description will be `clbUtils::gDataDescriptionCLBPayload` for the object itself, and `o2::calibration::Utils::gDataDescriptionCLBInfo` for the description.
+
+See e.g. AliceO2/Detectors/TOF/calibration/testWorkflow/LHCClockCalibratorSpec.h,  AliceO2/Detectors/TOF/calibration/testWorkflow/lhc-clockphase-workflow.cxx 
 
 ## cccd-populator-workflow
 
