@@ -57,7 +57,8 @@ struct ConversionTraits {
     using ArrowType = ::arrow::ArrowType_;          \
   };
 
-O2_ARROW_STL_CONVERSION(bool, BooleanType)
+// FIXME: for now we use Int8 to store booleans
+O2_ARROW_STL_CONVERSION(bool, Int8Type)
 O2_ARROW_STL_CONVERSION(int8_t, Int8Type)
 O2_ARROW_STL_CONVERSION(int16_t, Int16Type)
 O2_ARROW_STL_CONVERSION(int32_t, Int32Type)
