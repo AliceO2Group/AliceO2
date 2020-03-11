@@ -55,8 +55,9 @@ if(NOT BUILD_SIMULATION)
   list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST ${macros})
   o2_get_list_of_macros(${CMAKE_SOURCE_DIR}/Detectors/gconfig macros)
   list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST ${macros})
-
-   list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST Generators/share/external/QEDLoader.C)
+  list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST Generators/share/external/QEDLoader.C)
+  list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST Generators/share/egconfig/pythia8_userhooks_charm.C)
+  list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST Generators/share/external/trigger_mpi.C)
 endif()
 
 if(NOT pythia6_FOUND)
