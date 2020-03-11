@@ -55,8 +55,6 @@ namespace math_base
 /// \param[in] func fit function
 ///
 ///
-//template <typename T>
-//Double_t  fitGaus(const size_t nBins, const T *arr, const T xMin, const T xMax, std::vector<T>& param);
 template <typename T>
 TFitResultPtr fit(const size_t nBins, const T* arr, const T xMin, const T xMax, TF1& func, std::string_view option = "")
 {
