@@ -16,19 +16,24 @@ max-delay   : maximum arrival delay of a TF with respect to the most recent one 
 
 Each calibration device has to implement the following methods:
 
-`initOutput`: initialization of the output object (typically a vector of calibration objects and another one with the associated CcdbObjectInfo;
-`hasEnoughData` : method to determine whether a TimeSlot has enough data to be calibrated; if not, it will be merged to the following (in time) one;
-`finalizeSlot` : method to process the calibration data accumulated in each TimeSlot;
-`emplaceNewSlot` : method to creata a new TimeSlot; this is specific to the calibration procedure as it instantiates the detector-calibration-specific object.
+`void initOutput()`: initialization of the output object (typically a vector of calibration objects and another one with the associated CcdbObjectInfo;
+
+`bool hasEnoughData(const o2::calibration::TimeSlot<Container>& slot)` : method to determine whether a TimeSlot has enough data to be calibrated; if not, it will be merged to the following (in time) one;
+
+`void finalizeSlot(o2::calibration::TimeSlot<Container>& slot)` : method to process the calibration data accumulated in each TimeSlot;
+
+`o2::calibration::TimeSlot<Container>& slot emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend` : method to creata a new TimeSlot; this is specific to the calibration procedure as it instantiates the detector-calibration-specific object.
 
 ## TimeSlot<Container>
 The TimeSlot is a templated class which takes as input type the Container that will hold the calibration data needed to produce the calibration objects (histograms, vectors, array...). Each calibration device could implement its own Container, according to its needs.
 
 The Container class needs to implement the following methods:
 
-`fill`  : method to decide how to use the calibration data within the container (e.g. fill a vector);
-`merge` : method to allow merging of the content of a TimeSlot to the content of the following one, when stastics is limited.
-`print` : method to print the content of the Container
+`void fill(const gsl::span<const Input> data)`  : method to decide how to use the calibration data within the container (e.g. fill a vector);
+
+`void merge(const Container* prev)` : method to allow merging of the content of a TimeSlot to the content of the following one, when stastics is limited.
+
+`void print()` : method to print the content of the Container
 
 ## detector-specific-calibrator-workflow
 
@@ -44,7 +49,6 @@ E.g.:
 ```c++
 output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, i}, *image.get()); // vector<char>
 output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, i}, w);               // root-serialized
-    }
 ```
 The origin of the output will always be `clbUtils::gDataOriginCLB`, while the description will be `clbUtils::gDataDescriptionCLBPayload` for the object itself, and `clbUtils::gDataDescriptionCLBInfo` for teh description.
 
