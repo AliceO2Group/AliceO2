@@ -177,10 +177,10 @@ void CheckDigits(std::string digifile = "trddigits.root",
     profADCperTimeBin[det]->SetLineColor(count + 1);
     // profADCperTimeBin[det]->SetLineWidth(2);
     if (count == 0) {
-      profADCperTimeBin[det]->Draw("HIST");
+      profADCperTimeBin[det]->Draw("HIST*");
       ++count;
     } else {
-      profADCperTimeBin[det]->Draw("SAME HIST");
+      profADCperTimeBin[det]->Draw("SAME HIST*");
       ++count;
     }
   }
