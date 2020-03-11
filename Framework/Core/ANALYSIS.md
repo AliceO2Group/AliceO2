@@ -333,13 +333,15 @@ struct MyTask : AnalysisTask {
 ```
 
 ### Getting combinations (pairs, triplets, ...)
-To get combinations of distinct tracks, helper functions from `ASoAHelpers.h` can be used. The number of elements in a combination is deduced from the number of arguments pased to `combinations()` call. For example, to get pairs of tracks from the same source, one must specify `tracks` table twice:
+To get combinations of distinct tracks, helper functions from `ASoAHelpers.h` can be used. Presently, there are 3 combinations policies available: strictly upper, upper and full.
+
+The number of elements in a combination is deduced from the number of arguments pased to `combinations()` call. For example, to get pairs of tracks from the same source, one must specify `tracks` table twice:
 
 ```cpp
 struct MyTask : AnalysisTask {
 
   void process(Tracks const& tracks) {
-    for (auto [t0, t1] : combinations(tracks, tracks)) {
+    for (auto& [t0, t1] : combinations(CombinationsStrictlyUpperIndexPolicy(tracks, tracks))) {
       float pt = t0.pt();
       ...
     }
@@ -353,26 +355,33 @@ The combination can consist of elements from different tables (of different kind
 struct MyTask : AnalysisTask {
 
   void process(Tracks const& tracks, TracksCov const& covs) {
-    for (auto [t0, c1] : combinations(tracks, covs)) {
+    for (auto& [t0, c1] : combinations(CombinationsFullIndexPolicy(tracks, covs))) {
       ...
     }
   }
 };
 ```
 
-It will be possible to specify a filter for a combination as a whole, and only matching combinations will be then outputed. Currently, the filter is applied to each element separately.
+It will be possible to specify a filter for a combination as a whole, and only matching combinations will be then outputed. Currently, the filter is applied to each element separately. Note that for filter version the input tables are mentioned twice, both in policy constructor and in `combinations()` call itself.
 
 ```cpp
 struct MyTask : AnalysisTask {
 
   void process(Tracks const& tracks1, Tracks const& tracks2) {
     Filter triplesFilter = track::eta < 0;
-    for (auto [t0, t1, t2] : combinations(triplesFilter, tracks1, tracks2, tracks2)) {
+    for (auto& [t0, t1, t2] : combinations(CombinationsFullIndexPolicy(tracks1, tracks2, tracks2), triplesFilter, tracks1, tracks2, tracks2)) {
       // Triples of tracks, each of them with eta < 0
       ...
     }
   }
 };
+```
+
+Additionally, `CombinationsStrictlyUpperPolicy` is applied by default if all tables are of the same type, otherwise `FullIndexPolicy` is applied.
+
+```cpp
+combinations(tracks, tracks); // equivalent to combinations(CombinationsStrictlyUpperIndexPolicy(tracks, tracks));
+combinations(filter, tracks, covs); // equivalent to combinations(CombinationsFullIndexPolicy(tracks, covs), filter, tracks, covs);
 ```
 
 ### Possible ideas
