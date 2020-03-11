@@ -19,59 +19,27 @@ namespace o2
 namespace eventgen
 {
 
-/*****************************************************************/
-/*****************************************************************/
-
-Bool_t
-  TriggerParticle::fired(TClonesArray* particles)
+Trigger TriggerParticle(const TriggerParticleParam& param)
 {
-  /** fired **/
-
-  /** loop over particles **/
-  Int_t nParticles = particles->GetEntries();
-  TParticle* particle = nullptr;
-  for (Int_t iparticle = 0; iparticle < nParticles; iparticle++) {
-    particle = (TParticle*)particles->At(iparticle);
-    if (!particle)
-      continue;
-
-    /** check PDG **/
-    auto pdg = particle->GetPdgCode();
-    if (pdg != mPDG)
-      continue;
-
-    /** check pt **/
-    auto pt = particle->Pt();
-    if (pt < mPtMin || pt > mPtMax)
-      continue;
-
-    /** check eta **/
-    auto eta = particle->Eta();
-    if (eta < mEtaMin || eta > mEtaMax)
-      continue;
-
-    /** check phi **/
-    auto phi = particle->Phi();
-    if (phi < mPhiMin || phi > mPhiMax)
-      continue;
-
-    /** check rapidity **/
-    auto y = particle->Y();
-    if (y < mYMin || phi > mYMax)
-      continue;
-
-    /** success **/
-    return kTRUE;
-  }
-
-  /** failure **/
-  return kFALSE;
+  LOG(INFO) << "Init trigger \'particle\' with following parameters";
+  LOG(INFO) << param;
+  return [&param](const std::vector<TParticle>& particles) -> bool {
+    for (const auto& particle : particles) {
+      if (particle.GetPdgCode() != param.pdg)
+        continue;
+      if (particle.Pt() < param.ptMin || particle.Pt() > param.ptMax)
+        continue;
+      if (particle.Eta() < param.etaMin || particle.Eta() > param.etaMax)
+        continue;
+      if (particle.Phi() < param.phiMin || particle.Phi() > param.phiMax)
+        continue;
+      if (particle.Y() < param.yMin || particle.Y() > param.yMax)
+        continue;
+      return true; /** trigger fired **/
+    }
+    return false; /** trigger did not fire **/
+  };
 }
-
-/*****************************************************************/
-/*****************************************************************/
 
 } /* namespace eventgen */
 } /* namespace o2 */
-
-ClassImp(o2::eventgen::TriggerParticle);

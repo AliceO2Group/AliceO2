@@ -8,23 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \author R+Preghenella - August 2017
+/// \author R+Preghenella - January 2020
 
-#ifndef ALICEO2_EVENTGEN_TRIGGER_H_
-#define ALICEO2_EVENTGEN_TRIGGER_H_
-
-#include <functional>
-#include "TParticle.h"
-
-namespace o2
-{
-namespace eventgen
-{
-
-typedef std::function<bool(const std::vector<TParticle>&)> Trigger;
-typedef std::function<bool(void*, std::string)> DeepTrigger;
-
-} // namespace eventgen
-} // namespace o2
-
-#endif /* ALICEO2_EVENTGEN_TRIGGER_H_ */
+#include "Generators/GeneratorPythia6Param.h"
+O2ParamImpl(o2::eventgen::GeneratorPythia6Param);
