@@ -11,12 +11,14 @@
 o2_add_library(
   MIDRaw
   SOURCES src/CrateMapper.cxx
+          src/CrateMasks.cxx
           src/CRUBareDecoder.cxx
           src/CRUUserLogicDecoder.cxx
           src/CRUUserLogicEncoder.cxx
           src/Decoder.cxx
           src/ELinkDecoder.cxx
           src/Encoder.cxx
+          src/FEEIdConfig.cxx
           src/LocalBoardRO.cxx
           src/RawBuffer.cxx
           src/RawFileReader.cxx
