@@ -29,6 +29,8 @@ class TimeSlotCalibration
   using TFType = uint64_t;
 
  public:
+  TimeSlotCalibration() = default;
+  virtual ~TimeSlotCalibration() = default;
   uint32_t getMaxSlotsDelay() const { return mMaxSlotsDelay; }
   void setMaxSlotsDelay(uint32_t v) { mMaxSlotsDelay = v < 1 ? 1 : v; }
 

@@ -62,7 +62,7 @@ class LHCClockCalibrator : public o2::calibration::TimeSlotCalibration<o2::dataf
 
  public:
   LHCClockCalibrator(int minEnt = 500, int nb = 1000, float r = 24400, const std::string path = "http://ccdb-test.cern.ch:8080") : mMinEntries(minEnt), mNBins(nb), mRange(r) { mCalibTOFapi.setURL(path); }
-
+  ~LHCClockCalibrator() final = default;
   bool hasEnoughData(const Slot& slot) const final { return slot.getContainer()->entries >= mMinEntries; }
   void initOutput() final;
   void finalizeSlot(Slot& slot) final;
