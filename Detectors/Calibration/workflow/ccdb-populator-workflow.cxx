@@ -19,7 +19,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   // we customize the pipeline processors to consume data as it comes
   using CompletionPolicy = o2::framework::CompletionPolicy;
   using CompletionPolicyHelpers = o2::framework::CompletionPolicyHelpers;
-  policies.push_back(CompletionPolicyHelpers::defineByName("lhc-clockphase-workflow.*", CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(CompletionPolicyHelpers::defineByName("ccdb-populator.*", CompletionPolicy::CompletionOp::Consume));
 }
 
 // ------------------------------------------------------------------
