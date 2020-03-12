@@ -20,7 +20,8 @@ void copyBranch(const char* originfile, const char* targetfile, std::vector<std:
 
     // Activate the branches to be copied (our skim)
     for (auto& br : branchnames) {
-      oldtree->SetBranchStatus(br.c_str(), 1);
+      std::string regex = br + std::string("*");
+      oldtree->SetBranchStatus(regex.c_str(), 1);
     }
 
     //Create a new file + a clone of old tree header.
@@ -28,10 +29,18 @@ void copyBranch(const char* originfile, const char* targetfile, std::vector<std:
     auto newtree = oldtree->CloneTree(0);
 
     // Here we copy the branches
-    newtree->CopyEntries(oldtree);
-
+    newtree->CopyEntries(oldtree, oldtree->GetEntries());
+    newtree->SetEntries(oldtree->GetEntries());
     // Flush to disk
-    newfile->Write();
+    newtree->Write();
+    newfile->Close();
+    // delete newtree;
+    delete newfile;
+  }
+
+  if (oldfile) {
+    oldfile->Close();
+    delete oldfile;
   }
 }
 
@@ -39,15 +48,15 @@ void migrateSimFiles(const char* filebase = "o2sim")
 {
 
   // READ GRP AND ITERATE OVER DETECTED PARTS
-  auto grp = o2::parameters::GRPObject::loadFrom(o2::filenames::SimFileNameGenerator::getGRPFileName(filebase).c_str());
+  auto grp = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName(filebase).c_str());
   if (!grp) {
     std::cerr << "No GRP found. Exiting\n";
   }
 
   // split off the kinematics file
   std::string originalfilename = std::string(filebase) + std::string(".root");
-  auto kinematicsfile = o2::filenames::SimFileNameGenerator::getKinematicsFileName(filebase).c_str();
-  copyBranch(originalfilename.c_str(), kinematicsfile, o2::detectors::SimTraits::KINEMATICSBRANCHES);
+  auto kinematicsfile = o2::base::NameConf::getMCKinematicsFileName(filebase);
+  copyBranch(originalfilename.c_str(), kinematicsfile.c_str(), o2::detectors::SimTraits::KINEMATICSBRANCHES);
 
   // loop over all possible detectors
   for (auto detid = o2::detectors::DetID::First; detid <= o2::detectors::DetID::Last; ++detid) {
@@ -56,6 +65,6 @@ void migrateSimFiles(const char* filebase = "o2sim")
     }
     // fetch possible sim branches for this detector and copy them
     auto simbranches = o2::detectors::SimTraits::DETECTORBRANCHNAMES[detid];
-    copyBranch(originalfilename.c_str(), o2::filenames::SimFileNameGenerator::getHitFileName(detid, filebase).c_str(), simbranches);
+    copyBranch(originalfilename.c_str(), o2::base::NameConf::getHitsFileName(detid, filebase).c_str(), simbranches);
   }
 }
