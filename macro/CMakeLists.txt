@@ -16,7 +16,8 @@ install(FILES CheckClusters_mft.C
               CheckDigits_mft.C
               SetIncludePath.C
               analyzeHits.C
-		      duplicateHits.C
+	      duplicateHits.C
+              migrateSimFiles.C
               analyzeDigitLabels.C
               analyzeOriginHits.C
               build_geometry.C
