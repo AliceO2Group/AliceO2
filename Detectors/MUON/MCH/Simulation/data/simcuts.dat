@@ -2,21 +2,11 @@
 * ===
 *
 *    Med GAM   ELEC  NHAD  CHAD  MUON  EBREM MUHAB EDEL  MUDEL MUPA  ANNI  BREM  COMP  DCAY  DRAY  HADR  LOSS  MULS  PAIR  PHOT  RAYL 
-* Air 
-*MCH  1  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
 * Aluminium
 MCH  13  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
-* Aluminium bis
-MCH  13  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
-* Gas mixture Ar+IsoC4H10 (not used)
-*MCH  0  1e-5  1e-5  1e-3  1e-3  1e-5  1e-5  1e-5  1e-5  1e-5  -1.   1     1     1     1     1     1     1     1     1     1     1
-* Gaz mixture of the active medium of the trigger chambers
-*MCH  7  1e-5  1e-5  1e-3  1e-3  1e-5  1e-5  1e-5  1e-5  1e-5  -1.   1     1     1     1     1     1     1     1     1     1     1
-* Bakelite of trigger chambers
-*MCH  8  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
 * Gas mixture Ar+C02 active medium of the tracking chambers
 MCH  0  1e-5  1e-5  1e-3  1e-3  1e-5  1e-5  1e-5  1e-5  1e-5  -1.   1     1     1     1     1     1     1     1     1     1     1
-* Cooper in the PCBs 
+* Copper in the PCBs 
 MCH 5  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
 * G10 material (what is this?)
 *MCH 12  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
@@ -41,8 +31,6 @@ MCH 12  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     
 * Sn+Pb of St1 (no equivalent)
 *MUON 27  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1 
 * Plastic
-MUON 9  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1 
-* Kapton (no equivalent)
-*MUON 29  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1 
+MCH 9  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1 
 * InoxBolts of St1
-MUON 11  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
+MCH 11  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
