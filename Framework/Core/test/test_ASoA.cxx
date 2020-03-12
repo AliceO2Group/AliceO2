@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   auto rowIndex = std::make_tuple(
     std::pair<test::X*, arrow::Column*>{nullptr, table->column(0).get()},
     std::pair<test::Y*, arrow::Column*>{nullptr, table->column(1).get()});
-  RowView<test::X, test::Y> tests(rowIndex, {table->num_rows(), 0});
+  Points::iterator tests(rowIndex, {table->num_rows(), 0});
   BOOST_CHECK_EQUAL(tests.x(), 0);
   BOOST_CHECK_EQUAL(tests.y(), 0);
   ++tests;

@@ -96,7 +96,7 @@ struct WritingCursor<soa::Table<PC...>> {
   template <typename T>
   static decltype(auto) extract(T const& arg)
   {
-    if constexpr (is_specialization<T, soa::RowViewBase>::value) {
+    if constexpr (soa::is_soa_iterator_t<T>::value) {
       return arg.globalIndex();
     } else {
       static_assert(!framework::has_type_v<T, framework::pack<PC...>>, "Argument type mismatch");
@@ -265,7 +265,7 @@ struct AnalysisDataProcessorBuilder {
     using dT = std::decay_t<T>;
     if constexpr (framework::is_specialization<dT, soa::Filtered>::value) {
       eInfos.push_back({At, createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
-    } else if constexpr (soa::is_type_with_policy_v<dT>) {
+    } else if constexpr (soa::is_soa_iterator_t<dT>::value) {
       if (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
         eInfos.push_back({At, createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
       }
@@ -312,7 +312,7 @@ struct AnalysisDataProcessorBuilder {
   template <typename T, typename... Os>
   static auto extractFromRecord(InputRecord& record, pack<Os...> const&)
   {
-    if constexpr (soa::is_type_with_policy_v<T>) {
+    if constexpr (soa::is_soa_iterator_t<T>::value) {
       return typename T::table_t{extractTableFromRecord<Os>(record)...};
     } else {
       return T{{extractTableFromRecord<Os>(record)...}};
@@ -322,7 +322,7 @@ struct AnalysisDataProcessorBuilder {
   template <typename T, typename... Os>
   static auto extractFilteredFromRecord(InputRecord& record, ExpressionInfo const& info, pack<Os...> const&)
   {
-    if constexpr (soa::is_type_with_policy_v<T>) {
+    if constexpr (soa::is_soa_iterator_t<T>::value) {
       return soa::Filtered<typename T::table_t>(std::vector<std::shared_ptr<arrow::Table>>{extractTableFromRecord<Os>(record)...}, info.tree);
     } else {
       return T(std::vector<std::shared_ptr<arrow::Table>>{extractTableFromRecord<Os>(record)...}, info.tree);
@@ -338,7 +338,7 @@ struct AnalysisDataProcessorBuilder {
         if (info.index == At)
           return extractFilteredFromRecord<decayed>(record, info, soa::make_originals_from_type<decayed>());
       }
-    } else if constexpr (soa::is_type_with_policy_v<decayed>) {
+    } else if constexpr (soa::is_soa_iterator_t<decayed>::value) {
       if constexpr (std::is_same_v<typename decayed::policy_t, soa::FilteredIndexPolicy>) {
         for (auto& info : infos) {
           if (info.index == At)
@@ -378,7 +378,7 @@ struct AnalysisDataProcessorBuilder {
       // is a o2::soa::Table or a o2::soa::RowView
       if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::Table>::value) {
         task.process(groupingTable);
-      } else if constexpr (is_base_of_template<o2::soa::RowViewBase, std::decay_t<Grouping>>::value) {
+      } else if constexpr (soa::is_soa_iterator_t<std::decay_t<Grouping>>::value) {
         for (auto& groupedElement : groupingTable) {
           task.process(groupedElement);
         }
@@ -406,7 +406,7 @@ struct AnalysisDataProcessorBuilder {
       //
       // Will iterate on all the tracks for the provided collision.
       if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::Table>::value) {
-        static_assert(((is_specialization<std::decay_t<Associated>, o2::soa::RowViewBase>::value == false) && ...),
+        static_assert(((soa::is_soa_iterator_t<std::decay_t<Associated>>::value == false) && ...),
                       "You cannot have a soa::RowView iterator as an argument after the "
                       " first argument of type soa::Table which is found as in the "
                       " prototype of the task process method.");
@@ -414,9 +414,9 @@ struct AnalysisDataProcessorBuilder {
         associated.bindExternalIndices(&groupingTable);
         groupingTable.bindExternalIndices(&associated);
         task.process(groupingTable, associated);
-      } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::RowViewBase>::value) {
+      } else if constexpr (soa::is_soa_iterator_t<std::decay_t<Grouping>>::value) {
         using AssociatedType = std::tuple_element_t<0, std::tuple<Associated...>>;
-        if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::RowViewBase>::value) {
+        if constexpr (soa::is_soa_iterator_t<std::decay_t<AssociatedType>>::value) {
           auto groupedTable = std::get<0>(associatedTables);
           size_t currentGrouping = 0;
           Grouping groupingElement = groupingTable.begin();
