@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "SimulationDataFormat/RunContext.h"
-#include "DetectorsCommonDataFormats/FileNameGenerator.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include <TChain.h>
 #include <iostream>
 
@@ -51,12 +51,22 @@ bool RunContext::initSimChains(o2::detectors::DetID detid, std::vector<TChain*>&
 
   simchains.emplace_back(new TChain("o2sim"));
   // add the main (background) file
-  simchains.back()->AddFile(o2::filenames::SimFileNameGenerator::getHitFileName(detid, mSimPrefixes[0].data()).c_str());
+  simchains.back()->AddFile(o2::base::NameConf::getHitsFileName(detid, mSimPrefixes[0].data()).c_str());
 
   for (int source = 1; source < mSimPrefixes.size(); ++source) {
     simchains.emplace_back(new TChain("o2sim"));
     // add signal files
-    simchains.back()->AddFile(o2::filenames::SimFileNameGenerator::getHitFileName(detid, mSimPrefixes[source].data()).c_str());
+    simchains.back()->AddFile(o2::base::NameConf::getHitsFileName(detid, mSimPrefixes[source].data()).c_str());
   }
   return true;
+}
+
+o2::parameters::GRPObject const& RunContext::getGRP() const
+{
+  if (!mGRP) {
+    // we take the GRP from the background file
+    // maybe we should add a check that all GRPs are consistent ..
+    mGRP = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName(mSimPrefixes[0].data()).c_str());
+  }
+  return *mGRP;
 }

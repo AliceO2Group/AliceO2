@@ -49,16 +49,7 @@ class FV0DPLDigitizerTask
   void init(framework::InitContext& ic)
   {
     LOG(INFO) << "FV0DPLDigitizerTask:init";
-
-    const std::string inputGRP = "o2sim_grp.root";
-    const std::string grpName = "GRP";
-    TFile flGRP(inputGRP.c_str());
-    if (flGRP.IsZombie()) {
-      LOG(FATAL) << "Failed to open " << inputGRP;
-    }
-    std::unique_ptr<GRP> grp(static_cast<GRP*>(flGRP.GetObjectChecked(grpName.c_str(), GRP::Class())));
     mDigitizer.init();
-    mDigitizer.setTimeStamp(grp->getTimeStart());
   }
 
   void run(framework::ProcessingContext& pc)
@@ -71,6 +62,8 @@ class FV0DPLDigitizerTask
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
     context->initSimChains(o2::detectors::DetID::FV0, mSimChains);
+
+    mDigitizer.setTimeStamp(context->getGRP().getTimeStart());
 
     auto& irecords = context->getEventRecords();
     auto& eventParts = context->getEventParts();
