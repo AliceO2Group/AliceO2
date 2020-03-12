@@ -21,7 +21,6 @@ o2_add_library(DetectorsCommonDataFormats
 o2_target_root_dictionary(
   DetectorsCommonDataFormats
   HEADERS include/DetectorsCommonDataFormats/DetID.h
-          include/DetectorsCommonDataFormats/FileNameGenerator.h
           include/DetectorsCommonDataFormats/SimTraits.h
           include/DetectorsCommonDataFormats/AlignParam.h
           include/DetectorsCommonDataFormats/NameConf.h

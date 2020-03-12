@@ -15,10 +15,10 @@
 #include <cassert>
 #include "FairLogger.h"
 
-void checkStack(const char* name = "o2sim_kine.root")
+void checkStack(const char* nameprefix = "o2sim")
 {
   FairLogger::GetLogger()->SetLogScreenLevel("DEBUG");
-  TFile f(name);
+  TFile f(o2::base::NameConf::getMCKinematicsFileName(nameprefix).c_str());
 
   LOG(DEBUG) << "Checking input file :" << f.GetPath();
 

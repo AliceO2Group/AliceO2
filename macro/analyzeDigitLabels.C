@@ -71,6 +71,9 @@ struct LabelStats {
 template <typename LabelType, typename Accumulator = LabelStats>
 void analyse(TTree* tr, const char* brname, Accumulator& prop)
 {
+  if (!tr) {
+    return;
+  }
   auto br = tr->GetBranch(brname);
   if (!br) {
     return;
