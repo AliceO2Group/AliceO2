@@ -111,7 +111,6 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         labels.clear();
       }
     }
-
     // Force flush of the digits that remain in the digitizer cache
     mDigitizer.flush(digits, labels);
     triggers.emplace_back(irecords[irecords.size() - 1], digitsAccum.size(), digits.size());
@@ -132,7 +131,6 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     pc.outputs().snapshot(Output{"TRD", "ROMode", 0, Lifetime::Timeframe}, mROMode);
     LOG(INFO) << "TRD: Sending trigger records";
     pc.outputs().snapshot(Output{"TRD", "TRGRDIG", 0, Lifetime::Timeframe}, triggers);
-
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     finished = true;
