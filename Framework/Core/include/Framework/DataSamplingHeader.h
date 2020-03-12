@@ -34,7 +34,7 @@ struct DataSamplingHeader : public header::BaseHeader {
 
   using DeviceIDType = header::Descriptor<deviceIDTypeSize>;
 
-  // data sampling header fields
+  // Data Sampling header fields
   uint64_t sampleTimeUs = 0;
   uint32_t totalAcceptedMessages = 0;
   uint32_t totalEvaluatedMessages = 0;
