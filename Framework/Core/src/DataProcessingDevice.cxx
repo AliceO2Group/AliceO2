@@ -363,6 +363,8 @@ bool DataProcessingDevice::ConditionalRun()
       active |= this->tryDispatchComputation(mCompleted);
     }
   }
+  sendRelayerMetrics();
+  flushMetrics();
   if (active == false) {
     mServiceRegistry.get<CallbackService>()(CallbackService::Id::Idle);
   }
