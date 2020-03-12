@@ -32,14 +32,16 @@ struct JetFinderTask {
   Produces<o2::aod::Jets> jets;
   Produces<o2::aod::JetConstituents> constituents;
 
-  Filter trackCuts = aod::track::signed1Pt < 10.f;
+  // TODO: use abs, eventually use pt
+  Filter trackCuts = (aod::track::signed1Pt < 10.f) &&
+                     (aod::track::signed1Pt > -10.f);
 
-  // TODO: use configurables (when available)
-  double rParam = 0.4;
+  // TODO: use configurables for all parameters
+  Configurable<double> rParam{"rParam", 0.4, "jet radius"};
+  Configurable<float> ghostEtamax{"ghostEtamax", 1.0, "eta max for ghosts"};
   fastjet::Strategy strategy = fastjet::Best;
   fastjet::RecombinationScheme recombScheme = fastjet::E_scheme;
   fastjet::JetAlgorithm algorithm = fastjet::antikt_algorithm;
-  float ghostEtamax = 1.0;
   fastjet::AreaType areaType = fastjet::passive_area;
 
   void process(aod::Collision const& collision,
@@ -47,6 +49,7 @@ struct JetFinderTask {
   {
     std::vector<fastjet::PseudoJet> inputParticles;
     for (auto& track : fullTracks) {
+      // TODO: Use px, py, pz, E from track (to be added there)
       auto dummyE = std::sqrt(track.x() * track.x() + track.y() * track.y() +
                               track.z() * track.z() + 0.14 * 0.14);
       inputParticles.emplace_back(track.x(), track.y(), track.z(), dummyE);
