@@ -13,6 +13,7 @@
 
 #include <vector>
 #include <array>
+#include <iostream>
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -21,39 +22,66 @@
 #include "TRDSimulation/TrapSimulator.h"
 
 #include "TRDSimulation/TrapConfig.h"
-#include "TRDSimulation/TrapConfigHandler.h"
 #include "CCDB/BasicCCDBManager.h"
-#include <iostream>
+
+class Calibrations;
 
 namespace o2
 {
 namespace trd
 {
 
-class TRDDPLTrapSimulatorTask : public framework::Task
+class TRDDPLTrapSimulatorTask : public o2::framework::Task
 {
 
  public:
   TRDDPLTrapSimulatorTask() = default;
-  ~TRDDPLTrapSimulatorTask() override = default;
+  ~TRDDPLTrapSimulatorTask() override
+  {
+    if (mTrapConfig)
+      delete mTrapConfig;
+  }
   void init(o2::framework::InitContext& ic) override;
   void run(o2::framework::ProcessingContext& pc) override;
 
  private:
   std::array<TrapSimulator, 8> mTrapSimulator; //the 8 trap simulators for a given padrow.
-  FeeParam* mfeeparam;
+  FeeParam* mFeeParam;
   TrapConfig* mTrapConfig;
   std::unique_ptr<TRDGeometry> mGeo;
   //  std::unique_ptr<TrapConfigHandler> mTrapConfigHandler;
+  int mNumThreads = 8;
+  unsigned long mRunNumber = 297595; //run number to anchor simulation to.
   bool mDriveFromConfig{false};     // option to disable using the trapconfig to drive the simulation
-  int mPrintTrackletOptions = 0;    // print the tracklets to the screen, ascii art
+  int mPrintTrackletOptions = 0;    // print the trap chips adc vs timebin to the screen, ascii art
   int mDrawTrackletOptions = 0;     //draw the tracklets 1 per file
-  int mShowTrackletStats = 0;       //the the accumulated total tracklets found
-  std::vector<Tracklet> mTracklets; // store of tracklets to then be inserted into a message.
+  int mShowTrackletStats = 25000;   //how frequencly to show the trapsimulator stats
+  bool mPrintOutTrapConfig{false};
+  bool mDebugRejectedTracklets{false};
+  bool mEnableOnlineGainCorrection{false};
+  bool mEnableTrapConfigDump{false};
+  std::vector<Tracklet> mTracklets; // store of found tracklets
   std::string mTrapConfigName;      // the name of the config to be used.
   std::string mTrapConfigBaseName = "TRD_test/TrapConfig/";
+  std::unique_ptr<CalOnlineGainTables> mGainTable; //this will probably not be used in run3.
+  std::string mOnlineGainTableName;
+  std::unique_ptr<Calibrations> mCalib; // store the calibrations connection to CCDB. Used primarily for the gaintables in line above.
+
+  //arrays to keep some stats during processing
+  std::array<unsigned int, 8> mTrapUsedCounter{0};
+  std::array<unsigned int, 8> mTrapUsedFrequency{0};
+
+  //various timers so we can see how long things take
+  std::chrono::duration<double> mTrapSimAccumulatedTime{0}; ///< full timer
+  std::chrono::duration<double> mDigitLoopTime{0};          ///< full timer
+  std::chrono::duration<double> mTrapLoopTime{0};           ///< full timer
+  std::chrono::duration<double> moldelse{0};                ///< full timer
+  std::chrono::duration<double> mTrackletTime{0};           ///< full timer
+  std::chrono::duration<double> mSortingTime{0};            ///< full timer
+
   TrapConfig* getTrapConfig();
   void loadTrapConfig();
+  void setOnlineGainTables();
 };
 
 o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec();

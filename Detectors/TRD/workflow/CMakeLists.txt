@@ -31,3 +31,9 @@ o2_add_executable(trap-sim
                                         O2::TRDBase
                                         O2::DataFormatsTRD
                                         O2::TRDWorkflow)
+
+if (OpenMP_CXX_FOUND)
+    target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+    target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+endif()
+
