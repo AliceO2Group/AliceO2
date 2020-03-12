@@ -25,10 +25,11 @@
 #include "TRDBase/Tracklet.h"
 #include "TRDBase/FeeParam.h"
 #include "TRDBase/Digit.h"
-#include "TRDBase/MCLabel.h"
 #include "TRDSimulation/Digitizer.h"
-#include "TRDSimulation/TrapConfigHandler.h"
+#include "TRDSimulation/TrapConfigHandler.h" //TODO I think i can dump this.
 #include "TRDSimulation/TrapConfig.h"
+#include "TRDBase/MCLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 class TH2F;
 
@@ -64,31 +65,30 @@ class TrapSimulator
 
   void noiseTest(int nsamples, int mean, int sigma, int inputGain = 1, int inputTail = 2);
 
-  int getDataRaw(int iadc, int timebin) const { return (mADCR[iadc * mNTimeBin + timebin] >> 2); }
+  bool CalibrateRun2();
+  int getDataRaw(int iadc, int timebin) const { return (mADCR[iadc * mNTimeBin + timebin]); } // >> 2); }
   // get unfiltered ADC data
-  int getDataFiltered(int iadc, int timebin) const { return (mADCF[iadc * mNTimeBin + timebin] >> 2); }
+  int getDataFiltered(int iadc, int timebin) const { return (mADCF[iadc * mNTimeBin + timebin]); } // >> 2); }
   // get filtered ADC data
   int getZeroSupressionMap(int iadc) const { return (mZSMap[iadc]); }
   bool isDataSet() { return mDataIsSet; };
   void unsetData()
   {
     mDataIsSet = false;
-    //if(mHits.size()>50) LOG(warn) << "mHits size is >50 ==" << mHits.size();
-    //    for(int i=0;i<mNHits;i++) mHits[i].ClearHits();//I dont need to unset this as I am setting mNHits to zero
-    //if(mFitReg.size()>50) LOG(warn) << "mFitReg size is >50 ==" << mFitReg.size();
     for (auto& fitreg : mFitReg)
       fitreg.ClearReg();
     mNHits = 0;
+    mADCFilled = 0;
+    for (auto& tmplabel : mADCLabels)
+      tmplabel.clear();      // clear MC Labels sent in from the digits coming in.
+    mTrackletLabels.clear(); // clear the stored labels.
   };
-  void setData(int iadc, const std::vector<int>& adc);                                                                              // set ADC data with array
-  void setData(int iadc, const ArrayADC& adc);                                                                                      // set ADC data with array
+  //  void setData(int iadc, const std::vector<int>& adc);                                                                              // set ADC data with array
+  void setData(int iadc, const ArrayADC& adc, std::vector<o2::MCCompLabel>& labels); // set ADC data with array
+  //void setData(int iadc, const ArrayADC& adc, gsl::span<o2::MCCompLabel,-1>& labels);                                                                                      // set ADC data with array
+  void setBaselines();                                                                                                              // set the baselines as done in setDataByPad which is bypassed due to using setData in line above.
   void setData(int iadc, int it, int adc);                                                                                          // set ADC data
   void setDataFromDigitizerAndRun(std::vector<o2::trd::Digit>& data, o2::dataformats::MCTruthContainer<MCLabel>&);                  // data coming in manually from the the digitizer.
-                                                                                                                                    /*   void setData(TRDArrayADC* const adcArray,
-               TRDdigitsManager* const digitsManager = 0x0); // set ADC data from adcArray
-  void setDataByPad(const TRDArrayADC* const adcArray,
-                    TRDdigitsManager* const digitsManager = 0x0); // set ADC data from adcArray
-*/
   void setDataByPad(std::vector<o2::trd::Digit>& padrowdata, o2::dataformats::MCTruthContainer<MCLabel>& labels, int padrowoffset); // data coming in manually from the the digitizer.
   void setDataPedestal(int iadc);                                                                                                   // Fill ADC data with pedestal values
 
@@ -117,8 +117,9 @@ class TrapSimulator
   std::string getTrklBranchName() const { return mTrklBranchName; }
   void setTrklBranchName(std::string name) { mTrklBranchName = name; }
 
-  int produceRawStream(unsigned int* buf, int bufsize, unsigned int iEv = 0) const; // Produce raw data stream - Real data format
-  int produceTrackletStream(unsigned int* buf, int bufsize);                        // produce the tracklet stream for this MCM
+  int packData(std::vector<uint32_t>& buf);
+  int produceRawStream(std::vector<uint32_t>& buf, unsigned int iEv = 0) const; // Produce raw data stream - Real data format
+  int produceTrackletStream(std::vector<uint32_t>& buf);                        // produce the tracklet stream for this MCM
 
   // different stages of processing in the TRAP
   void filter();                // Apply digital filters for existing data (according to configuration)
@@ -149,7 +150,8 @@ class TrapSimulator
   void fitTracklet();
 
   int getNHits() const { return mHits.size(); }
-  bool getHit(int index, int& channel, int& timebin, int& qtot, int& ypos, float& y, int& label) const;
+  bool getHit(int index, int& channel, int& timebin, int& qtot, int& ypos, float& y) const;
+  //o2::trd::TrapSimulator::Hit& getHit(int index) const;
 
   // data display
   void print(int choice) const;     // print stored data to stdout
@@ -196,6 +198,7 @@ class TrapSimulator
   //std::array<TrackletMCM> getTrackletArray() const { return mTrackletArray; }
   std::vector<Tracklet>& getTrackletArray() { return mTrackletArray; }
   void getTracklets(std::vector<Tracklet>& TrackletStore); // place the trapsim tracklets nto the incoming vector
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>& getTrackletLabels() { return mTrackletLabels; }
 
   bool checkInitialized() const;     // Check whether the class is initialized
   static const int mgkFormatIndex;   // index for format settings in stream
@@ -203,7 +206,7 @@ class TrapSimulator
   static const int mgkAddDigits = 2; // additional digits used for internal representation of ADC data
                                      // all internal data as after data control block (i.e. 12 bit), s. TRAP manual
   static const int mgkNCPU = 4;      // Number of CPUs in the TRAP
-  static const int mgkNHitsMC = 100; // maximum number of hits for which MC information is kept
+  static const int mgkNHitsMC = 150; // maximum number of hits for which MC information is kept
 
   static const std::array<unsigned short, 4> mgkFPshifts; // shifts for pedestal filter
   // hit detection
@@ -218,7 +221,6 @@ class TrapSimulator
     int mTimebin; // timebin of the hit
     int mQtot;    // total charge of the hit
     int mYpos;    // calculated y-position
-                  //  std::array<int, 3> mLabel{}; // up to 3 labels (only in MC) run3 is free to have many, but does more than 1 per digit make sense.
     void ClearHits()
     {
       mChannel = 0;
@@ -274,8 +276,7 @@ class TrapSimulator
       mSumXY = 0;
     }
   };
-  std::array<FitReg, 25> mFitReg{}; // TODO come back and make this 21 or 22, I cant remember now which one, so making it 25 to be safe ;-)
-                                    //std::vector<FitReg,FeeParam::mgkNadcMcm> mFitReg;
+  std::array<FitReg, FeeParam::mgkNadcMcm> mFitReg{};
 
  protected:
   void setNTimebins(int ntimebins); // allocate data arrays corr. to the no. of timebins
@@ -286,11 +287,14 @@ class TrapSimulator
   int mMcmPos;            // MCM Position on chamber
   int mRow;               // Pad row number (0-11 or 0-15) of the MCM on chamber
   int mNTimeBin;          // Number of timebins currently allocated
+
+  //TODO adcr adcf labels zerosupressionmap can all go into their own class. Refactor when stable.
   std::vector<int> mADCR; // Array with MCM ADC values (Raw, 12 bit) 2d with dimension mNTimeBin
   std::vector<int> mADCF; // Array with MCM ADC values (Filtered, 12 bit) 2d with dimension mNTimeBin
-
+  std::array<std::vector<o2::MCCompLabel>, FeeParam::mgkNadcMcm> mADCLabels{}; // MC Labels sent in from the digits coming in.
   std::vector<unsigned int> mMCMT;      // tracklet word for one mcm/trap-chip
   std::vector<Tracklet> mTrackletArray; // Array of TRDtrackletMCM which contains MC information in addition to the tracklet word
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mTrackletLabels;
   std::vector<int> mZSMap;              // Zero suppression map (1 dimensional projection)
 
   std::array<int, mgkNCPU> mFitPtr{}; // pointer to the tracklet to be calculated by CPU i
@@ -301,19 +305,12 @@ class TrapSimulator
   FeeParam* mFeeParam;     // FEE parameters
   TrapConfig* mTrapConfig; // TRAP config
   TrapConfigHandler mTrapConfigHandler;
-  CalOnlineGainTables mGainTable;
+  //  CalOnlineGainTables mGainTable;
 
-  static const int NOfAdcPerMcm = 21;
-  //TRDdigitsManager* mDigitsManager; // pointer to digits manager used for MC label calculation
-  //  TRDArrayDictionary* mDict[3];     // pointers to label dictionaries
-  // Dictionaries are now done a differentway ??? to be determined TODO
-  //  std::vector<int> mDict1;
-  //  std::vector<int> mDict2;
-  //  std::vector<int> mDict3;
-  // internal filter registers
+  static const int NOfAdcPerMcm = FeeParam::mgkNadcMcm;
 
-  std::array<FilterReg, NOfAdcPerMcm> mInternalFilterRegisters;
-
+  std::array<FilterReg, FeeParam::mgkNadcMcm> mInternalFilterRegisters;
+  int mADCFilled = 0; // stores bitpattern of fillted adc, for know when to fill with pure baseline, for use with setData(int iadc, const ArrayADC& adc);
   int mNHits; // Number of detected hits
 
   // Sort functions as in TRAP
@@ -333,7 +330,6 @@ class TrapSimulator
 
   unsigned int addUintClipping(unsigned int a, unsigned int b, unsigned int nbits) const;
   // Add a and b (unsigned) with clipping to the maximum value representable by nbits
-
  private:
   TrapSimulator(const TrapSimulator& m);            // not implemented
   TrapSimulator& operator=(const TrapSimulator& m); // not implemented
@@ -344,6 +340,7 @@ class TrapSimulator
 
   static bool mgStoreClusters; // whether to store all clusters in the tracklets
   bool mDataIsSet = false;
+  Calibrations* mCalib;
 };
 
 std::ostream& operator<<(std::ostream& os, const TrapSimulator& mcm);

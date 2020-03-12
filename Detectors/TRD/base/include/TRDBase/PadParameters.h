@@ -49,18 +49,7 @@ class PadParameters
   T getValue(int col, int row) const { return getValue(getChannel(col, row)); };
   void setValue(int ich, T value) { mData[ich] = value; }
   void setValue(int col, int row, T value) { setValue(getChannel(col, row), value); }
-  void debug() { std::cout << "in padparameters debug with this:" << this << " with mPlane:mChamber:mNrows:mNchannels::" << mPlane << ":" << mNrows << ":" << mNchannels << "   and a vector size of : " << mData.size() << std::endl; };
-  void reset(int chamberindex, int col, int row, std::vector<T>& data);
-  void dumpNonZeroValues(int roc)
-  {
-    int count = 0;
-    for (auto& pad : mData) { // Range-for!
-      if (pad > 0) {
-        std::cout << "roc:pad:value" << roc << ":" << count << ":" << pad << std::endl;
-      }
-      count++;
-    }
-  }
+  int reset(int chamberindex, int col, int row, std::vector<T>& data);
 
  protected:
   int mPlane{0};                 //  Plane number
@@ -71,7 +60,6 @@ class PadParameters
   std::vector<T> mData;          // Size is mNchannels
 };
 
-//
 template <class T>
 PadParameters<T>::PadParameters(int chamberindex)
 {
@@ -91,12 +79,12 @@ int PadParameters<T>::init(int chamberindex)
   mNchannels = mNrows * mNcols;
   mData.resize(mNchannels);
   if (mData.size() != mNchannels || mData.size() == 0)
-    LOG(FATAL) << "PadParamaters initialised with a size of " << mData.size() << " and mNchannels of " << mNchannels;
+    return -1;
   return 0;
 }
 
 template <class T>
-void PadParameters<T>::reset(int chamberindex, int cols, int rows, std::vector<T>& data)
+int PadParameters<T>::reset(int chamberindex, int cols, int rows, std::vector<T>& data)
 {
   mPlane = TRDGeometry::getLayer(chamberindex);
   mChamber = TRDGeometry::getStack(chamberindex);
@@ -105,10 +93,10 @@ void PadParameters<T>::reset(int chamberindex, int cols, int rows, std::vector<T
   // the FeeParam variables need to be unprotected, and dont want to change FeeParam in this PR.
   mNchannels = mNrows * mNcols;
   if (mData.size() != mNchannels)
-    LOG(info) << "reseting a readoutchamber size which should not be needed given the detectors have not changed in run2 to run3";
+    return -2;
   mData.resize(mNchannels);
   if (mData.size() != mNchannels || mData.size() == 0)
-    LOG(FATAL) << "PadParamaters initialised with a size of " << mData.size() << " and mNchannels of " << mNchannels;
+    return -1;
 
   // now reset the data of the pads.
   int counter = 0;
@@ -116,6 +104,7 @@ void PadParameters<T>::reset(int chamberindex, int cols, int rows, std::vector<T
     pad = data[counter];
     counter++;
   }
+  return 0;
 }
 
 } // namespace trd

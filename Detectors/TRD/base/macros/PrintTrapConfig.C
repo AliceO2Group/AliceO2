@@ -99,69 +99,103 @@ AliCDBEntry* GetCDBentry(const Char_t* path, Bool_t owner = kTRUE);
 //  I could of course redo AliRoot, but ... whats the point, as this should simply be a one off
 //  to get all the trapconfig into CCDB.
 //  This is the reason the following method is commented out.
-void ParseTrapConfigs(TrapConfig* trapconfig, AliTRDtrapConfig* run2config)
+void PrintTrapConfigsPerDetElement(AliTRDtrapConfig* trapconfig)
 {
+  //
+  /*    for(int det=0;<det<540;det++){
+        for(int rob=0;rob<??;rob++){
+            for(int mcm=0;mcm<??;mcm++){
+                //walk through all configs for a singular mcm even if they are identical for rob, det or mcm
+                //this will be exhaustive but allow trivial comparison.
+            }
+        }
+    }*/
+}
 
+void PrintDmemValue(AliTRDtrapConfig::AliTRDtrapDmemWord* trapval, ostream& output)
+{
+  output << "\t AllocationMode : " << trapval->fAllocMode << endl;
+  output << "\t Array size : " << trapval->fSize << endl;
+  for (int dataarray = 0; dataarray < trapval->fSize; dataarray++) {
+    output << "\t " << trapval->fData[dataarray] << " : valid : " << trapval->fValid[dataarray] << endl;
+  }
+}
+void PrintRegisterValue(AliTRDtrapConfig::AliTRDtrapRegister* trapval, ostream& output)
+{
+  output << "\t AllocationMode : " << trapval->fAllocMode << endl;
+  output << "\t Array size : " << trapval->fSize << endl;
+  for (int dataarray = 0; dataarray < trapval->fSize; dataarray++) {
+    output << "\t " << trapval->fData[dataarray] << " : valid : " << trapval->fValid[dataarray] << endl;
+  }
+}
+
+void PrintTrapConfigsAsStored(AliTRDtrapConfig* trapconfig)
+{
+  ofstream run2config("run2trapconfig-AsStored.txt");
+  run2config << "Trap Registers : " << endl;
   for (int regvalue = 0; regvalue < AliTRDtrapConfig::kLastReg; regvalue++) {
-    // cout << "revalue of : " << regvalue << endl;
-    //  AliTRDtrapConfig::AliTRDTrapRegister a = fRegisterValue[regvalue];
-    //copy fname, fAddr, fNbits and fResetValue
-    //and inherited from trapvalue : fAllocMode fSize fData fValid
-    // trapconfig->mRegisterValue[regvalue].mName = run2config->fRegisterValue[regvalue].fName;
-    //      cout << "now to init registervalues" << endl;
-    //      Some Sanity checks:
-    if (regvalue > trapconfig->mRegisterValue.size())
-      cout << "!!!!!!!!!!!!! regval = " << regvalue << " while register array in trapconfig is :" << trapconfig->mRegisterValue.size() << endl;
-
-    trapconfig->mRegisterValue[regvalue].initfromrun2(run2config->fRegisterValue[regvalue].fName,
-                                                      run2config->fRegisterValue[regvalue].fAddr,
-                                                      run2config->fRegisterValue[regvalue].fNbits,
-                                                      run2config->fRegisterValue[regvalue].fResetValue);
+    run2config << " Trap : " << trapconfig->fRegisterValue[regvalue].GetName()
+               << " at : 0x " << hex << trapconfig->fRegisterValue[regvalue].GetAddr() << dec
+               << " with nbits : " << trapconfig->fRegisterValue[regvalue].GetNbits()
+               << " and reset value of : " << trapconfig->fRegisterValue[regvalue].GetResetValue() << endl;
     // now for the inherited AliTRDtrapValue members;
-    trapconfig->mRegisterValue[regvalue].allocatei((int)run2config->fRegisterValue[regvalue].fAllocMode);
-    //cout << "size is : " << run2config->fRegisterValue[regvalue].fSize << endl;
-    //allocate will set the size of the arrays and resize them accordingly.
-    //                cout<< "PROBLEM !! datacount " << datacount<<">="<<trapconfig->mRegisterValue.size() << " and run2 size is : "<< run2config->fRegisterValue[regvalue].fSize << " allocmode : "<< run2config->fRegisterValue[regvalue].fAllocMode << endl;
-    for (int datacount = 0; datacount < run2config->fRegisterValue[regvalue].fSize; datacount++) {
-      if (datacount < trapconfig->mRegisterValue[regvalue].getDataSize()) {
-        //      cout << " Writing :  " << run2config->fRegisterValue[regvalue].fData[datacount] << " :: with valid of " << run2config->fRegisterValue[regvalue].fValid[datacount] << endl;
-        trapconfig->mRegisterValue[regvalue].setDataFromRun2(run2config->fRegisterValue[regvalue].fData[datacount], run2config->fRegisterValue[regvalue].fValid[datacount], datacount);
-        //       cout << "Reading back  : " << trapconfig->mRegisterValue[regvalue].getDataRaw(datacount) << " :: with valid of "<< trapconfig->mRegisterValue[regvalue].getValidRaw(datacount)<< endl;
-        //       exit(1);
-      } else
-        cout << " datacoutn : " << datacount << " >= " << trapconfig->mDmem[regvalue].getDataSize() << endl;
-    }
+    PrintRegisterValue(&trapconfig->fRegisterValue[regvalue], run2config);
   }
 
-  //  cout << "done with regiser values now for dmemwords" << endl;
+  //  run2config << "done with regiser values now for dmemwords" << endl;
+  run2config << "DMEM Words : " << endl;
   for (int dmemwords = 0; dmemwords < AliTRDtrapConfig::fgkDmemWords; dmemwords++) {
     // copy fName, fAddr
     // inherited from trapvalue : fAllocMode, fSize fData and fValid
     //        trapconfig->mDmem[dmemwords].mName= run2config->fDmem[dmemwords].fName; // this gets set on setting the address
-    if (dmemwords > trapconfig->mDmem.size())
-      cout << "!!!!!!!!!!!!! dmemwords = " << dmemwords << " while register array in trapconfig is :" << trapconfig->mDmem.size() << endl;
-    trapconfig->mDmem[dmemwords].setAddress(run2config->fDmem[dmemwords].fAddr);
-    //TODO WHy did i have to comment this out ! trapconfig->mDmem[dmemwords].setName(run2config->fDmem[dmemwords].fName);
-    // now for the inherited AliTRDtrapValue members;
-    trapconfig->mDmem[dmemwords].allocatei((int)run2config->fDmem[dmemwords].fAllocMode);
-    //cout << "size is : " << run2config->fDmem[dmemwords].fSize << endl;
-    //trapconfig->mDmem[dmemwords].mSize = run2config->fDmem[dmemwords].fSize;i// gets set via allocate method in line above
-    for (int datacount = 0; datacount < run2config->fDmem[dmemwords].fSize; datacount++) {
-      if (datacount < trapconfig->mDmem[dmemwords].getDataSize()) {
-        trapconfig->mDmem[dmemwords].setDataFromRun2(run2config->fDmem[dmemwords].fData[datacount], run2config->fDmem[dmemwords].fValid[datacount], datacount);
-      } else
-        cout << " datacount : " << datacount << " >= " << trapconfig->mDmem[dmemwords].getDataSize() << endl;
-    }
+    run2config << "Name : " << trapconfig->fDmem[dmemwords].fName << " :address : " << trapconfig->fDmem[dmemwords].fAddr << endl;
+    PrintDmemValue(&trapconfig->fDmem[dmemwords], run2config);
   }
-  // now for static values,  static consts we obviously ignore
-  /*  trapconfig->mgRegAddressMapInitialized = run2config->fgRegAddressMapInitialized;
-    for(int regmapindex=0;regmapindex<0x400+0x200+0x4;regmapindex++){
-        trapconfig->mgRegAddressMap[regmapindex]= (int)run2config->fgRegAddressMap[regmapindex]; // no need to sort this compiler problem out, RegAddressMap is done in the constructore
-                                                                                                 // the same way as it was done in run2 and nothing in the code allows you to change it.
-    }*/
+  //  ofstream run2cnofig
 }
+
+void PrintDmemValue3(TrapConfig::TrapDmemWord* trapval, ostream& output)
+{
+  output << "\t AllocationMode : " << trapval->getAllocMode() << endl;
+  output << "\t Array size : " << trapval->getDataSize() << endl;
+  for (int dataarray = 0; dataarray < trapval->getDataSize(); dataarray++) {
+    output << "\t " << trapval->getDataRaw(dataarray) << " : valid : " << trapval->getValidRaw(dataarray) << endl;
+  }
+}
+void PrintRegisterValue3(TrapConfig::TrapRegister* trapval, ostream& output)
+{
+  output << "\t AllocationMode : " << trapval->getAllocMode() << endl;
+  output << "\t Array size : " << trapval->getDataSize() << endl;
+  for (int dataarray = 0; dataarray < trapval->getDataSize(); dataarray++) {
+    output << "\t " << trapval->getDataRaw(dataarray) << " : valid : " << trapval->getValidRaw(dataarray) << endl;
+  }
+}
+void PrintTrapConfigsAsStored3(TrapConfig* trapconfig)
+{
+  ofstream run3config("run3trapconfig-AsStored.txt");
+  run3config << "Trap Registers : " << endl;
+  for (int regvalue = 0; regvalue < AliTRDtrapConfig::kLastReg; regvalue++) {
+    run3config << " Trap : " << trapconfig->mRegisterValue[regvalue].getName()
+               << " at : 0x " << hex << trapconfig->mRegisterValue[regvalue].getAddr() << dec
+               << " with nbits : " << trapconfig->mRegisterValue[regvalue].getNbits()
+               << " and reset value of : " << trapconfig->mRegisterValue[regvalue].getResetValue() << endl;
+    // now for the inherited AliTRDtrapValue members;
+    PrintRegisterValue3(&trapconfig->mRegisterValue[regvalue], run3config);
+  }
+
+  //  run3config << "done with regiser values now for dmemwords" << endl;
+  run3config << "DMEM Words : " << endl;
+  for (int dmemwords = 0; dmemwords < AliTRDtrapConfig::fgkDmemWords; dmemwords++) {
+    // copy fName, fAddr
+    // inherited from trapvalue : fAllocMode, fSize fData and fValid
+    //        trapconfig->mDmem[dmemwords].mName= run2config->fDmem[dmemwords].fName; // this gets set on setting the address
+    run3config << "Name : " << trapconfig->mDmem[dmemwords].getName() << " :address : " << trapconfig->mDmem[dmemwords].getAddress() << endl;
+    PrintDmemValue3(&trapconfig->mDmem[dmemwords], run3config);
+  }
+}
+
 //__________________________________________________________________________________________
-void OCDB2CCDBTrapConfig(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data/2018/OCDB/")
+void PrintTrapConfig(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data/2018/OCDB/")
 {
   //
   // Main function to steer the extraction of TRD OCDB information
@@ -207,7 +241,7 @@ its all going here unfortunately ....
 */
 
   vector<std::string> run2confignames = {
-    /* "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5505",
+    /*   "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5505",
     "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b2p-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5585",
     "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b5p-fs1e24-ht200-qs0e23s23e22-pidlhc11dv3en-pt100_ptrg.r5766",
     "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b0-fs1e24-ht200-qs0e23s23e22-pidlhc11dv3en_ptrg.r5767",
@@ -260,8 +294,8 @@ its all going here unfortunately ....
     "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b2n-fs1e24-ht200-qs0e23s23e22-pidlhc11dv3en-pt100_ptrg.r5767",
     "cf_pg-fpnp32_zs-s16-deh_tb26_trkl-b2n-fs1e24-ht200-qs0e23s23e22-pidlhc11dv3en-pt100_ptrg.r5771",
     "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b5n-fs1e24-ht200-qs0e23s23e22-pidlhc11dv1-pt100_ptrg.r5762",
-    "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b0-fs1e24-ht200-qs0e24s24e23-pidlinear_ptrg.r5505",
-    "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b0-fs1e24-ht200-qs0e23s23e22-pidlhc11dv1_ptrg.r5762",*/
+    "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b0-fs1e24-ht200-qs0e24s24e23-pidlinear_ptrg.r5505",*/
+    //"cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b0-fs1e24-ht200-qs0e23s23e22-pidlhc11dv1_ptrg.r5762"
     "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549"};
 
   // now we loop over these extracting the trapconfing and dumping it into the ccdb.
@@ -272,9 +306,15 @@ its all going here unfortunately ....
       for (auto const& run2trapconfigname : run2confignames) {
         auto o2trapconfig = new TrapConfig(run2trapconfigname);
         run2trapconfig = run2caltrapconfig->Get(run2trapconfigname.c_str());
-        ParseTrapConfigs(o2trapconfig, run2trapconfig);
-        //   ccdb.storeAsTFileAny(o2trapconfig, "TRD_test/TrapConfig2020/c", metadata, 1, 1670700184549); //upper time chosen into the future else the server simply adds a year
-        //    cout << "ccdb.storeAsTFileAny(o2trapconfig, Form(\"" << TRDCalBase.c_str() << "/TrapConfig/" << run2trapconfigname.c_str()<< endl; //upper time chosen into the future else the server simply adds a year
+        PrintTrapConfigsAsStored(run2trapconfig);
+        auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
+        ccdbmgr.setTimestamp(297595);
+        // auto run3trapconfig = ccdbmgr.get<o2::trd::TrapConfig>("TRD_test/TrapConfig2020/cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549");
+        auto run3trapconfig = ccdbmgr.get<o2::trd::TrapConfig>("TRD_test/TrapConfig2020/c");
+        if (run3trapconfig)
+          PrintTrapConfigsAsStored3(run3trapconfig);
+        //     ccdb.storeAsTFileAny(o2trapconfig, Form("%s/TrapConfig2020/%s", TRDCalBase.c_str(), run2trapconfigname.c_str()), metadata, 1, 1670700184549); //upper time chosen into the future else the server simply adds a year
+        //     cout << "ccdb.storeAsTFileAny(o2trapconfig, Form(\"" << TRDCalBase.c_str() << "/TrapConfig/" << run2trapconfigname.c_str()<< endl; //upper time chosen into the future else the server simply adds a year
         //AliTRDcalibDB *calibdb=AliTRDcalibDB::Instance();
       }
     }

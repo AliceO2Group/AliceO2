@@ -82,33 +82,29 @@ void TRDDigitReaderSpec::run(ProcessingContext& pc)
     LOG(info) << "mState is not 1";
     return;
   }
-  LOG(info) << "in TRDDigitReadSpec run method ";
   TTree* DPLTree = ((TTree*)mFile->Get(mDigitTreeName.c_str()));
   if (DPLTree) {
     DPLTree->SetBranchAddress(mDigitBranchName.c_str(), &mPDigits);
     DPLTree->SetBranchAddress(mTriggerRecordBranchName.c_str(), &mPTriggerRecords);
     DPLTree->SetBranchAddress(mMCLabelsBranchName.c_str(), &mPMCLabels);
     DPLTree->GetEntry(0);
-    LOG(info) << "TRDDigitReader digits size=" << mDigits.size() << " triggerrecords size=" << mTriggerRecords.size() << " mc labels size=" << mMCLabels.getNElements();
     pc.outputs().snapshot(Output{"TRD", "DIGITS", 0, Lifetime::Timeframe}, mDigits);
     pc.outputs().snapshot(Output{"TRD", "TRGRDIG", 0, Lifetime::Timeframe}, mTriggerRecords);
     pc.outputs().snapshot(Output{"TRD", "LABELS", 0, Lifetime::Timeframe}, mMCLabels);
+    LOG(info) << "TRDDigitReader digits size=" << mDigits.size() << " triggerrecords size=" << mTriggerRecords.size() << " mc labels size=" << mMCLabels.getNElements();
   }
   //delete DPLTree; // next line will delete the pointer as well.
   mFile->Close();
-  LOG(info) << "returning from run method of TRDDigitReader";
 
   mState = 2; // prevent coming in here again.
               // send endOfData control event and mark the reader as ready to finish
   pc.services().get<ControlService>().endOfStream();
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-  LOG(info) << "returning from run method of TRDDigitReader finally";
 }
 
 DataProcessorSpec getTRDDigitReaderSpec(int channels)
 {
 
-  LOG(info) << "get TRDDigitReaderSpec";
   return DataProcessorSpec{"TRDDIGITREADER",
                            Inputs{},
                            Outputs{

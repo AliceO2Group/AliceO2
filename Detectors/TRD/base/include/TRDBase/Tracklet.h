@@ -32,56 +32,51 @@
 #include <memory>   // for std::unique_ptr
 #include "Rtypes.h" // for ClassDef
 
-//#include "fairlogger/Logger.h"
 #include "TRDBase/TRDGeometry.h"
+#include <SimulationDataFormat/MCCompLabel.h>
 
 namespace o2
 {
 namespace trd
 {
 
-//TODO check with ?? I think Ole, about this as I think my freedom to
-//define my own thing is limited by his requirements.
+///
+//TODO in calculating rawslope and rawoffset i ditch the 32bit bitshift to the right and keep the whole number
+//the number after being scaled is then shifted, its not so much what is right and wrong but rather what do we want to see?
+//I assume the more info the better hence dropping the bitshift before storing in a float, but a 32bit bitshift is massive.
+//a float will kind of auto bitshift the lower bits off to construct the float.
 
 class Tracklet
 {
 
   //-----------------------------------
-  //
-  // TRD tracklet word (as from FEE)
-  // only 32-bit of information + detector ID
-  //
+  // This is essentially a debug class.
+  // It still returns the old TrackletWord of run2, rebuilt at call time.
+  // It however stores old bit limited values as floats for further downstream investigations.
   //----------------------------------
  public:
-  Tracklet(unsigned int trackletWord = 0);
-  Tracklet(unsigned int trackletWword, int hcid);
-  Tracklet(unsigned int trackletWword, int hcid, int rob, int mcm);
+  Tracklet();
+  Tracklet(int hcid);
+  Tracklet(int hcid, int rob, int mcm, float pid, float slope, float offset, float rawslope4trackletword, float rawoffset4trackletword);
   Tracklet(const Tracklet& rhs);
   ~Tracklet() = default;
 
   Tracklet& operator=(const Tracklet& o) { return *this; }
 
-  // int getHCId() const { return 2 * getDetector() + (getYbin() > 0 ? 1 : 0); }
-
-  float getdZdX() const { return 0; }
-
-  void localToGlobal(float&, float&, float&, float&) {}
+  void localToGlobal(float&, float&, float&, float&) { LOG(fatal) << "Tracklet::localToGlobal not implemented yet "; }
 
   void print(std::string* /*option=""*/) const {}
 
   // ----- Getters for contents of tracklet word -----
   int getYbin() const;                                          // in units of 160 um
   int getdY() const;                                            // in units of 140 um
-  int getZbin() const { return ((mTrackletWord >> 20) & 0xf); } // in pad length units
-  int getPID() const { return ((mTrackletWord >> 24) & 0xff); }
+  int getZbin() const { return ((mROB >> 1) << 2) | (mMCM >> 2); }
 
-  // ----- Getters for MCM-tracklet information -----
+  int getPID() const { return mPID; }
+
+  // ----- Getters for tracklet information -----
   int getMCM() const { return mMCM; }
   int getROB() const { return mROB; }
-  int getLabel() const { return mLabel[0]; }
-  int getLabel(const int i) const { return mLabel[i]; }
-  const std::array<int, 3>& getLabels() const { return mLabel; }
-  bool hasLabel(const int label) const { return (mLabel[0] == label || mLabel[1] == label || mLabel[2] == label); }
 
   // ----- Getters for offline corresponding values -----
   bool cookPID() { return false; }
@@ -101,19 +96,21 @@ class Tracklet
   int getNHits0() const { return mNHits0; }
   int getNHits1() const { return mNHits1; }
 
-  unsigned int getTrackletWord() const { return mTrackletWord; }
-  void setTrackletWord(unsigned int trackletWord) { mTrackletWord = trackletWord; }
+  unsigned int getTrackletWord() const;
 
   void setDetector(int id) { mHCId = 2 * id + (getYbin() < 0 ? 0 : 1); }
   void setHCId(int id) { mHCId = id; }
   void setMCM(int mcm) { mMCM = mcm; }
   void setROB(int rob) { mROB = rob; }
-  void setLabel(std::array<int, 3>& label);
+  void setLabel(std::vector<MCCompLabel>& label);
   void setQ0(int charge) { mQ0 = charge; }
   void setQ1(int charge) { mQ1 = charge; }
   void setNHits(int nhits) { mNHits = nhits; }
   void setNHits0(int nhits) { mNHits0 = nhits; }
   void setNHits1(int nhits) { mNHits1 = nhits; }
+  void setPID(float pid) { mPID = pid; }
+  void setY(float y) { mY = y; }
+  void setdY(float dy) { mdY = dy; }
 
   void setSlope(float slope) { mSlope = slope; }
   void setOffset(float offset) { mOffset = offset; }
@@ -130,9 +127,15 @@ class Tracklet
  protected:
   TRDGeometry* mGeo; //! TRD geometry
 
-  int mHCId;                  // half-chamber ID (only transient)
-  unsigned int mTrackletWord; // tracklet word: PID | Z | deflection length | Y
-                              //          bits:  12   4            7          13
+  int mHCId;  // half-chamber ID (only transient)
+              //  unsigned int mTrackletWord; // tracklet word: PID | Z | deflection length | Y
+              //          bits:  12   4            7          13
+  float mPID; // PID calucated from the LUT in the trap configs, same as what is in the trackletword
+  float mY;   // Y position as per
+  float mdY;
+  float mY4tw; // Y position as per
+  float mdY4tw;
+
   int mMCM;                   // MCM no. in which the tracklet was found
   int mROB;                   // ROB no. on which the tracklet was found
 
@@ -143,7 +146,6 @@ class Tracklet
   int mNHits0;               // no. of contributing clusters in window 0
   int mNHits1;               // no. of contributing clusters in window 1
                              //int  mNHits2 TODO if we add windows we need to add another mNHits2
-  std::array<int, 3> mLabel; // up to 3 labels for MC track  TODO no limit on labels in O2 ....
 
   float mSlope;                   // tracklet slope
   float mOffset;                  // tracklet offset
@@ -153,9 +155,10 @@ class Tracklet
   std::vector<float> mClsCharges; //[mNClusters] cluster charge
 
  private:
-  //  TrackletMCM& operator=(const TrackletMCM &rhs);   // not implemented
-  ClassDefNV(Tracklet, 2);
+  //  Tracklet& operator=(const Tracklet &rhs);   // not implemented
+  ClassDefNV(Tracklet, 3);
 };
+
 } //namespace trd
 } //namespace o2
 #endif

@@ -19,6 +19,7 @@
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "TRDBase/MCLabel.h"
 #include "TRDBase/Tracklet.h"
+#include "DataFormatsTRD/TriggerRecord.h"
 
 #include <fstream>
 #include <iostream>
@@ -46,15 +47,14 @@ o2::framework::DataProcessorSpec getTRDTrackletWriterSpec()
       ofstream output("E15.0.1.json");
       output << " 10 " << endl;
   }*/
-  //  LOG(info) << "before writing out the tracklet size is " << Tracklet.size();
+  //LOG(info) << "before writing out the tracklet size is " << Tracklet->size();
   return MakeRootTreeWriterSpec("TRDTrkltWrt",
                                 "trdtracklets.root",
                                 "o2sim",
                                 1,
-                                BranchDefinition<std::vector<o2::trd::Tracklet>>{InputSpec{"tracklets", "TRD", "TRACKLETS"}, "Tracklet"})();
-  //BranchDefinition<o2::dataformats::MCTruthContainer<o2::trd::MCLabel> >{InputSpec{"labels", "TRD", "TRKLABELS"}, "TRKLabels"},
-  //                                BranchDefinition<std::vector<o2::trd::Tracklet> >{InputSpec{"triggerrecords", "TRD", "TRGRRecords"}, "TRGRRecords"})();
-  //TODO maybe dont pass the labels through, come back and check this
+                                BranchDefinition<std::vector<o2::trd::Tracklet>>{InputSpec{"tracklets", "TRD", "TRACKLETS"}, "Tracklet"},
+                                //BranchDefinition<o2::dataformats::MCTruthContainer<o2::trd::MCLabel>>{InputSpec{"trklabels", "TRD", "TRKLABELS"}, "TRKLabels"},
+                                BranchDefinition<std::vector<o2::trd::TriggerRecord>>{InputSpec{"tracklettrigs", "TRD", "TRKTRGRD"}, "TrackTrg"})();
 };
 
 } // end namespace trd

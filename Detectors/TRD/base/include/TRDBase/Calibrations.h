@@ -34,6 +34,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <memory>
+#include <string>
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/ChamberCalibrations.h"
 #include "TRDBase/LocalVDrift.h"
@@ -46,7 +47,6 @@
 #include "TRDBase/CalOnlineGainTables.h"
 
 class TRDGeometry;
-
 namespace o2
 {
 namespace trd
@@ -70,6 +70,7 @@ class Calibrations
   void setCCDBForSimulation(long timestamp) { setCCDB(kSimulation, timestamp); };
   void setCCDBForReconstruction(long timestamp) { setCCDB(kReconstruction, timestamp); };
   void setCCDBForCalibration(long timestamp) { setCCDB(kCalibration, timestamp); };
+  void setOnlineGainTables(std::string& tablename);
   //
   double getVDrift(int roc, int col, int row) const;
   double getT0(int roc, int col, int row) const;
@@ -92,6 +93,11 @@ class Calibrations
   bool isChamberBadlyCalibrated(int det) const { return mChamberStatus->isBadCalibrated(det); }
   bool isChamberNotCalibrated(int det) const { return mChamberStatus->isNotCalibrated(det); }
   char getChamberStatusRaw(int det) const { return mChamberStatus->getStatus(det); }
+
+  //online gain tables.
+  double getOnlineGainAdcdac(int det, int row, int mcm) const;
+  double getOnlineGainFGAN(int det, int row, int mcm, int adc) const;
+  double getOnlineGainFGFN(int det, int row, int mcm, int adc) const;
 
  protected:
   long mTimeStamp; //run number of related to the current calibration.
@@ -117,7 +123,7 @@ class Calibrations
   ChamberStatus* mChamberStatus;
   PadStatus* mPadStatus;
   ChamberNoise* mChamberNoise;
-  CalOnlineGainTables* mOnlineGainFactors;
+  CalOnlineGainTables* mCalOnlineGainTables;
   //
 };
 } // namespace trd
