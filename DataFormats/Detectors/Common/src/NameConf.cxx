@@ -8,6 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DetectorsBase/NameConf.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 O2ParamImpl(o2::base::NameConf);

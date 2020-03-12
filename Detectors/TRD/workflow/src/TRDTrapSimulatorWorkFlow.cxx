@@ -15,7 +15,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "SimConfig/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 // for TRD
 #include "TRDWorkflow/TRDTrapSimulatorSpec.h"

@@ -38,7 +38,7 @@ o2_add_library(Generators
                        $<$<BOOL:${pythia_FOUND}>:src/GeneratorPythia8.cxx>
                        $<$<BOOL:${pythia_FOUND}>:src/GeneratorPythia8Param.cxx>
                        $<$<BOOL:${HepMC_FOUND}>:src/GeneratorHepMC.cxx>
-               PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimConfig
+               PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimConfig O2::CommonUtils
                                      O2::SimulationDataFormat ${pythia6Target} ${pythiaTarget} ${hepmcTarget}
                                      FairRoot::Gen
                TARGETVARNAME targetName)

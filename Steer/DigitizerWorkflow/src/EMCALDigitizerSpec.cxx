@@ -23,7 +23,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "DetectorsBase/GeometryManager.h"
-#include "SimConfig/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;

@@ -29,7 +29,7 @@
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGEM.h"
 #include "TPCBase/ParameterGas.h"
-#include "SimConfig/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 namespace o2
 {
