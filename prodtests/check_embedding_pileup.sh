@@ -23,27 +23,22 @@ simtask() {
  cd ${d}
 
  # we put the detector plus pipe and magnet as materials
- o2-sim-serial -m PIPE MAG ${d} -g ${gen} -n 1 --configKeyValues "BoxGun.number=300" --seed 1 -o o2sim${d} > simlog${d} 2>&1
+ o2-sim -j 1 -m PIPE MAG ${d} -g ${gen} -n 1 --configKeyValues "BoxGun.number=300" --seed 1 -o o2sim${d} > simlog${d} 2>&1
 
  # we duplicate the events/hits a few times in order to have a sufficient
  # condition for pileup
  f=4
- origin="o2sim${d}.root"
- target="o2sim${d}_${f}.root"
+ origin="o2sim${d}"
+ target="o2sim${d}_${f}"
  root -q -b -l ${O2_ROOT}/share/macro/duplicateHits.C\(\"${origin}\",\"${target}\",${f}\)
 
-  [[ -f "o2sim.root" ]] && unlink o2sim.root
-  [[ -f "o2sim_grp.root" ]] && unlink o2sim_grp.root
-  ln -s ${target} o2sim.root
-  ln -s o2sim${d}_grp.root o2sim_grp.root
-
   # verify that we have hits
-  NUMHITS=`root -q -b -l ${O2_ROOT}/share/macro/analyzeHits.C | grep "${d}" | awk '//{print $2}'`
+  NUMHITS=`root -q -b -l ${O2_ROOT}/share/macro/analyzeHits.C\(\"$target\"\) | grep "${d}" | awk '//{print $2}'`
   MSG="Found ${NUMHITS} hits for ${d}"
   echo $MSG
 
   # digitize with extreme bunch crossing as well as with embedding the signal onto itself
-  o2-sim-digitizer-workflow --onlyDet ${d} --interactionRate 1e9 -b --tpc-lanes 1 --simFileS o2sim.root > digilog${d} 2>&1
+  o2-sim-digitizer-workflow --onlyDet ${d} --interactionRate 1e9 -b --tpc-lanes 1 --sims ${target},${target} > digilog${d} 2>&1
 }
 
 checktask() {
