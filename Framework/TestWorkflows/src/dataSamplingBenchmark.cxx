@@ -72,7 +72,7 @@ using SubSpec = o2::header::DataHeader::SubSpecificationType;
 
 namespace bipc = ::boost::interprocess;
 
-// fixme: this is from fairmq/shmem/Common.h (it is not public), try to find a more maintainable solution
+// fixme: This is from fairmq/shmem/Common.h (it is not public), try to find a more maintainable solution
 inline std::string buildShmIdFromSessionIdAndUserId(const std::string& sessionId)
 {
   boost::hash<std::string> stringHash;
