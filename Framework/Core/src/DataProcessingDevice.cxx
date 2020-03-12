@@ -56,7 +56,7 @@ constexpr unsigned int MIN_RATE_LOGGING = 60;
 // This should result in a minimum of 10Hz which should guarantee we do not use
 // much time when idle. We do not sleep at all when we are at less then 100us,
 // because that's what the default rate enforces in any case.
-constexpr int MAX_BACKOFF = 10;
+constexpr int MAX_BACKOFF = 6;
 constexpr int MIN_BACKOFF_DELAY = 100;
 constexpr int BACKOFF_DELAY_STEP = 100;
 
