@@ -13,8 +13,8 @@
 
 // Global parameters for digitization
 
-#include "SimConfig/ConfigurableParam.h"
-#include "SimConfig/ConfigurableParamHelper.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 #include <string>
 
 namespace o2

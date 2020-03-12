@@ -13,8 +13,8 @@
 #ifndef ALICEO2_EVENTGEN_GENERATORPYTHIA8PARAM_H_
 #define ALICEO2_EVENTGEN_GENERATORPYTHIA8PARAM_H_
 
-#include "SimConfig/ConfigurableParam.h"
-#include "SimConfig/ConfigurableParamHelper.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 #include <string>
 
 namespace o2

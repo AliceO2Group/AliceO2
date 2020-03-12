@@ -12,8 +12,8 @@
 #define ALICEO2_ITSMFTDPLDIGITIZERPARAM_H_
 
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "SimConfig/ConfigurableParam.h"
-#include "SimConfig/ConfigurableParamHelper.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 #include <string_view>
 
 namespace o2

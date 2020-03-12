@@ -10,8 +10,8 @@
 
 //first version 8/2018, Sandro Wenzel
 
-#include "SimConfig/ConfigurableParamHelper.h"
-#include "SimConfig/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
+#include "CommonUtils/ConfigurableParam.h"
 #include <TClass.h>
 #include <TDataMember.h>
 #include <TDataType.h>

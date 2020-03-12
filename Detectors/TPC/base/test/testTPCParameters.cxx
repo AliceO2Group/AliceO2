@@ -20,8 +20,8 @@
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGEM.h"
 #include "TPCBase/ParameterGas.h"
-#include <SimConfig/ConfigurableParam.h>
-#include <SimConfig/ConfigurableParamHelper.h>
+#include <CommonUtils/ConfigurableParam.h>
+#include <CommonUtils/ConfigurableParamHelper.h>
 #include <SimConfig/SimConfig.h>
 namespace o2
 {

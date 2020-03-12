@@ -25,7 +25,7 @@
 #include <Generators/GeneratorFromFile.h>
 #include <Generators/PrimaryGenerator.h>
 #include <SimConfig/SimConfig.h>
-#include <SimConfig/ConfigurableParam.h>
+#include <CommonUtils/ConfigurableParam.h>
 #include <CommonUtils/RngHelper.h>
 #include <typeinfo>
 #include <thread>

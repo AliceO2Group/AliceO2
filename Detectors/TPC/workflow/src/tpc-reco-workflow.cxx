@@ -22,7 +22,7 @@
 #include "TPCWorkflow/RecoWorkflow.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "Algorithm/RangeTokenizer.h"
-#include "SimConfig/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 #include <string>
 #include <stdexcept>

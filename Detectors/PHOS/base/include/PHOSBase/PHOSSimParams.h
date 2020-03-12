@@ -11,8 +11,8 @@
 #ifndef O2_PHOS_PHOSSIMPARAMS_H_
 #define O2_PHOS_PHOSSIMPARAMS_H_
 
-#include "SimConfig/ConfigurableParam.h"
-#include "SimConfig/ConfigurableParamHelper.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 
 namespace o2
 {

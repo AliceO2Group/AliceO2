@@ -29,7 +29,7 @@
 #include "TOFWorkflow/RecoWorkflowSpec.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "FairLogger.h"
-#include "SimConfig/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 // GRP
 #include "DataFormatsParameters/GRPObject.h"

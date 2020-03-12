@@ -20,7 +20,7 @@
 #include "SimReaderSpec.h"
 #include "CollisionTimePrinter.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "SimConfig/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 // for TPC
 #include "TPCDigitizerSpec.h"

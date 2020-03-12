@@ -10,7 +10,7 @@
 
 //first version 8/2018, Sandro Wenzel
 
-#include "SimConfig/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParam.h"
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -193,7 +193,7 @@ int EnumLegalValues::getIntValue(const std::string& value) const
 
 void ConfigurableParam::writeINI(std::string const& filename, std::string const& keyOnly)
 {
-  initPropertyTree(); // update the boost tree before writing
+  initPropertyTree();     // update the boost tree before writing
   if (!keyOnly.empty()) { // write ini for selected key only
     try {
       boost::property_tree::ptree kTree;
@@ -261,7 +261,7 @@ boost::property_tree::ptree ConfigurableParam::readJSON(std::string const& filep
 
 void ConfigurableParam::writeJSON(std::string const& filename, std::string const& keyOnly)
 {
-  initPropertyTree(); // update the boost tree before writing
+  initPropertyTree();     // update the boost tree before writing
   if (!keyOnly.empty()) { // write ini for selected key only
     try {
       boost::property_tree::ptree kTree;

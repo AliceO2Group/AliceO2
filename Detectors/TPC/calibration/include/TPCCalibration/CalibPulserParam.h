@@ -15,8 +15,8 @@
 #ifndef ALICEO2_TPC_CalibPulserParam_H_
 #define ALICEO2_TPC_CalibPulserParam_H_
 
-#include "SimConfig/ConfigurableParam.h"
-#include "SimConfig/ConfigurableParamHelper.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 
 namespace o2
 {

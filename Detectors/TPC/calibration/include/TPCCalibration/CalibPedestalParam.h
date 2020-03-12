@@ -15,8 +15,8 @@
 #ifndef ALICEO2_TPC_CalibPedestalParam_H_
 #define ALICEO2_TPC_CalibPedestalParam_H_
 
-#include "SimConfig/ConfigurableParam.h"
-#include "SimConfig/ConfigurableParamHelper.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 
 #include "DataFormatsTPC/Defs.h"
 

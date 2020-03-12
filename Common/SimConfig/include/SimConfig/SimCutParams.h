@@ -11,8 +11,8 @@
 #ifndef O2_SIMCONFIG_SIMCUTPARAM_H_
 #define O2_SIMCONFIG_SIMCUTPARAM_H_
 
-#include "SimConfig/ConfigurableParam.h"
-#include "SimConfig/ConfigurableParamHelper.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 
 namespace o2
 {

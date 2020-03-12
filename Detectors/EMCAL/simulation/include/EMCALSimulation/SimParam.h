@@ -11,8 +11,8 @@
 #define ALICEO2_EMCAL_SIMPARAM_H_
 
 #include <iosfwd>
-#include "SimConfig/ConfigurableParam.h"
-#include "SimConfig/ConfigurableParamHelper.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 #include "Rtypes.h"
 
 namespace o2

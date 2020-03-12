@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "MFTWorkflow/RecoWorkflow.h"
-#include "SimConfig/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
 
