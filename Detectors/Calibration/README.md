@@ -65,11 +65,6 @@ See e.g. AliceO2/Detectors/TOF/calibration/testWorkflow/LHCClockCalibratorSpec.h
 ## cccd-populator-workflow
 
 This is the workflow that, connected to all workflows producting calibrations with different granularities and frequencies, will update the CCDB.
-When adding a new calibration workflow, named e.g. "test-workflow", the following needs to be added to `ccdb-populator-workflow.cxx` in the `customize` method:
-
-```cpp
-policies.push_back(CompletionPolicyHelpers::defineByName("test-workflow.*", CompletionPolicy::CompletionOp::Consume));
-```
 
 The `--ccdb-path` option of the ccdb-populator-workflow allows to define the CCDB destination (e.g. `--ccdb-path localhost:8080`).
 
