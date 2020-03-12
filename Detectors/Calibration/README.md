@@ -48,8 +48,9 @@ See e.g. LHCClockCalibrator.h/cxx in AliceO2/Detectors/TOF/calibration/include/T
 Each calibration will need to be implemented in the form of a workflow, whose options should include those for the calibration device itself (`tf-per-slot` and `max-delay`, see above).
 The output to be sent by the calibrator should include:
 
-- a vector of the snapshots of the object to be put in the CCDB;
-- a vector of the `o2::ccdb::CcdbObjectInfo` objects that contain the extra
+*   a vector of the snapshots of the object to be put in the CCDB;
+
+*   a vector of the `o2::ccdb::CcdbObjectInfo` objects that contain the extra
 information (metadata, startValidity...) associated to the objects themselves.
 
 E.g.:
@@ -67,4 +68,3 @@ See e.g. AliceO2/Detectors/TOF/calibration/testWorkflow/LHCClockCalibratorSpec.h
 This is the workflow that, connected to all workflows producting calibrations with different granularities and frequencies, will update the CCDB.
 
 The `--ccdb-path` option of the ccdb-populator-workflow allows to define the CCDB destination (e.g. `--ccdb-path localhost:8080`).
-
