@@ -232,7 +232,6 @@ void TestDataReader::run(ProcessingContext& pc)
       if (pos != string::npos)
         FileIDS = mDiffFileNames[i][0].substr(pos + 1);
       mEpNumber = stoi(mDiffFileNames[i][0].substr(pos + 8, 1));
-      // cout << "Before FileIDS = " << FileIDS << endl;
 
       size_t last_index2 = FileIDS.find_last_not_of("0123456789");
       FileIDS = FileIDS.substr(last_index2 + 1);
