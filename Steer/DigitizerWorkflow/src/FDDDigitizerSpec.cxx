@@ -46,14 +46,6 @@ class FDDDPLDigitizerTask
   {
     LOG(INFO) << "initializing FDD digitization";
 
-    const std::string inputGRP = "o2sim_grp.root";
-    const std::string grpName = "GRP";
-    TFile flGRP(inputGRP.c_str());
-    if (flGRP.IsZombie()) {
-      LOG(FATAL) << "Failed to open " << inputGRP;
-    }
-    std::unique_ptr<GRP> grp(static_cast<GRP*>(flGRP.GetObjectChecked(grpName.c_str(), GRP::Class())));
-    mDigitizer.setEventTime(grp->getTimeStart());
     //mDigitizer.setCCDBServer(dopt.ccdb);
     mDigitizer.init();
     //mROMode = mDigitizer.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
@@ -73,7 +65,7 @@ class FDDDPLDigitizerTask
     auto& irecords = context->getEventRecords();
 
     context->initSimChains(o2::detectors::DetID::FDD, mSimChains);
-
+    mDigitizer.setEventTime(context->getGRP().getTimeStart());
     for (auto& record : irecords) {
       LOG(INFO) << "FDD TIME RECEIVED " << record.timeNS;
     }
