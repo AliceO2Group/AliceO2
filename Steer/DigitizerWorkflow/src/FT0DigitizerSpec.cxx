@@ -53,14 +53,6 @@ class FT0DPLDigitizerTask
 
   void init(framework::InitContext& ic)
   {
-    const std::string inputGRP = "o2sim_grp.root";
-    const std::string grpName = "GRP";
-    TFile flGRP(inputGRP.c_str());
-    if (flGRP.IsZombie()) {
-      LOG(FATAL) << "Failed to open " << inputGRP;
-    }
-    std::unique_ptr<GRP> grp(static_cast<GRP*>(flGRP.GetObjectChecked(grpName.c_str(), GRP::Class())));
-
     mDigitizer.init();
     mROMode = mDigitizer.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
   }

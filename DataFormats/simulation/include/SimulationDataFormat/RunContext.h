@@ -17,6 +17,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/BunchFilling.h"
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "DataFormatsParameters/GRPObject.h"
 #include <FairLogger.h>
 
 namespace o2
@@ -81,6 +82,9 @@ class RunContext
                     int entryID,
                     std::vector<T>* hits) const;
 
+  /// returns the GRP object associated to this context
+  o2::parameters::GRPObject const& getGRP() const;
+
  private:
   int mNofEntries = 0;
   int mMaxPartNumber = 0; // max number of parts in any given collision
@@ -92,7 +96,8 @@ class RunContext
 
   o2::BunchFilling mBCFilling; // patter of active BCs
 
-  std::vector<std::string> mSimPrefixes; // identifiers to the hit sim products; the index corresponds to the source ID of event record
+  std::vector<std::string> mSimPrefixes;             // identifiers to the hit sim products; the index corresponds to the source ID of event record
+  mutable o2::parameters::GRPObject* mGRP = nullptr; //!
 
   ClassDefNV(RunContext, 2);
 };

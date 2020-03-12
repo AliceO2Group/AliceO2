@@ -48,14 +48,6 @@ class ZDCDPLDigitizerTask
 
     auto& dopt = o2::conf::DigiParams::Instance();
 
-    const std::string inputGRP = "o2sim_grp.root";
-    const std::string grpName = "GRP";
-    TFile flGRP(inputGRP.c_str());
-    if (flGRP.IsZombie()) {
-      LOG(FATAL) << "Failed to open " << inputGRP;
-    }
-    std::unique_ptr<GRP> grp(static_cast<GRP*>(flGRP.GetObjectChecked(grpName.c_str(), GRP::Class())));
-    mDigitizer.setTimeStamp(grp->getTimeStart());
     mDigitizer.setCCDBServer(dopt.ccdb);
     mDigitizer.init();
     mROMode = mDigitizer.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
@@ -74,6 +66,9 @@ class ZDCDPLDigitizerTask
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
     context->initSimChains(o2::detectors::DetID::ZDC, mSimChains);
+
+    const auto& grp = context->getGRP();
+    mDigitizer.setTimeStamp(grp.getTimeStart());
 
     auto& irecords = context->getEventRecords();
     auto& eventParts = context->getEventParts();
