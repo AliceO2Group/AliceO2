@@ -15,7 +15,7 @@
 #include <Generators/PDG.h>
 #include "SimulationDataFormat/MCEventHeader.h"
 #include <SimConfig/SimConfig.h>
-#include <SimConfig/ConfigurableParam.h>
+#include <CommonUtils/ConfigurableParam.h>
 #include <CommonUtils/RngHelper.h>
 #include <TStopwatch.h>
 #include <memory>
