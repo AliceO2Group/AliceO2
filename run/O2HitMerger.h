@@ -23,7 +23,7 @@
 #include <SimulationDataFormat/Stack.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <DetectorsCommonDataFormats/DetID.h>
-#include <DetectorsCommonDataFormats/FileNameGenerator.h>
+#include <DetectorsCommonDataFormats/NameConf.h>
 #include <gsl/gsl>
 #include "TFile.h"
 #include "TMemFile.h"
@@ -113,7 +113,7 @@ class O2HitMerger : public FairMQDevice
     std::string outfilename("o2sim_merged_hits.root"); // default name
     // query the sim config ... which is used to extract the filenames
     if (o2::devices::O2SimDevice::querySimConfig(fChannels.at("primary-get").at(0))) {
-      outfilename = o2::filenames::SimFileNameGenerator::getKinematicsFileName(o2::conf::SimConfig::Instance().getOutPrefix().c_str());
+      outfilename = o2::base::NameConf::getMCKinematicsFileName(o2::conf::SimConfig::Instance().getOutPrefix().c_str());
       mNExpectedEvents = o2::conf::SimConfig::Instance().getNEvents();
     }
     mOutFileName = outfilename.c_str();
@@ -413,7 +413,7 @@ class O2HitMerger : public FairMQDevice
       LOG(WARN) << "Hit outfile for detID " << DetID::getName(detID) << " already initialized";
       return;
     }
-    std::string name(o2::filenames::SimFileNameGenerator::getHitFileName(detID, o2::conf::SimConfig::Instance().getOutPrefix().c_str()));
+    std::string name(o2::base::NameConf::getHitsFileName(detID, o2::conf::SimConfig::Instance().getOutPrefix().c_str()));
     mDetectorOutFiles[detID] = new TFile(name.c_str(), "RECREATE");
     mDetectorToTTreeMap[detID] = new TTree("o2sim", "o2sim");
     mDetectorToTTreeMap[detID]->SetDirectory(mDetectorOutFiles[detID]);

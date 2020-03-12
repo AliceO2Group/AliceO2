@@ -74,15 +74,19 @@ void duplicate<o2::dataformats::MCEventHeader>(TTree* tr, const char* brname, TT
 
 TTree* getHitTree(o2::parameters::GRPObject const* grp, const char* filebase, o2::detectors::DetID detid, bool createnew = false)
 {
+  if (!grp) {
+    std::cerr << "GRP is null\n";
+    return nullptr;
+  }
   if (!grp->isDetReadOut(detid)) {
     return nullptr;
   }
-  std::string filename(o2::filenames::SimFileNameGenerator::getHitFileName(detid, filebase).c_str());
+  std::string filename(o2::base::NameConf::getHitsFileName(detid, filebase).c_str());
 
   const char* mode = createnew ? "RECREATE" : "OPEN";
 
   // shamefully leaking memory as the TTree cannot live without the file...
-  TFile* file = new TFile(o2::filenames::SimFileNameGenerator::getHitFileName(detid, filebase).c_str(), mode);
+  TFile* file = new TFile(filename.c_str(), mode);
   TTree* t = nullptr;
   if (createnew) {
     t = new TTree("o2sim", "o2sim");
@@ -129,7 +133,7 @@ TTree* getKinematicsTree(const char* filebase, bool createnew = false)
 {
   // shamefully leaking memory as the TTree cannot live without the file...
   const char* mode = createnew ? "RECREATE" : "OPEN";
-  TFile* file = new TFile(o2::filenames::SimFileNameGenerator::getKinematicsFileName(filebase).c_str(), mode);
+  TFile* file = new TFile(o2::base::NameConf::getMCKinematicsFileName(filebase).c_str(), mode);
   TTree* t = nullptr;
   if (createnew) {
     t = new TTree("o2sim", "o2sim");
@@ -148,13 +152,14 @@ void duplicateHits(const char* filebase = "o2sim", const char* newfilebase = "o2
   // without explicit iteration over branches and type ... just by using TClasses
 
   // READ GRP AND ITERATE OVER DETECTED PARTS
-  auto oldgrpfilename = o2::filenames::SimFileNameGenerator::getGRPFileName(filebase);
-  auto grp = o2::parameters::GRPObject::loadFrom(o2::filenames::SimFileNameGenerator::getGRPFileName(filebase).c_str());
+  auto oldgrpfilename = o2::base::NameConf::getGRPFileName(filebase);
+  auto grp = o2::parameters::GRPObject::loadFrom(oldgrpfilename.c_str());
   if (!grp) {
-    std::cerr << "No GRP found; exiting";
+    std::cerr << "No GRP found; exiting\n";
+    return;
   }
   // cp GRP for new sim files
-  auto newgrpfilename = o2::filenames::SimFileNameGenerator::getGRPFileName(newfilebase);
+  auto newgrpfilename = o2::base::NameConf::getGRPFileName(newfilebase);
   std::stringstream command;
   command << "cp " << oldgrpfilename << " " << newgrpfilename;
   system(command.str().c_str());
@@ -168,6 +173,7 @@ void duplicateHits(const char* filebase = "o2sim", const char* newfilebase = "o2
   // TODO: fix EventIDs in the newly created MCEventHeaders
   duplicate<o2::TrackReference>(kintree, "TrackRefs", newkintree, factor);
   duplicate<o2::dataformats::MCTruthContainer<o2::TrackReference>>(kintree, "IndexedTrackRefs", newkintree, factor);
+  newkintree->Write();
 
   // duplicating hits
   using namespace o2::detectors;

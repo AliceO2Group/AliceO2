@@ -16,7 +16,7 @@
 #include "MIDSimulation/Hit.h"
 #include "CPVBase/Hit.h"
 #include "ZDCSimulation/Hit.h"
-#include "DetectorsCommonDataFormats/FileNameGenerator.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
 #endif
 
@@ -357,10 +357,10 @@ TTree* getHitTree(o2::parameters::GRPObject const* grp, const char* filebase, o2
     return nullptr;
   }
 
-  std::string filename(o2::filenames::SimFileNameGenerator::getHitFileName(detid, filebase).c_str());
+  std::string filename(o2::base::NameConf::getHitsFileName(detid, filebase).c_str());
 
   // shamefully leaking memory as the TTree cannot live without the file...
-  TFile* file = new TFile(o2::filenames::SimFileNameGenerator::getHitFileName(detid, filebase).c_str(), "OPEN");
+  TFile* file = new TFile(filename.c_str(), "OPEN");
   auto t = (TTree*)file->Get("o2sim");
   return t;
 }
@@ -377,7 +377,7 @@ void analyzeHits(const char* filebase = "o2sim", const char* prefix = "")
   gPrefix = prefix;
 
   // READ GRP AND ITERATE OVER DETECTED PARTS
-  auto grp = o2::parameters::GRPObject::loadFrom(o2::filenames::SimFileNameGenerator::getGRPFileName(filebase).c_str());
+  auto grp = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName(filebase).c_str());
 
   // should correspond to the same number as defined in DetID
   analyzeITS(getHitTree(grp, filebase, o2::detectors::DetID::ITS));
