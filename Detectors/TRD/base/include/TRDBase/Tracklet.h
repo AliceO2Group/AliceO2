@@ -65,7 +65,6 @@ class Tracklet
 
   float getdZdX() const { return 0; }
 
-  void localToGlobal(float&, float&, float&, float&) {}
 
   void print(std::string* /*option=""*/) const {}
 
@@ -128,7 +127,6 @@ class Tracklet
   std::vector<float> getClsCharges() const { return mClsCharges; } //TODO this is a problem, giving a pointer out to an internal class member
 
  protected:
-  TRDGeometry* mGeo; //! TRD geometry
 
   int mHCId;                  // half-chamber ID (only transient)
   unsigned int mTrackletWord; // tracklet word: PID | Z | deflection length | Y

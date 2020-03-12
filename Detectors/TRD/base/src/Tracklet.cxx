@@ -33,7 +33,6 @@ Tracklet::Tracklet(unsigned int trackletWord) : mTrackletWord(trackletWord)
 {
   // constructor
 
-  mGeo = TRDGeometry::instance();
   mLabel[0] = -1;
   mLabel[1] = -1;
   mLabel[2] = -1;
@@ -43,7 +42,6 @@ Tracklet::Tracklet(unsigned int trackletWord, int hcid) : mHCId(hcid), mTracklet
 {
   // constructor
 
-  mGeo = TRDGeometry::instance();
   mLabel[0] = -1;
   mLabel[1] = -1;
   mLabel[2] = -1;
@@ -53,7 +51,6 @@ Tracklet::Tracklet(unsigned int trackletWord, int hcid, int rob, int mcm) : mHCI
 {
   // constructor
 
-  mGeo = TRDGeometry::instance();
   mLabel[0] = -1;
   mLabel[1] = -1;
   mLabel[2] = -1;
@@ -63,7 +60,6 @@ Tracklet::Tracklet(const Tracklet& rhs) : mHCId(rhs.mHCId), mTrackletWord(rhs.mT
 {
   // copy constructor
 
-  mGeo = TRDGeometry::instance();
   mResiduals = rhs.mResiduals;
   mClsCharges = rhs.mClsCharges;
   mLabel = rhs.mLabel;
@@ -104,21 +100,3 @@ void Tracklet::setClusters(std::vector<float>& res, std::vector<float>& q, int n
   mClsCharges = q;
 }
 
-float Tracklet::getX() const
-{
-  return mGeo->getTime0((mHCId % 12) / 2);
-}
-
-float Tracklet::getY() const
-{
-  return (getYbin() * 160e-4);
-}
-float Tracklet::getZ() const
-{
-  return mGeo->getRowPos((mHCId % 12) / 2, (mHCId / 12) % 5, 4 * (mROB / 2) + mMCM / 4) -
-         mGeo->getRowSize((mHCId % 12) / 2, (mHCId / 12) % 5, 4 * (mROB / 2) + mMCM / 4) * .5;
-}
-float Tracklet::getLocalZ() const
-{
-  return getZ() - mGeo->getRow0((mHCId % 12) / 2, (mHCId / 12) % 5) + mGeo->getRowEnd((mHCId % 12) / 2, (mHCId / 12) % 5) / 2.;
-}
