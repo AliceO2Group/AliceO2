@@ -14,6 +14,7 @@
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
 #include "Framework/DataSampling.h"
+#include "Framework/DataSamplingPolicy.h"
 #include "Framework/Dispatcher.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DataSpecUtils.h"
@@ -25,9 +26,7 @@
 using namespace o2::configuration;
 using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 std::string DataSampling::createDispatcherName()
@@ -124,5 +123,4 @@ std::vector<InputSpec> DataSampling::InputSpecsForPolicy(ConfigurationInterface*
   return inputs;
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
