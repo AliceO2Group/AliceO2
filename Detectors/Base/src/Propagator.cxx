@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "DetectorsBase/Propagator.h"
+#include "DetectorsBase/GeometryManager.h"
 #include <FairLogger.h>
 #include <FairRunAna.h> // eventually will get rid of it
 #include <TGeoGlobalMagField.h>
@@ -244,4 +245,10 @@ int Propagator::initFieldFromGRP(const o2::parameters::GRPObject* grp)
   LOG(INFO) << "auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() )";
 
   return 0;
+}
+
+//____________________________________________________________
+MatBudget Propagator::getMatBudget(int corrType, const Point3D<float>& p0, const Point3D<float>& p1) const
+{
+  return (corrType == USEMatCorrTGeo) ? GeometryManager::meanMaterialBudget(p0, p1) : mMatLUT->getMatBudget(p0.X(), p0.Y(), p0.Z(), p1.X(), p1.Y(), p1.Z());
 }
