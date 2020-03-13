@@ -56,8 +56,8 @@ namespace fdd
 class FDDDPLDigitizerTask
 {
   using GRP = o2::parameters::GRPObject;
- public:
 
+ public:
   void init(framework::InitContext& ic)
   {
     LOG(INFO) << "Initializing FDD digitization";
