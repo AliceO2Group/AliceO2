@@ -976,7 +976,7 @@ class TableMetadata
     _Name_(_Name_ const& other) = default;                                     \
     _Name_& operator=(_Name_ const& other) = default;                          \
                                                                                \
-    _Type_ const _Getter_() const                                              \
+    _Type_ _Getter_() const                                                    \
     {                                                                          \
       return *mColumnIterator;                                                 \
     }                                                                          \
@@ -1013,7 +1013,7 @@ class TableMetadata
     _Name_##Id(_Name_##Id const& other) = default;                                 \
     _Name_##Id& operator=(_Name_##Id const& other) = default;                      \
                                                                                    \
-    type const _Getter_##Id() const                                                \
+    type _Getter_##Id() const                                                      \
     {                                                                              \
       return *mColumnIterator;                                                     \
     }                                                                              \
@@ -1095,13 +1095,13 @@ class TableMetadata
     using type = typename callable_t::return_type;                                                                         \
                                                                                                                            \
     template <typename... FreeArgs>                                                                                        \
-    type const _Getter_(FreeArgs... freeArgs) const                                                                        \
+    type _Getter_(FreeArgs... freeArgs) const                                                                              \
     {                                                                                                                      \
       return boundGetter(std::make_index_sequence<std::tuple_size_v<decltype(boundIterators)>>{}, freeArgs...);            \
     }                                                                                                                      \
                                                                                                                            \
     template <size_t... Is, typename... FreeArgs>                                                                          \
-    type const boundGetter(std::integer_sequence<size_t, Is...>&& index, FreeArgs... freeArgs) const                       \
+    type boundGetter(std::integer_sequence<size_t, Is...>&&, FreeArgs... freeArgs) const                                   \
     {                                                                                                                      \
       return __VA_ARGS__((**std::get<Is>(boundIterators))..., freeArgs...);                                                \
     }                                                                                                                      \
