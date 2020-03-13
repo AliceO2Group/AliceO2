@@ -35,12 +35,12 @@ GPUdii() void GPUTPCCFNoiseSuppression::Thread<GPUTPCCFNoiseSuppression::updateP
   GPUTPCCFNoiseSuppression::updatePeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPpeakPositions, clusterer.mPisPeak, clusterer.mPmemory->counters.nPeaks, isPeakMap);
 }
 
-GPUd() void GPUTPCCFNoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
-                                                           const Array2D<PackedCharge>& chargeMap,
-                                                           const Array2D<uchar>& peakMap,
-                                                           const ChargePos* peakPositions,
-                                                           const uint peaknum,
-                                                           uchar* isPeakPredicate)
+GPUdii() void GPUTPCCFNoiseSuppression::noiseSuppressionImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
+                                                             const Array2D<PackedCharge>& chargeMap,
+                                                             const Array2D<uchar>& peakMap,
+                                                             const ChargePos* peakPositions,
+                                                             const uint peaknum,
+                                                             uchar* isPeakPredicate)
 {
   size_t idx = get_global_id(0);
 

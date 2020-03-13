@@ -476,7 +476,7 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
   const int idOffset = tracker.Data().ClusterIdOffset();
   const int* ids = &(tracker.Data().ClusterDataIndex()[row.HitNumberOffset()]);
   unsigned int myWeight = Merger->TrackOrderAttach()[iTrack] | GPUTPCGMMerger::attachAttached | GPUTPCGMMerger::attachTube;
-  unsigned int* const weights = Merger->ClusterAttachment();
+  GPUAtomic(unsigned int)* const weights = Merger->ClusterAttachment();
   if (goodLeg) {
     myWeight |= GPUTPCGMMerger::attachGoodLeg;
   }
