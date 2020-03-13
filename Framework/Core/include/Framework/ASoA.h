@@ -1020,14 +1020,14 @@ class TableMetadata
                                                                                    \
     binding_t::iterator _Getter_() const                                           \
     {                                                                              \
-      assert(mBinding != 0);                                                       \
+      assert(mBinding != nullptr);                                                 \
       return mBinding->begin() + *mColumnIterator;                                 \
     }                                                                              \
     template <typename T>                                                          \
     bool setCurrent(T* current)                                                    \
     {                                                                              \
       if constexpr (std::is_same_v<T, binding_t>) {                                \
-        assert(current != 0);                                                      \
+        assert(current != nullptr);                                                \
         this->mBinding = current;                                                  \
         return true;                                                               \
       }                                                                            \
