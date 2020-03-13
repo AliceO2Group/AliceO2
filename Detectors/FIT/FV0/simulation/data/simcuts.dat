@@ -1,0 +1,6 @@
+* FV0
+* ===
+*
+*    Med  GAM   ELEC  NHAD  CHAD  MUON  EBREM MUHAB EDEL  MUDEL MUPA  ANNI  BREM  COMP  DCAY  DRAY  HADR  LOSS  MULS  PAIR  PHOT  RAYL  STRA  CKOV
+* Scintillator
+FV0  2    1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     1     1     2     1     1     1     1     -1    1

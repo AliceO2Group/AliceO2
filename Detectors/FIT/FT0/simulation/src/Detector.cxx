@@ -69,7 +69,7 @@ void Detector::ConstructGeometry()
   LOG(DEBUG) << "Creating FT0 geometry\n";
   CreateMaterials();
 
-  Float_t zdetA = 333;
+  Float_t zdetA = 335;
   Float_t zdetC = 82.;
 
   Int_t idrotm[999];

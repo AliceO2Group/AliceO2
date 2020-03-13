@@ -54,10 +54,10 @@ class Digitizer
   void setSrcId(Int_t id) { mSrcId = id; }
   void setInteractionRecord(const InteractionTimeRecord& ir) { mIntRecord = ir; }
 
-  void process(const std::vector<fv0::Hit>& hits,
-               std::vector<fv0::BCData>& digitsBC,
-               std::vector<fv0::ChannelData>& digitsCh,
-               dataformats::MCTruthContainer<fv0::MCLabel>& labels);
+  void process(const std::vector<o2::fv0::Hit>& hits);
+  void analyseWaveformsAndStore(std::vector<fv0::BCData>& digitsBC,
+                                std::vector<fv0::ChannelData>& digitsCh,
+                                dataformats::MCTruthContainer<fv0::MCLabel>& labels);
 
   const InteractionRecord& getInteractionRecord() const { return mIntRecord; }
   InteractionRecord& getInteractionRecord(InteractionRecord& src) { return mIntRecord; }

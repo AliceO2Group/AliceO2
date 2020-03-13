@@ -87,8 +87,8 @@ class FV0DPLDigitizerTask
       LOG(FATAL) << "Failed to open " << inputGRP;
     }
     std::unique_ptr<GRP> grp(static_cast<GRP*>(flGRP.GetObjectChecked(grpName.c_str(), GRP::Class())));
-    mDigitizer.setTimeStamp(grp->getTimeStart());
     mDigitizer.init();
+    mDigitizer.setTimeStamp(grp->getTimeStart());
   }
 
   void run(framework::ProcessingContext& pc)
@@ -107,24 +107,23 @@ class FV0DPLDigitizerTask
     // (aka loop over all the interaction records)
     std::vector<o2::fv0::Hit> hits;
     for (int collID = 0; collID < irecords.size(); ++collID) {
+      mDigitizer.clear();
       const auto& irec = irecords[collID];
       mDigitizer.setInteractionRecord(irec);
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
-        mDigitizer.clear();
         hits.clear();
-
         retrieveHits(mSimChains, "FV0Hit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "[FV0] For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
 
         // call actual digitization procedure
-        //        labels.clear();
         mDigitizer.setEventId(part.entryID);
         mDigitizer.setSrcId(part.sourceID);
-        mDigitizer.process(hits, mDigitsBC, mDigitsCh, mLabels);
-        LOG(INFO) << "[FV0] Has " << mDigitsBC.size() << " BC elements,   " << mDigitsCh.size() << " mDigitsCh elements";
+        mDigitizer.process(hits);
       }
+      mDigitizer.analyseWaveformsAndStore(mDigitsBC, mDigitsCh, mLabels);
+      LOG(INFO) << "[FV0] Has " << mDigitsBC.size() << " BC elements,   " << mDigitsCh.size() << " mDigitsCh elements";
     }
 
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
