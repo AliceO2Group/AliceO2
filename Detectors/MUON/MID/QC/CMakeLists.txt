@@ -8,11 +8,9 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_executable(
-  rawdump
-  COMPONENT_NAME mid
-  SOURCES rawdump.cxx
-  PUBLIC_LINK_LIBRARIES O2::MIDRaw)
+o2_add_library(
+  MIDQC
+  SOURCES src/GBTRawDataChecker.cxx src/RawDataChecker.cxx
+  PUBLIC_LINK_LIBRARIES ms_gsl::ms_gsl O2::MIDRaw)
 
-# o2_add_executable( raw-checker COMPONENT_NAME mid SOURCES mid-raw-checker.cxx
-# CRUBareDataChecker.cxx PUBLIC_LINK_LIBRARIES O2::MIDRaw)
+add_subdirectory(exe)

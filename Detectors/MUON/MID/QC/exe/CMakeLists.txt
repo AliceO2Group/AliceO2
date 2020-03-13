@@ -9,10 +9,7 @@
 # submit itself to any jurisdiction.
 
 o2_add_executable(
-  rawdump
+  raw-checker
   COMPONENT_NAME mid
-  SOURCES rawdump.cxx
-  PUBLIC_LINK_LIBRARIES O2::MIDRaw)
-
-# o2_add_executable( raw-checker COMPONENT_NAME mid SOURCES mid-raw-checker.cxx
-# CRUBareDataChecker.cxx PUBLIC_LINK_LIBRARIES O2::MIDRaw)
+  SOURCES raw-checker.cxx
+  PUBLIC_LINK_LIBRARIES O2::MIDQC)
