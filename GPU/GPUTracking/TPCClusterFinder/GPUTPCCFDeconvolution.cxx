@@ -27,11 +27,11 @@ GPUdii() void GPUTPCCFDeconvolution::Thread<GPUTPCCFDeconvolution::countPeaks>(i
   GPUTPCCFDeconvolution::countPeaksImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, isPeakMap, chargeMap, clusterer.mPpositions, clusterer.mPmemory->counters.nDigits);
 }
 
-GPUd() void GPUTPCCFDeconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
-                                                  const Array2D<uchar>& peakMap,
-                                                  Array2D<PackedCharge>& chargeMap,
-                                                  const ChargePos* positions,
-                                                  const uint digitnum)
+GPUdii() void GPUTPCCFDeconvolution::countPeaksImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
+                                                    const Array2D<uchar>& peakMap,
+                                                    Array2D<PackedCharge>& chargeMap,
+                                                    const ChargePos* positions,
+                                                    const uint digitnum)
 {
   size_t idx = get_global_id(0);
 
