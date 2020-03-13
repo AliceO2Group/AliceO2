@@ -180,19 +180,21 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
       return (1);
     }
     if (GPUFailedMsgI(cuCtxCreate(&mInternals->CudaContext, 0, tmpDevice))) {
-      GPUError("Could not create CUDA Context!");
-      return (1);
+      if (mDeviceProcessingSettings.debugLevel >= 4) {
+        GPUWarning("Couldn't create context for device %d. Skipping it.", i);
+      }
+      continue;
     }
     contextCreated = true;
     if (GPUFailedMsgI(cuMemGetInfo(&free, &total))) {
-      GPUError("Error obtaining CUDA memory info!");
-      return (1);
+      if (mDeviceProcessingSettings.debugLevel >= 4) {
+        GPUWarning("Error obtaining CUDA memory info about device %d! Skipping it.", i);
+      }
+      GPUFailedMsg(cuCtxDestroy(mInternals->CudaContext));
+      continue;
     }
     if (count > 1) {
-      if (GPUFailedMsgI(cuCtxDestroy(mInternals->CudaContext))) {
-        GPUError("Error releasing CUDA context!");
-        return (1);
-      }
+      GPUFailedMsg(cuCtxDestroy(mInternals->CudaContext));
       contextCreated = false;
     }
     if (mDeviceProcessingSettings.debugLevel >= 4) {
