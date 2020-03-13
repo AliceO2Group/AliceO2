@@ -25,6 +25,18 @@
 #ifdef GPUCA_ALIROOT_LIB
 class AliExternalTrackParam;
 class AliTrackerBase;
+#else
+namespace o2
+{
+namespace track
+{
+class TrackParCov;
+} // namespace track
+namespace base
+{
+class Propagator;
+} // namespace base
+} // namespace o2
 #endif
 
 namespace GPUCA_NAMESPACE
@@ -40,20 +52,24 @@ typedef float My_Float;
 
 #if defined(TRD_TRACK_TYPE_ALIROOT)
 typedef AliExternalTrackParam TRDBaseTrack;
+typedef AliExternalTrackParam TRDBaseTrackGPU;
 // class GPUTPCGMTrackParam;
 // typedef GPUTPCGMTrackParam TRDBaseTrack;
 #elif defined(TRD_TRACK_TYPE_O2)
+typedef o2::track::TrackParCov TRDBaseTrack;
 class GPUTPCGMTrackParam;
-typedef GPUTPCGMTrackParam TRDBaseTrack;
+typedef GPUTPCGMTrackParam TRDBaseTrackGPU;
 #endif
 
 #ifdef GPUCA_ALIROOT_LIB
 typedef AliTrackerBase TRDBasePropagator;
+typedef AliTrackerBase TRDBasePropagatorGPU;
 // class GPUTPCGMPropagator;
 // typedef GPUTPCGMPropagator TRDBasePropagator;
 #else
+typedef o2::base::Propagator TRDBasePropagator;
 class GPUTPCGMPropagator;
-typedef GPUTPCGMPropagator TRDBasePropagator;
+typedef GPUTPCGMPropagator TRDBasePropagatorGPU;
 #endif
 
 template <class T>
@@ -63,7 +79,14 @@ class propagatorInterface;
 template <class T>
 class GPUTRDTrack_t;
 typedef GPUTRDTrack_t<trackInterface<TRDBaseTrack>> GPUTRDTrack;
+typedef GPUTRDTrack_t<trackInterface<TRDBaseTrackGPU>> GPUTRDTrackGPU;
 typedef propagatorInterface<TRDBasePropagator> GPUTRDPropagator;
+typedef propagatorInterface<TRDBasePropagatorGPU> GPUTRDPropagatorGPU;
+
+template <class T, class P>
+class GPUTRDTracker_t;
+typedef GPUTRDTracker_t<GPUTRDTrack, GPUTRDPropagator> GPUTRDTracker;
+typedef GPUTRDTracker_t<GPUTRDTrackGPU, GPUTRDPropagatorGPU> GPUTRDTrackerGPU;
 
 #if defined(GPUCA_ALIGPUCODE) && !defined(GPUCA_ALIROOT_LIB) && !defined(__CLING__) && !defined(__ROOTCLING__) && !defined(G__ROOT)
 #define Error(...)

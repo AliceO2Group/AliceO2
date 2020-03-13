@@ -76,7 +76,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCCFDecodeZS.cxx"
 
 // Files for TRD Tracking
-#include "GPUTRDTrackerGPU.cxx"
+#include "GPUTRDTrackerKernels.cxx"
 #include "GPUTRDTrack.cxx"
 #include "GPUTRDTracker.cxx"
 #include "GPUTRDTrackletWord.cxx"

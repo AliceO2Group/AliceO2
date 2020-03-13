@@ -30,10 +30,12 @@ namespace gpu
 class GPUTPCGMMerger
 {
 };
-class GPUTRDTracker
+template <class T, class P>
+class GPUTRDTracker_t
 {
   void SetMaxData(const GPUTrackingInOutPointers& io) {}
 };
+typedef GPUTRDTracker_t<GPUTRDTrackGPU, GPUTRDPropagatorGPU> GPUTRDTrackerGPU;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 #endif
@@ -65,7 +67,7 @@ struct GPUConstantMem {
   GPUTPCConvert tpcConverter;
   GPUTPCCompression tpcCompressor;
   GPUTPCGMMerger tpcMerger;
-  GPUTRDTracker trdTracker;
+  GPUTRDTrackerGPU trdTracker;
   GPUTPCClusterFinder tpcClusterer[GPUCA_NSLICES];
   GPUITSFitter itsFitter;
   GPUTrackingInOutPointers ioPtrs;
