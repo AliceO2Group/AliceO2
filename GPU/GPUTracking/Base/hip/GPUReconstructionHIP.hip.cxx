@@ -32,8 +32,7 @@
   #else
     #define GPUCA_CONSMEM_PTR
     #define GPUCA_CONSMEM_CALL
-    #define GPUCA_CONSMEM ((GPUConstantMem&)gGPUConstantMemBuffer)
-    #define GPUCA_CONSMEM_UINT4_BACKEND
+    #define GPUCA_CONSMEM (gGPUConstantMemBuffer.v)
   #endif
 #else
   #define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,

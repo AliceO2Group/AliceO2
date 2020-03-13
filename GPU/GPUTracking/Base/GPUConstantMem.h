@@ -94,11 +94,7 @@ static constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + si
 #if defined(GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM)
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
-#ifdef GPUCA_CONSMEM_UINT4_BACKEND
-GPUconstant() uint4 gGPUConstantMemBuffer[o2::gpu::gGPUConstantMemBufferSize / sizeof(uint4)];
-#else
 GPUconstant() o2::gpu::GPUConstantMemCopyable gGPUConstantMemBuffer; // HIP constant memory symbol address cannot be obtained when in namespace
-#endif
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
