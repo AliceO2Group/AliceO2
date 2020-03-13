@@ -414,7 +414,7 @@ struct AnalysisDataProcessorBuilder {
         associated.bindExternalIndices(&groupingTable);
         groupingTable.bindExternalIndices(&associated);
         task.process(groupingTable, associated);
-      } else if constexpr (soa::is_soa_iterator_v<std::decay_t<Grouping>>) {
+      } else if constexpr (soa::is_soa_iterator_t<std::decay_t<Grouping>>::value) {
         using AssociatedType = std::tuple_element_t<0, std::tuple<Associated...>>;
         if constexpr (soa::is_soa_iterator_t<std::decay_t<AssociatedType>>::value) {
           auto groupedTable = std::get<0>(associatedTables);
