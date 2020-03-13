@@ -26,7 +26,6 @@
 #include <deque>
 #include <bitset>
 
-
 namespace o2
 {
 namespace fdd
@@ -43,7 +42,7 @@ class Digitizer
  public:
   struct BCCache : public o2::InteractionRecord {
     std::array<ChannelBCDataF, mNchannels> pulse = {};
-    std::vector<o2::fdd::MCLabel> labels; 
+    std::vector<o2::fdd::MCLabel> labels;
 
     BCCache();
 
@@ -61,7 +60,7 @@ class Digitizer
     }
     void print() const;
   };
-  
+
   void process(const std::vector<o2::fdd::Hit>& hits,
                std::vector<o2::fdd::Digit>& digitsBC,
                std::vector<o2::fdd::ChannelData>& digitsCh,
@@ -85,9 +84,8 @@ class Digitizer
   void finish();
 
  private:
-  
   static constexpr int BCCacheMin = -1, BCCacheMax = 10, NBC2Cache = 1 + BCCacheMax - BCCacheMin;
-  
+
   void Pulse(int nphe, int parID, double timeHit, std::array<o2::InteractionRecord, NBC2Cache> const& cachedIR, int nCachedIR, int channel);
 
   BCCache& setBCCache(const o2::InteractionRecord& ir);
@@ -97,19 +95,17 @@ class Digitizer
                std::vector<o2::fdd::Digit>& digitsBC, std::vector<o2::fdd::ChannelData>& digitsCh,
                o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>& labels);
 
- 
- 
-  long mEventTime;              	// TF (run) timestamp
+  long mEventTime;                      // TF (run) timestamp
   o2::InteractionTimeRecord mIntRecord; // Interaction record (orbit, bc) -> InteractionTimeRecord
-  Int_t mEventID;               	// ID of the current event
-  Int_t mSrcID;                 	// signal, background or QED
-  std::deque<BCCache> mCache; 		// cached BCs data
+  Int_t mEventID;                       // ID of the current event
+  Int_t mSrcID;                         // signal, background or QED
+  std::deque<BCCache> mCache;           // cached BCs data
   o2::fdd::Triggers mTriggers;
 
   DigitizationParameters parameters;
 
-  ChannelBCDataF mTimeCFD;                                          	        // Time series for CFD measurement
-  const Float_t mBinSize = 25.0/mNTimeBinsPerBC;                                // Time width of the pulse bin - HPTDC resolution
+  ChannelBCDataF mTimeCFD;                         // Time series for CFD measurement
+  const Float_t mBinSize = 25.0 / mNTimeBinsPerBC; // Time width of the pulse bin - HPTDC resolution
   Float_t mPmtTimeIntegral;
 
   // Random rings

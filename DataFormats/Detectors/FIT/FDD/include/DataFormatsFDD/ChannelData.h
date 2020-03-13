@@ -24,7 +24,7 @@ namespace fdd
 {
 
 struct ChannelData {
-  
+
   Int_t mPMNumber;    // PhotoMultiplier number (0 to 16)
   Float_t mTime;      // Time of Flight
   Short_t mChargeADC; // ADC sample
@@ -38,7 +38,6 @@ struct ChannelData {
   Bool_t mAmpTooHigh;
   Bool_t mEventInTrigger;
   Bool_t mTimeLost;
-
 
   ChannelData() = default;
   ChannelData(Int_t channel, Float_t time, Short_t adc, Bool_t integrator, Bool_t doubleEvent, Bool_t event1TimeLost, Bool_t event2TimeLost, Bool_t adcInGate, Bool_t timeTooLate, Bool_t ampTooHigh, Bool_t eventInTrigger, Bool_t timeLost)
@@ -55,7 +54,6 @@ struct ChannelData {
     mAmpTooHigh = ampTooHigh;
     mEventInTrigger = eventInTrigger;
     mTimeLost = timeLost;
-    
   }
 
   void print() const;

@@ -21,30 +21,29 @@ namespace o2
 {
 namespace fdd
 {
-  constexpr UShort_t mNchannels = 16;
-  constexpr UShort_t mNtriggers = 5;
-  constexpr Float_t mIntTimeRes = 0.4;
-  constexpr Float_t mPhotoCathodeEfficiency = 0.18;
-  constexpr Float_t mChargePerADC = 0.6e-12;
-  constexpr Float_t mPMTransitTime = 6.0;   // PM response time (corresponds to 1.9 ns rise time)
-  constexpr Float_t mPMTransparency = 0.25; // Transparency of the first dynode of the PM
-  constexpr Float_t mPMNbOfSecElec = 6.0;   // Number of secondary electrons emitted from first dynode (per ph.e.)
-  
-  constexpr Int_t mNTimeBinsPerBC = 256;    // number of samples per BC
+constexpr UShort_t mNchannels = 16;
+constexpr UShort_t mNtriggers = 5;
+constexpr Float_t mIntTimeRes = 0.4;
+constexpr Float_t mPhotoCathodeEfficiency = 0.18;
+constexpr Float_t mChargePerADC = 0.6e-12;
+constexpr Float_t mPMTransitTime = 6.0;   // PM response time (corresponds to 1.9 ns rise time)
+constexpr Float_t mPMTransparency = 0.25; // Transparency of the first dynode of the PM
+constexpr Float_t mPMNbOfSecElec = 6.0;   // Number of secondary electrons emitted from first dynode (per ph.e.)
 
+constexpr Int_t mNTimeBinsPerBC = 256; // number of samples per BC
 
 //Detector TOF correction in ns
- constexpr Float_t mFDAdist = 1696.67;
- constexpr Float_t mFDCdist = 1954.4;
- constexpr Float_t mLayerWidth = 1.27;
+constexpr Float_t mFDAdist = 1696.67;
+constexpr Float_t mFDCdist = 1954.4;
+constexpr Float_t mLayerWidth = 1.27;
 
 constexpr float getTOFCorrection(int det)
 {
   constexpr float TOFCorr[4] = {
-    (mFDCdist+mLayerWidth) / o2::constants::physics::LightSpeedCm2NS,
-    (mFDCdist-mLayerWidth) / o2::constants::physics::LightSpeedCm2NS,
-    (mFDAdist-mLayerWidth) / o2::constants::physics::LightSpeedCm2NS,
-    (mFDAdist+mLayerWidth) / o2::constants::physics::LightSpeedCm2NS};
+    (mFDCdist + mLayerWidth) / o2::constants::physics::LightSpeedCm2NS,
+    (mFDCdist - mLayerWidth) / o2::constants::physics::LightSpeedCm2NS,
+    (mFDAdist - mLayerWidth) / o2::constants::physics::LightSpeedCm2NS,
+    (mFDAdist + mLayerWidth) / o2::constants::physics::LightSpeedCm2NS};
   return TOFCorr[det];
 }
 

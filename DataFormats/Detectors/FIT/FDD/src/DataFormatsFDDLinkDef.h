@@ -22,7 +22,7 @@
 #pragma link C++ class vector < o2::fdd::Triggers> + ;
 
 #pragma link C++ class o2::fdd::MCLabel + ;
-#pragma link C++ class vector  < o2::fdd::MCLabel > + ;
+#pragma link C++ class vector < o2::fdd::MCLabel> + ;
 
 #pragma link C++ class o2::fdd::Hit + ;
 #pragma link C++ class vector < o2::fdd::Hit> + ;

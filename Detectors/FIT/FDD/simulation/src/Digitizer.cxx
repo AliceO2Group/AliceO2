@@ -43,7 +43,7 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>& hits,
   std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::fdd::Hit const& a, o2::fdd::Hit const& b) {
     return a.GetTrackID() < b.GetTrackID();
   });
-  LOG(INFO) << "Pulse";  
+  LOG(INFO) << "Pulse";
   //Conversion of hits to the analogue pulse shape
   for (auto& hit : sorted_hits) {
     if (hit.GetTime() > 20e3) {
@@ -55,18 +55,18 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>& hits,
       }
       continue;
     }
-    
+
     std::array<o2::InteractionRecord, NBC2Cache> cachedIR;
     Int_t pmt = hit.GetDetectorID();
     Int_t nPhE = SimulateLightYield(pmt, hit.GetNphot());
 
     Float_t dt_scintillator = mRndScintDelay.getNextValue();
     Float_t t = dt_scintillator + hit.GetTime();
-    
-    double hTime = t - getTOFCorrection(int(pmt/4)); // account for TOF to detector
+
+    double hTime = t - getTOFCorrection(int(pmt / 4)); // account for TOF to detector
     hTime += mIntRecord.timeNS;
     o2::InteractionRecord irHit(hTime); // BC in which the hit appears (might be different from interaction BC for slow particles)
-    
+
     // nominal time of the BC to which the hit will be attributed
     double bcTime = o2::InteractionRecord::bc2ns(irHit.bc, irHit.orbit);
 
@@ -81,35 +81,38 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>& hits,
     }
     // if digit for this sector does not exist, create one otherwise add to it
     Pulse(nPhE, hit.GetTrackID(), hTime, cachedIR, nCachedIR, pmt);
-    
-  }//hit loop
-}   
-  
-//_____________________________________________________________________________  
+
+  } //hit loop
+}
+
+//_____________________________________________________________________________
 void Digitizer::Pulse(int nPhE, int parID, double timeHit, std::array<o2::InteractionRecord, NBC2Cache> const& cachedIR, int nCachedIR, int channel)
 {
   auto const roundVc = [&](int i) -> int {
     return (i / Vc::float_v::Size) * Vc::float_v::Size;
   };
-  
+
   double time0 = cachedIR[0].bc2ns(); // start time of the 1st cashed BC
-  float timeDiff = time0 - timeHit; 
-  if(channel<9) timeDiff += parameters.mTimeDelayFDC;
-  else timeDiff += parameters.mTimeDelayFDA;
-  
+  float timeDiff = time0 - timeHit;
+  if (channel < 9)
+    timeDiff += parameters.mTimeDelayFDC;
+  else
+    timeDiff += parameters.mTimeDelayFDA;
+
   //LOG(INFO) <<"Ch = "<<channel<<" NphE = " << nPhE <<" timeDiff "<<timeDiff;
   Float_t charge = TMath::Qe() * parameters.mPmGain * mBinSize / mPmtTimeIntegral / mChargePerADC;
-  
+
   Bool_t added[nCachedIR];
-  for(int ir = 0; ir<nCachedIR; ir++)added[ir] = kFALSE;
-  
+  for (int ir = 0; ir < nCachedIR; ir++)
+    added[ir] = kFALSE;
+
   for (Int_t iPhE = 0; iPhE < nPhE; ++iPhE) {
     Float_t tPhE = timeDiff + mRndSignalShape.getNextValue();
     Int_t const firstBin = roundVc(TMath::Max((Int_t)0, (Int_t)((tPhE - mPMTransitTime) / mBinSize)));
-    Int_t const lastBin = TMath::Min((Int_t)NBC2Cache*mNTimeBinsPerBC - 1, (Int_t)((tPhE + 2.0 * mPMTransitTime) / mBinSize));
+    Int_t const lastBin = TMath::Min((Int_t)NBC2Cache * mNTimeBinsPerBC - 1, (Int_t)((tPhE + 2.0 * mPMTransitTime) / mBinSize));
     //LOG(INFO) << "firstBin = "<<firstBin<<" lastbin "<<lastBin;
-   
-    Float_t const tempT = mBinSize * (0.5f + firstBin) - tPhE;    
+
+    Float_t const tempT = mBinSize * (0.5f + firstBin) - tPhE;
     long iStart = std::lround((tempT + 2.0f * mPMTransitTime) / mBinSize);
     float const offset = tempT + 2.0f * mPMTransitTime - Float_t(iStart) * mBinSize;
     long const iOffset = std::lround(offset / mBinSize * Float_t(parameters.mNResponseTables - 1));
@@ -117,20 +120,20 @@ void Digitizer::Pulse(int nPhE, int parID, double timeHit, std::array<o2::Intera
       LOG(ERROR) << "FDDDigitizer: table lookup failure";
     }
     iStart = roundVc(std::max(long(0), iStart));
-    
+
     Vc::float_v workVc;
     Vc::float_v pmtVc;
     Float_t const* q = mPMResponseTables[parameters.mNResponseTables / 2 + iOffset].data() + iStart;
     Float_t const* qEnd = &mPMResponseTables[parameters.mNResponseTables / 2 + iOffset].back();
-    
-    for(int ir = firstBin/mNTimeBinsPerBC; ir <= lastBin/mNTimeBinsPerBC; ir++){
-      int localFirst = (ir==firstBin/mNTimeBinsPerBC) ? firstBin : 0;
-      int localLast = (ir<lastBin/mNTimeBinsPerBC) ? mNTimeBinsPerBC : (lastBin - ir*mNTimeBinsPerBC);
+
+    for (int ir = firstBin / mNTimeBinsPerBC; ir <= lastBin / mNTimeBinsPerBC; ir++) {
+      int localFirst = (ir == firstBin / mNTimeBinsPerBC) ? firstBin : 0;
+      int localLast = (ir < lastBin / mNTimeBinsPerBC) ? mNTimeBinsPerBC : (lastBin - ir * mNTimeBinsPerBC);
       auto bcCache = getBCCache(cachedIR[ir]);
       auto& analogSignal = (*bcCache).pulse[channel];
       Float_t* p = analogSignal.data() + localFirst;
-        
-      for (int localBin = localFirst, iEnd = roundVc(localLast); q < qEnd && localBin < iEnd; localBin += Vc::float_v::Size){
+
+      for (int localBin = localFirst, iEnd = roundVc(localLast); q < qEnd && localBin < iEnd; localBin += Vc::float_v::Size) {
         pmtVc.load(q);
         q += Vc::float_v::Size;
         Vc::prefetchForOneRead(q);
@@ -139,23 +142,23 @@ void Digitizer::Pulse(int nPhE, int parID, double timeHit, std::array<o2::Intera
         workVc.store(p);
         p += Vc::float_v::Size;
         Vc::prefetchForOneRead(p);
-        }
-       added[ir] = kTRUE;
-     }      
+      }
+      added[ir] = kTRUE;
+    }
   }
-  for(int ir = 0; ir<nCachedIR; ir++){
-    if(added[ir]){
-	  auto bcCache = getBCCache(cachedIR[ir]);
-	  (*bcCache).labels.emplace_back(parID, mEventID, mSrcID, channel);
-	  }
-   }
+  for (int ir = 0; ir < nCachedIR; ir++) {
+    if (added[ir]) {
+      auto bcCache = getBCCache(cachedIR[ir]);
+      (*bcCache).labels.emplace_back(parID, mEventID, mSrcID, channel);
+    }
+  }
 }
-//_____________________________________________________________________________    
+//_____________________________________________________________________________
 void Digitizer::flush(std::vector<o2::fdd::Digit>& digitsBC,
                       std::vector<o2::fdd::ChannelData>& digitsCh,
                       o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>& labels)
 {
-  
+
   // do we have something to flush? We can do this only for cached BC data which is distanced from currently processed BC by NBCReadOut
   int nCached = mCache.size();
   if (nCached < 1) {
@@ -185,32 +188,32 @@ void Digitizer::storeBC(const BCCache& bc,
                         o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>& labels)
 {
   //LOG(INFO) << "Storing BC " << bc;
-  
+
   int first = digitsCh.size();
-  for (int ic = 0; ic < mNchannels; ic++){ 
-    digitsCh.emplace_back(ic, SimulateTimeCFD(bc.pulse[ic]), IntegrateCharge(bc.pulse[ic]),0,0,0,0,0,0,0,0,0);
-    }
+  for (int ic = 0; ic < mNchannels; ic++) {
+    digitsCh.emplace_back(ic, SimulateTimeCFD(bc.pulse[ic]), IntegrateCharge(bc.pulse[ic]), 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  }
   //bc.print();
-  
+
   int nBC = digitsBC.size();
   digitsBC.emplace_back(first, 16, bc, mTriggers);
 
-  for (const auto& lbl : bc.labels) labels.addElement(nBC, lbl);
+  for (const auto& lbl : bc.labels)
+    labels.addElement(nBC, lbl);
 }
 
 //_____________________________________________________________________________
 Float_t Digitizer::IntegrateCharge(ChannelBCDataF pulse)
 {
   Float_t chargeADC = 0;
-  for (Int_t iBin = 0; iBin < mNTimeBinsPerBC; ++iBin){ 
+  for (Int_t iBin = 0; iBin < mNTimeBinsPerBC; ++iBin) {
     //pulse[iBin] /= mChargePerADC;
     chargeADC += pulse[iBin];
-    }
-  //saturation if(chargeADC > )chargeADC = ; 
-  
+  }
+  //saturation if(chargeADC > )chargeADC = ;
+
   //LOG(INFO) <<" Charge " << chargeADC;
   return std::lround(chargeADC);
-
 }
 //_____________________________________________________________________________
 Float_t Digitizer::SimulateTimeCFD(ChannelBCDataF pulse)
@@ -278,7 +281,6 @@ o2::fdd::Digitizer::BCCache* Digitizer::getBCCache(const o2::InteractionRecord& 
 void Digitizer::SetTriggers(o2::fdd::Digit* digit)
 {
   //mTriggers.set
-
 }
 //_______________________________________________________________________
 void Digitizer::init()
@@ -358,11 +360,12 @@ Double_t Digitizer::SinglePhESpectrum(Double_t* x, Double_t*)
 //______________________________________________________________
 void Digitizer::BCCache::print() const
 {
-  printf("Cached Orbit:%5d/BC:%4d",orbit, bc);
+  printf("Cached Orbit:%5d/BC:%4d", orbit, bc);
   for (int ic = 0; ic < 16; ic++) {
     printf("Ch[%d] | ", ic);
     for (int ib = 0; ib < mNTimeBinsPerBC; ib++) {
-      if(ib % 10 == 0)printf("%f ", pulse[ic][ib]);
+      if (ib % 10 == 0)
+        printf("%f ", pulse[ic][ib]);
     }
     printf("\n");
   }

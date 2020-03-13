@@ -58,8 +58,7 @@ struct Triggers {
   ClassDefNV(Triggers, 1);
 };
 
-struct Digit
-{
+struct Digit {
   o2::dataformats::RangeRefComp<5> ref;
 
   Triggers mTriggers;               // pattern of triggers  in this BC
@@ -76,7 +75,7 @@ struct Digit
   uint32_t getOrbit() const { return mIntRecord.orbit; }
   uint16_t getBC() const { return mIntRecord.bc; }
   o2::InteractionRecord getIntRecord() { return mIntRecord; };
-  gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata)const{return gsl::span<const ChannelData>(&tfdata[ref.getFirstEntry()], ref.getEntries());}
+  gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const { return gsl::span<const ChannelData>(&tfdata[ref.getFirstEntry()], ref.getEntries()); }
 
   ClassDefNV(Digit, 3);
 };
