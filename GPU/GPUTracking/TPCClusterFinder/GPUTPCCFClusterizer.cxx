@@ -33,15 +33,15 @@ GPUdii() void GPUTPCCFClusterizer::Thread<GPUTPCCFClusterizer::computeClusters>(
   GPUTPCCFClusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, chargeMap, clusterer.mPfilteredPeakPositions, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterer.mPclusterByRow);
 }
 
-GPUd() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlock, int iThread,
-                                                     GPUSharedMemory& smem,
-                                                     const Array2D<PackedCharge>& chargeMap,
-                                                     const ChargePos* filteredPeakPositions,
-                                                     MCLabelAccumulator* labelAcc,
-                                                     uint clusternum,
-                                                     uint maxClusterPerRow,
-                                                     uint* clusterInRow,
-                                                     tpc::ClusterNative* clusterByRow)
+GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlock, int iThread,
+                                                       GPUSharedMemory& smem,
+                                                       const Array2D<PackedCharge>& chargeMap,
+                                                       const ChargePos* filteredPeakPositions,
+                                                       MCLabelAccumulator* labelAcc,
+                                                       uint clusternum,
+                                                       uint maxClusterPerRow,
+                                                       uint* clusterInRow,
+                                                       tpc::ClusterNative* clusterByRow)
 {
   uint idx = get_global_id(0);
 
@@ -148,7 +148,7 @@ GPUd() void GPUTPCCFClusterizer::addLine(
   }
 }
 
-GPUd() void GPUTPCCFClusterizer::updateClusterScratchpadInner(
+GPUdii() void GPUTPCCFClusterizer::updateClusterScratchpadInner(
   ushort lid,
   ushort N,
   const PackedCharge* buf,
@@ -178,7 +178,7 @@ GPUd() void GPUTPCCFClusterizer::updateClusterScratchpadInner(
   GPUbarrier();
 }
 
-GPUd() void GPUTPCCFClusterizer::updateClusterScratchpadOuter(
+GPUdii() void GPUTPCCFClusterizer::updateClusterScratchpadOuter(
   ushort lid,
   ushort N,
   ushort M,
@@ -202,7 +202,7 @@ GPUd() void GPUTPCCFClusterizer::updateClusterScratchpadOuter(
   }
 }
 
-GPUd() void GPUTPCCFClusterizer::buildClusterScratchPad(
+GPUdii() void GPUTPCCFClusterizer::buildClusterScratchPad(
   const Array2D<PackedCharge>& chargeMap,
   ChargePos pos,
   ChargePos* posBcast,
