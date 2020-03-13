@@ -303,8 +303,8 @@ struct AnalysisDataProcessorBuilder {
   {
     if constexpr (soa::is_type_with_metadata_v<aod::MetadataTrait<T>>) {
       return record.get<TableConsumer>(aod::MetadataTrait<T>::metadata::label())->asArrowTable();
-    } else {
-      static_assert(always_static_assert_v<T>, "Iterators on Joins/Concats are not supported yet!");
+    } else if constexpr (soa::is_type_with_originals_v<T>) {
+      return extractFromRecord<T>(record, typename T::originals{});
     }
     O2_BUILTIN_UNREACHABLE();
   }
@@ -313,7 +313,7 @@ struct AnalysisDataProcessorBuilder {
   static auto extractFromRecord(InputRecord& record, pack<Os...> const&)
   {
     if constexpr (soa::is_soa_iterator_t<T>::value) {
-      return typename T::table_t{extractTableFromRecord<Os>(record)...};
+      return typename T::parent_t{{extractTableFromRecord<Os>(record)...}};
     } else {
       return T{{extractTableFromRecord<Os>(record)...}};
     }
@@ -376,15 +376,15 @@ struct AnalysisDataProcessorBuilder {
       // No extra tables: we need to either iterate over the contents of
       // grouping or pass the whole grouping table, depending on whether Grouping
       // is a o2::soa::Table or a o2::soa::RowView
-      if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::Table>::value) {
+      if constexpr (soa::is_soa_table_t<std::decay_t<Grouping>>::value) {
         task.process(groupingTable);
       } else if constexpr (soa::is_soa_iterator_t<std::decay_t<Grouping>>::value) {
         for (auto& groupedElement : groupingTable) {
           task.process(groupedElement);
         }
-      } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::Join>::value) {
+      } else if constexpr (soa::is_soa_join_t<std::decay_t<Grouping>>::value) {
         task.process(groupingTable);
-      } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::Filtered>::value) {
+      } else if constexpr (soa::is_soa_filtered_t<std::decay_t<Grouping>>::value) {
         task.process(groupingTable);
       } else {
         static_assert(always_static_assert_v<Grouping>,
@@ -405,7 +405,7 @@ struct AnalysisDataProcessorBuilder {
       // MyTask::process(Collision const& collision, Tracks const& tracks)
       //
       // Will iterate on all the tracks for the provided collision.
-      if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::Table>::value) {
+      if constexpr (soa::is_soa_table_t<std::decay_t<Grouping>>::value) {
         static_assert(((soa::is_soa_iterator_t<std::decay_t<Associated>>::value == false) && ...),
                       "You cannot have a soa::RowView iterator as an argument after the "
                       " first argument of type soa::Table which is found as in the "
@@ -432,7 +432,7 @@ struct AnalysisDataProcessorBuilder {
             }
             task.process(groupingElement, groupedElement);
           }
-        } else if constexpr (is_base_of_template<o2::soa::Table, std::decay_t<AssociatedType>>::value) {
+        } else if constexpr (soa::is_soa_table_like_t<std::decay_t<AssociatedType>>::value) {
           auto allGroupedTable = std::get<0>(associatedTables);
           using groupingMetadata = typename aod::MetadataTrait<std::decay_t<Grouping>>::metadata;
           arrow::compute::FunctionContext ctx;
@@ -451,7 +451,7 @@ struct AnalysisDataProcessorBuilder {
           // FIXME: this assumes every groupingElement has a group associated,
           // which migh not be the case.
           size_t oi = 0;
-          if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Table>::value) {
+          if constexpr (soa::is_soa_table_t<std::decay_t<AssociatedType>>::value) {
             for (auto& groupedDatum : groupsCollection) {
               auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
               std::decay_t<AssociatedType> typedTable{groupedElementsTable, offsets[oi]};
@@ -460,7 +460,7 @@ struct AnalysisDataProcessorBuilder {
               ++const_cast<std::decay_t<Grouping>&>(groupingElement);
               ++oi;
             }
-          } else if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Filtered>::value) {
+          } else if constexpr (soa::is_soa_filtered_t<std::decay_t<AssociatedType>>::value) {
             auto& fullSelection = allGroupedTable.getSelectedRows();
             offsets.push_back(allGroupedTable.tableSize());
 
@@ -482,7 +482,7 @@ struct AnalysisDataProcessorBuilder {
               ++const_cast<std::decay_t<Grouping>&>(groupingElement);
               ++oi;
             }
-          } else if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Join>::value || is_specialization<std::decay_t<AssociatedType>, o2::soa::Concat>::value) {
+          } else if constexpr (soa::is_soa_join_t<std::decay_t<AssociatedType>>::value || soa::is_soa_concat_t<std::decay_t<AssociatedType>>::value) {
             for (auto& groupedDatum : groupsCollection) {
               auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
               // Set the refererred table.
