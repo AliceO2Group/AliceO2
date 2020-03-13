@@ -89,6 +89,10 @@ template <typename T>
 struct arrow_array_for {
 };
 template <>
+struct arrow_array_for<bool> {
+  using type = arrow::Int8Array;
+};
+template <>
 struct arrow_array_for<int8_t> {
   using type = arrow::Int8Array;
 };
@@ -165,7 +169,7 @@ class ColumnIterator : ChunkingPolicy
   {
     auto chunks = mColumn->data();
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
-    mCurrent = array->raw_values();
+    mCurrent = reinterpret_cast<T const*>(array->raw_values());
     mLast = mCurrent + array->length();
   }
 
@@ -184,7 +188,7 @@ class ColumnIterator : ChunkingPolicy
     mFirstIndex += previousArray->length();
     mCurrentChunk++;
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
-    mCurrent = array->raw_values() - mFirstIndex;
+    mCurrent = reinterpret_cast<T const*>(array->raw_values() - mFirstIndex);
     mLast = mCurrent + array->length() + mFirstIndex;
   }
 
@@ -195,7 +199,7 @@ class ColumnIterator : ChunkingPolicy
     mFirstIndex -= previousArray->length();
     mCurrentChunk--;
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
-    mCurrent = array->raw_values() - mFirstIndex;
+    mCurrent = reinterpret_cast<T const*>(array->raw_values() - mFirstIndex);
     mLast = mCurrent + array->length() + mFirstIndex;
   }
 
@@ -220,7 +224,7 @@ class ColumnIterator : ChunkingPolicy
     auto array = std::static_pointer_cast<arrow_array_for_t<T>>(chunks->chunk(mCurrentChunk));
     assert(array.get());
     mFirstIndex = mColumn->length() - array->length();
-    mCurrent = array->raw_values() - mFirstIndex;
+    mCurrent = reinterpret_cast<T const*>(array->raw_values() - mFirstIndex);
     mLast = mCurrent + array->length() + mFirstIndex;
   }
 
