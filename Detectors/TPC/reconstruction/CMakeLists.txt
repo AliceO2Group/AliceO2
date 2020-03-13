@@ -111,6 +111,15 @@ o2_add_test_root_macro(macro/testRawRead.C
                        PUBLIC_LINK_LIBRARIES O2::TPCReconstruction
                        LABELS tpc)
 
+o2_add_test_root_macro(macro/createTPCSpaceChargeCorrection.C
+                       COMPILE_ONLY
+                       PUBLIC_LINK_LIBRARIES O2::TPCReconstruction
+                                             O2::CommonConstants
+                                             O2::CommonUtils
+                                             O2::TPCSpaceChargeBase
+                       LABELS tpc)
+
+
 # FIXME: should be moved to TPCSimulation as it requires O2::TPCSimulation
 # target which is built after reconstruction
 # o2_add_test_root_macro(macro/testTracks.C PUBLIC_LINK_LIBRARIES
