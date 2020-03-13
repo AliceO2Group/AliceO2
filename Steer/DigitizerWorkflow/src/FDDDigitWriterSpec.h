@@ -35,11 +35,15 @@ o2::framework::DataProcessorSpec getFDDDigitWriterSpec()
                                 "fdddigits.root",
                                 "o2sim",
                                 1,
-                                BranchDefinition<std::vector<o2::fdd::Digit>>{InputSpec{"digitinput", "FDD", "DIGITS"}, "FDDDigit"},
-                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>>{InputSpec{"labelinput", "FDD", "DIGITSMC"}, "FDDDigitLabels"})();
+                                BranchDefinition<std::vector<o2::fdd::Digit>>{InputSpec{"digitBCinput", "FDD", "DIGITSBC"}, "FDDDigit"},
+                                BranchDefinition<std::vector<o2::fdd::ChannelData>>{InputSpec{"digitChinput", "FDD", "DIGITSCH"}, "FDDDigitCh"},
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>>{InputSpec{"labelinput", "FDD", "DIGITLBL"}, "FDDDigitLabels"})();
 }
 
 } // end namespace fdd
 } // end namespace o2
 
 #endif /* STEER_DIGITIZERWORKFLOW_SRC_FDDDIGITWRITERSPEC_H_ */
+
+
+

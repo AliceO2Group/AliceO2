@@ -20,6 +20,7 @@ using namespace o2::fdd;
 //_____________________________________________________________________
 void Reconstructor::Process(const Digit& digit, RecPoint& recPoint) const
 {
+/*/
   o2::InteractionRecord intRecord = digit.GetInteractionRecord();
   recPoint.SetInteractionRecord(intRecord);
   Double_t eventTime = o2::InteractionRecord::bc2ns(intRecord.bc, intRecord.orbit);
@@ -54,6 +55,7 @@ void Reconstructor::Process(const Digit& digit, RecPoint& recPoint) const
 
   recPoint.SetMeanTimeFDA(timeFDA);
   recPoint.SetMeanTimeFDC(timeFDC);
+  /*/
 }
 //________________________________________________________
 void Reconstructor::Finish()
