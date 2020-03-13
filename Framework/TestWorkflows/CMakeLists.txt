@@ -113,6 +113,11 @@ o2_add_executable(ccdb-fetch-to-timeframe
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME TestWorkflows)
 
+o2_add_executable(datasampling-benchmark
+                  SOURCES src/dataSamplingBenchmark.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME TestWorkflows)
+
 # Detector specific dummy workflows
 o2_add_executable(tof-dummy-ccdb
                   SOURCES src/tof-dummy-ccdb.cxx
