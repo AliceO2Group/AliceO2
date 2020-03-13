@@ -117,9 +117,9 @@ int main(int argc, char** argv)
     // the default one.
     // The default policy is a catch all pub/sub setup to be consistent with the past.
     std::vector<o2::framework::ConfigParamSpec> workflowOptions;
+    UserCustomizationsHelper::userDefinedCustomization(workflowOptions, 0);
     workflowOptions.push_back(ConfigParamSpec{"readers", VariantType::Int64, 1ll, {"number of parallel readers to use"}});
     workflowOptions.push_back(ConfigParamSpec{"pipeline", VariantType::String, "", {"override default pipeline size"}});
-    UserCustomizationsHelper::userDefinedCustomization(workflowOptions, 0);
     std::vector<ChannelConfigurationPolicy> channelPolicies;
     UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
     auto defaultChannelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
