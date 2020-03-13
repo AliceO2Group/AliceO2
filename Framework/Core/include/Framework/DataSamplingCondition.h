@@ -18,11 +18,10 @@
 
 #include "Framework/DataRef.h"
 
-#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ptree_fwd.hpp>
+#include <string>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// A standarised data sampling condition, to decide if given data sample should be passed forward.
@@ -40,7 +39,6 @@ class DataSamplingCondition
   virtual bool decide(const o2::framework::DataRef&) = 0;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif //ALICEO2_DATASAMPLINGCONDITION_H

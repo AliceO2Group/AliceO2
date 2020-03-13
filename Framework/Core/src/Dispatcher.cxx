@@ -16,6 +16,7 @@
 #include "Framework/Dispatcher.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/DataSamplingPolicy.h"
+#include "Framework/DataSamplingHeader.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/Logger.h"

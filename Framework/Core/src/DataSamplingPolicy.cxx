@@ -19,6 +19,8 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataDescriptorQueryBuilder.h"
 
+#include <boost/property_tree/ptree.hpp>
+
 namespace o2::framework
 {
 

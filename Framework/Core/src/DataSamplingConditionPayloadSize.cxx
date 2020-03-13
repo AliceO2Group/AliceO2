@@ -17,10 +17,9 @@
 #include "Framework/DataSamplingConditionFactory.h"
 #include "Headers/DataHeader.h"
 #include "Framework/Logger.h"
+#include <boost/property_tree/ptree.hpp>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 using namespace o2::header;
@@ -63,5 +62,4 @@ std::unique_ptr<DataSamplingCondition> DataSamplingConditionFactory::createDataS
   return std::make_unique<DataSamplingConditionPayloadSize>();
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

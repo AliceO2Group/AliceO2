@@ -23,11 +23,9 @@
 #include "Framework/DataSamplingCondition.h"
 #include "Framework/DataSpecUtils.h"
 
-#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ptree_fwd.hpp>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// A class representing certain policy of sampling data.
@@ -90,7 +88,6 @@ class DataSamplingPolicy
   uint32_t mTotalEvaluatedMessages = 0;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif // ALICEO2_DATASAMPLINGPOLICY_H

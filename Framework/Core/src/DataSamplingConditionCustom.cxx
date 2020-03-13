@@ -22,10 +22,9 @@
 #include <TClass.h>
 #include <TROOT.h>
 #include <TSystem.h>
+#include <boost/property_tree/ptree.hpp>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// \brief A DataSamplingCondition which makes decisions based on payload size.
@@ -82,5 +81,4 @@ std::unique_ptr<DataSamplingCondition> DataSamplingConditionFactory::createDataS
   return std::make_unique<DataSamplingConditionCustom>();
 }
 
-} // namespace framework
 } // namespace o2
