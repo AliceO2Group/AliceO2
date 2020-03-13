@@ -23,3 +23,4 @@ o2_target_root_dictionary(FV0Simulation
                                   include/FV0Simulation/Digitizer.h
                                   include/FV0Simulation/FV0DigParam.h)
 
+o2_data_file(COPY data  DESTINATION Detectors/FV0/simulation)
