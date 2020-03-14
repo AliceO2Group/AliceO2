@@ -282,6 +282,9 @@ struct Column {
   Column(Column const&) = default;
   Column& operator=(Column const&) = default;
 
+  Column(Column&&) = default;
+  Column& operator=(Column&&) = default;
+
   using persistent = std::true_type;
   using type = T;
   static constexpr const char* const& label() { return INHERIT::mLabel; }
@@ -319,6 +322,12 @@ struct Index : o2::soa::IndexColumn<Index<START, END>> {
   constexpr inline static int64_t end = END;
 
   Index() = default;
+  Index(Index const&) = default;
+  Index(Index&&) = default;
+
+  Index& operator=(Index const&) = default;
+  Index& operator=(Index&&) = default;
+
   Index(arrow::Column const*)
   {
   }
@@ -514,13 +523,13 @@ struct FilteredIndexPolicy : IndexPolicyBase {
   void setCursor(int64_t i)
   {
     mSelectionRow = i;
-    this->mRowIndex = O2_BUILTIN_LIKELY(mMaxSelection != 0) ? mSelectedRows[mSelectionRow] : mSelectionRow;
+    updateRow();
   }
 
   void moveByIndex(int64_t i)
   {
     mSelectionRow += i;
-    this->mRowIndex = O2_BUILTIN_LIKELY(mMaxSelection != 0) ? mSelectedRows[mSelectionRow] : mSelectionRow;
+    updateRow();
   }
 
   bool operator!=(FilteredIndexPolicy const& other) const
@@ -548,6 +557,12 @@ struct FilteredIndexPolicy : IndexPolicyBase {
   }
 
  private:
+  inline void updateRow()
+  {
+    /// FIXME: there should be a way to detect and gracefully handle empty
+    ///        selections outside the index policy
+    this->mRowIndex = O2_BUILTIN_LIKELY(mMaxSelection != 0) ? mSelectedRows[mSelectionRow] : mSelectionRow;
+  }
   SelectionVector mSelectedRows;
   int64_t mSelectionRow = 0;
   int64_t mMaxSelection = 0;
@@ -584,50 +599,50 @@ struct RowViewCore : public IP, C... {
 
   RowViewCore() = default;
   RowViewCore(RowViewCore<IP, C...> const& other)
-    : IP{static_cast<IP>(other)},
+    : IP{static_cast<IP const&>(other)},
       C(static_cast<C const&>(other))...
   {
     bindIterators(persistent_columns_t{});
     bindAllDynamicColumns(dynamic_columns_t{});
   }
 
-  RowViewCore(RowViewCore<IP, C...>&& other)
+  RowViewCore(RowViewCore&& other) noexcept
   {
-    IP::operator=(static_cast<IP>(other));
-    (void(static_cast<C&>(*this) = static_cast<C const&>(other)), ...);
+    IP::operator=(static_cast<IP&&>(other));
+    (void(static_cast<C&>(*this) = static_cast<C&&>(other)), ...);
     bindIterators(persistent_columns_t{});
     bindAllDynamicColumns(dynamic_columns_t{});
   }
 
-  RowViewCore<IP, C...>& operator=(RowViewCore<IP, C...> const& other)
+  RowViewCore& operator=(RowViewCore const& other)
   {
-    IP::operator=(static_cast<IP>(other));
+    IP::operator=(static_cast<IP const&>(other));
     (void(static_cast<C&>(*this) = static_cast<C const&>(other)), ...);
     bindIterators(persistent_columns_t{});
     bindAllDynamicColumns(dynamic_columns_t{});
     return *this;
   }
 
-  RowViewCore& operator=(RowViewCore<IP, C...>&& other)
+  RowViewCore& operator=(RowViewCore&& other) noexcept
   {
-    IP::operator=(static_cast<IP>(other));
-    (void(static_cast<C&>(*this) = static_cast<C const&>(other)), ...);
+    IP::operator=(static_cast<IP&&>(other));
+    (void(static_cast<C&>(*this) = static_cast<C&&>(other)), ...);
     return *this;
   }
 
-  RowViewCore<IP, C...>& operator[](int64_t i)
+  RowViewCore& operator[](int64_t i)
   {
     this->setCursor(i);
     return *this;
   }
 
-  RowViewCore<IP, C...>& operator++()
+  RowViewCore& operator++()
   {
     this->moveByIndex(1);
     return *this;
   }
 
-  RowViewCore<IP, C...> operator++(int)
+  RowViewCore operator++(int)
   {
     RowViewCore<IP, C...> copy = *this;
     this->operator++();
@@ -635,19 +650,19 @@ struct RowViewCore : public IP, C... {
   }
 
   /// Allow incrementing by more than one the iterator
-  RowViewCore<IP, C...> operator+(int64_t inc) const
+  RowViewCore operator+(int64_t inc) const
   {
-    RowViewCore<IP, C...> copy = *this;
+    RowViewCore copy = *this;
     copy.moveByIndex(inc);
     return copy;
   }
 
-  RowViewCore<IP, C...> operator-(int64_t dec) const
+  RowViewCore operator-(int64_t dec) const
   {
     return operator+(-dec);
   }
 
-  RowViewCore<IP, C...> const& operator*() const
+  RowViewCore const& operator*() const
   {
     return *this;
   }
@@ -676,14 +691,14 @@ struct RowViewCore : public IP, C... {
   /// Helper to move to the correct chunk, if needed.
   /// FIXME: not needed?
   template <typename... PC>
-  void checkNextChunk(framework::pack<PC...> pack)
+  void checkNextChunk(framework::pack<PC...>)
   {
     (PC::mColumnIterator.checkNextChunk(), ...);
   }
 
   /// Helper to move at the end of columns which actually have an iterator.
   template <typename... PC>
-  void doMoveToEnd(framework::pack<PC...> pack)
+  void doMoveToEnd(framework::pack<PC...>)
   {
     (PC::mColumnIterator.moveToEnd(), ...);
   }
@@ -691,14 +706,14 @@ struct RowViewCore : public IP, C... {
   /// Helper which binds all the ColumnIterators to the
   /// index of a the associated RowView
   template <typename... PC>
-  auto bindIterators(framework::pack<PC...> pack)
+  auto bindIterators(framework::pack<PC...>)
   {
     using namespace o2::soa;
     (void(PC::mColumnIterator.mCurrentPos = &this->mRowIndex), ...);
   }
 
   template <typename... DC>
-  auto bindAllDynamicColumns(framework::pack<DC...> pack)
+  auto bindAllDynamicColumns(framework::pack<DC...>)
   {
     using namespace o2::soa;
     (bindDynamicColumn<DC>(typename DC::bindings_t{}), ...);
@@ -709,7 +724,7 @@ struct RowViewCore : public IP, C... {
   }
 
   template <typename DC, typename... B>
-  auto bindDynamicColumn(framework::pack<B...> bindings)
+  auto bindDynamicColumn(framework::pack<B...>)
   {
     DC::boundIterators = std::make_tuple(&(B::mColumnIterator)...);
   }
@@ -771,7 +786,7 @@ class Table
     }
 
     template <typename Tbl = table_t>
-    RowViewBase(RowViewBase<IP, Tbl, Tbl>&& other)
+    RowViewBase(RowViewBase<IP, Tbl, Tbl>&& other) noexcept
       : RowViewCore<IP, C...>(other)
     {
     }
