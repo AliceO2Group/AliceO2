@@ -1,4 +1,6 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
+#include <iostream>
+
 #include <Rtypes.h>
 #include <TString.h>
 #include <TStopwatch.h>
