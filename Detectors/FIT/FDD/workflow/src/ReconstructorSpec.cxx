@@ -34,7 +34,8 @@ void FDDReconstructorDPL::run(ProcessingContext& pc)
     return;
   }
   mRecPoints.clear();
-  auto digits = pc.inputs().get<const std::vector<o2::fdd::Digit>>("digits");
+  auto digitsBC = pc.inputs().get<gsl::span<o2::fdd::Digit>>("digitsBC");
+  auto digitsCh = pc.inputs().get<gsl::span<o2::fdd::ChannelData>>("digitsCh");
   // RS: if we need to process MC truth, uncomment lines below
   //std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>> labels;
   //const o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>* lblPtr = nullptr;
@@ -43,13 +44,14 @@ void FDDReconstructorDPL::run(ProcessingContext& pc)
     //lblPtr = labels.get();
     LOG(INFO) << "Ignoring MC info";
   }
-  int nDig = digits.size();
-  mRecPoints.resize(nDig);
+  int nDig = digitsBC.size();
+  mRecPoints.reserve(nDig);
   for (int id = 0; id < nDig; id++) {
-    const auto& digit = digits[id];
-    auto& rp = mRecPoints[id];
-    mReco.Process(digit, rp);
+    const auto& digit = digitsBC[id];
+    auto channels = digit.getBunchChannelData(digitsCh);
+    mReco.process(digit, channels, mRecPoints);
   }
+
   // do we ignore MC in this task?
 
   LOG(INFO) << "FDD reconstruction pushes " << mRecPoints.size() << " RecPoints";
@@ -63,7 +65,8 @@ DataProcessorSpec getFDDReconstructorSpec(bool useMC)
 {
   std::vector<InputSpec> inputSpec;
   std::vector<OutputSpec> outputSpec;
-  inputSpec.emplace_back("digits", o2::header::gDataOriginFDD, "DIGITS", 0, Lifetime::Timeframe);
+  inputSpec.emplace_back("digitsBC", o2::header::gDataOriginFDD, "DIGITSBC", 0, Lifetime::Timeframe);
+  inputSpec.emplace_back("digitsCh", o2::header::gDataOriginFDD, "DIGITSCH", 0, Lifetime::Timeframe);
   if (useMC) {
     LOG(INFO) << "Currently FDDReconstructor does not consume and provide MC truth";
     // inputSpec.emplace_back("labels", o2::header::gDataOriginFDD, "DIGITSMCTR", 0, Lifetime::Timeframe);

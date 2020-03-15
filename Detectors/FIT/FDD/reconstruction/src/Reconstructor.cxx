@@ -18,24 +18,16 @@
 using namespace o2::fdd;
 
 //_____________________________________________________________________
-void Reconstructor::Process(const Digit& digit, RecPoint& recPoint) const
+void Reconstructor::process(const o2::fdd::Digit& digitBC, gsl::span<const o2::fdd::ChannelData> digitCh, std::vector<o2::fdd::RecPoint>& recPoints) const
 {
-  o2::InteractionRecord intRecord = digit.GetInteractionRecord();
-  recPoint.SetInteractionRecord(intRecord);
-  Double_t eventTime = o2::InteractionRecord::bc2ns(intRecord.bc, intRecord.orbit);
-  recPoint.SetTimeFromDigit(eventTime);
-
-  std::vector<o2::fdd::ChannelData> channelData = digit.GetChannelData();
-  recPoint.SetChannelData(channelData);
-
   //Compute charge weighted average time
   Double_t timeFDA = 0, timeFDC = 0;
   Double_t weightFDA = 0.0, weightFDC = 0.0;
 
-  for (auto& channel : channelData) {
+  for (const auto& channel : digitCh) {
     Float_t adc = channel.mChargeADC;
     Float_t time = channel.mTime;
-    //LOG(INFO) <<adc <<"  "<<time<<FairLogger::endl;
+    //LOG(INFO) <<adc <<"  "<<time;
     if (time == o2::InteractionRecord::DummyTime)
       continue;
     Float_t timeErr = 1;
@@ -49,14 +41,13 @@ void Reconstructor::Process(const Digit& digit, RecPoint& recPoint) const
       weightFDA += 1. / (timeErr * timeErr);
     }
   }
-  timeFDA = (weightFDA > 1) ? timeFDA /= weightFDA : o2::InteractionRecord::DummyTime;
-  timeFDC = (weightFDC > 1) ? timeFDC /= weightFDC : o2::InteractionRecord::DummyTime;
+  timeFDA = (weightFDA > 1) ? timeFDA / weightFDA : o2::InteractionRecord::DummyTime;
+  timeFDC = (weightFDC > 1) ? timeFDC / weightFDC : o2::InteractionRecord::DummyTime;
 
-  recPoint.SetMeanTimeFDA(timeFDA);
-  recPoint.SetMeanTimeFDC(timeFDC);
+  recPoints.emplace_back(timeFDA, timeFDC, digitBC.getIntRecord());
 }
 //________________________________________________________
-void Reconstructor::Finish()
+void Reconstructor::finish()
 {
   // finalize digitization, if needed, flash remaining digits
   // if (!mContinuous)   return;

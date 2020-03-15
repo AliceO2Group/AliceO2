@@ -14,24 +14,18 @@
 namespace o2::fdd
 {
 struct DigitizationParameters {
-  static constexpr UShort_t mNchannels = 16;
-  static constexpr UShort_t mNtriggers = 5;
-  static constexpr Float_t mIntTimeRes = 0.4;
-  static constexpr Float_t mPhotoCathodeEfficiency = 0.18;
-  static constexpr Float_t mLightYield = 0.01;
-  static constexpr Float_t mPmGain = 1e6;
-  static constexpr Float_t mChargePerADC = 0.6e-12;
-  static constexpr Float_t mPMTransitTime = 6.0;   // PM response time (corresponds to 1.9 ns rise time)
-  static constexpr Float_t mPMTransparency = 0.25; // Transparency of the first dynode of the PM
-  static constexpr Float_t mPMNbOfSecElec = 6.0;   // Number of secondary electrons emitted from first dynode (per ph.e.)
-  static constexpr Float_t mShapeAlpha = -0.445;
-  static constexpr Float_t mShapeN = 2.65;
-  static constexpr Float_t mShapeSigma = 3.25;
-  //static constexpr Float_t mPedestal = 0;
-  static constexpr Float_t mTimeShiftCFD = 1.42;
-  static constexpr int mPheRRSize = 1e5;     // size of random ring to be used inside photoelectron loop
-  static constexpr int mHitRRSize = 1e4;     // size of random ring to be used inside hit loop
-  static constexpr int mNResponseTables = 9; // number of PMT response tables
+  static constexpr float LightYield = 0.01;
+  static constexpr float PmGain = 1e6;
+  static constexpr float ShapeAlpha = -0.445;
+  static constexpr float ShapeN = 2.65;
+  static constexpr float ShapeSigma = 3.25;
+  //static constexpr float Pedestal = 0;
+  static constexpr float TimeShiftCFD = 1.42;
+  static constexpr float TimeDelayFDA = 30.0;
+  static constexpr float TimeDelayFDC = 30.0;
+  static constexpr int PheRRSize = 1e5;     // size of random ring to be used inside photoelectron loop
+  static constexpr int HitRRSize = 1e4;     // size of random ring to be used inside hit loop
+  static constexpr int NResponseTables = 9; // number of PMT response tables
 };
 } // namespace o2::fdd
 #endif

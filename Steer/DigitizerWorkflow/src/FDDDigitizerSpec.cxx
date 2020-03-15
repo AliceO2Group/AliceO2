@@ -25,6 +25,7 @@
 #include "FDDBase/Geometry.h"
 #include "FDDSimulation/DigitizationParameters.h"
 #include "DataFormatsFDD/Digit.h"
+#include "DataFormatsFDD/ChannelData.h"
 #include "DataFormatsFDD/MCLabel.h"
 
 using namespace o2::framework;
@@ -54,15 +55,15 @@ namespace fdd
 
 class FDDDPLDigitizerTask
 {
- public:
-  // FDDDPLDigitizerTask(Digitizer digitizer) : mDigitizer(nullptr)
-  // {
-  //   /// Ctor
-  // }
+  using GRP = o2::parameters::GRPObject;
 
+ public:
   void init(framework::InitContext& ic)
   {
-    LOG(INFO) << "initializing FDD digitization";
+    LOG(INFO) << "Initializing FDD digitization";
+
+    //auto& dopt = o2::conf::DigiParams::Instance();
+
     // setup the input chain for the hits
     mSimChains.emplace_back(new TChain("o2sim"));
 
@@ -76,76 +77,81 @@ class FDDDPLDigitizerTask
       mSimChains.back()->AddFile(signalfilename.c_str());
     }
 
-    if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry();
+    const std::string inputGRP = "o2sim_grp.root";
+    const std::string grpName = "GRP";
+    TFile flGRP(inputGRP.c_str());
+    if (flGRP.IsZombie()) {
+      LOG(FATAL) << "Failed to open " << inputGRP;
     }
-    o2::fdd::DigitizationParameters const& parameters = {};
-    mDigitizer = std::make_unique<Digitizer>(parameters, 0);
+    std::unique_ptr<GRP> grp(static_cast<GRP*>(flGRP.GetObjectChecked(grpName.c_str(), GRP::Class())));
+    mDigitizer.setEventTime(grp->getTimeStart());
+    //mDigitizer.setCCDBServer(dopt.ccdb);
+    mDigitizer.init();
+    //mROMode = mDigitizer.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
   }
-
   void run(framework::ProcessingContext& pc)
   {
-    static bool finished = false;
-    if (finished) {
+    if (mFinished) {
       return;
     }
     LOG(INFO) << "Doing FDD digitization";
 
+    // TODO: this should eventually come from the framework and depend on the TF timestamp
+    //mDigitizer.refreshCCDB();
+
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
     auto& irecords = context->getEventRecords();
-
-    for (auto& record : irecords) {
-      LOG(INFO) << "FDD TIME RECEIVED " << record.timeNS;
-    }
-
     auto& eventParts = context->getEventParts();
-    std::vector<o2::fdd::Digit> digitsAccum; // accumulator for digits
-    o2::dataformats::MCTruthContainer<o2::fdd::MCLabel> labelsAccum;
-    o2::dataformats::MCTruthContainer<o2::fdd::MCLabel> labels;
-    mDigitizer->setMCLabels(&labels);
+
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
-    for (int collID = 0; collID < irecords.size(); ++collID) {
-      mDigitizer->SetEventTime(irecords[collID].timeNS);
-      mDigitizer->SetInteractionRecord(irecords[collID]);
-      o2::fdd::Digit digit; // digits which get filled
-      // for each collision, loop over the constituents event and source IDs
-      // (background signal merging is basically taking place here)
-      for (auto& part : eventParts[collID]) {
-        mDigitizer->SetEventID(part.entryID);
-        mDigitizer->SetSrcID(part.sourceID);
-        labels.clear();
+    std::vector<o2::fdd::Hit> hits;
 
-        // get the hits for this event and this source
-        std::vector<o2::fdd::Hit> hits;
+    for (int collID = 0; collID < irecords.size(); ++collID) {
+
+      const auto& irec = irecords[collID];
+      mDigitizer.setInteractionRecord(irec);
+
+      for (auto& part : eventParts[collID]) {
+
         retrieveHits(mSimChains, "FDDHit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found FDD " << hits.size() << " hits ";
 
-        mDigitizer->process(&hits, &digit);
-        labelsAccum.mergeAtBack(labels);
+        mDigitizer.setEventID(part.entryID);
+        mDigitizer.setSrcID(part.sourceID);
+
+        mDigitizer.process(hits, mDigitsBC, mDigitsCh, mLabels);
       }
-      mDigitizer->SetTriggers(&digit);
-      digitsAccum.push_back(digit);
-      LOG(INFO) << "Have " << digitsAccum.back().GetChannelData().size() << " fired channels ";
     }
 
-    LOG(INFO) << "FDD: Sending " << digitsAccum.size() << " digits";
-    pc.outputs().snapshot(Output{"FDD", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
-    pc.outputs().snapshot(Output{"FDD", "DIGITSMC", 0, Lifetime::Timeframe}, labelsAccum);
+    o2::InteractionTimeRecord terminateIR;
+    terminateIR.orbit = 0xffffffff; // supply IR in the infinite future to flush all cached BC
+    mDigitizer.setInteractionRecord(terminateIR);
+    mDigitizer.flush(mDigitsBC, mDigitsCh, mLabels);
+
+    // send out to next stage
+    pc.outputs().snapshot(Output{"FDD", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
+    pc.outputs().snapshot(Output{"FDD", "DIGITSCH", 0, Lifetime::Timeframe}, mDigitsCh);
+    pc.outputs().snapshot(Output{"FDD", "DIGITLBL", 0, Lifetime::Timeframe}, mLabels);
 
     LOG(INFO) << "FDD: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"FDD", "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-    finished = true;
+    mFinished = true;
   }
 
  private:
-  std::unique_ptr<Digitizer> mDigitizer;
+  bool mFinished = false;
+  Digitizer mDigitizer;
   std::vector<TChain*> mSimChains;
-  // RS: at the moment using hardcoded flag for continuos readout
+  std::vector<o2::fdd::ChannelData> mDigitsCh;
+  std::vector<o2::fdd::Digit> mDigitsBC;
+  o2::dataformats::MCTruthContainer<o2::fdd::MCLabel> mLabels; // labels which get filled
+
+  // RS: at the moment using hardcoded flag for continuous readout
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
 };
 
@@ -160,8 +166,9 @@ o2::framework::DataProcessorSpec getFDDDigitizerSpec(int channel)
     "FDDDigitizer",
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
 
-    Outputs{OutputSpec{"FDD", "DIGITS", 0, Lifetime::Timeframe},
-            OutputSpec{"FDD", "DIGITSMC", 0, Lifetime::Timeframe},
+    Outputs{OutputSpec{"FDD", "DIGITSBC", 0, Lifetime::Timeframe},
+            OutputSpec{"FDD", "DIGITSCH", 0, Lifetime::Timeframe},
+            OutputSpec{"FDD", "DIGITLBL", 0, Lifetime::Timeframe},
             OutputSpec{"FDD", "ROMode", 0, Lifetime::Timeframe}},
 
     AlgorithmSpec{adaptFromTask<FDDDPLDigitizerTask>()},
@@ -169,6 +176,5 @@ o2::framework::DataProcessorSpec getFDDDigitizerSpec(int channel)
     Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
             {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}}}};
 }
-
 } // namespace fdd
 } // namespace o2

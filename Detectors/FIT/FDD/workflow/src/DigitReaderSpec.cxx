@@ -53,7 +53,8 @@ void DigitReader::run(ProcessingContext& pc)
     }
     LOG(INFO) << "Loaded FDD digits tree " << mDigitTreeName << " from " << mInputFileName;
 
-    digTree->SetBranchAddress(mDigitBranchName.c_str(), &mDigits);
+    digTree->SetBranchAddress(mDigitBCBranchName.c_str(), &mDigitsBC);
+    digTree->SetBranchAddress(mDigitChBranchName.c_str(), &mDigitsCh);
     if (mUseMC) {
       if (digTree->GetBranch(mDigitMCTruthBranchName.c_str())) {
         digTree->SetBranchAddress(mDigitMCTruthBranchName.c_str(), &mMCTruth);
@@ -68,10 +69,11 @@ void DigitReader::run(ProcessingContext& pc)
     digFile.Close();
   }
 
-  LOG(INFO) << "FDD DigitReader pushes " << mDigits->size() << " digits";
-  pc.outputs().snapshot(Output{mOrigin, "DIGITS", 0, Lifetime::Timeframe}, *mDigits);
+  LOG(INFO) << "FDD DigitReader pushes " << mDigitsBC->size() << " digits";
+  pc.outputs().snapshot(Output{mOrigin, "DIGITSBC", 0, Lifetime::Timeframe}, *mDigitsBC);
+  pc.outputs().snapshot(Output{mOrigin, "DIGITSCH", 0, Lifetime::Timeframe}, *mDigitsCh);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe}, *mMCTruth);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITLBL", 0, Lifetime::Timeframe}, *mMCTruth);
   }
 
   mFinished = true;
@@ -81,9 +83,10 @@ void DigitReader::run(ProcessingContext& pc)
 DataProcessorSpec getFDDDigitReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputSpec;
-  outputSpec.emplace_back(o2::header::gDataOriginFDD, "DIGITS", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back(o2::header::gDataOriginFDD, "DIGITSBC", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back(o2::header::gDataOriginFDD, "DIGITSCH", 0, Lifetime::Timeframe);
   if (useMC) {
-    outputSpec.emplace_back(o2::header::gDataOriginFDD, "DIGITSMCTR", 0, Lifetime::Timeframe);
+    outputSpec.emplace_back(o2::header::gDataOriginFDD, "DIGITLBL", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

@@ -9,7 +9,6 @@
 // or submit itself to any jurisdiction.
 
 #include "FDDWorkflow/RecoWorkflow.h"
-#include "Framework/ConfigParamRegistry.h"
 #include "SimConfig/ConfigurableParam.h"
 
 using namespace o2::framework;
@@ -20,10 +19,13 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
-  workflowOptions.push_back(ConfigParamSpec{
-    "disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}});
+  std::vector<o2::framework::ConfigParamSpec> options{
+    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}}};
 
-  std::string keyvaluehelp("Semicolon separated key=value strings ...");
+  std::swap(workflowOptions, options);
+
+  std::string keyvaluehelp("Semicolon separated key=value strings (e.g.: 'ITSDigitizerParam.roFrameLength=6000.;...')");
+
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
 }
 
