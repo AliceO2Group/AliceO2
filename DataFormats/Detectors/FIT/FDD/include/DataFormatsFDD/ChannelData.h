@@ -29,7 +29,15 @@ struct ChannelData {
   float mTime = -1024;      // Time of Flight
   short mChargeADC = -1024; // ADC sample
   short mFEEBits = 0;       //Bit information from FEE
-  //0 Integrator, 1 DoubleEvent, 2 Event1TimeLost, 3 Event2TimeLost, 4 AdcInGate, 5 TimeTooLate, 6 AmpTooHigh, 7 EventInTrigger, 8 TimeLost
+  enum Flags { Integrator = 0x1 << 0,
+               DoubleEvent = 0x1 << 1,
+               Event1TimeLost = 0x1 << 2,
+               Event2TimeLost = 0x1 << 3,
+               AdcInGate = 0x1 << 4,
+               TimeTooLate = 0x1 << 5,
+               AmpTooHigh = 0x1 << 6,
+               EventInTrigger = 0x1 << 7,
+               TimeLost = 0x1 << 8 };
 
   ChannelData() = default;
   ChannelData(int channel, float time, short adc, short bits) : mPMNumber(channel), mTime(time), mChargeADC(adc), mFEEBits(bits) {}
