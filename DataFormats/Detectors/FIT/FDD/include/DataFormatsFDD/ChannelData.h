@@ -16,7 +16,7 @@
 
 /// \file ChannelData.h
 /// \brief Container class to store values of single FDD channel
-/// \author ruben.shahoyan@cern.ch
+/// \author micha.broz@cern.ch
 
 namespace o2
 {
@@ -25,40 +25,18 @@ namespace fdd
 
 struct ChannelData {
 
-  Int_t mPMNumber;    // PhotoMultiplier number (0 to 16)
-  Float_t mTime;      // Time of Flight
-  Short_t mChargeADC; // ADC sample
-  //Bit information from FEE
-  Bool_t mIntegrator;
-  Bool_t mDoubleEvent;
-  Bool_t mEvent1TimeLost;
-  Bool_t mEvent2TimeLost;
-  Bool_t mAdcInGate;
-  Bool_t mTimeTooLate;
-  Bool_t mAmpTooHigh;
-  Bool_t mEventInTrigger;
-  Bool_t mTimeLost;
+  int mPMNumber = -1;       // PhotoMultiplier number (0 to 16)
+  float mTime = -1024;      // Time of Flight
+  short mChargeADC = -1024; // ADC sample
+  short mFEEBits = 0;       //Bit information from FEE
+  //0 Integrator, 1 DoubleEvent, 2 Event1TimeLost, 3 Event2TimeLost, 4 AdcInGate, 5 TimeTooLate, 6 AmpTooHigh, 7 EventInTrigger, 8 TimeLost
 
   ChannelData() = default;
-  ChannelData(Int_t channel, Float_t time, Short_t adc, Bool_t integrator, Bool_t doubleEvent, Bool_t event1TimeLost, Bool_t event2TimeLost, Bool_t adcInGate, Bool_t timeTooLate, Bool_t ampTooHigh, Bool_t eventInTrigger, Bool_t timeLost)
-  {
-    mPMNumber = channel;
-    mTime = time;
-    mChargeADC = adc;
-    mIntegrator = integrator;
-    mDoubleEvent = doubleEvent;
-    mEvent1TimeLost = event1TimeLost;
-    mEvent2TimeLost = event2TimeLost;
-    mAdcInGate = adcInGate;
-    mTimeTooLate = timeTooLate;
-    mAmpTooHigh = ampTooHigh;
-    mEventInTrigger = eventInTrigger;
-    mTimeLost = timeLost;
-  }
+  ChannelData(int channel, float time, short adc, short bits) : mPMNumber(channel), mTime(time), mChargeADC(adc), mFEEBits(bits) {}
 
   void print() const;
 
-  ClassDefNV(ChannelData, 1);
+  ClassDefNV(ChannelData, 2);
 };
 } // namespace fdd
 } // namespace o2

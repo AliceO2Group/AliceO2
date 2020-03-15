@@ -28,13 +28,13 @@ namespace fdd
 class ChannelData;
 
 struct Triggers {
-  uint8_t triggersignals; // FDD trigger signals
-  int8_t nChanA;          // number of fired channels A side
-  int8_t nChanC;          // number of fired channels A side
-  int32_t amplA;          // sum amplitude A side
-  int32_t amplC;          // sum amplitude C side
-  int16_t timeA;          // average time A side
-  int16_t timeC;          // average time C side
+  uint8_t triggersignals = 0; // FDD trigger signals
+  int8_t nChanA = -1;         // number of fired channels A side
+  int8_t nChanC = -1;         // number of fired channels A side
+  int32_t amplA = -1024;      // sum amplitude A side
+  int32_t amplC = -1024;      // sum amplitude C side
+  int16_t timeA = -1024;      // average time A side
+  int16_t timeC = -1024;      // average time C side
   Triggers() = default;
   Triggers(uint8_t signals, int8_t chanA, int8_t chanC, int32_t aamplA, int32_t aamplC, int16_t atimeA, int16_t atimeC)
   {
@@ -65,13 +65,8 @@ struct Digit {
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
 
   Digit() = default;
-  Digit(int first, int ne, o2::InteractionRecord iRec, Triggers chTrig)
-  {
-    ref.setFirstEntry(first);
-    ref.setEntries(ne);
-    mIntRecord = iRec;
-    mTriggers = chTrig;
-  }
+  Digit(int first, int ne, o2::InteractionRecord iRec, Triggers chTrig) : ref(first, ne), mIntRecord(iRec), mTriggers(chTrig) {}
+
   uint32_t getOrbit() const { return mIntRecord.orbit; }
   uint16_t getBC() const { return mIntRecord.bc; }
   o2::InteractionRecord getIntRecord() const { return mIntRecord; };

@@ -25,8 +25,8 @@ class Reconstructor
  public:
   Reconstructor() = default;
   ~Reconstructor() = default;
-  o2::fdd::RecPoint Process(const o2::fdd::Digit& digitBC, gsl::span<const o2::fdd::ChannelData> digitCh) const;
-  void Finish();
+  void process(const o2::fdd::Digit& digitBC, gsl::span<const o2::fdd::ChannelData> digitCh, std::vector<o2::fdd::RecPoint>& recPoints) const;
+  void finish();
 
  private:
   ClassDefNV(Reconstructor, 2);

@@ -21,6 +21,7 @@
 #include "FDDBase/Constants.h"
 #include "MathUtils/RandomRing.h"
 #include "CommonDataFormat/InteractionRecord.h"
+#include "CommonConstants/LHCConstants.h"
 #include <vector>
 #include <array>
 #include <deque>
@@ -34,14 +35,14 @@ class Digitizer
 {
 
  private:
-  typedef math_utils::RandomRing<float_v::size() * DigitizationParameters::mPheRRSize> HitRandomRingType;
-  typedef math_utils::RandomRing<float_v::size() * DigitizationParameters::mHitRRSize> PheRandomRingType;
+  typedef math_utils::RandomRing<float_v::size() * DigitizationParameters::PheRRSize> HitRandomRingType;
+  typedef math_utils::RandomRing<float_v::size() * DigitizationParameters::HitRRSize> PheRandomRingType;
 
-  using ChannelBCDataF = std::array<float, mNTimeBinsPerBC>;
+  using ChannelBCDataF = std::array<float, NTimeBinsPerBC>;
 
  public:
   struct BCCache : public o2::InteractionRecord {
-    std::array<ChannelBCDataF, mNchannels> pulse = {};
+    std::array<ChannelBCDataF, Nchannels> pulse = {};
     std::vector<o2::fdd::MCLabel> labels;
 
     BCCache();
@@ -70,15 +71,15 @@ class Digitizer
              std::vector<o2::fdd::ChannelData>& digitsCh,
              o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>& labels);
 
-  void SetEventTime(long value) { mEventTime = value; }
-  void SetEventID(Int_t id) { mEventID = id; }
-  void SetSrcID(Int_t id) { mSrcID = id; }
-  void SetInteractionRecord(const o2::InteractionTimeRecord& src) { mIntRecord = src; }
+  void setEventTime(long value) { mEventTime = value; }
+  void setEventID(int id) { mEventID = id; }
+  void setSrcID(int id) { mSrcID = id; }
+  void setInteractionRecord(const o2::InteractionTimeRecord& src) { mIntRecord = src; }
 
-  void SetTriggers(o2::fdd::Digit* digit);
-  Int_t SimulateLightYield(Int_t pmt, Int_t nPhot);
-  Float_t SimulateTimeCFD(ChannelBCDataF pulse);
-  Float_t IntegrateCharge(ChannelBCDataF pulse);
+  void setTriggers(o2::fdd::Digit* digit);
+  int simulateLightYield(int pmt, int nPhot);
+  float simulateTimeCFD(const ChannelBCDataF& pulse);
+  float integrateCharge(const ChannelBCDataF& pulse);
 
   void init();
   void finish();
@@ -86,7 +87,7 @@ class Digitizer
  private:
   static constexpr int BCCacheMin = -1, BCCacheMax = 10, NBC2Cache = 1 + BCCacheMax - BCCacheMin;
 
-  void Pulse(int nphe, int parID, double timeHit, std::array<o2::InteractionRecord, NBC2Cache> const& cachedIR, int nCachedIR, int channel);
+  void createPulse(int nphe, int parID, double timeHit, std::array<o2::InteractionRecord, NBC2Cache> const& cachedIR, int nCachedIR, int channel);
 
   BCCache& setBCCache(const o2::InteractionRecord& ir);
   BCCache* getBCCache(const o2::InteractionRecord& ir);
@@ -97,16 +98,16 @@ class Digitizer
 
   long mEventTime;                      // TF (run) timestamp
   o2::InteractionTimeRecord mIntRecord; // Interaction record (orbit, bc) -> InteractionTimeRecord
-  Int_t mEventID;                       // ID of the current event
-  Int_t mSrcID;                         // signal, background or QED
+  int mEventID;                         // ID of the current event
+  int mSrcID;                           // signal, background or QED
   std::deque<BCCache> mCache;           // cached BCs data
   o2::fdd::Triggers mTriggers;
 
   DigitizationParameters parameters;
 
-  ChannelBCDataF mTimeCFD;                         // Time series for CFD measurement
-  const Float_t mBinSize = 25.0 / mNTimeBinsPerBC; // Time width of the pulse bin - HPTDC resolution
-  Float_t mPmtTimeIntegral;
+  ChannelBCDataF mTimeCFD;                                                                  // Time series for CFD measurement
+  static constexpr float mBinSize = o2::constants::lhc::LHCBunchSpacingNS / NTimeBinsPerBC; // Time width of the pulse bin - HPTDC resolution
+  float mPmtTimeIntegral;
 
   // Random rings
   HitRandomRingType mRndScintDelay;
@@ -115,7 +116,7 @@ class Digitizer
 
   // 8 tables starting at different sub-bin positions, i.e, [-4:4] / 8 * mBinSize
   // wit each table containg values for start + [-2:2:mBinSize] * DigitizationParameters::mPmtTransitTime
-  std::array<std::vector<Float_t>, DigitizationParameters::mNResponseTables> mPMResponseTables;
+  std::array<std::vector<float>, DigitizationParameters::NResponseTables> mPMResponseTables;
 
   static Double_t PMResponse(Double_t x);
   static Double_t PMResponse(Double_t* x, Double_t*);

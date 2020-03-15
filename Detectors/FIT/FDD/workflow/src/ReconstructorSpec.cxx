@@ -49,7 +49,7 @@ void FDDReconstructorDPL::run(ProcessingContext& pc)
   for (int id = 0; id < nDig; id++) {
     const auto& digit = digitsBC[id];
     auto channels = digit.getBunchChannelData(digitsCh);
-    mRecPoints.emplace_back(mReco.Process(digit, channels));
+    mReco.process(digit, channels, mRecPoints);
   }
 
   // do we ignore MC in this task?

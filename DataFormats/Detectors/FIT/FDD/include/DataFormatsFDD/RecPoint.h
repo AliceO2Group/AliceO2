@@ -22,18 +22,13 @@ namespace fdd
 
 struct RecPoint {
 
-  Double_t mMeanTimeFDA = o2::InteractionRecord::DummyTime;
-  Double_t mMeanTimeFDC = o2::InteractionRecord::DummyTime;
+  double mMeanTimeFDA = o2::InteractionRecord::DummyTime;
+  double mMeanTimeFDC = o2::InteractionRecord::DummyTime;
 
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc) from digits
 
   RecPoint() = default;
-  RecPoint(double timeA, double timeC, o2::InteractionRecord iRec)
-  {
-    mMeanTimeFDA = timeA;
-    mMeanTimeFDC = timeC;
-    mIntRecord = iRec;
-  }
+  RecPoint(double timeA, double timeC, o2::InteractionRecord iRec) : mMeanTimeFDA(timeA), mMeanTimeFDC(timeC), mIntRecord(iRec) {}
 
   ClassDefNV(RecPoint, 2);
 };

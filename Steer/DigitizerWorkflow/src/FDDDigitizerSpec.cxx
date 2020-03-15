@@ -84,7 +84,7 @@ class FDDDPLDigitizerTask
       LOG(FATAL) << "Failed to open " << inputGRP;
     }
     std::unique_ptr<GRP> grp(static_cast<GRP*>(flGRP.GetObjectChecked(grpName.c_str(), GRP::Class())));
-    mDigitizer.SetEventTime(grp->getTimeStart());
+    mDigitizer.setEventTime(grp->getTimeStart());
     //mDigitizer.setCCDBServer(dopt.ccdb);
     mDigitizer.init();
     //mROMode = mDigitizer.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
@@ -111,15 +111,15 @@ class FDDDPLDigitizerTask
     for (int collID = 0; collID < irecords.size(); ++collID) {
 
       const auto& irec = irecords[collID];
-      mDigitizer.SetInteractionRecord(irec);
+      mDigitizer.setInteractionRecord(irec);
 
       for (auto& part : eventParts[collID]) {
 
         retrieveHits(mSimChains, "FDDHit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found FDD " << hits.size() << " hits ";
 
-        mDigitizer.SetEventID(part.entryID);
-        mDigitizer.SetSrcID(part.sourceID);
+        mDigitizer.setEventID(part.entryID);
+        mDigitizer.setSrcID(part.sourceID);
 
         mDigitizer.process(hits, mDigitsBC, mDigitsCh, mLabels);
       }
@@ -127,7 +127,7 @@ class FDDDPLDigitizerTask
 
     o2::InteractionTimeRecord terminateIR;
     terminateIR.orbit = 0xffffffff; // supply IR in the infinite future to flush all cached BC
-    mDigitizer.SetInteractionRecord(terminateIR);
+    mDigitizer.setInteractionRecord(terminateIR);
     mDigitizer.flush(mDigitsBC, mDigitsCh, mLabels);
 
     // send out to next stage
