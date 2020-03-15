@@ -136,7 +136,6 @@ class Detector : public o2::base::DetImpl<Detector>
   std::vector<Double_t> mEffBlackPaper;
   std::vector<Double_t> mReflFrontWindow;
 
-  
   /// Container for data points
   std::vector<o2::ft0::HitType>* mHits = nullptr;
 

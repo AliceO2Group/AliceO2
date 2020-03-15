@@ -221,12 +221,12 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   Double_t x, y, z;
 
   Float_t pinstart[3] = {2.9491, 2.9491, 2.5};
-  Float_t ptop[3] = {1.324, 1.324, 1.};          // Cherenkov radiator
+  Float_t ptop[3] = {1.324, 1.324, 1.}; // Cherenkov radiator
   //  Float_t ptopblack[3] = {1.324, 1.324, 0.0002}; // black paper on the top on radiator
   Float_t ptopref[3] = {1.3241, 1.3241, 1.}; // Cherenkov radiator wrapped with reflector
-  Double_t prfv[3] = {0.0002, 1.323, 1.};        // Vertical refracting layer bettwen radiators and between radiator and not optical Air
-  Double_t prfh[3] = {1.323, 0.0002, 1.};        // Horizontal refracting layer bettwen radiators and ...
-  Float_t pmcp[3] = {2.949, 2.949, 1.};          // MCP
+  Double_t prfv[3] = {0.0002, 1.323, 1.};    // Vertical refracting layer bettwen radiators and between radiator and not optical Air
+  Double_t prfh[3] = {1.323, 0.0002, 1.};    // Horizontal refracting layer bettwen radiators and ...
+  Float_t pmcp[3] = {2.949, 2.949, 1.};      // MCP
   Float_t pmcpinner[3] = {2.749, 2.749, 0.1};
   Float_t pmcpside[3] = {0.1, 2.949, 1};
   Float_t pmcpbase[3] = {2.949, 2.949, 0.1};
@@ -255,7 +255,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   //wrapped radiator +  reflecting layers
 
   Int_t ntops = 0, nrfvs = 0, nrfhs = 0;
-  Float_t xin = 0, yin = 0, zin = 0, xinv = 0, yinv = 0, xinh = 0, yinh = 0;
+  Float_t xin = 0, yin = 0, zin = 0, xinv = 0, yinv = 0, xinh = 0;
   x = y = z = 0;
   topref->AddNode(top, 1, new TGeoTranslation(0, 0, 0));
   xinv = -ptop[0] - prfv[0];
@@ -479,18 +479,17 @@ void Detector::DefineOpticalProperties()
   TVirtualMC::GetMC()->DefineOpSurface("surBlack", kUnified, kDielectric_dielectric, kGroundbackpainted, 0.);
   // TVirtualMC::GetMC()->SetMaterialProperty("surBlack", "EFFICIENCY", nBins, &(mPhotonEnergyD[0]), &(mEffBlackPaper[0]));
   TVirtualMC::GetMC()->SetMaterialProperty("surBlack", "REFLECTIVITY", nBins, &(mPhotonEnergyD[0]), &(mReflBlackPaper[0]));
-  TVirtualMC::GetMC()->SetBorderSurface("surBlackBorder", "0TOP", 1,  "0TRE", 1,  "surBlack");
+  TVirtualMC::GetMC()->SetBorderSurface("surBlackBorder", "0TOP", 1, "0PAL", 1, "surBlack");
   //between cathode and back of front MCP glass window
   TVirtualMC::GetMC()->DefineOpSurface("surFrontBWindow", kUnified, kDielectric_dielectric, kPolishedbackpainted, 0.);
   //  TVirtualMC::GetMC()->SetMaterialProperty("surFrontBWindow", "EFFICIENCY", nBins, &(mPhotonEnergyD[0]), &(mEfficAll[0]));
   TVirtualMC::GetMC()->SetMaterialProperty("surFrontBWindow", "REFLECTIVITY", nBins, &(mPhotonEnergyD[0]), &(mReflFrontWindow[0]));
-  TVirtualMC::GetMC()->SetBorderSurface("surBorderFrontBWindow", "0REG", 1,  "0MTO", 1,  "surFrontBWindow");
+  TVirtualMC::GetMC()->SetBorderSurface("surBorderFrontBWindow", "0REG", 1, "0MTO", 1, "surFrontBWindow");
   //between radiator and front MCP glass window
   TVirtualMC::GetMC()->DefineOpSurface("surFrontWindow", kUnified, kDielectric_dielectric, kPolishedbackpainted, 0.);
   //TVirtualMC::GetMC()->SetMaterialProperty("surFrontWindow", "EFFICIENCY", nBins, &(mPhotonEnergyD[0]), &(mEfficAll[0]));
   TVirtualMC::GetMC()->SetMaterialProperty("surFrontWindow", "REFLECTIVITY", nBins, &(mPhotonEnergyD[0]), &(mReflBlackPaper[0]));
-  TVirtualMC::GetMC()->SetBorderSurface("surBorderFrontWindow", "0TOP", 1,  "0MT0", 1,  "surFrontWindow");
-  
+  TVirtualMC::GetMC()->SetBorderSurface("surBorderFrontWindow", "0TOP", 1, "0MT0", 1, "surFrontWindow");
 }
 
 void Detector::FillOtherOptProperties()

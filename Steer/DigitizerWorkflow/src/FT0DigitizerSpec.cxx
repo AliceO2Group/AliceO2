@@ -98,19 +98,15 @@ class FT0DPLDigitizerTask
     LOG(INFO) << "CALLING FT0 DIGITIZATION";
 
     static std::vector<o2::ft0::HitType> hits;
-    o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> labelAccum;
+    // o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> labelAccum;
     o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> labels;
 
-    mDigitizer.setMCLabels(&labels);
+    // mDigitizer.setMCLabels(&labels);
     auto& eventParts = context->getEventParts();
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
-      mDigitizer.setTimeStamp(timesview[collID].timeNS);
       mDigitizer.setInteractionRecord(timesview[collID]);
-      mDigitizer.clearDigits();
-      labels.clear();
-      std::vector<std::vector<double>> channel_times;
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
@@ -122,17 +118,11 @@ class FT0DPLDigitizerTask
         // call actual digitization procedure
         mDigitizer.setEventID(part.entryID);
         mDigitizer.setSrcID(part.sourceID);
-        mDigitizer.process(&hits);
+        LOG(INFO) << "srcId " << part.sourceID << ", event " << part.entryID;
+        mDigitizer.process(&hits, mDigitsBC, mDigitsCh, labels);
       }
-      mDigitizer.setDigits(mDigitsBC, mDigitsCh);
-      // copy labels into accumulator
-      //   labelAccum.mergeAtBack(labels);
     }
-    while (mDigitizer.empty()) {
-      o2::InteractionRecord ir = mDigitizer.getInteractionRecord();
-      mDigitizer.setInteractionRecord(++ir);
-      mDigitizer.setDigits(mDigitsBC, mDigitsCh);
-    }
+    mDigitizer.flush_all(mDigitsBC, mDigitsCh, labels);
 
     // send out to next stage
     pc.outputs().snapshot(Output{"FT0", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
