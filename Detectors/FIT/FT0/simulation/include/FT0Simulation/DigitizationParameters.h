@@ -31,7 +31,7 @@ struct DigitizationParameters {
   int mTime_trg_gate = 153;                                  //4000/13;   #channels
   float mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
   float C_side_cable_cmps = 2.86;   //ns
-  float A_side_cable_cmps = 11.020; //ns
+  float A_side_cable_cmps = 11.110; //ns
   int mSignalWidth = 378;           //5000.ps/13.2ps   #channels
   int mtrg_central_trh = 200.;      // channels
   int mtrg_semicentral_trh = 100.;  // channels

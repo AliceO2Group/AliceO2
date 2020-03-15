@@ -24,7 +24,6 @@
 #include <gsl/span>
 #include <bitset>
 #include <iostream>
-#include "FairLogger.h"
 
 namespace o2
 {

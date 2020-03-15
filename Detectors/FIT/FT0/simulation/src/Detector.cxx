@@ -69,7 +69,7 @@ void Detector::ConstructGeometry()
   LOG(DEBUG) << "Creating FT0 geometry\n";
   CreateMaterials();
 
-  Float_t zdetA = 333;
+  Float_t zdetA = 335;
   Float_t zdetC = 82.;
 
   Int_t idrotm[999];
@@ -255,16 +255,16 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   //wrapped radiator +  reflecting layers
 
   Int_t ntops = 0, nrfvs = 0, nrfhs = 0;
-  Float_t xin = 0, yin = 0, zin = 0, xinv = 0, yinv = 0, xinh = 0;
+  //  Float_t yin = 0, xinv = 0, yinv = 0;
   x = y = z = 0;
   topref->AddNode(top, 1, new TGeoTranslation(0, 0, 0));
-  xinv = -ptop[0] - prfv[0];
+  float xinv = -ptop[0] - prfv[0];
   topref->AddNode(rfv, 1, new TGeoTranslation(xinv, 0, 0));
   printf(" GEOGEO  refv %f ,  0,0 \n", xinv);
   xinv = ptop[0] + prfv[0];
   topref->AddNode(rfv, 2, new TGeoTranslation(xinv, 0, 0));
   printf(" GEOGEO  refv %f ,  0,0 \n", xinv);
-  yinv = -ptop[1] - prfh[1];
+  float yinv = -ptop[1] - prfh[1];
   topref->AddNode(rfh, 1, new TGeoTranslation(0, yinv, 0));
   printf(" GEOGEO  refh  ,  0, %f, 0 \n", yinv);
   yinv = ptop[1] + prfh[1];
@@ -275,10 +275,10 @@ void Detector::SetOneMCP(TGeoVolume* ins)
 
   //container for radiator, cathode
   for (Int_t ix = 0; ix < 2; ix++) {
-    xin = -pinstart[0] + 0.3 + (ix + 0.5) * 2 * ptopref[0];
+    float xin = -pinstart[0] + 0.3 + (ix + 0.5) * 2 * ptopref[0];
     for (Int_t iy = 0; iy < 2; iy++) {
       z = -pinstart[2] + 2 * pal[2] + ptopref[2];
-      yin = -pinstart[1] + 0.3 + (iy + 0.5) * 2 * ptopref[1];
+      float yin = -pinstart[1] + 0.3 + (iy + 0.5) * 2 * ptopref[1];
       ntops++;
       ins->AddNode(topref, ntops, new TGeoTranslation(xin, yin, z));
       z += ptopref[2] + 2. * pmcptopglass[2] + preg[2];
