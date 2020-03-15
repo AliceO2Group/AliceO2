@@ -13,6 +13,7 @@
 
 #include <vector>
 #include <boost/test/unit_test.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 #include "Framework/DataSamplingConditionFactory.h"
 #include "Framework/DataRef.h"

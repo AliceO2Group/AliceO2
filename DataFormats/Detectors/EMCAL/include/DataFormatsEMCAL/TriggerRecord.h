@@ -24,6 +24,9 @@ namespace emcal
 
 /// \class TriggerRecord
 /// \brief Header for data corresponding to the same hardware trigger
+/// \ingroup EMCALDataFormat
+/// \author Markus Fasel <markus.fasel@cern.ch>
+/// \since Nov 17, 2019
 /// adapted from DataFormatsITSMFT/ROFRecord
 class TriggerRecord
 {

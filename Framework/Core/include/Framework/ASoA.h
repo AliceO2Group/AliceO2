@@ -77,11 +77,11 @@ constexpr auto make_originals_from_type()
       return framework::pack<decayed>{};
     }
   } else if constexpr (is_type_with_originals_v<decayed>) {
-    return framework::concatenate_pack(typename decayed::originals{}, make_originals_from_type<T...>);
+    return framework::concatenate_pack(typename decayed::originals{}, make_originals_from_type<T...>());
   } else if constexpr (is_type_with_originals_v<typename decayed::table_t>) {
-    return framework::concatenate_pack(typename decayed::table_t::originals{}, make_originals_from_type<T...>);
+    return framework::concatenate_pack(typename decayed::table_t::originals{}, make_originals_from_type<T...>());
   } else {
-    return framework::concatenate_pack(framework::pack<decayed>{}, make_originals_from_type<T...>);
+    return framework::concatenate_pack(framework::pack<decayed>{}, make_originals_from_type<T...>());
   }
 }
 
@@ -733,7 +733,16 @@ template <typename T>
 using is_soa_iterator_t = typename framework::is_base_of_template<RowViewCore, T>;
 
 template <typename T>
+constexpr bool is_soa_iterator_v()
+{
+  return is_soa_iterator_t<T>::value || framework::is_specialization<T, RowViewCore>::value;
+}
+
+template <typename T>
 using is_soa_table_t = typename framework::is_specialization<T, soa::Table>;
+
+template <typename T>
+using is_soa_table_like_t = typename framework::is_base_of_template<soa::Table, T>;
 
 /// A Table class which observes an arrow::Table and provides
 /// It is templated on a set of Column / DynamicColumn types.
@@ -745,8 +754,9 @@ class Table
   using columns = framework::pack<C...>;
   using persistent_columns_t = framework::selected_pack<is_persistent_t, C...>;
 
-  template <typename IP, typename... T>
+  template <typename IP, typename Parent, typename... T>
   struct RowViewBase : public RowViewCore<IP, C...> {
+    using parent_t = Parent;
     using originals = originals_pack_t<T...>;
 
     RowViewBase(std::tuple<std::pair<C*, arrow::Column*>...> const& columnIndex, IP&& policy)
@@ -754,6 +764,19 @@ class Table
     {
     }
 
+    template <typename Tbl = table_t>
+    RowViewBase(RowViewBase<IP, Tbl, Tbl> const& other)
+      : RowViewCore<IP, C...>(other)
+    {
+    }
+
+    template <typename Tbl = table_t>
+    RowViewBase(RowViewBase<IP, Tbl, Tbl>&& other)
+      : RowViewCore<IP, C...>(other)
+    {
+    }
+
+    RowViewBase() = default;
     RowViewBase(RowViewBase const&) = default;
     RowViewBase(RowViewBase&&) = default;
 
@@ -763,35 +786,35 @@ class Table
     using RowViewCore<IP, C...>::operator++;
 
     /// Allow incrementing by more than one the iterator
-    RowViewBase<IP, T...> operator+(int64_t inc) const
+    RowViewBase operator+(int64_t inc) const
     {
-      RowViewBase<IP, T...> copy = *this;
+      RowViewBase copy = *this;
       copy.moveByIndex(inc);
       return copy;
     }
 
-    RowViewBase<IP, T...> operator-(int64_t dec) const
+    RowViewBase operator-(int64_t dec) const
     {
       return operator+(-dec);
     }
 
-    RowViewBase<IP, T...> const& operator*() const
+    RowViewBase const& operator*() const
     {
       return *this;
     }
   };
-  template <typename... Ts>
-  using RowView = RowViewBase<DefaultIndexPolicy, Ts...>;
+  template <typename P, typename... Ts>
+  using RowView = RowViewBase<DefaultIndexPolicy, P, Ts...>;
 
-  template <typename... Ts>
-  using RowViewFiltered = RowViewBase<FilteredIndexPolicy, Ts...>;
+  template <typename P, typename... Ts>
+  using RowViewFiltered = RowViewBase<FilteredIndexPolicy, P, Ts...>;
 
-  using iterator = RowView<table_t>;
-  using const_iterator = RowView<table_t>;
-  using unfiltered_iterator = RowView<table_t>;
-  using unfiltered_const_iterator = RowView<table_t>;
-  using filtered_iterator = RowViewFiltered<table_t>;
-  using filtered_const_iterator = RowViewFiltered<table_t>;
+  using iterator = RowView<table_t, table_t>;
+  using const_iterator = RowView<table_t, table_t>;
+  using unfiltered_iterator = RowView<table_t, table_t>;
+  using unfiltered_const_iterator = RowView<table_t, table_t>;
+  using filtered_iterator = RowViewFiltered<table_t, table_t>;
+  using filtered_const_iterator = RowViewFiltered<table_t, table_t>;
 
   Table(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
     : mTable(table),
@@ -953,7 +976,7 @@ class TableMetadata
     _Name_(_Name_ const& other) = default;                                     \
     _Name_& operator=(_Name_ const& other) = default;                          \
                                                                                \
-    _Type_ const _Getter_() const                                              \
+    _Type_ _Getter_() const                                                    \
     {                                                                          \
       return *mColumnIterator;                                                 \
     }                                                                          \
@@ -990,21 +1013,21 @@ class TableMetadata
     _Name_##Id(_Name_##Id const& other) = default;                                 \
     _Name_##Id& operator=(_Name_##Id const& other) = default;                      \
                                                                                    \
-    type const _Getter_##Id() const                                                \
+    type _Getter_##Id() const                                                      \
     {                                                                              \
       return *mColumnIterator;                                                     \
     }                                                                              \
                                                                                    \
     binding_t::iterator _Getter_() const                                           \
     {                                                                              \
-      assert(mBinding != 0);                                                       \
+      assert(mBinding != nullptr);                                                 \
       return mBinding->begin() + *mColumnIterator;                                 \
     }                                                                              \
     template <typename T>                                                          \
     bool setCurrent(T* current)                                                    \
     {                                                                              \
       if constexpr (std::is_same_v<T, binding_t>) {                                \
-        assert(current != 0);                                                      \
+        assert(current != nullptr);                                                \
         this->mBinding = current;                                                  \
         return true;                                                               \
       }                                                                            \
@@ -1072,13 +1095,13 @@ class TableMetadata
     using type = typename callable_t::return_type;                                                                         \
                                                                                                                            \
     template <typename... FreeArgs>                                                                                        \
-    type const _Getter_(FreeArgs... freeArgs) const                                                                        \
+    type _Getter_(FreeArgs... freeArgs) const                                                                              \
     {                                                                                                                      \
       return boundGetter(std::make_index_sequence<std::tuple_size_v<decltype(boundIterators)>>{}, freeArgs...);            \
     }                                                                                                                      \
                                                                                                                            \
     template <size_t... Is, typename... FreeArgs>                                                                          \
-    type const boundGetter(std::integer_sequence<size_t, Is...>&& index, FreeArgs... freeArgs) const                       \
+    type boundGetter(std::integer_sequence<size_t, Is...>&&, FreeArgs... freeArgs) const                                   \
     {                                                                                                                      \
       return __VA_ARGS__((**std::get<Is>(boundIterators))..., freeArgs...);                                                \
     }                                                                                                                      \
@@ -1104,11 +1127,6 @@ class TableMetadata
                                                                        \
   template <>                                                          \
   struct MetadataTrait<_Name_::unfiltered_iterator> {                  \
-    using metadata = _Name_##Metadata;                                 \
-  };                                                                   \
-                                                                       \
-  template <>                                                          \
-  struct MetadataTrait<o2::soa::Filtered<_Name_>::iterator> {          \
     using metadata = _Name_##Metadata;                                 \
   };
 
@@ -1152,7 +1170,7 @@ struct Join : JoinBase<Ts...> {
   }
 
   using base = JoinBase<Ts...>;
-  using originals = framework::concatenated_pack_t<originals_pack_t<Ts>...>;
+  using originals = originals_pack_t<Ts...>;
 
   template <typename... TA>
   void bindExternalIndices(TA*... externals)
@@ -1160,7 +1178,11 @@ struct Join : JoinBase<Ts...> {
     base::bindExternalIndices(externals...);
   }
 
-  using table_t = JoinBase<Ts...>;
+  using table_t = base;
+  using iterator = typename table_t::template RowView<Join<Ts...>, Ts...>;
+  using const_iterator = iterator;
+  using filtered_iterator = typename table_t::template RowViewFiltered<Join<Ts...>, Ts...>;
+  using filtered_const_iterator = filtered_iterator;
 };
 
 template <typename T1, typename T2>
@@ -1183,6 +1205,9 @@ struct Concat : ConcatBase<T1, T2> {
   using left_t = T1;
   using right_t = T2;
   using table_t = ConcatBase<T1, T2>;
+
+  using iterator = typename table_t::template RowView<Concat<T1, T2>, T1, T2>;
+  using filtered_iterator = typename table_t::template RowViewFiltered<Concat<T1, T2>, T1, T2>;
 };
 
 template <typename T>
@@ -1197,8 +1222,14 @@ class Filtered : public T
  public:
   using originals = originals_pack_t<T>;
   using table_t = typename T::table_t;
-  using iterator = typename table_t::filtered_iterator;
-  using const_iterator = typename table_t::filtered_const_iterator;
+
+  template <typename P, typename... Os>
+  constexpr static auto make_it(framework::pack<Os...> const&)
+  {
+    return typename table_t::template RowViewFiltered<P, Os...>{};
+  }
+  using iterator = decltype(make_it<Filtered<T>>(originals{}));
+  using const_iterator = iterator;
 
   Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
     : T{std::move(tables), offset},
