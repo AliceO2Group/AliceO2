@@ -15,15 +15,11 @@ namespace o2::aod
 {
 namespace etaphi
 {
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);
-DECLARE_SOA_COLUMN(Eta, eta, float, "fEta");
-DECLARE_SOA_COLUMN(Phi, phi, float, "fPhi");
+DECLARE_SOA_COLUMN(Eta, eta2, float, "fEta");
+DECLARE_SOA_COLUMN(Phi, phi2, float, "fPhi");
 } // namespace etaphi
 DECLARE_SOA_TABLE(EtaPhi, "AOD", "ETAPHI",
                   etaphi::Eta, etaphi::Phi);
-
-DECLARE_SOA_TABLE(EtaPhiCol, "AOD", "ETAPHICOL",
-                  etaphi::CollisionId, etaphi::Eta, etaphi::Phi);
 } // namespace o2::aod
 
 using namespace o2;
@@ -46,37 +42,13 @@ struct ATask {
 };
 
 struct BTask {
-  Filter ptFilter = (aod::etaphi::phi > 1.f) && (aod::etaphi::phi < 2.f);
+  Filter flt = (aod::etaphi::eta2 < 1.0f) && (aod::etaphi::eta2 > -1.0f) && (aod::etaphi::phi2 < 2.0f) && (aod::etaphi::phi2 > 1.0f);
 
-  void process(soa::Filtered<aod::EtaPhi> const& etaPhis)
+  void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::EtaPhi>> const& tracks)
   {
-    for (auto& etaPhi : etaPhis) {
-      LOGF(INFO, "(%f, 1 < %f < 2)", etaPhi.eta(), etaPhi.phi());
-    }
-  }
-};
-
-struct CTask {
-  Produces<aod::EtaPhiCol> epc;
-
-  void process(aod::Collision const& collision, aod::Tracks const& tracks)
-  {
+    LOGF(INFO, "Collision: %d [N = %d]", collision.globalIndex(), tracks.size());
     for (auto& track : tracks) {
-      epc(collision, track.eta(), track.phi());
-    }
-  }
-};
-
-struct DTask {
-  Filter flt = (aod::etaphi::eta < 1.0f) && (aod::etaphi::eta > -1.0f);
-
-  void process(aod::Collision const& collision, soa::Filtered<aod::EtaPhiCol> const& epc)
-  {
-    uint32_t count = 0;
-    LOG(INFO) << "===========================================================";
-    for (auto& entry : epc) {
-      LOG(INFO) << "[" << count++ << "] " << collision.globalIndex() << " = " << entry.collisionId() << "\n"
-                << "(-1 < " << entry.eta() << " < 1)";
+      LOGF(INFO, "id = %d; eta:  -1 < %.3f < 1; phi: 1 < %.3f < 2", track.collisionId(), track.eta2(), track.phi2());
     }
   }
 };
@@ -85,7 +57,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
     adaptAnalysisTask<ATask>("produce-etaphi"),
-    adaptAnalysisTask<BTask>("consume-etaphi"),
-    adaptAnalysisTask<CTask>("produce-etaphi-col"),
-    adaptAnalysisTask<DTask>("consume-etaphi-col")};
+    adaptAnalysisTask<BTask>("consume-etaphi")};
 }
