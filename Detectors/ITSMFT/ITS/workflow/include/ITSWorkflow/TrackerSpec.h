@@ -23,6 +23,10 @@
 #include "ITStracking/Vertexer.h"
 #include "ITStracking/VertexerTraits.h"
 
+#include "GPUO2Interface.h"
+#include "GPUReconstruction.h"
+#include "GPUChainITS.h"
+
 namespace o2
 {
 namespace its
@@ -31,7 +35,7 @@ namespace its
 class TrackerDPL : public framework::Task
 {
  public:
-  TrackerDPL(bool isMC) : mIsMC{isMC} {}
+  TrackerDPL(bool isMC, o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU); // : mIsMC{isMC} {}
   ~TrackerDPL() override = default;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
@@ -39,8 +43,9 @@ class TrackerDPL : public framework::Task
  private:
   int mState = 0;
   bool mIsMC = false;
-  TrackerTraitsCPU mTrackerTraits; //FIXME: the traits should be taken from the GPUChain
-  VertexerTraits mVertexerTraits;
+  // TrackerTraitsCPU mTrackerTraits; //FIXME: the traits should be taken from the GPUChain
+  // VertexerTraits mVertexerTraits;
+  std::unique_ptr<o2::gpu::GPUReconstruction> mRecChain = nullptr;
   std::unique_ptr<parameters::GRPObject> mGRP = nullptr;
   std::unique_ptr<Tracker> mTracker = nullptr;
   std::unique_ptr<Vertexer> mVertexer = nullptr;

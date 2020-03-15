@@ -39,6 +39,12 @@ namespace its
 {
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
+TrackerDPL::TrackerDPL(bool isMC,
+                       o2::gpu::GPUDataTypes::DeviceType dType) : mIsMC{isMC},
+                                                                  mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)}
+{
+}
+
 void TrackerDPL::init(InitContext& ic)
 {
   auto filename = ic.options().get<std::string>("grp-file");
@@ -53,8 +59,11 @@ void TrackerDPL::init(InitContext& ic)
     geom->fillMatrixCache(utils::bit2Mask(TransformType::T2L, TransformType::T2GRot,
                                           TransformType::T2G));
 
-    mTracker = std::make_unique<Tracker>(&mTrackerTraits);
-    mVertexer = std::make_unique<Vertexer>(&mVertexerTraits);
+    auto* chainITS = mRecChain->AddChain<o2::gpu::GPUChainITS>();
+    mRecChain->Init();
+
+    mTracker = std::make_unique<Tracker>(chainITS->GetITSTrackerTraits());
+    mVertexer = std::make_unique<Vertexer>(chainITS->GetITSVertexerTraits());
     double origD[3] = {0., 0., 0.};
     mTracker->setBz(field->getBz(origD));
   } else {
