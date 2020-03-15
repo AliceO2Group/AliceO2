@@ -35,3 +35,8 @@ o2_add_executable(jetfinder
                         FastJet::FastJet
   COMPONENT_NAME Analysis)
 endif()
+
+o2_add_executable(upc-an
+                  SOURCES upcAnalysis.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase 
+                  COMPONENT_NAME Analysis)
