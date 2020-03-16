@@ -20,7 +20,7 @@ LabeledDigit::LabeledDigit(Digit digit, o2::emcal::MCLabel label)
 }
 
 LabeledDigit::LabeledDigit(Short_t tower, Double_t energy, Double_t time, o2::emcal::MCLabel label)
-  : mDigit(time, tower, energy)
+  : mDigit(tower, energy, time)
 {
   mLabels.push_back(label);
 }
@@ -30,14 +30,15 @@ LabeledDigit& LabeledDigit::operator+=(const LabeledDigit& other)
   if (canAdd(other)) {
     Double_t e1 = getEnergy();
     Double_t e2 = other.getEnergy();
+    Double_t r = (e1 + e2 != 0) ? 1 / (e1 + e2) : 0;
     mDigit += other.getDigit();
 
-    for (auto label : mLabels) {
-      label.setEnergyFraction(label.getEnergyFraction() * e1 / (e1 + e2));
+    for (int j = 0; j < mLabels.size(); j++) {
+      mLabels.at(j).setEnergyFraction(mLabels.at(j).getEnergyFraction() * e1 * r);
     }
 
     for (auto label : other.getLabels()) {
-      label.setEnergyFraction(label.getEnergyFraction() * e2 / (e1 + e2));
+      label.setEnergyFraction(label.getEnergyFraction() * e2 * r);
       mLabels.push_back(label);
     }
   }
