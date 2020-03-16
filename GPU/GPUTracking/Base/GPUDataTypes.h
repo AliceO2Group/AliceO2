@@ -179,8 +179,8 @@ struct GPUTrackingInOutZS {
   static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
   static constexpr unsigned int NENDPOINTS = 20;
   struct GPUTrackingInOutZSSlice {
-    void** zsPtr[NENDPOINTS];
-    unsigned int* nZSPtr[NENDPOINTS];
+    const void* const* zsPtr[NENDPOINTS];
+    const unsigned int* nZSPtr[NENDPOINTS];
     unsigned int count[NENDPOINTS];
   };
   struct GPUTrackingInOutZSCounts {

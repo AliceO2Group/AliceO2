@@ -205,6 +205,10 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   std::unique_ptr<TPCFastTransform> mTPCFastTransformU;               // Global TPC fast transformation object
   std::unique_ptr<o2::base::MatLayerCylSet> mMatLUTU;                 // Material Lookup Table
   std::unique_ptr<o2::trd::TRDGeometryFlat> mTRDGeometryU;            // TRD Geometry
+  std::unique_ptr<unsigned long long int[]> mTPCZSBuffer;             // Memory to store TPC ZS pages
+  std::unique_ptr<unsigned int[]> mTPCZSSizes;                        // Array with TPC ZS numbers of pages
+  std::unique_ptr<void*[]> mTPCZSPtrs;                                // Array with pointers to TPC ZS pages
+  std::unique_ptr<o2::gpu::GPUTrackingInOutZS> mTPCZS;                // TPC ZS Data Structure
 
   // Upper bounds for memory allocation
   unsigned int mMaxTPCHits;

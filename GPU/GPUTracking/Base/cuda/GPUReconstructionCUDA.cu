@@ -576,14 +576,14 @@ void GPUReconstructionCUDABackend::SetThreadCounts()
   mWarpSize = GPUCA_WARP_SIZE;
 }
 
-int GPUReconstructionCUDABackend::registerMemoryForGPU(void* ptr, size_t size)
+int GPUReconstructionCUDABackend::registerMemoryForGPU(const void* ptr, size_t size)
 {
-  return GPUFailedMsgI(cudaHostRegister(ptr, size, cudaHostRegisterDefault));
+  return GPUFailedMsgI(cudaHostRegister((void*)ptr, size, cudaHostRegisterDefault));
 }
 
-int GPUReconstructionCUDABackend::unregisterMemoryForGPU(void* ptr)
+int GPUReconstructionCUDABackend::unregisterMemoryForGPU(const void* ptr)
 {
-  return GPUFailedMsgI(cudaHostUnregister(ptr));
+  return GPUFailedMsgI(cudaHostUnregister((void*)ptr));
 }
 
 void GPUReconstructionCUDABackend::PrintKernelOccupancies()

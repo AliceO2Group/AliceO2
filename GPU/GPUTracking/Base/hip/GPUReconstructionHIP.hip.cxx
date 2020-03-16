@@ -534,14 +534,14 @@ void GPUReconstructionHIPBackend::SetThreadCounts()
   mWarpSize = GPUCA_WARP_SIZE;
 }
 
-int GPUReconstructionHIPBackend::registerMemoryForGPU(void* ptr, size_t size)
+int GPUReconstructionHIPBackend::registerMemoryForGPU(const void* ptr, size_t size)
 {
-  return GPUFailedMsgI(hipHostRegister(ptr, size, hipHostRegisterDefault));
+  return GPUFailedMsgI(hipHostRegister((void*)ptr, size, hipHostRegisterDefault));
 }
 
-int GPUReconstructionHIPBackend::unregisterMemoryForGPU(void* ptr)
+int GPUReconstructionHIPBackend::unregisterMemoryForGPU(const void* ptr)
 {
-  return GPUFailedMsgI(hipHostUnregister(ptr));
+  return GPUFailedMsgI(hipHostUnregister((void*)ptr));
 }
 
 void GPUReconstructionHIPBackend::PrintKernelOccupancies()

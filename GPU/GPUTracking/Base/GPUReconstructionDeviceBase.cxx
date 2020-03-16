@@ -301,12 +301,12 @@ int GPUReconstructionDeviceBase::GetMaxThreads()
   return std::max(retVal, GPUReconstruction::GetMaxThreads());
 }
 
-int GPUReconstructionDeviceBase::registerMemoryForGPU(void* ptr, size_t size)
+int GPUReconstructionDeviceBase::registerMemoryForGPU(const void* ptr, size_t size)
 {
   return IsGPU();
 }
 
-int GPUReconstructionDeviceBase::unregisterMemoryForGPU(void* ptr)
+int GPUReconstructionDeviceBase::unregisterMemoryForGPU(const void* ptr)
 {
   return IsGPU();
 }
