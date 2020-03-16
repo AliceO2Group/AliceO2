@@ -43,7 +43,7 @@ class Digit : public DigitBase
 
   bool canAdd(const Digit other)
   {
-    return (mTower == other.getTower() && std::abs(getTimeStamp() - other.getTimeStamp()) <= constants::EMCAL_TIMESAMPLE);
+    return (mTower == other.getTower() && std::abs(getTimeStamp() - other.getTimeStamp()) < constants::EMCAL_TIMESAMPLE);
   }
 
   Digit& operator+=(const Digit& other);              // Adds energy of other digits to this digit.
