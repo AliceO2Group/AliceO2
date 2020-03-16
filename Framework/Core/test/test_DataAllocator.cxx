@@ -222,7 +222,8 @@ DataProcessorSpec getSinkSpec()
     auto object1 = pc.inputs().get<o2::test::TriviallyCopyable>("input1");
     ASSERT_ERROR(object1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
     LOG(INFO) << "extracting span of o2::test::TriviallyCopyable from input1";
-    auto object1span = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("input1");
+    InputRecord::ReturnType<gsl::span<o2::test::TriviallyCopyable>> object1span;
+    object1span = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("input1");
     ASSERT_ERROR(object1span.size() == 1);
     ASSERT_ERROR(sizeof(typename decltype(object1span)::value_type) == sizeof(o2::test::TriviallyCopyable));
     // check the additional header on the stack
@@ -235,19 +236,22 @@ DataProcessorSpec getSinkSpec()
 
     // ROOT-serialized messageable object in input2 channel
     LOG(INFO) << "extracting o2::test::TriviallyCopyable pointer from input2";
-    auto object2 = pc.inputs().get<o2::test::TriviallyCopyable*>("input2");
+    InputRecord::ReturnType<o2::test::TriviallyCopyable*> object2;
+    object2 = std::move(pc.inputs().get<o2::test::TriviallyCopyable*>("input2"));
     ASSERT_ERROR(object2 != nullptr);
     ASSERT_ERROR(*object2 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
     // ROOT-serialized, non-messageable object in input3 channel
     LOG(INFO) << "extracting o2::test::Polymorphic pointer from input3";
-    auto object3 = pc.inputs().get<o2::test::Polymorphic*>("input3");
+    InputRecord::ReturnType<o2::test::Polymorphic*> object3;
+    object3 = pc.inputs().get<o2::test::Polymorphic*>("input3");
     ASSERT_ERROR(object3 != nullptr);
     ASSERT_ERROR(*object3 == o2::test::Polymorphic(0xbeef));
 
     // container of objects
     LOG(INFO) << "extracting vector of o2::test::Polymorphic from input4";
-    auto object4 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input4");
+    InputRecord::ReturnType<std::vector<o2::test::Polymorphic>> object4;
+    object4 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input4");
     ASSERT_ERROR(object4.size() == 2);
     ASSERT_ERROR(object4[0] == o2::test::Polymorphic(0xaffe));
     ASSERT_ERROR(object4[1] == o2::test::Polymorphic(0xd00f));
@@ -284,7 +288,8 @@ DataProcessorSpec getSinkSpec()
     }
 
     LOG(INFO) << "extracting std::string from input9";
-    auto object9 = pc.inputs().get<std::string>("input9");
+    InputRecord::ReturnType<std::string> object9;
+    object9 = pc.inputs().get<std::string>("input9");
     ASSERT_ERROR(object9 == "adoptchunk");
 
     LOG(INFO) << "extracting o2::test::TriviallyCopyable from input10";

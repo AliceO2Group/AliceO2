@@ -32,6 +32,7 @@
 #include <exception>
 #include <memory>
 #include <type_traits>
+#include <utility> // declval
 
 class FairMQMessage;
 
@@ -430,6 +431,10 @@ class InputRecord
       }
     }
   }
+
+  /// Helper definition for the return type of get() for a requested type
+  template <typename U>
+  using ReturnType = decltype(std::declval<InputRecord>().get<U>(DataRef{nullptr, nullptr, nullptr}));
 
   template <typename T>
   T get_boost(char const* binding) const
