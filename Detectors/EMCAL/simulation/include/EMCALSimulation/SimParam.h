@@ -31,18 +31,19 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
   // Parameters used in Digitizer
   Int_t getDigitThreshold() const { return mDigitThreshold; }
   Float_t getPinNoise() const { return mPinNoise; }
+  Float_t getPinNoiseLG() const { return mPinNoiseLG; }
   Float_t getTimeNoise() const { return mTimeNoise; }
   Float_t getTimeDelay() const { return mTimeDelay; }
-  Bool_t isTimeDelayFromOCDB() const { return mTimeDelayFromCDB; }
+  Bool_t isTimeDelayFromOCDB() const { return mTimeDelayFromOCDB; }
   Float_t getTimeResolutionPar0() const { return mTimeResolutionPar0; }
   Float_t getTimeResolutionPar1() const { return mTimeResolutionPar1; }
   Double_t getTimeResolution(Double_t energy) const;
   Int_t getNADCEC() const { return mNADCEC; }
   Int_t getMeanPhotonElectron() const { return mMeanPhotonElectron; }
   Float_t getGainFluctuations() const { return mGainFluctuations; }
-  Int_t getTimeResponseTau() const { return mTimeResponseTau; }
+  Float_t getTimeResponseTau() const { return mTimeResponseTau; }
   Float_t getTimeResponsePower() const { return mTimeResponsePower; }
-  Float_t getTimeResponseThreshold() const { return mTimeResponsePower; }
+  Float_t getTimeResponseThreshold() const { return mTimeResponseThreshold; }
 
   // Parameters used in SDigitizer
   Float_t getA() const { return mA; }
@@ -52,6 +53,12 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
   Float_t getSignalDelay() const { return mSignalDelay; }
   Float_t getLiveTime() const { return mLiveTime; }
   Float_t getBusyTime() const { return mBusyTime; }
+
+  Bool_t doSmearEnergy() const { return mSmearEnergy; }
+  Bool_t doSimulateTimeResponse() const { return mSimulateTimeResponse; }
+  Bool_t doRemoveDigitsBelowThreshold() const { return mRemoveDigitsBelowThreshold; }
+  Bool_t doSimulateNoiseDigits() const { return mSimulateNoiseDigits; }
+
   Bool_t isDisablePileup() const { return mDisablePileup; }
 
   void PrintStream(std::ostream& stream) const;
@@ -63,9 +70,10 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
   Int_t mMeanPhotonElectron{4400};       ///< number of photon electrons per GeV deposited energy
   Float_t mGainFluctuations{15.};        ///< correct fMeanPhotonElectron by the gain fluctuations
   Float_t mPinNoise{0.012};              ///< Electronics noise in EMC, APD
+  Float_t mPinNoiseLG{0.1};              ///< Electronics noise in EMC, APD, Low Gain
   Float_t mTimeNoise{1.28e-5};           ///< Electronics noise in EMC, time
   Float_t mTimeDelay{600e-9};            ///< Simple time delay to mimick roughly delay in data
-  Bool_t mTimeDelayFromCDB{false};       ///< Get time delay from OCDB
+  Bool_t mTimeDelayFromOCDB{false};      ///< Get time delay from OCDB
   Float_t mTimeResolutionPar0{0.26666};  ///< Time resolution of FEE electronics
   Float_t mTimeResolutionPar1{1.4586};   ///< Time resolution of FEE electronics
   Int_t mNADCEC{0x10000};                ///< number of channels in EC section ADC
@@ -82,6 +90,12 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
   Float_t mSignalDelay{700}; ///< Signal delay time (ns)
   Float_t mLiveTime{1500};   ///< EMCal live time (ns)
   Float_t mBusyTime{35000};  ///< EMCal busy time (ns)
+
+  //Processing
+  Bool_t mSmearEnergy{true};                ///< do time and energy smearing
+  Bool_t mSimulateTimeResponse{true};       ///< simulate time response
+  Bool_t mRemoveDigitsBelowThreshold{true}; ///< remove digits below threshold
+  Bool_t mSimulateNoiseDigits{true};        ///< simulate noise digits
 
   // DigitizerSpec
   Bool_t mDisablePileup{false}; ///< disable pileup simulation

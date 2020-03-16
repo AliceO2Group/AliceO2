@@ -28,9 +28,10 @@ void SimParam::PrintStream(std::ostream& stream) const
   stream << "\nEMCAL::SimParam.mMeanPhotonElectron = " << mMeanPhotonElectron;
   stream << "\nEMCal::SimParam.mGainFluctuations = " << mGainFluctuations;
   stream << "\nEMCal::SimParam.mPinNoise = " << mPinNoise;
+  stream << "\nEMCal::SimParam.mPinNoiseLG = " << mPinNoiseLG;
   stream << "\nEMCal::SimParam.mTimeNoise = " << mTimeNoise;
   stream << "\nEMCal::SimParam.mTimeDelay = " << mTimeDelay;
-  stream << "\nEMCal::SimParam.mTimeDelayFromCDB = " << ((mTimeDelayFromCDB) ? "true" : "false");
+  stream << "\nEMCal::SimParam.mTimeDelayFromOCDB = " << ((mTimeDelayFromOCDB) ? "true" : "false");
   stream << "\nEMCal::SimParam.mTimeResolutionPar0 = " << mTimeResolutionPar0;
   stream << "\nEMCal::SimParam.mTimeResolutionPar1 = " << mTimeResolutionPar1;
   stream << "\nEMCal::SimParam.mTimeResponseTau = " << mTimeResponseTau;
@@ -43,6 +44,10 @@ void SimParam::PrintStream(std::ostream& stream) const
   stream << "\nEMCal::SimParam.mSignalDelay = " << mSignalDelay;
   stream << "\nEMCal::SimParam.mLiveTime = " << mLiveTime;
   stream << "\nEMCal::SimParam.mBusyTime = " << mBusyTime;
+  stream << "\nEMCal::SimParam.mSmearEnergy = " << ((mSmearEnergy) ? "true" : "false");
+  stream << "\nEMCal::SimParam.mSimulateTimeResponse = " << ((mSimulateTimeResponse) ? "true" : "false");
+  stream << "\nEMCal::SimParam.mRemoveDigitsBelowThreshold = " << ((mRemoveDigitsBelowThreshold) ? "true" : "false");
+  stream << "\nEMCal::SimParam.mSimulateNoiseDigits = " << ((mSimulateNoiseDigits) ? "true" : "false");
   stream << "\nEMCal::SimParam.mDisablePileup = " << ((mDisablePileup) ? "true" : "false");
 }
 

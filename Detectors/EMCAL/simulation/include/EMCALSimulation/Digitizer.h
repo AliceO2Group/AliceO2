@@ -57,26 +57,22 @@ class Digitizer : public TObject
   void setEventTime(double t);
   double getTriggerTime() const { return mTriggerTime; }
   double getEventTime() const { return mEventTime; }
-  bool isLive() const { return (mEventTime <= mLiveTime); }
+  bool isLive(double t) const { return (t < mLiveTime); }
+  bool isLive() const { return (mEventTime < mLiveTime); }
 
   void setContinuous(bool v) { mContinuous = v; }
   bool isContinuous() const { return mContinuous; }
 
   bool isEmpty() const { return mEmpty; }
-  bool readyToFlush(double t) const { return ((t - mTriggerTime > mLiveTime) && !isEmpty()); }
 
   void fillOutputContainer(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>& labels);
 
-  void setSmearEnergy(bool v) { mSmearEnergy = v; }
   bool doSmearEnergy() const { return mSmearEnergy; }
-  void smearEnergy(LabeledDigit& digit);
-
-  void setRemoveDigitsBelowThreshold(bool v) { mRemoveDigitsBelowThreshold = v; }
+  double smearEnergy(double energy);
+  bool doSimulateTimeResponse() const { return mSimulateTimeResponse; }
   bool doRemoveDigitsBelowThreshold() const { return mRemoveDigitsBelowThreshold; }
-
-  void setSimulateNoiseDigits(bool v) { mSimulateNoiseDigits = v; }
   bool doSimulateNoiseDigits() const { return mSimulateNoiseDigits; }
-  void addNoiseDigits();
+  void addNoiseDigits(LabeledDigit&);
 
   void setCoeffToNanoSecond(double cf) { mCoeffToNanoSecond = cf; }
   double getCoeffToNanoSecond() const { return mCoeffToNanoSecond; }
@@ -98,6 +94,7 @@ class Digitizer : public TObject
   const Geometry* mGeometry = nullptr;     ///< EMCAL geometry
   double mTriggerTime = -1e20;             ///< global trigger time
   double mEventTime = 0;                   ///< global event time
+  short mEventTimeOffset = 0;              ///< event time difference from trigger time (in number of bins)
   short mPhase = 0;                        ///< event phase
   double mCoeffToNanoSecond = 1.0;         ///< coefficient to convert event time (Fair) to ns
   bool mContinuous = false;                ///< flag for continuous simulation
@@ -117,7 +114,7 @@ class Digitizer : public TObject
 
   TRandom3* mRandomGenerator = nullptr;                       // random number generator
   std::vector<int> mTimeBinOffset;                            // offset of first time bin
-  std::vector<std::vector<double>> mSignalFractionInTimeBins; // fraction of signal for each time bin
+  std::vector<std::vector<double>> mAmplitudeInTimeBins;      // amplitude of signal for each time bin
 
   float mLiveTime = 1500; // EMCal live time (ns)
   float mBusyTime = 0;    // EMCal busy time (ns)

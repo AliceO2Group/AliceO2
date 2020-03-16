@@ -52,7 +52,7 @@ class LabeledDigit
 
   bool canAdd(const LabeledDigit other)
   {
-    return (getTower() == other.getTower() && std::abs(getTimeStamp() - other.getTimeStamp()) <= constants::EMCAL_TIMESAMPLE);
+    return (getTower() == other.getTower() && std::abs(getTimeStamp() - other.getTimeStamp()) < constants::EMCAL_TIMESAMPLE);
   }
 
   LabeledDigit& operator+=(const LabeledDigit& other);                     // Adds energy of other digit to this digit, combines lists of labels

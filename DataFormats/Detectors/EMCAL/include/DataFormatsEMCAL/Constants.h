@@ -89,12 +89,13 @@ std::ostream& operator<<(std::ostream& stream, ChannelType_t chantype);
 namespace constants
 {
 
-constexpr int OVERFLOWCUT = 950;             ///< sample overflow
-constexpr int ORDER = 2;                     ///< Order of shaping stages of the signal conditioning unit
-constexpr double TAU = 2.35;                 ///< Approximate shaping time
-constexpr Double_t EMCAL_TIMESAMPLE = 100.;  ///< Width of a timebin in nanoseconds
-constexpr Double_t EMCAL_ADCENERGY = 0.0167; ///< Energy of one ADC count in GeV/c^2
-constexpr Int_t EMCAL_MAXTIMEBINS = 15;      ///< Maximum number of time bins for time response
+constexpr int OVERFLOWCUT = 950;                ///< sample overflow
+constexpr int ORDER = 2;                        ///< Order of shaping stages of the signal conditioning unit
+constexpr double TAU = 2.35;                    ///< Approximate shaping time
+constexpr Double_t EMCAL_TIMESAMPLE = 100.;     ///< Width of a timebin in nanoseconds
+constexpr Double_t EMCAL_ADCENERGY = 0.0167;    ///< Energy of one ADC count in GeV/c^2
+constexpr Double_t EMCAL_HGLGTRANSITION = 800.; ///< Transition from High to Low Gain
+constexpr Int_t EMCAL_MAXTIMEBINS = 15;         ///< Maximum number of time bins for time response
 } // namespace constants
 
 enum FitAlgorithm {

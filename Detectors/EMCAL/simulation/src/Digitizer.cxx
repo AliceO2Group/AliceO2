@@ -44,26 +44,29 @@ void Digitizer::init()
   float delay = std::fmod(mSimParam->getSignalDelay() / constants::EMCAL_TIMESAMPLE, 1);
   mDelay = ((int)(std::floor(mSimParam->getSignalDelay() / constants::EMCAL_TIMESAMPLE)));
 
+  mSmearEnergy = mSimParam->doSmearEnergy();
+  mSimulateTimeResponse = mSimParam->doSimulateTimeResponse();
+  mRemoveDigitsBelowThreshold = mSimParam->doRemoveDigitsBelowThreshold();
+  mSimulateNoiseDigits = mSimParam->doSimulateNoiseDigits();
+
   mTimeBinOffset.clear();
-  mSignalFractionInTimeBins.clear();
+  mAmplitudeInTimeBins.clear();
 
   TF1 RawResponse("RawResponse", rawResponseFunction, 0, 256, 5);
   RawResponse.SetParameters(1., 0., tau, N, 0.);
 
   for (int i = 0; i < 4; i++) {
-    int offset = ((int)(std::ceil(tau - delay - 0.25 * i)));
+    int offset = ((int)(std::floor(tau - delay - 0.25 * i)));
     mTimeBinOffset.push_back(offset);
 
-    double RawResponseTotalIntegral = (N > 0) ? pow(N / tau, -N) * exp(N) * std::tgamma(N) * std::pow(1 / tau, N - 1) : 1.;
     std::vector<double> sf;
     RawResponse.SetParameter(1, 0.25 * i + delay);
 
     for (int j = 0; j < constants::EMCAL_MAXTIMEBINS; j++) {
-      double val = RawResponse.Integral(j - offset, j + 1 - offset) / RawResponseTotalIntegral;
-      sf.push_back(val);
+      sf.push_back(RawResponse.Eval(j - offset));
     }
 
-    mSignalFractionInTimeBins.push_back(sf);
+    mAmplitudeInTimeBins.push_back(sf);
   }
 }
 
@@ -91,10 +94,6 @@ void Digitizer::finish() {}
 //_______________________________________________________________________
 void Digitizer::initCycle()
 {
-  if (mSimulateNoiseDigits) {
-    addNoiseDigits();
-  }
-
   mEmpty = false;
 }
 
@@ -122,6 +121,8 @@ void Digitizer::process(const std::vector<Hit>& hits)
         }
 
         MCLabel label(hit.GetTrackID(), mCurrEvID, mCurrSrcID, false, 1.0);
+        if (digit.getEnergy() == 0)
+          label.setEnergyFraction(0);
         LabeledDigit d(digit, label);
         mDigits[id].push_back(d);
       }
@@ -140,19 +141,29 @@ void Digitizer::hitToDigits(const Hit& hit)
   Int_t tower = hit.GetDetectorID();
   Double_t energy = hit.GetEnergyLoss();
 
-  if (mSimulateTimeResponse) {
-    for (int j = 0; j < mSignalFractionInTimeBins.at(mPhase).size(); j++) {
-      double val = energy * (mSignalFractionInTimeBins.at(mPhase).at(j));
-      if ((val < mSimParam->getTimeResponseThreshold()) && (j > mTimeBinOffset.at(mPhase))) {
-        break;
-      }
-      Digit digit(tower, val, mEventTime + (j - mTimeBinOffset.at(mPhase) + mDelay + 0.5) * constants::EMCAL_TIMESAMPLE);
+  if (mSmearEnergy) {
+    energy = smearEnergy(energy);
+  }
+
+  if (mSimulateTimeResponse && (energy != 0)) {
+    for (int j = 0; j < mAmplitudeInTimeBins.at(mPhase).size(); j++) {
+      double val = energy * (mAmplitudeInTimeBins.at(mPhase).at(j));
+
+      Digit digit(tower, val, (mEventTimeOffset + j - mTimeBinOffset.at(mPhase) + mDelay) * constants::EMCAL_TIMESAMPLE);
       mTempDigitVector.push_back(digit);
     }
   } else {
-    Digit digit(tower, energy, mEventTime);
+    Digit digit(tower, energy, mEventTime + mDelay * constants::EMCAL_TIMESAMPLE);
     mTempDigitVector.push_back(digit);
   }
+}
+
+//_______________________________________________________________________
+double Digitizer::smearEnergy(double energy)
+{
+  Double_t fluct = (energy * mSimParam->getMeanPhotonElectron()) / mSimParam->getGainFluctuations();
+  energy *= mRandomGenerator->Poisson(fluct) / fluct;
+  return energy;
 }
 
 //_______________________________________________________________________
@@ -172,23 +183,27 @@ void Digitizer::setEventTime(double t)
 
   mEventTime = t - mTriggerTime;
 
-  mPhase = ((int)((std::fmod(t, 100) + 12.5) / 25));
+  mPhase = ((int)((std::fmod(mEventTime, 100) + 12.5) / 25));
+  mEventTimeOffset = ((int)((mEventTime - std::fmod(mEventTime, 100) + 0.1) / 100));
   if (mPhase == 4) {
     mPhase = 0;
+    mEventTimeOffset++;
   }
 }
 
 //_______________________________________________________________________
-void Digitizer::addNoiseDigits()
+void Digitizer::addNoiseDigits(LabeledDigit& d1)
 {
-  for (int id = 0; id <= mGeometry->GetNCells(); id++) {
-    double energy = mRandomGenerator->Gaus(0, mSimParam->getPinNoise());
-    double time = mRandomGenerator->Rndm() * mSimParam->getTimeNoise();
-    Digit digit(id, energy, time);
-    MCLabel label(true, 1.0);
-    LabeledDigit d(digit, label);
-    mDigits[id].push_front(d);
+  double energy = d1.getEnergy();
+  double sigma = mSimParam->getPinNoise();
+  if (energy > constants::EMCAL_HGLGTRANSITION * constants::EMCAL_ADCENERGY) {
+    sigma = mSimParam->getPinNoiseLG();
   }
+
+  double noise = mRandomGenerator->Gaus(0, sigma);
+  MCLabel label(true, 1.0);
+  LabeledDigit d(d1.getTower(), noise, d1.getTimeStamp(), label);
+  d1 += d;
 }
 
 //_______________________________________________________________________
@@ -216,13 +231,18 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits, o2::dataformats:
         tower.erase(del);
       }
 
-      if (mSmearEnergy) {
-        smearEnergy(ld1);
+      if (mSimulateNoiseDigits) {
+        addNoiseDigits(ld1);
       }
 
-      if (!mRemoveDigitsBelowThreshold || (ld1.getEnergy() >= mSimParam->getDigitThreshold() * (constants::EMCAL_ADCENERGY))) {
-        l.push_back(ld1);
-      }
+      if (mRemoveDigitsBelowThreshold && (ld1.getEnergy() < mSimParam->getDigitThreshold() * (constants::EMCAL_ADCENERGY)))
+        continue;
+      if (ld1.getEnergy() < 0)
+        continue;
+      if (ld1.getTimeStamp() >= mSimParam->getLiveTime())
+        continue;
+
+      l.push_back(ld1);
     }
   }
 
@@ -241,15 +261,6 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits, o2::dataformats:
 
   mDigits.clear();
   mEmpty = true;
-}
-
-//_______________________________________________________________________
-void Digitizer::smearEnergy(LabeledDigit& digit)
-{
-  Double_t energy = digit.getEnergy();
-  Double_t fluct = (energy * mSimParam->getMeanPhotonElectron()) / mSimParam->getGainFluctuations();
-  energy *= mRandomGenerator->Poisson(fluct) / fluct;
-  digit.setEnergy(energy);
 }
 
 //_______________________________________________________________________
