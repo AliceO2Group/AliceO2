@@ -38,9 +38,16 @@ void printIndexColumn(char const* fg, char const* bg)
 template <typename C, typename T>
 void printIndex()
 {
-  auto a = MetadataTrait<typename C::binding_t>::metadata::label();
-  auto b = MetadataTrait<T>::metadata::label();
-  fmt::printf("%s -> %s []\n", a, b);
+  if constexpr (!is_type_with_originals_v<typename C::binding_t>) {
+    auto a = MetadataTrait<typename C::binding_t>::metadata::label();
+    auto b = MetadataTrait<T>::metadata::label();
+    fmt::printf("%s -> %s []\n", a, b);
+  } else if constexpr (is_type_with_originals_v<typename C::binding_t>) {
+    using main_original = pack_element_t<0, typename C::binding_t::originals>;
+    auto a = MetadataTrait<main_original>::metadata::label();
+    auto b = MetadataTrait<T>::metadata::label();
+    fmt::printf("%s -> %s []\n", a, b);
+  }
 }
 
 template <typename... C>
@@ -145,7 +152,7 @@ edge[dir=back, arrowtail=empty]
   dumpTable<V0s>();
   dumpTable<Cascades>();
   dumpTable<Timeframes>();
-  //  dumpTable<SecVtx2Prong>(true, StyleType::RED);
+  dumpTable<SecVtx2Prong>(true, StyleType::RED);
   dumpTable<Cand2Prong>(true, StyleType::RED);
   dumpTable<Jets>();
   dumpTable<JetConstituents>();
