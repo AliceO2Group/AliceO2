@@ -191,6 +191,7 @@ class SpectatorAllocator : public boost::container::pmr::polymorphic_allocator<T
 {
  public:
   using boost::container::pmr::polymorphic_allocator<T>::polymorphic_allocator;
+  using propagate_on_container_move_assignment = std::true_type;
 
   // skip default construction of empty elements
   // this is important for two reasons: one: it allows us to adopt an existing buffer (e.g. incoming message) and
