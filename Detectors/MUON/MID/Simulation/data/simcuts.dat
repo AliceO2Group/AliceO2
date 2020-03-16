@@ -1,22 +1,16 @@
 * MID
 * ===
 *    Med GAM   ELEC  NHAD  CHAD  MUON  EBREM MUHAB EDEL  MUDEL MUPA  ANNI  BREM  COMP  DCAY  DRAY  HADR  LOSS  MULS  PAIR  PHOT  RAYL 
-*Aluminium
-MID  3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
-* Aluminium bis
-*MUON  13  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
 * Gaz mixture of the active medium of the trigger chambers
-MID  0  1e-5  1e-5  1e-3  1e-3  1e-5  1e-5  1e-5  1e-5  1e-5  -1.   1     1     1     1     1     1     1     1     1     1     1
+MID 0  1e-5  1e-5  1e-3  1e-3  1e-5  1e-5  1e-5  1e-5  1e-5  -1.   1     1     1     1     1     1     1     1     1     1     1
 * Bakelite of trigger chambers
-MUON  1  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
-* Cooper in the PCBs 
-MID 4  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
-* G10 material (what is this?)
-*MUON 12  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
-* Nomex
-MID 7  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
-* Copper bis
-MID 4  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
+MID 1  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
 * InoxBolts of St1
 MID 2  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
-* at least missing mylar, Styrofoam
+*Aluminium
+MID 3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
+* Cooper in the PCBs 
+MID 4  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
+* Nomex
+MID 7  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  1e-3  -1.   1     1     1     1     0     1     2     1     1     1     1
+*TODO: verify with Florian Damas missing materials at least missing mylar, Styrofoam
