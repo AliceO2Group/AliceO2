@@ -221,7 +221,8 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   Double_t x, y, z;
 
   Float_t pinstart[3] = {2.9491, 2.9491, 2.5};
-  Float_t ptop[3] = {1.324, 1.324, 1.};      // Cherenkov radiator
+  Float_t ptop[3] = {1.324, 1.324, 1.}; // Cherenkov radiator
+  //  Float_t ptopblack[3] = {1.324, 1.324, 0.0002}; // black paper on the top on radiator
   Float_t ptopref[3] = {1.3241, 1.3241, 1.}; // Cherenkov radiator wrapped with reflector
   Double_t prfv[3] = {0.0002, 1.323, 1.};    // Vertical refracting layer bettwen radiators and between radiator and not optical Air
   Double_t prfh[3] = {1.323, 0.0002, 1.};    // Horizontal refracting layer bettwen radiators and ...
@@ -236,84 +237,52 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   // Entry window (glass)
   TVirtualMC::GetMC()->Gsvolu("0TOP", "BOX", getMediumID(kOpGlass), ptop, 3); // Glass radiator
   TGeoVolume* top = gGeoManager->GetVolume("0TOP");
+  // TVirtualMC::GetMC()->Gsvolu("0TBL", "BOX", getMediumID(kOptBlack), ptopblack, 3); // Glass radiator
+  //  TGeoVolume* topblack = gGeoManager->GetVolume("0TBL");
   TVirtualMC::GetMC()->Gsvolu("0TRE", "BOX", getMediumID(kAir), ptopref, 3); // Air: wrapped  radiator
   TGeoVolume* topref = gGeoManager->GetVolume("0TRE");
-  TVirtualMC::GetMC()->Gsvolu("0RFV", "BOX", getMediumID(kOpAir), prfv, 3); // Optical Air vertical
+  TVirtualMC::GetMC()->Gsvolu("0RFV", "BOX", getMediumID(kOptAl), prfv, 3); // Optical Air vertical
   TGeoVolume* rfv = gGeoManager->GetVolume("0RFV");
-  TVirtualMC::GetMC()->Gsvolu("0RFH", "BOX", getMediumID(kOpAir), prfh, 3); // Optical Air horizontal
+  TVirtualMC::GetMC()->Gsvolu("0RFH", "BOX", getMediumID(kOptAl), prfh, 3); // Optical Air horizontal
   TGeoVolume* rfh = gGeoManager->GetVolume("0RFH");
 
   TVirtualMC::GetMC()->Gsvolu("0PAL", "BOX", getMediumID(kAl), pal, 3); // 5mm Al on top of the radiator
   TGeoVolume* altop = gGeoManager->GetVolume("0PAL");
 
-  /*  
-  //Al housing definition
-  Double_t crad = 82.;         // Define concave c-side radius here
-  Double_t dP = 3.31735114408; // Work in Progress side length
-  //  Double_t dP = pmcp[0]; // side length of mcp divided by 2
-  Double_t thet = TMath::ATan(dP / crad);
-  Double_t rat = TMath::Tan(thet) / 2.0;
-  
-  Double_t mgon[16];
-  mgon[0] = -45;
-  mgon[1] = 360.0;
-  mgon[2] = 4;
-  mgon[3] = 4;
-
-  z = -pinstart[2] + 2 * pal[2];
-  mgon[4] = z;
-  mgon[5] = 2 * ptop[0] + preg[2];
-  mgon[6] = dP + rat * z * 4 / 3;
-
-  z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2];
-  mgon[7] = z;
-  mgon[8] = mgon[5];
-  mgon[9] = dP + z * rat;
-  mgon[10] = z;
-  mgon[11] = pmcp[0]  + preg[2]  ;
-  mgon[12] = mgon[9];
-
-  z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + 2 * preg[2] + pmcptopglass[2] + 2 * pmcp[2];
-  mgon[13] = z;
-  mgon[14] = mgon[11];
-  mgon[15] = dP + z * rat * pmcp[2] * 9 / 10;
-
-  TVirtualMC::GetMC()->Gsvolu("0SUP", "PGON", getMediumID(kAl), mgon, 16); //Al Housing for Support Structure//
-  TGeoVolume* alsup = gGeoManager->GetVolume("0SUP");
-  ins->AddNode(alsup, 1, new TGeoTranslation(0, 0, 0));
- */
   TVirtualMC::GetMC()->Gsvolu("0REG", "BOX", getMediumID(kOpGlassCathode), preg, 3);
   TGeoVolume* cat = gGeoManager->GetVolume("0REG");
 
   //wrapped radiator +  reflecting layers
 
   Int_t ntops = 0, nrfvs = 0, nrfhs = 0;
-  Float_t xin = 0, yin = 0, xinv = 0, yinv = 0, xinh = 0, yinh = 0;
+  //  Float_t yin = 0, xinv = 0, yinv = 0;
   x = y = z = 0;
   topref->AddNode(top, 1, new TGeoTranslation(0, 0, 0));
-  xinv = -ptop[0] - prfv[0];
+  float xinv = -ptop[0] - prfv[0];
   topref->AddNode(rfv, 1, new TGeoTranslation(xinv, 0, 0));
   printf(" GEOGEO  refv %f ,  0,0 \n", xinv);
   xinv = ptop[0] + prfv[0];
   topref->AddNode(rfv, 2, new TGeoTranslation(xinv, 0, 0));
   printf(" GEOGEO  refv %f ,  0,0 \n", xinv);
-  yinv = -ptop[1] - prfh[1];
+  float yinv = -ptop[1] - prfh[1];
   topref->AddNode(rfh, 1, new TGeoTranslation(0, yinv, 0));
   printf(" GEOGEO  refh  ,  0, %f, 0 \n", yinv);
   yinv = ptop[1] + prfh[1];
   topref->AddNode(rfh, 2, new TGeoTranslation(0, yinv, 0));
+  //  zin = -ptop[2] - ptopblack[2];
+  //  printf(" GEOGEO  refh  ,  0, 0, %f \n", zin);
+  //  topref->AddNode(topblack, 1, new TGeoTranslation(0, 0, zin));
 
   //container for radiator, cathode
   for (Int_t ix = 0; ix < 2; ix++) {
-    xin = -pinstart[0] + 0.3 + (ix + 0.5) * 2 * ptopref[0];
+    float xin = -pinstart[0] + 0.3 + (ix + 0.5) * 2 * ptopref[0];
     for (Int_t iy = 0; iy < 2; iy++) {
       z = -pinstart[2] + 2 * pal[2] + ptopref[2];
-      yin = -pinstart[1] + 0.3 + (iy + 0.5) * 2 * ptopref[1];
+      float yin = -pinstart[1] + 0.3 + (iy + 0.5) * 2 * ptopref[1];
       ntops++;
       ins->AddNode(topref, ntops, new TGeoTranslation(xin, yin, z));
       z += ptopref[2] + 2. * pmcptopglass[2] + preg[2];
       ins->AddNode(cat, ntops, new TGeoTranslation(xin, yin, z));
-      cat->Print();
     }
   }
   //Al top
@@ -353,9 +322,6 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   TGeoVolume* mcpbase = gGeoManager->GetVolume("0MBA");
   z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + pmcptopglass[2] + 2 * pmcp[2] + pmcpbase[2];
   ins->AddNode(mcpbase, 1, new TGeoTranslation(0, 0, z));
-
-  // Al Housing for Support Structure
-  //  ins->AddNode(alsup,1);
 }
 
 Bool_t Detector::ProcessHits(FairVolume* v)
@@ -380,9 +346,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     if (iPart == 50000050) // If particles is photon then ...
     {
       if (RegisterPhotoE(etot)) {
-        //        AddHit(x, y, z, time, enDep, trackID, detID);
         AddHit(x, y, z, time, enDep, parentID, detID);
-        //	std::cout << trackID <<" parent "<<parentID<<std::endl;
       }
     }
 
@@ -457,7 +421,9 @@ void Detector::CreateMaterials()
   Medium(4, "Ceramic$", 3, 0, isxfld, sxmgmx, 10., .01, .1, .003, .003);
   Medium(6, "Glass$", 4, 0, isxfld, sxmgmx, 10., .01, .1, .003, .003);
   Medium(7, "OpAir$", 2, 0, isxfld, sxmgmx, 10., .1, 1., .003, .003);
+  Medium(18, "OpBlack$", 2, 0, isxfld, sxmgmx, 10., .1, 1., .003, .003);
   Medium(15, "Aluminium$", 11, 0, isxfld, sxmgmx, 10., .01, 1., .003, .003);
+  Medium(17, "OptAluminium$", 11, 0, isxfld, sxmgmx, 10., .01, 1., .003, .003);
   Medium(16, "OpticalGlass$", 24, 1, isxfld, sxmgmx, 10., .01, .1, .003, .003);
   Medium(19, "OpticalGlassCathode$", 24, 1, isxfld, sxmgmx, 10., .01, .1, .003, .003);
   Medium(22, "SensAir$", 2, 1, isxfld, sxmgmx, 10., .1, 1., .003, .003);
@@ -491,28 +457,58 @@ void Detector::DefineOpticalProperties()
 
   // Quick conversion from vector<Double_t> to Double_t*: photonEnergyD -> &(photonEnergyD[0])
   TVirtualMC::GetMC()->SetCerenkov(getMediumID(kOpGlass), nBins, &(mPhotonEnergyD[0]), &(mAbsorptionLength[0]),
-                                   &(mEfficAll[0]), &(mRefractionIndex[0]));
-  // TVirtualMC::GetMC()->SetCerenkov (getMediumID(kOpGlassCathode), kNbins, aPckov, aAbsSiO2, effCathode, rindexSiO2);
+                                   &(mQuantumEfficiency[0]), &(mRefractionIndex[0]));
   TVirtualMC::GetMC()->SetCerenkov(getMediumID(kOpGlassCathode), nBins, &(mPhotonEnergyD[0]), &(mAbsorptionLength[0]),
-                                   &(mEfficAll[0]), &(mRefractionIndex[0]));
+                                   &(mQuantumEfficiency[0]), &(mRefractionIndex[0]));
+  /*
+    TVirtualMC::GetMC()->SetCerenkov(getMediumID(kOptBlack), nBins, &(mPhotonEnergyD[0]), &(mAbsorAir[0]),
+                                   &(mEfficAll[0]), &(mRindexAir[0]));
+  TVirtualMC::GetMC()->SetCerenkov(getMediumID(kOptAl), nBins, &(mPhotonEnergyD[0]), &(mAbsorbCathodeNext[0]),
+                                   &(mEfficMet[0]), &(mRindexCathodeNext[0]));
 
+  */
   // Define a border for radiator optical properties
-  TVirtualMC::GetMC()->DefineOpSurface("surfRd", kUnified /*kGlisur*/, kDielectric_metal, kPolished, 0.);
+  TVirtualMC::GetMC()->DefineOpSurface("surfRd", kUnified, kDielectric_metal, kPolishedbackpainted, 0.);
   TVirtualMC::GetMC()->SetMaterialProperty("surfRd", "EFFICIENCY", nBins, &(mPhotonEnergyD[0]), &(mEfficMet[0]));
   TVirtualMC::GetMC()->SetMaterialProperty("surfRd", "REFLECTIVITY", nBins, &(mPhotonEnergyD[0]), &(mReflMet[0]));
+  TVirtualMC::GetMC()->SetBorderSurface("surMirrorBorder0", "0TOP", 1, "0RFV", 1, "surfRd");
+  TVirtualMC::GetMC()->SetBorderSurface("surMirrorBorder1", "0TOP", 1, "0RFH", 1, "surfRd");
+  TVirtualMC::GetMC()->SetBorderSurface("surMirrorBorder2", "0TOP", 1, "0RFV", 2, "surfRd");
+  TVirtualMC::GetMC()->SetBorderSurface("surMirrorBorder3", "0TOP", 1, "0RFH", 2, "surfRd");
+  //Define black paper on the top of radiator
+  TVirtualMC::GetMC()->DefineOpSurface("surBlack", kUnified, kDielectric_dielectric, kGroundbackpainted, 0.);
+  // TVirtualMC::GetMC()->SetMaterialProperty("surBlack", "EFFICIENCY", nBins, &(mPhotonEnergyD[0]), &(mEffBlackPaper[0]));
+  TVirtualMC::GetMC()->SetMaterialProperty("surBlack", "REFLECTIVITY", nBins, &(mPhotonEnergyD[0]), &(mReflBlackPaper[0]));
+  TVirtualMC::GetMC()->SetBorderSurface("surBlackBorder", "0TOP", 1, "0PAL", 1, "surBlack");
+  //between cathode and back of front MCP glass window
+  TVirtualMC::GetMC()->DefineOpSurface("surFrontBWindow", kUnified, kDielectric_dielectric, kPolishedbackpainted, 0.);
+  //  TVirtualMC::GetMC()->SetMaterialProperty("surFrontBWindow", "EFFICIENCY", nBins, &(mPhotonEnergyD[0]), &(mEfficAll[0]));
+  TVirtualMC::GetMC()->SetMaterialProperty("surFrontBWindow", "REFLECTIVITY", nBins, &(mPhotonEnergyD[0]), &(mReflFrontWindow[0]));
+  TVirtualMC::GetMC()->SetBorderSurface("surBorderFrontBWindow", "0REG", 1, "0MTO", 1, "surFrontBWindow");
+  //between radiator and front MCP glass window
+  TVirtualMC::GetMC()->DefineOpSurface("surFrontWindow", kUnified, kDielectric_dielectric, kPolishedbackpainted, 0.);
+  //TVirtualMC::GetMC()->SetMaterialProperty("surFrontWindow", "EFFICIENCY", nBins, &(mPhotonEnergyD[0]), &(mEfficAll[0]));
+  TVirtualMC::GetMC()->SetMaterialProperty("surFrontWindow", "REFLECTIVITY", nBins, &(mPhotonEnergyD[0]), &(mReflBlackPaper[0]));
+  TVirtualMC::GetMC()->SetBorderSurface("surBorderFrontWindow", "0TOP", 1, "0MT0", 1, "surFrontWindow");
 }
 
 void Detector::FillOtherOptProperties()
 {
   // Set constant values to the other arrays
   for (Int_t i = 0; i < mPhotonEnergyD.size(); i++) {
-    mEfficAll.push_back(1.);
+    mReflBlackPaper.push_back(0.);
+    mEffBlackPaper.push_back(0);
+    mAbsBlackPaper.push_back(1);
+
+    mReflFrontWindow.push_back(0.5);
+
     mRindexAir.push_back(1.);
     mAbsorAir.push_back(0.3);
-    mRindexCathodeNext.push_back(0.);
-    mAbsorbCathodeNext.push_back(0.);
-    mEfficMet.push_back(0.);
-    mReflMet.push_back(1.);
+    mRindexCathodeNext.push_back(1);
+    mAbsorbCathodeNext.push_back(1);
+    mEfficMet.push_back(0);
+    mRindexMet.push_back(0);
+    mReflMet.push_back(0.9);
   }
 }
 
@@ -531,7 +527,7 @@ Int_t Detector::ReadOptProperties(const std::string filePath)
 {
   std::ifstream infile;
   infile.open(filePath.c_str());
-
+  LOG(INFO) << " file " << filePath.c_str();
   // Check if file is opened correctly
   if (infile.fail() == true) {
     // AliFatal(Form("Error opening ascii file: %s", filePath.c_str()));
@@ -584,6 +580,7 @@ Int_t Detector::ReadOptProperties(const std::string filePath)
     mQuantumEfficiency.push_back(efficiency);
     if (!(ssLine.good() || ssLine.eof())) { // check if there were problems with numbers conversion
       //    AliFatal(Form("Error while reading line %i: %s", iLine, ssLine.str().c_str()));
+
       return -6;
     }
     getline(infile, sLine);
