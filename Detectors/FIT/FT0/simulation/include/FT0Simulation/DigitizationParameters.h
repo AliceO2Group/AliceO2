@@ -25,11 +25,13 @@ struct DigitizationParameters {
   float ChannelWidthInverse = 0.076804916;                   // channel width in ps inverse
   float mMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4; //number of MCPs
   float mCFD_trsh = 3.;                                      // [mV]
-  float mAmp_trsh = 110;                                     // [mV]
+  float mAmp_trsh = 100;                                     // [ph.e]
+  float mAmpRecordLow = -4;                                  // integrate charge from
+  float mAmpRecordUp = 15;                                   // to [ns]
   int mTime_trg_gate = 153;                                  //4000/13;   #channels
   float mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
   float C_side_cable_cmps = 2.86;   //ns
-  float A_side_cable_cmps = 11.020; //ns
+  float A_side_cable_cmps = 11.110; //ns
   int mSignalWidth = 378;           //5000.ps/13.2ps   #channels
   int mtrg_central_trh = 200.;      // channels
   int mtrg_semicentral_trh = 100.;  // channels

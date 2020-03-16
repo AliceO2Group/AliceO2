@@ -22,6 +22,9 @@
 #include <TH1F.h>
 #include <bitset>
 #include <vector>
+#include <deque>
+#include <optional>
+#include <set>
 
 namespace o2
 {
@@ -33,59 +36,64 @@ class Digitizer
   Digitizer(const DigitizationParameters& params, Int_t mode = 0) : mMode(mode), parameters(params) { initParameters(); };
   ~Digitizer() = default;
 
-  void process(const std::vector<o2::ft0::HitType>* hits);
-  void setDigits(std::vector<o2::ft0::Digit>& digitsBC,
-                 std::vector<o2::ft0::ChannelData>& digitsCh);
+  void process(const std::vector<o2::ft0::HitType>* hits, std::vector<o2::ft0::Digit>& digitsBC,
+               std::vector<o2::ft0::ChannelData>& digitsCh,
+               o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& label);
+  void flush(std::vector<o2::ft0::Digit>& digitsBC,
+             std::vector<o2::ft0::ChannelData>& digitsCh,
+             o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& label);
+  void flush_all(std::vector<o2::ft0::Digit>& digitsBC,
+                 std::vector<o2::ft0::ChannelData>& digitsCh,
+                 o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& label);
   void initParameters();
   void printParameters();
-  void setTimeStamp(double value) { mEventTime = value; }
   void setEventID(Int_t id) { mEventID = id; }
   void setSrcID(Int_t id) { mSrcID = id; }
   const o2::InteractionRecord& getInteractionRecord() const { return mIntRecord; }
   o2::InteractionRecord& getInteractionRecord(o2::InteractionRecord& src) { return mIntRecord; }
-  void setInteractionRecord(const o2::InteractionRecord& src) { mIntRecord = src; }
+  void setInteractionRecord(const o2::InteractionTimeRecord& src) { mIntRecord = src; }
   uint32_t getOrbit() const { return mIntRecord.orbit; }
   uint16_t getBC() const { return mIntRecord.bc; }
   double measure_amplitude(const std::vector<double>& times);
   void init();
   void finish();
 
-  void setMCLabels(o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mclb) { mMCLabels = mclb; }
-  double get_time(const std::vector<double>& times);
-  std::vector<std::vector<double>> mChannel_times;
+  std::optional<double> get_time(const std::vector<double>& times);
 
   void setContinuous(bool v = true) { mIsContinuous = v; }
   bool isContinuous() const { return mIsContinuous; }
-  void cleanChannelData()
-  {
-    mChannel_times.assign(parameters.mMCPs, {});
-    for (Int_t ipmt = 0; ipmt < parameters.mMCPs; ++ipmt)
-      mNumParticles[ipmt] = 0;
-  }
-  void clearDigits()
-  {
-    mChannel_times.assign(parameters.mMCPs, {});
-    for (int i = 0; i < parameters.mMCPs; ++i)
-      mNumParticles[i] = 0;
-    mTriggers.cleanTriggers();
-  }
+  struct BCCache {
+    struct particle {
+      int hit_ch;
+      double hit_time;
+      friend bool operator<(particle a, particle b)
+      {
+        return (a.hit_ch != b.hit_ch) ? (a.hit_ch < b.hit_ch) : (a.hit_time < b.hit_time);
+      }
+    };
+    // using particle = std::pair<int, double>;
+    std::vector<particle> hits;
+    std::set<ft0::MCLabel> labels;
+  };
 
  private:
   // digit info
   // parameters
-  Int_t mMode;                      //triggered or continuos
-  o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
+  Int_t mMode;                          //triggered or continuos
+  o2::InteractionTimeRecord mIntRecord; // Interaction record (orbit, bc)
   Int_t mEventID;
-  Int_t mSrcID;        // signal, background or QED
-  Double_t mEventTime; // timestamp
+  Int_t mSrcID;              // signal, background or QED
   bool mIsContinuous = true; // continuous (self-triggered) or externally-triggered readout
-  int mNumParticles[208];
+
+  o2::InteractionRecord firstBCinDeque = 0;
+  std::deque<BCCache> mCache;
 
   DigitizationParameters parameters;
 
-  o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* mMCLabels = nullptr;
-
-  o2::ft0::Triggers mTriggers;
+  void storeBC(BCCache& bc,
+               std::vector<o2::ft0::Digit>& digitsBC,
+               std::vector<o2::ft0::ChannelData>& digitsCh,
+               o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels);
 
   ClassDefNV(Digitizer, 1);
 };

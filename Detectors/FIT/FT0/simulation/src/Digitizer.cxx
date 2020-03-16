@@ -19,14 +19,13 @@
 #include <cassert>
 #include <iostream>
 #include <optional>
-#include <Vc/Vc>
 
 using namespace o2::ft0;
 //using o2::ft0::Geometry;
 
 ClassImp(Digitizer);
 
-double Digitizer::get_time(const std::vector<double>& times)
+std::optional<double> Digitizer::get_time(const std::vector<double>& times)
 {
   double min_time = *std::min_element(begin(times), end(times));
   assert(std::is_sorted(begin(times), end(times)));
@@ -51,100 +50,105 @@ double Digitizer::get_time(const std::vector<double>& times)
       return time;
     is_positive = cfd_val > 0;
   }
-  LOG(INFO) << "CFD failed to find peak ";
-  return 1e9;
+  LOG(DEBUG) << "CFD failed to find peak ";
+  for (double t : times)
+    LOG(DEBUG) << t << " size " << times.size();
+  return std::nullopt;
 }
 
 double Digitizer::measure_amplitude(const std::vector<double>& times)
 {
   double result = 0;
-  double from = -0.5 * parameters.bunchWidth + parameters.IntegWindowDelayA;
-  double to = from + parameters.AmpIntegrationTime;
+  double from = parameters.mAmpRecordLow;
+  double to = from + parameters.mAmpRecordUp;
   for (double time : times) {
     result += signalForm_integral(to - time) - signalForm_integral(from - time);
   }
-  //  LOG(INFO) << result / times.size();
   return result;
 }
 
-void Digitizer::process(const std::vector<o2::ft0::HitType>* hits)
+void Digitizer::process(const std::vector<o2::ft0::HitType>* hits,
+                        std::vector<o2::ft0::Digit>& digitsBC,
+                        std::vector<o2::ft0::ChannelData>& digitsCh,
+                        o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& label)
 {
-
-  auto sorted_hits{*hits};
-  std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::ft0::HitType const& a, o2::ft0::HitType const& b) {
-    return a.GetTrackID() < b.GetTrackID();
-  });
-
+  ;
   //Calculating signal time, amplitude in mean_time +- time_gate --------------
-  if (mChannel_times.size() == 0)
-    mChannel_times.resize(parameters.mMCPs);
-  Int_t parent = -10;
-  for (auto& hit : sorted_hits) {
+  flush(digitsBC, digitsCh, label);
+  for (auto const& hit : *hits) {
     if (hit.GetEnergyLoss() > 0)
       continue;
+
     Int_t hit_ch = hit.GetDetectorID();
     Bool_t is_A_side = (hit_ch < 4 * parameters.nCellsA);
     Float_t time_compensate = is_A_side ? parameters.A_side_cable_cmps : parameters.C_side_cable_cmps;
     Double_t hit_time = hit.GetTime() - time_compensate;
-
-    //  bool is_hit_in_signal_gate = (abs(hit_time) < parameters.mSignalWidth * .5);
-
-    mNumParticles[hit_ch]++;
-    mChannel_times[hit_ch].push_back(hit_time);
+    auto relBC = o2::InteractionRecord{hit_time};
+    if (mCache.size() <= relBC.bc) {
+      mCache.resize(relBC.bc + 1);
+    }
+    mCache[relBC.bc].hits.emplace_back(BCCache::particle{hit_ch, hit_time - relBC.bc2ns()});
 
     //charge particles in MCLabel
     Int_t parentID = hit.GetTrackID();
-    if (parentID != parent) {
-      o2::ft0::MCLabel label(hit.GetTrackID(), mEventID, mSrcID, hit_ch);
-      int lblCurrent;
-      if (mMCLabels) {
-        lblCurrent = mMCLabels->getIndexedSize(); // this is the size of mHeaderArray;
-        mMCLabels->addElement(lblCurrent, label);
-      }
-      parent = parentID;
-    }
+    mCache[relBC.bc].labels.emplace(parentID, mEventID, mSrcID, hit_ch);
   }
 }
 
-//------------------------------------------------------------------------
-void Digitizer::setDigits(std::vector<o2::ft0::Digit>& digitsBC,
-                          std::vector<o2::ft0::ChannelData>& digitsCh)
+void Digitizer::storeBC(BCCache& bc,
+                        std::vector<o2::ft0::Digit>& digitsBC,
+                        std::vector<o2::ft0::ChannelData>& digitsCh,
+                        o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels)
 {
-
+  if (bc.hits.empty())
+    return;
   int n_hit_A = 0, n_hit_C = 0, mean_time_A = 0, mean_time_C = 0;
   int summ_ampl_A = 0, summ_ampl_C = 0;
   int vertex_time;
 
   int first = digitsCh.size(), nStored = 0;
+  auto& particles = bc.hits;
+  std::sort(particles.begin(), particles.end());
+  auto channel_end = particles.begin();
+  std::vector<double> channel_times;
   for (Int_t ipmt = 0; ipmt < parameters.mMCPs; ++ipmt) {
-    if (mNumParticles[ipmt] < parameters.mAmp_trsh)
+    auto channel_begin = channel_end;
+    channel_end = std::find_if(channel_begin, particles.end(),
+                               [ipmt](BCCache::particle const& p) { return p.hit_ch != ipmt; });
+    if (channel_end - channel_begin < parameters.mAmp_trsh)
       continue;
-    std::sort(begin(mChannel_times[ipmt]), end(mChannel_times[ipmt]));
-
+    channel_times.resize(channel_end - channel_begin);
+    std::transform(channel_begin, channel_end, channel_times.begin(), [](BCCache::particle const& p) { return p.hit_time; });
+    // auto out = channel_times.begin();
+    // while (channel_begin != channel_end) {
+    //   *out++ = channel_begin++->hit_time;
+    // }
     int chain = (std::rand() % 2) ? 1 : 0;
-    int smeared_time = 1000. * (get_time(mChannel_times[ipmt]) - parameters.mCfdShift) * parameters.ChannelWidthInverse;
+    auto cfd = get_time(channel_times);
+    if (!cfd)
+      continue;
+    int smeared_time = 1000. * (*cfd - parameters.mCfdShift) * parameters.ChannelWidthInverse;
     bool is_time_in_signal_gate = (abs(smeared_time) < parameters.mSignalWidth * 0.5);
-    Float_t charge = measure_amplitude(mChannel_times[ipmt]) * parameters.charge2amp;
+    Float_t charge = measure_amplitude(channel_times) * parameters.charge2amp;
     float amp = is_time_in_signal_gate ? charge : 0;
-    if (smeared_time < 1e9) {
-      digitsCh.emplace_back(ipmt, smeared_time, int(parameters.mV_2_Nchannels * amp), chain);
-      nStored++;
+    LOG(INFO) << "bc " << firstBCinDeque.bc << ", ipmt " << ipmt << ", smeared_time " << smeared_time;
+    digitsCh.emplace_back(ipmt, smeared_time, int(parameters.mV_2_Nchannels * amp), chain);
+    nStored++;
 
-      // fill triggers
-      Bool_t is_A_side = (ipmt <= 4 * parameters.nCellsA);
-      if (smeared_time > parameters.mTime_trg_gate || smeared_time < -parameters.mTime_trg_gate)
-        continue;
+    // fill triggers
 
-      if (is_A_side) {
-        n_hit_A++;
-        summ_ampl_A += amp;
-        mean_time_A += smeared_time;
+    Bool_t is_A_side = (ipmt <= 4 * parameters.nCellsA);
+    if (smeared_time > parameters.mTime_trg_gate || smeared_time < -parameters.mTime_trg_gate)
+      continue;
 
-      } else {
-        n_hit_C++;
-        summ_ampl_C += amp;
-        mean_time_C += smeared_time;
-      }
+    if (is_A_side) {
+      n_hit_A++;
+      summ_ampl_A += amp;
+      mean_time_A += smeared_time;
+    } else {
+      n_hit_C++;
+      summ_ampl_C += amp;
+      mean_time_C += smeared_time;
     }
   }
   Bool_t is_A, is_C, isVertex, is_Central, is_SemiCentral = 0;
@@ -159,24 +163,57 @@ void Digitizer::setDigits(std::vector<o2::ft0::Digit>& digitsBC,
   uint16_t timeA = is_A ? mean_time_A / n_hit_A : 0; // average time A side
   uint16_t timeC = is_C ? mean_time_C / n_hit_C : 0; // average time C side
 
-  mTriggers.setTriggers(is_A, is_C, isVertex, is_Central, is_SemiCentral, n_hit_A, n_hit_C,
-                        amplA, amplC, timeA, timeC);
+  Triggers triggers;
+  triggers.setTriggers(is_A, is_C, isVertex, is_Central, is_SemiCentral, n_hit_A, n_hit_C,
+                       amplA, amplC, timeA, timeC);
 
-  digitsBC.emplace_back(first, nStored, mIntRecord, mTriggers);
+  digitsBC.emplace_back(first, nStored, firstBCinDeque, triggers);
+
+  size_t const nBC = digitsBC.size();
+  for (auto const& lbl : bc.labels)
+    labels.addElement(nBC - 1, lbl);
 
   // Debug output -------------------------------------------------------------
 
-  LOG(INFO) << "Event ID: " << mEventID;
-  LOG(INFO) << "N hit A: " << int(mTriggers.nChanA) << " N hit C: " << int(mTriggers.nChanC) << " summ ampl A: " << int(mTriggers.amplA)
-            << " summ ampl C: " << int(mTriggers.amplC) << " mean time A: " << mTriggers.timeA
-            << " mean time C: " << mTriggers.timeC;
+  LOG(INFO) << "Event ID: " << mEventID << ", bc " << firstBCinDeque.bc << ", N hit " << bc.hits.size();
+  LOG(INFO) << "N hit A: " << int(triggers.nChanA) << " N hit C: " << int(triggers.nChanC) << " summ ampl A: " << int(triggers.amplA)
+            << " summ ampl C: " << int(triggers.amplC) << " mean time A: " << triggers.timeA
+            << " mean time C: " << triggers.timeC;
 
-  LOG(INFO) << "IS A " << mTriggers.getOrA() << " IsC " << mTriggers.getOrC() << " vertex " << mTriggers.getVertex() << " is Central " << mTriggers.getCen() << " is SemiCentral " << mTriggers.getSCen();
+  LOG(INFO) << "IS A " << triggers.getOrA() << " IsC " << triggers.getOrC() << " vertex " << triggers.getVertex() << " is Central " << triggers.getCen() << " is SemiCentral " << triggers.getSCen();
+}
+
+//------------------------------------------------------------------------
+void Digitizer::flush(std::vector<o2::ft0::Digit>& digitsBC,
+                      std::vector<o2::ft0::ChannelData>& digitsCh,
+                      o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels)
+{
+  LOG(INFO) << "firstBCinDeque " << firstBCinDeque << " mIntRecord " << mIntRecord;
+  assert(firstBCinDeque <= mIntRecord);
+  while (firstBCinDeque < mIntRecord && !mCache.empty()) {
+    storeBC(mCache.front(), digitsBC, digitsCh, labels);
+    mCache.pop_front();
+    ++firstBCinDeque;
+  }
+  firstBCinDeque = mIntRecord;
+}
+
+void Digitizer::flush_all(std::vector<o2::ft0::Digit>& digitsBC,
+                          std::vector<o2::ft0::ChannelData>& digitsCh,
+                          o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels)
+{
+  LOG(INFO) << "firstBCinDeque " << firstBCinDeque << " mIntRecord " << mIntRecord;
+  assert(firstBCinDeque <= mIntRecord);
+  while (!mCache.empty()) {
+    storeBC(mCache.front(), digitsBC, digitsCh, labels);
+    mCache.pop_front();
+    ++firstBCinDeque;
+  }
 }
 
 void Digitizer::initParameters()
 {
-  mEventTime = 0;
+  // mEventTime = 0;
   float signal_width = 0.5 * parameters.mSignalWidth;
 }
 //_______________________________________________________________________

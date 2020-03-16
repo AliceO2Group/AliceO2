@@ -98,18 +98,15 @@ class FT0DPLDigitizerTask
     LOG(INFO) << "CALLING FT0 DIGITIZATION";
 
     static std::vector<o2::ft0::HitType> hits;
-    o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> labelAccum;
+    // o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> labelAccum;
     o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> labels;
 
-    mDigitizer.setMCLabels(&labels);
+    // mDigitizer.setMCLabels(&labels);
     auto& eventParts = context->getEventParts();
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
-      mDigitizer.setTimeStamp(timesview[collID].timeNS);
       mDigitizer.setInteractionRecord(timesview[collID]);
-      mDigitizer.clearDigits();
-      std::vector<std::vector<double>> channel_times;
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
@@ -119,20 +116,18 @@ class FT0DPLDigitizerTask
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " source ID " << part.sourceID << " found " << hits.size() << " hits ";
 
         // call actual digitization procedure
-        labels.clear();
-        mDigitizer.setEventID(collID);
+        mDigitizer.setEventID(part.entryID);
         mDigitizer.setSrcID(part.sourceID);
-        mDigitizer.process(&hits);
-        // copy labels into accumulator
-        labelAccum.mergeAtBack(labels);
+        LOG(INFO) << "srcId " << part.sourceID << ", event " << part.entryID;
+        mDigitizer.process(&hits, mDigitsBC, mDigitsCh, labels);
       }
-      mDigitizer.setDigits(mDigitsBC, mDigitsCh);
     }
+    mDigitizer.flush_all(mDigitsBC, mDigitsCh, labels);
 
     // send out to next stage
     pc.outputs().snapshot(Output{"FT0", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
     pc.outputs().snapshot(Output{"FT0", "DIGITSCH", 0, Lifetime::Timeframe}, mDigitsCh);
-    pc.outputs().snapshot(Output{"FT0", "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
+    pc.outputs().snapshot(Output{"FT0", "DIGITSMCTR", 0, Lifetime::Timeframe}, labels);
 
     LOG(INFO) << "FT0: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"FT0", "ROMode", 0, Lifetime::Timeframe}, mROMode);
