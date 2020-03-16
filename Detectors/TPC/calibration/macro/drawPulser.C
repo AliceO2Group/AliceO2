@@ -15,22 +15,12 @@
 #include "TFile.h"
 #include "TPCBase/CalDet.h"
 #include "TPCBase/Painter.h"
+#include "TPCBase/Utils.h"
 #include "TPad.h"
 #include "TCanvas.h"
 #include "TH1F.h"
 #include "TString.h"
 #endif
-
-TH1* GetBinInfoXY(int& binx, int& biny, float& bincx, float& bincy);
-
-/// Add fec information to the active histogram title
-void addFECInfo();
-
-/// Save canvases in arr to png, pdf, root
-void SaveCanvases(TObjArray* arr, std::string_view outDir);
-
-/// Save a single canvas to outDir using the object name
-void SaveCanvas(TCanvas* c, std::string_view outDir);
 
 /// Open pedestalFile and retrieve noise and pedestal values
 /// Draw then in separate canvases and add an executable to be able to add
@@ -72,7 +62,7 @@ TObjArray* drawPulser(TString pulserFile, int mode = 0, std::string_view outDir 
     }
 
     if (outDir.size()) {
-      SaveCanvases(arrCanvases, outDir);
+      utils::saveCanvases(*arrCanvases, outDir, "png,pdf", "PulserCanvases.root");
     }
 
     return arrCanvases;
@@ -151,17 +141,17 @@ TObjArray* drawPulser(TString pulserFile, int mode = 0, std::string_view outDir 
     cPulser->Divide(3, 2);
 
     cPulser->cd(1);
-    gPad->AddExec(Form("addFECInfoT0%02d", iroc), "addFECInfo()");
+    gPad->AddExec(Form("addFECInfoT0%02d", iroc), "o2::tpc::utils::addFECInfo()");
     hT02D->Draw("colz");
     hT02D->SetUniqueID(iroc);
 
     cPulser->cd(2);
-    gPad->AddExec(Form("addFECInfoWidth%02d", iroc), "addFECInfo()");
+    gPad->AddExec(Form("addFECInfoWidth%02d", iroc), "o2::tpc::utils::addFECInfo()");
     hWidth2D->Draw("colz");
     hWidth2D->SetUniqueID(iroc);
 
     cPulser->cd(3);
-    gPad->AddExec(Form("addFECInfoQtot%02d", iroc), "addFECInfo()");
+    gPad->AddExec(Form("addFECInfoQtot%02d", iroc), "o2::tpc::utils::addFECInfo()");
     hQtot2D->Draw("colz");
     hQtot2D->SetUniqueID(iroc);
 
@@ -178,7 +168,7 @@ TObjArray* drawPulser(TString pulserFile, int mode = 0, std::string_view outDir 
   }
 
   if (outDir.size()) {
-    SaveCanvases(arrCanvases, outDir);
+    utils::saveCanvases(*arrCanvases, outDir, "png,pdf", "PulserCanvases.root");
   }
 
   return arrCanvases;
@@ -254,21 +244,4 @@ void addFECInfo()
                 roc % 18, roc, row, pad, channel, fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel(), binValue);
 
   h->SetTitle(title.Data());
-}
-
-void SaveCanvases(TObjArray* arr, std::string_view outDir)
-{
-  for (auto c : *arr) {
-    SaveCanvas(static_cast<TCanvas*>(c), outDir);
-  }
-
-  std::unique_ptr<TFile> outFile(TFile::Open(TString::Format("%s/PulserCanvases.root", outDir.data()), "recreate"));
-  arr->Write(arr->GetName(), TObject::kSingleKey);
-  outFile->Close();
-}
-
-void SaveCanvas(TCanvas* c, std::string_view outDir)
-{
-  c->SaveAs(TString::Format("%s/%s.png", outDir.data(), c->GetName()));
-  c->SaveAs(TString::Format("%s/%s.pdf", outDir.data(), c->GetName()));
 }
