@@ -12,7 +12,7 @@
 #    and check whether the output digits have multiple labels --> checks embedding
 
 dets=(         ITS   TPC     TOF    EMC    HMP      MCH     MID    MFT     FV0     FT0   FDD   TRD     PHS    CPV    ZDC )
-generators=( boxgen boxgen boxgen boxgen hmpidgun fwmugen fwmugen fwmugen fddgen fddgen fddgen boxgen boxgen boxgen zdcgen )
+generators=( boxgen boxgen boxgen boxgen hmpidgun fwpigen fwpigen fwpigen fddgen fddgen fddgen boxgen boxgen boxgen zdcgen )
 
 simtask() {
  d=$1  # detector
