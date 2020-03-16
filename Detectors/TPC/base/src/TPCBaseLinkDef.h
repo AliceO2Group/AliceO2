@@ -77,4 +77,10 @@
 #pragma link C++ struct o2::tpc::ParameterGEM;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::ParameterGEM> + ;
 
+#pragma link C++ namespace o2::tpc::utils;
+#pragma link C++ function o2::tpc::utils::tokenize(const std::string_view, const std::string_view);
+#pragma link C++ function o2::tpc::utils::getBinInfoXY(int&, int&, float&, float&);
+#pragma link C++ function o2::tpc::utils::addFECInfo();
+#pragma link C++ function o2::tpc::utils::saveCanvases(TObjArray*, std::string_view, std::string_view, std::string_view);
+#pragma link C++ function o2::tpc::utils::saveCanvas(TCanvas*, std::string_view, std::string_view);
 #endif
