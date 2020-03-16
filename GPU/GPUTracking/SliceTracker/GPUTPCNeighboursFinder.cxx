@@ -18,21 +18,6 @@
 #include "GPUDefMacros.h"
 using namespace GPUCA_NAMESPACE::gpu;
 
-#if defined(__HIPCC__) && defined(GPUCA_GPUCODE_DEVICE)
-#define HIPGPUsharedref() __attribute__((address_space(3)))
-#define HIPGPUglobalref() __attribute__((address_space(1)))
-#define HIPGPUconstantref() __attribute__((address_space(4)))
-#else
-#define HIPGPUsharedref() GPUsharedref()
-#define HIPGPUglobalref() GPUglobalref()
-#define HIPGPUconstantref()
-#endif
-#ifdef GPUCA_OPENCL1
-#define HIPTPCROW(x) GPUsharedref() MEM_LOCAL(x)
-#else
-#define HIPTPCROW(x) x
-#endif
-
 template <>
 GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() ss, processorType& GPUrestrict() trackerX)
 {
@@ -185,8 +170,9 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
           GPUTPCHit h;
           h.mY = y0Up + (hitDataUp.x) * stepYUp;
           h.mZ = z0Up + (hitDataUp.y) * stepZUp;
-          if (h.mY < minY || h.mY > maxY || h.mZ < minZ || h.mZ > maxZ)
+          if (h.mY < minY || h.mY > maxY || h.mZ < minZ || h.mZ > maxZ) {
             continue;
+          }
 
 #if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP < GPUCA_MAXN
 #if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP == 0
@@ -211,8 +197,9 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
             break;
           }
         }
-        if (dobreak)
+        if (dobreak) {
           break;
+        }
       }
 
       if (nNeighUp > 0) {
@@ -241,8 +228,9 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
             GPUTPCHit h;
             h.mY = y0Dn + (hitDataDn.x) * stepYDn;
             h.mZ = z0Dn + (hitDataDn.y) * stepZDn;
-            if (h.mY < minY || h.mY > maxY || h.mZ < minZ || h.mZ > maxZ)
+            if (h.mY < minY || h.mY > maxY || h.mZ < minZ || h.mZ > maxZ) {
               continue;
+            }
 
             nNeighDn++;
             float2 yzdn = CAMath::MakeFloat2(s.mUpDx * (h.Y() - y), s.mUpDx * (h.Z() - z));

@@ -65,20 +65,26 @@ struct InputObject {
   TClass* kind = nullptr;
   void* obj = nullptr;
   std::string name;
+  std::string taskName;
 };
 
 const static std::unordered_map<OutputObjHandlingPolicy, std::string> ROOTfileNames = {{OutputObjHandlingPolicy::AnalysisObject, "AnalysisResults.root"},
                                                                                        {OutputObjHandlingPolicy::QAObject, "QAResults.root"}};
 
 // =============================================================================
-DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& outMap)
+DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& objmap, outputTasks const& tskmap)
 {
-  auto writerFunction = [outMap](InitContext& ic) -> std::function<void(ProcessingContext&)> {
+  auto writerFunction = [objmap, tskmap](InitContext& ic) -> std::function<void(ProcessingContext&)> {
     auto& callbacks = ic.services().get<CallbackService>();
     auto outputObjects = std::make_shared<std::map<InputObjectRoute, InputObject>>();
 
     auto endofdatacb = [outputObjects](EndOfStreamContext& context) {
       LOG(DEBUG) << "Writing merged objects to file";
+      if (outputObjects->empty()) {
+        LOG(ERROR) << "Output object map is empty!";
+        context.services().get<ControlService>().readyToQuit(QuitRequest::All);
+        return;
+      }
       std::string currentDirectory = "";
       std::string currentFile = "";
       TFile* f[OutputObjHandlingPolicy::numPolicies];
@@ -113,7 +119,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& out
     };
 
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
-    return [outputObjects, outMap](ProcessingContext& pc) mutable -> void {
+    return [outputObjects, objmap, tskmap](ProcessingContext& pc) mutable -> void {
       auto const& ref = pc.inputs().get("x");
       if (!ref.header) {
         LOG(ERROR) << "Header not found";
@@ -139,23 +145,33 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& out
       InputObject obj;
       obj.kind = tm.GetClass();
       if (obj.kind == nullptr) {
-        LOGP(error, "Cannot read class info from buffer.");
+        LOG(error) << "Cannot read class info from buffer.";
         return;
       }
 
-      OutputObjHandlingPolicy policy = OutputObjHandlingPolicy::AnalysisObject;
-      if (objh)
-        policy = objh->mPolicy;
+      auto policy = objh->mPolicy;
+      auto hash = objh->mTaskHash;
 
       obj.obj = tm.ReadObjectAny(obj.kind);
       TNamed* named = static_cast<TNamed*>(obj.obj);
       obj.name = named->GetName();
-      auto lookup = outMap.find(obj.name);
-      std::string directory{"VariousObjects"};
-      if (lookup != outMap.end()) {
-        directory = lookup->second;
+      auto hpos = std::find_if(tskmap.begin(), tskmap.end(), [&](auto&& x) { return x.first == hash; });
+      if (hpos == tskmap.end()) {
+        LOG(ERROR) << "No task found for hash " << hash;
+        return;
       }
-      InputObjectRoute key{obj.name, directory, policy};
+      auto taskname = hpos->second;
+      auto opos = std::find_if(objmap.begin(), objmap.end(), [&](auto&& x) { return x.first == hash; });
+      if (opos == objmap.end()) {
+        LOG(ERROR) << "No object list found for task " << taskname << " (hash=" << hash << ")";
+        return;
+      }
+      auto objects = opos->second;
+      if (std::find(objects.begin(), objects.end(), obj.name) == objects.end()) {
+        LOG(ERROR) << "No object " << obj.name << " in map for task " << taskname;
+        return;
+      }
+      InputObjectRoute key{obj.name, taskname, policy};
       auto existing = outputObjects->find(key);
       if (existing == outputObjects->end()) {
         outputObjects->insert(std::make_pair(key, obj));
@@ -163,7 +179,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjMap const& out
       }
       auto merger = existing->second.kind->GetMerge();
       if (!merger) {
-        LOGP(error, "Already one object found for {}.", obj.name);
+        LOG(error) << "Already one object found for " << obj.name;
         return;
       }
 

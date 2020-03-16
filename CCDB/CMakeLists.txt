@@ -23,6 +23,7 @@ o2_add_library(CCDB
 o2_target_root_dictionary(CCDB
                           HEADERS
                                   include/CCDB/CcdbApi.h
+			          include/CCDB/CcdbObjectInfo.h
                                   include/CCDB/TObjectWrapper.h
                                   include/CCDB/IdPath.h
                                   include/CCDB/BasicCCDBManager.h

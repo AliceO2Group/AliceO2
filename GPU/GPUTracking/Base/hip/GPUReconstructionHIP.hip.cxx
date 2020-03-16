@@ -27,18 +27,29 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + sizeof(uint4) - 1);
-#ifndef GPUCA_HIP_NO_CONSTANT_MEMORY
-__constant__ uint4 gGPUConstantMemBuffer[gGPUConstantMemBufferSize / sizeof(uint4)];
-__global__ void gGPUConstantMemBuffer_dummy(uint4* p) { p[0] = gGPUConstantMemBuffer[0]; }
-#define GPUCA_CONSMEM_PTR
-#define GPUCA_CONSMEM_CALL
-#define GPUCA_CONSMEM (GPUConstantMem&)gGPUConstantMemBuffer
+// clang-format off
+constexpr size_t gGPUConstantMemBufferSize = sizeof(GPUConstantMem);
+#ifndef GPUCA_NO_CONSTANT_MEMORY
+  // __constant__ GPUConstantMem gGPUConstantMemBuffer; // This compiles, but still doesn't work correctly at runtime
+  // #define GPUCA_CONSMEM gGPUConstantMemBuffer
+  __constant__ uint4 gGPUConstantMemBuffer[gGPUConstantMemBufferSize / sizeof(uint4)];
+  __global__ void gGPUConstantMemBuffer_dummy(int* p) { *p = *(int*)&gGPUConstantMemBuffer; }
+  #ifdef GPUCA_CONSTANT_AS_ARGUMENT
+    #define GPUCA_CONSMEM_PTR const GPUConstantMemCopyable gGPUConstantMemBufferByValue,
+    #define GPUCA_CONSMEM_CALL gGPUConstantMemBufferHost,
+    #define GPUCA_CONSMEM const_cast<GPUConstantMem&>(gGPUConstantMemBufferByValue.v)
+    static GPUConstantMemCopyable gGPUConstantMemBufferHost;
+  #else
+    #define GPUCA_CONSMEM_PTR
+    #define GPUCA_CONSMEM_CALL
+    #define GPUCA_CONSMEM (GPUConstantMem&)gGPUConstantMemBuffer
+  #endif
 #else
-#define GPUCA_CONSMEM_PTR const uint4 *gGPUConstantMemBuffer,
-#define GPUCA_CONSMEM_CALL (const uint4*)me->mDeviceConstantMem,
-#define GPUCA_CONSMEM (GPUConstantMem&)(*gGPUConstantMemBuffer)
+  #define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,
+  #define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,
+  #define GPUCA_CONSMEM const_cast<GPUConstantMem&>(*gGPUConstantMemBuffer)
 #endif
+// clang-format on
 
 __global__ void gHIPMemSetWorkaround(char* ptr, char val, size_t size)
 {
@@ -114,11 +125,11 @@ int GPUReconstructionHIPBackend::runKernelBackend(krnlSetup& _xyz, Args... args)
     GPUFailedMsg(hipEventCreate(&start));
     GPUFailedMsg(hipEventCreate(&stop));
 #ifdef __CUDACC__
-    GPUFailedMsg(hipEventRecord(start));
+    GPUFailedMsg(hipEventRecord(start, mInternals->HIPStreams[x.stream]));
 #endif
     backendInternal<T, I>::runKernelBackendInternal(_xyz, this, &start, &stop, args...);
 #ifdef __CUDACC__
-    GPUFailedMsg(hipEventRecord(stop));
+    GPUFailedMsg(hipEventRecord(stop, mInternals->HIPStreams[x.stream]));
 #endif
     GPUFailedMsg(hipEventSynchronize(stop));
     float v;
@@ -269,7 +280,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
     GPUError("Unsupported HIP Device");
     return (1);
   }
-#ifndef GPUCA_HIP_NO_CONSTANT_MEMORY
+#ifndef GPUCA_NO_CONSTANT_MEMORY
   if (gGPUConstantMemBufferSize > hipDeviceProp.totalConstMem) {
     GPUError("Insufficient constant memory available on GPU %d < %d!", (int)hipDeviceProp.totalConstMem, (int)gGPUConstantMemBufferSize);
     return (1);
@@ -322,7 +333,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
   }
 
   void* devPtrConstantMem;
-#ifndef GPUCA_HIP_NO_CONSTANT_MEMORY
+#ifndef GPUCA_NO_CONSTANT_MEMORY
   if (GPUFailedMsgI(hipGetSymbolAddress(&devPtrConstantMem, HIP_SYMBOL(gGPUConstantMemBuffer)))) {
     GPUError("Error getting ptr to constant memory");
     GPUFailedMsgI(hipDeviceReset());
@@ -362,7 +373,7 @@ int GPUReconstructionHIPBackend::ExitDevice_Runtime()
 
   GPUFailedMsgI(hipFree(mDeviceMemoryBase));
   mDeviceMemoryBase = nullptr;
-#ifdef GPUCA_HIP_NO_CONSTANT_MEMORY
+#ifdef GPUCA_NO_CONSTANT_MEMORY
   GPUFailedMsgI(hipFree(mDeviceConstantMem));
 #endif
 
@@ -428,7 +439,10 @@ size_t GPUReconstructionHIPBackend::TransferMemoryInternal(GPUMemoryResource* re
 
 size_t GPUReconstructionHIPBackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
 {
-#ifndef GPUCA_HIP_NO_CONSTANT_MEMORY
+#ifdef GPUCA_CONSTANT_AS_ARGUMENT
+  memcpy(((char*)&gGPUConstantMemBufferHost) + offset, src, size);
+#endif
+#ifndef GPUCA_NO_CONSTANT_MEMORY
   if (stream == -1) {
     GPUFailedMsg(hipMemcpyToSymbol(HIP_SYMBOL(gGPUConstantMemBuffer), src, size, offset, hipMemcpyHostToDevice));
   } else {
@@ -437,14 +451,12 @@ size_t GPUReconstructionHIPBackend::WriteToConstantMemory(size_t offset, const v
   if (ev && stream != -1) {
     GPUFailedMsg(hipEventRecord(*(hipEvent_t*)ev, mInternals->HIPStreams[stream]));
   }
-
 #else
   if (stream == -1) {
     GPUFailedMsg(hipMemcpy(((char*)mDeviceConstantMem) + offset, src, size, hipMemcpyHostToDevice));
   } else {
     GPUFailedMsg(hipMemcpyAsync(((char*)mDeviceConstantMem) + offset, src, size, hipMemcpyHostToDevice, mInternals->HIPStreams[stream]));
   }
-
 #endif
   return size;
 }
@@ -502,11 +514,14 @@ void GPUReconstructionHIPBackend::SetThreadCounts()
 {
   mThreadCount = GPUCA_THREAD_COUNT;
   mBlockCount = mCoreCount;
-  mConstructorBlockCount = mBlockCount * (mDeviceProcessingSettings.trackletConstructorInPipeline ? 1 : GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER);
-  mSelectorBlockCount = mBlockCount * GPUCA_BLOCK_COUNT_SELECTOR_MULTIPLIER;
+  mConstructorBlockCount = mBlockCount * (mDeviceProcessingSettings.trackletConstructorInPipeline ? 1 : GPUCA_MINBLOCK_COUNT_CONSTRUCTOR);
+  mSelectorBlockCount = mBlockCount * GPUCA_MINBLOCK_COUNT_SELECTOR;
+  mHitsSorterBlockCount = mBlockCount * GPUCA_MINBLOCK_COUNT_HITSSORTER;
   mConstructorThreadCount = GPUCA_THREAD_COUNT_CONSTRUCTOR;
   mSelectorThreadCount = GPUCA_THREAD_COUNT_SELECTOR;
   mFinderThreadCount = GPUCA_THREAD_COUNT_FINDER;
+  mHitsSorterThreadCount = GPUCA_THREAD_COUNT_HITSSORTER;
+  mHitsFinderThreadCount = GPUCA_THREAD_COUNT_HITSFINDER;
   mTRDThreadCount = GPUCA_THREAD_COUNT_TRD;
   mClustererThreadCount = GPUCA_THREAD_COUNT_CLUSTERER;
   mScanThreadCount = GPUCA_THREAD_COUNT_SCAN;
@@ -527,4 +542,22 @@ int GPUReconstructionHIPBackend::registerMemoryForGPU(void* ptr, size_t size)
 int GPUReconstructionHIPBackend::unregisterMemoryForGPU(void* ptr)
 {
   return GPUFailedMsgI(hipHostUnregister(ptr));
+}
+
+void GPUReconstructionHIPBackend::PrintKernelOccupancies()
+{
+  unsigned int maxBlocks, threads, suggestedBlocks;
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
+#define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward)                                                         \
+  GPUFailedMsg(hipOccupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class)), 0, 0));  \
+  GPUFailedMsg(hipOccupancyMaxActiveBlocksPerMultiprocessor(&maxBlocks, GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class)), threads, 0)); \
+  GPUInfo("Kernel: %40s Block size: %34d, Maximum active blocks: %3d, Suggested blocks: %3d", GPUCA_M_STR(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))), threads, maxBlocks, suggestedBlocks);
+#define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward)                                                                   \
+  GPUFailedMsg(hipOccupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi), 0, 0));  \
+  GPUFailedMsg(hipOccupancyMaxActiveBlocksPerMultiprocessor(&maxBlocks, GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi), threads, 0)); \
+  GPUInfo("Kernel: %40s Block size: %4d, Maximum active blocks: %3d, Suggested blocks: %3d", GPUCA_M_STR(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)), threads, maxBlocks, suggestedBlocks);
+#include "GPUReconstructionKernels.h"
+#undef GPUCA_KRNL
+#undef GPUCA_KRNL_LOAD_single
+#undef GPUCA_KRNL_LOAD_multi
 }

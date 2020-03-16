@@ -16,11 +16,8 @@
 #include <memory>
 
 #include "Framework/DataSamplingConditionFactory.h"
-#include "Framework/Logger.h"
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 std::unique_ptr<DataSamplingCondition> DataSamplingConditionFactory::create(std::string name)
@@ -37,5 +34,4 @@ std::unique_ptr<DataSamplingCondition> DataSamplingConditionFactory::create(std:
   throw std::runtime_error("DataSamplingCondition '" + name + "' unknown.");
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

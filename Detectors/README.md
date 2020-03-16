@@ -14,6 +14,7 @@ This module contains the following submodules:
 * \subpage refDetectorsBasetest
 * \subpage refDetectorsGlobalTracking
 * \subpage refDetectorsVertexing
+* \subpage refDetectorsCalibration
 * \subpage refDetectorsEMCAL
 * \subpage refDetectorsFIT
 * \subpage refDetectorsGeometry

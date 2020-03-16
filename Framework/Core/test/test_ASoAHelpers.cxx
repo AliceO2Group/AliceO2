@@ -27,7 +27,7 @@ DECLARE_SOA_COLUMN(Z, z, int32_t, "z");
 DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](int32_t x, int32_t y) { return x + y; });
 } // namespace test
 
-BOOST_AUTO_TEST_CASE(AddOne)
+BOOST_AUTO_TEST_CASE(IteratorTuple)
 {
   TableBuilder builderA;
   auto rowWriterA = builderA.persist<int32_t, int32_t>({"x", "y"});
@@ -35,150 +35,58 @@ BOOST_AUTO_TEST_CASE(AddOne)
   rowWriterA(0, 1, 0);
   rowWriterA(0, 2, 0);
   rowWriterA(0, 3, 0);
+  rowWriterA(0, 4, 0);
+  rowWriterA(0, 5, 0);
+  rowWriterA(0, 6, 0);
+  rowWriterA(0, 7, 0);
   auto tableA = builderA.finalize();
-  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 4);
+  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 8);
 
   using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
 
   TestA tests{tableA};
 
-  BOOST_REQUIRE_EQUAL(4, tests.size());
-
-  std::array<TestA::iterator, 2> comb2{tests.begin(), tests.begin() + 1};
-  bool isEnd = false;
-
-  // tests.begin() + 2 == max possible position for
-  // the first iterator in a combination of 2 out of 4
-  addOne(comb2, tests.begin() + 4 - 2 + 1, isEnd);
-
-  BOOST_REQUIRE_NE(static_cast<test::X>(comb2[0]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(comb2[0]).getIterator().mCurrentPos), 0);
-  BOOST_CHECK_EQUAL(comb2[0].x(), 0);
-  BOOST_REQUIRE_NE(static_cast<test::X>(comb2[1]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(comb2[1]).getIterator().mCurrentPos), 2);
-  BOOST_CHECK_EQUAL(comb2[1].x(), 2);
-  BOOST_CHECK_EQUAL(isEnd, false);
-
-  comb2[0]++;
-  comb2[0]++;
-  comb2[1]++;
-  addOne(comb2, tests.begin() + 4 - 2 + 1, isEnd);
-
-  BOOST_REQUIRE_NE(static_cast<test::X>(comb2[0]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(comb2[0]).getIterator().mCurrentPos), 3);
-  BOOST_CHECK_EQUAL(comb2[0].x(), 3);
-  BOOST_REQUIRE_NE(static_cast<test::X>(comb2[1]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(comb2[1]).getIterator().mCurrentPos), 4);
-  BOOST_CHECK_EQUAL(isEnd, true);
-
-  std::array<TestA::iterator, 3> comb3{tests.begin(), tests.begin() + 1, tests.begin() + 2};
-  isEnd = false;
-
-  // tests.begin() + 1 == max possible position for
-  // the first iterator in a combination of 3 out of 4
-  addOne(comb3, tests.begin() + 4 - 3 + 1, isEnd);
-
-  BOOST_REQUIRE_NE(static_cast<test::X>(comb3[0]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(comb3[0]).getIterator().mCurrentPos), 0);
-  BOOST_CHECK_EQUAL(comb3[0].x(), 0);
-  BOOST_REQUIRE_NE(static_cast<test::X>(comb3[1]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(comb3[1]).getIterator().mCurrentPos), 1);
-  BOOST_CHECK_EQUAL(comb3[1].x(), 1);
-  BOOST_REQUIRE_NE(static_cast<test::X>(comb3[2]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(comb3[2]).getIterator().mCurrentPos), 3);
-  BOOST_CHECK_EQUAL(comb3[2].x(), 3);
-  BOOST_CHECK_EQUAL(isEnd, false);
-
-  comb3[0]++;
-  comb3[1]++;
-  addOne(comb3, tests.begin() + 4 - 3 + 1, isEnd);
-
-  BOOST_REQUIRE_NE(static_cast<test::X>(comb3[0]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(comb3[0]).getIterator().mCurrentPos), 2);
-  BOOST_CHECK_EQUAL(comb3[0].x(), 2);
-  BOOST_REQUIRE_NE(static_cast<test::X>(comb3[1]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(comb3[1]).getIterator().mCurrentPos), 3);
-  BOOST_CHECK_EQUAL(comb3[1].x(), 3);
-  BOOST_REQUIRE_NE(static_cast<test::X>(comb3[2]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(comb3[2]).getIterator().mCurrentPos), 4);
-  BOOST_CHECK_EQUAL(isEnd, true);
-}
-
-BOOST_AUTO_TEST_CASE(AddOneMultipleChunks)
-{
-  TableBuilder builderA;
-  auto rowWriterA = builderA.persist<int32_t, int32_t>({"x", "y"});
-  rowWriterA(0, 0, 0);
-  rowWriterA(0, 1, 0);
-  rowWriterA(0, 2, 0);
-  rowWriterA(0, 3, 0);
-  auto tableA = builderA.finalize();
-  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 4);
-
-  TableBuilder builderB;
-  auto rowWriterB = builderB.persist<int32_t>({"x"});
-  rowWriterB(0, 4);
-  rowWriterB(0, 5);
-  rowWriterB(0, 6);
-  rowWriterB(0, 7);
-  auto tableB = builderB.finalize();
-  BOOST_REQUIRE_EQUAL(tableB->num_rows(), 4);
-
-  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
-  using TestB = o2::soa::Table<o2::soa::Index<>, test::X>;
-  using ConcatTest = Concat<TestA, TestB>;
-
-  ConcatTest tests{tableA, tableB};
-
   BOOST_REQUIRE_EQUAL(8, tests.size());
 
-  std::array<ConcatTest::iterator, 2> comb2{tests.begin() + 2, tests.begin() + 3};
-  bool isEnd = false;
+  TestA::iterator beginIt = tests.begin();
+  BOOST_REQUIRE_NE(static_cast<test::X>(beginIt).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(beginIt).getIterator().mCurrentPos), 0);
+  BOOST_CHECK_EQUAL(beginIt.x(), 0);
+  BOOST_CHECK_EQUAL(beginIt.mRowIndex, 0);
 
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(comb2[0]).getIterator().mCurrentChunk, 0);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(comb2[1]).getIterator().mCurrentChunk, 0);
+  auto beginIterators = std::make_tuple(beginIt, beginIt);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(beginIterators)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(beginIterators)).getIterator().mCurrentPos), 0);
+  BOOST_CHECK_EQUAL(std::get<0>(beginIterators).x(), 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(beginIterators)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(beginIterators)).getIterator().mCurrentPos), 0);
+  BOOST_CHECK_EQUAL(std::get<1>(beginIterators).x(), 0);
 
-  // tests.begin() + 6 == max possible position for
-  // the first iterator in a combination of 2 out of 8
-  addOne(comb2, tests.begin() + 8 - 2 + 1, isEnd);
+  auto maxIt0 = tests.begin() + 8 - 2 + 1;
+  auto maxIt1 = tests.begin() + 8 - 2 + 1 + 1;
+  auto maxOffset2 = std::make_tuple(maxIt0, maxIt1);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(maxOffset2)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(maxOffset2)).getIterator().mCurrentPos), 7);
+  BOOST_CHECK_EQUAL(std::get<0>(maxOffset2).x(), 7);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(maxOffset2)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(maxOffset2)).getIterator().mCurrentPos), 8);
 
-  BOOST_REQUIRE_NE(static_cast<test::X>(comb2[0]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(comb2[0]).getIterator().mCurrentPos), 2);
-  BOOST_CHECK_EQUAL(comb2[0].x(), 2);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(comb2[0]).getIterator().mCurrentChunk, 0);
+  expressions::Filter filter = test::x > 3;
+  auto filtered = Filtered<TestA>{{tests.asArrowTable()}, o2::framework::expressions::createSelection(tests.asArrowTable(), filter)};
+  std::tuple<Filtered<TestA>, Filtered<TestA>> filteredTuple = std::make_tuple(filtered, filtered);
 
-  BOOST_REQUIRE_NE(static_cast<test::X>(comb2[1]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(comb2[1]).getIterator().mCurrentPos), 4);
-  BOOST_CHECK_EQUAL(comb2[1].x(), 4);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(comb2[1]).getIterator().mCurrentChunk, 1);
-
-  BOOST_CHECK_EQUAL(isEnd, false);
-
-  std::array<ConcatTest::iterator, 3> comb3{tests.begin() + 1, tests.begin() + 2, tests.begin() + 3};
-  isEnd = false;
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(comb3[0]).getIterator().mCurrentChunk, 0);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(comb3[1]).getIterator().mCurrentChunk, 0);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(comb3[2]).getIterator().mCurrentChunk, 0);
-
-  // tests.begin() + 5 == max possible position for
-  // the first iterator in a combination of 3 out of 8
-  addOne(comb3, tests.begin() + 8 - 3 + 1, isEnd);
-
-  BOOST_REQUIRE_NE(static_cast<test::X>(comb3[0]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(comb3[0]).getIterator().mCurrentPos), 1);
-  BOOST_CHECK_EQUAL(comb3[0].x(), 1);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(comb3[0]).getIterator().mCurrentChunk, 0);
-
-  BOOST_REQUIRE_NE(static_cast<test::X>(comb3[1]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(comb3[1]).getIterator().mCurrentPos), 2);
-  BOOST_CHECK_EQUAL(comb3[1].x(), 2);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(comb3[1]).getIterator().mCurrentChunk, 0);
-
-  BOOST_REQUIRE_NE(static_cast<test::X>(comb3[2]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(comb3[2]).getIterator().mCurrentPos), 4);
-  BOOST_CHECK_EQUAL(comb3[2].x(), 4);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(comb3[2]).getIterator().mCurrentChunk, 1);
-  BOOST_CHECK_EQUAL(isEnd, false);
+  auto it1 = std::get<0>(filteredTuple).begin();
+  BOOST_REQUIRE_NE(static_cast<test::X>(it1).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(it1).getIterator().mCurrentPos), 4);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(it1).getIterator().mCurrentChunk, 0);
+  auto it2(it1);
+  BOOST_REQUIRE_NE(static_cast<test::X>(it2).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(it2).getIterator().mCurrentPos), 4);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(it2).getIterator().mCurrentChunk, 0);
+  auto it3 = std::get<1>(filteredTuple).begin();
+  BOOST_REQUIRE_NE(static_cast<test::X>(it3).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(it3).getIterator().mCurrentPos), 4);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(it3).getIterator().mCurrentChunk, 0);
 }
 
 BOOST_AUTO_TEST_CASE(CombinationsGeneratorConstruction)
@@ -209,63 +117,148 @@ BOOST_AUTO_TEST_CASE(CombinationsGeneratorConstruction)
   using TestB = o2::soa::Table<o2::soa::Index<>, test::X>;
   using ConcatTest = Concat<TestA, TestB>;
 
-  TestA tests{tableA};
+  TestA testsA{tableA};
+  TestB testsB{tableB};
   ConcatTest concatTests{tableA, tableB};
-
-  BOOST_REQUIRE_EQUAL(8, tests.size());
+  BOOST_REQUIRE_EQUAL(8, testsA.size());
   BOOST_REQUIRE_EQUAL(12, concatTests.size());
 
-  auto comb2 = CombinationsGenerator<TestA, 2>(tests, [](const auto testCombination) { return true; });
+  CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, TestA, TestA>::CombinationsIterator combIt(CombinationsStrictlyUpperIndexPolicy(testsA, testsA));
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(*(combIt))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(*(combIt))).getIterator().mCurrentPos), 0);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(*(combIt))).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(*(combIt))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(*(combIt))).getIterator().mCurrentPos), 1);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(*(combIt))).getIterator().mCurrentChunk, 0);
 
-  bool isBeginCombinationsIterator = std::is_same_v<decltype(comb2.begin()), CombinationsGenerator<TestA, 2>::CombinationsIterator>;
-  BOOST_REQUIRE(isBeginCombinationsIterator == true);
-  bool isBeginValueCombination = std::is_same_v<decltype(*(comb2.begin())), CombinationsGenerator<TestA, 2>::CombinationType&>;
-  BOOST_REQUIRE(isBeginValueCombination == true);
+  auto comb2 = combinations(CombinationsStrictlyUpperIndexPolicy(testsA, testsA));
+
+  static_assert(std::is_same_v<decltype(comb2.begin()), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, TestA, TestA>::CombinationsIterator>, "Wrong iterator type");
+  static_assert(std::is_same_v<decltype(*(comb2.begin())), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, TestA, TestA>::CombinationType&>, "Wrong combination type");
 
   auto beginCombination = *(comb2.begin());
-  BOOST_REQUIRE_NE(static_cast<test::X>(beginCombination[0]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(beginCombination[0]).getIterator().mCurrentPos), 0);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(beginCombination[0]).getIterator().mCurrentChunk, 0);
-  BOOST_REQUIRE_NE(static_cast<test::X>(beginCombination[1]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(beginCombination[1]).getIterator().mCurrentPos), 1);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(beginCombination[1]).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(beginCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(beginCombination)).getIterator().mCurrentPos), 0);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(beginCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(beginCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(beginCombination)).getIterator().mCurrentPos), 1);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(beginCombination)).getIterator().mCurrentChunk, 0);
 
   BOOST_REQUIRE(comb2.begin() != comb2.end());
 
   auto endCombination = *(comb2.end());
-  BOOST_REQUIRE_NE(static_cast<test::X>(endCombination[0]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(endCombination[0]).getIterator().mCurrentPos), 7);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(endCombination[0]).getIterator().mCurrentChunk, 0);
-  BOOST_REQUIRE_NE(static_cast<test::X>(endCombination[1]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(endCombination[1]).getIterator().mCurrentPos), 8);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(endCombination[1]).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(endCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(endCombination)).getIterator().mCurrentPos), 7);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(endCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(endCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(endCombination)).getIterator().mCurrentPos), 8);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(endCombination)).getIterator().mCurrentChunk, 0);
 
-  auto comb2Concat = CombinationsGenerator<ConcatTest, 2>(concatTests, [](const auto testCombination) { return true; });
+  expressions::Filter filter = test::x > 3;
+  auto filtered = Filtered<TestA>{{testsA.asArrowTable()}, o2::framework::expressions::createSelection(testsA.asArrowTable(), filter)};
 
-  isBeginCombinationsIterator = std::is_same_v<decltype(comb2Concat.begin()), CombinationsGenerator<ConcatTest, 2>::CombinationsIterator>;
-  BOOST_REQUIRE(isBeginCombinationsIterator == true);
-  isBeginValueCombination = std::is_same_v<decltype(*(comb2Concat.begin())), CombinationsGenerator<ConcatTest, 2>::CombinationType&>;
-  BOOST_REQUIRE(isBeginValueCombination == true);
+  CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, Filtered<TestA>, Filtered<TestA>>::CombinationsIterator combItFiltered(CombinationsStrictlyUpperIndexPolicy(filtered, filtered));
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(*(combItFiltered))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(*(combItFiltered))).getIterator().mCurrentPos), 4);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(*(combItFiltered))).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(*(combItFiltered))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(*(combItFiltered))).getIterator().mCurrentPos), 5);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(*(combItFiltered))).getIterator().mCurrentChunk, 0);
+
+  auto comb2Filter = combinations(CombinationsStrictlyUpperIndexPolicy(testsA, testsA), filter, testsA, testsA);
+
+  static_assert(std::is_same_v<decltype(comb2Filter.begin()), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, Filtered<TestA>, Filtered<TestA>>::CombinationsIterator>, "Wrong iterator type");
+  static_assert(std::is_same_v<decltype(*(comb2Filter.begin())), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, Filtered<TestA>, Filtered<TestA>>::CombinationType&>, "Wrong combination type");
+
+  auto beginFilterCombination = *(comb2Filter.begin());
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(beginFilterCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(beginFilterCombination)).getIterator().mCurrentPos), 4);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(beginFilterCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(beginFilterCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(beginFilterCombination)).getIterator().mCurrentPos), 5);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(beginFilterCombination)).getIterator().mCurrentChunk, 0);
+
+  BOOST_REQUIRE(comb2Filter.begin() != comb2Filter.end());
+
+  auto endFilterCombination = *(comb2Filter.end());
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(endFilterCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(endFilterCombination)).getIterator().mCurrentPos), 7);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(endFilterCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(endFilterCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(endFilterCombination)).getIterator().mCurrentPos), -1);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(endFilterCombination)).getIterator().mCurrentChunk, 0);
+
+  auto comb2Concat = combinations(CombinationsStrictlyUpperIndexPolicy(concatTests, concatTests));
+
+  static_assert(std::is_same_v<decltype(comb2Concat.begin()), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, ConcatTest, ConcatTest>::CombinationsIterator>, "Wrong iterator type");
+  static_assert(std::is_same_v<decltype(*(comb2Concat.begin())), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, ConcatTest, ConcatTest>::CombinationType&>, "Wrong combination type");
 
   auto beginConcatCombination = *(comb2Concat.begin());
-  BOOST_REQUIRE_NE(static_cast<test::X>(beginConcatCombination[0]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(beginConcatCombination[0]).getIterator().mCurrentPos), 0);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(beginConcatCombination[0]).getIterator().mCurrentChunk, 0);
-  BOOST_REQUIRE_NE(static_cast<test::X>(beginConcatCombination[1]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(beginConcatCombination[1]).getIterator().mCurrentPos), 1);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(beginConcatCombination[1]).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(beginConcatCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(beginConcatCombination)).getIterator().mCurrentPos), 0);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(beginConcatCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(beginConcatCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(beginConcatCombination)).getIterator().mCurrentPos), 1);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(beginConcatCombination)).getIterator().mCurrentChunk, 0);
 
   BOOST_REQUIRE(comb2Concat.begin() != comb2Concat.end());
 
   // Looks that mCurrentChunk is reset to 0 if an iterator goes too far
   // (the iterators before the end() have correct chunk numbers)
   auto endConcatCombination = *(comb2Concat.end());
-  BOOST_REQUIRE_NE(static_cast<test::X>(endConcatCombination[0]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(endConcatCombination[0]).getIterator().mCurrentPos), 11);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(endConcatCombination[0]).getIterator().mCurrentChunk, 0);
-  BOOST_REQUIRE_NE(static_cast<test::X>(endConcatCombination[1]).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(endConcatCombination[1]).getIterator().mCurrentPos), 12);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(endConcatCombination[1]).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(endConcatCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(endConcatCombination)).getIterator().mCurrentPos), 11);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(endConcatCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(endConcatCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(endConcatCombination)).getIterator().mCurrentPos), 12);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(endConcatCombination)).getIterator().mCurrentChunk, 0);
+
+  auto comb2Diff = combinations(CombinationsFullIndexPolicy(testsA, testsB));
+
+  static_assert(std::is_same_v<decltype(comb2Diff.begin()), CombinationsGenerator<CombinationsFullIndexPolicy, TestA, TestB>::CombinationsIterator>, "Wrong iterator type");
+  static_assert(std::is_same_v<decltype(*(comb2Diff.begin())), CombinationsGenerator<CombinationsFullIndexPolicy, TestA, TestB>::CombinationType&>, "Wrong combination type");
+
+  auto beginDiffCombination = *(comb2Diff.begin());
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(beginDiffCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(beginDiffCombination)).getIterator().mCurrentPos), 0);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(beginDiffCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(beginDiffCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(beginDiffCombination)).getIterator().mCurrentPos), 0);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(beginDiffCombination)).getIterator().mCurrentChunk, 0);
+
+  BOOST_REQUIRE(comb2Diff.begin() != comb2Diff.end());
+
+  auto endDiffCombination = *(comb2Diff.end());
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(endDiffCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(endDiffCombination)).getIterator().mCurrentPos), 8);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(endDiffCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(endDiffCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(endDiffCombination)).getIterator().mCurrentPos), 4);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(endDiffCombination)).getIterator().mCurrentChunk, 0);
+
+  // More elements required for a combination than number of elements in the table
+  auto comb2Bad = combinations(CombinationsStrictlyUpperIndexPolicy(testsB, testsB, testsB, testsB, testsB));
+
+  static_assert(std::is_same_v<decltype(comb2Bad.begin()), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, TestB, TestB, TestB, TestB, TestB>::CombinationsIterator>, "Wrong iterator type");
+  static_assert(std::is_same_v<decltype(*(comb2Bad.begin())), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, TestB, TestB, TestB, TestB, TestB>::CombinationType&>, "Wrong combination type");
+
+  auto beginBadCombination = *(comb2Bad.begin());
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(beginBadCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(beginBadCombination)).getIterator().mCurrentPos), 0);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(beginBadCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(beginBadCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(beginBadCombination)).getIterator().mCurrentPos), 1);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(beginBadCombination)).getIterator().mCurrentChunk, 0);
+
+  BOOST_REQUIRE(comb2Bad.begin() == comb2Bad.end());
+
+  auto endBadCombination = *(comb2Bad.end());
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(endBadCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(endBadCombination)).getIterator().mCurrentPos), 0);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(endBadCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(endBadCombination)).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(endBadCombination)).getIterator().mCurrentPos), 1);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(endBadCombination)).getIterator().mCurrentChunk, 0);
 }
 
 BOOST_AUTO_TEST_CASE(Combinations)
@@ -292,61 +285,75 @@ BOOST_AUTO_TEST_CASE(Combinations)
   auto tableB = builderB.finalize();
   BOOST_REQUIRE_EQUAL(tableB->num_rows(), 4);
 
+  TableBuilder builderC;
+  auto rowWriterC = builderC.persist<int32_t, int32_t, int32_t>({"x", "y", "z"});
+  rowWriterC(0, 12, 0, 0);
+  rowWriterC(0, 13, 0, 0);
+  rowWriterC(0, 14, 0, 0);
+  rowWriterC(0, 15, 0, 0);
+  auto tableC = builderC.finalize();
+  BOOST_REQUIRE_EQUAL(tableC->num_rows(), 4);
+
   using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
   using TestB = o2::soa::Table<o2::soa::Index<>, test::X>;
+  using TestC = o2::soa::Table<o2::soa::Index<>, test::X, test::Y, test::Z>;
   using ConcatTest = Concat<TestA, TestB>;
 
-  TestA tests{tableA};
+  TestA testsA{tableA};
+  TestB testsB{tableB};
+  TestC testsC{tableC};
   ConcatTest concatTests{tableA, tableB};
 
-  BOOST_REQUIRE_EQUAL(8, tests.size());
-  int n = tests.size();
+  BOOST_REQUIRE_EQUAL(8, testsA.size());
+  int nA = testsA.size();
+  BOOST_REQUIRE_EQUAL(4, testsB.size());
+  BOOST_REQUIRE_EQUAL(4, testsC.size());
   BOOST_REQUIRE_EQUAL(12, concatTests.size());
-
-  auto comb2 = CombinationsGenerator<TestA, 2>(tests, [](const auto testCombination) { return true; });
 
   int count = 0;
   int i = 0;
   int j = 1;
-  for (auto comb : comb2) {
-    BOOST_CHECK_EQUAL(comb[0].x(), i);
-    BOOST_CHECK_EQUAL(comb[1].x(), j);
+  for (auto& [t0, t1] : combinations(CombinationsStrictlyUpperIndexPolicy(testsA, testsA))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
     count++;
     j++;
-    if (j == n) {
+    if (j == nA) {
       i++;
       j = i + 1;
     }
   }
   BOOST_CHECK_EQUAL(count, 28);
 
-  auto comb2_cond = CombinationsGenerator<TestA, 2>(tests, [](const auto testCombination) { return testCombination[1].x() == 5; });
+  expressions::Filter pairsFilter = test::x > 3;
 
   count = 0;
-  i = 0;
+  i = 4;
   j = 5;
-  for (auto comb : comb2_cond) {
-    BOOST_CHECK_EQUAL(comb[0].x(), i);
-    BOOST_CHECK_EQUAL(comb[1].x(), j);
+  for (auto& [t0, t1] : combinations(CombinationsStrictlyUpperIndexPolicy(testsA, testsA), pairsFilter, testsA, testsA)) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
     count++;
-    i++;
+    j++;
+    if (j == nA) {
+      i++;
+      j = i + 1;
+    }
   }
-  BOOST_CHECK_EQUAL(count, 5);
-
-  auto comb3 = CombinationsGenerator<TestA, 3>(tests, [](const auto testCombination) { return true; });
+  BOOST_CHECK_EQUAL(count, 6);
 
   count = 0;
   i = 0;
   j = 1;
   int k = 2;
-  for (auto comb : comb3) {
-    BOOST_CHECK_EQUAL(comb[0].x(), i);
-    BOOST_CHECK_EQUAL(comb[1].x(), j);
-    BOOST_CHECK_EQUAL(comb[2].x(), k);
+  for (auto& [t0, t1, t2] : combinations(CombinationsStrictlyUpperIndexPolicy(testsA, testsA, testsA))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    BOOST_CHECK_EQUAL(t2.x(), k);
     count++;
     k++;
-    if (k == n) {
-      if (j == n - 2) {
+    if (k == nA) {
+      if (j == nA - 2) {
         i++;
         j = i;
       }
@@ -356,36 +363,39 @@ BOOST_AUTO_TEST_CASE(Combinations)
   }
   BOOST_CHECK_EQUAL(count, 56);
 
-  auto comb3_cond = CombinationsGenerator<TestA, 3>(tests, [](const auto testCombination) { return testCombination[1].x() == 6; });
+  expressions::Filter triplesFilter = test::x < 4;
 
-  count = 0;
-  i = 0;
-  j = 6;
-  k = 7;
-  for (auto comb : comb3_cond) {
-    BOOST_CHECK_EQUAL(comb[0].x(), i);
-    BOOST_CHECK_EQUAL(comb[1].x(), j);
-    BOOST_CHECK_EQUAL(comb[2].x(), k);
-    count++;
-    k++;
-    if (k == n) {
-      i++;
-      k = j + 1;
-    }
-  }
-  BOOST_CHECK_EQUAL(count, 6);
-
-  int nConcat = concatTests.size();
-
-  auto comb2Concat = CombinationsGenerator<ConcatTest, 2>(concatTests, [](const auto testCombination) { return true; });
   count = 0;
   i = 0;
   j = 1;
-  for (auto comb : comb2Concat) {
-    BOOST_CHECK_EQUAL(comb[0].x(), i);
-    BOOST_CHECK_EQUAL(comb[1].x(), j);
-    BOOST_REQUIRE_EQUAL(static_cast<test::X>(comb[0]).getIterator().mCurrentChunk, i < n ? 0 : 1);
-    BOOST_REQUIRE_EQUAL(static_cast<test::X>(comb[1]).getIterator().mCurrentChunk, j < n ? 0 : 1);
+  k = 2;
+  for (auto& [t0, t1, t2] : combinations(CombinationsStrictlyUpperIndexPolicy(testsA, testsA, testsA), triplesFilter, testsA, testsA, testsA)) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    BOOST_CHECK_EQUAL(t2.x(), k);
+    count++;
+    k++;
+    if (k == 4) {
+      if (j == 2) {
+        i++;
+        j = i;
+      }
+      j++;
+      k = j + 1;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 4);
+
+  int nConcat = concatTests.size();
+
+  count = 0;
+  i = 0;
+  j = 1;
+  for (auto [t0, t1] : combinations(CombinationsStrictlyUpperIndexPolicy(concatTests, concatTests))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    BOOST_REQUIRE_EQUAL(static_cast<test::X>(t0).getIterator().mCurrentChunk, i < nA ? 0 : 1);
+    BOOST_REQUIRE_EQUAL(static_cast<test::X>(t1).getIterator().mCurrentChunk, j < nA ? 0 : 1);
     count++;
     j++;
     if (j == nConcat) {
@@ -395,18 +405,17 @@ BOOST_AUTO_TEST_CASE(Combinations)
   }
   BOOST_CHECK_EQUAL(count, 66);
 
-  auto comb3Concat = CombinationsGenerator<ConcatTest, 3>(concatTests, [](const auto testCombination) { return true; });
   count = 0;
   i = 0;
   j = 1;
   k = 2;
-  for (auto comb : comb3Concat) {
-    BOOST_CHECK_EQUAL(comb[0].x(), i);
-    BOOST_CHECK_EQUAL(comb[1].x(), j);
-    BOOST_CHECK_EQUAL(comb[2].x(), k);
-    BOOST_REQUIRE_EQUAL(static_cast<test::X>(comb[0]).getIterator().mCurrentChunk, i < n ? 0 : 1);
-    BOOST_REQUIRE_EQUAL(static_cast<test::X>(comb[1]).getIterator().mCurrentChunk, j < n ? 0 : 1);
-    BOOST_REQUIRE_EQUAL(static_cast<test::X>(comb[2]).getIterator().mCurrentChunk, k < n ? 0 : 1);
+  for (auto [t0, t1, t2] : combinations(CombinationsStrictlyUpperIndexPolicy(concatTests, concatTests, concatTests))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    BOOST_CHECK_EQUAL(t2.x(), k);
+    BOOST_REQUIRE_EQUAL(static_cast<test::X>(t0).getIterator().mCurrentChunk, i < nA ? 0 : 1);
+    BOOST_REQUIRE_EQUAL(static_cast<test::X>(t1).getIterator().mCurrentChunk, j < nA ? 0 : 1);
+    BOOST_REQUIRE_EQUAL(static_cast<test::X>(t2).getIterator().mCurrentChunk, k < nA ? 0 : 1);
     count++;
     k++;
     if (k == nConcat) {
@@ -420,26 +429,24 @@ BOOST_AUTO_TEST_CASE(Combinations)
   }
   BOOST_CHECK_EQUAL(count, 220);
 
-  auto comb5 = CombinationsGenerator<TestA, 5>(tests, [](const auto testCombination) { return true; });
-
   count = 0;
   i = 0;
   j = 1;
   k = 2;
   int l = 3;
   int m = 4;
-  for (auto comb : comb5) {
-    BOOST_CHECK_EQUAL(comb[0].x(), i);
-    BOOST_CHECK_EQUAL(comb[1].x(), j);
-    BOOST_CHECK_EQUAL(comb[2].x(), k);
-    BOOST_CHECK_EQUAL(comb[3].x(), l);
-    BOOST_CHECK_EQUAL(comb[4].x(), m);
+  for (auto& [t0, t1, t2, t3, t4] : combinations(CombinationsStrictlyUpperIndexPolicy(testsA, testsA, testsA, testsA, testsA))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    BOOST_CHECK_EQUAL(t2.x(), k);
+    BOOST_CHECK_EQUAL(t3.x(), l);
+    BOOST_CHECK_EQUAL(t4.x(), m);
     count++;
     m++;
-    if (m == n) {
-      if (l == n - 2) {
-        if (k == n - 3) {
-          if (j == n - 4) {
+    if (m == nA) {
+      if (l == nA - 2) {
+        if (k == nA - 3) {
+          if (j == nA - 4) {
             i++;
             j = i;
           }
@@ -455,4 +462,88 @@ BOOST_AUTO_TEST_CASE(Combinations)
   }
 
   BOOST_CHECK_EQUAL(count, 56);
+
+  int nB = testsB.size();
+  count = 0;
+  i = 0;
+  j = 0 + nA;
+  for (auto& [t0, t1] : combinations(CombinationsFullIndexPolicy(testsA, testsB))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+    j++;
+    if (j == nA + nB) {
+      i++;
+      j = 0 + nA;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 32);
+
+  int nC = testsC.size();
+  count = 0;
+  i = 0;
+  j = 0 + nA;
+  k = 0 + nA + nB;
+  for (auto& [t0, t1, t2] : combinations(CombinationsFullIndexPolicy(testsA, testsB, testsC))) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    BOOST_CHECK_EQUAL(t2.x(), k);
+    count++;
+    k++;
+    if (k == nA + nB + nC) {
+      if (j == nA + nB - 1) {
+        i++;
+        j = 0 + nA;
+      } else {
+        j++;
+      }
+      k = 0 + nA + nB;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 128);
+
+  count = 0;
+  i = 0;
+  j = 0 + nA;
+  for (auto& [t0, t1] : combinations(testsA, testsB)) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+    j++;
+    if (j == nA + nB) {
+      i++;
+      j = 0 + nA;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 32);
+
+  count = 0;
+  i = 0;
+  j = 1;
+  for (auto& [t0, t1] : combinations(testsA, testsA)) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+    j++;
+    if (j == nA) {
+      i++;
+      j = i + 1;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 28);
+
+  count = 0;
+  i = 4;
+  j = 5;
+  for (auto& [t0, t1] : combinations(pairsFilter, testsA, testsA)) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+    j++;
+    if (j == nA) {
+      i++;
+      j = i + 1;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 6);
 }

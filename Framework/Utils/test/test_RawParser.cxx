@@ -30,6 +30,7 @@ BOOST_AUTO_TEST_CASE(test_RawParser)
     rdh->version = 5;
     rdh->headerSize = sizeof(V5);
     rdh->offsetToNext = PageSize;
+    rdh->memorySize = PageSize;
     rdh->pageCnt = NofPages;
     rdh->packetCounter = pageNo;
     rdh->stop = pageNo + 1 == NofPages;

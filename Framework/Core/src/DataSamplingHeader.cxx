@@ -15,15 +15,30 @@
 
 #include "Framework/DataSamplingHeader.h"
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
+
+DataSamplingHeader::DataSamplingHeader() : BaseHeader(sizeof(DataSamplingHeader), sHeaderType, sSerializationMethod, sVersion)
 {
+}
+
+DataSamplingHeader::DataSamplingHeader(uint64_t _sampleTimeUs, uint32_t _totalAcceptedMessages, uint32_t _totalEvaluatedMessages, DeviceIDType _deviceID)
+  : BaseHeader(sizeof(DataSamplingHeader), sHeaderType, sSerializationMethod, sVersion),
+    sampleTimeUs(_sampleTimeUs),
+    totalAcceptedMessages(_totalAcceptedMessages),
+    totalEvaluatedMessages(_totalEvaluatedMessages),
+    deviceID(_deviceID)
+{
+}
+
+const DataSamplingHeader* DataSamplingHeader::Get(const BaseHeader* baseHeader)
+{
+  return (baseHeader->description == DataSamplingHeader::sHeaderType) ? static_cast<const DataSamplingHeader*>(baseHeader) : nullptr;
+}
 
 // storage for DataSamplingHeader static members
 const uint32_t o2::framework::DataSamplingHeader::sVersion = 1;
 const o2::header::HeaderType o2::framework::DataSamplingHeader::sHeaderType = header::String2<uint64_t>("DataSamp");
 const o2::header::SerializationMethod o2::framework::DataSamplingHeader::sSerializationMethod = o2::header::gSerializationMethodNone;
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

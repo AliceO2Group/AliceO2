@@ -67,7 +67,6 @@ void VertexReader::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe}, mVerticesROFRec);
 
   mFinished = true;
-
   pc.services().get<ControlService>().endOfStream();
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }

@@ -29,13 +29,7 @@ void CRUUserLogicEncoder::add(int value, unsigned int nBits)
     if (mBitIndex == raw::sElementSizeInBits) {
       mBitIndex = 0;
       if (mBytes.size() == mHeaderIndex + sMaxPageSize) {
-        completePage(false);
-        // Copy previous header
-        std::vector<raw::RawUnit> oldHeader(mBytes.begin() + mHeaderIndex, mBytes.begin() + mHeaderIndex + raw::sHeaderSizeInElements);
-        mHeaderIndex = mBytes.size();
-        std::copy(oldHeader.begin(), oldHeader.end(), std::back_inserter(mBytes));
-        // And increase the page counter
-        ++getRDH()->pageCnt;
+        addPage();
       }
       mBytes.push_back(0);
     }
@@ -58,7 +52,8 @@ void CRUUserLogicEncoder::clear()
 void CRUUserLogicEncoder::newHeader(uint16_t feeId, const header::RAWDataHeader& baseRDH)
 {
   /// Add new RDH
-  completePage(true);
+
+  closePage();
   mHeaderIndex = mBytes.size();
   for (size_t iel = 0; iel < raw::sHeaderSizeInElements; ++iel) {
     mBytes.emplace_back(0);
@@ -66,15 +61,14 @@ void CRUUserLogicEncoder::newHeader(uint16_t feeId, const header::RAWDataHeader&
   auto rdh = getRDH();
   *rdh = baseRDH;
   rdh->feeId = feeId;
+  rdh->cruID = crateparams::getCrateIdFromROId(feeId);
+  rdh->linkID = crateparams::getGBTIdInCrate(feeId);
   mBitIndex = raw::sElementSizeInBits;
 }
 
 void CRUUserLogicEncoder::completePage(bool stop)
 {
   /// Complete the information on the page
-  if (mBytes.empty()) {
-    return;
-  }
   auto pageSizeInElements = mBytes.size() - mHeaderIndex;
   if (mHeaderOffset && pageSizeInElements < sMaxPageSize) {
     // Write zeros up to the end of the page
@@ -86,15 +80,37 @@ void CRUUserLogicEncoder::completePage(bool stop)
   rdh->memorySize = pageSizeInElements * raw::sElementSizeInBytes;
   rdh->offsetToNext = (mBytes.size() - mHeaderIndex) * raw::sElementSizeInBytes;
   rdh->stop = stop;
+  rdh->packetCounter = mPacketCounter++;
+}
+
+void CRUUserLogicEncoder::addPage()
+{
+  /// Adds a new page with the same RDH
+  // Complete the previous page
+  completePage(false);
+  // Copy previous header
+  std::vector<raw::RawUnit> oldHeader(mBytes.begin() + mHeaderIndex, mBytes.begin() + mHeaderIndex + raw::sHeaderSizeInElements);
+  mHeaderIndex = mBytes.size();
+  std::copy(oldHeader.begin(), oldHeader.end(), std::back_inserter(mBytes));
+  // And increase the page counter
+  ++getRDH()->pageCnt;
+}
+
+void CRUUserLogicEncoder::closePage()
+{
+  /// Closes the page
+
+  // The page is closed by adding a new RDH and setting the stop bit to true
+  if (!mBytes.empty() && !getRDH()->stop) {
+    addPage();
+    completePage(true);
+  }
 }
 
 const std::vector<raw::RawUnit>& CRUUserLogicEncoder::getBuffer()
 {
   /// Gets the buffer
-  if (!mBytes.empty() && !getRDH()->stop) {
-    // Close page before getting buffer
-    completePage(true);
-  }
+  closePage();
   return mBytes;
 }
 
@@ -102,14 +118,14 @@ void CRUUserLogicEncoder::process(gsl::span<const LocalBoardRO> sortedData, cons
 {
   /// Encode data
 
-  // FIXME: Finalize the final format of the event word together with the CRU + RO team
-  uint16_t eventWord = 0;
+  // FIXME: Finalize the final format of the trigger word together with the CRU + RO team
+  uint16_t triggerWord = 0;
   if (eventType == EventType::Noise) {
-    eventWord = 0x8;
+    triggerWord = 0x8;
   } else if (eventType == EventType::Dead) {
-    eventWord = 0xc;
+    triggerWord = 0xc;
   }
-  add(eventWord, sNBitsEventWord);
+  add(triggerWord, sNBitsTriggerWord);
   add(bc, sNBitsLocalClock);
   add(crateparams::getCrateIdFromROId(getRDH()->feeId), sNBitsCrateId);
   add(sortedData.size(), sNBitsNFiredBoards);

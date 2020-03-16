@@ -30,6 +30,8 @@ namespace eventgen
 
 struct GeneratorPythia8Param : public o2::conf::ConfigurableParamHelper<GeneratorPythia8Param> {
   std::string config = "";
+  std::string hooksFileName = "";
+  std::string hooksFuncName = "";
   O2ParamDef(GeneratorPythia8Param, "Pythia8");
 };
 

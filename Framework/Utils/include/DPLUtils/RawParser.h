@@ -117,8 +117,7 @@ class ConcreteRawParser
       return 0;
     }
     header_type const& h = header();
-    // FIXME: block length disappeared in V5, check what can be used
-    return max_size - h.headerSize;
+    return h.memorySize - h.headerSize;
   }
 
   /// Get pointer to payload data at current position
@@ -481,12 +480,12 @@ class RawParser
   // only define the const_iterator because the parser will allow read-only access
   using const_iterator = Iterator<RawDataHeaderInfo const, raw_parser::ConcreteParserVariants<MAX_SIZE>>;
 
-  const_iterator begin()
+  const_iterator begin() const
   {
     return const_iterator(mParser);
   }
 
-  const_iterator end()
+  const_iterator end() const
   {
     return const_iterator(mParser, -1);
   }

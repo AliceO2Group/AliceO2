@@ -57,22 +57,36 @@ class TilingLayout
     const size_t widthInTiles = (TPC_NUM_OF_PADS + Width - 1) / Width;
 
     const size_t tilePad = p.gpad / Width;
-    const size_t tileTime = p.time / Height;
+    const size_t tileTime = p.timePadded / Height;
 
     const size_t inTilePad = p.gpad % Width;
-    const size_t inTileTime = p.time % Height;
+    const size_t inTileTime = p.timePadded % Height;
 
     return (tileTime * widthInTiles + tilePad) * (Width * Height) + inTileTime * Width + inTilePad;
   }
+
+#if !defined(__OPENCL__)
+  GPUh() static size_t items()
+  {
+    return (TPC_NUM_OF_PADS + Width - 1) / Width * Width * (TPC_MAX_TIME_PADDED + Height - 1) / Height * Height;
+  }
+#endif
 };
 
-template <typename T>
 class LinearLayout
 {
+ public:
   GPUdi() static size_t idx(const ChargePos& p)
   {
-    return TPC_NUM_OF_PADS * p.time + p.gpad;
+    return TPC_NUM_OF_PADS * p.timePadded + p.gpad;
   }
+
+#if !defined(__OPENCL__)
+  GPUh() static size_t items()
+  {
+    return TPC_NUM_OF_PADS * TPC_MAX_TIME_PADDED;
+  }
+#endif
 };
 
 template <size_t S>
@@ -104,11 +118,14 @@ struct GridSize<4> {
 
 #if defined(CHARGEMAP_TILING_LAYOUT)
 template <typename T>
-using Array2D = AbstractArray2D<T, TilingLayout<GridSize<sizeof(T)>>>;
+using TPCMapMemoryLayout = TilingLayout<GridSize<sizeof(T)>>;
 #else
 template <typename T>
-using Array2D = AbstractArray2D<T, LinearLayout>;
+using TPCMapMemoryLayout = LinearLayout;
 #endif
+
+template <typename T>
+using Array2D = AbstractArray2D<T, TPCMapMemoryLayout<T>>;
 
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

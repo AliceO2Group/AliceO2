@@ -16,15 +16,18 @@
 #include "Framework/Dispatcher.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/DataSamplingPolicy.h"
+#include "Framework/DataSamplingHeader.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/Logger.h"
 
+#include <Monitoring/Monitoring.h>
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
 #include <fairmq/FairMQDevice.h>
 
 using namespace o2::configuration;
+using namespace o2::monitoring;
 
 namespace o2
 {
@@ -34,6 +37,9 @@ namespace framework
 Dispatcher::Dispatcher(std::string name, const std::string reconfigurationSource)
   : mName(name), mReconfigurationSource(reconfigurationSource)
 {
+  header::DataDescription timerDescription;
+  timerDescription.runtimeInit(("TIMER-" + name).substr(0, 16).c_str());
+  inputs.emplace_back(InputSpec{"timer-stats", "DS", timerDescription, 0, Lifetime::Timer});
 }
 
 Dispatcher::~Dispatcher() = default;
@@ -72,7 +78,6 @@ void Dispatcher::run(ProcessingContext& ctx)
         // todo: consider matching (and deciding) in completion policy to save some time
 
         if (policy->match(inputMatcher) && policy->decide(input)) {
-
           // We copy every header which is not DataHeader or DataProcessingHeader,
           // so that custom data-dependent headers are passed forward,
           // and we add a DataSamplingHeader.
@@ -81,7 +86,8 @@ void Dispatcher::run(ProcessingContext& ctx)
             std::move(prepareDataSamplingHeader(*policy.get(), ctx.services().get<const DeviceSpec>()))};
 
           if (!policy->getFairMQOutputChannel().empty()) {
-            sendFairMQ(ctx.services().get<RawDeviceService>().device(), input, policy->getFairMQOutputChannelName(), std::move(headerStack));
+            sendFairMQ(ctx.services().get<RawDeviceService>().device(), input, policy->getFairMQOutputChannelName(),
+                       std::move(headerStack));
           } else {
             Output output = policy->prepareOutput(inputMatcher, input.spec->lifetime);
             output.metaHeader = std::move(header::Stack{std::move(output.metaHeader), std::move(headerStack)});
@@ -91,6 +97,24 @@ void Dispatcher::run(ProcessingContext& ctx)
       }
     }
   }
+
+  if (ctx.inputs().isValid("timer-stats")) {
+    reportStats(ctx.services().get<Monitoring>());
+  }
+}
+
+void Dispatcher::reportStats(Monitoring& monitoring) const
+{
+  uint64_t dispatcherTotalEvaluatedMessages = 0;
+  uint64_t dispatcherTotalAcceptedMessages = 0;
+
+  for (const auto& policy : mPolicies) {
+    dispatcherTotalEvaluatedMessages += policy->getTotalEvaluatedMessages();
+    dispatcherTotalAcceptedMessages += policy->getTotalAcceptedMessages();
+  }
+
+  monitoring.send({dispatcherTotalEvaluatedMessages, "Dispatcher_messages_evaluated"});
+  monitoring.send({dispatcherTotalAcceptedMessages, "Dispatcher_messages_passed"});
 }
 
 DataSamplingHeader Dispatcher::prepareDataSamplingHeader(const DataSamplingPolicy& policy, const DeviceSpec& spec)

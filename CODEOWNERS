@@ -14,7 +14,7 @@
 
 /Analysis   @jgrosseo
 
-/CCDB  @costing @Barthelemy @AliceO2Group/framework-admins
+/CCDB  @costing @Barthelemy @sawenzel @AliceO2Group/framework-admins
 
 /Common              @AliceO2Group/framework-admins
 /Common/Constants    @shahor02
@@ -41,7 +41,7 @@
 /Detectors/Base                    @AliceO2Group/framework-admins
 /Detectors/Geometry                @AliceO2Group/framework-admins
 /Detectors/CPV                     @peressounko @kharlov
-/Detectors/EMCAL                   @mfasDa @AliceO2Group/core
+/Detectors/EMCAL                   @mfasDa
 /Detectors/FIT                     @AllaMaevskaya @jotwinow @mslupeck
 /Detectors/GlobalTracking          @shahor02
 /Detectors/GlobalTrackingWorkflow  @shahor02
@@ -52,7 +52,7 @@
 /Detectors/Passive                 @sawenzel
 /Detectors/TOF                     @noferini 
 /Detectors/TPC                     @davidrohr @wiechula @shahor02
-/Detectors/TRD                     @jolopezl @bazinski 
+/Detectors/TRD                     @jolopezl @bazinski @tdietel
 /Detectors/ZDC                     @coppedis
 
 /EventVisualisation  @jmyrcha @AliceO2Group/framework-admins

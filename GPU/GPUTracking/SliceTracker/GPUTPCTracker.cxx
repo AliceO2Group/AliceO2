@@ -161,8 +161,6 @@ void GPUTPCTracker::SetupCommonMemory() { new (mCommonMem) commonMemoryStruct; }
 
 int GPUTPCTracker::ReadEvent()
 {
-  SetupCommonMemory();
-
   //* Convert input hits, create grids, etc.
   if (mData.InitFromClusterData(mConstantMem, mISlice)) {
     GPUError("Error initializing from cluster data");
@@ -471,6 +469,18 @@ GPUh() void GPUTPCTracker::PerformGlobalTracking(GPUTPCTracker& GPUrestrict() sl
   delete[] mTrackletRowHits;
   mTrackletRowHits = lnk;
 #endif
+}
+
+GPUh() int GPUTPCTracker::GlobalTrackingSliceOrder(int iSlice)
+{
+  iSlice++;
+  if (iSlice == GPUDataTypes::NSLICES / 2) {
+    iSlice = 0;
+  }
+  if (iSlice == GPUDataTypes::NSLICES) {
+    iSlice = GPUDataTypes::NSLICES / 2;
+  }
+  return iSlice;
 }
 
 #endif

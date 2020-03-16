@@ -62,7 +62,7 @@ class GPUTPCTracker : public GPUProcessor
   };
 
   struct commonMemoryStruct {
-    commonMemoryStruct() : nTracklets(0), nTracks(0), nLocalTracks(0), nTrackHits(0), nLocalTrackHits(0), gpuParameters() {}
+    commonMemoryStruct() : nTracklets(0), nTracks(0), nLocalTracks(0), nTrackHits(0), nLocalTrackHits(0), kernelError(0), gpuParameters() {}
     GPUAtomic(unsigned int) nTracklets; // number of tracklets
     GPUAtomic(unsigned int) nTracks;    // number of reconstructed tracks
     int nLocalTracks;                   // number of reconstructed tracks before global tracking
@@ -245,6 +245,7 @@ class GPUTPCTracker : public GPUProcessor
 
   void PerformGlobalTracking(GPUTPCTracker& sliceLeft, GPUTPCTracker& sliceRight);
   void PerformGlobalTracking(GPUTPCTracker& sliceTarget, bool right);
+  static int GlobalTrackingSliceOrder(int iSlice);
 
   void* LinkTmpMemory() { return mLinkTmpMemory; }
 
@@ -257,7 +258,8 @@ class GPUTPCTracker : public GPUProcessor
 
  private:
   friend class GPUTPCNeighboursFinder;
-
+  friend class GPUTPCStartHitsSorter;
+  friend class GPUTPCStartHitsFinder;
   char* mLinkTmpMemory; // tmp memory for hits after neighbours finder
 
   int mISlice; // Number of slice

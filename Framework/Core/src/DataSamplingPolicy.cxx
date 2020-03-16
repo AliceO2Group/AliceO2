@@ -19,9 +19,9 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataDescriptorQueryBuilder.h"
 
-namespace o2
-{
-namespace framework
+#include <boost/property_tree/ptree.hpp>
+
+namespace o2::framework
 {
 
 using boost::property_tree::ptree;
@@ -39,7 +39,8 @@ void DataSamplingPolicy::configure(const ptree& config)
 {
   mName = config.get<std::string>("id");
   if (mName.size() > 14) {
-    LOG(WARNING) << "DataSamplingPolicy name '" << mName << "' is longer than 14 characters, trimming.";
+    LOG(WARNING) << "DataSamplingPolicy name '" << mName << "' is longer than 14 characters, we have to trim it. "
+                 << "Use a shorter policy name to avoid potential output name conflicts.";
     mName.resize(14);
   }
 
@@ -48,29 +49,7 @@ void DataSamplingPolicy::configure(const ptree& config)
 
   mPaths.clear();
   size_t outputId = 0;
-  std::vector<InputSpec> inputSpecs;
-
-  if (config.get_optional<std::string>("query").has_value()) {
-    inputSpecs = DataDescriptorQueryBuilder::parse(config.get<std::string>("query").c_str());
-  } else {
-    // for a while, we leave an old way of specyfing the inputs, so we can gracefully update QC
-    LOG(WARN) << "Specifying policy inputs by dataHeaders structures is deprecated and "
-                 "soon it will not be possible anymore. Please use the queries mechanism.";
-    for (const auto& dataHeaderConfig : config.get_child("dataHeaders")) {
-
-      header::DataOrigin origin;
-      header::DataDescription description;
-      origin.runtimeInit(dataHeaderConfig.second.get<std::string>("dataOrigin").c_str());
-      description.runtimeInit(dataHeaderConfig.second.get<std::string>("dataDescription").c_str());
-
-      std::string binding = dataHeaderConfig.second.get<std::string>("binding");
-      if (subSpec == -1) {
-        inputSpecs.push_back({binding, {origin, description}});
-      } else {
-        inputSpecs.push_back({binding, origin, description, static_cast<o2::header::DataHeader::SubSpecificationType>(subSpec)});
-      }
-    }
-  }
+  std::vector<InputSpec> inputSpecs = DataDescriptorQueryBuilder::parse(config.get<std::string>("query").c_str());
 
   for (const auto& inputSpec : inputSpecs) {
 
@@ -94,7 +73,7 @@ void DataSamplingPolicy::configure(const ptree& config)
     }
 
     if (outputId > 9) {
-      LOG(ERROR) << "Maximum 10 inputs in DataSamplingPolicy are supported";
+      LOG(ERROR) << "Maximum 10 inputs in DataSamplingPolicy are supported. Call the developers if you really need more.";
       break;
     }
   }
@@ -177,7 +156,8 @@ header::DataOrigin DataSamplingPolicy::createPolicyDataOrigin()
 header::DataDescription DataSamplingPolicy::createPolicyDataDescription(std::string policyName, size_t id)
 {
   if (policyName.size() > 14) {
-    LOG(WARNING) << "DataSamplingPolicy name '" << policyName << "' is longer than 14 characters, trimming in dataDescription.";
+    LOG(WARNING) << "DataSamplingPolicy name '" << policyName << "' is longer than 14 characters, we have to trim it. "
+                 << "Use a shorter policy name to avoid potential output name conflicts.";
     policyName.resize(14);
   }
 
@@ -186,5 +166,4 @@ header::DataDescription DataSamplingPolicy::createPolicyDataDescription(std::str
   return outputDescription;
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

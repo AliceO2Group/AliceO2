@@ -17,7 +17,6 @@
 #include "HepMC/GenParticle.h"
 #include "HepMC/GenVertex.h"
 #include "HepMC/FourVector.h"
-#include "TClonesArray.h"
 #include "TParticle.h"
 
 /** 
@@ -44,6 +43,10 @@ GeneratorHepMC::GeneratorHepMC()
   : Generator("ALICEo2", "ALICEo2 HepMC Generator"), mStream(), mFileName(), mVersion(3), mReader(nullptr), mEvent(nullptr)
 {
   /** default constructor **/
+
+  mEvent = new HepMC::GenEvent();
+  mInterface = reinterpret_cast<void*>(mEvent);
+  mInterfaceName = "hepmc";
 }
 
 /*****************************************************************/
@@ -52,6 +55,10 @@ GeneratorHepMC::GeneratorHepMC(const Char_t* name, const Char_t* title)
   : Generator(name, title), mStream(), mFileName(), mVersion(3), mReader(nullptr), mEvent(nullptr)
 {
   /** constructor **/
+
+  mEvent = new HepMC::GenEvent();
+  mInterface = reinterpret_cast<void*>(mEvent);
+  mInterfaceName = "hepmc";
 }
 
 /*****************************************************************/
@@ -94,8 +101,7 @@ Bool_t GeneratorHepMC::importParticles()
 {
   /** import particles **/
 
-  TClonesArray& clonesParticles = *mParticles;
-  clonesParticles.Clear();
+  mParticles.clear();
 
   /** loop over particles **/
   auto particles = mEvent->particles();
@@ -130,7 +136,8 @@ Bool_t GeneratorHepMC::importParticles()
     auto d1 = children.empty() ? -1 : children.front()->id() - 1;
     auto d2 = children.empty() ? -1 : children.back()->id() - 1;
 
-    new (clonesParticles[i]) TParticle(pdg, st, m1, m2, d1, d2, px, py, pz, et, vx, vy, vz, vt);
+    /** add to particle vector **/
+    mParticles.push_back(TParticle(pdg, st, m1, m2, d1, d2, px, py, pz, et, vx, vy, vz, vt));
 
   } /** end of loop over particles **/
 
@@ -167,9 +174,6 @@ Bool_t GeneratorHepMC::Init()
       LOG(FATAL) << "Unsupported HepMC version: " << mVersion << std::endl;
       return kFALSE;
   }
-
-  /** create event **/
-  mEvent = new HepMC::GenEvent();
 
   /** success **/
   return !mReader->failed();

@@ -113,14 +113,14 @@ struct GTask {
 
 // FIXME: for the moment we do not derive from AnalysisTask as
 // we need GCC 7.4+ to fix a bug.
-//struct HTask {
-//  void process(o2::soa::Join<o2::aod::Foos, o2::aod::Bars, o2::aod::XYZ>::iterator const& foobar)
-//  {
-//    foobar.x();
-//    foobar.foo();
-//    foobar.bar();
-//  }
-//};
+struct HTask {
+  void process(o2::soa::Join<o2::aod::Foos, o2::aod::Bars, o2::aod::XYZ>::iterator const& foobar)
+  {
+    foobar.x();
+    foobar.foo();
+    foobar.bar();
+  }
+};
 
 struct ITask {
   expressions::Filter flt = aod::test::bar > 0.;
@@ -167,8 +167,8 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
   auto task7 = adaptAnalysisTask<GTask>("test7");
   BOOST_CHECK_EQUAL(task7.inputs.size(), 3);
 
-  //  auto task8 = adaptAnalysisTask<HTask>("test8");
-  //  BOOST_CHECK_EQUAL(task8.inputs.size(), 3);
+  auto task8 = adaptAnalysisTask<HTask>("test8");
+  BOOST_CHECK_EQUAL(task8.inputs.size(), 3);
 
   auto task9 = adaptAnalysisTask<ITask>("test9");
   BOOST_CHECK_EQUAL(task9.inputs.size(), 4);

@@ -162,7 +162,7 @@ BOOST_AUTO_TEST_CASE(DataSamplingTimePipelineFlow)
                            });
 
   BOOST_REQUIRE(disp != workflow.end());
-  BOOST_CHECK_EQUAL(disp->inputs.size(), 3);
+  BOOST_CHECK_EQUAL(disp->inputs.size(), 4);
   BOOST_CHECK_EQUAL(disp->outputs.size(), 3);
   BOOST_CHECK(disp->algorithm.onInit != nullptr);
   BOOST_CHECK_EQUAL(disp->maxInputTimeslices, 3);

@@ -16,6 +16,9 @@
 #define GPUCA_GPUTYPE_OPENCL
 
 #ifdef __OPENCLCPP__
+  #ifdef GPUCA_OPENCLCPP_NO_CONSTANT_MEMORY
+    #define GPUCA_NO_CONSTANT_MEMORY
+  #endif
   #pragma OPENCL EXTENSION cl_khr_fp64 : enable
   #ifdef __clang__
     #pragma OPENCL EXTENSION cl_clang_storage_class_specifiers : enable
@@ -46,6 +49,9 @@
     #define M_PI 3.1415926535f
   #endif
 #else
+  #ifdef GPUCA_OPENCL_NO_CONSTANT_MEMORY
+    #define GPUCA_NO_CONSTANT_MEMORY
+  #endif
   #define nullptr NULL
   #define NULL (0x0)
 #endif

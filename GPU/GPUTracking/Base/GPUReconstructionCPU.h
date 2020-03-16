@@ -176,13 +176,16 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   GPUProcessorProcessors mProcShadow; // Host copy of tracker objects that will be used on the GPU
   GPUConstantMem*& mProcessorsShadow = mProcShadow.mProcessorsProc;
 
-  unsigned int mBlockCount = 0;            // Default GPU block count
-  unsigned int mThreadCount = 0;           // Default GPU thread count
-  unsigned int mConstructorBlockCount = 0; // GPU blocks used in Tracklet Constructor
-  unsigned int mSelectorBlockCount = 0;    // GPU blocks used in Tracklet Selector
-  unsigned int mConstructorThreadCount = 0;
+  unsigned int mBlockCount = 0;             // Default GPU block count
+  unsigned int mThreadCount = 0;            // Default GPU thread count
+  unsigned int mConstructorBlockCount = 0;  // GPU blocks used in Tracklet Constructor
+  unsigned int mSelectorBlockCount = 0;     // GPU blocks used in Tracklet Selector
+  unsigned int mHitsSorterBlockCount = 0;   // GPU blocks used in StartHitsSorter
+  unsigned int mConstructorThreadCount = 0; // ...
   unsigned int mSelectorThreadCount = 0;
   unsigned int mFinderThreadCount = 0;
+  unsigned int mHitsSorterThreadCount = 0;
+  unsigned int mHitsFinderThreadCount = 0;
   unsigned int mTRDThreadCount = 0;
   unsigned int mClustererThreadCount = 0;
   unsigned int mScanThreadCount = 0;
@@ -252,6 +255,9 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
   int cpuFallback = IsGPU() ? (x.device == krnlDeviceType::CPU ? 2 : (mRecoStepsGPU & myStep) != myStep) : 0;
   if (mDeviceProcessingSettings.debugLevel >= 3) {
     GPUInfo("Running %s (Stream %d, Range %d/%d, Grid %d/%d) on %s", GetKernelName<S, I>(), x.stream, y.start, y.num, x.nBlocks, x.nThreads, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
+  }
+  if (x.nThreads == 0 || x.nBlocks == 0) {
+    return 0;
   }
   if (mDeviceProcessingSettings.debugLevel >= 0) {
     t = &getKernelTimer<S, I, J>(myStep, !IsGPU() || cpuFallback ? getOMPThreadNum() : x.stream);

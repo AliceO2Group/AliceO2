@@ -40,6 +40,8 @@ o2_target_root_dictionary(MCHSimulation
 
 INSTALL(DIRECTORY data DESTINATION share/Detectors/MCH/simulation)
 				
+#o2_data_file(COPY data DESTINATION Detectors/MCH/simulation)
+
 if(BUILD_TESTING)
   add_subdirectory(test)
   o2_add_test_root_macro(macros/drawMCHGeometry.C

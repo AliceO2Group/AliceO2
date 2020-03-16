@@ -23,21 +23,31 @@ namespace gpu
 
 struct ChargePos {
   GlobalPad gpad;
-  Timestamp time;
+  Timestamp timePadded;
 
   GPUdDefault() ChargePos() CON_DEFAULT;
 
-  GPUdi() explicit ChargePos(const deprecated::Digit& d)
+  GPUdi() ChargePos(Row row, Pad pad, Timestamp t)
   {
-    gpad = tpcGlobalPadIdx(d.row, d.pad);
-    time = d.time + PADDING_TIME;
+    gpad = tpcGlobalPadIdx(row, pad);
+    timePadded = t + PADDING_TIME;
   }
 
-  GPUdi() ChargePos(const GlobalPad& p, const Timestamp& t) : gpad(p), time(t) {}
+  GPUdi() ChargePos(const GlobalPad& p, const Timestamp& t) : gpad(p), timePadded(t) {}
 
   GPUdi() ChargePos delta(const Delta2& d) const
   {
-    return {GlobalPad(gpad + d.x), Timestamp(time + d.y)};
+    return {GlobalPad(gpad + d.x), Timestamp(timePadded + d.y)};
+  }
+
+  GPUdi() Row row() const { return gpad / TPC_PADS_PER_ROW_PADDED; }
+  GPUdi() Pad pad() const { return gpad % TPC_PADS_PER_ROW_PADDED - PADDING_PAD; }
+  GPUdi() Timestamp time() const { return timePadded - PADDING_TIME; }
+
+  GPUdi() bool isPadding() const
+  {
+    Pad pad = gpad % TPC_PADS_PER_ROW_PADDED;
+    return timePadded < PADDING_TIME || timePadded >= TPC_MAX_TIME || pad < PADDING_PAD;
   }
 
  private:
