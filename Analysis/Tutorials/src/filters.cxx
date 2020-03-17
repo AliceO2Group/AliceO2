@@ -42,7 +42,8 @@ struct ATask {
 };
 
 struct BTask {
-  Filter flt = (aod::etaphi::eta2 < 1.0f) && (aod::etaphi::eta2 > -1.0f) && (aod::etaphi::phi2 < 2.0f) && (aod::etaphi::phi2 > 1.0f);
+  Filter etafilter = (aod::etaphi::eta2 < 1.0f) && (aod::etaphi::eta2 > -1.0f);
+  Filter phifilter = (aod::etaphi::phi2 < 2.0f) && (aod::etaphi::phi2 > 1.0f);
 
   void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::EtaPhi>> const& tracks)
   {
