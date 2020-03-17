@@ -1,4 +1,4 @@
-* MID
+* Non-default simulation cuts for MUON/MID (taken from AliRoot)
 * ===
 *    Med GAM   ELEC  NHAD  CHAD  MUON  EBREM MUHAB EDEL  MUDEL MUPA  ANNI  BREM  COMP  DCAY  DRAY  HADR  LOSS  MULS  PAIR  PHOT  RAYL 
 * Gaz mixture of the active medium of the trigger chambers
