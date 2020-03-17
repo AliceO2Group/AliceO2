@@ -144,7 +144,7 @@ std::ostream& operator<<(std::ostream& os, const ClusterTopology& topology)
   return os;
 }
 
-void ClusterTopology::getCOGshift(int nRows, int nCols, const unsigned char patt[Cluster::kMaxPatternBytes], int& rowShift, int& colShift)
+void ClusterTopology::getCOG(int nRows, int nCols, const unsigned char patt[Cluster::kMaxPatternBytes], int& rowShift, int& colShift, float& xCOG, float& zCOG)
 {
   int tempxCOG = 0, tempzCOG = 0, tempFiredPixels = 0, s = 0, ic = 0, ir = 0;
   int nBits = nRows * nCols;
@@ -175,8 +175,17 @@ void ClusterTopology::getCOGshift(int nRows, int nCols, const unsigned char patt
       break;
     }
   }
-  rowShift = TMath::Nint(float(tempxCOG) / tempFiredPixels);
-  colShift = TMath::Nint(float(tempzCOG) / tempFiredPixels);
+  xCOG = float(tempxCOG) / tempFiredPixels;
+  zCOG = float(tempzCOG) / tempFiredPixels;
+
+  rowShift = TMath::Nint(xCOG);
+  colShift = TMath::Nint(zCOG);
+}
+
+void ClusterTopology::getCOGshift(int nRows, int nCols, const unsigned char patt[Cluster::kMaxPatternBytes], int& rowShift, int& colShift)
+{
+  float tempxCOG = 0., tempzCOG = 0.;
+  getCOG(nRows, nCols, patt, rowShift, colShift, tempxCOG, tempzCOG);
 }
 
 } // namespace itsmft

@@ -61,6 +61,7 @@ class ClusterTopology
   static unsigned long getCompleteHash(const ClusterTopology& topology);
   // compute position of COG pixel wrt top-left corner
   static void getCOGshift(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes], int& rowShift, int& colShift);
+  static void getCOG(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes], int& rowShift, int& colShift, float& xCOG, float& zCOG);
   /// Sets the pattern
   void setPattern(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
 

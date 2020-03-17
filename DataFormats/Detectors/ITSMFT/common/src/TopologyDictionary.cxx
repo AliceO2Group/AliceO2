@@ -14,6 +14,7 @@
 /// \author Luca Barioglio, University and INFN of Torino
 
 #include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsITSMFT/ClusterTopology.h"
 #include <iostream>
 #include "ITSMFTBase/SegmentationAlpide.h"
 
@@ -181,6 +182,18 @@ Point3D<float> TopologyDictionary::getClusterCoordinates(const CompCluster& cl) 
   o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
   locCl.SetX(locCl.X() + this->GetXcog(cl.getPatternID()));
   locCl.SetZ(locCl.Z() + this->GetZcog(cl.getPatternID()));
+  return locCl;
+}
+
+Point3D<float>
+  TopologyDictionary::getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt) const
+{
+  int rowShift = 0, colShift = 0;
+  float xCOG = 0, zCOG = 0;
+  auto tmp = patt.getPattern();
+  ClusterTopology::getCOG(patt.getRowSpan(), patt.getColumnSpan(), &tmp[2], rowShift, colShift, xCOG, zCOG);
+  Point3D<float> locCl;
+  o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(cl.getRow() - rowShift + xCOG, cl.getCol() - colShift + zCOG, locCl);
   return locCl;
 }
 
