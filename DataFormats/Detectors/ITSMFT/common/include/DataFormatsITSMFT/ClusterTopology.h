@@ -40,6 +40,7 @@ class ClusterTopology
   unsigned char getByte(int n) const { return mPattern.getByte(n); }
   /// Returns the pattern
   std::array<unsigned char, ClusterPattern::kExtendedPatternBytes> getPattern() const { return mPattern.getPattern(); }
+  ClusterPattern getClusterPattern() const { return mPattern; }
   /// Returns the number of rows
   int getRowSpan() const { return mPattern.getRowSpan(); }
   /// Returns the number of columns
@@ -48,6 +49,7 @@ class ClusterTopology
   int getUsedBytes() const { return mPattern.getUsedBytes(); }
   /// Returns the hashcode
   unsigned long getHash() const { return mHash; }
+  void setHash(unsigned long hash) { mHash = hash; }
   /// Prints the topology
   friend std::ostream& operator<<(std::ostream& os, const ClusterTopology& top);
   /// Prints to the stdout
@@ -61,6 +63,15 @@ class ClusterTopology
   static void getCOGshift(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes], int& rowShift, int& colShift);
   /// Sets the pattern
   void setPattern(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
+
+  ///Helper function useful for analyses with topologies stored on a separate branch
+  static void makeRareTopologyMap(const std::vector<ClusterTopology>& vec, std::map<int, ClusterPattern>& map)
+  {
+    for (const auto& topo : vec) {
+      auto key = topo.getHash();
+      map[key] = topo.getClusterPattern();
+    }
+  }
 
  private:
   ClusterPattern mPattern; ///< Pattern of pixels
