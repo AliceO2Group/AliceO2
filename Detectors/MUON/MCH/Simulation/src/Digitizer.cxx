@@ -122,10 +122,10 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
   auto chargenon = charge / fracplane;
 
   //borders of charge gen.
-  auto xMin = anodpos - resp.getQspreadX() * 0.5;
-  auto xMax = anodpos + resp.getQspreadX() * 0.5;
-  auto yMin = lpos.Y() - resp.getQspreadY() * 0.5;
-  auto yMax = lpos.Y() + resp.getQspreadY() * 0.5;
+  auto xMin = anodpos - resp.getQspreadX() * resp.getSigmaIntegration() * 0.5;
+  auto xMax = anodpos + resp.getQspreadX() * resp.getSigmaIntegration() * 0.5;
+  auto yMin = lpos.Y() - resp.getQspreadY() * resp.getSigmaIntegration() * 0.5;
+  auto yMax = lpos.Y() + resp.getQspreadY() * resp.getSigmaIntegration() * 0.5;
 
   //get segmentation for detector element
   auto& seg = segmentation(detID);
@@ -152,14 +152,18 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
     auto ymin = (localY - seg.padPositionY(padid)) - dy;
     auto ymax = ymin + dy;
     auto q = resp.chargePadfraction(xmin, xmax, ymin, ymax);
-    if (seg.isBendingPad(padid)) {
-      q *= chargebend;
-    } else {
-      q *= chargenon;
+    if (resp.aboveThreshold(q)) {
+      if (seg.isBendingPad(padid)) {
+        q *= chargebend;
+      } else {
+        q *= chargenon;
+      }
+      auto signal = (unsigned long)q;
+      if (signal > 0) {
+        digits.emplace_back(time, detID, padid, signal);
+        ++ndigits;
+      }
     }
-    auto signal = (unsigned long)q;
-    digits.emplace_back(time, detID, padid, signal);
-    ++ndigits;
   });
   return ndigits;
 }
@@ -209,7 +213,7 @@ void Digitizer::mergeDigits()
         }
       }
     }
-    adc = response.response(adc);
+    adc = resp.response(adc);
     mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc);
     i = j;
     ++count;
