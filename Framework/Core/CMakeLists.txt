@@ -154,6 +154,7 @@ foreach(t
         HistogramRegistry
         InfoLogger
         InputRecord
+        InputSpan
         Kernels
         LogParsingHelpers
         PtrHelpers

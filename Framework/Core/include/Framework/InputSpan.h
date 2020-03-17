@@ -10,6 +10,9 @@
 #ifndef FRAMEWORK_INPUTSPAN_H
 #define FRAMEWORK_INPUTSPAN_H
 
+#include "Framework/DataRef.h"
+#include <functional>
+
 namespace o2
 {
 namespace framework
@@ -87,6 +90,158 @@ class InputSpan
   const char* payload(size_t i) const
   {
     return get(i).payload;
+  }
+
+  template <typename T>
+  using IteratorBase = std::iterator<std::forward_iterator_tag, T>;
+
+  /// an iterator class working on position within the a parent class
+  template <typename ParentT, typename T>
+  class Iterator : public IteratorBase<T>
+  {
+   public:
+    using ParentType = ParentT;
+    using SelfType = Iterator;
+    using value_type = typename IteratorBase<T>::value_type;
+    using reference = typename IteratorBase<T>::reference;
+    using pointer = typename IteratorBase<T>::pointer;
+    using ElementType = typename std::remove_const<value_type>::type;
+
+    Iterator() = delete;
+
+    Iterator(ParentType const* parent, size_t position = 0, size_t size = 0)
+      : mParent(parent), mPosition(position), mSize(size > position ? size : position), mElement{}
+    {
+      if (mPosition < mSize) {
+        mElement = mParent->get(mPosition);
+      }
+    }
+
+    ~Iterator() = default;
+
+    // prefix increment
+    SelfType& operator++()
+    {
+      if (mPosition < mSize && ++mPosition < mSize) {
+        mElement = mParent->get(mPosition);
+      } else {
+        // reset the element to the default value of the type
+        mElement = ElementType{};
+      }
+      return *this;
+    }
+    // postfix increment
+    SelfType operator++(int /*unused*/)
+    {
+      SelfType copy(*this);
+      operator++();
+      return copy;
+    }
+
+    // return reference
+    reference operator*() const
+    {
+      return mElement;
+    }
+
+    // comparison
+    bool operator==(const SelfType& rh) const
+    {
+      return mPosition == rh.mPosition;
+    }
+
+    // comparison
+    bool operator!=(const SelfType& rh) const
+    {
+      return mPosition != rh.mPosition;
+    }
+
+    // return pointer to parent instance
+    ParentType const* parent() const
+    {
+      return mParent;
+    }
+
+    // return current position
+    size_t position() const
+    {
+      return mPosition;
+    }
+
+   private:
+    size_t mPosition;
+    size_t mSize;
+    ParentType const* mParent;
+    ElementType mElement;
+  };
+
+  /// @class InputSpanIterator
+  /// An iterator over the input slots
+  /// It supports an iterator interface to access the parts in the slot
+  template <typename T>
+  class InputSpanIterator : public Iterator<InputSpan, T>
+  {
+   public:
+    using SelfType = InputSpanIterator;
+    using BaseType = Iterator<InputSpan, T>;
+    using value_type = typename BaseType::value_type;
+    using reference = typename BaseType::reference;
+    using pointer = typename BaseType::pointer;
+    using ElementType = typename std::remove_const<value_type>::type;
+    using iterator = Iterator<SelfType, T>;
+    using const_iterator = Iterator<SelfType, const T>;
+
+    InputSpanIterator(InputSpan const* parent, size_t position = 0, size_t size = 0)
+      : BaseType(parent, position, size)
+    {
+    }
+
+    /// Get element at {slotindex, partindex}
+    ElementType get(size_t pos) const
+    {
+      return this->parent()->get(this->position(), pos);
+    }
+
+    /// Check if slot is valid, index of part is not used
+    bool isValid(size_t = 0) const
+    {
+      if (this->position() < this->parent()->size()) {
+        return this->parent()->isValid(this->position());
+      }
+      return false;
+    }
+
+    /// Get number of parts in input slot
+    size_t size() const
+    {
+      return this->parent()->getNofParts(this->position());
+    }
+
+    // iterator for the part access
+    const_iterator begin() const
+    {
+      return const_iterator(this, 0, size());
+    }
+
+    const_iterator end() const
+    {
+      return const_iterator(this, size());
+    }
+  };
+
+  using iterator = InputSpanIterator<DataRef>;
+  using const_iterator = InputSpanIterator<const DataRef>;
+
+  // supporting read-only access and returning const_iterator
+  const_iterator begin() const
+  {
+    return const_iterator(this, 0, size());
+  }
+
+  // supporting read-only access and returning const_iterator
+  const_iterator end() const
+  {
+    return const_iterator(this, size());
   }
 
  private:
