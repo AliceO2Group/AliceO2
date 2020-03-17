@@ -72,6 +72,7 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
   Float_t GetPz() const { return mMomentumStart.Z(); }
   Float_t GetE() const { return mEnergyStart; }
   Float_t GetTotalEnergyAtEntrance() const { return GetE(); }
+  int GetParticlePdg() const { return mParticlePdg; }
 
   void Print(const Option_t* opt) const;
 
@@ -81,7 +82,7 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
   float mEnergyStart;             ///< total energy at entrance
   int mParticlePdg;               ///< PDG code of the particle associated with this track
 
-  ClassDefNV(Hit, 1);
+  ClassDefNV(Hit, 2);
 };
 
 Hit::Hit(int trackID,
