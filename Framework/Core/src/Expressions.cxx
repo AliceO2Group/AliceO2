@@ -225,7 +225,7 @@ Operations createOperations(Filter const& expression)
   return OperationSpecs;
 }
 
-inline gandiva::ConditionPtr createCondition(gandiva::NodePtr node)
+gandiva::ConditionPtr createCondition(gandiva::NodePtr node)
 {
   return gandiva::TreeExprBuilder::MakeCondition(node);
 }
