@@ -280,8 +280,8 @@ Selection createSelection(std::shared_ptr<arrow::Table> table, std::shared_ptr<g
   return selection;
 }
 
-inline Selection createSelection(std::shared_ptr<arrow::Table> table,
-                                 Filter const& expression)
+Selection createSelection(std::shared_ptr<arrow::Table> table,
+                          Filter const& expression)
 {
   return createSelection(table, createFilter(table->schema(), createOperations(expression)));
 }

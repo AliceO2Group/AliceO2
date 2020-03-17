@@ -42,14 +42,24 @@ struct ATask {
 };
 
 struct BTask {
-  Filter etafilter = (aod::etaphi::eta2 < 1.0f) && (aod::etaphi::eta2 > -1.0f);
-  Filter phifilter = (aod::etaphi::phi2 < 2.0f) && (aod::etaphi::phi2 > 1.0f);
+  float fPI = static_cast<float>(M_PI);
+  float ptlow = 0.5f;
+  float ptup = 2.0f;
+  Filter ptFilter = ((aod::track::signed1Pt < 1.0f / ptlow) && (aod::track::signed1Pt > 1.0f / ptup)) || ((aod::track::signed1Pt < -1.0f / ptup) && (aod::track::signed1Pt < -1.0f / ptlow));
+  float etalow = -1.0f;
+  float etaup = 1.0f;
+  Filter etafilter = (aod::etaphi::eta2 < etaup) && (aod::etaphi::eta2 > etalow);
+
+  //  Filter etaFilter = (aod::track::tgl < tan(0.5f * fPI - 2.0f * atan(exp(etalow)))) && (aod::track::tgl > tan(0.5f * fPI - 2.0f * atan(exp(etaup))));
+  float philow = 1.0f;
+  float phiup = 2.0f;
+  Filter phifilter = (aod::etaphi::phi2 < phiup) && (aod::etaphi::phi2 > philow);
 
   void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::EtaPhi>> const& tracks)
   {
     LOGF(INFO, "Collision: %d [N = %d]", collision.globalIndex(), tracks.size());
     for (auto& track : tracks) {
-      LOGF(INFO, "id = %d; eta:  -1 < %.3f < 1; phi: 1 < %.3f < 2", track.collisionId(), track.eta2(), track.phi2());
+      LOGF(INFO, "id = %d; eta:  %.3f < %.3f < %.3f; phi: %.3f < %.3f < %.3f; pt: %.3f < %.3f < %.3f", track.collisionId(), etalow, track.eta2(), etaup, philow, track.phi2(), phiup, ptlow, track.pt(), ptup);
     }
   }
 };
