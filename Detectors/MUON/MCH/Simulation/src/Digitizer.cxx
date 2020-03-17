@@ -157,7 +157,7 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
     } else {
       q *= chargenon;
     }
-    auto signal = resp.response(q);
+    auto signal = (unsigned long)q;
     digits.emplace_back(time, detID, padid, signal);
     ++ndigits;
   });
@@ -194,7 +194,8 @@ void Digitizer::mergeDigits()
     while (j < indices.size() && (getGlobalDigit(sortedDigits(i).getDetID(), sortedDigits(i).getPadID())) == (getGlobalDigit(sortedDigits(j).getDetID(), sortedDigits(j).getPadID())) && (std::fabs(sortedDigits(i).getTimeStamp() - sortedDigits(j).getTimeStamp()) < mDeltat)) {
       j++;
     }
-    float adc{0};
+    unsigned long adc{0};
+    Response& resp = response(isStation1(sortedDigits(i).getDetID()));
 
     for (int k = i; k < j; k++) {
       adc += sortedDigits(k).getADC();
@@ -208,6 +209,7 @@ void Digitizer::mergeDigits()
         }
       }
     }
+    adc = response.response(adc);
     mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc);
     i = j;
     ++count;
