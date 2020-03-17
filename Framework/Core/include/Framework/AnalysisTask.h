@@ -529,25 +529,25 @@ struct FilterManager<expressions::Filter> {
 template <typename T>
 struct OutputManager {
   template <typename ANY>
-  static bool appendOutput(std::vector<OutputSpec>& outputs, ANY&, uint32_t hash)
+  static bool appendOutput(std::vector<OutputSpec>&, ANY&, uint32_t)
   {
     return false;
   }
 
   template <typename ANY>
-  static bool prepare(ProcessingContext& context, ANY&)
+  static bool prepare(ProcessingContext&, ANY&)
   {
     return false;
   }
 
   template <typename ANY>
-  static bool postRun(EndOfStreamContext& context, ANY& what)
+  static bool postRun(EndOfStreamContext&, ANY&)
   {
     return true;
   }
 
   template <typename ANY>
-  static bool finalize(ProcessingContext& context, ANY& what)
+  static bool finalize(ProcessingContext&, ANY&)
   {
     return true;
   }
@@ -555,7 +555,7 @@ struct OutputManager {
 
 template <typename TABLE>
 struct OutputManager<Produces<TABLE>> {
-  static bool appendOutput(std::vector<OutputSpec>& outputs, Produces<TABLE>& what, uint32_t hash)
+  static bool appendOutput(std::vector<OutputSpec>& outputs, Produces<TABLE>& what, uint32_t)
   {
     outputs.emplace_back(what.spec());
     return true;
@@ -565,11 +565,11 @@ struct OutputManager<Produces<TABLE>> {
     what.resetCursor(context.outputs().make<TableBuilder>(what.ref()));
     return true;
   }
-  static bool finalize(ProcessingContext& context, Produces<TABLE>& what)
+  static bool finalize(ProcessingContext&, Produces<TABLE>&)
   {
     return true;
   }
-  static bool postRun(EndOfStreamContext& context, Produces<TABLE>& what)
+  static bool postRun(EndOfStreamContext&, Produces<TABLE>&)
   {
     return true;
   }
@@ -577,22 +577,22 @@ struct OutputManager<Produces<TABLE>> {
 
 template <>
 struct OutputManager<HistogramRegistry> {
-  static bool appendOutput(std::vector<OutputSpec>& outputs, HistogramRegistry& what, uint32_t hash)
+  static bool appendOutput(std::vector<OutputSpec>& outputs, HistogramRegistry& what, uint32_t)
   {
     outputs.emplace_back(what.spec());
     return true;
   }
-  static bool prepare(ProcessingContext& context, HistogramRegistry& what)
+  static bool prepare(ProcessingContext&, HistogramRegistry&)
   {
     return true;
   }
 
-  static bool finalize(ProcessingContext& context, HistogramRegistry& what)
+  static bool finalize(ProcessingContext&, HistogramRegistry&)
   {
     return true;
   }
 
-  static bool postRun(EndOfStreamContext& context, HistogramRegistry& what)
+  static bool postRun(EndOfStreamContext&, HistogramRegistry&)
   {
     return true;
   }
@@ -606,12 +606,12 @@ struct OutputManager<OutputObj<T>> {
     outputs.emplace_back(what.spec());
     return true;
   }
-  static bool prepare(ProcessingContext& context, OutputObj<T>& what)
+  static bool prepare(ProcessingContext&, OutputObj<T>&)
   {
     return true;
   }
 
-  static bool finalize(ProcessingContext& context, OutputObj<T>& what)
+  static bool finalize(ProcessingContext&, OutputObj<T>&)
   {
     return true;
   }
@@ -626,13 +626,13 @@ struct OutputManager<OutputObj<T>> {
 template <typename T>
 struct OptionManager {
   template <typename ANY>
-  static bool appendOption(std::vector<ConfigParamSpec>& options, ANY&)
+  static bool appendOption(std::vector<ConfigParamSpec>&, ANY&)
   {
     return false;
   }
 
   template <typename ANY>
-  static bool prepare(InitContext& context, ANY&)
+  static bool prepare(InitContext&, ANY&)
   {
     return false;
   }
@@ -708,10 +708,10 @@ class has_init
 /// Adaptor to make an AlgorithmSpec from a o2::framework::Task
 ///
 template <typename T, typename... Args>
-DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
+DataProcessorSpec adaptAnalysisTask(char const* name, Args&&... args)
 {
   auto task = std::make_shared<T>(std::forward<Args>(args)...);
-  auto hash = compile_time_hash(name.c_str());
+  auto hash = compile_time_hash(name);
 
   std::vector<OutputSpec> outputs;
   std::vector<ConfigParamSpec> options;

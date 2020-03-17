@@ -225,7 +225,7 @@ Operations createOperations(Filter const& expression)
   return OperationSpecs;
 }
 
-gandiva::ConditionPtr createCondition(gandiva::NodePtr node)
+inline gandiva::ConditionPtr createCondition(gandiva::NodePtr node)
 {
   return gandiva::TreeExprBuilder::MakeCondition(node);
 }
@@ -280,8 +280,8 @@ Selection createSelection(std::shared_ptr<arrow::Table> table, std::shared_ptr<g
   return selection;
 }
 
-Selection createSelection(std::shared_ptr<arrow::Table> table,
-                          Filter const& expression)
+inline Selection createSelection(std::shared_ptr<arrow::Table> table,
+                                 Filter const& expression)
 {
   return createSelection(table, createFilter(table->schema(), createOperations(expression)));
 }
@@ -376,9 +376,13 @@ void updateExpressionInfos(expressions::Filter const& filter, std::vector<Expres
   Operations ops = createOperations(filter);
   for (auto& info : eInfos) {
     if (isSchemaCompatible(info.schema, ops)) {
-      /// FIXME: check if there is already a tree assigned for an entry and
-      ///        and if so merge the new tree into it with 'and' node
-      info.tree = createExpressionTree(ops, info.schema);
+      auto tree = createExpressionTree(ops, info.schema);
+      /// If the tree is already set, add a new tree to it with logical 'and'
+      if (info.tree != nullptr) {
+        info.tree = gandiva::TreeExprBuilder::MakeAnd({info.tree, tree});
+      } else {
+        info.tree = tree;
+      }
     }
   }
 }
