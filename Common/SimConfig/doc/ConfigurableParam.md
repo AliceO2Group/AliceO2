@@ -35,7 +35,7 @@ You would do the following steps:
      ```c++
      O2ParamImpl(ParamA);
      ```
-     in some source file, to generate necessay symbols needed for linking.
+     in some source file, to generate necessary symbols needed for linking.
   3. Access and use the parameters in the code.
      ```c++
      void algorithmA() {
@@ -75,14 +75,14 @@ Thereafter, the parameter `ParamA` is automatically registered in a parameter re
   ```
 * **Provenance tracking**: The system can keep track of the origin of values. Typically, few stages of modification can be done:
   - default initialization of parameters from code (CODE)
-  - initialization/overwritting from a (CCDB) snapshot file
+  - initialization/overwriting from a (CCDB) snapshot file
   - overriding by user during runtime (RT)
 
   The registry can keep track of who supplied the current (decisive) value for each parameter: CODE, CCDB or RT. If a parameter is not changed it keeps the state of the previous stage.
 
-# Parameter modifcation from command line and ini file
+# Parameter modification from command line and ini file
 
-As mentioned above, it is possible to overwrite configuration parameters from the command line. This can be done using any of the DPL exacutables, e.g. `o2-sim`, `o2-sim-digitizer-workflow`, `o2-tpc-reco-workflow`, ...
+As mentioned above, it is possible to overwrite configuration parameters from the command line. This can be done using any of the DPL executables, e.g. `o2-sim`, `o2-sim-digitizer-workflow`, `o2-tpc-reco-workflow`, ...
 
 ## Command line option
 In order to modify a parameter from the command line, the syntax `Key.param=value` has to be used. **NOTE:** there must be no spaced before and after the `=`! Multiple key value pairs are separated by a `;`:
@@ -135,7 +135,7 @@ Again, not all parameters need to be defined.
       ```
       It is planned to offer more flexible ways to set arrays (see below).
     * there is currently no support for pointer types or objects. Parameter classes may not be nested.
-* At the moment serialization works on the whole paramter registry (on the whole set of parameters). Everything is written to the same file or snapshot.
+* At the moment serialization works on the whole parameter registry (on the whole set of parameters). Everything is written to the same file or snapshot.
 
 # Wish list / planned improvements
 

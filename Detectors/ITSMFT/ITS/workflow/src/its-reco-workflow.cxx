@@ -10,6 +10,12 @@
 
 #include "ITSWorkflow/RecoWorkflow.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "ITStracking/TrackingConfigParam.h"
+#include "ITStracking/Configuration.h"
+
+#include "GPUO2Interface.h"
+#include "GPUReconstruction.h"
+#include "GPUChainITS.h"
 
 using namespace o2::framework;
 
@@ -21,12 +27,12 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
-    {"trackerCA", o2::framework::VariantType::Bool, false, {"use trackerCA (default: trackerCM)"}}};
+    {"trackerCA", o2::framework::VariantType::Bool, false, {"use trackerCA (default: trackerCM)"}},
+    {"gpuDevice", o2::framework::VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}}};
 
   std::swap(workflowOptions, options);
 
   std::string keyvaluehelp("Semicolon separated key=value strings (e.g.: 'ITSDigitizerParam.roFrameLength=6000.;...')");
-
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
 }
 
@@ -36,6 +42,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
+  // auto& pa = o2::its::VertexerParamConfig::Instance();
+  // // Update the (declared) parameters if changed from file
+  // o2::conf::ConfigurableParam::updateFromFile(configcontext.options().get<std::string>("configFile"));
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the digitizer workflow
@@ -43,6 +52,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto useCAtracker = configcontext.options().get<bool>("trackerCA");
+  auto gpuDevice = static_cast<o2::gpu::GPUDataTypes::DeviceType>(configcontext.options().get<int>("gpuDevice"));
 
-  return std::move(o2::its::reco_workflow::getWorkflow(useMC, useCAtracker));
+  return std::move(o2::its::reco_workflow::getWorkflow(useMC, useCAtracker, gpuDevice));
 }

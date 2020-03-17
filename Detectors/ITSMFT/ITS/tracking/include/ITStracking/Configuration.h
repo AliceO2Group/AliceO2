@@ -110,7 +110,7 @@ inline MemoryParameters& MemoryParameters::operator=(const MemoryParameters& t)
   return *this;
 }
 
-struct VertexingParameters {
+struct VertexingParameters{
   float zCut = 0.002f;   //0.002f
   float phiCut = 0.005f; //0.005f
   float pairCut = 0.04f;
@@ -118,7 +118,7 @@ struct VertexingParameters {
   float histPairCut = 0.04f;
   float tanLambdaCut = 0.002f; // tanLambda = deltaZ/deltaR
   int clusterContributorsCut = 16;
-  int phiSpan = -1;
+  int phiSpan = -1; 
   int zSpan = -1;
 };
 

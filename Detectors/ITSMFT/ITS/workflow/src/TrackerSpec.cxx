@@ -26,6 +26,7 @@
 
 #include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
+#include "ITStracking/TrackingConfigParam.h"
 
 #include "Field/MagneticField.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -64,6 +65,7 @@ void TrackerDPL::init(InitContext& ic)
 
     mTracker = std::make_unique<Tracker>(chainITS->GetITSTrackerTraits());
     mVertexer = std::make_unique<Vertexer>(chainITS->GetITSVertexerTraits());
+    auto& vopt = o2::its::VertexerParamConfig::Instance();
     double origD[3] = {0., 0., 0.};
     mTracker->setBz(field->getBz(origD));
   } else {
@@ -176,7 +178,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   mState = 2;
 }
 
-DataProcessorSpec getTrackerSpec(bool useMC)
+DataProcessorSpec getTrackerSpec(bool useMC, o2::gpu::GPUDataTypes::DeviceType dType)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
@@ -201,7 +203,7 @@ DataProcessorSpec getTrackerSpec(bool useMC)
     "its-tracker",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TrackerDPL>(useMC)},
+    AlgorithmSpec{adaptFromTask<TrackerDPL>(useMC, dType)},
     Options{
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}}}};
 }

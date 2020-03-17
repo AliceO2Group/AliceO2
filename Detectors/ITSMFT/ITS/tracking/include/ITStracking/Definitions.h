@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 ///
 /// \file Definitions.h
-/// \brief
+/// \brief 
 ///
 
 #ifndef TRACKINGITSU_INCLUDE_CADEFINITIONS_H_

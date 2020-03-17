@@ -8,27 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_ITS_RECOWORKFLOW_H
-#define O2_ITS_RECOWORKFLOW_H
-
-/// @file   RecoWorkflow.h
-
-#include "Framework/WorkflowSpec.h"
-
-#include "GPUO2Interface.h"
-#include "GPUReconstruction.h"
-#include "GPUChainITS.h"
+#include "ITStracking/TrackingConfigParam.h"
 
 namespace o2
 {
 namespace its
 {
-
-namespace reco_workflow
-{
-framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU);
+static auto& sVertexerParamITS = o2::its::VertexerParamConfig::Instance();
 }
-
-} // namespace its
 } // namespace o2
-#endif
