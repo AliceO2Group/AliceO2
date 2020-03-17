@@ -85,9 +85,17 @@ struct WritingCursor<soa::Table<PC...>> {
 
   bool resetCursor(TableBuilder& builder)
   {
+    mBuilder = &builder;
     cursor = std::move(FFL(builder.cursor<persistent_table_t>()));
     mCount = -1;
     return true;
+  }
+
+  /// reserve @a size rows when filling, so that we do not
+  /// spend time reallocating the buffers.
+  void reserve(int64_t size)
+  {
+    mBuilder->reserve(typename persistent_table_t::columns{}, size);
   }
 
   decltype(FFL(std::declval<cursor_t>())) cursor;
@@ -104,6 +112,10 @@ struct WritingCursor<soa::Table<PC...>> {
     }
   }
 
+  /// The table builder which actually performs the
+  /// construction of the table. We keep it around to be
+  /// able to do all-columns methods like reserve.
+  TableBuilder* mBuilder = nullptr;
   int64_t mCount = -1;
 };
 
