@@ -473,7 +473,10 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
   float sy2 = tube * tube, sz2 = tube * tube;
 
   const int nBinsY = row.Grid().Ny();
+  const int idOffset = tracker.Data().ClusterIdOffset();
+  const int* ids = &(tracker.Data().ClusterDataIndex()[row.HitNumberOffset()]);
   unsigned int myWeight = Merger->TrackOrderAttach()[iTrack] | GPUTPCGMMerger::attachAttached | GPUTPCGMMerger::attachTube;
+  unsigned int* const weights = Merger->ClusterAttachment();
   if (goodLeg) {
     myWeight |= GPUTPCGMMerger::attachGoodLeg;
   }
@@ -482,8 +485,9 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
     const unsigned int hitFst = CA_TEXTURE_FETCH(calink, gAliTexRefu, firsthit, mybin);
     const unsigned int hitLst = CA_TEXTURE_FETCH(calink, gAliTexRefu, firsthit, mybin + ny + 1);
     for (unsigned int ih = hitFst; ih < hitLst; ih++) {
-      int id = tracker.Data().ClusterIdOffset() + tracker.Data().ClusterDataIndex(row, ih);
-      GPUAtomic(unsigned int) * GPUrestrict() weight = &Merger->ClusterAttachment()[id];
+      int id = idOffset + ids[ih];
+      GPUAtomic(unsigned int) * GPUrestrict() const weight = weights + id;
+      ;
 #if !defined(GPUCA_NO_ATOMIC_PRECHECK) && GPUCA_NO_ATOMIC_PRECHECK < 1
       if (myWeight <= *weight) {
         continue;

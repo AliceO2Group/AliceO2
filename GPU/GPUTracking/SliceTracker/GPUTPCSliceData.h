@@ -124,6 +124,7 @@ class GPUTPCSliceData
  */
   MEM_TEMPLATE()
   GPUhd() int ClusterDataIndex(const MEM_TYPE(GPUTPCRow) & row, unsigned int hitIndex) const;
+  GPUd() GPUglobalref() const int* ClusterDataIndex() const { return mClusterDataIndex; }
 
   /**
  * Return the row object for the given row index.
