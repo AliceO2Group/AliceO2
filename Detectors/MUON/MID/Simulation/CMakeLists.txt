@@ -45,10 +45,7 @@ o2_target_root_dictionary(
           include/MIDSimulation/MCLabel.h
           include/MIDSimulation/Stepper.h)
 
-
-INSTALL(DIRECTORY data DESTINATION share/Detectors/MID/simulation)
-	
-#o2_data_file(COPY data DESTINATION Detectors/MID/simulation)
+o2_data_file(COPY data DESTINATION Detectors/MID/simulation)
 
 if(BUILD_TESTING)
   add_subdirectory(test)
