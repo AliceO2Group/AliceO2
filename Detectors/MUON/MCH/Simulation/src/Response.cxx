@@ -85,6 +85,26 @@ double Response::chargefrac1d(float min, float max, double k2, double sqrtk3, do
 //______________________________________________________________________
 unsigned long Response::response(unsigned long adc)
 {
+
+  float a0 = 1.25;
+  float capa = 0.2;
+  float adc2mv = 0.61;//why redividing what multiplied earlier on?
+  int fgNSigma = 5.0; //aliroot
+  float pedestalSigma = 0.5;//channnel noise
+  
+  float adcNoise = 0.0;
+  float adc_out = adc/(a0*capa*adc2mv);
+  float pedestalMean = 3;//channel 0 //arbitrary number, need to get it from aliroot
+  float adcNoise = 1.0; //arbitrary number need to get it from aliroot
+  //TODO: need to introduce switch for O2 vs. Aliroot
+  //TODO: tune first matching of aliroot response w.r.t. O2 aliroot imitation
+  //2nd step perform playing with a0, capa, adc2mv, noise and pedestal to reproduce O2
+  
+  adc = TMath::Nint(adc_out + pedestalMean + adcNoise + 0.5);
+
+  if ( adc_out < TMath::Nint(pedestalMean + fgNSigma*pedestalSigma + 0.5) ) 
+
+  return adc;
   //TODO
   //not well done
   //FEE effects
@@ -92,32 +112,19 @@ unsigned long Response::response(unsigned long adc)
   //TODO: for SAMPA modify
   //only called at merging step
   /*
-  static const Int_t kMaxADC = (1<<12)-1; // We code the charge on a 12 bits ADC.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
-
-  Int_t thres(4095);
+  static const Int_t kMaxADC = (1<<12)-1; // We code the charge on a 12 bits ADC.                                                                                                                                   Int_t thres(4095);
   Int_t qual(0xF);
-  Float_t capa(AliMUONConstants::DefaultCapa()); // capa = 0.2 and a0 = 1.25                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
-  Float_t a0(AliMUONConstants::DefaultA0());  // is equivalent to gain = 4 mV/fC                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
-  Float_t adc2mv(AliMUONConstants::DefaultADC2MV()); // 1 ADC channel = 0.61 mV                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
-
+  Float_t capa(AliMUONConstants::DefaultCapa()); // capa = 0.2 and a0 = 1.25                                                                                                                                        Float_t a0(AliMUONConstants::DefaultA0());  // is equivalent to gain = 4 mV/fC                                                                                                                                    Float_t adc2mv(AliMUONConstants::DefaultADC2MV()); // 1 ADC channel = 0.61 mV                                                                                                                                   
   Float_t pedestalMean = pedestals.ValueAsFloat(channel,0);
   Float_t pedestalSigma = pedestals.ValueAsFloat(channel,1);
-
   AliDebugClass(2,Form("DE %04d MANU %04d CH %02d PEDMEAN %7.2f PEDSIGMA %7.2f",
                        pedestals.ID0(),pedestals.ID1(),channel,pedestalMean,pedestalSigma));
-
   if ( qual <= 0 ) return 0;
-
   Float_t chargeThres = a0*thres;
-
-  Float_t padc = charge/a0; // (adc - ped) value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
-
+  Float_t padc = charge/a0; // (adc - ped) value                                                                                                                                                                  
   padc /= capa*adc2mv;
-
   Int_t adc(0);
-
   Float_t adcNoise = 0.0;
-
   if ( addNoise )
   {
     if ( noiseOnly )
@@ -129,13 +136,11 @@ unsigned long Response::response(unsigned long adc)
       adcNoise = gRandom->Gaus(0.0,pedestalSigma);
     }
   }
-
   adc = TMath::Nint(padc + pedestalMean + adcNoise + 0.5);
 
   if ( adc < TMath::Nint(pedestalMean + fgNSigmas*pedestalSigma + 0.5) )
   {
-    // this is an error only in specific cases                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
-    if ( !addNoise || (addNoise && noiseOnly) )
+    // this is an error only in specific cases                                                                                                                                                                        if ( !addNoise || (addNoise && noiseOnly) )
     {
       AliDebugClass(1,Form(" DE %04d Manu %04d Channel %02d "
                                                                                                          " a0 %7.2f thres %04d ped %7.2f pedsig %7.2f adcNoise %7.2f "
@@ -146,11 +151,9 @@ unsigned long Response::response(unsigned long adc)
                                                                                                          TMath::Nint(pedestalMean + fgNSigmas*pedestalSigma + 0.5),
                                                                                                          fgNSigmas,addNoise,noiseOnly));
     }
-
     adc = 0;
   }
    */
-  return (unsigned long)adc;
 }
 //______________________________________________________________________
 float Response::getAnod(float x)
