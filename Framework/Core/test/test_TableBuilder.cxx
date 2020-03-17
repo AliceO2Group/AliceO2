@@ -133,6 +133,7 @@ BOOST_AUTO_TEST_CASE(TestTableBuilderMore)
   using namespace o2::framework;
   TableBuilder builder;
   auto rowWriter = builder.persist<int, float, std::string, bool>({"x", "y", "s", "b"});
+  builder.reserve(pack<int, float, std::string, bool>{}, 5);
   rowWriter(0, 0, 0., "foo", true);
   rowWriter(0, 1, 1., "bar", false);
   rowWriter(0, 2, 2., "fbr", false);
