@@ -1,7 +1,4 @@
-* MUON
-=======
 * Non-default simulation cuts for MUON/MCH (taken from AliRoot)
->>>>>>> 7c135c65f4a574734612d5f59975932016ad4b4f
 * ===
 *
 *    Med GAM   ELEC  NHAD  CHAD  MUON  EBREM MUHAB EDEL  MUDEL MUPA  ANNI  BREM  COMP  DCAY  DRAY  HADR  LOSS  MULS  PAIR  PHOT  RAYL 
