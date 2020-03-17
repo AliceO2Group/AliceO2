@@ -11,6 +11,7 @@
 #define O2_FRAMEWORK_ANALYSISDATAMODEL_H_
 
 #include "Framework/ASoA.h"
+#include "MathUtils/Utils.h"
 #include <cmath>
 
 namespace o2
@@ -63,15 +64,15 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, [](float signed1Pt) -> float { return fabs(1.
 DECLARE_SOA_DYNAMIC_COLUMN(Charge, charge, [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float signed1Pt, float snp, float alpha) -> float {
   double pt = 1. / std::abs(signed1Pt);
-  double cs = std::cos(alpha);
-  double sn = std::sin(alpha);
+  float cs, sn;
+  utils::sincosf(alpha, sn, cs);
   double r = std::sqrt((1. - snp) * (1. + snp));
   return pt * (r * cs - snp * sn);
 });
 DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float signed1Pt, float snp, float alpha) -> float {
   double pt = 1. / std::abs(signed1Pt);
-  double cs = std::cos(alpha);
-  double sn = std::sin(alpha);
+  float cs, sn;
+  utils::sincosf(alpha, sn, cs);
   double r = std::sqrt((1. - snp) * (1. + snp));
   return pt * (snp * cs + r * sn);
 });
