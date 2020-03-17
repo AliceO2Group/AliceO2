@@ -568,14 +568,17 @@ void GPUChainTracking::ConvertRun2RawToNative()
 void GPUChainTracking::ConvertZSEncoder(bool zs12bit)
 {
 #ifdef HAVE_O2HEADERS
-  GPUTrackingInOutZS* tmp;
-  GPUReconstructionConvert::RunZSEncoder(mIOPtrs.tpcPackedDigits, tmp, param(), zs12bit);
-  mIOPtrs.tpcZS = tmp;
+  mTPCZSSizes.reset(new unsigned int[NSLICES * GPUTrackingInOutZS::NENDPOINTS]);
+  mTPCZSPtrs.reset(new void*[NSLICES * GPUTrackingInOutZS::NENDPOINTS]);
+  mTPCZS.reset(new GPUTrackingInOutZS);
+  GPUReconstructionConvert::RunZSEncoder(mIOPtrs.tpcPackedDigits, mTPCZSBuffer, mTPCZSSizes.get(), param(), zs12bit, true);
+  GPUReconstructionConvert::RunZSEncoderCreateMeta(mTPCZSBuffer.get(), mTPCZSSizes.get(), mTPCZSPtrs.get(), mTPCZS.get());
+  mIOPtrs.tpcZS = mTPCZS.get();
   if (GetDeviceProcessingSettings().registerStandaloneInputMemory) {
     for (unsigned int i = 0; i < NSLICES; i++) {
       for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
-        for (unsigned int k = 0; k < tmp->slice[i].count[j]; k++) {
-          mRec->registerMemoryForGPU(tmp->slice[i].zsPtr[j][k], tmp->slice[i].nZSPtr[j][k] * TPCZSHDR::TPC_ZS_PAGE_SIZE);
+        for (unsigned int k = 0; k < mIOPtrs.tpcZS->slice[i].count[j]; k++) {
+          mRec->registerMemoryForGPU(mIOPtrs.tpcZS->slice[i].zsPtr[j][k], mIOPtrs.tpcZS->slice[i].nZSPtr[j][k] * TPCZSHDR::TPC_ZS_PAGE_SIZE);
         }
       }
     }

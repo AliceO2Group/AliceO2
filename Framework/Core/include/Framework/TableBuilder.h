@@ -14,6 +14,7 @@
 #include "Framework/ASoA.h"
 #include "Framework/StructToTuple.h"
 #include "Framework/FunctionalHelpers.h"
+#include "Framework/VariantHelpers.h"
 
 // Apparently needs to be on top of the arrow includes.
 #include <sstream>
@@ -379,6 +380,31 @@ class TableBuilder
     return [builders = (BuildersTuple*)mBuilders](unsigned int slot, size_t batchSize, typename BuilderMaker<ARGS>::FillType const*... args) -> void {
       TableBuilderHelpers::bulkAppend(*builders, batchSize, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
     };
+  }
+
+  /// Reserve method to expand the columns as needed.
+  template <typename... ARGS>
+  auto reserve(o2::framework::pack<ARGS...> pack, int s)
+  {
+    visitBuilders(pack, overloaded{[s](auto& builder) { return builder.Reserve(s).ok(); }});
+  }
+
+  /// Invoke the appropriate visitor on the various builders
+  template <typename... ARGS, typename V>
+  auto visitBuilders(o2::framework::pack<ARGS...> pack, V&& visitor)
+  {
+    auto builders = getBuilders(pack);
+    auto visitAll = [visitor](std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>&... args) { (visitor(*args), ...); };
+    return std::apply(visitAll, *builders);
+  }
+
+  /// Get the builders, assumning they were created with a given pack
+  ///  of basic types
+  template <typename... ARGS>
+  auto getBuilders(o2::framework::pack<ARGS...> pack)
+  {
+    using BuildersTuple = typename std::tuple<std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>...>;
+    return (BuildersTuple*)mBuilders;
   }
 
   /// Actually creates the arrow::Table from the builders

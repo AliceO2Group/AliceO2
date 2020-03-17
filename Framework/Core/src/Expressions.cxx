@@ -376,9 +376,13 @@ void updateExpressionInfos(expressions::Filter const& filter, std::vector<Expres
   Operations ops = createOperations(filter);
   for (auto& info : eInfos) {
     if (isSchemaCompatible(info.schema, ops)) {
-      /// FIXME: check if there is already a tree assigned for an entry and
-      ///        and if so merge the new tree into it with 'and' node
-      info.tree = createExpressionTree(ops, info.schema);
+      auto tree = createExpressionTree(ops, info.schema);
+      /// If the tree is already set, add a new tree to it with logical 'and'
+      if (info.tree != nullptr) {
+        info.tree = gandiva::TreeExprBuilder::MakeAnd({info.tree, tree});
+      } else {
+        info.tree = tree;
+      }
     }
   }
 }
