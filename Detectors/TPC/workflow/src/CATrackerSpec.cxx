@@ -23,6 +23,8 @@
 #include "Framework/InputRecordWalker.h"
 #include "Framework/SerializationMethods.h"
 #include "Framework/Logger.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/DeviceSpec.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ClusterGroupAttribute.h"
 #include "DataFormatsTPC/ClusterNative.h"
@@ -52,6 +54,7 @@
 #include <vector>
 #include <iomanip>
 #include <stdexcept>
+#include <regex>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -723,6 +726,60 @@ DataProcessorSpec getCATrackerSpec(ca::Config const& config, std::vector<int> co
                            Options{
                              {"tracker-options", VariantType::String, "", {"Option string passed to tracker"}},
                            }};
+}
+
+o2::framework::CompletionPolicy getCATrackerCompletionPolicy()
+{
+  constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
+
+  auto matcher = [](DeviceSpec const& device) -> bool {
+    return std::regex_match(device.name.begin(), device.name.end(), std::regex("tpc-tracker*"));
+  };
+
+  auto callback = [](CompletionPolicy::InputSet inputs) -> CompletionPolicy::CompletionOp {
+    auto op = CompletionPolicy::CompletionOp::Wait;
+    bool haveCluster = false;
+    bool haveDigit = false;
+    std::bitset<NSectors> validInputs = 0;
+    uint64_t activeSectors = 0;
+    size_t nActiveInputs = 0;
+    for (auto it = inputs.begin(), end = inputs.end(); it != end; ++it) {
+      for (auto const& ref : it) {
+        if (!DataRefUtils::isValid(ref)) {
+          continue;
+        }
+        ++nActiveInputs;
+        auto isCluster = DataRefUtils::match(ref, {"cluster", ConcreteDataTypeMatcher{gDataOriginTPC, "CLUSTERNATIVE"}});
+        auto isDigit = DataRefUtils::match(ref, {"digits", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITS"}});
+        if (isCluster || isDigit) {
+          auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+          auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
+          if (sectorHeader == nullptr) {
+            // FIXME: think about error policy
+            throw std::runtime_error("TPC sector header missing on header stack");
+          }
+          activeSectors |= sectorHeader->activeSectors;
+          validInputs.set(sectorHeader->sector);
+        }
+      }
+    }
+    // TODO: introduce pedantic policy to check consistency of the data, e.g. that MC labels are available
+    // for either all data blocks or none
+
+    // Digits and clusters should never be mixed, the getCATrackerSpec function has to be cleaned
+    // up to get the input spec as parameter
+    if (haveDigit && haveDigit == haveCluster) {
+      throw std::runtime_error("routing error, the tracker can process either digits or clusters");
+    }
+
+    // we can process if there is input for all sectors
+    if (activeSectors == validInputs.to_ulong()) {
+      op = CompletionPolicy::CompletionOp::Process;
+    }
+
+    return op;
+  };
+  return CompletionPolicy{"tpc-ca-traker", matcher, callback};
 }
 
 } // namespace tpc
