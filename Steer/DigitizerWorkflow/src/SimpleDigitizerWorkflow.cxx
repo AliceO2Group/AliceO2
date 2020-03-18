@@ -60,6 +60,8 @@
 // for TRD
 #include "TRDWorkflow/TRDDigitizerSpec.h"
 #include "TRDWorkflow/TRDDigitWriterSpec.h"
+#include "TRDWorkflow/TRDTrapSimulatorSpec.h"
+#include "TRDWorkflow/TRDTrackletWriterSpec.h"
 
 //for MUON MCH
 #include "MCHDigitizerSpec.h"
@@ -134,6 +136,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(
     ConfigParamSpec{"tpc-reco-type", VariantType::String, "", {tpcrthelp}});
 
+  std::string grphelp("GRP file describing the simulation");
+  workflowOptions.push_back(
+    ConfigParamSpec{"GRP", VariantType::String, "o2sim_grp.root", {grphelp}});
+
   // option allowing to set parameters
   std::string keyvaluehelp("Semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...')");
   workflowOptions.push_back(
@@ -143,6 +149,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
   // option to use/not use CCDB for TOF
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-tof", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
+
+  // option to use or not use the Trap Simulator after digitisation (debate of digitization or reconstruction is for others)
+  workflowOptions.push_back(ConfigParamSpec{"enable-trd-trapsim", VariantType::Bool, false, {"enable the trap simulation of the TRD"}});
 }
 
 // ------------------------------------------------------------------
@@ -314,7 +323,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // First, read the GRP to detect which components need instantiations
   // (for the moment this assumes the file o2sim_grp.root to be in the current directory)
-  const auto grp = readGRP();
+  const auto grp = readGRP(configcontext.options().get<std::string>("GRP"));
   if (!grp) {
     return WorkflowSpec{};
   }
@@ -462,6 +471,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::trd::getTRDDigitizerSpec(fanoutsize++));
     // connect the TRD digit writer
     specs.emplace_back(o2::trd::getTRDDigitWriterSpec());
+    auto enableTrapSim = configcontext.options().get<bool>("enable-trd-trapsim");
+    if (enableTrapSim) {
+      // connect the TRD Trap SimulatorA
+      specs.emplace_back(o2::trd::getTRDTrapSimulatorSpec());
+      // connect to the device to write out the tracklets.
+      specs.emplace_back(o2::trd::getTRDTrackletWriterSpec());
+    }
   }
 
   //add MUON MCH
@@ -509,7 +525,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   // GRP updater: must come after all detectors since requires their list
-  specs.emplace_back(o2::parameters::getGRPUpdaterSpec(detList));
+  specs.emplace_back(o2::parameters::getGRPUpdaterSpec(configcontext.options().get<std::string>("GRP"), detList));
 
   // The SIM Reader. NEEDS TO BE LAST
   specs[0] = o2::steer::getSimReaderSpec(fanoutsize, tpcsectors, tpclanes);

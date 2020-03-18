@@ -29,11 +29,7 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
   template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Global, L, G, C, P> { typedef G type; };
   template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Constant, L, G, C, P> { typedef C type; };
   template<typename L, typename G, typename C, typename P> struct MakeTypeHelper<Mem_Plain, L, G, C, P> { typedef P type; };
-  #ifdef __HIPCC__
-    #define MakeType(base_type) typename MakeTypeHelper<LG, GPUsharedref() base_type, GPUglobalref() base_type, GPUconstantref() base_type, base_type>::type
-  #else
-    #define MakeType(base_type) typename MakeTypeHelper<LG, GPUshared() base_type, GPUglobalref() base_type, GPUconstant() base_type, base_type>::type
-  #endif
+  #define MakeType(base_type) typename MakeTypeHelper<LG, GPUsharedref() base_type, GPUglobalref() base_type, GPUconstantref() base_type, base_type>::type
   #define MEM_CLASS_PRE() template<LocalOrGlobal LG>
   #define MEM_CLASS_PRE_TEMPLATE(t) template<LocalOrGlobal LG, t>
   #define MEM_LG(type) type<LG>
@@ -84,10 +80,26 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
   #define MEM_TYPE4(type) type
 #endif
 
-#if (defined(__CUDACC__) && defined(GPUCA_CUDA_NO_CONSTANT_MEMORY)) || (defined(__HIPCC__) && defined(GPUCA_HIP_NO_CONSTANT_MEMORY)) || (defined(__OPENCL__) && !defined(__OPENCLCPP__) && defined(GPUCA_OPENCL_NO_CONSTANT_MEMORY)) || (defined(__OPENCLCPP__) && defined(GPUCA_OPENCLCPP_NO_CONSTANT_MEMORY))
+#if defined(GPUCA_NO_CONSTANT_MEMORY) || defined(GPUCA_CONSTANT_AS_ARGUMENT)
   #undef MEM_CONSTANT
   #define MEM_CONSTANT(type) MEM_GLOBAL(type)
 #endif
 
+// Some additional defines to force HIP to use constant loads in some cases
+#if defined(__HIPCC__) && defined(GPUCA_GPUCODE_DEVICE) && !defined(GPUCA_NO_CONSTANT_MEMORY) && !defined(GPUCA_CONSTANT_AS_ARGUMENT)
+#define HIPGPUsharedref() __attribute__((address_space(3)))
+#define HIPGPUglobalref() __attribute__((address_space(1)))
+#define HIPGPUconstantref() __attribute__((address_space(4)))
+#else
+#define HIPGPUsharedref() GPUsharedref()
+#define HIPGPUglobalref() GPUglobalref()
+#define HIPGPUconstantref()
+#endif
+#ifdef GPUCA_OPENCL1
+#define HIPTPCROW(x) GPUsharedref() MEM_LOCAL(x)
+#else
+#define HIPTPCROW(x) x
+#endif
+
 #endif //GPUDEFOPENCL12TEMPLATES_H
-// clang-format on
+  // clang-format on

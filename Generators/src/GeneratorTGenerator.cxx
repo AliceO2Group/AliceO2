@@ -13,6 +13,7 @@
 #include "FairPrimaryGenerator.h"
 #include "TGenerator.h"
 #include "TClonesArray.h"
+#include "TParticle.h"
 
 namespace o2
 {
@@ -23,17 +24,38 @@ namespace eventgen
 /*****************************************************************/
 
 GeneratorTGenerator::GeneratorTGenerator() : Generator("ALICEo2", "ALICEo2 TGenerator Generator"),
-                                             mTGenerator(nullptr)
+                                             mTGenerator(nullptr),
+                                             mCloneParticles(nullptr)
 {
   /** default constructor **/
+
+  mInterface = reinterpret_cast<void*>(mTGenerator);
+  mInterfaceName = "tgenerator";
+  mCloneParticles = new TClonesArray("TParticle");
+  mCloneParticles->SetOwner(kTRUE);
 }
 
 /*****************************************************************/
 
 GeneratorTGenerator::GeneratorTGenerator(const Char_t* name, const Char_t* title) : Generator(name, title),
-                                                                                    mTGenerator(nullptr)
+                                                                                    mTGenerator(nullptr),
+                                                                                    mCloneParticles(nullptr)
 {
   /** constructor **/
+
+  mInterface = reinterpret_cast<void*>(mTGenerator);
+  mInterfaceName = "tgenerator";
+  mCloneParticles = new TClonesArray("TParticle");
+  mCloneParticles->SetOwner(kTRUE);
+}
+
+/*****************************************************************/
+
+GeneratorTGenerator::~GeneratorTGenerator()
+{
+  /** destructor **/
+
+  delete mCloneParticles;
 }
 
 /*****************************************************************/
@@ -56,7 +78,13 @@ Bool_t
 {
   /** import particles **/
 
-  mTGenerator->ImportParticles(mParticles, "All");
+  mParticles.clear();
+  mTGenerator->ImportParticles(mCloneParticles, "All");
+  auto nparticles = mCloneParticles->GetEntries();
+  for (Int_t iparticle = 0; iparticle < nparticles; iparticle++) {
+    auto particle = (TParticle*)mCloneParticles->At(iparticle);
+    mParticles.push_back(*particle);
+  }
 
   /** success **/
   return kTRUE;

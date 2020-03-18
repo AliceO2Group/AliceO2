@@ -12,36 +12,40 @@
 /// \author Sergey Gorbunov, Ivan Kisel, David Rohr
 
 #include "GPUTPCHit.h"
-#include "GPUTPCHitArea.h"
 #include "GPUTPCNeighboursFinder.h"
 #include "GPUTPCTracker.h"
 #include "GPUCommonMath.h"
+#include "GPUDefMacros.h"
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
-GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & s, processorType& tracker)
+GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() ss, processorType& GPUrestrict() trackerX)
 {
   //* find neighbours
 
 #ifdef GPUCA_GPUCODE
   for (unsigned int i = iThread; i < sizeof(MEM_PLAIN(GPUTPCRow)) / sizeof(int); i += nThreads) {
-    reinterpret_cast<GPUsharedref() int*>(&s.mRow)[i] = reinterpret_cast<GPUglobalref() int*>(&tracker.SliceDataRows()[iBlock])[i];
+    reinterpret_cast<GPUsharedref() int*>(&ss.mRow)[i] = reinterpret_cast<GPUglobalref() int*>(&trackerX.SliceDataRows()[iBlock])[i];
     if (iBlock >= 2 && iBlock < GPUCA_ROW_COUNT - 2) {
-      reinterpret_cast<GPUsharedref() int*>(&s.mRowUp)[i] = reinterpret_cast<GPUglobalref() int*>(&tracker.SliceDataRows()[iBlock + 2])[i];
-      reinterpret_cast<GPUsharedref() int*>(&s.mRowDown)[i] = reinterpret_cast<GPUglobalref() int*>(&tracker.SliceDataRows()[iBlock - 2])[i];
+      reinterpret_cast<GPUsharedref() int*>(&ss.mRowUp)[i] = reinterpret_cast<GPUglobalref() int*>(&trackerX.SliceDataRows()[iBlock + 2])[i];
+      reinterpret_cast<GPUsharedref() int*>(&ss.mRowDown)[i] = reinterpret_cast<GPUglobalref() int*>(&trackerX.SliceDataRows()[iBlock - 2])[i];
     }
   }
   GPUbarrier();
 #endif
+
+  HIPGPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() s = (HIPGPUsharedref() MEM_LOCAL(GPUSharedMemory)&)ss;
+  HIPGPUconstantref() processorType& GPUrestrict() tracker = (HIPGPUconstantref() processorType&)trackerX;
+
   if (iThread == 0) {
     s.mIRow = iBlock;
     if (s.mIRow < GPUCA_ROW_COUNT) {
 #ifdef GPUCA_GPUCODE
-      GPUsharedref() const MEM_LOCAL(GPUTPCRow)& row = s.mRow;
+      HIPGPUsharedref() const MEM_LOCAL(GPUTPCRow) & GPUrestrict() row = s.mRow;
 #else
-      GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(s.mIRow);
+      HIPGPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() row = tracker.mData.mRows[s.mIRow];
 #endif
-      s.mNHits = row.NHits();
+      s.mNHits = row.mNHits;
 
       if ((s.mIRow >= 2) && (s.mIRow <= GPUCA_ROW_COUNT - 3)) {
         s.mIRowUp = s.mIRow + 2;
@@ -50,79 +54,83 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
         // references to the rows above and below
 
 #ifdef GPUCA_GPUCODE
-        GPUsharedref() const MEM_LOCAL(GPUTPCRow)& rowUp = s.mRowUp;
-        GPUsharedref() const MEM_LOCAL(GPUTPCRow)& rowDn = s.mRowDown;
+        HIPGPUsharedref() const MEM_LOCAL(GPUTPCRow) & GPUrestrict() rowUp = s.mRowUp;
+        HIPGPUsharedref() const MEM_LOCAL(GPUTPCRow) & GPUrestrict() rowDn = s.mRowDown;
 #else
-        GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& rowUp = tracker.Row(s.mIRowUp);
-        GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& rowDn = tracker.Row(s.mIRowDn);
+        HIPGPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() rowUp = tracker.mData.mRows[s.mIRowUp];
+        HIPGPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() rowDn = tracker.mData.mRows[s.mIRowDn];
 #endif
         // the axis perpendicular to the rows
-        const float xDn = rowDn.X();
-        const float x = row.X();
-        const float xUp = rowUp.X();
-
-        // number of hits in rows above and below
-        s.mUpNHits = tracker.Row(s.mIRowUp).NHits();
-        s.mDnNHits = tracker.Row(s.mIRowDn).NHits();
+        const float xDn = rowDn.mX;
+        const float x = row.mX;
+        const float xUp = rowUp.mX;
 
         // distance of the rows (absolute and relative)
         s.mUpDx = xUp - x;
         s.mDnDx = xDn - x;
         s.mUpTx = xUp / x;
         s.mDnTx = xDn / x;
-        // UpTx/DnTx is used to move the HitArea such that central events are preferred (i.e. vertices
-        // coming from y = 0, z = 0).
-
-        // s.mGridUp = tracker.Row( s.mIRowUp ).Grid();
-        // s.mGridDn = tracker.Row( s.mIRowDn ).Grid();
       }
     }
   }
   GPUbarrier();
 
+  // local copies
+
   if ((s.mIRow <= 1) || (s.mIRow >= GPUCA_ROW_COUNT - 2)) {
 #ifdef GPUCA_GPUCODE
-    GPUsharedref() const MEM_LOCAL(GPUTPCRow)& row = s.mRow;
+    HIPGPUsharedref() const MEM_LOCAL(GPUTPCRow) & GPUrestrict() row = (HIPGPUsharedref() const MEM_LOCAL(GPUTPCRow)&)s.mRow;
 #else
-    GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(s.mIRow);
+    HIPGPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() row = (HIPGPUglobalref() const MEM_GLOBAL(GPUTPCRow)&)tracker.mData.mRows[s.mIRow];
 #endif
+    long int lHitNumberOffset = row.mHitNumberOffset;
     for (int ih = iThread; ih < s.mNHits; ih += nThreads) {
-      tracker.SetHitLinkUpData(row, ih, CALINK_INVAL);
-      tracker.SetHitLinkDownData(row, ih, CALINK_INVAL);
+      tracker.mData.mLinkUpData[lHitNumberOffset + ih] = CALINK_INVAL;
+      tracker.mData.mLinkDownData[lHitNumberOffset + ih] = CALINK_INVAL;
     }
     return;
   }
 
-  float chi2Cut = 3.f * 3.f * 4 * (s.mUpDx * s.mUpDx + s.mDnDx * s.mDnDx);
+  const float chi2Cut = 3.f * 3.f * 4 * (s.mUpDx * s.mUpDx + s.mDnDx * s.mDnDx);
 // float chi2Cut = 3.*3.*(s.mUpDx*s.mUpDx + s.mDnDx*s.mDnDx ); //SG
 #ifdef GPUCA_GPUCODE
-  GPUsharedref() const MEM_LOCAL(GPUTPCRow)& row = s.mRow;
-  GPUsharedref() const MEM_LOCAL(GPUTPCRow)& rowUp = s.mRowUp;
-  GPUsharedref() const MEM_LOCAL(GPUTPCRow)& rowDn = s.mRowDown;
+  HIPGPUsharedref() const MEM_LOCAL(GPUTPCRow) & GPUrestrict() row = (HIPGPUsharedref() const MEM_LOCAL(GPUTPCRow)&)s.mRow;
+  HIPGPUsharedref() const MEM_LOCAL(GPUTPCRow) & GPUrestrict() rowUp = (HIPGPUsharedref() const MEM_LOCAL(GPUTPCRow)&)s.mRowUp;
+  HIPGPUsharedref() const MEM_LOCAL(GPUTPCRow) & GPUrestrict() rowDn = (HIPGPUsharedref() const MEM_LOCAL(GPUTPCRow)&)s.mRowDown;
 #else
-  GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(s.mIRow);
-  GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& rowUp = tracker.Row(s.mIRowUp);
-  GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& rowDn = tracker.Row(s.mIRowDn);
+  HIPGPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() row = (HIPGPUglobalref() const MEM_GLOBAL(GPUTPCRow)&)tracker.mData.mRows[s.mIRow];
+  HIPGPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() rowUp = (HIPGPUglobalref() const MEM_GLOBAL(GPUTPCRow)&)tracker.mData.mRows[s.mIRowUp];
+  HIPGPUglobalref() const MEM_GLOBAL(GPUTPCRow) & GPUrestrict() rowDn = (HIPGPUglobalref() const MEM_GLOBAL(GPUTPCRow)&)tracker.mData.mRows[s.mIRowDn];
 #endif
-  const float y0 = row.Grid().YMin();
-  const float z0 = row.Grid().ZMin();
-  const float stepY = row.HstepY();
-  const float stepZ = row.HstepZ();
+  const float y0 = row.mGrid.mYMin;
+  const float z0 = row.mGrid.mZMin;
+  const float stepY = row.mHstepY;
+  const float stepZ = row.mHstepZ;
+
+  const long int lHitNumberOffset = row.mHitNumberOffset;
+  const long int lHitNumberOffsetUp = rowUp.mHitNumberOffset;
+  const long int lHitNumberOffsetDn = rowDn.mHitNumberOffset;
+  const int lFirstHitInBinOffsetUp = rowUp.mFirstHitInBinOffset;
+  const int lFirstHitInBinOffsetDn = rowDn.mFirstHitInBinOffset;
+  HIPGPUglobalref() const calink* GPUrestrict() lFirstHitInBin = (HIPGPUglobalref() const calink*)tracker.mData.mFirstHitInBin;
+  HIPGPUglobalref() const cahit2* GPUrestrict() pHitData = (HIPGPUglobalref() const cahit2*)tracker.mData.mHitData;
+  const float y0Up = rowUp.mGrid.mYMin;
+  const float z0Up = rowUp.mGrid.mZMin;
+  const float stepYUp = rowUp.mHstepY;
+  const float stepZUp = rowUp.mHstepZ;
+  const float y0Dn = rowDn.mGrid.mYMin;
+  const float z0Dn = rowDn.mGrid.mZMin;
+  const float stepYDn = rowDn.mHstepY;
+  const float stepZDn = rowDn.mHstepZ;
 
   for (int ih = iThread; ih < s.mNHits; ih += nThreads) {
     int linkUp = -1;
     int linkDn = -1;
 
-    if (s.mDnNHits > 0 && s.mUpNHits > 0) {
-// coordinates of the hit in the current row
-#if defined(GPUCA_TEXTURE_FETCH_NEIGHBORS)
-      cahit2 tmpval = tex1Dfetch(gAliTexRefu2, ((char*)tracker.Data().HitData() - tracker.Data().GPUTextureBase()) / sizeof(cahit2) + row.HitNumberOffset() + ih);
-      const float y = y0 + tmpval.x * stepY;
-      const float z = z0 + tmpval.y * stepZ;
-#else
-      const float y = y0 + tracker.HitDataY(row, ih) * stepY;
-      const float z = z0 + tracker.HitDataZ(row, ih) * stepZ;
-#endif // GPUCA_TEXTURE_FETCH_NEIGHBORS
+    if (rowUp.mNHits > 0 && rowDn.mNHits > 0) {
+      HIPGPUglobalref() const cahit2& hitData = pHitData[lHitNumberOffset + ih];
+      const float y = y0 + (hitData.x) * stepY;
+      const float z = z0 + (hitData.y) * stepZ;
 
 #if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP < GPUCA_MAXN
       calink neighUp[GPUCA_MAXN - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP];
@@ -131,77 +139,122 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
 #endif // GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
 
       int nNeighUp = 0;
-      GPUTPCHitArea areaDn, areaUp;
+      float minZ, maxZ, minY, maxY;
+      int binYmin, binYmax, binZmin, binZmax;
+      int nY;
 
-      const float kAngularMultiplier = tracker.Param().rec.SearchWindowDZDR;
-      const float kAreaSize = tracker.Param().rec.NeighboursSearchArea;
-      areaUp.Init(rowUp, tracker.Data(), y * s.mUpTx, kAngularMultiplier != 0.f ? z : (z * s.mUpTx), kAreaSize, kAngularMultiplier != 0.f ? (s.mUpDx * kAngularMultiplier) : kAreaSize);
-      areaDn.Init(rowDn, tracker.Data(), y * s.mDnTx, kAngularMultiplier != 0.f ? z : (z * s.mDnTx), kAreaSize, kAngularMultiplier != 0.f ? (-s.mDnDx * kAngularMultiplier) : kAreaSize);
+      const float kAngularMultiplier = tracker.mConstantMem->param.rec.SearchWindowDZDR;
+      const float kAreaSize = tracker.mConstantMem->param.rec.NeighboursSearchArea;
 
-      do {
-        GPUTPCHit h;
-        int i = areaUp.GetNext(tracker, rowUp, tracker.Data(), &h);
-        if (i < 0) {
-          break;
-        }
+      {
+        const float yy = y * s.mUpTx;
+        const float zz = kAngularMultiplier != 0.f ? z : (z * s.mUpTx);
+        const float dy = kAreaSize;
+        const float dz = kAngularMultiplier != 0.f ? (s.mUpDx * kAngularMultiplier) : kAreaSize;
+        minZ = zz - dz;
+        maxZ = zz + dz;
+        minY = yy - dy;
+        maxY = yy + dy;
+        reinterpret_cast<const HIPTPCROW(GPUTPCRow)&>(rowUp).Grid().GetBin(minY, minZ, &binYmin, &binZmin);
+        reinterpret_cast<const HIPTPCROW(GPUTPCRow)&>(rowUp).Grid().GetBin(maxY, maxZ, &binYmax, &binZmax);
+        nY = reinterpret_cast<const HIPTPCROW(GPUTPCRow)&>(rowUp).Grid().Ny();
+      }
+
+      bool dobreak = false;
+      for (int k1 = binZmin; k1 <= binZmax; k1++) {
+        int iMin = lFirstHitInBin[lFirstHitInBinOffsetUp + k1 * nY + binYmin];
+        int iMax = lFirstHitInBin[lFirstHitInBinOffsetUp + k1 * nY + binYmax + 1];
+        GPUCA_UNROLL(U(4), )
+        for (int i = iMin; i < iMax; i++) {
+          HIPGPUglobalref() const cahit2& hitDataUp = pHitData[lHitNumberOffsetUp + i];
+          GPUTPCHit h;
+          h.mY = y0Up + (hitDataUp.x) * stepYUp;
+          h.mZ = z0Up + (hitDataUp.y) * stepZUp;
+          if (h.mY < minY || h.mY > maxY || h.mZ < minZ || h.mZ > maxZ) {
+            continue;
+          }
 
 #if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP < GPUCA_MAXN
 #if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP == 0
-        if (true) {
+          if (true) {
 #else
-        if ((unsigned int)nNeighUp >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP) {
+          if ((unsigned int)nNeighUp >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP) {
 #endif
-          neighUp[nNeighUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] = (calink)i;
-          yzUp[nNeighUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] = s.mDnDx * (h.Y() - y);
-          yzUp2[nNeighUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] = s.mDnDx * (h.Z() - z);
-        } else
+            neighUp[nNeighUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] = (calink)i;
+            yzUp[nNeighUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] = s.mDnDx * (h.Y() - y);
+            yzUp2[nNeighUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP] = s.mDnDx * (h.Z() - z);
+          } else
 #endif
-        {
+          {
 #if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0
-          s.mB[nNeighUp][iThread] = (calink)i;
-          s.mA1[nNeighUp][iThread] = s.mDnDx * (h.Y() - y);
-          s.mA2[nNeighUp][iThread] = s.mDnDx * (h.Z() - z);
+            s.mB[nNeighUp][iThread] = (calink)i;
+            s.mA1[nNeighUp][iThread] = s.mDnDx * (h.Y() - y);
+            s.mA2[nNeighUp][iThread] = s.mDnDx * (h.Z() - z);
 #endif
+          }
+          if (++nNeighUp >= GPUCA_MAXN) {
+            dobreak = true;
+            break;
+          }
         }
-        if (++nNeighUp >= GPUCA_MAXN) {
-          // GPUInfo("Neighbors buffer ran full...");
+        if (dobreak) {
           break;
         }
-      } while (1);
+      }
 
       if (nNeighUp > 0) {
+        {
+          const float yy = y * s.mDnTx;
+          const float zz = kAngularMultiplier != 0.f ? z : (z * s.mDnTx);
+          const float dy = kAreaSize;
+          const float dz = kAngularMultiplier != 0.f ? (-s.mDnDx * kAngularMultiplier) : kAreaSize;
+          minZ = zz - dz;
+          maxZ = zz + dz;
+          minY = yy - dy;
+          maxY = yy + dy;
+        }
+        reinterpret_cast<const HIPTPCROW(GPUTPCRow)&>(rowDn).Grid().GetBin(minY, minZ, &binYmin, &binZmin);
+        reinterpret_cast<const HIPTPCROW(GPUTPCRow)&>(rowDn).Grid().GetBin(maxY, maxZ, &binYmax, &binZmax);
+        nY = reinterpret_cast<const HIPTPCROW(GPUTPCRow)&>(rowDn).Grid().Ny();
         int bestDn = -1, bestUp = -1;
         float bestD = 1.e10f;
 
         int nNeighDn = 0;
-        do {
-          GPUTPCHit h;
-          int i = areaDn.GetNext(tracker, rowDn, tracker.Data(), &h);
-          if (i < 0) {
-            break;
-          }
+        for (int k1 = binZmin; k1 <= binZmax; k1++) {
+          int iMin = lFirstHitInBin[lFirstHitInBinOffsetDn + k1 * nY + binYmin];
+          int iMax = lFirstHitInBin[lFirstHitInBinOffsetDn + k1 * nY + binYmax + 1];
+          for (int i = iMin; i < iMax; i++) {
+            HIPGPUglobalref() const cahit2& hitDataDn = pHitData[lHitNumberOffsetDn + i];
+            GPUTPCHit h;
+            h.mY = y0Dn + (hitDataDn.x) * stepYDn;
+            h.mZ = z0Dn + (hitDataDn.y) * stepZDn;
+            if (h.mY < minY || h.mY > maxY || h.mZ < minZ || h.mZ > maxZ) {
+              continue;
+            }
 
-          nNeighDn++;
-          float2 yzdn = CAMath::MakeFloat2(s.mUpDx * (h.Y() - y), s.mUpDx * (h.Z() - z));
+            nNeighDn++;
+            float2 yzdn = CAMath::MakeFloat2(s.mUpDx * (h.Y() - y), s.mUpDx * (h.Z() - z));
 
-          for (int iUp = 0; iUp < nNeighUp; iUp++) {
+            GPUCA_UNROLL(U(4), )
+            for (int iUp = 0; iUp < nNeighUp; iUp++) {
 #if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0 && GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP < GPUCA_MAXN
-            float2 yzup = iUp >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP ? CAMath::MakeFloat2(yzUp[iUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP], yzUp2[iUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP]) : CAMath::MakeFloat2(s.mA1[iUp][iThread], s.mA2[iUp][iThread]);
+              float2 yzup = iUp >= GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP ? CAMath::MakeFloat2(yzUp[iUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP], yzUp2[iUp - GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP]) : CAMath::MakeFloat2(s.mA1[iUp][iThread], s.mA2[iUp][iThread]);
 #elif GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP == GPUCA_MAXN
-            float2 yzup = CAMath::MakeFloat2(s.mA1[iUp][iThread], s.mA2[iUp][iThread]);
+              const float2 yzup = CAMath::MakeFloat2(s.mA1[iUp][iThread], s.mA2[iUp][iThread]);
 #else
-            float2 yzup = CAMath::MakeFloat2(yzUp[iUp], yzUp2[iUp]);
+              const float2 yzup = CAMath::MakeFloat2(yzUp[iUp], yzUp2[iUp]);
 #endif
-            float dy = yzdn.x - yzup.x;
-            float dz = yzdn.y - yzup.y;
-            float d = dy * dy + dz * dz;
-            if (d < bestD) {
-              bestD = d;
-              bestDn = i;
-              bestUp = iUp;
+              const float dy = yzdn.x - yzup.x;
+              const float dz = yzdn.y - yzup.y;
+              const float d = dy * dy + dz * dz;
+              if (d < bestD) {
+                bestD = d;
+                bestDn = i;
+                bestUp = iUp;
+              }
             }
           }
-        } while (1);
+        }
 
         if (bestD <= chi2Cut) {
 #if GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP > 0 && GPUCA_NEIGHBOURS_FINDER_MAX_NNEIGHUP < GPUCA_MAXN
@@ -216,7 +269,7 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
       }
     }
 
-    tracker.SetHitLinkUpData(row, ih, linkUp);
-    tracker.SetHitLinkDownData(row, ih, linkDn);
+    tracker.mData.mLinkUpData[lHitNumberOffset + ih] = linkUp;
+    tracker.mData.mLinkDownData[lHitNumberOffset + ih] = linkDn;
   }
 }

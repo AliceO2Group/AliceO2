@@ -164,12 +164,14 @@ struct ExpirationHandlerHelpers {
 
 /// This creates a string to configure channels of a FairMQDevice
 /// FIXME: support shared memory
-std::string inputChannel2String(const InputChannelSpec& channel)
+std::string DeviceSpecHelpers::inputChannel2String(const InputChannelSpec& channel)
 {
   std::string result;
 
-  result += "name=" + channel.name;
-  result += std::string(",type=") + ChannelSpecHelpers::typeAsString(channel.type);
+  if (!channel.name.empty()) {
+    result += "name=" + channel.name + ",";
+  }
+  result += std::string("type=") + ChannelSpecHelpers::typeAsString(channel.type);
   result += std::string(",method=") + ChannelSpecHelpers::methodAsString(channel.method);
   result += std::string(",address=") + ChannelSpecHelpers::channelUrl(channel);
   result += std::string(",rateLogging=60");
@@ -177,12 +179,14 @@ std::string inputChannel2String(const InputChannelSpec& channel)
   return result;
 }
 
-std::string outputChannel2String(const OutputChannelSpec& channel)
+std::string DeviceSpecHelpers::outputChannel2String(const OutputChannelSpec& channel)
 {
   std::string result;
 
-  result += "name=" + channel.name;
-  result += std::string(",type=") + ChannelSpecHelpers::typeAsString(channel.type);
+  if (!channel.name.empty()) {
+    result += "name=" + channel.name + ",";
+  }
+  result += std::string("type=") + ChannelSpecHelpers::typeAsString(channel.type);
   result += std::string(",method=") + ChannelSpecHelpers::methodAsString(channel.method);
   result += std::string(",address=") + ChannelSpecHelpers::channelUrl(channel);
   result += std::string(",rateLogging=60");
@@ -744,7 +748,8 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
                                          std::vector<DataProcessorInfo> const& processorInfos,
                                          std::vector<DeviceSpec> const& deviceSpecs,
                                          std::vector<DeviceExecution>& deviceExecutions,
-                                         std::vector<DeviceControl>& deviceControls)
+                                         std::vector<DeviceControl>& deviceControls,
+                                         std::string const& uniqueWorkflowId)
 {
   assert(deviceSpecs.size() == deviceExecutions.size());
   assert(deviceControls.size() == deviceExecutions.size());
@@ -796,6 +801,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     std::vector<std::string> tmpArgs = {argv[0],
                                         "--id", spec.id.c_str(),
                                         "--control", "static",
+                                        "--session", "dpl_" + uniqueWorkflowId,
                                         "--log-color", "false",
                                         "--color", "false"};
     if (defaultStopped) {
@@ -843,6 +849,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         realOdesc.add_options()("child-driver", bpo::value<std::string>());
         realOdesc.add_options()("rate", bpo::value<std::string>());
         realOdesc.add_options()("shm-segment-size", bpo::value<std::string>());
+        realOdesc.add_options()("session", bpo::value<std::string>());
         filterArgsFct(expansions.we_wordc, expansions.we_wordv, realOdesc);
         wordfree(&expansions);
         return;
@@ -934,6 +941,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("control-port", bpo::value<std::string>(), "Utility port to be used by O2 Control")                        //
     ("rate", bpo::value<std::string>(), "rate for a data source device (Hz)")                                   //
     ("shm-segment-size", bpo::value<std::string>(), "size of the shared memory segment in bytes")               //
+    ("session", bpo::value<std::string>(), "unique label for the shared memory session")                        //
     ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                           //
     ("infologger-mode", bpo::value<std::string>(), "INFOLOGGER_MODE override")                                  //
     ("infologger-severity", bpo::value<std::string>(), "minimun FairLogger severity which goes to info logger") //

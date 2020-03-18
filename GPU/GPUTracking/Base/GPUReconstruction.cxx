@@ -100,6 +100,12 @@ int GPUReconstruction::Init()
   if (GetDeviceProcessingSettings().debugLevel >= 6 && GetDeviceProcessingSettings().comparableDebutOutput) {
     mDeviceProcessingSettings.nTPCClustererLanes = 1;
   }
+  if (!(mRecoStepsGPU & GPUDataTypes::RecoStep::TPCMerging)) {
+    mDeviceProcessingSettings.mergerSortTracks = false;
+  }
+  if (!IsGPU()) {
+    mDeviceProcessingSettings.nDeviceHelperThreads = 0;
+  }
 
 #ifndef HAVE_O2HEADERS
   mRecoSteps.setBits(RecoStep::ITSTracking, false);
@@ -113,14 +119,8 @@ int GPUReconstruction::Init()
   if (!IsGPU()) {
     mRecoStepsGPU.set((unsigned char)0);
   }
-  if (!IsGPU()) {
-    mDeviceProcessingSettings.trackletConstructorInPipeline = mDeviceProcessingSettings.trackletSelectorInPipeline = false;
-  }
   if (param().rec.NonConsecutiveIDs) {
     param().rec.DisableRefitAttachment = 0xFF;
-  }
-  if (!mDeviceProcessingSettings.trackletConstructorInPipeline) {
-    mDeviceProcessingSettings.trackletSelectorInPipeline = false;
   }
 
 #ifdef WITH_OPENMP
@@ -154,6 +154,11 @@ int GPUReconstruction::Init()
   if (InitDevice()) {
     return 1;
   }
+  GPUCA_GPUReconstructionUpdateDefailts();
+  if (!mDeviceProcessingSettings.trackletConstructorInPipeline) {
+    mDeviceProcessingSettings.trackletSelectorInPipeline = false;
+  }
+
   if (IsGPU()) {
     for (unsigned int i = 0; i < mChains.size(); i++) {
       mChains[i]->RegisterGPUProcessors();
@@ -415,6 +420,15 @@ void GPUReconstruction::ClearAllocatedMemory(bool clearOutputs)
 
 static long long int ptrDiff(void* a, void* b) { return (long long int)((char*)a - (char*)b); }
 
+void GPUReconstruction::PrintMemoryOverview()
+{
+  if (GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
+    printf("Memory Allocation: Host %'lld / %'lld (Permanent %'lld), Device %'lld / %'lld, (Permanent %'lld) %d chunks\n",
+           ptrDiff(mHostMemoryPool, mHostMemoryBase), (long long int)mHostMemorySize, ptrDiff(mHostMemoryPermanent, mHostMemoryBase),
+           ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase), (long long int)mDeviceMemorySize, ptrDiff(mDeviceMemoryPermanent, mDeviceMemoryBase), (int)mMemoryResources.size());
+  }
+}
+
 void GPUReconstruction::PrintMemoryStatistics()
 {
   std::map<std::string, std::array<size_t, 3>> sizes;
@@ -434,11 +448,7 @@ void GPUReconstruction::PrintMemoryStatistics()
   for (auto it = sizes.begin(); it != sizes.end(); it++) {
     printf("Allocation %30s %s: Size %'13lld / %'13lld\n", it->first.c_str(), it->second[2] ? "P" : " ", (long long int)it->second[0], (long long int)it->second[1]);
   }
-  if (GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
-    printf("Memory Allocation: Host %'lld / %'lld (Permanent %'lld), Device %'lld / %'lld, (Permanent %'lld) %d chunks\n",
-           ptrDiff(mHostMemoryPool, mHostMemoryBase), (long long int)mHostMemorySize, ptrDiff(mHostMemoryPermanent, mHostMemoryBase),
-           ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase), (long long int)mDeviceMemorySize, ptrDiff(mDeviceMemoryPermanent, mDeviceMemoryBase), (int)mMemoryResources.size());
-  }
+  PrintMemoryOverview();
   for (unsigned int i = 0; i < mChains.size(); i++) {
     mChains[i]->PrintMemoryStatistics();
   }

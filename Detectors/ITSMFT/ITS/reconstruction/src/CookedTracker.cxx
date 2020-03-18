@@ -463,8 +463,8 @@ std::vector<TrackITSExt> CookedTracker::trackInThread(Int_t first, Int_t last)
   return seeds;
 }
 
-void CookedTracker::process(gsl::span<const Cluster> clusters, std::vector<TrackITS>& tracks,
-                            std::vector<int>& clusIdx, o2::itsmft::ROFRecord& rof)
+void CookedTracker::process(gsl::span<const Cluster> const& clusters, TrackInserter& inserter,
+                            o2::itsmft::ROFRecord& rof)
 {
   //--------------------------------------------------------------------
   // This is the main tracking function
@@ -487,9 +487,7 @@ void CookedTracker::process(gsl::span<const Cluster> clusters, std::vector<Track
 
   start = end;
 
-  int first = tracks.size();
-  processLoadedClusters(tracks, clusIdx);
-  int number = tracks.size() - first;
+  auto [first, number] = processLoadedClusters(inserter);
   rof.setFirstEntry(first);
   rof.setNEntries(number);
 
@@ -501,7 +499,7 @@ void CookedTracker::process(gsl::span<const Cluster> clusters, std::vector<Track
   start = end;
 }
 
-void CookedTracker::processLoadedClusters(std::vector<TrackITS>& tracks, std::vector<int>& clusIdx)
+std::tuple<int, int> CookedTracker::processLoadedClusters(TrackInserter& inserter)
 {
   //--------------------------------------------------------------------
   // This is the main tracking function for single frame, it is assumed that only clusters
@@ -509,7 +507,7 @@ void CookedTracker::processLoadedClusters(std::vector<TrackITS>& tracks, std::ve
   //--------------------------------------------------------------------
   Int_t numOfClusters = sLayers[kSeedingLayer1].getNumberOfClusters();
   if (!numOfClusters) {
-    return;
+    return {0, 0};
   }
 
   std::vector<std::future<std::vector<TrackITSExt>>> futures(mNumOfThreads);
@@ -522,20 +520,24 @@ void CookedTracker::processLoadedClusters(std::vector<TrackITS>& tracks, std::ve
     first = last;
   }
   Int_t nSeeds = 0, ngood = 0;
+  int nAllTracks = 0, nTracks = 0;
   for (Int_t t = 0; t < mNumOfThreads; t++) {
     seedArray[t] = futures[t].get();
     nSeeds += seedArray[t].size();
     for (auto& track : seedArray[t]) {
       if (track.getNumberOfClusters() < kminNumberOfClusters)
         continue;
+      nAllTracks = inserter(track);
+      nTracks++;
       if (mTrkLabels) {
         Label label = cookLabel(track, 0.); // For comparison only
-        if (label.getTrackID() >= 0)
+        if (label.getTrackID() >= 0) {
           ngood++;
-        Int_t idx = tracks.size();
-        mTrkLabels->addElement(idx, label);
+        }
+        // the inserter returns the size of the track vector, the index of the last
+        // inserted track is thus n - 1
+        mTrkLabels->addElement(nAllTracks - 1, label);
       }
-      addOutputTrack(track, tracks, clusIdx);
     }
   }
 
@@ -543,21 +545,9 @@ void CookedTracker::processLoadedClusters(std::vector<TrackITS>& tracks, std::ve
     LOG(INFO) << "CookedTracker::processLoadedClusters(), good_tracks:/seeds: " << ngood << '/' << nSeeds << "-> "
               << Float_t(ngood) / nSeeds << '\n';
   }
-}
-
-//____________________________________________________________
-void CookedTracker::addOutputTrack(const TrackITSExt& t, std::vector<TrackITS>& tracks, std::vector<int>& clusIdx)
-{
-  // convert internal track to output format
-  auto& trackNew = tracks.emplace_back(t);
-  int noc = t.getNumberOfClusters();
-  int clEntry = clusIdx.size();
-  for (int i = 0; i < noc; i++) {
-    const Cluster* c = getCluster(t.getClusterIndex(i));
-    Int_t idx = c - mFirstCluster - mFirstInFrame; // Index of this cluster in event
-    clusIdx.emplace_back(idx);
-  }
-  trackNew.setClusterRefs(clEntry, noc);
+  // returning index of the first track and the number of add tracks
+  // inserted in this call
+  return {nAllTracks - nTracks, nTracks};
 }
 
 //____________________________________________________________

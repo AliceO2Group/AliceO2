@@ -26,6 +26,15 @@ namespace framework
 using ChannelRetriever = std::function<std::string(OutputSpec const&)>;
 using InjectorFunction = std::function<void(FairMQDevice& device, FairMQParts& inputs, ChannelRetriever)>;
 
+struct InputChannelSpec;
+struct OutputChannelSpec;
+
+/// helper method to format a configuration string for an external channel
+std::string formatExternalChannelConfiguration(InputChannelSpec const&);
+
+/// helper method to format a configuration string for an external channel
+std::string formatExternalChannelConfiguration(OutputChannelSpec const&);
+
 /// send header/payload O2 message for an OutputSpec, a channel retriever callback is required to
 /// get the associated FairMQChannel
 /// FIXME: can in principle drop the OutputSpec parameter and take the DataHeader
@@ -64,15 +73,39 @@ static auto gDefaultConverter = incrementalConverter(OutputSpec{"TST", "TEST", 0
 /// @param label is the label of the DataProcessorSpec associated.
 /// @param outputs is the type of messages which this source produces.
 /// @param channelConfig is string to be passed to fairmq to create the device.
-///        notice that the name of the device will be the same as the label.
+///        notice that the name of the device will be added as the name of the channel if the
+///        name tag is not yet in the configuration
 /// @param converter is a lambda to be invoked to convert @a inputs into
 ///        messages of the DPL. By default @a incrementalConverter is used
 ///        which attaches to each @input FairMQPart a DataProcessingHeader
 ///        with an incremental number as start time.
 DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* label,
                                                    std::vector<OutputSpec> const& outputs,
-                                                   const char* channelConfig,
+                                                   const char* defaultChannelConfig,
                                                    InjectorFunction converter);
+
+/// Create a DataProcessorSpec for a DPL processor with an out-of-band channel to relay DPL
+/// workflow data to an external FairMQDevice channel.
+///
+/// The output configuration is determined by one or multiple entries of the FairMQDevice
+/// command line option '--channel-config' in the format
+///    --channel-config "name=channel-name;..."
+/// A default string is build from the provided parameter.
+///
+/// The target of each input data matcher is specified as the binding identifier and matched to the
+/// configured output channels
+/// @param label is the label of the DataProcessorSpec associated.
+/// @param inputSpecs the list of inputs to read from, the binding of the spec must
+///        correspond to an output channel
+/// @param defaultChannelConfig is the default configuration of the out-of-band channel
+///        the string is passed to fairmq to create the device channel and can be adjusted
+///        by command line option '--channel-config'
+///        notice that the name of the device will be added as the name of the channel if the
+///        name tag is not yet in the configuration
+DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* label,
+                                                 Inputs const& inputSpecs,
+                                                 const char* defaultChannelConfig);
+
 } // namespace framework
 } // namespace o2
 

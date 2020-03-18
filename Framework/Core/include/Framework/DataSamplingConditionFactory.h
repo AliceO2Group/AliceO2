@@ -17,10 +17,10 @@
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
 #include "DataSamplingCondition.h"
+#include <memory>
+#include <string>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// A factory of DataSamplingConditions children.
@@ -42,7 +42,6 @@ class DataSamplingConditionFactory
   static std::unique_ptr<DataSamplingCondition> createDataSamplingConditionCustom();
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif //ALICEO2_DATASAMPLINGCONDITIONFACTORY_H

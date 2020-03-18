@@ -43,7 +43,6 @@ set(SRCS
     SliceTracker/GPUTPCNeighboursFinder.cxx
     SliceTracker/GPUTPCGrid.cxx
     SliceTracker/GPUTPCTrackletSelector.cxx
-    SliceTracker/GPUTPCHitArea.cxx
     SliceTracker/GPUTPCRow.cxx
     Merger/GPUTPCGMMerger.cxx
     Merger/GPUTPCGMSliceTrack.cxx
@@ -77,7 +76,8 @@ set(SRCS_NO_CINT
 
 set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
               Merger/GPUTPCGMMergerDump.cxx
-              Global/GPUChainTrackingDebugAndProfiling.cxx)
+              Global/GPUChainTrackingDebugAndProfiling.cxx
+              Global/GPUChainTrackingIO.cxx)
 
 set(HDRS_INSTALL
     SliceTracker/GPUTPCMCInfo.h
@@ -149,12 +149,14 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         DataCompression/GPUTPCClusterStatistics.cxx
         TPCClusterFinder/GPUTPCClusterFinder.cxx
         TPCClusterFinder/ClusterAccumulator.cxx
+        TPCClusterFinder/MCLabelAccumulator.cxx
         TPCClusterFinder/GPUTPCCFStreamCompaction.cxx
         TPCClusterFinder/GPUTPCCFChargeMapFiller.cxx
         TPCClusterFinder/GPUTPCCFPeakFinder.cxx
         TPCClusterFinder/GPUTPCCFNoiseSuppression.cxx
         TPCClusterFinder/GPUTPCCFClusterizer.cxx
         TPCClusterFinder/GPUTPCCFDeconvolution.cxx
+        TPCClusterFinder/GPUTPCCFMCLabelFlattener.cxx
         TPCClusterFinder/GPUTPCCFDecodeZS.cxx)
 
     set(SRCS_NO_H ${SRCS_NO_H}

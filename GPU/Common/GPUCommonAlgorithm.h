@@ -205,9 +205,10 @@ typedef GPUCommonAlgorithm CAAlgo;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#if defined(__CUDACC__) //|| defined(__HIPCC__)
-
-// currently disable Thrust for the AMD, since the GPUCommonAlgorithm::QuickSort is faster
+#if 0 //(defined(__CUDACC__) && !defined(__clang__)) || defined(__HIPCC__) // disables
+// thrust currently disabled:
+// - broken on HIP
+// - Our quicksort and bubble sort implementations are faster
 
 #include "GPUCommonAlgorithmThrust.h"
 
@@ -244,10 +245,7 @@ GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end)
 #ifndef GPUCA_GPUCODE_DEVICE
   GPUCommonAlgorithm::sort(begin, end);
 #else
-  if (get_local_id(0) == 0) {
-    GPUCommonAlgorithm::sort(begin, end);
-  }
-  GPUbarrier();
+  GPUCommonAlgorithm::sortInBlock(begin, end, [](auto&& x, auto&& y) { return x < y; });
 #endif
 }
 
@@ -257,10 +255,21 @@ GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end, const S& comp)
 #ifndef GPUCA_GPUCODE_DEVICE
   GPUCommonAlgorithm::sort(begin, end, comp);
 #else
-  if (get_local_id(0) == 0) {
-    GPUCommonAlgorithm::sort(begin, end, comp);
+  int n = end - begin;
+  for (int i = 0; i < n; i++) {
+    for (int tIdx = get_local_id(0); tIdx < n; tIdx += get_local_size(0)) {
+      int offset = i % 2;
+      int curPos = 2 * tIdx + offset;
+      int nextPos = curPos + 1;
+
+      if (nextPos < n) {
+        if (!comp(begin[curPos], begin[nextPos])) {
+          IterSwap(&begin[curPos], &begin[nextPos]);
+        }
+      }
+    }
+    GPUbarrier();
   }
-  GPUbarrier();
 #endif
 }
 
@@ -279,7 +288,7 @@ GPUdi() void GPUCommonAlgorithm::sortInBlock(T* begin, T* end, const S& comp)
 
 #if defined(__CUDACC__)
 #include <cub/cub.cuh>
-#else
+#elif defined(__HIPCC__)
 #include <hipcub/hipcub.hpp>
 #endif
 

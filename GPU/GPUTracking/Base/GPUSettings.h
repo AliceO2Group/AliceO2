@@ -77,6 +77,7 @@ struct GPUSettingsRec {
   unsigned char tpcZSthreshold;          // TPC Zero Suppression Threshold (for loading digits / forwarging digits as clusters)
   unsigned char fwdTPCDigitsAsClusters;  // Simply forward TPC digits as clusters
   unsigned char bz0Pt;                   // Nominal Pt to set when bz = 0 (in 10 MeV)
+  unsigned char dropLoopers;             // Drop all clusters after starting from the second loop from tracks
 };
 
 // Settings describing the events / time frames
@@ -138,12 +139,16 @@ struct GPUSettingsDeviceProcessing {
   int memoryAllocationStrategy;       // 0 = auto, 1 = new/delete per resource (default for CPU), 2 = big chunk single allocation (default for device)
   bool keepAllMemory;                 // Allocate all memory on both device and host, and do not reuse
   int nStreams;                       // Number of parallel GPU streams
-  bool trackletConstructorInPipeline; // Run tracklet constructor in pileline like the preceeding tasks instead of as one big block
-  bool trackletSelectorInPipeline;    // Run tracklet selector in pipeline, requres also tracklet constructor in pipeline
+  char trackletConstructorInPipeline; // Run tracklet constructor in pileline like the preceeding tasks instead of as one big block
+  char trackletSelectorInPipeline;    // Run tracklet selector in pipeline, requres also tracklet constructor in pipeline
+  char trackletSelectorSlices;        // Number of slices to processes in parallel at max
   size_t forceMemoryPoolSize;         // Override size of memory pool to be allocated on GPU / Host (set =1 to force allocating all device memory, if supported)
   int nTPCClustererLanes;             // Number of TPC clusterers that can run in parallel
   bool deviceTimers;                  // Use device timers instead of host-based timers
   bool registerStandaloneInputMemory; // Automatically register memory for the GPU which is used as input for the standalone benchmark
+  int tpcCompressionGatherMode;       // Modes: 0 = gather by DMA, 1 = DMA + gather on host, ...
+  bool mergerSortTracks;              // Sort track indices for GPU track fit
+  bool runMC;                         // Process MC labels
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

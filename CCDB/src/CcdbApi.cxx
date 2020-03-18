@@ -15,11 +15,12 @@
 
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CCDBQuery.h"
+#include "CommonUtils/StringUtils.h"
+#include "CommonUtils/MemFileHelper.h"
 #include <regex>
 #include <chrono>
 #include <TMessage.h>
 #include <sstream>
-#include <CommonUtils/StringUtils.h>
 #include <TFile.h>
 #include <TSystem.h>
 #include <TStreamerInfo.h>
@@ -85,38 +86,48 @@ std::string sanitizeObjectName(const std::string& objectName)
   return tmpObjectName;
 }
 
-void CcdbApi::storeAsTFile_impl(void* obj, std::type_info const& tinfo, std::string const& path, std::map<std::string, std::string> const& metadata,
+std::unique_ptr<std::vector<char>> CcdbApi::createObjectImage(const void* obj, std::type_info const& tinfo, CcdbObjectInfo* info)
+{
+  // Create a binary image of the object, if CcdbObjectInfo pointer is provided, register there
+  // the assigned object class name and the filename
+  std::string className = o2::utils::MemFileHelper::getClassName(tinfo);
+  std::string tmpFileName = generateFileName(className);
+  if (info) {
+    info->setFileName(tmpFileName);
+    info->setObjectType(className);
+  }
+  return o2::utils::MemFileHelper::createFileImage(obj, tinfo, tmpFileName, CCDBOBJECT_ENTRY);
+}
+
+std::unique_ptr<std::vector<char>> CcdbApi::createObjectImage(const TObject* rootObject, CcdbObjectInfo* info)
+{
+  // Create a binary image of the object, if CcdbObjectInfo pointer is provided, register there
+  // the assigned object class name and the filename
+  std::string className = rootObject->GetName();
+  std::string tmpFileName = generateFileName(className);
+  if (info) {
+    info->setFileName(tmpFileName);
+    info->setObjectType("TObject"); // why TObject and not the actual name?
+  }
+  return o2::utils::MemFileHelper::createFileImage(*rootObject, tmpFileName, CCDBOBJECT_ENTRY);
+}
+
+void CcdbApi::storeAsTFile_impl(const void* obj, std::type_info const& tinfo, std::string const& path,
+                                std::map<std::string, std::string> const& metadata,
                                 long startValidityTimestamp, long endValidityTimestamp) const
 {
   // We need the TClass for this type; will verify if dictionary exists
-  auto tcl = TClass::GetClass(tinfo);
-  if (!tcl) {
-    std::cerr << "Could not retrieve ROOT dictionary for type " << tinfo.name() << " aborting to write to CCDB";
-    return;
-  }
+  CcdbObjectInfo info;
+  auto img = createObjectImage(obj, tinfo, &info);
+  storeAsBinaryFile(img->data(), img->size(), info.getFileName(), info.getObjectType(),
+                    path, metadata, startValidityTimestamp, endValidityTimestamp);
+}
 
-  // Prepare file name (for now the name corresponds to the name stored by TClass)
-  string className = string(tcl->GetName());
-  utils::trim(className);
-  string tmpFileName = className + "_" + getTimestampString(getCurrentTimestamp()) + ".root";
-#if ROOT_VERSION_CODE < ROOT_VERSION(6, 18, 0)
-  TMemFile memFile(tmpFileName.c_str(), "RECREATE");
-#else
-  size_t memFileBlockSize = 1024; // 1KB
-  TMemFile memFile(tmpFileName.c_str(), "RECREATE", "", ROOT::RCompressionSetting::EDefaults::kUseGeneralPurpose,
-                   memFileBlockSize);
-#endif
-  if (memFile.IsZombie()) {
-    cerr << "Error opening file " << tmpFileName << ", we can't store object " << className << endl;
-    memFile.Close();
-    return;
-  }
-  memFile.WriteObjectAny(obj, tcl, className.c_str());
-  memFile.Close();
-
-  // Prepare Buffer
-  void* buffer = malloc(memFile.GetSize());
-  memFile.CopyTo(buffer, memFile.GetSize());
+void CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::string& filename, const std::string& objectType,
+                                const std::string& path, const std::map<std::string, std::string>& metadata,
+                                long startValidityTimestamp, long endValidityTimestamp) const
+{
+  // Store a binary file
 
   // Prepare URL
   long sanitizedStartValidityTimestamp = startValidityTimestamp;
@@ -129,8 +140,6 @@ void CcdbApi::storeAsTFile_impl(void* obj, std::type_info const& tinfo, std::str
     cout << "End of Validity not set, start of validity plus 1 year used." << endl;
     sanitizedEndValidityTimestamp = getFutureTimestamp(60 * 60 * 24 * 365);
   }
-  string fullUrl = getFullUrlForStorage(path, className, metadata, sanitizedStartValidityTimestamp, sanitizedEndValidityTimestamp);
-  LOG(DEBUG) << "Full URL " << fullUrl;
 
   // Curl preparation
   CURL* curl = nullptr;
@@ -141,14 +150,16 @@ void CcdbApi::storeAsTFile_impl(void* obj, std::type_info const& tinfo, std::str
   curl_formadd(&formpost,
                &lastptr,
                CURLFORM_COPYNAME, "send",
-               CURLFORM_BUFFER, tmpFileName.c_str(),
+               CURLFORM_BUFFER, filename.c_str(),
                CURLFORM_BUFFERPTR, buffer, //.Buffer(),
-               CURLFORM_BUFFERLENGTH, memFile.GetSize(),
+               CURLFORM_BUFFERLENGTH, size,
                CURLFORM_END);
 
   curl = curl_easy_init();
   headerlist = curl_slist_append(headerlist, buf);
   if (curl != nullptr) {
+    string fullUrl = getFullUrlForStorage(curl, path, objectType, metadata, sanitizedStartValidityTimestamp, sanitizedEndValidityTimestamp);
+    LOG(DEBUG) << "Full URL Encoded: " << fullUrl;
     /* what URL that receives this POST */
     curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
@@ -174,88 +185,17 @@ void CcdbApi::storeAsTFile_impl(void* obj, std::type_info const& tinfo, std::str
   }
 }
 
-void CcdbApi::storeAsTFile(TObject* rootObject, std::string const& path, std::map<std::string, std::string> const& metadata,
+void CcdbApi::storeAsTFile(const TObject* rootObject, std::string const& path, std::map<std::string, std::string> const& metadata,
                            long startValidityTimestamp, long endValidityTimestamp) const
 {
   // Prepare file
-  string objectName = string(rootObject->GetName());
-  utils::trim(objectName);
-  string tmpFileName = objectName + "_" + getTimestampString(getCurrentTimestamp()) + ".root";
-#if ROOT_VERSION_CODE < ROOT_VERSION(6, 18, 0)
-  TMemFile memFile(tmpFileName.c_str(), "RECREATE");
-#else
-  size_t memFileBlockSize = 1024; // 1KB
-  TMemFile memFile(tmpFileName.c_str(), "RECREATE", "", ROOT::RCompressionSetting::EDefaults::kUseGeneralPurpose,
-                   memFileBlockSize);
-#endif
-  if (memFile.IsZombie()) {
-    cerr << "Error opening file " << tmpFileName << ", we can't store object " << rootObject->GetName() << endl;
-    memFile.Close();
-    return;
-  }
-  rootObject->Write(CCDBOBJECT_ENTRY);
-  memFile.Close();
-
-  // Prepare Buffer
-  void* buffer = malloc(memFile.GetSize());
-  memFile.CopyTo(buffer, memFile.GetSize());
-
-  // Prepare URL
-  long sanitizedStartValidityTimestamp = startValidityTimestamp;
-  if (startValidityTimestamp == -1) {
-    cout << "Start of Validity not set, current timestamp used." << endl;
-    sanitizedStartValidityTimestamp = getCurrentTimestamp();
-  }
-  long sanitizedEndValidityTimestamp = endValidityTimestamp;
-  if (endValidityTimestamp == -1) {
-    cout << "End of Validity not set, start of validity plus 1 year used." << endl;
-    sanitizedEndValidityTimestamp = getFutureTimestamp(60 * 60 * 24 * 365);
-  }
-  string fullUrl = getFullUrlForStorage(path, "TObject", metadata, sanitizedStartValidityTimestamp, sanitizedEndValidityTimestamp);
-
-  // Curl preparation
-  CURL* curl;
-  struct curl_httppost* formpost = nullptr;
-  struct curl_httppost* lastptr = nullptr;
-  struct curl_slist* headerlist = nullptr;
-  static const char buf[] = "Expect:";
-  curl_formadd(&formpost,
-               &lastptr,
-               CURLFORM_COPYNAME, "send",
-               CURLFORM_BUFFER, tmpFileName.c_str(),
-               CURLFORM_BUFFERPTR, buffer, //.Buffer(),
-               CURLFORM_BUFFERLENGTH, memFile.GetSize(),
-               CURLFORM_END);
-
-  curl = curl_easy_init();
-  headerlist = curl_slist_append(headerlist, buf);
-  if (curl != nullptr) {
-    /* what URL that receives this POST */
-    curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
-    curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
-
-    /* Perform the request, res will get the return code */
-    CURLcode res = curl_easy_perform(curl);
-    /* Check for errors */
-    if (res != CURLE_OK) {
-      fprintf(stderr, "curl_easy_perform() failed: %s\n",
-              curl_easy_strerror(res));
-    }
-
-    /* always cleanup */
-    curl_easy_cleanup(curl);
-
-    /* then cleanup the formpost chain */
-    curl_formfree(formpost);
-    /* free slist */
-    curl_slist_free_all(headerlist);
-  } else {
-    cerr << "curl initialization failure" << endl;
-  }
+  CcdbObjectInfo info;
+  auto img = createObjectImage(rootObject, &info);
+  storeAsBinaryFile(img->data(), img->size(), info.getFileName(), info.getObjectType(), path, metadata, startValidityTimestamp, endValidityTimestamp);
 }
 
-string CcdbApi::getFullUrlForStorage(const string& path, const string& objtype, const map<string, string>& metadata,
+string CcdbApi::getFullUrlForStorage(CURL* curl, const string& path, const string& objtype,
+                                     const map<string, string>& metadata,
                                      long startValidityTimestamp, long endValidityTimestamp) const
 {
   // Prepare timestamps
@@ -264,16 +204,26 @@ string CcdbApi::getFullUrlForStorage(const string& path, const string& objtype, 
   // Build URL
   string fullUrl = mUrl + "/" + path + "/" + startValidityString + "/" + endValidityString + "/";
   // Add type as part of metadata
-  fullUrl += "ObjectType=" + objtype + "/";
+  // we need to URL encode the object type, since in case it has special characters (like the "<", ">" for templated classes) it won't work otherwise
+  char* objtypeEncoded = curl_easy_escape(curl, objtype.c_str(), objtype.size());
+  fullUrl += "ObjectType=" + string(objtypeEncoded) + "/";
+  curl_free(objtypeEncoded);
   // Add general metadata
   for (auto& kv : metadata) {
-    fullUrl += kv.first + "=" + kv.second + "/";
+    string mfirst = kv.first;
+    string msecond = kv.second;
+    // same trick for the metadata as for the object type
+    char* mfirstEncoded = curl_easy_escape(curl, mfirst.c_str(), mfirst.size());
+    char* msecondEncoded = curl_easy_escape(curl, msecond.c_str(), msecond.size());
+    fullUrl += string(mfirstEncoded) + "=" + string(msecondEncoded) + "/";
+    curl_free(mfirstEncoded);
+    curl_free(msecondEncoded);
   }
   return fullUrl;
 }
 
 // todo make a single method of the one above and below
-string CcdbApi::getFullUrlForRetrieval(const string& path, const map<string, string>& metadata, long timestamp) const
+string CcdbApi::getFullUrlForRetrieval(CURL* curl, const string& path, const map<string, string>& metadata, long timestamp) const
 {
   if (mInSnapshotMode) {
     string snapshotPath = mSnapshotTopPath + "/" + path + "/snapshot.root";
@@ -286,7 +236,14 @@ string CcdbApi::getFullUrlForRetrieval(const string& path, const map<string, str
   string fullUrl = mUrl + "/" + path + "/" + validityString + "/";
   // Add metadata
   for (auto& kv : metadata) {
-    fullUrl += kv.first + "=" + kv.second + "/";
+    string mfirst = kv.first;
+    string msecond = kv.second;
+    // trick for the metadata in case it contains special characters
+    char* mfirstEncoded = curl_easy_escape(curl, mfirst.c_str(), mfirst.size());
+    char* msecondEncoded = curl_easy_escape(curl, msecond.c_str(), msecond.size());
+    fullUrl += string(mfirstEncoded) + "=" + string(msecondEncoded) + "/";
+    curl_free(mfirstEncoded);
+    curl_free(msecondEncoded);
   }
   return fullUrl;
 }
@@ -347,8 +304,6 @@ TObject* CcdbApi::retrieve(std::string const& path, std::map<std::string, std::s
   // Note : based on https://curl.haxx.se/libcurl/c/getinmemory.html
   // Thus it does not comply to our coding guidelines as it is a copy paste.
 
-  string fullUrl = getFullUrlForRetrieval(path, metadata, timestamp);
-
   // Prepare CURL
   CURL* curl_handle;
   CURLcode res;
@@ -359,6 +314,8 @@ TObject* CcdbApi::retrieve(std::string const& path, std::map<std::string, std::s
 
   /* init the curl session */
   curl_handle = curl_easy_init();
+
+  string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
 
   /* specify URL to get */
   curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
@@ -424,6 +381,14 @@ TObject* CcdbApi::retrieve(std::string const& path, std::map<std::string, std::s
   return result;
 }
 
+std::string CcdbApi::generateFileName(const std::string& inp)
+{
+  // generate file name for the CCDB object  (for now augment the input string by the timestamp)
+  std::string str = inp;
+  str += "_" + std::to_string(o2::ccdb::getCurrentTimestamp()) + ".root";
+  return str;
+}
+
 namespace
 {
 size_t header_map_callback(char* buffer, size_t size, size_t nitems, void* userdata)
@@ -446,7 +411,6 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
   // Note : based on https://curl.haxx.se/libcurl/c/getinmemory.html
   // Thus it does not comply to our coding guidelines as it is a copy paste.
 
-  string fullUrl = getFullUrlForRetrieval(path, metadata, timestamp);
   //  std::map<std::string, std::string> headers2;
 
   // Prepare CURL
@@ -458,6 +422,8 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
 
   /* init the curl session */
   curl_handle = curl_easy_init();
+
+  string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
 
   /* specify URL to get */
   curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
@@ -497,7 +463,7 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
       TMemFile memFile("name", chunk.memory, chunk.size, "READ");
       gErrorIgnoreLevel = previousErrorLevel;
       if (!memFile.IsZombie()) {
-        result = (TObject*)extractFromTFile(memFile, CCDBOBJECT_ENTRY, TClass::GetClass("TObject"));
+        result = (TObject*)extractFromTFile(memFile, TClass::GetClass("TObject"));
         if (result == nullptr) {
           LOG(ERROR) << "Couldn't retrieve the object " << path;
         }
@@ -519,7 +485,6 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
 
 void CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir, std::map<std::string, std::string> const& metadata, long timestamp) const
 {
-  string fullUrl = getFullUrlForRetrieval(path, metadata, timestamp);
 
   // we setup the target path for this blob
   std::string fulltargetdir = targetdir + '/' + path;
@@ -543,6 +508,8 @@ void CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
 
   /* init the curl session */
   curl_handle = curl_easy_init();
+
+  string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
 
   /* specify URL to get */
   curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
@@ -608,14 +575,23 @@ void CcdbApi::snapshot(std::string const& ccdbrootpath, std::string const& local
   }
 }
 
-void* CcdbApi::extractFromTFile(TFile& file, std::string const& objname, TClass const* cl)
+void* CcdbApi::extractFromTFile(TFile& file, TClass const* cl)
 {
   if (!cl) {
     return nullptr;
   }
-  auto object = file.GetObjectChecked(objname.c_str(), cl);
+  auto object = file.GetObjectChecked(CCDBOBJECT_ENTRY, cl);
   if (!object) {
-    return nullptr;
+    // it could be that object was stored with previous convention
+    // where the classname was taken as key
+    std::string objectName(cl->GetName());
+    utils::trim(objectName);
+    object = file.GetObjectChecked(objectName.c_str(), cl);
+    LOG(WARN) << "Did not find object under expected name " << CCDBOBJECT_ENTRY;
+    if (!object) {
+      return nullptr;
+    }
+    LOG(WARN) << "Found object under deprecated name " << cl->GetName();
   }
   auto result = object;
   // We need to handle some specific cases as ROOT ties them deeply
@@ -634,14 +610,14 @@ void* CcdbApi::extractFromTFile(TFile& file, std::string const& objname, TClass 
   return result;
 }
 
-void* CcdbApi::extractFromLocalFile(std::string const& filename, std::string const& objname, TClass const* tcl) const
+void* CcdbApi::extractFromLocalFile(std::string const& filename, TClass const* tcl) const
 {
   if (!boost::filesystem::exists(filename)) {
     LOG(INFO) << "Local snapshot " << filename << " not found \n";
     return nullptr;
   }
   TFile f(filename.c_str(), "READ");
-  return extractFromTFile(f, objname, tcl);
+  return extractFromTFile(f, tcl);
 }
 
 void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const& path,
@@ -653,18 +629,9 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
     std::cerr << "Could not retrieve ROOT dictionary for type " << tinfo.name() << " aborting to read from CCDB";
     return nullptr;
   }
-  string objectName = string(tcl->GetName());
-  utils::trim(objectName);
 
   // Note : based on https://curl.haxx.se/libcurl/c/getinmemory.html
   // Thus it does not comply to our coding guidelines as it is a copy paste.
-
-  string fullUrl = getFullUrlForRetrieval(path, metadata, timestamp);
-
-  // if we are in snapshot mode we can simply open the file; extract the object and return
-  if (mInSnapshotMode) {
-    return extractFromLocalFile(fullUrl, objectName, tcl);
-  }
 
   // Prepare CURL
   CURL* curl_handle;
@@ -675,6 +642,12 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
 
   /* init the curl session */
   curl_handle = curl_easy_init();
+
+  string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
+  // if we are in snapshot mode we can simply open the file; extract the object and return
+  if (mInSnapshotMode) {
+    return extractFromLocalFile(fullUrl, tcl);
+  }
 
   /* specify URL to get */
   curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
@@ -714,7 +687,7 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
       TMemFile memFile("name", chunk.memory, chunk.size, "READ");
       gErrorIgnoreLevel = previousErrorLevel;
       if (!memFile.IsZombie()) {
-        result = extractFromTFile(memFile, objectName.c_str(), tcl);
+        result = extractFromTFile(memFile, tcl);
         if (!result) {
           LOG(ERROR) << "Couldn't retrieve the object " << path;
         }
@@ -898,7 +871,7 @@ std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& p
 
   CURL* curl = curl_easy_init();
   CURLcode res;
-  string fullUrl = getFullUrlForRetrieval(path, metadata, timestamp);
+  string fullUrl = getFullUrlForRetrieval(curl, path, metadata, timestamp);
   std::map<std::string, std::string> headers;
 
   if (curl != nullptr) {

@@ -30,26 +30,78 @@
 
 using namespace o2::framework;
 
+namespace test
+{
+DECLARE_SOA_COLUMN(X, x, uint64_t, "x");
+DECLARE_SOA_COLUMN(Y, y, uint64_t, "y");
+} // namespace test
+
+using TestTable = o2::soa::Table<test::X, test::Y>;
+
 BOOST_AUTO_TEST_CASE(TestTableBuilder)
 {
   using namespace o2::framework;
   TableBuilder builder;
-  auto rowWriter = builder.persist<int, int>({"x", "y"});
+  auto rowWriter = builder.persist<uint64_t, uint64_t>({"x", "y"});
   rowWriter(0, 0, 0);
-  rowWriter(0, 1, 1);
-  rowWriter(0, 2, 2);
-  rowWriter(0, 3, 3);
-  rowWriter(0, 4, 4);
-  rowWriter(0, 5, 5);
-  rowWriter(0, 6, 6);
-  rowWriter(0, 7, 7);
+  rowWriter(0, 10, 1);
+  rowWriter(0, 20, 2);
+  rowWriter(0, 30, 3);
+  rowWriter(0, 40, 4);
+  rowWriter(0, 50, 5);
+  rowWriter(0, 60, 6);
+  rowWriter(0, 70, 7);
   auto table = builder.finalize();
   BOOST_REQUIRE_EQUAL(table->num_columns(), 2);
   BOOST_REQUIRE_EQUAL(table->num_rows(), 8);
   BOOST_REQUIRE_EQUAL(table->column(0)->name(), "x");
   BOOST_REQUIRE_EQUAL(table->column(1)->name(), "y");
-  BOOST_REQUIRE_EQUAL(table->column(0)->type()->id(), arrow::int32()->id());
-  BOOST_REQUIRE_EQUAL(table->column(1)->type()->id(), arrow::int32()->id());
+  BOOST_REQUIRE_EQUAL(table->column(0)->type()->id(), arrow::uint64()->id());
+  BOOST_REQUIRE_EQUAL(table->column(1)->type()->id(), arrow::uint64()->id());
+
+  auto readBack = TestTable{table};
+
+  size_t i = 0;
+  for (auto& row : readBack) {
+    BOOST_CHECK_EQUAL(row.x(), i * 10);
+    BOOST_CHECK_EQUAL(row.y(), i);
+    ++i;
+  }
+}
+
+BOOST_AUTO_TEST_CASE(TestTableBuilderStruct)
+{
+  using namespace o2::framework;
+  TableBuilder builder;
+  struct Foo {
+    uint64_t x;
+    uint64_t y;
+  };
+  auto rowWriter = builder.persist<Foo>({"x", "y"});
+  rowWriter(0, Foo{0, 0});
+  rowWriter(0, Foo{10, 1});
+  rowWriter(0, Foo{20, 2});
+  rowWriter(0, Foo{30, 3});
+  rowWriter(0, Foo{40, 4});
+  rowWriter(0, Foo{50, 5});
+  rowWriter(0, Foo{60, 6});
+  rowWriter(0, Foo{70, 7});
+  auto table = builder.finalize();
+  BOOST_REQUIRE_EQUAL(table->num_columns(), 2);
+  BOOST_REQUIRE_EQUAL(table->num_rows(), 8);
+  BOOST_REQUIRE_EQUAL(table->column(0)->name(), "x");
+  BOOST_REQUIRE_EQUAL(table->column(1)->name(), "y");
+  BOOST_REQUIRE_EQUAL(table->column(0)->type()->id(), arrow::uint64()->id());
+  BOOST_REQUIRE_EQUAL(table->column(1)->type()->id(), arrow::uint64()->id());
+
+  auto readBack = TestTable{table};
+
+  size_t i = 0;
+  for (auto& row : readBack) {
+    BOOST_CHECK_EQUAL(row.x(), i * 10);
+    BOOST_CHECK_EQUAL(row.y(), i);
+    ++i;
+  }
 }
 
 BOOST_AUTO_TEST_CASE(TestTableBuilderBulk)
@@ -81,6 +133,7 @@ BOOST_AUTO_TEST_CASE(TestTableBuilderMore)
   using namespace o2::framework;
   TableBuilder builder;
   auto rowWriter = builder.persist<int, float, std::string, bool>({"x", "y", "s", "b"});
+  builder.reserve(pack<int, float, std::string, bool>{}, 5);
   rowWriter(0, 0, 0., "foo", true);
   rowWriter(0, 1, 1., "bar", false);
   rowWriter(0, 2, 2., "fbr", false);
@@ -99,7 +152,7 @@ BOOST_AUTO_TEST_CASE(TestTableBuilderMore)
   BOOST_REQUIRE_EQUAL(table->column(0)->type()->id(), arrow::int32()->id());
   BOOST_REQUIRE_EQUAL(table->column(1)->type()->id(), arrow::float32()->id());
   BOOST_REQUIRE_EQUAL(table->column(2)->type()->id(), arrow::utf8()->id());
-  BOOST_REQUIRE_EQUAL(table->column(3)->type()->id(), arrow::boolean()->id());
+  BOOST_REQUIRE_EQUAL(table->column(3)->type()->id(), arrow::int8()->id());
 }
 
 // Use RDataFrame to build the table
@@ -213,13 +266,6 @@ BOOST_AUTO_TEST_CASE(TestCombinedDS)
   //BOOST_CHECK_EQUAL(*blockDF.Define("s5", sum, {"right_x", "left_x"}).Sum("s5"), 168);
 }
 
-namespace test
-{
-DECLARE_SOA_COLUMN(X, x, uint64_t, "x");
-DECLARE_SOA_COLUMN(Y, y, uint64_t, "y");
-} // namespace test
-
-using TestTable = o2::soa::Table<test::X, test::Y>;
 
 BOOST_AUTO_TEST_CASE(TestSoAIntegration)
 {
@@ -251,4 +297,29 @@ BOOST_AUTO_TEST_CASE(TestDataAllocatorReturnType)
   const Output output{"TST", "DUMMY", 0, Lifetime::Timeframe};
   // we require reference to object owned by allocator context
   static_assert(std::is_lvalue_reference<decltype(allocator.make<TableBuilder>(output))>::value);
+}
+
+BOOST_AUTO_TEST_CASE(TestPodInjestion)
+{
+  struct A {
+    uint64_t x;
+    uint64_t y;
+  };
+  TableBuilder builder;
+  auto rowWriter = builder.cursor<TestTable, A>();
+  rowWriter(0, A{0, 0});
+  rowWriter(0, A{10, 1});
+  rowWriter(0, A{20, 2});
+  rowWriter(0, A{30, 3});
+  rowWriter(0, A{40, 4});
+  rowWriter(0, A{50, 5});
+  auto table = builder.finalize();
+  auto readBack = TestTable{table};
+
+  size_t i = 0;
+  for (auto& row : readBack) {
+    BOOST_CHECK_EQUAL(row.x(), i * 10);
+    BOOST_CHECK_EQUAL(row.y(), i);
+    ++i;
+  }
 }

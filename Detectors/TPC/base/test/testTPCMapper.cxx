@@ -91,7 +91,8 @@ BOOST_AUTO_TEST_CASE(Mapper_complex_test1)
         /// \todo check CRU
         BOOST_CHECK(region == int(cru.region()));
         const PadRegionInfo& regionDigi = mapper.getPadRegionInfo(cru.region());
-        BOOST_CHECK(partion == int(regionDigi.getRegion()));
+        BOOST_CHECK(region == int(regionDigi.getRegion()));
+        BOOST_CHECK(partion == int(regionDigi.getPartition()));
 
         const int rowInSector = digi.getPadPos().getRow() + regionDigi.getGlobalRowOffset();
         BOOST_CHECK(padRow == rowInSector);

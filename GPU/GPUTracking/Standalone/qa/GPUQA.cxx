@@ -174,6 +174,7 @@ inline float GPUQA::GetMCLabelWeight(unsigned int i, unsigned int j) { return 1;
 inline float GPUQA::GetMCLabelWeight(const mcLabels_t& label, unsigned int j) { return 1; }
 inline float GPUQA::GetMCLabelWeight(const mcLabel_t& label) { return 1; }
 inline bool GPUQA::mcPresent() { return mTracking->GetClusterNativeAccess()->clustersMCTruth && mNColTracks.size(); }
+#define TRACK_EXPECTED_REFERENCE_X 78
 #else
 inline GPUQA::mcLabelI_t::mcLabelI_t(const GPUQA::mcLabel_t& l) : track(l.fMCID)
 {
@@ -199,6 +200,7 @@ inline float GPUQA::GetMCLabelWeight(const mcLabel_t& label) { return label.fWei
 inline int GPUQA::FakeLabelID(int id) { return id < 0 ? id : (-2 - id); }
 inline int GPUQA::AbsLabelID(int id) { return id >= 0 ? id : (-id - 2); }
 inline bool GPUQA::mcPresent() { return GetNMCLabels() && GetNMCTracks(0); }
+#define TRACK_EXPECTED_REFERENCE_X 81
 #endif
 template <class T>
 inline auto& GPUQA::GetMCTrackObj(T& obj, const GPUQA::mcLabelI_t& l)
@@ -501,7 +503,7 @@ int GPUQA::InitQA()
       labelsBuffer[i] = (std::vector<std::vector<int>>*)files[i]->Get("mcLabelBuffer");
       effBuffer[i] = (std::vector<std::vector<int>>*)files[i]->Get("mcEffBuffer");
       if (labelsBuffer[i] == nullptr || effBuffer[i] == nullptr) {
-        GPUError("Error opening / reading from labels file %u/%s: 0x%p 0x%p", i, mConfig.matchMCLabels[i], (void*)labelsBuffer[i], (void*)effBuffer[i]);
+        GPUError("Error opening / reading from labels file %u/%s: %p %p", i, mConfig.matchMCLabels[i], (void*)labelsBuffer[i], (void*)effBuffer[i]);
         exit(1);
       }
     }
@@ -605,7 +607,7 @@ void GPUQA::RunQA(bool matchOnly)
         }
         for (int j = 0; j < GetMCLabelNID(hitId); j++) {
           if (GetMCLabelID(hitId, j) >= (int)GetNMCTracks(GetMCLabelCol(hitId, j))) {
-            GPUError("Invalid label %d > %d", GetMCLabelID(hitId, j), GetNMCTracks(GetMCLabelCol(hitId, j)));
+            GPUError("Invalid label %d > %d (hit %d, label %d, col %d)", GetMCLabelID(hitId, j), GetNMCTracks(GetMCLabelCol(hitId, j)), hitId, j, (int)GetMCLabelCol(hitId, j));
             ompError = true;
             break;
           }
@@ -987,7 +989,7 @@ void GPUQA::RunQA(bool matchOnly)
 
       GPUTPCGMTrackParam param = track.GetParam();
 
-      if (mclocal[0] < 80) {
+      if (mclocal[0] < TRACK_EXPECTED_REFERENCE_X - 3) {
         continue;
       }
       if (mclocal[0] > param.GetX() + 20) {
@@ -1000,14 +1002,22 @@ void GPUQA::RunQA(bool matchOnly)
       float alpha = track.GetAlpha();
       prop.SetTrack(&param, alpha);
       bool inFlyDirection = 0;
+#ifdef GPUCA_TPC_GEOMETRY_O2 // ignore z here, larger difference in X due to shifted reference
+      if (mConfig.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (merger.Param().continuousMaxTimeBin ? 0 : ((param.Z() - mc1.z) * (param.Z() - mc1.z))) > (5 + abs(81 - TRACK_EXPECTED_REFERENCE_X)) * (5 + abs(81 - TRACK_EXPECTED_REFERENCE_X))) {
+#else // Consider Z offset (pseudo-tf mc tracks have shifted z)
       if (mConfig.strict && (param.X() - mclocal[0]) * (param.X() - mclocal[0]) + (param.Y() - mclocal[1]) * (param.Y() - mclocal[1]) + (param.Z() + param.ZOffset() - mc1.z) * (param.Z() + param.ZOffset() - mc1.z) > 25) {
+#endif
         continue;
       }
 
       if (prop.PropagateToXAlpha(mclocal[0], alpha, inFlyDirection)) {
         continue;
       }
+#ifdef GPUCA_TPC_GEOMETRY_O2 // ignore z here, larger difference in X due to shifted reference
+      if (fabsf(param.Y() - mclocal[1]) > (mConfig.strict ? 1.f : 4.f) || (merger.Param().continuousMaxTimeBin == 0 && fabsf(param.Z() + param.ZOffset() - mc1.z) > (mConfig.strict ? 1.f : 4.f))) {
+#else
       if (fabsf(param.Y() - mclocal[1]) > (mConfig.strict ? 1.f : 4.f) || fabsf(param.Z() + param.ZOffset() - mc1.z) > (mConfig.strict ? 1.f : 4.f)) {
+#endif
         continue;
       }
 

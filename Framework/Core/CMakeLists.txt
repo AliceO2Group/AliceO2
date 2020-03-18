@@ -103,6 +103,7 @@ o2_add_library(Framework
                                      CURL::libcurl
                                      FairMQ::FairMQ
                                      O2::CommonUtils
+                                     O2::MathUtils
                                      O2::FrameworkFoundation
                                      O2::Headers
                                      O2::MemoryResources
@@ -180,16 +181,15 @@ foreach(t
               PUBLIC_LINK_LIBRARIES O2::Framework)
 endforeach()
 
+o2_add_executable(dpl-run
+                  SOURCES src/dplRun.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  )
+
 o2_add_executable(verify-aod-file
                   SOURCES src/verifyAODFile.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME Framework)
-
-o2_add_executable(dump-aod-data-model
-                  SOURCES src/dumpDataModel.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
-                  COMPONENT_NAME Framework
-                  )
 
 # tests with input data
 
@@ -261,8 +261,10 @@ foreach(w
         SimpleStringProcessing
         SimpleTimer
         SimpleWildcard
+        SimpleWildcard02
         SingleDataSource
         Task
+        ExternalFairMQDeviceWorkflow
         )
   o2_add_test(${w} NAME test_Framework_test_${w}
               SOURCES test/test_${w}.cxx
@@ -285,6 +287,12 @@ set_property(TEST test_Framework_test_DanglingInputs PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_SimpleTracksED PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_CustomGUIGL PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_CustomGUISokol PROPERTY DISABLED TRUE)
+
+# there is a problem in the termination of the FairMQDevice by signals because
+# the pending input polling is aborted and this throws an error
+#    [ERROR] Failed receiving on socket input-proxy.input-proxy[0].pull, reason: Interrupted system call, nbytes = -1
+# this can either be fixed in FairMQ or in the DPL driver
+set_property(TEST test_Framework_test_ExternalFairMQDeviceWorkflow PROPERTY DISABLED TRUE)
 
 # TODO: investigate the problem and re-enable
 set_property(TEST test_Framework_test_BoostSerializedProcessing

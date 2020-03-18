@@ -16,6 +16,8 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamSpec.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Expressions.h"
 #include "Framework/EndOfStreamContext.h"
@@ -67,18 +69,54 @@ struct WritingCursor<soa::Table<PC...>> {
   using persistent_table_t = soa::Table<PC...>;
   using cursor_t = decltype(std::declval<TableBuilder>().cursor<persistent_table_t>());
 
-  void operator()(typename PC::type... args)
+  template <typename... T>
+  void operator()(T... args)
   {
-    cursor(0, args...);
+    static_assert(sizeof...(PC) == sizeof...(T), "Argument number mismatch");
+    ++mCount;
+    cursor(0, extract(args)...);
+  }
+
+  /// Last index inserted in the table
+  int64_t lastIndex()
+  {
+    return mCount;
   }
 
   bool resetCursor(TableBuilder& builder)
   {
+    mBuilder = &builder;
     cursor = std::move(FFL(builder.cursor<persistent_table_t>()));
+    mCount = -1;
     return true;
   }
 
+  /// reserve @a size rows when filling, so that we do not
+  /// spend time reallocating the buffers.
+  void reserve(int64_t size)
+  {
+    mBuilder->reserve(typename persistent_table_t::columns{}, size);
+  }
+
   decltype(FFL(std::declval<cursor_t>())) cursor;
+
+ private:
+  template <typename T>
+  static decltype(auto) extract(T const& arg)
+  {
+    if constexpr (soa::is_soa_iterator_t<T>::value) {
+      return arg.globalIndex();
+    } else {
+      static_assert(!framework::has_type_v<T, framework::pack<PC...>>, "Argument type mismatch");
+      return arg;
+    }
+  }
+
+  /// The table builder which actually performs the
+  /// construction of the table. We keep it around to be
+  /// able to do all-columns methods like reserve.
+  TableBuilder* mBuilder = nullptr;
+  int64_t mCount = -1;
 };
 
 /// This helper class allow you to declare things which will be crated by a
@@ -102,7 +140,7 @@ struct Produces<soa::Table<C...>> : WritingCursor<typename soa::FilterPersistent
   }
 };
 
-/// This helper class allow you to declare things which will be created by a
+/// This helper class allows you to declare things which will be created by a
 /// given analysis task. Currently wrapped objects are limited to be TNamed
 /// descendants. Objects will be written to a ROOT file at the end of the
 /// workflow, in directories, corresponding to the task they were declared in.
@@ -116,14 +154,16 @@ struct OutputObj {
   OutputObj(T const& t, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject)
     : object(std::make_shared<T>(t)),
       label(t.GetName()),
-      policy{policy_}
+      policy{policy_},
+      mTaskHash{0}
   {
   }
 
   OutputObj(std::string const& label_, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject)
     : object(nullptr),
       label(label_),
-      policy{policy_}
+      policy{policy_},
+      mTaskHash{0}
   {
   }
 
@@ -143,6 +183,11 @@ struct OutputObj {
   {
     object.reset(t);
     object->SetName(label.c_str());
+  }
+
+  void setHash(uint32_t hash)
+  {
+    mTaskHash = hash;
   }
 
   /// @return the associated OutputSpec
@@ -170,12 +215,31 @@ struct OutputObj {
   OutputRef ref()
   {
     return OutputRef{std::string{label}, 0,
-                     o2::header::Stack{OutputObjHeader{policy}}};
+                     o2::header::Stack{OutputObjHeader{policy, mTaskHash}}};
   }
 
   std::shared_ptr<T> object;
   std::string label;
   OutputObjHandlingPolicy policy;
+  uint32_t mTaskHash;
+};
+
+/// This helper allows you to create a configurable option associated to a task.
+/// Internally it will be bound to a ConfigParamSpec.
+template <typename T>
+struct Configurable {
+  Configurable(std::string const& name, T defaultValue, std::string const& help)
+    : name(name), value(defaultValue), help(help)
+  {
+  }
+  using type = T;
+  std::string name;
+  T value;
+  std::string help;
+  operator T()
+  {
+    return value;
+  }
 };
 
 struct AnalysisTask {
@@ -210,10 +274,15 @@ struct AnalysisDataProcessorBuilder {
   template <typename T, size_t At>
   static void appendSomethingWithMetadata(std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos)
   {
-    if constexpr (framework::is_specialization<T, soa::Filtered>::value || framework::is_specialization<T, soa::RowViewFiltered>::value) {
-      eInfos.push_back({At, createSchemaFromColumns(typename T::table_t::persistent_columns_t{}), nullptr});
+    using dT = std::decay_t<T>;
+    if constexpr (framework::is_specialization<dT, soa::Filtered>::value) {
+      eInfos.push_back({At, createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+    } else if constexpr (soa::is_soa_iterator_t<dT>::value) {
+      if (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
+        eInfos.push_back({At, createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+      }
     }
-    doAppendInputWithMetadata(soa::make_originals_from_type<T>(), inputs);
+    doAppendInputWithMetadata(soa::make_originals_from_type<dT>(), inputs);
   }
 
   template <typename R, typename C, typename... Args>
@@ -246,8 +315,8 @@ struct AnalysisDataProcessorBuilder {
   {
     if constexpr (soa::is_type_with_metadata_v<aod::MetadataTrait<T>>) {
       return record.get<TableConsumer>(aod::MetadataTrait<T>::metadata::label())->asArrowTable();
-    } else {
-      static_assert(always_static_assert_v<T>, "Iterators on Joins/Concats are not supported yet!");
+    } else if constexpr (soa::is_type_with_originals_v<T>) {
+      return extractFromRecord<T>(record, typename T::originals{});
     }
     O2_BUILTIN_UNREACHABLE();
   }
@@ -255,8 +324,8 @@ struct AnalysisDataProcessorBuilder {
   template <typename T, typename... Os>
   static auto extractFromRecord(InputRecord& record, pack<Os...> const&)
   {
-    if constexpr (soa::is_type_with_policy_v<T>) {
-      return typename T::table_t{extractTableFromRecord<Os>(record)...};
+    if constexpr (soa::is_soa_iterator_t<T>::value) {
+      return typename T::parent_t{{extractTableFromRecord<Os>(record)...}};
     } else {
       return T{{extractTableFromRecord<Os>(record)...}};
     }
@@ -265,7 +334,7 @@ struct AnalysisDataProcessorBuilder {
   template <typename T, typename... Os>
   static auto extractFilteredFromRecord(InputRecord& record, ExpressionInfo const& info, pack<Os...> const&)
   {
-    if constexpr (soa::is_type_with_policy_v<T>) {
+    if constexpr (soa::is_soa_iterator_t<T>::value) {
       return soa::Filtered<typename T::table_t>(std::vector<std::shared_ptr<arrow::Table>>{extractTableFromRecord<Os>(record)...}, info.tree);
     } else {
       return T(std::vector<std::shared_ptr<arrow::Table>>{extractTableFromRecord<Os>(record)...}, info.tree);
@@ -281,7 +350,7 @@ struct AnalysisDataProcessorBuilder {
         if (info.index == At)
           return extractFilteredFromRecord<decayed>(record, info, soa::make_originals_from_type<decayed>());
       }
-    } else if constexpr (soa::is_type_with_policy_v<decayed>) {
+    } else if constexpr (soa::is_soa_iterator_t<decayed>::value) {
       if constexpr (std::is_same_v<typename decayed::policy_t, soa::FilteredIndexPolicy>) {
         for (auto& info : infos) {
           if (info.index == At)
@@ -299,7 +368,7 @@ struct AnalysisDataProcessorBuilder {
   template <typename R, typename C, typename Grouping, typename... Args>
   static auto bindAssociatedTables(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo> const infos)
   {
-    return std::make_tuple(extractSomethingFromRecord<Args, has_type_at<Args>(pack<Args...>{})>(record, infos)...);
+    return std::make_tuple(extractSomethingFromRecord<Args, has_type_at<Args>(pack<Args...>{}) + 1u>(record, infos)...);
   }
 
   template <typename R, typename C>
@@ -310,7 +379,7 @@ struct AnalysisDataProcessorBuilder {
   }
 
   template <typename Task, typename R, typename C, typename Grouping, typename... Associated>
-  static void invokeProcess(Task& task, InputRecord& inputs, R (C::*)(Grouping, Associated...), std::vector<ExpressionInfo> const infos)
+  static void invokeProcess(Task& task, InputRecord& inputs, R (C::*)(Grouping, Associated...), std::vector<ExpressionInfo> const& infos)
   {
     auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable(inputs, &C::process, infos);
     auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables(inputs, &C::process, infos);
@@ -319,15 +388,15 @@ struct AnalysisDataProcessorBuilder {
       // No extra tables: we need to either iterate over the contents of
       // grouping or pass the whole grouping table, depending on whether Grouping
       // is a o2::soa::Table or a o2::soa::RowView
-      if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::Table>::value) {
+      if constexpr (soa::is_soa_table_t<std::decay_t<Grouping>>::value) {
         task.process(groupingTable);
-      } else if constexpr (is_base_of_template<o2::soa::RowViewBase, std::decay_t<Grouping>>::value) {
+      } else if constexpr (soa::is_soa_iterator_t<std::decay_t<Grouping>>::value) {
         for (auto& groupedElement : groupingTable) {
           task.process(groupedElement);
         }
-      } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::Join>::value) {
+      } else if constexpr (soa::is_soa_join_t<std::decay_t<Grouping>>::value) {
         task.process(groupingTable);
-      } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::Filtered>::value) {
+      } else if constexpr (soa::is_soa_filtered_t<std::decay_t<Grouping>>::value) {
         task.process(groupingTable);
       } else {
         static_assert(always_static_assert_v<Grouping>,
@@ -348,15 +417,18 @@ struct AnalysisDataProcessorBuilder {
       // MyTask::process(Collision const& collision, Tracks const& tracks)
       //
       // Will iterate on all the tracks for the provided collision.
-      if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::Table>::value) {
-        static_assert((is_specialization<std::decay_t<Associated>, o2::soa::Table>::value && ...),
+      if constexpr (soa::is_soa_table_t<std::decay_t<Grouping>>::value) {
+        static_assert(((soa::is_soa_iterator_t<std::decay_t<Associated>>::value == false) && ...),
                       "You cannot have a soa::RowView iterator as an argument after the "
                       " first argument of type soa::Table which is found as in the "
                       " prototype of the task process method.");
-        task.process(groupingTable, std::get<0>(associatedTables));
-      } else if constexpr (is_specialization<std::decay_t<Grouping>, o2::soa::RowViewBase>::value) {
+        auto& associated = std::get<0>(associatedTables);
+        associated.bindExternalIndices(&groupingTable);
+        groupingTable.bindExternalIndices(&associated);
+        task.process(groupingTable, associated);
+      } else if constexpr (soa::is_soa_iterator_t<std::decay_t<Grouping>>::value) {
         using AssociatedType = std::tuple_element_t<0, std::tuple<Associated...>>;
-        if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::RowViewBase>::value) {
+        if constexpr (soa::is_soa_iterator_t<std::decay_t<AssociatedType>>::value) {
           auto groupedTable = std::get<0>(associatedTables);
           size_t currentGrouping = 0;
           Grouping groupingElement = groupingTable.begin();
@@ -372,7 +444,7 @@ struct AnalysisDataProcessorBuilder {
             }
             task.process(groupingElement, groupedElement);
           }
-        } else if constexpr (is_base_of_template<o2::soa::Table, std::decay_t<AssociatedType>>::value) {
+        } else if constexpr (soa::is_soa_table_like_t<std::decay_t<AssociatedType>>::value) {
           auto allGroupedTable = std::get<0>(associatedTables);
           using groupingMetadata = typename aod::MetadataTrait<std::decay_t<Grouping>>::metadata;
           arrow::compute::FunctionContext ctx;
@@ -391,58 +463,38 @@ struct AnalysisDataProcessorBuilder {
           // FIXME: this assumes every groupingElement has a group associated,
           // which migh not be the case.
           size_t oi = 0;
-          if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Table>::value) {
+          if constexpr (soa::is_soa_table_t<std::decay_t<AssociatedType>>::value) {
             for (auto& groupedDatum : groupsCollection) {
               auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
-              task.process(groupingElement, AssociatedType{groupedElementsTable, offsets[oi]});
-              ++const_cast<std::decay_t<Grouping>&>(groupingElement);
-              ++oi;
-            }
-          } else if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Filtered>::value) {
-            auto& fullFiltered = std::get<0>(associatedTables);
-            auto selectionBuffer = std::shared_ptr<arrow::Buffer>(&(fullFiltered.getSelection()->GetBuffer()));
-            auto selectionArray = fullFiltered.getSelection()->ToArray();
-            offsets.push_back(fullFiltered.tableSize());
-            uint64_t selectionIndex = 0;
-            uint64_t sliceStart = 0;
-            uint64_t sliceStop = 0;
-
-            auto findSliceBounds = [&](int64_t l, int64_t h) {
-              size_t s = 0;
-              for (auto i = selectionIndex; i < selectionArray->length(); ++i) {
-                auto value = selectionArray->data()->template GetValues<uint64_t>(i);
-                if (*value == l) {
-                  sliceStart = i;
-                  s = i;
-                  break;
-                }
-              }
-              for (auto i = s + 1; i < selectionArray->length(); ++i) {
-                auto value = selectionArray->data()->template GetValues<uint64_t>(i);
-                if (*value == h) {
-                  sliceStop = i;
-                  selectionIndex = i;
-                  break;
-                }
-              }
-            };
-
-            for (auto& groupedDatum : groupsCollection) {
-              auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
-              // for each grouping element we need to slice the selection vector
-              findSliceBounds(offsets[oi], offsets[oi + 1]);
-              auto slicedBuffer = arrow::SliceBuffer(selectionBuffer, sliceStart, sliceStop - sliceStart + 1);
-              expressions::Selection slicedSelection;
-              if (!gandiva::SelectionVector::MakeInt64(sliceStop - sliceStart + 1, slicedBuffer, &slicedSelection).ok()) {
-                throw std::runtime_error("Cannot create sliced selection");
-              }
-              std::decay_t<AssociatedType> typedTable{{groupedElementsTable}, slicedSelection, offsets[oi]};
+              std::decay_t<AssociatedType> typedTable{groupedElementsTable, offsets[oi]};
               typedTable.bindExternalIndices(&groupingTable);
               task.process(groupingElement, typedTable);
               ++const_cast<std::decay_t<Grouping>&>(groupingElement);
               ++oi;
             }
-          } else if constexpr (is_specialization<std::decay_t<AssociatedType>, o2::soa::Join>::value || is_specialization<std::decay_t<AssociatedType>, o2::soa::Concat>::value) {
+          } else if constexpr (soa::is_soa_filtered_t<std::decay_t<AssociatedType>>::value) {
+            auto& fullSelection = allGroupedTable.getSelectedRows();
+            offsets.push_back(allGroupedTable.tableSize());
+
+            auto current_start = fullSelection.begin();
+
+            for (auto& groupedDatum : groupsCollection) {
+              auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
+
+              // for each grouping element we need to slice the selection vector
+              auto start_iterator = std::lower_bound(current_start, fullSelection.end(), offsets[oi]);
+              auto stop_iterator = std::lower_bound(start_iterator, fullSelection.end(), offsets[oi + 1]);
+              current_start = stop_iterator;
+              soa::SelectionVector slicedSelection{start_iterator, stop_iterator};
+              std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(), [&](int64_t index) { return index - static_cast<int64_t>(offsets[oi]); });
+
+              std::decay_t<AssociatedType> typedTable{{groupedElementsTable}, std::move(slicedSelection), offsets[oi]};
+              typedTable.bindExternalIndices(&groupingTable);
+              task.process(groupingElement, typedTable);
+              ++const_cast<std::decay_t<Grouping>&>(groupingElement);
+              ++oi;
+            }
+          } else if constexpr (soa::is_soa_join_t<std::decay_t<AssociatedType>>::value || soa::is_soa_concat_t<std::decay_t<AssociatedType>>::value) {
             for (auto& groupedDatum : groupsCollection) {
               auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(groupedDatum.value);
               // Set the refererred table.
@@ -489,25 +541,25 @@ struct FilterManager<expressions::Filter> {
 template <typename T>
 struct OutputManager {
   template <typename ANY>
-  static bool appendOutput(std::vector<OutputSpec>& outputs, ANY&)
+  static bool appendOutput(std::vector<OutputSpec>&, ANY&, uint32_t)
   {
     return false;
   }
 
   template <typename ANY>
-  static bool prepare(ProcessingContext& context, ANY&)
+  static bool prepare(ProcessingContext&, ANY&)
   {
     return false;
   }
 
   template <typename ANY>
-  static bool postRun(EndOfStreamContext& context, ANY& what)
+  static bool postRun(EndOfStreamContext&, ANY&)
   {
     return true;
   }
 
   template <typename ANY>
-  static bool finalize(ProcessingContext& context, ANY& what)
+  static bool finalize(ProcessingContext&, ANY&)
   {
     return true;
   }
@@ -515,7 +567,7 @@ struct OutputManager {
 
 template <typename TABLE>
 struct OutputManager<Produces<TABLE>> {
-  static bool appendOutput(std::vector<OutputSpec>& outputs, Produces<TABLE>& what)
+  static bool appendOutput(std::vector<OutputSpec>& outputs, Produces<TABLE>& what, uint32_t)
   {
     outputs.emplace_back(what.spec());
     return true;
@@ -525,11 +577,11 @@ struct OutputManager<Produces<TABLE>> {
     what.resetCursor(context.outputs().make<TableBuilder>(what.ref()));
     return true;
   }
-  static bool finalize(ProcessingContext& context, Produces<TABLE>& what)
+  static bool finalize(ProcessingContext&, Produces<TABLE>&)
   {
     return true;
   }
-  static bool postRun(EndOfStreamContext& context, Produces<TABLE>& what)
+  static bool postRun(EndOfStreamContext&, Produces<TABLE>&)
   {
     return true;
   }
@@ -537,22 +589,22 @@ struct OutputManager<Produces<TABLE>> {
 
 template <>
 struct OutputManager<HistogramRegistry> {
-  static bool appendOutput(std::vector<OutputSpec>& outputs, HistogramRegistry& what)
+  static bool appendOutput(std::vector<OutputSpec>& outputs, HistogramRegistry& what, uint32_t)
   {
     outputs.emplace_back(what.spec());
     return true;
   }
-  static bool prepare(ProcessingContext& context, HistogramRegistry& what)
+  static bool prepare(ProcessingContext&, HistogramRegistry&)
   {
     return true;
   }
 
-  static bool finalize(ProcessingContext& context, HistogramRegistry& what)
+  static bool finalize(ProcessingContext&, HistogramRegistry&)
   {
     return true;
   }
 
-  static bool postRun(EndOfStreamContext& context, HistogramRegistry& what)
+  static bool postRun(EndOfStreamContext&, HistogramRegistry&)
   {
     return true;
   }
@@ -560,17 +612,18 @@ struct OutputManager<HistogramRegistry> {
 
 template <typename T>
 struct OutputManager<OutputObj<T>> {
-  static bool appendOutput(std::vector<OutputSpec>& outputs, OutputObj<T>& what)
+  static bool appendOutput(std::vector<OutputSpec>& outputs, OutputObj<T>& what, uint32_t hash)
   {
+    what.setHash(hash);
     outputs.emplace_back(what.spec());
     return true;
   }
-  static bool prepare(ProcessingContext& context, OutputObj<T>& what)
+  static bool prepare(ProcessingContext&, OutputObj<T>&)
   {
     return true;
   }
 
-  static bool finalize(ProcessingContext& context, OutputObj<T>& what)
+  static bool finalize(ProcessingContext&, OutputObj<T>&)
   {
     return true;
   }
@@ -578,6 +631,36 @@ struct OutputManager<OutputObj<T>> {
   static bool postRun(EndOfStreamContext& context, OutputObj<T>& what)
   {
     context.outputs().snapshot(what.ref(), *what);
+    return true;
+  }
+};
+
+template <typename T>
+struct OptionManager {
+  template <typename ANY>
+  static bool appendOption(std::vector<ConfigParamSpec>&, ANY&)
+  {
+    return false;
+  }
+
+  template <typename ANY>
+  static bool prepare(InitContext&, ANY&)
+  {
+    return false;
+  }
+};
+
+template <typename T>
+struct OptionManager<Configurable<T>> {
+  static bool appendOption(std::vector<ConfigParamSpec>& options, Configurable<T>& what)
+  {
+    options.emplace_back(ConfigParamSpec{what.name, variant_trait_v<typename std::decay<T>::type>, what.value, {what.help}});
+    return true;
+  }
+
+  static bool prepare(InitContext& context, Configurable<T>& what)
+  {
+    what.value = context.options().get<T>(what.name.c_str());
     return true;
   }
 };
@@ -637,11 +720,14 @@ class has_init
 /// Adaptor to make an AlgorithmSpec from a o2::framework::Task
 ///
 template <typename T, typename... Args>
-DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
+DataProcessorSpec adaptAnalysisTask(char const* name, Args&&... args)
 {
   auto task = std::make_shared<T>(std::forward<Args>(args)...);
+  auto hash = compile_time_hash(name);
 
   std::vector<OutputSpec> outputs;
+  std::vector<ConfigParamSpec> options;
+
   auto tupledTask = o2::framework::to_tuple_refs(*task.get());
   static_assert(has_process<T>::value || has_run<T>::value || has_init<T>::value,
                 "At least one of process(...), T::run(...), init(...) must be defined");
@@ -659,9 +745,13 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
                tupledTask);
   }
 
-  std::apply([&outputs](auto&... x) { return (OutputManager<std::decay_t<decltype(x)>>::appendOutput(outputs, x), ...); }, tupledTask);
+  std::apply([&outputs, &hash](auto&... x) { return (OutputManager<std::decay_t<decltype(x)>>::appendOutput(outputs, x, hash), ...); }, tupledTask);
+  std::apply([&options, &hash](auto&... x) { return (OptionManager<std::decay_t<decltype(x)>>::appendOption(options, x), ...); }, tupledTask);
 
   auto algo = AlgorithmSpec::InitCallback{[task, expressionInfos](InitContext& ic) {
+    auto tupledTask = o2::framework::to_tuple_refs(*task.get());
+    std::apply([&ic](auto&&... x) { return (OptionManager<std::decay_t<decltype(x)>>::prepare(ic, x), ...); }, tupledTask);
+
     auto& callbacks = ic.services().get<CallbackService>();
     auto endofdatacb = [task](EndOfStreamContext& eosContext) {
       auto tupledTask = o2::framework::to_tuple_refs(*task.get());
@@ -693,7 +783,8 @@ DataProcessorSpec adaptAnalysisTask(std::string name, Args&&... args)
     // task itself.
     inputs,
     outputs,
-    algo};
+    algo,
+    options};
   return spec;
 }
 

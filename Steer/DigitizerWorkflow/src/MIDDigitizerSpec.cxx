@@ -24,6 +24,7 @@
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDSimulation/ColumnDataMC.h"
 #include "MIDSimulation/Digitizer.h"
+#include "MIDSimulation/DigitsMerger.h"
 #include "MIDSimulation/ChamberResponse.h"
 #include "MIDSimulation/ChamberEfficiencyResponse.h"
 #include "MIDSimulation/Geometry.h"
@@ -121,7 +122,7 @@ class MIDDPLDigitizerTask
         if (digits.empty()) {
           continue;
         }
-        std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
+        digitsAccum.insert(digitsAccum.end(), digits.begin(), digits.end());
         labelsAccum.mergeAtBack(labels);
       }
       auto nEntries = digitsAccum.size() - firstEntry;
@@ -130,10 +131,12 @@ class MIDDPLDigitizerTask
       }
     }
 
+    mDigitsMerger.process(digitsAccum, labelsAccum, rofRecords);
+
     LOG(DEBUG) << "MID: Sending " << digitsAccum.size() << " digits.";
-    pc.outputs().snapshot(Output{"MID", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
-    pc.outputs().snapshot(Output{"MID", "DIGITSROF", 0, Lifetime::Timeframe}, rofRecords);
-    pc.outputs().snapshot(Output{"MID", "DIGITLABELS", 0, Lifetime::Timeframe}, labelsAccum);
+    pc.outputs().snapshot(Output{"MID", "DIGITS", 0, Lifetime::Timeframe}, mDigitsMerger.getColumnData());
+    pc.outputs().snapshot(Output{"MID", "DIGITSROF", 0, Lifetime::Timeframe}, mDigitsMerger.getROFRecords());
+    pc.outputs().snapshot(Output{"MID", "DIGITLABELS", 0, Lifetime::Timeframe}, mDigitsMerger.getMCContainer());
 
     LOG(DEBUG) << "MID: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"MID", "ROMode", 0, Lifetime::Timeframe}, mROMode);
@@ -145,6 +148,7 @@ class MIDDPLDigitizerTask
 
  private:
   std::unique_ptr<Digitizer> mDigitizer;
+  DigitsMerger mDigitsMerger;
   std::vector<TChain*> mSimChains;
   // RS: at the moment using hardcoded flag for continuos readout
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode

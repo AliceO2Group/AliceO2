@@ -12,8 +12,12 @@
 /// \author David Rohr
 
 #define GPUCA_GPUTYPE_TURING
+#define GPUCA_UNROLL(CUDA, HIP) GPUCA_M_UNROLL_##CUDA
 
 #include <cuda.h>
+#ifdef __clang__
+#define assert(...)
+#endif
 
 #include "GPUReconstructionCUDA.h"
 #include "GPUReconstructionCUDAInternals.h"
@@ -22,14 +26,14 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + sizeof(uint4) - 1);
-#ifndef GPUCA_CUDA_NO_CONSTANT_MEMORY
+#ifndef GPUCA_NO_CONSTANT_MEMORY
 __constant__ uint4 gGPUConstantMemBuffer[gGPUConstantMemBufferSize / sizeof(uint4)];
 #define GPUCA_CONSMEM_PTR
 #define GPUCA_CONSMEM_CALL
 #define GPUCA_CONSMEM (GPUConstantMem&)gGPUConstantMemBuffer
 #else
-#define GPUCA_CONSMEM_PTR const uint4 *gGPUConstantMemBuffer,
-#define GPUCA_CONSMEM_CALL (const uint4*)me->mDeviceConstantMem,
+#define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,
+#define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,
 #define GPUCA_CONSMEM (GPUConstantMem&)(*gGPUConstantMemBuffer)
 #endif
 
@@ -37,6 +41,10 @@ __constant__ uint4 gGPUConstantMemBuffer[gGPUConstantMemBufferSize / sizeof(uint
 texture<cahit2, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu2;
 texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
 #endif
+
+__global__ void dummyInitKernel(void* foo)
+{
+}
 
 #if defined(HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
 #include "ITStrackingCUDA/TrackerTraitsNV.h"
@@ -140,8 +148,9 @@ void GPUReconstructionCUDABackend::GetITSTraits(std::unique_ptr<o2::its::Tracker
 int GPUReconstructionCUDABackend::InitDevice_Runtime()
 {
   // Find best CUDA device, initialize and allocate memory
-  cudaDeviceProp cudaDeviceProp;
+  GPUCA_GPUReconstructionUpdateDefailts();
 
+  cudaDeviceProp cudaDeviceProp;
   int count, bestDevice = -1;
   double bestDeviceSpeed = -1, deviceSpeed;
   if (GPUFailedMsgI(cuInit(0))) {
@@ -171,19 +180,21 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
       return (1);
     }
     if (GPUFailedMsgI(cuCtxCreate(&mInternals->CudaContext, 0, tmpDevice))) {
-      GPUError("Could not create CUDA Context!");
-      return (1);
+      if (mDeviceProcessingSettings.debugLevel >= 4) {
+        GPUWarning("Couldn't create context for device %d. Skipping it.", i);
+      }
+      continue;
     }
     contextCreated = true;
     if (GPUFailedMsgI(cuMemGetInfo(&free, &total))) {
-      GPUError("Error obtaining CUDA memory info!");
-      return (1);
+      if (mDeviceProcessingSettings.debugLevel >= 4) {
+        GPUWarning("Error obtaining CUDA memory info about device %d! Skipping it.", i);
+      }
+      GPUFailedMsg(cuCtxDestroy(mInternals->CudaContext));
+      continue;
     }
     if (count > 1) {
-      if (GPUFailedMsgI(cuCtxDestroy(mInternals->CudaContext))) {
-        GPUError("Error releasing CUDA context!");
-        return (1);
-      }
+      GPUFailedMsg(cuCtxDestroy(mInternals->CudaContext));
       contextCreated = false;
     }
     if (mDeviceProcessingSettings.debugLevel >= 4) {
@@ -221,7 +232,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
       bestDevice = i;
       bestDeviceSpeed = deviceSpeed;
     } else {
-      if (mDeviceProcessingSettings.debugLevel >= 2) {
+      if (mDeviceProcessingSettings.debugLevel >= 2 && mDeviceProcessingSettings.deviceNum < 0) {
         GPUInfo("Skipping: Speed %f < %f\n", deviceSpeed, bestDeviceSpeed);
       }
     }
@@ -287,7 +298,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     return (1);
   }
 #endif
-#ifndef GPUCA_CUDA_NO_CONSTANT_MEMORY
+#ifndef GPUCA_NO_CONSTANT_MEMORY
   if (gGPUConstantMemBufferSize > cudaDeviceProp.totalConstMem) {
     GPUError("Insufficient constant memory available on GPU %d < %d!", (int)cudaDeviceProp.totalConstMem, (int)gGPUConstantMemBufferSize);
     return (1);
@@ -314,7 +325,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
   }
 
   if (mDeviceMemorySize > cudaDeviceProp.totalGlobalMem || GPUFailedMsgI(cudaMalloc(&mDeviceMemoryBase, mDeviceMemorySize))) {
-    GPUError("CUDA Memory Allocation Error (trying %lld bytes)", (long long int)mDeviceMemorySize);
+    GPUError("CUDA Memory Allocation Error (trying %lld bytes, %lld available)", (long long int)mDeviceMemorySize, (long long int)cudaDeviceProp.totalGlobalMem);
     GPUFailedMsgI(cudaDeviceReset());
     return (1);
   }
@@ -324,7 +335,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     return (1);
   }
   if (mDeviceProcessingSettings.debugLevel >= 1) {
-    GPUInfo("Memory ptrs: GPU (%lld bytes): 0x%p - Host (%lld bytes): 0x%p", (long long int)mDeviceMemorySize, mDeviceMemoryBase, (long long int)mHostMemorySize, mHostMemoryBase);
+    GPUInfo("Memory ptrs: GPU (%lld bytes): %p - Host (%lld bytes): %p", (long long int)mDeviceMemorySize, mDeviceMemoryBase, (long long int)mHostMemorySize, mHostMemoryBase);
     memset(mHostMemoryBase, 0xDD, mHostMemorySize);
     if (GPUFailedMsgI(cudaMemset(mDeviceMemoryBase, 0xDD, mDeviceMemorySize))) {
       GPUError("Error during CUDA memset");
@@ -342,7 +353,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
   }
 
   void* devPtrConstantMem;
-#ifndef GPUCA_CUDA_NO_CONSTANT_MEMORY
+#ifndef GPUCA_NO_CONSTANT_MEMORY
   if (GPUFailedMsgI(cudaGetSymbolAddress(&devPtrConstantMem, gGPUConstantMemBuffer))) {
     GPUError("Error getting ptr to constant memory");
     GPUFailedMsgI(cudaDeviceReset());
@@ -373,6 +384,7 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     return (1);
   }
 
+  dummyInitKernel<<<mCoreCount, 256>>>(mDeviceMemoryBase);
   GPUInfo("CUDA Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %lld / %lld bytes host / global memory, Stack frame %d, Constant memory %lld)", mDeviceId, cudaDeviceProp.name, cudaDeviceProp.clockRate, cudaDeviceProp.multiProcessorCount, (long long int)mHostMemorySize,
           (long long int)mDeviceMemorySize, (int)GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
 
@@ -388,7 +400,7 @@ int GPUReconstructionCUDABackend::ExitDevice_Runtime()
 
   GPUFailedMsgI(cudaFree(mDeviceMemoryBase));
   mDeviceMemoryBase = nullptr;
-#ifdef GPUCA_CUDA_NO_CONSTANT_MEMORY
+#ifdef GPUCA_NO_CONSTANT_MEMORY
   GPUFailedMsgI(cudaFree(mDeviceConstantMem));
 #endif
 
@@ -456,7 +468,7 @@ size_t GPUReconstructionCUDABackend::TransferMemoryInternal(GPUMemoryResource* r
 
 size_t GPUReconstructionCUDABackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
 {
-#ifndef GPUCA_CUDA_NO_CONSTANT_MEMORY
+#ifndef GPUCA_NO_CONSTANT_MEMORY
   if (stream == -1) {
     GPUFailedMsg(cudaMemcpyToSymbol(gGPUConstantMemBuffer, src, size, offset, cudaMemcpyHostToDevice));
   } else {
@@ -544,11 +556,14 @@ void GPUReconstructionCUDABackend::SetThreadCounts()
 {
   mThreadCount = GPUCA_THREAD_COUNT;
   mBlockCount = mCoreCount;
-  mConstructorBlockCount = mBlockCount * (mDeviceProcessingSettings.trackletConstructorInPipeline ? 1 : GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER);
-  mSelectorBlockCount = mBlockCount * GPUCA_BLOCK_COUNT_SELECTOR_MULTIPLIER;
+  mConstructorBlockCount = mBlockCount * (mDeviceProcessingSettings.trackletConstructorInPipeline ? 1 : GPUCA_MINBLOCK_COUNT_CONSTRUCTOR);
+  mSelectorBlockCount = mBlockCount * GPUCA_MINBLOCK_COUNT_SELECTOR;
+  mHitsSorterBlockCount = mBlockCount * GPUCA_MINBLOCK_COUNT_HITSSORTER;
   mConstructorThreadCount = GPUCA_THREAD_COUNT_CONSTRUCTOR;
   mSelectorThreadCount = GPUCA_THREAD_COUNT_SELECTOR;
   mFinderThreadCount = GPUCA_THREAD_COUNT_FINDER;
+  mHitsSorterThreadCount = GPUCA_THREAD_COUNT_HITSSORTER;
+  mHitsFinderThreadCount = GPUCA_THREAD_COUNT_HITSFINDER;
   mTRDThreadCount = GPUCA_THREAD_COUNT_TRD;
   mClustererThreadCount = GPUCA_THREAD_COUNT_CLUSTERER;
   mScanThreadCount = GPUCA_THREAD_COUNT_SCAN;
@@ -558,14 +573,33 @@ void GPUReconstructionCUDABackend::SetThreadCounts()
   mCFDecodeThreadCount = GPUCA_THREAD_COUNT_CFDECODE;
   mFitThreadCount = GPUCA_THREAD_COUNT_FIT;
   mITSThreadCount = GPUCA_THREAD_COUNT_ITS;
+  mWarpSize = GPUCA_WARP_SIZE;
 }
 
-int GPUReconstructionCUDABackend::registerMemoryForGPU(void* ptr, size_t size)
+int GPUReconstructionCUDABackend::registerMemoryForGPU(const void* ptr, size_t size)
 {
-  return GPUFailedMsgI(cudaHostRegister(ptr, size, cudaHostRegisterDefault));
+  return GPUFailedMsgI(cudaHostRegister((void*)ptr, size, cudaHostRegisterDefault));
 }
 
-int GPUReconstructionCUDABackend::unregisterMemoryForGPU(void* ptr)
+int GPUReconstructionCUDABackend::unregisterMemoryForGPU(const void* ptr)
 {
-  return GPUFailedMsgI(cudaHostUnregister(ptr));
+  return GPUFailedMsgI(cudaHostUnregister((void*)ptr));
+}
+
+void GPUReconstructionCUDABackend::PrintKernelOccupancies()
+{
+  int maxBlocks, threads, suggestedBlocks;
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
+#define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward)                                                          \
+  GPUFailedMsg(cudaOccupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))));        \
+  GPUFailedMsg(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&maxBlocks, GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class)), threads, 0)); \
+  GPUInfo("Kernel: %40s Block size: %4d, Maximum active blocks: %3d, Suggested blocks: %3d", GPUCA_M_STR(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))), threads, maxBlocks, suggestedBlocks);
+#define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward)                                                                    \
+  GPUFailedMsg(cudaOccupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)));        \
+  GPUFailedMsg(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&maxBlocks, GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi), threads, 0)); \
+  GPUInfo("Kernel: %40s Block size: %4d, Maximum active blocks: %3d, Suggested blocks: %3d", GPUCA_M_STR(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)), threads, maxBlocks, suggestedBlocks);
+#include "GPUReconstructionKernels.h"
+#undef GPUCA_KRNL
+#undef GPUCA_KRNL_LOAD_single
+#undef GPUCA_KRNL_LOAD_multi
 }

@@ -114,8 +114,7 @@ class MCHDPLDigitizerTask
         std::vector<o2::mch::Digit> digits; // digits which get filled
         o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;
 
-        mDigitizer.process(hits, digits);
-        mDigitizer.provideMC(labels);
+        mDigitizer.process(hits, digits, labels);
         LOG(DEBUG) << "MCH obtained " << digits.size() << " digits ";
         for (auto& d : digits) {
           LOG(DEBUG) << "ADC " << d.getADC();
@@ -124,13 +123,13 @@ class MCHDPLDigitizerTask
           LOG(DEBUG) << "DetID " << d.getDetID();
         }
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
-        labelAccum.mergeAtBack(labels);
+        labelAccum.mergeAtBack(labels); //is this ok? check inside MCtruthContainer if this is what one wants to do.
         LOG(DEBUG) << "labelAccum.getIndexedSize()  " << labelAccum.getIndexedSize();
         LOG(DEBUG) << "labelAccum.getNElements() " << labelAccum.getNElements();
         LOG(DEBUG) << "Have " << digits.size() << " digits ";
       }
     }
-    mDigitizer.mergeDigits(digitsAccum, labelAccum);
+    mDigitizer.mergeDigits(digitsAccum, labelAccum); //print-out inside alos works fine
 
     LOG(DEBUG) << "Have " << labelAccum.getNElements() << " MCH labels "; //does not work out!
     pc.outputs().snapshot(Output{"MCH", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);

@@ -26,25 +26,25 @@ using namespace o2::tpc;
 template <>
 GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0attached>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors)
 {
-  GPUTPCGMMerger& merger = processors.tpcMerger;
-  const o2::tpc::ClusterNativeAccess* clusters = processors.tpcConverter.getClustersNative();
-  GPUTPCCompression& compressor = processors.tpcCompressor;
-  GPUParam& param = processors.param;
+  const GPUTPCGMMerger& GPUrestrict() merger = processors.tpcMerger;
+  const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = processors.tpcConverter.getClustersNative();
+  GPUTPCCompression& GPUrestrict() compressor = processors.tpcCompressor;
+  const GPUParam& GPUrestrict() param = processors.param;
 
   char lastLeg = 0;
   int myTrack = 0;
   for (unsigned int i = get_global_id(0); i < (unsigned int)merger.NOutputTracks(); i += get_global_size(0)) {
-    const GPUTPCGMMergedTrack& trk = merger.OutputTracks()[i];
+    const GPUTPCGMMergedTrack& GPUrestrict() trk = merger.OutputTracks()[i];
     if (!trk.OK()) {
       continue;
     }
     bool rejectTrk = CAMath::Abs(trk.GetParam().GetQPt()) > processors.param.rec.tpcRejectQPt;
     int nClustersStored = 0;
-    CompressedClustersPtrsOnly& c = compressor.mPtrs;
+    CompressedClustersPtrsOnly& GPUrestrict() c = compressor.mPtrs;
     unsigned int lastRow = 0, lastSlice = 0; // BUG: These should be unsigned char, but then CUDA breaks
     GPUTPCCompressionTrackModel track;
     for (int k = trk.NClusters() - 1; k >= 0; k--) {
-      const GPUTPCGMMergedTrackHit& hit = merger.Clusters()[trk.FirstClusterRef() + k];
+      const GPUTPCGMMergedTrackHit& GPUrestrict() hit = merger.Clusters()[trk.FirstClusterRef() + k];
       if (hit.state & GPUTPCGMMergedTrackHit::flagReject) {
         continue;
       }
@@ -63,7 +63,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
       if (!(param.rec.tpcCompressionModes & GPUSettings::CompressionTrackModel)) {
         continue; // No track model compression
       }
-      const ClusterNative& orgCl = clusters->clusters[hit.slice][hit.row][hit.num - clusters->clusterOffset[hit.slice][hit.row]];
+      const ClusterNative& GPUrestrict() orgCl = clusters->clusters[hit.slice][hit.row][hit.num - clusters->clusterOffset[hit.slice][hit.row]];
       float x = param.tpcGeometry.Row2X(hit.row);
       float y = param.tpcGeometry.LinearPad2Y(hit.slice, hit.row, orgCl.getPad());
       float z = param.tpcGeometry.LinearTime2Z(hit.slice, orgCl.getTime());
@@ -168,12 +168,12 @@ GPUd() bool GPUTPCCompressionKernels::GPUTPCCompressionKernels_Compare<3>::opera
 }
 
 template <>
-GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1unattached>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors)
+GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1unattached>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors)
 {
-  GPUTPCGMMerger& merger = processors.tpcMerger;
-  const o2::tpc::ClusterNativeAccess* clusters = processors.tpcConverter.getClustersNative();
-  GPUTPCCompression& compressor = processors.tpcCompressor;
-  GPUParam& param = processors.param;
+  const GPUTPCGMMerger& GPUrestrict() merger = processors.tpcMerger;
+  const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = processors.tpcConverter.getClustersNative();
+  GPUTPCCompression& GPUrestrict() compressor = processors.tpcCompressor;
+  GPUParam& GPUrestrict() param = processors.param;
   unsigned int* sortBuffer = compressor.mClusterSortBuffer + iBlock * compressor.mNMaxClusterSliceRow;
   for (int iSliceRow = iBlock; iSliceRow < GPUCA_NSLICES * GPUCA_ROW_COUNT; iSliceRow += nBlocks) {
     const int iSlice = iSliceRow / GPUCA_ROW_COUNT;
@@ -184,35 +184,51 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
     }
     GPUbarrier();
 
-    CompressedClustersPtrsOnly& c = compressor.mPtrs;
-    for (unsigned int i = get_local_id(0); i < clusters->nClusters[iSlice][iRow]; i += get_local_size(0)) {
-      const int idx = idOffset + i;
-      if (compressor.mClusterStatus[idx]) {
-        continue;
-      }
-      int attach = merger.ClusterAttachment()[idx];
+    CompressedClustersPtrsOnly& GPUrestrict() c = compressor.mPtrs;
 
-      bool unattached = attach == 0;
-      if (unattached) {
-        if (processors.param.rec.tpcRejectionMode >= GPUSettings::RejectionStrategyB) {
-          continue;
+    const unsigned int nn = GPUCommonMath::nextMultipleOf<GPUCA_THREAD_COUNT_COMPRESSION2>(clusters->nClusters[iSlice][iRow]);
+    for (unsigned int i = iThread; i < nn; i += nThreads) {
+      const int idx = idOffset + i;
+      int cidx = 0;
+      do {
+        if (i >= clusters->nClusters[iSlice][iRow]) {
+          break;
         }
-      } else if (processors.param.rec.tpcRejectionMode >= GPUSettings::RejectionStrategyA) {
-        if ((attach & GPUTPCGMMerger::attachGoodLeg) == 0) {
-          continue;
+        if (compressor.mClusterStatus[idx]) {
+          break;
         }
-        if (attach & GPUTPCGMMerger::attachHighIncl) {
-          continue;
+        int attach = merger.ClusterAttachment()[idx];
+        bool unattached = attach == 0;
+
+        if (unattached) {
+          if (processors.param.rec.tpcRejectionMode >= GPUSettings::RejectionStrategyB) {
+            break;
+          }
+        } else if (processors.param.rec.tpcRejectionMode >= GPUSettings::RejectionStrategyA) {
+          if ((attach & GPUTPCGMMerger::attachGoodLeg) == 0) {
+            break;
+          }
+          if (attach & GPUTPCGMMerger::attachHighIncl) {
+            break;
+          }
+          int id = attach & GPUTPCGMMerger::attachTrackMask;
+          if (CAMath::Abs(merger.OutputTracks()[id].GetParam().GetQPt()) > processors.param.rec.tpcRejectQPt) {
+            break;
+          }
         }
-        int id = attach & GPUTPCGMMerger::attachTrackMask;
-        if (CAMath::Abs(merger.OutputTracks()[id].GetParam().GetQPt()) > processors.param.rec.tpcRejectQPt) {
-          continue;
-        }
+        cidx = 1;
+      } while (false);
+
+      GPUbarrier();
+      int tmp = work_group_scan_inclusive_add(cidx);
+      if (cidx) {
+        sortBuffer[smem.nCount + tmp - 1] = i;
       }
-      int cidx = CAMath::AtomicAddShared(&smem.nCount, 1);
-      sortBuffer[cidx] = i;
+      GPUbarrier();
+      if (iThread == nThreads - 1) {
+        smem.nCount += tmp;
+      }
     }
-    GPUbarrier();
 
     if (param.rec.tpcCompressionModes & GPUSettings::CompressionDifferences) {
       if (param.rec.tpcCompressionSortOrder == GPUSettings::SortZPadTime) {
@@ -227,17 +243,19 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
       GPUbarrier();
     }
 
-    unsigned int lastTime = 0;
-    unsigned short lastPad = 0;
-    for (unsigned int i = 0; i < smem.nCount; i++) {
+    for (unsigned int i = get_local_id(0); i < smem.nCount; i += get_local_size(0)) {
       int cidx = idOffset + i;
-      const ClusterNative& orgCl = clusters->clusters[iSlice][iRow][sortBuffer[i]];
+      const ClusterNative& GPUrestrict() orgCl = clusters->clusters[iSlice][iRow][sortBuffer[i]];
+      unsigned int lastTime = 0;
+      unsigned int lastPad = 0;
+      if (i != 0) {
+        const ClusterNative& GPUrestrict() orgClPre = clusters->clusters[iSlice][iRow][sortBuffer[i - 1]];
+        lastPad = orgClPre.padPacked;
+        lastTime = orgClPre.getTimePacked();
+      }
+
       c.padDiffU[cidx] = orgCl.padPacked - lastPad;
       c.timeDiffU[cidx] = (orgCl.getTimePacked() - lastTime) & 0xFFFFFF;
-      if (param.rec.tpcCompressionModes & GPUSettings::CompressionDifferences) {
-        lastPad = orgCl.padPacked;
-        lastTime = orgCl.getTimePacked();
-      }
 
       unsigned short qtot = orgCl.qTot, qmax = orgCl.qMax;
       unsigned char sigmapad = orgCl.sigmaPadPacked, sigmatime = orgCl.sigmaTimePacked;

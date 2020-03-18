@@ -17,19 +17,19 @@
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
 #include "Framework/WorkflowSpec.h"
-#include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/InputSpec.h"
-
-#include <Configuration/ConfigurationInterface.h>
-
 #include <string>
 
-namespace o2
+namespace o2::configuration
 {
-namespace framework
+class ConfigurationInterface;
+}
+
+namespace o2::framework
 {
 
 class CompletionPolicy;
+class ChannelConfigurationPolicy;
 
 /// A class responsible for providing data from main processing flow to QC tasks.
 ///
@@ -88,7 +88,6 @@ class DataSampling
   static std::string createDispatcherName();
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif // FRAMEWORK_DATASAMPLING_H

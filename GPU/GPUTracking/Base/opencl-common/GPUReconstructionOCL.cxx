@@ -25,7 +25,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include <typeinfo>
 #include <cstdlib>
 
-constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + sizeof(uint4) - 1);
+constexpr size_t gGPUConstantMemBufferSize = sizeof(GPUConstantMem);
 
 #define quit(...)          \
   {                        \
@@ -49,6 +49,7 @@ GPUReconstructionOCL::~GPUReconstructionOCL()
 int GPUReconstructionOCL::InitDevice_Runtime()
 {
   // Find best OPENCL device, initialize and allocate memory
+  GPUCA_GPUReconstructionUpdateDefailts();
 
   cl_int ocl_error;
   cl_uint num_platforms;
@@ -202,7 +203,7 @@ int GPUReconstructionOCL::InitDevice_Runtime()
     GPUInfo("\tmaxThreadsDim = %lld %lld %lld", (long long int)maxWorkItems[0], (long long int)maxWorkItems[1], (long long int)maxWorkItems[2]);
     GPUInfo(" ");
   }
-#ifndef GPUCA_OPENCL_NO_CONSTANT_MEMORY
+#ifndef GPUCA_NO_CONSTANT_MEMORY
   if (gGPUConstantMemBufferSize > constantBuffer) {
     quit("Insufficient constant memory available on GPU %d < %d!", (int)constantBuffer, (int)gGPUConstantMemBufferSize);
   }
@@ -261,10 +262,6 @@ int GPUReconstructionOCL::InitDevice_Runtime()
     quit("Error migrating buffer");
   }
 
-  if (mDeviceProcessingSettings.debugLevel >= 1) {
-    GPUInfo("GPU Memory used: %lld (Ptr 0x%p)", (long long int)mDeviceMemorySize, mDeviceMemoryBase);
-  }
-
   mInternals->mem_host = clCreateBuffer(mInternals->context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, mHostMemorySize, nullptr, &ocl_error);
   if (GPUFailedMsgI(ocl_error)) {
     quit("Error allocating pinned host memory");
@@ -301,17 +298,12 @@ int GPUReconstructionOCL::InitDevice_Runtime()
   if (GPUFailedMsgI(ocl_error)) {
     quit("Error allocating Page Locked Host Memory");
   }
-  if (mDeviceProcessingSettings.debugLevel >= 1) {
-    GPUInfo("Host Memory used: %lld (Ptr 0x%p)", (long long int)mHostMemorySize, mHostMemoryBase);
-  }
 
-  if (mDeviceProcessingSettings.debugLevel >= 2) {
-    GPUInfo("Obtained Pointer to GPU Memory: %p", *((void**)mHostMemoryBase));
-  }
   mDeviceMemoryBase = ((void**)mHostMemoryBase)[0];
   mDeviceConstantMem = (GPUConstantMem*)((void**)mHostMemoryBase)[1];
 
   if (mDeviceProcessingSettings.debugLevel >= 1) {
+    GPUInfo("Memory ptrs: GPU (%lld bytes): %p - Host (%lld bytes): %p", (long long int)mDeviceMemorySize, mDeviceMemoryBase, (long long int)mHostMemorySize, mHostMemoryBase);
     memset(mHostMemoryBase, 0xDD, mHostMemorySize);
   }
 
@@ -463,8 +455,9 @@ void GPUReconstructionOCL::SetThreadCounts()
 {
   mThreadCount = GPUCA_THREAD_COUNT;
   mBlockCount = mCoreCount;
-  mConstructorBlockCount = mBlockCount * GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER;
-  mSelectorBlockCount = mBlockCount * GPUCA_BLOCK_COUNT_SELECTOR_MULTIPLIER;
+  mConstructorBlockCount = mBlockCount * GPUCA_MINBLOCK_COUNT_CONSTRUCTOR;
+  mSelectorBlockCount = mBlockCount * GPUCA_MINBLOCK_COUNT_SELECTOR;
+  mHitsSorterBlockCount = mBlockCount * GPUCA_MINBLOCK_COUNT_HITSSORTER;
   mConstructorThreadCount = GPUCA_THREAD_COUNT_CONSTRUCTOR;
   mSelectorThreadCount = GPUCA_THREAD_COUNT_SELECTOR;
   mFinderThreadCount = GPUCA_THREAD_COUNT_FINDER;
@@ -477,4 +470,7 @@ void GPUReconstructionOCL::SetThreadCounts()
   mCFDecodeThreadCount = GPUCA_THREAD_COUNT_CFDECODE;
   mFitThreadCount = GPUCA_THREAD_COUNT_FIT;
   mITSThreadCount = GPUCA_THREAD_COUNT_ITS;
+  mWarpSize = GPUCA_WARP_SIZE;
+  mHitsSorterThreadCount = GPUCA_THREAD_COUNT_HITSSORTER;
+  mHitsFinderThreadCount = GPUCA_THREAD_COUNT_HITSFINDER;
 }

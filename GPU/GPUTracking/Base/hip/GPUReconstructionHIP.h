@@ -22,7 +22,9 @@ extern "C" __declspec(dllexport) GPUCA_NAMESPACE::gpu::GPUReconstruction* GPURec
 extern "C" GPUCA_NAMESPACE::gpu::GPUReconstruction* GPUReconstruction_Create_HIP(const GPUCA_NAMESPACE::gpu::GPUSettingsProcessing& cfg);
 #endif
 
-namespace GPUCA_NAMESPACE::gpu
+namespace GPUCA_NAMESPACE
+{
+namespace gpu
 {
 struct GPUReconstructionHIPInternals;
 
@@ -43,8 +45,8 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
   void SynchronizeStream(int stream) override;
   void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) override;
   bool IsEventDone(deviceEvent* evList, int nEvents = 1) override;
-  int registerMemoryForGPU(void* ptr, size_t size) override;
-  int unregisterMemoryForGPU(void* ptr) override;
+  int registerMemoryForGPU(const void* ptr, size_t size) override;
+  int unregisterMemoryForGPU(const void* ptr) override;
 
   size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override;
   size_t TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) override;
@@ -53,6 +55,8 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
   void RecordMarker(deviceEvent* ev, int stream) override;
 
   void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits) override;
+
+  void PrintKernelOccupancies() override;
 
   template <class T, int I = 0, typename... Args>
   int runKernelBackend(krnlSetup& _xyz, Args... args);
@@ -65,6 +69,7 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
 };
 
 using GPUReconstructionHIP = GPUReconstructionKernels<GPUReconstructionHIPBackend>;
-} // namespace GPUCA_NAMESPACE::gpu
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

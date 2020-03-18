@@ -12,7 +12,8 @@
 #define ALICEO2_FV0_DIGITIZER_H
 
 #include <FV0Simulation/MCLabel.h>
-#include <FV0Simulation/DigitizationParameters.h>
+#include <FV0Simulation/DigitizationConstant.h>
+#include <FV0Simulation/FV0DigParam.h>
 #include <DataFormatsFV0/ChannelData.h>
 #include <DataFormatsFV0/BCData.h>
 #include <FV0Simulation/Detector.h>
@@ -29,7 +30,7 @@ namespace fv0
 class Digitizer
 {
  private:
-  using DP = DigitizationParameters;
+  using DP = DigitizationConstant;
   typedef math_utils::RandomRing<float_v::size() * DP::HIT_RANDOM_RING_SIZE> HitRandomRingType;
   typedef math_utils::RandomRing<float_v::size() * DP::PHE_RANDOM_RING_SIZE> PheRandomRingType;
 
@@ -53,10 +54,10 @@ class Digitizer
   void setSrcId(Int_t id) { mSrcId = id; }
   void setInteractionRecord(const InteractionTimeRecord& ir) { mIntRecord = ir; }
 
-  void process(const std::vector<fv0::Hit>& hits,
-               std::vector<fv0::BCData>& digitsBC,
-               std::vector<fv0::ChannelData>& digitsCh,
-               dataformats::MCTruthContainer<fv0::MCLabel>& labels);
+  void process(const std::vector<o2::fv0::Hit>& hits);
+  void analyseWaveformsAndStore(std::vector<fv0::BCData>& digitsBC,
+                                std::vector<fv0::ChannelData>& digitsCh,
+                                dataformats::MCTruthContainer<fv0::MCLabel>& labels);
 
   const InteractionRecord& getInteractionRecord() const { return mIntRecord; }
   InteractionRecord& getInteractionRecord(InteractionRecord& src) { return mIntRecord; }

@@ -84,6 +84,14 @@ using ulong = unsigned long;
 #define DBG_PRINT(msg, ...) static_cast<void>(0)
 #endif
 
+#ifdef GPUCA_GPUCODE
+#define CPU_ONLY(x) static_cast<void>(0)
+#define CPU_PTR(x) nullptr
+#else
+#define CPU_ONLY(x) x
+#define CPU_PTR(x) x
+#endif
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -113,7 +121,5 @@ GPUconstexpr() int MIN_SPLIT_NUM = 1;
 
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
-
-#include "Digit.h"
 
 #endif

@@ -27,6 +27,7 @@
 #include "Framework/Traits.h"
 #include "Framework/SerializationMethods.h"
 #include "Framework/CheckTypes.h"
+#include "Framework/TableTreeHelpers.h"
 
 #include "Headers/DataHeader.h"
 #include <TClass.h>
@@ -137,6 +138,14 @@ class DataAllocator
         adopt(spec, tb);
       });
       return *tb;
+    } else if constexpr (std::is_base_of_v<struct TreeToTable, T>) {
+      TreeToTable* t2t = nullptr;
+      call_if_defined<struct TreeToTable>([&](auto* p) {
+        t2t = new std::decay_t<decltype(*p)>(args...);
+        t2t->AddAllColumns();
+        adopt(spec, t2t);
+      });
+      return *t2t;
     } else if constexpr (sizeof...(Args) == 0) {
       if constexpr (is_messageable<T>::value == true) {
         return *reinterpret_cast<T*>(newChunk(spec, sizeof(T)).data());
@@ -193,6 +202,11 @@ class DataAllocator
   /// it as an Arrow table to all consumers of @a spec once done
   void
     adopt(const Output& spec, struct TableBuilder*);
+
+  /// Adopt a Tree2Table in the framework and serialise / send
+  /// it as an Arrow table to all consumers of @a spec once done
+  void
+    adopt(const Output& spec, struct TreeToTable*);
 
   /// Adopt a raw buffer in the framework and serialize / send
   /// it to the consumers of @a spec once done.
@@ -258,7 +272,8 @@ class DataAllocator
       memcpy(payloadMessage->GetData(), &object, sizeof(T));
 
       serializationType = o2::header::gSerializationMethodNone;
-    } else if constexpr (is_specialization<T, std::vector>::value == true) {
+    } else if constexpr (is_specialization<T, std::vector>::value == true ||
+                         (gsl::details::is_span<T>::value && has_messageable_value_type<T>::value)) {
       using ElementType = typename std::remove_pointer<typename T::value_type>::type;
       if constexpr (is_messageable<ElementType>::value) {
         // Serialize a snapshot of a std::vector of trivially copyable, non-polymorphic elements

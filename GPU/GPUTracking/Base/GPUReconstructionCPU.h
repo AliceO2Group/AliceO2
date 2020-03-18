@@ -118,8 +118,8 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   constexpr static const char* GetKernelName();
 
   virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1);
-  int registerMemoryForGPU(void* ptr, size_t size) override { return 0; }
-  int unregisterMemoryForGPU(void* ptr) override { return 0; }
+  int registerMemoryForGPU(const void* ptr, size_t size) override { return 0; }
+  int unregisterMemoryForGPU(const void* ptr) override { return 0; }
   int GPUStuck() { return mGPUStuck; }
   int NStreams() { return mNStreams; }
   void SetThreadCounts(RecoStep step);
@@ -176,13 +176,16 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   GPUProcessorProcessors mProcShadow; // Host copy of tracker objects that will be used on the GPU
   GPUConstantMem*& mProcessorsShadow = mProcShadow.mProcessorsProc;
 
-  unsigned int mBlockCount = 0;            // Default GPU block count
-  unsigned int mThreadCount = 0;           // Default GPU thread count
-  unsigned int mConstructorBlockCount = 0; // GPU blocks used in Tracklet Constructor
-  unsigned int mSelectorBlockCount = 0;    // GPU blocks used in Tracklet Selector
-  unsigned int mConstructorThreadCount = 0;
+  unsigned int mBlockCount = 0;             // Default GPU block count
+  unsigned int mThreadCount = 0;            // Default GPU thread count
+  unsigned int mConstructorBlockCount = 0;  // GPU blocks used in Tracklet Constructor
+  unsigned int mSelectorBlockCount = 0;     // GPU blocks used in Tracklet Selector
+  unsigned int mHitsSorterBlockCount = 0;   // GPU blocks used in StartHitsSorter
+  unsigned int mConstructorThreadCount = 0; // ...
   unsigned int mSelectorThreadCount = 0;
   unsigned int mFinderThreadCount = 0;
+  unsigned int mHitsSorterThreadCount = 0;
+  unsigned int mHitsFinderThreadCount = 0;
   unsigned int mTRDThreadCount = 0;
   unsigned int mClustererThreadCount = 0;
   unsigned int mScanThreadCount = 0;
@@ -191,6 +194,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   unsigned int mCompression2ThreadCount = 0;
   unsigned int mCFDecodeThreadCount = 0;
   unsigned int mFitThreadCount = 0;
+  unsigned int mWarpSize = 0;
   unsigned int mITSThreadCount = 0;
 
   int mThreadId = -1; // Thread ID that is valid for the local CUDA context
@@ -219,6 +223,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   constexpr static int N_RECO_STEPS = sizeof(GPUDataTypes::RECO_STEP_NAMES) / sizeof(GPUDataTypes::RECO_STEP_NAMES[0]);
   std::vector<std::unique_ptr<timerMeta>> mTimers;
   RecoStepTimerMeta mTimersRecoSteps[N_RECO_STEPS];
+  HighResTimer timerTotal;
   template <class T, int I = 0, int J = -1>
   HighResTimer& getKernelTimer(RecoStep step, int num = 0);
   template <class T, int J = -1>
@@ -250,6 +255,9 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
   int cpuFallback = IsGPU() ? (x.device == krnlDeviceType::CPU ? 2 : (mRecoStepsGPU & myStep) != myStep) : 0;
   if (mDeviceProcessingSettings.debugLevel >= 3) {
     GPUInfo("Running %s (Stream %d, Range %d/%d, Grid %d/%d) on %s", GetKernelName<S, I>(), x.stream, y.start, y.num, x.nBlocks, x.nThreads, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
+  }
+  if (x.nThreads == 0 || x.nBlocks == 0) {
+    return 0;
   }
   if (mDeviceProcessingSettings.debugLevel >= 0) {
     t = &getKernelTimer<S, I, J>(myStep, !IsGPU() || cpuFallback ? getOMPThreadNum() : x.stream);
