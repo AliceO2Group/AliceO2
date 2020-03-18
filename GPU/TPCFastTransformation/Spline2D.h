@@ -99,7 +99,7 @@ class Spline2D : public FlatObject
   /// Version number
   GPUhd() static constexpr int getVersion() { return 1; }
 
-    /// _____________  Constructors / destructors __________________________
+  /// _____________  Constructors / destructors __________________________
 
 #if !defined(GPUCA_GPUCODE)
   /// Default constructor. Creates a spline with 2 knots.
