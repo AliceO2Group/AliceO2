@@ -13,6 +13,7 @@
 #include <TH1D.h>
 #include <TH2D.h>
 #include <cmath>
+#include <vector>
 #include "TLorentzVector.h"
 #include "TVector3.h"
 
@@ -24,53 +25,28 @@ using namespace o2::framework;
 struct UPCAnalysis {
   OutputObj<TH1D> hMass{TH1D("hMass", ";#it{m_{#pi#pi}}, GeV/c^{2};", 500, 0.55, 1.4)};
   OutputObj<TH1D> hPt{TH1D("hPt", ";#it{p_{T}}, GeV/c;", 500, 0., 1.)};
-  OutputObj<TH2D> hSignalTPC1vsSignalTPC2{TH2D("hSignalTPC1vsSignalTPC2", ";#pi^{+} TPC Signal; #pi^{-} TPC Signal", 1000, 0., 200., 1000, 0., 200.)};
+  OutputObj<TH2D> hSignalTPC1vsSignalTPC2{TH2D("hSignalTPC1vsSignalTPC2", ";TPC Signal 1;TPC Signal 2", 1000, 0., 200., 1000, 0., 200.)};
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra> const& tracks)
   {
-    TLorentzVector p1, p2, p;
-    TVector3 ptemp;
-    double signalTPC1, signalTPC2;
-    double invM;
-    bool sel1 = false;
-    bool sel2 = false;
-    int selnum = 0;
-    for (auto& track : tracks) {
+    std::vector<soa::Join<aod::Tracks, aod::TracksExtra>::iterator> selTracks;
+    for (auto track : tracks) {
       UChar_t clustermap = track.itsClusterMap();
       bool isselected = track.tpcNClsFound() > 70 && track.flags() & 0x4;
       isselected = isselected && (TESTBIT(clustermap, 0) && TESTBIT(clustermap, 1));
-      if (!isselected) {
+      if (!isselected)
         continue;
-      }
-      double pt = track.pt();
-      double snp = track.snp();
-      double alp = track.alpha();
-      double tgl = track.tgl();
-      double r = sqrt((1. - snp) * (1. + snp));
-      ptemp[0] = pt * (r * cos(alp) - snp * sin(alp));
-      ptemp[1] = pt * (snp * cos(alp) + r * sin(alp));
-      ptemp[2] = pt * tgl;
-      if (track.charge() > 0) {
-        selnum++;
-        sel1 = true;
-        p1.SetVectM(ptemp, mpion);
-        signalTPC1 = track.tpcSignal();
-      }
-      if (track.charge() < 0) {
-        selnum++;
-        sel2 = true;
-        p2.SetVectM(ptemp, mpion);
-        signalTPC2 = track.tpcSignal();
-      }
-      if (track.charge() == 0) {
-        selnum++;
-      }
-      if (selnum > 2) {
+      selTracks.push_back(track);
+      if (selTracks.size() == 2)
         break;
-      }
     }
-    if (selnum == 2 && sel1 && sel2) {
+    if (selTracks.size() == 2 && selTracks[0].charge() * selTracks[1].charge() < 0) {
+      TLorentzVector p1, p2, p;
+      p1.SetXYZM(selTracks[0].px(), selTracks[0].py(), selTracks[0].pz(), mpion);
+      p2.SetXYZM(selTracks[1].px(), selTracks[1].py(), selTracks[1].pz(), mpion);
       p = p1 + p2;
       hPt->Fill(p.Pt());
+      double signalTPC1 = selTracks[0].tpcSignal();
+      double signalTPC2 = selTracks[1].tpcSignal();
       hSignalTPC1vsSignalTPC2->Fill(signalTPC1, signalTPC2);
       if ((p.Pt() < 0.1) && (signalTPC1 + signalTPC2 < 140)) {
         hMass->Fill(p.M());
