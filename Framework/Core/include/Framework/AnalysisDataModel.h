@@ -322,6 +322,15 @@ DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, Tracks, "fTracksID");
 DECLARE_SOA_TABLE(Cascades, "AOD", "CASCADE", cascade::V0Id, cascade::BachelorId);
 using Casecade = Cascades::iterator;
 
+namespace trigger
+{
+DECLARE_SOA_COLUMN(Bc, bc, uint64_t, "fEventId");
+DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint64_t, "fTriggerMask");
+} // namespace trigger
+
+DECLARE_SOA_TABLE(Triggers, "AOD", "TRIGGER", trigger::TriggerMask, trigger::Bc);
+using Trigger = Triggers::iterator;
+
 namespace timeframe
 {
 DECLARE_SOA_COLUMN(Timestamp, timestamp, uint64_t, "timestamp");
