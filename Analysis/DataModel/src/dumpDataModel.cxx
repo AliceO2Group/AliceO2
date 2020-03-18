@@ -42,7 +42,7 @@ void printIndex()
     auto a = MetadataTrait<typename C::binding_t>::metadata::label();
     auto b = MetadataTrait<T>::metadata::label();
     fmt::printf("%s -> %s []\n", a, b);
-  } else if constexpr (is_type_with_originals_v<typename C::binding_t>) {
+  } else {
     using main_original = pack_element_t<0, typename C::binding_t::originals>;
     auto a = MetadataTrait<main_original>::metadata::label();
     auto b = MetadataTrait<T>::metadata::label();
@@ -85,7 +85,10 @@ struct Style {
 
 static Style styles[] = {
   {"black", "gray80", "black", "black", "gray70", "black", "gray60", "black", "gray50"},
-  {"/reds9/2", "/reds9/4", "white", "white", "/reds9/7", "black", "/reds9/6", "/reds9/1", "/reds9/5"}};
+  {"/reds9/2", "/reds9/4", "white", "white", "/reds9/7", "black", "/reds9/6", "/reds9/1", "/reds9/5"},
+  {"/greens9/2", "/greens9/4", "white", "white", "/greens9/7", "black", "/greens9/6", "/greens9/1", "/greens9/5"},
+  {"/blues9/2", "/blues9/4", "white", "white", "/blues9/7", "black", "/blues9/6", "/blues9/1", "/blues9/5"},
+};
 
 Style const& getDefaultStyle()
 {
@@ -95,6 +98,8 @@ Style const& getDefaultStyle()
 enum struct StyleType : int {
   DEFAULT = 0,
   RED = 1,
+  GREEN = 2,
+  BLUE = 3,
 };
 
 template <typename T>
@@ -152,9 +157,10 @@ edge[dir=back, arrowtail=empty]
   dumpTable<V0s>();
   dumpTable<Cascades>();
   dumpTable<Timeframes>();
-  dumpTable<SecVtx2Prong>(true, StyleType::RED);
-  dumpTable<Cand2Prong>(true, StyleType::RED);
-  dumpTable<Jets>();
-  dumpTable<JetConstituents>();
+  dumpTable<SecVtx2Prong>(true, StyleType::GREEN);
+  dumpTable<Cand2Prong>(true, StyleType::GREEN);
+  dumpTable<Jets>(true, StyleType::BLUE);
+  dumpTable<JetConstituents>(true, StyleType::BLUE);
+  dumpTable<UnassignedTracks>();
   fmt::printf("%s\n", R"(})");
 }
