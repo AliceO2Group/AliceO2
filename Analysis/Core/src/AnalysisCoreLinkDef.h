@@ -19,3 +19,4 @@
 #pragma link C++ typedef StepTHnD;
 
 #pragma link C++ class CorrelationContainer+;
+#pragma link C++ class TrackSelection+;
