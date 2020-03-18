@@ -170,7 +170,7 @@ GPUdi() int TPCFastSpaceChargeCorrection::getCorrection(int slice, int row, floa
   su *= spline.getGridU().getUmax();
   sv *= spline.getGridV().getUmax();
   float dxuv[3];
-  spline.interpolateVec(3, splineData, su, sv, dxuv);
+  spline.interpolate<3>(splineData, su, sv, dxuv);
   dx = dxuv[0];
   du = dxuv[1];
   dv = dxuv[2];

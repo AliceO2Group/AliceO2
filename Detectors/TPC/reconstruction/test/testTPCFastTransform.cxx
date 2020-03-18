@@ -98,21 +98,6 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
 
   std::unique_ptr<TPCFastTransform> fastTransform0(TPCFastTransformHelperO2::instance()->create(0));
 
-<<<<<<< HEAD
-  auto correctionFunction = [&](int roc, const double XYZ[3], double dXdYdZ[3]) {
-    const TPCFastTransformGeo& geo = fastTransform0->getGeometry();
-    float lx, ly, lz, u, v, dx, dy, dz;
-    geo.convGlobalToLocal(roc, XYZ[0], XYZ[1], XYZ[2], lx, ly, lz);
-    geo.convLocalToUV(roc, ly, lz, u, v);
-    double dlx = 1. + 0.1 * u + 0.01 * u * u;
-    double du = .5 + 0.2 * u + 0.02 * u * u + 0.001 * u * u * u;
-    double dv = 1. + 0.1 * v + 0.01 * v * v + 0.001 * v * v * v;
-    geo.convUVtoLocal(roc, du, dv, dy, dz);
-    geo.convLocalToGlobal(roc, dlx, dy, dz, dx, dy, dz);
-    dXdYdZ[0] = dx;
-    dXdYdZ[1] = dy;
-    dXdYdZ[2] = dz;
-=======
   auto correctionXUV = [&](int roc, const float /*x*/, const float u, const float v, float& dX, float& dU, float& dV) {
     dX = 1. + 1 * u + 0.01 * u * u;
     dU = .5 + 0.2 * u + 0.02 * u * u + 0.001 * u * u * u;
@@ -131,7 +116,6 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
     dXdYdZ[0] = gx - XYZ[0];
     dXdYdZ[1] = gy - XYZ[1];
     dXdYdZ[2] = gz - XYZ[2];
->>>>>>> replace old splines in fast TPC transformation
   };
 
   TPCFastTransformHelperO2::instance()->setSpaceChargeCorrection(correctionGlobal);

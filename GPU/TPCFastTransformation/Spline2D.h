@@ -84,10 +84,10 @@ namespace gpu
 ///  helper.SetSpline( spline, 2, 2);
 ///  std::unique_ptr<float[]> parameters = helper.constructParameters(1, F, 0.f, 1.f, 0.f, 1.f);
 ///  float S;
-///  spline.interpolate(1, parameters.get(), 0.0, 0.0, &S ); // S == F(0.,0.)
-///  spline.interpolate(1, parameters.get(), 1.0, 1.1, &S ); // S == some interpolated value
-///  spline.interpolate(1, parameters.get(), 2.0, 3.0, &S ); // S == F(1., 0.5 )
-///  spline.interpolate(1, parameters.get(), 2.0, 6.0, &S ); // S == F(1., 1.)
+///  spline.interpolate<1>(parameters.get(), 0.0, 0.0, &S ); // S == F(0.,0.)
+///  spline.interpolate<1>(parameters.get(), 1.0, 1.1, &S ); // S == some interpolated value
+///  spline.interpolate<1>(parameters.get(), 2.0, 3.0, &S ); // S == F(1., 0.5 )
+///  spline.interpolate<1>(parameters.get(), 2.0, 6.0, &S ); // S == F(1., 1.)
 ///
 ///  --- See also Spline2D::test();
 ///
@@ -155,13 +155,13 @@ class Spline2D : public FlatObject
   /// _______________  Main functionality   ________________________
 
   /// Get interpolated value for f(u,v)
-  template <typename T>
-  GPUhd() void interpolate(int Ndim, GPUgeneric() const T* parameters, float u, float v, GPUgeneric() T Suv[/*Ndim*/]) const;
+  template <int Ndim, typename T>
+  GPUhd() void interpolate(GPUgeneric() const T* parameters, float u, float v, GPUgeneric() T Suv[/*Ndim*/]) const;
 
   /// Same as interpolate, but using vectorized calculation.
   /// \param parameters should be at least 128-bit aligned
-  template <typename T>
-  GPUhd() void interpolateVec(int Ndim, GPUgeneric() const T* parameters, float u, float v, GPUgeneric() T Suv[/*Ndim*/]) const;
+  template <int Ndim, typename T>
+  GPUhd() void interpolateVec(GPUgeneric() const T* parameters, float u, float v, GPUgeneric() T Suv[/*Ndim*/]) const;
 
   /// _______________  Getters   ________________________
 
@@ -269,8 +269,8 @@ GPUhdi() void Spline2D::getKnotUV(int iKnot, float& u, float& v) const
   v = gridV.getKnot(iv).u;
 }
 
-template <typename T>
-GPUhdi() void Spline2D::interpolate(int Ndim, GPUgeneric() const T* parameters, float u, float v, GPUgeneric() T Suv[/*Ndim*/]) const
+template <int Ndim, typename T>
+GPUhdi() void Spline2D::interpolate(GPUgeneric() const T* parameters, float u, float v, GPUgeneric() T Suv[/*Ndim*/]) const
 {
   // Get interpolated value for f(u,v) using parameters[getNumberOfParameters()]
 
@@ -323,14 +323,14 @@ GPUhdi() void Spline2D::interpolate(int Ndim, GPUgeneric() const T* parameters, 
   gridV.interpolate<T>(Ndim, knotV, Sv0, Dv0, Sv1, Dv1, v, Suv);
 }
 
-template <typename T>
-GPUhdi() void Spline2D::interpolateVec(int Ndim, GPUgeneric() const T* parameters, float u, float v, GPUgeneric() T Suv[/*Ndim*/]) const
+template <int Ndim, typename T>
+GPUhdi() void Spline2D::interpolateVec(GPUgeneric() const T* parameters, float u, float v, GPUgeneric() T Suv[/*Ndim*/]) const
 {
   // Same as interpolate, but using vectorized calculation.
   // \param parameters should be at least 128-bit aligned
 
   /// TODO: vectorize
-  interpolate<T>(Ndim, parameters, u, v, Suv);
+  interpolate<Ndim, T>(parameters, u, v, Suv);
 }
 
 } // namespace gpu
