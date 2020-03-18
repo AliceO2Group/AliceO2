@@ -322,6 +322,10 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // .. and remove them also from the original list
   auto danglingOutputsInputsAOD = selectAODs(danglingOutputsInputs);
 
+  // select AOD outputs
+  auto OutputsInputsAOD = computeAODOutputs(workflow);
+  
+  
   // file sink for notAOD dangling outputs
   extraSpecs.clear();
 
@@ -345,6 +349,16 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     extraSpecs.push_back(fileSink);
   }
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
+
+  // file sink for any AOD output
+  extraSpecs.clear();
+
+  if (OutputsInputsAOD.size() > 0) {
+    auto fileSink = CommonDataProcessors::getGlobalAODSink(OutputsInputsAOD);
+    extraSpecs.push_back(fileSink);
+  }
+  workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
+
 }
 
 void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
@@ -707,6 +721,30 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
   return results;
 }
 
+std::vector<InputSpec> WorkflowHelpers::computeAODOutputs(WorkflowSpec const& workflow)
+{
+  LOG(INFO) << "Selecting OutputSpecs of origin AOD - " << specs.size();
+
+  std::vector<InputSpec> results;
+
+  /// Prepare an index to do the iterations quickly.
+  for (size_t wi = 0, we = workflow.size(); wi != we; ++wi) {
+    auto& wfspec = workflow[wi];
+        
+    for (size_t oi = 0; oi<wfspec.outputs.size(); oi++) {
+      auto outspec = wfspec.outputs[oi];
+      
+      // add it to the AOD list ...
+      if (DataSpecUtils::partialMatch(*outspec, header::DataOrigin("AOD")))
+        results.emplace_back(*outspec);
+
+    }
+  }
+
+  LOG(INFO) << "Number of AODs " << results.size() << " - " << specs.size() << std::endl;
+  return results;
+}
+
 std::vector<InputSpec> WorkflowHelpers::selectAODs(std::vector<InputSpec>& specs)
 {
   LOG(DEBUG) << "Selecting dangling OutputSpecs of origin AOD - " << specs.size();
@@ -728,7 +766,6 @@ std::vector<InputSpec> WorkflowHelpers::selectAODs(std::vector<InputSpec>& specs
   }
 
   LOG(DEBUG) << "Number of AODs " << results.size() << " - " << specs.size() << std::endl;
-
   return results;
 }
 
