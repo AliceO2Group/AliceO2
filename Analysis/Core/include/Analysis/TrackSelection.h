@@ -17,8 +17,9 @@
 
 #include "Analysis/TrackSelectionTables.h"
 #include "Framework/AnalysisTask.h"
+#include "TObject.h"
 
-class TrackSelection {
+class TrackSelection : public TObject {
 
 public:
   TrackSelection();

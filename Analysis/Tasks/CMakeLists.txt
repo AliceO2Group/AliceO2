@@ -13,11 +13,6 @@ o2_add_executable(trackselection
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
                   COMPONENT_NAME Analysis)
 
-o2_add_executable(spectra
-                  SOURCES spectra.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
-                  COMPONENT_NAME Analysis)
-
 o2_add_executable(correlations
                   SOURCES correlations.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore

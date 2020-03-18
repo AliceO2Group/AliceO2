@@ -68,7 +68,7 @@ TrackSelection getGlobalTrackSelectionSDD() {
 // This task generates the filter table
 //--------------------------------------------------------------------
 struct TrackFilterTask {
-  Produces<aod::TrackFilterTable> filterTable;
+  Produces<aod::TrackSelection> filterTable;
 
   TrackSelection globalTracks;
   TrackSelection globalTracksSDD;
@@ -92,10 +92,14 @@ struct TrackFilterTask {
 // This task generates QA histograms for track selection
 //--------------------------------------------------------------------
 struct TrackQATask {
+  //Configurable<std::string>selectedTracks{"select", std::string("globalTracks"), "Choice of track selection."};
+  //-> Mismatch between declared option type and default value type for select
 
-  // Filter selectedTracks = (aod::track::isGlobalTrack == true); //error while
-  // setting up workflow: Invalid combination of argument types
+  // Filter selectedTracks = (aod::track::isGlobalTrack == true);
+  // -> error while setting up workflow: Invalid combination of argument types
 
+  Configurable<int>selectedTracks{"select", 1, "Choice of track selection. 0 = no selection, 1 = globalTracks, 2 = globalTracksSDD"};
+  
   OutputObj<TH2F> xy{
       TH2F("trackpar-global-xy",
            "Track XY at dca global coordinate system;x [cm];y [cm];# tracks",
@@ -118,7 +122,7 @@ struct TrackQATask {
       TH1F("its-foundClusters", "nClustersITS;# clusters ITS", 8, -0.5, 7.5)};
   OutputObj<TH1F> chi2PerClusterITS{TH1F(
       "chi2PerClusterITS", "chi2PerClusterITS;chi2/cluster ITS", 100, 0, 50)};
-  OutputObj<TH1F> itsHits{TH1F("its-hits", "hitmap its", 8, -0.5, 7.5)};
+  OutputObj<TH1F> itsHits{TH1F("its-hits", "hitmap its", 7, -0.5, 6.5)};
 
   // TPC related quantities
   OutputObj<TH1F> tpcFindableClusters{TH1F(
@@ -174,14 +178,16 @@ struct TrackQATask {
 
   void process(aod::Collision const &collision,
                soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov,
-                         aod::TrackFilterTable> const &tracks) {
+                         aod::TrackSelection> const &tracks) {
 
     collisionPos->Fill(collision.posX(), collision.posY());
 
     for (auto &track : tracks) {
 
-      if (!track.isGlobalTrack())
+      if(selectedTracks == 1 && !track.isGlobalTrack())
         continue; // FIXME: this should be replaced by framework filter
+      else if(selectedTracks == 2 && !track.isGlobalTrackSDD())
+        continue;
 
       // TPC
       tpcFindableClusters->Fill(track.tpcNClsFindable());

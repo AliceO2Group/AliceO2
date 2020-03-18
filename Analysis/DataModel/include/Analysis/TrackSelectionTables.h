@@ -7,6 +7,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
 #ifndef O2_ANALYSIS_TRACKSELECTIONTABLES_H_
 #define O2_ANALYSIS_TRACKSELECTIONTABLES_H_
 
@@ -21,7 +22,7 @@ DECLARE_SOA_COLUMN(IsGlobalTrackSDD, isGlobalTrackSDD, bool,
 
 } // namespace track
 
-DECLARE_SOA_TABLE(TrackFilterTable, "AOD", "FILTERTABLE", track::IsGlobalTrack,
+DECLARE_SOA_TABLE(TrackSelection, "AOD", "TRACKSELECTION", track::IsGlobalTrack,
                   track::IsGlobalTrackSDD);
 } // namespace o2::aod
 
