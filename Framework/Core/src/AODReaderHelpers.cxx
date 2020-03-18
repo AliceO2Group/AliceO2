@@ -99,10 +99,11 @@ enum AODTypeMask : uint64_t {
   Muon = 1 << 4,
   VZero = 1 << 5,
   Zdc = 1 << 6,
-  Collisions = 1 << 7,
-  Timeframe = 1 << 8,
-  DZeroFlagged = 1 << 9,
-  Unknown = 1 << 10
+  Trigger = 1 << 7,
+  Collisions = 1 << 8,
+  Timeframe = 1 << 9,
+  DZeroFlagged = 1 << 10,
+  Unknown = 1 << 11
 };
 
 uint64_t getMask(header::DataDescription description)
@@ -122,6 +123,8 @@ uint64_t getMask(header::DataDescription description)
     return AODTypeMask::VZero;
   } else if (description == header::DataDescription{"ZDC"}) {
     return AODTypeMask::Zdc;
+  } else if (description == header::DataDescription{"TRIGGER"}) {
+    return AODTypeMask::Trigger;
   } else if (description == header::DataDescription{"COLLISION"}) {
     return AODTypeMask::Collisions;
   } else if (description == header::DataDescription{"TIMEFRAME"}) {
@@ -259,6 +262,8 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
             writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "VZERO"}, batch->schema());
           } else if (meta["description"] == "ZDC" && (readMask & AODTypeMask::Zdc)) {
             writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "ZDC"}, batch->schema());
+          } else if (meta["description"] == "TRIGGER" && (readMask & AODTypeMask::Trigger)) {
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "TRIGGER"}, batch->schema());
           } else if (meta["description"] == "COLLISION" && (readMask & AODTypeMask::Collisions)) {
             writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "COLLISION"}, batch->schema());
           } else if (meta["description"] == "TIMEFRAME" && (readMask & AODTypeMask::Timeframe)) {
@@ -382,6 +387,12 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
         std::unique_ptr<TTreeReader> zdcReader = std::make_unique<TTreeReader>("O2zdc", infile.get());
         auto& zdcBuilder = outputs.make<TableBuilder>(Output{"AOD", "ZDC"});
         RootTableBuilderHelpers::convertASoA<o2::aod::Zdc>(zdcBuilder, *zdcReader);
+      }
+
+      if (readMask & AODTypeMask::Trigger) {
+        std::unique_ptr<TTreeReader> triggerReader = std::make_unique<TTreeReader>("O2trigger", infile.get());
+        auto& triggerBuilder = outputs.make<TableBuilder>(Output{"AOD", "TRIGGER"});
+        RootTableBuilderHelpers::convertASoA<o2::aod::Trigger>(triggerBuilder, *triggerReader);
       }
 
       // Candidates as described by Gianmichele example
