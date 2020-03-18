@@ -26,21 +26,22 @@ using namespace o2::framework::expressions;
 // Task generating pT spectrum of charged particles
 //--------------------------------------------------------------------
 struct HistogramTrackSelection {
-  Configurable<int>selectedTracks{"select", 1, "Choice of track selection. 0 = no selection, 1 = globalTracks, 2 = globalTracksSDD"};
+  Configurable<int> selectedTracks{"select", 1, "Choice of track selection. 0 = no selection, 1 = globalTracks, 2 = globalTracksSDD"};
 
   OutputObj<TH1F> pt{TH1F("pt", "pt", 100, 0., 50.)};
 
-  void init(o2::framework::InitContext &) {}
+  void init(o2::framework::InitContext&) {}
 
-  void process(aod::Collision const &collision,
-               soa::Join<aod::Tracks, aod::TrackSelection> const &tracks) {
-    for (auto &track : tracks) {
-      
-      if(selectedTracks == 1 && !track.isGlobalTrack())
+  void process(aod::Collision const& collision,
+               soa::Join<aod::Tracks, aod::TrackSelection> const& tracks)
+  {
+    for (auto& track : tracks) {
+
+      if (selectedTracks == 1 && !track.isGlobalTrack())
         continue;
-      else if(selectedTracks == 2 && !track.isGlobalTrackSDD())
+      else if (selectedTracks == 2 && !track.isGlobalTrackSDD())
         continue;
-      
+
       pt->Fill(track.pt());
     }
   }
@@ -49,7 +50,8 @@ struct HistogramTrackSelection {
 //--------------------------------------------------------------------
 // Workflow definition
 //--------------------------------------------------------------------
-WorkflowSpec defineDataProcessing(ConfigContext const &) {
+WorkflowSpec defineDataProcessing(ConfigContext const&)
+{
   return WorkflowSpec{
-      adaptAnalysisTask<HistogramTrackSelection>("test-track-selection")};
+    adaptAnalysisTask<HistogramTrackSelection>("test-track-selection")};
 }

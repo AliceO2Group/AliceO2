@@ -13,8 +13,10 @@
 
 #include "Framework/AnalysisDataModel.h"
 
-namespace o2::aod {
-namespace track {
+namespace o2::aod
+{
+namespace track
+{
 // Columns to store track filter decisions
 DECLARE_SOA_COLUMN(IsGlobalTrack, isGlobalTrack, bool, "fIsGlobalTrack");
 DECLARE_SOA_COLUMN(IsGlobalTrackSDD, isGlobalTrackSDD, bool,

@@ -20,21 +20,19 @@ using namespace o2::framework;
 
 ClassImp(TrackSelection)
 
-TrackSelection::TrackSelection()
-    : TObject(), mMinPt{0.}, mMaxPt{1e10}, mMinEta{0.}, mMaxEta{1e10}, mMinNClustersTPC{0},
-      mMinNCrossedRowsTPC{0}, mMinNClustersITS{0}, mMaxChi2PerClusterTPC{1e10},
-      mMaxChi2PerClusterITS{1e10},
-      mMinNCrossedRowsOverFindableClustersTPC{1e10}, mMaxDcaXY{1e10},
-      mMaxDcaZ{1e10}, mRequireITSRefit{false}, mRequireTPCRefit{false} {}
+  TrackSelection::TrackSelection()
+  : TObject(), mMinPt{0.}, mMaxPt{1e10}, mMinEta{0.}, mMaxEta{1e10}, mMinNClustersTPC{0}, mMinNCrossedRowsTPC{0}, mMinNClustersITS{0}, mMaxChi2PerClusterTPC{1e10}, mMaxChi2PerClusterITS{1e10}, mMinNCrossedRowsOverFindableClustersTPC{1e10}, mMaxDcaXY{1e10}, mMaxDcaZ{1e10}, mRequireITSRefit{false}, mRequireTPCRefit{false}
+{
+}
 
 bool TrackSelection::IsSelected(
-    soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra>::iterator const
-        &track) {
+  soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra>::iterator const& track)
+{
   if (track.pt() >= mMinPt && track.pt() < mMaxPt && track.eta() >= mMinEta &&
       track.eta() < mMaxEta && track.tpcNClsFound() >= mMinNClustersTPC &&
       track.tpcNClsCrossedRows() >= mMinNCrossedRowsTPC &&
       track.tpcCrossedRowsOverFindableCls() >=
-          mMinNCrossedRowsOverFindableClustersTPC &&
+        mMinNCrossedRowsOverFindableClustersTPC &&
       (track.itsNCls() >= mMinNClustersITS) &&
       (track.itsChi2NCl() < mMaxChi2PerClusterITS) &&
       (track.tpcChi2Ncl() < mMaxChi2PerClusterTPC) &&
@@ -47,11 +45,12 @@ bool TrackSelection::IsSelected(
   }
 }
 
-bool TrackSelection::FulfillsITSHitRequirements(uint8_t itsClusterMap) {
+bool TrackSelection::FulfillsITSHitRequirements(uint8_t itsClusterMap)
+{
   constexpr uint8_t bit = 1;
-  for (auto &itsRequirement : mRequiredITSHits) {
+  for (auto& itsRequirement : mRequiredITSHits) {
     uint8_t hits = 0;
-    for (auto &requiredLayer : itsRequirement.second) {
+    for (auto& requiredLayer : itsRequirement.second) {
       if (itsClusterMap & (bit << requiredLayer))
         hits++;
     }
