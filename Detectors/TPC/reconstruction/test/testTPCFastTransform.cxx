@@ -98,6 +98,7 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
 
   std::unique_ptr<TPCFastTransform> fastTransform0(TPCFastTransformHelperO2::instance()->create(0));
 
+<<<<<<< HEAD
   auto correctionFunction = [&](int roc, const double XYZ[3], double dXdYdZ[3]) {
     const TPCFastTransformGeo& geo = fastTransform0->getGeometry();
     float lx, ly, lz, u, v, dx, dy, dz;
@@ -111,9 +112,29 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
     dXdYdZ[0] = dx;
     dXdYdZ[1] = dy;
     dXdYdZ[2] = dz;
+=======
+  auto correctionXUV = [&](int roc, const float /*x*/, const float u, const float v, float& dX, float& dU, float& dV) {
+    dX = 1. + 1 * u + 0.01 * u * u;
+    dU = .5 + 0.2 * u + 0.02 * u * u + 0.001 * u * u * u;
+    dV = 2. + 0.3 * v + 0.01 * v * v + 0.001 * v * v * v;
   };
 
-  TPCFastTransformHelperO2::instance()->setSpaceChargeCorrection(correctionFunction);
+  auto correctionGlobal = [&](int roc, const double XYZ[3], double dXdYdZ[3]) {
+    const TPCFastTransformGeo& geo = fastTransform0->getGeometry();
+    float lx, ly, lz, u, v, dx, du, dv, gx, gy, gz;
+    geo.convGlobalToLocal(roc, XYZ[0], XYZ[1], XYZ[2], lx, ly, lz);
+    geo.convLocalToUV(roc, ly, lz, u, v);
+    correctionXUV(roc, lx, u, v, dx, du, dv);
+    lx += dx;
+    geo.convUVtoLocal(roc, u + du, v + dv, ly, lz);
+    geo.convLocalToGlobal(roc, lx, ly, lz, gx, gy, gz);
+    dXdYdZ[0] = gx - XYZ[0];
+    dXdYdZ[1] = gy - XYZ[1];
+    dXdYdZ[2] = gz - XYZ[2];
+>>>>>>> replace old splines in fast TPC transformation
+  };
+
+  TPCFastTransformHelperO2::instance()->setSpaceChargeCorrection(correctionGlobal);
 
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
 
@@ -131,9 +152,11 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
   double statDiffFile = 0., statNFile = 0.;
 
   for (int slice = 0; slice < geo.getNumberOfSlices(); slice += 1) {
-    // std::cout << "slice " << slice << " ... " << std::endl;
+    //std::cout << "slice " << slice << " ... " << std::endl;
 
     const TPCFastTransformGeo::SliceInfo& sliceInfo = geo.getSliceInfo(slice);
+
+    float lastTimeBin = fastTransform->getLastCalibratedTimeBin(slice);
 
     for (int row = 0; row < geo.getNumberOfRows(); row++) {
 
@@ -141,7 +164,7 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
 
       for (int pad = 0; pad < nPads; pad += 10) {
 
-        for (float time = 0; time < 1000; time += 30) {
+        for (float time = 0; time < lastTimeBin; time += 30) {
           //std::cout<<"slice "<<slice<<" row "<<row<<" pad "<<pad<<" time "<<time<<std::endl;
 
           fastTransform->setApplyCorrectionOff();
@@ -154,19 +177,16 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
           float x1, y1, z1;
           fastTransform->Transform(slice, row, pad, time, x1, y1, z1);
 
-          // local 2 global
-          float gx0, gy0, gz0;
-          geo.convLocalToGlobal(slice, x0, y0, z0, gx0, gy0, gz0);
-
-          float gx1, gy1, gz1;
-          geo.convLocalToGlobal(slice, x1, y1, z1, gx1, gy1, gz1);
-
-          double xyz[3] = {gx0, gy0, gz0};
-          double d[3] = {0, 0, 0};
-          correctionFunction(0, xyz, d);
-          statDiff += fabs((gx1 - gx0) - d[0]) + fabs((gy1 - gy0) - d[1]) + fabs((gz1 - gz0) - d[2]);
+          // local to UV
+          float u0, v0, u1, v1;
+          geo.convLocalToUV(slice, y0, z0, u0, v0);
+          geo.convLocalToUV(slice, y1, z1, u1, v1);
+          float dx, du, dv;
+          correctionXUV(slice, x0, u0, v0, dx, du, dv);
+          statDiff += fabs((x1 - x0) - dx) + fabs((u1 - u0) - du) + fabs((v1 - v0) - dv);
           statN += 3;
-          //std::cout << (x1g-x0g) - d[0]<<" "<< (y1g-y0g) - d[1]<<" "<< (z1g-z0g) - d[2]<<std::endl;
+          //std::cout << (x1 - x0) - dx << " " << (u1 - u0) - du << " " << (v1 - v0) - dv << std::endl; //": v0 " << v0 <<" z0 "<<z0<<" v1 "<< v1<<" z1 "<<z1 << std::endl;
+          //BOOST_CHECK_MESSAGE(0, "SG");
 
           float x1f, y1f, z1f;
           fromFile->Transform(slice, row, pad, time, x1f, y1f, z1f);
@@ -178,10 +198,12 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
   }
   if (statN > 0)
     statDiff /= statN;
+
   if (statNFile > 0)
     statDiffFile /= statNFile;
+
   //std::cout<<"average difference in correction "<<statDiff<<" cm "<<std::endl;
-  BOOST_CHECK_MESSAGE(fabs(statDiff) < 1.e-4, "test of correction map failed, average difference " << statDiff << " cm is too large");
+  BOOST_CHECK_MESSAGE(fabs(statDiff) < 1.e-3, "test of correction map failed, average difference " << statDiff << " cm is too large");
   BOOST_CHECK_MESSAGE(fabs(statDiffFile) < 1.e-10, "test of file streamer failed, average difference " << statDiffFile << " cm is too large");
 }
 

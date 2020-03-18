@@ -179,6 +179,9 @@ class TPCFastTransform : public FlatObject
   /// Return TOF correction (vdrift / C)
   GPUd() float getTOFCorr() const { return mLdriftCorr; }
 
+  /// Return a value of the last timebin where correction map is valid
+  GPUd() float getLastCalibratedTimeBin(int slice) const;
+
 #if !defined(GPUCA_GPUCODE)
 
   int writeToFile(std::string outFName = "", std::string name = "");
@@ -405,6 +408,15 @@ GPUdi() float TPCFastTransform::convZtoTimeInTimeFrame(float z, float maxTimeBin
   z = z - getGeometry().getTPCalignmentZ(); // global TPC alignment
   float v = fabs(z);
   return mT0 + maxTimeBin + (v - mLdriftCorr) / mVdrift;
+}
+
+GPUdi() float TPCFastTransform::getLastCalibratedTimeBin(int slice) const
+{
+  /// Return a value of the last timebin where correction map is valid
+  float u, v, pad, time;
+  getGeometry().convScaledUVtoUV(slice, 0, 0.f, 1.f, u, v);
+  convUVtoPadTime(slice, 0, u, v, pad, time, 0);
+  return time;
 }
 
 } // namespace gpu
