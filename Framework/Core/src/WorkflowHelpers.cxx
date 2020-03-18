@@ -723,25 +723,30 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
 
 std::vector<InputSpec> WorkflowHelpers::computeAODOutputs(WorkflowSpec const& workflow)
 {
-  LOG(INFO) << "Selecting OutputSpecs of origin AOD - " << specs.size();
+  LOG(INFO) << "Selecting OutputSpecs of origin AOD";
 
   std::vector<InputSpec> results;
 
   /// Prepare an index to do the iterations quickly.
-  for (size_t wi = 0, we = workflow.size(); wi != we; ++wi) {
+  for (size_t wi = 0; wi<workflow.size(); wi++) {
     auto& wfspec = workflow[wi];
         
     for (size_t oi = 0; oi<wfspec.outputs.size(); oi++) {
-      auto outspec = wfspec.outputs[oi];
+      auto output = wfspec.outputs[oi];
       
       // add it to the AOD list ...
-      if (DataSpecUtils::partialMatch(*outspec, header::DataOrigin("AOD")))
-        results.emplace_back(*outspec);
+      if (DataSpecUtils::partialMatch(output, header::DataOrigin("AOD"))) {
+        auto input = DataSpecUtils::matchingInput(output);
+        char buf[64];
+        input.binding = (snprintf(buf, 63, "aod_%zu_%zu", wi, oi), buf);
+
+        results.emplace_back(input);
+      }
 
     }
   }
 
-  LOG(INFO) << "Number of AODs " << results.size() << " - " << specs.size() << std::endl;
+  LOG(INFO) << "Number of AODs " << results.size();
   return results;
 }
 
