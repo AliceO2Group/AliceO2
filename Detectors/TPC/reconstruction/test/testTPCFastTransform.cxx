@@ -132,13 +132,13 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
         for (float time = 0; time < 1000; time += 30) {
           //std::cout<<"slice "<<slice<<" row "<<row<<" pad "<<pad<<" time "<<time<<std::endl;
 
-          fastTransform->setApplyDistortionOff();
+          fastTransform->setApplyCorrectionOff();
           float x0, y0, z0;
           fastTransform->Transform(slice, row, pad, time, x0, y0, z0);
 
           BOOST_CHECK_EQUAL(geo.test(slice, row, y0, z0), 0);
 
-          fastTransform->setApplyDistortionOn();
+          fastTransform->setApplyCorrectionOn();
           float x1, y1, z1;
           fastTransform->Transform(slice, row, pad, time, x1, y1, z1);
 
@@ -167,8 +167,8 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
     statDiff /= statN;
   if (statNFile > 0)
     statDiffFile /= statNFile;
-  //std::cout<<"average difference in distortion "<<statDiff<<" cm "<<std::endl;
-  BOOST_CHECK_MESSAGE(fabs(statDiff) < 1.e-4, "test of distortion map failed, average difference " << statDiff << " cm is too large");
+  //std::cout<<"average difference in correction "<<statDiff<<" cm "<<std::endl;
+  BOOST_CHECK_MESSAGE(fabs(statDiff) < 1.e-4, "test of correction map failed, average difference " << statDiff << " cm is too large");
   BOOST_CHECK_MESSAGE(fabs(statDiffFile) < 1.e-10, "test of file streamer failed, average difference " << statDiffFile << " cm is too large");
 }
 
