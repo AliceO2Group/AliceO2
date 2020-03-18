@@ -11,6 +11,7 @@
 #define O2_FRAMEWORK_ANALYSISDATAMODEL_H_
 
 #include "Framework/ASoA.h"
+#include "MathUtils/Utils.h"
 #include <cmath>
 
 namespace o2
@@ -61,6 +62,30 @@ DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, [](float snp, float alpha) -> float { retur
 DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, [](float tgl) -> float { return log(tan(0.25 * M_PI - 0.5 * atan(tgl))); });
 DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, [](float signed1Pt) -> float { return fabs(1.0 / signed1Pt); });
 DECLARE_SOA_DYNAMIC_COLUMN(Charge, charge, [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
+DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float signed1Pt, float snp, float alpha) -> float {
+  double pt = 1. / std::abs(signed1Pt);
+  float cs, sn;
+  utils::sincosf(alpha, sn, cs);
+  double r = std::sqrt((1. - snp) * (1. + snp));
+  return pt * (r * cs - snp * sn);
+});
+DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float signed1Pt, float snp, float alpha) -> float {
+  double pt = 1. / std::abs(signed1Pt);
+  float cs, sn;
+  utils::sincosf(alpha, sn, cs);
+  double r = std::sqrt((1. - snp) * (1. + snp));
+  return pt * (snp * cs + r * sn);
+});
+DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float signed1Pt, float tgl) -> float {
+  double pt = 1. / std::abs(signed1Pt);
+  return pt * tgl;
+});
+DECLARE_SOA_DYNAMIC_COLUMN(P, p, [](float signed1Pt, float tgl) -> float {
+  return std::sqrt(1. + tgl * tgl) / std::abs(signed1Pt);
+});
+DECLARE_SOA_DYNAMIC_COLUMN(P2, p2, [](float signed1Pt, float tgl) -> float {
+  return (1. + tgl * tgl) / (signed1Pt * signed1Pt);
+});
 
 // TRACKPARCOV TABLE definition
 DECLARE_SOA_COLUMN(CYY, cYY, float, "fCYY");
@@ -107,6 +132,11 @@ DECLARE_SOA_TABLE(Tracks, "AOD", "TRACKPAR",
                   track::Phi<track::Snp, track::Alpha>,
                   track::Eta<track::Tgl>,
                   track::Pt<track::Signed1Pt>,
+                  track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
+                  track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
+                  track::Pz<track::Signed1Pt, track::Tgl>,
+                  track::P<track::Signed1Pt, track::Tgl>,
+                  track::P2<track::Signed1Pt, track::Tgl>,
                   track::Charge<track::Signed1Pt>);
 
 DECLARE_SOA_TABLE(TracksCov, "AOD", "TRACKPARCOV",
