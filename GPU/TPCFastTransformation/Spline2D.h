@@ -97,9 +97,9 @@ class Spline2D : public FlatObject
   /// _____________  Version control __________________________
 
   /// Version number
-  GPUd() static constexpr int getVersion() { return 1; }
+  GPUhd() static constexpr int getVersion() { return 1; }
 
-  /// _____________  Constructors / destructors __________________________
+    /// _____________  Constructors / destructors __________________________
 
 #if !defined(GPUCA_GPUCODE)
   /// Default constructor. Creates a spline with 2 knots.
@@ -156,12 +156,12 @@ class Spline2D : public FlatObject
 
   /// Get interpolated value for f(u,v)
   template <typename T>
-  GPUd() void interpolate(int Ndim, GPUgeneric() const T* parameters, float u, float v, GPUgeneric() T Suv[/*Ndim*/]) const;
+  GPUhd() void interpolate(int Ndim, GPUgeneric() const T* parameters, float u, float v, GPUgeneric() T Suv[/*Ndim*/]) const;
 
   /// Same as interpolate, but using vectorized calculation.
   /// \param parameters should be at least 128-bit aligned
   template <typename T>
-  GPUd() void interpolateVec(int Ndim, GPUgeneric() const T* parameters, float u, float v, GPUgeneric() T Suv[/*Ndim*/]) const;
+  GPUhd() void interpolateVec(int Ndim, GPUgeneric() const T* parameters, float u, float v, GPUgeneric() T Suv[/*Ndim*/]) const;
 
   /// _______________  Getters   ________________________
 
@@ -170,36 +170,36 @@ class Spline2D : public FlatObject
   template <typename T>
   static constexpr size_t getParameterAlignmentBytes(int Ndim)
   {
-    return std::min<4 * sizeof(T) * Ndim, 16>;
+    return std::min((size_t)(4 * sizeof(T) * Ndim), (size_t)16);
   }
 
   /// Size of the parameter array in bytes
   template <typename T>
-  GPUd() size_t getSizeOfParameters(int Ndim) const
+  GPUhd() size_t getSizeOfParameters(int Ndim) const
   {
     return sizeof(T) * (size_t)getNumberOfParameters(Ndim);
   }
 
   /// Number of parameters
-  GPUd() int getNumberOfParameters(int Ndim) const
+  GPUhd() int getNumberOfParameters(int Ndim) const
   {
     return (4 * Ndim) * getNumberOfKnots();
   }
 
   /// Get number total of knots: UxV
-  GPUd() int getNumberOfKnots() const { return mGridU.getNumberOfKnots() * mGridV.getNumberOfKnots(); }
+  GPUhd() int getNumberOfKnots() const { return mGridU.getNumberOfKnots() * mGridV.getNumberOfKnots(); }
 
   /// Get 1-D grid for U coordinate
-  GPUd() const Spline1D& getGridU() const { return mGridU; }
+  GPUhd() const Spline1D& getGridU() const { return mGridU; }
 
   /// Get 1-D grid for V coordinate
-  GPUd() const Spline1D& getGridV() const { return mGridV; }
+  GPUhd() const Spline1D& getGridV() const { return mGridV; }
 
   /// Get 1-D grid for U or V coordinate
-  GPUd() const Spline1D& getGrid(int uv) const { return (uv == 0) ? mGridU : mGridV; }
+  GPUhd() const Spline1D& getGrid(int uv) const { return (uv == 0) ? mGridU : mGridV; }
 
   /// Get u,v of i-th knot
-  GPUd() void getKnotUV(int iKnot, float& u, float& v) const;
+  GPUhd() void getKnotUV(int iKnot, float& u, float& v) const;
 
   /// _______________  Technical stuff  ________________________
 
@@ -257,7 +257,7 @@ class Spline2D : public FlatObject
 ///       Inline implementations of some methods
 /// ====================================================
 
-GPUdi() void Spline2D::getKnotUV(int iKnot, float& u, float& v) const
+GPUhdi() void Spline2D::getKnotUV(int iKnot, float& u, float& v) const
 {
   /// Get u,v of i-th knot
   const Spline1D& gridU = getGridU();
@@ -270,7 +270,7 @@ GPUdi() void Spline2D::getKnotUV(int iKnot, float& u, float& v) const
 }
 
 template <typename T>
-GPUdi() void Spline2D::interpolate(int Ndim, GPUgeneric() const T* parameters, float u, float v, GPUgeneric() T Suv[/*Ndim*/]) const
+GPUhdi() void Spline2D::interpolate(int Ndim, GPUgeneric() const T* parameters, float u, float v, GPUgeneric() T Suv[/*Ndim*/]) const
 {
   // Get interpolated value for f(u,v) using parameters[getNumberOfParameters()]
 
@@ -324,7 +324,7 @@ GPUdi() void Spline2D::interpolate(int Ndim, GPUgeneric() const T* parameters, f
 }
 
 template <typename T>
-GPUdi() void Spline2D::interpolateVec(int Ndim, GPUgeneric() const T* parameters, float u, float v, GPUgeneric() T Suv[/*Ndim*/]) const
+GPUhdi() void Spline2D::interpolateVec(int Ndim, GPUgeneric() const T* parameters, float u, float v, GPUgeneric() T Suv[/*Ndim*/]) const
 {
   // Same as interpolate, but using vectorized calculation.
   // \param parameters should be at least 128-bit aligned
