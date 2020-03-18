@@ -49,7 +49,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
   foreach(m
           SplineDemo.C
           fastTransformQA.C
-          generateTPCDistortionNTuple.C)
+          generateTPCCorrectionNTuple.C)
     o2_add_test_root_macro(macro/${m}
                            PUBLIC_LINK_LIBRARIES O2::TPCFastTransformation
                                                  O2::DataFormatsTPC
@@ -136,7 +136,7 @@ endif()
 # FIXME: this one is misplaced : it depends (at least) on TPCSimulation which is
 # built after GPU...
 #
-# o2_add_test_root_macro(macro/generateTPCDistortionNTuple.C
+# o2_add_test_root_macro(macro/generateTPCCorrectionNTuple.C
 # PUBLIC_LINK_LIBRARIES O2::TPCFastTransformation O2::DataFormatsTPC
 # O2::TPCSimulation PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/stage/include
 # LABELS gpu tpc)
