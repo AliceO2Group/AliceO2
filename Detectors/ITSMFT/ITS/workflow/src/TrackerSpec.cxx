@@ -22,6 +22,7 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimConfig/ConfigurableParam.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 
 #include "ITStracking/ROframe.h"
@@ -62,10 +63,10 @@ void TrackerDPL::init(InitContext& ic)
 
     auto* chainITS = mRecChain->AddChain<o2::gpu::GPUChainITS>();
     mRecChain->Init();
-
-    mTracker = std::make_unique<Tracker>(chainITS->GetITSTrackerTraits());
     mVertexer = std::make_unique<Vertexer>(chainITS->GetITSVertexerTraits());
-    auto& vopt = o2::its::VertexerParamConfig::Instance();
+    mTracker = std::make_unique<Tracker>(chainITS->GetITSTrackerTraits());
+    mVertexer->getGlobalConfiguration();
+    // mVertexer->dumpTraits();
     double origD[3] = {0., 0., 0.};
     mTracker->setBz(field->getBz(origD));
   } else {
@@ -97,7 +98,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   gsl::span<itsmft::MC2ROFRecord const> mc2rofs;
   if (mIsMC) {
     labels = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("labels").release();
-    // get the array as read-onlt span, a snapshot is send forward
+    // get the array as read-only span, a snapshot is send forward
     mc2rofs = pc.inputs().get<gsl::span<itsmft::MC2ROFRecord>>("MC2ROframes");
     LOG(INFO) << labels->getIndexedSize() << " MC label objects , in " << mc2rofs.size() << " MC events";
   }

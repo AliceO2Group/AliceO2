@@ -18,6 +18,8 @@ namespace o2
 {
 namespace its
 {
+
+class VertexingParameters;
 struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerParamConfig> {
 
   float zCut = 0.002f;   //0.002f

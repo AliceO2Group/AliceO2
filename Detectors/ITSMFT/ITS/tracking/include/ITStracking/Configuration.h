@@ -110,7 +110,7 @@ inline MemoryParameters& MemoryParameters::operator=(const MemoryParameters& t)
   return *this;
 }
 
-struct VertexingParameters{
+struct VertexingParameters {
   float zCut = 0.002f;   //0.002f
   float phiCut = 0.005f; //0.005f
   float pairCut = 0.04f;
@@ -118,28 +118,8 @@ struct VertexingParameters{
   float histPairCut = 0.04f;
   float tanLambdaCut = 0.002f; // tanLambda = deltaZ/deltaR
   int clusterContributorsCut = 16;
-  int phiSpan = -1; 
+  int phiSpan = -1;
   int zSpan = -1;
-};
-
-struct VertexerStoreConfigurationGPU {
-  // o2::its::GPU::Vector constructor requires signed size for initialisation
-  int tmpCUBBufferSize = 25e5;
-  int maxTrackletsPerCluster = 2e2;
-  int clustersPerLayerCapacity = 4e4;
-  int dupletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
-  int processedTrackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
-  int maxTrackletCapacity = 2e4;
-  int maxCentroidsXYCapacity = std::ceil(maxTrackletCapacity * (maxTrackletCapacity - 1) / 2);
-  int nMaxVertices = 10;
-  int nBinsXYZ[3] = {402, 402, 4002};
-  // int nBinsXYZ[3] = {5, 5, 2002};
-  int binSpanXYZ[3] = {2, 2, 4};
-  float lowHistBoundariesXYZ[3] = {-1.98f, -1.98f, -40.f};
-  float highHistBoundariesXYZ[3] = {1.98f, 1.98f, 40.f};
-  float binSizeHistX = (highHistBoundariesXYZ[0] - lowHistBoundariesXYZ[0]) / (nBinsXYZ[0] - 1);
-  float binSizeHistY = (highHistBoundariesXYZ[1] - lowHistBoundariesXYZ[1]) / (nBinsXYZ[1] - 1);
-  float binSizeHistZ = (highHistBoundariesXYZ[2] - lowHistBoundariesXYZ[2]) / (nBinsXYZ[2] - 1);
 };
 
 struct VertexerHistogramsConfiguration {
@@ -150,6 +130,19 @@ struct VertexerHistogramsConfiguration {
   float binSizeHistX = (highHistBoundariesXYZ[0] - lowHistBoundariesXYZ[0]) / (nBinsXYZ[0] - 1);
   float binSizeHistY = (highHistBoundariesXYZ[1] - lowHistBoundariesXYZ[1]) / (nBinsXYZ[1] - 1);
   float binSizeHistZ = (highHistBoundariesXYZ[2] - lowHistBoundariesXYZ[2]) / (nBinsXYZ[2] - 1);
+};
+struct VertexerStoreConfigurationGPU {
+  // o2::its::GPU::Vector constructor requires signed size for initialisation
+  int tmpCUBBufferSize = 25e5;
+  int maxTrackletsPerCluster = 2e2;
+  int clustersPerLayerCapacity = 4e4;
+  int dupletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
+  int processedTrackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
+  int maxTrackletCapacity = 2e4;
+  int maxCentroidsXYCapacity = std::ceil(maxTrackletCapacity * (maxTrackletCapacity - 1) / 2);
+  int nMaxVertices = 10;
+
+  VertexerHistogramsConfiguration histConf;
 };
 
 } // namespace its

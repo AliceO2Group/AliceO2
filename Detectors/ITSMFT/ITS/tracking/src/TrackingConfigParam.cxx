@@ -9,11 +9,14 @@
 // or submit itself to any jurisdiction.
 
 #include "ITStracking/TrackingConfigParam.h"
+#include "ITStracking/Configuration.h"
 
 namespace o2
 {
 namespace its
 {
 static auto& sVertexerParamITS = o2::its::VertexerParamConfig::Instance();
-}
+
+O2ParamImpl(o2::its::VertexerParamConfig)
+} // namespace its
 } // namespace o2

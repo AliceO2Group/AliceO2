@@ -42,9 +42,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-  // auto& pa = o2::its::VertexerParamConfig::Instance();
-  // // Update the (declared) parameters if changed from file
-  // o2::conf::ConfigurableParam::updateFromFile(configcontext.options().get<std::string>("configFile"));
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the digitizer workflow
