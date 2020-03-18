@@ -18,6 +18,8 @@
 using namespace o2;
 using namespace o2::framework;
 
+ClassImp(TrackSelection)
+
 TrackSelection::TrackSelection()
     : TObject(), mMinPt{0.}, mMaxPt{1e10}, mMinEta{0.}, mMaxEta{1e10}, mMinNClustersTPC{0},
       mMinNCrossedRowsTPC{0}, mMinNClustersITS{0}, mMaxChi2PerClusterTPC{1e10},

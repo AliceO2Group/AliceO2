@@ -101,6 +101,7 @@ private:
   std::vector<std::pair<int8_t, std::set<uint8_t>>>
       mRequiredITSHits; // vector of ITS requirements (minNRequiredHits in
                         // specific requiredLayers)
+  ClassDef(TrackSelection, 1)
 };
 
 #endif
