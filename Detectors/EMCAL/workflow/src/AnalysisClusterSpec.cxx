@@ -18,6 +18,7 @@
 #include "EMCALWorkflow/AnalysisClusterSpec.h"
 #include "Framework/ControlService.h"
 #include "EMCALBase/Geometry.h"
+#include "DetectorsBase/GeometryManager.h"
 #include <TGeoManager.h>
 
 using namespace o2::emcal::reco_workflow;
@@ -33,11 +34,12 @@ void AnalysisClusterSpec<InputType>::init(framework::InitContext& ctx)
 
   // FIXME: Hardcoded for run II run
   // Get default geometry object if not yet set
+  o2::base::GeometryManager::loadGeometry(); // for generating full clusters
   mGeometry = Geometry::GetInstanceFromRunNumber(223409);
   if (!mGeometry) {
     LOG(ERROR) << "Failure accessing geometry";
   }
-  gGeoManager->Import("/Users/hadi/Clusterizer/geometry.root");
+  //gGeoManager->Import("/Users/hadi/Clusterizer/O2geometry.root");
 
   // Initialize clusterizer and link geometry
   mClusterizer.initialize(timeCut, timeMin, timeMax, gradientCut, doEnergyGradientCut, thresholdSeedEnergy, thresholdCellEnergy);

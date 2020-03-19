@@ -111,6 +111,10 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
       // add clusterizer
       specs.emplace_back(o2::emcal::reco_workflow::getClusterizerSpec(true));
     }
+    if (isEnabled(OutputType::AnalysisClusters)) {
+      // add clusters from cells
+      specs.emplace_back(o2::emcal::reco_workflow::getAnalysisClusterSpec(true));
+    }
   } else if (inputType == InputType::Cells) {
     using cellInputType = std::vector<o2::emcal::Cell>;
     specs.emplace_back(o2::emcal::getPublisherSpec<cellInputType>(PublisherConf{

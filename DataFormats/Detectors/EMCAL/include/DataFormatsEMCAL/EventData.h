@@ -35,7 +35,7 @@ struct EventData {
   InteractionRecord mInteractionRecord; ///< Interaction record for the trigger corresponding to this event
   gsl::span<const Cluster> mClusters;   ///< EMCAL clusters
   gsl::span<const InputType> mCells;    ///< EMCAL cells / digits
-  gsl::span<int> mCellIndices;    ///< Cell indices in cluster
+  gsl::span<int> mCellIndices;          ///< Cell indices in cluster
 
   /// \brief Reset event structure with empty interaction record and ranges
   void reset()
