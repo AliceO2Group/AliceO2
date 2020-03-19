@@ -15,6 +15,7 @@
 
 #include "TPCWorkflow/ClustererSpec.h"
 #include "Framework/ControlService.h"
+#include "Framework/InputRecordWalker.h"
 #include "Headers/DataHeader.h"
 #include "TPCBase/Digit.h"
 #include "TPCReconstruction/HwClusterer.h"
@@ -50,7 +51,6 @@ DataProcessorSpec getClustererSpec(bool sendMC)
     MCLabelContainer mctruthArray;
     std::array<std::shared_ptr<o2::tpc::HwClusterer>, NSectors> clusterers;
     int verbosity = 1;
-    bool finished = false;
     bool sendMC = false;
   };
 
@@ -62,16 +62,15 @@ DataProcessorSpec getClustererSpec(bool sendMC)
     auto processAttributes = std::make_shared<ProcessAttributes>();
     processAttributes->sendMC = sendMC;
 
-    auto processSectorFunction = [processAttributes](ProcessingContext& pc, std::string inputKey, std::string labelKey) -> bool {
+    auto processSectorFunction = [processAttributes](ProcessingContext& pc, DataRef const& dataref, DataRef const& mclabelref) {
       auto& clusterArray = processAttributes->clusterArray;
       auto& mctruthArray = processAttributes->mctruthArray;
       auto& clusterers = processAttributes->clusterers;
       auto& verbosity = processAttributes->verbosity;
-      auto dataref = pc.inputs().get(inputKey);
       auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(dataref);
       if (sectorHeader == nullptr) {
         LOG(ERROR) << "sector header missing on header stack";
-        return false;
+        return;
       }
       auto const* dataHeader = DataRefUtils::getHeader<o2::header::DataHeader*>(dataref);
       o2::header::DataHeader::SubSpecificationType fanSpec = dataHeader->subSpecification;
@@ -82,20 +81,20 @@ DataProcessorSpec getClustererSpec(bool sendMC)
         // FIXME define and use flags in TPCSectorHeader
         o2::tpc::TPCSectorHeader header{sector};
         pc.outputs().snapshot(Output{gDataOriginTPC, "CLUSTERHW", fanSpec, Lifetime::Timeframe, {header}}, fanSpec);
-        if (!labelKey.empty()) {
+        if (DataRefUtils::isValid(mclabelref)) {
           pc.outputs().snapshot(Output{gDataOriginTPC, "CLUSTERHWMCLBL", fanSpec, Lifetime::Timeframe, {header}}, fanSpec);
         }
-        return (sectorHeader->sector == -1);
+        return;
       }
       std::unique_ptr<const MCLabelContainer> inMCLabels;
-      if (!labelKey.empty()) {
-        inMCLabels = std::move(pc.inputs().get<const MCLabelContainer*>(labelKey.c_str()));
+      if (DataRefUtils::isValid(mclabelref)) {
+        inMCLabels = std::move(pc.inputs().get<const MCLabelContainer*>(mclabelref));
       }
-      auto inDigits = pc.inputs().get<gsl::span<o2::tpc::Digit>>(inputKey.c_str());
+      auto inDigits = pc.inputs().get<gsl::span<o2::tpc::Digit>>(dataref);
       if (verbosity > 0 && inMCLabels) {
         LOG(INFO) << "received " << inDigits.size() << " digits, "
                   << inMCLabels->getIndexedSize() << " MC label objects"
-                  << " input MC label size " << DataRefUtils::getPayloadSize(pc.inputs().get(labelKey.c_str()));
+                  << " input MC label size " << DataRefUtils::getPayloadSize(mclabelref);
       }
       if (!clusterers[sector]) {
         // create the clusterer for this sector, take the same target arrays for all clusterers
@@ -108,7 +107,7 @@ DataProcessorSpec getClustererSpec(bool sendMC)
 
       if (verbosity > 0) {
         LOG(INFO) << "processing " << inDigits.size() << " digit object(s) of sector " << sectorHeader->sector
-                  << " input size " << DataRefUtils::getPayloadSize(pc.inputs().get(inputKey.c_str()));
+                  << " input size " << DataRefUtils::getPayloadSize(dataref);
       }
       // process the digits and MC labels, the bool parameter controls whether to clear all
       // internal data or not. Have to clear it inside the process method as not only the containers
@@ -124,7 +123,7 @@ DataProcessorSpec getClustererSpec(bool sendMC)
                   << " cluster(s)"
                   << " for sector " << sectorHeader->sector
                   << " total size " << sizeof(ClusterHardwareContainer8kb) * clusterArray.size();
-        if (!labelKey.empty()) {
+        if (DataRefUtils::isValid(mclabelref)) {
           LOG(INFO) << "clusterer produced " << mctruthArray.getIndexedSize() << " MC label object(s) for sector " << sectorHeader->sector;
         }
       }
@@ -132,55 +131,34 @@ DataProcessorSpec getClustererSpec(bool sendMC)
       // block by using move semantics
       auto outputPages = pc.outputs().make<ClusterHardwareContainer8kb>(Output{gDataOriginTPC, "CLUSTERHW", fanSpec, Lifetime::Timeframe, {*sectorHeader}}, clusterArray.size());
       std::copy(clusterArray.begin(), clusterArray.end(), outputPages.begin());
-      if (!labelKey.empty()) {
+      if (DataRefUtils::isValid(mclabelref)) {
         pc.outputs().snapshot(Output{gDataOriginTPC, "CLUSTERHWMCLBL", fanSpec, Lifetime::Timeframe, {*sectorHeader}}, mctruthArray);
       }
-      return false;
     };
 
     auto processingFct = [processAttributes, processSectorFunction](ProcessingContext& pc) {
-      if (processAttributes->finished) {
-        return;
-      }
-
       struct SectorInputDesc {
-        std::string inputKey = "";
-        std::string labelKey = "";
+        DataRef dataref;
+        DataRef mclabelref;
       };
+      // loop over all inputs and their parts and associate data with corresponding mc truth data
+      // by the subspecification
       std::map<o2::header::DataHeader::SubSpecificationType, SectorInputDesc> inputs;
-      for (auto const& inputRef : pc.inputs()) {
-        if (pc.inputs().isValid(inputRef.spec->binding) == false) {
-          // this input slot is empty
-          continue;
-        }
+      for (auto const& inputRef : InputRecordWalker(pc.inputs())) {
         auto const* dataHeader = DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
         assert(dataHeader);
-        if (dataHeader->dataOrigin == gDataOriginTPC && dataHeader->dataDescription == o2::header::DataDescription("DIGITS")) {
-          inputs[dataHeader->subSpecification].inputKey = inputRef.spec->binding;
-        } else if (dataHeader->dataOrigin == gDataOriginTPC && dataHeader->dataDescription == o2::header::DataDescription("DIGITSMCTR")) {
-          inputs[dataHeader->subSpecification].labelKey = inputRef.spec->binding;
+        if (DataRefUtils::match(inputRef, {"check", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITS"}})) {
+          inputs[dataHeader->subSpecification].dataref = inputRef;
+        }
+        if (DataRefUtils::match(inputRef, {"check", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITSMCTR"}})) {
+          inputs[dataHeader->subSpecification].mclabelref = inputRef;
         }
       }
-      if (processAttributes->sendMC) {
-        // need to check whether data-MC pairs are complete
-        // probably not needed as the framework seems to take care of the two messages send in pairs
-        for (auto const& input : inputs) {
-          if (input.second.inputKey.empty() || input.second.labelKey.empty()) {
-            // we wait for the data set to be complete next time
-            return;
-          }
-        }
-      }
-      bool finished = true;
       for (auto const& input : inputs) {
-        if (!processSectorFunction(pc, input.second.inputKey, input.second.labelKey)) {
-          finished = false;
+        if (processAttributes->sendMC && !DataRefUtils::isValid(input.second.mclabelref)) {
+          throw std::runtime_error("missing the required MC label data for sector " + std::to_string(input.first));
         }
-      }
-      if (finished) {
-        // got EOD on all inputs
-        processAttributes->finished = true;
-        pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+        processSectorFunction(pc, input.second.dataref, input.second.mclabelref);
       }
     };
     return processingFct;
