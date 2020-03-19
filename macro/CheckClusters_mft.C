@@ -18,10 +18,13 @@
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DetectorsCommonDataFormats/DetID.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 #endif
 
 using namespace o2::base;
+using namespace o2::detectors;
 using o2::itsmft::Cluster;
 
 void CheckClusters_mft(Int_t nEvents = 10, Int_t nMuons = 200)
@@ -56,7 +59,7 @@ void CheckClusters_mft(Int_t nEvents = 10, Int_t nMuons = 200)
                                             o2::TransformType::L2G)); // request cached transforms
 
   // Hits
-  sprintf(filename, "o2sim.root");
+  sprintf(filename, NameConf::getHitsFileName(DetID::MFT, "o2sim").c_str());
   TFile* fileH = TFile::Open(filename);
   TTree* hitTree = (TTree*)gFile->Get("o2sim");
   std::vector<Hit>* hitArray = nullptr;

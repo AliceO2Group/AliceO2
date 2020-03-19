@@ -16,8 +16,7 @@
 
 void readITSDigits(std::string path = "./",
                    std::string digiFName = "itsdigits.root",
-                   std::string runContextFName = "collisioncontext.root",
-                   std::string mctruthFName = "o2sim.root")
+                   std::string runContextFName = "collisioncontext.root")
 {
   if (path.back() != '/') {
     path += '/';

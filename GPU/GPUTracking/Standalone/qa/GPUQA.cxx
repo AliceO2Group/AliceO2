@@ -47,6 +47,7 @@
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/TrackReference.h"
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include "TPDGCode.h"
 #include "TParticlePDG.h"
 #include "TDatabasePDG.h"
@@ -412,7 +413,7 @@ int GPUQA::InitQA()
   mkdir("plots", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
 #ifdef GPUCA_O2_LIB
-  TFile* fileSim = new TFile("o2sim.root");
+  TFile* fileSim = new TFile(o2::base::NameConf::getMCKinematicsFileName("o2sim").c_str());
   TTree* treeSim = (TTree*)fileSim->Get("o2sim");
   std::vector<o2::MCTrack>* tracksX;
   std::vector<o2::TrackReference>* trackRefsX;

@@ -34,7 +34,7 @@
 /// and mean MC hit position is calculated
 
 void run_buildTopoDict_its(std::string clusfile = "o2clus_its.root",
-                           std::string hitfile = "o2sim.root",
+                           std::string hitfile = "o2sim_HitsITS.root",
                            std::string inputGeom = "O2geometry.root")
 {
   const int QEDSourceID = 99; // Clusters from this MC source correspond to QED electrons

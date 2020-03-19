@@ -39,7 +39,7 @@ using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.root",
                   std::string inputClustersITS = "o2clus_its.root", std::string inputGeom = "O2geometry.root",
-                  std::string inputGRP = "o2sim_grp.root", std::string simfilename = "o2sim.root")
+                  std::string inputGRP = "o2sim_grp.root")
 {
 
   FairLogger* logger = FairLogger::GetLogger();

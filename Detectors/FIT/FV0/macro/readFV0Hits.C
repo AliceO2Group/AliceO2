@@ -19,6 +19,8 @@
 #include <sstream>
 #include "DataFormatsFV0/Hit.h"
 #include "FairLogger.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 
 void AdjustStatBox(TH1* h, float x1ndc, float x2ndc, float y1ndc, float y2ndc)
 {
@@ -61,8 +63,10 @@ void InitHistoNames(std::vector<std::string>& vhName, std::vector<int>& vPdg)
   }
 }
 
-void readFV0Hits(std::string simFName = "o2sim.root", UInt_t rebin = 1)
+void readFV0Hits(std::string simPrefix = "o2sim", UInt_t rebin = 1)
 {
+  using namespace o2::detectors;
+  std::string simFName(o2::base::NameConf::getHitsFileName(DetID::FV0, simPrefix));
   gStyle->SetOptStat("noumri");
   const int nCells = 40;
 

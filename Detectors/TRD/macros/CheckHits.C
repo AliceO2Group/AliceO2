@@ -22,11 +22,15 @@
 #include "TRDSimulation/Detector.h"
 #include "TRDBase/TRDGeometry.h"
 #include "TRDBase/Calibrations.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 #endif
+
+using namespace o2::detectors;
 
 void CheckHits(const int detector = 50, // 354, 14, 242, 50
                std::string digifile = "trddigits.root",
-               std::string hitfile = "o2sim.root",
+               std::string hitfile = "o2sim_HitsTRD.root",
                std::string inputGeom = "O2geometry.root",
                std::string paramfile = "o2sim_par.root")
 {

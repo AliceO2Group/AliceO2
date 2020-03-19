@@ -47,7 +47,7 @@ struct DataFrames {
   int lastIndex = -1;
 };
 
-void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim.root")
+void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string kinefile = "o2sim_Kine.root")
 {
   bool filterMultiROFTracks = 1;
 
@@ -66,7 +66,7 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
                             "ipD:ipZ:label");
 
   // MC tracks
-  TFile* file0 = TFile::Open(hitfile.data());
+  TFile* file0 = TFile::Open(kinefile.data());
   TTree* mcTree = (TTree*)gFile->Get("o2sim");
   mcTree->SetBranchStatus("*", 0); //disable all branches
   //mcTree->SetBranchStatus("MCEventHeader.*",1);

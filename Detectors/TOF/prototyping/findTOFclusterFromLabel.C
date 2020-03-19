@@ -87,7 +87,7 @@ void findTOFclusterFromLabel(int trackID, int eventID = 0, int sourceID = 0)
   if (!foundInDigits)
     Printf("The label was NEVER found in the digits");
 
-  TFile* fKine = new TFile("o2sim.root");
+  TFile* fKine = new TFile("o2sim_Kine.root");
   TTree* tKine = (TTree*)fKine->Get("o2sim");
   std::vector<o2::MCTrack>* mcArr = nullptr;
   tKine->SetBranchAddress("MCTrack", &mcArr);
