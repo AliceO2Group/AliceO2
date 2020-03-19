@@ -28,17 +28,17 @@ void AnalysisCluster::clear()
 }
 
 //_______________________________________________________________________
-TLorentzVector AnalysisCluster::getMomentum(std::array<const double, 3> vertex) const
+TLorentzVector AnalysisCluster::getMomentum(std::array<const float, 3> vertex) const
 {
 
   TLorentzVector p;
 
-  Double32_t pos[3] = {mGlobalPos.X(), mGlobalPos.Y(), mGlobalPos.Z()};
+  float pos[3] = {mGlobalPos.X(), mGlobalPos.Y(), mGlobalPos.Z()};
   pos[0] -= vertex[0];
   pos[1] -= vertex[1];
   pos[2] -= vertex[2];
 
-  double r = TMath::Sqrt(pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2]);
+  float r = TMath::Sqrt(pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2]);
 
   if (r > 0)
     p.SetPxPyPzE(mEnergy * pos[0] / r, mEnergy * pos[1] / r, mEnergy * pos[2] / r, mEnergy);
@@ -49,7 +49,7 @@ TLorentzVector AnalysisCluster::getMomentum(std::array<const double, 3> vertex) 
 }
 
 //______________________________________________________________________________
-void AnalysisCluster::setGlobalPosition(Point3D<double> x)
+void AnalysisCluster::setGlobalPosition(Point3D<float> x)
 {
   mGlobalPos.SetX(x.X());
   mGlobalPos.SetY(x.Y());
@@ -57,7 +57,7 @@ void AnalysisCluster::setGlobalPosition(Point3D<double> x)
 }
 
 //______________________________________________________________________________
-void AnalysisCluster::setLocalPosition(Point3D<double> x)
+void AnalysisCluster::setLocalPosition(Point3D<float> x)
 {
   mLocalPos.SetX(x.X());
   mLocalPos.SetY(x.Y());

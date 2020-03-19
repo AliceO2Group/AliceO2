@@ -33,7 +33,7 @@ namespace emcal
 /// \author Hadi Hassan <hadi.hassan@cern.ch>, Oak Ridge National Laboratory
 /// \since March 05, 2020
 ///
-
+template <class InputType>
 class ClusterFactory
 {
 
@@ -70,6 +70,41 @@ class ClusterFactory
    private:
     int mClusterID = 0;        ///< Cluster ID raising the exception
     int mMaxClusters = 0;      ///< Max. number of clusters handled by this cluster factory
+    std::string mErrorMessage; ///< Error message
+  };
+
+  class CellIndexRangeException : public std::exception
+  {
+   public:
+    /// \brief Constructor defining the error
+    /// \param cellIndex Cell Index responsible for the exception
+    /// \param maxCellIndex Maximum number of Cell Indices handled by the ClusterFactor
+    CellIndexRangeException(int cellIndex, int maxCellIndex) : std::exception(),
+                                                               mCellIndex(cellIndex),
+                                                               mMaxCellIndex(maxCellIndex),
+                                                               mErrorMessage()
+    {
+      mErrorMessage = Form("Cell Index out of range: %d, max %d", mCellIndex, mMaxCellIndex);
+    }
+
+    /// \brief Destructor
+    ~CellIndexRangeException() noexcept final = default;
+
+    /// \brief Provide error message
+    /// \return Error message connected to this exception
+    const char* what() const noexcept final { return mErrorMessage.data(); }
+
+    /// \brief Get the index of the cell raising the exception
+    /// \return Cell index
+    int getCellIndex() const { return mCellIndex; }
+
+    /// \brief Get the maximum number of cell indices handled by the cluster factory
+    /// \return Max. number of cell indices
+    int getMaxNumberOfCellIndexs() const { return mMaxCellIndex; }
+
+   private:
+    int mCellIndex = 0;        ///< CellIndex ID raising the exception
+    int mMaxCellIndex = 0;     ///< Max. number of CellIndexs handled by this CellIndex factory
     std::string mErrorMessage; ///< Error message
   };
 
@@ -143,7 +178,7 @@ class ClusterFactory
   /// \param clustersContainer cluster container
   /// \param inputsContainer cells/digits container
   /// \param cellsIndices for cells/digits indices
-  ClusterFactory(gsl::span<o2::emcal::Cluster> clustersContainer, gsl::span<o2::emcal::Cell> inputsContainer, gsl::span<unsigned short> cellsIndices);
+  ClusterFactory(gsl::span<const o2::emcal::Cluster> clustersContainer, gsl::span<const InputType> inputsContainer, gsl::span<int> cellsIndices);
 
   ///
   /// Copy constructor
@@ -190,17 +225,17 @@ class ClusterFactory
 
   ///
   /// Calculates the center of gravity in the local EMCAL-module coordinates
-  void evalLocalPosition(gsl::span<unsigned short> inputsIndices, AnalysisCluster& cluster) const;
+  void evalLocalPosition(gsl::span<int> inputsIndices, AnalysisCluster& cluster) const;
 
   ///
   /// Calculates the center of gravity in the global ALICE coordinates
-  void evalGlobalPosition(gsl::span<unsigned short> inputsIndices, AnalysisCluster& cluster) const;
+  void evalGlobalPosition(gsl::span<int> inputsIndices, AnalysisCluster& cluster) const;
 
   void evalLocal2TrackingCSTransform() const;
 
   ///
   /// evaluates local position of clusters in SM
-  void evalLocalPositionFit(Double_t deff, Double_t w0, Double_t phiSlope, gsl::span<unsigned short> inputsIndices, AnalysisCluster& cluster) const;
+  void evalLocalPositionFit(Double_t deff, Double_t w0, Double_t phiSlope, gsl::span<int> inputsIndices, AnalysisCluster& cluster) const;
 
   ///
   /// Applied for simulation data with threshold 3 adc
@@ -215,21 +250,21 @@ class ClusterFactory
   /// \return the index of the cells with max enegry
   /// \return the maximum energy
   /// \return the total energy of the cluster
-  std::tuple<int, float, float> getMaximalEnergyIndex(gsl::span<unsigned short> inputsIndices) const;
+  std::tuple<int, float, float> getMaximalEnergyIndex(gsl::span<int> inputsIndices) const;
 
   ///
   /// Calculates the multiplicity of digits/cells with energy larger than level*energy
-  int getMultiplicityAtLevel(float level, gsl::span<unsigned short> inputsIndices, AnalysisCluster& clusterAnalysis) const;
+  int getMultiplicityAtLevel(float level, gsl::span<int> inputsIndices, AnalysisCluster& clusterAnalysis) const;
 
   int getSuperModuleNumber() const { return mSuperModuleNumber; }
 
   // searches for the local maxima
   // energy above relative level
   //int getNumberOfLocalMax(int nInputMult,
-  //                        float locMaxCut, gsl::span<o2::emcal::Cell> inputs) const;
+  //                        float locMaxCut, gsl::span<InputType> inputs) const;
 
-  //int getNumberOfLocalMax(std::vector<o2::emcal::Cell>& maxAt, std::vector<float>& maxAtEnergy,
-  //                        float locMaxCut, gsl::span<o2::emcal::Cell> inputs) const;
+  //int getNumberOfLocalMax(std::vector<InputType>& maxAt, std::vector<float>& maxAtEnergy,
+  //                        float locMaxCut, gsl::span<InputType> inputs) const;
 
   bool sharedCluster() const { return mSharedCluster; }
   void setSharedCluster(bool s) { mSharedCluster = s; }
@@ -242,19 +277,19 @@ class ClusterFactory
   bool getCoreRadius() const { return mCoreRadius; }
   void setCoreRadius(float radius) { mCoreRadius = radius; }
 
-  void setClustersContainer(gsl::span<o2::emcal::Cluster> clusterContainer)
+  void setClustersContainer(gsl::span<const o2::emcal::Cluster> clusterContainer)
   {
-    mClustersContainer = gsl::span<o2::emcal::Cluster>(&clusterContainer[0], clusterContainer.size());
+    mClustersContainer = clusterContainer;
   }
 
-  void setCellsContainer(gsl::span<o2::emcal::Cell> cellContainer)
+  void setCellsContainer(gsl::span<const InputType> cellContainer)
   {
-    mInputsContainer = gsl::span<o2::emcal::Cell>(&cellContainer[0], cellContainer.size());
+    mInputsContainer = cellContainer;
   }
 
-  void setCellsIndicesContainer(gsl::span<unsigned short> indicesContainer)
+  void setCellsIndicesContainer(gsl::span<int> indicesContainer)
   {
-    mCellsIndices = gsl::span<unsigned short>(&indicesContainer[0], indicesContainer.size());
+    mCellsIndices = indicesContainer;
   }
 
   int getNumberOfClusters() const
@@ -270,21 +305,21 @@ class ClusterFactory
   /// should be less than 2%
   /// Unfinished - Nov 15,2006
   /// Distance is calculate in (phi,eta) units
-  void evalCoreEnergy(gsl::span<unsigned short> inputsIndices, AnalysisCluster& clusterAnalysis) const;
+  void evalCoreEnergy(gsl::span<int> inputsIndices, AnalysisCluster& clusterAnalysis) const;
 
   ///
   /// Calculates the dispersion of the shower at the origin of the cluster
   /// in cell units
-  void evalDispersion(gsl::span<unsigned short> inputsIndices, AnalysisCluster& clusterAnalysis) const;
+  void evalDispersion(gsl::span<int> inputsIndices, AnalysisCluster& clusterAnalysis) const;
 
   ///
   /// Calculates the axis of the shower ellipsoid in eta and phi
   /// in cell units
-  void evalElipsAxis(gsl::span<unsigned short> inputsIndices, AnalysisCluster& clusterAnalysis) const;
+  void evalElipsAxis(gsl::span<int> inputsIndices, AnalysisCluster& clusterAnalysis) const;
 
   ///
   /// Time is set to the time of the digit with the maximum energy
-  void evalTime(gsl::span<unsigned short> inputsIndices, AnalysisCluster& clusterAnalysis) const;
+  void evalTime(gsl::span<int> inputsIndices, AnalysisCluster& clusterAnalysis) const;
 
   ///
   /// Converts Theta (Radians) to Eta (Radians)
@@ -299,7 +334,7 @@ class ClusterFactory
 
   float mCoreRadius = 10; ///<  The radius in which the core energy is evaluated
 
-  float mLogWeight = 0.0; ///<  logarithmic weight for the cluster center of gravity calculation
+  float mLogWeight = 4.5; ///<  logarithmic weight for the cluster center of gravity calculation
 
   bool mJustCluster = kFALSE; ///< Flag to evaluates local to "tracking" c.s. transformation (B.P.).
 
@@ -307,9 +342,9 @@ class ClusterFactory
   float mDistToBadTower = -1;         ///<  Distance to nearest bad tower
   bool mSharedCluster = false;        ///<  States if cluster is shared by 2 SuperModules in same phi rack (0,1), (2,3) ... (10,11).
 
-  gsl::span<o2::emcal::Cluster> mClustersContainer; ///< Container for all the clusters in the event
-  gsl::span<o2::emcal::Cell> mInputsContainer;      ///< Container for all the cells/digits in the event
-  gsl::span<unsigned short> mCellsIndices;          ///< Container for cells indices in the event
+  gsl::span<const o2::emcal::Cluster> mClustersContainer; ///< Container for all the clusters in the event
+  gsl::span<const InputType> mInputsContainer;            ///< Container for all the cells/digits in the event
+  gsl::span<int> mCellsIndices;                           ///< Container for cells indices in the event
 
   ClassDefNV(ClusterFactory, 1);
 };

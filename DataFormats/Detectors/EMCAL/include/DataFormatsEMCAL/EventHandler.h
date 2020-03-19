@@ -83,7 +83,7 @@ class EventHandler
  public:
   using TriggerRange = gsl::span<const TriggerRecord>;
   using ClusterRange = gsl::span<const Cluster>;
-  using CellIndexRange = gsl::span<const int>;
+  using CellIndexRange = gsl::span<int>;
   using CellRange = gsl::span<const CellInputType>;
 
   /// \class RangeException
