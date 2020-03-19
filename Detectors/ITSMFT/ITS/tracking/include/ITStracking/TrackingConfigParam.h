@@ -33,26 +33,26 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   int phiSpan = -1;
   int zSpan = -1;
 
-  // histogram configuration
-  int nBinsHistX = 402;
-  int nBinsHistY = 402;
-  int nBinsHistZ = 4002;
-  int binSpanX = 2;
-  int binSpanY = 2;
-  int binSpanZ = 4;
-  float lowHistBoundaryX = -1.98f;
-  float lowHistBoundaryY = -1.98f;
-  float lowHistBoundaryZ = -40.f;
-  float highHistBoundaryX = 1.98f;
-  float highHistBoundaryY = 1.98f;
-  float highHistBoundaryZ = 40.f;
+  // // histogram configuration
+  // int nBinsHistX = 402;
+  // int nBinsHistY = 402;
+  // int nBinsHistZ = 4002;
+  // int binSpanX = 2;
+  // int binSpanY = 2;
+  // int binSpanZ = 4;
+  // float lowHistBoundaryX = -1.98f;
+  // float lowHistBoundaryY = -1.98f;
+  // float lowHistBoundaryZ = -40.f;
+  // float highHistBoundaryX = 1.98f;
+  // float highHistBoundaryY = 1.98f;
+  // float highHistBoundaryZ = 40.f;
 
-  // GPU configuration
-  int gpuCUBBufferSize = 25e5;
-  int gpuMaxTrackletsPerCluster = 2e2;
-  int gpuMaxClustersPerLayer = 4e4;
-  int gpuMaxTrackletCapacity = 2e4;
-  int gpuMaxVertices = 10;
+  // // GPU configuration
+  // int gpuCUBBufferSize = 25e5;
+  // int gpuMaxTrackletsPerCluster = 2e2;
+  // int gpuMaxClustersPerLayer = 4e4;
+  // int gpuMaxTrackletCapacity = 2e4;
+  // int gpuMaxVertices = 10;
 
   O2ParamDef(VertexerParamConfig, "ITSVertexerParam");
 };
