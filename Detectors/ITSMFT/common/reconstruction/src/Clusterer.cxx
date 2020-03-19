@@ -303,10 +303,10 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
       clus.getPattern(&patt[0], Cluster::kMaxPatternBytes);
       UShort_t pattID = mPattIdConverter.findGroupID(rowSpan, colSpan, patt);
       if (mPattIdConverter.IsGroup(pattID)) {
-        int rowShift = 0, colShift = 0;
-        ClusterTopology::getCOGshift(rowSpan, colSpan, patt, rowShift, colShift);
-        rowMin += rowShift;
-        colMin += colShift;
+        float xCOG = 0., zCOG = 0.;
+        ClusterPattern::getCOG(rowSpan, colSpan, patt, xCOG, zCOG);
+        rowMin += round(xCOG);
+        colMin += round(zCOG);
         if (mPatterns) {
           mPatterns->emplace_back(rowSpan, colSpan, patt);
           mPatterns->back().setHash(mClustersCount);
