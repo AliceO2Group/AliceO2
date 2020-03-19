@@ -20,6 +20,7 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/InputRecordWalker.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ClusterGroupAttribute.h"
 #include "DataFormatsTPC/ClusterNative.h"
@@ -269,17 +270,18 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector
       std::array<gsl::span<const o2::tpc::Digit>, NSectors> inputDigits;
       std::array<std::unique_ptr<const MCLabelContainer>, NSectors> inputDigitsMC;
       if (processMC) {
-        // we can later extend this to multiple inputs
-        for (auto const& inputId : processAttributes->inputIds) {
-          std::string inputLabel = "mclblin" + std::to_string(inputId);
-          auto ref = pc.inputs().get(inputLabel);
+        std::vector<InputSpec> filter = {
+          {"check", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITSMCTR"}, Lifetime::Timeframe},
+          {"check", ConcreteDataTypeMatcher{gDataOriginTPC, "CLNATIVEMCLBL"}, Lifetime::Timeframe},
+        };
+        for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
           auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
           if (sectorHeader == nullptr) {
             // FIXME: think about error policy
             LOG(ERROR) << "sector header missing on header stack";
             return;
           }
-          const int& sector = sectorHeader->sector;
+          const int sector = sectorHeader->sector;
           if (sector < 0) {
             continue;
           }
@@ -290,9 +292,9 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector
             throw std::runtime_error("can only have one MC data set per sector");
           }
           if (caClusterer) {
-            inputDigitsMC[sector] = std::move(pc.inputs().get<const MCLabelContainer*>(inputLabel.c_str()));
+            inputDigitsMC[sector] = std::move(pc.inputs().get<const MCLabelContainer*>(ref));
           } else {
-            mcInputs[sector] = std::move(pc.inputs().get<std::vector<MCLabelContainer>>(inputLabel.c_str()));
+            mcInputs[sector] = std::move(pc.inputs().get<std::vector<MCLabelContainer>>(ref));
           }
           validMcInputs.set(sector);
           activeSectors |= sectorHeader->activeSectors;
@@ -310,16 +312,18 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector
       auto& validInputs = processAttributes->validInputs;
       int operation = 0;
       std::map<int, DataRef> datarefs;
-      for (auto const& inputId : processAttributes->inputIds) {
-        std::string inputLabel = "input" + std::to_string(inputId);
-        auto ref = pc.inputs().get(inputLabel);
+      std::vector<InputSpec> filter = {
+        {"check", ConcreteDataTypeMatcher{gDataOriginTPC, "DIGITS"}, Lifetime::Timeframe},
+        {"check", ConcreteDataTypeMatcher{gDataOriginTPC, "CLUSTERNATIVE"}, Lifetime::Timeframe},
+      };
+      for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
         auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
         if (sectorHeader == nullptr) {
           // FIXME: think about error policy
           LOG(ERROR) << "sector header missing on header stack";
           return;
         }
-        const int& sector = sectorHeader->sector;
+        const int sector = sectorHeader->sector;
         // check the current operation, this is used to either signal eod or noop
         // FIXME: the noop is not needed any more once the lane configuration with one
         // channel per sector is used
@@ -343,7 +347,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector
         validInputs.set(sector);
         datarefs[sector] = ref;
         if (caClusterer) {
-          inputDigits[sector] = pc.inputs().get<gsl::span<o2::tpc::Digit>>(inputLabel);
+          inputDigits[sector] = pc.inputs().get<gsl::span<o2::tpc::Digit>>(ref);
           LOG(INFO) << "GOT SPAN FOR SECTOR " << sector << " -> " << inputDigits[sector].size();
         }
       }

@@ -120,25 +120,16 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
     // function gets out of scope
     // FIXME: wanted to use it = sectors.begin() in the variable capture but the iterator
     // is const and can not be incremented
-    auto processingFct = [processAttributes, index = std::make_shared<unsigned>(0), propagateMC](ProcessingContext& pc) {
+    auto processingFct = [processAttributes, propagateMC](ProcessingContext& pc) {
       if (processAttributes->finished) {
         return;
       }
 
-      auto publish = [&processAttributes, &index, &pc, propagateMC]() {
-        auto& sectors = processAttributes->sectors;
+      bool eos = false;
+      auto const& sectors = processAttributes->sectors;
+      for (auto const& sector : sectors) {
         auto& activeSectors = processAttributes->activeSectors;
         auto& readers = processAttributes->readers;
-        while (*index < sectors.size() && !readers[sectors[*index]]) {
-          // probably more efficient to use a vector of valid readers instead of the fixed array with
-          // possibly invalid entries
-          ++(*index);
-        }
-        if (*index == sectors.size()) {
-          // there is no valid reader for this call
-          return false;
-        }
-        auto sector = sectors[*index];
         o2::tpc::TPCSectorHeader header{sector};
         header.activeSectors = activeSectors;
         auto& r = *(readers[sector].get());
@@ -150,34 +141,12 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
         } else {
           // no more data, delete the reader
           readers[sector].reset();
-          return false;
-        }
-        ++(*index);
-        return true;
-      };
-
-      if (*index >= processAttributes->sectors.size()) {
-        *index = 0;
-      }
-      int operation = -2;
-      for (size_t lane = 0; lane < processAttributes->outputIds.size(); ++lane) {
-        if (!publish()) {
-          // need to publish a dummy packet
-          // FIXME define and use flags in the TPCSectorHeader, for now using the same schema as
-          // in digitizer workflow, -1 -> end of data, -2 noop
-          if (lane == 0) {
-            operation = -1;
-          }
-          o2::header::DataHeader::SubSpecificationType subSpec = processAttributes->outputIds[lane];
-          o2::tpc::TPCSectorHeader header{operation};
-          pc.outputs().snapshot(OutputRef{"output", subSpec, {header}}, subSpec);
-          if (propagateMC) {
-            pc.outputs().snapshot(OutputRef{"outputMC", subSpec, {header}}, subSpec);
-          }
+          eos = true;
         }
       }
 
-      if ((processAttributes->finished = (operation == -1)) && processAttributes->terminateOnEod) {
+      if (eos) {
+        processAttributes->finished = true;
         pc.services().get<ControlService>().endOfStream();
         pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
       }
