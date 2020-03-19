@@ -32,7 +32,7 @@ class Response
 
   float getQspreadX() { return mQspreadX; };
   float getQspreadY() { return mQspreadY; };
-  float getChargeSat() { return mChargeSat; };
+  float getChargetTransition() { return mChargeTransition; };
   float getChargeThreshold() { return mChargeThreshold; };
   float etocharge(float edepos);
   double chargePadfraction(float xmin, float xmax, float ymin, float ymax);
@@ -40,24 +40,33 @@ class Response
   unsigned long response(unsigned long adc);
   float getAnod(float x);
   float chargeCorr();
+  bool aboveThreshold(float charge) { return charge > mChargeThreshold; };
+  bool getIsSampa() { return mSampa; };
+  void setIsSampa(bool isSampa = true) { mSampa = isSampa; };
+ 
 
  private:
+  //setter to get Aliroot-readout-chain or Run 3 (Sampa) one
+  bool mSampa = true;
+  
   //parameter for station number
   Station mStation;
   //proper parameter in aliroot in AliMUONResponseFactory.cxx
-  const float mQspreadX = 0.144; //charge spread in cm
-  const float mQspreadY = 0.144;
+  float mQspreadX = 0.0; //charge spread in cm
+  float mQspreadY = 0.0;
 
   //ChargeSlope for Station 2-5
-  const float mChargeSlope = 25;  //why float in Aliroot?
+  float mChargeSlope = 0.0;  //why float in Aliroot?
   const float mChargeCorr = 0.11; // number from line 122
   //of AliMUONResponseFactory.cxx
 
-  const float mChargeThreshold = 1e-4;
+  float mChargeThreshold = 1e-4; 
   //AliMUONResponseV0.cxx constr.
-  const float mChargeSat = 0.61 * 1.25 * 0.2;
+  //aliroot "charges below this threshold are 0"
+  float mChargeTransition = 0.61 * 1.25 * 0.2;
+  // this is the transition between charge and ACD in principle... so this is already done...
   //from AliMUONResponseV0.cxx
-  //equals AliMUONConstants::DefaultADC2MV()*AliMUONConstants::DefaultA0()*AliMUONConstants::DefaultCapa()
+  //equals (for Aliroo) AliMUONConstants::DefaultADC2MV()*AliMUONConstants::DefaultA0()*AliMUONConstants::DefaultCapa()
   //Mathieson parameter: NIM A270 (1988) 602-603
   //should be a common place for MCH
   // Mathieson parameters from L.Kharmandarian's thesis, page 190
@@ -74,6 +83,10 @@ class Response
 
   //anode-cathode Pitch in 1/cm
   float mInversePitch = 0.0;
+
+  //maximal bit number
+  int mMaxADC = (1<<12)-1;//Aliroto
+  
 };
 } // namespace mch
 } // namespace o2

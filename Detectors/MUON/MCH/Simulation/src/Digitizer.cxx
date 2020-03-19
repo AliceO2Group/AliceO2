@@ -157,9 +157,15 @@ int Digitizer::processHit(const Hit& hit, int detID, double event_time)
     } else {
       q *= chargenon;
     }
+    //auto signal = (unsigned long)q;
+    
+    // if(resp.aboveThreshold(q)){
+    std::cout <<"q " << q << std::endl;
     auto signal = (unsigned long)q;
+    std::cout <<"signal " << signal << std::endl;
     digits.emplace_back(time, detID, padid, signal);
     ++ndigits;
+    // }
   });
   return ndigits;
 }
@@ -209,7 +215,7 @@ void Digitizer::mergeDigits()
         }
       }
     }
-    adc = response.response(adc);
+    //adc = resp.response(adc);//doesn't work like this
     mDigits.emplace_back(sortedDigits(i).getTimeStamp(), sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc);
     i = j;
     ++count;
