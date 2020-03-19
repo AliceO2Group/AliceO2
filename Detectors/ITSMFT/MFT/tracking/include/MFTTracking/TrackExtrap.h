@@ -25,7 +25,7 @@ namespace o2
 namespace mft
 {
 
-class TrackParam;
+class TrackParamMFT;
 
 /// Class holding tools for track extrapolation
 class TrackExtrap
@@ -41,22 +41,22 @@ class TrackExtrap
   TrackExtrap& operator=(TrackExtrap&&) = delete;
 
   void setBz(float bZ) { mBZField = bZ; } /// Set the magnetic field for the MFT
-  float getBz() { return mBZField; }
+  const float getBz() const { return mBZField; }
 
   /// Return true if the field is switched ON
-  static bool isFieldON() { return sFieldON; }
+  const bool isFieldON() { return mIsFieldON; }
 
-  static bool extrapToZ(TrackParam* trackParam, double zEnd, bool isFieldON = true);
-  static bool extrapToZCov(TrackParam* trackParam, double zEnd, bool updatePropagator = false, bool isFieldON = true);
-  static void linearExtrapToZ(TrackParam* trackParam, double zEnd);
-  static void linearExtrapToZCov(TrackParam* trackParam, double zEnd, bool updatePropagator);
-  static void helixExtrapToZ(TrackParam* trackParam, double zEnd);
-  static void helixExtrapToZCov(TrackParam* trackParam, double zEnd, bool updatePropagator);
-  static void addMCSEffect(TrackParam* trackParam, double dZ, double x0, bool isFieldON = true);
+  bool extrapToZ(TrackParamMFT* TrackParamMFT, double zEnd, bool isFieldON = true);
+  bool extrapToZCov(TrackParamMFT* TrackParamMFT, double zEnd, bool updatePropagator = false, bool isFieldON = true);
+  void linearExtrapToZ(TrackParamMFT* TrackParamMFT, double zEnd);
+  void linearExtrapToZCov(TrackParamMFT* TrackParamMFT, double zEnd, bool updatePropagator);
+  void helixExtrapToZ(TrackParamMFT* TrackParamMFT, double zEnd);
+  void helixExtrapToZCov(TrackParamMFT* TrackParamMFT, double zEnd, bool updatePropagator);
+  void addMCSEffect(TrackParamMFT* TrackParamMFT, double dZ, double x0, bool isFieldON = true);
 
  private:
-  static Float_t mBZField; // Tesla.
-  static bool sFieldON;    ///< true if the field is switched ON
+  Float_t mBZField = 0.5;  // Tesla.
+  bool mIsFieldON = false; ///< true if the field is switched ON
 };
 
 } // namespace mft

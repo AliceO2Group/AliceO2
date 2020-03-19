@@ -8,18 +8,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TrackParam.h
+/// \file TrackParamMFT.h
 /// \brief Definition of the MFT track parameters for internal use
 ///
 /// \author Philippe Pillot, Subatech; adapted by Rafael Pezzi, UFRGS
 
-#ifndef ALICEO2_MFT_TRACKPARAM_H_
-#define ALICEO2_MFT_TRACKPARAM_H_
+#ifndef ALICEO2_MFT_TRACKPARAMMFT_H_
+#define ALICEO2_MFT_TRACKPARAMMFT_H_
 
 #include <TMatrixD.h>
 #include <TMath.h>
 
 #include "DataFormatsITSMFT/Cluster.h"
+#include "MFTBase/Constants.h"
 
 namespace o2
 {
@@ -28,17 +29,18 @@ namespace mft
 
 //class Cluster;
 //using o2::itsmft::Cluster;
+
 /// track parameters for internal use
-class TrackParam
+class TrackParamMFT
 {
  public:
-  TrackParam() = default;
-  ~TrackParam() = default;
+  TrackParamMFT() = default;
+  ~TrackParamMFT() = default;
 
-  TrackParam(const TrackParam& tp);
-  TrackParam& operator=(const TrackParam& tp);
-  TrackParam(TrackParam&&) = delete;
-  TrackParam& operator=(TrackParam&&) = delete;
+  TrackParamMFT(const TrackParamMFT& tp);
+  TrackParamMFT& operator=(const TrackParamMFT& tp);
+  TrackParamMFT(TrackParamMFT&&) = delete;
+  TrackParamMFT& operator=(TrackParamMFT&&) = delete;
 
   /// return Z coordinate (cm)
   Double_t getZ() const { return mZ; }
@@ -133,7 +135,7 @@ class TrackParam
   /// set the local chi2 of the associated cluster with respect to the track
   void setLocalChi2(Double_t chi2) { mLocalChi2 = chi2; }
 
-  Bool_t isCompatibleTrackParam(const TrackParam& trackParam, Double_t sigma2Cut, Double_t& normChi2) const;
+  Bool_t isCompatibleTrackParamMFT(const TrackParamMFT& TrackParamMFT, Double_t sigma2Cut, Double_t& normChi2) const;
 
   void print() const;
 
@@ -176,7 +178,23 @@ class TrackParam
   Double_t mLocalChi2 = 0.; ///< Local chi2 of the associated cluster with respect to the track
 };
 
+class TrackMFTParam : public TrackParamMFT
+{
+ public:
+  void addCluster(o2::itsmft::Cluster cl)
+  {
+    n_Clusters++;
+    mClusters[n_Clusters] = cl;
+  }
+  const std::array<o2::itsmft::Cluster, o2::mft::constants::LayersNumber>& getClusters() const { return mClusters; }
+  Int_t getNClusters() { return n_Clusters; }
+
+ private:
+  Int_t n_Clusters = -1;
+  std::array<o2::itsmft::Cluster, o2::mft::constants::LayersNumber> mClusters;
+};
+
 } // namespace mft
 } // namespace o2
 
-#endif // ALICEO2_MFT_TRACKPARAM_H_
+#endif // ALICEO2_MFT_TRACKPARAMMFT_H_

@@ -29,13 +29,14 @@ namespace mft
 class TrackFitterTask : public o2::framework::Task
 {
  public:
-  TrackFitterTask() {}
+  TrackFitterTask(bool useMC) : mUseMC(useMC) {}
   ~TrackFitterTask() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
 
  private:
   int mState = 0;
+  bool mUseMC = true;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
   std::unique_ptr<o2::mft::TrackFitter> mTrackFitter = nullptr;
 };

@@ -13,6 +13,7 @@
 ///
 /// \author Philippe Pillot, Subatech; adapted by Rafael Pezzi, UFRGS
 
+#include "MFTBase/Constants.h"
 #include "MFTTracking/TrackFitter.h"
 #include "MFTTracking/TrackCA.h"
 #include "MFTTracking/TrackExtrap.h"
@@ -24,6 +25,7 @@
 #include <TMatrixD.h>
 #include <TF1.h>
 #include <TF2.h>
+#include "CommonConstants/MathConstants.h"
 #include "MathUtils/MathBase.h"
 #include "MathUtils/Utils.h"
 
@@ -44,7 +46,7 @@ void TrackFitter::setBz(float bZ)
 
 //_________________________________________________________________________________________________
 void TrackFitter::fit(FitterTrackMFT& track, bool smooth, bool finalize,
-                      std::list<TrackParam>::reverse_iterator* itStartingParam)
+                      std::list<TrackParamMFT>::reverse_iterator* itStartingParam)
 {
   /// Fit a track to its attached clusters
   /// Smooth the track if requested and the smoother enabled
@@ -78,7 +80,7 @@ void TrackFitter::fit(FitterTrackMFT& track, bool smooth, bool finalize,
   itParam->getCovariances().Print();
 
   // recusively add the upstream clusters and update the track parameters
-  TrackParam* startingParam = &*itParam;
+  TrackParamMFT* startingParam = &*itParam;
   while (++itParam != track.rend()) {
     try {
       addCluster(*startingParam, *itParam->getClusterPtr(), *itParam);
@@ -104,7 +106,7 @@ void TrackFitter::fit(FitterTrackMFT& track, bool smooth, bool finalize,
 }
 
 //_________________________________________________________________________________________________
-void TrackFitter::initTrack(const o2::itsmft::Cluster& cl, TrackParam& param)
+void TrackFitter::initTrack(const o2::itsmft::Cluster& cl, TrackParamMFT& param)
 {
 
   /// Compute the initial track parameters at the z position of the last cluster (cl)
@@ -114,7 +116,7 @@ void TrackFitter::initTrack(const o2::itsmft::Cluster& cl, TrackParam& param)
 
   // compute the track parameters at the last cluster
 
-  //double k = -mBZField * 0.3;
+  //double k = -mBZField * o2::constants::math::B2C;
   double x0 = cl.getX();
   double y0 = cl.getY();
   double dZ = -(cl.getZ());
@@ -146,8 +148,8 @@ void TrackFitter::initTrack(const o2::itsmft::Cluster& cl, TrackParam& param)
   // compute the track parameter covariances at the last cluster (as if the other clusters did not exist)
   TMatrixD lastParamCov(5, 5);
   lastParamCov.Zero();
-  lastParamCov(0, 0) = sigmax0sq; // <X,X>
-  lastParamCov(0, 1) = 0;    // <Y,X>
+  lastParamCov(0, 0) = sigmax0sq;                   // <X,X>
+  lastParamCov(0, 1) = 0;                           // <Y,X>
   lastParamCov(0, 2) = -sigmax0sq * y0 / r0sq;      // <PHI,X>
   lastParamCov(0, 3) = -dZ * sigmax0sq * x0 / r0cu; // <TANL,X>
   lastParamCov(0, 4) = 1e-2;                        //- x0*sigmax0sq/r0cu; // <INVQPT,X>
@@ -159,10 +161,10 @@ void TrackFitter::initTrack(const o2::itsmft::Cluster& cl, TrackParam& param)
 
   lastParamCov(2, 2) = (sigmax0sq * y0 * y0 + sigmay0sq * x0 * x0) / r0sq / r0sq;    // <PHI,PHI>
   lastParamCov(2, 3) = dZ * x0 * y0 * (sigmax0sq - sigmay0sq) / r0sq / r0cu + 1e-10; //  <TANL,PHI>
-  lastParamCov(2, 4) = 0;        //  <INVQPT,PHI>
+  lastParamCov(2, 4) = 0;                                                            //  <INVQPT,PHI>
 
   lastParamCov(3, 3) = dZ * dZ * (sigmax0sq * x0 * x0 + sigmay0sq * y0 * y0) / r0cu / r0cu + sigmaDeltaZsq / r0sq; // <TANL,TANL>
-  lastParamCov(3, 4) = 0;         // <INVQPT,TANL>
+  lastParamCov(3, 4) = 0;                                                                                          // <INVQPT,TANL>
 
   lastParamCov(4, 4) = sigmainvqptsq; // <INVQPT,INVQPT>
 
@@ -185,7 +187,7 @@ void TrackFitter::initTrack(const o2::itsmft::Cluster& cl, TrackParam& param)
 }
 
 //_________________________________________________________________________________________________
-void TrackFitter::addCluster(const TrackParam& startingParam, const o2::itsmft::Cluster& cl, TrackParam& param)
+void TrackFitter::addCluster(const TrackParamMFT& startingParam, const o2::itsmft::Cluster& cl, TrackParamMFT& param)
 {
   /// Extrapolate the starting track parameters to the z position of the new cluster
   /// accounting for MCS dispersion in the current layer and the other(s) crossed
@@ -219,7 +221,7 @@ void TrackFitter::addCluster(const TrackParam& startingParam, const o2::itsmft::
   int expectedLayer(currentLayer - 1);
   currentLayer = mftChipMapper.chip2Layer(cl.getSensorID());
   while (currentLayer < expectedLayer) {
-    if (!mTrackExtrap.extrapToZCov(&param, SDefaultLayerZ[expectedLayer], mSmooth)) {
+    if (!mTrackExtrap.extrapToZCov(&param, o2::mft::constants::LayerZPosition[expectedLayer], mSmooth)) {
       throw std::runtime_error("1. Track extrapolation failed");
     }
     //mTrackExtrap.addMCSEffect(&param, SLayerThicknessInX0[expectedLayer], -1.);
@@ -294,7 +296,7 @@ void TrackFitter::smoothTrack(FitterTrackMFT& track, bool finalize)
 }
 
 //_________________________________________________________________________________________________
-void TrackFitter::runKalmanFilter(TrackParam& trackParam)
+void TrackFitter::runKalmanFilter(TrackParamMFT& trackParam)
 {
   /// Compute the new track parameters including the attached cluster with the Kalman filter
   /// The current parameters are supposed to have been extrapolated to the cluster z position
@@ -353,7 +355,7 @@ void TrackFitter::runKalmanFilter(TrackParam& trackParam)
 }
 
 //_________________________________________________________________________________________________
-void TrackFitter::runSmoother(const TrackParam& previousParam, TrackParam& param)
+void TrackFitter::runSmoother(const TrackParamMFT& previousParam, TrackParamMFT& param)
 {
   /// Recompute the track parameters starting from the previous ones
   /// Throw an exception in case of failure

@@ -20,7 +20,7 @@
 #include <memory>
 
 #include "DataFormatsITSMFT/Cluster.h"
-#include "TrackParam.h"
+#include "DataFormatsMFT/TrackParamMFT.h"
 
 namespace o2
 {
@@ -40,15 +40,15 @@ class FitterTrackMFT
   FitterTrackMFT& operator=(FitterTrackMFT&&) = delete;
 
   /// Return a reference to the track parameters at vertex
-  const TrackParam& getParamAtVertex() const { return mParamAtVertex; }
+  const TrackParamMFT& getParamAtVertex() const { return mParamAtVertex; }
 
   /// Return the number of attached clusters
-  int getNClusters() const { return mParamAtClusters.size(); }
+  const int getNClusters() const { return mParamAtClusters.size(); }
 
   /// Return a reference to the track parameters at first cluster
-  const TrackParam& first() const { return mParamAtClusters.front(); }
+  const TrackParamMFT& first() const { return mParamAtClusters.front(); }
   /// Return a reference to the track parameters at last cluster
-  const TrackParam& last() const { return mParamAtClusters.back(); }
+  const TrackParamMFT& last() const { return mParamAtClusters.back(); }
 
   /// Return an iterator to the track parameters at clusters (point to the first one)
   auto begin() { return mParamAtClusters.begin(); }
@@ -63,21 +63,21 @@ class FitterTrackMFT
   auto rend() { return mParamAtClusters.rend(); }
   auto rend() const { return mParamAtClusters.rend(); }
 
-  TrackParam& createParamAtCluster(const o2::itsmft::Cluster& cluster);
-  void addParamAtCluster(const TrackParam& param);
+  TrackParamMFT& createParamAtCluster(const o2::itsmft::Cluster& cluster);
+  void addParamAtCluster(const TrackParamMFT& param);
   /// Remove the given track parameters from the internal list and return an iterator to the parameters that follow
-  auto removeParamAtCluster(std::list<TrackParam>::iterator& itParam) { return mParamAtClusters.erase(itParam); }
+  auto removeParamAtCluster(std::list<TrackParamMFT>::iterator& itParam) { return mParamAtClusters.erase(itParam); }
 
-  int getNClustersInCommon(const FitterTrackMFT& track, int stMin = 0, int stMax = 4) const;
+  const int getNClustersInCommon(const FitterTrackMFT& track, int stMin = 0, int stMax = 4) const;
 
   bool isBetter(const FitterTrackMFT& track) const;
 
   void tagRemovableClusters(uint8_t requestedStationMask);
 
-  void setCurrentParam(const TrackParam& param, int chamber);
-  TrackParam& getCurrentParam();
+  void setCurrentParam(const TrackParamMFT& param, int chamber);
+  TrackParamMFT& getCurrentParam();
   /// get a reference to the current chamber on which the current parameters are given
-  int& getCurrentChamber() { return mCurrentLayer; }
+  const int& getCurrentChamber() const { return mCurrentLayer; }
   /// check whether the current track parameters exist
   bool hasCurrentParam() const { return mCurrentParam ? true : false; }
   /// check if the current parameters are valid
@@ -98,12 +98,12 @@ class FitterTrackMFT
   void print() const;
 
  private:
-  TrackParam mParamAtVertex{};                 ///< track parameters at vertex
-  std::list<TrackParam> mParamAtClusters{};    ///< list of track parameters at each cluster
-  std::unique_ptr<TrackParam> mCurrentParam{}; ///< current track parameters used during tracking
-  int mCurrentLayer = -1;                      ///< current chamber on which the current parameters are given
-  bool mConnected = false;                     ///< flag telling if this track shares cluster(s) with another
-  bool mRemovable = false;                     ///< flag telling if this track should be deleted
+  TrackParamMFT mParamAtVertex{};                 ///< track parameters at vertex
+  std::list<TrackParamMFT> mParamAtClusters{};    ///< list of track parameters at each cluster
+  std::unique_ptr<TrackParamMFT> mCurrentParam{}; ///< current track parameters used during tracking
+  int mCurrentLayer = -1;                         ///< current chamber on which the current parameters are given
+  bool mConnected = false;                        ///< flag telling if this track shares cluster(s) with another
+  bool mRemovable = false;                        ///< flag telling if this track should be deleted
 };
 
 } // namespace mft

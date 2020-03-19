@@ -39,7 +39,7 @@ FitterTrackMFT::FitterTrackMFT(const FitterTrackMFT& track)
 }
 
 //__________________________________________________________________________
-TrackParam& FitterTrackMFT::createParamAtCluster(const o2::itsmft::Cluster& cluster)
+TrackParamMFT& FitterTrackMFT::createParamAtCluster(const o2::itsmft::Cluster& cluster)
 {
   /// Create the object to hold the track parameters at the given cluster
   /// Only the z position of the track is set to the cluster z position
@@ -66,7 +66,7 @@ TrackParam& FitterTrackMFT::createParamAtCluster(const o2::itsmft::Cluster& clus
 }
 
 //__________________________________________________________________________
-void FitterTrackMFT::addParamAtCluster(const TrackParam& param)
+void FitterTrackMFT::addParamAtCluster(const TrackParamMFT& param)
 {
   /// Add a copy of the given track parameters in the internal list
   /// The parameters must be associated with a cluster
@@ -74,7 +74,7 @@ void FitterTrackMFT::addParamAtCluster(const TrackParam& param)
 
   const o2::itsmft::Cluster* cluster = param.getClusterPtr();
   if (cluster == nullptr) {
-    LOG(ERROR) << "The TrackParam must be associated with a cluster --> not added";
+    LOG(ERROR) << "The TrackParamMFT must be associated with a cluster --> not added";
     return;
   }
 
@@ -91,7 +91,7 @@ void FitterTrackMFT::addParamAtCluster(const TrackParam& param)
 }
 
 //__________________________________________________________________________
-int FitterTrackMFT::getNClustersInCommon(const FitterTrackMFT& track, int stMin, int stMax) const
+const int FitterTrackMFT::getNClustersInCommon(const FitterTrackMFT& track, int stMin, int stMax) const
 {
   /// Return the number of clusters in common on stations [stMin, stMax]
   /// between this track and the one given as parameter
@@ -141,24 +141,24 @@ void FitterTrackMFT::tagRemovableClusters(uint8_t requestedStationMask)
 }
 
 //__________________________________________________________________________
-void FitterTrackMFT::setCurrentParam(const TrackParam& param, int chamber)
+void FitterTrackMFT::setCurrentParam(const TrackParamMFT& param, int chamber)
 {
   /// set the current track parameters and the associated chamber
   if (mCurrentParam) {
     *mCurrentParam = param;
   } else {
-    mCurrentParam = std::make_unique<TrackParam>(param);
+    mCurrentParam = std::make_unique<TrackParamMFT>(param);
   }
   mCurrentParam->setClusterPtr(nullptr);
   mCurrentLayer = chamber;
 }
 
 //__________________________________________________________________________
-TrackParam& FitterTrackMFT::getCurrentParam()
+TrackParamMFT& FitterTrackMFT::getCurrentParam()
 {
   /// get a reference to the current track parameters. Create dummy parameters if needed
   if (!mCurrentParam) {
-    mCurrentParam = std::make_unique<TrackParam>();
+    mCurrentParam = std::make_unique<TrackParamMFT>();
   }
   return *mCurrentParam;
 }

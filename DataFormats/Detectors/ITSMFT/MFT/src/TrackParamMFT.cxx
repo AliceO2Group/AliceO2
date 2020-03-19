@@ -8,12 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TrackParam.cxx
+/// \file TrackParamMFT.cxx
 /// \brief Implementation of the MFT track parameters for internal use
 ///
 /// \author Philippe Pillot, Subatech; adapted by Rafael Pezzi, UFRGS
 
-#include "MFTTracking/TrackParam.h"
+#include "DataFormatsMFT/TrackParamMFT.h"
 
 #include <iomanip>
 #include <iostream>
@@ -32,7 +32,7 @@ namespace mft
 using namespace std;
 
 //_________________________________________________________________________
-TrackParam::TrackParam(const TrackParam& tp)
+TrackParamMFT::TrackParamMFT(const TrackParamMFT& tp)
   : mZ(tp.mZ),
     mParameters(tp.mParameters),
     mClusterPtr(tp.mClusterPtr),
@@ -56,7 +56,7 @@ TrackParam::TrackParam(const TrackParam& tp)
 }
 
 //_________________________________________________________________________
-TrackParam& TrackParam::operator=(const TrackParam& tp)
+TrackParamMFT& TrackParamMFT::operator=(const TrackParamMFT& tp)
 {
   /// Assignment operator
   if (this == &tp)
@@ -125,7 +125,7 @@ TrackParam& TrackParam::operator=(const TrackParam& tp)
 }
 
 //__________________________________________________________________________
-void TrackParam::clear()
+void TrackParamMFT::clear()
 {
   /// clear memory
   deleteCovariances();
@@ -137,7 +137,7 @@ void TrackParam::clear()
 }
 
 //__________________________________________________________________________
-const TMatrixD& TrackParam::getCovariances() const
+const TMatrixD& TrackParamMFT::getCovariances() const
 {
   /// Return the covariance matrix (create it before if needed)
   if (!mCovariances) {
@@ -148,7 +148,7 @@ const TMatrixD& TrackParam::getCovariances() const
 }
 
 //__________________________________________________________________________
-void TrackParam::setCovariances(const TMatrixD& covariances)
+void TrackParamMFT::setCovariances(const TMatrixD& covariances)
 {
   /// Set the covariance matrix
   if (mCovariances)
@@ -158,7 +158,7 @@ void TrackParam::setCovariances(const TMatrixD& covariances)
 }
 
 //__________________________________________________________________________
-void TrackParam::setCovariances(const Double_t matrix[5][5])
+void TrackParamMFT::setCovariances(const Double_t matrix[5][5])
 {
   /// Set the covariance matrix
   if (mCovariances)
@@ -168,7 +168,7 @@ void TrackParam::setCovariances(const Double_t matrix[5][5])
 }
 
 //__________________________________________________________________________
-void TrackParam::setVariances(const Double_t matrix[5][5])
+void TrackParamMFT::setVariances(const Double_t matrix[5][5])
 {
   /// Set the diagonal terms of the covariance matrix (variances)
   if (!mCovariances)
@@ -179,14 +179,14 @@ void TrackParam::setVariances(const Double_t matrix[5][5])
 }
 
 //__________________________________________________________________________
-void TrackParam::deleteCovariances()
+void TrackParamMFT::deleteCovariances()
 {
   /// Delete the covariance matrix
   mCovariances.reset();
 }
 
 //__________________________________________________________________________
-const TMatrixD& TrackParam::getPropagator() const
+const TMatrixD& TrackParamMFT::getPropagator() const
 {
   /// Return the propagator (create it before if needed)
   if (!mPropagator) {
@@ -197,7 +197,7 @@ const TMatrixD& TrackParam::getPropagator() const
 }
 
 //__________________________________________________________________________
-void TrackParam::resetPropagator()
+void TrackParamMFT::resetPropagator()
 {
   /// Reset the propagator
   if (mPropagator)
@@ -205,7 +205,7 @@ void TrackParam::resetPropagator()
 }
 
 //__________________________________________________________________________
-void TrackParam::updatePropagator(const TMatrixD& propagator)
+void TrackParamMFT::updatePropagator(const TMatrixD& propagator)
 {
   /// Update the propagator
   if (mPropagator)
@@ -215,7 +215,7 @@ void TrackParam::updatePropagator(const TMatrixD& propagator)
 }
 
 //__________________________________________________________________________
-const TMatrixD& TrackParam::getExtrapParameters() const
+const TMatrixD& TrackParamMFT::getExtrapParameters() const
 {
   /// Return extrapolated parameters (create it before if needed)
   if (!mExtrapParameters) {
@@ -226,7 +226,7 @@ const TMatrixD& TrackParam::getExtrapParameters() const
 }
 
 //__________________________________________________________________________
-void TrackParam::setExtrapParameters(const TMatrixD& extrapParameters)
+void TrackParamMFT::setExtrapParameters(const TMatrixD& extrapParameters)
 {
   /// Set extrapolated parameters
   if (mExtrapParameters)
@@ -236,7 +236,7 @@ void TrackParam::setExtrapParameters(const TMatrixD& extrapParameters)
 }
 
 //__________________________________________________________________________
-const TMatrixD& TrackParam::getExtrapCovariances() const
+const TMatrixD& TrackParamMFT::getExtrapCovariances() const
 {
   /// Return the extrapolated covariance matrix (create it before if needed)
   if (!mExtrapCovariances) {
@@ -247,7 +247,7 @@ const TMatrixD& TrackParam::getExtrapCovariances() const
 }
 
 //__________________________________________________________________________
-void TrackParam::setExtrapCovariances(const TMatrixD& extrapCovariances)
+void TrackParamMFT::setExtrapCovariances(const TMatrixD& extrapCovariances)
 {
   /// Set the extrapolated covariance matrix
   if (mExtrapCovariances)
@@ -257,7 +257,7 @@ void TrackParam::setExtrapCovariances(const TMatrixD& extrapCovariances)
 }
 
 //__________________________________________________________________________
-const TMatrixD& TrackParam::getSmoothParameters() const
+const TMatrixD& TrackParamMFT::getSmoothParameters() const
 {
   /// Return the smoothed parameters (create it before if needed)
   if (!mSmoothParameters) {
@@ -268,7 +268,7 @@ const TMatrixD& TrackParam::getSmoothParameters() const
 }
 
 //__________________________________________________________________________
-void TrackParam::setSmoothParameters(const TMatrixD& smoothParameters)
+void TrackParamMFT::setSmoothParameters(const TMatrixD& smoothParameters)
 {
   /// Set the smoothed parameters
   if (mSmoothParameters)
@@ -278,7 +278,7 @@ void TrackParam::setSmoothParameters(const TMatrixD& smoothParameters)
 }
 
 //__________________________________________________________________________
-const TMatrixD& TrackParam::getSmoothCovariances() const
+const TMatrixD& TrackParamMFT::getSmoothCovariances() const
 {
   /// Return the smoothed covariance matrix (create it before if needed)
   if (!mSmoothCovariances) {
@@ -289,7 +289,7 @@ const TMatrixD& TrackParam::getSmoothCovariances() const
 }
 
 //__________________________________________________________________________
-void TrackParam::setSmoothCovariances(const TMatrixD& smoothCovariances)
+void TrackParamMFT::setSmoothCovariances(const TMatrixD& smoothCovariances)
 {
   /// Set the smoothed covariance matrix
   if (mSmoothCovariances)
@@ -299,7 +299,7 @@ void TrackParam::setSmoothCovariances(const TMatrixD& smoothCovariances)
 }
 
 //__________________________________________________________________________
-Bool_t TrackParam::isCompatibleTrackParam(const TrackParam& trackParam, Double_t sigma2Cut, Double_t& chi2) const
+Bool_t TrackParamMFT::isCompatibleTrackParamMFT(const TrackParamMFT& TrackParamMFT, Double_t sigma2Cut, Double_t& chi2) const
 {
   /// Return kTRUE if the two set of track parameters are compatible within sigma2Cut
   /// Set chi2 to the compatible chi2 value
@@ -310,7 +310,7 @@ Bool_t TrackParam::isCompatibleTrackParam(const TrackParam& trackParam, Double_t
   chi2 = 0.;
 
   // ckeck covariance matrices
-  if (!mCovariances && !trackParam.mCovariances) {
+  if (!mCovariances && !TrackParamMFT.mCovariances) {
     LOG(ERROR) << "Covariance matrix must exist for at least one set of parameters";
     return kFALSE;
   }
@@ -318,19 +318,19 @@ Bool_t TrackParam::isCompatibleTrackParam(const TrackParam& trackParam, Double_t
   Double_t maxChi2 = 5. * sigma2Cut * sigma2Cut; // 5 degrees of freedom
 
   // check Z parameters
-  if (mZ != trackParam.mZ)
-    LOG(WARN) << "Parameters are given at different Z position (" << mZ << " : " << trackParam.mZ
+  if (mZ != TrackParamMFT.mZ)
+    LOG(WARN) << "Parameters are given at different Z position (" << mZ << " : " << TrackParamMFT.mZ
               << "): results are meaningless";
 
   // compute the parameter residuals
-  TMatrixD deltaParam(mParameters, TMatrixD::kMinus, trackParam.mParameters);
+  TMatrixD deltaParam(mParameters, TMatrixD::kMinus, TrackParamMFT.mParameters);
 
   // build the error matrix
   TMatrixD weight(5, 5);
   if (mCovariances)
     weight += *mCovariances;
-  if (trackParam.mCovariances)
-    weight += *(trackParam.mCovariances);
+  if (TrackParamMFT.mCovariances)
+    weight += *(TrackParamMFT.mCovariances);
 
   // invert the error matrix to get the parameter weights if possible
   if (weight.Determinant() == 0) {
@@ -354,10 +354,10 @@ Bool_t TrackParam::isCompatibleTrackParam(const TrackParam& trackParam, Double_t
 }
 
 //__________________________________________________________________________
-void TrackParam::print() const
+void TrackParamMFT::print() const
 {
-  /// Printing TrackParam informations
-  cout << "<TrackParam> Bending P=" << setw(5) << setprecision(3) << 1. / mParameters(4, 0)
+  /// Printing TrackParamMFT informations
+  cout << "<TrackParamMFT> Bending P=" << setw(5) << setprecision(3) << 1. / mParameters(4, 0)
        << ", NonBendSlope=" << setw(5) << setprecision(3) << mParameters(1, 0) * 180. / TMath::Pi()
        << ", BendSlope=" << setw(5) << setprecision(3) << mParameters(3, 0) * 180. / TMath::Pi() << ", (x,y,z)_IP=("
        << setw(5) << setprecision(3) << mParameters(0, 0) << "," << setw(5) << setprecision(3) << mParameters(2, 0)

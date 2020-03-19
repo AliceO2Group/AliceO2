@@ -18,7 +18,8 @@
 
 #include <vector>
 
-#include "ReconstructionDataFormats/Track.h"
+#include "DataFormatsMFT/TrackParamMFT.h"
+// #include "ReconstructionDataFormats/Track.h"
 #include "CommonDataFormat/RangeReference.h"
 
 namespace o2
@@ -31,20 +32,24 @@ class Cluster;
 
 namespace mft
 {
-class TrackMFT : public o2::track::TrackParCov
+class TrackMFT : public o2::mft::TrackParamMFT
 {
   using Cluster = o2::itsmft::Cluster;
   using ClusRefs = o2::dataformats::RangeRefComp<4>;
 
  public:
-  using o2::track::TrackParCov::TrackParCov;
 
   TrackMFT() = default;
   TrackMFT(const TrackMFT& t) = default;
-  TrackMFT(const o2::track::TrackParCov& parcov) : TrackParCov{parcov} {}
-  TrackMFT(const o2::track::TrackParCov& parCov, float chi2, std::uint32_t rof, const o2::track::TrackParCov& outer)
-    : o2::track::TrackParCov{parCov}, mChi2{chi2}, mROFrame{rof}, mParamOut{outer} {}
-  TrackMFT& operator=(const TrackMFT& tr) = default;
+  TrackMFT& operator=(const TrackParamMFT& t)
+  {
+    TrackParamMFT::operator=(t);
+    return *this;
+  }
+  //TrackMFT(const o2::track::TrackParCov& parcov) : TrackParCov{parcov} {}
+  //TrackMFT(const o2::track::TrackParCov& parCov, float chi2, std::uint32_t rof, const o2::track::TrackParCov& outer)
+  //  : o2::track::TrackParCov{parCov}, mChi2{chi2}, mROFrame{rof}, mParamOut{outer} {}
+  //TrackMFT& operator=(const TrackParamMFT& tr);
   ~TrackMFT() = default;
 
   // Other functions
@@ -77,13 +82,13 @@ class TrackMFT : public o2::track::TrackParCov
   std::uint32_t getROFrame() const { return mROFrame; }
   void setROFrame(std::uint32_t f) { mROFrame = f; }
 
-  o2::track::TrackParCov& getParamOut() { return mParamOut; }
-  const o2::track::TrackParCov& getParamOut() const { return mParamOut; }
+  //o2::track::TrackParCov& getParamOut() { return mParamOut; }
+  //const o2::track::TrackParCov& getParamOut() const { return mParamOut; }
 
  private:
   float mChi2 = 0.;                 ///< Chi2 for this track
   std::uint32_t mROFrame = 0;       ///< RO Frame
-  o2::track::TrackParCov mParamOut; ///< parameter at largest radius
+  //o2::track::TrackParCov mParamOut; ///< parameter at largest radius
   ClusRefs mClusRef;                ///< references on clusters
 
   ClassDefNV(TrackMFT, 1);
@@ -96,12 +101,12 @@ class TrackMFTExt : public TrackMFT
   static constexpr int MaxClusters = 10;
   using TrackMFT::TrackMFT; // inherit base constructors
 
-  TrackMFTExt(o2::track::TrackParCov&& parCov, short ncl, float chi2, std::uint32_t rof,
-              o2::track::TrackParCov&& outer, std::array<int, MaxClusters> cls)
-    : TrackMFT(parCov, chi2, rof, outer), mIndex{cls}
-  {
-    setNumberOfClusters(ncl);
-  }
+  //TrackMFTExt(o2::track::TrackParCov&& parCov, short ncl, float chi2, std::uint32_t rof,
+  //            o2::track::TrackParCov&& outer, std::array<int, MaxClusters> cls)
+  //  : TrackMFT(parCov, chi2, rof, outer), mIndex{cls}
+  //  {
+  //    setNumberOfClusters(ncl);
+  //  }
   void setClusterIndex(int l, int i)
   {
     int ncl = getNumberOfClusters();

@@ -14,8 +14,9 @@
 /// \author Philippe Pillot, Subatech; adapted by Rafael Pezzi, UFRGS
 
 #include "MFTTracking/TrackExtrap.h"
-#include "MFTTracking/TrackParam.h"
+#include "DataFormatsMFT/TrackParamMFT.h"
 
+#include "CommonConstants/MathConstants.h"
 #include <TGeoGlobalMagField.h>
 #include <TGeoManager.h>
 #include <TGeoMaterial.h>
@@ -30,11 +31,8 @@ namespace o2
 namespace mft
 {
 
-bool TrackExtrap::sFieldON = false;
-Float_t TrackExtrap::mBZField = 0.5; // Tesla.
-
 //__________________________________________________________________________
-void TrackExtrap::linearExtrapToZ(TrackParam* trackParam, double zEnd)
+void TrackExtrap::linearExtrapToZ(TrackParamMFT* trackParam, double zEnd)
 {
   /// Track parameters linearly extrapolated to the plane at "zEnd".
   /// On return, results from the extrapolation are updated in trackParam.
@@ -53,7 +51,7 @@ void TrackExtrap::linearExtrapToZ(TrackParam* trackParam, double zEnd)
 }
 
 //__________________________________________________________________________
-void TrackExtrap::linearExtrapToZCov(TrackParam* trackParam, double zEnd, bool updatePropagator)
+void TrackExtrap::linearExtrapToZCov(TrackParamMFT* trackParam, double zEnd, bool updatePropagator)
 {
   /// Track parameters and their covariances linearly extrapolated to the plane at "zEnd".
   /// On return, results from the extrapolation are updated in trackParam.
@@ -96,7 +94,7 @@ void TrackExtrap::linearExtrapToZCov(TrackParam* trackParam, double zEnd, bool u
 }
 
 //__________________________________________________________________________
-void TrackExtrap::helixExtrapToZ(TrackParam* trackParam, double zEnd)
+void TrackExtrap::helixExtrapToZ(TrackParamMFT* trackParam, double zEnd)
 {
   /// Track parameters extrapolated to the plane at "zEnd" considering a helix
   /// On return, results from the extrapolation are updated in trackParam.
@@ -115,7 +113,7 @@ void TrackExtrap::helixExtrapToZ(TrackParam* trackParam, double zEnd)
   double tanl0 = trackParam->getTanl();
   double invqpt0 = trackParam->getInvQPt();
 
-  double k = -mBZField * 0.003;
+  double k = -getBz() * o2::constants::math::B2C;
   double deltax = (dZ * cosphi0 / tanl0 - dZ * dZ * k * invqpt0 * sinphi0 / (2. * tanl0 * tanl0));
   double deltay = (dZ * sinphi0 / tanl0 + dZ * dZ * k * invqpt0 * cosphi0 / (2. * tanl0 * tanl0));
 
@@ -139,7 +137,7 @@ void TrackExtrap::helixExtrapToZ(TrackParam* trackParam, double zEnd)
 }
 
 //__________________________________________________________________________
-void TrackExtrap::helixExtrapToZCov(TrackParam* trackParam, double zEnd, bool updatePropagator)
+void TrackExtrap::helixExtrapToZCov(TrackParamMFT* trackParam, double zEnd, bool updatePropagator)
 {
   // TODO: Implement helix covariance extrapolation
 
@@ -154,7 +152,7 @@ void TrackExtrap::helixExtrapToZCov(TrackParam* trackParam, double zEnd, bool up
   double cosphi0 = TMath::Cos(phi0);
   double sinphi0 = TMath::Sin(phi0);
   double tanl0sq = tanl0 * tanl0;
-  double k = -mBZField * 0.003;
+  double k = -getBz() * o2::constants::math::B2C;
 
   TMatrixD jacob(5, 5);
   jacob.UnitMatrix();
@@ -179,7 +177,7 @@ void TrackExtrap::helixExtrapToZCov(TrackParam* trackParam, double zEnd, bool up
 }
 
 //__________________________________________________________________________
-bool TrackExtrap::extrapToZ(TrackParam* trackParam, double zEnd, bool isFieldON)
+bool TrackExtrap::extrapToZ(TrackParamMFT* trackParam, double zEnd, bool isFieldON)
 {
   /// Interface to track parameter extrapolation to the plane at "Z".
   /// On return, the track parameters resulting from the extrapolation are updated in trackParam.
@@ -193,7 +191,7 @@ bool TrackExtrap::extrapToZ(TrackParam* trackParam, double zEnd, bool isFieldON)
 }
 
 //__________________________________________________________________________
-bool TrackExtrap::extrapToZCov(TrackParam* trackParam, double zEnd, bool updatePropagator, bool isFieldON)
+bool TrackExtrap::extrapToZCov(TrackParamMFT* trackParam, double zEnd, bool updatePropagator, bool isFieldON)
 {
   /// Track parameters and their covariances extrapolated to the plane at "zEnd".
   /// On return, results from the extrapolation are updated in trackParam.
@@ -208,7 +206,7 @@ bool TrackExtrap::extrapToZCov(TrackParam* trackParam, double zEnd, bool updateP
 }
 
 //__________________________________________________________________________
-void TrackExtrap::addMCSEffect(TrackParam* trackParam, double dZ, double x0, bool isFieldON)
+void TrackExtrap::addMCSEffect(TrackParamMFT* trackParam, double dZ, double x0, bool isFieldON)
 {
   /// Add to the track parameter covariances the effects of multiple Coulomb scattering
   /// through a material of thickness "abs(dZ)" and of radiation length "x0"

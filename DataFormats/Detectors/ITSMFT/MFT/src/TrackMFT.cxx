@@ -16,12 +16,10 @@
 #include "DataFormatsMFT/TrackMFT.h"
 #include "CommonConstants/MathConstants.h"
 #include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsMFT/TrackParamMFT.h"
 
 ClassImp(o2::mft::TrackMFT);
 
 using namespace o2::mft;
 using namespace o2::itsmft;
 using namespace o2::constants::math;
-using namespace o2::track;
-
-//_____________________________________________________________________________

@@ -19,7 +19,7 @@
 //#include "MFTTracking/Cluster.h"
 #include "MFTTracking/TrackCA.h"
 #include "MFTTracking/FitterTrackMFT.h"
-#include "MFTTracking/TrackParam.h"
+#include "DataFormatsMFT/TrackParamMFT.h"
 #include "MFTTracking/TrackExtrap.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsITSMFT/Cluster.h"
@@ -54,22 +54,20 @@ class TrackFitter
   bool isSmootherEnabled() { return mSmooth; }
 
   void fit(FitterTrackMFT& track, bool smooth = true, bool finalize = true,
-           std::list<TrackParam>::reverse_iterator* itStartingParam = nullptr);
+           std::list<TrackParamMFT>::reverse_iterator* itStartingParam = nullptr);
 
-  void runKalmanFilter(TrackParam& trackParam);
+  void runKalmanFilter(TrackParamMFT& trackParam);
 
   /// Return the maximum chi2 above which the track can be considered as abnormal
   static constexpr double getMaxChi2() { return SMaxChi2; }
 
  private:
-  void initTrack(const o2::itsmft::Cluster& cl, TrackParam& param);
-  void addCluster(const TrackParam& startingParam, const o2::itsmft::Cluster& cl, TrackParam& param);
+  void initTrack(const o2::itsmft::Cluster& cl, TrackParamMFT& param);
+  void addCluster(const TrackParamMFT& startingParam, const o2::itsmft::Cluster& cl, TrackParamMFT& param);
   void smoothTrack(FitterTrackMFT& track, bool finalize);
-  void runSmoother(const TrackParam& previousParam, TrackParam& param);
+  void runSmoother(const TrackParamMFT& previousParam, TrackParamMFT& param);
   Float_t mBZField = 0.5;                   // Tesla.
   static constexpr double SMaxChi2 = 2.e10; ///< maximum chi2 above which the track can be considered as abnormal
-  /// z position of the layers
-  static constexpr float SDefaultLayerZ[10] = {-45.3, -46.7, -48.6, -50.0, -52.4, -53.8, -67.7, -69.1, -76.1, -77.5};
   /// default layer thickness in X0 for reconstruction  //FIXME: set values for the MFT
   static constexpr double SLayerThicknessInX0[10] = {0.065, 0.065, 0.075, 0.075, 0.035,
                                                      0.035, 0.035, 0.035, 0.035, 0.035};
