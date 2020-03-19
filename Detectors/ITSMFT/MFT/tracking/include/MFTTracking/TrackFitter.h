@@ -62,7 +62,7 @@ class TrackFitter
   static constexpr double getMaxChi2() { return SMaxChi2; }
 
  private:
-  void initTrack(const o2::itsmft::Cluster& cl, const o2::itsmft::Cluster& cl2, TrackParam& param);
+  void initTrack(const o2::itsmft::Cluster& cl, TrackParam& param);
   void addCluster(const TrackParam& startingParam, const o2::itsmft::Cluster& cl, TrackParam& param);
   void smoothTrack(FitterTrackMFT& track, bool finalize);
   void runSmoother(const TrackParam& previousParam, TrackParam& param);

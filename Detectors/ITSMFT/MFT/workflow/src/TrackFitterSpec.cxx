@@ -110,13 +110,13 @@ void TrackFitterTask::run(ProcessingContext& pc)
 
     // TODO: Convert FitterTrackMFT to TrackMFTExt or TrackMFT
     auto tanl = track.first().getTanl();
-    auto sinp = TMath::Sin(track.first().getPhi());
-    LOG(INFO) << "   TrackPars: Tgl = " << tanl << "  Snp = " << sinp << "  px = " << track.first().getPx() << "  py = " << track.first().getPy() << " pz = " << track.first().getPz() << " pt = " << track.first().getPt() << " p = " << track.first().getP() << " Chi2 = " << track.first().getTrackChi2() << std::endl;
+    auto phi = TMath::Sin(track.first().getPhi());
+    LOG(INFO) << "TrackPars: p = " << track.first().getP() << " Tgl = " << tanl << " phi = " << phi << " pz = " << track.first().getPz() << " pt = " << track.first().getPt() << " charge = " << track.first().getCharge() << " Chi2 = " << track.first().getTrackChi2() << std::endl;
     temptrack.setX(track.first().getX());
     temptrack.setY(track.first().getY());
     temptrack.setZ(track.first().getZ());
     temptrack.setTgl(tanl);
-    temptrack.setSnp(sinp);
+    temptrack.setSnp(TMath::Sin(phi));
     temptrack.setQ2Pt(track.first().getCharge() / track.first().getPt());
   }
 

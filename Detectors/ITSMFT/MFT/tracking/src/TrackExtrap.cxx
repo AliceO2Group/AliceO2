@@ -106,7 +106,7 @@ void TrackExtrap::helixExtrapToZ(TrackParam* trackParam, double zEnd)
   }
 
   // Compute track parameters
-  double dZ = (zEnd - trackParam->getZ()) / 100.; // Propagate in meters
+  double dZ = (zEnd - trackParam->getZ()); // Propagate in meters
   double x0 = trackParam->getX();
   double y0 = trackParam->getY();
   double phi0 = trackParam->getPhi();
@@ -115,9 +115,9 @@ void TrackExtrap::helixExtrapToZ(TrackParam* trackParam, double zEnd)
   double tanl0 = trackParam->getTanl();
   double invqpt0 = trackParam->getInvQPt();
 
-  double k = -mBZField * 0.3;
-  double deltax = (dZ * cosphi0 / tanl0 - dZ * dZ * k * invqpt0 * sinphi0 / (2. * tanl0 * tanl0)) * 100;
-  double deltay = (dZ * sinphi0 / tanl0 + dZ * dZ * k * invqpt0 * cosphi0 / (2. * tanl0 * tanl0)) * 100;
+  double k = -mBZField * 0.003;
+  double deltax = (dZ * cosphi0 / tanl0 - dZ * dZ * k * invqpt0 * sinphi0 / (2. * tanl0 * tanl0));
+  double deltay = (dZ * sinphi0 / tanl0 + dZ * dZ * k * invqpt0 * cosphi0 / (2. * tanl0 * tanl0));
 
   double x = x0 + deltax;
   double y = y0 + deltay;
@@ -146,7 +146,7 @@ void TrackExtrap::helixExtrapToZCov(TrackParam* trackParam, double zEnd, bool up
   helixExtrapToZ(trackParam, zEnd);
 
   // Calculate the jacobian related to the track parameters linear extrapolation to "zEnd"
-  double dZ = (zEnd - trackParam->getZ()) / 100.; // Propagate in meters
+  double dZ = (zEnd - trackParam->getZ()); // Propagate in meters
   double phi0 = trackParam->getPhi();
   double tanl0 = trackParam->getTanl();
   double invqpt0 = trackParam->getInvQPt();
@@ -154,7 +154,7 @@ void TrackExtrap::helixExtrapToZCov(TrackParam* trackParam, double zEnd, bool up
   double cosphi0 = TMath::Cos(phi0);
   double sinphi0 = TMath::Sin(phi0);
   double tanl0sq = tanl0 * tanl0;
-  double k = -mBZField * 0.3;
+  double k = -mBZField * 0.003;
 
   TMatrixD jacob(5, 5);
   jacob.UnitMatrix();

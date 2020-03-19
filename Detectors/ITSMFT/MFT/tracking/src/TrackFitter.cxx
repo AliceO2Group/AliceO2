@@ -52,7 +52,7 @@ void TrackFitter::fit(FitterTrackMFT& track, bool smooth, bool finalize,
   /// Fit the entire track or only the part upstream itStartingParam
   /// Throw an exception in case of failure
 
-  //std::cout << "\n ***************************** Start Fitting new track ***************************** \n";
+  std::cout << "\n ***************************** Start Fitting new track ***************************** \n";
 
   // initialize the starting track parameters and cluster
   auto itParam(track.rbegin());
@@ -71,11 +71,11 @@ void TrackFitter::fit(FitterTrackMFT& track, bool smooth, bool finalize,
     //(*itParam).setInvPx(1.0); // TODO: Improve initial momentum estimate
     //(*itParam).setInvPy(1.0); // TODO: Improve initial momentum estimate
     //(*itParam).setInvQPz(1.0); // TODO: Improve initial momentum estimate
-    initTrack(*itPreviousParam->getClusterPtr(), *itParam->getClusterPtr(), *itParam);
+    initTrack(*itParam->getClusterPtr(), *itParam);
   }
 
-  //std::cout << "Seed covariances:";
-  //itParam->getCovariances().Print();
+  std::cout << "Seed covariances:";
+  itParam->getCovariances().Print();
 
   // recusively add the upstream clusters and update the track parameters
   TrackParam* startingParam = &*itParam;
@@ -88,11 +88,11 @@ void TrackFitter::fit(FitterTrackMFT& track, bool smooth, bool finalize,
     }
   }
 
-  //std::cout << "Track covariances:";
-  //itParam--;
-  //itParam->getCovariances().Print();
-  //std::cout << "Track Chi2 = " << itParam->getTrackChi2() << std::endl;
-  //std::cout << " ***************************** Done fitting *****************************\n";
+  std::cout << "Track covariances:";
+  itParam--;
+  itParam->getCovariances().Print();
+  std::cout << "Track Chi2 = " << itParam->getTrackChi2() << std::endl;
+  std::cout << " ***************************** Done fitting *****************************\n";
   // smooth the track if requested and the smoother enabled
   if (smooth && mSmooth) {
     try {
@@ -104,10 +104,10 @@ void TrackFitter::fit(FitterTrackMFT& track, bool smooth, bool finalize,
 }
 
 //_________________________________________________________________________________________________
-void TrackFitter::initTrack(const o2::itsmft::Cluster& cl1, const o2::itsmft::Cluster& cl2, TrackParam& param)
+void TrackFitter::initTrack(const o2::itsmft::Cluster& cl, TrackParam& param)
 {
 
-  /// Compute the initial track parameters at the z position of the last cluster (cl2)
+  /// Compute the initial track parameters at the z position of the last cluster (cl)
   /// The covariance matrix is computed such that the last cluster is the only constraint
   /// (by assigning an infinite dispersion to the other cluster)
   /// These parameters are the seed for the Kalman filter
@@ -115,57 +115,56 @@ void TrackFitter::initTrack(const o2::itsmft::Cluster& cl1, const o2::itsmft::Cl
   // compute the track parameters at the last cluster
 
   //double k = -mBZField * 0.3;
-  double dX = (cl1.getX() - cl2.getX()) / 100;
-  double dY = (cl1.getY() - cl2.getY()) / 100;
-  double dZ = (cl1.getZ() - cl2.getZ()) / 100;
-  double pt = TMath::Sqrt(dX * dX + dY * dY) * 10000;
-  double pz = -dZ * 10000;
+  double x0 = cl.getX();
+  double y0 = cl.getY();
+  double dZ = -(cl.getZ());
+  double pt = TMath::Sqrt(x0 * x0 + y0 * y0) * 10;
+  double pz = -dZ * 10;
   //double phi1 = TMath::ATan2(cl1.getY(), cl1.getX());
-  double phi2 = TMath::ATan2(cl2.getY(), cl2.getX());
-  //std::cout << "initTrack: pt = " << pt << std::endl;
-  //std::cout << " -iniTrack: cluster    X =  " << cl2.getX() << " Y = " << cl2.getY() << " Z = " << cl2.getZ() << " phi2 = " << phi2 << std::endl;
-  //std::cout << " -iniTrack: cluster    X =  " << cl1.getX() << " Y = " << cl1.getY() << " Z = " << cl1.getZ() << " phi1 = " << phi2 << std::endl;
-  //std::cout << " -iniTrack:           dX =  " << dX << " dY = " << dY << " dZ = " << dZ << std::endl;
+  double phi2 = TMath::ATan2(cl.getY(), cl.getX());
+  double tanl = pz / pt;
+  double r0sq = cl.getX() * cl.getX() + cl.getY() * cl.getY();
+  double r0cu = r0sq * TMath::Sqrt(r0sq);
+  double sigmax0sq = 0.0005;       // FIXME: from cluster
+  double sigmay0sq = 0.0005;       // FIXME: from cluster
+  double sigmaDeltaZsq = 5;        // Primary vertex distribution: beam interaction diamond
+  double sigmainvqptsq = .25 / pt; // Very large uncertainty on pt
+
+  std::cout << "initTrack: pt = " << pt << std::endl;
+  std::cout << " -iniTrack: cluster    X =  " << cl.getX() << " Y = " << cl.getY() << " Z = " << cl.getZ() << " phi2 = " << phi2 << std::endl;
 
   //std::cout << " mBZField = " << mBZField << std::endl;
 
-  param.setX(cl2.getX());
-  param.setY(cl2.getY());
-  param.setZ(cl2.getZ());
+  param.setX(cl.getX());
+  param.setY(cl.getY());
+  param.setZ(cl.getZ());
   param.setPhi(phi2);
   param.setInvQPt(1.0 / pt);
-  param.setTanl(pz / pt);
-  //std::cout << "  seed Phi, Tanl, InvQpt = " << param.getPhi() << " " << param.getTanl() << " " << param.getInvQPt() << std::endl;
+  param.setTanl(tanl);
+  std::cout << "  seed Phi, Tanl, InvQpt = " << param.getPhi() << " " << param.getTanl() << " " << param.getInvQPt() << std::endl;
 
-  //double phi = param.getPhi();
-  double tanl = param.getTanl();
-  double sigmatanl = tanl / 100.;
-  double invqpt = param.getInvQPt();
-  //double sigmapz = -sigmatanl * invqpt;
-  double sigmainvqpt = 0.25 * invqpt * invqpt;
-  double sigmaphi = 1e-3;
   // compute the track parameter covariances at the last cluster (as if the other clusters did not exist)
   TMatrixD lastParamCov(5, 5);
   lastParamCov.Zero();
-  lastParamCov(0, 0) = 1e-4; // <X,X>
+  lastParamCov(0, 0) = sigmax0sq; // <X,X>
   lastParamCov(0, 1) = 0;    // <Y,X>
-  lastParamCov(0, 2) = 0;    // <PHI,X>
-  lastParamCov(0, 3) = 1e-4; // <TANL,X>
-  lastParamCov(0, 4) = 1e-2; // <INVQPT,X>
+  lastParamCov(0, 2) = -sigmax0sq * y0 / r0sq;      // <PHI,X>
+  lastParamCov(0, 3) = -dZ * sigmax0sq * x0 / r0cu; // <TANL,X>
+  lastParamCov(0, 4) = 1e-2;                        //- x0*sigmax0sq/r0cu; // <INVQPT,X>
 
-  lastParamCov(1, 1) = 1e-4; // <Y,Y>
-  lastParamCov(1, 2) = 0;    // <PHI,Y>
-  lastParamCov(1, 3) = 1e-4; // <TANL,Y>
-  lastParamCov(1, 4) = 1e-2; // <INVQPT,Y>
+  lastParamCov(1, 1) = sigmay0sq;                   // <Y,Y>
+  lastParamCov(1, 2) = sigmay0sq * x0 / r0sq;       // <PHI,Y>
+  lastParamCov(1, 3) = -dZ * sigmay0sq * y0 / r0cu; // <TANL,Y>
+  lastParamCov(1, 4) = 1e-2;                        //- y0*sigmay0sq/r0cu; //1e-2; // <INVQPT,Y>
 
-  lastParamCov(2, 2) = sigmaphi; // <PHI,PHI>
-  lastParamCov(2, 3) = 1e-3;     //  <TANL,PHI>
+  lastParamCov(2, 2) = (sigmax0sq * y0 * y0 + sigmay0sq * x0 * x0) / r0sq / r0sq;    // <PHI,PHI>
+  lastParamCov(2, 3) = dZ * x0 * y0 * (sigmax0sq - sigmay0sq) / r0sq / r0cu + 1e-10; //  <TANL,PHI>
   lastParamCov(2, 4) = 0;        //  <INVQPT,PHI>
 
-  lastParamCov(3, 3) = sigmatanl; // <TANL,TANL>
+  lastParamCov(3, 3) = dZ * dZ * (sigmax0sq * x0 * x0 + sigmay0sq * y0 * y0) / r0cu / r0cu + sigmaDeltaZsq / r0sq; // <TANL,TANL>
   lastParamCov(3, 4) = 0;         // <INVQPT,TANL>
 
-  lastParamCov(4, 4) = sigmainvqpt; // <INVQPT,INVQPT>
+  lastParamCov(4, 4) = sigmainvqptsq; // <INVQPT,INVQPT>
 
   lastParamCov(1, 0) = lastParamCov(0, 1); //
   lastParamCov(2, 0) = lastParamCov(0, 2); //
@@ -181,7 +180,7 @@ void TrackFitter::initTrack(const o2::itsmft::Cluster& cl1, const o2::itsmft::Cl
   param.setCovariances(lastParamCov);
 
   // set other parameters
-  param.setClusterPtr(&cl2);
+  param.setClusterPtr(&cl);
   param.setTrackChi2(0.);
 }
 
@@ -196,7 +195,7 @@ void TrackFitter::addCluster(const TrackParam& startingParam, const o2::itsmft::
   if (cl.getZ() <= startingParam.getZ()) {
     throw std::runtime_error("The new cluster must be upstream");
   }
-  //std::cout << "addCluster:     X = " << cl.getX() << " Y = " << cl.getY() << " Z = " << cl.getZ() << std::endl;
+  std::cout << "addCluster:     X = " << cl.getX() << " Y = " << cl.getY() << " Z = " << cl.getZ() << std::endl;
   // copy the current parameters into the new ones
   param.setParameters(startingParam.getParameters());
   param.setZ(startingParam.getZ());
@@ -213,7 +212,7 @@ void TrackFitter::addCluster(const TrackParam& startingParam, const o2::itsmft::
     param.resetPropagator();
   }
 
-  //std::cout << "  BeforeExtrap: X = " << param.getX() << " Y = " << param.getY() << " Z = " << param.getZ() << " Tgl = " << param.getTanl() << "  Phi = " << param.getPhi() << "  px = " << param.getPx() << "  py = " << param.getPy() << " pz = " << param.getPz() << " pt = " << param.getPt() << std::endl;
+  std::cout << "  BeforeExtrap: X = " << param.getX() << " Y = " << param.getY() << " Z = " << param.getZ() << " Tgl = " << param.getTanl() << "  Phi = " << param.getPhi() << " pz = " << param.getPz() << " pt = " << param.getPt() << std::endl;
   //param.getCovariances().Print();
 
   // add MCS in missing layers if any
@@ -232,7 +231,7 @@ void TrackFitter::addCluster(const TrackParam& startingParam, const o2::itsmft::
     throw std::runtime_error("2. Track extrapolation failed");
   }
 
-  //std::cout << "   AfterExtrap: X = " << param.getX() << " Y = " << param.getY() << " Z = " << param.getZ() << " Tgl = " << param.getTanl() << "  Phi = " << param.getPhi() << "  px = " << param.getPx() << "  py = " << param.getPy() << " pz = " << param.getPz() << " pt = " << param.getPt() << std::endl;
+  std::cout << "   AfterExtrap: X = " << param.getX() << " Y = " << param.getY() << " Z = " << param.getZ() << " Tgl = " << param.getTanl() << "  Phi = " << param.getPhi() << " pz = " << param.getPz() << " pt = " << param.getPt() << std::endl;
   //param.getCovariances().Print();
 
   // save extrapolated parameters and covariances for smoother
@@ -249,11 +248,11 @@ void TrackFitter::addCluster(const TrackParam& startingParam, const o2::itsmft::
     throw;
   }
 
-  //std::cout << "   New Cluster: X = " << cl.getX() << " Y = " << cl.getY() << " Z = " << cl.getZ() << std::endl;
+  std::cout << "   New Cluster: X = " << cl.getX() << " Y = " << cl.getY() << " Z = " << cl.getZ() << std::endl;
 
-  //std::cout << "   AfterKalman: X = " << param.getX() << " Y = " << param.getY() << " Z = " << param.getZ() << " Tgl = " << param.getTanl() << "  Phi = " << param.getPhi() << "  px = " << param.getPx() << "  py = " << param.getPy() << " pz = " << param.getPz() << " pt = " << param.getPt() << std::endl;
+  std::cout << "   AfterKalman: X = " << param.getX() << " Y = " << param.getY() << " Z = " << param.getZ() << " Tgl = " << param.getTanl() << "  Phi = " << param.getPhi() << " pz = " << param.getPz() << " pt = " << param.getPt() << std::endl;
   //param.getCovariances().Print();
-  //std::cout << std::endl;
+  std::cout << std::endl;
 }
 
 //_________________________________________________________________________________________________
@@ -322,8 +321,8 @@ void TrackFitter::runKalmanFilter(TrackParam& trackParam)
   // compute the new cluster weight (U)
   TMatrixD clusterWeight(5, 5);
   clusterWeight.Zero();
-  clusterWeight(0, 0) = 100. / cluster->getSigmaZ2(); // 1. / cluster->getEx2();
-  clusterWeight(1, 1) = 100. / cluster->getSigmaY2(); //  1. / cluster->getEy2();
+  clusterWeight(0, 0) = 1. / cluster->getSigmaZ2(); // 1. / cluster->getEx2();
+  clusterWeight(1, 1) = 1. / cluster->getSigmaY2(); //  1. / cluster->getEy2();
 
   // compute the new parameters covariance matrix ((W+U)^-1)
   TMatrixD newParamCov(paramWeight, TMatrixD::kPlus, clusterWeight);
