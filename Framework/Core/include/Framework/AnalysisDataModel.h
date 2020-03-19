@@ -26,7 +26,7 @@ namespace collision
 {
 // DECLARE_SOA_COLUMN(TimeframeId, timeframeId, uint64_t, "timeframeID");
 DECLARE_SOA_COLUMN(RunNumber, runNumber, int, "fRunNumber");
-DECLARE_SOA_COLUMN(VtxId, vtxId, uint64_t, "fEventId");
+DECLARE_SOA_COLUMN(GlobalBC, globalBC, uint64_t, "fGlobalBC");
 DECLARE_SOA_COLUMN(PosX, posX, float, "fX");
 DECLARE_SOA_COLUMN(PosY, posY, float, "fY");
 DECLARE_SOA_COLUMN(PosZ, posZ, float, "fZ");
@@ -43,7 +43,7 @@ DECLARE_SOA_COLUMN(EventTimeRes, eventTimeRes, float, "fEventTimeRes");
 DECLARE_SOA_COLUMN(EventTimeMask, eventTimeMask, uint8_t, "fEventTimeMask");
 } // namespace collision
 
-DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", o2::soa::Index<>, collision::RunNumber, collision::VtxId, collision::PosX, collision::PosY, collision::PosZ, collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYY, collision::CovYZ, collision::CovZZ, collision::Chi2, collision::NumContrib, collision::EventTime, collision::EventTimeRes, collision::EventTimeMask);
+DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", o2::soa::Index<>, collision::RunNumber, collision::GlobalBC, collision::PosX, collision::PosY, collision::PosZ, collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYY, collision::CovYZ, collision::CovZZ, collision::Chi2, collision::NumContrib, collision::EventTime, collision::EventTimeRes, collision::EventTimeMask);
 
 using Collision = Collisions::iterator;
 
@@ -324,11 +324,11 @@ using Casecade = Cascades::iterator;
 
 namespace trigger
 {
-DECLARE_SOA_COLUMN(Bc, bc, uint64_t, "fEventId");
+DECLARE_SOA_COLUMN(GlobalBC, globalBC, uint64_t, "fGlobalBC");
 DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint64_t, "fTriggerMask");
 } // namespace trigger
 
-DECLARE_SOA_TABLE(Triggers, "AOD", "TRIGGER", trigger::TriggerMask, trigger::Bc);
+DECLARE_SOA_TABLE(Triggers, "AOD", "TRIGGER", trigger::TriggerMask, trigger::GlobalBC);
 using Trigger = Triggers::iterator;
 
 namespace timeframe
