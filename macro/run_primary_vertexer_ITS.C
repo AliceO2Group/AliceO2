@@ -33,7 +33,7 @@ int run_primary_vertexer_ITS(const bool useMCcheck = false,
                              const GPUDataTypes::DeviceType dtype = GPUDataTypes::DeviceType::HIP,
                              const std::string inputClustersITS = "o2clus_its.root",
                              const std::string inputGRP = "o2sim_grp.root",
-                             const std::string simfilename = "o2sim.root",
+                             const std::string simfilename = "o2sim_Kine.root",
                              const std::string paramfilename = "O2geometry.root",
                              const std::string path = "./")
 {
