@@ -148,7 +148,7 @@ class Grid
 template <class... P, typename T>
 Grid(T init, P&&... points)->Grid<sizeof...(P), T>;
 
-void analyzeOriginHits(const char* filename = "o2sim.root",
+void analyzeOriginHits(const char* filename = "o2sim_Kine.root",
                        const std::string& volMapFile = "MCStepLoggerVolMap.dat",
                        const std::string& geomFile = "O2geometry.root",
                        bool ignorePrimaries = false)

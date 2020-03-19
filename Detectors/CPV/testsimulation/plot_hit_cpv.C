@@ -14,14 +14,19 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "CPVBase/Geometry.h"
 #include "CPVBase/Hit.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 #endif
 
-void plot_hit_cpv(int ievent = 0, std::string inputfile = "o2sim.root")
+using namespace o2::detectors;
+
+void plot_hit_cpv(int ievent = 0, std::string inputprefix = "o2sim")
 {
   // macros to plot CPV hits
 
   // Hits
-  TFile* file0 = TFile::Open("o2sim.root");
+  std::string inputfile(o2::base::NameConf::getHitsFileName(DetID::CPV, inputprefix));
+  TFile* file0 = TFile::Open(inputfile.c_str());
   std::cout << " Open hits file " << inputfile << std::endl;
   TTree* hitTree = (TTree*)gFile->Get("o2sim");
   std::vector<o2::cpv::Hit>* mHitsArray = nullptr;
