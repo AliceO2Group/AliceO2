@@ -88,8 +88,8 @@ struct CorrelationTask {
                   Rho };
   struct Config {
     bool mPairCuts = false;
-    THn* mEfficiencyTrigger = nullptr;
-    THn* mEfficiencyAssociated = nullptr;
+    //THn* mEfficiencyTrigger = nullptr;
+    //THn* mEfficiencyAssociated = nullptr;
   } cfg;
 
   struct QA {
@@ -443,9 +443,9 @@ struct CorrelationTask {
 
       const float kLimit = cfgTwoTrackCut * 3;
 
-      float dphistarminabs = 1e5;
-      float dphistarmin = 1e5;
       if (TMath::Abs(dphistar1) < kLimit || TMath::Abs(dphistar2) < kLimit || dphistar1 * dphistar2 < 0) {
+        float dphistarminabs = 1e5;
+        float dphistarmin = 1e5;
         for (Double_t rad = cfgTwoTrackCutMinRadius; rad < 2.51; rad += 0.01) {
           float dphistar = getDPhiStar(track1, track2, rad, bSign);
 
