@@ -22,26 +22,6 @@ ClassImp(TrackSelection)
 {
 }
 
-template <typename T>
-bool TrackSelection::IsSelected(T const& track)
-{
-  if (track.pt() >= mMinPt && track.pt() < mMaxPt && track.eta() >= mMinEta &&
-      track.eta() < mMaxEta && track.tpcNClsFound() >= mMinNClustersTPC &&
-      track.tpcNClsCrossedRows() >= mMinNCrossedRowsTPC &&
-      track.tpcCrossedRowsOverFindableCls() >=
-        mMinNCrossedRowsOverFindableClustersTPC &&
-      (track.itsNCls() >= mMinNClustersITS) &&
-      (track.itsChi2NCl() < mMaxChi2PerClusterITS) &&
-      (track.tpcChi2Ncl() < mMaxChi2PerClusterTPC) &&
-      (mRequireITSRefit && (track.flags() & 0x4)) &&
-      (mRequireTPCRefit && (track.flags() & 0x40)) &&
-      FulfillsITSHitRequirements(track.itsClusterMap())) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
 bool TrackSelection::FulfillsITSHitRequirements(uint8_t itsClusterMap)
 {
   constexpr uint8_t bit = 1;

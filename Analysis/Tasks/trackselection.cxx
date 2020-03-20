@@ -38,20 +38,20 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 TrackSelection getGlobalTrackSelection()
 {
   TrackSelection selectedTracks;
-  selectedTracks.SetMinPt(0.1);
-  selectedTracks.SetMaxPt(1e10);
-  selectedTracks.SetMinEta(-0.8);
-  selectedTracks.SetMaxEta(0.8);
+  selectedTracks.SetMinPt(0.1f);
+  selectedTracks.SetMaxPt(1e10f);
+  selectedTracks.SetMinEta(-0.8f);
+  selectedTracks.SetMaxEta(0.8f);
   selectedTracks.SetRequireITSRefit(true);
   selectedTracks.SetRequireTPCRefit(true);
   selectedTracks.SetMinNCrossedRowsTPC(70);
-  selectedTracks.SetMinNCrossedRowsOverFindableClustersTPC(0.8);
-  selectedTracks.SetMaxChi2PerClusterTPC(4.);
-  selectedTracks.SetMaxChi2PerClusterITS(36.);
+  selectedTracks.SetMinNCrossedRowsOverFindableClustersTPC(0.8f);
+  selectedTracks.SetMaxChi2PerClusterTPC(4.f);
+  selectedTracks.SetMaxChi2PerClusterITS(36.f);
   selectedTracks.SetRequireHitsInITSLayers(1,
                                            {0, 1}); // one hit in any SPD layer
-  selectedTracks.SetMaxDcaXY(2.4);
-  selectedTracks.SetMaxDcaZ(2.);
+  selectedTracks.SetMaxDcaXY(2.4f);
+  selectedTracks.SetMaxDcaZ(2.f);
   return selectedTracks;
 }
 
@@ -82,9 +82,7 @@ struct TrackFilterTask {
     globalTracksSDD = getGlobalTrackSelectionSDD();
   }
 
-  void process(
-    aod::Collision const& collision,
-    soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
+  void process(soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
   {
     for (auto& track : tracks) {
       filterTable(globalTracks.IsSelected(track),
