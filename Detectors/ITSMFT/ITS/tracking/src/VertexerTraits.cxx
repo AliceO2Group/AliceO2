@@ -729,6 +729,7 @@ void VertexerTraits::dumpVertexerTraits()
   std::cout << "\tTracklets found: " << mTracklets.size() << std::endl;
   std::cout << "\tClusters of tracklets: " << mTrackletClusters.size() << std::endl;
   std::cout << "\tmVrtParams.pairCut: " << mVrtParams.pairCut << std::endl;
+  std::cout << "\tmVrtParams.phiCut: " << mVrtParams.phiCut << std::endl;
   std::cout << "\tVertices found: " << mVertices.size() << std::endl;
 }
 

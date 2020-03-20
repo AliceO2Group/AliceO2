@@ -56,7 +56,7 @@ DeviceStoreVertexerHIP::DeviceStoreVertexerHIP()
     mNFoundDuplets[iPair] = VectorHIP<int>{mGPUConf.clustersPerLayerCapacity, mGPUConf.clustersPerLayerCapacity}; // 4e4 * 2 * sizeof(int) = 320KB
   }
   for (int iHisto{0}; iHisto < 3; ++iHisto) {
-    mHistogramXYZ[iHisto] = VectorHIP<int>{mGPUConf.nBinsXYZ[iHisto], mGPUConf.nBinsXYZ[iHisto]};
+    mHistogramXYZ[iHisto] = VectorHIP<int>{mGPUConf.histConf.nBinsXYZ[iHisto], mGPUConf.histConf.nBinsXYZ[iHisto]};
   }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
