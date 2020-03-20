@@ -31,6 +31,10 @@ Response::Response(Station station) : mStation(station)
     mSqrtK3y = 0.7550;
     mK4y = 0.38658194;
     mInversePitch = 1. / 0.21; // ^cm-1
+    mChargeSlope = 25.;//confirmed 20.03. from AliMUONResponseFactory
+    mQspreadX = 0.144;//confirmed 20.03. from AliMUONResponseFactory
+    mQspreadY = 0.144;//confirmed 20.03. from AliMUONResponseFactory
+    mSigmaIntegration = 10.;
   } else {
     mK2x = 1.010729;
     mSqrtK3x = 0.7131;
@@ -39,12 +43,26 @@ Response::Response(Station station) : mStation(station)
     mSqrtK3y = 0.7642;
     mK4y = 0.38312571;
     mInversePitch = 1. / 0.25; // cm^-1
+    mChargeSlope = 10.;//confirmed 20.03. from AliMUONResponseFactory
+    mQspreadX = 0.18;//confirmed 20.03. from AliMUONResponseFactory
+    mQspreadY = 0.18;//confirmed 20.03. from AliMUONResponseFactory
+    mSigmaIntegration = 10.;
+  }
+
+  if (mSampa){
+    mChargeThreshold = 1e-4;// 1e-4 refers to charge fraction in aliroot
+    //not actual charge, hence normalise
+    mFCtoADC =1/( 0.61 * 1.25 * 0.2);
+    mADCtoFC = 0.61 * 1.25 * 0.2;
+    //TODO: potentially other parameters e.g. for gain
   }
 }
 
 //_____________________________________________________________________
 float Response::etocharge(float edepos)
-{
+{// AliMUONResponseV0::IntPH(Float_t eloss) const
+  //confirmed 20.03.2020
+  //expression in PH, i.e. ADC!
   int nel = int(edepos * 1.e9 / 27.4);
   float charge = 0;
   if (nel == 0)
@@ -57,7 +75,8 @@ float Response::etocharge(float edepos)
   }
   //translate to fC roughly,
   //equivalent to AliMUONConstants::DefaultADC2MV()*AliMUONConstants::DefaultA0()*AliMUONConstants::DefaultCapa() multiplication in aliroot
-  charge *= 0.61 * 1.25 * 0.2; //TODO: to be verified precisely!
+  //TODO: find factor from where?
+  //  charge *= mADC2toFC; //TODO: to be verified precisely!
   return charge;
 }
 //_____________________________________________________________________
@@ -85,82 +104,32 @@ double Response::chargefrac1d(float min, float max, double k2, double sqrtk3, do
 //______________________________________________________________________
 unsigned long Response::response(unsigned long adc)
 {
+  //equivalent of DecalibrateTrackerDigit in
+  //AliMuonDigitizerV3 in aliroot
+  //int fgNSigma = 5.0; //aliroot not used in aliroo
 
-  float a0 = 1.25;
-  float capa = 0.2;
-  float adc2mv = 0.61;//why redividing what multiplied earlier on?
-  int fgNSigma = 5.0; //aliroot
+  //TODO: need to have channel-by-channel noise map 
   float pedestalSigma = 0.5;//channnel noise
-  
-  float adcNoise = 0.0;
-  float adc_out = adc/(a0*capa*adc2mv);
-  float pedestalMean = 3;//channel 0 //arbitrary number, need to get it from aliroot
-  float adcNoise = 1.0; //arbitrary number need to get it from aliroot
+  float adc_out = adc; // /(mChargeTransition);//devision seems to be already in place somehow... makes no sense at all...to do this forth and back
+  float pedestalMean = 2;//channel 0 //arbitrary number, need to get it from aliroot
+  float adcNoise = 0.0; //arbitrary number need to get it from aliroot
   //TODO: need to introduce switch for O2 vs. Aliroot
   //TODO: tune first matching of aliroot response w.r.t. O2 aliroot imitation
   //2nd step perform playing with a0, capa, adc2mv, noise and pedestal to reproduce O2
   
   adc = TMath::Nint(adc_out + pedestalMean + adcNoise + 0.5);
-
-  if ( adc_out < TMath::Nint(pedestalMean + fgNSigma*pedestalSigma + 0.5) ) 
-
+  
+  if ( adc_out < TMath::Nint(pedestalMean +/* fgNSigma*pedestalSigma */+ 0.5) ) adc = 0;
+  if(adc>mMaxADC) adc = mMaxADC;
+  
   return adc;
-  //TODO
-  //not well done
-  //FEE effects
-  //equivalent: implementation of AliMUONDigitizerV3.cxx
-  //TODO: for SAMPA modify
-  //only called at merging step
-  /*
-  static const Int_t kMaxADC = (1<<12)-1; // We code the charge on a 12 bits ADC.                                                                                                                                   Int_t thres(4095);
-  Int_t qual(0xF);
-  Float_t capa(AliMUONConstants::DefaultCapa()); // capa = 0.2 and a0 = 1.25                                                                                                                                        Float_t a0(AliMUONConstants::DefaultA0());  // is equivalent to gain = 4 mV/fC                                                                                                                                    Float_t adc2mv(AliMUONConstants::DefaultADC2MV()); // 1 ADC channel = 0.61 mV                                                                                                                                   
-  Float_t pedestalMean = pedestals.ValueAsFloat(channel,0);
-  Float_t pedestalSigma = pedestals.ValueAsFloat(channel,1);
-  AliDebugClass(2,Form("DE %04d MANU %04d CH %02d PEDMEAN %7.2f PEDSIGMA %7.2f",
-                       pedestals.ID0(),pedestals.ID1(),channel,pedestalMean,pedestalSigma));
-  if ( qual <= 0 ) return 0;
-  Float_t chargeThres = a0*thres;
-  Float_t padc = charge/a0; // (adc - ped) value                                                                                                                                                                  
-  padc /= capa*adc2mv;
-  Int_t adc(0);
-  Float_t adcNoise = 0.0;
-  if ( addNoise )
-  {
-    if ( noiseOnly )
-    {
-      adcNoise = NoiseFunction()->GetRandom()*pedestalSigma;
-    }
-    else
-    {
-      adcNoise = gRandom->Gaus(0.0,pedestalSigma);
-    }
-  }
-  adc = TMath::Nint(padc + pedestalMean + adcNoise + 0.5);
-
-  if ( adc < TMath::Nint(pedestalMean + fgNSigmas*pedestalSigma + 0.5) )
-  {
-    // this is an error only in specific cases                                                                                                                                                                        if ( !addNoise || (addNoise && noiseOnly) )
-    {
-      AliDebugClass(1,Form(" DE %04d Manu %04d Channel %02d "
-                                                                                                         " a0 %7.2f thres %04d ped %7.2f pedsig %7.2f adcNoise %7.2f "
-                                                                                                         " charge=%7.2f padc=%7.2f adc=%04d ZS=%04d fgNSigmas=%e addNoise %d noiseOnly %d ",
-                                                                                                         pedestals.ID0(),pedestals.ID1(),channel,
-                                                                                                         a0, thres, pedestalMean, pedestalSigma, adcNoise,
-                                                                                                         charge, padc, adc,
-                                                                                                         TMath::Nint(pedestalMean + fgNSigmas*pedestalSigma + 0.5),
-                                                                                                         fgNSigmas,addNoise,noiseOnly));
-    }
-    adc = 0;
-  }
-   */
 }
 //______________________________________________________________________
 float Response::getAnod(float x)
-{
-  int n = Int_t(x / mInversePitch);
+{//verified 20.03. MW w.r.t. AliMUONResponseV0, in Aliroot mInversePitch is Pitch()
+  int n = Int_t(x * mInversePitch);//is it wrong?
   float wire = (x > 0) ? n + 0.5 : n - 0.5;
-  return mInversePitch * wire;
+  return  wire/mInversePitch;//fixed 20.03.
 }
 //______________________________________________________________________
 float Response::chargeCorr()

@@ -32,7 +32,7 @@ class Response
 
   float getQspreadX() { return mQspreadX; };
   float getQspreadY() { return mQspreadY; };
-  float getChargetTransition() { return mChargeTransition; };
+  float getFCtoADC() { return mFCtoADC; };
   float getChargeThreshold() { return mChargeThreshold; };
   float etocharge(float edepos);
   double chargePadfraction(float xmin, float xmax, float ymin, float ymax);
@@ -41,9 +41,10 @@ class Response
   float getAnod(float x);
   float chargeCorr();
   bool aboveThreshold(float charge) { return charge > mChargeThreshold; };
+  float getSigmaIntegration() {return mSigmaIntegration; };
   bool getIsSampa() { return mSampa; };
   void setIsSampa(bool isSampa = true) { mSampa = isSampa; };
- 
+  
 
  private:
   //setter to get Aliroot-readout-chain or Run 3 (Sampa) one
@@ -59,12 +60,14 @@ class Response
   float mChargeSlope = 0.0;  //why float in Aliroot?
   const float mChargeCorr = 0.11; // number from line 122
   //of AliMUONResponseFactory.cxx
-
-  float mChargeThreshold = 1e-4; 
+  //AliMUONResponseV0.h: amplitude of charge correlation on 2 cathods, is RMS of ln(q1/q2)
+  
+  float mChargeThreshold = 1e-4; //10-4 is in Aliroot fraction of charge
   //AliMUONResponseV0.cxx constr.
   //aliroot "charges below this threshold are 0"
-  float mChargeTransition = 0.61 * 1.25 * 0.2;
-  // this is the transition between charge and ACD in principle... so this is already done...
+  float mFCtoADC = 1/(0.61 * 1.25 * 0.2);
+  float mADCtoFC = 0.61 * 1.25 * 0.2;
+  // this is the transition between fc and ACD in principle... so this is already done...
   //from AliMUONResponseV0.cxx
   //equals (for Aliroo) AliMUONConstants::DefaultADC2MV()*AliMUONConstants::DefaultA0()*AliMUONConstants::DefaultCapa()
   //Mathieson parameter: NIM A270 (1988) 602-603
@@ -74,6 +77,9 @@ class Response
   //  Float_t cy1 = fKy2 * fSqrtKy3 / 4. / TMath::ATan(Double_t(fSqrtKy3));
   //  fKy4 = cy1 / fKy2 / fSqrtKy3; //this line from AliMUONMathieson::SetSqrtKy3AndDeriveKy2Ky4
   //why this multiplicitation before again division? any number small compared to Float precision?
+
+  float mSigmaIntegration = 10.0;
+
   double mK2x = 0.0;
   double mSqrtK3x = 0.0;
   double mK4x = 0.0;
