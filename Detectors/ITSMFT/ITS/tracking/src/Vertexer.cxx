@@ -73,18 +73,6 @@ void Vertexer::getGlobalConfiguration()
   verPar.clusterContributorsCut = vc.clusterContributorsCut;
   verPar.phiSpan = vc.phiSpan;
 
-  // std::array<int, 3> nBins{vc.nBinsHistX, vc.nBinsHistY, vc.nBinsHistZ};
-  // std::array<int, 3> binSpan{vc.binSpanX, vc.binSpanY, vc.binSpanZ};
-  // std::array<float, 3> histLow{vc.lowHistBoundaryX, vc.lowHistBoundaryY, vc.lowHistBoundaryZ};
-  // std::array<float, 3> histHigh{vc.highHistBoundaryX, vc.highHistBoundaryY, vc.highHistBoundaryZ};
-
-  // VertexerHistogramsConfiguration verHistPar{nBins.data(), binSpan.data(), histLow.data(), histHigh.data()};
-  // VertexerStoreConfigurationGPU verGPUPar{vc.gpuCUBBufferSize,
-  //                                         vc.gpuMaxTrackletsPerCluster,
-  //                                         vc.gpuMaxClustersPerLayer,
-  //                                         vc.gpuMaxTrackletCapacity,
-  //                                         vc.gpuMaxVertices};
-
   mTraits->updateVertexingParameters(verPar);
 }
 } // namespace its

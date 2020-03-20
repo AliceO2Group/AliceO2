@@ -25,12 +25,12 @@
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 using namespace o2::gpu;
 
-int run_primary_vertexer_ITS(const bool useMCcheck = false,
+int run_primary_vertexer_ITS(const GPUDataTypes::DeviceType dtype = GPUDataTypes::DeviceType::CPU,
+                             const bool useMCcheck = false,
                              const int inspEvt = -1,
                              const int numEvents = 1,
                              const float phiCut = -1.f,
                              const float tanlambdaCut = -1.f,
-                             const GPUDataTypes::DeviceType dtype = GPUDataTypes::DeviceType::HIP,
                              const std::string inputClustersITS = "o2clus_its.root",
                              const std::string inputGRP = "o2sim_grp.root",
                              const std::string simfilename = "o2sim_Kine.root",

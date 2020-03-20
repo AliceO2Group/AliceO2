@@ -22,7 +22,6 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "SimConfig/ConfigurableParam.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 
 #include "ITStracking/ROframe.h"

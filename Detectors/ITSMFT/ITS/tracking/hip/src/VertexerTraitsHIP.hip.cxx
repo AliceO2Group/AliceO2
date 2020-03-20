@@ -70,7 +70,6 @@ VertexerTraitsHIP::~VertexerTraitsHIP()
 #else
 VertexerTraitsHIP::VertexerTraitsHIP()
 {
-  std::cout << "Hello my name is VertexerTraitsHIP\n";
   setIsGPU(true);
 }
 
@@ -322,6 +321,10 @@ GPUg() void computeVertexKernel(DeviceStoreVertexerHIP* store, const int vertInd
 
 void VertexerTraitsHIP::computeTracklets()
 {
+  if (!mClusters[1].size()) {
+    std::cout << "\t\tno clusters on layer 1. Returning.\n";
+    return;
+  }
   const dim3 threadsPerBlock{GPU::Utils::HostHIP::getBlockSize(mClusters[1].capacity())};
   const dim3 blocksGrid{GPU::Utils::HostHIP::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
 
@@ -349,6 +352,10 @@ void VertexerTraitsHIP::computeTracklets()
 
 void VertexerTraitsHIP::computeTrackletMatching()
 {
+  if (!mClusters[1].size()) {
+    std::cout << "\t\tno clusters on layer 1. Returning.\n";
+    return;
+  }
   const dim3 threadsPerBlock{GPU::Utils::HostHIP::getBlockSize(mClusters[1].capacity())};
   const dim3 blocksGrid{GPU::Utils::HostHIP::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
   size_t bufferSize = mStoreVertexerGPU.getConfig().tmpCUBBufferSize * sizeof(int);
@@ -393,6 +400,10 @@ void VertexerTraitsHIP::computeTrackletMatching()
 
 void VertexerTraitsHIP::computeVertices()
 {
+  if (!mClusters[1].size()) {
+    std::cout << "\t\tno clusters on layer 1. Returning.\n";
+    return;
+  }
   const dim3 threadsPerBlock{GPU::Utils::HostHIP::getBlockSize(mClusters[1].capacity())};
   const dim3 blocksGrid{GPU::Utils::HostHIP::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
   size_t bufferSize = mStoreVertexerGPU.getConfig().tmpCUBBufferSize * sizeof(int);
