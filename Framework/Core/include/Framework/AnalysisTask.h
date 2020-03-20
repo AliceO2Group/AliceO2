@@ -722,6 +722,7 @@ class has_init
 template <typename T, typename... Args>
 DataProcessorSpec adaptAnalysisTask(char const* name, Args&&... args)
 {
+  TH1::AddDirectory(false);
   auto task = std::make_shared<T>(std::forward<Args>(args)...);
   auto hash = compile_time_hash(name);
 
