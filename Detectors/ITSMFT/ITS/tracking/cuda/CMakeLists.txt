@@ -19,7 +19,10 @@ o2_add_library(ITStrackingCUDA
                        src/TrackerTraitsNV.cu
                        src/VertexerTraitsGPU.cu
                        src/Utils.cu
-               PUBLIC_LINK_LIBRARIES O2::ITStracking cub::cub
+               PUBLIC_LINK_LIBRARIES O2::ITStracking
+                                     O2::SimConfig
+                                     cub::cub
+                                     O2::SimulationDataFormat
                TARGETVARNAME targetName)
 
 set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)

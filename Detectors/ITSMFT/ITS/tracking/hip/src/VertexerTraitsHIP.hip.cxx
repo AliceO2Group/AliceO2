@@ -70,7 +70,6 @@ VertexerTraitsHIP::~VertexerTraitsHIP()
 #else
 VertexerTraitsHIP::VertexerTraitsHIP()
 {
-  std::cout << "Hello my name is VertexerTraitsHIP\n";
   setIsGPU(true);
 }
 
@@ -108,15 +107,15 @@ GPUd() void printVectorOnThread(const char* name, VectorHIP<int>& vector, size_t
 GPUg() void printVectorKernel(DeviceStoreVertexerHIP* store, const unsigned int threadId)
 {
   if (blockIdx.x * blockDim.x + threadIdx.x == threadId) {
-    for (int i{0}; i < store->getConfig().nBinsXYZ[0] - 1; ++i) {
+    for (int i{0}; i < store->getConfig().histConf.nBinsXYZ[0] - 1; ++i) {
       printf("%d: %d\n", i, store->getHistogramXYZ()[0].get()[i]);
     }
     printf("\n");
-    for (int i{0}; i < store->getConfig().nBinsXYZ[1] - 1; ++i) {
+    for (int i{0}; i < store->getConfig().histConf.nBinsXYZ[1] - 1; ++i) {
       printf("%d: %d\n", i, store->getHistogramXYZ()[1].get()[i]);
     }
     printf("\n");
-    for (int i{0}; i < store->getConfig().nBinsXYZ[2] - 1; ++i) {
+    for (int i{0}; i < store->getConfig().histConf.nBinsXYZ[2] - 1; ++i) {
       printf("%d: %d\n", i, store->getHistogramXYZ()[2].get()[i]);
     }
     printf("\n");
@@ -238,13 +237,13 @@ GPUg() void computeCentroidsKernel(DeviceStoreVertexerHIP* store,
         store->getXYCentroids().emplace(2 * currentThreadIndex + 1, cluster.getVertex()[1]);
       } else {
         // writing some data anyway outside the histogram, they will not be put in the histogram, by construction.
-        store->getXYCentroids().emplace(2 * currentThreadIndex, 2 * store->getConfig().lowHistBoundariesXYZ[0]);
-        store->getXYCentroids().emplace(2 * currentThreadIndex + 1, 2 * store->getConfig().lowHistBoundariesXYZ[1]);
+        store->getXYCentroids().emplace(2 * currentThreadIndex, 2 * store->getConfig().histConf.lowHistBoundariesXYZ[0]);
+        store->getXYCentroids().emplace(2 * currentThreadIndex + 1, 2 * store->getConfig().histConf.lowHistBoundariesXYZ[1]);
       }
     } else {
       // writing some data anyway outside the histogram, they will not be put in the histogram, by construction.
-      store->getXYCentroids().emplace(2 * currentThreadIndex, 2 * store->getConfig().lowHistBoundariesXYZ[0]);
-      store->getXYCentroids().emplace(2 * currentThreadIndex + 1, 2 * store->getConfig().lowHistBoundariesXYZ[1]);
+      store->getXYCentroids().emplace(2 * currentThreadIndex, 2 * store->getConfig().histConf.lowHistBoundariesXYZ[0]);
+      store->getXYCentroids().emplace(2 * currentThreadIndex + 1, 2 * store->getConfig().histConf.lowHistBoundariesXYZ[1]);
     }
   }
 }
@@ -256,21 +255,21 @@ GPUg() void computeZCentroidsKernel(DeviceStoreVertexerHIP* store,
   for (unsigned int currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < nLines; currentThreadIndex += blockDim.x * gridDim.x) {
     // printOnThread(0, "Max X: %d Max Y %d \n", store->getTmpVertexPositionBins()[0].value, store->getTmpVertexPositionBins()[1].value);
     if (store->getTmpVertexPositionBins()[0].value || store->getTmpVertexPositionBins()[1].value) {
-      float tmpX{store->getConfig().lowHistBoundariesXYZ[0] + store->getTmpVertexPositionBins()[0].key * store->getConfig().binSizeHistX + store->getConfig().binSizeHistX / 2};
+      float tmpX{store->getConfig().histConf.lowHistBoundariesXYZ[0] + store->getTmpVertexPositionBins()[0].key * store->getConfig().histConf.binSizeHistX + store->getConfig().histConf.binSizeHistX / 2};
       int sumWX{store->getTmpVertexPositionBins()[0].value};
       float wX{tmpX * store->getTmpVertexPositionBins()[0].value};
-      for (int iBin{gpu::GPUCommonMath::Max(0, store->getTmpVertexPositionBins()[0].key - binOpeningX)}; iBin < gpu::GPUCommonMath::Min(store->getTmpVertexPositionBins()[0].key + binOpeningX + 1, store->getConfig().nBinsXYZ[0] - 1); ++iBin) {
+      for (int iBin{gpu::GPUCommonMath::Max(0, store->getTmpVertexPositionBins()[0].key - binOpeningX)}; iBin < gpu::GPUCommonMath::Min(store->getTmpVertexPositionBins()[0].key + binOpeningX + 1, store->getConfig().histConf.nBinsXYZ[0] - 1); ++iBin) {
         if (iBin != store->getTmpVertexPositionBins()[0].key) {
-          wX += (store->getConfig().lowHistBoundariesXYZ[0] + iBin * store->getConfig().binSizeHistX + store->getConfig().binSizeHistX / 2) * store->getHistogramXYZ()[0].get()[iBin];
+          wX += (store->getConfig().histConf.lowHistBoundariesXYZ[0] + iBin * store->getConfig().histConf.binSizeHistX + store->getConfig().histConf.binSizeHistX / 2) * store->getHistogramXYZ()[0].get()[iBin];
           sumWX += store->getHistogramXYZ()[0].get()[iBin];
         }
       }
-      float tmpY{store->getConfig().lowHistBoundariesXYZ[1] + store->getTmpVertexPositionBins()[1].key * store->getConfig().binSizeHistY + store->getConfig().binSizeHistY / 2};
+      float tmpY{store->getConfig().histConf.lowHistBoundariesXYZ[1] + store->getTmpVertexPositionBins()[1].key * store->getConfig().histConf.binSizeHistY + store->getConfig().histConf.binSizeHistY / 2};
       int sumWY{store->getTmpVertexPositionBins()[1].value};
       float wY{tmpY * store->getTmpVertexPositionBins()[1].value};
-      for (int iBin{gpu::GPUCommonMath::Max(0, store->getTmpVertexPositionBins()[1].key - binOpeningY)}; iBin < gpu::GPUCommonMath::Min(store->getTmpVertexPositionBins()[1].key + binOpeningY + 1, store->getConfig().nBinsXYZ[1] - 1); ++iBin) {
+      for (int iBin{gpu::GPUCommonMath::Max(0, store->getTmpVertexPositionBins()[1].key - binOpeningY)}; iBin < gpu::GPUCommonMath::Min(store->getTmpVertexPositionBins()[1].key + binOpeningY + 1, store->getConfig().histConf.nBinsXYZ[1] - 1); ++iBin) {
         if (iBin != store->getTmpVertexPositionBins()[1].key) {
-          wY += (store->getConfig().lowHistBoundariesXYZ[1] + iBin * store->getConfig().binSizeHistY + store->getConfig().binSizeHistY / 2) * store->getHistogramXYZ()[1].get()[iBin];
+          wY += (store->getConfig().histConf.lowHistBoundariesXYZ[1] + iBin * store->getConfig().histConf.binSizeHistY + store->getConfig().histConf.binSizeHistY / 2) * store->getHistogramXYZ()[1].get()[iBin];
           sumWY += store->getHistogramXYZ()[1].get()[iBin];
         }
       }
@@ -283,7 +282,7 @@ GPUg() void computeZCentroidsKernel(DeviceStoreVertexerHIP* store,
         ClusterLinesHIP cluster{store->getLines()[currentThreadIndex], pseudoBeam};
         store->getZCentroids().emplace(currentThreadIndex, cluster.getVertex()[2]);
       } else {
-        store->getZCentroids().emplace(currentThreadIndex, 2 * store->getConfig().lowHistBoundariesXYZ[2]);
+        store->getZCentroids().emplace(currentThreadIndex, 2 * store->getConfig().histConf.lowHistBoundariesXYZ[2]);
       }
     }
   }
@@ -294,15 +293,15 @@ GPUg() void computeVertexKernel(DeviceStoreVertexerHIP* store, const int vertInd
   for (unsigned int currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; (int)currentThreadIndex < binOpeningZ; currentThreadIndex += blockDim.x * gridDim.x) {
     if (currentThreadIndex == 0) {
       if (store->getTmpVertexPositionBins()[2].value > 1 && (store->getTmpVertexPositionBins()[0].value || store->getTmpVertexPositionBins()[1].value)) {
-        float z{store->getConfig().lowHistBoundariesXYZ[2] + store->getTmpVertexPositionBins()[2].key * store->getConfig().binSizeHistZ + store->getConfig().binSizeHistZ / 2};
+        float z{store->getConfig().histConf.lowHistBoundariesXYZ[2] + store->getTmpVertexPositionBins()[2].key * store->getConfig().histConf.binSizeHistZ + store->getConfig().histConf.binSizeHistZ / 2};
         float ex{0.f};
         float ey{0.f};
         float ez{0.f};
         int sumWZ{store->getTmpVertexPositionBins()[2].value};
         float wZ{z * store->getTmpVertexPositionBins()[2].value};
-        for (int iBin{gpu::GPUCommonMath::Max(0, store->getTmpVertexPositionBins()[2].key - binOpeningZ)}; iBin < gpu::GPUCommonMath::Min(store->getTmpVertexPositionBins()[2].key + binOpeningZ + 1, store->getConfig().nBinsXYZ[2] - 1); ++iBin) {
+        for (int iBin{gpu::GPUCommonMath::Max(0, store->getTmpVertexPositionBins()[2].key - binOpeningZ)}; iBin < gpu::GPUCommonMath::Min(store->getTmpVertexPositionBins()[2].key + binOpeningZ + 1, store->getConfig().histConf.nBinsXYZ[2] - 1); ++iBin) {
           if (iBin != store->getTmpVertexPositionBins()[2].key) {
-            wZ += (store->getConfig().lowHistBoundariesXYZ[2] + iBin * store->getConfig().binSizeHistZ + store->getConfig().binSizeHistZ / 2) * store->getHistogramXYZ()[2].get()[iBin];
+            wZ += (store->getConfig().histConf.lowHistBoundariesXYZ[2] + iBin * store->getConfig().histConf.binSizeHistZ + store->getConfig().histConf.binSizeHistZ / 2) * store->getHistogramXYZ()[2].get()[iBin];
             sumWZ += store->getHistogramXYZ()[2].get()[iBin];
           }
           store->getHistogramXYZ()[2].get()[iBin] = 0;
@@ -322,6 +321,10 @@ GPUg() void computeVertexKernel(DeviceStoreVertexerHIP* store, const int vertInd
 
 void VertexerTraitsHIP::computeTracklets()
 {
+  if (!mClusters[1].size()) {
+    std::cout << "\t\tno clusters on layer 1. Returning.\n";
+    return;
+  }
   const dim3 threadsPerBlock{GPU::Utils::HostHIP::getBlockSize(mClusters[1].capacity())};
   const dim3 blocksGrid{GPU::Utils::HostHIP::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
 
@@ -349,6 +352,10 @@ void VertexerTraitsHIP::computeTracklets()
 
 void VertexerTraitsHIP::computeTrackletMatching()
 {
+  if (!mClusters[1].size()) {
+    std::cout << "\t\tno clusters on layer 1. Returning.\n";
+    return;
+  }
   const dim3 threadsPerBlock{GPU::Utils::HostHIP::getBlockSize(mClusters[1].capacity())};
   const dim3 blocksGrid{GPU::Utils::HostHIP::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
   size_t bufferSize = mStoreVertexerGPU.getConfig().tmpCUBBufferSize * sizeof(int);
@@ -393,14 +400,18 @@ void VertexerTraitsHIP::computeTrackletMatching()
 
 void VertexerTraitsHIP::computeVertices()
 {
+  if (!mClusters[1].size()) {
+    std::cout << "\t\tno clusters on layer 1. Returning.\n";
+    return;
+  }
   const dim3 threadsPerBlock{GPU::Utils::HostHIP::getBlockSize(mClusters[1].capacity())};
   const dim3 blocksGrid{GPU::Utils::HostHIP::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
   size_t bufferSize = mStoreVertexerGPU.getConfig().tmpCUBBufferSize * sizeof(int);
   int nLines = mStoreVertexerGPU.getNExclusiveFoundLines().getElementFromDevice(mClusters[1].size() - 1) + mStoreVertexerGPU.getNFoundLines().getElementFromDevice(mClusters[1].size() - 1);
   int nCentroids{static_cast<int>(nLines * (nLines - 1) / 2)};
   int* histogramXY[2] = {mStoreVertexerGPU.getHistogramXYZ()[0].get(), mStoreVertexerGPU.getHistogramXYZ()[1].get()};
-  float tmpArrayLow[2] = {mStoreVertexerGPU.getConfig().lowHistBoundariesXYZ[0], mStoreVertexerGPU.getConfig().lowHistBoundariesXYZ[1]};
-  float tmpArrayHigh[2] = {mStoreVertexerGPU.getConfig().highHistBoundariesXYZ[0], mStoreVertexerGPU.getConfig().highHistBoundariesXYZ[1]};
+  float tmpArrayLow[2] = {mStoreVertexerGPU.getConfig().histConf.lowHistBoundariesXYZ[0], mStoreVertexerGPU.getConfig().histConf.lowHistBoundariesXYZ[1]};
+  float tmpArrayHigh[2] = {mStoreVertexerGPU.getConfig().histConf.highHistBoundariesXYZ[0], mStoreVertexerGPU.getConfig().histConf.highHistBoundariesXYZ[1]};
   hipLaunchKernelGGL((GPU::computeCentroidsKernel), dim3(blocksGrid), dim3(threadsPerBlock), 0, 0, getDeviceContextPtr(),
                      mVrtParams.histPairCut);
 
@@ -408,7 +419,7 @@ void VertexerTraitsHIP::computeVertices()
                                                           bufferSize,                                                         // temp_storage_bytes
                                                           mStoreVertexerGPU.getXYCentroids().get(),                           // d_samples
                                                           histogramXY,                                                        // d_histogram
-                                                          mStoreVertexerGPU.getConfig().nBinsXYZ,                             // num_levels
+                                                          mStoreVertexerGPU.getConfig().histConf.nBinsXYZ,                    // num_levels
                                                           tmpArrayLow,                                                        // lower_level
                                                           tmpArrayHigh,                                                       // fupper_level
                                                           nCentroids);                                                        // num_row_pixels
@@ -417,22 +428,22 @@ void VertexerTraitsHIP::computeVertices()
                                      bufferSize,
                                      histogramXY[0],
                                      mStoreVertexerGPU.getTmpVertexPositionBins().get(),
-                                     mStoreVertexerGPU.getConfig().nBinsXYZ[0]);
+                                     mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[0]);
   (void)hipcub::DeviceReduce::ArgMax(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()),
                                      bufferSize,
                                      histogramXY[1],
                                      mStoreVertexerGPU.getTmpVertexPositionBins().get() + 1,
-                                     mStoreVertexerGPU.getConfig().nBinsXYZ[0]);
+                                     mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[0]);
 
-  hipLaunchKernelGGL((GPU::computeZCentroidsKernel), dim3(blocksGrid), dim3(threadsPerBlock), 0, 0, getDeviceContextPtr(), mVrtParams.histPairCut, mStoreVertexerGPU.getConfig().binSpanXYZ[0], mStoreVertexerGPU.getConfig().binSpanXYZ[1]);
+  hipLaunchKernelGGL((GPU::computeZCentroidsKernel), dim3(blocksGrid), dim3(threadsPerBlock), 0, 0, getDeviceContextPtr(), mVrtParams.histPairCut, mStoreVertexerGPU.getConfig().histConf.binSpanXYZ[0], mStoreVertexerGPU.getConfig().histConf.binSpanXYZ[1]);
 
   (void)hipcub::DeviceHistogram::HistogramEven(reinterpret_cast<void*>(mStoreVertexerGPU.getCUBTmpBuffer().get()), // d_temp_storage
                                                bufferSize,                                                         // temp_storage_bytes
                                                mStoreVertexerGPU.getZCentroids().get(),                            // d_samples
                                                mStoreVertexerGPU.getHistogramXYZ()[2].get(),                       // d_histogram
-                                               mStoreVertexerGPU.getConfig().nBinsXYZ[2],                          // num_levels
-                                               mStoreVertexerGPU.getConfig().lowHistBoundariesXYZ[2],              // lower_level
-                                               mStoreVertexerGPU.getConfig().highHistBoundariesXYZ[2],             // fupper_level
+                                               mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[2],                 // num_levels
+                                               mStoreVertexerGPU.getConfig().histConf.lowHistBoundariesXYZ[2],     // lower_level
+                                               mStoreVertexerGPU.getConfig().histConf.highHistBoundariesXYZ[2],    // fupper_level
                                                nLines);                                                            // num_row_pixels
 
   for (int iVertex{0}; iVertex < mStoreVertexerGPU.getConfig().nMaxVertices; ++iVertex) {
@@ -440,17 +451,17 @@ void VertexerTraitsHIP::computeVertices()
                                        bufferSize,
                                        mStoreVertexerGPU.getHistogramXYZ()[2].get(),
                                        mStoreVertexerGPU.getTmpVertexPositionBins().get() + 2,
-                                       mStoreVertexerGPU.getConfig().nBinsXYZ[2]);
+                                       mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[2]);
 #ifdef _ALLOW_DEBUG_TREES_ITS_
     if (isDebugFlag(VertexerDebug::HistCentroids) && !iVertex) {
       mDebugger->fillXYZHistogramTree(std::array<std::vector<int>, 3>{mStoreVertexerGPU.getHistogramXYFromGPU()[0],
                                                                       mStoreVertexerGPU.getHistogramXYFromGPU()[1], mStoreVertexerGPU.getHistogramZFromGPU()},
-                                      std::array<int, 3>{mStoreVertexerGPU.getConfig().nBinsXYZ[0] - 1,
-                                                         mStoreVertexerGPU.getConfig().nBinsXYZ[1] - 1,
-                                                         mStoreVertexerGPU.getConfig().nBinsXYZ[2] - 1});
+                                      std::array<int, 3>{mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[0] - 1,
+                                                         mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[1] - 1,
+                                                         mStoreVertexerGPU.getConfig().histConf.nBinsXYZ[2] - 1});
     }
 #endif
-    hipLaunchKernelGGL((GPU::computeVertexKernel), dim3(blocksGrid), dim3(5), 0, 0, getDeviceContextPtr(), iVertex, mVrtParams.clusterContributorsCut, mStoreVertexerGPU.getConfig().binSpanXYZ[2]);
+    hipLaunchKernelGGL((GPU::computeVertexKernel), dim3(blocksGrid), dim3(5), 0, 0, getDeviceContextPtr(), iVertex, mVrtParams.clusterContributorsCut, mStoreVertexerGPU.getConfig().histConf.binSpanXYZ[2]);
   }
   std::vector<GPU::GPUVertex> vertices;
   vertices.resize(mStoreVertexerGPU.getConfig().nMaxVertices);

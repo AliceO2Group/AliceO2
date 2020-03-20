@@ -27,7 +27,7 @@ namespace its
 namespace reco_workflow
 {
 
-framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker)
+framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, o2::gpu::GPUDataTypes::DeviceType dtype)
 {
   framework::WorkflowSpec specs;
 
@@ -35,7 +35,7 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker)
   specs.emplace_back(o2::its::getClustererSpec(useMC));
   specs.emplace_back(o2::its::getClusterWriterSpec(useMC));
   if (useCAtracker) {
-    specs.emplace_back(o2::its::getTrackerSpec(useMC));
+    specs.emplace_back(o2::its::getTrackerSpec(useMC, dtype));
   } else {
     specs.emplace_back(o2::its::getCookedTrackerSpec(useMC));
   }
@@ -45,6 +45,5 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker)
 }
 
 } // namespace reco_workflow
-
 } // namespace its
 } // namespace o2

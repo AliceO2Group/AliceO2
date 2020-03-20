@@ -122,7 +122,46 @@ struct VertexingParameters {
   int zSpan = -1;
 };
 
+struct VertexerHistogramsConfiguration {
+  VertexerHistogramsConfiguration() = default;
+  VertexerHistogramsConfiguration(int nBins[3],
+                                  int binSpan[3],
+                                  float lowBoundaries[3],
+                                  float highBoundaries[3]);
+  int nBinsXYZ[3] = {402, 402, 4002};
+  int binSpanXYZ[3] = {2, 2, 4};
+  float lowHistBoundariesXYZ[3] = {-1.98f, -1.98f, -40.f};
+  float highHistBoundariesXYZ[3] = {1.98f, 1.98f, 40.f};
+  float binSizeHistX = (highHistBoundariesXYZ[0] - lowHistBoundariesXYZ[0]) / (nBinsXYZ[0] - 1);
+  float binSizeHistY = (highHistBoundariesXYZ[1] - lowHistBoundariesXYZ[1]) / (nBinsXYZ[1] - 1);
+  float binSizeHistZ = (highHistBoundariesXYZ[2] - lowHistBoundariesXYZ[2]) / (nBinsXYZ[2] - 1);
+};
+
+inline VertexerHistogramsConfiguration::VertexerHistogramsConfiguration(int nBins[3],
+                                                                        int binSpan[3],
+                                                                        float lowBoundaries[3],
+                                                                        float highBoundaries[3])
+{
+  for (int i{0}; i < 3; ++i) {
+    nBinsXYZ[i] = nBins[i];
+    binSpanXYZ[i] = binSpan[i];
+    lowHistBoundariesXYZ[i] = lowBoundaries[i];
+    highHistBoundariesXYZ[i] = highBoundaries[i];
+  }
+
+  binSizeHistX = (highHistBoundariesXYZ[0] - lowHistBoundariesXYZ[0]) / (nBinsXYZ[0] - 1);
+  binSizeHistY = (highHistBoundariesXYZ[1] - lowHistBoundariesXYZ[1]) / (nBinsXYZ[1] - 1);
+  binSizeHistZ = (highHistBoundariesXYZ[2] - lowHistBoundariesXYZ[2]) / (nBinsXYZ[2] - 1);
+}
+
 struct VertexerStoreConfigurationGPU {
+  VertexerStoreConfigurationGPU() = default;
+  VertexerStoreConfigurationGPU(int cubBufferSize,
+                                int maxTrkClu,
+                                int cluLayCap,
+                                int maxTrkCap,
+                                int maxVert);
+
   // o2::its::GPU::Vector constructor requires signed size for initialisation
   int tmpCUBBufferSize = 25e5;
   int maxTrackletsPerCluster = 2e2;
@@ -132,25 +171,24 @@ struct VertexerStoreConfigurationGPU {
   int maxTrackletCapacity = 2e4;
   int maxCentroidsXYCapacity = std::ceil(maxTrackletCapacity * (maxTrackletCapacity - 1) / 2);
   int nMaxVertices = 10;
-  int nBinsXYZ[3] = {402, 402, 4002};
-  // int nBinsXYZ[3] = {5, 5, 2002};
-  int binSpanXYZ[3] = {2, 2, 4};
-  float lowHistBoundariesXYZ[3] = {-1.98f, -1.98f, -40.f};
-  float highHistBoundariesXYZ[3] = {1.98f, 1.98f, 40.f};
-  float binSizeHistX = (highHistBoundariesXYZ[0] - lowHistBoundariesXYZ[0]) / (nBinsXYZ[0] - 1);
-  float binSizeHistY = (highHistBoundariesXYZ[1] - lowHistBoundariesXYZ[1]) / (nBinsXYZ[1] - 1);
-  float binSizeHistZ = (highHistBoundariesXYZ[2] - lowHistBoundariesXYZ[2]) / (nBinsXYZ[2] - 1);
+
+  VertexerHistogramsConfiguration histConf;
 };
 
-struct VertexerHistogramsConfiguration {
-  int nBinsXYZ[3] = {402, 402, 4002};
-  int binSpanXYZ[3] = {2, 2, 4};
-  float lowHistBoundariesXYZ[3] = {-1.98f, -1.98f, -40.f};
-  float highHistBoundariesXYZ[3] = {1.98f, 1.98f, 40.f};
-  float binSizeHistX = (highHistBoundariesXYZ[0] - lowHistBoundariesXYZ[0]) / (nBinsXYZ[0] - 1);
-  float binSizeHistY = (highHistBoundariesXYZ[1] - lowHistBoundariesXYZ[1]) / (nBinsXYZ[1] - 1);
-  float binSizeHistZ = (highHistBoundariesXYZ[2] - lowHistBoundariesXYZ[2]) / (nBinsXYZ[2] - 1);
-};
+inline VertexerStoreConfigurationGPU::VertexerStoreConfigurationGPU(int cubBufferSize,
+                                                                    int maxTrkClu,
+                                                                    int cluLayCap,
+                                                                    int maxTrkCap,
+                                                                    int maxVert) : tmpCUBBufferSize{cubBufferSize},
+                                                                                   maxTrackletsPerCluster{maxTrkClu},
+                                                                                   clustersPerLayerCapacity{cluLayCap},
+                                                                                   maxTrackletCapacity{maxTrkCap},
+                                                                                   nMaxVertices{maxVert}
+{
+  maxCentroidsXYCapacity = std::ceil(maxTrackletCapacity * (maxTrackletCapacity - 1) / 2);
+  dupletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
+  processedTrackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
+}
 
 } // namespace its
 } // namespace o2

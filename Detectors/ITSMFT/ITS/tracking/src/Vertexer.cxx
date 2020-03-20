@@ -18,6 +18,9 @@
 #include "ITStracking/ClusterLines.h"
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/VertexerTraits.h"
+#include "ITStracking/TrackingConfigParam.h"
+
+#include <array>
 
 namespace o2
 {
@@ -56,5 +59,21 @@ void Vertexer::findHistVertices()
   mTraits->computeHistVertices();
 }
 
+void Vertexer::getGlobalConfiguration()
+{
+  auto& vc = o2::its::VertexerParamConfig::Instance();
+
+  VertexingParameters verPar;
+  verPar.zCut = vc.zCut;
+  verPar.phiCut = vc.phiCut;
+  verPar.pairCut = vc.pairCut;
+  verPar.clusterCut = vc.clusterCut;
+  verPar.histPairCut = vc.histPairCut;
+  verPar.tanLambdaCut = vc.tanLambdaCut;
+  verPar.clusterContributorsCut = vc.clusterContributorsCut;
+  verPar.phiSpan = vc.phiSpan;
+
+  mTraits->updateVertexingParameters(verPar);
+}
 } // namespace its
 } // namespace o2

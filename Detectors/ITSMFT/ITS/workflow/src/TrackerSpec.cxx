@@ -26,6 +26,7 @@
 
 #include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
+#include "ITStracking/TrackingConfigParam.h"
 
 #include "Field/MagneticField.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -38,6 +39,12 @@ using namespace framework;
 namespace its
 {
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
+
+TrackerDPL::TrackerDPL(bool isMC,
+                       o2::gpu::GPUDataTypes::DeviceType dType) : mIsMC{isMC},
+                                                                  mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)}
+{
+}
 
 void TrackerDPL::init(InitContext& ic)
 {
@@ -53,8 +60,12 @@ void TrackerDPL::init(InitContext& ic)
     geom->fillMatrixCache(utils::bit2Mask(TransformType::T2L, TransformType::T2GRot,
                                           TransformType::T2G));
 
-    mTracker = std::make_unique<Tracker>(&mTrackerTraits);
-    mVertexer = std::make_unique<Vertexer>(&mVertexerTraits);
+    auto* chainITS = mRecChain->AddChain<o2::gpu::GPUChainITS>();
+    mRecChain->Init();
+    mVertexer = std::make_unique<Vertexer>(chainITS->GetITSVertexerTraits());
+    mTracker = std::make_unique<Tracker>(chainITS->GetITSTrackerTraits());
+    mVertexer->getGlobalConfiguration();
+    // mVertexer->dumpTraits();
     double origD[3] = {0., 0., 0.};
     mTracker->setBz(field->getBz(origD));
   } else {
@@ -86,7 +97,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   gsl::span<itsmft::MC2ROFRecord const> mc2rofs;
   if (mIsMC) {
     labels = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("labels").release();
-    // get the array as read-onlt span, a snapshot is send forward
+    // get the array as read-only span, a snapshot is send forward
     mc2rofs = pc.inputs().get<gsl::span<itsmft::MC2ROFRecord>>("MC2ROframes");
     LOG(INFO) << labels->getIndexedSize() << " MC label objects , in " << mc2rofs.size() << " MC events";
   }
@@ -167,7 +178,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   mState = 2;
 }
 
-DataProcessorSpec getTrackerSpec(bool useMC)
+DataProcessorSpec getTrackerSpec(bool useMC, o2::gpu::GPUDataTypes::DeviceType dType)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
@@ -192,7 +203,7 @@ DataProcessorSpec getTrackerSpec(bool useMC)
     "its-tracker",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TrackerDPL>(useMC)},
+    AlgorithmSpec{adaptFromTask<TrackerDPL>(useMC, dType)},
     Options{
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}}}};
 }

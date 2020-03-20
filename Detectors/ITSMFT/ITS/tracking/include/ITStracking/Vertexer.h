@@ -50,6 +50,7 @@ class Vertexer
 
   void setROframe(const uint32_t ROframe) { mROframe = ROframe; }
   void setParameters(const VertexingParameters& verPar);
+  void getGlobalConfiguration();
   VertexingParameters getVertParameters() const;
 
   uint32_t getROFrame() const { return mROframe; }
