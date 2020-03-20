@@ -145,6 +145,7 @@ class DPLRawParser
       if (mInputIterator != mEnd) {
         return DataRefUtils::getHeader<o2::header::DataHeader*>(*mPartIterator);
       }
+      return nullptr;
     }
 
     /// get pointer to raw block at current position, rdh starts here
@@ -182,8 +183,31 @@ class DPLRawParser
     friend std::ostream& operator<<(std::ostream& os, self_type const& it)
     {
       if (it.mInputIterator != it.mEnd && it.mPartIterator != it.mInputIterator.end() && it.mParser != nullptr) {
-        os << *it.mParser << std::endl;
         os << it.mCurrent;
+      }
+      return os;
+    }
+
+    // helper wrapper to control the format and content of the stream output
+    template <raw_parser::FormatSpec FmtCtrl>
+    struct Fmt {
+      static constexpr raw_parser::FormatSpec format_control = FmtCtrl;
+      Fmt(self_type const& _it) : it{_it} {}
+      self_type const& it;
+    };
+
+    template <raw_parser::FormatSpec FmtCtrl>
+    friend std::ostream& operator<<(std::ostream& os, Fmt<FmtCtrl> const& fmt)
+    {
+      auto const& it = fmt.it;
+      if (it.mInputIterator != it.mEnd && it.mPartIterator != it.mInputIterator.end() && it.mParser != nullptr) {
+        if constexpr (FmtCtrl == raw_parser::FormatSpec::Info) {
+          // TODO: need to propagate the format spec also on the RawParser object
+          // for now this operation prints the RDH version info and the table header
+          os << *it.mParser;
+        } else {
+          os << it;
+        }
       }
       return os;
     }
@@ -273,6 +297,10 @@ class DPLRawParser
   {
     return const_iterator(mInputs, mInputs.end(), mInputs.end(), mFilterSpecs);
   }
+
+  /// Format helper for stream output of the iterator content,
+  /// print RDH version and table header
+  using RDHInfo = const_iterator::Fmt<raw_parser::FormatSpec::Info>;
 
  private:
   InputRecord& mInputs;
