@@ -12,6 +12,7 @@
 #define STEER_DIGITIZERWORKFLOW_SRC_TPCDIGITIZERSPEC_H_
 
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/WorkflowSpec.h"
 
 namespace o2
 {
@@ -19,6 +20,8 @@ namespace tpc
 {
 
 o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP);
+
+o2::framework::WorkflowSpec getTPCDigitizerSpec(int nLanes, std::vector<int> const& sectors);
 
 } // end namespace tpc
 } // end namespace o2
