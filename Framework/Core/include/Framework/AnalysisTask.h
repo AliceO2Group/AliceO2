@@ -37,6 +37,7 @@
 #include <type_traits>
 #include <utility>
 #include <memory>
+#include <charconv>
 
 namespace o2::framework
 {
@@ -195,9 +196,14 @@ struct OutputObj {
   {
     static_assert(std::is_base_of_v<TNamed, T>, "You need a TNamed derived class to use OutputObj");
     header::DataDescription desc{};
+    auto lhash = compile_time_hash(label.c_str());
     memset(desc.str, '_', 16);
-    //FIXME: we should probably use hash here
-    std::memcpy(desc.str, label.c_str(), label.length() > 16 ? 16 : label.length());
+    char buf[12];
+
+    std::to_chars(buf, buf + 2, lhash, 16);
+    std::to_chars(buf + 2, buf + 4, mTaskHash, 16);
+    std::to_chars(buf + 4, buf + 12, reinterpret_cast<uint64_t>(this), 16);
+    std::memcpy(desc.str, buf, 12);
 
     return OutputSpec{OutputLabel{label}, "ATSK", desc, 0};
   }
