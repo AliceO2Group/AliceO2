@@ -28,6 +28,7 @@
 #include "../../../Algorithm/include/Algorithm/HeaderStack.h"
 #include "Framework/OutputObjHeader.h"
 #include "Framework/TableTreeHelpers.h"
+#include "Framework/StringHelpers.h"
 
 #include "TFile.h"
 #include "TTree.h"
@@ -52,13 +53,11 @@ namespace framework
 {
 
 struct InputObjectRoute {
-  std::string uniqueId;
+  std::string name;
+  uint32_t uniqueId;
   std::string directory;
+  uint32_t taskHash;
   OutputObjHandlingPolicy policy;
-  bool operator<(InputObjectRoute const& other) const
-  {
-    return this->uniqueId < other.uniqueId;
-  }
 };
 
 struct InputObject {
@@ -76,11 +75,11 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
 {
   auto writerFunction = [objmap, tskmap](InitContext& ic) -> std::function<void(ProcessingContext&)> {
     auto& callbacks = ic.services().get<CallbackService>();
-    auto outputObjects = std::make_shared<std::map<InputObjectRoute, InputObject>>();
+    auto inputObjects = std::make_shared<std::vector<std::pair<InputObjectRoute, InputObject>>>();
 
-    auto endofdatacb = [outputObjects](EndOfStreamContext& context) {
+    auto endofdatacb = [inputObjects](EndOfStreamContext& context) {
       LOG(DEBUG) << "Writing merged objects to file";
-      if (outputObjects->empty()) {
+      if (inputObjects->empty()) {
         LOG(ERROR) << "Output object map is empty!";
         context.services().get<ControlService>().readyToQuit(QuitRequest::All);
         return;
@@ -91,7 +90,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
       for (auto i = 0u; i < OutputObjHandlingPolicy::numPolicies; ++i) {
         f[i] = nullptr;
       }
-      for (auto& [route, entry] : *outputObjects) {
+      for (auto& [route, entry] : *inputObjects) {
         auto file = ROOTfileNames.find(route.policy);
         if (file != ROOTfileNames.end()) {
           auto filename = file->second;
@@ -119,7 +118,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
     };
 
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
-    return [outputObjects, objmap, tskmap](ProcessingContext& pc) mutable -> void {
+    return [inputObjects, objmap, tskmap](ProcessingContext& pc) mutable -> void {
       auto const& ref = pc.inputs().get("x");
       if (!ref.header) {
         LOG(ERROR) << "Header not found";
@@ -141,7 +140,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
         return;
       }
 
-      FairTMessage tm(const_cast<char*>(ref.payload), datah->payloadSize);
+      FairTMessage tm(const_cast<char*>(ref.payload), static_cast<int>(datah->payloadSize));
       InputObject obj;
       obj.kind = tm.GetClass();
       if (obj.kind == nullptr) {
@@ -171,10 +170,11 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
         LOG(ERROR) << "No object " << obj.name << " in map for task " << taskname;
         return;
       }
-      InputObjectRoute key{obj.name, taskname, policy};
-      auto existing = outputObjects->find(key);
-      if (existing == outputObjects->end()) {
-        outputObjects->insert(std::make_pair(key, obj));
+      auto nameHash = compile_time_hash(obj.name.c_str());
+      InputObjectRoute key{obj.name, nameHash, taskname, hash, policy};
+      auto existing = std::find_if(inputObjects->begin(), inputObjects->end(), [&](auto&& x) { return (x.first.uniqueId == nameHash) && (x.first.taskHash == hash); });
+      if (existing == inputObjects->end()) {
+        inputObjects->push_back(std::make_pair(key, obj));
         return;
       }
       auto merger = existing->second.kind->GetMerge();
@@ -235,13 +235,13 @@ DataProcessorSpec
 
     // if nothing needs to be saved then return a trivial functor
     if (!hasOutputsToWrite) {
-      return std::move([](ProcessingContext& pc) mutable -> void {
+      return [](ProcessingContext&) mutable -> void {
         static bool once = false;
         if (!once) {
           LOG(DEBUG) << "No dangling output to be saved.";
           once = true;
         }
-      });
+      };
     }
 
     // end of data functor is called at the end of the data stream
@@ -258,7 +258,7 @@ DataProcessorSpec
 
     // this functor is called once per time frame
     Int_t ntf = 0;
-    return std::move([fout, fnbase, filemode, ntf, ntfmerge, usematch, matcher](ProcessingContext& pc) mutable -> void {
+    return [fout, fnbase, filemode, ntf, ntfmerge, usematch, matcher](ProcessingContext& pc) mutable -> void {
       LOG(DEBUG) << "======== getGlobalAODSink::processing ==========";
       LOG(DEBUG) << " processing data set with " << pc.inputs().size() << " entries";
       LOG(DEBUG) << " result are saved to " << fnbase << "_*.root";
@@ -322,7 +322,7 @@ DataProcessorSpec
         // ta2tr.AddBranch(colname);
         ta2tr.Process();
       }
-    });
+    };
   }; // end of writerFunction
 
   DataProcessorSpec spec{
@@ -360,16 +360,16 @@ DataProcessorSpec
       }
     }
     if (hasOutputsToWrite == false) {
-      return std::move([](ProcessingContext& pc) mutable -> void {
+      return [](ProcessingContext&) mutable -> void {
         static bool once = false;
         if (!once) {
           LOG(DEBUG) << "No dangling output to be dumped.";
           once = true;
         }
-      });
+      };
     }
     auto output = std::make_shared<std::ofstream>(filename.c_str(), std::ios_base::binary);
-    return std::move([output, matcher = outputMatcher](ProcessingContext& pc) mutable -> void {
+    return [output, matcher = outputMatcher](ProcessingContext& pc) mutable -> void {
       VariableContext matchingContext;
       LOG(DEBUG) << "processing data set with " << pc.inputs().size() << " entries";
       for (const auto& entry : pc.inputs()) {
@@ -384,7 +384,7 @@ DataProcessorSpec
         output->write(entry.payload, o2::framework::DataRefUtils::getPayloadSize(entry));
         LOG(DEBUG) << "wrote data, size " << o2::framework::DataRefUtils::getPayloadSize(entry);
       }
-    });
+    };
   };
 
   std::vector<InputSpec> validBinaryInputs;
