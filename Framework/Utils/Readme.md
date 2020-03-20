@@ -87,66 +87,6 @@ for (auto it = parser.begin(), end = parser.end(); it != end; ++it, ++count) {
 }
 ```
 
-#### Workflow example
-Executable:
-```
-o2-dpl-raw-parser
-```
-
-Parser workflow defines one process with configurable inputs and a loop over the input
-data which sets up the RawParser class and executes some basic parsing and statistic
-printout.
-
-#### Usage: `o2-dpl-raw-parser`
-```
-o2-dpl-raw-parser --input-spec "A:FLP/RAWDATA"
-```
-
-Options:
-```
-  --input-spec arg (=A:FLP/RAWDATA)
-```
-
-The workflow can be connected to the o2-dpl-raw-proxy workflow using pipe on command line.
-
-### DPL output proxy
-Executable:
-```
-o2-dpl-output-proxy
-```
-
-A proxy workflow to connect to workflow output and forward it to out-of-band channels,
-meaning channels outside DPL.
-
-#### Usage: `o2-dpl-output-proxy`
-```
-o2-dpl-output-proxy --dataspec "channelname:TPC/TRACKS" --channel-config name=channelname,...
-```
-
-Output channel(s): to be defined with the FairMQ device channel configuration option, e.g.
-```
---channel-config name=downstream,type=push,method=bind,address=icp://localhost_4200,rateLogging=60,transport=shmem
-```
-
-Input to the proxy is defined by the DPL data spec syntax
-```
-binding1:origin1/description1/subspecification1;binding2:origin2/descritption2;...
-```
-The binding label can be used internally to access the input, here it is used to match to
-a configured output channel. That binding can be the same for multiple data specs.
-
-Options:
-```
-  --dataspec       specs           Data specs of data to be proxied
-  --channel-config config          FairMQ device channel configuration for the output channel
-  --proxy-name     name            name of the proxy processor, used also as default output channel name
-  --default-transport arg (=shmem) default transport: shmem, zeromq
-  --default-port arg (=4200)       default port number
-```
-Note: the 'default-*' options are only for building the the default of the channel configuration.
-The default channel name is build from the name of the proxy device. Having a default channel
-configuration allows to skip the '--channel-config' option on the command line.
-
 ### DPL raw parser class
 Utility class to transparently iterate over raw pages distributed over multiple messsages on
 multiple routes.
@@ -196,6 +136,86 @@ DPLRawParser parser(inputs, o2::framework::select("A:ITS/RAWDATA"));
 ```
 Note: `select` is a helper function of WorkflowSpec.h which builds InputSpecs from
 a string.
+
+The iterator implements stream output operator to print out RDH fields in a table,
+a specific format wrapper prints RDH info and table header, e.g. for
+```
+std::cout << DPLRawParser::RDHInfo(it) << std::endl;
+std::cout << it << std::endl;
+```
+
+output can look like
+```
+ DET/RAWDATA/196616   1 part(s) payload size 8192
+ RDH v4
+   PkC pCnt  fId  Mem CRU  EP LID    HBOrbit  HBBC  s
+    92    1 4844   64   3   0   8 1013162567     0  1
+```
+
+#### Workflow example
+Executable:
+```
+o2-dpl-raw-parser
+```
+
+Parser workflow defines one process with configurable inputs and a loop over the input
+data which sets up the RawParser class and executes some basic parsing and statistic
+printout.
+
+#### Usage: `o2-dpl-raw-parser`
+```
+o2-dpl-raw-parser --input-spec "A:FLP/RAWDATA"
+```
+
+Options:
+```
+--input-spec arg (=A:FLP/RAWDATA)
+--log-level n    0: off; 1: medium; 2: high  
+```
+
+In medium log level, the RDH version and the table header for the RDH field are printed
+for each new data description, in level high this will be done also for all parts with the
+same data description. The RDH fields are printed in a table per raw page.
+
+The workflow can be connected to the o2-dpl-raw-proxy workflow using pipe on command line.
+
+### DPL output proxy
+Executable:
+```
+o2-dpl-output-proxy
+```
+
+A proxy workflow to connect to workflow output and forward it to out-of-band channels,
+meaning channels outside DPL.
+
+#### Usage: `o2-dpl-output-proxy`
+```
+o2-dpl-output-proxy --dataspec "channelname:TPC/TRACKS" --channel-config name=channelname,...
+```
+
+Output channel(s): to be defined with the FairMQ device channel configuration option, e.g.
+```
+--channel-config name=downstream,type=push,method=bind,address=icp://localhost_4200,rateLogging=60,transport=shmem
+```
+
+Input to the proxy is defined by the DPL data spec syntax
+```
+binding1:origin1/description1/subspecification1;binding2:origin2/descritption2;...
+```
+The binding label can be used internally to access the input, here it is used to match to
+a configured output channel. That binding can be the same for multiple data specs.
+
+Options:
+```
+  --dataspec       specs           Data specs of data to be proxied
+  --channel-config config          FairMQ device channel configuration for the output channel
+  --proxy-name     name            name of the proxy processor, used also as default output channel name
+  --default-transport arg (=shmem) default transport: shmem, zeromq
+  --default-port arg (=4200)       default port number
+```
+Note: the 'default-*' options are only for building the the default of the channel configuration.
+The default channel name is build from the name of the proxy device. Having a default channel
+configuration allows to skip the '--channel-config' option on the command line.
 
 ### ROOT Tree reader and writer
 documentation to be filled

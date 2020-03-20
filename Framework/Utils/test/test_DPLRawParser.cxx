@@ -147,6 +147,7 @@ BOOST_AUTO_TEST_CASE(test_DPLRawParser)
   BOOST_CHECK((*inputs.begin()).header == dataset.messages[0].at(0)->data());
   DPLRawParser parser(inputs);
   int count = 0;
+  o2::header::DataHeader const* last = nullptr;
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it, ++count) {
     LOG(INFO) << "data " << count << " " << *((int*)it.data());
     // now check the iterator API
@@ -161,9 +162,18 @@ BOOST_AUTO_TEST_CASE(test_DPLRawParser)
     // offset of payload in the raw page
     size_t offset = it.offset();
     BOOST_REQUIRE(rdh != nullptr);
+    BOOST_REQUIRE(offset == sizeof(o2::header::RAWDataHeaderV4));
     BOOST_REQUIRE(payload == raw + offset);
     BOOST_REQUIRE(*reinterpret_cast<int const*>(payload) == dataset.values[count]);
-    std::cout << it << ": payload size " << it.size() << std::endl;
+    BOOST_REQUIRE(payloadSize == PAGESIZE - sizeof(o2::header::RAWDataHeaderV4));
+    auto const* dh = it.o2DataHeader();
+    if (last != dh) {
+      // this is a special wrapper to print the RDU info and table header, this will
+      // be extended
+      std::cout << DPLRawParser::RDHInfo(it) << std::endl;
+      last = dh;
+    }
+    std::cout << it << " payload size " << it.size() << std::endl;
   }
 
   // test the parser with filter on data specs, this will filter out the first input
