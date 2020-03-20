@@ -26,6 +26,7 @@ o2_add_library(MFTBase
                        src/Support.cxx
                        src/HeatExchanger.cxx
                        src/HalfCone.cxx
+                       src/MFTBaseParam.cxx
                        src/PowerSupplyUnit.cxx
                        src/Barrel.cxx
                        src/PatchPanel.cxx
@@ -43,6 +44,7 @@ o2_target_root_dictionary(MFTBase
                                   include/MFTBase/HalfDiskSegmentation.h
                                   include/MFTBase/LadderSegmentation.h
                                   include/MFTBase/ChipSegmentation.h
+                                  include/MFTBase/MFTBaseParam.h 
                                   include/MFTBase/HalfDetector.h
                                   include/MFTBase/HalfDisk.h
                                   include/MFTBase/Ladder.h
