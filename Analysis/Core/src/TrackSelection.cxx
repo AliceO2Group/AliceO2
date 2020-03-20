@@ -15,9 +15,6 @@
 #include "Analysis/TrackSelection.h"
 #include <TH1F.h>
 
-using namespace o2;
-using namespace o2::framework;
-
 ClassImp(TrackSelection)
 
   TrackSelection::TrackSelection()
@@ -25,8 +22,8 @@ ClassImp(TrackSelection)
 {
 }
 
-bool TrackSelection::IsSelected(
-  soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra>::iterator const& track)
+template <typename T>
+bool TrackSelection::IsSelected(T const& track)
 {
   if (track.pt() >= mMinPt && track.pt() < mMaxPt && track.eta() >= mMinEta &&
       track.eta() < mMaxEta && track.tpcNClsFound() >= mMinNClustersTPC &&
