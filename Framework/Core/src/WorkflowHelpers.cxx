@@ -320,10 +320,10 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   // From that list select the ones of origin AOD ...
   // .. and remove them also from the original list
-  auto danglingOutputsInputsAOD = selectAODs(danglingOutputsInputs);
+  //auto danglingOutputsInputsAOD = selectAODs(danglingOutputsInputs);
 
   // select AOD outputs
-  auto OutputsInputsAOD = computeAODOutputs(workflow);
+  auto [OutputsInputsAOD,isdangling] = computeAODOutputs(workflow);
   
   
   // file sink for notAOD dangling outputs
@@ -342,19 +342,19 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
 
   // file sink for AOD dangling outputs
-  extraSpecs.clear();
+  //extraSpecs.clear();
 
-  if (danglingOutputsInputsAOD.size() > 0) {
-    auto fileSink = CommonDataProcessors::getGlobalAODSink(danglingOutputsInputsAOD);
-    extraSpecs.push_back(fileSink);
-  }
-  workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
+  //if (danglingOutputsInputsAOD.size() > 0) {
+  //  auto fileSink = CommonDataProcessors::getGlobalAODSink(danglingOutputsInputsAOD);
+  //  extraSpecs.push_back(fileSink);
+  //}
+  //workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
 
   // file sink for any AOD output
   extraSpecs.clear();
 
   if (OutputsInputsAOD.size() > 0) {
-    auto fileSink = CommonDataProcessors::getGlobalAODSink(OutputsInputsAOD);
+    auto fileSink = CommonDataProcessors::getGlobalAODSink(OutputsInputsAOD,isdangling);
     extraSpecs.push_back(fileSink);
   }
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
@@ -721,38 +721,80 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
   return results;
 }
 
-std::vector<InputSpec> WorkflowHelpers::computeAODOutputs(WorkflowSpec const& workflow)
+std::tuple<std::vector<InputSpec>,std::vector<bool>> WorkflowHelpers::computeAODOutputs(WorkflowSpec const& workflow)
 {
   LOG(INFO) << "Selecting OutputSpecs of origin AOD";
 
   std::vector<InputSpec> results;
+  std::vector<bool> isdangling;
+  
+  std::vector<DataMatcherId> inputs;
+  std::vector<DataMatcherId> outputs;
+  size_t totalInputs = 0;
+  size_t totalOutputs = 0;
+
+  for (auto& spec : workflow) {
+    totalInputs += spec.inputs.size();
+    totalOutputs += spec.outputs.size();
+  }
+
+  inputs.reserve(totalInputs);
+  outputs.reserve(totalOutputs);
 
   /// Prepare an index to do the iterations quickly.
-  for (size_t wi = 0; wi<workflow.size(); wi++) {
-    auto& wfspec = workflow[wi];
-        
-    for (size_t oi = 0; oi<wfspec.outputs.size(); oi++) {
-      auto output = wfspec.outputs[oi];
-      
-      // add it to the AOD list ...
-      if (DataSpecUtils::partialMatch(output, header::DataOrigin("AOD"))) {
-        auto input = DataSpecUtils::matchingInput(output);
-        char buf[64];
-        input.binding = (snprintf(buf, 63, "aod_%zu_%zu", wi, oi), buf);
+  for (size_t wi = 0, we = workflow.size(); wi != we; ++wi) {
+    auto& spec = workflow[wi];
+    for (size_t ii = 0, ie = spec.inputs.size(); ii != ie; ++ii) {
+      inputs.emplace_back(DataMatcherId{wi, ii});
+    }
+    for (size_t oi = 0, oe = spec.outputs.size(); oi != oe; ++oi) {
+      outputs.emplace_back(DataMatcherId{wi, oi});
+    }
+  }
 
-        results.emplace_back(input);
+  for (size_t oi = 0, oe = outputs.size(); oi != oe; ++oi) {
+    auto& output = outputs[oi];
+    auto& outputSpec = workflow[output.workflowId].outputs[output.id];
+    
+    // check if it is an aod
+    if (DataSpecUtils::partialMatch(outputSpec, header::DataOrigin("AOD"))) {
+    
+      auto input = DataSpecUtils::matchingInput(outputSpec);
+      char buf[64];
+      input.binding = (snprintf(buf, 63, "aod_%zu_%zu", output.workflowId, output.id), buf);
+      results.emplace_back(input);
+
+      // check if this is a dangling output
+      bool matched = false;
+      for (size_t ii = 0, ie = inputs.size(); ii != ie; ++ii) {
+        auto& input = inputs[ii];
+        // Inputs of the same workflow cannot match outputs
+        if (output.workflowId == input.workflowId)
+          continue;
+        auto& inputSpec = workflow[input.workflowId].inputs[input.id];
+        if (DataSpecUtils::match(inputSpec, outputSpec)) {
+          matched = true;
+          break;
+        }
       }
 
+      if (matched == true) {
+        isdangling.emplace_back(false);
+      } else {
+        isdangling.emplace_back(true);
+      }
+    
     }
   }
 
   LOG(INFO) << "Number of AODs " << results.size();
-  return results;
+  return std::make_tuple(results,isdangling);
+
 }
 
 std::vector<InputSpec> WorkflowHelpers::selectAODs(std::vector<InputSpec>& specs)
 {
-  LOG(DEBUG) << "Selecting dangling OutputSpecs of origin AOD - " << specs.size();
+  LOG(DEBUG) << "Selecting OutputSpecs of origin AOD - " << specs.size();
 
   // create result list
   std::vector<InputSpec> results;

@@ -27,7 +27,7 @@ namespace framework
 //
 // To write the contents of a table ta to a tree tr on file f do:
 //  . TableToTree t2t(ta,f,treename);
-//  . t2t.AddBranch(branchname1); t2t.AddBranch(branchname2); ...
+//  . t2t.AddBranch(coumn1); t2t.AddBranch(coumn1); ...
 //    OR
 //    t2t.AddAllBranches();
 //  . t2t.Process();
@@ -304,13 +304,15 @@ class TableToTree
   {
 
     bool togo = true;
+    LOG(INFO) << "Number of colums " << brits.size();
     while (togo) {
       // fill the tree
       tr->Fill();
 
       // update the branches
-      for (auto ii = 0; ii < ta->num_columns(); ii++)
-        togo &= brits.at(ii)->push();
+      for (auto brit : brits)
+        togo &= brit->push();
+
     }
     tr->Write();
 

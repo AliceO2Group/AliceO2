@@ -120,6 +120,12 @@ struct TopoIndexInfo {
   friend std::ostream& operator<<(std::ostream& out, TopoIndexInfo const& info);
 };
 
+
+struct OutputObj {
+  InputSpec spec;
+  bool isdangling;
+};
+
 /// A set of internal helper classes to manipulate a Workflow
 struct WorkflowHelpers {
   /// Topological sort for a graph of @a nodeCount nodes.
@@ -172,7 +178,8 @@ struct WorkflowHelpers {
   /// a corresponding InputSpec. I.e. they are dangling.
   /// @return a vector of InputSpec which would have matched said dangling outputs.
   static std::vector<InputSpec> computeDanglingOutputs(WorkflowSpec const& workflow);
-  static std::vector<InputSpec> computeAODOutputs(WorkflowSpec const& workflow);
+  
+  static std::tuple<std::vector<InputSpec>,std::vector<bool>> computeAODOutputs(WorkflowSpec const& workflow);
   static std::vector<InputSpec> selectAODs(std::vector<InputSpec>& outputs);
 };
 
