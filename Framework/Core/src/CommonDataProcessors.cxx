@@ -304,7 +304,7 @@ DataProcessorSpec
           // a table can be saved in multiple ways
           // e.g. different selections of columns to different files
           for (auto d : ds) {
-            d->printOut();
+            //d->printOut();
           
             TableToTree ta2tr(table,
                               dod->getDataOutputFile(d,ntf,ntfmerge,filemode),
@@ -324,7 +324,7 @@ DataProcessorSpec
         
         }
       }
-    };
+    });
   }; // end of writerFunction
 
   DataProcessorSpec spec{
