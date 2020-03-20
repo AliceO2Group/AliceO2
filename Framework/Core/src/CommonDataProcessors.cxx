@@ -205,7 +205,7 @@ DataProcessorSpec
                                          std::vector<bool> const& isdangling)
 {
 
-  auto writerFunction = [OutputInputs,isdangling](InitContext& ic) -> std::function<void(ProcessingContext&)> {
+  auto writerFunction = [OutputInputs, isdangling](InitContext& ic) -> std::function<void(ProcessingContext&)> {
     LOG(DEBUG) << "======== getGlobalAODSink::Init ==========";
 
     // analyze ic and take actions accordingly
@@ -221,32 +221,32 @@ DataProcessorSpec
     // if !keepString.empty()   : use keepString
     // if keepString == dangling: save danglingg outputs
     auto dod = std::make_shared<DataOutputDirector>();
-    if (!fnbase.empty()) dod->setDefaultfname(fnbase);
+    if (!fnbase.empty())
+      dod->setDefaultfname(fnbase);
     if (!keepString.empty()) {
-    
+
       std::string d("dangling");
       if (!d.find(keepString)) {
-        
+
         std::vector<InputSpec> danglingOutputs;
-        for (auto ii=0; ii<OutputInputs.size(); ii++) {
+        for (auto ii = 0; ii < OutputInputs.size(); ii++) {
           if (isdangling[ii])
             danglingOutputs.emplace_back(OutputInputs[ii]);
         }
         dod->readSpecs(danglingOutputs);
-      
+
       } else {
 
         dod->readString(keepString);
       }
       dod->printOut();
-    
+
       for (auto& outobj : OutputInputs) {
         auto ds = dod->getDataOutputDescriptors(outobj);
-        if (ds.size()>0) {
+        if (ds.size() > 0) {
           hasOutputsToWrite = true;
           break;
         }
-
       }
     }
 
@@ -286,31 +286,31 @@ DataProcessorSpec
 
       // increment the time frame counter ntf
       ntf++;
-      
+
       // loop over the DataRefs which are contained in pc.inputs()
       for (const auto& ref : pc.inputs()) {
 
         // does this need to be saved?
         auto dh = DataRefUtils::getHeader<header::DataHeader*>(ref);
         auto ds = dod->getDataOutputDescriptors(*dh);
-        
-        if (ds.size()>0) {
-          
+
+        if (ds.size() > 0) {
+
           // get the TableConsumer and corresponding arrow table
           auto s = pc.inputs().get<TableConsumer>(ref.spec->binding);
           auto table = s->asArrowTable();
-          
+
           // loop over all DataOutputDescriptors
           // a table can be saved in multiple ways
           // e.g. different selections of columns to different files
           for (auto d : ds) {
-            d->printOut();
-          
+            //d->printOut();
+
             TableToTree ta2tr(table,
-                              dod->getDataOutputFile(d,ntf,ntfmerge,filemode),
+                              dod->getDataOutputFile(d, ntf, ntfmerge, filemode),
                               d->treename.c_str());
-                                          
-            if (d->colnames.size()>0) {
+
+            if (d->colnames.size() > 0) {
               for (auto cn : d->colnames) {
                 auto col = table->GetColumnByName(cn);
                 if (col)
@@ -321,7 +321,6 @@ DataProcessorSpec
             }
             ta2tr.Process();
           }
-        
         }
       }
     };

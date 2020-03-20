@@ -323,9 +323,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   //auto danglingOutputsInputsAOD = selectAODs(danglingOutputsInputs);
 
   // select AOD outputs
-  auto [OutputsInputsAOD,isdangling] = computeAODOutputs(workflow);
-  
-  
+  auto [OutputsInputsAOD, isdangling] = computeAODOutputs(workflow);
+
   // file sink for notAOD dangling outputs
   extraSpecs.clear();
 
@@ -354,11 +353,10 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   extraSpecs.clear();
 
   if (OutputsInputsAOD.size() > 0) {
-    auto fileSink = CommonDataProcessors::getGlobalAODSink(OutputsInputsAOD,isdangling);
+    auto fileSink = CommonDataProcessors::getGlobalAODSink(OutputsInputsAOD, isdangling);
     extraSpecs.push_back(fileSink);
   }
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
-
 }
 
 void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
@@ -721,13 +719,13 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
   return results;
 }
 
-std::tuple<std::vector<InputSpec>,std::vector<bool>> WorkflowHelpers::computeAODOutputs(WorkflowSpec const& workflow)
+std::tuple<std::vector<InputSpec>, std::vector<bool>> WorkflowHelpers::computeAODOutputs(WorkflowSpec const& workflow)
 {
   LOG(INFO) << "Selecting OutputSpecs of origin AOD";
 
   std::vector<InputSpec> results;
   std::vector<bool> isdangling;
-  
+
   std::vector<DataMatcherId> inputs;
   std::vector<DataMatcherId> outputs;
   size_t totalInputs = 0;
@@ -755,10 +753,10 @@ std::tuple<std::vector<InputSpec>,std::vector<bool>> WorkflowHelpers::computeAOD
   for (size_t oi = 0, oe = outputs.size(); oi != oe; ++oi) {
     auto& output = outputs[oi];
     auto& outputSpec = workflow[output.workflowId].outputs[output.id];
-    
+
     // check if it is an aod
     if (DataSpecUtils::partialMatch(outputSpec, header::DataOrigin("AOD"))) {
-    
+
       auto input = DataSpecUtils::matchingInput(outputSpec);
       char buf[64];
       input.binding = (snprintf(buf, 63, "aod_%zu_%zu", output.workflowId, output.id), buf);
@@ -783,13 +781,11 @@ std::tuple<std::vector<InputSpec>,std::vector<bool>> WorkflowHelpers::computeAOD
       } else {
         isdangling.emplace_back(true);
       }
-    
     }
   }
 
   LOG(INFO) << "Number of AODs " << results.size();
-  return std::make_tuple(results,isdangling);
-
+  return std::make_tuple(results, isdangling);
 }
 
 std::vector<InputSpec> WorkflowHelpers::selectAODs(std::vector<InputSpec>& specs)

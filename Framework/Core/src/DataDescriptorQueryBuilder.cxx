@@ -249,7 +249,7 @@ DataDescriptorQuery DataDescriptorQueryBuilder::buildFromKeepConfig(std::string 
     std::smatch m;
     auto s = iter->str();
     auto newNode = buildNode(s);
-    
+
     if (result.get() == nullptr) {
       result = std::move(newNode);
     } else {
@@ -291,7 +291,8 @@ DataDescriptorQuery DataDescriptorQueryBuilder::buildFromExtendedKeepConfig(std:
                                      s.end(),
                                      delim2,
                                      -1);
-    if (iter2==end) continue;
+    if (iter2 == end)
+      continue;
     s = iter2->str();
 
     // create the corresponding DataDescriptorMatcher
@@ -315,7 +316,7 @@ std::unique_ptr<DataDescriptorMatcher> DataDescriptorQueryBuilder::buildNode(std
 {
 
   std::smatch m = getTokens(nodeString);
-  
+
   std::unique_ptr<DataDescriptorMatcher> next;
   auto newNode = std::make_unique<DataDescriptorMatcher>(
     DataDescriptorMatcher::Op::And,
@@ -324,21 +325,19 @@ std::unique_ptr<DataDescriptorMatcher> DataDescriptorQueryBuilder::buildNode(std
       DataDescriptorMatcher::Op::And,
       DescriptionValueMatcher{m[2]},
       SubSpecificationTypeValueMatcher{m[3]}));
-      
-  return newNode;
 
+  return newNode;
 }
 
 std::smatch DataDescriptorQueryBuilder::getTokens(std::string const& nodeString)
 {
-  
+
   static const std::regex specTokenRE(R"re((\w{1,4})/(\w{1,16})/(\d*))re");
   std::smatch m;
-  
-  std::regex_match(nodeString, m, specTokenRE);
-  
-  return m;
 
+  std::regex_match(nodeString, m, specTokenRE);
+
+  return m;
 }
 
 } // namespace framework
