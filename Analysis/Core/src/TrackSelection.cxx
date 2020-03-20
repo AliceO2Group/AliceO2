@@ -46,11 +46,7 @@ bool TrackSelection::FulfillsITSHitRequirements(uint8_t itsClusterMap)
 {
   constexpr uint8_t bit = 1;
   for (auto& itsRequirement : mRequiredITSHits) {
-    uint8_t hits = 0;
-    for (auto& requiredLayer : itsRequirement.second) {
-      if (itsClusterMap & (bit << requiredLayer))
-        hits++;
-    }
+    auto hits = std::count_if(itsRequirement.second.begin(), itsRequirement.second.end(), [&](auto&& requiredLayer) { return itsClusterMap & (bit << requiredLayer); });
     if ((itsRequirement.first == -1) && (hits > 0)) {
       return false; // no hits were required in specified layers
     } else if (hits < itsRequirement.first) {
