@@ -101,17 +101,20 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<std::string
       return;
     }
 
-    for (int tpcchannel = 0; tpcchannel < tpcsubchannels->size(); ++tpcchannel) {
-      auto& sectors = tpcsectormessages->operator[](tpcchannel);
-      if (counter < sectors.size()) {
-        auto sector = sectors[counter];
-        // send the sectorassign as header with the collision context data
-        o2::tpc::TPCSectorHeader header{sector};
-        header.activeSectors = activeSectors;
-        pc.outputs().snapshot(
-          OutputRef{"collisioncontext", static_cast<SubSpecificationType>(tpcchannel), {header}},
-          context);
+    while (tpcinvocations > 0 && counter < tpcinvocations) {
+      for (int tpcchannel = 0; tpcchannel < tpcsubchannels->size(); ++tpcchannel) {
+        auto& sectors = tpcsectormessages->operator[](tpcchannel);
+        if (counter < sectors.size()) {
+          auto sector = sectors[counter];
+          // send the sectorassign as header with the collision context data
+          o2::tpc::TPCSectorHeader header{sector};
+          header.activeSectors = activeSectors;
+          pc.outputs().snapshot(
+            OutputRef{"collisioncontext", static_cast<SubSpecificationType>(tpcchannel), {header}},
+            context);
+        }
       }
+      counter++;
     }
 
     // everything not done previously treat here (this is to be seen how since other things than TPC will have
@@ -126,7 +129,6 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<std::string
         OutputRef{"collisioncontext", static_cast<SubSpecificationType>(subchannel)},
         context);
     }
-    counter++;
     if (tpcinvocations == 0 || counter == tpcinvocations) {
       finished = true;
     }

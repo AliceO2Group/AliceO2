@@ -109,6 +109,9 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   using o2::framework::CompletionPolicy;
   // we customize the completion policy for the writer since it should stream immediately
   policies.push_back(CompletionPolicyHelpers::defineByName("TPCDigitWriter", CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(CompletionPolicyHelpers::defineByName("TPCDigitizer.*", CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-cluster-decoder.*", CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-clusterer.*", CompletionPolicy::CompletionOp::Consume));
 }
 
 // ------------------------------------------------------------------
@@ -158,6 +161,15 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"enable-trd-trapsim", VariantType::Bool, false, {"enable the trap simulation of the TRD"}});
 }
 
+void customize(std::vector<o2::framework::DispatchPolicy>& policies)
+{
+  using DispatchOp = o2::framework::DispatchPolicy::DispatchOp;
+  // we customize all devices to dispatch data immediately
+  auto matcher = [](auto const& spec) {
+    return spec.name == "SimReader";
+  };
+  policies.push_back({"prompt-for-simreader", matcher, DispatchOp::WhenReady});
+}
 // ------------------------------------------------------------------
 
 #include "Framework/runDataProcessing.h"
@@ -431,19 +443,20 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     auto lanes = getNumTPCLanes(tpcsectors, configcontext);
     detList.emplace_back(o2::detectors::DetID::TPC);
 
-    for (int l = 0; l < lanes; ++l) {
-      specs.emplace_back(o2::tpc::getTPCDigitizerSpec(fanoutsize, (l == 0)));
-      tpclanes->emplace_back(fanoutsize); // this records that TPC is "listening under this subchannel"
-      fanoutsize++;
+    for (auto const& sector : tpcsectors) {
+      tpclanes->emplace_back(sector); // this records that TPC is "listening under this subchannel"
     }
+    WorkflowSpec tpcPipelines = o2::tpc::getTPCDigitizerSpec(lanes, *tpclanes);
+    specs.insert(specs.end(), tpcPipelines.begin(), tpcPipelines.end());
+    fanoutsize += 36;
 
     auto tpcRecoOutputType = configcontext.options().get<std::string>("tpc-reco-type");
     if (tpcRecoOutputType.empty()) {
       // for writing digits to disc
-      specs.emplace_back(o2::tpc::getTPCDigitRootWriterSpec(lanes));
+      specs.emplace_back(o2::tpc::getTPCDigitRootWriterSpec(*tpclanes));
     } else {
       // attach the TPC reco workflow
-      auto tpcRecoWorkflow = o2::tpc::reco_workflow::getWorkflow(tpcsectors, true, lanes, "digitizer", tpcRecoOutputType.c_str());
+      auto tpcRecoWorkflow = o2::tpc::reco_workflow::getWorkflow(tpcsectors, tpcsectors, true, lanes, "digitizer", tpcRecoOutputType.c_str());
       specs.insert(specs.end(), tpcRecoWorkflow.begin(), tpcRecoWorkflow.end());
     }
   }
