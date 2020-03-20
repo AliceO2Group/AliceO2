@@ -18,6 +18,7 @@
 
 #include "GPUCommonDef.h"
 #include "FlatObject.h"
+#include <algorithm>
 
 namespace GPUCA_NAMESPACE
 {
