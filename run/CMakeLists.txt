@@ -64,11 +64,6 @@ o2_add_executable(hit-merger-runner
                   SOURCES O2HitMergerRunner.cxx
                   PUBLIC_LINK_LIBRARIES internal::allsim)
 
-o2_add_executable(tpc
-                  COMPONENT_NAME sim
-                  SOURCES runTPC.cxx
-                  PUBLIC_LINK_LIBRARIES internal::allsim O2::TPCReconstruction)
-
 o2_data_file(COPY o2simtopology.json DESTINATION config)
 
 # * # add a complex simulation as a unit test (if simulation was enabled)
