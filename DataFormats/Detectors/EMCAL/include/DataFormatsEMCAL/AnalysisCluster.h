@@ -77,50 +77,50 @@ class AnalysisCluster
   void setID(int id) { mID = id; }
   int getID() const { return mID; }
 
-  void setE(double ene) { mEnergy = ene; }
-  double E() const { return mEnergy; }
+  void setE(float ene) { mEnergy = ene; }
+  float E() const { return mEnergy; }
 
-  void setChi2(double chi2) { mChi2 = chi2; }
-  double Chi2() const { return mChi2; }
+  void setChi2(float chi2) { mChi2 = chi2; }
+  float Chi2() const { return mChi2; }
 
   ///
   /// Set the cluster global position.
-  void setGlobalPosition(Point3D<double> x);
-  Point3D<double> getGlobalPosition() const
+  void setGlobalPosition(Point3D<float> x);
+  Point3D<float> getGlobalPosition() const
   {
     return mGlobalPos;
   }
 
-  void setLocalPosition(Point3D<double> x);
-  Point3D<double> getLocalPosition() const
+  void setLocalPosition(Point3D<float> x);
+  Point3D<float> getLocalPosition() const
   {
     return mLocalPos;
   }
 
-  void setDispersion(double disp) { mDispersion = disp; }
-  double getDispersion() const { return mDispersion; }
+  void setDispersion(float disp) { mDispersion = disp; }
+  float getDispersion() const { return mDispersion; }
 
-  void setM20(double m20) { mM20 = m20; }
-  double getM20() const { return mM20; }
+  void setM20(float m20) { mM20 = m20; }
+  float getM20() const { return mM20; }
 
-  void setM02(double m02) { mM02 = m02; }
-  double getM02() const { return mM02; }
+  void setM02(float m02) { mM02 = m02; }
+  float getM02() const { return mM02; }
 
   void setNExMax(unsigned char nExMax) { mNExMax = nExMax; }
   unsigned char getNExMax() const { return mNExMax; }
 
-  void setEmcCpvDistance(double dEmcCpv) { mEmcCpvDistance = dEmcCpv; }
-  double getEmcCpvDistance() const { return mEmcCpvDistance; }
-  void setTrackDistance(double dx, double dz)
+  void setEmcCpvDistance(float dEmcCpv) { mEmcCpvDistance = dEmcCpv; }
+  float getEmcCpvDistance() const { return mEmcCpvDistance; }
+  void setTrackDistance(float dx, float dz)
   {
     mTrackDx = dx;
     mTrackDz = dz;
   }
-  double getTrackDx() const { return mTrackDx; }
-  double getTrackDz() const { return mTrackDz; }
+  float getTrackDx() const { return mTrackDx; }
+  float getTrackDz() const { return mTrackDz; }
 
-  void setDistanceToBadChannel(double dist) { mDistToBadChannel = dist; }
-  double getDistanceToBadChannel() const { return mDistToBadChannel; }
+  void setDistanceToBadChannel(float dist) { mDistToBadChannel = dist; }
+  float getDistanceToBadChannel() const { return mDistToBadChannel; }
 
   void setNCells(int n) { mNCells = n; }
   int getNCells() const { return mNCells; }
@@ -138,11 +138,11 @@ class AnalysisCluster
   ///  Set the array of cell amplitude fractions.
   ///  Cell can be shared between 2 clusters, here the fraction of energy
   ///  assigned to each cluster is stored. Only in unfolded clusters.
-  void setCellsAmplitudeFraction(const std::vector<Double32_t>& array)
+  void setCellsAmplitudeFraction(const std::vector<float>& array)
   {
     mCellsAmpFraction = array;
   }
-  const std::vector<Double32_t>& getCellsAmplitudeFraction() const { return mCellsAmpFraction; }
+  const std::vector<float>& getCellsAmplitudeFraction() const { return mCellsAmpFraction; }
 
   int getCellIndex(int i) const
   {
@@ -152,7 +152,7 @@ class AnalysisCluster
       throw CellOutOfRangeException(i);
   }
 
-  double getCellAmplitudeFraction(int i) const
+  float getCellAmplitudeFraction(int i) const
   {
     if (i >= 0 && i < mNCells)
       return mCellsAmpFraction[i];
@@ -183,7 +183,7 @@ class AnalysisCluster
   /// Returns TLorentzVector with momentum of the cluster. Only valid for clusters
   /// identified as photons or pi0 (overlapped gamma) produced on the vertex
   /// Vertex can be recovered with esd pointer doing:
-  TLorentzVector getMomentum(std::array<const double, 3> vertexPosition) const;
+  TLorentzVector getMomentum(std::array<const float, 3> vertexPosition) const;
 
  protected:
   /// TODO to replace later by o2::MCLabel when implementing the MC handling
@@ -196,29 +196,26 @@ class AnalysisCluster
 
   /// Array with cell amplitudes fraction. Only usable for unfolded clusters, where cell can be shared.
   /// here we store what fraction of the cell energy is assigned to a given cluster.
-  std::vector<Double32_t> mCellsAmpFraction; //[mNCells][0.,1.,16]
+  std::vector<float> mCellsAmpFraction; //[mNCells][0.,1.,16]
 
-  Point3D<double> mGlobalPos; ///< Position in global coordinate system (cm).
-  Point3D<double> mLocalPos;  ///< Local  position in the sub-detector coordinate
-  Double32_t mEnergy = 0;     ///< Energy measured by calorimeter in GeV.
-  float mCoreEnergy = 0.;     ///<  Energy in a shower core
-  Double32_t mDispersion = 0; ///< Cluster shape dispersion.
-  Double32_t mChi2 = 0;       ///< Chi2 of cluster fit (unfolded clusters)
-  Double32_t mM20 = 0;        ///< 2-nd moment along the second eigen axis.
-  Double32_t mM02 = 0;        ///< 2-nd moment along the main eigen axis.
+  Point3D<float> mGlobalPos; ///< Position in global coordinate system (cm).
+  Point3D<float> mLocalPos;  ///< Local  position in the sub-detector coordinate
+  float mEnergy = 0;         ///< Energy measured by calorimeter in GeV.
+  float mCoreEnergy = 0.;    ///<  Energy in a shower core
+  float mDispersion = 0;     ///< Cluster shape dispersion.
+  float mChi2 = 0;           ///< Chi2 of cluster fit (unfolded clusters)
+  float mM20 = 0;            ///< 2-nd moment along the second eigen axis.
+  float mM02 = 0;            ///< 2-nd moment along the main eigen axis.
 
-  Double32_t mEmcCpvDistance = 1024; ///< the distance from PHOS EMC rec.point to the closest CPV rec.point.
+  float mEmcCpvDistance = 1024; ///< the distance from PHOS EMC rec.point to the closest CPV rec.point.
 
-  Double32_t mTrackDx = 1024; ///< Distance to closest track in phi.
-  Double32_t mTrackDz = 1024; ///< Distance to closest track in z.
+  float mTrackDx = 1024; ///< Distance to closest track in phi.
+  float mTrackDz = 1024; ///< Distance to closest track in z.
 
-  Double32_t mDistToBadChannel = 1024; ///< Distance to nearest bad channel.
+  float mDistToBadChannel = 1024; ///< Distance to nearest bad channel.
 
   int mID = 0;               ///< Unique Id of the cluster.
   unsigned char mNExMax = 0; ///< Number of Local (Ex-)maxima before unfolding.
-
-  /// Cluster time-of-flight
-  double mTOF = 0.0; //[0,0,12]
 
   float mTime = 0.; ///<  Time of the digit/cell with maximal energy deposition
 

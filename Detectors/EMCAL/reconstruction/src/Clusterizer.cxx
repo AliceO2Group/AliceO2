@@ -52,7 +52,7 @@ void Clusterizer<InputType>::initialize(double timeCut, double timeMin, double t
 /// Recursively search for neighbours (EMCAL)
 //____________________________________________________________________________
 template <class InputType>
-void Clusterizer<InputType>::getClusterFromNeighbours(std::vector<InputType*>& clusterInputs, int row, int column)
+void Clusterizer<InputType>::getClusterFromNeighbours(std::vector<InputwithIndex>& clusterInputs, int row, int column)
 {
   // Recursion 0, add seed cell/digit to cluster
   if (!clusterInputs.size()) {
@@ -73,10 +73,10 @@ void Clusterizer<InputType>::getClusterFromNeighbours(std::vector<InputType*>& c
       continue;
     }
 
-    if (mInputMap[row + rowDiffs[dir]][column + colDiffs[dir]]) {
+    if (mInputMap[row + rowDiffs[dir]][column + colDiffs[dir]].mInput) {
       if (!mCellMask[row + rowDiffs[dir]][column + colDiffs[dir]]) {
-        if (mDoEnergyGradientCut && not(mInputMap[row + rowDiffs[dir]][column + colDiffs[dir]]->getEnergy() > mInputMap[row][column]->getEnergy() + mGradientCut)) {
-          if (not(TMath::Abs(mInputMap[row + rowDiffs[dir]][column + colDiffs[dir]]->getTimeStamp() - mInputMap[row][column]->getTimeStamp()) > mTimeCut)) {
+        if (mDoEnergyGradientCut && not(mInputMap[row + rowDiffs[dir]][column + colDiffs[dir]].mInput->getEnergy() > mInputMap[row][column].mInput->getEnergy() + mGradientCut)) {
+          if (not(TMath::Abs(mInputMap[row + rowDiffs[dir]][column + colDiffs[dir]].mInput->getTimeStamp() - mInputMap[row][column].mInput->getTimeStamp()) > mTimeCut)) {
             getClusterFromNeighbours(clusterInputs, row + rowDiffs[dir], column + colDiffs[dir]);
             // Add the cell/digit to the current cluster -- if we end up here, the selected cluster fulfills the condition
             clusterInputs.emplace_back(mInputMap[row + rowDiffs[dir]][column + colDiffs[dir]]);
@@ -143,13 +143,17 @@ void Clusterizer<InputType>::findClusters(const gsl::span<InputType const>& inpu
   // Loop over one array dim, then reset each array
   for (auto iArr = 0; iArr < NROWS; iArr++) {
     mCellMask[iArr].fill(kFALSE);
-    mInputMap[iArr].fill(nullptr);
+    mInputMap[iArr].fill({nullptr, -1});
   }
 
   // Calibrate cells/digits and fill the maps/arrays
   int nCells = 0;
   double ehs = 0.0;
-  for (auto dig : inputArray) {
+  //for (auto dig : inputArray) {
+  for (int iIndex = 0; iIndex < inputArray.size(); iIndex++) {
+
+    auto dig = inputArray[iIndex];
+
     Float_t inputEnergy = dig.getEnergy();
     Float_t time = dig.getTimeStamp();
 
@@ -164,7 +168,8 @@ void Clusterizer<InputType>::findClusters(const gsl::span<InputType const>& inpu
     // Put cell/digit to 2D map
     int row = 0, column = 0;
     getTopologicalRowColumn(dig, row, column);
-    mInputMap[row][column] = &dig; // mInputMap saves pointers to cells/digits, therefore use addr operator here
+    mInputMap[row][column].mInput = &dig;   // mInputMap saves pointers to cells/digits, therefore use addr operator here
+    mInputMap[row][column].mIndex = iIndex; // mInputMap saves the position of cells/digits in the input array
     mSeedList[nCells].energy = inputEnergy;
     mSeedList[nCells].row = row;
     mSeedList[nCells].column = column;
@@ -187,18 +192,18 @@ void Clusterizer<InputType>::findClusters(const gsl::span<InputType const>& inpu
     }
 
     // Seed is found, form cluster recursively
-    std::vector<InputType*> clusterInputs;
+    std::vector<InputwithIndex> clusterInputs;
     getClusterFromNeighbours(clusterInputs, row, column);
 
     // Add cells/digits for current cluster to cell/digit index vector
     int inputIndexStart = mInputIndices.size();
     for (auto dig : clusterInputs) {
-      mInputIndices.emplace_back(dig->getTower());
+      mInputIndices.emplace_back(dig.mIndex);
     }
     int inputIndexSize = mInputIndices.size() - inputIndexStart;
 
     // Now form cluster object from cells/digits
-    mFoundClusters.emplace_back(mInputMap[row][column]->getTimeStamp(), inputIndexStart, inputIndexSize); // Cluster object initialized w/ time of seed cell, start + size of associated cells
+    mFoundClusters.emplace_back(mInputMap[row][column].mInput->getTimeStamp(), inputIndexStart, inputIndexSize); // Cluster object initialized w/ time of seed cell, start + size of associated cells
   }
   LOG(DEBUG) << mFoundClusters.size() << "clusters found from " << nCells << " cells/digits (total=" << inputArray.size() << ")-> ehs " << ehs << " (minE " << mThresholdCellEnergy << ")";
 }

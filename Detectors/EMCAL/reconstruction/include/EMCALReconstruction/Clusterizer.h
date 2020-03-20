@@ -31,7 +31,7 @@ namespace emcal
 constexpr unsigned int NROWS = (24 + 1) * (6 + 4); // 10x supermodule rows (6 for EMCAL, 4 for DCAL). +1 accounts for topological gap between two supermodules
 constexpr unsigned int NCOLS = 48 * 2 + 1;         // 2x  supermodule columns + 1 empty space in between for DCAL (not used for EMCAL)
 
-using ClusterIndex = Short_t;
+using ClusterIndex = int;
 
 /// \class Clusterizer
 /// \brief Meta class for recursive clusterizer
@@ -57,6 +57,11 @@ class Clusterizer
     int column;
   };
 
+  struct InputwithIndex {
+    InputType* mInput;
+    ClusterIndex mIndex;
+  };
+
  public:
   Clusterizer(double timeCut, double timeMin, double timeMax, double gradientCut, bool doEnergyGradientCut, double thresholdSeedE, double thresholdCellE);
   Clusterizer();
@@ -70,12 +75,12 @@ class Clusterizer
   Geometry* getGeometry() { return mEMCALGeometry; }
 
  private:
-  void getClusterFromNeighbours(std::vector<InputType*>& clusterUnputs, int row, int column);
+  void getClusterFromNeighbours(std::vector<InputwithIndex>& clusterUnputs, int row, int column);
   void getTopologicalRowColumn(const InputType& input, int& row, int& column);
-  Geometry* mEMCALGeometry = nullptr;                         //!<! pointer to geometry for utilities
-  std::array<cellWithE, NROWS * NCOLS> mSeedList;             //!<! seed array
-  std::array<std::array<InputType*, NCOLS>, NROWS> mInputMap; //!<! topology arrays
-  std::array<std::array<bool, NCOLS>, NROWS> mCellMask;       //!<! topology arrays
+  Geometry* mEMCALGeometry = nullptr;                             //!<! pointer to geometry for utilities
+  std::array<cellWithE, NROWS * NCOLS> mSeedList;                 //!<! seed array
+  std::array<std::array<InputwithIndex, NCOLS>, NROWS> mInputMap; //!<! topology arrays
+  std::array<std::array<bool, NCOLS>, NROWS> mCellMask;           //!<! topology arrays
 
   std::vector<Cluster> mFoundClusters;     ///<  vector of cluster objects
   std::vector<ClusterIndex> mInputIndices; ///<  vector of associated cell/digit tower ID, ordered by cluster
