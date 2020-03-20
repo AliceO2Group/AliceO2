@@ -342,7 +342,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
 
       /// FIXME: Substitute here the actual data you want to convert for the AODReader
       if (readMask & AODTypeMask::Collisions) {
-        std::unique_ptr<TTreeReader> reader = std::make_unique<TTreeReader>("O2events", infile.get());
+        std::unique_ptr<TTreeReader> reader = std::make_unique<TTreeReader>("O2collisions", infile.get());
         auto& collisionBuilder = outputs.make<TableBuilder>(Output{"AOD", "COLLISION"});
         RootTableBuilderHelpers::convertASoA<o2::aod::Collisions>(collisionBuilder, *reader);
       }
