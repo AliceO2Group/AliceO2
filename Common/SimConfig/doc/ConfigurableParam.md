@@ -7,7 +7,7 @@
 This is a short README for configurable parameters as offered by 
 the ConfigurableParameter class.
 
-## Introduction
+# Introduction
 
 The ConfigurableParameter class implements the demand
 * to have simple variables (under a compound namespace) be declared as 'knobs'
@@ -17,7 +17,7 @@ of an algorithm in order to be able to change/configure their value without reco
 * to provide automatic serialization / deserialization techniques (to text files or binary blobs) -- for instance to load from CCDB or to pass along parameter snapshots to other processing stages.
 * to keep track of who changes parameters (provenance tracking). 
 
-## Example / HowTo:
+# Example / HowTo:
 
 Imagine some algorithms `algorithmA` depends on 2 parameters `p1` and `p2` which you want to be able to configure.
 
@@ -35,8 +35,7 @@ You would do the following steps:
      ```c++
      O2ParamImpl(ParamA);
      ```
-     in some source file, to generate necessary symbols needed for linking.
-
+     in some source file, to generate necessay symbols needed for linking.
   3. Access and use the parameters in the code.
      ```c++
      void algorithmA() {
@@ -75,24 +74,24 @@ Thereafter, the parameter `ParamA` is automatically registered in a parameter re
   ConfigurableParam::fromCCDB(filename);
   ```
 * **Provenance tracking**: The system can keep track of the origin of values. Typically, few stages of modification can be done:
-    *   default initialization of parameters from code (CODE)
-    *   initialization/overwriting from a (CCDB) snapshot file  
-    *   overriding by user during runtime (RT)
+  - default initialization of parameters from code (CODE)
+  - initialization/overwritting from a (CCDB) snapshot file
+  - overriding by user during runtime (RT)
 
   The registry can keep track of who supplied the current (decisive) value for each parameter: CODE, CCDB or RT. If a parameter is not changed it keeps the state of the previous stage.
 
-## Parameter modification from command line and ini file
+# Parameter modifcation from command line and ini file
 
-As mentioned above, it is possible to overwrite configuration parameters from the command line. This can be done using any of the DPL executables, e.g. `o2-sim`, `o2-sim-digitizer-workflow`, `o2-tpc-reco-workflow`, ...
+As mentioned above, it is possible to overwrite configuration parameters from the command line. This can be done using any of the DPL exacutables, e.g. `o2-sim`, `o2-sim-digitizer-workflow`, `o2-tpc-reco-workflow`, ...
 
-### Command line option
+## Command line option
 In order to modify a parameter from the command line, the syntax `Key.param=value` has to be used. **NOTE:** there must be no spaced before and after the `=`! Multiple key value pairs are separated by a `;`:
 ```
 o2-sim --configKeyValues 'A.p1=1;A.p2=2.56'
 ```
 Not all parameters need to be defined. Non-defined parameters will use the default value defined in the parameter struct.
 
-### ini file option
+## ini file option
 The layout of the ini-file is the following:
 ```EditorConfig
 [Key1]
@@ -114,13 +113,13 @@ o2-sim-digitizer-workflow --configFile paramA.ini
 ```
 Again, not all parameters need to be defined.
 
-## Further technical details
+# Further technical details
 
 * Parameter classes are **read-only** singleton classes/structs. As long as the user follows the pattern to inherit from `ConfigurableParamHelper<T>` and to use the macro `O2ParamDef()` everything is implemented automatically.
 * We use the `ROOT C++` introspection facility to map the class layout to a textual configuration. Hence ROOT dictionaries are needed for parameter classes.
 * BOOST property trees are used for the mapping to JSON/INI files but this is an internal detail and might change in future.
 
-## Limitations
+# Limitations
 
 * Parameter classes may only contain simple members! Currently the following types are supported
     * simple pods (for example `double x; char y;`)
@@ -136,10 +135,9 @@ Again, not all parameters need to be defined.
       ```
       It is planned to offer more flexible ways to set arrays (see below).
     * there is currently no support for pointer types or objects. Parameter classes may not be nested.
+* At the moment serialization works on the whole paramter registry (on the whole set of parameters). Everything is written to the same file or snapshot.
 
-* At the moment serialization works on the whole parameter registry (on the whole set of parameters). Everything is written to the same file or snapshot.
-
-## Wish list / planned improvements
+# Wish list / planned improvements
 
 * Offer a more flexible way to set array types (to represent them in strings), for example
   ```c++
