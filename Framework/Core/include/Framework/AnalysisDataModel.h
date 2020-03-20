@@ -38,12 +38,12 @@ DECLARE_SOA_COLUMN(CovYZ, covYZ, float, "fCovYZ");
 DECLARE_SOA_COLUMN(CovZZ, covZZ, float, "fCovZZ");
 DECLARE_SOA_COLUMN(Chi2, chi2, float, "fChi2");
 DECLARE_SOA_COLUMN(NumContrib, numContrib, uint32_t, "fN");
-DECLARE_SOA_COLUMN(EventTime, eventTime, float, "fEventTime");
-DECLARE_SOA_COLUMN(EventTimeRes, eventTimeRes, float, "fEventTimeRes");
-DECLARE_SOA_COLUMN(EventTimeMask, eventTimeMask, uint8_t, "fEventTimeMask");
+DECLARE_SOA_COLUMN(CollisionTime, collisionTime, float, "fCollisionTime");
+DECLARE_SOA_COLUMN(CollisionTimeRes, collisionTimeRes, float, "fCollisionTimeRes");
+DECLARE_SOA_COLUMN(CollisionTimeMask, collisionTimeMask, uint8_t, "fCollisionTimeMask");
 } // namespace collision
 
-DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", o2::soa::Index<>, collision::RunNumber, collision::GlobalBC, collision::PosX, collision::PosY, collision::PosZ, collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYY, collision::CovYZ, collision::CovZZ, collision::Chi2, collision::NumContrib, collision::EventTime, collision::EventTimeRes, collision::EventTimeMask);
+DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", o2::soa::Index<>, collision::RunNumber, collision::GlobalBC, collision::PosX, collision::PosY, collision::PosZ, collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYY, collision::CovYZ, collision::CovZZ, collision::Chi2, collision::NumContrib, collision::CollisionTime, collision::CollisionTimeRes, collision::CollisionTimeMask);
 
 using Collision = Collisions::iterator;
 

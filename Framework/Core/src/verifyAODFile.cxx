@@ -43,7 +43,7 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  verifyTable<o2::aod::Collisions>(infile.get(), "O2events");
+  verifyTable<o2::aod::Collisions>(infile.get(), "O2collisions");
   verifyTable<o2::aod::Tracks>(infile.get(), "O2tracks");
   verifyTable<o2::aod::TracksCov>(infile.get(), "O2tracks");
   verifyTable<o2::aod::TracksExtra>(infile.get(), "O2tracks");
