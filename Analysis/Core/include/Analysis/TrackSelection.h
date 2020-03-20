@@ -15,9 +15,9 @@
 #ifndef TrackSelection_H
 #define TrackSelection_H
 
-#include "Analysis/TrackSelectionTables.h"
-#include "Framework/AnalysisTask.h"
+#include "Framework/Logger.h"
 #include "TObject.h"
+#include <set>
 
 class TrackSelection : public TObject
 {
@@ -27,8 +27,25 @@ class TrackSelection : public TObject
 
   // Temporary function to check if track passes selection criteria. To be
   // replaced by framework filters
-  bool IsSelected(o2::soa::Join<o2::aod::Tracks, o2::aod::TracksCov,
-                                o2::aod::TracksExtra>::iterator const& track);
+  template <typename T>
+  bool IsSelected(T const& track)
+  {
+    if (track.pt() >= mMinPt && track.pt() < mMaxPt && track.eta() >= mMinEta &&
+        track.eta() < mMaxEta && track.tpcNClsFound() >= mMinNClustersTPC &&
+        track.tpcNClsCrossedRows() >= mMinNCrossedRowsTPC &&
+        track.tpcCrossedRowsOverFindableCls() >=
+          mMinNCrossedRowsOverFindableClustersTPC &&
+        (track.itsNCls() >= mMinNClustersITS) &&
+        (track.itsChi2NCl() < mMaxChi2PerClusterITS) &&
+        (track.tpcChi2Ncl() < mMaxChi2PerClusterTPC) &&
+        (mRequireITSRefit && (track.flags() & 0x4)) &&
+        (mRequireTPCRefit && (track.flags() & 0x40)) &&
+        FulfillsITSHitRequirements(track.itsClusterMap())) {
+      return true;
+    } else {
+      return false;
+    }
+  }
 
   void SetMinPt(float minPt) { mMinPt = minPt; }
   void SetMaxPt(float maxPt) { mMaxPt = maxPt; }
@@ -75,7 +92,7 @@ class TrackSelection : public TObject
   {
     // layer 0 corresponds to the the innermost ITS layer
     if (minNRequiredHits > requiredLayers.size()) {
-      LOG(FATAL) << "More ITS hits required than layers specified.";
+      LOGF(FATAL, "More ITS hits required than layers specified.");
     } else {
       mRequiredITSHits.push_back(
         std::make_pair(minNRequiredHits, requiredLayers));

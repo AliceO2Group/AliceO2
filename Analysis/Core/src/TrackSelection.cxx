@@ -15,9 +15,6 @@
 #include "Analysis/TrackSelection.h"
 #include <TH1F.h>
 
-using namespace o2;
-using namespace o2::framework;
-
 ClassImp(TrackSelection)
 
   TrackSelection::TrackSelection()
@@ -25,35 +22,11 @@ ClassImp(TrackSelection)
 {
 }
 
-bool TrackSelection::IsSelected(
-  soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra>::iterator const& track)
-{
-  if (track.pt() >= mMinPt && track.pt() < mMaxPt && track.eta() >= mMinEta &&
-      track.eta() < mMaxEta && track.tpcNClsFound() >= mMinNClustersTPC &&
-      track.tpcNClsCrossedRows() >= mMinNCrossedRowsTPC &&
-      track.tpcCrossedRowsOverFindableCls() >=
-        mMinNCrossedRowsOverFindableClustersTPC &&
-      (track.itsNCls() >= mMinNClustersITS) &&
-      (track.itsChi2NCl() < mMaxChi2PerClusterITS) &&
-      (track.tpcChi2Ncl() < mMaxChi2PerClusterTPC) &&
-      (mRequireITSRefit && (track.flags() & 0x4)) &&
-      (mRequireTPCRefit && (track.flags() & 0x40)) &&
-      FulfillsITSHitRequirements(track.itsClusterMap())) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
 bool TrackSelection::FulfillsITSHitRequirements(uint8_t itsClusterMap)
 {
   constexpr uint8_t bit = 1;
   for (auto& itsRequirement : mRequiredITSHits) {
-    uint8_t hits = 0;
-    for (auto& requiredLayer : itsRequirement.second) {
-      if (itsClusterMap & (bit << requiredLayer))
-        hits++;
-    }
+    auto hits = std::count_if(itsRequirement.second.begin(), itsRequirement.second.end(), [&](auto&& requiredLayer) { return itsClusterMap & (bit << requiredLayer); });
     if ((itsRequirement.first == -1) && (hits > 0)) {
       return false; // no hits were required in specified layers
     } else if (hits < itsRequirement.first) {
