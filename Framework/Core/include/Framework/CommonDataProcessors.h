@@ -12,6 +12,7 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/InputSpec.h"
+#include "Framework/DataOutputDirector.h"
 #include "TTree.h"
 
 #include <vector>
@@ -39,6 +40,8 @@ struct CommonDataProcessors {
                          std::shared_ptr<arrow::Table> table,
                          bool tupdate);
   static DataProcessorSpec getGlobalAODSink(std::vector<InputSpec> const& danglingInputs);
+  static DataProcessorSpec getGlobalAODSink(std::vector<InputSpec> const& OutputInputs,
+                                            std::vector<bool> const& isdangling);
   /// @return a dummy DataProcessorSpec which requires all the passed @a InputSpec
   /// and simply discards them.
   static DataProcessorSpec getDummySink(std::vector<InputSpec> const& danglingInputs);
