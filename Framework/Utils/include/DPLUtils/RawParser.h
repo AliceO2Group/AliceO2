@@ -81,7 +81,7 @@ class ConcreteRawParser
   using buffer_type = unsigned char;
   using header_type = HeaderType;
   using self_type = ConcreteRawParser;
-  size_t max_size = MAX_SIZE;
+  static constexpr size_t max_size = MAX_SIZE;
 
   ConcreteRawParser() = delete;
 
@@ -117,7 +117,10 @@ class ConcreteRawParser
       return 0;
     }
     header_type const& h = header();
-    return h.memorySize - h.headerSize;
+    if (h.memorySize >= h.headerSize) {
+      return h.memorySize - h.headerSize;
+    }
+    return max_size - h.headerSize;
   }
 
   /// Get pointer to payload data at current position
