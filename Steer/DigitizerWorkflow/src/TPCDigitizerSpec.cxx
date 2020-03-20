@@ -10,6 +10,7 @@
 
 #include "TPCDigitizerSpec.h"
 #include "Framework/ControlService.h"
+#include "Framework/ParallelContext.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"
@@ -60,11 +61,9 @@ using namespace o2::base;
 class TPCDPLDigitizerTask : public BaseDPLDigitizer
 {
  public:
-  TPCDPLDigitizerTask(int channel, bool writeGRP) : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM)
+  TPCDPLDigitizerTask() : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM)
   {
-    mChannel = channel;
-    mWriteGRP = writeGRP;
-  };
+  }
 
   void initDigitizerTask(framework::InitContext& ic) override
   {
@@ -138,13 +137,14 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       }
     }
     mDigitizer.setContinuousReadout(!triggeredMode);
+
+    // we send the GRP data once if the corresponding output channel is available
+    // and set the flag to false after
+    mWriteGRP = true;
   }
 
   void run(framework::ProcessingContext& pc)
   {
-    static int callcounter = 0;
-    callcounter++;
-
     LOG(INFO) << "Processing TPC digitization";
 
     /// For the time being use the defaults for the CDB
@@ -155,26 +155,38 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       cdb.setGainMapFromFile("GainMap.root");
     }
 
+    for (auto it = pc.inputs().begin(), end = pc.inputs().end(); it != end; ++it) {
+      for (auto const& inputref : it) {
+        process(pc, inputref);
+      }
+    }
+  }
+
+  // process one sector
+  void process(framework::ProcessingContext& pc, framework::DataRef const& inputref)
+  {
     // read collision context from input
-    auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
+    auto context = pc.inputs().get<o2::steer::DigitizationContext*>(inputref);
     context->initSimChains(o2::detectors::DetID::TPC, mSimChains);
     auto& irecords = context->getEventRecords();
     LOG(INFO) << "TPC: Processing " << irecords.size() << " collisions";
     if (irecords.size() == 0) {
       return;
     }
+    auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(inputref);
 
     bool isContinuous = mDigitizer.isContinuousReadout();
-    if (mWriteGRP) {
+    // we publish the GRP data once if the output channel is there
+    if (mWriteGRP && pc.outputs().isAllowed({"TPC", "ROMode", 0})) {
       auto roMode = isContinuous ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
       LOG(INFO) << "TPC: Sending ROMode= " << (mDigitizer.isContinuousReadout() ? "Continuous" : "Triggered")
-                << " to GRPUpdater from channel " << mChannel;
+                << " to GRPUpdater from channel " << dh->subSpecification;
       pc.outputs().snapshot(Output{"TPC", "ROMode", 0, Lifetime::Timeframe}, roMode);
-      mWriteGRP = false;
     }
+    mWriteGRP = false;
 
     // extract which sector to treat
-    auto const* sectorHeader = DataRefUtils::getHeader<TPCSectorHeader*>(pc.inputs().get("collisioncontext"));
+    auto const* sectorHeader = DataRefUtils::getHeader<TPCSectorHeader*>(inputref);
     if (sectorHeader == nullptr) {
       LOG(ERROR) << "TPC: Sector header missing, skipping processing";
       return;
@@ -186,37 +198,37 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     activeSectors = sectorHeader->activeSectors;
 
     // lambda that snapshots digits to be sent out; prepares and attaches header with sector information
-    auto snapshotDigits = [this, sector, &pc, activeSectors](std::vector<o2::tpc::Digit> const& digits) {
+    auto snapshotDigits = [this, sector, &pc, activeSectors, &dh](std::vector<o2::tpc::Digit> const& digits) {
       o2::tpc::TPCSectorHeader header{sector};
       header.activeSectors = activeSectors;
       // note that snapshoting only works with non-const references (to be fixed?)
-      pc.outputs().snapshot(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(mChannel), Lifetime::Timeframe,
+      pc.outputs().snapshot(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(dh->subSpecification), Lifetime::Timeframe,
                                    header},
                             const_cast<std::vector<o2::tpc::Digit>&>(digits));
     };
     // lambda that snapshots the common mode vector to be sent out; prepares and attaches header with sector information
-    auto snapshotCommonMode = [this, sector, &pc, activeSectors](std::vector<o2::tpc::CommonMode> const& commonMode) {
+    auto snapshotCommonMode = [this, sector, &pc, activeSectors, &dh](std::vector<o2::tpc::CommonMode> const& commonMode) {
       o2::tpc::TPCSectorHeader header{sector};
       header.activeSectors = activeSectors;
       // note that snapshoting only works with non-const references (to be fixed?)
-      pc.outputs().snapshot(Output{"TPC", "COMMONMODE", static_cast<SubSpecificationType>(mChannel), Lifetime::Timeframe,
+      pc.outputs().snapshot(Output{"TPC", "COMMONMODE", static_cast<SubSpecificationType>(dh->subSpecification), Lifetime::Timeframe,
                                    header},
                             const_cast<std::vector<o2::tpc::CommonMode>&>(commonMode));
     };
     // lambda that snapshots labels to be sent out; prepares and attaches header with sector information
-    auto snapshotLabels = [this, &sector, &pc, activeSectors](o2::dataformats::MCTruthContainer<o2::MCCompLabel> const& labels) {
+    auto snapshotLabels = [this, &sector, &pc, activeSectors, &dh](o2::dataformats::MCTruthContainer<o2::MCCompLabel> const& labels) {
       o2::tpc::TPCSectorHeader header{sector};
       header.activeSectors = activeSectors;
-      pc.outputs().snapshot(Output{"TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(mChannel),
+      pc.outputs().snapshot(Output{"TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(dh->subSpecification),
                                    Lifetime::Timeframe, header},
                             const_cast<o2::dataformats::MCTruthContainer<o2::MCCompLabel>&>(labels));
     };
     // lambda that snapshots digits grouping (triggers) to be sent out; prepares and attaches header with sector information
-    auto snapshotEvents = [this, sector, &pc, activeSectors](const std::vector<DigiGroupRef>& events) {
+    auto snapshotEvents = [this, sector, &pc, activeSectors, &dh](const std::vector<DigiGroupRef>& events) {
       o2::tpc::TPCSectorHeader header{sector};
       header.activeSectors = activeSectors;
-      LOG(INFO) << "TPC: Send TRIGGERS for sector " << sector << " channel " << mChannel << " | size " << events.size();
-      pc.outputs().snapshot(Output{"TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(mChannel), Lifetime::Timeframe,
+      LOG(INFO) << "TPC: Send TRIGGERS for sector " << sector << " channel " << dh->subSpecification << " | size " << events.size();
+      pc.outputs().snapshot(Output{"TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(dh->subSpecification), Lifetime::Timeframe,
                                    header},
                             const_cast<std::vector<DigiGroupRef>&>(events));
     };
@@ -322,8 +334,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
   std::vector<o2::tpc::Digit> mDigits;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels;
   std::vector<o2::tpc::CommonMode> mCommonMode;
-  bool mWriteGRP;
-  int mChannel;
+  bool mWriteGRP = false;
 };
 
 o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP)
@@ -350,12 +361,28 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP)
     id.str().c_str(),
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCDPLDigitizerTask>(channel, writeGRP)},
+    AlgorithmSpec{adaptFromTask<TPCDPLDigitizerTask>()},
     Options{{"distortionType", VariantType::Int, 0, {"Distortion type to be used. 0 = no distortions (default), 1 = realistic distortions (not implemented yet), 2 = constant distortions"}},
             {"gridSize", VariantType::String, "129,144,129", {"Comma separated list of number of bins in (r,phi,z) for distortion lookup tables (r and z can only be 2**N + 1, N=1,2,3,...)"}},
             {"initialSpaceChargeDensity", VariantType::String, "", {"Path to root file containing TH3 with initial space-charge density and name of the TH3 (comma separated)"}},
             {"readSpaceCharge", VariantType::String, "", {"Path to root file containing pre-calculated space-charge object and name of the object (comma separated)"}},
             {"TPCtriggered", VariantType::Bool, false, {"Impose triggered RO mode (default: continuous)"}}}};
+}
+
+o2::framework::WorkflowSpec getTPCDigitizerSpec(int nLanes, std::vector<int> const& sectors)
+{
+  // channel parameter is deprecated in the TPCDigitizer processor, all descendants
+  // are initialized not to publish GRP mode, but the channel will be added to the first
+  // processor after the pipelines have been created. The processor will decide upon
+  // the index in the ParallelContext whether to publish
+  WorkflowSpec pipelineTemplate{getTPCDigitizerSpec(0, false)};
+  // override the predefined name, index will be added by parallelPipeline method
+  pipelineTemplate[0].name = "TPCDigitizer";
+  WorkflowSpec pipelines = parallelPipeline(
+    pipelineTemplate, nLanes, [size = sectors.size()]() { return size; }, [&sectors](size_t index) { return sectors[index]; });
+  // add the channel for the GRP information to the first processor
+  pipelines[0].outputs.emplace_back("TPC", "ROMode", 0, Lifetime::Timeframe);
+  return pipelines;
 }
 
 } // end namespace tpc
