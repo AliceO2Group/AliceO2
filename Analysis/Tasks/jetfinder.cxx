@@ -39,20 +39,21 @@ struct JetFinderTask {
   // TODO: use configurables for all parameters
   Configurable<double> rParam{"rParam", 0.4, "jet radius"};
   Configurable<float> ghostEtamax{"ghostEtamax", 1.0, "eta max for ghosts"};
-  fastjet::Strategy strategy = fastjet::Best;
-  fastjet::RecombinationScheme recombScheme = fastjet::E_scheme;
-  fastjet::JetAlgorithm algorithm = fastjet::antikt_algorithm;
-  fastjet::AreaType areaType = fastjet::passive_area;
+  fastjet::Strategy strategy{fastjet::Best};
+  fastjet::RecombinationScheme recombScheme{fastjet::E_scheme};
+  fastjet::JetAlgorithm algorithm{fastjet::antikt_algorithm};
+  fastjet::AreaType areaType{fastjet::passive_area};
 
   void process(aod::Collision const& collision,
                soa::Filtered<aod::Tracks> const& fullTracks)
   {
+    // TODO: retrieve pion mass from somewhere
+    const float mPionSquared = 0.139 * 0.139;
+
     std::vector<fastjet::PseudoJet> inputParticles;
     for (auto& track : fullTracks) {
-      // TODO: Use px, py, pz, E from track (to be added there)
-      auto dummyE = std::sqrt(track.x() * track.x() + track.y() * track.y() +
-                              track.z() * track.z() + 0.14 * 0.14);
-      inputParticles.emplace_back(track.x(), track.y(), track.z(), dummyE);
+      auto energy = std::sqrt(track.p2() + mPionSquared);
+      inputParticles.emplace_back(track.px(), track.py(), track.pz(), energy);
       inputParticles.back().set_user_index(track.globalIndex());
     }
 
