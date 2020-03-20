@@ -24,7 +24,7 @@ using namespace o2::mch;
 Response::Response(Station station) : mStation(station)
 {
   if (mStation == Station::Type1) {
-    mK2x = 1.021026;
+    mK2x = 1.021017612;
     mSqrtK3x = 0.7000;
     mK4x = 0.40934890;
     mK2y = 0.9778207;

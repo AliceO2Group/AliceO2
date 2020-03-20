@@ -79,7 +79,7 @@ class Response
   //why this multiplicitation before again division? any number small compared to Float precision?
 
   float mSigmaIntegration = 10.0;
-
+  
   double mK2x = 0.0;
   double mSqrtK3x = 0.0;
   double mK4x = 0.0;
