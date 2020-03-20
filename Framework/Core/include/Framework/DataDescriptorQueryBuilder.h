@@ -68,9 +68,8 @@ struct DataDescriptorQueryBuilder {
   /// Example for config: TPC/CLUSTER/0;ITS/TRACKS/1
   static DataDescriptorQuery buildFromKeepConfig(std::string const& config);
   static DataDescriptorQuery buildFromExtendedKeepConfig(std::string const& config);
-  static std::unique_ptr<data_matcher::DataDescriptorMatcher> buildNode(std::string  const& nodeString);
+  static std::unique_ptr<data_matcher::DataDescriptorMatcher> buildNode(std::string const& nodeString);
   static std::smatch getTokens(std::string const& nodeString);
-  
 };
 
 } // namespace framework

@@ -312,7 +312,6 @@ class TableToTree
       // update the branches
       for (auto brit : brits)
         togo &= brit->push();
-
     }
     tr->Write();
 
