@@ -18,13 +18,11 @@ namespace data_matcher
 
 DataOutputDirector::DataOutputDirector()
 {
-
   defaultfname = std::string("AnalysisResults");
 }
 
 void DataOutputDirector::reset()
 {
-
   dodescrs.clear();
   fnames.clear();
   closeDataOutputFiles();
@@ -64,7 +62,7 @@ void DataOutputDirector::readString(std::string const& keepString)
   auto it = std::unique(tnfns.begin(), tnfns.end());
   if (it != tnfns.end()) {
     printOut();
-    throw std::runtime_error("Dublicate tree names in a file!");
+    LOG(FATAL) << "Dublicate tree names in a file!";
   }
 
   // make unique/sorted list of fnames
@@ -72,7 +70,7 @@ void DataOutputDirector::readString(std::string const& keepString)
   auto last = std::unique(fnames.begin(), fnames.end());
   fnames.erase(last, fnames.end());
 
-  // prepare list fouts of TFile and isopen
+  // prepare list fouts of TFile and fcnts
   for (auto fn : fnames) {
     fouts.emplace_back(new TFile());
     fcnts.emplace_back(-1);
@@ -85,7 +83,6 @@ void DataOutputDirector::readString(std::string const& keepString)
 // creates a keep string from a InputSpec
 std::string SpectoString(InputSpec input)
 {
-
   std::string s;
   std::string delim("/");
 
@@ -108,7 +105,6 @@ void DataOutputDirector::readSpecs(std::vector<InputSpec> inputs)
 
 std::vector<DataOutputDescriptor*> DataOutputDirector::getDataOutputDescriptors(header::DataHeader dh)
 {
-
   std::vector<DataOutputDescriptor*> result;
 
   // compute list of matching outputs
@@ -124,7 +120,6 @@ std::vector<DataOutputDescriptor*> DataOutputDirector::getDataOutputDescriptors(
 
 std::vector<DataOutputDescriptor*> DataOutputDirector::getDataOutputDescriptors(InputSpec spec)
 {
-
   std::vector<DataOutputDescriptor*> result;
 
   // compute list of matching outputs
@@ -169,7 +164,6 @@ TFile* DataOutputDirector::getDataOutputFile(DataOutputDescriptor* dod,
 
 void DataOutputDirector::closeDataOutputFiles()
 {
-
   for (auto fout : fouts)
     if (fout)
       fout->Close();
@@ -177,15 +171,16 @@ void DataOutputDirector::closeDataOutputFiles()
 
 void DataOutputDirector::printOut()
 {
-  LOG(INFO) << "default file name: " << defaultfname;
-  LOG(INFO) << "Number of dods   : " << ndod;
-  LOG(INFO) << "Number of files  : " << fnames.size();
+  LOG(INFO) << "DataOutputDirector";
+  LOG(INFO) << "  Default file name: " << defaultfname;
+  LOG(INFO) << "  Number of dods   : " << ndod;
+  LOG(INFO) << "  Number of files  : " << fnames.size();
 
-  LOG(INFO) << "dods:";
+  LOG(INFO) << "  dods:";
   for (auto const& ds : dodescrs)
     ds->printOut();
 
-  LOG(INFO) << "fnames:";
+  LOG(INFO) << "  File names:";
   for (auto const& fb : fnames)
     LOG(INFO) << fb;
 }

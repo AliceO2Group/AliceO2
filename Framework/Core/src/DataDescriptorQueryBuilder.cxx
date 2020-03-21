@@ -263,14 +263,13 @@ DataDescriptorQuery DataDescriptorQueryBuilder::buildFromKeepConfig(std::string 
   return std::move(DataDescriptorQuery{{}, std::move(result)});
 }
 
-// extended config string consists of ','-separated items
-// each item consists of 3 parts which are separated by a ':'
-// "origin/description/subSpec:filename:col1/col2/col3, ... "
-//
-// here only the first part of each item is extracted, namely origin/description/subSpec
-//
 DataDescriptorQuery DataDescriptorQueryBuilder::buildFromExtendedKeepConfig(std::string const& config)
 {
+  // extended config string consists of ','-separated items
+  // each item consists of 3 parts which are separated by a ':'
+  // "origin/description/subSpec:filename:col1/col2/col3, ... "
+  // here only the first part of each item is extracted, namely origin/description/subSpec
+
   static const std::regex delim1(",");
   static const std::regex delim2(":");
 

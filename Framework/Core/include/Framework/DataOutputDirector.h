@@ -27,7 +27,7 @@ namespace data_matcher
 {
 
 struct DataOutputDescriptor {
-  /// Holds information about the destination of an aod table.
+  /// Holds information concerning the writing of aod tables.
   /// The information includes the table specification, treename,
   /// columns to save, and the file name
 
@@ -39,7 +39,7 @@ struct DataOutputDescriptor {
 
   DataOutputDescriptor(std::string sin)
   {
-    // s is an item consisting of 4 parts which are separated by a ':'
+    // sin is an item consisting of 4 parts which are separated by a ':'
     // "origin/description/subSpec:treename:col1/col2/col3:filename"
     // the 1st part is used to create a DataDescriptorMatcher
     // the other parts are used to fill treename, colnames, and filename
@@ -109,11 +109,12 @@ struct DataOutputDescriptor {
 
   void printOut()
   {
-    LOG(INFO) << "table name: " << tablename.c_str();
-    LOG(INFO) << "file name : " << filename.c_str();
-    LOG(INFO) << "tree name : " << treename.c_str();
-    LOG(INFO) << "columns   :";
-    for (auto const& cn : colnames)
+    LOG(INFO) << "DataOutputDescriptor";
+    LOG(INFO) << "  table name: " << tablename.c_str();
+    LOG(INFO) << "  file name : " << filename.c_str();
+    LOG(INFO) << "  tree name : " << treename.c_str();
+    LOG(INFO) << "  columns   : " << colnames.size();
+    for (auto cn : colnames)
       LOG(INFO) << "  " << cn.c_str();
   }
 

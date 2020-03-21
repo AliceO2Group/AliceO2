@@ -35,11 +35,7 @@ struct CommonDataProcessors {
   /// not going to be used by the returned DataProcessorSpec.
   static DataProcessorSpec getGlobalFileSink(std::vector<InputSpec> const& danglingInputs,
                                              std::vector<InputSpec>& unmatched);
-  /// Helper function to create and write TTree
-  static void table2tree(TTree* tout,
-                         std::shared_ptr<arrow::Table> table,
-                         bool tupdate);
-  static DataProcessorSpec getGlobalAODSink(std::vector<InputSpec> const& danglingInputs);
+  /// writes inputs of kind AOD to file
   static DataProcessorSpec getGlobalAODSink(std::vector<InputSpec> const& OutputInputs,
                                             std::vector<bool> const& isdangling);
   /// @return a dummy DataProcessorSpec which requires all the passed @a InputSpec

@@ -239,7 +239,6 @@ DataProcessorSpec
 
         dod->readString(keepString);
       }
-      dod->printOut();
 
       for (auto& outobj : OutputInputs) {
         auto ds = dod->getDataOutputDescriptors(outobj);
@@ -304,8 +303,6 @@ DataProcessorSpec
           // a table can be saved in multiple ways
           // e.g. different selections of columns to different files
           for (auto d : ds) {
-            //d->printOut();
-
             TableToTree ta2tr(table,
                               dod->getDataOutputFile(d, ntf, ntfmerge, filemode),
                               d->treename.c_str());
@@ -327,7 +324,7 @@ DataProcessorSpec
   }; // end of writerFunction
 
   DataProcessorSpec spec{
-    "internal-dpl-AOD-writter",
+    "internal-dpl-AOD-writer",
     OutputInputs,
     Outputs{},
     AlgorithmSpec(writerFunction),
