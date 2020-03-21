@@ -183,7 +183,7 @@ void GPUReconstructionConvert::ZSstreamOut(unsigned short* bufIn, unsigned int& 
 void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, std::unique_ptr<unsigned long long int[]>& outBuffer, unsigned int* outSizes, const GPUParam& param, bool zs12bit, bool verify)
 {
 #ifdef GPUCA_TPC_GEOMETRY_O2
-  static std::vector<std::array<long long int, TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(long long int)>> buffer[NSLICES][GPUTrackingInOutZS::NENDPOINTS];
+  std::vector<std::array<long long int, TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(long long int)>> buffer[NSLICES][GPUTrackingInOutZS::NENDPOINTS];
   unsigned int totalPages = 0;
 
   std::vector<deprecated::PackedDigit> tmpBuffer;
