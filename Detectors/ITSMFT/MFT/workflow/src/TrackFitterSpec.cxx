@@ -171,9 +171,5 @@ void convertTrack(const T& inTrack, O& outTrack, C& clusters)
   //fit(outTrack, false);
 }
 
-// Define template specializations
-//template void TrackFitter::convertTrack<TrackCA, o2::mft::FitterTrackMFT>(const TrackCA&, o2::mft::FitterTrackMFT&);
-//template void TrackFitter::convertTrack<TrackLTF, o2::mft::FitterTrackMFT>(const TrackLTF&, o2::mft::FitterTrackMFT&);
-
 } // namespace mft
 } // namespace o2

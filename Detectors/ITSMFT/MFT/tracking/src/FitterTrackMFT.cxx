@@ -97,28 +97,7 @@ const int FitterTrackMFT::getNClustersInCommon(const FitterTrackMFT& track, int 
   /// between this track and the one given as parameter
 
   int nClustersInCommon(0);
-  /*
-  for (const auto& param1 : *this) {
 
-    int ch1 = param1.getClusterPtr()->getChamberId();
-    if (ch1 < chMin || ch1 > chMax) {
-      continue;
-    }
-
-    for (const auto& param2 : track) {
-
-      int ch2 = param2.getClusterPtr()->getChamberId();
-      if (ch2 < chMin || ch2 > chMax) {
-        continue;
-      }
-
-      if (param1.getClusterPtr()->getUniqueId() == param2.getClusterPtr()->getUniqueId()) {
-        ++nClustersInCommon;
-        break;
-      }
-    }
-  }
-*/
   return nClustersInCommon;
 }
 

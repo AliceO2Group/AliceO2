@@ -160,12 +160,6 @@ class TrackMFTExt : public TrackMFT
   static constexpr int MaxClusters = 10;
   using TrackMFT::TrackMFT; // inherit base constructors
 
-  //TrackMFTExt(o2::track::TrackParCov&& parCov, short ncl, float chi2, std::uint32_t rof,
-  //            o2::track::TrackParCov&& outer, std::array<int, MaxClusters> cls)
-  //  : TrackMFT(parCov, chi2, rof, outer), mIndex{cls}
-  //  {
-  //    setNumberOfClusters(ncl);
-  //  }
   void setClusterIndex(int l, int i)
   {
     int ncl = getNumberOfClusters();

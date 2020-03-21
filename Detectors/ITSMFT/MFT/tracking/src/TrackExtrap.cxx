@@ -139,8 +139,6 @@ void TrackExtrap::helixExtrapToZ(TrackParamMFT* trackParam, double zEnd)
 //__________________________________________________________________________
 void TrackExtrap::helixExtrapToZCov(TrackParamMFT* trackParam, double zEnd, bool updatePropagator)
 {
-  // TODO: Implement helix covariance extrapolation
-
   helixExtrapToZ(trackParam, zEnd);
 
   // Calculate the jacobian related to the track parameters linear extrapolation to "zEnd"
