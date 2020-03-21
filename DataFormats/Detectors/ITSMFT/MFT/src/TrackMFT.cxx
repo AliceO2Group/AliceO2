@@ -16,12 +16,45 @@
 #include "DataFormatsMFT/TrackMFT.h"
 #include "CommonConstants/MathConstants.h"
 #include "DataFormatsITSMFT/Cluster.h"
-
-ClassImp(o2::mft::TrackMFT);
+#include <TMatrixD.h>
+#include <TMath.h>
 
 using namespace o2::mft;
 using namespace o2::itsmft;
 using namespace o2::constants::math;
-using namespace o2::track;
 
-//_____________________________________________________________________________
+namespace o2
+{
+namespace mft
+{
+
+//__________________________________________________________________________
+TrackMFT::TrackMFT(const Double_t z, const TMatrixD parameters, const TMatrixD covariances, const Double_t chi2)
+{
+  mZ = z;
+  mParameters = parameters;
+  mCovariances = covariances;
+  mTrackChi2 = chi2;
+}
+
+//__________________________________________________________________________
+const TMatrixD& TrackMFT::getCovariances() const
+{
+  /// Return the covariance matrix
+  return mCovariances;
+}
+
+//__________________________________________________________________________
+void TrackMFT::setCovariances(const TMatrixD& covariances)
+{
+  mCovariances = covariances;
+}
+
+//__________________________________________________________________________
+void TrackMFT::setCovariances(const Double_t matrix[5][5])
+{
+  mCovariances = TMatrixD(5, 5, &(matrix[0][0]));
+}
+
+} // namespace mft
+} // namespace o2

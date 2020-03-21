@@ -92,10 +92,10 @@ void TrackerDPL::run(ProcessingContext& pc)
               << mc2rofs.size() << " MC events";
   }
 
-  std::vector<o2::mft::TrackMFTExt> tracks;
+  //std::vector<o2::mft::TrackMFTExt> tracks;
   std::vector<int> allClusIdx;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackLabels;
-  auto& allTracks = pc.outputs().make<std::vector<o2::mft::TrackMFT>>(Output{"MFT", "TRACKS", 0, Lifetime::Timeframe});
+  std::vector<o2::mft::TrackMFT> allTracks;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> allTrackLabels;
   std::vector<o2::mft::TrackLTF> tracksLTF;
   auto& allTracksLTF = pc.outputs().make<std::vector<o2::mft::TrackLTF>>(Output{"MFT", "TRACKSLTF", 0, Lifetime::Timeframe});
@@ -129,35 +129,23 @@ void TrackerDPL::run(ProcessingContext& pc)
         LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
         mTracker->setROFrame(roFrame);
         mTracker->clustersToTracks(event);
-        tracks.swap(mTracker->getTracks());
         tracksLTF.swap(event.getTracksLTF());
         tracksCA.swap(event.getTracksCA());
-        LOG(INFO) << "Found tracks: " << tracks.size();
         LOG(INFO) << "Found tracks LTF: " << tracksLTF.size();
         LOG(INFO) << "Found tracks CA: " << tracksCA.size();
         trackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
         int first = allTracks.size();
-        int number = tracks.size();
         int shiftIdx = -rof.getFirstEntry();
         rofs[roFrame].setFirstEntry(first);
-        rofs[roFrame].setNEntries(number);
         std::copy(tracksLTF.begin(), tracksLTF.end(), std::back_inserter(allTracksLTF));
         std::copy(tracksCA.begin(), tracksCA.end(), std::back_inserter(allTracksCA));
-        copyTracks(tracks, allTracks, allClusIdx, shiftIdx);
         allTrackLabels.mergeAtBack(trackLabels);
       }
       roFrame++;
     }
-  } else {
-    /*
-    o2::mft::IOUtils::loadEventData(event, &clusters, labels.get());
-    mTracker->clustersToTracks(event);
-    allTracks.swap(mTracker->getTracks());
-    allTrackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
-    */
   }
 
-  LOG(INFO) << "MFTTracker pushed " << allTracks.size() << " tracks";
+  //LOG(INFO) << "MFTTracker pushed " << allTracks.size() << " tracks";
   LOG(INFO) << "MFTTracker pushed " << allTracksLTF.size() << " tracks LTF";
   LOG(INFO) << "MFTTracker pushed " << allTracksCA.size() << " tracks CA";
   if (mUseMC) {
@@ -177,7 +165,6 @@ DataProcessorSpec getTrackerSpec(bool useMC)
   inputs.emplace_back("ROframes", "MFT", "MFTClusterROF", 0, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("MFT", "TRACKS", 0, Lifetime::Timeframe);
   outputs.emplace_back("MFT", "TRACKSLTF", 0, Lifetime::Timeframe);
   outputs.emplace_back("MFT", "TRACKSCA", 0, Lifetime::Timeframe);
   outputs.emplace_back("MFT", "MFTTrackROF", 0, Lifetime::Timeframe);
