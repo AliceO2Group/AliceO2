@@ -18,7 +18,6 @@
 
 #include "GPUCommonDef.h"
 #include "FlatObject.h"
-#include <algorithm>
 
 namespace GPUCA_NAMESPACE
 {
@@ -194,7 +193,8 @@ class Spline1D : public FlatObject
   template <typename T>
   static constexpr size_t getParameterAlignmentBytes(int Ndim)
   {
-    return std::min<2 * sizeof(T) * Ndim, 16>;
+    size_t s = 2 * sizeof(T) * Ndim;
+    return (s < 16) ? s : 16;
   }
 
   /// Size of the parameter array in bytes
