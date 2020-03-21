@@ -10,12 +10,8 @@
 
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/CompletionPolicy.h"
-#include "Framework/InputRecord.h"
 #include "Framework/DeviceSpec.h"
-#include "Framework/PartRef.h"
 #include "Framework/CompilerBuiltins.h"
-
-#include <gsl/span>
 
 #include <cassert>
 #include <regex>

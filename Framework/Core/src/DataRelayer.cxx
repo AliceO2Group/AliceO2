@@ -393,24 +393,6 @@ std::vector<DataRelayer::RecordAction> DataRelayer::getReadyToProcess()
     return gsl::span<MessageSet const>(start, end);
   };
 
-  auto buildCompletionQuery = [](gsl::span<MessageSet const>& cacheColumn) -> std::vector<DataRef> {
-    // Note: the query contains only the first element of the message set because all
-    // elements of this set belong to the same data description, which might be split
-    // into multiple parts. While the possibility of multiple input parts was originally
-    // intended to only support the split parts, the feature can also be used to handle
-    // multiple input objects fulfilling the same matcher, e.g. ignoring subspec.
-    // In this case the first entry is not containing the full information, but
-    // right now there is no use case for such a complex completion policy.
-    std::vector<CompletionPolicy::InputSetElement> result(cacheColumn.size(), {nullptr, nullptr, nullptr});
-    for (size_t idx = 0, end = cacheColumn.size(); idx < end; idx++) {
-      if (cacheColumn[idx].size() > 0 && cacheColumn[idx].at(0).header && cacheColumn[idx].at(0).payload) {
-        result[idx].header = static_cast<const char*>(cacheColumn[idx].at(0).header->GetData());
-        result[idx].payload = static_cast<const char*>(cacheColumn[idx].at(0).payload->GetData());
-      }
-    }
-    return result;
-  };
-
   // These two are trivial, but in principle the whole loop could be parallelised
   // or vectorised so "completed" could be a thread local variable which needs
   // merging at the end.
@@ -447,8 +429,18 @@ std::vector<DataRelayer::RecordAction> DataRelayer::getReadyToProcess()
       continue;
     }
     auto partial = getPartialRecord(li);
-    auto query = buildCompletionQuery(partial);
-    auto action = mCompletionPolicy.callback({query.data(), query.data() + query.size()});
+    auto getter = [&partial](size_t idx, size_t part) {
+      if (partial[idx].size() > 0 && partial[idx].at(part).header && partial[idx].at(part).payload) {
+        return DataRef{nullptr,
+                       reinterpret_cast<const char*>(partial[idx].at(part).header->GetData()),
+                       reinterpret_cast<const char*>(partial[idx].at(part).payload->GetData())};
+      }
+      return DataRef{};
+    };
+    auto nPartsGetter = [&partial](size_t idx) {
+      return partial[idx].size();
+    };
+    auto action = mCompletionPolicy.callback({getter, nPartsGetter, static_cast<size_t>(partial.size())});
     switch (action) {
       case CompletionPolicy::CompletionOp::Consume:
       case CompletionPolicy::CompletionOp::Process:
