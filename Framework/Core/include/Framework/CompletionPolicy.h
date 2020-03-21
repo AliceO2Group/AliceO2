@@ -11,12 +11,11 @@
 #define FRAMEWORK_COMPLETIONPOLICY_H
 
 #include "Framework/DataRef.h"
+#include "Framework/InputSpan.h"
 
 #include <functional>
 #include <string>
 #include <vector>
-
-#include <gsl/span>
 
 namespace o2
 {
@@ -51,7 +50,7 @@ struct CompletionPolicy {
 
   using Matcher = std::function<bool(DeviceSpec const& device)>;
   using InputSetElement = DataRef;
-  using InputSet = gsl::span<InputSetElement const> const&;
+  using InputSet = InputSpan const&;
   using Callback = std::function<CompletionOp(InputSet)>;
 
   /// Name of the policy itself.
