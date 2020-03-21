@@ -244,22 +244,28 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, st
         sizeChk += streamSize8;                                                                                     // in stream buffer
         sizeChk += (tmpBuffer[k].time != lastTime || tmpBuffer[k].row != lastRow) ? 3 : 0;                          // new row overhead
         sizeChk += (lastTime != -1 && tmpBuffer[k].time > lastTime) ? ((tmpBuffer[k].time - lastTime - 1) * 2) : 0; // empty time bins
+        sizeChk += (lastTime != tmpBuffer[k].time) ? (sizeChk & 1) : 0;                                             // time bin alignment
         sizeChk += 2;                                                                                               // sequence metadata
-        if (sizeChk + ((1 + streamSize) * encodeBits + 7) / 8 > TPCZSHDR::TPC_ZS_PAGE_SIZE) {
+        const unsigned int streamSizeChk = streamSize + ((lastTime != tmpBuffer[k].time && streamSize % encodeBits) ? (encodeBits - streamSize % encodeBits) : 0);
+        if (sizeChk + ((1 + streamSizeChk) * encodeBits + 7) / 8 > TPCZSHDR::TPC_ZS_PAGE_SIZE) {
           lastEndpoint = -1;
-        } else if (sizeChk + ((seqLen + streamSize) * encodeBits + 7) / 8 > TPCZSHDR::TPC_ZS_PAGE_SIZE) {
-          seqLen = (TPCZSHDR::TPC_ZS_PAGE_SIZE - sizeChk) * 8 / encodeBits - streamSize;
+        } else if (sizeChk + ((seqLen + streamSizeChk) * encodeBits + 7) / 8 > TPCZSHDR::TPC_ZS_PAGE_SIZE) {
+          seqLen = (TPCZSHDR::TPC_ZS_PAGE_SIZE - sizeChk) * 8 / encodeBits - streamSizeChk;
         }
         if (lastTime != -1 && (int)hdr->nTimeBins + tmpBuffer[k].time - lastTime >= 256) {
           lastEndpoint = -1;
         }
-        // printf("Endpoint %d (%d), Pos %d, Chk %d, Len %d, rows %d, StreamSize %d %d, time %d (%d), row %d (%d)\n", endpoint, lastEndpoint, (int) (pagePtr - reinterpret_cast<unsigned char*>(page)), sizeChk, seqLen, nRowsInTB, streamSize8, streamSize, (int) tmpBuffer[k].time, lastTime, (int) tmpBuffer[k].row, lastRow);
+        //sizeChk += ((seqLen + streamSizeChk) * encodeBits + 7) / 8;
+        //printf("Endpoint %d (%d), Pos %d, Chk %d, Len %d, rows %d, StreamSize %d %d, time %d (%d), row %d (%d), pad %d\n", endpoint, lastEndpoint, (int) (pagePtr - reinterpret_cast<unsigned char*>(page)), sizeChk, seqLen, nRowsInTB, streamSize8, streamSize, (int) tmpBuffer[k].time, lastTime, (int) tmpBuffer[k].row, lastRow, tmpBuffer[k].pad);
       }
       if (k >= tmpBuffer.size() || endpoint != lastEndpoint || tmpBuffer[k].time != lastTime) {
         if (pagePtr != reinterpret_cast<unsigned char*>(page)) {
           pagePtr += 2 * nRowsInTB;
           ZSstreamOut(streamBuffer.data(), streamSize, streamBuffer8.data(), streamSize8, encodeBits);
           pagePtr = std::copy(streamBuffer8.data(), streamBuffer8.data() + streamSize8, pagePtr);
+          if (pagePtr - reinterpret_cast<unsigned char*>(page) > 8192) {
+            throw std::runtime_error("internal error during ZS encoding");
+          }
           streamSize8 = 0;
           for (int l = 1; l < nRowsInTB; l++) {
             tbHdr->rowAddr1()[l - 1] += 2 * nRowsInTB;
@@ -409,10 +415,6 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, st
                (int)c, (int)compareBuffer[j].charge, (int)tmpBuffer[j].time, (int)compareBuffer[j].time, (int)tmpBuffer[j].pad, (int)compareBuffer[j].pad, (int)tmpBuffer[j].row, (int)compareBuffer[j].row);
       }
     }
-
-    if (nErrors) {
-      printf("%lld ERRORS DURING ZS!", (long long int)nErrors);
-    }
   }
 
   outBuffer.reset(new unsigned long long int[totalPages * TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(unsigned long long int)]);
@@ -423,6 +425,9 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, st
       offset += buffer[i][j].size() * TPCZSHDR::TPC_ZS_PAGE_SIZE;
       outSizes[i * GPUTrackingInOutZS::NENDPOINTS + j] = buffer[i][j].size();
     }
+  }
+  if (nErrors) {
+    printf("%lld ERRORS DURING ZS!", (long long int)nErrors);
   }
 #endif
 }
