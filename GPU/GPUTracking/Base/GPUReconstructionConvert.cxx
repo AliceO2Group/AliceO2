@@ -185,14 +185,16 @@ void GPUReconstructionConvert::RunZSEncoder(const GPUTrackingInOutDigits* in, st
 #ifdef GPUCA_TPC_GEOMETRY_O2
   std::vector<std::array<long long int, TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(long long int)>> buffer[NSLICES][GPUTrackingInOutZS::NENDPOINTS];
   unsigned int totalPages = 0;
-
-  std::vector<deprecated::PackedDigit> tmpBuffer;
-  std::array<unsigned short, TPCZSHDR::TPC_ZS_PAGE_SIZE> streamBuffer;
-  std::array<unsigned char, TPCZSHDR::TPC_ZS_PAGE_SIZE> streamBuffer8;
   size_t nErrors = 0;
   int encodeBits = zs12bit ? TPCZSHDR::TPC_ZS_NBITS_V2 : TPCZSHDR::TPC_ZS_NBITS_V1;
   const float encodeBitsFactor = (1 << (encodeBits - 10));
+  // clang-format off
+#pragma omp parallel for reduction(+ : totalPages) reduction(+ : nErrors)
+  // clang-format on
   for (unsigned int i = 0; i < NSLICES; i++) {
+    std::vector<deprecated::PackedDigit> tmpBuffer;
+    std::array<unsigned short, TPCZSHDR::TPC_ZS_PAGE_SIZE> streamBuffer;
+    std::array<unsigned char, TPCZSHDR::TPC_ZS_PAGE_SIZE> streamBuffer8;
     tmpBuffer.resize(in->nTPCDigits[i]);
     std::copy(in->tpcDigits[i], in->tpcDigits[i] + in->nTPCDigits[i], tmpBuffer.begin());
     std::sort(tmpBuffer.begin(), tmpBuffer.end(), [&param](const deprecated::PackedDigit a, const deprecated::PackedDigit b) {
