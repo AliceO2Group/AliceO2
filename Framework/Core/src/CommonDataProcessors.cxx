@@ -226,7 +226,7 @@ DataProcessorSpec
     if (!keepString.empty()) {
 
       std::string d("dangling");
-      if (!d.find(keepString)) {
+      if (d.find(keepString)==0) {
 
         std::vector<InputSpec> danglingOutputs;
         for (auto ii = 0; ii < OutputInputs.size(); ii++) {
