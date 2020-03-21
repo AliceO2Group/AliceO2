@@ -323,7 +323,7 @@ DataProcessorSpec
           }
         }
       }
-    };
+    });
   }; // end of writerFunction
 
   DataProcessorSpec spec{
