@@ -87,6 +87,7 @@ class SimTraits
       /*FV0*/ VS{ "FV0Hit" },
       /*FDD*/ VS{ "FDDHit" },
       /*ACO*/ VS{ "ACOHit" },
+      /*ITS3*/ VS{ "ITS3Hit" }
     };
   // clang-format on
 
@@ -216,6 +217,10 @@ struct DetIDToHitTypes<o2::detectors::DetID::HMP> {
 template <>
 struct DetIDToHitTypes<o2::detectors::DetID::TPC> {
   using HitType = o2::tpc::HitGroup;
+};
+template <>
+struct DetIDToHitTypes<o2::detectors::DetID::ITS3> {
+  using HitType = o2::itsmft::Hit;
 };
 
 } // namespace detectors

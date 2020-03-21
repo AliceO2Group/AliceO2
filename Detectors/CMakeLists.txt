@@ -34,6 +34,7 @@ add_subdirectory(GlobalTrackingWorkflow)
 add_subdirectory(Vertexing)
 
 add_subdirectory(Calibration)
+add_subdirectory(Upgrade)
 
 if(BUILD_SIMULATION)
   add_subdirectory(gconfig)

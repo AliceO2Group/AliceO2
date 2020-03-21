@@ -122,6 +122,7 @@ o2_add_test_root_macro(build_geometry.C
                                              O2::Field
                                              O2::TPCSimulation
                                              O2::ITSSimulation
+                                             O2::ITS3Simulation
                                              O2::MFTSimulation
                                              O2::MCHSimulation
                                              O2::MIDSimulation

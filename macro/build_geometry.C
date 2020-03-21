@@ -24,6 +24,7 @@
 #include <Field/MagneticField.h>
 #include <TPCSimulation/Detector.h>
 #include <ITSSimulation/Detector.h>
+#include <ITS3Simulation/Detector.h>
 #include <MFTSimulation/Detector.h>
 #include <MCHSimulation/Detector.h>
 #include <MIDSimulation/Detector.h>
@@ -107,7 +108,7 @@ void build_geometry(FairRunSim* run = nullptr)
   run->SetField(field);
 
   // Create geometry
-  // we always need the gave
+  // we always need the cave
   o2::passive::Cave* cave = new o2::passive::Cave("CAVE");
   // adjust size depending on content
   cave->includeZDC(isActivated("ZDC"));
@@ -141,7 +142,7 @@ void build_geometry(FairRunSim* run = nullptr)
 
   // beam pipe
   if (isActivated("PIPE")) {
-    run->AddModule(new o2::passive::Pipe("PIPE", "Beam pipe"));
+    run->AddModule(new o2::passive::Pipe("PIPE", "Beam pipe", 1.6f, 0.05));
   }
 
   // the absorber
@@ -179,6 +180,12 @@ void build_geometry(FairRunSim* run = nullptr)
     // tpc
     auto tpc = new o2::tpc::Detector(true);
     run->AddModule(tpc);
+  }
+
+  if (isActivated("ITS3")) {
+    // ITS3
+    auto its3 = new o2::its3::Detector(kTRUE);
+    run->AddModule(its3);
   }
 
   if (isActivated("ITS")) {
