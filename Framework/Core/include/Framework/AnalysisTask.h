@@ -37,7 +37,12 @@
 #include <type_traits>
 #include <utility>
 #include <memory>
-
+#if (defined(__GNUC__) && (__GNUC___ > 8 || (__GNUC__ == 8 && __GNUC_MINOR__ >= 1))) || defined(__clang__)
+#include <charconv>
+#else
+#include <sstream>
+#include <iomanip>
+#endif
 namespace o2::framework
 {
 
@@ -195,9 +200,19 @@ struct OutputObj {
   {
     static_assert(std::is_base_of_v<TNamed, T>, "You need a TNamed derived class to use OutputObj");
     header::DataDescription desc{};
+    auto lhash = compile_time_hash(label.c_str());
     memset(desc.str, '_', 16);
-    //FIXME: we should probably use hash here
-    std::memcpy(desc.str, label.c_str(), label.length() > 16 ? 16 : label.length());
+#if (defined(__GNUC__) && (__GNUC___ > 8 || (__GNUC__ == 8 && __GNUC_MINOR__ >= 1))) || defined(__clang__)
+    char buf[12];
+    std::to_chars(buf, buf + 2, lhash, 16);
+    std::to_chars(buf + 2, buf + 4, mTaskHash, 16);
+    std::to_chars(buf + 4, buf + 12, reinterpret_cast<uint64_t>(this), 16);
+    std::memcpy(desc.str, buf, 12);
+#else
+    std::stringstream s;
+    s << std::hex << lhash << mTaskHash << reinterpret_cast<uint64_t>(this);
+    std::memcpy(desc.str, s.str().c_str(), 12);
+#endif
 
     return OutputSpec{OutputLabel{label}, "ATSK", desc, 0};
   }
