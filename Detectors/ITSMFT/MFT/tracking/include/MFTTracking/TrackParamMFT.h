@@ -8,42 +8,39 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Track.h
-/// \brief Definition of the MFT track
-/// \author bogdan.vulpescu@cern.ch
-/// \date Feb. 8, 2018
+/// \file TrackParamMFT.h
+/// \brief Definition of the MFT track parameters for internal use
+///
+/// \author Philippe Pillot, Subatech; adapted by Rafael Pezzi, UFRGS
 
-#ifndef ALICEO2_MFT_TRACKMFT_H
-#define ALICEO2_MFT_TRACKMFT_H
+#ifndef ALICEO2_MFT_TRACKPARAMMFT_H_
+#define ALICEO2_MFT_TRACKPARAMMFT_H_
 
-#include <vector>
 #include <TMatrixD.h>
 #include <TMath.h>
 
-#include "CommonDataFormat/RangeReference.h"
+#include "DataFormatsITSMFT/Cluster.h"
+#include "MFTBase/Constants.h"
 
 namespace o2
 {
-
-namespace itsmft
-{
-class Cluster;
-}
-
 namespace mft
 {
-class TrackMFT
+
+//class Cluster;
+//using o2::itsmft::Cluster;
+
+/// track parameters for internal use
+class TrackParamMFT
 {
-  using Cluster = o2::itsmft::Cluster;
-  using ClusRefs = o2::dataformats::RangeRefComp<4>;
-
  public:
+  TrackParamMFT() = default;
+  ~TrackParamMFT() = default;
 
-  TrackMFT() = default;
-  TrackMFT(const TrackMFT& t) = default;
-  TrackMFT(const Double_t Z, const TMatrixD parameters, const TMatrixD covariances, const Double_t chi2);
-
-  ~TrackMFT() = default;
+  TrackParamMFT(const TrackParamMFT& tp);
+  TrackParamMFT& operator=(const TrackParamMFT& tp);
+  TrackParamMFT(TrackParamMFT&&) = delete;
+  TrackParamMFT& operator=(TrackParamMFT&&) = delete;
 
   /// return Z coordinate (cm)
   Double_t getZ() const { return mZ; }
@@ -91,47 +88,60 @@ class TrackMFT
   const TMatrixD& getParameters() const { return mParameters; }
   /// set track parameters
   void setParameters(const TMatrixD& parameters) { mParameters = parameters; }
+  /// add track parameters
+  void addParameters(const TMatrixD& parameters) { mParameters += parameters; }
+
+  /// return kTRUE if the covariance matrix exist, kFALSE if not
+  Bool_t hasCovariances() const { return (mCovariances) ? kTRUE : kFALSE; }
 
   const TMatrixD& getCovariances() const;
   void setCovariances(const TMatrixD& covariances);
   void setCovariances(const Double_t matrix[5][5]);
+  void setVariances(const Double_t matrix[5][5]);
+  void deleteCovariances();
+
+  const TMatrixD& getPropagator() const;
+  void resetPropagator();
+  void updatePropagator(const TMatrixD& propagator);
+
+  const TMatrixD& getExtrapParameters() const;
+  void setExtrapParameters(const TMatrixD& parameters);
+
+  const TMatrixD& getExtrapCovariances() const;
+  void setExtrapCovariances(const TMatrixD& covariances);
+
+  const TMatrixD& getSmoothParameters() const;
+  void setSmoothParameters(const TMatrixD& parameters);
+
+  const TMatrixD& getSmoothCovariances() const;
+  void setSmoothCovariances(const TMatrixD& covariances);
+
+  /// get pointer to associated cluster
+  const o2::itsmft::Cluster* getClusterPtr() const { return mClusterPtr; }
+  /// set pointer to associated cluster
+  void setClusterPtr(const o2::itsmft::Cluster* cluster) { mClusterPtr = cluster; }
+
+  /// return true if the associated cluster can be removed from the track it belongs to
+  Bool_t isRemovable() const { return mRemovable; }
+  /// set the flag telling whether the associated cluster can be removed from the track it belongs to or not
+  void setRemovable(Bool_t removable) { mRemovable = removable; }
 
   /// return the chi2 of the track when the associated cluster was attached
   Double_t getTrackChi2() const { return mTrackChi2; }
   /// set the chi2 of the track when the associated cluster was attached
   void setTrackChi2(Double_t chi2) { mTrackChi2 = chi2; }
+  /// return the local chi2 of the associated cluster with respect to the track
+  Double_t getLocalChi2() const { return mLocalChi2; }
+  /// set the local chi2 of the associated cluster with respect to the track
+  void setLocalChi2(Double_t chi2) { mLocalChi2 = chi2; }
 
-  // Other functions
-  int getNumberOfClusters() const { return mClusRef.getEntries(); }
-  int getFirstClusterEntry() const { return mClusRef.getFirstEntry(); }
-  int getClusterEntry(int i) const { return getFirstClusterEntry() + i; }
-  void shiftFirstClusterEntry(int bias)
-  {
-    mClusRef.setFirstEntry(mClusRef.getFirstEntry() + bias);
-  }
-  void setFirstClusterEntry(int offs)
-  {
-    mClusRef.setFirstEntry(offs);
-  }
-  void setNumberOfClusters(int n)
-  {
-    mClusRef.setEntries(n);
-  }
-  void setClusterRefs(int firstEntry, int n)
-  {
-    mClusRef.set(firstEntry, n);
-  }
+  Bool_t isCompatibleTrackParamMFT(const TrackParamMFT& TrackParamMFT, Double_t sigma2Cut, Double_t& normChi2) const;
 
-  const ClusRefs& getClusterRefs() const { return mClusRef; }
-  ClusRefs& getClusterRefs() { return mClusRef; }
+  void print() const;
 
-  std::uint32_t getROFrame() const { return mROFrame; }
-  void setROFrame(std::uint32_t f) { mROFrame = f; }
+  void clear();
 
  private:
-  std::uint32_t mROFrame = 0;       ///< RO Frame
-  ClusRefs mClusRef;                ///< references on clusters
-
   Double_t mZ = 0.; ///< Z coordinate (cm)
 
   /// Track parameters ordered as follow:      <pre>
@@ -148,40 +158,27 @@ class TrackMFT
   /// <X,PHI>       <Y,PHI>         <PHI,PHI>     <TANL,PHI>      <INVQPT,PHI>
   /// <X,TANL>      <Y,TANL>       <PHI,TANL>     <TANL,TANL>     <INVQPT,TANL>
   /// <X,INVQPT>   <Y,INVQPT>     <PHI,INVQPT>   <TANL,INVQPT>   <INVQPT,INVQPT>  </pre>
-  TMatrixD mCovariances{5, 5}; ///< \brief Covariance matrix of track parameters
-  Double_t mTrackChi2 = 0.;    ///< Chi2 of the track when the associated cluster was attached
-  ClassDefNV(TrackMFT, 1);
+  mutable std::unique_ptr<TMatrixD> mCovariances{}; ///< \brief Covariance matrix of track parameters
+
+  /// Jacobian used to extrapolate the track parameters and covariances to the actual z position
+  mutable std::unique_ptr<TMatrixD> mPropagator{};
+  /// Track parameters extrapolated to the actual z position (not filtered by Kalman)
+  mutable std::unique_ptr<TMatrixD> mExtrapParameters{};
+  /// Covariance matrix extrapolated to the actual z position (not filtered by Kalman)
+  mutable std::unique_ptr<TMatrixD> mExtrapCovariances{};
+
+  mutable std::unique_ptr<TMatrixD> mSmoothParameters{};  ///< Track parameters obtained using smoother
+  mutable std::unique_ptr<TMatrixD> mSmoothCovariances{}; ///< Covariance matrix obtained using smoother
+
+  const o2::itsmft::Cluster* mClusterPtr = nullptr; ///< Pointer to the associated cluster if any
+
+  Bool_t mRemovable = false; ///< kTRUE if the associated cluster can be removed from the track it belongs to
+
+  Double_t mTrackChi2 = 0.; ///< Chi2 of the track when the associated cluster was attached
+  Double_t mLocalChi2 = 0.; ///< Local chi2 of the associated cluster with respect to the track
 };
 
-class TrackMFTExt : public TrackMFT
-{
-  ///< heavy version of TrackMFT, with clusters embedded
- public:
-  static constexpr int MaxClusters = 10;
-  using TrackMFT::TrackMFT; // inherit base constructors
-
-  void setClusterIndex(int l, int i)
-  {
-    int ncl = getNumberOfClusters();
-    mIndex[ncl++] = (l << 28) + i;
-    getClusterRefs().setEntries(ncl);
-  }
-
-  int getClusterIndex(int lr) const { return mIndex[lr]; }
-
-  void setExternalClusterIndex(int layer, int idx, bool newCluster = false)
-  {
-    if (newCluster) {
-      getClusterRefs().setEntries(getNumberOfClusters() + 1);
-    }
-    mIndex[layer] = idx;
-  }
-
- private:
-  std::array<int, MaxClusters> mIndex = {-1}; ///< Indices of associated clusters
-  ClassDefNV(TrackMFTExt, 1);
-};
 } // namespace mft
 } // namespace o2
 
-#endif
+#endif // ALICEO2_MFT_TRACKPARAMMFT_H_

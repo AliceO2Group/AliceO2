@@ -16,6 +16,8 @@
 #define O2_MFT_TRACKER_H_
 
 #include "MFTTracking/ROframe.h"
+#include "MFTTracking/TrackFitter.h"
+#include "MFTTracking/Cluster.h"
 
 #include "MathUtils/Utils.h"
 #include "MathUtils/Cartesian2D.h"
@@ -41,9 +43,9 @@ class Tracker
   Tracker& operator=(const Tracker&) = delete;
 
   void setBz(Float_t bz) { mBz = bz; }
-  Float_t getBz() const { return mBz; }
+  const Float_t getBz() const { return mBz; }
 
-  std::vector<TrackMFTExt>& getTracks();
+  std::vector<TrackMFT>& getTracks();
   std::vector<TrackLTF>& getTracksLTF();
   o2::dataformats::MCTruthContainer<MCCompLabel>& getTrackLabels();
 
@@ -76,14 +78,15 @@ class Tracker
 
   Float_t mBz = 5.f;
   std::uint32_t mROFrame = 0;
-  std::vector<TrackMFTExt> mTracks;
+  std::vector<TrackMFT> mTracks;
   std::vector<TrackLTF> mTracksLTF;
+  std::vector<Cluster> mClusters;
   o2::dataformats::MCTruthContainer<MCCompLabel> mTrackLabels;
 
   Int_t mMaxCellLevel = 0;
 };
 
-inline std::vector<TrackMFTExt>& Tracker::getTracks()
+inline std::vector<TrackMFT>& Tracker::getTracks()
 {
   return mTracks;
 }
