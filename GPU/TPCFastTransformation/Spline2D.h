@@ -170,7 +170,8 @@ class Spline2D : public FlatObject
   template <typename T>
   static constexpr size_t getParameterAlignmentBytes(int Ndim)
   {
-    return std::min((size_t)(4 * sizeof(T) * Ndim), (size_t)16);
+    size_t s = 4 * sizeof(T) * Ndim;
+    return (s < 16) ? s : 16;
   }
 
   /// Size of the parameter array in bytes
