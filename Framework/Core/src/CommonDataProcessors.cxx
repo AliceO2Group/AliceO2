@@ -64,7 +64,6 @@ struct InputObject {
   TClass* kind = nullptr;
   void* obj = nullptr;
   std::string name;
-  std::string taskName;
 };
 
 const static std::unordered_map<OutputObjHandlingPolicy, std::string> ROOTfileNames = {{OutputObjHandlingPolicy::AnalysisObject, "AnalysisResults.root"},
@@ -179,7 +178,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
       }
       auto merger = existing->second.kind->GetMerge();
       if (!merger) {
-        LOG(error) << "Already one object found for " << obj.name;
+        LOG(error) << "Already one unmergeable object found for " << obj.name;
         return;
       }
 

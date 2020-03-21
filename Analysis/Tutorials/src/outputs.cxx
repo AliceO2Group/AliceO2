@@ -24,7 +24,7 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 
 struct DummyTask {
-  OutputObj<TH1F> pt{TH1F("pt", "pt", 100, 0., 50.)};
+  OutputObj<TH1F> pt{TH1F("pt________0123456789", "pt task1", 100, 0., 50.)};
   void process(aod::Track const& track)
   {
     pt->Fill(track.pt());
@@ -32,7 +32,7 @@ struct DummyTask {
 };
 
 struct DummyTask2 {
-  OutputObj<TH1F> pt{TH1F("pt", "pt", 100, 0., 50.)};
+  OutputObj<TH1F> pt{TH1F("pt________0123456789", "pt task2", 100, 0., 50.)};
 
   void process(aod::Track const& track)
   {
@@ -41,7 +41,7 @@ struct DummyTask2 {
 };
 
 struct DummyTask3 {
-  OutputObj<TH1F> pt{TH1F("pt", "pt", 100, 0., 50.)};
+  OutputObj<TH1F> pt{TH1F("pt________0123456789", "pt task3", 100, 0., 50.)};
   void process(aod::Track const& track)
   {
     pt->Fill(track.pt());
