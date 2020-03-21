@@ -34,9 +34,11 @@ namespace test
 {
 DECLARE_SOA_COLUMN(X, x, uint64_t, "x");
 DECLARE_SOA_COLUMN(Y, y, uint64_t, "y");
+DECLARE_SOA_COLUMN(Pos, pos, int[3], "pos");
 } // namespace test
 
 using TestTable = o2::soa::Table<test::X, test::Y>;
+using ArrayTable = o2::soa::Table<test::Pos>;
 
 BOOST_AUTO_TEST_CASE(TestTableBuilder)
 {
@@ -67,6 +69,48 @@ BOOST_AUTO_TEST_CASE(TestTableBuilder)
     BOOST_CHECK_EQUAL(row.y(), i);
     ++i;
   }
+}
+
+BOOST_AUTO_TEST_CASE(TestTableBuilderArray)
+{
+  using namespace o2::framework;
+  TableBuilder builder;
+  auto rowWriter = builder.persist<int[3]>({"pos"});
+  int a[3] = {1, 10, 300};
+  int b[3] = {0, 20, 30};
+  rowWriter(0, a);
+  rowWriter(0, b);
+  using v3 = std::array<int, 3>;
+  rowWriter(0, v3{0, 11, 123}.data());
+  auto table = builder.finalize();
+  BOOST_REQUIRE_EQUAL(table->num_columns(), 1);
+  BOOST_REQUIRE_EQUAL(table->num_rows(), 3);
+  BOOST_REQUIRE_EQUAL(table->column(0)->name(), "pos");
+  BOOST_REQUIRE_EQUAL(table->column(0)->type()->id(), arrow::fixed_size_binary(12)->id());
+  auto data = table->column(0)->data()->chunk(0)->data();
+  BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[0], 1);
+  BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[1], 10);
+  BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[2], 300);
+  BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[3], 0);
+  BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[4], 20);
+  BOOST_REQUIRE_EQUAL(data->GetValues<int>(1)[5], 30);
+
+  auto readBack = ArrayTable{table};
+  auto row = readBack.begin();
+
+  BOOST_CHECK_EQUAL(row.pos()[0], 1);
+  BOOST_CHECK_EQUAL(row.pos()[1], 10);
+  BOOST_CHECK_EQUAL(row.pos()[2], 300);
+
+  row++;
+  BOOST_CHECK_EQUAL(row.pos()[0], 0);
+  BOOST_CHECK_EQUAL(row.pos()[1], 20);
+  BOOST_CHECK_EQUAL(row.pos()[2], 30);
+
+  row++;
+  BOOST_CHECK_EQUAL(row.pos()[0], 0);
+  BOOST_CHECK_EQUAL(row.pos()[1], 11);
+  BOOST_CHECK_EQUAL(row.pos()[2], 123);
 }
 
 BOOST_AUTO_TEST_CASE(TestTableBuilderStruct)

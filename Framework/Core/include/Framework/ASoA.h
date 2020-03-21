@@ -132,6 +132,18 @@ template <>
 struct arrow_array_for<double> {
   using type = arrow::DoubleArray;
 };
+template <int N>
+struct arrow_array_for<float[N]> {
+  using type = arrow::FixedSizeBinaryArray;
+};
+template <int N>
+struct arrow_array_for<int[N]> {
+  using type = arrow::FixedSizeBinaryArray;
+};
+template <int N>
+struct arrow_array_for<double[N]> {
+  using type = arrow::FixedSizeBinaryArray;
+};
 
 template <typename T>
 using arrow_array_for_t = typename arrow_array_for<T>::type;
@@ -991,7 +1003,7 @@ class TableMetadata
     _Name_(_Name_ const& other) = default;                                     \
     _Name_& operator=(_Name_ const& other) = default;                          \
                                                                                \
-    _Type_ _Getter_() const                                                    \
+    decltype(auto) _Getter_() const                                            \
     {                                                                          \
       return *mColumnIterator;                                                 \
     }                                                                          \
