@@ -98,5 +98,49 @@ std::ostream& operator<<(std::ostream& os, const ClusterPattern& pattern)
   os << std::endl;
   return os;
 }
+
+int ClusterPattern::getCOG(int rowSpan, int colSpan, const unsigned char patt[Cluster::kMaxPatternBytes], float& xCOG, float& zCOG)
+{
+  int tempxCOG = 0, tempzCOG = 0, tempFiredPixels = 0, ic = 0, ir = 0;
+  int nBits = rowSpan * colSpan;
+  int nBytes = nBits / 8;
+  if (nBits % 8 != 0) {
+    nBytes++;
+  }
+  for (unsigned int i = 0; i < nBytes; i++) {
+    unsigned char tempChar = patt[i];
+    int s = 128; // 0b10000000
+    while (s > 0) {
+      if ((tempChar & s) != 0) {
+        tempFiredPixels++;
+        tempxCOG += ir;
+        tempzCOG += ic;
+      }
+      ic++;
+      s /= 2;
+      if ((ir + 1) * ic == nBits) {
+        break;
+      }
+      if (ic == colSpan) {
+        ic = 0;
+        ir++;
+      }
+    }
+    if ((ir + 1) * ic == nBits) {
+      break;
+    }
+  }
+  xCOG = float(tempxCOG) / tempFiredPixels;
+  zCOG = float(tempzCOG) / tempFiredPixels;
+
+  return tempFiredPixels;
+}
+
+int ClusterPattern::getCOG(float& xCOG, float& zCOG) const
+{
+  auto patt = getPattern();
+  return ClusterPattern::getCOG(getRowSpan(), getColumnSpan(), &patt[2], xCOG, zCOG);
+}
+
 } // namespace itsmft
 } // namespace o2

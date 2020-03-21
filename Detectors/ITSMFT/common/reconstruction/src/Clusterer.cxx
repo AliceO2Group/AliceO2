@@ -297,14 +297,20 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
     }
 
     if (compClus) { // store compact clusters
+      auto rowSpan = clus.getPatternRowSpan();
+      auto colSpan = clus.getPatternColSpan();
       unsigned char patt[Cluster::kMaxPatternBytes];
       clus.getPattern(&patt[0], Cluster::kMaxPatternBytes);
-      UShort_t pattID = mPattIdConverter.findGroupID(clus.getPatternRowSpan(), clus.getPatternColSpan(), patt);
+      UShort_t pattID = mPattIdConverter.findGroupID(rowSpan, colSpan, patt);
       if (mPattIdConverter.IsGroup(pattID)) {
-        int rowShift = 0, colShift = 0;
-        ClusterTopology::getCOGshift(clus.getPatternRowSpan(), clus.getPatternColSpan(), patt, rowShift, colShift);
-        rowMin += rowShift;
-        colMin += colShift;
+        float xCOG = 0., zCOG = 0.;
+        ClusterPattern::getCOG(rowSpan, colSpan, patt, xCOG, zCOG);
+        rowMin += round(xCOG);
+        colMin += round(zCOG);
+        if (mPatterns) {
+          mPatterns->emplace_back(rowSpan, colSpan, patt);
+          mPatterns->back().setHash(mClustersCount);
+        }
       }
       compClus->emplace_back(rowMin, colMin, pattID, mChipData->getChipID());
     }

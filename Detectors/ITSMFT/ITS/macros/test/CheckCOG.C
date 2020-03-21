@@ -46,6 +46,11 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
   clusTree->SetBranchAddress("ITSCluster", &clusArr);
   std::vector<CompClusterExt>* compclusArr = nullptr;
   clusTree->SetBranchAddress("ITSClusterComp", &compclusArr);
+  std::map<int, o2::itsmft::ClusterPattern>* patternsPtr = nullptr;
+  auto pattBranch = clusTree->GetBranch("ITSClusterPatt");
+  if (pattBranch) {
+    pattBranch->SetAddress(&patternsPtr);
+  }
 
   int nevCl = clusTree->GetEntries(); // clusters in cont. readout may be grouped as few events per entry
   int ievC = 0;
@@ -100,6 +105,12 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
       fOut << Form("***************************************\n");
 
       if (dict.IsGroup(cComp.getPatternID())) {
+        if (patternsPtr) { // Restore the full pixel pattern information from the auxiliary branch
+          auto patt = (*patternsPtr)[nc];
+          auto locCl = dict.getClusterCoordinates(cComp, patt);
+          dx = (locC.X() - locCl.X()) * 10000;
+          dz = (locC.Z() - locCl.Z()) * 10000;
+        }
         hGroupX->Fill(dx);
         hGroupZ->Fill(dz);
       } else {

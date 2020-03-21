@@ -45,34 +45,7 @@ void BuildTopologyDictionary::accountTopology(const ClusterTopology& cluster, fl
     int& rs = topInf.mSizeX = cluster.getRowSpan();
     int& cs = topInf.mSizeZ = cluster.getColumnSpan();
     //__________________COG_Deterrmination_____________
-    int tempxCOG = 0, tempzCOG = 0, tempFiredPixels = 0, s = 0, ic = 0, ir = 0;
-    unsigned char tempChar = 0;
-    for (unsigned int i = 2; i < cluster.getUsedBytes() + 2; i++) {
-      tempChar = cluster.getByte(i);
-      s = 128; // 0b10000000
-      while (s > 0) {
-        if ((tempChar & s) != 0) {
-          tempFiredPixels++;
-          tempxCOG += ir;
-          tempzCOG += ic;
-        }
-        ic++;
-        s /= 2;
-        if ((ir + 1) * ic == (rs * cs)) {
-          break;
-        }
-        if (ic == cs) {
-          ic = 0;
-          ir++;
-        }
-      }
-      if ((ir + 1) * ic == (rs * cs)) {
-        break;
-      }
-    }
-    topInf.mCOGx = (float)tempxCOG / (float)tempFiredPixels;
-    topInf.mCOGz = (float)tempzCOG / (float)tempFiredPixels;
-    topInf.mNpixels = tempFiredPixels;
+    topInf.mNpixels = cluster.getClusterPattern().getCOG(topInf.mCOGx, topInf.mCOGz);
     if (useDf) {
       topInf.mXmean = dX;
       topInf.mZmean = dZ;
