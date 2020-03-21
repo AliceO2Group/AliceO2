@@ -14,7 +14,7 @@
 /// \author Philippe Pillot, Subatech; adapted by Rafael Pezzi, UFRGS
 
 #include "MFTTracking/TrackExtrap.h"
-#include "DataFormatsMFT/TrackParamMFT.h"
+#include "MFTTracking/TrackParamMFT.h"
 
 #include "CommonConstants/MathConstants.h"
 #include <TGeoGlobalMagField.h>

@@ -13,7 +13,7 @@
 ///
 /// \author Philippe Pillot, Subatech; adapted by Rafael Pezzi, UFRGS
 
-#include "DataFormatsMFT/TrackParamMFT.h"
+#include "MFTTracking/TrackParamMFT.h"
 
 #include <iomanip>
 #include <iostream>
@@ -21,8 +21,6 @@
 #include <TMath.h>
 
 #include <FairMQLogger.h>
-
-//#include "MFTTracking/Cluster.h"
 
 namespace o2
 {

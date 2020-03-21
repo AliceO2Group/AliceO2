@@ -20,7 +20,7 @@
 #include <memory>
 
 #include "DataFormatsITSMFT/Cluster.h"
-#include "DataFormatsMFT/TrackParamMFT.h"
+#include "MFTTracking/TrackParamMFT.h"
 
 namespace o2
 {

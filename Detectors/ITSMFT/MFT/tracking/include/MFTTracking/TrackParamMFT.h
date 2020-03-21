@@ -178,22 +178,6 @@ class TrackParamMFT
   Double_t mLocalChi2 = 0.; ///< Local chi2 of the associated cluster with respect to the track
 };
 
-class TrackMFTParam : public TrackParamMFT
-{
- public:
-  void addCluster(o2::itsmft::Cluster cl)
-  {
-    n_Clusters++;
-    mClusters[n_Clusters] = cl;
-  }
-  const std::array<o2::itsmft::Cluster, o2::mft::constants::LayersNumber>& getClusters() const { return mClusters; }
-  Int_t getNClusters() { return n_Clusters; }
-
- private:
-  Int_t n_Clusters = -1;
-  std::array<o2::itsmft::Cluster, o2::mft::constants::LayersNumber> mClusters;
-};
-
 } // namespace mft
 } // namespace o2
 

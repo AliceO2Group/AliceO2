@@ -29,7 +29,7 @@
 #include "Framework/Output.h"
 #include "Framework/Task.h"
 
-#include "DataFormatsMFT/TrackParamMFT.h"
+#include "MFTTracking/TrackParamMFT.h"
 #include "MFTTracking/TrackCA.h"
 #include "MFTTracking/FitterTrackMFT.h"
 #include "MFTTracking/TrackFitter.h"
@@ -102,22 +102,14 @@ void TrackFitterTask::run(ProcessingContext& pc)
   // Convert fitter tracks to the final Standalone MFT Track
   for (auto track : fittertracks) {
     o2::mft::TrackMFT& temptrack = finalMFTtracks.emplace_back();
+    temptrack.setZ(track.first().getZ());
+    temptrack.setParameters(track.first().getParameters());
+    temptrack.setCovariances(track.first().getCovariances());
+    temptrack.setTrackChi2(track.first().getTrackChi2());
 
-    // Straight tracks considering only the first and last clusters
-    //auto dz = track.last().getZ() - track.first().getZ();
-    //auto slopeX = (track.last().getX() - track.first().getX()) / dz;
-    //auto slopeY = (track.last().getY() - track.first().getY()) / dz;
-
-    // TODO: Convert FitterTrackMFT to TrackMFTExt or TrackMFT
     auto tanl = track.first().getTanl();
     auto phi = TMath::Sin(track.first().getPhi());
     LOG(INFO) << "TrackPars: p = " << track.first().getP() << " Tgl = " << tanl << " phi = " << phi << " pz = " << track.first().getPz() << " pt = " << track.first().getPt() << " charge = " << track.first().getCharge() << " Chi2 = " << track.first().getTrackChi2() << std::endl;
-    temptrack = track.first();
-    //temptrack.setY(track.first().getY());
-    //temptrack.setZ(track.first().getZ());
-    //temptrack.setTgl(tanl);
-    //temptrack.setPhi(phi);
-    //temptrack.setQ2Pt(track.first().getCharge() / track.first().getPt());
   }
 
   LOG(INFO) << "MFTFitter loaded " << tracksLTF.size() << " LTF tracks";

@@ -19,7 +19,7 @@
 //#include "MFTTracking/Cluster.h"
 #include "MFTTracking/TrackCA.h"
 #include "MFTTracking/FitterTrackMFT.h"
-#include "DataFormatsMFT/TrackParamMFT.h"
+#include "MFTTracking/TrackParamMFT.h"
 #include "MFTTracking/TrackExtrap.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsITSMFT/Cluster.h"
