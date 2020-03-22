@@ -87,13 +87,21 @@ class DMAOutputStream
   /// \brief Write output payload to the output stream
   /// \param header Raw data header
   /// \param buffer Raw data payload
+  /// \return Current page count
   ///
   /// Converting output payload to DMA papges. If the payload is larger than
   /// the pagesize - header size the payload is automatically split to multiple
   /// pages. Page counter, memory size, page size and stop bit of the header are
   /// handled internally and are overwritten from the header provided. All other
   /// header information must be provided externally.
-  void writeData(RawHeader header, gsl::span<char> buffer);
+  int writeData(RawHeader header, gsl::span<const char> buffer);
+
+  /// \brief Write single raw data header
+  /// \param header raw data header
+  ///
+  /// Write header with no payload assinged. Function is used for writing
+  /// open/close header of the timeframe
+  void writeSingleHeader(const RawHeader& header);
 
  protected:
   /// \brief Write DMA page
@@ -103,7 +111,7 @@ class DMAOutputStream
   ///
   /// Expects that the size of the payload is smaller than the size ot the DMA
   /// page. Parameter pagesize supporting variable page size.
-  void writeDMAPage(const RawHeader& header, gsl::span<char> payload, int pagesize);
+  void writeDMAPage(const RawHeader& header, gsl::span<const char> payload, int pagesize);
 
  private:
   std::string mFilename = ""; ///< Name of the output file

@@ -12,6 +12,7 @@
 #include <TSystem.h>
 #include "DataFormatsEMCAL/Constants.h"
 #include "EMCALBase/Geometry.h"
+#include "EMCALBase/RCUTrailer.h"
 #include "EMCALSimulation/RawWriter.h"
 #include "Headers/RAWDataHeader.h"
 
@@ -25,8 +26,7 @@ void RawWriter::setTriggerRecords(std::vector<o2::emcal::TriggerRecord>* trigger
 
 void RawWriter::init()
 {
-  mOutputStream.open();
-
+  mPageHandler = std::make_unique<RawOutputPageHandler>(mRawFilename.data());
   // initialize mappers
   std::array<char, 4> sides = {{'A', 'C'}};
   for (auto iside = 0; iside < sides.size(); iside++) {
@@ -45,6 +45,8 @@ void RawWriter::init()
 
 void RawWriter::processNextTrigger()
 {
+  // initialize page handler when processing the first trigger
+  mPageHandler->initTrigger(mCurrentTrigger->getBCData());
   for (auto srucont : mSRUdata)
     srucont.mChannels.clear();
   std::vector<o2::emcal::Digit*>* bunchDigits;
@@ -70,11 +72,13 @@ void RawWriter::processNextTrigger()
   // Create and fill DMA pages for each channel
   std::vector<char> payload;
   for (auto srucont : mSRUdata) {
+    // EMCAL does not set HBF triggers, only set trigger BC and orbit
     o2::header::RAWDataHeaderV4 rawheader;
     rawheader.triggerBC = mCurrentTrigger->getBCData().bc;
     rawheader.triggerOrbit = mCurrentTrigger->getBCData().orbit;
     // @TODO: Set trigger type
     rawheader.feeId = srucont.mSRUid;
+    rawheader.linkID = srucont.mSRUid;
 
     for (const auto& [tower, channel] : srucont.mChannels) {
       // Find out hardware address of the channel
@@ -101,12 +105,12 @@ void RawWriter::processNextTrigger()
     }
 
     // Create RCU trailer
-    auto trailerwords = createRCUTrailer();
+    auto trailerwords = createRCUTrailer(payload.size(), 16, 16, 100., 0.);
     for (auto word : trailerwords)
       payload.emplace_back(word);
 
     // write DMA page to stream
-    mOutputStream.writeData(rawheader, payload);
+    mPageHandler->addPageForLink(srucont.mSRUid, rawheader, payload);
   }
 }
 
@@ -202,8 +206,16 @@ ChannelHeader RawWriter::createChannelHeader(int hardwareAddress, int payloadSiz
   return header;
 }
 
-std::vector<char> RawWriter::createRCUTrailer()
+std::vector<char> RawWriter::createRCUTrailer(int payloadsize, int feca, int fecb, double timesample, double l1phase)
 {
-  std::vector<char> trailerwords;
-  return trailerwords;
+  RCUTrailer trailer;
+  trailer.setActiveFECsA(feca);
+  trailer.setActiveFECsB(fecb);
+  trailer.setPayloadSize(payloadsize);
+  trailer.setL1Phase(l1phase);
+  trailer.setTimeSample(timesample);
+  auto trailerwords = trailer.encode();
+  std::vector<char> encoded(trailerwords.size() * sizeof(uint32_t));
+  memcpy(encoded.data(), trailerwords.data(), trailerwords.size() * sizeof(uint32_t));
+  return encoded;
 }

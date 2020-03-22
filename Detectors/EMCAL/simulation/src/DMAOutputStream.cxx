@@ -30,7 +30,19 @@ void DMAOutputStream::open()
   }
 }
 
-void DMAOutputStream::writeData(RawHeader header, gsl::span<char> buffer)
+void DMAOutputStream::writeSingleHeader(const RawHeader& header)
+{
+  if (!mInitialized)
+    open();
+  std::vector<char> outputpage(sizeof(RawHeader));
+  RawHeader* outputheader = reinterpret_cast<RawHeader*>(outputpage.data());
+  *outputheader = header;
+  outputheader->memorySize = sizeof(RawHeader);
+  outputheader->offsetToNext = sizeof(RawHeader);
+  mOutputFile.write(outputpage.data(), outputpage.size());
+}
+
+int DMAOutputStream::writeData(RawHeader header, gsl::span<const char> buffer)
 {
   if (!mInitialized)
     open();
@@ -41,7 +53,7 @@ void DMAOutputStream::writeData(RawHeader header, gsl::span<char> buffer)
   // from the maximum possible payload size
   constexpr int MAXNWORDS = PAGESIZE - sizeof(header) - sizeof(uint32_t);
   bool writeNext = true;
-  int pagecounter = 0, currentindex = 0;
+  int pagecounter = header.pageCnt, currentindex = 0;
   while (writeNext) {
     int sizeRemain = buffer.size() - currentindex;
     int nwordspage = MAXNWORDS;
@@ -49,9 +61,8 @@ void DMAOutputStream::writeData(RawHeader header, gsl::span<char> buffer)
       // Last page
       nwordspage = sizeRemain;
       writeNext = false;
-      header.stop = true;
     }
-    header.packetCounter = pagecounter;
+    header.pageCnt = pagecounter;
     header.memorySize = nwordspage + sizeof(RawHeader);
     header.offsetToNext = 8192;
 
@@ -59,15 +70,16 @@ void DMAOutputStream::writeData(RawHeader header, gsl::span<char> buffer)
 
     if (writeNext) {
       currentindex += nwordspage;
-      pagecounter++;
     }
+    pagecounter++;
   }
+  return pagecounter;
 }
 
-void DMAOutputStream::writeDMAPage(const RawHeader& header, gsl::span<char> payload, int pagesize)
+void DMAOutputStream::writeDMAPage(const RawHeader& header, gsl::span<const char> payload, int pagesize)
 {
   std::vector<char> dmapage(pagesize);
-  o2::header::RAWDataHeaderV4* outheader = reinterpret_cast<o2::header::RAWDataHeaderV4*>(dmapage.data());
+  RawHeader* outheader = reinterpret_cast<RawHeader*>(dmapage.data());
   *outheader = header;
   char* outpayload = dmapage.data() + sizeof(header);
   memcpy(outpayload, payload.data(), payload.size());
