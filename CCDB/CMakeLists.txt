@@ -50,3 +50,9 @@ o2_add_test(CcdbApi
             COMPONENT_NAME ccdb
             PUBLIC_LINK_LIBRARIES O2::CCDB
             LABELS ccdb)
+
+o2_add_test(BasicCCDBManager
+            SOURCES test/testBasicCCDBManager.cxx
+            COMPONENT_NAME ccdb
+            PUBLIC_LINK_LIBRARIES O2::CCDB
+            LABELS ccdb)
