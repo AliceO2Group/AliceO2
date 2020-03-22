@@ -792,8 +792,9 @@ int GPUChainTracking::RunTPCClusterizer()
   clsMemory.reserve(mRec->MemoryScalers()->nTPCHits);
 
   // setup MC Labels
-  auto* digitsMC = processors()->ioPtrs.tpcPackedDigits ? processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC : nullptr;
-  bool propagateMCLabels = !doGPU && digitsMC != nullptr && GetDeviceProcessingSettings().runMC;
+  bool propagateMCLabels = !doGPU && GetDeviceProcessingSettings().runMC && processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC != nullptr;
+
+  auto* digitsMC = propagateMCLabels ? processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC : nullptr;
 
   GPUTPCLinearLabels mcLinearLabels;
   if (propagateMCLabels) {
@@ -806,16 +807,17 @@ int GPUChainTracking::RunTPCClusterizer()
       unsigned int iSlice = iSliceBase + lane;
       GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSlice];
       GPUTPCClusterFinder& clustererShadow = doGPU ? processorsShadow()->tpcClusterer[iSlice] : clusterer;
+      SetupGPUProcessor(&clusterer, false);
+      clusterer.mPmemory->counters.nPeaks = clusterer.mPmemory->counters.nClusters = 0;
 
       if (propagateMCLabels) {
+        clusterer.PrepareMC();
         clusterer.mPinputLabels = digitsMC->v[iSlice];
         // TODO: Why is the number of header entries in truth container
         // sometimes larger than the number of digits?
         assert(clusterer.mPinputLabels->getIndexedSize() >= mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice]);
       }
 
-      SetupGPUProcessor(&clusterer, false);
-      clusterer.mPmemory->counters.nPeaks = clusterer.mPmemory->counters.nClusters = 0;
       unsigned int nPagesTotal = 0;
       if (mIOPtrs.tpcZS) {
         for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {

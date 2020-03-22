@@ -25,7 +25,14 @@
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
-void GPUTPCClusterFinder::InitializeProcessor() {}
+void GPUTPCClusterFinder::InitializeProcessor()
+{
+}
+
+GPUTPCClusterFinder::~GPUTPCClusterFinder()
+{
+  clearMCMemory();
+}
 
 void* GPUTPCClusterFinder::SetPointersMemory(void* mem)
 {
@@ -67,12 +74,6 @@ void* GPUTPCClusterFinder::SetPointersScratch(void* mem)
   computePointerWithAlignment(mem, mPisPeak, mNMaxDigits);
   computePointerWithAlignment(mem, mPchargeMap, TPCMapMemoryLayout<decltype(*mPchargeMap)>::items());
   computePointerWithAlignment(mem, mPpeakMap, TPCMapMemoryLayout<decltype(*mPpeakMap)>::items());
-  if (not mRec->IsGPU() && mRec->GetDeviceProcessingSettings().runMC) {
-    computePointerWithAlignment(mem, mPindexMap, TPCMapMemoryLayout<decltype(*mPindexMap)>::items());
-    computePointerWithAlignment(mem, mPlabelsByRow, GPUCA_ROW_COUNT * mNMaxClusterPerRow);
-    computePointerWithAlignment(mem, mPlabelHeaderOffset, GPUCA_ROW_COUNT);
-    computePointerWithAlignment(mem, mPlabelDataOffset, GPUCA_ROW_COUNT);
-  }
   computePointerWithAlignment(mem, mPbuf, mBufSize * mNBufs);
   return mem;
 }
@@ -113,4 +114,27 @@ size_t GPUTPCClusterFinder::getNSteps(size_t items) const
     c++;
   }
   return c;
+}
+
+void GPUTPCClusterFinder::PrepareMC()
+{
+  assert(mNMaxClusterPerRow > 0);
+
+  clearMCMemory();
+  mPindexMap = new uint[TPCMapMemoryLayout<decltype(*mPindexMap)>::items()];
+  mPlabelsByRow = new GPUTPCClusterMCInterim[GPUCA_ROW_COUNT * mNMaxClusterPerRow];
+  mPlabelHeaderOffset = new uint[GPUCA_ROW_COUNT];
+  mPlabelDataOffset = new uint[GPUCA_ROW_COUNT];
+}
+
+void GPUTPCClusterFinder::clearMCMemory()
+{
+  delete[] mPindexMap;
+  mPindexMap = nullptr;
+  delete[] mPlabelsByRow;
+  mPlabelsByRow = nullptr;
+  delete[] mPlabelHeaderOffset;
+  mPlabelHeaderOffset = nullptr;
+  delete[] mPlabelDataOffset;
+  mPlabelDataOffset = nullptr;
 }
