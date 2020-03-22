@@ -208,7 +208,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   std::unique_ptr<unsigned long long int[]> mTPCZSBuffer;             // Memory to store TPC ZS pages
   std::unique_ptr<unsigned int[]> mTPCZSSizes;                        // Array with TPC ZS numbers of pages
   std::unique_ptr<void*[]> mTPCZSPtrs;                                // Array with pointers to TPC ZS pages
-  std::unique_ptr<o2::gpu::GPUTrackingInOutZS> mTPCZS;                // TPC ZS Data Structure
+  std::unique_ptr<GPUTrackingInOutZS> mTPCZS;                         // TPC ZS Data Structure
 
   // Upper bounds for memory allocation
   unsigned int mMaxTPCHits;
