@@ -226,8 +226,9 @@ DataProcessorSpec
     if (!keepString.empty()) {
 
       std::string d("dangling");
-      if (d.find(keepString)==0) {
+      if (d.find(keepString) == 0) {
 
+        // use the dangling outputs
         std::vector<InputSpec> danglingOutputs;
         for (auto ii = 0; ii < OutputInputs.size(); ii++) {
           if (isdangling[ii])
@@ -237,6 +238,7 @@ DataProcessorSpec
 
       } else {
 
+        // use the keep string
         dod->readString(keepString);
       }
 

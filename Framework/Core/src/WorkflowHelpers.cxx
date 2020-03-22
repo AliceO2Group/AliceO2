@@ -733,6 +733,7 @@ std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::
     outputtypes.emplace_back(outputtype);
   }
 
+  /* can be used for debuging
   int ndang = 0;
   int naod = 0;
   int ndangother = 0;
@@ -748,6 +749,7 @@ std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> WorkflowHelpers::
   LOG(INFO) << " dangling          " << ndang;
   LOG(INFO) << " AOD               " << naod;
   LOG(INFO) << " dangling, not AOD " << ndangother;
+  */
 
   return std::make_tuple(results, outputtypes);
 }
@@ -759,7 +761,7 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
 
   std::vector<InputSpec> results;
   for (int ii = 0; ii < OutputsInputs.size(); ii++) {
-    if ((outputtypes[ii] & 2) == 2)
+    if ((outputtypes[ii] & 1) == 1)
       results.emplace_back(OutputsInputs[ii]);
   }
 
