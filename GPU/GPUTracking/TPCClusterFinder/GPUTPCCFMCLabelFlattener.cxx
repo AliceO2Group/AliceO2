@@ -32,9 +32,11 @@ void GPUTPCCFMCLabelFlattener::setGlobalOffsetsAndAllocate(
     headerOffset += cls.mPclusterInRow[row];
 
     cls.mPlabelDataOffset[row] = dataOffset;
-    auto& lastInterim = cls.mPlabelsByRow[cls.mNMaxClusterPerRow * row + cls.mPclusterInRow[row] - 1];
-    uint labelsInRow = lastInterim.offset + lastInterim.labels.size();
-    dataOffset += labelsInRow;
+    if (cls.mPclusterInRow[row] > 0) {
+      auto& lastInterim = cls.mPlabelsByRow[cls.mNMaxClusterPerRow * row + cls.mPclusterInRow[row] - 1];
+      uint labelsInRow = lastInterim.offset + lastInterim.labels.size();
+      dataOffset += labelsInRow;
+    }
   }
 
   labels.header.resize(headerOffset);
@@ -70,7 +72,11 @@ GPUd() void GPUTPCCFMCLabelFlattener::Thread<GPUTPCCFMCLabelFlattener::flatten>(
   uint headerOffset = clusterer.mPlabelHeaderOffset[row] + idx;
   uint dataOffset = clusterer.mPlabelDataOffset[row] + interim.offset;
 
+  assert(dataOffset + interim.labels.size() <= out->data.size());
+
   out->header[headerOffset] = dataOffset;
-  std::copy(interim.labels.begin(), interim.labels.end(), &out->data[dataOffset]);
+  std::copy(interim.labels.cbegin(), interim.labels.cend(), out->data.begin() + dataOffset);
+
+  interim = {}; // ensure interim labels are destroyed to prevent memleak
 #endif
 }

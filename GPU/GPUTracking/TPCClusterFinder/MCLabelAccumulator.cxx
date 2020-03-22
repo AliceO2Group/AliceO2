@@ -22,7 +22,9 @@ using namespace GPUCA_NAMESPACE::gpu;
 MCLabelAccumulator::MCLabelAccumulator(GPUTPCClusterFinder& clusterer)
   : mIndexMap(clusterer.mPindexMap), mLabels(clusterer.mPinputLabels), mOutput(clusterer.mPlabelsByRow)
 {
-  mClusterLabels.reserve(32);
+  if (engaged()) {
+    mClusterLabels.reserve(32);
+  }
 }
 
 void MCLabelAccumulator::collect(const ChargePos& pos, Charge q)
@@ -52,7 +54,7 @@ void MCLabelAccumulator::collect(const ChargePos& pos, Charge q)
 
 void MCLabelAccumulator::commit(Row row, uint indexInRow, uint maxElemsPerBucket)
 {
-  if (indexInRow > maxElemsPerBucket || !engaged()) {
+  if (indexInRow >= maxElemsPerBucket || !engaged()) {
     return;
   }
 
