@@ -156,7 +156,7 @@ template <typename T>
 struct OutputObj {
   using obj_t = T;
 
-  OutputObj(T const& t, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject)
+  OutputObj(T&& t, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject)
     : object(std::make_shared<T>(t)),
       label(t.GetName()),
       policy{policy_},
@@ -198,19 +198,18 @@ struct OutputObj {
   /// @return the associated OutputSpec
   OutputSpec const spec()
   {
-    static_assert(std::is_base_of_v<TNamed, T>, "You need a TNamed derived class to use OutputObj");
     header::DataDescription desc{};
     auto lhash = compile_time_hash(label.c_str());
     memset(desc.str, '_', 16);
 #if (defined(__GNUC__) && (__GNUC___ > 8 || (__GNUC__ == 8 && __GNUC_MINOR__ >= 1))) || defined(__clang__)
-    char buf[12];
-    std::to_chars(buf, buf + 2, lhash, 16);
-    std::to_chars(buf + 2, buf + 4, mTaskHash, 16);
-    std::to_chars(buf + 4, buf + 12, reinterpret_cast<uint64_t>(this), 16);
-    std::memcpy(desc.str, buf, 12);
+    std::to_chars(desc.str, desc.str + 2, lhash, 16);
+    std::to_chars(desc.str + 2, desc.str + 4, mTaskHash, 16);
+    std::to_chars(desc.str + 4, desc.str + 12, reinterpret_cast<uint64_t>(this), 16);
 #else
     std::stringstream s;
-    s << std::hex << lhash << mTaskHash << reinterpret_cast<uint64_t>(this);
+    s << std::hex << lhash;
+    s << std::hex << mTaskHash;
+    s << std::hex << reinterpret_cast<uint64_t>(this);
     std::memcpy(desc.str, s.str().c_str(), 12);
 #endif
 
