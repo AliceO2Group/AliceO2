@@ -59,6 +59,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   };
 
 #ifndef GPUCA_GPUCODE
+  ~GPUTPCClusterFinder();
   void InitializeProcessor();
   void RegisterMemoryAllocation();
   void SetMaxData(const GPUTrackingInOutPointers& io);
@@ -71,6 +72,9 @@ class GPUTPCClusterFinder : public GPUProcessor
 
   size_t getNSteps(size_t items) const;
   void SetNMaxDigits(size_t nDigits, size_t nPages);
+
+  void PrepareMC();
+  void clearMCMemory();
 #endif
   unsigned char* mPzs = nullptr;
   ZSOffset* mPzsOffsets = nullptr;
