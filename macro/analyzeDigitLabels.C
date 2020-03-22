@@ -71,6 +71,9 @@ struct LabelStats {
 template <typename LabelType, typename Accumulator = LabelStats>
 void analyse(TTree* tr, const char* brname, Accumulator& prop)
 {
+  if (!tr) {
+    return;
+  }
   auto br = tr->GetBranch(brname);
   if (!br) {
     return;
@@ -173,7 +176,7 @@ void analyzeCPV(TTree* reftree)
 void analyzeFT0(TTree* reftree)
 {
   LabelStats result;
-  analyse<o2::ft0::MCLabel>(reftree, "FT0DigitMCTruth", result);
+  analyse<o2::ft0::MCLabel>(reftree, "FT0DIGITSMCTR", result);
   std::cout << gPrefix << " FT0 ";
   result.print();
 }
@@ -245,7 +248,7 @@ void analyzeTOF(TTree* reftree)
 void analyzeTRD(TTree* reftree)
 {
   LabelStats result;
-  analyse<o2::trd::MCLabel>(reftree, "TRDMCLabels", result);
+  analyse<o2::MCCompLabel>(reftree, "TRDMCLabels", result);
   std::cout << gPrefix << " TRD ";
   result.print();
 }

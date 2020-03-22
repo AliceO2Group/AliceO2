@@ -16,16 +16,26 @@
 #ifndef ALICEO2_DISPATCHER_H
 #define ALICEO2_DISPATCHER_H
 
+#include <string>
+#include <vector>
+#include <memory>
+
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DeviceSpec.h"
-#include "Framework/DataSamplingPolicy.h"
-#include "Framework/DataSamplingHeader.h"
 #include "Framework/Task.h"
 
-namespace o2
+class FairMQDevice;
+
+namespace o2::monitoring
 {
-namespace framework
+class Monitoring;
+}
+
+namespace o2::framework
 {
+
+class DataSamplingHeader;
+class DataSamplingPolicy;
 
 class Dispatcher : public Task
 {
@@ -50,6 +60,7 @@ class Dispatcher : public Task
  private:
   DataSamplingHeader prepareDataSamplingHeader(const DataSamplingPolicy& policy, const DeviceSpec& spec);
   header::Stack extractAdditionalHeaders(const char* inputHeaderStack) const;
+  void reportStats(monitoring::Monitoring& monitoring) const;
   void send(DataAllocator& dataAllocator, const DataRef& inputData, Output&& output) const;
   void sendFairMQ(FairMQDevice* device, const DataRef& inputData, const std::string& fairMQChannel,
                   header::Stack&& stack) const;
@@ -62,7 +73,6 @@ class Dispatcher : public Task
   std::vector<std::shared_ptr<DataSamplingPolicy>> mPolicies;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif //ALICEO2_DISPATCHER_H

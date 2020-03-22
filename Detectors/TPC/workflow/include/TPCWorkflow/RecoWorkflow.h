@@ -37,6 +37,7 @@ enum struct OutputType { Digits,
                          Raw,
                          Clusters,
                          Tracks,
+                         DisableWriter,
 };
 
 /// create the workflow for TPC reconstruction

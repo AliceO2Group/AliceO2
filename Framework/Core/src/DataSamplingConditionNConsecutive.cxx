@@ -18,9 +18,9 @@
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/Logger.h"
 
-namespace o2
-{
-namespace framework
+#include <boost/property_tree/ptree.hpp>
+
+namespace o2::framework
 {
 
 using namespace o2::header;
@@ -65,5 +65,4 @@ std::unique_ptr<DataSamplingCondition> DataSamplingConditionFactory::createDataS
   return std::make_unique<DataSamplingConditionNConsecutive>();
 }
 
-} // namespace framework
 } // namespace o2

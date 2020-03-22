@@ -29,7 +29,7 @@ using namespace o2::trd;
 constexpr int kMINENTRIES = 1000;
 
 void CheckDigits(std::string digifile = "trddigits.root",
-                 std::string hitfile = "o2sim.root",
+                 std::string hitfile = "o2sim_HitsTRD.root",
                  std::string inputGeom = "O2geometry.root",
                  std::string paramfile = "o2sim_par.root")
 {

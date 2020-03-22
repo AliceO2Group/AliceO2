@@ -13,13 +13,10 @@
 /// @since  2019-12-18
 /// @brief  Basic DPL workflow for TOF raw data compression
 
-#include "TOFCompression/RawReaderTask.h"
 #include "TOFCompression/CompressorTask.h"
-#include "TOFCompression/CompressedWriterTask.h"
-#include "TOFCompression/CompressedInspectorTask.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
-#include "Framework/runDataProcessing.h" // the main driver
+#include "Framework/ConcreteDataMatcher.h"
 #include "FairLogger.h"
 
 using namespace o2::framework;
@@ -28,23 +25,34 @@ using namespace o2::framework;
 // including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  //  workflowOptions.push_back(ConfigParamSpec{"verbose", o2::framework::VariantType::Bool, false, {"Verbose flag"}});
+  auto inputDesc = ConfigParamSpec{"input-desc", VariantType::String, "RAWDATA", {"Input specs description string"}};
+  auto outputDesc = ConfigParamSpec{"output-desc", VariantType::String, "CRAWDATA", {"Output specs description string"}};
+
+  workflowOptions.push_back(inputDesc);
+  workflowOptions.push_back(outputDesc);
 }
+
+#include "Framework/runDataProcessing.h" // the main driver
 
 /// This function hooks up the the workflow specifications into the DPL driver.
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  LOG(INFO) << "TOF COMPRESSION WORKFLOW configuration";
 
-  //  auto verbose = cfgc.options().get<bool>("verbose");
+  auto inputDesc = cfgc.options().get<std::string>("input-desc");
+  //  auto outputDesc = cfgc.options().get<std::string>("output-desc");
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back(OutputSpec(ConcreteDataTypeMatcher{"TOF", "CRAWDATA"}));
 
-  // add devices (Spec) to the workflow
-  WorkflowSpec specs;
-  //  specs.emplace_back(o2::tof::RawReaderTask::getSpec());
-  specs.emplace_back(o2::tof::CompressorTask::getSpec());
-  specs.emplace_back(o2::tof::CompressedWriterTask::getSpec());
-  specs.emplace_back(o2::tof::CompressedInspectorTask::getSpec());
+  WorkflowSpec workflow;
+  workflow.emplace_back(DataProcessorSpec{
+    "tof-compressor",
+    select(std::string("x:TOF/" + inputDesc).c_str()),
+    outputs,
+    AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask>()},
+    Options{
+      {"decoder-verbose", VariantType::Bool, false, {"Decoder verbose flag"}},
+      {"encoder-verbose", VariantType::Bool, false, {"Encoder verbose flag"}},
+      {"checker-verbose", VariantType::Bool, false, {"Checker verbose flag"}}}});
 
-  LOG(INFO) << "Number of active devices = " << specs.size();
-  return std::move(specs);
+  return workflow;
 }

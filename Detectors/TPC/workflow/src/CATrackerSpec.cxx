@@ -187,6 +187,7 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector
 
       config.configDeviceProcessing.nThreads = nThreads;
       config.configDeviceProcessing.runQA = qa;              // Run QA after tracking
+      config.configDeviceProcessing.runMC = processMC;       // Propagate MC labels
       config.configDeviceProcessing.eventDisplay = display;  // Ptr to event display backend, for running standalone OpenGL event display
       config.configDeviceProcessing.debugLevel = debugLevel; // Debug verbosity
 
@@ -235,7 +236,6 @@ DataProcessorSpec getCATrackerSpec(bool processMC, bool caClusterer, std::vector
       if (config.configCalib.fastTransform == nullptr) {
         throw std::invalid_argument("GPUCATracking: initialization of the TPC transformation failed");
       }
-      config.configCalib.fastTransform = processAttributes->fastTransform.get();
       o2::base::MatLayerCylSet* lut = o2::base::MatLayerCylSet::loadFromFile("matbud.root", "MatBud");
       config.configCalib.matLUT = lut;
       // Sample code what needs to be done for the TRD Geometry, when we extend this to TRD tracking.

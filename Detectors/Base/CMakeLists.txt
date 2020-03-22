@@ -25,6 +25,7 @@ o2_add_library(DetectorsBase
                                      O2::Field
                                      FairMQ::FairMQ
                                      O2::DataFormatsParameters
+				     O2::SimConfig
                                      ROOT::VMC)
 
 o2_target_root_dictionary(DetectorsBase
@@ -48,6 +49,15 @@ if(BUILD_SIMULATION)
     ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
                 VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
 endif()
+
+o2_add_test(
+  DCAFitter
+  SOURCES test/testDCAFitter.cxx
+  COMPONENT_NAME DetectorsBase
+  PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+  LABELS detectorsbase
+  ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+  VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
 
 o2_add_test_root_macro(test/buildMatBudLUT.C
                        PUBLIC_LINK_LIBRARIES O2::DetectorsBase

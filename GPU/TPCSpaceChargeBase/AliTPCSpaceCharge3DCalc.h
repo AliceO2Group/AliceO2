@@ -19,6 +19,7 @@
 #define ALI_TPC_SPACECHARGE3D_CALC_H
 
 #include "TF1.h"
+#include "TF2.h"
 #include "TH3F.h"
 #include "TMatrixD.h"
 
@@ -54,13 +55,7 @@ class AliTPCSpaceCharge3DCalc
 
   void InitSpaceCharge3DPoissonIntegralDz(
     Int_t nRRow, Int_t nZColumn, Int_t phiSlice, Int_t maxIteration, Double_t stopConvergence,
-    TMatrixD** matricesErA, TMatrixD** matricesEphiA, TMatrixD** matricesEzA,
-    TMatrixD** matricesErC, TMatrixD** matricesEphiC, TMatrixD** matricesEzC,
-    TMatrixD** matricesDistDrDzA, TMatrixD** matricesDistDPhiRDzA, TMatrixD** matricesDistDzA,
-    TMatrixD** matricesCorrDrDzA, TMatrixD** matricesCorrDPhiRDzA, TMatrixD** matricesCorrDzA,
-    TMatrixD** matricesDistDrDzC, TMatrixD** matricesDistDPhiRDzC, TMatrixD** matricesDistDzC,
-    TMatrixD** matricesCorrDrDzC, TMatrixD** matricesCorrDPhiRDzC, TMatrixD** matricesCorrDzC,
-    TFormula* intErDzTestFunction, TFormula* intEPhiRDzTestFunction, TFormula* intDzTestFunction, TFormula* ezF);
+    TFormula* intErDzTestFunction, TFormula* intEPhiRDzTestFunction, TFormula* intDzTestFunction);
 
   void
     InitSpaceCharge3DPoisson(Int_t nRRow, Int_t nZColumn, Int_t phiSlice, Int_t maxIteration, Double_t stopConvergence);
@@ -192,6 +187,8 @@ class AliTPCSpaceCharge3DCalc
 
   void GetLocalDistortionCyl(const Float_t x[], Short_t roc, Float_t dx[]);
 
+  void GetLocalCorrectionCyl(const Float_t x[], Short_t roc, Float_t dx[]);
+
   void SetIrregularGridSize(Int_t size) { fIrregularGridSize = size; }
 
   Int_t GetIrregularGridSize() { return fIrregularGridSize; }
@@ -202,19 +199,19 @@ class AliTPCSpaceCharge3DCalc
   TFormula* GetPotentialVFormula() const { return fFormulaPotentialV; }
   TFormula* GetChargeRhoFormula() const { return fFormulaChargeRho; }
 
-  void SetBoundaryIFCA(TF1* f1) { fFormulaBoundaryIFCA = new TF1(*f1); }
+  void SetBoundaryIFCA(TF1* f1) { fFormulaBoundaryIFCA = f1; }
 
-  void SetBoundaryIFCC(TF1* f1) { fFormulaBoundaryIFCC = new TF1(*f1); }
+  void SetBoundaryIFCC(TF1* f1) { fFormulaBoundaryIFCC = f1; }
 
-  void SetBoundaryOFCA(TF1* f1) { fFormulaBoundaryOFCA = new TF1(*f1); }
+  void SetBoundaryOFCA(TF1* f1) { fFormulaBoundaryOFCA = f1; }
 
-  void SetBoundaryOFCC(TF1* f1) { fFormulaBoundaryOFCC = new TF1(*f1); }
+  void SetBoundaryOFCC(TF1* f1) { fFormulaBoundaryOFCC = f1; }
 
-  void SetBoundaryROCA(TF1* f1) { fFormulaBoundaryROCA = new TF1(*f1); }
+  void SetBoundaryROCA(TF1* f1) { fFormulaBoundaryROCA = f1; }
 
-  void SetBoundaryROCC(TF1* f1) { fFormulaBoundaryROCC = new TF1(*f1); }
+  void SetBoundaryROCC(TF1* f1) { fFormulaBoundaryROCC = f1; }
 
-  void SetBoundaryCE(TF1* f1) { fFormulaBoundaryCE = new TF1(*f1); }
+  void SetBoundaryCE(TF1* f1) { fFormulaBoundaryCE = f1; }
 
   void SetElectricFieldFormula(TFormula* formulaEr, TFormula* formulaEPhi, TFormula* formulaEz)
   {
@@ -334,6 +331,8 @@ class AliTPCSpaceCharge3DCalc
   AliTPCLookUpTable3DInterpolatorD* fLookupIntENoDriftC = nullptr;               //!<! look-up table for no drift integration side C
   AliTPCLookUpTable3DInterpolatorD* fLookupDistA = nullptr;                      //!<! look-up table for local distortion side A
   AliTPCLookUpTable3DInterpolatorD* fLookupDistC = nullptr;                      //!<! look-up table for local distortion side C
+  AliTPCLookUpTable3DInterpolatorD* fLookupCorrA = nullptr;                      //!<! look-up table for local correction side A
+  AliTPCLookUpTable3DInterpolatorD* fLookupCorrC = nullptr;                      //!<! look-up table for local correction side C
   AliTPCLookUpTable3DInterpolatorD* fLookupInverseDistA = nullptr;               //!<! look-up table for local distortion (from inverse) side A
   AliTPCLookUpTable3DInterpolatorD* fLookupInverseDistC = nullptr;               //!<! look-up table for local distortion (from inverse) side C
 
@@ -368,6 +367,12 @@ class AliTPCSpaceCharge3DCalc
 
   void
     LocalDistCorrDz(TMatrixD** matricesEr, TMatrixD** matricesEPhi, TMatrixD** matricesEz, TMatrixD** matricesDistDrDz,
+                    TMatrixD** matricesDistDPhiRDz, TMatrixD** matricesDistDz, TMatrixD** matricesCorrDrDz,
+                    TMatrixD** matricesCorrDPhiRDz, TMatrixD** matricesCorrDz, const Int_t nRRow, const Int_t nZColumn,
+                    const Int_t phiSlice, const Float_t gridSizeZ, const Double_t ezField);
+  void
+    LocalDistCorrDz(TFormula* intErDzFunction, TFormula* intEPhiRDzFunction, TFormula* intDzFunction, TFormula* ezFunction,
+                    Double_t* rList, Double_t* phiList, Double_t* zList, TMatrixD** matricesDistDrDz,
                     TMatrixD** matricesDistDPhiRDz, TMatrixD** matricesDistDz, TMatrixD** matricesCorrDrDz,
                     TMatrixD** matricesCorrDPhiRDz, TMatrixD** matricesCorrDz, const Int_t nRRow, const Int_t nZColumn,
                     const Int_t phiSlice, const Float_t gridSizeZ, const Double_t ezField);

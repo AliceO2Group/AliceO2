@@ -14,6 +14,7 @@
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
 #include "Framework/DataSampling.h"
+#include "Framework/DataSamplingPolicy.h"
 #include "Framework/Dispatcher.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DataSpecUtils.h"
@@ -25,9 +26,7 @@
 using namespace o2::configuration;
 using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 std::string DataSampling::createDispatcherName()
@@ -70,6 +69,7 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
       LOG(DEBUG) << " - registering output FairMQ channel '" << policy->getFairMQOutputChannel() << "'";
     }
   }
+  options.push_back({"period-timer-stats", framework::VariantType::Int, 10 * 1000000, {"Dispatcher's stats timer period"}});
 
   if (dispatcher.getInputSpecs().size() > 0) {
     DataProcessorSpec spec;
@@ -123,5 +123,4 @@ std::vector<InputSpec> DataSampling::InputSpecsForPolicy(ConfigurationInterface*
   return inputs;
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

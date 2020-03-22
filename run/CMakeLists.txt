@@ -64,11 +64,6 @@ o2_add_executable(hit-merger-runner
                   SOURCES O2HitMergerRunner.cxx
                   PUBLIC_LINK_LIBRARIES internal::allsim)
 
-o2_add_executable(tpc
-                  COMPONENT_NAME sim
-                  SOURCES runTPC.cxx
-                  PUBLIC_LINK_LIBRARIES internal::allsim O2::TPCReconstruction)
-
 o2_data_file(COPY o2simtopology.json DESTINATION config)
 
 # * # add a complex simulation as a unit test (if simulation was enabled)
@@ -127,7 +122,7 @@ o2_add_test_wrapper(
   COMMAND ${ROOT_root_CMD}
   COMMAND_LINE_ARGS
     -n -b -l -q
-    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/test/checkStack.C\(\"o2simG4.root\"\)
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/test/checkStack.C\(\"o2simG4\"\)
   LABELS g4 sim)
 
 set_tests_properties(o2sim_checksimkinematics_G4
@@ -168,7 +163,7 @@ o2_add_test_wrapper(
   COMMAND ${ROOT_root_CMD}
   COMMAND_LINE_ARGS
     -n -b -l -q
-    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/test/checkStack.C\(\"o2simG3.root\"\)
+    ${CMAKE_SOURCE_DIR}/DataFormats/simulation/test/checkStack.C\(\"o2simG3\"\)
   LABELS g3 sim)
 
 set_tests_properties(o2sim_checksimkinematics_G3

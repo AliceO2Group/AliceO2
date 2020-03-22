@@ -81,7 +81,7 @@ class ConcreteRawParser
   using buffer_type = unsigned char;
   using header_type = HeaderType;
   using self_type = ConcreteRawParser;
-  size_t max_size = MAX_SIZE;
+  static constexpr size_t max_size = MAX_SIZE;
 
   ConcreteRawParser() = delete;
 
@@ -117,7 +117,9 @@ class ConcreteRawParser
       return 0;
     }
     header_type const& h = header();
-    // FIXME: block length disappeared in V5, check what can be used
+    if (h.memorySize >= h.headerSize) {
+      return h.memorySize - h.headerSize;
+    }
     return max_size - h.headerSize;
   }
 
@@ -481,12 +483,12 @@ class RawParser
   // only define the const_iterator because the parser will allow read-only access
   using const_iterator = Iterator<RawDataHeaderInfo const, raw_parser::ConcreteParserVariants<MAX_SIZE>>;
 
-  const_iterator begin()
+  const_iterator begin() const
   {
     return const_iterator(mParser);
   }
 
-  const_iterator end()
+  const_iterator end() const
   {
     return const_iterator(mParser, -1);
   }

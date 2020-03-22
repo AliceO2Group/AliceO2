@@ -247,10 +247,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data)
       sectorIndexArr[nOutCl] = sector;
       rowIndexArr[nOutCl] = globalRow;
       nOutCl++;
-      if (outputTracksMCTruth) {
-        if (!clusters->clustersMCTruth) {
-          throw std::runtime_error("Cluster MC information missing");
-        }
+      if (outputTracksMCTruth && clusters->clustersMCTruth) {
         for (const auto& element : clusters->clustersMCTruth->getLabels(clusters->clusterOffset[sector][globalRow] + clusterId)) {
           bool found = false;
           for (int l = 0; l < labels.size(); l++) {

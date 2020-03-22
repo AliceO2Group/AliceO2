@@ -27,7 +27,7 @@ void run_clus_itsSA(std::string inputfile = "rawits.bin", // output file name
                     std::string outputfile = "clr.root",  // input file name (root or raw)
                     bool raw = true,                      // flag if this is raw data
                     float strobe = -1.,                   // strobe length in ns of ALPIDE readout, if <0, get automatically
-                    bool withDictionary = false, std::string dictionaryfile = "complete_dictionary.bin")
+                    bool withDictionary = false, std::string dictionaryfile = "complete_dictionary.bin", bool withPatterns = false)
 {
   // Initialize logger
   FairLogger* logger = FairLogger::GetLogger();
@@ -43,7 +43,11 @@ void run_clus_itsSA(std::string inputfile = "rawits.bin", // output file name
   clus->setMaxROframe(2 << 21); // about 3 cluster files per a raw data chunk
   if (withDictionary) {
     clus->loadDictionary(dictionaryfile.c_str());
+    if (withPatterns) {
+      clus->setPatterns();
+    }
   }
+
   // Mask fired pixels separated by <= this number of BCs (for overflow pixels).
   // In continuos mode strobe lenght should be used, in triggered one: signal shaping time (~7mus)
   if (strobe < 0) {

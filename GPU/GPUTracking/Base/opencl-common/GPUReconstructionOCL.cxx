@@ -25,7 +25,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include <typeinfo>
 #include <cstdlib>
 
-constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + sizeof(uint4) - 1);
+constexpr size_t gGPUConstantMemBufferSize = sizeof(GPUConstantMem);
 
 #define quit(...)          \
   {                        \
@@ -49,6 +49,7 @@ GPUReconstructionOCL::~GPUReconstructionOCL()
 int GPUReconstructionOCL::InitDevice_Runtime()
 {
   // Find best OPENCL device, initialize and allocate memory
+  GPUCA_GPUReconstructionUpdateDefailts();
 
   cl_int ocl_error;
   cl_uint num_platforms;
@@ -202,7 +203,7 @@ int GPUReconstructionOCL::InitDevice_Runtime()
     GPUInfo("\tmaxThreadsDim = %lld %lld %lld", (long long int)maxWorkItems[0], (long long int)maxWorkItems[1], (long long int)maxWorkItems[2]);
     GPUInfo(" ");
   }
-#ifndef GPUCA_OPENCL_NO_CONSTANT_MEMORY
+#ifndef GPUCA_NO_CONSTANT_MEMORY
   if (gGPUConstantMemBufferSize > constantBuffer) {
     quit("Insufficient constant memory available on GPU %d < %d!", (int)constantBuffer, (int)gGPUConstantMemBufferSize);
   }
@@ -454,8 +455,9 @@ void GPUReconstructionOCL::SetThreadCounts()
 {
   mThreadCount = GPUCA_THREAD_COUNT;
   mBlockCount = mCoreCount;
-  mConstructorBlockCount = mBlockCount * GPUCA_BLOCK_COUNT_CONSTRUCTOR_MULTIPLIER;
-  mSelectorBlockCount = mBlockCount * GPUCA_BLOCK_COUNT_SELECTOR_MULTIPLIER;
+  mConstructorBlockCount = mBlockCount * GPUCA_MINBLOCK_COUNT_CONSTRUCTOR;
+  mSelectorBlockCount = mBlockCount * GPUCA_MINBLOCK_COUNT_SELECTOR;
+  mHitsSorterBlockCount = mBlockCount * GPUCA_MINBLOCK_COUNT_HITSSORTER;
   mConstructorThreadCount = GPUCA_THREAD_COUNT_CONSTRUCTOR;
   mSelectorThreadCount = GPUCA_THREAD_COUNT_SELECTOR;
   mFinderThreadCount = GPUCA_THREAD_COUNT_FINDER;
@@ -468,4 +470,7 @@ void GPUReconstructionOCL::SetThreadCounts()
   mCFDecodeThreadCount = GPUCA_THREAD_COUNT_CFDECODE;
   mFitThreadCount = GPUCA_THREAD_COUNT_FIT;
   mITSThreadCount = GPUCA_THREAD_COUNT_ITS;
+  mWarpSize = GPUCA_WARP_SIZE;
+  mHitsSorterThreadCount = GPUCA_THREAD_COUNT_HITSSORTER;
+  mHitsFinderThreadCount = GPUCA_THREAD_COUNT_HITSFINDER;
 }

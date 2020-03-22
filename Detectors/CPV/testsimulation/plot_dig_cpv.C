@@ -1,6 +1,8 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <sstream>
+#include <iostream>
 
+#include "TROOT.h"
 #include <TStopwatch.h>
 #include "TCanvas.h"
 #include "TH2.h"

@@ -15,7 +15,7 @@
 #include <Generators/PDG.h>
 #include "SimulationDataFormat/MCEventHeader.h"
 #include <SimConfig/SimConfig.h>
-#include <SimConfig/ConfigurableParam.h>
+#include <CommonUtils/ConfigurableParam.h>
 #include <CommonUtils/RngHelper.h>
 #include <TStopwatch.h>
 #include <memory>
@@ -26,6 +26,7 @@
 #include <Steer/O2RunSim.h>
 #include <DetectorsBase/MaterialManager.h>
 #include <CCDB/BasicCCDBManager.h>
+#include <DetectorsCommonDataFormats/NameConf.h>
 #include <unistd.h>
 #include <sstream>
 #endif
@@ -159,7 +160,7 @@ FairRunSim* o2sim_init(bool asservice)
       grp.setDipoleCurrent(currDip);
     }
     // save
-    std::string grpfilename = confref.getOutPrefix() + "_grp.root";
+    std::string grpfilename = o2::base::NameConf::getGRPFileName(confref.getOutPrefix());
     TFile grpF(grpfilename.c_str(), "recreate");
     grpF.WriteObjectAny(&grp, grp.Class(), "GRP");
   }

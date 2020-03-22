@@ -24,10 +24,11 @@ namespace o2
 
 namespace emcal
 {
+using DigitBase = o2::dataformats::TimeStamp<double>;
+
 /// \class Digit
 /// \brief EMCAL digit implementation
-
-using DigitBase = o2::dataformats::TimeStamp<double>;
+/// \ingroup EMCALDataFormat
 class Digit : public DigitBase
 {
  public:
@@ -42,7 +43,7 @@ class Digit : public DigitBase
 
   bool canAdd(const Digit other)
   {
-    return (mTower == other.getTower() && std::abs(getTimeStamp() - other.getTimeStamp()) <= constants::EMCAL_TIMESAMPLE);
+    return (mTower == other.getTower() && std::abs(getTimeStamp() - other.getTimeStamp()) < constants::EMCAL_TIMESAMPLE);
   }
 
   Digit& operator+=(const Digit& other);              // Adds energy of other digits to this digit.

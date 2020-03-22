@@ -37,23 +37,6 @@ namespace phos
 
 void DigitizerSpec::init(framework::InitContext& ic)
 {
-
-  // setup the input chain for the hits
-  if (mSimChain) {
-    delete mSimChain;
-  }
-  mSimChain = new TChain("o2sim");
-
-  // add the main (background) file
-  mSimChain->AddFile(ic.options().get<std::string>("simFile").c_str());
-
-  // maybe add a particular signal file
-  auto signalfilename = ic.options().get<std::string>("simFileS");
-  if (signalfilename.size() > 0) {
-    mSimChainS = new TChain("o2sim");
-    mSimChainS->AddFile(signalfilename.c_str());
-  }
-
   // make sure that the geometry is loaded (TODO will this be done centrally?)
   if (!gGeoManager) {
     o2::base::GeometryManager::loadGeometry();
@@ -80,26 +63,19 @@ void DigitizerSpec::retrieveHits(const char* brname,
                                  int sourceID,
                                  int entryID)
 {
-
+  auto br = mSimChains[sourceID]->GetBranch(brname);
+  if (!br) {
+    LOG(ERROR) << "No branch found";
+    return;
+  }
   if (sourceID == 0) { //Bg
     mHitsBg->clear();
-    auto br = mSimChain->GetBranch(brname);
-    if (!br) {
-      LOG(ERROR) << "No branch found";
-      return;
-    }
     br->SetAddress(&mHitsBg);
-    br->GetEntry(entryID);
-  } else { //Bg
+  } else { // Signal
     mHitsS->clear();
-    auto br = mSimChainS->GetBranch(brname);
-    if (!br) {
-      LOG(ERROR) << "No branch found";
-      return;
-    }
     br->SetAddress(&mHitsS);
-    br->GetEntry(entryID);
   }
+  br->GetEntry(entryID);
 }
 
 void DigitizerSpec::run(framework::ProcessingContext& pc)
@@ -109,6 +85,7 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
 
   // read collision context from input
   auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
+  context->initSimChains(o2::detectors::DetID::PHS, mSimChains);
   auto& timesview = context->getEventRecords();
   LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
 
@@ -187,9 +164,7 @@ DataProcessorSpec getPHOSDigitizerSpec(int channel)
             OutputSpec{"PHS", "DIGITSMCTR", 0, Lifetime::Timeframe},
             OutputSpec{"PHS", "ROMode", 0, Lifetime::Timeframe}},
     AlgorithmSpec{o2::framework::adaptFromTask<DigitizerSpec>()},
-    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
-            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
-            {"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}};
+    Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}};
 }
 } // namespace phos
 } // namespace o2

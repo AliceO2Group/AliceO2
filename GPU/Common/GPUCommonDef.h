@@ -45,11 +45,22 @@
   #define CON_DEFAULT = default
   #define CONSTEXPR constexpr
   #define CONSTEXPRRET CONSTEXPR
+  #if defined(__cplusplus) && __cplusplus >= 201703L
+    #define CONSTEXPRIF if constexpr
+  #else
+    #define CONSTEXPRIF if
+  #endif
 #else
   #define CON_DELETE
   #define CON_DEFAULT
   #define CONSTEXPR const
+  #define CONSTEXPRIF if
   #define CONSTEXPRRET
+#endif
+#if defined(__ROOT__) && !defined(GPUCA_NOCOMPAT)
+  #define VOLATILE // ROOT5 has a problem with volatile in CINT
+#else
+  #define VOLATILE volatile
 #endif
 
 //Set AliRoot / O2 namespace
@@ -60,6 +71,16 @@
   #define GPUCA_NAMESPACE AliGPU
 #else
   #define GPUCA_NAMESPACE o2
+#endif
+
+#if (defined(__CUDACC__) && defined(GPUCA_CUDA_NO_CONSTANT_MEMORY)) || (defined(__HIPCC__) && defined(GPUCA_HIP_NO_CONSTANT_MEMORY)) || (defined(__OPENCL__) && !defined(__OPENCLCPP__) && defined(GPUCA_OPENCL_NO_CONSTANT_MEMORY)) || (defined(__OPENCLCPP__) && defined(GPUCA_OPENCLCPP_NO_CONSTANT_MEMORY))
+  #define GPUCA_NO_CONSTANT_MEMORY
+#endif
+#if (defined(__HIPCC__) && defined(GPUCA_HIP_CONSTANT_AS_ARGUMENT))
+  #define GPUCA_CONSTANT_AS_ARGUMENT
+  #ifdef GPUCA_NO_CONSTANT_MEMORY
+    #error Invalid settings
+  #endif
 #endif
 
 //API Definitions for GPU Compilation

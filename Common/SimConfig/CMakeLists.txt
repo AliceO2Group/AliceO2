@@ -9,8 +9,8 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(SimConfig
-               SOURCES src/SimConfig.cxx src/ConfigurableParam.cxx
-                       src/ConfigurableParamHelper.cxx src/SimCutParams.cxx		       
+               SOURCES src/SimConfig.cxx 
+                       src/SimCutParams.cxx		       
                        src/DigiParams.cxx src/G4Params.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonUtils
                                      O2::DetectorsCommonDataFormats
@@ -21,8 +21,6 @@ o2_target_root_dictionary(SimConfig
                           HEADERS include/SimConfig/SimConfig.h
                                   include/SimConfig/SimCutParams.h
 				  include/SimConfig/DigiParams.h
-                                  include/SimConfig/ConfigurableParam.h
-                                  include/SimConfig/ConfigurableParamHelper.h
                                   include/SimConfig/G4Params.h)
 
 o2_add_test(Config

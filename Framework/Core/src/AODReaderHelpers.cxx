@@ -98,11 +98,13 @@ enum AODTypeMask : uint64_t {
   Calo = 1 << 3,
   Muon = 1 << 4,
   VZero = 1 << 5,
-  Collisions = 1 << 6,
-  Timeframe = 1 << 7,
-  DZeroFlagged = 1 << 8,
-  Unknown = 1 << 9,
-  TracksKine = 1 << 10
+  Zdc = 1 << 6,
+  Trigger = 1 << 7,
+  Collisions = 1 << 8,
+  Timeframe = 1 << 9,
+  DZeroFlagged = 1 << 10,
+  Unknown = 1 << 11
+  TracksKine = 1 << 12
 };
 
 uint64_t getMask(header::DataDescription description)
@@ -122,6 +124,10 @@ uint64_t getMask(header::DataDescription description)
     return AODTypeMask::Muon;
   } else if (description == header::DataDescription{"VZERO"}) {
     return AODTypeMask::VZero;
+  } else if (description == header::DataDescription{"ZDC"}) {
+    return AODTypeMask::Zdc;
+  } else if (description == header::DataDescription{"TRIGGER"}) {
+    return AODTypeMask::Trigger;
   } else if (description == header::DataDescription{"COLLISION"}) {
     return AODTypeMask::Collisions;
   } else if (description == header::DataDescription{"TIMEFRAME"}) {
@@ -259,6 +265,10 @@ AlgorithmSpec AODReaderHelpers::run2ESDConverterCallback()
             writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "MUON"}, batch->schema());
           } else if (meta["description"] == "VZERO" && (readMask & AODTypeMask::VZero)) {
             writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "VZERO"}, batch->schema());
+          } else if (meta["description"] == "ZDC" && (readMask & AODTypeMask::Zdc)) {
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "ZDC"}, batch->schema());
+          } else if (meta["description"] == "TRIGGER" && (readMask & AODTypeMask::Trigger)) {
+            writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "TRIGGER"}, batch->schema());
           } else if (meta["description"] == "COLLISION" && (readMask & AODTypeMask::Collisions)) {
             writer = outputs.make<arrow::ipc::RecordBatchWriter>(Output{"AOD", "COLLISION"}, batch->schema());
           } else if (meta["description"] == "TIMEFRAME" && (readMask & AODTypeMask::Timeframe)) {
@@ -337,7 +347,7 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
 
       /// FIXME: Substitute here the actual data you want to convert for the AODReader
       if (readMask & AODTypeMask::Collisions) {
-        std::unique_ptr<TTreeReader> reader = std::make_unique<TTreeReader>("O2events", infile.get());
+        std::unique_ptr<TTreeReader> reader = std::make_unique<TTreeReader>("O2collisions", infile.get());
         auto& collisionBuilder = outputs.make<TableBuilder>(Output{"AOD", "COLLISION"});
         RootTableBuilderHelpers::convertASoA<o2::aod::Collisions>(collisionBuilder, *reader);
       }
@@ -381,7 +391,19 @@ AlgorithmSpec AODReaderHelpers::rootFileReaderCallback()
       if (readMask & AODTypeMask::VZero) {
         std::unique_ptr<TTreeReader> vzReader = std::make_unique<TTreeReader>("O2vzero", infile.get());
         auto& vzBuilder = outputs.make<TableBuilder>(Output{"AOD", "VZERO"});
-        RootTableBuilderHelpers::convertASoA<o2::aod::Muons>(vzBuilder, *vzReader);
+        RootTableBuilderHelpers::convertASoA<o2::aod::VZeros>(vzBuilder, *vzReader);
+      }
+
+      if (readMask & AODTypeMask::Zdc) {
+        std::unique_ptr<TTreeReader> zdcReader = std::make_unique<TTreeReader>("O2zdc", infile.get());
+        auto& zdcBuilder = outputs.make<TableBuilder>(Output{"AOD", "ZDC"});
+        RootTableBuilderHelpers::convertASoA<o2::aod::Zdc>(zdcBuilder, *zdcReader);
+      }
+
+      if (readMask & AODTypeMask::Trigger) {
+        std::unique_ptr<TTreeReader> triggerReader = std::make_unique<TTreeReader>("O2trigger", infile.get());
+        auto& triggerBuilder = outputs.make<TableBuilder>(Output{"AOD", "TRIGGER"});
+        RootTableBuilderHelpers::convertASoA<o2::aod::Trigger>(triggerBuilder, *triggerReader);
       }
 
       // Candidates as described by Gianmichele example

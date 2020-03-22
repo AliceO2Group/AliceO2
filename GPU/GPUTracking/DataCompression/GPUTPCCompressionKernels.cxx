@@ -185,34 +185,50 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
     GPUbarrier();
 
     CompressedClustersPtrsOnly& GPUrestrict() c = compressor.mPtrs;
-    for (unsigned int i = get_local_id(0); i < clusters->nClusters[iSlice][iRow]; i += get_local_size(0)) {
-      const int idx = idOffset + i;
-      if (compressor.mClusterStatus[idx]) {
-        continue;
-      }
-      int attach = merger.ClusterAttachment()[idx];
 
-      bool unattached = attach == 0;
-      if (unattached) {
-        if (processors.param.rec.tpcRejectionMode >= GPUSettings::RejectionStrategyB) {
-          continue;
+    const unsigned int nn = GPUCommonMath::nextMultipleOf<GPUCA_THREAD_COUNT_COMPRESSION2>(clusters->nClusters[iSlice][iRow]);
+    for (unsigned int i = iThread; i < nn; i += nThreads) {
+      const int idx = idOffset + i;
+      int cidx = 0;
+      do {
+        if (i >= clusters->nClusters[iSlice][iRow]) {
+          break;
         }
-      } else if (processors.param.rec.tpcRejectionMode >= GPUSettings::RejectionStrategyA) {
-        if ((attach & GPUTPCGMMerger::attachGoodLeg) == 0) {
-          continue;
+        if (compressor.mClusterStatus[idx]) {
+          break;
         }
-        if (attach & GPUTPCGMMerger::attachHighIncl) {
-          continue;
+        int attach = merger.ClusterAttachment()[idx];
+        bool unattached = attach == 0;
+
+        if (unattached) {
+          if (processors.param.rec.tpcRejectionMode >= GPUSettings::RejectionStrategyB) {
+            break;
+          }
+        } else if (processors.param.rec.tpcRejectionMode >= GPUSettings::RejectionStrategyA) {
+          if ((attach & GPUTPCGMMerger::attachGoodLeg) == 0) {
+            break;
+          }
+          if (attach & GPUTPCGMMerger::attachHighIncl) {
+            break;
+          }
+          int id = attach & GPUTPCGMMerger::attachTrackMask;
+          if (CAMath::Abs(merger.OutputTracks()[id].GetParam().GetQPt()) > processors.param.rec.tpcRejectQPt) {
+            break;
+          }
         }
-        int id = attach & GPUTPCGMMerger::attachTrackMask;
-        if (CAMath::Abs(merger.OutputTracks()[id].GetParam().GetQPt()) > processors.param.rec.tpcRejectQPt) {
-          continue;
-        }
+        cidx = 1;
+      } while (false);
+
+      GPUbarrier();
+      int tmp = work_group_scan_inclusive_add(cidx);
+      if (cidx) {
+        sortBuffer[smem.nCount + tmp - 1] = i;
       }
-      int cidx = CAMath::AtomicAddShared(&smem.nCount, 1);
-      sortBuffer[cidx] = i;
+      GPUbarrier();
+      if (iThread == nThreads - 1) {
+        smem.nCount += tmp;
+      }
     }
-    GPUbarrier();
 
     if (param.rec.tpcCompressionModes & GPUSettings::CompressionDifferences) {
       if (param.rec.tpcCompressionSortOrder == GPUSettings::SortZPadTime) {
@@ -227,17 +243,19 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
       GPUbarrier();
     }
 
-    unsigned int lastTime = 0;
-    unsigned short lastPad = 0;
-    for (unsigned int i = 0; i < smem.nCount; i++) {
+    for (unsigned int i = get_local_id(0); i < smem.nCount; i += get_local_size(0)) {
       int cidx = idOffset + i;
       const ClusterNative& GPUrestrict() orgCl = clusters->clusters[iSlice][iRow][sortBuffer[i]];
+      unsigned int lastTime = 0;
+      unsigned int lastPad = 0;
+      if (i != 0) {
+        const ClusterNative& GPUrestrict() orgClPre = clusters->clusters[iSlice][iRow][sortBuffer[i - 1]];
+        lastPad = orgClPre.padPacked;
+        lastTime = orgClPre.getTimePacked();
+      }
+
       c.padDiffU[cidx] = orgCl.padPacked - lastPad;
       c.timeDiffU[cidx] = (orgCl.getTimePacked() - lastTime) & 0xFFFFFF;
-      if (param.rec.tpcCompressionModes & GPUSettings::CompressionDifferences) {
-        lastPad = orgCl.padPacked;
-        lastTime = orgCl.getTimePacked();
-      }
 
       unsigned short qtot = orgCl.qTot, qmax = orgCl.qMax;
       unsigned char sigmapad = orgCl.sigmaPadPacked, sigmatime = orgCl.sigmaTimePacked;

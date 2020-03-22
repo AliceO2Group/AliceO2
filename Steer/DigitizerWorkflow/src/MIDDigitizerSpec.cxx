@@ -24,6 +24,7 @@
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDSimulation/ColumnDataMC.h"
 #include "MIDSimulation/Digitizer.h"
+#include "MIDSimulation/DigitsMerger.h"
 #include "MIDSimulation/ChamberResponse.h"
 #include "MIDSimulation/ChamberEfficiencyResponse.h"
 #include "MIDSimulation/Geometry.h"
@@ -31,23 +32,6 @@
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
-
-// helper function which will be offered as a service
-template <typename T>
-void retrieveHits(std::vector<TChain*> const& chains,
-                  const char* brname,
-                  int sourceID,
-                  int entryID,
-                  std::vector<T>* hits)
-{
-  auto br = chains[sourceID]->GetBranch(brname);
-  if (!br) {
-    LOG(ERROR) << "No branch found";
-    return;
-  }
-  br->SetAddress(&hits);
-  br->GetEntry(entryID);
-}
 
 namespace o2
 {
@@ -65,18 +49,6 @@ class MIDDPLDigitizerTask
   void init(framework::InitContext& ic)
   {
     LOG(INFO) << "initializing MID digitization";
-    // setup the input chain for the hits
-    mSimChains.emplace_back(new TChain("o2sim"));
-
-    // add the main (background) file
-    mSimChains.back()->AddFile(ic.options().get<std::string>("simFile").c_str());
-
-    // maybe add a particular signal file
-    auto signalfilename = ic.options().get<std::string>("simFileS");
-    if (signalfilename.size() > 0) {
-      mSimChains.emplace_back(new TChain("o2sim"));
-      mSimChains.back()->AddFile(signalfilename.c_str());
-    }
 
     if (!gGeoManager) {
       o2::base::GeometryManager::loadGeometry();
@@ -95,6 +67,7 @@ class MIDDPLDigitizerTask
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
+    context->initSimChains(o2::detectors::DetID::MID, mSimChains);
     auto& irecords = context->getEventRecords();
 
     auto& eventParts = context->getEventParts();
@@ -114,14 +87,14 @@ class MIDDPLDigitizerTask
 
         // get the hits for this event and this source
         std::vector<o2::mid::Hit> hits;
-        retrieveHits(mSimChains, "MIDHit", part.sourceID, part.entryID, &hits);
+        context->retrieveHits(mSimChains, "MIDHit", part.sourceID, part.entryID, &hits);
         LOG(DEBUG) << "For collision " << collID << " eventID " << part.entryID << " found MID " << hits.size() << " hits ";
 
         mDigitizer->process(hits, digits, labels);
         if (digits.empty()) {
           continue;
         }
-        std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
+        digitsAccum.insert(digitsAccum.end(), digits.begin(), digits.end());
         labelsAccum.mergeAtBack(labels);
       }
       auto nEntries = digitsAccum.size() - firstEntry;
@@ -130,10 +103,12 @@ class MIDDPLDigitizerTask
       }
     }
 
+    mDigitsMerger.process(digitsAccum, labelsAccum, rofRecords);
+
     LOG(DEBUG) << "MID: Sending " << digitsAccum.size() << " digits.";
-    pc.outputs().snapshot(Output{"MID", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
-    pc.outputs().snapshot(Output{"MID", "DIGITSROF", 0, Lifetime::Timeframe}, rofRecords);
-    pc.outputs().snapshot(Output{"MID", "DIGITLABELS", 0, Lifetime::Timeframe}, labelsAccum);
+    pc.outputs().snapshot(Output{"MID", "DIGITS", 0, Lifetime::Timeframe}, mDigitsMerger.getColumnData());
+    pc.outputs().snapshot(Output{"MID", "DIGITSROF", 0, Lifetime::Timeframe}, mDigitsMerger.getROFRecords());
+    pc.outputs().snapshot(Output{"MID", "DIGITLABELS", 0, Lifetime::Timeframe}, mDigitsMerger.getMCContainer());
 
     LOG(DEBUG) << "MID: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"MID", "ROMode", 0, Lifetime::Timeframe}, mROMode);
@@ -145,6 +120,7 @@ class MIDDPLDigitizerTask
 
  private:
   std::unique_ptr<Digitizer> mDigitizer;
+  DigitsMerger mDigitsMerger;
   std::vector<TChain*> mSimChains;
   // RS: at the moment using hardcoded flag for continuos readout
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
@@ -167,9 +143,7 @@ o2::framework::DataProcessorSpec getMIDDigitizerSpec(int channel)
             OutputSpec{"MID", "ROMode", 0, Lifetime::Timeframe}},
 
     AlgorithmSpec{adaptFromTask<MIDDPLDigitizerTask>()},
-
-    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
-            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}}}};
+    Options{}};
 }
 
 } // namespace mid

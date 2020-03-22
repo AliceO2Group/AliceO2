@@ -19,12 +19,19 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
-GPUdii() void GPUTPCGMMergerTrackFit::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+GPUdii() void GPUTPCGMMergerTrackFit::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger, int mode)
 {
+  const int iStart = mode <= 0 ? 0 : merger.NSlowTracks();
+  const int iEnd = mode >= 0 ? merger.NOutputTracks() : merger.NSlowTracks();
 #if defined(WITH_OPENMP) && !defined(GPUCA_GPUCODE)
 #pragma omp parallel for num_threads(merger.GetRec().GetDeviceProcessingSettings().nThreads)
 #endif
-  for (int i = get_global_id(0); i < merger.NOutputTracks(); i += get_global_size(0)) {
+  for (int ii = iStart + get_global_id(0); ii < iEnd; ii += get_global_size(0)) {
+#ifdef __HIPCC__
+    const int i = ii; // TODO: BUG: remove me, workaround for bug in hipcc compiler
+#else
+    const int i = mode ? merger.TrackOrderProcess()[ii] : ii;
+#endif
     GPUTPCGMTrackParam::RefitTrack(merger.OutputTracks()[i], i, &merger, merger.Clusters());
   }
 }

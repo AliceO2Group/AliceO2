@@ -22,6 +22,7 @@
 #include <curl/curl.h>
 #include <TObject.h>
 #include <TMessage.h>
+#include "CCDB/CcdbObjectInfo.h"
 
 class TFile;
 
@@ -62,6 +63,38 @@ class CcdbApi //: public DatabaseInterface
   std::string const& getURL() const { return mUrl; }
 
   /**
+   * Create a binary image of the arbitrary type object, if CcdbObjectInfo pointer is provided, register there 
+   *
+   * the assigned object class name and the filename
+   * @param obj: Raw pointer to the object to store.
+   * @param info: optinal info where assigned object name and filename will be filled
+   */
+  template <typename T>
+  inline static std::unique_ptr<std::vector<char>> createObjectImage(const T* obj, CcdbObjectInfo* info = nullptr)
+  {
+    return createObjectImage(reinterpret_cast<const void*>(obj), typeid(T), info);
+  }
+
+  /**
+   * Create a binary image of the TObject, if CcdbObjectInfo pointer is provided, register there 
+   *
+   * the assigned object class name and the filename
+   * @param obj: Raw pointer to the object to store.
+   * @param info: optinal info where assigned object name and filename will be filled
+   */
+  static std::unique_ptr<std::vector<char>> createObjectImage(const TObject* obj, CcdbObjectInfo* info = nullptr);
+
+  /**
+   * Create a binary image of the object, if CcdbObjectInfo pointer is provided, register there 
+   *
+   * the assigned object class name and the filename
+   * @param obj: Raw pointer to the object to store.
+   * @param tinfo: object type info
+   * @param info: optinal info where assigned object name and filename will be filled
+   */
+  static std::unique_ptr<std::vector<char>> createObjectImage(const void* obj, std::type_info const& tinfo, CcdbObjectInfo* info = nullptr);
+
+  /**
      * Store into the CCDB a TFile containing the ROOT object.
      *
      * @param rootObject Raw pointer to the object to store.
@@ -70,7 +103,7 @@ class CcdbApi //: public DatabaseInterface
      * @param startValidityTimestamp Start of validity. If omitted, current timestamp is used.
      * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 year is used.
      */
-  void storeAsTFile(TObject* rootObject, std::string const& path, std::map<std::string, std::string> const& metadata,
+  void storeAsTFile(const TObject* rootObject, std::string const& path, std::map<std::string, std::string> const& metadata,
                     long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
 
   /**
@@ -83,8 +116,18 @@ class CcdbApi //: public DatabaseInterface
      * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 year is used.
      */
   template <typename T>
-  void storeAsTFileAny(T* obj, std::string const& path, std::map<std::string, std::string> const& metadata,
-                       long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
+  void storeAsTFileAny(const T* obj, std::string const& path, std::map<std::string, std::string> const& metadata,
+                       long startValidityTimestamp = -1, long endValidityTimestamp = -1) const
+  {
+    storeAsTFile_impl(reinterpret_cast<const void*>(obj), typeid(T), path, metadata, startValidityTimestamp, endValidityTimestamp);
+  }
+
+  // interface for storing TObject via storeAsTFileAny
+  void storeAsTFileAny(const TObject* rootobj, std::string const& path, std::map<std::string, std::string> const& metadata,
+                       long startValidityTimestamp = -1, long endValidityTimestamp = -1) const
+  {
+    storeAsTFile(rootobj, path, metadata, startValidityTimestamp, endValidityTimestamp);
+  }
 
   /**
    * Retrieve object at the given path for the given timestamp.
@@ -244,6 +287,11 @@ class CcdbApi //: public DatabaseInterface
    */
   static std::map<std::string, std::string>* retrieveMetaInfo(TFile&);
 
+  /**
+   * Generates a file-name where the object will be stored (usually, from the provided class name)
+   */
+  static std::string generateFileName(const std::string& inp);
+
   constexpr static const char* CCDBQUERY_ENTRY = "ccdb_query";
   constexpr static const char* CCDBMETA_ENTRY = "ccdb_meta";
   constexpr static const char* CCDBOBJECT_ENTRY = "ccdb_object";
@@ -277,7 +325,7 @@ class CcdbApi //: public DatabaseInterface
    * @param endValidityTimestamp End of validity. If omitted or negative, current timestamp + 1 year is used.
    * @return The full url to store an object (url / startValidity / endValidity / [metadata &]* )
    */
-  std::string getFullUrlForStorage(const std::string& path, const std::string& objtype,
+  std::string getFullUrlForStorage(CURL* curl, const std::string& path, const std::string& objtype,
                                    const std::map<std::string, std::string>& metadata,
                                    long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
 
@@ -288,14 +336,21 @@ class CcdbApi //: public DatabaseInterface
    * @param timestamp When the object we retrieve must be valid. If omitted or negative, the current timestamp is used.
    * @return The full url to store an object (url / startValidity / endValidity / [metadata &]* )
    */
-  std::string getFullUrlForRetrieval(const std::string& path, const std::map<std::string, std::string>& metadata,
+  std::string getFullUrlForRetrieval(CURL* curl, const std::string& path, const std::map<std::string, std::string>& metadata,
                                      long timestamp = -1) const;
 
  public:
   /**
+   * A generic method to store a binary buffer (e.g. an image of the TMemFile)
+   */
+  void storeAsBinaryFile(const char* buffer, size_t size, const std::string& fileName, const std::string& objectType,
+                         const std::string& path, const std::map<std::string, std::string>& metadata,
+                         long startValidityTimestamp, long endValidityTimestamp) const;
+
+  /**
    * A generic helper implementation to store an obj whose type is given by a std::type_info
    */
-  void storeAsTFile_impl(void* obj, std::type_info const& info, std::string const& path, std::map<std::string, std::string> const& metadata,
+  void storeAsTFile_impl(const void* obj1, std::type_info const& info, std::string const& path, std::map<std::string, std::string> const& metadata,
                          long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
 
  private:
@@ -325,15 +380,6 @@ class CcdbApi //: public DatabaseInterface
 
   ClassDefNV(CcdbApi, 1);
 };
-
-template <typename T>
-inline void CcdbApi::storeAsTFileAny(T* obj, std::string const& path, std::map<std::string, std::string> const& metadata,
-                                     long startValidityTimestamp, long endValidityTimestamp) const
-{
-  // get the type_info and dispatch to generic (untyped) implementation
-  storeAsTFile_impl(reinterpret_cast<void*>(obj), typeid(T), path, metadata,
-                    startValidityTimestamp, endValidityTimestamp);
-}
 
 template <typename T>
 T* CcdbApi::retrieveFromTFileAny(std::string const& path, std::map<std::string, std::string> const& metadata,

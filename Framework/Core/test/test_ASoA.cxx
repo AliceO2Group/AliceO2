@@ -36,10 +36,11 @@ DECLARE_SOA_TABLE(Points, "TST", "POINTS", test::X, test::Y);
 
 namespace test
 {
+DECLARE_SOA_COLUMN(SomeBool, someBool, bool, "someBool");
 DECLARE_SOA_COLUMN(Color, color, int32_t, "color");
 } // namespace test
 
-DECLARE_SOA_TABLE(Infos, "TST", "INFOS", test::Color);
+DECLARE_SOA_TABLE(Infos, "TST", "INFOS", test::Color, test::SomeBool);
 
 namespace test
 {
@@ -89,7 +90,7 @@ BOOST_AUTO_TEST_CASE(TestTableIteration)
   auto rowIndex = std::make_tuple(
     std::pair<test::X*, arrow::Column*>{nullptr, table->column(0).get()},
     std::pair<test::Y*, arrow::Column*>{nullptr, table->column(1).get()});
-  RowView<test::X, test::Y> tests(rowIndex, {table->num_rows(), 0});
+  Points::iterator tests(rowIndex, {table->num_rows(), 0});
   BOOST_CHECK_EQUAL(tests.x(), 0);
   BOOST_CHECK_EQUAL(tests.y(), 0);
   ++tests;
@@ -456,11 +457,15 @@ BOOST_AUTO_TEST_CASE(TestDereference)
 
   TableBuilder builderA2;
   auto infoWriter = builderA2.cursor<Infos>();
-  infoWriter(0, 0);
-  infoWriter(0, 1);
-  infoWriter(0, 4);
+  infoWriter(0, 0, 1);
+  infoWriter(0, 1, 0);
+  infoWriter(0, 4, 1);
   auto infosT = builderA2.finalize();
   Infos infos{infosT};
+  BOOST_REQUIRE_EQUAL(infos.begin().someBool(), true);
+  BOOST_REQUIRE_EQUAL((infos.begin() + 1).someBool(), false);
+  BOOST_REQUIRE_EQUAL((infos.begin() + 2).someBool(), true);
+  BOOST_REQUIRE_EQUAL((infos.begin() + 2).color(), 4);
   BOOST_REQUIRE_EQUAL(infosT->num_rows(), 3);
 
   TableBuilder builderB;
@@ -485,6 +490,7 @@ BOOST_AUTO_TEST_CASE(TestDereference)
   i.bindExternalIndices(&points, &infos);
   BOOST_CHECK_EQUAL(i.n(), 10);
   BOOST_CHECK_EQUAL(i.info().color(), 4);
+  BOOST_CHECK_EQUAL(i.info().someBool(), true);
   BOOST_CHECK_EQUAL(i.pointA().x(), 0);
   BOOST_CHECK_EQUAL(i.pointA().y(), 0);
   BOOST_CHECK_EQUAL(i.pointB().x(), 3);
@@ -494,6 +500,7 @@ BOOST_AUTO_TEST_CASE(TestDereference)
   auto j = segments.begin();
   BOOST_CHECK_EQUAL(j.n(), 10);
   BOOST_CHECK_EQUAL(j.info().color(), 4);
+  BOOST_CHECK_EQUAL(j.info().someBool(), true);
   BOOST_CHECK_EQUAL(j.pointA().x(), 0);
   BOOST_CHECK_EQUAL(j.pointA().y(), 0);
   BOOST_CHECK_EQUAL(j.pointB().x(), 3);

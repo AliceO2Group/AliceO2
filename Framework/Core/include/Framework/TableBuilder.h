@@ -12,7 +12,9 @@
 #define O2_FRAMEWORK_TABLEBUILDER_H_
 
 #include "Framework/ASoA.h"
+#include "Framework/StructToTuple.h"
 #include "Framework/FunctionalHelpers.h"
+#include "Framework/VariantHelpers.h"
 
 // Apparently needs to be on top of the arrow includes.
 #include <sstream>
@@ -56,7 +58,8 @@ struct ConversionTraits {
     using ArrowType = ::arrow::ArrowType_;          \
   };
 
-O2_ARROW_STL_CONVERSION(bool, BooleanType)
+// FIXME: for now we use Int8 to store booleans
+O2_ARROW_STL_CONVERSION(bool, Int8Type)
 O2_ARROW_STL_CONVERSION(int8_t, Int8Type)
 O2_ARROW_STL_CONVERSION(int16_t, Int16Type)
 O2_ARROW_STL_CONVERSION(int32_t, Int32Type)
@@ -77,6 +80,28 @@ struct BuilderUtils {
   static arrow::Status append(BuilderType& builder, T value)
   {
     return builder->Append(value);
+  }
+
+  /// Appender for the pointer case.
+  /// Assumes that the pointer actually points to a buffer
+  /// which contains the correct number of elements.
+  template <typename BuilderType, typename T>
+  static arrow::Status append(BuilderType& builder, T* data)
+  {
+    return builder->Append(reinterpret_cast<const uint8_t*>(data));
+  }
+  /// Appender for the array case.
+  template <typename BuilderType, typename T, int N>
+  static arrow::Status append(BuilderType& builder, T (&data)[N])
+  {
+    return builder->Append(reinterpret_cast<const uint8_t*>(data));
+  }
+
+  /// Appender for the array case.
+  template <typename BuilderType, typename T, int N>
+  static arrow::Status append(BuilderType& builder, std::array<T, N> const& data)
+  {
+    return builder->Append(reinterpret_cast<const uint8_t*>(data.data()));
   }
 
   template <typename BuilderType, typename T>
@@ -139,6 +164,12 @@ struct BuilderMaker {
   {
     return builder.Append(value);
   }
+
+  template <int N>
+  static arrow::Status append(BuilderType& builder, std::array<T, N>& value)
+  {
+    return builder.Append(value);
+  }
 };
 
 template <typename ITERATOR>
@@ -161,6 +192,23 @@ struct BuilderMaker<std::pair<ITERATOR, ITERATOR>> {
   }
 };
 
+template <typename T, int N>
+struct BuilderMaker<T[N]> {
+  using FillType = T*;
+  using BuilderType = arrow::FixedSizeBinaryBuilder;
+  using ArrowType = arrow::FixedSizeBinaryType;
+
+  static std::unique_ptr<BuilderType> make(arrow::MemoryPool* pool)
+  {
+    return std::make_unique<BuilderType>(arrow::fixed_size_binary(sizeof(T[N])), pool);
+  }
+
+  static std::shared_ptr<arrow::DataType> make_datatype()
+  {
+    return arrow::fixed_size_binary(sizeof(T[N]));
+  }
+};
+
 template <typename... ARGS>
 auto make_builders()
 {
@@ -179,6 +227,14 @@ template <typename ITERATOR>
 struct BuilderTraits<std::pair<ITERATOR, ITERATOR>> {
   using ArrowType = arrow::ListType;
   using BuilderType = arrow::ListBuilder;
+};
+
+// Support for building array columns
+// FIXME: move to use FixedSizeList<T> once we move to 0.16.1
+template <typename T, int N>
+struct BuilderTraits<T[N]> {
+  using ArrowType = arrow::FixedSizeBinaryType;
+  using BuilderType = arrow::FixedSizeBinaryBuilder;
 };
 
 struct TableBuilderHelpers {
@@ -229,11 +285,43 @@ struct TableBuilderHelpers {
   }
 };
 
+template <typename... ARGS>
+auto tuple_to_pack(std::tuple<ARGS...>&&)
+{
+  return framework::pack<ARGS...>{};
+}
+
+/// Detect if this is a fixed size array
+/// FIXME: Notice that C++20 provides a method with the same name
+/// so we should move to it when we switch.
+template <class T>
+struct is_bounded_array : std::false_type {
+};
+
+template <class T, std::size_t N>
+struct is_bounded_array<T[N]> : std::true_type {
+};
+
+template <class T, std::size_t N>
+struct is_bounded_array<std::array<T, N>> : std::true_type {
+};
+
 /// Helper class which creates a lambda suitable for building
 /// an arrow table from a tuple. This can be used, for example
 /// to build an arrow::Table from a TDataFrame.
 class TableBuilder
 {
+  template <typename... ARGS>
+  using BuildersTuple = typename std::tuple<std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>...>;
+
+  /// Get the builders, assumning they were created with a given pack
+  ///  of basic types
+  template <typename... ARGS>
+  auto getBuilders(o2::framework::pack<ARGS...> pack)
+  {
+    return (BuildersTuple<ARGS...>*)mBuilders;
+  }
+
   template <typename... ARGS>
   void validate(std::vector<std::string> const& columnNames)
   {
@@ -249,10 +337,9 @@ class TableBuilder
   template <typename... ARGS>
   auto makeBuilders(std::vector<std::string> const& columnNames, size_t nRows)
   {
-    using BuildersTuple = typename std::tuple<std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>...>;
     mSchema = std::make_shared<arrow::Schema>(TableBuilderHelpers::makeFields<ARGS...>(columnNames));
 
-    BuildersTuple* builders = new BuildersTuple(BuilderMaker<ARGS>::make(mMemoryPool)...);
+    auto builders = new BuildersTuple<ARGS...>(BuilderMaker<ARGS>::make(mMemoryPool)...);
     if (nRows != -1) {
       auto seq = std::make_index_sequence<sizeof...(ARGS)>{};
       TableBuilderHelpers::reserveAll(*builders, nRows, seq);
@@ -263,8 +350,7 @@ class TableBuilder
   template <typename... ARGS>
   auto makeFinalizer()
   {
-    using BuildersTuple = typename std::tuple<std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>...>;
-    mFinalizer = [schema = mSchema, &arrays = mArrays, builders = (BuildersTuple*)mBuilders]() -> std::shared_ptr<arrow::Table> {
+    mFinalizer = [schema = mSchema, &arrays = mArrays, builders = (BuildersTuple<ARGS...>*)mBuilders]() -> std::shared_ptr<arrow::Table> {
       auto status = TableBuilderHelpers::finalize(arrays, *builders, std::make_index_sequence<sizeof...(ARGS)>{});
       if (status == false) {
         throw std::runtime_error("Unable to finalize");
@@ -285,7 +371,40 @@ class TableBuilder
   template <typename... ARGS>
   auto persist(std::vector<std::string> const& columnNames)
   {
-    using BuildersTuple = typename std::tuple<std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>...>;
+    using args_pack_t = framework::pack<ARGS...>;
+    if constexpr (sizeof...(ARGS) == 1 &&
+                  is_bounded_array<pack_element_t<0, args_pack_t>>::value == false &&
+                  std::is_arithmetic_v<pack_element_t<0, args_pack_t>> == false) {
+      using objType_t = pack_element_t<0, framework::pack<ARGS...>>;
+      using argsPack_t = decltype(tuple_to_pack(framework::to_tuple(std::declval<objType_t>())));
+      auto persister = persistTuple(argsPack_t{}, columnNames);
+      return [persister = persister](unsigned int slot, objType_t const& obj) -> void {
+        auto t = to_tuple(obj);
+        persister(slot, t);
+      };
+    } else if constexpr (sizeof...(ARGS) == 1 &&
+                         is_bounded_array<pack_element_t<0, args_pack_t>>::value == true) {
+      using objType_t = pack_element_t<0, framework::pack<ARGS...>>;
+      auto persister = persistTuple(framework::pack<objType_t>{}, columnNames);
+      // Callback used to fill the builders
+      return [persister = persister](unsigned int slot, typename BuilderMaker<objType_t>::FillType const& arg) -> void {
+        persister(slot, std::forward_as_tuple(arg));
+      };
+    } else if constexpr (sizeof...(ARGS) >= 1) {
+      auto persister = persistTuple(framework::pack<ARGS...>{}, columnNames);
+      // Callback used to fill the builders
+      return [persister = persister](unsigned int slot, typename BuilderMaker<ARGS>::FillType... args) -> void {
+        persister(slot, std::forward_as_tuple(args...));
+      };
+    } else {
+      static_assert(o2::framework::always_static_assert_v<ARGS...>, "Unmanaged case");
+    }
+  }
+
+  /// Same a the above, but use a tuple to persist stuff.
+  template <typename... ARGS>
+  auto persistTuple(framework::pack<ARGS...>, std::vector<std::string> const& columnNames)
+  {
     constexpr int nColumns = sizeof...(ARGS);
     validate<ARGS...>(columnNames);
     mArrays.resize(nColumns);
@@ -293,8 +412,9 @@ class TableBuilder
     makeFinalizer<ARGS...>();
 
     // Callback used to fill the builders
-    return [builders = (BuildersTuple*)mBuilders](unsigned int slot, typename BuilderMaker<ARGS>::FillType... args) -> void {
-      auto status = TableBuilderHelpers::append(*builders, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
+    using FillTuple = std::tuple<typename BuilderMaker<ARGS>::FillType...>;
+    return [builders = (BuildersTuple<ARGS...>*)mBuilders](unsigned int slot, FillTuple const& t) -> void {
+      auto status = TableBuilderHelpers::append(*builders, std::index_sequence_for<ARGS...>{}, t);
       if (status == false) {
         throw std::runtime_error("Unable to append");
       }
@@ -312,10 +432,18 @@ class TableBuilder
     return cursorHelper<typename persistent_filter::persistent_table_t>(std::make_index_sequence<persistent_size>());
   }
 
+  template <typename T, typename E>
+  auto cursor()
+  {
+    using persistent_filter = soa::FilterPersistentColumns<T>;
+    using persistent_columns_pack = typename persistent_filter::persistent_columns_pack;
+    constexpr auto persistent_size = pack_size(persistent_columns_pack{});
+    return cursorHelper<typename persistent_filter::persistent_table_t, E>(std::make_index_sequence<persistent_size>());
+  }
+
   template <typename... ARGS>
   auto preallocatedPersist(std::vector<std::string> const& columnNames, int nRows)
   {
-    using BuildersTuple = typename std::tuple<std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>...>;
     constexpr int nColumns = sizeof...(ARGS);
     validate<ARGS...>(columnNames);
     mArrays.resize(nColumns);
@@ -323,7 +451,7 @@ class TableBuilder
     makeFinalizer<ARGS...>();
 
     // Callback used to fill the builders
-    return [builders = (BuildersTuple*)mBuilders](unsigned int slot, typename BuilderMaker<ARGS>::FillType... args) -> void {
+    return [builders = (BuildersTuple<ARGS...>*)mBuilders](unsigned int slot, typename BuilderMaker<ARGS>::FillType... args) -> void {
       TableBuilderHelpers::unsafeAppend(*builders, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
     };
   }
@@ -331,17 +459,33 @@ class TableBuilder
   template <typename... ARGS>
   auto bulkPersist(std::vector<std::string> const& columnNames, size_t nRows)
   {
-    using BuildersTuple = typename std::tuple<std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>...>;
     constexpr int nColumns = sizeof...(ARGS);
     validate<ARGS...>(columnNames);
     mArrays.resize(nColumns);
     makeBuilders<ARGS...>(columnNames, nRows);
     makeFinalizer<ARGS...>();
 
-    return [builders = (BuildersTuple*)mBuilders](unsigned int slot, size_t batchSize, typename BuilderMaker<ARGS>::FillType const*... args) -> void {
+    return [builders = (BuildersTuple<ARGS...>*)mBuilders](unsigned int slot, size_t batchSize, typename BuilderMaker<ARGS>::FillType const*... args) -> void {
       TableBuilderHelpers::bulkAppend(*builders, batchSize, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
     };
   }
+
+  /// Reserve method to expand the columns as needed.
+  template <typename... ARGS>
+  auto reserve(o2::framework::pack<ARGS...> pack, int s)
+  {
+    visitBuilders(pack, overloaded{[s](auto& builder) { return builder.Reserve(s).ok(); }});
+  }
+
+  /// Invoke the appropriate visitor on the various builders
+  template <typename... ARGS, typename V>
+  auto visitBuilders(o2::framework::pack<ARGS...> pack, V&& visitor)
+  {
+    auto builders = getBuilders(pack);
+    auto visitAll = [visitor](std::unique_ptr<typename BuilderTraits<ARGS>::BuilderType>&... args) { (visitor(*args), ...); };
+    return std::apply(visitAll, *builders);
+  }
+
 
   /// Actually creates the arrow::Table from the builders
   std::shared_ptr<arrow::Table> finalize();
@@ -355,6 +499,13 @@ class TableBuilder
   {
     std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::label()...};
     return this->template persist<typename pack_element_t<Is, typename T::columns>::type...>(columnNames);
+  }
+
+  template <typename T, typename E, size_t... Is>
+  auto cursorHelper(std::index_sequence<Is...> s)
+  {
+    std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::label()...};
+    return this->template persist<E>(columnNames);
   }
 
   std::function<void(void)> mFinalizer;

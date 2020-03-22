@@ -29,14 +29,19 @@ int CalOnlineGainTables::getArrayOffset(int det, int row, int col) const
   FeeParam* mFeeParam = FeeParam::instance();
   int rob = mFeeParam->getROBfromPad(row, col);
   int mcm = mFeeParam->getMCMfromPad(row, col);
-  int detoffset = det * 128;
+  int detoffset = det * 128; //TODO find this constant from somewhere else max rob=8, max mcm=16, so 7x16+15=127
   int mcmoffset = rob * (mFeeParam->mgkNmcmRob) + mcm;
   return detoffset + mcmoffset;
 }
 
 int CalOnlineGainTables::getChannel(int col) const
 {
-  return 19 - (col % 18);
+  return 19 - (col % 18); //TODO find both of these constants from somewhere else.
+}
+
+int CalOnlineGainTables::getArrayOffsetrm(int det, int rob, int mcm) const
+{
+  return det * 128 + rob * FeeParam::instance()->mgkNmcmRob + mcm;
 }
 
 float CalOnlineGainTables::getGainCorrectionFactor(int det, int row, int col) const
@@ -61,28 +66,55 @@ float CalOnlineGainTables::getGainCorrectionFactor(int det, int row, int col) co
   return GainCorrectionFactor;
 }
 
+short CalOnlineGainTables::getAdcdacrm(int det, int rob, int mcm) const
+{
+  return mGainTable[getArrayOffsetrm(det, rob, mcm)].mAdcdac;
+}
+
 short CalOnlineGainTables::getAdcdac(int det, int row, int col) const
 {
   int arrayoffset = getArrayOffset(det, row, col);
   return mGainTable[arrayoffset].mAdcdac;
 };
 
+float CalOnlineGainTables::getMCMGainrm(int det, int rob, int mcm) const
+{
+  return mGainTable[getArrayOffsetrm(det, rob, mcm)].mMCMGain;
+}
+
 float CalOnlineGainTables::getMCMGain(int det, int row, int col) const
 {
   int arrayoffset = getArrayOffset(det, row, col);
   return mGainTable[arrayoffset].mMCMGain;
 }
+
+short CalOnlineGainTables::getFGANrm(int det, int rob, int mcm, int channel) const
+{
+  return mGainTable[getArrayOffsetrm(det, rob, mcm)].mFGAN[channel];
+}
+
 short CalOnlineGainTables::getFGAN(int det, int row, int col) const
 {
   int arrayoffset = getArrayOffset(det, row, col);
   int channel = getChannel(col);
   return mGainTable[arrayoffset].mFGAN[channel];
 }
+
+short CalOnlineGainTables::getFGFNrm(int det, int rob, int mcm, int channel) const
+{
+  return mGainTable[getArrayOffsetrm(det, rob, mcm)].mFGFN[channel];
+}
+
 short CalOnlineGainTables::getFGFN(int det, int row, int col) const
 {
   int arrayoffset = getArrayOffset(det, row, col);
   int channel = getChannel(col);
   return mGainTable[arrayoffset].mFGFN[channel];
+}
+
+void CalOnlineGainTables::setAdcdacrm(int det, int rob, int mcm, short adcdac)
+{
+  mGainTable[getArrayOffsetrm(det, rob, mcm)].mAdcdac = adcdac;
 }
 
 void CalOnlineGainTables::setAdcdac(int det, int row, int col, short adcdac)
@@ -91,10 +123,20 @@ void CalOnlineGainTables::setAdcdac(int det, int row, int col, short adcdac)
   mGainTable[arrayoffset].mAdcdac = adcdac;
 }
 
+void CalOnlineGainTables::setMCMGainrm(int det, int rob, int mcm, float gain)
+{
+  mGainTable[getArrayOffsetrm(det, rob, mcm)].mMCMGain = gain;
+}
+
 void CalOnlineGainTables::setMCMGain(int det, int row, int col, float gain)
 {
   int arrayoffset = getArrayOffset(det, row, col);
   mGainTable[arrayoffset].mMCMGain = gain;
+}
+
+void CalOnlineGainTables::setFGANrm(int det, int rob, int mcm, int channel, short gain)
+{
+  mGainTable[getArrayOffsetrm(det, rob, mcm)].mFGAN[channel] = gain;
 }
 
 void CalOnlineGainTables::setFGAN(int det, int row, int col, short gain)
@@ -102,6 +144,11 @@ void CalOnlineGainTables::setFGAN(int det, int row, int col, short gain)
   int arrayoffset = getArrayOffset(det, row, col);
   int channel = getChannel(col);
   mGainTable[arrayoffset].mFGAN[channel] = gain;
+}
+
+void CalOnlineGainTables::setFGFNrm(int det, int rob, int mcm, int channel, short gain)
+{
+  mGainTable[getArrayOffsetrm(det, rob, mcm)].mFGFN[channel] = gain;
 }
 
 void CalOnlineGainTables::setFGFN(int det, int row, int col, short gain)

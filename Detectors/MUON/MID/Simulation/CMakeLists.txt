@@ -8,27 +8,26 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(MIDSimulation
-               SOURCES src/ChamberEfficiencyResponse.cxx
-                       src/ChamberHV.cxx
-                       src/ChamberResponse.cxx
-                       src/ChamberResponseParams.cxx
-                       src/ClusterLabeler.cxx
-                       src/Detector.cxx
-                       src/Digitizer.cxx
-                       src/DigitsMerger.cxx
-                       src/DigitsPacker.cxx
-                       src/Geometry.cxx
-                       src/Hit.cxx
-                       src/Materials.cxx
-                       src/MCClusterLabel.cxx
-                       src/MCLabel.cxx
-                       src/PreClusterLabeler.cxx
-                       src/Stepper.cxx
-                       src/TrackLabeler.cxx
-               PUBLIC_LINK_LIBRARIES O2::MIDBase O2::CommonDataFormat
-                                     O2::DetectorsBase O2::SimulationDataFormat
-                                     O2::MIDClustering)
+o2_add_library(
+  MIDSimulation
+  SOURCES src/ChamberEfficiencyResponse.cxx
+          src/ChamberHV.cxx
+          src/ChamberResponse.cxx
+          src/ChamberResponseParams.cxx
+          src/ClusterLabeler.cxx
+          src/Detector.cxx
+          src/Digitizer.cxx
+          src/DigitsMerger.cxx
+          src/Geometry.cxx
+          src/Hit.cxx
+          src/Materials.cxx
+          src/MCClusterLabel.cxx
+          src/MCLabel.cxx
+          src/PreClusterLabeler.cxx
+          src/Stepper.cxx
+          src/TrackLabeler.cxx
+  PUBLIC_LINK_LIBRARIES O2::MIDBase O2::CommonDataFormat O2::DetectorsBase
+                        O2::SimulationDataFormat O2::MIDClustering)
 
 o2_target_root_dictionary(
   MIDSimulation
@@ -41,18 +40,18 @@ o2_target_root_dictionary(
           include/MIDSimulation/Detector.h
           include/MIDSimulation/Digitizer.h
           include/MIDSimulation/DigitsMerger.h
-          include/MIDSimulation/DigitsPacker.h
           include/MIDSimulation/Hit.h
           include/MIDSimulation/MCClusterLabel.h
           include/MIDSimulation/MCLabel.h
           include/MIDSimulation/Stepper.h)
 
+o2_data_file(COPY data DESTINATION Detectors/MID/simulation)
+
 if(BUILD_TESTING)
   add_subdirectory(test)
 
-  o2_add_test_root_macro(macros/drawMIDGeometry.C
-                         PUBLIC_LINK_LIBRARIES FairRoot::Base
-                                               O2::DetectorsPassive
-                                               O2::MIDSimulation
-                         LABELS "muon;mid")
+  o2_add_test_root_macro(
+    macros/drawMIDGeometry.C
+    PUBLIC_LINK_LIBRARIES FairRoot::Base O2::DetectorsPassive O2::MIDSimulation
+    LABELS "muon;mid")
 endif()

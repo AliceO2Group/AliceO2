@@ -11,8 +11,8 @@
 #ifndef DETECTORS_PASSIVE_INCLUDE_DETECTORSPASSIVE_HALLSIMPARAM_H_
 #define DETECTORS_PASSIVE_INCLUDE_DETECTORSPASSIVE_HALLSIMPARAM_H_
 
-#include "SimConfig/ConfigurableParam.h"
-#include "SimConfig/ConfigurableParamHelper.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 
 namespace o2
 {

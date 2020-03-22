@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(TestCompletionPolicy_callback)
   policies.emplace_back("test", matcher, callback);
 
   CompletionPolicy::InputSetElement ref{nullptr, reinterpret_cast<const char*>(stack.data()), nullptr};
-  CompletionPolicy::InputSet inputs{&ref, 1};
+  CompletionPolicy::InputSet inputs{[&ref](size_t) { return ref; }, 1};
   for (auto& policy : policies) {
     policy.callback(inputs);
   }

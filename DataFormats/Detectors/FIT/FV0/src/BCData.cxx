@@ -17,7 +17,7 @@ using namespace o2::fv0;
 void BCData::print() const
 {
   ir.print();
-  printf("]\n");
+  printf("\n");
 }
 
 gsl::span<const ChannelData> BCData::getBunchChannelData(const gsl::span<const ChannelData> tfdata) const

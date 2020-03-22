@@ -1113,6 +1113,47 @@ bool isOutputToPipe()
   return ((s.st_mode & S_IFIFO) != 0);
 }
 
+void overridePipeline(ConfigContext& ctx, WorkflowSpec& workflow)
+{
+  struct PipelineSpec {
+    std::string matcher;
+    int64_t pipeline;
+  };
+  auto s = ctx.options().get<std::string>("pipeline");
+  std::vector<PipelineSpec> specs;
+  std::string delimiter = ",";
+
+  size_t pos = 0;
+  while (s.empty() == false) {
+    auto newPos = s.find(delimiter);
+    auto token = s.substr(0, newPos);
+    auto split = token.find(":");
+    if (split == std::string::npos) {
+      throw std::runtime_error("bad pipeline definition. Syntax <processor>:<pipeline>");
+    }
+    auto key = token.substr(0, split);
+    token.erase(0, split + 1);
+    size_t error;
+    auto value = std::stoll(token, &error, 10);
+    if (token[error] != '\0') {
+      throw std::runtime_error("Bad pipeline definition. Expecting integer");
+    }
+    specs.push_back({key, value});
+    s.erase(0, newPos + (newPos == std::string::npos ? 0 : 1));
+  }
+  if (s.empty() == false && specs.empty() == true) {
+    throw std::runtime_error("bad pipeline definition. Syntax <processor>:<pipeline>");
+  }
+
+  for (auto& spec : specs) {
+    for (auto& processor : workflow) {
+      if (processor.name == spec.matcher) {
+        processor.maxInputTimeslices = spec.pipeline;
+      }
+    }
+  }
+}
+
 /// Helper function to initialise the controller from the command line options.
 void initialiseDriverControl(bpo::variables_map const& varmap,
                              DriverControl& control)

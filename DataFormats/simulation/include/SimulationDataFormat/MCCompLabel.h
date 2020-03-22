@@ -49,7 +49,7 @@ class MCCompLabel
   // mask for all used fields
   static constexpr ULong64_t maskFull = (ul0x1 << (nbitsTrackID + nbitsEvID + nbitsSrcID)) - 1;
 
-  MCCompLabel(int trackID, int evID, int srcID, bool fake) { set(trackID, evID, srcID, fake); }
+  MCCompLabel(int trackID, int evID, int srcID, bool fake = false) { set(trackID, evID, srcID, fake); }
   MCCompLabel(bool noise = false)
   {
     if (noise) {

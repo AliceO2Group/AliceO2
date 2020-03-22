@@ -40,7 +40,7 @@ class GPUTPCCFDeconvolution : public GPUKernelTemplate
     countPeaks,
   };
 
-  static GPUd() void countPeaksImpl(int, int, int, int, GPUSharedMemory&, const Array2D<uchar>&, Array2D<PackedCharge>&, const deprecated::Digit*, const uint);
+  static GPUd() void countPeaksImpl(int, int, int, int, GPUSharedMemory&, const Array2D<uchar>&, Array2D<PackedCharge>&, const ChargePos*, const uint);
 
 #ifdef HAVE_O2HEADERS
   typedef GPUTPCClusterFinder processorType;

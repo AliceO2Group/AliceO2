@@ -36,23 +36,6 @@ namespace o2
 namespace tof
 {
 
-// helper function which will be offered as a service
-template <typename T>
-void retrieveHits(std::vector<TChain*> const& chains,
-                  const char* brname,
-                  int sourceID,
-                  int entryID,
-                  std::vector<T>* hits)
-{
-  auto br = chains[sourceID]->GetBranch(brname);
-  if (!br) {
-    LOG(ERROR) << "No branch found";
-    return;
-  }
-  br->SetAddress(&hits);
-  br->GetEntry(entryID);
-}
-
 DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
 {
   // setup of some data structures shared between init and processing functions
@@ -81,6 +64,8 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
     auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
     auto& timesview = context->getEventRecords();
     LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
+
+    context->initSimChains(o2::detectors::DetID::TOF, *simChains.get());
 
     // if there is nothing to do ... return
     if (timesview.size() == 0) {
@@ -137,7 +122,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
 
         // get the hits for this event and this source
         hits.clear();
-        retrieveHits(*simChains.get(), "TOFHit", part.sourceID, part.entryID, &hits);
+        context->retrieveHits(*simChains.get(), "TOFHit", part.sourceID, part.entryID, &hits);
 
         //        LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
 
@@ -145,6 +130,34 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
         labels->clear();
         digits->clear();
         digitizer->process(&hits, digits.get());
+        // if (digitizer->process(&hits, digits.get())) {
+        //   // Post Data
+        //   if (digitizer->isContinuous()) {
+        //     digits->clear();
+        //     labels->clear();
+        //     digitizer->flushOutputContainer(*digits.get());
+        //   }
+
+        //   std::vector<Digit>* digitsVector = digitizer->getDigitPerTimeFrame();
+        //   std::vector<ReadoutWindowData>* readoutwindow = digitizer->getReadoutWindowData();
+        //   std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* mcLabVecOfVec = digitizer->getMCTruthPerTimeFrame();
+
+        //   LOG(INFO) << "Post " << digitsVector->size() << " digits in " << readoutwindow->size() << " RO windows";
+
+        //   // here we have all digits and we can send them to consumer (aka snapshot it onto output)
+        //   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, *digitsVector);
+        //   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe}, *mcLabVecOfVec);
+        //   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, *readoutwindow);
+        //   LOG(INFO) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
+        //   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}, roMode);
+
+        //   // go to new TF
+        //   digitizer->newTF();
+
+        //   digitizer->setEventTime(timesview[collID].timeNS);
+
+        //   digitizer->process(&hits, digits.get());
+        // }
         // copy digits into accumulator
         //std::copy(digits->begin(), digits->end(), std::back_inserter(*digitsAccum.get()));
         //labelAccum.mergeAtBack(*labels);
@@ -155,12 +168,13 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
       digits->clear();
       labels->clear();
       digitizer->flushOutputContainer(*digits.get());
-      LOG(INFO) << "FLUSHING LEFTOVER STUFF " << digits->size();
     }
 
     std::vector<Digit>* digitsVector = digitizer->getDigitPerTimeFrame();
     std::vector<ReadoutWindowData>* readoutwindow = digitizer->getReadoutWindowData();
     std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* mcLabVecOfVec = digitizer->getMCTruthPerTimeFrame();
+
+    LOG(INFO) << "Post " << digitsVector->size() << " digits in " << readoutwindow->size() << " RO windows";
 
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, *digitsVector);
@@ -173,25 +187,14 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
     LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
 
     // we should be only called once; tell DPL that this process is ready to exit
-    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+    pc.services().get<ControlService>().endOfStream();
+    //pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+
     finished = true;
   };
 
   // init function returning the lambda taking a ProcessingContext
   auto initIt = [simChains, process, digitizer, labels](InitContext& ctx) {
-    // setup the input chain for the hits
-    simChains->emplace_back(new TChain("o2sim"));
-
-    // add the main (background) file
-    simChains->back()->AddFile(ctx.options().get<std::string>("simFile").c_str());
-
-    // maybe add a particular signal file
-    auto signalfilename = ctx.options().get<std::string>("simFileS");
-    if (signalfilename.size() > 0) {
-      simChains->emplace_back(new TChain("o2sim"));
-      simChains->back()->AddFile(signalfilename.c_str());
-    }
-
     // make sure that the geometry is loaded (TODO will this be done centrally?)
     if (!gGeoManager) {
       o2::base::GeometryManager::loadGeometry();
@@ -227,9 +230,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB)
             OutputSpec{o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe},
             OutputSpec{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}},
     AlgorithmSpec{initIt},
-    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
-            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
-            {"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}
+    Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}
     // I can't use VariantType::Bool as it seems to have a problem
   };
 }

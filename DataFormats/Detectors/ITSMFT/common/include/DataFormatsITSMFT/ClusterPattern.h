@@ -59,6 +59,10 @@ class ClusterPattern
   void setPattern(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
   /// Sets the whole bitmask: the number of rows, the number of columns and the pattern
   void setPattern(const unsigned char bitmask[kExtendedPatternBytes]);
+  /// Static: Compute pattern's COG position. Returns the number of fired pixels
+  static int getCOG(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes], float& xCOG, float& zCOG);
+  /// Compute pattern's COG position. Returns the number of fired pixels
+  int getCOG(float& xCOG, float& zCOG) const;
 
   friend ClusterTopology;
   friend TopologyDictionary;
