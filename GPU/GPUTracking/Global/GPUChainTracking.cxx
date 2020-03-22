@@ -38,9 +38,9 @@
 #include "GPUReconstructionConvert.h"
 #include "GPUMemorySizeScalers.h"
 #include "GPUTrackingInputProvider.h"
-#include "Digit.h"
 
 #ifdef HAVE_O2HEADERS
+#include "Digit.h"
 #include "GPUTPCClusterStatistics.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "Headers/RAWDataHeader.h"
