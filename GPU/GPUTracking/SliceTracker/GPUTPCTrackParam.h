@@ -54,11 +54,11 @@ class GPUTPCTrackParam
   GPUd() float Chi2() const { return mChi2; }
   GPUd() int NDF() const { return mNDF; }
 
-  GPUd() float Err2Y() const { return mC[0]; }
-  GPUd() float Err2Z() const { return mC[2]; }
-  GPUd() float Err2SinPhi() const { return mC[5]; }
-  GPUd() float Err2DzDs() const { return mC[9]; }
-  GPUd() float Err2QPt() const { return mC[14]; }
+  GPUd() float Err2Y() const { return mParam.Err2Y(); }
+  GPUd() float Err2Z() const { return mParam.Err2Z(); }
+  GPUd() float Err2SinPhi() const { return mParam.Err2SinPhi(); }
+  GPUd() float Err2DzDs() const { return mParam.Err2DzDs(); }
+  GPUd() float Err2QPt() const { return mParam.Err2QPt(); }
 
   GPUd() float GetX() const { return mParam.GetX(); }
   GPUd() float GetY() const { return mParam.GetY(); }
@@ -73,22 +73,15 @@ class GPUTPCTrackParam
   GPUd() float GetKappa(float Bz) const { return mParam.GetKappa(Bz); }
   GPUd() float GetCosPhi() const { return mSignCosPhi * CAMath::Sqrt(1 - SinPhi() * SinPhi()); }
 
-  GPUd() float GetErr2Y() const { return mC[0]; }
-  GPUd() float GetErr2Z() const { return mC[2]; }
-  GPUd() float GetErr2SinPhi() const { return mC[5]; }
-  GPUd() float GetErr2DzDs() const { return mC[9]; }
-  GPUd() float GetErr2QPt() const { return mC[14]; }
-
   GPUhd() MakeType(const float*) Par() const { return mParam.Par(); }
-  GPUhd() const float* Cov() const { return mC; }
+  GPUhd() const float* Cov() const { return mParam.Cov(); }
 
   GPUd() const float* GetPar() const { return mParam.GetPar(); }
   GPUd() float GetPar(int i) const { return (mParam.GetPar(i)); }
-  GPUd() const float* GetCov() const { return mC; }
-  GPUd() float GetCov(int i) const { return mC[i]; }
+  GPUd() float GetCov(int i) const { return mParam.GetCov(i); }
 
   GPUhd() void SetPar(int i, float v) { mParam.SetPar(i, v); }
-  GPUhd() void SetCov(int i, float v) { mC[i] = v; }
+  GPUhd() void SetCov(int i, float v) { mParam.SetCov(i, v); }
 
   GPUd() void SetX(float v) { mParam.SetX(v); }
   GPUd() void SetY(float v) { mParam.SetY(v); }
@@ -145,7 +138,6 @@ class GPUTPCTrackParam
   // WARNING, Track Param Data is copied in the GPU Tracklet Constructor element by element instead of using copy constructor!!!
   // This is neccessary for performance reasons!!!
   // Changes to Elements of this class therefore must also be applied to TrackletConstructor!!!
-  float mC[15];      // the covariance matrix for Y,Z,SinPhi,..
   float mSignCosPhi; // sign of cosPhi
   float mChi2;       // the chi^2 value
   int mNDF;          // the Number of Degrees of Freedom

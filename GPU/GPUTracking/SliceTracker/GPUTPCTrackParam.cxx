@@ -177,41 +177,41 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::TransportToX(float x, GPUTPCTrackLinearisa
   SetPar(1, Z() + dz + dS * d[3]);
   SetPar(2, t0.SinPhi() + d[2] + dxBz * d[4]);
 
-  float c00 = mC[0];
-  float c10 = mC[1];
-  float c11 = mC[2];
-  float c20 = mC[3];
-  float c21 = mC[4];
-  float c22 = mC[5];
-  float c30 = mC[6];
-  float c31 = mC[7];
-  float c32 = mC[8];
-  float c33 = mC[9];
-  float c40 = mC[10];
-  float c41 = mC[11];
-  float c42 = mC[12];
-  float c43 = mC[13];
-  float c44 = mC[14];
+  float c00 = mParam.mC[0];
+  float c10 = mParam.mC[1];
+  float c11 = mParam.mC[2];
+  float c20 = mParam.mC[3];
+  float c21 = mParam.mC[4];
+  float c22 = mParam.mC[5];
+  float c30 = mParam.mC[6];
+  float c31 = mParam.mC[7];
+  float c32 = mParam.mC[8];
+  float c33 = mParam.mC[9];
+  float c40 = mParam.mC[10];
+  float c41 = mParam.mC[11];
+  float c42 = mParam.mC[12];
+  float c43 = mParam.mC[13];
+  float c44 = mParam.mC[14];
 
-  mC[0] = c00 + h2 * h2 * c22 + h4 * h4 * c44 + 2 * (h2 * c20 + h4 * c40 + h2 * h4 * c42);
+  mParam.mC[0] = c00 + h2 * h2 * c22 + h4 * h4 * c44 + 2 * (h2 * c20 + h4 * c40 + h2 * h4 * c42);
 
-  mC[1] = c10 + h2 * c21 + h4 * c41 + dS * (c30 + h2 * c32 + h4 * c43);
-  mC[2] = c11 + 2 * dS * c31 + dS * dS * c33;
+  mParam.mC[1] = c10 + h2 * c21 + h4 * c41 + dS * (c30 + h2 * c32 + h4 * c43);
+  mParam.mC[2] = c11 + 2 * dS * c31 + dS * dS * c33;
 
-  mC[3] = c20 + h2 * c22 + h4 * c42 + dxBz * (c40 + h2 * c42 + h4 * c44);
-  mC[4] = c21 + dS * c32 + dxBz * (c41 + dS * c43);
-  mC[5] = c22 + 2 * dxBz * c42 + dxBz * dxBz * c44;
+  mParam.mC[3] = c20 + h2 * c22 + h4 * c42 + dxBz * (c40 + h2 * c42 + h4 * c44);
+  mParam.mC[4] = c21 + dS * c32 + dxBz * (c41 + dS * c43);
+  mParam.mC[5] = c22 + 2 * dxBz * c42 + dxBz * dxBz * c44;
 
-  mC[6] = c30 + h2 * c32 + h4 * c43;
-  mC[7] = c31 + dS * c33;
-  mC[8] = c32 + dxBz * c43;
-  mC[9] = c33;
+  mParam.mC[6] = c30 + h2 * c32 + h4 * c43;
+  mParam.mC[7] = c31 + dS * c33;
+  mParam.mC[8] = c32 + dxBz * c43;
+  mParam.mC[9] = c33;
 
-  mC[10] = c40 + h2 * c42 + h4 * c44;
-  mC[11] = c41 + dS * c43;
-  mC[12] = c42 + dxBz * c44;
-  mC[13] = c43;
-  mC[14] = c44;
+  mParam.mC[10] = c40 + h2 * c42 + h4 * c44;
+  mParam.mC[11] = c41 + dS * c43;
+  mParam.mC[12] = c42 + dxBz * c44;
+  mParam.mC[13] = c43;
+  mParam.mC[14] = c44;
 
   return 1;
 }
@@ -256,43 +256,43 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::TransportToX(float x, float sinPhi0, float
   SetPar(1, GetPar(1) + dS * DzDs());
   SetPar(2, sinPhi);
 
-  float c00 = mC[0];
-  float c10 = mC[1];
-  float c11 = mC[2];
-  float c20 = mC[3];
-  float c21 = mC[4];
-  float c22 = mC[5];
-  float c30 = mC[6];
-  float c31 = mC[7];
-  float c32 = mC[8];
-  float c33 = mC[9];
-  float c40 = mC[10];
-  float c41 = mC[11];
-  float c42 = mC[12];
-  float c43 = mC[13];
-  float c44 = mC[14];
+  float c00 = mParam.mC[0];
+  float c10 = mParam.mC[1];
+  float c11 = mParam.mC[2];
+  float c20 = mParam.mC[3];
+  float c21 = mParam.mC[4];
+  float c22 = mParam.mC[5];
+  float c30 = mParam.mC[6];
+  float c31 = mParam.mC[7];
+  float c32 = mParam.mC[8];
+  float c33 = mParam.mC[9];
+  float c40 = mParam.mC[10];
+  float c41 = mParam.mC[11];
+  float c42 = mParam.mC[12];
+  float c43 = mParam.mC[13];
+  float c44 = mParam.mC[14];
 
   // This is not the correct propagation!!! The max ensures the positional error does not decrease during track finding.
   // A different propagation method is used for the fit.
-  mC[0] = CAMath::Max(c00, c00 + h2 * h2 * c22 + h4 * h4 * c44 + 2 * (h2 * c20 + h4 * c40 + h2 * h4 * c42));
+  mParam.mC[0] = CAMath::Max(c00, c00 + h2 * h2 * c22 + h4 * h4 * c44 + 2 * (h2 * c20 + h4 * c40 + h2 * h4 * c42));
 
-  mC[1] = c10 + h2 * c21 + h4 * c41 + dS * (c30 + h2 * c32 + h4 * c43);
-  mC[2] = CAMath::Max(c11, c11 + 2 * dS * c31 + dS * dS * c33);
+  mParam.mC[1] = c10 + h2 * c21 + h4 * c41 + dS * (c30 + h2 * c32 + h4 * c43);
+  mParam.mC[2] = CAMath::Max(c11, c11 + 2 * dS * c31 + dS * dS * c33);
 
-  mC[3] = c20 + h2 * c22 + h4 * c42 + dxBz * (c40 + h2 * c42 + h4 * c44);
-  mC[4] = c21 + dS * c32 + dxBz * (c41 + dS * c43);
-  mC[5] = c22 + 2 * dxBz * c42 + dxBz * dxBz * c44;
+  mParam.mC[3] = c20 + h2 * c22 + h4 * c42 + dxBz * (c40 + h2 * c42 + h4 * c44);
+  mParam.mC[4] = c21 + dS * c32 + dxBz * (c41 + dS * c43);
+  mParam.mC[5] = c22 + 2 * dxBz * c42 + dxBz * dxBz * c44;
 
-  mC[6] = c30 + h2 * c32 + h4 * c43;
-  mC[7] = c31 + dS * c33;
-  mC[8] = c32 + dxBz * c43;
-  mC[9] = c33;
+  mParam.mC[6] = c30 + h2 * c32 + h4 * c43;
+  mParam.mC[7] = c31 + dS * c33;
+  mParam.mC[8] = c32 + dxBz * c43;
+  mParam.mC[9] = c33;
 
-  mC[10] = c40 + h2 * c42 + h4 * c44;
-  mC[11] = c41 + dS * c43;
-  mC[12] = c42 + dxBz * c44;
-  mC[13] = c43;
-  mC[14] = c44;
+  mParam.mC[10] = c40 + h2 * c42 + h4 * c44;
+  mParam.mC[11] = c41 + dS * c43;
+  mParam.mC[12] = c42 + dxBz * c44;
+  mParam.mC[13] = c43;
+  mParam.mC[14] = c44;
 
   return 1;
 }
@@ -441,7 +441,7 @@ GPUd() void MEM_LG(GPUTPCTrackParam)::CalculateFitParameters(GPUTPCTrackFitParam
   //*!
 
   float qpt = GetPar(4);
-  if (mC[14] >= 1.f) {
+  if (mParam.mC[14] >= 1.f) {
     qpt = 1.f / 0.35f;
   }
 
@@ -479,13 +479,13 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::CorrectForMeanMaterial(float xOverX0, floa
   // "xTimesRho" - is the product length*density (g/cm^2).
   //------------------------------------------------------------------
 
-  float& mC22 = mC[5];
-  float& mC33 = mC[9];
-  float& mC40 = mC[10];
-  float& mC41 = mC[11];
-  float& mC42 = mC[12];
-  float& mC43 = mC[13];
-  float& mC44 = mC[14];
+  float& mC22 = mParam.mC[5];
+  float& mC33 = mParam.mC[9];
+  float& mC40 = mParam.mC[10];
+  float& mC41 = mParam.mC[11];
+  float& mC42 = mParam.mC[12];
+  float& mC43 = mParam.mC[13];
+  float& mC44 = mParam.mC[14];
 
   // Energy losses************************
 
@@ -549,32 +549,32 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::Rotate(float alpha, float maxSinPhi)
   //                    {  0, 0, 0,  1,  0 }, // DzDs
   //                    {  0, 0, 0,  0,  1 } }; // Kappa
   // cout<<"alpha="<<alpha<<" "<<x<<" "<<y<<" "<<sP<<" "<<cP<<" "<<j0<<" "<<j2<<endl;
-  // cout<<"      "<<mC[0]<<" "<<mC[1]<<" "<<mC[6]<<" "<<mC[10]<<" "<<mC[4]<<" "<<mC[5]<<" "<<mC[8]<<" "<<mC[12]<<endl;
-  mC[0] *= j0 * j0;
-  mC[1] *= j0;
-  mC[3] *= j0;
-  mC[6] *= j0;
-  mC[10] *= j0;
+  // cout<<"      "<<mParam.mC[0]<<" "<<mParam.mC[1]<<" "<<mParam.mC[6]<<" "<<mParam.mC[10]<<" "<<mParam.mC[4]<<" "<<mParam.mC[5]<<" "<<mParam.mC[8]<<" "<<mParam.mC[12]<<endl;
+  mParam.mC[0] *= j0 * j0;
+  mParam.mC[1] *= j0;
+  mParam.mC[3] *= j0;
+  mParam.mC[6] *= j0;
+  mParam.mC[10] *= j0;
 
-  mC[3] *= j2;
-  mC[4] *= j2;
-  mC[5] *= j2 * j2;
-  mC[8] *= j2;
-  mC[12] *= j2;
+  mParam.mC[3] *= j2;
+  mParam.mC[4] *= j2;
+  mParam.mC[5] *= j2 * j2;
+  mParam.mC[8] *= j2;
+  mParam.mC[12] *= j2;
 
   if (cosPhi < 0) {
     SetSinPhi(-SinPhi());
     SetDzDs(-DzDs());
     SetQPt(-QPt());
-    mC[3] = -mC[3];
-    mC[4] = -mC[4];
-    mC[6] = -mC[6];
-    mC[7] = -mC[7];
-    mC[10] = -mC[10];
-    mC[11] = -mC[11];
+    mParam.mC[3] = -mParam.mC[3];
+    mParam.mC[4] = -mParam.mC[4];
+    mParam.mC[6] = -mParam.mC[6];
+    mParam.mC[7] = -mParam.mC[7];
+    mParam.mC[10] = -mParam.mC[10];
+    mParam.mC[11] = -mParam.mC[11];
   }
 
-  // cout<<"      "<<mC[0]<<" "<<mC[1]<<" "<<mC[6]<<" "<<mC[10]<<" "<<mC[4]<<" "<<mC[5]<<" "<<mC[8]<<" "<<mC[12]<<endl;
+  // cout<<"      "<<mParam.mC[0]<<" "<<mParam.mC[1]<<" "<<mParam.mC[6]<<" "<<mParam.mC[10]<<" "<<mParam.mC[4]<<" "<<mParam.mC[5]<<" "<<mParam.mC[8]<<" "<<mParam.mC[12]<<endl;
   return 1;
 }
 
@@ -610,17 +610,17 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::Rotate(float alpha, GPUTPCTrackLinearisati
 
   SetSinPhi(sinPhi + j2 * d[1]);
 
-  mC[0] *= j0 * j0;
-  mC[1] *= j0;
-  mC[3] *= j0;
-  mC[6] *= j0;
-  mC[10] *= j0;
+  mParam.mC[0] *= j0 * j0;
+  mParam.mC[1] *= j0;
+  mParam.mC[3] *= j0;
+  mParam.mC[6] *= j0;
+  mParam.mC[10] *= j0;
 
-  mC[3] *= j2;
-  mC[4] *= j2;
-  mC[5] *= j2 * j2;
-  mC[8] *= j2;
-  mC[12] *= j2;
+  mParam.mC[3] *= j2;
+  mParam.mC[4] *= j2;
+  mParam.mC[5] *= j2 * j2;
+  mParam.mC[8] *= j2;
+  mParam.mC[12] *= j2;
 
   return 1;
 }
@@ -630,7 +630,7 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::Filter(float y, float z, float err2Y, floa
 {
   //* Add the y,z measurement with the Kalman filter
 
-  float c00 = mC[0], c11 = mC[2], c20 = mC[3], c31 = mC[7], c40 = mC[10];
+  float c00 = mParam.mC[0], c11 = mParam.mC[2], c20 = mParam.mC[3], c31 = mParam.mC[7], c40 = mParam.mC[10];
 
   err2Y += c00;
   err2Z += c11;
@@ -673,16 +673,16 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::Filter(float y, float z, float err2Y, floa
   mNDF += 2;
   mChi2 += mS0 * z0 * z0 + mS2 * z1 * z1;
 
-  mC[0] -= k00 * c00;
-  mC[3] -= k20 * c00;
-  mC[5] -= k20 * c20;
-  mC[10] -= k40 * c00;
-  mC[12] -= k40 * c20;
-  mC[14] -= k40 * c40;
+  mParam.mC[0] -= k00 * c00;
+  mParam.mC[3] -= k20 * c00;
+  mParam.mC[5] -= k20 * c20;
+  mParam.mC[10] -= k40 * c00;
+  mParam.mC[12] -= k40 * c20;
+  mParam.mC[14] -= k40 * c40;
 
-  mC[2] -= k11 * c11;
-  mC[7] -= k31 * c11;
-  mC[9] -= k31 * c31;
+  mParam.mC[2] -= k11 * c11;
+  mParam.mC[7] -= k31 * c11;
+  mParam.mC[9] -= k31 * c31;
 
   return 1;
 }
@@ -735,6 +735,6 @@ GPUd() void MEM_LG(GPUTPCTrackParam)::Print() const
 
 #if !defined(GPUCA_GPUCODE)
   std::cout << "track: x=" << GetX() << " c=" << GetSignCosPhi() << ", P= " << GetY() << " " << GetZ() << " " << GetSinPhi() << " " << GetDzDs() << " " << GetQPt() << std::endl;
-  std::cout << "errs2: " << GetErr2Y() << " " << GetErr2Z() << " " << GetErr2SinPhi() << " " << GetErr2DzDs() << " " << GetErr2QPt() << std::endl;
+  std::cout << "errs2: " << Err2Y() << " " << Err2Z() << " " << Err2SinPhi() << " " << Err2DzDs() << " " << Err2QPt() << std::endl;
 #endif
 }
