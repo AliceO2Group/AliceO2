@@ -97,7 +97,6 @@ struct DecayVertexBuilder2Prong {
                                          track_1.c1PtY(), track_1.c1PtZ(), track_1.c1PtSnp(),
                                          track_1.c1PtTgl(), track_1.c1Pt21Pt2()};
         o2::track::TrackParCov trackparvar1(x1_, alpha1_, arraypar1, covpar1);
-  
         df.setUseAbsDCA(true);
         int nCand = df.process(trackparvar0, trackparvar1);
         //FIXME: currently filling the table for all dca candidates.
