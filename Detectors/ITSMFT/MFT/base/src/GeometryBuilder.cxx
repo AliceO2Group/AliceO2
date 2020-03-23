@@ -61,7 +61,7 @@ void GeometryBuilder::buildGeometry()
   }
 
   /// \todo Add the service, Barrel, etc Those objects will probably be defined into the COMMON ITSMFT area.
-  if (mftBaseParam.buildFullMFT || mftBaseParam.buildCone) {
+  if (!mftBaseParam.minimal && mftBaseParam.buildCone) {
     auto* halfCone = new HalfCone();
     TGeoVolumeAssembly* halfCone1 = halfCone->createHalfCone(0);
     TGeoVolumeAssembly* halfCone2 = halfCone->createHalfCone(1);
@@ -69,7 +69,7 @@ void GeometryBuilder::buildGeometry()
     volMFT->AddNode(halfCone2, 1);
   }
 
-  if (mftBaseParam.buildFullMFT || mftBaseParam.buildBarrel) {
+  if (!mftBaseParam.minimal && mftBaseParam.buildBarrel) {
     //barrel services
     auto* t_barrel0 = new TGeoTranslation("translation_barrel", 0.0, 0.7, -80.17);
     auto* r_barrel0 = new TGeoRotation("rotation_barrel", 0.0, 0.0, 0.0);
@@ -85,7 +85,7 @@ void GeometryBuilder::buildGeometry()
     volMFT->AddNode(halfBarrel1, 1, p_barrel1);
   }
 
-  if (mftBaseParam.buildFullMFT || mftBaseParam.buildPatchPanel) {
+  if (!mftBaseParam.minimal && mftBaseParam.buildPatchPanel) {
     auto* t_patchpanel0 = new TGeoTranslation("translation_patchpanel", 0.0, 0., -81.5); //z (0,0.7, -81.5 -1.3; 0..81.7 --1.5
     auto* r_patchpanel0 = new TGeoRotation("rotation_patchpanel", 0.0, 0.0, 0.0);
     auto* p_patchpanel0 = new TGeoCombiTrans(*t_patchpanel0, *r_patchpanel0);

@@ -76,7 +76,7 @@ TGeoVolume* Ladder::createVolume()
     4 * Geometry::sSensorTopOffset + SegmentationAlpide::SensorSizeRows - Geometry::sFlexHeight / 2; // to be verified!!
 
   auto& mftBaseParam = MFTBaseParam::Instance();
-  if (mftBaseParam.buildFullMFT || mftBaseParam.buildFlex) {
+  if (mftBaseParam.buildFlex) {
     TGeoVolumeAssembly* flexVol = mFlex->makeFlex(mSegmentation->getNSensors(), flexLength);
     mLadderVolume->AddNode(flexVol, 1, new TGeoTranslation(flexLength / 2 + Geometry::sSensorSideOffset / 2, shiftY, Geometry::sFlexThickness / 2 - 2 * (Geometry::sKaptonOnCarbonThickness + Geometry::sKaptonGlueThickness)));
   }

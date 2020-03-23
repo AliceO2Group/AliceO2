@@ -58,18 +58,18 @@ HalfDisk::HalfDisk(HalfDiskSegmentation* segmentation)
   mHalfDiskVolume = new TGeoVolumeAssembly(GetName());
 
   // Building Heat Exchanger Between faces
-  if (mftBaseParam.buildFullMFT || mftBaseParam.buildHeatExchanger) {
+  if (mftBaseParam.buildHeatExchanger) {
     TGeoVolumeAssembly* heatExchangerVol = createHeatExchanger();
     mHalfDiskVolume->AddNode(heatExchangerVol, 1);
   }
 
-  if (mftBaseParam.buildFullMFT || mftBaseParam.buildPCBSupports) {
+  if (!mftBaseParam.minimal && mftBaseParam.buildPCBSupports) {
     // Building Support
     TGeoVolumeAssembly* supportVol = createSupport();
     mHalfDiskVolume->AddNode(supportVol, 1);
   }
 
-  if (mftBaseParam.buildFullMFT || mftBaseParam.buildPCBs) {
+  if (!mftBaseParam.minimal && mftBaseParam.buildPCBs) {
     // Building PCB
     TGeoVolumeAssembly* PCBVol = createPCBSupport();
     mHalfDiskVolume->AddNode(PCBVol, 1);

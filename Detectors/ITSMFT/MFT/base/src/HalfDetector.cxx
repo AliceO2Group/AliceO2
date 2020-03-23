@@ -73,7 +73,7 @@ void HalfDetector::createHalfDisks()
     delete halfDisk;
   }
 
-  if (mftBaseParam.buildFullMFT || mftBaseParam.buildPSU) {
+  if (!mftBaseParam.minimal && mftBaseParam.buildPSU) {
     TGeoVolumeAssembly* mHalfPSU = mPSU->create();
     TGeoTranslation* tHalfPSU = new TGeoTranslation("tHalfPSU", 0, 0.4, -72.6 + 46.0);
     tHalfPSU->RegisterYourself();

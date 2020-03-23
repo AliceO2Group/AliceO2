@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \author R. Pezzi - Março 2020
+/// \author R. Pezzi - March 2020
 
 #ifndef ALICEO2_MFT_BASEPARAM_H_
 #define ALICEO2_MFT_BASEPARAM_H_
@@ -31,16 +31,15 @@ struct MFTBaseParam : public o2::conf::ConfigurableParamHelper<MFTBaseParam> {
   bool buildFlex = true;
 
   // Out of acceptance
-  bool buildCone = false;
-  bool buildBarrel = false;
-  bool buildPatchPanel = false;
-  bool buildPCBSupports = false;
-  bool buildPCBs = false;
-  bool buildPSU = false;
+  bool buildCone = true;
+  bool buildBarrel = true;
+  bool buildPatchPanel = true;
+  bool buildPCBSupports = true;
+  bool buildPCBs = true;
+  bool buildPSU = true;
 
   // General configurations
-  bool buildFullMFT = false;
-  // bool geometryDebug = false; // A debug option would be usefull for suppressing textual output, such as those from the HeatExchanger
+  bool minimal = false; // Disables all elements out of MFT acceptance
 
   O2ParamDef(MFTBaseParam, "MFTBase");
 };
