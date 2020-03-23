@@ -18,7 +18,7 @@
   /eos/user/e/ehellbar/SpaceCharge/data/RUN3/InputSCDensityHistograms
 
   Run macro:
-  root -l -b -q $O2_SRC/Detectors/TPC/reconstruction/macro/createTPCSpaceChargeCorrection.C+\(180,65,65,\"InputSCDensityHistograms_10000events.root\",\"inputSCDensity3D_8000_0\",\"tpctransformSCcorrection.dump\"\)
+  root -l -b -q $O2_SRC/Detectors/TPC/reconstruction/macro/createTPCSpaceChargeCorrection.C+\(180,65,65,\"InputSCDensityHistograms_8000events.root\",\"inputSCDensity3D_8000_0\",\"tpctransformSCcorrection.root\"\)
 
   Test macro compilation:
   .L $O2_SRC/Detectors/TPC/reconstruction/macro/createTPCSpaceChargeCorrection.C+
@@ -71,7 +71,7 @@ void createTPCSpaceChargeCorrection(
   const int nPhi = 180, const int nR = 65, const int nZ = 65,
   const char* histoFileName = "InputSCDensityHistograms_10000events.root",
   const char* histoName = "inputSCDensity3D_10000_avg",
-  const char* outputFileName = "tpctransform.dump",
+  const char* outputFileName = "tpctransform.root",
   const int debug = 0)
 {
   const int interpolationOrder = 2.;
@@ -80,8 +80,7 @@ void createTPCSpaceChargeCorrection(
 
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
 
-  std::fstream file(outputFileName, std::fstream::in | std::fstream::out);
-  DumpFlatObjectToFile(fastTransform.get(), outputFileName);
+  fastTransform->writeToFile(outputFileName);
 
   if (debug > 0) {
     const o2::gpu::TPCFastTransformGeo& geo = fastTransform->getGeometry();
