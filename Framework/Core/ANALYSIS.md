@@ -427,7 +427,7 @@ The column names are expected to match column names of table `tablename` as defi
 
 `file` finally specifies the base name of the files the tables are saved to. The actual file names are composed as `file`_`x`.root, where 'x' is an incremental number. If `file` is not specified the default file name is used. The default file name can be set with the command line option `--res-file`. However, if `res-file` is missing then the default file name is set to `AnalysisResults`.
 
-#### Valid example command line options:
+#### Valid example command line options
 
 ```csh
 --keep AOD/UNO/0
@@ -443,7 +443,7 @@ The column names are expected to match column names of table `tablename` as defi
   
 ```
 
-#### Limitations:
+#### Limitations
 
 If the provided `--keep` option contains two `DataOuputDescriptions` with equal combination of `tree` and `file` then the processing will be stopped! It is not pssible to save two trees with equal name to a given file.
 
