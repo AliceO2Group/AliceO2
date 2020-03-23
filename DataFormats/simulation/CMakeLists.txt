@@ -12,7 +12,7 @@ o2_add_library(SimulationDataFormat
                SOURCES src/Stack.cxx
                        src/MCTrack.cxx
                        src/MCCompLabel.cxx
-                       src/RunContext.cxx
+                       src/DigitizationContext.cxx
                        src/StackParam.cxx
                        src/MCEventHeader.cxx
                        src/CustomStreamers.cxx
@@ -31,7 +31,7 @@ o2_target_root_dictionary(
           include/SimulationDataFormat/MCCompLabel.h
           include/SimulationDataFormat/TrackReference.h
           include/SimulationDataFormat/PrimaryChunk.h
-          include/SimulationDataFormat/RunContext.h
+          include/SimulationDataFormat/DigitizationContext.h
           include/SimulationDataFormat/LabelContainer.h
           include/SimulationDataFormat/MCEventHeader.h
           include/SimulationDataFormat/MCEventStats.h

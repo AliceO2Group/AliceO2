@@ -18,13 +18,16 @@
 #include "GPU/Spline1D.h"
 #include "GPU/IrregularSpline1D.h"
 #include "GPU/SplineHelper1D.h"
+#include "Math/Functor.h"
+#include "Math/ChebyshevApprox.h"
 
 #endif
 
 const int Fdegree = 5;
+int nKnots = 4;
+
 static double Fcoeff[2 * (Fdegree + 1)];
 
-int nKnots = 4;
 
 void F(float u, float f[])
 {
@@ -35,6 +38,29 @@ void F(float u, float f[])
   }
 }
 
+/*
+void F(float u, float f[])
+{
+  double uu = u * 2 / (nKnots - 1)-1.;
+  double t0=1;
+  double t1 = uu;  
+  f[0] = 0;
+  for (int i = 1; i <= Fdegree*2; i++) {
+     double t = t = 2*uu*t1-t0;
+     f[0] += Fcoeff[i]*t;
+     t0 = t1;
+     t1 = t;
+  }
+}
+*/
+
+double F1D(double u)
+{
+  float f = 0;
+  F(u, &f);
+  return f;
+}
+
 float Flocal(float u)
 {
   float f = 0;
@@ -42,25 +68,22 @@ float Flocal(float u)
   return f;
 }
 
-TCanvas* canv = new TCanvas("cQA", "Spline Demo", 2000, 800);
+TCanvas* canv = new TCanvas("cQA", "Spline Demo", 1600, 800);
 
 bool doAskSteps = 1;
-bool drawLocal = 1;
+bool drawLocal = 0;
+bool drawCheb = 0;
+bool drawConstruction = 1;
 
 bool ask()
 {
   canv->Update();
-  cout << "type 'q ' to exit";
-  if (doAskSteps) {
-    cout << ", 's' to skip individual steps";
-  } else {
-    cout << ", 's' to stop at individual steps";
-  }
-  if (drawLocal) {
-    cout << ", 'l' to skip local splines";
-  } else {
-    cout << ", 'l' to draw local splines";
-  }
+  cout << "type: 'q'-exit";
+  cout << ", 's'-individual steps";
+  cout << ", 'l'-local splines";
+  cout << ", 'c'-chebychev";
+  cout << ", 'p'-construction points";
+
   cout << endl;
 
   std::string str;
@@ -69,7 +92,12 @@ bool ask()
     doAskSteps = !doAskSteps;
   } else if (str == "l") {
     drawLocal = !drawLocal;
+  } else if (str == "p") {
+    drawConstruction = !drawConstruction;
+  } else if (str == "c") {
+    drawCheb = !drawCheb;
   }
+
   return (str != "q" && str != ".q");
 }
 
@@ -91,7 +119,12 @@ int SplineDemo()
 
   gRandom->SetSeed(0);
 
-  for (int seed = 13;; seed++) {
+  TH1F* histDfBestFit = new TH1F("histDfBestFit", "Df BestFit", 100, -1., 1.);
+  TH1F* histDfCheb = new TH1F("histDfCheb", "Df Chebyshev", 100, -1., 1.);
+  TH1F* histMinMaxBestFit = new TH1F("histMinMaxBestFit", "MinMax BestFit", 100, -1., 1.);
+  TH1F* histMinMaxCheb = new TH1F("histMinMaxCheb", "MinMax Chebyshev", 100, -1., 1.);
+
+  for (int seed = 12;; seed++) {
 
     //seed = gRandom->Integer(100000); // 605
 
@@ -127,9 +160,10 @@ int SplineDemo()
     spline.print();
     splineLocal.print();
 
-    canv->Draw();
+    ROOT::Math::Functor1D func1D(&F1D);
+    ROOT::Math::ChebyshevApprox cheb(func1D, 0, nKnots - 1, nKnots + (nKnots - 1) * (nAxiliaryPoints)-1);
 
-    TH1F* qaX = new TH1F("qaX", "qaX [um]", 1000, -1000., 1000.);
+    canv->Draw();
 
     TNtuple* knots = new TNtuple("knots", "knots", "type:u:f");
 
@@ -139,20 +173,20 @@ int SplineDemo()
       knots->Fill(1, u, fs);
     }
 
-    for (int i = 0; i < nKnots; i++) {
-      double u = spline.getKnot(i).u;
-      double fs = spline.interpolate1D(parameters.get(), u);
-      knots->Fill(2, u, fs);
-      if (i < nKnots - 1) {
-        double u1 = spline.getKnot(i + 1).u;
-        int nax = nAxiliaryPoints;
-        double du = (u1 - u) / (nax + 1);
-        for (int j = 0; j < nax; j++) {
-          double uu = u + du * (j + 1);
-          double ff = spline.interpolate1D(parameters.get(), uu);
-          knots->Fill(3, uu, ff);
-        }
+    for (int j = 0; j < helper.getNumberOfDataPoints(); j++) {
+      const SplineHelper1D::DataPoint& p = helper.getDataPoint(j);
+      float f0;
+      F(p.u, &f0);
+      double fs = spline.interpolate1D(parameters.get(), p.u);
+      if (p.isKnot) {
+        knots->Fill(2, p.u, fs);
       }
+      knots->Fill(3, p.u, f0);
+
+      double y = cos(M_PI * (j + 0.5) / (helper.getNumberOfDataPoints()));
+      double uCheb = 0.5 * (y * (nKnots - 1) + nKnots - 1);
+      double fCheb = cheb(uCheb, 2 * nKnots - 1);
+      knots->Fill(5, uCheb, fCheb);
     }
 
     for (int i = 0; i < splineLocal.getNumberOfKnots(); i++) {
@@ -161,14 +195,21 @@ int SplineDemo()
       knots->Fill(4, u * (nKnots - 1), fs);
     }
 
-    TNtuple* nt = new TNtuple("nt", "nt", "u:f0:fComp:fClass:fLocal");
+    TNtuple* nt = new TNtuple("nt", "nt", "u:f0:fBestFit:fClass:fLocal:fCheb");
 
     float stepS = 1.e-4;
     int nSteps = (int)(1. / stepS + 1);
 
-    double statDfComp = 0;
+    double statDfBestFit = 0;
     double statDfClass = 0;
     double statDfLocal = 0;
+    double statDfCheb = 0;
+
+    double statMinMaxBestFit = 0;
+    double statMinMaxClass = 0;
+    double statMinMaxLocal = 0;
+    double statMinMaxCheb = 0;
+
     double drawMax = -1.e20;
     double drawMin = 1.e20;
     int statN = 0;
@@ -176,26 +217,41 @@ int SplineDemo()
       double u = s * (nKnots - 1);
       float f0;
       F(u, &f0);
-      double fComp = spline.interpolate1D(parameters.get(), u);
+      double fBestFit = spline.interpolate1D(parameters.get(), u);
       double fClass = splineClassic.interpolate1D(parametersClassic.get(), u);
       double fLocal = splineLocal.getSpline(parametersLocal.get(), s);
-
-      statDfComp += (fComp - f0) * (fComp - f0);
+      double fCheb = cheb(u, 2 * nKnots - 1);
+      nt->Fill(u, f0, fBestFit, fClass, fLocal, fCheb);
+      drawMax = std::max(drawMax, (double)f0);
+      drawMin = std::min(drawMin, (double)f0);
+      drawMax = std::max(drawMax, std::max(fBestFit, std::max(fClass, fLocal)));
+      drawMin = std::min(drawMin, std::min(fBestFit, std::min(fClass, fLocal)));
+      drawMax = std::max(drawMax, fCheb);
+      drawMin = std::min(drawMin, fCheb);
+      statDfBestFit += (fBestFit - f0) * (fBestFit - f0);
       statDfClass += (fClass - f0) * (fClass - f0);
       statDfLocal += (fLocal - f0) * (fLocal - f0);
+      statDfCheb += (fCheb - f0) * (fCheb - f0);
       statN++;
-      qaX->Fill(1.e4 * (fComp - f0));
-      nt->Fill(u, f0, fComp, fClass, fLocal);
-      drawMax = std::max(drawMax, std::max(fComp, std::max(fClass, fLocal)));
-      drawMin = std::min(drawMin, std::min(fComp, std::min(fClass, fLocal)));
+      histDfBestFit->Fill(fBestFit - f0);
+      histDfCheb->Fill(fCheb - f0);
+
+      statMinMaxBestFit = std::max(statMinMaxBestFit, fabs(fBestFit - f0));
+      statMinMaxClass = std::max(statMinMaxClass, fabs(fClass - f0));
+      statMinMaxLocal = std::max(statMinMaxLocal, fabs(fLocal - f0));
+      statMinMaxCheb = std::max(statMinMaxCheb, fabs(fCheb - f0));
     }
+
+    histMinMaxBestFit->Fill(statMinMaxBestFit);
+    histMinMaxCheb->Fill(statMinMaxCheb);
 
     cout << "\n"
          << std::endl;
     cout << "\nRandom seed: " << seed << " " << gRandom->GetSeed() << endl;
-    cout << "std dev Classic : " << sqrt(statDfClass / statN) << std::endl;
-    cout << "std dev Local     : " << sqrt(statDfLocal / statN) << std::endl;
-    cout << "std dev Compact   : " << sqrt(statDfComp / statN) << std::endl;
+    cout << "Classical : std dev " << sqrt(statDfClass / statN) << " minmax " << statMinMaxClass << std::endl;
+    cout << "Local     : std dev " << sqrt(statDfLocal / statN) << " minmax " << statMinMaxLocal << std::endl;
+    cout << "Best-fit  : std dev " << sqrt(statDfBestFit / statN) << " minmax " << statMinMaxBestFit << std::endl;
+    cout << "Chebyshev : std dev " << sqrt(statDfCheb / statN) << " minmax " << statMinMaxCheb << std::endl;
 
     /*
       canv->cd(1);
@@ -208,19 +264,21 @@ int SplineDemo()
 
     {
       TNtuple* ntRange = new TNtuple("ntRange", "nt", "u:f");
-      drawMin -= 0.1 * (drawMax - drawMin);
+      double L = drawMax - drawMin;
+      drawMin -= 0.0 * L;
+      drawMax += 0.1 * L;
 
-      ntRange->Fill(0, drawMin);
-      ntRange->Fill(0, drawMax);
-      ntRange->Fill(nKnots - 1, drawMin);
-      ntRange->Fill(nKnots - 1, drawMax);
+      ntRange->Fill(-0.001, drawMin);
+      ntRange->Fill(-0.001, drawMax);
+      ntRange->Fill(nKnots - 1 - 0.005, drawMin);
+      ntRange->Fill(nKnots - 1 - 0.005, drawMax);
       ntRange->SetMarkerColor(kWhite);
       ntRange->SetMarkerSize(0.1);
       ntRange->Draw("f:u", "", "");
       delete ntRange;
     }
 
-    auto legend = new TLegend(0.1, 0.82, 0.3, 0.95);
+    auto legend = new TLegend(0.1, 0.72, 0.4, 0.95);
     //legend->SetHeader("Splines of the same size:","C"); // option "C" allows to center the header
 
     nt->SetMarkerColor(kGray);
@@ -230,11 +288,14 @@ int SplineDemo()
 
     TH1* htemp = (TH1*)gPad->GetPrimitive("htemp");
     htemp->SetTitle("Splines of the same size");
+    htemp->GetXaxis()->SetTitle("x");
+    htemp->GetYaxis()->SetTitle("R");
 
     TLine* l0 = new TLine();
-    l0->SetLineWidth(10);
+    l0->SetLineWidth(7);
     l0->SetLineColor(kGray);
-    legend->AddEntry(l0, "input function", "L");
+    //legend->AddEntry(l0, "Input function", "L");
+    legend->AddEntry(l0, "Function to approximate", "L");
     legend->Draw();
 
     knots->SetMarkerStyle(8);
@@ -244,17 +305,22 @@ int SplineDemo()
       break;
     }
 
-    nt->SetMarkerSize(.5);
+    nt->SetMarkerSize(1.);
     nt->SetMarkerColor(kGreen + 2);
     nt->Draw("fClass:u", "", "P,same");
 
+    knots->SetMarkerStyle(21);
     knots->SetMarkerColor(kGreen + 2);
-    knots->SetMarkerSize(3.5);
-    knots->Draw("f:u", "type==1", "same"); // Classic
-    TLine* l1 = new TLine();
-    l1->SetLineWidth(4);
+    knots->SetMarkerSize(2.5);             //5.
+    knots->Draw("f:u", "type==1", "same"); // Classical
+    TNtuple* l1 = new TNtuple();
+    l1->SetMarkerStyle(21);
+    l1->SetMarkerColor(kGreen + 2);
+    l1->SetMarkerSize(1.5); // 3.5
     l1->SetLineColor(kGreen + 2);
-    legend->AddEntry(l1, "Classic (N knots + N slopes)", "L");
+    l1->SetLineWidth(2.); //5.
+    //legend->AddEntry(l1, Form("Interpolation spline (%d knots + %d slopes)", nKnots, nKnots), "LP");
+    legend->AddEntry(l1, "Interpolation spline", "LP");
     legend->Draw();
 
     if (!askStep()) {
@@ -262,49 +328,83 @@ int SplineDemo()
     }
 
     if (drawLocal) {
-      nt->SetMarkerColor(kBlue);
+      nt->SetMarkerColor(kMagenta);
       nt->Draw("fLocal:u", "", "P,same");
 
-      knots->SetMarkerSize(2.5);
-      knots->SetMarkerColor(kBlue);
+      knots->SetMarkerSize(1.5); //2.5
+      knots->SetMarkerStyle(8);
+      knots->SetMarkerColor(kMagenta);
       knots->Draw("f:u", "type==4", "same"); // local
-      TLine* l2 = new TLine(*l1);
-      l2->SetLineColor(kBlue);
-      legend->AddEntry(l2, "local (2N knots)", "L");
+      TLine* l2 = new TLine();
+      l2->SetLineWidth(2); //4
+      l2->SetLineColor(kMagenta);
+      legend->AddEntry(l2, Form("Local spline (%d knots)", 2 * nKnots - 1), "L");
       legend->Draw();
+      if (!askStep()) {
+        break;
+      }
+    }
+    if (drawCheb) {
+      nt->SetMarkerColor(kBlue);
+      nt->Draw("fCheb:u", "", "P,same");
+      TLine* lCheb = new TLine();
+      lCheb->SetLineWidth(2); //4
+      lCheb->SetLineColor(kBlue);
+      legend->AddEntry(lCheb, Form("Chebyshev (%d coeff)", 2 * nKnots), "L");
+      legend->Draw();
+
       if (!askStep()) {
         break;
       }
     }
 
     nt->SetMarkerColor(kRed);
-    nt->Draw("fComp:u", "", "P,same");
+    nt->Draw("fBestFit:u", "", "P,same");
 
+    knots->SetMarkerStyle(20);
     knots->SetMarkerColor(kRed);
-    knots->SetMarkerSize(2.5);
-    knots->Draw("f:u", "type==2", "same"); // compact
-    TLine* l3 = new TLine(*l1);
+    knots->SetMarkerSize(2.5);             //5.
+    knots->Draw("f:u", "type==2", "same"); // best-fit splines
+
+    //TMarker * l3 = new TMarker();
+    TNtuple* l3 = new TNtuple();
+    l3->SetMarkerStyle(20);
+    l3->SetMarkerColor(kRed);
+    l3->SetMarkerSize(2.5); //3.5
     l3->SetLineColor(kRed);
-    legend->AddEntry(l3, "compact (N knots + N slopes)", "L");
+    l3->SetLineWidth(5.);
+    //legend->AddEntry(l3, Form("Best-fit spline (%d knots + %d slopes)", nKnots, nKnots), "PL");
+    legend->AddEntry(l3, "Best-fit spline", "PL");
     legend->Draw();
+
+    knots->SetMarkerStyle(8);
 
     if (!askStep()) {
       break;
     }
 
-    knots->SetMarkerColor(kBlack);
-    knots->SetMarkerSize(1.);
-    knots->Draw("f:u", "type==3", "same"); // compact, axiliary points
-    TMarker* l4 = new TMarker;
-    l4->SetMarkerStyle(8);
-    l4->SetMarkerSize(1.);
-    l4->SetMarkerColor(kBlack);
-    legend->AddEntry(l4, "construction points", "P");
-    legend->Draw();
+    if (drawConstruction) {
+      knots->SetMarkerColor(kBlack);
+      knots->SetMarkerSize(1.5);
+      knots->SetMarkerStyle(8);
 
-    if (!ask()) {
+      knots->Draw("f:u", "type==3", "same"); // best-fit data points
+      //knots->Draw("f:u", "type==5", "same"); // chebyshev, data points
+      TMarker* l4 = new TMarker;
+      l4->SetMarkerStyle(8);
+      l4->SetMarkerSize(1.5);
+      l4->SetMarkerColor(kBlack);
+      legend->AddEntry(l4, "Construction points", "P");
+      legend->Draw();
+      if (!askStep()) {
+        break;
+      }
+    }
+
+    if (!doAskSteps && !ask()) {
       break;
     }
+
     delete legend;
   }
 

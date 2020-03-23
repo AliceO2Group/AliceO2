@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 #include "Framework/Variant.h"
-#include "SimConfig/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParam.h"
 #include "MIDWorkflow/RecoWorkflowMC.h"
 
 using namespace o2::framework;

@@ -14,4 +14,3 @@ o2_add_library(FV0Base
 
 o2_target_root_dictionary(FV0Base HEADERS include/FV0Base/Geometry.h)
 
-o2_data_file(COPY files DESTINATION Detectors/FV0/)

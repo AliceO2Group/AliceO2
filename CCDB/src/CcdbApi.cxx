@@ -406,7 +406,7 @@ size_t header_map_callback(char* buffer, size_t size, size_t nitems, void* userd
 } // namespace
 
 TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::string, std::string> const& metadata,
-                                    long timestamp, std::map<std::string, std::string>* headers) const
+                                    long timestamp, std::map<std::string, std::string>* headers, std::string const& etag) const
 {
   // Note : based on https://curl.haxx.se/libcurl/c/getinmemory.html
   // Thus it does not comply to our coding guidelines as it is a copy paste.
@@ -441,18 +441,25 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
   /* if redirected , we tell libcurl to follow redirection */
   curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
 
+  struct curl_slist* list = nullptr;
+  if (!etag.empty()) {
+    list = curl_slist_append(list, ("If-None-Match: " + etag).c_str());
+  }
+
   // setup curl for headers handling
   if (headers != nullptr) {
-    struct curl_slist* list = nullptr;
     list = curl_slist_append(list, ("If-None-Match: " + to_string(timestamp)).c_str());
-    curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, list);
     curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback);
     curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, headers);
   }
 
+  if (list) {
+    curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, list);
+  }
+
   /* get it! */
   res = curl_easy_perform(curl_handle);
-
+  std::string errStr;
   TObject* result = nullptr;
   if (res == CURLE_OK) {
     long response_code;
@@ -465,17 +472,24 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
       if (!memFile.IsZombie()) {
         result = (TObject*)extractFromTFile(memFile, TClass::GetClass("TObject"));
         if (result == nullptr) {
-          LOG(ERROR) << "Couldn't retrieve the object " << path;
+          errStr = o2::utils::concat_string("Couldn't retrieve the object ", path);
+          LOG(ERROR) << errStr;
         }
         memFile.Close();
       } else {
-        LOG(DEBUG) << "Object " << path << " is not stored in a TMemFile";
+        LOG(DEBUG) << "Object " << path << " is stored in a TMemFile";
       }
     } else {
-      LOG(ERROR) << "Invalid URL : " << fullUrl;
+      errStr = o2::utils::concat_string("Invalid URL : ", fullUrl);
+      LOG(ERROR) << errStr;
     }
   } else {
-    fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+    errStr = o2::utils::concat_string("curl_easy_perform() failed: ", curl_easy_strerror(res));
+    fprintf(stderr, "%s", errStr.c_str());
+  }
+
+  if (!errStr.empty() && headers) {
+    (*headers)["Error"] = errStr;
   }
 
   curl_easy_cleanup(curl_handle);
@@ -621,7 +635,8 @@ void* CcdbApi::extractFromLocalFile(std::string const& filename, TClass const* t
 }
 
 void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const& path,
-                                 std::map<std::string, std::string> const& metadata, long timestamp, std::map<std::string, std::string>* headers) const
+                                 std::map<std::string, std::string> const& metadata, long timestamp,
+                                 std::map<std::string, std::string>* headers, std::string const& etag) const
 {
   // We need the TClass for this type; will verify if dictionary exists
   auto tcl = TClass::GetClass(tinfo);
@@ -665,18 +680,25 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
   /* if redirected , we tell libcurl to follow redirection */
   curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
 
+  struct curl_slist* list = nullptr;
+  if (!etag.empty()) {
+    list = curl_slist_append(list, ("If-None-Match: " + etag).c_str());
+  }
+
   // setup curl for headers handling
   if (headers != nullptr) {
-    struct curl_slist* list = nullptr;
     list = curl_slist_append(list, ("If-None-Match: " + to_string(timestamp)).c_str());
-    curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, list);
     curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback);
     curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, headers);
   }
 
+  if (list) {
+    curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, list);
+  }
+
   /* get it! */
   res = curl_easy_perform(curl_handle);
-
+  std::string errStr;
   void* result = nullptr;
   if (res == CURLE_OK) {
     long response_code;
@@ -689,17 +711,24 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
       if (!memFile.IsZombie()) {
         result = extractFromTFile(memFile, tcl);
         if (!result) {
-          LOG(ERROR) << "Couldn't retrieve the object " << path;
+          errStr = o2::utils::concat_string("Couldn't retrieve the object ", path);
+          LOG(ERROR) << errStr;
         }
         memFile.Close();
       } else {
-        LOG(DEBUG) << "Object " << path << " is not stored in a TMemFile";
+        LOG(DEBUG) << "Object " << path << " is stored in a TMemFile";
       }
     } else {
-      LOG(ERROR) << "Invalid URL : " << fullUrl;
+      errStr = o2::utils::concat_string("Invalid URL : ", fullUrl);
+      LOG(ERROR) << errStr;
     }
   } else {
-    fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+    errStr = o2::utils::concat_string("curl_easy_perform() failed: ", curl_easy_strerror(res));
+    fprintf(stderr, "%s", errStr.c_str());
+  }
+
+  if (!errStr.empty() && headers) {
+    (*headers)["Error"] = errStr;
   }
 
   curl_easy_cleanup(curl_handle);

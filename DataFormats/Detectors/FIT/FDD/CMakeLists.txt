@@ -14,6 +14,7 @@ o2_add_library(DataFormatsFDD
 
 o2_target_root_dictionary(DataFormatsFDD
                           HEADERS include/DataFormatsFDD/Digit.h
+			          include/DataFormatsFDD/ChannelData.h
 			  	  include/DataFormatsFDD/RecPoint.h
                                   include/DataFormatsFDD/MCLabel.h
                                   include/DataFormatsFDD/Hit.h)

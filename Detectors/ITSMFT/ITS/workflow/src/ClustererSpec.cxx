@@ -18,6 +18,7 @@
 #include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITSMFT/ClusterTopology.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -59,6 +60,7 @@ void ClustererDPL::init(InitContext& ic)
 
   mFullClusters = !ic.options().get<bool>("no-full-clusters");
   mCompactClusters = !ic.options().get<bool>("no-compact-clusters");
+  mPatterns = !ic.options().get<bool>("no-patterns");
 
   // settings for the fired pixel overflow masking
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
@@ -109,6 +111,15 @@ void ClustererDPL::run(ProcessingContext& pc)
   std::vector<o2::itsmft::CompClusterExt> compClusters;
   std::vector<o2::itsmft::Cluster> clusters;
   std::vector<o2::itsmft::ROFRecord> clusterROframes; // To be filled in future
+  std::vector<o2::itsmft::ClusterTopology> patterns;
+
+  if (mCompactClusters) {
+    LOG(INFO) << "Will produce compact clusters";
+    if (mPatterns) {
+      LOG(INFO) << "Will save rare cluster patterns";
+      mClusterer->setPatterns(&patterns);
+    }
+  }
 
   std::unique_ptr<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> clusterLabels;
   if (mUseMC) {
@@ -123,6 +134,7 @@ void ClustererDPL::run(ProcessingContext& pc)
             << clusterROframes.size() << " RO frames";
 
   pc.outputs().snapshot(Output{"ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe}, compClusters);
+  pc.outputs().snapshot(Output{"ITS", "PATTERNS", 0, Lifetime::Timeframe}, patterns);
   pc.outputs().snapshot(Output{"ITS", "CLUSTERS", 0, Lifetime::Timeframe}, clusters);
   pc.outputs().snapshot(Output{"ITS", "ITSClusterROF", 0, Lifetime::Timeframe}, clusterROframes);
   if (mUseMC) {
@@ -145,6 +157,7 @@ DataProcessorSpec getClustererSpec(bool useMC)
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "PATTERNS", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "CLUSTERS", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "ITSClusterROF", 0, Lifetime::Timeframe);
 
@@ -164,7 +177,8 @@ DataProcessorSpec getClustererSpec(bool useMC)
       {"its-dictionary-file", VariantType::String, "complete_dictionary.bin", {"Name of the cluster-topology dictionary file"}},
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
       {"no-full-clusters", o2::framework::VariantType::Bool, false, {"Ignore full clusters"}},
-      {"no-compact-clusters", o2::framework::VariantType::Bool, false, {"Ignore compact clusters"}}}};
+      {"no-compact-clusters", o2::framework::VariantType::Bool, false, {"Ignore compact clusters"}},
+      {"no-patterns", o2::framework::VariantType::Bool, false, {"Do not save rare cluster patterns"}}}};
 }
 
 } // namespace its

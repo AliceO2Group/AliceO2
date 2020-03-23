@@ -50,6 +50,8 @@ class Detector : public o2::base::DetImpl<Detector>
     kOpAir = 7,
     kAl = 15,
     kOpGlass = 16,
+    kOptAl = 17,
+    kOptBlack = 18,
     kOpGlassCathode = 19,
     kSensAir = 22
   }; // materials
@@ -122,12 +124,17 @@ class Detector : public o2::base::DetImpl<Detector>
 
   // Optical properties to be set to constants
   std::vector<Double_t> mEfficAll;
-  std::vector<Float_t> mRindexAir;
-  std::vector<Float_t> mAbsorAir;
-  std::vector<Float_t> mRindexCathodeNext;
-  std::vector<Float_t> mAbsorbCathodeNext;
+  std::vector<Double_t> mRindexAir;
+  std::vector<Double_t> mAbsorAir;
+  std::vector<Double_t> mRindexCathodeNext;
+  std::vector<Double_t> mAbsorbCathodeNext;
   std::vector<Double_t> mEfficMet;
   std::vector<Double_t> mReflMet;
+  std::vector<Double_t> mRindexMet;
+  std::vector<Double_t> mReflBlackPaper;
+  std::vector<Double_t> mAbsBlackPaper;
+  std::vector<Double_t> mEffBlackPaper;
+  std::vector<Double_t> mReflFrontWindow;
 
   /// Container for data points
   std::vector<o2::ft0::HitType>* mHits = nullptr;

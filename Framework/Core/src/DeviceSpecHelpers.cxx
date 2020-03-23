@@ -801,7 +801,6 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     std::vector<std::string> tmpArgs = {argv[0],
                                         "--id", spec.id.c_str(),
                                         "--control", "static",
-                                        "--session", "dpl_" + uniqueWorkflowId,
                                         "--log-color", "false",
                                         "--color", "false"};
     if (defaultStopped) {
@@ -820,6 +819,8 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     ConfigParamsHelper::dpl2BoostOptions(workflowOptions, foDesc);
     foDesc.add(getForwardedDeviceOptions());
 
+    // has option --session been specified on the command line?
+    bool haveSessionArg = false;
     using FilterFunctionT = std::function<void(decltype(argc), decltype(argv), decltype(od))>;
 
     // the filter function will forward command line arguments based on the option
@@ -862,6 +863,8 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         wordexp(arguments.c_str(), &expansions, 0);
         tmpArgs.insert(tmpArgs.begin(), expansions.we_wordv, expansions.we_wordv + expansions.we_wordc);
       }
+
+      haveSessionArg = haveSessionArg || varmap.count("session") != 0;
 
       for (const auto varit : varmap) {
         // find the option belonging to key, add if the option has been parsed
@@ -906,6 +909,12 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     for (auto& channel : spec.inputChannels) {
       tmpArgs.emplace_back(std::string("--channel-config"));
       tmpArgs.emplace_back(inputChannel2String(channel));
+    }
+
+    // add the session id if not already specified on command line
+    if (!haveSessionArg) {
+      tmpArgs.emplace_back(std::string("--session"));
+      tmpArgs.emplace_back("dpl_" + uniqueWorkflowId);
     }
 
     // We create the final option list, depending on the channels

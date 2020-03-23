@@ -19,6 +19,7 @@
 #include <array>
 #include <vector>
 #include <string>
+#include <gsl/span>
 #include <TStopwatch.h>
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
@@ -178,7 +179,19 @@ class MatchTOF
   std::vector<o2::MCCompLabel>& getMatchedTPCLabelsVector() { return mOutTPCLabels; } ///< get vector of TPC label of matched tracks
   std::vector<o2::MCCompLabel>& getMatchedITSLabelsVector() { return mOutITSLabels; } ///< get vector of ITS label of matched tracks
 
-  void setFITRecPoints(const std::vector<o2::ft0::RecPoints>* recpoints) { mFITRecPoints = recpoints; }
+  // this method is deprecated
+  void setFITRecPoints(const std::vector<o2::ft0::RecPoints>* recpoints)
+  {
+    if (recpoints) {
+      // need explicit cast because the gsl index_type is signed
+      mFITRecPoints = {recpoints->data(), static_cast<decltype(mFITRecPoints)::index_type>(recpoints->size())};
+    }
+  }
+  void setFITRecPoints(gsl::span<o2::ft0::RecPoints const> recpoints)
+  {
+    mFITRecPoints = recpoints;
+  }
+
   int findFITIndex(int bc);
 
  private:
@@ -234,7 +247,7 @@ class MatchTOF
   const std::vector<o2::MCCompLabel>* mTPCLabels = nullptr; ///< TPC label of input tracks
   const std::vector<o2::MCCompLabel>* mITSLabels = nullptr; ///< ITS label of input tracks
 
-  const std::vector<o2::ft0::RecPoints>* mFITRecPoints = nullptr; ///< FIT recpoints
+  gsl::span<o2::ft0::RecPoints const> mFITRecPoints; ///< FIT recpoints
 
   /// <<<-----
 

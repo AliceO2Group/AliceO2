@@ -34,10 +34,20 @@ void DigitReader<InputType>::openInput(const std::string fileName)
       LOG(FATAL) << "Failed to find EMCALDigit branch in the " << mInputTree->GetName()
                  << " from file " << fileName;
     }
+    mInputTree->SetBranchAddress("EMCALDigitTRGR", &mTriggerArray);
+    if (!mTriggerArray) {
+      LOG(FATAL) << "Failed to find TriggerRecords branch in the " << mInputTree->GetName()
+                 << " from file " << fileName;
+    }
   } else if constexpr (std::is_same<InputType, Cell>::value) {
     mInputTree->SetBranchAddress("EMCALCell", &mInputArray);
     if (!mInputArray) {
       LOG(FATAL) << "Failed to find EMCALCell branch in the " << mInputTree->GetName()
+                 << " from file " << fileName;
+    }
+    mInputTree->SetBranchAddress("EMCALCellTRGR", &mTriggerArray);
+    if (!mTriggerArray) {
+      LOG(FATAL) << "Failed to find TriggerRecords branch in the " << mInputTree->GetName()
                  << " from file " << fileName;
     }
   }
@@ -56,23 +66,6 @@ bool DigitReader<InputType>::readNextEntry()
   mInputTree->GetEntry(mCurrentEntry);
   mCurrentEntry++;
   return true;
-
-  /*
-  mCurrentEntry
-  auto nev = mInputTree->GetEntries();
-  if (nev != 1) {
-    LOG(FATAL) << "In the self-managed mode the cells/digits trees must have 1 entry only";
-  }
-  auto evID = mInputTree->GetReadEntry();
-  if (evID < -1)
-    evID = -1;
-  if (++evID < nev) {
-    mInputTree->GetEntry(evID);
-    return true;
-  } else {
-    return false;
-  }
-  */
 }
 
 //______________________________________________________________________________

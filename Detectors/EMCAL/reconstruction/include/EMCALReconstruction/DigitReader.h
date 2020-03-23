@@ -17,6 +17,7 @@
 #include "TTree.h"
 #include "DataFormatsEMCAL/Digit.h"
 #include "DataFormatsEMCAL/Cell.h"
+#include "DataFormatsEMCAL/TriggerRecord.h"
 
 namespace o2
 {
@@ -37,9 +38,11 @@ class DigitReader
   bool readNextEntry();
   void clear();
   const std::vector<InputType>* getInputArray() const { return mInputArray; };
+  const std::vector<TriggerRecord>* getTriggerArray() const { return mTriggerArray; };
 
  private:
   std::vector<InputType>* mInputArray = nullptr;
+  std::vector<TriggerRecord>* mTriggerArray = nullptr;
   std::unique_ptr<TTree> mInputTree; // input tree for cells/digits
   int mCurrentEntry;                 // current entry in input file
 

@@ -11,90 +11,69 @@
 #ifndef ALICEO2_FDD_DIGIT_H
 #define ALICEO2_FDD_DIGIT_H
 
+#include "CommonDataFormat/RangeReference.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/TimeStamp.h"
+#include "DataFormatsFDD/ChannelData.h"
 #include <iosfwd>
-#include "Rtypes.h"
+#include <Rtypes.h>
+#include <gsl/span>
+#include <bitset>
 
 namespace o2
 {
 namespace fdd
 {
 
-struct ChannelData {
-  Int_t mPMNumber;    // PhotoMultiplier number (0 to 16)
-  Float_t mTime;      // Time of Flight
-  Short_t mChargeADC; // ADC sample as present in raw data
-  //Bit information from FEE
-  Bool_t mIntegrator;
-  Bool_t mDoubleEvent;
-  Bool_t mEvent1TimeLost;
-  Bool_t mEvent2TimeLost;
-  Bool_t mAdcInGate;
-  Bool_t mTimeTooLate;
-  Bool_t mAmpTooHigh;
-  Bool_t mEventInTrigger;
-  Bool_t mTimeLost;
-  ClassDefNV(ChannelData, 2);
+class ChannelData;
+
+struct Triggers {
+  uint8_t triggersignals = 0; // FDD trigger signals
+  int8_t nChanA = -1;         // number of fired channels A side
+  int8_t nChanC = -1;         // number of fired channels A side
+  int32_t amplA = -1024;      // sum amplitude A side
+  int32_t amplC = -1024;      // sum amplitude C side
+  int16_t timeA = -1024;      // average time A side
+  int16_t timeC = -1024;      // average time C side
+  Triggers() = default;
+  Triggers(uint8_t signals, int8_t chanA, int8_t chanC, int32_t aamplA, int32_t aamplC, int16_t atimeA, int16_t atimeC)
+  {
+    triggersignals = signals;
+    nChanA = chanA;
+    nChanC = chanC;
+    amplA = aamplA;
+    amplC = aamplC;
+    timeA = atimeA;
+    timeC = atimeC;
+  }
+  void cleanTriggers()
+  {
+    triggersignals = 0;
+    nChanA = nChanC = -1;
+    amplA = amplC = -1024;
+    timeA = timeC = -1024;
+  }
+  Triggers getTriggers();
+
+  ClassDefNV(Triggers, 1);
 };
 
-using DigitBase = o2::dataformats::TimeStamp<double>;
-class Digit : public DigitBase
-{
- public:
-  Digit() = default;
+struct Digit {
+  o2::dataformats::RangeRefComp<5> ref;
 
-  Digit(std::vector<ChannelData> const& channelData, Double_t time, uint16_t bc, uint32_t orbit, std::vector<Bool_t> const& triggers)
-  {
-    SetChannelData(std::move(channelData));
-    SetTime(time);
-    SetInteractionRecord(bc, orbit);
-    SetTriggers(std::move(triggers));
-  }
-
-  ~Digit() = default;
-
-  Double_t GetTime() const { return mTime; }
-  void SetTime(Double_t time) { mTime = time; }
-
-  void SetInteractionRecord(uint16_t bc, uint32_t orbit)
-  {
-    mIntRecord.bc = bc;
-    mIntRecord.orbit = orbit;
-  }
-  const o2::InteractionRecord& GetInteractionRecord() const { return mIntRecord; }
-  o2::InteractionRecord& GetInteractionRecord(o2::InteractionRecord& src) { return mIntRecord; }
-  void SetInteractionRecord(const o2::InteractionRecord& src) { mIntRecord = src; }
-  uint32_t GetOrbit() const { return mIntRecord.orbit; }
-  uint16_t GetBC() const { return mIntRecord.bc; }
-
-  const std::vector<Bool_t>& GetTriggers() const { return mTriggers; }
-  std::vector<Bool_t>& GetTriggers() { return mTriggers; }
-  void SetTriggers(const std::vector<Bool_t>& triggers) { mTriggers = triggers; }
-  void SetTriggers(std::vector<Bool_t>&& triggers) { mTriggers = std::move(triggers); }
-
-  const std::vector<ChannelData>& GetChannelData() const { return mChannelData; }
-  std::vector<ChannelData>& GetChannelData() { return mChannelData; }
-  void SetChannelData(const std::vector<ChannelData>& channelData) { mChannelData = channelData; }
-  void SetChannelData(std::vector<ChannelData>&& channelData) { mChannelData = std::move(channelData); }
-
-  void ClearDigits()
-  {
-    mTriggers.clear();
-    mChannelData.clear();
-  }
-
- private:
-  Double_t mTime;                   // time stamp
+  Triggers mTriggers;               // pattern of triggers  in this BC
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
 
-  std::vector<Bool_t> mTriggers;
-  std::vector<ChannelData> mChannelData;
+  Digit() = default;
+  Digit(int first, int ne, o2::InteractionRecord iRec, Triggers chTrig) : ref(first, ne), mIntRecord(iRec), mTriggers(chTrig) {}
 
-  ClassDefNV(Digit, 1);
+  uint32_t getOrbit() const { return mIntRecord.orbit; }
+  uint16_t getBC() const { return mIntRecord.bc; }
+  o2::InteractionRecord getIntRecord() const { return mIntRecord; };
+  gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const { return gsl::span<const ChannelData>(&tfdata[ref.getFirstEntry()], ref.getEntries()); }
+
+  ClassDefNV(Digit, 3);
 };
-
-std::ostream& operator<<(std::ostream& stream, const Digit& digi);
 } // namespace fdd
 } // namespace o2
 #endif

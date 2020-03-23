@@ -18,7 +18,7 @@
 
 #include "FlatObject.h"
 #include "TPCFastTransformGeo.h"
-#include "TPCDistortionIRS.h"
+#include "TPCFastSpaceChargeCorrection.h"
 #include "GPUCommonMath.h"
 
 #if !defined(GPUCA_GPUCODE)
@@ -85,10 +85,10 @@ class TPCFastTransform : public FlatObject
   /// Memory alignment
 
   /// Gives minimal alignment in bytes required for the class object
-  static constexpr size_t getClassAlignmentBytes() { return TPCDistortionIRS::getClassAlignmentBytes(); }
+  static constexpr size_t getClassAlignmentBytes() { return TPCFastSpaceChargeCorrection::getClassAlignmentBytes(); }
 
   /// Gives minimal alignment in bytes required for the flat buffer
-  static constexpr size_t getBufferAlignmentBytes() { return TPCDistortionIRS::getBufferAlignmentBytes(); }
+  static constexpr size_t getBufferAlignmentBytes() { return TPCFastSpaceChargeCorrection::getBufferAlignmentBytes(); }
 
   /// Construction interface
 
@@ -107,7 +107,7 @@ class TPCFastTransform : public FlatObject
   /// _______________  Construction interface  ________________________
 
   /// Starts the initialization procedure, reserves temporary memory
-  void startConstruction(const TPCDistortionIRS& distortion);
+  void startConstruction(const TPCFastSpaceChargeCorrection& correction);
 
   /// Sets all drift calibration parameters and the time stamp
   ///
@@ -118,11 +118,11 @@ class TPCFastTransform : public FlatObject
   /// Sets the time stamp of the current calibaration
   void setTimeStamp(long int v) { mTimeStamp = v; }
 
-  /// Gives a reference for external initialization of TPC distortions
-  GPUd() const TPCDistortionIRS& getDistortion() const { return mDistortion; }
+  /// Gives a reference for external initialization of TPC corrections
+  GPUd() const TPCFastSpaceChargeCorrection& getCorrection() const { return mCorrection; }
 
-  /// Gives a reference for external initialization of TPC distortions
-  TPCDistortionIRS& getDistortionNonConst() { return mDistortion; }
+  /// Gives a reference for external initialization of TPC corrections
+  TPCFastSpaceChargeCorrection& getCorrectionNonConst() { return mCorrection; }
 
   /// Finishes initialization: puts everything to the flat buffer, releases temporary memory
   void finishConstruction();
@@ -152,14 +152,14 @@ class TPCFastTransform : public FlatObject
 
   GPUd() void getTOFcorrection(int slice, int row, float x, float y, float z, float& dz) const;
 
-  void setApplyDistortionOn() { mApplyDistortion = 1; }
-  void setApplyDistortionOff() { mApplyDistortion = 0; }
-  bool isDistortionApplied() { return mApplyDistortion; }
+  void setApplyCorrectionOn() { mApplyCorrection = 1; }
+  void setApplyCorrectionOff() { mApplyCorrection = 0; }
+  bool isCorrectionApplied() { return mApplyCorrection; }
 
   /// _______________  Utilities  _______________________________________________
 
   /// TPC geometry information
-  GPUd() const TPCFastTransformGeo& getGeometry() const { return mDistortion.getGeometry(); }
+  GPUd() const TPCFastTransformGeo& getGeometry() const { return mCorrection.getGeometry(); }
 
   /// Gives the time stamp of the current calibaration parameters
   GPUd() long int getTimeStamp() const { return mTimeStamp; }
@@ -178,6 +178,9 @@ class TPCFastTransform : public FlatObject
 
   /// Return TOF correction (vdrift / C)
   GPUd() float getTOFCorr() const { return mLdriftCorr; }
+
+  /// Return a value of the last timebin where correction map is valid
+  GPUd() float getLastCalibratedTimeBin(int slice) const;
 
 #if !defined(GPUCA_GPUCODE)
 
@@ -206,12 +209,12 @@ class TPCFastTransform : public FlatObject
 
   /// Correction of (x,u,v) with irregular splines.
   ///
-  /// After the initialization, mDistortion.getFlatBufferPtr()
+  /// After the initialization, mCorrection.getFlatBufferPtr()
   /// is pointed to the corresponding part of this->mFlatBufferPtr
   ///
-  TPCDistortionIRS mDistortion;
+  TPCFastSpaceChargeCorrection mCorrection;
 
-  bool mApplyDistortion; // flag for applying distortion
+  bool mApplyCorrection; // flag for applying correction
 
   /// _____ Parameters for drift length calculation ____
   ///
@@ -226,7 +229,7 @@ class TPCFastTransform : public FlatObject
 
   /// A coefficient for Time-Of-Flight correction: drift length -= EstimatedDistanceToVtx[cm]*mTOFcorr
   ///
-  /// Since this correction requires a knowledge of the spatial position, it is appied after mDistortion,
+  /// Since this correction requires a knowledge of the spatial position, it is appied after mCorrection,
   /// not on the drift length but directly on V coordinate.
   ///
   /// mTOFcorr == mVdrift/(speed of light)
@@ -324,9 +327,9 @@ GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float ti
   float u = 0, v = 0;
   convPadTimeToUV(slice, row, pad, time, u, v, vertexTime);
 
-  if (mApplyDistortion) {
+  if (mApplyCorrection) {
     float dx, du, dv;
-    mDistortion.getDistortion(slice, row, u, v, dx, du, dv);
+    mCorrection.getCorrection(slice, row, u, v, dx, du, dv);
     x += dx;
     u += du;
     v += dv;
@@ -344,7 +347,7 @@ GPUdi() void TPCFastTransform::TransformInTimeFrame(int slice, int row, float pa
   /// _______________ Special cluster transformation for a time frame _______________________
   ///
   /// Same as Transform(), but clusters are shifted in z such, that Z(maxTimeBin)==0
-  /// Distortions and Time-Of-Flight correction are not alpplied.
+  /// Corrections and Time-Of-Flight correction are not alpplied.
   ///
 
   const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
@@ -368,7 +371,7 @@ GPUdi() void TPCFastTransform::TransformIdeal(int slice, int row, float pad, flo
   ///
   /// Transforms raw TPC coordinates to local XYZ withing a slice
   /// Ideal transformation: only Vdrift from DCS.
-  /// No space charge distortions, no time of flight correction
+  /// No space charge corrections, no time of flight correction
   ///
 
   const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
@@ -385,7 +388,7 @@ GPUdi() float TPCFastTransform::convTimeToZinTimeFrame(int slice, float time, fl
   /// _______________ Special cluster transformation for a time frame _______________________
   ///
   /// Same as Transform(), but clusters are shifted in z such, that Z(maxTimeBin)==0
-  /// Distortions and Time-Of-Flight correction are not alpplied.
+  /// Corrections and Time-Of-Flight correction are not alpplied.
   /// Only Z coordinate.
   ///
 
@@ -405,6 +408,15 @@ GPUdi() float TPCFastTransform::convZtoTimeInTimeFrame(float z, float maxTimeBin
   z = z - getGeometry().getTPCalignmentZ(); // global TPC alignment
   float v = fabs(z);
   return mT0 + maxTimeBin + (v - mLdriftCorr) / mVdrift;
+}
+
+GPUdi() float TPCFastTransform::getLastCalibratedTimeBin(int slice) const
+{
+  /// Return a value of the last timebin where correction map is valid
+  float u, v, pad, time;
+  getGeometry().convScaledUVtoUV(slice, 0, 0.f, 1.f, u, v);
+  convUVtoPadTime(slice, 0, u, v, pad, time, 0);
+  return time;
 }
 
 } // namespace gpu
