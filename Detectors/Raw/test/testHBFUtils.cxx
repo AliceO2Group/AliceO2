@@ -43,7 +43,7 @@ BOOST_AUTO_TEST_CASE(HBFUtils)
   LOG(INFO) << "Emulate RDHs for raw data between IRs " << irs.front() << " and " << irs.back();
 
   // default sampler with BC filling like in TPC TDR, 50kHz
-  o2::raw::HBFUtils sampler;
+  const auto& sampler = o2::raw::HBFUtils::Instance();
 
   uint8_t packetCounter = 0;
   std::vector<o2::InteractionRecord> HBIRVec;

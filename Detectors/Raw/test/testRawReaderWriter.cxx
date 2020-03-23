@@ -61,7 +61,6 @@ struct SimpleRawWriter { // simple class to create detector payload for multiple
         writer.registerLink((icru << 8) + il, icru, il, 0, outFileName);
       }
     }
-
     writer.setContinuousReadout();     // in case we want to issue StartOfContinuous trigger in the beginning
     writer.setCarryOverCallBack(this); // we want that writer to ask the detector code how to split large payloads
     writer.setEmptyPageCallBack(this); // we want the writer to ask the detector code what to put in empty HBFs

@@ -88,7 +88,7 @@ class Digits2Raw
   std::ofstream mFileDest;
   std::array<o2::ft0::DataPageWriter, NPMs> mPages;
   o2::ft0::RawEventData mRawEventData;
-  o2::raw::HBFUtils mSampler;
+  const o2::raw::HBFUtils& mSampler = o2::raw::HBFUtils::Instance();
   o2::ft0::Triggers mTriggers;
   /////////////////////////////////////////////////
 

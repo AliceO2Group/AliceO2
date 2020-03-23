@@ -61,8 +61,12 @@ void run_digi2rawVarPage_its(std::string outPrefix = "rawits",       // prefix o
   m2r.setDefaultSinkName(outPrefix + ".raw");
   m2r.setMinMaxRUSW(ruSWMin, ruSWMax);
 
+  {
+    // Attention: HBFUtils is a special singleton of ConfigurableParam type, cannot be set by detectors
+    o2::raw::HBFUtils::updateFromString("HBFUtils.nHBFPerTF=256"); // this is default anyway
+  }
+
   m2r.getWriter().setSuperPageSize(1024 * 1024);      // this is default anyway
-  m2r.getWriter().getHBFUtils().setNOrbitsPerTF(256); // this is default anyway
 
   m2r.setVerbosity(0);
 

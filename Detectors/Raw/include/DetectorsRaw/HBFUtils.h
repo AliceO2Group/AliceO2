@@ -15,6 +15,8 @@
 #define ALICEO2_HBFSAMPLER_H
 
 #include <Rtypes.h>
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "Headers/RAWDataHeader.h"
 #include "CommonConstants/Triggers.h"
@@ -39,46 +41,41 @@ namespace raw
 using LinkSubSpec_t = uint32_t;
 
 //_____________________________________________________________________
-class HBFUtils
-{
+struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
   using IR = o2::InteractionRecord;
 
- public:
   static constexpr int GBTWord = 16; // length of GBT word
   static constexpr int MAXCRUPage = 512 * GBTWord;
 
-  HBFUtils() = default;
-  HBFUtils(const IR& ir0) : mFirstIR(ir0) {}
-  const IR& getFirstIR() const { return mFirstIR; }
-  IR& getFirstIR() { return mFirstIR; }
+  IR getFirstIR() const { return {bcFirst, orbitFirst}; }
 
-  void setNOrbitsPerTF(int n) { mNHBFPerTF = n > 0 ? n : 1; }
-  int getNOrbitsPerTF() const { return mNHBFPerTF; }
+  void setNOrbitsPerTF(int n) { nHBFPerTF = n > 0 ? n : 1; }
+  int getNOrbitsPerTF() const { return nHBFPerTF; }
 
   ///< get IR corresponding to start of the HBF
-  IR getIRHBF(uint32_t hbf) const { return mFirstIR + int64_t(hbf) * o2::constants::lhc::LHCMaxBunches; }
+  IR getIRHBF(uint32_t hbf) const { return getFirstIR() + int64_t(hbf) * o2::constants::lhc::LHCMaxBunches; }
 
   ///< get IR corresponding to start of the TF
-  IR getIRTF(uint32_t tf) const { return getIRHBF(tf * mNHBFPerTF); }
+  IR getIRTF(uint32_t tf) const { return getIRHBF(tf * nHBFPerTF); }
 
   ///< get HBF ID corresponding to this IR
-  int getHBF(const IR& rec) const;
+  int64_t getHBF(const IR& rec) const;
 
   ///< get TF ID corresponding to this IR
-  int getTF(const IR& rec) const { return getHBF(rec) / mNHBFPerTF; }
+  int64_t getTF(const IR& rec) const { return getHBF(rec) / nHBFPerTF; }
 
   ///< get TF and HB (within TF) for this IR
   std::pair<int, int> getTFandHBinTF(const IR& rec) const
   {
     auto hbf = getHBF(rec);
-    return std::pair<int, int>(hbf / mNHBFPerTF, hbf % mNHBFPerTF);
+    return std::pair<int, int>(hbf / nHBFPerTF, hbf % nHBFPerTF);
   }
 
   ///< get TF and HB (abs) for this IR
   std::pair<int, int> getTFandHB(const IR& rec) const
   {
     auto hbf = getHBF(rec);
-    return std::pair<int, int>(hbf / mNHBFPerTF, hbf);
+    return std::pair<int, int>(hbf / nHBFPerTF, hbf);
   }
 
   ///< create RDH for given IR
@@ -126,7 +123,7 @@ class HBFUtils
     //-------------------------------------------------------------------------------------*/
   int fillHBIRvector(std::vector<IR>& dst, const IR& fromIR, const IR& toIR) const;
 
-  void print() const;
+  void print() const { printKeyValues(true); }
 
   // some fields of the same meaning have different names in the RDH of different versions
   static uint32_t getHBOrbit(const void* rdhP);
@@ -159,11 +156,11 @@ class HBFUtils
   static LinkSubSpec_t getSubSpec(const o2::header::RAWDataHeaderV4& rdh) { return getSubSpec(rdh.cruID, rdh.linkID, rdh.endPointID); }
   static LinkSubSpec_t getSubSpec(const o2::header::RAWDataHeaderV5& rdh) { return getSubSpec(rdh.cruID, rdh.linkID, rdh.endPointID); }
 
- protected:
-  int mNHBFPerTF = 1 + 0xff; // number of orbits per BC
-  IR mFirstIR = {0, 0};      // 1st record of the 1st TF
+  int nHBFPerTF = 1 + 0xff; // number of orbits per BC
+  uint16_t bcFirst = 0;     ///< BC of 1st TF
+  uint32_t orbitFirst = 0;  ///< orbit of 1st TF
 
-  ClassDefNV(HBFUtils, 1);
+  O2ParamDef(HBFUtils, "HBFUtils");
 };
 
 //_________________________________________________
@@ -171,10 +168,10 @@ template <>
 inline void HBFUtils::updateRDH<o2::header::RAWDataHeaderV5>(o2::header::RAWDataHeaderV5& rdh, const o2::InteractionRecord& rec) const
 {
   auto tfhb = getTFandHBinTF(rec);
-  rdh.bunchCrossing = mFirstIR.bc;
+  rdh.bunchCrossing = bcFirst;
   rdh.orbit = rec.orbit;
   //
-  if (rec.bc == mFirstIR.bc) { // if we are starting new HB, set the HB trigger flag
+  if (rec.bc == bcFirst) { // if we are starting new HB, set the HB trigger flag
     rdh.triggerType |= o2::trigger::ORBIT | o2::trigger::HB;
     if (tfhb.second == 0) { // if we are starting new TF, set the TF trigger flag
       rdh.triggerType |= o2::trigger::TF;
@@ -190,10 +187,10 @@ inline void HBFUtils::updateRDH<o2::header::RAWDataHeaderV4>(o2::header::RAWData
   rdh.triggerBC = rec.bc;
   rdh.triggerOrbit = rec.orbit;
 
-  rdh.heartbeatBC = mFirstIR.bc;
+  rdh.heartbeatBC = bcFirst;
   rdh.heartbeatOrbit = rec.orbit;
   //
-  if (rec.bc == mFirstIR.bc) { // if we are starting new HB, set the HB trigger flag
+  if (rec.bc == bcFirst) { // if we are starting new HB, set the HB trigger flag
     rdh.triggerType |= o2::trigger::ORBIT | o2::trigger::HB;
     if (tfhb.second == 0) { // if we are starting new TF, set the TF trigger flag
       rdh.triggerType |= o2::trigger::TF;

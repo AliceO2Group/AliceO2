@@ -88,7 +88,7 @@ class Encoder
   bool mIsContinuous = true;
 
   o2::header::RAWDataHeader* mRDH[72];
-  o2::raw::HBFUtils mHBFSampler;
+  const o2::raw::HBFUtils& mHBFSampler = o2::raw::HBFUtils::Instance();
   int mNRDH[72];
 
   bool mStartRun = true;
