@@ -112,7 +112,7 @@ class Spline1D : public FlatObject
   /// _____________  Version control __________________________
 
   /// Version number
-  GPUd() static constexpr int getVersion() { return 1; }
+  GPUhd() static constexpr int getVersion() { return 1; }
 
   /// _____________  Constructors / destructors __________________________
 
@@ -162,77 +162,78 @@ class Spline1D : public FlatObject
 
   /// Get interpolated value for {S(u): float -> T^Ndim} at the segment [knotL, next knotR] with the spline values Sl, Sr and the slopes Dl, Dr
   template <typename T>
-  GPUd() static void interpolate(int Ndim, const Spline1D::Knot& knotL,
-                                 GPUgeneric() const T Sl[/*Ndim*/], GPUgeneric() const T Dl[/*Ndim*/],
-                                 GPUgeneric() const T Sr[/*Ndim*/], GPUgeneric() const T Dr[/*Ndim*/],
-                                 float u, GPUgeneric() T Su[/*Ndim*/]);
+  GPUhd() static void interpolate(int Ndim, const Spline1D::Knot& knotL,
+                                  GPUgeneric() const T Sl[/*Ndim*/], GPUgeneric() const T Dl[/*Ndim*/],
+                                  GPUgeneric() const T Sr[/*Ndim*/], GPUgeneric() const T Dr[/*Ndim*/],
+                                  float u, GPUgeneric() T Su[/*Ndim*/]);
 
   /// Get interpolated value for F(u) using spline parameters with a border check
   template <typename T>
-  GPUd() void interpolate(int Ndim, GPUgeneric() const T parameters[], float u, GPUgeneric() T Su[/*Ndim*/]) const;
+  GPUhd() void interpolate(int Ndim, GPUgeneric() const T parameters[], float u, GPUgeneric() T Su[/*Ndim*/]) const;
 
   /// Get interpolated value for F(u) using spline parameters with no border check
   template <typename T>
-  GPUd() void interpolateNonSafe(int Ndim, GPUgeneric() const T parameters[], float u, GPUgeneric() T Su[/*Ndim*/]) const;
+  GPUhd() void interpolateNonSafe(int Ndim, GPUgeneric() const T parameters[], float u, GPUgeneric() T Su[/*Ndim*/]) const;
 
   /// Simplified interface for 1D spline
   template <typename T>
-  GPUd() static T interpolate1D(GPUgeneric() const Spline1D::Knot& knotL,
-                                GPUgeneric() const T& Sl, GPUgeneric() const T& Dl, GPUgeneric() const T& Sr, GPUgeneric() const T& Dr, float u);
+  GPUhd() static T interpolate1D(GPUgeneric() const Spline1D::Knot& knotL,
+                                 GPUgeneric() const T& Sl, GPUgeneric() const T& Dl, GPUgeneric() const T& Sr, GPUgeneric() const T& Dr, float u);
 
   /// Simplified interface for 1D spline
   template <typename T>
-  GPUd() T interpolate1D(GPUgeneric() const T parameters[], float u) const;
+  GPUhd() T interpolate1D(GPUgeneric() const T parameters[], float u) const;
 
   /// _______________  Getters   ________________________
 
   /// Get U coordinate of the last knot
-  int getUmax() const { return mUmax; }
+  GPUhd() int getUmax() const { return mUmax; }
 
   /// Get minimal required alignment for the spline parameters
   template <typename T>
   static constexpr size_t getParameterAlignmentBytes(int Ndim)
   {
-    return std::min<2 * sizeof(T) * Ndim, 16>;
+    size_t s = 2 * sizeof(T) * Ndim;
+    return (s < 16) ? s : 16;
   }
 
   /// Size of the parameter array in bytes
   template <typename T>
-  GPUd() size_t getSizeOfParameters(int Ndim) const
+  GPUhd() size_t getSizeOfParameters(int Ndim) const
   {
     return sizeof(T) * (size_t)getNumberOfParameters(Ndim);
   }
 
   /// Number of parameters
-  GPUd() int getNumberOfParameters(int Ndim) const
+  GPUhd() int getNumberOfParameters(int Ndim) const
   {
     return (2 * Ndim) * mNumberOfKnots;
   }
 
   /// Get number of knots
-  GPUd() int getNumberOfKnots() const { return mNumberOfKnots; }
+  GPUhd() int getNumberOfKnots() const { return mNumberOfKnots; }
 
   /// Get the array of knots
-  GPUd() const Spline1D::Knot* getKnots() const { return reinterpret_cast<const Spline1D::Knot*>(mFlatBufferPtr); }
+  GPUhd() const Spline1D::Knot* getKnots() const { return reinterpret_cast<const Spline1D::Knot*>(mFlatBufferPtr); }
 
   /// Get i-th knot
-  GPUd() const Spline1D::Knot& getKnot(int i) const { return getKnots()[i < 0 ? 0 : (i >= mNumberOfKnots ? mNumberOfKnots - 1 : i)]; }
+  GPUhd() const Spline1D::Knot& getKnot(int i) const { return getKnots()[i < 0 ? 0 : (i >= mNumberOfKnots ? mNumberOfKnots - 1 : i)]; }
 
   /// Get index of an associated knot for a given U coordinate. Performs a border check.
-  GPUd() int getKnotIndex(float u) const;
+  GPUhd() int getKnotIndex(float u) const;
 
   /// _______________  Getters with no border check   ________________________
 
   /// Get index of an associated knot for a given U coordinate. No border check preformed!
-  GPUd() int getKnotIndexNonSafe(float u) const;
+  GPUhd() int getKnotIndexNonSafe(float u) const;
 
   /// Get i-th knot. No border check performed!
-  GPUd() const Spline1D::Knot& getKnotNonSafe(int i) const { return getKnots()[i]; }
+  GPUhd() const Spline1D::Knot& getKnotNonSafe(int i) const { return getKnots()[i]; }
 
   /// _______________  Technical stuff   ________________________
 
   /// Get a map (integer U -> corresponding knot index)
-  GPUd() const int* getUtoKnotMap() const { return mUtoKnotMap; }
+  GPUhd() const int* getUtoKnotMap() const { return mUtoKnotMap; }
 
   /// Print method
   void print() const;
@@ -289,14 +290,14 @@ class Spline1D : public FlatObject
 /// ========================================================================================================
 ///
 
-GPUdi() int Spline1D::getKnotIndexNonSafe(float u) const
+GPUhdi() int Spline1D::getKnotIndexNonSafe(float u) const
 {
   /// Get i: u is in [knot_i, knot_{i+1}) interval
   /// no border check! u must be in [0,mUmax]
   return getUtoKnotMap()[(int)u];
 }
 
-GPUdi() int Spline1D::getKnotIndex(float u) const
+GPUhdi() int Spline1D::getKnotIndex(float u) const
 {
   /// Get i: u is in [knot_i, knot_{i+1}) interval
   /// when u is otside of [0, mUmax], return the edge intervals
@@ -311,10 +312,10 @@ GPUdi() int Spline1D::getKnotIndex(float u) const
 }
 
 template <typename T>
-GPUdi() void Spline1D::interpolate(int Ndim, const Spline1D::Knot& knotL,
-                                   GPUgeneric() const T Sl[/*Ndim*/], GPUgeneric() const T Dl[/*Ndim*/],
-                                   GPUgeneric() const T Sr[/*Ndim*/], GPUgeneric() const T Dr[/*Ndim*/],
-                                   float u, GPUgeneric() T Su[/*Ndim*/])
+GPUhdi() void Spline1D::interpolate(int Ndim, const Spline1D::Knot& knotL,
+                                    GPUgeneric() const T Sl[/*Ndim*/], GPUgeneric() const T Dl[/*Ndim*/],
+                                    GPUgeneric() const T Sr[/*Ndim*/], GPUgeneric() const T Dr[/*Ndim*/],
+                                    float u, GPUgeneric() T Su[/*Ndim*/])
 {
   /// A static method.
   /// Gives interpolated value of N-dimensional S(u) at u
@@ -345,7 +346,7 @@ GPUdi() void Spline1D::interpolate(int Ndim, const Spline1D::Knot& knotL,
 }
 
 template <typename T>
-GPUdi() void Spline1D::interpolate(int Ndim, GPUgeneric() const T parameters[], float u, GPUgeneric() T Su[/*Ndim*/]) const
+GPUhdi() void Spline1D::interpolate(int Ndim, GPUgeneric() const T parameters[], float u, GPUgeneric() T Su[/*Ndim*/]) const
 {
   /// Get interpolated value for S(u) using parameters[Ndim*2*getNumberOfKnots()].
   /// parameters = { {Sx,Sy,Sz,Dx,Dy,Dz}_0, ... ,{Sx,Sy,Sz,Dx,Dy,Dz}_{n-1} } for f:u->{x,y,z} case
@@ -356,7 +357,7 @@ GPUdi() void Spline1D::interpolate(int Ndim, GPUgeneric() const T parameters[], 
 }
 
 template <typename T>
-GPUdi() void Spline1D::interpolateNonSafe(int Ndim, GPUgeneric() const T parameters[], float u, GPUgeneric() T Su[/*Ndim*/]) const
+GPUhdi() void Spline1D::interpolateNonSafe(int Ndim, GPUgeneric() const T parameters[], float u, GPUgeneric() T Su[/*Ndim*/]) const
 {
   /// Get interpolated value for f(u) using parameters[Ndim*2*getNumberOfKnots()].
   /// parameters = { {Sx,Sy,Sz,Dx,Dy,Dz}_0, ... ,{Sx,Sy,Sz,Dx,Dy,Dz}_{n-1} } for f:u->{x,y,z} case
@@ -367,10 +368,10 @@ GPUdi() void Spline1D::interpolateNonSafe(int Ndim, GPUgeneric() const T paramet
 }
 
 template <typename T>
-GPUdi() T Spline1D::interpolate1D(GPUgeneric() const Spline1D::Knot& knotL,
-                                  GPUgeneric() const T& Sl, GPUgeneric() const T& Dl,
-                                  GPUgeneric() const T& Sr, GPUgeneric() const T& Dr,
-                                  float u)
+GPUhdi() T Spline1D::interpolate1D(GPUgeneric() const Spline1D::Knot& knotL,
+                                   GPUgeneric() const T& Sl, GPUgeneric() const T& Dl,
+                                   GPUgeneric() const T& Sr, GPUgeneric() const T& Dr,
+                                   float u)
 {
   /// Simplified interface for 1D spline
   T Su;
@@ -379,7 +380,7 @@ GPUdi() T Spline1D::interpolate1D(GPUgeneric() const Spline1D::Knot& knotL,
 }
 
 template <typename T>
-GPUdi() T Spline1D::interpolate1D(GPUgeneric() const T parameters[], float u) const
+GPUhdi() T Spline1D::interpolate1D(GPUgeneric() const T parameters[], float u) const
 {
   /// Simplified interface for 1D spline
   T Su;

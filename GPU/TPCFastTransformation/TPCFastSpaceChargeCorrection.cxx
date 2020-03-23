@@ -8,12 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file  TPCDistortionIRS.cxx
-/// \brief Implementation of TPCDistortionIRS class
+/// \file  TPCFastSpaceChargeCorrection.cxx
+/// \brief Implementation of TPCFastSpaceChargeCorrection class
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-#include "TPCDistortionIRS.h"
+#include "TPCFastSpaceChargeCorrection.h"
 
 #if !defined(GPUCA_GPUCODE)
 #include <iostream>
@@ -21,7 +21,7 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-TPCDistortionIRS::TPCDistortionIRS()
+TPCFastSpaceChargeCorrection::TPCFastSpaceChargeCorrection()
   : FlatObject(),
     mConstructionRowSplineInfos(nullptr),
     mConstructionScenarios(nullptr),
@@ -35,15 +35,15 @@ TPCDistortionIRS::TPCDistortionIRS()
   // Default Constructor: creates an empty uninitialized object
 }
 
-TPCDistortionIRS::~TPCDistortionIRS()
+TPCFastSpaceChargeCorrection::~TPCFastSpaceChargeCorrection()
 {
   /// Destructor
   destroy();
 }
 
-void TPCDistortionIRS::releaseConstructionMemory()
+void TPCFastSpaceChargeCorrection::releaseConstructionMemory()
 {
-  // release temporary arrays
+// release temporary arrays
 #if !defined(GPUCA_GPUCODE)
   delete[] mConstructionRowSplineInfos;
   delete[] mConstructionScenarios;
@@ -52,7 +52,7 @@ void TPCDistortionIRS::releaseConstructionMemory()
   mConstructionScenarios = nullptr;
 }
 
-void TPCDistortionIRS::destroy()
+void TPCFastSpaceChargeCorrection::destroy()
 {
   releaseConstructionMemory();
   mConstructionRowSplineInfos = nullptr;
@@ -66,20 +66,20 @@ void TPCDistortionIRS::destroy()
   FlatObject::destroy();
 }
 
-void TPCDistortionIRS::relocateBufferPointers(const char* oldBuffer, char* newBuffer)
+void TPCFastSpaceChargeCorrection::relocateBufferPointers(const char* oldBuffer, char* newBuffer)
 {
   mRowSplineInfoPtr = FlatObject::relocatePointer(oldBuffer, newBuffer, mRowSplineInfoPtr);
   mScenarioPtr = FlatObject::relocatePointer(oldBuffer, newBuffer, mScenarioPtr);
 
   for (int i = 0; i < mNumberOfScenarios; i++) {
-    IrregularSpline2D3D& sp = mScenarioPtr[i];
+    Spline2D& sp = mScenarioPtr[i];
     char* newSplineBuf = relocatePointer(oldBuffer, newBuffer, sp.getFlatBufferPtr());
     sp.setActualBufferAddress(newSplineBuf);
   }
   mSplineData = relocatePointer(oldBuffer, newBuffer, mSplineData);
 }
 
-void TPCDistortionIRS::cloneFromObject(const TPCDistortionIRS& obj, char* newFlatBufferPtr)
+void TPCFastSpaceChargeCorrection::cloneFromObject(const TPCFastSpaceChargeCorrection& obj, char* newFlatBufferPtr)
 {
   /// Initializes from another object, copies data to newBufferPtr
   /// When newBufferPtr==nullptr, an internal container will be created, the data will be copied there.
@@ -107,7 +107,7 @@ void TPCDistortionIRS::cloneFromObject(const TPCDistortionIRS& obj, char* newFla
   relocateBufferPointers(oldFlatBufferPtr, mFlatBufferPtr);
 }
 
-void TPCDistortionIRS::moveBufferTo(char* newFlatBufferPtr)
+void TPCFastSpaceChargeCorrection::moveBufferTo(char* newFlatBufferPtr)
 {
   /// Sets buffer pointer to the new address, move the buffer content there.
 
@@ -116,7 +116,7 @@ void TPCDistortionIRS::moveBufferTo(char* newFlatBufferPtr)
   relocateBufferPointers(oldFlatBufferPtr, mFlatBufferPtr);
 }
 
-void TPCDistortionIRS::setActualBufferAddress(char* actualFlatBufferPtr)
+void TPCFastSpaceChargeCorrection::setActualBufferAddress(char* actualFlatBufferPtr)
 {
   /// Sets the actual location of the external flat buffer after it has been moved (i.e. to another maschine)
 
@@ -127,26 +127,26 @@ void TPCDistortionIRS::setActualBufferAddress(char* actualFlatBufferPtr)
 
   mRowSplineInfoPtr = reinterpret_cast<RowSplineInfo*>(mFlatBufferPtr + rowsOffset);
 
-  size_t scOffset = alignSize(rowsOffset + rowsSize, IrregularSpline2D3D::getClassAlignmentBytes());
-  size_t scSize = sizeof(IrregularSpline2D3D) * mNumberOfScenarios;
+  size_t scOffset = alignSize(rowsOffset + rowsSize, Spline2D::getClassAlignmentBytes());
+  size_t scSize = sizeof(Spline2D) * mNumberOfScenarios;
 
-  mScenarioPtr = reinterpret_cast<IrregularSpline2D3D*>(mFlatBufferPtr + scOffset);
+  mScenarioPtr = reinterpret_cast<Spline2D*>(mFlatBufferPtr + scOffset);
 
-  size_t scBufferOffset = alignSize(scOffset + scSize, IrregularSpline2D3D::getBufferAlignmentBytes());
+  size_t scBufferOffset = alignSize(scOffset + scSize, Spline2D::getBufferAlignmentBytes());
   size_t scBufferSize = 0;
 
   for (int i = 0; i < mNumberOfScenarios; i++) {
-    IrregularSpline2D3D& sp = mScenarioPtr[i];
+    Spline2D& sp = mScenarioPtr[i];
     sp.setActualBufferAddress(mFlatBufferPtr + scBufferOffset + scBufferSize);
     scBufferSize = alignSize(scBufferSize + sp.getFlatBufferSize(), sp.getBufferAlignmentBytes());
   }
-
-  size_t sliceDataOffset = alignSize(scBufferOffset + scBufferSize, IrregularSpline2D3D::getDataAlignmentBytes());
+  size_t dataAlignment = Spline2D::getParameterAlignmentBytes<float>(3);
+  size_t sliceDataOffset = alignSize(scBufferOffset + scBufferSize, dataAlignment);
 
   mSplineData = reinterpret_cast<char*>(mFlatBufferPtr + sliceDataOffset);
 }
 
-void TPCDistortionIRS::setFutureBufferAddress(char* futureFlatBufferPtr)
+void TPCFastSpaceChargeCorrection::setFutureBufferAddress(char* futureFlatBufferPtr)
 {
   /// Sets a future location of the external flat buffer before moving it to this location (i.e. when copying to GPU).
   /// The object can be used immidiatelly after the move, call of setActualFlatBufferAddress() is not needed.
@@ -161,7 +161,7 @@ void TPCDistortionIRS::setFutureBufferAddress(char* futureFlatBufferPtr)
   mRowSplineInfoPtr = relocatePointer(oldBuffer, newBuffer, mRowSplineInfoPtr);
 
   for (int i = 0; i < mNumberOfScenarios; i++) {
-    IrregularSpline2D3D& sp = mScenarioPtr[i];
+    Spline2D& sp = mScenarioPtr[i];
     char* newSplineBuf = relocatePointer(oldBuffer, newBuffer, sp.getFlatBufferPtr());
     sp.setFutureBufferAddress(newSplineBuf);
   }
@@ -171,7 +171,7 @@ void TPCDistortionIRS::setFutureBufferAddress(char* futureFlatBufferPtr)
   FlatObject::setFutureBufferAddress(futureFlatBufferPtr);
 }
 
-void TPCDistortionIRS::startConstruction(const TPCFastTransformGeo& geo, int numberOfSplineScenarios)
+void TPCFastSpaceChargeCorrection::startConstruction(const TPCFastTransformGeo& geo, int numberOfSplineScenarios)
 {
   /// Starts the construction procedure, reserves temporary memory
 
@@ -186,7 +186,7 @@ void TPCDistortionIRS::startConstruction(const TPCFastTransformGeo& geo, int num
 
 #if !defined(GPUCA_GPUCODE)
   mConstructionRowSplineInfos = new RowSplineInfo[mGeo.getNumberOfRows()];
-  mConstructionScenarios = new IrregularSpline2D3D[mNumberOfScenarios];
+  mConstructionScenarios = new Spline2D[mNumberOfScenarios];
 #endif
 
   assert(mConstructionRowSplineInfos != nullptr);
@@ -208,7 +208,7 @@ void TPCDistortionIRS::startConstruction(const TPCFastTransformGeo& geo, int num
   mSliceDataSizeBytes = 0;
 }
 
-void TPCDistortionIRS::setRowScenarioID(int iRow, int iScenario)
+void TPCFastSpaceChargeCorrection::setRowScenarioID(int iRow, int iScenario)
 {
   /// Initializes a TPC row
   assert(mConstructionMask & ConstructionState::InProgress);
@@ -219,17 +219,17 @@ void TPCDistortionIRS::setRowScenarioID(int iRow, int iScenario)
   row.dataOffsetBytes = 0;
 }
 
-void TPCDistortionIRS::setSplineScenario(int scenarioIndex, const IrregularSpline2D3D& spline)
+void TPCFastSpaceChargeCorrection::setSplineScenario(int scenarioIndex, const Spline2D& spline)
 {
   /// Sets approximation scenario
   assert(mConstructionMask & ConstructionState::InProgress);
   assert(scenarioIndex >= 0 && scenarioIndex < mNumberOfScenarios);
   assert(spline.isConstructed());
-  IrregularSpline2D3D& sp = mConstructionScenarios[scenarioIndex];
+  Spline2D& sp = mConstructionScenarios[scenarioIndex];
   sp.cloneFromObject(spline, nullptr); //  clone to internal buffer container
 }
 
-void TPCDistortionIRS::finishConstruction()
+void TPCFastSpaceChargeCorrection::finishConstruction()
 {
   /// Finishes construction: puts everything to the flat buffer, releases temporary memory
 
@@ -247,28 +247,28 @@ void TPCDistortionIRS::finishConstruction()
   size_t rowsOffset = 0;
   size_t rowsSize = sizeof(RowSplineInfo) * mGeo.getNumberOfRows();
 
-  size_t scOffset = alignSize(rowsOffset + rowsSize, IrregularSpline2D3D::getClassAlignmentBytes());
-  size_t scSize = sizeof(IrregularSpline2D3D) * mNumberOfScenarios;
+  size_t scOffset = alignSize(rowsOffset + rowsSize, Spline2D::getClassAlignmentBytes());
+  size_t scSize = sizeof(Spline2D) * mNumberOfScenarios;
 
   size_t scBufferOffsets[mNumberOfScenarios];
 
-  scBufferOffsets[0] = alignSize(scOffset + scSize, IrregularSpline2D3D::getBufferAlignmentBytes());
+  scBufferOffsets[0] = alignSize(scOffset + scSize, Spline2D::getBufferAlignmentBytes());
   size_t scBufferSize = 0;
   for (int i = 0; i < mNumberOfScenarios; i++) {
-    IrregularSpline2D3D& sp = mConstructionScenarios[i];
+    Spline2D& sp = mConstructionScenarios[i];
     scBufferOffsets[i] = scBufferOffsets[0] + scBufferSize;
     scBufferSize = alignSize(scBufferSize + sp.getFlatBufferSize(), sp.getBufferAlignmentBytes());
   }
 
-  size_t sliceDataOffset = alignSize(scBufferOffsets[0] + scBufferSize, IrregularSpline2D3D::getDataAlignmentBytes());
+  size_t sliceDataOffset = alignSize(scBufferOffsets[0] + scBufferSize, Spline2D::getParameterAlignmentBytes<float>(3));
 
   mSliceDataSizeBytes = 0;
   for (int i = 0; i < mGeo.getNumberOfRows(); i++) {
     RowSplineInfo& row = mConstructionRowSplineInfos[i];
     row.dataOffsetBytes = mSliceDataSizeBytes;
-    IrregularSpline2D3D& sp = mConstructionScenarios[row.splineScenarioID];
-    mSliceDataSizeBytes += 3 * sp.getNumberOfKnots() * sizeof(float);
-    mSliceDataSizeBytes = alignSize(mSliceDataSizeBytes, IrregularSpline2D3D::getDataAlignmentBytes());
+    Spline2D& sp = mConstructionScenarios[row.splineScenarioID];
+    mSliceDataSizeBytes += sp.getSizeOfParameters<float>(3);
+    mSliceDataSizeBytes = alignSize(mSliceDataSizeBytes, Spline2D::getParameterAlignmentBytes<float>(3));
   }
 
   FlatObject::finishConstruction(sliceDataOffset + mSliceDataSizeBytes * mGeo.getNumberOfSlices());
@@ -278,12 +278,12 @@ void TPCDistortionIRS::finishConstruction()
     mRowSplineInfoPtr[i] = mConstructionRowSplineInfos[i];
   }
 
-  mScenarioPtr = reinterpret_cast<IrregularSpline2D3D*>(mFlatBufferPtr + scOffset);
+  mScenarioPtr = reinterpret_cast<Spline2D*>(mFlatBufferPtr + scOffset);
 
   for (int i = 0; i < mNumberOfScenarios; i++) {
-    IrregularSpline2D3D& sp0 = mConstructionScenarios[i];
-    IrregularSpline2D3D& sp1 = mScenarioPtr[i];
-    new (&sp1) IrregularSpline2D3D(); // first, call a constructor
+    Spline2D& sp0 = mConstructionScenarios[i];
+    Spline2D& sp1 = mScenarioPtr[i];
+    new (&sp1) Spline2D(); // first, call a constructor
     sp1.cloneFromObject(sp0, mFlatBufferPtr + scBufferOffsets[i]);
   }
 
@@ -293,24 +293,23 @@ void TPCDistortionIRS::finishConstruction()
 
   mTimeStamp = -1;
 
-  // initialise all distortions to 0.
+  // initialise all corrections to 0.
 
   for (int slice = 0; slice < mGeo.getNumberOfSlices(); slice++) {
     for (int row = 0; row < mGeo.getNumberOfRows(); row++) {
-      const IrregularSpline2D3D& spline = getSpline(slice, row);
+      const Spline2D& spline = getSpline(slice, row);
       float* data = getSplineDataNonConst(slice, row);
-      for (int i = 0; i < 3 * spline.getNumberOfKnots(); i++) {
+      for (int i = 0; i < spline.getNumberOfParameters(3); i++) {
         data[i] = 0.f;
       }
-      spline.correctEdges(data);
     }
   }
 }
 
-void TPCDistortionIRS::print() const
+void TPCFastSpaceChargeCorrection::print() const
 {
 #if !defined(GPUCA_GPUCODE)
-  std::cout << " TPC DistortionIRS: " << std::endl;
+  std::cout << " TPC Correction: " << std::endl;
   mGeo.print();
   std::cout << "  mNumberOfScenarios = " << mNumberOfScenarios << std::endl;
   std::cout << "  mTimeStamp = " << mTimeStamp << std::endl;
@@ -328,7 +327,7 @@ void TPCDistortionIRS::print() const
   for (int is = 0; is < mGeo.getNumberOfSlices(); is++) {
     for (int ir = 0; ir < mGeo.getNumberOfRows(); ir++) {
       std::cout << "slice " << is << " row " << ir << ": " << std::endl;
-      const IrregularSpline2D3D& spline = getSpline(is, ir);
+      const Spline2D& spline = getSpline(is, ir);
       const float* d = getSplineData(is, ir);
       int k = 0;
       for (int i = 0; i < spline.getGridU().getNumberOfKnots(); i++) {

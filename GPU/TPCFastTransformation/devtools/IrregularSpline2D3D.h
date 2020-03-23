@@ -186,7 +186,6 @@ class IrregularSpline2D3D : public FlatObject
   void print() const;
 
  private:
-
   ///
   /// ====  Data members   ====
   ///

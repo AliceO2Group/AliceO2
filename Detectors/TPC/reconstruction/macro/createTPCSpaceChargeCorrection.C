@@ -216,13 +216,13 @@ void debugInterpolation(utils::TreeStreamRedirector& pcstream,
         for (float time = 0; time < 500; time += 10) {
 
           // non-corrected point
-          fastTransform->setApplyDistortionOff();
+          fastTransform->setApplyCorrectionOff();
           float lx, ly, lz, gx, gy, gz, r, phi;
           fastTransform->Transform(slice, row, pad, time, lx, ly, lz);
           geo.convLocalToGlobal(slice, lx, ly, lz, gx, gy, gz);
           r = std::sqrt(lx * lx + ly * ly);
           phi = std::atan2(gy, gx);
-          fastTransform->setApplyDistortionOn();
+          fastTransform->setApplyCorrectionOn();
 
           // fast transformation
           float lxT, lyT, lzT, gxT, gyT, gzT, rT;
@@ -407,7 +407,7 @@ void debugGridpoints(utils::TreeStreamRedirector& pcstream,
             continue;
           }
 
-          fastTransform->setApplyDistortionOn();
+          fastTransform->setApplyCorrectionOn();
           float x1 = 0.f, y1 = 0.f, z1 = 0.f;
           fastTransform->Transform(sector, row, pad, time, x1, y1, z1);
 

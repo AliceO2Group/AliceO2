@@ -15,22 +15,22 @@ set(SRCS
     Spline2D.cxx
     SplineHelper1D.cxx
     SplineHelper2D.cxx
-    IrregularSpline1D.cxx
-    IrregularSpline2D3D.cxx
-    SemiregularSpline2D3D.cxx
-    IrregularSpline2D3DCalibrator.cxx
+    devtools/IrregularSpline1D.cxx
+    devtools/IrregularSpline2D3D.cxx
+    devtools/SemiregularSpline2D3D.cxx
+    devtools/IrregularSpline2D3DCalibrator.cxx
     TPCFastTransformGeo.cxx
-    TPCDistortionIRS.cxx
+    TPCFastSpaceChargeCorrection.cxx
     TPCFastTransform.cxx)
 
 string(REPLACE ".cxx" ".h" HDRS_CINT_O2 "${SRCS}")
-set(HDRS_CINT_O2 ${HDRS_CINT_O2} RegularSpline1D.h)
+set(HDRS_CINT_O2 ${HDRS_CINT_O2} devtools/RegularSpline1D.h)
 
 if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
   o2_add_library(${MODULE}
                  TARGETVARNAME targetName
                  SOURCES ${SRCS}
-                 PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}
+                 PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR} devtools
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon Vc::Vc ROOT::Core ROOT::Matrix ROOT::Tree ROOT::Gpad)
 
   o2_target_root_dictionary(${MODULE}
@@ -48,13 +48,8 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
 
   foreach(m
           SplineDemo.C
-          IrregularSpline1DTest.C
-          IrregularSpline2D3DCalibratorTest.C
-          IrregularSpline2D3DTest.C
-          RegularSpline1DTest.C
-          SemiregularSpline2D3DTest.C
           fastTransformQA.C
-          generateTPCDistortionNTuple.C)
+          generateTPCCorrectionNTuple.C)
     o2_add_test_root_macro(macro/${m}
                            PUBLIC_LINK_LIBRARIES O2::TPCFastTransformation
                                                  O2::DataFormatsTPC
@@ -64,6 +59,22 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
                                                  ${CMAKE_BINARY_DIR}/stage/include
                            LABELS gpu tpc)
   endforeach()
+    foreach(m
+          IrregularSpline1DTest.C
+          IrregularSpline2D3DCalibratorTest.C
+          IrregularSpline2D3DTest.C
+          RegularSpline1DTest.C
+          SemiregularSpline2D3DTest.C)
+    o2_add_test_root_macro(devtools/${m}
+                           PUBLIC_LINK_LIBRARIES O2::TPCFastTransformation
+                                                 O2::DataFormatsTPC
+                                                 O2::TPCSimulation
+                                                 O2::TPCReconstruction
+                                                 PUBLIC_INCLUDE_DIRECTORIES
+                                                 ${CMAKE_BINARY_DIR}/stage/include
+                           LABELS gpu tpc)
+  endforeach()
+
 endif()
 
 if(${ALIGPU_BUILD_TYPE} STREQUAL "ALIROOT")
@@ -125,7 +136,7 @@ endif()
 # FIXME: this one is misplaced : it depends (at least) on TPCSimulation which is
 # built after GPU...
 #
-# o2_add_test_root_macro(macro/generateTPCDistortionNTuple.C
+# o2_add_test_root_macro(macro/generateTPCCorrectionNTuple.C
 # PUBLIC_LINK_LIBRARIES O2::TPCFastTransformation O2::DataFormatsTPC
 # O2::TPCSimulation PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/stage/include
 # LABELS gpu tpc)

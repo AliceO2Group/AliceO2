@@ -8,13 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file  generateTPCDistortion.C
-/// \brief A macro for generating TPC distortion ntuple to test the IrregularSpline2D3DCalibrator class
+/// \file  generateTPCCorrection.C
+/// \brief A macro for generating TPC correction ntuple for tests
 ///
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 ///
 ///  Load the macro:
-///  .L generateTPCDistortion.C++
+///  .L generateTPCCorrection.C++
 ///
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
@@ -34,7 +34,7 @@ o2::tpc::SpaceCharge* sc = 0;
 using namespace o2::tpc;
 using namespace o2::gpu;
 
-void generateTPCDistortionNTuple()
+void generateTPCCorrectionNTuple()
 {
   // open file with space-charge density histograms
   // location: alien:///alice/cern.ch/user/e/ehellbar/TPCSpaceCharge/RUN3/ SCDensityHistograms/InputSCDensityHistograms.root
@@ -77,10 +77,10 @@ void generateTPCDistortionNTuple()
 
   std::unique_ptr<o2::gpu::TPCFastTransform> fastTransform(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
 
-  o2::gpu::TPCDistortionIRS& dist = fastTransform->getDistortionNonConst();
+  o2::gpu::TPCFastSpaceChargeCorrection& dist = fastTransform->getCorrectionNonConst();
   const o2::gpu::TPCFastTransformGeo& geo = fastTransform->getGeometry();
 
-  TFile* f = new TFile("tpcDistortion.root", "RECREATE");
+  TFile* f = new TFile("tpcCorrection.root", "RECREATE");
   TNtuple* nt = new TNtuple("dist", "dist", "slice:row:su:sv:dx:du:dv");
 
   int nSlices = 1; //fastTransform->getNumberOfSlices();

@@ -305,10 +305,10 @@ int Spline2D::test(const bool draw, const bool drawDataPoints)
         F(u, v, f);
         float s[Ndim];
         float s1;
-        spline.interpolate(Ndim, parameters.get(), u, v, s);
+        spline.interpolate<Ndim>(parameters.get(), u, v, s);
         for (int dim = 0; dim < Ndim; dim++) {
           statDf += (s[dim] - f[dim]) * (s[dim] - f[dim]);
-          spline.interpolate(1, parameters1D[dim].get(), u, v, &s1);
+          spline.interpolate<1>(parameters1D[dim].get(), u, v, &s1);
           statDf1D += (s[dim] - s1) * (s[dim] - s1);
         }
         statN += Ndim;
@@ -331,7 +331,7 @@ int Spline2D::test(const bool draw, const bool drawDataPoints)
           float f[Ndim];
           F(u, v, f);
           float s[Ndim];
-          spline.interpolate(Ndim, parameters.get(), u, v, s);
+          spline.interpolate<Ndim>(parameters.get(), u, v, s);
           nt->Fill(u, v, f[0], s[0]);
         }
       }
@@ -354,7 +354,7 @@ int Spline2D::test(const bool draw, const bool drawDataPoints)
           double u = spline.getGridU().getKnot(i).u;
           double v = spline.getGridV().getKnot(j).u;
           float s[Ndim];
-          spline.interpolate(Ndim, parameters.get(), u, v, s);
+          spline.interpolate<Ndim>(parameters.get(), u, v, s);
           knots->Fill(1, u, v, s[0]);
         }
       }
@@ -374,7 +374,7 @@ int Spline2D::test(const bool draw, const bool drawDataPoints)
               continue;
             }
             float s[Ndim];
-            spline.interpolate(Ndim, parameters.get(), pu.u, pv.u, s);
+            spline.interpolate<Ndim>(parameters.get(), pu.u, pv.u, s);
             knots->Fill(2, pu.u, pv.u, s[0]);
           }
         }

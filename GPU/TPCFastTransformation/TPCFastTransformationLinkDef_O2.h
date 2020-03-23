@@ -30,6 +30,6 @@
 #pragma link C++ class o2::gpu::TPCFastTransformGeo::SliceInfo + ;
 #pragma link C++ class o2::gpu::TPCFastTransformGeo::RowInfo + ;
 #pragma link C++ class o2::gpu::TPCFastTransform + ;
-#pragma link C++ class o2::gpu::TPCDistortionIRS + ;
+#pragma link C++ class o2::gpu::TPCFastSpaceChargeCorrection + ;
 
 #endif
