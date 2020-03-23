@@ -16,7 +16,7 @@
 #include "Framework/Lifetime.h"
 #include "Headers/DataHeader.h"
 #include "TStopwatch.h"
-#include "Steer/HitProcessingManager.h" // for RunContext
+#include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "TChain.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
@@ -55,7 +55,7 @@ class MCHDPLDigitizerTask
     LOG(DEBUG) << "Doing MCH digitization";
 
     // read collision context from input
-    auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
+    auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
     context->initSimChains(o2::detectors::DetID::MCH, mSimChains);
     auto& irecords = context->getEventRecords();
 

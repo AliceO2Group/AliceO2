@@ -17,7 +17,7 @@
 #include "Framework/Lifetime.h"
 #include "Framework/Task.h"
 #include "Headers/DataHeader.h"
-#include "Steer/HitProcessingManager.h" // for RunContext
+#include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "DetectorsBase/GeometryManager.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -66,7 +66,7 @@ class MIDDPLDigitizerTask
     LOG(DEBUG) << "Doing MID digitization";
 
     // read collision context from input
-    auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
+    auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
     context->initSimChains(o2::detectors::DetID::MID, mSimChains);
     auto& irecords = context->getEventRecords();
 

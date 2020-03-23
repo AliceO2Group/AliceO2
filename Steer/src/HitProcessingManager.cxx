@@ -87,7 +87,7 @@ void HitProcessingManager::setupRun(int ncollisions)
     LOG(INFO) << "Automatic deduction of number of collisions ... will just take number of background entries "
               << mNumberOfCollisions;
   }
-  mRunContext.setNCollisions(mNumberOfCollisions);
+  mDigitizationContext.setNCollisions(mNumberOfCollisions);
   sampleCollisionTimes();
 
   // sample collision (background-signal) constituents
@@ -99,26 +99,26 @@ void HitProcessingManager::setupRun(int ncollisions)
   for (auto k : mSignalFileNames) {
     prefixes.emplace_back(k.second[0]);
   }
-  mRunContext.setSimPrefixes(prefixes);
+  mDigitizationContext.setSimPrefixes(prefixes);
 }
 
-void HitProcessingManager::writeRunContext(const char* filename) const
+void HitProcessingManager::writeDigitizationContext(const char* filename) const
 {
   TFile file(filename, "RECREATE");
-  auto cl = TClass::GetClass(typeid(mRunContext));
-  file.WriteObjectAny(&mRunContext, cl, "RunContext");
+  auto cl = TClass::GetClass(typeid(mDigitizationContext));
+  file.WriteObjectAny(&mDigitizationContext, cl, "DigitizationContext");
   file.Close();
 }
 
 bool HitProcessingManager::setupRunFromExistingContext(const char* filename)
 {
-  RunContext* incontext = nullptr;
+  DigitizationContext* incontext = nullptr;
   TFile file(filename, "OPEN");
-  file.GetObject("RunContext", incontext);
+  file.GetObject("DigitizationContext", incontext);
 
   if (incontext) {
     incontext->printCollisionSummary();
-    mRunContext = *incontext;
+    mDigitizationContext = *incontext;
     return true;
   }
   LOG(INFO) << "NO COLLISIONOBJECT FOUND";

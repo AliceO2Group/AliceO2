@@ -16,7 +16,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
 #include "Headers/DataHeader.h"
-#include "Steer/HitProcessingManager.h" // for RunContext
+#include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "DetectorsBase/GeometryManager.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "Framework/Task.h"
@@ -61,7 +61,7 @@ class FDDDPLDigitizerTask
     //mDigitizer.refreshCCDB();
 
     // read collision context from input
-    auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
+    auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
     auto& irecords = context->getEventRecords();
 
     context->initSimChains(o2::detectors::DetID::FDD, mSimChains);

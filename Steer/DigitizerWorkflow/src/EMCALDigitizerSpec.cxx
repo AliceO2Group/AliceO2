@@ -16,7 +16,7 @@
 #include "Framework/Lifetime.h"
 #include "Headers/DataHeader.h"
 #include "TStopwatch.h"
-#include "Steer/HitProcessingManager.h" // for RunContext
+#include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "TChain.h"
 
 #include "CommonDataFormat/EvIndex.h"
@@ -55,7 +55,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
     return;
 
   // read collision context from input
-  auto context = ctx.inputs().get<o2::steer::RunContext*>("collisioncontext");
+  auto context = ctx.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
   context->initSimChains(o2::detectors::DetID::EMC, mSimChains);
   auto& timesview = context->getEventRecords();
   LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";

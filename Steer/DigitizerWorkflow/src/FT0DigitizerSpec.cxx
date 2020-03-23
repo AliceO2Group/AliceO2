@@ -15,7 +15,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
 #include "Headers/DataHeader.h"
-#include "Steer/HitProcessingManager.h" // for RunContext
+#include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "FT0Simulation/Digitizer.h"
 #include "FT0Simulation/DigitizationParameters.h"
 #include "DataFormatsFT0/ChannelData.h"
@@ -65,7 +65,7 @@ class FT0DPLDigitizerTask
     }
 
     // read collision context from input
-    auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
+    auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
     context->initSimChains(o2::detectors::DetID::FT0, mSimChains);
     auto& timesview = context->getEventRecords();
 
