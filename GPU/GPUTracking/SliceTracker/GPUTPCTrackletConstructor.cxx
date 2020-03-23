@@ -181,8 +181,8 @@ GPUd() void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int /*nTh
 
         if (r.mNHits >= 10) {
           const float kFactor = tracker.Param().rec.HitPickUpFactor * tracker.Param().rec.HitPickUpFactor * 3.5f * 3.5f;
-          float sy2 = kFactor * (tParam.GetErr2Y() + err2Y);
-          float sz2 = kFactor * (tParam.GetErr2Z() + err2Z);
+          float sy2 = kFactor * (tParam.Err2Y() + err2Y);
+          float sz2 = kFactor * (tParam.Err2Z() + err2Z);
           if (sy2 > 2.f) {
             sy2 = 2.f;
           }
@@ -265,8 +265,8 @@ GPUd() void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int /*nTh
       { // search for the closest hit
         tracker.GetErrors2Seeding(iRow, *((MEM_LG2(GPUTPCTrackParam)*)&tParam), err2Y, err2Z);
         const float kFactor = tracker.Param().rec.HitPickUpFactor * tracker.Param().rec.HitPickUpFactor * 3.5f * 3.5f;
-        float sy2 = kFactor * (tParam.GetErr2Y() + err2Y);
-        float sz2 = kFactor * (tParam.GetErr2Z() + err2Z);
+        float sy2 = kFactor * (tParam.Err2Y() + err2Y);
+        float sz2 = kFactor * (tParam.Err2Z() + err2Z);
         if (sy2 > 2.f) {
           sy2 = 2.f;
         }
