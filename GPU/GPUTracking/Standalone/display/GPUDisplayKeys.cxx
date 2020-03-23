@@ -359,7 +359,7 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     FILE* ftmp = fopen("glpos.tmp", "w+b");
     if (ftmp) {
       int retval = fwrite(&mViewMatrix, sizeof(mViewMatrix), 1, ftmp);
-      if (retval != 16) {
+      if (retval != 1) {
         GPUError("Error writing position to file");
       } else {
         GPUInfo("Position stored to file");
