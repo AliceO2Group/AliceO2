@@ -86,6 +86,7 @@ o2_add_library(Framework
                        src/TMessageSerializer.cxx
                        src/TableBuilder.cxx
                        src/TableConsumer.cxx
+                       src/DataOutputDirector.cxx
                        src/Task.cxx
                        src/TextControlService.cxx
                        src/Variant.cxx
