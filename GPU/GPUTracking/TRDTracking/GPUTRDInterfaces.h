@@ -141,8 +141,8 @@ template <>
 class trackInterface<o2::track::TrackParCov> : public o2::track::TrackParCov
 {
  public:
-  trackInterface<o2::track::TrackParCov>() : o2::track::TrackParCov(){};
-  trackInterface<o2::track::TrackParCov>(const trackInterface<o2::track::TrackParCov>& param) : o2::track::TrackParCov(param){};
+  trackInterface<o2::track::TrackParCov>() = default;
+  trackInterface<o2::track::TrackParCov>(const trackInterface<o2::track::TrackParCov>& param) = default;
   trackInterface<o2::track::TrackParCov>(const o2::track::TrackParCov& param) = delete;
   trackInterface<o2::track::TrackParCov>(const GPUTPCGMMergedTrack& trk)
   {
