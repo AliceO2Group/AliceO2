@@ -12,7 +12,7 @@
 #define O2_HITPROCESSINGMANAGER_H
 
 #include "CommonDataFormat/InteractionRecord.h"
-#include "SimulationDataFormat/RunContext.h"
+#include "SimulationDataFormat/DigitizationContext.h"
 #include "Steer/InteractionSampler.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include <TGeoManager.h>
@@ -28,7 +28,7 @@ namespace o2
 namespace steer
 {
 
-using RunFunct_t = std::function<void(const o2::steer::RunContext&)>;
+using RunFunct_t = std::function<void(const o2::steer::DigitizationContext&)>;
 
 /// O2 specific run class; steering hit processing
 class HitProcessingManager
@@ -63,10 +63,10 @@ class HitProcessingManager
   // if -1 and only background chain will do number of entries in chain
   void setupRun(int ncollisions = -1);
 
-  const o2::steer::RunContext& getRunContext() { return mRunContext; }
+  const o2::steer::DigitizationContext& getDigitizationContext() { return mDigitizationContext; }
 
   // serializes the runcontext to file
-  void writeRunContext(const char* filename) const;
+  void writeDigitizationContext(const char* filename) const;
   // setup run from serialized context; returns true if ok
   bool setupRunFromExistingContext(const char* filename);
 
@@ -75,9 +75,9 @@ class HitProcessingManager
   bool setupChain();
 
   std::vector<RunFunct_t> mRegisteredRunFunctions;
-  o2::steer::RunContext mRunContext;
+  o2::steer::DigitizationContext mDigitizationContext;
 
-  // this should go into the RunContext --> the manager only fills it
+  // this should go into the DigitizationContext --> the manager only fills it
   std::vector<std::string> mBackgroundFileNames;
   std::map<int, std::vector<std::string>> mSignalFileNames;
   std::string mGeometryFile; // geometry file if any
@@ -92,10 +92,10 @@ class HitProcessingManager
 
 inline void HitProcessingManager::sampleCollisionTimes()
 {
-  mRunContext.getEventRecords().resize(mRunContext.getNCollisions());
-  mInteractionSampler.generateCollisionTimes(mRunContext.getEventRecords());
-  mRunContext.getBunchFilling() = mInteractionSampler.getBunchFilling();
-  mRunContext.setMuPerBC(mInteractionSampler.getMuPerBC());
+  mDigitizationContext.getEventRecords().resize(mDigitizationContext.getNCollisions());
+  mInteractionSampler.generateCollisionTimes(mDigitizationContext.getEventRecords());
+  mDigitizationContext.getBunchFilling() = mInteractionSampler.getBunchFilling();
+  mDigitizationContext.setMuPerBC(mInteractionSampler.getMuPerBC());
 }
 
 inline void HitProcessingManager::sampleCollisionConstituents()
@@ -128,11 +128,11 @@ inline void HitProcessingManager::sampleCollisionConstituents()
     return e;
   };
 
-  // we fill mRunContext.mEventParts
-  auto& eventparts = mRunContext.getEventParts();
+  // we fill mDigitizationContext.mEventParts
+  auto& eventparts = mDigitizationContext.getEventParts();
   eventparts.clear();
-  eventparts.resize(mRunContext.getEventRecords().size());
-  for (int i = 0; i < mRunContext.getEventRecords().size(); ++i) {
+  eventparts.resize(mDigitizationContext.getEventRecords().size());
+  for (int i = 0; i < mDigitizationContext.getEventRecords().size(); ++i) {
     eventparts[i].clear();
     // push any number of constituents?
     // for the moment just 2 : one background and one signal
@@ -144,12 +144,12 @@ inline void HitProcessingManager::sampleCollisionConstituents()
 
   // push any number of constituents?
   // for the moment just max 2 : one background and one signal
-  mRunContext.setMaxNumberParts(1);
+  mDigitizationContext.setMaxNumberParts(1);
   if (mSimChains.size() > 1) {
-    mRunContext.setMaxNumberParts(2);
+    mDigitizationContext.setMaxNumberParts(2);
   }
 
-  mRunContext.printCollisionSummary();
+  mDigitizationContext.printCollisionSummary();
 }
 
 inline void HitProcessingManager::run()
@@ -157,7 +157,7 @@ inline void HitProcessingManager::run()
   setupRun();
   // sample other stuff
   for (auto& f : mRegisteredRunFunctions) {
-    f(mRunContext);
+    f(mDigitizationContext);
   }
 }
 

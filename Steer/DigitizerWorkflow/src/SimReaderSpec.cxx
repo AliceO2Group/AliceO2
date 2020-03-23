@@ -72,8 +72,8 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<std::string
 
   auto doit = [fanoutsize, tpcsectormessages, tpcinvocations, tpcsubchannels, activeSectors](ProcessingContext& pc) {
     auto& mgr = steer::HitProcessingManager::instance();
-    auto eventrecords = mgr.getRunContext().getEventRecords();
-    const auto& context = mgr.getRunContext();
+    auto eventrecords = mgr.getDigitizationContext().getEventRecords();
+    const auto& context = mgr.getDigitizationContext();
 
     // counter to make sure we are sending the data only once
     static int counter = 0;
@@ -178,9 +178,9 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<std::string
       } else {
         mgr.setupRun();
       }
-      LOG(INFO) << "Initializing Spec ... have " << mgr.getRunContext().getEventRecords().size() << " times ";
+      LOG(INFO) << "Initializing Spec ... have " << mgr.getDigitizationContext().getEventRecords().size() << " times ";
       LOG(INFO) << "Serializing Context for later reuse";
-      mgr.writeRunContext(ctx.options().get<std::string>("outcontext").c_str());
+      mgr.writeDigitizationContext(ctx.options().get<std::string>("outcontext").c_str());
     }
 
     return doit;

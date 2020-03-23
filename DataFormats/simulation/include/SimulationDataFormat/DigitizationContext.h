@@ -39,10 +39,10 @@ struct EventPart {
 };
 
 // class fully describing the Collision contexts
-class RunContext
+class DigitizationContext
 {
  public:
-  RunContext() : mNofEntries{0}, mMaxPartNumber{0}, mEventRecords(), mEventParts() {}
+  DigitizationContext() : mNofEntries{0}, mMaxPartNumber{0}, mEventRecords(), mEventParts() {}
 
   int getNCollisions() const { return mNofEntries; }
   void setNCollisions(int n) { mNofEntries = n; }
@@ -99,16 +99,16 @@ class RunContext
   std::vector<std::string> mSimPrefixes;             // identifiers to the hit sim products; the index corresponds to the source ID of event record
   mutable o2::parameters::GRPObject* mGRP = nullptr; //!
 
-  ClassDefNV(RunContext, 2);
+  ClassDefNV(DigitizationContext, 2);
 };
 
 /// function reading the hits from a chain (previously initialized with initSimChains
 template <typename T>
-inline void RunContext::retrieveHits(std::vector<TChain*> const& chains,
-                                     const char* brname,
-                                     int sourceID,
-                                     int entryID,
-                                     std::vector<T>* hits) const
+inline void DigitizationContext::retrieveHits(std::vector<TChain*> const& chains,
+                                              const char* brname,
+                                              int sourceID,
+                                              int entryID,
+                                              std::vector<T>* hits) const
 {
   auto br = chains[sourceID]->GetBranch(brname);
   if (!br) {
