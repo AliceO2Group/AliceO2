@@ -181,7 +181,7 @@ struct WorkflowHelpers {
   /// @return a vector of InputSpec of all outputs and a vector of unsigned char
   /// with the encoded output type
   static std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> analyzeOutputs(WorkflowSpec const& workflow);
-  
+
   /// returns only dangling outputs
   static std::vector<InputSpec> computeDanglingOutputs(WorkflowSpec const& workflow);
 };

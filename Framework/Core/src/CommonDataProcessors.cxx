@@ -217,9 +217,7 @@ DataProcessorSpec
     // find out if any table needs to be saved
     bool hasOutputsToWrite = false;
 
-    // if keepString.empty()    : nothing to be saved
-    // if !keepString.empty()   : use keepString
-    // if keepString == dangling: save danglingg outputs
+    // parse the keepString
     auto dod = std::make_shared<DataOutputDirector>();
     if (!fnbase.empty())
       dod->setDefaultfname(fnbase);
