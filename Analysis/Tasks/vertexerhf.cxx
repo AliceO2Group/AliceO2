@@ -77,7 +77,7 @@ struct DecayVertexBuilder2Prong {
                                        track_0.c1PtY(), track_0.c1PtZ(), track_0.c1PtSnp(),
                                        track_0.c1PtTgl(), track_0.c1Pt21Pt2()};
       o2::track::TrackParCov trackparvar0(x0_, alpha0_, arraypar0, covpar0);
-      for (auto it1 = tracks.begin(); it1 != tracks.end(); ++it1) {
+      for (auto it1 = it0 + 1; it1 != tracks.end(); ++it_1) {
         auto& track_1 = *it1;
         UChar_t clustermap_1 = track_1.itsClusterMap();
         bool isselected_1 = track_1.tpcNClsFound() > 70 && track_1.flags() & 0x4;
