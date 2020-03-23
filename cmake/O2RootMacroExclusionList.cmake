@@ -33,11 +33,11 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             GPU/GPUTracking/Merger/macros/fitPolynomialFieldTrd.C # Needs AliRoot AliMagF
             GPU/GPUTracking/Standalone/tools/dump.C # Needs AliRoot ALiHLTSystem
             GPU/GPUTracking/TRDTracking/macros/checkDbgOutput.C # Needs AliRoot TStatToolkit
-            GPU/TPCFastTransformation/macro/createTPCFastTransform.C # Needs AliTPCCalibDB
-            GPU/TPCFastTransformation/macro/generateTPCDistortionNTupleAliRoot.C # Needs AliTPCCalibDB
-            GPU/TPCFastTransformation/macro/initTPCcalibration.C # Needs AliTPCCalibDB
-            GPU/TPCFastTransformation/macro/loadlibs.C # Special macro
-            GPU/TPCFastTransformation/macro/moveTPCFastTransform.C # Relies on initTPCcalibration.C
+            GPU/TPCFastTransformation/alirootMacro/createTPCFastTransform.C # Needs AliTPCCalibDB
+            GPU/TPCFastTransformation/alirootMacro/generateTPCDistortionNTupleAliRoot.C # Needs AliTPCCalibDB
+            GPU/TPCFastTransformation/alirootMacro/initTPCcalibration.C # Needs AliTPCCalibDB
+            GPU/TPCFastTransformation/devtools/loadlibs.C # Special macro
+            GPU/TPCFastTransformation/alirootMacro/moveTPCFastTransform.C # Relies on initTPCcalibration.C
 	    Detectors/TOF/prototyping/ConvertRun2CalibrationToO2.C
             Generators/share/external/hijing.C
 	    Generators/share/external/QEDepem.C
