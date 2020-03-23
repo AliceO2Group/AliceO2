@@ -14,7 +14,6 @@
 
 #include <memory>
 #include <optional>
-#include <regex>
 #include <string>
 #include <vector>
 
@@ -236,29 +235,21 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
 
 DataDescriptorQuery DataDescriptorQueryBuilder::buildFromKeepConfig(std::string const& config)
 {
-  static const std::regex specTokenRE(R"re((\w{1,4})/(\w{1,16})/(\d*))re");
-  static const std::regex delimiter(",");
+  static const std::regex delim(",");
 
+  std::sregex_token_iterator end;
   std::sregex_token_iterator iter(config.begin(),
                                   config.end(),
-                                  delimiter,
+                                  delim,
                                   -1);
-  std::sregex_token_iterator end;
 
-  std::unique_ptr<DataDescriptorMatcher> result;
+  std::unique_ptr<DataDescriptorMatcher> next, result;
 
   for (; iter != end; ++iter) {
     std::smatch m;
     auto s = iter->str();
-    std::regex_match(s, m, specTokenRE);
-    std::unique_ptr<DataDescriptorMatcher> next;
-    auto newNode = std::make_unique<DataDescriptorMatcher>(
-      DataDescriptorMatcher::Op::And,
-      OriginValueMatcher{m[1]},
-      std::make_unique<DataDescriptorMatcher>(
-        DataDescriptorMatcher::Op::And,
-        DescriptionValueMatcher{m[2]},
-        SubSpecificationTypeValueMatcher{m[3]}));
+    auto newNode = buildNode(s);
+
     if (result.get() == nullptr) {
       result = std::move(newNode);
     } else {
@@ -270,6 +261,77 @@ DataDescriptorQuery DataDescriptorQueryBuilder::buildFromKeepConfig(std::string 
   }
 
   return std::move(DataDescriptorQuery{{}, std::move(result)});
+}
+
+DataDescriptorQuery DataDescriptorQueryBuilder::buildFromExtendedKeepConfig(std::string const& config)
+{
+  static const std::regex delim1(",");
+  static const std::regex delim2(":");
+
+  std::sregex_token_iterator end;
+  std::sregex_token_iterator iter1(config.begin(),
+                                   config.end(),
+                                   delim1,
+                                   -1);
+
+  std::unique_ptr<DataDescriptorMatcher> next, result;
+
+  // looping over ','-separated items
+  for (; iter1 != end; ++iter1) {
+    auto s = iter1->str();
+
+    // get first part of item
+    std::sregex_token_iterator iter2(s.begin(),
+                                     s.end(),
+                                     delim2,
+                                     -1);
+    if (iter2 == end)
+      continue;
+    s = iter2->str();
+
+    // create the corresponding DataDescriptorMatcher
+    std::smatch m;
+    auto newNode = buildNode(s);
+
+    if (result.get() == nullptr) {
+      result = std::move(newNode);
+    } else {
+      next = std::move(std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Or,
+                                                               std::move(result),
+                                                               std::move(newNode)));
+      result = std::move(next);
+    }
+  }
+
+  return std::move(DataDescriptorQuery{{}, std::move(result)});
+}
+
+std::unique_ptr<DataDescriptorMatcher> DataDescriptorQueryBuilder::buildNode(std::string const& nodeString)
+{
+
+  std::smatch m = getTokens(nodeString);
+
+  std::unique_ptr<DataDescriptorMatcher> next;
+  auto newNode = std::make_unique<DataDescriptorMatcher>(
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{m[1]},
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      DescriptionValueMatcher{m[2]},
+      SubSpecificationTypeValueMatcher{m[3]}));
+
+  return newNode;
+}
+
+std::smatch DataDescriptorQueryBuilder::getTokens(std::string const& nodeString)
+{
+
+  static const std::regex specTokenRE(R"re((\w{1,4})/(\w{1,16})/(\d*))re");
+  std::smatch m;
+
+  std::regex_match(nodeString, m, specTokenRE);
+
+  return m;
 }
 
 } // namespace framework

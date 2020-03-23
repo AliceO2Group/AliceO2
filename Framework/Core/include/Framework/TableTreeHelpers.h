@@ -27,7 +27,7 @@ namespace framework
 //
 // To write the contents of a table ta to a tree tr on file f do:
 //  . TableToTree t2t(ta,f,treename);
-//  . t2t.AddBranch(branchname1); t2t.AddBranch(branchname2); ...
+//  . t2t.AddBranch(coumn1); t2t.AddBranch(coumn1); ...
 //    OR
 //    t2t.AddAllBranches();
 //  . t2t.Process();
@@ -149,7 +149,7 @@ class branchIterator
         v = (void*)var_l;
         break;
       default:
-        LOG(FATAL) << "Type not handled: " << dt << std::endl;
+        LOG(FATAL) << "Type not handled: " << dt;
         break;
     }
     br->SetAddress(v);
@@ -227,7 +227,7 @@ class branchIterator
           v = (void*)var_l++;
           break;
         default:
-          LOG(FATAL) << "Type not handled: " << dt << std::endl;
+          LOG(FATAL) << "Type not handled: " << dt;
           break;
       }
     }
@@ -304,13 +304,14 @@ class TableToTree
   {
 
     bool togo = true;
+    LOG(DEBUG) << "Number of colums " << brits.size();
     while (togo) {
       // fill the tree
       tr->Fill();
 
       // update the branches
-      for (auto ii = 0; ii < ta->num_columns(); ii++)
-        togo &= brits.at(ii)->push();
+      for (auto brit : brits)
+        togo &= brit->push();
     }
     tr->Write();
 
@@ -369,22 +370,19 @@ class columnIterator
     // find branch
     auto tree = reader->GetTree();
     if (!tree) {
-      LOG(INFO) << "Can not locate tree!";
+      LOG(FATAL) << "Can not locate tree!";
       return;
     }
     //tree->Print();
     auto br = tree->GetBranch(colname);
     if (!br) {
-      LOG(INFO) << "Can not locate branch " << colname;
+      LOG(FATAL) << "Can not locate branch " << colname;
       return;
     }
     cname = colname;
 
     TClass* cl;
     br->GetExpectedType(cl, dt);
-    //LOG(INFO) << "Initialisation of TTreeReaderValue";
-    //LOG(INFO) << "The column " << cname << " is of type " << dt;
-
     // initialize the TTreeReaderValue<T>
     //            the corresponding arrow::TBuilder
     //            the column schema
@@ -534,9 +532,6 @@ class columnIterator
   // with this ar is prepared to be used in arrow::Table::Make
   void finish()
   {
-
-    //LOG(INFO) << "columnIterator::finish " << dt;
-
     arrow::Status stat;
 
     // switch according to dt
@@ -622,7 +617,7 @@ class TreeToTable
     // get a list of column names
     auto tree = reader->GetTree();
     if (!tree) {
-      LOG(INFO) << "Tree not found!";
+      LOG(FATAL) << "Tree not found!";
       return false;
     }
     auto branchList = tree->GetListOfBranches();
