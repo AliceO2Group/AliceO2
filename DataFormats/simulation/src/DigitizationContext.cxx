@@ -8,16 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "SimulationDataFormat/RunContext.h"
+#include "SimulationDataFormat/DigitizationContext.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include <TChain.h>
 #include <iostream>
 
 using namespace o2::steer;
 
-void RunContext::printCollisionSummary() const
+void DigitizationContext::printCollisionSummary() const
 {
-  std::cout << "Summary of RunContext --\n";
+  std::cout << "Summary of DigitizationContext --\n";
   std::cout << "Parts per collision " << mMaxPartNumber << "\n";
   std::cout << "Collision parts taken from simulations specified by prefix:\n";
   for (int p = 0; p < mSimPrefixes.size(); ++p) {
@@ -33,7 +33,7 @@ void RunContext::printCollisionSummary() const
   }
 }
 
-void RunContext::setSimPrefixes(std::vector<std::string> const& prefixes)
+void DigitizationContext::setSimPrefixes(std::vector<std::string> const& prefixes)
 {
   mSimPrefixes = prefixes;
   // the number should correspond to the number of parts
@@ -42,7 +42,7 @@ void RunContext::setSimPrefixes(std::vector<std::string> const& prefixes)
   }
 }
 
-bool RunContext::initSimChains(o2::detectors::DetID detid, std::vector<TChain*>& simchains) const
+bool DigitizationContext::initSimChains(o2::detectors::DetID detid, std::vector<TChain*>& simchains) const
 {
   if (!(simchains.size() == 0)) {
     // nothing to do ... already setup
@@ -61,7 +61,7 @@ bool RunContext::initSimChains(o2::detectors::DetID detid, std::vector<TChain*>&
   return true;
 }
 
-o2::parameters::GRPObject const& RunContext::getGRP() const
+o2::parameters::GRPObject const& DigitizationContext::getGRP() const
 {
   if (!mGRP) {
     // we take the GRP from the background file

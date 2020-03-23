@@ -16,7 +16,7 @@
 #include "Framework/Lifetime.h"
 #include "Headers/DataHeader.h"
 #include "TStopwatch.h"
-#include "Steer/HitProcessingManager.h" // for RunContext
+#include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "TChain.h"
 #include "TSystem.h"
 #include <SimulationDataFormat/MCCompLabel.h>
@@ -158,7 +158,7 @@ class TPCDPLDigitizerTask
     }
 
     // read collision context from input
-    auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
+    auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
     context->initSimChains(o2::detectors::DetID::TPC, mSimChains);
     auto& irecords = context->getEventRecords();
     LOG(INFO) << "TPC: Processing " << irecords.size() << " collisions";

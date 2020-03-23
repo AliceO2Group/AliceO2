@@ -10,7 +10,6 @@
 #include <memory>
 #include <iostream>
 #include "FairLogger.h"
-#include "SimulationDataFormat/RunContext.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "EMCALBase/Hit.h"
