@@ -73,6 +73,11 @@ class DigitizationContext
   /// return boolean saying if input simchains was modified or not
   bool initSimChains(o2::detectors::DetID detid, std::vector<TChain*>& simchains) const;
 
+  /// Common functions the setup input TChains for reading kinematics information, given the state (prefixes) encapsulated
+  /// by this context. The input vector needs to be empty otherwise nothing will be done.
+  /// return boolean saying if input simchains was modified or not
+  bool initSimKinematicsChains(std::vector<TChain*>& simkinematicschains) const;
+
   /// function reading the hits from a chain (previously initialized with initSimChains
   /// The hits pointer will be initialized (what to we do about ownership??)
   template <typename T>
@@ -84,6 +89,11 @@ class DigitizationContext
 
   /// returns the GRP object associated to this context
   o2::parameters::GRPObject const& getGRP() const;
+
+  // helper functions to save and load a context
+  void saveToFile(std::string_view filename) const;
+
+  static DigitizationContext const* loadFromFile(std::string_view filename);
 
  private:
   int mNofEntries = 0;
