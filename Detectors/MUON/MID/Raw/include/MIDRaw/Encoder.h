@@ -58,7 +58,7 @@ class Encoder
   std::map<uint16_t, LocalBoardRO> mROData{};     /// Map of data per board
   std::vector<raw::RawUnit> mBytes{};             /// Vector with encoded information
   CrateMapper mCrateMapper{};                     /// Crate mapper
-  o2::raw::HBFUtils mHBFUtils{};                  /// Utility for HBF
+  const o2::raw::HBFUtils& mHBFUtils = o2::raw::HBFUtils::Instance(); /// Utility for HBF
   InteractionRecord mLastIR{};                    /// Last interaction record
   unsigned long int mMaxSuperpageSize{0x1000000}; /// Superpage size
   bool mSkipEmptyTFs{false};                      /// Skip empty Time Frames

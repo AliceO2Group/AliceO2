@@ -165,7 +165,7 @@ class RawFileWriter
     mSuperPageSize = nbytes < 16 * HBFUtils::MAXCRUPage ? HBFUtils::MAXCRUPage : nbytes;
   }
 
-  HBFUtils& getHBFUtils() { return mHBFUtils; }
+  const HBFUtils& getHBFUtils() const { return mHBFUtils; }
 
   template <class T>
   void setCarryOverCallBack(const T* t)
@@ -242,7 +242,7 @@ class RawFileWriter
                   Triggered };
 
   IR mIRMax{0, 0}; // highest IR seen
-  HBFUtils mHBFUtils;
+  const HBFUtils& mHBFUtils = HBFUtils::Instance();
   std::unordered_map<LinkSubSpec_t, LinkData> mSSpec2Link; // mapping from subSpec to link
   std::unordered_map<std::string, FILE*> mFName2File;      // mapping from filenames to actual files
 

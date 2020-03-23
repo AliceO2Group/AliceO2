@@ -79,7 +79,7 @@ void doTest(const o2::mid::EventType& inEventType, const std::map<uint16_t, std:
 BOOST_AUTO_TEST_CASE(RawBuffer)
 {
   std::vector<o2::InteractionRecord> HBIRVec;
-  o2::raw::HBFUtils hbfUtils;
+  const o2::raw::HBFUtils& hbfUtils = o2::raw::HBFUtils::Instance();
   o2::InteractionRecord irFrom = hbfUtils.getFirstIR();
   o2::InteractionRecord ir(5, 4);
   hbfUtils.fillHBIRvector(HBIRVec, irFrom, ir);
