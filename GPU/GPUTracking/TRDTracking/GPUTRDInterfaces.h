@@ -126,7 +126,7 @@ class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 
 #endif // GPUCA_ALIROOT_LIB
 
-#if defined(GPUCA_O2_LIB) || defined(GPUCA_O2_INTERFACE) // Interface for O2, build only with O2
+#if (defined(GPUCA_O2_LIB) || defined(GPUCA_O2_INTERFACE)) && !defined(GPUCA_GPUCODE) // Interface for O2, build only with O2
 
 #include "ReconstructionDataFormats/Track.h"
 #include "DetectorsBase/Propagator.h"

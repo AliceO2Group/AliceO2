@@ -30,6 +30,18 @@ namespace gpu
 class GPUTPCGMMerger
 {
 };
+class TRDBaseTrackGPU;
+class TRDBasePropagatorGPU;
+template <class T>
+class trackInterface;
+template <class T>
+class propagatorInterface;
+template <class T>
+class GPUTRDTrack_t;
+// clang-format off
+typedef GPUTRDTrack_t<trackInterface<TRDBaseTrackGPU> > GPUTRDTrackGPU;
+// clang-format on
+typedef propagatorInterface<TRDBasePropagatorGPU> GPUTRDPropagatorGPU;
 template <class T, class P>
 class GPUTRDTracker_t
 {

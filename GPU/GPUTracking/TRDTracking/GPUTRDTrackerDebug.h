@@ -526,7 +526,7 @@ class GPUTRDTrackerDebug
 #ifndef GPUCA_ALIROOT_LIB
 template class GPUTRDTrackerDebug<GPUTRDTrackGPU>;
 #endif
-#ifndef GPUCA_STANDALONE
+#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 template class GPUTRDTrackerDebug<GPUTRDTrack>;
 #endif
 } // namespace gpu

@@ -1260,7 +1260,7 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 // instatiate the tracker for both for GPU data types and for AliRoot/O2 data types
-#ifndef GPUCA_STANDALONE
+#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 template class GPUTRDTracker_t<GPUTRDTrack, GPUTRDPropagator>;
 #endif
 #ifndef GPUCA_ALIROOT_LIB
