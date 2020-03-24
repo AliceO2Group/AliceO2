@@ -49,7 +49,9 @@ struct DecayVertexBuilder2Prong {
     hvtxp_x_out->Fill(collision.posX());
     hvtxp_y_out->Fill(collision.posY());
     hvtxp_z_out->Fill(collision.posZ());
-    for (auto& [track_0, track_1] : combinations(tracks, tracks)) {
+    for (auto it0 = tracks.begin(); it0 != tracks.end(); ++it0) {
+      auto& track_0 = *it0;
+
       UChar_t clustermap_0 = track_0.itsClusterMap();
       //fill track distribution before selection
       hitsmap_nocuts->Fill(clustermap_0);
@@ -75,54 +77,55 @@ struct DecayVertexBuilder2Prong {
                                        track_0.c1PtY(), track_0.c1PtZ(), track_0.c1PtSnp(),
                                        track_0.c1PtTgl(), track_0.c1Pt21Pt2()};
       o2::track::TrackParCov trackparvar0(x0_, alpha0_, arraypar0, covpar0);
-
-      UChar_t clustermap_1 = track_1.itsClusterMap();
-      bool isselected_1 = track_1.tpcNClsFound() > 70 && track_1.flags() & 0x4;
-      isselected_1 = isselected_1 && (TESTBIT(clustermap_1, 0) || TESTBIT(clustermap_1, 1));
-      if (!isselected_1)
-        continue;
-      if (track_0.signed1Pt() * track_1.signed1Pt() > 0)
-        continue;
-      float x1_ = track_1.x();
-      float alpha1_ = track_1.alpha();
-      std::array<float, 5> arraypar1 = {track_1.y(), track_1.z(), track_1.snp(),
-                                        track_1.tgl(), track_1.signed1Pt()};
-      std::array<float, 15> covpar1 = {track_1.cYY(), track_1.cZY(), track_1.cZZ(),
-                                       track_1.cSnpY(), track_1.cSnpZ(),
-                                       track_1.cSnpSnp(), track_1.cTglY(), track_1.cTglZ(),
-                                       track_1.cTglSnp(), track_1.cTglTgl(),
-                                       track_1.c1PtY(), track_1.c1PtZ(), track_1.c1PtSnp(),
-                                       track_1.c1PtTgl(), track_1.c1Pt21Pt2()};
-      o2::track::TrackParCov trackparvar1(x1_, alpha1_, arraypar1, covpar1);
-
-      df.setUseAbsDCA(true);
-      int nCand = df.process(trackparvar0, trackparvar1);
-      //FIXME: currently filling the table for all dca candidates.
-      for (int ic = 0; ic < nCand; ic++) {
-        const o2::base::DCAFitter::Triplet& vtx = df.getPCACandidate(ic);
-        LOGF(info, "vertex x %f", vtx.x);
-        hvtx_x_out->Fill(vtx.x);
-        hvtx_y_out->Fill(vtx.y);
-        hvtx_z_out->Fill(vtx.z);
-        o2::track::TrackParCov trackdec0 = df.getTrack0(ic);
-        o2::track::TrackParCov trackdec1 = df.getTrack1(ic);
-        std::array<float, 3> pvec0;
-        std::array<float, 3> pvec1;
-        trackdec0.getPxPyPzGlo(pvec0);
-        trackdec1.getPxPyPzGlo(pvec1);
-        float masspion = 0.140;
-        float masskaon = 0.494;
-        float mass_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masspion,
-                                     pvec1[0], pvec1[1], pvec1[2], masskaon);
-        float masssw_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masskaon,
-                                       pvec1[0], pvec1[1], pvec1[2], masspion);
-        secvtx2prong(track_0.collisionId(),
-                     collision.posX(), collision.posY(), collision.posZ(),
-                     vtx.x, vtx.y, vtx.z, track_0.globalIndex(),
-                     pvec0[0], pvec0[1], pvec0[2], track_0.y(),
-                     track_1.globalIndex(), pvec1[0], pvec1[1], pvec1[2], track_1.y(),
-                     ic, mass_, masssw_);
-        hchi2dca->Fill(df.getChi2AtPCACandidate(ic));
+      for (auto it1 = it0 + 1; it1 != tracks.end(); ++it1) {
+        auto& track_1 = *it1;
+        UChar_t clustermap_1 = track_1.itsClusterMap();
+        bool isselected_1 = track_1.tpcNClsFound() > 70 && track_1.flags() & 0x4;
+        isselected_1 = isselected_1 && (TESTBIT(clustermap_1, 0) || TESTBIT(clustermap_1, 1));
+        if (!isselected_1)
+          continue;
+        if (track_0.signed1Pt() * track_1.signed1Pt() > 0)
+          continue;
+        float x1_ = track_1.x();
+        float alpha1_ = track_1.alpha();
+        std::array<float, 5> arraypar1 = {track_1.y(), track_1.z(), track_1.snp(),
+                                          track_1.tgl(), track_1.signed1Pt()};
+        std::array<float, 15> covpar1 = {track_1.cYY(), track_1.cZY(), track_1.cZZ(),
+                                         track_1.cSnpY(), track_1.cSnpZ(),
+                                         track_1.cSnpSnp(), track_1.cTglY(), track_1.cTglZ(),
+                                         track_1.cTglSnp(), track_1.cTglTgl(),
+                                         track_1.c1PtY(), track_1.c1PtZ(), track_1.c1PtSnp(),
+                                         track_1.c1PtTgl(), track_1.c1Pt21Pt2()};
+        o2::track::TrackParCov trackparvar1(x1_, alpha1_, arraypar1, covpar1);
+        df.setUseAbsDCA(true);
+        int nCand = df.process(trackparvar0, trackparvar1);
+        //FIXME: currently filling the table for all dca candidates.
+        for (int ic = 0; ic < nCand; ic++) {
+          const o2::base::DCAFitter::Triplet& vtx = df.getPCACandidate(ic);
+          LOGF(info, "vertex x %f", vtx.x);
+          hvtx_x_out->Fill(vtx.x);
+          hvtx_y_out->Fill(vtx.y);
+          hvtx_z_out->Fill(vtx.z);
+          o2::track::TrackParCov trackdec0 = df.getTrack0(ic);
+          o2::track::TrackParCov trackdec1 = df.getTrack1(ic);
+          std::array<float, 3> pvec0;
+          std::array<float, 3> pvec1;
+          trackdec0.getPxPyPzGlo(pvec0);
+          trackdec1.getPxPyPzGlo(pvec1);
+          float masspion = 0.140;
+          float masskaon = 0.494;
+          float mass_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masspion,
+                                       pvec1[0], pvec1[1], pvec1[2], masskaon);
+          float masssw_ = invmass2prongs(pvec0[0], pvec0[1], pvec0[2], masskaon,
+                                         pvec1[0], pvec1[1], pvec1[2], masspion);
+          secvtx2prong(track_0.collisionId(),
+                       collision.posX(), collision.posY(), collision.posZ(),
+                       vtx.x, vtx.y, vtx.z, track_0.globalIndex(),
+                       pvec0[0], pvec0[1], pvec0[2], track_0.y(),
+                       track_1.globalIndex(), pvec1[0], pvec1[1], pvec1[2], track_1.y(),
+                       ic, mass_, masssw_);
+          hchi2dca->Fill(df.getChi2AtPCACandidate(ic));
+        }
       }
     }
   }
