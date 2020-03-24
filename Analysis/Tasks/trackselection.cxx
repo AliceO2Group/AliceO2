@@ -70,7 +70,7 @@ TrackSelection getGlobalTrackSelectionSDD()
 //--------------------------------------------------------------------
 // This task generates the filter table
 //--------------------------------------------------------------------
-struct TrackFilterTask {
+struct TrackSelectionTask {
   Produces<aod::TrackSelection> filterTable;
 
   TrackSelection globalTracks;
@@ -95,85 +95,116 @@ struct TrackFilterTask {
 // This task generates QA histograms for track selection
 //--------------------------------------------------------------------
 struct TrackQATask {
-  //Configurable<std::string>selectedTracks{"select", std::string("globalTracks"), "Choice of track selection."};
-  //-> Mismatch between declared option type and default value type for select
-
-  // Filter selectedTracks = (aod::track::isGlobalTrack == true);
-  // -> error while setting up workflow: Invalid combination of argument types
 
   Configurable<int> selectedTracks{"select", 1, "Choice of track selection. 0 = no selection, 1 = globalTracks, 2 = globalTracksSDD"};
 
-  OutputObj<TH2F> xy{
-    TH2F("trackpar-global-xy",
-         "Track XY at dca global coordinate system;x [cm];y [cm];# tracks",
-         100, -0.02, 0.14, 100, -0.05, 0.4)};
+  // track parameters
+  OutputObj<TH1F> x{TH1F(
+                      "trackpar-x", "track x position at dca in local coordinate system;x [cm]",
+                      200, -0.4, 0.4),
+                    OutputObjHandlingPolicy::QAObject};
+
+  OutputObj<TH1F> y{TH1F(
+                      "trackpar-y", "track y position at dca in local coordinate system;y [cm]",
+                      100, -4., 4.),
+                    OutputObjHandlingPolicy::QAObject};
+
+  OutputObj<TH1F> z{TH1F(
+                      "trackpar-z", "track z position at dca in local coordinate system;z [cm]",
+                      100, -20., 20.),
+                    OutputObjHandlingPolicy::QAObject};
+
   OutputObj<TH1F> alpha{
     TH1F("trackpar-alpha",
-         "Rotation angle of local wrt. global coordinate system;#alpha [rad]",
-         1000, -(M_PI + 0.01), (M_PI + 0.01))};
+         "rotation angle of local wrt. global coordinate system;#alpha [rad]",
+         100, -(M_PI + 0.01), (M_PI + 0.01)),
+    OutputObjHandlingPolicy::QAObject};
+
+  OutputObj<TH1F> signed1Pt{TH1F("trackpar-signed1Pt",
+                                 "track signed 1/p_{T};q/p_{T}", 200,
+                                 -8, 8),
+                            OutputObjHandlingPolicy::QAObject};
+
+  OutputObj<TH1F> snp{TH1F(
+                        "trackpar-snp", "sinus of track momentum azimuthal angle;snp",
+                        100, -1., 1.),
+                      OutputObjHandlingPolicy::QAObject};
+
+  OutputObj<TH1F> tgl{TH1F(
+                        "trackpar-tgl", "tangent of the track momentum dip angle;tgl;",
+                        1000, -2, 2),
+                      OutputObjHandlingPolicy::QAObject};
+
+  OutputObj<TH2F> xy{
+    TH2F("trackpar-global-xy",
+         "track xy at dca in global coordinate system;x [cm];y [cm];",
+         100, -0.5, 0.5, 100, -0.5, 0.5),
+    OutputObjHandlingPolicy::QAObject};
+
   OutputObj<TH1F> dcaxy{
     TH1F("track-dcaXY",
-         "Distance of closest approach in xy plane;dca-xy [cm];# tracks", 500,
-         -1.5, 1.5)};
+         "distance of closest approach in xy plane;dca-xy [cm];", 200,
+         -1., 1.),
+    OutputObjHandlingPolicy::QAObject};
+
   OutputObj<TH1F> dcaz{TH1F(
-    "track-dcaZ", "Distance of closest approach in z;dca-z [cm];# tracks",
-    500, -15, 15)};
-  OutputObj<TH1F> flag{TH1F("track-flags", "Track flag bits;", 70, -0.5, 70.5)};
+                         "track-dcaZ", "distance of closest approach in z;dca-z [cm];",
+                         200, -15, 15),
+                       OutputObjHandlingPolicy::QAObject};
+
+  OutputObj<TH1F> flag{TH1F("track-flags", "track flag;flag bit", 64, -0.5, 63.5), OutputObjHandlingPolicy::QAObject};
+
+  OutputObj<TH1F> pt{TH1F("track-pt", "p_{T};p_{T} [GeV/c]", 100, 0., 50.), OutputObjHandlingPolicy::QAObject};
+
+  OutputObj<TH1F> eta{TH1F("track-eta", "#eta;#eta", 101, -1.0, 1.0), OutputObjHandlingPolicy::QAObject};
+
+  OutputObj<TH1F> phi{TH1F("track-phi", "#phi;#phi [rad]", 100, 0., 2 * M_PI), OutputObjHandlingPolicy::QAObject};
 
   // ITS related quantities
   OutputObj<TH1F> itsFoundClusters{
-    TH1F("its-foundClusters", "nClustersITS;# clusters ITS", 8, -0.5, 7.5)};
-  OutputObj<TH1F> chi2PerClusterITS{TH1F(
-    "chi2PerClusterITS", "chi2PerClusterITS;chi2/cluster ITS", 100, 0, 50)};
-  OutputObj<TH1F> itsHits{TH1F("its-hits", "hitmap its", 7, -0.5, 6.5)};
+    TH1F("its-foundClusters", "number of found ITS clusters;# clusters ITS", 8, -0.5, 7.5), OutputObjHandlingPolicy::QAObject};
+
+  OutputObj<TH1F> itsChi2PerCluster{TH1F(
+                                      "its-chi2PerCluster", "chi2 per ITS cluster;chi2 / cluster ITS", 100, 0, 40),
+                                    OutputObjHandlingPolicy::QAObject};
+
+  OutputObj<TH1F> itsHits{TH1F("its-hits", "hitmap ITS;layer ITS", 7, -0.5, 6.5), OutputObjHandlingPolicy::QAObject};
 
   // TPC related quantities
   OutputObj<TH1F> tpcFindableClusters{TH1F(
-    "tpc-findableClusters", "Findable Clusters;;# tracks", 165, -0.5, 164.5)};
+                                        "tpc-findableClusters", "number of findable TPC clusters;# clusters TPC", 165, -0.5, 164.5),
+                                      OutputObjHandlingPolicy::QAObject};
+
   OutputObj<TH1F> tpcFoundClusters{
-    TH1F("tpc-foundClusters", "Found Clusters;;# tracks", 165, -0.5, 164.5)};
+    TH1F("tpc-foundClusters", "number of found TPC clusters;# clusters TPC", 165, -0.5, 164.5), OutputObjHandlingPolicy::QAObject};
+
   OutputObj<TH1F> tpcSharedClusters{TH1F(
-    "tpc-sharedClusters", "Shared Clusters;;# tracks", 165, -0.5, 164.5)};
+                                      "tpc-sharedClusters", "number of shared TPC clusters;;# shared clusters TPC", 165, -0.5, 164.5),
+                                    OutputObjHandlingPolicy::QAObject};
+
   OutputObj<TH1F> tpcFractionSharedClusters{
     TH1F("tpc-fractionSharedClusters",
-         "Fraction of Shared Clusters;;# tracks", 500, -1.5, 1.5)};
+         "fraction of shared TPC clusters;fraction shared clusters TPC", 100, 0., 1.),
+    OutputObjHandlingPolicy::QAObject};
+
   OutputObj<TH1F> tpcCrossedRows{
-    TH1F("tpc-crossedRows", "Crossed Rows;;# tracks", 165, -0.5, 164.5)};
+    TH1F("tpc-crossedRows", "number of crossed TPC rows;# crossed rows TPC", 165, -0.5, 164.5), OutputObjHandlingPolicy::QAObject};
+
   OutputObj<TH1F> tpcCrossedRowsOverFindableClusters{
     TH1F("tpc-crossedRowsOverFindableClusters",
-         "Crossed rows over findable clusters;;# tracks", 110, 0.0, 1.1)};
+         "crossed TPC rows over findable clusters;crossed rows / findable clusters TPC", 110, 0.0, 1.1),
+    OutputObjHandlingPolicy::QAObject};
+
   OutputObj<TH1F> tpcChi2PerCluster{
-    TH1F("tpc-chi2PerCluster", "chi2 per cluster in TPC;chi2/cluster TPC",
-         100, 0, 10)};
+    TH1F("tpc-chi2PerCluster", "chi2 per cluster in TPC;chi2 / cluster TPC",
+         100, 0, 10),
+    OutputObjHandlingPolicy::QAObject};
 
-  // physics quantities
-  OutputObj<TH1F> pt{TH1F("track-pt", "pt", 100, 0., 50.)};
-  OutputObj<TH1F> eta{TH1F("track-eta", "eta", 102, -2.01, 2.01)};
-  OutputObj<TH1F> phi{TH1F("track-phi", "phi", 100, 0., 2 * M_PI)};
-
-  // track parameters
-  OutputObj<TH1F> x{TH1F(
-    "trackpar-x", "Track X at dca in local coordinate system;x [cm];# tracks",
-    500, -0.41, 0.41)};
-  OutputObj<TH1F> y{TH1F(
-    "trackpar-y", "Track Y at dca in local coordinate system;y [cm];# tracks",
-    100, -4., 4.)};
-  OutputObj<TH1F> z{TH1F(
-    "trackpar-z", "Track Z at dca in local coordinate system;z [cm];# tracks",
-    100, -20., 20.)};
-  OutputObj<TH1F> signed1Pt{TH1F("trackpar-signed1Pt",
-                                 "Track signed 1/p_{T};q/p_{T};# tracks", 1000,
-                                 -10, 10)};
-  OutputObj<TH1F> snp{TH1F(
-    "trackpar-snp", "Sinus of track momentum azimuthal angle;snp;# tracks",
-    1000, -0.0001, 0.0001)};
-  OutputObj<TH1F> tgl{TH1F(
-    "trackpar-tgl", "Tangent of the track momentum dip angle;tgl;# tracks",
-    1000, -2, 2)};
-
+  // collision related quantities
   OutputObj<TH2F> collisionPos{
-    TH2F("collision-xy", "Position of collision;x [cm];y [cm];# tracks", 100,
-         -0.5, 0.5, 100, -0.5, 0.5)};
+    TH2F("collision-xy", "Position of collision;x [cm];y [cm]", 100,
+         -0.5, 0.5, 100, -0.5, 0.5),
+    OutputObjHandlingPolicy::QAObject};
 
   void init(o2::framework::InitContext&) {}
 
@@ -205,6 +236,11 @@ struct TrackQATask {
 
       // ITS
       itsFoundClusters->Fill(track.itsNCls());
+      itsChi2PerCluster->Fill(track.itsChi2NCl());
+      for (unsigned int i = 0; i < 7; i++) {
+        if (track.itsClusterMap() & (1 << i))
+          itsHits->Fill(i);
+      }
 
       // Tracks
       alpha->Fill(track.alpha());
@@ -226,21 +262,14 @@ struct TrackQATask {
       snp->Fill(track.snp());
       tgl->Fill(track.tgl());
 
-      chi2PerClusterITS->Fill(track.itsChi2NCl());
-
-      pt->Fill(track.pt());
-      eta->Fill(track.eta());
-      phi->Fill(track.phi());
-
       for (unsigned int i = 0; i < 64; i++) {
         if (track.flags() & (1 << i))
           flag->Fill(i);
       }
 
-      for (unsigned int i = 0; i < 7; i++) {
-        if (track.itsClusterMap() & (1 << i))
-          itsHits->Fill(i);
-      }
+      pt->Fill(track.pt());
+      eta->Fill(track.eta());
+      phi->Fill(track.phi());
     }
   }
 };
@@ -252,7 +281,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   bool createQAplots = cfgc.options().get<bool>("qa-histos");
   WorkflowSpec workflow{
-    adaptAnalysisTask<TrackFilterTask>("track-filter-task")};
+    adaptAnalysisTask<TrackSelectionTask>("track-selection")};
   if (createQAplots)
     workflow.push_back(adaptAnalysisTask<TrackQATask>("track-qa-histograms"));
   return workflow;

@@ -26,6 +26,7 @@ using namespace o2::framework::expressions;
 // Task generating pT spectrum of charged particles
 //--------------------------------------------------------------------
 struct HistogramTrackSelection {
+
   Configurable<int> selectedTracks{"select", 1, "Choice of track selection. 0 = no selection, 1 = globalTracks, 2 = globalTracksSDD"};
 
   OutputObj<TH1F> pt{TH1F("pt", "pt", 100, 0., 50.)};
@@ -53,5 +54,5 @@ struct HistogramTrackSelection {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HistogramTrackSelection>("test-track-selection")};
+    adaptAnalysisTask<HistogramTrackSelection>("histogram-track-selection")};
 }
