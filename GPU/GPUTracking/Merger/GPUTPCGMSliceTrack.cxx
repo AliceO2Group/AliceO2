@@ -25,6 +25,32 @@
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
+void GPUTPCGMSliceTrack::Set(const GPUTPCGMTrackParam& trk, const GPUTPCSliceOutTrack* sliceTr, float alpha, int slice)
+{
+  mOrigTrack = sliceTr;
+  mX = trk.GetX();
+  mY = trk.GetY();
+  mZ = trk.GetZ();
+  mDzDs = trk.GetDzDs();
+  mSinPhi = trk.GetSinPhi();
+  mQPt = trk.GetQPt();
+  mCosPhi = sqrt(1.f - mSinPhi * mSinPhi);
+  mSecPhi = 1.f / mCosPhi;
+  mAlpha = alpha;
+  mSlice = slice;
+  mZOffset = trk.GetZOffset();
+  mNClusters = sliceTr->NClusters();
+  mC0 = trk.GetCov(0);
+  mC2 = trk.GetCov(2);
+  mC3 = trk.GetCov(3);
+  mC5 = trk.GetCov(5);
+  mC7 = trk.GetCov(7);
+  mC9 = trk.GetCov(9);
+  mC10 = trk.GetCov(10);
+  mC12 = trk.GetCov(12);
+  mC14 = trk.GetCov(14);
+}
+
 bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int iSlice, float maxSinPhi, float sinPhiMargin)
 {
   float lastX;
@@ -409,4 +435,18 @@ bool GPUTPCGMSliceTrack::TransportToXAlpha(float newX, float sinAlpha, float cos
   b.LimitCov();
 
   return 1;
+}
+
+void GPUTPCGMSliceTrack::CopyBaseTrackCov()
+{
+  const float* GPUrestrict() cov = mOrigTrack->Param().mC;
+  mC0 = cov[0];
+  mC2 = cov[2];
+  mC3 = cov[3];
+  mC5 = cov[5];
+  mC7 = cov[7];
+  mC9 = cov[9];
+  mC10 = cov[10];
+  mC12 = cov[12];
+  mC14 = cov[14];
 }

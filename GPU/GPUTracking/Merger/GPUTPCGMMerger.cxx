@@ -255,6 +255,51 @@ void GPUTPCGMMerger::ClearTrackLinks(int n)
   }
 }
 
+int GPUTPCGMMerger::RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const GPUTPCSliceOutTrack* inTrack, float alpha, int slice)
+{
+  static constexpr float kRho = 1.025e-3f;  // 0.9e-3;
+  static constexpr float kRadLen = 29.532f; // 28.94;
+  GPUTPCGMPropagator prop;
+  prop.SetMaterial(kRadLen, kRho);
+  prop.SetMaxSinPhi(GPUCA_MAX_SIN_PHI);
+  prop.SetToyMCEventsFlag(false);
+  prop.SetSeedingErrors(true); // Larger errors for seeds, better since we don't start with good hypothesis
+  prop.SetFitInProjections(false);
+  prop.SetPolynomialField(&Param().polynomialField);
+  GPUTPCGMTrackParam trk;
+  trk.X() = inTrack->Param().GetX();
+  trk.Y() = inTrack->Param().GetY();
+  trk.Z() = inTrack->Param().GetZ();
+  trk.ZOffset() = inTrack->Param().GetZOffset();
+  trk.SinPhi() = inTrack->Param().GetSinPhi();
+  trk.DzDs() = inTrack->Param().GetDzDs();
+  trk.QPt() = inTrack->Param().GetQPt();
+  trk.ResetCovariance();
+  prop.SetTrack(&trk, alpha);
+  for (int i = 0; i < inTrack->NClusters(); i++) {
+    float x, y, z;
+    if (Param().earlyTpcTransform) {
+      x = inTrack->Cluster(i).GetX();
+      y = inTrack->Cluster(i).GetY();
+      z = inTrack->Cluster(i).GetZ();
+    } else {
+      const GPUTPCSliceOutCluster& clo = inTrack->Cluster(i);
+      const ClusterNative& cl = GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clo.GetId()];
+      GPUTPCConvertImpl::convert(*GetConstantMem(), slice, clo.GetRow(), cl.getPad(), cl.getTime(), x, y, z);
+    }
+    if (prop.PropagateToXAlpha(x, alpha, true)) {
+      return 1;
+    }
+    trk.ConstrainSinPhi();
+    if (prop.Update(y, z - trk.ZOffset(), inTrack->Cluster(i).GetRow(), Param(), inTrack->Cluster(i).GetFlags() & GPUTPCGMMergedTrackHit::clustererAndSharedFlags, false, false)) {
+      return 1;
+    }
+    trk.ConstrainSinPhi();
+  }
+  sliceTrack.Set(trk, inTrack, alpha, slice);
+  return 0;
+}
+
 void GPUTPCGMMerger::UnpackSlices()
 {
   //* unpack the cluster information from the slice tracks and initialize track info array
@@ -289,9 +334,18 @@ void GPUTPCGMMerger::UnpackSlices()
 
     for (unsigned int itr = 0; itr < slice.NLocalTracks(); itr++, sliceTr = sliceTr->GetNextTrack()) {
       GPUTPCGMSliceTrack& track = mSliceTrackInfos[nTracksCurrent];
-      track.Set(sliceTr, alpha, iSlice);
-      if (!track.FilterErrors(this, iSlice, GPUCA_MAX_SIN_PHI, 0.1f)) {
-        continue;
+      if (Param().rec.mergerCovSource == 0) {
+        track.Set(sliceTr, alpha, iSlice);
+        if (!track.FilterErrors(this, iSlice, GPUCA_MAX_SIN_PHI, 0.1f)) {
+          continue;
+        }
+      } else if (Param().rec.mergerCovSource == 1) {
+        track.Set(sliceTr, alpha, iSlice);
+        track.CopyBaseTrackCov();
+      } else if (Param().rec.mergerCovSource == 2) {
+        if (RefitSliceTrack(track, sliceTr, alpha, iSlice)) {
+          continue;
+        }
       }
       CADEBUG(GPUInfo("INPUT Slice %d, Track %u, QPt %f DzDs %f", iSlice, itr, track.QPt(), track.DzDs()));
       track.SetPrevNeighbour(-1);
