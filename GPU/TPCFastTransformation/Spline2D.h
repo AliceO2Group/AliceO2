@@ -168,7 +168,7 @@ class Spline2D : public FlatObject
   /// Get minimal required alignment for the spline parameters
 
   template <typename T>
-  static constexpr size_t getParameterAlignmentBytes(int Ndim)
+  static size_t getParameterAlignmentBytes(int Ndim)
   {
     size_t s = 4 * sizeof(T) * Ndim;
     return (s < 16) ? s : 16;
