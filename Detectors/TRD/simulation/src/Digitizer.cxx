@@ -77,7 +77,6 @@ void Digitizer::clearCollections()
   for (int det = 0; det < kNdet; ++det) {
     signalsMapCollection[det].clear();
     digitsCollection[det].clear();
-    labelsCollection[det].clear();
   }
 }
 
@@ -108,7 +107,10 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
   // Finalize
   for (int det = 0; det < kNdet; ++det) {
     std::move(digitsCollection[det].begin(), digitsCollection[det].end(), std::back_inserter(digits));
-    labels.mergeAtBack(labelsCollection[det]);
+
+    for (const auto& it : signalsMapCollection[det]) {
+      labels.mergeAtBack(it.second.labels);
+    }
   }
 
   clearCollections();
@@ -161,7 +163,7 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer& digits
       continue;
     }
 
-    if (!convertHits(det, hitsPerDetector[det], signalsMap, labelsCollection[det], threadid)) {
+    if (!convertHits(det, hitsPerDetector[det], signalsMap, threadid)) {
       LOG(WARN) << "TRD conversion of hits failed for detector " << det;
       continue; // go to the next chamber
     }
@@ -180,7 +182,7 @@ void Digitizer::getHitContainerPerDetector(const std::vector<HitType>& hits, std
   }
 }
 
-bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, SignalContainer& signalMapCont, o2::dataformats::MCTruthContainer<MCLabel>& labels, int thread)
+bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, SignalContainer& signalMapCont, int thread)
 {
   //
   // Convert the detector-wise sorted hits to detector signals
@@ -358,14 +360,23 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
         if (colPos >= nColMax) {
           break;
         }
+
         const int key = calculateKey(det, rowE, colPos);
         if (key < KEY_MIN || key > KEY_MAX) {
           LOG(FATAL) << "Wrong TRD key " << key << " for (det,row,col) = (" << det << ", " << rowE << ", " << colPos << ")";
         }
-        isDigit = true;
+
         auto& currentSignalData = signalMapCont[key]; // Get the old signal or make a new one if it doesn't exist
         auto& currentSignal = currentSignalData.signals;
-        currentSignalData.labelIndex = labels.getIndexedSize();;
+        auto& trackIds = currentSignalData.trackIds;
+        auto& labels = currentSignalData.labels;
+
+        if (trackIds[hit.GetTrackID()] == 0) {
+          trackIds[hit.GetTrackID()] = 1;
+          MCLabel label(hit.GetTrackID(), getEventID(), getSrcID());
+          labels.addElement(labels.getIndexedSize(), label);
+        }
+
         for (int tb = firstTimeBin; tb < lastTimeBin; ++tb) {
           // Apply the time response
           double timeResponse = 1;
@@ -387,15 +398,10 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
           }
           // Update the final signal
           currentSignal[tb] = signalOld;
-        } // Loop: time bins
-      }   // Loop: pads
+        } // end of loop time bins
+      }   // end of loop over pads
     }     // end of loop over electrons
-    if (isDigit) {
-      MCLabel label(hit.GetTrackID(), getEventID(), getSrcID()); // add one label if at least one digit is created
-      labels.addElement(labels.getIndexedSize(), label);
-    }
-    LOG(INFO) << "Current label index at " << labels.getIndexedSize();
-  } // end of loop over hits
+  }       // end of loop over hits
   return true;
 }
 
@@ -475,9 +481,8 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer& signalMapCon
       adcs[tb] = adc;
     } // loop over timebins
     // Convert the map to digits here, and push them to the container
-    size_t labelIndex = signalData.labelIndex;
-    digits.emplace_back(det, row, col, adcs, labelIndex, getEventTime()); // what time goes here??????
-  }                                                                       // loop over digits
+    digits.emplace_back(det, row, col, adcs, getEventTime());
+  } // loop over digits
   return true;
 }
 

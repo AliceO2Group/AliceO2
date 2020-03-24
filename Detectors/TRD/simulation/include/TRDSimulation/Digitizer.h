@@ -34,9 +34,10 @@ class TRDArraySignal;
 class PadResponse;
 
 struct SignalArray {
-  std::array<float, kTimeBins> signals{}; // signals
-  double firstTBtime;                     // first TB time
-  size_t labelIndex{0};                   // mc label index
+  std::array<float, kTimeBins> signals{};            // signals
+  double firstTBtime;                                // first TB time
+  std::unordered_map<int, int> trackIds;             // tracks Ids associated to the signal
+  o2::dataformats::MCTruthContainer<MCLabel> labels; // labels associated to the signal
 };
 
 using DigitContainer = std::vector<Digit>;
@@ -85,16 +86,15 @@ class Digitizer
   bool mSDigits{false};               // true: convert signals to summable digits, false by defaults
   std::vector<HitType> mHitContainer; // the container of hits in a given detector
 
-  std::array<SignalContainer, kNdet> signalsMapCollection;                        // container for caching signals over a timeframe
-  std::array<DigitContainer, kNdet> digitsCollection;                             // container for caching digits for paralellization
-  std::array<o2::dataformats::MCTruthContainer<MCLabel>, kNdet> labelsCollection; // container for caching labels over a timeframe
+  std::array<SignalContainer, kNdet> signalsMapCollection; // container for caching signals over a timeframe
+  std::array<DigitContainer, kNdet> digitsCollection;      // container for caching digits for paralellization
 
   void getHitContainerPerDetector(const std::vector<HitType>&, std::array<std::vector<HitType>, kNdet>&);
   void clearCollections();
 
   // Digitization chaing methods
-  bool convertHits(const int, const std::vector<HitType>&, SignalContainer&, o2::dataformats::MCTruthContainer<MCLabel>&, int thread = 0); // True if hit-to-signal conversion is successful
-  bool convertSignalsToADC(const int, SignalContainer&, DigitContainer&, int thread = 0);                                                  // True if signal-to-ADC conversion is successful
+  bool convertHits(const int, const std::vector<HitType>&, SignalContainer&, int thread = 0); // True if hit-to-signal conversion is successful
+  bool convertSignalsToADC(const int, SignalContainer&, DigitContainer&, int thread = 0);     // True if signal-to-ADC conversion is successful
 
   bool diffusion(float, float, float, float, float, float, double&, double&, double&, int thread = 0); // True if diffusion is applied successfully
 
