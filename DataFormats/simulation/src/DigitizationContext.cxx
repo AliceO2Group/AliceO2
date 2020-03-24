@@ -11,6 +11,7 @@
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include <TChain.h>
+#include <TFile.h>
 #include <iostream>
 
 using namespace o2::steer;
@@ -61,6 +62,28 @@ bool DigitizationContext::initSimChains(o2::detectors::DetID detid, std::vector<
   return true;
 }
 
+/// Common functions the setup input TChains for reading kinematics information, given the state (prefixes) encapsulated
+/// by this context. The input vector needs to be empty otherwise nothing will be done.
+/// return boolean saying if input simchains was modified or not
+bool DigitizationContext::initSimKinematicsChains(std::vector<TChain*>& simkinematicschains) const
+{
+  if (!(simkinematicschains.size() == 0)) {
+    // nothing to do ... already setup
+    return false;
+  }
+
+  simkinematicschains.emplace_back(new TChain("o2sim"));
+  // add the main (background) file
+  simkinematicschains.back()->AddFile(o2::base::NameConf::getMCKinematicsFileName(mSimPrefixes[0].data()).c_str());
+
+  for (int source = 1; source < mSimPrefixes.size(); ++source) {
+    simkinematicschains.emplace_back(new TChain("o2sim"));
+    // add signal files
+    simkinematicschains.back()->AddFile(o2::base::NameConf::getMCKinematicsFileName(mSimPrefixes[source].data()).c_str());
+  }
+  return true;
+}
+
 o2::parameters::GRPObject const& DigitizationContext::getGRP() const
 {
   if (!mGRP) {
@@ -69,4 +92,20 @@ o2::parameters::GRPObject const& DigitizationContext::getGRP() const
     mGRP = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName(mSimPrefixes[0].data()).c_str());
   }
   return *mGRP;
+}
+
+void DigitizationContext::saveToFile(std::string_view filename) const
+{
+  TFile file(filename.data(), "RECREATE");
+  auto cl = TClass::GetClass(typeid(*this));
+  file.WriteObjectAny(this, cl, "DigitizationContext");
+  file.Close();
+}
+
+DigitizationContext const* DigitizationContext::loadFromFile(std::string_view filename)
+{
+  DigitizationContext* incontext = nullptr;
+  TFile file(filename.data(), "OPEN");
+  file.GetObject("DigitizationContext", incontext);
+  return incontext;
 }

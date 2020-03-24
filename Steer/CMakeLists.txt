@@ -10,7 +10,7 @@
 
 o2_add_library(Steer
                SOURCES src/O2MCApplication.cxx src/InteractionSampler.cxx
-                       src/HitProcessingManager.cxx 
+                       src/HitProcessingManager.cxx src/MCKinematicsReader.cxx
 		       PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
 		                     O2::CommonConstants
                                      O2::SimulationDataFormat
@@ -22,7 +22,8 @@ o2_target_root_dictionary(Steer
                                   include/Steer/HitProcessingManager.h
                                   include/Steer/O2RunSim.h
                                   include/Steer/O2MCApplication.h
-                                  include/Steer/O2MCApplicationBase.h)
+                                  include/Steer/O2MCApplicationBase.h
+                                  include/Steer/MCKinematicsReader.h)
 
 o2_add_test(InteractionSampler
             PUBLIC_LINK_LIBRARIES O2::Steer

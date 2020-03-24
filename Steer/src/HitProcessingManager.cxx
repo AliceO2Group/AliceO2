@@ -104,25 +104,20 @@ void HitProcessingManager::setupRun(int ncollisions)
 
 void HitProcessingManager::writeDigitizationContext(const char* filename) const
 {
-  TFile file(filename, "RECREATE");
-  auto cl = TClass::GetClass(typeid(mDigitizationContext));
-  file.WriteObjectAny(&mDigitizationContext, cl, "DigitizationContext");
-  file.Close();
+  mDigitizationContext.saveToFile(filename);
 }
 
 bool HitProcessingManager::setupRunFromExistingContext(const char* filename)
 {
-  DigitizationContext* incontext = nullptr;
-  TFile file(filename, "OPEN");
-  file.GetObject("DigitizationContext", incontext);
-
-  if (incontext) {
-    incontext->printCollisionSummary();
-    mDigitizationContext = *incontext;
+  auto context = DigitizationContext::loadFromFile(filename);
+  if (context) {
+    context->printCollisionSummary();
+    mDigitizationContext = *context;
     return true;
   }
-  LOG(INFO) << "NO COLLISIONOBJECT FOUND";
+  LOG(WARN) << "NO DIGITIZATIONCONTEXT FOUND";
   return false;
 }
+
 } // end namespace steer
 } // end namespace o2
