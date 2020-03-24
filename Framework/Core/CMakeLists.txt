@@ -86,6 +86,7 @@ o2_add_library(Framework
                        src/TMessageSerializer.cxx
                        src/TableBuilder.cxx
                        src/TableConsumer.cxx
+                       src/DataOutputDirector.cxx
                        src/Task.cxx
                        src/TextControlService.cxx
                        src/Variant.cxx
@@ -103,6 +104,7 @@ o2_add_library(Framework
                                      CURL::libcurl
                                      FairMQ::FairMQ
                                      O2::CommonUtils
+                                     O2::MathUtils
                                      O2::FrameworkFoundation
                                      O2::Headers
                                      O2::MemoryResources
@@ -153,6 +155,7 @@ foreach(t
         HistogramRegistry
         InfoLogger
         InputRecord
+        InputSpan
         Kernels
         LogParsingHelpers
         PtrHelpers

@@ -28,6 +28,7 @@
 #include "../../../Algorithm/include/Algorithm/HeaderStack.h"
 #include "Framework/OutputObjHeader.h"
 #include "Framework/TableTreeHelpers.h"
+#include "Framework/StringHelpers.h"
 
 #include "TFile.h"
 #include "TTree.h"
@@ -52,20 +53,17 @@ namespace framework
 {
 
 struct InputObjectRoute {
-  std::string uniqueId;
+  std::string name;
+  uint32_t uniqueId;
   std::string directory;
+  uint32_t taskHash;
   OutputObjHandlingPolicy policy;
-  bool operator<(InputObjectRoute const& other) const
-  {
-    return this->uniqueId < other.uniqueId;
-  }
 };
 
 struct InputObject {
   TClass* kind = nullptr;
   void* obj = nullptr;
   std::string name;
-  std::string taskName;
 };
 
 const static std::unordered_map<OutputObjHandlingPolicy, std::string> ROOTfileNames = {{OutputObjHandlingPolicy::AnalysisObject, "AnalysisResults.root"},
@@ -76,11 +74,11 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
 {
   auto writerFunction = [objmap, tskmap](InitContext& ic) -> std::function<void(ProcessingContext&)> {
     auto& callbacks = ic.services().get<CallbackService>();
-    auto outputObjects = std::make_shared<std::map<InputObjectRoute, InputObject>>();
+    auto inputObjects = std::make_shared<std::vector<std::pair<InputObjectRoute, InputObject>>>();
 
-    auto endofdatacb = [outputObjects](EndOfStreamContext& context) {
+    auto endofdatacb = [inputObjects](EndOfStreamContext& context) {
       LOG(DEBUG) << "Writing merged objects to file";
-      if (outputObjects->empty()) {
+      if (inputObjects->empty()) {
         LOG(ERROR) << "Output object map is empty!";
         context.services().get<ControlService>().readyToQuit(QuitRequest::All);
         return;
@@ -91,7 +89,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
       for (auto i = 0u; i < OutputObjHandlingPolicy::numPolicies; ++i) {
         f[i] = nullptr;
       }
-      for (auto& [route, entry] : *outputObjects) {
+      for (auto& [route, entry] : *inputObjects) {
         auto file = ROOTfileNames.find(route.policy);
         if (file != ROOTfileNames.end()) {
           auto filename = file->second;
@@ -119,7 +117,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
     };
 
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
-    return [outputObjects, objmap, tskmap](ProcessingContext& pc) mutable -> void {
+    return [inputObjects, objmap, tskmap](ProcessingContext& pc) mutable -> void {
       auto const& ref = pc.inputs().get("x");
       if (!ref.header) {
         LOG(ERROR) << "Header not found";
@@ -141,7 +139,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
         return;
       }
 
-      FairTMessage tm(const_cast<char*>(ref.payload), datah->payloadSize);
+      FairTMessage tm(const_cast<char*>(ref.payload), static_cast<int>(datah->payloadSize));
       InputObject obj;
       obj.kind = tm.GetClass();
       if (obj.kind == nullptr) {
@@ -171,15 +169,16 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
         LOG(ERROR) << "No object " << obj.name << " in map for task " << taskname;
         return;
       }
-      InputObjectRoute key{obj.name, taskname, policy};
-      auto existing = outputObjects->find(key);
-      if (existing == outputObjects->end()) {
-        outputObjects->insert(std::make_pair(key, obj));
+      auto nameHash = compile_time_hash(obj.name.c_str());
+      InputObjectRoute key{obj.name, nameHash, taskname, hash, policy};
+      auto existing = std::find_if(inputObjects->begin(), inputObjects->end(), [&](auto&& x) { return (x.first.uniqueId == nameHash) && (x.first.taskHash == hash); });
+      if (existing == inputObjects->end()) {
+        inputObjects->push_back(std::make_pair(key, obj));
         return;
       }
       auto merger = existing->second.kind->GetMerge();
       if (!merger) {
-        LOG(error) << "Already one object found for " << obj.name;
+        LOG(error) << "Already one unmergeable object found for " << obj.name;
         return;
       }
 
@@ -199,13 +198,14 @@ DataProcessorSpec CommonDataProcessors::getOutputObjSink(outputObjects const& ob
   return spec;
 }
 
-// add sink for dangling AODs
+// add sink for the AODs
 DataProcessorSpec
-  CommonDataProcessors::getGlobalAODSink(std::vector<InputSpec> const& danglingOutputInputs)
+  CommonDataProcessors::getGlobalAODSink(std::vector<InputSpec> const& OutputInputs,
+                                         std::vector<bool> const& isdangling)
 {
 
-  auto writerFunction = [danglingOutputInputs](InitContext& ic) -> std::function<void(ProcessingContext&)> {
-    LOG(DEBUG) << "======== getGlobalAODSink::Inint ==========";
+  auto writerFunction = [OutputInputs, isdangling](InitContext& ic) -> std::function<void(ProcessingContext&)> {
+    LOG(DEBUG) << "======== getGlobalAODSink::Init ==========";
 
     // analyze ic and take actions accordingly
     auto fnbase = ic.options().get<std::string>("res-file");
@@ -213,42 +213,55 @@ DataProcessorSpec
     auto keepString = ic.options().get<std::string>("keep");
     auto ntfmerge = ic.options().get<Int_t>("ntfmerge");
 
-    // find out if any tables need to be saved
-    bool hasOutputsToWrite = true;
-    bool usematch = false;
+    // find out if any table needs to be saved
+    bool hasOutputsToWrite = false;
 
-    // use the parameter keep to create a matcher
-    std::shared_ptr<data_matcher::DataDescriptorMatcher> matcher;
+    // parse the keepString
+    auto dod = std::make_shared<DataOutputDirector>();
+    if (!fnbase.empty())
+      dod->setDefaultfname(fnbase);
     if (!keepString.empty()) {
-      usematch = true;
-      auto [variables, outputMatcher] = DataDescriptorQueryBuilder::buildFromKeepConfig(keepString);
-      matcher = outputMatcher;
 
-      VariableContext context;
-      for (auto& spec : danglingOutputInputs) {
-        auto concrete = DataSpecUtils::asConcreteDataMatcher(spec);
-        if (outputMatcher->match(concrete, context)) {
+      std::string d("dangling");
+      if (d.find(keepString) == 0) {
+
+        // use the dangling outputs
+        std::vector<InputSpec> danglingOutputs;
+        for (auto ii = 0; ii < OutputInputs.size(); ii++) {
+          if (isdangling[ii])
+            danglingOutputs.emplace_back(OutputInputs[ii]);
+        }
+        dod->readSpecs(danglingOutputs);
+
+      } else {
+
+        // use the keep string
+        dod->readString(keepString);
+      }
+
+      for (auto& outobj : OutputInputs) {
+        auto ds = dod->getDataOutputDescriptors(outobj);
+        if (ds.size() > 0) {
           hasOutputsToWrite = true;
+          break;
         }
       }
     }
 
     // if nothing needs to be saved then return a trivial functor
     if (!hasOutputsToWrite) {
-      return std::move([](ProcessingContext& pc) mutable -> void {
+      return [](ProcessingContext&) mutable -> void {
         static bool once = false;
         if (!once) {
-          LOG(DEBUG) << "No dangling output to be saved.";
+          LOG(INFO) << "No AODs to be saved.";
           once = true;
         }
-      });
+      };
     }
 
     // end of data functor is called at the end of the data stream
-    auto fout = std::make_shared<TFile>();
-    auto endofdatacb = [fout](EndOfStreamContext& context) {
-      if (fout)
-        fout->Close();
+    auto endofdatacb = [dod](EndOfStreamContext& context) {
+      dod->closeDataOutputFiles();
 
       context.services().get<ControlService>().readyToQuit(QuitRequest::All);
     };
@@ -257,77 +270,61 @@ DataProcessorSpec
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
 
     // this functor is called once per time frame
-    Int_t ntf = 0;
-    return std::move([fout, fnbase, filemode, ntf, ntfmerge, usematch, matcher](ProcessingContext& pc) mutable -> void {
+    Int_t ntf = -1;
+    return std::move([ntf, ntfmerge, filemode, dod](ProcessingContext& pc) mutable -> void {
       LOG(DEBUG) << "======== getGlobalAODSink::processing ==========";
       LOG(DEBUG) << " processing data set with " << pc.inputs().size() << " entries";
-      LOG(DEBUG) << " result are saved to " << fnbase << "_*.root";
 
       // return immediately if pc.inputs() is empty
       auto ninputs = pc.inputs().size();
       if (ninputs == 0) {
-        LOG(DEBUG) << "no inputs available!";
+        LOG(INFO) << "No inputs available!";
         return;
       }
 
-      // open new file if ntfmerge time frames is reached
-      LOG(DEBUG) << "This is time frame number " << ntf;
-
-      std::string fname;
-      if ((ntf % ntfmerge) == 0) {
-        if (fout)
-          fout->Close();
-
-        fname = fnbase + "_" + std::to_string((Int_t)(ntf / ntfmerge)) + ".root";
-        fout =
-          std::make_shared<TFile>(fname.c_str(), filemode.c_str());
-      }
+      // increment the time frame counter ntf
       ntf++;
 
       // loop over the DataRefs which are contained in pc.inputs()
-      VariableContext matchingContext;
       for (const auto& ref : pc.inputs()) {
 
-        // is this table to be saved?
+        // does this need to be saved?
         auto dh = DataRefUtils::getHeader<header::DataHeader*>(ref);
-        // only arrow tables are processed here
-        if (dh->payloadSerializationMethod != o2::header::gSerializationMethodArrow)
-          continue;
+        auto ds = dod->getDataOutputDescriptors(*dh);
 
-        // does it match the keep parameter
-        if (usematch && !matcher->match(*dh, matchingContext))
-          continue;
+        if (ds.size() > 0) {
 
-        // get the table name
-        auto treename = dh->dataDescription.as<std::string>();
+          // get the TableConsumer and corresponding arrow table
+          auto s = pc.inputs().get<TableConsumer>(ref.spec->binding);
+          auto table = s->asArrowTable();
 
-        // get the TableConsumer and convert it into an arrow table
-        auto s = pc.inputs().get<TableConsumer>(ref.spec->binding);
-        auto table = s->asArrowTable();
-        LOG(DEBUG) << "The tree name is " << treename;
-        LOG(DEBUG) << "Number of columns " << table->num_columns();
-        LOG(DEBUG) << "Number of rows     " << table->num_rows();
+          // loop over all DataOutputDescriptors
+          // a table can be saved in multiple ways
+          // e.g. different selections of columns to different files
+          for (auto d : ds) {
+            TableToTree ta2tr(table,
+                              dod->getDataOutputFile(d, ntf, ntfmerge, filemode),
+                              d->treename.c_str());
 
-        // we need finite number of rows and columns
-        if (table->num_columns() == 0 || table->num_rows() == 0)
-          continue;
-
-        // this table needs to be saved to file
-        // use TableToTree
-        TableToTree ta2tr(table, fout.get(), treename.c_str());
-
-        // all columns of the table are saved
-        ta2tr.AddAllBranches();
-        // to select specific columns use ...
-        // ta2tr.AddBranch(colname);
-        ta2tr.Process();
+            if (d->colnames.size() > 0) {
+              for (auto cn : d->colnames) {
+                auto col = table->GetColumnByName(cn);
+                if (col)
+                  ta2tr.AddBranch(col);
+              }
+            } else {
+              ta2tr.AddAllBranches();
+            }
+            ta2tr.Process();
+          }
+        }
       }
     });
   }; // end of writerFunction
 
   DataProcessorSpec spec{
-    "internal-dpl-AOD-writter",
-    danglingOutputInputs,
+    "internal-dpl-AOD-writer",
+    OutputInputs,
     Outputs{},
     AlgorithmSpec(writerFunction),
     {{"res-file", VariantType::String, "AnalysisResults", {"Name of the output file"}},
@@ -360,16 +357,16 @@ DataProcessorSpec
       }
     }
     if (hasOutputsToWrite == false) {
-      return std::move([](ProcessingContext& pc) mutable -> void {
+      return [](ProcessingContext&) mutable -> void {
         static bool once = false;
         if (!once) {
           LOG(DEBUG) << "No dangling output to be dumped.";
           once = true;
         }
-      });
+      };
     }
     auto output = std::make_shared<std::ofstream>(filename.c_str(), std::ios_base::binary);
-    return std::move([output, matcher = outputMatcher](ProcessingContext& pc) mutable -> void {
+    return [output, matcher = outputMatcher](ProcessingContext& pc) mutable -> void {
       VariableContext matchingContext;
       LOG(DEBUG) << "processing data set with " << pc.inputs().size() << " entries";
       for (const auto& entry : pc.inputs()) {
@@ -384,7 +381,7 @@ DataProcessorSpec
         output->write(entry.payload, o2::framework::DataRefUtils::getPayloadSize(entry));
         LOG(DEBUG) << "wrote data, size " << o2::framework::DataRefUtils::getPayloadSize(entry);
       }
-    });
+    };
   };
 
   std::vector<InputSpec> validBinaryInputs;

@@ -120,6 +120,11 @@ struct TopoIndexInfo {
   friend std::ostream& operator<<(std::ostream& out, TopoIndexInfo const& info);
 };
 
+struct OutputObj {
+  InputSpec spec;
+  bool isdangling;
+};
+
 /// A set of internal helper classes to manipulate a Workflow
 struct WorkflowHelpers {
   /// Topological sort for a graph of @a nodeCount nodes.
@@ -168,11 +173,17 @@ struct WorkflowHelpers {
     const std::vector<DeviceConnectionEdge>& edges,
     const std::vector<size_t>& index);
 
-  /// Given @a workflow it finds the OutputSpec in every module which do not have
-  /// a corresponding InputSpec. I.e. they are dangling.
-  /// @return a vector of InputSpec which would have matched said dangling outputs.
+  /// Given @a workflow it gathers all the OutputSpec and in addition provides
+  /// the information whether and output is dangling and/or of type AOD
+  /// An Output is dangling if it does not have a corresponding InputSpec.
+  /// The type of the output is encoded in an unsigend char whichs values are defined by
+  /// 0 + isdangling*1 + isAOD*2
+  /// @return a vector of InputSpec of all outputs and a vector of unsigned char
+  /// with the encoded output type
+  static std::tuple<std::vector<InputSpec>, std::vector<unsigned char>> analyzeOutputs(WorkflowSpec const& workflow);
+
+  /// returns only dangling outputs
   static std::vector<InputSpec> computeDanglingOutputs(WorkflowSpec const& workflow);
-  static std::vector<InputSpec> selectAODs(std::vector<InputSpec>& outputs);
 };
 
 } // namespace o2::framework

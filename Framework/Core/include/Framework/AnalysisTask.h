@@ -37,7 +37,12 @@
 #include <type_traits>
 #include <utility>
 #include <memory>
-
+#if (defined(__GNUC__) && (__GNUC___ > 8 || (__GNUC__ == 8 && __GNUC_MINOR__ >= 1))) || defined(__clang__)
+#include <charconv>
+#else
+#include <sstream>
+#include <iomanip>
+#endif
 namespace o2::framework
 {
 
@@ -151,7 +156,7 @@ template <typename T>
 struct OutputObj {
   using obj_t = T;
 
-  OutputObj(T const& t, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject)
+  OutputObj(T&& t, OutputObjHandlingPolicy policy_ = OutputObjHandlingPolicy::AnalysisObject)
     : object(std::make_shared<T>(t)),
       label(t.GetName()),
       policy{policy_},
@@ -193,11 +198,20 @@ struct OutputObj {
   /// @return the associated OutputSpec
   OutputSpec const spec()
   {
-    static_assert(std::is_base_of_v<TNamed, T>, "You need a TNamed derived class to use OutputObj");
     header::DataDescription desc{};
+    auto lhash = compile_time_hash(label.c_str());
     memset(desc.str, '_', 16);
-    //FIXME: we should probably use hash here
-    std::memcpy(desc.str, label.c_str(), label.length() > 16 ? 16 : label.length());
+#if (defined(__GNUC__) && (__GNUC___ > 8 || (__GNUC__ == 8 && __GNUC_MINOR__ >= 1))) || defined(__clang__)
+    std::to_chars(desc.str, desc.str + 2, lhash, 16);
+    std::to_chars(desc.str + 2, desc.str + 4, mTaskHash, 16);
+    std::to_chars(desc.str + 4, desc.str + 12, reinterpret_cast<uint64_t>(this), 16);
+#else
+    std::stringstream s;
+    s << std::hex << lhash;
+    s << std::hex << mTaskHash;
+    s << std::hex << reinterpret_cast<uint64_t>(this);
+    std::memcpy(desc.str, s.str().c_str(), 12);
+#endif
 
     return OutputSpec{OutputLabel{label}, "ATSK", desc, 0};
   }
@@ -722,6 +736,7 @@ class has_init
 template <typename T, typename... Args>
 DataProcessorSpec adaptAnalysisTask(char const* name, Args&&... args)
 {
+  TH1::AddDirectory(false);
   auto task = std::make_shared<T>(std::forward<Args>(args)...);
   auto hash = compile_time_hash(name);
 

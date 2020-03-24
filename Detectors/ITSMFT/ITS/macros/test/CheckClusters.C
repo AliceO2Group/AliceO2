@@ -20,7 +20,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #endif
 
-void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim.root", std::string inputGeom = "O2geometry.root", std::string paramfile = "o2sim_par.root")
+void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim_HitsITS.root", std::string inputGeom = "O2geometry.root", std::string paramfile = "o2sim_par.root")
 {
   const int QEDSourceID = 99; // Clusters from this MC source correspond to QED electrons
 

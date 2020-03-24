@@ -18,6 +18,9 @@
 #include "CCDB/CCDBTimeStampUtils.h"
 #include <string>
 #include <map>
+#include <unordered_map>
+#include <memory>
+
 // #include <FairLogger.h>
 
 namespace o2::ccdb
@@ -27,6 +30,11 @@ namespace o2::ccdb
 /// The class encapsulates timestamp and URL and is easily usable from detector code.
 class BasicCCDBManager
 {
+  struct CachedObject {
+    std::shared_ptr<void> objPtr;
+    std::string uuid;
+  };
+
  public:
   static BasicCCDBManager& instance()
   {
@@ -54,17 +62,35 @@ class BasicCCDBManager
 
   /// retrieve an object of type T from CCDB as stored under path and timestamp
   template <typename T>
-  T* getForTimeStamp(std::string const& path, long timestamp) const;
+  T* getForTimeStamp(std::string const& path, long timestamp);
 
   /// retrieve an object of type T from CCDB as stored under path; will use the timestamp member
   template <typename T>
-  T* get(std::string const& path) const
+  T* get(std::string const& path)
   {
     // TODO: add some error info/handling when failing
     return getForTimeStamp<T>(path, mTimestamp);
   }
 
   bool isHostReachable() const { return mCCDBAccessor.isHostReachable(); }
+
+  /// clear all entries in the cache
+  void clearCache() { mCache.clear(); }
+
+  /// clear particular entry in the cache
+  void clearCache(std::string const& path) { mCache.erase(path); }
+
+  /// check if caching is enabled
+  bool isCachingEnabled() const { return mCachingEnabled; }
+
+  /// disable or enable caching
+  void setCachingEnabled(bool v)
+  {
+    mCachingEnabled = v;
+    if (!v) {
+      clearCache();
+    }
+  }
 
  private:
   BasicCCDBManager(std::string const& path) : mCCDBAccessor{}
@@ -74,15 +100,32 @@ class BasicCCDBManager
 
   // we access the CCDB via the CURL based C++ API
   o2::ccdb::CcdbApi mCCDBAccessor;
+  std::unordered_map<std::string, CachedObject> mCache; //! map for {path, CachedObject} associations
   std::map<std::string, std::string> mMetaData;     // some dummy object needed to talk to CCDB API
+  std::map<std::string, std::string> mHeaders;      // headers to retrieve tags
   long mTimestamp{o2::ccdb::getCurrentTimestamp()}; // timestamp to be used for query (by default "now")
   bool mCanDefault = false;                         // whether default is ok --> useful for testing purposes done standalone/isolation
+  bool mCachingEnabled = true;                      // whether caching is enabled
 };
 
 template <typename T>
-T* BasicCCDBManager::getForTimeStamp(std::string const& path, long timestamp) const
+T* BasicCCDBManager::getForTimeStamp(std::string const& path, long timestamp)
 {
-  return mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp);
+  if (!isCachingEnabled()) {
+    return mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp);
+  }
+  auto& cached = mCache[path];
+  T* ptr = mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, &mHeaders, cached.uuid);
+  if (ptr) { // new object was shipped, old one (if any) is not valid anymore
+    cached.objPtr.reset(ptr);
+    cached.uuid = mHeaders["ETag"];
+  } else if (mHeaders.count("Error")) { // in case of errors the pointer is 0 and headers["Error"] should be set
+    clearCache(path);                   // in case of any error clear cache for this object
+  } else {                              // the old object is valid
+    ptr = reinterpret_cast<T*>(cached.objPtr.get());
+  }
+  mHeaders.clear();
+  return ptr;
 }
 
 } // namespace o2::ccdb

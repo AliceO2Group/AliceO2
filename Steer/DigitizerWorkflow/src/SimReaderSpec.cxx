@@ -34,8 +34,7 @@ namespace o2
 {
 namespace steer
 {
-DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<int>& tpcsectors,
-                                   std::shared_ptr<std::vector<int>> tpcsubchannels)
+DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<std::string>& simprefixes, const std::vector<int>& tpcsectors, std::shared_ptr<std::vector<int>> tpcsubchannels)
 {
   // this container will contain the TPC sector assignment per subchannel per invocation
   // it will allow that we snapshot/send exactly one sector assignment per algorithm invocation
@@ -73,8 +72,8 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<int>& tpcse
 
   auto doit = [fanoutsize, tpcsectormessages, tpcinvocations, tpcsubchannels, activeSectors](ProcessingContext& pc) {
     auto& mgr = steer::HitProcessingManager::instance();
-    auto eventrecords = mgr.getRunContext().getEventRecords();
-    const auto& context = mgr.getRunContext();
+    auto eventrecords = mgr.getDigitizationContext().getEventRecords();
+    const auto& context = mgr.getDigitizationContext();
 
     // counter to make sure we are sending the data only once
     static int counter = 0;
@@ -134,13 +133,18 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<int>& tpcse
   };
 
   // init function return a lambda taking a ProcessingContext
-  auto initIt = [doit](InitContext& ctx) {
+  auto initIt = [simprefixes, doit](InitContext& ctx) {
     // initialize fundamental objects
     auto& mgr = steer::HitProcessingManager::instance();
 
-    mgr.addInputFile(ctx.options().get<std::string>("simFile").c_str());
-    if (ctx.options().get<std::string>("simFileS").size() > 0) {
-      mgr.addInputSignalFile(ctx.options().get<std::string>("simFileS").c_str());
+    if (simprefixes.size() == 0) {
+      LOG(ERROR) << "No simulation prefix available";
+    } else {
+      LOG(INFO) << "adding " << simprefixes[0] << "\n";
+      mgr.addInputFile(simprefixes[0]);
+      for (int part = 1; part < simprefixes.size(); ++part) {
+        mgr.addInputSignalFile(simprefixes[part]);
+      }
     }
 
     // do we start from an existing context
@@ -174,9 +178,9 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<int>& tpcse
       } else {
         mgr.setupRun();
       }
-      LOG(INFO) << "Initializing Spec ... have " << mgr.getRunContext().getEventRecords().size() << " times ";
+      LOG(INFO) << "Initializing Spec ... have " << mgr.getDigitizationContext().getEventRecords().size() << " times ";
       LOG(INFO) << "Serializing Context for later reuse";
-      mgr.writeRunContext(ctx.options().get<std::string>("outcontext").c_str());
+      mgr.writeDigitizationContext(ctx.options().get<std::string>("outcontext").c_str());
     }
 
     return doit;
@@ -197,8 +201,6 @@ DataProcessorSpec getSimReaderSpec(int fanoutsize, const std::vector<int>& tpcse
     Options{
       {"interactionRate", VariantType::Float, 50000.0f, {"Total hadronic interaction rate (Hz)"}},
       {"bcPatternFile", VariantType::String, "", {"Interacting BC pattern file (e.g. from CreateBCPattern.C)"}},
-      {"simFile", VariantType::String, "o2sim.root", {"Sim input filename"}},
-      {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}},
       {"simFileQED", VariantType::String, "", {"Sim (QED) input filename"}},
       {"outcontext", VariantType::String, "collisioncontext.root", {"Output file for collision context"}},
       {"incontext", VariantType::String, "", {"Take collision context from this file"}},

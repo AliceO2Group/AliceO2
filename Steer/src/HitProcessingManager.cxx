@@ -54,7 +54,7 @@ bool HitProcessingManager::setupChain()
   auto& c = *mSimChains[0];
   c.Reset();
   for (auto& filename : mBackgroundFileNames) {
-    c.AddFile(filename.data());
+    c.AddFile(o2::base::NameConf::getMCKinematicsFileName(filename.data()).c_str());
   }
 
   for (auto& pair : mSignalFileNames) {
@@ -62,7 +62,7 @@ bool HitProcessingManager::setupChain()
     const auto& filenamevector = pair.second;
     auto& chain = *mSimChains[signalid];
     for (auto& filename : filenamevector) {
-      chain.AddFile(filename.data());
+      chain.AddFile(o2::base::NameConf::getMCKinematicsFileName(filename.data()).c_str());
     }
   }
 
@@ -87,34 +87,37 @@ void HitProcessingManager::setupRun(int ncollisions)
     LOG(INFO) << "Automatic deduction of number of collisions ... will just take number of background entries "
               << mNumberOfCollisions;
   }
-  mRunContext.setNCollisions(mNumberOfCollisions);
+  mDigitizationContext.setNCollisions(mNumberOfCollisions);
   sampleCollisionTimes();
 
   // sample collision (background-signal) constituents
   sampleCollisionConstituents();
+
+  // store prefixes as part of Context
+  std::vector<std::string> prefixes;
+  prefixes.emplace_back(mBackgroundFileNames[0]);
+  for (auto k : mSignalFileNames) {
+    prefixes.emplace_back(k.second[0]);
+  }
+  mDigitizationContext.setSimPrefixes(prefixes);
 }
 
-void HitProcessingManager::writeRunContext(const char* filename) const
+void HitProcessingManager::writeDigitizationContext(const char* filename) const
 {
-  TFile file(filename, "RECREATE");
-  auto cl = TClass::GetClass(typeid(mRunContext));
-  file.WriteObjectAny(&mRunContext, cl, "RunContext");
-  file.Close();
+  mDigitizationContext.saveToFile(filename);
 }
 
 bool HitProcessingManager::setupRunFromExistingContext(const char* filename)
 {
-  RunContext* incontext = nullptr;
-  TFile file(filename, "OPEN");
-  file.GetObject("RunContext", incontext);
-
-  if (incontext) {
-    incontext->printCollisionSummary();
-    mRunContext = *incontext;
+  auto context = DigitizationContext::loadFromFile(filename);
+  if (context) {
+    context->printCollisionSummary();
+    mDigitizationContext = *context;
     return true;
   }
-  LOG(INFO) << "NO COLLISIONOBJECT FOUND";
+  LOG(WARN) << "NO DIGITIZATIONCONTEXT FOUND";
   return false;
 }
+
 } // end namespace steer
 } // end namespace o2

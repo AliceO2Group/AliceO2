@@ -135,6 +135,15 @@ void ClustererTask::run(const std::string inpName, const std::string outName)
       mClusterer.process(*mReaderMC.get(), &mFullClus, &mCompClus, &mClsLabels, &mROFRecVec);
     }
 
+    // This conversion vector -> map is just for the convenience of "offline" analyses
+    std::map<int, o2::itsmft::ClusterPattern> map;
+    if (mClusterer.getPatterns()) {
+      o2::itsmft::ClusterTopology::makeRareTopologyMap(mPatterns, map);
+      outTree.Branch("ITSClusterPatt", &map);
+    } else {
+      LOG(INFO) << Class()->GetName() << " output of cluster patterns is not requested";
+    }
+
     std::vector<o2::itsmft::MC2ROFRecord> mc2rof, *mc2rofPtr = &mc2rof;
     if (mUseMCTruth) {
       auto mc2rofOrig = mReaderMC->getMC2ROFRecords();
@@ -184,6 +193,15 @@ void ClustererTask::writeTree(std::string basename, int i)
     outTree.Branch("ITSClusterComp", &compClusPtr);
   } else {
     LOG(INFO) << Class()->GetName() << " output of compact clusters is not requested";
+  }
+
+  // This conversion vector -> map is just for the convenience of "offline" analyses
+  std::map<int, o2::itsmft::ClusterPattern> map;
+  if (mClusterer.getPatterns()) {
+    o2::itsmft::ClusterTopology::makeRareTopologyMap(mPatterns, map);
+    outTree.Branch("ITSClusterPatt", &map);
+  } else {
+    LOG(INFO) << Class()->GetName() << " output of cluster patterns is not requested";
   }
 
   for (auto& rof : rofRecBuffer) {

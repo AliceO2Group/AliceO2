@@ -27,7 +27,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 TPCFastTransform::TPCFastTransform()
-  : FlatObject(), mTimeStamp(0), mDistortion(), mApplyDistortion(1), mT0(0.f), mVdrift(0.f), mVdriftCorrY(0.f), mLdriftCorr(0.f), mTOFcorr(0.f), mPrimVtxZ(0.f)
+  : FlatObject(), mTimeStamp(0), mCorrection(), mApplyCorrection(1), mT0(0.f), mVdrift(0.f), mVdriftCorrY(0.f), mLdriftCorr(0.f), mTOFcorr(0.f), mPrimVtxZ(0.f)
 {
   // Default Constructor: creates an empty uninitialized object
 }
@@ -41,7 +41,7 @@ void TPCFastTransform::cloneFromObject(const TPCFastTransform& obj, char* newFla
   FlatObject::cloneFromObject(obj, newFlatBufferPtr);
 
   mTimeStamp = obj.mTimeStamp;
-  mApplyDistortion = obj.mApplyDistortion;
+  mApplyCorrection = obj.mApplyCorrection;
   mT0 = obj.mT0;
   mVdrift = obj.mVdrift;
   mVdriftCorrY = obj.mVdriftCorrY;
@@ -51,8 +51,8 @@ void TPCFastTransform::cloneFromObject(const TPCFastTransform& obj, char* newFla
 
   // variable-size data
 
-  char* distBuffer = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mDistortion.getFlatBufferPtr());
-  mDistortion.cloneFromObject(obj.mDistortion, distBuffer);
+  char* distBuffer = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mCorrection.getFlatBufferPtr());
+  mCorrection.cloneFromObject(obj.mCorrection, distBuffer);
 }
 
 void TPCFastTransform::moveBufferTo(char* newFlatBufferPtr)
@@ -66,7 +66,7 @@ void TPCFastTransform::setActualBufferAddress(char* actualFlatBufferPtr)
 {
   /// See FlatObject for description
   FlatObject::setActualBufferAddress(actualFlatBufferPtr);
-  mDistortion.setActualBufferAddress(mFlatBufferPtr);
+  mCorrection.setActualBufferAddress(mFlatBufferPtr);
 }
 
 void TPCFastTransform::setFutureBufferAddress(char* futureFlatBufferPtr)
@@ -75,21 +75,21 @@ void TPCFastTransform::setFutureBufferAddress(char* futureFlatBufferPtr)
 
   const char* oldFlatBufferPtr = mFlatBufferPtr;
 
-  char* distBuffer = FlatObject::relocatePointer(oldFlatBufferPtr, futureFlatBufferPtr, mDistortion.getFlatBufferPtr());
-  mDistortion.setFutureBufferAddress(distBuffer);
+  char* distBuffer = FlatObject::relocatePointer(oldFlatBufferPtr, futureFlatBufferPtr, mCorrection.getFlatBufferPtr());
+  mCorrection.setFutureBufferAddress(distBuffer);
   FlatObject::setFutureBufferAddress(futureFlatBufferPtr);
 }
 
-void TPCFastTransform::startConstruction(const TPCDistortionIRS& distortion)
+void TPCFastTransform::startConstruction(const TPCFastSpaceChargeCorrection& correction)
 {
   /// Starts the construction procedure, reserves temporary memory
 
   FlatObject::startConstruction();
 
-  assert(distortion.isConstructed());
+  assert(correction.isConstructed());
 
   mTimeStamp = 0;
-  mApplyDistortion = 1;
+  mApplyCorrection = 1;
   mT0 = 0.f;
   mVdrift = 0.f;
   mVdriftCorrY = 0.f;
@@ -99,7 +99,7 @@ void TPCFastTransform::startConstruction(const TPCDistortionIRS& distortion)
 
   // variable-size data
 
-  mDistortion.cloneFromObject(distortion, nullptr);
+  mCorrection.cloneFromObject(correction, nullptr);
 }
 
 void TPCFastTransform::setCalibration(long int timeStamp, float t0, float vDrift, float vDriftCorrY, float lDriftCorr, float tofCorr, float primVtxZ)
@@ -126,9 +126,9 @@ void TPCFastTransform::finishConstruction()
   assert(mConstructionMask & ConstructionState::InProgress);            // construction in process
   assert(mConstructionMask & ConstructionExtraState::CalibrationIsSet); // all parameters are set
 
-  FlatObject::finishConstruction(mDistortion.getFlatBufferSize());
+  FlatObject::finishConstruction(mCorrection.getFlatBufferSize());
 
-  mDistortion.moveBufferTo(mFlatBufferPtr);
+  mCorrection.moveBufferTo(mFlatBufferPtr);
 }
 
 void TPCFastTransform::print() const
@@ -136,14 +136,14 @@ void TPCFastTransform::print() const
 #if !defined(GPUCA_GPUCODE)
   std::cout << "TPC Fast Transformation: " << std::endl;
   std::cout << "mTimeStamp = " << mTimeStamp << std::endl;
-  std::cout << "mApplyDistortion = " << mApplyDistortion << std::endl;
+  std::cout << "mApplyCorrection = " << mApplyCorrection << std::endl;
   std::cout << "mT0 = " << mT0 << std::endl;
   std::cout << "mVdrift = " << mVdrift << std::endl;
   std::cout << "mVdriftCorrY = " << mVdriftCorrY << std::endl;
   std::cout << "mLdriftCorr = " << mLdriftCorr << std::endl;
   std::cout << "mTOFcorr = " << mTOFcorr << std::endl;
   std::cout << "mPrimVtxZ = " << mPrimVtxZ << std::endl;
-  mDistortion.print();
+  mCorrection.print();
 #endif
 }
 

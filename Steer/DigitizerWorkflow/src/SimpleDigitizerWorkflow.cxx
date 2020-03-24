@@ -8,6 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <boost/program_options.hpp>
+
 #include "DetectorsBase/Propagator.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
@@ -18,7 +20,8 @@
 #include "SimReaderSpec.h"
 #include "CollisionTimePrinter.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "SimConfig/ConfigurableParam.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 // for TPC
 #include "TPCDigitizerSpec.h"
@@ -136,9 +139,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(
     ConfigParamSpec{"tpc-reco-type", VariantType::String, "", {tpcrthelp}});
 
-  std::string grphelp("GRP file describing the simulation");
+  std::string simhelp("Comma separated list of simulation prefixes (for background, signal productions)");
   workflowOptions.push_back(
-    ConfigParamSpec{"GRP", VariantType::String, "o2sim_grp.root", {grphelp}});
+    ConfigParamSpec{"sims", VariantType::String, "o2sim", {simhelp}});
 
   // option allowing to set parameters
   std::string keyvaluehelp("Semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...')");
@@ -213,7 +216,7 @@ bool wantCollisionTimePrinter()
 
 // ------------------------------------------------------------------
 
-std::shared_ptr<o2::parameters::GRPObject> readGRP(std::string inputGRP = "o2sim_grp.root")
+std::shared_ptr<o2::parameters::GRPObject> readGRP(std::string inputGRP)
 {
   // init magnetic field
   o2::base::Propagator::initFieldFromGRP(inputGRP);
@@ -321,9 +324,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // write the configuration used for the digitizer workflow
   o2::conf::ConfigurableParam::writeINI("o2digitizerworkflow_configuration.ini");
 
+  // which sim productions to overlay and digitize
+  auto simPrefixes = splitString(configcontext.options().get<std::string>("sims"), ',');
+  for (const auto& p : simPrefixes) {
+    LOG(INFO) << "PREFIX " << p;
+  }
+
   // First, read the GRP to detect which components need instantiations
-  // (for the moment this assumes the file o2sim_grp.root to be in the current directory)
-  const auto grp = readGRP(configcontext.options().get<std::string>("GRP"));
+  auto grpfile = o2::base::NameConf::getGRPFileName(simPrefixes[0]);
+  const auto grp = readGRP(grpfile.c_str());
   if (!grp) {
     return WorkflowSpec{};
   }
@@ -515,7 +524,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::phos::getPHOSDigitWriterSpec());
   }
 
-  // the PHOS part
+  // the CPV part
   if (isEnabled(o2::detectors::DetID::CPV)) {
     detList.emplace_back(o2::detectors::DetID::CPV);
     // connect the PHOS digitization
@@ -525,10 +534,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   // GRP updater: must come after all detectors since requires their list
-  specs.emplace_back(o2::parameters::getGRPUpdaterSpec(configcontext.options().get<std::string>("GRP"), detList));
+  specs.emplace_back(o2::parameters::getGRPUpdaterSpec(grpfile, detList));
 
   // The SIM Reader. NEEDS TO BE LAST
-  specs[0] = o2::steer::getSimReaderSpec(fanoutsize, tpcsectors, tpclanes);
+  specs[0] = o2::steer::getSimReaderSpec(fanoutsize, simPrefixes, tpcsectors, tpclanes);
 
   return specs;
 }

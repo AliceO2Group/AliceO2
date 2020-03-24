@@ -248,23 +248,13 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     mMatching.setTPCTrkLabelsInp(lblTPCPtr);
   }
 
-  //  const gsl::span<o2::ft0::RecPoints> fitInfo; // not yet POD
-  std::vector<o2::ft0::RecPoints> fitInfo;
   if (o2::globaltracking::MatchITSTPCParams::Instance().runAfterBurner) {
-    //    fitInfo = pc.inputs().get<gsl::span<o2::ft0::RecPoints>>("fitInfo");
-    fitInfo = pc.inputs().get<std::vector<o2::ft0::RecPoints>>("fitInfo");
-    mMatching.setFITInfoInp(&fitInfo);
+    // Note: the particular variable will go out of scope, but the span is passed by copy to the
+    // worker and the underlying memory is valid throughout the whole computation
+    auto fitInfo = pc.inputs().get<gsl::span<o2::ft0::RecPoints>>("fitInfo");
+    mMatching.setFITInfoInp(fitInfo);
   }
 
-  /*
-  const std::vector<o2::ft0::RecPoints>* rpFIT = nullptr;
-  std::unique_ptr<const std::vector<o2::ft0::RecPoints>> rpFITU;
-  if (o2::globaltracking::MatchITSTPCParams::Instance().runAfterBurner) {
-    rpFITU = pc.inputs().get<const std::vector<o2::ft0::RecPoints>*>("fitInfo");
-    rpFIT = rpFITU.get();
-    mMatching.setFITInfoInp(rpFIT);
-  }
-  */
   mMatching.run();
 
   /* // at the moment we don't assume need for bufferization, no nead to clear

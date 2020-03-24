@@ -16,8 +16,8 @@
 #define ALICEO2_TPC_ParameterElectronics_H_
 
 #include <array>
-#include "SimConfig/ConfigurableParam.h"
-#include "SimConfig/ConfigurableParamHelper.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 
 namespace o2
 {

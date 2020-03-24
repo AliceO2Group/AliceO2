@@ -43,12 +43,15 @@ SECONDS=0
 
 ### ------ we run the transport simulation
 LOGFILE=log_${SIMCONFIG}
-HITFILE=o2sim_${SIMCONFIG}
+SIMPREFIX=o2sim_${SIMCONFIG}
 HITSTATFILE=hitstats_${SIMCONFIG}
-taskset -c 1 o2-sim-serial -n ${NEVENTS} -e ${ENGINE} --skipModules ZDC -g ${GEN} --seed $SEED -o ${HITFILE} > $LOGFILE 2>&1
+taskset -c 1 o2-sim-serial -n ${NEVENTS} -e ${ENGINE} --skipModules ZDC -g ${GEN} --seed $SEED -o ${SIMPREFIX} > $LOGFILE 2>&1
+
+### ------ transform output to (new) format with separated hit files
+root -q -b -l ${O2_ROOT}/share/macro/migrateSimFiles.C\(\"${SIMPREFIX}\"\)
 
 ### ------ extract number of hits
-root -q -b -l ${O2_ROOT}/share/macro/analyzeHits.C\(\"${HITFILE}.root\"\) > $HITSTATFILE
+root -q -b -l ${O2_ROOT}/share/macro/analyzeHits.C\(\"${SIMPREFIX}\"\) > $HITSTATFILE
 
 TRANSPORTTIME=$SECONDS
 
@@ -86,16 +89,12 @@ hit_metrics="hitnumber,${TAG} ";
 digi_total_time=0.
 digi_total_mem=0.
 hits_total=0
-# for the moment soft link files to what digitizer expect
-[[ -f "o2sim.root" ]] && unlink o2sim.root
-[[ -f "o2sim_grp.root" ]] && unlink o2sim_grp.root
-ln -s ${HITFILE}.root o2sim.root
-ln -s ${HITFILE}_grp.root o2sim_grp.root
+
 for d in TRD ITS EMC TPC MFT MCH MID FDD FV0 FT0 PHS TOF HMP CPV; do
   DIGILOGFILE=logdigi_${SIMCONFIG}_${d}
   DIGITIMEFILE=timedigi_${SIMCONFIG}_${d}
 
-  TIME="#walltime %e" ${O2_ROOT}/share/scripts/monitor-mem.sh /usr/bin/time --output=${DIGITIMEFILE} o2-sim-digitizer-workflow -b --onlyDet ${d} --tpc-lanes 1 --configKeyValues "TRDSimParams.digithreads=1" > ${DIGILOGFILE} 2>&1
+  TIME="#walltime %e" ${O2_ROOT}/share/scripts/monitor-mem.sh /usr/bin/time --output=${DIGITIMEFILE} o2-sim-digitizer-workflow --sims ${SIMPREFIX} -b --onlyDet ${d} --tpc-lanes 1 --configKeyValues "TRDSimParams.digithreads=1" > ${DIGILOGFILE} 2>&1
 
   # parse metrics
   maxmem=`awk '/PROCESS MAX MEM/{print $5}' ${DIGILOGFILE}`  # in MB

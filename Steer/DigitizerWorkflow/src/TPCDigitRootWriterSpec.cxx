@@ -98,8 +98,11 @@ DataProcessorSpec getTPCDigitRootWriterSpec(int numberofsourcedevices)
     auto outputfile = std::make_shared<TFile>(filename.c_str(), "RECREATE");
     auto outputtree = std::make_shared<TTree>(treename.c_str(), treename.c_str());
 
-    // container for cashed grouping of digits
-    auto trigP2Sect = std::make_shared<std::array<std::vector<DigiGroupRef>, 36>>();
+    // container for cached grouping of digits
+    // TODO: once InputRecord::ReturnType helper has been merged
+    // using DigitGroupRefInputContainer = InputRecord::ReturnType<std::vector<DigiGroupRef>>;
+    using DigitGroupRefInputContainer = decltype(std::declval<InputRecord>().get<std::vector<DigiGroupRef>>(DataRef{nullptr, nullptr, nullptr}));
+    auto trigP2Sect = std::make_shared<std::array<DigitGroupRefInputContainer, 36>>();
 
     // the callback to be set as hook at stop of processing for the framework
     auto finishWriting = [outputfile, outputtree]() {

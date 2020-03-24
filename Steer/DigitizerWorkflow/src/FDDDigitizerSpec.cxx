@@ -16,7 +16,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
 #include "Headers/DataHeader.h"
-#include "Steer/HitProcessingManager.h" // for RunContext
+#include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "DetectorsBase/GeometryManager.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "Framework/Task.h"
@@ -31,22 +31,6 @@
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
-// helper function which will be offered as a service
-template <typename T>
-void retrieveHits(std::vector<TChain*> const& chains,
-                  const char* brname,
-                  int sourceID,
-                  int entryID,
-                  std::vector<T>* hits)
-{
-  auto br = chains[sourceID]->GetBranch(brname);
-  if (!br) {
-    LOG(ERROR) << "No branch found";
-    return;
-  }
-  br->SetAddress(&hits);
-  br->GetEntry(entryID);
-}
 
 namespace o2
 {
@@ -60,31 +44,8 @@ class FDDDPLDigitizerTask
  public:
   void init(framework::InitContext& ic)
   {
-    LOG(INFO) << "Initializing FDD digitization";
+    LOG(INFO) << "initializing FDD digitization";
 
-    //auto& dopt = o2::conf::DigiParams::Instance();
-
-    // setup the input chain for the hits
-    mSimChains.emplace_back(new TChain("o2sim"));
-
-    // add the main (background) file
-    mSimChains.back()->AddFile(ic.options().get<std::string>("simFile").c_str());
-
-    // maybe add a particular signal file
-    auto signalfilename = ic.options().get<std::string>("simFileS");
-    if (signalfilename.size() > 0) {
-      mSimChains.emplace_back(new TChain("o2sim"));
-      mSimChains.back()->AddFile(signalfilename.c_str());
-    }
-
-    const std::string inputGRP = "o2sim_grp.root";
-    const std::string grpName = "GRP";
-    TFile flGRP(inputGRP.c_str());
-    if (flGRP.IsZombie()) {
-      LOG(FATAL) << "Failed to open " << inputGRP;
-    }
-    std::unique_ptr<GRP> grp(static_cast<GRP*>(flGRP.GetObjectChecked(grpName.c_str(), GRP::Class())));
-    mDigitizer.setEventTime(grp->getTimeStart());
     //mDigitizer.setCCDBServer(dopt.ccdb);
     mDigitizer.init();
     //mROMode = mDigitizer.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
@@ -100,8 +61,15 @@ class FDDDPLDigitizerTask
     //mDigitizer.refreshCCDB();
 
     // read collision context from input
-    auto context = pc.inputs().get<o2::steer::RunContext*>("collisioncontext");
+    auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
     auto& irecords = context->getEventRecords();
+
+    context->initSimChains(o2::detectors::DetID::FDD, mSimChains);
+    mDigitizer.setEventTime(context->getGRP().getTimeStart());
+    for (auto& record : irecords) {
+      LOG(INFO) << "FDD TIME RECEIVED " << record.timeNS;
+    }
+
     auto& eventParts = context->getEventParts();
 
     // loop over all composite collisions given from context
@@ -115,7 +83,8 @@ class FDDDPLDigitizerTask
 
       for (auto& part : eventParts[collID]) {
 
-        retrieveHits(mSimChains, "FDDHit", part.sourceID, part.entryID, &hits);
+        // get the hits for this event and this source
+        context->retrieveHits(mSimChains, "FDDHit", part.sourceID, part.entryID, &hits);
         LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found FDD " << hits.size() << " hits ";
 
         mDigitizer.setEventID(part.entryID);
@@ -172,9 +141,7 @@ o2::framework::DataProcessorSpec getFDDDigitizerSpec(int channel)
             OutputSpec{"FDD", "ROMode", 0, Lifetime::Timeframe}},
 
     AlgorithmSpec{adaptFromTask<FDDDPLDigitizerTask>()},
-
-    Options{{"simFile", VariantType::String, "o2sim.root", {"Sim (background) input filename"}},
-            {"simFileS", VariantType::String, "", {"Sim (signal) input filename"}}}};
+    Options{}};
 }
 } // namespace fdd
 } // namespace o2

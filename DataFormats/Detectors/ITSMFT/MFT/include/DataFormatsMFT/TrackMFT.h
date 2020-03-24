@@ -17,8 +17,9 @@
 #define ALICEO2_MFT_TRACKMFT_H
 
 #include <vector>
+#include <TMatrixD.h>
+#include <TMath.h>
 
-#include "ReconstructionDataFormats/Track.h"
 #include "CommonDataFormat/RangeReference.h"
 
 namespace o2
@@ -31,24 +32,76 @@ class Cluster;
 
 namespace mft
 {
-class TrackMFT : public o2::track::TrackParCov
+class TrackMFT
 {
   using Cluster = o2::itsmft::Cluster;
   using ClusRefs = o2::dataformats::RangeRefComp<4>;
 
  public:
-  using o2::track::TrackParCov::TrackParCov;
 
   TrackMFT() = default;
   TrackMFT(const TrackMFT& t) = default;
-  TrackMFT(const o2::track::TrackParCov& parcov) : TrackParCov{parcov} {}
-  TrackMFT(const o2::track::TrackParCov& parCov, float chi2, std::uint32_t rof, const o2::track::TrackParCov& outer)
-    : o2::track::TrackParCov{parCov}, mChi2{chi2}, mROFrame{rof}, mParamOut{outer} {}
-  TrackMFT& operator=(const TrackMFT& tr) = default;
+  TrackMFT(const Double_t Z, const TMatrixD parameters, const TMatrixD covariances, const Double_t chi2);
+
   ~TrackMFT() = default;
 
+  /// return Z coordinate (cm)
+  Double_t getZ() const { return mZ; }
+  /// set Z coordinate (cm)
+  void setZ(Double_t z) { mZ = z; }
+  Double_t getX() const { return mParameters(0, 0); }
+  void setX(Double_t x) { mParameters(0, 0) = x; }
+
+  Double_t getY() const { return mParameters(1, 0); }
+  void setY(Double_t y) { mParameters(1, 0) = y; }
+
+  void setPhi(Double_t phi) { mParameters(2, 0) = phi; }
+  Double_t getPhi() const { return mParameters(2, 0); }
+
+  void setTanl(Double_t tanl) { mParameters(3, 0) = tanl; }
+  Double_t getTanl() const { return mParameters(3, 0); }
+
+  void setInvQPt(Double_t invqpt) { mParameters(4, 0) = invqpt; }
+  Double_t getInvQPt() const { return mParameters(4, 0); } // return Inverse charged pt
+  Double_t getPt() const { return TMath::Abs(1.f / mParameters(4, 0)); }
+  Double_t getInvPt() const { return TMath::Abs(mParameters(4, 0)); }
+
+  Double_t getPx() const { return TMath::Cos(getPhi()) * getPt(); } // return px
+  Double_t getInvPx() const { return 1. / getPx(); }                // return invpx
+
+  Double_t getPy() const { return TMath::Sin(getPhi()) * getPt(); } // return py
+  Double_t getInvPy() const { return 1. / getPx(); }                // return invpy
+
+  Double_t getPz() const { return getTanl() * getPt(); } // return pz
+  Double_t getInvPz() const { return 1. / getPz(); }     // return invpz
+
+  Double_t getP() const { return getPt() * TMath::Sqrt(1. + getTanl() * getTanl()); } // return total momentum
+  Double_t getInverseMomentum() const { return 1.f / getP(); }
+
+  /// return the charge (assumed forward motion)
+  Double_t getCharge() const { return TMath::Sign(1., mParameters(4, 0)); }
+  /// set the charge (assumed forward motion)
+  void setCharge(Double_t charge)
+  {
+    if (charge * mParameters(4, 0) < 0.)
+      mParameters(4, 0) *= -1.;
+  }
+
+  /// return track parameters
+  const TMatrixD& getParameters() const { return mParameters; }
+  /// set track parameters
+  void setParameters(const TMatrixD& parameters) { mParameters = parameters; }
+
+  const TMatrixD& getCovariances() const;
+  void setCovariances(const TMatrixD& covariances);
+  void setCovariances(const Double_t matrix[5][5]);
+
+  /// return the chi2 of the track when the associated cluster was attached
+  Double_t getTrackChi2() const { return mTrackChi2; }
+  /// set the chi2 of the track when the associated cluster was attached
+  void setTrackChi2(Double_t chi2) { mTrackChi2 = chi2; }
+
   // Other functions
-  float getChi2() const { return mChi2; }
   int getNumberOfClusters() const { return mClusRef.getEntries(); }
   int getFirstClusterEntry() const { return mClusRef.getFirstEntry(); }
   int getClusterEntry(int i) const { return getFirstClusterEntry() + i; }
@@ -72,20 +125,31 @@ class TrackMFT : public o2::track::TrackParCov
   const ClusRefs& getClusterRefs() const { return mClusRef; }
   ClusRefs& getClusterRefs() { return mClusRef; }
 
-  void setChi2(float chi2) { mChi2 = chi2; }
-
   std::uint32_t getROFrame() const { return mROFrame; }
   void setROFrame(std::uint32_t f) { mROFrame = f; }
 
-  o2::track::TrackParCov& getParamOut() { return mParamOut; }
-  const o2::track::TrackParCov& getParamOut() const { return mParamOut; }
-
  private:
-  float mChi2 = 0.;                 ///< Chi2 for this track
   std::uint32_t mROFrame = 0;       ///< RO Frame
-  o2::track::TrackParCov mParamOut; ///< parameter at largest radius
   ClusRefs mClusRef;                ///< references on clusters
 
+  Double_t mZ = 0.; ///< Z coordinate (cm)
+
+  /// Track parameters ordered as follow:      <pre>
+  /// X       = X coordinate   (cm)
+  /// Y       = Y coordinate   (cm)
+  /// PHI     = azimutal angle
+  /// TANL    = tangent of \lambda (dip angle)
+  /// INVQPT    = Inverse transverse momentum (GeV/c ** -1) times charge (assumed forward motion)  </pre>
+  TMatrixD mParameters{5, 1}; ///< \brief Track parameters
+
+  /// Covariance matrix of track parameters, ordered as follows:    <pre>
+  ///  <X,X>         <Y,X>           <PHI,X>       <TANL,X>        <INVQPT,X>
+  ///  <X,Y>         <Y,Y>           <PHI,Y>       <TANL,Y>        <INVQPT,Y>
+  /// <X,PHI>       <Y,PHI>         <PHI,PHI>     <TANL,PHI>      <INVQPT,PHI>
+  /// <X,TANL>      <Y,TANL>       <PHI,TANL>     <TANL,TANL>     <INVQPT,TANL>
+  /// <X,INVQPT>   <Y,INVQPT>     <PHI,INVQPT>   <TANL,INVQPT>   <INVQPT,INVQPT>  </pre>
+  TMatrixD mCovariances{5, 5}; ///< \brief Covariance matrix of track parameters
+  Double_t mTrackChi2 = 0.;    ///< Chi2 of the track when the associated cluster was attached
   ClassDefNV(TrackMFT, 1);
 };
 
@@ -96,12 +160,6 @@ class TrackMFTExt : public TrackMFT
   static constexpr int MaxClusters = 10;
   using TrackMFT::TrackMFT; // inherit base constructors
 
-  TrackMFTExt(o2::track::TrackParCov&& parCov, short ncl, float chi2, std::uint32_t rof,
-              o2::track::TrackParCov&& outer, std::array<int, MaxClusters> cls)
-    : TrackMFT(parCov, chi2, rof, outer), mIndex{cls}
-  {
-    setNumberOfClusters(ncl);
-  }
   void setClusterIndex(int l, int i)
   {
     int ncl = getNumberOfClusters();

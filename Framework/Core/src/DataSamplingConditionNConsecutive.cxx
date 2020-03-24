@@ -65,4 +65,4 @@ std::unique_ptr<DataSamplingCondition> DataSamplingConditionFactory::createDataS
   return std::make_unique<DataSamplingConditionNConsecutive>();
 }
 
-} // namespace o2
+} // namespace o2::framework

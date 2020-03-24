@@ -57,18 +57,6 @@ class DigitizerSpec : public framework::Task
   void run(framework::ProcessingContext& ctx) final;
 
  private:
-  /// \brief helper function which will be offered as a service
-  /// \param chains Input chains
-  /// \param brname Name of the hit branch
-  /// \param sourceID ID of the source
-  /// \param entryID ID of the entry in the source
-  /// \param hits output vector of hits
-  void retrieveHits(std::vector<TChain*> const& chains,
-                    const char* brname,
-                    int sourceID,
-                    int entryID,
-                    std::vector<Hit>* hits);
-
   Bool_t mFinished = false; ///< Flag for digitization finished
   Digitizer mDigitizer;     ///< Digitizer object
   std::vector<TChain*> mSimChains;

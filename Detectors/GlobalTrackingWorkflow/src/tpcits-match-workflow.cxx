@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "GlobalTrackingWorkflow/MatchTPCITSWorkflow.h"
-#include "SimConfig/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
 

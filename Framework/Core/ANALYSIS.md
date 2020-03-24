@@ -35,7 +35,7 @@ defineDataProcessing() {
 
 > **Implementation details**: `AnalysisTask` is simply a `struct`. Since `struct` default inheritance policy is `public`, we can omit specifying it when declaring MyTask.
 >
-> `AnalysisTask` will not actually provide any virtual method, as the `adaptAnalysis` helper relyes on template argument matching to discover the properties of the task. It will come clear in the next paragraph how this allow is used to avoid the proliferation of data subscription methods.   
+> `AnalysisTask` will not actually provide any virtual method, as the `adaptAnalysis` helper relies on template argument matching to discover the properties of the task. It will come clear in the next paragraph how this allow is used to avoid the proliferation of data subscription methods.   
 
 ## Processing data
 
@@ -55,7 +55,7 @@ struct MyTask : AnalysisTask {
 };
 ```
 
-will allow you to get a per timeframe collection of tracks. You can then iterate on the tracks using the syntax:
+will allow you to get a per time frame collection of tracks. You can then iterate on the tracks using the syntax:
 
 ```cpp
 for (auto &track : tracks) {
@@ -77,7 +77,7 @@ This has the advantage that you might be able to benefit from vectorization / pa
 
 > **Implementation notes**: as mentioned before, the arguments of the process method are inspected using template argument matching. This way the system knows at compile time what data types are requested by a given `process` method and can create the relevant DPL data descriptions. 
 >
-> The distiction between `Tracks` and `Track` above is simply that one refers to the whole collection, while the second is an alias to `Tracks::iterator`.  Notice that we assume that each collection is of type `o2::soa::Table` which carries metadata about the dataOrigin and dataDescription to be used by DPL to subscribe to the associated data stream.
+> The distinction between `Tracks` and `Track` above is simply that one refers to the whole collection, while the second is an alias to `Tracks::iterator`.  Notice that we assume that each collection is of type `o2::soa::Table` which carries meta data about the dataOrigin and dataDescription to be used by DPL to subscribe to the associated data stream.
 
 ### Navigating data associations
 
@@ -89,7 +89,7 @@ void process(o2::aod::Collision const& collision, o2::aod::Tracks &tracks) {
 }
 ```
 
-the above will be called once per collision found in the timeframe, and `tracks` will allow you to iterate on all the tracks associated to the given collision.
+the above will be called once per collision found in the time frame, and `tracks` will allow you to iterate on all the tracks associated to the given collision.
 
 Alternatively, you might not require to have all the tracks at once and you could do with:
 
@@ -176,7 +176,7 @@ struct MyTask : AnalysisTask {
 };
 ```
 
-the `etaphi` object is a functor that will effectively act as a cursor which allows to populate the `EtaPhi` table. Each invokation of the functor will create a new row in the table, using the arguments as contents of the given column. By default the arguments must be given in order, but one can give them in any order by using the correct column type. E.g. in the example above:
+the `etaphi` object is a functor that will effectively act as a cursor which allows to populate the `EtaPhi` table. Each invocation of the functor will create a new row in the table, using the arguments as contents of the given column. By default the arguments must be given in order, but one can give them in any order by using the correct column type. E.g. in the example above:
 
 ```cpp
 etaphi(track::Phi(calculatePhi(track), track::Eta(calculateEta(track)));
@@ -186,7 +186,7 @@ etaphi(track::Phi(calculatePhi(track), track::Eta(calculateEta(track)));
 
 Sometimes columns are not backed by actual persisted data, but they are merely
 derived from it. For example you might want to have different representations
-(e.g. spherical, cylindrical) for a given persisten representation. You can
+(e.g. spherical, cylindrical) for a given persistent representation. You can
 do that by using the `DECLARE_SOA_DYNAMIC_COLUMN` macro.
 
 ```cpp
@@ -200,10 +200,10 @@ DECLARE_SOA_DYNAMIC_COLUMN(R2, r2, [](float x, float y) { return x*x + y+y; });
 DECLARE_SOA_TABLE(Point, "MISC", "POINT", X, Y, (R2<X,Y>));
 ```
 
-Notice how the dynamic column is defined as a standalone column and binds to X and Y
+Notice how the dynamic column is defined as a stand alone column and binds to X and Y
 only when you attach it as part of a table.
 
-### Executing a finalisation method, post run
+### Executing a finalization method, post run
 
 Sometimes it's handy to perform an action when all the data has been processed, for example executing a fit on a histogram we filled during the processing. This can be done by implementing the postRun method.
 
@@ -335,7 +335,7 @@ struct MyTask : AnalysisTask {
 ### Getting combinations (pairs, triplets, ...)
 To get combinations of distinct tracks, helper functions from `ASoAHelpers.h` can be used. Presently, there are 3 combinations policies available: strictly upper, upper and full.
 
-The number of elements in a combination is deduced from the number of arguments pased to `combinations()` call. For example, to get pairs of tracks from the same source, one must specify `tracks` table twice:
+The number of elements in a combination is deduced from the number of arguments passed to `combinations()` call. For example, to get pairs of tracks from the same source, one must specify `tracks` table twice:
 
 ```cpp
 struct MyTask : AnalysisTask {
@@ -362,7 +362,7 @@ struct MyTask : AnalysisTask {
 };
 ```
 
-It will be possible to specify a filter for a combination as a whole, and only matching combinations will be then outputed. Currently, the filter is applied to each element separately. Note that for filter version the input tables are mentioned twice, both in policy constructor and in `combinations()` call itself.
+It will be possible to specify a filter for a combination as a whole, and only matching combinations will be then output. Currently, the filter is applied to each element separately. Note that for filter version the input tables are mentioned twice, both in policy constructor and in `combinations()` call itself.
 
 ```cpp
 struct MyTask : AnalysisTask {
@@ -383,6 +383,69 @@ Additionally, `CombinationsStrictlyUpperPolicy` is applied by default if all tab
 combinations(tracks, tracks); // equivalent to combinations(CombinationsStrictlyUpperIndexPolicy(tracks, tracks));
 combinations(filter, tracks, covs); // equivalent to combinations(CombinationsFullIndexPolicy(tracks, covs), filter, tracks, covs);
 ```
+
+### Saving tables to file
+
+Produced tables can be saved to file as TTrees. This process is customized by the command line option `--keep` (of the internal-dpl-AOD-writer). **Please be aware, that the format of the `keep` option as described here is preliminary and might be changed in future.**
+
+`keep` is a comma-separated list of `DataOuputDescriptions`.
+
+`keep`
+```csh
+DataOuputDescription1,DataOuputDescription2, ...
+```
+
+Each `DataOuputDescription` is a semicolon-separated list of 4 items
+
+`DataOuputDescription`
+```csh
+table:tree:columns:file
+```
+and instructs the internal-dpl-AOD-writer, to save the columns `columns` of table `table` as TTree `tree` into files `file_x.root`, where `x` is an incremental number. The selected columns are saved as separate TBranches of TTree `tree`.
+
+By default `x` is incremented with every time frame. This behavior can be modified with the command line option `--ntfmerge`. The value of `ntfmerge` specifies the number of time frames to merge into one file. 
+
+The first item of a `DataOuputDescription` is mandatory and needs to be specified, otherwise the `DataOuputDescription` is ignored. The other three items are optional and are filled by default values if missing.
+
+The format of `table` is
+
+`table`
+```csh
+AOD/tablename/0
+```
+`tablename` is the name of the table as defined in the workflow definition.
+
+The format of `tree` is a simple string which names the TTree the table will be saved to. If `tree` is not specified then `tablename` will be used as TTree name.
+
+`columns` is a slash(/)-separated list of column names., e.g.
+
+`columns`
+```csh
+col1/col2/col3
+```
+The column names are expected to match column names of table `tablename` as defined in the respective workflow. Non-matching columns are ignored. The selected table columns are saved as separate TBranches with the same names as the corresponding table columns. If `columns` is not specified then all table columns will be saved.
+
+`file` finally specifies the base name of the files the tables are saved to. The actual file names are composed as `file`_`x`.root, where 'x' is an incremental number. If `file` is not specified the default file name is used. The default file name can be set with the command line option `--res-file`. However, if `res-file` is missing then the default file name is set to `AnalysisResults`.
+
+#### Valid example command line options
+
+```csh
+--keep AOD/UNO/0
+ # save all columns of table 'UNO' to TTree 'UNO' in files 'AnalysisResults'_x.root
+  
+--keep AOD/UNO/0::c2/c4:unoresults
+ # save columns 'c2' and 'c4' of table 'UNO' to TTree 'UNO' in files 'unoresults'_x.root
+
+--res-file myskim --ntfmerge 50 --keep AOD/UNO/0:trsel1:c1/c2,AOD/DUE/0:trsel2:c6/c7/c8
+ # save columns 'c1' and 'c2' of table 'UNO' to TTree 'trsel1' in files 'myskim'_x.root and
+ # save columns 'c6', 'c7' and 'c8' of table 'DUE' to TTree 'trsel2' in files 'myskim'_x.root.
+ # Merge 50 time frames in each file.
+  
+```
+
+#### Limitations
+
+If the provided `--keep` option contains two `DataOuputDescriptions` with equal combination of `tree` and `file` then the processing will be stopped! It is not pssible to save two trees with equal name to a given file.
 
 ### Possible ideas
 

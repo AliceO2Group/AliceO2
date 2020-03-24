@@ -106,6 +106,9 @@ class Clusterer
     mPattIdConverter.loadDictionary(fileName);
   }
 
+  void setPatterns(std::vector<o2::itsmft::ClusterTopology>* patt) { mPatterns = patt; }
+  std::vector<o2::itsmft::ClusterTopology>* getPatterns() const { return mPatterns; }
+
  private:
   void initChip(UInt_t first);
 
@@ -231,6 +234,8 @@ class Clusterer
   std::array<PixelData, Cluster::kMaxPatternBits * 2> mPixArrBuff; //! temporary buffer for pattern calc.
 
   LookUp mPattIdConverter; //! Convert the cluster topology to the corresponding entry in the dictionary.
+
+  std::vector<o2::itsmft::ClusterTopology>* mPatterns = nullptr; // Not owned
 
 #ifdef _PERFORM_TIMING_
   TStopwatch mTimer;

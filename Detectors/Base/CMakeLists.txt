@@ -25,6 +25,7 @@ o2_add_library(DetectorsBase
                                      O2::Field
                                      FairMQ::FairMQ
                                      O2::DataFormatsParameters
+				     O2::SimConfig
                                      ROOT::VMC)
 
 o2_target_root_dictionary(DetectorsBase

@@ -86,6 +86,15 @@ auto& mgr = o2::ccdb::BasicCCDBManager::instance();
 auto alignment = mgr.get<o2::FOO::GeomAlignment>("/FOO/Alignment");
 ```
 
+By default loaded object are cached in the `BasicCCDBManager` and owned by it, therefore user should not delete retrieved objects.
+If the query is done for the object which is already in the cache, its pointer is returned instead of loading again the object from the CCDB server,
+unless the validity range of the cached object does not match to requested timestamp.
+In case user wants to enforce a fresh copy loading, the cache for particular CCDB path can be cleaned by invoking `mgr.clear(<path>)`.
+One can also reset whole cache using `mgr.clear()`.
+
+Uncached mode can be imposed by invoking `mgr.setCachingEnabled(false)`, in which case every query will retrieve a new copy of object from the server and
+the user should take care himself of deleting retrieved objects to avoid memory leaks.
+
 ## Future ideas / todo:
 
 - [ ] offer improved error handling / exceptions
