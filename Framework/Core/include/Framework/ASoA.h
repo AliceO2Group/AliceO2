@@ -907,8 +907,7 @@ class Table
 
   RowViewSentinel filtered_end(SelectionVector selection)
   {
-    auto end = RowViewSentinel{static_cast<int64_t>(selection.size())};
-    return end;
+    return RowViewSentinel{static_cast<int64_t>(selection.size())};
   }
 
   unfiltered_const_iterator begin() const
