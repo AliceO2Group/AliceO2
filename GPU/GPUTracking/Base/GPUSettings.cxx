@@ -47,6 +47,7 @@ void GPUSettingsRec::SetDefaults()
   fwdTPCDigitsAsClusters = 0;
   bz0Pt = 60;
   dropLoopers = false;
+  mergerCovSource = 2;
 }
 
 void GPUSettingsEvent::SetDefaults()

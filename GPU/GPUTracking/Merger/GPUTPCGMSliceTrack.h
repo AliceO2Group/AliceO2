@@ -63,6 +63,8 @@ class GPUTPCGMSliceTrack
   GPUd() float MaxClusterT(const o2::tpc::ClusterNative* cls) { return CAMath::Max(cls[mOrigTrack->Clusters()->GetId()].getTime(), cls[(mOrigTrack->Clusters() + mOrigTrack->NClusters() - 1)->GetId()].getTime()); }
   GPUd() float MinClusterT(const o2::tpc::ClusterNative* cls) { return CAMath::Min(cls[mOrigTrack->Clusters()->GetId()].getTime(), cls[(mOrigTrack->Clusters() + mOrigTrack->NClusters() - 1)->GetId()].getTime()); }
 
+  void Set(const GPUTPCGMTrackParam& trk, const GPUTPCSliceOutTrack* sliceTr, float alpha, int slice);
+
   void Set(const GPUTPCSliceOutTrack* sliceTr, float alpha, int slice)
   {
     const GPUTPCBaseTrackParam& t = sliceTr->Param();
@@ -115,10 +117,9 @@ class GPUTPCGMSliceTrack
   }
 
   bool FilterErrors(const GPUTPCGMMerger* merger, int iSlice, float maxSinPhi = GPUCA_MAX_SIN_PHI, float sinPhiMargin = 0.f);
-
   bool TransportToX(float x, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi, bool doCov = true) const;
-
   bool TransportToXAlpha(float x, float sinAlpha, float cosAlpha, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi) const;
+  void CopyBaseTrackCov();
 
  private:
   const GPUTPCSliceOutTrack* mOrigTrack;                    // pointer to original slice track

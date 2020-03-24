@@ -78,6 +78,7 @@ struct GPUSettingsRec {
   unsigned char fwdTPCDigitsAsClusters;  // Simply forward TPC digits as clusters
   unsigned char bz0Pt;                   // Nominal Pt to set when bz = 0 (in 10 MeV)
   unsigned char dropLoopers;             // Drop all clusters after starting from the second loop from tracks
+  unsigned char mergerCovSource;         // 0 = simpleFilterErrors, 1 = use from track following
 };
 
 // Settings describing the events / time frames

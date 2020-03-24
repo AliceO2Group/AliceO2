@@ -285,6 +285,9 @@ int SetupReconstruction()
   recSet.ForceEarlyTPCTransform = configStandalone.configRec.ForceEarlyTPCTransform;
   recSet.fwdTPCDigitsAsClusters = configStandalone.configRec.fwdTPCDigitsAsClusters;
   recSet.dropLoopers = configStandalone.configRec.dropLoopers;
+  if (configStandalone.configRec.mergerCovSource != -1) {
+    recSet.mergerCovSource = configStandalone.configRec.mergerCovSource;
+  }
   if (configStandalone.referenceX < 500.) {
     recSet.TrackReferenceX = configStandalone.referenceX;
   }
