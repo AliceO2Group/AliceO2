@@ -429,6 +429,10 @@ struct IndexPolicyBase {
   uint64_t mOffset = 0;
 };
 
+struct RowViewSentinel {
+  int64_t const index;
+};
+
 struct DefaultIndexPolicy : IndexPolicyBase {
   /// Needed to be able to copy the policy
   DefaultIndexPolicy() = default;
@@ -488,6 +492,16 @@ struct DefaultIndexPolicy : IndexPolicyBase {
   bool operator==(DefaultIndexPolicy const& other) const
   {
     return O2_BUILTIN_UNLIKELY(this->mRowIndex == other.mRowIndex);
+  }
+
+  bool operator!=(RowViewSentinel const& sentinel) const
+  {
+    return O2_BUILTIN_LIKELY(this->mRowIndex != sentinel.index);
+  }
+
+  bool operator==(RowViewSentinel const& sentinel) const
+  {
+    return O2_BUILTIN_UNLIKELY(this->mRowIndex == sentinel.index);
   }
   int64_t mMaxRow = 0;
 };
@@ -552,6 +566,16 @@ struct FilteredIndexPolicy : IndexPolicyBase {
   bool operator==(FilteredIndexPolicy const& other) const
   {
     return O2_BUILTIN_UNLIKELY(mSelectionRow == other.mSelectionRow);
+  }
+
+  bool operator!=(RowViewSentinel const& sentinel) const
+  {
+    return O2_BUILTIN_LIKELY(mSelectionRow != sentinel.index);
+  }
+
+  bool operator==(RowViewSentinel const& sentinel) const
+  {
+    return O2_BUILTIN_UNLIKELY(mSelectionRow == sentinel.index);
   }
 
   /// Move iterator to one after the end. Since this is a view
@@ -849,10 +873,9 @@ class Table
         std::pair<C*, arrow::Column*>{nullptr,
                                       lookupColumn<C>()}...},
       mBegin(mColumnIndex, {table->num_rows(), offset}),
-      mEnd(mColumnIndex, {table->num_rows(), offset}),
+      mEnd{static_cast<int64_t>(table->num_rows())},
       mOffset(offset)
   {
-    mEnd.moveToEnd();
   }
 
   /// FIXME: this is to be able to construct a Filtered without explicit Join
@@ -868,9 +891,9 @@ class Table
     return unfiltered_iterator(mBegin);
   }
 
-  unfiltered_iterator end()
+  RowViewSentinel end()
   {
-    return unfiltered_iterator{mEnd};
+    return RowViewSentinel{mEnd};
   }
 
   filtered_iterator filtered_begin(SelectionVector selection)
@@ -882,10 +905,9 @@ class Table
     return filtered_iterator(mColumnIndex, {selection, mOffset});
   }
 
-  filtered_iterator filtered_end(SelectionVector selection)
+  RowViewSentinel filtered_end(SelectionVector selection)
   {
-    auto end = filtered_iterator(mColumnIndex, {selection, mOffset});
-    end.moveToEnd();
+    auto end = RowViewSentinel{static_cast<int64_t>(selection.size())};
     return end;
   }
 
@@ -894,9 +916,9 @@ class Table
     return unfiltered_const_iterator(mBegin);
   }
 
-  unfiltered_const_iterator end() const
+  RowViewSentinel end() const
   {
-    return unfiltered_const_iterator{mEnd};
+    return RowViewSentinel{mEnd};
   }
 
   /// Return a type erased arrow table backing store for / the type safe table.
@@ -917,7 +939,6 @@ class Table
   void bindExternalIndices(TA*... current)
   {
     mBegin.bindExternalIndices(current...);
-    mEnd.bindExternalIndices(current...);
   }
 
  private:
@@ -942,7 +963,7 @@ class Table
   /// Cached begin iterator for this table.
   unfiltered_iterator mBegin;
   /// Cached end iterator for this table.
-  unfiltered_iterator mEnd;
+  RowViewSentinel mEnd;
   /// Offset of the table within a larger table.
   uint64_t mOffset;
 };
@@ -1262,7 +1283,7 @@ class Filtered : public T
     : T{std::move(tables), offset},
       mSelectedRows{std::forward<SelectionVector>(selection)},
       mFilteredBegin{table_t::filtered_begin(mSelectedRows)},
-      mFilteredEnd{table_t::filtered_end(mSelectedRows)}
+      mFilteredEnd{mSelectedRows}
   {
   }
 
@@ -1270,7 +1291,7 @@ class Filtered : public T
     : T{std::move(tables), offset},
       mSelectedRows{copySelection(selection)},
       mFilteredBegin{table_t::filtered_begin(mSelectedRows)},
-      mFilteredEnd{table_t::filtered_end(mSelectedRows)}
+      mFilteredEnd{mSelectedRows}
   {
   }
 
@@ -1280,7 +1301,7 @@ class Filtered : public T
                                                                           framework::expressions::createFilter(this->asArrowTable()->schema(),
                                                                                                                framework::expressions::createCondition(tree))))},
       mFilteredBegin{table_t::filtered_begin(mSelectedRows)},
-      mFilteredEnd{table_t::filtered_end(mSelectedRows)}
+      mFilteredEnd{mSelectedRows}
   {
   }
 
@@ -1289,9 +1310,9 @@ class Filtered : public T
     return iterator(mFilteredBegin);
   }
 
-  iterator end()
+  RowViewSentinel end()
   {
-    return iterator{mFilteredEnd};
+    return RowViewSentinel{mFilteredEnd};
   }
 
   const_iterator begin() const
@@ -1299,9 +1320,9 @@ class Filtered : public T
     return const_iterator(mFilteredBegin);
   }
 
-  const_iterator end() const
+  RowViewSentinel end() const
   {
-    return const_iterator{mFilteredEnd};
+    return RowViewSentinel{mFilteredEnd};
   }
 
   int64_t size() const
@@ -1335,13 +1356,12 @@ class Filtered : public T
   {
     table_t::bindExternalIndices(current...);
     mFilteredBegin.bindExternalIndices(current...);
-    mFilteredEnd.bindExternalIndices(current...);
   }
 
  private:
   SelectionVector mSelectedRows;
   iterator mFilteredBegin;
-  iterator mFilteredEnd;
+  RowViewSentinel mFilteredEnd;
 };
 
 template <typename T>
