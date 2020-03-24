@@ -46,7 +46,7 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
   clusTree->SetBranchAddress("ITSCluster", &clusArr);
   std::vector<CompClusterExt>* compclusArr = nullptr;
   clusTree->SetBranchAddress("ITSClusterComp", &compclusArr);
-  std::map<int, o2::itsmft::ClusterPattern>* patternsPtr = nullptr;
+  std::vector<o2::itsmft::ClusterPattern>* patternsPtr = nullptr;
   auto pattBranch = clusTree->GetBranch("ITSClusterPatt");
   if (pattBranch) {
     pattBranch->SetAddress(&patternsPtr);
@@ -80,12 +80,13 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
     }
     printf("processing cluster event %d\n", ievC);
 
-    while (nc--) {
+    int pattIdx = 0;
+    for (int i = 0; i < nc; i++) {
       // cluster is in tracking coordinates always
-      Cluster& c = (*clusArr)[nc];
+      Cluster& c = (*clusArr)[i];
       const auto locC = c.getXYZLoc(*gman); // convert from tracking to local frame
 
-      CompClusterExt& cComp = (*compclusArr)[nc];
+      CompClusterExt& cComp = (*compclusArr)[i];
       Point3D<float> locComp = dict.getClusterCoordinates(cComp);
 
       float xComp = locComp.X();
@@ -106,7 +107,7 @@ void CheckCOG(std::string clusfile = "o2clus_its.root", std::string inputGeom = 
 
       if (dict.IsGroup(cComp.getPatternID())) {
         if (patternsPtr) { // Restore the full pixel pattern information from the auxiliary branch
-          auto patt = (*patternsPtr)[nc];
+          auto patt = (*patternsPtr)[pattIdx++];
           auto locCl = dict.getClusterCoordinates(cComp, patt);
           dx = (locC.X() - locCl.X()) * 10000;
           dz = (locC.Z() - locCl.Z()) * 10000;

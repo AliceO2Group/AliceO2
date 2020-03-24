@@ -18,7 +18,6 @@
 #include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITSMFT/ClusterTopology.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -111,7 +110,7 @@ void ClustererDPL::run(ProcessingContext& pc)
   std::vector<o2::itsmft::CompClusterExt> compClusters;
   std::vector<o2::itsmft::Cluster> clusters;
   std::vector<o2::itsmft::ROFRecord> clusterROframes; // To be filled in future
-  std::vector<o2::itsmft::ClusterTopology> patterns;
+  std::vector<o2::itsmft::ClusterPattern> patterns;
 
   if (mCompactClusters) {
     LOG(INFO) << "Will produce compact clusters";

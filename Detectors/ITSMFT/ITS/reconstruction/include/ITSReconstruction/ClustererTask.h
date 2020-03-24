@@ -84,7 +84,7 @@ class ClustererTask
 
   MCTruth mClsLabels;               //! MC labels
 
-  std::vector<o2::itsmft::ClusterTopology> mPatterns;
+  std::vector<o2::itsmft::ClusterPattern> mPatterns;
 
   ClassDefNV(ClustererTask, 2);
 };
