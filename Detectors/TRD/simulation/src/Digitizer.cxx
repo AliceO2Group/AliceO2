@@ -213,7 +213,6 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
   // Loop over hits
   for (const auto& hit : hits) {
     bool isDigit = false;
-    size_t labelIndex = labels.getIndexedSize();
     const int qTotal = hit.GetCharge();
     /*
       Now the real local coordinate system of the ROC
@@ -366,7 +365,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
         isDigit = true;
         auto& currentSignalData = signalMapCont[key]; // Get the old signal or make a new one if it doesn't exist
         auto& currentSignal = currentSignalData.signals;
-        currentSignalData.labelIndex = labelIndex;
+        currentSignalData.labelIndex = labels.getIndexedSize();;
         for (int tb = firstTimeBin; tb < lastTimeBin; ++tb) {
           // Apply the time response
           double timeResponse = 1;
@@ -393,8 +392,9 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
     }     // end of loop over electrons
     if (isDigit) {
       MCLabel label(hit.GetTrackID(), getEventID(), getSrcID()); // add one label if at least one digit is created
-      labels.addElement(labelIndex, label);
+      labels.addElement(labels.getIndexedSize(), label);
     }
+    LOG(INFO) << "Current label index at " << labels.getIndexedSize();
   } // end of loop over hits
   return true;
 }
