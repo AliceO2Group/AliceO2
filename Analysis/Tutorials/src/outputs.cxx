@@ -24,27 +24,43 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 
 struct DummyTask {
-  OutputObj<TH1F> pt{TH1F("pt________0123456789", "pt task1", 100, 0., 50.)};
+  OutputObj<TH1F> pt1{TH1F("pt1________0123456789", "pt task1", 100, 0., 50.)};
+  OutputObj<TH1F> pt2{TH1F("pt2________0123456789", "pt task1", 100, 0., 50.)};
+  OutputObj<TH1F> pt3{TH1F("pt3________0123456789", "pt task1", 100, 0., 50.)};
+
   void process(aod::Track const& track)
   {
-    pt->Fill(track.pt());
+    auto pt = track.pt();
+    pt1->Fill(pt);
+    pt2->Fill(pt);
+    pt3->Fill(pt);
   }
 };
 
 struct DummyTask2 {
-  OutputObj<TH1F> pt{TH1F("pt________0123456789", "pt task2", 100, 0., 50.)};
+  OutputObj<TH1F> pt1{TH1F("pt1________0123456789", "pt task2", 100, 0., 50.)};
+  OutputObj<TH1F> pt2{TH1F("pt2________0123456789", "pt task2", 100, 0., 50.)};
+  OutputObj<TH1F> pt3{TH1F("pt3________0123456789", "pt task2", 100, 0., 50.)};
 
   void process(aod::Track const& track)
   {
-    pt->Fill(track.pt());
+    auto pt = track.pt();
+    pt1->Fill(pt);
+    pt2->Fill(pt);
+    pt3->Fill(pt);
   }
 };
 
 struct DummyTask3 {
-  OutputObj<TH1F> pt{TH1F("pt________0123456789", "pt task3", 100, 0., 50.)};
+  OutputObj<TH1F> pt1{TH1F("pt1________0123456789", "pt task3", 100, 0., 50.)};
+  OutputObj<TH1F> pt2{TH1F("pt2________0123456789", "pt task3", 100, 0., 50.)};
+  OutputObj<TH1F> pt3{TH1F("pt3________0123456789", "pt task3", 100, 0., 50.)};
   void process(aod::Track const& track)
   {
-    pt->Fill(track.pt());
+    auto pt = track.pt();
+    pt1->Fill(pt);
+    pt2->Fill(pt);
+    pt3->Fill(pt);
   }
 };
 
