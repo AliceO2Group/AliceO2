@@ -273,7 +273,8 @@ ExpirationHandler::Handler LifetimeHelpers::fetchFromObjectRegistry()
 /// Enumerate entries on every invokation.
 ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const& matcher, std::string const& sourceChannel)
 {
-  auto counter = std::make_shared<int64_t>(0);
+  using counter_t = int64_t;
+  auto counter = std::make_shared<counter_t>(0);
   auto f = [matcher, counter, sourceChannel](ServiceRegistry& services, PartRef& ref, uint64_t timestamp) -> void {
     // We should invoke the handler only once.
     assert(!ref.header);
@@ -284,7 +285,7 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     dh.dataOrigin = matcher.origin;
     dh.dataDescription = matcher.description;
     dh.subSpecification = matcher.subSpec;
-    dh.payloadSize = 8;
+    dh.payloadSize = sizeof(counter_t);
     dh.payloadSerializationMethod = gSerializationMethodNone;
 
     DataProcessingHeader dph{timestamp, 1};
@@ -294,7 +295,8 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
     ref.header = std::move(header);
 
-    auto payload = rawDeviceService.device()->NewMessage(*counter);
+    auto payload = rawDeviceService.device()->NewMessage(sizeof(counter_t));
+    *(counter_t*)payload->GetData() = *counter;
     ref.payload = std::move(payload);
     (*counter)++;
   };
