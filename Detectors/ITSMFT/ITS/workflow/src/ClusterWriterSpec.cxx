@@ -11,7 +11,6 @@
 /// @file   ClusterWriterSpec.cxx
 
 #include <vector>
-#include <map>
 
 #include "TTree.h"
 
@@ -19,7 +18,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "ITSWorkflow/ClusterWriterSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITSMFT/ClusterTopology.h"
+#include "DataFormatsITSMFT/ClusterPattern.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -48,7 +47,7 @@ void ClusterWriter::run(ProcessingContext& pc)
     return;
 
   auto compClusters = pc.inputs().get<const std::vector<o2::itsmft::CompClusterExt>>("compClusters");
-  auto patterns = pc.inputs().get<const std::vector<o2::itsmft::ClusterTopology>>("patterns");
+  auto patterns = pc.inputs().get<const std::vector<o2::itsmft::ClusterPattern>>("patterns");
   auto clusters = pc.inputs().get<const std::vector<o2::itsmft::Cluster>>("clusters");
   auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
   auto* rofsPtr = &rofs;
@@ -60,13 +59,9 @@ void ClusterWriter::run(ProcessingContext& pc)
   LOG(INFO) << "ITSClusterWriter pulled " << clusters.size() << " clusters, in "
             << rofs.size() << " RO frames";
 
-  // This conversion vector -> map is just for the convenience of "offline" analyses
-  std::map<int, o2::itsmft::ClusterPattern> map;
-  o2::itsmft::ClusterTopology::makeRareTopologyMap(patterns, map);
-
   TTree tree("o2sim", "Tree with ITS clusters");
   tree.Branch("ITSClusterComp", &compClusters);
-  tree.Branch("ITSClusterPatt", &map);
+  tree.Branch("ITSClusterPatt", &patterns);
   tree.Branch("ITSCluster", &clusters);
   tree.Branch("ITSClustersROF", &rofsPtr);
 

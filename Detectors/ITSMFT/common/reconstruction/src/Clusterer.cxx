@@ -309,7 +309,6 @@ void Clusterer::finishChip(std::vector<Cluster>* fullClus, std::vector<CompClust
         colMin += round(zCOG);
         if (mPatterns) {
           mPatterns->emplace_back(rowSpan, colSpan, patt);
-          mPatterns->back().setHash(mClustersCount);
         }
       }
       compClus->emplace_back(rowMin, colMin, pattID, mChipData->getChipID());
