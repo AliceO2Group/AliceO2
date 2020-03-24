@@ -547,3 +547,123 @@ BOOST_AUTO_TEST_CASE(Combinations)
   }
   BOOST_CHECK_EQUAL(count, 6);
 }
+
+BOOST_AUTO_TEST_CASE(BreakingCombinations)
+{
+  TableBuilder builderA;
+  auto rowWriterA = builderA.persist<int32_t, int32_t>({"x", "y"});
+  rowWriterA(0, 0, 0);
+  rowWriterA(0, 1, 0);
+  rowWriterA(0, 2, 0);
+  rowWriterA(0, 3, 0);
+  rowWriterA(0, 4, 0);
+  rowWriterA(0, 5, 0);
+  rowWriterA(0, 6, 0);
+  rowWriterA(0, 7, 0);
+  auto tableA = builderA.finalize();
+  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 8);
+
+  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
+
+  TestA testsA{tableA};
+
+  BOOST_REQUIRE_EQUAL(8, testsA.size());
+  int nA = testsA.size();
+
+  int count = 0;
+  int i = 0;
+  int j = 1;
+  for (auto& [t0, t1] : combinations(testsA, testsA)) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+    j++;
+    if (j == nA) {
+      i++;
+      j = i + 1;
+    }
+    if (t0.x() == 4) {
+      continue;
+      BOOST_REQUIRE_NE(true, true);
+    }
+    BOOST_REQUIRE_NE(t0.x(), 4);
+  }
+  BOOST_CHECK_EQUAL(count, 28);
+
+  count = 0;
+  i = 0;
+  j = 1;
+  for (auto& [t0, t1] : combinations(testsA, testsA)) {
+    if (t0.x() == 4) {
+      break;
+      BOOST_REQUIRE_NE(true, true);
+    }
+    BOOST_REQUIRE(t0.x() < 4);
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+    j++;
+    if (j == nA) {
+      i++;
+      j = i + 1;
+    }
+  }
+  BOOST_CHECK_EQUAL(count, 22);
+}
+
+BOOST_AUTO_TEST_CASE(SmallTableCombinations)
+{
+  TableBuilder builderA;
+  auto rowWriterA = builderA.persist<int32_t, int32_t>({"x", "y"});
+  rowWriterA(0, 0, 0);
+  rowWriterA(0, 1, 0);
+  auto tableA = builderA.finalize();
+  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 2);
+
+  TableBuilder builderB;
+  auto rowWriterB = builderB.persist<int32_t>({"x"});
+  rowWriterB(0, 8);
+  rowWriterB(0, 9);
+  rowWriterB(0, 10);
+  auto tableB = builderB.finalize();
+  BOOST_REQUIRE_EQUAL(tableB->num_rows(), 3);
+
+  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
+  using TestB = o2::soa::Table<o2::soa::Index<>, test::X>;
+
+  TestA testsA{tableA};
+  TestB testsB{tableB};
+
+  BOOST_REQUIRE_EQUAL(2, testsA.size());
+  BOOST_REQUIRE_EQUAL(3, testsB.size());
+  int nA = testsA.size();
+  int nB = testsB.size();
+
+  int count = 0;
+  int i = 0;
+  int j = 1;
+  for (auto& [t0, t1] : combinations(testsA, testsA)) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, 1);
+
+  count = 0;
+  i = 8;
+  j = 9;
+  int k = 10;
+  for (auto& [t0, t1, t2] : combinations(testsB, testsB, testsB)) {
+    BOOST_CHECK_EQUAL(t0.x(), i);
+    BOOST_CHECK_EQUAL(t1.x(), j);
+    BOOST_CHECK_EQUAL(t2.x(), k);
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, 1);
+
+  count = 0;
+  for (auto& [t0, t1, t2] : combinations(testsA, testsA, testsA)) {
+    count++;
+  }
+  BOOST_CHECK_EQUAL(count, 0);
+}
