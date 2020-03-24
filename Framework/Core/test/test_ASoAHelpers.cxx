@@ -124,46 +124,46 @@ BOOST_AUTO_TEST_CASE(CombinationsGeneratorConstruction)
   BOOST_REQUIRE_EQUAL(12, concatTests.size());
 
   CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, TestA, TestA>::CombinationsIterator combIt(CombinationsStrictlyUpperIndexPolicy(testsA, testsA));
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(*(combIt))).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(*(combIt))).getIterator().mCurrentPos), 0);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(*(combIt))).getIterator().mCurrentChunk, 0);
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(*(combIt))).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(*(combIt))).getIterator().mCurrentPos), 1);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(*(combIt))).getIterator().mCurrentChunk, 0);
-
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<TestA::iterator>(std::get<0>(*(combIt)))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<TestA::iterator>(std::get<0>(*(combIt)))).getIterator().mCurrentPos), 0);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<TestA::iterator>(std::get<0>(*(combIt)))).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<TestA::iterator>(std::get<1>(*(combIt)))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<TestA::iterator>(std::get<1>(*(combIt)))).getIterator().mCurrentPos), 1);
+  BOOST_REQUIRE_EQUAL(std::get<RowViewSentinel>(std::get<1>(*(combIt))).index, testsA.size());
+  //static_cast<test::X>( ).getIterator().mCurrentChunk
   auto comb2 = combinations(CombinationsStrictlyUpperIndexPolicy(testsA, testsA));
 
   static_assert(std::is_same_v<decltype(comb2.begin()), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, TestA, TestA>::CombinationsIterator>, "Wrong iterator type");
   static_assert(std::is_same_v<decltype(*(comb2.begin())), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, TestA, TestA>::CombinationType&>, "Wrong combination type");
 
   auto beginCombination = *(comb2.begin());
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(beginCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(beginCombination)).getIterator().mCurrentPos), 0);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(beginCombination)).getIterator().mCurrentChunk, 0);
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(beginCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(beginCombination)).getIterator().mCurrentPos), 1);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(beginCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<TestA::iterator>(std::get<0>(beginCombination))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<TestA::iterator>(std::get<0>(beginCombination))).getIterator().mCurrentPos), 0);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<TestA::iterator>(std::get<0>(beginCombination))).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<TestA::iterator>(std::get<1>(beginCombination))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<TestA::iterator>(std::get<1>(beginCombination))).getIterator().mCurrentPos), 1);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<TestA::iterator>(std::get<1>(beginCombination))).getIterator().mCurrentChunk, 0);
 
   BOOST_REQUIRE(comb2.begin() != comb2.end());
 
   auto endCombination = *(comb2.end());
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(endCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(endCombination)).getIterator().mCurrentPos), 7);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(endCombination)).getIterator().mCurrentChunk, 0);
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(endCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(endCombination)).getIterator().mCurrentPos), 8);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(endCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<TestA::iterator>(std::get<0>(endCombination))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<TestA::iterator>(std::get<0>(endCombination))).getIterator().mCurrentPos), 7);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<TestA::iterator>(std::get<0>(endCombination))).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<TestA::iterator>(std::get<1>(endCombination))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<TestA::iterator>(std::get<1>(endCombination))).getIterator().mCurrentPos), 8);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<TestA::iterator>(std::get<1>(endCombination))).getIterator().mCurrentChunk, 0);
 
   expressions::Filter filter = test::x > 3;
   auto filtered = Filtered<TestA>{{testsA.asArrowTable()}, o2::framework::expressions::createSelection(testsA.asArrowTable(), filter)};
 
   CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, Filtered<TestA>, Filtered<TestA>>::CombinationsIterator combItFiltered(CombinationsStrictlyUpperIndexPolicy(filtered, filtered));
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(*(combItFiltered))).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(*(combItFiltered))).getIterator().mCurrentPos), 4);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(*(combItFiltered))).getIterator().mCurrentChunk, 0);
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(*(combItFiltered))).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(*(combItFiltered))).getIterator().mCurrentPos), 5);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(*(combItFiltered))).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<Filtered<TestA>::iterator>(std::get<0>(*(combItFiltered)))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<Filtered<TestA>::iterator>(std::get<0>(*(combItFiltered)))).getIterator().mCurrentPos), 4);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<Filtered<TestA>::iterator>(std::get<0>(*(combItFiltered)))).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<Filtered<TestA>::iterator>(std::get<1>(*(combItFiltered)))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<Filtered<TestA>::iterator>(std::get<1>(*(combItFiltered)))).getIterator().mCurrentPos), 5);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<Filtered<TestA>::iterator>(std::get<1>(*(combItFiltered)))).getIterator().mCurrentChunk, 0);
 
   auto comb2Filter = combinations(CombinationsStrictlyUpperIndexPolicy(testsA, testsA), filter, testsA, testsA);
 
@@ -171,22 +171,22 @@ BOOST_AUTO_TEST_CASE(CombinationsGeneratorConstruction)
   static_assert(std::is_same_v<decltype(*(comb2Filter.begin())), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, Filtered<TestA>, Filtered<TestA>>::CombinationType&>, "Wrong combination type");
 
   auto beginFilterCombination = *(comb2Filter.begin());
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(beginFilterCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(beginFilterCombination)).getIterator().mCurrentPos), 4);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(beginFilterCombination)).getIterator().mCurrentChunk, 0);
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(beginFilterCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(beginFilterCombination)).getIterator().mCurrentPos), 5);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(beginFilterCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<Filtered<TestA>::iterator>(std::get<0>(beginFilterCombination))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<Filtered<TestA>::iterator>(std::get<0>(beginFilterCombination))).getIterator().mCurrentPos), 4);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<Filtered<TestA>::iterator>(std::get<0>(beginFilterCombination))).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<Filtered<TestA>::iterator>(std::get<1>(beginFilterCombination))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<Filtered<TestA>::iterator>(std::get<1>(beginFilterCombination))).getIterator().mCurrentPos), 5);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<Filtered<TestA>::iterator>(std::get<1>(beginFilterCombination))).getIterator().mCurrentChunk, 0);
 
   BOOST_REQUIRE(comb2Filter.begin() != comb2Filter.end());
 
   auto endFilterCombination = *(comb2Filter.end());
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(endFilterCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(endFilterCombination)).getIterator().mCurrentPos), 7);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(endFilterCombination)).getIterator().mCurrentChunk, 0);
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(endFilterCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(endFilterCombination)).getIterator().mCurrentPos), -1);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(endFilterCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<Filtered<TestA>::iterator>(std::get<0>(endFilterCombination))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<Filtered<TestA>::iterator>(std::get<0>(endFilterCombination))).getIterator().mCurrentPos), 7);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<Filtered<TestA>::iterator>(std::get<0>(endFilterCombination))).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<Filtered<TestA>::iterator>(std::get<1>(endFilterCombination))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<Filtered<TestA>::iterator>(std::get<1>(endFilterCombination))).getIterator().mCurrentPos), -1);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<Filtered<TestA>::iterator>(std::get<1>(endFilterCombination))).getIterator().mCurrentChunk, 0);
 
   auto comb2Concat = combinations(CombinationsStrictlyUpperIndexPolicy(concatTests, concatTests));
 
@@ -194,24 +194,24 @@ BOOST_AUTO_TEST_CASE(CombinationsGeneratorConstruction)
   static_assert(std::is_same_v<decltype(*(comb2Concat.begin())), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, ConcatTest, ConcatTest>::CombinationType&>, "Wrong combination type");
 
   auto beginConcatCombination = *(comb2Concat.begin());
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(beginConcatCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(beginConcatCombination)).getIterator().mCurrentPos), 0);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(beginConcatCombination)).getIterator().mCurrentChunk, 0);
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(beginConcatCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(beginConcatCombination)).getIterator().mCurrentPos), 1);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(beginConcatCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<ConcatTest::iterator>(std::get<0>(beginConcatCombination))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<ConcatTest::iterator>(std::get<0>(beginConcatCombination))).getIterator().mCurrentPos), 0);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<ConcatTest::iterator>(std::get<0>(beginConcatCombination))).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<ConcatTest::iterator>(std::get<1>(beginConcatCombination))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<ConcatTest::iterator>(std::get<1>(beginConcatCombination))).getIterator().mCurrentPos), 1);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<ConcatTest::iterator>(std::get<1>(beginConcatCombination))).getIterator().mCurrentChunk, 0);
 
   BOOST_REQUIRE(comb2Concat.begin() != comb2Concat.end());
 
   // Looks that mCurrentChunk is reset to 0 if an iterator goes too far
   // (the iterators before the end() have correct chunk numbers)
   auto endConcatCombination = *(comb2Concat.end());
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(endConcatCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(endConcatCombination)).getIterator().mCurrentPos), 11);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(endConcatCombination)).getIterator().mCurrentChunk, 0);
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(endConcatCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(endConcatCombination)).getIterator().mCurrentPos), 12);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(endConcatCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<ConcatTest::iterator>(std::get<0>(endConcatCombination))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<ConcatTest::iterator>(std::get<0>(endConcatCombination))).getIterator().mCurrentPos), 11);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<ConcatTest::iterator>(std::get<0>(endConcatCombination))).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<ConcatTest::iterator>(std::get<1>(endConcatCombination))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<ConcatTest::iterator>(std::get<1>(endConcatCombination))).getIterator().mCurrentPos), 12);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<ConcatTest::iterator>(std::get<1>(endConcatCombination))).getIterator().mCurrentChunk, 0);
 
   auto comb2Diff = combinations(CombinationsFullIndexPolicy(testsA, testsB));
 
@@ -219,22 +219,22 @@ BOOST_AUTO_TEST_CASE(CombinationsGeneratorConstruction)
   static_assert(std::is_same_v<decltype(*(comb2Diff.begin())), CombinationsGenerator<CombinationsFullIndexPolicy, TestA, TestB>::CombinationType&>, "Wrong combination type");
 
   auto beginDiffCombination = *(comb2Diff.begin());
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(beginDiffCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(beginDiffCombination)).getIterator().mCurrentPos), 0);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(beginDiffCombination)).getIterator().mCurrentChunk, 0);
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(beginDiffCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(beginDiffCombination)).getIterator().mCurrentPos), 0);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(beginDiffCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<TestA::iterator>(std::get<0>(beginDiffCombination))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<TestA::iterator>(std::get<0>(beginDiffCombination))).getIterator().mCurrentPos), 0);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<TestA::iterator>(std::get<0>(beginDiffCombination))).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<TestB::iterator>(std::get<1>(beginDiffCombination))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<TestB::iterator>(std::get<1>(beginDiffCombination))).getIterator().mCurrentPos), 0);
+  BOOST_REQUIRE_EQUAL(std::get<RowViewSentinel>(std::get<1>(beginDiffCombination)).index, testsB.size());
 
   BOOST_REQUIRE(comb2Diff.begin() != comb2Diff.end());
 
   auto endDiffCombination = *(comb2Diff.end());
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(endDiffCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(endDiffCombination)).getIterator().mCurrentPos), 8);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(endDiffCombination)).getIterator().mCurrentChunk, 0);
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(endDiffCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(endDiffCombination)).getIterator().mCurrentPos), 4);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(endDiffCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<TestA::iterator>(std::get<0>(endDiffCombination))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<TestA::iterator>(std::get<0>(endDiffCombination))).getIterator().mCurrentPos), 8);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<TestA::iterator>(std::get<0>(endDiffCombination))).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<TestB::iterator>(std::get<1>(endDiffCombination))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<TestB::iterator>(std::get<1>(endDiffCombination))).getIterator().mCurrentPos), 4);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<TestB::iterator>(std::get<1>(endDiffCombination))).getIterator().mCurrentChunk, 0);
 
   // More elements required for a combination than number of elements in the table
   auto comb2Bad = combinations(CombinationsStrictlyUpperIndexPolicy(testsB, testsB, testsB, testsB, testsB));
@@ -243,22 +243,22 @@ BOOST_AUTO_TEST_CASE(CombinationsGeneratorConstruction)
   static_assert(std::is_same_v<decltype(*(comb2Bad.begin())), CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy, TestB, TestB, TestB, TestB, TestB>::CombinationType&>, "Wrong combination type");
 
   auto beginBadCombination = *(comb2Bad.begin());
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(beginBadCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(beginBadCombination)).getIterator().mCurrentPos), 0);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(beginBadCombination)).getIterator().mCurrentChunk, 0);
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(beginBadCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(beginBadCombination)).getIterator().mCurrentPos), 1);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(beginBadCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<TestB::iterator>(std::get<0>(beginBadCombination))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<TestB::iterator>(std::get<0>(beginBadCombination))).getIterator().mCurrentPos), 0);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<TestB::iterator>(std::get<0>(beginBadCombination))).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<TestB::iterator>(std::get<1>(beginBadCombination))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<TestB::iterator>(std::get<1>(beginBadCombination))).getIterator().mCurrentPos), 1);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<TestB::iterator>(std::get<1>(beginBadCombination))).getIterator().mCurrentChunk, 0);
 
   BOOST_REQUIRE(comb2Bad.begin() == comb2Bad.end());
 
   auto endBadCombination = *(comb2Bad.end());
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(endBadCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<0>(endBadCombination)).getIterator().mCurrentPos), 0);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<0>(endBadCombination)).getIterator().mCurrentChunk, 0);
-  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<1>(endBadCombination)).getIterator().mCurrentPos, nullptr);
-  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<1>(endBadCombination)).getIterator().mCurrentPos), 1);
-  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(endBadCombination)).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<TestB::iterator>(std::get<0>(endBadCombination))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<TestB::iterator>(std::get<0>(endBadCombination))).getIterator().mCurrentPos), 0);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<TestB::iterator>(std::get<0>(endBadCombination))).getIterator().mCurrentChunk, 0);
+  BOOST_REQUIRE_NE(static_cast<test::X>(std::get<TestB::iterator>(std::get<1>(endBadCombination))).getIterator().mCurrentPos, nullptr);
+  BOOST_REQUIRE_EQUAL(*(static_cast<test::X>(std::get<TestB::iterator>(std::get<1>(endBadCombination))).getIterator().mCurrentPos), 1);
+  BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<TestB::iterator>(std::get<1>(endBadCombination))).getIterator().mCurrentChunk, 0);
 }
 
 BOOST_AUTO_TEST_CASE(Combinations)

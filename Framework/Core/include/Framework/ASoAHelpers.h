@@ -40,7 +40,7 @@ void for_(F func)
 
 template <typename... Ts>
 struct CombinationsIndexPolicyBase {
-  using CombinationType = std::tuple<typename Ts::iterator...>;
+  using CombinationType = std::tuple<std::variant<typename Ts::iterator, soa::RowViewSentinel>...>;
 
   CombinationsIndexPolicyBase(const Ts&... tables) : mIsEnd(false),
                                                      mMaxOffset(tables.end()...),
@@ -143,6 +143,9 @@ struct CombinationsStrictlyUpperIndexPolicy : public CombinationsIndexPolicyBase
   }
 };
 
+template <typename... T>
+CombinationsStrictlyUpperIndexPolicy(T... tables)->CombinationsStrictlyUpperIndexPolicy<T...>;
+
 template <typename... Ts>
 struct CombinationsFullIndexPolicy : public CombinationsIndexPolicyBase<Ts...> {
   CombinationsFullIndexPolicy(const Ts&... tables) : CombinationsIndexPolicyBase<Ts...>(tables...) {}
@@ -177,12 +180,15 @@ struct CombinationsFullIndexPolicy : public CombinationsIndexPolicyBase<Ts...> {
   }
 };
 
+template <typename... T>
+CombinationsFullIndexPolicy(T... tables)->CombinationsFullIndexPolicy<T...>;
+
 /// @return next combination of rows of tables.
 /// FIXME: move to coroutines once we have C++20
 template <template <typename...> typename P, typename... Ts>
 struct CombinationsGenerator {
  public:
-  using CombinationType = std::tuple<typename Ts::iterator...>;
+  using CombinationType = std::tuple<std::variant<typename Ts::iterator, soa::RowViewSentinel>...>;
 
   struct CombinationsIterator : public std::iterator<std::forward_iterator_tag, CombinationType>, public P<Ts...> {
    public:
