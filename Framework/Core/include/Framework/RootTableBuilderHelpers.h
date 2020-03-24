@@ -53,6 +53,20 @@ struct TreeReaderValueTraits<TTreeReaderArray<VALUE>> {
   using ArrowType = arrow::ListType;
 };
 
+template <typename T>
+struct ReaderHolder {
+  using Reader = TTreeReaderValue<T>;
+  using Type = T;
+  std::unique_ptr<Reader> reader;
+};
+
+template <typename T, int N>
+struct ReaderHolder<T[N]> {
+  using Reader = TTreeReaderArray<T>;
+  using Type = T (&)[N];
+  std::unique_ptr<Reader> reader;
+};
+
 struct ValueExtractor {
   template <typename T>
   static T deref(TTreeReaderValue<T>& rv)
@@ -64,6 +78,18 @@ struct ValueExtractor {
   static std::pair<typename TTreeReaderArray<T>::iterator, typename TTreeReaderArray<T>::iterator> deref(TTreeReaderArray<T>& rv)
   {
     return std::make_pair(rv.begin(), rv.end());
+  }
+
+  template <typename T>
+  static T deref(ReaderHolder<T>& holder)
+  {
+    return **holder.reader;
+  }
+
+  template <typename T, int N>
+  static T* deref(ReaderHolder<T[N]>& holder)
+  {
+    return &((*holder.reader)[0]);
   }
 };
 
@@ -87,6 +113,30 @@ struct Remap64Bit<uint64_t> {
   using type = ULong64_t;
 };
 
+template <typename T>
+struct HolderMaker {
+  static decltype(auto) make(TTreeReader& reader, char const* branchName)
+  {
+    using Reader = TTreeReaderValue<T>;
+    return ReaderHolder<T>{std::move(std::make_unique<Reader>(reader, branchName))};
+  }
+};
+
+template <typename T, int N>
+struct HolderMaker<T[N]> {
+  static decltype(auto) make(TTreeReader& reader, char const* branchName)
+  {
+    using Reader = TTreeReaderArray<T>;
+    return ReaderHolder<T[N]>{std::move(std::make_unique<Reader>(reader, branchName))};
+  }
+};
+
+//template <typename T>
+//decltype(auto) makeHolder(TTreeReader &reader, char const*branchName) {
+//  using Reader = TTreeArrayReader<T>;
+//  return ReaderHolder<Reader, N>{std::move(std::make_unique<Reader>(reader, branchName))};
+//}
+
 template <typename C>
 struct ColumnReaderTrait {
   using Reader = TTreeReaderValue<typename Remap64Bit<typename C::type>::type>;
@@ -107,6 +157,19 @@ struct RootTableBuilderHelpers {
     reader.Restart();
     while (reader.Next()) {
       filler(0, ValueExtractor::deref(values)...);
+    }
+  }
+
+  template <typename... TTREEREADERVALUE>
+  static void convertTTree(TableBuilder& builder,
+                           TTreeReader& reader,
+                           ReaderHolder<TTREEREADERVALUE>&... holders)
+  {
+    std::vector<std::string> branchNames = {holders.reader->GetBranchName()...};
+    auto filler = builder.preallocatedPersist<typename std::decay_t<decltype(holders)>::Type...>(branchNames, reader.GetEntries(true));
+    reader.Restart();
+    while (reader.Next()) {
+      filler(0, ValueExtractor::deref(holders)...);
     }
   }
 
